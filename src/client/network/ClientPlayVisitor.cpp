@@ -1785,6 +1785,12 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 const auto& p = pkt;
                 const BlockPos pos = BlockPos::fromLong(p.blockPosPacked);
                 m_app._handleWorldEvent(p.type, pos.x, pos.y, pos.z, p.data);
+                // TODO: 客户端目前不区分 globalEvent 标志，统一走 _handleWorldEvent。
+                //   原版客户端收到 globalEvent=true 的 LevelEvent 后，对 1023/1028/1038 三个全局事件
+                //   计算"相机到事件方向2格处"的位置播放本地声音，使全服玩家无论距离远近都能听到。
+                //   需扩展 _handleWorldEvent 签名以传入 globalEvent 标志，并在 switch 中补齐
+                //   case 1023 (WITHER_SPAWN_SOUND)、case 1028 (DRAGON_DEATH_SOUND)、
+                //   case 1038 (END_PORTAL_SPAWN_SOUND)。
                 return Result<void>::ok();
             }
             // ---- 实体状态事件（旧 onEntityStatus，switch 主体迁入）----
@@ -2550,6 +2556,28 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 const auto& p = pkt;
                 spdlog::warn("SectionBlocksUpdate count={} received but client multi-block update not implemented",
                     p.blockStates.size());
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::PlayerCombatEnter>) {
+                // 1.21.11 ClientboundPlayerCombatEnterPacket：客户端进入战斗状态。
+                // vanilla ClientPacketListener.handlePlayerCombatEnter：重置本地战斗计时器。
+                // TODO: 接入客户端战斗状态机（CombatTracker 客户端镜像），当前仅记日志。
+                spdlog::info("PlayerCombatEnter received: entering combat state");
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::PlayerCombatEnd>) {
+                // 1.21.11 ClientboundPlayerCombatEndPacket：客户端结束战斗状态。
+                // vanilla ClientPacketListener.handlePlayerCombatEnd：duration 用于统计，清空战斗状态。
+                const auto& p = pkt;
+                spdlog::info("PlayerCombatEnd received: combat ended (duration={})", p.duration);
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::PlayerCombatKill>) {
+                // 1.21.11 ClientboundPlayerCombatKillPacket：驱动客户端死亡画面（DeathScreen）。
+                // vanilla ClientPacketListener.handlePlayerCombatKill：若 playerId == 本地玩家，
+                //   则切换到 DeathScreen 并显示 message；否则忽略。
+                const auto& p = pkt;
+                const std::string deathMessage = ::mc::text::componentNbtBytesToPlainText(p.message);
+                spdlog::info("PlayerCombatKill received: playerId={} message=\"{}\"", p.playerId, deathMessage);
+                // TODO: 切换到 DeathScreen 并显示死亡消息。当前 DeathScreen 未接入，
+                //       仅记录日志，待死亡画面 UI 落地后补。
                 return Result<void>::ok();
             }
             // ---- 默认：未处理包静默忽略 ----

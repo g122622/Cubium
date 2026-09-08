@@ -30,6 +30,7 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/WorldEvents.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockState.hpp"
 #include "../../../world/block/BlockTags.hpp"
@@ -845,9 +846,11 @@ void WitherEntity::_explodeOnSpawn()
         this   // 爆炸源
     );
 
-    // 播放全局音效
-    // 这需要通过世界广播给所有玩家
-    playSound(SoundEvents::ENTITY_WITHER_SPAWN, 1.0f, 1.0f);
+    // 对齐原版: this.level().globalLevelEvent(1023, this.blockPosition(), 0)
+    // 凋灵生成音效全服跨维度广播，受 GameRules.GLOBAL_SOUND_EVENTS 门控。
+    const BlockPos blockPos(
+        static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+    worldPtr->globalLevelEvent(world::WorldEvents::WITHER_SPAWN_SOUND, blockPos, 0);
 }
 
 void WitherEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)

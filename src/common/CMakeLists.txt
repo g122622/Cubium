@@ -600,6 +600,7 @@ add_library(mc_common STATIC
     item/items/special/StickItems.cpp
     item/items/special/SpawnEggItem.cpp
     item/items/special/BrushItem.cpp
+    item/items/special/EnderEyeItem.cpp
 
     # Item - Trial Items
     item/items/trial/BreezeRodItem.cpp

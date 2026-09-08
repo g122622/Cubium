@@ -23,9 +23,9 @@
 
 #include "EnderEyeItem.hpp"
 #include "common/core/Types.hpp"
-#include "common/item/context/ItemUseContext.hpp"
-#include "common/item/core/ActionResult.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -33,19 +33,16 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/end/EndPortalFrameBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/state/pattern/BlockInWorld.hpp"
 #include "common/world/block/state/pattern/BlockPattern.hpp"
 #include "common/world/block/state/pattern/BlockPatternBuilder.hpp"
 
 #include <memory>
-#include <string>
-#include <utility>
 
 namespace mc {
 namespace item::items {
-
-std::unique_ptr<blockpattern::BlockPattern> EnderEyeItem::s_portalShape;
 
 EnderEyeItem::EnderEyeItem(ItemProperties properties)
     : Item(std::move(properties))
@@ -53,101 +50,97 @@ EnderEyeItem::EnderEyeItem(ItemProperties properties)
 
 ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
 {
-    // 参考: net.minecraft.world.item.EnderEyeItem#useOn
-    // 仅当点击的是末地传送门框架且 EYE=false 时生效：
-    //   1. 设 EYE=true，pushEntitiesUp（框架升高 13/16→1.0，把上方实体顶起）
-    //   2. 播放末影之眼放入框架的事件（levelEvent 1503）
-    //   3. 用 BlockPattern 检测完整传送门图案，若匹配则在内部 3×3 区域生成 end_portal 方块
-    // 注：物品消耗不在本方法内执行（对齐 Java 版 useOn 不调 stack.shrink）。
-    //   消耗由上层 SimulatedPlayer::useItemOnBlock 在 onItemUse 返回 Success 后统一对权威槽
-    //   shrink(1) 回写完成（SimulatedPlayer.cpp:400-408）。本方法返回 Success 即触发该消耗。
-
+    // 对应 MC Java: EnderEyeItem.useOn()
+    //
+    // 1. 检查目标方块是否为 END_PORTAL_FRAME 且 !hasEye
+    // 2. 若是：设置 EYE=true（setBlockState flags=2），播放 levelEvent(1503)（END_PORTAL_FRAME_FILL）
+    // 3. 消耗物品（非创造模式，shrink(1)）
+    // 4. 调用 EndPortalFrameBlock::getOrCreatePortalShape().find() 检测 12 框架
+    // 5. 若匹配：在内部 3×3 区域放置 END_PORTAL 方块并广播 globalLevelEvent(1038, centerPos, 0)
     const BlockPos& pos = context.blockPos();
     IWorld& world = const_cast<IWorld&>(context.world());
     const BlockState* statePtr = world.getBlockState(pos);
 
-    // 非末地传送门框架或已有眼 → 传递（PASS）
-    if (statePtr == nullptr || !statePtr->is(VanillaBlocks::END_PORTAL_FRAME) ||
-        statePtr->get(BlockStateProperties::EYE())) {
-        return ActionResultType::Pass;
+    if (statePtr == nullptr) {
+        return ActionResultType::Fail;
     }
 
-    // 设 EYE=true 并推起上方实体（框架高度从 13/16 升至 1.0）
+    // 检查目标是否为末地传送门框架方块
+    const Block& block = statePtr->owner();
+    auto* frameBlock = dynamic_cast<const blocks::EndPortalFrameBlock*>(&block);
+    if (frameBlock == nullptr) {
+        return ActionResultType::Fail;
+    }
+
+    // 已经有眼则不再处理
+    if (frameBlock->hasEye(*statePtr)) {
+        return ActionResultType::Fail;
+    }
+
+    // 设置含眼状态：EYE=true
+    // 对应 MC Java: level.setBlock(blockpos, blockstate.setValue(HAS_EYE, true), 2);
     const BlockState& newState = statePtr->with(BlockStateProperties::EYE(), true);
-    Block::pushEntitiesUp(*statePtr, newState, world, pos);
     world.setBlockState(pos, &newState, 2);
 
-    // TODO: 红石比较器模拟信号输出（updateNeighbourForOutputSignal）暂未实现，跳过。
-    //   放入末影之眼后框架的模拟信号输出从 0 变为 15，需通知相邻比较器更新。
-    //   待红石比较器模拟信号检测链路完善后补全。
-
-    // 播放末影之眼放入框架的事件（levelEvent 1503）
+    // 播放框架填充音效/粒子事件（事件 1503）
+    // 对应 MC Java: level.levelEvent(1503, blockpos, 0);
     world.playEvent(world::WorldEvents::END_PORTAL_FRAME_FILL, pos, 0);
 
-    // 检测完整传送门图案，若匹配则在内部 3×3 区域生成 end_portal 方块
-    blockpattern::BlockPattern& portalShape = getOrCreatePortalShape();
-    auto match = portalShape.find(world, pos);
-    if (match.has_value()) {
-        // match.frontTopLeft() 是图案左上角（角落 ? 位置），
-        // 内部 3×3 传送门区域从 frontTopLeft.offset(-3, 0, -3) 开始。
-        // 参考 Java: blockpatternmatch.getFrontTopLeft().offset(-3, 0, -3)
-        BlockPos topLeft = match->frontTopLeft().west(3).north(3);
+    // 消耗物品（非创造模式）
+    Player* player = context.player();
+    const bool isCreative = (player != nullptr && player->isCreative());
+    if (!isCreative) {
+        const_cast<ItemStack&>(context.itemStack()).shrink(1);
+    }
 
-        const BlockState* endPortal = nullptr;
-        if (VanillaBlocks::END_PORTAL != nullptr) {
-            endPortal = &VanillaBlocks::END_PORTAL->defaultState();
-        }
-
-        if (endPortal != nullptr) {
-            for (i32 dx = 0; dx < 3; ++dx) {
-                for (i32 dz = 0; dz < 3; ++dz) {
-                    BlockPos portalPos = topLeft.east(dx).south(dz);
-                    world.setBlockState(portalPos, endPortal, 2);
+    // 检测 12 框架是否全部含眼，形成完整传送门
+    // 对应 MC Java 1.21.11:
+    //   BlockPattern.BlockPatternMatch match = EndPortalFrameBlock.getOrCreatePortalShape().find(level, blockpos);
+    //   if (match != null) {
+    //       BlockPos blockpos1 = match.getFrontTopLeft().offset(-3, 0, -3);
+    //       for (int i = 0; i < 3; i++) {
+    //           for (int j = 0; j < 3; j++) {
+    //               BlockPos blockpos2 = blockpos1.offset(i, 0, j);
+    //               level.destroyBlock(blockpos2, true, null);
+    //               level.setBlock(blockpos2, Blocks.END_PORTAL.defaultBlockState(), 2);
+    //           }
+    //       }
+    //       level.globalLevelEvent(1038, blockpos1.offset(1, 0, 1), 0);
+    //   }
+    //
+    // 注意：MC Java 用 getFrontTopLeft().offset(-3, 0, -3) 硬编码世界坐标偏移，
+    // 这依赖于 frontTopLeft 始终位于传送门区域的西北角（即 forwards=SOUTH, up=UP 的匹配方向）。
+    // Cubium 的 find() 遍历所有方向组合，frontTopLeft 的语义可能因匹配方向不同而变化，
+    // 因此这里改用方向无关的 getBlock() 获取传送门 3×3 区域的精确位置。
+    // 模式布局 "?vvv?" / ">???<" / ">???<" / ">???<" / "?^^^?"，
+    // 传送门内部 3×3 区域对应模式坐标 (width=1..3, height=1..3, depth=0)。
+    const auto portalShape = blocks::EndPortalFrameBlock::getOrCreatePortalShape();
+    if (portalShape != nullptr) {
+        auto match = portalShape->find(world, pos);
+        if (match.has_value()) {
+            const BlockState* endPortalState = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+            if (endPortalState != nullptr) {
+                // 传送门 3×3 区域：模式坐标 (width=1+i, height=1+j, depth=0)
+                for (i32 i = 0; i < 3; ++i) {
+                    for (i32 j = 0; j < 3; ++j) {
+                        const BlockPos portalPos = match->getBlock(1 + i, 1 + j, 0).pos();
+                        // TODO: 对齐 MC Java level.destroyBlock(portalPos, true, null) —
+                        //   放置 END_PORTAL 前需先销毁该位置的方块（掉落物 + 移除）。
+                        //   Cubium 目前缺少 destroyBlock 等价接口，暂直接覆盖放置。
+                        world.setBlockState(portalPos, endPortalState, 2);
+                    }
                 }
             }
-        }
 
-        // 播放末地传送门生成音效（globalLevelEvent 1038）
-        // TODO: globalLevelEvent 暂未在 IWorld 实现，使用 playEvent 替代。
-        world.playEvent(world::WorldEvents::END_PORTAL_SPAWN_SOUND, topLeft.east(1).south(1), 0);
+            // 广播末地传送门激活音效（全服跨维度）
+            // 对应 MC Java: level.globalLevelEvent(1038, blockpos1.offset(1, 0, 1), 0);
+            // 事件位置为传送门 3×3 区域的中心。
+            const BlockPos centerPos = match->getBlock(2, 2, 0).pos();
+            world.globalLevelEvent(world::WorldEvents::END_PORTAL_SPAWN_SOUND, centerPos, 0);
+        }
     }
 
     return ActionResultType::Success;
-}
-
-blockpattern::BlockPattern& EnderEyeItem::getOrCreatePortalShape()
-{
-    // 参考: net.minecraft.world.level.block.EndPortalFrameBlock#getOrCreatePortalShape
-    // 图案为 5×5 单层（aisle 传入单字符串数组，对应一层深度）：
-    //   ? v v v ?      v = 框架(FACING=NORTH, HAS_EYE=true)
-    //   > ? ? ? <      > = 框架(FACING=WEST,  HAS_EYE=true)
-    //   > ? ? ? <      < = 框架(FACING=EAST,  HAS_EYE=true)
-    //   > ? ? ? <      ? = 任意方块（角落与内部区域）
-    //   ? ^ ^ ^ ?      ^ = 框架(FACING=SOUTH, HAS_EYE=true)
-    // 注：字符串中 ? 用 \? 转义，避免 "??" 被 C++ 解析为 trigraph。
-    if (s_portalShape == nullptr) {
-        s_portalShape = blockpattern::BlockPatternBuilder::start()
-                            .aisle({"?vvv?", ">\?\?\?<", ">\?\?\?<", ">\?\?\?<", "?^^^?"})
-                            .where('?', blockpattern::BlockInWorld::hasState([](const BlockState&) { return true; }))
-                            .where('^', blockpattern::BlockInWorld::hasState([](const BlockState& s) {
-                                return s.is(VanillaBlocks::END_PORTAL_FRAME) && s.get(BlockStateProperties::EYE()) &&
-                                    s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::South;
-                            }))
-                            .where('>', blockpattern::BlockInWorld::hasState([](const BlockState& s) {
-                                return s.is(VanillaBlocks::END_PORTAL_FRAME) && s.get(BlockStateProperties::EYE()) &&
-                                    s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::West;
-                            }))
-                            .where('v', blockpattern::BlockInWorld::hasState([](const BlockState& s) {
-                                return s.is(VanillaBlocks::END_PORTAL_FRAME) && s.get(BlockStateProperties::EYE()) &&
-                                    s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::North;
-                            }))
-                            .where('<', blockpattern::BlockInWorld::hasState([](const BlockState& s) {
-                                return s.is(VanillaBlocks::END_PORTAL_FRAME) && s.get(BlockStateProperties::EYE()) &&
-                                    s.get(BlockStateProperties::HORIZONTAL_FACING()) == Direction::East;
-                            }))
-                            .build();
-    }
-    return *s_portalShape;
 }
 
 } // namespace item::items

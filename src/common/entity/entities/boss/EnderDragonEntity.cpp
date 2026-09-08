@@ -786,14 +786,11 @@ void EnderDragonEntity::_onDeathUpdate()
     //         serverlevel.globalLevelEvent(1028, this.blockPosition(), 0);
     //     }
     if (worldPtr != nullptr && m_deathTicks == 1 && !isSilent()) {
-        // Cubium 没有 globalLevelEvent，使用 playEvent 广播世界事件 1028（DRAGON_DEATH_SOUND）
-        // 给附近的客户端；同时通过 playSound 显式播放末影龙死亡音效以确保声音实际触发。
+        // 对齐原版: serverlevel.globalLevelEvent(1028, this.blockPosition(), 0)
+        // 受 GameRules.GLOBAL_SOUND_EVENTS 门控，全服跨维度广播末影龙死亡音效。
         const BlockPos blockPos(
             static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
-        worldPtr->playEvent(world::WorldEvents::DRAGON_DEATH_SOUND, blockPos, 0);
-        // 龙死亡音效音量较大，使其能在更远距离听到（近似 MC 的全局广播）
-        worldPtr->playSound(
-            SoundEvents::ENTITY_ENDER_DRAGON_DEATH, sound::SoundCategory::Hostile, position(), 5.0f, 1.0f);
+        worldPtr->globalLevelEvent(world::WorldEvents::DRAGON_DEATH_SOUND, blockPos, 0);
     }
 
     // 死亡动画期间缓慢上升

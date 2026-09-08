@@ -414,6 +414,28 @@ public:
     }
 
     /**
+     * @brief 全局世界事件广播
+     *
+     * 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+     * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
+     * 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
+     *   - 同维度且距离<32格：使用真实事件位置
+     *   - 同维度且距离>=32格：钳制到距玩家32格方向
+     *   - 不同维度：使用玩家自身位置
+     * 构造 globalEvent=true 的 LevelEvent 包逐玩家发送。
+     * 若规则为 false，降级为普通 playEvent（64格范围）。
+     *
+     * @param eventId 事件ID
+     * @param pos 事件位置
+     * @param data 事件数据
+     */
+    virtual void globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
+    {
+        // TODO: 默认实现降级为普通 playEvent（对齐原版 GLOBAL_SOUND_EVENTS=false 时的降级行为）
+        playEvent(eventId, pos, data);
+    }
+
+    /**
      * @brief 设置方块破坏进度动画
      *
      * 向客户端广播方块破坏进度动画。

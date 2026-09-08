@@ -753,6 +753,52 @@ inline void writeOptionalComponentNbt(B& buf, const std::vector<u8>& nbt)
         });
 }
 
+// ============================================================================
+// 玩家战斗（S→C，1.21.11 共 3 包）
+// ============================================================================
+
+/// PlayerCombatEnter（S→C，id=65）
+/// 对齐 vanilla ClientboundPlayerCombatEnterPacket：无负载（INSTANCE 单例）。
+[[nodiscard]] inline auto playerCombatEnterCodec()
+{
+    return makeCodec<ir::play::PlayerCombatEnter>(
+        []([[maybe_unused]] B& buf, [[maybe_unused]] const ir::play::PlayerCombatEnter& v) {
+            // 无负载：vanilla STREAM_CODEC = StreamCodec.unit(INSTANCE)
+        },
+        []([[maybe_unused]] B& buf) -> Result<ir::play::PlayerCombatEnter> { return ir::play::PlayerCombatEnter{}; });
+}
+
+/// PlayerCombatEnd（S→C，id=64）
+/// 对齐 vanilla ClientboundPlayerCombatEndPacket：VarInt(duration)。
+[[nodiscard]] inline auto playerCombatEndCodec()
+{
+    return makeCodec<ir::play::PlayerCombatEnd>(
+        [](B& buf, const ir::play::PlayerCombatEnd& v) { buf.writeVarInt(v.duration); },
+        [](B& buf) -> Result<ir::play::PlayerCombatEnd> {
+            ir::play::PlayerCombatEnd v{};
+            MC_TRY_ASSIGN(v.duration, buf.readVarInt());
+            return v;
+        });
+}
+
+/// PlayerCombatKill（S→C，id=66）
+/// 对齐 vanilla ClientboundPlayerCombatKillPacket：VarInt(playerId) + Component(message)。
+/// message 为 Component NBT wire 字节（自定界，对齐 ComponentSerialization.TRUSTED_STREAM_CODEC）。
+[[nodiscard]] inline auto playerCombatKillCodec()
+{
+    return makeCodec<ir::play::PlayerCombatKill>(
+        [](B& buf, const ir::play::PlayerCombatKill& v) {
+            buf.writeVarInt(v.playerId);
+            writeComponentNbt(buf, v.message);
+        },
+        [](B& buf) -> Result<ir::play::PlayerCombatKill> {
+            ir::play::PlayerCombatKill v{};
+            MC_TRY_ASSIGN(v.playerId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.message, readComponentNbt(buf));
+            return v;
+        });
+}
+
 /// SetTitlesAnimation（S→C，id=113）
 [[nodiscard]] inline auto setTitlesAnimationCodec()
 {

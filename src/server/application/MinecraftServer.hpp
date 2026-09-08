@@ -929,6 +929,26 @@ protected:
     void broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
 
     /**
+     * @brief 广播全局世界事件给全服玩家（跨维度）
+     *
+     * 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+     * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
+     * 遍历全服所有玩家，对每个玩家计算事件位置：
+     *   - 同维度且距离<32格：使用真实事件位置
+     *   - 同维度且距离>=32格：钳制到距玩家32格方向
+     *   - 不同维度：使用玩家自身位置
+     * 构造 globalEvent=true 的 LevelEvent 包逐玩家发送。
+     * 若规则为 false，降级为普通 broadcastWorldEventInRange（64格范围）。
+     *
+     * @param eventId 事件ID
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @param data 事件数据
+     */
+    void broadcastGlobalLevelEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+
+    /**
      * @brief 广播世界事件给指定范围内的玩家
      *
      * @param eventId 事件ID

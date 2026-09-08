@@ -72,6 +72,18 @@ public:
     void reset();
 
     /**
+     * @brief 重新检查战斗状态（对齐 vanilla CombatTracker.recheckStatus）
+     *
+     * 检查战斗是否超时（战斗中 300 tick / 非战斗中 100 tick）或实体已死亡，
+     * 若是则结束战斗状态并清空战斗条目。与 reset() 逻辑一致，但语义上是
+     * "重新检查"而非"强制重置"——reset() 由 trackDamage 在记录新伤害前调用，
+     * recheckStatus() 由 die()/tick() 在战斗结束后周期性调用以清理过期数据。
+     *
+     * 对齐 MC Java 1.21.11 CombatTracker.recheckStatus（CombatTracker.java:145-158）。
+     */
+    void recheckStatus();
+
+    /**
      * @brief 获取最近的伤害来源
      * @return 最近的战斗条目，没有则返回nullptr
      */

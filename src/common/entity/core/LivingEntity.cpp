@@ -42,11 +42,13 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
@@ -677,6 +679,16 @@ f32 LivingEntity::computeFinalDamage(DamageSource& source, f32 damage)
     return damage;
 }
 
+LivingEntity* LivingEntity::getKillCredit()
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.getKillCredit（LivingEntity.java:1886-1892）：
+    //   if (this.lastHurtByPlayer != null) return this.lastHurtByPlayer.getEntity(...);
+    //   else return this.lastHurtByMob != null ? ... : null;
+    // Cubium 没有 lastHurtByPlayer 实体引用，改用 CombatTracker::getBestAttacker()——
+    // 这与原版 ServerPlayer.die 中 awardKillScore 的取值来源一致。
+    return m_combatTracker.getBestAttackerLiving();
+}
+
 void LivingEntity::die(DamageSource& cause)
 {
     if (!isDead()) {
@@ -700,8 +712,10 @@ void LivingEntity::die(DamageSource& cause)
     // 以下按原版顺序补全，Cubium 暂未实现的部分加 TODO 标注，不阻塞主死亡链路。
 
     // 1. getKillCredit → awardKillScore（LivingEntity.java:1433-1435）
-    // TODO: Cubium 暂未实现 getKillCredit() 与 awardKillScore()。
-    //       击杀记分需补 CombatTracker::getBestAttacker() 取击杀者 + Scoreboard 准则递增。
+    LivingEntity* killCredit = getKillCredit();
+    if (killCredit != nullptr) {
+        killCredit->awardKillScore(*this, cause);
+    }
 
     // 2. stopSleeping（LivingEntity.java:1438-1439）
     // TODO: isSleeping()/stopSleeping() 在 Cubium 中仅 Player 子类实现，
@@ -720,7 +734,8 @@ void LivingEntity::die(DamageSource& cause)
     //    Cubium 以 m_removed 语义承载，isDead() 由 health<=0 判定，此处无需额外标记。
 
     // 6. getCombatTracker().recheckStatus()（LivingEntity.java:1448）
-    // TODO: CombatTracker 未实现 recheckStatus()，待补该方法（重新计算最佳伤害条目并标记战斗结束）。
+    //    对齐 vanilla：死亡时重新检查战斗状态，结束战斗并清空过期条目。
+    m_combatTracker.recheckStatus();
 
     // 7. killedEntity 守卫内：gameEvent(ENTITY_DIE) + dropAllDeathLoot + createWitherRose
     //    （LivingEntity.java:1449-1454）
@@ -735,7 +750,8 @@ void LivingEntity::die(DamageSource& cause)
         dropAllDeathLoot(cause);
 
         // createWitherRose（LivingEntity.java:1453）
-        // TODO: Cubium 未实现 createWitherRose()，待补凋零玫瑰生成逻辑。
+        // 对齐 vanilla：若击杀者为凋灵，在死亡位置生成凋零玫瑰方块或掉落凋零玫瑰物品。
+        createWitherRose(killCredit);
 
         // 8. broadcastEntityState((byte)3)（LivingEntity.java:1456）
         //    服务端广播 EntityEvent(Death=3)，客户端收到后启动死亡倒地动画。
@@ -750,6 +766,64 @@ void LivingEntity::die(DamageSource& cause)
 
     // 9. setPose(Pose.DYING)（LivingEntity.java:1459）
     setPose(EntityPose::Dying);
+}
+
+void LivingEntity::createWitherRose(LivingEntity* killCredit)
+{
+    // 对齐 MC Java 1.21.11 LivingEntity.createWitherRose（LivingEntity.java:1463-1482）。
+    // 仅当击杀者为凋灵（WitherBoss）时触发凋零玫瑰生成逻辑。
+    //  - 若 MOB_GRIEFING 游戏规则开启，且死亡位置方块为空气且凋零玫瑰可存活，
+    //    则在该位置放置凋零玫瑰方块（flags=3）。
+    //  - 否则（未放置方块，即 MOB_GRIEFING 关闭或位置不满足条件），
+    //    在死亡位置掉落一个凋零玫瑰物品实体。
+    //
+    // 注意：Cubium 的 WitherRoseBlock 未重写 isValidPosition（对应原版 canSurvive），
+    //       默认实现恒返回 true，因此 canSurvive 检查在此处不会产生过滤效果。
+    //       这与原版凋零玫瑰需要在特定方块（灵魂沙/草方块等）上才能存活的语义存在偏差。
+    // TODO: 待 WitherRoseBlock 实现 canSurvive 重写后，此处的 isValidPosition 检查将生效。
+
+    // 原版 createWitherRose 无 m_world 守卫（仅判定 level instanceof ServerLevel），
+    // Cubium 用成员 m_world，入口处判空避免解引用崩溃。
+    if (m_world == nullptr || killCredit == nullptr) {
+        return;
+    }
+
+    // 对齐原版 instanceof WitherBoss：通过 entityType 判定凋灵。
+    if (killCredit->entityType() != entity::VanillaEntityTypeKeys::WITHER) {
+        return;
+    }
+
+    bool placed = false;
+
+    // MOB_GRIEFING 游戏规则守卫。
+    if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        // blockPosition() 等价物：实体所在方块坐标。
+        BlockPos blockPos(
+            static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+
+        const BlockState* currentState = m_world->getBlockState(blockPos);
+        // 对齐原版：getBlockState(blockpos).isAir() && blockstate.canSurvive(level, blockpos)
+        if (currentState != nullptr && currentState->isAir()) {
+            const BlockState& witherRoseState = VanillaBlocks::WITHER_ROSE->defaultState();
+            // isValidPosition 对应原版 canSurvive。
+            if (VanillaBlocks::WITHER_ROSE->isValidPosition(
+                    witherRoseState, static_cast<IBlockReader&>(*m_world), blockPos)) {
+                // setBlock(pos, blockstate, 3)：flags=3 即 NOTIFY(1)|SYNC_CLIENT(2)。
+                m_world->setBlockState(blockPos, &witherRoseState, 3);
+                placed = true;
+            }
+        }
+    }
+
+    // 对齐原版：若未放置方块，掉落一个凋零玫瑰物品实体。
+    if (!placed) {
+        // 对齐原版 new ItemStack(Items.WITHER_ROSE)。
+        // 注意：Cubium 的 ItemDropHelper::spawnItemEntity 需要随机数生成器，
+        //       此处用实体自带的 getRandom()（成员 m_random）。
+        ItemStack witherRoseStack(*Items::WITHER_ROSE, 1);
+        ItemDropHelper::spawnItemEntity(
+            m_world, witherRoseStack, x(), y(), z(), getRandom(), ItemDropHelper::DEFAULT_PICKUP_DELAY);
+    }
 }
 
 void LivingEntity::dropAllDeathLoot(DamageSource& cause)
@@ -1507,6 +1581,12 @@ void LivingEntity::tick()
     // 更新死亡
     if (isDead()) {
         tickDeath();
+    }
+
+    // 周期性重新检查战斗状态（对齐 vanilla LivingEntity.tick() LivingEntity.java:2648-2650）。
+    // 每 20 tick 调一次 recheckStatus()，清理超时战斗条目、结束战斗。
+    if (m_ticksExisted % 20 == 0) {
+        m_combatTracker.recheckStatus();
     }
 
     // 重置战斗状态

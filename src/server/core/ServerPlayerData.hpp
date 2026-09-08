@@ -116,6 +116,14 @@ struct ServerPlayerData {
     u64 lastKeepAliveSentTick = 0; // 发送心跳时的 tick
     u32 ping = 0;                  // 延迟（毫秒）
 
+    // ========== 客户端加载状态（对齐 ServerGamePacketListenerImpl） ==========
+    /// 玩家死亡后等待重生（对齐 waitingForRespawn）。
+    /// 置位后 hasClientLoaded() 返回 false，直到 PERFORM_RESPAWN 触发 restartClientLoadTimerAfterRespawn()。
+    /// 对齐 vanilla ServerGamePacketListenerImpl.markClientUnloadedAfterDeath()。
+    bool waitingForRespawn = false;
+    /// 客户端加载超时计时器（对齐 clientLoadedTimeoutTimer），每 tick 递减。
+    i32 clientLoadedTimeoutTimer = 0;
+
     // 已加载的区块
     std::unordered_set<ChunkId> loadedChunks;
 
@@ -210,6 +218,49 @@ struct ServerPlayerData {
     {
         return static_cast<ChunkCoord>(std::floor(z / static_cast<f32>(mc::world::CHUNK_WIDTH)));
     }
+
+    // ========== 客户端加载状态（对齐 ServerGamePacketListenerImpl） ==========
+
+    /**
+     * @brief 玩家死亡后标记客户端已卸载，等待重生
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl.markClientUnloadedAfterDeath()：
+     * 仅置 waitingForRespawn = true。该标志使 hasClientLoaded() 返回 false，
+     * 直到玩家执行 PERFORM_RESPAWN 触发 restartClientLoadTimerAfterRespawn() 才被清除。
+     */
+    void markClientUnloadedAfterDeath() noexcept { waitingForRespawn = true; }
+
+    /**
+     * @brief 重生后重启客户端加载超时计时器
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl.restartClientLoadTimerAfterRespawn()：
+     * 清除 waitingForRespawn，并启动 60 tick 的客户端加载超时计时器。
+     */
+    void restartClientLoadTimerAfterRespawn() noexcept
+    {
+        waitingForRespawn = false;
+        clientLoadedTimeoutTimer = 60;
+    }
+
+    /**
+     * @brief 每 tick 递减客户端加载超时计时器
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl.tickClientLoadTimeout()。
+     */
+    void tickClientLoadTimeout() noexcept
+    {
+        if (clientLoadedTimeoutTimer > 0) {
+            --clientLoadedTimeoutTimer;
+        }
+    }
+
+    /**
+     * @brief 检查客户端是否已加载完成
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl.hasClientLoaded()：
+     * 未等待重生（!waitingForRespawn）且加载超时计时器已归零。
+     */
+    [[nodiscard]] bool hasClientLoaded() const noexcept { return !waitingForRespawn && clientLoadedTimeoutTimer <= 0; }
 
     /**
      * @brief 获取位置向量

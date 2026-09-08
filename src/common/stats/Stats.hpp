@@ -128,6 +128,10 @@ inline constexpr const char* ENCHANT_ITEM = "minecraft:enchant_item";
 inline constexpr const char* LEAVE_GAME = "minecraft:leave_game";
 /// 死亡次数
 inline constexpr const char* DEATHS = "minecraft:deaths";
+/// 击杀玩家次数（对齐 vanilla Stats.PLAYER_KILLS）
+inline constexpr const char* PLAYER_KILLS = "minecraft:player_kills";
+/// 击杀生物次数（对齐 vanilla Stats.MOB_KILLS）
+inline constexpr const char* MOB_KILLS = "minecraft:mob_kills";
 
 // ========== 时间/距离统计 ==========
 

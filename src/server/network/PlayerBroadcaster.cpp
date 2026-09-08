@@ -539,6 +539,45 @@ void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i3
     });
 }
 
+void PlayerBroadcaster::broadcastGlobalLevelEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+{
+    // 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+    // 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
+    //   - 同维度且距离<32格：使用真实事件位置
+    //   - 同维度且距离>=32格：钳制到距玩家32格方向
+    //   - 不同维度：使用玩家自身位置
+    // 构造 globalEvent=true 的 LevelEvent 包逐玩家发送。
+    const Vector3 eventPos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+
+    m_server.playerManager().forEachPlayer([this, &eventPos, eventId, data](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        // 逐玩家计算事件位置（对齐原版 globalLevelEvent）
+        Vector3 targetPos(player.x, player.y, player.z); // 不同维度默认用玩家位置
+
+        // TODO: 同维度判断需要知道发起广播的世界（dimensionId）。
+        //   若 player 所在维度 == 发起广播的维度：
+        //     - 距离<32 → 使用真实事件位置
+        //     - 距离>=32 → 钳制到距玩家32格方向
+        //   若不同维度：使用玩家自身位置（上面已设）
+        //   需要扩展方法签名传入 sourceDimensionId，或通过 ServerDimensionManager 查询。
+
+        // 构造 globalEvent=true 的 LevelEvent 包并逐玩家发送
+        mc::network::ir::play::LevelEvent pkt;
+        pkt.type = eventId;
+        pkt.blockPosPacked =
+            BlockPos(static_cast<i32>(targetPos.x), static_cast<i32>(targetPos.y), static_cast<i32>(targetPos.z))
+                .asLong();
+        pkt.data = data;
+        pkt.globalEvent = true; // 关键：全局事件标志
+        m_server.sendPacketToPlayer(player.playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{pkt}});
+    });
+}
+
 void PlayerBroadcaster::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range)
 {
     // 1.21.11 BlockEvent wire：blockPosPacked + b0 + b1 + blockId(VarInt)。

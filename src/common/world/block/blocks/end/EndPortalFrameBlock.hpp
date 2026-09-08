@@ -28,10 +28,15 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include <memory>
 
 namespace mc {
 
 class BlockItemUseContext;
+
+namespace blockpattern {
+class BlockPattern;
+} // namespace blockpattern
 
 namespace blocks {
 
@@ -70,6 +75,34 @@ public:
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const noexcept override;
+
+    // ========== 传送门框架模式 ==========
+
+    /**
+     * @brief 获取或创建末地传送门框架检测模式
+     *
+     * 对应 MC Java: EndPortalFrameBlock.getOrCreatePortalShape()
+     *
+     * 构建 5×5 方块模式，匹配 12 个末地传送门框架方块组成的完整传送门结构：
+     *   - '?' 匹配任意方块（传送门内部和外围）
+     *   - '^' 匹配含眼且朝向南方的框架方块
+     *   - '>' 匹配含眼且朝向西方的框架方块
+     *   - 'v' 匹配含眼且朝向北方框架方块
+     *
+     * 模式布局（每个字符串为一行，aisle 顺序为从上到下）：
+     * @code
+     *   "?vvv?"
+     *   ">???<"
+     *   ">???<"
+     *   ">???<"
+     *   "?^^^?"
+     * @endcode
+     *
+     * 匹配后通过 match->frontTopLeft() 获取左上角框架位置。
+     *
+     * @return 方块模式（unique_ptr 所有权），首次调用时构造
+     */
+    [[nodiscard]] static std::unique_ptr<blockpattern::BlockPattern> getOrCreatePortalShape();
 
 private:
     CollisionShape m_frameShape;

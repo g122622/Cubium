@@ -218,6 +218,19 @@ public:
     virtual void die(DamageSource& cause);
 
     /**
+     * @brief 在死亡位置生成凋零玫瑰（对齐 vanilla LivingEntity.createWitherRose）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.createWitherRose（LivingEntity.java:1463-1482）。
+     * 仅当击杀者为凋灵（WitherBoss）时触发：
+     *  - 若 MOB_GRIEFING 游戏规则开启，且死亡位置方块为空气且凋零玫瑰可存活，
+     *    则在该位置放置凋零玫瑰方块（flags=3）。
+     *  - 否则（未放置方块），在死亡位置掉落一个凋零玫瑰物品实体。
+     *
+     * @param killCredit 击杀者（getKillCredit() 返回值），可能为 nullptr
+     */
+    void createWitherRose(LivingEntity* killCredit);
+
+    /**
      * @brief 重写 Entity::remove()，在实体移除时清理位置依赖附魔效果
      *
      * 当实体被移除（包括死亡后被清除、卸载等场景）时，
@@ -1447,6 +1460,30 @@ public:
      */
     [[nodiscard]] CombatTracker& combatTracker() { return m_combatTracker; }
     [[nodiscard]] const CombatTracker& combatTracker() const { return m_combatTracker; }
+
+    /**
+     * @brief 获取击杀贡献者（对齐 vanilla LivingEntity.getKillCredit）
+     *
+     * 原版优先返回 lastHurtByPlayer，否则返回 lastHurtByMob。
+     * Cubium 没有 lastHurtByPlayer 实体引用（仅有 memoryTime 计数器），
+     * 改用 CombatTracker::getBestAttacker() 作为击杀贡献者——这与原版
+     * ServerPlayer.die 中 awardKillScore 的语义一致（取造成最多伤害的实体）。
+     *
+     * @return 击杀贡献者，无则返回 nullptr
+     */
+    [[nodiscard]] LivingEntity* getKillCredit();
+
+    /**
+     * @brief 授予击杀记分（对齐 vanilla Entity.awardKillScore / ServerPlayer.awardKillScore）
+     *
+     * 击杀者递增各击杀判据目标的分数：KILL_COUNT_ALL 总是递增；
+     * 若被杀者是 Player 则递增 KILL_COUNT_PLAYERS。
+     * 基类版本（对齐 Entity.awardKillScore）仅为空实现，由 ServerPlayer 重写。
+     *
+     * @param killedEntity 被杀实体
+     * @param source 致死伤害来源
+     */
+    virtual void awardKillScore(Entity& killedEntity, const DamageSource& source) {}
 
     // ========== 效果系统 ==========
 

@@ -1360,6 +1360,14 @@ public:
 
 protected:
     /**
+     * @brief 移除肩部实体（对齐 vanilla Player.removeEntitiesOnShoulder()，空实现）
+     *
+     * vanilla Player 基类中为空实现，ServerPlayer 重写以将肩部鹦鹉生成回世界。
+     * Cubium 中由 ServerPlayer::removeEntitiesOnShoulder() override 承载实际逻辑。
+     */
+    virtual void removeEntitiesOnShoulder() {}
+
+    /**
      * @brief 获取受伤声音
      *
      * 覆盖 LivingEntity::getHurtSound()，返回玩家特殊受伤音效。

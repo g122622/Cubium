@@ -23,71 +23,48 @@
 
 #pragma once
 
+#include "../../core/Item.hpp"
+#include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
-#include "common/item/core/Item.hpp"
-#include <memory>
 
 namespace mc {
-
-class ItemUseContext;
-
-namespace blockpattern {
-class BlockPattern;
-}
-
 namespace item::items {
 
 /**
  * @brief 末影之眼物品
  *
- * 用于激活末地传送门。对末地传送门框架（EYE=false）右键使用时：
- * 1. 将末影之眼放入框架（EYE: false → true）
- * 2. 检测是否构成完整传送门图案（12 个带眼框架，朝向正确）
- * 3. 若完整，在框架内部 3×3 区域生成末地传送门方块（end_portal）
+ * 末影之眼有两种主要用途：
+ * 1. 右键使用：发射末影之眼投掷物（指引要塞方向）
+ * 2. 对末地传送门框架使用：嵌入末影之眼
  *
- * 参考: net.minecraft.world.item.EnderEyeItem#useOn
- * 参考: net.minecraft.world.level.block.EndPortalFrameBlock#getOrCreatePortalShape
+ * 当 12 个末地传送门框架全部嵌入末影之眼后，中央 3×3 区域会生成末地传送门方块，
+ * 并触发全服广播的末地传送门激活音效（事件 1038，globalLevelEvent）。
+ *
+ * 参考: net.minecraft.item.EnderEyeItem
  */
 class EnderEyeItem : public Item {
 public:
+    /**
+     * @brief 构造末影之眼物品
+     * @param properties 物品属性
+     */
     explicit EnderEyeItem(ItemProperties properties);
+
     ~EnderEyeItem() override = default;
 
     /**
-     * @brief 在方块上使用末影之眼
+     * @brief 在方块上使用物品
      *
-     * 仅当点击的是末地传送门框架且 EYE=false 时生效：
-     * - 设 EYE=true，pushEntitiesUp（框架升高 13/16→1.0，把上方实体顶起）
-     * - 消耗 1 个末影之眼
-     * - 播放末影之眼放入框架的音效/粒子事件（levelEvent 1503）
-     * - 用 BlockPattern 检测完整传送门图案，若匹配则在内部 3×3 区域生成 end_portal 方块
+     * 对末地传送门框架方块使用末影之眼：
+     * - 检查目标方块是否为 END_PORTAL_FRAME 且 !hasEye
+     * - 若是：设置 EYE=true，播放填充音效（事件 1503）
+     * - 消耗物品（非创造模式）
+     * - 检测 12 框架是否全部含眼，若是则放置 3×3 END_PORTAL 方块并广播 globalLevelEvent(1038)
      *
      * @param context 物品使用上下文
-     * @return 动作结果类型（Success 表示成功放入并消耗物品）
+     * @return 动作结果类型
      */
     ActionResultType onItemUse(ItemUseContext& context) override;
-
-private:
-    /**
-     * @brief 获取或创建末地传送门形状检测器（懒加载单例）
-     *
-     * 对应 vanilla EndPortalFrameBlock.getOrCreatePortalShape()。
-     * 图案为 5×5 单层：
-     *   ? v v v ?
-     *   > ? ? ? <
-     *   > ? ? ? <
-     *   > ? ? ? <
-     *   ? ^ ^ ^ ?
-     * 其中 v=框架(FACING=NORTH,HAS_EYE=true)，^=框架(FACING=SOUTH,HAS_EYE=true)，
-     *   >=框架(FACING=WEST,HAS_EYE=true)，<=框架(FACING=EAST,HAS_EYE=true)，
-     *   ?=任意方块（角落），内部 ? 为空气或可替换方块。
-     *
-     * @return BlockPattern 引用
-     */
-    static blockpattern::BlockPattern& getOrCreatePortalShape();
-
-    /// 末地传送门形状检测器（懒加载）
-    static std::unique_ptr<blockpattern::BlockPattern> s_portalShape;
 };
 
 } // namespace item::items

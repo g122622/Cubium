@@ -412,6 +412,54 @@ struct ClearTitles {
     [[nodiscard]] friend bool operator==(const ClearTitles&, const ClearTitles&) noexcept = default;
 };
 
+// ============================================================================
+// 玩家战斗（S→C，1.21.11 共 3 包）
+//
+// 对应 Java 1.21.11 ClientboundPlayerCombatEnterPacket / EndPacket / KillPacket。
+// 驱动客户端战斗状态机与死亡画面（DeathScreen）。三包均为 S→C，仅发给当事玩家。
+// 变体顺序即 altIndex：PlayerCombatEnter=111 / PlayerCombatEnd=112 / PlayerCombatKill=113。
+// ============================================================================
+
+/**
+ * @brief PlayerCombatEnter（S→C，id=65）
+ *
+ * 对应 Java 1.21.11 ClientboundPlayerCombatEnterPacket：无负载。
+ * vanilla 为 INSTANCE 单例，STREAM_CODEC = StreamCodec.unit(INSTANCE)。
+ * 客户端收到后进入战斗状态（开启战斗计时器等）。
+ */
+struct PlayerCombatEnter {
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerCombatEnter&, const PlayerCombatEnter&) noexcept = default;
+};
+
+/**
+ * @brief PlayerCombatEnd（S→C，id=64）
+ *
+ * 对应 Java 1.21.11 ClientboundPlayerCombatEndPacket：VarInt(duration)。
+ * duration 来自 CombatTracker.getCombatDuration()。客户端收到后结束战斗状态。
+ */
+struct PlayerCombatEnd {
+    i32 duration; // VarInt
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerCombatEnd&, const PlayerCombatEnd&) noexcept = default;
+};
+
+/**
+ * @brief PlayerCombatKill（S→C，id=66）
+ *
+ * 对应 Java 1.21.11 ClientboundPlayerCombatKillPacket：VarInt(playerId) + Component(message)。
+ * Component NBT wire 字节（自定界，无外层 VarInt 长度，
+ * 对齐 vanilla ComponentSerialization.TRUSTED_STREAM_CODEC）。
+ * 客户端收到后显示死亡画面（DeathScreen）。
+ * isSkippable() 返回 true（原版允许跳过该包）。
+ */
+struct PlayerCombatKill {
+    i32 playerId;            // VarInt
+    std::vector<u8> message; // Component NBT wire 字节
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const PlayerCombatKill&, const PlayerCombatKill&) noexcept = default;
+};
+
 // ----------------------------------------------------------------------------
 // 世界边界（S→C，1.21.11 拆 6 包）
 // ----------------------------------------------------------------------------

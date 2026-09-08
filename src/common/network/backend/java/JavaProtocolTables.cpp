@@ -437,6 +437,16 @@ using B = buffer::RegistryByteBuf;
     // 仅容器关闭塞回 carried 残留物品时下发。altIndex=110 对齐 variant 末尾。
     b.addPacket<ir::play::SetPlayerInventory>(
         106, PacketType{PacketFlow::Clientbound, "set_player_inventory"}, 110, codecs::setPlayerInventoryCodec());
+    // ---- 玩家战斗数据包（altIndex 111..113）----
+    // 对应 Java 1.21.11 ClientboundPlayerCombatEnterPacket/EndPacket/KillPacket。
+    // 三包均 S→C 仅发给当事玩家，驱动客户端战斗状态机与死亡画面（DeathScreen）。
+    // wire id 对应 packet_ids.json：play:cb:64/65/66。
+    b.addPacket<ir::play::PlayerCombatEnter>(
+        65, PacketType{PacketFlow::Clientbound, "player_combat_enter"}, 111, codecs::playerCombatEnterCodec());
+    b.addPacket<ir::play::PlayerCombatEnd>(
+        64, PacketType{PacketFlow::Clientbound, "player_combat_end"}, 112, codecs::playerCombatEndCodec());
+    b.addPacket<ir::play::PlayerCombatKill>(
+        66, PacketType{PacketFlow::Clientbound, "player_combat_kill"}, 113, codecs::playerCombatKillCodec());
     return b.build();
 }
 

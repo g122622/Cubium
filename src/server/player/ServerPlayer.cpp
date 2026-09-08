@@ -28,9 +28,12 @@
 #include "common/advancement/trigger/impl/InventoryChangedTrigger.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
 #include "common/entity/player/SleepManager.hpp"
 #include "common/entity/player/SleepResult.hpp"
 #include "common/entity/player/SpawnPointValidator.hpp"
+#include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -38,9 +41,14 @@
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/scoreboard/core/Score.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/core/Team.hpp"
+#include "common/scoreboard/criteria/DeathCountCriteria.hpp"
+#include "common/scoreboard/criteria/KillCountCriteria.hpp"
 #include "common/stats/Stats.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -1016,39 +1024,107 @@ void ServerPlayer::die(DamageSource& cause)
         // 死亡消息：从 CombatTracker 取 getDeathMessage()。
         std::string deathMessage = combatTracker().getDeathMessage();
 
-        if (showDeathMessages) {
-            // TODO: 发送 ClientboundPlayerCombatKillPacket（玩家死亡画面驱动包）。
-            //       当前 Cubium 未实现该 IR 包（player_combat_kill 协议已登记但 IR/codec/消费端全缺）。
-            //       玩家死亡画面（DeathScreen）因此无法显示，待 IR 包与客户端 DeathScreen 落地后补。
+        // 对齐 vanilla ServerPlayer.die（ServerPlayer.java:882-909）：
+        //   flag ? send KillPacket(getId(), getDeathMessage()) + 按队伍广播
+        //        : send KillPacket(getId(), EMPTY)
+        // 无论 showDeathMessages 与否，都发送 ClientboundPlayerCombatKillPacket 驱动客户端死亡画面。
+        mc::network::ir::play::PlayerCombatKill killPkt;
+        killPkt.playerId = static_cast<i32>(id());
+        killPkt.message = ::mc::text::plainTextToNbtBytes(showDeathMessages ? deathMessage : std::string{});
+        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(killPkt)}}));
 
-            // TODO: 按队伍可见性（ALWAYS/HIDE_FOR_OTHER_TEAMS/HIDE_FOR_OWN_TEAM）广播 SystemChat 死亡消息。
-            //       Cubium 无 PlayerList::broadcastSystemMessage，需通过 getServer()->forEachPlayer(...)
-            //       遍历在线玩家，对每个 ServerPlayer 调 sendSystemMessage(deathMessage)。
-            //       队伍死亡消息可见性（Team.Visibility）逻辑待补。
-        } else {
-            // showDeathMessages=false：不广播死亡消息。
-            // TODO: 仍需发送 ClientboundPlayerCombatKillPacket(this.getId(), EMPTY) 触发客户端死亡画面。
+        // 对齐 vanilla ServerPlayer.die（ServerPlayer.java:900-907）：
+        //   Team team = this.getTeam();
+        //   if (team == null || team.getDeathMessageVisibility() == ALWAYS)
+        //       broadcastSystemMessage(component, false);
+        //   else if (visibility == HIDE_FOR_OTHER_TEAMS)
+        //       broadcastSystemToTeam(this, component);
+        //   else if (visibility == HIDE_FOR_OWN_TEAM)
+        //       broadcastSystemToAllExceptTeam(this, component);
+        // Cubium 无 PlayerList，这里通过 playerManager().forEachPlayer(...) 遍历在线玩家，
+        // 对每个 ServerPlayerData 用 scoreboard.getPlayersTeam(username) 判断同队，
+        // 直接构造 SystemChat 包经 playerData.send(...) 下发（等价于 sendSystemMessage）。
+        if (showDeathMessages && m_server != nullptr) {
+            scoreboard::Team* deadTeam = getTeam();
+            const scoreboard::TeamVisibility visibility =
+                deadTeam != nullptr ? deadTeam->getDeathMessageVisibility() : scoreboard::TeamVisibility::Always;
+
+            // 死亡消息 Component NBT wire 字节（复用 SystemChat.content 的构造方式）。
+            const std::vector<u8> deathMessageNbt = ::mc::text::plainTextToNbtBytes(deathMessage);
+            const PlayerId selfPlayerId = playerId();
+
+            // 广播判定（对齐 PlayerList.broadcastSystemMessage/ToTeam/ToAllExceptTeam）：
+            //   ALWAYS / team==null → 发给所有在线玩家（含死亡玩家自己，原版行为）
+            //   HIDE_FOR_OTHER_TEAMS → 仅发给同队玩家，排除死亡玩家自己
+            //                          （原版 broadcastSystemToTeam 用 serverplayer != this 排除）
+            //   HIDE_FOR_OWN_TEAM    → 仅发给非同队玩家
+            //                          （死亡玩家自己因同队被 getTeam() != team 自然排除）
+            //   NEVER                → 不发给任何玩家（三分支均不匹配）
+            m_server->playerManager().forEachPlayer(
+                [m_server = m_server, &deathMessageNbt, deadTeam, visibility, selfPlayerId](
+                    server::ServerPlayerData& playerData) {
+                    bool shouldSend = false;
+                    if (visibility == scoreboard::TeamVisibility::Always) {
+                        shouldSend = true;
+                    } else if (visibility == scoreboard::TeamVisibility::HideForOtherTeams) {
+                        // 仅同队可见，且排除死亡玩家自己（对齐 broadcastSystemToTeam 的 != this）。
+                        shouldSend = deadTeam != nullptr && deadTeam->hasMember(playerData.username) &&
+                            playerData.playerId != selfPlayerId;
+                    } else if (visibility == scoreboard::TeamVisibility::HideForOwnTeam) {
+                        // 仅非同队可见：接收者队伍 != 死亡玩家队伍。
+                        // 死亡玩家自己 receiverTeam == deadTeam，自然被排除。
+                        scoreboard::Team* receiverTeam = m_server->scoreboard().getPlayersTeam(playerData.username);
+                        shouldSend = receiverTeam != deadTeam;
+                    }
+                    // NEVER：shouldSend 保持 false。
+
+                    if (!shouldSend) {
+                        return;
+                    }
+
+                    mc::network::ir::play::SystemChat chatPkt;
+                    chatPkt.content = deathMessageNbt;
+                    chatPkt.overlay = false;
+                    static_cast<void>(
+                        playerData.send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                            mc::network::ir::PlayPacket{std::move(chatPkt)}}));
+                });
         }
     }
 
     // 3. removeEntitiesOnShoulder()（ServerPlayer.java:912）
-    // TODO: Cubium Player 有肩部鹦鹉 DataParameter，但未实现 removeEntitiesOnShoulder()。
+    removeEntitiesOnShoulder();
 
     // 4. FORGIVE_DEAD_PLAYERS → tellNeutralMobsThatIDied()（ServerPlayer.java:913-915）
     if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FORGIVE_DEAD_PLAYERS)) {
-        // TODO: 实现 tellNeutralMobsThatIDied()：遍历 32×10×32 范围内 NeutralMob，
-        //       调 playerDied(level, this) 让中立生物原谅本玩家。
-        //       Cubium NeutralMob 接口未实现，待补。
+        tellNeutralMobsThatIDied();
     }
 
     // 5. dropAllDeathLoot 已由 LivingEntity::die 处理（ServerPlayer.java:918 在基类处理）
 
     // 6. forAllObjectives(DEATH_COUNT)（ServerPlayer.java:921）
-    // TODO: 记分板 DEATH_COUNT 准则递增。Cubium 记分板 API 与原版差异较大，待补。
+    // 对齐原版：this.serverScoreboard.forAllObjectives(ObjectiveCriteria.DEATH_COUNT, this, ScoreAccess::add)
+    // Cubium 采用方案 A：直接调用 DeathCountCriteria::onPlayerDeath。
+    // 原因：Scoreboard::forAllObjectives 内部用 getScore（仅查找不创建），
+    // 首次死亡不会创建分数条目。而 DeathCountCriteria::onPlayerDeath 内部用
+    // getOrCreateScore（创建式），天然对齐原版 getOrCreateScore 语义。
+    if (auto* scoreboard = getScoreboard()) {
+        if (auto* deathCount =
+                scoreboard::ScoreCriteriaRegistry::instance().getCriteria(scoreboard::DeathCountCriteria::NAME)) {
+            deathCount->onPlayerDeath(username(), *scoreboard);
+        }
+    }
 
     // 7. getKillCredit() → awardStat(ENTITY_KILLED_BY) + awardKillScore + createWitherRose
     //    （ServerPlayer.java:922-927）
-    // TODO: Cubium 未实现 getKillCredit()、awardKillScore()、createWitherRose()。
+    // getKillCredit→awardKillScore 已在 LivingEntity::die 第 1 步调用：
+    //   LivingEntity* killCredit = getKillCredit();
+    //   if (killCredit != nullptr) killCredit->awardKillScore(*this, cause);
+    // awardKillScore 由 ServerPlayer 重写，递增 totalKillCount/playerKillCount 判据与
+    // PLAYER_KILLS/MOB_KILLS 统计（见 ServerPlayer::awardKillScore）。
+    // TODO: createWitherRose（LivingEntity.java:1453）——凋零玫瑰生成逻辑未实现。
+    // TODO: awardStat(ENTITY_KILLED_BY)——"被实体击杀"统计，待 ENTITY_KILLED_BY 常量补全后接入。
 
     // 8. broadcastEntityState((byte)3) 已由 LivingEntity::die 处理（ServerPlayer.java:929 在基类处理）
 
@@ -1064,12 +1140,219 @@ void ServerPlayer::die(DamageSource& cause)
     // TODO: setSharedFlagOnFire(false) — Cubium 无 setSharedFlag，等价 removeFlag(EntityFlags::OnFire)。
 
     // 11. getCombatTracker().recheckStatus()（ServerPlayer.java:936）
-    // TODO: CombatTracker 未实现 recheckStatus()，待补该方法。
+    combatTracker().recheckStatus();
 
     // 12. setLastDeathLocation 已由 Player::die 处理（ServerPlayer.java:937 在基类处理）
 
     // 13. connection.markClientUnloadedAfterDeath()（ServerPlayer.java:938）
-    // TODO: Cubium ServerClientConnection 未实现 markClientUnloadedAfterDeath()。
+    // 对齐 vanilla ServerPlayer.die 末尾 this.connection.markClientUnloadedAfterDeath()：
+    // 仅置 waitingForRespawn = true。该标志使 hasClientLoaded() 返回 false，
+    // 直到玩家执行 PERFORM_RESPAWN 触发 restartClientLoadTimerAfterRespawn() 才被清除。
+    // Cubium 中该方法定义在 ServerPlayerData 上（对齐原版 ServerGamePacketListenerImpl），
+    // 故通过 playerManager 获取本玩家 ServerPlayerData 后调用。
+    if (m_server != nullptr) {
+        if (auto* playerData = m_server->playerManager().getPlayer(playerId())) {
+            playerData->markClientUnloadedAfterDeath();
+        }
+    }
+}
+
+void ServerPlayer::removeEntitiesOnShoulder()
+{
+    // 对齐 MC Java 1.21.11 ServerPlayer.removeEntitiesOnShoulder（ServerPlayer.java:808-814）：
+    //   if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
+    //       this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
+    //       this.setShoulderEntityLeft(new CompoundTag());
+    //       this.respawnEntityOnShoulder(this.getShoulderEntityRight());
+    //       this.setShoulderEntityRight(new CompoundTag());
+    //   }
+    // 守卫避免玩家刚让鹦鹉落肩（timeEntitySatOnShoulder 近期）就被立即生成回世界。
+    if (m_world == nullptr) {
+        return;
+    }
+    const u64 gameTime = m_world->getGameTime();
+    if (static_cast<u64>(m_timeEntitySatOnShoulder) + 20ULL < gameTime) {
+        respawnEntityOnShoulder(m_shoulderEntityLeft);
+        m_shoulderEntityLeft = nbt::tags::compound_tag{};
+        respawnEntityOnShoulder(m_shoulderEntityRight);
+        m_shoulderEntityRight = nbt::tags::compound_tag{};
+    }
+}
+
+void ServerPlayer::respawnEntityOnShoulder(const nbt::tags::compound_tag& shoulderNbt)
+{
+    // 对齐 MC Java 1.21.11 ServerPlayer.respawnEntityOnShoulder（ServerPlayer.java:816-832）：
+    //   if (!p_446462_.isEmpty()) {
+    //       EntityType.create(TagValueInput.create(...), serverlevel, EntitySpawnReason.LOAD)
+    //           .ifPresent(p_445299_ -> {
+    //               if (p_445299_ instanceof TamableAnimal tamableanimal) {
+    //                   tamableanimal.setOwner(this);
+    //               }
+    //               p_445299_.setPos(this.getX(), this.getY() + 0.7F, this.getZ());
+    //               serverlevel.addWithUUID(p_445299_);
+    //           });
+    //   }
+    // Cubium 适配：compound_tag 无 isEmpty()，用 value.empty() 判空。
+    // 空检查用 shoulderNbt.value.empty()。
+    if (shoulderNbt.value.empty()) {
+        return;
+    }
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 从 NBT 反序列化实体（对齐 EntityType.create(TagValueInput.create(...))）。
+    // EntityDeserializer::deserialize 接受 const compound_tag& 和 ecs::EntityRegistry&，
+    // 返回 Result<unique_ptr<Entity>>。ServerPlayer 无 entityRegistry()，通过 m_world->entityRegistry() 获取。
+    auto* registry = m_world->entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+    auto deserializeResult = entity::serialization::EntityDeserializer::deserialize(shoulderNbt, *registry);
+    if (deserializeResult.failed()) {
+        // TODO: 对齐原版 ProblemReporter.ScopedCollector 错误收集机制，记录反序列化失败。
+        return;
+    }
+    // Result<T>::value() 返回 T&（左值引用），需 std::move 取出 unique_ptr 所有权。
+    auto spawnedEntity = deserializeResult.value();
+    if (spawnedEntity == nullptr) {
+        return;
+    }
+
+    // 若是可驯服实体，设置主人为本玩家（对齐 tamableanimal.setOwner(this)）。
+    if (auto* tameable = dynamic_cast<TameableEntity*>(spawnedEntity.get())) {
+        tameable->setTamed(true);
+        tameable->setOwnerId(uuidBytes());
+    }
+
+    // 设置生成位置为玩家上方 0.7 格（对齐 setPos(getX(), getY() + 0.7F, getZ())）。
+    spawnedEntity->setPosition(static_cast<f32>(x()), static_cast<f32>(y()) + 0.7F, static_cast<f32>(z()));
+
+    // 生成到世界（对齐 serverlevel.addWithUUID(p_445299_)）。
+    // spawnEntity 接受 unique_ptr<Entity>（所有权转移），返回服务端分配的 EntityInstanceId。
+    static_cast<void>(m_world->spawnEntity(std::move(spawnedEntity)));
+}
+
+void ServerPlayer::tellNeutralMobsThatIDied()
+{
+    // 对齐 MC Java 1.21.11 ServerPlayer.tellNeutralMobsThatIDied（ServerPlayer.java:820-826）：
+    //   AABB aabb = new AABB(this.blockPosition()).inflate(32.0, 10.0, 32.0);
+    //   this.level()
+    //       .getEntitiesOfClass(Mob.class, aabb, EntitySelector.NO_SPECTATORS)
+    //       .stream()
+    //       .filter(p_9188_ -> p_9188_ instanceof NeutralMob)
+    //       .forEach(p_423216_ -> ((NeutralMob)p_423216_).playerDied(this.level(), this));
+    //
+    // 原版 NeutralMob.playerDied（NeutralMob.java）：
+    //   default void playerDied(ServerLevel p_376731_, Player p_21677_) {
+    //       if (p_376731_.getGameRules().get(GameRules.FORGIVE_DEAD_PLAYERS)) {
+    //           EntityReference<LivingEntity> entityreference = this.getPersistentAngerTarget();
+    //           if (entityreference != null && entityreference.matches(p_21677_)) {
+    //               this.stopBeingAngry();
+    //           }
+    //       }
+    //   }
+    //
+    // Cubium 适配：
+    // - blockPosition() → BlockPos(Vector3 position())，对三轴 floor
+    // - inflate(32, 10, 32) → AxisAlignedBB::fromBlock(x,y,z).expand(32.0f, 10.0f, 32.0f)
+    // - getEntitiesOfClass(Mob, aabb, NO_SPECTATORS) → getEntitiesInAABB(aabb) + 手动过滤
+    // - instanceof NeutralMob → dynamic_cast<IAngerable*>（Cubium 用 IAngerable 近似 NeutralMob）
+    // - playerDied → IAngerable 已有方法 setAngry(false) + setAttackTarget(nullptr)
+    //
+    // 注意：原版仅对持久愤怒目标 == 死亡玩家的中立生物调 stopBeingAngry()。
+    // Cubium 的 IAngerable 无持久愤怒目标概念（getPersistentAngerTarget/stopBeingAngry 不存在），
+    // 此处对范围内所有愤怒中立生物统一清除愤怒——这是与原版的已知偏差。
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 构造搜索盒：以玩家脚下方块为中心，向各轴扩展 32/10/32。
+    const BlockPos playerBlockPos{position()};
+    const AxisAlignedBB searchBox =
+        AxisAlignedBB::fromBlock(playerBlockPos.x, playerBlockPos.y, playerBlockPos.z).expand(32.0f, 10.0f, 32.0f);
+
+    // 获取范围内所有实体，过滤非旁观者 + 实现 IAngerable 的中立生物。
+    // 注意：getEntitiesInAABB 返回碰撞箱与 searchBox 相交的所有实体，无类型过滤。
+    const auto nearbyEntities = m_world->getEntitiesInAABB(searchBox);
+    for (Entity* entity : nearbyEntities) {
+        if (entity == nullptr) {
+            continue;
+        }
+        // 对齐 EntitySelector.NO_SPECTATORS：排除旁观者。
+        if (entity->isSpectator()) {
+            continue;
+        }
+        // 对齐 filter(p -> p instanceof NeutralMob)：Cubium 用 IAngerable 近似 NeutralMob。
+        if (auto* angry = dynamic_cast<entity::IAngerable*>(entity)) {
+            // 对齐 NeutralMob.playerDied → stopBeingAngry()：
+            // Cubium IAngerable 无 stopBeingAngry，用 setAngry(false) + setAttackTarget(nullptr) 近似。
+            // 仅当该中立生物当前处于愤怒状态时才清除（避免无谓状态变更）。
+            if (angry->isAngry()) {
+                angry->setAngry(false);
+                angry->setAttackTarget(nullptr);
+            }
+        }
+    }
+}
+
+void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& source)
+{
+    // 对齐 MC Java 1.21.11 ServerPlayer.awardKillScore（ServerPlayer.java:950-967）。
+    // 击杀者（本玩家）递增各击杀判据目标的分数，并递进统计：
+    //   super.awardKillScore(killedEntity, source)            —— 基类空实现
+    //   scoreboard.forAllObjectives(KILL_COUNT_ALL, this, inc) —— 总击杀计数
+    //   if (killedEntity instanceof Player) {
+    //       awardStat(PLAYER_KILLS);
+    //       scoreboard.forAllObjectives(KILL_COUNT_PLAYERS, this, inc);
+    //   } else {
+    //       awardStat(MOB_KILLS);
+    //   }
+    //   handleTeamKill(this, killedEntity, TEAM_KILL);         —— Cubium 未实现，见 TODO
+    //   handleTeamKill(killedEntity, this, KILLED_BY_TEAM);    —— Cubium 未实现，见 TODO
+    //   CriteriaTriggers.PLAYER_KILLED_ENTITY.trigger(...)     —— 已由事件系统承担，见注释
+
+    // 基类 LivingEntity::awardKillScore 为空实现（对齐 Entity.awardKillScore），无需显式调用。
+
+    scoreboard::Scoreboard* scoreboard = getScoreboard();
+    if (scoreboard == nullptr) {
+        return;
+    }
+
+    // 取 KILL_COUNT_ALL / KILL_COUNT_PLAYERS 判据实例。
+    // 对齐 vanilla ObjectiveCriteria.KILL_COUNT_ALL（"totalKillCount"）与
+    // KILL_COUNT_PLAYERS（"playerKillCount"）。
+    auto& criteriaRegistry = scoreboard::ScoreCriteriaRegistry::instance();
+
+    // 1. 总击杀计数判据递增（KILL_COUNT_ALL）。
+    if (auto* totalKillCount = criteriaRegistry.getCriteria(scoreboard::TotalKillCountCriteria::NAME)) {
+        // 注意：Cubium 的 forAllObjectives 内部使用 getScore（仅查找不创建），
+        // 与原版 getOrCreateScore（创建语义）不同。这意味着首次击杀时若该玩家在该目标上
+        // 尚无分数条目，则不会创建、不会递增——这是与原版的已知偏差。
+        // TODO: 对齐原版 getOrCreateScore 语义（将 forAllObjectives 改为创建式查找）。
+        scoreboard->forAllObjectives(
+            *totalKillCount, username(), [](scoreboard::Score& score) { score.incrementScore(); });
+    }
+
+    // 2. 按被杀者类型递进统计与判据。
+    const bool killedIsPlayer = (dynamic_cast<Player*>(&killedEntity) != nullptr);
+    if (killedIsPlayer) {
+        // 击杀玩家：递增 playerKillCount 判据 + PLAYER_KILLS 统计。
+        if (auto* playerKillCount = criteriaRegistry.getCriteria(scoreboard::PlayerKillCountCriteria::NAME)) {
+            scoreboard->forAllObjectives(
+                *playerKillCount, username(), [](scoreboard::Score& score) { score.incrementScore(); });
+        }
+        awardCustomStat(ResourceLocation(stats::PLAYER_KILLS), 1);
+    } else {
+        // 击杀生物：递增 MOB_KILLS 统计。
+        awardCustomStat(ResourceLocation(stats::MOB_KILLS), 1);
+    }
+
+    // 3. 队伍击杀判据递增（handleTeamKill）。
+    // 原版 handleTeamKill 按击杀者/被杀者所属队伍颜色，
+    // 在 teamkill.{color} / killedByTeam.{color} 判据上递增分数。
+    // TODO: Cubium 未实现 TeamKillCriteria / KilledByTeamCriteria 判据注册，
+    //       亦无 handleTeamKill 方法。待队伍击杀判据体系落地后补全。
 }
 
 void ServerPlayer::attack(Entity& target)
@@ -1089,6 +1372,16 @@ void ServerPlayer::attack(Entity& target)
 
 void ServerPlayer::tick()
 {
+    // 对齐 Java ServerPlayer.tick()（ServerPlayer.java:577）：this.connection.tickClientLoadTimeout()
+    // 每 tick 递减客户端加载超时计时器。死亡时由 markClientUnloadedAfterDeath 置位 waitingForRespawn，
+    // 重生时由 restartClientLoadTimerAfterRespawn 清除 waitingForRespawn 并重启 60 tick 计时器。
+    // TODO: restartClientLoadTimerAfterRespawn 的调用点依赖 ServerboundClientCommandPacket(PERFORM_RESPAWN)
+    //       包链路，Cubium 当前缺失该包，待补全后接入。
+    if (m_server != nullptr) {
+        if (auto* playerData = m_server->playerManager().getPlayer(playerId())) {
+            playerData->tickClientLoadTimeout();
+        }
+    }
     Player::tick();
     tickSpectator();
 

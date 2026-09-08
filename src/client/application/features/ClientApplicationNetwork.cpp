@@ -828,9 +828,21 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         }
 
         default:
-            // 未知事件ID，忽略
+            // 未知事件ID，打印warning日志
+            spdlog::warn("Unknown world event ID: {} at position ({}, {}, {}) with data {}", eventId, x, y, z, data);
             break;
     }
+
+    // TODO: 以下三个全局声音事件（1023/1028/1038）需要客户端处理。
+    //   原版客户端在 LevelEventHandler.levelEvent() 中，对 globalEvent=true 的这三个事件
+    //   计算"相机到事件方向2格处"的位置播放本地声音，使全服玩家无论距离远近都能听到。
+    //   Cubium 客户端当前缺失对应 case，导致即使服务端通过 globalLevelEvent 广播了这些事件，
+    //   客户端也只会落入 default 分支打印 warning 并静默忽略。
+    //   待实现:
+    //     case WorldEvents::WITHER_SPAWN_SOUND:        // 1023 凋灵生成
+    //     case WorldEvents::DRAGON_DEATH_SOUND:        // 1028 末影龙死亡
+    //     case WorldEvents::END_PORTAL_SPAWN_SOUND:    // 1038 末地传送门激活
+    //   实现时需同时扩展 _handleWorldEvent 签名以传入 globalEvent 标志（见 ClientPlayVisitor.cpp）。
 }
 
 } // namespace mc::client

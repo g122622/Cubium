@@ -111,6 +111,23 @@ void CombatTracker::reset()
     }
 }
 
+void CombatTracker::recheckStatus()
+{
+    // 对齐 MC Java 1.21.11 CombatTracker.recheckStatus（CombatTracker.java:145-158）：
+    //   int i = this.inCombat ? 300 : 100;
+    //   if (this.takingDamage && (!this.mob.isAlive() || this.mob.tickCount - this.lastDamageTime > i)) {
+    //       boolean flag = this.inCombat;
+    //       this.takingDamage = false;
+    //       this.inCombat = false;
+    //       this.combatEndTime = this.mob.tickCount;
+    //       if (flag) { this.mob.onLeaveCombat(); }
+    //       this.entries.clear();
+    //   }
+    // Cubium 的 reset() 已实现等价逻辑，此处复用以保持单一实现源。
+    // 注意：原版 recheckStatus 不重新计算 bestEntry——1.21.11 的 CombatTracker 没有 bestEntry 概念。
+    reset();
+}
+
 const CombatEntry* CombatTracker::getLastEntry() const
 {
     if (m_entries.empty()) {

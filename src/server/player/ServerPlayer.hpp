@@ -33,6 +33,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "server/network/ServerNetwork.hpp"
@@ -289,6 +290,85 @@ public:
     void die(DamageSource& cause) override;
 
     /**
+     * @brief 移除肩部实体（重写 Player 基类）
+     *
+     * 对齐 MC Java 1.21.11 ServerPlayer.removeEntitiesOnShoulder（ServerPlayer.java:808-814）：
+     * 若 timeEntitySatOnShoulder + 20 < gameTime，则将左右肩实体生成回世界并清空 NBT。
+     * 玩家死亡时由 die() 调用，确保肩部鹦鹉在玩家死亡后回到世界。
+     */
+    void removeEntitiesOnShoulder() override;
+
+    /**
+     * @brief 通知附近中立生物玩家已死亡（对齐 vanilla ServerPlayer.tellNeutralMobsThatIDied）
+     *
+     * 对齐 MC Java 1.21.11 ServerPlayer.tellNeutralMobsThatIDied（ServerPlayer.java:820-826）：
+     * 遍历 32×10×32 范围内非旁观者 Mob，对实现 IAngerable 的中立生物调用 playerDied 等价逻辑，
+     * 让其原谅本玩家（清除愤怒状态与攻击目标）。
+     *
+     * 注意：原版 NeutralMob.playerDied 检查 getPersistentAngerTarget().matches(player) 后
+     * 调 stopBeingAngry()。Cubium 的 IAngerable 无持久愤怒目标概念，也无 stopBeingAngry，
+     * 此处对范围内所有愤怒中立生物统一清除愤怒——这是与原版的已知偏差。
+     * TODO: 对齐原版 NeutralMob.playerDied 语义（需 IAngerable 增加 getPersistentAngerTarget/
+     *       stopBeingAngry 等方法，或将 NeutralMob 作为独立接口实现）。
+     */
+    void tellNeutralMobsThatIDied();
+
+    // ========== 肩部实体访问器（对齐 vanilla ServerPlayer.getShoulderEntityLeft/Right） ==========
+    /**
+     * @brief 获取左肩实体 NBT
+     * @return 左肩实体 NBT 的 const 引用
+     */
+    [[nodiscard]] const nbt::tags::compound_tag& getShoulderEntityLeft() const noexcept { return m_shoulderEntityLeft; }
+    /**
+     * @brief 获取右肩实体 NBT
+     * @return 右肩实体 NBT 的 const 引用
+     */
+    [[nodiscard]] const nbt::tags::compound_tag& getShoulderEntityRight() const noexcept
+    {
+        return m_shoulderEntityRight;
+    }
+    /**
+     * @brief 设置左肩实体 NBT
+     * @param tag 肩部实体 NBT
+     */
+    void setShoulderEntityLeft(nbt::tags::compound_tag tag) { m_shoulderEntityLeft = std::move(tag); }
+    /**
+     * @brief 设置右肩实体 NBT
+     * @param tag 肩部实体 NBT
+     */
+    void setShoulderEntityRight(nbt::tags::compound_tag tag) { m_shoulderEntityRight = std::move(tag); }
+
+    /**
+     * @brief 获取配方书
+     * @return 配方书引用
+     */
+    [[nodiscard]] crafting::ServerRecipeBook& getRecipeBook() { return m_recipeBook; }
+    [[nodiscard]] const crafting::ServerRecipeBook& getRecipeBook() const { return m_recipeBook; }
+
+    /**
+     * @brief 将肩部实体生成回世界（对齐 vanilla ServerPlayer.respawnEntityOnShoulder）
+     *
+     * 对齐 MC Java 1.21.11 ServerPlayer.respawnEntityOnShoulder（ServerPlayer.java:816-832）：
+     * 从 CompoundTag 反序列化实体，设置位置为玩家上方 0.7 格，生成到世界。
+     * 若是可驯服实体（TameableEntity），设置主人为本玩家。
+     *
+     * @param shoulderNbt 肩部实体 NBT，为空时无操作
+     */
+    void respawnEntityOnShoulder(const nbt::tags::compound_tag& shoulderNbt);
+
+    /**
+     * @brief 授予击杀记分（重写 LivingEntity 基类）
+     *
+     * 对齐 MC Java 1.21.11 ServerPlayer.awardKillScore（ServerPlayer.java:950-967）：
+     * 递增 KILL_COUNT_ALL；若被杀者是 Player 则递增 KILL_COUNT_PLAYERS。
+     * 基类 LivingEntity::awardKillScore 为空实现（对齐 Entity.awardKillScore）。
+     *
+     * @param killedEntity 被杀实体
+     * @param source 致死伤害来源
+     */
+    void awardKillScore(Entity& killedEntity, const DamageSource& source) override;
+
+    /**
      * @brief 攻击实体（重写 Player 基类）
      *
      * 旁观者模式下，攻击实体等同于设置旁观目标（调用 setCamera）。
@@ -381,13 +461,6 @@ public:
      * @param recipeId 配方资源位置
      */
     void unlockRecipe(const ResourceLocation& recipeId) override;
-
-    /**
-     * @brief 获取配方书
-     * @return 配方书引用
-     */
-    [[nodiscard]] crafting::ServerRecipeBook& getRecipeBook() { return m_recipeBook; }
-    [[nodiscard]] const crafting::ServerRecipeBook& getRecipeBook() const { return m_recipeBook; }
 
     /**
      * @brief 批量解锁配方
@@ -753,6 +826,23 @@ private:
     server::stats::StatisticsManager m_statistics;
     crafting::ServerRecipeBook m_recipeBook; ///< 配方书
     bool m_online = true;
+
+    // ========== 肩部实体存储（对齐 vanilla ServerPlayer 肩部鹦鹉） ==========
+    // vanilla ServerPlayer.java:272-273, 2234-2250：
+    //   private long timeEntitySatOnShoulder;
+    //   private CompoundTag shoulderEntityLeft;
+    //   private CompoundTag shoulderEntityRight;
+    // 玩家死亡或潜行时，removeEntitiesOnShoulder() 将肩部实体生成回世界并清空 NBT。
+    // 注意：Cubium 当前无驯服/鹦鹉落肩玩法，这两个字段恒为空 compound，
+    //       removeEntitiesOnShoulder() 在空 NBT 时为无操作，不影响死亡链路正确性。
+    /// 肩部实体最后一次落肩的游戏时间（对齐 timeEntitySatOnShoulder）。
+    /// removeEntitiesOnShoulder 仅在 timeEntitySatOnShoulder + 20 < gameTime 时执行，
+    /// 避免玩家刚让鹦鹉落肩就被立即生成回世界。
+    i64 m_timeEntitySatOnShoulder = -1;
+    /// 左肩实体 NBT（对齐 shoulderEntityLeft）。
+    nbt::tags::compound_tag m_shoulderEntityLeft;
+    /// 右肩实体 NBT（对齐 shoulderEntityRight）。
+    nbt::tags::compound_tag m_shoulderEntityRight;
 
     // 反飞行阈值校验跨 tick 基线（对齐 Java ServerGamePacketListenerImpl）
     f64 m_firstGoodX = 0.0;
