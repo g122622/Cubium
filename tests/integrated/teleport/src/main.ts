@@ -27,6 +27,7 @@ import { registerEnderEyeItemTests } from "./tests/cross_dimension/EnderEyeItemT
 import { registerFlintAndSteelIgnitesTests } from "./tests/cross_dimension/FlintAndSteelIgnitesTests.js";
 import { registerExplosionDestroysPortalTests } from "./tests/cross_dimension/ExplosionDestroysPortalTests.js";
 import { registerRidingEntityPortalTests } from "./tests/cross_dimension/RidingEntityPortalTests.js";
+import { registerPortalBlockNoDropTests } from "./tests/cross_dimension/PortalBlockNoDropTests.js";
 
 registerNetherPortalTests();
 registerEndPortalTests();
@@ -46,3 +47,4 @@ registerEnderEyeItemTests();
 registerFlintAndSteelIgnitesTests();
 registerExplosionDestroysPortalTests();
 registerRidingEntityPortalTests();
+registerPortalBlockNoDropTests();

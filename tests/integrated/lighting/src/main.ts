@@ -48,6 +48,7 @@ import { registerStatefulEmissionTests } from "./tests/core/StatefulEmissionTest
 import { registerBlockLightPropagationSymmetryTests } from "./tests/core/BlockLightPropagationSymmetryTests.js";
 import { registerSkyLightHorizontalSpreadTests } from "./tests/core/SkyLightHorizontalSpreadTests.js";
 import { registerNetherPortalEmissionTests } from "./tests/core/NetherPortalEmissionTests.js";
+import { registerEndPortalEmissionTests } from "./tests/core/EndPortalEmissionTests.js";
 import { registerCopperLanternEmissionTests } from "./tests/core/CopperLanternEmissionTests.js";
 import { registerFireflyBushEmissionTests } from "./tests/core/FireflyBushEmissionTests.js";
 import { registerCopperBulbEmissionTests } from "./tests/core/CopperBulbEmissionTests.js";
@@ -68,6 +69,7 @@ registerStatefulEmissionTests();
 registerBlockLightPropagationSymmetryTests();
 registerSkyLightHorizontalSpreadTests();
 registerNetherPortalEmissionTests();
+registerEndPortalEmissionTests();
 registerCopperLanternEmissionTests();
 registerFireflyBushEmissionTests();
 registerCopperBulbEmissionTests();

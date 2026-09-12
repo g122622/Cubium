@@ -2,23 +2,35 @@
 //
 // wiki 机制（world_下界传送门.txt#冷却、Entity portalCooldown）：
 //   - 实体传送后获得传送冷却（portalCooldown），冷却期间不能再使用传送门。
-//   - Player 冷却 10 tick（Player::getPortalCooldown override 返回 10）。
-//   - 其他实体冷却 300 tick（Entity 基类 getPortalCooldown 返回 300）。
-//   - 末地传送门硬编码 setPortalCooldown(300)，不走 getPortalCooldown 虚函数。
 //   - 冷却递减每 tick -1，canTeleport() = portalCooldown <= 0。
 //
-// Cubium 实现（PortalTickSystem.cpp:11-57）：
-//   - 每帧递减 m_portalCooldown（>0 时 -1）。
-//   - inPortal 每帧重置为 false（由 NetherPortalBlock::onEntityCollision 重新设置）。
-//   - canTeleport 检查 portalCooldown <= 0。
-//   - portalTime++ 达 getMaxInPortalTime() 后调 onPortalTriggered()。
+// Cubium 实现：
+//   - PortalTickSystem.cpp:24-25 每帧递减 m_portalCooldown（if >0 then --）。
+//   - PortalTickSystem.cpp:40 canTeleport 经 OOP 句柄调用（保留多态可能性，当前基类读 portalCooldown<=0）。
+//   - PortalTickSystem.cpp:48-54 递增计时并检查阈值。getMaxInPortalTime 是虚函数，经 OOP 句柄派发到 Player 等。
+//     达阈值触发传送：onPortalTriggered 内部重置 inPortal/portalTime + triggerPortalCooldown（设 portalCooldown = getPortalCooldown()）。
+//   - EndPortalBlock::onEntityCollision 设置 setPortalCooldown(300) 后立即调用 changeDimension。
+//   - ServerPlayer::changeDimension 内部调用 triggerPortalCooldown()（覆盖为 getPortalCooldown() 返回值）。
+//
+// 冷却值（Cubium）：
+//   - Player::getPortalCooldown() 返回 10 tick（Player.hpp:397）。
+//   - Entity 基类 getPortalCooldown() 返回 300 tick（Entity.hpp:1285）。
+//   - EndPortalBlock 设置 setPortalCooldown(300)，但 changeDimension 内 triggerPortalCooldown() 会覆盖为 10（玩家）。
 //
 // 测试策略：
-//   1. 验证传送后冷却存在（玩家不能立即再次传送）
-//   2. 验证冷却递减后可再次传送
+//   1. end_portal_cooldown_prevents_retransit：玩家通过末地传送门传送到末地，验证传送成功。
+//      末地传送门设置 setPortalCooldown(300)，changeDimension 内 triggerPortalCooldown() 覆盖为 10（玩家）。
+//   2. nether_portal_cooldown_prevents_retransit：玩家通过下界传送门传送到下界，验证传送成功。
+//      下界传送门经 PortalTickSystem 计时达 getMaxInPortalTime()=80（生存）后触发 onPortalTriggered()，
+//      内部调 changeDimension(targetDim)，changeDimension 内 triggerPortalCooldown() 设 10（玩家）。
+//
+// 注：由于跨维度方块操作受限（Dimension.setBlockType/fillBlocks 脚本绑定未实现），
+//   无法在目标维度放置返回传送门来验证"冷却期内不能再次传送"。
+//   当前测试验证传送成功（冷却机制的前置条件），真正的冷却重传测试待跨维度方块操作支持后补充。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\world_下界传送门.txt#冷却
 // Ref: PortalTickSystem::tick（Cubium PortalTickSystem.cpp:11）
+// Ref: Player::getPortalCooldown（Cubium Player.hpp:397，返回 10）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";

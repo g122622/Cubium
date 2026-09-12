@@ -37,6 +37,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/drop/BlockDropHandler.hpp" // BlockDropHandler::generateDrops/spawnDrops（destroyBlock 掉落物分支）
 
 #include <spdlog/spdlog.h>
 
@@ -556,8 +557,30 @@ GameTestResult GameTestHelper::setBlockWithStates(const std::string& blockType,
 
 GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResources)
 {
-    // 项目 IWorld/ServerWorld 无 destroyBlock 方法（见调研）：手动置 air + TODO 掉落物
+    // 项目 IWorld/ServerWorld 无 destroyBlock 方法（见调研）：手动置 air + 掉落物生成。
     const BlockPos worldPos = worldBlockPosition(relativePos);
+
+    // 破坏前读取旧方块状态，供 dropResources=true 时生成掉落物。
+    const BlockState* oldState = m_world.getBlockState(worldPos);
+    if (oldState == nullptr) {
+        return GameTestError{
+            GameTestErrorType::LevelStateModificationFailed, "No block to destroy at {0}", {worldPos.toString()}};
+    }
+
+    // 生成掉落物（dropResources=true 时走 BlockDropHandler 完整掉落链路）。
+    // 必须在 setBlockState(air) 之前生成掉落物：generateDrops 读取 pos 处的方块状态，
+    // 若先置 air 再生成，getLootTable 会读到空气方块的空掉落表，返回空掉落列表。
+    if (dropResources) {
+        const auto* lootTableManager = m_world.lootTableManager();
+        if (lootTableManager != nullptr) {
+            auto drops =
+                BlockDropHandler::generateDrops(m_world, worldPos, *oldState, nullptr, nullptr, *lootTableManager);
+            if (!drops.empty()) {
+                BlockDropHandler::spawnDrops(m_world, worldPos, drops, std::string());
+            }
+        }
+    }
+
     const BlockState* air = mc::BlockRegistry::instance().airState();
     if (air == nullptr) {
         return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Air block state unavailable"};
@@ -571,8 +594,6 @@ GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResou
                 {worldPos.toString()}};
         }
     }
-    // TODO: dropResources=true 时按战利品表生成掉落物（需 LootTable 体系就绪）
-    (void)dropResources;
     return std::nullopt;
 }
 
