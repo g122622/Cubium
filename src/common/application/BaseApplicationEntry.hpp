@@ -50,8 +50,9 @@ namespace mc::application {
  *   5. onFlagsParsed()（子类把 FLAGS_* 填进自己的 params 结构体）
  *   6. printBanner() / printBuildInfo()（用 displayName() 区分 Server/Client）
  *   7. prepareRun()（如 server 侧安装信号处理）
- *   8. 若 shouldEnableProfiler()：profilerStart()（init + setMemorySampler + startTracing
- *      + setProcessName + setThreadName），由子类虚函数提供 outputPath/processName/threadName
+ *   8. 若 shouldEnableProfiler() && FLAGS_profiler_enabled：profilerStart()（init +
+ *      setMemorySampler + startTracing + setProcessName + setThreadName），由子类虚函数
+ *      提供 outputPath/processName/threadName
  *   9. try { runApplication() } catch { onErrorCleanup() + profiler stop/shutdown }
  *
  * profiler 生命周期时序约束（关键）：
@@ -88,6 +89,9 @@ protected:
      * 返回 false 以纯净测 Shell 初始化耗时；服务端 gametest 模式（--gametest）返回 false
      * 保持无头测试不写 trace。须在 onFlagsParsed() 填充相关字段后调用，故 profilerStart
      * 在 run() 骨架中位于 onFlagsParsed 之后。
+     *
+     * 此门控与公共 flag --profiler-enabled 做 AND 组合：模式门控关闭时仍不启动 profiler；
+     * 用户显式 --profiler-enabled=false 时也跳过 profiler 初始化。
      */
     [[nodiscard]] virtual bool shouldEnableProfiler() const { return true; }
 

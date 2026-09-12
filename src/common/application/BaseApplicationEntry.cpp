@@ -57,11 +57,21 @@ public:
 
 // ============================================================================
 // 公共 flag 定义（子类专属 flag 在各自 TU 顶层 DEFINE）。
-// gflags 的 DEFINE_* 必须在全局作用域、TU 顶层；此处定义 verbose 公共 flag。
+// gflags 的 DEFINE_* 必须在全局作用域、TU 顶层；此处定义 verbose / profiler_enabled 公共 flag。
 // 注：--verbose 历史上用于开 debug 级别日志，但 CODE_CONVENTIONS §4 禁止 debug/trace
 // 级别日志，故此 flag 现仅作命令行兼容占位，不再改变日志级别（统一 info）。
 // ============================================================================
 DEFINE_bool(verbose, false, "Enable verbose logging (deprecated, no effect)");
+
+// --profiler-enabled：用户显式控制 profiler（Perfetto/Tracy）启停的公共 flag。
+// 默认 true 保持现有行为。与 shouldEnableProfiler()（子类按 gametest/benchmark 模式门控）
+// 做 AND 组合：模式门控关闭时仍不启动 profiler；用户显式关闭时跳过 profiler 初始化。
+// 须在 onFlagsParsed 之后、runApplication 之前读取（profiler 启停发生在 run() 骨架第 7 步，
+// 早于 runApplication 内部的 JSON 配置加载，故只能走 gflags 而非 ServerSettings/ClientSettings）。
+DEFINE_bool(profiler_enabled,
+    true,
+    "Enable profiler (Perfetto/Tracy) tracing. "
+    "Set to false to skip profiler initialization and tracing entirely.");
 
 void BaseApplicationEntry::profilerStopShutdown()
 {
@@ -202,10 +212,10 @@ int BaseApplicationEntry::run(int argc, char* argv[])
     // 6. 进入核心业务前的准备（如 server 安装信号处理）。
     prepareRun();
 
-    // 7. 启动 profiler（若子类门控允许）。须在 onFlagsParsed 之后：shouldEnableProfiler()
-    // 依赖子类已填充的 benchmark/gametest 字段。profilerStop() 须在 LogManager::shutdown()
-    // 之前（profiler 的 stop/shutdown 路径内部用 spdlog）。
-    if (shouldEnableProfiler()) {
+    // 7. 启动 profiler（若子类门控允许且用户未显式关闭）。须在 onFlagsParsed 之后：
+    // shouldEnableProfiler() 依赖子类已填充的 benchmark/gametest 字段。profilerStop() 须在
+    // LogManager::shutdown() 之前（profiler 的 stop/shutdown 路径内部用 spdlog）。
+    if (shouldEnableProfiler() && FLAGS_profiler_enabled) {
         profilerStart();
         m_profilerStarted = true;
     }

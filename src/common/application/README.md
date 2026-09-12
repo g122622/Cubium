@@ -7,7 +7,7 @@
 ```
 src/common/application/
 ├── BaseApplicationEntry.hpp   # 进程入口抽象基类（模板方法 run()）
-├── BaseApplicationEntry.cpp   # 公共启动流程实现 + banner/buildInfo + 公共 gflags flag(--verbose)
+├── BaseApplicationEntry.cpp   # 公共启动流程实现 + banner/buildInfo + 公共 gflags flag(--verbose/--profiler-enabled)
 ├── LogManager.hpp             # 异步日志管理器单例声明
 ├── LogManager.cpp             # spdlog async_logger(overrun_oldest) + 溢出监控线程
 └── README.md
@@ -46,7 +46,9 @@ StandaloneServer           ClientApplication
 ## 容易踩的坑
 
 ### 1. gflags DEFINE_* 必须在全局作用域
-`DEFINE_bool/DEFINE_string` 宏展开为全局变量 + 注册器，不能放类内/namespace 内（否则链接期找不到 `FLAGS_*`）。故 flag 定义分散在三个 .cpp 的 TU 顶层：`BaseApplicationEntry.cpp`（公共 `--verbose`）、`ServerApplicationEntry.cpp`（`--config`/`--gametest`）、`ClientApplicationEntry.cpp`（`--config`/`--skip-integrated`/`--quick-play`/`--quick-play-new`/`--benchmark-exit-after-initialize`）。gflags 把连字符规范化为下划线，故 `--quick-play-new` 命中 `DEFINE_bool(quick_play_new,...)`，保持连字符命令行风格不变。
+`DEFINE_bool/DEFINE_string` 宏展开为全局变量 + 注册器，不能放类内/namespace 内（否则链接期找不到 `FLAGS_*`）。故 flag 定义分散在三个 .cpp 的 TU 顶层：`BaseApplicationEntry.cpp`（公共 `--verbose`、`--profiler-enabled`）、`ServerApplicationEntry.cpp`（`--config`/`--gametest`）、`ClientApplicationEntry.cpp`（`--config`/`--skip-integrated`/`--quick-play`/`--quick-play-new`/`--benchmark-exit-after-initialize`）。gflags 把连字符规范化为下划线，故 `--quick-play-new` 命中 `DEFINE_bool(quick_play_new,...)`，保持连字符命令行风格不变。
+
+`--profiler-enabled`（默认 true）与 `shouldEnableProfiler()`（子类按 gametest/benchmark 模式门控）做 AND 组合控制 profiler 启停。profiler 启停发生在 `run()` 骨架第 7 步，早于 `runApplication()` 内部的 JSON 配置加载，故只能走 gflags 而非 ServerSettings/ClientSettings。
 
 ### 2. gflags 未知 flag 会报错退出
 `ParseCommandLineFlags(&argc, &argv, true)` 第三参数 `true` 表示遇未知 flag 报错 `exit(1)`。这会暴露给 server 误传 client 专属 flag（如 `--quick-play-new`）的调用错误。`--help` 由 gflags 内建处理（打印全部 flag 后 `exit(1)`）。
