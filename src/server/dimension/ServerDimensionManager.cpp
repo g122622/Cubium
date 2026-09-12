@@ -424,8 +424,10 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
 std::unique_ptr<world::biome::IBiomeSource> ServerDimensionManager::_createBiomeSource(
     const world::gen::settings::WorldPresetGenerator& gen, const world::gen::RandomState& rs, u64 seed)
 {
-    MC_TRACE_SCOPED_EVENT(
-        TraceEvents.Server.Initialization, "ServerDimensionManager::_createBiomeSource", "biomeSourceType", static_cast<i32>(gen.biomeSourceType));
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
+        "ServerDimensionManager::_createBiomeSource",
+        "biomeSourceType",
+        static_cast<i32>(gen.biomeSourceType));
 
     using BS = world::gen::settings::WorldPresetGenerator::BiomeSourceType;
     switch (gen.biomeSourceType) {
@@ -582,10 +584,8 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
 
     // 设置游戏模式（从玩家数据获取）
     auto* playerData = m_server->playerManager().getPlayer(playerId);
-    if (playerData) {
-        pkt.spawnInfo.gameType = playerData->gameMode;
-        pkt.spawnInfo.previousGameType = -1; // NotSet → null（1.21.11 用 -1 表 null）
-    }
+    pkt.spawnInfo.gameType = playerData->gameMode;
+    pkt.spawnInfo.previousGameType = -1; // NotSet → null（1.21.11 用 -1 表 null）
 
     // 维度切换时保留数据（KEEP_ALL_DATA = 3）
     pkt.dataToKeep = 3;
@@ -627,12 +627,32 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
         }
     }
 
-    (void)pos; // 旧 RespawnPacket 不携带坐标；1.21.11 Respawn 后由 PlayerPosition 单独传送
+    // 发送 Respawn 包（维度切换）。1.21.11 Respawn 不携带坐标，仅切换维度。
     m_server->sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,
             mc::network::ir::PlayPacket{std::move(pkt)},
         });
+
+    // 1.21.11 协议序列：Respawn（切换维度）→ PlayerPosition（传送到目标坐标）。
+    // 对照 Java ServerPlayer.teleport() 跨维度分支（1110-1143 行）：
+    //   this.connection.send(new ClientboundRespawnPacket(...));       // ① Respawn
+    //   ...
+    //   this.connection.teleport(PositionMoveRotation.of(...), ...);   // ② PlayerPosition
+    //   ...
+    //   serverlevel.addDuringTeleport(this);                           // ③ 加载区块
+    //
+    // Respawn 仅让客户端切换维度并清空区块缓存，不传送玩家坐标。
+    // 必须紧随其后发送 PlayerPosition 包，将玩家传送到目标维度的目标坐标。
+    // 否则客户端维度切换完成但坐标停留在原值，玩家"无法传送"。
+    //
+    // requestTeleport 更新 ServerPlayerData 位置/朝向，生成 teleportId 并设置
+    // waitingTeleportConfirm 状态，发送 PlayerPosition 包。与 Java 的
+    // connection.teleport 语义一致（客户端回 AcceptTeleportation 确认）。
+    // Respawn 不改朝向，PlayerPosition 传送时保持玩家原朝向。
+    const f32 currentYaw = playerData->yaw;
+    const f32 currentPitch = playerData->pitch;
+    m_server->teleportManager().requestTeleport(playerId, pos.x, pos.y, pos.z, currentYaw, currentPitch);
 }
 
 void ServerDimensionManager::_unloadPlayerChunks(PlayerId playerId)
