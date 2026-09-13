@@ -1422,6 +1422,19 @@ void ServerPlayer::tick()
     // 物理驱动。hasConnection() 守卫确保真实玩家不受影响（继续走客户端包权威，无双重移动）。
     if (!hasConnection()) {
         updatePhysics();
+    } else {
+        // 真实在线玩家：位置已由 ServerPlayHandler 通过 setPosition 直接采信客户端申报坐标写入，
+        // 全程不走 Entity::move()，也不走 Player::updatePhysics()（后者仅 !hasConnection() 路径调用）。
+        // 而 Player::aiStep()（Player.cpp:2269）被重写为几乎为空，不调用 LivingEntity::aiStep()，
+        // 故 LivingEntity::aiStep 末尾的 doBlockCollisions()（LivingEntity.cpp:2069）永远不会对
+        // 真实玩家执行——导致下界/末地传送门不激活、仙人掌/岩浆块/甜浆果丛不造成伤害、蜘蛛网不减速、
+        // 气泡柱不推拉等所有依赖 onEntityCollision/onInsideBlock/onEntityWalk 的方块行为系统性失效。
+        //
+        // 此处补一次 doBlockCollisions()：位置已由移动包处理完毕，此时遍历碰撞箱覆盖的方块、触发
+        // onEntityCollision 回调是正确时机，等价于 vanilla Entity.move 末尾的方块碰撞处理。
+        // doBlockCollisions() 内部已守卫 m_world==nullptr；SimulatedPlayer 已在上方 updatePhysics()
+        // 末尾（Player.cpp:1357）调用过，故仅在真实玩家分支补此调用，避免重复触发回调。
+        doBlockCollisions();
     }
 }
 
