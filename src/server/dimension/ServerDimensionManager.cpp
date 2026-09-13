@@ -653,6 +653,25 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
     const f32 currentYaw = playerData->yaw;
     const f32 currentPitch = playerData->pitch;
     m_server->teleportManager().requestTeleport(playerId, pos.x, pos.y, pos.z, currentYaw, currentPitch);
+
+    // 维度切换后必须补发 LEVEL_CHUNKS_LOAD_START GameEvent（event=13, value=0）。
+    // 1.21.11 客户端 LevelLoadTracker 状态机：收到 Respawn 后处于 WaitingForServer 并显示
+    // LevelLoadingScreen（"加载地形中"）；唯有收到此 GameEvent 才调用 loadingPacketsReceived()
+    // 转入 WaitingForPlayerChunk，进而等玩家所在 section 编译可见后关屏。漏发则客户端永久卡在
+    // WaitingForServer，仅靠 30s 超时兜底强制放行。
+    // 对齐原版 PlayerList.sendLevelInfo() 在维度切换（ServerPlayer.teleport 跨维度分支）中
+    // 发送 LEVEL_CHUNKS_LOAD_START 的行为，与登录流程（LoginFlow.cpp:278-293）保持一致。
+    // 时序：Respawn → PlayerPosition → LEVEL_CHUNKS_LOAD_START → 区块数据，该包必须在区块
+    // 发送之前发出，作为区块加载序列开始的信号（transferPlayerToDimension 中
+    // _loadPlayerChunks 在本函数返回后才推送区块）。
+    mc::network::ir::play::GameEvent loadStartEvt;
+    loadStartEvt.event = 13; // LEVEL_CHUNKS_LOAD_START
+    loadStartEvt.value = 0.0f;
+    m_server->sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(loadStartEvt)},
+        });
 }
 
 void ServerDimensionManager::_unloadPlayerChunks(PlayerId playerId)
