@@ -62,9 +62,9 @@ UniversalWorkerPool::~UniversalWorkerPool()
 
 i32 UniversalWorkerPool::getOptimalThreadCount()
 {
-    // 使用硬件并发数的一半，至少 1 个，最多 114514 个
+    // 使用硬件并发数 - 1，至少 1 个，最多 114514 个
     const unsigned int hardwareConcurrency = std::thread::hardware_concurrency();
-    return static_cast<i32>(std::clamp(hardwareConcurrency / 2, 1u, 114514u));
+    return static_cast<i32>(std::clamp(hardwareConcurrency - 1, 1u, 114514u));
 }
 
 // ============================================================================
