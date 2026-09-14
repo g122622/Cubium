@@ -8,12 +8,12 @@
 #include "common/world/block/BlockRegistry.hpp" // mc::BlockRegistry::airState
 #include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
-#include "common/world/gen/feature/template/Template.hpp"        // Template + PlacementSettings
-#include "common/world/gen/feature/template/TemplateManager.hpp" // TemplateManager
-#include "common/world/gen/jigsaw/JigsawAssembler.hpp"           // JigsawAssembler::getTemplateManager
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerChunkManager.hpp" // ServerChunkManager（chunkManager()->ticketManager()）
 #include "server/world/ServerWorld.hpp"
+#include "server/world/gen/feature/template/Template.hpp"        // Template + PlacementSettings
+#include "server/world/gen/feature/template/TemplateManager.hpp" // TemplateManager
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp"           // JigsawAssembler::getTemplateManager
+#include "server/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <algorithm> // std::max
 #include <spdlog/spdlog.h>

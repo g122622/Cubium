@@ -29,9 +29,9 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/MonsterRoomFeature.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/MonsterRoomFeature.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 #include <memory>
 #include <vector>

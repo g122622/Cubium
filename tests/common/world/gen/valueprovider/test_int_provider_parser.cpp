@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/gen/valueprovider/IntProviderParser.hpp"
+#include "server/world/gen/valueprovider/IntProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
 

@@ -31,7 +31,7 @@
 // 4. 与 MC 1.21.11 NoiseColumn 的行为对齐
 // ============================================================================
 
-#include "common/world/gen/chunk/NoiseColumn.hpp"
+#include "server/world/gen/chunk/NoiseColumn.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>

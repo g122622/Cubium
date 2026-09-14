@@ -48,10 +48,10 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/world/gen/density/BlendedNoise.hpp"
-#include "common/world/gen/noise/NormalNoise.hpp"
-#include "common/world/gen/noise/PerlinNoise.hpp"
-#include "common/world/gen/noise/PerlinNoiseSoA.hpp"
+#include "server/world/gen/density/BlendedNoise.hpp"
+#include "server/world/gen/noise/NormalNoise.hpp"
+#include "server/world/gen/noise/PerlinNoise.hpp"
+#include "server/world/gen/noise/PerlinNoiseSoA.hpp"
 
 #include <gtest/gtest.h>
 

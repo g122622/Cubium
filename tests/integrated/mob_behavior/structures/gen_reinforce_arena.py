@@ -23,7 +23,7 @@ reinforce_arena：81×7×81 露天草地大场地，专供僵尸增援（ZombieE
 docs/minecraft-wiki-source/minecraft_wiki/tech_基岩版结构文件.txt）：
     index = x * sizeY * sizeZ + y * sizeZ + z   （X 外层、Y 中层、Z 内层）
 
-C++ 解析权威源：src/common/world/gen/feature/template/TemplateLoader.cpp
+C++ 解析权威源：src/server/world/gen/feature/template/TemplateLoader.cpp
     const size_t totalXZ = sizeY * sizeZ;
     x = i / totalXZ;  y = (i % totalXZ) / sizeZ;  z = (i % totalXZ) % sizeZ;
 （与上面公式互逆，一致。）

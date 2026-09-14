@@ -30,7 +30,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <functional>
 #include <memory>
 #include <optional>

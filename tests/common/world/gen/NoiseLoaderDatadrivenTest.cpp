@@ -35,8 +35,8 @@
 
 #include "common/core/GameDirectory.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "common/world/gen/noise/NoiseLoader.hpp"
-#include "common/world/gen/noise/Noises.hpp"
+#include "server/world/gen/noise/NoiseLoader.hpp"
+#include "server/world/gen/noise/Noises.hpp"
 
 #include <filesystem>
 #include <gtest/gtest.h>

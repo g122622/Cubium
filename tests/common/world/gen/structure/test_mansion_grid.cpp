@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/util/math/random/Random.hpp"
-#include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
+#include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;

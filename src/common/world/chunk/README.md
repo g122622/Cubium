@@ -126,7 +126,7 @@ flowchart LR
 - `server/world/ChunkTaskScheduler.hpp` — 生成调度核心
 - `server/world/ChunkProgressionTask.hpp` — 单状态推进任务
 - `client/world/ClientWorld.hpp` — 客户端世界
-- `common/world/gen/` — 生成器
+- `server/world/gen/` — 生成器
 - `common/world/lighting/` — 光照引擎
 - `common/world/storage/` — 存储系统
 

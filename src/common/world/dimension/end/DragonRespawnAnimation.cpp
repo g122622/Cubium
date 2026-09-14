@@ -33,7 +33,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
-#include "common/world/gen/feature/end/EndSpikeFeature.hpp"
+#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 #include <cstddef>
 #include <vector>
 

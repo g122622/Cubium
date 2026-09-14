@@ -36,7 +36,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>

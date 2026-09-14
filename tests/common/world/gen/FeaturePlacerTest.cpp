@@ -25,8 +25,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/FeaturePlacer.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/FeaturePlacer.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <memory>
 #include <vector>

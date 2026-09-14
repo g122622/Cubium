@@ -29,7 +29,7 @@
 #include "common/world/biome/climate/ParameterList.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
-#include "common/world/gen/RandomState.hpp"
+#include "server/world/gen/RandomState.hpp"
 #include <algorithm>
 #include <memory>
 #include <utility>

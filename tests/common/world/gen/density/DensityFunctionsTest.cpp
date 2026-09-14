@@ -30,10 +30,10 @@
  * 2. Mul: maxValue 的条件判断应使用 min1/min2 和 max1/max2
  */
 
-#include "common/world/gen/density/DensityFunctions.hpp"
-#include "common/world/gen/density/Beardifier.hpp"
-#include "common/world/gen/density/TerrainProvider.hpp"
-#include "common/world/gen/noise/NormalNoise.hpp"
+#include "server/world/gen/density/DensityFunctions.hpp"
+#include "server/world/gen/density/Beardifier.hpp"
+#include "server/world/gen/density/TerrainProvider.hpp"
+#include "server/world/gen/noise/NormalNoise.hpp"
 #include <cmath>
 #include <limits>
 #include <gtest/gtest.h>

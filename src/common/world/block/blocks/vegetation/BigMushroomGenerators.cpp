@@ -25,7 +25,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VegetationBlocks.hpp"
-#include "common/world/gen/feature/vegetation/BigMushroomFeature.hpp"
+#include "server/world/gen/feature/vegetation/BigMushroomFeature.hpp"
 #include <functional>
 #include <memory>
 

@@ -34,9 +34,6 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
@@ -45,6 +42,9 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerLightQueue.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 #include <atomic>
 #include <chrono>
 #include <filesystem>

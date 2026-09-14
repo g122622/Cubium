@@ -38,15 +38,15 @@
 #include "common/TempDirHelper.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/FlatChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "server/world/gen/chunk/FlatChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 using namespace mc;
 using namespace mc::server;

@@ -27,9 +27,9 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/structure/structures/OceanRuinStructure.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/feature/template/TemplateManager.hpp"
+#include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;

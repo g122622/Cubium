@@ -32,10 +32,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/state/BlockStateProvider.hpp"
-#include "common/world/gen/feature/state/RuleBasedBlockStateProvider.hpp"
-#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
-#include "common/world/gen/feature/state/WeightedBlockStateProvider.hpp"
+#include "server/world/gen/feature/state/BlockStateProvider.hpp"
+#include "server/world/gen/feature/state/RuleBasedBlockStateProvider.hpp"
+#include "server/world/gen/feature/state/SimpleBlockStateProvider.hpp"
+#include "server/world/gen/feature/state/WeightedBlockStateProvider.hpp"
 
 #include <gtest/gtest.h>
 

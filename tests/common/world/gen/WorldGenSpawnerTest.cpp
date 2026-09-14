@@ -21,11 +21,11 @@
  *
  */
 
-#include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "server/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <gtest/gtest.h>
 
 namespace mc {

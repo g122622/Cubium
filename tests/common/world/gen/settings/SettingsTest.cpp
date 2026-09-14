@@ -21,19 +21,19 @@
  *
  */
 
-#include "common/world/gen/settings/Settings.hpp"
+#include "server/world/gen/settings/Settings.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/settings/FlatLayerInfo.hpp"
-#include "common/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
-#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
-#include "common/world/gen/settings/NoiseSettings.hpp"
-#include "common/world/gen/settings/ScalingSettings.hpp"
-#include "common/world/gen/settings/SlideSettings.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/settings/FlatLayerInfo.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorPresetRegistry.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include "server/world/gen/settings/NoiseSettings.hpp"
+#include "server/world/gen/settings/ScalingSettings.hpp"
+#include "server/world/gen/settings/SlideSettings.hpp"
 #include <gtest/gtest.h>
 
 namespace mc {

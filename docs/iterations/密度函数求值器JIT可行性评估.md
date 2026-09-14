@@ -9,7 +9,7 @@
 
 ## 1. 背景
 
-`CompiledDensityFunction::eval`（`src/common/world/gen/density/ast/CompiledDensityFunction.cpp:321`）是区块生成逐方块热路径，每区块调用数万次。当前实现是"扁平指令序列（`std::vector<Op>`）+ switch 解释执行"，约 25 个 `OpCode`，写入 `f64` 寄存器数组，遇 `Return` 返回。
+`CompiledDensityFunction::eval`（`src/server/world/gen/density/ast/CompiledDensityFunction.cpp:321`）是区块生成逐方块热路径，每区块调用数万次。当前实现是"扁平指令序列（`std::vector<Op>`）+ switch 解释执行"，约 25 个 `OpCode`，写入 `f64` 寄存器数组，遇 `Return` 返回。
 
 用户想评估用 asmjit 把 eval JIT 成原生机器码是否值得。
 
@@ -129,9 +129,9 @@ f64 eval(x,y,z) {
 
 ### 文件清单（临时性插桩，profiler 完成后整体删除）
 
-- 新增：`src/common/world/gen/density/ast/DensityEvalProfiler.hpp`（纯头文件：readTsc + 累加器 + DepthGuard + isLeafExternalCall）
-- 修改：`src/common/world/gen/density/ast/CompiledDensityFunction.cpp`（eval depth 守卫 + 顶层计时；evalImpl 5 个 A 类 case per-call 计时；Marker 不计时）
-- 修改：`src/common/world/gen/chunk/NoiseChunkGenerator.cpp`（上报点）
+- 新增：`src/server/world/gen/density/ast/DensityEvalProfiler.hpp`（纯头文件：readTsc + 累加器 + DepthGuard + isLeafExternalCall）
+- 修改：`src/server/world/gen/density/ast/CompiledDensityFunction.cpp`（eval depth 守卫 + 顶层计时；evalImpl 5 个 A 类 case per-call 计时；Marker 不计时）
+- 修改：`src/server/world/gen/chunk/NoiseChunkGenerator.cpp`（上报点）
 
 **约束**：不修改 `ProfilerConfig.hpp`（会导致大量文件重编译）；不用宏控制（profiler 完毕后代码删除）；插桩不进入浮点运算路径，`DensityAstBaselineTest`（1e-9）不受影响。
 

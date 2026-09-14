@@ -53,12 +53,12 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/density/Beardifier.hpp"
-#include "common/world/gen/density/DensityFunctions.hpp"
-#include "common/world/gen/density/NoiseChunk.hpp"
-#include "common/world/gen/density/NoiseRouter.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/density/Beardifier.hpp"
+#include "server/world/gen/density/DensityFunctions.hpp"
+#include "server/world/gen/density/NoiseChunk.hpp"
+#include "server/world/gen/density/NoiseRouter.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 #include <gtest/gtest.h>
 

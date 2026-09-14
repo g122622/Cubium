@@ -42,12 +42,12 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/FlatChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "server/world/gen/chunk/FlatChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

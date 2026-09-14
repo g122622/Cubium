@@ -52,7 +52,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_蘑菇.txt#巨型蘑菇（:83-90 骨粉生成巨型蘑菇条件）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_巨型蘑菇.txt#生成（:55 40%概率生长成巨型蘑菇）
 // Ref: src/common/world/block/blocks/vegetation/MushroomBlock.cpp（grow:194-226, IGrowable:158-192）
-// Ref: src/common/world/gen/feature/vegetation/BigMushroomFeature.cpp（place:44-62, canPlaceAt:104-155）
+// Ref: src/server/world/gen/feature/vegetation/BigMushroomFeature.cpp（place:44-62, canPlaceAt:104-155）
 // Ref: src/common/item/items/special/BoneMealItem.cpp:70（dynamic_cast<IGrowable> 检查骨粉有效性）
 
 import * as GameTest from "@minecraft/server-gametest";

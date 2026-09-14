@@ -24,7 +24,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
-#include "common/world/gen/feature/tree/TreeFeature.hpp"
+#include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include <functional>
 #include <memory>
 

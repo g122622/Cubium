@@ -24,9 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/gen/structure/StructureTag.hpp"
-#include "common/world/gen/structure/StructureTagLoader.hpp"
-#include "common/world/gen/structure/StructureTags.hpp"
+#include "server/world/gen/structure/StructureTag.hpp"
+#include "server/world/gen/structure/StructureTagLoader.hpp"
+#include "server/world/gen/structure/StructureTags.hpp"
 
 #include <algorithm>
 #include <cmath>

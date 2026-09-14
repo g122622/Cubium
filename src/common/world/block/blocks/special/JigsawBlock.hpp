@@ -32,7 +32,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/GameMasterBlock.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
 
 namespace mc {
 

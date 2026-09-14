@@ -76,7 +76,7 @@ src/common/util/math/
 **被依赖（上游调用方）**：
 - `common/world/` - 世界生成、区块处理使用坐标转换函数
 - `common/entity/` - 实体物理、移动使用向量和射线检测
-- `common/world/gen/` - 噪声生成使用随机数
+- `server/world/gen/` - 噪声生成使用随机数
 - `client/renderer/` - 渲染使用向量和视锥剔除
 - `server/` - 服务端逻辑使用随机数和坐标转换
 

@@ -38,11 +38,11 @@
  * 设施，保持单元测试轻量。
  */
 
-#include "common/world/gen/density/ast/OptoPasses.hpp"
-#include "common/world/gen/density/DensityFunctions.hpp"
-#include "common/world/gen/density/ast/AstNode.hpp"
-#include "common/world/gen/density/ast/AstNodes.hpp"
-#include "common/world/gen/density/ast/McToAst.hpp"
+#include "server/world/gen/density/ast/OptoPasses.hpp"
+#include "server/world/gen/density/DensityFunctions.hpp"
+#include "server/world/gen/density/ast/AstNode.hpp"
+#include "server/world/gen/density/ast/AstNodes.hpp"
+#include "server/world/gen/density/ast/McToAst.hpp"
 
 #include <gtest/gtest.h>
 

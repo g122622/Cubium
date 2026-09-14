@@ -47,14 +47,14 @@
  */
 
 #include "common/core/Types.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/density/DensityFunction.hpp"
-#include "common/world/gen/density/NoiseRouter.hpp"
-#include "common/world/gen/density/ast/BytecodeGen.hpp"
-#include "common/world/gen/density/ast/CompiledDensityFunction.hpp"
-#include "common/world/gen/density/ast/McToAst.hpp"
-#include "common/world/gen/density/ast/OptoPasses.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/density/DensityFunction.hpp"
+#include "server/world/gen/density/NoiseRouter.hpp"
+#include "server/world/gen/density/ast/BytecodeGen.hpp"
+#include "server/world/gen/density/ast/CompiledDensityFunction.hpp"
+#include "server/world/gen/density/ast/McToAst.hpp"
+#include "server/world/gen/density/ast/OptoPasses.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 #include <gtest/gtest.h>
 

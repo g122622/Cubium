@@ -28,7 +28,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_set>

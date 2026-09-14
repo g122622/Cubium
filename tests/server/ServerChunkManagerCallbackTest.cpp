@@ -25,11 +25,11 @@
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/spawn/WorldGenSpawner.hpp"
 #include <atomic>
 #include <memory>
 #include <vector>

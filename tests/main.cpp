@@ -32,12 +32,12 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/CrashHandler.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/density/DensityFunctionLoader.hpp"
-#include "common/world/gen/noise/NoiseLoader.hpp"
-#include "common/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
-#include "common/world/gen/settings/NoiseSettingsLoader.hpp"
-#include "common/world/gen/settings/WorldPresetLoader.hpp"
 #include "server/world/ChunkTaskScheduler.hpp"
+#include "server/world/gen/density/DensityFunctionLoader.hpp"
+#include "server/world/gen/noise/NoiseLoader.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
+#include "server/world/gen/settings/NoiseSettingsLoader.hpp"
+#include "server/world/gen/settings/WorldPresetLoader.hpp"
 
 #include <gtest/gtest.h>
 

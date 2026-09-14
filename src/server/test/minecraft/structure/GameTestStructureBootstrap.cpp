@@ -1,8 +1,8 @@
 #include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
+#include "server/world/gen/feature/template/TemplateManager.hpp"
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
 
 #include <spdlog/spdlog.h>
 

@@ -35,9 +35,9 @@
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
 #include "common/world/blockentity/BlockEntity.hpp"          // getBlockEntity → dynamic_cast<ContainerBlockEntity*>
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/drop/BlockDropHandler.hpp" // BlockDropHandler::generateDrops/spawnDrops（destroyBlock 掉落物分支）
+#include "server/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <spdlog/spdlog.h>
 

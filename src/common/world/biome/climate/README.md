@@ -44,7 +44,7 @@ Sampler::findSpawnPosition() ──→ SpawnFinder（径向搜索出生点）
 
 ### 依赖
 
-- `common/world/gen/density/DensityFunction.hpp` — Sampler 持有 DensityFunction 引用
+- `server/world/gen/density/DensityFunction.hpp` — Sampler 持有 DensityFunction 引用
 - `common/util/math/MathUtils.hpp` — SpawnFinder 径向搜索用 TWO_PI
 - `common/core/Types.hpp` — 基础类型 i32/i64/f32/f64
 - `common/util/assert/AssertAll.hpp` — MC_ASSERT_RELEASE
@@ -54,9 +54,9 @@ Sampler::findSpawnPosition() ──→ SpawnFinder（径向搜索出生点）
 - `common/world/biome/source/MultiNoiseBiomeSource` — 使用 Sampler + ParameterList + TargetPoint
 - `common/world/biome/source/OverworldBiomeBuilder` — 构建主世界 ParameterList（用 Parameter/ParameterPoint/ParameterList）
 - `common/world/biome/source/NetherBiomeBuilder` — 构建下界 ParameterList
-- `common/world/gen/density/NoiseRouter` — `createClimateSampler()` 构造 Sampler
-- `common/world/gen/RandomState` / `NoiseChunk` — 持有 Sampler、设置 spawnTarget
-- `common/world/gen/settings/DimensionSettings` — spawnTarget 字段（vector<ParameterPoint>）
+- `server/world/gen/density/NoiseRouter` — `createClimateSampler()` 构造 Sampler
+- `server/world/gen/RandomState` / `NoiseChunk` — 持有 Sampler、设置 spawnTarget
+- `server/world/gen/settings/DimensionSettings` — spawnTarget 字段（vector<ParameterPoint>）
 - `server/world/ServerWorld` — `sampler.findSpawnPosition()` 查找出生区块
 
 ## 容易踩的坑

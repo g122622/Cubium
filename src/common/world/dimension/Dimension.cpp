@@ -24,7 +24,7 @@
 #include "Dimension.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <utility>
 

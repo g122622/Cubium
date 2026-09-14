@@ -27,11 +27,11 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/gen/carver/ConfiguredCarverLoader.hpp"
-#include "common/world/gen/feature/ConfiguredFeatureLoader.hpp"
-#include "common/world/gen/feature/FeatureTypeRegistry.hpp"
-#include "common/world/gen/placement/PlacedFeatureLoader.hpp"
-#include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "server/world/gen/carver/ConfiguredCarverLoader.hpp"
+#include "server/world/gen/feature/ConfiguredFeatureLoader.hpp"
+#include "server/world/gen/feature/FeatureTypeRegistry.hpp"
+#include "server/world/gen/placement/PlacedFeatureLoader.hpp"
+#include "server/world/gen/placement/PlacementRegistry.hpp"
 
 #include <filesystem>
 

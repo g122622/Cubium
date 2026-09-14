@@ -30,12 +30,12 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/noise/NormalNoise.hpp"
-#include "common/world/gen/noise/PerlinNoise.hpp"
-#include "common/world/gen/settings/NoiseSettings.hpp"
 #include "server/world/SingleChunkLifecycleManager.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/noise/NormalNoise.hpp"
+#include "server/world/gen/noise/PerlinNoise.hpp"
+#include "server/world/gen/settings/NoiseSettings.hpp"
 
 using namespace mc;
 using namespace mc::world::chunk;

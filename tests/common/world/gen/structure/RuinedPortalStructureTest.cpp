@@ -47,11 +47,11 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/structures/RuinedPortalStructure.hpp"
+#include "server/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 
 #include <algorithm>
 #include <unordered_map>

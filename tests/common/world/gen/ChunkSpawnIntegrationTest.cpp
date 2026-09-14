@@ -32,8 +32,8 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "common/world/gen/spawn/WorldGenSpawner.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
+#include "server/world/gen/spawn/WorldGenSpawner.hpp"
 
 using namespace mc;
 using namespace mc::entity;

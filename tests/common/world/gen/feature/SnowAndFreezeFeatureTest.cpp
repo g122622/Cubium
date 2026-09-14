@@ -33,9 +33,9 @@
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/SnowAndFreezeFeature.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 #include <memory>
 #include <vector>

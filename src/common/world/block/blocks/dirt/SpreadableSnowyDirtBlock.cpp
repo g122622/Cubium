@@ -42,10 +42,10 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/gen/feature/vegetation/FlowerFeature.hpp"
-#include "common/world/gen/placement/PlacedFeature.hpp"
-#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "server/world/gen/feature/vegetation/FlowerFeature.hpp"
+#include "server/world/gen/placement/PlacedFeature.hpp"
+#include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include <algorithm>
 #include <optional>
 #include <utility>

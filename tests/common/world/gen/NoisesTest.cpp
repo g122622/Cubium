@@ -31,7 +31,7 @@
 // - has() 和 get() 正确工作
 // ============================================================================
 
-#include "common/world/gen/noise/Noises.hpp"
+#include "server/world/gen/noise/Noises.hpp"
 #include <thread>
 #include <vector>
 #include <gtest/gtest.h>

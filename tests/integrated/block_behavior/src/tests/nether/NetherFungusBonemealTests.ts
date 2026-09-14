@@ -40,7 +40,7 @@
 //   - canGrow(下方对应菌岩) → canUseBonemeal(40% 门限) → grow(生成巨型真菌)。
 //   - 软门限：canUseBonemeal 通过才 grow，但骨粉始终消耗 + 返 Success。
 //
-// HugeFungusFeature::place（src/common/world/gen/feature/nether/HugeFungusFeature.cpp）：
+// HugeFungusFeature::place（src/server/world/gen/feature/nether/HugeFungusFeature.cpp）：
 //   - 高度 4 + random.nextInt(10) = [4,13]（对齐 Java Mth.nextInt(4,13)）。
 //   - 1/12 概率双倍高度。
 //   - thickStem = !config.planted && random.nextFloat() < 0.06f（对齐 Java flag）。
@@ -76,7 +76,7 @@
 // Ref: net/minecraft/world/level/levelgen/feature/HugeFungusFeature.java（place: 高度[4,13], thickStem=planted门限）
 // Ref: src/common/world/block/blocks/nether/FungusBlock.cpp（canGrow, canUseBonemeal, grow）
 // Ref: src/common/item/items/special/BoneMealItem.cpp（onItemUse: canGrow/canUseBonemeal/grow 链路）
-// Ref: src/common/world/gen/feature/nether/HugeFungusFeature.cpp（place: 高度[4,13], thickStem 门限）
+// Ref: src/server/world/gen/feature/nether/HugeFungusFeature.cpp（place: 高度[4,13], thickStem 门限）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";

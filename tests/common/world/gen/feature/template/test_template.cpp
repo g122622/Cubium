@@ -28,10 +28,10 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/template/RuleTest.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/feature/template/TemplateLoader.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
+#include "server/world/gen/feature/template/RuleTest.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/feature/template/TemplateLoader.hpp"
+#include "server/world/gen/feature/template/TemplateManager.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::feature::template_;

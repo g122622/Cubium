@@ -31,9 +31,9 @@
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/Fluids.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/parser/BlockPredicateParser.hpp"
-#include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/parser/BlockPredicateParser.hpp"
+#include "server/world/gen/placement/PlacementRegistry.hpp"
 
 #include <memory>
 #include <vector>

@@ -21,9 +21,9 @@
  *
  */
 
-#include "common/world/gen/jigsaw/JigsawMatcher.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
-#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "server/world/gen/jigsaw/JigsawMatcher.hpp"
+#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

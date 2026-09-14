@@ -40,11 +40,11 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/structure/StructureManager.hpp"
-#include "common/world/gen/structure/StructureSet.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/structure/StructureManager.hpp"
+#include "server/world/gen/structure/StructureSet.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

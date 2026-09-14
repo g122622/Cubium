@@ -28,7 +28,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/world/entity/EntityManager.hpp"
-#include "common/world/gen/spawn/WorldGenSpawner.hpp"
+#include "server/world/gen/spawn/WorldGenSpawner.hpp"
 #include <memory>
 #include <vector>
 #include <gtest/gtest.h>

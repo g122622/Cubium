@@ -33,8 +33,8 @@
 #include "server/world/ServerWorld.hpp"
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
-#include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
+#include "server/world/gen/feature/template/TemplateManager.hpp"
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
 
 #include <spdlog/spdlog.h>
 

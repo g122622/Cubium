@@ -44,9 +44,9 @@
 #include "common/TempDirHelper.hpp"
 #include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/test/facade/GameTestServer.hpp"
+#include "server/world/gen/feature/template/TemplateManager.hpp"
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 
 #include <filesystem>
 #include <memory>

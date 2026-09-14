@@ -48,11 +48,11 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/aquifer/Aquifer.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/density/NoiseChunk.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/aquifer/Aquifer.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/density/NoiseChunk.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 #include <iomanip>
 #include <iostream>
 #include <set>

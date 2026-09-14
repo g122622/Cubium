@@ -25,8 +25,8 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/density/DensityFunctions.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/density/DensityFunctions.hpp"
 #include <memory>
 #include <vector>
 

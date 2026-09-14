@@ -29,11 +29,11 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/placement/PlacementRegistry.hpp"
-#include "common/world/gen/placement/Placements.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/placement/PlacementRegistry.hpp"
+#include "server/world/gen/placement/Placements.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/valueprovider/IntProvider.hpp"
 
 #include <memory>
 #include <vector>

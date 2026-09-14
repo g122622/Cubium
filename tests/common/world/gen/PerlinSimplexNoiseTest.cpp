@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
+#include "server/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <cmath>
 #include <gtest/gtest.h>

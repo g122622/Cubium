@@ -34,9 +34,9 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/carver/CarvingMask.hpp"
-#include "common/world/gen/spawn/WorldGenSpawner.hpp"
-#include "common/world/gen/structure/Structure.hpp"
+#include "server/world/gen/carver/CarvingMask.hpp"
+#include "server/world/gen/spawn/WorldGenSpawner.hpp"
+#include "server/world/gen/structure/Structure.hpp"
 #include <array>
 #include <cstddef>
 #include <functional>

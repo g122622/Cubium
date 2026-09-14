@@ -21,9 +21,9 @@
  *
  */
 
-#include "common/world/gen/feature/parser/FeatureSizeParser.hpp"
-#include "common/world/gen/feature/tree/TreeFeature.hpp"
-#include "common/world/gen/feature/tree/featuresize/FeatureSize.hpp"
+#include "server/world/gen/feature/parser/FeatureSizeParser.hpp"
+#include "server/world/gen/feature/tree/TreeFeature.hpp"
+#include "server/world/gen/feature/tree/featuresize/FeatureSize.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 

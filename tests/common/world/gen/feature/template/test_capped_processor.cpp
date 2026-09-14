@@ -25,9 +25,9 @@
 
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
-#include "common/world/gen/valueprovider/IntProvider.hpp"
+#include "server/world/gen/feature/template/CappedStructureProcessor.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/valueprovider/IntProvider.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::feature::template_;

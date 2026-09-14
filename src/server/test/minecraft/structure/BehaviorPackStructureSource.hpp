@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/world/gen/feature/template/IStructurePackSource.hpp"
+#include "server/world/gen/feature/template/IStructurePackSource.hpp"
 
 #include <string>
 #include <vector>

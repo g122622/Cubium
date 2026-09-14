@@ -45,8 +45,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/chunk/FlatChunkGenerator.hpp"
-#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include "server/world/gen/chunk/FlatChunkGenerator.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

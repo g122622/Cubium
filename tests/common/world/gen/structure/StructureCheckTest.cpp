@@ -25,7 +25,7 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/world/gen/structure/StructureCheck.hpp"
+#include "server/world/gen/structure/StructureCheck.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;

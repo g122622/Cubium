@@ -27,8 +27,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/feature/nether/HugeFungusFeature.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/nether/HugeFungusFeature.hpp"
 
 namespace mc {
 namespace blocks {

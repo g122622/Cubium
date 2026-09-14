@@ -43,7 +43,7 @@
 #include "IntegerProperty.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
 
 namespace mc {
 

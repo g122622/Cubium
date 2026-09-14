@@ -6,7 +6,7 @@
 // 动机：CODE_CONVENTIONS.md §8 禁止 #include "../..." 上跳目录，
 // 要求用根路径。本脚本扫描 src/ 和 tests/ 下所有 .cpp/.hpp，
 // 把形如 #include "../../chunk/IChunkGenerator.hpp" 的相对 include
-// 改写为 #include "common/world/gen/chunk/IChunkGenerator.hpp"。
+// 改写为 #include "server/world/gen/chunk/IChunkGenerator.hpp"。
 //
 // 规则：
 //   1. 只处理 quoted include（#include "..."）中含 ../ 的行

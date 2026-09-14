@@ -34,8 +34,8 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/StaticChunkCache2D.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstddef>

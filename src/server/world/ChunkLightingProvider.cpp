@@ -27,8 +27,8 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/lighting/LightType.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc::server {
 

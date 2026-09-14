@@ -45,12 +45,12 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
-#include "common/world/gen/feature/vegetation/FlowerFeature.hpp"
-#include "common/world/gen/placement/PlacedFeature.hpp"
-#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "server/world/gen/feature/ConfiguredFeature.hpp"
+#include "server/world/gen/feature/DecorationStage.hpp"
+#include "server/world/gen/feature/vegetation/FlowerFeature.hpp"
+#include "server/world/gen/placement/PlacedFeature.hpp"
+#include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
+#include "server/world/gen/placement/Placement.hpp"
 
 #include <memory>
 #include <vector>

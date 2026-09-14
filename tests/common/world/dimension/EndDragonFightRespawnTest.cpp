@@ -52,7 +52,7 @@
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
-#include "common/world/gen/feature/end/EndSpikeFeature.hpp"
+#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 
 #include <algorithm>
 #include <cmath>

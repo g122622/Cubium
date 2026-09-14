@@ -53,7 +53,7 @@
 #include "common/world/dimension/end/DragonRespawnAnimation.hpp"
 #include "common/world/dimension/end/IDragonBossBar.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
-#include "common/world/gen/feature/end/EndSpikeFeature.hpp"
+#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 
 #include <algorithm>
 

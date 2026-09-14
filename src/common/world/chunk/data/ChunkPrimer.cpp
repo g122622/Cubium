@@ -33,8 +33,8 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/world/gen/carver/CarvingMask.hpp"
-#include "common/world/gen/density/NoiseChunk.hpp"
+#include "server/world/gen/carver/CarvingMask.hpp"
+#include "server/world/gen/density/NoiseChunk.hpp"
 #include <array>
 #include <cstddef>
 #include <functional>

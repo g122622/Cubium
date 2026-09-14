@@ -119,7 +119,7 @@ BarrelEntity::BarrelEntity(const BlockPos& pos)
 - **`loadFromNBT`**：调用 `BlockEntity::loadFromNBT` 后，重置战利品状态。若 NBT 中存在 `LootTable` 键则设置 `m_hasLootTable = true` 并重置 `m_lootFilled`，使后续容器访问触发延迟填充。`LootTableSeed` 始终读取（缺失默认 0，表示使用随机种子）。
 - **`saveToNBT`**：调用 `BlockEntity::saveToNBT` 后，仅在 `m_hasLootTable && !m_lootFilled` 时写入两个键。已填充后不写入（避免持久化已生成物品与战利品表引用并存）。
 
-子类（`ChestEntity`/`BarrelEntity` 等）通过继承自动获得战利品表 NBT 往返能力，无需各自重写。结构模板放置时，`Template::placeInWorld` 会在调用 `loadFromNBT` 前注入随机 `LootTableSeed`（见 `src/common/world/gen/feature/template/README.md` 第 13 节）。
+子类（`ChestEntity`/`BarrelEntity` 等）通过继承自动获得战利品表 NBT 往返能力，无需各自重写。结构模板放置时，`Template::placeInWorld` 会在调用 `loadFromNBT` 前注入随机 `LootTableSeed`（见 `src/server/world/gen/feature/template/README.md` 第 13 节）。
 
 #### 容器物品 NBT 序列化（"Items" 键）
 

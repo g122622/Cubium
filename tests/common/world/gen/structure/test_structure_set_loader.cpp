@@ -33,9 +33,9 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
-#include "common/world/gen/structure/StructureSet.hpp"
-#include "common/world/gen/structure/StructureSetLoader.hpp"
-#include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
+#include "server/world/gen/structure/StructureSet.hpp"
+#include "server/world/gen/structure/StructureSetLoader.hpp"
+#include "server/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
 
 #include <gtest/gtest.h>
 

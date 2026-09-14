@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/gen/structure/StructureSet.hpp"
+#include "server/world/gen/structure/StructureSet.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;

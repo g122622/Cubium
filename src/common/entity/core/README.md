@@ -824,7 +824,7 @@
 
 ### 测试覆盖
 
-- `tests/common/world/gen/feature/template/TemplateEntityPlacementTest.cpp` — 12 个测试用例覆盖：
+- `tests/server/world/gen/feature/template/TemplateEntityPlacementTest.cpp` — 12 个测试用例覆盖：
   - `setYBodyRot` / `setYHeadRot` 接口直接验证（基类分发、LivingEntity 写入字段）
   - `placeInWorld` 各种旋转（90/180/270）、镜像（FrontBack/LeftRight）、组合场景下 body/head 同步
   - 非零 NBT yaw 的变换验证

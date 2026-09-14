@@ -32,7 +32,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
+#include "server/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <cmath>
 #include <string_view>
 

@@ -57,7 +57,7 @@ BlockStateProperties / FluidProperties (预定义属性)
 **上游依赖：**
 - `common/core/Types.hpp`：基础类型（i32、u32、std::string、std::optional）
 - `common/util/Direction.hpp`：Direction、Axis 枚举及其工具类
-- `common/world/gen/jigsaw/JigsawOrientation.hpp`：JigsawOrientation 枚举
+- `server/world/gen/jigsaw/JigsawOrientation.hpp`：JigsawOrientation 枚举
 
 **下游使用方：**
 - `common/world/block/`：Block、BlockState 定义方块状态

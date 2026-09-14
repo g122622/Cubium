@@ -24,8 +24,8 @@
 #include "TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/Feature.hpp"
-#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
+#include "server/world/gen/feature/Feature.hpp"
+#include "server/world/gen/feature/state/SimpleBlockStateProvider.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

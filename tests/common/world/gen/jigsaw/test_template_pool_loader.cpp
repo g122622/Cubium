@@ -27,8 +27,8 @@
  */
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/gen/jigsaw/TemplatePool.hpp"
-#include "common/world/gen/jigsaw/TemplatePoolLoader.hpp"
+#include "server/world/gen/jigsaw/TemplatePool.hpp"
+#include "server/world/gen/jigsaw/TemplatePoolLoader.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::world::gen::jigsaw;

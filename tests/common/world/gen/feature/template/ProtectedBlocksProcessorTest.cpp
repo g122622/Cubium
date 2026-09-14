@@ -32,8 +32,8 @@
 #include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/BuildingVariantBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/feature/template/ProtectedBlocksProcessor.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
 
 #include <unordered_map>
 

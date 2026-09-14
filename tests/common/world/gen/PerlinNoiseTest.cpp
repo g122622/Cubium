@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/world/gen/noise/PerlinNoise.hpp"
+#include "server/world/gen/noise/PerlinNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 #include <gtest/gtest.h>

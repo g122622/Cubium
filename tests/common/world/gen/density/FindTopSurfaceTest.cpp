@@ -35,7 +35,7 @@
  * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.DensityFunctions.FindTopSurface
  */
 
-#include "common/world/gen/density/DensityFunctions.hpp"
+#include "server/world/gen/density/DensityFunctions.hpp"
 #include <gtest/gtest.h>
 
 namespace mc::world::gen::density {

@@ -30,8 +30,8 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "common/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/structures/StrongholdPieces.hpp"
+#include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/structures/StrongholdPieces.hpp"
 
 using namespace mc;
 using namespace mc::block_registry;

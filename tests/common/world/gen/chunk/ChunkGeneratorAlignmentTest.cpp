@@ -24,11 +24,11 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/FlatChunkGenerator.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
-#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include "server/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "server/world/gen/chunk/FlatChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include <gtest/gtest.h>
 
 namespace mc {

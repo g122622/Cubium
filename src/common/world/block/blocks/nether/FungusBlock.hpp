@@ -24,7 +24,7 @@
 
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/SimpleBlock.hpp"
-#include "common/world/gen/feature/nether/HugeFungusFeature.hpp"
+#include "server/world/gen/feature/nether/HugeFungusFeature.hpp"
 
 namespace mc {
 

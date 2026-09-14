@@ -43,7 +43,7 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <set>
 #include <gtest/gtest.h>
 

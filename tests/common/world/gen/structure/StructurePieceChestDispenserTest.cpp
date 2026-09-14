@@ -36,9 +36,9 @@
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/structures/JungleTempleStructure.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/structure/Structure.hpp"
+#include "server/world/gen/structure/structures/JungleTempleStructure.hpp"
 
 using namespace mc;
 using namespace mc::block_registry;

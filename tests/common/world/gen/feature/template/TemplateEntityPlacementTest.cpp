@@ -22,7 +22,7 @@
  */
 
 // 测试 Template::placeInWorld 中实体放置时的身体/头部朝向同步逻辑。
-// 收敛 src/common/world/gen/feature/template/Template.cpp:1032 处的历史 TODO：
+// 收敛 src/server/world/gen/feature/template/Template.cpp:1032 处的历史 TODO：
 // 结构模板旋转/镜像生成的实体需要让 body/head rotation 跟随 finalYaw，
 // 与 MC 1.21.11 StructureTemplate#placeEntities 中的
 //   setYBodyRot(f); setYHeadRot(f);
@@ -47,7 +47,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluids.hpp"
-#include "common/world/gen/feature/template/Template.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
 
 #include <memory>
 #include <unordered_map>

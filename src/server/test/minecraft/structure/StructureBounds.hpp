@@ -2,7 +2,7 @@
 
 #include "common/util/Direction.hpp" // Rotation
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp" // StructureBoundingBox
+#include "server/world/gen/structure/StructureBoundingBox.hpp" // StructureBoundingBox
 
 namespace mc::test {
 

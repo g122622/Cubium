@@ -31,8 +31,8 @@
  */
 
 #include "common/core/Types.hpp"
-#include "common/world/gen/density/BlendedNoise.hpp"
-#include "common/world/gen/noise/PerlinNoise.hpp"
+#include "server/world/gen/density/BlendedNoise.hpp"
+#include "server/world/gen/noise/PerlinNoise.hpp"
 
 #include <chrono>
 #include <cstdio>

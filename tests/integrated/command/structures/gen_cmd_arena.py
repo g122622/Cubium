@@ -13,7 +13,7 @@ cmd_arena：9×7×9 石盒，内部 7×5×7 空气腔，专供命令类（/setbl
 docs/minecraft-wiki-source/minecraft_wiki/tech_基岩版结构文件.txt）：
     index = x * sizeY * sizeZ + y * sizeZ + z   （X 外层、Y 中层、Z 内层）
 
-C++ 解析权威源：src/common/world/gen/feature/template/TemplateLoader.cpp
+C++ 解析权威源：src/server/world/gen/feature/template/TemplateLoader.cpp
     const size_t totalXZ = sizeY * sizeZ;
     x = i / totalXZ;  y = (i % totalXZ) / sizeZ;  z = (i % totalXZ) % sizeZ;
 （与上面公式互逆，一致。）

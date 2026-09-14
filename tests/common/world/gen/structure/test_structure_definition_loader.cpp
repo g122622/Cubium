@@ -31,7 +31,7 @@
  */
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/gen/structure/StructureDefinitionLoader.hpp"
+#include "server/world/gen/structure/StructureDefinitionLoader.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

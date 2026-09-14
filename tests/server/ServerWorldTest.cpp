@@ -34,12 +34,12 @@
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/chunk/DebugChunkGenerator.hpp"
-#include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
-#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/chunk/DebugChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 #include <filesystem>
 #include <thread>
 #include <gtest/gtest.h>

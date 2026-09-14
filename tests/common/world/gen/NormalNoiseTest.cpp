@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/world/gen/noise/NormalNoise.hpp"
+#include "server/world/gen/noise/NormalNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 #include <gtest/gtest.h>

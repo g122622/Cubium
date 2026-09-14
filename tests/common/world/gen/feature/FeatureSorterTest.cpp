@@ -21,15 +21,15 @@
  *
  */
 
-#include "common/world/gen/feature/FeatureSorter.hpp"
+#include "server/world/gen/feature/FeatureSorter.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/Assert.hpp"
-#include "common/world/gen/feature/ConfiguredFeature.hpp"
-#include "common/world/gen/feature/DecorationStage.hpp"
-#include "common/world/gen/placement/PlacedFeature.hpp"
-#include "common/world/gen/placement/PlacedFeatureRegistry.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "server/world/gen/feature/ConfiguredFeature.hpp"
+#include "server/world/gen/feature/DecorationStage.hpp"
+#include "server/world/gen/placement/PlacedFeature.hpp"
+#include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
+#include "server/world/gen/placement/Placement.hpp"
 #include <functional>
 #include <map>
 #include <memory>

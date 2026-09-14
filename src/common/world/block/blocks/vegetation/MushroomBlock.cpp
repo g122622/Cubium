@@ -38,7 +38,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/PlantType.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 #include <cstddef>

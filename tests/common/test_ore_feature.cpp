@@ -28,10 +28,10 @@
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
-#include "common/world/gen/feature/Feature.hpp"
-#include "common/world/gen/feature/ore/OreFeature.hpp"
-#include "common/world/gen/feature/state/SimpleBlockStateProvider.hpp"
-#include "common/world/gen/placement/Placement.hpp"
+#include "server/world/gen/feature/Feature.hpp"
+#include "server/world/gen/feature/ore/OreFeature.hpp"
+#include "server/world/gen/feature/state/SimpleBlockStateProvider.hpp"
+#include "server/world/gen/placement/Placement.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

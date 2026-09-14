@@ -38,10 +38,10 @@
 
 #include "common/core/GameDirectory.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "common/world/gen/density/DensityFunctionLoader.hpp"
-#include "common/world/gen/density/DensityFunctionRegistry.hpp"
-#include "common/world/gen/density/DensityFunctions.hpp"
-#include "common/world/gen/noise/NoiseLoader.hpp"
+#include "server/world/gen/density/DensityFunctionLoader.hpp"
+#include "server/world/gen/density/DensityFunctionRegistry.hpp"
+#include "server/world/gen/density/DensityFunctions.hpp"
+#include "server/world/gen/noise/NoiseLoader.hpp"
 
 #include <filesystem>
 #include <gtest/gtest.h>

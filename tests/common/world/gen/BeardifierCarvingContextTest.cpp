@@ -38,8 +38,8 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/carver/CarvingContext.hpp"
-#include "common/world/gen/density/Beardifier.hpp"
+#include "server/world/gen/carver/CarvingContext.hpp"
+#include "server/world/gen/density/Beardifier.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

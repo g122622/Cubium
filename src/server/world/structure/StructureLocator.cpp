@@ -26,14 +26,14 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/structure/StructureCheck.hpp"
-#include "common/world/gen/structure/StructureSet.hpp"
-#include "common/world/gen/structure/StructureTags.hpp"
-#include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
-#include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/structure/StructureCheck.hpp"
+#include "server/world/gen/structure/StructureSet.hpp"
+#include "server/world/gen/structure/StructureTags.hpp"
+#include "server/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
+#include "server/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
 
 #include <spdlog/spdlog.h>
 

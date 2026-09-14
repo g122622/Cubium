@@ -29,7 +29,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <optional>
 
