@@ -29,7 +29,7 @@
 #include "util/math/random/Random.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
-#include "world/gen/feature/Feature.hpp"
+#include "server/world/gen/feature/Feature.hpp"
 #include <memory>
 #include <optional>
 

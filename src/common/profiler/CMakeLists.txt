@@ -87,6 +87,11 @@ if(MC_ENABLE_TRACING OR MC_ENABLE_TRACY)
 
     add_library(mc_profiler STATIC ${_profiler_sources})
 
+    # ProfilerManager.hpp 经规范化 include 后引用 common/core/Types.hpp 等
+    # common 层头文件（路径形如 common/core/Types.hpp），须以 src/ 为 include
+    # 根。与 mc_common 的 target_include_directories 配置保持一致。
+    target_include_directories(mc_profiler PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
     target_link_libraries(mc_profiler
         PUBLIC
             spdlog::spdlog

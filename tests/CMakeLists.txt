@@ -86,7 +86,7 @@ add_executable(mc_tests
     common/test_carver.cpp
     common/test_tree_feature.cpp
     common/test_new_tree_features.cpp
-    server/world/gen/feature/state/test_block_state_provider.cpp
+    common/world/gen/feature/state/test_block_state_provider.cpp
     common/test_feature_size.cpp
     common/test_decoration_stage.cpp
     common/test_time.cpp
@@ -1155,93 +1155,93 @@ add_executable(mc_tests
     common/entity/effect/SaturationEffectTest.cpp
     # FoodStats 饥饿系统 tick 行为测试（消耗/回血/饿死对齐 vanilla FoodData.tick）
     common/entity/food/FoodStatsTest.cpp
-    server/world/gen/WorldGenSpawnerTest.cpp
-    server/world/gen/OceanFeatureTest.cpp
-    server/world/gen/WaterContentRegistryTest.cpp
-    server/world/gen/NoiseSurfaceParityTest.cpp
-    server/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
-    server/world/gen/NetherSurfaceParityTest.cpp
+    common/world/gen/WorldGenSpawnerTest.cpp
+    common/world/gen/OceanFeatureTest.cpp
+    common/world/gen/WaterContentRegistryTest.cpp
+    common/world/gen/NoiseSurfaceParityTest.cpp
+    common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
+    common/world/gen/NetherSurfaceParityTest.cpp
     # 噪声生成器单元测试
-    server/world/gen/PerlinNoiseTest.cpp
-    server/world/gen/NormalNoiseTest.cpp
-    server/world/gen/SimplexNoiseTest.cpp
-    server/world/gen/PerlinSimplexNoiseTest.cpp
+    common/world/gen/PerlinNoiseTest.cpp
+    common/world/gen/NormalNoiseTest.cpp
+    common/world/gen/SimplexNoiseTest.cpp
+    common/world/gen/PerlinSimplexNoiseTest.cpp
     # Noises 注册表单元测试
-    server/world/gen/NoisesTest.cpp
+    common/world/gen/NoisesTest.cpp
     # NoiseLoader 数据驱动测试（加载原版数据包验证注入路径）
-    server/world/gen/NoiseLoaderDatadrivenTest.cpp
+    common/world/gen/NoiseLoaderDatadrivenTest.cpp
     # DensityFunctionLoader 数据驱动测试（加载原版数据包验证 35 DF Holder 解析）
-    server/world/gen/DensityFunctionLoaderDatadrivenTest.cpp
+    common/world/gen/DensityFunctionLoaderDatadrivenTest.cpp
     # JavaLegacyRandom 单元测试
-    server/world/gen/JavaLegacyRandomTest.cpp
+    common/world/gen/JavaLegacyRandomTest.cpp
     # Xoroshiro128ppRandom 单元测试
-    server/world/gen/Xoroshiro128ppRandomTest.cpp
+    common/world/gen/Xoroshiro128ppRandomTest.cpp
     # PositionalRandomFactory 单元测试
-    server/world/gen/PositionalRandomFactoryTest.cpp
+    common/world/gen/PositionalRandomFactoryTest.cpp
     # BiomeManager 和 LinearCongruentialGenerator 单元测试
-    server/world/gen/BiomeManagerTest.cpp
+    common/world/gen/BiomeManagerTest.cpp
     # Beardifier (BEARD_KERNEL + affectedBox) 和 CarvingContext 扩展单元测试
-    server/world/gen/BeardifierCarvingContextTest.cpp
+    common/world/gen/BeardifierCarvingContextTest.cpp
     # DensityFunctions (Invert, Mul 边界值) 噪声叶子/样条/缓存单元测试
-    server/world/gen/density/DensityFunctionsTest.cpp
+    common/world/gen/density/DensityFunctionsTest.cpp
     # FindTopSurface 密度函数单元测试（preliminarySurfaceLevel 核心）
-    server/world/gen/density/FindTopSurfaceTest.cpp
+    common/world/gen/density/FindTopSurfaceTest.cpp
     # SharedTopology 纯拓扑子树跨区块共享字级回归测试（阶段1+2 共享化数值一致性）
-    server/world/gen/density/SharedTopologyParityTest.cpp
+    common/world/gen/density/SharedTopologyParityTest.cpp
     # AST 编译器优化数值回归门禁：完整 NoiseChunk finalDensity 多点采样固定基线
-    server/world/gen/density/DensityAstBaselineTest.cpp
+    common/world/gen/density/DensityAstBaselineTest.cpp
     # 噪声采样层 SoA 向量化 vs 标量 reference 的 ULP 漂移监控(纯观测,不卡门禁)
-    server/world/gen/density/DensityAstUlpTest.cpp
+    common/world/gen/density/DensityAstUlpTest.cpp
     # AST 优化 pass 结构正确性单元测试（TreeNormalization/FoldConstants/BranchElimination）
-    server/world/gen/density/OptoPassesTest.cpp
+    common/world/gen/density/OptoPassesTest.cpp
     # 维度级 AST 编译器端到端数值等价：compiled.eval vs finalDensity.compute
-    server/world/gen/density/DensityAstCompileTest.cpp
+    common/world/gen/density/DensityAstCompileTest.cpp
     # 密度求值器 JIT 机器码 vs switch 解释器数值一致性（Win x64 启用，其它平台 SKIP）
-    server/world/gen/density/DensityJitBaselineTest.cpp
+    common/world/gen/density/DensityJitBaselineTest.cpp
     # PerlinNoise / BlendedNoise 采样性能微基准（interleave_count 调参用）
-    server/world/gen/PerlinNoisePerfTest.cpp
-    server/world/gen/feature/FeatureSorterTest.cpp
-    server/world/gen/feature/MonsterRoomFeatureTest.cpp
-    server/world/gen/feature/RandomSelectorFeatureTest.cpp
-    server/world/gen/feature/RandomPatchFeatureTest.cpp
-    server/world/gen/feature/SimpleBlockFeatureTest.cpp
-    server/world/gen/feature/SimpleRandomSelectorFeatureTest.cpp
-    server/world/gen/feature/DiskAndPileFeatureTest.cpp
-    server/world/gen/feature/ScatteredOreAndReplaceBlobsTest.cpp
-    server/world/gen/feature/EnvironmentScanAndRuleBasedProviderTest.cpp
-    server/world/gen/placement/RandomOffsetAndWaterDepthTest.cpp
-    server/world/gen/placement/CountOnEveryLayerAndNoisePlacementTest.cpp
-    server/world/gen/feature/predicate/MatchingPredicatesTest.cpp
-    server/world/gen/feature/SnowAndFreezeFeatureTest.cpp
-    server/world/gen/feature/end/EndFeatureTest.cpp
-    server/world/gen/feature/template/test_template.cpp
-    server/world/gen/feature/template/TemplateEntityPlacementTest.cpp
-    server/world/gen/feature/template/BlockAgeProcessorTest.cpp
-    server/world/gen/feature/template/test_capped_processor.cpp
-    server/world/gen/feature/template/ProtectedBlocksProcessorTest.cpp
-    server/world/gen/FeaturePlacerTest.cpp
-    server/world/gen/valueprovider/test_int_provider_parser.cpp
-    server/world/gen/structure/test_ocean_ruin_structure.cpp
-    server/world/gen/structure/test_shipwreck_structure.cpp
-    server/world/gen/structure/test_new_structures.cpp
-    server/world/gen/structure/test_mansion_grid.cpp
-    server/world/gen/structure/test_structure_type_mapping.cpp
-    server/world/gen/structure/test_structure_definition_loader.cpp
-    server/world/gen/structure/test_structure_type_registry.cpp
-    server/world/gen/structure/test_structure_set_loader.cpp
-    server/world/gen/structure/StructureCheckTest.cpp
-    server/world/gen/structure/StructurePieceChestDispenserTest.cpp
-    server/world/gen/structure/PlaceEndPortalFramesTest.cpp
-    server/world/gen/structure/StrongholdPiecesTest.cpp
-    server/world/gen/structure/TemplatedStructuresTest.cpp
-    server/world/gen/structure/RuinedPortalStructureTest.cpp
-    server/world/gen/structure/StructureTagsTest.cpp
-    server/world/gen/jigsaw/test_jigsaw.cpp
-    server/world/gen/jigsaw/test_jigsaw_matcher.cpp
-    server/world/gen/jigsaw/test_pos_rule_test.cpp
-    server/world/gen/jigsaw/test_template_pool_loader.cpp
+    common/world/gen/PerlinNoisePerfTest.cpp
+    common/world/gen/feature/FeatureSorterTest.cpp
+    common/world/gen/feature/MonsterRoomFeatureTest.cpp
+    common/world/gen/feature/RandomSelectorFeatureTest.cpp
+    common/world/gen/feature/RandomPatchFeatureTest.cpp
+    common/world/gen/feature/SimpleBlockFeatureTest.cpp
+    common/world/gen/feature/SimpleRandomSelectorFeatureTest.cpp
+    common/world/gen/feature/DiskAndPileFeatureTest.cpp
+    common/world/gen/feature/ScatteredOreAndReplaceBlobsTest.cpp
+    common/world/gen/feature/EnvironmentScanAndRuleBasedProviderTest.cpp
+    common/world/gen/placement/RandomOffsetAndWaterDepthTest.cpp
+    common/world/gen/placement/CountOnEveryLayerAndNoisePlacementTest.cpp
+    common/world/gen/feature/predicate/MatchingPredicatesTest.cpp
+    common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
+    common/world/gen/feature/end/EndFeatureTest.cpp
+    common/world/gen/feature/template/test_template.cpp
+    common/world/gen/feature/template/TemplateEntityPlacementTest.cpp
+    common/world/gen/feature/template/BlockAgeProcessorTest.cpp
+    common/world/gen/feature/template/test_capped_processor.cpp
+    common/world/gen/feature/template/ProtectedBlocksProcessorTest.cpp
+    common/world/gen/FeaturePlacerTest.cpp
+    common/world/gen/valueprovider/test_int_provider_parser.cpp
+    common/world/gen/structure/test_ocean_ruin_structure.cpp
+    common/world/gen/structure/test_shipwreck_structure.cpp
+    common/world/gen/structure/test_new_structures.cpp
+    common/world/gen/structure/test_mansion_grid.cpp
+    common/world/gen/structure/test_structure_type_mapping.cpp
+    common/world/gen/structure/test_structure_definition_loader.cpp
+    common/world/gen/structure/test_structure_type_registry.cpp
+    common/world/gen/structure/test_structure_set_loader.cpp
+    common/world/gen/structure/StructureCheckTest.cpp
+    common/world/gen/structure/StructurePieceChestDispenserTest.cpp
+    common/world/gen/structure/PlaceEndPortalFramesTest.cpp
+    common/world/gen/structure/StrongholdPiecesTest.cpp
+    common/world/gen/structure/TemplatedStructuresTest.cpp
+    common/world/gen/structure/RuinedPortalStructureTest.cpp
+    common/world/gen/structure/StructureTagsTest.cpp
+    common/world/gen/jigsaw/test_jigsaw.cpp
+    common/world/gen/jigsaw/test_jigsaw_matcher.cpp
+    common/world/gen/jigsaw/test_pos_rule_test.cpp
+    common/world/gen/jigsaw/test_template_pool_loader.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
-    server/world/gen/ChunkSpawnIntegrationTest.cpp
+    common/world/gen/ChunkSpawnIntegrationTest.cpp
     # Perfetto 娴嬭瘯锛堥泦鎴愬埌涓绘祴璇曞浠讹級
     common/profiler/PerfettoTest.cpp
     # Tick 绯荤粺娴嬭瘯
@@ -1479,41 +1479,41 @@ add_executable(mc_tests
     util/NbtEqualsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    server/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试
-    server/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
+    common/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
     # WorldGenRegion测试
-    server/world/gen/chunk/WorldGenRegionTest.cpp
+    common/world/gen/chunk/WorldGenRegionTest.cpp
     # WorldGenRegion详细单元测试
-    server/world/gen/chunk/WorldGenRegionDetailedTest.cpp
+    common/world/gen/chunk/WorldGenRegionDetailedTest.cpp
     # WorldGenRegion区块访问窗口验证测试
-    server/world/gen/chunk/WorldGenRegionAccessTest.cpp
+    common/world/gen/chunk/WorldGenRegionAccessTest.cpp
     # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
     common/world/chunk/gen/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
-    server/world/gen/chunk/NoiseColumnTest.cpp
+    common/world/gen/chunk/NoiseColumnTest.cpp
     # FlatChunkGenerator详细单元测试
-    server/world/gen/chunk/FlatChunkGeneratorDetailedTest.cpp
+    common/world/gen/chunk/FlatChunkGeneratorDetailedTest.cpp
     # ChunkGenerator接口与BaseChunkGenerator单元测试
-    server/world/gen/chunk/ChunkGeneratorInterfaceTest.cpp
+    common/world/gen/chunk/ChunkGeneratorInterfaceTest.cpp
     # NoiseChunkGenerator单元测试
-    server/world/gen/chunk/NoiseChunkGeneratorTest.cpp
+    common/world/gen/chunk/NoiseChunkGeneratorTest.cpp
     # IChunkGenerator::clearStructureCache() 单元测试
-    server/world/gen/chunk/ClearStructureCacheTest.cpp
+    common/world/gen/chunk/ClearStructureCacheTest.cpp
     # 结构生成生物群系过滤测试
-    server/world/gen/chunk/BiomeFilterTest.cpp
+    common/world/gen/chunk/BiomeFilterTest.cpp
     # 地形常识测试
-    server/world/gen/chunk/TerrainCommonSenseTest.cpp
+    common/world/gen/chunk/TerrainCommonSenseTest.cpp
     # 海洋水域生成复现测试
-    server/world/gen/chunk/OceanWaterReproTest.cpp
+    common/world/gen/chunk/OceanWaterReproTest.cpp
     # 表面规则一致性测试
-    server/world/gen/chunk/SurfaceRuleParityTest.cpp
+    common/world/gen/chunk/SurfaceRuleParityTest.cpp
     # 区块内X轴高度不对称性测试
-    server/world/gen/chunk/ChunkXAxisHeightTest.cpp
+    common/world/gen/chunk/ChunkXAxisHeightTest.cpp
     # 表面条件生命周期回归测试（VerticalGradient/NoiseThreshold 跨 RandomState 悬垂 UAF）
-    server/world/gen/SurfaceConditionLifecycleTest.cpp
+    common/world/gen/SurfaceConditionLifecycleTest.cpp
     # 生成设置单元测试（NoiseSettings, DimensionSettings, FlatLayerInfo, FlatLevelGeneratorSettings等）
-    server/world/gen/settings/SettingsTest.cpp
+    common/world/gen/settings/SettingsTest.cpp
     # spawnTarget 数据流集成测试（NoiseChunk/RandomState/ServerWorld）
-    server/world/gen/density/SpawnTargetIntegrationTest.cpp
+    common/world/gen/density/SpawnTargetIntegrationTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娣峰悎娴嬭瘯
