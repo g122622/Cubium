@@ -23,23 +23,23 @@
 
 #include "FoodItem.hpp"
 
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/effect/EffectInstance.hpp"
-#include "../../../entity/effect/EffectType.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../sound/SoundEvents.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
 #include "common/item/food/Food.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <chrono>
 #include <string>
 #include <utility>

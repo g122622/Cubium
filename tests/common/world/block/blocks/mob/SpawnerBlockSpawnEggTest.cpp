@@ -165,7 +165,8 @@ private:
 std::unique_ptr<item::SpawnEggItem> makeSpawnEgg(const std::string& entityName, u32 primaryColor, u32 secondaryColor)
 {
     auto entityType = entity::EntityType::Builder(
-        [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; }, entity::EntityClassification::Creature)
+        [](IWorld*, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return nullptr; },
+        entity::EntityClassification::Creature)
                           .size(0.9f, 0.9f)
                           .trackingRange(10)
                           .updateInterval(3)

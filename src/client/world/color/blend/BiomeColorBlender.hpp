@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../ColorResolver.hpp"
 #include "BiomeColorCache.hpp"
+#include "client/world/color/ColorResolver.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/biome/Biome.hpp"
 #include <array>

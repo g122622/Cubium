@@ -22,15 +22,15 @@
  */
 
 #include "CaveSpiderEntity.hpp"
-#include "../../../../core/Types.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../effect/EffectInstance.hpp"
-#include "../../../effect/EffectType.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/arthropod/SpiderEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <optional>
 

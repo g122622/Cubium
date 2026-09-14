@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../building/TrapDoorBlock.hpp"
 #include "IOxidizableBlock.hpp"
 #include "WeatheringCopperBlock.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/building/TrapDoorBlock.hpp"
 
 namespace mc {
 namespace blocks {

@@ -22,18 +22,13 @@
  */
 
 #include "RedstoneComparatorBlock.hpp"
-#include "../../../../entity/entities/hanging/HangingEntity.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../sound/SoundCategory.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntity.hpp"
-#include "../../../blockentity/redstone/ComparatorEntity.hpp"
-#include "../../../redstone/RedstoneHelper.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -41,8 +36,13 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/redstone/RedstoneDiodeBlock.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/redstone/ComparatorEntity.hpp"
+#include "common/world/redstone/RedstoneHelper.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

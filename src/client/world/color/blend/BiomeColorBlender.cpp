@@ -22,7 +22,7 @@
  */
 
 #include "BiomeColorBlender.hpp"
-#include "../BiomeColors.hpp"
+#include "client/world/color/BiomeColors.hpp"
 #include "client/world/color/ColorResolver.hpp"
 #include "client/world/color/blend/BiomeColorCache.hpp"
 #include "common/core/Types.hpp"

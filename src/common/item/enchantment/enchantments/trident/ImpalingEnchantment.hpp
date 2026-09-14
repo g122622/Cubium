@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
-#include "../weapon/DamageEnchantment.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/enchantments/weapon/DamageEnchantment.hpp"
 #include <string>
 
 namespace mc {

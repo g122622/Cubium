@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../block/BlockPos.hpp"
 #include "LightType.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 

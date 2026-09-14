@@ -28,7 +28,10 @@ using namespace mc::entity::ai::goal;
 
 class PhantomEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
     void TearDown() override { phantom.reset(); }
 
@@ -965,7 +968,10 @@ TEST_F(PhantomEntityTest, AngleDifference_LargeAngle)
 
 class PhantomLookControllerTest : public ::testing::Test {
 protected:
-    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        phantom = std::make_unique<PhantomEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
     void TearDown() override { phantom.reset(); }
 
     std::unique_ptr<PhantomEntity> phantom;

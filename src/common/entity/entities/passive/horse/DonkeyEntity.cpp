@@ -26,8 +26,8 @@
 #include "HorseEntity.hpp"
 #include "MuleEntity.hpp"
 
-#include "../../../attribute/Attributes.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractChestedHorseEntity.hpp"

@@ -23,17 +23,17 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../core/DataParameter.hpp"
-#include "../../../core/EntityDataManager.hpp"
-#include "../basic/AnimalEntity.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 

@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../core/Constants.hpp"
-#include "../util/AxisAlignedBB.hpp"
-#include "../util/math/Vector3.hpp"
-#include "../world/block/Block.hpp"
 #include "PhysicsConstants.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <vector>

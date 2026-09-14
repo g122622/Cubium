@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
-#include "../target/TargetGoals.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include <string>
 

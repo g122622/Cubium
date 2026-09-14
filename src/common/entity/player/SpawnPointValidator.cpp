@@ -22,14 +22,14 @@
  */
 
 #include "SpawnPointValidator.hpp"
-#include "../../util/property/Properties.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/dimension/DimensionType.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/GlobalPos.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include <array>
 #include <optional>
 #include <utility>

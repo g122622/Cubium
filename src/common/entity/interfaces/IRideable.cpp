@@ -22,14 +22,14 @@
  */
 
 #include "IRideable.hpp"
-#include "../../util/math/MathConstants.hpp"
-#include "../../world/IWorld.hpp"
-#include "../core/Entity.hpp"
-#include "../core/MobEntity.hpp"
-#include "../entities/player/Player.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/BoostHelper.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {

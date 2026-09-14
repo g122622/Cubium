@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../block/BlockPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <atomic>
 #include <cstddef>
 #include <mutex>

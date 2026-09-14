@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../command/ICommandSource.hpp"
-#include "../../../core/Types.hpp"
-#include "../../block/BlockPos.hpp"
 #include "RaiderType.hpp"
+#include "common/command/ICommandSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <optional>
 #include <string>

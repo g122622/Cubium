@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
-#include "../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <algorithm>
 #include <cmath>
 

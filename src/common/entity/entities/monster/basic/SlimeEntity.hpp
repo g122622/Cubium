@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 

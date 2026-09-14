@@ -132,7 +132,10 @@ public:
 
 class GlowSquidEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_glowSquid = std::make_unique<TestableGlowSquidEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_glowSquid = std::make_unique<TestableGlowSquidEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     void TearDown() override { m_glowSquid.reset(); }
 

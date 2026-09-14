@@ -23,18 +23,18 @@
 
 #include "PotionItem.hpp"
 
-#include "../../../core/Types.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/effect/EffectType.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../Items.hpp"
-#include "../../potion/PotionUtils.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/UseAction.hpp"
+#include "common/item/potion/PotionUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <string>
 #include <utility>

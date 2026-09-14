@@ -22,14 +22,14 @@
  */
 
 #include "AttackContext.hpp"
-#include "../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../item/enchantment/enchantments/mace/BreachEnchantment.hpp"
-#include "../attribute/Attributes.hpp"
-#include "../core/LivingEntity.hpp"
-#include "../damage/DamageSource.hpp"
 #include "CombatRules.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/mace/BreachEnchantment.hpp"
 #include <algorithm>
 #include <memory>
 

@@ -60,7 +60,9 @@ public:
 
     [[nodiscard]] constexpr EntityId() = default;
 
-    [[nodiscard]] constexpr EntityId(entity_type rawId) noexcept : mRawId(rawId) {}
+    [[nodiscard]] constexpr EntityId(entity_type rawId) noexcept
+        : mRawId(rawId)
+    {}
 
     [[nodiscard]] constexpr bool isNull() const noexcept { return *this == entt::null; }
 

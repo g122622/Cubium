@@ -52,15 +52,9 @@ public:
     // resolvePlayerIds 的 applyFilters/matchesFilter 在 world==nullptr 时跳过
     // 依赖实体的过滤，仍可正常按等级/游戏模式等过滤，避免 BaseTestServer 默认实现
     // 抛 std::logic_error 进而在 noexcept 的 world() 中触发 std::terminate。
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
 
 private:
     // 真实 ServerDimensionManager（nullptr 构造：仅用于 getPlayerDimension 等 map 查询，不调

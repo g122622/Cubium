@@ -328,7 +328,10 @@ TEST_F(PufferfishEntityTest, EyeHeight_HasCorrectValue)
 
 class PuffGoalTest : public ::testing::Test {
 protected:
-    void SetUp() override { pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        pufferfish = std::make_unique<PufferfishEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
     void TearDown() override { pufferfish.reset(); }
 

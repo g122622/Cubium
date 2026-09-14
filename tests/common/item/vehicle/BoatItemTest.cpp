@@ -400,7 +400,8 @@ TEST_F(BoatItemTest, ChestBoatItemsAreDistinct)
 
     // 验证带箱子的船与普通船不是同一个物品
     EXPECT_NE(Items::OAK_BOAT, Items::OAK_CHEST_BOAT) << "OAK_BOAT and OAK_CHEST_BOAT should be different items";
-    EXPECT_NE(Items::BAMBOO_RAFT, Items::BAMBOO_CHEST_RAFT) << "BAMBOO_RAFT and BAMBOO_CHEST_RAFT should be different items";
+    EXPECT_NE(Items::BAMBOO_RAFT, Items::BAMBOO_CHEST_RAFT)
+        << "BAMBOO_RAFT and BAMBOO_CHEST_RAFT should be different items";
 }
 
 /**

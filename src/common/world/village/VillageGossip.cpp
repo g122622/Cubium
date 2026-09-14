@@ -22,8 +22,8 @@
  */
 
 #include "VillageGossip.hpp"
-#include "../../util/nbt/Nbt.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include <algorithm>
 #include <cmath>

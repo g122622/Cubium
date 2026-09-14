@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../Goal.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <string>
 
 namespace mc {

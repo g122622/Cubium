@@ -22,21 +22,21 @@
  */
 
 #include "SnowBlock.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../Block.hpp"
-#include "../../BlockTags.hpp"
-#include "../../registry/VanillaBlocks.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <array>
 #include <cstddef>

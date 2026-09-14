@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item::items {

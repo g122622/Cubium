@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../world/block/BlockPos.hpp"
 #include "PathPoint.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <optional>

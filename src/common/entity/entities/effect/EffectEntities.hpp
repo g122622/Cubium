@@ -20,17 +20,17 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../entity/effect/EffectInstance.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../util/AxisAlignedBB.hpp"
-#include "../../../util/nbt/Nbt.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../core/Entity.hpp"
-#include "../../serialization/NbtHelper.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <map>
 #include <memory>
 #include <string>

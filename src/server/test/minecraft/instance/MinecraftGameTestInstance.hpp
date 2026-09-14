@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/test/framework/instance/BaseGameTestInstance.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/test/minecraft/structure/MinecraftStructurePlacer.hpp"
 #include "server/test/minecraft/structure/StructureBounds.hpp"
-#include "common/world/block/BlockPos.hpp"
 
 #include <memory>
 

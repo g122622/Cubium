@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../Block.hpp"
-#include "../RotatedPillarBlock.hpp"
 #include "InfestedBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/RotatedPillarBlock.hpp"
 
 namespace mc {
 

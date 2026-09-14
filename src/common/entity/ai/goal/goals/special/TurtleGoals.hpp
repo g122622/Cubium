@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
-#include "../BreedGoal.hpp"
-#include "../PanicGoal.hpp"
-#include "../RandomWalkingGoal.hpp"
-#include "../TemptGoal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <string>
 

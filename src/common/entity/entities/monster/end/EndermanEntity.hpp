@@ -23,15 +23,15 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../core/EntityDataManager.hpp"
-#include "../../../interfaces/IAngerable.hpp"
-#include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 

@@ -21,7 +21,7 @@
  *
  */
 
-#include "../../../TestWorldHelper.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"

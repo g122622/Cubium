@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../paint/PaintContext.hpp"
 #include "ScrollableWidget.hpp"
 #include "Widget.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include "common/core/Types.hpp"
 #include <algorithm>
 #include <cstddef>

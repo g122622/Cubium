@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../../core/Types.hpp"
+#include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include <array>
 #include <cstddef>
 #include <string>

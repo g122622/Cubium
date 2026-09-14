@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../Block.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <utility>
 #include <vector>

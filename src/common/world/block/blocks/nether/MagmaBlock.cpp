@@ -22,7 +22,6 @@
  */
 
 #include "MagmaBlock.hpp"
-#include "../ocean/BubbleColumnBlock.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -30,6 +29,7 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"

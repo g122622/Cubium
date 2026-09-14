@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../widget/IWidgetContainer.hpp"
-#include "../../widget/Widget.hpp"
-#include "../binder/BindingContext.hpp"
-#include "../compiler/TemplateCompiler.hpp"
 #include "UpdateScheduler.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/compiler/TemplateCompiler.hpp"
 #include "client/ui/kagero/template/parser/Ast.hpp"
+#include "client/ui/kagero/widget/IWidgetContainer.hpp"
+#include "client/ui/kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
 #include <functional>
 #include <map>

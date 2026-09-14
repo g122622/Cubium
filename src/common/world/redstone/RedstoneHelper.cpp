@@ -23,14 +23,14 @@
 
 #include "RedstoneHelper.hpp"
 
-#include "../../entity/core/Entity.hpp"
-#include "../../entity/inventory/IInventory.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../IWorld.hpp"
-#include "../block/Block.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include <algorithm>
 #include <vector>
 

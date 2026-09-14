@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include "../../Block.hpp"
 #include "IOxidizableBlock.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 

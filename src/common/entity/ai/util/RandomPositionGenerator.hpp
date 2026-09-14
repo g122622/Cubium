@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/block/BlockPos.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <optional>
 

@@ -21,11 +21,11 @@
  *
  */
 
-#include "../src/common/util/property/Properties.hpp"
-#include "../src/common/util/property/StateContainer.hpp"
-#include "../src/common/world/block/Block.hpp"
-#include "../src/common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
-#include "../src/common/world/block/registry/VanillaBlocks.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

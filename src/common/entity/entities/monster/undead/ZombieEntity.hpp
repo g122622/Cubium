@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../MonsterEntity.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
@@ -31,6 +30,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"

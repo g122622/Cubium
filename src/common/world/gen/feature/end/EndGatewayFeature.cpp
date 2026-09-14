@@ -22,16 +22,16 @@
  */
 
 #include "EndGatewayFeature.hpp"
-#include "../../../../util/math/MathConstants.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../WorldConstants.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include <cmath>
 #include <memory>

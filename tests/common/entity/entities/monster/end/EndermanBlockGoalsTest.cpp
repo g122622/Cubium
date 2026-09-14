@@ -250,7 +250,10 @@ TEST_F(EndermanHoldableTagTest, DoesNotContainWater)
 
 class EndermanHeldBlockTest : public ::testing::Test {
 protected:
-    void SetUp() override { enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        enderman = std::make_unique<EndermanEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     void TearDown() override { enderman.reset(); }
 

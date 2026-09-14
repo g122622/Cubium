@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../IGrowable.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/PlantType.hpp"
 
 namespace mc {

@@ -22,8 +22,8 @@
  */
 
 #include "ShadowRenderer.hpp"
-#include "../model/core/ModelRenderer.hpp"
-#include "../pipeline/EntityPipeline.hpp"
+#include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/world/entity/ClientEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/BlockPredicate.hpp"
-#include "../conditions/ItemPredicate.hpp"
-#include "../conditions/LocationPredicate.hpp"
 #include "common/advancement/MinMaxBounds.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/BlockPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"

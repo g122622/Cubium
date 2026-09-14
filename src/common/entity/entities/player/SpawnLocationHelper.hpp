@@ -23,21 +23,21 @@
 
 #pragma once
 
-#include "../../../core/Constants.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/biome/BiomeRegistry.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/fluid/Fluid.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 #include <optional>
 

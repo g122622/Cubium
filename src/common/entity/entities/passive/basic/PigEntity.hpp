@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
 #include "AnimalEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/interfaces/BoostHelper.hpp"
 #include "common/entity/interfaces/IEquipable.hpp"
 #include "common/entity/interfaces/IRideable.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <memory>
 #include <optional>

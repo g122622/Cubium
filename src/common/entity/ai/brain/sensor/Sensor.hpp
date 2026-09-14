@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../util/math/random/Random.hpp"
-#include "../memory/MemoryModuleType.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <unordered_set>
 
 namespace mc {

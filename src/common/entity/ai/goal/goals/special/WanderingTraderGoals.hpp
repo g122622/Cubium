@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../resource/ResourceLocation.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <functional>
 #include <optional>
 #include <string>

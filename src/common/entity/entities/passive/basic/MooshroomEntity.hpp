@@ -23,16 +23,16 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../item/core/ActionResult.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../interfaces/IShearable.hpp"
 #include "CowEntity.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/interfaces/IShearable.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/Block.hpp"
 #include <memory>
 #include <optional>
 #include <utility>

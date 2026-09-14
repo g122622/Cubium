@@ -1160,7 +1160,8 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_No
     };
 
     for (size_t i = 0; i < entityTypeIds.size(); ++i) {
-        DamageTrackingLivingEntity entity(EntityInstanceId(static_cast<u32>(i + 1)), &world_, mc::test::testEcsRegistry());
+        DamageTrackingLivingEntity entity(
+            EntityInstanceId(static_cast<u32>(i + 1)), &world_, mc::test::testEcsRegistry());
         entity.setPosition(0.5f, 0.0f, 0.5f);
         entity.setHealth(20.0f);
 

@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../util/Direction.hpp"
-#include "../feature/predicate/BlockPredicate.hpp"
 #include "Placement.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 #include <algorithm>
 #include <memory>
 #include <utility>

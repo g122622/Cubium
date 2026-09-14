@@ -22,8 +22,6 @@
  */
 
 #include "ServerPlayerEntityManager.hpp"
-#include "../../world/ServerWorld.hpp"
-#include "../../world/entity/EntityTracker.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -31,6 +29,8 @@
 #include "server/application/IServer.hpp"
 #include "server/network/ServerNetwork.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/entity/EntityTracker.hpp"
 #include <cstddef>
 #include <memory>
 #include <mutex>

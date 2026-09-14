@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../Block.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {

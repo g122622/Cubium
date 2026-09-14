@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/Item.hpp"
-#include "../../core/UseAction.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/UseAction.hpp"
 #include <functional>
 
 namespace mc {

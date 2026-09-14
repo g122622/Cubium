@@ -23,8 +23,8 @@ namespace mc::ecs {
  * 项目用成员镜像 AttributeMap（与 jumpStrength 同范式）。
  */
 struct HorseAttributeComponent {
-    f32 m_speed{0.0f};        ///< 移动速度（属性真相源，镜像 AttributeMap.MOVEMENT_SPEED）
-    f32 m_horseHealth{0.0f};  ///< 最大生命值（属性真相源，镜像 AttributeMap.MAX_HEALTH）
+    f32 m_speed{0.0f};       ///< 移动速度（属性真相源，镜像 AttributeMap.MOVEMENT_SPEED）
+    f32 m_horseHealth{0.0f}; ///< 最大生命值（属性真相源，镜像 AttributeMap.MAX_HEALTH）
 };
 
 } // namespace mc::ecs

@@ -27,19 +27,19 @@
 #undef BYTE_SIZE
 
 #include "Teleporter.hpp"
-#include "../DimensionManager.hpp"
-#include "../DimensionType.hpp"
 #include "PortalSize.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 // Note: ServerWorld is forward declared in Teleporter.hpp
 // Implementation of teleport methods is in server module
-#include "../../../util/assert/AssertAll.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../util/property/Properties.hpp"
-#include "../../IWorld.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"

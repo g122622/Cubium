@@ -23,15 +23,15 @@
 
 #pragma once
 
-#include "../../../core/Constants.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../jigsaw/PoolAliasBinding.hpp"
-#include "../jigsaw/TemplatePool.hpp"
-#include "../valueprovider/HeightProvider.hpp"
 #include "Structure.hpp"
 #include "StructureBoundingBox.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
+#include "common/world/gen/jigsaw/TemplatePool.hpp"
+#include "common/world/gen/valueprovider/HeightProvider.hpp"
 #include <memory>
 #include <optional>
 #include <string>

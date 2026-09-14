@@ -22,8 +22,8 @@
  */
 
 #include "NameTagRenderer.hpp"
-#include "../pipeline/EntityPipeline.hpp"
 #include "WorldTextRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/math/Vector3.hpp"

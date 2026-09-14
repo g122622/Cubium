@@ -22,17 +22,17 @@
  */
 
 #include "PlayerAttackHelper.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../item/enchantment/enchantments/AllEnchantments.hpp"
-#include "../../item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
-#include "../../util/math/MathUtils.hpp"
-#include "../core/LivingEntity.hpp"
-#include "../effect/EffectType.hpp"
-#include "../entities/player/Player.hpp"
 #include "AttackContext.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 namespace mc::entity::combat {
 

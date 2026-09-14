@@ -22,11 +22,11 @@
  */
 
 #include "SoulSandBlock.hpp"
-#include "../ocean/BubbleColumnBlock.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"

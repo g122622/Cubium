@@ -87,22 +87,16 @@ protected:
     Ptr m_right;
 };
 
-#define MC_AST_BINARY_NODE(Name, CanSwap)                                  \
-    class Name##Node final : public BinaryNode {                           \
-    public:                                                                \
-        Name##Node(Ptr left, Ptr right)                                    \
-            : BinaryNode(std::move(left), std::move(right))                \
-        {}                                                                 \
-        [[nodiscard]] AstNodeKind kind() const override                    \
-        {                                                                  \
-            return AstNodeKind::Name;                                      \
-        }                                                                  \
-        [[nodiscard]] bool canSwapOperandsSafely() const override          \
-        {                                                                  \
-            return CanSwap;                                                \
-        }                                                                  \
-        [[nodiscard]] Ptr newInstance(Ptr left, Ptr right) const override; \
-        [[nodiscard]] Ptr transform(AstTransformer& t) const override;     \
+#define MC_AST_BINARY_NODE(Name, CanSwap)                                             \
+    class Name##Node final : public BinaryNode {                                      \
+    public:                                                                           \
+        Name##Node(Ptr left, Ptr right)                                               \
+            : BinaryNode(std::move(left), std::move(right))                           \
+        {}                                                                            \
+        [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Name; } \
+        [[nodiscard]] bool canSwapOperandsSafely() const override { return CanSwap; } \
+        [[nodiscard]] Ptr newInstance(Ptr left, Ptr right) const override;            \
+        [[nodiscard]] Ptr transform(AstTransformer& t) const override;                \
     }
 
 MC_AST_BINARY_NODE(Add, true);
@@ -181,18 +175,15 @@ protected:
     Ptr m_operand;
 };
 
-#define MC_AST_UNARY_NODE(Name)                                        \
-    class Name##Node final : public UnaryNode {                        \
-    public:                                                            \
-        explicit Name##Node(Ptr operand)                               \
-            : UnaryNode(std::move(operand))                            \
-        {}                                                             \
-        [[nodiscard]] AstNodeKind kind() const override                \
-        {                                                              \
-            return AstNodeKind::Name;                                  \
-        }                                                              \
-        [[nodiscard]] Ptr newInstance(Ptr operand) const override;     \
-        [[nodiscard]] Ptr transform(AstTransformer& t) const override; \
+#define MC_AST_UNARY_NODE(Name)                                                       \
+    class Name##Node final : public UnaryNode {                                       \
+    public:                                                                           \
+        explicit Name##Node(Ptr operand)                                              \
+            : UnaryNode(std::move(operand))                                           \
+        {}                                                                            \
+        [[nodiscard]] AstNodeKind kind() const override { return AstNodeKind::Name; } \
+        [[nodiscard]] Ptr newInstance(Ptr operand) const override;                    \
+        [[nodiscard]] Ptr transform(AstTransformer& t) const override;                \
     }
 
 MC_AST_UNARY_NODE(Abs);

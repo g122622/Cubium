@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../item/core/ItemStack.hpp"
-#include "../../resource/ResourceLocation.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <utility>

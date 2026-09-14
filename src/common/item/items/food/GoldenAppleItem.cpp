@@ -22,19 +22,19 @@
  */
 
 #include "GoldenAppleItem.hpp"
-#include "../../../entity/core/Entity.hpp"
-#include "../../../entity/core/LivingEntity.hpp"
-#include "../../../entity/effect/EffectInstance.hpp"
-#include "../../../entity/effect/EffectType.hpp"
-#include "../../../entity/entities/monster/undead/ZombieVillagerEntity.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../core/ActionResult.hpp"
-#include "../../core/ItemStack.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/core/UseAction.hpp"
 #include "common/item/food/Food.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <chrono>
 #include <utility>
 #include <spdlog/spdlog.h>

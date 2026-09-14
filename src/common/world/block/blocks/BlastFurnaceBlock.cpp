@@ -22,14 +22,14 @@
  */
 
 #include "BlastFurnaceBlock.hpp"
-#include "../../../entity/entities/player/Player.hpp"
-#include "../../../entity/inventory/ContainerTypes.hpp"
-#include "../../../stats/Stats.hpp"
-#include "../../IWorld.hpp"
-#include "../../blockentity/processing/BlastFurnaceEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/stats/Stats.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/AbstractFurnaceBlock.hpp"
+#include "common/world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include <memory>
 
 namespace mc {

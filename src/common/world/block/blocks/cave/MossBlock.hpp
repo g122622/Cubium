@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../IGrowable.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IGrowable.hpp"
 
 namespace mc {
 namespace blocks {

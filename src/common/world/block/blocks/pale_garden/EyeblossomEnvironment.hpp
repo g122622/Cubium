@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../util/TriState.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../dimension/DimensionType.hpp"
-#include "../../BlockPos.hpp"
+#include "common/util/TriState.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 
 namespace mc {
 namespace blocks {

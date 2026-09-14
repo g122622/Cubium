@@ -22,12 +22,12 @@
  */
 
 #include "IWaterLoggable.hpp"
-#include "../../util/property/Properties.hpp"
-#include "../IWorld.hpp"
-#include "../fluid/FluidTags.hpp"
 #include "Block.hpp"
 #include "WaterLoggableHelpers.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
 

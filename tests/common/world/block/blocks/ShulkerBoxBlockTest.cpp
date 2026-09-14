@@ -243,11 +243,9 @@ TEST_F(ShulkerBoxBlockTest, BlockTagShulkerBoxes_ContainsAll17Variants)
 
 TEST_F(ShulkerBoxBlockTest, ColoredShulkerBoxes_HaveCorrectResourceLocations)
 {
-    EXPECT_EQ(
-        ColoredBlocks::WHITE_SHULKER_BOX->blockLocation(), ResourceLocation("minecraft", "white_shulker_box"));
+    EXPECT_EQ(ColoredBlocks::WHITE_SHULKER_BOX->blockLocation(), ResourceLocation("minecraft", "white_shulker_box"));
     EXPECT_EQ(ColoredBlocks::RED_SHULKER_BOX->blockLocation(), ResourceLocation("minecraft", "red_shulker_box"));
-    EXPECT_EQ(
-        ColoredBlocks::BLACK_SHULKER_BOX->blockLocation(), ResourceLocation("minecraft", "black_shulker_box"));
+    EXPECT_EQ(ColoredBlocks::BLACK_SHULKER_BOX->blockLocation(), ResourceLocation("minecraft", "black_shulker_box"));
 }
 
 TEST_F(ShulkerBoxBlockTest, UncoloredShulkerBox_HasCorrectResourceLocation)

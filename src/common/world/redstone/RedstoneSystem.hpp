@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../block/BlockPos.hpp"
-#include "../tick/base/TickPriority.hpp"
 #include "RedstoneContext.hpp"
 #include "RedstonePower.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include <cstddef>
 #include <deque>
 #include <unordered_map>

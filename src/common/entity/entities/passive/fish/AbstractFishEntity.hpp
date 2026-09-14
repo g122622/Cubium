@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../water/WaterMobEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/interfaces/IBucketable.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"

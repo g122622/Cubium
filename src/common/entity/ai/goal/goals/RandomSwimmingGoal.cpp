@@ -22,21 +22,21 @@
  */
 
 #include "RandomSwimmingGoal.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../../world/block/BlockState.hpp"
-#include "../../../../world/block/Material.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc::entity::ai::goal {
 

@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../LightningRodBlock.hpp"
 #include "WeatheringCopperBlock.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/LightningRodBlock.hpp"
 #include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
 
 namespace mc {

@@ -1,5 +1,5 @@
-#include "common/TestWorldHelper.hpp"
 #include "common/TempDirHelper.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -50,7 +50,9 @@ protected:
         if (!entity::EntityRegistry::instance().hasType("minecraft:unknown")) {
             auto registerResult = entity::EntityRegistry::instance().registerType("minecraft:unknown",
                 entity::EntityType::Builder(
-                    [](IWorld* world, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> { return std::make_unique<Entity>(0, world, mc::test::testEcsRegistry()); },
+                    [](IWorld* world, ecs::EntityRegistry& registry) -> std::unique_ptr<Entity> {
+                        return std::make_unique<Entity>(0, world, mc::test::testEcsRegistry());
+                    },
                     entity::EntityClassification::Misc)
                     .build());
             ASSERT_TRUE(registerResult.success()) << registerResult.error().message();

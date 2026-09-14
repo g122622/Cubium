@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "LootEntry.hpp"
+#include "AlternativesLootEntry.hpp"
+#include "DynamicLootEntry.hpp"
 #include "EmptyLootEntry.hpp"
+#include "GroupLootEntry.hpp"
 #include "ItemLootEntry.hpp"
+#include "LootEntry.hpp"
+#include "LootEntryBuilder.hpp"
+#include "SequenceLootEntry.hpp"
 #include "TableLootEntry.hpp"
 #include "TagLootEntry.hpp"
-#include "DynamicLootEntry.hpp"
-#include "AlternativesLootEntry.hpp"
-#include "SequenceLootEntry.hpp"
-#include "GroupLootEntry.hpp"
-#include "LootEntryBuilder.hpp"

@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
-#include "../MeleeAttackGoal.hpp"
-#include "../attack/RangedAttackGoals.hpp"
-#include "../special/MoveToBlockGoal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/special/MoveToBlockGoal.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <string>
 
 namespace mc {

@@ -43,11 +43,11 @@
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 
+using mc::i32;
 using mc::command::CommandErrorType;
 using mc::command::CommandException;
 using mc::command::StringReader;
 using mc::command::TimeArgumentType;
-using mc::i32;
 
 // ========== 基础解析测试 ==========
 

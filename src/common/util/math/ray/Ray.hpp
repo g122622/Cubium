@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../Vector3.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <cmath>
 
 namespace mc {

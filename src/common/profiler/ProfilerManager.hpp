@@ -59,8 +59,8 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
 #include "ProfilerConfig.hpp"
+#include "common/core/Types.hpp"
 
 #include <atomic>
 #include <functional>

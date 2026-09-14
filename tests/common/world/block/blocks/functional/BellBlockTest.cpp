@@ -33,9 +33,9 @@
  */
 
 #include "world/block/blocks/functional/BellBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

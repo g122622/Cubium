@@ -22,18 +22,18 @@
  */
 
 #include "RandomPositionGenerator.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/WorldConstants.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockPos.hpp"
-#include "../../../world/fluid/Fluid.hpp"
-#include "../../core/CreatureEntity.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <cmath>
 #include <functional>
 #include <optional>

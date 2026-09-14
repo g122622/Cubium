@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../util/math/Vector3.hpp"
-#include "../../world/IWorld.hpp"
 #include "Entity.hpp"
 #include "LivingEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 #include <functional>
 #include <type_traits>

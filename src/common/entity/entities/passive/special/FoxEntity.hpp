@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../basic/AnimalEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>

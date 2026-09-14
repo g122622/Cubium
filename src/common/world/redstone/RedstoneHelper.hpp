@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/AxisAlignedBB.hpp"
-#include "../../util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/Direction.hpp"
 #include <algorithm>
 
 namespace mc {

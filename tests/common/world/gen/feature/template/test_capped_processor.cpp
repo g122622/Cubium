@@ -353,12 +353,10 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DeterministicRandom)
     auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> { return makeProcessedBlocks(20); };
 
     auto processor1 = createProcessor();
-    auto result1 =
-        processor1->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
+    auto result1 = processor1->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
 
     auto processor2 = createProcessor();
-    auto result2 =
-        processor2->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
+    auto result2 = processor2->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
 
     ASSERT_EQ(result1.size(), result2.size());
     for (size_t i = 0; i < result1.size(); ++i) {
@@ -383,8 +381,7 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DifferentSeedsProduceDifferentRes
     auto result1 = processor1->finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, makeBlocks());
 
     auto processor2 = createProcessor();
-    auto result2 =
-        processor2->finalizeProcessing(BlockPos(999, 0, 999), settings, originalBlocks, makeBlocks());
+    auto result2 = processor2->finalizeProcessing(BlockPos(999, 0, 999), settings, originalBlocks, makeBlocks());
 
     // 统计两个结果中替换的位置是否不同
     int samePositionCount = 0;

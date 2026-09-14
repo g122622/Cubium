@@ -31,7 +31,7 @@
 #undef BYTE_SIZE
 #endif
 
-#include "../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>

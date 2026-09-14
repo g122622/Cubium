@@ -22,8 +22,8 @@
  */
 
 #include "WorldTextRenderer.hpp"
-#include "../pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/entity/pipeline/EntityPipeline.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"

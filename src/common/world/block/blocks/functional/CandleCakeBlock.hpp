@@ -23,17 +23,17 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../decorative/AbstractCandleBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/decorative/AbstractCandleBlock.hpp"
 #include <vector>
 
 namespace mc {

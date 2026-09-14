@@ -22,12 +22,12 @@
  */
 
 #include "SkeletonEntity.hpp"
-#include "../../../serialization/EntityNbtKeys.hpp"
-#include "../../../serialization/NbtHelper.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"

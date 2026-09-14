@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../agricultural/BushBlock.hpp"
 #include "DoublePlantBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <array>
 
 namespace mc {

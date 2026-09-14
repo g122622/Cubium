@@ -22,22 +22,22 @@
  */
 
 #include "MoveToLavaGoal.hpp"
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../../world/fluid/Fluid.hpp"
-#include "../../../../../world/fluid/FluidTags.hpp"
-#include "../../../../core/CreatureEntity.hpp"
-#include "../../../../core/Entity.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../pathfinding/PathNavigator.hpp"
 #include "MoveToBlockGoal.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {

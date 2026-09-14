@@ -23,24 +23,24 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../IWorld.hpp"
-#include "../../biome/BiomeIds.hpp"
-#include "../../border/WorldBorder.hpp"
-#include "../../dimension/DimensionType.hpp"
-#include "../settings/DimensionSettings.hpp"
-#include "../structure/StructureCheck.hpp"
 #include "NoiseColumn.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
+#include "common/world/dimension/DimensionType.hpp"
+#include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/StructureCheck.hpp"
 #include <cstddef>
 #include <cstdlib>
 #include <functional>

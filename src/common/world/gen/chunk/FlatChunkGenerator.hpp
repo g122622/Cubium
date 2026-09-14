@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../settings/FlatLevelGeneratorSettings.hpp"
 #include "IChunkGenerator.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -32,6 +31,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/NoiseColumn.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
+#include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureCheck.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"

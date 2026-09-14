@@ -376,10 +376,8 @@ NoiseChunk::NoiseChunk(const ::mc::world::gen::RandomState& randomState,
     i32 startBlockZ,
     std::unique_ptr<DensityFunction> beardifier,
     i32 cellCountXZ)
-    : m_cellConfig{cellWidth,
-          cellHeight,
-          (cellCountXZ >= 0) ? cellCountXZ : (world::CHUNK_WIDTH / cellWidth),
-          cellCountY}
+    : m_cellConfig{
+          cellWidth, cellHeight, (cellCountXZ >= 0) ? cellCountXZ : (world::CHUNK_WIDTH / cellWidth), cellCountY}
     , m_startBlockX(startBlockX)
     , m_startBlockZ(startBlockZ)
     , m_firstCellX(math::floorDiv(startBlockX, cellWidth))

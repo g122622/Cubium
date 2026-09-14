@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Constants.hpp"
-#include "../../core/Types.hpp"
 #include "MathConstants.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 
 #include <algorithm>

@@ -20,11 +20,11 @@ namespace mc::ecs {
  * (horseJumpStrength)，项目用成员镜像 AttributeMap（同 m_speed/m_horseHealth 范式）。
  */
 struct HorseJumpComponent {
-    i32 m_jumpPower{0};       ///< 跳跃蓄力 (0-100，MC 1.16.5 jumpPower)
-    f32 m_jumpStrength{0.0f}; ///< 基础跳跃强度（属性真相源，镜像 AttributeMap）
-    bool m_isJumping{false};  ///< 是否正在跳跃过程中
+    i32 m_jumpPower{0};              ///< 跳跃蓄力 (0-100，MC 1.16.5 jumpPower)
+    f32 m_jumpStrength{0.0f};        ///< 基础跳跃强度（属性真相源，镜像 AttributeMap）
+    bool m_isJumping{false};         ///< 是否正在跳跃过程中
     bool m_allowStandSliding{false}; ///< MC 1.16.5: 允许站立滑动
-    i32 m_jumpCooldown{0};    ///< 跳跃冷却（tick）
+    i32 m_jumpCooldown{0};           ///< 跳跃冷却（tick）
 };
 
 } // namespace mc::ecs

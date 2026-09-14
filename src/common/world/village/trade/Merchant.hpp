@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "MerchantOffer.hpp"
+#include "common/core/Types.hpp"
 #include <cstddef>
 #include <memory>
 #include <vector>

@@ -21,14 +21,14 @@
  */
 
 #include "WaterlilyBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../fluid/Fluid.hpp"
-#include "../../../fluid/FluidTags.hpp"
-#include "../../Block.hpp"
-#include "../../PlantType.hpp"
-#include "../../registry/VanillaBlocks.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
 namespace blocks {

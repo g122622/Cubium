@@ -27,8 +27,8 @@
  * 测试活塞头方块的存活检查和更新逻辑。
  */
 
-#include "common/TestWorldHelper.hpp"
 #include "common/world/block/blocks/redstone/PistonHeadBlock.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"

@@ -2,8 +2,8 @@
 
 #include "common/entity/ecs/context/EntityId.hpp"
 
-#include <entt/entt.hpp>
 #include <string>
+#include <entt/entt.hpp>
 
 namespace mc::ecs {
 

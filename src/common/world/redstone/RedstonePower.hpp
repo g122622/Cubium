@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/Direction.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
 
 namespace mc {
 

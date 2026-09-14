@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
-#include "../util/AxisAlignedBB.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <atomic>
 #include <cstddef>

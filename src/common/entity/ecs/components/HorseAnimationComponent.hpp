@@ -21,11 +21,11 @@ namespace mc::ecs {
  */
 struct HorseAnimationComponent {
     // 计数器
-    i32 m_eatingCounter{0};       ///< 吃草计数器（超 50 tick 停止吃草）
-    i32 m_openMouthCounter{0};    ///< 张嘴计数器（超 30 tick 闭嘴）
-    i32 m_jumpRearingCounter{0};  ///< 扬蹄计数器（倒计时，归零清除扬蹄）
-    i32 m_tailCounter{0};         ///< 尾巴摆动计数器（超 8 tick 重置）
-    i32 m_sprintCounter{0};       ///< 冲刺计数器（超 300 tick 重置）
+    i32 m_eatingCounter{0};      ///< 吃草计数器（超 50 tick 停止吃草）
+    i32 m_openMouthCounter{0};   ///< 张嘴计数器（超 30 tick 闭嘴）
+    i32 m_jumpRearingCounter{0}; ///< 扬蹄计数器（倒计时，归零清除扬蹄）
+    i32 m_tailCounter{0};        ///< 尾巴摆动计数器（超 8 tick 重置）
+    i32 m_sprintCounter{0};      ///< 冲刺计数器（超 300 tick 重置）
 
     // 插值量（prev/cur 对）
     f32 m_headLean{0.0f};          ///< 低头吃草动画量

@@ -20,10 +20,10 @@
 
 #pragma once
 
-#include "../../Block.hpp"
-#include "../../IBucketPickupHandler.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/IBucketPickupHandler.hpp"
 
 namespace mc {
 namespace blocks {

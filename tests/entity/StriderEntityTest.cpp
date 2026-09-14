@@ -62,7 +62,10 @@ namespace {
 
 class StriderEntityMountedYOffsetTest : public ::testing::Test {
 protected:
-    void SetUp() override { strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        strider = std::make_unique<StriderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<StriderEntity> strider;
 };

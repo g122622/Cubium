@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../core/Types.hpp"
+#include "common/core/Types.hpp"
 #include "math/MathUtils.hpp"
 #include <array>
 #include <cmath>

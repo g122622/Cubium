@@ -161,8 +161,11 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
         for (ChunkCoord cx = forcedMinCx; cx <= forcedMaxCx; ++cx) {
             for (ChunkCoord cz = forcedMinCz; cz <= forcedMaxCz; ++cz) {
                 // 使用 BlockTicking(32) 级别，确保振动门控通过且方块可 tick。
-                ticketManager.registerTicket(
-                    mc::world::chunk::TicketTypes::FORCED, cx, cz, static_cast<i32>(mc::world::chunk::ChunkLoadLevel::BlockTicking), mc::ChunkPos(cx, cz));
+                ticketManager.registerTicket(mc::world::chunk::TicketTypes::FORCED,
+                    cx,
+                    cz,
+                    static_cast<i32>(mc::world::chunk::ChunkLoadLevel::BlockTicking),
+                    mc::ChunkPos(cx, cz));
             }
         }
         ticketManager.processUpdates();

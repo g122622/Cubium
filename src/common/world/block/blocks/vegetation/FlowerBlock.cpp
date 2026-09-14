@@ -22,12 +22,12 @@
  */
 
 #include "FlowerBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../Material.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 

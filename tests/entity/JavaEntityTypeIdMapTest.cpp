@@ -34,8 +34,8 @@
 //
 // JavaEntityTypeIdMap 提供 name→vanilla id 映射；船类按木种选变体。本测试锁定关键映射防回归。
 
-#include "common/TestWorldHelper.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "entity/entities/vehicle/BoatEntity.hpp"
 #include "entity/entities/vehicle/ChestBoatEntity.hpp"
 

@@ -23,15 +23,15 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../entity/core/DataParameter.hpp"
-#include "../../villager/VillagerEntity.hpp"
-#include "../undead/ZombieEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>

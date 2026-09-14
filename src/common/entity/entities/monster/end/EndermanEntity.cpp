@@ -22,13 +22,13 @@
  */
 
 #include "EndermanEntity.hpp"
-#include "../../player/Player.hpp"
-#include "../arthropod/EndermiteEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "entity/ai/goal/goals/LookAtGoal.hpp"

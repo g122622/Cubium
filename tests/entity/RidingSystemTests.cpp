@@ -203,8 +203,8 @@ class MinecartEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        minecart =
-            std::make_unique<AbstractMinecartEntity>(AbstractMinecartEntity::Type::Rideable, EntityInstanceId(1), mc::test::testEcsRegistry());
+        minecart = std::make_unique<AbstractMinecartEntity>(
+            AbstractMinecartEntity::Type::Rideable, EntityInstanceId(1), mc::test::testEcsRegistry());
     }
 
     std::unique_ptr<AbstractMinecartEntity> minecart;
@@ -281,7 +281,10 @@ TEST_F(MinecartEntityTest, ApplyForce)
 
 class FurnaceMinecartEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { furnaceMinecart = std::make_unique<FurnaceMinecartEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        furnaceMinecart = std::make_unique<FurnaceMinecartEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<FurnaceMinecartEntity> furnaceMinecart;
 };
@@ -316,7 +319,10 @@ TEST_F(FurnaceMinecartEntityTest, AddFuel)
 
 class HopperMinecartEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { hopperMinecart = std::make_unique<HopperMinecartEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        hopperMinecart = std::make_unique<HopperMinecartEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<HopperMinecartEntity> hopperMinecart;
 };

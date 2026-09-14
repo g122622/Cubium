@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../Goal.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
 #include <string>
 
 namespace mc {

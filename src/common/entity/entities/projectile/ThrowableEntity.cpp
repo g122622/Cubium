@@ -22,17 +22,17 @@
  */
 
 #include "ThrowableEntity.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../../world/IWorld.hpp"
-#include "../../../world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 
 namespace mc {
 namespace entity {

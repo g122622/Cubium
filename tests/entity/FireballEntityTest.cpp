@@ -84,7 +84,10 @@ TEST_F(FireballEntityTest, SetDamage_UpdatesValue)
 
 class SmallFireballEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_smallFireball = std::make_unique<SmallFireballEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_smallFireball = std::make_unique<SmallFireballEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<SmallFireballEntity> m_smallFireball;
 };
@@ -105,7 +108,10 @@ TEST_F(SmallFireballEntityTest, DefaultValues_AreCorrect)
 
 class DragonFireballEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_dragonFireball = std::make_unique<DragonFireballEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<DragonFireballEntity> m_dragonFireball;
 };
@@ -126,7 +132,10 @@ TEST_F(DragonFireballEntityTest, DefaultValues_AreCorrect)
 
 class WitherSkullEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override { m_witherSkull = std::make_unique<WitherSkullEntity>(EntityInstanceId(0), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        m_witherSkull = std::make_unique<WitherSkullEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+    }
 
     std::unique_ptr<WitherSkullEntity> m_witherSkull;
 };

@@ -22,18 +22,18 @@
  */
 
 #include "FindWaterGoal.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../../world/block/BlockState.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/Entity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../controller/MovementController.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {

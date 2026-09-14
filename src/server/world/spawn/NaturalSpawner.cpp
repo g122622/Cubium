@@ -22,7 +22,6 @@
  */
 
 #include "NaturalSpawner.hpp"
-#include "../ServerWorld.hpp"
 #include "SpawnConditions.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
@@ -53,6 +52,7 @@
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <cmath>
 #include <limits>
 #include <memory>

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../../core/Constants.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <string>
 
 namespace mc {

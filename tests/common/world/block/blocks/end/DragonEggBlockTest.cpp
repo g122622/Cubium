@@ -23,10 +23,10 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "physics/collision/CollisionShape.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/end/DragonEggBlock.hpp"
 

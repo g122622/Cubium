@@ -429,8 +429,8 @@ TEST_F(MagmaBlockTest, MagmaBlock_TickCreatesBubbleColumn)
  */
 class HotFloorTrackingEntity : public LivingEntity {
 public:
-    HotFloorTrackingEntity(EntityInstanceId id, IWorld* world = nullptr,
-        ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+    HotFloorTrackingEntity(
+        EntityInstanceId id, IWorld* world = nullptr, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
         : LivingEntity(id, world, registry)
         , m_hurtCount(0)
         , m_lastDamageType(static_cast<DamageType>(255))

@@ -22,17 +22,17 @@
  */
 
 #include "Slot.hpp"
-#include "../../core/Constants.hpp"
-#include "../../item/Items.hpp"
-#include "../../item/enchantment/EnchantmentHelper.hpp"
-#include "../../item/items/armor/ArmorItem.hpp"
-#include "../../item/items/armor/ElytraItem.hpp"
-#include "../../world/blockentity/processing/AbstractFurnaceEntity.hpp"
-#include "../entities/player/Player.hpp"
 #include "IInventory.hpp"
 #include "IRecipeHolder.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/items/armor/ArmorItem.hpp"
+#include "common/item/items/armor/ElytraItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include <algorithm>
 #include <cmath>
 #include <utility>

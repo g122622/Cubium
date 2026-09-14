@@ -22,11 +22,11 @@
  */
 
 #include "PhysicsEngine.hpp"
-#include "../util/math/MathConstants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <algorithm>

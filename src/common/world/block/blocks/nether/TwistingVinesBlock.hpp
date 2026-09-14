@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../growing_plant/GrowingPlantHeadBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/Properties.hpp"
@@ -31,6 +30,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/growing_plant/GrowingPlantHeadBlock.hpp"
 
 namespace mc {
 namespace blocks {

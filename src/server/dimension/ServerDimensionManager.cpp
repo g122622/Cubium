@@ -22,10 +22,6 @@
  */
 
 #include "ServerDimensionManager.hpp"
-#include "../application/MinecraftServer.hpp"
-#include "../sync/ChunkSendManager.hpp"
-#include "../world/ServerChunkManager.hpp"
-#include "../world/ServerWorld.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -59,7 +55,11 @@
 #include "common/world/gen/settings/NoiseSettingsRegistry.hpp"
 #include "common/world/gen/settings/WorldPreset.hpp"
 #include "common/world/gen/settings/WorldPresetRegistry.hpp"
+#include "server/application/MinecraftServer.hpp"
 #include "server/dimension/ServerDimension.hpp"
+#include "server/sync/ChunkSendManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <cmath>

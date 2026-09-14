@@ -34,7 +34,6 @@
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
-
 namespace mc::world::storage {
 namespace {
 

@@ -2,6 +2,8 @@
 
 namespace mc::ecs {
 
-EntityRegistry::EntityRegistry(std::string debugName) : m_debugName(std::move(debugName)) {}
+EntityRegistry::EntityRegistry(std::string debugName)
+    : m_debugName(std::move(debugName))
+{}
 
 } // namespace mc::ecs

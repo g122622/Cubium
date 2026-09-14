@@ -21,11 +21,11 @@
  */
 
 #include "DensityEnchantment.hpp"
-#include "../trident/ImpalingEnchantment.hpp"
-#include "../weapon/DamageEnchantment.hpp"
 #include "BreachEnchantment.hpp"
 #include "WindBurstEnchantment.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/enchantments/trident/ImpalingEnchantment.hpp"
+#include "common/item/enchantment/enchantments/weapon/DamageEnchantment.hpp"
 
 namespace mc {
 namespace item {

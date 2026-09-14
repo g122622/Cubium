@@ -1,8 +1,8 @@
 #include "server/test/minecraft/helper/MinecraftGameTestHelperProvider.hpp"
 
+#include "common/util/assert/AssertMacros.hpp"
 #include "server/test/facade/GameTestHelper.hpp" // GameTestHelper（1F facade 具体类）
 #include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"
-#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc::test {
 

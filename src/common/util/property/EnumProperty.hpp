@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../util/Direction.hpp"
 #include "Property.hpp"
+#include "common/util/Direction.hpp"
 #include <cstddef>
 #include <functional>
 #include <memory>

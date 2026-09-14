@@ -22,9 +22,9 @@
  */
 
 #include "WeatheringCopperStairBlock.hpp"
-#include "../../../IWorld.hpp"
 #include "IOxidizableBlock.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/building/StairsBlock.hpp"
 

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/nbt/Nbt.hpp"
 #include "Template.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <string>

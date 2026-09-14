@@ -218,7 +218,8 @@ TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsHookedEnti
     // 独立 TEST 须自行构造服务端 FishingBobberEntity 触发 registerData() 分配真实 id，
     // 否则 getHookedEntityParamId() 返回哨兵 0xFFFF 致 set 在 0xFFFF 建条目，
     // 被 syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
-    static const auto s_serverFishingBobber = std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    static const auto s_serverFishingBobber =
+        std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverFishingBobber;
 
     ClientEntity entity(EntityInstanceId(1), "fishing_bobber");
@@ -230,7 +231,8 @@ TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsHookedEnti
 
 TEST(ClientEntityFishingBobberTypeIdNormalizeTest, WithoutPrefix_SyncsBiting)
 {
-    static const auto s_serverFishingBobber = std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    static const auto s_serverFishingBobber =
+        std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverFishingBobber;
 
     ClientEntity entity(EntityInstanceId(1), "fishing_bobber");
@@ -249,7 +251,8 @@ TEST(ClientEntityNonFishingBobberSyncTest, Zombie_DoesNotSyncFishingParams)
     // 独立 TEST 须自行构造服务端 FishingBobberEntity 触发 registerData() 分配真实 id，
     // 否则 getHookedEntityParamId()/getBitingParamId() 返回哨兵 0xFFFF 致 set 在 0xFFFF
     // 建条目，被 syncMetadataFromDataManager 的 MobFlags 分支误读为 i8 触发 bad_variant_access。
-    static const auto s_serverFishingBobber = std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    static const auto s_serverFishingBobber =
+        std::make_unique<::mc::entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
     (void)s_serverFishingBobber;
 
     ClientEntity entity(EntityInstanceId(1), "minecraft:zombie");

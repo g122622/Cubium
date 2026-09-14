@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../RotatedPillarBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -31,6 +30,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/RotatedPillarBlock.hpp"
 
 namespace mc {
 namespace blocks {

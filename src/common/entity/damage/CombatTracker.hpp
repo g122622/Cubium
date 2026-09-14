@@ -28,8 +28,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "CombatEntry.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include <cstddef>
 #include <memory>

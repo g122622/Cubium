@@ -23,12 +23,12 @@
 
 #include <gtest/gtest.h>
 
+#include "world/biome/Biome.hpp"
 #include "world/gen/structure/structures/IglooStructure.hpp"
 #include "world/gen/structure/structures/NetherFossilStructure.hpp"
+#include "world/gen/structure/structures/OceanRuinStructure.hpp"
 #include "world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "world/gen/structure/structures/ShipwreckStructure.hpp"
-#include "world/gen/structure/structures/OceanRuinStructure.hpp"
-#include "world/biome/Biome.hpp"
 #include <set>
 
 using namespace mc::world::gen::structure;
@@ -45,8 +45,7 @@ TEST(TemplatedStructuresTest, NetherFossilHasCorrectTemplateCount)
 
     // 验证模板名称格式
     for (const auto& name : NetherFossilStructure::s_fossilTemplates) {
-        EXPECT_TRUE(name.find("nether_fossils/fossil_") != std::string::npos)
-            << "Invalid template name: " << name;
+        EXPECT_TRUE(name.find("nether_fossils/fossil_") != std::string::npos) << "Invalid template name: " << name;
     }
 }
 
@@ -60,8 +59,7 @@ TEST(TemplatedStructuresTest, ShipwreckHasCorrectTemplateCount)
 
     // 验证模板名称格式
     for (const auto& name : ShipwreckStructure::s_beachedTemplates) {
-        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos)
-            << "Invalid template name: " << name;
+        EXPECT_TRUE(name.find("shipwreck/") != std::string::npos) << "Invalid template name: " << name;
     }
 }
 
@@ -96,12 +94,10 @@ TEST(TemplatedStructuresTest, RuinedPortalHasCorrectTemplateCount)
 
     // 验证模板名称格式
     for (const auto& name : RuinedPortalStructure::getNormalTemplates()) {
-        EXPECT_TRUE(name.find("ruined_portal/portal_") != std::string::npos)
-            << "Invalid template name: " << name;
+        EXPECT_TRUE(name.find("ruined_portal/portal_") != std::string::npos) << "Invalid template name: " << name;
     }
     for (const auto& name : RuinedPortalStructure::getGiantTemplates()) {
-        EXPECT_TRUE(name.find("ruined_portal/giant_portal_") != std::string::npos)
-            << "Invalid template name: " << name;
+        EXPECT_TRUE(name.find("ruined_portal/giant_portal_") != std::string::npos) << "Invalid template name: " << name;
     }
 }
 
@@ -152,8 +148,7 @@ TEST(TemplatedStructuresTest, IglooPieceHasCorrectDefaults)
 TEST(TemplatedStructuresTest, IglooPieceBasementGeneration)
 {
     // 有地下室时，中间层数为1-2
-    IglooPiece pieceWithBasement(mc::BlockPos(0, 64, 0),
-        Rotation::None, true, 2);
+    IglooPiece pieceWithBasement(mc::BlockPos(0, 64, 0), Rotation::None, true, 2);
 
     EXPECT_TRUE(pieceWithBasement.hasBasement());
     EXPECT_EQ(pieceWithBasement.middleCount(), 2);
@@ -169,10 +164,7 @@ TEST(TemplatedStructuresTest, OceanRuinConfigDefaults)
 
 TEST(TemplatedStructuresTest, ShipwreckPieceProperties)
 {
-    ShipwreckPiece piece("shipwreck/with_mast",
-        mc::BlockPos(100, 50, 200),
-        Rotation::Clockwise90,
-        true);
+    ShipwreckPiece piece("shipwreck/with_mast", mc::BlockPos(100, 50, 200), Rotation::Clockwise90, true);
 
     EXPECT_EQ(piece.templateName(), "shipwreck/with_mast");
     EXPECT_TRUE(piece.isBeached());
@@ -180,9 +172,7 @@ TEST(TemplatedStructuresTest, ShipwreckPieceProperties)
 
 TEST(TemplatedStructuresTest, NetherFossilPieceProperties)
 {
-    NetherFossilPiece piece("nether_fossils/fossil_5",
-        mc::BlockPos(0, 45, 0),
-        Rotation::Clockwise180);
+    NetherFossilPiece piece("nether_fossils/fossil_5", mc::BlockPos(0, 45, 0), Rotation::Clockwise180);
 
     EXPECT_EQ(piece.templateName(), "nether_fossils/fossil_5");
 }
@@ -212,12 +202,8 @@ TEST(TemplatedStructuresTest, RuinedPortalPieceProperties)
 
 TEST(TemplatedStructuresTest, OceanRuinPieceProperties)
 {
-    OceanRuinPiece piece("underwater_ruin/brick_1",
-        mc::BlockPos(0, 30, 0),
-        Rotation::Clockwise90,
-        0.8f,
-        OceanRuinType::Cold,
-        false);
+    OceanRuinPiece piece(
+        "underwater_ruin/brick_1", mc::BlockPos(0, 30, 0), Rotation::Clockwise90, 0.8f, OceanRuinType::Cold, false);
 
     EXPECT_EQ(piece.templateName(), "underwater_ruin/brick_1");
     EXPECT_FLOAT_EQ(piece.integrity(), 0.8f);

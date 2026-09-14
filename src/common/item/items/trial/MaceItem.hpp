@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
 #include "MaceMath.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
 namespace item {

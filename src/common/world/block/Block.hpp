@@ -23,21 +23,21 @@
 
 #pragma once
 
-#include "../../core/BlockRaycastResult.hpp"
-#include "../../item/core/ActionResult.hpp"
-#include "../../item/core/BlockActionResult.hpp"
-#include "../../util/Direction.hpp"
-#include "../../util/assert/AssertAll.hpp"
-#include "../../util/property/StateContainer.hpp"
 #include "BlockSoundType.hpp"
 #include "BlockState.hpp"
 #include "HarvestTool.hpp"
 #include "IBlockAnimateContext.hpp"
 #include "Material.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/collision/EntityCollisionContext.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/property/StateContainer.hpp"
 #include "world/biome/BiomeClimate.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <array>

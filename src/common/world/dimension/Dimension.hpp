@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../core/Constants.hpp"
-#include "../../core/Types.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../biome/BiomeSource.hpp"
-#include "../gen/chunk/IChunkGenerator.hpp"
 #include "DimensionType.hpp"
+#include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeSource.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <optional>
 

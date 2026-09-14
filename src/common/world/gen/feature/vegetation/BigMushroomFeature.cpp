@@ -22,15 +22,15 @@
  */
 
 #include "BigMushroomFeature.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../chunk/IChunkGenerator.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <utility>

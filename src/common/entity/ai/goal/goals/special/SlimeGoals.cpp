@@ -22,20 +22,20 @@
  */
 
 #include "SlimeGoals.hpp"
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../attribute/Attributes.hpp"
-#include "../../../../core/LivingEntity.hpp"
-#include "../../../../effect/EffectInstance.hpp"
-#include "../../../../effect/EffectType.hpp"
-#include "../../../../entities/monster/basic/SlimeEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../controller/JumpController.hpp"
-#include "../../../controller/MovementController.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/ai/controller/JumpController.hpp"
+#include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc::entity::ai::goal {
 

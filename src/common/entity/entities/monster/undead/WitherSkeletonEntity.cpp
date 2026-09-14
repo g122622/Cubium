@@ -23,20 +23,20 @@
 
 #include "WitherSkeletonEntity.hpp"
 
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../effect/EffectInstance.hpp"
-#include "../../../effect/EffectType.hpp"
-#include "../nether/NetherEntities.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 
 namespace mc {

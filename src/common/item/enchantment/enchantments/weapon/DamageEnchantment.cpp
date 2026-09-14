@@ -22,14 +22,14 @@
  */
 
 #include "DamageEnchantment.hpp"
-#include "../mace/BreachEnchantment.hpp"
-#include "../mace/DensityEnchantment.hpp"
-#include "../mace/WindBurstEnchantment.hpp"
-#include "../trident/ImpalingEnchantment.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/enchantments/mace/BreachEnchantment.hpp"
+#include "common/item/enchantment/enchantments/mace/DensityEnchantment.hpp"
+#include "common/item/enchantment/enchantments/mace/WindBurstEnchantment.hpp"
+#include "common/item/enchantment/enchantments/trident/ImpalingEnchantment.hpp"
 
 namespace mc {
 namespace item {

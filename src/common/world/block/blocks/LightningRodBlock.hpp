@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../IWaterLoggable.hpp"
 #include "DirectionalBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
@@ -35,6 +34,7 @@
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
 #include <array>
 #include <cstddef>
 

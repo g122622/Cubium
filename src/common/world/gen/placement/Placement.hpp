@@ -23,15 +23,15 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/random/Random.hpp"
-#include "../../block/Block.hpp"
-#include "../../chunk/data/Heightmap.hpp"
-#include "../valueprovider/HeightProvider.hpp"
-#include "../valueprovider/IntProvider.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/surface/VerticalAnchor.hpp"
+#include "common/world/gen/valueprovider/HeightProvider.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <algorithm>
 #include <limits>
 #include <memory>

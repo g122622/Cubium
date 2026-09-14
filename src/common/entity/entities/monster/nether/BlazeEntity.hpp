@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../interfaces/IRangedAttackMob.hpp"
-#include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/interfaces/IRangedAttackMob.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <optional>
 

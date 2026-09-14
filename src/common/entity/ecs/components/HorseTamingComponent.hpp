@@ -21,8 +21,8 @@ namespace mc::ecs {
  * 字符串 + 双 long 持久化，与项目既有 EvokerFangs/ projectile owner 一致）。
  */
 struct HorseTamingComponent {
-    i32 m_temper{0};      ///< 当前驯服进度
-    i32 m_maxTemper{100}; ///< 驯服阈值，达到则驯服成功
+    i32 m_temper{0};         ///< 当前驯服进度
+    i32 m_maxTemper{100};    ///< 驯服阈值，达到则驯服成功
     std::string m_ownerUuid; ///< 主人 UUID（空串表示无主人）
 };
 

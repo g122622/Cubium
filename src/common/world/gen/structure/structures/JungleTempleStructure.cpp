@@ -23,19 +23,19 @@
 
 #include "JungleTempleStructure.hpp"
 
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../biome/BiomeTags.hpp"
-#include "../../../block/BlockPos.hpp"
-#include "../../../block/registry/VanillaBlocks.hpp"
-#include "../Structure.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTag.hpp"
+#include "common/world/biome/BiomeTags.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <string>
 #include <utility>

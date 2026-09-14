@@ -287,8 +287,7 @@ public:
     explicit FixedBiomeSource(BiomeId biomeId)
         : IBiomeSource(0)
         , m_biomeId(biomeId)
-    {
-    }
+    {}
 
     [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biomeId; }
 

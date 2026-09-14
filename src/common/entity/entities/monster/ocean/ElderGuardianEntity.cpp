@@ -22,13 +22,13 @@
  */
 
 #include "ElderGuardianEntity.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../effect/EffectInstance.hpp"
-#include "../../../effect/EffectType.hpp"
-#include "../../../entities/player/Player.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <utility>
 #include <vector>

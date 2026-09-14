@@ -22,24 +22,24 @@
  */
 
 #include "JukeboxBlock.hpp"
-#include "../../../../entity/inventory/IInventory.hpp"
-#include "../../../../entity/utils/ItemDropHelper.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../item/core/Item.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../util/assert/AssertAll.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../blockentity/BlockEntityType.hpp"
-#include "../../../blockentity/interactive/JukeboxEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/JukeboxEntity.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

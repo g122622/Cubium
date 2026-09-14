@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
-#include "../../enchantment/Enchantment.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include <cstddef>
 #include <vector>
 

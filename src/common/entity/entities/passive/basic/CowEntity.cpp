@@ -22,24 +22,24 @@
  */
 
 #include "CowEntity.hpp"
-#include "../../../../item/Items.hpp"
-#include "../../../../item/core/ItemStack.hpp"
-#include "../../../../world/block/Block.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../ai/goal/goals/BreedGoal.hpp"
-#include "../../../ai/goal/goals/FollowParentGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
-#include "../../../ai/goal/goals/PanicGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/TemptGoal.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../damage/DamageSource.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp" // 包含 LookRandomlyGoal
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 #include <optional>
 

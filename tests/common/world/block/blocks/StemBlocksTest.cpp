@@ -25,9 +25,9 @@
 
 #include "common/item/Items.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 using namespace mc::blocks;

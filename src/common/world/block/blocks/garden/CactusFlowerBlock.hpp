@@ -22,11 +22,11 @@
 
 #pragma once
 
-#include "../vegetation/FlowerBlock.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
 
 namespace mc {
 namespace blocks {

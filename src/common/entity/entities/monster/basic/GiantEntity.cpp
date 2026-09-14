@@ -22,8 +22,8 @@
  */
 
 #include "GiantEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/IWorld.hpp"

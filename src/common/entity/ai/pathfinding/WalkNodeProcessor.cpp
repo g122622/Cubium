@@ -22,19 +22,19 @@
  */
 
 #include "WalkNodeProcessor.hpp"
-#include "../../../util/math/MathUtils.hpp"
-#include "../../../world/block/Block.hpp"
-#include "../../../world/block/BlockTags.hpp"
-#include "../../../world/block/blocks/DoorBlock.hpp"
-#include "../../../world/block/blocks/FenceGateBlock.hpp"
-#include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
-#include "../../core/LivingEntity.hpp"
-#include "../../core/MobEntity.hpp"
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/DoorBlock.hpp"
+#include "common/world/block/blocks/FenceGateBlock.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>

@@ -22,11 +22,11 @@
  */
 
 #include "Raycast.hpp"
-#include "../../AxisAlignedBB.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"

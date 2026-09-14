@@ -21,14 +21,14 @@
  *
  */
 
-#include "../src/common/entity/core/LivingEntity.hpp"
-#include "../src/common/entity/inventory/PlayerInventory.hpp"
-#include "../src/common/entity/serialization/EntityNbtKeys.hpp"
-#include "../src/common/entity/serialization/EquipmentSlotNames.hpp"
-#include "../src/common/entity/serialization/NbtHelper.hpp"
-#include "../src/common/item/Items.hpp"
-#include "../src/common/item/core/ItemRegistry.hpp"
-#include "../src/common/util/nbt/Nbt.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/EquipmentSlotNames.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

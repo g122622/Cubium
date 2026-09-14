@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../../util/AxisAlignedBB.hpp"
-#include "../../Goal.hpp"
-#include "../target/TargetGoals.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include <string>
 
 namespace mc {

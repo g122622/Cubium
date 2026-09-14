@@ -22,22 +22,22 @@
  */
 
 #include "BlazeEntity.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../damage/DamageSource.hpp"
-#include "../../player/Player.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/BlazeFireballAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <optional>
 

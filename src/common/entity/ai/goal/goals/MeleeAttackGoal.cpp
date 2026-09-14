@@ -22,20 +22,20 @@
  */
 
 #include "MeleeAttackGoal.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/block/BlockPos.hpp"
-#include "../../../core/CreatureEntity.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../controller/LookController.hpp"
-#include "../../pathfinding/PathNavigator.hpp"
-#include "../GoalConstants.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 
 namespace mc::entity::ai::goal {

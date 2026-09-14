@@ -34,18 +34,18 @@
 // 各种 ClickType。屏幕层的交互映射（_actionToClickType, _getQuickCraftType）
 // 是纯函数，在此测试其映射正确性。
 
-#include "../src/client/ui/kagero/Types.hpp"
-#include "../src/common/entity/entities/player/Player.hpp"
-#include "../src/common/entity/inventory/AbstractContainerMenu.hpp"
-#include "../src/common/entity/inventory/ContainerTypeUtils.hpp"
-#include "../src/common/entity/inventory/ContainerTypes.hpp"
-#include "../src/common/entity/inventory/PlayerInventory.hpp"
-#include "../src/common/entity/inventory/Slot.hpp"
-#include "../src/common/item/Items.hpp"
-#include "../src/common/item/core/ItemRegistry.hpp"
-#include "../src/common/item/items/block/BlockItemRegistry.hpp"
-#include "../src/common/item/items/special/bundle/BundleContents.hpp"
-#include "../src/common/world/block/registry/VanillaBlocks.hpp"
+#include "client/ui/kagero/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
+#include "common/entity/inventory/ContainerTypeUtils.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/items/special/bundle/BundleContents.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"

@@ -658,7 +658,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithPlayerOwnerReturnsPlay
     auto player = std::make_unique<Player>(EntityInstanceId(60), "OwnerPlayer", mc::test::testEcsRegistry());
     Player* rawPlayer = player.get();
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(61), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    auto itemEntity =
+        std::make_unique<ItemEntity>(EntityInstanceId(61), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     Entity* rawItemEntity = itemEntity.get();
 
     // 先注册玩家到世界
@@ -680,7 +681,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNonPlayerOwnerReturnsN
     auto owner = std::make_unique<LivingEntity>(EntityInstanceId(70), nullptr, mc::test::testEcsRegistry());
     owner->setUuid("non-player-owner-uuid");
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(71), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    auto itemEntity =
+        std::make_unique<ItemEntity>(EntityInstanceId(71), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     Entity* rawItemEntity = itemEntity.get();
 
     // 先注册所有者到世界
@@ -699,7 +701,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNoOwnerReturnsNullptr)
 {
     // 创建物品实体（无所有者）
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(80), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    auto itemEntity =
+        std::make_unique<ItemEntity>(EntityInstanceId(80), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     Entity* rawItemEntity = itemEntity.get();
     world.registerEntity(std::move(itemEntity));
 
@@ -712,7 +715,8 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithOwnerNotInWorldReturns
 {
     // 创建物品实体，所有者UUID已设置但对应实体不存在于世界中
     ItemStack emptyStack;
-    auto itemEntity = std::make_unique<ItemEntity>(EntityInstanceId(90), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    auto itemEntity =
+        std::make_unique<ItemEntity>(EntityInstanceId(90), emptyStack, 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
     Entity* rawItemEntity = itemEntity.get();
     world.registerEntity(std::move(itemEntity));
 

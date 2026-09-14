@@ -22,13 +22,10 @@
  */
 
 #include "DragonEggBlock.hpp"
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../block/BlockRegistry.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -36,7 +33,10 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 
 namespace mc {

@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../ServerEventBus.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -32,6 +31,7 @@
 #include "common/world/GlobalPos.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/event/ServerEventBus.hpp"
 #include <optional>
 #include <string>
 #include <utility>

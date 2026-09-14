@@ -33,11 +33,11 @@
  */
 
 #include "advancement/trigger/conditions/BlockPredicate.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/loot/StatePropertiesPredicate.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include <gtest/gtest.h>

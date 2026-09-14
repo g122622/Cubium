@@ -23,17 +23,17 @@
 
 #pragma once
 
-#include "../../../../core/BlockRaycastResult.hpp"
-#include "../../../../entity/entities/player/Player.hpp"
-#include "../../../../entity/inventory/ISidedInventoryProvider.hpp"
-#include "../../../../item/core/ActionResult.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ISidedInventoryProvider.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/Material.hpp"
 #include "entity/inventory/ISidedInventory.hpp"
 #include <array>
 #include <memory>

@@ -22,21 +22,21 @@
  */
 
 #include "WorldGenSpawner.hpp"
-#include "../../../entity/core/EntityClassification.hpp"
-#include "../../../entity/core/EntityRegistry.hpp"
-#include "../../../util/AxisAlignedBB.hpp"
-#include "../../../world/spawn/EntitySpawnPlacementRegistry.hpp"
-#include "../../WorldConstants.hpp"
-#include "../../lighting/InternalLightUtils.hpp"
-#include "../chunk/IChunkGenerator.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySize.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <algorithm>
 #include <vector>

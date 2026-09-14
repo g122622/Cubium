@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/EntityPredicate.hpp"
-#include "../conditions/ItemPredicate.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>

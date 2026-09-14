@@ -22,22 +22,22 @@
  */
 
 #include "WanderingTraderGoals.hpp"
-#include "../../../../../item/core/ItemStack.hpp"
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../ai/controller/LookController.hpp"
-#include "../../../../ai/pathfinding/PathNavigator.hpp"
-#include "../../../../core/MobEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
-#include "../../../../entities/villager/VillagerEntity.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {

@@ -402,8 +402,8 @@ private:
     void _pruneFlagGoals()
     {
         for (auto it = m_flagGoals.begin(); it != m_flagGoals.end();) {
-            const bool alive = std::any_of(m_goals.begin(), m_goals.end(),
-                [ptr = it->second](const PrioritizedGoal& pg) { return &pg == ptr; });
+            const bool alive = std::any_of(
+                m_goals.begin(), m_goals.end(), [ptr = it->second](const PrioritizedGoal& pg) { return &pg == ptr; });
             if (!alive) {
                 it = m_flagGoals.erase(it);
             } else {

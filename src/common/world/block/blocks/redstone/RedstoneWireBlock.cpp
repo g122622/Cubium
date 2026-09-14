@@ -22,26 +22,26 @@
  */
 
 #include "RedstoneWireBlock.hpp"
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../redstone/RedstoneSystem.hpp"
-#include "../../../tick/base/TickPriority.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../Block.hpp"
 #include "ObserverBlock.hpp"
 #include "RedstoneDiodeBlock.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

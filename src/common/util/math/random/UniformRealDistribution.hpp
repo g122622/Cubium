@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "IRandom.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc::math {
 

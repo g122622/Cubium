@@ -84,7 +84,8 @@ protected:
     void SetUp() override
     {
         m_world = std::make_unique<PiglinAiGoldTestWorld>();
-        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "GoldArmorTestPlayer", mc::test::testEcsRegistry());
+        m_player = std::make_unique<Player>(
+            static_cast<EntityInstanceId>(1), "GoldArmorTestPlayer", mc::test::testEcsRegistry());
         m_player->setWorld(m_world.get());
     }
 

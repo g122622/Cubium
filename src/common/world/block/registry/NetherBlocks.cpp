@@ -311,16 +311,16 @@ void registerNetherBlocks()
         ResourceLocation("minecraft:shroomlight"), BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
 
     // 绯红菌（实现 IGrowable，骨粉可生成巨型真菌）
-    NetherBlocks::CRIMSON_FUNGUS = &registry.registerBlock<blocks::FungusBlock>(
-        ResourceLocation("minecraft:crimson_fungus"),
-        FungusType::Crimson,
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    NetherBlocks::CRIMSON_FUNGUS =
+        &registry.registerBlock<blocks::FungusBlock>(ResourceLocation("minecraft:crimson_fungus"),
+            FungusType::Crimson,
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 诡异菌（实现 IGrowable，骨粉可生成巨型真菌）
-    NetherBlocks::WARPED_FUNGUS = &registry.registerBlock<blocks::FungusBlock>(
-        ResourceLocation("minecraft:warped_fungus"),
-        FungusType::Warped,
-        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    NetherBlocks::WARPED_FUNGUS =
+        &registry.registerBlock<blocks::FungusBlock>(ResourceLocation("minecraft:warped_fungus"),
+            FungusType::Warped,
+            BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 垂泪藤 - 向下生长的藤蔓头部（AGE_0_25）
     NetherBlocks::WEEPING_VINES =

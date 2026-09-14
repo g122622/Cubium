@@ -337,7 +337,8 @@ TEST_F(FollowSchoolLeaderGoalTest, ShouldRespectMaxGroupSize)
 
     // 创建并加入 4 条鱼（达到最大群体大小 5）
     for (int i = 0; i < 4; ++i) {
-        auto follower = std::make_unique<SalmonEntity>(static_cast<EntityInstanceId>(i + 2), mc::test::testEcsRegistry());
+        auto follower =
+            std::make_unique<SalmonEntity>(static_cast<EntityInstanceId>(i + 2), mc::test::testEcsRegistry());
         follower->setWorld(m_world.get());
         follower->setPosition(static_cast<f32>(i + 1), 62.0f, 0.0f);
         follower->joinGroup(*leader);

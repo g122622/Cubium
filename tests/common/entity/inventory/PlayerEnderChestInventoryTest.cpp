@@ -19,8 +19,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "common/TestWorldHelper.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerListener.hpp"
 #include "common/item/Items.hpp"

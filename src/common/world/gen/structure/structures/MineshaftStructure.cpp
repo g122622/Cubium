@@ -22,7 +22,6 @@
  */
 
 #include "MineshaftStructure.hpp"
-#include "../StructureBoundingBox.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -36,6 +35,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cmath>
 #include <memory>
 #include <string>

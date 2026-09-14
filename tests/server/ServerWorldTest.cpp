@@ -22,8 +22,8 @@
  */
 
 #include "server/world/ServerWorld.hpp"
-#include "common/TestWorldHelper.hpp"
 #include "common/TempDirHelper.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -843,7 +843,8 @@ TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker)
 
     // 创建一个简单实体
     ItemStack stack; // 空物品堆
-    auto entity = std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 100.0f, 64.0f, 100.0f, mc::test::testEcsRegistry());
+    auto entity =
+        std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 100.0f, 64.0f, 100.0f, mc::test::testEcsRegistry());
     EntityInstanceId entityId = entity->id();
 
     // 生成实体
@@ -882,9 +883,12 @@ TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved)
 
     // 创建多个实体
     ItemStack stack; // 空物品堆
-    auto entity1 = std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 0.0f, 64.0f, 0.0f, mc::test::testEcsRegistry());
-    auto entity2 = std::make_unique<ItemEntity>(EntityInstanceId(2), stack, 10.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
-    auto entity3 = std::make_unique<ItemEntity>(EntityInstanceId(3), stack, 20.0f, 64.0f, 20.0f, mc::test::testEcsRegistry());
+    auto entity1 =
+        std::make_unique<ItemEntity>(EntityInstanceId(1), stack, 0.0f, 64.0f, 0.0f, mc::test::testEcsRegistry());
+    auto entity2 =
+        std::make_unique<ItemEntity>(EntityInstanceId(2), stack, 10.0f, 64.0f, 10.0f, mc::test::testEcsRegistry());
+    auto entity3 =
+        std::make_unique<ItemEntity>(EntityInstanceId(3), stack, 20.0f, 64.0f, 20.0f, mc::test::testEcsRegistry());
 
     EntityInstanceId id1 = entity1->id();
     EntityInstanceId id2 = entity2->id();

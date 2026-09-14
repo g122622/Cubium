@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../../resource/ResourceLocation.hpp"
-#include "../../../../util/color/DyeColor.hpp"
 #include "AnimalEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/EatGrassGoal.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <optional>

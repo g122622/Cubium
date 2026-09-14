@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
 #include "NodeProcessor.hpp"
 #include "PathNodeType.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include <memory>
 #include <vector>

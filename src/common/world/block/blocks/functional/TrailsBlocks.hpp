@@ -23,9 +23,6 @@
 
 #pragma once
 
-#include "../../IWaterLoggable.hpp"
-#include "../FallingBlock.hpp"
-#include "../HorizontalBlock.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/BlockActionResult.hpp"
@@ -37,7 +34,10 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/blocks/FallingBlock.hpp"
+#include "common/world/block/blocks/HorizontalBlock.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include <memory>
 

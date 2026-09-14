@@ -25,7 +25,10 @@ namespace mc::ecs {
 class EntityContext {
 public:
     EntityContext(EntityRegistry& registry, EntityId entity) noexcept
-        : m_registry(registry), m_enttRegistry(registry.raw()), m_entity(entity) {}
+        : m_registry(registry)
+        , m_enttRegistry(registry.raw())
+        , m_entity(entity)
+    {}
 
     /** 所属 registry */
     [[nodiscard]] EntityRegistry& registry() noexcept { return m_registry; }
@@ -43,47 +46,55 @@ public:
 
     /** 查询组件（const 重载，不存在返回 nullptr） */
     template <class T>
-    [[nodiscard]] const T* tryGetComponent() const {
+    [[nodiscard]] const T* tryGetComponent() const
+    {
         return m_enttRegistry.try_get<T>(m_entity);
     }
 
     /** 查询组件（非 const 重载） */
     template <class T>
-    [[nodiscard]] T* tryGetComponent() {
+    [[nodiscard]] T* tryGetComponent()
+    {
         return m_enttRegistry.try_get<T>(m_entity);
     }
 
     /** 是否拥有某组件 */
     template <class T>
-    [[nodiscard]] bool hasComponent() const {
+    [[nodiscard]] bool hasComponent() const
+    {
         return m_enttRegistry.all_of<T>(m_entity);
     }
 
     /** 获取组件引用（必须已存在） */
     template <class T>
-    [[nodiscard]] T& getComponent() {
+    [[nodiscard]] T& getComponent()
+    {
         return m_enttRegistry.get<T>(m_entity);
     }
     template <class T>
-    [[nodiscard]] const T& getComponent() const {
+    [[nodiscard]] const T& getComponent() const
+    {
         return m_enttRegistry.get<T>(m_entity);
     }
 
     /** 获取组件，不存在则原地构造一个 */
     template <class T, typename... Args>
-    [[nodiscard]] T& getOrAddComponent(Args&&... args) {
+    [[nodiscard]] T& getOrAddComponent(Args&&... args)
+    {
         return m_enttRegistry.get_or_emplace<T>(m_entity, std::forward<Args>(args)...);
     }
 
     /** 添加/替换组件 */
     template <class T, typename... Args>
-    T& addComponent(Args&&... args) {
+    T& addComponent(Args&&... args)
+    {
         return m_enttRegistry.emplace_or_replace<T>(m_entity, std::forward<Args>(args)...);
     }
 
     /** 移除组件（不存在也安全） */
     template <class T>
-    bool removeComponent() {
+    bool removeComponent()
+    {
         return m_enttRegistry.remove<T>(m_entity);
     }
 

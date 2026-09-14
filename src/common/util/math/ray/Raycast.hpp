@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../core/BlockRaycastResult.hpp"
-#include "../../../world/IWorld.hpp"
 #include "Ray.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 

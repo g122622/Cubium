@@ -37,13 +37,13 @@
  * 属性是静态单例，应该通过引用访问。
  */
 
-#include "../../world/gen/jigsaw/JigsawOrientation.hpp"
-#include "../Direction.hpp"
 #include "BooleanProperty.hpp"
 #include "DirectionProperty.hpp"
 #include "EnumProperty.hpp"
 #include "IntegerProperty.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/Direction.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 
 namespace mc {
 

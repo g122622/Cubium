@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../renderer/MeshTypes.hpp"
-#include "../renderer/mesh/MeshBuildScheduler.hpp"
-#include "../renderer/mesh/MeshDataPool.hpp"
-#include "../renderer/mesh/MeshResultQueue.hpp"
-#include "../renderer/trident/particle/data/ParticleData.hpp"
 #include "ClientWeather.hpp"
+#include "client/renderer/MeshTypes.hpp"
+#include "client/renderer/mesh/MeshBuildScheduler.hpp"
+#include "client/renderer/mesh/MeshDataPool.hpp"
+#include "client/renderer/mesh/MeshResultQueue.hpp"
+#include "client/renderer/trident/particle/data/ParticleData.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"

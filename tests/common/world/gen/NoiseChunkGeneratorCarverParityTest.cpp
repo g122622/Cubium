@@ -185,7 +185,8 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, InjectedBiomeSourceKeepsCarverPipeli
 
     DimensionSettings injectedSettings = DimensionSettings::overworld();
     auto injectedRandomState = mc::world::gen::RandomState::create(injectedSettings, seed);
-    auto injectedSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*injectedRandomState, false, false);
+    auto injectedSource =
+        mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*injectedRandomState, false, false);
     NoiseChunkGenerator injectedGenerator(
         std::move(injectedSettings), std::move(injectedSource), std::move(injectedRandomState));
 
@@ -242,7 +243,8 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
     EXPECT_NO_THROW({
         DimensionSettings settings2 = DimensionSettings::overworld();
         auto randomState2 = mc::world::gen::RandomState::create(settings2, seed);
-        auto biomeSource2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false, false);
+        auto biomeSource2 =
+            mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false, false);
         NoiseChunkGenerator generator2(std::move(settings2), std::move(biomeSource2), std::move(randomState2));
     });
 }

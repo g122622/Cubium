@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "MathUtils.hpp"
+#include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 
 #include <cmath>

@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../util/math/Vector3.hpp"
-#include "../../util/property/StateContainer.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include <cstddef>
 #include <memory>

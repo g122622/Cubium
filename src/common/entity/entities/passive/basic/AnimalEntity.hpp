@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../../core/AgeableEntity.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/core/AgeableEntity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/util/nbt/Nbt.hpp"

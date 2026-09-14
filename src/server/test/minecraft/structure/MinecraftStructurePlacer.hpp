@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common/test/base/data/TestData.hpp"
-#include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "common/util/Direction.hpp" // Rotation
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/minecraft/structure/StructureBounds.hpp"
 
 #include <memory>
 

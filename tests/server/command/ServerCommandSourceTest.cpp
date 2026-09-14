@@ -89,15 +89,9 @@ public:
 
     ~ServerCommandSourceTestServer() override = default;
 
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
 
     [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
     [[nodiscard]] const ServerPlayerEntityManager& playerEntityManager() const override

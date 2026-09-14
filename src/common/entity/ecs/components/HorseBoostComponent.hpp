@@ -13,7 +13,7 @@ namespace mc::ecs {
  * vanilla AbstractHorse 不存盘。updateBoost() 每 tick 递减 boostTime，归零清 isBoosting。
  */
 struct HorseBoostComponent {
-    i32 m_boostTime{0};    ///< 剩余加速时间（tick）
+    i32 m_boostTime{0};       ///< 剩余加速时间（tick）
     bool m_isBoosting{false}; ///< 是否正在加速
 };
 

@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../MonsterEntity.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include <memory>
 
 namespace mc {

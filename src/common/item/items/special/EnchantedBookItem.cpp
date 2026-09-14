@@ -22,11 +22,11 @@
  */
 
 #include "EnchantedBookItem.hpp"
-#include "../../core/ItemStack.hpp"
-#include "../../enchantment/EnchantmentRegistry.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include <cstddef>
 #include <string>
 #include <utility>

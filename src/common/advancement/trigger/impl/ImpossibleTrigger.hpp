@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"

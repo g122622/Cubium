@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../feature/template/Template.hpp"
-#include "../Structure.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeTag.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/structure/Structure.hpp"
 #include <functional>
 #include <memory>
 #include <string>

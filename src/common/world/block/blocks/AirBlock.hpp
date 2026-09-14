@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../Block.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 
 namespace mc {

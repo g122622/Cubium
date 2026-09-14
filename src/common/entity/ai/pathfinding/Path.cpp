@@ -22,9 +22,9 @@
  */
 
 #include "Path.hpp"
-#include "../../core/Entity.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include <cstddef>
 

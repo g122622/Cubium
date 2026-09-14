@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../world/block/BlockPos.hpp"
 #include "PointOfInterest.hpp"
+#include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
 #include <cstddef>

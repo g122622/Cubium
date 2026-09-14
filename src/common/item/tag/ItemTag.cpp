@@ -23,10 +23,10 @@
 
 #include "ItemTag.hpp"
 
-#include "../../util/assert/AssertAll.hpp"
-#include "../core/Item.hpp"
-#include "../core/ItemStack.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>

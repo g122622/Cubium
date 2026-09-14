@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../../resource/ResourceLocation.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
 #include <string>

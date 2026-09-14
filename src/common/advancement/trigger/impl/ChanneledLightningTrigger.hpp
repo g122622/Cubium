@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../CriterionTrigger.hpp"
-#include "../conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/CriterionTrigger.hpp"
+#include "common/advancement/trigger/conditions/EntityPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>

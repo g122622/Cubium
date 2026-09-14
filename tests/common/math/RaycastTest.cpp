@@ -22,13 +22,13 @@
  */
 
 #include "util/math/ray/Raycast.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/BlockRaycastResult.hpp"
 #include "core/Constants.hpp"
 #include "util/Direction.hpp"
 #include "util/math/ray/Ray.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/fluid/Fluid.hpp"
 #include <gtest/gtest.h>

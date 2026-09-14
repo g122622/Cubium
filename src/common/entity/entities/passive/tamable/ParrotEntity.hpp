@@ -25,11 +25,11 @@
 
 #include "ShoulderRidingEntity.hpp"
 
-#include "../../../interfaces/IFlyingAnimal.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/interfaces/IFlyingAnimal.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 

@@ -22,8 +22,6 @@
  */
 
 #include "AgeableEntity.hpp"
-#include "../serialization/EntityNbtKeys.hpp"
-#include "../serialization/NbtHelper.hpp"
 #include "MobEntity.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -31,6 +29,8 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"

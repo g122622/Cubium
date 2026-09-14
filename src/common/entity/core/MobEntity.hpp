@@ -23,14 +23,12 @@
 
 #pragma once
 
-#include "../../util/math/random/Random.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../ai/goal/GoalSelector.hpp"
-#include "../ai/pathfinding/PathNodeType.hpp"
-#include "../combat/DifficultyInstance.hpp"
 #include "LivingEntity.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/pathfinding/PathNodeType.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
@@ -38,7 +36,9 @@
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <array>
 #include <cstddef>

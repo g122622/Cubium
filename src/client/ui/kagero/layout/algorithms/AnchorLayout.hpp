@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../core/LayoutResult.hpp"
-#include "../integration/WidgetLayoutAdaptor.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/layout/core/LayoutResult.hpp"
+#include "client/ui/kagero/layout/integration/WidgetLayoutAdaptor.hpp"
 #include <vector>
 
 namespace mc::client::ui::kagero::layout {

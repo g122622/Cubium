@@ -22,16 +22,16 @@
  */
 
 #include "LookAtGoal.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../core/EntityUtils.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../core/MobEntity.hpp"
-#include "../../controller/LookController.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <cmath>
 #include <utility>
 

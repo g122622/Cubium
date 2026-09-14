@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "AttackContext.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 

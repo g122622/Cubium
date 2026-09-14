@@ -22,20 +22,20 @@
  */
 
 #include "LeavesBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/math/random/IRandom.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../../../util/property/StateContainer.hpp"
-#include "../../../IWorld.hpp"
-#include "../../../tick/manager/TickManager.hpp"
-#include "../../BlockRegistry.hpp"
-#include "../../BlockTags.hpp"
-#include "../../WaterLoggableHelpers.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

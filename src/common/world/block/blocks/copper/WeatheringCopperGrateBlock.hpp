@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../IWaterLoggable.hpp"
 #include "WeatheringCopperBlock.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
 
 namespace mc {
 namespace blocks {

@@ -103,8 +103,11 @@ public:
      *   create ECS 实体并 attach 高频组件）。由调用方 ServerWorld 经 *entityRegistry() 传入。
      * @return 实体实例或错误
      */
-    Result<std::unique_ptr<Entity>> loadEntity(
-        const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry);
+    Result<std::unique_ptr<Entity>> loadEntity(const std::string& uuid,
+        ChunkCoord chunkX,
+        ChunkCoord chunkZ,
+        DimensionId dimension,
+        ecs::EntityRegistry& registry);
 
     /**
      * @brief 从存储删除实体

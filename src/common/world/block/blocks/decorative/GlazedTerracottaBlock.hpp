@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../Material.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/Material.hpp"
 
 namespace mc {
 namespace blocks {

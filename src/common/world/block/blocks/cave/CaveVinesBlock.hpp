@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "../growing_plant/GrowingPlantHeadBlock.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/BlockActionResult.hpp"
@@ -32,6 +31,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/growing_plant/GrowingPlantHeadBlock.hpp"
 
 namespace mc {
 namespace blocks {

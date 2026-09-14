@@ -27,16 +27,16 @@
  */
 
 #include "CombatTracker.hpp"
-#include "../../resource/ResourceLocation.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/block/BlockPos.hpp"
-#include "../../world/block/BlockState.hpp"
-#include "../core/Entity.hpp"
-#include "../core/LivingEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/CombatEntry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <iterator>

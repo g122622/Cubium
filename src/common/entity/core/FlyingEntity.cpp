@@ -22,14 +22,14 @@
  */
 
 #include "FlyingEntity.hpp"
-#include "../../physics/PhysicsConstants.hpp"
-#include "../../world/IWorld.hpp"
-#include "../../world/block/Block.hpp"
-#include "../../world/block/BlockPos.hpp"
 #include "MoverType.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/physics/PhysicsConstants.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <cmath>
 
 namespace mc {

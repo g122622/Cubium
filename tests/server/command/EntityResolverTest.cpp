@@ -100,15 +100,9 @@ public:
     ~EntityResolverTestServer() override = default;
 
     // 覆盖 dimensionManager，返回包含测试世界的维度管理器
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
 
     // 覆盖 playerEntityManager
     [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }

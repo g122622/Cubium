@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "VillageGossipType.hpp"
+#include "common/core/Types.hpp"
 #include <optional>
 #include <unordered_map>
 #include <vector>

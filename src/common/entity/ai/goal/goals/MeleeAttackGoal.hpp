@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../Goal.hpp"
-#include "../GoalConstants.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/GoalConstants.hpp"
 #include <string>
 
 namespace mc {

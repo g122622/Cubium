@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
 #include "EffectType.hpp"
+#include "common/core/Types.hpp"
 #include <memory>
 #include <optional>
 #include <utility>

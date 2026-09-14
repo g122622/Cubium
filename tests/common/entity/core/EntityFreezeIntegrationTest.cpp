@@ -63,7 +63,8 @@ namespace {
 
 class TestLivingEntity : public LivingEntity {
 public:
-    explicit TestLivingEntity(EntityInstanceId id, IWorld* world = nullptr, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
+    explicit TestLivingEntity(
+        EntityInstanceId id, IWorld* world = nullptr, ecs::EntityRegistry& registry = mc::test::testEcsRegistry())
         : LivingEntity(id, world, registry)
     {
         registerAttributes();

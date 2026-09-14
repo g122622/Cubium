@@ -23,8 +23,8 @@
 
 #include <gtest/gtest.h>
 
-#include "common/TestWorldHelper.hpp"
 #include "common/BaseTestServer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -91,15 +91,9 @@ public:
     ~FakeServer() override = default;
 
     // 覆盖 dimensionManager，返回包含测试世界的维度管理器
-    [[nodiscard]] ServerDimensionManager& dimensionManager() override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
 
-    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override
-    {
-        return m_dimensionManager;
-    }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
 
     // 覆盖 playerEntityManager，返回测试用实体管理器
     [[nodiscard]] ServerPlayerEntityManager& playerEntityManager() override { return m_playerEntityManager; }
@@ -129,7 +123,8 @@ public:
      */
     ServerPlayer* spawnTestPlayerEntity(PlayerId playerId, const std::string& username)
     {
-        auto player = std::make_unique<ServerPlayer>(static_cast<EntityInstanceId>(playerId), username, mc::test::testEcsRegistry());
+        auto player = std::make_unique<ServerPlayer>(
+            static_cast<EntityInstanceId>(playerId), username, mc::test::testEcsRegistry());
         player->setPlayerId(playerId);
         auto* raw = player.get();
         m_world->spawnEntity(std::move(player));

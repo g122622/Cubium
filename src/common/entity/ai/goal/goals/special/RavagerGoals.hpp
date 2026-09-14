@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../MeleeAttackGoal.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include <string>
 
 namespace mc {

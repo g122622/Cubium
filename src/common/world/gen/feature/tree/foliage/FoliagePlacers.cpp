@@ -22,11 +22,11 @@
  */
 
 // 树叶放置器聚合源文件（包含所有实现）
-#include "PineFoliagePlacer.cpp"
-#include "SpruceFoliagePlacer.cpp"
 #include "AcaciaFoliagePlacer.cpp"
+#include "BushFoliagePlacer.cpp"
 #include "DarkOakFoliagePlacer.cpp"
+#include "FancyFoliagePlacer.cpp"
 #include "JungleFoliagePlacer.cpp"
 #include "MegaPineFoliagePlacer.cpp"
-#include "BushFoliagePlacer.cpp"
-#include "FancyFoliagePlacer.cpp"
+#include "PineFoliagePlacer.cpp"
+#include "SpruceFoliagePlacer.cpp"

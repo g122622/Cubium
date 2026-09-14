@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/AxisAlignedBB.hpp"
-#include "../../../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <array>
 #include <cstddef>
 #include <glm/ext/matrix_float4x4.hpp>

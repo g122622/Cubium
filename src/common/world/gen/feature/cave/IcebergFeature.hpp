@@ -23,14 +23,14 @@
 
 #pragma once
 
-#include "../BlockBlobFeature.hpp"
-#include "../ConfiguredFeature.hpp"
-#include "../Feature.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/feature/BlockBlobFeature.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/Feature.hpp"
 
 #include <memory>
 #include <string>

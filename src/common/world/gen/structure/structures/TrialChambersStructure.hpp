@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../JigsawStructure.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -32,6 +31,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/jigsaw/PoolAliasBinding.hpp"
+#include "common/world/gen/structure/JigsawStructure.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include <memory>
 #include <string>

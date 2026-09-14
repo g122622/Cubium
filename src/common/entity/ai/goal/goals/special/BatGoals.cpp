@@ -23,22 +23,22 @@
 
 #include "BatGoals.hpp"
 
-#include "../../../../../util/assert/AssertMacros.hpp"
-#include "../../../../../util/math/MathUtils.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../../../../world/IWorld.hpp"
-#include "../../../../../world/block/Block.hpp"
-#include "../../../../../world/block/BlockState.hpp"
-#include "../../../../entities/passive/ambient/BatEntity.hpp"
-#include "../../../../entities/player/Player.hpp"
 #include "common/core/EnumSet.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/entities/passive/ambient/BatEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include <cmath>
 
 namespace mc::entity::ai::goal {

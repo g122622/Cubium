@@ -22,12 +22,12 @@
  */
 
 // 方块谓词聚合源文件（包含所有实现）
-#include "OnlyInAirPredicate.cpp"
-#include "SolidBlockPredicate.cpp"
-#include "HasSturdyFacePredicate.cpp"
-#include "MatchingBlockPredicate.cpp"
-#include "TagMatchPredicate.cpp"
 #include "AllOfPredicate.cpp"
-#include "ReplaceablePredicate.cpp"
-#include "WouldSurvivePredicate.cpp"
+#include "HasSturdyFacePredicate.cpp"
 #include "InsideWorldBoundsPredicate.cpp"
+#include "MatchingBlockPredicate.cpp"
+#include "OnlyInAirPredicate.cpp"
+#include "ReplaceablePredicate.cpp"
+#include "SolidBlockPredicate.cpp"
+#include "TagMatchPredicate.cpp"
+#include "WouldSurvivePredicate.cpp"

@@ -23,8 +23,6 @@
 
 #pragma once
 
-#include "../../IGrowable.hpp"
-#include "../agricultural/BushBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/BlockActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
@@ -32,6 +30,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <array>
 
 namespace mc {

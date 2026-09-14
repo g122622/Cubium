@@ -72,7 +72,8 @@ public:
      *   调用方（chunk 加载/存档读入）由所在 ServerWorld 透传 `world.entityManager().registry()`。
      * @return 实体实例或错误
      */
-    static Result<std::unique_ptr<Entity>> deserialize(const nbt::tags::compound_tag& tag, ecs::EntityRegistry& registry);
+    static Result<std::unique_ptr<Entity>> deserialize(
+        const nbt::tags::compound_tag& tag, ecs::EntityRegistry& registry);
 
     /**
      * @brief 从二进制数据反序列化实体
@@ -83,7 +84,8 @@ public:
      * @param registry ECS 实体注册表，透传给 deserialize
      * @return 实体实例或错误
      */
-    static Result<std::unique_ptr<Entity>> deserializeFromBinary(const std::vector<u8>& data, ecs::EntityRegistry& registry);
+    static Result<std::unique_ptr<Entity>> deserializeFromBinary(
+        const std::vector<u8>& data, ecs::EntityRegistry& registry);
 
     /**
      * @brief 挂载主实体的待处理乘客

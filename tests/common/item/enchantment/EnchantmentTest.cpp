@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "item/loot/functions/LootFunctions.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/enchantment/Enchantment.hpp"
@@ -32,6 +31,7 @@
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/enchantment/enchantments/FortuneEnchantment.hpp"
 #include "item/enchantment/enchantments/SilkTouchEnchantment.hpp"
+#include "item/loot/functions/LootFunctions.hpp"
 #include "util/math/random/Random.hpp"
 
 using namespace mc;

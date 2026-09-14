@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../core/Result.hpp"
-#include "../codec/PacketSerializer.hpp"
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/codec/PacketSerializer.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"

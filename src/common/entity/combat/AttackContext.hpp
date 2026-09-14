@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../entity/damage/DamageSource.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include <memory>
 
 namespace mc {

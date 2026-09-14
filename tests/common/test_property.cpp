@@ -21,14 +21,14 @@
  *
  */
 
-#include "../src/common/util/Direction.hpp"
-#include "../src/common/util/property/BooleanProperty.hpp"
-#include "../src/common/util/property/DirectionProperty.hpp"
-#include "../src/common/util/property/EnumProperty.hpp"
-#include "../src/common/util/property/IProperty.hpp"
-#include "../src/common/util/property/IntegerProperty.hpp"
-#include "../src/common/util/property/Properties.hpp"
-#include "../src/common/util/property/Property.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/BooleanProperty.hpp"
+#include "common/util/property/DirectionProperty.hpp"
+#include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/IProperty.hpp"
+#include "common/util/property/IntegerProperty.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/Property.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

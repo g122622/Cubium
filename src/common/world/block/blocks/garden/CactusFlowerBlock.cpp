@@ -21,13 +21,13 @@
  */
 
 #include "CactusFlowerBlock.hpp"
-#include "../../../IWorld.hpp"
-#include "../../Block.hpp"
-#include "../../BlockTags.hpp"
-#include "../../SupportType.hpp"
-#include "../../registry/VanillaBlocks.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {

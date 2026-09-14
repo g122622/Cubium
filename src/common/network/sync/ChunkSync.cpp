@@ -27,7 +27,6 @@
 #undef BYTE_SIZE
 
 #include "ChunkSync.hpp"
-#include "../../world/WorldConstants.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/codec/PacketDeserializer.hpp"
@@ -35,6 +34,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"

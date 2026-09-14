@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/Vector3.hpp"
-#include "../../../util/math/random/IRandom.hpp"
-#include "../../../world/spawn/EntitySpawnPlacementRegistry.hpp"
-#include "../../biome/Biome.hpp"
-#include "../../spawn/MobSpawnInfo.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/world/biome/Biome.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/spawn/MobSpawnInfo.hpp"
 #include <memory>
 #include <string>
 #include <utility>

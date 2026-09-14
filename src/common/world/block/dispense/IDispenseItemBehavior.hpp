@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../entity/entities/vehicle/BoatEntity.hpp"
-#include "../../../item/core/ItemStack.hpp"
-#include "../../../util/math/Vector3.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
 #include <functional>
 #include <memory>
 

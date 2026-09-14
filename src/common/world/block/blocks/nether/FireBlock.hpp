@@ -23,17 +23,17 @@
 
 #pragma once
 
-#include "../../../../physics/collision/CollisionShape.hpp"
-#include "../../../../util/property/Properties.hpp"
-#include "../../Block.hpp"
-#include "../../BlockTags.hpp"
-#include "../../Material.hpp"
 #include "common/core/Types.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/Material.hpp"
 
 // 测试 fixture 前向声明（全局命名空间，tests/common/world/block/blocks/FireBlockTest.cpp），
 // 供 FireBlock 经 friend 授权访问 protected getIncreasedFireBurnout 做偏差 #4 回退验证。

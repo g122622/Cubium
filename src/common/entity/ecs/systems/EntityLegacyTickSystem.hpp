@@ -29,7 +29,9 @@ class EntityLegacyTickSystem final : public ITickingSystem {
 public:
     using TickCallback = std::function<void(EntityRegistry&)>;
 
-    explicit EntityLegacyTickSystem(TickCallback callback) : m_callback(std::move(callback)) {}
+    explicit EntityLegacyTickSystem(TickCallback callback)
+        : m_callback(std::move(callback))
+    {}
 
     [[nodiscard]] const char* name() const noexcept override { return "EntityLegacyTickSystem"; }
 

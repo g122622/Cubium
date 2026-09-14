@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../util/math/MathConstants.hpp"
 #include "NodeProcessor.hpp"
 #include "Path.hpp"
 #include "PathHeap.hpp"
 #include "PathPoint.hpp"
 #include "Region.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>

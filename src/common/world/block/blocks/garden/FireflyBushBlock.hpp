@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "../../IGrowable.hpp"
-#include "../agricultural/BushBlock.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 namespace mc {
 

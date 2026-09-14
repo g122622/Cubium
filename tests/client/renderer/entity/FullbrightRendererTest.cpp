@@ -111,7 +111,7 @@ TEST(FullbrightRendererTest, ExperienceOrbVisibleInDarkness)
     const f32 darkAmbient = 0.18f; // 着色器中最小 ambient 值
 
     f32 result = shaderMix(darkAmbient, 1.0f, orbMinBrightness);
-    EXPECT_GT(result, darkAmbient); // 亮度应被提升
+    EXPECT_GT(result, darkAmbient);     // 亮度应被提升
     EXPECT_NEAR(result, 0.564f, 0.01f); // 约 56% 亮度
 }
 

@@ -56,7 +56,8 @@ protected:
         fluid::FluidRegistry::instance().initialize();
 
         // 创建玩家
-        m_player = std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
+        m_player =
+            std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
 
         // 设置创造模式（允许飞行）
         m_player->setGameMode(GameMode::Creative);

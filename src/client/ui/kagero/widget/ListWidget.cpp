@@ -22,7 +22,7 @@
  */
 
 #include "ListWidget.hpp"
-#include "../template/binder/BindingContext.hpp"
+#include "client/ui/kagero/template/binder/BindingContext.hpp"
 #include "client/ui/kagero/widget/ScrollableWidget.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"

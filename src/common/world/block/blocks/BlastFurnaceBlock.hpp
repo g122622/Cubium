@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../blockentity/BlockEntityType.hpp"
 #include "AbstractFurnaceBlock.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include <memory>
 
 namespace mc {

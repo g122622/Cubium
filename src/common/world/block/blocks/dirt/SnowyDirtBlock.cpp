@@ -22,15 +22,15 @@
  */
 
 #include "SnowyDirtBlock.hpp"
-#include "../../../../item/context/BlockItemUseContext.hpp"
-#include "../../../../util/Direction.hpp"
-#include "../../../../util/property/StateContainer.hpp"
-#include "../../../IWorld.hpp"
-#include "../../registry/VanillaBlocks.hpp"
-#include "../ice/SnowBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/ice/SnowBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

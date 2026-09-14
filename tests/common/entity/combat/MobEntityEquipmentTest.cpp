@@ -389,7 +389,8 @@ TEST_F(MobEntityEquipmentTest, FinalizeSpawn_PeacefulNeverPicksUpLoot)
     DifficultyInstance peaceful(Difficulty::Peaceful);
 
     for (int i = 0; i < 100; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, peaceful, world::spawn::SpawnReason::Natural);
         EXPECT_FALSE(entity->canPickUpLoot()) << "Zombie should never pick up loot on Peaceful, iteration " << i;
@@ -402,7 +403,8 @@ TEST_F(MobEntityEquipmentTest, FinalizeSpawn_EasyNeverPicksUpLoot)
     DifficultyInstance easy(Difficulty::Easy);
 
     for (int i = 0; i < 100; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, easy, world::spawn::SpawnReason::Natural);
         EXPECT_FALSE(entity->canPickUpLoot()) << "Zombie should never pick up loot on Easy, iteration " << i;
@@ -415,7 +417,8 @@ TEST_F(MobEntityEquipmentTest, FinalizeSpawn_NormalSimplifiedNeverPicksUpLoot)
     DifficultyInstance normal(Difficulty::Normal);
 
     for (int i = 0; i < 100; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, normal, world::spawn::SpawnReason::Natural);
         EXPECT_FALSE(entity->canPickUpLoot())
@@ -432,7 +435,8 @@ TEST_F(MobEntityEquipmentTest, FinalizeSpawn_HardCanPickUpLootStatistically)
     constexpr int iterations = 200;
 
     for (int i = 0; i < iterations; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, hard, world::spawn::SpawnReason::Natural);
         if (entity->canPickUpLoot()) {
@@ -456,7 +460,8 @@ TEST_F(MobEntityEquipmentTest, PopulateDefaultEquipment_PeacefulNoArmor)
     DifficultyInstance peaceful(Difficulty::Peaceful);
 
     for (int i = 0; i < 50; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, peaceful, world::spawn::SpawnReason::Natural);
 
@@ -481,7 +486,8 @@ TEST_F(MobEntityEquipmentTest, PopulateDefaultEquipment_HardHasArmorStatisticall
     constexpr int iterations = 200;
 
     for (int i = 0; i < iterations; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, hard, world::spawn::SpawnReason::Natural);
 
@@ -508,7 +514,8 @@ TEST_F(MobEntityEquipmentTest, ZombieBreakDoorAbility_PeacefulNever)
     DifficultyInstance peaceful(Difficulty::Peaceful);
 
     for (int i = 0; i < 100; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, peaceful, world::spawn::SpawnReason::Natural);
         EXPECT_FALSE(entity->canBreakDoors()) << "Zombie should never break doors on Peaceful, iteration " << i;
@@ -523,7 +530,8 @@ TEST_F(MobEntityEquipmentTest, ZombieBreakDoorAbility_HardCanBreak)
     constexpr int iterations = 500;
 
     for (int i = 0; i < iterations; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, hard, world::spawn::SpawnReason::Natural);
         if (entity->canBreakDoors()) {
@@ -554,7 +562,8 @@ TEST_F(MobEntityEquipmentTest, ZombieWeapon_PeacefulNoWeapon)
     constexpr int iterations = 500;
 
     for (int i = 0; i < iterations; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, peaceful, world::spawn::SpawnReason::Natural);
         if (!entity->getEquipment(EquipmentSlot::MainHand).isEmpty()) {
@@ -575,7 +584,8 @@ TEST_F(MobEntityEquipmentTest, ZombieWeapon_HardHigherProbability)
     constexpr int iterations = 500;
 
     for (int i = 0; i < iterations; ++i) {
-        auto entity = std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
+        auto entity =
+            std::make_unique<ZombieEntity>(EntityInstanceId(static_cast<u64>(i + 1)), mc::test::testEcsRegistry());
         entity->setWorld(m_world.get());
         entity->finalizeSpawn(*m_world, hard, world::spawn::SpawnReason::Natural);
         if (!entity->getEquipment(EquipmentSlot::MainHand).isEmpty()) {

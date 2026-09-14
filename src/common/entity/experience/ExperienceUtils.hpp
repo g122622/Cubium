@@ -23,11 +23,11 @@
 
 #pragma once
 
-#include "../../core/Types.hpp"
-#include "../../util/math/MathConstants.hpp"
-#include "../../util/math/Vector4.hpp"
-#include "../../util/math/random/Random.hpp"
 #include "ExperienceConstants.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/MathConstants.hpp"
+#include "common/util/math/Vector4.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <algorithm>
 #include <cmath>
 #include <vector>

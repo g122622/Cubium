@@ -136,8 +136,8 @@ struct hash<mc::GlobalPos> {
     mc::Size operator()(const mc::GlobalPos& pos) const noexcept
     {
         const mc::Size h1 = std::hash<mc::i32>{}(pos.getDimensionId());
-        const mc::Size h2 =
-            static_cast<mc::Size>(pos.x()) ^ (static_cast<mc::Size>(pos.y()) << 1) ^ (static_cast<mc::Size>(pos.z()) << 2);
+        const mc::Size h2 = static_cast<mc::Size>(pos.x()) ^ (static_cast<mc::Size>(pos.y()) << 1) ^
+            (static_cast<mc::Size>(pos.z()) << 2);
         return h1 ^ (h2 << 1);
     }
 };

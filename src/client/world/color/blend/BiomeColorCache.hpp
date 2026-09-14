@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../ColorResolver.hpp"
+#include "client/world/color/ColorResolver.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConstants.hpp"
 #include <array>

@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include "../vegetation/FlowerBlock.hpp"
 #include "EyeblossomEnvironment.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
@@ -34,6 +33,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
+#include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
 
 namespace mc {
 namespace blocks {

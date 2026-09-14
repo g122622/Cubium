@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../Enchantment.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EquipmentSlot.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
 #include <string>
 
 namespace mc {

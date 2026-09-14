@@ -39,7 +39,10 @@ namespace test {
 
 class DolphinGoalsTest : public ::testing::Test {
 protected:
-    void SetUp() override { dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry()); }
+    void SetUp() override
+    {
+        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
+    }
 
     void TearDown() override { dolphin.reset(); }
 

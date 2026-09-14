@@ -23,13 +23,13 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/random/Random.hpp"
-#include "../../FeatureSpread.hpp"
-#include "../trunk/TrunkPlacer.hpp"
+#include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
+#include "common/world/gen/feature/FeatureSpread.hpp"
 #include "common/world/gen/feature/state/BlockStateProvider.hpp"
+#include "common/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <memory>
 #include <set>
 #include <vector>
