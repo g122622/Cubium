@@ -27,7 +27,6 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
-#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <memory>
 
 namespace mc {
