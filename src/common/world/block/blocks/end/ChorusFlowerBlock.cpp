@@ -94,8 +94,7 @@ bool ChorusFlowerBlock::isValidPosition(const BlockState& state, IBlockReader& w
     MC_UNUSED(state);
 
     // 检查下方方块
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos);
+    const BlockState* belowState = world.getBlockState(pos.down());
 
     // 如果下方是空气，检查是否有紫颂植物支撑
     if (belowState == nullptr || belowState->isAir()) {
