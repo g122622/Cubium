@@ -30,11 +30,12 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/tree/ServerTreeGenerators.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
@@ -43,7 +44,6 @@
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
-#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
@@ -261,7 +261,7 @@ protected:
 
 TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
 {
-    SaplingBlock sapling([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -280,7 +280,7 @@ TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
 TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
 {
     bool treeCalled = false;
-    SaplingBlock sapling([&](WorldGenRegion&, const BlockPos&, math::Random&) { treeCalled = true; },
+    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::Random&) { treeCalled = true; },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -304,8 +304,7 @@ TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
 TEST_F(VegetationBlockTest, SaplingGrowUsesWorldSeedAndPosition)
 {
     std::vector<u64> samples;
-    SaplingBlock sapling(
-        [&](WorldGenRegion&, const BlockPos&, math::Random& random) { samples.push_back(random.nextU64()); },
+    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::Random& random) { samples.push_back(random.nextU64()); },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld worldA;
@@ -514,7 +513,7 @@ TEST_F(VegetationBlockTest, WaterlilyRejectsNonWaterGround)
 
 TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
 {
-    MushroomBlock mushroom([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+    MushroomBlock mushroom([](IWorld&, const BlockPos&, math::Random&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
@@ -534,7 +533,7 @@ TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
 
 TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark)
 {
-    MushroomBlock mushroom([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+    MushroomBlock mushroom([](IWorld&, const BlockPos&, math::Random&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
@@ -805,7 +804,7 @@ TEST_F(VegetationBlockTest, BambooSaplingGrowMethodReplacesWithBamboo)
 TEST_F(VegetationBlockTest, SaplingCanGrowAlwaysReturnsTrue)
 {
     // canGrow 应始终返回 true（树苗总是可以接受骨粉）
-    SaplingBlock sapling([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -821,7 +820,7 @@ TEST_F(VegetationBlockTest, SaplingCanUseBonemealProbability)
 {
     // canUseBonemeal 应以约 45% 的概率返回 true
     // 验证概率值与 MC 原版一致（0.45f）
-    SaplingBlock sapling([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -847,7 +846,7 @@ TEST_F(VegetationBlockTest, SaplingCanUseBonemealProbability)
 TEST_F(VegetationBlockTest, SaplingIGrowableGrowAdvancesStageFromZero)
 {
     // IGrowable::grow 在阶段 0 时应推进到阶段 1
-    SaplingBlock sapling([](WorldGenRegion&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -875,20 +874,20 @@ TEST_F(VegetationBlockTest, SaplingIGrowableGrowAdvancesStageFromZero)
 TEST_F(VegetationBlockTest, TreeGeneratorsCreateNonNullCallbacks)
 {
     // 每种树木生成器都应返回非空的回调
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::oakTree()));
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::birchTree()));
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::spruceTree()));
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::jungleTree()));
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::acaciaTree()));
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::darkOakTree()));
-    EXPECT_TRUE(static_cast<bool>(TreeGenerators::cherryTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::oakTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::birchTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::spruceTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::jungleTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::acaciaTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::darkOakTree()));
+    EXPECT_TRUE(static_cast<bool>(server::gen::ServerTreeGenerators::cherryTree()));
 }
 
 TEST_F(VegetationBlockTest, TreeGeneratorsCallbacksAreDistinct)
 {
     // 每次调用应创建新的独立回调（持有独立的 TreeFeatureConfig/TreeFeature）
-    auto oak1 = TreeGenerators::oakTree();
-    auto oak2 = TreeGenerators::oakTree();
+    auto oak1 = server::gen::ServerTreeGenerators::oakTree();
+    auto oak2 = server::gen::ServerTreeGenerators::oakTree();
     // 两个回调应该是独立的（不是同一个 shared_ptr）
     EXPECT_TRUE(static_cast<bool>(oak1));
     EXPECT_TRUE(static_cast<bool>(oak2));
@@ -897,10 +896,10 @@ TEST_F(VegetationBlockTest, TreeGeneratorsCallbacksAreDistinct)
 TEST_F(VegetationBlockTest, SaplingConstructedWithTreeGenerator)
 {
     // 验证 SaplingBlock 可以使用 TreeGenerators 工厂正确构造
-    SaplingBlock oakSapling(
-        TreeGenerators::oakTree(), BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
-    SaplingBlock cherrySapling(
-        TreeGenerators::cherryTree(), BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    SaplingBlock oakSapling(server::gen::ServerTreeGenerators::oakTree(),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
+    SaplingBlock cherrySapling(server::gen::ServerTreeGenerators::cherryTree(),
+        BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     // 验证默认状态
     EXPECT_EQ(oakSapling.getStage(oakSapling.defaultState()), 0);
@@ -971,12 +970,11 @@ TEST_F(SaplingWorldGenRegionTest, TreeGeneratorReceivesWorldGenRegion)
     WorldGenRegion* receivedRegion = nullptr;
     BlockPos receivedPos(0, 0, 0);
 
-    SaplingBlock::TreeGenerator captureGenerator =
-        [&](WorldGenRegion& region, const BlockPos& pos, math::Random& /*random*/) {
-            generatorCalled = true;
-            receivedRegion = &region;
-            receivedPos = pos;
-        };
+    SaplingBlock::TreeGenerator captureGenerator = [&](IWorld& world, const BlockPos& pos, math::Random& /*random*/) {
+        generatorCalled = true;
+        receivedRegion = &static_cast<WorldGenRegion&>(world);
+        receivedPos = pos;
+    };
 
     SaplingBlock sapling(captureGenerator, BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
@@ -992,8 +990,8 @@ TEST_F(SaplingWorldGenRegionTest, TreeGeneratorReceivesWorldGenRegion)
 
 TEST_F(SaplingWorldGenRegionTest, TreeGeneratorsOakCallbackDoesNotCrash)
 {
-    // 验证 TreeGenerators::oakTree() 回调可以在 WorldGenRegion 中执行而不崩溃
-    auto generator = TreeGenerators::oakTree();
+    // 验证 server::gen::ServerTreeGenerators::oakTree() 回调可以在 WorldGenRegion 中执行而不崩溃
+    auto generator = server::gen::ServerTreeGenerators::oakTree();
     ASSERT_TRUE(static_cast<bool>(generator));
 
     // 在地面上放置一个橡树
@@ -1006,7 +1004,7 @@ TEST_F(SaplingWorldGenRegionTest, TreeGeneratorsOakCallbackDoesNotCrash)
 
 TEST_F(SaplingWorldGenRegionTest, TreeGeneratorsBirchCallbackDoesNotCrash)
 {
-    auto generator = TreeGenerators::birchTree();
+    auto generator = server::gen::ServerTreeGenerators::birchTree();
     ASSERT_TRUE(static_cast<bool>(generator));
 
     math::Random rng(42);
@@ -1017,7 +1015,7 @@ TEST_F(SaplingWorldGenRegionTest, TreeGeneratorsBirchCallbackDoesNotCrash)
 TEST_F(SaplingWorldGenRegionTest, OakTreePlacesBlocksInWorldGenRegion)
 {
     // 验证橡树生成器在 WorldGenRegion 中放置了方块
-    auto generator = TreeGenerators::oakTree();
+    auto generator = server::gen::ServerTreeGenerators::oakTree();
     ASSERT_TRUE(static_cast<bool>(generator));
 
     math::Random rng(42);

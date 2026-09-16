@@ -25,6 +25,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/carver/CanyonCarver.hpp"
 #include "server/world/gen/carver/CarverConfiguration.hpp"
 #include "server/world/gen/carver/CarvingContext.hpp"
@@ -32,15 +33,14 @@
 #include "server/world/gen/carver/CaveCarver.hpp"
 #include "server/world/gen/carver/NetherWorldCarver.hpp"
 #include "server/world/gen/carver/WorldCarver.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/surface/SurfaceRules.hpp"
 #include "server/world/gen/valueprovider/FloatProvider.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/WorldConstants.hpp"
 #include "world/biome/BiomeSource.hpp"
-#include "world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

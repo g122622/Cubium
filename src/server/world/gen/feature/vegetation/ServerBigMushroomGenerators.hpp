@@ -27,6 +27,10 @@
 namespace mc {
 namespace server::gen {
 
+// MushroomBlock 定义在 mc::blocks 中，在此引入以便使用
+// MushroomBlock::BigMushroomGenerator 等符号时无需 blocks:: 前缀。
+using namespace blocks;
+
 /**
  * @brief server 侧巨型蘑菇生成器工厂
  *

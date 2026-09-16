@@ -27,6 +27,10 @@
 namespace mc {
 namespace server::gen {
 
+// SaplingBlock / AzaleaBlock 定义在 mc::blocks 中，在此引入以便
+// 使用 SaplingBlock::TreeGenerator 等符号时无需 blocks:: 前缀。
+using namespace blocks;
+
 /**
  * @brief server 侧树木生成器工厂
  *

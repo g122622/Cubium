@@ -41,6 +41,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/density/Beardifier.hpp"
 #include "server/world/gen/density/NoiseChunk.hpp"

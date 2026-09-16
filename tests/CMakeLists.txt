@@ -1963,10 +1963,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeFactoryOverworld.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeFactoryNether.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeFactoryEnd.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/biome/source/MultiNoiseBiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/OverworldBiomeBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/source/NetherBiomeBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/biome/source/EndBiomeSource.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/Sampler.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/climate/SpawnFinder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/weather/WeatherUtils.cpp

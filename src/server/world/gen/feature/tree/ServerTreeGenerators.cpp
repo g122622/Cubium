@@ -23,6 +23,7 @@
 #include "ServerTreeGenerators.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/cave/AzaleaBlock.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -31,6 +32,10 @@
 
 namespace mc {
 namespace server::gen {
+
+// SaplingBlock / AzaleaBlock 定义在 mc::blocks 中，在此引入以便
+// 使用 SaplingBlock::TreeGenerator 等符号时无需 blocks:: 前缀。
+using namespace blocks;
 
 namespace {
 
