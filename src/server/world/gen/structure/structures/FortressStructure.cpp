@@ -39,7 +39,7 @@
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>

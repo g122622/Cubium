@@ -40,7 +40,7 @@
 #include "world/biome/BiomeSource.hpp"
 #include "world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

@@ -28,7 +28,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include <memory>
 #include <string>

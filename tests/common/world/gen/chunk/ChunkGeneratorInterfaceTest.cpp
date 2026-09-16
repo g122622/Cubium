@@ -37,7 +37,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/dimension/DimensionType.hpp"

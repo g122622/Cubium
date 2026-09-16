@@ -28,7 +28,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/SingleChunkLifecycleManager.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

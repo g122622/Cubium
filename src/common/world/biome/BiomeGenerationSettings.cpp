@@ -23,7 +23,7 @@
 
 #include "BiomeGenerationSettings.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <cstddef>
 #include <utility>
 #include <vector>

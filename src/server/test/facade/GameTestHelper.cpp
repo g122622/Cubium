@@ -37,7 +37,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp" // getInventory（assertContainerContains/Empty）
 #include "server/world/ServerWorld.hpp"
 #include "server/world/drop/BlockDropHandler.hpp" // BlockDropHandler::generateDrops/spawnDrops（destroyBlock 掉落物分支）
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <spdlog/spdlog.h>
 

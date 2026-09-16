@@ -28,7 +28,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <memory>
 #include <string>
 #include <vector>

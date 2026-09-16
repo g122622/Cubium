@@ -44,7 +44,7 @@
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <gtest/gtest.h>
 
 #include <vector>

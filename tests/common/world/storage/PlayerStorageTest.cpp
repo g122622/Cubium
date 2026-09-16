@@ -24,7 +24,6 @@
 #include "common/TempDirHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include "world/storage/db/ColumnFamilies.hpp"
 #include "world/storage/db/RocksDBDatabase.hpp"
 #include "world/storage/player/PlayerDataManager.hpp"
@@ -839,34 +838,6 @@ TEST_F(PlayerDataManagerTest, UpdatePlayer)
     ASSERT_TRUE(loadResult.success());
     EXPECT_EQ(loadResult.value()->username, "UpdatedName");
     EXPECT_FLOAT_EQ(loadResult.value()->health, 15.0f);
-}
-
-TEST_F(PlayerDataManagerTest, FromServerPlayerDataConversion)
-{
-    // 创建简化的测试数据
-    server::ServerPlayerData serverData;
-    serverData.playerId = 12345;
-    serverData.uuid = "server-uuid-12345"; // commit f20d2df32 起使用真正的 UUID 字段
-    serverData.username = "ServerPlayer";
-    serverData.x = 100.0;
-    serverData.y = 64.0;
-    serverData.z = 200.0;
-    serverData.yaw = 90.0f;
-    serverData.pitch = 45.0f;
-    serverData.gameMode = GameMode::Survival;
-    serverData.onGround = true;
-
-    PlayerSaveData saveData = PlayerDataManager::fromServerPlayerData(serverData);
-
-    EXPECT_EQ(saveData.uuid, "server-uuid-12345");
-    EXPECT_EQ(saveData.username, "ServerPlayer");
-    EXPECT_DOUBLE_EQ(saveData.posX, 100.0);
-    EXPECT_DOUBLE_EQ(saveData.posY, 64.0);
-    EXPECT_DOUBLE_EQ(saveData.posZ, 200.0);
-    EXPECT_FLOAT_EQ(saveData.yaw, 90.0f);
-    EXPECT_FLOAT_EQ(saveData.pitch, 45.0f);
-    EXPECT_EQ(saveData.gameMode, GameMode::Survival);
-    EXPECT_TRUE(saveData.onGround);
 }
 
 TEST_F(PlayerDataManagerTest, CallbackTest)

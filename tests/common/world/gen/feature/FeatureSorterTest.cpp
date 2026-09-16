@@ -26,7 +26,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/Assert.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/placement/PlacedFeature.hpp"
 #include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include "server/world/gen/placement/Placement.hpp"

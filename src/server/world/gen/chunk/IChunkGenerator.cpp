@@ -38,7 +38,7 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"

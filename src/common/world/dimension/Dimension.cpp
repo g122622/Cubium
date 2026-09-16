@@ -24,8 +24,6 @@
 #include "Dimension.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "server/world/gen/chunk/IChunkGenerator.hpp"
-#include <memory>
 #include <utility>
 
 namespace mc {
@@ -34,10 +32,9 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-Dimension::Dimension(DimensionId id, DimensionType type, std::unique_ptr<IChunkGenerator> generator)
+Dimension::Dimension(DimensionId id, DimensionType type)
     : m_id(id)
     , m_type(std::move(type))
-    , m_generator(std::move(generator))
 {}
 
 // ============================================================================

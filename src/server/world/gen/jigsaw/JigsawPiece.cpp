@@ -28,7 +28,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 
 #include <algorithm>

@@ -27,7 +27,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/MonsterRoomFeature.hpp"

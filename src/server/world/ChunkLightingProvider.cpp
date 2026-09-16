@@ -25,7 +25,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

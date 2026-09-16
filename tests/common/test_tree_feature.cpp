@@ -24,14 +24,14 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "world/chunk/data/ChunkPrimer.hpp"
-#include "world/gen/chunk/IChunkGenerator.hpp"
-#include "world/gen/feature/FeatureSpread.hpp"
-#include "world/gen/feature/tree/TreeFeature.hpp"
-#include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
-#include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
-#include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
-#include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/FeatureSpread.hpp"
+#include "server/world/gen/feature/tree/TreeFeature.hpp"
+#include "server/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "server/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
+#include "server/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
+#include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <array>
 #include <gtest/gtest.h>
 

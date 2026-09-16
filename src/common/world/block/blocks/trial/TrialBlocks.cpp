@@ -42,7 +42,7 @@
 #include "common/world/block/blocks/HorizontalBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "item/context/BlockItemUseContext.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/WorldEvents.hpp"
 #include "world/block/BlockState.hpp"

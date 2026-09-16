@@ -35,7 +35,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 
 namespace mc {

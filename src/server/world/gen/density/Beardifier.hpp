@@ -21,10 +21,10 @@
 
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cstdint>
 #include <limits>
 #include <memory>

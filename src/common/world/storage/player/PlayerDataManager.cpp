@@ -33,7 +33,6 @@
 #include "common/world/storage/db/ColumnFamilies.hpp"
 #include "common/world/storage/db/RocksDBDatabase.hpp"
 #include "common/world/storage/player/PlayerSaveData.hpp"
-#include "server/core/ServerPlayerData.hpp"
 #include <cstddef>
 #include <memory>
 #include <mutex>
@@ -218,36 +217,6 @@ const PlayerSaveData* PlayerDataManager::getCachedPlayer(const std::string& uuid
 // ============================================================================
 // 从服务器数据转换
 // ============================================================================
-
-PlayerSaveData PlayerDataManager::fromServerPlayerData(const server::ServerPlayerData& playerData)
-{
-    PlayerSaveData data;
-    data.uuid = playerData.uuid; // 使用真正的 UUID
-    data.username = playerData.username;
-
-    // 位置
-    data.posX = playerData.x;
-    data.posY = playerData.y;
-    data.posZ = playerData.z;
-    data.yaw = playerData.yaw;
-    data.pitch = playerData.pitch;
-
-    // 游戏模式
-    data.gameMode = playerData.gameMode;
-
-    // 生命值
-    data.health = 20.0f; // 从 ServerPlayerData 获取需要扩展该结构
-    data.foodLevel = 20;
-    data.saturationLevel = 5.0f;
-
-    // 效果
-    data.effects = playerData.effects;
-
-    // 其他状态
-    data.onGround = playerData.onGround;
-
-    return data;
-}
 
 PlayerSaveData PlayerDataManager::fromPlayer(const Player& player)
 {

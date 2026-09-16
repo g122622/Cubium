@@ -32,7 +32,7 @@
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/TuffBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include <algorithm>
 #include <cstdlib>
 

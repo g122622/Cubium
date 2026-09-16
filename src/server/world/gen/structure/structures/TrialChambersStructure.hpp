@@ -29,7 +29,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeTag.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include "server/world/gen/structure/Structure.hpp"

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <cstddef>

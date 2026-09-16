@@ -21,7 +21,7 @@
  *
  */
 
-#include "StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/WorldConstants.hpp"

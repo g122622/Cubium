@@ -27,7 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include <memory>
 #include <string>

@@ -30,7 +30,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"

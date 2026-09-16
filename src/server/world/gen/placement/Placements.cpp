@@ -29,7 +29,7 @@
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
-#include "server/world/gen/noise/PerlinSimplexNoise.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "server/world/gen/placement/Placement.hpp"
 #include <cstddef>
 #include <memory>

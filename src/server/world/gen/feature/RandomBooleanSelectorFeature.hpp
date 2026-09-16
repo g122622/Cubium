@@ -27,7 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <memory>
 #include <string>
 #include <utility>

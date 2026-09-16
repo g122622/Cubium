@@ -25,7 +25,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/ast/AstNodes.hpp"
 
 #include <spdlog/spdlog.h>

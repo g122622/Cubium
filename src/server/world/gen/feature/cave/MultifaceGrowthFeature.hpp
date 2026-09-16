@@ -30,7 +30,7 @@
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/MultifaceBlock.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 
 #include <memory>

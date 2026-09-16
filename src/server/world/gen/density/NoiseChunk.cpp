@@ -32,7 +32,7 @@
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/aquifer/Aquifer.hpp"
 #include "server/world/gen/density/Beardifier.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp"
 #include "server/world/gen/density/ast/CompiledDensityFunction.hpp"
 #include "server/world/gen/density/ast/CompiledDensityFunctionAdapter.hpp"

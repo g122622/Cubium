@@ -27,7 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/Fluids.hpp"

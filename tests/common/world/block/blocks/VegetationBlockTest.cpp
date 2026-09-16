@@ -30,7 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"

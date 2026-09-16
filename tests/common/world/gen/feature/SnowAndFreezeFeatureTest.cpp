@@ -29,7 +29,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"

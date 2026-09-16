@@ -38,7 +38,7 @@
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkDistanceGraph.hpp"

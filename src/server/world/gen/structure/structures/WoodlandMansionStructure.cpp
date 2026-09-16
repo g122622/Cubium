@@ -42,7 +42,7 @@
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
 #include <algorithm>

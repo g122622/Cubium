@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/resource/ResourceLocation.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <vector>
 
 // 前向声明（必须在 mc::world::biome 命名空间之外，避免命名空间污染）

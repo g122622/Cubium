@@ -20,6 +20,7 @@ target_include_directories(mc_benchmarks
 
 target_link_libraries(mc_benchmarks
     PRIVATE
+        mc_gen
         mc_common
         mc_bedrock_addon
         mc::profiler

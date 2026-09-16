@@ -29,7 +29,7 @@
 #include "common/world/biome/climate/ParameterPointCodec.hpp"
 #include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/feature/parser/BlockStateParser.hpp"
 #include "server/world/gen/settings/NoiseSettings.hpp"

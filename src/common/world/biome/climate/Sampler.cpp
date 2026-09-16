@@ -25,7 +25,7 @@
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "world/biome/climate/SpawnFinder.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 
 namespace mc::world::biome::climate {
 

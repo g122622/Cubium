@@ -24,8 +24,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
-#include "server/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>

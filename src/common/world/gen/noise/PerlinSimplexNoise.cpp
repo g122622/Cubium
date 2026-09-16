@@ -18,14 +18,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
-#include "PerlinSimplexNoise.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "server/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include <cmath>
 #include <cstddef>
 #include <memory>

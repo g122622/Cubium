@@ -30,7 +30,6 @@ namespace mc {
 // 前向声明
 class IInventory;
 class Player;
-class ServerPlayer;
 class IWorld;
 
 namespace crafting {
@@ -75,12 +74,12 @@ public:
     /**
      * @brief 检查是否可以使用配方
      * @param world 世界
-     * @param player 服务端玩家
+     * @param player 玩家
      * @param recipe 要使用的配方
      * @return 如果可以使用返回true
      */
     [[nodiscard]] virtual bool canUseRecipe(
-        IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe);
+        IWorld& world, Player& player, const crafting::IRecipe<IInventory>* recipe);
 };
 
 } // namespace mc

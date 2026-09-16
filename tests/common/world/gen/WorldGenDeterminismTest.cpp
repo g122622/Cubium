@@ -25,7 +25,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/noise/NormalNoise.hpp"

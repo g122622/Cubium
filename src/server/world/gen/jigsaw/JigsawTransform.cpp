@@ -23,7 +23,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 #include <vector>
 

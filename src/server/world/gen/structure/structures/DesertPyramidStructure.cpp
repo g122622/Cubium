@@ -39,7 +39,7 @@
 #include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <algorithm>
 #include <memory>

@@ -38,7 +38,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "server/world/gen/carver/ConfiguredCarverRegistry.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/vegetation/FlowerFeature.hpp"
 #include "server/world/gen/placement/PlacedFeature.hpp"
 #include "server/world/gen/placement/PlacedFeatureRegistry.hpp"

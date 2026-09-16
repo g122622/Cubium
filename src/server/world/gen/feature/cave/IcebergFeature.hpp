@@ -29,7 +29,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/feature/BlockBlobFeature.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 
 #include <memory>

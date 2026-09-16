@@ -40,9 +40,6 @@ namespace mc {
 
 // 前向声明
 class Player;
-namespace server {
-struct ServerPlayerData;
-}
 
 namespace world::storage {
 
@@ -165,16 +162,6 @@ public:
      */
     [[nodiscard]] PlayerSaveData* getCachedPlayer(const std::string& uuid);
     [[nodiscard]] const PlayerSaveData* getCachedPlayer(const std::string& uuid) const;
-
-    /**
-     * @brief 从服务器玩家数据创建保存数据
-     *
-     * 将运行时的玩家状态转换为可持久化的格式。
-     *
-     * @param playerData 服务器玩家数据
-     * @return 保存数据
-     */
-    [[nodiscard]] static PlayerSaveData fromServerPlayerData(const server::ServerPlayerData& playerData);
 
     /**
      * @brief 从玩家实体创建保存数据

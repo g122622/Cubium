@@ -37,13 +37,13 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/jigsaw/PoolAliasLookup.hpp"
 #include "server/world/gen/jigsaw/SequencedPriorityIterator.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

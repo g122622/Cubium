@@ -25,8 +25,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>

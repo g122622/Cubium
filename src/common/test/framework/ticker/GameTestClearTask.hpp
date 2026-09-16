@@ -1,6 +1,6 @@
 #pragma once
 
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 namespace mc::test {
 

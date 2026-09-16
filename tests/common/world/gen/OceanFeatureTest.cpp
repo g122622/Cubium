@@ -26,13 +26,13 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/property/Properties.hpp"
-#include "world/chunk/data/ChunkPrimer.hpp"
-#include "world/gen/chunk/IChunkGenerator.hpp"
-#include "world/gen/feature/ocean/BlueIceFeature.hpp"
-#include "world/gen/feature/ocean/CoralFeature.hpp"
-#include "world/gen/feature/ocean/KelpFeature.hpp"
-#include "world/gen/feature/ocean/SeaPickleFeature.hpp"
-#include "world/gen/feature/ocean/SeagrassFeature.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/ocean/BlueIceFeature.hpp"
+#include "server/world/gen/feature/ocean/CoralFeature.hpp"
+#include "server/world/gen/feature/ocean/KelpFeature.hpp"
+#include "server/world/gen/feature/ocean/SeaPickleFeature.hpp"
+#include "server/world/gen/feature/ocean/SeagrassFeature.hpp"
 
 #include <array>
 #include <memory>

@@ -29,7 +29,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/DensityFunctionRegistry.hpp"
 #include "server/world/gen/density/DensityFunctionTypeRegistry.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp"

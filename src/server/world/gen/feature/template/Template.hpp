@@ -30,7 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>

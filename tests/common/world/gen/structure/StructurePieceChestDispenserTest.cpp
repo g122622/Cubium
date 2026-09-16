@@ -35,7 +35,7 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/structures/JungleTempleStructure.hpp"

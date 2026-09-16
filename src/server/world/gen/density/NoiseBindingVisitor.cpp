@@ -26,7 +26,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp"
 #include <memory>
 #include <utility>

@@ -27,10 +27,10 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp" // WorldGenRegion 完整定义（dynamic_cast 需要）
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureRegistry.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <string>
 #include <spdlog/spdlog.h>
 

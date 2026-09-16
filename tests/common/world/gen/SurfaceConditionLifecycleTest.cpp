@@ -42,7 +42,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "server/world/gen/RandomState.hpp"

@@ -21,7 +21,7 @@
  *
  */
 
-#include "server/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 #include <gtest/gtest.h>

@@ -1092,7 +1092,6 @@ add_library(mc_common STATIC
     # World - Chunk
     world/chunk/data/BiomeContainer.cpp
     world/chunk/data/ChunkData.cpp
-    world/chunk/data/ChunkPrimer.cpp
     world/chunk/data/ChunkSection.cpp
     world/chunk/data/PalettedContainer.cpp
     world/chunk/data/Heightmap.cpp
@@ -1118,6 +1117,14 @@ add_library(mc_common STATIC
 
     # World - Map
     world/map/MaterialColor.cpp
+
+    # World - Generation (gen) — 从 server 迁移的纯接口/数据类型
+    # 架构规则：common 不得依赖 server。以下 gen 类型只依赖 common，
+    # 但被 common（BiomeClimate、Biome）和 client（BiomeColors）共用，
+    # 因此迁移到 common 以消除反向依赖。
+    world/gen/noise/SimplexNoise.cpp
+    world/gen/noise/PerlinSimplexNoise.cpp
+    world/gen/structure/StructureBoundingBox.cpp
     world/map/MapDecoration.cpp
     world/map/MapBanner.cpp
     world/map/MapFrame.cpp

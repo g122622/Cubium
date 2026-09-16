@@ -416,7 +416,7 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
     auto world = _createServerWorld(id, seed, std::move(generator));
 
     // 装配维度（ServerDimension 构造 + setWorld，开销可忽略，不单独 trace）
-    auto dimension = std::make_unique<ServerDimension>(id, std::move(type), nullptr, seed, m_viewDistance);
+    auto dimension = std::make_unique<ServerDimension>(id, std::move(type), seed, m_viewDistance);
     dimension->setWorld(std::move(world));
     return dimension;
 }

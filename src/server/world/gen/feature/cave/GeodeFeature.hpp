@@ -28,7 +28,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"

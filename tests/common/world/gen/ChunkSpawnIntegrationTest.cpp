@@ -31,7 +31,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include "server/world/gen/spawn/WorldGenSpawner.hpp"
 

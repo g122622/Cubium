@@ -94,7 +94,6 @@ public:
         // 创建维度并关联世界
         auto dimension = std::make_unique<ServerDimension>(0, // DimensionId::OVERWORLD
             DimensionType::overworld(),
-            nullptr, // 无区块生成器（维度仅作为世界容器）
             12345,   // seed
             10       // viewDistance
         );

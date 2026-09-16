@@ -53,7 +53,7 @@
 #include "server/world/gen/density/NoiseChunk.hpp"
 #include "server/world/gen/density/OreVeinifier.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/feature/FeatureSorter.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"

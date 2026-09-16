@@ -646,6 +646,7 @@ add_executable(minecraft-client
 
 target_link_libraries(minecraft-client
     PRIVATE
+        mc_gen
         mc_common
         mc_bedrock_addon
         nlohmann_json::nlohmann_json

@@ -35,7 +35,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "server/world/gen/jigsaw/JigsawOrientation.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>

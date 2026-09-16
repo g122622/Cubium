@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"

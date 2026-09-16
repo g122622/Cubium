@@ -13,7 +13,7 @@
 #include "server/world/gen/feature/template/Template.hpp"        // Template + PlacementSettings
 #include "server/world/gen/feature/template/TemplateManager.hpp" // TemplateManager
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"           // JigsawAssembler::getTemplateManager
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 #include <algorithm> // std::max
 #include <spdlog/spdlog.h>

@@ -54,8 +54,8 @@ namespace mc {
 // ============================================================================
 
 ServerDimension::ServerDimension(
-    DimensionId id, DimensionType type, std::unique_ptr<IChunkGenerator> generator, u64 seed, i32 viewDistance)
-    : Dimension(id, std::move(type), std::move(generator))
+    DimensionId id, DimensionType type, u64 seed, i32 viewDistance)
+    : Dimension(id, std::move(type))
     , m_seed(seed)
     , m_viewDistance(viewDistance)
 {}

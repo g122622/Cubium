@@ -48,7 +48,7 @@
 
 #include "common/core/Types.hpp"
 #include "server/world/gen/RandomState.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
 #include "server/world/gen/density/ast/BytecodeGen.hpp"
 #include "server/world/gen/density/ast/CompiledDensityFunction.hpp"

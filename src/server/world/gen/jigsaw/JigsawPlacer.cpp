@@ -26,7 +26,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <vector>
 
 namespace mc {

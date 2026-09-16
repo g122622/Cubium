@@ -67,6 +67,11 @@ namespace mc {
 
 // Forward declaration
 class ItemStack;
+
+namespace crafting {
+class RecipeBook;
+} // namespace crafting
+
 class INamedContainerProvider;
 
 class AbstractContainerMenu;
@@ -640,6 +645,17 @@ public:
         MC_UNUSED(recipeId);
         // 基类默认空实现
     }
+
+    /**
+     * @brief 获取配方书
+     *
+     * ServerPlayer 重写此方法返回实际的配方书实例。
+     * 基类默认返回 nullptr。
+     *
+     * @return 配方书指针，如果不是 ServerPlayer 则返回 nullptr
+     */
+    [[nodiscard]] virtual crafting::RecipeBook* getRecipeBook() { return nullptr; }
+    [[nodiscard]] virtual const crafting::RecipeBook* getRecipeBook() const { return nullptr; }
 
     // ========== 类型转换 ==========
 

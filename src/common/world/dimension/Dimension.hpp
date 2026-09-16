@@ -29,7 +29,6 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <memory>
 #include <optional>
 
@@ -53,9 +52,8 @@ public:
      *
      * @param id 维度ID
      * @param type 维度类型
-     * @param generator 区块生成器；对于仅承载运行时世界句柄的维度包装器可以为空
      */
-    Dimension(DimensionId id, DimensionType type, std::unique_ptr<IChunkGenerator> generator);
+    Dimension(DimensionId id, DimensionType type);
 
     virtual ~Dimension() = default;
 
@@ -78,28 +76,6 @@ public:
      * @brief 获取维度类型
      */
     [[nodiscard]] const DimensionType& type() const { return m_type; }
-
-    // ========== 生成器访问 ==========
-
-    /**
-     * @brief 获取区块生成器
-     */
-    [[nodiscard]] IChunkGenerator* generator() { return m_generator.get(); }
-    [[nodiscard]] const IChunkGenerator* generator() const { return m_generator.get(); }
-
-    // ========== 生物群系 ==========
-
-    /**
-     * @brief 获取生物群系源（MC 1.18+）
-     */
-    [[nodiscard]] world::biome::IBiomeSource* biomeSource()
-    {
-        return m_generator != nullptr ? m_generator->getBiomeSource() : nullptr;
-    }
-    [[nodiscard]] const world::biome::IBiomeSource* biomeSource() const
-    {
-        return m_generator != nullptr ? m_generator->getBiomeSource() : nullptr;
-    }
 
     // ========== 出生点 ==========
 
@@ -201,7 +177,6 @@ public:
 protected:
     DimensionId m_id;
     DimensionType m_type;
-    std::unique_ptr<IChunkGenerator> m_generator;
     Vector3d m_spawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0};
 };
 

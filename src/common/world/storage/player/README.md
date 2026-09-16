@@ -59,7 +59,7 @@ player/
 - `NbtIo` - NBT 序列化/反序列化
 - `ItemStack` - 物品序列化
 - `EffectInstance` - 药水效果序列化
-- `Player` / `ServerPlayerData` - 运行时玩家状态转换（`fromPlayer` 接受 `const Player&`，`fromServerPlayerData` 接受 `const ServerPlayerData&`）
+- `Player` - 运行时玩家状态转换（`fromPlayer` 接受 `const Player&`）
 - `zlib` - gzip 压缩
 
 ## 与 MC 1.16.5 的对应

@@ -21,7 +21,7 @@
  *
  */
 
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;

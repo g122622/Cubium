@@ -27,7 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/placement/PlacedFeature.hpp"
 #include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include <algorithm>

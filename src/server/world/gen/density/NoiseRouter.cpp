@@ -25,7 +25,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include <memory>
 #include <utility>
 

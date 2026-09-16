@@ -81,12 +81,10 @@ public:
      *
      * @param id 维度ID
      * @param type 维度类型
-     * @param generator 区块生成器
      * @param seed 世界种子
      * @param viewDistance 视野距离
      */
-    ServerDimension(
-        DimensionId id, DimensionType type, std::unique_ptr<IChunkGenerator> generator, u64 seed, i32 viewDistance);
+    ServerDimension(DimensionId id, DimensionType type, u64 seed, i32 viewDistance);
 
     ~ServerDimension() override;
 

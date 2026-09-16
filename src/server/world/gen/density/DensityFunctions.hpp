@@ -28,9 +28,9 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/noise/NormalNoise.hpp"
-#include "server/world/gen/noise/SimplexNoise.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>

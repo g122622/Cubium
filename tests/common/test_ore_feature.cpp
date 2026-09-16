@@ -27,7 +27,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/DeepslateBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/ore/OreFeature.hpp"
 #include "server/world/gen/feature/state/SimpleBlockStateProvider.hpp"

@@ -32,7 +32,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "server/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
 #include "server/world/gen/structure/Structure.hpp"

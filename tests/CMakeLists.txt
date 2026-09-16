@@ -1909,7 +1909,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkDistanceGraph.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/load/ChunkLoadTicketManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/gen/ChunkStatus.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/ChunkPrimer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/Heightmap.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
         # 存储系统
@@ -1955,13 +1954,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/village/raid/RaiderType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/trade/MerchantOffers.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/chunk/IChunkGenerator.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/chunk/NoiseChunkGenerator.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/chunk/DebugChunkGenerator.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/carver/CaveCarver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/carver/CanyonCarver.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/carver/CarvingMask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/carver/WorldCarver.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/Biome.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/biome/BiomeGenerationSettings.cpp
@@ -2082,16 +2074,6 @@ target_sources(mc_tests
         # 粒子实现 - 液体（新增）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/Feature.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/FeatureSpread.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/ore/OreFeature.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/TreeFeature.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/TrunkPlacer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/trunk/StraightTrunkPlacer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/FoliagePlacer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/feature/tree/foliage/BlobFoliagePlacer.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/placement/Placement.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/gen/spawn/WorldGenSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfo.cpp
         # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/player/Player.cpp
@@ -2471,6 +2453,7 @@ target_sources(mc_tests
 
 target_link_libraries(mc_tests
     PRIVATE
+        mc_gen
         mc_common
         mc_bedrock_addon
         mc_test
@@ -2634,6 +2617,7 @@ if(MC_BUILD_CLIENT)
 
     target_link_libraries(mc_trident_tests
         PRIVATE
+            mc_gen
             mc_common
             mc_bedrock_addon
             mc_offset_allocator

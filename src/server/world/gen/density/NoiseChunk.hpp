@@ -29,7 +29,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/aquifer/Aquifer.hpp"
-#include "server/world/gen/density/DensityFunction.hpp"
+#include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
 #include <memory>

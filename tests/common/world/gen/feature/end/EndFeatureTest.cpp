@@ -27,11 +27,11 @@
 #include "common/world/block/blocks/end/ChorusPlantBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
-#include "world/chunk/data/ChunkPrimer.hpp"
-#include "world/gen/chunk/IChunkGenerator.hpp"
-#include "world/gen/feature/end/ChorusPlantFeature.hpp"
-#include "world/gen/feature/end/EndIslandFeature.hpp"
-#include "world/gen/settings/DimensionSettings.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/end/ChorusPlantFeature.hpp"
+#include "server/world/gen/feature/end/EndIslandFeature.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 #include <memory>
 #include <vector>

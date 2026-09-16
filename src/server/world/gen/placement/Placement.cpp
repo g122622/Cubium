@@ -31,7 +31,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
-#include "server/world/gen/noise/PerlinSimplexNoise.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include <algorithm>
 #include <cmath>

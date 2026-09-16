@@ -339,11 +339,18 @@ public:
     void setShoulderEntityRight(nbt::tags::compound_tag tag) { m_shoulderEntityRight = std::move(tag); }
 
     /**
-     * @brief 获取配方书
-     * @return 配方书引用
+     * @brief 获取配方书（重写 Player 基类虚方法）
+     * @return 配方书指针
      */
-    [[nodiscard]] crafting::ServerRecipeBook& getRecipeBook() { return m_recipeBook; }
-    [[nodiscard]] const crafting::ServerRecipeBook& getRecipeBook() const { return m_recipeBook; }
+    [[nodiscard]] crafting::RecipeBook* getRecipeBook() override { return &m_recipeBook; }
+    [[nodiscard]] const crafting::RecipeBook* getRecipeBook() const override { return &m_recipeBook; }
+
+    /**
+     * @brief 获取服务端配方书（具体类型访问）
+     * @return 服务端配方书引用
+     */
+    [[nodiscard]] crafting::ServerRecipeBook& serverRecipeBook() { return m_recipeBook; }
+    [[nodiscard]] const crafting::ServerRecipeBook& serverRecipeBook() const { return m_recipeBook; }
 
     /**
      * @brief 将肩部实体生成回世界（对齐 vanilla ServerPlayer.respawnEntityOnShoulder）

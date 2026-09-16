@@ -32,7 +32,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <bitset>
 #include <functional>

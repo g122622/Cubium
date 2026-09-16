@@ -26,7 +26,7 @@
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/CraftingInventory.hpp"
 #include "item/crafting/IRecipe.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "item/crafting/RecipeBook.hpp"
 #include "world/IWorld.hpp"
 #include "world/gamerule/GameRules.hpp"
 
@@ -42,23 +42,25 @@ void IRecipeHolder::onCrafting(Player& player)
         // 获取配方 ID
         ResourceLocation recipeId = recipe->getId();
 
-        // 触发配方解锁成就（仅对 ServerPlayer 有效）
-        // ServerPlayer::unlockRecipe 方法会更新配方书并触发成就
+        // 触发配方解锁成就
+        // Player::unlockRecipe 方法会更新配方书并触发成就
         player.unlockRecipe(recipeId);
 
         setRecipeUsed(nullptr);
     }
 }
 
-bool IRecipeHolder::canUseRecipe(IWorld& world, ServerPlayer& player, const crafting::IRecipe<IInventory>* recipe)
+bool IRecipeHolder::canUseRecipe(IWorld& world, Player& player, const crafting::IRecipe<IInventory>* recipe)
 {
     // 如果开启了有限合成且配方未解锁，返回false
     if (recipe != nullptr && !recipe->isDynamic()) {
         // 检查有限合成规则和配方解锁状态
         // 如果开启了有限合成（doLimitedCrafting=true），玩家只能使用已解锁的配方
-        if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_LIMITED_CRAFTING) &&
-            !player.getRecipeBook().isUnlocked(recipe->getId())) {
-            return false;
+        if (world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_LIMITED_CRAFTING)) {
+            auto* recipeBook = player.getRecipeBook();
+            if (recipeBook == nullptr || !recipeBook->isUnlocked(recipe->getId())) {
+                return false;
+            }
         }
     }
     setRecipeUsed(recipe);

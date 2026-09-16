@@ -80,7 +80,7 @@ public:
         auto worldRaw = createTestWorld(config);
         m_world = worldRaw.get();
 
-        auto dimension = std::make_unique<ServerDimension>(0, DimensionType::overworld(), nullptr, 12345, 10);
+        auto dimension = std::make_unique<ServerDimension>(0, DimensionType::overworld(), 12345, 10);
         dimension->setWorld(std::move(worldRaw));
         m_dimension = dimension.get();
         bool registered = m_dimensionManager.registerDimension(std::move(dimension));

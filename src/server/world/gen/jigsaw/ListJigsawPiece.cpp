@@ -29,7 +29,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>

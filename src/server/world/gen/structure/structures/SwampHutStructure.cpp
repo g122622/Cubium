@@ -39,7 +39,7 @@
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>
