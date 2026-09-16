@@ -26,7 +26,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"

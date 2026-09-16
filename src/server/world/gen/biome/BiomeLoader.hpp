@@ -42,12 +42,19 @@ class IResourcePack;
 
 namespace world::biome {
 
+// 前向声明
+class Biome;
+
 /**
  * @brief 生物群系 JSON 加载器（数据驱动世界生成的最后一环）
  *
  * 从数据包加载 biome JSON 文件，将 JSON 覆盖的字段叠加到已由 BiomeFactory 构造的
  * Biome 对象上。BiomeFactory 提供深度/比例/地表方块等非 JSON 字段，BiomeLoader
- * 仅覆盖 climate/effects/spawners/spawn_costs/generationSettings 这些 JSON 字段。
+ * 覆盖 climate/effects/spawners/spawn_costs/generationSettings 这些 JSON 字段。
+ *
+ * 本加载器原位于 common 层，但因 features/carvers 解析依赖 server gen 注册表
+ * （PlacedFeatureRegistry / ConfiguredCarverRegistry / ConfiguredFlowerFeature），
+ * 已整体上移到 server 侧，消除 common 对 server gen 的反向依赖。
  *
  * 混合策略：
  * - BiomeRegistry 必须先 initialize()（由 BiomeFactory 构造所有默认 Biome）

@@ -1112,6 +1112,7 @@ add_library(mc_common STATIC
     world/dimension/DimensionManager.cpp
     world/dimension/end/EndDragonFight.cpp
     world/dimension/end/DragonRespawnAnimation.cpp
+    world/dimension/end/EndSpikes.cpp
     world/dimension/teleport/PortalSize.cpp
     world/dimension/teleport/Teleporter.cpp
 
@@ -1139,13 +1140,11 @@ add_library(mc_common STATIC
     world/biome/BiomeSource.cpp
     world/biome/BiomeRegistry.cpp
     world/biome/JavaBiomeRegistryIdMap.cpp
-    world/biome/BiomeLoader.cpp
     world/biome/BiomeFactoryOverworld.cpp
     world/biome/BiomeFactoryNether.cpp
     world/biome/BiomeFactoryEnd.cpp
     world/biome/BiomeGenerationSettings.cpp
     world/biome/BiomeTag.cpp
-    world/biome/BiomeTagLoader.cpp
     world/biome/BiomeTags.cpp
 
     # World - Biome - Climate

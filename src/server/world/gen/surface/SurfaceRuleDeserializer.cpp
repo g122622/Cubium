@@ -26,7 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "server/world/gen/feature/parser/BlockStateParser.hpp"
 #include "server/world/gen/surface/CaveSurface.hpp"
 #include "server/world/gen/surface/SurfaceCondition.hpp"

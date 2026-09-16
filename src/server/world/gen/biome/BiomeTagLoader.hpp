@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "BiomeTag.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/biome/BiomeTag.hpp"
 
 #include <cstddef>
 #include <memory>

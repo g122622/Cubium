@@ -37,7 +37,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"

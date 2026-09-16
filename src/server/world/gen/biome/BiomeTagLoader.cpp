@@ -23,7 +23,6 @@
 
 #include "BiomeTagLoader.hpp"
 #include "BiomeLoader.hpp"
-#include "BiomeTags.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
@@ -32,6 +31,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/biome/BiomeTag.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>

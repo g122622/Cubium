@@ -27,7 +27,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeSource.hpp"
-#include "common/world/biome/BiomeTagLoader.hpp"
+#include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/EndBiomeSource.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"

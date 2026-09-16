@@ -41,7 +41,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

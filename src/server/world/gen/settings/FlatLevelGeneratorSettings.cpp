@@ -26,7 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "common/world/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"

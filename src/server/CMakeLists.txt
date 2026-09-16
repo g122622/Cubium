@@ -13,6 +13,8 @@
 # 抽成 OBJECT 库后，同一批 .o 被各 target 复用，避免重复编译与重复符号。
 # ===========================================================================
 add_library(mc_gen OBJECT
+    world/gen/biome/BiomeLoader.cpp
+    world/gen/biome/BiomeTagLoader.cpp
     world/gen/noise/PerlinNoise.cpp
     world/gen/noise/NormalNoise.cpp
     world/gen/noise/Noises.cpp
@@ -247,12 +249,13 @@ add_library(mc_gen OBJECT
 
 # mc_gen 的 .cpp 重度依赖 common 头（Result.hpp/IWorld/各 world 类），并传递引入
 # spdlog/nlohmann_json/simdjson/asmjit/fmt 等第三方头（均由 mc_common PUBLIC 链接）。
-# 故 mc_gen 须链接 mc_common 以获得这些头路径与符号；所有使用 mc_gen 的 target
-# （minecraft-server / minecraft-client / mc_tests / mc_benchmarks /
-# mc_trident_tests）通过传递依赖拿到完整 common 接口。
-target_link_libraries(mc_gen PUBLIC mc_common)
+# 故 mc_gen 须 PRIVATE 链接 mc_common：编译 mc_gen 自身 .cpp 时需要 common 符号与头路径，
+# 但 mc_gen 是纯实现 OBJECT 库，不对外暴露头接口，故用 PRIVATE 避免向使用方传递
+# mc_common 链接（minecraft-server / minecraft-client / mc_tests / mc_benchmarks /
+# mc_trident_tests 本就各自直接链接 mc_common，传递会造成 "duplicate libraries" 警告）。
+target_link_libraries(mc_gen PRIVATE mc_common)
 
-target_include_directories(mc_gen PUBLIC
+target_include_directories(mc_gen PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
