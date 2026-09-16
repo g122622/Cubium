@@ -26,22 +26,15 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/nether/FungusType.hpp"
+#include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 
 #include <memory>
 #include <string>
 
 namespace mc {
-
-/**
- * @brief 巨型真菌类型
- */
-enum class FungusType : u8 {
-    Crimson, ///< 绯红真菌（绯红森林）
-    Warped   ///< 诡异真菌（诡异森林）
-};
 
 /**
  * @brief 巨型真菌特征配置

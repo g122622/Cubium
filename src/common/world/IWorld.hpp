@@ -1458,13 +1458,14 @@ public:
      * 只有 ServerWorld 会返回有效的 WorldGenRegion，
      * 客户端和其他实现返回 nullptr。
      *
+     * 返回类型为 unique_ptr<IWorld> 而非 unique_ptr<WorldGenRegion>，
+     * 因为 WorldGenRegion 是 server 侧类型，common 层不应依赖其完整定义。
+     * IWorld 有虚析构函数，通过基类指针析构会正确调用 WorldGenRegion 的析构函数。
+     *
      * @param position 中心位置
-     * @return 创建的 WorldGenRegion，如果区块未加载则返回 nullptr
+     * @return 创建的 WorldGenRegion（以 IWorld 接口返回），如果区块未加载则返回 nullptr
      */
-    [[nodiscard]] virtual std::unique_ptr<WorldGenRegion> createFeatureRegion(const BlockPos& /*position*/)
-    {
-        return nullptr;
-    }
+    [[nodiscard]] virtual std::unique_ptr<IWorld> createFeatureRegion(const BlockPos& /*position*/) { return nullptr; }
 
     // ========== 村庄管理 ==========
 

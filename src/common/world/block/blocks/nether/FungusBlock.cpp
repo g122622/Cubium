@@ -27,8 +27,6 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/IChunkGenerator.hpp"
-#include "server/world/gen/feature/nether/HugeFungusFeature.hpp"
 
 namespace mc {
 namespace blocks {
@@ -74,8 +72,13 @@ void FungusBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
     MC_UNUSED(random);
     MC_UNUSED(state);
 
-    // 通过 IWorld::createFeatureRegion() 从已加载区块构建临时 WorldGenRegion
-    // ServerWorld 会重写此方法返回有效 WorldGenRegion；
+    // 巨型真菌生成器未注入（非服务器环境），无法生成巨型真菌
+    if (!m_fungusGrower) {
+        return;
+    }
+
+    // 通过 IWorld::createFeatureRegion() 从已加载区块构建临时区域
+    // ServerWorld 会重写此方法返回有效的 WorldGenRegion（以 IWorld 接口返回）；
     // 客户端和其他实现返回 nullptr
     auto region = world.createFeatureRegion(pos);
     if (region == nullptr) {
@@ -96,10 +99,8 @@ void FungusBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
     const BlockState* airState = BlockRegistry::instance().airState();
     world.setBlockState(pos, airState, 2);
 
-    // 通过 WorldGenRegion 调用巨型真菌生成器
-    HugeFungusFeatureConfig config(m_fungusType, true);
-    HugeFungusFeature feature;
-    feature.place(*region, rng, pos, config);
+    // 调用巨型真菌生成器（lambda 内部会将 IWorld& 转为 WorldGenRegion&）
+    m_fungusGrower(*region, pos, rng);
 }
 
 } // namespace blocks

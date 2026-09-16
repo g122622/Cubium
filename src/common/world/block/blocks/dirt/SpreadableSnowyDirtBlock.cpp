@@ -43,9 +43,6 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
-#include "server/world/gen/feature/vegetation/FlowerFeature.hpp"
-#include "server/world/gen/placement/PlacedFeature.hpp"
-#include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include <algorithm>
 #include <optional>
 #include <utility>
@@ -255,27 +252,19 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
                     const Biome& biome = BiomeRegistry::instance().get(biomeId);
                     const auto& flowerIds = biome.generationSettings().getFlowerFeatureIds();
 
-                    if (!flowerIds.empty()) {
+                    if (!flowerIds.empty() && m_flowerPlacer) {
                         // 数据驱动：花卉 id 是 placed_feature 的 ResourceLocation，
-                        // 通过 PlacedFeatureRegistry 解析 placed_feature，再取其内部
-                        // configured_feature（应为 ConfiguredFlowerFeature），从配置中
-                        // 随机选择花朵方块状态放置。
+                        // 通过 FlowerPlacer 回调（server 侧注入）解析 placed_feature，
+                        // 再取其内部 configured_feature（应为 ConfiguredFlowerFeature），
+                        // 从配置中随机选择花朵方块状态放置。
                         const ResourceLocation& chosenId =
                             flowerIds[random.nextInt(static_cast<i32>(flowerIds.size()))];
 
-                        const PlacedFeature* placedFeature = PlacedFeatureRegistry::instance().get(chosenId);
-                        if (placedFeature != nullptr) {
-                            auto* flowerFeature =
-                                dynamic_cast<const ConfiguredFlowerFeature*>(placedFeature->feature());
-                            if (flowerFeature != nullptr) {
-                                // 从花卉配置中随机选择花朵方块状态
-                                const BlockState* flower = flowerFeature->getConfig().getRandomFlower(random);
-                                if (flower != nullptr) {
-                                    world.setBlockState(currentPos, flower, 3);
-                                }
-                            }
+                        const BlockState* flower = m_flowerPlacer(chosenId, random);
+                        if (flower != nullptr) {
+                            world.setBlockState(currentPos, flower, 3);
+                            continue;
                         }
-                        continue;
                     }
                 }
 

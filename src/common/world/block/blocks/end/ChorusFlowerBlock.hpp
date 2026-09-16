@@ -39,7 +39,6 @@ namespace mc {
 
 class IWorld;
 class IBlockReader;
-class WorldGenRegion;
 class BlockItemUseContext;
 
 namespace blocks {
@@ -99,8 +98,7 @@ public:
      * @param random 随机数生成器
      * @param maxHorizontalDistance 最大水平扩展距离（原版为8）
      */
-    static void generatePlant(
-        WorldGenRegion& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance);
+    static void generatePlant(IWorld& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance);
 
 private:
     std::array<CollisionShape, 6> m_shapesByAge;
@@ -117,7 +115,7 @@ private:
      * @param maxHorizontalDistance 最大水平扩展距离
      * @param depth 当前递归深度（0-4）
      */
-    static void growTreeRecursive(WorldGenRegion& world,
+    static void growTreeRecursive(IWorld& world,
         const BlockPos& pos,
         math::Random& random,
         const BlockPos& origin,
@@ -133,8 +131,7 @@ private:
      * @param excludeDir 排除的方向（传空表示不排除）
      * @return true 如果所有未排除的水平邻居都为空气
      */
-    static bool allNeighborsEmpty(
-        WorldGenRegion& world, const BlockPos& pos, const std::optional<Direction>& excludeDir);
+    static bool allNeighborsEmpty(IWorld& world, const BlockPos& pos, const std::optional<Direction>& excludeDir);
 };
 
 } // namespace blocks

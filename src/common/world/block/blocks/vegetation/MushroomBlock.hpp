@@ -63,14 +63,15 @@ public:
     /**
      * @brief 巨型蘑菇生成器函数类型
      *
-     * 接收 WorldGenRegion& 而非 IWorld&，以便直接调用
-     * BigMushroomFeature::place() 等需要 WorldGenRegion 的生成方法。
+     * 接收 IWorld& —— 实际运行时由 ServerWorld::createFeatureRegion()
+     * 返回的 WorldGenRegion（继承自 IWorld）。lambda 内部在 server 侧
+     * 将 IWorld& static_cast 为 WorldGenRegion& 后调用 BigMushroomFeature::place()。
      *
-     * @param world 临时构建的 WorldGenRegion
+     * @param world 临时构建的区域（以 IWorld 接口暴露）
      * @param pos 蘑菇位置
      * @param random 随机数生成器
      */
-    using BigMushroomGenerator = std::function<void(WorldGenRegion&, const BlockPos&, math::Random&)>;
+    using BigMushroomGenerator = std::function<void(IWorld&, const BlockPos&, math::Random&)>;
 
     /**
      * @brief 构造函数

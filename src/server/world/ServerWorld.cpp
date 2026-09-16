@@ -2937,7 +2937,7 @@ std::optional<BlockPos> ServerWorld::findNearestMapStructure(
 
 // ========== 按需特征放置 ==========
 
-std::unique_ptr<WorldGenRegion> ServerWorld::createFeatureRegion(const BlockPos& position)
+std::unique_ptr<IWorld> ServerWorld::createFeatureRegion(const BlockPos& position)
 {
     constexpr i32 chunkRadius = 1;
     const ChunkCoord centerChunkX = world::toChunkCoord(position.x);

@@ -35,7 +35,6 @@
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <utility>
 
 namespace mc {

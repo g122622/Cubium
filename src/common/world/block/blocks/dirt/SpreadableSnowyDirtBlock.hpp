@@ -24,9 +24,11 @@
 #pragma once
 
 #include "SnowyDirtBlock.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include <functional>
 
 namespace mc {
 
@@ -101,7 +103,33 @@ protected:
  */
 class GrassBlock : public SpreadableSnowyDirtBlock, public IGrowable {
 public:
+    /**
+     * @brief 花卉放置器函数类型
+     *
+     * 接收 placed_feature 的 ResourceLocation id 和随机数生成器，
+     * 返回对应的花朵 BlockState（或 nullptr 表示该 placed_feature
+     * 不是 ConfiguredFlowerFeature 或解析失败）。
+     *
+     * 该回调由 server 侧后置注入，内部通过 PlacedFeatureRegistry
+     * 解析 placed_feature 并从中随机选择花朵方块状态。
+     * common 层不依赖 PlacedFeatureRegistry / ConfiguredFlowerFeature。
+     *
+     * @param placedFeatureId 花卉 placed_feature 的 ResourceLocation
+     * @param random 随机数生成器
+     * @return 选中的花朵 BlockState，或 nullptr
+     */
+    using FlowerPlacer = std::function<const BlockState*(const ResourceLocation&, math::Random&)>;
+
     explicit GrassBlock(BlockProperties properties);
+
+    /**
+     * @brief 后置注入花卉放置器
+     *
+     * common 层方块注册时无法引用 server gen 的 PlacedFeatureRegistry，
+     * 因此构造时 flowerPlacer 为空，由 server 侧初始化阶段调用此方法
+     * 注入真实的 FlowerPlacer。
+     */
+    void setFlowerPlacer(FlowerPlacer flowerPlacer) { m_flowerPlacer = std::move(flowerPlacer); }
 
     // ========== IGrowable 接口实现 ==========
 
@@ -135,6 +163,10 @@ public:
      * 粒子在方块上方水平扩散，数量为传入值的3倍。
      */
     [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
+
+private:
+    /// 花卉放置器回调（由 server 侧后置注入）
+    FlowerPlacer m_flowerPlacer;
 };
 
 /**

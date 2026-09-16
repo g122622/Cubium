@@ -34,9 +34,6 @@
 
 namespace mc {
 
-// 前向声明
-class WorldGenRegion;
-
 namespace blocks {
 
 // 前向声明
@@ -49,24 +46,24 @@ class ITreeConfig;
  * 使用 STAGE_0_1 属性表示生长阶段。
  * 当阶段达到最大值时，在合适的条件下会生长成树。
  *
- * 树木生成通过 TreeGenerator 回调实现，该回调接收 WorldGenRegion&
- * 以便调用 TreeFeature::place() 等需要 WorldGenRegion 的生成方法。
- * SaplingBlock::grow() 内部通过 FeaturePlacer 从 ServerWorld 的已加载区块
- * 构建临时 WorldGenRegion，然后将该区域传递给 TreeGenerator。
+ * 树木生成通过 TreeGenerator 回调实现。SaplingBlock::grow() 内部
+ * 通过 IWorld::createFeatureRegion() 从 ServerWorld 的已加载区块
+ * 构建临时区域（以 IWorld 接口返回），然后将该区域传递给 TreeGenerator。
  */
 class SaplingBlock : public BushBlock, public IGrowable {
 public:
     /**
      * @brief 树木生成器函数类型
      *
-     * 接收 WorldGenRegion& 而非 IWorld&，以便直接调用
-     * TreeFeature::place() 等需要 WorldGenRegion 的生成方法。
+     * 接收 IWorld& —— 实际运行时由 ServerWorld::createFeatureRegion()
+     * 返回的 WorldGenRegion（继承自 IWorld）。lambda 内部在 server 侧
+     * 将 IWorld& static_cast 为 WorldGenRegion& 后调用 TreeFeature::place()。
      *
-     * @param world 临时构建的 WorldGenRegion
+     * @param world 临时构建的区域（以 IWorld 接口暴露）
      * @param pos 树苗位置
      * @param random 随机数生成器
      */
-    using TreeGenerator = std::function<void(WorldGenRegion&, const BlockPos&, math::Random&)>;
+    using TreeGenerator = std::function<void(IWorld&, const BlockPos&, math::Random&)>;
 
     /**
      * @brief 构造函数
@@ -79,6 +76,15 @@ public:
      * @brief 析构函数
      */
     ~SaplingBlock() noexcept override = default;
+
+    /**
+     * @brief 后置注入树木生成器
+     *
+     * common 层方块注册时无法引用 server gen 的 TreeFeature，
+     * 因此构造时传入空 generator，由 server 侧初始化阶段调用此方法
+     * 注入真实的 TreeGenerator（捕获 TreeFeature 并调用其 place()）。
+     */
+    void setTreeGenerator(TreeGenerator treeGenerator) { m_treeGenerator = std::move(treeGenerator); }
 
     // ========== 状态属性 ==========
 
@@ -111,7 +117,7 @@ public:
     /**
      * @brief 尝试生长
      *
-     * 通过 FeaturePlacer 从 ServerWorld 的已加载区块构建 WorldGenRegion，
+     * 通过 IWorld::createFeatureRegion() 从已加载区块构建临时区域，
      * 然后调用 TreeGenerator 进行树木生成。
      *
      * @param world 世界

@@ -453,7 +453,7 @@ public:
      * @param position 中心位置
      * @return 创建的 WorldGenRegion，如果区块未加载则返回 nullptr
      */
-    [[nodiscard]] std::unique_ptr<WorldGenRegion> createFeatureRegion(const BlockPos& position) override;
+    [[nodiscard]] std::unique_ptr<IWorld> createFeatureRegion(const BlockPos& position) override;
 
     // ========== 天气接口 (IWorld) ==========
 

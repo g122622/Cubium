@@ -22,9 +22,11 @@
 
 #pragma once
 
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/SimpleBlock.hpp"
-#include "server/world/gen/feature/nether/HugeFungusFeature.hpp"
+#include "common/world/gen/feature/nether/FungusType.hpp"
+#include <functional>
 
 namespace mc {
 
@@ -46,6 +48,19 @@ namespace blocks {
 class FungusBlock : public SimpleBlock, public IGrowable {
 public:
     /**
+     * @brief 巨型真菌生成器函数类型
+     *
+     * 接收 IWorld& —— 实际运行时由 ServerWorld::createFeatureRegion()
+     * 返回的 WorldGenRegion（继承自 IWorld）。lambda 内部在 server 侧
+     * 将 IWorld& static_cast 为 WorldGenRegion& 后调用 HugeFungusFeature::place()。
+     *
+     * @param world 临时构建的区域（以 IWorld 接口暴露）
+     * @param pos 真菌位置
+     * @param random 随机数生成器
+     */
+    using FungusGrower = std::function<void(IWorld&, const BlockPos&, math::Random&)>;
+
+    /**
      * @brief 构造函数
      * @param fungusType 真菌类型（绯红/诡异）
      * @param properties 方块属性
@@ -53,6 +68,15 @@ public:
     FungusBlock(FungusType fungusType, const BlockProperties& properties);
 
     ~FungusBlock() override = default;
+
+    /**
+     * @brief 后置注入巨型真菌生成器
+     *
+     * common 层方块注册时无法引用 server gen 的 HugeFungusFeature，
+     * 因此构造时 fungusGrower 为空，由 server 侧初始化阶段调用此方法
+     * 注入真实的 FungusGrower（捕获 FungusType 并调用 HugeFungusFeature::place()）。
+     */
+    void setFungusGrower(FungusGrower fungusGrower) { m_fungusGrower = std::move(fungusGrower); }
 
     // ========== IGrowable 接口 ==========
 
@@ -75,14 +99,17 @@ public:
     /**
      * @brief 使用骨粉长成巨型真菌
      *
-     * 通过 IWorld::createFeatureRegion() 构建临时 WorldGenRegion，
-     * 然后调用 HugeFungusFeature::place() 生成巨型真菌。
+     * 通过 IWorld::createFeatureRegion() 构建临时区域（以 IWorld 接口返回），
+     * 然后调用 FungusGrower 进行巨型真菌生成。
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
 private:
     /// 真菌类型
     FungusType m_fungusType;
+
+    /// 巨型真菌生成器回调（由 server 侧后置注入）
+    FungusGrower m_fungusGrower;
 };
 
 } // namespace blocks

@@ -36,7 +36,6 @@
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -135,8 +134,8 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state)
         return false;
     }
 
-    // 通过 IWorld::createFeatureRegion() 从已加载区块构建 WorldGenRegion
-    // ServerWorld 会重写此方法，返回有效的 WorldGenRegion；
+    // 通过 IWorld::createFeatureRegion() 从已加载区块构建临时区域
+    // ServerWorld 会重写此方法，返回有效的 WorldGenRegion（以 IWorld 接口返回）；
     // 客户端和其他实现返回 nullptr
     auto region = world.createFeatureRegion(pos);
     if (region == nullptr) {
@@ -158,7 +157,7 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state)
     const BlockState* airState = BlockRegistry::instance().airState();
     world.setBlockState(pos, airState, 2);
 
-    // 通过 WorldGenRegion 调用树木生成器
+    // 调用树木生成器（lambda 内部会将 IWorld& 转为 WorldGenRegion&）
     m_treeGenerator(*region, pos, rng);
     return true;
 }
