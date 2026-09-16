@@ -32,8 +32,8 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
-#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 #include <cstddef>
 #include <vector>
 
@@ -160,7 +160,7 @@ void dragon_respawn::tickSummoningPillars(IWorld& world,
     }
 
     // 获取柱子列表（由 EndDragonFight 提供世界种子生成）
-    const std::vector<EndSpike> spikes = EndSpikeFeatureConfig::generateSpikes(fight.worldSeed());
+    const std::vector<EndSpike> spikes = generateSpikes(fight.worldSeed());
     const i32 j = time / PILLAR_PERIOD;
 
     if (j < static_cast<i32>(spikes.size())) {
@@ -198,19 +198,11 @@ void dragon_respawn::tickSummoningPillars(IWorld& world,
                 false, // 不生成火焰
                 nullptr);
 
-            // 重新生成柱子（destroying=true 表示仅生成柱体，但此处使用 placeSpike 完整生成）
-            // MC 的 SpikeConfiguration(true, ImmutableList.of(spike), new BlockPos(0, 128, 0))
-            //   - destroying=true：在 SpikeFeature.place() 中走销毁分支
-            //   - 但实际上在重生阶段，MC 的 SpikeFeature.place() 会调用 placeSpike()
-            //     重新生成柱子和末影水晶
-            // Cubium 直接调用 placeSpike()：
+            // 重新生成柱子：通过 EndDragonFight 注入的回调调用 server 侧 placeSpike
+            // common 层不直接依赖 EndSpikeFeature（server gen），由 server 侧在
+            // 构造 EndDragonFight 后注入 setPlaceSpikeCallback 实现柱子放置。
             math::Random rng(static_cast<u64>(time) ^ fight.worldSeed());
-            EndSpikeFeatureConfig config(std::vector<EndSpike>{spike},
-                false,               // destroying=false（placeSpike 不使用此标志）
-                BlockPos(0, 128, 0), // crystalBeamTarget
-                true);               // crystalInvulnerable（重生阶段柱顶水晶无敌）
-            EndSpikeFeature feature;
-            feature.placeSpike(world, rng, config, spike);
+            fight.placeSpikeForRespawn(world, rng, spike);
         }
     } else if (flag) {
         // 所有柱子处理完毕，切换到 SUMMONING_DRAGON

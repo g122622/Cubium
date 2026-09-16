@@ -118,6 +118,7 @@
 #include "server/world/gen/FeaturePlacer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/structure/StructureLocator.hpp"
 #include "weather/WeatherManager.hpp"
@@ -251,6 +252,19 @@ Result<void> ServerWorld::initialize()
             }
         }
         m_dragonFight = std::make_unique<EndDragonFight>(m_config.seed, dragonFightData);
+
+        // 注入柱子放置回调：龙重生序列的 SUMMONING_PILLARS 阶段通过此回调
+        // 调用 server 侧 EndSpikeFeature::placeSpike() 重新生成黑曜石柱。
+        // common 层 EndDragonFight 不直接依赖 EndSpikeFeature（server gen），
+        // 通过 std::function 回调解耦。
+        m_dragonFight->setPlaceSpikeCallback([](IWorld& world, math::Random& random, const EndSpike& spike) {
+            EndSpikeFeatureConfig config(std::vector<EndSpike>{spike},
+                false,               // destroying=false（placeSpike 不使用此标志）
+                BlockPos(0, 128, 0), // crystalBeamTarget
+                true);               // crystalInvulnerable（重生阶段柱顶水晶无敌）
+            EndSpikeFeature feature;
+            feature.placeSpike(world, random, config, spike);
+        });
     }
 
     // 初始化地图数据管理器

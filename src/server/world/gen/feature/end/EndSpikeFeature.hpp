@@ -15,9 +15,8 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * LIABILITY, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ * OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -34,8 +33,9 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "server/world/gen/feature/ConfiguredFeature.hpp"
+#include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
+#include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 
 namespace mc {
@@ -44,62 +44,14 @@ namespace mc {
 class IWorld;
 
 /**
- * @brief 黑曜石柱状态
- *
- * 存储单根黑曜石柱的生成状态。
- * 字段对齐 MC 1.21.11 SpikeFeature.EndSpike。
- */
-struct EndSpike {
-    i32 centerX;  ///< 中心X坐标（方块坐标）
-    i32 centerZ;  ///< 中心Z坐标（方块坐标）
-    i32 radius;   ///< 半径（2-5）
-    i32 height;   ///< 高度（76-103）
-    bool guarded; ///< 是否有铁栏杆笼子
-
-    EndSpike(i32 x, i32 z, i32 r, i32 h, bool g)
-        : centerX(x)
-        , centerZ(z)
-        , radius(r)
-        , height(h)
-        , guarded(g)
-    {}
-
-    /**
-     * @brief 检查柱子中心是否在指定区块内
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     * @return 中心是否在该区块范围内
-     */
-    [[nodiscard]] bool isCenterWithinChunk(i32 chunkX, i32 chunkZ) const
-    {
-        return (centerX >> 4) == chunkX && (centerZ >> 4) == chunkZ;
-    }
-
-    /**
-     * @brief 获取柱子顶部碰撞箱
-     *
-     * 用于在世界中查找位于柱顶的末影水晶实体（updateCrystalCount / resetSpikeCrystals）。
-     * 碰撞箱为覆盖整个 Y 轴的柱形区域（半径 = spike.radius），与 MC 1.21.11
-     * SpikeFeature.EndSpike.topBoundingBox 一致。
-     *
-     * @return 顶部碰撞箱（X/Z 覆盖柱子圆形外接方形，Y 覆盖整个世界高度）
-     */
-    [[nodiscard]] AxisAlignedBB getTopBoundingBox() const
-    {
-        return AxisAlignedBB(static_cast<f64>(centerX - radius),
-            static_cast<f64>(world::MIN_BUILD_HEIGHT),
-            static_cast<f64>(centerZ - radius),
-            static_cast<f64>(centerX + radius),
-            static_cast<f64>(world::MAX_BUILD_HEIGHT),
-            static_cast<f64>(centerZ + radius));
-    }
-};
-
-/**
  * @brief 黑曜石柱特征配置
  *
  * 定义黑曜石柱生成的参数配置。
  * 字段对齐 MC 1.21.11 SpikeConfiguration。
+ *
+ * EndSpike 结构体和 generateSpikes 函数已上移到 common 层
+ * （common/world/dimension/end/EndSpikes.hpp），本配置仅保留 placeSpike
+ * 所需的 destroying / crystalBeamTarget / crystalInvulnerable 字段。
  */
 struct EndSpikeFeatureConfig : public IFeatureConfig {
     /// 黑曜石柱列表（如果为空则自动生成）
@@ -132,13 +84,6 @@ struct EndSpikeFeatureConfig : public IFeatureConfig {
         , crystalBeamTarget(std::move(beamTarget))
         , crystalInvulnerable(invulnerable)
     {}
-
-    /**
-     * @brief 生成默认的黑曜石柱配置（10根柱子）
-     * @param worldSeed 世界种子
-     * @return 黑曜石柱列表
-     */
-    static std::vector<EndSpike> generateSpikes(u64 worldSeed);
 };
 
 /**

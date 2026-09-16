@@ -50,9 +50,9 @@
 #include "common/world/dimension/EndDragonFightTestAccessor.hpp"
 #include "common/world/dimension/end/DragonRespawnAnimation.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
+#include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
-#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -624,7 +624,7 @@ TEST_F(EndDragonFightRespawnTest, OnCrystalDestroyed_NotRespawnCrystal_UpdatesCo
     m_world.setDragonFight(&fight);
 
     // 放置一个柱顶水晶（使用第一根柱子的位置）
-    const auto spikes = EndSpikeFeatureConfig::generateSpikes(42);
+    const auto spikes = generateSpikes(42);
     ASSERT_FALSE(spikes.empty());
     const auto& spike = spikes[0];
     auto* crystal = m_world.spawnCrystalAt(spike.centerX, spike.height + 1, spike.centerZ);
@@ -654,7 +654,7 @@ TEST_F(EndDragonFightRespawnTest, ResetSpikeCrystals_ClearsInvulnerableAndBeam)
     m_world.setDragonFight(&fight);
 
     // 放置一个柱顶水晶并设置为无敌 + 光束
-    const auto spikes = EndSpikeFeatureConfig::generateSpikes(42);
+    const auto spikes = generateSpikes(42);
     ASSERT_FALSE(spikes.empty());
     const auto& spike = spikes[0];
     auto* crystal = m_world.spawnCrystalAt(spike.centerX, spike.height + 1, spike.centerZ);
@@ -679,7 +679,7 @@ TEST_F(EndDragonFightRespawnTest, UpdateCrystalCount_CountsAllSpikeCrystals)
     m_world.setDragonFight(&fight);
 
     // 在每根柱顶放置水晶
-    const auto spikes = EndSpikeFeatureConfig::generateSpikes(42);
+    const auto spikes = generateSpikes(42);
     for (const auto& spike : spikes) {
         m_world.spawnCrystalAt(spike.centerX, spike.height + 1, spike.centerZ);
     }
@@ -896,7 +896,7 @@ TEST_F(EndDragonFightRespawnTest, CrystalHurt_TriggersExplosionAndNotifiesFight)
     m_world.setDragonFight(&fight);
 
     // 放置一个柱顶水晶
-    const auto spikes = EndSpikeFeatureConfig::generateSpikes(42);
+    const auto spikes = generateSpikes(42);
     ASSERT_FALSE(spikes.empty());
     const auto& spike = spikes[0];
     auto* crystal = m_world.spawnCrystalAt(spike.centerX, spike.height + 1, spike.centerZ);

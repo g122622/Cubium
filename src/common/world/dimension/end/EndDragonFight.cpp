@@ -51,9 +51,9 @@
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/end/DragonRespawnAnimation.hpp"
+#include "common/world/dimension/end/EndSpikes.hpp"
 #include "common/world/dimension/end/IDragonBossBar.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
-#include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 
 #include <algorithm>
 
@@ -334,6 +334,18 @@ void EndDragonFight::setDragonBossBar(std::unique_ptr<IDragonBossBar> bossBar)
         m_dragonBossBar = std::make_unique<NullDragonBossBar>();
     } else {
         m_dragonBossBar = std::move(bossBar);
+    }
+}
+
+void EndDragonFight::setPlaceSpikeCallback(PlaceSpikeCallback callback)
+{
+    m_placeSpikeCallback = std::move(callback);
+}
+
+void EndDragonFight::placeSpikeForRespawn(IWorld& world, math::Random& random, const EndSpike& spike)
+{
+    if (m_placeSpikeCallback) {
+        m_placeSpikeCallback(world, random, spike);
     }
 }
 
@@ -830,7 +842,7 @@ void EndDragonFight::_updateCrystalCount(IWorld& world)
     m_ticksSinceCrystalsScanned = 0;
     m_crystalsAlive = 0;
 
-    const std::vector<EndSpike> spikes = EndSpikeFeatureConfig::generateSpikes(m_worldSeed);
+    const std::vector<EndSpike> spikes = generateSpikes(m_worldSeed);
     for (const EndSpike& spike : spikes) {
         const AxisAlignedBB topBox = spike.getTopBoundingBox();
         std::vector<Entity*> entities = world.getEntitiesInAABB(topBox, nullptr);
@@ -1073,7 +1085,7 @@ void EndDragonFight::resetSpikeCrystals(IWorld& world)
 {
     // 对应 MC Java: EndDragonFight.resetSpikeCrystals()
     // 遍历所有柱顶末影水晶，清除无敌和光束
-    const std::vector<EndSpike> spikes = EndSpikeFeatureConfig::generateSpikes(m_worldSeed);
+    const std::vector<EndSpike> spikes = generateSpikes(m_worldSeed);
     for (const EndSpike& spike : spikes) {
         const AxisAlignedBB topBox = spike.getTopBoundingBox();
         std::vector<Entity*> entities = world.getEntitiesInAABB(topBox, nullptr);

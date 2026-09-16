@@ -24,6 +24,7 @@
 #pragma once
 
 #include "DragonRespawnAnimation.hpp"
+#include "EndSpikes.hpp"
 #include "IDragonBossBar.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -31,6 +32,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/state/pattern/BlockPattern.hpp"
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -321,6 +323,24 @@ public:
     // ========== Boss 栏注入 ==========
 
     /**
+     * @brief 柱子放置回调类型
+     *
+     * 由服务端在 EndDragonFight 构造后注入，用于在龙重生序列的
+     * SUMMONING_PILLARS 阶段重新生成单根黑曜石柱（含末影水晶）。
+     *
+     * 回调签名：
+     * @param world 末地世界接口
+     * @param random 随机数生成器（用于水晶朝向）
+     * @param spike 要放置的柱子（已由 common 层 generateSpikes 生成）
+     *
+     * 默认为空操作（nullptr）。未注入时重生阶段不会实际放置柱子。
+     * 这是 common 层调用 server gen 的标准解耦点——common 层只持有
+     * std::function 回调，server 侧提供实现（构造 EndSpikeFeatureConfig
+     * 并调用 EndSpikeFeature::placeSpike）。
+     */
+    using PlaceSpikeCallback = std::function<void(IWorld&, math::Random&, const EndSpike&)>;
+
+    /**
      * @brief 注入服务端 Boss 栏实现
      *
      * 由服务端在 EndDragonFight 构造后调用，注入 ServerDragonBossBar。
@@ -329,6 +349,27 @@ public:
      * @param bossBar Boss 栏实现（可为 nullptr）
      */
     void setDragonBossBar(std::unique_ptr<IDragonBossBar> bossBar);
+
+    /**
+     * @brief 注入柱子放置回调
+     *
+     * 由服务端在 EndDragonFight 构造后调用，注入 placeSpike 实现。
+     * 传入 nullptr 时清除回调（重生阶段不放置柱子）。
+     *
+     * @param callback 柱子放置回调（可为 nullptr）
+     */
+    void setPlaceSpikeCallback(PlaceSpikeCallback callback);
+
+    /**
+     * @brief 调用柱子放置回调（由 DragonRespawnAnimation 调用）
+     *
+     * 如果已注入回调，则调用它放置指定柱子；否则空操作。
+     *
+     * @param world 末地世界接口
+     * @param random 随机数生成器
+     * @param spike 要放置的柱子
+     */
+    void placeSpikeForRespawn(IWorld& world, math::Random& random, const EndSpike& spike);
 
     /**
      * @brief 创建默认的 Boss 栏名称
@@ -572,6 +613,9 @@ private:
 
     /// Boss 栏（默认 NullDragonBossBar，服务端注入 ServerDragonBossBar）
     std::unique_ptr<IDragonBossBar> m_dragonBossBar = std::make_unique<NullDragonBossBar>();
+
+    /// 柱子放置回调（默认 nullptr，服务端注入 placeSpike 实现）
+    PlaceSpikeCallback m_placeSpikeCallback;
 
     /// 距上次玩家扫描的 tick 数（对应 MC Java ticksSinceLastPlayerScan）
     i32 m_ticksSinceLastPlayerScan =
