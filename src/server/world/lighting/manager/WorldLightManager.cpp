@@ -30,8 +30,8 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "common/world/lighting/engine/BlockLightEngine.hpp"
-#include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "server/world/lighting/engine/BlockLightEngine.hpp"
+#include "server/world/lighting/engine/SkyLightEngine.hpp"
 #include <algorithm>
 #include <memory>
 #include <string>

@@ -127,7 +127,7 @@ flowchart LR
 - `server/world/ChunkProgressionTask.hpp` — 单状态推进任务
 - `client/world/ClientWorld.hpp` — 客户端世界
 - `server/world/gen/` — 生成器
-- `common/world/lighting/` — 光照引擎
+- `server/world/lighting/` — 光照引擎与管理器（存储层在 `common/world/chunk/data/light/`）
 - `common/world/storage/` — 存储系统
 
 ## 命名空间

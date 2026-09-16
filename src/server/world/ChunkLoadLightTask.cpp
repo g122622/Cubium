@@ -32,10 +32,10 @@
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/lighting/engine/BaseLightEngine.hpp"
-#include "common/world/lighting/engine/BlockLightEngine.hpp"
-#include "common/world/lighting/engine/SkyLightEngine.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/engine/BaseLightEngine.hpp"
+#include "server/world/lighting/engine/BlockLightEngine.hpp"
+#include "server/world/lighting/engine/SkyLightEngine.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include <atomic>
 #include <cstddef>
 #include <string>

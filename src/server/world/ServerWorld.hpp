@@ -52,7 +52,7 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"

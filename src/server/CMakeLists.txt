@@ -321,6 +321,11 @@ add_executable(minecraft-server
     world/RuntimeLightingProvider.cpp
     world/RuntimeLightTask.cpp
     world/ChunkLoadLightTask.cpp
+    # 世界模块 - 光照引擎与管理器（自 common/world/lighting 迁入）
+    world/lighting/engine/BaseLightEngine.cpp
+    world/lighting/engine/BlockLightEngine.cpp
+    world/lighting/engine/SkyLightEngine.cpp
+    world/lighting/manager/WorldLightManager.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp

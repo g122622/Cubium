@@ -30,7 +30,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
 #include <utility>
 
 namespace mc::blocks {

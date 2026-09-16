@@ -56,7 +56,7 @@ src/server/sync/
 |------|------|
 | `common/world/chunk/ChunkData.hpp` | 区块数据结构 |
 | `common/world/chunk/ChunkLoadTicketManager.hpp` | 玩家追踪信息 |
-| `common/world/lighting/manager/WorldLightManager.hpp` | 光照计算 |
+| `server/world/lighting/manager/WorldLightManager.hpp` | 光照计算 |
 | `common/world/entity/EntityManager.hpp` | 实体管理 |
 | `server/world/ServerWorld.hpp` | 服务端世界 |
 

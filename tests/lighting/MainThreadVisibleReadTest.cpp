@@ -29,7 +29,7 @@
 #include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 
 namespace {
 

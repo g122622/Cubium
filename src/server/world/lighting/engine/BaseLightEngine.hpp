@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "LightEngineUtils.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
@@ -33,7 +33,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include <array>
 #include <cstdint>
 #include <vector>

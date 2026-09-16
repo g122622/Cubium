@@ -55,7 +55,7 @@ CubePointRange ──► DiscreteCubeMerger (优化路径)
 - `common/physics/CollisionCache.hpp` - 碰撞缓存
 - `common/world/block/Block.hpp` - 方块类，使用 VoxelShape 定义形状
 - `common/world/block/blocks/*.cpp` - 各方块实现，定义碰撞/遮挡形状
-- `common/world/lighting/engine/*.cpp` - 光照引擎，使用面遮挡检测
+- `server/world/lighting/engine/*.cpp` - 光照引擎，使用面遮挡检测
 - `common/entity/entities/*.cpp` - 实体，使用碰撞检测
 - `client/renderer/trident/chunk/ChunkMesher.cpp` - 区块网格生成
 

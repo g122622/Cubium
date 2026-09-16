@@ -30,8 +30,8 @@
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "common/world/lighting/engine/BaseLightEngine.hpp"
-#include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "server/world/lighting/engine/BaseLightEngine.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
 #include <climits>
 
 #include <gtest/gtest.h>

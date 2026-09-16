@@ -41,7 +41,7 @@
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/PalettedContainer.hpp"
-#include "common/world/lighting/storage/SWMRNibbleArray.hpp"
+#include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 
 #include <algorithm>
 #include <array>

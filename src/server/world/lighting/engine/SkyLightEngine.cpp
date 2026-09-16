@@ -38,7 +38,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/engine/BaseLightEngine.hpp"
+#include "server/world/lighting/engine/BaseLightEngine.hpp"
 
 #include <algorithm>
 #include <cstring>

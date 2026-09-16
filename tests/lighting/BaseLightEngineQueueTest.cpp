@@ -26,9 +26,9 @@
 #include "common/core/Constants.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/engine/BaseLightEngine.hpp"
-#include "common/world/lighting/engine/BlockLightEngine.hpp"
-#include "common/world/lighting/engine/LightEngineUtils.hpp"
+#include "server/world/lighting/engine/BaseLightEngine.hpp"
+#include "server/world/lighting/engine/BlockLightEngine.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
 
 #include <unordered_map>
 #include <vector>

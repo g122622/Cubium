@@ -25,7 +25,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "server/world/lighting/engine/SkyLightEngine.hpp"
 #include <gtest/gtest.h>
 
 namespace {

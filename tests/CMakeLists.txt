@@ -1672,6 +1672,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
+        # 光照引擎与管理器（自 common/world/lighting 迁入 server，与 server/CMakeLists.txt 一致）
+        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BaseLightEngine.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/lighting/manager/WorldLightManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp

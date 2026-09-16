@@ -74,7 +74,7 @@
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"

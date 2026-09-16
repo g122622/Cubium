@@ -1218,13 +1218,9 @@ add_library(mc_common STATIC
 
     # World - Lighting System
     world/lighting/InternalLightUtils.cpp
-    world/lighting/engine/BaseLightEngine.cpp
-    world/lighting/engine/BlockLightEngine.cpp
-    world/lighting/engine/SkyLightEngine.cpp
-    world/lighting/engine/LightEngineUtils.cpp
-    world/lighting/storage/EmptinessMap.cpp
-    world/lighting/storage/SWMRNibbleArray.cpp
-    world/lighting/manager/WorldLightManager.cpp
+    world/lighting/LightEngineUtils.cpp
+    world/chunk/data/light/EmptinessMap.cpp
+    world/chunk/data/light/SWMRNibbleArray.cpp
     # (header-only templates: LightType.hpp, IChunkLightProvider.hpp)
 
     # World - Fluid System

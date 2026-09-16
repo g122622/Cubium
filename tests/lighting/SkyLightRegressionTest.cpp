@@ -28,8 +28,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/engine/LightEngineUtils.hpp"
-#include "common/world/lighting/engine/SkyLightEngine.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
+#include "server/world/lighting/engine/SkyLightEngine.hpp"
 
 namespace {
 

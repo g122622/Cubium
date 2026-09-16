@@ -137,13 +137,13 @@ world/
 │   │   └── structures/         # 具体结构
 │   ├── surface/                # MC 1.21 地表规则系统
 │   └── valueprovider/          # 值提供器
-├── lighting/                   # 光照系统
+├── lighting/                   # 光照系统（公共层：类型/接口/工具）
 │   ├── IChunkLightProvider.hpp # 区块光照提供接口
 │   ├── LightType.hpp           # 光照类型枚举
 │   ├── InternalLightUtils.hpp/cpp # 内部光照工具
-│   ├── engine/                 # 光照引擎
-│   ├── manager/                # 光照管理器
-│   └── storage/                # 光照存储
+│   └── LightEngineUtils.hpp/cpp  # 光照引擎工具（坐标转换、方向枚举等）
+│   # 注：engine/、manager/ 已迁至 server/world/lighting/；
+│   #     storage/ 已迁至 common/world/chunk/data/light/
 ├── map/                        # 地图系统
 │   ├── MapData.hpp/cpp         # 地图数据核心 - 128x128像素、装饰物、旗帜、展示框标记
 │   ├── MapDecoration.hpp/cpp   # 地图装饰物 - 27种装饰类型定义、NBT/网络序列化

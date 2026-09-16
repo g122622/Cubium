@@ -27,8 +27,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
-#include "common/world/lighting/engine/BlockLightEngine.hpp"
-#include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/engine/BlockLightEngine.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 
 namespace {
 

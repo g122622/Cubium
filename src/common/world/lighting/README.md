@@ -4,22 +4,30 @@
 
 ## 目录结构
 
+光照系统已按分层架构拆分到三个位置：
+
 ```
-lighting/
-├── LightType.hpp                 # 光源类型枚举（Sky/Block）
-├── IChunkLightProvider.hpp       # 区块光照提供者接口（ServerWorld/ClientWorld 实现）
-├── InternalLightUtils.hpp/cpp    # 内部光照工具函数（天体角度、天空减暗、月相等）
-├── engine/                       # 光照引擎
-│   ├── LightEngineUtils.hpp/cpp  # 光照引擎工具（坐标转换、方向枚举等）
-│   ├── BaseLightEngine.hpp/cpp   # 光照引擎基类（StarLightEngine，FIFO 波前传播）
-│   ├── BlockLightEngine.hpp/cpp  # 方块光引擎（发光方块传播）
-│   └── SkyLightEngine.hpp/cpp    # 天空光引擎（天空光向下传播）
-├── manager/                      # 光照管理
-│   └── WorldLightManager.hpp/cpp # 世界光照管理器（协调双引擎）
-└── storage/                      # 光照存储
-    ├── SWMRNibbleArray.hpp/cpp   # 单写多读 Nibble 数组（支持 Copy-on-Write）
-    └── EmptinessMap.hpp/cpp      # 空隙图（优化空区块段检测）
+common/world/lighting/              # 公共层：光照类型、接口、工具
+├── LightType.hpp                   # 光源类型枚举（Sky/Block）
+├── IChunkLightProvider.hpp         # 区块光照提供者接口（ServerWorld/ClientWorld 实现）
+├── InternalLightUtils.hpp/cpp      # 内部光照工具函数（天体角度、天空减暗、月相等）
+└── LightEngineUtils.hpp/cpp        # 光照引擎工具（坐标转换、方向枚举等）
+
+server/world/lighting/              # 服务端层：光照引擎与管理器
+├── engine/
+│   ├── BaseLightEngine.hpp/cpp     # 光照引擎基类（StarLightEngine，FIFO 波前传播）
+│   ├── BlockLightEngine.hpp/cpp    # 方块光引擎（发光方块传播）
+│   └── SkyLightEngine.hpp/cpp      # 天空光引擎（天空光向下传播）
+└── manager/
+    └── WorldLightManager.hpp/cpp   # 世界光照管理器（协调双引擎）
+
+common/world/chunk/data/light/      # 存储层：光照数据结构
+├── SWMRNibbleArray.hpp/cpp         # 单写多读 Nibble 数组（支持 Copy-on-Write）
+└── EmptinessMap.hpp/cpp            # 空隙图（优化空区块段检测）
 ```
+
+> `LightEngineUtils` 保留在公共层，因为 `common/world/block/` 下的方块（如 `SpreadableSnowyDirtBlock`、`NyliumBlock`）
+> 需要调用 `LightEngineUtils::getLightBlockInto()`。`common` 层不允许依赖 `server`，故该工具类不能随引擎一同迁移。
 
 ---
 

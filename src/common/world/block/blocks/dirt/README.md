@@ -63,7 +63,7 @@ Block
 | `world/block/BlockRegistry` | 方块注册表（获取 DIRT 方块） |
 | `world/block/blocks/ice/SnowBlock` | 雪层方块（用于 LAYERS 属性检查） |
 | `world/fluid/Fluid` | 流体系统（检测水源） |
-| `world/lighting/engine/LightEngineUtils` | 光照引擎工具 |
+| `world/lighting/LightEngineUtils` | 光照引擎工具 |
 | `util/property/Properties.hpp` | SNOWY 属性定义 |
 | `util/Direction.hpp` | 方向定义 |
 | `item/context/BlockItemUseContext.hpp` | 放置上下文 |
