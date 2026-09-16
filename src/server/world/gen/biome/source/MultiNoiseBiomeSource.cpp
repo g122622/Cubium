@@ -22,13 +22,13 @@
  */
 
 #include "MultiNoiseBiomeSource.hpp"
-#include "NetherBiomeBuilder.hpp"
-#include "OverworldBiomeBuilder.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/biome/climate/ParameterList.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
+#include "common/world/biome/source/NetherBiomeBuilder.hpp"
+#include "common/world/biome/source/OverworldBiomeBuilder.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include <algorithm>
 #include <memory>

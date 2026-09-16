@@ -1151,10 +1151,8 @@ add_library(mc_common STATIC
     world/biome/climate/SpawnFinder.cpp
 
     # World - Biome - Source
-    world/biome/source/MultiNoiseBiomeSource.cpp
     world/biome/source/OverworldBiomeBuilder.cpp
     world/biome/source/NetherBiomeBuilder.cpp
-    world/biome/source/EndBiomeSource.cpp
 
     # World - Time
     world/time/GameTime.cpp

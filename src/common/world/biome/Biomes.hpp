@@ -34,7 +34,5 @@
 #include "BiomeSource.hpp"
 
 // 生物群系源实现
-#include "source/EndBiomeSource.hpp"
-#include "source/MultiNoiseBiomeSource.hpp"
 #include "source/NetherBiomeBuilder.hpp"
 #include "source/OverworldBiomeBuilder.hpp"

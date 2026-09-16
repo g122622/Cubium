@@ -36,7 +36,7 @@
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeManager.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"

@@ -15,6 +15,8 @@
 add_library(mc_gen OBJECT
     world/gen/biome/BiomeLoader.cpp
     world/gen/biome/BiomeTagLoader.cpp
+    world/gen/biome/source/EndBiomeSource.cpp
+    world/gen/biome/source/MultiNoiseBiomeSource.cpp
     world/gen/noise/PerlinNoise.cpp
     world/gen/noise/NormalNoise.cpp
     world/gen/noise/Noises.cpp
