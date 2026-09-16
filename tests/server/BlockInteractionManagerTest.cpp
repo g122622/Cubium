@@ -34,7 +34,7 @@
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"

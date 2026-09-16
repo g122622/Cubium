@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/RandomState.hpp"

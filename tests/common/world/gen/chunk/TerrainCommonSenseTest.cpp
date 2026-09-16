@@ -38,7 +38,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"

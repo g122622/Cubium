@@ -38,7 +38,7 @@
 #include "common/TempDirHelper.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"

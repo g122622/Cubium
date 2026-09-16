@@ -23,7 +23,7 @@
 
 #include "server/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/RandomState.hpp"

@@ -28,7 +28,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"

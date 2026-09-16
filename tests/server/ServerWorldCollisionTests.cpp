@@ -26,7 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ServerChunkManager.hpp"

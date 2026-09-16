@@ -4,7 +4,7 @@
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"

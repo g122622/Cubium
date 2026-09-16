@@ -118,7 +118,7 @@ public:
      * @param random 随机数生成器
      * @return 选中的花朵 BlockState，或 nullptr
      */
-    using FlowerPlacer = std::function<const BlockState*(const ResourceLocation&, math::Random&)>;
+    using FlowerPlacer = std::function<const BlockState*(const ResourceLocation&, math::IRandom&)>;
 
     explicit GrassBlock(BlockProperties properties);
 

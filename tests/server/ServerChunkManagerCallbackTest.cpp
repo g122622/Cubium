@@ -23,7 +23,7 @@
 
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"

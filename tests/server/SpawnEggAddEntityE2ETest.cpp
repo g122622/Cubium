@@ -77,7 +77,7 @@
 #include "common/util/UuidUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"

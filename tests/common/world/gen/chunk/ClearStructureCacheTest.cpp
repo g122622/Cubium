@@ -38,7 +38,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
-#include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
