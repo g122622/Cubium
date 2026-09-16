@@ -36,7 +36,6 @@
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
-#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -197,9 +196,10 @@ void registerCherryBlocks()
                 .ignitedByLava());
 
     // 樱花树苗
+    // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
     CherryBlocks::CHERRY_SAPLING =
         &registry.registerBlock<blocks::SaplingBlock>(ResourceLocation("minecraft:cherry_sapling"),
-            blocks::TreeGenerators::cherryTree(),
+            blocks::SaplingBlock::TreeGenerator{},
             BlockProperties(Material::REPLACEABLE_PLANT)
                 .noCollision()
                 .notSolid()

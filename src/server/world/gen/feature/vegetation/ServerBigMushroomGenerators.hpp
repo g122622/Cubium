@@ -25,32 +25,40 @@
 #include "common/world/block/blocks/vegetation/MushroomBlock.hpp"
 
 namespace mc {
-namespace blocks {
+namespace server::gen {
 
 /**
- * @brief 巨型蘑菇生成器工厂
+ * @brief server 侧巨型蘑菇生成器工厂
  *
  * 为棕色/红色蘑菇创建对应的 BigMushroomGenerator 回调。
  * 每个生成器内部创建对应的 BigMushroomFeatureConfig 并调用
  * BigMushroomFeature::place()。
  *
- * BigMushroomGenerator 签名为 void(WorldGenRegion&, const BlockPos&, math::Random&)，
- * 可直接传给 MushroomBlock 构造函数。
+ * BigMushroomGenerator 签名为 void(IWorld&, const BlockPos&, math::Random&)，
+ * 由 MushroomBlock 在 grow() 中通过 createFeatureRegion() 获取的
+ * WorldGenRegion（以 IWorld 接口暴露）回调。lambda 内部将 IWorld&
+ * static_cast 为 WorldGenRegion& 后调用 BigMushroomFeature::place()。
  *
- * wiki tech_蘑菇.txt#巨型蘑菇（:84-87）：骨粉生成巨型蘑菇需满足：
- *   - 下方为有效地面（泥土/砂土/草方块/菌丝体/灰化土/菌岩）
- *   - 生长空间充足（长宽各7格，高6-8格）
- *   - 蘑菇不含雪
- * wiki tech_巨型蘑菇.txt#生成（:55）：玩家或发射器对蘑菇使用骨粉时，
- *   若满足上述条件，蘑菇有40%的概率生长成巨型蘑菇。
+ * 由于 common 层方块注册时无法引用 server gen 的 BigMushroomFeature，
+ * 因此构造时传入空 generator，由 server 侧初始化阶段调用 injectAll()
+ * 注入真实的 BigMushroomGenerator。
  */
-struct BigMushroomGenerators {
+struct ServerBigMushroomGenerators {
     /// 棕色巨型蘑菇生成器（平顶）
     static MushroomBlock::BigMushroomGenerator brownMushroom();
 
     /// 红色巨型蘑菇生成器（圆顶）
     static MushroomBlock::BigMushroomGenerator redMushroom();
+
+    /**
+     * @brief 向已注册的 MushroomBlock 注入真实 BigMushroomGenerator
+     *
+     * 在 RegistryBootstrap::initializeAll() 中，VanillaBlocks::initialize()
+     * 完成所有方块注册后调用此方法。通过 VanillaBlocks 中的静态指针访问
+     * 已注册的 MushroomBlock 实例，调用 setBigMushroomGenerator() 注入真实回调。
+     */
+    static void injectAll();
 };
 
-} // namespace blocks
+} // namespace server::gen
 } // namespace mc

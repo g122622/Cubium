@@ -47,7 +47,6 @@
 #include "world/block/blocks/cave/SporeBlossomBlock.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
-#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -253,14 +252,16 @@ void registerCaveBlocks()
     // ============================================================================
 
     // 杜鹃花 - 灌木类方块
+    // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
     CaveBlocks::AZALEA = &registry.registerBlock<blocks::AzaleaBlock>(ResourceLocation("minecraft:azalea"),
-        blocks::TreeGenerators::azaleaTree(),
+        blocks::SaplingBlock::TreeGenerator{},
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::AZALEA));
 
     // 开花的杜鹃花
+    // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
     CaveBlocks::FLOWERING_AZALEA = &registry.registerBlock<blocks::FloweringAzaleaBlock>(
         ResourceLocation("minecraft:flowering_azalea"),
-        blocks::TreeGenerators::azaleaTree(),
+        blocks::SaplingBlock::TreeGenerator{},
         BlockProperties(Material::PLANT).hardness(0.0f).resistance(0.0f).soundType(BlockSoundTypes::FLOWERING_AZALEA));
 
     // 杜鹃花叶 - 树叶类方块，使用LeavesBlock实现距离衰减。可被岩浆点燃（对齐 vanilla）

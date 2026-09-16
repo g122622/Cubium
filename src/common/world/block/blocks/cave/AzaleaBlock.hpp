@@ -53,6 +53,15 @@ public:
 
     ~AzaleaBlock() override = default;
 
+    /**
+     * @brief 后置注入树木生成器
+     *
+     * common 层方块注册时无法引用 server gen 的 TreeFeature，
+     * 因此构造时传入空 generator，由 server 侧初始化阶段调用此方法
+     * 注入真实的 TreeGenerator（捕获 TreeFeature 并调用其 place()）。
+     */
+    void setTreeGenerator(SaplingBlock::TreeGenerator treeGenerator) { m_treeGenerator = std::move(treeGenerator); }
+
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     /**

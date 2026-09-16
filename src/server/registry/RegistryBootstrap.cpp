@@ -53,9 +53,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
-#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -66,11 +64,15 @@
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/network/EnchantmentNbtBuilder.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
+#include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "server/world/gen/carver/ConfiguredCarverLoader.hpp"
 #include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureLoader.hpp"
 #include "server/world/gen/feature/FeatureTypeRegistry.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
+#include "server/world/gen/feature/tree/ServerTreeGenerators.hpp"
+#include "server/world/gen/feature/vegetation/ServerBigMushroomGenerators.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "server/world/gen/noise/NoiseLoader.hpp"
@@ -115,6 +117,12 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         VanillaBlocks::initialize();
     }
     spdlog::info("Vanilla blocks initialized");
+
+    // 方块注册完成后，向 SaplingBlock / AzaleaBlock 注入真实树木生成器。
+    // common 层注册时传入空 TreeGenerator，由 server 侧后置注入捕获 TreeFeature
+    // 的回调（TreeFeature 依赖 server gen，不能下放到 common）。
+    server::gen::ServerTreeGenerators::injectAll();
+    server::gen::ServerBigMushroomGenerators::injectAll();
 
     // 初始化物品注册表
     {

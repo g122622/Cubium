@@ -120,6 +120,7 @@ add_library(mc_gen OBJECT
     world/gen/feature/state/RandomizedIntBlockStateProvider.cpp
     world/gen/feature/ore/OreFeature.cpp
     world/gen/feature/tree/TreeFeature.cpp
+    world/gen/feature/tree/ServerTreeGenerators.cpp
     world/gen/feature/tree/FallenTreeFeature.cpp
     world/gen/feature/tree/decorator/TreeDecorator.cpp
     world/gen/feature/tree/decorator/AttachToLogsDecorator.cpp
@@ -136,6 +137,7 @@ add_library(mc_gen OBJECT
     world/gen/feature/tree/foliage/RandomSpreadFoliagePlacer.cpp
     world/gen/feature/vegetation/FlowerFeature.cpp
     world/gen/feature/vegetation/BigMushroomFeature.cpp
+    world/gen/feature/vegetation/ServerBigMushroomGenerators.cpp
     world/gen/feature/vegetation/BambooFeature.cpp
     world/gen/feature/cave/RootSystemFeature.cpp
     world/gen/feature/cave/VegetationPatchFeature.cpp

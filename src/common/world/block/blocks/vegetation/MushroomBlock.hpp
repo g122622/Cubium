@@ -85,6 +85,18 @@ public:
      */
     ~MushroomBlock() override = default;
 
+    /**
+     * @brief 后置注入巨型蘑菇生成器
+     *
+     * common 层方块注册时无法引用 server gen 的 BigMushroomFeature，
+     * 因此构造时传入空 generator，由 server 侧初始化阶段调用此方法
+     * 注入真实的 BigMushroomGenerator（捕获 BigMushroomFeature 并调用其 place()）。
+     */
+    void setBigMushroomGenerator(BigMushroomGenerator bigMushroomGenerator)
+    {
+        m_bigMushroomGenerator = std::move(bigMushroomGenerator);
+    }
+
     // ========== 放置逻辑 ==========
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;

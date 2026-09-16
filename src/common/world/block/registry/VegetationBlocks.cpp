@@ -31,14 +31,12 @@
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
-#include "world/block/blocks/vegetation/BigMushroomGenerators.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
-#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 #include "world/block/blocks/vegetation/WitherRoseBlock.hpp"
 
 namespace mc {
@@ -246,28 +244,30 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:mushroom_stem"), hugeMushroomProps);
 
     // 棕色蘑菇
+    // 传入空 generator，由 server 侧 ServerBigMushroomGenerators::injectAll() 后置注入
     VegetationBlocks::BROWN_MUSHROOM = &registry.registerBlock<blocks::MushroomBlock>(
-        ResourceLocation("minecraft:brown_mushroom"), blocks::BigMushroomGenerators::brownMushroom(), mushroomProps);
+        ResourceLocation("minecraft:brown_mushroom"), blocks::MushroomBlock::BigMushroomGenerator{}, mushroomProps);
 
     // 红色蘑菇
     VegetationBlocks::RED_MUSHROOM = &registry.registerBlock<blocks::MushroomBlock>(
-        ResourceLocation("minecraft:red_mushroom"), blocks::BigMushroomGenerators::redMushroom(), mushroomProps);
+        ResourceLocation("minecraft:red_mushroom"), blocks::MushroomBlock::BigMushroomGenerator{}, mushroomProps);
 
     // 树苗属性
     BlockProperties saplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
 
+    // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
     VegetationBlocks::OAK_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
-        ResourceLocation("minecraft:oak_sapling"), blocks::TreeGenerators::oakTree(), saplingProps);
+        ResourceLocation("minecraft:oak_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
     VegetationBlocks::SPRUCE_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
-        ResourceLocation("minecraft:spruce_sapling"), blocks::TreeGenerators::spruceTree(), saplingProps);
+        ResourceLocation("minecraft:spruce_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
     VegetationBlocks::BIRCH_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
-        ResourceLocation("minecraft:birch_sapling"), blocks::TreeGenerators::birchTree(), saplingProps);
+        ResourceLocation("minecraft:birch_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
     VegetationBlocks::JUNGLE_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
-        ResourceLocation("minecraft:jungle_sapling"), blocks::TreeGenerators::jungleTree(), saplingProps);
+        ResourceLocation("minecraft:jungle_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
     VegetationBlocks::ACACIA_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
-        ResourceLocation("minecraft:acacia_sapling"), blocks::TreeGenerators::acaciaTree(), saplingProps);
+        ResourceLocation("minecraft:acacia_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
     VegetationBlocks::DARK_OAK_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
-        ResourceLocation("minecraft:dark_oak_sapling"), blocks::TreeGenerators::darkOakTree(), saplingProps);
+        ResourceLocation("minecraft:dark_oak_sapling"), blocks::SaplingBlock::TreeGenerator{}, saplingProps);
 
     // 竹子属性：可被岩浆点燃（对齐 vanilla）
     BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid().ignitedByLava();

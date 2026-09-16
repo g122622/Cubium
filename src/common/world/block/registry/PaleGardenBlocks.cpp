@@ -45,7 +45,6 @@
 #include "world/block/blocks/pale_garden/ResinClumpBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
-#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -168,9 +167,10 @@ void registerPaleGardenBlocks()
                 .ignitedByLava());
 
     // 苍白橡树树苗（带 stage 属性，可生长成苍白橡树）
+    // 传入空 generator，由 server 侧 ServerTreeGenerators::injectAll() 后置注入
     PaleGardenBlocks::PALE_OAK_SAPLING =
         &registry.registerBlock<blocks::SaplingBlock>(ResourceLocation("minecraft:pale_oak_sapling"),
-            blocks::TreeGenerators::paleOakTree(),
+            blocks::SaplingBlock::TreeGenerator{},
             BlockProperties(Material::PLANT)
                 .noCollision()
                 .notSolid()
