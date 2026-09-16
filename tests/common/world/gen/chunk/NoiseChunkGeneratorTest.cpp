@@ -37,11 +37,11 @@
 
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
-#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include <gtest/gtest.h>
 

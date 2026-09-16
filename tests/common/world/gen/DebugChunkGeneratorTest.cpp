@@ -23,10 +23,10 @@
 
 #include "server/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include <cmath>
 #include <gtest/gtest.h>

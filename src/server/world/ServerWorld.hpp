@@ -52,7 +52,6 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
@@ -65,6 +64,7 @@
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/weather/WeatherManager.hpp"
 #include <cstddef>
 #include <functional>

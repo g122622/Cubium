@@ -24,11 +24,11 @@
 #pragma once
 
 #include "Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/jigsaw/TemplatePool.hpp"
 #include "server/world/gen/valueprovider/HeightProvider.hpp"

@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include "common/world/gen/noise/SimplexNoise.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/world/gen/noise/SimplexNoise.hpp"
 #include <cstddef>
 #include <memory>
 #include <vector>

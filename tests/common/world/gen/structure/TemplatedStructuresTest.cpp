@@ -23,12 +23,12 @@
 
 #include <gtest/gtest.h>
 
-#include "world/biome/Biome.hpp"
 #include "server/world/gen/structure/structures/IglooStructure.hpp"
 #include "server/world/gen/structure/structures/NetherFossilStructure.hpp"
 #include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
 #include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
 #include "server/world/gen/structure/structures/ShipwreckStructure.hpp"
+#include "world/biome/Biome.hpp"
 #include <set>
 
 using namespace mc::world::gen::structure;

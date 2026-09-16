@@ -44,10 +44,10 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <gtest/gtest.h>
 

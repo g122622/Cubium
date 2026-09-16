@@ -28,7 +28,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/item/Items.hpp"
 #include "common/sound/SoundCategory.hpp"
-#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
@@ -39,6 +38,7 @@
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -78,8 +78,8 @@ public:
         // 创建维度并关联测试世界
         auto dimension = std::make_unique<ServerDimension>(0, // DimensionId::OVERWORLD
             DimensionType::overworld(),
-            12345,   // seed
-            10       // viewDistance
+            12345, // seed
+            10     // viewDistance
         );
         dimension->setWorld(std::move(worldRaw));
         m_dimension = dimension.get();

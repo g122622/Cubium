@@ -29,12 +29,12 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "server/world/StaticChunkCache2D.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <atomic>

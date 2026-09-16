@@ -53,8 +53,7 @@ namespace mc {
 // 构造函数
 // ============================================================================
 
-ServerDimension::ServerDimension(
-    DimensionId id, DimensionType type, u64 seed, i32 viewDistance)
+ServerDimension::ServerDimension(DimensionId id, DimensionType type, u64 seed, i32 viewDistance)
     : Dimension(id, std::move(type))
     , m_seed(seed)
     , m_viewDistance(viewDistance)

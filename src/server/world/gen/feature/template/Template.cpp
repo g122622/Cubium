@@ -47,8 +47,8 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>

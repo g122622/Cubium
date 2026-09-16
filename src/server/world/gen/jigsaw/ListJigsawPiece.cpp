@@ -27,9 +27,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>

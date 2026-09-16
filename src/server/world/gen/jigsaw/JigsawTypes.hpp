@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include <string>
 
 namespace mc {

@@ -36,13 +36,13 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
-#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"

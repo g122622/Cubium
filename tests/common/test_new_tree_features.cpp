@@ -33,8 +33,6 @@
 #include "TestWorldHelper.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "util/math/MathUtils.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
@@ -51,6 +49,8 @@
 #include "server/world/gen/feature/tree/trunk/TrunkPlacers.hpp"
 #include "server/world/gen/feature/vegetation/BigMushroomFeature.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
+#include "util/math/MathUtils.hpp"
+#include "world/block/BlockRegistry.hpp"
 #include <map>
 #include <gtest/gtest.h>
 

@@ -22,8 +22,6 @@
  */
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "util/math/MathUtils.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
@@ -32,6 +30,8 @@
 #include "server/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "util/math/MathUtils.hpp"
+#include "world/block/BlockRegistry.hpp"
 #include <array>
 #include <gtest/gtest.h>
 

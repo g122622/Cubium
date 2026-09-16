@@ -23,9 +23,9 @@
 #include <gtest/gtest.h>
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <memory>

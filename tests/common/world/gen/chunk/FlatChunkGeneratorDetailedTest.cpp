@@ -43,8 +43,8 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include <gtest/gtest.h>

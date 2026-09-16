@@ -26,11 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 
 #include <nlohmann/json.hpp>
 

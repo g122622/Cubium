@@ -36,13 +36,13 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>

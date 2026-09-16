@@ -25,11 +25,11 @@
 
 #include "core/Types.hpp"
 #include "resource/ResourceLocation.hpp"
+#include "server/world/gen/feature/Feature.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
 #include "util/nbt/Nbt.hpp"
 #include "world/block/BlockPos.hpp"
-#include "server/world/gen/feature/Feature.hpp"
 #include <memory>
 #include <optional>
 

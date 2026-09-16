@@ -11,9 +11,9 @@
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <array>
 #include <cmath>
 #include <cstddef>

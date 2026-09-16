@@ -21,9 +21,9 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstddef>

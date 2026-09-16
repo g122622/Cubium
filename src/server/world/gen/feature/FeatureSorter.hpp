@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/feature/DecorationStage.hpp"
 #include <cstddef>
 #include <functional>
 #include <map>

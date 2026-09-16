@@ -74,7 +74,6 @@
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/storage/GlobalStorageManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
@@ -124,6 +123,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <atomic>
 #include <chrono>

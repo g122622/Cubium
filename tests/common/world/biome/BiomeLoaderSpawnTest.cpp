@@ -31,9 +31,9 @@
 
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
-#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 

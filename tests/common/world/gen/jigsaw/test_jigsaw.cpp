@@ -30,6 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
 #include "server/world/gen/jigsaw/EmptyJigsawPiece.hpp"
@@ -44,7 +45,6 @@
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <gtest/gtest.h>
 
 #include <vector>

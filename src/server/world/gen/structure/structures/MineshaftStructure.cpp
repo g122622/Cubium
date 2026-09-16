@@ -33,9 +33,9 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cmath>
 #include <memory>
 #include <string>

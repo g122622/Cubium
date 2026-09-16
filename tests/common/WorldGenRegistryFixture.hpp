@@ -25,8 +25,8 @@
 
 #include "common/core/GameDirectory.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "server/world/gen/biome/BiomeLoader.hpp"
 #include "server/world/gen/carver/ConfiguredCarverLoader.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureLoader.hpp"
 #include "server/world/gen/feature/FeatureTypeRegistry.hpp"

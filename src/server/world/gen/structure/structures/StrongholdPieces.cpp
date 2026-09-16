@@ -34,9 +34,9 @@
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cmath>
 #include <memory>
 #include <vector>

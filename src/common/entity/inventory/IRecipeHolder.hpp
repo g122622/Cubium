@@ -78,8 +78,7 @@ public:
      * @param recipe 要使用的配方
      * @return 如果可以使用返回true
      */
-    [[nodiscard]] virtual bool canUseRecipe(
-        IWorld& world, Player& player, const crafting::IRecipe<IInventory>* recipe);
+    [[nodiscard]] virtual bool canUseRecipe(IWorld& world, Player& player, const crafting::IRecipe<IInventory>* recipe);
 };
 
 } // namespace mc

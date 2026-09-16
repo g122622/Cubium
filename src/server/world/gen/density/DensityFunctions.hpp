@@ -27,10 +27,10 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "server/world/gen/density/BlendedNoise.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
-#include "server/world/gen/noise/NormalNoise.hpp"
 #include "common/world/gen/noise/SimplexNoise.hpp"
+#include "server/world/gen/density/BlendedNoise.hpp"
+#include "server/world/gen/noise/NormalNoise.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>

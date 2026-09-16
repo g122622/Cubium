@@ -32,6 +32,7 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
@@ -39,7 +40,6 @@
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <memory>
 #include <string>
 #include <utility>

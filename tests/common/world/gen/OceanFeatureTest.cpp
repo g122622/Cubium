@@ -25,7 +25,6 @@
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
-#include "util/property/Properties.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ocean/BlueIceFeature.hpp"
@@ -33,6 +32,7 @@
 #include "server/world/gen/feature/ocean/KelpFeature.hpp"
 #include "server/world/gen/feature/ocean/SeaPickleFeature.hpp"
 #include "server/world/gen/feature/ocean/SeagrassFeature.hpp"
+#include "util/property/Properties.hpp"
 
 #include <array>
 #include <memory>

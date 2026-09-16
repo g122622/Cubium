@@ -38,8 +38,8 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
-#include "server/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "server/world/gen/structure/Structure.hpp"
 
 #include <algorithm>
 #include <memory>

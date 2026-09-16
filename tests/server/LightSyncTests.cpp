@@ -25,11 +25,11 @@
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/lighting/LightType.hpp"
-#include "common/world/lighting/LightEngineUtils.hpp"
-#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
+#include "common/world/lighting/LightType.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/lighting/manager/WorldLightManager.hpp"
 #include <vector>
 #include <gtest/gtest.h>
 

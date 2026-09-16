@@ -26,9 +26,9 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
 
 #include <algorithm>

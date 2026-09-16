@@ -25,8 +25,8 @@
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/jigsaw/AssemblyTypes.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+#include "server/world/gen/jigsaw/AssemblyTypes.hpp"
 #include <vector>
 
 namespace mc {

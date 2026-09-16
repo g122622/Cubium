@@ -27,10 +27,10 @@
 #include "common/util/NibbleArray.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
-#include "server/world/lighting/engine/BaseLightEngine.hpp"
-#include "common/world/lighting/LightEngineUtils.hpp"
 #include "common/world/chunk/data/light/EmptinessMap.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
+#include "common/world/lighting/LightEngineUtils.hpp"
+#include "server/world/lighting/engine/BaseLightEngine.hpp"
 #include <vector>
 
 namespace mc {

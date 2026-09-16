@@ -25,8 +25,8 @@
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "resource/ResourceLocation.hpp"
-#include "world/block/BlockRegistry.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
+#include "world/block/BlockRegistry.hpp"
 
 using namespace mc;
 

@@ -28,8 +28,8 @@
 #include "common/world/biome/climate/Sampler.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/world/gen/aquifer/Aquifer.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
+#include "server/world/gen/aquifer/Aquifer.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
 #include <memory>

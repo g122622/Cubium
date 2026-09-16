@@ -25,8 +25,8 @@
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "server/world/gen/density/Beardifier.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
+#include "server/world/gen/density/Beardifier.hpp"
 #include "server/world/gen/density/DensityFunctions.hpp" // MarkerType
 #include "server/world/gen/density/NoiseChunk.hpp"       // NoiseChunk + 缓存类（newInstance 用）
 #include "server/world/gen/density/ast/AstNodes.hpp"     // WeirdType

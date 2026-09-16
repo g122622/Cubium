@@ -46,8 +46,8 @@
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
+#include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include <array>
 #include <atomic>
 #include <cstring>
