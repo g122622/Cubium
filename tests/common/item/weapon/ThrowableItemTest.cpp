@@ -56,8 +56,11 @@ public:
 
     [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
-        m_spawnedEntities.push_back(entity.get());
-        // 不实际存储实体，返回临时ID
+        // 接管实体所有权：基类 IWorld::spawnEntity 默认实现会丢弃 unique_ptr
+        // 导致实体在函数返回时被销毁，调用方拿到的裸指针随即悬垂。
+        // 本桩改为持有所有权，使投射物在 spawnEntity 返回后仍存活，
+        // 以便 ThrowableItem::onItemRightClick 中的 shootFrom 能安全解引用。
+        m_spawnedEntities.push_back(std::move(entity));
         return ++m_lastEntityId;
     }
 
@@ -67,11 +70,11 @@ public:
         // 测试中忽略粒子效果
     }
 
-    [[nodiscard]] const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
+    [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& spawnedEntities() const { return m_spawnedEntities; }
 
 private:
     EntityInstanceId m_lastEntityId = 0;
-    std::vector<Entity*> m_spawnedEntities;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
 };
 
 class ThrowableItemTest : public ::testing::Test {
