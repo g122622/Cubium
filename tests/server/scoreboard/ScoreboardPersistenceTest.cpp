@@ -30,11 +30,11 @@
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
 #include "common/scoreboard/criteria/DummyCriteria.hpp"
-#include "common/scoreboard/storage/ScoreboardSaveData.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
+#include "server/scoreboard/storage/ScoreboardSaveData.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;

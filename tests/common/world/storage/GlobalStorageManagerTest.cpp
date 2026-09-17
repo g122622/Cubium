@@ -26,12 +26,12 @@
  * - deleteWorld 与 listWorlds 的交互
  */
 
-#include "world/storage/GlobalStorageManager.hpp"
+#include "server/world/storage/GlobalStorageManager.hpp"
 #include "common/TempDirHelper.hpp"
-#include "world/storage/core/LevelDatCodec.hpp"
-#include "world/storage/core/WorldSessionLock.hpp"
-#include "world/storage/core/WorldStoragePaths.hpp"
-#include "world/storage/list/WorldListService.hpp"
+#include "server/world/storage/core/LevelDatCodec.hpp"
+#include "server/world/storage/core/WorldSessionLock.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
+#include "server/world/storage/list/WorldListService.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>

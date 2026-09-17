@@ -1,8 +1,6 @@
 # src/common/CMakeLists.txt
 # 公共库 - 客户端和服务端共享
 
-find_package(LibArchive REQUIRED)
-
 # Perfetto 性能追踪子模块
 add_subdirectory(profiler)
 
@@ -1157,49 +1155,6 @@ add_library(mc_common STATIC
     # World - Border
     world/border/WorldBorder.cpp
 
-    # World - Storage
-    world/storage/GlobalStorageManager.cpp
-    world/storage/SingleLevelStorageManager.cpp
-    world/storage/entity/EntityStorageManager.cpp
-    world/storage/blockentity/BlockEntityStorageManager.cpp
-    world/storage/core/WorldStoragePaths.cpp
-    world/storage/core/WorldSessionLock.cpp
-    world/storage/core/LevelDatCodec.cpp
-    world/storage/list/WorldListEntry.cpp
-    world/storage/list/WorldListService.cpp
-    world/storage/list/WorldNameSanitizer.cpp
-    world/storage/request/WorldRequests.cpp
-    world/storage/db/RocksDBDatabase.cpp
-    world/storage/db/SectionCodec.cpp
-    world/storage/section/SectionCache.cpp
-    world/storage/section/SectionManager.cpp
-    world/storage/snapshot/BackupManager.cpp
-    world/storage/save/DirtyTracker.cpp
-    world/storage/save/AutoSave.cpp
-    world/storage/task/StorageTask.cpp
-    world/storage/task/StorageTaskManager.cpp
-    world/storage/player/PlayerSaveData.cpp
-    world/storage/player/PlayerDataManager.cpp
-    world/storage/backend/IStorageBackend.hpp
-    world/storage/backend/JavaAnvilBackend.cpp
-    world/storage/backend/BedrockLDBBackend.cpp
-    world/storage/core/SaveFormat.cpp
-    world/storage/reader/java/RegionFile.cpp
-    world/storage/reader/java/JavaWorldReader.cpp
-    world/storage/reader/java/JavaColumnReader.cpp
-    world/storage/reader/java/JavaChunkReader.cpp
-    world/storage/reader/java/JavaBlockStateMapper.cpp
-    world/storage/reader/java/JavaBiomeMapper.cpp
-    world/storage/reader/java/JavaLevelDatReader.cpp
-    world/storage/reader/bedrock/BedrockLevelDb.cpp
-    world/storage/reader/bedrock/LevelDBKey.cpp
-    world/storage/reader/bedrock/PaletteUtil.cpp
-    world/storage/reader/bedrock/BedrockWorldReader.cpp
-    world/storage/reader/bedrock/BedrockColumnReader.cpp
-    world/storage/reader/bedrock/BedrockChunkReader.cpp
-    world/storage/reader/bedrock/BedrockBiomeMapper.cpp
-    world/storage/reader/bedrock/BedrockLevelDatReader.cpp
-
     # World - Tick System
     world/tick/manager/TickManager.cpp
     # (header-only templates: TickPriority.hpp, ScheduledTick.hpp, ITickList.hpp, EmptyTickList.hpp, ServerTickList.hpp)
@@ -1399,9 +1354,6 @@ add_library(mc_common STATIC
     scoreboard/criteria/KillCountCriteria.cpp
     scoreboard/criteria/ReadOnlyCriteria.cpp
     scoreboard/criteria/TeamKillCriteria.cpp
-    # Scoreboard System - Storage
-    scoreboard/storage/ScoreboardSaveData.cpp
-    scoreboard/storage/ScoreboardDataManager.cpp
 )
 
 target_include_directories(mc_common
@@ -1424,9 +1376,6 @@ target_link_libraries(mc_common
     PRIVATE
         LibArchive::LibArchive
         ZLIB::ZLIB
-        RocksDB::rocksdb
-        zstd::libzstd
-        leveldb::leveldb
         asio::asio
         OpenSSL::Crypto
         OpenSSL::SSL

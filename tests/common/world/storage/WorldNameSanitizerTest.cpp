@@ -33,7 +33,7 @@
  * - generateLevelIdFromDisplayName: 从显示名生成目录名
  */
 
-#include "world/storage/list/WorldNameSanitizer.hpp"
+#include "server/world/storage/list/WorldNameSanitizer.hpp"
 #include "common/TempDirHelper.hpp"
 #include <filesystem>
 #include <fstream>

@@ -21,9 +21,9 @@
  *
  */
 
-#include "world/storage/db/RocksDBDatabase.hpp"
+#include "server/world/storage/db/RocksDBDatabase.hpp"
 #include "common/TempDirHelper.hpp"
-#include "world/storage/db/ColumnFamilies.hpp"
+#include "server/world/storage/db/ColumnFamilies.hpp"
 #include <filesystem>
 #include <vector>
 #include <gtest/gtest.h>

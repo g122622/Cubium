@@ -32,7 +32,7 @@
 #include "common/core/DefaultValues.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "common/world/storage/request/WorldRequests.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 #include <functional>
 #include <memory>
 #include <utility>

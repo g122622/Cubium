@@ -31,7 +31,6 @@
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
-#include "common/scoreboard/storage/ScoreboardDataManager.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
@@ -40,6 +39,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/scoreboard/storage/ScoreboardDataManager.hpp"
 #include <cstddef>
 #include <string>
 #include <utility>

@@ -18,14 +18,14 @@
  *
  */
 
-#include "common/world/storage/reader/java/JavaColumnReader.hpp"
+#include "server/world/storage/reader/java/JavaColumnReader.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/DimensionType.hpp"
-#include "common/world/storage/reader/java/JavaBiomeMapper.hpp"
-#include "common/world/storage/reader/java/JavaBlockStateMapper.hpp"
-#include "common/world/storage/reader/java/JavaChunkReader.hpp"
+#include "server/world/storage/reader/java/JavaBiomeMapper.hpp"
+#include "server/world/storage/reader/java/JavaBlockStateMapper.hpp"
+#include "server/world/storage/reader/java/JavaChunkReader.hpp"
 #include <sstream>
 #include <gtest/gtest.h>
 

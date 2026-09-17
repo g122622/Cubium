@@ -21,9 +21,9 @@
  *
  */
 
-#include "common/world/storage/reader/java/JavaChunkReader.hpp"
-#include "common/world/storage/reader/java/JavaBiomeMapper.hpp"
-#include "common/world/storage/reader/java/JavaBlockStateMapper.hpp"
+#include "server/world/storage/reader/java/JavaChunkReader.hpp"
+#include "server/world/storage/reader/java/JavaBiomeMapper.hpp"
+#include "server/world/storage/reader/java/JavaBlockStateMapper.hpp"
 #include <gtest/gtest.h>
 
 namespace mc::world::storage::reader::java {

@@ -75,11 +75,6 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
-#include "common/world/storage/GlobalStorageManager.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
-#include "common/world/storage/db/ConsistencyMode.hpp"
-#include "common/world/storage/player/PlayerDataManager.hpp"
-#include "common/world/storage/save/AutoSave.hpp"
 #include "common/world/village/raid/Raid.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "server/bossbar/BossInfo.hpp"
@@ -125,6 +120,11 @@
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/storage/GlobalStorageManager.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/db/ConsistencyMode.hpp"
+#include "server/world/storage/player/PlayerDataManager.hpp"
+#include "server/world/storage/save/AutoSave.hpp"
 #include <atomic>
 #include <chrono>
 #include <cmath>

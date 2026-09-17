@@ -44,7 +44,6 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/ChunkLoadLightTask.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -53,6 +52,7 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 #include <atomic>
 #include <chrono>
 #include <filesystem>

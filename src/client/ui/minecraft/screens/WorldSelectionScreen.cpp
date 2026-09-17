@@ -135,7 +135,7 @@ void WorldSelectionScreen::_updateBindingValues()
 
 void WorldSelectionScreen::refreshWorldList()
 {
-    auto result = m_globalStorage.listWorlds();
+    auto result = m_worldListService.listWorlds();
     if (result.success()) {
         m_worlds = std::move(result.value());
         m_worldNames.clear();
@@ -223,7 +223,7 @@ void WorldSelectionScreen::_requestDeleteWorld()
 
 void WorldSelectionScreen::_doDeleteWorld(const std::string& levelId)
 {
-    auto result = m_globalStorage.deleteWorld(levelId);
+    auto result = m_worldListService.deleteWorld(levelId);
     if (result.success()) {
         spdlog::info("[WorldSelectionScreen] Deleted world: {}", levelId);
     } else {

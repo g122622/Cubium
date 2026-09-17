@@ -157,22 +157,6 @@ world/
 │   └── RedstoneHelper.hpp/cpp  # 辅助函数
 ├── spawn/                      # 生物生成信息
 │   └── MobSpawnInfo.hpp/cpp
-├── storage/                    # 世界持久化
-│   ├── backend/                # 存储后端
-│   ├── blockentity/            # 方块实体存储
-│   ├── core/                   # 核心存储接口
-│   ├── db/                     # 数据库
-│   ├── entity/                 # 实体存储
-│   ├── list/                   # 世界列表
-│   ├── player/                 # 玩家数据存储
-│   ├── reader/                 # 存档读取器
-│   │   ├── bedrock/            # 基岩版格式
-│   │   └── java/               # Java版格式
-│   ├── request/                # 世界操作请求
-│   ├── save/                   # 存档保存
-│   ├── section/                # Section存储
-│   ├── snapshot/               # 世界快照
-│   └── task/                   # 存储任务
 ├── tick/                       # Tick调度
 │   ├── base/                   # 基础类型
 │   ├── list/                   # Tick列表

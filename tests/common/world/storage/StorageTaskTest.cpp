@@ -21,10 +21,10 @@
  *
  */
 
-#include "world/storage/task/StorageTask.hpp"
+#include "server/world/storage/task/StorageTask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "world/storage/db/SectionKey.hpp"
-#include "world/storage/task/StorageTaskManager.hpp"
+#include "server/world/storage/db/SectionKey.hpp"
+#include "server/world/storage/task/StorageTaskManager.hpp"
 #include <atomic>
 #include <gtest/gtest.h>
 

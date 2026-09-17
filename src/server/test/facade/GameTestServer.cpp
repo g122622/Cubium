@@ -2,8 +2,6 @@
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/storage/core/LevelDatCodec.hpp"
-#include "common/world/storage/core/WorldStoragePaths.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/OpListManager.hpp"
@@ -31,6 +29,8 @@
 #include "server/test/runner/reporter/LogTestReporter.hpp"
 #include "server/test/script/GameTestModuleBinding.hpp" // @minecraft/server-gametest JS 绑定
 #include "server/world/ServerWorld.hpp"
+#include "server/world/storage/core/LevelDatCodec.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
 #include "server/world/gen/feature/template/TemplateManager.hpp"

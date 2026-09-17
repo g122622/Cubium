@@ -4,7 +4,6 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/data/DataAccessor.hpp"
@@ -25,6 +24,7 @@
 #include "server/network/IServerClientConnection.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 
 #include <stdexcept>
 #include <unordered_map>

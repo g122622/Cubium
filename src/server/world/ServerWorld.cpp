@@ -97,8 +97,6 @@
 #include "common/world/map/MapDataManager.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
-#include "common/world/storage/core/LevelDatCodec.hpp"
-#include "common/world/storage/entity/EntityStorageManager.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
@@ -120,6 +118,8 @@
 #include "server/world/lighting/engine/BaseLightEngine.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/storage/core/LevelDatCodec.hpp"
+#include "server/world/storage/entity/EntityStorageManager.hpp"
 #include "server/world/structure/StructureLocator.hpp"
 #include "weather/WeatherManager.hpp"
 #include <algorithm>

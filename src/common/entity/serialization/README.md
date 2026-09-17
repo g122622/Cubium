@@ -56,7 +56,7 @@ src/common/entity/serialization/
 
 本模块被以下模块使用：
 
-1. **存档系统** (`src/common/world/storage/`)
+1. **存档系统** (`src/server/world/storage/`)
    - 实体数据持久化
    - 区块实体加载/保存
 

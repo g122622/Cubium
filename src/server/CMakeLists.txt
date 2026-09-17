@@ -265,6 +265,12 @@ target_include_directories(mc_gen PRIVATE
 )
 
 mc_set_compiler_warnings(mc_gen)
+
+# mc_server_storage - world/storage 实现 OBJECT 库（含 RocksDB 运行时层与纯文件系统层）。
+# 详见 src/server/world/storage/CMakeLists.txt。在 minecraft-server 定义之前引入，确保
+# minecraft-server 能链接 mc_server_storage。
+add_subdirectory(world/storage)
+
 add_executable(minecraft-server
     main.cpp
     application/StandaloneServer.cpp
@@ -357,6 +363,8 @@ add_executable(minecraft-server
     event/ServerEventBus.cpp
     # 记分板系统
     scoreboard/ServerScoreboard.cpp
+    scoreboard/storage/ScoreboardDataManager.cpp
+    scoreboard/storage/ScoreboardSaveData.cpp
     # 统计系统
     stats/StatType.cpp
     stats/Stat.cpp
@@ -482,6 +490,7 @@ add_executable(minecraft-server
 target_link_libraries(minecraft-server
     PRIVATE
         mc_gen
+        mc_server_storage
         mc_common
         mc_bedrock_addon
         nlohmann_json::nlohmann_json

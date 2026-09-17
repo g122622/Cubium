@@ -32,7 +32,7 @@
 #include "client/ui/minecraft/screens/CreateWorldScreen.hpp"
 #include "common/core/DefaultValues.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "common/world/storage/request/WorldRequests.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 
 using namespace mc;
 using namespace mc::client::ui::minecraft;

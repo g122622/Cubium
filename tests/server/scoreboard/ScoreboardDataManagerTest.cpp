@@ -28,8 +28,8 @@
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
-#include "common/scoreboard/storage/ScoreboardDataManager.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "server/scoreboard/storage/ScoreboardDataManager.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 #include <filesystem>
 
 using namespace mc;

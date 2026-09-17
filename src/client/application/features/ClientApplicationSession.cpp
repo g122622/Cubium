@@ -58,11 +58,12 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
-#include "common/world/storage/GlobalStorageManager.hpp"
-#include "common/world/storage/list/WorldListEntry.hpp"
-#include "common/world/storage/list/WorldNameSanitizer.hpp"
-#include "common/world/storage/request/WorldRequests.hpp"
 #include "server/application/IntegratedServer.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
+#include "server/world/storage/list/WorldListEntry.hpp"
+#include "server/world/storage/list/WorldListService.hpp"
+#include "server/world/storage/list/WorldNameSanitizer.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 #include <algorithm>
 #include <array>
 #include <memory>
@@ -820,9 +821,9 @@ void ClientApplication::showCreateWorld()
         // 关闭创建界面
         screenStack->pop();
 
-        world::storage::GlobalStorageManager storageManager;
+        world::storage::WorldListService worldListService(world::storage::WorldStoragePaths::defaultPaths());
         auto levelIdResult = world::storage::WorldNameSanitizer::findAvailableLevelId(
-            storageManager.savesDirectory(), request.displayName);
+            worldListService.paths().savesDir(), request.displayName);
 
         if (!levelIdResult.success()) {
             spdlog::error("[Session] Failed to generate levelId: {}", levelIdResult.error().toString());

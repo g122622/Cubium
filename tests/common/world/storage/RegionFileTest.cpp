@@ -21,7 +21,7 @@
  *
  */
 
-#include "common/world/storage/reader/java/RegionFile.hpp"
+#include "server/world/storage/reader/java/RegionFile.hpp"
 #include "common/TempDirHelper.hpp"
 #include <filesystem>
 #include <gtest/gtest.h>

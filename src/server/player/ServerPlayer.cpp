@@ -64,8 +64,6 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
-#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/application/MinecraftServer.hpp"
@@ -76,6 +74,8 @@
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/stats/StatType.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/player/PlayerDataManager.hpp"
 #include <cmath>
 #include <cstddef>
 #include <memory>

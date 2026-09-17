@@ -45,7 +45,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
-#include "common/world/storage/GlobalStorageManager.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
+#include "server/world/storage/list/WorldListService.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <algorithm>
@@ -155,7 +156,8 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
         spdlog::info("[QuickPlay] Starting world directly...");
 
         WorldLaunchConfig config;
-        world::storage::GlobalStorageManager storageManager(m_gameDirectory);
+        world::storage::WorldListService worldListService(
+            world::storage::WorldStoragePaths::fromGameDirectory(m_gameDirectory));
         if (params.quickPlayNew) {
             config.levelId = "quick_play_world";
             config.displayName = "Quick Play World";
@@ -168,7 +170,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
             config.allowCommands = true;
         } else {
             config.levelId = *params.quickPlayLevelId;
-            auto summaryResult = storageManager.listWorlds();
+            auto summaryResult = worldListService.listWorlds();
             if (summaryResult.success()) {
                 for (const auto& entry : summaryResult.value()) {
                     if (entry.levelId == config.levelId) {

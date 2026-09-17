@@ -42,8 +42,6 @@
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
-#include "common/world/storage/GlobalStorageManager.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/advancement/AdvancementEventHandler.hpp"
 #include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/data/DataAccessor.hpp"
@@ -71,6 +69,8 @@
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/storage/GlobalStorageManager.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 #include <atomic>
 #include <cmath>
 #include <cstddef>

@@ -21,11 +21,11 @@
  *
  */
 
-#include "common/world/storage/reader/bedrock/BedrockChunkReader.hpp"
+#include "server/world/storage/reader/bedrock/BedrockChunkReader.hpp"
 
-#include "common/world/storage/reader/bedrock/BedrockBiomeMapper.hpp"
-#include "common/world/storage/reader/bedrock/LevelDBKey.hpp"
-#include "common/world/storage/reader/bedrock/PaletteUtil.hpp"
+#include "server/world/storage/reader/bedrock/BedrockBiomeMapper.hpp"
+#include "server/world/storage/reader/bedrock/LevelDBKey.hpp"
+#include "server/world/storage/reader/bedrock/PaletteUtil.hpp"
 #include <gtest/gtest.h>
 
 namespace mc::world::storage::reader::bedrock {

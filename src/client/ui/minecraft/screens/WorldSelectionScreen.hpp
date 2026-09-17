@@ -21,9 +21,10 @@
 #include "TemplateScreen.hpp"
 #include "client/ui/kagero/widget/ListWidget.hpp"
 #include "common/core/Types.hpp"
-#include "common/world/storage/GlobalStorageManager.hpp"
-#include "common/world/storage/list/WorldListEntry.hpp"
-#include "common/world/storage/request/WorldRequests.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
+#include "server/world/storage/list/WorldListEntry.hpp"
+#include "server/world/storage/list/WorldListService.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 #include <functional>
 #include <memory>
 #include <string>
@@ -81,7 +82,7 @@ private:
     /** 执行删除世界的操作 */
     void _doDeleteWorld(const std::string& levelId);
 
-    world::storage::GlobalStorageManager m_globalStorage;
+    world::storage::WorldListService m_worldListService{world::storage::WorldStoragePaths::defaultPaths()};
     std::vector<world::storage::WorldListEntry> m_worlds;
     std::vector<std::string> m_worldNames;
     const world::storage::WorldListEntry* m_selectedWorld = nullptr;
