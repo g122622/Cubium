@@ -24,10 +24,10 @@
 #include "common/TempDirHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "world/storage/db/ColumnFamilies.hpp"
-#include "world/storage/db/RocksDBDatabase.hpp"
-#include "world/storage/player/PlayerDataManager.hpp"
-#include "world/storage/player/PlayerSaveData.hpp"
+#include "server/world/storage/db/ColumnFamilies.hpp"
+#include "server/world/storage/db/RocksDBDatabase.hpp"
+#include "server/world/storage/player/PlayerDataManager.hpp"
+#include "server/world/storage/player/PlayerSaveData.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>

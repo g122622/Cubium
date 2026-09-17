@@ -56,7 +56,7 @@ UniversalWorkerPool
 | 模块 | 用途 |
 |------|------|
 | `server/world/ServerChunkManager` | 区块生成任务调度 |
-| `common/world/storage/StorageTaskManager` | 存储 IO 任务调度 |
+| `server/world/storage/task/StorageTaskManager` | 存储 IO 任务调度 |
 | `server/application/MinecraftServer` | 服务器持有 ServerCompute/ServerIO 池 |
 | `client/application/ClientApplication` | 客户端持有 ClientCompute 池（chunkmesh/皮肤等） |
 

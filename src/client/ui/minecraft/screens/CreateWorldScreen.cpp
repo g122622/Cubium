@@ -37,7 +37,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/StringUtils.hpp"
 #include "common/world/WorldConfig.hpp"
-#include "common/world/storage/request/WorldRequests.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 
 #include <functional>
 #include <memory>

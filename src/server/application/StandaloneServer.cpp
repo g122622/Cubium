@@ -55,7 +55,6 @@
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
 #include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "common/world/dimension/Dimension.hpp"
-#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/PositionTracker.hpp"
@@ -69,6 +68,7 @@
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/storage/player/PlayerDataManager.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <atomic>

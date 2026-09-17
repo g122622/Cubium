@@ -26,10 +26,10 @@
 #pragma push_macro("BYTE_SIZE")
 #undef BYTE_SIZE
 
-#include "world/storage/db/SectionCodec.hpp"
+#include "server/world/storage/db/SectionCodec.hpp"
 #include "core/Types.hpp"
+#include "server/world/storage/db/SectionKey.hpp"
 #include "world/chunk/data/ChunkData.hpp"
-#include "world/storage/db/SectionKey.hpp"
 #include <gtest/gtest.h>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE

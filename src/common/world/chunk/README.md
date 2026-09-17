@@ -128,7 +128,7 @@ flowchart LR
 - `client/world/ClientWorld.hpp` — 客户端世界
 - `server/world/gen/` — 生成器
 - `server/world/lighting/` — 光照引擎与管理器（存储层在 `common/world/chunk/data/light/`）
-- `common/world/storage/` — 存储系统
+- `server/world/storage/` — 存储系统
 
 ## 命名空间
 

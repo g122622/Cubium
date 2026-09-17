@@ -22,8 +22,8 @@
  */
 
 #include "common/TempDirHelper.hpp"
-#include "common/world/storage/backend/JavaAnvilBackend.hpp"
-#include "common/world/storage/core/SaveFormat.hpp"
+#include "server/world/storage/backend/JavaAnvilBackend.hpp"
+#include "server/world/storage/core/SaveFormat.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>

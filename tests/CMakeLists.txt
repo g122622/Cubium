@@ -1712,8 +1712,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
@@ -1939,37 +1939,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/gen/ChunkStatus.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/chunk/data/Heightmap.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        # 存储系统
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/GlobalStorageManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/SingleLevelStorageManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/LevelDatCodec.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/WorldStoragePaths.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/WorldSessionLock.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/list/WorldListEntry.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/list/WorldListService.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/list/WorldNameSanitizer.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/request/WorldRequests.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/db/RocksDBDatabase.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/db/SectionCodec.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/section/SectionCache.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/section/SectionManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/snapshot/BackupManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/DirtyTracker.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/save/AutoSave.cpp
-        # 存储后端与读取器
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/core/SaveFormat.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/backend/JavaAnvilBackend.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/backend/BedrockLDBBackend.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/RegionFile.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaChunkReader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaColumnReader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaBlockStateMapper.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaBiomeMapper.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaLevelDatReader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockLevelDb.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockChunkReader.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockBiomeMapper.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/bedrock/BedrockLevelDatReader.cpp
+        # 存储系统已抽为 mc_server_storage OBJECT 库（src/server/world/storage/），
+        # mc_tests 通过 target_link_libraries(mc_server_storage) 复用同一批 .o，
+        # 不再在此直接编译 GlobalStorageManager/SingleLevelStorageManager/db/backend/
+        # reader/entity/player/section/save/snapshot/task 等 .cpp 源文件。
         # 村庄系统
         ${CMAKE_SOURCE_DIR}/src/common/world/village/Village.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/village/VillageManager.cpp
@@ -2482,6 +2455,7 @@ target_sources(mc_tests
 target_link_libraries(mc_tests
     PRIVATE
         mc_gen
+        mc_server_storage
         mc_common
         mc_bedrock_addon
         mc_offset_allocator

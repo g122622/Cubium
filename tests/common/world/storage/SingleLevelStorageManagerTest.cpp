@@ -1,7 +1,7 @@
-#include "world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "common/TempDirHelper.hpp"
 #include "core/Types.hpp"
-#include "world/storage/db/SectionKey.hpp"
+#include "server/world/storage/db/SectionKey.hpp"
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>

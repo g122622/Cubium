@@ -636,7 +636,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/KillCountCriteria.cpp
     ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/ReadOnlyCriteria.cpp
     ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
-    ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardDataManager.cpp
     # Boss栏系统
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
@@ -655,6 +656,7 @@ add_executable(minecraft-client
 target_link_libraries(minecraft-client
     PRIVATE
         mc_gen
+        mc_server_storage
         mc_common
         mc_bedrock_addon
         nlohmann_json::nlohmann_json

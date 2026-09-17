@@ -37,8 +37,6 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/storage/SingleLevelStorageManager.hpp"
-#include "common/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -47,6 +45,8 @@
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/core/LevelDatCodec.hpp"
 
 using namespace mc;
 using namespace mc::server;

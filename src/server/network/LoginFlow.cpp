@@ -38,7 +38,6 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -47,6 +46,7 @@
 #include "server/sync/WeatherSyncService.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/storage/player/PlayerDataManager.hpp"
 #include <array>
 #include <optional>
 #include <string>
