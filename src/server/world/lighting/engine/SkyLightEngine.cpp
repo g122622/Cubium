@@ -66,9 +66,9 @@ SkyStarLightEngine::SkyStarLightEngine()
     // 初始化 Nibble 缓存
     i32 sectionCacheSize = 5 * 5 * (totalLightSections + 2 + 2);
     m_sectionCacheSize = sectionCacheSize;
-    m_sectionCache = new const ChunkSection*[static_cast<size_t>(sectionCacheSize)]();
-    m_nibbleCache = new SWMRNibbleArray*[static_cast<size_t>(sectionCacheSize)]();
-    m_notifyUpdateCache = new bool[static_cast<size_t>(sectionCacheSize)]();
+    m_sectionCache.resize(static_cast<size_t>(sectionCacheSize), nullptr);
+    m_nibbleCache.resize(static_cast<size_t>(sectionCacheSize), nullptr);
+    m_notifyUpdateCache.resize(static_cast<size_t>(sectionCacheSize), false);
 
     // 初始化 null 区块段检查缓存
     m_nullPropagationCheckCache.resize(static_cast<size_t>(totalLightSections), false);
@@ -146,7 +146,8 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
             return;
         }
         // 先以 NULL 状态创建，再在 initNibble(...) 中决定是否变为 UNINIT/INIT
-        nibble = new SWMRNibbleArray(nullptr, true);
+        m_ownedNibbles.emplace_back(std::make_unique<SWMRNibbleArray>(nullptr, true));
+        nibble = m_ownedNibbles.back().get();
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     }
 
@@ -788,7 +789,8 @@ void SkyStarLightEngine::setData(const SectionPos& pos, const NibbleArray& array
 
     SWMRNibbleArray* nibble = getNibbleFromCache(pos.x, sectionY, pos.z);
     if (nibble == nullptr) {
-        nibble = new SWMRNibbleArray(nullptr, true);
+        m_ownedNibbles.emplace_back(std::make_unique<SWMRNibbleArray>(nullptr, true));
+        nibble = m_ownedNibbles.back().get();
         setNibbleInCache(pos.x, sectionY, pos.z, nibble);
     }
 

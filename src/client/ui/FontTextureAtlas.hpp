@@ -118,12 +118,14 @@ public:
 private:
     /**
      * @brief 矩形节点 (用于二叉树打包)
+     *
+     * left/right 由 unique_ptr 管理，析构时自动递归释放整棵子树。
      */
     struct Node {
         u32 x, y;          // 位置
         u32 width, height; // 尺寸
-        Node* left = nullptr;
-        Node* right = nullptr;
+        std::unique_ptr<Node> left;
+        std::unique_ptr<Node> right;
         bool used = false;
 
         Node(u32 x_, u32 y_, u32 w, u32 h)
@@ -132,12 +134,6 @@ private:
             , width(w)
             , height(h)
         {}
-
-        ~Node()
-        {
-            delete left;
-            delete right;
-        }
     };
 
     /**
@@ -171,7 +167,7 @@ private:
     u32 m_textureSize = 0;
     std::vector<u8> m_pixels;                // 灰度纹理数据
     std::unordered_map<u32, Glyph> m_glyphs; // 字形映射表
-    Node* m_root = nullptr;                  // 打包树根节点
+    std::unique_ptr<Node> m_root;            // 打包树根节点
     u32 m_padding = 1;                       // 字形间距（防止纹理 bleeding）
 };
 

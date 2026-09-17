@@ -36,6 +36,7 @@
 #include "common/world/lighting/LightEngineUtils.hpp"
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace mc {
@@ -584,17 +585,21 @@ protected:
     std::array<const IChunk*, 25> m_chunkCache{};
 
     // 区块段缓存
-    const ChunkSection** m_sectionCache = nullptr;
+    std::vector<const ChunkSection*> m_sectionCache;
     i32 m_sectionCacheSize = 0;
 
     // Nibble 数组缓存
-    SWMRNibbleArray** m_nibbleCache = nullptr;
+    std::vector<SWMRNibbleArray*> m_nibbleCache;
 
     // 空映射缓存
     std::array<const bool*, 25> m_emptinessMapCache{};
 
     // 通知更新缓存（客户端）
-    bool* m_notifyUpdateCache = nullptr;
+    std::vector<bool> m_notifyUpdateCache;
+
+    // 引擎创建的临时 nibble 所有权容器（initNibble/setData 中 new 出的 SWMRNibbleArray，
+    // 区块不持有这些 nibble，由引擎在 destroyCaches 时统一释放）
+    std::vector<std::unique_ptr<SWMRNibbleArray>> m_ownedNibbles;
 
     // 增亮队列（使用紧凑64位编码）
     std::vector<u64> m_increaseQueue;

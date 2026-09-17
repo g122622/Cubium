@@ -67,9 +67,9 @@ BlockStarLightEngine::BlockStarLightEngine()
     // 初始化 Nibble 缓存
     i32 sectionCacheSize = 5 * 5 * (totalLightSections + 2 + 2);
     m_sectionCacheSize = sectionCacheSize;
-    m_sectionCache = new const ChunkSection*[static_cast<size_t>(sectionCacheSize)]();
-    m_nibbleCache = new SWMRNibbleArray*[static_cast<size_t>(sectionCacheSize)]();
-    m_notifyUpdateCache = new bool[static_cast<size_t>(sectionCacheSize)]();
+    m_sectionCache.resize(static_cast<size_t>(sectionCacheSize), nullptr);
+    m_nibbleCache.resize(static_cast<size_t>(sectionCacheSize), nullptr);
+    m_notifyUpdateCache.resize(static_cast<size_t>(sectionCacheSize), false);
 
     // 初始化队列（区块段体积 = 16 * 16 * 16）
     m_increaseQueue.resize(world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT);
@@ -139,7 +139,8 @@ void BlockStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool e
             return;
         }
         // 创建 UNINIT 状态的 Nibble（不是 NULL 状态）
-        nibble = new SWMRNibbleArray(nullptr, false); // UNINIT 状态
+        m_ownedNibbles.emplace_back(std::make_unique<SWMRNibbleArray>(nullptr, false));
+        nibble = m_ownedNibbles.back().get();
         setNibbleInCache(chunkX, chunkY, chunkZ, nibble);
     } else {
         nibble->setNonNull();

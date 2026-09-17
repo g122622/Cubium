@@ -41,10 +41,9 @@ FontTextureAtlas::FontTextureAtlas(FontTextureAtlas&& other) noexcept
     : m_textureSize(other.m_textureSize)
     , m_pixels(std::move(other.m_pixels))
     , m_glyphs(std::move(other.m_glyphs))
-    , m_root(other.m_root)
+    , m_root(std::move(other.m_root))
     , m_padding(other.m_padding)
 {
-    other.m_root = nullptr;
     other.m_textureSize = 0;
 }
 
@@ -55,9 +54,8 @@ FontTextureAtlas& FontTextureAtlas::operator=(FontTextureAtlas&& other) noexcept
         m_textureSize = other.m_textureSize;
         m_pixels = std::move(other.m_pixels);
         m_glyphs = std::move(other.m_glyphs);
-        m_root = other.m_root;
+        m_root = std::move(other.m_root);
         m_padding = other.m_padding;
-        other.m_root = nullptr;
         other.m_textureSize = 0;
     }
     return *this;
@@ -73,15 +71,14 @@ Result<void> FontTextureAtlas::create(u32 textureSize)
     m_pixels.resize(static_cast<size_t>(textureSize) * textureSize, 0);
 
     // 创建根节点（整个纹理区域）
-    m_root = new Node(0, 0, textureSize, textureSize);
+    m_root = std::make_unique<Node>(0, 0, textureSize, textureSize);
 
     return {};
 }
 
 void FontTextureAtlas::destroy()
 {
-    delete m_root;
-    m_root = nullptr;
+    m_root.reset();
     m_pixels.clear();
     m_glyphs.clear();
     m_textureSize = 0;
@@ -95,11 +92,11 @@ FontTextureAtlas::Node* FontTextureAtlas::_findNode(Node* node, u32 width, u32 h
 
     // 如果节点已被使用，递归查找子节点
     if (node->used) {
-        Node* found = _findNode(node->left, width, height);
+        Node* found = _findNode(node->left.get(), width, height);
         if (found != nullptr) {
             return found;
         }
-        return _findNode(node->right, width, height);
+        return _findNode(node->right.get(), width, height);
     }
 
     // 检查节点大小是否合适
@@ -124,11 +121,11 @@ FontTextureAtlas::Node* FontTextureAtlas::_splitNode(Node* node, u32 width, u32 
     // 下边：下方剩余高度区域（宽度为节点原始宽度）
 
     if (remainingWidth > 0) {
-        node->left = new Node(node->x + width, node->y, remainingWidth, height);
+        node->left = std::make_unique<Node>(node->x + width, node->y, remainingWidth, height);
     }
 
     if (remainingHeight > 0) {
-        node->right = new Node(node->x, node->y + height, node->width, remainingHeight);
+        node->right = std::make_unique<Node>(node->x, node->y + height, node->width, remainingHeight);
     }
 
     // 返回原节点，其 (x, y) 就是分配区域的起点
@@ -164,7 +161,7 @@ Result<Glyph> FontTextureAtlas::addGlyph(
     u32 paddedWidth = width + m_padding;
     u32 paddedHeight = height + m_padding;
 
-    Node* node = _findNode(m_root, paddedWidth, paddedHeight);
+    Node* node = _findNode(m_root.get(), paddedWidth, paddedHeight);
     if (node == nullptr) {
         return Error(ErrorCode::CapacityExceeded, "Font texture atlas is full");
     }

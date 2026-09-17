@@ -192,23 +192,12 @@ void StarLightEngine::destroyCaches()
     m_chunkCache.fill(nullptr);
     m_emptinessMapCache.fill(nullptr);
 
-    if (m_sectionCache != nullptr) {
-        for (i32 i = 0; i < m_sectionCacheSize; ++i) {
-            m_sectionCache[i] = nullptr;
-        }
-    }
+    std::fill(m_sectionCache.begin(), m_sectionCache.end(), nullptr);
+    std::fill(m_nibbleCache.begin(), m_nibbleCache.end(), nullptr);
+    std::fill(m_notifyUpdateCache.begin(), m_notifyUpdateCache.end(), false);
 
-    if (m_nibbleCache != nullptr) {
-        for (i32 i = 0; i < m_sectionCacheSize; ++i) {
-            m_nibbleCache[i] = nullptr;
-        }
-    }
-
-    if (m_notifyUpdateCache != nullptr) {
-        for (i32 i = 0; i < m_sectionCacheSize; ++i) {
-            m_notifyUpdateCache[i] = false;
-        }
-    }
+    // 释放引擎创建的临时 nibble（initNibble/setData 中通过 m_ownedNibbles 挂载）
+    m_ownedNibbles.clear();
 }
 
 void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess)
@@ -221,7 +210,7 @@ void StarLightEngine::updateVisible(StarLightLightingProvider* lightAccess)
             continue;
         }
 
-        bool shouldNotify = m_notifyUpdateCache != nullptr && m_notifyUpdateCache[index];
+        bool shouldNotify = !m_notifyUpdateCache.empty() && m_notifyUpdateCache[index];
         if (!shouldNotify && !nibble->isDirty()) {
             continue;
         }
@@ -733,7 +722,7 @@ void StarLightEngine::setChunkInCache(i32 chunkX, i32 chunkZ, const IChunk* chun
 
 const ChunkSection* StarLightEngine::getChunkSection(i32 chunkX, i32 chunkY, i32 chunkZ) const
 {
-    if (m_sectionCache == nullptr) {
+    if (m_sectionCache.empty()) {
         return nullptr;
     }
     i32 index = chunkX + 5 * chunkZ + (5 * 5) * chunkY + m_chunkSectionIndexOffset;
@@ -745,7 +734,7 @@ const ChunkSection* StarLightEngine::getChunkSection(i32 chunkX, i32 chunkY, i32
 
 void StarLightEngine::setChunkSectionInCache(i32 chunkX, i32 chunkY, i32 chunkZ, const ChunkSection* section)
 {
-    if (m_sectionCache == nullptr) {
+    if (m_sectionCache.empty()) {
         return;
     }
     i32 index = chunkX + 5 * chunkZ + (5 * 5) * chunkY + m_chunkSectionIndexOffset;
@@ -767,7 +756,7 @@ void StarLightEngine::setBlocksForChunkInCache(i32 chunkX, i32 chunkZ, const Chu
 
 SWMRNibbleArray* StarLightEngine::getNibbleFromCache(i32 chunkX, i32 chunkY, i32 chunkZ) const
 {
-    if (m_nibbleCache == nullptr) {
+    if (m_nibbleCache.empty()) {
         return nullptr;
     }
     i32 index = chunkX + 5 * chunkZ + (5 * 5) * chunkY + m_chunkSectionIndexOffset;
@@ -779,7 +768,7 @@ SWMRNibbleArray* StarLightEngine::getNibbleFromCache(i32 chunkX, i32 chunkY, i32
 
 void StarLightEngine::setNibbleInCache(i32 chunkX, i32 chunkY, i32 chunkZ, SWMRNibbleArray* nibble)
 {
-    if (m_nibbleCache == nullptr) {
+    if (m_nibbleCache.empty()) {
         return;
     }
     i32 index = chunkX + 5 * chunkZ + (5 * 5) * chunkY + m_chunkSectionIndexOffset;
@@ -833,7 +822,7 @@ const BlockState* StarLightEngine::getBlockState(i32 worldX, i32 worldY, i32 wor
 
 const BlockState* StarLightEngine::getBlockState(i32 sectionIndex, i32 localIndex) const
 {
-    if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_sectionCache == nullptr) {
+    if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_sectionCache.empty()) {
         return nullptr;
     }
 
@@ -862,7 +851,7 @@ i32 StarLightEngine::getLightLevel(i32 worldX, i32 worldY, i32 worldZ) const
 
 i32 StarLightEngine::getLightLevel(i32 sectionIndex, i32 localIndex) const
 {
-    if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_nibbleCache == nullptr) {
+    if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_nibbleCache.empty()) {
         return m_isSkyLight ? 15 : 0;
     }
     SWMRNibbleArray* nibble = m_nibbleCache[sectionIndex];
@@ -883,7 +872,7 @@ void StarLightEngine::setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 leve
             worldX & world::CHUNK_MASK, worldY & world::CHUNK_MASK, worldZ & world::CHUNK_MASK, static_cast<u8>(level));
 
         // 客户端需要通知相邻区块段
-        if (m_notifyUpdateCache != nullptr && m_isClientSide) {
+        if (!m_notifyUpdateCache.empty() && m_isClientSide) {
             i32 cx1 = (worldX - 1) >> world::CHUNK_SHIFT;
             i32 cx2 = (worldX + 1) >> world::CHUNK_SHIFT;
             i32 cy1 = (worldY - 1) >> world::CHUNK_SHIFT;
@@ -906,14 +895,14 @@ void StarLightEngine::setLightLevel(i32 worldX, i32 worldY, i32 worldZ, i32 leve
 
 void StarLightEngine::setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX, i32 worldY, i32 worldZ, i32 level)
 {
-    if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_nibbleCache == nullptr) {
+    if (sectionIndex < 0 || sectionIndex >= m_sectionCacheSize || m_nibbleCache.empty()) {
         return;
     }
     SWMRNibbleArray* nibble = m_nibbleCache[sectionIndex];
     if (nibble != nullptr) {
         nibble->set(localIndex, static_cast<u8>(level));
 
-        if (m_notifyUpdateCache != nullptr && m_isClientSide) {
+        if (!m_notifyUpdateCache.empty() && m_isClientSide) {
             i32 cx1 = (worldX - 1) >> world::CHUNK_SHIFT;
             i32 cx2 = (worldX + 1) >> world::CHUNK_SHIFT;
             i32 cy1 = (worldY - 1) >> world::CHUNK_SHIFT;
@@ -936,7 +925,7 @@ void StarLightEngine::setLightLevel(i32 sectionIndex, i32 localIndex, i32 worldX
 
 void StarLightEngine::postLightUpdate(i32 worldX, i32 worldY, i32 worldZ)
 {
-    if (m_notifyUpdateCache == nullptr || !m_isClientSide) {
+    if (m_notifyUpdateCache.empty() || !m_isClientSide) {
         return;
     }
 
