@@ -27,10 +27,10 @@
  */
 
 #include "client/ui/kagero/widget/SliderWidget.hpp"
+#include "client/input/KeyBinding.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
-#include "client/input/KeyBinding.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;

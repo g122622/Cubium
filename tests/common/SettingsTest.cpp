@@ -25,11 +25,11 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
+#include "client/input/KeyBinding.hpp"
 #include "client/settings/ClientSettings.hpp"
 #include "common/TempDirHelper.hpp"
 #include "common/core/settings/SettingsBase.hpp"
 #include "common/core/settings/SettingsTypes.hpp"
-#include "client/input/KeyBinding.hpp"
 #include "server/settings/ServerSettings.hpp"
 
 using namespace mc;

@@ -27,10 +27,10 @@
  */
 
 #include "client/ui/kagero/widget/TextFieldWidget.hpp"
+#include "client/input/KeyBinding.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
-#include "client/input/KeyBinding.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
