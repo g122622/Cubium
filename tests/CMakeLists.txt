@@ -2114,7 +2114,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/FireInfoRegistry.cpp
         # 鏃堕棿绯荤粺
-        ${CMAKE_SOURCE_DIR}/src/common/world/time/GameTime.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
         # 鐗╁搧绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
@@ -2262,6 +2262,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/util/math/ray/Raycast.cpp
         # 设置系统
         ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
+        # 按键绑定（自 common/input 迁入 client/input）
+        ${CMAKE_SOURCE_DIR}/src/client/input/KeyBinding.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/ClientWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/prediction/BlockStatePredictionHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/entity/ClientEntity.cpp
@@ -2614,6 +2616,8 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
             # 璁剧疆
             ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
+            # 按键绑定（自 common/input 迁入 client/input）
+            ${CMAKE_SOURCE_DIR}/src/client/input/KeyBinding.cpp
             # AnimationContext
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/core/AnimationContext.cpp
     )

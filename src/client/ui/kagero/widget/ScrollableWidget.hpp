@@ -25,11 +25,11 @@
 
 #include "IWidgetContainer.hpp"
 #include "Widget.hpp"
+#include "client/input/KeyBinding.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "common/core/Types.hpp"
-#include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>

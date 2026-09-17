@@ -24,6 +24,7 @@ add_executable(minecraft-client
     application/features/ClientApplicationSettings.cpp
     window/Window.cpp
     input/InputManager.cpp
+    input/KeyBinding.cpp
     settings/ClientSettings.cpp
     # Trident 渲染引擎 API 层
     # (Types.hpp 只含 enum class 声明，无 .cpp 实现)
@@ -475,6 +476,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/ConnectionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/TimeManager.cpp
+    # 世界模块 - 游戏时间（自 common/world/time 迁入，TimeManager 依赖）
+    ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/TeleportManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/KeepAliveManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/PositionTracker.cpp

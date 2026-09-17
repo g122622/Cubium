@@ -1,26 +1,32 @@
 # Input 输入模块
 
+输入系统，提供平台无关的键码常量、可重映射的按键绑定，以及原始输入捕获（InputManager）。
+
 ## 目录结构
 
 ```
 src/client/input/
-├── InputManager.hpp    # 输入管理器头文件，管理键盘和鼠标输入
-└── InputManager.cpp    # 输入管理器实现
+├── InputManager.hpp     # 输入管理器头文件，管理键盘和鼠标输入
+├── InputManager.cpp     # 输入管理器实现
+├── KeyBinding.hpp       # 按键绑定类 + Keys 命名空间（平台无关键码常量）
+└── KeyBinding.cpp       # 按键绑定实现
 ```
 
 ## 内部模块关系
 
-本模块仅包含一个 `InputManager` 类，负责统一管理所有输入相关功能：
-
-```mermaid
-graph TB
-    subgraph "Input 模块"
-        A[InputManager.hpp<br/>接口定义]
-        B[InputManager.cpp<br/>实现]
-    end
-
-    A --> B
 ```
+Keys 命名空间（键码常量，值与 GLFW 一致）
+       ↓
+KeyBinding 类（可重映射按键绑定，按键状态查询/分类/JSON 序列化）
+       ↓
+InputManager（原始输入捕获 → 状态管理 → 事件分发）
+       ↓
+ClientSettings（初始化默认绑定）/ Kagero UI 引擎 / Widget 组件
+```
+
+- **Keys 命名空间** 定义与 GLFW 兼容的平台无关键码常量，供 UI 组件和测试使用，避免直接依赖 GLFW 头文件
+- **KeyBinding 类** 管理可重映射的按键绑定，支持按键状态查询、分类、JSON 序列化
+- **InputManager** 统一管理所有输入相关功能：原始输入捕获、状态管理、鼠标位置追踪、鼠标锁定、事件分发
 
 ## 上下游外部依赖关系
 
@@ -39,6 +45,10 @@ graph TB
 |--------|------|
 | ClientApplication | 客户端主应用，初始化和每帧调用 |
 | Kagero UI 引擎 | 字符输入回调、键盘事件回调 |
+| client/ui/kagero/widget/ | TextFieldWidget、SliderWidget、ScrollableWidget 使用 `Keys::XXX` 常量 |
+| client/ui/kagero/template/bindings/ | BuiltinEvents 使用 `Keys::XXX` 常量 |
+| client/settings/ClientSettings | 初始化默认按键绑定 |
+| 测试代码 | 使用 `Keys::XXX` 替代硬编码数值 |
 
 ---
 
@@ -88,3 +98,11 @@ input.update();     // 计算状态变化和增量
 **问题**：`setKeyEventCallback` 的回调如果返回 `true` 会消费事件，阻止后续的 action 触发。
 
 **注意**：如果 UI 需要拦截键盘输入（如文本框输入时），回调应返回 `true`。
+
+### 6. Keys 常量值与 GLFW 一致但不要直接包含 GLFW
+
+`Keys` 命名空间中的常量值与 GLFW 键码完全相同，但不要因此引入 `<GLFW/glfw3.h>`。Widget 层应始终使用 `Keys::XXX`，保持平台无关性。
+
+### 7. KeyAction 和 KeyMods 在 Types.hpp 而非 KeyBinding.hpp
+
+`KeyAction`（Press/Release/Repeat）和 `KeyMods`（Shift/Control/Alt/Super/CapsLock/NumLock）枚举定义在 `client/ui/kagero/Types.hpp` 中，不在本模块。这是因为它们属于 UI 事件系统，不属于通用输入层。

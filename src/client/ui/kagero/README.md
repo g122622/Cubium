@@ -322,7 +322,7 @@ TooltipRenderer 使用 Minecraft 风格的渲染：
 - `common/core/Types.hpp` - 基础类型定义（i32, u32, String等）
 - `common/core/Result.hpp` - 错误处理
 - `common/util/text/Utf8.hpp` - UTF-8 编码/解码/迭代工具（所有文本Widget依赖此模块处理多字节字符）
-- `common/input/KeyBinding.hpp` - 平台无关键码常量（Keys命名空间），Widget组件通过此模块替代硬编码GLFW键码
+- `client/input/KeyBinding.hpp` - 平台无关键码常量（Keys命名空间），Widget组件通过此模块替代硬编码GLFW键码
 - `client/ui/Font.hpp` - 字体渲染和字形查找
 - `client/ui/Glyph.hpp` - 字形渲染
 - `client/renderer/api/` - 渲染抽象接口（ICanvas实现）
@@ -434,4 +434,4 @@ TextFieldWidget 内部所有位置/索引操作基于 **码点**（而非字节�
 
 ### 12. Widget 键码使用 Keys 常量
 
-Widget组件（TextFieldWidget、SliderWidget、ScrollableWidget等）的 `onKey()` 方法中的键码必须使用 `mc::Keys` 命名空间常量（定义在 `common/input/KeyBinding.hpp`），而非硬编码数值或GLFW宏。键动作判断使用 `KeyAction::Press/Repeat/Release`（定义在 `Types.hpp`），修饰键判断使用 `hasMod(static_cast<KeyMods>(mods), KeyMods::Shift)` 而非位掩码 `mods & 0x0001`。模板系统的 `parseKeyCode()` 和 `parseKeyMods()` 同样使用这些常量和枚举。
+Widget组件（TextFieldWidget、SliderWidget、ScrollableWidget等）的 `onKey()` 方法中的键码必须使用 `mc::Keys` 命名空间常量（定义在 `client/input/KeyBinding.hpp`），而非硬编码数值或GLFW宏。键动作判断使用 `KeyAction::Press/Repeat/Release`（定义在 `Types.hpp`），修饰键判断使用 `hasMod(static_cast<KeyMods>(mods), KeyMods::Shift)` 而非位掩码 `mods & 0x0001`。模板系统的 `parseKeyCode()` 和 `parseKeyMods()` 同样使用这些常量和枚举。

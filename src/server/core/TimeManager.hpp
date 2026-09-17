@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/time/GameTime.hpp"
+#include "server/world/time/GameTime.hpp"
 
 namespace mc::server::core {
 

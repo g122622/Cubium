@@ -66,9 +66,6 @@ world/
 │   │   └── vegetation/         # 植被类
 │   ├── dispense/               # 发射器行为
 │   └── registry/               # 方块注册辅助
-├── blockevent/                  # 方块事件系统（服务端→客户端方块动画同步）
-│   ├── BlockEventData.hpp       # 方块事件数据结构（位置、方块类型、事件参数）
-│   └── README.md                # 方块事件系统文档
 ├── blockentity/                # 方块实体
 │   ├── core/                   # 核心方块实体
 │   ├── interactive/            # 交互类（告示牌、床等）
@@ -180,8 +177,6 @@ world/
 │   ├── base/                   # 基础类型
 │   ├── list/                   # Tick列表
 │   └── manager/                # Tick管理器
-├── time/                       # 游戏时间
-│   └── GameTime.hpp/cpp        # 昼夜循环
 ├── village/                    # 村庄系统
 │   ├── Village.hpp/cpp         # 村庄核心
 │   ├── VillageManager.hpp/cpp  # 村庄管理

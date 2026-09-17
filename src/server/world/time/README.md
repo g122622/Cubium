@@ -5,7 +5,7 @@
 ## 目录结构
 
 ```
-src/common/world/time/
+src/server/world/time/
 ├── GameTime.hpp    # 时间常量定义和 GameTime 类声明
 └── GameTime.cpp    # GameTime 类实现
 ```

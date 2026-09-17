@@ -23,10 +23,10 @@
 
 #include "ClientSettings.hpp"
 
+#include "client/input/KeyBinding.hpp"
 #include "common/core/DefaultValues.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/input/KeyBinding.hpp"
 #include "common/sound/SoundCategory.hpp"
 
 #include <algorithm>

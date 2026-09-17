@@ -31,7 +31,7 @@
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
 #include "common/world/blockentity/storage/ShulkerBoxEntity.hpp"
-#include "common/world/blockevent/BlockEventData.hpp"
+#include "server/world/blockevent/BlockEventData.hpp"
 #include <unordered_set>
 #include <gtest/gtest.h>
 

@@ -32,7 +32,7 @@
 #include "client/ui/kagero/event/InputEvents.hpp"
 #include "client/ui/kagero/event/UIEvents.hpp"
 #include "client/ui/kagero/event/WidgetEvents.hpp"
-#include "common/input/KeyBinding.hpp"
+#include "client/input/KeyBinding.hpp"
 
 using namespace mc::client::ui::kagero::event;
 using mc::i32;

@@ -19,9 +19,6 @@ add_library(mc_common STATIC
     # Registry
     registry/RegistryAccess.cpp
 
-    # Input
-    input/KeyBinding.cpp
-
     # Math
     util/math/MathUtils.cpp
     util/math/ray/Raycast.cpp
@@ -1153,9 +1150,6 @@ add_library(mc_common STATIC
     # World - Biome - Source
     world/biome/source/OverworldBiomeBuilder.cpp
     world/biome/source/NetherBiomeBuilder.cpp
-
-    # World - Time
-    world/time/GameTime.cpp
 
     # World - Weather
     world/weather/WeatherUtils.cpp

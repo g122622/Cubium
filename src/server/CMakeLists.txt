@@ -326,6 +326,8 @@ add_executable(minecraft-server
     world/lighting/engine/BlockLightEngine.cpp
     world/lighting/engine/SkyLightEngine.cpp
     world/lighting/manager/WorldLightManager.cpp
+    # 世界模块 - 游戏时间（自 common/world/time 迁入）
+    world/time/GameTime.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp

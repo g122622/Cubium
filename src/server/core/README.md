@@ -113,7 +113,7 @@ src/server/core/
 | `common/network/ir/IrPacket.hpp` | IR 包定义（ConnectionManager 发送门面使用） |
 | `common/network/sync/ChunkSync.hpp` | 区块同步管理器 |
 | `common/network/codec/PacketSerializer.hpp`<br>`common/network/codec/PacketDeserializer.hpp` | 编解码器（从旧 packet/ 迁出后的存活件，供 IR codec 与残余 wire 桥接使用） |
-| `common/world/time/GameTime.hpp` | 游戏时间类 |
+| `server/world/time/GameTime.hpp` | 游戏时间类 |
 | `common/entity/GameModeUtils.hpp` | 游戏模式工具 |
 | `common/entity/inventory/ContainerTypes.hpp` | 容器类型 |
 | `spdlog` | 日志输出 |

@@ -60,7 +60,7 @@ src/client/settings/
         ├──► common/core/settings/SettingsBase.hpp       # 设置基类（分组管理、序列化）
         ├──► common/core/settings/SettingsTypes.hpp      # 选项类型（IOption, BooleanOption, RangeOption 等）
         ├──► common/core/settings/ResourcePackListOption.hpp  # 资源包列表选项
-        ├──► common/input/KeyBinding.hpp                 # 按键绑定系统
+        ├──► client/input/KeyBinding.hpp                 # 按键绑定系统
         ├──► common/sound/SoundCategory.hpp              # 声音类别枚举
         └──► common/core/DefaultValues.hpp               # 默认值常量
 ```

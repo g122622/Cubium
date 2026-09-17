@@ -16,6 +16,9 @@ src/server/world/
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
 ├── ChunkProgressionTask.hpp/cpp     # 单状态推进任务（构建 WorldGenRegion，调用 _executeStepTask，完成后回调 onChunkGenComplete）
 ├── StaticChunkCache2D.hpp           # 预分配二维区块缓存模板（构造时一次性填充，无空洞，越界断言）
+├── blockevent/
+│   ├── BlockEventData.hpp           # 方块事件数据结构（位置、方块类型、事件参数）
+│   └── README.md
 ├── drop/
 │   ├── BlockDropHandler.hpp/cpp     # 方块掉落处理器（LootTable系统）
 │   └── README.md
@@ -31,6 +34,9 @@ src/server/world/
 │   ├── SpawnConditions.hpp/cpp      # 生成条件检查工具
 │   ├── DespawnManager.hpp/cpp       # 消失管理器（实体消失距离检查）
 │   ├── VillageSiege.hpp/cpp         # 村庄围攻事件
+│   └── README.md
+├── time/
+│   ├── GameTime.hpp/cpp            # 游戏时间（昼夜循环/日光周期）
 │   └── README.md
 └── weather/
     ├── WeatherManager.hpp/cpp       # 天气管理器（天气周期/闪电）

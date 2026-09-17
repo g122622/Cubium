@@ -24,7 +24,7 @@
 #pragma once
 
 #include "Widget.hpp"
-#include "common/input/KeyBinding.hpp"
+#include "client/input/KeyBinding.hpp"
 #include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <cmath>

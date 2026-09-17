@@ -22,7 +22,7 @@
 
 #include "client/ui/kagero/template/bindings/BuiltinEvents.hpp"
 #include "client/ui/kagero/Types.hpp"
-#include "common/input/KeyBinding.hpp"
+#include "client/input/KeyBinding.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero::tpl::bindings::event_utils;
