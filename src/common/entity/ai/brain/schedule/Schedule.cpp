@@ -207,19 +207,25 @@ f32 ScheduleDuties::getWeightAt(i32 dayTime) const
         return 0.0f;
     }
 
-    const DutyTime& current = m_dutyTimes[m_lastIndex];
+    const DutyTime& first = m_dutyTimes.front();
     const DutyTime& last = m_dutyTimes.back();
-    const bool wrapsToLast = dayTime < current.getDayTime();
-    std::size_t startIndex = wrapsToLast ? 0 : m_lastIndex;
-    f32 value = wrapsToLast ? last.getValue() : current.getValue();
 
-    for (std::size_t index = startIndex; index < m_dutyTimes.size(); ++index) {
-        const DutyTime& dutyTime = m_dutyTimes[index];
+    // 查询时间达到或越过最后一个关键帧:沿用最后一个关键帧的权重
+    if (dayTime >= last.getDayTime()) {
+        return last.getValue();
+    }
+
+    // 查询时间严格早于第一个关键帧:跨天回绕,沿用最后一个关键帧的权重
+    if (dayTime < first.getDayTime()) {
+        return last.getValue();
+    }
+
+    // 落在关键帧区间内:线性扫描找到 <= dayTime 的最后一个关键帧
+    f32 value = last.getValue();
+    for (const DutyTime& dutyTime : m_dutyTimes) {
         if (dutyTime.getDayTime() > dayTime) {
             break;
         }
-
-        m_lastIndex = index;
         value = dutyTime.getValue();
     }
 
@@ -243,7 +249,6 @@ void ScheduleDuties::_rebuildDutyTimes()
     }
 
     m_dutyTimes = std::move(deduplicated);
-    m_lastIndex = 0;
 }
 
 } // namespace schedule

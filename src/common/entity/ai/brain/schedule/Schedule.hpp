@@ -157,7 +157,6 @@ private:
     void _rebuildDutyTimes();
 
     std::vector<DutyTime> m_dutyTimes;
-    mutable std::size_t m_lastIndex = 0;
 };
 
 } // namespace schedule
