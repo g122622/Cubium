@@ -42,9 +42,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/facade/GameTestServer.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 

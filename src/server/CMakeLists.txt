@@ -484,7 +484,6 @@ target_link_libraries(minecraft-server
         mc_gen
         mc_common
         mc_bedrock_addon
-        mc_test
         nlohmann_json::nlohmann_json
 )
 
@@ -496,18 +495,41 @@ mc_set_compiler_warnings(minecraft-server)
 mc_copy_runtime_dlls(minecraft-server)
 
 # ============================================================================
-# GameTest 集成测试框架 - server 专属源（facade/minecraft/runner/simulated/script/native-builtin）
+# GameTest 集成测试框架 - 整体作为 server 一部分（原 mc_test 库已取消）
 #
-# 架构约束：facade/+minecraft/+runner/+simulated/+script/ 依赖 server 类型（MinecraftServer/
-# ServerWorld/CommandRegistry）+ mc_bedrock_addon（script/ JS 绑定基建），不能入引擎无关的
-# mc_test 库。经 target_sources 注入 minecraft-server（生产路径：GameTestServer 门面 +
-# /gametest 命令 + @minecraft/server-gametest JS 模块）。
+# base/+framework/+native/（引擎无关核心层）+ facade/+minecraft/+runner/+simulated/+script/
+# +native/builtin/（服务端专属层）合并注入 minecraft-server，命名空间统一 mc::test。
+# 历史上 base/framework/native 曾独立为 mc_test 库，但实际只有服务端使用 gametest
+# （MC 原版即如此），且 client 完全不引用 mc_test，故将其物理迁入 server/test/ 下，
+# 消除"common 库被 server exe 链接"的跨层依赖，目录与逻辑一致。
 # ServerScriptManager.cpp 与 IntegratedServer.cpp 同时编入 client exe（client/CMakeLists.txt），
 # 它们不 include server/test/ 头（GameTestModuleBinding 注册在 GameTestServer.cpp，server 专属），
 # 故 client build 不受此 target_sources 影响。
 # ============================================================================
 target_sources(minecraft-server
     PRIVATE
+        # base/ - 末梢基础类型（依赖链最底，被所有层依赖）
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/base/error/GameTestError.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/base/data/TestData.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/base/coords/TestTransform.cpp
+        # framework/ - 引擎无关抽象核心
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/function/BaseGameTestFunction.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/helper/NullGameTestHelper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/sequence/GameTestSequence.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/registry/GameTestRegistry.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/instance/BaseGameTestInstance.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/batch/GameTestBatch.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/batch/BaseGameTestBatchRunner.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/ticker/GameTestTicker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/AllOfEnvironment.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/EnvironmentRegistry.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/SetGameRulesEnvironment.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/TimeOfDayEnvironment.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/WeatherEnvironment.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/framework/environment/FunctionsEnvironment.cpp
+        # native/ - 原生测试函数族注册机制（被 GameTestRegistrar 封装）
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/native/NativeGameTestFunction.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/native/NativeTestRegistrationBuilder.cpp
         # facade/ - 对外门面层
         ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestServer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test/facade/GameTestCommand.cpp

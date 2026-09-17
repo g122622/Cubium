@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/test/native/NativeGameTestFunction.hpp"
-#include "common/test/native/NativeTestRegistrationBuilder.hpp"
+#include "server/test/native/NativeGameTestFunction.hpp"
+#include "server/test/native/NativeTestRegistrationBuilder.hpp"
 
 #include <string>
 

@@ -23,8 +23,8 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 
 #include <string_view>
 

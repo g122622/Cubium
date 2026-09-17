@@ -24,9 +24,9 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 
 #include <functional>
 #include <memory>

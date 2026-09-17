@@ -23,8 +23,8 @@
 #include "server/test/script/binding/ScriptRegister.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp" // ScriptObjectRegistry/ClassRegistrar
-#include "common/test/base/error/GameTestErrorType.hpp"            // GameTestErrorType::MethodNotImplemented
-#include "common/test/framework/registry/GameTestRegistry.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"            // GameTestErrorType::MethodNotImplemented
+#include "server/test/framework/registry/GameTestRegistry.hpp"
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（spawnSimulatedPlayer stub）
 #include "server/test/script/binding/ScriptRegistrationBuilder.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"

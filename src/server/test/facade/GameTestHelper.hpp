@@ -1,12 +1,12 @@
 #pragma once
 
-#include "common/test/base/coords/TestTransform.hpp"
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/helper/IGameTestHelper.hpp"
-#include "common/test/native/NativeGameTestFunction.hpp" // NativeGameTestFunction::TestBody（wrapNativeBody 返回类型）
-#include "common/util/Direction.hpp"                     // Rotation / Direction
+#include "common/util/Direction.hpp" // Rotation / Direction
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/base/coords/TestTransform.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
+#include "server/test/framework/helper/IGameTestHelper.hpp"
+#include "server/test/native/NativeGameTestFunction.hpp" // NativeGameTestFunction::TestBody（wrapNativeBody 返回类型）
 #include "server/world/ServerWorld.hpp" // ServerWorld 公有继承 IWorld；world() 内联返回 IWorld& 需二者完整类型
 
 #include <memory>

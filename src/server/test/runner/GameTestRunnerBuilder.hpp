@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common/test/framework/batch/GameTestBatch.hpp"
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/framework/batch/GameTestBatch.hpp"
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/test/runner/GameTestRunner.hpp"
 
 #include <cstddef>

@@ -22,8 +22,8 @@
 
 #include "server/test/script/binding/ScriptRegistrationBuilder.hpp"
 
-#include "common/test/framework/registry/GameTestRegistry.hpp"
 #include "common/util/Direction.hpp" // Rotation
+#include "server/test/framework/registry/GameTestRegistry.hpp"
 #include "server/test/script/binding/ScriptGameTestFunction.hpp"
 
 #include <memory>

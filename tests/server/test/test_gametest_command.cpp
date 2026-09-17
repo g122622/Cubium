@@ -41,12 +41,12 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include "server/application/MinecraftServer.hpp" // tick() 经基类公有调用（IntegratedServer::tick protected）
 #include "server/command/CommandRegistry.hpp"     // commandRegistry() 返回完整类型
 #include "server/command/ServerCommandSource.hpp"
 #include "server/test/facade/GameTestCommand.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 
 #include <chrono>
 #include <filesystem>

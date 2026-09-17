@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
 
 #include <string>
 

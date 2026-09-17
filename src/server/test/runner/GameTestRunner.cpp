@@ -1,10 +1,10 @@
 #include "server/test/runner/GameTestRunner.hpp"
 
-#include "common/test/framework/batch/BaseGameTestBatchRunner.hpp"
-#include "common/test/framework/instance/BaseGameTestInstance.hpp"
-#include "common/test/framework/instance/GameTestState.hpp"
-#include "common/test/framework/listener/IGameTestListener.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "server/test/framework/batch/BaseGameTestBatchRunner.hpp"
+#include "server/test/framework/instance/BaseGameTestInstance.hpp"
+#include "server/test/framework/instance/GameTestState.hpp"
+#include "server/test/framework/listener/IGameTestListener.hpp"
 #include "server/test/minecraft/batch/MinecraftGameTestBatchRunner.hpp"
 #include "server/test/runner/GameTestRunnerBuilder.hpp" // builder() 按值返回，需完整类型
 #include "server/test/runner/reporter/GlobalTestReporter.hpp"

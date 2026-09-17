@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "common/test/framework/function/IGameTestFunctionContext.hpp"
+#include "server/test/framework/function/IGameTestFunctionContext.hpp"
 
 namespace mc::test {
 

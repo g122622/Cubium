@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/test/framework/batch/BaseGameTestBatchRunner.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/framework/batch/BaseGameTestBatchRunner.hpp"
 #include "server/test/runner/spawner/StructureGridSpawner.hpp"
 
 namespace mc::server {

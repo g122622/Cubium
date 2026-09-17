@@ -1737,10 +1737,33 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/ServerScriptManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/EventBridge.cpp
         ${CMAKE_SOURCE_DIR}/src/server/mod/bedrock/addon/bridge/ServerEventSignals.cpp
-        # GameTest 集成测试框架 - server 专属源（facade/minecraft/runner/simulated/script/native-builtin）
+        # GameTest 集成测试框架 - 整体作为 server 一部分（原 mc_test 库已取消）
         # mc_tests 编译 IntegratedServer.cpp 故需同 minecraft-server 一致登记 GameTest 源，
         # 否则 /gametest 命令与 GameTestServer 门面符号缺失。GameTestModuleBinding 注册在
         # GameTestServer.cpp（server 专属），不影响 ServerScriptManager.cpp（client 共享）。
+        # base/+framework/+native/ 核心层源（原 mc_test 库内容）随 facade 一起登记。
+        # base/ - 末梢基础类型
+        ${CMAKE_SOURCE_DIR}/src/server/test/base/error/GameTestError.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/base/data/TestData.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/base/coords/TestTransform.cpp
+        # framework/ - 引擎无关抽象核心
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/function/BaseGameTestFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/helper/NullGameTestHelper.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/sequence/GameTestSequence.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/registry/GameTestRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/instance/BaseGameTestInstance.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/batch/GameTestBatch.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/batch/BaseGameTestBatchRunner.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/ticker/GameTestTicker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/AllOfEnvironment.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/EnvironmentRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/SetGameRulesEnvironment.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/TimeOfDayEnvironment.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/WeatherEnvironment.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/framework/environment/FunctionsEnvironment.cpp
+        # native/ - 原生测试函数族注册机制
+        ${CMAKE_SOURCE_DIR}/src/server/test/native/NativeGameTestFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/test/native/NativeTestRegistrationBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/facade/GameTestHelper.cpp
@@ -2461,7 +2484,6 @@ target_link_libraries(mc_tests
         mc_gen
         mc_common
         mc_bedrock_addon
-        mc_test
         mc_offset_allocator
         GTest::gtest
         asio::asio

@@ -36,7 +36,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/test/framework/helper/NullGameTestHelper.hpp"
+#include "server/test/framework/helper/NullGameTestHelper.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
 #include <memory>

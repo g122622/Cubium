@@ -549,7 +549,7 @@ cp tests/integrated/mob_behavior/structures/gametests/glass_pit.mcstructure \
 # 预期：20/20 passed（17 block + 3 内置），exit 0，无崩溃
 ```
 
-**框架清理行为（重要约束）**：`BaseGameTestBatchRunner::tick`（`src/common/test/framework/batch/BaseGameTestBatchRunner.cpp`）在批完成时仅 `m_currentBatchInstances.clear()`（析构实例对象），**不清世界中残留实体**；`BaseGameTestInstance::succeed/fail` 仅跑 `onFinish` 回调 + 通知监听器，**不调 killAllEntities**。`killAllEntities` 只经 JS 绑定（`ScriptTestHelper.cpp`）暴露给测试作者手动调用，且只清结构范围内实体。结合 6.8 的 enablePersistence（测试 Mob 永不自然消失），**测试 Mob 一旦 spawn 且未被测试逻辑杀死，会持续累积**。block_behavior 测试多为短时序 + 实体被测行为致死（摔死/烧死/窒息），累积风险低；但长时序 mob 测试全量跑时需注意此约束。
+**框架清理行为（重要约束）**：`BaseGameTestBatchRunner::tick`（`src/server/test/framework/batch/BaseGameTestBatchRunner.cpp`）在批完成时仅 `m_currentBatchInstances.clear()`（析构实例对象），**不清世界中残留实体**；`BaseGameTestInstance::succeed/fail` 仅跑 `onFinish` 回调 + 通知监听器，**不调 killAllEntities**。`killAllEntities` 只经 JS 绑定（`ScriptTestHelper.cpp`）暴露给测试作者手动调用，且只清结构范围内实体。结合 6.8 的 enablePersistence（测试 Mob 永不自然消失），**测试 Mob 一旦 spawn 且未被测试逻辑杀死，会持续累积**。block_behavior 测试多为短时序 + 实体被测行为致死（摔死/烧死/窒息），累积风险低；但长时序 mob 测试全量跑时需注意此约束。
 
 > 排查要点：`structure not found in TemplateManager` 先查该结构在哪个包（`find tests/integrated -name "<name>.mcstructure"`），确认全量跑加载了提供该结构的包。`--gametest_packs` 传父目录（含多个包子目录），不传包目录本身。
 
@@ -666,4 +666,4 @@ node scripts/test/run-gametests.ts --out-dir=./build/my-reports
 - [Enabling experiments via NBT — wiki.bedrock.dev](https://wiki.bedrock.dev/nbt/enabling-experiments)
 - 工具源码：`scripts/test/setup.ts`、`scripts/test/run_diff.ts`、`scripts/test/_bedrock_single.ts`（基岩单测探针，见 6.1）、`scripts/test/_rebuild_creeper_pit.ts`（mcstructure 格式参考样板，见 6.4）
 - 跨服务端兼容垫片：`tests/integrated/mob_behavior/src/gametest-shim.ts`（见 6.5）、`tests/integrated/mob_behavior/src/cubium-gametest-augment.d.ts`（Cubium 专有方法类型声明）
-- Cubium GameTest 实现：`src/server/test/facade/GameTestServer.{hpp,cpp}`、`src/common/test/framework/registry/GameTestRegistry.cpp`、`src/server/test/runner/reporter/JUnitTestReporter.cpp`
+- Cubium GameTest 实现：`src/server/test/facade/GameTestServer.{hpp,cpp}`、`src/server/test/framework/registry/GameTestRegistry.cpp`、`src/server/test/runner/reporter/JUnitTestReporter.cpp`

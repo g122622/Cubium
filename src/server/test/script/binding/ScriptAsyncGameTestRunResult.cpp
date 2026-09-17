@@ -23,10 +23,10 @@
 
 #include "server/test/script/binding/ScriptAsyncGameTestRunResult.hpp"
 
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 
 #include <spdlog/spdlog.h>
 

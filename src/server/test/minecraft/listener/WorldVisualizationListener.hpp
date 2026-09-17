@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/test/framework/listener/IGameTestListener.hpp"
+#include "server/test/framework/listener/IGameTestListener.hpp"
 
 #include <memory>
 

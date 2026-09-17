@@ -1,10 +1,10 @@
 #pragma once
 
-#include "common/test/framework/batch/GameTestBatch.hpp"
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/listener/IGameTestListener.hpp" // m_instanceListener 成员类型
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/framework/batch/GameTestBatch.hpp"
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/listener/IGameTestListener.hpp" // m_instanceListener 成员类型
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/test/runner/tracker/MultipleTestTracker.hpp"
 
 #include <cstddef>

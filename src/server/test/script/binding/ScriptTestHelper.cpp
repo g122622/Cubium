@@ -28,9 +28,6 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 wrap Entity/Dimension proto
 #include "common/mod/bedrock/addon/lifecycle/ScriptScheduler.hpp"
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/sequence/GameTestSequence.hpp"
 #include "common/util/Direction.hpp"       // Direction / Rotation
 #include "common/util/math/Vector3.hpp"    // mc::math::Vector3d（worldPosition/rotateVector 等）
 #include "common/world/IWorld.hpp"         // mc::IWorld（helper->world() 返回类型，wrap 为 Dimension）
@@ -38,7 +35,10 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp" // mc::BlockState（_unwrapBlockPermutation/setBlockPermutation）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp" // mc::blocks::SculkSpreader（getSculkSpreader wrap/delete 需完整类型）
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
+#include "server/test/framework/sequence/GameTestSequence.hpp"
 #include "server/test/script/binding/ScriptCallbackUtil.hpp"
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestErrorFromResult（_resultToJs 改造）
 #include "server/test/script/binding/ScriptSequence.hpp"

@@ -1,7 +1,7 @@
 #include "server/test/runner/reporter/JUnitTestReporter.hpp"
 
-#include "common/test/framework/instance/BaseGameTestInstance.hpp"
 #include "common/util/assert/AssertMacros.hpp" // MC_UNUSED
+#include "server/test/framework/instance/BaseGameTestInstance.hpp"
 
 #include <spdlog/spdlog.h>
 

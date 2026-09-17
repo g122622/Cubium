@@ -2,10 +2,10 @@
 
 // GameTestHelper.hpp 提供 wrapNativeBody 模板定义（facade，GameTestHelper 完整）；MC_REGISTER_GAME_TEST 宏
 // 展开调用之，须在宏展开前可见——本 TU 顶部 include 即满足（所有头先于宏展开处理）。
-#include "common/test/framework/sequence/GameTestSequence.hpp" // startSequence() 返回值类型（需完整类型调 thenExecute/thenSucceed）
-#include "common/test/native/GameTestMacros.hpp"               // MC_REGISTER_GAME_TEST
-#include "server/test/facade/GameTestHelper.hpp"               // GameTestHelper（facade）+ wrapNativeBody 模板
+#include "server/test/facade/GameTestHelper.hpp"    // GameTestHelper（facade）+ wrapNativeBody 模板
 #include "server/test/facade/GameTestRegistrar.hpp" // GameTestRegistrar（facade，宏依赖）
+#include "server/test/framework/sequence/GameTestSequence.hpp" // startSequence() 返回值类型（需完整类型调 thenExecute/thenSucceed）
+#include "server/test/native/GameTestMacros.hpp"               // MC_REGISTER_GAME_TEST
 
 namespace mc::test {
 

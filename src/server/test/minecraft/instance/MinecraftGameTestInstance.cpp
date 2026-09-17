@@ -1,7 +1,7 @@
 #include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"
 
-#include "common/test/framework/listener/IGameTestListener.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "server/test/framework/listener/IGameTestListener.hpp"
 #include "server/world/ServerWorld.hpp"
 
 namespace mc::test {

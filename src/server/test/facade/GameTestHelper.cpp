@@ -1,10 +1,10 @@
 #include "server/test/facade/GameTestHelper.hpp"
 
-#include "common/test/base/error/GameTestErrorContext.hpp"
-#include "common/test/framework/instance/BaseGameTestInstance.hpp"
-#include "common/test/framework/sequence/GameTestSequence.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/base/error/GameTestErrorContext.hpp"
+#include "server/test/framework/instance/BaseGameTestInstance.hpp"
+#include "server/test/framework/sequence/GameTestSequence.hpp"
 #include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
 

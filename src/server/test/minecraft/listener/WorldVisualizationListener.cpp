@@ -1,7 +1,7 @@
 #include "server/test/minecraft/listener/WorldVisualizationListener.hpp"
 
-#include "common/test/framework/instance/BaseGameTestInstance.hpp"
-#include "common/test/framework/instance/GameTestState.hpp"
+#include "server/test/framework/instance/BaseGameTestInstance.hpp"
+#include "server/test/framework/instance/GameTestState.hpp"
 
 #include <spdlog/spdlog.h>
 

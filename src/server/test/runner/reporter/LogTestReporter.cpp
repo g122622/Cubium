@@ -1,6 +1,6 @@
 #include "server/test/runner/reporter/LogTestReporter.hpp"
 
-#include "common/test/framework/instance/BaseGameTestInstance.hpp"
+#include "server/test/framework/instance/BaseGameTestInstance.hpp"
 
 #include <spdlog/spdlog.h>
 

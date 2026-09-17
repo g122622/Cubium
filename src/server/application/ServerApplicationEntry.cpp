@@ -33,13 +33,13 @@
 
 // GameTest 集成测试框架——仅 minecraft-server exe 编译（client exe 不链接 mc_test）。
 // 经此接入生产服务器的 /gametest 命令 + GameTestTicker 驱动 + @minecraft/server-gametest JS 模块。
-#include "common/test/framework/environment/EnvironmentRegistry.hpp"
-#include "common/test/framework/registry/GameTestRegistry.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "server/command/CommandRegistry.hpp"               // commandRegistry().dispatcher() 需完整类型
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->scriptManager().engine().addModuleFactory
 #include "server/test/facade/GameTestCommand.hpp"
 #include "server/test/facade/GameTestServer.hpp" // --gametest 无头批量自动跑门面
+#include "server/test/framework/environment/EnvironmentRegistry.hpp"
+#include "server/test/framework/registry/GameTestRegistry.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/test/minecraft/structure/BehaviorPackStructureSource.hpp"
 #include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"
 #include "server/test/native/builtin/BuiltinNativeTests.hpp"

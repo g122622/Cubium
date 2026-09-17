@@ -23,11 +23,11 @@
 #include "server/test/script/binding/ScriptGameTestError.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 classId/proto 注册表
-#include "common/test/base/error/GameTestCompletedError.hpp"
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorContext.hpp"
-#include "common/test/base/tags/GameTestTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/base/error/GameTestCompletedError.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorContext.hpp"
+#include "server/test/base/tags/GameTestTags.hpp"
 
 #include <string>
 #include <string_view>

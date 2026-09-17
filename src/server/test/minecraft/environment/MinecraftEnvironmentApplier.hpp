@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/environment/TestEnvironmentDefinition.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
+#include "server/test/framework/environment/TestEnvironmentDefinition.hpp"
 
 namespace mc::server {
 class ServerWorld;

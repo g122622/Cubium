@@ -31,13 +31,13 @@
 
 #include <gtest/gtest.h>
 
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/helper/NullGameTestHelper.hpp"
-#include "common/test/framework/sequence/GameTestSequence.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
+#include "server/test/framework/helper/NullGameTestHelper.hpp"
+#include "server/test/framework/sequence/GameTestSequence.hpp"
 
 #include <string>
 

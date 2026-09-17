@@ -1,12 +1,12 @@
 #include "server/test/minecraft/environment/MinecraftEnvironmentApplier.hpp"
 
-#include "common/test/framework/environment/AllOfEnvironment.hpp"
-#include "common/test/framework/environment/FunctionsEnvironment.hpp"
-#include "common/test/framework/environment/SetGameRulesEnvironment.hpp"
-#include "common/test/framework/environment/TimeOfDayEnvironment.hpp"
-#include "common/test/framework/environment/WeatherEnvironment.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "server/core/TimeManager.hpp" // TimeManager::setDayTime
+#include "server/test/framework/environment/AllOfEnvironment.hpp"
+#include "server/test/framework/environment/FunctionsEnvironment.hpp"
+#include "server/test/framework/environment/SetGameRulesEnvironment.hpp"
+#include "server/test/framework/environment/TimeOfDayEnvironment.hpp"
+#include "server/test/framework/environment/WeatherEnvironment.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp" // WeatherManager::setClear/setRain/setThunder
 

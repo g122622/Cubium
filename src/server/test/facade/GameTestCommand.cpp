@@ -1,14 +1,14 @@
 #include "server/test/facade/GameTestCommand.hpp"
 
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/instance/GameTestState.hpp" // isDone
-#include "common/test/framework/registry/GameTestRegistry.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/instance/GameTestState.hpp" // isDone
+#include "server/test/framework/registry/GameTestRegistry.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/test/minecraft/batch/MinecraftGameTestBatchRunner.hpp" // 复用 helper provider
 #include "server/test/minecraft/helper/MinecraftGameTestHelperProvider.hpp"
 #include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
-#include "common/test/base/data/TestData.hpp"
+#include "server/test/base/data/TestData.hpp"
 
 #include <string>
 #include <vector>

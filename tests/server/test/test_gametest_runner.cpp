@@ -32,14 +32,14 @@
 
 #include <gtest/gtest.h>
 
-#include "common/test/base/data/TestData.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/batch/GameTestBatch.hpp"
-#include "common/test/framework/environment/EnvironmentRegistry.hpp"
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/helper/IGameTestHelper.hpp"
-#include "common/test/native/NativeGameTestFunction.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/base/data/TestData.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
+#include "server/test/framework/batch/GameTestBatch.hpp"
+#include "server/test/framework/environment/EnvironmentRegistry.hpp"
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/helper/IGameTestHelper.hpp"
+#include "server/test/native/NativeGameTestFunction.hpp"
 #include "server/test/runner/GameTestRunnerBuilder.hpp"
 #include "server/test/runner/spawner/StructureGridSpawner.hpp"
 

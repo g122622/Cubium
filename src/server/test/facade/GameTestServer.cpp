@@ -1,13 +1,5 @@
 #include "server/test/facade/GameTestServer.hpp"
 
-#include "common/test/framework/batch/GameTestBatch.hpp"
-#include "common/test/framework/environment/AllOfEnvironment.hpp"
-#include "common/test/framework/environment/EnvironmentRegistry.hpp"
-#include "common/test/framework/environment/TimeOfDayEnvironment.hpp" // TimeOfDayEnvironment（night/day 批时间环境）
-#include "common/test/framework/environment/WeatherEnvironment.hpp"   // WeatherEnvironment（day/night 批强制晴天）
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/registry/GameTestRegistry.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/storage/core/LevelDatCodec.hpp"
@@ -18,8 +10,16 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "server/mod/bedrock/addon/ServerScriptManager.hpp"                // scriptManager()->engine().addModuleFactory
-#include "server/test/facade/GameTestCommand.hpp"                          // GameTestCommand::registerTo
+#include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->engine().addModuleFactory
+#include "server/test/facade/GameTestCommand.hpp"           // GameTestCommand::registerTo
+#include "server/test/framework/batch/GameTestBatch.hpp"
+#include "server/test/framework/environment/AllOfEnvironment.hpp"
+#include "server/test/framework/environment/EnvironmentRegistry.hpp"
+#include "server/test/framework/environment/TimeOfDayEnvironment.hpp" // TimeOfDayEnvironment（night/day 批时间环境）
+#include "server/test/framework/environment/WeatherEnvironment.hpp"   // WeatherEnvironment（day/night 批强制晴天）
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/registry/GameTestRegistry.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/test/minecraft/structure/BehaviorPackStructureSource.hpp" // 行为包 .mcstructure 资源源
 #include "server/test/minecraft/structure/GameTestStructureBootstrap.hpp"  // ensureBuiltinStructureTemplates
 #include "server/test/native/builtin/BuiltinNativeTests.hpp"               // registerBuiltinNativeTests

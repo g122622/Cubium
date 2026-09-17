@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
-#include "common/test/framework/function/IGameTestRunResult.hpp"
+#include "server/test/framework/function/IGameTestRunResult.hpp"
 
 #include <memory>
 

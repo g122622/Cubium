@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/test/framework/helper/IGameTestHelperProvider.hpp"
+#include "server/test/framework/helper/IGameTestHelperProvider.hpp"
 
 #include <memory>
 

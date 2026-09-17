@@ -36,18 +36,18 @@
 
 #include <gtest/gtest.h>
 
-#include "common/test/base/coords/TestTransform.hpp"
-#include "common/test/base/data/TestData.hpp"
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorContext.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/environment/EnvironmentRegistry.hpp"
-#include "common/test/framework/helper/NullGameTestHelper.hpp"
-#include "common/test/framework/sequence/GameTestSequence.hpp"
-#include "common/test/framework/ticker/GameTestTicker.hpp"
 #include "common/util/Direction.hpp" // Rotation
 #include "common/world/block/BlockPos.hpp"
+#include "server/test/base/coords/TestTransform.hpp"
+#include "server/test/base/data/TestData.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorContext.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
+#include "server/test/framework/environment/EnvironmentRegistry.hpp"
+#include "server/test/framework/helper/NullGameTestHelper.hpp"
+#include "server/test/framework/sequence/GameTestSequence.hpp"
+#include "server/test/framework/ticker/GameTestTicker.hpp"
 
 #include <nlohmann/json.hpp>
 

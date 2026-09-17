@@ -23,10 +23,10 @@
 #pragma once
 
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
-#include "common/test/base/data/TestData.hpp"
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/function/IGameTestFunctionContext.hpp"
-#include "common/test/framework/function/IGameTestRunResult.hpp"
+#include "server/test/base/data/TestData.hpp"
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/function/IGameTestFunctionContext.hpp"
+#include "server/test/framework/function/IGameTestRunResult.hpp"
 
 #include <memory>
 #include <string>

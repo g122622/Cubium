@@ -23,11 +23,11 @@
 #include "server/test/script/binding/ScriptSequence.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp" // ScriptObjectRegistry/ClassRegistrar
-#include "common/test/base/error/GameTestError.hpp"
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/sequence/GameTestSequence.hpp"
+#include "server/test/base/error/GameTestError.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
+#include "server/test/framework/sequence/GameTestSequence.hpp"
 #include "server/test/script/binding/ScriptCallbackUtil.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 

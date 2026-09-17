@@ -264,9 +264,9 @@ server/
 |---|---|
 | `ServerSettings` | 服务器配置（端口、玩家数、视距、日志等） |
 
-### test/ - GameTest 集成测试框架服务端专属层
+### test/ - GameTest 集成测试框架（server 整体）
 
-GameTest 框架的服务端专属逻辑（绑 `ServerWorld`/`MinecraftServer`/`ServerPlayer`/`CommandRegistry`）。引擎无关核心（`base/`/`framework/`/`native/` 注册机制）在 `src/common/test/`（→ `mc_test` 库）。本目录编入 `minecraft-server` exe + `mc_tests`，依赖 `mc_test` + 服务端类型 + `mc_bedrock_addon`（script 层）。详见 `test/README.md`。
+GameTest 框架整体作为 server 的一部分，物理位于 `src/server/test/`，编入 `minecraft-server` exe + `mc_tests`，依赖服务端类型 + `mc_bedrock_addon`（script 层）。命名空间统一 `mc::test`。历史上 `base/`/`framework/`/`native/` 曾独立为 `mc_test` 库放在 `src/common/test/`，但实际只有服务端使用 gametest，故将其物理迁入 `server/test/` 下，取消 `mc_test` 独立库。详见 `test/README.md`。
 
 ## 模块间关系
 

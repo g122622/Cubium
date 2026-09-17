@@ -23,11 +23,11 @@
 #include "server/test/script/binding/ScriptGameTestFunction.hpp"
 
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp" // ScriptObjectRegistry
-#include "common/test/base/error/GameTestErrorType.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/function/SyncGameTestRunResult.hpp"
-#include "common/test/framework/helper/IGameTestHelper.hpp"
+#include "server/test/base/error/GameTestErrorType.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
+#include "server/test/framework/function/SyncGameTestRunResult.hpp"
+#include "server/test/framework/helper/IGameTestHelper.hpp"
 #include "server/test/script/binding/ScriptAsyncGameTestRunResult.hpp"
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/script/context/ScriptGameTestFunctionContext.hpp"

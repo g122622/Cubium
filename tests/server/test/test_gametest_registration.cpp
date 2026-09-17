@@ -34,14 +34,14 @@
 
 #include <gtest/gtest.h>
 
-#include "common/test/base/data/TestData.hpp"
-#include "common/test/base/error/GameTestResult.hpp"
-#include "common/test/framework/function/BaseGameTestFunction.hpp"
-#include "common/test/framework/helper/IGameTestHelper.hpp"
-#include "common/test/framework/registry/GameTestRegistry.hpp"
-#include "common/test/native/NativeGameTestFunction.hpp"
-#include "common/test/native/NativeTestRegistrationBuilder.hpp"
+#include "server/test/base/data/TestData.hpp"
+#include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/facade/GameTestRegistrar.hpp"
+#include "server/test/framework/function/BaseGameTestFunction.hpp"
+#include "server/test/framework/helper/IGameTestHelper.hpp"
+#include "server/test/framework/registry/GameTestRegistry.hpp"
+#include "server/test/native/NativeGameTestFunction.hpp"
+#include "server/test/native/NativeTestRegistrationBuilder.hpp"
 
 #include <memory>
 #include <string>

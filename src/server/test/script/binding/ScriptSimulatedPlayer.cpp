@@ -31,13 +31,13 @@
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack/Dimension
 #include "common/resource/ResourceLocation.hpp"                     // ResourceLocation（getEffect typeId 资源位置）
-#include "common/test/base/error/GameTestErrorType.hpp"             // GameTestErrorType::MethodNotImplemented
 #include "common/util/Direction.hpp"    // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
 #include "common/util/math/Vector3.hpp" // Vector3（faceLocation 参数）
 #include "common/world/GlobalPos.hpp"   // GlobalPos（getSpawnPoint 返 optional<GlobalPos>）
 #include "common/world/IWorld.hpp"      // IWorld::dimension()（options.dimension 跨维度判定)
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"        // DimensionId（teleport 目标维度类型）
+#include "server/test/base/error/GameTestErrorType.hpp"       // GameTestErrorType::MethodNotImplemented
 #include "server/test/script/binding/ScriptGameTestError.hpp" // throwGameTestError（stub 用）
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
