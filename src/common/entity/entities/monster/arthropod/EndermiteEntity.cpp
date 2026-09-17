@@ -91,15 +91,15 @@ void EndermiteEntity::registerGoals()
     MonsterEntity::registerGoals();
 
     // 行为目标
-    goalSelector().addGoal(1, new entity::ai::goal::SwimGoal(this));
-    goalSelector().addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
-    goalSelector().addGoal(3, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    goalSelector().addGoal(1, std::make_unique<entity::ai::goal::SwimGoal>(this));
+    goalSelector().addGoal(2, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
+    goalSelector().addGoal(3, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
     goalSelector().addGoal(
-        7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+        7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
             return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
-    goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    goalSelector().addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择
     // MC 原版: targetSelector.addGoal(1, HurtByTargetGoal(this).setAlertOthers())
@@ -109,7 +109,7 @@ void EndermiteEntity::registerGoals()
         m_targetSelector.addGoal(1, std::move(hurtByTarget));
     }
     targetSelector().addGoal(2,
-        new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
                 // 攻击最近的玩家
                 return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
@@ -183,24 +183,25 @@ void SilverfishEntity::registerGoals()
     MonsterEntity::registerGoals();
 
     // 创建召唤同伴目标
-    m_summonGoal = new entity::ai::goal::SilverfishSummonOthersGoal(this);
+    auto summonGoal = std::make_unique<entity::ai::goal::SilverfishSummonOthersGoal>(this);
+    m_summonGoal = summonGoal.get();
 
     // 行为目标
-    goalSelector().addGoal(1, new entity::ai::goal::SwimGoal(this));
-    goalSelector().addGoal(3, m_summonGoal); // 召唤同伴目标（优先级 3）
-    goalSelector().addGoal(4, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
-    goalSelector().addGoal(5, new entity::ai::goal::SilverfishHideInStoneGoal(this)); // 藏入石头目标
-    goalSelector().addGoal(6, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    goalSelector().addGoal(1, std::make_unique<entity::ai::goal::SwimGoal>(this));
+    goalSelector().addGoal(3, std::move(summonGoal)); // 召唤同伴目标（优先级 3）
+    goalSelector().addGoal(4, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
+    goalSelector().addGoal(5, std::make_unique<entity::ai::goal::SilverfishHideInStoneGoal>(this)); // 藏入石头目标
+    goalSelector().addGoal(6, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
     goalSelector().addGoal(
-        7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+        7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
-    goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    goalSelector().addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择
-    targetSelector().addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, true));
+    targetSelector().addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
     targetSelector().addGoal(2,
-        new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
                 return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
             }));

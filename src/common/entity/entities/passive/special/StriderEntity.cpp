@@ -461,15 +461,15 @@ void StriderEntity::registerGoals()
     // m_goalSelector.addGoal(0, new SwimGoal(this));
 
     // 优先级 1: 恐慌逃跑
-    auto* panicGoal = new entity::ai::goal::PanicGoal(this, 1.65);
-    m_panicGoal = panicGoal;
-    m_goalSelector.addGoal(1, panicGoal);
+    auto panicGoal = std::make_unique<entity::ai::goal::PanicGoal>(this, 1.65);
+    m_panicGoal = panicGoal.get();
+    m_goalSelector.addGoal(1, std::move(panicGoal));
 
     // 优先级 2: 繁殖
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 3: 食物诱惑（诡异菌、诡异菌钓竿）
-    auto* temptGoal = new entity::ai::goal::TemptGoal(
+    auto temptGoal = std::make_unique<entity::ai::goal::TemptGoal>(
         this,
         1.4,
         [](const ItemStack& stack) -> bool {
@@ -486,23 +486,23 @@ void StriderEntity::registerGoals()
             return false;
         },
         false);
-    m_temptGoal = temptGoal;
-    m_goalSelector.addGoal(3, temptGoal);
+    m_temptGoal = temptGoal.get();
+    m_goalSelector.addGoal(3, std::move(temptGoal));
 
     // 优先级 4: 寻找熔岩目标
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MoveToLavaGoal>(this, 1.5));
 
     // 优先级 5: 跟随父母
-    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.1));
 
     // 优先级 7: 随机漫步
-    m_goalSelector.addGoal(7, new entity::ai::goal::RandomWalkingGoal(this, 1.0, 60));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 60));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookAtGoal(this, 8.0f));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
     // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 优先级 9: 看向其他炽足兽
     m_goalSelector.addGoal(9,

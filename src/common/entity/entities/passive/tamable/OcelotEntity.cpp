@@ -260,7 +260,7 @@ void OcelotEntity::registerGoals()
 
     // 优先级 3: 食物诱惑（生鱼）
     // scaredByMovement = true，玩家快速移动会吓跑豹猫
-    m_temptGoal = new entity::ai::goal::OcelotTemptGoal(
+    auto temptGoal = std::make_unique<entity::ai::goal::OcelotTemptGoal>(
         this,
         TEMPT_SPEED,
         [](const ItemStack& stack) -> bool {
@@ -268,7 +268,8 @@ void OcelotEntity::registerGoals()
             return item != nullptr && (item == Items::COD || item == Items::SALMON);
         },
         true); // scaredByMovement = true
-    m_goalSelector.addGoal(3, m_temptGoal);
+    m_temptGoal = temptGoal.get();
+    m_goalSelector.addGoal(3, std::move(temptGoal));
 
     // 优先级 4: 躲避玩家（未信任时）- 在 _setupTrustingAI() 中动态添加
     _setupTrustingAI();
@@ -375,9 +376,10 @@ void OcelotEntity::_setupTrustingAI()
 
     // 如果未信任，创建并添加躲避玩家目标
     if (!isTrusting()) {
-        m_avoidPlayerGoal =
-            new entity::ai::goal::OcelotAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
-        m_goalSelector.addGoal(4, m_avoidPlayerGoal);
+        auto avoidGoal = std::make_unique<entity::ai::goal::OcelotAvoidPlayerGoal>(
+            this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
+        m_avoidPlayerGoal = avoidGoal.get();
+        m_goalSelector.addGoal(4, std::move(avoidGoal));
     }
 }
 

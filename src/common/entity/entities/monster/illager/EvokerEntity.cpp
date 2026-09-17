@@ -299,44 +299,48 @@ void EvokerEntity::registerGoals()
     // 优先级: 0 = 游泳, 1 = 施法时看向目标, 2 = 避开玩家, 4 = 召唤恼鬼, 5 = 尖牙攻击,
     //         6 = 唔噜噜法术（转换蓝色羊）, 8 = 随机漫步, 9 = 看向玩家, 10 = 看向生物
 
-    goalSelector().addGoal(0, new entity::ai::goal::SwimGoal(this));
-    goalSelector().addGoal(1, new entity::ai::goal::EvokerCastingSpellGoal(this));
+    goalSelector().addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
+    goalSelector().addGoal(1, std::make_unique<entity::ai::goal::EvokerCastingSpellGoal>(this));
     goalSelector().addGoal(
-        2, new entity::ai::goal::AvoidEntityGoal(this, 8.0f, 0.6, 1.0, [](const LivingEntity* e) -> bool {
+        2, std::make_unique<entity::ai::goal::AvoidEntityGoal>(this, 8.0f, 0.6, 1.0, [](const LivingEntity* e) -> bool {
             return e != nullptr && e->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
-    goalSelector().addGoal(4, new entity::ai::goal::EvokerSummonSpellGoal(this));
-    goalSelector().addGoal(5, new entity::ai::goal::EvokerAttackSpellGoal(this));
-    goalSelector().addGoal(6, new entity::ai::goal::EvokerWololoSpellGoal(this));
-    goalSelector().addGoal(8, new entity::ai::goal::RandomWalkingGoal(this, 0.6));
-    goalSelector().addGoal(9, new entity::ai::goal::LookAtGoal(this, 3.0f, 1.0f, [](const LivingEntity* e) -> bool {
-        return e != nullptr && e->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
-    }));
-    goalSelector().addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* e) -> bool {
-        return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;
-    }));
+    goalSelector().addGoal(4, std::make_unique<entity::ai::goal::EvokerSummonSpellGoal>(this));
+    goalSelector().addGoal(5, std::make_unique<entity::ai::goal::EvokerAttackSpellGoal>(this));
+    goalSelector().addGoal(6, std::make_unique<entity::ai::goal::EvokerWololoSpellGoal>(this));
+    goalSelector().addGoal(8, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 0.6));
+    goalSelector().addGoal(
+        9, std::make_unique<entity::ai::goal::LookAtGoal>(this, 3.0f, 1.0f, [](const LivingEntity* e) -> bool {
+            return e != nullptr && e->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
+        }));
+    goalSelector().addGoal(
+        10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* e) -> bool {
+            return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;
+        }));
 
     // 目标选择器：HurtByTargetGoal - 唤魔者不会反击其他灾厄村民
     targetSelector().addGoal(
-        1, new entity::ai::goal::HurtByTargetGoal(this, false, [](const LivingEntity* attacker) -> bool {
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
     // 优先级 2: 攻击玩家（穿透墙壁追踪15秒）
     {
-        auto* playerTarget = new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true);
+        auto playerTarget = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true);
         playerTarget->setUnseenMemoryTicks(300);
-        targetSelector().addGoal(2, playerTarget);
+        targetSelector().addGoal(2, std::move(playerTarget));
     }
     // 优先级 3: 攻击村民（穿透墙壁感知）
     // 注意：checkSight=false 时 unseenMemoryTicks 不生效，但与 MC 原版保持一致
     {
-        auto* villagerTarget =
-            new entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>(this, false);
+        auto villagerTarget =
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+                this, false);
         villagerTarget->setUnseenMemoryTicks(300);
-        targetSelector().addGoal(3, villagerTarget);
+        targetSelector().addGoal(3, std::move(villagerTarget));
     }
     // 优先级 3: 攻击铁傀儡（穿透墙壁感知）
-    targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, false));
+    targetSelector().addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false));
 }
 
 void EvokerEntity::registerAttributes()

@@ -233,23 +233,23 @@ void CatEntity::registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 恐慌逃跑（受到伤害或着火时）
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.5));
 
     // 优先级 1: 坐下目标（驯服后）- 与PanicGoal同优先级，但SitGoal会检查是否驯服
-    m_goalSelector.addGoal(1, new entity::ai::goal::SitGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SitGoal>(this));
 
     // 优先级 2: 繁殖（驯服后且成体）
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 0.8));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 0.8));
 
     // 优先级 3: 在主人身边放松（驯服后，主人睡觉时）
-    m_goalSelector.addGoal(3, new entity::ai::goal::CatRelaxOnOwnerGoal(this, TEMPT_SPEED));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::CatRelaxOnOwnerGoal>(this, TEMPT_SPEED));
 
     // 优先级 4: 食物诱惑（生鱼用于驯服）
     // 注意：scaredByMovement = true，猫会被玩家快速移动吓跑
-    m_temptGoal = new CatTemptGoal(
+    auto temptGoal = std::make_unique<CatTemptGoal>(
         this,
         TEMPT_SPEED,
         [](const ItemStack& stack) -> bool {
@@ -257,36 +257,38 @@ void CatEntity::registerGoals()
             return item != nullptr && (item == Items::COD || item == Items::SALMON);
         },
         true); // scaredByMovement = true
-    m_goalSelector.addGoal(3, m_temptGoal);
+    m_temptGoal = temptGoal.get();
+    m_goalSelector.addGoal(3, std::move(temptGoal));
 
     // 优先级 4: 避开玩家（未驯服时）- 在 _setupTamedAI() 中动态添加
     // 初始时根据驯服状态添加
     _setupTamedAI();
 
     // 优先级 5: 躺在床上（驯服后）
-    m_goalSelector.addGoal(5, new entity::ai::goal::CatLieOnBedGoal(this, 1.1));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::CatLieOnBedGoal>(this, 1.1));
 
     // 优先级 6: 跟随父母（幼体行为）
-    m_goalSelector.addGoal(6, new entity::ai::goal::FollowParentGoal(this, 1.0));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.0));
 
     // 优先级 7: 跟随主人（驯服后）
-    m_goalSelector.addGoal(7, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 5.0f, 10.0f, 32.0f));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::FollowOwnerGoal>(this, 1.0, 5.0f, 10.0f, 32.0f));
 
     // 优先级 8: 近战攻击（未驯服猫猎杀兔子/幼海龟）。
     // targetSelector 的 NonTamedTargetGoal<RabbitEntity/TurtleEntity> 设 attackTarget 后，
     // 由本 goal 执行接近+攻击。此前缺少此 goal，猫锁定目标却不攻击。
     // vanilla Cat 用 OcelotAttackGoal(extends MeleeAttackGoal)，此处用 MeleeAttackGoal 等价。
     // longMemory=true 使猫在短暂失去视线时仍持续追踪目标。
-    m_goalSelector.addGoal(8, new entity::ai::goal::MeleeAttackGoal(this, 1.0, true));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, true));
 
     // 优先级 10: 避水随机漫步
-    m_goalSelector.addGoal(10, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.8, 1.0000001E-5f));
+    m_goalSelector.addGoal(
+        10, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8, 1.0000001E-5f));
 
     // 优先级 12: 看向玩家
-    m_goalSelector.addGoal(12, new entity::ai::goal::LookAtGoal(this, 8.0f));
+    m_goalSelector.addGoal(12, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
     // 优先级 13: 随机看向
-    m_goalSelector.addGoal(13, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(13, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // ===== 目标选择器 (targetSelector) =====
 
@@ -320,8 +322,9 @@ void CatEntity::_setupTamedAI()
 
     // 如果未驯服，创建并添加避开玩家目标
     if (!isTamed()) {
-        m_avoidPlayerGoal = new CatAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
-        m_goalSelector.addGoal(4, m_avoidPlayerGoal);
+        auto avoidGoal = std::make_unique<CatAvoidPlayerGoal>(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
+        m_avoidPlayerGoal = avoidGoal.get();
+        m_goalSelector.addGoal(4, std::move(avoidGoal));
     }
 }
 

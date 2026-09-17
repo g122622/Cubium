@@ -287,7 +287,7 @@ void SnifferEntity::registerGoals()
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 3: 食物诱惑（火把花种子、瓶草荚果）
-    auto* temptGoal = new entity::ai::goal::TemptGoal(
+    auto temptGoal = std::make_unique<entity::ai::goal::TemptGoal>(
         this,
         1.25,
         [](const ItemStack& stack) -> bool {
@@ -302,7 +302,7 @@ void SnifferEntity::registerGoals()
             return false;
         },
         false);
-    m_goalSelector.addGoal(3, temptGoal);
+    m_goalSelector.addGoal(3, std::move(temptGoal));
 
     // 优先级 4: 跟随父母（幼年嗅探兽）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.1));
