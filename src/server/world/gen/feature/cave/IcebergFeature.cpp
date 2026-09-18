@@ -91,7 +91,7 @@ bool IcebergFeature::place(IWorld& world,
     const BlockPos& origin,
     const IcebergConfig& config)
 {
-    // origin 强制对齐到海平面高度（MC: new BlockPos(x, seaLevel, z)）。
+    // origin 强制对齐到海平面高度
     BlockPos blockpos(origin.x, generator.seaLevel(), origin.z);
     const bool flag = random.nextDouble() > 0.7; // 偶尔的开凿/雪块开关
     const BlockState* blockstate = config.state;

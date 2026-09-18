@@ -477,7 +477,6 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     const ChunkCoord targetChunkX = chunk.x();
     const ChunkCoord targetChunkZ = chunk.z();
 
-    // MC 1.21.11: 单一雕刻阶段（无 LIQUID_CARVERS），含水层系统决定填充内容
     CarvingMask& carvingMask = chunk.carvingMask();
 
     // 从 ChunkPrimer 缓存的 NoiseChunk 获取 Aquifer
@@ -488,26 +487,8 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
         aquifer = const_cast<world::gen::aquifer::Aquifer*>(noiseChunkPtr->aquifer());
     }
 
-    // MC 1.21: 扩展 CarvingContext 包含 NoiseChunk 和 RandomState
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer, noiseChunkPtr, m_randomState.get());
 
-    // MC 1.21.11: applyCarvers 中的生物群系查询使用噪声源直接查询（不带 Voronoi 缩放）
-    // 参考: NoiseBasedChunkGenerator.applyCarvers()
-    //   chunkaccess.carverBiome(
-    //       () -> this.getBiomeGenerationSettings(
-    //           this.biomeSource.getNoiseBiome(
-    //               QuartPos.fromBlock(chunkpos1.getMinBlockX()), 0,
-    //               QuartPos.fromBlock(chunkpos1.getMinBlockZ()), p_224226_.sampler())));
-    // MC 直接调用 biomeSource.getNoiseBiome()（quart 坐标，Y=0），
-    // 不使用 BiomeManager 的 Voronoi 缩放。
-
-    // MC 1.21.11: 按生物群系选择雕刻器
-    // 遍历 [-8, +8] 范围内的起始区块坐标
-    // 对于每个起始区块，采样其中心生物群系的雕刻器列表
-    // 参考: NoiseBasedChunkGenerator.applyCarvers
-    // MC 使用 WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()))
-    // 然后对每个雕刻器调用 setLargeFeatureSeed(seed + carverIndex, chunkX, chunkZ)
-    // setLargeFeatureSeed 使用 LegacyRandomSource 的 nextLong() 生成乘数
     math::JavaLegacyRandom worldgenRandom;
 
     for (i32 dx = -8; dx <= 8; ++dx) {
@@ -515,7 +496,6 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const ChunkCoord originChunkX = targetChunkX + dx;
             const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-            // MC 1.21.11: 直接查询噪声生物群系源（不带 Voronoi 缩放）
             // Y=0 处采样，quart 坐标 = block >> 2
             const i32 originBlockX = (originChunkX << 4) + 8;
             const i32 originBlockZ = (originChunkZ << 4) + 8;
@@ -560,8 +540,6 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "PlaceFeatures", "x", chunk.x(), "z", chunk.z());
 
-    // MC 1.21.11: 在 FEATURES 阶段开始前，从已有方块数据初始化 FINAL_HEIGHTMAPS
-    // CARVERS 阶段切换到 FINAL_HEIGHTMAPS 后，需要从 NOISE + SURFACE 阶段的方块重新计算
     chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);
 
     const ChunkCoord chunkX = chunk.x();
@@ -569,7 +547,6 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // === MC 1.21: FeatureSorter 懒初始化 ===
     // 构建所有可能生物群系的拓扑排序 placed_feature 列表
     std::call_once(m_featuresPerStepFlag, [this]() {
         const std::vector<BiomeId>& possibleBiomes = m_biomeSource->possibleBiomes();
@@ -582,10 +559,6 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
             PlacedFeatureRegistry::instance());
     });
 
-    // === MC 1.21: 收集 3x3 区块邻域内的 section biomes ===
-    // 对应 Java: ChunkPos.rangeClosed(sectionpos.chunk(), 1)
-    // MC 1.21.11: 遍历每个 section 的 BiomeContainer 所有 4x4x4 条目（64个）
-    // 使用 getBiomeAtBlock 的区块内坐标映射到 4x4x4 采样点
     std::unordered_set<BiomeId> sectionBiomes;
     for (ChunkCoord dz = -1; dz <= 1; ++dz) {
         for (ChunkCoord dx = -1; dx <= 1; ++dx) {
@@ -633,10 +606,6 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     }
 
     // === MC 1.21: 按装饰阶段交错放置结构和特征 ===
-    // 对应 Java: ChunkGenerator.applyBiomeDecoration()
-    // 每个阶段：先放结构，再放特征
-    // MC 使用 WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()))
-    // 然后调用 setDecorationSeed(worldSeed, blockX, blockZ)
     // 注意：ConfiguredFeature::place 当前签名需要 math::Random&（Xoroshiro128++），
     // 但 setDecorationSeed 的种子推导算法需要 JavaLegacyRandom 才能与 MC 一致
     // TODO: 将 ConfiguredFeature::place 等方法的签名改为 IRandom& 以支持 JavaLegacyRandom
@@ -693,7 +662,6 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
         }
 
         // === 放置该阶段的生物群系特征 ===
-        // 对应 Java: IntSet intset = new IntArraySet(); ... for each biome add feature indices
         if (stepIndex < featureSteps) {
             const FeatureSorter::StepFeatureData& stepData = m_featuresPerStep[static_cast<size_t>(stepIndex)];
             if (stepData.features.empty()) {

@@ -170,10 +170,6 @@ void SingleJigsawPiece::place(IWorldWriter& world,
     }
 
     // 4. 投影处理器（terrain_matching → GravityStructureProcessor）
-    // 对应 MC 1.21 StructureTemplatePool.Projection.TERRAIN_MATCHING 的固定处理器列表：
-    //   new GravityProcessor(Heightmap.Types.WORLD_SURFACE_WG, -1)
-    // heightmapType=0 对应 WorldSurfaceWG，offset 固定为 -1（不依赖 groundLevelDelta）。
-    // groundLevelDelta 仅用于 JigsawJunction 的 deltaY 计算（见 JigsawAssembler::tryPlacePiece），不参与此处。
     if (placed.projection == JigsawPlacementBehaviour::TerrainMatching) {
         processorList.addProcessor(std::make_unique<GravityStructureProcessor>(0, -1));
     }
