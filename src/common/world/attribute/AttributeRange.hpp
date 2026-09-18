@@ -23,37 +23,47 @@
 
 #pragma once
 
-#include "common/core/Types.hpp"
+#include <algorithm>
+#include <functional>
 
 namespace mc {
-namespace entity {
-namespace ai {
-namespace brain {
-namespace schedule {
+namespace world {
+namespace attribute {
 
 /**
- * @brief 单个日程时间片的权重记录
+ * @brief 属性值范围
  *
- * 用于表示某个时间点开始的活动权重。
+ * 用于验证和规范化环境属性的值。
  */
-class DutyTime {
+template <typename Value>
+class AttributeRange {
 public:
-    DutyTime(i32 dayTime, f32 value) noexcept
-        : m_dayTime(dayTime)
-        , m_value(value)
+    AttributeRange() = default;
+
+    AttributeRange(std::function<bool(Value)> validateFn, std::function<Value(Value)> sanitizeFn)
+        : m_validate(std::move(validateFn))
+        , m_sanitize(std::move(sanitizeFn))
     {}
 
-    [[nodiscard]] i32 getDayTime() const { return m_dayTime; }
+    bool validate(Value value) const { return m_validate(value); }
+    Value sanitize(Value value) const { return m_sanitize(value); }
 
-    [[nodiscard]] f32 getValue() const { return m_value; }
+    static AttributeRange<Value> any()
+    {
+        return AttributeRange<Value>([](Value) { return true; }, [](Value v) { return v; });
+    }
+
+    static AttributeRange<float> ofFloat(float min, float max)
+    {
+        return AttributeRange<float>([min, max](float v) { return v >= min && v <= max; },
+            [min, max](float v) { return std::clamp(v, min, max); });
+    }
 
 private:
-    i32 m_dayTime;
-    f32 m_value;
+    std::function<bool(Value)> m_validate;
+    std::function<Value(Value)> m_sanitize;
 };
 
-} // namespace schedule
-} // namespace brain
-} // namespace ai
-} // namespace entity
+} // namespace attribute
+} // namespace world
 } // namespace mc

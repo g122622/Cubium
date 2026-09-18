@@ -26,7 +26,6 @@
 #include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Activity.hpp"
-#include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
 #include "common/entity/ai/brain/task/Task.hpp"
 #include "common/entity/ai/brain/task/tasks/action/ActionTasks.hpp"     // AttackTask
@@ -82,10 +81,12 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/world/timeline/Timelines.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -202,7 +203,7 @@ void VillagerEntity::tick()
     // 工作站点检查由 WorkAtJobSiteGoal 自动处理
     // - shouldExecute() 检查是否是工作时间 (2000-9000 ticks) 和是否有工作站点
     // - tick() 中使用 isWithinDistance() 检查是否在工作站点附近
-    // - Schedule 系统在 2000 ticks 时自动切换到 WORK 活动
+    // - 时间线在 2000 ticks 时自动切换到 WORK 活动
 }
 
 void VillagerEntity::die(DamageSource& cause)
@@ -601,8 +602,10 @@ void VillagerEntity::initializeBrain()
     m_brain->registerSensor(std::make_unique<BabySensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<InteractableDoorsSensor<VillagerEntity>>());
 
-    // 设置日程
-    m_brain->setSchedule(&ai::brain::schedule::Schedule::VILLAGER_DEFAULT);
+    // 设置时间线：幼年村民走幼年活动轨道，成年村民走成年活动轨道
+    m_brain->setTimeline(&world::timeline::Timelines::VILLAGER_SCHEDULE(),
+        isChild() ? world::attribute::EnvironmentAttributes::BABY_VILLAGER_ACTIVITY()
+                  : world::attribute::EnvironmentAttributes::VILLAGER_ACTIVITY());
 
     // 设置默认活动
     m_brain->setDefaultActivities({ai::brain::schedule::Activity::IDLE});
@@ -893,7 +896,7 @@ void VillagerEntity::rest()
 {
     // 停止工作状态
     // 村民的睡眠由Brain系统自动管理：
-    // - Schedule::VILLAGER_DEFAULT 在游戏时间12000 ticks时切换到 Activity::REST
+    // - Timelines::VILLAGER_SCHEDULE 在游戏时间12000 ticks时切换到 Activity::REST
     // - SleepAtNightGoal 在REST活动期间自动检查睡眠条件并执行睡眠
     m_working = false;
     m_atWorkstation = false;

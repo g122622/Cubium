@@ -1,6 +1,6 @@
 #Brain AI 系统
 
-Brain系统是Minecraft 1.16.5引入的高级AI控制框架，用于更复杂的行为管理（如村民、猪灵等）。
+Brain系统是Minecraft的高级AI控制框架，用于更复杂的行为管理（如村民、猪灵等）。
 
             ##目录结构
 
@@ -18,12 +18,9 @@ Brain系统是Minecraft 1.16.5引入的高级AI控制框架，用于更复杂的
 │   ├── BlockPosTarget.hpp #方块位置目标实现
 │   ├── WalkTarget.hpp #行走目标封装
 │   └── README.md #Memory模块说明
-├── schedule / #日程系统
-│   ├── Activity.hpp #活动类型定义（15种）
-│   ├── Activity.cpp #活动类型实现
-│   ├── Schedule.hpp #日程安排
-│   ├── Schedule.cpp #日程实现（4种预定义日程）
-│   └── DutyTime.hpp #值班时间定义（离散duty时间片）
+├── schedule / #活动类型
+│   ├── Activity.hpp #活动类型定义
+│   └── Activity.cpp #活动类型实现（日程改由 world/timeline 驱动）
 ├── sensor / #传感器系统
 │   ├── Sensor.hpp #传感器基类
 │   ├── SensorType.hpp #传感器类型工厂
@@ -56,10 +53,11 @@ Brain系统是Minecraft 1.16.5引入的高级AI控制框架，用于更复杂的
     │   ├── IPositionTarget.hpp → BlockPosTarget.hpp → WalkTarget.hpp(位置目标链)
     │   └── MemoryModules.hpp(便捷别名)
     │
-    ├── schedule / (日程调度)
-    │   ├── Activity.hpp(活动枚举)
-    │   ├── DutyTime.hpp(时间片)
-    │   └── Schedule.hpp(日程表)
+    ├── schedule / (活动类型)
+    │   └── Activity.hpp(活动类型)
+    │
+    ├── 外部依赖：world / timeline / Timeline 与 world / attribute / EnvironmentAttribute
+    │   （setTimeline 注册活动属性，内部创建轨道采样器按 dayTime 采样当前活动）
     │
     ├── sensor / (环境感知)
     │   ├── Sensor.hpp(基类)
@@ -87,7 +85,7 @@ Brain系统是Minecraft 1.16.5引入的高级AI控制框架，用于更复杂的
                 TemptTask)
 ```
 
-            数据流：`Sensor` 更新 `Memory` → `Schedule` 选择 `Activity` → `Task` 根据 `Memory` 执行行为
+            数据流：`Sensor` 更新 `Memory` → `Timeline` 按 dayTime 采样 `Activity` → `Task` 根据 `Memory` 执行行为
 
             ##上下游外部依赖关系
 
@@ -163,9 +161,11 @@ Brain系统是Minecraft 1.16.5引入的高级AI控制框架，用于更复杂的
 
         WalkTarget 构造时会断言 target 非空，确保传入有效的 PositionTargetPtr。
 
-        ## #7. Schedule 使用离散时间片
+        ## #7. 活动由 Timeline 关键帧驱动
 
-`Schedule` / `ScheduleDuties` 使用离散 duty 时间片语义，不是连续插值。参考 MC 1.16.5 的 `Schedule` 类。
+实体的 `Activity` 由 `Timeline` 按 dayTime 采样得到：`Brain::setTimeline` 接收时间线与活动环境属性，
+创建 `AttributeTrackSampler` 并按 tick 缓存采样结果。活动是离散值，使用阶跃插值——
+采样进度抵达下一关键帧时才切换活动。
 
         ## #8. 传感器更新频率
 

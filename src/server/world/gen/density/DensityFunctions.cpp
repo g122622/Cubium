@@ -44,13 +44,6 @@ namespace mc::world::gen::density {
 EndIslands::EndIslands(u64 seed)
     : m_seed(seed)
 {
-    // MC 1.21.11: EndIslandDensityFunction(long p_208630_)
-    //   RandomSource randomsource = new LegacyRandomSource(p_208630_);
-    //   randomsource.consumeCount(17292);
-    //   this.islandNoise = new SimplexNoise(randomsource);
-    //
-    // consumeCount(17292) 调用 nextInt() 17292 次，每次推进一次 LCG 状态。
-    // JavaLegacyRandom::consumeCount(17292) 精确复刻此行为。
     math::JavaLegacyRandom rng(seed);
     rng.consumeCount(17292);
     m_islandNoise = std::make_unique<noise::SimplexNoise>(rng);

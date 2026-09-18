@@ -435,7 +435,6 @@ add_library(mc_common STATIC
     # Entity - Villager
     entity/entities/villager/ProfessionMapping.cpp
     entity/ai/brain/schedule/Activity.cpp
-    entity/ai/brain/schedule/Schedule.cpp
     entity/ai/pathfinding/PathPoint.cpp
     entity/ai/pathfinding/Path.cpp
     entity/ai/pathfinding/Region.cpp
@@ -662,6 +661,13 @@ add_library(mc_common STATIC
     item/enchantment/enchantments/mace/WindBurstEnchantment.cpp
     item/enchantment/enchantments/trident/ImpalingEnchantment.cpp
     item/enchantment/enchantments/tool/UnbreakingEnchantment.cpp
+
+    # World - Attribute
+    world/attribute/AttributeTypes.cpp
+    world/attribute/EnvironmentAttributes.cpp
+
+    # World - Timeline
+    world/timeline/Timelines.cpp
 
     # World - Entity
     world/entity/EntityManager.cpp

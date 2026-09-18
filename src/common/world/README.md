@@ -1,6 +1,6 @@
 # World Module
 
-世界模块是 Cubium 世界模拟的核心，提供地形生成、方块/流体管理、光照系统、区块处理和世界状态管理。实现兼容 MC 1.16.5 的世界机制。
+世界模块是 Cubium 世界模拟的核心，提供地形生成、方块/流体管理、光照系统、区块处理和世界状态管理。
 
 ## 目录结构
 
@@ -11,6 +11,10 @@ world/
 ├── WorldConstants.hpp          # 世界常量（高度限制、区块尺寸等）和坐标转换工具
 ├── WorldConfig.hpp             # 世界配置
 ├── WorldEvents.hpp             # 世界事件ID常量
+├── attribute/                  # 环境属性系统（属性类型、修改器、预定义属性）
+│   └── README.md               # 环境属性系统文档
+├── timeline/                   # 时间线系统（关键帧轨道，按 dayTime 驱动环境属性）
+│   └── README.md               # 时间线系统文档
 ├── gameevent/                  # 游戏事件系统
 │   ├── GameEvent.hpp           # 游戏事件类（含 Context）
 │   ├── GameEvents.hpp          # 原版游戏事件常量定义

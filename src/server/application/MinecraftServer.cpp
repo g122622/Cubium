@@ -624,8 +624,6 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
     });
     world.setOnBroadcastBlockEntity([this, &world](const BlockPos& pos) {
         // 方块实体数据变化后，获取最新 NBT 快照并广播给附近客户端
-        // 参考 MC Java: ServerLevel.sendBlockUpdated -> PlayerList.broadcast(
-        //   null, x, y, z, 64.0, dimension, new ClientboundBlockEntityDataPacket)
         const BlockEntity* entity = world.getBlockEntity(pos);
         if (entity == nullptr) {
             return;
@@ -1352,11 +1350,7 @@ void MinecraftServer::setupDragonFightBossBar()
         return;
     }
 
-    // 创建服务端末影龙 Boss 栏并注入 EndDragonFight
-    // 对应 MC Java: EndDragonFight.dragonEvent = new ServerBossEvent(
-    //     Component.translatable("entity.minecraft.ender_dragon"),
-    //     BossBarColor.PINK, BossBarOverlay.PROGRESS)
-    //     .setPlayBossMusic(true).setCreateWorldFog(true);
+    // TODO: 创建服务端末影龙 Boss 栏并注入 EndDragonFight
 
     // 使用世界种子 + 当前时间生成 UUID 随机数种子，保证每次启动生成不同的 Boss 栏 UUID
     math::Random uuidRng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));

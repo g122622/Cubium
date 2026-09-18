@@ -99,7 +99,6 @@ bool GeodeFeature::place(
 
     // 分布点：每个点带一个 pointOffset 偏移，参与 distSqr 累加。
     const i32 k = config.distributionPoints->sample(random);
-    // MC: WorldgenRandom(new LegacyRandomSource(seed))，Cubium 用 Xoroshiro 等价种子化。
     math::Random worldgenRandom(generator.seed());
     auto normalNoise = std::make_unique<noise::NormalNoise>(worldgenRandom, -4, std::vector<f64>{1.0});
 

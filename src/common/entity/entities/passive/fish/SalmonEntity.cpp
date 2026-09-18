@@ -112,7 +112,6 @@ std::optional<ResourceLocation> SalmonEntity::getHurtSound(DamageSource& /*sourc
 
 ItemStack SalmonEntity::getBucketItemStack() const
 {
-    // 对齐 Java Salmon.getBucketItemStack() = new ItemStack(Items.SALMON_BUCKET)。
     return ItemStack(Items::SALMON_BUCKET, 1);
 }
 

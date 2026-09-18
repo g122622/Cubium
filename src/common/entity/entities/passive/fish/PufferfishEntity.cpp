@@ -278,7 +278,6 @@ void PufferfishEntity::setPuffState(PuffState state)
 
 ItemStack PufferfishEntity::getBucketItemStack() const
 {
-    // 对齐 Java Pufferfish.getBucketItemStack() = new ItemStack(Items.PUFFERFISH_BUCKET)。
     return ItemStack(Items::PUFFERFISH_BUCKET, 1);
 }
 
