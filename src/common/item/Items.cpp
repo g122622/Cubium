@@ -1638,7 +1638,6 @@ void Items::_registerMaterials()
         &registry.registerItem(ResourceLocation("minecraft:amethyst_shard"), ItemProperties().maxStackSize(64));
 
     // 粗矿（Raw Ore）- 铁矿石/铜矿石/金矿石的掉落物
-    // 参考: net.minecraft.item.Items.RAW_IRON / RAW_COPPER / RAW_GOLD
     RAW_IRON = &registry.registerItem(ResourceLocation("minecraft:raw_iron"), ItemProperties().maxStackSize(64));
 
     RAW_COPPER = &registry.registerItem(ResourceLocation("minecraft:raw_copper"), ItemProperties().maxStackSize(64));
@@ -1697,7 +1696,6 @@ void Items::_registerMaterials()
         registry, VanillaBlocks::DEEPSLATE_REDSTONE_ORE, "deepslate_redstone_ore", ItemProperties().maxStackSize(64));
 
     // 粗矿块（Raw Ore Block）
-    // 参考: net.minecraft.item.Items.RAW_IRON_BLOCK / RAW_COPPER_BLOCK / RAW_GOLD_BLOCK
     RAW_IRON_BLOCK = &registerBlockBackedItem(
         registry, VanillaBlocks::RAW_IRON_BLOCK, "raw_iron_block", ItemProperties().maxStackSize(64));
 
@@ -2181,7 +2179,6 @@ void Items::_registerArmor()
     // ========================================================================
     // 狼铠 - MC 1.20.5+ 新增
     // 使用犰狳鳞甲材质，可染色，64点耐久，防御值11（Body槽位）
-    // 参考: net.minecraft.item.WolfArmorItem
     // ========================================================================
     WOLF_ARMOR = &registry.registerItem<item::items::WolfArmorItem>(ResourceLocation("minecraft:wolf_armor"),
         ArmorMaterials::ARMADILLO_SCUTE,
@@ -2194,7 +2191,6 @@ void Items::_registerArmor()
     // 护甲值由材质的 Body 槽位防御值提供（与 MC 1.21.11 Item.Properties.nautilusArmor
     // 通过 ArmorMaterial.createAttributes(ArmorType.BODY) 取护甲值的语义一致）：
     // 铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19
-    // 参考: net.minecraft.world.item.Item.Properties.nautilusArmor(ArmorMaterial) (MC 1.21.11)
     // ========================================================================
     // 铜鹦鹉螺铠甲 - +4 护甲
     COPPER_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
@@ -2305,7 +2301,6 @@ void Items::_registerFood()
         ResourceLocation("minecraft:carrot"), &Foods::CARROT, ItemProperties().maxStackSize(64));
 
     // 紫颂果 - 食用后随机传送
-    // 参考: net.minecraft.item.ChorusFruitItem
     CHORUS_FRUIT = &registry.registerItem<item::items::ChorusFruitItem>(
         ResourceLocation("minecraft:chorus_fruit"), &Foods::CHORUS_FRUIT, ItemProperties().maxStackSize(64));
 
@@ -2320,7 +2315,6 @@ void Items::_registerFood()
         ItemProperties().maxStackSize(64).rarity(ItemRarity::Rare));
 
     // 蜂蜜瓶 - 清除中毒效果，返回玻璃瓶
-    // 参考: net.minecraft.item.HoneyBottleItem
     HONEY_BOTTLE = &registry.registerItem<item::items::HoneyBottleItem>(
         ResourceLocation("minecraft:honey_bottle"), &Foods::HONEY_BOTTLE, ItemProperties().maxStackSize(16));
 
@@ -2452,7 +2446,6 @@ void Items::_registerMisc()
 
     // 刷子 - 考古学工具，用于刷可疑方块和犰狳
     // 耐久度 64，附魔能力 1（仅耐久/经验修补/消失诅咒）
-    // 参考: net.minecraft.world.item.BrushItem
     BRUSH = &registry.registerItem<item::BrushItem>(
         ResourceLocation("minecraft:brush"), ItemProperties().maxDamage(item::BrushItem::MAX_DURABILITY));
 
@@ -2628,7 +2621,6 @@ void Items::_registerCrops()
     WHEAT = &registry.registerItem(ResourceLocation("minecraft:wheat"), ItemProperties().maxStackSize(64));
 
     // 干草块 - 用于喂养马属动物，恢复大量生命值
-    // 参考: new BlockItem(Blocks.HAY_BLOCK, new Item.Properties().group(ItemGroup.DECORATIONS))
     HAY_BLOCK =
         &registerBlockBackedItem(registry, VanillaBlocks::HAY_BLOCK, "hay_block", ItemProperties().maxStackSize(64));
 
@@ -2651,7 +2643,6 @@ void Items::_registerCrops()
     SUGAR = &registry.registerItem(ResourceLocation("minecraft:sugar"), ItemProperties().maxStackSize(64));
 
     // 竹子 - 熊猫食物
-    // 参考: new BlockItem(Blocks.BAMBOO, new Item.Properties().group(ItemGroup.DECORATIONS))
     BAMBOO = &registerBlockBackedItem(registry, VanillaBlocks::BAMBOO, "bamboo", ItemProperties().maxStackSize(64));
 }
 
@@ -2660,28 +2651,23 @@ void Items::_registerAquaticMaterials()
     auto& registry = ItemRegistry::instance();
 
     // 海龟鳞甲 - 海龟长大时掉落，用于合成海龟壳
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     // 注意: MC 1.20.5+ 将 scute 重命名为 turtle_scute
     TURTLE_SCUTE =
         &registry.registerItem(ResourceLocation("minecraft:turtle_scute"), ItemProperties().maxStackSize(64));
 
     // 犰狳鳞甲 - 刷犰狳获得，用于合成狼铠
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     ARMADILLO_SCUTE =
         &registry.registerItem(ResourceLocation("minecraft:armadillo_scute"), ItemProperties().maxStackSize(64));
 
     // 海洋之心 - 宝藏物品，用于合成潮涌核心
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS).rarity(Rarity.UNCOMMON))
     HEART_OF_THE_SEA = &registry.registerItem(
         ResourceLocation("minecraft:heart_of_the_sea"), ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon));
 
     // 鹦鹉螺壳 - 溺尸掉落或钓鱼获得，用于合成潮涌核心
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     NAUTILUS_SHELL =
         &registry.registerItem(ResourceLocation("minecraft:nautilus_shell"), ItemProperties().maxStackSize(64));
 
     // 幻翼膜 - 幻翼掉落，用于修复鞘翅和酿造缓降药水
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     PHANTOM_MEMBRANE =
         &registry.registerItem(ResourceLocation("minecraft:phantom_membrane"), ItemProperties().maxStackSize(64));
 
@@ -2698,7 +2684,6 @@ void Items::_registerAquaticMaterials()
     KELP = &registerBlockBackedItem(registry, VanillaBlocks::KELP, "kelp", ItemProperties().maxStackSize(64));
 
     // 海草 - 海龟食物，也是水下装饰方块
-    // 参考: new BlockItem(Blocks.SEAGRASS, new Item.Properties().group(ItemGroup.DECORATIONS))
     // 注意：海草物品从方块获取，使用 registerBlockBackedItem
     SEAGRASS =
         &registerBlockBackedItem(registry, VanillaBlocks::SEAGRASS, "seagrass", ItemProperties().maxStackSize(64));
@@ -2707,12 +2692,10 @@ void Items::_registerAquaticMaterials()
 
     // 下界真菌
     // 绯红菌 - 可用于某些合成
-    // 参考: new BlockItem(Blocks.CRIMSON_FUNGUS, new Item.Properties().group(ItemGroup.DECORATIONS))
     CRIMSON_FUNGUS = &registerBlockBackedItem(
         registry, VanillaBlocks::CRIMSON_FUNGUS, "crimson_fungus", ItemProperties().maxStackSize(64));
 
     // 诡异菌 - 炽足兽食物
-    // 参考: new BlockItem(Blocks.WARPED_FUNGUS, new Item.Properties().group(ItemGroup.DECORATIONS))
     WARPED_FUNGUS = &registerBlockBackedItem(
         registry, VanillaBlocks::WARPED_FUNGUS, "warped_fungus", ItemProperties().maxStackSize(64));
 }
@@ -2722,38 +2705,31 @@ void Items::_registerBrewingIngredients()
     auto& registry = ItemRegistry::instance();
 
     // 地狱疣 - 酿造基础材料，用于制作尴尬的药水
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     NETHER_WART = &registry.registerItem(ResourceLocation("minecraft:nether_wart"), ItemProperties().maxStackSize(64));
 
     // 注意：GOLDEN_CARROT 已在 registerFood() 中注册为食物
     // 注意：PUFFERFISH 已在 registerFood() 中注册为食物
 
     // 恶魂之泪 - 生命恢复药水材料
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     GHAST_TEAR = &registry.registerItem(ResourceLocation("minecraft:ghast_tear"), ItemProperties().maxStackSize(64));
 
     // 兔子脚 - 跳跃药水材料
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     RABBIT_FOOT = &registry.registerItem(ResourceLocation("minecraft:rabbit_foot"), ItemProperties().maxStackSize(64));
 
     // 岩浆膏 - 防火药水材料
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     MAGMA_CREAM = &registry.registerItem(ResourceLocation("minecraft:magma_cream"), ItemProperties().maxStackSize(64));
 
     // 龙息 - 滞留药水材料
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS).rarity(Rarity.UNCOMMON))
     DRAGON_BREATH = &registry.registerItem(
         ResourceLocation("minecraft:dragon_breath"), ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon));
 
     // 海龟壳 - 海龟大师药水材料（装备，但也可用于酿造）
-    // 参考: new ArmorItem(ArmorMaterial.TURTLE, EquipmentSlotType.HEAD, new Item.Properties().group(ItemGroup.COMBAT))
     TURTLE_HELMET = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:turtle_helmet"),
         item::armor::ArmorMaterials::TURTLE,
         item::armor::ArmorSlot::Head,
         ItemProperties().maxDamage(item::armor::ArmorMaterials::TURTLE.getDurability(item::armor::ArmorSlot::Head)));
 
     // 闪烁的西瓜片 - 瞬间治疗药水材料
-    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     GLISTERING_MELON_SLICE =
         &registry.registerItem(ResourceLocation("minecraft:glistering_melon_slice"), ItemProperties().maxStackSize(64));
 }
@@ -2763,22 +2739,18 @@ void Items::_registerPotions()
     auto& registry = ItemRegistry::instance();
 
     // 玻璃瓶 - 用于装水和酿造
-    // 参考: new GlassBottleItem(new Item.Properties().group(ItemGroup.BREWING))
     GLASS_BOTTLE =
         &registry.registerItem(ResourceLocation("minecraft:glass_bottle"), ItemProperties().maxStackSize(64));
 
     // 药水 - 饮用药水
-    // 参考: new PotionItem(new Item.Properties().group(ItemGroup.BREWING))
     POTION = &registry.registerItem<item::PotionItem>(
         ResourceLocation("minecraft:potion"), ItemProperties().maxStackSize(1));
 
     // 喷溅药水 - 投掷药水
-    // 参考: new SplashPotionItem(new Item.Properties().group(ItemGroup.BREWING))
     SPLASH_POTION = &registry.registerItem<item::SplashPotionItem>(
         ResourceLocation("minecraft:splash_potion"), ItemProperties().maxStackSize(1));
 
     // 滞留药水 - 留下效果云
-    // 参考: new LingeringPotionItem(new Item.Properties().group(ItemGroup.BREWING))
     LINGERING_POTION = &registry.registerItem<item::LingeringPotionItem>(
         ResourceLocation("minecraft:lingering_potion"), ItemProperties().maxStackSize(1));
 }
@@ -2788,41 +2760,33 @@ void Items::_registerWeapons()
     auto& registry = ItemRegistry::instance();
 
     // 弓 - 远程武器
-    // 参考: new BowItem(new Item.Properties().maxDamage(384))
     BOW = &registry.registerItem<item::BowItem>(ResourceLocation("minecraft:bow"), ItemProperties().maxDamage(384));
 
     // 箭矢 - 弹药
-    // 参考: new ArrowItem(new Item.Properties().maxStackSize(64))
     ARROW =
         &registry.registerItem<item::ArrowItem>(ResourceLocation("minecraft:arrow"), ItemProperties().maxStackSize(64));
 
     // 光灵箭 - 带发光效果（仅创造模式）
-    // 参考: new SpectralArrowItem(new Item.Properties().maxStackSize(64))
     SPECTRAL_ARROW = &registry.registerItem<item::SpectralArrowItem>(
         ResourceLocation("minecraft:spectral_arrow"), ItemProperties().maxStackSize(64));
 
     // 药水箭 - 带药水效果
-    // 参考: new TippedArrowItem(new Item.Properties().maxStackSize(64))
     TIPPED_ARROW = &registry.registerItem<item::TippedArrowItem>(
         ResourceLocation("minecraft:tipped_arrow"), ItemProperties().maxStackSize(64));
 
     // 弩 - 可装填的远程武器
-    // 参考: new CrossbowItem(new Item.Properties().maxDamage(326))
     CROSSBOW = &registry.registerItem<item::CrossbowItem>(
         ResourceLocation("minecraft:crossbow"), ItemProperties().maxDamage(326));
 
     // 三叉戟 - 近战和远程结合的武器
-    // 参考: new TridentItem(new Item.Properties().maxDamage(250))
     TRIDENT = &registry.registerItem<item::TridentItem>(
         ResourceLocation("minecraft:trident"), ItemProperties().maxDamage(250));
 
     // 盾牌 - 格挡武器
-    // 参考: new ShieldItem(new Item.Properties().maxDamage(336))
     SHIELD =
         &registry.registerItem<item::ShieldItem>(ResourceLocation("minecraft:shield"), ItemProperties().maxDamage(336));
 
     // 钓鱼竿 - 钓鱼工具
-    // 参考: new FishingRodItem(new Item.Properties().maxDamage(64))
     FISHING_ROD = &registry.registerItem<item::FishingRodItem>(
         ResourceLocation("minecraft:fishing_rod"), ItemProperties().maxDamage(64));
 
@@ -2906,21 +2870,17 @@ void Items::_registerThrowables()
     auto& registry = ItemRegistry::instance();
 
     // 雪球 - 投掷物品
-    // 参考: new SnowballItem(new Item.Properties().maxStackSize(16))
     SNOWBALL = &registry.registerItem<item::SnowballItem>(
         ResourceLocation("minecraft:snowball"), ItemProperties().maxStackSize(16));
 
     // 鸡蛋 - 投掷物品，有概率孵化小鸡
-    // 参考: new EggItem(new Item.Properties().maxStackSize(16))
     EGG = &registry.registerItem<item::EggItem>(ResourceLocation("minecraft:egg"), ItemProperties().maxStackSize(16));
 
     // 末影珍珠 - 投掷后传送
-    // 参考: new EnderPearlItem(new Item.Properties().maxStackSize(16))
     ENDER_PEARL = &registry.registerItem<item::EnderPearlItem>(
         ResourceLocation("minecraft:ender_pearl"), ItemProperties().maxStackSize(16));
 
     // 附魔之瓶 - 投掷后释放经验
-    // 参考: new ExperienceBottleItem(new Item.Properties().maxStackSize(64))
     EXPERIENCE_BOTTLE = &registry.registerItem<item::ExperienceBottleItem>(
         ResourceLocation("minecraft:experience_bottle"), ItemProperties().maxStackSize(64));
 }
@@ -2930,20 +2890,17 @@ void Items::_registerBuckets()
     auto& registry = ItemRegistry::instance();
 
     // 空桶 - 用于装水/岩浆/牛奶
-    // 参考: new BucketItem((Fluid)null, new Item.Properties().maxStackSize(16))
     BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:bucket"),
         nullptr, // 空桶没有流体
         ItemProperties().maxStackSize(16));
 
     // 水桶 - 装满水的桶
-    // 参考: new BucketItem(Fluids.WATER, new Item.Properties().maxStackSize(1).containerItem(BUCKET))
     // 水桶使用后返回空桶，所以 containerItem 设为 BUCKET
     WATER_BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:water_bucket"),
         fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID),
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 岩浆桶 - 装满岩浆的桶
-    // 参考: new BucketItem(Fluids.LAVA, new Item.Properties().maxStackSize(1).containerItem(BUCKET))
     // 岩浆桶作为燃料使用后返回空桶
     LAVA_BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:lava_bucket"),
         fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID),
@@ -2985,7 +2942,6 @@ void Items::_registerBuckets()
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 牛奶桶 - 清除所有药水效果
-    // 参考: new MilkBucketItem(new Item.Properties().containerItem(BUCKET))
     MILK_BUCKET = &registry.registerItem<item::special::MilkBucketItem>(
         ResourceLocation("minecraft:milk_bucket"), ItemProperties().maxStackSize(1).containerItem(BUCKET));
 }
@@ -5208,8 +5164,6 @@ void Items::_registerSkulls()
     //       *VanillaBlocks::PLAYER_WALL_HEAD,
     //       ItemProperties().maxStackSize(64));
     //
-    // 参考: net.minecraft.world.item.StandingAndWallBlockItem
-    // 参考: net.minecraft.world.level.block.SkullBlock (7 种头颅类型)
     // ========================================================================
 
     SKELETON_SKULL =
