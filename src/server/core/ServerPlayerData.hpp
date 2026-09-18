@@ -29,12 +29,12 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/network/ir/IrPacket.hpp"
-#include "common/network/sync/ChunkSync.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
-#include "server/network/IServerClientConnection.hpp"
+#include "server/network/base/IServerClientConnection.hpp"
+#include "server/network/sync/chunk/PlayerChunkTracker.hpp"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -93,7 +93,7 @@ struct ServerPlayerData {
     bool loggedIn = false;
 
     /// 区块追踪器
-    std::shared_ptr<network::PlayerChunkTracker> chunkTracker;
+    std::shared_ptr<sync::PlayerChunkTracker> chunkTracker;
 
     // 位置（内部使用 f32，网络边界使用 f64）
     f32 x = 0.0f;

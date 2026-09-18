@@ -262,7 +262,7 @@ item/
 | `server/interaction/MiningManager.hpp` | 挖掘管理（工具耐久） |
 | `server/world/drop/BlockDropHandler.hpp` | 方块掉落物生成 |
 | `server/world/entity/ItemPickupManager.hpp` | 物品拾取 |
-| `server/network/ServerPlayRouter.cpp` | 物品相关入站数据包处理（UseEntity/UseItem 分支） |
+| `server/network/play/ServerPlayRouter.cpp` | 物品相关入站数据包处理（UseEntity/UseItem 分支） |
 | `server/command/commands/` | GiveCommand、FillCommand 等命令 |
 | `client/world/entity/ClientEntity.hpp` | 客户端实体物品渲染 |
 | `common/world/blockentity/` | 方块实体物品交互（试炼机关等） |

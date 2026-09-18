@@ -32,7 +32,7 @@
 // buildConfigurationUpdateTags() 发 timeline（4 tag）+ dialog（2 空 tag）。
 // buildServerKnownPacks() 返单包 minecraft:core 1.21.11。
 
-#include "server/network/RegistryDataBuilder.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 
 #include <gtest/gtest.h>
 

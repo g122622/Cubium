@@ -32,7 +32,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
-#include "common/network/sync/ChunkSync.hpp"
+#include "common/network/sync/ChunkSerializer.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 #include "common/resource/ResourceLocation.hpp"

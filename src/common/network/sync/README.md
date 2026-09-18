@@ -1,111 +1,91 @@
-# 网络同步模块 (Network Sync Module)
+# network/sync - 区块线格式（双向共用）
 
-本模块提供 Minecraft 服务端与客户端之间的区块同步功能，包括区块数据序列化、玩家视距管理和区块跟踪。
+本目录只放**客户端与服务端都要用**的区块线格式翻译层。区块推送的**记账**（谁已收到哪个区块）
+属于服务端，已迁至 `server/network/sync/chunk/`。
 
 ## 目录结构
 
 ```
 src/common/network/sync/
-├── Sync.hpp           # 统一头文件（便捷包含）
-├── ChunkSync.hpp      # 区块同步相关类定义
-└── ChunkSync.cpp      # 区块同步相关类实现
+├── README.md
+├── ChunkSerializer.hpp/cpp   # 项目内部区块二进制格式：serialize/deserialize ChunkData 与 ChunkSection
+└── VanillaChunkWire.hpp/cpp  # IR ↔ Java 1.21.11 LevelChunkWithLight 翻译
 ```
+
+- `ChunkSerializer`：集成服 LocalTransport 直传所用的紧凑二进制格式。服务端序列化、客户端反序列化，
+  两端必须字节级一致。
+- `VanillaChunkWire`：Java 线格式翻译。`buildLevelChunkWithLightIR` 供服务端发送侧，
+  `readLevelChunkWithLightIR` 供客户端接收侧，且 `backend/java/codecs/JavaPlayCodecs` 依赖它。
 
 ## 内部模块关系
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                 ChunkSyncManager                     │
-│     (管理所有玩家的区块同步，维护订阅关系)            │
-└──────────────────────┬──────────────────────────────┘
-                       │ 管理
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│              PlayerChunkTracker                      │
-│     (跟踪单个玩家已加载的区块和视距状态)              │
-└──────────────────────┬──────────────────────────────┘
-                       │ 包含
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                  ChunkView                           │
-│     (计算玩家视距范围内的区块)                        │
-└─────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────┐
-│               ChunkSerializer                        │
-│     (区块数据二进制序列化/反序列化)                   │
-└─────────────────────────────────────────────────────┘
+        server/network/sync/ChunkSendManager（发送侧）
+                     │
+                     ├─ 集成服：ChunkSerializer::serializeChunk ──▶ LocalTransport 直传
+                     └─ 远程服：VanillaChunkWire::buildLevelChunkWithLightIR ──▶ Java 客户端
+                                                                                    │
+        client/world/ClientWorld（接收侧）                                           │
+                     ├─ 集成服：ChunkSerializer::deserializeChunk ◀──────────────────┘
+                     └─ 远程服：VanillaChunkWire::readLevelChunkWithLightIR
 ```
 
-**组件职责：**
-- **ChunkSerializer**：区块数据的二进制序列化与反序列化，用于网络传输
-- **ChunkView**：管理玩家的视距范围，计算哪些区块需要加载/卸载
-- **PlayerChunkTracker**：跟踪单个玩家已加载的区块，管理玩家的视距状态
-- **ChunkSyncManager**：管理所有玩家的区块同步，维护区块到玩家的订阅关系
+两条通道与两种模式正交互补：`ChunkSerializer` 走 Local（同进程零拷贝前的字节化），
+`VanillaChunkWire` 走 Wire（真 Java 协议）。
 
 ## 上下游外部依赖关系
 
-### 本模块依赖的外部模块
+### 上游依赖（本模块依赖的）
 
-```cpp
-#include "../../world/chunk/ChunkData.hpp"      // ChunkData, ChunkSection
-#include "../../world/chunk/ChunkPos.hpp"       // ChunkPos, ChunkCoord, SectionPos
-#include "../../world/chunk/ChunkId.hpp"        // ChunkId
-#include "../codec/PacketSerializer.hpp"     // PacketSerializer, PacketDeserializer
-#include "../../core/Result.hpp"                // Result<T>
-```
+| 模块 | 用途 |
+|---|---|
+| `common/world/chunk/data/ChunkData.hpp` | `ChunkData` / `ChunkSection` |
+| `common/world/chunk/data/{BiomeContainer,Heightmap}.hpp` | 生物群系与高度图 |
+| `common/world/chunk/base/ChunkPos.hpp` | 坐标与 flow id |
+| `common/util/NibbleArray.hpp` | 光照数据 |
+| `common/network/codec/{PacketSerializer,PacketDeserializer}.hpp` | 字节读写原语 |
+| `common/network/ir/packets/play/PlayPacketsExtended.hpp` | `LevelChunkWithLight` IR 包 |
 
-间接依赖：`BiomeContainer`、`Block`/`BlockState`、`NibbleArray`
+### 下游依赖（依赖本模块的）
 
-### 依赖本模块的外部模块
+| 模块 | 用途 |
+|---|---|
+| `server/network/sync/ChunkSendManager` | 序列化区块后下发 |
+| `client/world/ClientWorld` | `deserializeChunk` 接收区块 |
+| `common/network/backend/java/codecs/JavaPlayCodecs` | 依赖 `VanillaChunkWire` 做 Java 线格式翻译 |
 
-| 模块 | 使用方式 |
-|------|----------|
-| `server/sync/ChunkSendManager` | 使用序列化功能发送区块数据 |
-| `server/core/PlayerManager` | 包含 `ChunkSyncManager` 实例管理玩家区块同步 |
-| `server/core/PositionTracker` | 使用 `ChunkSyncManager` 追踪玩家位置 |
-| `server/core/ServerPlayerData` | 持有 `PlayerChunkTracker` |
-| `client/world/ClientWorld` | 使用反序列化功能接收区块数据 |
+**注意**：`common` 不得依赖 `server`。服务端的区块推送记账（`ChunkView`/`PlayerChunkTracker`/
+`ChunkSyncManager`）依赖本目录，反向不存在。
 
 ## 容易踩的坑
 
-### 1. 视距范围限制
+### 1. 反序列化会校验坐标
 
-视距范围是 2-32，超出范围会被 clamp：
-- `setViewDistance(1)` 实际设置为 2
-- `setViewDistance(100)` 实际设置为 32
+`deserializeChunk(x, z, data)` 会比对包内的坐标并拒绝不匹配的数据。必须传入**序列化时使用的**坐标。
 
-### 2. 区块坐标转换的负坐标处理
+### 2. 区块段位掩码只含非空段
 
-`blockToChunk` 使用 `floor`，负坐标向下取整：
-- `blockToChunk(-0.1)` = -1（不是 0！）
-- `blockToChunk(-16.0)` = -1
-- `blockToChunk(-16.1)` = -2
+`calculateSectionMask` 只置位非空 `ChunkSection`。空段（全空气）不进位掩码，反序列化时也不会创建。
+新增段数据时若忘了同步 `calculateChunkSize` 的镜像逻辑，会出现"预测大小与实际写入不符"。
 
-### 3. 反序列化坐标验证
+### 3. 光照数据固定 2048 字节/通道
 
-反序列化会验证坐标是否匹配。必须使用序列化时的坐标调用 `deserializeChunk`。
+`ChunkSection` 序列化包含天空光照与方块光照各 2048 字节（4096 方块 / 2，每方块 4 位）。
+少读或多读会整体错位。
 
-### 4. 区块订阅者管理
+### 4. 高度图有新旧两块
 
-玩家离开时必须调用 `removeTracker` 或 `markChunkUnloaded` 清理订阅关系，否则会导致内存泄漏和悬垂引用。
+`serializeChunk` 同时写向后兼容的有损 `u8` 高度图块与包尾的扩展 `i16` 无损块
+（存在位掩码 + 每个已初始化 final 类型 256×2 字节）。反序列化优先用扩展块，缺失时才回退有损块
+（负 Y / Y>255 会截断）。改动任一侧都要同步对方与 `calculateChunkSize`。
 
-### 5. 光照数据大小
+### 5. macOS 的 `BYTE_SIZE` 宏冲突
 
-序列化区块段时，光照数据固定占用 4096 字节（天空光照 2048 + 方块光照 2048）。
+系统头文件里 `BYTE_SIZE` 是宏，会与 `NibbleArray::BYTE_SIZE` 冲突。`ChunkSerializer.cpp` 用
+`#pragma push_macro("BYTE_SIZE")` / `#undef` 屏蔽，改文件头时不要删掉。
 
-### 6. 线程安全
+### 6. 不要把记账类搬回来
 
-`ChunkSyncManager` 本身不是线程安全的，在多线程环境中使用时需要外部同步。
-
-### 7. 空区块段处理
-
-`calculateSectionMask` 只包含非空区块段。空段（所有方块都是空气）不会包含在位掩码中，反序列化时未设置的段不会创建。
-
-### 8. 视距默认值
-
-`ChunkView` 的默认视距使用 `world::CHUNK_LOAD_RADIUS` 常量，而非硬编码值。修改视距时需注意该常量的定义。
-
-### 9. ChunkId 的维度字段
-
-`ChunkId` 包含 `dimension` 字段（0=主世界, 1=下界, 2=末地），但 `PlayerChunkTracker` 和 `ChunkView` 主要处理二维区块坐标。跨维度场景需额外处理。
+`common` 不得依赖 `server`。区块推送记账的三个类型（`ChunkView`/`PlayerChunkTracker`/
+`ChunkSyncManager`）只在服务端使用，属于 `server/network/sync/chunk/`；
+本目录保留的只有两端都需要的线格式翻译层。

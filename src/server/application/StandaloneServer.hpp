@@ -28,7 +28,7 @@
 #include "common/core/GameDirectory.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/base/ServerClientConnection.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <atomic>
@@ -55,7 +55,7 @@ struct StandaloneServerParams {
  *
  * 继承 MinecraftServer，提供：
  * - TCP 网络通信（经 ServerNetwork::startAccept → Wire 模式 ServerClientConnection）
- * - 多玩家支持（每连接一个 RemoteClientSession：握手状态机 + Play 路由器）
+ * - 多玩家支持（每连接一个 ClientSession：握手状态机 + Play 路由器）
  * - 完整的数据包处理（Wire 入站经接收线程 enqueueInbound，主线程 drainInbound 派发）
  */
 class StandaloneServer : public MinecraftServer {
@@ -98,7 +98,7 @@ protected:
     // syncPlayerInventory/tryOpenCraftingContainer）已于批9 下沉至 MinecraftServer 基类默认实现
     // （纯远程路径：InventoryManager/ContainerManager 委托）。StandaloneServer 为纯远程独立服，
     // 无本地客户端分支，直接继承基类默认即原 StandaloneServer 行为，不再 override。
-    // 远程 TCP 登录的真 Java 互通已就位：RemoteSessionManager 按 server.properties online-mode 决定
+    // 远程 TCP 登录的真 Java 互通已就位：ClientSessionManager 按 server.properties online-mode 决定
     // 加密链路（批8），客户端 HelloBound→Key→setupEncryption 装加密层。新网络层登录由
     // ServerHandshakeStateMachine 驱动，handleLoginRequestPacket 已从基类移除。
 
@@ -152,10 +152,10 @@ private:
     /// 否则 containerManager() 返回空指针解引用崩溃。
     void _setupContainerCallbacks();
 
-    // 远程 TCP 会话管理（批2c 下沉至 RemoteSessionManager 门面）：
+    // 远程 TCP 会话管理（批2c 下沉至 ClientSessionManager 门面）：
     // onClientConnect/onClientDisconnect 在 startAccept 前注册到 m_serverNetwork，
-    // 内部建 RemoteClientSession + 握手/Play 派发 + 玩家创建/断开清理。
-    // 批9：门面成员 m_remoteSessionManager 已上提 MinecraftServer 基类，initialize() 经
+    // 内部建 ClientSession + 握手/Play 派发 + 玩家创建/断开清理。
+    // 批9：门面成员 m_clientSessionManager 已上提 MinecraftServer 基类，initialize() 经
     // 基类 _setupRemoteSessions 构造、stop() 经基类 _shutdownRemoteSessions 保销毁顺序
     // （session 持 ServerClientConnection&，须先于 m_serverNetwork 销毁）。
     /// 独立服压缩阈值（Java 默认 256）。在线模式按 server.properties online-mode 决定

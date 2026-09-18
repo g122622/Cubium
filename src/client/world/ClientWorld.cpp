@@ -46,7 +46,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
-#include "common/network/sync/ChunkSync.hpp"
+#include "common/network/sync/ChunkSerializer.hpp"
 #include "common/network/sync/VanillaChunkWire.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/physics/collision/CollisionShape.hpp"

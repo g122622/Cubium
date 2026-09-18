@@ -51,8 +51,8 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
-#include "server/network/LoginFlow.hpp"
-#include "server/network/RemoteSessionManager.hpp"
+#include "server/network/handshake/LoginFlow.hpp"
+#include "server/network/session/ClientSessionManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
@@ -76,9 +76,9 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "server/core/OpListManager.hpp"
-#include "server/network/ServerHandshake.hpp"
-#include "server/network/ServerNetwork.hpp"
-#include "server/network/ServerPlayRouter.hpp"
+#include "server/network/handshake/ServerHandshake.hpp"
+#include "server/network/play/ServerPlayRouter.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -431,7 +431,7 @@ void IntegratedServer::stop()
     // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
     // 再关闭服务端网络门面（含本地客户端 ServerClientConnection + LAN Wire 连接 +
     // acceptor + accept 线程）。批9：两步下沉至基类 _shutdownRemoteSessions（对未发布
-    // LAN 的空 m_remoteSessionManager reset 幂等）。
+    // LAN 的空 m_clientSessionManager reset 幂等）。
     m_clientConnection = nullptr;
     _shutdownRemoteSessions();
     // 批2a：复位本地客户端钩子，避免关服后续路径误经悬垂 _sendToClientIr 调用
@@ -1313,7 +1313,7 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
     auto setupResult = _setupRemoteSessions(
         "IntegratedServer",
         kLanCompressionThreshold,
-        [this]() -> mc::server::net::RemoteWorldParams {
+        [this]() -> mc::server::net::SessionWorldParams {
             return {m_params.hardcore, m_params.seed, m_params.worldType == WorldType::Flat};
         },
         static_cast<u16>(port),
@@ -1335,8 +1335,8 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
 }
 
 // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
-// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，门面成员
-// m_remoteSessionManager 于批9 上提 MinecraftServer 基类。publishToLan() 经基类
+// _onRemoteClientDisconnect）已于批2c 下沉至 ClientSessionManager 门面，门面成员
+// m_clientSessionManager 于批9 上提 MinecraftServer 基类。publishToLan() 经基类
 // _setupRemoteSessions 装配门面并注册到 m_serverNetwork 的
 // onClientConnect/onClientDisconnect；stop() 经基类 _shutdownRemoteSessions 先 reset
 // manager 再 reset ServerNetwork 保销毁顺序（session 持 ServerClientConnection& 引用）。

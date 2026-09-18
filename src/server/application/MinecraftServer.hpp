@@ -64,7 +64,7 @@
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -116,8 +116,8 @@ class ServerClientConnection;
 class PlayerBroadcaster;
 class LoginFlow;
 class ServerPlayHandler;
-class RemoteSessionManager;
-struct RemoteWorldParams;
+class ClientSessionManager;
+struct SessionWorldParams;
 } // namespace net
 
 /**
@@ -556,7 +556,7 @@ protected:
      */
     void checkAllPlayersSleeping();
 
-    // 天气同步已下沉到 WeatherSyncService（server/sync/WeatherSyncService）。
+    // 天气同步已下沉到 WeatherSyncService（server/network/sync/WeatherSyncService）。
     // tick 中调 m_weatherSyncService->tick()，登录时调其 sendInitialWeatherStateToPlayer。
     // 注：sendInitialDifficultyToPlayer 已于批6 迁入 LoginFlow。
 
@@ -667,14 +667,14 @@ protected:
      * @brief 清理已断开的远程会话（批2a 提升为基类 virtual）
      *
      * 当前为空默认：断开已由 ServerNetwork::tick() 在主线程回调 _onRemoteClientDisconnect
-     * 处理，session map / 玩家清理均在该回调内完成。保留 virtual 供批2c RemoteSessionManager
+     * 处理，session map / 玩家清理均在该回调内完成。保留 virtual 供批2c ClientSessionManager
      * 注入实际清理逻辑。
      */
     virtual void _drainDisconnectedSessions() {}
 
 public:
     // 注：updateEntityTrackingForPlayer/routeInboundPlayPacket 及 13 个非纯虚 handle*Packet
-    // 已于批7 下沉至 net::ServerPlayHandler 门面（见 server/network/ServerPlayHandler.hpp）。
+    // 已于批7 下沉至 net::ServerPlayHandler 门面（见 server/network/play/ServerPlayHandler.hpp）。
     // 经 playHandler() 访问门面：ServerPlayRouter::handle 调 route，登录/维度切换调
     // updateEntityTrackingForPlayer。
 
@@ -1161,7 +1161,7 @@ protected:
     /**
      * @brief 装配远程会话门面并启动 TCP accept
      *
-     * 两子类重复的 RemoteSessionManager 装配段：构造门面 + 注册 onClientConnect/
+     * 两子类重复的 ClientSessionManager 装配段：构造门面 + 注册 onClientConnect/
      * onClientDisconnect 回调 + startAccept。差异经参数注入（logPrefix/
      * compressionThreshold/worldParamsProvider/port/maxConnections）。
      * 调用方须预先创建 m_serverNetwork（本方法不创建）。
@@ -1175,16 +1175,16 @@ protected:
      */
     [[nodiscard]] Result<void> _setupRemoteSessions(std::string_view logPrefix,
         i32 compressionThreshold,
-        std::function<mc::server::net::RemoteWorldParams()> worldParamsProvider,
+        std::function<mc::server::net::SessionWorldParams()> worldParamsProvider,
         u16 port,
         u32 maxConnections);
 
     /**
      * @brief 关闭远程会话门面 + 网络门面（保销毁顺序）
      *
-     * 先 reset m_remoteSessionManager（session 持 ServerClientConnection& 引用，须先于
+     * 先 reset m_clientSessionManager（session 持 ServerClientConnection& 引用，须先于
      * 连接销毁），再 reset m_serverNetwork。对未装配的空 unique_ptr reset 幂等
-     * （IntegratedServer 单机未发布 LAN 时 m_remoteSessionManager 为 nullptr）。
+     * （IntegratedServer 单机未发布 LAN 时 m_clientSessionManager 为 nullptr）。
      * 子类 stop() 在子类特有清理后调用。
      */
     void _shutdownRemoteSessions() noexcept;
@@ -1274,7 +1274,7 @@ protected:
     // 服务端网络门面（管理所有 ServerClientConnection + LocalTransportPair + 协议表）。
     // 批2b 上提自两子类私有成员：StandaloneServer 在 initialize() 创建并 startAccept；
     // IntegratedServer 在 initialize() 创建并 createLocalClientSide，publishToLan() 时
-    // startAccept。销毁顺序由 _shutdownRemoteSessions() 保证（先 reset m_remoteSessionManager
+    // startAccept。销毁顺序由 _shutdownRemoteSessions() 保证（先 reset m_clientSessionManager
     // 再 reset m_serverNetwork，session 持 ServerClientConnection& 非拥有须先销毁）。
     std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
 
@@ -1282,7 +1282,7 @@ protected:
     // 经 _setupRemoteSessions 构造；IntegratedServer 在 publishToLan() 经 _setupRemoteSessions
     // 构造（单机默认不发布 LAN 时保持 nullptr）。session 持 ServerClientConnection& 非拥有，
     // 销毁顺序见 _shutdownRemoteSessions。
-    std::unique_ptr<mc::server::net::RemoteSessionManager> m_remoteSessionManager;
+    std::unique_ptr<mc::server::net::ClientSessionManager> m_clientSessionManager;
 
     // _mainLoop tick 耗时 EMA 状态（批9 下沉自两子类 _mainLoop 局部变量）。跨 tick 保留，
     // _updateTickDebugStats 读写。每 server 实例单 _mainLoop 单线程，无并发。

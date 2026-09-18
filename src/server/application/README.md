@@ -29,7 +29,7 @@ src/server/application/
 
 **继承关系：**
 - `IServer` 定义服务器接口契约（含 `publishToLan` 局域网发布接口）
-- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/ServerPlayRouter` 分发
+- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/play/ServerPlayRouter` 分发
 - `IntegratedServer` 使用 `transport/LocalTransport` 实现同进程零拷贝 IR 通信；`publishToLan()` 调 `ServerNetwork::startAccept` 接受远程玩家（单 `ServerNetwork` 双模式架构，详见下文第 11 节）
 - `StandaloneServer` 使用 `ServerNetwork::startAccept`（Wire 模式 TCP）实现多人网络；`publishToLan()` 返回 `Unsupported`
 
@@ -53,7 +53,7 @@ src/server/application/
 - `server/core/` - PlayerManager, ConnectionManager, TimeManager 等
 - `server/interaction/` - BlockInteractionManager, MiningManager 等
 - `server/dimension/` - ServerDimension, ServerDimensionManager
-- `server/sync/` - ChunkSendManager、BlockUpdateSyncManager 等（由 ServerDimension 持有）
+- `server/network/sync/` - ChunkSendManager、BlockUpdateSyncManager 等（由 ServerDimension 持有）
 - `server/world/` - ServerWorld, ServerChunkManager, WeatherManager
 - `server/network/` - ServerNetwork, ServerHandshake, ServerPlayRouter, RegistryDataBuilder
 - `server/command/` - CommandRegistry, CommandStorage
@@ -184,7 +184,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 | `syncPlayerInventory()` | `_sendPlayerInventory()` | `InventoryManager::syncToClient()` |
 | `tryOpenCraftingContainer()` | `_openCraftingTableMenu()` | `ContainerManager::openContainer(Crafting)` |
 
-**远程登录流程**（`_onRemotePlayerReady`）：远程连接 accept 后建 `RemoteClientSession`（握手状态机 + Play 路由器），Wire 入站经 `enqueueInbound`/`drainInbound` 主线程派发。握手状态机完成 Configuration 进入 Play 时触发 `onPlayerReady` 回调，调共享的 `MinecraftServer::createPlayerForConnection`（与本地路径同体）——分配 `PlayerId`、生成离线 UUID、`addPlayer` + 关联连接、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`sendLoginResponseForConnection` / 权限等级 / 初始游戏状态。创造模式填充与背包初始化由子类按本地/远程分支补齐（远程走 `InventoryManager`，本地走 `m_clientInventory` + `_sendPlayerInventory`）。
+**远程登录流程**（`_onRemotePlayerReady`）：远程连接 accept 后建 `ClientSession`（握手状态机 + Play 路由器），Wire 入站经 `enqueueInbound`/`drainInbound` 主线程派发。握手状态机完成 Configuration 进入 Play 时触发 `onPlayerReady` 回调，调共享的 `MinecraftServer::createPlayerForConnection`（与本地路径同体）——分配 `PlayerId`、生成离线 UUID、`addPlayer` + 关联连接、`setupInitialPlayerState`、`createPlayerEntity`、`playerJoinDimension`、`resolveOpLevel`（远程玩家不享受主机作弊提升）、从存档加载玩家数据、`sendLoginResponseForConnection` / 权限等级 / 初始游戏状态。创造模式填充与背包初始化由子类按本地/远程分支补齐（远程走 `InventoryManager`，本地走 `m_clientInventory` + `_sendPlayerInventory`）。
 
 **作弊开关运行时切换**：`publishToLan(allowCheats)` 直接修改 `m_params.allowCommands`，`resolveOpLevel` 读取此字段判定主机是否提升为 Owner。此修改不落盘 level.dat，关闭局域网发布后作弊状态恢复到原始设置。
 

@@ -39,7 +39,7 @@
 // FolderResourcePack 预置 "data/" 前缀落盘 root/data/minecraft/enchantment/sharpness.json，
 // 故 datapack 目录内文件须放 data/ 下，而传给 readTextResource 的 path 不含 "data/" 前缀。
 
-#include "server/network/EnchantmentNbtBuilder.hpp"
+#include "server/network/handshake/EnchantmentNbtBuilder.hpp"
 
 #include "common/TempDirHelper.hpp"
 #include "common/entity/tag/EntityTypeTagLoader.hpp"

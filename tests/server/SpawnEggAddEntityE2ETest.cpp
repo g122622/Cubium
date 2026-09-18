@@ -55,7 +55,7 @@
 
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
-#include "server/network/IServerClientConnection.hpp"
+#include "server/network/base/IServerClientConnection.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include "common/BaseTestServer.hpp"

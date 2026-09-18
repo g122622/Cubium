@@ -45,7 +45,7 @@ server/dimension/
 |------------------------|------------------------|
 | `common/world/dimension` - Dimension/DimensionManager 基类 | `MinecraftServer` - 持有 ServerDimensionManager |
 | `server/world/ServerWorld` - 每个维度持有一个 runtime | `server/player/ServerPlayer` - 通过维度映射追踪玩家 |
-| `server/sync/` - 同步管理器（EntitySync/ChunkSend/BlockUpdateSync/LightSync） | `server/core/TeleportManager` - 同维度传送（维度切换由本模块处理） |
+| `server/network/sync/` - 同步管理器（EntitySync/ChunkSend/BlockUpdateSync/LightSync） | `server/core/TeleportManager` - 同维度传送（维度切换由本模块处理） |
 | `server/world/spawn/` - 刷怪管理器（NaturalSpawner/DespawnManager） | |
 | `server/world/storage/SingleLevelStorageManager` - 共享存储门面 | |
 

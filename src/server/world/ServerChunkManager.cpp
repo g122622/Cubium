@@ -44,7 +44,7 @@
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "server/sync/ChunkSendManager.hpp"
+#include "server/network/sync/ChunkSendManager.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/lighting/engine/BlockLightEngine.hpp"

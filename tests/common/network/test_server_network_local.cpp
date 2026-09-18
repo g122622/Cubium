@@ -32,7 +32,7 @@
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 
 #include <gtest/gtest.h>
 

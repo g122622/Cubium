@@ -43,7 +43,7 @@
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/dimension/ServerDimension.hpp"
-#include "server/sync/ChunkSendManager.hpp"
+#include "server/network/sync/ChunkSendManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"

@@ -35,7 +35,7 @@
 //   - customSuggestions（flags bit4 + argument stub 内 writeIdentifier）；
 //   - 未知 typeName 返回 Error。
 
-#include "common/network/backend/java/codecs/CommandTreeEncoder.hpp"
+#include "server/network/outbound/CommandTreeEncoder.hpp"
 
 #include "common/command/CommandTreeSnapshot.hpp"
 #include "common/core/Types.hpp"
@@ -49,7 +49,7 @@
 
 using namespace mc;
 using namespace mc::command;
-using namespace mc::network::java::codecs;
+using namespace mc::server::net;
 
 namespace {
 

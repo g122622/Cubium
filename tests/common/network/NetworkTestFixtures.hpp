@@ -33,8 +33,8 @@
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/registry/RegistryAccess.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "server/network/ServerHandshake.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/handshake/ServerHandshake.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 
 #include <gtest/gtest.h>
 

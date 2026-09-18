@@ -38,7 +38,7 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/ConnectionManager.hpp"
-#include "server/network/PacketBuilders.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include <memory>
 #include <optional>
 #include <sstream>

@@ -885,8 +885,8 @@ struct Interact {
  *
  * List<Node> + VarInt rootIndex。Node 树（flags/children/redirect/按 type 分发的
  * Literal/Argument stub）由服务端 sendCommandTreePacket 经
- * mc::network::java::codecs::encodeCommandTree(snapshot) 编码为 1.21.11 二进制
- * CommandNode 树字节后填入 payload 透传（见 CommandTreeEncoder.hpp）。IR 层保持
+ * mc::server::net::encodeCommandTree(snapshot) 编码为 1.21.11 二进制
+ * CommandNode 树字节后填入 payload 透传（见 server/network/outbound/CommandTreeEncoder.hpp）。IR 层保持
  * opaque 是项目既有模式（复杂嵌套结构独立子项）；codec 层仅做 opaque 透传。
  */
 struct Commands {

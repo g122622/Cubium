@@ -30,7 +30,7 @@ ServerPlayer 继承自 `Player` 基类，是服务端玩家实体的核心实现
 | 模块 | 用途 |
 |------|------|
 | `common/entity/entities/player/Player.hpp` | 玩家基类 |
-| `server/network/ServerNetwork.hpp` | ServerClientConnection（网络连接接口） |
+| `server/network/base/ServerClientConnection.hpp` | ServerClientConnection（网络连接接口） |
 | `common/network/ir/packets/play/*` | IR 网络包（`SystemChat`/`SetActionBarText`/`SetExperience`/`SetTitleText`/`SetSubtitleText`/`SetCamera` 等，经 `connection.send(ir::IrPacket{...})` 发送） |
 | `common/entity/player/SleepManager.hpp` | 睡眠管理器 |
 | `common/entity/player/SpawnPointValidator.hpp` | 重生点验证 |

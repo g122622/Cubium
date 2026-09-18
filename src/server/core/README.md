@@ -20,7 +20,7 @@ src/server/core/
 └── OpListManager.hpp/cpp     # OP 权限列表管理器
 ```
 
-> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `MinecraftServer::routeInboundPlayPacket` + `src/server/network/ServerPlayRouter`（`std::visit` over `ir::PlayPacket`）。
+> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `MinecraftServer::routeInboundPlayPacket` + `server/network/play/ServerPlayRouter`（`std::visit` over `ir::PlayPacket`）。
 
 ## 模块关系图
 
@@ -32,7 +32,7 @@ src/server/core/
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │              MinecraftServer::routeInboundPlayPacket          │
-│        + server/network/ServerPlayRouter (ir::PlayPacket)     │
+│        + server/network/play/ServerPlayRouter (ir::PlayPacket)     │
 │  (入站数据包分发入口，协调各管理器；旧 PacketHandler 已删除)    │
 └────────┬─────────────────────────────────────────────────────┘
          │
@@ -111,7 +111,7 @@ src/server/core/
 | `common/core/Types.hpp` | 基础类型定义 |
 | `common/core/Constants.hpp` | 游戏常量 |
 | `common/network/ir/IrPacket.hpp` | IR 包定义（ConnectionManager 发送门面使用） |
-| `common/network/sync/ChunkSync.hpp` | 区块同步管理器 |
+| `server/network/sync/chunk/ChunkSyncManager.hpp` | 区块同步管理器 |
 | `common/network/codec/PacketSerializer.hpp`<br>`common/network/codec/PacketDeserializer.hpp` | 编解码器（从旧 packet/ 迁出后的存活件，供 IR codec 与残余 wire 桥接使用） |
 | `server/world/time/GameTime.hpp` | 游戏时间类 |
 | `common/entity/GameModeUtils.hpp` | 游戏模式工具 |

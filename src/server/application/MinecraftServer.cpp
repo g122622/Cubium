@@ -101,19 +101,19 @@
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
-#include "server/network/LoginFlow.hpp"
-#include "server/network/PlayerBroadcaster.hpp"
-#include "server/network/RemoteSessionManager.hpp"
-#include "server/network/ServerNetwork.hpp"
-#include "server/network/ServerPlayHandler.hpp"
+#include "server/network/base/ServerClientConnection.hpp"
+#include "server/network/handshake/LoginFlow.hpp"
+#include "server/network/outbound/PlayerBroadcaster.hpp"
+#include "server/network/play/ServerPlayHandler.hpp"
+#include "server/network/session/ClientSessionManager.hpp"
+#include "server/network/sync/BlockUpdateSyncManager.hpp"
+#include "server/network/sync/ChunkSendManager.hpp"
+#include "server/network/sync/WeatherSyncService.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/stats/StatRegistry.hpp" // StatRegistry::registerBuiltinStats（服务端统计注册表注册）
-#include "server/sync/BlockUpdateSyncManager.hpp"
-#include "server/sync/ChunkSendManager.hpp"
-#include "server/sync/WeatherSyncService.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
@@ -1756,7 +1756,7 @@ void MinecraftServer::onCreativeInventoryInitialized(PlayerId playerId, PlayerIn
 // 注：登录流程整簇（createPlayerForConnection/setupInitialPlayerState/
 // sendLoginResponseForConnection/sendPermissionLevelChange/sendCommandTreePacket/
 // sendInitialGameState/sendInitialDifficultyToPlayer）已于批6 下沉至 LoginFlow 门面。
-// 调用方（IntegratedServer::_onClientPlayerReady、RemoteSessionManager::onPlayerReady）
+// 调用方（IntegratedServer::_onClientPlayerReady、ClientSessionManager::onPlayerReady）
 // 经 m_loginFlow->createPlayerForConnection 进入；本类经 updateEntityTrackingForPlayer/
 // serializeDifficultyPacket/sendPacketToPlayer 等 public 原语配合 LoginFlow。
 
@@ -2105,18 +2105,18 @@ void MinecraftServer::_updateTickDebugStats(f32 tickTimeMs)
 
 Result<void> MinecraftServer::_setupRemoteSessions(std::string_view logPrefix,
     i32 compressionThreshold,
-    std::function<mc::server::net::RemoteWorldParams()> worldParamsProvider,
+    std::function<mc::server::net::SessionWorldParams()> worldParamsProvider,
     u16 port,
     u32 maxConnections)
 {
-    // 批2c：远程会话四件套下沉至 RemoteSessionManager 门面。worldParams 由调用方经
+    // 批2c：远程会话四件套下沉至 ClientSessionManager 门面。worldParams 由调用方经
     // provider 注入（StandaloneServer 取 m_settings，IntegratedServer 取 m_params）。
-    m_remoteSessionManager = std::make_unique<mc::server::net::RemoteSessionManager>(
+    m_clientSessionManager = std::make_unique<mc::server::net::ClientSessionManager>(
         *this, std::string(logPrefix), compressionThreshold, std::move(worldParamsProvider));
     m_serverNetwork->onClientConnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientConnect(conn); });
+        [this](mc::server::net::ServerClientConnection& conn) { m_clientSessionManager->onClientConnect(conn); });
     m_serverNetwork->onClientDisconnect(
-        [this](mc::server::net::ServerClientConnection& conn) { m_remoteSessionManager->onClientDisconnect(conn); });
+        [this](mc::server::net::ServerClientConnection& conn) { m_clientSessionManager->onClientDisconnect(conn); });
 
     // startAccept 失败时直接透传其原始 Error，由调用方按各自场景包装日志前缀
     // （StandaloneServer "Failed to start server" / IntegratedServer "Failed to start LAN server"）。
@@ -2128,7 +2128,7 @@ void MinecraftServer::_shutdownRemoteSessions() noexcept
     // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
     // 再 reset 网络门面（关 acceptor + join accept 线程 + 析构各 ServerClientConnection）。
     // 对未装配的空 unique_ptr reset 幂等（IntegratedServer 单机未发布 LAN 时为 nullptr）。
-    m_remoteSessionManager.reset();
+    m_clientSessionManager.reset();
     if (m_serverNetwork) {
         m_serverNetwork.reset();
     }
