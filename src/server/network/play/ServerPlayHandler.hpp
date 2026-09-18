@@ -43,7 +43,7 @@ namespace mc::server::net {
  *
  * 承载入站 C→S Play IR 包的整簇处理逻辑：
  *  - routeInboundPlayPacket：按 ir::PlayPacket 变体分发到各 handle*Packet
- *    （ServerPlayRouter::handle 的唯一调用入口）。
+ *    （ClientSession::handleInbound 的唯一调用入口）。
  *  - 13 个非纯虚 handle*Packet 方法体（移动/传送确认/心跳/聊天/告示牌/
  *    骑乘输入/载具移动/玩家命令/船桨/实体交互/物品使用/方块交互/方块放置）。
  *  - updateEntityTrackingForPlayer：刷新玩家实体追踪范围（移动/传送确认/
@@ -77,7 +77,7 @@ public:
     ServerPlayHandler(ServerPlayHandler&&) = delete;
     ServerPlayHandler& operator=(ServerPlayHandler&&) = delete;
 
-    /// 路由入站 Play IR 包到对应处理方法（ServerPlayRouter::handle 唯一入口）。
+    /// 路由入站 Play IR 包到对应处理方法（ClientSession::handleInbound 唯一入口）。
     void route(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /// 刷新指定玩家的实体追踪范围（移动/传送确认/维度切换/登录序列调用）。

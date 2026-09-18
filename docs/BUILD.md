@@ -237,7 +237,7 @@ glslc shaders/block.vert -o build/shaders/block.vert.spv
 glslc shaders/block.frag -o build/shaders/block.frag.spv
 ```
 
-### VS Code IntelliSense 配置
+### VS Code IntelliSense 配置（Windows / cpptools）
 
 项目使用 clang-cl 编译，系统头文件路径（MSVC、Windows SDK）由 `VsDevCmd.bat` 通过 `INCLUDE` 环境变量隐式注入，不会写入 `compile_commands.json`。这会导致 VS Code cpptools 扩展无法找到 C++ 标准库头文件（如 `<string>`、`<cmath>`、`<unordered_set>`），出现红色波浪线报错。
 
@@ -286,6 +286,30 @@ glslc shaders/block.frag -o build/shaders/block.frag.spv
 **2. 全局 VS Code 设置** — 检查 `C_Cpp.default.compilerPath` 是否指向正确路径（`Ctrl+,` 搜索 `compilerPath`），确保不是指向不存在的 VS 2022 或旧版 MSVC 路径。
 
 修改后执行 `Ctrl+Shift+P` → **C/C++: Reset IntelliSense Database** 重建索引。
+
+### clangd 配置（macOS / Linux）
+
+clangd 不读 `.vscode/c_cpp_properties.json`，它依赖 CMake 生成的 `compile_commands.json`。仓库已备好两项前提：
+
+1. **生成编译数据库**：`CMAKE_EXPORT_COMPILE_COMMANDS=ON` 定义在公共 `base` 预设中，所有平台的
+   `cmake --preset <name>` 都会在 `build/compile_commands.json` 生成数据库。
+2. **让 clangd 找到它**：仓库根的 `.clangd` 指定 `CompilationDatabase: build`。clangd 默认只沿源文件
+   的祖先目录向上查找该文件，而它位于 `build/` 而非仓库根，不显式指定就会找不到。
+
+**缺少任一项的症状**：clangd 拿不到 `-std=c++20`、include 路径与 vcpkg 的 `-isystem`，回退到猜测模式，
+对整份文件报出成片的假错误（`未定义标识符`、`Result 不是模板`、`i32 不是类型名`、`应输入";"` 等）。
+这类级联报错的根因通常只是文件开头的第一个未解析类型，**不要逐个去改代码**——先确认数据库是否就位。
+
+验证：
+
+```bash
+cmake --preset macos-relwithdebinfo     # 重新 configure 才会生成/刷新数据库
+ls build/compile_commands.json          # 应存在
+python3 -c "import json; print(len(json.load(open('build/compile_commands.json'))))"
+```
+
+改动 `CMakePresets.json` 的 cacheVariables 或切换构建目录后，需重新 configure 才能刷新数据库。
+`build/` 已被 `.gitignore` 忽略，该文件不入版本控制。
 
 ## 本地 Sanitizer 构建
 

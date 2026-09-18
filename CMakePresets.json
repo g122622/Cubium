@@ -8,7 +8,8 @@
       "binaryDir": "${sourceDir}/build",
       "installDir": "${sourceDir}/dist",
       "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "20"
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
@@ -25,8 +26,7 @@
         "CMAKE_CXX_COMPILER": "D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang++.exe",
         "CMAKE_MAKE_PROGRAM": "D:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
         "CMAKE_RC_COMPILER": "D:/Windows Kits/10/bin/10.0.26100.0/x64/rc.exe",
-        "VCPKG_TARGET_TRIPLET": "x64-windows",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
       }
     },
     {
@@ -55,7 +55,6 @@
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
         "VCPKG_TARGET_TRIPLET": "x64-linux",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "MC_ENABLE_CCACHE": "ON"
       }
     },

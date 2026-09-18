@@ -64,7 +64,7 @@ player/
 | `server/application/MinecraftServer` | 持有 ServerPlayerEntityManager |
 | `server/application/IntegratedServer` | 继承并实现 playerEntityManager() |
 | `server/application/StandaloneServer` | 继承并实现 playerEntityManager() |
-| `server/network/play/ServerPlayRouter` | 入站 Play 包分发时通过 IServer 接口访问玩家实体 |
+| `server/network/play/ServerPlayHandler` | 入站 Play 包分发时通过 IServer 接口访问玩家实体 |
 | `server/command/commands/*` | 多个命令通过 IServer 访问玩家实体 |
 | `server/advancement/AdvancementEventHandler` | 通过 IServer 访问玩家实体 |
 | `server/interaction/BlockInteractionManager` | 通过 IServer 访问玩家实体 |

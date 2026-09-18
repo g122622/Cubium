@@ -41,7 +41,7 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/network/outbound/CommandTreeEncoder.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/network/sync/WeatherSyncService.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -361,24 +361,15 @@ void LoginFlow::sendCommandTreePacket(PlayerId playerId)
 
     // commandRegistry() 经 unique_ptr 解引用返回引用（initializeCoreManagers 中 make_unique，
     // 仅 shutdownManagers 中 reset），登录流程阶段恒非空，无需 nullptr 断言。
-
-    // 1.21.11 ClientboundCommandsPacket：二进制 CommandNode 树。对齐 Java 线格式
-    // （VarInt(nodeCount) + nodes + VarInt(rootIndex)，每节点 flags/children/redirect/stub）。
-    // 旧实现把命令树 JSON 文本当 opaque payload 透传，真 Java 客户端按二进制解码必崩
-    // （disconnect-2026-07-29_17.24.34 "Non [a-z0-9_.-] character in namespace"）。
-    mc::network::ir::play::Commands pkt;
-    auto snapshot = m_server.commandRegistry().getCommandTreeSnapshot();
-    auto encoded = mc::server::net::encodeCommandTree(snapshot);
-    if (!encoded.success()) {
-        spdlog::error("CommandTreeEncoder: failed to encode command tree: {}", encoded.error().toString());
+    //
+    // 包构造统一走 outbound/PacketBuilders（与 /op、/deop 共用同一份命令树编码）。
+    // 编码失败时跳过投递：玩家已进入 Play，缺命令树可恢复（后续权限变更会重发），
+    // 不升级为中断登录序列；错误日志由 buildCommandsIr 内部记录。
+    auto packet = buildCommandsIr(m_server.commandRegistry());
+    if (!packet.has_value()) {
         return;
     }
-    pkt.payload = std::move(encoded.value());
-    m_server.sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)},
-        });
+    m_server.sendPacketToPlayer(playerId, *packet);
 }
 
 void LoginFlow::sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel)
@@ -401,16 +392,10 @@ void LoginFlow::sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel
         return;
     }
 
-    // 通过 EntityEvent 通知客户端权限等级变更（status byte = 24 + level）。
-    // 1.21.11 权限等级走 EntityEvent(OP_PERMISSION_LEVEL_0..3 = 24..27)。
-    mc::network::ir::play::EntityEvent pkt;
-    pkt.entityId = static_cast<i32>(player->id());
-    pkt.eventId = static_cast<u8>(24 + permissionLevel);
-    m_server.sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)},
-        });
+    // 通过 EntityEvent 通知客户端权限等级变更；包构造统一走 outbound/PacketBuilders
+    // （与 /op、/deop 共用同一份实现）。
+    m_server.sendPacketToPlayer(
+        playerId, buildPermissionLevelChangeIr(static_cast<i32>(player->id()), permissionLevel));
 
     // 同步更新后的命令树到客户端，以便刷新可用命令列表
     sendCommandTreePacket(playerId);

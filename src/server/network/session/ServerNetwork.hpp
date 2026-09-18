@@ -25,7 +25,6 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/ir/IrPacket.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 
@@ -86,13 +85,9 @@ public:
 
     void addConnection(std::unique_ptr<ServerClientConnection> conn);
     void removeConnection(u32 sessionId);
-    [[nodiscard]] ServerClientConnection* find(u32 sessionId);
 
     /// tick：pump 所有 Local 模式连接；TCP 连接的接收由各 transport 接收线程驱动
     void tick();
-
-    /// 向所有已进入 Play 阶段的连接广播一个 IR 包
-    void broadcast(const mc::network::ir::IrPacket& packet);
 
     /// 协议表（供 ServerClientConnection 构造时共享）
     [[nodiscard]] std::shared_ptr<ProtocolTables> tables() const noexcept { return m_tables; }

@@ -675,7 +675,7 @@ protected:
 public:
     // 注：updateEntityTrackingForPlayer/routeInboundPlayPacket 及 13 个非纯虚 handle*Packet
     // 已于批7 下沉至 net::ServerPlayHandler 门面（见 server/network/play/ServerPlayHandler.hpp）。
-    // 经 playHandler() 访问门面：ServerPlayRouter::handle 调 route，登录/维度切换调
+    // 经 playHandler() 访问门面：ClientSession::handleInbound 调 route，登录/维度切换调
     // updateEntityTrackingForPlayer。
 
 protected:

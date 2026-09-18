@@ -64,7 +64,7 @@ struct StatusInfo {
  *
  * 由 ServerClientConnection 的 IR 监听器驱动：收到任意阶段包时先调 handleInbound，
  * 返回 true 表示握手范围内已消费（handshake/login/configuration），false 表示已进入
- * Play 阶段、应交给 ServerPlayRouter。
+ * Play 阶段、应交给 ClientSession 的 Play 派发。
  *
  * 流程（离线模式，我方互通必达）：
  *   收 ClientIntention(intent=LOGIN) → 阶段切 Login
@@ -79,7 +79,7 @@ struct StatusInfo {
  *
  * 玩家实体创建不在本类内——onPlayerReady 回调由 IntegratedServer/StandaloneServer
  * 注入，执行 addPlayer/setupInitialPlayerState/createPlayerEntity 等序列（迁自旧
- * handleLoginRequestPacket），并回填 playerId 给 ServerPlayRouter。
+ * handleLoginRequestPacket），并回填 playerId 给 ClientSession。
  */
 class ServerHandshakeStateMachine {
 public:
@@ -95,7 +95,7 @@ public:
 
     /**
      * @brief 处理一个入站 IR 包
-     * @return true=握手范围内已消费；false=Play 包（交 ServerPlayRouter）
+     * @return true=握手范围内已消费；false=Play 包（交 ClientSession 的 Play 派发）
      */
     [[nodiscard]] Result<bool> handleInbound(const mc::network::ir::IrPacket& packet);
 

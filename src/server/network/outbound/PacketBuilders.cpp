@@ -91,28 +91,35 @@ std::optional<mc::network::ir::IrPacket> buildCommandsIr(mc::command::CommandReg
     };
 }
 
-mc::network::ir::IrPacket buildLevelParticlesIr(particle::ParticleTypeId type, const Vector3& pos, u32 count)
+mc::network::ir::IrPacket buildLevelParticlesIr(
+    const mc::network::ir::play::ParticleOptions& options, const Vector3& pos, const Vector3& offset, u32 count)
 {
-    // 1.21.11 LevelParticles：简单粒子（SimpleParticleType）偏移/速度归零。
-    mc::network::ir::play::ParticleOptions options;
-    options.type = type;
-
+    // 1.21.11 LevelParticles 外层字段组装。maxSpeed 沿用旧实现固定 0
+    // （客户端按 offset 扇出，不消费该字段）。
     mc::network::ir::play::LevelParticles pkt;
     pkt.overrideLimiter = false;
     pkt.alwaysShow = false;
     pkt.x = pos.x;
     pkt.y = pos.y;
     pkt.z = pos.z;
-    pkt.xDist = 0.0f;
-    pkt.yDist = 0.0f;
-    pkt.zDist = 0.0f;
+    pkt.xDist = offset.x;
+    pkt.yDist = offset.y;
+    pkt.zDist = offset.z;
     pkt.maxSpeed = 0.0f;
     pkt.count = static_cast<i32>(count);
-    pkt.particle = std::move(options);
+    pkt.particle = options;
     return mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{std::move(pkt)},
     };
+}
+
+mc::network::ir::IrPacket buildLevelParticlesIr(particle::ParticleTypeId type, const Vector3& pos, u32 count)
+{
+    // 简单粒子（SimpleParticleType）无附加选项：只填 type，偏移归零。
+    mc::network::ir::play::ParticleOptions options;
+    options.type = type;
+    return buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), count);
 }
 
 } // namespace mc::server::net

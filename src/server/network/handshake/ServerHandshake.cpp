@@ -91,7 +91,7 @@ Result<bool> ServerHandshakeStateMachine::handleInbound(const mc::network::ir::I
     if (packet.phase == CP::Status) {
         // ClientIntention(intent=1) 是 terminal，Connection 在 handleInbound 返回后自动切到
         // Status 阶段。后续 StatusRequest/PingRequest 以 phase==Status 到达，由此分支消费，
-        // 绝不漏到 ServerPlayRouter（否则触发 "dropping non-Play packet (phase=1)" 告警）。
+        // 绝不漏到 ClientSession 的 Play 派发（否则触发 "dropping non-Play packet (phase=1)" 告警）。
         const auto* st = std::get_if<mc::network::ir::StatusPacket>(&packet.packet);
         if (st == nullptr) {
             return Error(ErrorCode::InvalidData, "Status phase variant missing", "ServerHandshake::handleInbound");
@@ -132,7 +132,7 @@ Result<bool> ServerHandshakeStateMachine::handleInbound(const mc::network::ir::I
         return true; // Configuration 包始终已消费
     }
 
-    // Play 阶段包：交给 ServerPlayRouter
+    // Play 阶段包：交给 ClientSession 的 Play 派发
     return false;
 }
 

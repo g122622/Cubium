@@ -283,6 +283,8 @@ add_executable(minecraft-server
     network/base/ServerClientConnection.cpp
     # 会话生命周期门面（accept + 连接表 + tick 泵）
     network/session/ServerNetwork.cpp
+    # 单客户端会话（协议状态 + 入站派发链，本地与远程共用）
+    network/session/ClientSession.cpp
     # 远程 TCP 会话管理门面（远程会话四件套下沉自 StandaloneServer/IntegratedServer）
     network/session/ClientSessionManager.cpp
     # 握手/登录/配置阶段（四阶段状态机 + Configuration 载荷构造 + Play 入场序列）
@@ -292,7 +294,6 @@ add_executable(minecraft-server
     network/handshake/LoginFlow.cpp
     # Play 阶段入站处理（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
     # updateEntityTrackingForPlayer 整簇下沉自 MinecraftServer）
-    network/play/ServerPlayRouter.cpp
     network/play/ServerPlayHandler.cpp
     # 出站构造与广播（Play/Configuration 单包 IR 构造 + 距离过滤广播 + 地图周期推送）
     network/outbound/PacketBuilders.cpp

@@ -42,8 +42,8 @@ constexpr auto kTimeout = mc::network::KEEP_ALIVE_TIMEOUT_MS;
  *
  * 新网络层 addPlayer 第4参为 mc::server::net::ServerClientConnection*（裸指针）。
  * 本测试只验证 KeepAliveManager 的心跳时序/超时/ping 数据维护，不依赖连接真发包，
- * 故统一传 nullptr。旧字节序列化心跳路径已由 ServerPlayRouter 的 KeepAlive 分支
- * 覆盖（旧 PacketHandler 已删除），相关集成用例移至 ServerPlayRouter 集成测试。
+ * 故统一传 nullptr。旧字节序列化心跳路径已由 ServerPlayHandler 的 KeepAlive 分支
+ * 覆盖（旧 PacketHandler 已删除），相关集成用例移至 ServerPlayHandler 集成测试。
  */
 class KeepAliveManagerTest : public ::testing::Test {
 protected:

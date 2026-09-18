@@ -19,7 +19,7 @@ src/server/network/
 │   └── ServerClientConnection.cpp
 ├── session/                           # 连接与会话生命周期
 │   ├── ServerNetwork.hpp/cpp          # 门面：TCP accept + 连接集合 + tick 泵
-│   ├── ClientSession.hpp              # 单客户端协议状态（握手状态机 + Play 路由 + playerId）
+│   ├── ClientSession.hpp/cpp          # 单客户端会话：协议状态 + 入站派发链（本地与远程共用）
 │   └── ClientSessionManager.hpp/cpp   # 远程会话登记/清理（connect → ready → disconnect）
 ├── handshake/                         # 连接建立全过程
 │   ├── ServerHandshake.hpp/cpp        # Handshake/Status/Login/Configuration 四阶段状态机
@@ -27,7 +27,6 @@ src/server/network/
 │   ├── EnchantmentNbtBuilder.hpp/cpp  # datapack 附魔 JSON → 内联 NBT RegistryEntry
 │   └── LoginFlow.hpp/cpp              # 进入 Play 的入场序列（建号 + 初始状态推送整簇）
 ├── play/                              # Play 阶段入站处理
-│   ├── ServerPlayRouter.hpp/cpp       # 每连接守卫（phase / playerId）+ 转调
 │   └── ServerPlayHandler.hpp/cpp      # 24 路 std::visit 分发 + 各 handle*Packet 处理体
 ├── outbound/                          # 出站：IR 构造、广播、复合下发序列
 │   ├── PacketBuilders.hpp/cpp         # 纯自由函数 IR 构造（零 MinecraftServer 依赖）
@@ -60,13 +59,16 @@ src/server/network/
                 ▼
 ┌───────────────────────────────────────────────────────────────────┐
 │ session/ClientSessionManager   远程 TCP 会话簿记                    │
-│   owns ──▶ session/ClientSession（值持握手状态机 + Play 路由）       │
+│   owns ──▶ session/ClientSession                                   │
+│              ├─ ServerHandshakeStateMachine（handshake/）          │
+│              └─ ServerPlayHandler&（play/，单例门面）               │
+│   handleInbound：握手状态机 → phase/playerId 守卫 → Play 分发        │
 └───────────────┬───────────────────────────────────────────────────┘
                 ▼
 ┌───────────────────────────────┐   ┌───────────────────────────────┐
-│ handshake/ServerHandshake     │   │ play/ServerPlayRouter         │
-│  Handshake→Status→Login→Conf  │──▶│   ─▶ play/ServerPlayHandler   │
-│  Configuration 载荷来自 ↓      │   │   24 路 std::visit 分发        │
+│ handshake/ServerHandshake     │   │ play/ServerPlayHandler        │
+│  Handshake→Status→Login→Conf  │──▶│   24 路 std::visit 分发        │
+│  Configuration 载荷来自 ↓      │   │   + 各 handle*Packet 处理体    │
 │  handshake/RegistryDataBuilder│   └───────────────────────────────┘
 │   └─ EnchantmentNbtBuilder    │
 │  Play 入场交 ↓                 │
@@ -88,7 +90,7 @@ src/server/network/
 **数据流**
 
 - **入站（Local）**：客户端 `Connection::send(ir)` → `LocalTransport` 直传 → `ServerClientConnection::onPacket`
-  → `ServerNetwork::tick()` 内 `pumpLocal()` 主线程派发 → 握手分支或 `ServerPlayRouter`
+  → `ServerNetwork::tick()` 内 `pumpLocal()` 主线程派发 → `ClientSession::handleInbound`
 - **入站（Wire）**：客户端字节 → `TcpTransport`（接收线程）→ `pipeline::Connection` 解帧/解压/解密 →
   `enqueueInbound`（接收线程入队）→ `drainInbound`（主线程）→ 同上
 - **出站**：上层 → `ServerClientConnection::send(ir::IrPacket)` → `pipeline::Connection::send`

@@ -72,21 +72,13 @@ void ClientSessionManager::onClientConnect(ServerClientConnection& conn)
             s.onlineMode.get()};
     });
 
-    // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：
-    //   handshake.handleInbound 返回 true=握手/Configuration 已消费；false=Play 包交路由器。
+    // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：会话自行完成
+    // 「握手状态机 → phase/playerId 守卫 → Play 处理器」的整条派发链。
     ClientSession* sessionRaw = session.get();
     conn.setInboundHandler([this, sessionRaw](const mc::network::ir::IrPacket& packet) {
-        auto hResult = sessionRaw->handshake().handleInbound(packet);
-        if (!hResult.success()) {
-            spdlog::error("{}: handshake inbound failed: {}", m_logPrefix, hResult.error().toString());
-            return;
-        }
-        if (hResult.value()) {
-            return; // 握手/Configuration 包已消费
-        }
-        auto pResult = sessionRaw->playRouter().handle(packet);
-        if (!pResult.success()) {
-            spdlog::error("{}: play router failed: {}", m_logPrefix, pResult.error().toString());
+        auto result = sessionRaw->handleInbound(packet);
+        if (!result.success()) {
+            spdlog::error("{}: inbound dispatch failed: {}", m_logPrefix, result.error().toString());
         }
     });
 
@@ -128,8 +120,8 @@ void ClientSessionManager::onPlayerReady(
         spdlog::warn("{}: failed to create remote player entity for '{}'", m_logPrefix, username);
         return;
     }
-    // 回填路由器 playerId（构造时占位 0），此后 Play 包按真实 playerId 派发。
-    session->playRouter().setPlayerId(creation.playerId);
+    // 回填会话 playerId（构造时占位 0），此后 Play 包按真实 playerId 派发。
+    session->setPlayerId(creation.playerId);
 }
 
 void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)

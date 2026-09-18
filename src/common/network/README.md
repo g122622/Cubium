@@ -148,7 +148,7 @@ network/
 |------|------|
 | `server/core/ConnectionManager.hpp` | 服务端 IR 发送门面，封装 `ir::IrPacket` 发送/广播 |
 | `server/network/session/ServerNetwork.hpp` | 服务端网络门面（accept + 管理连接），持有 `ServerClientConnection` |
-| `server/network/play/ServerPlayRouter.hpp` | 入站 Play 包分发器（`std::visit` over `ir::PlayPacket`） |
+| `server/network/play/ServerPlayHandler.hpp` | 入站 Play 包分发器（`std::visit` over `ir::PlayPacket`） |
 | `server/core/PlayerManager.hpp` | 玩家管理器，持 `server/network/sync/chunk/ChunkSyncManager` |
 | `server/player/ServerPlayer.hpp` | 服务端玩家持有连接引用 |
 | `server/network/sync/ChunkSendManager.hpp` | 服务端区块发送管理 |

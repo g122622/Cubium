@@ -26,7 +26,6 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
-#include "common/network/ir/IrPacket.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/network/transport/TcpTransport.hpp"
 
@@ -178,17 +177,6 @@ void ServerNetwork::removeConnection(u32 sessionId)
         m_connections.end());
 }
 
-ServerClientConnection* ServerNetwork::find(u32 sessionId)
-{
-    std::lock_guard<std::mutex> lock(m_connectionsMutex);
-    for (auto& c : m_connections) {
-        if (c->sessionId() == sessionId) {
-            return c.get();
-        }
-    }
-    return nullptr;
-}
-
 void ServerNetwork::tick()
 {
     // 取快照后在锁外处理，避免 handler 回调内增删连接时死锁。
@@ -248,29 +236,6 @@ void ServerNetwork::tick()
                                         disconnected.end();
                                 }),
             m_connections.end());
-    }
-}
-
-void ServerNetwork::broadcast(const mc::network::ir::IrPacket& packet)
-{
-    std::vector<ServerClientConnection*> playConns;
-    {
-        std::lock_guard<std::mutex> lock(m_connectionsMutex);
-        for (auto& c : m_connections) {
-            if (c->state() == HandshakeState::Play && c->isConnected()) {
-                playConns.push_back(c.get());
-            }
-        }
-    }
-    for (auto* c : playConns) {
-        // 广播时每个连接拷贝一份 IrPacket（IrPacket 含 variant，拷贝开销可接受；
-        // Local 模式 send 内部按移动入队，Wire 模式 encode 消费）。
-        // 单连接发送失败不中断其余广播，仅记日志。
-        auto r = c->send(packet);
-        if (!r.success()) {
-            spdlog::warn(
-                "ServerNetwork::broadcast: send failed sessionId={} : {}", c->sessionId(), r.error().toString());
-        }
     }
 }
 

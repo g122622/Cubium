@@ -15,8 +15,11 @@ src/server/network/session/
 - `ServerNetwork`：进程内唯一。持有 `shared_ptr<ProtocolTables>`（所有连接共享）与
   `vector<unique_ptr<ServerClientConnection>>`（**连接的所有权**）。同时承载 Local 与 Wire 两种模式，
   成员不相交故可共存。
-- `ClientSession`：**非拥有**地引用一个 `ServerClientConnection`，值持 `ServerHandshakeStateMachine`
-  与 `ServerPlayRouter`，记录 `playerId`。由 `ClientSessionManager` 以 `unique_ptr` 持有。
+- `ClientSession`：**非拥有**地引用一个 `ServerClientConnection`，值持 `ServerHandshakeStateMachine`、
+  引用 `ServerPlayHandler` 单例门面，并记录 `playerId` 与 `sessionId`。对外只暴露一个
+  `handleInbound(packet)`：握手状态机 → phase/playerId 守卫 → Play 分发，整条派发链在本类内闭合，
+  本地与远程客户端共用。由 `ClientSessionManager` 以 `unique_ptr` 持有（本地客户端目前由
+  `IntegratedServer` 自持）。
 - `ClientSessionManager`：远程 TCP 玩家的会话簿记。本地客户端（`sessionId == 0`）目前由
   `IntegratedServer` 自行持有 `ClientSession`，尚未注册进本 manager。
 
@@ -29,7 +32,7 @@ ServerNetwork  ──owns──▶  ServerClientConnection（base/）
       ▼                          │
 ClientSessionManager ──owns──▶ ClientSession
                                    ├─ ServerHandshakeStateMachine（handshake/）
-                                   └─ ServerPlayRouter（play/）
+                                   └─ ServerPlayHandler（play/）
 ```
 
 `ServerNetwork::tick()` 在主线程做三件事：`pumpLocal()` 驱动所有 Local 连接、`drainInbound()` 派发
@@ -44,7 +47,7 @@ ClientSessionManager ──owns──▶ ClientSession
 |---|---|
 | `base/ServerClientConnection.hpp` | 连接类型与 `ProtocolTables` 别名 |
 | `handshake/ServerHandshake.hpp` | `ClientSession` 值持的握手状态机 |
-| `play/ServerPlayRouter.hpp` | `ClientSession` 值持的 Play 路由 |
+| `play/ServerPlayHandler.hpp` | `ClientSession` 引用的 Play 处理器门面 |
 | `handshake/LoginFlow.hpp`、`server/application/MinecraftServer.hpp` | 握手完成后建号 + 回填 playerId |
 | `common/network/backend/java/JavaBackend.hpp` | 构造共享协议表 |
 | `common/network/transport/{LocalTransport,TcpTransport}.hpp` | Local 配对 / TCP accept |

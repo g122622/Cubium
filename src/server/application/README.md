@@ -29,7 +29,7 @@ src/server/application/
 
 **继承关系：**
 - `IServer` 定义服务器接口契约（含 `publishToLan` 局域网发布接口）
-- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/play/ServerPlayRouter` 分发
+- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/play/ServerPlayHandler` 分发
 - `IntegratedServer` 使用 `transport/LocalTransport` 实现同进程零拷贝 IR 通信；`publishToLan()` 调 `ServerNetwork::startAccept` 接受远程玩家（单 `ServerNetwork` 双模式架构，详见下文第 11 节）
 - `StandaloneServer` 使用 `ServerNetwork::startAccept`（Wire 模式 TCP）实现多人网络；`publishToLan()` 返回 `Unsupported`
 
@@ -55,7 +55,7 @@ src/server/application/
 - `server/dimension/` - ServerDimension, ServerDimensionManager
 - `server/network/sync/` - ChunkSendManager、BlockUpdateSyncManager 等（由 ServerDimension 持有）
 - `server/world/` - ServerWorld, ServerChunkManager, WeatherManager
-- `server/network/` - ServerNetwork, ServerHandshake, ServerPlayRouter, RegistryDataBuilder
+- `server/network/` - ServerNetwork, ServerHandshake, ServerPlayHandler, RegistryDataBuilder
 - `server/command/` - CommandRegistry, CommandStorage
 - `server/menu/` - CraftingMenu
 - `common/entity/inventory/container/` - 容器菜单实现

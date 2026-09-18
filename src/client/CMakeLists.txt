@@ -447,8 +447,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp
     # 会话生命周期门面（accept + 连接表 + tick 泵）
     ${CMAKE_SOURCE_DIR}/src/server/network/session/ServerNetwork.cpp
-    # 远程 TCP 会话管理门面：IntegratedServer/StandaloneServer 远程会话四件套转调
-    # ClientSessionManager，客户端内置服编译 IntegratedServer.cpp 故须登记。
+    # 单客户端会话与远程会话门面：客户端内置服编译 IntegratedServer.cpp 故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSession.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSessionManager.cpp
     # 握手/登录/配置阶段：客户端内置服编译 IntegratedServer.cpp/MinecraftServer.cpp 故须登记。
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
@@ -456,7 +456,6 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/LoginFlow.cpp
     # Play 阶段入站处理：客户端内置服编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
-    ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayRouter.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayHandler.cpp
     # 出站构造与广播：命令/登录流程经 builder + connectionManager 投递，
     # 客户端内置服编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。

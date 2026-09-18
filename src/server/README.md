@@ -46,7 +46,7 @@ server/
 │   ├── base/             # 连接抽象与连接实例（IServerClientConnection / ServerClientConnection）
 │   ├── session/          # 门面 ServerNetwork + ClientSession(+Manager)
 │   ├── handshake/        # 四阶段状态机 + Configuration 载荷 + Play 入场序列
-│   ├── play/             # Play 阶段入站（ServerPlayRouter / ServerPlayHandler）
+│   ├── play/             # Play 阶段入站处理（ServerPlayHandler）
 │   ├── outbound/         # 出站构造与广播（PacketBuilders / PlayerBroadcaster / MapPacketBuilder）
 │   └── sync/             # 世界数据下推（ChunkSend / BlockUpdateSync / WeatherSync + chunk/ 记账）
 ├── command/              # 命令系统
@@ -319,7 +319,7 @@ GameTest 框架整体作为 server 的一部分，物理位于 `src/server/test/
 1. **入站数据包**：
    ```
    网络 → transport 收字节 → pipeline::Connection 解帧
-   → MinecraftServer.routeInboundPlayPacket() → ServerPlayRouter (ir::PlayPacket std::visit)
+   → MinecraftServer.routeInboundPlayPacket() → ServerPlayHandler (ir::PlayPacket std::visit)
    → 各 Manager 处理 → 世界状态更新
    ```
 

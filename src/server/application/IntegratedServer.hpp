@@ -40,8 +40,7 @@
 #include "common/world/WorldConfig.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
-#include "server/network/handshake/ServerHandshake.hpp"
-#include "server/network/play/ServerPlayRouter.hpp"
+#include "server/network/session/ClientSession.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <array>
@@ -258,7 +257,7 @@ private:
     void _onClientPlayerReady(const std::string& username, const std::array<u8, 16>& offlineUuid);
 
     /**
-     * @brief 安装本地客户端连接的入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
+     * @brief 安装本地客户端连接的入站监听器：整个派发链交由 ClientSession::handleInbound
      */
     void _installClientInboundListener();
 
@@ -288,11 +287,8 @@ private:
     // 本地客户端连接（所有权归 m_serverNetwork，此处非拥有指针）
     mc::server::net::ServerClientConnection* m_clientConnection = nullptr;
 
-    // 本地客户端握手状态机（Configuration 完成后触发玩家创建）
-    std::unique_ptr<mc::server::net::ServerHandshakeStateMachine> m_clientHandshake;
-
-    // 本地客户端 Play 路由器（sessionId=0）
-    std::unique_ptr<mc::server::net::ServerPlayRouter> m_clientPlayRouter;
+    // 本地客户端会话（sessionId=0）：值持握手状态机 + Play 处理器引用 + playerId
+    std::unique_ptr<mc::server::net::ClientSession> m_clientSession;
 
     // 客户端玩家ID
     PlayerId m_clientPlayerId = 0;

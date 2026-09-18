@@ -77,7 +77,6 @@
 #include "common/world/dimension/Dimension.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
-#include "server/network/play/ServerPlayRouter.hpp"
 #include "server/network/session/ServerNetwork.hpp"
 #include <algorithm>
 #include <array>
@@ -221,27 +220,27 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         _sendToClientIr(mc::network::ir::IrPacket{packet});
     };
 
-    // 创建本地客户端握手状态机（离线模式，集成服禁用压缩 threshold=-1）
-    m_clientHandshake = std::make_unique<mc::server::net::ServerHandshakeStateMachine>(
-        *m_clientConnection, /*isOfflineMode=*/true, /*compressionThreshold=*/-1);
-    m_clientHandshake->onPlayerReady([this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
-        _onClientPlayerReady(username, offlineUuid);
-    });
-
     // 初始化核心管理器
-    // 【顺序约束】须先于 m_clientPlayRouter 构造：批7 起 ServerPlayRouter 持
-    // ServerPlayHandler&（经 playHandler() 即 *m_playHandler 取引用），而 m_playHandler
-    // 在 initializeCoreManagers 内才 make_unique。若 router 先于 init 构造，playHandler()
-    // 会返回 *nullptr 形成空悬引用，运行期首个 Play 包经 router->route 解引用即崩
-    // （表现：玩家 join 后第一个 AcceptTeleportation 包 ACCESS_VIOLATION read 0x0）。
     initializeCoreManagers();
 
-    // 创建本地客户端 Play 路由器（sessionId=0）。批7：路由器改持 ServerPlayHandler& 门面。
-    // 须在 initializeCoreManagers 之后：playHandler() 依赖 m_playHandler 已构造。
-    m_clientPlayRouter =
-        std::make_unique<mc::server::net::ServerPlayRouter>(playHandler(), m_clientPlayerId, /*sessionId=*/0);
+    // 创建本地客户端会话（离线模式，集成服禁用压缩 threshold=-1，sessionId=0）。
+    // 【顺序约束】必须在 initializeCoreManagers 之后：ClientSession 构造要取
+    // ServerPlayHandler&（经 playHandler() 即 *m_playHandler 取引用），而 m_playHandler
+    // 在 initializeCoreManagers 内才 make_unique。若会话先于 init 构造，playHandler()
+    // 会返回 *nullptr 形成空悬引用，运行期首个 Play 包经 route 解引用即崩
+    // （表现：玩家 join 后第一个 AcceptTeleportation 包 ACCESS_VIOLATION read 0x0）。
+    m_clientSession = std::make_unique<mc::server::net::ClientSession>(*m_clientConnection,
+        /*isOfflineMode=*/true,
+        /*compressionThreshold=*/-1,
+        playHandler(),
+        /*playerId=*/0,
+        /*sessionId=*/0);
+    m_clientSession->handshake().onPlayerReady(
+        [this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
+            _onClientPlayerReady(username, offlineUuid);
+        });
 
-    // 安装入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
+    // 安装入站监听器：整条派发链交由 ClientSession::handleInbound
     _installClientInboundListener();
 
     // 加载 OP 列表（集成服务器使用默认路径）
@@ -424,8 +423,7 @@ void IntegratedServer::stop()
     m_lanPort = 0;
 
     // 释放本地客户端握手/Play 路由器（先于网络门面销毁）
-    m_clientPlayRouter.reset();
-    m_clientHandshake.reset();
+    m_clientSession.reset();
     m_pendingClientTransport.reset();
 
     // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
@@ -556,8 +554,8 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
     // 批2a：回填基类本地客户端钩子的 playerId，使基类 broadcastPacket 跳过本地客户端
     // 避免双发、sendPacketToPlayer/getPlayerIdForSession 的本地分支命中。
     m_localClientPlayerId = m_clientPlayerId;
-    if (m_clientPlayRouter != nullptr) {
-        m_clientPlayRouter->setPlayerId(m_clientPlayerId);
+    if (m_clientSession != nullptr) {
+        m_clientSession->setPlayerId(m_clientPlayerId);
     }
 
     // 初始化物品栏（本地客户端特有：创造模式给镐+全方块；生存留空）
@@ -590,24 +588,15 @@ void IntegratedServer::_installClientInboundListener()
     if (m_clientConnection == nullptr) {
         return;
     }
+    // Local 模式下该监听器由 pumpLocal() 在主线程直接触发，故无需再经入站队列。
+    // 派发链（握手状态机 → phase/playerId 守卫 → Play 处理器）与远程会话共用同一实现。
     m_clientConnection->onPacket([this](const mc::network::ir::IrPacket& packet) {
-        // 先交握手状态机：返回 true=握手范围内已消费；false=Play 包交路由器
-        if (m_clientHandshake != nullptr) {
-            auto r = m_clientHandshake->handleInbound(packet);
-            if (!r.success()) {
-                spdlog::error("IntegratedServer: handshake inbound failed: {}", r.error().toString());
-                return;
-            }
-            if (r.value()) {
-                return; // 握手/Configuration 包已消费
-            }
+        if (m_clientSession == nullptr) {
+            return;
         }
-        // Play 阶段包交路由器（sessionId=0 本地客户端）
-        if (m_clientPlayRouter != nullptr) {
-            auto r = m_clientPlayRouter->handle(packet);
-            if (!r.success()) {
-                spdlog::error("IntegratedServer: play router failed: {}", r.error().toString());
-            }
+        auto result = m_clientSession->handleInbound(packet);
+        if (!result.success()) {
+            spdlog::error("IntegratedServer: inbound dispatch failed: {}", result.error().toString());
         }
     });
 }

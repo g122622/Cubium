@@ -44,6 +44,7 @@
 #include "common/world/gameevent/PositionSource.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <memory>
 #include <string>
@@ -56,35 +57,6 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
-namespace {
-
-/// 构造 LevelParticles IR（1.21.11，对齐 ClientboundLevelParticlesPacket）。
-///
-/// 外层字段取自广播参数：位置/偏移/count；maxSpeed 沿用旧实现固定 0（客户端按
-/// 偏移扇出，不消费该字段）。ParticleOptions 由调用方按粒子类型预先填充。
-[[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
-    const Vector3& pos, const Vector3& offset, u32 count, mc::network::ir::play::ParticleOptions options)
-{
-    mc::network::ir::play::LevelParticles pkt;
-    pkt.overrideLimiter = false;
-    pkt.alwaysShow = false;
-    pkt.x = pos.x;
-    pkt.y = pos.y;
-    pkt.z = pos.z;
-    pkt.xDist = offset.x;
-    pkt.yDist = offset.y;
-    pkt.zDist = offset.z;
-    pkt.maxSpeed = 0.0f;
-    pkt.count = static_cast<i32>(count);
-    pkt.particle = std::move(options);
-    return mc::network::ir::IrPacket{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    };
-}
-
-} // namespace
-
 PlayerBroadcaster::PlayerBroadcaster(MinecraftServer& server)
     : m_server(server)
 {}
@@ -96,24 +68,7 @@ PlayerBroadcaster::PlayerBroadcaster(MinecraftServer& server)
 void PlayerBroadcaster::broadcastSound(
     const ResourceLocation& soundEventId, sound::SoundCategory category, const Vector3& position, f32 volume, f32 pitch)
 {
-    // 1.21.11 PlaySound：Holder<SoundEvent>(结构化内联) + source + 坐标×8 + volume + pitch + seed。
-    // soundHolder 用内联 SoundEvent（direct=true，identifier=soundEventId），对齐 vanilla wire。
-    //   seed 暂用固定值 0。
-    mc::network::ir::play::PlaySound pkt;
-    pkt.soundHolder.direct = true;
-    pkt.soundHolder.identifier = soundEventId.toString();
-    pkt.soundHolder.hasFixedRange = false;
-    pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(position.x * 8.0f);
-    pkt.y = static_cast<i32>(position.y * 8.0f);
-    pkt.z = static_cast<i32>(position.z * 8.0f);
-    pkt.volume = volume;
-    pkt.pitch = pitch;
-    pkt.seed = 0;
-    m_server.broadcastPacket(mc::network::ir::IrPacket{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    });
+    m_server.broadcastPacket(buildPlaySoundIr(soundEventId, category, position, volume, pitch));
 }
 
 void PlayerBroadcaster::broadcastSoundInRange(const ResourceLocation& soundEventId,
@@ -123,23 +78,8 @@ void PlayerBroadcaster::broadcastSoundInRange(const ResourceLocation& soundEvent
     f32 volume,
     f32 pitch)
 {
-    // 1.21.11 PlaySound（同上），仅发送给范围内玩家。
-    mc::network::ir::play::PlaySound pkt;
-    pkt.soundHolder.direct = true;
-    pkt.soundHolder.identifier = soundEventId.toString();
-    pkt.soundHolder.hasFixedRange = false;
-    pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(position.x * 8.0f);
-    pkt.y = static_cast<i32>(position.y * 8.0f);
-    pkt.z = static_cast<i32>(position.z * 8.0f);
-    pkt.volume = volume;
-    pkt.pitch = pitch;
-    pkt.seed = 0;
-
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{pkt},
-    };
+    // 仅发送给范围内的玩家。
+    mc::network::ir::IrPacket packet = buildPlaySoundIr(soundEventId, category, position, volume, pitch);
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
@@ -169,23 +109,7 @@ void PlayerBroadcaster::sendSoundToPlayer(PlayerId playerId,
     f32 volume,
     f32 pitch)
 {
-    // 1.21.11 PlaySound（同上），定向发送。
-    mc::network::ir::play::PlaySound pkt;
-    pkt.soundHolder.direct = true;
-    pkt.soundHolder.identifier = soundEventId.toString();
-    pkt.soundHolder.hasFixedRange = false;
-    pkt.source = static_cast<i32>(category);
-    pkt.x = static_cast<i32>(position.x * 8.0f);
-    pkt.y = static_cast<i32>(position.y * 8.0f);
-    pkt.z = static_cast<i32>(position.z * 8.0f);
-    pkt.volume = volume;
-    pkt.pitch = pitch;
-    pkt.seed = 0;
-    m_server.sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)},
-        });
+    m_server.sendPacketToPlayer(playerId, buildPlaySoundIr(soundEventId, category, position, volume, pitch));
 }
 
 // ============================================================================
@@ -201,7 +125,7 @@ void PlayerBroadcaster::broadcastParticleInRange(particle::ParticleTypeId type,
 {
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
-    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
@@ -232,7 +156,7 @@ void PlayerBroadcaster::sendParticleToPlayer(PlayerId playerId,
 {
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
-    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
     m_server.sendPacketToPlayer(playerId, irPacket);
 }
 
@@ -258,7 +182,7 @@ void PlayerBroadcaster::broadcastVibrationParticleInRange(
         options.vibrationBlockPosPacked = blockSource.pos().asLong();
     }
 
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
     m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -289,7 +213,7 @@ void PlayerBroadcaster::broadcastTrailParticleInRange(
     options.trailTargetZ = targetPosition.z;
     options.color = color;
     options.trailDuration = durationInTicks;
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
     m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -316,7 +240,7 @@ void PlayerBroadcaster::broadcastEntityEffectParticleInRange(
     mc::network::ir::play::ParticleOptions options;
     options.type = particle::ParticleTypeId::EntityEffect;
     options.color = color;
-    auto irPacket = buildLevelParticlesIr(pos, offset, count, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
 
     // 只发送给范围内的玩家
     m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -343,7 +267,7 @@ void PlayerBroadcaster::broadcastBlockParticleInRange(
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
     options.blockStateId = blockStateId;
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
     m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
@@ -370,7 +294,7 @@ void PlayerBroadcaster::broadcastItemParticleInRange(
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
     options.item = mc::network::ir::toItemStackView(itemStack);
-    auto irPacket = buildLevelParticlesIr(pos, Vector3(0.0f, 0.0f, 0.0f), 1, std::move(options));
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
     m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {

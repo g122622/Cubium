@@ -103,12 +103,26 @@ namespace mc::server::net {
 /**
  * @brief 构造 LevelParticles IR（1.21.11，对齐 ClientboundLevelParticlesPacket）
  *
- * 简单粒子类型（SimpleParticleType，无额外 options）的便捷构造：偏移/速度归零、
- * count 由入参指定。原弱类型 broadcastParticleInRange 的包构造部分（ParticleCommand
- * 当前传 velocity=0/offset=0/count=1）。
+ * 通用原语：LevelParticles 的外层字段（位置/偏移/count/maxSpeed/overrideLimiter/
+ * alwaysShow）统一由本函数组装，ParticleOptions 由调用方按粒子类型预填。
+ * 所有粒子下发路径（ParticleCommand 与 PlayerBroadcaster 的各
+ * broadcastXxxParticleInRange）都汇聚到这里，避免同一包体出现多份构造实现。
  *
- * 复杂粒子选项（vibration/trail/block/item/entity_effect）仍由 PlayerBroadcaster 的
- * 强类型 broadcastXxxParticleInRange 承接（它们需距离过滤 + 多态发送）。
+ * maxSpeed 固定 0：客户端按 offset 扇出，不消费该字段。
+ *
+ * @param options 粒子选项（调用方按粒子类型构造）
+ * @param pos 粒子中心世界坐标
+ * @param offset 扇出偏移（单点粒子传零向量）
+ * @param count 粒子数量
+ */
+[[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
+    const mc::network::ir::play::ParticleOptions& options, const Vector3& pos, const Vector3& offset, u32 count);
+
+/**
+ * @brief 构造简单粒子（SimpleParticleType）的 LevelParticles IR
+ *
+ * 便捷重载：只指定粒子类型，偏移归零。等价于先构造仅含 type 的 ParticleOptions
+ * 再调用上面的通用原语。
  *
  * @param type 粒子类型
  * @param pos 粒子世界坐标

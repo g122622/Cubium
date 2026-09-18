@@ -953,9 +953,9 @@ add_executable(mc_tests
     server/core/OpListManagerTest.cpp
     server/core/PermissionResolverTest.cpp
     # PacketHandler 测试已删除：handleMoveVehicle/handlePlayerInput/handleEntityAction/
-    # handleSteerBoat/handleUseEntity 在新网络层已 stub 化（迁入 ServerPlayRouter），
+    # handleSteerBoat/handleUseEntity 在新网络层已实现于 ServerPlayHandler，
     # sendVehicleMoveCorrection/isEntityCollidingWithAnythingNew 的 cpp 实现已删除。
-    # 旧字节 handler 行为测试整体失效，Step5 由 ServerPlayRouter 集成测试替代。
+    # 旧字节 handler 行为测试整体失效，由 ServerPlayHandler 的集成测试替代。
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # ServerPlayer PvP 保护机制测试
@@ -1910,14 +1910,14 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
         # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
-        # 它们引用 ServerNetwork/ServerHandshake/ServerPlayRouter/RegistryDataBuilder 的符号，
+        # 它们引用 ServerNetwork/ServerHandshake/ServerPlayHandler/RegistryDataBuilder 的符号，
         # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）
         # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
         ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp
         # 会话生命周期门面（accept + 连接表 + tick 泵）
         ${CMAKE_SOURCE_DIR}/src/server/network/session/ServerNetwork.cpp
-        # 远程 TCP 会话管理门面：IntegratedServer/StandaloneServer 远程会话四件套
-        # 转调 ClientSessionManager，mc_tests 编译子类故须登记。
+        # 单客户端会话与远程会话门面：mc_tests 编译 IntegratedServer.cpp 故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSession.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSessionManager.cpp
         # 握手/登录/配置阶段：mc_tests 编译 IntegratedServer.cpp/MinecraftServer.cpp 故须登记。
         ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
@@ -1925,7 +1925,6 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/handshake/LoginFlow.cpp
         # Play 阶段入站处理：mc_tests 编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayRouter.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayHandler.cpp
         # 出站构造与广播：命令经 builder + connectionManager 投递，
         # mc_tests 编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
