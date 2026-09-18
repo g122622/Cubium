@@ -295,6 +295,13 @@ add_executable(minecraft-server
     # Play 阶段入站处理（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
     # updateEntityTrackingForPlayer 整簇下沉自 MinecraftServer）
     network/play/ServerPlayHandler.cpp
+    # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
+    network/play/MovementHandler.cpp
+    network/play/BlockActionHandler.cpp
+    network/play/EntityActionHandler.cpp
+    network/play/ChatHandler.cpp
+    network/play/PlayerStateHandler.cpp
+    network/play/SessionSignalHandler.cpp
     # 出站构造与广播（Play/Configuration 单包 IR 构造 + 距离过滤广播 + 地图周期推送）
     network/outbound/PacketBuilders.cpp
     network/outbound/PlayerBroadcaster.cpp

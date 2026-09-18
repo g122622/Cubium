@@ -26,8 +26,15 @@ src/server/network/
 │   ├── RegistryDataBuilder.hpp/cpp    # Configuration 阶段 registry/tags/knownPacks 载荷
 │   ├── EnchantmentNbtBuilder.hpp/cpp  # datapack 附魔 JSON → 内联 NBT RegistryEntry
 │   └── LoginFlow.hpp/cpp              # 进入 Play 的入场序列（建号 + 初始状态推送整簇）
-├── play/                              # Play 阶段入站处理
-│   └── ServerPlayHandler.hpp/cpp      # 24 路 std::visit 分发 + 各 handle*Packet 处理体
+├── play/                              # Play 阶段入站处理（按包族拆分）
+│   ├── base/PlayHandlerBase.hpp       # 处理器基座（只提供 MinecraftServer&）
+│   ├── ServerPlayHandler.hpp/cpp      # 聚合门面：24 路 std::visit 分发表
+│   ├── MovementHandler.hpp/cpp        # 移动 / 载具输入 / 传送确认
+│   ├── BlockActionHandler.hpp/cpp     # 挖掘 / 物品动作 / 放置 / 使用物品 / 告示牌
+│   ├── EntityActionHandler.hpp/cpp    # 实体交互（INTERACT / ATTACK / INTERACT_AT）
+│   ├── ChatHandler.hpp/cpp            # 聊天与命令执行
+│   ├── PlayerStateHandler.hpp/cpp     # PlayerCommand / 难度 / 配方书 / 进度界面
+│   └── SessionSignalHandler.hpp/cpp   # 心跳 / ping / 配置确认 / 区块批次反馈
 ├── outbound/                          # 出站：IR 构造、广播、复合下发序列
 │   ├── PacketBuilders.hpp/cpp         # 纯自由函数 IR 构造（零 MinecraftServer 依赖）
 │   ├── CommandTreeEncoder.hpp         # 命令树 → ClientboundCommandsPacket 包体

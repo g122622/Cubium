@@ -457,6 +457,13 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/LoginFlow.cpp
     # Play 阶段入站处理：客户端内置服编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
     ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayHandler.cpp
+    # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
     # 出站构造与广播：命令/登录流程经 builder + connectionManager 投递，
     # 客户端内置服编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
     ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp

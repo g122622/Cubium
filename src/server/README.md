@@ -46,7 +46,7 @@ server/
 │   ├── base/             # 连接抽象与连接实例（IServerClientConnection / ServerClientConnection）
 │   ├── session/          # 门面 ServerNetwork + ClientSession(+Manager)
 │   ├── handshake/        # 四阶段状态机 + Configuration 载荷 + Play 入场序列
-│   ├── play/             # Play 阶段入站处理（ServerPlayHandler）
+│   ├── play/             # Play 阶段入站处理（聚合门面 + 6 个按包族拆分的处理器）
 │   ├── outbound/         # 出站构造与广播（PacketBuilders / PlayerBroadcaster / MapPacketBuilder）
 │   └── sync/             # 世界数据下推（ChunkSend / BlockUpdateSync / WeatherSync + chunk/ 记账）
 ├── command/              # 命令系统

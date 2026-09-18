@@ -3,9 +3,9 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without including limitation the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permitted persons to whom the Software is
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -25,105 +25,52 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "server/network/play/BlockActionHandler.hpp"
+#include "server/network/play/ChatHandler.hpp"
+#include "server/network/play/EntityActionHandler.hpp"
+#include "server/network/play/MovementHandler.hpp"
+#include "server/network/play/PlayerStateHandler.hpp"
+#include "server/network/play/SessionSignalHandler.hpp"
+#include "server/network/play/base/PlayHandlerBase.hpp"
 
 namespace mc::server {
 class MinecraftServer;
 } // namespace mc::server
 
-namespace mc {
-class Player;
-class ItemStack;
-class Entity;
-} // namespace mc
-
 namespace mc::server::net {
 
 /**
- * @brief Play 包处理门面（批7 下沉自 MinecraftServer）
+ * @brief Play 包处理聚合门面
  *
- * 承载入站 C→S Play IR 包的整簇处理逻辑：
- *  - routeInboundPlayPacket：按 ir::PlayPacket 变体分发到各 handle*Packet
- *    （ClientSession::handleInbound 的唯一调用入口）。
- *  - 13 个非纯虚 handle*Packet 方法体（移动/传送确认/心跳/聊天/告示牌/
- *    骑乘输入/载具移动/玩家命令/船桨/实体交互/物品使用/方块交互/方块放置）。
- *  - updateEntityTrackingForPlayer：刷新玩家实体追踪范围（移动/传送确认/
- *    维度切换/登录序列均调用）。
+ * 只做两件事：
+ *  - `route`：24 路 `std::holds_alternative` 分发表，把包转给对应包族处理器；4 个分支
+ *    回调 `MinecraftServer` 的纯虚（handleHotbarSelect / handleContainerClick /
+ *    handleCloseContainer / SetCreativeModeSlot），保留子类 override 的多态分发。
+ *  - `updateEntityTrackingForPlayer`：登录序列与维度切换的对外入口，转调 MovementHandler。
  *
- * 持 MinecraftServer&（非 IServer&）：handleBlockPlacementPacket 调 5 个
- * MinecraftServer 自身纯虚（getHeldItemForPlacement/getSelectedHotbarSlot/
- * setInventoryItem/syncPlayerInventory/tryOpenCraftingContainer，均在
- * MinecraftServer 声明不在 IServer），故须持具体基类引用。其余 manager 访问器
- * （playerManager/dimensionManager/teleportManager/keepAliveManager/
- * positionTracker/playerEntityManager/miningManager/blockInteractionManager/
- * commandRegistry/getPlayerWorld/resolveOpLevel/sendPacketToPlayer）经 public
- * 访问器调用，无需 friend。
- *
- * 多态保留：3 个纯虚 handle（handleHotbarSelect/handleContainerClick/
- * handleCloseContainer）+ handleOpenPlayerInventoryPacket（虚，子类覆写）不
- * 下沉，仍由 MinecraftServer 声明、子类 override。routeInboundPlayPacket
- * 内对应分支经 m_server.handleXxxPacket(...) 虚分发到子类；handlePlayerCommandPacket
- * 的 OPEN_INVENTORY 分支同样经 m_server.handleOpenPlayerInventoryPacket(...)
- * 虚分发，保留 IntegratedServer 开背包覆写。
+ * 各包族的实现体在 `MovementHandler` / `BlockActionHandler` / `EntityActionHandler` /
+ * `ChatHandler` / `PlayerStateHandler` / `SessionSignalHandler` 中。分发表**刻意集中在本文件
+ * 一份**而不下沉到各处理器：否则每个包要依次问遍 6 个处理器，"某变体无人认领" 也无法集中
+ * 发现（现有 else 分支的告警会被静默化）。代价是新增 C→S 包要改两处（route 分支 + 处理器），
+ * 详见 play/README.md。
  */
-class ServerPlayHandler {
+class ServerPlayHandler : public PlayHandlerBase {
 public:
-    explicit ServerPlayHandler(MinecraftServer& server)
-        : m_server(server)
-    {}
+    explicit ServerPlayHandler(MinecraftServer& server);
 
-    // 不可拷贝/移动（持引用）。
-    ServerPlayHandler(const ServerPlayHandler&) = delete;
-    ServerPlayHandler& operator=(const ServerPlayHandler&) = delete;
-    ServerPlayHandler(ServerPlayHandler&&) = delete;
-    ServerPlayHandler& operator=(ServerPlayHandler&&) = delete;
-
-    /// 路由入站 Play IR 包到对应处理方法（ClientSession::handleInbound 唯一入口）。
+    /// 路由入站 Play IR 包到对应包族处理器（ClientSession::handleInbound 唯一入口）。
     void route(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /// 刷新指定玩家的实体追踪范围（移动/传送确认/维度切换/登录序列调用）。
     void updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z);
 
 private:
-    void handlePlayerMovePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleTeleportConfirmPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleKeepAlivePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleChatMessagePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleChatCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleBlockInteractionPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleBlockPlacementPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /// 处理 PlayerAction 的物品相关 action（3=DROP_ALL_ITEMS 4=DROP_ITEM
-    /// 5=SWAP_ITEM_WITH_OFFHAND 6=RELEASE_USE_ITEM），对齐 Java
-    /// ServerGamePacketListenerImpl.handlePlayerAction(:1245-1268)。这些 action 不带
-    /// sequence、不 ack，不走 MiningManager。
-    void handlePlayerItemAction(PlayerId playerId, i32 action);
-    void handleUpdateSignPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handlePlayerInputPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleMoveVehiclePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handlePaddleBoatPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleUseItemPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handlePingRequestPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handlePongPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleChangeDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleLockDifficultyPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleConfigurationAcknowledgedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleSeenAdvancementsPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handlePlaceRecipePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-    void handleChunkBatchReceivedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
-
-    /// 触发 player_interacted_with_entity 成就（INTERACT/INTERACT_AT 成功时调用）。
-    void _triggerPlayerInteractedWithEntity(Player& player, const ItemStack& item, Entity& entity);
-
-    /// 触发 default_block_use 成就（任意方块使用，对齐 vanilla ANY_BLOCK_USE）。
-    /// 在放置/使用方块成功后调用，无条件触发所有监听实例。
-    void _triggerAnyBlockUse(Player& player);
-
-    /// 执行玩家命令。commandInput 含或不含 '/' 前缀均可（CommandDispatcher::parse 自动剥离）。
-    void _executePlayerCommand(PlayerId playerId, const std::string& commandInput);
-
-    MinecraftServer& m_server;
+    MovementHandler m_movement;
+    BlockActionHandler m_blockAction;
+    EntityActionHandler m_entityAction;
+    ChatHandler m_chat;
+    PlayerStateHandler m_playerState;
+    SessionSignalHandler m_sessionSignal;
 };
 
 } // namespace mc::server::net
