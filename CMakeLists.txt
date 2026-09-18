@@ -303,7 +303,8 @@ endif()
 
 if(MC_BUILD_TESTS)
     enable_testing()
-    add_subdirectory(tests)
+    # 单元测试源码统一收在 tests/unit 下（tests/integrated 为行为包集成测试数据，无 CMake 构建）
+    add_subdirectory(tests/unit)
 endif()
 
 if(MC_BUILD_BENCHMARKS)

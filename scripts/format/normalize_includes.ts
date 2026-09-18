@@ -36,11 +36,11 @@ const path = require('node:path');
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 
 // include 根优先级：
-// 先 src/（命中 common/server/client 前缀），再 tests/，再 include/
+// 先 src/（命中 common/server/client 前缀），再 tests/unit/，再 include/
 // src/common 也是 -I 根，但用 src/ 根表达为 common/... 更符合项目规范
 const INCLUDE_ROOTS = [
     path.join(PROJECT_ROOT, 'src'),
-    path.join(PROJECT_ROOT, 'tests'),
+    path.join(PROJECT_ROOT, 'tests', 'unit'),
     path.join(PROJECT_ROOT, 'include'),
 ];
 

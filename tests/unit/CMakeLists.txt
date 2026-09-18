@@ -2486,7 +2486,8 @@ target_include_directories(mc_tests
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/tests
+        # 测试私有头（TestWorldHelper.hpp / BaseTestServer.hpp 等）以 tests/unit 为根表达
+        ${CMAKE_SOURCE_DIR}/tests/unit
 )
 
 target_compile_definitions(mc_tests

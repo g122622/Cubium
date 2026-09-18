@@ -20,12 +20,14 @@ ctest --build-config RelWithDebInfo --output-on-failure -j8
 
 ## 测试 target
 
-测试源码位于 `tests/`，共 2 个测试可执行文件，全部注册到 CTest（`tests/CMakeLists.txt` 中 `mc_register_gtests`）：
+单元测试源码位于 `tests/unit/`（`tests/integrated` 是行为包集成测试数据，不参与 C++ 构建），共 2 个测试可执行文件，全部注册到 CTest（`tests/unit/CMakeLists.txt` 中 `mc_register_gtests`）：
 
 | target | 范围 | 注册位置 |
 |---|---|---|
-| `mc_tests` | 主测试套件，覆盖 common/server/client 大部分模块（含命令系统、村庄系统、资源包/纹理/图集等原独立 target 的全部用例） | `tests/CMakeLists.txt:2435` |
-| `mc_trident_tests` | Trident 渲染引擎核心组件（需 `MC_BUILD_CLIENT=ON`） | `tests/CMakeLists.txt:2430` |
+| `mc_tests` | 主测试套件，覆盖 common/server/client 大部分模块（含命令系统、村庄系统、资源包/纹理/图集等原独立 target 的全部用例） | `tests/unit/CMakeLists.txt:2540` |
+| `mc_trident_tests` | Trident 渲染引擎核心组件（需 `MC_BUILD_CLIENT=ON`） | `tests/unit/CMakeLists.txt:2655` |
+
+> 目录根即 include 根：测试代码引用仓库级头文件用 `common/...`、`server/...` 形式（`-I ${CMAKE_SOURCE_DIR}/tests/unit`），引用测试私有头（`TestWorldHelper.hpp`、`BaseTestServer.hpp` 等）同样按该根表达。
 
 > 历史：`mc_command_tests`/`mc_village_tests`/`mc_resource_tests` 三个独立 target 已合并入 `mc_tests`，以减少构建产物数量。合并后命令/村庄测试随之带上 Vulkan/OpenAL/asio 依赖（mc_tests 现链这些）——纯服务端 CI、无显卡环境将无法运行这些用例。
 
@@ -71,7 +73,7 @@ Windows 采用 `DISCOVERY_MODE PRE_TEST`（见下文），用例列表在 CTest 
 全二进制直跑更快，但单进程内跨用例共享状态可能互相污染（典型表现：某用例隔离跑稳定、全二进制偶发 flaky）。已知的污染源与治理：
 
 - **生产时序**：`ServerChunkManager::processTicketUpdatesSync()` 现已出队 `m_pendingLoadCompletes`（对齐 MC Java `ServerChunkCache.runDistanceManagerUpdates`），消除了“票据已推进但存档完成回调未出队”的 TOCTOU 窗口——这是 `GameEventServerTest` 全二进制 flaky 的根因。
-- **thread_local 调度上下文**：`tests/main.cpp` 注册了 `TestIsolationListener`，每用例结束重置 `ChunkTaskScheduler` 的 thread_local `SyncSchedulingContext`（depth/pending），根除同 worker 线程跨用例的残留。
+- **thread_local 调度上下文**：`tests/unit/main.cpp` 注册了 `TestIsolationListener`，每用例结束重置 `ChunkTaskScheduler` 的 thread_local `SyncSchedulingContext`（depth/pending），根除同 worker 线程跨用例的残留。
 
 经验上**不是污染源**、无需重置的进程级状态：`VanillaBlocks`/`BlockTags`/`BlockRegistry`/`Items` 等原版基线注册表——它们幂等初始化，每个用例都期望以相同方式加载，重置反而要重解析数据包（全量 per-case 跑 ×27000 用例不可接受）。`::testing::Environment::TearDown` 在进程末尾才跑一次，对进程内隔离无帮助，故 `WorldGenRegistryEnvironment` 不设 TearDown。
 
@@ -93,7 +95,7 @@ Windows 采用 `DISCOVERY_MODE PRE_TEST`（见下文），用例列表在 CTest 
 
 每个 gtest 用例（`TestSuite.TestCase`）都被 `gtest_discover_tests` 拆成**独立的 CTest 条目**，并附带独立的 `TIMEOUT`。超时即判失败，用于及早暴露区块生成/光照等长耗时用例的 hang/flake。
 
-核心配置在 `tests/CMakeLists.txt:2378-2399`：
+核心配置在 `tests/unit/CMakeLists.txt:2515-2539`：
 
 ```cmake
 # 单个测试用例执行超时（秒）
@@ -151,7 +153,7 @@ CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job �
 
 ## 测试入口与全局环境
 
-`tests/main.cpp` 是 `mc_tests` 的入口：安装 `CrashHandler` 后运行所有用例，并注册全局 `WorldGenRegistryEnvironment`——在所有用例运行前一次性从原版数据包加载 `noise_settings` / `density_function` / `noise` / `flat_preset` / `world_preset` 等数据驱动注册表。任何调用 `RandomState::create()` 的测试都依赖这些注册表已加载。数据包目录缺失时（非开发机）静默跳过，相关测试会因 registry 为空而断言失败（属预期）。
+`tests/unit/main.cpp` 是 `mc_tests` 的入口：安装 `CrashHandler` 后运行所有用例，并注册全局 `WorldGenRegistryEnvironment`——在所有用例运行前一次性从原版数据包加载 `noise_settings` / `density_function` / `noise` / `flat_preset` / `world_preset` 等数据驱动注册表。任何调用 `RandomState::create()` 的测试都依赖这些注册表已加载。数据包目录缺失时（非开发机）静默跳过，相关测试会因 registry 为空而断言失败（属预期）。
 
 > 合并前 `mc_command_tests` 曾用独立的 `tests/command_main.cpp` 入口（与 `main.cpp` 等价地安装 CrashHandler + 注册 `WorldGenRegistryEnvironment`）；该 target 并入 `mc_tests` 后 `command_main.cpp` 已删除，命令测试改用 `main.cpp` 的同一全局环境。`mc_village_tests`/`mc_resource_tests` 原本用 gtest 默认 main，并入后同样由 `main.cpp` 接管。
 
@@ -159,8 +161,8 @@ CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job �
 
 ## 编写新测试
 
-- 测试文件命名 `test_*.cpp` 或 `*Test.cpp`，放在 `tests/` 下对应子目录。
-- 新增测试源文件后，需在 `tests/CMakeLists.txt` 的对应 `add_executable` 列表里登记（如 `mc_tests` 列表位于 `tests/CMakeLists.txt:17`）。**未登记的源文件不会编译**。绝大多数新测试应加入 `mc_tests`；仅当被测代码有特殊依赖隔离需求（如 `mc_trident_tests` 仅在 `MC_BUILD_CLIENT=ON` 下构建）时才新建 target。
+- 测试文件命名 `test_*.cpp` 或 `*Test.cpp`，放在 `tests/unit/` 下对应子目录。
+- 新增测试源文件后，需在 `tests/unit/CMakeLists.txt` 的对应 `add_executable` 列表里登记（如 `mc_tests` 列表位于 `tests/unit/CMakeLists.txt:17`）。**未登记的源文件不会编译**。绝大多数新测试应加入 `mc_tests`；仅当被测代码有特殊依赖隔离需求（如 `mc_trident_tests` 仅在 `MC_BUILD_CLIENT=ON` 下构建）时才新建 target。
 - 新增测试 target 需自行调用 `mc_register_gtests(<target>)` 注册到 CTest，否则不参与 `ctest` 运行、也无单用例限时。
 - **TestSuite 名在 target 内必须唯一**：合并后 `mc_tests` 单进程内运行全部用例，若两个文件注册同名 TestSuite（`TEST(SuiteName, ...)`/`TEST_F(SuiteName, ...)` 的第一个参数），gtest 会重复注册报错。新增测试前先 `grep -rE 'TEST(_F)?\(\s*YourSuiteName' tests/` 确认无重名。
 - 复用被测代码基建时遵循 `docs/PROJECT_CONVENTIONS.md` 与 `docs/CODE_CONVENTIONS.md`。
@@ -170,7 +172,7 @@ CI 侧另有全局兜底：`.github/workflows/ci.yml` 中 Linux/asan/tsan job �
 
 1. **Windows `ctest -N` 看不到用例**：`PRE_TEST` 探测机制所致，正常现象，直接运行即可。
 2. **忘记 `--build-config RelWithDebInfo`**：多配置生成器下 CTest 默认空配置，会报 "No tests found"。Linux/macOS 单配置可省略。
-3. **新增测试源文件没登记到 `tests/CMakeLists.txt`**：编译期不会报错，但用例不会出现。排查时先 `grep` 确认文件名在对应 target 的源列表里。
+3. **新增测试源文件没登记到 `tests/unit/CMakeLists.txt`**：编译期不会报错，但用例不会出现。排查时先 `grep` 确认文件名在对应 target 的源列表里。
 4. **想看崩溃栈却拿到 "SEH exception ... 不带栈"**：gtest 抢了 SEH，加 `--gtest_catch_exceptions=0` 交给 CrashHandler。
 5. **`--gtest_break_on_failure` 与崩溃调试混用**：它抛的是 `BREAKPOINT`，不是原始崩溃点，定位根因时不要用。
 6. **慢用例 hang 看不到失败**：单用例 `TIMEOUT` 默认 300s，超时会判失败并输出；若整体卡住可加 `ctest --timeout` 全局兜底。
