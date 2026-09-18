@@ -73,7 +73,7 @@ public:
 
     [[nodiscard]] f32 width() const override { return 0.98f; }
     [[nodiscard]] f32 height() const override { return 0.98f; }
-    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool isPushable() const override { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     // 无战利品表，覆写基类方法返回空字符串
@@ -288,7 +288,7 @@ public:
 
     [[nodiscard]] f32 width() const override { return 0.98f; }
     [[nodiscard]] f32 height() const override { return 0.98f; }
-    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool isPushable() const override { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     // 无战利品表，覆写基类方法返回空字符串

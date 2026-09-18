@@ -212,6 +212,15 @@ public:
     [[nodiscard]] bool isDead() const { return health() <= 0.0f; }
 
     /**
+     * @brief 生物是否参与实体间碰撞（重写 Entity 基类）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.isPushable（LivingEntity.java:3221-3223）：
+     *   return this.isAlive() && !this.isSpectator() && !this.onClimbable();
+     * 旁观者判定由 Player 进一步重写（只有玩家有旁观者模式）。
+     */
+    [[nodiscard]] bool isPushable() const override { return isAlive() && !isOnLadder(); }
+
+    /**
      * @brief 死亡
      * @param cause 死亡原因
      */

@@ -71,7 +71,7 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool isPushable() const override { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     // 无战利品表，覆写基类方法返回空字符串
@@ -152,7 +152,7 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool isPushable() const override { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     // 无战利品表，覆写基类方法返回空字符串
@@ -239,7 +239,7 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool isPushable() const override { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
     // 无战利品表，覆写基类方法返回空字符串
@@ -490,7 +490,7 @@ public:
 
     [[nodiscard]] f32 width() const override;
     [[nodiscard]] f32 height() const override;
-    [[nodiscard]] bool isPushable() const { return !m_marker; }
+    [[nodiscard]] bool isPushable() const override { return !m_marker; }
     [[nodiscard]] bool canBeCollidedWith() const override { return !m_marker; }
 
     /**

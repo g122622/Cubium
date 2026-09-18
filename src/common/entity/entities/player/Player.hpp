@@ -201,6 +201,15 @@ public:
     [[nodiscard]] bool isSpectator() const override { return entity::GameModeUtils::isSpectator(m_gameMode); }
 
     /**
+     * @brief 玩家是否参与实体间碰撞（重写 LivingEntity）
+     *
+     * 对齐 MC Java 1.21.11 LivingEntity.isPushable 的完整条件
+     * （LivingEntity.java:3221-3223）：isAlive() && !isSpectator() && !onClimbable()。
+     * 旁观者不与世界碰撞，故不能挡住方块放置。
+     */
+    [[nodiscard]] bool isPushable() const override { return LivingEntity::isPushable() && !isSpectator(); }
+
+    /**
      * @brief 弹射物是否可命中此玩家
      *
      * 对应 MC Java Player.canBeHitByProjectile()。

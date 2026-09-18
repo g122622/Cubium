@@ -907,6 +907,20 @@ public:
     [[nodiscard]] virtual bool canBeCollidedWith() const { return true; }
 
     /**
+     * @brief 实体是否参与实体间碰撞（"可被推挤"）
+     *
+     * 对齐 MC Java 1.21.11 Entity.isPushable（Entity.java:1900-1902），默认 false。
+     * 用于 Level.getEntityCollisions 的实体过滤谓词 EntitySelector.CAN_BE_PUSHED：
+     * 只有 isPushable 的实体才计入 AABB 实体碰撞，进而影响 Level.noCollision →
+     * BlockItem.canPlace 等"能否在此放置方块"的判定。
+     *
+     * 关键：掉落物/箭矢/经验球等非生物实体在 vanilla 中**不覆写**该方法，故恒为 false，
+     * 因此不会挡住玩家在其所在位置放置方块。若不做此过滤，挖掘产生的掉落物会立刻挡住
+     * 原地放置（e2e 实测：挖掉草方块后无法在同一位置放回石头，报"与实体碰撞"）。
+     */
+    [[nodiscard]] virtual bool isPushable() const { return false; }
+
+    /**
      * @brief this 是否会与指定实体发生碰撞
      *
      * 对应 MC Java 的 Entity.canCollideWith(Entity)：

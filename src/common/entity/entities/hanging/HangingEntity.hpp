@@ -65,7 +65,7 @@ public:
 
     // Entity overrides
     void tick() override;
-    [[nodiscard]] bool isPushable() const { return false; }
+    [[nodiscard]] bool isPushable() const override { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return true; }
 
     // 无战利品表，覆写基类方法返回空字符串
