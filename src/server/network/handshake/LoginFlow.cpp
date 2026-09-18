@@ -185,6 +185,30 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     m_server.inventoryManager().initializeInventory(playerId);
     m_server.inventoryManager().syncToClient(playerId);
 
+    // 下发自身到 Tab 列表（ClientboundPlayerInfoUpdate，cb 68）。
+    // 必要性：vanilla 在 PlayerList.placeNewPlayer 里调用 sendAllPlayerInfo，客户端据此建立
+    // 玩家列表（第三方客户端如 mineflayer 的 bot.players 即由此而来）；此前本包 IR/codec/
+    // 协议表登记三层齐备但服务端零发送点，导致客户端玩家列表恒为空。
+    // actions 位掩码按 Action ordinal：ADD_PLAYER(0) | UPDATE_GAME_MODE(2) | UPDATE_LISTED(3)
+    // | UPDATE_LATENCY(4)。条目负载按 action 升序写入，与 codec 的写序一致。
+    // TODO: 当前仅向加入者本人下发其自身条目。完整实现应做双向广播——新玩家加入时向所有
+    //       在线玩家广播其条目，并向新玩家广播全部在线玩家的条目；多玩家场景下 Tab 列表
+    //       才会完整。另 UPDATE_DISPLAY_NAME 依赖 ITextComponent 的 NBT codec，尚未接入。
+    {
+        mc::network::ir::play::PlayerInfoUpdate infoUpdate;
+        infoUpdate.actions = static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4));
+        mc::network::ir::play::PlayerInfoEntry selfEntry;
+        selfEntry.uuid = offlineUuid;
+        selfEntry.name = username;
+        selfEntry.gameMode = static_cast<i32>(playerData->gameMode);
+        selfEntry.listed = true;
+        selfEntry.latency = 0;
+        infoUpdate.entries.push_back(std::move(selfEntry));
+        m_server.sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(infoUpdate)}});
+    }
+
     result.success = true;
     spdlog::info("Player '{}' (PlayerId={}, EntityInstanceId={}) joined the game", username, playerId, result.entityId);
     return result;

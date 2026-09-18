@@ -143,6 +143,13 @@ private:
     // 客户端 Configuration 阶段上报的设置（C→S ClientInformation）。未上报时为 nullopt。
     std::optional<mc::network::ir::configuration::ClientInformation> m_clientInformation;
 
+    // 客户端在 SelectKnownPacks(C→S) 中是否声明了 minecraft:core。
+    // 该标志决定 RegistryData 走哪条分支（对齐 Java RegistrySynchronization.packRegistry 的
+    // 逐条目 known-pack 判定）：声明了 → 条目 data=nullopt（客户端从本地 core 包加载），
+    // 未声明 → 服务端必须下发完整 NBT（第三方客户端如 node-minecraft-protocol 恒定回空
+    // 列表，走此分支）。默认 false：未收到回包前按"客户端未知"处理，与 vanilla 语义一致。
+    bool m_clientKnowsVanillaCore = false;
+
     // === 各阶段处理 ===
     [[nodiscard]] Result<void> _handleHandshake(const mc::network::ir::handshake::ClientIntention& intention);
     [[nodiscard]] Result<void> _handleLoginPacket(const mc::network::ir::LoginPacket& pkt);

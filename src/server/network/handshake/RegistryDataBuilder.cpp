@@ -23,12 +23,22 @@
 
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "server/network/handshake/EnchantmentNbtBuilder.hpp"
 
+#include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+
+#include <cstdint>
 #include <initializer_list>
+#include <limits>
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -47,6 +57,112 @@ mc::network::ir::configuration::RegistryData makeKnownRegistry(
         data.entries.push_back({std::string(id), std::nullopt});
     }
     return data;
+}
+
+/// 进程级 datapack 源（服务器启动期由 setRegistryDatapackSource 注册）。
+/// 与 MinecraftServer::m_dataPackList 同生命周期，握手阶段读取安全。
+const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
+
+/// 把 JSON 递归转 NBT，**整数一律落 int_tag**（超出 i32 范围才用 long_tag）。
+///
+/// 与 mc::nbt::jsonToNbt 的关键差异：后者按数值范围窄化——[-128,127] → byte_tag、
+/// [-32768,32767] → short_tag、其余 → int_tag。Java 侧注册表 codec 的整数字段用
+/// Codec.INT 解码，byte_tag/short_tag 会被拒（EnchantmentNbtBuilder.cpp:462 记录了
+/// enchantment 的同类问题：「jsonToNbt 会把 5 推断为 byte_tag，Java int CODEC 要求
+/// int_tag，拒绝 byte_tag/short_tag」）。本函数专供注册表 NBT 构造，规避该窄化。
+///
+/// 浮点沿用 jsonToNbt 的推断（能精确表示为 f32 则 float_tag，否则 double_tag）——
+/// Java 的 FloatCodec/DoubleCodec 接受任意数值 tag，无需精确匹配。
+///
+/// TODO: 暂不支持 JSON 数组（当前仅 dimension_type 走本函数，其 JSON 无数组字段）。
+///       若未来为含数组的注册表启用（如 worldgen/biome 的 features/spawners），
+///       须补齐同构列表类型推断，且整数元素同样不能窄化。
+std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json)
+{
+    using namespace mc::nbt::tags;
+
+    if (json.is_null()) {
+        return std::make_unique<compound_tag>();
+    }
+    if (json.is_string()) {
+        return std::make_unique<string_tag>(json.get<std::string>());
+    }
+    if (json.is_boolean()) {
+        return std::make_unique<byte_tag>(json.get<bool>() ? static_cast<i8>(1) : static_cast<i8>(0));
+    }
+    if (json.is_number_integer()) {
+        const i64 val = json.get<i64>();
+        if (val >= static_cast<i64>(std::numeric_limits<i32>::min()) &&
+            val <= static_cast<i64>(std::numeric_limits<i32>::max())) {
+            return std::make_unique<int_tag>(static_cast<i32>(val));
+        }
+        return std::make_unique<long_tag>(val);
+    }
+    if (json.is_number_float()) {
+        const f64 val = json.get<f64>();
+        if (static_cast<f64>(static_cast<f32>(val)) == val) {
+            return std::make_unique<float_tag>(static_cast<f32>(val));
+        }
+        return std::make_unique<double_tag>(val);
+    }
+    if (json.is_object()) {
+        auto result = std::make_unique<compound_tag>();
+        for (const auto& [key, value] : json.items()) {
+            result->value.emplace(key, jsonToNbtStrictInt(value));
+        }
+        return result;
+    }
+    if (json.is_array()) {
+        spdlog::warn("RegistryDataBuilder: jsonToNbtStrictInt 暂不支持 JSON 数组，已置空（见函数 TODO）");
+        return std::make_unique<end_list_tag>();
+    }
+    return std::make_unique<compound_tag>();
+}
+
+/// 把 "namespace:path" 转成数据包资源路径 "<ns>/<registryDir>/<path>.json"。
+/// 不含 "data/" 前缀（与 EnchantmentNbtBuilder::enchantmentIdToResourcePath 同一约定，
+/// 误加会双重前缀致 readTextResource 永久 ResourceNotFound）。
+std::string registryEntryResourcePath(std::string_view id, std::string_view registryDir)
+{
+    const auto colon = id.find(':');
+    if (colon == std::string_view::npos) {
+        return "minecraft/" + std::string(registryDir) + "/" + std::string(id) + ".json";
+    }
+    return std::string(id.substr(0, colon)) + "/" + std::string(registryDir) + "/" + std::string(id.substr(colon + 1)) +
+        ".json";
+}
+
+/// 读取并序列化单个注册表条目的 NBT 字节。失败返回 nullopt（调用方回退 data=nullopt）。
+std::optional<std::vector<u8>> buildRegistryEntryData(
+    const mc::resource::DataPackRepository& repo, std::string_view id, std::string_view registryDir)
+{
+    const std::string resourcePath = registryEntryResourcePath(id, registryDir);
+    auto readResult = repo.readTextResource(resourcePath);
+    if (!readResult.success()) {
+        spdlog::warn("RegistryDataBuilder: 读取 {} 失败（{}）", resourcePath, readResult.error().toString());
+        return std::nullopt;
+    }
+
+    nlohmann::json j;
+    try {
+        j = nlohmann::json::parse(std::move(readResult).value());
+    }
+    catch (const std::exception& e) {
+        spdlog::warn("RegistryDataBuilder: 解析 {} 失败：{}", resourcePath, e.what());
+        return std::nullopt;
+    }
+    if (!j.is_object()) {
+        spdlog::warn("RegistryDataBuilder: {} 顶层不是 JSON 对象", resourcePath);
+        return std::nullopt;
+    }
+
+    auto root = jsonToNbtStrictInt(j);
+    auto* asCompound = dynamic_cast<mc::nbt::tags::compound_tag*>(root.get());
+    if (asCompound == nullptr) {
+        spdlog::warn("RegistryDataBuilder: {} 转换结果不是 compound", resourcePath);
+        return std::nullopt;
+    }
+    return mc::network::buffer::nbt_io::serializeRootCompoundToBytes(*asCompound);
 }
 
 } // namespace
@@ -528,6 +644,46 @@ std::vector<mc::network::ir::configuration::TagRegistry> buildConfigurationUpdat
 std::vector<mc::network::ir::configuration::KnownPack> buildServerKnownPacks()
 {
     return {mc::network::ir::configuration::KnownPack{"minecraft", "core", "1.21.11"}};
+}
+
+void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo)
+{
+    g_registryDatapackRepo = &repo;
+}
+
+std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegistryDataForUnknownClient()
+{
+    std::vector<mc::network::ir::configuration::RegistryData> registries;
+
+    if (g_registryDatapackRepo == nullptr) {
+        spdlog::error("RegistryDataBuilder: datapack 源未注册，无法为未声明 minecraft:core 的客户端构造注册表 NBT");
+        return registries;
+    }
+
+    // dimension_type（4）：下发完整内联 NBT。
+    // 条目顺序与 buildConfigurationRegistryData() 中的同名注册表严格一致——Login 包的
+    // spawnInfo.dimensionType 是 holder id（= 该注册表内的顺序索引），客户端按收到顺序自增分配。
+    mc::network::ir::configuration::RegistryData dimensionTypes;
+    dimensionTypes.registryKey = "minecraft:dimension_type";
+    const std::initializer_list<const char*> dimensionTypeIds = {
+        "minecraft:overworld", "minecraft:overworld_caves", "minecraft:the_nether", "minecraft:the_end"};
+    dimensionTypes.entries.reserve(dimensionTypeIds.size());
+    for (const char* id : dimensionTypeIds) {
+        dimensionTypes.entries.push_back(
+            {std::string(id), buildRegistryEntryData(*g_registryDatapackRepo, id, "dimension_type")});
+    }
+    registries.push_back(std::move(dimensionTypes));
+
+    // 其余 22 个注册表跳过发送（客户端保留其本地数据）。
+    // TODO: 实现其余注册表的完整 NBT 编码以彻底对齐 vanilla —— vanilla 的
+    //       RegistrySynchronization.packRegistry 对未命中 known pack 的条目一律编码 NBT，
+    //       跳过发送不等价。当前跳过是因为各注册表字段类型须逐个核对 Java codec
+    //       （整数必须精确 int_tag，不能复用通用 jsonToNbt），详见头文件说明。
+    spdlog::info("RegistryDataBuilder: 客户端未声明 minecraft:core，下发 {} 个注册表"
+                 "（dimension_type 带内联 NBT；其余 22 个跳过，客户端保留本地数据）",
+        registries.size());
+
+    return registries;
 }
 
 } // namespace mc::server::net

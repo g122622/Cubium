@@ -298,9 +298,12 @@ Result<void> ServerHandshakeStateMachine::_beginConfiguration()
 
 Result<void> ServerHandshakeStateMachine::_pushConfigurationData()
 {
-    // 客户端已回 SelectKnownPacks(C→S) 命中 minecraft:core。
+    // 客户端已回 SelectKnownPacks(C→S)。按其声明的 known packs 选择 RegistryData 编码分支：
+    //   声明了 minecraft:core（真 Java 客户端）→ 条目 data=nullopt，客户端从本地 core 包加载；
+    //   未声明（第三方客户端）→ 服务端下发内联 NBT。
     // 依次推送 RegistryData×N → UpdateTags → UpdateEnabledFeatures → FinishConfiguration
-    auto registries = buildConfigurationRegistryData();
+    auto registries =
+        m_clientKnowsVanillaCore ? buildConfigurationRegistryData() : buildConfigurationRegistryDataForUnknownClient();
     for (auto& reg : registries) {
         auto r = _send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Configuration,
             mc::network::ir::ConfigurationPacket{std::move(reg)}});
@@ -340,7 +343,25 @@ Result<void> ServerHandshakeStateMachine::_pushConfigurationData()
 Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::network::ir::ConfigurationPacket& pkt)
 {
     if (std::holds_alternative<mc::network::ir::configuration::SelectKnownPacks>(pkt)) {
-        // 客户端回 SelectKnownPacks(C→S)：推送剩余配置数据
+        // 客户端回 SelectKnownPacks(C→S)：先记录其声明的 known packs，再推送剩余配置数据。
+        // 该声明决定 RegistryData 走哪条编码分支，对齐 Java RegistrySynchronization.packRegistry
+        // （RegistrySynchronization.java:37-72）按 knownPackInfo 命中与否逐条目判定的语义：
+        //   命中（客户端本地已有该条目）→ Optional.empty()，不带 NBT；
+        //   未命中 → elementCodec().encodeStart(...) 编码完整 NBT。
+        // 真 Java 客户端总是回包含 minecraft:core 的集合；第三方客户端
+        // （node-minecraft-protocol / mineflayer）恒定回**空**列表，此时服务端必须下发 NBT，
+        // 否则对端解析条目时因 value 缺失而失败。
+        const auto& clientPacks = std::get<mc::network::ir::configuration::SelectKnownPacks>(pkt);
+        m_clientKnowsVanillaCore = false;
+        for (const auto& pack : clientPacks.knownPacks) {
+            if (pack.ns == "minecraft" && pack.id == "core") {
+                m_clientKnowsVanillaCore = true;
+                break;
+            }
+        }
+        spdlog::info("ServerHandshake: client declared {} known packs, minecraft:core {}",
+            clientPacks.knownPacks.size(),
+            m_clientKnowsVanillaCore ? "present" : "absent");
         return _pushConfigurationData();
     }
 

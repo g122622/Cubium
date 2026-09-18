@@ -64,6 +64,7 @@
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/network/handshake/EnchantmentNbtBuilder.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
 #include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "server/world/gen/carver/ConfiguredCarverLoader.hpp"
@@ -183,6 +184,11 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 注册 enchantment 内联 NBT 构建所需的 datapack 源。须在 ItemTags 加载之后（enchantment
     // 的 supported_items/primary_items 展平依赖 ItemTags::getTag），握手阶段才会懒构建。
     mc::server::net::setEnchantmentDatapackSource(m_dataPackList);
+
+    // 注册 registry 内联 NBT 构建所需的 datapack 源。仅对「未在 SelectKnownPacks 中声明
+    // minecraft:core 的客户端」生效（第三方客户端如 node-minecraft-protocol 恒定回空列表，
+    // 按 vanilla RegistrySynchronization.packRegistry 语义须由服务端下发 NBT）。
+    mc::server::net::setRegistryDatapackSource(m_dataPackList);
 
     // 初始化发射器行为注册表
     {

@@ -1380,6 +1380,32 @@ void ServerPlayer::tick()
     // 载具反飞行基线同步滚动（骑乘时由 handleMoveVehiclePacket 维护 lastGood）。
     rollVehicleFirstGoodToLastGood();
 
+    // 血量/饥饿同步（对齐 Java ServerPlayer.doTick，ServerPlayer.java:675-682）：
+    // 三个基线与当前值有任一不同即下发 ClientboundSetHealthPacket 并更新基线。
+    // 字段初值刻意取不可能的值，故玩家加入后首个 tick 必然下发一次——这是真 wire 客户端
+    // （mineflayer / node-minecraft-protocol）建立本地玩家状态、触发其 spawn 事件的唯一信号
+    // 来源；缺失会导致客户端永远停在"已登录未进入世界"。此前本包四层（IR/codec/协议表/
+    // 客户端 visitor）齐备但服务端零发送点，属"已实现但从未调用"的典型缺口。
+    // hasConnection() 守卫确保无连接玩家（SimulatedPlayer）不发。
+    if (hasConnection()) {
+        const f32 currentHealth = health();
+        const i32 currentFood = foodStats().foodLevel();
+        const f32 currentSaturation = foodStats().saturationLevel();
+        const bool currentSaturationZero = (currentSaturation == 0.0f);
+        if (currentHealth != m_lastSentHealth || currentFood != m_lastSentFood ||
+            currentSaturationZero != m_lastFoodSaturationZero) {
+            mc::network::ir::play::SetHealth healthPkt;
+            healthPkt.health = currentHealth;
+            healthPkt.food = currentFood;
+            healthPkt.saturation = currentSaturation;
+            static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(healthPkt)}}));
+            m_lastSentHealth = currentHealth;
+            m_lastSentFood = currentFood;
+            m_lastFoodSaturationZero = currentSaturationZero;
+        }
+    }
+
     // 方块变更 ACK 批量发送（对齐 Java ServerGamePacketListenerImpl.tick() :282-286）：
     // 一个 tick 内收到多个带 sequence 的包（use_item_on/use_item/Start/Abort/StopDestroy）时，
     // ackBlockChangesUpTo 取 max 累积；tick 末若 > -1 则发一个 ClientboundBlockChangedAckPacket

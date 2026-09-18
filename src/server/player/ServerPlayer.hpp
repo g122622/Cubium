@@ -876,6 +876,17 @@ private:
     // 字段定义于该类 :234，取 max 累积、每 tick 末批量发送一个 ClientboundBlockChangedAckPacket）。
     // -1 表示本 tick 无待发 ACK。
     i32 m_ackBlockChangesUpTo = -1;
+
+    // ========== 血量/饥饿同步基线（对齐 vanilla ServerPlayer.java:240-242） ==========
+    // vanilla 在 ServerPlayer.doTick（ServerPlayer.java:675-682）比对这三个基线与当前值，
+    // 有任一不同即下发 ClientboundSetHealthPacket 并更新基线。三者的**初值刻意取不可能的值**，
+    // 从而保证玩家加入后首个 tick 必然触发一次下发——这是客户端建立本地玩家血量状态的唯一
+    // 信号来源（第三方客户端如 mineflayer 的 spawn 事件完全依赖收到首个 health>0 的该包）。
+    // 此前 Cubium 的四层（IR/codec/协议表/客户端 visitor）齐备但服务端零发送点，
+    // 导致真 wire 客户端登录后永远停在"已登录未进入世界"状态。
+    f32 m_lastSentHealth = -1.0e8f;
+    i32 m_lastSentFood = -99999999;
+    bool m_lastFoodSaturationZero = true;
 };
 
 } // namespace mc

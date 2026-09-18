@@ -28,7 +28,20 @@
 
 #include <vector>
 
+namespace mc::resource {
+class DataPackRepository;
+} // namespace mc::resource
+
 namespace mc::server::net {
+
+/**
+ * @brief 启动期注册 registry 内联 NBT 构建所需的 datapack 源
+ *
+ * 服务端 initializeRegistries() 中与 setEnchantmentDatapackSource 同处调用。
+ * RegistryDataBuilder 持文件静态 `const DataPackRepository*`，与服务器同生命周期。
+ * 注册后 buildConfigurationRegistryDataForUnknownClient() 可在握手阶段安全调用。
+ */
+void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo);
 
 /**
  * @brief 构造 Configuration 阶段需要推送的 RegistryData 列表
@@ -89,5 +102,35 @@ namespace mc::server::net {
  * 的条目视为"客户端已通过 core 数据包掌握"，无需 NBT。
  */
 [[nodiscard]] std::vector<mc::network::ir::configuration::KnownPack> buildServerKnownPacks();
+
+/**
+ * @brief 为「未在 SelectKnownPacks 中声明 minecraft:core 的客户端」构造 RegistryData
+ *
+ * 对齐 Java RegistrySynchronization.packRegistry（RegistrySynchronization.java:37-72）：
+ * 该方法**逐条目**判断 `registrationInfo.knownPackInfo` 是否落在客户端声明的 known packs
+ * 集合内——命中则发 `Optional.empty()`（无 NBT），未命中则用 `elementCodec().encodeStart`
+ * 编码完整 NBT。本函数即「未命中」分支的服务端实现。
+ *
+ * 为什么必须区分：真 Java 客户端在 SelectKnownPacks(C→S) 中回包含 minecraft:core 的集合，
+ * 走 buildConfigurationRegistryData() 的 data=nullopt 路径即可（客户端从本地 core 包加载）。
+ * 但第三方客户端（node-minecraft-protocol / mineflayer）恒定回**空** pack 列表，
+ * 按 vanilla 语义服务端此时必须下发完整 NBT——否则客户端解析条目时因 value 缺失而失败。
+ *
+ * **当前实现范围（过渡态）**：仅 dimension_type 下发完整 NBT，其余 22 个注册表**跳过发送**。
+ * 依据与限制：
+ * - dimension_type 必须发：客户端（mineflayer game.js:70-77）从 dimensionsByName 取
+ *   minY/height，取不到时**静默退回 0/256**，而本项目真实世界为 -64/384，会导致区块
+ *   section 解码整体错位。故它必须带 NBT 下发。
+ * - 其余 22 个注册表跳过发送：客户端保留其本地（minecraft-data）数据。这优于发送空
+ *   entries——prismarine-registry 对空 entries 会**清空**本地数据（见其
+ *   lib/pc/index.js:71 的 handler 语义），反而更糟。
+ * - 但跳过发送**不等价于** vanilla（vanilla 会下发全量 NBT）。
+ * TODO: 为其余 22 个注册表实现完整 NBT 编码以彻底对齐 vanilla。阻塞点是各注册表的
+ *       字段类型规则需逐个核对 Java codec（整数须精确 int_tag，不能用通用 jsonToNbt —
+ *       后者会把 [-128,127] 窄化为 byte_tag，被 Codec.INT 拒绝，参见
+ *       EnchantmentNbtBuilder.cpp:462 的同类记录）。
+ */
+[[nodiscard]] std::vector<mc::network::ir::configuration::RegistryData>
+buildConfigurationRegistryDataForUnknownClient();
 
 } // namespace mc::server::net
