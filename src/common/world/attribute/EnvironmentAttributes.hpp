@@ -51,8 +51,7 @@ public:
      *
      * 默认 IDLE，可同步，与位置无关。
      */
-    [[nodiscard]] static const EnvironmentAttribute<entity::ai::brain::schedule::Activity>&
-    BABY_VILLAGER_ACTIVITY();
+    [[nodiscard]] static const EnvironmentAttribute<entity::ai::brain::schedule::Activity>& BABY_VILLAGER_ACTIVITY();
 };
 
 } // namespace attribute

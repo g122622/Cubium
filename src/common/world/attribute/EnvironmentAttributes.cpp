@@ -40,8 +40,7 @@ const EnvironmentAttribute<entity::ai::brain::schedule::Activity>& EnvironmentAt
     return instance;
 }
 
-const EnvironmentAttribute<entity::ai::brain::schedule::Activity>&
-EnvironmentAttributes::BABY_VILLAGER_ACTIVITY()
+const EnvironmentAttribute<entity::ai::brain::schedule::Activity>& EnvironmentAttributes::BABY_VILLAGER_ACTIVITY()
 {
     static const EnvironmentAttribute<entity::ai::brain::schedule::Activity> instance =
         EnvironmentAttribute<entity::ai::brain::schedule::Activity>::builder(

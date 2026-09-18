@@ -50,26 +50,25 @@ const Timeline& Timelines::VILLAGER_SCHEDULE()
 {
     using Activity = entity::ai::brain::schedule::Activity;
 
-    static const Timeline instance =
-        Timeline::Builder()
-            .setPeriodTicks(24000)
-            .addTrack(attribute::EnvironmentAttributes::VILLAGER_ACTIVITY(),
-                [](KeyframeTrack<Activity>::Builder& builder) {
-                    builder.addKeyframe(10, Activity::IDLE)
-                        .addKeyframe(2000, Activity::WORK)
-                        .addKeyframe(9000, Activity::MEET)
-                        .addKeyframe(11000, Activity::IDLE)
-                        .addKeyframe(12000, Activity::REST);
-                })
-            .addTrack(attribute::EnvironmentAttributes::BABY_VILLAGER_ACTIVITY(),
-                [](KeyframeTrack<Activity>::Builder& builder) {
-                    builder.addKeyframe(10, Activity::IDLE)
-                        .addKeyframe(3000, Activity::PLAY)
-                        .addKeyframe(6000, Activity::IDLE)
-                        .addKeyframe(10000, Activity::PLAY)
-                        .addKeyframe(12000, Activity::REST);
-                })
-            .build();
+    static const Timeline instance = Timeline::Builder()
+                                         .setPeriodTicks(24000)
+                                         .addTrack(attribute::EnvironmentAttributes::VILLAGER_ACTIVITY(),
+                                             [](KeyframeTrack<Activity>::Builder& builder) {
+                                                 builder.addKeyframe(10, Activity::IDLE)
+                                                     .addKeyframe(2000, Activity::WORK)
+                                                     .addKeyframe(9000, Activity::MEET)
+                                                     .addKeyframe(11000, Activity::IDLE)
+                                                     .addKeyframe(12000, Activity::REST);
+                                             })
+                                         .addTrack(attribute::EnvironmentAttributes::BABY_VILLAGER_ACTIVITY(),
+                                             [](KeyframeTrack<Activity>::Builder& builder) {
+                                                 builder.addKeyframe(10, Activity::IDLE)
+                                                     .addKeyframe(3000, Activity::PLAY)
+                                                     .addKeyframe(6000, Activity::IDLE)
+                                                     .addKeyframe(10000, Activity::PLAY)
+                                                     .addKeyframe(12000, Activity::REST);
+                                             })
+                                         .build();
     return instance;
 }
 

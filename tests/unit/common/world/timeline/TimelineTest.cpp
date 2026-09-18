@@ -85,8 +85,7 @@ private:
 
 TEST(KeyframeTrackSamplerTest, SingleKeyframeYieldsConstantValue)
 {
-    const KeyframeTrack<Activity> track =
-        KeyframeTrack<Activity>::Builder().addKeyframe(0, Activity::IDLE).build();
+    const KeyframeTrack<Activity> track = KeyframeTrack<Activity>::Builder().addKeyframe(0, Activity::IDLE).build();
 
     const auto sampler = track.bakeSampler(std::nullopt, attribute::LerpFunction<Activity>::ofStep(1.0f));
 
@@ -97,10 +96,8 @@ TEST(KeyframeTrackSamplerTest, SingleKeyframeYieldsConstantValue)
 
 TEST(KeyframeTrackSamplerTest, WithoutPeriodKeepsLastValueAfterEnd)
 {
-    const KeyframeTrack<Activity> track = KeyframeTrack<Activity>::Builder()
-                                              .addKeyframe(0, Activity::IDLE)
-                                              .addKeyframe(100, Activity::WORK)
-                                              .build();
+    const KeyframeTrack<Activity> track =
+        KeyframeTrack<Activity>::Builder().addKeyframe(0, Activity::IDLE).addKeyframe(100, Activity::WORK).build();
 
     const auto sampler = track.bakeSampler(std::nullopt, attribute::LerpFunction<Activity>::ofStep(1.0f));
 
@@ -114,13 +111,10 @@ TEST(KeyframeTrackSamplerTest, WithoutPeriodKeepsLastValueAfterEnd)
 TEST(KeyframeTrackSamplerTest, StepLerpKeepsFromValueUntilNextKeyframe)
 {
     // ofStep(1.0)：区间内保持前一关键帧的值，直到抵达下一关键帧
-    const KeyframeTrack<Activity> track = KeyframeTrack<Activity>::Builder()
-                                              .addKeyframe(10, Activity::IDLE)
-                                              .addKeyframe(2000, Activity::WORK)
-                                              .build();
+    const KeyframeTrack<Activity> track =
+        KeyframeTrack<Activity>::Builder().addKeyframe(10, Activity::IDLE).addKeyframe(2000, Activity::WORK).build();
 
-    const auto sampler =
-        track.bakeSampler(std::optional<i32>(24000), attribute::LerpFunction<Activity>::ofStep(1.0f));
+    const auto sampler = track.bakeSampler(std::optional<i32>(24000), attribute::LerpFunction<Activity>::ofStep(1.0f));
 
     EXPECT_EQ(sampler.sample(10), Activity::IDLE);
     EXPECT_EQ(sampler.sample(1999), Activity::IDLE);
@@ -130,13 +124,10 @@ TEST(KeyframeTrackSamplerTest, StepLerpKeepsFromValueUntilNextKeyframe)
 TEST(KeyframeTrackSamplerTest, PeriodWrapsBeforeFirstKeyframe)
 {
     // 周期回绕：早于首个关键帧的查询回到上一周期末的关键帧
-    const KeyframeTrack<Activity> track = KeyframeTrack<Activity>::Builder()
-                                              .addKeyframe(10, Activity::IDLE)
-                                              .addKeyframe(2000, Activity::WORK)
-                                              .build();
+    const KeyframeTrack<Activity> track =
+        KeyframeTrack<Activity>::Builder().addKeyframe(10, Activity::IDLE).addKeyframe(2000, Activity::WORK).build();
 
-    const auto sampler =
-        track.bakeSampler(std::optional<i32>(24000), attribute::LerpFunction<Activity>::ofStep(1.0f));
+    const auto sampler = track.bakeSampler(std::optional<i32>(24000), attribute::LerpFunction<Activity>::ofStep(1.0f));
 
     EXPECT_EQ(sampler.sample(9), Activity::WORK);
     EXPECT_EQ(sampler.sample(0), Activity::WORK);
@@ -185,8 +176,7 @@ TEST(TimelineTest, VillagerScheduleWrapsAcrossDayBoundary)
 
 TEST(TimelineTest, BabyVillagerScheduleUsesPlayActivity)
 {
-    ActivitySampler sampler(
-        Timelines::VILLAGER_SCHEDULE(), attribute::EnvironmentAttributes::BABY_VILLAGER_ACTIVITY());
+    ActivitySampler sampler(Timelines::VILLAGER_SCHEDULE(), attribute::EnvironmentAttributes::BABY_VILLAGER_ACTIVITY());
 
     EXPECT_EQ(sampler.sample(0), Activity::REST);
     EXPECT_EQ(sampler.sample(10), Activity::IDLE);
@@ -200,13 +190,11 @@ TEST(TimelineTest, BabyVillagerScheduleUsesPlayActivity)
 TEST(TimelineTest, ActivityTypeKeyframeLerpIsStepInterpolated)
 {
     // 活动是离散值：使用 AttributeTypes::ACTIVITY() 的 keyframeLerp 时区间内保持前值
-    const KeyframeTrack<Activity> track = KeyframeTrack<Activity>::Builder()
-                                              .addKeyframe(10, Activity::IDLE)
-                                              .addKeyframe(2000, Activity::WORK)
-                                              .build();
+    const KeyframeTrack<Activity> track =
+        KeyframeTrack<Activity>::Builder().addKeyframe(10, Activity::IDLE).addKeyframe(2000, Activity::WORK).build();
 
-    const auto sampler = track.bakeSampler(
-        std::optional<i32>(24000), attribute::AttributeTypes::ACTIVITY().keyframeLerp());
+    const auto sampler =
+        track.bakeSampler(std::optional<i32>(24000), attribute::AttributeTypes::ACTIVITY().keyframeLerp());
 
     EXPECT_EQ(sampler.sample(500), Activity::IDLE);
     EXPECT_EQ(sampler.sample(1999), Activity::IDLE);

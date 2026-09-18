@@ -343,8 +343,7 @@ TEST(ChunkSyncManager, BlockToChunk)
 // ChunkView 扩展测试
 // ============================================================================
 
-class ChunkViewExtendedTest : public ::testing::Test {
-};
+class ChunkViewExtendedTest : public ::testing::Test {};
 
 TEST_F(ChunkViewExtendedTest, NegativeCoordinates)
 {
@@ -562,8 +561,7 @@ TEST_F(ChunkViewExtendedTest, ViewDistanceChangeEffect)
 // PlayerChunkTracker (network) 扩展测试
 // ============================================================================
 
-class PlayerChunkTrackerExtendedTest : public ::testing::Test {
-};
+class PlayerChunkTrackerExtendedTest : public ::testing::Test {};
 
 TEST_F(PlayerChunkTrackerExtendedTest, MultipleChunkOperations)
 {
@@ -740,8 +738,7 @@ TEST_F(PlayerChunkTrackerExtendedTest, LargeCoordinateValues)
 // ChunkSyncManager 扩展测试
 // ============================================================================
 
-class ChunkSyncManagerExtendedTest : public ::testing::Test {
-};
+class ChunkSyncManagerExtendedTest : public ::testing::Test {};
 
 TEST_F(ChunkSyncManagerExtendedTest, MultiplePlayersSameChunk)
 {
@@ -945,4 +942,3 @@ TEST_F(ChunkSyncManagerExtendedTest, NonExistentChunkSubscribers)
     auto subscribers = manager.getChunkSubscribers(12345, 67890);
     EXPECT_EQ(subscribers.size(), 0u);
 }
-
