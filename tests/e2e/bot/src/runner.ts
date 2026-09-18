@@ -27,6 +27,7 @@ import { captureSnapshot, type CaseSnapshot } from "./bot/snapshot.ts";
 import { AssertionError } from "./assert/expect.ts";
 import { detectSurfaceY, waitForAreaLoaded } from "./assert/surface.ts";
 import { startCubiumServer } from "./servers/cubium.ts";
+import { removeVanillaWorld, startVanillaServer } from "./servers/vanilla.ts";
 import type { ServerProcess } from "./servers/server-process.ts";
 import { allocatePort } from "./servers/port.ts";
 import { artifactDirFor, makeRunId, pruneArtifacts, removeDirQuietly, runDirFor } from "./servers/workspace.ts";
@@ -102,6 +103,15 @@ const LOADED_AREA_TIMEOUT_MS = 30_000;
 /** 等待 bot 稳定落地（onGround=true）的超时。 */
 const SETTLE_TIMEOUT_MS = 10_000;
 
+/**
+ * MC 协议允许的最大用户名长度。
+ * 依据：vanilla ServerboundHelloPacket 的 `readUtf(16)`。
+ */
+const MAX_USERNAME_LENGTH = 16;
+
+/** 用户名统一前缀（用于在服务端日志中识别 e2e 连接）。计入 MAX_USERNAME_LENGTH。 */
+const USERNAME_PREFIX = "e2e_";
+
 /** 中文运行模式名。 */
 function modeLabel(mode: RunMode): string {
     return { regress: "回归比对", refresh: "刷新基线", diff: "双跑对比" }[mode];
@@ -122,6 +132,8 @@ async function runSingleCase(
 
     let server: ServerProcess | null = null;
     let handle: BotHandle | null = null;
+    /** vanilla 侧本用例的世界名（用于结束后清理共享 cwd 下的世界目录）。 */
+    let vanillaWorldName = "";
     let snapshot: CaseSnapshot | null = null;
     let baselineSnapshot: CaseSnapshot | null = null;
     let differencesText = "";
@@ -130,16 +142,26 @@ async function runSingleCase(
     let surfaceY = 0;
 
     try {
-        if (serverKind !== "cubium") {
-            throw new Error(`服务端 ${serverKind} 尚未接入（Phase 4 实现）`);
-        }
         const port = await allocatePort();
-        server = await startCubiumServer({
-            runDir,
-            port,
-            profile: E2E_SERVER_PROFILE,
-            maxPlayers: 4,
-        });
+        if (serverKind === "cubium") {
+            server = await startCubiumServer({
+                runDir,
+                port,
+                profile: E2E_SERVER_PROFILE,
+                maxPlayers: 4,
+            });
+        } else {
+            // vanilla 的工作目录是跨用例共享的（bundler 只解包一次），靠 worldName 隔离世界。
+            // 名字里带上 runId 后缀，避免与其他运行的残留世界目录冲突。
+            vanillaWorldName = `e2e_${sanitizeName(definition.id)}_${runId.replace(/\D/g, "").slice(-6)}`;
+            server = await startVanillaServer({
+                runDir,
+                port,
+                profile: E2E_SERVER_PROFILE,
+                maxPlayers: 4,
+                worldName: vanillaWorldName,
+            });
+        }
 
         handle = createBot({ port, username: `e2e_${sanitizeName(definition.id)}`, traceLimit: TRACE_LIMIT });
         const { bot, trace } = handle;
@@ -239,6 +261,9 @@ async function runSingleCase(
         if (server !== null) {
             await server.stop();
         }
+        if (vanillaWorldName.length > 0) {
+            removeVanillaWorld(vanillaWorldName);
+        }
     }
 
     const ok = failureKind.length === 0;
@@ -290,8 +315,17 @@ async function runSingleCase(
 /** 基线缺失/过期——与环境有关，退出码与断言失败区分开。 */
 class BaselineMissingError extends Error {}
 
+/**
+ * 由用例 id 生成合法的 MC 用户名。
+ *
+ * **必须 ≤ 16 字符**：vanilla 的 ServerboundHelloPacket 用 `readUtf(16)` 读取用户名
+ * （ServerboundHelloPacket.java），超长会被直接拒绝并断开——报
+ * `Failed to decode packet 'serverbound/minecraft:hello'`，错误信息完全指不到用户名上。
+ * Cubium 侧不校验该长度，故这个约束只在双跑对比时才会暴露。
+ */
 function sanitizeName(id: string): string {
-    return id.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 20);
+    // 不含前缀——调用方负责拼接（用户名总长须 ≤ MAX_USERNAME_LENGTH）。
+    return id.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, MAX_USERNAME_LENGTH - USERNAME_PREFIX.length);
 }
 
 /** 等待 spawn 失败时的现场描述。 */
@@ -395,15 +429,25 @@ export async function runCases(
             if (forServer.length === 0) {
                 continue;
             }
-            const baseline: Baseline = makeBaseline(serverKind, gitCommit(), `由 ${runId} 自动写入`);
-            const cases: Record<string, { snapshot: CaseSnapshot; metrics: Record<string, number> }> = {};
+            // 合并写入而非全量覆盖：只跑部分用例（--case 过滤）时，其余用例的既有基线
+            // 条目必须保留，否则一次局部刷新会把整份基线削成只剩本次跑到的几条。
+            const existing = loadBaseline(baselinePath(BASELINE_DIR, serverKind));
+            const mergedCases: Record<string, { snapshot: CaseSnapshot; metrics: Record<string, number> }> =
+                existing.kind === "ok" ? { ...existing.baseline.cases } : {};
             for (const result of forServer) {
                 if (result.snapshot !== null) {
-                    cases[result.id] = { snapshot: result.snapshot, metrics: { elapsedMs: result.elapsedMs } };
+                    mergedCases[result.id] = {
+                        snapshot: result.snapshot,
+                        metrics: { elapsedMs: result.elapsedMs },
+                    };
                 }
             }
-            saveBaseline(baselinePath(BASELINE_DIR, serverKind), { ...baseline, cases });
-            console.log(`已写入基线：${baselinePath(BASELINE_DIR, serverKind)}（${forServer.length} 条）`);
+            const baseline: Baseline = makeBaseline(serverKind, gitCommit(), `由 ${runId} 更新`);
+            saveBaseline(baselinePath(BASELINE_DIR, serverKind), { ...baseline, cases: mergedCases });
+            console.log(
+                `已写入基线：${baselinePath(BASELINE_DIR, serverKind)}` +
+                    `（本次 ${forServer.length} 条，合计 ${Object.keys(mergedCases).length} 条）`,
+            );
         }
     }
 

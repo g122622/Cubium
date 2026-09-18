@@ -1,0 +1,818 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "server": "vanilla",
+    "mcVersion": "1.21.11",
+    "protocolVersion": 774,
+    "frozenAt": "2026-09-18T16:29:20.223Z",
+    "gitCommit": "7fe54a030",
+    "note": "由 20260919-002543-82676 更新"
+  },
+  "cases": {
+    "chunk-sync/flat_layers": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "layersMatch": true,
+          "aboveIsAir": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9483
+      }
+    },
+    "handshake/spawn_event_after_health": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "updateHealthCountAtLeastOne": true,
+          "hasOwnEntity": true,
+          "healthIsPositive": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9529
+      }
+    },
+    "handshake/phase_sequence": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "sawSuccess": true,
+          "sawSelectKnownPacks": true,
+          "sawFinishConfiguration": true,
+          "sawLogin": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9423
+      }
+    },
+    "handshake/registry_data_decodes": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "sawRegistryData": true,
+          "blocksNonEmpty": true,
+          "dimensionsNonEmpty": true,
+          "biomesNonEmpty": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 8997
+      }
+    },
+    "handshake/login_entity_id_consistent": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "hasSelfEntity": true,
+          "selfEntityIdPositive": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9281
+      }
+    },
+    "chunk-sync/chunks_loaded": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "spawnColumnReadable": true,
+          "neighborhoodReadable": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9148
+      }
+    },
+    "chunk-sync/layers_across_chunk_boundary": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "boundaryLayersMatch": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9879
+      }
+    },
+    "chunk-sync/biome_at_surface": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9858
+      }
+    },
+    "chunk-sync/dimension_type": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "minY": -64,
+          "height": 384,
+          "dimension": "overworld"
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9252
+      }
+    },
+    "chunk-sync/spawn_not_in_void": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "spawnNearSurface": true,
+          "spawnOnGrass": true,
+          "onGroundEventually": true,
+          "receivedChunks": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 10023
+      }
+    },
+    "chunk-sync/block_names_resolve": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "allSampledBlocksResolved": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9386
+      }
+    },
+    "block-interaction/dig_grass_block": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "digResolved": true,
+          "becameAir": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9922
+      }
+    },
+    "block-interaction/dig_emits_update_and_ack": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "gotBlockUpdate": true,
+          "gotBlockChangedAck": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 8872
+      }
+    },
+    "block-interaction/place_stone_block": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "placeResolved": true,
+          "placedStone": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 9916
+      }
+    },
+    "block-interaction/repeated_place_is_stable": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "firstPlaceSucceeded": true,
+          "secondAttemptResolved": true,
+          "secondThrew": false
+        }
+      },
+      "metrics": {
+        "elapsedMs": 10332
+      }
+    },
+    "block-interaction/dig_place_dig_roundtrip": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "roundtripComplete": true,
+          "finalState": "air"
+        }
+      },
+      "metrics": {
+        "elapsedMs": 12109
+      }
+    },
+    "block-interaction/connection_stays_healthy": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": -61
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "stillInPlayState": true
+        }
+      },
+      "metrics": {
+        "elapsedMs": 10851
+      }
+    }
+  }
+}
