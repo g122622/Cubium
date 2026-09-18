@@ -5,9 +5,11 @@
 | 后端 | 开关（CMake option） | 默认 | 采集方式 | 查看方式 |
 |------|---------------------|------|----------|----------|
 | Perfetto | `MC_ENABLE_TRACING` | ON | 进程内录制到 `.perfetto-trace` 文件 | ui.perfetto.dev |
-| Tracy | `MC_ENABLE_TRACY` | ON | in-memory，client 自动监听 8086 端口 | tracy GUI 连接 8086 拉取 |
+| Tracy | `MC_ENABLE_TRACY` | ON | in-memory，client 自动监听 8086 端口；`MC_TRACY_ON_DEMAND` 控制是否仅在 GUI 连接期间采集 | tracy GUI 连接 8086 拉取 |
 
 > Tracy 无法进程内写文件（需外部 `tracy-capture` 连 8086 拉取），故 `ProfilerManager` 对 Tracy 不做 start/stop/capture 管理，只做进程/线程命名的双写。
+
+> Tracy 采集受 `MC_TRACY_ON_DEMAND`（默认 ON）控制：开启时**仅在 GUI 连接期间**记录事件。若需抓取启动阶段，须先连上 GUI 再启动进程；启动阶段的分析通常改用 Perfetto（不受此项影响，仍写文件）。
 
 ## 目录结构
 
@@ -92,7 +94,7 @@ TraceEvents.hpp（MC_TRACE_* 双轨宏，四种组合分支）
 | OFF | ON | STATIC（ProfilerManager only） | 仅 Tracy，宏只发 ZoneScopedN/TracyPlot；ProfilerManager 生命周期方法为空操作但命名仍双写 |
 | OFF | OFF | INTERFACE 空库 | 全关，ProfilerManager 内联存根，宏空展开 |
 
-Tracy 后端编译时由 CMake 设置 `TRACY_ENABLE=ON`、`TRACY_NO_SYSTEM_TRACING=ON`（FORCE，在 `add_subdirectory` 之前），`Tracy::TracyClient` 自带 PUBLIC `TRACY_ENABLE`，消费方无需再 define。
+Tracy 后端编译时由 CMake 在 `add_subdirectory` 之前 FORCE 设置三个 CACHE 变量：`TRACY_ENABLE=ON`、`TRACY_NO_SYSTEM_TRACING=ON`、`TRACY_ON_DEMAND=${MC_TRACY_ON_DEMAND}`（默认 ON）。Tracy 上游的 `set_option()` 会把开启的选项以 PUBLIC 形式定义到 `TracyClient` 上，`Tracy::TracyClient` 因而自带 PUBLIC 宏，消费方无需再 define、也**不允许**各自 define（见「容易踩的坑」）。
 
 ## 双轨宏设计（TraceEvents.hpp）
 
@@ -230,10 +232,19 @@ Tracy 默认在 Windows 启用 ETW context-switch 采样，需管理员权限运
 
 `TracyTrackingAlloc` 有两个模板参数（`T` + NTTP `kName`），MSVC STL 的 `allocator_traits` 默认 rebind（`_Replace_first_parameter`）处理不了多参数/含 NTTP 分配器，**必须显式提供 `template<class U> struct rebind`**，否则 vector 实例化报 "_Replace_first_parameters undefined"。
 
-### 14. Tracy 仅 in-memory，不写文件
+### 15. Tracy 仅 in-memory，不写文件
 
 Tracy client 无法进程内写 trace 文件——它实时监听 8086 端口，由 tracy GUI 或 `tracy-capture` 工具连接拉取。`ProfilerManager` 对 tracy 不做 start/stop/capture，仅 `setProcessName`/`setThreadName` 双写。要保存 tracy 数据，用 `tracy-capture -o out.tracy -a 127.0.0.1` 在程序运行时抓取。
 
-### 15. Tracy 命名用 tracy::SetThreadName，不用 TracyCSetThreadName
+### 16. Tracy 命名用 tracy::SetThreadName，不用 TracyCSetThreadName
 
 `TracyCSetThreadName` 宏在 `TRACY_ENABLE` 未定义时会展开为对未定义符号 `___tracy_set_thread_name` 的调用（它定义在 `#ifndef TRACY_ENABLE` 之外）。故门面里线程命名走 C++ API `tracy::SetThreadName(name.c_str())`（始终编译、`TRACY_API` 导出），程序命名走安全宏 `TracySetProgramName`（禁用时空展开）。
+
+### 17. TRACY_ON_DEMAND 必须全局一致，且无法用运行期开关替代
+
+Tracy 默认（`TRACY_ON_DEMAND=OFF`）在**无 GUI 连接时也把事件写入进程内生产者队列**，而该队列只在 GUI 连接时被 worker 排空。长驻进程（服务端）下队列只进不出，内存线性增长——实测约 **200 KB/s（12 MB/分钟）**，且 `leaks`/`heap` 完全观察不到（Tracy 走自带 rpmalloc，不经系统 malloc zone），只有在 `vmmap` 的区域差分与 lldb 的 mmap 断点下才现形。本项目用 `MC_TRACY_ON_DEMAND`（默认 ON）规避。
+
+两条硬约束：
+
+1. **宏必须对 `TracyClient.cpp` 与全体消费方一致定义**。`TracyScoped.hpp` 等头文件中 `m_active` 的取值依赖它，业务 TU 与 client 库分别定义会导致 ODR 违反。只能依赖上游 `set_option()` 的 PUBLIC 传播，**不要**在业务 target 上单独 `target_compile_definitions(... TRACY_ON_DEMAND)`。
+2. **`--profiler_enabled=false` 不能替代它**。该运行期 flag 只门控 `ProfilerManager`（Perfetto 侧），而 `MC_TRACE_*` 宏在编译期就展开为 Tracy 客户端调用，运行期关不掉。

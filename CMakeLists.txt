@@ -33,6 +33,9 @@ option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing (default OFF)" ON)
 option(MC_ENABLE_TRACY "Enable Tracy profiling (default OFF)" ON)
+# Tracy 默认在无 GUI 连接时也把事件写入进程内队列，而该队列只在 GUI 连接时才被排空，
+# 长驻服务端下会无限增长（实测约 200KB/s）。ON_DEMAND 让无连接时不采集，消除该增长。
+option(MC_TRACY_ON_DEMAND "Enable Tracy on-demand profiling (collect only while a GUI is connected)" ON)
 option(MC_ENABLE_MEMORY "Enable memory allocation tracking via Tracy (default OFF)" ON)
 option(MC_ENABLE_CCACHE "Enable ccache for faster rebuilds" ON)
 
@@ -335,6 +338,7 @@ message(STATUS "  Sanitizers:     ${MC_ENABLE_SANITIZERS}")
 message(STATUS "  Vulkan Val:     ${MC_ENABLE_VULKAN_VALIDATION}")
 message(STATUS "  Tracing:        ${MC_ENABLE_TRACING}")
 message(STATUS "  Tracy:          ${MC_ENABLE_TRACY}")
+message(STATUS "  Tracy OnDemand: ${MC_TRACY_ON_DEMAND}")
 message(STATUS "  Memory track:   ${MC_ENABLE_MEMORY}")
 if(MC_ENABLE_CCACHE AND UNIX AND CCACHE_PROGRAM)
     message(STATUS "  ccache:         Enabled (${CCACHE_PROGRAM})")

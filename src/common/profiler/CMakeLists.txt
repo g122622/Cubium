@@ -55,9 +55,16 @@ endif()
 # add_subdirectory 后 Tracy::TracyClient 自带 PUBLIC TRACY_ENABLE，消费方无需再 define。
 if(MC_ENABLE_TRACY)
     # TRACY_NO_SYSTEM_TRACING：Windows 下关闭 ETW context-switch 采集，否则需管理员权限运行。
-    # 这些 CACHE 变量必须在 add_subdirectory 之前 FORCE 设置，覆盖上游 option 默认 OFF。
+    # TRACY_ON_DEMAND：无 GUI 连接时不把事件写入生产者队列。上游默认 OFF（无条件入队），
+    # 而队列只在 GUI 连接时才被 worker 排空，长驻服务端下会无限增长（实测约 200KB/s）；
+    # 由项目级 MC_TRACY_ON_DEMAND 控制，默认 ON。开启后仅在 GUI 连接期间采集。
+    #
+    # 这些 CACHE 变量必须在 add_subdirectory 之前 FORCE 设置，覆盖上游 option 默认值。
+    # 上游 set_option() 会把开启的选项以 PUBLIC 形式定义到 TracyClient 上，故 TracyClient.cpp
+    # 与全部消费方（含业务代码）拿到一致的宏，无需在各 target 上重复 define。
     set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy profiling" FORCE)
     set(TRACY_NO_SYSTEM_TRACING ON CACHE BOOL "Disable ETW system tracing (avoid admin requirement)" FORCE)
+    set(TRACY_ON_DEMAND ${MC_TRACY_ON_DEMAND} CACHE BOOL "Enable Tracy on-demand profiling" FORCE)
 
     add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/tracy third_party_tracy EXCLUDE_FROM_ALL)
 

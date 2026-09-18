@@ -349,13 +349,13 @@ Cubium 项目代码中已大量使用 `MC_TRACE_SCOPED_EVENT` 宏进行 Perfetto
 |------|------|------|----------|
 | **perf** | 全局视角，不限插桩点，能看到完整调用栈分布 | WSL2 下硬件事件不可用，采样率偏低 | 大致 CPU 热点排查，发现未预期的热点函数 |
 | **Perfetto** | 函数级精确耗时，线程时序可视化 | 需要手动插桩，有约 1.8% 的写入开销 | 精确测量特定函数或子阶段的耗时 |
-| **Tracy** | 实时火焰图，可交互分析 | 需要客户端连接 | 开发期实时性能分析 |
+| **Tracy** | 实时火焰图，可交互分析 | 需要客户端连接；且 `MC_TRACY_ON_DEMAND=ON`（默认）时仅在 GUI 连接期间采集，抓不到启动阶段 | 开发期实时性能分析 |
 
 ### 5.1 推荐的分析流程
 
 1. **先用 perf 快速定位热点区域**：用 `task-clock` 采样，`--no-children -g none` 快速看符号级热点
 2. **再用 Perfetto trace 精确测量**：针对 perf 发现的热点函数，查看其 Perfetto trace 中的精确耗时
-3. **最后用 Tracy 实时验证**：对优化后的代码用 Tracy 实时观察性能变化
+3. **最后用 Tracy 实时验证**：对优化后的代码用 Tracy 实时观察性能变化。注意 `MC_TRACY_ON_DEMAND=ON`（默认）时 Tracy 仅在 GUI 连接期间采集，须**先连上 GUI 再操作**，否则采集不到目标区间
 
 ### 5.2 Perfetto trace 文件位置
 
@@ -474,3 +474,105 @@ git clone https://github.com/brendangregg/FlameGraph /tmp/FlameGraph 2>/dev/null
 2. **PalettedContainer 操作优化**：16% 的开销偏高，需要看调用链确认这些操作发生在哪个阶段。如果是 `_generateNoiseWithDensityFunction` 内部，那说明密度函数求值过程中有大量区块数据读取。
 
 3. **Perfetto trace 开销优化**：在性能敏感的热点路径上，可以考虑用更轻量的 trace 方式，或在 Release 构建中关闭部分 trace 事件。
+
+---
+
+## 八、macOS 下排查内存持续增长的标准步骤
+
+本文档沉淀在 macOS（arm64）环境下定位「进程内存持续增长」的完整经验与标准步骤，供后续复用。
+
+### 8.1 环境约束（三个硬约束，先看这里避免走错路）
+
+1. **LeakSanitizer 不可用**。`clang++ -fsanitize=address` 编译的二进制运行时直接报 `AddressSanitizer: detect_leaks is not supported on this platform.`，`ASAN_OPTIONS=detect_leaks=1` 无效。arm64 macOS 上不存在 LSan 路径。
+2. **Instruments 不可用**（若本机只装了 CommandLineTools 而无 Xcode.app）。`xcrun xctrace` 不存在。可用的是 CLT 自带的 `/usr/bin/{leaks,heap,vmmap,malloc_history,footprint,sample}`。
+3. **`MallocStackLogging=1` 必须在进程启动时注入**，事后无法对已运行进程补开。且**必须是完整版**——`MallocStackLoggingLite=1` 不够：实测只开 Lite 时 `heap --diffFrom` 的类别列退化为 `non-object`，`leaks` 只给裸地址无调用栈。完整版下 `heap --diffFrom` 直接给出分配点 C++ 符号，`leaks` 给出 `STACK OF N INSTANCES OF 'ROOT LEAK: <malloc in ...>'` 含 `file:line`。
+
+> 该变量是环境变量而非编译开关，**无需重新构建**即可生效。但其开销显著（记录每次分配的完整回溯，自身也占内存），属于排查期手段，不是可长期挂着的配置。
+
+### 8.2 先区分两类「内存增长」，再选工具
+
+这是整件事的关键分野，选错工具会一无所获：
+
+- **A 类 · 不可达泄漏**：`new`/`malloc` 后指针丢失。`leaks` 能抓到。
+- **B 类 · 可达但无界增长**：容器只增不删，对象始终可达。**`leaks` 会报 0 泄漏**（定义上不算泄漏），必须用堆快照差分。
+
+游戏服务端绝大多数是 B 类。此外还有第三类容易误判的情况：**增长根本不在系统 malloc 堆上**（如第三方库自带的分配器），此时 `leaks` 与 `heap` 会同时显示「零增长」，极具误导性，必须靠 `vmmap` 的区域差分定位（见 8.4）。
+
+### 8.3 用 footprint 量化，不要用 ps
+
+**`ps -o rss` 噪声极大，会上下震荡，不可作为增长判据**。macOS 上应用 `footprint`：
+
+```bash
+PID=$(pgrep -x minecraft-server)
+for i in $(seq 0 6); do
+  footprint $PID 2>/dev/null | grep phys_footprint
+  sleep 15
+done
+```
+
+若 `phys_footprint` 单调线性增长且不收敛，即确认存在真实增长，并据斜率算出速率（实测服务端曾达 ~200 KB/s ≈ 12 MB/分钟）。
+
+### 8.4 定位增长所在的内存区域（vmmap 区域差分）
+
+先看区域分布判断性质，再取两次全量快照做差分：
+
+```bash
+vmmap -summary $PID | grep -E "MALLOC|Malloc|VM_ALLOCATE|TOTAL|Stack "
+vmmap $PID > /tmp/vm1.txt; sleep 50; vmmap $PID > /tmp/vm2.txt
+```
+
+两次快照按区域类型聚合 DIRTY / RESIDENT 并求差，**增量落在哪个区域类型就是突破口**。以 `App-Specific Tag 1` 区域、`rw-/rwx` 私有匿名映射、地址严格连续递增、每块 4MB 为例，这是「只增不回收的 bump 分配器」签名，常见于 JIT、闭包 trampoline、以及第三方库自带的内存池。
+
+### 8.5 区分 A 类：leaks
+
+```bash
+leaks $PID                      # 直接读调用栈归属
+leaks --outputGraph=/tmp/g.memgraph $PID   # 导出快照，可离线用 heap /tmp/g.memgraph 分析
+```
+
+注意 `leaks` 会 **stop-the-world 暂停进程**，暂停时长随堆规模增长。
+
+### 8.6 区分 B 类：堆快照差分
+
+```bash
+# 必须先带 MallocStackLogging=1 启动目标进程，否则类别列退化为 non-object，完全不可用
+leaks --outputGraph=/tmp/t0.memgraph $PID
+# 等待增长累积
+heap --diffFrom=/tmp/t0.memgraph $PID       # 列出基线之后新增的对象
+```
+
+输出的 `CLASS_NAME` 列会直接点名分配发生的 C++ 符号（形如 `malloc in std::vector<char>::assign(unsigned long, char const&)`），并能区分同进程内多条独立增长路径。需要精确调用链时用 `heap $PID --addresses=all` 取地址，再 `malloc_history $PID <addr>` 反查。
+
+> 可用真实增长探针验证 `heap` 本身可信：对确定在持续 malloc 的进程，节点数应显著上升。若被查进程节点直方图**逐桶完全不变**，那是真的没在系统 malloc 堆上增长，应转向 8.4 或 8.7。
+
+### 8.7 定位非 malloc 增长的分配点：lldb 对 mmap 下条件断点
+
+当增长不在 malloc 堆、又需要知道是谁在分配时，直接抓 mmap 调用栈（已实测可行）：
+
+```bash
+lldb -b -p $PID \
+  -o 'breakpoint set -n mmap -c "$x1 >= 0x200000"' \
+  -o 'process continue' -o 'thread backtrace' \
+  -o 'detach'
+```
+
+arm64 上 `mmap(addr, len, prot, flags, fd, offset)` 的 `len` 在 `x1`，条件按尺寸过滤即可避开海量小分配。实测借此定位到了 Tracy 事件队列膨胀的完整调用链。
+
+### 8.8 常见误判与陷阱
+
+1. **`ps -o rss` 不可信**，改用 `footprint`（见 8.3）。
+2. **`leaks` 报 0 泄漏不等于没有泄漏**，可能全是 B 类可达增长（见 8.2）。
+3. **`heap` 显示 malloc 堆静止不等于没有泄漏**，增长可能来自第三方库自带的分配器（Tracy 的 rpmalloc 即如此），后者不经系统 malloc zone。
+4. **不要轻易把 `rwx` 区域判定为 JIT**。本项目 asmjit 密度函数 JIT 由 `#if (defined(_WIN32) || defined(__linux__)) && x86_64` 守卫，在 macOS arm64 上编译期即已排除。
+5. **警惕测量工具自身成为增长源**。`MallocStackLogging` 会记录每次分配/释放事件，本身就会持续占用内存，做对照实验（不带该变量重跑）以排除干扰。
+6. **`timeout` 命令在 macOS 上不存在**（需 `gtimeout`），脚本中直接调用会 `command not found`。
+
+### 8.9 实战案例：Tracy 事件队列无限增长
+
+服务端启动后 `footprint` 以约 200 KB/s 线性增长，且：
+
+- `leaks` 报 0 泄漏、`heap` 节点直方图逐桶不变 → 增长不在系统 malloc 堆
+- `vmmap` 差分定位到 `App-Specific Tag 1`（`rw-/rwx` 私有匿名映射，4MB 连续递增）
+- `lldb` 对 `mmap` 下条件断点，抓到 `tracy::_rpmalloc_mmap_os` ← `tracy_malloc` ← `moodycamel::ConcurrentQueue::create<Block>` ← `tracy::ScopedZone` ← `MC_TRACE_SCOPED_EVENT` ← `ServerDimension::tick`
+
+根因：Tracy 默认（`TRACY_ON_DEMAND=OFF`）在无 GUI 连接时仍把每个 zone 事件写入生产者队列，而队列只在 GUI 连接时被 worker 排空，长驻服务端下只进不出。修复见 `MC_TRACY_ON_DEMAND`（`src/common/profiler/README.md` 坑 17）。

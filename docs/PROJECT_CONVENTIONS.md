@@ -377,7 +377,7 @@ auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 项目内置两套 profiler 后端，可独立开关、同时启用（双轨录制），对外 `MC_TRACE_*` API 宏名统一：
 
 - **Perfetto**（`MC_ENABLE_TRACING`，默认 ON）：进程内录制到 `.perfetto-trace` 文件，供 ui.perfetto.dev 分析。
-- **Tracy**（`MC_ENABLE_TRACY`，默认 ON）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看（进程内不写文件）。
+- **Tracy**（`MC_ENABLE_TRACY`，默认 ON）：in-memory 采集，client 自动监听 8086 端口，用 tracy GUI 连接拉取查看（进程内不写文件）。采集范围另受 `MC_TRACY_ON_DEMAND`（默认 ON）控制：**仅在有 GUI 连接时记录事件**。原因是 Tracy 默认会把事件无条件写入进程内生产者队列，而该队列只在 GUI 连接时被排空，长驻进程（服务端）下会无限增长。因此抓取服务端启动阶段的 trace 须先连上 GUI，或改用 Perfetto（不受此项影响）。
 - 两者同时启用时，`MC_TRACE_*` 宏会同时向两套后端发事件；两者皆关时所有宏空展开、零开销。
 
 ### 追踪类别
