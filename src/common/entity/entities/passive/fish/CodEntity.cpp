@@ -94,7 +94,6 @@ std::optional<ResourceLocation> CodEntity::getHurtSound(DamageSource& /*source*/
 
 ItemStack CodEntity::getBucketItemStack() const
 {
-    // 对齐 Java Cod.getBucketItemStack() = new ItemStack(Items.COD_BUCKET)。
     return ItemStack(Items::COD_BUCKET, 1);
 }
 

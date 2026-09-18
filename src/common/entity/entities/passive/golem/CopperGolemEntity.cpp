@@ -309,32 +309,11 @@ void CopperGolemEntity::registerGoals()
     GolemEntity::registerGoals();
 
     // ========== AI 目标注册 ==========
-    //
-    // MC 1.21.11 原版 CopperGolem 使用 Brain 系统（CopperGolemAi）实现：
-    //   - AnimalPanic（恐慌逃跑）
-    //   - LookAtTargetSink / MoveToTargetSink（核心 AI 流程）
-    //   - InteractWithDoor（开门）
-    //   - TransportItemsBetweenContainers（在铜箱子与普通箱子间运输物品，核心行为）
-    //   - SetEntityLookTargetSometimes<Player>（偶尔看向玩家）
-    //   - RandomStroll（随机漫步）
-    //   - DoNothing（偶尔发呆）
-    //
-    // 本项目使用 GoalSelector AI 系统替代 Brain，通过以下 Goal 复刻核心行为：
-    //   - SwimGoal（游泳）
-    //   - TransportItemsBetweenContainersGoal（物品运输，核心行为）
-    //   - RandomWalkingGoal（随机漫步）
-    //   - LookAtGoal（看向玩家）
-    //   - LookRandomlyGoal（随机看向）
-    //
-    // 优先级参考 MC CopperGolemAi 中 TransportItemsBetweenContainers 在 Idle Activity
-    // 中的 Pair.of(0, ...)，即运输目标在空闲行为中优先级最高。
 
     // 优先级 0: 游泳目标（在水中时上浮）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 物品运输目标（在铜箱子与普通箱子/陷阱箱之间运输物品）
-    // 对应 MC CopperGolemAi.getIdleActivity 的 Pair.of(0, new TransportItemsBetweenContainers(...))
-    // 速度倍率 1.0F 对应 MC 构造参数 speedMultiplier
     m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::TransportItemsBetweenContainersGoal>(this, 1.0));
 
     // 优先级 2: 随机漫步

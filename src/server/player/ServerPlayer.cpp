@@ -1159,13 +1159,6 @@ void ServerPlayer::die(DamageSource& cause)
 
 void ServerPlayer::removeEntitiesOnShoulder()
 {
-    // 对齐 MC Java 1.21.11 ServerPlayer.removeEntitiesOnShoulder（ServerPlayer.java:808-814）：
-    //   if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
-    //       this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
-    //       this.setShoulderEntityLeft(new CompoundTag());
-    //       this.respawnEntityOnShoulder(this.getShoulderEntityRight());
-    //       this.setShoulderEntityRight(new CompoundTag());
-    //   }
     // 守卫避免玩家刚让鹦鹉落肩（timeEntitySatOnShoulder 近期）就被立即生成回世界。
     if (m_world == nullptr) {
         return;
@@ -1181,19 +1174,6 @@ void ServerPlayer::removeEntitiesOnShoulder()
 
 void ServerPlayer::respawnEntityOnShoulder(const nbt::tags::compound_tag& shoulderNbt)
 {
-    // 对齐 MC Java 1.21.11 ServerPlayer.respawnEntityOnShoulder（ServerPlayer.java:816-832）：
-    //   if (!p_446462_.isEmpty()) {
-    //       EntityType.create(TagValueInput.create(...), serverlevel, EntitySpawnReason.LOAD)
-    //           .ifPresent(p_445299_ -> {
-    //               if (p_445299_ instanceof TamableAnimal tamableanimal) {
-    //                   tamableanimal.setOwner(this);
-    //               }
-    //               p_445299_.setPos(this.getX(), this.getY() + 0.7F, this.getZ());
-    //               serverlevel.addWithUUID(p_445299_);
-    //           });
-    //   }
-    // Cubium 适配：compound_tag 无 isEmpty()，用 value.empty() 判空。
-    // 空检查用 shoulderNbt.value.empty()。
     if (shoulderNbt.value.empty()) {
         return;
     }
