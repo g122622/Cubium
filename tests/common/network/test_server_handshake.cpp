@@ -43,7 +43,7 @@
 #include "common/network/backend/java/handshake/JavaLoginHandshaker.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/base/ServerClientConnection.hpp"
 
 #include <gtest/gtest.h>
 

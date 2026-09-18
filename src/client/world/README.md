@@ -73,7 +73,7 @@ ClientPlayerPredictor ◄──── LocalPlayerIdentity
 ```
 common/world/chunk/ChunkData.hpp           # 区块数据结构
 common/world/biome/BiomeRegistry.hpp       # 生物群系注册表
-common/network/sync/ChunkSync.hpp          # 区块同步协议
+common/network/sync/ChunkSerializer.hpp      # 区块二进制序列化（双向共用）
 client/renderer/mesh/MeshBuildScheduler.hpp  # 网格构建调度器
 common/util/thread/UniversalWorkerPool.hpp   # 客户端统一计算池（ClientCompute，由 ClientApplication 持有）
 client/renderer/trident/chunk/ChunkMesher.hpp # 区块网格生成器

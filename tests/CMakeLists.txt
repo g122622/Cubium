@@ -56,7 +56,7 @@ add_executable(mc_tests
     # common/test_noise.cpp     # 宸茬Щ闄?- Noise 绫诲凡鍒犻櫎
     common/test_entity.cpp
     common/test_entity_physics.cpp
-    common/test_chunksync.cpp
+    common/network/test_chunk_serializer.cpp
     common/test_chunkloadticket.cpp
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp
@@ -929,6 +929,7 @@ add_executable(mc_tests
     server/BlockDropHandlerTest.cpp
     server/network/test_enchantment_nbt_builder.cpp
     server/network/test_command_tree_encoder.cpp
+    server/network/sync/test_chunk_sync.cpp
     server/BlockInteractionManagerTest.cpp
     server/SpawnEggAddEntityE2ETest.cpp
     server/interaction/SignCommandHelperTest.cpp
@@ -952,9 +953,9 @@ add_executable(mc_tests
     server/core/OpListManagerTest.cpp
     server/core/PermissionResolverTest.cpp
     # PacketHandler 测试已删除：handleMoveVehicle/handlePlayerInput/handleEntityAction/
-    # handleSteerBoat/handleUseEntity 在新网络层已 stub 化（迁入 ServerPlayRouter），
+    # handleSteerBoat/handleUseEntity 在新网络层已实现于 ServerPlayHandler，
     # sendVehicleMoveCorrection/isEntityCollidingWithAnythingNew 的 cpp 实现已删除。
-    # 旧字节 handler 行为测试整体失效，Step5 由 ServerPlayRouter 集成测试替代。
+    # 旧字节 handler 行为测试整体失效，由 ServerPlayHandler 的集成测试替代。
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
     # ServerPlayer PvP 保护机制测试
@@ -1899,38 +1900,44 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
         ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
         # 同步管理器
-        ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSync.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/BlockUpdateSyncManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/ChunkSendManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/WeatherSyncService.cpp
+        # 区块推送记账：mc_tests 编译 PlayerManager.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/PlayerChunkTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/ChunkSyncManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketSerializer.cpp
         ${CMAKE_SOURCE_DIR}/src/common/network/codec/PacketDeserializer.cpp
         # 新网络层服务端实现（mc_tests 直接编译 IntegratedServer.cpp/ConnectionManager.cpp，
-        # 它们引用 ServerNetwork/ServerHandshake/ServerPlayRouter/RegistryDataBuilder 的符号，
+        # 它们引用 ServerNetwork/ServerHandshake/ServerPlayHandler/RegistryDataBuilder 的符号，
         # 必须在此登记否则链接失败；与 server/CMakeLists.txt 保持一致）
-        ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/ServerHandshake.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/network/EnchantmentNbtBuilder.cpp
-        # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
-        # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
-        # 远程 TCP 会话管理门面：IntegratedServer/StandaloneServer 远程会话四件套
-        # 转调 RemoteSessionManager，mc_tests 编译子类故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/RemoteSessionManager.cpp
-        # 登录流程门面：IntegratedServer._onClientPlayerReady 经 loginFlow().createPlayerForConnection
-        # 进入，mc_tests 编译 IntegratedServer.cpp 故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/LoginFlow.cpp
-        # Play 包处理门面：routeInboundPlayPacket + 13 个非纯虚 handle*Packet 整簇下沉，
-        # mc_tests 编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
-        ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayHandler.cpp
-        # Play/Configuration 单包 IR 构造器：命令经 builder + connectionManager 投递，
-        # mc_tests 编译命令实现故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
-        # 地图数据周期推送构造器：ServerWorld::tick 转 net::MapPacketBuilder::pushDirtyMaps，
-        # mc_tests 编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-        ${CMAKE_SOURCE_DIR}/src/server/network/MapPacketBuilder.cpp
+        # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
+        ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp
+        # 会话生命周期门面（accept + 连接表 + tick 泵）
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/ServerNetwork.cpp
+        # 单客户端会话与远程会话门面：mc_tests 编译 IntegratedServer.cpp 故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSession.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSessionManager.cpp
+        # 握手/登录/配置阶段：mc_tests 编译 IntegratedServer.cpp/MinecraftServer.cpp 故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/LoginFlow.cpp
+        # Play 阶段入站处理：mc_tests 编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayHandler.cpp
+        # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
+        # 出站构造与广播：命令经 builder + connectionManager 投递，
+        # mc_tests 编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
         # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
         # mc_tests 编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
         ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp

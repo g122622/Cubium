@@ -67,7 +67,7 @@ add_library(mc_common STATIC
     network/backend/java/handshake/JavaLoginHandshaker.cpp
 
     # Network - Sync
-    network/sync/ChunkSync.cpp
+    network/sync/ChunkSerializer.cpp
     network/sync/VanillaChunkWire.cpp
 
     # Entity Core

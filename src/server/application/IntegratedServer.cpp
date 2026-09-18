@@ -51,8 +51,8 @@
 #include "server/core/TimeManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/menu/CraftingMenu.hpp"
-#include "server/network/LoginFlow.hpp"
-#include "server/network/RemoteSessionManager.hpp"
+#include "server/network/handshake/LoginFlow.hpp"
+#include "server/network/session/ClientSessionManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
@@ -76,9 +76,8 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "server/core/OpListManager.hpp"
-#include "server/network/ServerHandshake.hpp"
-#include "server/network/ServerNetwork.hpp"
-#include "server/network/ServerPlayRouter.hpp"
+#include "server/network/handshake/ServerHandshake.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -221,27 +220,27 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         _sendToClientIr(mc::network::ir::IrPacket{packet});
     };
 
-    // 创建本地客户端握手状态机（离线模式，集成服禁用压缩 threshold=-1）
-    m_clientHandshake = std::make_unique<mc::server::net::ServerHandshakeStateMachine>(
-        *m_clientConnection, /*isOfflineMode=*/true, /*compressionThreshold=*/-1);
-    m_clientHandshake->onPlayerReady([this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
-        _onClientPlayerReady(username, offlineUuid);
-    });
-
     // 初始化核心管理器
-    // 【顺序约束】须先于 m_clientPlayRouter 构造：批7 起 ServerPlayRouter 持
-    // ServerPlayHandler&（经 playHandler() 即 *m_playHandler 取引用），而 m_playHandler
-    // 在 initializeCoreManagers 内才 make_unique。若 router 先于 init 构造，playHandler()
-    // 会返回 *nullptr 形成空悬引用，运行期首个 Play 包经 router->route 解引用即崩
-    // （表现：玩家 join 后第一个 AcceptTeleportation 包 ACCESS_VIOLATION read 0x0）。
     initializeCoreManagers();
 
-    // 创建本地客户端 Play 路由器（sessionId=0）。批7：路由器改持 ServerPlayHandler& 门面。
-    // 须在 initializeCoreManagers 之后：playHandler() 依赖 m_playHandler 已构造。
-    m_clientPlayRouter =
-        std::make_unique<mc::server::net::ServerPlayRouter>(playHandler(), m_clientPlayerId, /*sessionId=*/0);
+    // 创建本地客户端会话（离线模式，集成服禁用压缩 threshold=-1，sessionId=0）。
+    // 【顺序约束】必须在 initializeCoreManagers 之后：ClientSession 构造要取
+    // ServerPlayHandler&（经 playHandler() 即 *m_playHandler 取引用），而 m_playHandler
+    // 在 initializeCoreManagers 内才 make_unique。若会话先于 init 构造，playHandler()
+    // 会返回 *nullptr 形成空悬引用，运行期首个 Play 包经 route 解引用即崩
+    // （表现：玩家 join 后第一个 AcceptTeleportation 包 ACCESS_VIOLATION read 0x0）。
+    m_clientSession = std::make_unique<mc::server::net::ClientSession>(*m_clientConnection,
+        /*isOfflineMode=*/true,
+        /*compressionThreshold=*/-1,
+        playHandler(),
+        /*playerId=*/0,
+        /*sessionId=*/0);
+    m_clientSession->handshake().onPlayerReady(
+        [this](const std::string& username, const std::array<u8, 16>& offlineUuid) {
+            _onClientPlayerReady(username, offlineUuid);
+        });
 
-    // 安装入站监听器：握手包交 ServerHandshake，Play 包交 ServerPlayRouter
+    // 安装入站监听器：整条派发链交由 ClientSession::handleInbound
     _installClientInboundListener();
 
     // 加载 OP 列表（集成服务器使用默认路径）
@@ -424,14 +423,13 @@ void IntegratedServer::stop()
     m_lanPort = 0;
 
     // 释放本地客户端握手/Play 路由器（先于网络门面销毁）
-    m_clientPlayRouter.reset();
-    m_clientHandshake.reset();
+    m_clientSession.reset();
     m_pendingClientTransport.reset();
 
     // 先清远程会话（session 持 ServerClientConnection& 引用，须先于连接销毁），
     // 再关闭服务端网络门面（含本地客户端 ServerClientConnection + LAN Wire 连接 +
     // acceptor + accept 线程）。批9：两步下沉至基类 _shutdownRemoteSessions（对未发布
-    // LAN 的空 m_remoteSessionManager reset 幂等）。
+    // LAN 的空 m_clientSessionManager reset 幂等）。
     m_clientConnection = nullptr;
     _shutdownRemoteSessions();
     // 批2a：复位本地客户端钩子，避免关服后续路径误经悬垂 _sendToClientIr 调用
@@ -556,8 +554,8 @@ void IntegratedServer::_onClientPlayerReady(const std::string& username, const s
     // 批2a：回填基类本地客户端钩子的 playerId，使基类 broadcastPacket 跳过本地客户端
     // 避免双发、sendPacketToPlayer/getPlayerIdForSession 的本地分支命中。
     m_localClientPlayerId = m_clientPlayerId;
-    if (m_clientPlayRouter != nullptr) {
-        m_clientPlayRouter->setPlayerId(m_clientPlayerId);
+    if (m_clientSession != nullptr) {
+        m_clientSession->setPlayerId(m_clientPlayerId);
     }
 
     // 初始化物品栏（本地客户端特有：创造模式给镐+全方块；生存留空）
@@ -590,24 +588,15 @@ void IntegratedServer::_installClientInboundListener()
     if (m_clientConnection == nullptr) {
         return;
     }
+    // Local 模式下该监听器由 pumpLocal() 在主线程直接触发，故无需再经入站队列。
+    // 派发链（握手状态机 → phase/playerId 守卫 → Play 处理器）与远程会话共用同一实现。
     m_clientConnection->onPacket([this](const mc::network::ir::IrPacket& packet) {
-        // 先交握手状态机：返回 true=握手范围内已消费；false=Play 包交路由器
-        if (m_clientHandshake != nullptr) {
-            auto r = m_clientHandshake->handleInbound(packet);
-            if (!r.success()) {
-                spdlog::error("IntegratedServer: handshake inbound failed: {}", r.error().toString());
-                return;
-            }
-            if (r.value()) {
-                return; // 握手/Configuration 包已消费
-            }
+        if (m_clientSession == nullptr) {
+            return;
         }
-        // Play 阶段包交路由器（sessionId=0 本地客户端）
-        if (m_clientPlayRouter != nullptr) {
-            auto r = m_clientPlayRouter->handle(packet);
-            if (!r.success()) {
-                spdlog::error("IntegratedServer: play router failed: {}", r.error().toString());
-            }
+        auto result = m_clientSession->handleInbound(packet);
+        if (!result.success()) {
+            spdlog::error("IntegratedServer: inbound dispatch failed: {}", result.error().toString());
         }
     });
 }
@@ -1313,7 +1302,7 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
     auto setupResult = _setupRemoteSessions(
         "IntegratedServer",
         kLanCompressionThreshold,
-        [this]() -> mc::server::net::RemoteWorldParams {
+        [this]() -> mc::server::net::SessionWorldParams {
             return {m_params.hardcore, m_params.seed, m_params.worldType == WorldType::Flat};
         },
         static_cast<u16>(port),
@@ -1335,8 +1324,8 @@ Result<void> IntegratedServer::publishToLan(i32 port, bool allowCheats)
 }
 
 // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
-// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，门面成员
-// m_remoteSessionManager 于批9 上提 MinecraftServer 基类。publishToLan() 经基类
+// _onRemoteClientDisconnect）已于批2c 下沉至 ClientSessionManager 门面，门面成员
+// m_clientSessionManager 于批9 上提 MinecraftServer 基类。publishToLan() 经基类
 // _setupRemoteSessions 装配门面并注册到 m_serverNetwork 的
 // onClientConnect/onClientDisconnect；stop() 经基类 _shutdownRemoteSessions 先 reset
 // manager 再 reset ServerNetwork 保销毁顺序（session 持 ServerClientConnection& 引用）。

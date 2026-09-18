@@ -27,7 +27,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/base/ServerClientConnection.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"

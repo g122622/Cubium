@@ -20,7 +20,7 @@ src/server/core/
 └── OpListManager.hpp/cpp     # OP 权限列表管理器
 ```
 
-> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `MinecraftServer::routeInboundPlayPacket` + `src/server/network/ServerPlayRouter`（`std::visit` over `ir::PlayPacket`）。
+> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `MinecraftServer::routeInboundPlayPacket` + `server/network/play/ServerPlayHandler`（`std::visit` over `ir::PlayPacket`）。
 
 ## 模块关系图
 
@@ -32,7 +32,7 @@ src/server/core/
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │              MinecraftServer::routeInboundPlayPacket          │
-│        + server/network/ServerPlayRouter (ir::PlayPacket)     │
+│        + server/network/play/ServerPlayHandler (ir::PlayPacket)     │
 │  (入站数据包分发入口，协调各管理器；旧 PacketHandler 已删除)    │
 └────────┬─────────────────────────────────────────────────────┘
          │
@@ -78,7 +78,7 @@ src/server/core/
 ```
 
 **依赖关系：**
-- 入站包分发（`ServerPlayRouter` + `MinecraftServer::routeInboundPlayPacket`）依赖所有其他管理器
+- 入站包分发（`ServerPlayHandler` + `MinecraftServer::routeInboundPlayPacket`）依赖所有其他管理器
 - `ConnectionManager` 依赖 `PlayerManager`
 - `KeepAliveManager` 依赖 `PlayerManager`
 - `TeleportManager` 依赖 `PlayerManager`、`ConnectionManager`
@@ -111,7 +111,7 @@ src/server/core/
 | `common/core/Types.hpp` | 基础类型定义 |
 | `common/core/Constants.hpp` | 游戏常量 |
 | `common/network/ir/IrPacket.hpp` | IR 包定义（ConnectionManager 发送门面使用） |
-| `common/network/sync/ChunkSync.hpp` | 区块同步管理器 |
+| `server/network/sync/chunk/ChunkSyncManager.hpp` | 区块同步管理器 |
 | `common/network/codec/PacketSerializer.hpp`<br>`common/network/codec/PacketDeserializer.hpp` | 编解码器（从旧 packet/ 迁出后的存活件，供 IR codec 与残余 wire 桥接使用） |
 | `server/world/time/GameTime.hpp` | 游戏时间类 |
 | `common/entity/GameModeUtils.hpp` | 游戏模式工具 |
@@ -166,7 +166,7 @@ if (!teleportManager.confirmTeleport(playerId, packet.teleportId())) {
 
 ### 6. 数据包处理顺序
 
-未登录玩家发送某些数据包会导致逻辑错误。入站 Play 包在 `MinecraftServer::routeInboundPlayPacket` + `ServerPlayRouter::handle` 中分发，需检查登录状态：
+未登录玩家发送某些数据包会导致逻辑错误。入站 Play 包在 `MinecraftServer::routeInboundPlayPacket` + `ServerPlayHandler::route` 中分发，需检查登录状态：
 
 ```cpp
 PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);
@@ -198,6 +198,6 @@ OpLevel 枚举参考 MC 1.16.5：
 
 单机主机作弊提升：`applyOwnerCheatsBoost` 在 OP 列表等级之上叠加「主机 + 开启作弊 → Owner」的运行时判定（不写 `ops.json`）。命令分发与登录权限解析统一走 `MinecraftServer::resolveOpLevel`，`IntegratedServer` override 之；专用服务器继承默认实现（仅读 OP 列表）。
 
-### 11. 载具移动速度验证（ServerPlayRouter ServerboundMoveVehicle 分支）
+### 11. 载具移动速度验证（ServerPlayHandler ServerboundMoveVehicle 分支）
 
-`ServerPlayRouter` 的 `ServerboundMoveVehicle` 分支中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `ir::play::ClientboundMoveVehicle` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。（此逻辑从已删除的 `PacketHandler::handleMoveVehicle` 迁入，旧 `VehicleMovePacket` 已由 IR `ServerboundMoveVehicle`/`ClientboundMoveVehicle` 取代。）
+`ServerPlayHandler` 的 `ServerboundMoveVehicle` 分支中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `ir::play::ClientboundMoveVehicle` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。（此逻辑从已删除的 `PacketHandler::handleMoveVehicle` 迁入，旧 `VehicleMovePacket` 已由 IR `ServerboundMoveVehicle`/`ClientboundMoveVehicle` 取代。）

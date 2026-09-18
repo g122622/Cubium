@@ -25,10 +25,6 @@ server/
 │   ├── MiningManager.hpp/cpp  # 挖掘进度
 │   ├── ContainerManager.hpp/cpp # 容器管理
 │   └── InventoryManager.hpp/cpp # 物品栏管理
-├── sync/                 # 同步管理器（运行时由 ServerDimension 持有）
-│   ├── BlockUpdateSyncManager.hpp/cpp # 方块更新同步
-│   ├── ChunkSendManager.hpp/cpp # 区块发送
-│   └── WeatherSyncService.hpp/cpp # 天气同步
 ├── dimension/            # 维度管理
 │   ├── ServerDimension.hpp/cpp         # 服务端维度实例（持有同步管理器和刷怪管理器）
 │   └── ServerDimensionManager.hpp/cpp  # 服务端维度管理器
@@ -46,11 +42,13 @@ server/
 │   │   └── SpawnConditions.hpp/cpp
 │   └── weather/          # 天气系统
 │       └── WeatherManager.hpp/cpp
-├── network/              # 网络层
-│   ├── ServerNetwork.hpp/cpp   # 服务端网络门面（accept + ServerClientConnection）
-│   ├── ServerHandshake.hpp/cpp # 握手状态机
-│   ├── ServerPlayRouter.hpp/cpp # 入站 Play 包分发器（std::visit over ir::PlayPacket）
-│   └── RegistryDataBuilder.hpp/cpp # Configuration 阶段 RegistryData 构造
+├── network/              # 网络层（按连接生命周期分层，详见 network/README.md）
+│   ├── base/             # 连接抽象与连接实例（IServerClientConnection / ServerClientConnection）
+│   ├── session/          # 门面 ServerNetwork + ClientSession(+Manager)
+│   ├── handshake/        # 四阶段状态机 + Configuration 载荷 + Play 入场序列
+│   ├── play/             # Play 阶段入站处理（聚合门面 + 6 个按包族拆分的处理器）
+│   ├── outbound/         # 出站构造与广播（PacketBuilders / PlayerBroadcaster / MapPacketBuilder）
+│   └── sync/             # 世界数据下推（ChunkSend / BlockUpdateSync / WeatherSync + chunk/ 记账）
 ├── command/              # 命令系统
 │   ├── CommandRegistry.hpp/cpp # 命令注册表
 │   ├── ServerCommandSource.hpp/cpp # 命令源
@@ -121,23 +119,6 @@ server/
 | `ContainerManager` | 容器菜单（打开/关闭/点击） |
 | `InventoryManager` | 物品栏同步、槽位管理 |
 
-### sync/ - 同步管理器
-
-管理服务端到客户端的数据同步。
-
-**重要**：同步管理器现在由各 `ServerDimension` 独立持有（每个维度一套），而非 `MinecraftServer`。初始化在 `ServerDimension::initialize()` 中完成，tick 在 `ServerDimension::tick()` 中执行。
-
-区块发送和光照同步现在都会在需要跨线程或跨回调持有数据时，改用 `ServerChunkManager::getChunkShared()` 获取共享快照，避免 worker 线程完成回调与区块卸载之间的生命周期竞争。
-
-| 类 | 职责 |
-|---|---|
-| `ChunkSendManager` | 区块发送、卸载通知，与 ChunkLoadTicketManager 协同 |
-| `BlockUpdateSyncManager` | 方块更新 pending 去重、tick 末统一发送 |
-
-> 光照数据同步（`markLightChanged`/`_syncLightDataToChunk`）已由 `ServerWorld` 承担，
-> 不再有独立的 `LightSyncManager`。区块加载光照由 `server/world/ChunkLoadLightTask` 在
-> worker 线程完成后经 `ServerWorld` 续延队列回主线程 flush + send。
-
 ### world/ - 世界管理
 
 服务端世界逻辑和区块管理。
@@ -179,14 +160,21 @@ server/
 
 ### network/ - 网络层
 
-服务端网络通信。基于新 IR 层，统一门面 `ServerNetwork` 同时承载 Local（集成服同进程零拷贝）与 Wire（独立服/局域网发布 TCP accept）两种模式。
+服务端与客户端之间的全部协议交互：握手 → Configuration → Play 的入站处理，以及世界数据的出站下推。
 
-| 类 | 职责 |
-|---|---|
-| `ServerNetwork` | 服务端网络门面，`startAccept`（Wire）+ `createLocalClientSide`（Local）+ 管理 ServerClientConnection 集合 + 统一 tick |
-| `ServerHandshake` | 握手状态机（每连接一个，离线/在线模式） |
-| `ServerPlayRouter` | 入站 Play 包分发器（std::visit over ir::PlayPacket），替代旧 dispatchPacket |
-| `RegistryDataBuilder` | Configuration 阶段 RegistryData 构造（data=nullopt，标 TODO Phase6） |
+目录按**连接生命周期阶段**分层（`base` → `session` → `handshake` → `play`），另加两条正交轴
+`outbound/`（服务端主动发起的出站构造与广播）与 `sync/`（世界数据下推）。
+
+| 层 | 职责 | 详见 |
+|---|---|---|
+| `base/` | 连接抽象 `IServerClientConnection` 与 Local/Wire 双模单连接实现 | `network/base/README.md` |
+| `session/` | 门面 `ServerNetwork`（accept + 连接集合 + tick 泵）+ `ClientSession`(`Manager`) | `network/session/README.md` |
+| `handshake/` | 四阶段握手状态机 + Configuration 载荷构造 + Play 入场序列 `LoginFlow` | `network/handshake/README.md` |
+| `play/` | Play 阶段入站分发与处理体 | `network/play/README.md` |
+| `outbound/` | 单包 IR 构造、距离过滤广播、地图周期推送、命令树编码 | `network/outbound/README.md` |
+| `sync/` | 区块/方块更新/天气的下推，由各 `ServerDimension` 独立持有 | `network/sync/README.md` |
+
+`ServerNetwork` 同时承载 Local（集成服同进程零拷贝）与 Wire（独立服/局域网发布 TCP accept）两种模式。
 
 ### command/ - 命令系统
 
@@ -331,7 +319,7 @@ GameTest 框架整体作为 server 的一部分，物理位于 `src/server/test/
 1. **入站数据包**：
    ```
    网络 → transport 收字节 → pipeline::Connection 解帧
-   → MinecraftServer.routeInboundPlayPacket() → ServerPlayRouter (ir::PlayPacket std::visit)
+   → MinecraftServer.routeInboundPlayPacket() → ServerPlayHandler (ir::PlayPacket std::visit)
    → 各 Manager 处理 → 世界状态更新
    ```
 

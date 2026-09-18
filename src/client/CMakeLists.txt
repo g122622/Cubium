@@ -441,31 +441,34 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
     # 新网络层服务端实现：IntegratedServer.cpp 引用 ServerNetwork/ServerHandshake/
-    # ServerPlayRouter/RegistryDataBuilder，MinecraftServer.cpp 定义 routeInboundPlayPacket
-    # 供 ServerPlayRouter 调用。客户端内置服需登记全部 4 个文件（与 server/CMakeLists.txt 一致）。
-    ${CMAKE_SOURCE_DIR}/src/server/network/ServerNetwork.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/network/ServerHandshake.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayRouter.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/network/RegistryDataBuilder.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/network/EnchantmentNbtBuilder.cpp
-    # 玩家广播门面：MinecraftServer broadcast*/send* 转调 PlayerBroadcaster，
-    # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-    ${CMAKE_SOURCE_DIR}/src/server/network/PlayerBroadcaster.cpp
-    # 远程 TCP 会话管理门面：IntegratedServer/StandaloneServer 远程会话四件套转调
-    # RemoteSessionManager，客户端内置服编译 IntegratedServer.cpp 故须登记。
-    ${CMAKE_SOURCE_DIR}/src/server/network/RemoteSessionManager.cpp
-    # 登录流程门面：IntegratedServer._onClientPlayerReady 经 loginFlow().createPlayerForConnection
-    # 进入，客户端内置服编译 IntegratedServer.cpp 故须登记。
-    ${CMAKE_SOURCE_DIR}/src/server/network/LoginFlow.cpp
-    # Play 包处理门面：routeInboundPlayPacket + 13 个非纯虚 handle*Packet 整簇下沉，
-    # 客户端内置服编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
-    ${CMAKE_SOURCE_DIR}/src/server/network/ServerPlayHandler.cpp
-    # Play/Configuration 单包 IR 构造器：命令/登录流程经 builder + connectionManager 投递，
-    # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-    ${CMAKE_SOURCE_DIR}/src/server/network/PacketBuilders.cpp
-    # 地图数据周期推送构造器：ServerWorld::tick 转 net::MapPacketBuilder::pushDirtyMaps，
-    # 客户端内置服编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
-    ${CMAKE_SOURCE_DIR}/src/server/network/MapPacketBuilder.cpp
+    # RegistryDataBuilder，MinecraftServer.cpp 定义 routeInboundPlayPacket 供 Play 处理门面调用。
+    # 客户端内置服需登记全部文件（与 server/CMakeLists.txt 一致）。
+    # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
+    ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp
+    # 会话生命周期门面（accept + 连接表 + tick 泵）
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/ServerNetwork.cpp
+    # 单客户端会话与远程会话门面：客户端内置服编译 IntegratedServer.cpp 故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSession.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/ClientSessionManager.cpp
+    # 握手/登录/配置阶段：客户端内置服编译 IntegratedServer.cpp/MinecraftServer.cpp 故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/LoginFlow.cpp
+    # Play 阶段入站处理：客户端内置服编译 MinecraftServer.cpp（持 m_playHandler）故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/ServerPlayHandler.cpp
+    # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/SessionSignalHandler.cpp
+    # 出站构造与广播：命令/登录流程经 builder + connectionManager 投递，
+    # 客户端内置服编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
+    ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
     # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，
     # 客户端内置服编译 MinecraftServer.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/registry/RegistryBootstrap.cpp
@@ -619,9 +622,13 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimension.cpp
     ${CMAKE_SOURCE_DIR}/src/server/dimension/ServerDimensionManager.cpp
     # 同步管理器
-    ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/sync/WeatherSyncService.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/sync/BlockUpdateSyncManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/sync/ChunkSendManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/sync/WeatherSyncService.cpp
+    # 区块推送记账：PlayerManager/ServerPlayerData 持 ChunkSyncManager/PlayerChunkTracker，
+    # 客户端内置服编译 PlayerManager.cpp 故须登记（与 server/CMakeLists.txt 一致）。
+    ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/PlayerChunkTracker.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/sync/chunk/ChunkSyncManager.cpp
     # 记分板
     ${CMAKE_SOURCE_DIR}/src/server/scoreboard/ServerScoreboard.cpp
     ${CMAKE_SOURCE_DIR}/src/common/scoreboard/core/Scoreboard.cpp

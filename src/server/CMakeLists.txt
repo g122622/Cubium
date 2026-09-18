@@ -278,27 +278,34 @@ add_executable(minecraft-server
     application/MinecraftServer.cpp
     application/ServerApplicationEntry.cpp
     settings/ServerSettings.cpp
-    # 新网络层（1.21.11 IR）：服务端门面 + 握手状态机 + 配置注册表 + Play 路由
-    network/ServerNetwork.cpp
-    network/ServerHandshake.cpp
-    network/RegistryDataBuilder.cpp
-    network/EnchantmentNbtBuilder.cpp
-    network/ServerPlayRouter.cpp
+    # 新网络层（1.21.11 IR）：连接基座 + 会话门面 + 握手/配置 + Play 入站 + 出站构造
+    # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
+    network/base/ServerClientConnection.cpp
+    # 会话生命周期门面（accept + 连接表 + tick 泵）
+    network/session/ServerNetwork.cpp
+    # 单客户端会话（协议状态 + 入站派发链，本地与远程共用）
+    network/session/ClientSession.cpp
     # 远程 TCP 会话管理门面（远程会话四件套下沉自 StandaloneServer/IntegratedServer）
-    network/RemoteSessionManager.cpp
-    # 玩家广播门面（broadcast*/send* 转发型网络广播下沉自 MinecraftServer）
-    network/PlayerBroadcaster.cpp
-    # 登录流程门面（玩家创建 + 初始游戏状态推送整簇下沉自 MinecraftServer）
-    network/LoginFlow.cpp
-    # Play 包处理门面（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
+    network/session/ClientSessionManager.cpp
+    # 握手/登录/配置阶段（四阶段状态机 + Configuration 载荷构造 + Play 入场序列）
+    network/handshake/ServerHandshake.cpp
+    network/handshake/RegistryDataBuilder.cpp
+    network/handshake/EnchantmentNbtBuilder.cpp
+    network/handshake/LoginFlow.cpp
+    # Play 阶段入站处理（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
     # updateEntityTrackingForPlayer 整簇下沉自 MinecraftServer）
-    network/ServerPlayHandler.cpp
-    # Play/Configuration 单包 IR 构造器（buildPlaySoundIr/buildPermissionLevelChangeIr/
-    # buildCommandsIr/buildLevelParticlesIr，下沉自 IServer 单包业务方法）
-    network/PacketBuilders.cpp
-    # 地图数据周期推送构造器（pushDirtyMaps，遍历玩家背包脏 MapData 构造 MapItemData 下发，
-    # 下沉自 ServerWorld::_pushMapDataToHolders）
-    network/MapPacketBuilder.cpp
+    network/play/ServerPlayHandler.cpp
+    # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
+    network/play/MovementHandler.cpp
+    network/play/BlockActionHandler.cpp
+    network/play/EntityActionHandler.cpp
+    network/play/ChatHandler.cpp
+    network/play/PlayerStateHandler.cpp
+    network/play/SessionSignalHandler.cpp
+    # 出站构造与广播（Play/Configuration 单包 IR 构造 + 距离过滤广播 + 地图周期推送）
+    network/outbound/PacketBuilders.cpp
+    network/outbound/PlayerBroadcaster.cpp
+    network/outbound/MapPacketBuilder.cpp
     # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）
     registry/RegistryBootstrap.cpp
     # 核心模块
@@ -377,9 +384,13 @@ add_executable(minecraft-server
     interaction/InventoryManager.cpp
     interaction/SignCommandHelper.cpp
     # 同步管理器
-    sync/BlockUpdateSyncManager.cpp
-    sync/ChunkSendManager.cpp
-    sync/WeatherSyncService.cpp
+    network/sync/BlockUpdateSyncManager.cpp
+    network/sync/ChunkSendManager.cpp
+    network/sync/WeatherSyncService.cpp
+    # 区块推送记账（ChunkView/PlayerChunkTracker/ChunkSyncManager，
+    # 自 common/network/sync/ChunkSync.hpp 迁入；双向共用的 ChunkSerializer 留在 common）
+    network/sync/chunk/PlayerChunkTracker.cpp
+    network/sync/chunk/ChunkSyncManager.cpp
     # 命令系统
     command/ServerCommandSource.cpp
     command/CommandRegistry.cpp

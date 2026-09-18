@@ -36,7 +36,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/base/ServerClientConnection.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <algorithm>
 #include <cstddef>

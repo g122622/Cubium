@@ -31,7 +31,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "client/world/ClientWorld.hpp"
-#include "common/network/sync/ChunkSync.hpp"
+#include "common/network/sync/ChunkSerializer.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

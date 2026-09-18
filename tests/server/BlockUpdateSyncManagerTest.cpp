@@ -25,7 +25,7 @@
 
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
-#include "server/sync/BlockUpdateSyncManager.hpp"
+#include "server/network/sync/BlockUpdateSyncManager.hpp"
 
 #include <algorithm>
 #include <memory>

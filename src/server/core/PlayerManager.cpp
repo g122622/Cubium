@@ -23,9 +23,9 @@
 
 #include "PlayerManager.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/sync/ChunkSync.hpp"
 #include "server/core/ServerPlayerData.hpp"
-#include "server/network/IServerClientConnection.hpp"
+#include "server/network/base/IServerClientConnection.hpp"
+#include "server/network/sync/chunk/PlayerChunkTracker.hpp"
 #include <cctype>
 #include <cstddef>
 #include <memory>
@@ -68,7 +68,7 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     player.username = username;
     player.connection = connection;
     player.loggedIn = true;
-    player.chunkTracker = std::make_shared<network::PlayerChunkTracker>(playerId);
+    player.chunkTracker = std::make_shared<sync::PlayerChunkTracker>(playerId);
 
     // IP 地址：Wire 模式从连接的 TCP 对端地址取（"host:port"），Local 模式（集成服本地
     // 客户端）无网络对端返回空串。供 BanIp 命令按 IP 踢人/封禁。connection 为非拥有指针，

@@ -32,6 +32,9 @@
 #include "common/command/coordinates/WorldCoordinates.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
+// _getAnchorPosition<S> 在模板体内调用 source.entity()->eyeHeight()，需要 Entity 完整定义。
+// 此前靠调用点的传递性 include 偶然成立，一旦某个调用点的包含链变化即编译失败，故显式引入。
+#include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"

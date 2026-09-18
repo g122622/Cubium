@@ -80,9 +80,9 @@ network/
 │   ├── bedrock/BedrockBackend.hpp       # 基岩 stub
 │   └── README.md
 ├── crypto/                              # 加密原语（新架构，Phase2 决策落地点）
-└── sync/                                # 同步层（旧，区块序列化）
-    ├── Sync.hpp
-    ├── ChunkSync.hpp/cpp                # 区块同步管理（序列化、视距、玩家跟踪）
+└── sync/                                # 区块线格式（客户端与服务端双向共用）
+    ├── ChunkSerializer.hpp/cpp          # 内部紧凑二进制格式：ChunkData / ChunkSection 序列化
+    ├── VanillaChunkWire.hpp/cpp         # IR ↔ Java LevelChunkWithLight 翻译
     └── README.md
 ```
 
@@ -121,7 +121,9 @@ network/
 **模块交互**：
 - 新架构主路径：业务代码 → `pipeline::Connection::send(ir::IrPacket)` → codec 编码 → transport 发送
 - `ir/` 是协议无关的包数据模型；`backend/` 提供 Java/基岩 wire codec；`transport/` 负责实际字节流收发
-- `sync/` 依赖 `codec/`（`PacketSerializer`，自 packet/ 迁入）进行区块数据序列化
+- `sync/` 是两端共用的区块线格式翻译层：`ChunkSerializer` 走集成服本地通道、`VanillaChunkWire` 走
+  Java 线格式。服务端的区块推送**记账**（谁已收到哪个区块）不属于 common，在
+  `server/network/sync/chunk/`
 
 ## 上下游外部依赖关系
 
@@ -145,11 +147,11 @@ network/
 | 模块 | 用途 |
 |------|------|
 | `server/core/ConnectionManager.hpp` | 服务端 IR 发送门面，封装 `ir::IrPacket` 发送/广播 |
-| `server/network/ServerNetwork.hpp` | 服务端网络门面（accept + 管理连接），持有 `ServerClientConnection` |
-| `server/network/ServerPlayRouter.hpp` | 入站 Play 包分发器（`std::visit` over `ir::PlayPacket`） |
-| `server/core/PlayerManager.hpp` | 玩家管理器，包含 ChunkSyncManager |
+| `server/network/session/ServerNetwork.hpp` | 服务端网络门面（accept + 管理连接），持有 `ServerClientConnection` |
+| `server/network/play/ServerPlayHandler.hpp` | 入站 Play 包分发器（`std::visit` over `ir::PlayPacket`） |
+| `server/core/PlayerManager.hpp` | 玩家管理器，持 `server/network/sync/chunk/ChunkSyncManager` |
 | `server/player/ServerPlayer.hpp` | 服务端玩家持有连接引用 |
-| `server/sync/ChunkSendManager.hpp` | 服务端区块发送管理 |
+| `server/network/sync/ChunkSendManager.hpp` | 服务端区块发送管理 |
 | `client/network/ClientNetwork.hpp` | 客户端网络通信门面（取代旧 `NetworkClient`） |
 | `client/world/ClientWorld.hpp` | 客户端世界数据接收处理 |
 
@@ -210,10 +212,6 @@ size_t actualSize = ser.size();
 
 实体元数据使用 MC 1.21.11 格式（`codec/EntityMetadataSerializer.hpp/cpp`）：每个条目 `byte(index) + VarInt(serializerId) + value`，结束时写 **0xFF 结束标记**，否则客户端解析失败。serializerId 取值对齐 `SynchedEntityData`（Byte=0/Int=1/Long=2/Float=3/String=4/ItemStack=7/Boolean=8/Rotations=9/BlockPos=10）。
 
-### 9. 区块视图距离计算
-
-`ChunkView::getChunksInView()` 返回**正方形区域**，不是圆形。视距 n 表示以玩家为中心，半径 n 的正方形区域，区块数量 = (2n + 1)²。
-
-### 10. EntityStatus 状态枚举值与 MC 原版一致
+### 9. EntityStatus 状态枚举值与 MC 原版一致
 
 `mc::network::EntityStatus` 枚举（定义于 `protocol/EntityEvents.hpp`，自旧 `EntityStatusPacket::Status` 迁出）的取值必须与 Minecraft 原版 EntityStatus byte 值严格对应（如 `IronGolemAttack = 4`、`IronGolemHoldRose = 11`、`IronGolemStopRose = 34`）。新增实体状态时必须查阅原版协议确认正确的数值，不能自行分配。原 `EntityStatusPacket`/`EntityAnimationPacket` 类已删除，业务侧改用 `mc::network::EntityStatus` / `mc::network::EntityAnimation`（同文件）配合 IR 路径。

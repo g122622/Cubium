@@ -1,0 +1,7 @@
+# clangd 配置。
+#
+# compile_commands.json 由 CMake 生成在 build/ 下（预设中 CMAKE_EXPORT_COMPILE_COMMANDS=ON）。
+# clangd 默认只沿源文件的祖先目录向上查找该文件，而它位于 build/ 而非仓库根目录，
+# 故在此显式指定目录。缺少本项时 clangd 拿不到编译参数（-std=c++20、include 路径、
+# vcpkg 的 -isystem 等），会回退到猜测模式并对整份文件报出大量假错误。
+CompilationDatabase: build

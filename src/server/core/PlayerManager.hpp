@@ -25,8 +25,8 @@
 
 #include "ServerPlayerData.hpp"
 #include "common/core/Types.hpp"
-#include "common/network/sync/ChunkSync.hpp"
-#include "server/network/IServerClientConnection.hpp"
+#include "server/network/base/IServerClientConnection.hpp"
+#include "server/network/sync/chunk/ChunkSyncManager.hpp"
 #include <atomic>
 #include <cstddef>
 #include <functional>
@@ -240,8 +240,8 @@ public:
     /**
      * @brief 获取区块同步管理器
      */
-    [[nodiscard]] network::ChunkSyncManager& chunkSyncManager() { return m_chunkSyncManager; }
-    [[nodiscard]] const network::ChunkSyncManager& chunkSyncManager() const { return m_chunkSyncManager; }
+    [[nodiscard]] sync::ChunkSyncManager& chunkSyncManager() { return m_chunkSyncManager; }
+    [[nodiscard]] const sync::ChunkSyncManager& chunkSyncManager() const { return m_chunkSyncManager; }
 
     // ========== 会话映射 ==========
 
@@ -318,7 +318,7 @@ private:
     std::atomic<u32> m_nextSessionId{1};
     i32 m_maxPlayers = 20;
 
-    network::ChunkSyncManager m_chunkSyncManager;
+    sync::ChunkSyncManager m_chunkSyncManager;
 };
 
 } // namespace mc::server::core

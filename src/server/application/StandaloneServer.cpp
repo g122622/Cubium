@@ -63,8 +63,8 @@
 #include "server/dimension/ServerDimension.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
-#include "server/network/RemoteSessionManager.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/session/ClientSessionManager.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -311,7 +311,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     auto setupResult = _setupRemoteSessions(
         "StandaloneServer",
         kStandaloneCompressionThreshold,
-        [this]() -> mc::server::net::RemoteWorldParams {
+        [this]() -> mc::server::net::SessionWorldParams {
             return {m_settings.hardcore.get(),
                 static_cast<i64>(m_settings.parseSeed()),
                 m_settings.levelType.get() == LevelType::Flat};
@@ -737,8 +737,8 @@ void StandaloneServer::_applySettings()
 }
 
 // 注：远程会话四件套（_onRemoteClientConnect/_onRemotePlayerReady/
-// _onRemoteClientDisconnect）已于批2c 下沉至 RemoteSessionManager 门面，门面成员
-// m_remoteSessionManager 于批9 上提 MinecraftServer 基类。initialize() 经基类
+// _onRemoteClientDisconnect）已于批2c 下沉至 ClientSessionManager 门面，门面成员
+// m_clientSessionManager 于批9 上提 MinecraftServer 基类。initialize() 经基类
 // _setupRemoteSessions 构造并注册到 m_serverNetwork 的 onClientConnect/onClientDisconnect；
 // stop() 经基类 _shutdownRemoteSessions 先 reset manager 再 reset ServerNetwork 保销毁顺序
 // （session 持 ServerClientConnection& 引用）。

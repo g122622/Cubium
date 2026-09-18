@@ -63,7 +63,7 @@
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
-#include "server/network/EnchantmentNbtBuilder.hpp"
+#include "server/network/handshake/EnchantmentNbtBuilder.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
 #include "server/world/gen/biome/BiomeTagLoader.hpp"
 #include "server/world/gen/carver/ConfiguredCarverLoader.hpp"

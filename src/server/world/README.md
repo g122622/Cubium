@@ -97,8 +97,8 @@ src/server/world/
 
 **下游消费者**：
 - `server/core/PlayerManager` - 通过 ServerWorld 管理玩家实体
-- `server/sync/BlockUpdateSyncManager` - 接收方块变化回调
-- `server/sync/ChunkSendManager` - 接收区块加载事件
+- `server/network/sync/BlockUpdateSyncManager` - 接收方块变化回调
+- `server/network/sync/ChunkSendManager` - 接收区块加载事件
 - `server/command/` - 命令执行（通过 ServerWorld 接口）
 
 **共享资源**：

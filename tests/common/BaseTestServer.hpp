@@ -21,7 +21,7 @@
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
 #include "server/interaction/InventoryManager.hpp"
-#include "server/network/IServerClientConnection.hpp"
+#include "server/network/base/IServerClientConnection.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"

@@ -28,7 +28,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/network/sync/ChunkSync.hpp"
+#include "common/network/sync/ChunkSerializer.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"

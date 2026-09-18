@@ -32,7 +32,7 @@
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
-#include "server/network/ServerNetwork.hpp"
+#include "server/network/session/ServerNetwork.hpp"
 
 #include <gtest/gtest.h>
 
@@ -53,7 +53,6 @@ TEST_F(LocalServerFixture, CreateLocalClientSideRegistersSessionIdZero)
 {
     // LocalServerFixture::SetUp 已调 createLocalClientSide；本地客户端固定 sessionId==0。
     EXPECT_EQ(serverConn()->sessionId(), 0u);
-    EXPECT_EQ(net().find(0), serverConn());
 }
 
 TEST_F(LocalServerFixture, OnClientConnectFiresOnCreateLocalClientSide)
@@ -72,8 +71,6 @@ TEST_F(LocalServerFixture, OnClientConnectFiresOnCreateLocalClientSide)
     EXPECT_EQ(connectCount, 1);
     EXPECT_EQ(observed, conn);
     EXPECT_EQ(conn->sessionId(), 0u);
-    EXPECT_EQ(net->find(0), conn);
-    EXPECT_EQ(net->find(1), nullptr); // 不存在的 sessionId
 
     // TearDown 顺序：先释放客户端 transport，再销毁 ServerNetwork。
     clientSide.reset();
@@ -98,65 +95,6 @@ TEST_F(LocalServerFixture, TickPumpsLocalConnectionInbound)
     clientSend(IrPacket{ConnectionProtocol::Handshaking, HandshakePacket{std::move(ci)}});
     pumpServer();
     EXPECT_EQ(serverConn()->state(), HandshakeState::Login);
-}
-
-// ============================================================================
-// broadcast 仅达 Play 状态连接
-// ============================================================================
-
-TEST_F(LocalServerFixture, BroadcastSkipsHandshakeStateConnection)
-{
-    installOfflineHandshake(/*compressionThreshold=*/-1);
-
-    // 连接处于 Handshaking 状态（未完成握手），broadcast 应跳过——不崩且状态不变。
-    play::KeepAlive ka{};
-    ka.id = 1;
-    net().broadcast(IrPacket{ConnectionProtocol::Play, PlayPacket{std::move(ka)}});
-    EXPECT_EQ(serverConn()->state(), HandshakeState::Handshaking);
-}
-
-TEST_F(LocalServerFixture, BroadcastReachesPlayStateConnection)
-{
-    auto& hs = installOfflineHandshake(/*compressionThreshold=*/-1);
-    (void)hs;
-
-    // 完成完整握手到 Play
-    auto sendIntention = [&] {
-        handshake::ClientIntention ci{};
-        ci.protocolVersion = 774;
-        ci.hostName = "localhost";
-        ci.port = 25565;
-        ci.intendedState = 2;
-        clientSend(IrPacket{ConnectionProtocol::Handshaking, HandshakePacket{std::move(ci)}});
-        pumpServer();
-    };
-    sendIntention();
-    login::Hello h{};
-    h.username = "bcast_tester";
-    clientSend(IrPacket{ConnectionProtocol::Login, LoginPacket{std::move(h)}});
-    pumpServer();
-    clientSend(IrPacket{ConnectionProtocol::Login, LoginPacket{login::LoginAcknowledged{}}});
-    pumpServer();
-    configuration::SelectKnownPacks skp{};
-    configuration::KnownPack p{};
-    p.ns = "minecraft";
-    p.id = "core";
-    p.version = "1.21.11";
-    skp.knownPacks = {std::move(p)};
-    clientSend(IrPacket{ConnectionProtocol::Configuration, ConfigurationPacket{std::move(skp)}});
-    pumpServer();
-    clientSend(IrPacket{ConnectionProtocol::Configuration, ConfigurationPacket{configuration::FinishConfiguration{}}});
-    pumpServer();
-    ASSERT_EQ(serverConn()->state(), HandshakeState::Play);
-
-    // Play 状态连接：broadcast 应调用其 send。Local 模式 send 把包投递到客户端 transport
-    // 队列；不崩即证明 broadcast 命中了 Play 连接（Handshake 状态会被跳过不 send）。
-    play::KeepAlive ka{};
-    ka.id = 99;
-    net().broadcast(IrPacket{ConnectionProtocol::Play, PlayPacket{std::move(ka)}});
-    // pump 让客户端 transport 投递（避免队列残留影响析构）
-    pumpServer();
-    EXPECT_EQ(serverConn()->state(), HandshakeState::Play);
 }
 
 // ============================================================================
