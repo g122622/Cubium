@@ -32,8 +32,6 @@ namespace mc {
 namespace world {
 namespace attribute {
 
-class AttributeModifierBase;
-
 /**
  * @brief 属性类型
  *
@@ -78,11 +76,10 @@ public:
      */
     static AttributeType<Value> ofNotInterpolated()
     {
-        return AttributeType<Value>(
-            LerpFunction<Value>::ofStep(1.0f),  // keyframeLerp
-            LerpFunction<Value>::ofStep(0.0f),  // stateChangeLerp
-            LerpFunction<Value>::ofStep(0.5f),  // spatialLerp
-            LerpFunction<Value>::ofStep(0.0f)); // partialTickLerp
+        return AttributeType<Value>(LerpFunction<Value>::ofStep(1.0f), // keyframeLerp
+            LerpFunction<Value>::ofStep(0.0f),                         // stateChangeLerp
+            LerpFunction<Value>::ofStep(0.5f),                         // spatialLerp
+            LerpFunction<Value>::ofStep(0.0f));                        // partialTickLerp
     }
 
     // TODO: modifierLibrary / modifierCodec 暂未实现，按需补充

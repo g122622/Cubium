@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/attribute/AttributeModifier.hpp"
 #include "common/world/attribute/EnvironmentAttribute.hpp"
 #include "common/world/attribute/LerpFunction.hpp"
@@ -36,7 +37,9 @@
 
 #include <any>
 #include <functional>
+#include <memory>
 #include <optional>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -52,45 +55,47 @@ namespace timeline {
  * 通过 createTrackSampler 创建采样器，按 dayTime 查询属性值。
  *
  * 类型擦除：MC 用 Java 通配符泛型 Map<EnvironmentAttribute<?>, AttributeTrack<?, ?>>。
- * C++ 用 std::any 存储异构 AttributeTrack<Value, Argument>，key 用 EnvironmentAttribute 地址。
+ * C++ 用 std::any 存储异构 AttributeTrack<Value, Argument>，以 EnvironmentAttribute 地址为键
+ * （属性均为静态对象，地址稳定）。
  */
 class Timeline {
 public:
     Timeline() = default;
 
-    Timeline(std::optional<i32> periodTicks,
-        std::unordered_map<const void*, std::any> tracks)
+    Timeline(std::optional<i32> periodTicks, std::unordered_map<const void*, std::any> tracks)
         : m_periodTicks(periodTicks)
         , m_tracks(std::move(tracks))
     {}
 
-    const std::optional<i32>& periodTicks() const noexcept { return m_periodTicks; }
+    [[nodiscard]] const std::optional<i32>& periodTicks() const noexcept { return m_periodTicks; }
 
     /**
      * @brief 创建轨道采样器
      *
      * @tparam Value 属性值类型（如 Activity）
-     * @tparam Argument 修改器参数类型（OverrideModifier 时与 Value 相同）
+     * @tparam Argument 修改器参数类型（覆写修改器下与 Value 相同）
      * @param envAttr 环境属性
      * @param dayTimeGetter 获取当前 dayTime 的函数
      * @return 采样器
      */
     template <typename Value, typename Argument>
-    std::unique_ptr<AttributeTrackSampler<Value, Argument>> createTrackSampler(
-        const EnvironmentAttribute<Value>& envAttr,
-        std::function<i64()> dayTimeGetter) const
+    [[nodiscard]] std::unique_ptr<AttributeTrackSampler<Value, Argument>> createTrackSampler(
+        const attribute::EnvironmentAttribute<Value>& envAttr, std::function<i64()> dayTimeGetter) const
     {
+        // TODO: 暂不支持 Value 与 Argument 异构的轨道（MC 通过 LerpFunction.cast 实现，
+        // C++ 需另行设计类型安全方案）。当前所有轨道均为 Value == Argument。
+        static_assert(std::is_same_v<Value, Argument>, "createTrackSampler 目前仅支持 Value 与 Argument 相同的轨道");
+
         const auto it = m_tracks.find(static_cast<const void*>(&envAttr));
-        MC_ASSERT(it != m_tracks.end());
+        MC_ASSERT_RELEASE_MSG(it != m_tracks.end(), "Timeline::createTrackSampler: attribute track not found");
 
         const auto* track = std::any_cast<AttributeTrack<Value, Argument>>(&it->second);
-        MC_ASSERT(track != nullptr);
+        MC_ASSERT_RELEASE_MSG(track != nullptr, "Timeline::createTrackSampler: attribute track type mismatch");
 
-        return std::make_unique<AttributeTrackSampler<Value, Argument>>(
-            m_periodTicks,
-            track->modifier(),
+        return std::make_unique<AttributeTrackSampler<Value, Argument>>(m_periodTicks,
+            track->modifierPtr(),
             track->argumentTrack(),
-            envAttr.type().keyframeLerp().template cast<Argument>(),
+            envAttr.type().keyframeLerp(),
             std::move(dayTimeGetter));
     }
 
@@ -112,16 +117,15 @@ public:
          * @tparam Argument 修改器参数类型
          */
         template <typename Value, typename Argument>
-        Builder& addModifierTrack(const EnvironmentAttribute<Value>& envAttr,
-            AttributeModifier<Value, Argument> modifier,
+        Builder& addModifierTrack(const attribute::EnvironmentAttribute<Value>& envAttr,
+            std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifier,
             std::function<void(typename KeyframeTrack<Argument>::Builder&)> consumer)
         {
             typename KeyframeTrack<Argument>::Builder builder;
             consumer(builder);
-            KeyframeTrack<Argument> track = builder.build();
 
-            m_tracks[static_cast<const void*>(&envAttr)] = std::make_any<AttributeTrack<Value, Argument>>(
-                std::move(modifier), std::move(track));
+            m_tracks[static_cast<const void*>(&envAttr)] =
+                std::make_any<AttributeTrack<Value, Argument>>(std::move(modifier), builder.build());
             return *this;
         }
 
@@ -129,18 +133,14 @@ public:
          * @brief 添加覆写轨道（使用 OverrideModifier）
          */
         template <typename Value>
-        Builder& addTrack(const EnvironmentAttribute<Value>& envAttr,
+        Builder& addTrack(const attribute::EnvironmentAttribute<Value>& envAttr,
             std::function<void(typename KeyframeTrack<Value>::Builder&)> consumer)
         {
-            return addModifierTrack<Value, Value>(envAttr,
-                AttributeModifier<Value, Value>::Override{},
-                consumer);
+            return addModifierTrack<Value, Value>(
+                envAttr, std::make_shared<attribute::OverrideModifier<Value>>(), std::move(consumer));
         }
 
-        Timeline build()
-        {
-            return Timeline(m_periodTicks, std::move(m_tracks));
-        }
+        [[nodiscard]] Timeline build() { return Timeline(m_periodTicks, std::move(m_tracks)); }
 
     private:
         std::optional<i32> m_periodTicks;

@@ -25,11 +25,13 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/attribute/EnvironmentAttribute.hpp"
+#include "common/world/timeline/AttributeTrackSampler.hpp"
+#include "common/world/timeline/Timeline.hpp"
 #include "memory/Memory.hpp"
 #include "memory/MemoryModuleStatus.hpp"
 #include "memory/MemoryModuleType.hpp"
 #include "schedule/Activity.hpp"
-#include "schedule/Schedule.hpp"
 #include "sensor/Sensor.hpp"
 #include "sensor/SensorType.hpp"
 #include "task/Task.hpp"
@@ -129,15 +131,25 @@ public:
     }
 
     /**
-     * @brief 设置日程
-     * @param schedule 日程指针（通常指向静态日程实例）
+     * @brief 设置时间线
+     *
+     * 依据活动属性创建轨道采样器，用于按 dayTime 查询当前应处的活动。
+     *
+     * @param timeline 时间线指针（通常指向静态时间线实例）
+     * @param activityAttribute 驱动本实体活动的环境属性
      */
-    void setSchedule(const schedule::Schedule* schedule) noexcept { m_schedulePtr = schedule; }
+    void setTimeline(const world::timeline::Timeline* timeline,
+        const world::attribute::EnvironmentAttribute<schedule::Activity>& activityAttribute)
+    {
+        m_timelinePtr = timeline;
+        m_activitySampler = timeline->createTrackSampler<schedule::Activity, schedule::Activity>(
+            activityAttribute, [this]() { return m_currentDayTime; });
+    }
 
     /**
-     * @brief 获取日程
+     * @brief 获取时间线
      */
-    [[nodiscard]] const schedule::Schedule* getSchedule() const noexcept { return m_schedulePtr; }
+    [[nodiscard]] const world::timeline::Timeline* getTimeline() const noexcept { return m_timelinePtr; }
 
     /**
      * @brief 设置后备活动
@@ -400,13 +412,17 @@ private:
     }
 
     /**
-     * @brief 根据日程更新活动
+     * @brief 根据时间线更新活动
+     *
+     * 每 20 ticks 查询一次时间线。采样器按 tick 缓存采样结果，
+     * 同一 tick 内的多次查询会复用该结果。
      */
     void _updateActivity(i32 dayTime, i64 gameTime)
     {
-        if (m_schedulePtr && gameTime - m_lastGameTime > 20) {
+        if (m_timelinePtr && gameTime - m_lastGameTime > 20) {
             m_lastGameTime = gameTime;
-            auto scheduledActivity = m_schedulePtr->getScheduledActivity(dayTime);
+            m_currentDayTime = dayTime;
+            auto scheduledActivity = m_activitySampler->applyTimeBased(schedule::Activity::IDLE, gameTime);
             if (!hasActivity(scheduledActivity)) {
                 switchTo(scheduledActivity);
             }
@@ -519,7 +535,11 @@ private:
     std::unordered_map<const memory::MemoryModuleTypeBase*, i64> m_memoryTTL;
     std::vector<std::unique_ptr<sensor::Sensor<E>>> m_sensors;
     PriorityTaskMap m_tasks;
-    const schedule::Schedule* m_schedulePtr = nullptr;
+    const world::timeline::Timeline* m_timelinePtr = nullptr;
+    // 活动轨道采样器：由 setTimeline 依据活动属性创建
+    std::unique_ptr<world::timeline::AttributeTrackSampler<schedule::Activity, schedule::Activity>> m_activitySampler;
+    // 当前 dayTime，供采样器的 dayTimeGetter 读取
+    i64 m_currentDayTime = 0;
     ActivityRequirementMap m_requiredMemoryStates;
     ForgettingMap m_memoriesToForget;
     std::unordered_set<schedule::Activity> m_defaultActivities;

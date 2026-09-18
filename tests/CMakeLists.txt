@@ -796,7 +796,7 @@ add_executable(mc_tests
     entity/VexGoalsTest.cpp
     # IllusionerGoals 幻术师法术常量和 AI 优先级测试
     entity/IllusionerGoalsTest.cpp
-    entity/BrainScheduleTests.cpp
+    entity/BrainMemoryTests.cpp
     entity/BrainMovementTaskTests.cpp
     entity/BrainInteractTaskTests.cpp
     # BrainActionTask 行为任务测试
@@ -1486,6 +1486,8 @@ add_executable(mc_tests
     common/world/gen/chunk/WorldGenRegionDetailedTest.cpp
     # WorldGenRegion区块访问窗口验证测试
     common/world/gen/chunk/WorldGenRegionAccessTest.cpp
+    # Timeline 时间线体系单元测试（关键帧采样语义、预定义村民日程）
+    common/world/timeline/TimelineTest.cpp
     # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
     common/world/chunk/gen/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
@@ -2095,8 +2097,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/memory/MemoryModuleType.cpp
-        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Schedule.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/schedule/Activity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/attribute/AttributeTypes.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/attribute/EnvironmentAttributes.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/timeline/Timelines.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp

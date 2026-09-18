@@ -21,48 +21,18 @@
  *
  */
 
-#pragma once
-
-#include <algorithm>
-#include <functional>
+#include "common/world/attribute/AttributeTypes.hpp"
 
 namespace mc {
 namespace world {
 namespace attribute {
 
-/**
- * @brief 属性值范围
- *
- * 用于验证和规范化环境属性的值。
- */
-template <typename Value>
-class AttributeRange {
-public:
-    AttributeRange() = default;
-
-    AttributeRange(std::function<bool(Value)> validateFn, std::function<Value(Value)> sanitizeFn)
-        : m_validate(std::move(validateFn))
-        , m_sanitize(std::move(sanitizeFn))
-    {}
-
-    bool validate(Value value) const { return m_validate(value); }
-    Value sanitize(Value value) const { return m_sanitize(value); }
-
-    static AttributeRange<Value> any()
-    {
-        return AttributeRange<Value>([](Value) { return true; }, [](Value v) { return v; });
-    }
-
-    static AttributeRange<float> ofFloat(float min, float max)
-    {
-        return AttributeRange<float>([min, max](float v) { return v >= min && v <= max; },
-            [min, max](float v) { return std::clamp(v, min, max); });
-    }
-
-private:
-    std::function<bool(Value)> m_validate;
-    std::function<Value(Value)> m_sanitize;
-};
+const AttributeType<entity::ai::brain::schedule::Activity>& AttributeTypes::ACTIVITY()
+{
+    static const AttributeType<entity::ai::brain::schedule::Activity> instance =
+        AttributeType<entity::ai::brain::schedule::Activity>::ofNotInterpolated();
+    return instance;
+}
 
 } // namespace attribute
 } // namespace world

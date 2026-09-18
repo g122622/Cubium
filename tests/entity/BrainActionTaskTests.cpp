@@ -29,7 +29,6 @@
 #include "common/entity/ai/brain/Brain.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
-#include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/task/tasks/action/ActionTasks.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -116,7 +115,6 @@ protected:
     void SetUp() override
     {
         MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
         m_world = std::make_unique<ActionTaskTestWorld>();
     }
 
@@ -362,11 +360,7 @@ TEST_F(AttackTaskTest, CustomCooldownTicks)
 
 class AttackTaskIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
-    }
+    void SetUp() override { MemoryModuleTypes::initialize(); }
 };
 
 // 测试：VillagerEntity Brain 注册了 ATTACK_COOLING_DOWN 记忆模块

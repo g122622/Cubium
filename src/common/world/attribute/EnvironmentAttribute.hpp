@@ -61,25 +61,20 @@ public:
     bool isPositional() const noexcept { return m_isPositional; }
     bool isSpatiallyInterpolated() const noexcept { return m_isSpatiallyInterpolated; }
 
-    Value sanitizeValue(Value value) const
-    {
-        return m_valueRange.sanitize(std::move(value));
-    }
+    Value sanitizeValue(Value value) const { return m_valueRange.sanitize(std::move(value)); }
 
     /**
      * @brief 环境属性构建器
+     *
+     * 默认值在构造时传入：Value 未必具备默认构造函数（如 Activity 为值对象类型），
+     * 因此不提供无参构造。
      */
     class Builder {
     public:
-        explicit Builder(AttributeType<Value> type)
+        Builder(AttributeType<Value> type, Value defaultValue)
             : m_type(std::move(type))
+            , m_defaultValue(std::move(defaultValue))
         {}
-
-        Builder& defaultValue(Value value)
-        {
-            m_defaultValue = std::move(value);
-            return *this;
-        }
 
         Builder& valueRange(AttributeRange<Value> range)
         {
@@ -107,8 +102,7 @@ public:
 
         EnvironmentAttribute<Value> build()
         {
-            return EnvironmentAttribute<Value>(
-                std::move(m_type),
+            return EnvironmentAttribute<Value>(std::move(m_type),
                 std::move(m_defaultValue),
                 std::move(m_valueRange),
                 m_isSyncable,
@@ -118,16 +112,16 @@ public:
 
     private:
         AttributeType<Value> m_type;
-        Value m_defaultValue{};
+        Value m_defaultValue;
         AttributeRange<Value> m_valueRange = AttributeRange<Value>::any();
         bool m_isSyncable = false;
         bool m_isPositional = true;
         bool m_isSpatiallyInterpolated = false;
     };
 
-    static Builder<Value> builder(AttributeType<Value> type)
+    static Builder builder(AttributeType<Value> type, Value defaultValue)
     {
-        return Builder<Value>(std::move(type));
+        return Builder(std::move(type), std::move(defaultValue));
     }
 
 private:

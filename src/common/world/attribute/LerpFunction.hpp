@@ -46,19 +46,14 @@ public:
         : m_fn(std::move(fn))
     {}
 
-    T apply(float progress, T from, T to) const
-    {
-        return m_fn(progress, from, to);
-    }
+    T apply(float progress, T from, T to) const { return m_fn(progress, from, to); }
 
     /**
      * @brief 浮点线性插值
      */
     static LerpFunction<float> ofFloat()
     {
-        return LerpFunction<float>([](float progress, float from, float to) {
-            return from + progress * (to - from);
-        });
+        return LerpFunction<float>([](float progress, float from, float to) { return from + progress * (to - from); });
     }
 
     /**
@@ -88,9 +83,7 @@ public:
      */
     static LerpFunction<T> ofStep(float threshold)
     {
-        return LerpFunction<T>([threshold](float progress, T from, T to) {
-            return progress >= threshold ? to : from;
-        });
+        return LerpFunction<T>([threshold](float progress, T from, T to) { return progress >= threshold ? to : from; });
     }
 
     /**
@@ -98,9 +91,7 @@ public:
      */
     static LerpFunction<int> ofColor()
     {
-        return LerpFunction<int>([](float progress, int from, int to) {
-            return _srgbLerp(progress, from, to);
-        });
+        return LerpFunction<int>([](float progress, int from, int to) { return _srgbLerp(progress, from, to); });
     }
 
 private:
@@ -110,17 +101,17 @@ private:
     static float _wrapDegrees(float degrees)
     {
         float x = degrees;
-        while (x >= 180.0f) x -= 360.0f;
-        while (x < -180.0f) x += 360.0f;
+        while (x >= 180.0f)
+            x -= 360.0f;
+        while (x < -180.0f)
+            x += 360.0f;
         return x;
     }
 
     /// sRGB 颜色线性插值
     static int _srgbLerp(float progress, int from, int to)
     {
-        auto lerpChannel = [progress](int c1, int c2) {
-            return static_cast<int>(c1 + progress * (c2 - c1));
-        };
+        auto lerpChannel = [progress](int c1, int c2) { return static_cast<int>(c1 + progress * (c2 - c1)); };
 
         const int a1 = (from >> 24) & 0xFF;
         const int r1 = (from >> 16) & 0xFF;

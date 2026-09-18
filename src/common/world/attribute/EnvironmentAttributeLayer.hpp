@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+
 namespace mc {
 namespace world {
 namespace attribute {
@@ -57,7 +59,7 @@ public:
     class TimeBased {
     public:
         virtual ~TimeBased() = default;
-        virtual Value applyTimeBased(Value value, int tick) = 0;
+        virtual Value applyTimeBased(Value value, i64 tick) = 0;
     };
 
     /**

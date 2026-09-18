@@ -31,7 +31,9 @@
 #include "common/world/timeline/KeyframeTrackSampler.hpp"
 
 #include <functional>
+#include <memory>
 #include <optional>
+#include <utility>
 
 namespace mc {
 namespace world {
@@ -44,35 +46,42 @@ namespace timeline {
  * 实现 EnvironmentAttributeLayer.TimeBased<Value>，按 dayTime 采样 argument，
  * 再通过 modifier 将 argument 应用到基础值上。
  *
- * 缓存机制：同一 tickId 下复用 cachedArgument，避免重复采样。
+ * 缓存机制：同一 tick 下复用 cachedArgument，避免重复采样关键帧轨道。
  */
 template <typename Value, typename Argument>
-class AttributeTrackSampler : public EnvironmentAttributeLayer<Value>::TimeBased {
+class AttributeTrackSampler : public attribute::EnvironmentAttributeLayer<Value>::TimeBased {
 public:
     AttributeTrackSampler(std::optional<i32> periodTicks,
-        AttributeModifier<Value, Argument> modifier,
-        KeyframeTrack<Argument> argumentTrack,
-        LerpFunction<Argument> lerp,
+        std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifier,
+        const KeyframeTrack<Argument>& argumentTrack,
+        attribute::LerpFunction<Argument> lerp,
         std::function<i64()> dayTimeGetter)
         : m_modifier(std::move(modifier))
-        , m_dayTimeGetter(std::move(dayTimeGetter))
         , m_argumentSampler(argumentTrack.bakeSampler(periodTicks, std::move(lerp)))
+        , m_dayTimeGetter(std::move(dayTimeGetter))
     {}
 
-    Value applyTimeBased(Value value, int tick) override
+    /**
+     * @brief 按时间应用属性修改
+     *
+     * @param value 基础值
+     * @param tick 当前游戏 tick（仅用于缓存判定，同一 tick 内复用采样结果）
+     */
+    Value applyTimeBased(Value value, i64 tick) override
     {
         if (!m_cachedArgument.has_value() || tick != m_cachedTickId) {
             m_cachedTickId = tick;
             m_cachedArgument = m_argumentSampler.sample(m_dayTimeGetter());
         }
-        return m_modifier.apply(value, *m_cachedArgument);
+        // 注意：cachedArgument 需保持有效以服务同一 tick 内的后续查询，此处按值拷贝而非移动
+        return m_modifier->apply(std::move(value), *m_cachedArgument);
     }
 
 private:
-    AttributeModifier<Value, Argument> m_modifier;
+    std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> m_modifier;
     KeyframeTrackSampler<Argument> m_argumentSampler;
     std::function<i64()> m_dayTimeGetter;
-    int m_cachedTickId = -1;
+    i64 m_cachedTickId = -1;
     std::optional<Argument> m_cachedArgument;
 };
 

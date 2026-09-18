@@ -30,7 +30,6 @@
 #include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
-#include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/task/tasks/action/ActionTasks.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
@@ -108,7 +107,6 @@ protected:
     void SetUp() override
     {
         MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
         m_world = std::make_unique<NewActionTaskTestWorld>();
     }
 
@@ -239,7 +237,6 @@ protected:
     void SetUp() override
     {
         MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
         m_world = std::make_unique<NewActionTaskTestWorld>();
     }
 
@@ -409,7 +406,6 @@ protected:
     void SetUp() override
     {
         MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
         m_world = std::make_unique<NewActionTaskTestWorld>();
     }
 
@@ -630,7 +626,6 @@ protected:
     void SetUp() override
     {
         MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
         m_world = std::make_unique<NewActionTaskTestWorld>();
     }
 

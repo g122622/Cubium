@@ -225,11 +225,7 @@ TEST_F(SensorUsedMemoriesTest, TemptingPlayerSensorCustomConfig)
 
 class VillagerBrainIntegrationTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
-    }
+    void SetUp() override { MemoryModuleTypes::initialize(); }
 };
 
 // 测试：VillagerEntity 的 Brain 注册了必要的交互记忆模块
@@ -273,7 +269,6 @@ protected:
     void SetUp() override
     {
         MemoryModuleTypes::initialize();
-        mc::entity::ai::brain::schedule::Schedule::initialize();
         m_world = std::make_unique<InteractTaskTestWorld>();
     }
 

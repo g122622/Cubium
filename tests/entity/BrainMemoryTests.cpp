@@ -27,7 +27,6 @@
 #include "common/entity/ai/brain/memory/BlockPosTarget.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/memory/WalkTarget.hpp"
-#include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/world/block/BlockPos.hpp"
 
 namespace mc::entity::ai::brain::memory {
@@ -72,58 +71,3 @@ TEST(MemoryModuleTypesTest, WalkAndLookTargetsUseRealTypes)
 
 } // namespace
 } // namespace mc::entity::ai::brain::memory
-
-namespace mc::entity::ai::brain::schedule {
-namespace {
-
-TEST(ScheduleDutiesTest, UsesDiscreteWeightsAcrossDayBoundary)
-{
-    ScheduleDuties duties;
-    duties.addDutyTime(2000, 1.0f);
-    duties.addDutyTime(9000, 0.0f);
-
-    EXPECT_FLOAT_EQ(duties.getWeightAt(1000), 0.0f);
-    EXPECT_FLOAT_EQ(duties.getWeightAt(2000), 1.0f);
-    EXPECT_FLOAT_EQ(duties.getWeightAt(8999), 1.0f);
-    EXPECT_FLOAT_EQ(duties.getWeightAt(9000), 0.0f);
-}
-
-TEST(ScheduleBuilderTest, SwitchesActivitiesAtConfiguredBoundaries)
-{
-    Schedule schedule;
-    ScheduleBuilder(schedule)
-        .add(10, Activity::IDLE)
-        .add(2000, Activity::WORK)
-        .add(9000, Activity::MEET)
-        .add(11000, Activity::IDLE)
-        .add(12000, Activity::REST)
-        .build();
-
-    EXPECT_EQ(schedule.getScheduledActivity(0), Activity::REST);
-    EXPECT_EQ(schedule.getScheduledActivity(10), Activity::IDLE);
-    EXPECT_EQ(schedule.getScheduledActivity(1999), Activity::IDLE);
-    EXPECT_EQ(schedule.getScheduledActivity(2000), Activity::WORK);
-    EXPECT_EQ(schedule.getScheduledActivity(8999), Activity::WORK);
-    EXPECT_EQ(schedule.getScheduledActivity(9000), Activity::MEET);
-    EXPECT_EQ(schedule.getScheduledActivity(11000), Activity::IDLE);
-    EXPECT_EQ(schedule.getScheduledActivity(12000), Activity::REST);
-}
-
-TEST(ScheduleTest, DirectAddMatchesBuilderSemantics)
-{
-    Schedule schedule;
-    schedule.add(10, Activity::IDLE)
-        .add(2000, Activity::WORK)
-        .add(9000, Activity::MEET)
-        .add(11000, Activity::IDLE)
-        .add(12000, Activity::REST);
-
-    EXPECT_EQ(schedule.getScheduledActivity(1500), Activity::IDLE);
-    EXPECT_EQ(schedule.getScheduledActivity(5000), Activity::WORK);
-    EXPECT_EQ(schedule.getScheduledActivity(9500), Activity::MEET);
-    EXPECT_EQ(schedule.getScheduledActivity(11500), Activity::IDLE);
-    EXPECT_EQ(schedule.getScheduledActivity(13000), Activity::REST);
-}
-
-} // namespace
-} // namespace mc::entity::ai::brain::schedule

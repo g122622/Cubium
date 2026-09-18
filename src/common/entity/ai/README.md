@@ -18,10 +18,8 @@
 │   │   ├── IPositionTarget.hpp #位置目标接口
 │   │   ├── WalkTarget.hpp #行走目标
 │   │   └── README.md
-│   ├── schedule / #日程系统
-│   │   ├── Activity.hpp / cpp #活动类型（15种）
-│   │   ├── DutyTime.hpp #时间段定义
-│   │   └── Schedule.hpp / cpp #日程管理
+│   ├── schedule / #活动类型
+│   │   └── Activity.hpp / cpp #活动类型（日程改由 world/timeline 驱动）
 │   ├── sensor / #传感器系统
 │   │   ├── Sensor.hpp #传感器基类
 │   │   ├── SensorType.hpp #传感器类型工厂

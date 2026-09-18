@@ -23,37 +23,31 @@
 
 #pragma once
 
-#include "common/core/Types.hpp"
+#include "common/entity/ai/brain/schedule/Activity.hpp"
+#include "common/world/attribute/AttributeType.hpp"
 
 namespace mc {
-namespace entity {
-namespace ai {
-namespace brain {
-namespace schedule {
+namespace world {
+namespace attribute {
 
 /**
- * @brief 单个日程时间片的权重记录
+ * @brief 预定义属性类型
  *
- * 用于表示某个时间点开始的活动权重。
+ * MC 1.21.11 class AttributeTypes。
+ * Cubium 目前仅实现活动类型，其余类型（FLOAT / ANGLE_DEGREES / RGB_COLOR /
+ * MOON_PHASE / BED_RULE / PARTICLE 等）按需补充。
  */
-class DutyTime {
+class AttributeTypes {
 public:
-    DutyTime(i32 dayTime, f32 value) noexcept
-        : m_dayTime(dayTime)
-        , m_value(value)
-    {}
-
-    [[nodiscard]] i32 getDayTime() const { return m_dayTime; }
-
-    [[nodiscard]] f32 getValue() const { return m_value; }
-
-private:
-    i32 m_dayTime;
-    f32 m_value;
+    /**
+     * @brief 活动类型
+     *
+     * 不可插值：keyframeLerp = ofStep(1.0)，采样进度到达或越过 toTicks 时
+     * 返回下一关键帧的值，否则保持当前关键帧的值。
+     */
+    [[nodiscard]] static const AttributeType<entity::ai::brain::schedule::Activity>& ACTIVITY();
 };
 
-} // namespace schedule
-} // namespace brain
-} // namespace ai
-} // namespace entity
+} // namespace attribute
+} // namespace world
 } // namespace mc

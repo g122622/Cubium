@@ -23,8 +23,7 @@
 
 #pragma once
 
-#include "common/world/attribute/EnvironmentAttribute.hpp"
-#include "common/world/attribute/LerpFunction.hpp"
+#include <utility>
 
 namespace mc {
 namespace world {
@@ -41,18 +40,26 @@ class AttributeModifier {
 public:
     virtual ~AttributeModifier() = default;
 
-    virtual Subject apply(Subject subject, Argument argument) = 0;
-
     /**
-     * @brief 覆写修改器
+     * @brief 将 argument 应用到 subject
      *
-     * 直接返回 argument（忽略 subject）。
-     * MC 中 OverrideModifier.apply(value, value1) 返回 value1。
+     * @param subject 基础值
+     * @param argument 关键帧采样得到的参数
+     * @return 应用后的值
      */
-    class Override {
-    public:
-        Subject apply(Subject, Argument argument) { return argument; }
-    };
+    [[nodiscard]] virtual Argument apply(Subject subject, Argument argument) const = 0;
+};
+
+/**
+ * @brief 覆写修改器
+ *
+ * MC 1.21.11 record AttributeModifier.Override<Value>。
+ * 直接返回 argument，忽略 subject。
+ */
+template <typename Value>
+class OverrideModifier final : public AttributeModifier<Value, Value> {
+public:
+    [[nodiscard]] Value apply(Value, Value argument) const override { return std::move(argument); }
 };
 
 } // namespace attribute

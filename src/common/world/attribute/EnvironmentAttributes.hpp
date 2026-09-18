@@ -23,45 +23,36 @@
 
 #pragma once
 
-#include <algorithm>
-#include <functional>
+#include "common/entity/ai/brain/schedule/Activity.hpp"
+#include "common/world/attribute/EnvironmentAttribute.hpp"
 
 namespace mc {
 namespace world {
 namespace attribute {
 
 /**
- * @brief 属性值范围
+ * @brief 预定义环境属性
  *
- * 用于验证和规范化环境属性的值。
+ * MC 1.21.11 class EnvironmentAttributes。
+ * Cubium 目前仅实现村民活动相关属性，其余属性（日夜周期、月相、天气、
+ * 天空颜色、粒子等）按需补充。
  */
-template <typename Value>
-class AttributeRange {
+class EnvironmentAttributes {
 public:
-    AttributeRange() = default;
+    /**
+     * @brief 成年村民活动
+     *
+     * 默认 IDLE，可同步，与位置无关。
+     */
+    [[nodiscard]] static const EnvironmentAttribute<entity::ai::brain::schedule::Activity>& VILLAGER_ACTIVITY();
 
-    AttributeRange(std::function<bool(Value)> validateFn, std::function<Value(Value)> sanitizeFn)
-        : m_validate(std::move(validateFn))
-        , m_sanitize(std::move(sanitizeFn))
-    {}
-
-    bool validate(Value value) const { return m_validate(value); }
-    Value sanitize(Value value) const { return m_sanitize(value); }
-
-    static AttributeRange<Value> any()
-    {
-        return AttributeRange<Value>([](Value) { return true; }, [](Value v) { return v; });
-    }
-
-    static AttributeRange<float> ofFloat(float min, float max)
-    {
-        return AttributeRange<float>([min, max](float v) { return v >= min && v <= max; },
-            [min, max](float v) { return std::clamp(v, min, max); });
-    }
-
-private:
-    std::function<bool(Value)> m_validate;
-    std::function<Value(Value)> m_sanitize;
+    /**
+     * @brief 幼年村民活动
+     *
+     * 默认 IDLE，可同步，与位置无关。
+     */
+    [[nodiscard]] static const EnvironmentAttribute<entity::ai::brain::schedule::Activity>&
+    BABY_VILLAGER_ACTIVITY();
 };
 
 } // namespace attribute

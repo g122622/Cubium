@@ -25,7 +25,6 @@
 
 #include "common/advancement/AdvancementLoader.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
-#include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/damage/tag/DamageTypeTagLoader.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -60,6 +59,7 @@
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/map/MaterialColor.hpp"
+#include "common/world/timeline/Timelines.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
@@ -573,12 +573,12 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         }
     }
 
-    // 初始化预定义日程（村民AI行为日程）
+    // 初始化预定义时间线（村民AI日程等）
     {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Schedules");
-        entity::ai::brain::schedule::Schedule::initialize();
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Timelines");
+        world::timeline::Timelines::bootstrap();
     }
-    spdlog::info("Schedules initialized");
+    spdlog::info("Timelines initialized");
 
     // 初始化记忆模块类型
     {

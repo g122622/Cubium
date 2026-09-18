@@ -44,10 +44,7 @@ public:
         : m_fn(fn)
     {}
 
-    float apply(float f) const noexcept
-    {
-        return m_fn(f);
-    }
+    float apply(float f) const noexcept { return m_fn(f); }
 
     /// 常量缓动：始终返回 0.0
     static const EasingType CONSTANT;

@@ -26,6 +26,7 @@
 #include "common/world/attribute/AttributeModifier.hpp"
 #include "common/world/timeline/KeyframeTrack.hpp"
 
+#include <memory>
 #include <utility>
 
 namespace mc {
@@ -35,23 +36,33 @@ namespace timeline {
 /**
  * @brief 属性轨道
  *
- * MC 1.21.11 record AttributeTrack<Value, Argument>(AttributeModifier<Value, Argument> modifier, KeyframeTrack<Argument> argumentTrack)。
+ * MC 1.21.11 record AttributeTrack<Value, Argument>。
  * 将一个属性修改器与关键帧轨道绑定，用于在时间线上驱动该属性。
+ *
+ * 修改器以 shared_ptr 持有：Timeline 需存入 std::any（要求可拷贝），
+ * 而修改器是多态对象（抽象基类），故用共享所有权。
  */
 template <typename Value, typename Argument>
 class AttributeTrack {
 public:
-    AttributeTrack(AttributeModifier<Value, Argument> modifier,
+    AttributeTrack(std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifier,
         KeyframeTrack<Argument> argumentTrack)
         : m_modifier(std::move(modifier))
         , m_argumentTrack(std::move(argumentTrack))
     {}
 
-    const AttributeModifier<Value, Argument>& modifier() const noexcept { return m_modifier; }
-    const KeyframeTrack<Argument>& argumentTrack() const noexcept { return m_argumentTrack; }
+    [[nodiscard]] const attribute::AttributeModifier<Value, Argument>& modifier() const noexcept { return *m_modifier; }
+
+    /// 获取修改器的共享所有权，供采样器在轨道之外独立持有时使用
+    [[nodiscard]] std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifierPtr() const noexcept
+    {
+        return m_modifier;
+    }
+
+    [[nodiscard]] const KeyframeTrack<Argument>& argumentTrack() const noexcept { return m_argumentTrack; }
 
 private:
-    AttributeModifier<Value, Argument> m_modifier;
+    std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> m_modifier;
     KeyframeTrack<Argument> m_argumentTrack;
 };
 
