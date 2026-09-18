@@ -193,9 +193,10 @@ void ZombieEntity::setBreakDoorsAbility(bool canBreak)
     if (canBreak && m_breakDoorGoal == nullptr) {
         // 对齐 MC Java 1.21.11 Zombie.java:88,92：僵尸破门难度谓词仅 Hard（DOOR_BREAKING_PREDICATE）。
         // 此前误用 defaultDoorBreakDifficultyPredicate()(Normal+Hard)，致 Normal 难度僵尸也会破门（偏差）。
-        m_breakDoorGoal =
-            new entity::ai::goal::BreakDoorGoal(this, entity::ai::goal::zombieDoorBreakDifficultyPredicate());
-        m_goalSelector.addGoal(1, m_breakDoorGoal);
+        auto breakDoorGoal = std::make_unique<entity::ai::goal::BreakDoorGoal>(
+            this, entity::ai::goal::zombieDoorBreakDifficultyPredicate());
+        m_breakDoorGoal = breakDoorGoal.get();
+        m_goalSelector.addGoal(1, std::move(breakDoorGoal));
     } else if (!canBreak && m_breakDoorGoal != nullptr) {
         m_goalSelector.removeGoal(m_breakDoorGoal);
         m_breakDoorGoal = nullptr;
@@ -493,22 +494,22 @@ void ZombieEntity::registerGoals()
     // 僵尸 AI 目标
     // 目标选择器（行为）
     // 优先级 2: 近战攻击
-    m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
 
     // 注意：MC原版僵尸不会躲避阳光，它们只是直接在阳光下燃烧
     // 骷髅才会使用 FleeSunGoal 和 RestrictSunGoal 来躲避阳光
 
     // 优先级 7: 避水随机行走
-    m_goalSelector.addGoal(7, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
     m_goalSelector.addGoal(
-        8, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+        8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择器（攻击目标）
     // 优先级 1: 被攻击后反击，呼叫同类（但不警醒僵尸猪灵）
@@ -523,19 +524,20 @@ void ZombieEntity::registerGoals()
     }
 
     // 优先级 2: 攻击玩家
-    m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
     // 优先级 3: 攻击村民（不需要视线检查）
     m_targetSelector.addGoal(3,
-        new entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>(this,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this,
             false)); // checkSight=false — 僵尸可以穿过墙壁感知村民
 
     // 优先级 3: 攻击铁傀儡
-    m_targetSelector.addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, true));
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 
     // 优先级 5: 攻击幼年海龟（仅陆地上的幼体，10 tick 间隔检查）
     m_targetSelector.addGoal(5,
-        new entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>(this,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this,
             true, // checkSight
             10,   // reciprocalChance — 每 10 tick 检查一次
             [](const LivingEntity* entity) -> bool {

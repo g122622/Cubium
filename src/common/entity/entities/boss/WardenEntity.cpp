@@ -244,34 +244,35 @@ void WardenEntity::registerGoals()
     // MC 1.21.11 WardenAi.meleeAttack() 创建 MeleeAttack(1.2F, false)
     // 监守者近战范围比普通怪物略大（攻击距离 = 4.5 在 WardenAi 中体现），
     // 此处使用项目 MeleeAttackGoal 默认范围。
-    m_goalSelector.addGoal(2, new ai::goal::MeleeAttackGoal(this, 1.2, false));
+    m_goalSelector.addGoal(2, std::make_unique<ai::goal::MeleeAttackGoal>(this, 1.2, false));
 
     // 优先级 7: 避水随机行走
     // MC 1.21.11 WardenAi 中的 RandomSwimming / MoveToVibration 等复杂行为
     // 依赖 Brain 系统和振动系统，当前简化为 WaterAvoidingRandomWalkingGoal。
-    m_goalSelector.addGoal(7, new ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(7, std::make_unique<ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 8: 看向玩家
-    m_goalSelector.addGoal(8, new ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
-        return entity != nullptr && entity->entityType() == VanillaEntityTypeKeys::PLAYER;
-    }));
+    m_goalSelector.addGoal(
+        8, std::make_unique<ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+            return entity != nullptr && entity->entityType() == VanillaEntityTypeKeys::PLAYER;
+        }));
 
     // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(8, std::make_unique<ai::goal::LookRandomlyGoal>(this));
 
     // ========== 攻击目标（targetSelector） ==========
 
     // 优先级 1: 被攻击后反击
     // MC 1.21.11 Warden 通过振动系统接收伤害信号并 increaseAngerAt，
     // 简化实现使用 HurtByTargetGoal。
-    m_targetSelector.addGoal(1, new ai::goal::HurtByTargetGoal(this));
+    m_targetSelector.addGoal(1, std::make_unique<ai::goal::HurtByTargetGoal>(this));
 
     // 优先级 2: 攻击玩家
     // MC 1.21.11 Warden.canTargetEntity() 排除创造/旁观模式玩家、
     // 盔甲架、其他监守者、无敌实体、死亡/濒死实体、世界边界外实体。
     // 简化实现使用 NearestAttackableTargetGoal<Player>，由 Player 谓词
     // 自动排除创造/旁观模式。
-    m_targetSelector.addGoal(2, new ai::goal::NearestAttackableTargetGoal<Player>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
     // TODO: 完整的监守者行为系统包括以下未实现的子系统：
     // - VibrationSystem: 振动感知系统（监听 game_event 并 increaseAngerAt）

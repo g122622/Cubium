@@ -188,7 +188,8 @@ private:
     /**
      * @brief 创建物品实例的辅助函数
      *
-     * 用于绕过 std::make_unique 无法访问 protected 构造函数的问题
+     * 保证即使未来某个物品子类把构造函数收窄为 non-public，注册表仍能构造它
+     * （std::make_unique 是自由函数模板，无法访问非 public 构造函数）。
      */
     template <typename ItemType, typename... Args>
     std::unique_ptr<ItemType> _createItem(Args&&... args)

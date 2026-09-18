@@ -303,7 +303,12 @@ private:
     {
         auto* node = new LinkedNode(element, nullptr);
         LinkedNode* tail = node;
-        return appendListInternal(node, tail);
+        if (!appendListInternal(node, tail)) {
+            // add-blocked：节点未入链，须由本函数释放（对照 preventAdds 的失败路径）。
+            delete node;
+            return false;
+        }
+        return true;
     }
 
     /**

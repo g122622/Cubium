@@ -406,33 +406,33 @@ void EndermanEntity::registerGoals()
     // 4: ResetAngerGoal (重置愤怒)
 
     // 优先级 1: 注视玩家目标（当被注视时停止移动并注视玩家）
-    m_goalSelector.addGoal(1, new entity::ai::goal::EndermanStareGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::EndermanStareGoal>(this));
 
     // 优先级 2: 近战攻击
-    m_goalSelector.addGoal(2, new entity::ai::goal::MeleeAttackGoal(this, 1.0, false));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, false));
 
     // 优先级 5: 避水随机行走
-    m_goalSelector.addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 7: 看向玩家（会激怒末影人）
     m_goalSelector.addGoal(
-        7, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+        7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
             return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 优先级 10: 放置方块目标
-    m_goalSelector.addGoal(10, new entity::ai::goal::EndermanPlaceBlockGoal(this));
+    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::EndermanPlaceBlockGoal>(this));
 
     // 优先级 11: 拾取方块目标
-    m_goalSelector.addGoal(11, new entity::ai::goal::EndermanTakeBlockGoal(this));
+    m_goalSelector.addGoal(11, std::make_unique<entity::ai::goal::EndermanTakeBlockGoal>(this));
 
     // 目标选择器
     // 优先级 1: 查找正在注视末影人的玩家
-    m_targetSelector.addGoal(1, new entity::ai::goal::EndermanFindPlayerGoal(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::EndermanFindPlayerGoal>(this));
 
     // 优先级 2: 被攻击后反击
     // MC 原版: targetSelector.addGoal(2, HurtByTargetGoal(this))
@@ -448,13 +448,13 @@ void EndermanEntity::registerGoals()
     //   1.17 (20w46a) 撤销该守卫，末影人重新攻击所有末影螨；1.21.11 Endermite 类已无 playerSpawned 字段。
     //   此前 Cubium 误对齐 1.8-1.16 旧行为（带 isSpawnedByPlayer 守卫），现迁移到 1.21.11。
     m_targetSelector.addGoal(3,
-        new entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>(this,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<EndermiteEntity>>(this,
             true, // checkSight - 需要视线可见（对齐 Java mustSee=false 但 NearestAttackableTargetGoal 内部 checkSight）
             0));  // chance - 每 tick 检查
 
     // 优先级 4: 重置愤怒
     // 当 UNIVERSAL_ANGER 游戏规则启用时，检查并处理愤怒目标
-    m_targetSelector.addGoal(4, new entity::ai::goal::ResetAngerGoal<EndermanEntity>(this, false));
+    m_targetSelector.addGoal(4, std::make_unique<entity::ai::goal::ResetAngerGoal<EndermanEntity>>(this, false));
 }
 
 void EndermanEntity::registerAttributes()

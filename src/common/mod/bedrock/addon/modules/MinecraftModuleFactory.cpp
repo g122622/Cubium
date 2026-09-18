@@ -1107,7 +1107,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined(); // BossBar 类未注册
             }
             // 堆分配 id 字符串，BossBar JS 对象 owned 持有，GC 时 destroy 释放。
-            auto* idPtr = new std::string(*idOpt);
+            auto* idPtr = std::make_unique<std::string>(*idOpt).release();
             return ScriptObjectRegistry::wrap(ctx, barClassId, barProto, idPtr, true, "BossBar", [](void* p) {
                 delete static_cast<std::string*>(p);
             });
@@ -1125,7 +1125,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             }
             u32 i = 0;
             for (const auto& id : ScriptWorldAccessor::instance().getBossBarIds()) {
-                auto* idPtr = new std::string(id);
+                auto* idPtr = std::make_unique<std::string>(id).release();
                 void* barVal =
                     ScriptObjectRegistry::wrap(ctx, barClassId, barProto, idPtr, true, "BossBar", [](void* p) {
                         delete static_cast<std::string*>(p);
@@ -2392,7 +2392,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (itemStackProto == nullptr) {
                 return ctx.createUndefined();
             }
-            auto* owned = new mc::ItemStack(stack); // 拷贝（含 NBT 深拷贝）
+            auto* owned = std::make_unique<mc::ItemStack>(stack).release(); // 拷贝（含 NBT 深拷贝）
             return ScriptObjectRegistry::wrap(
                 ctx, itemStackClassId, itemStackProto, owned, true, "ItemStack", [](void* p) {
                     delete static_cast<mc::ItemStack*>(p);
@@ -2900,8 +2900,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }
-            auto* stack = new mc::ItemStack(item, amount); // owned，JS GC 时 delete
-            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, stack, true, "ItemStack");
+            // owned，JS GC 时经 destroy 回调 delete；destroy 不可省略，否则 finalizer 不满足
+            // `owned && ptr && destroy` 条件，ItemStack 永不释放。
+            auto* stack = std::make_unique<mc::ItemStack>(item, amount).release();
+            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, stack, true, "ItemStack", [](void* p) {
+                delete static_cast<mc::ItemStack*>(p);
+            });
         });
     ScriptClassRegistry::instance().registerClass(itemStackClassId, itemStackProto, "ItemStack");
 
@@ -3190,14 +3194,16 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             if (!slot || *slot < 0 || *slot >= inv->getContainerSize()) {
                 return ctx.createUndefined();
             }
-            // getItem 返回 owned 拷贝（new ItemStack(inv->getItem(slot))），JS GC 时 delete。
+            // getItem 返回 owned 拷贝（ItemStack(inv->getItem(slot))），JS GC 时经 destroy 回调 delete。
             const u64 isClassId = resolveItemStackClassId();
             void* isProto = ScriptClassRegistry::instance().proto(isClassId);
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }
-            auto* copy = new mc::ItemStack(inv->getItem(*slot));
-            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, copy, true, "ItemStack");
+            auto* copy = std::make_unique<mc::ItemStack>(inv->getItem(*slot)).release();
+            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, copy, true, "ItemStack", [](void* p) {
+                delete static_cast<mc::ItemStack*>(p);
+            });
         },
         1);
     containerReg.method(

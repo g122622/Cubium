@@ -274,13 +274,13 @@ void PigEntity::registerGoals()
     // 注意：PigEntity 是多重继承（AnimalEntity + IRideable），需要显式转换为对应的基类类型
 
     // 优先级 0: 游泳（最高优先级）- SwimGoal 需要 MobEntity*
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 恐慌逃跑（受到伤害或着火时）- PanicGoal 需要 CreatureEntity*
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.5));
 
     // 优先级 2: 繁殖（当处于爱心状态时）- BreedGoal 需要 AnimalEntity*
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 3: 食物诱惑（胡萝卜、马铃薯、甜菜根）- TemptGoal 需要 CreatureEntity*
     m_goalSelector.addGoal(3,
@@ -294,16 +294,16 @@ void PigEntity::registerGoals()
             false)); // scaredByMovement = false
 
     // 优先级 4: 跟随父母（幼体行为）- FollowParentGoal 需要 AnimalEntity*
-    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.1));
 
     // 优先级 5: 随机漫步 - RandomWalkingGoal 需要 CreatureEntity*
-    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0));
 
     // 优先级 6: 看向玩家 - LookAtGoal 需要 MobEntity*
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0f));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
     // 优先级 7: 随机看向 - LookRandomlyGoal 需要 MobEntity*
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 }
 
 void PigEntity::registerAttributes()

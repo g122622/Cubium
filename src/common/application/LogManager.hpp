@@ -24,7 +24,9 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #include <mutex>
+#include <thread>
 
 namespace mc::application {
 
@@ -86,8 +88,8 @@ private:
     bool m_initialized{false};
     std::atomic<bool> m_monitorRunning{false};
 
-    /// 溢出监控线程。裸指针 + 手动 join（避免 <thread> jthread 的 C++20 stop_token 依赖差异）。
-    class std::thread* m_monitorThread{nullptr};
+    /// 溢出监控线程。显式 join（避免 jthread 的 C++20 stop_token 依赖差异）。
+    std::unique_ptr<std::thread> m_monitorThread;
 
     /// 上次采样到的 overrun_counter 基线，用于算增量。
     size_t m_lastOverrun{0};

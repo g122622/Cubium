@@ -381,7 +381,8 @@ void StrongholdStraight::buildComponent(
     }
 }
 
-StrongholdStraight* StrongholdStraight::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdStraight> StrongholdStraight::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -400,7 +401,7 @@ StrongholdStraight* StrongholdStraight::createPiece(std::vector<std::unique_ptr<
         return nullptr;
     }
 
-    return new StrongholdStraight(StrongholdPieceTypes::STRAIGHT,
+    return std::make_unique<StrongholdStraight>(StrongholdPieceTypes::STRAIGHT,
         rng,
         box.minX(),
         box.minY(),
@@ -471,7 +472,7 @@ void StrongholdPrison::buildComponent(
     getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
-StrongholdPrison* StrongholdPrison::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -484,7 +485,7 @@ StrongholdPrison* StrongholdPrison::createPiece(std::vector<std::unique_ptr<Stru
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdPrison(StrongholdPieceTypes::PRISON,
+    return std::make_unique<StrongholdPrison>(StrongholdPieceTypes::PRISON,
         rng,
         box.minX(),
         box.minY(),
@@ -552,7 +553,8 @@ void StrongholdLeftTurn::buildComponent(
     }
 }
 
-StrongholdLeftTurn* StrongholdLeftTurn::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdLeftTurn> StrongholdLeftTurn::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -565,7 +567,7 @@ StrongholdLeftTurn* StrongholdLeftTurn::createPiece(std::vector<std::unique_ptr<
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdLeftTurn(StrongholdPieceTypes::LEFT_TURN,
+    return std::make_unique<StrongholdLeftTurn>(StrongholdPieceTypes::LEFT_TURN,
         rng,
         box.minX(),
         box.minY(),
@@ -633,7 +635,8 @@ void StrongholdRightTurn::buildComponent(
     }
 }
 
-StrongholdRightTurn* StrongholdRightTurn::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdRightTurn> StrongholdRightTurn::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -646,7 +649,7 @@ StrongholdRightTurn* StrongholdRightTurn::createPiece(std::vector<std::unique_pt
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdRightTurn(StrongholdPieceTypes::RIGHT_TURN,
+    return std::make_unique<StrongholdRightTurn>(StrongholdPieceTypes::RIGHT_TURN,
         rng,
         box.minX(),
         box.minY(),
@@ -747,7 +750,8 @@ void StrongholdRoomCrossing::buildComponent(
     getNextComponentZ(start, pieces, rng, 1, 4);
 }
 
-StrongholdRoomCrossing* StrongholdRoomCrossing::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -760,7 +764,7 @@ StrongholdRoomCrossing* StrongholdRoomCrossing::createPiece(std::vector<std::uni
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdRoomCrossing(StrongholdPieceTypes::ROOM_CROSSING,
+    return std::make_unique<StrongholdRoomCrossing>(StrongholdPieceTypes::ROOM_CROSSING,
         rng,
         box.minX(),
         box.minY(),
@@ -829,7 +833,8 @@ void StrongholdStairsStraight::buildComponent(
     getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
-StrongholdStairsStraight* StrongholdStairsStraight::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -842,7 +847,7 @@ StrongholdStairsStraight* StrongholdStairsStraight::createPiece(std::vector<std:
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdStairsStraight(StrongholdPieceTypes::STAIRS_STRAIGHT,
+    return std::make_unique<StrongholdStairsStraight>(StrongholdPieceTypes::STAIRS_STRAIGHT,
         rng,
         box.minX(),
         box.minY(),
@@ -923,7 +928,7 @@ void StrongholdStairs::buildComponent(
     getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
-StrongholdStairs* StrongholdStairs::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -936,7 +941,7 @@ StrongholdStairs* StrongholdStairs::createPiece(std::vector<std::unique_ptr<Stru
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdStairs(StrongholdPieceTypes::STAIRS,
+    return std::make_unique<StrongholdStairs>(StrongholdPieceTypes::STAIRS,
         rng,
         box.minX(),
         box.minY(),
@@ -1070,7 +1075,8 @@ void StrongholdCrossing::buildComponent(
     }
 }
 
-StrongholdCrossing* StrongholdCrossing::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdCrossing> StrongholdCrossing::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -1083,7 +1089,7 @@ StrongholdCrossing* StrongholdCrossing::createPiece(std::vector<std::unique_ptr<
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdCrossing(StrongholdPieceTypes::CROSSING,
+    return std::make_unique<StrongholdCrossing>(StrongholdPieceTypes::CROSSING,
         rng,
         box.minX(),
         box.minY(),
@@ -1156,7 +1162,8 @@ void StrongholdChestCorridor::buildComponent(
     getNextComponentNormal(start, pieces, rng, 1, 1);
 }
 
-StrongholdChestCorridor* StrongholdChestCorridor::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -1169,7 +1176,7 @@ StrongholdChestCorridor* StrongholdChestCorridor::createPiece(std::vector<std::u
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdChestCorridor(StrongholdPieceTypes::CHEST_CORRIDOR,
+    return std::make_unique<StrongholdChestCorridor>(StrongholdPieceTypes::CHEST_CORRIDOR,
         rng,
         box.minX(),
         box.minY(),
@@ -1255,7 +1262,7 @@ void StrongholdLibrary::generate(IWorldWriter& world,
     (void)chunkZ;
 }
 
-StrongholdLibrary* StrongholdLibrary::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdLibrary> StrongholdLibrary::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -1271,7 +1278,7 @@ StrongholdLibrary* StrongholdLibrary::createPiece(std::vector<std::unique_ptr<St
             return nullptr;
         }
     }
-    return new StrongholdLibrary(StrongholdPieceTypes::LIBRARY,
+    return std::make_unique<StrongholdLibrary>(StrongholdPieceTypes::LIBRARY,
         rng,
         box.minX(),
         box.minY(),
@@ -1400,7 +1407,7 @@ void StrongholdPortalRoom::buildComponent(
     (void)rng;
 }
 
-StrongholdPortalRoom* StrongholdPortalRoom::createPiece(
+std::unique_ptr<StrongholdPortalRoom> StrongholdPortalRoom::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces, i32 x, i32 y, i32 z, Direction direction, i32 depth)
 {
 
@@ -1408,7 +1415,7 @@ StrongholdPortalRoom* StrongholdPortalRoom::createPiece(
     if (!canStrongholdGoDeeper(box) || StructurePiece::findIntersecting(pieces, box) != nullptr) {
         return nullptr;
     }
-    return new StrongholdPortalRoom(StrongholdPieceTypes::PORTAL_ROOM,
+    return std::make_unique<StrongholdPortalRoom>(StrongholdPieceTypes::PORTAL_ROOM,
         box.minX(),
         box.minY(),
         box.minZ(),
@@ -1459,7 +1466,8 @@ void StrongholdCorridor::generate(IWorldWriter& world,
     (void)chunkZ;
 }
 
-StrongholdCorridor* StrongholdCorridor::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
+    std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
     i32 y,
@@ -1474,7 +1482,7 @@ StrongholdCorridor* StrongholdCorridor::createPiece(std::vector<std::unique_ptr<
     }
     i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
                                                                                  : (box.maxZ() - box.minZ() + 1);
-    return new StrongholdCorridor(StrongholdPieceTypes::CORRIDOR,
+    return std::make_unique<StrongholdCorridor>(StrongholdPieceTypes::CORRIDOR,
         steps,
         box.minX(),
         box.minY(),
@@ -1546,7 +1554,7 @@ bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& out
     return canAdd;
 }
 
-StrongholdPiece* createStrongholdPiece(i32 pieceType,
+std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
@@ -1586,7 +1594,7 @@ StrongholdPiece* createStrongholdPiece(i32 pieceType,
     }
 }
 
-StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
+std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
@@ -1602,7 +1610,8 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
         i32 imposedType = start->imposedPieceType();
         start->setImposedPieceType(-1); // 消费强制类型
 
-        StrongholdPiece* piece = createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
+        std::unique_ptr<StrongholdPiece> piece =
+            createStrongholdPiece(imposedType, pieces, rng, x, y, z, direction, depth);
         if (piece != nullptr) {
             // 找到对应的权重并更新计数
             for (auto& weight : weights) {
@@ -1650,7 +1659,7 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
                     break;
                 }
 
-                StrongholdPiece* piece =
+                std::unique_ptr<StrongholdPiece> piece =
                     createStrongholdPiece(weight.pieceType, pieces, rng, x, y, z, direction, depth);
 
                 if (piece != nullptr) {
@@ -1678,7 +1687,7 @@ StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
     if (box.isValid() && box.minY() > 1) {
         i32 steps = (direction == Direction::North || direction == Direction::South) ? (box.maxX() - box.minX() + 1)
                                                                                      : (box.maxZ() - box.minZ() + 1);
-        return new StrongholdCorridor(StrongholdPieceTypes::CORRIDOR,
+        return std::make_unique<StrongholdCorridor>(StrongholdPieceTypes::CORRIDOR,
             steps,
             box.minX(),
             box.minY(),
@@ -1715,15 +1724,19 @@ StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     std::vector<StrongholdPieceWeight>& weights = start->weights();
     StrongholdPieceWeight*& lastPlaced = start->lastPlacedRef();
 
-    StrongholdPiece* piece =
+    std::unique_ptr<StrongholdPiece> piece =
         generatePieceFromSmallDoor(start, pieces, rng, x, y, z, direction, depth, weights, lastPlaced);
 
-    if (piece != nullptr) {
-        pieces.emplace_back(piece);
-        start->addPendingChild(piece);
+    if (piece == nullptr) {
+        return nullptr;
     }
 
-    return piece;
+    // pieces 是唯一所有者（最终落入 StructureStart::m_pieces）；
+    // 返回值只是便于调用方继续传递的非拥有观察指针。
+    StructurePiece* observer = piece.get();
+    pieces.push_back(std::move(piece));
+    start->addPendingChild(observer);
+    return observer;
 }
 
 } // namespace structure

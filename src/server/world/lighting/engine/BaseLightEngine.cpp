@@ -1425,13 +1425,13 @@ void StarLightEngine::updateSectionStatus(const SectionPos& pos, bool isEmpty)
 // 静态工具方法
 // ============================================================================
 
-std::vector<SWMRNibbleArray*> StarLightEngine::getFilledEmptyLight(i32 totalLightSections)
+std::vector<std::unique_ptr<SWMRNibbleArray>> StarLightEngine::getFilledEmptyLight(i32 totalLightSections)
 {
-    std::vector<SWMRNibbleArray*> ret;
+    std::vector<std::unique_ptr<SWMRNibbleArray>> ret;
     ret.reserve(static_cast<size_t>(totalLightSections));
 
     for (i32 i = 0; i < totalLightSections; ++i) {
-        ret.push_back(new SWMRNibbleArray(nullptr, true)); // Null 状态
+        ret.push_back(std::make_unique<SWMRNibbleArray>(nullptr, true)); // Null 状态
     }
 
     return ret;

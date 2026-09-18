@@ -431,7 +431,7 @@ public:
     /**
      * @brief 创建匹配的房间片段
      */
-    [[nodiscard]] virtual OceanMonumentPiece* create(
+    [[nodiscard]] virtual std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) = 0;
 };
 
@@ -439,49 +439,49 @@ public:
 class FitSimpleRoomHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 
 class FitSimpleRoomTopHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 
 class XDoubleRoomFitHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 
 class YDoubleRoomFitHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 
 class ZDoubleRoomFitHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 
 class XYDoubleRoomFitHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 
 class YZDoubleRoomFitHelper : public IMonumentRoomFitHelper {
 public:
     [[nodiscard]] bool fits(OceanMonumentRoomDefinition* definition) override;
-    [[nodiscard]] OceanMonumentPiece* create(
+    [[nodiscard]] std::unique_ptr<OceanMonumentPiece> create(
         Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng) override;
 };
 

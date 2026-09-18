@@ -293,8 +293,10 @@ TEST(GoalSelectorTest, AddAndRemoveGoal)
 {
     GoalSelector selector;
 
-    auto goal = new TestGoal();
-    selector.addGoal(5, goal);
+    auto goalOwner = std::make_unique<TestGoal>();
+
+    TestGoal* goal = goalOwner.get(); // 非拥有观察指针，所有权移交给 selector
+    selector.addGoal(5, std::move(goalOwner));
 
     EXPECT_EQ(selector.getAllGoals().size(), 1);
 
@@ -306,18 +308,20 @@ TEST(GoalSelectorTest, PriorityOrdering)
 {
     GoalSelector selector;
 
-    auto lowGoal = new TestGoal();
-    auto highGoal = new TestGoal();
+    auto lowGoalOwner = std::make_unique<TestGoal>();
 
+    TestGoal* lowGoal = lowGoalOwner.get(); // 非拥有观察指针，所有权移交给 selector
+    auto highGoalOwner = std::make_unique<TestGoal>();
+    TestGoal* highGoal = highGoalOwner.get(); // 非拥有观察指针，所有权移交给 selector
     lowGoal->setShouldExecute(true);
     lowGoal->setShouldContinue(true);
     highGoal->setShouldExecute(true);
     highGoal->setShouldContinue(true);
 
     // 添加低优先级目标（数值大=优先级低）
-    selector.addGoal(10, lowGoal);
+    selector.addGoal(10, std::move(lowGoalOwner));
     // 添加高优先级目标（数值小=优先级高）
-    selector.addGoal(5, highGoal);
+    selector.addGoal(5, std::move(highGoalOwner));
 
     // 两个目标都应该存在
     EXPECT_EQ(selector.getAllGoals().size(), 2);
@@ -328,16 +332,18 @@ TEST(GoalSelectorTest, MutexFlags)
     GoalSelector selector;
     selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
-    auto goal1 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
-    auto goal2 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
+    auto goal1Owner = std::make_unique<TestGoal>(EnumSet<GoalFlag>{GoalFlag::Move});
 
+    TestGoal* goal1 = goal1Owner.get(); // 非拥有观察指针，所有权移交给 selector
+    auto goal2Owner = std::make_unique<TestGoal>(EnumSet<GoalFlag>{GoalFlag::Move});
+    TestGoal* goal2 = goal2Owner.get(); // 非拥有观察指针，所有权移交给 selector
     goal1->setShouldExecute(true);
     goal1->setShouldContinue(true);
     goal2->setShouldExecute(true);
     goal2->setShouldContinue(true);
 
-    selector.addGoal(5, goal1);
-    selector.addGoal(10, goal2);
+    selector.addGoal(5, std::move(goal1Owner));
+    selector.addGoal(10, std::move(goal2Owner));
 
     // 第一次 tick 应该启动 goal1（高优先级）
     selector.tick();
@@ -351,11 +357,13 @@ TEST(GoalSelectorTest, DisableFlags)
     GoalSelector selector;
     selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
-    auto goal = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
+    auto goalOwner = std::make_unique<TestGoal>(EnumSet<GoalFlag>{GoalFlag::Move});
+
+    TestGoal* goal = goalOwner.get(); // 非拥有观察指针，所有权移交给 selector
     goal->setShouldExecute(true);
     goal->setShouldContinue(true);
 
-    selector.addGoal(5, goal);
+    selector.addGoal(5, std::move(goalOwner));
 
     // 禁用 Move 标志
     selector.disableFlag(GoalFlag::Move);
@@ -379,11 +387,13 @@ TEST(GoalSelectorTest, TickRunningGoals)
     GoalSelector selector;
     selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
-    auto goal = new TestGoal();
+    auto goalOwner = std::make_unique<TestGoal>();
+
+    TestGoal* goal = goalOwner.get(); // 非拥有观察指针，所有权移交给 selector
     goal->setShouldExecute(true);
     goal->setShouldContinue(true);
 
-    selector.addGoal(5, goal);
+    selector.addGoal(5, std::move(goalOwner));
 
     selector.tick();
     EXPECT_EQ(goal->getTickCount(), 1);
@@ -397,11 +407,13 @@ TEST(GoalSelectorTest, StopWhenShouldNotContinue)
     GoalSelector selector;
     selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
-    auto goal = new TestGoal();
+    auto goalOwner = std::make_unique<TestGoal>();
+
+    TestGoal* goal = goalOwner.get(); // 非拥有观察指针，所有权移交给 selector
     goal->setShouldExecute(true);
     goal->setShouldContinue(true);
 
-    selector.addGoal(5, goal);
+    selector.addGoal(5, std::move(goalOwner));
 
     // 启动目标
     selector.tick();
@@ -421,14 +433,16 @@ TEST(GoalSelectorTest, RemoveAllGoals)
     GoalSelector selector;
     selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
-    auto goal1 = new TestGoal();
-    auto goal2 = new TestGoal();
+    auto goal1Owner = std::make_unique<TestGoal>();
 
+    TestGoal* goal1 = goal1Owner.get(); // 非拥有观察指针，所有权移交给 selector
+    auto goal2Owner = std::make_unique<TestGoal>();
+    TestGoal* goal2 = goal2Owner.get(); // 非拥有观察指针，所有权移交给 selector
     goal1->setShouldExecute(true);
     goal2->setShouldExecute(true);
 
-    selector.addGoal(5, goal1);
-    selector.addGoal(10, goal2);
+    selector.addGoal(5, std::move(goal1Owner));
+    selector.addGoal(10, std::move(goal2Owner));
 
     selector.tick();
     EXPECT_TRUE(selector.hasRunningGoals());
@@ -443,16 +457,18 @@ TEST(GoalSelectorTest, ForEachRunningGoal)
     GoalSelector selector;
     selector.setTickRate(1); // 设置 tickRate 为 1 以便测试
 
-    auto goal1 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Move});
-    auto goal2 = new TestGoal(EnumSet<GoalFlag>{GoalFlag::Look});
+    auto goal1Owner = std::make_unique<TestGoal>(EnumSet<GoalFlag>{GoalFlag::Move});
 
+    TestGoal* goal1 = goal1Owner.get(); // 非拥有观察指针，所有权移交给 selector
+    auto goal2Owner = std::make_unique<TestGoal>(EnumSet<GoalFlag>{GoalFlag::Look});
+    TestGoal* goal2 = goal2Owner.get(); // 非拥有观察指针，所有权移交给 selector
     goal1->setShouldExecute(true);
     goal1->setShouldContinue(true);
     goal2->setShouldExecute(true);
     goal2->setShouldContinue(true);
 
-    selector.addGoal(5, goal1);
-    selector.addGoal(5, goal2);
+    selector.addGoal(5, std::move(goal1Owner));
+    selector.addGoal(5, std::move(goal2Owner));
 
     selector.tick();
 

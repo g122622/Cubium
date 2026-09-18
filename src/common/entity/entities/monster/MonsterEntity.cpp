@@ -133,7 +133,7 @@ void MonsterEntity::registerGoals()
 
     // 敌对生物基础 AI
     // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 注意: MC 原版 Monster 不注册 HurtByTargetGoal，由各子类按需自行注册。
     // 这是因为不同怪物有不同的被攻击反击行为：

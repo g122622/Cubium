@@ -31,6 +31,7 @@
 #include "common/mod/bedrock/addon/event/ScriptEventBus.hpp"
 
 #include <any>
+#include <memory>
 #include <typeindex>
 #include <vector>
 #include <spdlog/spdlog.h>
@@ -55,13 +56,15 @@ struct SignalData {
 static void* createSignalObject(
     IScriptBindingContext& ctx, u64 signalClassId, ScriptEventBus& eventBus, std::type_index eventType, bool isBefore)
 {
-    // 创建信号对象，使用EventSignal类
-    void* signalObj = ctx.createObjectWithProto(ctx.createClassProto(signalClassId), signalClassId);
-
-    auto* data = new SignalData{&eventBus, eventType, isBefore, &ctx};
-    ctx.setOpaque(signalObj, data, signalClassId);
-
-    return signalObj;
+    // 必须经 ScriptObjectRegistry::wrap 创建：EventSignal 类的 finalizer 会把 opaque 无条件
+    // 按 ObjectData* 解释，若直接 setOpaque 一个 SignalData*，字段偏移将完全错位——会把
+    // bindingCtx 当作 destroy 函数指针调用，并越界读取 entityId。owned=true 使 GC 时经
+    // destroy 回调释放 SignalData。
+    auto* data = std::make_unique<SignalData>(&eventBus, eventType, isBefore, &ctx).release();
+    return ScriptObjectRegistry::wrap(
+        ctx, signalClassId, ctx.createClassProto(signalClassId), data, true, "EventSignal", [](void* p) {
+            delete static_cast<SignalData*>(p);
+        });
 }
 
 // ============================================================================

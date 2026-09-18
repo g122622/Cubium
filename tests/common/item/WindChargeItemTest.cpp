@@ -56,7 +56,11 @@ public:
 
     [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
+        // 必须接管所有权：形参按值传入，若仅记录裸指针，函数返回时 unique_ptr 析构会
+        // delete 实体（并销毁其 ECS 实体），调用方随后持有的裸指针即成 use-after-free
+        // （WindChargeItem::onItemRightClick 在 spawnEntity 之后继续用该指针调 shootFrom）。
         m_spawnedEntities.push_back(entity.get());
+        m_ownedEntities.push_back(std::move(entity));
         return ++m_lastEntityId;
     }
 
@@ -71,6 +75,7 @@ public:
 private:
     EntityInstanceId m_lastEntityId = 0;
     std::vector<Entity*> m_spawnedEntities;
+    std::vector<std::unique_ptr<Entity>> m_ownedEntities; ///< 实际所有者，保证 m_spawnedEntities 中的指针不悬垂
 };
 
 class WindChargeItemTest : public ::testing::Test {

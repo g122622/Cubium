@@ -194,7 +194,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdStraight* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdStraight> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -237,7 +238,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdPrison* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdPrison> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -276,7 +278,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdLeftTurn* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdLeftTurn> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -315,7 +318,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdRightTurn* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdRightTurn> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -354,7 +358,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdRoomCrossing* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdRoomCrossing> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -396,7 +401,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdStairsStraight* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdStairsStraight> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -435,7 +441,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdStairs* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdStairs> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -526,7 +533,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdCrossing* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdCrossing> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -571,7 +579,8 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdChestCorridor* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdChestCorridor> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -610,7 +619,8 @@ public:
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) override;
 
-    [[nodiscard]] static StrongholdLibrary* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdLibrary> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -647,7 +657,7 @@ public:
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
 
-    [[nodiscard]] static StrongholdPortalRoom* createPiece(
+    [[nodiscard]] static std::unique_ptr<StrongholdPortalRoom> createPiece(
         std::vector<std::unique_ptr<StructurePiece>>& pieces, i32 x, i32 y, i32 z, Direction direction, i32 depth);
 
 private:
@@ -674,7 +684,8 @@ public:
         ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) override;
 
-    [[nodiscard]] static StrongholdCorridor* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
+    [[nodiscard]] static std::unique_ptr<StrongholdCorridor> createPiece(
+        std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
         i32 x,
         i32 y,
@@ -725,7 +736,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
 /**
  * @brief 创建要塞片段
  */
-[[nodiscard]] StrongholdPiece* createStrongholdPiece(i32 pieceType,
+[[nodiscard]] std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
@@ -742,7 +753,7 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
 /**
  * @brief 从小门生成要塞片段
  */
-[[nodiscard]] StrongholdPiece* generatePieceFromSmallDoor(StrongholdStartStairs* start,
+[[nodiscard]] std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
     math::Random& rng,
     i32 x,
@@ -755,6 +766,9 @@ void initializeStrongholdPieceWeights(std::vector<StrongholdPieceWeight>& weight
 
 /**
  * @brief 生成并添加片段
+ *
+ * 新片段的所有权立即交给 @p pieces（最终落入 StructureStart::m_pieces），
+ * 返回值是**非拥有观察指针**，仅便于调用方继续传递，调用方不得释放。
  */
 [[nodiscard]] StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,

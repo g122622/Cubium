@@ -865,12 +865,12 @@ void WitherEntity::registerGoals()
 
     // 优先级 0: 无敌阶段什么都不做
     // DoNothingGoal 阻止移动、跳跃和看向
-    m_goalSelector.addGoal(0, new WitherDoNothingGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<WitherDoNothingGoal>(this));
 
     // 优先级 2: 远程攻击（主头发射凋灵之首）
     // 使用 IRangedAttackMob 接口的 attackEntityWithRangedAttack
     m_goalSelector.addGoal(2,
-        new entity::ai::goal::RangedAttackGoal(this,
+        std::make_unique<entity::ai::goal::RangedAttackGoal>(this,
             1.0,  // 移动速度倍率
             40,   // 最小攻击间隔 (ticks)
             60,   // 最大攻击间隔 (ticks)
@@ -881,22 +881,22 @@ void WitherEntity::registerGoals()
     // 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
     // 不能直接使用 WaterAvoidingRandomFlyingGoal（它要求 CreatureEntity*），
     // 因此使用专用 WitherRandomFlyGoal 实现类似效果。
-    m_goalSelector.addGoal(5, new WitherRandomFlyGoal(this));
+    m_goalSelector.addGoal(5, std::make_unique<WitherRandomFlyGoal>(this));
 
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(
-        6, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+        6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             // 只看向玩家
             return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 7: 随机看向
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // ========== 目标选择器 ==========
 
     // 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
 
     // 优先级 2: 攻击非亡灵生物（凋灵同族友军外的所有 LivingEntity）
     // 对齐 MC Java 1.21.11 WitherBoss.registerGoals（WitherBoss.java:104-105）：
@@ -924,7 +924,7 @@ void WitherEntity::registerGoals()
     //       getCreatureAttribute==Undead 含之——边角偏差，zombie_nautilus 是项目自定义实体无 vanilla
     //       基线，暂保持亡灵语义。
     m_targetSelector.addGoal(2,
-        new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(this,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             false, // checkSight
             0,     // chance (每tick检查)
             [](const LivingEntity* entity) -> bool {

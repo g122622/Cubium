@@ -224,9 +224,9 @@ void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<Structur
 
     if (totalWeight == 0) {
         // 所有片段都达到限制，生成传送门房间
-        StrongholdPortalRoom* portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
+        auto portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
         if (portalRoom != nullptr) {
-            pieces.emplace_back(portalRoom);
+            pieces.push_back(std::move(portalRoom));
         }
         return;
     }
@@ -248,18 +248,18 @@ void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<Structur
     }
 
     // 创建选中的片段
-    StrongholdPiece* newPiece = createStrongholdPiece(selectedType, pieces, rng, x, y, z, direction, depth);
+    auto newPiece = createStrongholdPiece(selectedType, pieces, rng, x, y, z, direction, depth);
 
     if (newPiece != nullptr) {
-        pieces.emplace_back(newPiece);
+        pieces.push_back(std::move(newPiece));
 
         // 10% 概率生成图书馆，传送门房间必须生成
         if (rng.nextInt(10) == 0 && depth < 30) {
             // 可能生成图书馆
-            StrongholdLibrary* library = StrongholdLibrary::createPiece(
+            auto library = StrongholdLibrary::createPiece(
                 pieces, rng, x + rng.nextInt(8), y - rng.nextInt(5), z + rng.nextInt(8), direction, depth + 1);
             if (library != nullptr) {
-                pieces.emplace_back(library);
+                pieces.push_back(std::move(library));
             }
         }
 
@@ -268,9 +268,9 @@ void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<Structur
     } else {
         // 无法生成更多片段，强制生成传送门房间
         if (depth > 5) {
-            StrongholdPortalRoom* portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
+            auto portalRoom = StrongholdPortalRoom::createPiece(pieces, x, y, z, direction, depth);
             if (portalRoom != nullptr) {
-                pieces.emplace_back(portalRoom);
+                pieces.push_back(std::move(portalRoom));
             }
         }
     }

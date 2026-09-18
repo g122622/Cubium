@@ -573,14 +573,14 @@ void RabbitEntity::registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 恐慌逃跑（兔子逃跑速度更快）
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 2.2));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.2));
 
     // 优先级 2: 逃离玩家（8格，速度2.2）- 杀手兔不逃离
     m_goalSelector.addGoal(2,
-        new entity::ai::goal::AvoidEntityGoal(this,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             8.0f, // avoidDistance - 检测玩家的距离
             2.2,  // farSpeed - 远距离逃跑速度
             2.2,  // nearSpeed - 近距离逃跑速度
@@ -593,7 +593,7 @@ void RabbitEntity::registerGoals()
 
     // 优先级 2: 逃离狼（10格，速度2.2）- 杀手兔不逃离
     m_goalSelector.addGoal(2,
-        new entity::ai::goal::AvoidEntityGoal(this,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             10.0f, // avoidDistance - 检测狼的距离
             2.2,   // farSpeed
             2.2,   // nearSpeed
@@ -604,7 +604,7 @@ void RabbitEntity::registerGoals()
 
     // 优先级 2: 逃离怪物（4格，速度2.2）- 杀手兔不逃离
     m_goalSelector.addGoal(2,
-        new entity::ai::goal::AvoidEntityGoal(this,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
             4.0f, // avoidDistance - 检测怪物的距离
             2.2,  // farSpeed
             2.2,  // nearSpeed
@@ -615,7 +615,7 @@ void RabbitEntity::registerGoals()
             }));
 
     // 优先级 3: 繁殖
-    m_goalSelector.addGoal(3, new entity::ai::goal::BreedGoal(this, 1.0));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 4: 食物诱惑（胡萝卜、金胡萝卜、蒲公英）
     m_goalSelector.addGoal(4,
@@ -644,19 +644,19 @@ void RabbitEntity::registerGoals()
     // 优先级 5: 偷胡萝卜（对应 MC 1.21.11 Rabbit.RaidGardenGoal）
     // 兔子饥饿（moreCarrotTicks<=0）时寻找成熟胡萝卜并啃食，受 MOB_GRIEFING 规则限制。
     // 与 FollowParentGoal 共用优先级 5，二者均占用 Move+Jump 标志，GoalSelector 保证互斥。
-    m_goalSelector.addGoal(5, new entity::ai::goal::RaidGardenGoal(this));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::RaidGardenGoal>(this));
 
     // 优先级 5: 跟随父母
-    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.1));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.1));
 
     // 优先级 6: 随机漫步
-    m_goalSelector.addGoal(6, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0));
 
     // 优先级 7: 看向玩家
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 6.0f));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));
 
     // 优先级 8: 随机看向
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 }
 
 void RabbitEntity::registerAttributes()

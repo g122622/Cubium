@@ -435,16 +435,17 @@ private:
     // 阶段
     Phase m_phase = Phase::HoldingPattern;
 
-    // 龙部件
+    // 龙部件。部件本身在 ECS registry 中注册实体，随 unique_ptr 析构触发 ~Entity 注销，
+    // 故所有权必须落在本类：m_dragonParts 只是遍历用的非拥有观察视图，元素来自下方各 unique_ptr。
     std::vector<EnderDragonPartEntity*> m_dragonParts;
-    EnderDragonPartEntity* m_dragonPartHead = nullptr;
-    EnderDragonPartEntity* m_dragonPartNeck = nullptr;
-    EnderDragonPartEntity* m_dragonPartBody = nullptr;
-    EnderDragonPartEntity* m_dragonPartTail1 = nullptr;
-    EnderDragonPartEntity* m_dragonPartTail2 = nullptr;
-    EnderDragonPartEntity* m_dragonPartTail3 = nullptr;
-    EnderDragonPartEntity* m_dragonPartRightWing = nullptr;
-    EnderDragonPartEntity* m_dragonPartLeftWing = nullptr;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartHead;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartNeck;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartBody;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartTail1;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartTail2;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartTail3;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartRightWing;
+    std::unique_ptr<EnderDragonPartEntity> m_dragonPartLeftWing;
 
     // 攻击目标（使用 MobEntity::m_attackTarget，不重复声明）
 

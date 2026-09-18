@@ -43,6 +43,7 @@
 #include "server/test/simulated/SimulatedPlayer.hpp"
 
 #include <cctype>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -1302,8 +1303,12 @@ u64 registerSimulatedPlayerClassBinding(
             if (isProto == nullptr) {
                 return ctx.createUndefined();
             }
-            auto* owned = new mc::ItemStack(activeBefore);
-            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, owned, true, "ItemStack");
+            // destroy 不可省略：finalizer 的释放条件是 `owned && ptr && destroy`，
+            // 缺失 destroy 会使 ItemStack 永不释放。
+            auto* owned = std::make_unique<mc::ItemStack>(activeBefore).release();
+            return ScriptObjectRegistry::wrap(ctx, isClassId, isProto, owned, true, "ItemStack", [](void* p) {
+                delete static_cast<mc::ItemStack*>(p);
+            });
         },
         0);
     reg.method(

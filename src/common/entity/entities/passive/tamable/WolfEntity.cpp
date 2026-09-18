@@ -925,16 +925,16 @@ void WolfEntity::registerGoals()
     // ========================================================================
 
     // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 恐慌逃跑（受到伤害或着火时）
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.5));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.5));
 
     // 优先级 1: 坐下目标（驯服后）- 与PanicGoal同优先级，但SitGoal会检查是否驯服
-    m_goalSelector.addGoal(1, new entity::ai::goal::SitGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SitGoal>(this));
 
     // 优先级 2: 繁殖（驯服后且成体，喂肉 setInLove 后 BreedGoal 驱动靠近配偶 spawnBaby）
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 3: 未驯服时避开羊驼
     // 羊驼有强度属性，强度高的羊驼可以吓跑狼
@@ -964,25 +964,25 @@ void WolfEntity::registerGoals()
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, true));
 
     // 优先级 6: 跟随主人（驯服后）
-    m_goalSelector.addGoal(6, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 3.0f, 10.0f, 32.0f));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::FollowOwnerGoal>(this, 1.0, 3.0f, 10.0f, 32.0f));
 
     // 优先级 7: 跟随父母（幼年狼）
-    m_goalSelector.addGoal(7, new entity::ai::goal::FollowParentGoal(this, 1.1));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.1));
 
     // 优先级 8: 避水随机漫步（未驯服狼的日常移动）
-    m_goalSelector.addGoal(8, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
     // 优先级 9: 乞求目标（看向手持骨头或肉类的玩家）
     // 狼使用 BegGoal（乞求，只看不动），而非 TemptGoal（诱惑，会跟随玩家）
     // 这是因为未驯服的狼不会主动接近玩家，驯服后的狼已跟随主人，不需要 TemptGoal
     // [COMPLETED] 2026-05-15 - 骨头乞求行为已通过 BegGoal 实现
-    m_goalSelector.addGoal(9, new entity::ai::goal::BegGoal(this, 8.0f));
+    m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::BegGoal>(this, 8.0f));
 
     // 优先级 10: 看向玩家
-    m_goalSelector.addGoal(10, new entity::ai::goal::LookAtGoal(this, 8.0f));
+    m_goalSelector.addGoal(10, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f));
 
     // 优先级 11: 随机看向
-    m_goalSelector.addGoal(11, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(11, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // ========================================================================
     // 目标选择器 (targetSelector)

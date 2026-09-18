@@ -545,8 +545,12 @@ protected:
     // 工具方法
     // ========================================================================
 
-    /** 创建填充为空的 Nibble 数组 */
-    [[nodiscard]] static std::vector<SWMRNibbleArray*> getFilledEmptyLight(i32 totalLightSections);
+    /**
+     * @brief 创建填充为空的 Nibble 数组
+     *
+     * TODO: 当前无任何调用方，待接入光照引擎的 null-section 处理路径。
+     */
+    [[nodiscard]] static std::vector<std::unique_ptr<SWMRNibbleArray>> getFilledEmptyLight(i32 totalLightSections);
 
     /** 设置编码偏移 */
     void setupEncodeOffset(i32 centerX, i32 centerY, i32 centerZ);

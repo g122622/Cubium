@@ -30,6 +30,7 @@
 #include "common/world/IWorld.hpp"                                    // mc::IWorld
 #include "common/world/block/BlockPos.hpp"                            // mc::BlockPos
 #include "common/world/block/BlockState.hpp"                          // mc::BlockState
+#include <memory>
 
 namespace mc::mod::bedrock::addon {
 
@@ -72,7 +73,8 @@ struct ScriptBlockRef {
         // Block 类未注册（绑定期未完成或引擎重建中），防御性返回 undefined。
         return ctx.createUndefined();
     }
-    auto* ref = new ScriptBlockRef{state, pos, world};
+    // 构造即交出所有权：由下方 wrap 的 destroy 回调在 JS GC 时释放。
+    auto* ref = std::make_unique<ScriptBlockRef>(state, pos, world).release();
     return ScriptObjectRegistry::wrap(ctx,
         blockClassId,
         blockProto,

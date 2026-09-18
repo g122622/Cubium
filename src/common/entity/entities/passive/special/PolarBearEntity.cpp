@@ -351,36 +351,36 @@ void PolarBearEntity::registerGoals()
     // 注意：北极熊不调用 AnimalEntity::registerGoals() 因为它没有繁殖行为
 
     // 优先级 0: 游泳
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 近战攻击（使用自定义内部类）
-    m_goalSelector.addGoal(1, new PolarBearMeleeAttackGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<PolarBearMeleeAttackGoal>(this));
 
     // 优先级 1: 恐慌逃跑（只有幼熊或着火时）
-    m_goalSelector.addGoal(1, new PolarBearPanicGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<PolarBearPanicGoal>(this));
 
     // 优先级 4: 跟随父母
-    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.25));
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.25));
 
     // 优先级 5: 随机漫步
-    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0));
 
     // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 6.0f));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));
 
     // 优先级 7: 随机看向
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择器
     // 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, new PolarBearHurtByTargetGoal(this));
+    m_targetSelector.addGoal(1, std::make_unique<PolarBearHurtByTargetGoal>(this));
 
     // 优先级 2: 攻击玩家（保护幼崽）
-    m_targetSelector.addGoal(2, new PolarBearAttackPlayerGoal(this));
+    m_targetSelector.addGoal(2, std::make_unique<PolarBearAttackPlayerGoal>(this));
 
     // 优先级 3: 攻击玩家（有条件）
     m_targetSelector.addGoal(3,
-        new entity::ai::goal::NearestAttackableTargetGoal<Player>(
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
             this, true, 10, [this](const LivingEntity* /*entity*/) -> bool {
                 IWorld* world = this->world();
                 if (world == nullptr) return false;
@@ -399,7 +399,8 @@ void PolarBearEntity::registerGoals()
             }));
 
     // 优先级 4: 攻击狐狸
-    m_targetSelector.addGoal(4, new entity::ai::goal::NearestAttackableTargetGoal<FoxEntity>(this, true, 10, nullptr));
+    m_targetSelector.addGoal(
+        4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<FoxEntity>>(this, true, 10, nullptr));
 }
 
 void PolarBearEntity::registerAttributes()

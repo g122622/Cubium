@@ -111,8 +111,8 @@ void LogManager::startOverflowMonitor()
     }
     m_monitorRunning = true;
     // 原子标志控制线程退出（监控线程只读，shutdown 置 false）。
-    // 用裸 std::thread 而非 jthread，避免对 <stop_token> 的实现差异依赖。
-    m_monitorThread = new std::thread([this]() {
+    // 用 std::thread 而非 jthread，避免对 <stop_token> 的实现差异依赖。
+    m_monitorThread = std::make_unique<std::thread>([this]() {
         while (m_monitorRunning.load(std::memory_order_relaxed)) {
             // 采样 spdlog 线程池的 overrun_counter（被 overrun_oldest 丢弃的旧日志累计数）。
             auto tp = spdlog::thread_pool();
@@ -146,8 +146,7 @@ void LogManager::stopOverflowMonitor()
     if (m_monitorThread != nullptr && m_monitorThread->joinable()) {
         m_monitorThread->join();
     }
-    delete m_monitorThread;
-    m_monitorThread = nullptr;
+    m_monitorThread.reset();
 }
 
 } // namespace mc::application

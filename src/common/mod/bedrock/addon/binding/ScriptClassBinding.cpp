@@ -6,6 +6,7 @@
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -39,7 +40,8 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
         return obj; // 返回异常句柄
     }
 
-    auto* data = new ObjectData{ptr, owned, typeName, destroy, entityId};
+    // 构造即交出所有权：opaque 由 JS finalizer 事后释放，不参与本函数作用域。
+    auto* data = std::make_unique<ObjectData>(ptr, owned, typeName, destroy, entityId).release();
     ctx.setOpaque(obj, data, classId);
 
     // Entity 系（entityId != 0）登记到 ScriptHandleRegistry：实体销毁时 invalidateAll 置本句柄

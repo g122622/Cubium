@@ -389,7 +389,9 @@ bool QuickJSContext::registerGlobalFunction(
         std::string name;
     };
 
-    auto* cbData = new GlobalCallbackData{this, name};
+    // 构造即具备 RAII 保障：闭包创建失败时由 unique_ptr 释放，成功时 release() 交出给
+    // JS 闭包的 opaque（GC 时经 opaque_finalize 释放）。
+    auto cbData = std::make_unique<GlobalCallbackData>(GlobalCallbackData{this, name});
 
     JSValue closure = JS_NewCClosure(
         m_context,
@@ -423,13 +425,14 @@ bool QuickJSContext::registerGlobalFunction(
         },
         0,
         0,
-        cbData);
+        cbData.get());
 
     if (JS_IsException(closure)) {
-        delete cbData;
         spdlog::error("[BedrockAddon] Failed to register global function: {}", name);
         return false;
     }
+
+    cbData.release(); // 闭包已接管 opaque 的所有权
 
     // 设置为全局属性
     JSValue global = JS_GetGlobalObject(m_context);

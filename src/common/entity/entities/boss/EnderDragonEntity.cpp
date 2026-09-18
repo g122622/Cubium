@@ -151,52 +151,52 @@ void EnderDragonEntity::initDragonParts()
     auto& registry = m_entityContext->registry();
 
     // 头部
-    m_dragonPartHead = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartHead = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartHead->setPart(EnderDragonPartEntity::Part::Head);
     m_dragonPartHead->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartHead);
+    m_dragonParts.push_back(m_dragonPartHead.get());
 
     // 颈部
-    m_dragonPartNeck = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartNeck = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartNeck->setPart(EnderDragonPartEntity::Part::Neck);
     m_dragonPartNeck->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartNeck);
+    m_dragonParts.push_back(m_dragonPartNeck.get());
 
     // 身体
-    m_dragonPartBody = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartBody = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartBody->setPart(EnderDragonPartEntity::Part::Body);
     m_dragonPartBody->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartBody);
+    m_dragonParts.push_back(m_dragonPartBody.get());
 
     // 尾部1
-    m_dragonPartTail1 = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartTail1 = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartTail1->setPart(EnderDragonPartEntity::Part::Tail1);
     m_dragonPartTail1->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartTail1);
+    m_dragonParts.push_back(m_dragonPartTail1.get());
 
     // 尾部2
-    m_dragonPartTail2 = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartTail2 = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartTail2->setPart(EnderDragonPartEntity::Part::Tail2);
     m_dragonPartTail2->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartTail2);
+    m_dragonParts.push_back(m_dragonPartTail2.get());
 
     // 尾部3
-    m_dragonPartTail3 = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartTail3 = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartTail3->setPart(EnderDragonPartEntity::Part::Tail3);
     m_dragonPartTail3->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartTail3);
+    m_dragonParts.push_back(m_dragonPartTail3.get());
 
     // 左翼
-    m_dragonPartLeftWing = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartLeftWing = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartLeftWing->setPart(EnderDragonPartEntity::Part::WingLeft);
     m_dragonPartLeftWing->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartLeftWing);
+    m_dragonParts.push_back(m_dragonPartLeftWing.get());
 
     // 右翼
-    m_dragonPartRightWing = new EnderDragonPartEntity(EntityInstanceId(0), registry);
+    m_dragonPartRightWing = std::make_unique<EnderDragonPartEntity>(EntityInstanceId(0), registry);
     m_dragonPartRightWing->setPart(EnderDragonPartEntity::Part::WingRight);
     m_dragonPartRightWing->setParentDragon(this);
-    m_dragonParts.push_back(m_dragonPartRightWing);
+    m_dragonParts.push_back(m_dragonPartRightWing.get());
 }
 
 std::optional<ResourceLocation> EnderDragonEntity::getAmbientSound() const

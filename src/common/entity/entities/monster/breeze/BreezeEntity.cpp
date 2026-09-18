@@ -230,18 +230,18 @@ void BreezeEntity::registerGoals()
     MonsterEntity::registerGoals();
 
     // 行为目标（参考 BreezeAi.FIGHT 行为优先级）
-    m_goalSelector.addGoal(1, new entity::ai::goal::SwimGoal(this));
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreezeShootGoal(this));          // 射击风弹
-    m_goalSelector.addGoal(3, new entity::ai::goal::BreezeLongJumpGoal(this));       // 长跳移动
-    m_goalSelector.addGoal(4, new entity::ai::goal::BreezeShootWhenStuckGoal(this)); // 卡住时紧急射击
-    m_goalSelector.addGoal(5, new entity::ai::goal::BreezeSlideGoal(this));          // 滑行移动
-    m_goalSelector.addGoal(6, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.35));
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0F, 0.02F));
-    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SwimGoal>(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreezeShootGoal>(this));          // 射击风弹
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::BreezeLongJumpGoal>(this));       // 长跳移动
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::BreezeShootWhenStuckGoal>(this)); // 卡住时紧急射击
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::BreezeSlideGoal>(this));          // 滑行移动
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.35));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0F, 0.02F));
+    m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择
-    m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, false));
-    m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 }
 
 void BreezeEntity::registerAttributes()

@@ -275,3 +275,19 @@ m_goalSelector.addGoal(4,
 **重要**：`resetTask()` **不再** 标记为 `noexcept`。原因：`setAggroed → setAggressive → m_dataManager.set` 涉及互斥锁，理论上可抛异常。继承 `MeleeAttackGoal` 的子类（如 `PolarBearMeleeAttackGoal`）重写 `resetTask` 时也必须移除 `noexcept`，否则在异常传播时会导致 `std::terminate`。
 
 **数据流**：`resetTask` 调用 `setAggroed(false)` → `DATA_MOB_FLAGS_PARAM` 位 2 清除 → `ir::play::SetEntityData` 广播 → 客户端 `ClientEntity::syncMetadataFromDataManager` 读取 → `m_isAggressive=false` → `EntityRendererManager::_applyZombieState` 推送到 `ZombieModel::setAggressive(false)` → 手臂从 `-PI/1.5`（攻击抬臂）切换到 `-PI/2.25`（自然站立）。
+
+### 18. addGoal 的两个重载都表示所有权转移
+
+`GoalSelector::addGoal` 同时提供 `addGoal(i32, Goal*)` 与 `addGoal(i32, std::unique_ptr<Goal>)` 两个重载，**两者语义相同，都是接管所有权**：裸指针重载在 `PrioritizedGoal` 构造时立刻被其 `std::unique_ptr<Goal> m_inner` 接管，随后由 `GoalSelector` 析构或 `removeGoal`/`removeGoalsOfType` 释放。
+
+因此**一律使用 `std::make_unique`**，不要写裸 `new`——两种写法混用会让"谁负责释放"变得不可读。不要因为"传裸指针就不用管释放"而误以为 selector 不持有所有权。
+
+**需要保留观察指针时**，用 `SheepEntity` 的范式（`EatGrassGoal` / `BreakDoorGoal` 均如此）：
+
+```cpp
+auto goal = std::make_unique<SomeGoal>(this, ...);
+m_someGoal = goal.get();                      // 非拥有观察指针
+m_goalSelector.addGoal(N, std::move(goal));   // 所有权交给 selector
+```
+
+**禁止**「`std::unique_ptr` 成员 + `addGoal(priority, ptr.get())`」——那会让成员与 selector 双重拥有同一对象，析构时双重释放（详见 `entity/entities/monster/undead/README.md`）。观察指针在对应 goal 被 `removeGoal`/`removeGoalsOfType` 销毁后会悬垂，必须同步置 `nullptr`。

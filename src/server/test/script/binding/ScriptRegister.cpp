@@ -30,6 +30,7 @@
 #include "server/test/script/context/ScriptBindingRegistry.hpp"
 
 #include <functional> // std::function（批次回调 lambda 转 C++ 回调）
+#include <memory>
 #include <string>
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -77,7 +78,8 @@ void* _doRegister(
     // 后续 isFunction/callFunction1 解引用 UB（表现为 "TypeError: not a function"）。
     // dupValue 新建独立 handle，trampoline 释放 arg handle 不影响本句柄。
     void* jsCallback = ctx.dupValue(args[2]);
-    auto* cppBuilder = new ScriptRegistrationBuilder(*className, *testName, &ctx, jsCallback);
+    // 构造即交出所有权：由下方 wrap 的 destroy 回调在 GC 时释放。
+    auto* cppBuilder = std::make_unique<ScriptRegistrationBuilder>(*className, *testName, &ctx, jsCallback).release();
 
     void* proto = ScriptBindingRegistry::instance().proto(registrationBuilderClassId);
     // owned=true + 自定义 destroy：GC 时 _destroyRegistrationBuilder 提交测试后 delete。

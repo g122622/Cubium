@@ -1231,7 +1231,7 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::Random& rng, i32 x, i32 z, Di
 
         for (const auto& helper : fitHelpers) {
             if (!room->isClaimed() && helper->fits(room)) {
-                m_childPieces.emplace_back(helper->create(direction, room, rng));
+                m_childPieces.push_back(helper->create(direction, room, rng));
                 break;
             }
         }
@@ -1951,11 +1951,11 @@ bool FitSimpleRoomHelper::fits(OceanMonumentRoomDefinition* definition)
     return definition != nullptr && !definition->isClaimed();
 }
 
-OceanMonumentPiece* FitSimpleRoomHelper::create(
+std::unique_ptr<OceanMonumentPiece> FitSimpleRoomHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     room->setClaimed(true);
-    return new OceanMonumentSimpleRoom(direction, room, rng);
+    return std::make_unique<OceanMonumentSimpleRoom>(direction, room, rng);
 }
 
 bool FitSimpleRoomTopHelper::fits(OceanMonumentRoomDefinition* definition)
@@ -1963,12 +1963,12 @@ bool FitSimpleRoomTopHelper::fits(OceanMonumentRoomDefinition* definition)
     return definition != nullptr && !definition->isClaimed() && definition->getIndex() / 25 == 2;
 }
 
-OceanMonumentPiece* FitSimpleRoomTopHelper::create(
+std::unique_ptr<OceanMonumentPiece> FitSimpleRoomTopHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
-    return new OceanMonumentSimpleTopRoom(direction, room);
+    return std::make_unique<OceanMonumentSimpleTopRoom>(direction, room);
 }
 
 bool XDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
@@ -1977,13 +1977,13 @@ bool XDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
         definition->getConnection(5) != nullptr && !definition->getConnection(5)->isClaimed();
 }
 
-OceanMonumentPiece* XDoubleRoomFitHelper::create(
+std::unique_ptr<OceanMonumentPiece> XDoubleRoomFitHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
     room->getConnection(5)->setClaimed(true);
-    return new OceanMonumentDoubleXRoom(direction, room);
+    return std::make_unique<OceanMonumentDoubleXRoom>(direction, room);
 }
 
 bool YDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
@@ -1992,13 +1992,13 @@ bool YDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
         definition->getConnection(1) != nullptr && !definition->getConnection(1)->isClaimed();
 }
 
-OceanMonumentPiece* YDoubleRoomFitHelper::create(
+std::unique_ptr<OceanMonumentPiece> YDoubleRoomFitHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
     room->getConnection(1)->setClaimed(true);
-    return new OceanMonumentDoubleYRoom(direction, room);
+    return std::make_unique<OceanMonumentDoubleYRoom>(direction, room);
 }
 
 bool ZDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
@@ -2007,7 +2007,7 @@ bool ZDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
         definition->getConnection(2) != nullptr && !definition->getConnection(2)->isClaimed();
 }
 
-OceanMonumentPiece* ZDoubleRoomFitHelper::create(
+std::unique_ptr<OceanMonumentPiece> ZDoubleRoomFitHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     MC_UNUSED(rng);
@@ -2017,7 +2017,7 @@ OceanMonumentPiece* ZDoubleRoomFitHelper::create(
     }
     roomToUse->setClaimed(true);
     roomToUse->getConnection(2)->setClaimed(true);
-    return new OceanMonumentDoubleZRoom(direction, roomToUse);
+    return std::make_unique<OceanMonumentDoubleZRoom>(direction, roomToUse);
 }
 
 bool XYDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
@@ -2034,7 +2034,7 @@ bool XYDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
     return eastUp != nullptr && !eastUp->isClaimed();
 }
 
-OceanMonumentPiece* XYDoubleRoomFitHelper::create(
+std::unique_ptr<OceanMonumentPiece> XYDoubleRoomFitHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     MC_UNUSED(rng);
@@ -2042,7 +2042,7 @@ OceanMonumentPiece* XYDoubleRoomFitHelper::create(
     room->getConnection(5)->setClaimed(true);
     room->getConnection(1)->setClaimed(true);
     room->getConnection(5)->getConnection(1)->setClaimed(true);
-    return new OceanMonumentDoubleXYRoom(direction, room);
+    return std::make_unique<OceanMonumentDoubleXYRoom>(direction, room);
 }
 
 bool YZDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
@@ -2059,7 +2059,7 @@ bool YZDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
     return northUp != nullptr && !northUp->isClaimed();
 }
 
-OceanMonumentPiece* YZDoubleRoomFitHelper::create(
+std::unique_ptr<OceanMonumentPiece> YZDoubleRoomFitHelper::create(
     Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
 {
     MC_UNUSED(rng);
@@ -2067,7 +2067,7 @@ OceanMonumentPiece* YZDoubleRoomFitHelper::create(
     room->getConnection(2)->setClaimed(true);
     room->getConnection(1)->setClaimed(true);
     room->getConnection(2)->getConnection(1)->setClaimed(true);
-    return new OceanMonumentDoubleYZRoom(direction, room);
+    return std::make_unique<OceanMonumentDoubleYZRoom>(direction, room);
 }
 
 } // namespace structure

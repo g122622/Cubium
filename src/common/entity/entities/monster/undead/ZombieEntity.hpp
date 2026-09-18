@@ -314,6 +314,7 @@ protected:
 private:
     // 破门能力
     bool m_canBreakDoors = false;
+    /// 破门目标指针，用于动态增删该目标（非拥有指针，生命周期由 GoalSelector 管理）
     BreakDoorGoal* m_breakDoorGoal = nullptr;
 
     // 溺水转化

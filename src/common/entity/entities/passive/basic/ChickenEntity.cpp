@@ -146,13 +146,13 @@ void ChickenEntity::registerGoals()
     // 注意：AnimalEntity 基类不注册任何 goal，所以这里需要注册完整的 AI 目标列表
 
     // 优先级 0: 游泳（最高优先级）
-    m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 恐慌逃跑
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.4));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.4));
 
     // 优先级 2: 繁殖
-    m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::BreedGoal>(this, 1.0));
 
     // 优先级 3: 种子诱惑
     m_goalSelector.addGoal(3,
@@ -168,16 +168,16 @@ void ChickenEntity::registerGoals()
             false)); // scaredByMovement = false
 
     // 优先级 4: 跟随父母
-    m_goalSelector.addGoal(4, new entity::ai::goal::FollowParentGoal(this, 1.1));
+    m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::FollowParentGoal>(this, 1.1));
 
     // 优先级 5: 随机漫步
-    m_goalSelector.addGoal(5, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0));
 
     // 优先级 6: 看向玩家
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 6.0f));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 6.0f));
 
     // 优先级 7: 随机看向
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 }
 
 void ChickenEntity::registerAttributes()

@@ -171,35 +171,35 @@ void SpiderEntity::registerGoals()
 
     // 行为目标 (goalSelector)
     // 优先级 1: 游泳
-    m_goalSelector.addGoal(1, new entity::ai::goal::SwimGoal(this));
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 3: 跳向目标（力度 0.4F）
-    m_goalSelector.addGoal(3, new entity::ai::goal::LeapAtTargetGoal(this, 0.4F));
+    m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::LeapAtTargetGoal>(this, 0.4F));
 
     // 优先级 4: 近战攻击（蜘蛛专用，带光照检测）
-    m_goalSelector.addGoal(4, new SpiderAttackGoal(this));
+    m_goalSelector.addGoal(4, std::make_unique<SpiderAttackGoal>(this));
 
     // 优先级 5: 避水随机行走（速度 0.8D）
-    m_goalSelector.addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.8));
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 0.8));
 
     // 优先级 6: 看向玩家（8格距离）
     m_goalSelector.addGoal(
-        6, new entity::ai::goal::LookAtGoal(this, 8.0F, 0.02F, [](const LivingEntity* entity) -> bool {
+        6, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0F, 0.02F, [](const LivingEntity* entity) -> bool {
             return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER;
         }));
 
     // 优先级 6: 随机看向
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
     // 目标选择 (targetSelector)
     // 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, false));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
     // 优先级 2: 攻击玩家（蜘蛛专用，带光照检测）
-    m_targetSelector.addGoal(2, new SpiderTargetGoal<Player>(this));
+    m_targetSelector.addGoal(2, std::make_unique<SpiderTargetGoal<Player>>(this));
 
     // 优先级 3: 攻击铁傀儡（蜘蛛专用，带光照检测）
-    m_targetSelector.addGoal(3, new SpiderTargetGoal<IronGolemEntity>(this));
+    m_targetSelector.addGoal(3, std::make_unique<SpiderTargetGoal<IronGolemEntity>>(this));
 }
 
 void SpiderEntity::registerAttributes()

@@ -300,8 +300,9 @@ TEST_F(GeneratePieceTest, ImposedPiece_CrossingIsCreated)
     auto& weights = m_start->weights();
     StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
 
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     // 强制片段应被创建
     ASSERT_NE(piece, nullptr);
@@ -330,14 +331,16 @@ TEST_F(GeneratePieceTest, ImposedPiece_ConsumedAfterUse)
     StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
 
     // 第一次调用应使用强制片段
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
     ASSERT_NE(piece, nullptr);
     EXPECT_EQ(m_start->imposedPieceType(), -1); // 已消费
 
     // 第二次调用应不再使用强制片段（正常随机选择）
-    StrongholdPiece* piece2 = generatePieceFromSmallDoor(
+    auto piece2Owner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 2, weights, lastPlaced);
+    StrongholdPiece* piece2 = piece2Owner.get(); // 非拥有观察指针
     // piece2 可能为 nullptr（碰撞等原因）或为其他类型，但不应是强制片段
     if (piece2 != nullptr) {
         // 只要不是因为强制片段创建的就行
@@ -355,8 +358,9 @@ TEST_F(GeneratePieceTest, ImposedPiece_WeightZeroedWhenLimitReached)
     StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
 
     // 先确保深度足够（PortalRoom minDepth == 5）
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 10, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     if (piece != nullptr) {
         // 找到 PORTAL_ROOM 的权重
@@ -379,8 +383,9 @@ TEST_F(GeneratePieceTest, NoImposedPiece_NormalWeightSelection)
     auto& weights = m_start->weights();
     StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
 
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     // 不验证具体类型（随机），但应不是强制片段
     // 强制片段类型应保持 -1
@@ -410,8 +415,9 @@ TEST_F(GeneratePieceTest, AllLimitedExhausted_ReturnsNullptr)
     EXPECT_FALSE(canAddStructurePieces(weights, totalWeight));
 
     // generatePieceFromSmallDoor 在无强制片段且 canAdd 返回 false 时应返回 nullptr
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
     EXPECT_EQ(piece, nullptr);
 }
 
@@ -433,8 +439,9 @@ TEST_F(GeneratePieceTest, ImposedPieceOverridesExhaustedWeights)
     StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
 
     // 强制片段应在 canAdd 返回 false 时仍被创建
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     // 强制片段类型为 STRAIGHT（无限制类型），应该能创建
     ASSERT_NE(piece, nullptr);
@@ -463,8 +470,9 @@ TEST_F(GeneratePieceTest, WeightZeroedWhenLimitReached)
     math::Random rng(42);
     StrongholdPieceWeight* lastPlaced = m_start->lastPlaced();
 
-    StrongholdPiece* piece = generatePieceFromSmallDoor(
+    auto pieceOwner = generatePieceFromSmallDoor(
         m_start.get(), m_pieces, rng, 100, 50, 200, Direction::South, 1, weights, lastPlaced);
+    StrongholdPiece* piece = pieceOwner.get(); // 非拥有观察指针
 
     if (piece != nullptr) {
         // PRISON 的 instancesSpawned 应该达到限制，权重应被置 0
