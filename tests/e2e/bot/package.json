@@ -1,0 +1,25 @@
+{
+  "name": "cubium-e2e-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cubium 端到端 bot 测试：以 mineflayer 作为真实 wire 客户端连接 Cubium 服务端，并与原版 vanilla 服务端双跑对比",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node run.ts",
+    "regress": "node run.ts --mode=regress",
+    "refresh": "node run.ts --mode=refresh",
+    "diff": "node run.ts --mode=diff",
+    "viewer": "node tools/viewer.ts"
+  },
+  "dependencies": {
+    "mineflayer": "4.39.0",
+    "minecraft-data": "3.115.0",
+    "minecraft-protocol": "1.68.0"
+  },
+  "devDependencies": {
+    "minecraft-wrap": "1.10.0"
+  }
+}

@@ -50,6 +50,8 @@ build/bin/RelWithDebInfo/minecraft-server
 
 项目测试基于 GoogleTest，通过 CTest 编排运行，支持单用例限时（默认 300 秒）、并行、按名筛选。完整指南见 docs/test/UNIT_TEST.md。
 
+端到端 bot 测试（以 mineflayer 作为真实 wire 客户端连服务端，并可与原版服务端双跑对比）见 docs/test/E2E_BOT_TEST.md。
+
 ## clang-tidy 静态分析
 
 见 docs/TIDY.md
