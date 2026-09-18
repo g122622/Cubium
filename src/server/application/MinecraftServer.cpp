@@ -1650,9 +1650,10 @@ void MinecraftServer::sendChunkDataToPlayer(
     mc::network::ir::play::LevelChunkWithLight pkt = ir;
     pkt.x = static_cast<i32>(x);
     pkt.z = static_cast<i32>(z);
-    // 诊断日志：确认区块 LevelChunkWithLight 实际发往客户端（排查真 Java 客户端卡 loading 时
-    // 区块是否送达）。排查完成后可降级或移除。
-    spdlog::info("Sent chunk ({}, {}) to player {}", x, z, playerId);
+    // 诊断日志降级为 debug：区块发送是逐区块、每玩家、每 tick 的高频路径，info 级下
+    // 单玩家 viewDistance=4 即产生约 81 行/次加载，会淹没日志中的真实错误。
+    // 需要排查"区块是否送达客户端"时以 --log_level=debug 或等价配置开启。
+    spdlog::debug("Sent chunk ({}, {}) to player {}", x, z, playerId);
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,

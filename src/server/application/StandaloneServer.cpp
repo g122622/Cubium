@@ -68,7 +68,10 @@
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/storage/core/LevelDatCodec.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 #include "minecraft-reborn/version.h"
 
 #include <atomic>
@@ -212,6 +215,78 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
         }
     }
 
+    // levelType → WorldType 与世界预设 id 的映射。
+    // 预设 id 必须是数据包 worldgen/world_preset/ 下真实存在的资源，共有 normal / flat /
+    // large_biomes / amplified / debug_all_block_states 五个。
+    // 此前本处把预设 id 硬编码为 "minecraft:normal"，使 world.levelType 配置完全失效——
+    // 无论配成 flat 还是 amplified，主世界恒走 NoiseChunkGenerator（overworldType 仅在两处
+    // 兜底与登录包显示字段生效）。现按配置映射，配置项恢复语义。
+    WorldType overworldType = WorldType::Default;
+    resource::ResourceLocation worldPresetId("minecraft", "normal");
+    switch (m_settings.levelType.get()) {
+        case LevelType::Flat:
+            overworldType = WorldType::Flat;
+            worldPresetId = resource::ResourceLocation("minecraft", "flat");
+            break;
+        case LevelType::LargeBiomes:
+            overworldType = WorldType::LargeBiomes;
+            worldPresetId = resource::ResourceLocation("minecraft", "large_biomes");
+            break;
+        case LevelType::Amplified:
+            overworldType = WorldType::Amplified;
+            worldPresetId = resource::ResourceLocation("minecraft", "amplified");
+            break;
+        case LevelType::Debug:
+            overworldType = WorldType::Debug;
+            worldPresetId = resource::ResourceLocation("minecraft", "debug_all_block_states");
+            break;
+        case LevelType::Default:
+        default:
+            overworldType = WorldType::Default;
+            break;
+    }
+
+    // 世界目录不存在时按配置新建（对齐 vanilla：独立服首次启动即创建世界）。
+    // 此前独立服只能加载已存在的存档（GlobalStorageManager::openLevel 找不到即报
+    // "World not found"），且全仓无 createWorld 调用点，导致无法从零启动一个测试世界。
+    // worldName 为绝对路径时不在此处理（openLevel 会按绝对路径直接加载既有存档）。
+    {
+        const std::string worldName = m_settings.worldName.get();
+        if (!std::filesystem::path(worldName).is_absolute()) {
+            world::storage::WorldStoragePaths storagePaths =
+                world::storage::WorldStoragePaths::fromGameDirectory(m_gameDirectory);
+            std::filesystem::path worldDir = storagePaths.worldDir(worldName);
+            if (!std::filesystem::exists(worldDir / "level.dat")) {
+                // LevelDatCodec::writeInitial 仅打开文件不建父目录，缺此步会报
+                // "Cannot open level.dat for writing"，随后 initializeSharedStorage 报 "World not found"。
+                std::error_code ec;
+                std::filesystem::create_directories(worldDir, ec);
+                if (ec) {
+                    spdlog::warn("Failed to create world dir '{}': {}", worldDir.string(), ec.message());
+                }
+                world::storage::CreateWorldRequest request(worldName, // displayName
+                    worldName,                                        // requestedLevelId
+                    static_cast<u64>(m_settings.parseSeed()),
+                    overworldType,
+                    worldPresetId,
+                    static_cast<GameMode>(m_settings.defaultGameMode.get()),
+                    static_cast<Difficulty>(m_settings.difficulty.get()),
+                    m_settings.hardcore.get(),
+                    true, // allowCommands：独立服默认允许命令（对齐原版 dedicated server）
+                    m_settings.viewDistance.get());
+                auto initResult = world::storage::LevelDatCodec::writeInitial(worldDir, request);
+                if (initResult.failed()) {
+                    return Error(ErrorCode::InitializationFailed,
+                        "Failed to write initial level.dat: " + initResult.error().message());
+                }
+                spdlog::info("Created new world '{}' (type={}, preset={})",
+                    worldName,
+                    static_cast<i32>(overworldType),
+                    worldPresetId.toString());
+            }
+        }
+    }
+
     auto storageInitResult = initializeSharedStorage(m_gameDirectory, m_settings.worldName.get());
     if (storageInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
@@ -222,31 +297,11 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 因 containerManager() 依赖 m_containerManager 在该处创建。
 
     // 初始化维度管理器
-    WorldType overworldType = WorldType::Default;
-    switch (m_settings.levelType.get()) {
-        case LevelType::Flat:
-            overworldType = WorldType::Flat;
-            break;
-        case LevelType::LargeBiomes:
-            overworldType = WorldType::LargeBiomes;
-            break;
-        case LevelType::Amplified:
-            overworldType = WorldType::Amplified;
-            break;
-        case LevelType::Debug:
-            overworldType = WorldType::Debug;
-            break;
-        case LevelType::Default:
-        default:
-            overworldType = WorldType::Default;
-            break;
-    }
-
     auto dimInitResult = m_dimensionManager->initialize(m_settings.parseSeed(),
         m_settings.viewDistance.get(),
         m_settings.simulationDistance.get(),
         overworldType,
-        resource::ResourceLocation("minecraft", "normal"));
+        worldPresetId);
     if (dimInitResult.failed()) {
         return Error(ErrorCode::InitializationFailed,
             "Failed to initialize dimension manager: " + dimInitResult.error().message());
