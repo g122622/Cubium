@@ -15,11 +15,13 @@
     "viewer": "node tools/viewer.ts"
   },
   "dependencies": {
-    "mineflayer": "4.39.0",
     "minecraft-data": "3.115.0",
-    "minecraft-protocol": "1.68.0"
+    "minecraft-protocol": "1.68.0",
+    "mineflayer": "4.39.0"
   },
   "devDependencies": {
-    "minecraft-wrap": "1.10.0"
+    "canvas": "^3.2.3",
+    "minecraft-wrap": "1.10.0",
+    "prismarine-viewer": "^1.33.0"
   }
 }

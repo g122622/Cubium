@@ -17,6 +17,9 @@
 
 在 e2e 落地前，「真实字节流」这条路径**没有任何自动化覆盖**，唯一手段是人工用 1.21.11 客户端连测。
 
+**当前规模**：19 个用例，在 Cubium 与官方 vanilla 两侧共 36 条运行**全部通过**，
+两侧基线均已冻结。双跑对比是「同一套断言在两个独立实现上都成立」的正面证据。
+
 **它的实际价值已被验证**：首轮 19 个用例就发现并定位了 4 个真实缺陷，全部属于
 「单测与 GameTest 都看不见」的类型：
 
@@ -210,7 +213,31 @@ Prismarine 生态沿用 1.16 时代的包名，与 1.21.11 官方名**不同**�
 vanilla 的 `Optional.empty` = 使用全部结构集，Cubium **空列表 = 完全不生成结构**。
 双跑对比时须让 vanilla 侧显式传 `structure_overrides: []`，否则两侧地形不一致。
 
-### 5.9 修改 C++ 后必须重新编译
+### 5.9 用户名不得超过 16 字符
+
+vanilla 的 `ServerboundHelloPacket` 用 `readUtf(16)` 读取用户名，超长会**直接断连**并报：
+
+```
+Failed to decode packet 'serverbound/minecraft:hello'
+```
+
+该错误信息**完全指不到用户名上**，极易误判为协议定义不匹配。Cubium 侧不校验该长度，
+所以这类问题**只在双跑对比时才会暴露**。`runner.ts` 的 `sanitizeName()` 已强制截断，
+由用例 id 生成用户名时务必注意总长（含前缀）。
+
+### 5.10 vanilla 侧必须显式禁用结构生成
+
+两侧地形必须逐项对齐才能比对区块内容。Cubium 侧 `generateStructures=false` 对应
+「`structure_overrides` 空列表 = 不生成结构」，而 vanilla 的 `minecraft:flat` 预设
+**默认生成村庄与要塞**。因此 vanilla 侧必须在 `generator-settings` 里显式传
+`structure_overrides: []`，否则区块比对必然失败。
+
+### 5.11 refresh 模式是合并写入
+
+基线更新按用例 id 合并，未跑到的用例保留既有条目。因此可以放心用 `--case=` 过滤
+刷新单条用例，不必担心把整份基线削掉。
+
+### 5.12 修改 C++ 后必须重新编译
 
 e2e 跑的是 `build/bin/RelWithDebInfo/minecraft-server.exe`，改完服务端代码**必须重新构建**
 再跑测试，否则测的是旧二进制。
