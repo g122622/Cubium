@@ -32,7 +32,14 @@ import type { ServerProcess } from "./servers/server-process.ts";
 import { allocatePort } from "./servers/port.ts";
 import { artifactDirFor, makeRunId, pruneArtifacts, removeDirQuietly, runDirFor } from "./servers/workspace.ts";
 import { compareSnapshot, renderDifferences } from "./baseline/compare.ts";
-import { baselinePath, loadBaseline, makeBaseline, saveBaseline, type Baseline } from "./baseline/store.ts";
+import {
+    baselinePath,
+    loadBaseline,
+    makeBaseline,
+    saveBaseline,
+    type Baseline,
+    type BaselineEntry,
+} from "./baseline/store.ts";
 import { writeArtifacts } from "./diagnostics/artifacts.ts";
 
 /** 运行模式。 */
@@ -432,14 +439,12 @@ export async function runCases(
             // 合并写入而非全量覆盖：只跑部分用例（--case 过滤）时，其余用例的既有基线
             // 条目必须保留，否则一次局部刷新会把整份基线削成只剩本次跑到的几条。
             const existing = loadBaseline(baselinePath(BASELINE_DIR, serverKind));
-            const mergedCases: Record<string, { snapshot: CaseSnapshot; metrics: Record<string, number> }> =
+            const mergedCases: Record<string, BaselineEntry> =
                 existing.kind === "ok" ? { ...existing.baseline.cases } : {};
             for (const result of forServer) {
                 if (result.snapshot !== null) {
-                    mergedCases[result.id] = {
-                        snapshot: result.snapshot,
-                        metrics: { elapsedMs: result.elapsedMs },
-                    };
+                    // 只存快照，不存耗时等运行度量（见 baseline/store.ts 的 BaselineEntry 说明）。
+                    mergedCases[result.id] = { snapshot: result.snapshot };
                 }
             }
             const baseline: Baseline = makeBaseline(serverKind, gitCommit(), `由 ${runId} 更新`);

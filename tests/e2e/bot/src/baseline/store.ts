@@ -12,10 +12,15 @@ import { BASELINE_SCHEMA_VERSION, MC_VERSION, PROTOCOL_VERSION } from "../config
 import type { CaseSnapshot } from "../bot/snapshot.ts";
 import type { ServerKind } from "../case.ts";
 
-/** 基线中单条用例的记录。 */
+/**
+ * 基线中单条用例的记录。
+ *
+ * **刻意不含 metrics（如耗时）**：基线是冻结产物，任何每次运行都会变的量写进去都会
+ * 让基线文件恒显示为「已修改」，既污染 git diff 也让「基线是否被篡改」失去信号价值。
+ * 耗时只在运行时打印，不入库。
+ */
 export interface BaselineEntry {
     readonly snapshot: CaseSnapshot;
-    readonly metrics: Record<string, number>;
 }
 
 /** 一份基线文件。 */

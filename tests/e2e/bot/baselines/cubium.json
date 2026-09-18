@@ -4,9 +4,9 @@
     "server": "cubium",
     "mcVersion": "1.21.11",
     "protocolVersion": 774,
-    "frozenAt": "2026-09-18T16:07:39.203Z",
-    "gitCommit": "58c814208",
-    "note": "由 20260919-000648-92460 自动写入"
+    "frozenAt": "2026-09-18T16:39:38.129Z",
+    "gitCommit": "d84337f04",
+    "note": "由 20260919-003553-92636 更新"
   },
   "cases": {
     "handshake/spawn_event_after_health": {
@@ -52,9 +52,6 @@
           "hasOwnEntity": true,
           "healthIsPositive": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2419
       }
     },
     "handshake/phase_sequence": {
@@ -101,9 +98,6 @@
           "sawFinishConfiguration": true,
           "sawLogin": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2173
       }
     },
     "handshake/registry_data_decodes": {
@@ -150,9 +144,6 @@
           "dimensionsNonEmpty": true,
           "biomesNonEmpty": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2443
       }
     },
     "handshake/login_entity_id_consistent": {
@@ -197,9 +188,6 @@
           "hasSelfEntity": true,
           "selfEntityIdPositive": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2380
       }
     },
     "handshake/tab_list_contains_self": {
@@ -244,9 +232,6 @@
           "playerCountPositive": true,
           "containsSelf": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2193
       }
     },
     "handshake/clean_disconnect": {
@@ -290,9 +275,6 @@
         "extra": {
           "disconnectReasonClass": "other"
         }
-      },
-      "metrics": {
-        "elapsedMs": 2629
       }
     },
     "chunk-sync/chunks_loaded": {
@@ -337,9 +319,6 @@
           "spawnColumnReadable": true,
           "neighborhoodReadable": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2364
       }
     },
     "chunk-sync/flat_layers": {
@@ -384,9 +363,6 @@
           "layersMatch": true,
           "aboveIsAir": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2521
       }
     },
     "chunk-sync/layers_across_chunk_boundary": {
@@ -430,9 +406,6 @@
         "extra": {
           "boundaryLayersMatch": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2483
       }
     },
     "chunk-sync/biome_at_surface": {
@@ -477,9 +450,6 @@
           "biomeIdAtSurface": 40,
           "biomeNameAtSurface": "plains"
         }
-      },
-      "metrics": {
-        "elapsedMs": 2704
       }
     },
     "chunk-sync/dimension_type": {
@@ -525,9 +495,6 @@
           "height": 384,
           "dimension": "overworld"
         }
-      },
-      "metrics": {
-        "elapsedMs": 2243
       }
     },
     "chunk-sync/spawn_not_in_void": {
@@ -574,9 +541,6 @@
           "onGroundEventually": true,
           "receivedChunks": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2190
       }
     },
     "chunk-sync/block_names_resolve": {
@@ -620,9 +584,6 @@
         "extra": {
           "allSampledBlocksResolved": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2489
       }
     },
     "block-interaction/dig_grass_block": {
@@ -667,9 +628,6 @@
           "digResolved": true,
           "becameAir": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2897
       }
     },
     "block-interaction/dig_emits_update_and_ack": {
@@ -714,9 +672,6 @@
           "gotBlockUpdate": true,
           "gotBlockChangedAck": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2813
       }
     },
     "block-interaction/place_stone_block": {
@@ -761,9 +716,6 @@
           "placeResolved": true,
           "placedStone": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 3845
       }
     },
     "block-interaction/repeated_place_is_stable": {
@@ -809,9 +761,6 @@
           "secondAttemptResolved": true,
           "secondThrew": false
         }
-      },
-      "metrics": {
-        "elapsedMs": 3555
       }
     },
     "block-interaction/dig_place_dig_roundtrip": {
@@ -856,9 +805,6 @@
           "roundtripComplete": true,
           "finalState": "air"
         }
-      },
-      "metrics": {
-        "elapsedMs": 3522
       }
     },
     "block-interaction/connection_stays_healthy": {
@@ -902,9 +848,6 @@
         "extra": {
           "stillInPlayState": true
         }
-      },
-      "metrics": {
-        "elapsedMs": 2725
       }
     }
   }
