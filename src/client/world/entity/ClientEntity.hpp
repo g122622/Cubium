@@ -36,6 +36,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -911,6 +912,30 @@ public:
      */
     void setXpValue(i32 value) { m_xpValue = value; }
 
+    // ========== 属性（update_attributes 包） ==========
+
+    /**
+     * @brief 用一次属性同步包的内容替换该属性的记录
+     *
+     * 包的语义是「整条属性全量替换」——先设基础值，再清空该属性的全部修饰符并逐个加入
+     * 本次下发的那些，故此处直接覆盖而非合并。
+     *
+     * TODO: 客户端尚无属性消费点——移动速度预测、挖掘速度、交互距离等仍读各自的本地硬编码
+     *       默认值。待这些消费点接入后，本表的读写才算落地。
+     */
+    void setAttribute(i32 attributeRegistryId, f64 base, std::vector<std::pair<std::string, f64>> modifiers)
+    {
+        m_attributes[attributeRegistryId] = AttributeSnapshotValue{base, std::move(modifiers)};
+    }
+
+    /// 属性的基础值；未收到该属性的同步包时返回 nullopt。
+    /// TODO: 客户端尚无消费点（见 setAttribute）。
+    [[nodiscard]] std::optional<f64> attributeBase(i32 attributeRegistryId) const
+    {
+        const auto it = m_attributes.find(attributeRegistryId);
+        return it != m_attributes.end() ? std::optional<f64>(it->second.base) : std::nullopt;
+    }
+
     // ========== 闪电支持（用于 LightningBolt 渲染） ==========
 
     /**
@@ -1642,6 +1667,15 @@ private:
 
     // ExperienceOrb 经验值数据
     i32 m_xpValue = 1; // 默认值为1
+
+    /// 一条属性的客户端记录（update_attributes 包的内容）。
+    struct AttributeSnapshotValue {
+        f64 base;
+        std::vector<std::pair<std::string, f64>> modifiers;
+    };
+
+    /// attribute registry id → 属性记录。同步包的语义是全量替换，故直接覆盖。
+    std::unordered_map<i32, AttributeSnapshotValue> m_attributes;
 
     // LightningBolt 闪电形状随机种子
     u64 m_boltVertex = 0;

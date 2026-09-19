@@ -248,6 +248,23 @@ export const handshakeCases: readonly CaseDefinition[] = [
     },
 
     {
+        id: "handshake/attributes_synced",
+        title: "实体属性随 spawn 下发（update_attributes）",
+        servers: ["cubium", "vanilla"],
+        botCount: 1,
+        async run({ trace }): Promise<Record<string, unknown>> {
+            // 属性包在实体进入玩家视野时下发一次完整快照。客户端据此才拿得到影响行为的
+            // 属性值（如 block_break_speed 决定挖掘耗时）；缺了它客户端只能用本地默认值，
+            // 且不会报错——所以这条必须有自动化哨兵。
+            // 包名在 Prismarine 生态里有新旧两种写法，两侧都接受。
+            const names = ["update_attributes", "entity_update_attributes"];
+            const count = names.reduce((sum, name) => sum + trace.count(name), 0);
+            expectTrue(count > 0, `未收到属性同步包（尝试过 ${names.join(" / ")}）`);
+            return { attributesSynced: true, attributeSnapshotsAtLeastOne: count > 0 };
+        },
+    },
+
+    {
         id: "handshake/tab_list_contains_self",
         title: "Tab 列表包含自身（服务端须发送 player_info_update）",
         servers: ["cubium"],

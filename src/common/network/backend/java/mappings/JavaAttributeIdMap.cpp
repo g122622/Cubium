@@ -60,9 +60,7 @@ constexpr VanillaAttributeEntry kVanillaAttributes[] = {
     {6, "block_interaction_range", ::mc::entity::attribute::Attributes::BLOCK_INTERACTION_RANGE, true},
     {7, "burning_time", ::mc::entity::attribute::Attributes::BURNING_TIME, true},
     {8, "camera_distance", nullptr, true},
-    {9, "explosion_knockback_resistance",
-        ::mc::entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE,
-        true},
+    {9, "explosion_knockback_resistance", ::mc::entity::attribute::Attributes::EXPLOSION_KNOCKBACK_RESISTANCE, true},
     {10, "entity_interaction_range", ::mc::entity::attribute::Attributes::ENTITY_INTERACTION_RANGE, true},
     {11, "fall_damage_multiplier", ::mc::entity::attribute::Attributes::FALL_DAMAGE_MULTIPLIER, true},
     {12, "flying_speed", ::mc::entity::attribute::Attributes::FLYING_SPEED, true},
@@ -126,8 +124,8 @@ Result<void> JavaAttributeIdMap::initialize()
             continue;
         }
         // 同名冲突会静默覆盖，故显式拒绝——两张表任一出现重复都说明常量写错了。
-        if (m_internalToJava.find(entry.internalName) != m_internalToJava.end()
-            || m_javaToInternal.find(entry.vanillaId) != m_javaToInternal.end()) {
+        if (m_internalToJava.find(entry.internalName) != m_internalToJava.end() ||
+            m_javaToInternal.find(entry.vanillaId) != m_javaToInternal.end()) {
             return Error(ErrorCode::InvalidArgument,
                 "JavaAttributeIdMap: duplicate mapping for '" + std::string(entry.internalName) + "'",
                 "JavaAttributeIdMap::initialize");
@@ -137,9 +135,8 @@ Result<void> JavaAttributeIdMap::initialize()
     }
 
     m_initialized = true;
-    spdlog::info("JavaAttributeIdMap: mapped {} attributes (vanilla total {})",
-        m_internalToJava.size(),
-        kVanillaAttributeCount);
+    spdlog::info(
+        "JavaAttributeIdMap: mapped {} attributes (vanilla total {})", m_internalToJava.size(), kVanillaAttributeCount);
     return Result<void>::ok();
 }
 

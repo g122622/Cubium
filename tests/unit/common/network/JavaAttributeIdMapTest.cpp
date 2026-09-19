@@ -23,8 +23,8 @@
 
 // JavaAttributeIdMap 单测：锁定关键 registry id，防迁移或重排导致 wire 映射错位。
 
-#include "common/entity/attribute/Attributes.hpp"
 #include "common/network/backend/java/mappings/JavaAttributeIdMap.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 
 #include <gtest/gtest.h>
 

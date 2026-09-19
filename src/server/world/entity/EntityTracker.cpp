@@ -31,9 +31,11 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
+#include "common/network/backend/java/mappings/JavaAttributeIdMap.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -44,6 +46,7 @@
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/network/outbound/AttributeSnapshotBuilder.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <array>
 #include <cmath>
@@ -589,6 +592,16 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
         player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
     }
     entity->dataManager().clearDirty();
+
+    // 属性同步：实体进入玩家视野时下发一次完整属性快照。
+    // 客户端对该包的语义是「整条属性全量替换」（先设基础值，再清空该属性的全部修饰符并
+    // 逐个加入本次下发的那些），故这里必须带全部修饰符，不能只发基础值。
+    if (livingEntity != nullptr) {
+        auto attributes = net::buildAttributeSnapshot(*livingEntity);
+        if (!attributes.attributes.empty()) {
+            player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(attributes)}));
+        }
+    }
 }
 
 void EntityTracker::_sendMetadataPacket(

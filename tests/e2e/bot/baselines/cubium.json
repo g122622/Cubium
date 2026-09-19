@@ -4,9 +4,9 @@
     "server": "cubium",
     "mcVersion": "1.21.11",
     "protocolVersion": 774,
-    "frozenAt": "2026-09-19T02:29:45.212Z",
-    "gitCommit": "51862ca1b",
-    "note": "由 20260919-102538-89720 更新"
+    "frozenAt": "2026-09-19T08:24:32.212Z",
+    "gitCommit": "5dae10a57",
+    "note": "由 20260919-162033-45948 更新"
   },
   "cases": {
     "handshake/spawn_event_after_health": {
@@ -979,6 +979,50 @@
         },
         "extra": {
           "removedAfterLeave": true
+        }
+      }
+    },
+    "handshake/attributes_synced": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "attributesSynced": true,
+          "attributeSnapshotsAtLeastOne": true
         }
       }
     }

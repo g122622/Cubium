@@ -6,8 +6,10 @@
  * 的 `newBlock.type===0` 才 resolve，placeBlock() 若 5 秒内收不到 block update 会直接抛
  * "Server refused to place ..."——两条路径都能把服务端不回包暴露成用例失败。
  *
- * 用例统一在 creative 模式下运行：挖掘瞬破，从而不受 update_attributes(cb 129) 尚未实现
- * （该包提供 block_break_speed 属性）的影响。
+ * 用例统一在 creative 模式下运行：挖掘瞬破，从而不受「block_break_speed 属性尚未实现」
+ * 影响（该属性决定挖掘耗时）。
+ * TODO: 属性同步包（update_attributes）已实现，但属性集合里还没有 block_break_speed
+ *       及其挖掘耗时消费点。补齐后本文件的用例应改回 survival 模式。
  *
  * 坐标约定：所有交互点限制在出生点 ±2 格内。mineflayer 与服务端都要求目标处于 bot 的
  * 触及范围（约 4.5 格）；超出时服务端拒绝放置，用例会以「与协议无关的原因」失败。

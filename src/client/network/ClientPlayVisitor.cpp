@@ -2578,6 +2578,25 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 // TODO: 切换到 DeathScreen 并显示死亡消息。当前 DeathScreen 未接入，
                 //       仅记录日志，待死亡画面 UI 落地后补。
                 return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::UpdateAttributes>) {
+                // 属性同步。包的语义是「整条属性全量替换」：先设基础值，再清空该属性的全部
+                // 修饰符并逐个加入本次下发的那些，故这里直接覆盖记录。
+                const auto& p = pkt;
+                ClientEntity* entity =
+                    m_app.m_world.entityManager().getEntity(static_cast<EntityInstanceId>(p.entityId));
+                // TODO: 客户端尚无属性消费点——移动速度预测、挖掘速度、交互距离等仍读各自的
+                //       本地硬编码默认值。待这些消费点接入后，本分支写入的属性表才算落地。
+                if (entity != nullptr) {
+                    for (const auto& snapshot : p.attributes) {
+                        std::vector<std::pair<std::string, f64>> modifiers;
+                        modifiers.reserve(snapshot.modifiers.size());
+                        for (const auto& modifier : snapshot.modifiers) {
+                            modifiers.emplace_back(modifier.id, modifier.amount);
+                        }
+                        entity->setAttribute(snapshot.attributeRegistryId, snapshot.base, std::move(modifiers));
+                    }
+                }
+                return Result<void>::ok();
             }
             // ---- 默认：未处理包静默忽略 ----
             else {

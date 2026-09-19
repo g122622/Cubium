@@ -42,6 +42,7 @@
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/network/outbound/AttributeSnapshotBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/network/sync/WeatherSyncService.hpp"
@@ -169,6 +170,18 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     // 登录阶段必须先建立玩家维度映射，否则 TeleportConfirm 回来后无法解析玩家所在世界。
     m_server.dimensionManager().playerJoinDimension(playerId, overworld->id());
     result.entityId = playerEntity->id();
+
+    // 下发玩家自身的属性快照。玩家自己的实体由 login 包在客户端建立，不经过 EntityTracker
+    // 的视野流程（该流程显式跳过玩家自身），故这里必须单独发一次——否则客户端对自己的属性
+    // 只能沿用本地默认值，且不会有任何报错。
+    {
+        auto attributes = buildAttributeSnapshot(*playerEntity);
+        if (!attributes.attributes.empty()) {
+            m_server.sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{std::move(attributes)}});
+        }
+    }
 
     // 从 OP 列表设置玩家权限等级 + 从存档加载玩家数据恢复到实体
     const i32 playerPermissionLevel = m_server.resolveOpLevel(playerData->uuid);

@@ -74,8 +74,10 @@ export interface ServerProfile {
  *
  * viewDistance=4（而非默认 6）：区块发送是每 tick 全量抽干（ChunkSendManager::processPendingSends），
  * 视距直接决定 spawn 期间的发包量，4→81 列是实测可接受的量级。
- * gameMode=creative：挖掘瞬破，使方块交互用例不受「update_attributes(cb 129) 未实现」影响
- * （该包提供 block_break_speed，缺失会让生存模式挖掘速度退化）。
+ * gameMode=creative：挖掘瞬破，使方块交互用例不受「block_break_speed 属性尚未实现」影响
+ * ——该属性决定挖掘耗时，缺了它生存模式下的挖掘速度会退化。
+ * TODO: 属性同步包（update_attributes）本身已实现，但属性集合里还没有 block_break_speed
+ *       （连同其挖掘耗时消费点）。补齐后这些用例应改回 survival 模式。
  */
 export const E2E_SERVER_PROFILE: ServerProfile = {
     worldName: "e2e",
