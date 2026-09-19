@@ -127,7 +127,7 @@ public:
                 return entry.decode(buf);
             }
         }
-        return Error(ErrorCode::ProtocolError, "Unknown packet id", "IdDispatchCodec::decode");
+        return Error(ErrorCode::ProtocolError, "Unknown packet id " + std::to_string(id), "IdDispatchCodec::decode");
     }
 
     [[nodiscard]] const std::vector<Entry>& entries() const noexcept { return m_entries; }

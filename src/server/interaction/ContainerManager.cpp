@@ -248,6 +248,10 @@ Result<ContainerClickResult> ContainerManager::handleClick(
 {
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
+        spdlog::warn("ContainerClick dropped: player {} not found or not logged in (found={} loggedIn={})",
+            playerId,
+            playerData != nullptr,
+            playerData != nullptr && playerData->loggedIn);
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
     }
 
@@ -264,6 +268,16 @@ Result<ContainerClickResult> ContainerManager::handleClick(
     }
 
     if (menu == nullptr) {
+        // 记一条诊断日志。客户端点击若长期被拒会表现为「物品栏点了没反应」，而从外部完全
+        // 看不出原因；把双方各自的 id 与已注册的菜单一并记下，可直接对照是哪一侧对不上。
+        const bool hasOpen = openIt != m_openContainers.end() && openIt->second.menu != nullptr;
+        spdlog::warn("ContainerClick rejected: player {} reported containerId {} but no menu matched "
+                     "(hasOpenContainer={}, openMenuId={}, hasPlayerInventoryMenu={})",
+            playerId,
+            containerId,
+            hasOpen,
+            hasOpen ? openIt->second.menu->getId() : -1,
+            getPlayerInventoryMenu(playerId) != nullptr);
         return Error(ErrorCode::InvalidState, "No matching container menu for the reported container id");
     }
 

@@ -9,10 +9,12 @@ import type { CaseDefinition } from "../case.ts";
 import { handshakeCases } from "./handshake.ts";
 import { chunkSyncCases } from "./chunk-sync.ts";
 import { blockInteractionCases } from "./block-interaction.ts";
+import { inventoryCases } from "./inventory.ts";
 
 /** 全部用例。 */
 export const ALL_CASES: readonly CaseDefinition[] = [
     ...handshakeCases,
     ...chunkSyncCases,
     ...blockInteractionCases,
+    ...inventoryCases,
 ];

@@ -2247,6 +2247,15 @@ void MinecraftServer::_handleContainerClickRemote(
     if (clickResult.success()) {
         // 同步物品栏到客户端
         inventoryManager().syncToClient(playerId);
+    } else {
+        // 点击被拒时客户端侧只会表现为「点了没反应」，这条日志是唯一的线索。
+        spdlog::warn("ContainerClick failed: player {} containerId={} slot={} button={} mode={}: {}",
+            playerId,
+            evt.containerId,
+            evt.slotNum,
+            evt.buttonNum,
+            evt.clickType,
+            clickResult.error().toString());
     }
 }
 
