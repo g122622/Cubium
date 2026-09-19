@@ -53,12 +53,11 @@ protected:
 
 TEST_F(PlayerIdentityRegistryTest, RegisterLocalPlayerIndexesAllFields)
 {
-    registry.registerLocalPlayer(100, 7u, makeUuid(1), "Steve");
+    registry.registerLocalPlayer(100, makeUuid(1), "Steve");
 
     EXPECT_EQ(registry.size(), 1u);
     ASSERT_NE(registry.uuidOf(100), nullptr);
     EXPECT_EQ(*registry.uuidOf(100), makeUuid(1));
-    EXPECT_EQ(registry.playerIdOf(100), 7u);
     EXPECT_EQ(registry.entityIdOf(makeUuid(1)), 100);
     EXPECT_EQ(registry.entityIdByUsername("Steve"), 100);
     ASSERT_NE(registry.uuidByUsername("Steve"), nullptr);
@@ -68,11 +67,10 @@ TEST_F(PlayerIdentityRegistryTest, RegisterLocalPlayerIndexesAllFields)
 
 TEST_F(PlayerIdentityRegistryTest, NetworkPlayerWithoutUuidReturnsNull)
 {
-    registry.registerNetworkPlayer(200, 9u, "Alex");
+    registry.registerNetworkPlayer(200, "Alex");
 
     // spawn 包无 UUID 且无 PlayerListEntry 暂存 → uuidOf 返回 nullptr
     EXPECT_EQ(registry.uuidOf(200), nullptr);
-    EXPECT_EQ(registry.playerIdOf(200), 9u);
     EXPECT_FALSE(registry.isLocal(200));
 }
 
@@ -86,7 +84,7 @@ TEST_F(PlayerIdentityRegistryTest, PlayerListUuidBeforeSpawnCompletesOnSpawn)
     EXPECT_EQ(registry.entityIdByUsername("Alex"), INVALID_ENTITY_ID);
 
     // spawn 包后到，从暂存表取用 UUID 补全
-    registry.registerNetworkPlayer(200, 9u, "Alex");
+    registry.registerNetworkPlayer(200, "Alex");
 
     ASSERT_NE(registry.uuidOf(200), nullptr);
     EXPECT_EQ(*registry.uuidOf(200), makeUuid(2));
@@ -96,7 +94,7 @@ TEST_F(PlayerIdentityRegistryTest, PlayerListUuidBeforeSpawnCompletesOnSpawn)
 TEST_F(PlayerIdentityRegistryTest, PlayerListUuidAfterSpawnCompletesExistingEntry)
 {
     // spawn 包先到（无 UUID）
-    registry.registerNetworkPlayer(300, 11u, "Bob");
+    registry.registerNetworkPlayer(300, "Bob");
     EXPECT_EQ(registry.uuidOf(300), nullptr);
 
     // PlayerListEntry 后到，补全已注册条目的 UUID
@@ -109,7 +107,7 @@ TEST_F(PlayerIdentityRegistryTest, PlayerListUuidAfterSpawnCompletesExistingEntr
 
 TEST_F(PlayerIdentityRegistryTest, AssignUuidIsIdempotent)
 {
-    registry.registerNetworkPlayer(400, 13u, "Cara");
+    registry.registerNetworkPlayer(400, "Cara");
     EXPECT_TRUE(registry.assignUuidToEntity(400, makeUuid(4)));
     EXPECT_TRUE(registry.assignUuidToEntity(400, makeUuid(4))); // 幂等
     ASSERT_NE(registry.uuidOf(400), nullptr);
@@ -121,30 +119,19 @@ TEST_F(PlayerIdentityRegistryTest, AssignUuidIsIdempotent)
 
 TEST_F(PlayerIdentityRegistryTest, RemoveByEntityIdClearsAllIndexes)
 {
-    registry.registerLocalPlayer(100, 7u, makeUuid(1), "Steve");
+    registry.registerLocalPlayer(100, makeUuid(1), "Steve");
     registry.removeByEntityId(100);
 
     EXPECT_EQ(registry.size(), 0u);
     EXPECT_EQ(registry.uuidOf(100), nullptr);
-    EXPECT_EQ(registry.playerIdOf(100), 0u);
     EXPECT_EQ(registry.entityIdOf(makeUuid(1)), INVALID_ENTITY_ID);
     EXPECT_EQ(registry.entityIdByUsername("Steve"), INVALID_ENTITY_ID);
     EXPECT_FALSE(registry.isLocal(100));
 }
 
-TEST_F(PlayerIdentityRegistryTest, RemoveByPlayerIdRemovesEntry)
-{
-    registry.registerNetworkPlayer(200, 9u, "Alex");
-    registry.registerPlayerListUuid(makeUuid(2), "Alex");
-
-    registry.removeByPlayerId(9u);
-    EXPECT_EQ(registry.size(), 0u);
-    EXPECT_EQ(registry.entityIdOf(makeUuid(2)), INVALID_ENTITY_ID);
-}
-
 TEST_F(PlayerIdentityRegistryTest, RemoveByUuidRemovesEntry)
 {
-    registry.registerLocalPlayer(100, 7u, makeUuid(1), "Steve");
+    registry.registerLocalPlayer(100, makeUuid(1), "Steve");
     registry.removeByUuid(makeUuid(1));
 
     EXPECT_EQ(registry.size(), 0u);
@@ -153,8 +140,8 @@ TEST_F(PlayerIdentityRegistryTest, RemoveByUuidRemovesEntry)
 
 TEST_F(PlayerIdentityRegistryTest, ClearRemovesEverything)
 {
-    registry.registerLocalPlayer(100, 7u, makeUuid(1), "Steve");
-    registry.registerNetworkPlayer(200, 9u, "Alex");
+    registry.registerLocalPlayer(100, makeUuid(1), "Steve");
+    registry.registerNetworkPlayer(200, "Alex");
     registry.registerPlayerListUuid(makeUuid(2), "Alex");
 
     registry.clear();
@@ -167,8 +154,8 @@ TEST_F(PlayerIdentityRegistryTest, ClearRemovesEverything)
 
 TEST_F(PlayerIdentityRegistryTest, IsLocalOnlyForLocalPlayer)
 {
-    registry.registerLocalPlayer(100, 7u, makeUuid(1), "Steve");
-    registry.registerNetworkPlayer(200, 9u, "Alex");
+    registry.registerLocalPlayer(100, makeUuid(1), "Steve");
+    registry.registerNetworkPlayer(200, "Alex");
 
     EXPECT_TRUE(registry.isLocal(100));
     EXPECT_FALSE(registry.isLocal(200));

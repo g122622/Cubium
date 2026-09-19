@@ -469,33 +469,28 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             // ---- 登录 / 连接 ----
             if constexpr (std::is_same_v<T, irplay::Login>) {
                 // play::Login 触发本地玩家生成（旧 onLoginSuccess 等价）。
-                // playerId 来自包；entityId/uuid/username 由 ClientNetwork::onLoginReady 在此之前
-                // 已注入 ClientApplication（m_localIdentity/m_network->uuid()/username()）。
+                // 首字段是本地玩家的**实体实例 id**——服务端的玩家注册 id 是玩家列表内的索引，
+                // 从不跨网传输；两条序列独立递增，世界里存在非玩家实体时就会错开。
+                // uuid/username 由 ClientNetwork::onLoginReady 在此之前已注入 ClientApplication。
                 const auto& p = pkt;
-                const i32 playerId = p.playerId;
+                const EntityInstanceId entityId = static_cast<EntityInstanceId>(p.playerId);
                 const auto& uuid = m_app.m_network ? m_app.m_network->uuid() : std::array<u8, 16>{};
                 const std::string username = m_app.m_network ? m_app.m_network->username() : std::string{};
-                // entityId：1.21.11 Login 不携带，沿用 playerId 作为本地玩家 entityId
-                // （与旧 EntityTracker 约定一致：远程玩家 playerId 即 entityId）。
-                const EntityInstanceId entityId = static_cast<EntityInstanceId>(playerId);
 
-                spdlog::info("Login successful: playerId={}, entityId={}, username={}", playerId, entityId, username);
+                spdlog::info("Login successful: entityId={}, username={}", entityId, username);
 
-                m_app.m_localIdentity.setIdentity(playerId, entityId);
-                m_app.m_identityRegistry.registerLocalPlayer(entityId, playerId, uuid, username);
+                m_app.m_localIdentity.setIdentity(entityId);
+                m_app.m_identityRegistry.registerLocalPlayer(entityId, uuid, username);
 
                 auto& entityManager = m_app.m_world.entityManager();
-                ClientEntity* playerEntity = entityManager.spawnLocalPlayer(entityId, playerId, username);
+                ClientEntity* playerEntity = entityManager.spawnLocalPlayer(entityId, username);
                 if (playerEntity) {
                     spdlog::info("Local player entity created: entityId={}", entityId);
                 }
 
                 m_app.m_predictor = std::make_unique<ClientPlayerPredictor>();
 
-                if (m_app.m_player) {
-                    m_app.m_player->setPlayerId(playerId);
-                }
-                m_app.m_knownPlayerNames[playerId] = username;
+                m_app.m_knownPlayerNames[entityId] = username;
 
                 // 消费 Login 携带的视距/模拟距离初始值（对齐原版 Login 包下发）。
                 // chunkRadius → ClientWorld 渲染距离；simulationDistance → 服务端模拟距离字段
@@ -688,17 +683,19 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 // 玩家实体走 onPlayerSpawn 路径（AddEntity type=PLAYER）
                 // 注：服务端 PlayerSpawn 经 PlayerInfoUpdate+AddEntity 合成，这里按 type 区分。
                 if (typeId == mc::entity::EntityTypeKeys::PLAYER) {
-                    const PlayerId playerId = static_cast<PlayerId>(entityId);
-                    // username 由 PlayerInfoUpdate 预先登记于 m_knownPlayerNames；此处取回
-                    auto it = m_app.m_knownPlayerNames.find(playerId);
+                    const EntityInstanceId playerEntityId = static_cast<EntityInstanceId>(entityId);
+                    // username 取自 m_knownPlayerNames。当前只有本地玩家会写入该表（见 Login 分支）。
+                    // TODO: 远程玩家的名字尚未登记（PlayerInfoUpdate 分支只登记 UUID），
+                    //       故此处对远程玩家恒取不到名字，需补一条 PlayerInfoUpdate → 名字的通路。
+                    const auto it = m_app.m_knownPlayerNames.find(playerEntityId);
                     const std::string username = (it != m_app.m_knownPlayerNames.end()) ? it->second : std::string();
-                    if (!m_app.m_localIdentity.isLocalPlayer(playerId)) {
+                    if (!m_app.m_localIdentity.isLocalPlayerEntity(playerEntityId)) {
                         auto& entityManager = m_app.m_world.entityManager();
-                        const EntityInstanceId eid = static_cast<EntityInstanceId>(entityId);
-                        m_app.m_identityRegistry.registerNetworkPlayer(eid, playerId, username);
-                        ClientEntity* entity = entityManager.spawnEntity(eid, mc::entity::EntityTypeKeys::PLAYER);
+                        m_app.m_identityRegistry.registerNetworkPlayer(playerEntityId, username);
+                        ClientEntity* entity =
+                            entityManager.spawnEntity(playerEntityId, mc::entity::EntityTypeKeys::PLAYER);
                         if (!entity) {
-                            entity = entityManager.getEntity(eid);
+                            entity = entityManager.getEntity(playerEntityId);
                         }
                         if (entity) {
                             entity->setPosition(x, y, z);
@@ -1216,8 +1213,9 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 if (!m_app.m_skinManager) {
                     return Result<void>::ok();
                 }
-                // actions 位：0=ADD_PLAYER 1=INITIALIZE_CHAT 2=UPDATE_GAME_MODE 3=UPDATE_LISTED
-                // 4=UPDATE_LATENCY 5=UPDATE_DISPLAY_NAME 6=UPDATE_LIST_ORDER 7=UPDATE_HAT 8=INITIALIZE_CHAT2
+                // actions 位（Action 枚举 ordinal，共 8 个）：0=ADD_PLAYER 1=INITIALIZE_CHAT
+                // 2=UPDATE_GAME_MODE 3=UPDATE_LISTED 4=UPDATE_LATENCY 5=UPDATE_DISPLAY_NAME
+                // 6=UPDATE_LIST_ORDER 7=UPDATE_HAT
                 const bool addPlayer = (p.actions & 0x0001) != 0;
                 if (addPlayer) {
                     std::vector<::mc::skin::PlayerListEntry> entries;
@@ -1241,7 +1239,9 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                         m_app.m_skinManager->registerPlayerSkin(profile);
                     }
                 }
-                // 其它 actions（UPDATE_LATENCY/DISPLAY_NAME 等）当前无处理逻辑，保留扩展点
+                // TODO: 其余 action（UPDATE_GAME_MODE/LISTED/LATENCY/DISPLAY_NAME 等）尚未接入
+                //       本地 Tab 列表的状态里——游戏模式图标、延迟显示、自定义显示名都还缺落地。
+                //       displayName 是 NBT 字节，取纯文本可经 componentNbtBytesToPlainText。
                 return Result<void>::ok();
             }
             // ---- 玩家列表移除 ----
@@ -2570,9 +2570,8 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 spdlog::info("PlayerCombatEnd received: combat ended (duration={})", p.duration);
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::PlayerCombatKill>) {
-                // 1.21.11 ClientboundPlayerCombatKillPacket：驱动客户端死亡画面（DeathScreen）。
-                // vanilla ClientPacketListener.handlePlayerCombatKill：若 playerId == 本地玩家，
-                //   则切换到 DeathScreen 并显示 message；否则忽略。
+                // 战斗击杀包：驱动客户端死亡画面（DeathScreen）。
+                // 包内携带实体 id，仅当它指向本地玩家时才应切换画面，否则忽略。
                 const auto& p = pkt;
                 const std::string deathMessage = ::mc::text::componentNbtBytesToPlainText(p.message);
                 spdlog::info("PlayerCombatKill received: playerId={} message=\"{}\"", p.playerId, deathMessage);

@@ -25,8 +25,12 @@
 #include "PlayerManager.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include <array>
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -67,6 +71,14 @@ void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& r
     auto* player = m_playerManager.getPlayer(playerId);
     if (!player) return;
 
+    // 离场广播用的 UUID 必须在 removePlayer 之前取——之后 ServerPlayerData 即被销毁。
+    // 判据用 uuid 非空而不用 hasConnection()：被踢时连接可能已先行断开（如 KeepAlive 超时后
+    // socket 已关闭），hasConnection() 会因 isConnected() 为假而漏掉离场广播。
+    std::optional<std::array<u8, 16>> departedUuid;
+    if (!player->uuid.empty()) {
+        departedUuid = util::uuidFromString(player->uuid);
+    }
+
     auto* conn = player->getConnection();
     if (conn) {
         conn->disconnect(reason);
@@ -79,6 +91,17 @@ void ConnectionManager::disconnectPlayer(PlayerId playerId, const std::string& r
     }
 
     m_playerManager.removePlayer(playerId);
+
+    // 广播离场（ClientboundPlayerInfoRemove，cb 67），否则其余客户端的 Tab 列表会永久残留该玩家。
+    // /kick、/ban、白名单拒绝、KeepAlive 超时踢出都走本路径，不补这一包这些场景全会残留。
+    // disconnectAll（关服）不广播——对所有玩家踢出而言没有接收方。
+    if (departedUuid.has_value()) {
+        mc::network::ir::play::PlayerInfoRemove removal;
+        removal.uuids.push_back(*departedUuid);
+        broadcastExcept(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{removal}});
+    }
 }
 
 void ConnectionManager::disconnectAll(const std::string& reason)

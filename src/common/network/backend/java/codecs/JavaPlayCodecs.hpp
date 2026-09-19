@@ -1592,9 +1592,13 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         buf.writeVarInt(e.latency.value_or(0));
     }
     if ((actions & kActionUpdateDisplayName) != 0) {
-        // 我方不生产显示名（IR PlayerInfoEntry 不承载 displayName 字段），写 Bool(false)。
-        // 真实 Component NBT 写入（nbt_io::writeCompound）待上层接入 ITextComponent NBT codec 后补。
-        buf.writeBool(false);
+        // Component NBT，自定界（无长度前缀）。无显示名写 Bool(false)，对端回退到 profile 名渲染。
+        if (e.displayName.has_value()) {
+            buf.writeBool(true);
+            writeComponentNbt(buf, *e.displayName);
+        } else {
+            buf.writeBool(false);
+        }
     }
     if ((actions & kActionUpdateListOrder) != 0) {
         buf.writeVarInt(e.listOrder.value_or(0));
@@ -1659,9 +1663,7 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         bool hasName = false;
         MC_TRY_ASSIGN(hasName, buf.readBool());
         if (hasName) {
-            // 真实 Component NBT（Java ComponentSerialization.STREAM_CODEC，NBT compound 自定界）。
-            // 我方不消费显示名，按 NBT compound 跳过以保证真 Java 服务端包不错位。
-            MC_TRY(buffer::nbt_io::skipCompound(buf));
+            MC_TRY_ASSIGN(e.displayName, readComponentNbt(buf));
         }
     }
     if ((actions & kActionUpdateListOrder) != 0) {

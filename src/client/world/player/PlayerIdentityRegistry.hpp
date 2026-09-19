@@ -34,16 +34,17 @@ namespace mc::client {
 /**
  * @brief 玩家身份注册表
  *
- * 统一维护 UUID ↔ EntityInstanceId ↔ PlayerId ↔ username 的多向映射，
- * 消除历史代码中 `static_cast<EntityInstanceId>(playerId)` 的反模式。
+ * 统一维护 UUID ↔ EntityInstanceId ↔ username 的多向映射。
+ *
+ * 各条信息流的标识口径统一在**实体实例 id** 上：服务端的玩家注册 id 是玩家列表内的索引，
+ * 属服务端内部概念、从不跨网传输，客户端拿不到它，也不应假定它与实体 id 相等。
  *
  * ## 数据来源
  *
  * 三条信息流原本相互孤立，本注册表是唯一的汇合点：
- * - **LoginResponsePacket**（本地玩家）：playerId / entityId / uuid / username 一次性到齐。
+ * - **LoginResponsePacket**（本地玩家）：entityId / uuid / username 一次性到齐。
  * - **PlayerListEntry**（玩家列表）：uuid / username，可能早于或晚于 spawn。
- * - **PlayerSpawnPacket**（网络玩家实体）：playerId / username / 位置，无 uuid，也无 entityId
- *   （历史反模式用 `static_cast<EntityInstanceId>(playerId)` 凑数）。
+ * - **PlayerSpawnPacket**（网络玩家实体）：username / 位置，无 uuid。
  *
  * ## 解决的问题
  *
@@ -76,12 +77,10 @@ public:
      * LoginResponsePacket 一次性提供全部身份字段。
      *
      * @param entityId 世界实体标识
-     * @param playerId 网络会话标识
      * @param uuid 玩家持久 UUID（服务端 generateOfflineUuid 生成）
      * @param username 用户名
      */
-    void registerLocalPlayer(
-        EntityInstanceId entityId, PlayerId playerId, const Uuid& uuid, const std::string& username);
+    void registerLocalPlayer(EntityInstanceId entityId, const Uuid& uuid, const std::string& username);
 
     /**
      * @brief 注册网络玩家实体（PlayerSpawnPacket 到达时调用）
@@ -90,11 +89,10 @@ public:
      * 若 username 尚未通过 registerPlayerListUuid 注册，UUID 留空，待
      * PlayerListEntry 到达后再补全（见 tryResolveUuid）。
      *
-     * @param entityId 世界实体标识（由客户端 EntityManager 分配，非 playerId 强转）
-     * @param playerId 网络会话标识
+     * @param entityId 世界实体标识（由客户端 EntityManager 分配）
      * @param username 用户名
      */
-    void registerNetworkPlayer(EntityInstanceId entityId, PlayerId playerId, const std::string& username);
+    void registerNetworkPlayer(EntityInstanceId entityId, const std::string& username);
 
     /**
      * @brief 记录 PlayerListEntry 的 uuid↔username（玩家列表包到达时调用）
@@ -125,11 +123,6 @@ public:
     void removeByEntityId(EntityInstanceId entityId);
 
     /**
-     * @brief 按玩家ID移除
-     */
-    void removeByPlayerId(PlayerId playerId);
-
-    /**
      * @brief 按UUID移除（玩家列表移除时调用）
      */
     void removeByUuid(const Uuid& uuid);
@@ -152,12 +145,6 @@ public:
      * @return 实体ID；未注册返回 INVALID_ENTITY_ID
      */
     [[nodiscard]] EntityInstanceId entityIdOf(const Uuid& uuid) const;
-
-    /**
-     * @brief 按实体ID查询玩家ID
-     * @return 玩家ID；未注册返回 0
-     */
-    [[nodiscard]] PlayerId playerIdOf(EntityInstanceId entityId) const;
 
     /**
      * @brief 按用户名查询 UUID
@@ -184,7 +171,6 @@ public:
 private:
     struct Entry {
         EntityInstanceId entityId;
-        PlayerId playerId;
         Uuid uuid{};
         std::string username;
         bool isLocal;
@@ -193,8 +179,6 @@ private:
 
     /// 实体ID → 条目（权威存储）
     std::unordered_map<EntityInstanceId, Entry> m_byEntity;
-    /// 玩家ID → 实体ID
-    std::unordered_map<PlayerId, EntityInstanceId> m_entityByPlayer;
     /// UUID → 实体ID（仅 hasUuid 的条目）
     std::unordered_map<Uuid, EntityInstanceId, UuidHash> m_entityByUuid;
     /// 用户名 → 实体ID（仅已注册实体）

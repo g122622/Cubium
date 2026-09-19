@@ -23,7 +23,7 @@ src/client/world/
 │   ├── ClientEntityManager.hpp/cpp     # 客户端实体管理器
 │   └── README.md
 ├── player/                             # 本地玩家相关
-│   ├── LocalPlayerIdentity.hpp/cpp     # 本地玩家身份（playerId ↔ entityId 映射）
+│   ├── LocalPlayerIdentity.hpp/cpp     # 本地玩家身份（记录本地玩家的实体实例 id）
 │   ├── ClientPlayerPredictor.hpp/cpp   # 客户端玩家预测器（移动预测、位置校正）
 │   └── README.md
 └── README.md
@@ -109,7 +109,7 @@ EntityRenderer 系列    # 读取 ClientEntity 的插值位置和动画状态渲
   - 用错会导致实体瞬移或漂移
 - **本地玩家由预测器管理**：本地玩家的位置不应该从网络包直接更新，通过 `isLocalPlayer(entityId)` 判断并跳过。
 - **渲染时必须使用插值位置**：不要直接用 `position()`，必须用 `getInterpolatedPosition(partialTick)`。
-- **永远不要将 EntityId 强转为 PlayerId**：这是导致相机绑定到错误实体的根本原因。
+- **登录包首字段是实体实例 id，不是服务端的玩家注册 id**：后者是玩家列表内的索引、从不跨网传输，两条序列独立递增。假定两者相等并互相强转，会让相机/预测绑定到错误实体。
 - **角度环绕处理**：Yaw 角度在 -180 到 180 之间，插值时要选择最短路径（代码已处理，手动修改时需注意）。
 - **不能移除本地玩家实体**：`removeEntity()` 对本地玩家返回 false，必须先调用 `clearLocalPlayer()`。
 

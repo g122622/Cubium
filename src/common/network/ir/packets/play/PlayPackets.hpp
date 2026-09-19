@@ -430,7 +430,16 @@ struct CommonPlayerSpawnInfo {
     [[nodiscard]] friend bool operator==(const CommonPlayerSpawnInfo&, const CommonPlayerSpawnInfo&) noexcept = default;
 };
 
+/**
+ * @brief Login（S→C，id=48，客户端进入 Play 阶段并建立本地玩家实体）
+ *
+ * 1.21.11 结构：playerId + hardcore + levels + maxPlayers + chunkRadius + simulationDistance
+ * + reducedDebugInfo + showDeathScreen + doLimitedCrafting + CommonPlayerSpawnInfo
+ * + enforcesSecureChat。
+ */
 struct Login {
+    /// 本地玩家的**实体实例 id**（不是服务端内部的玩家注册 id——那是玩家列表索引，
+    /// 从不跨网传输）。客户端据此建立自己的本地实体。
     i32 playerId;
     bool hardcore;
     std::vector<std::string> levels; // 维度 ResourceKey 列表
@@ -849,9 +858,9 @@ struct PlayerInfoEntry {
     std::optional<bool> listed;
     // UPDATE_LATENCY
     std::optional<i32> latency;
-    // UPDATE_DISPLAY_NAME：我方不生产/不消费显示名（客户端分支为扩展点），IR 不承载该字段；
-    // codec 读侧遇真 Java 服务端的 displayName 时按 NBT compound 跳过（nbt_io::readCompound），
-    // 写侧固定 Bool(false)。上层接入 ITextComponent NBT codec 后如需展示再补字段。
+    // UPDATE_DISPLAY_NAME：预序列化的 NBT wire 字节（NBT 自定界，无长度前缀）。
+    // nullopt 表示无显示名，线格式写 Bool(false)，此时对端回退到 profile 名渲染。
+    std::optional<std::vector<u8>> displayName;
     // UPDATE_LIST_ORDER
     std::optional<i32> listOrder;
     // UPDATE_HAT

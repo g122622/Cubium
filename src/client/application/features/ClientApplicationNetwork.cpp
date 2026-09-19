@@ -121,8 +121,8 @@ std::vector<std::string> ClientApplication::collectPlayerCompletionCandidates() 
     std::vector<std::string> candidates;
     candidates.reserve(m_knownPlayerNames.size() + 1);
 
-    for (const auto& [playerId, playerName] : m_knownPlayerNames) {
-        MC_UNUSED(playerId);
+    for (const auto& [entityId, playerName] : m_knownPlayerNames) {
+        MC_UNUSED(entityId);
         if (!playerName.empty()) {
             candidates.push_back(playerName);
         }

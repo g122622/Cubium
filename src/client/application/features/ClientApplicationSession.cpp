@@ -230,9 +230,9 @@ Result<void> ClientApplication::initializeGameSession(const WorldLaunchConfig& c
     m_network->setPlayVisitor(m_playVisitor.get());
     // onLoginReady：ClientNetwork 收 play::Login 时触发，仅作状态通知。
     // 本地玩家实体生成由 visitor 的 Login 分支完成（friend 访问 m_player/m_world 等）。
-    m_network->onLoginReady([this](i32 playerId, const std::string& dimension, const std::array<u8, 16>& uuid) {
+    m_network->onLoginReady([this](i32 entityId, const std::string& dimension, const std::array<u8, 16>& uuid) {
         spdlog::info(
-            "[Session] Login ready: playerId={}, dimension={}, uuid-set={}", playerId, dimension, !uuid.empty());
+            "[Session] Login ready: entityId={}, dimension={}, uuid-set={}", entityId, dimension, !uuid.empty());
     });
     m_commandManager = std::make_unique<command::ClientCommandManager>();
     m_commandManager->setPlayerNameProvider([this]() { return collectPlayerCompletionCandidates(); });

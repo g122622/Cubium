@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/handshake/LoginFlow.hpp"
@@ -35,6 +37,7 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -138,6 +141,16 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
     // 移除远程玩家（若已创建实体）：按 sessionId 查 playerId。
     const PlayerId playerId = m_server.playerManager().getPlayerIdBySession(sessionId);
     if (playerId != 0) {
+        // 离场广播用的 UUID 必须在 removePlayer 之前取——之后 ServerPlayerData 即被销毁。
+        // 判据用 uuid 非空而**不用** hasConnection()：本回调触发时该连接的 socket 已经关闭，
+        // hasConnection()（= connection && connection->isConnected()）此刻恒为 false，
+        // 用它会让离场广播永不发出。
+        std::optional<std::array<u8, 16>> departedUuid;
+        if (const auto* playerData = m_server.playerManager().getPlayer(playerId);
+            playerData != nullptr && !playerData->uuid.empty()) {
+            departedUuid = util::uuidFromString(playerData->uuid);
+        }
+
         // 清理玩家实体
         auto* world = m_server.getPlayerWorld(playerId);
         if (world != nullptr) {
@@ -149,6 +162,16 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
 
         // 清理物品栏
         m_server.inventoryManager().cleanupInventory(playerId);
+
+        // 广播离场（ClientboundPlayerInfoRemove，cb 67），否则其余客户端的 Tab 列表会永久
+        // 残留该玩家。顺序与语义一致于 vanilla：先把玩家移出在线列表，再向剩余玩家广播；
+        // 离开者本人此时已不在接收集合内，不会收到自己的移除包。
+        if (departedUuid.has_value()) {
+            mc::network::ir::play::PlayerInfoRemove removal;
+            removal.uuids.push_back(*departedUuid);
+            m_server.broadcastPacket(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{removal}});
+        }
     }
 }
 

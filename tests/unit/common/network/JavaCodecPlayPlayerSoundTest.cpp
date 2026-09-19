@@ -26,8 +26,8 @@
 // IrPacket.hpp variant 顺序：PlayerInfoUpdate=25/PlayerInfoRemove=26（批8）；
 // LevelParticles=47/BossEvent=48（批10/11）；SetTitleText=56/SetSubtitleText=57/
 // SetActionBarText=58/SetTitlesAnimation=59/ClearTitles=60（批14）；Explosion=82（批10）。
-// PlayerInfoUpdate 的 actions 位掩码按 set 的位顺序写 per-entry 负载；INITIALIZE_CHAT 与
-// UPDATE_DISPLAY_NAME 双端均写 Bool(false) 不携带 session/displayName，自洽故直接 ==。
+// PlayerInfoUpdate 的 actions 位掩码按 set 的位顺序写 per-entry 负载；INITIALIZE_CHAT 双端
+// 均写 Bool(false) 不携带 session；UPDATE_DISPLAY_NAME 携带 Component NBT（自定界、无长度前缀）。
 // ParticleOptions 按 type 分发：Simple/Block/Item/Dust/Color/Vibration/Trail 八分支。
 // BossEvent/Explosion 按条件字段——输入只 set 该 operation/hasKnockback 真正上线的字段，
 // 未上线字段保持默认，避免解码默认值与输入非默认值不等。
@@ -125,6 +125,23 @@ TEST_F(NetworkTestBase, PlayPlayerInfoUpdateMultipleEntries)
     b.uuid = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     b.latency = 200;
     in.entries = {a, b};
+    auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
+    ASSERT_EQ(out.index(), 25u);
+    EXPECT_EQ(std::get<PlayerInfoUpdate>(out), in);
+}
+
+TEST_F(NetworkTestBase, PlayPlayerInfoUpdateWithDisplayName)
+{
+    // 携带真实 Component NBT 的显示名。nullopt（写 Bool(false)）路径由 AllCarriedBits 覆盖，
+    // 本用例覆盖对端可解析出显示名的路径——字节必须原样往返，任何长度前缀/定界差异都会暴露。
+    PlayerInfoUpdate in{};
+    in.actions = kAdd | kListed | kDisplayName;
+    PlayerInfoEntry e{};
+    e.uuid = sampleUuid();
+    e.name = std::string("Cara");
+    e.listed = true;
+    e.displayName = mc::text::plainTextToNbtBytes("Cara");
+    in.entries = {e};
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 25u);
     EXPECT_EQ(std::get<PlayerInfoUpdate>(out), in);

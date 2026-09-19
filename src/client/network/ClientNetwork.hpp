@@ -62,7 +62,7 @@ enum class ClientConnState : u8 {
 /// 登录完成（收到 play::Login，进入 Play 稳态）回调：携带本地玩家身份
 /// Step3 时由 ClientApplication 注入，触发本地玩家实体生成 + predictor 初始化
 using LoginReadyCallback =
-    std::function<void(i32 playerId, const std::string& dimension, const std::array<u8, 16>& uuid)>;
+    std::function<void(i32 entityId, const std::string& dimension, const std::array<u8, 16>& uuid)>;
 
 /**
  * @brief 客户端网络门面：持 Connection<RegistryByteBuf>，驱动握手状态机 + 出站统一 send
@@ -76,7 +76,7 @@ using LoginReadyCallback =
  *   收 LoginCompression(装压缩层) → 收 LoginFinished(存身份) → 发 LoginAcknowledged →
  *   Configuration：收 SelectKnownPacks → 回 SelectKnownPacks{core}、收 RegistryData/
  *     UpdateTags/UpdateEnabledFeatures 忽略、收 FinishConfiguration → 回 FinishConfiguration →
- *   Play：收 play::Login → 调 onLoginReady(playerId,dimension,uuid) → 稳态
+ *   Play：收 play::Login → 调 onLoginReady(entityId,dimension,uuid) → 稳态
  *
  * 离线模式（集成服/我方独立服）跳过 RSA：不调 setupEncryption（Connection 明文 wire passthrough）。
  * 在线模式（真 Java）：收 HelloBound → handleHelloBound → 发 Key → setupEncryption 装加密层。
@@ -135,7 +135,6 @@ public:
      */
     void setPingMs(i64 pingMs) noexcept { m_pingMs.store(pingMs); }
 
-    [[nodiscard]] i32 playerId() const noexcept { return m_playerId; }
     [[nodiscard]] const std::string& username() const noexcept { return m_username; }
     [[nodiscard]] const std::array<u8, 16>& uuid() const noexcept { return m_uuid; }
 
@@ -159,7 +158,6 @@ private:
     ClientConnState m_state = ClientConnState::Disconnected;
     std::string m_username;
     std::array<u8, 16> m_uuid{}; // LoginFinished 给的离线 UUID
-    i32 m_playerId = 0;          // play::Login 给的本地玩家 id
 
     // 统计
     std::atomic<u64> m_packetsSent{0};

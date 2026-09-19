@@ -64,7 +64,7 @@ namespace mc::client::skin {
  *   1. PlayerIdentityRegistry.uuidOf(entityId) 取 UUID
  *   2. 若 PlayerSkinInfo 有自定义皮肤像素 → SkinTextureUploader.getOrCreateRegion 懒上传
  *   3. 否则回退 SkinTextureUploader.getDefaultRegion(uuid)（loadDefaultSkins 时已注入）
- *   4. 非 playerId/皮肤未就绪 → nullptr（调用方回退默认实体纹理路径）
+ *   4. 非玩家实体/皮肤未就绪 → nullptr（调用方回退默认实体纹理路径）
  */
 class ClientSkinManager : public renderer::entity::core::PlayerSkinRegionProvider {
 public:

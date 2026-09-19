@@ -141,12 +141,14 @@ i32 currentMenuStateId(ContainerId containerId) noexcept
     return 0;
 }
 
-/// 构造 PlayerCommand（OPEN_INVENTORY，action=5）IR 包。entityId 取本地玩家。
+/// 构造 PlayerCommand（OPEN_INVENTORY，action=5）IR 包。
 /// 旧 sendOpenPlayerInventory 等价：通知服务端在 containerId=0 建菜单。
-mc::network::ir::IrPacket makeOpenPlayerInventoryPacket(i32 playerId)
+/// @param entityId 本地玩家的**实体实例 id**（该包首字段就是实体 id 语义，
+///                 与服务端内部的玩家注册 id 无关）。
+mc::network::ir::IrPacket makeOpenPlayerInventoryPacket(EntityInstanceId entityId)
 {
     irplay::PlayerCommand cmd;
-    cmd.entityId = playerId;
+    cmd.entityId = static_cast<i32>(entityId);
     cmd.action = 5; // OPEN_INVENTORY
     cmd.data = 0;
     return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
@@ -218,7 +220,7 @@ void ClientApplication::openInventoryScreen()
     // 通知服务端在 containerId=0 上建立 InventoryCraftingMenu，使后续
     // ContainerClick 包能被正确受理（修复点击静默丢弃）。
     if (m_network && m_player) {
-        (void)m_network->send(makeOpenPlayerInventoryPacket(m_player->playerId()));
+        (void)m_network->send(makeOpenPlayerInventoryPacket(m_localIdentity.entityId()));
     }
 
     ScreenManager::instance().openScreen(std::move(inventoryScreen));
@@ -266,7 +268,7 @@ void ClientApplication::openCreativeScreen()
     // 通知服务端在 containerId=0 上建立 ItemPickerMenu（创造模式分流），使后续
     // ContainerClick 包（含调色板 Clone）能被正确受理。
     if (m_network && m_player) {
-        (void)m_network->send(makeOpenPlayerInventoryPacket(m_player->playerId()));
+        (void)m_network->send(makeOpenPlayerInventoryPacket(m_localIdentity.entityId()));
     }
 
     ScreenManager::instance().openScreen(std::move(creativeScreen));

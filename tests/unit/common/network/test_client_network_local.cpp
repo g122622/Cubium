@@ -58,10 +58,11 @@ using namespace mc;
 namespace {
 
 /// 构造最小 play::Login（服务端 onPlayerReady 后发，驱动客户端到 Playing + onLoginReady）。
-IrPacket makePlayLogin(i32 playerId)
+/// @param entityId 本地玩家的实体实例 id（该包首字段的语义即如此）
+IrPacket makePlayLogin(i32 entityId)
 {
     Login login{};
-    login.playerId = playerId;
+    login.playerId = entityId;
     login.hardcore = false;
     login.levels = {"minecraft:overworld"};
     login.maxPlayers = 10;
@@ -100,9 +101,9 @@ protected:
         m_serverConn = m_serverNetwork->createLocalClientSide(&clientSideTransport);
 
         m_client = std::make_unique<ClientNetwork>();
-        m_client->onLoginReady([this](i32 playerId, const std::string& dimension, const std::array<u8, 16>& uuid) {
+        m_client->onLoginReady([this](i32 entityId, const std::string& dimension, const std::array<u8, 16>& uuid) {
             ++m_loginReadyCount;
-            m_loginReadyPlayerId = playerId;
+            m_loginReadyEntityId = entityId;
             m_loginReadyDimension = dimension;
             m_loginReadyUuid = uuid;
         });
@@ -135,11 +136,11 @@ protected:
     std::unique_ptr<ClientNetwork> m_client;
 
     int m_loginReadyCount = 0;
-    i32 m_loginReadyPlayerId = 0;
+    i32 m_loginReadyEntityId = 0;
     std::string m_loginReadyDimension;
     std::array<u8, 16> m_loginReadyUuid{};
 
-    static constexpr i32 kCapstonePlayerId = 42;
+    static constexpr i32 kCapstoneEntityId = 42;
 
 private:
     void _installServerSide(ServerClientConnection& conn)
@@ -151,7 +152,7 @@ private:
             m_readyUuid = offlineUuid;
             // 应用层职责：发 play::Login 驱动客户端到 Playing（镜像 IntegratedServer::sendLoginResponse）。
             if (m_serverConn != nullptr) {
-                m_serverConn->send(makePlayLogin(kCapstonePlayerId));
+                m_serverConn->send(makePlayLogin(kCapstoneEntityId));
             }
         });
         conn.onPacket([this](const IrPacket& packet) {
@@ -185,9 +186,8 @@ TEST_F(ClientNetworkLocalTest, ConnectLocalDrivesClientToPlaying)
     pumpRounds(20);
 
     EXPECT_EQ(m_client->state(), ClientConnState::Playing);
-    EXPECT_EQ(m_client->playerId(), kCapstonePlayerId);
     EXPECT_EQ(m_loginReadyCount, 1);
-    EXPECT_EQ(m_loginReadyPlayerId, kCapstonePlayerId);
+    EXPECT_EQ(m_loginReadyEntityId, kCapstoneEntityId);
     EXPECT_EQ(m_loginReadyDimension, "minecraft:overworld");
 }
 

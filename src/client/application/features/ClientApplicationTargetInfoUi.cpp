@@ -59,7 +59,7 @@ void ClientApplication::updateTargetInfoUi()
             m_raycastResult,
             static_cast<f32>(m_player->blockInteractionRange()),
             [this](EntityInstanceId entityId) -> std::string {
-                const auto it = m_knownPlayerNames.find(static_cast<PlayerId>(entityId));
+                const auto it = m_knownPlayerNames.find(entityId);
                 if (it == m_knownPlayerNames.end()) {
                     return {};
                 }

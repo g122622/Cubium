@@ -89,7 +89,10 @@ public:
 
 private:
     void setupInitialPlayerState(ServerPlayerData* player, GameMode gameMode);
-    void sendLoginResponseForConnection(PlayerId playerId, bool hardcore, i64 seed, bool isFlat);
+    /// @param playerId 网络路由用的玩家注册 id（sendPacketToPlayer 按它寻址）
+    /// @param entityId 玩家的实体实例 id——Login 包首字段下发的正是它，与注册 id 无关
+    void sendLoginResponseForConnection(
+        PlayerId playerId, EntityInstanceId entityId, bool hardcore, i64 seed, bool isFlat);
     void sendPermissionLevelChange(PlayerId playerId, i32 permissionLevel);
     void sendCommandTreePacket(PlayerId playerId);
     void sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32 yaw, f32 pitch);

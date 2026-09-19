@@ -305,13 +305,12 @@ Result<void> ClientNetwork::_handleConfigurationPacket(const mc::network::ir::Co
 
 Result<void> ClientNetwork::_handlePlayPacket(const mc::network::ir::PlayPacket& pkt)
 {
-    // play::Login（post-config S→C）：携带本地玩家 id + 维度信息。
-    // ClientNetwork 仅负责存 playerId + 切 Playing 状态 + 触发 onLoginReady 通知；
-    // 本地玩家实体生成由 visitor 的 Login 分支完成（Step3 决策：visitor 直接调游戏方法）。
+    // play::Login（post-config S→C）：携带本地玩家的实体实例 id + 维度信息。
+    // ClientNetwork 仅负责切 Playing 状态 + 触发 onLoginReady 通知；本地玩家实体生成由
+    // visitor 的 Login 分支完成（Step3 决策：visitor 直接调游戏方法）。
     // 故 Login 不在此 return，继续向下委托 visitor。
     if (std::holds_alternative<mc::network::ir::play::Login>(pkt)) {
         const auto& login = std::get<mc::network::ir::play::Login>(pkt);
-        m_playerId = login.playerId;
         _setState(ClientConnState::Playing);
         if (m_onLoginReady) {
             m_onLoginReady(login.playerId, login.spawnInfo.dimension, m_uuid);

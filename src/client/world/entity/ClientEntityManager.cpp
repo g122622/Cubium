@@ -74,8 +74,7 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityInstanceId id, const std::s
     return ptr;
 }
 
-ClientEntity* ClientEntityManager::spawnLocalPlayer(
-    EntityInstanceId entityId, PlayerId playerId, const std::string& username)
+ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityInstanceId entityId, const std::string& username)
 {
     // 如果已有本地玩家，先清除
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
@@ -95,7 +94,6 @@ ClientEntity* ClientEntityManager::spawnLocalPlayer(
 
     // 记录本地玩家信息
     m_localPlayerEntityId = entityId;
-    m_localPlayerId = playerId;
 
     return ptr;
 }
@@ -164,7 +162,6 @@ void ClientEntityManager::clearLocalPlayer()
     if (m_localPlayerEntityId != INVALID_ENTITY_ID) {
         m_entities.erase(m_localPlayerEntityId);
         m_localPlayerEntityId = INVALID_ENTITY_ID;
-        m_localPlayerId = 0;
     }
 }
 

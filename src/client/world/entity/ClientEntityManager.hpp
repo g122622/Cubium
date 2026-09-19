@@ -74,13 +74,11 @@ public:
      * 本地玩家实体与其他实体一样被管理，但会标记为本地玩家。
      * 用于正确处理网络包中的实体位置更新（本地玩家使用预测系统）。
      *
-     * @param entityId 服务端分配的实体ID
-     * @param playerId 玩家ID
+     * @param entityId 服务端分配的实体实例ID（随 Login 包首字段下发）
      * @param username 用户名
      * @return 创建的实体指针
      */
-    [[nodiscard]] ClientEntity* spawnLocalPlayer(
-        EntityInstanceId entityId, PlayerId playerId, const std::string& username);
+    [[nodiscard]] ClientEntity* spawnLocalPlayer(EntityInstanceId entityId, const std::string& username);
 
     /**
      * @brief 移除实体
@@ -128,12 +126,6 @@ public:
      * @return 实体ID，未设置返回 INVALID_ENTITY_ID
      */
     [[nodiscard]] EntityInstanceId localPlayerEntityId() const { return m_localPlayerEntityId; }
-
-    /**
-     * @brief 获取本地玩家的玩家ID
-     * @return 玩家ID，未设置返回 0
-     */
-    [[nodiscard]] PlayerId localPlayerId() const { return m_localPlayerId; }
 
     /**
      * @brief 检查实体是否是本地玩家
@@ -250,7 +242,6 @@ private:
 
     // 本地玩家信息
     EntityInstanceId m_localPlayerEntityId = INVALID_ENTITY_ID;
-    PlayerId m_localPlayerId = 0;
 
     // 固定频率 tick 累积器
     f32 m_tickAccumulator = 0.0f;

@@ -522,11 +522,11 @@ private:
     // 玩家实体
     std::unique_ptr<Player> m_player;
 
-    // 本地玩家身份（playerId ↔ entityId 映射）
+    // 本地玩家身份（本地玩家的实体实例 id）
     LocalPlayerIdentity m_localIdentity;
 
-    // 玩家身份注册表（UUID ↔ entityId ↔ playerId ↔ username 多向映射，
-    // 消除 static_cast<EntityInstanceId>(playerId) 反模式，供渲染层与皮肤层按 entityId 查 UUID）
+    // 玩家身份注册表（UUID ↔ entityId ↔ username 多向映射，
+    // 供渲染层与皮肤层按 entityId 查 UUID）
     PlayerIdentityRegistry m_identityRegistry;
 
     // 客户端玩家预测器
@@ -573,7 +573,8 @@ private:
     std::unique_ptr<skin::ClientSkinManager> m_skinManager;
     bool m_useIntegratedServer = true;
 
-    std::unordered_map<PlayerId, std::string> m_knownPlayerNames;
+    /// 实体实例 id → 玩家名。键用实体 id 而非服务端内部的玩家注册 id——后者不跨网传输。
+    std::unordered_map<EntityInstanceId, std::string> m_knownPlayerNames;
 
     // 服务端品牌（Configuration 阶段 CustomPayload{minecraft:brand} 下发），供调试/UI 展示。
     std::string m_serverBrand;

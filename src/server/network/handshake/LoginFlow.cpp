@@ -35,6 +35,7 @@
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/application/MinecraftServer.hpp"
@@ -56,6 +57,32 @@
 using namespace mc::trace;
 
 namespace mc::server::net {
+
+namespace {
+
+/// 玩家列表条目下发的 action 位掩码：ADD_PLAYER(0) | UPDATE_GAME_MODE(2) | UPDATE_LISTED(3)
+/// | UPDATE_LATENCY(4) | UPDATE_DISPLAY_NAME(5)。条目负载按 action 位升序写入，与 codec 写序一致。
+[[nodiscard]] constexpr u16 _playerInfoEntryActions()
+{
+    return static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5));
+}
+
+/// 由在线玩家数据构造一条玩家列表条目。
+[[nodiscard]] mc::network::ir::play::PlayerInfoEntry _makePlayerInfoEntry(const ServerPlayerData& player)
+{
+    mc::network::ir::play::PlayerInfoEntry entry;
+    entry.uuid = util::uuidFromString(player.uuid);
+    entry.name = player.username;
+    entry.gameMode = static_cast<i32>(player.gameMode);
+    entry.listed = true;
+    entry.latency = static_cast<i32>(player.ping);
+    // 显示名取用户名（当前无自定义昵称体系）。下发 NBT 字节而非留空，与 vanilla 的包内容
+    // 形态一致——留空时对端会回退到 profile 名，渲染结果相同但包内容不同。
+    entry.displayName = text::plainTextToNbtBytes(player.username);
+    return entry;
+}
+
+} // namespace
 
 LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     mc::server::net::ServerClientConnection& connection,
@@ -165,7 +192,7 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     }
 
     // 发送 play::Login（post-Configuration S→C，经 sendPacketToPlayer 按 playerId 路由）
-    sendLoginResponseForConnection(playerId, hardcore, seed, isFlat);
+    sendLoginResponseForConnection(playerId, result.entityId, hardcore, seed, isFlat);
 
     // 同步玩家权限等级到客户端（同时发送 EntityEvent 和命令树）
     sendPermissionLevelChange(playerId, playerPermissionLevel);
@@ -185,28 +212,39 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     m_server.inventoryManager().initializeInventory(playerId);
     m_server.inventoryManager().syncToClient(playerId);
 
-    // 下发自身到 Tab 列表（ClientboundPlayerInfoUpdate，cb 68）。
-    // 必要性：vanilla 在 PlayerList.placeNewPlayer 里调用 sendAllPlayerInfo，客户端据此建立
-    // 玩家列表（第三方客户端如 mineflayer 的 bot.players 即由此而来）；此前本包 IR/codec/
-    // 协议表登记三层齐备但服务端零发送点，导致客户端玩家列表恒为空。
-    // actions 位掩码按 Action ordinal：ADD_PLAYER(0) | UPDATE_GAME_MODE(2) | UPDATE_LISTED(3)
-    // | UPDATE_LATENCY(4)。条目负载按 action 升序写入，与 codec 的写序一致。
-    // TODO: 当前仅向加入者本人下发其自身条目。完整实现应做双向广播——新玩家加入时向所有
-    //       在线玩家广播其条目，并向新玩家广播全部在线玩家的条目；多玩家场景下 Tab 列表
-    //       才会完整。另 UPDATE_DISPLAY_NAME 依赖 ITextComponent 的 NBT codec，尚未接入。
+    // 玩家列表双向广播（ClientboundPlayerInfoUpdate，cb 68）：
+    // 加入者要看到全部在线玩家的条目，已在线的玩家也要看到加入者的条目——两端都补齐，
+    // 多人场景下各端的 Tab 列表才完整。客户端据此建立玩家列表（第三方客户端如 mineflayer
+    // 的 bot.players 即由此而来）；此前本包 IR/codec/协议表登记三层齐备但服务端零发送点，
+    // 导致客户端玩家列表恒为空。
+    //
+    // 用显式的 forEachPlayer 而非 MinecraftServer::broadcastPacket：后者按 m_localClientPlayerId
+    // 去重，而该成员由 IntegratedServer 在 createPlayerForConnection 返回之后才回填，此刻尚未
+    // 生效，会把同一个包重复投递给集成服本地客户端两次。
     {
-        mc::network::ir::play::PlayerInfoUpdate infoUpdate;
-        infoUpdate.actions = static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4));
-        mc::network::ir::play::PlayerInfoEntry selfEntry;
-        selfEntry.uuid = offlineUuid;
-        selfEntry.name = username;
-        selfEntry.gameMode = static_cast<i32>(playerData->gameMode);
-        selfEntry.listed = true;
-        selfEntry.latency = 0;
-        infoUpdate.entries.push_back(std::move(selfEntry));
+        // (1) 全部在线玩家（此时已含加入者本人）的条目 → 一次性发给加入者。
+        mc::network::ir::play::PlayerInfoUpdate selfView;
+        selfView.actions = _playerInfoEntryActions();
+        m_server.forEachPlayer([&selfView](ServerPlayerData& player) {
+            if (player.loggedIn && player.hasConnection()) {
+                selfView.entries.push_back(_makePlayerInfoEntry(player));
+            }
+        });
         m_server.sendPacketToPlayer(playerId,
             mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(infoUpdate)}});
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(selfView)}});
+
+        // (2) 加入者本人的条目 → 广播给其余在线玩家（本人已由 (1) 覆盖）。
+        mc::network::ir::play::PlayerInfoUpdate othersView;
+        othersView.actions = _playerInfoEntryActions();
+        othersView.entries.push_back(_makePlayerInfoEntry(*playerData));
+        m_server.forEachPlayer([&](ServerPlayerData& player) {
+            if (player.playerId == playerId || !player.loggedIn || !player.hasConnection()) {
+                return;
+            }
+            player.send(mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{othersView}});
+        });
     }
 
     result.success = true;
@@ -336,7 +374,8 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
     }
 }
 
-void LoginFlow::sendLoginResponseForConnection(PlayerId playerId, bool hardcore, i64 seed, bool isFlat)
+void LoginFlow::sendLoginResponseForConnection(
+    PlayerId playerId, EntityInstanceId entityId, bool hardcore, i64 seed, bool isFlat)
 {
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Network, "LoginFlow::sendLoginResponseForConnection", "playerId", playerId);
@@ -348,7 +387,10 @@ void LoginFlow::sendLoginResponseForConnection(PlayerId playerId, bool hardcore,
         overworldForLogin && overworldForLogin->world() && overworldForLogin->world()->isDebugWorld();
 
     mc::network::ir::play::Login login;
-    login.playerId = static_cast<i32>(playerId);
+    // 首字段是玩家的**实体实例 id**，不是服务端的玩家注册 id。两者是各自独立递增的序列：
+    // 前者每创建一个实体分配一次，后者每次玩家加入分配一次，只在「世界里除玩家外没有别的
+    // 实体」时才恰好同步。客户端据此建立自己的本地实体，填错会让它指向别的实体。
+    login.playerId = static_cast<i32>(entityId);
     login.hardcore = hardcore;
     // levels：维度 ResourceKey 列表（主世界/下界/末地）
     login.levels = {"minecraft:overworld", "minecraft:the_nether", "minecraft:the_end"};

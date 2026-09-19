@@ -31,7 +31,6 @@ namespace mc::client {
 
 void PlayerIdentityRegistry::_indexEntry(const Entry& entry)
 {
-    m_entityByPlayer[entry.playerId] = entry.entityId;
     m_entityByUsername[entry.username] = entry.entityId;
     if (entry.hasUuid) {
         m_entityByUuid[entry.uuid] = entry.entityId;
@@ -40,7 +39,6 @@ void PlayerIdentityRegistry::_indexEntry(const Entry& entry)
 
 void PlayerIdentityRegistry::_unindexEntry(const Entry& entry)
 {
-    m_entityByPlayer.erase(entry.playerId);
     m_entityByUsername.erase(entry.username);
     if (entry.hasUuid) {
         m_entityByUuid.erase(entry.uuid);
@@ -48,7 +46,7 @@ void PlayerIdentityRegistry::_unindexEntry(const Entry& entry)
 }
 
 void PlayerIdentityRegistry::registerLocalPlayer(
-    EntityInstanceId entityId, PlayerId playerId, const Uuid& uuid, const std::string& username)
+    EntityInstanceId entityId, const Uuid& uuid, const std::string& username)
 {
     // 若已存在同名网络玩家条目（PlayerSpawnPacket 先到），先移除旧条目再以本地身份重建。
     auto byNameIt = m_entityByUsername.find(username);
@@ -67,7 +65,6 @@ void PlayerIdentityRegistry::registerLocalPlayer(
 
     Entry entry;
     entry.entityId = entityId;
-    entry.playerId = playerId;
     entry.uuid = uuid;
     entry.username = username;
     entry.isLocal = true;
@@ -79,8 +76,7 @@ void PlayerIdentityRegistry::registerLocalPlayer(
     m_localEntityId = entityId;
 }
 
-void PlayerIdentityRegistry::registerNetworkPlayer(
-    EntityInstanceId entityId, PlayerId playerId, const std::string& username)
+void PlayerIdentityRegistry::registerNetworkPlayer(EntityInstanceId entityId, const std::string& username)
 {
     if (m_byEntity.count(entityId) > 0) {
         _unindexEntry(m_byEntity.at(entityId));
@@ -88,7 +84,6 @@ void PlayerIdentityRegistry::registerNetworkPlayer(
 
     Entry entry;
     entry.entityId = entityId;
-    entry.playerId = playerId;
     entry.username = username;
     entry.isLocal = false;
     entry.hasUuid = false;
@@ -157,15 +152,6 @@ void PlayerIdentityRegistry::removeByEntityId(EntityInstanceId entityId)
     m_byEntity.erase(it);
 }
 
-void PlayerIdentityRegistry::removeByPlayerId(PlayerId playerId)
-{
-    auto it = m_entityByPlayer.find(playerId);
-    if (it == m_entityByPlayer.end()) {
-        return;
-    }
-    removeByEntityId(it->second);
-}
-
 void PlayerIdentityRegistry::removeByUuid(const Uuid& uuid)
 {
     auto it = m_entityByUuid.find(uuid);
@@ -178,7 +164,6 @@ void PlayerIdentityRegistry::removeByUuid(const Uuid& uuid)
 void PlayerIdentityRegistry::clear()
 {
     m_byEntity.clear();
-    m_entityByPlayer.clear();
     m_entityByUuid.clear();
     m_entityByUsername.clear();
     m_uuidByUsername.clear();
@@ -201,15 +186,6 @@ EntityInstanceId PlayerIdentityRegistry::entityIdOf(const Uuid& uuid) const
         return INVALID_ENTITY_ID;
     }
     return it->second;
-}
-
-PlayerId PlayerIdentityRegistry::playerIdOf(EntityInstanceId entityId) const
-{
-    auto it = m_byEntity.find(entityId);
-    if (it == m_byEntity.end()) {
-        return 0;
-    }
-    return it->second.playerId;
 }
 
 const Uuid* PlayerIdentityRegistry::uuidByUsername(const std::string& username) const
