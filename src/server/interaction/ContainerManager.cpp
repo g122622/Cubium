@@ -74,8 +74,16 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
         closeContainer(playerId);
     }
 
-    // 获取下一个容器ID
+    // 获取下一个容器ID。
+    // 从 1 起分配：0 是玩家背包的固定 id（PLAYER_CONTAINER_ID），若首个容器也拿到 0，
+    // 两者就会撞号——此后该玩家背包屏的点击（containerId=0）会通过 id 校验、被当作对
+    // 这个容器菜单的点击处理，槽位语义完全不同且不会报任何错。
+    // 计数器按玩家各存一份，首次访问由 unordered_map 的值初始化得到 0，故此处需显式抬到 1。
     mc::ContainerId containerId = m_nextContainerIds[playerId];
+    constexpr mc::ContainerId kFirstContainerId = mc::inventory::PLAYER_CONTAINER_ID + 1;
+    if (containerId < kFirstContainerId) {
+        containerId = kFirstContainerId;
+    }
     m_nextContainerIds[playerId] = containerId + 1;
 
     // 创建容器

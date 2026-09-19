@@ -490,8 +490,8 @@ TEST_F(CrafterContainerTest, GetResultInventory_InitiallyEmpty)
 
 TEST(CrafterTypeTest, ContainerType_HasCorrectValue)
 {
-    // MC 1.21.11 协议ID: Crafter = 24
-    EXPECT_EQ(static_cast<u8>(ContainerType::Crafter), 24);
+    // 自动合成器在菜单注册表中排第 8 项（下标 7），紧随发射器之后、铁砧之前。
+    EXPECT_EQ(static_cast<u8>(ContainerType::Crafter), 7);
 }
 
 TEST(CrafterTypeTest, ContainerTypes_GetSlotCount_Crafter)

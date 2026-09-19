@@ -61,6 +61,14 @@ using ContainerIdU8 = u8;
  * @brief 容器类型枚举
  *
  * 定义游戏中所有容器窗口类型，用于网络同步和客户端渲染。
+ *
+ * **数值即 vanilla 菜单注册表的项序**，会被 `toNetworkType` 原样作为 `open_screen` 的
+ * menuType 上线。客户端拿到该 id 后据此建窗口、定槽位布局——填错会让它建成另一个窗口，
+ * 且既不断连也不报错，只是槽位语义整体错位。故：
+ *   - 不得调整既有项的数值；
+ *   - 新增类型必须插到与其注册表项序一致的位置，不能追加到末尾。
+ *
+ * 玩家背包不是注册表项（原版由客户端本地构造，服务端从不下发），故取注册表之外的值。
  */
 enum class ContainerType : u8 {
     Generic9x1 = 0,    // 单行箱子
@@ -70,24 +78,24 @@ enum class ContainerType : u8 {
     Generic9x5 = 4,    // 五行箱子
     Generic9x6 = 5,    // 六行箱子（最大箱子）
     Generic3x3 = 6,    // 发射器/投掷器
-    Anvil = 7,         // 铁砧
-    Beacon = 8,        // 信标
-    BlastFurnace = 9,  // 高炉
-    BrewingStand = 10, // 酿造台
-    Crafting = 11,     // 工作台
-    Enchantment = 12,  // 附魔台
-    Furnace = 13,      // 熔炉
-    Grindstone = 14,   // 砂轮
-    Hopper = 15,       // 漏斗
-    Lectern = 16,      // 讲台
-    Loom = 17,         // 织布机
-    Merchant = 18,     // 村民交易
-    ShulkerBox = 19,   // 潜影盒
-    Smithing = 20,     // 锻造台
-    Smoker = 21,       // 烟熏炉
-    Cartography = 22,  // 制图台
-    Stonecutter = 23,  // 切石机
-    Crafter = 24,      // 自动合成器
+    Crafter = 7,       // 自动合成器
+    Anvil = 8,         // 铁砧
+    Beacon = 9,        // 信标
+    BlastFurnace = 10, // 高炉
+    BrewingStand = 11, // 酿造台
+    Crafting = 12,     // 工作台
+    Enchantment = 13,  // 附魔台
+    Furnace = 14,      // 熔炉
+    Grindstone = 15,   // 砂轮
+    Hopper = 16,       // 漏斗
+    Lectern = 17,      // 讲台
+    Loom = 18,         // 织布机
+    Merchant = 19,     // 村民交易
+    ShulkerBox = 20,   // 潜影盒
+    Smithing = 21,     // 锻造台
+    Smoker = 22,       // 烟熏炉
+    Cartography = 23,  // 制图台
+    Stonecutter = 24,  // 切石机
     // 玩家背包使用特殊值
     Player = 255 // 玩家背包（特殊类型）
 };

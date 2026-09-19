@@ -191,6 +191,8 @@ add_executable(mc_tests
     common/item/enchantment/BlastProtectionAttributeTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
+    # ContainerType 的 wire 取值锁定（数值即菜单注册表项序，偏移会让原版客户端建错窗口）
+    common/entity/inventory/ContainerTypeUtilsTest.cpp
     common/entity/inventory/PlayerInventoryNbtTest.cpp
     common/entity/inventory/PlayerEnderChestInventoryTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
