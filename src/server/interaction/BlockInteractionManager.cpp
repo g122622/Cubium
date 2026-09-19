@@ -398,34 +398,24 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     // 守卫跳过），生产路径玩家持鱼桶右键地面失去鱼桶却得不到空桶（对齐缺陷）。
     // heldItem 是调用方局部拷贝，onItemUse 内 context.getItemStackMut() 修改的是该拷贝，不回写权威物品栏——
     // 故消耗/替换仍以 player 权威手持物为准，下方同步回 InventoryManager。
-    // 调用前先同步 InventoryManager→Player（双数据源，InventoryManager 为权威，对齐 handleBlockUse:515-525）。
-    if (player != nullptr && m_inventoryManager != nullptr) {
-        PlayerInventory* mgrInventory = m_inventoryManager->getInventory(playerId);
-        if (mgrInventory != nullptr) {
-            player->inventory().setSelectedSlot(mgrInventory->getSelectedSlot());
-            player->inventory().setItem(mgrInventory->getSelectedSlot(), mgrInventory->getSelectedStack());
-            player->setGameMode(playerData->gameMode);
-        }
+    // 物品栏无需在此搬运：m_inventoryManager->getInventory() 返回的就是 player->inventory()
+    // 本身——物品栏只有实体上这一份。只需把玩家数据里的游戏模式推给实体。
+    if (player != nullptr) {
+        player->setGameMode(playerData->gameMode);
     }
-    // 记录 onItemUse 前权威槽 itemId+damage：部分物品在 onItemUse 内通过 player->getHeldItem 改权威
-    // （Player 镜像）手持物——(1)自管理替换（鱼桶→空桶，itemId 变化）；(2)耐久损耗（打火石/锄/斧/锹
-    // hurtAndBreak，damage 变化，itemId 不变）。两种情况外层都不应再 shrink（否则误消耗返回物或把耐久
-    // 损耗误当数量消耗）。骨粉等"仅 shrink 原物品不替换不改耐久"的物品 itemId+damage 均不变，仍走外层
-    // shrink 补足。优先从 Player 镜像读（onItemUse 前 InventoryManager 已同步到 Player，两者一致）；
-    // player==nullptr（无 Player 实体，如未注入实体管理器的测试环境）时回退从 InventoryManager 权威栏
-    // 读，保证 before/after 来源一致，selfManaged 判定不被 nullptr 误触发。
-    auto readHeldBefore = [&]() -> ItemStack {
-        if (player != nullptr) {
-            return player->inventory().getSelectedStack();
-        }
+    // 记录 onItemUse 前权威槽的 itemId+damage：部分物品会在 onItemUse 内直接改权威手持物——
+    // (1)自管理替换（鱼桶→空桶，itemId 变化）；(2)耐久损耗（打火石/锄/斧/锹 hurtAndBreak，
+    // damage 变化，itemId 不变）。两种情况外层都不应再 shrink（否则误消耗返回物或把耐久损耗
+    // 误当数量消耗）。骨粉等"仅 shrink 原物品、不替换也不改耐久"的物品 itemId+damage 均不变，
+    // 仍走外层 shrink 补足。
+    const ItemStack heldBefore = [&]() -> ItemStack {
         if (m_inventoryManager != nullptr) {
             if (PlayerInventory* inv = m_inventoryManager->getInventory(playerId); inv != nullptr) {
                 return inv->getSelectedStack();
             }
         }
         return ItemStack();
-    };
-    const ItemStack heldBefore = readHeldBefore();
+    }();
     const ItemId itemIdBefore = heldBefore.isEmpty() ? ItemId{0} : heldBefore.getItem()->itemId();
     const i32 damageBefore = heldBefore.isEmpty() ? 0 : heldBefore.getDamage();
     ItemUseContext context(*world, player, heldItem, hitPos, pos, face, hand, playerData->yaw, playerData->pitch);
@@ -440,24 +430,18 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     if (success && playerData->gameMode != GameMode::Creative && m_inventoryManager != nullptr) {
         PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
         if (inventory != nullptr) {
-            // 若 onItemUse 已通过 player->getHeldItem 改 Player 镜像手持物（itemId 变化=自管理替换，
-            // 或 damage 变化=耐久损耗），把 Player 镜像同步回 InventoryManager，跳过 shrink（物品已自管理
-            // 消耗/损耗）。否则（itemId+damage 均不变，如骨粉仅 shrink 拷贝）走原 shrink(1) 补足权威槽消耗。
-            // 优先从 Player 镜像读 after 值（onItemUse 改的是 Player 镜像，InventoryManager 权威尚未同步）；
-            // player==nullptr 时回退从权威栏读（onItemUse 改的是 context 局部拷贝，权威栏未变，before==after，
-            // selfManaged=false，走 else if shrink）。此处 inventory 已在上文取到，直接复用。
-            const ItemStack playerHeldAfter =
-                player != nullptr ? player->inventory().getSelectedStack() : inventory->getSelectedStack();
-            const ItemId itemIdAfter = playerHeldAfter.isEmpty() ? ItemId{0} : playerHeldAfter.getItem()->itemId();
-            const i32 damageAfter = playerHeldAfter.isEmpty() ? 0 : playerHeldAfter.getDamage();
+            // onItemUse 若已自行改过权威手持物（itemId 变化=自管理替换，或 damage 变化=耐久损耗），
+            // 说明物品已处理完消耗/损耗，外层只推一次同步、不再 shrink。itemId+damage 均不变时
+            // （如骨粉只 shrink 了自己的局部拷贝）才由外层 shrink(1) 补足权威槽的消耗。
+            const ItemStack heldAfter = inventory->getSelectedStack();
+            const ItemId itemIdAfter = heldAfter.isEmpty() ? ItemId{0} : heldAfter.getItem()->itemId();
+            const i32 damageAfter = heldAfter.isEmpty() ? 0 : heldAfter.getDamage();
             const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
-            if (player != nullptr && selfManaged) {
-                // onItemUse 自管理了消耗/损耗：同步 Player→InventoryManager（对齐 handleBlockUse:617-625）。
-                inventory->setItem(inventory->getSelectedSlot(), playerHeldAfter);
+            if (selfManaged) {
                 itemConsumed = true;
                 m_inventoryManager->syncToClient(playerId);
-            } else if (!playerHeldAfter.isEmpty() && playerHeldAfter.getCount() > 0) {
-                ItemStack shrunk = playerHeldAfter;
+            } else if (!heldAfter.isEmpty() && heldAfter.getCount() > 0) {
+                ItemStack shrunk = heldAfter;
                 shrunk.shrink(1);
                 inventory->setItem(inventory->getSelectedSlot(), shrunk);
                 itemConsumed = true;
@@ -518,20 +502,14 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     Player* realPlayer = _getPlayerEntity(playerId, *world);
     const BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, face, 0.0f);
 
-    // 在调用 onBlockActivated 之前，需要保证 Player::m_inventory 与
-    // InventoryManager::m_inventories 中的手持物品一致（双数据源同步）。
-    // InventoryManager 是服务端权威数据源，因此先将其手持物品同步到 Player。
-    if (realPlayer != nullptr && m_inventoryManager != nullptr) {
-        PlayerInventory* mgrInventory = m_inventoryManager->getInventory(playerId);
-        if (mgrInventory != nullptr) {
-            // 同步选中槽位和手持物品
-            realPlayer->inventory().setSelectedSlot(mgrInventory->getSelectedSlot());
-            ItemStack heldItem = mgrInventory->getSelectedStack();
-            realPlayer->inventory().setItem(mgrInventory->getSelectedSlot(), heldItem);
-            // 同步游戏模式
-            realPlayer->setGameMode(playerData->gameMode);
-        }
+    // onBlockActivated 直接在 realPlayer->inventory() 上操作——那正是权威物品栏，无需预先搬运。
+    // 仅把玩家数据里的游戏模式推给实体。
+    if (realPlayer != nullptr) {
+        realPlayer->setGameMode(playerData->gameMode);
     }
+
+    // 交互前的手持物快照，供尾部识别「方块自行改过手持物」的情况。
+    const ItemStack heldBeforeUse = (realPlayer != nullptr) ? realPlayer->inventory().getSelectedStack() : ItemStack();
 
     BlockActionResult result = [&]() -> BlockActionResult {
         if (realPlayer != nullptr) {
@@ -608,34 +586,17 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         }
     }
 
-    // 消费 heldItemTransformedTo：将方块交互后的手持物品变更同步回 InventoryManager
-    // 参考 MC 1.21.11 ServerPlayerGameMode.useItem 中处理 heldItemTransformedTo 的逻辑：
-    // - 如果交互结果携带了 heldItemTransformedTo，使用该值更新玩家物品栏
-    // - 否则使用玩家当前手持物品（方块可能通过 player.getHeldItem(hand) 引用直接修改了）
+    // 方块交互可能改动手持物，需要推给客户端。两个来源：
+    //   1. 方块显式返回 heldItemTransformedTo —— 用它更新权威槽位；
+    //   2. 方块通过 player.getHeldItem(hand) 引用直接改了物品栏 —— 那就是实体背包本身，
+    //      与交互前的快照比较即可发现。
     if (handled && realPlayer != nullptr && m_inventoryManager != nullptr) {
-        PlayerInventory* mgrInventory = m_inventoryManager->getInventory(playerId);
-        if (mgrInventory != nullptr) {
-            i32 selectedSlot = mgrInventory->getSelectedSlot();
-            ItemStack newHeldItem;
-            bool needUpdate = false;
-
+        PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
+        if (inventory != nullptr) {
             if (result.heldItemTransformedTo().has_value()) {
-                // 方块显式返回了转换后的手持物品
-                newHeldItem = result.heldItemTransformedTo().value();
-                needUpdate = true;
-            } else {
-                // 方块未显式返回转换后物品，检查 Player::m_inventory 是否被修改
-                // （方块可能通过 player.getHeldItem(hand) 引用直接修改了手持物品）
-                ItemStack playerHeld = realPlayer->inventory().getSelectedStack();
-                ItemStack mgrHeld = mgrInventory->getSelectedStack();
-                if (!(playerHeld == mgrHeld)) {
-                    newHeldItem = playerHeld;
-                    needUpdate = true;
-                }
-            }
-
-            if (needUpdate) {
-                mgrInventory->setItem(selectedSlot, newHeldItem);
+                inventory->setItem(inventory->getSelectedSlot(), result.heldItemTransformedTo().value());
+                m_inventoryManager->syncToClient(playerId);
+            } else if (!(inventory->getSelectedStack() == heldBeforeUse)) {
                 m_inventoryManager->syncToClient(playerId);
             }
         }

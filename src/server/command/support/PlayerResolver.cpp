@@ -763,25 +763,10 @@ PlayerInventory* resolvePlayerInventory(ServerCommandSource& source, PlayerId pl
         return nullptr;
     }
 
-    // 优先经 InventoryManager（网络层）取真实玩家背包。真实玩家登录时由 LoginFlow 调
-    // initializeInventory 注册，InventoryManager 持有与客户端同步的权威背包。
-    PlayerInventory* inventory = server->playerInventory(playerId);
-    if (inventory != nullptr) {
-        return inventory;
-    }
-
-    // 回退实体层：SimulatedPlayer 不走登录流程，不在 InventoryManager 注册（getInventory 返 nullptr），
-    // 其权威背包是实体层 Player::m_inventory。经 ServerPlayerEntityManager 取实体层 inventory()。
-    // 对齐 EffectCommand/GameModeCommand/TeleportCommand 旁路 SimulatedPlayer 的既有模式。
-    auto* world = source.world();
-    if (world == nullptr) {
-        return nullptr;
-    }
-    mc::Player* entity = server->playerEntityManager().getPlayerEntity(playerId, *world);
-    if (entity == nullptr) {
-        return nullptr;
-    }
-    return &entity->inventory();
+    // 玩家物品栏只有一份，在玩家实体上（Player::m_inventory）。server->playerInventory()
+    // 经服务器注入的解析器直接定位到它——解析器内部做的正是「按 playerId 找到其所在世界，
+    // 再取该实体的背包」，因此这里一路即可，不需要再写一遍实体回退。
+    return server->playerInventory(playerId);
 }
 
 } // namespace mc::command::support

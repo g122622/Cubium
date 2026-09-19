@@ -23,6 +23,7 @@
 
 #include "InventoryManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
@@ -36,22 +37,26 @@ InventoryManager::InventoryManager(core::PlayerManager& playerManager)
     : m_playerManager(playerManager)
 {}
 
+void InventoryManager::setInventoryResolver(std::function<PlayerInventory*(PlayerId)> resolver)
+{
+    m_resolveInventory = std::move(resolver);
+}
+
 PlayerInventory* InventoryManager::getInventory(PlayerId playerId)
 {
-    auto it = m_inventories.find(playerId);
-    if (it != m_inventories.end()) {
-        return &it->second;
+    if (!m_resolveInventory) {
+        return nullptr;
     }
-    return nullptr;
+    return m_resolveInventory(playerId);
 }
 
 const PlayerInventory* InventoryManager::getInventory(PlayerId playerId) const
 {
-    auto it = m_inventories.find(playerId);
-    if (it != m_inventories.end()) {
-        return &it->second;
+    // 解析器不修改本对象，const 上下文可安全调用。
+    if (!m_resolveInventory) {
+        return nullptr;
     }
-    return nullptr;
+    return m_resolveInventory(playerId);
 }
 
 void InventoryManager::setSelectedSlot(PlayerId playerId, i32 slot)
@@ -62,76 +67,70 @@ void InventoryManager::setSelectedSlot(PlayerId playerId, i32 slot)
         return;
     }
 
-    auto it = m_inventories.find(playerId);
-    if (it != m_inventories.end()) {
-        it->second.setSelectedSlot(slot);
+    PlayerInventory* inventory = getInventory(playerId);
+    if (inventory != nullptr) {
+        inventory->setSelectedSlot(slot);
     }
 }
 
 i32 InventoryManager::getSelectedSlot(PlayerId playerId) const
 {
-    auto it = m_inventories.find(playerId);
-    if (it != m_inventories.end()) {
-        return it->second.getSelectedSlot();
+    const PlayerInventory* inventory = getInventory(playerId);
+    if (inventory != nullptr) {
+        return inventory->getSelectedSlot();
     }
     return -1;
 }
 
 ItemStack InventoryManager::getHeldItem(PlayerId playerId) const
 {
-    auto it = m_inventories.find(playerId);
-    if (it != m_inventories.end()) {
-        return it->second.getSelectedStack();
+    const PlayerInventory* inventory = getInventory(playerId);
+    if (inventory != nullptr) {
+        return inventory->getSelectedStack();
     }
     return ItemStack();
 }
 
 void InventoryManager::setItem(PlayerId playerId, i32 slot, const ItemStack& item)
 {
-    // 验证槽位范围（快捷栏 + 主背包）
-    constexpr i32 MAIN_INVENTORY_SIZE = PlayerInventory::HOTBAR_SIZE + PlayerInventory::MAIN_SIZE;
-    if (slot < 0 || slot >= MAIN_INVENTORY_SIZE) {
-        spdlog::warn("Invalid slot {} for player {}, must be 0-{}", slot, playerId, MAIN_INVENTORY_SIZE - 1);
+    // 槽位号是物品栏内部索引，覆盖快捷栏、主背包、护甲与副手。
+    if (slot < 0 || slot >= PlayerInventory::TOTAL_SIZE) {
+        spdlog::warn("Invalid slot {} for player {}, must be 0-{}", slot, playerId, PlayerInventory::TOTAL_SIZE - 1);
         return;
     }
 
-    auto it = m_inventories.find(playerId);
-    if (it != m_inventories.end()) {
-        it->second.setItem(slot, item);
+    PlayerInventory* inventory = getInventory(playerId);
+    if (inventory != nullptr) {
+        inventory->setItem(slot, item);
     }
 }
 
 void InventoryManager::syncToClient(PlayerId playerId)
 {
-    auto* inventory = getInventory(playerId);
-    if (!inventory) {
+    if (!m_onInventoryUpdate) {
         return;
     }
 
-    if (m_onInventoryUpdate) {
-        m_onInventoryUpdate(playerId, *inventory);
+    PlayerInventory* inventory = getInventory(playerId);
+    if (inventory == nullptr) {
+        return;
     }
+
+    m_onInventoryUpdate(playerId, *inventory);
 }
 
 void InventoryManager::syncAllToClient()
 {
-    for (const auto& [playerId, inventory] : m_inventories) {
-        if (m_onInventoryUpdate) {
-            m_onInventoryUpdate(playerId, inventory);
-        }
+    if (!m_onInventoryUpdate) {
+        return;
     }
-}
 
-void InventoryManager::initializeInventory(PlayerId playerId)
-{
-    auto& inventory = m_inventories[playerId];
-    inventory.clear();
-    inventory.setSelectedSlot(0);
-}
-
-void InventoryManager::cleanupInventory(PlayerId playerId)
-{
-    m_inventories.erase(playerId);
+    m_playerManager.forEachPlayer([this](const ServerPlayerData& playerData) {
+        PlayerInventory* inventory = getInventory(playerData.playerId);
+        if (inventory != nullptr) {
+            m_onInventoryUpdate(playerData.playerId, *inventory);
+        }
+    });
 }
 
 void InventoryManager::setOnInventoryUpdate(std::function<void(PlayerId, const PlayerInventory&)> callback)

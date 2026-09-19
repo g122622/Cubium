@@ -26,6 +26,7 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 
+#include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
@@ -198,6 +199,9 @@ protected:
     server::ServerWorld* m_playerWorld = nullptr;
     server::core::PlayerManager m_playerManager;
     server::interaction::InventoryManager m_inventoryManager;
+    /// 测试玩家的物品栏（按 playerId）。生产环境的权威数据在玩家实体上，测试不构造实体，
+    /// 故由本表持有并经解析器暴露给 m_inventoryManager——每个玩家仍只有一份。
+    std::unordered_map<PlayerId, std::unique_ptr<PlayerInventory>> m_testInventories;
     // 真实空玩家实体管理器：默认构造无依赖（mutex + 两个空 map），getPlayerIds() 返回空 vector、
     // getPlayerEntity() 返回 nullptr。命令测试经 PlayerResolver::getSortedPlayerIds 调
     // playerEntityManager().getPlayerIds()，须返回空对象而非抛 "unused"（原 throwUnused 桩致

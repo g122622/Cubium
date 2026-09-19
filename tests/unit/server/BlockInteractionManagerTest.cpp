@@ -120,8 +120,13 @@ protected:
         m_player->pitch = 0.0f;
         m_player->gameMode = GameMode::Survival;
 
+        // 物品栏的权威数据在玩家实体上，InventoryManager 只做定位转发、不持有副本。
+        // 本测试只关心背包读写语义、不构造完整玩家实体，故注入一个测试持有的
+        // PlayerInventory 作为解析结果——仍然是单份数据。
+        m_testInventory = std::make_unique<PlayerInventory>(nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->initializeInventory(m_playerId);
+        m_inventoryManager->setInventoryResolver(
+            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
 
         m_blockInteractionManager =
             std::make_unique<server::interaction::BlockInteractionManager>(*m_playerManager, m_lootTableManager);
@@ -161,6 +166,7 @@ protected:
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<BlockInteractionTestServer> m_server;
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
+    std::unique_ptr<PlayerInventory> m_testInventory;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::BlockInteractionManager> m_blockInteractionManager;
 

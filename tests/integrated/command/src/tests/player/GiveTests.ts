@@ -5,14 +5,11 @@
 //   - /clear [player] [item] [maxCount]：清除玩家背包物品（Ref: wiki commands/clear.txt）
 //
 // 设计要点：
-//   1. GiveCommand/ClearCommand 此前经 server->playerInventory(playerId)（InventoryManager 数据层）取背包，
-//      但 SimulatedPlayer 不走登录流程（LoginFlow::initializeInventory），不在 InventoryManager 注册，
-//      getInventory 返 nullptr 致命令 continue 跳过——/give /clear 对 SimulatedPlayer 完全失效。
-//      已补 support::resolvePlayerInventory（PlayerResolver）：优先 InventoryManager（真实玩家网络层权威背包），
-//      回退经 ServerPlayerEntityManager 取实体层 Player::m_inventory（SimulatedPlayer 权威背包）。对齐
-//      EffectCommand/GameModeCommand/TeleportCommand 经 ServerPlayerEntityManager 旁路 SimulatedPlayer 模式。
-//      真实玩家必须操作 InventoryManager 背包（BlockInteractionManager 等以 InventoryManager 为权威，操作前
-//      从其同步到 Player::m_inventory，若 give 写实体层会被下次操作覆盖丢失），故不可全用实体层。
+//   1. GiveCommand/ClearCommand 经 server->playerInventory(playerId) 取背包。该入口按 playerId 定位到
+//      玩家实体上的物品栏（Player::m_inventory）——物品栏只有这一份数据，真实玩家与 SimulatedPlayer
+//      一视同仁，不存在「不在某处注册」的问题。
+//      （历史：曾存在一份独立的 InventoryManager 副本数据，SimulatedPlayer 不在其中注册，/give /clear
+//      对其完全失效；该副本已移除，物品栏统一为实体上那一份。）
 //   2. 判定背包物品用 EntityInventoryComponent（getComponent("minecraft:inventory")）.container（Container），
 //      Container 包装 Player::m_inventory（实体层，与修复后 give/clear 写入层一致），getItem(slot) 返回 ItemStack
 //      拷贝（typeId/amount 属性）。遍历 0..size-1 找目标物品，避免硬编码槽位（add 优先合并选中槽但选中槽可能

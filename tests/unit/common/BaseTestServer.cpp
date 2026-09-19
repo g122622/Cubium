@@ -124,7 +124,14 @@ server::ServerPlayerData* BaseTestServer::addTestPlayer(PlayerId playerId, const
     auto* player = m_playerManager.addPlayer(playerId, uuid, username, connection.get());
     if (player != nullptr) {
         m_connections.push_back(connection);
-        m_inventoryManager.initializeInventory(playerId);
+        // 为该测试玩家准备物品栏。生产环境的权威数据在玩家实体上（Player::m_inventory），
+        // 由服务器注入的解析器定位；测试不构造完整玩家实体，故这里直接持有一份并经解析器
+        // 暴露出去——对被测代码而言仍是「该玩家唯一的那一份」。
+        m_testInventories[playerId] = std::make_unique<PlayerInventory>(nullptr);
+        m_inventoryManager.setInventoryResolver([this](PlayerId id) -> PlayerInventory* {
+            auto it = m_testInventories.find(id);
+            return (it != m_testInventories.end()) ? it->second.get() : nullptr;
+        });
     }
     return player;
 }

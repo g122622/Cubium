@@ -148,11 +148,9 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             continue;
         }
 
-        // 经 support::resolvePlayerInventory 取背包：优先 InventoryManager（真实玩家网络层权威背包），
-        // 回退实体层 Player::m_inventory（SimulatedPlayer 权威背包，不在 InventoryManager 注册）。
-        // 此前直接用 server->playerInventory（仅 InventoryManager）对 SimulatedPlayer 返 nullptr 致 /give 失效。
-        // 真实玩家必须操作 InventoryManager 背包（BlockInteractionManager 等以 InventoryManager 为权威，
-        // 操作前从其同步到 Player::m_inventory，若 give 写实体层会被下次操作覆盖丢失），故不可全用实体层。
+        // 经 support::resolvePlayerInventory 取背包：它转发 server->playerInventory，按 playerId
+        // 定位到玩家实体上的物品栏（Player::m_inventory）——物品栏只有这一份，真实玩家与
+        // SimulatedPlayer 一视同仁，写进去的就是所有游戏逻辑读的那一份。
         PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
         if (inventory == nullptr) {
             continue;

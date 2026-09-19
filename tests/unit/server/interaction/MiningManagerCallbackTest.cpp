@@ -74,9 +74,13 @@ protected:
         m_player->gameMode = GameMode::Survival;
         m_player->onGround = true;
 
-        // 创建物品栏管理器
+        // 创建物品栏管理器。物品栏的权威数据在玩家实体上，本管理器只做定位转发、不持有
+        // 副本；本测试只关心背包读写语义、不构造完整玩家实体，故注入一个测试持有的
+        // PlayerInventory 作为解析结果——仍然是单份数据。
+        m_testInventory = std::make_unique<PlayerInventory>(nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->initializeInventory(m_playerId);
+        m_inventoryManager->setInventoryResolver(
+            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
 
         // 创建连接管理器
         m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
@@ -99,6 +103,7 @@ protected:
 
     std::unique_ptr<server::core::PlayerManager> m_playerManager;
     std::unique_ptr<server::core::ConnectionManager> m_connectionManager;
+    std::unique_ptr<PlayerInventory> m_testInventory;
     std::unique_ptr<server::interaction::InventoryManager> m_inventoryManager;
     std::unique_ptr<server::interaction::MiningManager> m_miningManager;
     server::ServerPlayerData* m_player = nullptr;
@@ -177,7 +182,7 @@ TEST_F(MiningManagerCallbackTest, EntityIdResolverReturnsDifferentIdsForDifferen
     player2->gameMode = GameMode::Survival;
     player2->onGround = true;
 
-    m_inventoryManager->initializeInventory(player2Id);
+    // 无需为第二个玩家登记物品栏：本测试的解析器对所有 playerId 都返回同一份测试背包。
 
     // 设置解析器：player1 -> entityId 100, player2 -> entityId 200
     m_miningManager->setEntityIdResolver([](PlayerId pid) -> EntityInstanceId {

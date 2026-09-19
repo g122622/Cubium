@@ -952,6 +952,18 @@ void MinecraftServer::initializeInteractionManagers()
 
     m_inventoryManager = std::make_unique<interaction::InventoryManager>(*m_playerManager);
 
+    // 物品栏的权威数据在玩家实体上（Player::m_inventory），InventoryManager 只做定位转发、
+    // 不持有副本。定位需要世界上下文（按 playerId 找到其所在世界，再取实体），而交互层拿不到
+    // 世界，故在此注入解析器。玩家不在线、无世界或无实体时返回 nullptr。
+    m_inventoryManager->setInventoryResolver([this](PlayerId playerId) -> PlayerInventory* {
+        ServerWorld* world = getPlayerWorld(playerId);
+        if (world == nullptr) {
+            return nullptr;
+        }
+        Player* entity = playerEntityManager().getPlayerEntity(playerId, *world);
+        return (entity != nullptr) ? &entity->inventory() : nullptr;
+    });
+
     m_inventoryManager->setOnInventoryUpdate([this](PlayerId playerId, const PlayerInventory& inventory) {
         // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
         // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例，

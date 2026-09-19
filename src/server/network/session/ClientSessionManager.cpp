@@ -157,11 +157,9 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
             m_server.playerEntityManager().removePlayerEntity(playerId, *world);
         }
 
-        // 移除玩家会话信息
+        // 移除玩家会话信息。物品栏无需另行清理——它随上面移除的玩家实体一起消失，
+        // InventoryManager 不持有任何需要释放的副本。
         m_server.playerManager().removePlayer(playerId);
-
-        // 清理物品栏
-        m_server.inventoryManager().cleanupInventory(playerId);
 
         // 广播离场（ClientboundPlayerInfoRemove，cb 67），否则其余客户端的 Tab 列表会永久
         // 残留该玩家。顺序与语义一致于 vanilla：先把玩家移出在线列表，再向剩余玩家广播；

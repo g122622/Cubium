@@ -253,8 +253,13 @@ protected:
         m_player->gameMode = GameMode::Survival;
         m_player->loggedIn = true;
 
-        // 复用 m_server 的 InventoryManager（同样基于 m_server->playerManager()）
-        m_server->inventoryManager().initializeInventory(m_playerId);
+        // 复用 m_server 的 InventoryManager（同样基于 m_server->playerManager()）。
+        // 物品栏的权威数据在玩家实体上，InventoryManager 只做定位转发、不持有副本；
+        // 本测试只关心背包读写语义、不构造完整玩家实体，故注入一个测试持有的
+        // PlayerInventory 作为解析结果——仍然是单份数据。
+        m_testInventory = std::make_unique<PlayerInventory>(nullptr);
+        m_server->inventoryManager().setInventoryResolver(
+            [this](PlayerId /*playerId*/) -> PlayerInventory* { return m_testInventory.get(); });
 
         // BlockInteractionManager 必须绑定 m_server->playerManager()，使 _validatePlayer/_canInteract
         // 与 EntityTracker 的观察者遍历使用同一份玩家数据
@@ -290,6 +295,7 @@ protected:
 
     std::unique_ptr<server::ServerWorld> m_world;
     std::unique_ptr<SpawnEggE2ETestServer> m_server;
+    std::unique_ptr<PlayerInventory> m_testInventory;
     std::unique_ptr<server::interaction::BlockInteractionManager> m_blockInteractionManager;
     std::shared_ptr<CapturingConnection> m_connection;
 

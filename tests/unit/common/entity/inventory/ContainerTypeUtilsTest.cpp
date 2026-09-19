@@ -102,8 +102,7 @@ TEST(ContainerTypeUtilsTest, WireIdsAreContiguousFromZero)
     // 而它之后的所有类型都会前移一位。
     constexpr size_t count = std::size(kExpectedWireIds);
     for (size_t i = 0; i < count; ++i) {
-        EXPECT_EQ(kExpectedWireIds[i].wireId, static_cast<u8>(i))
-            << "第 " << i << " 项的 wire 取值应为 " << i;
+        EXPECT_EQ(kExpectedWireIds[i].wireId, static_cast<u8>(i)) << "第 " << i << " 项的 wire 取值应为 " << i;
     }
 }
 
@@ -123,8 +122,7 @@ TEST(ContainerTypeUtilsTest, EveryContainerTypeReportsSlotCount)
 {
     for (const auto& [type, wireId] : kExpectedWireIds) {
         (void)wireId;
-        EXPECT_GT(ContainerTypes::getSlotCount(type), 0)
-            << "容器类型 " << static_cast<int>(type) << " 未给出槽位数";
+        EXPECT_GT(ContainerTypes::getSlotCount(type), 0) << "容器类型 " << static_cast<int>(type) << " 未给出槽位数";
     }
     // 玩家背包是 5 个合成格 + 1 个结果格 + 4 护甲 + 36 主背包 = 46。
     EXPECT_EQ(ContainerTypes::getSlotCount(ContainerType::Player), 46);
