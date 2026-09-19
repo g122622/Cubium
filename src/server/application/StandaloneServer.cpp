@@ -741,6 +741,20 @@ void StandaloneServer::_setupContainerCallbacks()
     containerManager().setOnContainerUpdate(
         [this, sendContainerContent](
             PlayerId playerId, const AbstractContainerMenu& menu) { sendContainerContent(playerId, menu); });
+
+    // 容器进度数据（container_set_data，cb 19）：熔炉的火焰燃烧与箭头熔炼进度。
+    // 菜单的 tracked int 每 tick 由 ContainerManager::tickMenus() 刷新，变化时经这里下发。
+    containerManager().setOnContainerData([this](PlayerId playerId, ContainerId containerId, i32 property, i32 value) {
+        mc::network::ir::play::ContainerSetData pkt;
+        pkt.containerId = static_cast<i32>(containerId);
+        pkt.property = static_cast<i16>(property);
+        pkt.value = static_cast<i16>(value);
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(pkt)},
+            });
+    });
 }
 
 Result<void> StandaloneServer::_loadSettings(const std::string& path)

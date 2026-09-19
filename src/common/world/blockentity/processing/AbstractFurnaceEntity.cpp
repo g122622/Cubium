@@ -28,6 +28,8 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/property/Properties.hpp"
+#include "common/util/property/StateHolder.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LockableBlockEntity.hpp"
@@ -905,7 +907,22 @@ bool AbstractFurnaceEntity::burnFuel()
 
 void AbstractFurnaceEntity::updateBurnState(IWorld& world)
 {
-    (void)world;
+    // 把燃烧状态写回方块的 LIT 属性：它决定熔炉的发光等级，也是客户端切换「点燃」贴图的
+    // 依据。不写的话熔炉烧着也不发光、贴图不变，从外部完全看不出它在工作。
+    //
+    // 只在状态真的改变时写。setBlockState 对「新旧状态相同」会直接返回、不下发更新，
+    // 想靠它无条件刷新客户端是无效的（见 blockentity/README 第 12 条）。
+    const BlockState* state = world.getBlockState(m_pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    const bool burning = isBurning();
+    if (state->get(BlockStateProperties::LIT()) == burning) {
+        return;
+    }
+
+    world.setBlockState(m_pos, &state->with(BlockStateProperties::LIT(), burning), 3);
 }
 
 const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) const

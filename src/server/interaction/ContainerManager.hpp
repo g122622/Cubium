@@ -133,6 +133,25 @@ public:
     [[nodiscard]] AbstractContainerMenu* getPlayerInventoryMenu(PlayerId playerId);
 
     /**
+     * @brief 逐 tick 推进所有打开的菜单
+     *
+     * 把进度型容器（熔炉类）的状态从方块实体刷到菜单的 tracked int，再比对变化、经监听器
+     * 下推给客户端。缺了这一步，熔炉的火焰与箭头进度在客户端恒为 0——服务端确实在烧炼，
+     * 只是从没告诉过客户端。
+     *
+     * 由服务器每 tick 调用。
+     */
+    void tickMenus();
+
+    /**
+     * @brief 设置容器进度数据回调
+     *
+     * 菜单里某个 tracked int 发生变化时触发，参数为 (property, value)，由服务器转换为
+     * `container_set_data` 下发。
+     */
+    void setOnContainerData(std::function<void(PlayerId, mc::ContainerId, i32, i32)> callback);
+
+    /**
      * @brief 处理容器点击
      * @param playerId 玩家ID
      * @param containerId 容器ID
@@ -207,6 +226,7 @@ private:
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> m_onContainerOpen;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> m_onContainerClose;
     std::function<void(PlayerId, const AbstractContainerMenu&)> m_onContainerUpdate;
+    std::function<void(PlayerId, mc::ContainerId, i32, i32)> m_onContainerData;
 };
 
 } // namespace interaction

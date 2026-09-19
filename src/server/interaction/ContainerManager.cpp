@@ -119,6 +119,19 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
 
     m_openContainers[playerId] = std::move(openContainer);
 
+    // 进度型容器（熔炉类）的火焰与箭头进度经 tracked int 同步。每 tick 由 tickMenus() 把状态
+    // 从方块实体刷进这些 int 并比对变化，变化时经此监听器下推。不注册的话，服务端照常烧炼，
+    // 但客户端那边进度永远是 0。
+    if (auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(m_openContainers[playerId].menu.get());
+        furnaceMenu != nullptr) {
+        const mc::ContainerId openedId = containerId;
+        furnaceMenu->addIntListener([this, playerId, openedId](i32 property, i32 value) {
+            if (m_onContainerData) {
+                m_onContainerData(playerId, openedId, property, value);
+            }
+        });
+    }
+
     std::string title = std::string(ContainerTypes::getDefaultTitle(type));
     i32 slotCount = ContainerTypes::getSlotCount(type);
 
@@ -182,6 +195,28 @@ bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventor
     menu->updateResult();
     m_playerInventoryMenus[playerId] = std::move(menu);
     return true;
+}
+
+void ContainerManager::tickMenus()
+{
+    for (auto& [playerId, openContainer] : m_openContainers) {
+        (void)playerId;
+        auto* menu = openContainer.menu.get();
+        if (menu == nullptr) {
+            continue;
+        }
+
+        // 进度型容器先从方块实体取最新状态写进 tracked int，再统一比对变化。
+        if (auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(menu); furnaceMenu != nullptr) {
+            furnaceMenu->syncProgressFromEntity();
+        }
+        menu->detectAndSendChanges();
+    }
+}
+
+void ContainerManager::setOnContainerData(std::function<void(PlayerId, mc::ContainerId, i32, i32)> callback)
+{
+    m_onContainerData = std::move(callback);
 }
 
 void ContainerManager::closePlayerInventoryMenu(PlayerId playerId)

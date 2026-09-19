@@ -360,6 +360,13 @@ void MinecraftServer::tick()
         }
     });
 
+    // 推进打开的容器菜单：把进度型容器（熔炉类）的状态从方块实体刷进 tracked int，并下推
+    // 发生变化的部分。缺了这一步，服务端照常烧炼，但客户端的火焰与箭头进度恒为 0。
+    if (m_containerManager != nullptr) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickContainerMenus");
+        m_containerManager->tickMenus();
+    }
+
     // 处理网络事件（子类实现）
     pollNetwork();
 
