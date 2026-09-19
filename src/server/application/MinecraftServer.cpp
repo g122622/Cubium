@@ -1650,10 +1650,12 @@ void MinecraftServer::sendChunkDataToPlayer(
     mc::network::ir::play::LevelChunkWithLight pkt = ir;
     pkt.x = static_cast<i32>(x);
     pkt.z = static_cast<i32>(z);
-    // 诊断日志降级为 debug：区块发送是逐区块、每玩家、每 tick 的高频路径，info 级下
-    // 单玩家 viewDistance=4 即产生约 81 行/次加载，会淹没日志中的真实错误。
-    // 需要排查"区块是否送达客户端"时以 --log_level=debug 或等价配置开启。
-    spdlog::debug("Sent chunk ({}, {}) to player {}", x, z, playerId);
+    // 此处原有一条逐区块的 "Sent chunk" info 诊断日志（排查真 Java 客户端卡 loading 时加）。
+    // 按 docs/CODE_CONVENTIONS.md §4「不允许使用 debug/trace 级别」，不能降级保留；
+    // 而该路径是每区块、每玩家、每 tick 的高频调用（单玩家 viewDistance=4 即约 81 行/次加载），
+    // 维持 info 会淹没日志中的真实错误。故直接移除。
+    // 需要确认「区块是否送达客户端」时，改用 tests/e2e/bot——其 bot-trace.jsonl 逐条记录了
+    // 收到的 map_chunk 包（含大小与 payload），比服务端日志更直接。
     sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,

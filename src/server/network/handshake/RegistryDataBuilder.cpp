@@ -179,7 +179,7 @@ std::optional<std::vector<u8>> buildRegistryEntryData(
     const std::string resourcePath = registryEntryResourcePath(id, registryDir);
     auto readResult = repo.readTextResource(resourcePath);
     if (!readResult.success()) {
-        spdlog::warn("RegistryDataBuilder: 读取 {} 失败（{}）", resourcePath, readResult.error().toString());
+        spdlog::warn("RegistryDataBuilder: failed to read {}: {}", resourcePath, readResult.error().toString());
         return std::nullopt;
     }
 
@@ -188,18 +188,18 @@ std::optional<std::vector<u8>> buildRegistryEntryData(
         j = nlohmann::json::parse(std::move(readResult).value());
     }
     catch (const std::exception& e) {
-        spdlog::warn("RegistryDataBuilder: 解析 {} 失败：{}", resourcePath, e.what());
+        spdlog::warn("RegistryDataBuilder: failed to parse {}: {}", resourcePath, e.what());
         return std::nullopt;
     }
     if (!j.is_object()) {
-        spdlog::warn("RegistryDataBuilder: {} 顶层不是 JSON 对象", resourcePath);
+        spdlog::warn("RegistryDataBuilder: {} is not a JSON object at top level", resourcePath);
         return std::nullopt;
     }
 
     auto root = jsonToNbtStrictInt(j);
     auto* asCompound = dynamic_cast<mc::nbt::tags::compound_tag*>(root.get());
     if (asCompound == nullptr) {
-        spdlog::warn("RegistryDataBuilder: {} 转换结果不是 compound", resourcePath);
+        spdlog::warn("RegistryDataBuilder: {} did not convert to a compound tag", resourcePath);
         return std::nullopt;
     }
     return mc::network::buffer::nbt_io::serializeRootCompoundToBytes(*asCompound);
@@ -696,7 +696,8 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     std::vector<mc::network::ir::configuration::RegistryData> registries;
 
     if (g_registryDatapackRepo == nullptr) {
-        spdlog::error("RegistryDataBuilder: datapack 源未注册，无法为未声明 minecraft:core 的客户端构造注册表 NBT");
+        spdlog::error("RegistryDataBuilder: datapack source not registered; cannot build registry NBT for a client "
+                      "that declared no minecraft:core");
         return registries;
     }
 
@@ -738,14 +739,14 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
         registry.entries = std::move(filledEntries);
     }
 
-    spdlog::info("RegistryDataBuilder: 客户端未声明 minecraft:core，下发 {} 个注册表的内联 NBT"
-                 "（成功 {} 条目，跳过 {} 条目）",
+    spdlog::info("RegistryDataBuilder: client declared no minecraft:core; sending inline NBT for {} registries"
+                 " ({} entries built, {} skipped)",
         registries.size(),
         filledCount,
         skippedCount);
     if (skippedCount > 0) {
-        spdlog::warn("RegistryDataBuilder: 有 {} 个条目的 NBT 构建失败并被跳过，"
-                     "该注册表对端将不完整（详见上方的读取/解析告警）",
+        spdlog::warn("RegistryDataBuilder: {} entries failed NBT construction and were skipped;"
+                     "the peer registry will be incomplete (see the read/parse warnings above)",
             skippedCount);
     }
 

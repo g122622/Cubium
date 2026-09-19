@@ -372,7 +372,7 @@ Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::n
         // 自动切 Play。
         // 幂等守卫：迟到的重发不应二次触发 onPlayerReady（否则重复创建玩家/重发 play::Login）。
         if (m_playReady) {
-            spdlog::debug("ServerHandshake: duplicate FinishConfiguration ignored (already Play ready)");
+            spdlog::info("ServerHandshake: duplicate FinishConfiguration ignored (already Play ready)");
             return Result<void>::ok();
         }
         m_conn.setOutboundPhase(mc::network::protocol::ConnectionProtocol::Play);

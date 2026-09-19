@@ -134,7 +134,7 @@ void ServerPlayer::sendChatMessage(const std::string& message)
     // 1.21.11 玩家聊天经 PlayerChatMessage（含签名/会话）下发；离线模式无签名链路，
     // 降级用 SystemChat(overlay=false) 把裸文本送入聊天窗口。真在线签名聊天属独立子项。
     if (!hasConnection()) {
-        spdlog::debug("ServerPlayer: S->C chat dropped (no connection, player={})", username());
+        spdlog::info("ServerPlayer: S->C chat dropped (no connection, player={})", username());
         return;
     }
     mc::network::ir::play::SystemChat pkt;
@@ -148,7 +148,7 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
 {
     // 1.21.11 SystemChat(overlay=false)：content 为 Component NBT，显示在聊天窗口。
     if (!hasConnection()) {
-        spdlog::debug("ServerPlayer: S->C system message dropped (no connection, player={})", username());
+        spdlog::info("ServerPlayer: S->C system message dropped (no connection, player={})", username());
         return;
     }
     mc::network::ir::play::SystemChat pkt;
