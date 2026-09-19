@@ -94,6 +94,17 @@ export interface CaptureInput {
     readonly extra: Record<string, unknown>;
 }
 
+/**
+ * 把浮点量化到 2 位小数。
+ *
+ * 玩家位置由客户端物理积分得出，同一稳定状态下也可能出现 4.0 与 3.9999998 这类
+ * 末位差异；直接入快照会造成为基线抖动。量化到 0.01 足以表达"站在地表上方约 1 格"
+ * 这类语义，同时消除浮点噪声。
+ */
+function quantize(value: number): number {
+    return Math.round(value * 100) / 100;
+}
+
 /** 采集一份快照。 */
 export function captureSnapshot(input: CaptureInput): CaseSnapshot {
     const { bot } = input;
@@ -130,7 +141,7 @@ export function captureSnapshot(input: CaptureInput): CaseSnapshot {
             gameMode: String(game.gameMode ?? "<未知>"),
             health: bot.health ?? -1,
             food: bot.food ?? -1,
-            yRelativeToSurface: feetY - input.surfaceY,
+            yRelativeToSurface: quantize(feetY - input.surfaceY),
             onGround: bot.entity?.onGround ?? false,
             standingOn: isAir(below) ? null : (below ?? null),
         },

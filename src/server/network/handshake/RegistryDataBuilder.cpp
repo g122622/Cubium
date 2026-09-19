@@ -73,10 +73,19 @@ const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
 ///
 /// 浮点沿用 jsonToNbt 的推断（能精确表示为 f32 则 float_tag，否则 double_tag）——
 /// Java 的 FloatCodec/DoubleCodec 接受任意数值 tag，无需精确匹配。
-///
-/// TODO: 暂不支持 JSON 数组（当前仅 dimension_type 走本函数，其 JSON 无数组字段）。
-///       若未来为含数组的注册表启用（如 worldgen/biome 的 features/spawners），
-///       须补齐同构列表类型推断，且整数元素同样不能窄化。
+std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json);
+
+/// 同构性未知或元素类型混杂的数组 → 通用 tag_list_tag（元素类型由首个元素决定）。
+std::unique_ptr<mc::nbt::tags::tag_list_tag> makeGenericTagList(const nlohmann::json& json)
+{
+    using namespace mc::nbt::tags;
+    auto list = std::make_unique<tag_list_tag>(mc::nbt::TagId::End);
+    for (const auto& element : json) {
+        list->value.push_back(jsonToNbtStrictInt(element));
+    }
+    return list;
+}
+
 std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json)
 {
     using namespace mc::nbt::tags;
@@ -113,8 +122,39 @@ std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& jso
         return result;
     }
     if (json.is_array()) {
-        spdlog::warn("RegistryDataBuilder: jsonToNbtStrictInt 暂不支持 JSON 数组，已置空（见函数 TODO）");
-        return std::make_unique<end_list_tag>();
+        // 列表类型推断与 mc::nbt::jsonToNbt 对齐（同构列表用对应特化类型），
+        // 但元素一律走本函数以保证整数不窄化。
+        if (json.empty()) {
+            return std::make_unique<end_list_tag>();
+        }
+        const auto& first = json[0];
+        if (first.is_object()) {
+            auto list = std::make_unique<compound_list_tag>();
+            for (const auto& element : json) {
+                if (!element.is_object()) {
+                    return makeGenericTagList(json);
+                }
+                auto child = jsonToNbtStrictInt(element);
+                auto* asCompound = dynamic_cast<compound_tag*>(child.get());
+                if (asCompound == nullptr) {
+                    return makeGenericTagList(json);
+                }
+                // 移动内容到列表；child 析构时释放已被移空的壳。
+                list->value.push_back(std::move(*asCompound));
+            }
+            return list;
+        }
+        if (first.is_string()) {
+            auto list = std::make_unique<string_list_tag>();
+            for (const auto& element : json) {
+                if (!element.is_string()) {
+                    return makeGenericTagList(json);
+                }
+                list->value.push_back(element.get<std::string>());
+            }
+            return list;
+        }
+        return makeGenericTagList(json);
     }
     return std::make_unique<compound_tag>();
 }
@@ -660,28 +700,54 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
         return registries;
     }
 
-    // dimension_type（4）：下发完整内联 NBT。
-    // 条目顺序与 buildConfigurationRegistryData() 中的同名注册表严格一致——Login 包的
-    // spawnInfo.dimensionType 是 holder id（= 该注册表内的顺序索引），客户端按收到顺序自增分配。
-    mc::network::ir::configuration::RegistryData dimensionTypes;
-    dimensionTypes.registryKey = "minecraft:dimension_type";
-    const std::initializer_list<const char*> dimensionTypeIds = {
-        "minecraft:overworld", "minecraft:overworld_caves", "minecraft:the_nether", "minecraft:the_end"};
-    dimensionTypes.entries.reserve(dimensionTypeIds.size());
-    for (const char* id : dimensionTypeIds) {
-        dimensionTypes.entries.push_back(
-            {std::string(id), buildRegistryEntryData(*g_registryDatapackRepo, id, "dimension_type")});
-    }
-    registries.push_back(std::move(dimensionTypes));
+    // 以 buildConfigurationRegistryData() 的条目与顺序为基准——该顺序与 UpdateTags 的
+    // elementId 计算绑定（客户端按 RegistryData 的收到顺序自增分配 registry id），
+    // 不可变更。此处只做「逐条目补齐 NBT」这一件事。
+    registries = buildConfigurationRegistryData();
 
-    // 其余 22 个注册表跳过发送（客户端保留其本地数据）。
-    // TODO: 实现其余注册表的完整 NBT 编码以彻底对齐 vanilla —— vanilla 的
-    //       RegistrySynchronization.packRegistry 对未命中 known pack 的条目一律编码 NBT，
-    //       跳过发送不等价。当前跳过是因为各注册表字段类型须逐个核对 Java codec
-    //       （整数必须精确 int_tag，不能复用通用 jsonToNbt），详见头文件说明。
-    spdlog::info("RegistryDataBuilder: 客户端未声明 minecraft:core，下发 {} 个注册表"
-                 "（dimension_type 带内联 NBT；其余 22 个跳过，客户端保留本地数据）",
-        registries.size());
+    std::size_t filledCount = 0;
+    std::size_t skippedCount = 0;
+
+    for (auto& registry : registries) {
+        // registryKey 形如 "minecraft:dimension_type" / "minecraft:worldgen/biome"，
+        // 去掉 "minecraft:" 前缀后即为数据包内的目录名。
+        const std::string& key = registry.registryKey;
+        const auto colonPos = key.find(':');
+        const std::string registryDir = (colonPos == std::string::npos) ? key : key.substr(colonPos + 1);
+
+        std::vector<mc::network::ir::configuration::RegistryEntry> filledEntries;
+        filledEntries.reserve(registry.entries.size());
+        for (auto& entry : registry.entries) {
+            if (entry.data.has_value()) {
+                // 已带内联 NBT 的条目（如 enchantment，由 EnchantmentNbtBuilder 构造）原样保留。
+                filledEntries.push_back(std::move(entry));
+                continue;
+            }
+            auto data = buildRegistryEntryData(*g_registryDatapackRepo, entry.id, registryDir);
+            if (!data.has_value()) {
+                // 构建失败时**跳过该条目**，而不是回退到「有 key 无 value」——后者会让客户端
+                // 解析时抛异常（prismarine-registry 对 undefined value 调 nbt.simplify）。
+                // 跳过至少不会使对端崩溃，且下面的统计日志会暴露覆盖率缺口。
+                ++skippedCount;
+                continue;
+            }
+            entry.data = std::move(data);
+            filledEntries.push_back(std::move(entry));
+            ++filledCount;
+        }
+        registry.entries = std::move(filledEntries);
+    }
+
+    spdlog::info("RegistryDataBuilder: 客户端未声明 minecraft:core，下发 {} 个注册表的内联 NBT"
+                 "（成功 {} 条目，跳过 {} 条目）",
+        registries.size(),
+        filledCount,
+        skippedCount);
+    if (skippedCount > 0) {
+        spdlog::warn("RegistryDataBuilder: 有 {} 个条目的 NBT 构建失败并被跳过，"
+                     "该注册表对端将不完整（详见上方的读取/解析告警）",
+            skippedCount);
+    }
 
     return registries;
 }
