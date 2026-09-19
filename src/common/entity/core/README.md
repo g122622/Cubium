@@ -398,7 +398,7 @@
 
 #### 冰冻减速修饰符
 
-- UUID：`SPEED_MODIFIER_POWDER_SNOW_UUID = "1e7a5c3c-6f4a-4b6b-8c3d-5e2f1a0b9c8d"`
+- UUID：`SPEED_MODIFIER_POWDER_SNOW_ID = "minecraft:powder_snow"`
 - 操作：`Operation::Addition`，值 = `-0.05 * getPercentFrozen()`
 - 完全冰冻时减少 0.05 移动速度（基础速度 0.1，减速 50%）
 - 仅在 `ticksFrozen > 0` 且脚下方块非空气时添加（`tryAddFrost()` 检查 `onPos()` 方块状态）
@@ -448,7 +448,7 @@
   - LivingEntity 层冰冻逻辑（tickFreeze 递减/伤害/修饰符, removeFrost, tryAddFrost, clearFreeze）
   - DamageSource::Freeze 伤害类型和 isFreezing() 检测
   - FREEZE_DAMAGE 游戏规则对冰冻伤害的控制
-  - 冰冻减速修饰符（SPEED_MODIFIER_POWDER_SNOW_UUID）
+  - 冰冻减速修饰符（SPEED_MODIFIER_POWDER_SNOW_ID）
   - baseTick 中 isInPowderSnow 重置逻辑
 
         ## #队伍联盟判断 -

@@ -45,7 +45,7 @@ armor/
 - **下界合金鹦鹉螺铠甲防火**：下界合金鹦鹉螺铠甲同样通过 `ItemTags::FIRE_RESISTANT` 标签实现防火效果（免疫火焰/岩浆伤害），与下界合金马铠机制一致，与 MC Java 通过 `Item.Properties.fireResistant()` 机制不同。
 - **鹦鹉螺铠甲护甲值**：鹦鹉螺铠甲的护甲值由 `ArmorMaterial::getDefense(ArmorSlot::Body)` 推导，与 MC 1.21.11 `Item.Properties.nautilusArmor(ArmorMaterial)` 通过 `ArmorMaterial.createAttributes(ArmorType.BODY)` 取护甲值的语义一致。各材质护甲值为：铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19，与马铠护甲值一致。`NautilusArmorItem` 继承自 `Item` 而非 `ArmorItem`（与 `HorseArmorItem` 设计一致），不参与玩家盔甲装备系统、不可破坏，但护甲值仍从材质的 Body 槽位防御值统一获取，避免双份维护。
 - **狼铠默认颜色**：`WolfArmorItem::getDefaultColor()` 返回 0xA06540（犰狳鳞甲棕色），对应 MC Java 中 `DyeableArmorItem.getDefaultColor()` 的狼铠默认色。
-- **狼铠防御值**：`WolfArmorItem` 使用 `ArmorSlot::Body` 槽位，基类 `ArmorItem::getDefense()` 通过 `ArmadilloScuteArmorMaterial::getDefense(ArmorSlot::Body)` 返回防御值 11。属性修饰符在基类构造函数中通过 `_buildAttributeModifiers(getDefense())` 自动构建，使用 `ARMOR_MODIFIER_UUID_BODY` 和 `EquipmentSlot::Body`。
+- **狼铠防御值**：`WolfArmorItem` 使用 `ArmorSlot::Body` 槽位，基类 `ArmorItem::getDefense()` 通过 `ArmadilloScuteArmorMaterial::getDefense(ArmorSlot::Body)` 返回防御值 11。属性修饰符在基类构造函数中通过 `_buildAttributeModifiers(getDefense())` 自动构建，使用 `ARMOR_MODIFIER_BODY` 和 `EquipmentSlot::Body`。
 
 ## ArmorItem 属性修饰符系统
 

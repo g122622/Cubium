@@ -66,7 +66,7 @@ public:
     /**
      * @brief 火焰保护附魔的属性修饰符
      *
-     * 经 EnchantmentAttributeEffect（id="enchantment.fire_protection"，属性=BURNING_TIME，
+     * 经 EnchantmentAttributeEffect（id="minecraft:enchantment.fire_protection"，属性=BURNING_TIME，
      * LevelBasedValue.perLevel(-0.15F)，Operation.ADD_MULTIPLIED_BASE，装备槽位组=ARMOR）把每级 -0.15
      * 的基础乘法修饰符加到 BURNING_TIME 属性。
      *
@@ -93,8 +93,10 @@ public:
         item::ItemAttributeModifiers modifiers;
         if (level > 0) {
             const f64 amount = static_cast<f64>(level) * -0.15;
-            const entity::attribute::AttributeModifier modifier(
-                "enchantment.fire_protection", "Fire Protection", amount, entity::attribute::Operation::MultiplyBase);
+            const entity::attribute::AttributeModifier modifier("minecraft:enchantment.fire_protection",
+                "Fire Protection",
+                amount,
+                entity::attribute::Operation::MultiplyBase);
             modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Feet));
             modifiers.add(entity::attribute::Attributes::BURNING_TIME, modifier, static_cast<i32>(EquipmentSlot::Legs));
             modifiers.add(

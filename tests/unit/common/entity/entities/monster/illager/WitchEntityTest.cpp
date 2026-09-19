@@ -289,7 +289,7 @@ TEST(WitchEntityTest, DrinkingPotionAddsSpeedPenaltyModifier)
     EXPECT_DOUBLE_EQ(initialSpeed, 0.25);
 
     // 开始喝药水：添加速度修饰符（模拟 _startDrinkingPotion 的修饰符逻辑）
-    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
+    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_ID,
         "Drinking speed penalty",
         -0.25,
         entity::attribute::Operation::Addition);
@@ -305,7 +305,7 @@ TEST(WitchEntityTest, FinishingDrinkingRemovesSpeedPenaltyModifier)
     WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 添加速度修饰符
-    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
+    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_ID,
         "Drinking speed penalty",
         -0.25,
         entity::attribute::Operation::Addition);
@@ -317,7 +317,7 @@ TEST(WitchEntityTest, FinishingDrinkingRemovesSpeedPenaltyModifier)
 
     // 移除修饰符（模拟 _finishDrinkingPotion）
     witch.attributes().removeModifier(
-        entity::attribute::Attributes::MOVEMENT_SPEED, WitchEntity::DRINKING_SPEED_PENALTY_UUID);
+        entity::attribute::Attributes::MOVEMENT_SPEED, WitchEntity::DRINKING_SPEED_PENALTY_ID);
 
     // 速度应恢复到基础值 0.25
     f64 normalSpeed = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
@@ -329,7 +329,7 @@ TEST(WitchEntityTest, SpeedPenaltyModifierUsesAdditionOperation)
     WitchEntity witch(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 验证修饰符使用 Addition 操作（值直接相加，而非乘法）
-    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
+    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_ID,
         "Drinking speed penalty",
         -0.25,
         entity::attribute::Operation::Addition);
@@ -343,8 +343,8 @@ TEST(WitchEntityTest, SpeedPenaltyModifierUsesAdditionOperation)
 TEST(WitchEntityTest, SpeedPenaltyUUIDIsCorrect)
 {
     // 验证 UUID 与 MC 1.16.5 一致
-    // MC 源码中女巫喝药水减速的 UUID: "5CD17E52-A79A-43D3-A529-90FDE04B181E"
-    EXPECT_STREQ(WitchEntity::DRINKING_SPEED_PENALTY_UUID, "5CD17E52-A79A-43D3-A529-90FDE04B181E");
+    // MC 源码中女巫喝药水减速的 UUID: "minecraft:drinking"
+    EXPECT_STREQ(WitchEntity::DRINKING_SPEED_PENALTY_ID, "minecraft:drinking");
 }
 
 // ========== 药水类型选择测试 ==========

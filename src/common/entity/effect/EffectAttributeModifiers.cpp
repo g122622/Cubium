@@ -44,38 +44,35 @@ namespace {
 /// 效果属性修改器映射表
 const std::unordered_map<EffectType, std::vector<EffectModifierInfo>> s_effectModifiers = {
     // 速度：每级增加 20% 移动速度
-    {EffectType::Speed,
-        {{attribute::Attributes::MOVEMENT_SPEED, SPEED_UUID, 0.2, attribute::Operation::MultiplyTotal}}},
+    {EffectType::Speed, {{attribute::Attributes::MOVEMENT_SPEED, SPEED_ID, 0.2, attribute::Operation::MultiplyTotal}}},
     // 缓慢：每级减少 15% 移动速度
     {EffectType::Slowness,
-        {{attribute::Attributes::MOVEMENT_SPEED, SLOWNESS_UUID, -0.15, attribute::Operation::MultiplyTotal}}},
+        {{attribute::Attributes::MOVEMENT_SPEED, SLOWNESS_ID, -0.15, attribute::Operation::MultiplyTotal}}},
     // 急迫：每级增加 10% 攻击速度
-    {EffectType::Haste, {{attribute::Attributes::ATTACK_SPEED, HASTE_UUID, 0.1, attribute::Operation::MultiplyTotal}}},
+    {EffectType::Haste, {{attribute::Attributes::ATTACK_SPEED, HASTE_ID, 0.1, attribute::Operation::MultiplyTotal}}},
     // 挖掘疲劳：每级减少 10% 攻击速度
     {EffectType::MiningFatigue,
-        {{attribute::Attributes::ATTACK_SPEED, MINING_FATIGUE_UUID, -0.1, attribute::Operation::MultiplyTotal}}},
+        {{attribute::Attributes::ATTACK_SPEED, MINING_FATIGUE_ID, -0.1, attribute::Operation::MultiplyTotal}}},
     // 力量：每级增加 3.0 攻击伤害
-    {EffectType::Strength,
-        {{attribute::Attributes::ATTACK_DAMAGE, STRENGTH_UUID, 3.0, attribute::Operation::Addition}}},
+    {EffectType::Strength, {{attribute::Attributes::ATTACK_DAMAGE, STRENGTH_ID, 3.0, attribute::Operation::Addition}}},
     // 跳跃提升：每级 +1 安全摔落距离（MobEffects.JUMP_BOOST 只挂 SAFE_FALL_DISTANCE 修饰符）。
     //   跳跃力加成走 LivingEntity::getJumpBoostPower 独立项（0.1*(amplifier+1)），非属性修饰符，
     //   故此处不挂 JUMP_STRENGTH 修饰符。SAFE_FALL_DISTANCE 修饰符使跳跃增强药水等级越高
     //   可承受的摔落越高，由 causeFallDamage 的摔落公式统一消费。
     {EffectType::JumpBoost,
-        {{attribute::Attributes::SAFE_FALL_DISTANCE, JUMP_BOOST_SAFE_FALL_UUID, 1.0, attribute::Operation::Addition}}},
+        {{attribute::Attributes::SAFE_FALL_DISTANCE, JUMP_BOOST_SAFE_FALL_ID, 1.0, attribute::Operation::Addition}}},
     // 虚弱：每级减少 4.0 攻击伤害
-    {EffectType::Weakness,
-        {{attribute::Attributes::ATTACK_DAMAGE, WEAKNESS_UUID, -4.0, attribute::Operation::Addition}}},
+    {EffectType::Weakness, {{attribute::Attributes::ATTACK_DAMAGE, WEAKNESS_ID, -4.0, attribute::Operation::Addition}}},
     // 生命提升：每级增加 4.0 最大生命值
     {EffectType::HealthBoost,
-        {{attribute::Attributes::MAX_HEALTH, HEALTH_BOOST_UUID, 4.0, attribute::Operation::Addition}}},
+        {{attribute::Attributes::MAX_HEALTH, HEALTH_BOOST_ID, 4.0, attribute::Operation::Addition}}},
     // 伤害吸收：每级增加 4.0 最大吸收值
     {EffectType::Absorption,
-        {{attribute::Attributes::MAX_ABSORPTION, ABSORPTION_UUID, 4.0, attribute::Operation::Addition}}},
+        {{attribute::Attributes::MAX_ABSORPTION, ABSORPTION_ID, 4.0, attribute::Operation::Addition}}},
     // 幸运：每级增加 1.0 幸运值
-    {EffectType::Luck, {{attribute::Attributes::LUCK, LUCK_UUID, 1.0, attribute::Operation::Addition}}},
+    {EffectType::Luck, {{attribute::Attributes::LUCK, LUCK_ID, 1.0, attribute::Operation::Addition}}},
     // 霉运：每级减少 1.0 幸运值
-    {EffectType::BadLuck, {{attribute::Attributes::LUCK, BAD_LUCK_UUID, -1.0, attribute::Operation::Addition}}},
+    {EffectType::BadLuck, {{attribute::Attributes::LUCK, BAD_LUCK_ID, -1.0, attribute::Operation::Addition}}},
     // 缓降：无属性修改（只有逻辑效果：减少摔落速度）
     // 潮涌能量：无属性修改（逻辑效果：水下呼吸+挖掘速度+视野）
     // 海豚的恩惠：无属性修改（逻辑效果：增加游泳速度）
@@ -120,7 +117,7 @@ attribute::AttributeModifier createModifier(const EffectModifierInfo& info, Effe
     // 使用 MC 原版命名格式: effect.minecraft.<resource_name>.<level>
     std::string name =
         std::string("effect.minecraft.") + getEffectResourceName(type) + "." + std::to_string(amplifier + 1);
-    return attribute::AttributeModifier(std::string(info.uuid), name, amount, info.operation);
+    return attribute::AttributeModifier(std::string(info.id), name, amount, info.operation);
 }
 
 } // namespace EffectAttributeModifiers

@@ -88,12 +88,12 @@ entity::DataParameter<bool> ZombieEntity::DATA_DROWNED_CONVERSION_PARAM = entity
 
 // 属性修饰符ID常量
 namespace {
-const std::string BABY_SPEED_BOOST_ID = "baby";
-const std::string REINFORCEMENT_CALLER_CHARGE_ID = "reinforcement_caller_charge";
-const std::string ZOMBIE_REINFORCEMENT_CALLEE_CHARGE_ID = "reinforcement_callee_charge";
-const std::string LEADER_ZOMBIE_BONUS_ID = "leader_zombie_bonus";
-const std::string ZOMBIE_RANDOM_SPAWN_BONUS_ID = "zombie_random_spawn_bonus";
-const std::string RANDOM_SPAWN_BONUS_ID = "random_spawn_bonus";
+const std::string BABY_SPEED_BOOST_ID = "minecraft:baby";
+const std::string REINFORCEMENT_CALLER_CHARGE_ID = "minecraft:reinforcement_caller_charge";
+const std::string ZOMBIE_REINFORCEMENT_CALLEE_CHARGE_ID = "minecraft:reinforcement_callee_charge";
+const std::string LEADER_ZOMBIE_BONUS_ID = "minecraft:leader_zombie_bonus";
+const std::string ZOMBIE_RANDOM_SPAWN_BONUS_ID = "minecraft:zombie_random_spawn_bonus";
+const std::string RANDOM_SPAWN_BONUS_ID = "minecraft:random_spawn_bonus";
 } // namespace
 
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = MonsterEntity::classInfo()）。

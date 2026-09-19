@@ -39,7 +39,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -103,7 +103,7 @@ TEST_F(PlayerInteractionRangeTest, CreativeModeAddsBlockInteractionRangeModifier
     EXPECT_DOUBLE_EQ(player->blockInteractionRange(), 5.0);
     // 修饰器应存在
     EXPECT_TRUE(player->attributes().hasModifier(
-        Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID));
+        Attributes::BLOCK_INTERACTION_RANGE, ids::CREATIVE_BLOCK_INTERACTION_RANGE_MODIFIER));
 }
 
 TEST_F(PlayerInteractionRangeTest, CreativeModeAddsEntityInteractionRangeModifier)
@@ -113,7 +113,7 @@ TEST_F(PlayerInteractionRangeTest, CreativeModeAddsEntityInteractionRangeModifie
     EXPECT_DOUBLE_EQ(player->entityInteractionRange(), 5.0);
     // 修饰器应存在
     EXPECT_TRUE(player->attributes().hasModifier(
-        Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID));
+        Attributes::ENTITY_INTERACTION_RANGE, ids::CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER));
 }
 
 // ========== 模式切换测试 ==========
@@ -130,9 +130,9 @@ TEST_F(PlayerInteractionRangeTest, SwitchingFromCreativeToSurvivalRemovesModifie
     EXPECT_DOUBLE_EQ(player->blockInteractionRange(), 4.5);
     EXPECT_DOUBLE_EQ(player->entityInteractionRange(), 3.0);
     EXPECT_FALSE(player->attributes().hasModifier(
-        Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID));
+        Attributes::BLOCK_INTERACTION_RANGE, ids::CREATIVE_BLOCK_INTERACTION_RANGE_MODIFIER));
     EXPECT_FALSE(player->attributes().hasModifier(
-        Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID));
+        Attributes::ENTITY_INTERACTION_RANGE, ids::CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER));
 }
 
 TEST_F(PlayerInteractionRangeTest, SwitchingFromCreativeToAdventureRemovesModifiers)
@@ -145,7 +145,7 @@ TEST_F(PlayerInteractionRangeTest, SwitchingFromCreativeToAdventureRemovesModifi
     EXPECT_DOUBLE_EQ(player->blockInteractionRange(), 4.5);
     EXPECT_DOUBLE_EQ(player->entityInteractionRange(), 3.0);
     EXPECT_FALSE(player->attributes().hasModifier(
-        Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID));
+        Attributes::BLOCK_INTERACTION_RANGE, ids::CREATIVE_BLOCK_INTERACTION_RANGE_MODIFIER));
 }
 
 TEST_F(PlayerInteractionRangeTest, SwitchingFromCreativeToSpectatorRemovesModifiers)
@@ -156,9 +156,9 @@ TEST_F(PlayerInteractionRangeTest, SwitchingFromCreativeToSpectatorRemovesModifi
     // 旁观模式同样不应有创造修饰符
     player->setGameMode(GameMode::Spectator);
     EXPECT_FALSE(player->attributes().hasModifier(
-        Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID));
+        Attributes::BLOCK_INTERACTION_RANGE, ids::CREATIVE_BLOCK_INTERACTION_RANGE_MODIFIER));
     EXPECT_FALSE(player->attributes().hasModifier(
-        Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID));
+        Attributes::ENTITY_INTERACTION_RANGE, ids::CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER));
 }
 
 // ========== 幂等性测试 ==========

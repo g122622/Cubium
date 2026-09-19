@@ -1815,7 +1815,7 @@ public:
     void tryAddFrost();
 
     /** @brief 冰冻减速修饰符 UUID */
-    static constexpr const char* SPEED_MODIFIER_POWDER_SNOW_UUID = "1e7a5c3c-6f4a-4b6b-8c3d-5e2f1a0b9c8d";
+    static constexpr const char* SPEED_MODIFIER_POWDER_SNOW_ID = "minecraft:powder_snow";
 
     // ========== 摔落伤害 ==========
 

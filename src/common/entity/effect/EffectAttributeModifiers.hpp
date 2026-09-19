@@ -44,31 +44,31 @@ namespace effect {
 namespace EffectAttributeModifiers {
 
 // ============================================================================
-// 修改器UUID常量（与MC原版一致，来自AttributeModifierIdFix数据映射）
+// 修饰符 id 常量
 // ============================================================================
 
 // 速度效果
-constexpr const char* SPEED_UUID = "91AEAA56-376B-4498-935B-2F7F68070635";
+constexpr const char* SPEED_ID = "minecraft:effect.speed";
 // 缓慢效果
-constexpr const char* SLOWNESS_UUID = "7107DE5E-7CE8-4030-940E-514C1F160890";
+constexpr const char* SLOWNESS_ID = "minecraft:effect.slowness";
 // 急迫效果
-constexpr const char* HASTE_UUID = "AF8B6E3F-3328-4C0A-AA36-5BA2BB9DBEF3";
+constexpr const char* HASTE_ID = "minecraft:effect.haste";
 // 挖掘疲劳
-constexpr const char* MINING_FATIGUE_UUID = "55FCED67-E92A-486E-9800-B47F202C4386";
+constexpr const char* MINING_FATIGUE_ID = "minecraft:effect.mining_fatigue";
 // 力量效果
-constexpr const char* STRENGTH_UUID = "648D7064-6A60-4F59-8ABE-C2C23A6DD7A9";
+constexpr const char* STRENGTH_ID = "minecraft:effect.strength";
 // 跳跃提升——安全摔落距离修饰符（每级 +1，MobEffects.JUMP_BOOST 仅挂此修饰符）
-constexpr const char* JUMP_BOOST_SAFE_FALL_UUID = "C0105BF3-AEF8-46B0-9EBC-92943757CCBF";
+constexpr const char* JUMP_BOOST_SAFE_FALL_ID = "minecraft:effect.jump_boost";
 // 虚弱效果
-constexpr const char* WEAKNESS_UUID = "22653B89-116E-49DC-9B6B-9971489B5BE5";
+constexpr const char* WEAKNESS_ID = "minecraft:effect.weakness";
 // 生命提升
-constexpr const char* HEALTH_BOOST_UUID = "5D6F0BA2-1186-46AC-B896-C61C5CEE99CC";
+constexpr const char* HEALTH_BOOST_ID = "minecraft:effect.health_boost";
 // 伤害吸收
-constexpr const char* ABSORPTION_UUID = "EAE29CF0-701E-4ED6-883A-96F798F3DAB5";
+constexpr const char* ABSORPTION_ID = "minecraft:effect.absorption";
 // 幸运
-constexpr const char* LUCK_UUID = "03C3C89D-7037-4B42-869F-B146BCB64D2E";
+constexpr const char* LUCK_ID = "minecraft:effect.luck";
 // 霉运
-constexpr const char* BAD_LUCK_UUID = "CC5AF142-2BD2-4215-B636-2605AED11727";
+constexpr const char* BAD_LUCK_ID = "minecraft:effect.unluck";
 
 // ============================================================================
 // 效果属性修改器信息
@@ -79,7 +79,7 @@ constexpr const char* BAD_LUCK_UUID = "CC5AF142-2BD2-4215-B636-2605AED11727";
  */
 struct EffectModifierInfo {
     const char* attributeName;      // 属性名称
-    const char* uuid;               // 修改器UUID
+    const char* id;                 // 修饰符 id
     f64 baseAmount;                 // 基础修改量
     attribute::Operation operation; // 操作类型
 

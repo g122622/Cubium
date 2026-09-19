@@ -28,7 +28,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/attribute/EntityDefaultAttributes.hpp"
 #include "common/entity/combat/PlayerAttackHelper.hpp"
@@ -2552,20 +2552,20 @@ void Player::_applyCreativeInteractionRangeModifiers()
     using namespace entity::attribute;
 
     // 方块交互距离：创造模式 +0.5
-    attributes().removeModifier(Attributes::BLOCK_INTERACTION_RANGE, uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID);
+    attributes().removeModifier(Attributes::BLOCK_INTERACTION_RANGE, ids::CREATIVE_BLOCK_INTERACTION_RANGE_MODIFIER);
     if (isCreative()) {
         attributes().addModifier(Attributes::BLOCK_INTERACTION_RANGE,
-            AttributeModifier(uuids::CREATIVE_BLOCK_INTERACTION_RANGE_UUID,
+            AttributeModifier(ids::CREATIVE_BLOCK_INTERACTION_RANGE_MODIFIER,
                 "Creative Mode Block Interaction Range Boost",
                 0.5,
                 Operation::Addition));
     }
 
     // 实体交互距离：创造模式 +2.0
-    attributes().removeModifier(Attributes::ENTITY_INTERACTION_RANGE, uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID);
+    attributes().removeModifier(Attributes::ENTITY_INTERACTION_RANGE, ids::CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER);
     if (isCreative()) {
         attributes().addModifier(Attributes::ENTITY_INTERACTION_RANGE,
-            AttributeModifier(uuids::CREATIVE_ENTITY_INTERACTION_RANGE_UUID,
+            AttributeModifier(ids::CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER,
                 "Creative Mode Entity Interaction Range Boost",
                 2.0,
                 Operation::Addition));

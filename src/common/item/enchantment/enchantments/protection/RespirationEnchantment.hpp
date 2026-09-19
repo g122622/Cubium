@@ -39,7 +39,7 @@ namespace enchant {
  * 通过 oxygen_bonus 属性降低水下氧气消耗概率，延长水下停留时间。
  *
  * 对齐 vanilla 1.21.11：水下呼吸魔咒经 EnchantmentAttributeEffect
- *（id="enchantment.respiration"，属性=OXYGEN_BONUS，LevelBasedValue.perLevel(1.0F)，
+ *（id="minecraft:enchantment.respiration"，属性=OXYGEN_BONUS，LevelBasedValue.perLevel(1.0F)，
  *  Operation.ADD_VALUE，槽位组=HEAD）把每级 +1.0 的修饰符加到 oxygen_bonus 属性
  *（Enchantments.java:285-296）。LivingEntity.decreaseAirSupply 读 oxygen_bonus 值 d0，
  * d0>0 时仅 1/(d0+1) 概率消耗氧气（I级 50%、II级 66.7%、III级 75% 不消耗）。
@@ -82,7 +82,7 @@ public:
         item::ItemAttributeModifiers modifiers;
         if (level > 0) {
             modifiers.add(entity::attribute::Attributes::OXYGEN_BONUS,
-                entity::attribute::AttributeModifier("enchantment.respiration",
+                entity::attribute::AttributeModifier("minecraft:enchantment.respiration",
                     "Respiration",
                     static_cast<f64>(level),
                     entity::attribute::Operation::Addition),

@@ -58,7 +58,7 @@
 namespace mc {
 
 // 常量定义
-static const std::string COVERED_ARMOR_BONUS_ID = "shulker_covered_armor_bonus";
+static const std::string COVERED_ARMOR_BONUS_ID = "minecraft:covered";
 
 // ============================================================================
 // ShulkerEntity 实现

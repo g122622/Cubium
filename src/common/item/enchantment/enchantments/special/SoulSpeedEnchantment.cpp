@@ -43,10 +43,10 @@ namespace item {
 namespace enchant {
 
 // 灵魂疾行速度修饰器 ID
-static const std::string SOUL_SPEED_MODIFIER_ID = "enchantment.soul_speed";
+static const std::string SOUL_SPEED_MODIFIER_ID = "minecraft:enchantment.soul_speed";
 
 // 灵魂疾行效率修饰器 ID
-static const std::string SOUL_SPEED_EFFICIENCY_MODIFIER_ID = "enchantment.soul_speed.efficiency";
+static const std::string SOUL_SPEED_EFFICIENCY_MODIFIER_ID = "minecraft:enchantment.soul_speed.efficiency";
 
 bool SoulSpeedEnchantment::onLocationChanged(
     LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const

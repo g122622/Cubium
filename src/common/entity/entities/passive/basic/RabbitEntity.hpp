@@ -348,7 +348,7 @@ private:
     void applyRabbitType(RabbitType newType);
 
     /// 杀手兔 ATTACK_DAMAGE 修改器 ID（对应 MC EVIL_ATTACK_POWER_MODIFIER）
-    static constexpr const char* EVIL_ATTACK_POWER_MODIFIER_ID = "rabbit_evil_attack_power";
+    static constexpr const char* EVIL_ATTACK_POWER_MODIFIER_ID = "minecraft:evil";
 
     /// moreCarrotTicks 重置值（对应 MC MORE_CARROTS_DELAY = 40）
     static constexpr i32 MORE_CARROTS_DELAY = 40;

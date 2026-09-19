@@ -170,7 +170,7 @@ void WitchEntity::_startDrinkingPotion(entity::effect::EffectType effectType)
     // MC 1.21: 女巫喝药水时移动速度减少 0.25，使用 ADD_VALUE (Addition) 操作
     // 女巫基础移动速度为 0.25，减去 0.25 后变为 0，即喝药水时完全停止移动
     entity::attribute::AttributeModifier speedPenalty(
-        DRINKING_SPEED_PENALTY_UUID, "Drinking speed penalty", -0.25, entity::attribute::Operation::Addition);
+        DRINKING_SPEED_PENALTY_ID, "Drinking speed penalty", -0.25, entity::attribute::Operation::Addition);
     attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
 }
 
@@ -184,7 +184,7 @@ void WitchEntity::_finishDrinkingPotion()
     _applyDrankPotionEffect(m_currentPotionType);
 
     // 移除移动速度减益
-    attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_UUID);
+    attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_ID);
 }
 
 void WitchEntity::_applyDrankPotionEffect(entity::effect::EffectType effectType)

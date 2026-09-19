@@ -79,22 +79,22 @@ EffectType ←── EffectInstance ←── EffectManager
 
 | 效果 | 属性 | 修改量/级 | 操作类型 | UUID |
 |------|------|-----------|----------|------|
-| Speed | MOVEMENT_SPEED | +0.2 | MultiplyTotal | SPEED_UUID |
-| Slowness | MOVEMENT_SPEED | -0.15 | MultiplyTotal | SLOWNESS_UUID |
-| Haste | ATTACK_SPEED | +0.1 | MultiplyTotal | HASTE_UUID |
-| MiningFatigue | ATTACK_SPEED | -0.1 | MultiplyTotal | MINING_FATIGUE_UUID |
-| Strength | ATTACK_DAMAGE | +3.0 | Addition | STRENGTH_UUID |
-| Weakness | ATTACK_DAMAGE | -4.0 | Addition | WEAKNESS_UUID |
-| JumpBoost | SAFE_FALL_DISTANCE | +1.0 | Addition | JUMP_BOOST_SAFE_FALL_UUID |
-| HealthBoost | MAX_HEALTH | +4.0 | Addition | HEALTH_BOOST_UUID |
-| Absorption | MAX_ABSORPTION | +4.0 | Addition | ABSORPTION_UUID |
-| Luck | LUCK | +1.0 | Addition | LUCK_UUID |
-| BadLuck | LUCK | -1.0 | Addition | BAD_LUCK_UUID |
+| Speed | MOVEMENT_SPEED | +0.2 | MultiplyTotal | SPEED_ID |
+| Slowness | MOVEMENT_SPEED | -0.15 | MultiplyTotal | SLOWNESS_ID |
+| Haste | ATTACK_SPEED | +0.1 | MultiplyTotal | HASTE_ID |
+| MiningFatigue | ATTACK_SPEED | -0.1 | MultiplyTotal | MINING_FATIGUE_ID |
+| Strength | ATTACK_DAMAGE | +3.0 | Addition | STRENGTH_ID |
+| Weakness | ATTACK_DAMAGE | -4.0 | Addition | WEAKNESS_ID |
+| JumpBoost | SAFE_FALL_DISTANCE | +1.0 | Addition | JUMP_BOOST_SAFE_FALL_ID |
+| HealthBoost | MAX_HEALTH | +4.0 | Addition | HEALTH_BOOST_ID |
+| Absorption | MAX_ABSORPTION | +4.0 | Addition | ABSORPTION_ID |
+| Luck | LUCK | +1.0 | Addition | LUCK_ID |
+| BadLuck | LUCK | -1.0 | Addition | BAD_LUCK_ID |
 
 修改器名称格式：`effect.minecraft.<resource_name>.<level>`（MC 原版格式）
 
 ### 7. 新增效果类型注意
-MC 1.21 新增了 TrialOmen、WindCharged、RaidOmen 三个试炼密室效果，数值 ID 为 33-35。如需新增效果，需同时更新：`EffectType` 枚举、`getEffectById()`、`getEffectResourceLocation()`、`getEffectResourceName()`。如果新效果有属性修改器，还需在 `EffectAttributeModifiers` 中添加映射条目，并在 `AttributeModifierUUIDs.hpp` 中定义对应 UUID 常量。
+MC 1.21 新增了 TrialOmen、WindCharged、RaidOmen 三个试炼密室效果，数值 ID 为 33-35。如需新增效果，需同时更新：`EffectType` 枚举、`getEffectById()`、`getEffectResourceLocation()`、`getEffectResourceName()`。如果新效果有属性修改器，还需在 `EffectAttributeModifiers` 中添加映射条目，并在 `AttributeModifierIds.hpp` 中定义对应 id 常量。
 
 ### 8. 效果 tick 间隔
 部分效果有特殊的 tick 间隔计算：

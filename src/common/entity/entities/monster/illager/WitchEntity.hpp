@@ -121,9 +121,9 @@ public:
      * @brief 喝药水时移动速度减益的 UUID
      *
      * MC 1.16.5: 女巫喝药水时移动速度减少 0.25（Addition 操作）
-     * UUID: "5CD17E52-A79A-43D3-A529-90FDE04B181E"
+     * UUID: "minecraft:drinking"
      */
-    static constexpr const char* DRINKING_SPEED_PENALTY_UUID = "5CD17E52-A79A-43D3-A529-90FDE04B181E";
+    static constexpr const char* DRINKING_SPEED_PENALTY_ID = "minecraft:drinking";
 
     // ========== 阳光燃烧 ==========
 

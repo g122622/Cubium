@@ -14,7 +14,7 @@ src/common/entity/attribute/
 ├── AttributeMap.hpp           # 属性映射表（管理实体的所有属性，线程安全，提供resetBaseValue/hasModifier/getModifierValue）
 ├── AttributeRegistry.hpp      # 属性注册表（集中管理属性定义，提供名称查询、范围查询、名称规范化，替代硬编码数据）
 ├── Attributes.hpp             # 标准属性定义（16种属性工厂+名称常量）
-├── AttributeModifierUUIDs.hpp # 属性修改器 UUID 常量
+├── AttributeModifierIds.hpp # 属性修饰符 id 常量
 ├── EntityDefaultAttributes.hpp # 各实体类型的属性默认值常量
 ```
 

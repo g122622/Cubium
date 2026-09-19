@@ -1838,7 +1838,7 @@ void LivingEntity::removeFrost()
     // 移除冰冻减速修饰符
     auto* speedAttr = attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (speedAttr != nullptr) {
-        speedAttr->removeModifier(SPEED_MODIFIER_POWDER_SNOW_UUID);
+        speedAttr->removeModifier(SPEED_MODIFIER_POWDER_SNOW_ID);
     }
 }
 
@@ -1866,7 +1866,7 @@ void LivingEntity::tryAddFrost()
     // 冰冻减速修饰符：-0.05 * 冰冻百分比
     // 完全冰冻时减少 0.05 移动速度（基础速度 0.1，减速50%）
     const f32 frostAmount = -0.05f * getPercentFrozen();
-    entity::attribute::AttributeModifier modifier(SPEED_MODIFIER_POWDER_SNOW_UUID,
+    entity::attribute::AttributeModifier modifier(SPEED_MODIFIER_POWDER_SNOW_ID,
         "powder_snow",
         static_cast<f64>(frostAmount),
         entity::attribute::Operation::Addition);

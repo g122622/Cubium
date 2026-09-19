@@ -111,7 +111,7 @@ AgeableEntity (父类)
     - **facePoint()**：朝向指定坐标设置 yaw（对应 MC `Mth.atan2` 计算）。
 
 13. **杀手兔变种**（参考 MC 1.21.11 `Rabbit.setVariant(EVIL)`）：
-    - `applyRabbitType(Killer)` 设置 ARMOR=8.0、添加 ATTACK_DAMAGE +5 修改器（ID `"rabbit_evil_attack_power"`）、注册 `MeleeAttackGoal`(speed=1.4)、`HurtByTargetGoal`(alertAllies=true)、`NearestAttackableTargetGoal<Player>` 和 `NearestAttackableTargetGoal<WolfEntity>`。
+    - `applyRabbitType(Killer)` 设置 ARMOR=8.0、添加 ATTACK_DAMAGE +5 修改器（ID `"minecraft:evil"`）、注册 `MeleeAttackGoal`(speed=1.4)、`HurtByTargetGoal`(alertAllies=true)、`NearestAttackableTargetGoal<Player>` 和 `NearestAttackableTargetGoal<WolfEntity>`。
     - `applyRabbitType(非Killer)` 移除 EVIL_ATTACK_POWER_MODIFIER。
     - `RabbitEntity::registerAttributes()` 显式注册 `ATTACK_DAMAGE` 属性（基础值 3.0），因为 `AnimalEntity` 基类不注册此属性（仅 `MonsterEntity` 注册）。
     - **未实现的 MC 原版特性**：`getJumpPower()` 重写（根据移动速度和路径调整跳跃高度）尚未实现，详见 `RabbitEntity.cpp` 顶部注释。`RaidGardenGoal`（偷胡萝卜）已实现于 `ai/goal/goals/special/RaidGardenGoal.{hpp,cpp}`。

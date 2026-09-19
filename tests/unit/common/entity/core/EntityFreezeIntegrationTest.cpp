@@ -330,7 +330,7 @@ TEST_F(EntityFreezeIntegrationTest, FrostModifier_RemoveFrostRemovesModifier)
 
     // 手动添加冰冻减速修饰符
     const f32 frostAmount = -0.05f * entity.getPercentFrozen();
-    entity::attribute::AttributeModifier modifier(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_UUID,
+    entity::attribute::AttributeModifier modifier(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_ID,
         "powder_snow",
         static_cast<f64>(frostAmount),
         entity::attribute::Operation::Addition);
@@ -356,19 +356,19 @@ TEST_F(EntityFreezeIntegrationTest, FrostModifier_FrostAmountCalculation)
     // 50% 冰冻：减速 -0.05 * 0.5 = -0.025
     entity.setTicksFrozen(70);
     f32 frostAmount50 = -0.05f * entity.getPercentFrozen();
-    entity::attribute::AttributeModifier modifier50(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_UUID,
+    entity::attribute::AttributeModifier modifier50(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_ID,
         "powder_snow",
         static_cast<f64>(frostAmount50),
         entity::attribute::Operation::Addition);
     speedAttr->addModifier(modifier50);
     f64 speed50 = speedAttr->getValue();
     EXPECT_NEAR(speed50 - baseSpeed, frostAmount50, 0.001);
-    speedAttr->removeModifier(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_UUID);
+    speedAttr->removeModifier(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_ID);
 
     // 100% 冰冻：减速 -0.05 * 1.0 = -0.05
     entity.setTicksFrozen(140);
     f32 frostAmount100 = -0.05f * entity.getPercentFrozen();
-    entity::attribute::AttributeModifier modifier100(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_UUID,
+    entity::attribute::AttributeModifier modifier100(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_ID,
         "powder_snow",
         static_cast<f64>(frostAmount100),
         entity::attribute::Operation::Addition);
@@ -387,7 +387,7 @@ TEST_F(EntityFreezeIntegrationTest, FrostModifier_ClearFreezeRemovesModifier)
     auto* speedAttr = entity.attributes().getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     ASSERT_NE(speedAttr, nullptr);
     f32 frostAmount = -0.05f * entity.getPercentFrozen();
-    entity::attribute::AttributeModifier modifier(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_UUID,
+    entity::attribute::AttributeModifier modifier(LivingEntity::SPEED_MODIFIER_POWDER_SNOW_ID,
         "powder_snow",
         static_cast<f64>(frostAmount),
         entity::attribute::Operation::Addition);

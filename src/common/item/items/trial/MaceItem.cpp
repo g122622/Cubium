@@ -23,7 +23,7 @@
 #include "MaceItem.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -58,16 +58,17 @@ item::ItemAttributeModifiers MaceItem::getAttributeModifiers(i32 equipmentSlot) 
     // （vanilla 0.6，过快）。破甲/致密/风爆等附魔虽定义但基数错误致伤害全错。
     if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
         item::ItemAttributeModifiers modifiers;
-        std::string uuid = entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);
+        std::string modifierId = entity::attribute::ids::ATTACK_DAMAGE_MODIFIER;
 
         // 添加攻击伤害修饰符（+5.0，对齐 SwordItem 范式）
-        auto attackDamageModifier = entity::attribute::AttributeModifier(
-            uuid, "Weapon modifier", static_cast<f64>(DEFAULT_ATTACK_DAMAGE), entity::attribute::Operation::Addition);
+        auto attackDamageModifier = entity::attribute::AttributeModifier(modifierId,
+            "Weapon modifier",
+            static_cast<f64>(DEFAULT_ATTACK_DAMAGE),
+            entity::attribute::Operation::Addition);
         modifiers.add(entity::attribute::Attributes::ATTACK_DAMAGE, attackDamageModifier, equipmentSlot);
 
         // 添加攻击速度修饰符（-3.4）
-        auto attackSpeedModifier = entity::attribute::AttributeModifier(
-            entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),
+        auto attackSpeedModifier = entity::attribute::AttributeModifier(entity::attribute::ids::ATTACK_SPEED_MODIFIER,
             "Weapon modifier",
             static_cast<f64>(DEFAULT_ATTACK_SPEED),
             entity::attribute::Operation::Addition);

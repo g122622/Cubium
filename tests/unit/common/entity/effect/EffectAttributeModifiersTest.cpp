@@ -309,13 +309,13 @@ TEST_F(EffectAttributeModifiersTest, CreateModifier_Amount)
     EXPECT_EQ(modifier.operation(), Operation::Addition);
 }
 
-TEST_F(EffectAttributeModifiersTest, CreateModifier_UUID)
+TEST_F(EffectAttributeModifiersTest, CreateModifier_ID)
 {
     // 验证修改器使用正确的 UUID
     const auto& mods = EffectAttributeModifiers::getEffectModifiers(EffectType::Speed);
     ASSERT_FALSE(mods.empty());
     AttributeModifier modifier = EffectAttributeModifiers::createModifier(mods[0], EffectType::Speed, 0);
-    EXPECT_EQ(modifier.id(), std::string(EffectAttributeModifiers::SPEED_UUID));
+    EXPECT_EQ(modifier.id(), std::string(EffectAttributeModifiers::SPEED_ID));
 }
 
 // ============================================================================
@@ -444,7 +444,7 @@ TEST_F(EffectAttributeModifiersTest, RemoveModifierRestoresValue)
     EXPECT_DOUBLE_EQ(attrMap.getValue(Attributes::ATTACK_DAMAGE, 0.0), 5.0);
 
     // 移除修改器
-    attrMap.removeModifier(Attributes::ATTACK_DAMAGE, mods[0].uuid);
+    attrMap.removeModifier(Attributes::ATTACK_DAMAGE, mods[0].id);
     // 恢复默认值 2.0
     EXPECT_DOUBLE_EQ(attrMap.getValue(Attributes::ATTACK_DAMAGE, 0.0), 2.0);
 }

@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -166,16 +166,15 @@ item::ItemAttributeModifiers SpearItem::getAttributeModifiers(i32 equipmentSlot)
     // 长矛在主手时提供攻击伤害和攻击速度修饰符
     if (equipmentSlot == static_cast<i32>(EquipmentSlot::MainHand)) {
         item::ItemAttributeModifiers modifiers;
-        std::string uuid = entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);
+        std::string modifierId = entity::attribute::ids::ATTACK_DAMAGE_MODIFIER;
 
         // 添加攻击伤害修饰符
         auto attackDamageModifier = entity::attribute::AttributeModifier(
-            uuid, "Weapon modifier", static_cast<f64>(m_attackDamage), entity::attribute::Operation::Addition);
+            modifierId, "Weapon modifier", static_cast<f64>(m_attackDamage), entity::attribute::Operation::Addition);
         modifiers.add(entity::attribute::Attributes::ATTACK_DAMAGE, attackDamageModifier, equipmentSlot);
 
         // 添加攻击速度修饰符
-        auto attackSpeedModifier = entity::attribute::AttributeModifier(
-            entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),
+        auto attackSpeedModifier = entity::attribute::AttributeModifier(entity::attribute::ids::ATTACK_SPEED_MODIFIER,
             "Weapon modifier",
             static_cast<f64>(m_attackSpeed),
             entity::attribute::Operation::Addition);

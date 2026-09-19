@@ -219,7 +219,7 @@ void EffectInstance::remove(LivingEntity& entity)
     // 移除属性修改器
     const auto& modifiers = EffectAttributeModifiers::getEffectModifiers(m_type);
     for (const auto& modifierInfo : modifiers) {
-        entity.attributes().removeModifier(modifierInfo.attributeName, modifierInfo.uuid);
+        entity.attributes().removeModifier(modifierInfo.attributeName, modifierInfo.id);
     }
 
     // 特殊效果：生命提升移除时需要调整生命值

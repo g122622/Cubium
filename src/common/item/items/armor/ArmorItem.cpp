@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
+#include "common/entity/attribute/AttributeModifierIds.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -73,21 +73,21 @@ namespace {
 /**
  * @brief 获取盔甲槽位对应的UUID
  */
-[[nodiscard]] const char* getArmorModifierUUID(armor::ArmorSlot slot) noexcept
+[[nodiscard]] const char* getArmorModifierId(armor::ArmorSlot slot) noexcept
 {
     switch (slot) {
         case armor::ArmorSlot::Feet:
-            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_FEET;
+            return entity::attribute::ids::ARMOR_MODIFIER_FEET;
         case armor::ArmorSlot::Legs:
-            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_LEGS;
+            return entity::attribute::ids::ARMOR_MODIFIER_LEGS;
         case armor::ArmorSlot::Chest:
-            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_CHEST;
+            return entity::attribute::ids::ARMOR_MODIFIER_CHEST;
         case armor::ArmorSlot::Head:
-            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_HEAD;
+            return entity::attribute::ids::ARMOR_MODIFIER_HEAD;
         case armor::ArmorSlot::Body:
-            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_BODY;
+            return entity::attribute::ids::ARMOR_MODIFIER_BODY;
         default:
-            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_HEAD;
+            return entity::attribute::ids::ARMOR_MODIFIER_HEAD;
     }
 }
 
@@ -125,23 +125,25 @@ void ArmorItem::_buildAttributeModifiers(i32 defense)
     m_attributeModifiers = ItemAttributeModifiers();
 
     i32 equipmentSlot = armorSlotToEquipmentSlot(m_slot);
-    std::string uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
+    std::string modifierId = getArmorModifierId(m_slot);
 
     // 1. 护甲值修饰符 (generic.armor)
     auto armorModifier = entity::attribute::AttributeModifier(
-        uuid, "Armor modifier", static_cast<f64>(defense), entity::attribute::Operation::Addition);
+        modifierId, "Armor modifier", static_cast<f64>(defense), entity::attribute::Operation::Addition);
     m_attributeModifiers.add(entity::attribute::Attributes::ARMOR, armorModifier, equipmentSlot);
 
     // 2. 护甲韧性修饰符 (generic.armor_toughness)
     auto toughnessModifier = entity::attribute::AttributeModifier(
-        uuid, "Armor toughness", static_cast<f64>(getToughness()), entity::attribute::Operation::Addition);
+        modifierId, "Armor toughness", static_cast<f64>(getToughness()), entity::attribute::Operation::Addition);
     m_attributeModifiers.add(entity::attribute::Attributes::ARMOR_TOUGHNESS, toughnessModifier, equipmentSlot);
 
     // 3. 击退抗性修饰符 (generic.knockback_resistance) - 仅当有击退抗性时
     f32 knockbackRes = getKnockbackResistance();
     if (knockbackRes > 0.0f) {
-        auto knockbackModifier = entity::attribute::AttributeModifier(
-            uuid, "Armor knockback resistance", static_cast<f64>(knockbackRes), entity::attribute::Operation::Addition);
+        auto knockbackModifier = entity::attribute::AttributeModifier(modifierId,
+            "Armor knockback resistance",
+            static_cast<f64>(knockbackRes),
+            entity::attribute::Operation::Addition);
         m_attributeModifiers.add(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, knockbackModifier, equipmentSlot);
     }
 }
