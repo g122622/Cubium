@@ -24,10 +24,10 @@ export interface ArtifactBundle {
     readonly failureMessage: string;
     /** 服务端完整日志。 */
     readonly serverLog: string;
-    /** 原始包记录（JSONL）。 */
-    readonly botTrace: string;
-    /** 包计数摘要。 */
-    readonly packetSummary: string;
+    /** 各 bot 的原始包记录（JSONL），键为 bot 序号（从 0 起）。 */
+    readonly botTraces: ReadonlyMap<number, string>;
+    /** 各 bot 的包计数摘要，键与 botTraces 一致。 */
+    readonly packetSummaries: ReadonlyMap<number, string>;
     /** 实际快照（JSON）。 */
     readonly actualSnapshot: string;
     /** 基线快照（JSON；无基线时为空串）。 */
@@ -47,12 +47,17 @@ export interface ArtifactBundle {
 export function writeArtifacts(artifactDir: string, bundle: ArtifactBundle): void {
     const files = new Map<string, string>([
         ["server.log", bundle.serverLog],
-        ["bot-trace.jsonl", bundle.botTrace],
-        ["packet-summary.txt", bundle.packetSummary],
         ["snapshot.actual.json", bundle.actualSnapshot],
         ["snapshot.baseline.json", bundle.baselineSnapshot],
         ["diff.txt", bundle.differences],
         ["meta.json", bundle.meta],
     ]);
+    // 每个 bot 各一份包记录，文件名带 1-based 序号（多 bot 用例要能区分是哪一路连接）。
+    for (const [index, jsonl] of bundle.botTraces) {
+        files.set(`bot-trace-${index + 1}.jsonl`, jsonl);
+    }
+    for (const [index, summary] of bundle.packetSummaries) {
+        files.set(`packet-summary-${index + 1}.txt`, summary);
+    }
     persistArtifacts(artifactDir, files);
 }

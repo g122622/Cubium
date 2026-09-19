@@ -79,6 +79,26 @@ export interface CaseResult {
 
 const TRACE_LIMIT = 20_000;
 
+/** 单用例服务端的并发玩家数上限（多 bot 用例需要 ≥2）。 */
+const MAX_PLAYERS_PER_CASE = 4;
+
+/**
+ * 端口被抢占时的重试上限。
+ *
+ * allocatePort 的「探测并释放」与「服务端真正 bind」之间存在 TOCTOU 窗口，本机有其他
+ * 进程在并发申请端口时可能被抢占。这类失败与用例语义无关，换端口即可恢复。
+ */
+const MAX_PORT_ATTEMPTS = 3;
+
+/**
+ * 服务端启动失败日志中的端口冲突特征。
+ *
+ * Cubium：ServerNetwork::startAccept 用 asio 的抛异常重载构造 acceptor，端口被占时抛
+ * std::system_error，what() 含 "bind: Address already in use"。
+ * vanilla：启动期打印 "**** FAILED TO BIND TO PORT!" 并输出 java.net.BindException。
+ */
+const PORT_CONFLICT_PATTERN = /address already in use|EADDRINUSE|FAILED TO BIND TO PORT|BindException/i;
+
 /**
  * 抑制 protodef 的 TCP 粘包调试噪声。
  *
@@ -121,9 +141,73 @@ const MAX_USERNAME_LENGTH = 16;
 /** 用户名统一前缀（用于在服务端日志中识别 e2e 连接）。计入 MAX_USERNAME_LENGTH。 */
 const USERNAME_PREFIX = "e2e_";
 
+/** 用户名主体的最大长度（扣除统一前缀后的余量）。 */
+const USERNAME_BODY_LENGTH = MAX_USERNAME_LENGTH - USERNAME_PREFIX.length;
+
 /** 中文运行模式名。 */
 function modeLabel(mode: RunMode): string {
     return { regress: "回归比对", refresh: "刷新基线", diff: "双跑对比" }[mode];
+}
+
+/** 服务端启动结果。 */
+interface ServerLaunch {
+    readonly server: ServerProcess;
+    readonly port: number;
+    /** vanilla 侧本用例的世界名（Cubium 侧为空串）。 */
+    readonly vanillaWorldName: string;
+}
+
+/**
+ * 启动服务端；端口被抢占时自动换端口重试。
+ *
+ * 每次重试都申请**新的**端口并重新走一遍完整启动流程。服务端进程本身不复用——抢占失败时
+ * 它连 listen socket 都没建成，没有可残留的状态。
+ */
+async function launchServer(
+    serverKind: ServerKind,
+    runDir: string,
+    caseId: string,
+    runId: string,
+): Promise<ServerLaunch> {
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= MAX_PORT_ATTEMPTS; attempt++) {
+        const port = await allocatePort();
+        // vanilla 的工作目录是跨用例共享的（bundler 只解包一次），靠 worldName 隔离世界。
+        // 名字里带上 runId 后缀，避免与其他运行的残留世界目录冲突。
+        const vanillaWorldName =
+            serverKind === "vanilla"
+                ? `e2e_${sanitizeName(caseId, USERNAME_BODY_LENGTH)}_${runId.replace(/\D/g, "").slice(-6)}`
+                : "";
+        try {
+            const server =
+                serverKind === "cubium"
+                    ? await startCubiumServer({
+                          runDir,
+                          port,
+                          profile: E2E_SERVER_PROFILE,
+                          maxPlayers: MAX_PLAYERS_PER_CASE,
+                      })
+                    : await startVanillaServer({
+                          runDir,
+                          port,
+                          profile: E2E_SERVER_PROFILE,
+                          maxPlayers: MAX_PLAYERS_PER_CASE,
+                          worldName: vanillaWorldName,
+                      });
+            if (attempt > 1) {
+                console.log(`      端口 ${port} 启动成功（第 ${attempt} 次尝试）`);
+            }
+            return { server, port, vanillaWorldName };
+        } catch (err) {
+            const conflict = err instanceof Error && PORT_CONFLICT_PATTERN.test(err.message);
+            if (!conflict || attempt === MAX_PORT_ATTEMPTS) {
+                throw err;
+            }
+            lastError = err;
+            console.log(`      端口 ${port} 被抢占，换端口重试（${attempt + 1}/${MAX_PORT_ATTEMPTS}）`);
+        }
+    }
+    throw lastError ?? new Error("端口重试次数耗尽");
 }
 
 /**
@@ -140,7 +224,8 @@ async function runSingleCase(
     removeDirQuietly(runDir);
 
     let server: ServerProcess | null = null;
-    let handle: BotHandle | null = null;
+    /** 本用例已建立的 bot（中途失败时，已建立的部分同样要回收）。 */
+    const handles: BotHandle[] = [];
     /** vanilla 侧本用例的世界名（用于结束后清理共享 cwd 下的世界目录）。 */
     let vanillaWorldName = "";
     let snapshot: CaseSnapshot | null = null;
@@ -151,35 +236,48 @@ async function runSingleCase(
     let surfaceY = 0;
 
     try {
-        const port = await allocatePort();
-        if (serverKind === "cubium") {
-            server = await startCubiumServer({
-                runDir,
+        const launch = await launchServer(serverKind, runDir, definition.id, runId);
+        server = launch.server;
+        vanillaWorldName = launch.vanillaWorldName;
+        const { port } = launch;
+
+        /**
+         * 连接一个 bot 并等待其就绪。预连接（按 botCount）与用例内追加（ctx.connectBot）共用。
+         *
+         * 等待两段：spawn 事件（协议层已进入 Play），以及稳定落地——spawn 事件到达时 bot
+         * 可能仍处于下落的某一帧（onGround=false），这是时序相关的瞬态量，直接采快照会造成
+         * 基线抖动（实测：同一用例 3 次运行中有 1 次 onGround 为 false 而其余为 true）。
+         */
+        const connectOne = async (): Promise<Bot> => {
+            const created = createBot({
                 port,
-                profile: E2E_SERVER_PROFILE,
-                maxPlayers: 4,
+                username: botUsername(definition.id, handles.length),
+                traceLimit: TRACE_LIMIT,
             });
-        } else {
-            // vanilla 的工作目录是跨用例共享的（bundler 只解包一次），靠 worldName 隔离世界。
-            // 名字里带上 runId 后缀，避免与其他运行的残留世界目录冲突。
-            vanillaWorldName = `e2e_${sanitizeName(definition.id)}_${runId.replace(/\D/g, "").slice(-6)}`;
-            server = await startVanillaServer({
-                runDir,
-                port,
-                profile: E2E_SERVER_PROFILE,
-                maxPlayers: 4,
-                worldName: vanillaWorldName,
+            handles.push(created);
+            const label = `bot[${handles.length - 1}]`;
+            await waitForEvent(created.bot, "spawn", {
+                timeoutMs: SPAWN_TIMEOUT_MS,
+                what: `${label} 的 spawn 事件`,
+                describe: () =>
+                    describeBotState(created.bot, created.trace.count("login"), created.trace.count("update_health")),
             });
+            await waitForCondition(() => created.bot.entity?.onGround === true, {
+                timeoutMs: SETTLE_TIMEOUT_MS,
+                pollMs: 50,
+                what: `${label} 稳定落地（onGround === true）`,
+            });
+            return created.bot;
+        };
+
+        // 串行连接而非并发：多 bot 用例常依赖连接顺序，且串行等待能让失败信息直接指出
+        // 是第几个 bot 卡住。需要更精细时序的用例把 botCount 设小，再用 ctx.connectBot 追加。
+        for (let index = 0; index < definition.botCount; index++) {
+            await connectOne();
         }
 
-        handle = createBot({ port, username: `e2e_${sanitizeName(definition.id)}`, traceLimit: TRACE_LIMIT });
-        const { bot, trace } = handle;
-
-        await waitForEvent(bot, "spawn", {
-            timeoutMs: SPAWN_TIMEOUT_MS,
-            what: "spawn 事件",
-            describe: () => describeBotState(bot, trace.count("login"), trace.count("update_health")),
-        });
+        // 主 bot 定义地表基准：surfaceY/spawnX/spawnZ 与快照的 player 段都由它而来。
+        const { bot, trace } = handles[0];
 
         const position = bot.entity.position;
         const spawnX = Math.floor(position.x);
@@ -197,19 +295,12 @@ async function runSingleCase(
             pollMs: 100,
         });
 
-        // 等待 bot 稳定落地。spawn 事件到达时 bot 可能仍处于下落的某一帧（onGround=false），
-        // 这是时序相关的瞬态量——直接采快照会造成基线抖动（实测：同一用例 3 次运行中
-        // 有 1 次 onGround 为 false 而其余为 true）。等它落到地表后再执行用例，
-        // 既消除抖动，也让所有用例都在稳定状态下运行。
-        await waitForCondition(() => bot.entity?.onGround === true, {
-            timeoutMs: SETTLE_TIMEOUT_MS,
-            pollMs: 50,
-            what: "bot 稳定落地（onGround === true）",
-        });
-
         const context: CaseContext = {
+            bots: handles.map((entry) => entry.bot),
+            traces: handles.map((entry) => entry.trace),
             bot,
             trace,
+            connectBot: connectOne,
             serverKind,
             surfaceY,
             spawnX,
@@ -266,8 +357,8 @@ async function runSingleCase(
                         ? "服务端崩溃"
                         : "其他错误";
     } finally {
-        if (handle !== null) {
-            await handle.dispose();
+        for (const entry of handles) {
+            await entry.dispose();
         }
         if (server !== null) {
             await server.stop();
@@ -287,8 +378,8 @@ async function runSingleCase(
             failureKind,
             failureMessage,
             serverLog: server.logs.join("\n"),
-            botTrace: handle?.trace.toJsonl() ?? "",
-            packetSummary: handle?.trace.summary() ?? "",
+            botTraces: new Map(handles.map((entry, index): [number, string] => [index, entry.trace.toJsonl()])),
+            packetSummaries: new Map(handles.map((entry, index): [number, string] => [index, entry.trace.summary()])),
             actualSnapshot: JSON.stringify(snapshot, null, 2),
             baselineSnapshot: baselineSnapshot === null ? "" : JSON.stringify(baselineSnapshot, null, 2),
             differences: differencesText,
@@ -334,9 +425,20 @@ class BaselineMissingError extends Error {}
  * `Failed to decode packet 'serverbound/minecraft:hello'`，错误信息完全指不到用户名上。
  * Cubium 侧不校验该长度，故这个约束只在双跑对比时才会暴露。
  */
-function sanitizeName(id: string): string {
-    // 不含前缀——调用方负责拼接（用户名总长须 ≤ MAX_USERNAME_LENGTH）。
-    return id.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, MAX_USERNAME_LENGTH - USERNAME_PREFIX.length);
+function sanitizeName(id: string, maxLength: number): string {
+    // 不含前缀——调用方负责拼接（总长须 ≤ MAX_USERNAME_LENGTH）。
+    return id.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, maxLength);
+}
+
+/**
+ * 由用例 id 与 bot 序号生成合法的 MC 用户名，形如 `<前缀><用例名>_<序号>`（序号从 1 起）。
+ *
+ * 序号不可省：同一个用例的多个 bot 若同名，vanilla 会踢掉**先前**登录的那个连接
+ * （PlayerList.java 的 DUPLICATE_LOGIN 分支），双跑对比会直接崩。
+ */
+function botUsername(caseId: string, index: number): string {
+    const suffix = `_${index + 1}`;
+    return `${USERNAME_PREFIX}${sanitizeName(caseId, USERNAME_BODY_LENGTH - suffix.length)}${suffix}`;
 }
 
 /** 等待 spawn 失败时的现场描述。 */

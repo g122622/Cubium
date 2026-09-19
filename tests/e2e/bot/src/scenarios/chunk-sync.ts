@@ -21,6 +21,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/chunks_loaded",
         title: "spawn 后出生点周围区块可读",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 出生点所在列必须可读——这是后续所有用例的前提。
             const surface = blockNameAt(bot, spawnX, surfaceY, spawnZ);
@@ -50,6 +51,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/flat_layers",
         title: "出生列的超平坦分层与配置一致",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 相对地表取样，故两侧可比（Cubium 地表在 Y=3、vanilla 在 Y=-61）。
             const layers = layersBelowSurface(bot, spawnX, spawnZ, surfaceY, 4);
@@ -68,6 +70,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/layers_across_chunk_boundary",
         title: "跨区块边界的地形分层一致（生成无边界伪影）",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 取出生列所在区块的两侧边界：x 从 chunkX*16-1 到 chunkX*16，跨越区块接缝。
             const chunkBoundaryX = Math.floor(spawnX / 16) * 16;
@@ -83,6 +86,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/biome_at_surface",
         title: "地表生物群系可被客户端正确解析（biome registry id 顺序对齐）",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 超平坦预设的 biome 固定为 plains。若服务端的 biome registry id 顺序与客户端
             // 不一致，palette 会解出别的 id 且不报错——本用例是那个静默错位的唯一哨兵。
@@ -101,6 +105,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/dimension_type",
         title: "端点维度类型正确（min_y/height 与 overworld 一致）",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot }): Promise<Record<string, unknown>> {
             // 该用例同时是 dimension_type 内联 NBT 的回归保护：客户端取不到该注册表时会
             // **静默退回 minY=0/height=256**（mineflayer game.js:70-77 的 fallback），
@@ -117,6 +122,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/spawn_not_in_void",
         title: "出生点落在地表而非虚空",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot, surfaceY, trace }): Promise<Record<string, unknown>> {
             // 防的是服务端出生点兜底落在 SEA_LEVEL+1=64（在超平坦世界里那是空气）导致 bot 坠落。
             const feetY = bot.entity.position.y;
@@ -143,6 +149,7 @@ export const chunkSyncCases: readonly CaseDefinition[] = [
         id: "chunk-sync/block_names_resolve",
         title: "区块 palette 解码出的方块名可识别（出站 state id 对齐）",
         servers: ["cubium", "vanilla"],
+        botCount: 1,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 出站方块状态经 JavaBlockStateIdMap 翻译成 vanilla 全局 state id；若翻译表有任何
             // 偏移，客户端会解出 name 为 undefined 或完全不同的方块。逐层核对已知方块名。

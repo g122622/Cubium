@@ -101,7 +101,8 @@ tests/e2e/bot/
 完全负担得起；换来的是用例之间零世界状态污染。
 
 **失败时**诊断产物写入 `build/e2e/artifacts/<runId>/<caseId>/`，含服务端全量日志、
-`bot-trace.jsonl`（**带 payload 的原始包序列**）、快照实际/基线对照、字段 diff、运行元信息。
+`bot-trace-<n>.jsonl`（**带 payload 的原始包序列**；每个 bot 一份，序号从 1 起）、
+快照实际/基线对照、字段 diff、运行元信息。
 
 ---
 
@@ -139,6 +140,21 @@ tests/e2e/bot/
 ① 出生列可读 → ② 出生点周围 7×7 区域加载完成 → ③ bot 稳定落地。
 新增用例若依赖更大范围或更晚的状态，请自行在用例内补充等待，而不是加长固定延时。
 
+### 4.5 多 bot 用例：共享世界，且可控制连接时序
+
+`CaseDefinition.botCount` 声明 runner **预先连接并等待就绪**的 bot 数量（必填，不设默认值）；
+需要控制连接时序的用例把它设小，在 `run` 里调用 `ctx.connectBot()` 追加连接——典型场景是
+「先让已连接的 bot 改变世界状态（如制造一个实体），再让新 bot 加入观测它」。例如
+`handshake/login_entity_id_is_entity` 先丢一个掉落物让实体 id 序列错开，再连第二个 bot。
+
+两个约束：
+
+- **共享物理世界**：同一服务端的多个 bot 会互相推挤，也可能改动同一批方块。用例须让各 bot
+  在空间上错开，且不得依赖「自己是世界里唯一的行动者」。
+- **数组与连接顺序对应**：`ctx.bots` / `ctx.traces` 按连接顺序排列，`ctx.bot` / `ctx.trace`
+  是其中 `[0]` 的别名（主 bot 定义了 surfaceY/spawnX/spawnZ 这套地表基准）。用例内追加连接的
+  bot 同样计入这两个数组，并由 runner 在 finally 里统一回收。
+
 ---
 
 ## 5. 容易踩的坑
@@ -166,7 +182,7 @@ Prismarine 生态沿用 1.16 时代的包名，与 1.21.11 官方名**不同**�
 
 `spawn` 事件 = 收到**首个 `health > 0`** 的 `update_health`（`lib/plugins/health.js:18`）。
 服务端不发这个包时，客户端会停在「已登录但未进入世界」，**且不报错**。
-排查时应先看 `bot-trace.jsonl` 里该包的计数是否为零。
+排查时应先看 `bot-trace-<n>.jsonl` 里该包的计数是否为零。
 
 ### 5.3 nmp 恒定回空 `select_known_packs`
 
@@ -213,7 +229,7 @@ Prismarine 生态沿用 1.16 时代的包名，与 1.21.11 官方名**不同**�
 vanilla 的 `Optional.empty` = 使用全部结构集，Cubium **空列表 = 完全不生成结构**。
 双跑对比时须让 vanilla 侧显式传 `structure_overrides: []`，否则两侧地形不一致。
 
-### 5.9 用户名不得超过 16 字符
+### 5.9 用户名不得超过 16 字符，且多 bot 必须互不同名
 
 vanilla 的 `ServerboundHelloPacket` 用 `readUtf(16)` 读取用户名，超长会**直接断连**并报：
 
@@ -222,8 +238,11 @@ Failed to decode packet 'serverbound/minecraft:hello'
 ```
 
 该错误信息**完全指不到用户名上**，极易误判为协议定义不匹配。Cubium 侧不校验该长度，
-所以这类问题**只在双跑对比时才会暴露**。`runner.ts` 的 `sanitizeName()` 已强制截断，
-由用例 id 生成用户名时务必注意总长（含前缀）。
+所以这类问题**只在双跑对比时才会暴露**。`runner.ts` 的 `botUsername()` 已强制截断用户名
+主体（需为 `_<序号>` 后缀让出长度），由用例 id 生成用户名时务必注意总长（含前缀）。
+
+同一用例的多个 bot 还必须**互不同名**：vanilla 检测到重名会踢掉**先前**登录的那个连接，
+双跑对比会直接崩。用户名统一追加序号正是为此。
 
 ### 5.10 vanilla 侧必须显式禁用结构生成
 
@@ -306,7 +325,7 @@ Java 的 `FloatCodec`/`DoubleCodec` 接受任意数值 tag。
 
 | 现象 | 可能原因 | 排查方向 |
 |---|---|---|
-| bot 连上但永不 spawn | 服务端未发 `set_health` | 查 `bot-trace.jsonl` 中 `update_health` 计数 |
+| bot 连上但永不 spawn | 服务端未发 `set_health` | 查 `bot-trace-<n>.jsonl` 中 `update_health` 计数 |
 | 连接静默挂起、无报错 | registry 解析抛错被转成 error 事件 | 查服务端日志与 trace 中最后收到的包 |
 | 用例超时但服务端正常 | 等待条件永不满足 | 看超时异常附带的「已观察到的状态」 |
 | `bot.game.minY` 是 0 而非 -64 | `dimension_type` 未送达，客户端退回默认 0/256 | 查 `registry_data` 包内容 |
