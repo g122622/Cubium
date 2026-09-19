@@ -93,22 +93,6 @@ public:
     }
 
     /**
-     * @brief 遍历全部已注册的属性实例
-     *
-     * 供属性同步（update_attributes 包）收集快照用。回调在持锁期间执行，不得在其中改动本容器。
-     *
-     * @param func 形如 `void(const std::string& attributeName, const AttributeInstance& instance)`
-     */
-    template <typename Func>
-    void forEachInstance(Func&& func) const
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (const auto& [name, instance] : m_instances) {
-            func(name, *instance);
-        }
-    }
-
-    /**
      * @brief 获取属性值
      * @param name 属性名称
      * @param defaultValue 默认值（属性不存在时返回）

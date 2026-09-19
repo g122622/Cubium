@@ -52,26 +52,25 @@ namespace mc::server::net {
     mc::network::ir::play::UpdateAttributes packet;
     packet.entityId = static_cast<i32>(living.id());
 
-    living.attributes().forEachInstance(
-        [&packet](const std::string& attributeName, const entity::attribute::AttributeInstance& instance) {
-            const auto& idMap = JavaAttributeIdMap::instance();
-            const auto javaId = idMap.toJavaRegistryId(attributeName);
-            if (!javaId.has_value() || !idMap.isClientSyncable(*javaId)) {
-                return;
-            }
+    const auto& idMap = JavaAttributeIdMap::instance();
+    for (const auto& [attributeName, instance] : living.attributes().allInstances()) {
+        const auto javaId = idMap.toJavaRegistryId(attributeName);
+        if (!javaId.has_value() || !idMap.isClientSyncable(*javaId)) {
+            continue;
+        }
 
-            mc::network::ir::play::AttributeSnapshot snapshot;
-            snapshot.attributeRegistryId = static_cast<i32>(*javaId);
-            snapshot.base = instance.baseValue();
-            for (const auto& modifier : instance.modifiers()) {
-                mc::network::ir::play::AttributeModifierWire wire;
-                wire.id = modifier.id();
-                wire.amount = modifier.amount();
-                wire.operation = static_cast<i32>(modifier.operation());
-                snapshot.modifiers.push_back(std::move(wire));
-            }
-            packet.attributes.push_back(std::move(snapshot));
-        });
+        mc::network::ir::play::AttributeSnapshot snapshot;
+        snapshot.attributeRegistryId = static_cast<i32>(*javaId);
+        snapshot.base = instance->baseValue();
+        for (const auto& modifier : instance->modifiers()) {
+            mc::network::ir::play::AttributeModifierWire wire;
+            wire.id = modifier.id();
+            wire.amount = modifier.amount();
+            wire.operation = static_cast<i32>(modifier.operation());
+            snapshot.modifiers.push_back(std::move(wire));
+        }
+        packet.attributes.push_back(std::move(snapshot));
+    }
     return packet;
 }
 
