@@ -1841,7 +1841,7 @@ std::vector<AxisAlignedBB> ServerWorld::getBlockCollisions(const AxisAlignedBB& 
 bool ServerWorld::hasEntityCollision(const AxisAlignedBB& box, const Entity* except) const
 {
     auto entities = m_entityManager.getEntitiesInAABB(box, except);
-    // 对齐 vanilla Level.getEntityCollisions 的过滤谓词 EntitySelector.CAN_BE_PUSHED：
+    // 只有可推挤的实体才计入碰撞：
     // 只有 isPushable() 的实体才计入碰撞。掉落物/箭矢/经验球等非生物实体 isPushable() 恒为
     // false（Entity 默认值，子类不覆写），故不参与方块碰撞——否则挖掘产生的掉落物会立刻
     // 挡住原地放置（e2e 实测：挖掉草方块后无法在同一位置放回石头，报"与实体碰撞"）。

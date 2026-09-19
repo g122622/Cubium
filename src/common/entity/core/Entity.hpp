@@ -909,7 +909,7 @@ public:
     /**
      * @brief 实体是否参与实体间碰撞（"可被推挤"）
      *
-     * 对齐 MC Java 1.21.11 Entity.isPushable（Entity.java:1900-1902），默认 false。
+     * 默认 false。
      * 用于 Level.getEntityCollisions 的实体过滤谓词 EntitySelector.CAN_BE_PUSHED：
      * 只有 isPushable 的实体才计入 AABB 实体碰撞，进而影响 Level.noCollision →
      * BlockItem.canPlace 等"能否在此放置方块"的判定。

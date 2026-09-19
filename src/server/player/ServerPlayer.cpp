@@ -1380,7 +1380,7 @@ void ServerPlayer::tick()
     // 载具反飞行基线同步滚动（骑乘时由 handleMoveVehiclePacket 维护 lastGood）。
     rollVehicleFirstGoodToLastGood();
 
-    // 血量/饥饿同步（对齐 Java ServerPlayer.doTick，ServerPlayer.java:675-682）：
+    // 血量/饥饿同步：
     // 三个基线与当前值有任一不同即下发 ClientboundSetHealthPacket 并更新基线。
     // 字段初值刻意取不可能的值，故玩家加入后首个 tick 必然下发一次——这是真 wire 客户端
     // （mineflayer / node-minecraft-protocol）建立本地玩家状态、触发其 spawn 事件的唯一信号

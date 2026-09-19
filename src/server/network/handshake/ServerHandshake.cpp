@@ -344,7 +344,7 @@ Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::n
 {
     if (std::holds_alternative<mc::network::ir::configuration::SelectKnownPacks>(pkt)) {
         // 客户端回 SelectKnownPacks(C→S)：先记录其声明的 known packs，再推送剩余配置数据。
-        // 该声明决定 RegistryData 走哪条编码分支，对齐 Java RegistrySynchronization.packRegistry
+        // 该声明决定 RegistryData 走哪条编码分支
         // （RegistrySynchronization.java:37-72）按 knownPackInfo 命中与否逐条目判定的语义：
         //   命中（客户端本地已有该条目）→ Optional.empty()，不带 NBT；
         //   未命中 → elementCodec().encodeStart(...) 编码完整 NBT。

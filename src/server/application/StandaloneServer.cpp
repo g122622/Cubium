@@ -246,7 +246,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             break;
     }
 
-    // 世界目录不存在时按配置新建（对齐 vanilla：独立服首次启动即创建世界）。
+    // 世界目录不存在时按配置新建（独立服首次启动即创建世界）。
     // 此前独立服只能加载已存在的存档（GlobalStorageManager::openLevel 找不到即报
     // "World not found"），且全仓无 createWorld 调用点，导致无法从零启动一个测试世界。
     // worldName 为绝对路径时不在此处理（openLevel 会按绝对路径直接加载既有存档）。
@@ -272,7 +272,7 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                     static_cast<GameMode>(m_settings.defaultGameMode.get()),
                     static_cast<Difficulty>(m_settings.difficulty.get()),
                     m_settings.hardcore.get(),
-                    true, // allowCommands：独立服默认允许命令（对齐原版 dedicated server）
+                    true, // allowCommands：独立服默认允许命令
                     m_settings.viewDistance.get());
                 auto initResult = world::storage::LevelDatCodec::writeInitial(worldDir, request);
                 if (initResult.failed()) {

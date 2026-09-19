@@ -57,7 +57,7 @@ void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo);
  * 所有条目以 RegistryEntry{ id, data=nullopt } 发送——声明"客户端已知"。
  * 该策略对真 Java 客户端成立：客户端 SelectKnownPacks 回命中 minecraft:core 后，
  * 对命中 core 的条目按 RegistrySynchronization.packRegistry 规则视为"客户端已知"，
- * 从本地 core 包加载完整 NBT，无需服务端内联（RegistrySynchronization.java:52-62）。
+ * 从本地 core 包加载完整 NBT，无需服务端内联。
  * 前提是 id 集合与客户端 1.21.11 vanilla core 包完全一致——本列表严格匹配
  * C:\Users\Administrator\minecraft_reborn\datapacks\Vanilla（pack_format=94）。
  *
@@ -69,7 +69,7 @@ void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo);
  *
  * 整数 id（UpdateTags 的 elementId）= 条目在此处的发送顺序索引（0-based）。
  * 客户端 loadContentsFromNetwork 按条目顺序 register() 自增分配 id
- * （RegistryDataLoader.java:343-364）。timeline 等需发标签的注册表，条目顺序须与
+ * 。timeline 等需发标签的注册表，条目顺序须与
  * buildConfigurationUpdateTags() 的索引计算保持一致，故各注册表顺序固定勿乱序。
  */
 [[nodiscard]] std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegistryData();
@@ -83,8 +83,8 @@ void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo);
  *
  * 关键：timeline 的 in_overworld/in_nether/in_end tag 在 dimension_type 解码时因
  * HolderSetCodec.lookupTag → getOrCreateTagForRegistration 被创建为未绑定
- * （MappedRegistry.java:237-243），freeze() 校验未绑定 tag 抛 "Unbound tags"
- * （MappedRegistry.java:290-301）。必须由 UpdateTags 提供非空 payload 才能 bindTag。
+ * ，freeze() 校验未绑定 tag 抛 "Unbound tags"
+ * 。必须由 UpdateTags 提供非空 payload 才能 bindTag。
  *
  * elementId = 条目在对应 registry（buildConfigurationRegistryData）中的发送顺序索引。
  * 发 timeline 的 4 个 tag（universal/in_overworld/in_nether/in_end，展平后 id）让 timeline
@@ -106,29 +106,23 @@ void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo);
 /**
  * @brief 为「未在 SelectKnownPacks 中声明 minecraft:core 的客户端」构造 RegistryData
  *
- * 对齐 Java RegistrySynchronization.packRegistry（RegistrySynchronization.java:37-72）：
- * 该方法**逐条目**判断 `registrationInfo.knownPackInfo` 是否落在客户端声明的 known packs
- * 集合内——命中则发 `Optional.empty()`（无 NBT），未命中则用 `elementCodec().encodeStart`
- * 编码完整 NBT。本函数即「未命中」分支的服务端实现。
+ * 服务端按客户端声明的 known pack 集合**逐条目**决定是否下发 NBT：命中则只发条目名
+ * （客户端从本地数据包加载），未命中则下发完整 NBT。本函数即「未命中」分支的实现。
  *
- * 为什么必须区分：真 Java 客户端在 SelectKnownPacks(C→S) 中回包含 minecraft:core 的集合，
- * 走 buildConfigurationRegistryData() 的 data=nullopt 路径即可（客户端从本地 core 包加载）。
- * 但第三方客户端（node-minecraft-protocol / mineflayer）恒定回**空** pack 列表，
- * 按 vanilla 语义服务端此时必须下发完整 NBT——否则客户端解析条目时因 value 缺失而失败。
+ * 为什么必须区分：真 Java 客户端在 SelectKnownPacks(C→S) 中总会回包含 minecraft:core 的
+ * 集合，走 buildConfigurationRegistryData() 的 data=nullopt 路径即可；而第三方客户端
+ * （node-minecraft-protocol / mineflayer）恒定回**空**列表，此时服务端必须下发完整 NBT，
+ * 否则对端解析条目时因 value 缺失而失败。
  *
- * **当前实现范围（过渡态）**：仅 dimension_type 下发完整 NBT，其余 22 个注册表**跳过发送**。
- * 依据与限制：
- * - dimension_type 必须发：客户端（mineflayer game.js:70-77）从 dimensionsByName 取
- *   minY/height，取不到时**静默退回 0/256**，而本项目真实世界为 -64/384，会导致区块
- *   section 解码整体错位。故它必须带 NBT 下发。
- * - 其余 22 个注册表跳过发送：客户端保留其本地（minecraft-data）数据。这优于发送空
- *   entries——prismarine-registry 对空 entries 会**清空**本地数据（见其
- *   lib/pc/index.js:71 的 handler 语义），反而更糟。
- * - 但跳过发送**不等价于** vanilla（vanilla 会下发全量 NBT）。
- * TODO: 为其余 22 个注册表实现完整 NBT 编码以彻底对齐 vanilla。阻塞点是各注册表的
- *       字段类型规则需逐个核对 Java codec（整数须精确 int_tag，不能用通用 jsonToNbt —
- *       后者会把 [-128,127] 窄化为 byte_tag，被 Codec.INT 拒绝，参见
- *       EnchantmentNbtBuilder.cpp:462 的同类记录）。
+ * 实现要点：
+ * - **条目与顺序以 buildConfigurationRegistryData() 为基准**，本函数只做「逐条目补齐 NBT」。
+ *   客户端按 RegistryData 的收到顺序自增分配 registry id，UpdateTags 的 elementId 正是该
+ *   索引，故顺序不可变更——因此不能遍历数据包目录（文件系统顺序不确定）。
+ * - **NBT 由数据包 JSON 通用转换而来**，无需为各注册表手写编码器。唯一需修正的是整数窄化：
+ *   通用 jsonToNbt 会按数值范围推断出 byte_tag/short_tag，而注册表 codec 的整数字段用
+ *   Codec.INT 解码会拒绝它们，故走注册表专用转换以保证整数恒为 int_tag。
+ * - **构建失败的条目被跳过**，而非回退为「有 key 无 value」——后者会让对端解析时抛异常。
+ *   跳过使该注册表不完整但不崩，且日志会报告覆盖率缺口。
  */
 [[nodiscard]] std::vector<mc::network::ir::configuration::RegistryData>
 buildConfigurationRegistryDataForUnknownClient();

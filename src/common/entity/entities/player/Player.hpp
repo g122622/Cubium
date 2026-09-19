@@ -203,7 +203,7 @@ public:
     /**
      * @brief 玩家是否参与实体间碰撞（重写 LivingEntity）
      *
-     * 对齐 MC Java 1.21.11 LivingEntity.isPushable 的完整条件
+     * 完整条件为「存活、非旁观、未在攀爬」
      * （LivingEntity.java:3221-3223）：isAlive() && !isSpectator() && !onClimbable()。
      * 旁观者不与世界碰撞，故不能挡住方块放置。
      */

@@ -877,7 +877,7 @@ private:
     // -1 表示本 tick 无待发 ACK。
     i32 m_ackBlockChangesUpTo = -1;
 
-    // ========== 血量/饥饿同步基线（对齐 vanilla ServerPlayer.java:240-242） ==========
+    // ========== 血量/饥饿同步基线 ==========
     // vanilla 在 ServerPlayer.doTick（ServerPlayer.java:675-682）比对这三个基线与当前值，
     // 有任一不同即下发 ClientboundSetHealthPacket 并更新基线。三者的**初值刻意取不可能的值**，
     // 从而保证玩家加入后首个 tick 必然触发一次下发——这是客户端建立本地玩家血量状态的唯一
