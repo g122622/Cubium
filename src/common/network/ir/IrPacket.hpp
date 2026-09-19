@@ -198,7 +198,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     // ---- 以下为玩家战斗数据包（altIndex 111..113，PlayPacketsExtended.hpp）----
     play::PlayerCombatEnter, // 111
     play::PlayerCombatEnd,   // 112
-    play::PlayerCombatKill>; // 113
+    play::PlayerCombatKill,  // 113
+    play::UpdateAttributes>; // 114
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体

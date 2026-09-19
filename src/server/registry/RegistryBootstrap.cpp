@@ -41,6 +41,7 @@
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/backend/java/mappings/JavaAttributeIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
@@ -633,6 +634,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         }
         if (auto r = ::mc::network::backend::java::JavaEnchantmentIdMap::instance().initialize(); r.failed()) {
             spdlog::error("Failed to initialize JavaEnchantmentIdMap: {}", r.error().toString());
+        }
+        if (auto r = ::mc::network::backend::java::JavaAttributeIdMap::instance().initialize(); r.failed()) {
+            spdlog::error("Failed to initialize JavaAttributeIdMap: {}", r.error().toString());
         }
     }
 }

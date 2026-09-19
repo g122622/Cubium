@@ -1252,4 +1252,45 @@ struct ChunkBatchReceived {
     [[nodiscard]] friend bool operator==(const ChunkBatchReceived&, const ChunkBatchReceived&) noexcept = default;
 };
 
+/**
+ * @brief 属性修饰符（UpdateAttributes 的负载形式）
+ *
+ * id 是语义化资源名（Identifier 形式），只接受小写字母、数字、`_`、`.`、`/`；
+ * operation 是 0/1/2，依次为 ADD_VALUE / ADD_MULTIPLIED_BASE / ADD_MULTIPLIED_TOTAL。
+ */
+struct AttributeModifierWire {
+    std::string id;
+    f64 amount;
+    i32 operation;
+    [[nodiscard]] friend bool operator==(const AttributeModifierWire&, const AttributeModifierWire&) noexcept = default;
+};
+
+/**
+ * @brief 单条属性的快照
+ *
+ * attributeRegistryId 是 vanilla attribute 注册表的 holder id（映射见 JavaAttributeIdMap）。
+ */
+struct AttributeSnapshot {
+    i32 attributeRegistryId;
+    f64 base;
+    std::vector<AttributeModifierWire> modifiers;
+    [[nodiscard]] friend bool operator==(const AttributeSnapshot&, const AttributeSnapshot&) noexcept = default;
+};
+
+/**
+ * @brief UpdateAttributes（S→C，id=129，属性同步）
+ *
+ * 1.21.11 结构：entityId + List<AttributeSnapshot>，每项为
+ * attribute(holder id, VarInt) + base(Double) + modifiers(VarInt 计数 + 每项 id/amount/operation)。
+ *
+ * 客户端语义是「整条属性的全量替换」：先设基础值，再**清空该属性的全部修饰符**并逐个加入
+ * 本次下发的那些。因此服务端每次都必须下发完整的修饰符集合，不能只发增量。
+ */
+struct UpdateAttributes {
+    i32 entityId;
+    std::vector<AttributeSnapshot> attributes;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const UpdateAttributes&, const UpdateAttributes&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

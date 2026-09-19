@@ -409,6 +409,9 @@ using B = buffer::RegistryByteBuf;
         109, PacketType{PacketFlow::Clientbound, "set_simulation_distance"}, 91, codecs::setSimulationDistanceCodec());
     b.addPacket<ir::play::SetHealth>(
         102, PacketType{PacketFlow::Clientbound, "set_health"}, 92, codecs::setHealthCodec());
+    // 属性同步（wire id=129，位于 update_advancements(128) 与 update_mob_effect(130) 之间）。
+    b.addPacket<ir::play::UpdateAttributes>(
+        129, PacketType{PacketFlow::Clientbound, "update_attributes"}, 114, codecs::updateAttributesCodec());
     b.addPacket<ir::play::ClientboundPing>(
         59, PacketType{PacketFlow::Clientbound, "ping"}, 93, codecs::clientboundPingCodec());
     b.addPacket<ir::play::PongResponse>(

@@ -34,6 +34,7 @@
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <array>
 #include <cstddef>
@@ -1782,6 +1783,57 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
             MC_TRY_ASSIGN(v.health, buf.readF32());
             MC_TRY_ASSIGN(v.food, buf.readVarInt());
             MC_TRY_ASSIGN(v.saturation, buf.readF32());
+            return v;
+        });
+}
+
+/// UpdateAttributes（S→C，id=129）
+/// 线格式：VarInt(entityId) + VarInt(count) +
+///   count×[ VarInt(attributeRegistryId) + Double(base) + VarInt(modifierCount) +
+///           modifierCount×[ String(id) + Double(amount) + VarInt(operation) ] ]
+/// attribute 是 vanilla attribute 注册表的 holder id（纯 VarInt，见 JavaAttributeIdMap）；
+/// 修饰符 id 是 Identifier（VarInt(len) + UTF-8）。
+[[nodiscard]] inline auto updateAttributesCodec()
+{
+    return makeCodec<ir::play::UpdateAttributes>(
+        [](B& buf, const ir::play::UpdateAttributes& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeVarInt(static_cast<i32>(v.attributes.size()));
+            for (const auto& snapshot : v.attributes) {
+                buf.writeVarInt(snapshot.attributeRegistryId);
+                buf.writeF64(snapshot.base);
+                buf.writeVarInt(static_cast<i32>(snapshot.modifiers.size()));
+                for (const auto& modifier : snapshot.modifiers) {
+                    buf.writeString(modifier.id);
+                    buf.writeF64(modifier.amount);
+                    buf.writeVarInt(modifier.operation);
+                }
+            }
+        },
+        [](B& buf) -> Result<ir::play::UpdateAttributes> {
+            ir::play::UpdateAttributes v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            i32 attributeCount = 0;
+            MC_TRY_ASSIGN(attributeCount, buf.readVarInt());
+            MC_ASSERT_RELEASE(attributeCount >= 0);
+            v.attributes.reserve(static_cast<usize>(attributeCount));
+            for (i32 i = 0; i < attributeCount; ++i) {
+                ir::play::AttributeSnapshot snapshot{};
+                MC_TRY_ASSIGN(snapshot.attributeRegistryId, buf.readVarInt());
+                MC_TRY_ASSIGN(snapshot.base, buf.readF64());
+                i32 modifierCount = 0;
+                MC_TRY_ASSIGN(modifierCount, buf.readVarInt());
+                MC_ASSERT_RELEASE(modifierCount >= 0);
+                snapshot.modifiers.reserve(static_cast<usize>(modifierCount));
+                for (i32 j = 0; j < modifierCount; ++j) {
+                    ir::play::AttributeModifierWire modifier{};
+                    MC_TRY_ASSIGN(modifier.id, buf.readString());
+                    MC_TRY_ASSIGN(modifier.amount, buf.readF64());
+                    MC_TRY_ASSIGN(modifier.operation, buf.readVarInt());
+                    snapshot.modifiers.push_back(std::move(modifier));
+                }
+                v.attributes.push_back(std::move(snapshot));
+            }
             return v;
         });
 }
