@@ -105,6 +105,34 @@ public:
     void closeContainer(PlayerId playerId);
 
     /**
+     * @brief 为玩家建立常驻的「玩家背包菜单」（containerId 固定为 0）
+     *
+     * 该菜单承载玩家背包屏的全部交互：2x2 合成格、合成结果、护甲、副手与 36 格背包。
+     * 客户端本地会建出同布局的窗口，其中的点击直接以 containerId=0 上行；服务端若无对应
+     * 菜单，这些点击会被当成「没有打开的容器」拒绝——玩家背包屏于是完全不可交互
+     * （移动物品、装备、2x2 合成全部静默失效）。
+     *
+     * 它不算「打开的容器」：与玩家同时打开的箱子/熔炉等各用各的 containerId，互不冲突，
+     * 故不入 m_openContainers。玩家加入时建立、离开时销毁。
+     *
+     * @param playerId 玩家ID
+     * @param playerInventory 玩家物品栏（实体上那一份）
+     * @return 是否可用（已存在视为成功）
+     */
+    bool openPlayerInventoryMenu(PlayerId playerId, PlayerInventory* playerInventory);
+
+    /**
+     * @brief 销毁玩家的背包菜单（玩家离开时调用）
+     */
+    void closePlayerInventoryMenu(PlayerId playerId);
+
+    /**
+     * @brief 获取玩家的背包菜单
+     * @return 菜单指针，未建立则返回 nullptr
+     */
+    [[nodiscard]] AbstractContainerMenu* getPlayerInventoryMenu(PlayerId playerId);
+
+    /**
      * @brief 处理容器点击
      * @param playerId 玩家ID
      * @param containerId 容器ID
@@ -169,6 +197,9 @@ private:
 
     std::unordered_map<PlayerId, OpenContainer> m_openContainers;
     std::unordered_map<PlayerId, mc::ContainerId> m_nextContainerIds;
+
+    /// 玩家背包菜单（containerId 恒为 0），每个在线玩家常驻一个，与「打开的容器」并存。
+    std::unordered_map<PlayerId, std::unique_ptr<AbstractContainerMenu>> m_playerInventoryMenus;
 
     std::function<ContainerMenuCreateResult(
         mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*, PlayerId)>

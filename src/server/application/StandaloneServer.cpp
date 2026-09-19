@@ -646,8 +646,34 @@ void StandaloneServer::_setupContainerCallbacks()
         }
     });
 
+    // 把菜单的全部槽位打包为 ContainerSetContent 发出。打开容器与每次点击后都要发，
+    // 故提取为共享的 lambda（按值捕获进下面两个回调）。
+    // carriedItem 取菜单当前的光标物品——客户端会用它覆盖自己菜单的光标状态，恒发空会让
+    // 客户端的光标被清空、与服务端分叉（此后任何一次点击都会回传空光标覆盖服务端的）。
+    auto sendContainerContent = [this](PlayerId playerId, const AbstractContainerMenu& menu) {
+        mc::network::ir::play::ContainerSetContent pkt;
+        pkt.containerId = static_cast<i32>(menu.getId());
+        pkt.stateId = menu.incrementStateId();
+        const i32 slotCount = menu.getSlotCount();
+        pkt.items.reserve(static_cast<size_t>(slotCount));
+        for (i32 slot = 0; slot < slotCount; ++slot) {
+            const auto* slotPtr = menu.getSlot(slot);
+            if (slotPtr != nullptr) {
+                pkt.items.push_back(mc::network::ir::toItemStackView(slotPtr->getItem()));
+            } else {
+                pkt.items.push_back(mc::network::ir::play::ItemStackView{});
+            }
+        }
+        pkt.carriedItem = mc::network::ir::toItemStackView(menu.getCarriedItem());
+        sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{std::move(pkt)},
+            });
+    };
+
     // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。
-    containerManager().setOnContainerOpen([this](PlayerId playerId,
+    containerManager().setOnContainerOpen([this, sendContainerContent](PlayerId playerId,
                                               ContainerId containerId,
                                               mc::ContainerType type,
                                               const std::string& title,
@@ -665,6 +691,13 @@ void StandaloneServer::_setupContainerCallbacks()
                 mc::network::protocol::ConnectionProtocol::Play,
                 mc::network::ir::PlayPacket{std::move(pkt)},
             });
+
+        // OpenScreen 只是让客户端建出一个空窗口，槽位内容全靠这条补发。缺了它客户端
+        // 会停在「窗口已开但内容未到」——以「等窗口内容」为就绪条件的客户端（例如
+        // 第三方 bot 库的 openContainer）会一直等到超时。
+        if (const AbstractContainerMenu* menu = containerManager().getOpenMenu(playerId); menu != nullptr) {
+            sendContainerContent(playerId, *menu);
+        }
     });
 
     containerManager().setOnContainerClose(
@@ -705,27 +738,9 @@ void StandaloneServer::_setupContainerCallbacks()
                 });
         });
 
-    containerManager().setOnContainerUpdate([this](PlayerId playerId, const AbstractContainerMenu& menu) {
-        mc::network::ir::play::ContainerSetContent pkt;
-        pkt.containerId = static_cast<i32>(menu.getId());
-        pkt.stateId = menu.incrementStateId();
-        const i32 slotCount = menu.getSlotCount();
-        pkt.items.reserve(static_cast<size_t>(slotCount));
-        for (i32 slot = 0; slot < slotCount; ++slot) {
-            const auto* slotPtr = menu.getSlot(slot);
-            if (slotPtr != nullptr) {
-                pkt.items.push_back(mc::network::ir::toItemStackView(slotPtr->getItem()));
-            } else {
-                pkt.items.push_back(mc::network::ir::play::ItemStackView{});
-            }
-        }
-        pkt.carriedItem = mc::network::ir::play::ItemStackView{};
-        sendPacketToPlayer(playerId,
-            mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(pkt)},
-            });
-    });
+    containerManager().setOnContainerUpdate(
+        [this, sendContainerContent](
+            PlayerId playerId, const AbstractContainerMenu& menu) { sendContainerContent(playerId, menu); });
 }
 
 Result<void> StandaloneServer::_loadSettings(const std::string& path)
@@ -803,8 +818,8 @@ void StandaloneServer::_applySettings()
 // syncPlayerInventory/tryOpenCraftingContainer）已于批9 下沉至 MinecraftServer 基类默认实现
 // （纯远程路径）。StandaloneServer 为纯远程独立服，无本地客户端分支，直接继承基类默认即原
 // StandaloneServer 行为，不再 override。handleOpenPlayerInventoryPacket 基类默认已校验
-// PlayerCommand action==OPEN_INVENTORY（TODO(Phase6): 远程玩家打开背包菜单建立暂留空，
-// 集成服本地路径有 _openItemPickerMenu/_openPlayerInventoryMenu）。
+// PlayerCommand action==OPEN_INVENTORY；玩家的背包菜单在加入时就由 ContainerManager 常驻
+// 建立，该包无需再触建菜单。集成服本地路径另有 _openItemPickerMenu/_openPlayerInventoryMenu。
 
 Result<void> StandaloneServer::publishToLan(i32 port, bool allowCheats)
 {

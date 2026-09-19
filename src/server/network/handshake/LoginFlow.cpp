@@ -171,18 +171,6 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     m_server.dimensionManager().playerJoinDimension(playerId, overworld->id());
     result.entityId = playerEntity->id();
 
-    // 下发玩家自身的属性快照。玩家自己的实体由 login 包在客户端建立，不经过 EntityTracker
-    // 的视野流程（该流程显式跳过玩家自身），故这里必须单独发一次——否则客户端对自己的属性
-    // 只能沿用本地默认值，且不会有任何报错。
-    {
-        auto attributes = buildAttributeSnapshot(*playerEntity);
-        if (!attributes.attributes.empty()) {
-            m_server.sendPacketToPlayer(playerId,
-                mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-                    mc::network::ir::PlayPacket{std::move(attributes)}});
-        }
-    }
-
     // 从 OP 列表设置玩家权限等级 + 从存档加载玩家数据恢复到实体
     const i32 playerPermissionLevel = m_server.resolveOpLevel(playerData->uuid);
     if (auto* world = m_server.getPlayerWorld(playerId)) {
@@ -213,10 +201,30 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     // 发送初始游戏状态
     sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
 
+    // 下发玩家自身的属性快照。玩家自己的实体由 login 包在客户端建立，不经过 EntityTracker
+    // 的视野流程（该流程显式跳过玩家自身），故这里必须单独发一次——否则客户端对自己的属性
+    // 只能沿用本地默认值，且不会有任何报错。
+    //
+    // 位置要求：必须在上面那条 login 包之后。客户端是在处理 login 包时才创建本地世界，
+    // 而处理属性包要按 entityId 去世界里取实体——早于 login 包发出会让它在空世界上取实体
+    // 直接抛异常断连（第三方客户端若有守卫则不报错，错误因此被掩盖）。
+    {
+        auto attributes = buildAttributeSnapshot(*playerEntity);
+        if (!attributes.attributes.empty()) {
+            m_server.sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{std::move(attributes)}});
+        }
+    }
+
+    // 建立玩家的背包菜单（containerId 固定为 0）。客户端本地就会建出背包屏，其中的点击
+    // 一律以 containerId=0 上行；服务端没有对应菜单时，这些点击会被当成「没有打开的容器」
+    // 拒绝，玩家背包屏于是完全不可交互（移动物品、装备、2x2 合成全部静默失效）。
+    m_server.containerManager().openPlayerInventoryMenu(playerId, m_server.playerInventory(playerId));
+
     // 下发物品栏（ContainerSetContent，containerId=0）。
     // 权威数据就在玩家实体上——登录时已按存档恢复或按默认创建，此处只是把它推给客户端，
-    // 客户端在收到之前无从知道自己的背包内容。不再有「初始化条目」这一步：物品栏随实体
-    // 存在，不存在需要另外登记的副本。
+    // 客户端在收到之前无从知道自己的背包内容。
     m_server.inventoryManager().syncToClient(playerId);
 
     // 玩家列表双向广播（ClientboundPlayerInfoUpdate，cb 68）：

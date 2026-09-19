@@ -1726,8 +1726,9 @@ ServerWorld* MinecraftServer::getPlayerWorld(PlayerId playerId)
 
 void MinecraftServer::handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
-    // 默认实现：仅校验包为 PlayerCommand{action=OPEN_INVENTORY}。具体打开逻辑由
-    // IntegratedServer（本地客户端）覆写；StandaloneServer 远程 TCP 玩家路径暂未接入。
+    // 默认实现：仅校验包为 PlayerCommand{action=OPEN_INVENTORY}。玩家的背包菜单在加入时
+    // 就已常驻（ContainerManager::openPlayerInventoryMenu），本包只是客户端告知「我把背包屏
+    // 打开了」，服务端不需要为它建立任何东西。集成服本地路径另有自己的覆写。
     const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
     const auto* evt = std::get_if<mc::network::ir::play::PlayerCommand>(&play);
     if (evt == nullptr) {

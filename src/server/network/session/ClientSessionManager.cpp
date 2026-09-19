@@ -151,6 +151,10 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
             departedUuid = util::uuidFromString(playerData->uuid);
         }
 
+        // 销毁背包菜单。须在移除实体之前——菜单销毁时会把光标上的物品归还玩家背包，
+        // 那需要实体还在。
+        m_server.containerManager().closePlayerInventoryMenu(playerId);
+
         // 清理玩家实体
         auto* world = m_server.getPlayerWorld(playerId);
         if (world != nullptr) {

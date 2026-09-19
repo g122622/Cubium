@@ -166,6 +166,48 @@ void ContainerManager::closeContainer(PlayerId playerId)
     m_openContainers.erase(it);
 }
 
+bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventory* playerInventory)
+{
+    // 幂等：登录流程可能因重连等原因对一个玩家触发多次。
+    if (AbstractContainerMenu* existing = getPlayerInventoryMenu(playerId); existing != nullptr) {
+        return true;
+    }
+    if (playerInventory == nullptr) {
+        return false;
+    }
+
+    // containerId 固定为 PLAYER_CONTAINER_ID——客户端本地建背包屏时用的就是这个值，
+    // 它上报的点击也只会带这个 id。
+    auto menu = std::make_unique<InventoryCraftingMenu>(mc::inventory::PLAYER_CONTAINER_ID, playerInventory);
+    menu->updateResult();
+    m_playerInventoryMenus[playerId] = std::move(menu);
+    return true;
+}
+
+void ContainerManager::closePlayerInventoryMenu(PlayerId playerId)
+{
+    auto it = m_playerInventoryMenus.find(playerId);
+    if (it == m_playerInventoryMenus.end()) {
+        return;
+    }
+
+    // 与关闭普通容器一致：先让菜单把光标上的物品归还玩家背包，再丢弃菜单本身。
+    if (it->second != nullptr) {
+        if (auto* playerData = m_playerManager.getPlayer(playerId); playerData != nullptr) {
+            static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
+            Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
+            it->second->removed(menuPlayer);
+        }
+    }
+    m_playerInventoryMenus.erase(it);
+}
+
+AbstractContainerMenu* ContainerManager::getPlayerInventoryMenu(PlayerId playerId)
+{
+    auto it = m_playerInventoryMenus.find(playerId);
+    return (it != m_playerInventoryMenus.end()) ? it->second.get() : nullptr;
+}
+
 Result<ContainerClickResult> ContainerManager::handleClick(
     PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode, const ItemStack& carriedItem)
 {
@@ -174,14 +216,20 @@ Result<ContainerClickResult> ContainerManager::handleClick(
         return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
     }
 
-    auto it = m_openContainers.find(playerId);
-    if (it == m_openContainers.end() || !it->second.menu) {
-        return Error(ErrorCode::InvalidState, "No open container");
+    // 点击落在哪个菜单上，取决于客户端上报的 containerId：
+    //   - 打开着容器时，客户端只会以该容器的 id 上报（窗口里的玩家背包部分也用它）；
+    //   - 没开容器时，客户端背包屏的点击一律以固定的 PLAYER_CONTAINER_ID 上报。
+    // 故先按 id 匹配已打开的容器，不匹配再落到玩家背包菜单。
+    AbstractContainerMenu* menu = nullptr;
+    auto openIt = m_openContainers.find(playerId);
+    if (openIt != m_openContainers.end() && openIt->second.menu && openIt->second.menu->getId() == containerId) {
+        menu = openIt->second.menu.get();
+    } else if (containerId == mc::inventory::PLAYER_CONTAINER_ID) {
+        menu = getPlayerInventoryMenu(playerId);
     }
 
-    auto& openContainer = it->second;
-    if (openContainer.menu->getId() != containerId) {
-        return Error(ErrorCode::InvalidArgument, "Container ID mismatch");
+    if (menu == nullptr) {
+        return Error(ErrorCode::InvalidState, "No matching container menu for the reported container id");
     }
 
     const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(mode), button);
@@ -191,14 +239,14 @@ Result<ContainerClickResult> ContainerManager::handleClick(
     // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
     static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
     Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
-    openContainer.menu->setCarriedItem(carriedItem);
-    openContainer.menu->clicked(slot, button, clickType, menuPlayer);
+    menu->setCarriedItem(carriedItem);
+    menu->clicked(slot, button, clickType, menuPlayer);
 
     if (m_onContainerUpdate) {
-        m_onContainerUpdate(playerId, *openContainer.menu);
+        m_onContainerUpdate(playerId, *menu);
     }
 
-    return ContainerClickResult{true, openContainer.menu->getCarriedItem(), "Click handled"};
+    return ContainerClickResult{true, menu->getCarriedItem(), "Click handled"};
 }
 
 AbstractContainerMenu* ContainerManager::getOpenMenu(PlayerId playerId)
