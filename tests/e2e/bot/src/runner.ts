@@ -19,6 +19,7 @@ import {
     E2E_SERVER_PROFILE,
     REPO_ROOT,
     SPAWN_TIMEOUT_MS,
+    WORK_ROOT,
 } from "./config.ts";
 import type { CaseContext, CaseDefinition, ServerKind } from "./case.ts";
 import { createBot, type BotHandle } from "./bot/factory.ts";
@@ -41,6 +42,7 @@ import {
     type BaselineEntry,
 } from "./baseline/store.ts";
 import { writeArtifacts } from "./diagnostics/artifacts.ts";
+import { summarizeDualRun, writeDualRunReport } from "./diagnostics/report.ts";
 
 /** 运行模式。 */
 export type RunMode = "regress" | "refresh" | "diff";
@@ -226,9 +228,11 @@ async function runSingleCase(
             extra,
         });
 
-        // 基线比对 / 写入
+        // 基线比对。**diff 模式刻意不做**——它要的是「两端对撞」（Cubium vs vanilla），
+        // 而非各自与历史快照比对；后者是 regress 模式的职责。各端与自己的基线是否一致，
+        // 由日常 regress 保证。
         const baselineFile = baselinePath(BASELINE_DIR, serverKind);
-        if (options.mode === "regress" || options.mode === "diff") {
+        if (options.mode === "regress") {
             const loaded = loadBaseline(baselineFile);
             if (loaded.kind === "missing") {
                 throw new BaselineMissingError(`基线文件不存在：${baselineFile}（先跑 --mode=refresh）`);
@@ -458,6 +462,14 @@ export async function runCases(
 
     const failedCount = results.filter((result) => !result.ok).length;
     console.log(`\n合计：${results.length} 条，通过 ${results.length - failedCount}，失败 ${failedCount}`);
+
+    // diff 模式额外产出两端对撞报告（regress 保证各端不回归，diff 保证两端行为一致）。
+    if (options.mode === "diff") {
+        const reportPath = path.join(WORK_ROOT, "dual-run-report.md");
+        writeDualRunReport(reportPath, results);
+        console.log(`\n双跑对撞报告：${reportPath}`);
+        console.log(summarizeDualRun(results));
+    }
 
     // 退出码语义：0 全通过；1 有用例失败；2 环境/基线问题
     const envProblem = results.some((result) => result.failureKind === "基线问题");
