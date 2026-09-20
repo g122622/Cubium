@@ -250,6 +250,19 @@ public:
      */
     Result<void> unloadAll();
 
+    /**
+     * @brief 驱逐区块列在缓存中的全部段（只动缓存，不触碰数据库）
+     *
+     * 供区块卸载路径调用。与 deleteChunkSections 的区别是后者会连同数据库中的段一起删除；
+     * 与 unloadSection 的区别是后者会先保存脏段，而本方法只做缓存驱逐——卸载时的落盘已由
+     * ServerChunkManager 的保存流程单独驱动。
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @return 实际驱逐的段数
+     */
+    size_t evictChunkFromCache(i32 chunkX, i32 chunkZ);
+
     // ========================================================================
     // Section删除
     // ========================================================================

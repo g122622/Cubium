@@ -506,6 +506,14 @@ Result<void> SectionManager::unloadAll()
     return {};
 }
 
+size_t SectionManager::evictChunkFromCache(i32 chunkX, i32 chunkZ)
+{
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Storage.Section, "SectionManager::evictChunkFromCache", "chunkX", chunkX, "chunkZ", chunkZ);
+
+    return m_cache.evictChunk(chunkX, chunkZ);
+}
+
 // ============================================================================
 // Section删除
 // ============================================================================

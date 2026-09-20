@@ -122,6 +122,25 @@ std::shared_ptr<SectionData> SectionCache::evict(const SectionKey& key)
     return data;
 }
 
+size_t SectionCache::evictChunk(i32 chunkX, i32 chunkZ)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    size_t removed = 0;
+    for (auto it = m_cacheMap.begin(); it != m_cacheMap.end();) {
+        if (it->first.chunkX == chunkX && it->first.chunkZ == chunkZ) {
+            m_lruList.erase(it->second);
+            it = m_cacheMap.erase(it);
+            ++removed;
+        } else {
+            ++it;
+        }
+    }
+
+    m_stats.currentSize = m_lruList.size();
+    return removed;
+}
+
 std::vector<std::pair<SectionKey, std::shared_ptr<SectionData>>> SectionCache::clear()
 {
     std::lock_guard<std::mutex> lock(m_mutex);

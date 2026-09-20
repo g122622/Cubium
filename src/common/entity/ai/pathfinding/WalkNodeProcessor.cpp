@@ -551,7 +551,6 @@ void WalkNodeProcessor::_addNeighbor(std::vector<PathPoint*>& neighbors, i32 x, 
         node->setCostMalus(std::max(node->costMalus(), newCostMalus));
 
         neighbors.push_back(node);
-        m_openNodes.push_back(node);
     }
 }
 

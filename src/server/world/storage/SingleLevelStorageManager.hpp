@@ -526,6 +526,19 @@ public:
     void clearAllCaches();
 
     /**
+     * @brief 驱逐指定区块列在缓存中的全部段（只动缓存，不触碰数据库）
+     *
+     * 供区块卸载路径调用：卸载保存会把整列段回填进缓存，若不驱逐，缓存常驻量将正比于
+     * 「历史上加载过的区块」而非「当前已加载的区块」。指定维度没有 SectionManager 时为空操作。
+     *
+     * @param x 区块X坐标
+     * @param z 区块Z坐标
+     * @param dimension 维度 ID
+     * @return 实际驱逐的段数
+     */
+    size_t evictChunkSectionsFromCache(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+
+    /**
      * @brief 获取存档格式信息
      * @return 格式信息
      */

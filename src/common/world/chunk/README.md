@@ -139,7 +139,7 @@ flowchart LR
 1. **忘记调用 processUpdates()** — 显式 ticket、玩家 source 和追踪系统的更新是批处理的
 2. **线程安全** — `SingleChunkLifecycleManager` 使用互斥锁；`ChunkData` 和 `ChunkPrimer` 不是线程安全的
 3. **区块段懒创建** — 设置空气方块不会创建区块段；写入非空气方块才会创建
-4. **光照初始化** — 天空光照默认 15（全亮），方块光照默认 0（无光）
+4. **光照初始化是惰性的** — 天空光照默认 15（全亮），方块光照默认 0（无光），两者都**不预分配**底层 2048 字节缓冲：**数组为空即代表默认值**（`getSkyLight` 对空数组返回 15、`getBlockLight` 返回 0），只有真正写入非默认值时才按需分配（`NibbleArray::set` 与可变 `data()` 都会 `ensureAllocated`）。空数组与「全 15」在格式上等价（`ChunkSection::serialize` 对空天空光写 0xFF），`SectionCodec` 也直接按 `isEmpty()` 判断「是默认值、不落盘」。改动此处语义时必须同时核对这两处
 5. **level 语义** — 级别越小优先级越高；级别 ≤ 33 的区块应该被加载
 6. **ChunkStatus 比较** — 使用 `isAtLeast()` 和 `isBefore()`，不要直接比较 ordinal
 7. **高度图内部存储** — `Heightmap` 内部存储 `y + 1`，不是实际方块 Y。`getTopBlockY` 返回方块本身 Y（内部值 -1），但**空列回退为 `MIN_BUILD_HEIGHT`**（与"minY 处有方块"无法区分）；需精确识别空列的调用方（如 `HeightmapPlacement`）改用 `getHeightmapFirstAvailable` 拿原始值（`y+1` 或 `NO_BLOCK_SENTINEL`），对齐 MC `Heightmap.getFirstAvailable`

@@ -868,8 +868,10 @@ TEST_F(ItemEntityNbtTest, AgeAndPickupDelayRoundTrip)
     nbt::tags::compound_tag tag;
     entity.addAdditionalSaveData(tag);
 
-    // 验证 Age 和 PickupDelay 也被正确序列化
-    auto ageVal = tryGetInt(tag, AGE);
+    // 验证 Age 和 PickupDelay 也被正确序列化。
+    // Age 必须与原版一致按 Short 存储：写成 Int 会让 Java 格式存档里的 Age 因类型不匹配
+    // 被读取路径丢弃为 0，导致导入的掉落物每次加载都重新获得完整寿命、永不消失。
+    auto ageVal = tryGetShort(tag, AGE);
     EXPECT_TRUE(ageVal.has_value());
 
     auto pickupDelayVal = tryGetInt(tag, PICKUP_DELAY);
@@ -882,6 +884,15 @@ TEST_F(ItemEntityNbtTest, AgeAndPickupDelayRoundTrip)
     EXPECT_TRUE(result.success());
     EXPECT_EQ(loaded.getHealth(), 4);
     EXPECT_EQ(loaded.getPickupDelay(), 20);
+
+    // 旧存档兼容：本项目早期版本把 Age 写成 Int，读取路径须仍能取回该值，
+    // 否则旧存档中的掉落物年龄会被整体重置。
+    nbt::tags::compound_tag legacyTag;
+    entity.addAdditionalSaveData(legacyTag);
+    legacyTag.put(AGE, static_cast<i32>(1234));
+    ItemEntity fromLegacy(EntityInstanceId(3), ItemStack(*stone, 1), 0.0f, 0.0f, 0.0f, mc::test::testEcsRegistry());
+    ASSERT_TRUE(fromLegacy.readAdditionalSaveData(legacyTag).success());
+    EXPECT_EQ(fromLegacy.getAge(), 1234);
 }
 
 TEST_F(ItemEntityNbtTest, OwnerAndThrowerRoundTrip)

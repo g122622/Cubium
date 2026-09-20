@@ -161,6 +161,20 @@ public:
     std::shared_ptr<SectionData> evict(const SectionKey& key);
 
     /**
+     * @brief 驱逐指定区块列的全部缓存段（只动缓存，不触碰数据库）
+     *
+     * 与 SectionManager::deleteChunkSections 的区别：后者会连同数据库中的段一起删除，用于
+     * 区块重生成等场景；本方法只从内存缓存中移除。区块卸载时若不驱逐，缓存里会积压大量
+     * 已卸载区块的副本（每次卸载保存都会把整列段回填进缓存），使常驻量正比于「历史上加载
+     * 过的区块」而非「当前已加载的区块」。
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @return 实际驱逐的段数
+     */
+    size_t evictChunk(i32 chunkX, i32 chunkZ);
+
+    /**
      * @brief 清空缓存
      *
      * 移除所有缓存的Section。

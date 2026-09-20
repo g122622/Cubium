@@ -1349,6 +1349,16 @@ void SingleLevelStorageManager::clearCache(DimensionId dimension)
     }
 }
 
+size_t SingleLevelStorageManager::evictChunkSectionsFromCache(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+{
+    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
+    auto it = m_sectionManagers.find(dimension);
+    if (it == m_sectionManagers.end()) {
+        return 0;
+    }
+    return it->second->evictChunkFromCache(x, z);
+}
+
 void SingleLevelStorageManager::clearAllCaches()
 {
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);

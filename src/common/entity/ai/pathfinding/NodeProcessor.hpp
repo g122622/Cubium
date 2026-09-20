@@ -52,7 +52,6 @@ public:
         , m_entityWidth(other.m_entityWidth)
         , m_entityHeight(other.m_entityHeight)
         , m_nodeCache(std::move(other.m_nodeCache))
-        , m_openNodes(std::move(other.m_openNodes))
     {
         other.m_region = nullptr;
     }
@@ -64,7 +63,6 @@ public:
             m_entityWidth = other.m_entityWidth;
             m_entityHeight = other.m_entityHeight;
             m_nodeCache = std::move(other.m_nodeCache);
-            m_openNodes = std::move(other.m_openNodes);
             other.m_region = nullptr;
         }
         return *this;
@@ -150,11 +148,7 @@ public:
     /**
      * @brief 清除缓存
      */
-    virtual void clear()
-    {
-        m_nodeCache.clear();
-        m_openNodes.clear();
-    }
+    virtual void clear() { m_nodeCache.clear(); }
 
     /**
      * @brief 获取起始节点
@@ -174,17 +168,11 @@ public:
 
     // ========== 工具方法 ==========
 
-    /**
-     * @brief 获取开放节点列表（用于调试）
-     */
-    [[nodiscard]] const std::vector<PathPoint*>& getOpenNodes() const { return m_openNodes; }
-
 protected:
     const Region* m_region = nullptr;
     f32 m_entityWidth = 0.6f;
     f32 m_entityHeight = 1.8f;
     std::unordered_map<u64, std::unique_ptr<PathPoint>> m_nodeCache;
-    std::vector<PathPoint*> m_openNodes;
 
     /**
      * @brief 创建新节点

@@ -50,9 +50,9 @@ namespace mc::world::chunk {
 
 ChunkSection::ChunkSection()
     : m_memTrack(this)
-    , m_blockStates()                     // PalettedContainer 默认 SingleValue(0=空气)
-    , m_skyLight(NibbleArray::filled(15)) // 默认天空光照全亮
-    , m_blockLight()                      // 默认方块光照无光（空数组，返回0）
+    , m_blockStates() // PalettedContainer 默认 SingleValue(0=空气)
+    , m_skyLight()    // 默认天空光照全亮：空数组语义即 15（见 getSkyLight），不预分配 2048 字节
+    , m_blockLight()  // 默认方块光照无光：空数组语义即 0（见 getBlockLight）
 {}
 
 ChunkSection::ChunkSection(ChunkSection&& other) noexcept
@@ -196,6 +196,12 @@ u8 ChunkSection::getSkyLight(i32 x, i32 y, i32 z) const
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return 15;
     }
+    // 空数组语义为全亮：天空光的默认值是 15（日光），故数组为空时直接返回 15。
+    // 构造时不再预分配整个 2048 字节缓冲，只有真正写入非默认天空光时才会分配
+    // （NibbleArray::set / 可变 data() 均按需 ensureAllocated）。
+    if (m_skyLight.isEmpty()) {
+        return 15;
+    }
     return m_skyLight.get(x, y, z);
 }
 
@@ -203,6 +209,13 @@ void ChunkSection::setSkyLight(i32 x, i32 y, i32 z, u8 light)
 {
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
         return;
+    }
+    // 首次写入时按「全亮 15」而非「全零」materialize：天空光的默认值是 15，若放任
+    // NibbleArray::set 的按需分配以 0 填充，本段其余尚未写入的坐标会从默认的 15 骤变为 0。
+    // 整体覆盖写不需要这一步——SectionCodec、ChunkSection::deserialize、JavaChunkReader
+    // 都会写满整个 2048 字节，零填充会被完全覆盖。
+    if (m_skyLight.isEmpty()) {
+        m_skyLight = NibbleArray::filled(15);
     }
     m_skyLight.set(x, y, z, std::min(light, static_cast<u8>(15)));
 }

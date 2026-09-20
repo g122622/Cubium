@@ -149,6 +149,30 @@ TEST_F(ChunkTest, ChunkSection_LightAccess)
     // 边界检查 - 天空光照返回15，方块光照返回0
     EXPECT_EQ(section.getSkyLight(-1, 0, 0), 15);
     EXPECT_EQ(section.getBlockLight(-1, 0, 0), 0);
+
+    // 惰性默认值：全新区块段在**未写入任何光照**时，边界内也必须返回默认值
+    // （天空光 15、方块光 0），且此时底层缓冲尚未分配。
+    // 这与「构造时预分配整个 2048 字节全亮缓冲」的旧实现语义等价，但不再预占内存。
+    const ChunkSection fresh;
+    EXPECT_EQ(fresh.getSkyLight(0, 0, 0), 15);
+    EXPECT_EQ(fresh.getSkyLight(15, 15, 15), 15);
+    EXPECT_EQ(fresh.getBlockLight(8, 8, 8), 0);
+    EXPECT_FALSE(fresh.skyLightNibble().isValid());
+    EXPECT_FALSE(fresh.blockLightNibble().isValid());
+
+    // 首次逐点写入后按需分配，且**不得改变**其余坐标的默认天空光：
+    // 必须按「全亮 15」而非「全零」materialize，否则本段其余坐标会从 15 骤变为 0。
+    ChunkSection lazilyAllocated;
+    lazilyAllocated.setSkyLight(1, 2, 3, 7);
+    EXPECT_TRUE(lazilyAllocated.skyLightNibble().isValid());
+    EXPECT_EQ(lazilyAllocated.getSkyLight(1, 2, 3), 7);
+    EXPECT_EQ(lazilyAllocated.getSkyLight(4, 5, 6), 15);
+
+    // 方块光的默认值是 0，按需分配后其余坐标仍为 0
+    lazilyAllocated.setBlockLight(1, 2, 3, 9);
+    EXPECT_TRUE(lazilyAllocated.blockLightNibble().isValid());
+    EXPECT_EQ(lazilyAllocated.getBlockLight(1, 2, 3), 9);
+    EXPECT_EQ(lazilyAllocated.getBlockLight(4, 5, 6), 0);
 }
 
 TEST_F(ChunkTest, ChunkSection_Serialization)

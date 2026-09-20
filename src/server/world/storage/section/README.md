@@ -62,3 +62,7 @@ flowchart LR
 4. **批量读取返回顺序必须稳定**：上层 `loadChunk()` 依赖返回顺序与 `sectionY` 顺序一致，不能在实现里打乱顺序。
 
 5. **脏数据写回仍然走 `WriteBatch`**：`MultiGet` 只优化读取；写路径的批量能力仍然是 `rocksdb::WriteBatch`。
+
+6. **缓存淘汰只由容量触发，与区块生命周期无关**：`SectionCache` 是纯 LRU，只在容量满时淘汰，**不会**因区块卸载而失效。而卸载前的异步保存会把整列 24 个段回填进缓存（`SectionManager::saveSectionSync` 末尾的 `m_cache.put`），因此卸载路径必须显式调用 `SingleLevelStorageManager::evictChunkSectionsFromCache()`（接入点在 `ServerChunkManager::_finalizeUnloadAfterSave`）。漏掉它，缓存常驻量会正比于「历史上加载过的区块」而非「当前已加载的区块」。
+
+7. **`deleteChunkSections` 会删数据库，不可用于卸载**：名字容易误解——它逐个调用 `deleteSection`，是**真删库**（用于区块重生成等场景）。卸载需要的是「只驱逐缓存」，对应 `SectionManager::evictChunkFromCache()` / `SectionCache::evictChunk()`，二者不触碰数据库。

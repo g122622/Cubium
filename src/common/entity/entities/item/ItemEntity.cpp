@@ -619,8 +619,9 @@ void ItemEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // Health (i16) - 生命值（默认 5）
     tag.put(nbt_keys::HEALTH, static_cast<i16>(m_health));
 
-    // Age (i32) - 实体年龄
-    tag.put(nbt_keys::AGE, m_age);
+    // Age (i16) - 实体年龄。原版以 Short 存储：写入 i32 会使 Java 存档的 Age 在读取时
+    // 因类型不匹配而被丢弃为 0，导致导入的掉落物每次都重新获得完整寿命、永不消失。
+    tag.put(nbt_keys::AGE, static_cast<i16>(m_age));
 
     // PickupDelay (i32) - 拾取延迟
     tag.put(nbt_keys::PICKUP_DELAY, m_pickupDelay);
@@ -657,9 +658,12 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
         m_health = static_cast<i32>(*val);
     }
 
-    // Age (i32) - 实体年龄
-    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::AGE)) {
-        m_age = *val;
+    // Age (i16) - 实体年龄。原版以 Short 存储，故必须按 Short 读取；同时兼容本项目
+    // 早期以 Int 写出的存档，避免旧存档中的掉落物年龄被重置。
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::AGE)) {
+        m_age = static_cast<i32>(*val);
+    } else if (auto legacy = nbt_helper::tryGetInt(tag, nbt_keys::AGE)) {
+        m_age = *legacy;
     }
 
     // PickupDelay (i32) - 拾取延迟

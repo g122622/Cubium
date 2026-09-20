@@ -51,8 +51,13 @@ namespace mc::application {
  */
 class LogManager {
 public:
-    /// 异步日志队列容量（条数）。8192 条在日志风暴下能吸收瞬时尖峰，溢出由监控线程告警兜底。
-    static constexpr size_t kQueueSize = 8192;
+    /// 异步日志队列容量（条数）。
+    ///
+    /// 该容量直接决定常驻内存：队列在初始化时一次性分配（槽位 = 容量 + 1，每条 async_msg 约
+    /// 408 字节），2048 条约 0.84MB，8192 条约 3.34MB。策略为 overrun_oldest（丢旧保新、主线程
+    /// 永不阻塞），故容量只影响「日志风暴时能吸收多长的尖峰」，不影响正确性；溢出由监控线程
+    /// 经 stderr 告警兜底。取 2048 在内存与尖峰吸收之间折中。
+    static constexpr size_t kQueueSize = 2048;
 
     /// 后台消费线程数。spdlog 异步模型单线程消费即可，多线程反而增加锁竞争。
     static constexpr size_t kWorkerCount = 1;

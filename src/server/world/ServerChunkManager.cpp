@@ -1297,6 +1297,14 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_postProcessedChunks.erase(key);
     }
+
+    // 驱逐本区块列在存储层段缓存中的副本。此处的保存（异步落盘）会把整列的段回填进
+    // SectionCache，若不驱逐，缓存将积压所有已卸载区块的副本，常驻量正比于「历史上加载过
+    // 的区块」而非「当前已加载的区块」。放在确定移除之后（重试路径在上方已提前 return）。
+    if (m_world && m_world->isStorageOpen()) {
+        MC_UNUSED(m_world->storage().evictChunkSectionsFromCache(x, z, dimension));
+    }
+
     {
         std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
         auto it = m_pendingLoadTasks.find(key);

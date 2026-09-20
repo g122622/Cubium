@@ -25,6 +25,7 @@
 
 #include "ConsistencyMode.hpp"
 #include <cstddef>
+#include <memory>
 #include <vector>
 #include <rocksdb/cache.h>
 #include <rocksdb/compression_type.h>
@@ -34,6 +35,7 @@
 #include <rocksdb/slice.h>
 #include <rocksdb/statistics.h>
 #include <rocksdb/table.h>
+#include <rocksdb/write_buffer_manager.h>
 
 namespace mc::world::storage {
 
@@ -51,31 +53,37 @@ struct RocksDBConfig {
     ConsistencyMode consistencyMode = ConsistencyMode::Strong;
 
     // ========================================================================
-    // 缓存配置
-    // ========================================================================
-
-    /// 块缓存大小（字节）
-    /// 默认256MB
-    size_t blockCacheSize = 256 * 1024 * 1024;
-
-    /// 行缓存大小（字节）
-    /// 默认64MB
-    size_t rowCacheSize = 64 * 1024 * 1024;
-
-    // ========================================================================
     // MemTable配置
     // ========================================================================
+    //
+    // 块缓存（BlockBasedTableOptions::block_cache）刻意不在此配置：RocksDB 在未显式设置时
+    // 会自行创建一个 32MB 的共享 LRU 缓存，本项目依赖该默认值。本结构体此前声明过
+    // blockCacheSize(256MB)/rowCacheSize(64MB) 两个字段，但从未被 createDBOptions 或
+    // createColumnFamilyOptions 使用，属误导性死配置，已删除。
+    // 若日后要显式调块缓存，必须让 16 个列族共享同一个 Cache 实例，否则会退化成 16 份独立缓存。
 
-    /// MemTable大小（字节）
-    /// 默认64MB
-    size_t writeBufferSize = 64 * 1024 * 1024;
+    /// 单个MemTable大小（字节）
+    /// 8MB：本项目世界库的写入量很小，原值 64MB 明显偏大。该值与 maxWriteBufferNumber、
+    /// 列族数三者相乘决定内存上界，故按小值设置。
+    size_t writeBufferSize = 8 * 1024 * 1024;
 
-    /// 最大MemTable数量
-    /// 默认4个（1个活跃+3个不可变）
-    int maxWriteBufferNumber = 4;
+    /// 最大MemTable数量（1 个活跃 + maxWriteBufferNumber-1 个不可变）
+    int maxWriteBufferNumber = 2;
 
     /// 合并前最小不可变MemTable数量
     int minWriteBufferNumberToMerge = 2;
+
+    /// 全部列族的 MemTable 内存上限（字节）
+    ///
+    /// 经 WriteBufferManager 施加跨列族的全局约束。没有它时，理论上界为
+    /// writeBufferSize × maxWriteBufferNumber × 列族数，即便按上面调小的值也有约 256MB/库。
+    size_t memtableMemoryLimit = 64 * 1024 * 1024;
+
+    /// 允许打开的文件数上限
+    ///
+    /// RocksDB 默认 -1（不限制），其官方注释即提示该默认会显著占用内存。改为有界值以约束
+    /// TableCache / BlobFileCache 的规模，代价是冷读需重新打开文件。
+    int maxOpenFiles = 512;
 
     // ========================================================================
     // LSM树配置
@@ -136,14 +144,8 @@ struct RocksDBConfig {
     // 后台线程配置
     // ========================================================================
 
-    /// 最大后台任务数
+    /// 最大后台任务数（RocksDB 据此自行切分压缩/刷盘线程，无需分别配置）
     int maxBackgroundJobs = 4;
-
-    /// 最大后台压缩线程数
-    int maxBackgroundCompactions = 2;
-
-    /// 最大后台刷盘线程数
-    int maxBackgroundFlushes = 2;
 
     // ========================================================================
     // 统计与监控
@@ -181,6 +183,11 @@ struct RocksDBConfig {
         options.create_if_missing = true;
         options.create_missing_column_families = true;
         options.max_background_jobs = maxBackgroundJobs;
+        options.max_open_files = maxOpenFiles;
+
+        // 全部列族共享的 MemTable 内存上限：把「16 个列族 × 每族多个 MemTable」的最坏情况
+        // 压到明确界内。第二个参数传 nullptr 表示不为 MemTable 指定计费用的块缓存。
+        options.write_buffer_manager = std::make_shared<rocksdb::WriteBufferManager>(memtableMemoryLimit, nullptr);
 
         // WAL选项
         options.recycle_log_file_num = recycleLogFileNum;
