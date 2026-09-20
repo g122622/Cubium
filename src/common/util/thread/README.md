@@ -148,3 +148,12 @@ pool.submit(task, [self](bool success, ITask* task) {
 ### 6. unique_ptr 不能用于优先队列
 
 任务使用 `shared_ptr<ITask>` 而非 `unique_ptr`，因为 `std::priority_queue` 要求元素可复制。
+
+### 7. `waitForCompletion()` 的完成语义包含任务回调
+
+`waitForCompletion()` 的完成谓词是 `m_outstandingTaskCount == 0`，该计数从 `submit()` 入队起算，到**任务回调也执行完毕**（或任务被取消/裁剪/关闭清空而丢弃）为止。因此它返回后：
+
+- 队列已空、无任务在执行，且**所有任务的回调都已跑完**；
+- 在回调中访问的对象可以安全析构（`ClientWorld::destroy()` 依赖这一点在析构前等待在途回调）。
+
+不要改回 `pendingTaskCount() == 0 && runningTaskCount() == 0`：后者有两个提前返回窗口——回调在 `m_runningTaskCount` 递减之后才执行；worker "出队"到"标记运行"之间队列已空且运行数为 0。历史上这两者会让 `EXPECT_EQ(completedCount, numTasks)` 偶发少 1，也会让"等待回调结束后再析构"的守护失效。

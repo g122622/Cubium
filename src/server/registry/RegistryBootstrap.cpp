@@ -72,10 +72,8 @@
 #include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureLoader.hpp"
 #include "server/world/gen/feature/FeatureTypeRegistry.hpp"
-#include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/feature/tree/ServerTreeGenerators.hpp"
 #include "server/world/gen/feature/vegetation/ServerBigMushroomGenerators.hpp"
-#include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "server/world/gen/noise/NoiseLoader.hpp"
 #include "server/world/gen/placement/PlacedFeatureLoader.hpp"
@@ -389,13 +387,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         }
     }
 
-    // 设置 JigsawAssembler 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）
-    {
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::JigsawTemplateManager");
-        world::gen::jigsaw::JigsawAssembler::getTemplateManager().setDataPackRepository(&m_dataPackList);
-        spdlog::info("Jigsaw TemplateManager configured with data pack list");
-    }
+    // 注意：JigsawAssembler 的 TemplateManager 数据包来源不在此处注入。
+    // 它必须在装配开始前绑定（见 MinecraftServer::initializeRegistries），否则上面的模板池加载
+    // 会在空指针/悬垂指针下读取模板；解绑由 MinecraftServer 的宿主绑定令牌负责。
 
     // ============================================================================
     // 数据驱动世界生成管线

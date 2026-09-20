@@ -87,6 +87,9 @@ public:
      */
     void releaseScriptResources() override;
 
+    /** @brief 脚本测试函数：回调句柄绑当前引擎 runtime，释放后不可复用 */
+    [[nodiscard]] bool isScriptBacked() const override { return true; }
+
 private:
     mc::mod::bedrock::addon::IScriptBindingContext* m_bindingCtx;
     void* m_jsCallback;

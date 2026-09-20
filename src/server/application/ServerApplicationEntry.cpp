@@ -29,6 +29,7 @@
 #include <chrono>
 #include <csignal>
 #include <filesystem>
+#include <memory>
 #include <thread>
 
 // GameTest 集成测试框架——仅 minecraft-server exe 编译（client exe 不链接 mc_test）。
@@ -47,7 +48,6 @@
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
 #include "server/world/gen/feature/template/TemplateManager.hpp"
-#include "server/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
 
 namespace mc::server {
 
@@ -84,6 +84,15 @@ DEFINE_string(gametest_world,
 
 std::atomic<bool> ServerApplicationEntry::s_shouldExit{false};
 
+namespace {
+
+// GameTest 行为包结构源持有者：BehaviorPackStructureSource 内部是 BehaviorPackList 的非拥有引用，
+// 而该列表由服务端的脚本系统持有，故源实例必须随服务端重建（服务端重启后不能复用旧实例）。
+// 生命周期长于服务端，但解绑由服务端的宿主绑定令牌在关闭时完成，模板管理器不会残留悬垂指针。
+std::unique_ptr<mc::test::BehaviorPackStructureSource> _structureSource;
+
+} // namespace
+
 void ServerApplicationEntry::_signalHandler(int signal)
 {
     if (signal == SIGINT || signal == SIGTERM) {
@@ -119,12 +128,13 @@ void ServerApplicationEntry::_initializeServerGameTest(MinecraftServer& server)
 
     // 把已加载行为包列表接入 TemplateManager，使 GameTest 结构名能从 behavior_packs 加载 .mcstructure。
     // 须在 loadBehaviorPacks 之后、/gametest run 启动测试之前。source 持 BehaviorPackList 引用，
-    // 用 static 保活（与 server 生命周期一致）。
+    // 故每次初始化都重建（不能跨服务端复用同一实例，否则第二次启动会引用已释放的行为包列表）；
+    // 生命周期由文件级持有者保活，解绑由服务端的宿主绑定令牌在关闭时统一完成。
     if (auto* sm = server.scriptManager()) {
         auto* packList = sm->scriptManager().packList();
         if (packList != nullptr && !packList->empty()) {
-            static mc::test::BehaviorPackStructureSource s_structureSource(*packList);
-            mc::world::gen::jigsaw::JigsawAssembler::getTemplateManager().setStructurePackSource(&s_structureSource);
+            _structureSource = std::make_unique<mc::test::BehaviorPackStructureSource>(*packList);
+            server.bindTemplateManagerStructurePackSource(*_structureSource);
             spdlog::info("[GameTest] Structure pack source injected ({} behavior pack(s))", packList->size());
         }
     }
@@ -144,9 +154,10 @@ void ServerApplicationEntry::_cleanupServerGameTest()
     // 1. forceStop 清 GameTestTicker 的裸指针引用；
     // 2. forceClearAllInstances 析构所有在线实例（unique_ptr），释放其 m_runResult 持有的 Promise 句柄
     //    与 ScriptGameTestFunction 持有的 IScriptBindingContext*（仅 releaseValue，不再访问）。
-    // 3. releaseAllScriptResources 释放 GameTestRegistry 单例中 ScriptGameTestFunction 持有的 JS 回调句柄
-    //    （registry 跨用例/进程退出常驻，不在 forceClearAllInstances 范围；不释放则引擎销毁后 registry
-    //    析构 function 时对已死 JSContext 调 JS_FreeValue 崩溃）。
+    // 3. releaseAllScriptResources 释放 GameTestRegistry 单例中 ScriptGameTestFunction 持有的 JS 回调句柄，
+    //    并移除这些条目（registry 跨用例/进程退出常驻，不在 forceClearAllInstances 范围；不释放则引擎销毁后
+    //    registry 析构 function 时对已死 JSContext 调 JS_FreeValue 崩溃；不移除则新引擎下的同名注册会被
+    //    去重拒绝，留下无 JS 回调的失效条目）。
     // 顺序保证：步骤 1-3 时脚本上下文仍有效，releaseValue 安全。
     mc::test::GameTestTicker::instance().forceStop();
     mc::test::GameTestCommand::forceClearAllInstances();

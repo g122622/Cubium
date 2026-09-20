@@ -58,11 +58,6 @@ namespace jigsaw {
 // 静态模板管理器实例定义（从 JigsawManager 迁移）
 feature::template_::TemplateManager JigsawAssembler::s_templateManager;
 
-void JigsawAssembler::setResourcePack(const resource::IResourcePack* pack)
-{
-    s_templateManager.setResourcePack(pack);
-}
-
 feature::template_::TemplateManager& JigsawAssembler::getTemplateManager()
 {
     return s_templateManager;
@@ -70,6 +65,8 @@ feature::template_::TemplateManager& JigsawAssembler::getTemplateManager()
 
 void JigsawAssembler::clearCache()
 {
+    // TODO: 目前无调用方（数据包重载尚未实现）；接入资源/数据包热重载时必须调用本方法，
+    // 否则重载后仍会命中旧数据包视图下加载的模板缓存。
     s_templateManager.clear();
 }
 

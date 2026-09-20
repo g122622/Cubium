@@ -221,27 +221,36 @@ TEST_F(TickPrecipitationTest, MaxSnowAccumulationHeightZeroPreventsSnow)
 
     // 设置最大雪层积累高度为 0
     m_world->getGameRules().setInt(GameRuleKeys::MAX_SNOW_ACCUMULATION_HEIGHT, 0);
+    // 先确认规则确实写入：setInt 对未注册的规则名会静默跳过，规则不生效会让后面的断言失去意义
+    ASSERT_EQ(m_world->getGameRules().getInt(GameRuleKeys::MAX_SNOW_ACCUMULATION_HEIGHT), 0);
 
-    // 即使触发降水 tick，也不应放置雪（因为 maxSnowAccumulation = 0）
-    m_world->tickPrecipitation(100);
-
-    // 不应有雪（但冰是允许的）
-    bool foundSnow = false;
-    ChunkData* chunk = m_world->getChunk(0, 0);
-    if (chunk != nullptr) {
-        for (i32 x = 0; x < 16 && !foundSnow; ++x) {
-            for (i32 z = 0; z < 16 && !foundSnow; ++z) {
-                for (i32 y = world::SEA_LEVEL - 5; y <= world::SEA_LEVEL + 5; ++y) {
+    // 统计雪量（雪方块数 + 雪层数），用于比较降水前后。
+    // 注意：不能直接断言"扫描范围内不存在雪"——区块 (0,0) 可能因生物群系与地形自然生成雪，
+    // 那种断言依赖世界生成结果，与"降水是否会落雪"无关，且会随进程内其它用例改变世界生成
+    // 输入（注册表/随机源）而误报。这里断言的是真正的不变量：降水不增加任何雪。
+    auto snowAmount = [this]() {
+        i32 amount = 0;
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                for (i32 y = SEA_LEVEL - 5; y <= SEA_LEVEL + 5; ++y) {
                     const BlockState* state = m_world->getBlockState(x, y, z);
-                    if (state != nullptr && state->is(VanillaBlocks::SNOW)) {
-                        foundSnow = true;
-                        break;
+                    if (state == nullptr || !state->is(VanillaBlocks::SNOW)) {
+                        continue;
                     }
+                    ++amount; // 雪方块本身
+                    amount += state->get(blocks::SnowBlock::LAYERS());
                 }
             }
         }
-    }
-    EXPECT_FALSE(foundSnow);
+        return amount;
+    };
+
+    const i32 snowBefore = snowAmount();
+
+    // maxSnowAccumulation = 0 时，即使触发降水 tick 也不应放置或加厚雪（冰是允许的）
+    m_world->tickPrecipitation(100);
+
+    EXPECT_EQ(snowAmount(), snowBefore) << "maxSnowAccumulationHeight == 0 时降水不应产生雪";
 }
 
 TEST_F(TickPrecipitationTest, MaxSnowAccumulationHeightLimitsSnowLayers)

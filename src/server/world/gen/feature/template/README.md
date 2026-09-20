@@ -10,8 +10,10 @@ template/
 ├── Template.cpp                      # 模板类实现（含所有处理器实现）
 ├── TemplateLoader.hpp                # NBT 模板加载器，从资源包加载 .nbt 文件
 ├── TemplateLoader.cpp                # 模板加载实现
-├── TemplateManager.hpp               # 模板管理器（缓存、资源包集成）
+├── TemplateManager.hpp               # 模板管理器（模板缓存 + 来源注入，来源注入接口私有）
 ├── TemplateManager.cpp               # 模板管理实现
+├── TemplateManagerHostBinding.hpp    # 模板管理器宿主资源绑定令牌（RAII 绑/解绑，防悬垂指针）
+├── TemplateManagerHostBinding.cpp    # 绑定令牌实现
 ├── RuleTest.hpp                      # 规则测试类（用于 RuleStructureProcessor）
 ├── RuleTest.cpp                      # 规则测试实现
 ├── CappedStructureProcessor.hpp  # 限制次数处理器（limit 支持 IntProvider 随机范围）
@@ -69,7 +71,7 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
 
 **关键依赖链**：
 - `TemplateLoader` 解析 NBT 文件创建 `Template` 对象
-- `TemplateManager` 提供模板缓存和资源包集成
+- `TemplateManager` 提供模板缓存；模板来源（数据包仓库 / 结构包资源源）经 `TemplateManagerHostBinding` 注入
 - `Template::place()` 遍历方块并调用 `StructureProcessor` 链处理
 - `RuleStructureProcessor` 使用 `RuleTest` 进行条件匹配
 - `BlockAgeProcessor` 使用 `BlockTags::STAIRS/SLABS/WALLS` 进行标签化方块匹配，使用 `withPropertiesOf()` 保留原方块属性
@@ -191,3 +193,13 @@ tileEntity->loadFromNBT(*processedBlock.nbt);
 - `LootableContainerBlockEntity::loadFromNBT` 负责读取 `LootTable`/`LootTableSeed` 并触发延迟填充机制。
 
 **容器物品序列化**：`LootableContainerBlockEntity` 子类（`ChestEntity`/`BarrelEntity`/`ShulkerBoxEntity`/`DispenserBlockEntity`）已重写 `loadFromNBT`/`saveToNBT`，通过基类 protected 辅助方法 `saveItemsToNBT`/`loadItemsFromNBT` 序列化容器物品列表（`Items` NBT 键）。`LootTable`/`LootTableSeed` 与 `Items` 互斥：模板 NBT 中含 `LootTable` 时仅处理战利品表引用，否则加载/保存实际物品。结构模板放置预填充物品的容器（无战利品表）时物品得以正确保留。
+
+### 14. TemplateManager 是进程级单例，模板来源必须经绑定令牌注入
+
+`JigsawAssembler::getTemplateManager()` 的实例跨服务端常驻，而它持有的数据包仓库、结构包资源源都是**宿主对象的非拥有指针**。
+
+- **必须**经 `TemplateManagerHostBinding` 绑定（`TemplateManager` 的注入接口是 private + friend，绕过令牌无法编译）；宿主销毁时令牌自动解绑。
+- **必须**在加载模板**之前**完成绑定：装配期的模板池加载会立即构造 `SingleJigsawPiece` 并读模板（`JigsawPiece::loadJointsFromTemplate`），绑定过晚会得到空连接点——结构只放起始块、不再扩展，且无任何报错。
+- 结构源先于宿主析构时（如 `GameTestServer` 的派生类成员），**必须**显式解绑。
+- 漏解绑的症状：下次读到模板时 SIGSEGV（`TemplateManager::_loadTemplate`），或 `std::system_error("mutex lock failed: Invalid argument")`——对象已析构但其内存尚未被复用，虚函数调用仍能派发进去，随后死在成员的已析构锁上。
+

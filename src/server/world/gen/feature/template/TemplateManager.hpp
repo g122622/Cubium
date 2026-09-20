@@ -28,7 +28,6 @@
 #include "TemplateLoader.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include <cstddef>
 #include <memory>
@@ -47,40 +46,18 @@ namespace template_ {
  * @brief 模板管理器
  *
  * 管理结构模板的加载、缓存和访问。
- * 支持从资源包加载 .nbt 格式的结构模板文件。
- * 支持从 DataPackRepository 加载结构模板（优先级高于单个资源包）。
+ * 模板来源按优先级依次为：基岩版结构包资源源（GameTest 行为包 .mcstructure）
+ * → DataPackRepository（数据包内的 structure/<path>.nbt）→ 文件系统兜底目录。
+ *
+ * 【生命周期】进程内由 JigsawAssembler::s_templateManager 持有唯一实例（见
+ * JigsawAssembler::getTemplateManager），而来源指针指向宿主（服务端）持有的对象。
+ * 因此来源必须经 TemplateManagerHostBinding 绑定，宿主销毁时由令牌自动解绑，
+ * 否则单例会残留悬垂指针（表现为 SIGSEGV 或 std::system_error("mutex lock failed")）。
  */
 class TemplateManager {
 public:
     TemplateManager();
     ~TemplateManager();
-
-    /**
-     * @brief 设置资源包
-     * @param pack 资源包指针
-     */
-    void setResourcePack(const IResourcePack* pack);
-
-    /**
-     * @brief 设置数据包列表
-     *
-     * DataPackRepository 的优先级高于单个资源包。模板加载时会优先从 DataPackRepository 加载，
-     * 如果 DataPackRepository 中没有找到，则回退到单个资源包或文件系统。
-     *
-     * @param dataPackList 数据包列表指针
-     */
-    void setDataPackRepository(const resource::DataPackRepository* dataPackList);
-
-    /**
-     * @brief 设置基岩版结构包资源源
-     *
-     * 用于从基岩版行为包加载 .mcstructure 结构（GameTest 场景）。优先级最高，
-     * 高于 DataPackRepository / 单个资源包 / 文件系统（Java .nbt 路径）。
-     * 实现方经 IStructurePackSource 抽象解耦，TemplateManager 不直接依赖 BehaviorPack 类型。
-     *
-     * @param source 结构包资源源指针（非拥有，调用方保证生命周期）
-     */
-    void setStructurePackSource(const IStructurePackSource* source);
 
     /**
      * @brief 获取模板（如果不存在则尝试加载）
@@ -128,12 +105,47 @@ public:
         const std::string& name, i32 width, i32 height, i32 depth);
 
 private:
+    // 模板来源（数据包仓库 / 结构包资源源）全部是宿主对象的非拥有指针，
+    // 只允许经 TemplateManagerHostBinding 注入与解绑：令牌把"绑定—解绑"收敛为 RAII，
+    // 宿主析构即自动解绑，从结构上排除"宿主已销毁而单例仍持悬垂指针"的用法。
+    friend class TemplateManagerHostBinding;
+
     [[nodiscard]] std::unique_ptr<Template> _loadTemplate(const ResourceLocation& location);
+
+    /**
+     * @brief 绑定数据包仓库（模板 .nbt 的主来源）
+     *
+     * 绑定新仓库时会一并丢弃上一宿主遗留的模板缓存，因为模板内容取决于当前数据包集合。
+     */
+    void _bindDataPackRepository(const resource::DataPackRepository* dataPackList);
+
+    /**
+     * @brief 解绑数据包仓库
+     * @return 当前绑定确实来自 dataPackList 并已解绑时为 true
+     */
+    [[nodiscard]] bool _unbindDataPackRepository(const resource::DataPackRepository* dataPackList);
+
+    /**
+     * @brief 绑定基岩版结构包资源源
+     *
+     * 用于从基岩版行为包加载 .mcstructure 结构（GameTest 场景）。优先级最高，
+     * 高于 DataPackRepository 与文件系统（Java .nbt 路径）。
+     * 实现方经 IStructurePackSource 抽象解耦，TemplateManager 不直接依赖 BehaviorPack 类型。
+     */
+    void _bindStructurePackSource(const IStructurePackSource* structurePackSource);
+
+    /**
+     * @brief 解绑结构包资源源
+     * @return 当前绑定确实来自 structurePackSource 并已解绑时为 true
+     */
+    [[nodiscard]] bool _unbindStructurePackSource(const IStructurePackSource* structurePackSource);
+
+    /** @brief 清空模板缓存（丢弃上一宿主数据包视图下加载的全部模板） */
+    void _clearTemplateCache();
 
     std::unordered_map<ResourceLocation, std::unique_ptr<Template>> m_templates;
     mutable std::mutex m_mutex;
     std::unique_ptr<Template> m_emptyTemplate;
-    const IResourcePack* m_resourcePack = nullptr;
     const resource::DataPackRepository* m_dataPackList = nullptr;
     const IStructurePackSource* m_structurePackSource = nullptr;
 };

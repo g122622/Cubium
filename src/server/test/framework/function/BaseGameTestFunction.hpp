@@ -74,6 +74,19 @@ public:
      */
     virtual void releaseScriptResources() {}
 
+    /**
+     * @brief 是否为脚本（行为包 JS）测试函数。
+     *
+     * 脚本测试函数的回调句柄绑定在**当前**脚本引擎 runtime 上，一旦 `releaseScriptResources()`
+     * 释放句柄，该函数就永久不可再运行。`GameTestRegistry::releaseAllScriptResources()` 据此把这类
+     * 条目连同注册记录一起移除，否则同一进程内下一个 `GameTestServer` 重新加载行为包时，同名注册
+     * 会被 `registerTestMethod` 的"同名已存在"判据拒绝，留下的却是句柄已失效的旧条目
+     * （表现为 `Script test function has no JS callback`）。
+     *
+     * 原生测试函数不依赖 JS runtime，跨 GameTestServer 实例可复用，故返回 false 并保留注册。
+     */
+    [[nodiscard]] virtual bool isScriptBacked() const { return false; }
+
 protected:
     // 子类（NativeGameTestFunction/ScriptGameTestFunction）可改写元数据
     void setTestData(TestData data) { m_data = std::move(data); }

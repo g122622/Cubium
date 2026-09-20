@@ -349,17 +349,23 @@ private:
     [[nodiscard]] static std::vector<u64> computeAreaKeys(const InternalTask& task);
 
     /**
-     * @brief 若队列空且无运行任务则唤醒所有 waitForCompletion 等待方
+     * @brief 结清一次未完成任务计数
      *
-     * waitForCompletion 的谓词状态（m_taskQueue.size 在 m_queueMutex 下、m_runningTaskCount
-     * 是 atomic）变更与原实现 notify_all 均不持 m_completionMutex,worker 可能在等待方
-     * "谓词检查=false 与原子 release+block"之间完成状态变更并 notify,该 notify 落在无人
-     * 阻塞时丢失,等待方永久挂起(CTest 超时,-j16 抢占下偶发)。修:持 m_completionMutex
+     * 与 submit() 的递增严格成对：任务执行完（含回调）或被丢弃（取消/裁剪/关闭清空）时各调用一次。
+     * 计数失衡（尤其下溢）会让 waitForCompletion() 永久挂起，故下溢直接断言暴露。
+     */
+    void _releaseOutstandingTask();
+
+    /**
+     * @brief 若无未完成任务则唤醒所有 waitForCompletion 等待方
+     *
+     * 谓词状态（m_outstandingTaskCount）变更与原实现 notify_all 均不持 m_completionMutex,worker
+     * 可能在等待方"谓词检查=false 与原子 release+block"之间完成状态变更并 notify,该 notify 落在
+     * 无人阻塞时丢失,等待方永久挂起(CTest 超时,-j16 抢占下偶发)。修:持 m_completionMutex
      * 重检谓词再 notify,把 worker 的 notify 与等待方的"谓词检查+wait"串行化。
      *
-     * fast-path:m_runningTaskCount≠0 时必然非空闲,直接返回不抢锁(任务执行期间高频调用,
-     * 避免无谓锁竞争);仅 runningTaskCount==0 才抢锁做权威判定。pendingTaskCount() 内部
-     * 自带 m_queueMutex,与 m_completionMutex 锁序固定(completion→queue)无死锁。
+     * fast-path:m_outstandingTaskCount≠0 时必然非空闲,直接返回不抢锁(任务执行期间高频调用,
+     * 避免无谓锁竞争);仅计数归零才抢锁做权威判定。与 m_completionMutex 锁序固定。
      */
     void notifyIfIdle();
 
@@ -382,8 +388,16 @@ private:
     // 任务ID生成
     std::atomic<u64> m_nextTaskId{1};
 
-    // 正在执行的任务数量
+    // 正在执行的任务数量（统计用途；回调执行期间不计入）
     std::atomic<size_t> m_runningTaskCount{0};
+
+    // 未完成任务数量：自 submit() 入队起算，到"任务回调执行完毕"或"任务被丢弃
+    // （取消 / 裁剪 / 关闭清空队列）"为止。waitForCompletion() 以此为完成谓词。
+    //
+    // 不能用 pendingTaskCount()==0 && runningTaskCount()==0 做谓词，存在两个提前返回窗口：
+    //   1) m_runningTaskCount 在回调**之前**递减（回调可能尚未执行完）；
+    //   2) worker "出队"与"标记运行"之间，队列已空且运行数为 0，但任务其实还没跑。
+    std::atomic<size_t> m_outstandingTaskCount{0};
 
     // 诊断：正在执行的任务信息（用于死锁定位）。
     // m_runningTaskInfo 在 m_runningTaskMutex 下读写，记录每个 worker 当前执行任务的描述与开始时间。

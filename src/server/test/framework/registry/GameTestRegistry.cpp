@@ -164,11 +164,27 @@ void GameTestRegistry::clearAllTestMethods()
 
 void GameTestRegistry::releaseAllScriptResources()
 {
-    // 遍历所有测试函数释放 JS 句柄。m_byName 与 m_byClass 指向同一批 shared_ptr，遍历其一即可。
-    // 须在脚本引擎销毁前调用；调用后 function 对象仍存活（仅 JS 句柄置空），析构安全。
+    // 先释放 JS 句柄，再把句柄已失效的脚本条目从注册表移除。
+    // 句柄必须"先释放后移除"：移除会让 shared_ptr 引用计数归零而在引擎仍存活时析构 function，
+    // 此时句柄已置空，析构不再对 JSContext 调 JS_FreeValue（否则就是本方法要规避的 use-after-free）。
+    std::vector<std::string> deadNames;
     for (const auto& [name, fn] : m_byName) {
-        if (fn != nullptr) {
-            fn->releaseScriptResources();
+        if (fn == nullptr || !fn->isScriptBacked()) {
+            continue;
+        }
+        fn->releaseScriptResources();
+        deadNames.push_back(name);
+    }
+
+    for (const auto& name : deadNames) {
+        auto it = m_byName.find(name);
+        if (it == m_byName.end()) {
+            continue;
+        }
+        const std::shared_ptr<BaseGameTestFunction>& dead = it->second;
+        m_byName.erase(it);
+        for (auto& [className, functions] : m_byClass) {
+            std::erase(functions, dead);
         }
     }
 }

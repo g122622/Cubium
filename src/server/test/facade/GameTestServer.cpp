@@ -34,7 +34,6 @@
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
 #include "server/world/gen/feature/template/TemplateManager.hpp"
-#include "server/world/gen/jigsaw/JigsawAssembler.hpp" // JigsawAssembler::getTemplateManager
 
 #include <spdlog/spdlog.h>
 
@@ -262,12 +261,12 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     // 把已加载的行为包列表接入 TemplateManager，使 GameTest 结构名（如 startertests:mediumglass）
     // 能从 behavior_packs/<包>/structures/<ns>/<path>.mcstructure 加载。须在 loadBehaviorPacks 之后
     // （packList 已扫描填充），且在 _selectAndBuildRunner 之前（runner 构造批次放置结构即取模板）。
+    // 注入经服务端宿主绑定令牌完成；m_structureSource 是本服务端成员，stop() 中先解绑再析构。
     if (auto* sm = scriptManager()) {
         auto* packList = sm->scriptManager().packList();
         if (packList != nullptr && !packList->empty()) {
             m_structureSource = std::make_unique<BehaviorPackStructureSource>(*packList);
-            mc::world::gen::jigsaw::JigsawAssembler::getTemplateManager().setStructurePackSource(
-                m_structureSource.get());
+            bindTemplateManagerStructurePackSource(*m_structureSource);
             spdlog::info("[GameTest] Structure pack source injected ({} behavior pack(s))", packList->size());
         }
     }
@@ -527,10 +526,12 @@ void GameTestServer::stop()
     GameTestTicker::instance().clear();
     GameTestTicker::instance().forceStop();
 
-    // 释放 GameTestRegistry 中脚本测试函数的 JS 回调句柄。registry 是进程级单例，跨 GameTestServer
-    // 实例常驻；ScriptGameTestFunction 持的 JS 句柄绑当前引擎 runtime。须在 stopCore（销毁引擎）前释放，
-    // 否则引擎销毁后 registry 析构 function 时对已死 JSContext 调 JS_FreeValue → use-after-free 崩溃
-    // （atexit 阶段，测试已结束但进程退出时报 ACCESS_VIOLATION）。function 对象本身保留（仅清句柄）。
+    // 释放 GameTestRegistry 中脚本测试函数的 JS 回调句柄，并移除这些条目。registry 是进程级单例，
+    // 跨 GameTestServer 实例常驻；ScriptGameTestFunction 持的 JS 句柄绑当前引擎 runtime。须在
+    // stopCore（销毁引擎）前释放，否则引擎销毁后 registry 析构 function 时对已死 JSContext 调
+    // JS_FreeValue → use-after-free 崩溃（atexit 阶段，测试已结束但进程退出时报 ACCESS_VIOLATION）。
+    // 同时移除条目：句柄随引擎一同失效，保留会让下一个 GameTestServer（新引擎）重新加载行为包时
+    // 同名注册被去重拒绝，运行到的却是"无 JS 回调"的旧条目。
     GameTestRegistry::instance().releaseAllScriptResources();
 
     // 移除 reporter
@@ -541,6 +542,12 @@ void GameTestServer::stop()
     m_runner.reset();
     m_junitReporter.reset();
     m_logReporter.reset();
+
+    // 解绑行为包结构源：m_structureSource 是派生类成员，会在基类成员（数据包仓库/脚本系统持有的
+    // 行为包列表）之前析构。TemplateManager 是进程级单例，若不解绑就会残留悬垂指针，
+    // 使本进程内后续的服务端启动或模板加载解引用已释放对象。
+    unbindTemplateManagerStructurePackSource();
+    m_structureSource.reset();
 
     // 落盘 + 关闭核心管理器（无玩家/网络，stopCore 会安全处理空连接）
     stopCore();

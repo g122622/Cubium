@@ -118,6 +118,7 @@
 #include "server/world/ServerWorld.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/GlobalStorageManager.hpp"
@@ -163,6 +164,7 @@ MinecraftServer::MinecraftServer(ServerSettings& settings)
     , m_computationWorkerPool(-1, "ServerCompute", 100)
     , m_ioWorkerPool(-1, "ServerIO", 200)
     , m_lootTableManager()
+    , m_templateManagerBinding(world::gen::jigsaw::JigsawAssembler::getTemplateManager())
 {}
 
 void MinecraftServer::setDifficulty(Difficulty difficulty)
@@ -1066,9 +1068,31 @@ void MinecraftServer::initializeChunkSyncManagers()
 void MinecraftServer::initializeRegistries(bool registerEntities)
 {
     // 注册表装配已下沉到 RegistryBootstrap 门面（server/registry/RegistryBootstrap.cpp）。
-    // 此处仅构造门面并转调，保持原调用顺序与行为逐字节一致。
+    // 此处仅构造门面并转调。
+
+    // 模板管理器是进程级单例，持有 m_dataPackList 的非拥有指针。绑定必须先于装配，
+    // 因为装配期的模板池加载会构造 SingleJigsawPiece 并立即读取模板（TemplatePoolLoader →
+    // SingleJigsawPiece 构造函数 → JigsawPiece::loadJointsFromTemplate）：绑定过晚会读到
+    // 上一服务端遗留的悬垂指针（首次运行则是空指针，导致所有拼图块连接点为空、结构无法扩展）。
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::initializeRegistries::BindTemplateManager");
+        m_templateManagerBinding.bindDataPackRepository(m_dataPackList);
+    }
+
     RegistryBootstrap bootstrap(m_dataPackList, m_lootTableManager, m_predicateManager, m_functionManager);
     bootstrap.initializeAll(registerEntities);
+}
+
+void MinecraftServer::bindTemplateManagerStructurePackSource(
+    world::gen::feature::template_::IStructurePackSource& source)
+{
+    m_templateManagerBinding.bindStructurePackSource(source);
+}
+
+void MinecraftServer::unbindTemplateManagerStructurePackSource()
+{
+    m_templateManagerBinding.unbindStructurePackSource();
 }
 
 void MinecraftServer::setupWorldCallbacks()
@@ -1437,7 +1461,19 @@ void MinecraftServer::shutdownManagers()
         }
     }
 
-    // 3. reset 交互与命令管理器
+    // 3. 解绑模板管理器的宿主资源来源
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::ReleaseTemplateManagerSources");
+
+        // 模板管理器是进程级单例，按非拥有指针持有本服务端的 DataPackRepository 与结构包资源源。
+        // 必须在服务端成员（数据包仓库、脚本系统持有的行为包列表）析构前解绑，否则单例中残留
+        // 悬垂指针：下一次服务端启动装配模板池时会解引用已释放对象（SIGSEGV 或
+        // std::system_error("mutex lock failed")）。
+        m_templateManagerBinding.releaseAll();
+    }
+
+    // 4. reset 交互与命令管理器
     {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::ResetInteractionManagers");
@@ -1449,12 +1485,12 @@ void MinecraftServer::shutdownManagers()
         m_commandStorage.reset();
     }
 
-    // 4. 维度 shutdown + 共享存储关闭 + reset 剩余核心管理器
+    // 5. 维度 shutdown + 共享存储关闭 + reset 剩余核心管理器
     {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::ResetCoreManagers");
 
-        // 4a. 维度管理器 shutdown（可能涉及卸载维度/世界资源）+ reset
+        // 5a. 维度管理器 shutdown（可能涉及卸载维度/世界资源）+ reset
         {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
                 "MinecraftServer::shutdownManagers::ResetCoreManagers::ShutdownDimensionManager");
@@ -1464,10 +1500,10 @@ void MinecraftServer::shutdownManagers()
             m_dimensionManager.reset();
         }
 
-        // 4b. 关闭共享存储（shutdownSharedStorage 内部已有独立 trace，会自动嵌套）
+        // 5b. 关闭共享存储（shutdownSharedStorage 内部已有独立 trace，会自动嵌套）
         shutdownSharedStorage();
 
-        // 4c. reset 剩余核心管理器（轻量 unique_ptr 释放）
+        // 5c. reset 剩余核心管理器（轻量 unique_ptr 释放）
         {
             MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization,
                 "MinecraftServer::shutdownManagers::ResetCoreManagers::ResetRemainingManagers");

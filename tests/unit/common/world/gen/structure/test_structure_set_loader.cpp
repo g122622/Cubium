@@ -40,6 +40,7 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 using namespace mc;
@@ -93,6 +94,9 @@ protected:
 /// preferred_biomes 标签已填充时，解析出的 ConcentricRings 持有对应 BiomeId 列表
 TEST_F(StructureSetLoaderTest, PreferredBiomesResolvedFromTag)
 {
+    // stronghold_biased_to 是**全局**生物群系标签：进程内若有其它用例（如集成服启动）触发过
+    // 数据包生物群系标签加载，标签内已含原版的 38 个生物群系。因此只能断言
+    // "解析结果 == 标签当前内容"，不能断言固定数量（否则用例将依赖执行顺序）。
     const std::vector<BiomeId> expected = {1, 2, 3, 42};
     auto* tag = fillStrongholdTag(expected);
     ASSERT_NE(tag, nullptr);
@@ -106,9 +110,13 @@ TEST_F(StructureSetLoaderTest, PreferredBiomesResolvedFromTag)
     const auto* rings = dynamic_cast<const ConcentricRingsStructurePlacement*>(&set->placement());
     ASSERT_NE(rings, nullptr);
     const auto& resolved = rings->preferredBiomes();
-    EXPECT_EQ(resolved.size(), expected.size());
+
+    // 解析结果应与标签内容逐元素一致（标签为 unordered_set，解析结果顺序不定，故按集合比较）
+    const std::unordered_set<BiomeId> resolvedSet(resolved.begin(), resolved.end());
+    EXPECT_EQ(resolved.size(), resolvedSet.size()) << "解析结果不应含重复 BiomeId";
+    EXPECT_EQ(resolvedSet, tag->getBiomeIds());
     for (BiomeId id : expected) {
-        EXPECT_NE(std::find(resolved.begin(), resolved.end(), id), resolved.end()) << "missing BiomeId " << id;
+        EXPECT_NE(resolvedSet.find(id), resolvedSet.end()) << "missing BiomeId " << id;
     }
 }
 

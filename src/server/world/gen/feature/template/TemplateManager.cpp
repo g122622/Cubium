@@ -26,6 +26,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateLoader.hpp"
@@ -52,19 +53,58 @@ TemplateManager::TemplateManager()
 
 TemplateManager::~TemplateManager() = default;
 
-void TemplateManager::setResourcePack(const IResourcePack* pack)
+void TemplateManager::_bindDataPackRepository(const resource::DataPackRepository* dataPackList)
 {
-    m_resourcePack = pack;
-}
+    MC_ASSERT_RELEASE(dataPackList != nullptr);
 
-void TemplateManager::setDataPackRepository(const resource::DataPackRepository* dataPackList)
-{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // 换宿主即换数据包视图：上一宿主缓存下来的模板不再可信，必须整体作废
+    m_templates.clear();
     m_dataPackList = dataPackList;
 }
 
-void TemplateManager::setStructurePackSource(const IStructurePackSource* source)
+bool TemplateManager::_unbindDataPackRepository(const resource::DataPackRepository* dataPackList)
 {
-    m_structurePackSource = source;
+    MC_ASSERT_RELEASE(dataPackList != nullptr);
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // 仅当当前绑定仍来自该宿主时才解绑：后接管的宿主不会被先退出的宿主清掉绑定
+    if (m_dataPackList != dataPackList) {
+        return false;
+    }
+
+    m_dataPackList = nullptr;
+    return true;
+}
+
+void TemplateManager::_bindStructurePackSource(const IStructurePackSource* structurePackSource)
+{
+    MC_ASSERT_RELEASE(structurePackSource != nullptr);
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_structurePackSource = structurePackSource;
+}
+
+bool TemplateManager::_unbindStructurePackSource(const IStructurePackSource* structurePackSource)
+{
+    MC_ASSERT_RELEASE(structurePackSource != nullptr);
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (m_structurePackSource != structurePackSource) {
+        return false;
+    }
+
+    m_structurePackSource = nullptr;
+    return true;
+}
+
+void TemplateManager::_clearTemplateCache()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_templates.clear();
 }
 
 const Template* TemplateManager::getTemplate(const ResourceLocation& location)
@@ -147,14 +187,6 @@ std::unique_ptr<Template> TemplateManager::_loadTemplate(const ResourceLocation&
             if (templ) {
                 return templ;
             }
-        }
-    }
-
-    // 尝试从单个资源包加载
-    if (m_resourcePack) {
-        auto templ = TemplateLoader::loadFromResourcePack(*m_resourcePack, location);
-        if (templ) {
-            return templ;
         }
     }
 

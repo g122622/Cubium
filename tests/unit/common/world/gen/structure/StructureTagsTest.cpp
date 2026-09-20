@@ -345,7 +345,7 @@ TEST_F(StructureTagsTest, RuinedPortalContainsSevenVariants)
     EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:ruined_portal_mountain")));
     EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:ruined_portal_nether")));
     EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:ruined_portal_ocean")));
-    EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:ruined_portal_standard")));
+    EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:ruined_portal")));
     EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:ruined_portal_swamp")));
 
     EXPECT_EQ(tag.getStructureIds().size(), 7u);
@@ -437,7 +437,7 @@ TEST_F(StructureTagsTest, OnSnowyVillageMapsContainsSnowyVillage)
 TEST_F(StructureTagsTest, OnJungleExplorerMapsContainsJungleTemple)
 {
     auto& tag = StructureTags::ON_JUNGLE_EXPLORER_MAPS();
-    EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:jungle_temple")));
+    EXPECT_TRUE(tag.contains(ResourceLocation("minecraft:jungle_pyramid")));
     EXPECT_EQ(tag.getStructureIds().size(), 1u);
 }
 

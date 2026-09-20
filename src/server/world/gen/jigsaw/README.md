@@ -168,9 +168,15 @@ if (!startPool || startPool->isEmpty()) {
 
 JSON 文件路径：`data/<namespace>/worldgen/template_pool/<path>.json`。支持 `single_pool_element`/`legacy_single_pool_element`/`list_pool_element`/`feature_pool_element`/`empty_pool_element` 五种元素类型，以及内联处理器列表（`processors` 字段为对象或数组时通过 `ProcessorListLoader::parseInlineProcessorList` 解析并注册为合成资源位置）。
 
-### 10. 资源包设置
+### 10. TemplateManager 的模板来源与生命周期
 
-组装前必须调用 `JigsawAssembler::setResourcePack(&resourcePack)` 设置模板管理器的资源包，否则无法加载模板文件。`JigsawAssembler::getTemplateManager()` 提供静态访问点。
+`JigsawAssembler::getTemplateManager()` 返回**进程级单例** `s_templateManager`。它加载模板的来源都是宿主的非拥有指针，只允许经 `MinecraftServer` 持有的 `TemplateManagerHostBinding` 令牌绑定与解绑：
+
+- **数据包仓库**：`MinecraftServer::initializeRegistries()` 在装配任何注册表**之前**绑定（`bindDataPackRepository`）。时机敏感——模板池加载（`StructureRegistry::loadTemplatePoolsFromDataPacks`）会构造 `SingleJigsawPiece`，其构造函数立即经 `JigsawPiece::loadJointsFromTemplate` 读取模板；绑定晚于它会读到空指针（首轮）或上一次服务端已释放的指针。
+- **结构包资源源**：GameTest 行为包 `.mcstructure` 来源，经 `bindTemplateManagerStructurePackSource` 注入（优先级最高）。
+- **解绑**：`MinecraftServer::shutdownManagers()` 调 `releaseAll()`；结构源若先于服务端析构（如 `GameTestServer::m_structureSource` 是派生类成员），必须先调 `unbindTemplateManagerStructurePackSource()`。
+
+**容易踩的坑**：忘记解绑会让单例残留悬垂指针，下一次服务端启动装配模板池时解引用已释放对象，表现为 SIGSEGV（`TemplateManager::_loadTemplate` 内）或 `std::system_error("mutex lock failed: Invalid argument")`。因此 `TemplateManager` 的注入接口已私有化，绕过令牌直接注入无法编译。
 
 ### 11. ProcessorListRegistry 初始化
 

@@ -311,3 +311,21 @@ BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `t
 - `BrushItem`（`item/items/special/BrushItem.cpp`）：`onUseTick()` 中调用 `brush()`，完成时调用 `LivingEntity::hurtAndBreak(stack, 1, ...)` 消耗耐久
 - `DesertPyramidStructure`（`world/gen/structure/structures/DesertPyramidStructure.cpp`）：在宝藏室地板放置可疑沙并调用 `setLootTable("minecraft:archaeology/desert_pyramid", seed)` 挂载考古战利品表
 
+## #19. 返回 `std::optional` 的 getter 不能直接绑定引用
+
+`EndGatewayEntity::getExitPortal()` 等 getter **按值返回** `std::optional<T>`。写成
+
+```cpp
+const BlockPos& exit = gateway->getExitPortal().value(); // ❌ 悬垂
+```
+
+是错误的：临时 optional 在**全表达式结束时**析构，`exit` 随即悬垂，后续读到的是栈上垃圾（数值巨大且每次进程不同）。clang 会对该写法给出 `-Wdangling-gsl` 警告。
+
+正确写法是把 `value()` 拷贝进局部变量（或先存下 optional）：
+
+```cpp
+const BlockPos exit = gateway->getExitPortal().value(); // ✅
+```
+
+同一陷阱适用于本目录所有返回 `std::optional` / `Result` 的 getter。
+

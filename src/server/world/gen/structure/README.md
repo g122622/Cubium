@@ -281,7 +281,7 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 | `on_treasure_maps` | 藏宝图 | `buried_treasure` |
 | `on_trial_chambers_maps` | 试炼密室地图 | `trial_chambers` |
 | `on_*_village_maps` | 村庄探险地图（5 种变体） | 对应村庄变体 |
-| `on_jungle_explorer_maps` | 丛林探险地图 | `jungle_temple` |
+| `on_jungle_explorer_maps` | 丛林探险地图 | `jungle_pyramid` |
 | `on_swamp_explorer_maps` | 沼泽探险地图 | `swamp_hut` |
 | `cats_spawn_in` / `cats_spawn_as_black` | 猫生成 | `swamp_hut` |
 | `village` | 村庄分组 | 5 个变体 |

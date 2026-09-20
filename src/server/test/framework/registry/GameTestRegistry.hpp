@@ -85,12 +85,19 @@ public:
     void clearAllTestMethods();
 
     /**
-     * @brief 释放所有测试函数的脚本资源（JS 句柄）。
+     * @brief 释放所有脚本测试函数的 JS 回调句柄，并移除其注册记录
      *
-     * 脚本引擎销毁前调用：遍历所有 `BaseGameTestFunction` 调 `releaseScriptResources()`，
-     * 释放 `ScriptGameTestFunction` 持有的 JS 回调句柄。不删除 function 对象（registry 仍持有，
-     * 供后续查询/跨用例），仅清 JS 句柄——避免引擎销毁后 registry 单例析构 function 时
-     * 对已死 JSContext 调 JS_FreeValue 崩溃。
+     * 脚本引擎销毁前调用：对每个 `isScriptBacked()` 为真的函数先调 `releaseScriptResources()`
+     * 释放 JS 回调句柄，再把该条目从 `m_byName` / `m_byClass` 中移除。
+     *
+     * 必须"先释放后移除"：移除使引用计数归零，function 对象随即析构；句柄已置空，析构不再对
+     * 已死/将死 runtime 的 JSContext 调 JS_FreeValue（否则即 use-after-free 崩溃）。
+     *
+     * 之所以要移除条目：句柄绑定在**当前**引擎 runtime 上，释放后该函数永久不可运行。若保留记录，
+     * 同一进程内下一个 `GameTestServer`（新引擎）重新加载行为包时同名注册会被 `registerTestMethod`
+     * 的同名判据拒绝，留下的仍是失效旧条目（表现为 `Script test function has no JS callback`）。
+     *
+     * 原生测试函数（不依赖 JS runtime）不受影响，保留在注册表中跨实例复用。
      */
     void releaseAllScriptResources();
 

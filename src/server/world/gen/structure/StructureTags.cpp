@@ -289,7 +289,8 @@ void StructureTags::initialize()
             ResourceLocation("minecraft", "ruined_portal_mountain"),
             ResourceLocation("minecraft", "ruined_portal_nether"),
             ResourceLocation("minecraft", "ruined_portal_ocean"),
-            ResourceLocation("minecraft", "ruined_portal_standard"),
+            // 注意：标准变体的结构 id 是 ruined_portal；MC 里名为 RUINED_PORTAL_STANDARD 的只是 Java 常量名
+            ResourceLocation("minecraft", "ruined_portal"),
             ResourceLocation("minecraft", "ruined_portal_swamp")});
         tags[tag->getId()] = std::move(tag);
     }
@@ -398,10 +399,12 @@ void StructureTags::initialize()
         tags[tag->getId()] = std::move(tag);
     }
 
-    // ON_JUNGLE_EXPLORER_MAPS: 丛林神庙
+    // ON_JUNGLE_EXPLORER_MAPS: 丛林金字塔
     {
         auto tag = std::make_unique<StructureTag>(ResourceLocation("minecraft", "on_jungle_explorer_maps"));
-        tag->add(ResourceLocation("minecraft", "jungle_temple"));
+        // 注意：结构 id 是 jungle_pyramid；jungle_temple 是 StructureType 名（数据包中
+        // jungle_pyramid.json 的 "type" 字段），不是结构 id。
+        tag->add(ResourceLocation("minecraft", "jungle_pyramid"));
         tags[tag->getId()] = std::move(tag);
     }
 

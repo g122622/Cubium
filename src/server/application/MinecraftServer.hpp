@@ -68,6 +68,7 @@
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
+#include "server/world/gen/feature/template/TemplateManagerHostBinding.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/GlobalStorageManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
@@ -171,6 +172,27 @@ public:
     [[nodiscard]] bool isRunning() const noexcept override { return m_running.load(); }
     void shutdown() override;
     void tick() override;
+
+    /**
+     * @brief 绑定模板管理器的结构包资源源
+     *
+     * 用于从基岩版行为包加载 .mcstructure 结构（GameTest 场景），优先级高于数据包 .nbt。
+     * 模板管理器是进程级单例，只持有资源的非拥有指针，故注入统一经服务端的宿主绑定令牌完成：
+     * 服务端关闭（shutdownManagers）或析构时自动解绑，不会在单例中残留悬垂指针。
+     *
+     * 调用方（GameTestServer / ServerApplicationEntry）若让结构包资源源先于服务端销毁，
+     * 必须在其析构前调用 unbindTemplateManagerStructurePackSource()。
+     *
+     * @param source 结构包资源源，须存活至解绑或服务端关闭
+     */
+    void bindTemplateManagerStructurePackSource(world::gen::feature::template_::IStructurePackSource& source);
+
+    /**
+     * @brief 解绑模板管理器的结构包资源源
+     *
+     * 幂等：未绑定或绑定已被后接管者顶替时为空操作。
+     */
+    void unbindTemplateManagerStructurePackSource();
 
     /**
      * @brief 注册 post-tick 回调（在 `tick()` 末尾、所有子系统推进后调用）。
@@ -1339,6 +1361,10 @@ protected:
     mc::loot::LootPredicateManager m_predicateManager;
     PackRepository m_resourcePackList;
     mc::resource::DataPackRepository m_dataPackList;
+    // 模板管理器的宿主资源绑定：TemplateManager 是进程级单例，按非拥有指针持有
+    // m_dataPackList 等本服务端资源。绑定必须在 m_dataPackList 之前析构（成员逆序析构即满足），
+    // 否则单例会残留悬垂指针并在下一次服务端启动时解引用已释放对象。
+    mc::world::gen::feature::template_::TemplateManagerHostBinding m_templateManagerBinding;
 
     // 函数系统
     mc::function::FunctionManager m_functionManager;

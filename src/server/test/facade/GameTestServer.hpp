@@ -174,8 +174,9 @@ private:
     // 失败测试收集器：run() 结束后从 failedTestNames() 提取失败列表，供重跑过滤使用。
     std::shared_ptr<FailedTestCollector> m_failedCollector;
     // 行为包结构资源源：把 BehaviorPackList 适配为 IStructurePackSource 注入 TemplateManager，
-    // 使 GameTest 结构名（如 startertests:mediumglass）能从行为包加载 .mcstructure。地址须稳定，
-    // TemplateManager 持非拥有指针，故用 unique_ptr 成员保活。
+    // 使 GameTest 结构名（如 startertests:mediumglass）能从行为包加载 .mcstructure。
+    // 经 MinecraftServer 的宿主绑定令牌注入（TemplateManager 只持非拥有指针）；本成员是派生类成员，
+    // 会先于基类的数据包仓库/脚本系统析构，故 stop() 必须先调 unbindTemplateManagerStructurePackSource()。
     std::unique_ptr<BehaviorPackStructureSource> m_structureSource;
     i32 m_exitCode = 0;
     bool m_runnerBuilt = false;

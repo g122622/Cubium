@@ -806,7 +806,10 @@ TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_NoChunksLoaded_SetsE
     // 出口传送门应已设置
     EXPECT_TRUE(gateway->getExitPortal().has_value());
     // 出口位置应在 1024 格外的方向上（远离原点）
-    const BlockPos& exit = gateway->getExitPortal().value();
+    // 注意：getExitPortal() 按值返回 optional，必须把 value() 拷贝进局部变量。
+    // 写成 `const BlockPos& exit = ...` 会悬垂——临时 optional 在全表达式结束即析构，
+    // 后续读到的是栈上垃圾（clang 会给出 -Wdangling-gsl 警告）。
+    const BlockPos exit = gateway->getExitPortal().value();
     EXPECT_GT(exit.x, gatewayPos.x - 16 * 16);
 }
 
@@ -819,7 +822,7 @@ TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_CreatesGatewayStruct
     gateway->testGenerateExitPortal(*m_world);
 
     ASSERT_TRUE(gateway->getExitPortal().has_value());
-    const BlockPos& exit = gateway->getExitPortal().value();
+    const BlockPos exit = gateway->getExitPortal().value();
 
     // 出口位置中心应为末地折跃门方块
     const mc::BlockState* exitState = m_world->getBlockState(exit.x, exit.y, exit.z);
@@ -848,7 +851,7 @@ TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_ScansPastNonEmptyChu
 
     // 出口传送门应已设置
     EXPECT_TRUE(gateway->getExitPortal().has_value());
-    const BlockPos& exit = gateway->getExitPortal().value();
+    const BlockPos exit = gateway->getExitPortal().value();
     // 非空区块阻止了前进扫描，出口应在其附近（1024 ± 16 范围内）。
     // 对比 AdvancePastEmptyChunks 测试（无非空区块时 exit.x ≈ 1280），
     // 此处非空区块使出口远小于 1280，证明回退/前进逻辑生效
@@ -868,7 +871,7 @@ TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_AdvancesPastEmptyChu
     gateway->testGenerateExitPortal(*m_world);
 
     ASSERT_TRUE(gateway->getExitPortal().has_value());
-    const BlockPos& exit = gateway->getExitPortal().value();
+    const BlockPos exit = gateway->getExitPortal().value();
     // 前进 16 次每次 16 格 = 256 格，出口应大于 1024
     EXPECT_GT(exit.x, 1024);
 }

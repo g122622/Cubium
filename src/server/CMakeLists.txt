@@ -176,6 +176,7 @@ add_library(mc_gen OBJECT
     world/gen/feature/predicate/MatchingFluidsPredicate.cpp
     world/gen/feature/template/Template.cpp
     world/gen/feature/template/TemplateManager.cpp
+    world/gen/feature/template/TemplateManagerHostBinding.cpp
     world/gen/feature/template/TemplateLoader.cpp
     world/gen/feature/template/RuleTest.cpp
     world/gen/feature/template/CappedStructureProcessor.cpp

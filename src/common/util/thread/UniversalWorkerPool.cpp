@@ -26,6 +26,7 @@
 #include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/thread/ITask.hpp"
 #include <algorithm>
 #include <atomic>
@@ -122,6 +123,8 @@ void UniversalWorkerPool::shutdown()
         while (!m_taskQueue.empty()) {
             auto task = m_taskQueue.top();
             m_taskQueue.pop();
+            // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
+            _releaseOutstandingTask();
             if (task && task->callback) {
                 task->callback(false, task->task.get()); // 通知失败
             }
@@ -167,6 +170,8 @@ u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
+        // 与入队同锁递增：waitForCompletion 的完成谓词从任务入队那一刻起就必须为"未完成"
+        m_outstandingTaskCount.fetch_add(1, std::memory_order::relaxed);
         m_taskQueue.push(std::move(internalTask));
     }
 
@@ -213,6 +218,8 @@ u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
+        // 与入队同锁递增：waitForCompletion 的完成谓词从任务入队那一刻起就必须为"未完成"
+        m_outstandingTaskCount.fetch_add(1, std::memory_order::relaxed);
         m_taskQueue.push(std::move(internalTask));
     }
 
@@ -259,6 +266,8 @@ bool UniversalWorkerPool::cancel(u64 taskId)
                 if (task->abortSignal) {
                     task->abortSignal->store(true, std::memory_order::release);
                 }
+                // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
+                _releaseOutstandingTask();
                 if (task->callback) {
                     task->callback(false, task->task.get());
                 }
@@ -301,8 +310,12 @@ void UniversalWorkerPool::pruneCancelledTasks()
 
             if (task && !isTaskCancelled(*task)) {
                 retained.push_back(std::move(task));
-            } else if (task && task->callback) {
-                task->callback(false, task->task.get()); // 通知取消
+            } else if (task) {
+                // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
+                _releaseOutstandingTask();
+                if (task->callback) {
+                    task->callback(false, task->task.get()); // 通知取消
+                }
                 removedAny = true;
             }
         }
@@ -320,21 +333,33 @@ void UniversalWorkerPool::pruneCancelledTasks()
 
 void UniversalWorkerPool::waitForCompletion()
 {
+    // 谓词用 m_outstandingTaskCount（覆盖"已入队 / 执行中 / 回调执行中"三种状态）。
+    // 不能用 pendingTaskCount()==0 && runningTaskCount()==0：存在两个提前返回窗口——
+    //   1) 回调在 m_runningTaskCount 递减之后才执行；
+    //   2) worker 出队与标记运行之间，队列已空且运行数为 0，任务却尚未开始执行。
     std::unique_lock<std::mutex> lock(m_completionMutex);
-    m_completionCondition.wait(lock, [this] { return pendingTaskCount() == 0 && runningTaskCount() == 0; });
+    m_completionCondition.wait(lock, [this] { return m_outstandingTaskCount.load(std::memory_order::acquire) == 0; });
+}
+
+void UniversalWorkerPool::_releaseOutstandingTask()
+{
+    const size_t before = m_outstandingTaskCount.fetch_sub(1, std::memory_order::release);
+    // 下溢即"递减次数多于入队次数"，会让计数器回绕到 SIZE_MAX 并使 waitForCompletion() 永久挂起。
+    // 这种失衡是代码缺陷而非运行时输入问题，直接断言暴露，避免退化成难以定位的挂起。
+    MC_ASSERT_RELEASE_MSG(before > 0, "UniversalWorkerPool: outstanding task count underflow");
 }
 
 void UniversalWorkerPool::notifyIfIdle()
 {
-    // fast-path:仍有任务在跑则必非空闲,直接返回不抢锁(任务执行期间 worker 高频调用此点,
+    // fast-path:仍有未完成任务则必非空闲,直接返回不抢锁(任务执行期间 worker 高频调用此点,
     // 避免无谓的 m_completionMutex 竞争)。
-    if (m_runningTaskCount.load(std::memory_order::acquire) != 0) {
+    if (m_outstandingTaskCount.load(std::memory_order::acquire) != 0) {
         return;
     }
     // 持 m_completionMutex 重检谓词并 notify,与 waitForCompletion 的"谓词检查+wait"串行化,
     // 杜绝 worker 在等待方 pred()=false 与 release+block 之间发 notify 致丢失唤醒。
     std::lock_guard<std::mutex> lock(m_completionMutex);
-    if (pendingTaskCount() == 0 && runningTaskCount() == 0) {
+    if (m_outstandingTaskCount.load(std::memory_order::acquire) == 0) {
         m_completionCondition.notify_all();
     }
 }
@@ -587,6 +612,9 @@ void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         if (task->callback) {
             task->callback(false, task->task.get());
         }
+        // 取消路径不进入 running 状态，但任务自 submit() 起就被计入未完成计数，
+        // 必须在这里结清，否则 waitForCompletion() 永远不会返回。
+        _releaseOutstandingTask();
         return;
     }
 
@@ -636,8 +664,6 @@ void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         success = false;
     }
 
-    m_runningTaskCount.fetch_sub(1, std::memory_order::relaxed);
-
     // 回调
     if (task->callback) {
         try {
@@ -652,6 +678,14 @@ void UniversalWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
             spdlog::error("[UniversalWorkerPool] Callback threw unknown exception");
         }
     }
+
+    // 计数必须在回调**之后**递减：
+    // - m_runningTaskCount 用于统计与 notifyIfIdle 快路径，回调执行期间该任务对等待方而言仍是"未完成"；
+    // - m_outstandingTaskCount 是 waitForCompletion 的完成谓词，只有在回调跑完后归零，等待方返回时
+    //   才保证所有回调都已执行完（否则会出现"waitForCompletion 返回但回调计数少 1"）。
+    // 用 release 递减、等待方以 acquire 读取，确保回调内的写入对等待方可见。
+    m_runningTaskCount.fetch_sub(1, std::memory_order::relaxed);
+    _releaseOutstandingTask();
 }
 
 bool UniversalWorkerPool::isTaskCancelled(const InternalTask& task)

@@ -82,13 +82,12 @@ class TemplatePoolRegistry;
 class JigsawAssembler {
 public:
     /**
-     * @brief 设置资源包（用于加载模板）
-     * @param pack 资源包指针
-     */
-    static void setResourcePack(const resource::IResourcePack* pack);
-
-    /**
      * @brief 获取模板管理器
+     *
+     * 返回进程级单例。其模板来源（数据包仓库、结构包资源源）由宿主经
+     * MinecraftServer 的 TemplateManagerHostBinding 注入并解绑：单例只持非拥有指针，
+     * 严禁绕过宿主绑定直接设置来源，否则宿主销毁后会残留悬垂指针。
+     *
      * @return 模板管理器引用
      */
     static feature::template_::TemplateManager& getTemplateManager();
