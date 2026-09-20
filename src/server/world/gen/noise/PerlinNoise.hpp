@@ -121,7 +121,8 @@ public:
      * @brief 纯标量采样路径(调试/性能对比用)
      *
      * 遍历 m_layers 逐层调用 PerlinLayer::noise,不经 SoA 向量化。
-     * 数值与 getValue bit-exact(两者都复刻原循环顺序)。
+     * 数值与 getValue 在算法上一致(两者都复刻原循环顺序);实际浮点结果可能因编译器
+     * FMA 收缩/结合顺序决策不同而在 ULP 级存在差异,详见 DensityAstUlpTest.cpp 文件头说明。
      */
     [[nodiscard]] f64 getValueScalar(f64 x, f64 y, f64 z) const;
 

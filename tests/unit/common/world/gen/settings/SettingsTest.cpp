@@ -785,9 +785,10 @@ TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_SolidBlocks_NoFillE
     EXPECT_TRUE(s.fillLayerEntries().empty());
 }
 
-TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_WaterLayer_CreatesFillEntry)
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_WaterLayer_NoFillEntry)
 {
-    // 水层（液体）不应产生填充层条目——液体是运动阻挡方块，保留在 layers 中
+    // 水层（液体）不应产生填充层条目：运动阻挡高度图的判据为
+    // blocksMotion() || 含流体，水含流体故属于运动阻挡，保留在 layers 中
     FlatLevelGeneratorSettings s(Biomes::Plains);
     s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
     s.layersInfo().emplace_back(5, VanillaBlocks::getState(VanillaBlocks::WATER));
@@ -796,11 +797,18 @@ TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_WaterLayer_CreatesF
 
     // 水是液体，isLiquid() 为 true，不是非运动阻挡方块，不产生填充层条目
     EXPECT_TRUE(s.fillLayerEntries().empty());
-    // 水层保留在 layers 中（不是 nullptr）
-    EXPECT_NE(s.layers()[1], nullptr); // 基岩
-    EXPECT_NE(s.layers()[2], nullptr); // 水（不是 nullptr）
-    EXPECT_NE(s.layers()[6], nullptr); // 水
-    EXPECT_NE(s.layers()[7], nullptr); // 草方块
+
+    // layers 自世界最低处按 Y 逐格展开：下标 0=基岩，1..5=水，6=草方块
+    ASSERT_EQ(s.layers().size(), 7u);
+    ASSERT_NE(s.layers()[0], nullptr);
+    ASSERT_NE(s.layers()[1], nullptr);
+    ASSERT_NE(s.layers()[5], nullptr);
+    ASSERT_NE(s.layers()[6], nullptr);
+    EXPECT_TRUE(s.layers()[0]->is(VanillaBlocks::BEDROCK));
+    EXPECT_TRUE(s.layers()[1]->is(VanillaBlocks::WATER));
+    EXPECT_TRUE(s.layers()[5]->is(VanillaBlocks::WATER));
+    EXPECT_TRUE(s.layers()[6]->is(VanillaBlocks::GRASS_BLOCK));
+    EXPECT_FALSE(s.isVoidGen());
 }
 
 TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_NonMotionBlocking_CreatesFillEntry)

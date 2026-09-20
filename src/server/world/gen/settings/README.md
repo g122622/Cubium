@@ -95,7 +95,7 @@ NoiseSettings noise = NoiseSettings::nether();
 
 ### 7. FillLayerEntry 与 updateLayers() 的配合
 
-`FlatLevelGeneratorSettings::updateLayers()` 会将非运动阻挡方块（如水）在展开层列表中替换为 `nullptr`，同时记录到 `fillLayerEntries()` 列表中。`FlatChunkGenerator::placeFeatures()` 在特性放置完成后，通过 `_placeFillLayers()` 将这些位置的空气方块替换为原始方块状态。如果只修改 `layers()` 而不调用 `updateLayers()`，`fillLayerEntries` 将不会更新。
+`FlatLevelGeneratorSettings::updateLayers()` 会将非固体且非液体的方块（如火把、草径）在展开层列表中替换为 `nullptr`，同时记录到 `fillLayerEntries()` 列表中；固体方块与含流体的方块（如水）保留在展开层列表中。展开层列表自世界最低处（`minY`）开始，下标 `i` 对应 `Y = minY + i`。`FlatChunkGenerator::placeFeatures()` 在特性放置完成后，通过 `_placeFillLayers()` 将这些位置的空气方块替换为原始方块状态。如果只修改 `layers()` 而不调用 `updateLayers()`，`fillLayerEntries` 将不会更新。
 
 ### 8. structureOverrides 结构生成覆盖
 

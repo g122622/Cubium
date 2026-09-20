@@ -39,9 +39,9 @@ namespace mc {
  * @brief 填充层条目
  *
  * 描述平坦世界中需要由特性系统放置的非运动阻挡层。
- * 在 FlatLevelGeneratorSettings::updateLayers() 中，非运动阻挡方块
- * （如水、空气等不阻挡运动的方块）被替换为 nullptr，由 placeFeatures()
- * 在 TOP_LAYER_MODIFICATION 阶段补充放置。这样设计是为了让湖泊等特性
+ * 在 FlatLevelGeneratorSettings::updateLayers() 中，非固体且非液体的方块
+ * （如火把、草径）被替换为 nullptr，由 placeFeatures() 在
+ * TOP_LAYER_MODIFICATION 阶段补充放置。这样设计是为了让湖泊等特性
  * 有机会先在那些位置生成，避免冲突。
  */
 struct FillLayerEntry {
@@ -87,8 +87,8 @@ public:
     /**
      * @brief 获取展开后的层列表（每个 Y 级别一个 BlockState）
      *
-     * 从底部（minY）开始，逐层展开为每个 Y 级别一个 BlockState。
-     * 不阻挡运动的方块（如水）替换为 nullptr，由特性系统放置。
+     * 从底部（minY）开始，逐层展开为每个 Y 级别一个 BlockState（下标 i 对应 Y = minY + i）。
+     * 非固体且非液体的方块替换为 nullptr，由特性系统放置。
      *
      * 必须在设置完 layersInfo 后调用 updateLayers() 来生成此列表。
      */
@@ -168,7 +168,7 @@ public:
      *
      * 必须在修改 layersInfo 后调用此方法。
      * 展开层列表从底部开始，每层按高度展开为多个条目。
-     * 不阻挡运动的方块替换为 nullptr。
+     * 非固体且非液体的方块替换为 nullptr 并记录到 fillLayerEntries()。
      */
     void updateLayers();
 

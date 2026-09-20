@@ -363,7 +363,8 @@ void PerlinNoise::buildSoA()
 f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
 {
     // SoA 向量化路径:每个 SIMD 通道算一个 octave(各自独立置换表做独立 gather 链),
-    // hash 链 p[p[p[h]+y]+z] 内部串行不碰。结果先写扁平数组 ds[i],再标量顺序累加(保 bit-exact)。
+    // hash 链 p[p[p[h]+y]+z] 内部串行不碰。结果先写扁平数组 ds[i],再按原循环顺序累加
+    // (SIMD 只并行采样、不并行累加,累加顺序与逐层循环完全一致)。
     const u32 count = m_soa.count();
     if (count == 0) {
         return 0.0;
@@ -380,7 +381,7 @@ f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
         ds[i] = perlinSampleSoA(soa, i, nx, ny, nz, /*yScale=*/0.0, /*yMax=*/0.0);
     }
 
-    // 标量顺序累加:与原 getValue 循环顺序一致 → bit-exact。
+    // 标量顺序累加:与原 getValue 循环顺序一致。
     f64 result = 0.0;
     for (u32 i = 0; i < count; ++i) {
         result += soa.amplitude()[i] * ds[i] * soa.valueFactor()[i];
@@ -391,7 +392,7 @@ f64 PerlinNoise::getValue(f64 x, f64 y, f64 z) const
 f64 PerlinNoise::getValueScalar(f64 x, f64 y, f64 z) const
 {
     // 纯标量路径:逐层调用 PerlinLayer::noise,不经 SoA 向量化。
-    // 数值与 getValue bit-exact(两者都复刻原循环顺序)。
+    // 数值与 getValue 在算法上一致(两者都复刻原循环顺序)。
     f64 result = 0.0;
     f64 inputFactor = m_lowestFreqInputFactor;
     f64 valueFactor = m_lowestFreqValueFactor;

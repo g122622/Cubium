@@ -47,7 +47,7 @@ namespace mc::world::gen::noise {
 // 让 clang 跨 octave 自动向量化(每 SIMD 通道算一个 octave,各自独立置换表做独立 gather 链,
 // hash 链 p[p[p[h]+y]+z] 内部串行不碰)。
 //
-// 采样内核 perlinSampleSoA 与 Cubium PerlinLayer::noise/noiseWithSmear 数值 bit-exact 等价
+// 采样内核 perlinSampleSoA 与 Cubium PerlinLayer::noise/noiseWithSmear 算法等价
 // (已由回退前 PerlinSoA.hpp 的 perlinSample 验证,见 memory noise-soa-optimization)。
 //
 // 三个回退根因(commit 495832dd9)已逐条规避:
@@ -58,7 +58,7 @@ namespace mc::world::gen::noise {
 // 3. PerlinNoiseSoA 持续指向同一次 64 字节对齐分配,零拷贝,运行期只读连续块。
 // ============================================================================
 
-/// 单个 Perlin 采样可处理的最大 octave 数(主世界 JAGGED = 17 是上限)。
+/// 单个 Perlin 采样可处理的最大 octave 数(当前最大用例:JAGGED 16、BlendedNoise min&max 16)。
 inline constexpr u32 kMaxPerlinOctaves = 32;
 
 /**
@@ -363,7 +363,10 @@ alignas(64) inline constexpr std::array<f64, 64> kFlatSimplexGrad = {
 /**
  * @brief SoA 持有的单点 Perlin 采样内核(含 Y 涂抹)
  *
- * 数值 bit-exact 等价 PerlinLayer::noiseWithSmear(yScale!=0)与 PerlinLayer::noise(yScale==0)。
+ * 算法等价 PerlinLayer::noiseWithSmear(yScale!=0)与 PerlinLayer::noise(yScale==0):
+ * 同一批表达式、同一求值顺序、同一舍入点。实际数值可能在 ULP 级存在差异——
+ * -ffast-math 下 clang 对向量化循环与标量 SLP 的收缩/结合决策可以不同,详见
+ * DensityAstUlpTest.cpp 文件头说明。
  * 排列表 perm 为 256 项 u8(已洗牌),查表用 & 0xFF 折回(等价 PerlinLayer::m_p 双倍表)。
  *
  * @param soa   PerlinNoiseSoA,持有所有 octave 的连续置换表 + 标量参数数组

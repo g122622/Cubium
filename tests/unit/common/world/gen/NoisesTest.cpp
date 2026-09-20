@@ -274,7 +274,8 @@ TEST(NoisesTest, JaggedParameters)
 {
     const auto& params = Noises::get(Noises::JAGGED);
     EXPECT_EQ(params.firstOctave, -16);
-    ASSERT_EQ(params.amplitudes.size(), 17u);
+    // 原版 jagged.json: firstOctave=-16, amplitudes 为 16 个 1.0（覆盖倍频 -16..-1）
+    ASSERT_EQ(params.amplitudes.size(), 16u);
     // 所有振幅应为 1.0
     for (size_t i = 0; i < params.amplitudes.size(); ++i) {
         EXPECT_NEAR(params.amplitudes[i], 1.0, 1e-15) << "JAGGED amplitude[" << i << "] should be 1.0";

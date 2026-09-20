@@ -234,6 +234,10 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBlueIce(const nlohmann::jso
  *
  * MC 三个 type 各自只生成对应形状；项目 CoralFeature 内部用 random 在三种形状间分支
  * （CoralFeature.cpp），故三个 type 共用 ConfiguredCoralFeature，行为为项目现状。
+ *
+ * TODO: 珊瑚颜色/死活由 CoralFeatureConfig 决定，而 config JSON 为空（原版该特征亦无配置，
+ * 但每次放置会从 coral_blocks 方块标签随机抽取一个珊瑚方块），故当前自然生成只会得到
+ * 管状活珊瑚。待方块标签基建可查询后，改为按标签随机抽取颜色并移除对配置颜色的依赖。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createCoral(const nlohmann::json& /*configJson*/)
 {

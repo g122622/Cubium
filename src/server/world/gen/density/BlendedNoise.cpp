@@ -122,7 +122,7 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
     // mainNoise = PerlinNoise(-7, 8 个全 1.0 振幅) → SoA count = 8,索引 0..7 对应最低频→最高频。
     // 原循环 getOctaveNoise(i) = SoA index (count-1-i),i=0 先累加最高频层(d11=1.0)。
     // SoA 正向 index k → 原循环 i = count-1-k → d11_k = 2^(k-(count-1))。
-    // 采样写扁平数组 ds[k],再按 k=count-1..0 反向标量累加(复刻原 i=0..N-1 顺序 → bit-exact)。
+    // 采样写扁平数组 ds[k],再按 k=count-1..0 反向标量累加(复刻原 i=0..N-1 顺序)。
     f64 d10 = 0.0; // mainNoise 累积值
     const noise::PerlinNoiseSoA& mainSoa = m_mainNoise->soa();
     const u32 mainCount = mainSoa.count();

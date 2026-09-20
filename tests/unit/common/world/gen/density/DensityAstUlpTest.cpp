@@ -23,26 +23,36 @@
 
 /**
  * @file DensityAstUlpTest.cpp
- * @brief 噪声采样层 SoA 向量化路径 vs 标量 reference 的 ULP 漂移监控测试
+ * @brief 噪声采样层 SoA 向量化路径 vs 标量 reference 的数值漂移监控测试
  *
  * 配套 PerlinNoiseSoA 引入的 SIMD 加速(效仿 C2ME c2me-opts-natives-math 的 octave 并行)。
- * DensityAstBaselineTest/CompileTest 的 1e-9 门禁由"复用 bit-exact 内核 + 标量顺序累加"保证
- * 理论 bit-exact;本测试不卡门禁,纯观测 SoA 向量化路径(PerlinNoise::getValue 走 SoA、
- * perlinSampleSoA 内核、BlendedNoise::compute 走 SoA)与标量 reference(PerlinLayer::noise/
- * noiseWithSmear 逐层循环)之间的 ULP 漂移,定位 FMA 融合 / 累加顺序 / epsilon 陷阱等隐患。
+ * 本测试对照 SoA 向量化路径(PerlinNoise::getValue 走 SoA、perlinSampleSoA 内核、
+ * BlendedNoise::compute 走 SoA)与标量 reference(PerlinLayer::noise/noiseWithSmear 逐层循环),
+ * 定位倍频索引错位 / 累加顺序错 / 缩放因子错 / epsilon 陷阱等结构级隐患。
  *
  * 三档覆盖:
  * 1. PerlinNoise::getValue SoA vs 标量(无涂抹,NormalNoise 路径)——验证 octave 循环向量化
- *    后采样写扁平数组 + 标量累加是否 bit-exact。多 octave 喂饱 AVX2 f64 4 通道。
+ *    后采样写扁平数组 + 标量累加与逐层循环一致。多 octave 喂饱 SIMD f64 通道。
  * 2. 涂抹内核 perlinSampleSoA(yScale!=0) vs PerlinLayer::noiseWithSmear——验证 epsilon
- *    static_cast<f64>(1.0e-7f) 陷阱修复(1.0e-7 double 与 1.0e-7f→double 不同,边界 floor 跨越
+ *    static_cast<f64>(1.0e-7f) 陷阱(1.0e-7 double 与 1.0e-7f→double 不同,边界 floor 跨越
  *    会导致 smearOffset 差一个 yScale 量级)。
  * 3. BlendedNoise::compute SoA vs 标量重建——验证 min/max 反向索引 + d11=2^k 缩放序列
- *    + flag1/flag2 短路的 SoA 路径与原逐层标量 compute bit-exact。
+ *    + flag1/flag2 短路的 SoA 路径与逐层标量 compute 一致。
  *
- * ULP 阈值:无涂抹/完整 compute 档期望 0 ULP(标量顺序累加);涂抹档因 epsilon 已对齐亦期望 0。
- * 实测若因 clang 跨 octave 向量化引入 FMA 融合产生非零 ULP,阈值设 16 ulp(纯观测,不卡门禁),
- * 据实测数据决定是否对该文件加 -ffp-contract=off 或调阈。
+ * 判据:绝对误差 ≤ kAbsTolerance(1e-12)。
+ *
+ * 为什么不用 ULP 距离作判据:两条路径的**算法**逐项一致(同一表达式、同一累加顺序、
+ * 同一舍入点),但项目全局开启 -ffast-math(-ffp-contract=fast),clang 对 SoA 向量化
+ * 循环与标量 SLP 向量化的**收缩 FMA / 结合顺序**决策可以不同,这属于编译器代码生成
+ * 差异而非算法差异:
+ *   - Windows clang-cl(x86-64 AVX2)实测 0 ULP(两条路径代码生成恰好一致);
+ *   - macOS arm64 + Apple clang 21 实测档1 最大 252 ULP、档2 最大 778 ULP、档3 最大 131 ULP,
+ *     但绝对差恒 ≤ 5e-16(≈1 ulp of 量级 O(1) 的中间量)。
+ * ULP 距离以结果量级折算,而噪声结果经常因抵消而接近 0,此时 1 ulp 的中间量漂移会被
+ * 放大成上万 ULP,不适合直接作为跨平台判据(故仅作为诊断量 RecordProperty 记录)。
+ * 绝对误差则不受抵消影响:结构级缺陷(倍频索引错位、d11=2^k 序列错、epsilon 取双精度
+ * 1.0e-7 而非 1.0e-7f)会产生 ≥1e-3 的绝对偏差,与 1e-12 的预算相差 9 个数量级,
+ * 该判据仍能可靠捕获所有已知缺陷形态。
  */
 
 #include "common/core/Types.hpp"
@@ -92,8 +102,14 @@ using world::gen::density::BlendedNoise;
 // 档1:PerlinNoise::getValue(SoA 向量化)vs 标量逐层累加(无涂抹,NormalNoise 路径)
 // ============================================================================
 
-/// 多组 firstOctave/amplitudes 覆盖不同 octave 数(喂饱 AVX2 f64 4 通道 + 留余量)。
-/// JAGGED 17 octave 是主世界上限,BlendedNoise main 8 / min&max 16,故覆盖 4/8/16/17。
+/// 判据预算:绝对误差上限。噪声值量级 O(1),编译器 FMA 收缩/结合顺序差异带来的
+/// 漂移绝对量级恒 ≤ 5e-16(≈1 ulp of 中间量);结构级缺陷则 ≥1e-3。取 1e-12:
+/// 对已知代码生成差异留 ~2000 倍余量,同时对结构级缺陷仍保持 9 个数量级的识别力。
+inline constexpr f64 kAbsTolerance = 1e-12;
+
+/// 多组 firstOctave/amplitudes 覆盖不同 octave 数(喂饱 SIMD f64 通道 + 留余量)。
+/// 原版 JAGGED 为 firstOctave=-16 且 16 个 1.0 振幅(见 jagged.json),BlendedNoise
+/// main 8 / min&max 16,故覆盖 4/8/16/17。
 struct PerlinNoiseUlpCase {
     u64 seed;
     i32 firstOctave;
@@ -107,7 +123,8 @@ const std::vector<PerlinNoiseUlpCase>& perlinUlpCases()
         {0ULL, -2, {1.0, 1.0, 1.0, 1.0}, "4-octave"},
         {12345ULL, -7, std::vector<f64>(8, 1.0), "8-octave"},
         {999ULL, -15, std::vector<f64>(16, 1.0), "16-octave"},
-        {42ULL, -8, std::vector<f64>(17, 1.0), "17-octave(JAGGED)"},
+        {42ULL, -16, std::vector<f64>(16, 1.0), "16-octave(JAGGED)"},
+        {42ULL, -8, std::vector<f64>(17, 1.0), "17-octave"},
         // 含零振幅层(空层跳过采样但推进缩放序列),验证 buildSoA 的 inputFactor/valueFactor 推进
         {7ULL, -3, {1.0, 0.0, 1.0, 0.0, 1.0}, "5-octave-with-zeros"},
     };
@@ -116,9 +133,8 @@ const std::vector<PerlinNoiseUlpCase>& perlinUlpCases()
 
 TEST(DensityAstUlpTest, PerlinNoiseGetValueSoAVsScalar)
 {
-    // 阈值 0:标量顺序累加 + bit-exact 内核,理论 0 ULP。实测非零则 FMA 融合,16 ulp 观测上限。
-    constexpr i64 kUlpThreshold = 16;
     i64 maxUlp = 0;
+    f64 maxAbsDiff = 0.0;
     for (const auto& c : perlinUlpCases()) {
         const PerlinNoise noise(c.seed, c.firstOctave, c.amplitudes);
         for (int s = 0; s < 40; ++s) {
@@ -129,13 +145,14 @@ TEST(DensityAstUlpTest, PerlinNoiseGetValueSoAVsScalar)
             const f64 scalar = perlinNoiseGetValueScalar(noise, x, y, z);
             const i64 ulp = world::gen::noise::ulpDistance(soa, scalar);
             maxUlp = std::max(maxUlp, ulp);
-            // bit-exact 时 ULP=0;FMA 融合致非零时观测,不卡 0(留 16 ulp 上限)。
-            EXPECT_LE(ulp, kUlpThreshold)
+            maxAbsDiff = std::max(maxAbsDiff, std::abs(soa - scalar));
+            EXPECT_LE(std::abs(soa - scalar), kAbsTolerance)
                 << c.label << " sample#" << s << " SoA=" << soa << " scalar=" << scalar << " ulp=" << ulp;
         }
     }
-    // 记录最大 ULP(便于观测 FMA 融合量级);若持续为 0 则证明 bit-exact。
+    // ULP 距离仅作诊断记录(近零结果会放大 ULP,不适合作跨平台判据;判据见文件头注释)。
     RecordProperty("maxUlp", std::to_string(maxUlp));
+    RecordProperty("maxAbsDiff", std::to_string(maxAbsDiff));
 }
 
 // ============================================================================
@@ -145,8 +162,8 @@ TEST(DensityAstUlpTest, PerlinNoiseGetValueSoAVsScalar)
 
 TEST(DensityAstUlpTest, PerlinSampleSoASmearKernelVsLayerNoiseWithSmear)
 {
-    constexpr i64 kUlpThreshold = 16;
     i64 maxUlp = 0;
+    f64 maxAbsDiff = 0.0;
     // 多 seed 构造 PerlinNoise,取其 SoA 与首层 PerlinLayer 对照涂抹内核。
     for (const auto& c : perlinUlpCases()) {
         const PerlinNoise noise(c.seed, c.firstOctave, c.amplitudes);
@@ -179,17 +196,20 @@ TEST(DensityAstUlpTest, PerlinSampleSoASmearKernelVsLayerNoiseWithSmear)
                 const f64 layerVal = nonNullLayers[k]->noiseWithSmear(x, baseY, z, yScale, yMax);
                 const i64 ulp = world::gen::noise::ulpDistance(soaVal, layerVal);
                 maxUlp = std::max(maxUlp, ulp);
-                EXPECT_LE(ulp, kUlpThreshold) << c.label << " oct#" << k << " sample#" << s << " soa=" << soaVal
-                                              << " layer=" << layerVal << " ulp=" << ulp;
+                maxAbsDiff = std::max(maxAbsDiff, std::abs(soaVal - layerVal));
+                EXPECT_LE(std::abs(soaVal - layerVal), kAbsTolerance)
+                    << c.label << " oct#" << k << " sample#" << s << " soa=" << soaVal << " layer=" << layerVal
+                    << " ulp=" << ulp;
             }
         }
     }
     RecordProperty("maxUlp", std::to_string(maxUlp));
+    RecordProperty("maxAbsDiff", std::to_string(maxAbsDiff));
 }
 
 // ============================================================================
 // 档3:BlendedNoise::compute(SoA 路径)vs 标量重建 compute
-// 验证 min/max 反向索引 + d11=2^k 缩放序列 + flag1/flag2 短路 SoA 路径 bit-exact。
+// 验证 min/max 反向索引 + d11=2^k 缩放序列 + flag1/flag2 短路 SoA 路径与标量一致。
 // ============================================================================
 
 /// 标量 reference:复刻原 BlendedNoise::compute(回退前)逐层循环,调 getOctaveNoise + noiseWithSmear。
@@ -268,12 +288,8 @@ TEST(DensityAstUlpTest, PerlinSampleSoASmearKernelVsLayerNoiseWithSmear)
 
 TEST(DensityAstUlpTest, BlendedNoiseComputeSoAVsScalar)
 {
-    // 阈值 64:BlendedNoise compute 循环体较复杂(d6*d11 等多步乘加),clang 向量化后在
-    // -ffast-math 下用 FMA 融合 a*b+c(中间不舍入),与标量重建的 mul+add 产生 FMA 级 ULP 漂移
-    // (实测 ~25 ulp)。此漂移在 1e-9 门禁内(DensityAstBaselineTest 已过),属预期 FMA 行为非 bug。
-    // 档1/档2 循环体简单未触发 FMA,故 0 ulp。阈值 64 留足 FMA 漂移余量,纯观测不卡门禁。
-    constexpr i64 kUlpThreshold = 64;
     i64 maxUlp = 0;
+    f64 maxAbsDiff = 0.0;
     // 三维度 BlendedNoise 参数(主世界/下界/末地),多 seed。
     struct BlendedCase {
         f64 xzScale, yScale, xzFactor, yFactor, smearScaleMultiplier;
@@ -321,12 +337,15 @@ TEST(DensityAstUlpTest, BlendedNoiseComputeSoAVsScalar)
                     mainNoise);
                 const i64 ulp = world::gen::noise::ulpDistance(soa, scalar);
                 maxUlp = std::max(maxUlp, ulp);
-                EXPECT_LE(ulp, kUlpThreshold) << bc.label << " seed=" << seed << " sample#" << s << " soa=" << soa
-                                              << " scalar=" << scalar << " ulp=" << ulp;
+                maxAbsDiff = std::max(maxAbsDiff, std::abs(soa - scalar));
+                EXPECT_LE(std::abs(soa - scalar), kAbsTolerance)
+                    << bc.label << " seed=" << seed << " sample#" << s << " soa=" << soa << " scalar=" << scalar
+                    << " ulp=" << ulp;
             }
         }
     }
     RecordProperty("maxUlp", std::to_string(maxUlp));
+    RecordProperty("maxAbsDiff", std::to_string(maxAbsDiff));
 }
 
 } // namespace

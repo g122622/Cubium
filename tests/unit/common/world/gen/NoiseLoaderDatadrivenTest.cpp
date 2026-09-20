@@ -125,7 +125,8 @@ const std::vector<ExpectedNoise>& expectedNoises()
         {Noises::NETHER_WART, -3, {1.0, 0.0, 0.0, 0.9}},
         {Noises::NETHER_STATE_SELECTOR, -4, {1.0}},
         // 其他
-        {Noises::JAGGED, -16, {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}},
+        // 原版 jagged.json: firstOctave=-16, 16 个 1.0
+        {Noises::JAGGED, -16, {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}},
     };
     return kExpected;
 }

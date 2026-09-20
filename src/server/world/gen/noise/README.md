@@ -130,11 +130,11 @@ const i64 seed = static_cast<i64>(derivedSeed * static_cast<f64>(9.223372E18f));
 
 ### 动机
 
-密度函数求值器 JIT 落地后（eval 提速 1.59×），瓶颈转移到外部噪声采样（JIT 路径 external 占 54.9%，见 `docs/iterations/密度函数求值器JIT可行性评估.md` 第 7 节）。噪声采样的大头是 NormalNoise（JAGGED 17 octave）与 BlendedNoise（main 8 / min&max 各 16 octave）。本次对 PerlinNoise 的 octave 循环引入 SIMD 加速，效仿 C2ME `c2me-opts-natives-math` 的 `ext_math.h`。
+密度函数求值器 JIT 落地后（eval 提速 1.59×），瓶颈转移到外部噪声采样（JIT 路径 external 占 54.9%，见 `docs/iterations/密度函数求值器JIT可行性评估.md` 第 7 节）。噪声采样的大头是 NormalNoise（JAGGED 16 octave）与 BlendedNoise（main 8 / min&max 各 16 octave）。本次对 PerlinNoise 的 octave 循环引入 SIMD 加速，效仿 C2ME `c2me-opts-natives-math` 的 `ext_math.h`。
 
 ### 杠杆：单点内 octave 并行（非多点批处理）
 
-C2ME 的 SIMD 杠杆是**单点内 octave 并行**——每个 SIMD 通道算一个 octave，各自独立 256 项置换表做独立 gather 链，hash 链 `p[p[p[h]+y]+z]` 内部串行不碰。多点批处理不是杠杆（C2ME 批处理 API 只是标量包装器）。AVX2 f64 4 通道，JAGGED（17 octave）/ BlendedNoise（16 octave）octave 数充足喂得饱。
+C2ME 的 SIMD 杠杆是**单点内 octave 并行**——每个 SIMD 通道算一个 octave，各自独立 256 项置换表做独立 gather 链，hash 链 `p[p[p[h]+y]+z]` 内部串行不碰。多点批处理不是杠杆（C2ME 批处理 API 只是标量包装器）。AVX2 f64 4 通道，JAGGED（16 octave）/ BlendedNoise（16 octave）octave 数充足喂得饱。
 
 ### SoA 数据布局——连续背靠背 + 64 字节对齐
 
@@ -147,16 +147,16 @@ C2ME 的 SIMD 杠杆是**单点内 octave 并行**——每个 SIMD 通道算一
 ```
 
 - **置换表连续背靠背**：`perms[i*256 + ...]`，跨 octave gather base 连续 → 规避回退 bug1。
-- **u8 存储**：回退前已验证 bit-exact；clang AVX2 gather u8 用 `vpmovzxb` 零扩展。
+- **u8 存储**：数值等价性已由 `DensityAstUlpTest` 守护；clang AVX2 gather u8 用 `vpmovzxb` 零扩展。
 - **零拷贝**：构造期从各 `PerlinLayer` 的 `m_permutation` 拷一次到连续块（构造期一次性，非热点）；运行期 `perlinSampleSoA` 只读连续块。
 
 ### 可向量化的 octave 循环
 
-`PerlinNoise::getValue` / `BlendedNoise::compute` 的 octave 循环标注 `#pragma clang loop vectorize(enable) interleave(enable) interleave_count(2)`，让 clang 跨 octave 内联向量化。结果先写扁平栈数组 `ds[k]`，再按顺序标量累加（保 bit-exact，SIMD 只并行采样不并行累加）。
+`PerlinNoise::getValue` / `BlendedNoise::compute` 的 octave 循环标注 `#pragma clang loop vectorize(enable) interleave(enable) interleave_count(2)`，让 clang 跨 octave 内联向量化。结果先写扁平栈数组 `ds[k]`，再按顺序标量累加（SIMD 只并行采样不并行累加，累加顺序与逐层循环一致）。
 
 ### 三个回退根因（commit 495832dd9）已逐条规避
 
-上次 SoA 拍平被回退，纯因**性能倒退**（精度 bit-exact 过了 1e-9）。三个实现 bug：
+上次 SoA 拍平被回退，纯因**性能倒退**（精度差异在 1e-9 门禁内）。三个实现 bug：
 
 1. **置换表按值拷贝进 `PerlinSoALayer::std::array<u8,256>`**，运行期每个 octave 置换表分散在 `vector<PerlinSoALayer>` 各元素内，gather base 跨 octave 不连续 → 破坏缓存局部性、阻碍向量化。**规避**：`PerlinNoiseSoA::perms` 为单一连续 `u8[256*N]`。
 2. **`perlinSample` 是标量单 octave 函数**，`for layer: perlinSample(layer.perm...)` 跨函数调用 + 每 layer 指针不同 → clang 无法跨 octave 向量化。**规避**：`perlinSampleSoA` 内联进 octave 循环 + `#pragma clang loop vectorize(enable)`。
@@ -168,8 +168,12 @@ SoA 无条件强制开启，**无任何开关/宏/条件回退**。标量 `Perli
 
 ### 精度双轨
 
-- **保留** `DensityAstBaselineTest`/`DensityAstCompileTest` 的 1e-9 门禁（复用 bit-exact 内核 + 标量顺序累加，SoA 路径与原标量路径理论 bit-exact）。
-- **新增** `DensityAstUlpTest.cpp`：SoA 路径 vs 标量 reference 的 ULP 漂移监控（纯观测，16 ulp 阈值，不卡门禁）。若 clang 跨 octave 向量化后 FMA 融合致 ULP 差异突破 1e-9，ULP 报告定位漂移点与量级，据实测决定放宽阈值还是对该文件加 `-ffp-contract=off`。
+- **保留** `DensityAstBaselineTest`/`DensityAstCompileTest` 的 1e-9 门禁。
+- **新增** `DensityAstUlpTest.cpp`：SoA 路径 vs 标量 reference 的数值漂移监控，判据为绝对误差 ≤1e-12（ULP 距离仅作诊断记录）。
+
+**注意：两条路径不保证 bit-exact。** 两条路径的算法逐项一致（同一表达式、同一累加顺序、同一舍入点），但项目全局开启 `-ffast-math`（等价 `-ffp-contract=fast`），clang 对 SoA 向量化循环与标量 SLP 向量化的**收缩 FMA / 结合顺序**决策会随目标平台与编译器版本变化：Windows clang-cl（x86-64 AVX2）实测 0 ULP，macOS arm64 + Apple clang 21 实测最大 778 ULP（绝对差恒 ≤5e-16）。因此 `DensityAstUlpTest` 以绝对误差作判据——ULP 距离以结果量级折算，噪声结果因抵消接近 0 时会被放大成上万 ULP，不能跨平台作为判据。
+
+若将来需要与 Java 逐位一致的数值（Java 严格顺序、无 FMA），须对噪声/密度翻译单元关闭 FP 收缩与结合，例如 `-ffp-contract=off -fno-associative-math`（注意 `-ffast-math` 隐含 `-ffp-contract=fast`，会**覆盖** `#pragma clang fp contract(off)`，因此必须走编译选项而非 pragma）；代价是热点噪声内核失去 FMA，需重新评估性能。
 
 ### 精度关键：涂抹 epsilon 陷阱
 

@@ -129,10 +129,10 @@ const BlockState* getCoralFanState(blocks::CoralColor color, bool isDead)
     }
 }
 
-const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction supportDirection, bool isDead)
+const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction facing, bool isDead)
 {
-    if (supportDirection == Direction::Up || supportDirection == Direction::Down ||
-        supportDirection == Direction::None) {
+    // 墙珊瑚扇的 FACING 只接受水平四向，竖直方向无法贴附
+    if (facing == Direction::Up || facing == Direction::Down || facing == Direction::None) {
         return nullptr;
     }
 
@@ -185,7 +185,8 @@ const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction suppo
         return nullptr;
     }
 
-    return &wallFanBlock->defaultState().with(BlockStateProperties::FACING(), supportDirection);
+    // 墙珊瑚扇朝向由状态属性 HORIZONTAL_FACING 表达（面向背离附着面的一侧）
+    return &wallFanBlock->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 }
 
 bool isWaterAt(WorldGenRegion& world, const BlockPos& pos)
@@ -219,6 +220,8 @@ i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
 
 bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead)
 {
+    // TODO: 放置前置条件与原版不一致：原版要求「当前位置为水或已是珊瑚（CORALS 方块标签）」，
+    // 且「正上方必须为水」；此处仅校验当前位置为水，故珊瑚可能贴着非水格的方块向上生长。
     const BlockState* coralState = getCoralBlockState(color, isDead);
     if (coralState == nullptr || !isWaterAt(world, pos)) {
         return false;
@@ -241,6 +244,10 @@ void placeCoralDecorations(WorldGenRegion& world,
 
     const BlockPos topPos(pos.x, pos.y + 1, pos.z);
     if (isWaterAt(world, topPos)) {
+        // TODO: 顶部装饰的掷骰结构与原版不一致：原版为「先掷 0.25 放置随机珊瑚植物/扇，
+        // 否则再掷 0.05 放置海泡菜」两分支互斥；此处把海泡菜掷骰嵌在 0.25 分支内部，
+        // 导致海泡菜生成概率显著偏低。同时原版从 CORALS 方块标签随机取装饰方块，
+        // 此处固定使用配置颜色对应的珊瑚扇，待方块标签基建可用后再收敛。
         if (random.nextFloat() < 0.25f) {
             if (VanillaBlocks::SEA_PICKLE != nullptr && random.nextFloat() < 0.05f) {
                 const i32 pickleCount = random.nextInt(4) + 1;
@@ -361,11 +368,14 @@ bool CoralFeature::_isWater(WorldGenRegion& world, const BlockPos& pos) const
     return false;
 }
 
+// TODO: 当前无调用方（形状放置统一走 placeCoralWithDecorations 的公共辅助函数），
+// 保留待珊瑚特征细分形状逻辑接入后再启用或删除。
 void CoralFeature::_placeCoralBlock(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color) const
 {
     [[maybe_unused]] const bool placed = placeCoralBase(world, pos, color, false);
 }
 
+// TODO: 当前无调用方，理由同 _placeCoralBlock。
 void CoralFeature::_placeCoralFan(
     WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, Direction direction) const
 {

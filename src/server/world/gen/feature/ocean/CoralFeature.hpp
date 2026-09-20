@@ -61,7 +61,7 @@ struct CoralFeatureConfig : public IFeatureConfig {
 // 珊瑚辅助函数（公共，供 CoralTree/Mushroom/Claw 使用）
 [[nodiscard]] const BlockState* getCoralBlockState(blocks::CoralColor color, bool isDead);
 [[nodiscard]] const BlockState* getCoralFanState(blocks::CoralColor color, bool isDead);
-[[nodiscard]] const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction supportDirection, bool isDead);
+[[nodiscard]] const BlockState* getCoralWallFanState(blocks::CoralColor color, Direction facing, bool isDead);
 [[nodiscard]] bool isWaterAt(WorldGenRegion& world, const BlockPos& pos);
 [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z);
 [[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead);

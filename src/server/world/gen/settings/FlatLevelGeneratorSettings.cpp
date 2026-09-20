@@ -61,9 +61,12 @@ void FlatLevelGeneratorSettings::updateLayers()
         const i32 height = layerInfo.height();
 
         for (i32 i = 0; i < height; ++i) {
-            // 不阻挡运动的方块（如水）替换为 null，由特性系统放置
-            // 判断标准: isSolid() || isLiquid() → motion-blocking → 保留
-            // 否则（非固体、非液体的非空气方块如草径）→ 设为 null
+            // 运动阻挡的方块（固体，以及水等含流体的方块）保留在展开层列表中；
+            // 非运动阻挡方块（如火把、草径）置为 null，由特性系统在
+            // TOP_LAYER_MODIFICATION 阶段补放。
+            // TODO: 当前判据是 !isSolid && !isLiquid，与运动阻挡高度图的判据
+            //       （blocksMotion() || 含流体）不完全等价：空气层在此被保留为 air，
+            //       含流体但非固体非液体的方块（如海草）会被误判为需补放。需统一判据。
             if (state != nullptr && !state->isAir() && !state->owner().isSolid(*state) && !state->isLiquid()) {
                 // 非运动阻挡方块：由特性系统放置，记录填充层信息
                 m_layers.push_back(nullptr);
