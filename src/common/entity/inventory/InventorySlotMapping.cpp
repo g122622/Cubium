@@ -23,7 +23,9 @@
 
 #include "InventorySlotMapping.hpp"
 
+#include "AbstractContainerMenu.hpp"
 #include "PlayerInventory.hpp"
+#include "Slot.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 
 namespace mc {
@@ -43,6 +45,22 @@ std::vector<mc::network::ir::play::ItemStackView> buildMenuContent(const PlayerI
             continue;
         }
         out.push_back(mc::network::ir::toItemStackView(inv.getItem(playerInvSlot)));
+    }
+    return out;
+}
+
+std::vector<mc::network::ir::play::ItemStackView> buildMenuContent(const AbstractContainerMenu& menu)
+{
+    const i32 slotCount = menu.getSlotCount();
+    std::vector<mc::network::ir::play::ItemStackView> out;
+    out.reserve(static_cast<size_t>(slotCount));
+    for (i32 slot = 0; slot < slotCount; ++slot) {
+        const Slot* slotPtr = menu.getSlot(slot);
+        if (slotPtr != nullptr) {
+            out.push_back(mc::network::ir::toItemStackView(slotPtr->getItem()));
+        } else {
+            out.push_back(mc::network::ir::play::ItemStackView{});
+        }
     }
     return out;
 }

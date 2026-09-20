@@ -10,6 +10,7 @@ import { handshakeCases } from "./handshake.ts";
 import { chunkSyncCases } from "./chunk-sync.ts";
 import { blockInteractionCases } from "./block-interaction.ts";
 import { inventoryCases } from "./inventory.ts";
+import { craftingCases } from "./crafting.ts";
 
 /** 全部用例。 */
 export const ALL_CASES: readonly CaseDefinition[] = [
@@ -17,4 +18,5 @@ export const ALL_CASES: readonly CaseDefinition[] = [
     ...chunkSyncCases,
     ...blockInteractionCases,
     ...inventoryCases,
+    ...craftingCases,
 ];

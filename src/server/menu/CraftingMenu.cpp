@@ -102,11 +102,11 @@ CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory)
     , m_screenType(ScreenType::CraftingTable)
 {
 
-    // 添加合成网格槽位 (槽位 0-8)
-    addCraftingGridSlots(98, 18);
-
-    // 添加结果槽位 (槽位 9)
+    // 添加结果槽位 (槽位 0)
     addResultSlot(154, 28);
+
+    // 添加合成网格槽位 (槽位 1-9)
+    addCraftingGridSlots(98, 18);
 
     // 添加玩家主背包 (槽位 10-36)
     addPlayerInventorySlots(8, 84);
@@ -125,8 +125,8 @@ CraftingMenu::CraftingMenu(ContainerId id, PlayerInventory* playerInventory, i32
     , m_screenType(ScreenType::Inventory)
 {
 
-    addCraftingGridSlots(98, 18);
     addResultSlot(154, 28);
+    addCraftingGridSlots(98, 18);
     addPlayerInventorySlots(8, 84);
     addPlayerHotbarSlots(8, 142);
 

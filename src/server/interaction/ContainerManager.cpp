@@ -199,6 +199,9 @@ bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventor
 
 void ContainerManager::tickMenus()
 {
+    // 注意：常驻的玩家背包菜单（containerId=0）不在此列。服务端没有为任何菜单注册槽位监听器，
+    // detectAndSendChanges 对它只会是空操作；它的同步靠点击与改槽后的全量下发（见
+    // MinecraftServer::setOnInventoryUpdate 以菜单为权威构造内容）。
     for (auto& [playerId, openContainer] : m_openContainers) {
         (void)playerId;
         auto* menu = openContainer.menu.get();

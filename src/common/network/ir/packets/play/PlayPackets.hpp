@@ -810,12 +810,14 @@ struct SetPlayerInventory {
 /**
  * @brief OpenScreen（S→C，id=57）
  *
- * 线格式：VarInt(containerId)+VarInt(menuType)+Utf8(title JSON)。
+ * 线格式：VarInt(containerId)+VarInt(menuType)+文本组件(title)。
+ *
+ * title 在业务侧是纯文本，出站由 codec 编码为文本组件 NBT，入站再折叠回纯文本。
  */
 struct OpenScreen {
     i32 containerId;
     i32 menuType;
-    std::string title; // JSON 文本组件
+    std::string title; // 窗口标题纯文本
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const OpenScreen&, const OpenScreen&) noexcept = default;
 };

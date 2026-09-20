@@ -975,18 +975,25 @@ void MinecraftServer::initializeInteractionManagers()
         // 1.21.11 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
         // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例，
         // 由 ServerPlayerData::playerInventoryStateId 承载，每次下发自增）。
-        // items 按 InventoryMenu 46 槽布局构造（craftResult/craft 占位空、armor/main/hotbar/offhand
-        // 重映射），Java 客户端对 containerId=0 期望该布局。
         mc::network::ir::play::ContainerSetContent pkt;
         pkt.containerId = 0; // 玩家物品栏
         auto* playerData = m_playerManager->getPlayer(playerId);
         pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
-        pkt.items = mc::buildMenuContent(inventory);
-        // carried 取玩家背包菜单上的权威光标。恒发空会让客户端的光标被清空、与服务端分叉：
-        // 此后客户端每次点击都带空光标上行，表现为物品「粘」不到光标上、无法搬运。
+
+        // 内容以玩家背包菜单为权威来源：菜单持有 2x2 合成网格、合成结果槽与副手槽，这些槽位在
+        // PlayerInventory 里没有对应项。只用 PlayerInventory 构造内容（buildMenuContent 的另一
+        // 重载）会把合成格整片填成空——表现为物品放进合成格后凭空消失。
+        // 菜单不存在时（登录流程尚未建出菜单）退回按物品栏构造，布局仍是客户端期望的 46 槽。
         const AbstractContainerMenu* inventoryMenu = m_containerManager->getPlayerInventoryMenu(playerId);
-        pkt.carriedItem = (inventoryMenu != nullptr) ? mc::network::ir::toItemStackView(inventoryMenu->getCarriedItem())
-                                                     : mc::network::ir::play::ItemStackView{};
+        if (inventoryMenu != nullptr) {
+            pkt.items = mc::buildMenuContent(*inventoryMenu);
+            // carried 取菜单上的权威光标。恒发空会让客户端的光标被清空、与服务端分叉：
+            // 此后客户端每次点击都带空光标上行，表现为物品「粘」不到光标上、无法搬运。
+            pkt.carriedItem = mc::network::ir::toItemStackView(inventoryMenu->getCarriedItem());
+        } else {
+            pkt.items = mc::buildMenuContent(inventory);
+            pkt.carriedItem = mc::network::ir::play::ItemStackView{};
+        }
 
         sendPacketToPlayer(playerId,
             mc::network::ir::IrPacket{
@@ -2393,33 +2400,32 @@ void MinecraftServer::handleSetCreativeModeSlotPacket(PlayerId playerId, const m
         return;
     }
 
-    // 写槽路径：vanilla InventoryMenu slotNum → 项目 PlayerInventory 索引映射。
-    //   0=合成结果(排除), 1-4=合成输入(项目无对应槽), 5-8=护甲(头盔→靴子→36-39),
-    //   9-35=主背包(相同), 36-44=热栏(→0-8), 45=副手(→40)。
-    i32 mappedSlot = -1;
-    if (evt->slotNum >= 5 && evt->slotNum <= 8) {
-        mappedSlot = 36 + (evt->slotNum - 5); // 护甲：5→36(HEAD) 6→37(CHEST) 7→38(LEGS) 8→39(FEET)
-    } else if (evt->slotNum >= 9 && evt->slotNum <= 35) {
-        mappedSlot = evt->slotNum; // 主背包，索引相同
-    } else if (evt->slotNum >= 36 && evt->slotNum <= 44) {
-        mappedSlot = evt->slotNum - 36; // 热栏：36→0 ... 44→8
-    } else if (evt->slotNum == 45) {
-        mappedSlot = 40; // 副手
-    } else {
-        // slotNum 0(合成结果)/1-4(合成输入)/>45(越界)：对齐 vanilla 静默忽略。
-        // vanilla 服务端对 slotNum 0 不写不丢（craftResult），对 1-4 写入合成输入槽；
-        // 项目 PlayerInventory 无合成网格槽，故 0-4 均静默忽略，不发 warn（创造背包含合成格，
-        // Java 客户端操作合成槽时发送这些 slotNum 属正常行为，刷 warn 无意义）。
+    // 写槽路径：slotNum 是玩家背包菜单（InventoryMenu）的槽索引，须按菜单槽位写入。
+    //
+    // 不能把它当成 PlayerInventory 的内部索引直接映射：两套编号只在主背包/快捷栏/护甲/副手
+    // 段重合，而菜单的槽 1-4（2x2 合成输入）在 PlayerInventory 里根本没有对应槽——旧实现
+    // 对这几个槽位静默忽略，导致原版客户端在背包里往合成格放物品毫无反应（含创造模式取物），
+    // 背包 2x2 合成因此完全不可用。按菜单槽位写入后，合成格与结果槽的联动（slotsChanged →
+    // updateResult）也随之自然生效。
+    constexpr i32 kLastMenuSlot = 45;
+    if (evt->slotNum < 0 || evt->slotNum > kLastMenuSlot) {
         return;
     }
-
-    // 绕过 InventoryManager::setItem 的 0-35 限制（直调 PlayerInventory::setItem 支持护甲/副手 0-40）。
-    auto* inventory = inventoryManager().getInventory(playerId);
-    if (inventory == nullptr) {
-        spdlog::warn("SetCreativeModeSlot: player {} inventory not found", playerId);
+    AbstractContainerMenu* inventoryMenu = containerManager().getPlayerInventoryMenu(playerId);
+    if (inventoryMenu == nullptr) {
+        spdlog::warn("SetCreativeModeSlot: player {} has no player inventory menu", playerId);
         return;
     }
-    inventory->setItem(mappedSlot, stackResult.value());
+    // 槽 0 是合成结果槽，只读（ResultSlot::mayPlace 恒 false），跳过而非静默写入。
+    if (evt->slotNum == 0) {
+        return;
+    }
+    Slot* targetSlot = inventoryMenu->getSlot(evt->slotNum);
+    if (targetSlot == nullptr) {
+        spdlog::warn("SetCreativeModeSlot: player {} menu slot {} out of range", playerId, evt->slotNum);
+        return;
+    }
+    targetSlot->set(stackResult.value());
     inventoryManager().syncToClient(playerId);
 }
 

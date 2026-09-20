@@ -30,7 +30,8 @@
 
 namespace mc {
 
-class PlayerInventory; // 前向声明，避免环依赖（实现放 .cpp）
+class PlayerInventory;       // 前向声明，避免环依赖（实现放 .cpp）
+class AbstractContainerMenu; // 同上
 
 /**
  * @brief vanilla InventoryMenu 菜单槽索引常量（46 槽布局）
@@ -133,5 +134,17 @@ namespace InventorySlotMapping {
  * @return 46 个 ItemStackView，索引即 InventoryMenu 菜单槽索引
  */
 [[nodiscard]] std::vector<mc::network::ir::play::ItemStackView> buildMenuContent(const PlayerInventory& inv);
+
+/**
+ * @brief 从菜单自身构造全量槽位视图列表（索引即菜单槽索引）
+ *
+ * 容器同步的权威来源是菜单——菜单才持有合成网格、结果槽、副手等不在 PlayerInventory 里的
+ * 槽位。`buildMenuContent(const PlayerInventory&)` 只能覆盖「没有菜单」的退化场景（合成格与
+ * 结果槽一律填空），凡菜单存在处都应改用本重载，否则合成格里的物品会被整片抹掉。
+ *
+ * @param menu 容器菜单
+ * @return getSlotCount() 个 ItemStackView，索引即菜单槽索引
+ */
+[[nodiscard]] std::vector<mc::network::ir::play::ItemStackView> buildMenuContent(const AbstractContainerMenu& menu);
 
 } // namespace mc

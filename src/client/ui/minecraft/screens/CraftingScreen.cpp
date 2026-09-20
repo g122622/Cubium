@@ -55,21 +55,21 @@ CraftingScreen::CraftingScreen(
             return this->slotAt(mouseX, mouseY);
         });
 
-    // 构造 46 个槽位组件（9 网格 + 1 结果 + 27 主背包 + 9 快捷栏）
+    // 构造 46 个槽位组件（1 结果 + 9 网格 + 27 主背包 + 9 快捷栏）
     buildSlots(mc::CraftingMenu::TOTAL_SLOT_COUNT);
 }
 
 std::pair<i32, i32> CraftingScreen::slotLocalPos(i32 slotIndex) const
 {
     using M = mc::CraftingMenu;
-    // 3x3 合成网格（槽位 0-8）
+    // 结果槽（槽位 0）
+    if (slotIndex == M::RESULT_SLOT) {
+        return {RESULT_X, RESULT_Y};
+    }
+    // 3x3 合成网格（槽位 1-9）
     if (slotIndex >= M::GRID_SLOT_START && slotIndex < M::GRID_SLOT_START + M::GRID_SLOT_COUNT) {
         const i32 i = slotIndex - M::GRID_SLOT_START;
         return {GRID_X + (i % GRID_COL_COUNT) * SLOT_SPACING, GRID_Y + (i / GRID_COL_COUNT) * SLOT_SPACING};
-    }
-    // 结果槽（槽位 9）
-    if (slotIndex == M::RESULT_SLOT) {
-        return {RESULT_X, RESULT_Y};
     }
     // 玩家主背包（槽位 10-36，3x9）
     if (slotIndex >= M::PLAYER_INV_START && slotIndex < M::PLAYER_INV_START + M::PLAYER_INV_COUNT) {

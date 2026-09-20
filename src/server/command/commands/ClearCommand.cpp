@@ -44,6 +44,7 @@
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/interaction/InventoryManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 
 #include <algorithm>
@@ -78,28 +79,16 @@ namespace {
     return support::resolvePlayerInventory(source, playerId);
 }
 
-void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const PlayerInventory& inventory)
+void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId)
 {
+    // 统一走 InventoryManager 的下发出口。它按玩家背包菜单构造全量内容（含 2x2 合成格、
+    // 合成结果槽与副手槽——这些槽位在 PlayerInventory 里没有对应项），并带上服务端权威光标。
+    // 命令里各自手搓一份只会退化成「只发 PlayerInventory」，把合成格整片抹掉。
     auto* server = source.server();
     if (server == nullptr) {
         return;
     }
-
-    // 用 ContainerSetContent(containerId=0) 同步完整玩家物品栏。
-    // stateId 取自玩家数据（containerId=0 在服务端无独立 AbstractContainerMenu 实例）。
-    mc::network::ir::play::ContainerSetContent pkt;
-    pkt.containerId = 0; // 玩家物品栏
-    const auto* playerData = server->playerManager().getPlayer(playerId);
-    pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
-    // items 按 InventoryMenu 46 槽布局构造，对齐 Java 客户端 containerId=0 期望。
-    pkt.items = mc::buildMenuContent(inventory);
-    pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
-
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    };
-    (void)server->connectionManager().sendToPlayer(playerId, packet);
+    server->inventoryManager().syncToClient(playerId);
 }
 
 [[nodiscard]] i32 clearInventory(
@@ -169,7 +158,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
         }
 
         removedTotal += removedCount;
-        syncInventoryToClient(source, playerId, *inventory);
+        syncInventoryToClient(source, playerId);
     }
 
     return removedTotal;

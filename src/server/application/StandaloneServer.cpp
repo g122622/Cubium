@@ -681,7 +681,7 @@ void StandaloneServer::_setupContainerCallbacks()
         (void)slotCount; // slotCount 不再发送到客户端
         const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
 
-        // 1.21.11 OpenScreen：containerId + menuType + title(JSON 文本)。
+        // 1.21.11 OpenScreen：containerId + menuType + title（文本组件，codec 负责编码）。
         mc::network::ir::play::OpenScreen pkt;
         pkt.containerId = static_cast<i32>(containerId);
         pkt.menuType = ContainerTypes::toNetworkType(type);

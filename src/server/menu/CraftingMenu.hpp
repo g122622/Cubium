@@ -44,8 +44,8 @@ class World;
  * 合成网格状态由菜单自管，不绑定任何方块实体。
  *
  * 槽位布局：
- * - 槽位 0-8: 合成网格 (3x3)
- * - 槽位 9: 结果槽位
+ * - 槽位 0: 结果槽位
+ * - 槽位 1-9: 合成网格 (3x3)
  * - 槽位 10-36: 玩家主背包 (3x9)
  * - 槽位 37-45: 玩家快捷栏 (1x9)
  */
@@ -146,15 +146,19 @@ public:
 
     /**
      * @brief 槽位索引常量
+     *
+     * 顺序即 wire 上的槽位号，必须与 1.21.11 的工作台菜单一致：结果槽排在最前，
+     * 之后才是合成网格。第三方客户端按该顺序点击（点 slot 0 = 取走合成结果），
+     * 顺序不同会让它的每一次点击都落到相邻的槽位上且不报错。
      */
-    static constexpr i32 GRID_SLOT_START = 0;
+    static constexpr i32 RESULT_SLOT = 0;
+    static constexpr i32 GRID_SLOT_START = 1;
     static constexpr i32 GRID_SLOT_COUNT = 9;
-    static constexpr i32 RESULT_SLOT = 9;
     static constexpr i32 PLAYER_INV_START = 10;
     static constexpr i32 PLAYER_INV_COUNT = 27;
     static constexpr i32 HOTBAR_START = 37;
     static constexpr i32 HOTBAR_COUNT = 9;
-    static constexpr i32 TOTAL_SLOT_COUNT = 46; ///< 9 网格 + 1 结果 + 27 主背包 + 9 快捷栏
+    static constexpr i32 TOTAL_SLOT_COUNT = 46; ///< 1 结果 + 9 网格 + 27 主背包 + 9 快捷栏
 
     /**
      * @brief 检查是否是合成网格槽位

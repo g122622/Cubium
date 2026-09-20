@@ -4,9 +4,9 @@
     "server": "cubium",
     "mcVersion": "1.21.11",
     "protocolVersion": 774,
-    "frozenAt": "2026-09-20T01:22:16.518Z",
-    "gitCommit": "da81d3315",
-    "note": "由 20260920-092155-76072 更新"
+    "frozenAt": "2026-09-20T01:53:14.826Z",
+    "gitCommit": "daf052116",
+    "note": "由 20260920-095256-71480 更新"
   },
   "cases": {
     "handshake/spawn_event_after_health": {
@@ -1284,6 +1284,179 @@
         },
         "extra": {
           "cursorItemReturned": true
+        }
+      }
+    },
+    "crafting/empty_grid_produces_nothing": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "emptyGridResultIsNull": true
+        }
+      }
+    },
+    "crafting/table_3x3_crafts_from_cursor": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "craftedFromCursor": true,
+          "resultSlotIndex": 0
+        }
+      }
+    },
+    "crafting/table_shift_click_result_to_inventory": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "shiftClickMovedResult": true
+        }
+      }
+    },
+    "crafting/inventory_2x2_grid_crafts": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "inventoryGridCrafted": true
         }
       }
     }
