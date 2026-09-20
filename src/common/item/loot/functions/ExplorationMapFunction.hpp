@@ -39,7 +39,7 @@ namespace loot {
  * @brief 探险地图函数
  *
  * 生成探险地图，在地图上标记最近的目标结构位置。
- * 参考: net.minecraft.loot.functions.ExplorationMap
+ * 对应原版 net.minecraft.world.level.storage.loot.functions.ExplorationMapFunction。
  *
  * JSON 字段（均可选）：
  * - destination: 目标结构类型（字符串，如 "minecraft:buried_treasure"）
@@ -51,13 +51,22 @@ namespace loot {
  * 当同时指定 destination 和 decoration 时，decoration 优先；
  * 当仅指定 destination 时，自动推导对应的装饰类型。
  * 当两者都未指定时，默认 destination 为 BuriedTreasure，默认 decoration 为 RED_X。
+ *
+ * TODO: 与原版存在以下语义差异，待后续对齐：
+ *  1. 原版 destination 是结构标签（默认 StructureTags.ON_TREASURE_MAPS = minecraft:on_treasure_maps），
+ *     按标签搜索结构；本项目是 5 个具体结构的枚举，按单个结构 ID 搜索。
+ *  2. 原版 decoration 是地图装饰注册表项（MapDecorationType，默认 MapDecorationTypes.WOODLAND_MANSION），
+ *     且默认值与 destination 无关；本项目是枚举 DecorationType，缺省时由 destination 推导。
+ *  3. 原版 destination / decoration 取值非法时解析失败；本项目回退到默认值。
+ *  4. 原版 zoom 是 Codec.BYTE（超出 -128..127 即解析失败）；本项目按 i32 接收且不做范围校验。
  */
 class ExplorationMapFunction : public LootFunction {
 public:
     /**
      * @brief 地图目的地类型
      *
-     * 与 MC 1.16.5 的 StructureFeature 资源位置字符串对应。
+     * 每个枚举值对应一个结构资源位置字符串（如 minecraft:buried_treasure），
+     * 用于 destinationToResourceLocation 搜索结构。
      */
     enum class Destination : u8 {
         BuriedTreasure, // minecraft:buried_treasure

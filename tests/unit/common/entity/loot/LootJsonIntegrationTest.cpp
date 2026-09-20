@@ -102,7 +102,10 @@ TEST_F(LootJsonIntegrationTest, ParseFunction_ExplorationMap)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func->getDestination());
 }

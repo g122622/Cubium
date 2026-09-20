@@ -219,3 +219,16 @@ MC 1.21+ 把 `minecraft:loot_table` 类型 entry 的标识字段从 `name` 改�
 - 对象：内联完整掉落表（如 `"value": {"pools": [...]}`），解析期直接构造嵌套 `LootTable`，不走解析器。
 
 `TableLootEntry` 用 `isInline()` 区分两种形态。**其他 entry（`minecraft:item`/`minecraft:tag`/`minecraft:dynamic`）的标识字段仍是 `name`，未改动。** 解析器只认 `value`，不再接受旧 `name`。
+
+### 8. 用 `Result::value()` 取战利品函数时不可持有裸指针
+
+`LootSerializers::parseFunction()` 返回 `Result<std::unique_ptr<LootFunction>>`，而 `Result<std::unique_ptr<T>>::value()` 是**按值返回并转移所有权**的（见 `src/common/core/Result.hpp`）。因此 `result.value().get()` 得到的裸指针在语句结束时（临时 `unique_ptr` 析构）即悬垂，后续读取字段是未定义行为：
+
+```cpp
+// 错误：func 从下一行起即指向已析构对象
+auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+
+// 正确：先接住 unique_ptr，对象与局部变量同生命周期
+auto function = result.value();
+auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
+```

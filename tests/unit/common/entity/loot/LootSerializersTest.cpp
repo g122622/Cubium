@@ -592,7 +592,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func->getDestination());
     EXPECT_EQ(2, func->getZoom());                                                  // 默认值
@@ -617,7 +620,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_AllFields)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination());
     EXPECT_EQ(1, func->getZoom());
@@ -641,7 +647,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_VanillaDatapack)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination()); // 默认值
     EXPECT_EQ(1, func->getZoom());
@@ -662,7 +671,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DecorationWithoutNamesp
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_TRUE(func->getDecoration().has_value());
     EXPECT_EQ(world::map::DecorationType::MONUMENT, func->getDecoration().value());
@@ -677,7 +689,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_EmptyJson)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination()); // 默认
     EXPECT_EQ(2, func->getZoom());                                                          // 默认
@@ -695,7 +710,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDestination)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     // 无法识别的 destination 应回退到默认值
     EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination());
@@ -709,7 +727,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDecoration)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     // 无法识别的 decoration 应忽略，decoration 保持 nullopt
     EXPECT_FALSE(func->getDecoration().has_value());
@@ -725,7 +746,10 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DestinationWithoutNames
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
+    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
+    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
     EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func->getDestination());
 }

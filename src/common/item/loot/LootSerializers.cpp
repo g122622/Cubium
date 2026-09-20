@@ -786,6 +786,22 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
     std::string functionType = json["function"].get<std::string>();
 
     // 根据 function 类型分发
+    //
+    // TODO: 原版 1.21.11 的 LootItemFunctions 还注册了以下函数类型，本解析器尚未实现：
+    //  set_item、set_enchantments、set_custom_data、set_components、enchanted_count_increase、
+    //  modify_contents、filtered、copy_custom_data、copy_components、set_banner_pattern、set_potion、
+    //  set_instrument、reference、sequence、set_fireworks、set_firework_explosion、set_book_cover、
+    //  set_written_book_pages、set_writable_book_pages、toggle_tooltips、set_ominous_bottle_amplifier、
+    //  set_custom_model_data、discard。
+    //  其中 enchanted_count_increase、copy_components、set_potion、set_enchantments、copy_state、
+    //  set_components、set_ominous_bottle_amplifier、set_instrument 已被原版数据包的战利品表实际使用
+    //  （datapacks/Vanilla/data/minecraft/loot_table）。
+    // TODO: 各 _parse*Entry 与 parsePool 解析函数列表时用 if (funcResult.success()) 静默跳过失败项，
+    //  原版遇到未注册的函数类型会直接解析失败（战利品表加载报错）；应改为向上返回错误，避免函数被静默丢弃。
+    //
+    // TODO: 本项目沿用了旧版函数名，需要同时保留旧名并支持原版 1.21.11 名称：
+    //  enchanted_count_increase（本项目当前为 looting_enchant）、copy_state（当前为 copy_block_state）、
+    //  set_custom_data（当前为 set_nbt）、copy_custom_data（当前为 copy_nbt）。
     if (functionType == "minecraft:set_count" || functionType == "set_count") {
         return _parseSetCountFunction(json);
     } else if (functionType == "minecraft:apply_bonus" || functionType == "apply_bonus") {
@@ -1328,7 +1344,9 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunct
     using world::map::DecorationType;
 
     // 解析 destination（可选，默认 BuriedTreasure）
-    // MC 1.16.5 格式：结构特征资源位置字符串，如 "minecraft:buried_treasure"
+    // 取值为结构资源位置字符串（如 "minecraft:buried_treasure"，命名空间可省略）
+    // TODO: 原版 destination 是结构标签（默认 minecraft:on_treasure_maps）并按标签搜索结构，
+    //  本项目只识别 5 个具体结构，无法识别时回退到默认值而非报错，待后续对齐。
     ExplorationMapFunction::Destination destination = ExplorationMapFunction::Destination::BuriedTreasure;
     if (json.contains("destination") && json["destination"].is_string()) {
         auto parsed = ExplorationMapFunction::destinationFromString(json["destination"].get<std::string>());
@@ -1338,7 +1356,9 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunct
     }
 
     // 解析 decoration（可选，默认从 destination 推导）
-    // 支持 MC 1.16.5 格式（如 "mansion"、"red_x"）和 1.21.11 格式（如 "minecraft:red_x"）
+    // 支持带命名空间前缀（如 "minecraft:red_x"）和不带前缀（如 "red_x"）两种写法
+    // TODO: 原版 decoration 是地图装饰注册表项，取值非法时解析失败，默认值为 woodland_mansion；
+    //  本项目回退到默认值且缺省时由 destination 推导，待后续对齐。
     std::optional<DecorationType> decoration;
     if (json.contains("decoration") && json["decoration"].is_string()) {
         auto parsed = world::map::decorationTypeFromString(json["decoration"].get<std::string>());

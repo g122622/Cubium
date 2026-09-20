@@ -83,12 +83,17 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
     }
 
     // 获取上下文中的位置参数（宝箱位置）
+    // TODO: 原版读取的是 LootContextParams.ORIGIN（Vec3），对实体掉落、钓鱼等非方块来源同样生效；
+    //  本项目尚无 ORIGIN 参数（见 LootParams.hpp），暂以 BLOCK_POS 代替，待补充 ORIGIN 后切换。
     auto* blockPos = context.get(LootParams::BLOCK_POS);
     if (!blockPos) {
         return stack;
     }
 
     // 搜索最近的结构
+    // TODO: 原版按结构标签（StructureTags.ON_TREASURE_MAPS）搜索，
+    //  本项目按单个结构 ID 搜索（findNearestStructure 只接受 ResourceLocation），
+    //  待世界侧支持按标签搜索后改为标签语义。
     IWorld& world = context.getWorld();
     ResourceLocation structureId = destinationToResourceLocation(m_destination);
     auto foundPos = world.findNearestStructure(*blockPos, structureId, m_searchRadius, m_skipKnownStructures);
@@ -98,8 +103,12 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // 创建已填充地图
-    ItemStack mapStack = item::items::FilledMapItem::setupNewMap(world, foundPos->x, foundPos->z, m_zoom, true, false);
+    // 创建已填充地图：与 MapItem.create(level, x, z, zoom, true, true) 一致，
+    // trackingPosition 与 unlimitedTracking 均为 true
+    ItemStack mapStack = item::items::FilledMapItem::setupNewMap(world, foundPos->x, foundPos->z, m_zoom, true, true);
+
+    // TODO: 原版在建图后还会调用 MapItem.renderBiomePreviewMap 绘制生物群系预览图，
+    //  本项目暂无对应实现，探险地图缺少预览底图。
 
     // 添加目标装饰标记
     auto decorationType = getEffectiveDecoration();

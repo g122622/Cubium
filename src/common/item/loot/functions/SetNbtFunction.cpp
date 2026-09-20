@@ -47,6 +47,9 @@ ItemStack SetNbtFunction::apply(ItemStack stack, LootContext& context) const
     }
 
     // 使用 Mojangson 格式解析 NBT 字符串
+    // TODO: 原版对应函数 minecraft:set_custom_data 在解析战利品表时即用 TagParser.LENIENT_CODEC
+    //  解析 "tag" 字段，非法 NBT 会导致整张战利品表加载失败；本项目沿用旧名 minecraft:set_nbt，
+    //  延迟到 apply() 解析并静默忽略解析失败，两者的失败语义不同。
     auto parsedTag = nbt::parseMojangson(m_nbtString);
     if (!parsedTag) {
         return stack;
