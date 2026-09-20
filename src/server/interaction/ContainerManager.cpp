@@ -119,6 +119,24 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
 
     m_openContainers[playerId] = std::move(openContainer);
 
+    // 槽位监听器：把「服务端自己改动了槽位」这件事记下来，由 tickMenus 统一重发全量内容。
+    //
+    // 必要性：本项目的容器同步是全量重发模型，触发点只有「打开容器」与「客户端点击」两处。
+    // 但有些槽位变化完全由服务端驱动、不经过点击——最典型的是熔炉烧出产物、燃料被消耗。
+    // 没有这条通路时，服务端照常烧炼（进度经 tracked int 下推，看起来一切正常），产物却永远
+    // 到不了客户端：玩家盯着熔炉，产物槽始终是空的。
+    {
+        const mc::ContainerId openedId = containerId;
+        m_openContainers[playerId].menu->addListener([this, playerId, openedId](i32 slot, ItemStack stack) {
+            (void)slot;
+            (void)stack;
+            auto it = m_openContainers.find(playerId);
+            if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
+                it->second.slotChangePending = true;
+            }
+        });
+    }
+
     // 进度型容器（熔炉类）的火焰与箭头进度经 tracked int 同步。每 tick 由 tickMenus() 把状态
     // 从方块实体刷进这些 int 并比对变化，变化时经此监听器下推。不注册的话，服务端照常烧炼，
     // 但客户端那边进度永远是 0。
@@ -199,11 +217,9 @@ bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventor
 
 void ContainerManager::tickMenus()
 {
-    // 注意：常驻的玩家背包菜单（containerId=0）不在此列。服务端没有为任何菜单注册槽位监听器，
-    // detectAndSendChanges 对它只会是空操作；它的同步靠点击与改槽后的全量下发（见
-    // MinecraftServer::setOnInventoryUpdate 以菜单为权威构造内容）。
+    // 注意：常驻的玩家背包菜单（containerId=0）不在此列。它的同步靠点击与改槽后的全量下发
+    // （见 MinecraftServer::setOnInventoryUpdate 以菜单为权威构造内容）。
     for (auto& [playerId, openContainer] : m_openContainers) {
-        (void)playerId;
         auto* menu = openContainer.menu.get();
         if (menu == nullptr) {
             continue;
@@ -214,6 +230,15 @@ void ContainerManager::tickMenus()
             furnaceMenu->syncProgressFromEntity();
         }
         menu->detectAndSendChanges();
+
+        // 服务端自己改动了槽位（熔炉产出等）→ 重发全量。放在 detectAndSendChanges 之后，
+        // 因为槽位变化正是它比对出来的。合并到一个 tick 发一次，避免一 tick 内多槽变化时重发多次。
+        if (openContainer.slotChangePending) {
+            openContainer.slotChangePending = false;
+            if (m_onContainerUpdate) {
+                m_onContainerUpdate(playerId, *menu);
+            }
+        }
     }
 }
 
@@ -303,6 +328,11 @@ Result<ContainerClickResult> ContainerManager::handleClick(
 
     if (m_onContainerUpdate) {
         m_onContainerUpdate(playerId, *menu);
+        // 本次点击已经把全量内容发出去了，清掉 tick 侧的待发标志，避免同一 tick 内重发一次。
+        auto it = m_openContainers.find(playerId);
+        if (it != m_openContainers.end() && it->second.menu.get() == menu) {
+            it->second.slotChangePending = false;
+        }
     }
 
     return ContainerClickResult{true, menu->getCarriedItem(), "Click handled"};

@@ -4,9 +4,9 @@
     "server": "cubium",
     "mcVersion": "1.21.11",
     "protocolVersion": 774,
-    "frozenAt": "2026-09-20T01:53:14.826Z",
-    "gitCommit": "daf052116",
-    "note": "由 20260920-095256-71480 更新"
+    "frozenAt": "2026-09-20T02:07:54.566Z",
+    "gitCommit": "86b2c57fe",
+    "note": "由 20260920-100733-63080 更新"
   },
   "cases": {
     "handshake/spawn_event_after_health": {
@@ -1457,6 +1457,94 @@
         },
         "extra": {
           "inventoryGridCrafted": true
+        }
+      }
+    },
+    "furnace/open_delivers_content": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "furnaceSlotCount": 39
+        }
+      }
+    },
+    "furnace/smelts_input_to_result": {
+      "snapshot": {
+        "informational": {
+          "surfaceY": 3
+        },
+        "lifecycle": {
+          "spawned": true,
+          "kickReason": null,
+          "sawLoginPacket": true,
+          "sawUpdateHealthPacket": true
+        },
+        "world": {
+          "dimension": "overworld",
+          "minY": -64,
+          "height": 384
+        },
+        "terrain": {
+          "layersBelowSurface": [
+            "grass_block",
+            "dirt",
+            "dirt",
+            "bedrock"
+          ],
+          "layersAboveSurface": [
+            "air",
+            "air"
+          ],
+          "biomeIdAtSurface": 40,
+          "biomeNameAtSurface": "plains"
+        },
+        "player": {
+          "gameMode": "creative",
+          "health": 20,
+          "food": 20,
+          "yRelativeToSurface": 1,
+          "onGround": true,
+          "standingOn": "grass_block"
+        },
+        "extra": {
+          "smeltedToStone": true,
+          "progressDataReceived": true,
+          "litFlipped": true
         }
       }
     }

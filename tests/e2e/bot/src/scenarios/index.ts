@@ -11,6 +11,7 @@ import { chunkSyncCases } from "./chunk-sync.ts";
 import { blockInteractionCases } from "./block-interaction.ts";
 import { inventoryCases } from "./inventory.ts";
 import { craftingCases } from "./crafting.ts";
+import { furnaceCases } from "./furnace.ts";
 
 /** 全部用例。 */
 export const ALL_CASES: readonly CaseDefinition[] = [
@@ -19,4 +20,5 @@ export const ALL_CASES: readonly CaseDefinition[] = [
     ...blockInteractionCases,
     ...inventoryCases,
     ...craftingCases,
+    ...furnaceCases,
 ];

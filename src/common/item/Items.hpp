@@ -1053,6 +1053,7 @@ public:
     static Item* CRAFTING_TABLE;   // 合成台
     static Item* CHEST;            // 箱子
     static Item* TRAPPED_CHEST;    // 陷阱箱
+    static Item* FURNACE;          // 熔炉
     static Item* BREWING_STAND;    // 酿造台
     static Item* ENCHANTING_TABLE; // 附魔台
     static Item* CAULDRON;         // 炼药锅

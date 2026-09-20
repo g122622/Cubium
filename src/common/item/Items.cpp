@@ -1007,6 +1007,7 @@ Item* Items::BLACK_TERRACOTTA = nullptr;
 Item* Items::CRAFTING_TABLE = nullptr;
 Item* Items::CHEST = nullptr;
 Item* Items::TRAPPED_CHEST = nullptr;
+Item* Items::FURNACE = nullptr;
 Item* Items::BREWING_STAND = nullptr;
 Item* Items::ENCHANTING_TABLE = nullptr;
 Item* Items::CAULDRON = nullptr;
@@ -3714,6 +3715,7 @@ void Items::_registerBuildingBlocks()
     CHEST = &registerBlockBackedItem(registry, VanillaBlocks::CHEST, "chest", ItemProperties().maxStackSize(64));
     TRAPPED_CHEST = &registerBlockBackedItem(
         registry, VanillaBlocks::TRAPPED_CHEST, "trapped_chest", ItemProperties().maxStackSize(64));
+    FURNACE = &registerBlockBackedItem(registry, VanillaBlocks::FURNACE, "furnace", ItemProperties().maxStackSize(64));
     BREWING_STAND = &registerBlockBackedItem(
         registry, VanillaBlocks::BREWING_STAND, "brewing_stand", ItemProperties().maxStackSize(64));
     ENCHANTING_TABLE = &registerBlockBackedItem(

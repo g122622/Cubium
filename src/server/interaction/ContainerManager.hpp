@@ -215,6 +215,9 @@ private:
         std::shared_ptr<IInventory> inventoryOwner;
         mc::ContainerType type = mc::ContainerType::Player;
         BlockPos position;
+        /// 自上次下发全量内容以来，菜单槽位是否被服务端自己改动过（熔炉烧出产物、
+        /// 燃料被消耗等）。由 tickMenus 消费：置位则重发一次全量并清零。
+        bool slotChangePending = false;
     };
 
     std::unordered_map<PlayerId, OpenContainer> m_openContainers;

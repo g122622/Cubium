@@ -1,5 +1,12 @@
 #include "BaseTestServer.hpp"
 
+#include "common/entity/inventory/InventorySlotMapping.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+
 namespace mc::test {
 
 Result<void> FakeServerConnection::send(mc::network::ir::IrPacket packet)
@@ -29,7 +36,22 @@ BaseTestServer::BaseTestServer()
     , m_gameModeManager(m_playerManager, m_connectionManager)
     , m_commandRegistry()
     , m_scoreboard(*this)
-{}
+{
+    // 物品栏下发出口：生产的实现挂在 MinecraftServer 上，命令侧统一经
+    // InventoryManager::syncToClient 触发。测试桩若不接这条链路，命令改完物品栏后
+    // 「客户端收到同步」就无从断言——本桩补上与生产同形的 ContainerSetContent(containerId=0)。
+    m_inventoryManager.setOnInventoryUpdate([this](PlayerId playerId, const PlayerInventory& inventory) {
+        mc::network::ir::play::ContainerSetContent pkt;
+        pkt.containerId = 0; // 玩家物品栏
+        const auto* playerData = m_playerManager.getPlayer(playerId);
+        pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
+        pkt.items = mc::buildMenuContent(inventory);
+        pkt.carriedItem = mc::network::ir::play::ItemStackView{};
+        m_connectionManager.sendToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
+    });
+}
 
 [[noreturn]] void BaseTestServer::throwUnused()
 {
