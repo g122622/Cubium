@@ -397,9 +397,9 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
     // _onChunkLoadComplete 通过实例指针一致性校验防止 SCLM 被 unload 重建后的误用。
     auto lifecycleHolder = _findLifecycleManagerShared(x, z);
     // 正常路径下 lifecycleHolder 非空（_getOrCreateLifecycleManager 刚创建并入表）。
-    // 若极端情况下为空（并发 unload），直接 noteStorageResolved(false) 走生成链路。
+    // 若极端情况下为空（并发 unload），直接 noteStorageMissing() 走生成链路。
     if (lifecycleHolder == nullptr) {
-        auto decision = lifecycleManager.noteStorageResolved(false);
+        auto decision = lifecycleManager.noteStorageMissing();
         _advanceChunkState(lifecycleManager, decision);
         return;
     }
@@ -407,7 +407,7 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
     // 无存档（测试/独立模式未配置存储，或存档未打开）：视同存档缺失，直接走生成链路。
     // 与旧 _tryToLoadChunkFromStorageSync 的 !isStorageOpen() 守卫等价，避免 storage() 解引用空指针。
     if (!m_world || !m_world->isStorageOpen()) {
-        auto decision = lifecycleManager.noteStorageResolved(false);
+        auto decision = lifecycleManager.noteStorageMissing();
         _advanceChunkState(lifecycleManager, decision);
         return;
     }
@@ -422,7 +422,7 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
         if (it != m_pendingLoadTasks.end()) {
             // 已有在途加载：附加当前 SCLM 为等待者，不重新发起加载。
             // 所有者的 abortSignal 独立于本 SCLM；本 SCLM 的 sourceState 已是 ResolvingStorage
-            // （submitRequest 设置），所有者完成后 noteStorageResolved 推进。
+            // （submitRequest 设置），所有者完成后由 publishStorageLoaded 原子发布区块并推进状态。
             it->second.attachedWaiters.push_back({lifecycleHolder});
             return;
         }
@@ -505,7 +505,7 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
     }
 
     // 实例一致性校验：owner SCLM 可能已被 unloadChunkSync 从 m_lifecycleManagers 移除。
-    // 若已移除，跳过 owner 自身的状态推进（noteStorageResolved 会在已析构/复用的 SCLM 上调用，
+    // 若已移除，跳过 owner 自身的状态推进（状态推进会触及已析构/复用的 SCLM，
     // 但 lifecycleHolder shared_ptr 仍存活，持有旧实例）。附加等待者仍需扇出。
     auto currentHolder = _findLifecycleManagerShared(x, z);
     const bool ownerAlive = (currentHolder != nullptr && currentHolder.get() == lifecycleHolder.get());
@@ -517,7 +517,7 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
 
         if (result.failed()) {
             spdlog::warn("Async load chunk failed ({}, {}): {}", x, z, result.error().message());
-            auto decision = lifecycleManager.noteStorageResolved(false);
+            auto decision = lifecycleManager.noteStorageMissing();
             _advanceChunkState(lifecycleManager, decision);
             // 扇出附加等待者（同样走生成路径）
             _fanOutAttachedWaiters(x, z, entry.attachedWaiters, false);
@@ -527,7 +527,6 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
         std::optional<ChunkData> chunkOpt = std::move(result).value();
         hit = chunkOpt.has_value();
         if (hit) {
-            auto decision = lifecycleManager.noteStorageResolved(true);
             std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
             // 对象级内存追踪由 ChunkData 内置守卫 m_memTrack 负责（ctor 发 alloc、dtor 发
             // free，move 时重绑定），无需在此调用点插桩。shared_ptr 析构时机不确定的问题
@@ -539,10 +538,15 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             // 共享同一份 ChunkData（shareChunkData 非破坏性，不触发 toChunkData 收尾，避免 setBiomes
             // 用 primer 未填充的 m_biomes 清空存档生物群系）。primer 构造置 chunkStatus=FULL、
             // status=Loaded，与 markLoadedFromStorageReady(FULL) 的 currentGenStatus 一致。
+            //
+            // primer 必须在推进来源状态之前构造完毕：publishStorageLoaded 在同一临界区内安装 primer
+            // 并置 LoadedFromStorage，故并发调度者不可能观察到"来源已解析但区块对象缺失"的中间态。
+            // primer 构造（updateAllHeightmaps 遍历全部 section）耗时较长，若放在状态发布之后，
+            // 该窗口会被并发 schedule/checkNeighbour 观察到并误判该 holder 需要 EMPTY 加载。
             auto primer = std::make_unique<ChunkPrimer>(std::move(loadedChunk));
             std::shared_ptr<ChunkData> sharedData = primer->shareChunkData();
-            lifecycleManager.setCurrentChunk(std::move(primer));
-            ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(sharedData));
+            auto decision = lifecycleManager.publishStorageLoaded(std::move(primer));
+            ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(sharedData), &lifecycleManager);
             if (stored && m_world) {
                 bool alreadyProcessed;
                 {
@@ -570,7 +574,7 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             }
         } else {
             // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）。
-            auto decision = lifecycleManager.noteStorageResolved(false);
+            auto decision = lifecycleManager.noteStorageMissing();
             _advanceChunkState(lifecycleManager, decision);
         }
     }
@@ -594,17 +598,16 @@ void ServerChunkManager::_fanOutAttachedWaiters(
         }
         SingleChunkLifecycleManager& waiterSclm = *waiter.lifecycle;
         // 等待者 SCLM 仍是 ResolvingStorage（被附加时 submitRequest 设置，未推进）。
-        // noteStorageResolved 推进状态机，与 owner 的处理对称。
-        auto decision = waiterSclm.noteStorageResolved(hit);
         if (hit) {
-            // 命中：区块已在 m_chunks（owner 存入）。推进 SCLM 到 Ready 并唤醒等待者。
+            // 命中：区块已在 m_chunks（owner 存入，hit 仅在 owner 存活路径被置位）。
             // 不重复 _storeChunkInMemorySync（区块已在 m_chunks）。
-            // 与 owner 命中路径对称：从已发布的 ChunkData 创建 primer 设到 waiter SCLM 的
-            // currentChunk（共享所有权），否则经 checkNeighbour 注册为生成邻居的依赖者在
-            // buildNeighbourCache 取 getCurrentChunk() 为空 → "neighbour primer missing" 断言。
-            if (std::shared_ptr<ChunkData> sharedData = tryToGetChunkSharedInMem(x, z)) {
-                waiterSclm.setCurrentChunk(std::make_unique<ChunkPrimer>(std::move(sharedData)));
-            }
+            // 与 owner 命中路径对称：从已发布的 ChunkData 创建 primer，并与来源状态原子发布——
+            // 否则经 checkNeighbour 注册为生成邻居的依赖者会在 buildNeighbourCache 取
+            // getCurrentChunk() 为空 → "neighbour primer missing" 断言。
+            std::shared_ptr<ChunkData> sharedData = tryToGetChunkSharedInMem(x, z);
+            MC_ASSERT_RELEASE_MSG(sharedData != nullptr,
+                "fanOutAttachedWaiters: storage hit must have published the chunk into m_chunks");
+            waiterSclm.publishStorageLoaded(std::make_unique<ChunkPrimer>(std::move(sharedData)));
             waiterSclm.markLoadedFromStorageReady(ChunkStatuses::FULL);
             _completeReadyWaiters(waiterSclm);
             // 与 owner 命中路径对称：通知经 checkNeighbour 注册到本等待者 m_waitingNeighbours
@@ -614,7 +617,7 @@ void ServerChunkManager::_fanOutAttachedWaiters(
             }
         } else {
             // 缺失/失败：走生成链路。
-            _advanceChunkState(waiterSclm, decision);
+            _advanceChunkState(waiterSclm, waiterSclm.noteStorageMissing());
         }
     }
 }
@@ -960,15 +963,11 @@ util::TaskPriority ServerChunkManager::mapSclmPriorityToTaskPriority(i32 sclmPri
 // 存储与发布
 // ============================================================================
 
-ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
+ChunkData* ServerChunkManager::_storeChunkInMemorySync(
+    ChunkCoord x, ChunkCoord z, std::shared_ptr<ChunkData> data, mc::world::chunk::SingleChunkLifecycleManager* owner)
 {
     MC_ASSERT_RELEASE(data != nullptr);
-    return _storeChunkInMemorySync(x, z, std::shared_ptr<ChunkData>(std::move(data)));
-}
-
-ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::shared_ptr<ChunkData> data)
-{
-    MC_ASSERT_RELEASE(data != nullptr);
+    MC_ASSERT_RELEASE_MSG(owner != nullptr, "_storeChunkInMemorySync: owner holder must not be null");
     std::shared_ptr<ChunkData> sharedChunk(std::move(data));
     MC_ASSERT_RELEASE(sharedChunk != nullptr);
 
@@ -984,12 +983,22 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
         }
     }
 
-    if (SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z)) {
+    // 身份校验：仅当坐标上的 SCLM 仍是本次数据的所属 holder 时才推进其状态。生成/加载在 worker 线程
+    // 完成期间，holder 可能已被 unload 并由同坐标的新 holder 顶替；按坐标无条件推进会把新 holder 标成
+    // Ready/FULL 却不持有任何 primer，依赖它的邻居随即在 buildNeighbourCache 取到空区块。
+    // 区块数据本身仍进入 m_chunks（按坐标缓存，新 holder 可复用）。
+    SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z);
+    if (lifecycleManager == owner) {
         // 区块已发布到内存缓存：标记 sourceState=Ready + currentGenStatus=FULL，并唤醒等待者。
         // markLoadedFromStorageReady 推进 currentGenStatus 到 FULL（若尚未）并设置 m_sourceState=Ready，
         // 使 _buildDecisionLocked 返回 shouldWakeReadyWaiters=true。
         lifecycleManager->markLoadedFromStorageReady(ChunkStatuses::FULL);
         _completeReadyWaiters(*lifecycleManager);
+    } else if (lifecycleManager != nullptr) {
+        spdlog::warn("_storeChunkInMemorySync: holder at ({}, {}) was replaced while its chunk was being "
+                     "published; skipping status publish for the stale owner",
+            x,
+            z);
     }
 
     // onChunkLoaded / m_chunkLoadedCallback 不在此调用：它们触及主线程独占的世界状态
@@ -1000,7 +1009,8 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
     return stored;
 }
 
-ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer)
+ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(
+    ChunkCoord x, ChunkCoord z, ChunkPrimer& primer, mc::world::chunk::SingleChunkLifecycleManager& holder)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::finalizeGeneratedChunkSync", "x", x, "z", z);
 
@@ -1016,7 +1026,7 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
         return nullptr;
     }
 
-    ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(data));
+    ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(data), &holder);
 
     // spawnEntitiesFromChunkGeneration / _postProcessChunk / onChunkLoaded / m_chunkLoadedCallback 触及
     // 主线程独占状态（ServerTickList、EntityManager、setBlockState、POI、光照），不能在 worker 线程调用。
@@ -1291,6 +1301,12 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
         std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
         auto it = m_pendingLoadTasks.find(key);
         if (it != m_pendingLoadTasks.end()) {
+            // TODO: 此处只摘除被卸载 holder 作为"附加等待者"的身份，未失效它作为"owner"的条目。
+            // owner 条目会存活到该次加载完成回调到达为止；期间同坐标新建的 holder 会被附加到这条
+            // 属于已卸载实例的加载上，而 _onChunkLoadComplete 在 ownerAlive==false 时恒以 hit=false
+            // 扇出，导致刚读出的存档数据被整体丢弃、新 holder 重新走一遍生成。需要让卸载按身份
+            // 失效 owner 条目（或让完成回调把命中的区块交给当前 holder 复用），改动涉及 holder 重建
+            // 语义与 m_chunks 复用，需单独设计。
             auto& waiters = it->second.attachedWaiters;
             waiters.erase(std::remove_if(waiters.begin(),
                               waiters.end(),

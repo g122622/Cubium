@@ -102,7 +102,15 @@ bool StorageTask::execute(const std::atomic<bool>& abortSignal)
     return m_executor ? m_executor(abortSignal) : false;
 }
 
-void StorageTask::onCancel() {}
+void StorageTask::onCancel()
+{
+    // 线程池判定任务已取消时不会执行 executor，只调用本钩子。executor 除 I/O 外还负责结清完成计数并
+    // 调用提交方的 completion（见头文件说明），故此处必须执行它——传入恒为 true 的取消信号，
+    // executor 会走取消分支：不做 I/O，只填取消结果并触发 completion。
+    if (m_executor) {
+        m_executor(m_cancelSignal);
+    }
+}
 
 util::TaskType StorageTask::type() const
 {

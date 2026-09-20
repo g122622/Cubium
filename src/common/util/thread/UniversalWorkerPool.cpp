@@ -98,9 +98,15 @@ void UniversalWorkerPool::shutdown()
     // 置停止位并唤醒所有等待的线程：两个条件变量的谓词都在各自互斥量下求值，故此处
     // "持锁置位 + 持锁通知"，与等待方的"谓词求值 + 原子释放锁并阻塞"串行化，杜绝关闭期
     // 通知丢失导致 worker 永久阻塞（进而 join 永久挂起）。
+    // 同时取出队列中所有不会再被执行的任务，放到 lock 外逐一结清。
+    std::vector<std::shared_ptr<InternalTask>> droppedTasks;
     {
         std::lock_guard<std::mutex> queueLock(m_queueMutex);
         m_stop.store(true, std::memory_order::release);
+        while (!m_taskQueue.empty()) {
+            droppedTasks.push_back(m_taskQueue.top());
+            m_taskQueue.pop();
+        }
         m_condition.notify_all();
     }
     {
@@ -109,6 +115,22 @@ void UniversalWorkerPool::shutdown()
         m_areaReleasedCondition.notify_all();
     }
 
+    // 结清被丢弃的任务必须在 join 之前完成：其他线程可能正阻塞等待这些任务的结果（例如等待同一区块
+    // 保存完成的加载任务），若留到 join 之后再处理，等待方永远收不到通知，而它的 worker 不响应停止位，
+    // join 将永久挂起。onCancel 在锁外调用：它可能向其他池提交任务，持 m_queueMutex 回调有重入风险。
+    for (auto& task : droppedTasks) {
+        // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
+        _releaseOutstandingTask();
+        if (!task || !task->task) {
+            continue;
+        }
+        task->task->onCancel();
+        if (task->callback) {
+            task->callback(false, task->task.get()); // 通知失败
+        }
+    }
+    droppedTasks.clear();
+
     // 等待所有线程结束
     for (auto& worker : m_workers) {
         if (worker.joinable()) {
@@ -116,20 +138,6 @@ void UniversalWorkerPool::shutdown()
         }
     }
     m_workers.clear();
-
-    // 清空任务队列
-    {
-        std::lock_guard<std::mutex> lock(m_queueMutex);
-        while (!m_taskQueue.empty()) {
-            auto task = m_taskQueue.top();
-            m_taskQueue.pop();
-            // 未执行即丢弃：未完成任务计数必须同步递减，否则 waitForCompletion 永不复位
-            _releaseOutstandingTask();
-            if (task && task->callback) {
-                task->callback(false, task->task.get()); // 通知失败
-            }
-        }
-    }
 
     spdlog::info("[UniversalWorkerPool] Shutdown complete (name: {})", m_poolName);
 }
@@ -151,6 +159,9 @@ u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
     }
 
     if (!m_running.load(std::memory_order::acquire)) {
+        // 池未启动即提交：任务被丢弃。必须在日志中暴露，否则调用方（尤其是提交时不带 callback
+        // 的存储任务）会永远等不到结果而无从排查。
+        spdlog::warn("UniversalWorkerPool[{}]: task submitted before pool start; task dropped", m_poolName);
         if (callback) {
             callback(false, nullptr);
         }
@@ -195,6 +206,9 @@ u64 UniversalWorkerPool::submit(std::unique_ptr<ITask> task,
     }
 
     if (!m_running.load(std::memory_order::acquire)) {
+        // 池未启动即提交：任务被丢弃。必须在日志中暴露，否则调用方（尤其是提交时不带 callback
+        // 的存储任务）会永远等不到结果而无从排查。
+        spdlog::warn("UniversalWorkerPool[{}]: task submitted before pool start; task dropped", m_poolName);
         if (callback) {
             callback(false, nullptr);
         }

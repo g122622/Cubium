@@ -74,7 +74,20 @@ public:
      */
     static std::unique_ptr<StorageTask> createFlushTask(DimensionId dimension, size_t count, Executor executor);
 
+    /**
+     * @brief 执行任务体
+     *
+     * @param abortSignal 取消信号；executor 需在此为 true 时走取消分支并完成收尾
+     */
     bool execute(const std::atomic<bool>& abortSignal) override;
+
+    /**
+     * @brief 取消钩子：以"已取消"信号执行任务体
+     *
+     * 线程池在任务出队后判定为已取消时不会执行 executor，只调用本钩子。而 executor 除了 I/O 之外
+     * 还承担结清职责（递减两路 I/O 的完成计数、调用提交方传入的 completion）。若本钩子为空，被取消的
+     * 任务将永远不会通知提交方——区块加载方会永久停留在"存档解析在途"状态，保存等待方会永久阻塞。
+     */
     void onCancel() override;
     util::TaskType type() const override;
     std::string description() const override;
@@ -87,6 +100,9 @@ private:
     std::string m_description;
     const char* m_traceCategory;
     Executor m_executor;
+
+    /// 取消时传给 executor 的信号，恒为 true（executor 据此走取消分支而非真正执行 I/O）
+    std::atomic<bool> m_cancelSignal{true};
 };
 
 } // namespace mc::world::storage

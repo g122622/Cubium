@@ -183,6 +183,18 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 详见 `docs/BUG-WorldGenRegion-Access-Window.md`（问题根因）。
 
+### 区块可用性的宣告必须与区块安装同时生效
+
+`SingleChunkLifecycleManager` 对外宣告"该区块在某个状态可用"（`sourceState ∈ {LoadedFromStorage, Ready}` 或 `currentGenStatus` 达标）时，`m_currentChunk` 必须已经非空。存档命中路径统一走 `publishStorageLoaded(primer)`：在**同一临界区**内安装 primer、把 `currentGenStatus` 推进到 FULL（存档区块即完整区块）、把 `sourceState` 推进到 `LoadedFromStorage`；`noteStorageMissing()` 只负责"确认存档缺失"。任何"先推进状态、后安装区块"的写法都会让并发调度者（`schedule` 的空区块分支、`checkNeighbour` 的就绪判定、`buildNeighbourCache` 的 primer 取用）观察到"状态已就绪但区块缺失"，据此为该 holder 重复调度一次 EMPTY 加载，最终让依赖邻居取到空 primer 并在生成区域里崩溃。`markLoadedFromStorageReady` 与 `setCurrentChunk` 内均有不变量断言把关。
+
+### 调度判据必须是一次原子读取
+
+判断 holder 能否推进状态，需要同时知道"区块对象是否存在"与"存档来源是否已解析 / 生成状态是否达标"。这些字段虽在同一临界区内一并写入，但若**分多次加锁读取**，两次读取之间仍可能跨越一次状态发布，读出"区块为空 + 状态就绪"这一在真实状态中并不存在的组合。故 `ChunkTaskScheduler::schedule` 统一用 `SingleChunkLifecycleManager::generationSnapshot()` 一次取齐；`buildNeighbourCache` 对邻居用 `getChunkIfPresentUnchecked`（状态 ∧ 对象的合取）而非只比较状态。
+
+### 测试夹具必须注入存储线程池
+
+`SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载检查每 20 tick 一次、单轮最多卸载 200 个区块，同步写盘（24 个 section 的快照序列化 + ZSTD + RocksDB 写）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
+
 ### 实体追踪器内存泄漏
 实体移除后未从追踪器取消追踪会导致泄漏。`ServerWorld::removeEntity()` 会自动处理追踪器状态更新。如果直接调用 `entityManager().removeEntity()`，需要手动调用 `entityTracker().untrackEntity()`。
 

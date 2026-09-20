@@ -137,8 +137,8 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
     //
     // sourceState 守卫：
     // - ResolvingStorage：异步加载尚未完成（不应发生，调度在 _onChunkLoadComplete 之后），返回 false 等待。
-    // - LoadedFromStorage/Ready：存档命中已被 _onChunkLoadComplete 处理（存入内存+markLoadedFromStorageReady），
-    //   不应进入生成。防御性检查内存缓存，命中则直接完成，避免重复 I/O。
+    // - LoadedFromStorage/Ready：存档命中路径（publishStorageLoaded + _storeChunkInMemorySync）已把区块
+    //   发布出去，不应进入生成。
     // - StorageMissing：新建空 Primer，SCLM 接管所有权。
     const auto sourceState = holder.sourceState();
     if (sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::ResolvingStorage) {
@@ -148,13 +148,14 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
 
     if (sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::LoadedFromStorage ||
         sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::Ready) {
-        // 防御分支：异步路径（_onChunkLoadComplete）已把 ChunkData 存入内存缓存并 markLoadedFromStorageReady(FULL)。
-        // 此状态不应进入生成调度（currentGenStatus=FULL >= requestedGenStatus，schedule 不会创建 EMPTY 任务）。
-        // 若极端竞态下仍进入，直接完成 FULL（chunk 已在内存），解除调度器等待。
-        // ChunkData 不可拷贝（copy ctor deleted），不构造 primer；onChunkGenComplete 仅推进 currentGenStatus（已是
-        // FULL）。
+        // 存档命中路径已发布区块，本分支只是竞态残留的任务：直接按已就绪处理，解除调度器等待。
+        // LoadedFromStorage/Ready 蕴含 currentChunk 非空（publishStorageLoaded 在同一临界区内安装
+        // primer 并推进来源状态），故此处不可能出现"只推进状态而没有区块"的情形——后者会让依赖邻居
+        // 在 buildNeighbourCache 取到空 primer。
+        MC_ASSERT_RELEASE_MSG(
+            holder.getCurrentChunk() != nullptr, "executeEmptyLoad: a loaded holder must already hold its chunk");
         holder.completeStatusTo(ChunkStatuses::FULL);
-        holder.markLoadedFromStorageReady();
+        holder.markLoadedFromStorageReady(ChunkStatuses::FULL);
         m_scheduler.onChunkGenComplete(holder, ChunkStatuses::FULL);
         return true;
     }
@@ -261,7 +262,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
     // 不释放 primer：FULL 后 currentChunk（primer）仍存活供邻居引用（STRUCTURE_REFERENCES/
     // LIGHT 等状态可能并发读取已 FULL 的邻居），直到 holder 卸载（isSafeToUnload）才随 holder 析构。
     if (*m_toStatus == ChunkStatuses::FULL) {
-        (void)m_manager._finalizeGeneratedChunkSync(m_x, m_z, *primer);
+        (void)m_manager._finalizeGeneratedChunkSync(m_x, m_z, *primer, holder);
         // 不调用 holder.releaseCurrentChunk()：primer 保留 m_currentChunk，邻居 getChunkIfPresentUnchecked
         // 仍可返回有效指针。ChunkData 已通过 shared_ptr 与 m_chunks 共享所有权。
     }

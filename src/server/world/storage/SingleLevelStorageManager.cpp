@@ -598,6 +598,8 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
 {
     if (!chunk) {
         if (callback) {
+            // TODO: 空区块入参没有真实坐标，此处回传 (0, 0) 会让调用方把失败记为"坐标 (0,0) 的保存失败"。
+            // 应改为让 callback 携带可选坐标（或让调用方在提交前自行拒绝空区块）。
             callback(0, 0, Error(ErrorCode::InvalidArgument, "saveChunkAsyncCallback: null chunk"));
         }
         return;
@@ -767,6 +769,11 @@ void SingleLevelStorageManager::_waitPendingChunkSave(ChunkCoord x, ChunkCoord z
     // 在 ServerIO 线程等待保存完成，不阻塞主线程。
     // 保存任务的 savePromise->set_value() 使 future 就绪；future 拷贝脱离 map，
     // 即使保存完成覆盖/移除 map 条目，本 future 仍可安全 wait（promise 共享状态存活至所有 future 释放）。
+    //
+    // TODO: 保存任务与加载任务共用同一个 ServerIO 池，本处在池线程内阻塞等待同池任务。当池内全部
+    // 线程都停在等待、而它们所等的保存任务还排在同池队列中时，会出现线程饥饿死锁（池线程数越少、
+    // 卸载后立刻重新加载同一区块的频率越高越容易触发）。应改为回调驱动：把"保存完成后再读盘"
+    // 串成延续任务，而不是在池线程内阻塞等待。
     future.wait();
 }
 
@@ -950,7 +957,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     // 与 ServerIO 读盘分离（对齐 Moonrise ProcessOffMainTask 跑在 loadExecutor）。
     // 无 Compute 池（测试/独立模式）时降级为在 ServerIO worker 内联组装。
     // abortSignal 透传给 Compute 任务，使 SCLM 取消能中断组装阶段。
-    auto checkComplete = [this, state, _assemble, abortSignal, priority]() {
+    auto checkComplete = [this, state, _assemble, priority]() {
         if (state->pending.fetch_sub(1, std::memory_order::acq_rel) != 1) {
             return;
         }
@@ -965,10 +972,15 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
                 fmt::format("ChunkLoadAssemble({},{})", state->x, state->z),
                 std::move(runAssemble),
                 "server.chunk");
+            // 组装阶段不绑定取消信号：它是本次加载的收尾环节，负责调用 completion 通知提交方
+            // （ServerChunkManager 据此清除"存档解析在途"条目并推进等待者）。组装本身不做 I/O，
+            // 且 _assemble 会按已收集到的取消结果（sectionResult 为错误）正常产出失败结果；
+            // 若绑定取消信号，被取消的加载会跳过组装从而永不通知提交方，提交方将永久停留在
+            // "存档解析在途"状态（区块请求再也无法完成）。
             m_computeWorkerPool->submit(std::move(computeTask),
                 /*callback=*/nullptr,
                 priority,
-                abortSignal);
+                nullptr);
         } else {
             // 降级：无 Compute 池，在当前线程（ServerIO worker 或测试线程）内联组装。
             std::atomic<bool> dummySig{false};

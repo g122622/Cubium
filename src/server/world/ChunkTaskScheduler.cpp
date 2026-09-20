@@ -125,8 +125,14 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(
     MC_ASSERT_RELEASE_MSG(m_schedulingLockArea.isHeldByCurrentThread(x, z, accessRadius),
         "ChunkTaskScheduler::schedule must be called holding the scheduling lock area");
 
+    // 一次性原子读出本函数用到的全部 holder 状态。分多次加锁读取（尤其"区块对象"与"存档来源"两次
+    // 独立读取）会在两次读取之间跨越一次状态发布——publishStorageLoaded 在同一临界区内安装 primer
+    // 并推进来源状态，先读到"区块为空"、后读到"来源已解析"的组合在真实状态中并不存在，据此判定
+    // 会把已发布区块的 holder 误当作待加载区块。
+    const SingleChunkLifecycleManager::GenerationSnapshot snapshot = holder.generationSnapshot();
+
     // 已完成到目标状态：无需推进
-    if (holder.hasCompletedStatus(targetStatus)) {
+    if (snapshot.currentGenStatus->isAtLeast(targetStatus)) {
         return nullptr;
     }
 
@@ -152,7 +158,7 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(
     holder.upgradeGenTarget(targetStatus);
 
     // 已有进行中的生成任务：仅提升目标，不重复调度（对齐 Moonrise upgradeGenTarget）
-    if (holder.hasGenerationTask()) {
+    if (snapshot.hasGenerationTask) {
         return nullptr;
     }
 
@@ -174,8 +180,14 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(
     //           （对齐 getEmptyChunk）→onChunkGenComplete→notifyWaitingNeighbours
     // - ResolvingStorage：异步存档读取在途，不创建任务，返回 nullptr 等待存档解析完成路径重新调度。
     // - StorageMissing：存档已确认不存在，创建空 Primer（对齐 Moonrise getEmptyChunk）。
-    if (holder.getCurrentChunk() == nullptr) {
-        const auto sourceState = holder.sourceState();
+    //
+    // LoadedFromStorage/Ready 不在此列：二者蕴含 holder 已持有区块（publishStorageLoaded 在同一临界区内
+    // 安装 primer 并推进来源状态），故 currentChunk 为空时 sourceState 只可能是 StorageMissing。
+    // 绝不可对 LoadedFromStorage/Ready 兜底创建空 Primer 任务——那会把该 holder 送进 executeEmptyLoad
+    // 的"已加载"分支，在区块尚未安装时就把状态宣告为 FULL 就绪，依赖它的邻居随即在 buildNeighbourCache
+    // 取到空 primer。
+    if (snapshot.currentChunk == nullptr) {
+        const auto sourceState = snapshot.sourceState;
         if (sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::Unknown) {
             // pristine holder：发起存档解析，挂起等待。不创建生成任务。
             m_manager._resolveStorageForScheduling(holder, targetStatus);
@@ -185,14 +197,13 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(
             // 异步存档读取在途：不创建任务，等待 _onChunkLoadComplete 完成路径重新调度。
             return nullptr;
         }
-        // StorageMissing（存档已确认不存在）或 LoadedFromStorage/Ready（极端竞态 currentChunk 为空）：
-        // 创建空 Primer（对齐 getEmptyChunk）。LoadedFromStorage/Ready 的 currentChunk 由 _onChunkLoadComplete
-        // 设置，理论不应为空；若为空则当作存档缺失处理（创建空 Primer 后走生成），不会数据损坏。
+        MC_ASSERT_RELEASE_MSG(sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::StorageMissing,
+            "ChunkTaskScheduler::schedule: a holder that resolved storage must already hold its chunk");
         return scheduleEmptyLoad(x, z, holder);
     }
 
     // 推进一步：toStatus = currentGenStatus 的下一个状态
-    const ChunkStatus& currentStatus = holder.getCurrentGenStatus();
+    const ChunkStatus& currentStatus = *snapshot.currentGenStatus;
     const auto& allStatuses = ChunkStatus::getAll();
     const i32 nextOrdinal = currentStatus.ordinal() + 1;
     if (nextOrdinal >= static_cast<i32>(allStatuses.size())) {
@@ -573,7 +584,7 @@ void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder, m
     // 这是"存档解析在途、不应生成"的瞬态条件，不是真正的生成失败：
     //   - 存档命中：_onChunkLoadComplete→markLoadedFromStorageReady(FULL)→onLoadedFromStorageReady
     //     （notifyWaitingNeighbours 解除依赖邻居阻塞）+ _completeReadyWaiters（fulfill 请求 promise）。
-    //   - 存档缺失：_onChunkLoadComplete→noteStorageResolved(false)→_scheduleGeneration→schedule
+    //   - 存档缺失：_onChunkLoadComplete→noteStorageMissing()→_scheduleGeneration→schedule
     //     （sourceState=StorageMissing，非 ResolvingStorage）→scheduleEmptyLoad 成功→onChunkGenComplete
     //     →notifyWaitingNeighbours。
     // 两条路径都会推进 holder 状态并解除依赖邻居阻塞。故此处仅 clearGenerationTask（使 holder 可被
@@ -878,19 +889,17 @@ StaticChunkCache2D<std::shared_ptr<SingleChunkLifecycleManager>> ChunkTaskSchedu
         // 中心与邻居都通过 _findLifecycleManagerShared 取 shared_ptr（与 scheduleStatusStep 的 holderShared 一致）。
         std::shared_ptr<SingleChunkLifecycleManager> holder = m_manager._findLifecycleManagerShared(nx, nz);
         MC_ASSERT_RELEASE_MSG(holder != nullptr, "buildNeighbourCache: holder missing");
-        ChunkPrimer* primer = holder->getCurrentChunk();
         if (nx == x && nz == z) {
             // 中心区块：primer 由 schedule 调用前保证非空（currentChunk 为空走 scheduleEmptyLoad）
-            MC_ASSERT_RELEASE_MSG(primer != nullptr, "buildNeighbourCache: center primer missing");
+            MC_ASSERT_RELEASE_MSG(holder->getCurrentChunk() != nullptr, "buildNeighbourCache: center primer missing");
         } else {
-            // 邻居：checkNeighbour 已确认达到 requiredStatus，getChunkIfPresentUnchecked 必非空
-            const i32 dx = nx - x;
-            const i32 dz = nz - z;
-            const i32 distance = std::max(std::abs(dx), std::abs(dz));
+            // 邻居可用性判据必须是"状态 ∧ 对象"的合取：getChunkIfPresentUnchecked 同时校验
+            // currentGenStatus 达标与 primer 非空。仅比对状态会漏掉"状态已宣告就绪但区块尚未安装"
+            // 的 holder，其空 primer 会直接进入 WorldGenRegion。
+            const i32 distance = std::max(std::abs(nx - x), std::abs(nz - z));
             const ChunkStatus* requiredStatus = step.getRequiredStatusAtRadius(distance);
             MC_ASSERT_RELEASE_MSG(requiredStatus != nullptr, "buildNeighbourCache: requiredStatus is null");
-            (void)holder->getChunkIfPresentUnchecked(*requiredStatus); // 状态就绪性断言（与旧逻辑一致）
-            MC_ASSERT_RELEASE_MSG(primer != nullptr,
+            MC_ASSERT_RELEASE_MSG(holder->getChunkIfPresentUnchecked(*requiredStatus) != nullptr,
                 "buildNeighbourCache: neighbour primer missing (checkNeighbour should have verified readiness)");
         }
         return holder;

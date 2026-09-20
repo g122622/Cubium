@@ -64,6 +64,20 @@ const ChunkStatus& SingleChunkLifecycleManager::getCurrentGenStatus() const
     return *m_currentGenStatus;
 }
 
+SingleChunkLifecycleManager::GenerationSnapshot SingleChunkLifecycleManager::generationSnapshot() const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    GenerationSnapshot snapshot;
+    snapshot.currentChunk = m_currentChunk.get();
+    snapshot.currentGenStatus = m_currentGenStatus;
+    snapshot.requestedGenStatus = m_requestedGenStatus;
+    snapshot.scheduledStatus = m_scheduledStatus;
+    snapshot.sourceState = m_sourceState;
+    snapshot.hasGenerationTask = (m_generationTask != nullptr);
+    snapshot.hasFailedGeneration = m_hasFailedGeneration;
+    return snapshot;
+}
+
 bool SingleChunkLifecycleManager::hasCompletedStatus(const ChunkStatus& status) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -79,6 +93,10 @@ ChunkPrimer* SingleChunkLifecycleManager::getCurrentChunk() const
 void SingleChunkLifecycleManager::setCurrentChunk(std::unique_ptr<ChunkPrimer> chunk)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // 唯一合法调用者是 EMPTY 加载（executeEmptyLoad 的空 Primer 分支），而该任务只在 holder 尚无区块时
+    // 被调度（schedule 在 currentChunk 非空时直接推进后续状态）。此处断言把"陈旧任务覆盖既有区块"
+    // 固定在写入点暴露，避免已生成/已加载的数据被空 Primer 顶替。
+    MC_ASSERT_RELEASE_MSG(m_currentChunk == nullptr, "setCurrentChunk: holder already holds a chunk");
     m_currentChunk = std::move(chunk);
 }
 
@@ -399,17 +417,32 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     return _buildDecisionLocked();
 }
 
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteStorageResolved(bool foundInStorage)
+SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::publishStorageLoaded(
+    std::unique_ptr<ChunkPrimer> chunk)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    MC_ASSERT_RELEASE_MSG(
+        m_sourceState == SourceState::ResolvingStorage, "publishStorageLoaded: holder must be resolving storage");
+    MC_ASSERT_RELEASE_MSG(chunk != nullptr, "publishStorageLoaded: chunk must not be null");
+    // 存档解析在途时该 holder 不可能已持有区块（schedule 在 ResolvingStorage 下不创建任何任务）。
+    MC_ASSERT_RELEASE_MSG(m_currentChunk == nullptr, "publishStorageLoaded: holder already holds a chunk");
+
+    // 从存档构造的 ChunkPrimer 一律是完整的 FULL 区块（见 ChunkPrimer 的 ChunkData 构造函数），
+    // 故区块安装、生成状态推进、来源状态推进三者必须在同一临界区内一次完成：只要分开，并发观察者
+    // 就会看到"区块已就绪但状态未推进"或"状态已推进但区块缺失"的中间态，并据此为同一 holder
+    // 重复调度一次 EMPTY 加载（后者会在区块缺失时宣告 FULL 就绪，令依赖邻居取到空区块）。
+    m_currentChunk = std::move(chunk);
+    m_currentGenStatus = &ChunkStatuses::FULL;
+    m_sourceState = SourceState::LoadedFromStorage;
+    return _buildDecisionLocked();
+}
+
+SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteStorageMissing()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     MC_ASSERT_RELEASE(m_sourceState == SourceState::ResolvingStorage);
 
-    if (foundInStorage) {
-        m_sourceState = SourceState::LoadedFromStorage;
-    } else {
-        m_sourceState = SourceState::StorageMissing;
-    }
-
+    m_sourceState = SourceState::StorageMissing;
     return _buildDecisionLocked();
 }
 
@@ -457,6 +490,10 @@ std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::ta
 void SingleChunkLifecycleManager::markLoadedFromStorageReady(const ChunkStatus& persistedStatus)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // Ready 蕴含"区块已可用"，故进入该状态前必须已安装 primer（由 publishStorageLoaded 在同一临界区内
+    // 安装）。此断言把"先推进来源、后安装区块"这一类顺序错误固定在写点暴露，避免依赖邻居随后在
+    // buildNeighbourCache 处以"primer missing"这一与实际病灶无关的信息崩溃。
+    MC_ASSERT_RELEASE_MSG(m_currentChunk != nullptr, "markLoadedFromStorageReady: holder must already hold its chunk");
     if (persistedStatus.isAfter(*m_currentGenStatus)) {
         m_currentGenStatus = &persistedStatus;
     }
@@ -507,9 +544,10 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_build
 
     // 来源解析是一次性的：Unknown→ResolvingStorage 那一跳由 submitRequest 直接置 shouldResolveStorage=true。
     // ResolvingStorage 状态下（其他线程并发 submitRequest 见到，解析在途）返回 no-op：waiter 已加入 m_waiters，
-    // 在途线程的 noteStorageResolved→_completeReadyWaiters（存档命中）或 _scheduleGeneration（存档缺失）会唤醒。
-    // 若此处置 shouldResolveStorage=true，并发 submitRequest 会重复触发 _resolveChunkSourceSync→noteStorageResolved，
-    // 第二次 noteStorageResolved 见到非 ResolvingStorage（已被第一次推进到 LoadedFromStorage/StorageMissing）
+    // 在途线程的 publishStorageLoaded→_completeReadyWaiters（存档命中）或
+    // noteStorageMissing→_scheduleGeneration（存档缺失）会唤醒。若此处置 shouldResolveStorage=true，
+    // 并发 submitRequest 会重复触发 _resolveChunkSourceSync→publishStorageLoaded/noteStorageMissing，
+    // 第二次发布见到非 ResolvingStorage（已被第一次推进到 LoadedFromStorage/StorageMissing）
     // 触发 m_sourceState != ResolvingStorage 断言。
     if (m_sourceState == SourceState::ResolvingStorage) {
         return decision;

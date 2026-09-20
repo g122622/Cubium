@@ -137,6 +137,34 @@ public:
     // === 生成状态（对齐 NewChunkHolder currentGenStatus / currentChunk） ===
 
     /**
+     * @brief 生成调度状态的原子快照
+     *
+     * 调度器需要同时观察"区块对象是否已存在"与"存档来源是否已解析"，而这两者在状态发布时是
+     * 一次性写入的（publishStorageLoaded 在同一临界区内安装 primer 并推进来源状态）。若调度器
+     * 分多次加锁读取，两次读取之间可能跨越一次发布，从而读到"区块为空 + 来源已解析"这一在真实
+     * 状态中并不存在的组合。快照把整组字段放在同一次加锁内读出，消除该失配。
+     *
+     * 快照中的指针生命周期由调用方保证：调用方需持有调度区域锁（持锁期间 holder 不可卸载，
+     * primer 随 holder 存活）。
+     */
+    struct GenerationSnapshot {
+        ChunkPrimer* currentChunk = nullptr;                           ///< 当前可变区块；为空表示尚未加载
+        const ChunkStatus* currentGenStatus = &ChunkStatuses::EMPTY;   ///< 已达到的最高生成状态
+        const ChunkStatus* requestedGenStatus = &ChunkStatuses::EMPTY; ///< 当前请求目标状态
+        const ChunkStatus* scheduledStatus = nullptr;                  ///< 进行中任务的目标状态
+        SourceState sourceState = SourceState::Unknown;                ///< 存档来源解析状态
+        bool hasGenerationTask = false;                                ///< 是否有进行中的生成任务
+        bool hasFailedGeneration = false;                              ///< 是否已永久失败
+    };
+
+    /**
+     * @brief 一次性读取生成调度所需的全部状态
+     *
+     * @return 同一次加锁内读出的状态快照
+     */
+    [[nodiscard]] GenerationSnapshot generationSnapshot() const;
+
+    /**
      * @brief 获取当前已达到的最高生成状态
      *
      * = 最后一次 onChunkGenComplete 推进到的状态；若无任何生成则为 EMPTY。
@@ -418,9 +446,26 @@ public:
         std::shared_ptr<std::promise<ChunkData*>> promise);
 
     /**
-     * @brief 记录一次存档来源解析结果
+     * @brief 原子发布从存档恢复出的区块数据
+     *
+     * 在同一临界区内一次完成区块安装、生成状态推进（存档区块即 FULL）与来源状态推进，使
+     * `currentGenStatus >= S ⟹ m_currentChunk != nullptr` 成为类不变量。若拆成多次写入，并发观察者
+     * （schedule 的"currentChunk 为空"分支、checkNeighbour 的就绪判定、buildNeighbourCache 的
+     * primer 取用）会看到"状态已推进但区块缺失"的中间态，据此为该 holder 重复调度 EMPTY 加载，
+     * 最终让依赖邻居取到空 primer。
+     *
+     * @param chunk 从存档反序列化得到的完整区块（必须非空，且其内容为 FULL 状态）
+     * @return 状态机推进后的调度决策
      */
-    EnqueueDecision noteStorageResolved(bool foundInStorage);
+    EnqueueDecision publishStorageLoaded(std::unique_ptr<ChunkPrimer> chunk);
+
+    /**
+     * @brief 记录一次"存档中不存在该区块"的解析结果
+     *
+     * 只有"确认缺失"能经由本接口推进：存档命中必须走 publishStorageLoaded 携带区块数据发布，
+     * 从 API 层面杜绝"宣告已加载却不持有区块对象"的状态。
+     */
+    EnqueueDecision noteStorageMissing();
 
     /**
      * @brief 取消当前所有活跃工作
@@ -442,9 +487,12 @@ public:
     /**
      * @brief 接管从存档恢复出来的区块数据
      *
+     * 只能对已持有 primer 的 holder 调用（见 publishStorageLoaded）：本方法把来源状态推进到 Ready，
+     * 而 Ready 蕴含"区块已可用"，因此调用前 primer 必须已安装。
+     *
      * @param persistedStatus 存档区块的持久化阶段
      */
-    void markLoadedFromStorageReady(const ChunkStatus& persistedStatus = ChunkStatuses::FULL);
+    void markLoadedFromStorageReady(const ChunkStatus& persistedStatus);
 
     // === 旧生成执行接口（已删除，见 ChunkTaskScheduler） ===
     // createGeneratingChunk / completeGeneration / markGenerationReady /

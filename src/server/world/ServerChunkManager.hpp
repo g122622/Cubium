@@ -706,7 +706,7 @@ private:
      * ownerLifecycle：发起 loadChunkAsyncCallback 的所有者 SCLM（其 Result 在 _onChunkLoadComplete 被 move）。
      * attachedWaiters：加载期间因 cancel-revive 重建的附加等待者 SCLM。所有者完成加载后，
      *   _onChunkLoadComplete 遍历 attachedWaiters 推进其状态机（命中→markLoadedFromStorageReady，
-     *   缺失→noteStorageResolved(false) 走生成），避免对同一区块重复发起 RocksDB 读取。
+     *   缺失→noteStorageMissing() 走生成），避免对同一区块重复发起 RocksDB 读取。
      *   见 SCM 层加载去重设计（对齐 Moonrise chunkTasks 合并）。
      *
      * 定义前置：_fanOutAttachedWaiters 声明引用 PendingLoadEntry::AttachedWaiter，需先于其定义。
@@ -724,8 +724,8 @@ private:
      *
      * 把存档读取（loadChunkAsyncCallback）投递到存储层（ServerIO 读盘 + ServerCompute 反序列化），
      * 立即返回不阻塞主线程。完成后回调在 ServerCompute 线程把结果入队 m_pendingLoadCompletes，
-     * 主线程 tick() 的 _drainPendingLoadCompletes 出队执行 _onChunkLoadComplete（noteStorageResolved +
-     * _storeChunkInMemorySync + _enqueuePostProcess / _advanceChunkState）。
+     * 主线程 tick() 的 _drainPendingLoadCompletes 出队执行 _onChunkLoadComplete（publishStorageLoaded/
+     * noteStorageMissing + _storeChunkInMemorySync + _enqueuePostProcess / _advanceChunkState）。
      *
      * 异步期间 SCLM 处于 ResolvingStorage，并发 submitRequest 走 no-op（不重复触发解析）。
      * abortSignal 由 SCLM 提供，unloadChunkSync 的 cancelActiveWork 会置位取消异步加载。
@@ -739,10 +739,12 @@ private:
      *
      * 在 _drainPendingLoadCompletes 中出队调用。处理：
      * - 校验 SCLM 仍存活且为同一实例（异步期间可能被 unload 重建）
-     * - 存档命中：_storeChunkInMemorySync + markLoadedFromStorageReady(FULL) + _completeReadyWaiters
-     *   + 直接调用 onChunkLoaded/m_chunkLoadedCallback（主线程路径，不走 _enqueuePostProcess；
-     *     由 m_postProcessedChunks 去重，防止重复执行）
-     * - 存档缺失：noteStorageResolved(false) + _advanceChunkState（走 StorageMissing→生成链路）
+     * - 存档命中：先构造 ChunkPrimer（耗时较长，须在状态发布前完成），再 publishStorageLoaded 原子发布
+     *   （同一临界区内安装 primer + currentGenStatus→FULL + sourceState→LoadedFromStorage），随后
+     *   _storeChunkInMemorySync（按坐标入 m_chunks，并在 owner 身份校验通过时 markLoadedFromStorageReady(FULL)
+     *   + _completeReadyWaiters）+ 直接调用 onChunkLoaded/m_chunkLoadedCallback（主线程路径，
+     *   不走 _enqueuePostProcess；由 m_postProcessedChunks 去重，防止重复执行）
+     * - 存档缺失：noteStorageMissing() + _advanceChunkState（走 StorageMissing→生成链路）
      * - 从 m_pendingLoadTasks 移除追踪条目（owner 校验），扇出 attachedWaiters（命中→Ready，缺失→生成）
      * - owner 已 unload（ownerAlive=false）：跳过 owner 推进，扇出 attachedWaiters 走生成路径
      *
@@ -762,12 +764,13 @@ private:
      * @brief 扇出存档加载结果到附加等待者（SCM 层去重合并的等待者）
      *
      * owner 完成加载后调用。对每个仍在 m_lifecycleManagers 中的等待者 SCLM：
-     *   - hit=true（存档命中）：noteStorageResolved(true) + markLoadedFromStorageReady(FULL) +
+     *   - hit=true（存档命中）：publishStorageLoaded(primer) + markLoadedFromStorageReady(FULL) +
      *     _completeReadyWaiters（区块已在 m_chunks，不重复存储）。
-     *   - hit=false（存档缺失/失败/owner 已卸载）：noteStorageResolved(false) + _advanceChunkState 走生成。
+     *   - hit=false（存档缺失/失败/owner 已卸载）：noteStorageMissing() + _advanceChunkState 走生成。
      *
      * 实例校验：等待者可能已被 unload 重建（_findLifecycleManager != waiter.lifecycle.get()），跳过。
-     * 等待者 SCLM 被附加时其 sourceState 已是 ResolvingStorage（submitRequest 设置），noteStorageResolved 合法。
+     * 等待者 SCLM 被附加时其 sourceState 已是 ResolvingStorage（submitRequest
+     * 设置），publishStorageLoaded/noteStorageMissing 合法。
      */
     void _fanOutAttachedWaiters(
         ChunkCoord x, ChunkCoord z, std::vector<PendingLoadEntry::AttachedWaiter>& waiters, bool hit);
@@ -791,8 +794,9 @@ private:
      *
      * 本方法把 Unknown holder 推进到 ResolvingStorage 并发起异步存档读取，不创建任何生成任务。
      * 存档解析完成后（_onChunkLoadComplete）由现有管线重新驱动：
-     *   - 命中：markLoadedFromStorageReady(FULL) + onLoadedFromStorageReady（解除依赖邻居阻塞）
-     *   - 缺失：noteStorageResolved(false) → _scheduleGeneration → schedule（sourceState=StorageMissing）
+     *   - 命中：publishStorageLoaded(primer) + markLoadedFromStorageReady(FULL) + onLoadedFromStorageReady
+     *     （解除依赖邻居阻塞）
+     *   - 缺失：noteStorageMissing() → _scheduleGeneration → schedule（sourceState=StorageMissing）
      *     → scheduleEmptyLoad 创建空 Primer（对齐 getEmptyChunk）→ onChunkGenComplete → notifyWaitingNeighbours
      *
      * 调用者持有调度区域锁（schedule/checkNeighbour 路径）。本方法只触及 SCLM.m_mutex 与
@@ -892,9 +896,11 @@ private:
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
      * @param primer 生成完成的 ChunkPrimer
+     * @param holder 发起本次生成的持有者；用于身份校验，防止 holder 已被同坐标新实例顶替时错误发布状态
      * @return 成功发布后的缓存区块指针；失败时返回 nullptr
      */
-    [[nodiscard]] ChunkData* _finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer);
+    [[nodiscard]] ChunkData* _finalizeGeneratedChunkSync(
+        ChunkCoord x, ChunkCoord z, ChunkPrimer& primer, mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
      * @brief 达到请求目标状态时唤醒等待者（非 FULL 路径）
@@ -926,27 +932,26 @@ private:
     void _postProcessChunk(ChunkData& chunk);
 
     /**
-     * @brief 把已生成区块放入内存缓存
+     * @brief 把已生成区块放入内存缓存并发布状态
      *
-     * @param x 区块 X 坐标
-     * @param z 区块 Z 坐标
-     * @param data 区块数据所有权
-     * @return 缓存中的区块指针
-     */
-    [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data);
-
-    /**
-     * @brief 把已生成区块放入内存缓存（共享所有权重载）
+     * 由 ChunkProgressionTask 在 FULL 完成时（primer.toChunkData() 返回 shared_ptr，非破坏性，
+     * primer 仍持有同一份 ChunkData 供邻居引用）或存档加载完成时调用：数据存入按坐标索引的 m_chunks，
+     * 随后在 owner 身份校验通过时把 holder 推进到 Ready/FULL 并唤醒等待者。
      *
-     * 由 ChunkProgressionTask 在 FULL 完成时调用：primer.toChunkData() 返回 shared_ptr（非破坏性，
-     * primer 仍持有同一份 ChunkData 供邻居引用），直接发布到内存缓存，与 primer 共享所有权。
+     * 身份校验的必要性：本方法可能在 worker 线程执行，期间坐标上的 holder 可能已被 unload 并由新实例
+     * 顶替。若按坐标无条件推进，新 holder 会被标成 Ready/FULL 却不持有 primer，依赖它的邻居随后在
+     * buildNeighbourCache 取到空区块。数据本身仍进入 m_chunks（按坐标缓存），仅状态发布被跳过。
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
      * @param data 区块数据共享所有权
+     * @param owner 本次数据的所属 holder（身份校验基准，不可为空）
      * @return 缓存中的区块指针
      */
-    [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::shared_ptr<ChunkData> data);
+    [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x,
+        ChunkCoord z,
+        std::shared_ptr<ChunkData> data,
+        mc::world::chunk::SingleChunkLifecycleManager* owner);
 
     /**
      * @brief 触发区块卸载对外的通知（实体保存+移除、卸载发送、callback）

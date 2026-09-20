@@ -87,6 +87,11 @@ ChunkStatus::ChunkStatus(
 
 const std::vector<ChunkStatus>& ChunkStatus::getAll()
 {
+    // TODO: 这里的元素是 ChunkStatuses::X 的**副本**（聚合拷贝到堆上的 vector），因此调用方能取到
+    // 指向副本的指针而非各状态单例的指针。目前所有比较都走 ordinal()，功能正确；但持有 ChunkStatus
+    // 指针的调用方（SingleChunkLifecycleManager::m_currentGenStatus/m_scheduledStatus、
+    // PendingReschedule::target 等）隐含"指针即静态单例"的假设，一旦引入指针相等比较就会静默失效。
+    // 应改为保存指向单例的指针（如 std::vector<const ChunkStatus*>）。
     static const std::vector<ChunkStatus> allStatuses = {ChunkStatuses::EMPTY,
         ChunkStatuses::STRUCTURE_STARTS,
         ChunkStatuses::STRUCTURE_REFERENCES,

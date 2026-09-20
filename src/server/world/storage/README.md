@@ -183,3 +183,6 @@ src/server/world/storage/
 13. **`loadPlayer("~local_player")` 是约定**：本地玩家通过这个特殊字符串读取，Java 从 `Data.Player`，Bedrock 从 `~local_player` 键
 14. **`initialized` 字段必须落盘**：`saveLevelData` / `updateRuntimeData` 的 `initialized` 参数由 `MinecraftServer::m_spawnInitializedThisSession` 提供。新世界首次启动经 `initializeWorldSpawn` 计算出生点后，shutdown 必须写 `initialized=1`，否则每次重启都会重算出生点（虽幂等但浪费）。`saveLevelData` 仅在 shutdown 调用一次，`/save-all` 不刷新该字段。
 15. **SpawnY 是脚下方块 Y**：level.dat 的 `SpawnY` 语义为脚下方块 Y，非玩家脚位置。`ServerWorld::applyLevelRuntimeData` 读取时 +1 转为玩家脚位置（方块上方），`MinecraftServer::saveAllWorldData` 写盘时 -1 转回。读写转换分属 server 层，存储层只存原始整数。
+16. **被取消的存储任务也必须完成收尾**：线程池判定任务已取消时不执行 executor，只调 `ITask::onCancel()`。而存储任务的 executor 除 I/O 外还负责结清完成计数并调用提交方传入的 completion（例如两路并行加载各自递减计数、最后一路触发反序列化与回调），故 `StorageTask::onCancel()` 会以"已取消"信号再执行一次 executor。新增存储任务类型时，其 executor 的取消分支必须同样结清：漏掉会让提交方永远等不到结果（区块加载方永久停留在 `ResolvingStorage`，等待保存的一方在池线程内永久阻塞）。
+17. **未注入 IO/Compute 池即降级为调用线程同步读写**：`m_taskManager` 为空时 `loadChunkAsyncCallback` / `saveChunkAsyncCallback` 在调用线程内联执行完整的读盘或写盘（含 ZSTD 与 RocksDB 写入）。这对服务端 tick 线程是灾难性的（写盘会垄断 tick），仅适用于测试/独立模式；测试若要走异步路径必须显式注入两个池并 `start()`。
+18. **`loadChunkAsync` 会等待同区块进行中的保存完成**：`_waitPendingChunkSave` 在 IO worker 内阻塞等待保存任务，而保存任务与加载任务共用同一 IO 池。池线程数少且"卸载后立刻重新加载同一区块"频繁时，可能出现全部线程都在等待、而它们所等的保存任务仍排在同池队列中的线程饥饿死锁。

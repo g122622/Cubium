@@ -77,6 +77,12 @@ pool.start();  // 必须！
 pool.submit(task, callback);
 ```
 
+提交到未启动的池不会抛错：任务被丢弃，池只打印一条 warn 并用 `callback(false, nullptr)` 通知。**不带 callback 的提交方（如存储任务）因此永远收不到任何结果**，表现为调用方无声地永久等待——排查此类"卡住"先确认池是否已 `start()`。
+
+### 1b. 被取消/被丢弃的任务必须通过 `onCancel()` 完成收尾
+
+出队时判定为已取消的任务**不会执行 `execute()`**，线程池只调用 `ITask::onCancel()`。如果任务的 `execute()` 除了干活之外还承担"通知提交方/结清计数"的职责（存储任务就是如此），那么 `onCancel()` 必须把这些收尾做完（`StorageTask::onCancel()` 会以"已取消"信号再执行一次 executor）。否则提交方永远等不到结果。同理，`shutdown()` 会在 join 之前先取出队列中不会再执行的任务并调用它们的 `onCancel()`——否则等待这些任务结果的其他线程不响应停止位，`join` 会永久挂起。
+
 ### 2. 取消信号检查缺失
 
 任务执行器必须定期检查 `abortSignal`，否则无法响应取消：

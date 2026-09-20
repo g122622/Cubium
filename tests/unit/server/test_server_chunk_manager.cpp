@@ -75,6 +75,20 @@ protected:
         // TempDirHelper 的 token 含 PID，跨进程天然唯一，避免 CTest -j16 下多进程同秒同计数器碰撞。
         m_testDir = mc::test::makeUniqueTestDir("mc_scm_test");
 
+        // 存档层线程池：与生产路径（MinecraftServer::initializeWorld）一致地注入 ServerIO/ServerCompute 池。
+        // 不注入时 SingleLevelStorageManager 降级为在调用线程内联读写存档——卸载检查（每 20 tick 一次，
+        // 单轮最多 200 个区块）会在 tick 线程上串行执行"24 section 快照 + ZSTD + RocksDB 写"，
+        // 使 tick 频率跌到个位数 Hz，进而饿死每 tick 只执行一次的 _drainPendingLoadCompletes，
+        // 令大批 holder 长期停留在 ResolvingStorage（表现为生成请求长时间得不到满足）。
+        // 与生成池（m_workerPool）分开：生成任务与存档 IO 共用同一池会互相占用导致饥饿。
+        m_storageIoPool = std::make_unique<mc::util::UniversalWorkerPool>(3, "TestStorageIO", 4096);
+        m_storageComputePool = std::make_unique<mc::util::UniversalWorkerPool>(2, "TestStorageCompute", 4096);
+        // 必须显式启动：未运行的池会丢弃任务，而存储任务提交时不带 callback，调用方将永远等不到结果。
+        m_storageIoPool->start();
+        m_storageComputePool->start();
+        m_storage.setIoWorkerPool(m_storageIoPool.get());
+        m_storage.setComputeWorkerPool(m_storageComputePool.get());
+
         world::storage::SingleLevelStorageConfig storageConfig;
         auto openResult = m_storage.open(m_testDir, storageConfig);
         ASSERT_TRUE(openResult.success()) << openResult.error().message();
@@ -111,12 +125,41 @@ protected:
         m_workerPool->shutdown();
         m_world.reset();
         m_workerPool.reset();
+        // 先停存储线程池（join 全部 worker，确保在途存档任务结束并释放对数据库的引用），再关存档：
+        // 反序会让在途任务访问已关闭的 RocksDB 句柄。
+        m_storageIoPool->shutdown();
+        m_storageComputePool->shutdown();
         m_storage.close();
+        m_storageIoPool.reset();
+        m_storageComputePool.reset();
         // TempDirHelper 内置 10 次重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
         mc::test::removeTestDir(m_testDir);
     }
 
+    /**
+     * @brief 反复 tick 直到条件成立或超时
+     *
+     * 区块生成在 worker 线程完成：完成请求的 promise 在 _storeChunkInMemorySync 内 fulfill，而承载
+     * 主线程后处理入队的 _enqueuePostProcess 紧随其后执行，故 getChunkSync 返回时后处理可能尚未入队。
+     * 测试按条件等待而非固定 tick 次数，避免依赖调度时序（高负载下固定次数会偶发不足）。
+     *
+     * @param predicate 条件
+     * @param maxWaitMs 最长等待毫秒数
+     * @return 条件是否成立
+     */
+    template <typename Predicate>
+    bool pumpUntil(Predicate predicate, int maxWaitMs = 5000)
+    {
+        for (int waited = 0; waited < maxWaitMs && !predicate(); ++waited) {
+            m_manager->tick();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        return predicate();
+    }
+
     std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_storageIoPool;      ///< 存档读写线程池（ServerIO）
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_storageComputePool; ///< 存档反序列化线程池（ServerCompute）
     std::unique_ptr<ServerWorld> m_world;
     // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
     ServerChunkManager* m_manager = nullptr;
@@ -349,8 +392,12 @@ TEST_F(ServerChunkManagerTest, UnloadChunk)
     // (saveChunkAsyncCallback 后 early-return),实际 m_chunks.erase 推迟到 stage3
     // _finalizeUnloadAfterSave,由主线程 tick() 的 _drainPendingUnloadFinishes 出队完成。
     // 生产环境由服务端主循环 tick 驱动;此处 tick() 推进 stage3 收尾,对齐生产契约。
-    for (int i = 0; i < 100 && m_manager->hasChunkInMem(0, 0); ++i) {
+    // 保存由 ServerIO 线程池真正异步执行（ZSTD + RocksDB），必须让出时间片等其完成——
+    // 否则空转 tick 会在保存任务执行完毕之前就耗尽重试次数。
+    constexpr int kMaxUnloadWaitMs = 5000;
+    for (int waited = 0; waited < kMaxUnloadWaitMs && m_manager->hasChunkInMem(0, 0); ++waited) {
         m_manager->tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
 }
@@ -612,7 +659,8 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
     constexpr int STALL_THRESHOLD_SECONDS = 280;
     std::thread watchdog([&]() {
         int lastPending = -1;
-        int noProgressSamples = 0; // 连续 pending 未下降的 5 秒采样数（6 次=30 秒=死锁）
+        int lastHolders = -1;
+        int noProgressSamples = 0; // 连续无进展的 5 秒采样数（6 次=30 秒=停滞）
         bool dumpedStuck = false;
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -622,14 +670,19 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                 const size_t running = m_workerPool->runningTaskCount();
                 const size_t holders = m_manager->lifecycleManagerCount();
                 const int pendingInt = static_cast<int>(pending);
-                if (lastPending < 0 || pendingInt < lastPending) {
-                    // pending 下降：有进展，重置计数
+                const int holdersInt = static_cast<int>(holders);
+                // 进展判据取两者之一：待生成任务下降，或存活 holder 数下降（卸载/清理仍在推进）。
+                // 高并发下（CTest 并行运行多个测试进程，或本机同时跑多个实例）单实例吞吐会成倍下降，
+                // 仅凭 pending 是否下降会把"慢"误判为"停滞"——真实停滞时两级计数都冻结不动。
+                if (lastPending < 0 || pendingInt < lastPending || holdersInt < lastHolders) {
+                    // 待生成任务或 holder 数下降：有进展，重置计数
                     noProgressSamples = 0;
                 } else {
-                    // pending 未下降（持平或上升）：累加无进展计数
+                    // 两者均未下降（持平或上升）：累加无进展计数
                     ++noProgressSamples;
                 }
                 lastPending = pendingInt;
+                lastHolders = holdersInt;
                 spdlog::info("[watchdog] {}s: pending={}, running={}, holders={}, noProgressSamples={}",
                     sec / 2,
                     pending,
@@ -637,7 +690,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                     holders,
                     noProgressSamples);
                 // 30 秒（6 个 5 秒采样）连续无进展判定为死锁。
-                // 真正的生成负载下 pending 会持续下降（即使缓慢），死锁时 pending 冻结。
+                // 真正的生成负载下 pending 或 holders 会持续下降（即使缓慢），停滞时两级计数都冻结。
                 // running=0 且 pending>0：worker 全空闲但队列有任务（队列饥饿/区域互斥活锁）。
                 // running>0 且 pending 冻结：worker 卡在某个永不完成的任务（executeTask 死循环/死锁）。
                 // 注意：级联生成期间 pending 会先增长（onChunkGenComplete 重调度入队 > worker 出队）后下降，
@@ -790,9 +843,9 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
     EXPECT_FALSE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之前未执行";
 
     // tick 触发 _drainPendingPostProcess：执行 _postProcessChunk 并置 isPostProcessingDone=true。
-    m_manager->tick();
-
-    EXPECT_TRUE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之后完成";
+    // 按条件等待，避免后处理入队尚未完成时 tick 空转（见 pumpUntil 注释）。
+    EXPECT_TRUE(pumpUntil([chunk] { return chunk->isPostProcessingDone(); }))
+        << "postProcess 应在 tick() drain 之后完成";
     EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1) << "区块加载回调应恰好触发一次";
 
     m_manager->shutdown();
@@ -804,8 +857,12 @@ TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
     m_workerPool->start();
     m_manager->initialize();
 
-    m_manager->getChunkSync(0, 0);
-    m_manager->tick();
+    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    // 等待主线程后处理入队并被 tick 出队执行（见 pumpUntil 注释）。
+    ASSERT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1; }))
+        << "区块加载回调应在后处理完成后触发一次";
 
     // 多次 tick 不应重复触发后处理（m_postProcessedChunks 去重）。
     m_manager->tick();
@@ -823,8 +880,8 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     m_manager->initialize();
 
     m_manager->getChunkSync(0, 0);
-    m_manager->tick();
-    ASSERT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1);
+    ASSERT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1; }))
+        << "区块加载回调应在后处理完成后触发一次";
 
     // 卸载：unloadChunkSync 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
     // m_postProcessedChunks key）由 _drainPendingUnloadFinishes 在后续 tick() 中完成。
@@ -839,9 +896,7 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     // 重新生成：存档中 isPostProcessingDone 不持久化（重载为新 ChunkData，标志为 false），
     // 重新入队 PendingPostProcess，tick 后应再次触发回调（计数 +1）。
     m_manager->getChunkSync(0, 0);
-    m_manager->tick();
-
-    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 2)
+    EXPECT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 2; }))
         << "卸载后重新加载应重新执行后处理（m_postProcessedChunks 已清除 key）";
 
     m_manager->shutdown();
