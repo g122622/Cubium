@@ -29,8 +29,11 @@
 //   - 无区域任务不受区域互斥影响（可与区域任务并行）
 //   - 区域释放后被阻塞的任务恢复执行
 //
-// 对齐 Moonrise 区域锁执行器：FEATURES/LIGHT/SPAWN/FULL 等写方块状态的任务
-// 通过区域互斥提交，避免并发生成时同一区块被两个任务同时写入。
+// 区域互斥的用途：FEATURES/LIGHT/SPAWN/FULL 等会写方块状态的生成步骤经带坐标的
+// submit 重载提交，避免并发生成时同一区块被两个任务同时写入。
+//
+// 【注意】submit 会把任务对象的所有权转移给任务池，池在任务执行完毕（含完成回调）后立即
+// 销毁该对象。因此测试不得把任务对象的裸指针当作同步句柄在提交后访问（详见 TaskSignals）。
 // ============================================================================
 
 #include "common/util/thread/ITask.hpp"
@@ -72,17 +75,44 @@ struct ConcurrencyTracker {
 };
 
 // ============================================================================
-// 测试任务类
+// 测试任务类与同步信号
 // ============================================================================
 
-// 带信号灯的区域任务：execute 期间阻塞，直到 release() 被调用。
+// 任务同步信号：由测试线程持有，任务只持引用。
+//
+// 【重要】同步状态不能放在任务对象自身：submit 会把任务对象的所有权转移给任务池，
+// 池在任务执行完毕（含完成回调）后立即销毁该对象。若测试保留任务对象的裸指针并在提交后
+// 访问（waitEntered/release/waitCompleted），就会在池已释放该对象之后读到已回收的内存：
+// 多数情况下残留值恰好正确而侥幸通过，一旦该块内存被复用（并发负载下极易发生）就会
+// 永久等待，表现为 CTest 超时。故同步量必须放在独立于任务对象、生命周期由测试掌控的
+// 对象里。
+struct TaskSignals {
+    std::atomic<bool> entered{false};
+    std::atomic<bool> released{false};
+    std::atomic<bool> completed{false};
+
+    // 等待任务进入执行
+    void waitEntered() { entered.wait(false); }
+
+    // 允许任务继续执行
+    void release()
+    {
+        released.store(true, std::memory_order::release);
+        released.notify_one();
+    }
+
+    // 等待任务执行结束
+    void waitCompleted() { completed.wait(false); }
+};
+
+// 带信号灯的区域任务：execute 期间阻塞，直到 signals.release() 被调用。
 // 用于精确控制任务的重叠窗口，验证区域互斥。
 // 进入时 ++concurrent，离开时 --concurrent，调用方通过 tracker.maxConcurrent 判断是否并发。
 class BlockingAreaTask : public ITask {
 public:
-    BlockingAreaTask(ConcurrencyTracker& tracker, std::atomic<bool>& entered)
+    BlockingAreaTask(ConcurrencyTracker& tracker, TaskSignals& signals)
         : m_tracker(tracker)
-        , m_entered(entered)
+        , m_signals(signals)
     {}
 
     bool execute(const std::atomic<bool>& abortSignal) override
@@ -91,38 +121,24 @@ public:
             return false;
         }
         m_tracker.enter();
-        m_entered.store(true);
-        m_entered.notify_one(); // 通知测试线程任务已进入执行
+        m_signals.entered.store(true, std::memory_order::release);
+        m_signals.entered.notify_one(); // 通知测试线程任务已进入执行
 
         // 阻塞直到 release() 被调用
-        m_released.wait(false);
+        m_signals.released.wait(false);
 
         m_tracker.leave();
-        m_completed.store(true);
-        m_completed.notify_one();
+        m_signals.completed.store(true, std::memory_order::release);
+        m_signals.completed.notify_one();
         return true;
     }
-
-    void release()
-    {
-        m_released.store(true);
-        m_released.notify_one();
-    }
-
-    // 等待任务完成（release 后）
-    void waitCompleted() { m_completed.wait(false); }
-
-    // 等待任务进入执行
-    void waitEntered() { m_entered.wait(false); }
 
     TaskType type() const override { return TaskType::Custom; }
     std::string description() const override { return "BlockingAreaTask"; }
 
 private:
     ConcurrencyTracker& m_tracker;
-    std::atomic<bool>& m_entered; // 引用外部的 entered 标志
-    std::atomic<bool> m_released{false};
-    std::atomic<bool> m_completed{false};
+    TaskSignals& m_signals;
 };
 
 // 简单计数任务：execute 时递增计数并短暂休眠，用于验证无区域任务的并行性
@@ -211,40 +227,34 @@ TEST(UniversalWorkerPoolAreaMutexTest, OverlappingAreaTasksAreSerialized)
     pool.start();
 
     ConcurrencyTracker tracker;
-    std::atomic<bool> aEntered{false};
-    std::atomic<bool> bEntered{false};
+    TaskSignals signalsA;
+    TaskSignals signalsB;
 
     // 任务 A：中心 (0,0)，writeRadius=1，覆盖 [-1,1]×[-1,1]
-    auto taskA = std::make_unique<BlockingAreaTask>(tracker, aEntered);
-    auto* taskAPtr = taskA.get();
-
     // 任务 B：中心 (1,0)，writeRadius=1，覆盖 [0,2]×[-1,1] —— 与 A 在 (0,0)/(1,0) 重叠
-    auto taskB = std::make_unique<BlockingAreaTask>(tracker, bEntered);
-    auto* taskBPtr = taskB.get();
-
-    pool.submit(std::move(taskA), nullptr, 0, 0, 1, TaskPriority::Normal);
-    pool.submit(std::move(taskB), nullptr, 1, 0, 1, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsA), nullptr, 0, 0, 1, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsB), nullptr, 1, 0, 1, TaskPriority::Normal);
 
     // 等待 A 进入执行
-    taskAPtr->waitEntered();
+    signalsA.waitEntered();
     // 给调度器时间尝试执行 B（B 应因区域冲突被阻塞）
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     // A 在执行中，B 应被阻塞，maxConcurrent == 1
     EXPECT_EQ(tracker.maxConcurrent.load(), 1);
-    EXPECT_FALSE(bEntered.load()); // B 未进入执行
+    EXPECT_FALSE(signalsB.entered.load()); // B 未进入执行
 
     // 释放 A，B 应开始执行
-    taskAPtr->release();
-    taskAPtr->waitCompleted();
+    signalsA.release();
+    signalsA.waitCompleted();
 
     // 等待 B 进入执行
-    bEntered.wait(false);
-    EXPECT_TRUE(bEntered.load());
+    signalsB.waitEntered();
+    EXPECT_TRUE(signalsB.entered.load());
     EXPECT_EQ(tracker.maxConcurrent.load(), 1); // B 独自执行，仍为 1
 
-    taskBPtr->release();
-    taskBPtr->waitCompleted();
+    signalsB.release();
+    signalsB.waitCompleted();
 
     pool.waitForCompletion();
     pool.shutdown();
@@ -265,31 +275,25 @@ TEST(UniversalWorkerPoolAreaMutexTest, NonOverlappingAreaTasksAreParallel)
     pool.start();
 
     ConcurrencyTracker tracker;
-    std::atomic<bool> aEntered{false};
-    std::atomic<bool> bEntered{false};
+    TaskSignals signalsA;
+    TaskSignals signalsB;
 
     // 任务 A：中心 (0,0)，writeRadius=1，覆盖 [-1,1]×[-1,1]
-    auto taskA = std::make_unique<BlockingAreaTask>(tracker, aEntered);
-    auto* taskAPtr = taskA.get();
-
     // 任务 B：中心 (100,100)，writeRadius=1，覆盖 [99,101]×[99,101] —— 与 A 完全不重叠
-    auto taskB = std::make_unique<BlockingAreaTask>(tracker, bEntered);
-    auto* taskBPtr = taskB.get();
-
-    pool.submit(std::move(taskA), nullptr, 0, 0, 1, TaskPriority::Normal);
-    pool.submit(std::move(taskB), nullptr, 100, 100, 1, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsA), nullptr, 0, 0, 1, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsB), nullptr, 100, 100, 1, TaskPriority::Normal);
 
     // 等待两个任务都进入执行
-    taskAPtr->waitEntered();
-    taskBPtr->waitEntered();
+    signalsA.waitEntered();
+    signalsB.waitEntered();
 
     // 不重叠区域应允许并行，maxConcurrent == 2
     EXPECT_EQ(tracker.maxConcurrent.load(), 2);
 
-    taskAPtr->release();
-    taskBPtr->release();
-    taskAPtr->waitCompleted();
-    taskBPtr->waitCompleted();
+    signalsA.release();
+    signalsB.release();
+    signalsA.waitCompleted();
+    signalsB.waitCompleted();
 
     pool.waitForCompletion();
     pool.shutdown();
@@ -309,25 +313,20 @@ TEST(UniversalWorkerPoolAreaMutexTest, ZeroRadiusAdjacentChunksParallel)
     pool.start();
 
     ConcurrencyTracker tracker;
-    std::atomic<bool> aEntered{false};
-    std::atomic<bool> bEntered{false};
+    TaskSignals signalsA;
+    TaskSignals signalsB;
 
-    auto taskA = std::make_unique<BlockingAreaTask>(tracker, aEntered);
-    auto* taskAPtr = taskA.get();
-    auto taskB = std::make_unique<BlockingAreaTask>(tracker, bEntered);
-    auto* taskBPtr = taskB.get();
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsA), nullptr, 0, 0, 0, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsB), nullptr, 1, 0, 0, TaskPriority::Normal);
 
-    pool.submit(std::move(taskA), nullptr, 0, 0, 0, TaskPriority::Normal);
-    pool.submit(std::move(taskB), nullptr, 1, 0, 0, TaskPriority::Normal);
-
-    taskAPtr->waitEntered();
-    taskBPtr->waitEntered();
+    signalsA.waitEntered();
+    signalsB.waitEntered();
     EXPECT_EQ(tracker.maxConcurrent.load(), 2);
 
-    taskAPtr->release();
-    taskBPtr->release();
-    taskAPtr->waitCompleted();
-    taskBPtr->waitCompleted();
+    signalsA.release();
+    signalsB.release();
+    signalsA.waitCompleted();
+    signalsB.waitCompleted();
 
     pool.waitForCompletion();
     pool.shutdown();
@@ -342,31 +341,26 @@ TEST(UniversalWorkerPoolAreaMutexTest, ZeroRadiusSameChunkSerialized)
     pool.start();
 
     ConcurrencyTracker tracker;
-    std::atomic<bool> aEntered{false};
-    std::atomic<bool> bEntered{false};
+    TaskSignals signalsA;
+    TaskSignals signalsB;
 
-    auto taskA = std::make_unique<BlockingAreaTask>(tracker, aEntered);
-    auto* taskAPtr = taskA.get();
-    auto taskB = std::make_unique<BlockingAreaTask>(tracker, bEntered);
-    auto* taskBPtr = taskB.get();
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsA), nullptr, 0, 0, 0, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsB), nullptr, 0, 0, 0, TaskPriority::Normal);
 
-    pool.submit(std::move(taskA), nullptr, 0, 0, 0, TaskPriority::Normal);
-    pool.submit(std::move(taskB), nullptr, 0, 0, 0, TaskPriority::Normal);
-
-    taskAPtr->waitEntered();
+    signalsA.waitEntered();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     EXPECT_EQ(tracker.maxConcurrent.load(), 1);
-    EXPECT_FALSE(bEntered.load());
+    EXPECT_FALSE(signalsB.entered.load());
 
-    taskAPtr->release();
-    taskAPtr->waitCompleted();
+    signalsA.release();
+    signalsA.waitCompleted();
 
-    bEntered.wait(false);
-    EXPECT_TRUE(bEntered.load());
+    signalsB.waitEntered();
+    EXPECT_TRUE(signalsB.entered.load());
     EXPECT_EQ(tracker.maxConcurrent.load(), 1);
 
-    taskBPtr->release();
-    taskBPtr->waitCompleted();
+    signalsB.release();
+    signalsB.waitCompleted();
 
     pool.waitForCompletion();
     pool.shutdown();
@@ -386,26 +380,24 @@ TEST(UniversalWorkerPoolAreaMutexTest, NonAreaTaskDoesNotParticipateInAreaMutex)
     pool.start();
 
     ConcurrencyTracker tracker;
-    std::atomic<bool> aEntered{false};
+    TaskSignals signalsA;
     std::atomic<int> bCounter{0};
 
     // 区域任务 A 占据 (0,0) 区域
-    auto taskA = std::make_unique<BlockingAreaTask>(tracker, aEntered);
-    auto* taskAPtr = taskA.get();
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsA), nullptr, 0, 0, 1, TaskPriority::Normal);
 
     // 无区域任务 B（普通 submit，不带坐标）—— 不应被 A 阻塞
-    auto taskB = std::make_unique<CountingTask>(tracker, bCounter, std::chrono::milliseconds(30));
+    pool.submit(std::make_unique<CountingTask>(tracker, bCounter, std::chrono::milliseconds(30)),
+        nullptr,
+        TaskPriority::Normal);
 
-    pool.submit(std::move(taskA), nullptr, 0, 0, 1, TaskPriority::Normal);
-    pool.submit(std::move(taskB), nullptr, TaskPriority::Normal);
-
-    taskAPtr->waitEntered();
+    signalsA.waitEntered();
     // B 应与 A 并行执行（无区域互斥），maxConcurrent 达到 2
     bool reached2 = waitForMaxConcurrent(tracker, 2, std::chrono::milliseconds(200));
     EXPECT_TRUE(reached2) << "无区域任务应与区域任务并行，maxConcurrent 应达到 2";
 
-    taskAPtr->release();
-    taskAPtr->waitCompleted();
+    signalsA.release();
+    signalsA.waitCompleted();
 
     pool.waitForCompletion();
     pool.shutdown();
@@ -425,32 +417,27 @@ TEST(UniversalWorkerPoolAreaMutexTest, BlockedTaskResumesAfterAreaReleased)
     pool.start();
 
     ConcurrencyTracker tracker;
-    std::atomic<bool> aEntered{false};
-    std::atomic<bool> bEntered{false};
+    TaskSignals signalsA;
+    TaskSignals signalsB;
 
-    auto taskA = std::make_unique<BlockingAreaTask>(tracker, aEntered);
-    auto* taskAPtr = taskA.get();
-    auto taskB = std::make_unique<BlockingAreaTask>(tracker, bEntered);
-    auto* taskBPtr = taskB.get();
-
-    pool.submit(std::move(taskA), nullptr, 0, 0, 1, TaskPriority::Normal);
-    pool.submit(std::move(taskB), nullptr, 0, 0, 1, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsA), nullptr, 0, 0, 1, TaskPriority::Normal);
+    pool.submit(std::make_unique<BlockingAreaTask>(tracker, signalsB), nullptr, 0, 0, 1, TaskPriority::Normal);
 
     // A 进入执行，B 被阻塞
-    taskAPtr->waitEntered();
+    signalsA.waitEntered();
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT_FALSE(bEntered.load());
+    EXPECT_FALSE(signalsB.entered.load());
 
     // 释放 A，B 应恢复执行
-    taskAPtr->release();
-    taskAPtr->waitCompleted();
+    signalsA.release();
+    signalsA.waitCompleted();
 
     // B 应进入执行（区域已释放）
-    bEntered.wait(false);
-    EXPECT_TRUE(bEntered.load());
+    signalsB.waitEntered();
+    EXPECT_TRUE(signalsB.entered.load());
 
-    taskBPtr->release();
-    taskBPtr->waitCompleted();
+    signalsB.release();
+    signalsB.waitCompleted();
 
     pool.waitForCompletion();
     pool.shutdown();

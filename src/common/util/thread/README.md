@@ -33,9 +33,11 @@ UniversalWorkerPool
 
 区域互斥机制：
 - 任务开始执行前检查 `m_runningRegions`（正在执行的区域互斥任务占据的区块键集合）。
-- 若新任务写入区域的任一区块键已在 `m_runningRegions` 中 → 冲突，任务放回队列，等待 `m_areaReleasedCondition`（带 1ms 超时防丢失通知）。
-- 无冲突 → 标记区域所有区块键为正在执行 → 执行 → 完成后清除标记并 `notify_all`。
+- 若新任务写入区域的任一区块键已在 `m_runningRegions` 中 → 冲突，任务放回队列（其他空闲 worker 也可取走），本 worker 在 `m_areaReleasedCondition` 上按谓词等待，直到自己的写入区域不再冲突、或 `m_stop` 置位（关闭）。
+- 无冲突 → 标记区域所有区块键为正在执行 → 执行 → 完成后在 `m_runningRegionsMutex` 内清除标记并 `notify_all`。
 - 无坐标任务不进入 `m_runningRegions`，不受区域互斥约束，可与任何区域任务并行。
+
+等待无丢失唤醒：谓词求值（`hasAreaConflictLocked`）与区域标记清除（`unmarkAreaRunningLocked`）都在 `m_runningRegionsMutex` 下完成，且清除后持锁 `notify_all`；`shutdown` 同样持该锁通知。故不存在"通知落在无人阻塞的窗口被丢弃"的可能，等待路径无需超时兜底。
 
 `canExecuteNow(centerX, centerZ, writeRadius)`：查询某写入区域是否可立即执行（无冲突），用于调度器在提交前预检查。
 
@@ -134,6 +136,10 @@ pool.submit(task, [self](bool success, ITask* task) {
     self->onComplete();
 });
 ```
+
+### 4.1 提交后不得再访问任务对象
+
+`submit` 接收 `unique_ptr<ITask>`，**所有权随之转移给池**：池在任务执行完毕（含完成回调）后立即销毁该对象。提交后通过裸指针访问它（尤其是把它当成 wait/notify 的同步句柄）属于 use-after-free：该块内存未被复用时残留值可能恰好"看起来正确"而侥幸通过，一旦被复用就会永久等待（表现为测试超时）。观察任务状态请在回调内进行，或另建由调用方自己持有的同步量（原子标志 / 条件变量）。
 
 ### 5. 优先级数值越小越高
 

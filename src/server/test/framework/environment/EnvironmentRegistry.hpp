@@ -38,9 +38,10 @@ public:
     [[nodiscard]] bool hasEnvironment(const std::string& name) const noexcept;
 
     /**
-     * @brief 注册内置默认环境（`"default"` → 空 `AllOfEnvironment`，对齐 Java `GameTestEnvironments.DEFAULT`）。
+     * @brief 注册内置默认环境（`"default"` → 空 `AllOfEnvironment`，即无 setup/teardown 动作）。
      *
-     * 由 `GameTestServer`/`IntegratedServer` 启动期调用。幂等。
+     * 由 `GameTestServer`/`IntegratedServer` 启动期调用，幂等。未走宿主启动流程的调用方
+     * （如无头单元测试）须自行调用本方法，否则 `getEnvironment("default")` 返回 nullptr。
      */
     void registerBuiltinDefaults();
 

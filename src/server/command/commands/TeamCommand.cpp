@@ -49,6 +49,10 @@ namespace command {
 // 使用 mc::server 命名空间中的 ServerScoreboard
 using ::mc::server::ServerScoreboard;
 
+// TODO: 本文件各子命令的反馈消息目前是硬编码英文文本（如 "Removed team 'red'"），
+// 原版使用 Component.translatable("commands.team.*")，且成功消息中的队伍名取自
+// PlayerTeam#getFormattedDisplayName()（形如 "[red]"）。待项目引入可翻译文本组件后统一替换。
+
 // 辅助函数：获取服务端记分板
 static ServerScoreboard* getScoreboard(ServerCommandSource& source)
 {

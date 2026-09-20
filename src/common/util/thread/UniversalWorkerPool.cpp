@@ -94,10 +94,19 @@ void UniversalWorkerPool::shutdown()
         return; // 已经停止
     }
 
-    m_stop.store(true, std::memory_order::release);
-
-    // 唤醒所有等待的线程
-    m_condition.notify_all();
+    // 置停止位并唤醒所有等待的线程：两个条件变量的谓词都在各自互斥量下求值，故此处
+    // "持锁置位 + 持锁通知"，与等待方的"谓词求值 + 原子释放锁并阻塞"串行化，杜绝关闭期
+    // 通知丢失导致 worker 永久阻塞（进而 join 永久挂起）。
+    {
+        std::lock_guard<std::mutex> queueLock(m_queueMutex);
+        m_stop.store(true, std::memory_order::release);
+        m_condition.notify_all();
+    }
+    {
+        // 唤醒等待区域释放的 worker（其谓词含 m_stop，见 workerThread 的冲突重试分支）
+        std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
+        m_areaReleasedCondition.notify_all();
+    }
 
     // 等待所有线程结束
     for (auto& worker : m_workers) {
@@ -480,17 +489,29 @@ void UniversalWorkerPool::workerThread(i32 workerId)
                 }
 
                 if (conflict) {
-                    // 放回队列，等待区域释放通知或短暂超时后重试
+                    // 放回队列：本任务留在队列中，其他空闲 worker 也可取走执行
                     {
                         std::lock_guard<std::mutex> lock(m_queueMutex);
                         m_taskQueue.push(taskCopy); // 保留 shared_ptr，不 move
                     }
                     // 通知一个工作线程重试（可能是自己，也可能是其他线程）
                     m_condition.notify_one();
-                    // 等待区域释放（带 1ms 超时避免永久阻塞：防止通知丢失导致活锁）
+
+                    // 等待直到本任务的写入区域不再与在执行的区域任务冲突。
+                    // 无丢失唤醒的依据：谓词在 m_runningRegionsMutex 下求值，而区域标记的清除
+                    // （unmarkAreaRunningLocked）同样持该锁、并在锁内 notify_all，因此"谓词求值"
+                    // 与"状态变更 + 通知"无法交叠——要么本线程看到新状态不进入等待，要么本线程
+                    // 已登记在条件变量上并被唤醒。谓词含 m_stop：shutdown 置位后持锁 notify_all
+                    // （见 shutdown），保证关闭时等待中的 worker 必定被唤醒并退出，不会永久滞留。
                     {
                         std::unique_lock<std::mutex> areaLock(m_runningRegionsMutex);
-                        m_areaReleasedCondition.wait_for(areaLock, std::chrono::milliseconds(1));
+                        m_areaReleasedCondition.wait(areaLock, [this, &taskCopy] {
+                            return m_stop.load(std::memory_order::acquire) || !hasAreaConflictLocked(*taskCopy);
+                        });
+                    }
+                    if (m_stop.load(std::memory_order::acquire)) {
+                        // 关闭中：任务保留在队列里，由 shutdown 统一以失败回调清理，不再执行
+                        return;
                     }
                     continue;
                 }
@@ -517,7 +538,9 @@ void UniversalWorkerPool::workerThread(i32 workerId)
                     m_runningTaskInfo.erase(workerId);
                 }
 
-                // 执行完成：清除区域标记并通知等待冲突的工作线程
+                // 执行完成：清除区域标记并通知等待冲突的工作线程。
+                // 通知持锁进行：与等待方"谓词求值 + 原子释放锁并阻塞"串行化，避免通知落在
+                // 无人阻塞的窗口里被丢弃（与 notifyIfIdle 的丢失唤醒修复同一理由）。
                 {
                     std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
                     InternalTask tmp;
@@ -525,8 +548,8 @@ void UniversalWorkerPool::workerThread(i32 workerId)
                     tmp.areaCenterZ = areaZ;
                     tmp.areaWriteRadius = areaR;
                     unmarkAreaRunningLocked(tmp);
+                    m_areaReleasedCondition.notify_all();
                 }
-                m_areaReleasedCondition.notify_all();
             } else {
                 // 无区域互斥任务：直接执行
                 {

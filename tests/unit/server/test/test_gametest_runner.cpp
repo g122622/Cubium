@@ -29,6 +29,10 @@
 //   - GameTestBatch 构造与访问器
 //   - GameTestRunnerBuilder 链式方法（不调 build，避免 ServerWorld 依赖）
 // 端到端 runner 调度由 test_gametest_server.cpp 覆盖。
+//
+// 环境依赖：批次持 TestEnvironmentDefinition 实例，取自 EnvironmentRegistry；该注册表的内置
+// "default" 仅由宿主（GameTestServer/IntegratedServer）启动期注册，故本文件内每条需要环境的
+// 用例须先自行 registerBuiltinDefaults()。
 
 #include <gtest/gtest.h>
 
@@ -140,6 +144,8 @@ TEST(GameTestRunner, BatchHoldsFunctionsAndAccessors)
 
     bool beforeCalled = false;
     bool afterCalled = false;
+    // "default" 环境由宿主（GameTestServer/IntegratedServer）启动期注册；单测进程非宿主，须显式注册。
+    mc::test::EnvironmentRegistry::instance().registerBuiltinDefaults();
     auto env = mc::test::EnvironmentRegistry::instance().getEnvironment("default");
     ASSERT_NE(env, nullptr);
 
@@ -170,6 +176,8 @@ TEST(GameTestRunner, BuilderChainReturnsSelf)
     mc::test::GameTestRunnerBuilder b;
     auto fn = _makeFunction("runner_builder");
     std::vector<std::shared_ptr<mc::test::BaseGameTestFunction>> fns{fn};
+    // "default" 环境由宿主（GameTestServer/IntegratedServer）启动期注册；单测进程非宿主，须显式注册。
+    mc::test::EnvironmentRegistry::instance().registerBuiltinDefaults();
     auto env = mc::test::EnvironmentRegistry::instance().getEnvironment("default");
     ASSERT_NE(env, nullptr);
     std::vector<mc::test::GameTestBatch> batches;

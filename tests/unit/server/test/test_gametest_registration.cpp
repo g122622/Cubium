@@ -29,8 +29,10 @@
 //   - GameTestRegistry 单例：registerTestMethod / allTestFunctions / getTestFunction /
 //     getTestsByPattern / 重复 testName 返回 false / clearAllTestMethods
 //
-// 测试隔离：每个 TEST_F 用例结束 clearAllTestMethods()，避免跨用例污染。
-// 静态初始化的 MC_REGISTER_GAME_TEST 在进程启动时已注册内置样例，故用例内用独立 testName。
+// 测试隔离：每个 TEST_F 用例开始与结束均 clearAllTestMethods()，避免跨用例污染。
+// 静态初始化的 MC_REGISTER_GAME_TEST 在进程启动时已注册内置样例（ExampleTests.alwaysSucceed），
+// 且单个用例被单独选中运行时前序用例的清理不会发生，故必须在 SetUp 清空，保证
+// allTestFunctions().size() 断言看到的注册表只含本用例注册的测试；用例内仍用独立 testName。
 
 #include <gtest/gtest.h>
 
@@ -50,6 +52,7 @@ namespace {
 // 测试夹具：每用例清空注册表，避免 testName 撞或跨用例残留。
 class GameTestRegistrationFixture : public ::testing::Test {
 protected:
+    void SetUp() override { mc::test::GameTestRegistry::instance().clearAllTestMethods(); }
     void TearDown() override { mc::test::GameTestRegistry::instance().clearAllTestMethods(); }
 };
 

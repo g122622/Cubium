@@ -123,6 +123,11 @@ public:
     /**
      * @brief 提交任务
      *
+     * 【任务对象所有权】任务对象的所有权随 unique_ptr 一并转移给任务池：池在任务执行完毕
+     * （含完成回调）后立即销毁它。调用方不得在提交后通过裸指针访问任务对象（例如把它当作
+     * 等待/通知的同步句柄），否则会访问到已销毁的对象；需要观察任务状态请在 callback 内进行，
+     * 或使用独立于任务对象、由调用方自己持有的同步量。
+     *
      * @param task 任务对象
      * @param callback 完成回调（可为空）
      * @param priority 优先级
@@ -147,6 +152,9 @@ public:
      *
      * writeRadius ≤ 0 的任务视作仅写中心区块（writeRadius=0），区域为单个区块。
      * 无区域互斥需求的任务应使用无坐标的 submit 重载（可完全并行）。
+     *
+     * 任务对象的所有权语义与无坐标重载一致：提交后归任务池所有，执行完毕（含完成回调）即被
+     * 销毁，调用方不得保留裸指针在提交后访问它。
      *
      * @param task 任务对象
      * @param callback 完成回调（可为空）
@@ -173,6 +181,9 @@ public:
      *
      * 注意：返回值仅反映调用瞬间的状态，调用者仍需通过带坐标的 submit 提交，
      * 调度器会在执行前再次检查（TOCTOU 由内部锁保护）。
+     *
+     * TODO: 目前只有单元测试调用，尚无生产调用方。计划供区块生成调度器在提交前预检查
+     * （无冲突时可直接内联执行、省去一次入队出队），届时须保持与本方法一致的判定语义。
      */
     [[nodiscard]] bool canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const;
 
@@ -409,7 +420,9 @@ private:
     std::unordered_set<u64> m_runningRegions;
     mutable std::mutex m_runningRegionsMutex;
 
-    // 区域任务释放时通知等待冲突的工作线程重试
+    // 区域任务释放（或关闭）时通知等待冲突的工作线程重试。
+    // 谓词为"m_stop 已置位 或 本任务写入区域不再冲突"，谓词求值与区域标记的清除均在
+    // m_runningRegionsMutex 下进行，通知亦持该锁发出，故不存在丢失唤醒。
     std::condition_variable m_areaReleasedCondition;
 };
 

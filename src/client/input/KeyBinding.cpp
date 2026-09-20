@@ -34,9 +34,41 @@
 
 namespace mc {
 
-// 静态成员初始化
-std::map<std::string, KeyBinding*> KeyBinding::s_bindings;
-std::map<std::string, std::vector<KeyBinding*>> KeyBinding::s_categoryBindings;
+namespace {
+
+/**
+ * @brief 绑定 ID 到按键绑定的全局注册表
+ *
+ * 【重要】注册表有意实现为"永不析构"的堆对象，而不是全局静态对象。
+ *
+ * 原因：KeyBinding 常常作为其它静态对象的成员存活到静态析构阶段（例如
+ * mc::client::ClientSettings::s_keyBindings），而不同翻译单元之间静态对象的析构
+ * 顺序未定义。一旦注册表先于这些 KeyBinding 被析构，~KeyBinding 调用
+ * _unregisterBinding() 时就会在已释放的红黑树节点上继续遍历并解引用悬垂指针，
+ * 进而在进程退出阶段触发 SIGSEGV（表现为测试全部通过后进程仍崩溃）。
+ *
+ * 让注册表活到进程结束即可与析构顺序彻底解耦：KeyBinding 的析构在任何时刻都能
+ * 安全地注销自己；进程退出时由操作系统回收这部分内存。
+ */
+std::map<std::string, KeyBinding*>& _bindings()
+{
+    static auto* registry = new std::map<std::string, KeyBinding*>();
+    return *registry;
+}
+
+/**
+ * @brief 分类 ID 到该类下所有按键绑定的索引
+ *
+ * 生命周期与内存策略同 _bindings()，必须一并存活到进程结束。
+ */
+std::map<std::string, std::vector<KeyBinding*>>& _categoryBindings()
+{
+    static auto* registry = new std::map<std::string, std::vector<KeyBinding*>>();
+    return *registry;
+}
+
+} // namespace
+
 KeyBinding::StateCallback KeyBinding::s_stateCallback;
 
 KeyBinding::KeyBinding(std::string id, i32 defaultKey, std::string category)
@@ -118,14 +150,16 @@ bool KeyBinding::isJustReleased() const noexcept
 
 KeyBinding* KeyBinding::find(const std::string& id)
 {
-    auto it = s_bindings.find(id);
-    return (it != s_bindings.end()) ? it->second : nullptr;
+    auto& bindings = _bindings();
+    auto it = bindings.find(id);
+    return (it != bindings.end()) ? it->second : nullptr;
 }
 
 std::vector<KeyBinding*> KeyBinding::getByCategory(const std::string& category)
 {
-    auto it = s_categoryBindings.find(category);
-    if (it != s_categoryBindings.end()) {
+    auto& categoryBindings = _categoryBindings();
+    auto it = categoryBindings.find(category);
+    if (it != categoryBindings.end()) {
         return it->second;
     }
     return {};
@@ -133,9 +167,10 @@ std::vector<KeyBinding*> KeyBinding::getByCategory(const std::string& category)
 
 std::vector<std::string> KeyBinding::getCategories()
 {
+    auto& categoryBindings = _categoryBindings();
     std::vector<std::string> categories;
-    categories.reserve(s_categoryBindings.size());
-    for (const auto& [category, bindings] : s_categoryBindings) {
+    categories.reserve(categoryBindings.size());
+    for (const auto& [category, bindings] : categoryBindings) {
         categories.push_back(category);
     }
     return categories;
@@ -157,7 +192,7 @@ void KeyBinding::updateAll(const std::vector<i32>& pressedKeys,
     };
 
     // 更新所有绑定状态
-    for (auto& [id, binding] : s_bindings) {
+    for (auto& [id, binding] : _bindings()) {
         i32 key = binding->m_currentKey;
         bool wasPressed = binding->m_pressed;
 
@@ -175,7 +210,7 @@ void KeyBinding::updateAll(const std::vector<i32>& pressedKeys,
 
 void KeyBinding::resetAllToDefault()
 {
-    for (auto& [id, binding] : s_bindings) {
+    for (auto& [id, binding] : _bindings()) {
         binding->resetToDefault();
     }
     spdlog::info("All key bindings reset to default");
@@ -188,7 +223,7 @@ void KeyBinding::setStateCallback(StateCallback callback)
 
 void KeyBinding::serializeAll(nlohmann::json& j)
 {
-    for (const auto& [id, binding] : s_bindings) {
+    for (const auto& [id, binding] : _bindings()) {
         // 只保存非默认值
         if (!binding->isDefault()) {
             j[binding->m_id] = binding->m_currentKey;
@@ -198,7 +233,7 @@ void KeyBinding::serializeAll(nlohmann::json& j)
 
 void KeyBinding::deserializeAll(const nlohmann::json& j)
 {
-    for (auto& [id, binding] : s_bindings) {
+    for (auto& [id, binding] : _bindings()) {
         if (j.contains(id) && j[id].is_number_integer()) {
             binding->setKey(j[id].get<i32>());
         }
@@ -209,13 +244,15 @@ void KeyBinding::_registerBinding()
 {
     if (m_id.empty()) return;
 
+    auto& bindings = _bindings();
+
     // 检查是否已存在
-    if (s_bindings.find(m_id) != s_bindings.end()) {
+    if (bindings.find(m_id) != bindings.end()) {
         spdlog::warn("Key binding '{}' already registered, replacing", m_id);
     }
 
-    s_bindings[m_id] = this;
-    s_categoryBindings[m_category].push_back(this);
+    bindings[m_id] = this;
+    _categoryBindings()[m_category].push_back(this);
 }
 
 void KeyBinding::_unregisterBinding()
@@ -223,15 +260,16 @@ void KeyBinding::_unregisterBinding()
     if (m_id.empty()) return;
 
     // 从绑定表移除
-    s_bindings.erase(m_id);
+    _bindings().erase(m_id);
 
     // 从分类表移除
-    auto it = s_categoryBindings.find(m_category);
-    if (it != s_categoryBindings.end()) {
+    auto& categoryBindings = _categoryBindings();
+    auto it = categoryBindings.find(m_category);
+    if (it != categoryBindings.end()) {
         auto& bindings = it->second;
         bindings.erase(std::remove(bindings.begin(), bindings.end(), this), bindings.end());
         if (bindings.empty()) {
-            s_categoryBindings.erase(it);
+            categoryBindings.erase(it);
         }
     }
 }

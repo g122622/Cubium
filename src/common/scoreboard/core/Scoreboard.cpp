@@ -377,20 +377,26 @@ ScorePlayerTeam* Scoreboard::createTeam(const std::string& name)
 
 void Scoreboard::removeTeam(ScorePlayerTeam& team)
 {
-    const std::string& name = team.getName();
+    // 名称必须先拷贝：m_teams 的 erase 会析构 ScorePlayerTeam，team.getName() 返回的
+    // 内部字符串引用随之悬垂。
+    const std::string name = team.getName();
 
-    // 清空队伍成员（从 m_teamMemberships 中移除）
+    // 解除成员与队伍的归属关系。原版 removePlayerTeam 只清理 teamsByPlayer 映射，
+    // 不会清空队伍自身的成员集合（队伍对象随后即被丢弃）。这里同样不能调用
+    // team.clearMembers()：它会额外触发一次 onTeamChanged，导致在服务端紧接着
+    // 下发移除包之前又多播一个 SetPlayerTeam 变更包。
     const auto& members = team.getMembers();
     for (const auto& member : members) {
         m_teamMemberships.erase(member);
     }
-    team.clearMembers();
 
-    // 从队伍映射中移除
-    m_teams.erase(name);
-
-    // 触发回调
+    // 触发回调：回调实现（ServerScoreboard::onTeamRemoved）需要读取队伍名称、显示名
+    // 等信息来构造移除数据包与保存数据，此时队伍对象必须仍然存活。
     onTeamRemoved(team);
+
+    // 最后才从队伍映射中移除，这一步才真正析构 ScorePlayerTeam。
+    // 顺序不能颠倒：先 erase 会让上面的回调访问已释放对象。
+    m_teams.erase(name);
 }
 
 ScorePlayerTeam* Scoreboard::getTeam(const std::string& name)

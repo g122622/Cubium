@@ -106,3 +106,11 @@ input.update();     // 计算状态变化和增量
 ### 7. KeyAction 和 KeyMods 在 Types.hpp 而非 KeyBinding.hpp
 
 `KeyAction`（Press/Release/Repeat）和 `KeyMods`（Shift/Control/Alt/Super/CapsLock/NumLock）枚举定义在 `client/ui/kagero/Types.hpp` 中，不在本模块。这是因为它们属于 UI 事件系统，不属于通用输入层。
+
+### 8. 全局注册表有意"永不析构"
+
+`KeyBinding` 的全局注册表（绑定表与分类索引）实现为堆分配且不参与静态析构的单例，见 `KeyBinding.cpp` 中的 `_bindings()` / `_categoryBindings()`。
+
+原因：`KeyBinding` 往往作为其它静态对象的成员存活到静态析构阶段（如 `ClientSettings::s_keyBindings`），而不同翻译单元之间静态对象的析构顺序未定义。若注册表先被析构，`~KeyBinding` 会在已释放的红黑树节点上继续遍历并解引用悬垂指针，导致进程退出阶段 SIGSEGV（现象是测试全部 PASSED 之后进程仍然崩溃）。
+
+因此不要把这些注册表改回全局静态对象，也不要给它们加析构逻辑。

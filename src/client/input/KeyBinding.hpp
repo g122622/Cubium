@@ -410,9 +410,9 @@ private:
     bool m_justPressed = false;
     bool m_justReleased = false;
 
-    // 静态注册表
-    static std::map<std::string, KeyBinding*> s_bindings;
-    static std::map<std::string, std::vector<KeyBinding*>> s_categoryBindings;
+    // 静态注册表。注册表本体定义在 KeyBinding.cpp 的匿名命名空间中，且有意不参与
+    // 静态析构——KeyBinding 可能作为其它静态对象的成员存活到静态析构阶段，注册表必须
+    // 比所有 KeyBinding 对象活得更久。详见 KeyBinding.cpp 中 _bindings() 的说明。
     static StateCallback s_stateCallback;
 
     // 注册到全局
