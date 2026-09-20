@@ -104,14 +104,11 @@ public:
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
-        m_blocks[packPos(x, y, z)] = state;
+        // 世界按值持有方块状态：被测代码（如 AbstractCandleBlock::setLit）常传入
+        // 栈上临时 BlockState 的地址，调用返回后即析构，因此必须先拷贝再存，
+        // 否则世界会持有悬垂指针。
+        m_blocks[packPos(x, y, z)] = state != nullptr ? storeBlockState(*state) : nullptr;
         return true;
-    }
-
-    bool setBlockStateCopy(const BlockPos& pos, const BlockState& state)
-    {
-        const BlockState* stored = storeBlockState(state);
-        return setBlockState(pos.x, pos.y, pos.z, stored);
     }
 
     [[nodiscard]] u64 seed() const override { return m_seed; }

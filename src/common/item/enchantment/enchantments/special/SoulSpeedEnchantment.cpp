@@ -42,11 +42,11 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-// 灵魂疾行速度修饰器 ID
+// 灵魂疾行属性修饰符 ID。
+// 原版 soul_speed.json 中 MOVEMENT_SPEED 与 MOVEMENT_EFFICIENCY 两个属性效果共用同一个 id
+// （Enchantments.SOUL_SPEED 注册处为 Identifier.withDefaultNamespace("enchantment.soul_speed")），
+// 修饰符 id 仅在所属属性实例内要求唯一，故两个属性复用同一 id 不冲突。
 static const std::string SOUL_SPEED_MODIFIER_ID = "minecraft:enchantment.soul_speed";
-
-// 灵魂疾行效率修饰器 ID
-static const std::string SOUL_SPEED_EFFICIENCY_MODIFIER_ID = "minecraft:enchantment.soul_speed.efficiency";
 
 bool SoulSpeedEnchantment::onLocationChanged(
     LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const
@@ -58,6 +58,11 @@ bool SoulSpeedEnchantment::onLocationChanged(
     // 2. 实体没有骑乘
     // 3. 实体没有在飞行（创造/旁观模式飞行或鞘翅滑翔）
     // 4. 脚下是灵魂沙/灵魂土
+    // TODO: 原版 soul_speed.json 的 location_changed 条件对"已激活"与"未激活"两种状态分别判定：
+    //       已激活时允许 is_on_ground=false（即起跳离地后仍保留速度/效率修饰符，直到离开灵魂沙
+    //       上方或开始飞行）；未激活时才要求 movement_affected_by 为 #minecraft:soul_speed_blocks。
+    //       当前实现无条件要求 onGround()，导致每次跳跃都会先移除再重新添加修饰符，
+    //       且在灵魂沙上方悬空下落时不激活。补齐该分支时需要同步调整依赖此行为的测试用例。
     if (!entity.onGround()) {
         return false;
     }
@@ -117,6 +122,9 @@ bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
     }
 
     // 使用 SOUL_FIRE_BASE_BLOCKS 标签（包含 soul_sand 和 soul_soil）
+    // TODO: 原版 location_changed 条件引用的是 #minecraft:soul_speed_blocks 标签，本项目未单独注册该标签，
+    //       临时复用内容相同的 SOUL_FIRE_BASE_BLOCKS（两者的原版取值均为 soul_sand/soul_soil）。
+    //       待 BlockTags 补齐 soul_speed_blocks 后应改用该标签，以便数据包自定义时行为一致。
     return BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(state->getBlock());
 }
 
@@ -148,14 +156,14 @@ void SoulSpeedEnchantment::applySoulSpeedModifiers(LivingEntity& entity, i32 lev
 
     entity.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedModifier);
 
-    // MOVEMENT_EFFICIENCY 修饰符：使用 Addition 操作
+    // MOVEMENT_EFFICIENCY 修饰符：使用 Addition 操作，与速度修饰符共用同一 id
     // LevelBasedValue.constant(1.0F)，所有等级均为 +1.0
     // 配合 LivingEntity.getBlockSpeedFactor() 中的插值逻辑：
     //   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
     // 当 movementEfficiency=1.0 时，lerp(1.0, 0.4, 1.0) = 1.0，完全抵消灵魂沙减速
     f32 efficiencyBonus = getMovementEfficiencyBonus();
 
-    entity::attribute::AttributeModifier efficiencyModifier(SOUL_SPEED_EFFICIENCY_MODIFIER_ID,
+    entity::attribute::AttributeModifier efficiencyModifier(SOUL_SPEED_MODIFIER_ID,
         "Soul Speed Efficiency",
         static_cast<f64>(efficiencyBonus),
         entity::attribute::Operation::Addition);
@@ -168,9 +176,8 @@ void SoulSpeedEnchantment::removeSoulSpeedModifiers(LivingEntity& entity) const
     // 移除 MOVEMENT_SPEED 修饰符
     entity.attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, SOUL_SPEED_MODIFIER_ID);
 
-    // 移除 MOVEMENT_EFFICIENCY 修饰符
-    entity.attributes().removeModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, SOUL_SPEED_EFFICIENCY_MODIFIER_ID);
+    // 移除 MOVEMENT_EFFICIENCY 修饰符（与速度修饰符同 id，按属性区分）
+    entity.attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_EFFICIENCY, SOUL_SPEED_MODIFIER_ID);
 }
 
 void SoulSpeedEnchantment::spawnSoulParticles(LivingEntity& entity) const
@@ -183,6 +190,9 @@ void SoulSpeedEnchantment::spawnSoulParticles(LivingEntity& entity) const
     // 粒子效果条件：
     // - periodicTick(5)：每5tick触发一次
     // - 非飞行、在地面、在灵魂沙/土上、正在移动
+    // TODO: 原版把粒子与音效放在 EnchantmentEffectComponents.TICK 组件中，由实体每 tick 的
+    //       tickEffects 派发；本项目尚无该派发点，只能在位置变化事件（含每 20 tick 的周期性重评估）
+    //       里触发，故原地站立时粒子/音效频率低于原版。待补齐附魔 tick 派发后应迁移到 tick 路径。
     // 粒子类型: ParticleTypes.SOUL
     // 粒子偏移: SpawnParticlesEffect.inBoundingBox() + offsetFromEntityPosition(0.1F)
     // 粒子速度: movementScaled(-0.2F) + fixedVelocity(ConstantFloat.of(0.1F))

@@ -377,8 +377,10 @@ TEST_F(SoulSpeedEnchantmentTest, GetMaxCost)
 
 TEST_F(SoulSpeedEnchantmentTest, SoulSpeedModifierId)
 {
-    // 灵魂疾行速度修饰符使用固定 ID，确保不会与其他修饰符冲突
-    // 修饰符 ID 在 SoulSpeedEnchantment.cpp 中定义为 "enchantment.soul_speed"
+    // 灵魂疾行修饰符使用固定资源名 ID，确保不会与其他修饰符冲突
+    // 原版 soul_speed.json 的 MOVEMENT_SPEED 与 MOVEMENT_EFFICIENCY 两个属性效果共用
+    // "minecraft:enchantment.soul_speed"（修饰符 id 仅在所属属性实例内唯一），
+    // SoulSpeedEnchantment.cpp 中的 SOUL_SPEED_MODIFIER_ID 与此一致。
     // 验证注册表中可以找到灵魂疾行附魔
     const Enchantment* registered = EnchantmentRegistry::get("minecraft:soul_speed");
     ASSERT_NE(registered, nullptr);
@@ -947,15 +949,15 @@ TEST_F(SoulSpeedIntegrationTest, AddsModifierWhenOnSoulSand)
     m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
 
     // 初始状态没有修饰符
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 
     // 触发位置变化
     m_entity->onChangedBlock();
 
     // 应该添加灵魂疾行速度修饰符
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 TEST_F(SoulSpeedIntegrationTest, ModifierValueLevel1)
@@ -979,12 +981,12 @@ TEST_F(SoulSpeedIntegrationTest, ModifierValueLevel1)
     m_entity->onChangedBlock();
 
     // 修饰符应存在（Addition 操作，I: +0.0405）
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 
     // 验证修饰符值
     f64 speedModValue = m_entity->attributes().getModifierValue(
-        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed");
     EXPECT_NEAR(speedModValue, 0.0405, 0.0001);
 }
 
@@ -1008,16 +1010,16 @@ TEST_F(SoulSpeedIntegrationTest, RemovesModifierWhenOffSoulSand)
 
     // 第一次位置变化：激活灵魂疾行
     m_entity->onChangedBlock();
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 
     // 移动到新位置（脚下没有灵魂沙）
     m_entity->setPosition(10.5, 65.0, 10.5);
 
     // 第二次位置变化：离开灵魂沙，停用灵魂疾行
     m_entity->onChangedBlock();
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 TEST_F(SoulSpeedIntegrationTest, NoModifierWithoutEnchantment)
@@ -1037,8 +1039,8 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWithoutEnchantment)
     m_entity->onChangedBlock();
 
     // 没有灵魂疾行，不应有速度修饰符
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 TEST_F(SoulSpeedIntegrationTest, NoModifierWhenNotOnGround)
@@ -1065,8 +1067,8 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWhenNotOnGround)
     m_entity->onChangedBlock();
 
     // 不在地面，不应添加速度修饰符
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 TEST_F(SoulSpeedIntegrationTest, ModifierRemovedOnDeath)
@@ -1089,13 +1091,13 @@ TEST_F(SoulSpeedIntegrationTest, ModifierRemovedOnDeath)
 
     // 激活灵魂疾行
     m_entity->onChangedBlock();
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 
     // 实体死亡：应移除所有位置依赖附魔效果
     EnchantmentHelper::stopAllLocationBasedEffects(*m_entity);
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 // ============================================================================
@@ -1257,15 +1259,15 @@ TEST_F(OnChangedBlockChainTest, StopLocationBasedEffectsClearsModifier)
 
     // 激活
     m_entity->onChangedBlock();
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 
     // 停用指定装备上的位置效果
     m_entity->stopLocationBasedEffects(boots, EquipmentSlot::Feet);
 
     // 修饰符应被移除
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 TEST_F(OnChangedBlockChainTest, StopAllLocationBasedEffectsClearsAll)
@@ -1298,8 +1300,8 @@ TEST_F(OnChangedBlockChainTest, StopAllLocationBasedEffectsClearsAll)
         m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
 
     // 修饰符应被移除
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
 TEST_F(OnChangedBlockChainTest, MultipleEnchantmentsOnSameSlot)
@@ -1356,7 +1358,7 @@ TEST_F(SoulSpeedIntegrationTest, SpeedModifierUsesAdditionOperation)
 
     // 验证 MOVEMENT_SPEED 修饰符使用 Addition 操作（值=0.0405）
     f64 speedModValue = m_entity->attributes().getModifierValue(
-        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed");
     EXPECT_NEAR(speedModValue, 0.0405, 0.0001);
 }
 
@@ -1381,7 +1383,7 @@ TEST_F(SoulSpeedIntegrationTest, SpeedModifierValueLevel2)
 
     // Level II: 0.0405 + 0.0105 = 0.051
     f64 speedModValue = m_entity->attributes().getModifierValue(
-        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed");
     EXPECT_NEAR(speedModValue, 0.051, 0.0001);
 }
 
@@ -1406,7 +1408,7 @@ TEST_F(SoulSpeedIntegrationTest, SpeedModifierValueLevel3)
 
     // Level III: 0.0405 + 0.0105 * 2 = 0.0615
     f64 speedModValue = m_entity->attributes().getModifierValue(
-        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed");
     EXPECT_NEAR(speedModValue, 0.0615, 0.0001);
 }
 
@@ -1432,17 +1434,19 @@ TEST_F(SoulSpeedIntegrationTest, EfficiencyModifierAppliedOnSoulSand)
 
     // 初始状态没有修饰符
     EXPECT_FALSE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 
     m_entity->onChangedBlock();
 
-    // 激活后应有 MOVEMENT_EFFICIENCY 修饰符
+    // 激活后应有 MOVEMENT_EFFICIENCY 修饰符。
+    // 注意：原版的 MOVEMENT_EFFICIENCY 效果同样使用 "minecraft:enchantment.soul_speed" 这一 id
+    // （并非 Efficiency 附魔，也与速度修饰符共用 id），由所属属性区分两者。
     EXPECT_TRUE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 
     // 修饰符值应为 1.0（所有等级均为 +1.0）
     f64 efficiencyValue = m_entity->attributes().getModifierValue(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency");
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed");
     EXPECT_NEAR(efficiencyValue, 1.0, 0.0001);
 }
 
@@ -1465,7 +1469,7 @@ TEST_F(SoulSpeedIntegrationTest, EfficiencyModifierRemovedWhenOffSoulSand)
     // 激活
     m_entity->onChangedBlock();
     EXPECT_TRUE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 
     // 移动到新位置（没有灵魂沙）
     m_entity->setPosition(10.5, 65.0, 10.5);
@@ -1473,7 +1477,7 @@ TEST_F(SoulSpeedIntegrationTest, EfficiencyModifierRemovedWhenOffSoulSand)
 
     // 效率修饰符应被移除
     EXPECT_FALSE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 }
 
 // ============================================================================
@@ -1579,19 +1583,19 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWhenRiding)
 
     // 在地面且在灵魂沙上，但骑乘中 → 灵魂疾行不应激活
     m_entity->onChangedBlock();
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
     EXPECT_FALSE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 
     // 清理：恢复非骑乘状态后应正常激活
     m_entity->setVehicleForTest(INVALID_ENTITY_ID);
     ASSERT_FALSE(m_entity->isRiding());
     m_entity->onChangedBlock();
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
     EXPECT_TRUE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 }
 
 // ============================================================================
@@ -1620,18 +1624,18 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWhenElytraFlying)
 
     // 在地面且在灵魂沙上，但鞘翅滑翔中 → 灵魂疾行不应激活
     m_entity->onChangedBlock();
-    EXPECT_FALSE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
     EXPECT_FALSE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 
     // 清理：移除鞘翅滑翔标志后应正常激活
     m_entity->removeFlag(mc::EntityFlags::FallFlying);
     m_entity->onChangedBlock();
-    EXPECT_TRUE(
-        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
     EXPECT_TRUE(m_entity->attributes().hasModifier(
-        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "minecraft:enchantment.soul_speed"));
 }
 
 // ============================================================================

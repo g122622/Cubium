@@ -53,7 +53,7 @@ public:
     /**
      * @brief 在单列上查找可用出生点
      *
-     * 对齐 MC Java 1.21.11 `PlayerSpawnFinder.getOverworldRespawnPos`：
+     * 扫描规则：
      * 1. 取 MotionBlocking 高度 i、WorldSurface 高度 j、OceanFloor 高度三者
      * 2. 若 j <= i 且 j > OceanFloor（水面覆盖地表），判定为不可出生
      * 3. 从 i+1 向下扫描：遇流体中断；遇"朝上碰撞面完整"的方块则在其上一格出生
@@ -76,6 +76,10 @@ public:
 
         const i32 localX = x & world::CHUNK_MASK;
         const i32 localZ = z & world::CHUNK_MASK;
+        // 出生点几何扫描本身不依赖生物群系（只用三张高度图与「朝上碰撞面完整」判据），
+        // 此处取到的生物群系仅用于 requireValidSpawnBlock 门控。
+        // TODO: 门控应取出生点所在高度的生物群系，当前固定取世界底部（Y=0）的采样，
+        // 可能取到与地表无关的洞穴生物群系，导致门控误判。
         const BiomeId biomeId = chunk->getBiomeAtBlock(localX, 0, localZ);
         const Biome& biome = BiomeRegistry::instance().get(biomeId);
         const BlockState* surfaceState = biome.surfaceBlock();
@@ -150,6 +154,9 @@ private:
      *
      * 当前仓库还没有完整的 `BlockTags::VALID_SPAWN`，这里先按需要的语义
      * 约束到"非流体、非树叶/植物、可阻挡移动"的表层方块。
+     *
+     * TODO: 待 `BlockTags::VALID_SPAWN` 与各方块的 `isValidSpawn` 实现补齐后，
+     * 改为按方块自身的出生合法性判定，替换当前这份按材质近似的约束。
      */
     [[nodiscard]] static bool _isValidSpawnSurface(const BlockState& state)
     {

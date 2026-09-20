@@ -26,6 +26,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -129,8 +131,13 @@ const char* s_effectResourceNames[] = {
     "breath_of_the_nautilus", // 40
 };
 
-/// 效果类型数量（不包括 0）
-constexpr i32 EFFECT_COUNT = 40;
+/// 效果类型数量（有效ID为 1..EFFECT_COUNT，0 为无效ID）
+/// 由枚举末尾的 Count 哨兵推导，避免新增效果时遗漏此处导致ID越界。
+constexpr i32 EFFECT_COUNT = static_cast<i32>(EffectType::Count) - 1;
+
+/// 名称表必须覆盖 0..EFFECT_COUNT 全部ID，新增效果时同步维护
+static_assert(std::size(s_effectResourceNames) == static_cast<size_t>(EFFECT_COUNT) + 1,
+    "s_effectResourceNames must contain one entry per effect id (0..EFFECT_COUNT)");
 
 } // namespace
 
@@ -228,6 +235,9 @@ const char* getEffectName(EffectType type) noexcept
 
 bool isBeneficialEffect(EffectType type) noexcept
 {
+    // TODO: 效果类别在原版是三态（BENEFICIAL / HARMFUL / NEUTRAL），此处只有布尔值，
+    //       导致 Glowing、BadOmen、TrialOmen、RaidOmen 这些中性效果被归入"有害"。
+    //       需要引入类别枚举后由 EffectManager::hasHarmfulEffect() 一并修正。
     switch (type) {
         case EffectType::Speed:
         case EffectType::Haste:
@@ -248,8 +258,7 @@ bool isBeneficialEffect(EffectType type) noexcept
         case EffectType::ConduitPower:
         case EffectType::DolphinsGrace:
         case EffectType::HeroOfTheVillage:
-            return true;
-        case EffectType::WindCharged:
+        case EffectType::BreathOfTheNautilus:
             return true;
         case EffectType::Darkness:
         default:

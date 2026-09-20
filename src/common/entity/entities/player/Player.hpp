@@ -805,6 +805,16 @@ public:
     // 状态
     [[nodiscard]] bool isOnGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isSprinting() const { return m_isSprinting; }
+
+    /**
+     * @brief 玩家是否处于潜行（蹲伏）状态
+     *
+     * TODO: `m_isSneaking` 目前同时承担「按住潜行键」与「姿态被动回退到蹲伏」
+     * （站立空间不足，见 setSneaking/setSleeping/setSwimming）两种来源，而这两者在
+     * 原版由 isShiftKeyDown() 与 isCrouching() 分别表达。后续应把二者拆分，
+     * 否则因空间不足被动蹲伏的玩家会被当作按住潜行键处理（禁用自动跳跃、
+     * isSteppingCarefully() 使岩浆块免伤、潜行边缘保护等）。
+     */
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
     [[nodiscard]] bool isSleeping() const { return m_isSleeping; }

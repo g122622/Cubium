@@ -87,7 +87,7 @@ enum class EffectType : u8 {
     BreathOfTheNautilus = 40, // 鹦鹉螺之力
 
     // 数量
-    Count
+    Count // 哨兵值：等于最后一个有效ID加一，必须始终位于末尾
 };
 
 /**
@@ -108,7 +108,9 @@ enum class EffectType : u8 {
 /**
  * @brief 从数值ID获取效果类型
  *
- * @param id 效果ID（1-36）
+ * 有效ID范围为 1 至 static_cast<i32>(EffectType::Count) - 1。
+ *
+ * @param id 效果ID
  * @return 效果类型，如果ID无效返回 std::nullopt
  */
 [[nodiscard]] std::optional<EffectType> getEffectById(i32 id) noexcept;

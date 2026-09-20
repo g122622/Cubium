@@ -75,6 +75,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace blocks {
@@ -97,17 +98,22 @@ public:
     {
         const auto it = m_blocks.find(BlockPos(x, y, z));
         if (it != m_blocks.end()) {
-            return it->second.get();
+            return it->second;
         }
         return &VanillaBlocks::AIR->defaultState();
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
     {
+        const BlockPos pos(x, y, z);
         if (state == nullptr) {
-            m_blocks.erase(BlockPos(x, y, z));
+            // 只断开"位置 → 状态"映射，状态对象本体留在 m_stateArena 中不析构，理由见成员声明注释。
+            m_blocks.erase(pos);
         } else {
-            m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
+            // 必须拷贝入参：被测代码会传入栈上临时状态的地址（如 FireBlock::withAge 的返回值
+            // 经 &fireState 传入），直接存调用方指针会在其栈帧销毁后悬空。
+            m_stateArena.push_back(std::make_unique<BlockState>(*state));
+            m_blocks[pos] = m_stateArena.back().get();
         }
         m_setBlockCallCount++;
         return true;
@@ -227,11 +233,8 @@ public:
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
-        if (state == nullptr) {
-            m_blocks.erase(pos);
-        } else {
-            m_blocks[pos] = std::make_unique<BlockState>(*state);
-        }
+        // 统一走 setBlockState，保证拷贝语义与状态保活语义只有一处实现
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
     }
 
     void advanceTick() { m_currentTick++; }
@@ -260,6 +263,7 @@ public:
 
     void clearState()
     {
+        // 只断开位置映射：已返回给被测代码的状态指针必须继续有效（见 m_stateArena 注释）
         m_blocks.clear();
         m_spawnedEntities.clear();
         m_spawnedTNTCount = 0;
@@ -272,7 +276,24 @@ public:
     }
 
 private:
-    std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
+    // 位置 → 方块状态指针。状态对象本体由 m_stateArena 持有，且一旦创建便永不析构。
+    //
+    // 生产环境中 BlockState 是"不可变 + 长生命周期"对象：对象本体由 Block 持有
+    // （StateContainer 一次性生成全部状态）；区块实际只存 stateId（ChunkSection 写入
+    // state->stateId()，读取时经 Block::getBlockState(stateId) 取回规范状态），且
+    // ServerWorld::setBlockState 会先把入参 canonicalizeState 成 BlockRegistry 持有的
+    // 规范状态。因此方块被替换/移除后，此前从 getBlockState 拿到的旧指针依然有效。
+    //
+    // Fixture 不按 stateId 规范化（本文件大量用例使用临时构造、未注册进 BlockRegistry 的
+    // TNTBlock，其 stateId 是 StateContainer 内部的局部编号，按 id 查注册表会取到别的方块
+    // 状态），改为持有副本，但必须复刻同样的生命周期。
+    //
+    // 被测代码依赖这一约定：FireBlock::tryCatchFire 会先 setBlockState 替换目标方块
+    // （可能写入火焰或空气），随后仍用入口处缓存的 state 指针调用 state->catchFire()。
+    // 若 Fixture 在替换/移除时析构副本，该调用就会读已释放内存（本测试此前即因此
+    // 在 BlockState::catchFire 处 SIGSEGV）。故副本一律移入 arena 保活。
+    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+    std::vector<std::unique_ptr<BlockState>> m_stateArena;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     std::unordered_map<EntityInstanceId, Entity*> m_entityLookup;
     u64 m_currentTick = 0;
@@ -1651,6 +1672,10 @@ TEST_F(TNTBlockTest, FireTick_SpreadsToTNT_TntExplodesFalse_DoesNotPrime)
     const BlockState& fireState = fireBlock->defaultState();
     const BlockState& tntState = mc::block_registry::BuildingBlocks::TNT->defaultState();
 
+    // 统计火焰真正烧到 TNT 的次数：否则"未生成 TNT 实体"可能只是因为火焰压根没蔓延到 TNT，
+    // 用例会空转通过，失去判定力。
+    i32 burnedAttempts = 0;
+
     for (int attempt = 0; attempt < 200; ++attempt) {
         m_world.clearState();
         m_world.setClientSide(false);
@@ -1670,7 +1695,15 @@ TEST_F(TNTBlockTest, FireTick_SpreadsToTNT_TntExplodesFalse_DoesNotPrime)
 
         // 即便火焰烧到 TNT，tntExplodes=false 时 prime 不生成实体
         EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+
+        const BlockState* tntStateAfterTick = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+        if (!tntStateAfterTick->is(mc::block_registry::BuildingBlocks::TNT)) {
+            ++burnedAttempts;
+        }
     }
+
+    // 与上一用例使用同一批随机种子，蔓延到 TNT 的回合必然存在（上一用例要求其中至少一次引爆）
+    EXPECT_GT(burnedAttempts, 0);
 }
 
 } // namespace test

@@ -51,6 +51,10 @@ TEST_F(EffectTypeTest, GetEffectById_ValidIds)
     EXPECT_EQ(EffectType::InstantHealth, getEffectById(6).value());
     EXPECT_EQ(EffectType::Poison, getEffectById(19).value());
     EXPECT_EQ(EffectType::HeroOfTheVillage, getEffectById(32).value());
+    EXPECT_EQ(EffectType::TrialOmen, getEffectById(33).value());
+    EXPECT_EQ(EffectType::Darkness, getEffectById(36).value());
+    EXPECT_EQ(EffectType::Weaving, getEffectById(37).value());
+    EXPECT_EQ(EffectType::BreathOfTheNautilus, getEffectById(40).value());
 }
 
 TEST_F(EffectTypeTest, GetEffectById_InvalidIds)
@@ -58,9 +62,10 @@ TEST_F(EffectTypeTest, GetEffectById_InvalidIds)
     // 测试无效ID
     EXPECT_FALSE(getEffectById(0).has_value());
     EXPECT_FALSE(getEffectById(-1).has_value());
-    // EffectType 枚举已扩展到 Darkness=36（33=TrialOmen 已有效），
-    // 此前期望 33 返回 nullopt 是枚举扩展前的过时边界。改为 37（>EFFECT_COUNT=36）。
-    EXPECT_FALSE(getEffectById(37).has_value());
+    // EffectType 枚举当前已扩展到 BreathOfTheNautilus=40，故 37（Weaving）是有效ID。
+    // 有效上界由 Count 决定：Count 本身及其之后的 ID 均无效。
+    EXPECT_FALSE(getEffectById(static_cast<i32>(EffectType::Count)).has_value());
+    EXPECT_FALSE(getEffectById(static_cast<i32>(EffectType::Count) + 1).has_value());
     EXPECT_FALSE(getEffectById(100).has_value());
 }
 
@@ -115,7 +120,7 @@ TEST_F(EffectTypeTest, GetEffectResourceLocation_CommonEffects)
 TEST_F(EffectTypeTest, GetEffectResourceLocation_AllEffects)
 {
     // 验证所有效果都有有效的资源位置
-    for (i32 id = 1; id <= 32; ++id) {
+    for (i32 id = 1; id < static_cast<i32>(EffectType::Count); ++id) {
         auto type = getEffectById(id);
         ASSERT_TRUE(type.has_value()) << "Effect ID " << id << " should be valid";
 
@@ -174,7 +179,7 @@ TEST_F(EffectTypeTest, IsInstantEffect_NonInstantEffects)
 TEST_F(EffectTypeTest, RoundTrip_ResourceLocation)
 {
     // 验证从类型到资源位置再转回类型的一致性
-    for (i32 id = 1; id <= 32; ++id) {
+    for (i32 id = 1; id < static_cast<i32>(EffectType::Count); ++id) {
         auto originalType = getEffectById(id);
         ASSERT_TRUE(originalType.has_value()) << "Effect ID " << id << " should be valid";
 
@@ -190,7 +195,7 @@ TEST_F(EffectTypeTest, RoundTrip_ResourceLocation)
 TEST_F(EffectTypeTest, RoundTrip_NumericId)
 {
     // 验证从类型到数值ID再转回类型的一致性
-    for (i32 id = 1; id <= 32; ++id) {
+    for (i32 id = 1; id < static_cast<i32>(EffectType::Count); ++id) {
         auto originalType = getEffectById(id);
         ASSERT_TRUE(originalType.has_value()) << "Effect ID " << id << " should be valid";
 
@@ -225,6 +230,7 @@ TEST_F(EffectTypeTest, IsBeneficialEffect_BeneficialEffects)
     EXPECT_TRUE(isBeneficialEffect(EffectType::FireResistance));
     EXPECT_TRUE(isBeneficialEffect(EffectType::NightVision));
     EXPECT_TRUE(isBeneficialEffect(EffectType::HeroOfTheVillage));
+    EXPECT_TRUE(isBeneficialEffect(EffectType::BreathOfTheNautilus));
 }
 
 TEST_F(EffectTypeTest, IsBeneficialEffect_NonBeneficialEffects)
@@ -234,4 +240,9 @@ TEST_F(EffectTypeTest, IsBeneficialEffect_NonBeneficialEffects)
     EXPECT_FALSE(isBeneficialEffect(EffectType::Wither));
     EXPECT_FALSE(isBeneficialEffect(EffectType::Nausea));
     EXPECT_FALSE(isBeneficialEffect(EffectType::BadOmen));
+    // 风充能属于有害效果（试炼密室的旋风攻击来源），不应归入有益
+    EXPECT_FALSE(isBeneficialEffect(EffectType::WindCharged));
+    EXPECT_FALSE(isBeneficialEffect(EffectType::Weaving));
+    EXPECT_FALSE(isBeneficialEffect(EffectType::Oozing));
+    EXPECT_FALSE(isBeneficialEffect(EffectType::Infested));
 }

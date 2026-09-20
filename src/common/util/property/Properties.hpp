@@ -595,6 +595,9 @@ public:
 
     /**
      * @brief 双方块半部分枚举（门）
+     *
+     * 序列化名为 upper/lower。楼梯、活板门使用 Half（top/bottom），是另一个属性，
+     * 尽管两者属性名同为 "half"。
      */
     enum class DoubleBlockHalf : u8 {
         Upper = 0, ///< 上半部分
@@ -1004,8 +1007,8 @@ public:
     /**
      * @brief 半部分枚举（楼梯、活板门）
      *
-     * MC 1.16.5: net.minecraft.state.properties.Half
-     * 注意：与 DoubleBlockHalf (Upper/Lower) 不同，Half 是 Top/Bottom
+     * 序列化名为 top/bottom。注意：门使用的 DoubleBlockHalf 序列化名是 upper/lower，
+     * 两者的属性名同为 "half" 但枚举与取值都不同，不可混用。
      */
     enum class Half : u8 {
         Top = 0,   ///< 上半部分

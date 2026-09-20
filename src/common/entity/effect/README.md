@@ -94,7 +94,17 @@ EffectType ←── EffectInstance ←── EffectManager
 修改器名称格式：`effect.minecraft.<resource_name>.<level>`（MC 原版格式）
 
 ### 7. 新增效果类型注意
-MC 1.21 新增了 TrialOmen、WindCharged、RaidOmen 三个试炼密室效果，数值 ID 为 33-35。如需新增效果，需同时更新：`EffectType` 枚举、`getEffectById()`、`getEffectResourceLocation()`、`getEffectResourceName()`。如果新效果有属性修改器，还需在 `EffectAttributeModifiers` 中添加映射条目，并在 `AttributeModifierIds.hpp` 中定义对应 id 常量。
+`EffectType` 的数值 ID 从 1 开始连续分配（0 表示无效 ID），当前最后一个效果为 `BreathOfTheNautilus = 40`。枚举末尾的 `Count` 是哨兵值（等于最大有效 ID 加一），`EFFECT_COUNT` 由它推导，不需要手工维护；`getEffectById()` / `getEffectResourceName()` 也只依赖 `EFFECT_COUNT`，新增效果时无需改动。
+
+新增一个效果需同时更新：
+- `EffectType` 枚举（新值必须插在 `Count` 之前）
+- `s_effectResourceNames[]`（名称表长度由 `static_assert` 校验，遗漏会在编译期报错）
+- `s_effectResourceNameMap`（资源位置 → 枚举的反查表）
+- `getEffectName()` / `getEffectColor()` / `isBeneficialEffect()` 的 switch 分支
+
+注意：`isBeneficialEffect()` 目前是布尔判断，无法表达原版的三态类别（BENEFICIAL / HARMFUL / NEUTRAL），因此 `Glowing`、`BadOmen`、`TrialOmen`、`RaidOmen` 这些中性效果会被 `EffectManager::hasHarmfulEffect()` 当作有害效果（见 `EffectType.cpp` 中的 TODO）。
+
+如果新效果有属性修改器，还需在 `EffectAttributeModifiers` 中添加映射条目，并在 `AttributeModifierIds.hpp` 中定义对应 id 常量。
 
 ### 8. 效果 tick 间隔
 部分效果有特殊的 tick 间隔计算：

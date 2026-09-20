@@ -590,6 +590,12 @@ public:
 
     // ========== 实体生成 ==========
 
+    // 掉落物实体经 ItemDropHelper 构造 ItemEntity，需要 registry 句柄；
+    // 真实服务端（ServerWorld）始终提供 registry，本 Mock 同样返回共享测试 registry，
+    // 否则 ItemDropHelper::spawnItemEntities 会因 registry 为空而静默跳过生成。
+    [[nodiscard]] ecs::EntityRegistry* entityRegistry() override { return &mc::test::testEcsRegistry(); }
+    [[nodiscard]] const ecs::EntityRegistry* entityRegistry() const override { return &mc::test::testEcsRegistry(); }
+
     EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         m_spawnedEntityCount++;

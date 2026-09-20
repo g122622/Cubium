@@ -592,17 +592,27 @@ void Player::setSneaking(bool sneaking)
 
 void Player::setSwimming(bool swimming)
 {
-    // 对齐 vanilla Entity.setSwimming：仅设置 Swimming 共享标志位（位 4），
-    // 不触碰姿态与潜行状态。姿态由 updatePose 统一管理，潜行由 setSneaking /
-    // _applyCachedMovementInput 管理。原实现会在 swimming=false 时清除 m_isSneaking，
-    // 导致 updatePhysics 中 updateSwimming（:1353）在 doBlockCollisions（:1363）
-    // 之前清掉潜行态，使潜行玩家错误触发岩浆块烫脚伤害。
     m_isSwimming = swimming;
     if (swimming) {
         addFlag(EntityFlags::Swimming);
-    } else {
-        removeFlag(EntityFlags::Swimming);
+        setPose(EntityPose::Swimming);
+        return;
     }
+
+    removeFlag(EntityFlags::Swimming);
+
+    // 退出游泳后的姿态回退，与 setSneaking / setSleeping 的回退路径保持一致：
+    // 站立空间不足时转入蹲伏姿态并置位潜行标志，否则按当前状态重新推导姿态
+    // （睡眠、鞘翅飞行等优先级更高的姿态由 updatePose 自行决定，不会被误降级）。
+    // 此路径绝不能清除 m_isSneaking：updatePhysics 中 updateSwimming 先于
+    // doBlockCollisions，清除潜行标志会使潜行中的玩家在 doBlockCollisions 中被
+    // 判定为未潜行（isSteppingCarefully() 为假），从而误受岩浆块烫脚伤害。
+    if (!_canFitPose(EntityPose::Standing)) {
+        setSneaking(true);
+        return;
+    }
+
+    updatePose();
 }
 
 void Player::toggleFlying()

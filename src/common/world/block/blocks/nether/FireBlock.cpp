@@ -102,6 +102,14 @@ i32 FireBlock::getAge(const BlockState& state) const
 
 BlockState FireBlock::withAge(i32 age) const
 {
+    // TODO: 与 vanilla FireBlock.getStateWithAge 尚有三处差异待补齐：
+    //   1. 目标位置下方是灵魂沙/灵魂土时应产生灵魂火（vanilla 经 BaseFireBlock.getState →
+    //      SoulFireBlock.canSurviveOnBlock 判定），本函数恒返回普通火状态；同文件的
+    //      getFireState 已实现该判定但未被此处复用；
+    //   2. 未按目标位置 6 邻居的可燃性计算 NORTH/SOUTH/EAST/WEST/UP 连接属性（vanilla 走
+    //      FireBlock.getStateForPlacement），导致蔓延新放置的火焰连接属性恒为 false；
+    //   3. 目标位置原本已是火焰时应保留其原连接属性、仅更新 AGE（vanilla 对 fire 状态调用
+    //      setValue(AGE, i)），本函数返回 defaultState 会把既有连接属性清零。
     return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
 }
 
@@ -620,7 +628,11 @@ void FireBlock::tryCatchFire(
         static_cast<void>(TNTBlock::prime(world, pos, nullptr));
     }
 
-    // 触发燃烧回调（如其他方块自定义点燃逻辑）
+    // 触发燃烧回调（如其他方块自定义点燃逻辑）。
+    // 注意：此处的 state 是函数入口处从 world.getBlockState(pos) 取得的指针，其指向的方块
+    // 已在上面被替换/移除。这样用是安全的——BlockState 对象本体由 Block 持有
+    // （ServerWorld::setBlockState 会把入参规范化为 BlockRegistry 持有的规范状态指针后写入
+    // 区块），生命周期不随方块位置上的替换而变化；测试夹具也必须保证同样的生命周期。
     state->catchFire(world, pos, face, nullptr);
 }
 

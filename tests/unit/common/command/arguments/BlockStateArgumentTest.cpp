@@ -141,14 +141,17 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithMultipleProperties)
         GTEST_SKIP() << "OAK_STAIRS block not registered";
     }
 
-    // StairsBlock uses 'half' property with values 'upper' and 'lower' (DoubleBlockHalf enum)
-    StringReader reader("oak_stairs[facing=east,half=upper]");
+    // 楼梯的 half 属性是 Half 枚举，序列化名为 top/bottom；
+    // 门使用的 upper/lower 属于 DoubleBlockHalf，两者只是属性名同为 "half" 的不同属性
+    StringReader reader("oak_stairs[facing=east,half=top]");
     BlockStateArgumentType argType;
 
     BlockStateInput input = argType.parse(reader);
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
+    // 校验属性确实生效，而不是回退到默认状态（楼梯默认 half=bottom）
+    EXPECT_EQ(input.state()->get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
 }
 
 TEST_F(BlockStateArgumentTest, ParseBlockWithThreeProperties)
@@ -158,14 +161,41 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithThreeProperties)
         GTEST_SKIP() << "OAK_STAIRS block not registered";
     }
 
-    // StairsBlock uses 'half' property with values 'upper' and 'lower'
-    StringReader reader("oak_stairs[facing=south,half=lower,waterlogged=false]");
+    // 楼梯的 half 属性序列化名为 top/bottom
+    StringReader reader("oak_stairs[facing=south,half=bottom,waterlogged=false]");
     BlockStateArgumentType argType;
 
     BlockStateInput input = argType.parse(reader);
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
+    EXPECT_EQ(input.state()->get(BlockStateProperties::HALF()), BlockStateProperties::Half::Bottom);
+    EXPECT_FALSE(input.state()->get(BlockStateProperties::WATERLOGGED()));
+}
+
+TEST_F(BlockStateArgumentTest, StairsHalfRejectsDoorHalfNames)
+{
+    // 跳过测试如果 oak_stairs 方块未注册
+    if (VanillaBlocks::OAK_STAIRS == nullptr) {
+        GTEST_SKIP() << "OAK_STAIRS block not registered";
+    }
+
+    // 楼梯的 half 是 Half 枚举（top/bottom），门使用的 upper/lower 属于另一个属性
+    // DoubleBlockHalf，因此必须被拒绝，否则会与资源包/数据包中的 half 取值脱节
+    BlockStateArgumentType argType;
+    for (const char* value : {"upper", "lower"}) {
+        // StringReader 持有 string_view，输入字符串必须存活于 reader 之外
+        const std::string text = std::string("oak_stairs[half=") + value + "]";
+        StringReader reader(text);
+        EXPECT_THROW(argType.parse(reader), CommandException) << "value=" << value;
+    }
+
+    for (const char* value : {"top", "bottom"}) {
+        const std::string text = std::string("oak_stairs[half=") + value + "]";
+        StringReader reader(text);
+        BlockStateInput input = argType.parse(reader);
+        EXPECT_TRUE(input.isValid()) << "value=" << value;
+    }
 }
 
 TEST_F(BlockStateArgumentTest, ParseBlockWithNamespaceAndProperties)
@@ -399,14 +429,16 @@ TEST_F(BlockStateArgumentTest, ParseBlockStateId)
         GTEST_SKIP() << "OAK_STAIRS block not registered";
     }
 
-    // StairsBlock uses 'half' property with values 'upper' and 'lower'
-    StringReader reader("oak_stairs[facing=west,half=upper,waterlogged=true]");
+    // 楼梯的 half 属性序列化名为 top/bottom
+    StringReader reader("oak_stairs[facing=west,half=top,waterlogged=true]");
     BlockStateArgumentType argType;
 
     BlockStateInput input = argType.parse(reader);
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
+    EXPECT_EQ(input.state()->get(BlockStateProperties::HALF()), BlockStateProperties::Half::Top);
+    EXPECT_TRUE(input.state()->get(BlockStateProperties::WATERLOGGED()));
 
     // 验证 stateId 返回有效值
     u32 stateId = input.stateId();

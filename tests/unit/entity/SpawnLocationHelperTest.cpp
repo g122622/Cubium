@@ -166,13 +166,18 @@ TEST_F(SpawnLocationHelperTest, ScansChunkInVanillaOrder)
     EXPECT_EQ(*spawnPos, BlockPos(5, 71, 7));
 }
 
-TEST_F(SpawnLocationHelperTest, HonorsBiomeSurfaceBlockMatch)
+TEST_F(SpawnLocationHelperTest, HonorsBiomeSurfaceBlockConstraint)
 {
+    // 生物群系表层方块只在 requireValidSpawnBlock=true 时参与判定，且判定对象是
+    // 「生物群系表层方块本身能否作为出生表面」（非流体、可阻挡移动），而不是
+    // 「命中方块是否等于表层方块」——玩家出生点搜索不查询生物群系表层方块，
+    // 只依赖三张高度图与「朝上碰撞面完整」判据（见 SpawnLocationHelper.hpp 的扫描实现）。
     constexpr BiomeId CUSTOM_BIOME_ID = 250;
 
     SpawnLocationTestWorld world;
     Biome customBiome(CUSTOM_BIOME_ID, "spawn_helper_test");
-    customBiome.setSurfaceBlock(&VanillaBlocks::SAND->defaultState());
+    // 表层方块取水：流体不能作为出生立足表面
+    customBiome.setSurfaceBlock(&VanillaBlocks::WATER->defaultState());
     BiomeRegistry::instance().registerBiome(std::move(customBiome));
 
     ChunkData& chunk = world.ensureChunk(0, 0);
@@ -181,9 +186,14 @@ TEST_F(SpawnLocationHelperTest, HonorsBiomeSurfaceBlockMatch)
     world.setBlockState(3, 63, 3, &VanillaBlocks::DIRT->defaultState());
     world.setBlockState(3, 64, 3, &VanillaBlocks::GRASS_BLOCK->defaultState());
 
+    // 要求合法出生表面：表层方块为流体，整列被拒绝
+    EXPECT_FALSE(SpawnLocationHelper::findSpawnLocation(world, 3, 3, true).has_value());
+
+    // 不要求表层方块时退回纯几何扫描：草方块朝上碰撞面完整，取其上方一格出生
     const auto spawnPos = SpawnLocationHelper::findSpawnLocation(world, 3, 3, false);
 
-    EXPECT_FALSE(spawnPos.has_value());
+    ASSERT_TRUE(spawnPos.has_value());
+    EXPECT_EQ(*spawnPos, BlockPos(3, 65, 3));
 }
 
 } // namespace
