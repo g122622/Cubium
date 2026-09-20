@@ -1218,11 +1218,10 @@ protected:
     /**
      * @brief handleContainerClickPacket 远程分支：handleClick + syncToClient
      *
-     * cursorItem 由调用方经 hashedStackToItemStack 从入站 HashedStack.carriedItem 还原。
+     * 入站包里携带的光标不参与结算（它是客户端点击后的预测值），故不接收该参数。
      * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
      */
-    void _handleContainerClickRemote(
-        PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem);
+    void _handleContainerClickRemote(PlayerId playerId, const mc::network::ir::play::ContainerClick& evt);
 
     /**
      * @brief 把 1.21.11 HashedStack（itemId+count，组件哈希不还原）转业务 ItemStack

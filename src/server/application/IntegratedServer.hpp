@@ -205,6 +205,9 @@ private:
     // 注：play::Login 已下沉到 MinecraftServer::sendLoginResponseForConnection（共享 Local+Wire）
     void _sendTeleport(f64 x, f64 y, f64 z, f32 yaw, f32 pitch, u32 teleportId);
     void _sendPlayerInventory();
+    /// 玩家背包窗口（containerId=0）的全量内容应携带的光标：当前菜单即背包菜单时取它的
+    /// 权威光标，否则为空（光标属于当前打开的那个窗口）。
+    [[nodiscard]] mc::network::ir::play::ItemStackView cursorForPlayerInventoryWindow() const;
     void _sendContainerContent(const AbstractContainerMenu& menu);
     void _sendOpenContainer(ContainerId containerId, mc::ContainerType type, const std::string& title, i32 slotCount);
     void _sendCloseContainer(ContainerId containerId);

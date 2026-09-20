@@ -26,7 +26,10 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/item/crafting/Ingredient.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/ShapedRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -96,6 +99,12 @@ private:
 
 class CraftingMenuTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite()
+    {
+        // 配方匹配按 Item* 比对，需要真实物品才能构造出「配料非空」的配方。
+        Items::initialize();
+    }
+
     void SetUp() override
     {
         m_player = std::make_unique<Player>(1, "MenuTester", mc::test::testEcsRegistry());
@@ -128,47 +137,62 @@ TEST_F(CraftingMenuTest, GetCurrentRecipeId_ReturnsEmptyWhenNoMatch)
 
 TEST_F(CraftingMenuTest, GetCurrentRecipeId_ReturnsRecipeIdWhenMatch)
 {
-    // 创建一个测试配方（使用空原料，空网格匹配）
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr) << "Stone item not registered";
+
+    // 配料用真实物品。不能用空配料（Ingredient()）代替「无配料要求」——空配料的语义是
+    // 「该槽位必须为空」，那是 pattern 里空格占位符的语义，被它匹配的配方不是有效形态。
     auto recipe = std::make_unique<TestRecipe>(ResourceLocation("test", "test_recipe"),
-        std::vector<crafting::Ingredient>(), // 空原料
-        ItemStack()                          // 空结果
-    );
+        std::vector<crafting::Ingredient>{crafting::Ingredient::fromItem(*stone)},
+        ItemStack(*stone, 1));
     crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
 
     CraftingMenu menu(1, m_playerInventory.get());
 
-    // 空网格匹配空原料配方
+    // 网格为空时不匹配任何配方：空网格永不产出结果。
     menu.updateResult();
+    EXPECT_TRUE(menu.getCurrentRecipeId().path().empty());
 
-    ResourceLocation recipeId = menu.getCurrentRecipeId();
-    EXPECT_EQ(recipeId.toString(), "test:test_recipe");
+    // 放上配料后匹配。
+    menu.getCraftingGrid().setItem(0, ItemStack(*stone, 1));
+    menu.updateResult();
+    EXPECT_EQ(menu.getCurrentRecipeId().toString(), "test:test_recipe");
 }
 
 TEST_F(CraftingMenuTest, GetCurrentRecipeId_UpdatesAfterGridChange)
 {
-    // 注册两个配方：一个需要空网格，一个需要原料
-    auto emptyRecipe = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "empty_recipe"), std::vector<crafting::Ingredient>(), ItemStack());
-    crafting::RecipeManager::instance().registerRecipe(std::move(emptyRecipe));
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
+    ASSERT_NE(stone, nullptr) << "Stone item not registered";
+    ASSERT_NE(dirt, nullptr) << "Dirt item not registered";
+
+    auto recipe = std::make_unique<TestRecipe>(ResourceLocation("test", "stone_recipe"),
+        std::vector<crafting::Ingredient>{crafting::Ingredient::fromItem(*stone)},
+        ItemStack(*stone, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
 
     CraftingMenu menu(1, m_playerInventory.get());
 
-    // 初始状态：匹配空配方
+    // 初始状态：网格为空，无匹配配方。
     menu.updateResult();
-    EXPECT_EQ(menu.getCurrentRecipeId().toString(), "test:empty_recipe");
+    EXPECT_TRUE(menu.getCurrentRecipeId().path().empty());
 
-    // 添加物品后，空网格配方不再匹配
-    const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
-    if (stone != nullptr) {
-        menu.getCraftingGrid().setItem(0, ItemStack(*stone, 1));
-        menu.updateResult();
-        EXPECT_TRUE(menu.getCurrentRecipeId().path().empty()); // 没有匹配的配方
-    }
+    // 放上配方要求的物品后匹配。
+    menu.getCraftingGrid().setItem(0, ItemStack(*stone, 1));
+    menu.updateResult();
+    EXPECT_EQ(menu.getCurrentRecipeId().toString(), "test:stone_recipe");
+
+    // 换成配方不接受的物品后不再匹配。
+    menu.getCraftingGrid().setItem(0, ItemStack(*dirt, 1));
+    menu.updateResult();
+    EXPECT_TRUE(menu.getCurrentRecipeId().path().empty());
 }
 
 // InventoryCraftingMenu 测试类
 class InventoryCraftingMenuTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite() { Items::initialize(); }
+
     void SetUp() override
     {
         m_player = std::make_unique<Player>(1, "InventoryMenuTester", mc::test::testEcsRegistry());
@@ -192,18 +216,46 @@ TEST_F(InventoryCraftingMenuTest, GetCurrentRecipeId_ReturnsEmptyWhenNoMatch)
 
 TEST_F(InventoryCraftingMenuTest, GetCurrentRecipeId_ReturnsRecipeIdWhenMatch)
 {
-    // 注册一个空网格配方（2x2 网格）
-    auto recipe = std::make_unique<TestRecipe>(
-        ResourceLocation("test", "test_2x2_recipe"), std::vector<crafting::Ingredient>(), ItemStack());
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr) << "Stone item not registered";
+
+    // 配料用真实物品，理由同 CraftingMenuTest 同名用例。
+    auto recipe = std::make_unique<TestRecipe>(ResourceLocation("test", "test_2x2_recipe"),
+        std::vector<crafting::Ingredient>{crafting::Ingredient::fromItem(*stone)},
+        ItemStack(*stone, 1));
     crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
 
     InventoryCraftingMenu menu(1, m_playerInventory.get());
 
-    // 空网格匹配
+    // 网格为空时不匹配。
+    menu.updateResult();
+    EXPECT_TRUE(menu.getCurrentRecipeId().path().empty());
+
+    menu.getCraftingGrid().setItem(0, ItemStack(*stone, 1));
+    menu.updateResult();
+    EXPECT_EQ(menu.getCurrentRecipeId().toString(), "test:test_2x2_recipe");
+}
+
+TEST_F(InventoryCraftingMenuTest, EmptyGrid_NeverProducesResult)
+{
+    // 回归锚点：曾有一条配料全部未注册的配方（minecraft:clay，配料 clay_ball 未实现）
+    // 匹配到完全空的 2x2 网格，背包合成结果槽（菜单槽位 0）凭空出现一个粘土并随全量同步
+    // 下发到客户端。空网格永不产出结果，这条断言把该类缺陷钉死。
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr) << "Stone item not registered";
+
+    // 退化配方：无配料（其 matches 对空网格恒为真），但仍不该产出结果。
+    auto recipe = std::make_unique<TestRecipe>(
+        ResourceLocation("test", "degenerate_recipe"), std::vector<crafting::Ingredient>(), ItemStack(*stone, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    InventoryCraftingMenu menu(1, m_playerInventory.get());
     menu.updateResult();
 
-    ResourceLocation recipeId = menu.getCurrentRecipeId();
-    EXPECT_EQ(recipeId.toString(), "test:test_2x2_recipe");
+    EXPECT_TRUE(menu.getCurrentRecipeId().path().empty()) << "空网格不得匹配到任何配方";
+    const Slot* resultSlot = menu.getSlot(InventoryCraftingMenu::RESULT_SLOT);
+    ASSERT_NE(resultSlot, nullptr);
+    EXPECT_TRUE(resultSlot->getItem().isEmpty()) << "空网格的合成结果槽必须为空";
 }
 
 } // namespace

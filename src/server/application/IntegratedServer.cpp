@@ -641,15 +641,13 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
         return;
     }
 
-    const ItemStack cursorItem = MinecraftServer::hashedStackToItemStack(evt->carriedItem);
-
     // 远程 TCP 玩家：走 ContainerManager 多玩家路径（批9 下沉至基类 _handleContainerClickRemote）
     if (playerId != m_clientPlayerId) {
         auto* player = m_playerManager->getPlayer(playerId);
         if (!player || !player->loggedIn) {
             return;
         }
-        _handleContainerClickRemote(playerId, *evt, cursorItem);
+        _handleContainerClickRemote(playerId, *evt);
         return;
     }
 
@@ -671,7 +669,9 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
             evt->stateId,
             m_openMenu->getStateId());
     }
-    m_openMenu->setCarriedItem(cursorItem);
+    // 客户端上报的 carriedItem 是它本地预测的光标（点击「之后」的状态），不参与服务端结算：
+    // 把它当成点击前光标会让同种物品的「拾取」走成「合并」，物品原地翻倍。
+    // 权威光标只由服务端推进，并在下面经 _sendContainerContent 全量下发回客户端。
     const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(evt->clickType), evt->buttonNum);
     Player& menuPlayer = _getMenuPlayer();
     m_openMenu->clicked(evt->slotNum, evt->buttonNum, clickType, menuPlayer);
@@ -804,9 +804,20 @@ void IntegratedServer::_sendPlayerInventory()
     // items 按 InventoryMenu 46 槽布局构造，对齐 Java 客户端 containerId=0 期望。
     content.items = mc::buildMenuContent(m_clientInventory);
     // carriedItem 为空
-    content.carriedItem = mc::network::ir::play::ItemStackView{};
+    content.carriedItem = cursorForPlayerInventoryWindow();
     _sendToClientIr(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(content)}});
+}
+
+mc::network::ir::play::ItemStackView IntegratedServer::cursorForPlayerInventoryWindow() const
+{
+    // 玩家背包窗口（containerId=0）的光标只在该窗口自己就是当前菜单时才有意义。恒发空会让
+    // 客户端的光标被清空、与服务端分叉——此后客户端每次点击都带空光标上行，表现为物品
+    // 「粘」不到光标上。故取当前菜单的权威光标；当前菜单不是背包菜单时（如开着箱子）发空。
+    if (m_openMenu != nullptr && m_openMenu->getId() == mc::inventory::PLAYER_CONTAINER_ID) {
+        return mc::network::ir::toItemStackView(m_openMenu->getCarriedItem());
+    }
+    return mc::network::ir::play::ItemStackView{};
 }
 
 void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
@@ -833,7 +844,7 @@ void IntegratedServer::_sendContainerContent(const AbstractContainerMenu& menu)
             content.items.push_back(mc::network::ir::play::ItemStackView{});
         }
     }
-    content.carriedItem = mc::network::ir::play::ItemStackView{};
+    content.carriedItem = mc::network::ir::toItemStackView(menu.getCarriedItem());
     _sendToClientIr(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(content)}});
 }

@@ -153,16 +153,19 @@ public:
 
     /**
      * @brief 处理容器点击
+     *
+     * 菜单的光标（carried）由服务端独占维护：点击按服务端当前光标结算，客户端上报的
+     * 光标预测值一律不参与结算。详见实现处说明。
+     *
      * @param playerId 玩家ID
      * @param containerId 容器ID
      * @param slot 槽位索引
      * @param button 鼠标按钮
      * @param mode 点击模式
-     * @param carriedItem 手持物品
-     * @return 点击结果
+     * @return 点击结果（含结算后的权威光标）
      */
     [[nodiscard]] Result<ContainerClickResult> handleClick(
-        PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode, const ItemStack& carriedItem);
+        PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode);
 
     /**
      * @brief 获取打开的菜单

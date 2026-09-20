@@ -308,15 +308,16 @@ TEST_F(RecipeSerializersTest, ParseIngredient_Tag_ReturnsTagIngredient)
     // 标签原料在没有标签系统时可能为空
 }
 
-TEST_F(RecipeSerializersTest, ParseIngredient_UnknownItem_ReturnsEmptyIngredient)
+TEST_F(RecipeSerializersTest, ParseIngredient_UnknownItem_FailsRecipeLoad)
 {
-    // MC 原版行为：未知物品返回空原料（hasNoMatchingItems == true）
+    // 未知物品必须让配方加载失败，不能降级成空原料：空原料的匹配语义是「该槽位必须为空」，
+    // 配料全部未注册的配方因此会匹配完全空的合成网格并产出结果（凭空造物）。
     nlohmann::json json = {{"item", "minecraft:unknown_item"}};
 
     auto result = RecipeSerializers::parseIngredient(json);
 
-    ASSERT_TRUE(result.success());
-    EXPECT_TRUE(result.value().isEmpty());
+    ASSERT_TRUE(result.failed());
+    EXPECT_EQ(result.error().code(), ErrorCode::ResourceParseError);
 }
 
 TEST_F(RecipeSerializersTest, ParseIngredient_MissingItemAndTag_ReturnsError)

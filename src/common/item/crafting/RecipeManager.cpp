@@ -386,6 +386,13 @@ std::vector<const SmithingRecipe*> RecipeManager::findSmithingRecipes(const Item
 
 const CraftingRecipe* RecipeManager::findMatchingRecipe(const CraftingInventory& inventory) const
 {
+    // 全空的合成网格不产出任何东西。这是一道与配方数据无关的兜底：合成结果槽显示什么、
+    // 能不能被取走，最终取决于这里返回非空——空网格返回 nullptr 就把「凭空造物」这一类
+    // 缺陷从根上堵死（例如某条配方的配料因物品未实现而退化成空配料时）。
+    if (inventory.isAllEmpty()) {
+        return nullptr;
+    }
+
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto shapedIt = m_recipesByType.find(RecipeType::ShapedCrafting);

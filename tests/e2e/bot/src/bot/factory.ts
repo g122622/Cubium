@@ -27,8 +27,23 @@ export interface PacketRecord {
     readonly params?: string;
 }
 
-/** 记录 payload 的最大字符数（超过则截断）。 */
-const PARAMS_LIMIT = 400;
+/**
+ * 记录 payload 的最大字符数（超过则截断）。
+ *
+ * 默认值足以覆盖绝大多数packet，但容器类包（46 槽的 window_items）会被截掉大半，
+ * 而「物品落在哪个槽」正是这类故障唯一要看的字段。排查时用环境变量放宽：
+ *
+ * ```bash
+ * E2E_TRACE_PARAMS_LIMIT=20000 node run.ts --mode=regress --case=<用例>
+ * ```
+ *
+ * 仅在单用例排查时放宽——跑全量会把 trace 文件撑大几个数量级。
+ */
+const PARAMS_LIMIT = (() => {
+    const raw = process.env["E2E_TRACE_PARAMS_LIMIT"];
+    const parsed = raw === undefined ? Number.NaN : Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 400;
+})();
 
 function summarizeParams(params: unknown): string | undefined {
     if (params === undefined || params === null) {

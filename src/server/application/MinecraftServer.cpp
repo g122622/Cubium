@@ -982,7 +982,11 @@ void MinecraftServer::initializeInteractionManagers()
         auto* playerData = m_playerManager->getPlayer(playerId);
         pkt.stateId = (playerData != nullptr) ? playerData->incrementPlayerInventoryStateId() : 0;
         pkt.items = mc::buildMenuContent(inventory);
-        pkt.carriedItem = mc::network::ir::play::ItemStackView{0, 0, {}}; // 空 carried
+        // carried 取玩家背包菜单上的权威光标。恒发空会让客户端的光标被清空、与服务端分叉：
+        // 此后客户端每次点击都带空光标上行，表现为物品「粘」不到光标上、无法搬运。
+        const AbstractContainerMenu* inventoryMenu = m_containerManager->getPlayerInventoryMenu(playerId);
+        pkt.carriedItem = (inventoryMenu != nullptr) ? mc::network::ir::toItemStackView(inventoryMenu->getCarriedItem())
+                                                     : mc::network::ir::play::ItemStackView{};
 
         sendPacketToPlayer(playerId,
             mc::network::ir::IrPacket{
@@ -2219,8 +2223,7 @@ void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId)
     inventoryManager().syncToClient(playerId);
 }
 
-void MinecraftServer::_handleContainerClickRemote(
-    PlayerId playerId, const mc::network::ir::play::ContainerClick& evt, const ItemStack& cursorItem)
+void MinecraftServer::_handleContainerClickRemote(PlayerId playerId, const mc::network::ir::play::ContainerClick& evt)
 {
     // stateId 一致性校验：boolean flag = pkt.stateId != menu.getStateId()；
     // 不一致→broadcastFullState，一致→broadcastChanges。
@@ -2241,8 +2244,7 @@ void MinecraftServer::_handleContainerClickRemote(
         static_cast<mc::ContainerId>(evt.containerId),
         evt.slotNum,
         static_cast<u8>(evt.buttonNum),
-        static_cast<u8>(evt.clickType),
-        cursorItem);
+        static_cast<u8>(evt.clickType));
 
     if (clickResult.success()) {
         // 同步物品栏到客户端
@@ -2311,10 +2313,10 @@ void MinecraftServer::handleContainerClickPacket(PlayerId playerId, const mc::ne
         return;
     }
 
-    // 还原光标物品：HashedStack 仅 itemId+count（组件哈希不可逆），还原为基础物品+数量。
-    // 远程玩家（StandaloneServer / IntegratedServer 远程分支）走此基类默认实现。
-    const ItemStack cursorItem = hashedStackToItemStack(evt->carriedItem);
-    _handleContainerClickRemote(playerId, *evt, cursorItem);
+    // 包里的 carriedItem 是客户端本地预测的光标（点击「之后」的状态），不参与服务端结算，
+    // 故此处不解码也不下发。远程玩家（StandaloneServer / IntegratedServer 远程分支）
+    // 走此基类默认实现。
+    _handleContainerClickRemote(playerId, *evt);
 }
 
 void MinecraftServer::handleCloseContainerPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

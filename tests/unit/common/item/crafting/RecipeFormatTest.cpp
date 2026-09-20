@@ -76,11 +76,14 @@ TEST_F(RecipeFormatTest, ParseIngredient_ArrayFormat)
 
 TEST_F(RecipeFormatTest, ParseIngredient_StringFormatUnregisteredItem)
 {
-    // 未注册物品的字符串 ingredient 应返回空 Ingredient
+    // 未注册物品的字符串 ingredient 必须报错，让整条配方加载失败。
+    //
+    // 不能降级成空 Ingredient：空 Ingredient 的匹配语义是「该槽位必须为空」（配方 pattern
+    // 里空格占位符的语义）。降级会让配料全部未注册的配方匹配完全空的合成网格并产出结果。
     nlohmann::json ingredientJson = "minecraft:nonexistent_item";
     auto result = crafting::RecipeSerializers::parseIngredient(ingredientJson);
-    ASSERT_TRUE(result.success()) << "Unregistered string ingredient should not error";
-    EXPECT_TRUE(result.value().hasNoMatchingItems());
+    ASSERT_TRUE(result.failed()) << "Unregistered string ingredient must fail the recipe load";
+    EXPECT_EQ(result.error().code(), ErrorCode::ResourceParseError);
 }
 
 TEST_F(RecipeFormatTest, ParseIngredient_TagFormat)

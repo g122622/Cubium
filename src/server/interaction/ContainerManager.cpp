@@ -244,7 +244,7 @@ AbstractContainerMenu* ContainerManager::getPlayerInventoryMenu(PlayerId playerI
 }
 
 Result<ContainerClickResult> ContainerManager::handleClick(
-    PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode, const ItemStack& carriedItem)
+    PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode)
 {
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
@@ -288,7 +288,14 @@ Result<ContainerClickResult> ContainerManager::handleClick(
     // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
     static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
     Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
-    menu->setCarriedItem(carriedItem);
+
+    // 客户端上报的 ContainerClick.carriedItem 是它在本地预测执行完这次点击「之后」的光标
+    // （原版客户端先结算菜单再取光标组包），语义上不是点击前状态。把它当成点击前光标写回
+    // 会让服务端用错位的起始状态结算：槽位有 1 个同种物品、光标也上报 1 个时，本该「拾取
+    // 到光标」的点击会走成「合并进槽位」，物品原地翻倍而目标槽位始终为空。
+    // 服务端的光标是权威状态，只由服务端自己在结算中推进；客户端预测值仅用于对账，本实现
+    // 改为每次结算后全量下发权威光标（见 setOnContainerUpdate），客户端据此纠正本地预测。
+    // 同时这也让「服务端拒绝某次点击」时客户端不会被自己的预测带偏。
     menu->clicked(slot, button, clickType, menuPlayer);
 
     if (m_onContainerUpdate) {

@@ -534,8 +534,12 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
 
         Item* item = ItemRegistry::instance().getItem(loc);
         if (!item) {
-            // 物品未注册时返回空原料
-            return Ingredient();
+            // 物品未注册时让整条配方加载失败，不能降级成空原料。
+            // 空原料（isEmpty() 为真）的匹配语义是「该槽位必须为空」——那是配方 pattern 里
+            // 空格占位符的语义。若把它当成「配料解析不出来」的兜底，配料全部未注册的配方就会
+            // 匹配完全空的合成网格并成功产出结果（凭空造物）；配料部分未注册的配方则会错误地
+            // 要求对应槽位为空。故此处报错，由 RecipeLoader 计入失败并从配方表剔除。
+            return Error(ErrorCode::ResourceParseError, "Unknown item in ingredient: " + itemId);
         }
 
         return Ingredient::fromItem(*item);
@@ -565,8 +569,8 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
 
         Item* item = ItemRegistry::instance().getItem(loc);
         if (!item) {
-            // 物品未注册时返回空原料
-            return Ingredient();
+            // 同字符串形式：未注册物品报错而非降级成空原料，理由见上。
+            return Error(ErrorCode::ResourceParseError, "Unknown item in ingredient: " + itemId);
         }
 
         return Ingredient::fromItem(*item);
