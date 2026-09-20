@@ -94,6 +94,15 @@ public:
      * @brief 获取节点描述字符串
      */
     [[nodiscard]] virtual std::string toString() const = 0;
+
+    /**
+     * @brief 释放上一次路径求值留下的元素物化缓存
+     *
+     * 数值/字符串/数组列表的元素以裸值存储，树中不存在对应的标签对象，索引节点与全元素
+     * 节点读取它们时会把元素物化成标签并缓存在节点内，以便返回稳定的元素指针。
+     * NbtPath 在每次求值开始时调用本方法，避免缓存跨越多次求值无限增长。
+     */
+    virtual void resetElementCache() const {}
 };
 
 /**
@@ -246,6 +255,14 @@ public:
     [[nodiscard]] size_t size() const noexcept { return m_nodes.size(); }
 
 private:
+    /**
+     * @brief 清空所有节点中裸值列表元素的物化缓存
+     *
+     * 路径求值返回的元素指针只在单次求值期间有效（数值/字符串/数组列表的元素是物化出的
+     * 副本），因此每次求值开始时释放上一次求值的缓存，避免缓存跨求值无限增长。
+     */
+    void _resetElementCaches() const;
+
     std::string m_rawText;
     std::vector<std::unique_ptr<NbtPathNode>> m_nodes;
 };
@@ -306,10 +323,16 @@ public:
         nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const override;
     [[nodiscard]] std::string toString() const override { return "[" + std::to_string(m_index) + "]"; }
 
+    /// 释放上一次求值物化出的裸值列表元素（见 elementAt）
+    void resetElementCache() const override { m_elementCache.clear(); }
+
     [[nodiscard]] i32 index() const noexcept { return m_index; }
 
 private:
     i32 m_index;
+
+    /// 裸值列表元素的物化缓存，保证 get 返回的元素指针在本次求值期间保持有效
+    mutable std::vector<std::unique_ptr<nbt::tags::tag>> m_elementCache;
 };
 
 /**
@@ -333,6 +356,13 @@ public:
     [[nodiscard]] std::vector<nbt::tags::tag*> getOrCreate(
         nbt::tags::tag* tag, std::function<std::unique_ptr<nbt::tags::tag>()> creator) const override;
     [[nodiscard]] std::string toString() const override { return "[]"; }
+
+    /// 释放上一次求值物化出的裸值列表元素（见 elementAt）
+    void resetElementCache() const override { m_elementCache.clear(); }
+
+private:
+    /// 裸值列表元素的物化缓存，保证 get 返回的元素指针在本次求值期间保持有效
+    mutable std::vector<std::unique_ptr<nbt::tags::tag>> m_elementCache;
 };
 
 /**

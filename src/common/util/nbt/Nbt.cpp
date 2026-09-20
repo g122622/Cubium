@@ -31,10 +31,12 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <cctype>
+#include <cerrno>
 #include <cstdint>
 #include <cstdlib>
 #include <ios>
 #include <istream>
+#include <limits>
 #include <memory>
 #include <ostream>
 #include <sstream>
@@ -114,56 +116,195 @@ void dump_varlong(std::ostream& output, std::int64_t value)
     dump_varnum(output, value);
 }
 
-template <typename number_t, char suffix>
-number_t load_text_simple(std::istream& input)
+namespace {
+
+/**
+ * @brief 读取文本数值字面量中的十进制数字序列
+ *
+ * 数字之间允许出现下划线分隔符（例如 1_000）。下划线不允许出现在数字的开头或结尾：
+ * 若下划线之后不是数字，则不消费该下划线，交由调用方按语法错误处理。
+ *
+ * @param input 输入流
+ * @param literal 字面量缓冲区，读到的数字追加到末尾（下划线被丢弃）
+ * @return 是否读到至少一个数字
+ */
+bool read_text_digits(std::istream& input, std::string& literal)
 {
-    number_t value;
-    input >> value;
-    int next = cheof(input);
-    if (next != suffix) input.putback(next);
+    bool hasDigit = false;
+    for (;;) {
+        int next = input.peek();
+        if (next != EOF && std::isdigit(next) != 0) {
+            literal.push_back(static_cast<char>(next));
+            input.get();
+            hasDigit = true;
+            continue;
+        }
+        if (next == '_' && hasDigit) {
+            input.get();
+            int following = input.peek();
+            if (following != EOF && std::isdigit(following) != 0) {
+                continue;
+            }
+            input.putback('_');
+        }
+        break;
+    }
+    return hasDigit;
+}
+
+/**
+ * @brief 读取文本数值字面量的数字主体（不含类型后缀）
+ *
+ * 覆盖符号、整数部分、小数部分与十进制指数三部分。
+ *
+ * 此处不能使用 std::istream::operator>> 读取浮点字面量：libc++ 的 num_get 为识别十六进制
+ * 浮点会把 a-f 等字符当作数值的一部分消费掉，"3.14f" 这类带类型后缀的字面量会被整体取走，
+ * 随后因无法完整转换而置位 failbit，使后续读取抛 EOF 异常（表现为
+ * parseMojangson("{ratio:3.14f}") 返回 nullptr）。改为显式扫描字面量字符后再交由
+ * strtof/strtod/strtoll 转换，行为不再依赖标准库对数值字符集合的定义。
+ *
+ * @param input 输入流
+ * @param literal 输出字面量（指数统一写作 'e'，下划线已丢弃）
+ * @return 字面量中是否包含数字
+ */
+bool read_text_number(std::istream& input, std::string& literal)
+{
+    const int sign = input.peek();
+    if (sign == '+' || sign == '-') {
+        literal.push_back(static_cast<char>(sign));
+        input.get();
+    }
+
+    bool hasDigit = read_text_digits(input, literal);
+
+    if (input.peek() == '.') {
+        input.get();
+        literal.push_back('.');
+        hasDigit = read_text_digits(input, literal) || hasDigit;
+    }
+
+    const int exponentMark = input.peek();
+    if (hasDigit && (exponentMark == 'e' || exponentMark == 'E')) {
+        input.get();
+        std::string exponent;
+        const int exponentSign = input.peek();
+        if (exponentSign == '+' || exponentSign == '-') {
+            exponent.push_back(static_cast<char>(exponentSign));
+            input.get();
+        }
+        if (read_text_digits(input, exponent)) {
+            literal.push_back('e');
+            literal += exponent;
+        } else {
+            // e/E 之后不是数字，说明它不是指数的一部分（例如 "1e"），把字符退回给调用方
+            if (!exponent.empty()) input.putback(exponent.front());
+            input.putback(static_cast<char>(exponentMark));
+        }
+    }
+
+    return hasDigit;
+}
+
+/**
+ * @brief 把文本整数转换为目标数值类型，并校验取值范围
+ * @throws std::runtime_error 字面量非法或超出目标类型范围
+ */
+template <typename number_t>
+number_t convert_text_integer(const std::string& literal)
+{
+    errno = 0;
+    char* end = nullptr;
+    const long long parsed = std::strtoll(literal.c_str(), &end, 10);
+    if (end == literal.c_str() || *end != '\0' || errno == ERANGE) {
+        throw std::runtime_error("failed to parse number: " + literal);
+    }
+    if (parsed < static_cast<long long>(std::numeric_limits<number_t>::min()) ||
+        parsed > static_cast<long long>(std::numeric_limits<number_t>::max())) {
+        throw std::runtime_error("number out of range: " + literal);
+    }
+    return static_cast<number_t>(parsed);
+}
+
+/**
+ * @brief 读取文本格式整数并消费其类型后缀
+ * @param input 输入流
+ * @param suffix 类型后缀（如 'b'、's'、'l'，大小写均可），'\0' 表示该类型没有后缀
+ */
+template <typename number_t>
+number_t load_text_integer(std::istream& input, char suffix)
+{
+    std::string literal;
+    if (!read_text_number(input, literal)) {
+        throw std::runtime_error("failed to parse number");
+    }
+    if (suffix != '\0') {
+        const int next = input.peek();
+        if (next != EOF && std::tolower(next) == suffix) input.get();
+    }
+    return convert_text_integer<number_t>(literal);
+}
+
+/**
+ * @brief 读取文本格式浮点数并消费其类型后缀
+ * @param input 输入流
+ * @param suffix 类型后缀（'f' 或 'd'，大小写均可）
+ * @param convert 转换函数（std::strtof 或 std::strtod）
+ */
+template <typename number_t>
+number_t load_text_floating(std::istream& input, char suffix, number_t (*convert)(const char*, char**))
+{
+    std::string literal;
+    if (!read_text_number(input, literal)) {
+        throw std::runtime_error("failed to parse number");
+    }
+    if (suffix != '\0') {
+        const int next = input.peek();
+        if (next != EOF && std::tolower(next) == suffix) input.get();
+    }
+    char* end = nullptr;
+    const number_t value = convert(literal.c_str(), &end);
+    if (end == nullptr || *end != '\0') {
+        throw std::runtime_error("failed to parse number: " + literal);
+    }
     return value;
 }
+
+} // namespace
 
 template <>
 std::int8_t load_text<std::int8_t>(std::istream& input)
 {
-    int value;
-    input >> value;
-    int next = cheof(input);
-    if (next != 'b') input.putback(next);
-    return static_cast<std::int8_t>(value);
+    return load_text_integer<std::int8_t>(input, 'b');
 }
 
 template <>
 std::int16_t load_text<std::int16_t>(std::istream& input)
 {
-    return load_text_simple<std::int16_t, 's'>(input);
+    return load_text_integer<std::int16_t>(input, 's');
 }
 
 template <>
 std::int32_t load_text<std::int32_t>(std::istream& input)
 {
-    std::int32_t value;
-    input >> value;
-    return value;
+    return load_text_integer<std::int32_t>(input, '\0');
 }
 
 template <>
 std::int64_t load_text<std::int64_t>(std::istream& input)
 {
-    return load_text_simple<std::int64_t, 'l'>(input);
+    return load_text_integer<std::int64_t>(input, 'l');
 }
 
 template <>
 float load_text<float>(std::istream& input)
 {
-    return load_text_simple<float, 'f'>(input);
+    return load_text_floating<float>(input, 'f', &std::strtof);
 }
 
 template <>
 double load_text<double>(std::istream& input)
 {
-    return load_text_simple<double, 'd'>(input);
+    return load_text_floating<double>(input, 'd', &std::strtod);
 }
 
 template <>
@@ -263,6 +404,8 @@ void dump_text<float>(std::ostream& output, float number)
 template <>
 void dump_text<double>(std::ostream& output, double number)
 {
+    // TODO: 文本格式的双精度标签没有输出类型后缀 'd'，取值为整数时（如 3.0）会被打印成
+    //   "3"，重新解析时退化为 IntTag；需要补上后缀以保证文本往返不丢失类型。
     output << number;
 }
 
@@ -338,17 +481,17 @@ TagId deduce_tag(std::istream& input)
             buffer.push_back(b);
             if (std::isdigit(b)) {
                 continue;
-            } else if (b == 'b') {
+            } else if (b == 'b' || b == 'B') {
                 deduced = TagId::Byte;
-            } else if (b == 's') {
+            } else if (b == 's' || b == 'S') {
                 deduced = TagId::Short;
-            } else if (b == 'l') {
+            } else if (b == 'l' || b == 'L') {
                 deduced = TagId::Long;
-            } else if (b == 'f') {
+            } else if (b == 'f' || b == 'F') {
                 deduced = TagId::Float;
-            } else if (b == 'd') {
+            } else if (b == 'd' || b == 'D') {
                 deduced = TagId::Double;
-            } else if (b == 'e') {
+            } else if (b == 'e' || b == 'E') {
                 char c = cheof(input);
                 buffer.push_back(c);
                 if (std::isdigit(c) || c == '-' || c == '+') {
@@ -357,9 +500,9 @@ TagId deduce_tag(std::istream& input)
                         buffer.push_back(d);
                         if (std::isdigit(d)) {
                             continue;
-                        } else if (d == 'f') {
+                        } else if (d == 'f' || d == 'F') {
                             deduced = TagId::Float;
-                        } else if (d == 'd') {
+                        } else if (d == 'd' || d == 'D') {
                             deduced = TagId::Double;
                         } else {
                             deduced = TagId::Double;
@@ -379,9 +522,9 @@ TagId deduce_tag(std::istream& input)
                         char d = cheof(input);
                         buffer.push_back(d);
                         if (std::isdigit(d) || d == '-' || d == '+') continue;
-                    } else if (c == 'f') {
+                    } else if (c == 'f' || c == 'F') {
                         deduced = TagId::Float;
-                    } else if (c == 'd') {
+                    } else if (c == 'd' || c == 'D') {
                         deduced = TagId::Double;
                     } else {
                         deduced = TagId::Double;
@@ -397,6 +540,8 @@ TagId deduce_tag(std::istream& input)
             input.putback(*iter);
         return deduced;
     }
+    // TODO: 布尔字面量 true/false 尚未支持，当前会落到这里被当作未引用字符串解析为
+    //   StringTag（例如 "{flag:true}" 得到字符串 "true"），按 SNBT 语义应解析为 1b/0b。
     if (a == '"' || a == '\'' || is_valid_char(a)) {
         input.putback(a);
         return TagId::String;

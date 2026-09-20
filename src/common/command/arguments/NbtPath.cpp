@@ -40,6 +40,63 @@ using mc::nbt::operator<<;
 namespace mc {
 namespace command {
 
+namespace {
+
+/**
+ * @brief 取得列表中指定下标元素的标签指针
+ *
+ * list_tag::operator[] 返回元素的副本（std::unique_ptr<tag>），对它取 .get() 会得到指向
+ * 已析构临时对象的悬垂指针，因此必须按具体列表类型取得元素的稳定地址：
+ * - tag_list_tag / list_list_tag：元素本身以 unique_ptr 存储，直接返回元素指针；
+ * - compound_list_tag：元素以 compound_tag 值存储，返回其地址；
+ * - 数值/字符串/数组列表：元素以裸值存储，树中不存在对应的标签对象，
+ *   把元素物化后放入 cache 并返回该副本的地址。
+ *
+ * @param list 列表标签
+ * @param index 元素下标，调用方需保证已完成越界检查
+ * @param cache 裸值列表元素的物化缓存，生命周期必须覆盖返回指针的使用期
+ * @return 元素标签指针
+ */
+nbt::tags::tag* elementAt(nbt::tags::list_tag& list, size_t index, std::vector<std::unique_ptr<nbt::tags::tag>>& cache)
+{
+    if (auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(&list)) {
+        return tagList->value[index].get();
+    }
+    if (auto* listList = dynamic_cast<nbt::tags::list_list_tag*>(&list)) {
+        return listList->value[index].get();
+    }
+    if (auto* compoundList = dynamic_cast<nbt::tags::compound_list_tag*>(&list)) {
+        return &compoundList->value[index];
+    }
+    cache.push_back(list[index]);
+    return cache.back().get();
+}
+
+/**
+ * @brief 取得列表中指定下标元素的标签指针（const 版本）
+ * @param list 列表标签
+ * @param index 元素下标，调用方需保证已完成越界检查
+ * @param cache 裸值列表元素的物化缓存，生命周期必须覆盖返回指针的使用期
+ * @return 元素标签指针
+ */
+const nbt::tags::tag* elementAt(
+    const nbt::tags::list_tag& list, size_t index, std::vector<std::unique_ptr<nbt::tags::tag>>& cache)
+{
+    if (const auto* tagList = dynamic_cast<const nbt::tags::tag_list_tag*>(&list)) {
+        return tagList->value[index].get();
+    }
+    if (const auto* listList = dynamic_cast<const nbt::tags::list_list_tag*>(&list)) {
+        return listList->value[index].get();
+    }
+    if (const auto* compoundList = dynamic_cast<const nbt::tags::compound_list_tag*>(&list)) {
+        return &compoundList->value[index];
+    }
+    cache.push_back(list[index]);
+    return cache.back().get();
+}
+
+} // namespace
+
 // ========== NbtPath 实现 ==========
 
 NbtPath::NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> nodes)
@@ -68,8 +125,17 @@ NbtPath& NbtPath::operator=(const NbtPath& other)
     return *this;
 }
 
+void NbtPath::_resetElementCaches() const
+{
+    for (const auto& node : m_nodes) {
+        node->resetElementCache();
+    }
+}
+
 std::vector<const nbt::tags::tag*> NbtPath::get(const nbt::tags::compound_tag& tag) const
 {
+    _resetElementCaches();
+
     std::vector<const nbt::tags::tag*> result;
     result.push_back(&tag);
 
@@ -117,7 +183,11 @@ i32 NbtPath::set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt
         return 0;
     }
 
+    _resetElementCaches();
+
     // 获取到倒数第二个节点的所有父标签
+    // TODO: creator 传 nullptr，缺失的中间节点不会被创建（路径不存在时直接返回 0），
+    //   需要按下一个节点的类型提供默认容器（复合标签或列表）以支持自动创建父节点。
     std::vector<nbt::tags::tag*> parents;
     parents.push_back(&tag);
 
@@ -149,6 +219,8 @@ i32 NbtPath::remove(nbt::tags::compound_tag& tag) const
     if (m_nodes.empty()) {
         return 0;
     }
+
+    _resetElementCaches();
 
     // 获取到倒数第二个节点的所有父标签
     std::vector<nbt::tags::tag*> parents;
@@ -182,6 +254,8 @@ i32 NbtPath::insert(
     if (m_nodes.empty() || values.empty()) {
         return 0;
     }
+
+    _resetElementCaches();
 
     // 获取目标列表
     std::vector<nbt::tags::tag*> targets;
@@ -251,6 +325,8 @@ i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& 
     if (m_nodes.empty()) {
         return 0;
     }
+
+    _resetElementCaches();
 
     // 获取目标标签
     std::vector<nbt::tags::tag*> targets;
@@ -407,12 +483,13 @@ std::vector<nbt::tags::tag*> NbtPathIndexNode::get(nbt::tags::tag* tag) const
         return result;
     }
 
-    i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
+    // 负数索引表示从末尾倒数，例如 -1 指向最后一个元素
+    const i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
     if (index < 0 || index >= static_cast<i32>(list->size())) {
         return result;
     }
 
-    result.push_back((*list)[static_cast<size_t>(index)].get());
+    result.push_back(elementAt(*list, static_cast<size_t>(index), m_elementCache));
     return result;
 }
 
@@ -428,12 +505,13 @@ std::vector<const nbt::tags::tag*> NbtPathIndexNode::get(const nbt::tags::tag* t
         return result;
     }
 
-    i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
+    // 负数索引表示从末尾倒数，例如 -1 指向最后一个元素
+    const i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
     if (index < 0 || index >= static_cast<i32>(list->size())) {
         return result;
     }
 
-    result.push_back((*list)[static_cast<size_t>(index)].get());
+    result.push_back(elementAt(*list, static_cast<size_t>(index), m_elementCache));
     return result;
 }
 
@@ -443,13 +521,15 @@ i32 NbtPathIndexNode::set(nbt::tags::tag* tag, std::function<std::unique_ptr<nbt
         return 0;
     }
 
+    // TODO: 目前只支持元素以标签对象存储的 tag_list_tag。数值/字符串/数组列表的元素以裸值
+    //   存储，复合列表与嵌套列表的元素也不是 unique_ptr<tag>，这些列表需要先按元素类型
+    //   转换成 tag_list_tag 再写回（转换可参考 compound_tag::make_heavy / list_tag::as_tags）。
     auto* list = dynamic_cast<nbt::tags::tag_list_tag*>(tag);
     if (list == nullptr) {
-        // 尝试其他列表类型
         return 0;
     }
 
-    i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
+    const i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
     if (index < 0 || index >= static_cast<i32>(list->size())) {
         return 0;
     }
@@ -469,12 +549,15 @@ i32 NbtPathIndexNode::remove(nbt::tags::tag* tag) const
         return 0;
     }
 
+    // TODO: 目前只支持元素以标签对象存储的 tag_list_tag。数值/字符串/数组列表的元素以裸值
+    //   存储，复合列表与嵌套列表的元素也不是 unique_ptr<tag>，这些列表需要按具体容器类型
+    //   删除元素（转换可参考 compound_tag::make_heavy / list_tag::as_tags）。
     auto* list = dynamic_cast<nbt::tags::tag_list_tag*>(tag);
     if (list == nullptr) {
         return 0;
     }
 
-    i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
+    const i32 index = m_index < 0 ? static_cast<i32>(list->size()) + m_index : m_index;
     if (index < 0 || index >= static_cast<i32>(list->size())) {
         return 0;
     }
@@ -506,7 +589,7 @@ std::vector<nbt::tags::tag*> NbtPathAllElementsNode::get(nbt::tags::tag* tag) co
     }
 
     for (size_t i = 0; i < list->size(); ++i) {
-        result.push_back((*list)[i].get());
+        result.push_back(elementAt(*list, i, m_elementCache));
     }
 
     return result;
@@ -525,7 +608,7 @@ std::vector<const nbt::tags::tag*> NbtPathAllElementsNode::get(const nbt::tags::
     }
 
     for (size_t i = 0; i < list->size(); ++i) {
-        result.push_back((*list)[i].get());
+        result.push_back(elementAt(*list, i, m_elementCache));
     }
 
     return result;
@@ -546,6 +629,9 @@ i32 NbtPathAllElementsNode::remove(nbt::tags::tag* tag) const
         return 0;
     }
 
+    // TODO: 目前只支持元素以标签对象存储的 tag_list_tag；其余列表类型需要按具体容器类型清空
+    //   （数值/字符串/数组列表的元素以裸值存储，复合列表与嵌套列表的元素不是
+    //   unique_ptr<tag>）。
     auto* list = dynamic_cast<nbt::tags::tag_list_tag*>(tag);
     if (list == nullptr) {
         return 0;
@@ -584,12 +670,13 @@ bool NbtPathCompoundFilterNode::_matches(const nbt::tags::compound_tag& tag) con
     }
 
     // 检查 filter 中的所有键是否都在 tag 中存在且值匹配
+    // TODO: 目前只比较键是否存在以及标签类型是否相同，没有比较标签的值（例如
+    //   "{id:\"stone\"}" 会匹配 id 为任意字符串的元素），需要按子集语义做深度比较。
     for (const auto& [key, value] : m_filter->value) {
         auto it = tag.value.find(key);
         if (it == tag.value.end()) {
             return false;
         }
-        // 简单比较：值类型相同即认为匹配（不深度比较）
         if (it->second->id() != value->id()) {
             return false;
         }
@@ -689,6 +776,8 @@ bool NbtPathListFilterNode::_matches(const nbt::tags::compound_tag& tag) const
         return true;
     }
 
+    // TODO: 同 NbtPathCompoundFilterNode::_matches，只比较键是否存在以及标签类型是否相同，
+    //   没有比较标签的值（例如 "[{id:\"stone\"}]" 会匹配 id 为任意字符串的元素）。
     for (const auto& [key, value] : m_filter->value) {
         auto it = tag.value.find(key);
         if (it == tag.value.end()) {
@@ -714,12 +803,15 @@ std::vector<nbt::tags::tag*> NbtPathListFilterNode::get(nbt::tags::tag* tag) con
         return result;
     }
 
+    // 过滤器只匹配复合标签元素：元素以裸值存储的列表不可能匹配，物化出的元素也不会进入
+    // 结果集，因此这里的物化缓存使用局部变量即可。
+    std::vector<std::unique_ptr<nbt::tags::tag>> materialized;
     for (size_t i = 0; i < list->size(); ++i) {
-        auto element = (*list)[i];
-        if (element && element->id() == nbt::TagId::Compound) {
-            auto* compound = dynamic_cast<nbt::tags::compound_tag*>(element.get());
-            if (compound && _matches(*compound)) {
-                result.push_back(element.get());
+        nbt::tags::tag* element = elementAt(*list, i, materialized);
+        if (element->id() == nbt::TagId::Compound) {
+            auto* compound = dynamic_cast<nbt::tags::compound_tag*>(element);
+            if (compound != nullptr && _matches(*compound)) {
+                result.push_back(element);
             }
         }
     }
@@ -739,12 +831,14 @@ std::vector<const nbt::tags::tag*> NbtPathListFilterNode::get(const nbt::tags::t
         return result;
     }
 
+    // 见非 const 版本：裸值列表的元素不会进入结果集，局部物化缓存即可
+    std::vector<std::unique_ptr<nbt::tags::tag>> materialized;
     for (size_t i = 0; i < list->size(); ++i) {
-        auto element = (*list)[i];
-        if (element && element->id() == nbt::TagId::Compound) {
-            const auto* compound = dynamic_cast<const nbt::tags::compound_tag*>(element.get());
-            if (compound && _matches(*compound)) {
-                result.push_back(element.get());
+        const nbt::tags::tag* element = elementAt(*list, i, materialized);
+        if (element->id() == nbt::TagId::Compound) {
+            const auto* compound = dynamic_cast<const nbt::tags::compound_tag*>(element);
+            if (compound != nullptr && _matches(*compound)) {
+                result.push_back(element);
             }
         }
     }
@@ -759,6 +853,8 @@ i32 NbtPathListFilterNode::set(
         return 0;
     }
 
+    // TODO: 目前只支持元素以标签对象存储的 tag_list_tag；复合列表（如物品栏列表）与嵌套列表
+    //   的元素下标写入同样可以按容器类型直接实现。
     auto* list = dynamic_cast<nbt::tags::tag_list_tag*>(tag);
     if (list == nullptr) {
         return 0;
@@ -788,6 +884,8 @@ i32 NbtPathListFilterNode::remove(nbt::tags::tag* tag) const
         return 0;
     }
 
+    // TODO: 目前只支持元素以标签对象存储的 tag_list_tag；复合列表（如物品栏列表）的过滤删除
+    //   同样可以按容器类型直接实现。
     auto* list = dynamic_cast<nbt::tags::tag_list_tag*>(tag);
     if (list == nullptr) {
         return 0;
