@@ -37,6 +37,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -293,7 +294,6 @@ private:
 /**
  * @brief Jigsaw 连接点信息（用于结构模板）
  *
- * 对应 MC 1.21 StructureTemplate.JigsawBlockInfo record。
  * selectionPriority/placementPriority 从 jigsaw 方块实体 NBT 读取
  * （"selection_priority"/"placement_priority"，默认 0）。
  */
@@ -350,26 +350,127 @@ struct TemplateEntityInfo {
 };
 
 /**
+ * @brief 调色板中持久化的模板方块（紧凑表示，恒定 8 字节）
+ *
+ * 与放置管线中的 BlockInfo 的关键区别：
+ * - 坐标系不同：PaletteBlock 只存**模板内相对坐标**（恒为 [0, 255]），
+ *   BlockInfo 存**世界坐标**（可达 ±3000 万，见 PlacementSettings 的偏移叠加）。
+ *   因此 u8 打包只适用于前者，后者必须保留完整的 BlockPos。
+ * - NBT 不在本结构内：模板中仅约 0.5% 的方块带 NBT（实测 1202 个模板文件共
+ *   5464/1122687 个方块带 NBT），为另外 99.5% 的方块内联一个 8 字节指针并不划算。
+ *   NBT 改由 Palette 的稀疏表保存，见 Palette::nbtAt()。
+ *
+ * 尺寸依据：结构模板的体积上限为 48×48×48。实测 1202 个模板文件中，size 最大为
+ * 46×48×48、坐标最大值为 47，三轴都远小于 256。
+ * 加载时由 PaletteBlock::canRepresent() 校验，越界模板会被拒绝加载。
+ */
+struct PaletteBlock {
+    /// 模板内坐标，单位：方块
+    u8 x = 0;
+    u8 y = 0;
+    u8 z = 0;
+    /// 标志位，见 FLAG_* 常量
+    u8 flags = 0;
+    /// 方块状态 ID
+    u32 blockStateId = 0;
+
+    /// 单轴坐标上限（u8 可表达的最大值）
+    static constexpr u8 MAX_COORD = 255;
+    /// flags 的 bit0：该方块在 Palette 的稀疏表中带有一份 NBT
+    static constexpr u8 FLAG_HAS_NBT = 0x01;
+
+    PaletteBlock() = default;
+
+    /**
+     * @brief 判断模板内坐标能否用 u8 表达
+     *
+     * @param pos 模板内相对坐标
+     * @return 三轴均落在 [0, MAX_COORD] 时返回 true
+     */
+    [[nodiscard]] static bool canRepresent(const BlockPos& pos) noexcept
+    {
+        return pos.x >= 0 && pos.x <= MAX_COORD && pos.y >= 0 && pos.y <= MAX_COORD && pos.z >= 0 && pos.z <= MAX_COORD;
+    }
+
+    /**
+     * @brief 从模板内坐标构造
+     *
+     * 调用方须先用 canRepresent() 校验；坐标越界时本函数会截断低位，
+     * 产生错误的位置，因此不得对未校验的坐标调用。
+     */
+    [[nodiscard]] static PaletteBlock fromLocal(const BlockPos& pos, u32 stateId) noexcept
+    {
+        PaletteBlock block;
+        block.x = static_cast<u8>(pos.x);
+        block.y = static_cast<u8>(pos.y);
+        block.z = static_cast<u8>(pos.z);
+        block.blockStateId = stateId;
+        return block;
+    }
+
+    /// 还原为模板内相对坐标
+    [[nodiscard]] BlockPos pos() const noexcept
+    {
+        return BlockPos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+    }
+
+    /// 该方块在 Palette 的稀疏 NBT 表中是否有对应条目
+    [[nodiscard]] bool hasNbt() const noexcept { return (flags & FLAG_HAS_NBT) != 0; }
+};
+
+static_assert(sizeof(PaletteBlock) == 8, "PaletteBlock 必须是紧凑的 8 字节表示");
+
+/**
  * @brief 模板调色板
  * 存储一组方块信息，并提供按方块类型快速查找的缓存。
  * 一个模板可以有多个调色板，用于结构变体。
  */
 class Palette {
 public:
+    /// 方块列表类型别名，供调用方在遍历时避免书写完整类型
+    using BlockVec = std::vector<PaletteBlock>;
+    /// 稀疏 NBT 表：键为 m_blocks 的下标，按升序排列
+    using NbtTable = std::vector<std::pair<u32, std::unique_ptr<nbt::CompoundTag>>>;
+
     Palette() = default;
-    explicit Palette(std::vector<BlockInfo> blocks);
+    explicit Palette(BlockVec blocks);
+    Palette(BlockVec blocks, NbtTable nbt);
+    Palette(const Palette& other);
+    Palette(Palette&& other) noexcept;
+    Palette& operator=(const Palette& other);
+    Palette& operator=(Palette&& other) noexcept;
+    ~Palette() = default;
 
     /**
      * @brief 获取所有方块信息
      */
-    [[nodiscard]] const std::vector<BlockInfo>& blocks() const { return m_blocks; }
+    [[nodiscard]] const BlockVec& blocks() const { return m_blocks; }
+
+    /**
+     * @brief 获取指定下标的方块所携带的 NBT
+     *
+     * @param index m_blocks 中的下标
+     * @return NBT 指针；该方块无 NBT 时返回 nullptr。所有权归 Palette。
+     */
+    [[nodiscard]] const nbt::CompoundTag* nbtAt(size_t index) const;
+
+    /**
+     * @brief 登记一个带 NBT 的方块
+     *
+     * 必须在 m_blocks 构建完成后、按 index 严格递增的顺序调用，
+     * 以维持稀疏表的有序性（nbtAt 依赖二分查找）。
+     *
+     * @param index m_blocks 中的下标
+     * @param tag 该方块的 NBT，转移所有权
+     */
+    void setNbt(size_t index, std::unique_ptr<nbt::CompoundTag> tag);
 
     /**
      * @brief 获取指定方块类型的所有方块信息
      * @param block 方块类型
      * @return 匹配的方块信息列表
      */
-    [[nodiscard]] const std::vector<const BlockInfo*>& getBlocksByType(const Block& block) const;
+    [[nodiscard]] const std::vector<const PaletteBlock*>& getBlocksByType(const Block& block) const;
 
     /**
      * @brief 获取方块数量
@@ -382,11 +483,17 @@ public:
     [[nodiscard]] bool empty() const { return m_blocks.empty(); }
 
 private:
-    std::vector<BlockInfo> m_blocks;
-    mutable std::unordered_map<const Block*, std::vector<const BlockInfo*>> m_blockTypeCache;
+    BlockVec m_blocks;
+    /// 稀疏 NBT 表，键为 m_blocks 的下标，按键升序
+    NbtTable m_nbt;
+    /// 按方块类型索引的缓存；元素指针指向 m_blocks 的堆缓冲，换缓冲后必须清空重建
+    mutable std::unordered_map<const Block*, std::vector<const PaletteBlock*>> m_blockTypeCache;
     mutable bool m_cacheBuilt = false;
 
     void _buildCache() const;
+
+    /// 深拷贝 other 的 NBT 表（覆盖本对象原有内容）
+    void _copyNbtFrom(const Palette& other);
 };
 
 /**
@@ -425,8 +532,12 @@ public:
     /**
      * @brief 获取第一个调色板的方块（兼容旧接口）
      * @deprecated 使用 getPalette() 或 selectPalette() 代替
+     *
+     * 注意：返回的坐标是**模板内相对坐标**（PaletteBlock），不是世界坐标。
+     * 需要参与处理器链的方块请通过 Template::place()/placeInWorld() 获取，
+     * 那两条路径会把坐标变换到世界空间并补齐 NBT。
      */
-    [[nodiscard]] const std::vector<BlockInfo>& getBlocks() const;
+    [[nodiscard]] const Palette::BlockVec& getBlocks() const;
 
     void addJigsawBlock(const TemplateJigsawBlockInfo& jigsawInfo);
     void addEntity(const TemplateEntityInfo& entityInfo);

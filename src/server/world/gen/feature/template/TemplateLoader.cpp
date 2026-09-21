@@ -35,6 +35,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
+#include <algorithm>
 #include <cstring>
 #include <memory>
 #include <optional>
@@ -564,20 +565,35 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
             const auto& firstPalette = palettes[0];
             for (size_t paletteIdx = 0; paletteIdx < palettes.size(); ++paletteIdx) {
                 const auto& palette = palettes[paletteIdx];
-                std::vector<BlockInfo> blockInfos;
+                Palette::BlockVec blockInfos;
+                Palette::NbtTable nbtTable;
                 blockInfos.reserve(rawBlocks.size());
 
-                for (const auto& rawInfo : rawBlocks) {
+                for (size_t blockIndex = 0; blockIndex < rawBlocks.size(); ++blockIndex) {
+                    const auto& rawInfo = rawBlocks[blockIndex];
                     u32 stateId = 0; // 默认空气
                     if (rawInfo.stateIndex < palette.size()) {
                         stateId = palette[rawInfo.stateIndex];
                     }
 
-                    BlockInfo blockInfo(rawInfo.pos, stateId);
-                    if (rawInfo.nbt) {
-                        blockInfo.nbt = _cloneNbt(rawInfo.nbt.get());
+                    // PaletteBlock 用 u8 存三轴模板内坐标。越界会被静默截断到错误位置，
+                    // 因此在入口拒绝整个模板，而不是产出坐标错乱的建筑。
+                    // 结构模板的体积上限为 48×48×48，实测 1202 个模板坐标最大 47。
+                    if (!PaletteBlock::canRepresent(rawInfo.pos)) {
+                        spdlog::error("Template block pos ({},{},{}) is outside the [0,{}] range representable by "
+                                      "PaletteBlock; template rejected",
+                            rawInfo.pos.x,
+                            rawInfo.pos.y,
+                            rawInfo.pos.z,
+                            static_cast<i32>(PaletteBlock::MAX_COORD));
+                        return templ;
                     }
-                    blockInfos.push_back(std::move(blockInfo));
+
+                    blockInfos.push_back(PaletteBlock::fromLocal(rawInfo.pos, stateId));
+                    if (rawInfo.nbt) {
+                        // 按下标递增登记，Palette 的二分查找依赖此顺序（rawBlocks 已按方块顺序读入）
+                        nbtTable.emplace_back(static_cast<u32>(blockIndex), _cloneNbt(rawInfo.nbt.get()));
+                    }
 
                     // 仅在第一个调色板时处理 Jigsaw 方块
                     if (paletteIdx == 0 && rawInfo.nbt) {
@@ -595,7 +611,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     }
                 }
 
-                templ->addPalette(Palette(std::move(blockInfos)));
+                templ->addPalette(Palette(std::move(blockInfos), std::move(nbtTable)));
             }
         }
     }
@@ -859,9 +875,9 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // structure_world_origin: 结构保存时所在的世界坐标（仅元信息，记录结构方块在世界中的原位）。
     // 放置结构到新位置时应忽略它——block_indices 的索引→坐标映射须从结构内相对坐标 (0,0,0) 起，
     // 由 Template::placeInWorld 叠加 placeOrigin 决定最终世界坐标。此前误把 structure_world_origin
-    // 当作 BlockInfo.pos 的 origin 叠加，致 button 落到 (68,5,46)+结构内坐标 的错乱位置，
+    // 当作方块坐标的 origin 叠加，致 button 落到 (68,5,46)+结构内坐标 的错乱位置，
     // helper 按 origin+(rel) 取到的是 deepslate/air 而非 button。origin 此处仅用于把
-    // block_entity_data 内的"保存时世界绝对坐标"换算回结构内相对坐标以匹配 BlockInfo。
+    // block_entity_data 内的"保存时世界绝对坐标"换算回结构内相对坐标以匹配方块。
     BlockPos origin(0, 0, 0);
     if (root.value.count("structure_world_origin") != 0) {
         auto& originTag = *root.value.at("structure_world_origin");
@@ -872,7 +888,7 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
 
     // 基岩版 block_indices 按尺寸 [x, y, z] 的顺序线性存储（X 最外层、Z 最内层）
     // 索引值 -1 表示该位置为空气（基岩版用 -1 标记 air，不进 palette）
-    std::vector<BlockInfo> blockInfos;
+    Palette::BlockVec blockInfos;
     blockInfos.reserve(indices.size());
     for (size_t i = 0; i < indices.size(); ++i) {
         const i32 idx = indices[i];
@@ -889,7 +905,20 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
         const i32 y = static_cast<i32>(remX / static_cast<size_t>(sizeZ));
         const i32 z = static_cast<i32>(remX % static_cast<size_t>(sizeZ));
 
-        blockInfos.emplace_back(BlockPos(x, y, z), stateId);
+        // 同 Java 路径：越界的模板内坐标会被 u8 截断到错误位置，故拒绝整个结构。
+        // 基岩版 GameTest 结构远小于该上限，正常数据不会触发。
+        const BlockPos localPos(x, y, z);
+        if (!PaletteBlock::canRepresent(localPos)) {
+            spdlog::error("Bedrock structure block pos ({},{},{}) is outside the [0,{}] range representable by "
+                          "PaletteBlock; structure rejected",
+                x,
+                y,
+                z,
+                static_cast<i32>(PaletteBlock::MAX_COORD));
+            return templ;
+        }
+
+        blockInfos.push_back(PaletteBlock::fromLocal(localPos, stateId));
     }
 
     // 解析 palette.default.block_position_data.<index>.block_entity_data（基岩版方块实体 NBT）
@@ -897,9 +926,10 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // 数组的位置下标（十进制字符串），值为 { block_entity_data: Compound }。block_entity_data 内含 id（如
     // "CommandBlock"）+ 方块实体字段（Command/LPCommandMode 等）+ x/y/z。
     // 注意：block_entity_data 的 x/y/z 是结构保存时的"世界绝对坐标"（含 structure_world_origin），
-    // 而 BlockInfo.pos 已统一为结构内相对坐标（不含 origin），故匹配时须用 bed.xyz - origin 换算。
+    // 而方块坐标已统一为结构内相对坐标（不含 origin），故匹配时须用 bed.xyz - origin 换算。
     // 此前仅解析了 block_palette + block_indices（方块状态），方块实体数据全丢，导致命令方块 Command 字段为空。
-    // 命中则 clone block_entity_data 到 BlockInfo.nbt，由 Template::placeInWorld 调 loadFromNBT 注入。
+    // 命中则 clone block_entity_data 到 Palette 的稀疏 NBT 表，由 Template::placeInWorld 调 loadFromNBT 注入。
+    Palette::NbtTable nbtTable;
     if (structure.value.count("palette") != 0) {
         auto& palettesTag2 = *structure.value.at("palette");
         if (palettesTag2.id() == nbt::TagId::Compound) {
@@ -938,9 +968,11 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
                                 const i32 ez = dynamic_cast<const nbt::IntTag&>(*zTag).value;
                                 const BlockPos relPos(ex - origin.x, ey - origin.y, ez - origin.z);
 
-                                for (auto& bi : blockInfos) {
-                                    if (bi.pos == relPos) {
-                                        bi.nbt = _cloneNbt(&bed);
+                                // 按结构内相对坐标定位目标方块。relPos 越界（见上：origin 缺失时
+                                // 会是世界绝对坐标）时必然无匹配，与旧行为一致。
+                                for (size_t blockIndex = 0; blockIndex < blockInfos.size(); ++blockIndex) {
+                                    if (blockInfos[blockIndex].pos() == relPos) {
+                                        nbtTable.emplace_back(static_cast<u32>(blockIndex), _cloneNbt(&bed));
                                         break;
                                     }
                                 }
@@ -952,8 +984,15 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
         }
     }
 
+    // block_position_data 的迭代顺序取决于 NBT Compound 的底层存储，不保证按下标递增；
+    // 去重（同一下标只保留首个）+ 排序后，才满足 Palette 稀疏表按下标有序的前提。
+    std::sort(nbtTable.begin(), nbtTable.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    nbtTable.erase(
+        std::unique(nbtTable.begin(), nbtTable.end(), [](const auto& a, const auto& b) { return a.first == b.first; }),
+        nbtTable.end());
+
     // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）
-    templ->addPalette(Palette(std::move(blockInfos)));
+    templ->addPalette(Palette(std::move(blockInfos), std::move(nbtTable)));
 
     // TODO: 解析 structure.entities（基岩版 mob 实体 schema 与 Java 不同，GameTest 结构通常无 mob，暂不解析）
 

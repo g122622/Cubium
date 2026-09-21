@@ -6,7 +6,7 @@
 
 ```
 template/
-├── Template.hpp                      # 模板类（BlockInfo、PlacementSettings、StructureProcessor、Palette等）
+├── Template.hpp                      # 模板类（PaletteBlock、BlockInfo、PlacementSettings、StructureProcessor、Palette等）
 ├── Template.cpp                      # 模板类实现（含所有处理器实现）
 ├── TemplateLoader.hpp                # NBT 模板加载器，从资源包加载 .nbt 文件
 ├── TemplateLoader.cpp                # 模板加载实现
@@ -52,7 +52,9 @@ template/
 TemplateLoader ──加载──> Template ──缓存──> TemplateManager
                                │
                                ├── Palette（多调色板支持）
-                               ├── BlockInfo / ProcessedBlockInfo
+                               │      ├── PaletteBlock（持久存储，8 B，模板内坐标）
+                               │      └── 稀疏 NBT 表（仅带 NBT 的方块，按块下标二分查找）
+                               ├── BlockInfo / ProcessedBlockInfo（放置管线，24 B，世界坐标）
                                ├── PlacementSettings（旋转/镜像/边界框/处理器链）
                                └── StructureProcessor（处理器链）
                                       ├── GravityStructureProcessor
@@ -145,6 +147,15 @@ settings.setBoundingBox(&chunkBounds);
 ### 6. 调色板格式兼容性
 
 MC 1.16.5 支持单调色板（`palette`）和多调色板（`palettes`）两种格式。加载器同时支持，默认使用第一个调色板。
+
+### 6.1 PaletteBlock 只装得下模板内坐标（u8）
+
+`Palette` 存的是 `PaletteBlock`——8 字节紧凑表示，三轴坐标各占 **1 字节**，上限 255。它只表达**模板内相对坐标**。
+
+- **不要把世界坐标塞进 `PaletteBlock`**：世界坐标可达 ±3000 万，会被静默截断到错误位置。需要世界坐标的是放置管线，用 `BlockInfo`（24 B，`BlockPos` + NBT 指针），二者不可混用。
+- **加载期越界即拒载**：`TemplateLoader` 在两条加载路径（Java `.nbt` / 基岩版 `.mcstructure`）上都会调 `PaletteBlock::canRepresent()`，越界时打 error 日志并**拒绝整个模板**（返回空模板），而不是产出坐标错乱的建筑。结构模板体积上限为 48×48×48，实测 1202 个模板坐标最大 47，正常数据不会触发。
+- **NBT 不在 `PaletteBlock` 内**：模板中仅约 0.5% 的方块带 NBT，为其内联指针不划算。NBT 存于 `Palette` 的稀疏表（键为方块下标，**必须递增**），用 `Palette::nbtAt(index)` 取，无 NBT 时返回 `nullptr`。`PaletteBlock::hasNbt()` 的 flag 由 `Palette` 依据稀疏表回填，不是独立状态。
+- **多调色板模板会复制整份方块列表**：每个 palette 各持一份 `PaletteBlock` 数组（含各自 clone 的 NBT），20 个模板有 8 个 palette。改动加载逻辑时不要假设方块列表是共享的。
 
 ### 7. 位置哈希种子
 

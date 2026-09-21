@@ -120,8 +120,8 @@ protected:
         templ.setSize(BlockPos(1, 2, 1));
 
         // 添加一个调色板，含一个石头方块（避免 placeInWorld 因空调色板提前 return）
-        std::vector<BlockInfo> blocks;
-        blocks.emplace_back(BlockPos(0, 0, 0), VanillaBlocks::STONE->defaultState().stateId());
+        Palette::BlockVec blocks;
+        blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), VanillaBlocks::STONE->defaultState().stateId()));
         templ.addPalette(Palette(std::move(blocks)));
 
         // 添加 pig 实体

@@ -31,6 +31,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -364,11 +365,101 @@ PlacementSettings& PlacementSettings::setProcessors(const StructureProcessorList
 // Palette
 // ============================================================================
 
-Palette::Palette(std::vector<BlockInfo> blocks)
+Palette::Palette(BlockVec blocks)
     : m_blocks(std::move(blocks))
 {}
 
-const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block) const
+Palette::Palette(BlockVec blocks, NbtTable nbt)
+    : m_blocks(std::move(blocks))
+    , m_nbt(std::move(nbt))
+{
+    // 不变式：稀疏 NBT 表按下标严格递增，nbtAt 的二分查找依赖此顺序。
+    MC_ASSERT_RELEASE(
+        std::is_sorted(m_nbt.begin(), m_nbt.end(), [](const auto& a, const auto& b) { return a.first < b.first; }));
+    MC_ASSERT_RELEASE(m_nbt.empty() || m_nbt.back().first < m_blocks.size());
+
+    // FLAG_HAS_NBT 位以稀疏表为唯一事实来源：此处统一回填，杜绝两处状态不一致。
+    for (auto& block : m_blocks) {
+        block.flags &= static_cast<u8>(~PaletteBlock::FLAG_HAS_NBT);
+    }
+    for (const auto& entry : m_nbt) {
+        MC_ASSERT_RELEASE(entry.second != nullptr);
+        m_blocks[entry.first].flags |= PaletteBlock::FLAG_HAS_NBT;
+    }
+}
+
+Palette::Palette(const Palette& other)
+    : m_blocks(other.m_blocks)
+{
+    _copyNbtFrom(other);
+}
+
+Palette::Palette(Palette&& other) noexcept
+    : m_blocks(std::move(other.m_blocks))
+    , m_nbt(std::move(other.m_nbt))
+{
+    // 缓存留空由 _buildCache() 重建：其元素是指向 m_blocks 堆缓冲的裸指针，
+    // 跨对象搬运需要额外论证缓冲地址是否保持，直接重建更稳妥且代价可忽略。
+}
+
+Palette& Palette::operator=(const Palette& other)
+{
+    if (this != &other) {
+        m_blocks = other.m_blocks;
+        _copyNbtFrom(other);
+        m_blockTypeCache.clear();
+        m_cacheBuilt = false;
+    }
+    return *this;
+}
+
+Palette& Palette::operator=(Palette&& other) noexcept
+{
+    if (this != &other) {
+        m_blocks = std::move(other.m_blocks);
+        m_nbt = std::move(other.m_nbt);
+        m_blockTypeCache.clear();
+        m_cacheBuilt = false;
+    }
+    return *this;
+}
+
+void Palette::_copyNbtFrom(const Palette& other)
+{
+    m_nbt.clear();
+    m_nbt.reserve(other.m_nbt.size());
+    for (const auto& entry : other.m_nbt) {
+        MC_ASSERT_RELEASE(entry.second != nullptr);
+        m_nbt.emplace_back(entry.first, std::make_unique<nbt::CompoundTag>(*entry.second));
+    }
+}
+
+void Palette::setNbt(size_t index, std::unique_ptr<nbt::CompoundTag> tag)
+{
+    MC_ASSERT_RELEASE(index < m_blocks.size());
+    MC_ASSERT_RELEASE(tag != nullptr);
+    // 严格递增：既保证有序（nbtAt 二分查找的前提），也保证同一下标不会被登记两次
+    MC_ASSERT_RELEASE(m_nbt.empty() || static_cast<size_t>(m_nbt.back().first) < index);
+    m_blocks[index].flags |= PaletteBlock::FLAG_HAS_NBT;
+    m_nbt.emplace_back(static_cast<u32>(index), std::move(tag));
+}
+
+const nbt::CompoundTag* Palette::nbtAt(size_t index) const
+{
+    if (m_nbt.empty()) {
+        // 常见路径：绝大多数模板（以及模板中的绝大多数方块）没有 NBT
+        return nullptr;
+    }
+    const u32 key = static_cast<u32>(index);
+    auto it =
+        std::lower_bound(m_nbt.begin(), m_nbt.end(), key, [](const auto& entry, u32 k) { return entry.first < k; });
+    if (it != m_nbt.end() && it->first == key) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+const std::vector<const PaletteBlock*>& Palette::getBlocksByType(const Block& block) const
 {
     // 检查缓存
     auto it = m_blockTypeCache.find(&block);
@@ -387,7 +478,7 @@ const std::vector<const BlockInfo*>& Palette::getBlocksByType(const Block& block
     }
 
     // 没有匹配的方块，返回空列表
-    static const std::vector<const BlockInfo*> empty;
+    static const std::vector<const PaletteBlock*> empty;
     return empty;
 }
 
@@ -439,10 +530,10 @@ const Palette* Template::selectPalette(math::Random& rng) const
     return &m_palettes[index];
 }
 
-const std::vector<BlockInfo>& Template::getBlocks() const
+const Palette::BlockVec& Template::getBlocks() const
 {
     // 兼容旧接口：返回第一个调色板的方块
-    static const std::vector<BlockInfo> empty;
+    static const Palette::BlockVec empty;
     if (m_palettes.empty()) {
         return empty;
     }
@@ -516,7 +607,7 @@ bool Template::place(
         }
     }
 
-    const std::vector<BlockInfo>& blocks = selectedPalette->blocks();
+    const Palette::BlockVec& blocks = selectedPalette->blocks();
 
     // 获取边界框（可选检查）
     const auto* bounds = settings.getBoundingBox();
@@ -527,10 +618,15 @@ bool Template::place(
     originalBlocks.reserve(blocks.size());
     processedBlocks.reserve(blocks.size());
 
-    for (const auto& block : blocks) {
+    for (size_t blockIndex = 0; blockIndex < blocks.size(); ++blockIndex) {
+        const PaletteBlock& block = blocks[blockIndex];
+        // 模板内坐标 -> 世界坐标；NBT 按索引从调色板的稀疏表取出（绝大多数方块为 nullptr）
+        const nbt::CompoundTag* blockNbt = selectedPalette->nbtAt(blockIndex);
+        const BlockPos localPos = block.pos();
+
         // 计算变换后的位置
         BlockPos transformedPos = transformBlockPos(
-            block.pos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0) // 相对于原点变换
+            localPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0) // 相对于原点变换
         );
 
         // 加上目标位置偏移
@@ -538,14 +634,14 @@ bool Template::place(
 
         // 创建待处理的方块信息
         BlockInfo blockInfo(worldPos, block.blockStateId);
-        if (block.nbt) {
-            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        if (blockNbt) {
+            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*blockNbt);
         }
 
         // 保存原始方块信息（用于 finalizeProcessing）
-        BlockInfo rawInfo(block.pos, block.blockStateId);
-        if (block.nbt) {
-            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        BlockInfo rawInfo(localPos, block.blockStateId);
+        if (blockNbt) {
+            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*blockNbt);
         }
 
         // 应用处理器链
@@ -718,7 +814,7 @@ bool Template::placeInWorld(
         }
     }
 
-    const std::vector<BlockInfo>& blocks = selectedPalette->blocks();
+    const Palette::BlockVec& blocks = selectedPalette->blocks();
     const auto* bounds = settings.getBoundingBox();
 
     // 处理方块信息
@@ -727,20 +823,25 @@ bool Template::placeInWorld(
     originalBlocks.reserve(blocks.size());
     processedBlocks.reserve(blocks.size());
 
-    for (const auto& block : blocks) {
+    for (size_t blockIndex = 0; blockIndex < blocks.size(); ++blockIndex) {
+        const PaletteBlock& block = blocks[blockIndex];
+        // 模板内坐标 -> 世界坐标；NBT 按索引从调色板的稀疏表取出（绝大多数方块为 nullptr）
+        const nbt::CompoundTag* blockNbt = selectedPalette->nbtAt(blockIndex);
+        const BlockPos localPos = block.pos();
+
         BlockPos transformedPos =
-            transformBlockPos(block.pos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
+            transformBlockPos(localPos, settings.getMirror(), settings.getRotation(), BlockPos(0, 0, 0));
         BlockPos worldPos = pos + transformedPos;
 
         BlockInfo blockInfo(worldPos, block.blockStateId);
-        if (block.nbt) {
-            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        if (blockNbt) {
+            blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*blockNbt);
         }
 
         // 保存原始方块信息（用于 finalizeProcessing）
-        BlockInfo rawInfo(block.pos, block.blockStateId);
-        if (block.nbt) {
-            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        BlockInfo rawInfo(localPos, block.blockStateId);
+        if (blockNbt) {
+            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*blockNbt);
         }
 
         ProcessedBlockInfo processedBlock;

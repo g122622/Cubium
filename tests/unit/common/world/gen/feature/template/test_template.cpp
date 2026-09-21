@@ -22,6 +22,10 @@
  */
 
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
 #include <gtest/gtest.h>
 
 #include "common/util/math/random/Random.hpp"
@@ -582,20 +586,193 @@ TEST_F(TemplateTest, Template_AddBlock)
 {
     Template templ;
 
-    // 使用 Palette 添加方块
-    std::vector<BlockInfo> blocks;
-    blocks.push_back(BlockInfo(BlockPos(0, 0, 0), 1));
-    blocks.push_back(BlockInfo(BlockPos(1, 0, 0), 2));
-    blocks.push_back(BlockInfo(BlockPos(0, 1, 0), 3));
+    // 使用 Palette 添加方块。Palette 只接受模板内相对坐标（u8 三轴），
+    // 世界坐标由 place()/placeInWorld() 在放置时叠加偏移得到。
+    Palette::BlockVec blocks;
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), 1));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(1, 0, 0), 2));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 1, 0), 3));
     templ.addPalette(Palette(std::move(blocks)));
 
     EXPECT_EQ(templ.getBlockCount(), 3u);
     EXPECT_EQ(templ.getPaletteCount(), 1u);
 
     const auto& paletteBlocks = templ.getBlocks();
-    EXPECT_EQ(paletteBlocks[0].pos.x, 0);
+    EXPECT_EQ(paletteBlocks[0].x, 0);
     EXPECT_EQ(paletteBlocks[1].blockStateId, 2u);
-    EXPECT_EQ(paletteBlocks[2].pos.y, 1);
+    EXPECT_EQ(paletteBlocks[2].y, 1);
+
+    // 紧凑表示：8 字节/块，且默认不带 NBT
+    EXPECT_EQ(sizeof(PaletteBlock), 8u);
+    EXPECT_FALSE(paletteBlocks[0].hasNbt());
+}
+
+// ============================================================================
+// PaletteBlock / Palette 紧凑存储测试
+// ============================================================================
+
+TEST_F(TemplateTest, PaletteBlock_FieldLayoutIsCompact)
+{
+    // 「每块 8 字节」是本次内存优化的核心契约：旧的 BlockInfo 为 24 字节
+    // （BlockPos 12 + stateId 4 + unique_ptr 8），任何字段增补都必须先确认这个断言。
+    EXPECT_EQ(sizeof(PaletteBlock), 8u);
+    EXPECT_EQ(offsetof(PaletteBlock, x), 0u);
+    EXPECT_EQ(offsetof(PaletteBlock, y), 1u);
+    EXPECT_EQ(offsetof(PaletteBlock, z), 2u);
+    EXPECT_EQ(offsetof(PaletteBlock, flags), 3u);
+    EXPECT_EQ(offsetof(PaletteBlock, blockStateId), 4u);
+}
+
+TEST_F(TemplateTest, PaletteBlock_CanRepresentBoundaries)
+{
+    // 结构模板坐标上限为 48×48×48，0 与 255 都在可表达范围内
+    EXPECT_TRUE(PaletteBlock::canRepresent(BlockPos(0, 0, 0)));
+    EXPECT_TRUE(PaletteBlock::canRepresent(BlockPos(47, 47, 47)));
+    EXPECT_TRUE(PaletteBlock::canRepresent(BlockPos(255, 255, 255)));
+
+    // 三个轴各自越界都要被拒绝（负号会被 u8 截断成很大的正数）
+    EXPECT_FALSE(PaletteBlock::canRepresent(BlockPos(-1, 0, 0)));
+    EXPECT_FALSE(PaletteBlock::canRepresent(BlockPos(0, -1, 0)));
+    EXPECT_FALSE(PaletteBlock::canRepresent(BlockPos(0, 0, -1)));
+    EXPECT_FALSE(PaletteBlock::canRepresent(BlockPos(256, 0, 0)));
+    EXPECT_FALSE(PaletteBlock::canRepresent(BlockPos(0, 256, 0)));
+    EXPECT_FALSE(PaletteBlock::canRepresent(BlockPos(0, 0, 256)));
+}
+
+TEST_F(TemplateTest, PaletteBlock_RoundTripLocalPos)
+{
+    const BlockPos pos(12, 34, 56);
+    const PaletteBlock block = PaletteBlock::fromLocal(pos, 99);
+
+    EXPECT_EQ(block.x, 12);
+    EXPECT_EQ(block.y, 34);
+    EXPECT_EQ(block.z, 56);
+    EXPECT_EQ(block.blockStateId, 99u);
+    EXPECT_FALSE(block.hasNbt());
+    EXPECT_EQ(block.pos(), pos);
+}
+
+TEST_F(TemplateTest, Palette_NbtAtSparseLookup)
+{
+    Palette::BlockVec blocks;
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), 1));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(1, 0, 0), 2));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(2, 0, 0), 3));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(3, 0, 0), 4));
+
+    // 稀疏表只登记下标 1 与 3；表必须按下标递增（nbtAt 依赖二分查找）
+    auto firstTag = std::make_unique<nbt::CompoundTag>();
+    firstTag->put("id", std::string("minecraft:chest"));
+    auto thirdTag = std::make_unique<nbt::CompoundTag>();
+    thirdTag->put("id", std::string("minecraft:furnace"));
+
+    Palette::NbtTable table;
+    table.emplace_back(1u, std::move(firstTag));
+    table.emplace_back(3u, std::move(thirdTag));
+
+    const Palette palette(std::move(blocks), std::move(table));
+
+    ASSERT_EQ(palette.size(), 4u);
+    EXPECT_EQ(palette.nbtAt(0), nullptr);
+    ASSERT_NE(palette.nbtAt(1), nullptr);
+    EXPECT_EQ(palette.nbtAt(2), nullptr);
+    ASSERT_NE(palette.nbtAt(3), nullptr);
+
+    // FLAG_HAS_NBT 由 Palette 依据稀疏表回填，不作为独立状态维护
+    EXPECT_FALSE(palette.blocks()[0].hasNbt());
+    EXPECT_TRUE(palette.blocks()[1].hasNbt());
+    EXPECT_FALSE(palette.blocks()[2].hasNbt());
+    EXPECT_TRUE(palette.blocks()[3].hasNbt());
+}
+
+TEST_F(TemplateTest, Palette_NbtAtWithoutTable)
+{
+    Palette::BlockVec blocks;
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), 1));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 1, 0), 2));
+
+    const Palette palette(std::move(blocks), {});
+
+    for (size_t i = 0; i < palette.size(); ++i) {
+        EXPECT_EQ(palette.nbtAt(i), nullptr);
+        EXPECT_FALSE(palette.blocks()[i].hasNbt());
+    }
+    // 越界下标不得命中任何条目
+    EXPECT_EQ(palette.nbtAt(1000), nullptr);
+}
+
+TEST_F(TemplateTest, Palette_CopyDeepCopiesNbtAndDropsStaleCache)
+{
+    Palette::BlockVec blocks;
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), VanillaBlocks::STONE->defaultState().stateId()));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(1, 0, 0), VanillaBlocks::STONE->defaultState().stateId()));
+
+    auto tag = std::make_unique<nbt::CompoundTag>();
+    tag->put("id", std::string("minecraft:chest"));
+    Palette::NbtTable table;
+    table.emplace_back(1u, std::move(tag));
+
+    const Palette original(std::move(blocks), std::move(table));
+    // 先查询一次把类型缓存建起来，再拷贝：缓存内的指针指向源对象的缓冲，
+    // 拷贝构造必须丢弃它并在新对象上重建，否则会读到源对象的地址。
+    ASSERT_FALSE(original.getBlocksByType(VanillaBlocks::STONE->defaultState().getBlock()).empty());
+
+    const Palette copied = original;
+
+    EXPECT_EQ(copied.size(), 2u);
+    EXPECT_EQ(copied.blocks()[0].pos(), BlockPos(0, 0, 0));
+    ASSERT_NE(copied.nbtAt(1), nullptr);
+    // 深拷贝：NBT 不是共享的同一对象
+    EXPECT_NE(copied.nbtAt(1), original.nbtAt(1));
+    EXPECT_TRUE(copied.blocks()[1].hasNbt());
+
+    // 缓存重建后仍指向拷贝自身的数据
+    const auto& byType = copied.getBlocksByType(VanillaBlocks::STONE->defaultState().getBlock());
+    ASSERT_EQ(byType.size(), 2u);
+    EXPECT_EQ(byType[0], &copied.blocks()[0]);
+}
+
+TEST_F(TemplateTest, Template_CopyIsIndependent)
+{
+    // Template 在测试与调用方中按值传递（如 makePigTemplate 返回 Template），
+    // 拷贝必须是深拷贝且不共享调色板的 NBT 缓冲区。
+    Template original;
+    original.setSize(BlockPos(4, 4, 4));
+
+    Palette::BlockVec blocks;
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), 1));
+    auto tag = std::make_unique<nbt::CompoundTag>();
+    tag->put("id", std::string("minecraft:chest"));
+    Palette::NbtTable table;
+    table.emplace_back(0u, std::move(tag));
+    original.addPalette(Palette(std::move(blocks), std::move(table)));
+
+    const Template copied = original;
+
+    ASSERT_EQ(copied.getPaletteCount(), 1u);
+    ASSERT_NE(copied.getPalette(0), nullptr);
+    ASSERT_NE(copied.getPalette(0)->nbtAt(0), nullptr);
+    EXPECT_NE(copied.getPalette(0), original.getPalette(0));
+    EXPECT_NE(copied.getPalette(0)->nbtAt(0), original.getPalette(0)->nbtAt(0));
+    EXPECT_EQ(copied.getPalette(0)->blocks()[0].pos(), BlockPos(0, 0, 0));
+}
+
+TEST_F(TemplateTest, Palette_SetNbtKeepsTableOrdered)
+{
+    Palette::BlockVec blocks;
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 0, 0), 1));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 1, 0), 2));
+    blocks.push_back(PaletteBlock::fromLocal(BlockPos(0, 2, 0), 3));
+    Palette palette(std::move(blocks));
+
+    auto tag = std::make_unique<nbt::CompoundTag>();
+    tag->put("id", std::string("minecraft:chest"));
+    palette.setNbt(2, std::move(tag));
+
+    EXPECT_EQ(palette.nbtAt(0), nullptr);
+    EXPECT_EQ(palette.nbtAt(1), nullptr);
+    ASSERT_NE(palette.nbtAt(2), nullptr);
+    EXPECT_TRUE(palette.blocks()[2].hasNbt());
 }
 
 TEST_F(TemplateTest, Template_AddJigsawBlock)
