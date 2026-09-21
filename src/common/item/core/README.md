@@ -8,7 +8,7 @@
 core/
 ├── AdventureModePredicate.hpp/cpp  # 冒险模式谓词（CanPlaceOn/CanDestroy方块匹配，支持属性过滤）
 ├── Item.hpp/cpp              # 物品基类，所有物品类型的父类（含 onCraftedBy/onCraftedPostProcess 合成回调）
-├── ItemStack.hpp/cpp         # 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔、冒险模式谓词和结构化自定义标签，含 onCraftedBy 桥接方法）
+├── ItemStack.hpp/cpp         # 物品堆，表示游戏中的一个物品实例（含 ItemExtras：lore/potionId/customData/冒险模式谓词的外置惰性存储；另有 onCraftedBy 桥接方法）
 ├── ItemRegistry.hpp/cpp      # 物品注册表，管理所有物品的注册和查找
 ├── ItemGroup.hpp/cpp         # 创造模式物品组（标签页）
 ├── ProjectileItem.hpp/cpp    # 弹射物物品接口，提供 asProjectile()/getDispenseConfig()/shoot() 三个核心方法
@@ -100,7 +100,7 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 
 ### 8. 冒险模式谓词 CanPlaceOn/CanDestroy
 
-`AdventureModePredicate` 存储在 `ItemStack` 的 `m_canPlaceOn`/`m_canDestroy` 成员中，NBT 键名为 `CanPlaceOn`/`CanDestroy`（字符串列表）。冒险模式下：
+`AdventureModePredicate` 存储在 `ItemStack` 的 `ItemExtras` 中（`m_extras->canPlaceOn` / `m_extras->canDestroy`），NBT 键名为 `CanPlaceOn`/`CanDestroy`（字符串列表）。冒险模式下：
 - `Player::mayInteract()` 检查手持物品的 CanPlaceOn 标签，匹配目标方块时允许交互
 - `BlockInteractionManager::handleBlockPlacement()` 检查 CanPlaceOn 标签
 - `BlockInteractionManager::_canBreakBlock()` 检查 CanDestroy 标签
@@ -114,6 +114,33 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 - 属性值通过方块的 `StateContainer` 查找 `IProperty` 并调用 `parseValue()` 解析比较
 - NBT 匹配语法（`minecraft:chest{Items:[...]}`）已支持，通过 NBTPredicate 进行子集匹配，需要使用带 BlockPos 参数的 AdventureModePredicate::test() 重载
 - 空谓词列表不匹配任何方块，冒险模式下无 CanPlaceOn/CanDestroy 标签的物品不能放置/破坏方块
+
+### 8.1 ItemExtras：稀有字段外置与惰性分配
+
+`ItemStack` 只内联 `m_item`/`m_count`/`m_damage`/`m_repairCost`/`m_customName`/`m_enchantments`，
+其余五个字段（`lore`、`potionId`、`customData`、`canPlaceOn`、`canDestroy`）寄存在
+`std::unique_ptr<ItemExtras> m_extras` 中，**惰性分配**。`sizeof(ItemStack)` 因此从 232 字节降到 64 字节
+（五个外置字段合计约 176 字节，其中两个 `AdventureModePredicate` 就占 112）。
+
+收益面：`EquipmentComponent` 内联 16 个槽（3.7 KB → 1 KB/生物）、`PlayerInventory` 41 个槽、
+以及容器每 tick 的逐槽拷贝都随之缩小。实测空闲服务端即省约 1.7 MB。
+
+**必须遵守的约束**：
+
+- **extras 一旦分配就只增不减、绝不重建**。`getLore()`/`getCanPlaceOn()` 等会把内部引用交给调用方
+  （如 `EnchantmentHelper` 先取可变引用再逐个增删），重建会让那些引用立刻悬垂。写路径一律走
+  `_ensureExtras()`（已分配时原地复用）。
+- **"清除"不得反向分配**。`clearLore()`/`setPotionId("")`/`setCanPlaceOn({})` 以及
+  `applyComponentPatch` 的 removed 分支都是 no-op 或就地清空，不会为一次清除新建 extras。
+- **拷贝要深拷贝**。`ItemExtras` 手写拷贝构造/赋值，`lore` 内的文本组件逐行 `deepCopy()`；
+  空 extras 必须原样传 `nullptr`（拷贝构造里不得无条件 `make_unique`，否则每 tick 的容器拷贝会把这笔优化吃掉）。
+- **无 extras 时各 getter 返回共享空实例**（`_emptyLore()`/`_emptyPredicate()`/`_emptyString()`/`_emptyJson()`），
+  语义与旧的内联默认成员一致，因此 `operator==` 与 `canMergeWith` 无需特判。
+- **`getTag()` 返回裸指针**，指向 `m_extras->customData`，其地址在 extras 生命周期内稳定。
+
+**行为修正**：`copy()`/`split()` 原先会丢掉 `canPlaceOn`/`canDestroy`（与 vanilla `ItemStack#copy` 不符），
+随本次外置一并按整体深拷贝修正，测试见 `ItemStackTest.CopyAndSplitCarryExtras`。
+`m_repairCost` 仍未随 `copy()` 复制，属既有缺陷，未在本次改动范围内。
 
 ### 9. ProjectileItem 接口与多态创建弹射物
 

@@ -61,6 +61,60 @@ class PotionUtils;
 namespace mc {
 
 /**
+ * @brief ItemStack 中极少使用的字段的外置存储
+ *
+ * 这些字段内联合计约 176 字节（两个 AdventureModePredicate 就占 112），但绝大多数
+ * 物品堆一生都不会用到其中任何一个：lore / can_place_on / can_destroy 的非空率都在
+ * 1% 以下，custom_data 约 3~8%。内联会让每一个物品堆——包括装备组件里的 16 个槽、
+ * 玩家背包的 41 个槽，以及容器每 tick 的逐槽拷贝——都白付这份开销。
+ *
+ * 改为单个 unique_ptr<ItemExtras> 惰性持有：未用到时指针为空、零堆分配；ItemStack
+ * 因此从 232 字节降到 64 字节。
+ *
+ * 刻意不含 m_enchantments 与 m_customName：前者在 LivingEntity 每 tick 的装备变更
+ * 检测（ItemStack::operator==）里被读取，外置会给这条热路径平添一次间接寻址；后者
+ * 的裸指针会经 getCustomNameComponent() 交出并在多处逃逸。
+ */
+struct ItemExtras {
+    std::vector<std::unique_ptr<text::ITextComponent>> lore;
+    std::string potionId;
+    nlohmann::json customData;
+    AdventureModePredicate canPlaceOn;
+    AdventureModePredicate canDestroy;
+
+    ItemExtras() = default;
+
+    /// 深拷贝：lore 内的文本组件必须逐行 deepCopy，不能共享 unique_ptr
+    ItemExtras(const ItemExtras& other)
+        : potionId(other.potionId)
+        , customData(other.customData)
+        , canPlaceOn(other.canPlaceOn)
+        , canDestroy(other.canDestroy)
+    {
+        lore.reserve(other.lore.size());
+        for (const auto& line : other.lore) {
+            lore.push_back(line ? line->deepCopy() : nullptr);
+        }
+    }
+
+    ItemExtras& operator=(const ItemExtras& other)
+    {
+        if (this != &other) {
+            potionId = other.potionId;
+            customData = other.customData;
+            canPlaceOn = other.canPlaceOn;
+            canDestroy = other.canDestroy;
+            lore.clear();
+            lore.reserve(other.lore.size());
+            for (const auto& line : other.lore) {
+                lore.push_back(line ? line->deepCopy() : nullptr);
+            }
+        }
+        return *this;
+    }
+};
+
+/**
  * @brief 物品堆
  *
  * 表示游戏中的一个物品实例，包含物品类型、数量和额外数据（耐久、附魔等）。
@@ -525,36 +579,57 @@ public:
      * @brief 是否有 Lore
      * @return 如果有 Lore 返回 true
      */
-    [[nodiscard]] bool hasLore() const { return !m_lore.empty(); }
+    [[nodiscard]] bool hasLore() const { return m_extras && !m_extras->lore.empty(); }
 
     /**
      * @brief 获取 Lore 列表
-     * @return Lore 文本组件列表的常量引用
+     * @return Lore 文本组件列表的常量引用；无 extras 时返回共享的空列表
      */
-    [[nodiscard]] const std::vector<std::unique_ptr<text::ITextComponent>>& getLore() const { return m_lore; }
+    [[nodiscard]] const std::vector<std::unique_ptr<text::ITextComponent>>& getLore() const
+    {
+        return m_extras ? m_extras->lore : _emptyLore();
+    }
 
     /**
      * @brief 设置 Lore
      * @param lore Lore 文本组件列表（所有权转移）
      */
-    void setLore(std::vector<std::unique_ptr<text::ITextComponent>> lore) { m_lore = std::move(lore); }
+    void setLore(std::vector<std::unique_ptr<text::ITextComponent>> lore)
+    {
+        if (lore.empty()) {
+            // 置空不该反向分配一份 extras
+            if (m_extras) {
+                m_extras->lore.clear();
+            }
+            return;
+        }
+        _ensureExtras().lore = std::move(lore);
+    }
 
     /**
      * @brief 添加一行 Lore
      * @param line Lore 文本组件（所有权转移）
      */
-    void addLoreLine(std::unique_ptr<text::ITextComponent> line) { m_lore.push_back(std::move(line)); }
+    void addLoreLine(std::unique_ptr<text::ITextComponent> line) { _ensureExtras().lore.push_back(std::move(line)); }
 
     /**
      * @brief 添加一行 Lore（纯文本）
      * @param line Lore 纯文本
      */
-    void addLoreLine(const std::string& line) { m_lore.push_back(std::make_unique<text::StringTextComponent>(line)); }
+    void addLoreLine(const std::string& line)
+    {
+        _ensureExtras().lore.push_back(std::make_unique<text::StringTextComponent>(line));
+    }
 
     /**
      * @brief 清除 Lore
      */
-    void clearLore() { m_lore.clear(); }
+    void clearLore()
+    {
+        if (m_extras) {
+            m_extras->lore.clear();
+        }
+    }
 
     // ========== 冒险模式谓词（CanPlaceOn / CanDestroy） ==========
 
@@ -565,19 +640,32 @@ public:
      *
      * @return 如果有 CanPlaceOn 标签返回 true
      */
-    [[nodiscard]] bool hasCanPlaceOn() const { return !m_canPlaceOn.isEmpty(); }
+    [[nodiscard]] bool hasCanPlaceOn() const { return m_extras && !m_extras->canPlaceOn.isEmpty(); }
 
     /**
      * @brief 获取 CanPlaceOn 谓词
-     * @return CanPlaceOn 谓词的常量引用
+     * @return CanPlaceOn 谓词的常量引用；无 extras 时返回共享的空谓词
      */
-    [[nodiscard]] const AdventureModePredicate& getCanPlaceOn() const { return m_canPlaceOn; }
+    [[nodiscard]] const AdventureModePredicate& getCanPlaceOn() const
+    {
+        return m_extras ? m_extras->canPlaceOn : _emptyPredicate();
+    }
 
     /**
      * @brief 设置 CanPlaceOn 谓词
      * @param predicate 冒险模式谓词
      */
-    void setCanPlaceOn(AdventureModePredicate predicate) { m_canPlaceOn = std::move(predicate); }
+    void setCanPlaceOn(AdventureModePredicate predicate)
+    {
+        if (predicate.isEmpty()) {
+            // 置空不分配；已分配时原地赋空值，保持已有引用的地址稳定
+            if (m_extras) {
+                m_extras->canPlaceOn = std::move(predicate);
+            }
+            return;
+        }
+        _ensureExtras().canPlaceOn = std::move(predicate);
+    }
 
     /**
      * @brief 检查此物品是否可以在冒险模式下放置在指定方块上
@@ -626,19 +714,31 @@ public:
      *
      * @return 如果有 CanDestroy 标签返回 true
      */
-    [[nodiscard]] bool hasCanDestroy() const { return !m_canDestroy.isEmpty(); }
+    [[nodiscard]] bool hasCanDestroy() const { return m_extras && !m_extras->canDestroy.isEmpty(); }
 
     /**
      * @brief 获取 CanDestroy 谓词
-     * @return CanDestroy 谓词的常量引用
+     * @return CanDestroy 谓词的常量引用；无 extras 时返回共享的空谓词
      */
-    [[nodiscard]] const AdventureModePredicate& getCanDestroy() const { return m_canDestroy; }
+    [[nodiscard]] const AdventureModePredicate& getCanDestroy() const
+    {
+        return m_extras ? m_extras->canDestroy : _emptyPredicate();
+    }
 
     /**
      * @brief 设置 CanDestroy 谓词
      * @param predicate 冒险模式谓词
      */
-    void setCanDestroy(AdventureModePredicate predicate) { m_canDestroy = std::move(predicate); }
+    void setCanDestroy(AdventureModePredicate predicate)
+    {
+        if (predicate.isEmpty()) {
+            if (m_extras) {
+                m_extras->canDestroy = std::move(predicate);
+            }
+            return;
+        }
+        _ensureExtras().canDestroy = std::move(predicate);
+    }
 
     /**
      * @brief 检查此物品是否可以在冒险模式下破坏指定方块
@@ -710,14 +810,32 @@ public:
      * @brief 获取药水 ID（对应 1.21.11 potion_contents 组件的 potion 字段）
      * @return 药水资源位置字符串，空串表示无药水
      */
-    [[nodiscard]] const std::string& getPotionId() const { return m_potionId; }
+    [[nodiscard]] const std::string& getPotionId() const { return m_extras ? m_extras->potionId : _emptyString(); }
 
     /**
      * @brief 设置药水 ID
      * @param potionId 药水资源位置字符串，空串表示清除
      */
-    void setPotionId(const std::string& potionId) { m_potionId = potionId; }
-    void setPotionId(std::string&& potionId) { m_potionId = std::move(potionId); }
+    void setPotionId(const std::string& potionId)
+    {
+        if (potionId.empty()) {
+            if (m_extras) {
+                m_extras->potionId.clear();
+            }
+            return;
+        }
+        _ensureExtras().potionId = potionId;
+    }
+    void setPotionId(std::string&& potionId)
+    {
+        if (potionId.empty()) {
+            if (m_extras) {
+                m_extras->potionId.clear();
+            }
+            return;
+        }
+        _ensureExtras().potionId = std::move(potionId);
+    }
 
     // ========== 容器物品 ==========
 
@@ -759,16 +877,16 @@ public:
      *   键为组件资源位置名（如 "minecraft:damage"），值为该组件的 NBT；
      *   以 '!' 前缀的键表示移除该组件。
      *
-     * 对应字段：
+     * 对应字段（标 m_extras 的寄存在 ItemExtras 中）：
      * - minecraft:damage           —— m_damage
      * - minecraft:repair_cost      —— m_repairCost
      * - minecraft:custom_name      —— m_customName
-     * - minecraft:lore             —— m_lore
+     * - minecraft:lore             —— m_extras->lore
      * - minecraft:enchantments     —— m_enchantments
-     * - minecraft:potion_contents  —— m_potionId
-     * - minecraft:can_place_on     —— m_canPlaceOn
-     * - minecraft:can_break        —— m_canDestroy
-     * - minecraft:custom_data      —— m_customData（JSON↔NBT 转换）
+     * - minecraft:potion_contents  —— m_extras->potionId
+     * - minecraft:can_place_on     —— m_extras->canPlaceOn
+     * - minecraft:can_break        —— m_extras->canDestroy
+     * - minecraft:custom_data      —— m_extras->customData（JSON↔NBT 转换）
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
 
@@ -811,17 +929,43 @@ public:
     bool operator!=(const ItemStack& other) const { return !(*this == other); }
 
 private:
+    /// 确保 extras 已分配并返回可写引用
+    ///
+    /// 已分配时**原地复用、绝不重建**：getLore()/getCanPlaceOn() 等会把内部引用交给
+    /// 调用方（例如 EnchantmentHelper 先取引用再逐个增删），重建会让那些引用立刻悬垂。
+    ItemExtras& _ensureExtras()
+    {
+        if (!m_extras) {
+            m_extras = std::make_unique<ItemExtras>();
+        }
+        return *m_extras;
+    }
+
+    /// customData 的只读访问：无 extras 时返回共享的空 json（null）
+    ///
+    /// 其余外置字段的只读访问直接复用公开 getter（getLore/getPotionId/getCanPlaceOn/
+    /// getCanDestroy），它们的"无 extras 返回共享空实例"语义与旧的内联成员一致。
+    [[nodiscard]] const nlohmann::json& _dataRef() const { return m_extras ? m_extras->customData : _emptyJson(); }
+
+    /// 无 extras 时 _dataRef() 返回的共享空 json
+    [[nodiscard]] static const nlohmann::json& _emptyJson();
+
+    /// 无 extras 时 getLore() 返回的共享空列表
+    [[nodiscard]] static const std::vector<std::unique_ptr<text::ITextComponent>>& _emptyLore();
+    /// 无 extras 时 getCanPlaceOn()/getCanDestroy() 返回的共享空谓词
+    [[nodiscard]] static const AdventureModePredicate& _emptyPredicate();
+    /// 无 extras 时 getPotionId() 返回的共享空串
+    [[nodiscard]] static const std::string& _emptyString();
+
     const Item* m_item = nullptr;
     i32 m_count = 0;
-    i32 m_damage = 0;                                          // 已承受的伤害（耐久度）
-    i32 m_repairCost = 0;                                      // 修复成本（铁砧）
-    std::unique_ptr<text::ITextComponent> m_customName;        // 自定义名称（铁砧重命名）
-    std::vector<std::unique_ptr<text::ITextComponent>> m_lore; // 物品描述（Lore）
-    item::enchant::EnchantmentContainer m_enchantments;        // 附魔容器
-    std::string m_potionId;                                    // 药水ID（用于药水物品）
-    nlohmann::json m_customData;                               // 自定义数据（用于display等扩展标签）
-    AdventureModePredicate m_canPlaceOn;                       // 冒险模式可放置方块谓词
-    AdventureModePredicate m_canDestroy;                       // 冒险模式可破坏方块谓词
+    i32 m_damage = 0;                                   // 已承受的伤害（耐久度）
+    i32 m_repairCost = 0;                               // 修复成本（铁砧）
+    std::unique_ptr<text::ITextComponent> m_customName; // 自定义名称（铁砧重命名）
+    item::enchant::EnchantmentContainer m_enchantments; // 附魔容器
+
+    /// 稀有字段的外置存储，惰性分配；见 ItemExtras 的说明
+    std::unique_ptr<ItemExtras> m_extras;
 
     /// 旧 1.16.5 {tag{...}} 格式回退读取（fromNbt 读旧存档用）
     static void applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compound_tag& tagCompound);
@@ -829,5 +973,11 @@ private:
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;
 };
+
+// 紧凑性守卫：ItemStack 会被内联进装备组件（16 个槽）、玩家背包（41 个槽）等容器，
+// 并被容器每 tick 逐槽拷贝。设计目标为 64 字节（把 lore/potionId/customData/
+// canPlaceOn/canDestroy 外置到 ItemExtras 之后）；此处只做粗粒度的回归拦截，
+// 精确值由 ItemStackTest.CompactLayout 断言。
+static_assert(sizeof(ItemStack) < 128, "ItemStack 应保持紧凑，成员增补前请先确认内存影响");
 
 } // namespace mc

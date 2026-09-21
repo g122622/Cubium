@@ -698,3 +698,131 @@ TEST_F(ItemRegistryTest, ItemCount)
     size_t count = ItemRegistry::instance().itemCount();
     EXPECT_GT(count, 0);
 }
+
+// ============================================================================
+// ItemExtras：稀有字段外置后的布局与语义
+// ============================================================================
+
+TEST_F(ItemStackTest, CompactLayout)
+{
+    // ItemStack 被内联进装备组件（16 槽）与玩家背包（41 槽），并被容器每 tick 逐槽拷贝。
+    // 把 lore/potionId/customData/canPlaceOn/canDestroy 外置到 ItemExtras 后应降到 64 字节。
+    EXPECT_LE(sizeof(ItemStack), 64u);
+    // 外置的 5 个字段合起来比 ItemStack 本身还大，这正是本次优化的收益来源
+    EXPECT_GT(sizeof(ItemExtras), sizeof(ItemStack));
+}
+
+TEST_F(ItemStackTest, ExtrasAreLazy)
+{
+    ItemStack plain(m_stick, 1);
+    ItemStack other(m_diamond, 1);
+    // 未用到任何稀有字段时 getLore() 返回共享的空实例：
+    // 两个不同物品堆拿到同一地址，即证明二者都没有分配 extras。
+    EXPECT_EQ(&plain.getLore(), &other.getLore());
+    EXPECT_EQ(&plain.getPotionId(), &other.getPotionId());
+    EXPECT_EQ(&plain.getCanPlaceOn(), &other.getCanPlaceOn());
+
+    // 一旦写入，extras 被分配，地址不再共享
+    plain.addLoreLine("first");
+    EXPECT_TRUE(plain.hasLore());
+    EXPECT_NE(&plain.getLore(), &other.getLore());
+    EXPECT_FALSE(other.hasLore());
+}
+
+TEST_F(ItemStackTest, ClearingRareFieldsDoesNotAllocateExtras)
+{
+    // "清除"是常见的默认路径（applyComponentPatch 的 removed 分支），不该反向分配一份 extras
+    ItemStack stack(m_stick, 1);
+    const auto* emptyLore = &stack.getLore();
+
+    stack.clearLore();
+    stack.setPotionId(std::string{});
+    stack.setCanPlaceOn(AdventureModePredicate{});
+    stack.setCanDestroy(AdventureModePredicate{});
+
+    EXPECT_EQ(&stack.getLore(), emptyLore);
+    EXPECT_FALSE(stack.hasLore());
+    EXPECT_FALSE(stack.hasCanPlaceOn());
+    EXPECT_FALSE(stack.hasCanDestroy());
+    EXPECT_TRUE(stack.getPotionId().empty());
+}
+
+TEST_F(ItemStackTest, CopyDeepCopiesExtras)
+{
+    ItemStack original(m_diamondSword, 1);
+    original.addLoreLine("line-a");
+    original.setPotionId("minecraft:strong_swiftness");
+    original.setCanPlaceOn(AdventureModePredicate({"minecraft:stone"}));
+    original.getOrCreateTag()["k"] = 1;
+
+    ItemStack copied = original;
+    EXPECT_EQ(copied.getLore().size(), 1u);
+    EXPECT_EQ(copied.getPotionId(), "minecraft:strong_swiftness");
+    EXPECT_EQ(copied.getCanPlaceOn(), original.getCanPlaceOn());
+    EXPECT_EQ(*copied.getTag(), *original.getTag());
+    EXPECT_EQ(copied, original);
+
+    // 深拷贝：改副本不得影响原件
+    copied.addLoreLine("line-b");
+    copied.setPotionId("minecraft:healing");
+    copied.getOrCreateTag()["k"] = 2;
+    EXPECT_EQ(original.getLore().size(), 1u);
+    EXPECT_EQ(original.getPotionId(), "minecraft:strong_swiftness");
+    EXPECT_EQ((*original.getTag())["k"].get<i32>(), 1);
+    EXPECT_NE(copied, original);
+}
+
+TEST_F(ItemStackTest, CopyAndSplitCarryExtras)
+{
+    ItemStack original(m_stick, 10);
+    original.addLoreLine("keep-me");
+    original.setCanDestroy(AdventureModePredicate({"minecraft:dirt"}));
+
+    ItemStack copied = original.copy();
+    EXPECT_EQ(copied.getLore().size(), 1u);
+    EXPECT_TRUE(copied.hasCanDestroy());
+
+    ItemStack split = original.split(4);
+    EXPECT_EQ(split.getCount(), 4);
+    EXPECT_EQ(split.getLore().size(), 1u);
+    EXPECT_TRUE(split.hasCanDestroy());
+}
+
+TEST_F(ItemStackTest, EqualityIgnoresExtrasPresence)
+{
+    // 有 extras 但各字段为空，与完全没有 extras 的两个堆必须相等：
+    // 否则装备变更检测会因为"曾经写过又清空"而误报变化。
+    ItemStack untouched(m_stick, 1);
+    ItemStack touched(m_stick, 1);
+    touched.addLoreLine("x");
+    touched.clearLore();
+    touched.setPotionId("minecraft:healing");
+    touched.setPotionId(std::string{});
+
+    EXPECT_EQ(untouched, touched);
+}
+
+TEST_F(ItemStackTest, NbtRoundTripPreservesRareFields)
+{
+    ItemStack original(m_diamondSword, 1);
+    original.addLoreLine("lore-line");
+    original.setPotionId("minecraft:long_invisibility");
+    original.setCanPlaceOn(AdventureModePredicate({"minecraft:stone"}));
+    original.setCanDestroy(AdventureModePredicate({"minecraft:oak_log"}));
+    original.getOrCreateTag()["marker"] = "v";
+
+    nbt::tags::compound_tag tag;
+    original.toNbt(tag);
+
+    auto loaded = ItemStack::fromNbt(tag);
+    ASSERT_TRUE(loaded.success());
+    const ItemStack& restored = loaded.value();
+
+    EXPECT_EQ(restored.getLore().size(), 1u);
+    EXPECT_EQ(restored.getPotionId(), "minecraft:long_invisibility");
+    EXPECT_EQ(restored.getCanPlaceOn(), original.getCanPlaceOn());
+    EXPECT_EQ(restored.getCanDestroy(), original.getCanDestroy());
+    ASSERT_NE(restored.getTag(), nullptr);
+    EXPECT_EQ((*restored.getTag())["marker"].get<std::string>(), "v");
+    EXPECT_EQ(restored, original);
+}

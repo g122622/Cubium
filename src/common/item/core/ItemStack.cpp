@@ -91,6 +91,34 @@ constexpr const char* CAN_DESTROY = "CanDestroy";
 const ItemStack ItemStack::EMPTY;
 
 // ============================================================================
+// ItemExtras 的共享空实例
+// ============================================================================
+
+const std::vector<std::unique_ptr<text::ITextComponent>>& ItemStack::_emptyLore()
+{
+    static const std::vector<std::unique_ptr<text::ITextComponent>> EMPTY;
+    return EMPTY;
+}
+
+const AdventureModePredicate& ItemStack::_emptyPredicate()
+{
+    static const AdventureModePredicate EMPTY;
+    return EMPTY;
+}
+
+const std::string& ItemStack::_emptyString()
+{
+    static const std::string EMPTY;
+    return EMPTY;
+}
+
+const nlohmann::json& ItemStack::_emptyJson()
+{
+    static const nlohmann::json EMPTY;
+    return EMPTY;
+}
+
+// ============================================================================
 // 构造函数
 // ============================================================================
 
@@ -122,16 +150,10 @@ ItemStack::ItemStack(const ItemStack& other)
     , m_damage(other.m_damage)
     , m_customName(other.m_customName ? other.m_customName->deepCopy() : nullptr)
     , m_enchantments(other.m_enchantments)
-    , m_potionId(other.m_potionId)
-    , m_customData(other.m_customData)
-    , m_canPlaceOn(other.m_canPlaceOn)
-    , m_canDestroy(other.m_canDestroy)
-{
-    // 深拷贝 Lore
-    for (const auto& line : other.m_lore) {
-        m_lore.push_back(line ? line->deepCopy() : nullptr);
-    }
-}
+    // 空 extras 原样传 nullptr（不得无条件 make_unique——容器每 tick 逐槽拷贝，
+    // 给空 extras 分配会把这笔优化反向吃掉）；非空才深拷贝
+    , m_extras(other.m_extras ? std::make_unique<ItemExtras>(*other.m_extras) : nullptr)
+{}
 
 ItemStack& ItemStack::operator=(const ItemStack& other)
 {
@@ -140,17 +162,8 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
         m_count = other.m_count;
         m_damage = other.m_damage;
         m_customName = other.m_customName ? other.m_customName->deepCopy() : nullptr;
-        m_potionId = other.m_potionId;
-        m_customData = other.m_customData;
         m_enchantments = other.m_enchantments;
-        m_canPlaceOn = other.m_canPlaceOn;
-        m_canDestroy = other.m_canDestroy;
-
-        // 深拷贝 Lore
-        m_lore.clear();
-        for (const auto& line : other.m_lore) {
-            m_lore.push_back(line ? line->deepCopy() : nullptr);
-        }
+        m_extras = other.m_extras ? std::make_unique<ItemExtras>(*other.m_extras) : nullptr;
     }
     return *this;
 }
@@ -401,20 +414,22 @@ bool ItemStack::canMergeWith(const ItemStack& other) const
     }
 
     // 比较 Lore
-    if (m_lore.size() != other.m_lore.size()) {
+    const auto& lore = getLore();
+    const auto& otherLore = other.getLore();
+    if (lore.size() != otherLore.size()) {
         return false;
     }
-    for (size_t i = 0; i < m_lore.size(); ++i) {
-        if (m_lore[i] && other.m_lore[i]) {
-            if (*m_lore[i] != *other.m_lore[i]) {
+    for (size_t i = 0; i < lore.size(); ++i) {
+        if (lore[i] && otherLore[i]) {
+            if (*lore[i] != *otherLore[i]) {
                 return false;
             }
-        } else if (m_lore[i] || other.m_lore[i]) {
+        } else if (lore[i] || otherLore[i]) {
             return false;
         }
     }
 
-    if (m_potionId != other.m_potionId) {
+    if (getPotionId() != other.getPotionId()) {
         return false;
     }
 
@@ -423,7 +438,7 @@ bool ItemStack::canMergeWith(const ItemStack& other) const
         return false;
     }
 
-    if (m_customData != other.m_customData) {
+    if (_dataRef() != other._dataRef()) {
         return false;
     }
 
@@ -452,13 +467,8 @@ ItemStack ItemStack::split(i32 amount)
     ItemStack result(*m_item, splitCount);
     result.m_damage = m_damage;
     result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
-    result.m_lore.clear();
-    for (const auto& line : m_lore) {
-        result.m_lore.push_back(line->deepCopy());
-    }
-    result.m_potionId = m_potionId;
-    result.m_customData = m_customData;
     result.m_enchantments = m_enchantments;
+    result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;
 
     // 减少当前堆
     setCount(m_count - splitCount);
@@ -474,14 +484,10 @@ ItemStack ItemStack::copy() const
     ItemStack result(*m_item, m_count);
     result.m_damage = m_damage;
     result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
-    result.m_lore.clear();
-    for (const auto& line : m_lore) {
-        result.m_lore.push_back(line->deepCopy());
-    }
-    result.m_potionId = m_potionId;
-    result.m_customData = m_customData;
-    // 复制附魔
     result.m_enchantments = m_enchantments;
+    // 整体深拷贝 extras。注：这同时修正了先前 copy()/split() 会丢掉
+    // can_place_on / can_destroy 的问题（与 vanilla ItemStack#copy 一致）。
+    result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;
     return result;
 }
 
@@ -495,15 +501,8 @@ ItemStack ItemStack::transmuteCopy(const Item& newItem, i32 newCount) const
     ItemStack result(newItem, newCount);
     // 保留原物品堆的额外数据（不保留耐久度，因为新物品可能是满耐久）
     result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
-    result.m_lore.clear();
-    for (const auto& line : m_lore) {
-        result.m_lore.push_back(line->deepCopy());
-    }
-    result.m_potionId = m_potionId;
-    result.m_customData = m_customData;
     result.m_enchantments = m_enchantments;
-    result.m_canPlaceOn = m_canPlaceOn;
-    result.m_canDestroy = m_canDestroy;
+    result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;
     result.m_repairCost = m_repairCost;
     return result;
 }
@@ -537,7 +536,7 @@ bool ItemStack::canPlaceOnBlockInAdventureMode(const BlockState& state) const
     if (isEmpty() || !hasCanPlaceOn()) {
         return false;
     }
-    return m_canPlaceOn.test(state);
+    return getCanPlaceOn().test(state);
 }
 
 bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockState& state) const
@@ -545,7 +544,7 @@ bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockState& 
     if (isEmpty() || !hasCanPlaceOn()) {
         return false;
     }
-    return m_canPlaceOn.test(world, state);
+    return getCanPlaceOn().test(world, state);
 }
 
 bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -553,7 +552,7 @@ bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockPos& po
     if (isEmpty() || !hasCanPlaceOn()) {
         return false;
     }
-    return m_canPlaceOn.test(world, pos, state);
+    return getCanPlaceOn().test(world, pos, state);
 }
 
 bool ItemStack::canBreakBlockInAdventureMode(const BlockState& state) const
@@ -561,7 +560,7 @@ bool ItemStack::canBreakBlockInAdventureMode(const BlockState& state) const
     if (isEmpty() || !hasCanDestroy()) {
         return false;
     }
-    return m_canDestroy.test(state);
+    return getCanDestroy().test(state);
 }
 
 bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockState& state) const
@@ -569,7 +568,7 @@ bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockState& st
     if (isEmpty() || !hasCanDestroy()) {
         return false;
     }
-    return m_canDestroy.test(world, state);
+    return getCanDestroy().test(world, state);
 }
 
 bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -577,7 +576,7 @@ bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockPos& pos,
     if (isEmpty() || !hasCanDestroy()) {
         return false;
     }
-    return m_canDestroy.test(world, pos, state);
+    return getCanDestroy().test(world, pos, state);
 }
 
 void ItemStack::inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected)
@@ -657,9 +656,10 @@ nlohmann::json ItemStack::toJson() const
         json["CustomName"] = m_customName->toJson();
     }
 
-    if (!m_lore.empty()) {
+    const auto& lore = getLore();
+    if (!lore.empty()) {
         nlohmann::json loreJson = nlohmann::json::array();
-        for (const auto& line : m_lore) {
+        for (const auto& line : lore) {
             if (line) {
                 loreJson.push_back(line->toJson());
             }
@@ -667,12 +667,12 @@ nlohmann::json ItemStack::toJson() const
         json["Lore"] = std::move(loreJson);
     }
 
-    if (!m_potionId.empty()) {
-        json["Potion"] = m_potionId;
+    if (!getPotionId().empty()) {
+        json["Potion"] = getPotionId();
     }
 
     if (hasTag()) {
-        json["Tag"] = m_customData;
+        json["Tag"] = _dataRef();
     }
 
     return json;
@@ -727,19 +727,19 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
     if (json.contains("Lore") && json["Lore"].is_array()) {
         for (const auto& lineJson : json["Lore"]) {
             if (lineJson.is_string()) {
-                stack.m_lore.push_back(text::TextParser::parse(lineJson.get<std::string>()));
+                stack._ensureExtras().lore.push_back(text::TextParser::parse(lineJson.get<std::string>()));
             } else if (lineJson.is_object()) {
-                stack.m_lore.push_back(text::ITextComponent::fromJson(lineJson));
+                stack._ensureExtras().lore.push_back(text::ITextComponent::fromJson(lineJson));
             }
         }
     }
 
     if (json.contains("Potion") && json["Potion"].is_string()) {
-        stack.m_potionId = json["Potion"].get<std::string>();
+        stack.setPotionId(json["Potion"].get<std::string>());
     }
 
     if (json.contains("Tag") && json["Tag"].is_object()) {
-        stack.m_customData = json["Tag"];
+        stack._ensureExtras().customData = json["Tag"];
     }
 
     return stack;
@@ -764,10 +764,11 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         patch.add(DataComponentType::CustomName,
             DataComponentPayload{std::in_place_index<2>, m_customName ? m_customName->deepCopy() : nullptr});
     }
-    if (!m_lore.empty()) {
+    const auto& lore = getLore();
+    if (!lore.empty()) {
         std::vector<std::unique_ptr<text::ITextComponent>> loreCopy;
-        loreCopy.reserve(m_lore.size());
-        for (const auto& line : m_lore) {
+        loreCopy.reserve(lore.size());
+        for (const auto& line : lore) {
             loreCopy.push_back(line ? line->deepCopy() : nullptr);
         }
         patch.add(DataComponentType::Lore, DataComponentPayload{std::in_place_index<3>, std::move(loreCopy)});
@@ -776,14 +777,14 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         patch.add(DataComponentType::Enchantments, DataComponentPayload{std::in_place_index<4>, m_enchantments});
     }
     // PotionContents：potionId + customColor + customEffects + customName。
-    // customColor/customEffects 在业务侧由 PotionUtils 走 m_customData JSON
+    // customColor/customEffects 在业务侧由 PotionUtils 走 customData JSON
     // （CustomPotionColor/CustomPotionEffects 键）承载，这里桥接到组件载荷以便 wire 传输。
     // customName（药水自定义名）项目暂无承载，保持 nullopt。
-    const bool hasPotionFields = !m_potionId.empty() || potion::PotionUtils::hasCustomEffects(*this) ||
+    const bool hasPotionFields = !getPotionId().empty() || potion::PotionUtils::hasCustomEffects(*this) ||
         potion::PotionUtils::getCustomPotionColor(*this).has_value();
     if (hasPotionFields) {
         PotionContentsPayload pc{};
-        pc.potionId = m_potionId;
+        pc.potionId = getPotionId();
         if (const auto color = potion::PotionUtils::getCustomPotionColor(*this); color.has_value()) {
             pc.customColor = static_cast<i32>(static_cast<u32>(*color));
         }
@@ -791,13 +792,13 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         patch.add(DataComponentType::PotionContents, DataComponentPayload{std::in_place_index<5>, std::move(pc)});
     }
     if (hasCanPlaceOn()) {
-        patch.add(DataComponentType::CanPlaceOn, DataComponentPayload{std::in_place_index<6>, m_canPlaceOn});
+        patch.add(DataComponentType::CanPlaceOn, DataComponentPayload{std::in_place_index<6>, getCanPlaceOn()});
     }
     if (hasCanDestroy()) {
-        patch.add(DataComponentType::CanBreak, DataComponentPayload{std::in_place_index<6>, m_canDestroy});
+        patch.add(DataComponentType::CanBreak, DataComponentPayload{std::in_place_index<6>, getCanDestroy()});
     }
     if (hasTag()) {
-        patch.add(DataComponentType::CustomData, DataComponentPayload{std::in_place_index<7>, m_customData});
+        patch.add(DataComponentType::CustomData, DataComponentPayload{std::in_place_index<7>, _dataRef()});
     }
     return patch;
 }
@@ -830,9 +831,16 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             }
             case DataComponentType::Lore: {
                 const auto& lines = std::get<std::vector<std::unique_ptr<text::ITextComponent>>>(entry.value);
-                m_lore.clear();
-                for (const auto& line : lines) {
-                    m_lore.push_back(line ? line->deepCopy() : nullptr);
+                if (lines.empty()) {
+                    // 空 lore 不该反向分配一份 extras
+                    clearLore();
+                } else {
+                    auto& lore = _ensureExtras().lore;
+                    lore.clear();
+                    lore.reserve(lines.size());
+                    for (const auto& line : lines) {
+                        lore.push_back(line ? line->deepCopy() : nullptr);
+                    }
                 }
                 break;
             }
@@ -842,8 +850,8 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             }
             case DataComponentType::PotionContents: {
                 const auto& pc = std::get<PotionContentsPayload>(entry.value);
-                m_potionId = pc.potionId;
-                // customColor/customEffects 写回 m_customData JSON（与 PotionUtils 路径一致）。
+                setPotionId(pc.potionId);
+                // customColor/customEffects 写回 customData JSON（与 PotionUtils 路径一致）。
                 std::optional<u32> color{};
                 if (pc.customColor.has_value()) {
                     color = static_cast<u32>(*pc.customColor);
@@ -853,15 +861,21 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             }
             case DataComponentType::CanPlaceOn: {
-                m_canPlaceOn = std::get<AdventureModePredicate>(entry.value);
+                setCanPlaceOn(std::get<AdventureModePredicate>(entry.value));
                 break;
             }
             case DataComponentType::CanBreak: {
-                m_canDestroy = std::get<AdventureModePredicate>(entry.value);
+                setCanDestroy(std::get<AdventureModePredicate>(entry.value));
                 break;
             }
             case DataComponentType::CustomData: {
-                m_customData = std::get<nlohmann::json>(entry.value);
+                const auto& data = std::get<nlohmann::json>(entry.value);
+                // 只有能令 hasTag() 为真的载荷才值得分配 extras
+                if (data.is_object() && !data.empty()) {
+                    _ensureExtras().customData = data;
+                } else if (m_extras) {
+                    m_extras->customData = data;
+                }
                 break;
             }
             case DataComponentType::MaxStackSize:
@@ -891,22 +905,25 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 m_customName = nullptr;
                 break;
             case DataComponentType::Lore:
-                m_lore.clear();
+                clearLore();
                 break;
             case DataComponentType::Enchantments:
                 m_enchantments.clear();
                 break;
             case DataComponentType::PotionContents:
-                m_potionId.clear();
+                setPotionId(std::string{});
                 break;
             case DataComponentType::CanPlaceOn:
-                m_canPlaceOn = AdventureModePredicate{};
+                setCanPlaceOn(AdventureModePredicate{});
                 break;
             case DataComponentType::CanBreak:
-                m_canDestroy = AdventureModePredicate{};
+                setCanDestroy(AdventureModePredicate{});
                 break;
             case DataComponentType::CustomData:
-                m_customData = nlohmann::json{};
+                // 清除不该反向分配 extras
+                if (m_extras) {
+                    m_extras->customData = nlohmann::json{};
+                }
                 break;
             case DataComponentType::MaxStackSize:
             case DataComponentType::MaxDamage:
@@ -1037,7 +1054,7 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
             if (loreList.element_id() == nbt::TagId::String) {
                 auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(loreList);
                 for (const auto& lineJson : stringList.value) {
-                    stack.m_lore.push_back(text::TextParser::parse(lineJson));
+                    stack._ensureExtras().lore.push_back(text::TextParser::parse(lineJson));
                 }
             }
         }
@@ -1050,7 +1067,7 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
 
     it = tagCompound.value.find(nbt_keys::POTION);
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
-        stack.m_potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
+        stack.setPotionId(dynamic_cast<const nbt::tags::string_tag&>(*it->second).value);
     }
 
     it = tagCompound.value.find(nbt_keys::CAN_PLACE_ON);
@@ -1063,7 +1080,7 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
             for (const auto& blockId : stringList.value) {
                 predicates.push_back(blockId);
             }
-            stack.m_canPlaceOn = AdventureModePredicate(std::move(predicates));
+            stack.setCanPlaceOn(AdventureModePredicate(std::move(predicates)));
         }
     }
 
@@ -1077,7 +1094,7 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
             for (const auto& blockId : stringList.value) {
                 predicates.push_back(blockId);
             }
-            stack.m_canDestroy = AdventureModePredicate(std::move(predicates));
+            stack.setCanDestroy(AdventureModePredicate(std::move(predicates)));
         }
     }
 
@@ -1087,7 +1104,7 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
         std::string customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
         auto parsed = nlohmann::json::parse(customDataStr, nullptr, false);
         if (!parsed.is_discarded() && parsed.is_object()) {
-            stack.m_customData = parsed;
+            stack._ensureExtras().customData = parsed;
         }
     }
 }
@@ -1113,16 +1130,21 @@ bool ItemStack::operator==(const ItemStack& other) const
         customNameEqual = true;
     }
 
-    // 比较 m_lore
-    bool loreEqual = m_lore.size() == other.m_lore.size();
+    // 比较 Lore
+    // 注：本函数处在热路径上（LivingEntity 每实体 × 8 装备槽 × 每 tick 的装备变更检测），
+    // 但无 extras 时各 getter 返回的是共享空实例，比较退化为"两个空容器相等"，开销与
+    // 改动前的内联成员一致。
+    const auto& lore = getLore();
+    const auto& otherLore = other.getLore();
+    bool loreEqual = lore.size() == otherLore.size();
     if (loreEqual) {
-        for (size_t i = 0; i < m_lore.size(); ++i) {
-            if (m_lore[i] && other.m_lore[i]) {
-                if (*m_lore[i] != *other.m_lore[i]) {
+        for (size_t i = 0; i < lore.size(); ++i) {
+            if (lore[i] && otherLore[i]) {
+                if (*lore[i] != *otherLore[i]) {
                     loreEqual = false;
                     break;
                 }
-            } else if (m_lore[i] || other.m_lore[i]) {
+            } else if (lore[i] || otherLore[i]) {
                 loreEqual = false;
                 break;
             }
@@ -1130,9 +1152,9 @@ bool ItemStack::operator==(const ItemStack& other) const
     }
 
     return m_item == other.m_item && m_count == other.m_count && m_damage == other.m_damage && customNameEqual &&
-        loreEqual && m_potionId == other.m_potionId && m_customData == other.m_customData &&
-        m_enchantments.getAll() == other.m_enchantments.getAll() && m_canPlaceOn == other.m_canPlaceOn &&
-        m_canDestroy == other.m_canDestroy;
+        loreEqual && getPotionId() == other.getPotionId() && _dataRef() == other._dataRef() &&
+        m_enchantments.getAll() == other.m_enchantments.getAll() && getCanPlaceOn() == other.getCanPlaceOn() &&
+        getCanDestroy() == other.getCanDestroy();
 }
 
 // ============================================================================
@@ -1166,7 +1188,8 @@ bool ItemStack::hasContainerItem() const
 
 bool ItemStack::hasTag() const
 {
-    return m_customData.is_object() && !m_customData.empty();
+    const nlohmann::json& data = _dataRef();
+    return data.is_object() && !data.empty();
 }
 
 const nlohmann::json* ItemStack::getTag() const
@@ -1175,7 +1198,7 @@ const nlohmann::json* ItemStack::getTag() const
         return nullptr;
     }
 
-    return &m_customData;
+    return &_dataRef();
 }
 
 nlohmann::json* ItemStack::getTag()
@@ -1184,26 +1207,29 @@ nlohmann::json* ItemStack::getTag()
         return nullptr;
     }
 
-    return &m_customData;
+    return &m_extras->customData;
 }
 
 nlohmann::json& ItemStack::getOrCreateTag()
 {
-    if (!m_customData.is_object()) {
-        m_customData = nlohmann::json::object();
+    // 写语义：必须物化 extras
+    nlohmann::json& data = _ensureExtras().customData;
+    if (!data.is_object()) {
+        data = nlohmann::json::object();
     }
 
-    return m_customData;
+    return data;
 }
 
 const nlohmann::json* ItemStack::getChildTag(const std::string& name) const
 {
-    if (!m_customData.is_object()) {
+    const nlohmann::json& data = _dataRef();
+    if (!data.is_object()) {
         return nullptr;
     }
 
-    auto iter = m_customData.find(name);
-    if (iter == m_customData.end() || !iter->is_object()) {
+    auto iter = data.find(name);
+    if (iter == data.end() || !iter->is_object()) {
         return nullptr;
     }
 
@@ -1222,13 +1248,19 @@ nlohmann::json& ItemStack::getOrCreateChildTag(const std::string& name)
 
 void ItemStack::removeChildTag(const std::string& name)
 {
-    if (!m_customData.is_object()) {
+    // 无 extras 时本就无标签可移除，不分配
+    if (!m_extras) {
         return;
     }
 
-    m_customData.erase(name);
-    if (m_customData.empty()) {
-        m_customData = nlohmann::json();
+    nlohmann::json& data = m_extras->customData;
+    if (!data.is_object()) {
+        return;
+    }
+
+    data.erase(name);
+    if (data.empty()) {
+        data = nlohmann::json();
     }
 }
 
