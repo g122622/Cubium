@@ -25,8 +25,10 @@
 #include <gtest/gtest.h>
 
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/SingleChunkLifecycleManager.hpp"
@@ -248,6 +250,69 @@ TEST_F(ChunkPrimerTest, TopBlockYReturnsBlockCoordinate)
 
     EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, 4, 4), 13);
     EXPECT_EQ(chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, 4, 4), 13);
+}
+
+// toChunkData 收尾会释放 primer 侧的 biomes / 高度图副本（约 10 KiB/区块），此后相关读取
+// 委托 ChunkData。下面两个用例通过「直接改 ChunkData 后 primer 应立即看到新值」来同时验证
+// 两件事：本地副本确实被释放，且委托路径确实生效——若本地副本仍在，读到的是冻结的旧值。
+
+TEST_F(ChunkPrimerTest, ToChunkData_ReleasesHeightmapsAndDelegatesReads)
+{
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+
+    ChunkPrimer primer(0, 0);
+    primer.setBlockStateId(2, 40, 3, stone->stateId());
+
+    // 收尾会把 primer 的全部高度图全量重建并写入 ChunkData
+    const std::shared_ptr<ChunkData> data = primer.toChunkData();
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, 2, 3), 40);
+    EXPECT_EQ(primer.getHeightmapFirstAvailable(HeightmapType::WorldSurfaceWG, 2, 3), 41);
+
+    // 直接抬高 ChunkData 的高度图（模拟 FULL 之后的世界编辑）。primer 侧若仍持有收尾时刻的
+    // 冻结副本，这里会继续返回 40/41 而导致断言失败。
+    data->updateHeightmap(HeightmapType::WorldSurfaceWG, 2, 60, 3, stone);
+    EXPECT_EQ(data->getTopBlockY(HeightmapType::WorldSurfaceWG, 2, 3), 60);
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, 2, 3), 60);
+    EXPECT_EQ(primer.getHeightmapFirstAvailable(HeightmapType::WorldSurfaceWG, 2, 3), 61);
+}
+
+TEST_F(ChunkPrimerTest, ToChunkData_ReleasesBiomesAndDelegatesReads)
+{
+    ChunkPrimer primer(0, 0);
+
+    BiomeContainer desert;
+    for (i32 section = 0; section < mc::world::CHUNK_SECTIONS; ++section) {
+        for (i32 sx = 0; sx < BiomeContainer::HORIZ_SIZE; ++sx) {
+            for (i32 sy = 0; sy < BiomeContainer::VERT_SIZE; ++sy) {
+                for (i32 sz = 0; sz < BiomeContainer::HORIZ_SIZE; ++sz) {
+                    desert.setBiome(section, sx, sy, sz, Biomes::Desert);
+                }
+            }
+        }
+    }
+    primer.setBiomes(desert);
+    ASSERT_EQ(primer.getBiomeAtBlock(3, 16, 3), Biomes::Desert);
+
+    const std::shared_ptr<ChunkData> data = primer.toChunkData();
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ(primer.getBiomeAtBlock(3, 16, 3), Biomes::Desert);
+
+    // 收尾后改 ChunkData 的生物群系，primer 应立即反映（冻结副本不会）
+    BiomeContainer plains;
+    for (i32 section = 0; section < mc::world::CHUNK_SECTIONS; ++section) {
+        for (i32 sx = 0; sx < BiomeContainer::HORIZ_SIZE; ++sx) {
+            for (i32 sy = 0; sy < BiomeContainer::VERT_SIZE; ++sy) {
+                for (i32 sz = 0; sz < BiomeContainer::HORIZ_SIZE; ++sz) {
+                    plains.setBiome(section, sx, sy, sz, Biomes::Plains);
+                }
+            }
+        }
+    }
+    data->setBiomes(plains);
+    EXPECT_EQ(primer.getBiomeAtBlock(3, 16, 3), Biomes::Plains);
+    EXPECT_EQ(primer.getBiomes().getBiome(5, 0, 0, 0), Biomes::Plains);
 }
 
 // ============================================================================

@@ -302,3 +302,17 @@ if (noiseChunk.aquifer() == nullptr) {
 **规则**：任何依赖"每个生成阶段都必须生效"的状态（aquifer、blockStateRule 等）都**不能**放在 `getOrCreateNoiseChunk` 的 factory lambda 中；只有 NoiseChunk 构造期必需的参数（路由器、Beardifier、cell 尺寸）才放进去。设置共享状态时用 `aquifer() == nullptr`（或对应 getter）做幂等守卫。
 
 **复现/回归测试**：`tests/server/world/gen/chunk/OceanWaterReproTest.cpp`（种子 114514，海洋列海平面下方必须有水方块）。
+
+### 13. toChunkData 收尾后 primer 的生物群系/高度图改读 ChunkData
+
+`ChunkPrimer` 的 `m_biomes` 与 `m_heightmaps` 是**堆持有**（`unique_ptr`），合计约 10 KiB/区块。这是刻意的：二者在 `toChunkData()` 收尾时已全量写入 `ChunkData`，收尾末尾会 `reset()` 掉本地副本，内联数组做不到这一点（清零不归还 RSS）。
+
+由此产生的约束：
+
+- **收尾后 primer 不再持有这两个副本**，相关读取 `getBiomeAtBlock` / `getTopBlockY` / `getHeightmapFirstAvailable` / `getBiomes` 一律委托 `m_data`。FULL 邻居经 `WorldGenRegion` 读取时走的正是这些接口，因此仍然有效。
+- **`toChunkData()` 对一个 primer 只能调用一次**，重复调用会命中入口断言。
+- **`ChunkPrimer::getHeightmap(HeightmapType)` 的非 const 重载在收尾后会断言失败**：可变访问只在生成期合法，收尾后的高度图维护由 `ChunkData::updateHeightMap` 承担。`updateHeightmap()` 会自动分流到 `ChunkData`，正常路径不会踩到。
+- **邻居读到的高度图从"冻结快照"变为"实时值"**：收尾前邻居读 primer 的副本（快照于收尾时刻），收尾后读 `ChunkData` 的槽位，会被后续世界编辑更新。这与原版一致，但意味着同一份种子在"先编辑邻居再生成新区块"时结果会不同。
+- **存档命中的 primer 生物群系语义被修正**：该路径走 `shareChunkData()`，primer 的 `m_biomes` 从未被填充（全 0），此前 FULL 邻居查到的是生物群系 0；委托后改为读存档里的真实值。
+
+**回归测试**：`tests/unit/common/test_chunk_generation.cpp` 的 `ChunkPrimerTest.ToChunkData_ReleasesHeightmapsAndDelegatesReads` 与 `..._ReleasesBiomesAndDelegatesReads`——通过"直接改 `ChunkData` 后 primer 应立即看到新值"同时锁定释放与委托两件事。

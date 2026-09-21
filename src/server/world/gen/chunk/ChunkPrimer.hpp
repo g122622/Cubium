@@ -199,14 +199,29 @@ public:
 
     /**
      * @brief 设置生物群系容器
+     *
+     * FULL 收尾后 primer 侧副本已释放，写入直接落到底层 ChunkData。
      */
-    void setBiomes(BiomeContainer biomes) noexcept { m_biomes = std::move(biomes); }
+    void setBiomes(BiomeContainer biomes) noexcept
+    {
+        if (m_biomes) {
+            *m_biomes = std::move(biomes);
+        } else {
+            m_data->setBiomes(std::move(biomes));
+        }
+    }
 
     /**
      * @brief 获取生物群系容器
+     *
+     * FULL 收尾后 primer 侧副本已释放（数据已转入 ChunkData），改为委托底层 ChunkData，
+     * 于是持有本 primer 的邻居经 WorldGenRegion 读到的仍是有效数据。
      */
-    [[nodiscard]] const BiomeContainer& getBiomes() const noexcept { return m_biomes; }
-    [[nodiscard]] BiomeContainer& getBiomes() noexcept { return m_biomes; }
+    [[nodiscard]] const BiomeContainer& getBiomes() const noexcept
+    {
+        return m_biomes ? *m_biomes : m_data->getBiomes();
+    }
+    [[nodiscard]] BiomeContainer& getBiomes() noexcept { return m_biomes ? *m_biomes : m_data->getBiomes(); }
 
     /**
      * @brief 获取方块位置的生物群系
@@ -509,6 +524,10 @@ public:
      * 不移走 m_data，ChunkPrimer 仍可正常访问（getChunkData/getBlockState 等）。
      * m_spawnedEntities 仍清空（实体数据已在收尾前由调用方提取）。
      *
+     * 收尾末尾会释放 primer 侧的 biomes / 高度图副本（约 10 KiB/区块）：二者已全量写入
+     * m_data，此后相关的读取一律委托 m_data。因此**本方法对每个 primer 只应调用一次**，
+     * 再次调用会命中收尾入口的断言。
+     *
      * @return 共享同一份 ChunkData 的 shared_ptr
      */
     [[nodiscard]] std::shared_ptr<ChunkData> toChunkData();
@@ -543,8 +562,8 @@ public:
      * 与 toChunkData() 的区别：toChunkData() 先完成收尾（setBiomes/setFullyGenerated/
      * setStatus/addPackedPostProcessing 等，会修改 ChunkData），用于生成 FULL 完成路径。
      * 本方法仅返回 m_data 的共享副本，不修改任何状态，用于存档命中路径——存档加载的
-     * ChunkData 已是完整持久化状态，不应被 primer 收尾逻辑覆盖（如 setBiomes(m_biomes)
-     * 会用 primer 未填充的 m_biomes 清空存档的生物群系）。
+     * ChunkData 已是完整持久化状态，不应被 primer 收尾逻辑覆盖（如 toChunkData 的
+     * m_data->setBiomes(*m_biomes) 会用 primer 未填充的 biomes 清空存档的生物群系）。
      *
      * @return 共享同一份 ChunkData 的 shared_ptr
      */
@@ -589,12 +608,16 @@ private:
     ChunkLoadStatus m_status = ChunkLoadStatus::Empty;
     bool m_modified = false;
 
-    // 生物群系
-    BiomeContainer m_biomes;
+    // 生物群系（3072 B）。堆持有而非内联：FULL 收尾（toChunkData）后内容已全量转入
+    // ChunkData，此处 reset 才能真正归还内存（内联数组成员无法归还，白占 3 KiB/区块）。
+    // 释放后所有读取经 getBiomes()/getBiomeAtBlock() 委托 m_data。
+    std::unique_ptr<BiomeContainer> m_biomes;
 
-    // 高度图 (按 HeightmapType 枚举索引，O(1) 访问；构造时全量初始化全部类型，
-    // 故所有槽位恒存在，无需 find/emplace/回退。与 ChunkData::m_heightmaps 风格一致)
-    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT> m_heightmaps;
+    // 高度图（7 × 1028 = 7196 B）。按 HeightmapType 枚举索引，O(1) 访问；构造时全量初始化
+    // 全部类型，故所有槽位恒存在，无需 find/emplace/回退。与 ChunkData::m_heightmaps 风格一致。
+    // 堆持有的理由同 m_biomes：FULL 后本地副本与 ChunkData 完全重复，reset 才能归还
+    // 约 7 KiB/区块。释放后 getTopBlockY/getHeightmapFirstAvailable 委托 m_data。
+    std::unique_ptr<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>> m_heightmaps;
 
     // 光源位置
     std::vector<BlockCoord> m_lightPositions;

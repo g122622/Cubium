@@ -198,6 +198,17 @@ public:
         return m_heightmapInitialized[static_cast<size_t>(type)];
     }
 
+    /**
+     * @brief 获取指定类型的高度图对象（只读）
+     *
+     * 与 getHeightmapData 的区别：返回整个 Heightmap，而非其内部数组。
+     * 供 ChunkPrimer 在 FULL 收尾释放本地高度图副本后，把只读访问委托过来。
+     */
+    [[nodiscard]] const Heightmap& getHeightmap(HeightmapType type) const
+    {
+        return m_heightmaps[static_cast<size_t>(type)];
+    }
+
     // 区块状态 (IChunk 接口)
     [[nodiscard]] ChunkLoadStatus getStatus() const override { return m_status; }
     void setStatus(ChunkLoadStatus status) override { m_status = status; }
@@ -519,10 +530,14 @@ private:
     // 高度图（WorldSurface/OceanFloor/MotionBlocking/MotionBlockingNoLeaves/LightBlocking），
     // 其正当用途是运行时（FULL 之后）玩家改方块后整列重算。但生成阶段（NOISE→FEATURES）
     // 所有高度图读取都走 ChunkPrimer::m_heightmaps（含 final 槽位，由
-    // _updateHeightmapsForCurrentStatus 增量维护），无任何代码读 ChunkData::m_heightmaps；
-    // 且 primeHeightmaps(POST_FEATURES)（FEATURES 前）与 updateAllHeightmaps（FULL 时
-    // toChunkData）会全量重建并同步到 ChunkData，覆盖所有生成阶段写入的方块。故生成阶段
-    // 对 ChunkData::m_heightmaps 的增量维护是纯浪费。
+    // _updateHeightmapsForCurrentStatus 增量维护）；且 primeHeightmaps(POST_FEATURES)
+    // （FEATURES 前）与 updateAllHeightmaps（FULL 时 toChunkData）会全量重建并同步到
+    // ChunkData，覆盖所有生成阶段写入的方块。故生成阶段对 ChunkData::m_heightmaps 的
+    // 增量维护是纯浪费。
+    //
+    // 【FULL 之后】ChunkPrimer 在 toChunkData 收尾时释放自己的高度图副本，此后（含邻居经
+    // WorldGenRegion 的读取）改读 ChunkData::m_heightmaps，见 ChunkPrimer::getTopBlockY。
+    // 但那条路径不经过本变体——本变体只在生成态（FULL 之前）被调用。
     //
     // 【收益】updateHeightMap 整列重扫每方块 384 次 getBlockState + 最多 5×384 次
     // Heightmap::update，占 setBlockState 单次耗时（~1769ns）的 60-75%，是 FillNoiseCells

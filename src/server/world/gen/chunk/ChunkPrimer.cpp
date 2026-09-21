@@ -95,8 +95,10 @@ ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
     , m_data(std::make_shared<ChunkData>(x, z))
     , m_chunkStatus(&ChunkStatuses::EMPTY)
     , m_status(ChunkLoadStatus::Empty)
+    , m_biomes(std::make_unique<BiomeContainer>())
+    , m_heightmaps(std::make_unique<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>>())
 {
-    initializeAllHeightmaps(m_heightmaps);
+    initializeAllHeightmaps(*m_heightmaps);
 }
 
 ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
@@ -106,9 +108,11 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
     , m_status(ChunkLoadStatus::Loaded)
+    , m_biomes(std::make_unique<BiomeContainer>())
+    , m_heightmaps(std::make_unique<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>>())
 {
     MC_ASSERT_RELEASE(m_data != nullptr);
-    initializeAllHeightmaps(m_heightmaps);
+    initializeAllHeightmaps(*m_heightmaps);
     updateAllHeightmaps();
 }
 
@@ -119,9 +123,11 @@ ChunkPrimer::ChunkPrimer(std::shared_ptr<ChunkData> data)
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
     , m_status(ChunkLoadStatus::Loaded)
+    , m_biomes(std::make_unique<BiomeContainer>())
+    , m_heightmaps(std::make_unique<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>>())
 {
     MC_ASSERT_RELEASE(m_data != nullptr);
-    initializeAllHeightmaps(m_heightmaps);
+    initializeAllHeightmaps(*m_heightmaps);
     updateAllHeightmaps();
 }
 
@@ -146,16 +152,18 @@ void ChunkPrimer::setBlockState(BlockCoord x, BlockCoord y, BlockCoord z, const 
     // 经无锁路径直写以消除每方块一次无竞争 shared_mutex 开销（FillNoiseCells 主要热点）。
     // 安全性前提详见 ChunkData.hpp setBlockStateUnlocked 注释。
     //
-    // 使用 Gen 变体（跳过 ChunkData::updateHeightMap 整列重扫）：生成阶段所有高度图读取
-    // 走 ChunkPrimer::m_heightmaps（下方 _updateHeightmapsForCurrentStatus 维护），无代码读
-    // ChunkData::m_heightmaps；其 final 高度图由 primeHeightmaps/updateAllHeightmaps 在
-    // 后续阶段全量重建。跳过整列重扫省去每方块 384 次 getBlockState + 5×384 次 Heightmap::update，
-    // 是 setBlockState 单次耗时的 60-75%。详见 ChunkData.hpp _setBlockStateUnlockedGen 注释。
+    // 使用 Gen 变体（跳过 ChunkData::updateHeightMap 整列重扫）：FULL 收尾之前，所有高度图
+    // 读取都走 ChunkPrimer::m_heightmaps（下方 _updateHeightmapsForCurrentStatus 维护），
+    // ChunkData::m_heightmaps 尚无人读；其 final 高度图由 primeHeightmaps/updateAllHeightmaps
+    // 在 toChunkData 收尾时全量写入。跳过整列重扫省去每方块 384 次 getBlockState +
+    // 5×384 次 Heightmap::update，是 setBlockState 单次耗时的 60-75%。
+    // 详见 ChunkData.hpp _setBlockStateUnlockedGen 注释。
     m_data->_setBlockStateUnlockedGen(x, y, z, state);
     m_modified = true;
 
-    // setBlockState 根据当前 ChunkStatus.heightmapsAfter() 自动更新高度图
-    // （维护 ChunkPrimer::m_heightmaps，FEATURES 阶段 placement 读取源，必须保留）
+    // setBlockState 根据当前 ChunkStatus.heightmapsAfter() 自动更新高度图。
+    // FEATURES 阶段 placement 读取本区块高度图，故收尾前必须维护 ChunkPrimer::m_heightmaps；
+    // 收尾后本地副本已释放，_updateHeightmapsForCurrentStatus 会转而维护 ChunkData。
     _updateHeightmapsForCurrentStatus(x, y, z, state);
 }
 
@@ -177,7 +185,7 @@ void ChunkPrimer::setBlockStateId(BlockCoord x, BlockCoord y, BlockCoord z, u32 
     m_modified = true;
 
     // 与 setBlockState 相同，需要根据当前状态更新高度图
-    // （维护 ChunkPrimer::m_heightmaps，必须保留）
+    // （收尾前维护 ChunkPrimer::m_heightmaps，收尾后转由 ChunkData 承接）
     const BlockState* state = m_data->getBlockState(x, y, z);
     _updateHeightmapsForCurrentStatus(x, y, z, state);
 }
@@ -218,25 +226,40 @@ std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> ChunkPrimer::getSecti
 
 BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
+    // FULL 收尾后本地高度图已释放。此时 ChunkData 的 7 张高度图与收尾瞬间的本地副本逐位相同
+    // （toChunkData 全量写入并置位 m_heightmapInitialized），委托读取即可。
+    // 副作用：此后世界编辑走 ChunkData::updateHeightMap，邻居读到的是实时值而非冻结快照。
+    if (!m_heightmaps) {
+        return m_data->getTopBlockY(type, x, z);
+    }
     // Heightmap 内部保存的是"最高方块上方一格"的 Y+1，所以这里要减 1
     // 才是实际的方块坐标。OceanFloorWG 也遵循同一语义。
     // 无方块列返回 NO_BLOCK_SENTINEL，回退为 MIN_BUILD_HEIGHT。
-    const Heightmap& heightmap = m_heightmaps[static_cast<size_t>(type)];
+    const Heightmap& heightmap = (*m_heightmaps)[static_cast<size_t>(type)];
     const BlockCoord height = heightmap.getHeight(x, z);
     return height != Heightmap::NO_BLOCK_SENTINEL ? height - 1 : mc::world::MIN_BUILD_HEIGHT;
 }
 
 BlockCoord ChunkPrimer::getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
+    // FULL 收尾后委托 ChunkData，理由同 getTopBlockY。
+    if (!m_heightmaps) {
+        return m_data->getHeightmapFirstAvailable(type, x, z);
+    }
     // 直接返回 Heightmap 内部存储值（最高方块 Y+1，或 NO_BLOCK_SENTINEL 表示空列），
     // 不做空列→MIN_BUILD_HEIGHT 的合并，供 HeightmapPlacement 等需要精确识别空列的
     // 调用方使用（对齐 MC Heightmap.getFirstAvailable）。
-    const Heightmap& heightmap = m_heightmaps[static_cast<size_t>(type)];
+    const Heightmap& heightmap = (*m_heightmaps)[static_cast<size_t>(type)];
     return heightmap.getHeight(x, z);
 }
 
 void ChunkPrimer::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
+    // FULL 收尾后本地高度图已释放，维护职责移交 ChunkData（含 m_heightmapInitialized 置位）
+    if (!m_heightmaps) {
+        m_data->updateHeightmap(type, x, y, z, state);
+        return;
+    }
     auto& heightmap = getHeightmap(type);
     heightmap.update(x, y, z, state);
 }
@@ -271,7 +294,12 @@ void ChunkPrimer::setPersistedStatus(const ChunkStatus& target)
 
 BiomeId ChunkPrimer::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    return m_biomes.getBiomeAtBlock(x, y, z);
+    // FULL 收尾后本地副本已释放（数据已转入 ChunkData），委托底层。邻居在 FEATURES 阶段
+    // 经 WorldGenRegion 逐点读取本区块的 biome，这条路径必须始终有效。
+    if (!m_biomes) {
+        return m_data->getBiomeAtBlock(x, y, z);
+    }
+    return m_biomes->getBiomeAtBlock(x, y, z);
 }
 
 // ============================================================================
@@ -291,18 +319,28 @@ void ChunkPrimer::addLightPosition(BlockCoord x, BlockCoord y, BlockCoord z)
 
 Heightmap& ChunkPrimer::getHeightmap(HeightmapType type)
 {
-    return m_heightmaps[static_cast<size_t>(type)];
+    // 可变访问只在生成期（FULL 收尾之前）合法：收尾后本地高度图已释放，对高度图的后续
+    // 维护由 ChunkData::updateHeightMap 承担（整列重算）。生成期调用者均早于 FULL。
+    MC_ASSERT_RELEASE(m_heightmaps != nullptr);
+    return (*m_heightmaps)[static_cast<size_t>(type)];
 }
 
 const Heightmap& ChunkPrimer::getHeightmap(HeightmapType type) const
 {
-    return m_heightmaps[static_cast<size_t>(type)];
+    if (!m_heightmaps) {
+        return m_data->getHeightmap(type);
+    }
+    return (*m_heightmaps)[static_cast<size_t>(type)];
 }
 
 void ChunkPrimer::updateAllHeightmaps()
 {
+    // 全量重建只在生成期（含 toChunkData 收尾）调用，收尾后本地高度图已释放且不再需要重建
+    MC_ASSERT_RELEASE(m_heightmaps != nullptr);
+    auto& heightmaps = *m_heightmaps;
+
     // 每次重建前先重置所有高度图，避免雕刻/替换方块后残留旧高度。
-    initializeAllHeightmaps(m_heightmaps);
+    initializeAllHeightmaps(heightmaps);
 
     for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
         for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
@@ -324,7 +362,7 @@ void ChunkPrimer::updateAllHeightmaps()
                         continue;
                     }
 
-                    auto& heightmap = m_heightmaps[static_cast<size_t>(ALL_HEIGHTMAP_TYPES[i])];
+                    auto& heightmap = heightmaps[static_cast<size_t>(ALL_HEIGHTMAP_TYPES[i])];
                     if (heightmap.update(x, y, z, state)) {
                         resolved[i] = true;
                         --unresolvedCount;
@@ -378,10 +416,14 @@ void ChunkPrimer::initializeLightSources()
 
 void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 {
+    // FEATURES 之前调用，本地高度图必然仍在
+    MC_ASSERT_RELEASE(m_heightmaps != nullptr);
+    auto& heightmaps = *m_heightmaps;
+
     // 先重置指定类型的高度图为"无方块"（哨兵值）
     for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (hasFlag(types, flag)) {
-            m_heightmaps[static_cast<size_t>(type)].setAll(Heightmap::NO_BLOCK_SENTINEL);
+            heightmaps[static_cast<size_t>(type)].setAll(Heightmap::NO_BLOCK_SENTINEL);
         }
     }
 
@@ -400,7 +442,7 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
                     if (!hasFlag(types, flag)) {
                         continue;
                     }
-                    m_heightmaps[static_cast<size_t>(type)].update(x, y, z, state);
+                    heightmaps[static_cast<size_t>(type)].update(x, y, z, state);
                 }
             }
         }
@@ -413,6 +455,10 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 
 std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
 {
+    // 收尾前本地副本必然仍在；收尾后二者被释放，二次调用属逻辑错误
+    MC_ASSERT_RELEASE(m_heightmaps != nullptr);
+    MC_ASSERT_RELEASE(m_biomes != nullptr);
+
     // 确保高度图已更新
     updateAllHeightmaps();
 
@@ -420,12 +466,12 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
     // m_data 的 m_heightmaps（array）是两套存储，生成路径只更新 primer 侧，
     // 导致 ChunkData 的 final 槽位 m_heightmapInitialized 恒为 false、getTopBlockY 回退 WorldSurface。
     // setHeightmapFromStorage 绕过 _isOpaque 整列写入并标记已初始化。
-    for (size_t i = 0; i < m_heightmaps.size(); ++i) {
-        m_data->setHeightmapFromStorage(static_cast<HeightmapType>(i), m_heightmaps[i].getData());
+    for (size_t i = 0; i < m_heightmaps->size(); ++i) {
+        m_data->setHeightmapFromStorage(static_cast<HeightmapType>(i), (*m_heightmaps)[i].getData());
     }
 
     // 标记为完全生成
-    m_data->setBiomes(m_biomes);
+    m_data->setBiomes(*m_biomes);
     m_data->setFullyGenerated(true);
     m_data->setStatus(ChunkLoadStatus::Generated); // 设置 ChunkData 的状态
 
@@ -444,6 +490,14 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
 
     // 清空生成的实体数据（调用者应该在调用此方法之前提取）
     m_spawnedEntities.clear();
+
+    // 释放 primer 侧的生物群系与高度图副本（合计约 10 KiB/区块）。二者已在上方全量写入
+    // m_data 且逐位相同，此后的读取一律经 getBiomeAtBlock/getTopBlockY/
+    // getHeightmapFirstAvailable 委托 m_data，邻居经 WorldGenRegion 读取仍得到有效数据。
+    // 注意必须排在上面的拷贝与 m_chunkStatus 置 FULL 之后：委托分支以 status 与
+    // 指针是否为空共同判定，先置空再拷贝会读到空数据。
+    m_biomes.reset();
+    m_heightmaps.reset();
 
     // 非破坏性：返回 m_data 的共享副本，ChunkPrimer 仍持有同一份 ChunkData。
     // 对齐 Moonrise：FULL 完成后 currentChunk（ChunkPrimer）仍存活供邻居引用，
@@ -539,13 +593,23 @@ void ChunkPrimer::_updateHeightmapsForCurrentStatus(BlockCoord x, BlockCoord y, 
 {
     const HeightmapFlag flags = m_persistedStatus->heightmaps();
 
+    // FULL 收尾后本地高度图已释放：后续（世界编辑触发的）方块写入改由 ChunkData 维护高度图。
+    if (!m_heightmaps) {
+        for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
+            if (hasFlag(flags, flag)) {
+                m_data->updateHeightmap(type, x, y, z, state);
+            }
+        }
+        return;
+    }
+
     // 构造时已全量初始化全部 7 种高度图，槽位恒存在，无需 prime 探测。直接按当前
     // ChunkStatus 要求的类型集合做增量更新。
     for (const auto& [type, flag] : HEIGHTMAP_MAPPINGS) {
         if (!hasFlag(flags, flag)) {
             continue;
         }
-        m_heightmaps[static_cast<size_t>(type)].update(x, y, z, state);
+        (*m_heightmaps)[static_cast<size_t>(type)].update(x, y, z, state);
     }
 }
 
