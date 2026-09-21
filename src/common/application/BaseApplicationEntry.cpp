@@ -237,7 +237,7 @@ int BaseApplicationEntry::run(int argc, char* argv[])
         return code;
     }
     catch (const std::exception& e) {
-        spdlog::critical("Fatal error: {}", e.what());
+        spdlog::critical("Unhandled exception: {}, terminating...", e.what());
 
         // 子类错误清理（如 server cleanupServerGameTest：在脚本引擎销毁前释放 JS 句柄）。
         onErrorCleanup();
