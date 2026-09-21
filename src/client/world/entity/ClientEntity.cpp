@@ -327,7 +327,7 @@ void ClientEntity::syncMetadataFromDataManager()
         // 愤怒状态（尾巴抬起/停止摆动 + angry 纹理变体，通过 WolfEntity::DATA_ANGER_TIME_PARAM 同步）
         // 该参数对齐 vanilla Wolf.DATA_ANGER_END_TIME，wire 类型为 Long(i64)，故读 i64。
         if (m_dataManager.hasParam(::mc::WolfEntity::getAngerTimeParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::WolfEntity::getAngerTimeParamId()); value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::WolfEntity::getAngerTimeParamId()); value.has_value()) {
                 const i64 angerTime = value->get<i64>();
                 setWolfIsAngry(angerTime > 0);
             }
@@ -367,8 +367,8 @@ void ClientEntity::syncMetadataFromDataManager()
         // 该参数对齐 vanilla EnderMan.DATA_CARRY_STATE，wire 类型为 Optional<BlockState>
         // (OptionalBlockStateValue, serializerId=15)，present 表示持有方块。
         if (m_dataManager.hasParam(::mc::EndermanEntity::getCarriedBlockStateIdParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::EndermanEntity::getCarriedBlockStateIdParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::EndermanEntity::getCarriedBlockStateIdParamId());
+                value.has_value()) {
                 const auto obs = value->get<mc::entity::OptionalBlockStateValue>();
                 if (obs.present) {
                     setEndermanHeldBlockState(::mc::BlockRegistry::instance().getBlockState(obs.stateId));
@@ -379,8 +379,8 @@ void ClientEntity::syncMetadataFromDataManager()
         }
         // 注视状态（通过 EndermanEntity::DATA_SCREAMING_PARAM 同步）
         if (m_dataManager.hasParam(::mc::EndermanEntity::getScreamingParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::EndermanEntity::getScreamingParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::EndermanEntity::getScreamingParamId());
+                value.has_value()) {
                 setEndermanScreaming(value->get<bool>());
             }
         }
@@ -401,14 +401,14 @@ void ClientEntity::syncMetadataFromDataManager()
     if (m_typeId == "minecraft:tnt" || m_typeId == "tnt") {
         // 引信（通过 TNTEntity::DATA_FUSE_PARAM 同步）
         if (m_dataManager.hasParam(::mc::entity::TNTEntity::getFuseParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::TNTEntity::getFuseParamId()); value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::TNTEntity::getFuseParamId()); value.has_value()) {
                 setTntFuse(value->get<i32>());
             }
         }
         // 方块状态（通过 TNTEntity::DATA_BLOCK_STATE_PARAM 同步，BlockStateValue → BLOCK_STATE id14）
         if (m_dataManager.hasParam(::mc::entity::TNTEntity::getBlockStateParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::TNTEntity::getBlockStateParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::TNTEntity::getBlockStateParamId());
+                value.has_value()) {
                 const u32 stateId = value->get<::mc::entity::BlockStateValue>().stateId;
                 if (stateId > 0) {
                     setTntBlockState(::mc::BlockRegistry::instance().getBlockState(stateId));
@@ -435,7 +435,7 @@ void ClientEntity::syncMetadataFromDataManager()
     // MobEntity 的实体（含动物、怪物）都会拥有此参数，因此无需按 typeId 过滤，
     // 仅以 hasParam 判断即可，缺失时（如非 Mob 实体）自然跳过。
     if (m_dataManager.hasParam(::mc::MobEntity::getMobFlagsParamId())) {
-        if (const auto* value = m_dataManager.getRaw(::mc::MobEntity::getMobFlagsParamId()); value != nullptr) {
+        if (const auto value = m_dataManager.getRaw(::mc::MobEntity::getMobFlagsParamId()); value.has_value()) {
             const i8 flags = value->get<i8>();
             const bool aggressive = (flags & static_cast<i8>(::mc::MobEntity::getAggressiveFlagMask())) != 0;
             setIsAggressive(aggressive);
@@ -464,20 +464,20 @@ void ClientEntity::syncMetadataFromDataManager()
         // 目标 ID 缓存到 m_witherHeadTargetId，供 tickWitherSideHeads 使用
         // 主头目标不参与侧头朝向，但此处仍读取以保持元数据消费一致性
         if (m_dataManager.hasParam(::mc::entity::WitherEntity::getHeadTarget1ParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget1ParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget1ParamId());
+                value.has_value()) {
                 m_witherHeadTargetId[0] = value->get<i32>();
             }
         }
         if (m_dataManager.hasParam(::mc::entity::WitherEntity::getHeadTarget2ParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget2ParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget2ParamId());
+                value.has_value()) {
                 m_witherHeadTargetId[1] = value->get<i32>();
             }
         }
         if (m_dataManager.hasParam(::mc::entity::WitherEntity::getHeadTarget3ParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget3ParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::WitherEntity::getHeadTarget3ParamId());
+                value.has_value()) {
                 m_witherHeadTargetId[2] = value->get<i32>();
             }
         }
@@ -490,14 +490,14 @@ void ClientEntity::syncMetadataFromDataManager()
     //   DATA_BITING: 是否咬钩，缓存到 m_fishingBiting，供渲染器播放咬钩下沉动画。
     if (m_typeId == "minecraft:fishing_bobber" || m_typeId == "fishing_bobber") {
         if (m_dataManager.hasParam(::mc::entity::FishingBobberEntity::getHookedEntityParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::FishingBobberEntity::getHookedEntityParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::FishingBobberEntity::getHookedEntityParamId());
+                value.has_value()) {
                 m_fishingHookedEntityId = value->get<i32>();
             }
         }
         if (m_dataManager.hasParam(::mc::entity::FishingBobberEntity::getBitingParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::entity::FishingBobberEntity::getBitingParamId());
-                value != nullptr) {
+            if (const auto value = m_dataManager.getRaw(::mc::entity::FishingBobberEntity::getBitingParamId());
+                value.has_value()) {
                 m_fishingBiting = value->get<bool>();
             }
         }

@@ -1794,14 +1794,15 @@ private:
     void _updateItemRenderStateVersion();
 
     // 类型安全地按参数 ID 读取元数据值。
-    // 客户端 m_dataManager 的槽位索引来自服务端数据包字节索引，与服务端 C++ DataParameter::id()
-    // （全局自增 s_nextId）并不一致，因此 getRaw(id) 取到的可能是任意类型。仅当槽位存在且
-    // 存储类型与请求类型一致时返回值，否则返回 nullopt，避免 get<T>() 抛 bad_variant_access。
+    // 客户端 m_dataManager 的槽位索引来自服务端数据包字节索引（u8，有效范围 0..254），
+    // 与服务端 C++ DataParameter::id()（沿继承链分配，实测最大 22）并不一致，因此
+    // getRaw(id) 取到的可能是任意类型。仅当槽位存在且存储类型与请求类型一致时返回值，
+    // 否则返回 nullopt，避免 get<T>() 抛 bad_variant_access。
     template <typename T>
     [[nodiscard]] std::optional<T> _readMetadata(u16 id) const
     {
-        const auto* value = m_dataManager.getRaw(id);
-        if (value == nullptr) {
+        const std::optional<entity::DataValue> value = m_dataManager.getRaw(id);
+        if (!value.has_value()) {
             return std::nullopt;
         }
         if (!std::holds_alternative<T>(value->value())) {

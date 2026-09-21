@@ -283,8 +283,8 @@ TEST_F(SkeletonChargingBowTest, SetAggressive_SetsBit2OfMobFlags)
 
     const u16 mobFlagsId = MobEntity::getMobFlagsParamId();
     auto& dm = skeleton->dataManager();
-    const auto* raw = dm.getRaw(mobFlagsId);
-    ASSERT_NE(raw, nullptr);
+    const auto raw = dm.getRaw(mobFlagsId);
+    ASSERT_TRUE(raw.has_value());
     const i8 flags = raw->get<i8>();
     EXPECT_NE(flags & static_cast<i8>(MobEntity::getAggressiveFlagMask()), 0)
         << "setAggressive(true) 应置 DATA_MOB_FLAGS_PARAM 位 2（0x04）";
@@ -300,8 +300,8 @@ TEST_F(SkeletonChargingBowTest, SetAggressiveFalse_ClearsBit2OfMobFlags)
 
     const u16 mobFlagsId = MobEntity::getMobFlagsParamId();
     auto& dm = skeleton->dataManager();
-    const auto* raw = dm.getRaw(mobFlagsId);
-    ASSERT_NE(raw, nullptr);
+    const auto raw = dm.getRaw(mobFlagsId);
+    ASSERT_TRUE(raw.has_value());
     const i8 flags = raw->get<i8>();
     EXPECT_EQ(flags & static_cast<i8>(MobEntity::getAggressiveFlagMask()), 0)
         << "setAggressive(false) 应清 DATA_MOB_FLAGS_PARAM 位 2";

@@ -166,13 +166,19 @@ std::vector<u8> EntityMetadataSerializer::serialize(const entity::EntityDataMana
 
     const auto& entries = manager.getAllEntries();
 
-    for (const auto& [id, entry] : entries) {
+    // entries 是按 id 升序稠密排列的槽位数组（id 即下标），未注册的槽位须跳过。
+    // 输出的线序因此是 id 升序；元数据条目自带 index 字段，顺序对接收端无影响。
+    for (size_t id = 0; id < entries.size(); ++id) {
+        const auto& entry = entries[id];
+        if (!entry.present) {
+            continue;
+        }
         // 如果只要脏数据，跳过非脏数据
         if (dirtyOnly && !entry.dirty) {
             continue;
         }
 
-        serializeEntry(id, entry.value, output);
+        serializeEntry(static_cast<u16>(id), entry.value, output);
     }
 
     // 结束标记

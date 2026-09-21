@@ -79,14 +79,17 @@ using namespace mc::entity;
 
 namespace {
 
-// 收集某实体 dataManager 中所有已注册参数 id（即 getAllEntries 的 key 集合）。
+// 收集某实体 dataManager 中所有已注册参数 id。
+// 槽位数组按 id 稠密排列，跳过 present == false 的未注册槽位即得 id 集合。
 // 这些 id 由 registerData 沿继承链分配，应与 vanilla 1.21.11 逐字段一致。
 [[nodiscard]] std::set<u16> collectParamIds(const EntityDataManager& manager)
 {
     std::set<u16> ids;
-    for (const auto& [id, entry] : manager.getAllEntries()) {
-        (void)entry;
-        ids.insert(id);
+    const auto& entries = manager.getAllEntries();
+    for (size_t id = 0; id < entries.size(); ++id) {
+        if (entries[id].present) {
+            ids.insert(static_cast<u16>(id));
+        }
     }
     return ids;
 }
@@ -130,21 +133,21 @@ TEST(EntityMetadataIdGoldenTest, EntityFieldIdAndTypeAlignVanilla)
     entity.registerData();
     const auto& mgr = entity.dataManager();
 
-    ASSERT_NE(mgr.getRaw(0), nullptr);
+    ASSERT_TRUE(mgr.getRaw(0).has_value());
     EXPECT_EQ(mgr.getRaw(0)->index(), 0u); // FLAGS → i8/Byte
-    ASSERT_NE(mgr.getRaw(1), nullptr);
+    ASSERT_TRUE(mgr.getRaw(1).has_value());
     EXPECT_EQ(mgr.getRaw(1)->index(), 1u); // AIR → i32/Int
-    ASSERT_NE(mgr.getRaw(2), nullptr);
+    ASSERT_TRUE(mgr.getRaw(2).has_value());
     EXPECT_EQ(mgr.getRaw(2)->index(), 11u); // CUSTOM_NAME → OptionalComponentValue（必为 id2）
-    ASSERT_NE(mgr.getRaw(3), nullptr);
+    ASSERT_TRUE(mgr.getRaw(3).has_value());
     EXPECT_EQ(mgr.getRaw(3)->index(), 5u); // CUSTOM_NAME_VISIBLE → bool/Boolean（必为 id3）
-    ASSERT_NE(mgr.getRaw(4), nullptr);
+    ASSERT_TRUE(mgr.getRaw(4).has_value());
     EXPECT_EQ(mgr.getRaw(4)->index(), 5u); // SILENT → bool/Boolean
-    ASSERT_NE(mgr.getRaw(5), nullptr);
+    ASSERT_TRUE(mgr.getRaw(5).has_value());
     EXPECT_EQ(mgr.getRaw(5)->index(), 5u); // NO_GRAVITY → bool/Boolean
-    ASSERT_NE(mgr.getRaw(6), nullptr);
+    ASSERT_TRUE(mgr.getRaw(6).has_value());
     EXPECT_EQ(mgr.getRaw(6)->index(), 10u); // POSE → PoseValue
-    ASSERT_NE(mgr.getRaw(7), nullptr);
+    ASSERT_TRUE(mgr.getRaw(7).has_value());
     EXPECT_EQ(mgr.getRaw(7)->index(), 1u); // TICKS_FROZEN → i32/Int
 }
 
@@ -187,7 +190,7 @@ TEST(EntityMetadataIdGoldenTest, FallingBlockEntityHasIds0To8)
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 8));
     // field8 必为 Vector3i（variant index 6 → BLOCK_POS 序列化器 id10）。
     // 真 Java 客户端严格校验 field8 类型，旧实现误发 Int(stateId) 致崩溃。
-    ASSERT_NE(entity.dataManager().getRaw(FallingBlockEntity::getStartPosParamId()), nullptr);
+    ASSERT_TRUE(entity.dataManager().getRaw(FallingBlockEntity::getStartPosParamId()).has_value());
     EXPECT_EQ(entity.dataManager().getRaw(FallingBlockEntity::getStartPosParamId())->index(), 6u);
 }
 
@@ -197,11 +200,11 @@ TEST(EntityMetadataIdGoldenTest, TNTEntityHasIds0To9)
     // DATA_FUSE(id8,Int) + DATA_BLOCK_STATE(id9,BlockStateValue→BLOCK_STATE id14) + Entity id0..7。
     EXPECT_EQ(collectParamIds(entity.dataManager()), expectedRange(0, 9));
     // field8 = Int（variant index 1）。
-    ASSERT_NE(entity.dataManager().getRaw(TNTEntity::getFuseParamId()), nullptr);
+    ASSERT_TRUE(entity.dataManager().getRaw(TNTEntity::getFuseParamId()).has_value());
     EXPECT_EQ(entity.dataManager().getRaw(TNTEntity::getFuseParamId())->index(), 1u);
     // field9 必为 BlockStateValue（variant index 15 → BLOCK_STATE 序列化器 id14）。
     // 旧实现误发 Int(stateId) 致真客户端 field9 类型校验崩溃。
-    ASSERT_NE(entity.dataManager().getRaw(TNTEntity::getBlockStateParamId()), nullptr);
+    ASSERT_TRUE(entity.dataManager().getRaw(TNTEntity::getBlockStateParamId()).has_value());
     EXPECT_EQ(entity.dataManager().getRaw(TNTEntity::getBlockStateParamId())->index(), 15u);
 }
 
@@ -225,13 +228,13 @@ TEST(EntityMetadataIdGoldenTest, AbstractMinecartEntityHasIds0To12)
     // OPTIONAL_BLOCK_STATE）。
     const u16 displayBlockId = AbstractMinecartEntity::getCustomDisplayBlockParam().id();
     EXPECT_EQ(displayBlockId, 11u);
-    ASSERT_NE(entity.dataManager().getRaw(displayBlockId), nullptr);
+    ASSERT_TRUE(entity.dataManager().getRaw(displayBlockId).has_value());
     EXPECT_EQ(entity.dataManager().getRaw(displayBlockId)->index(), 14u); // OptionalBlockStateValue
 
     // wire10 DAMAGE 必为 f32/Float（variant index 3 → serializerId 3 FLOAT）。
     const u16 damageId = AbstractMinecartEntity::getDamageParam().id();
     EXPECT_EQ(damageId, 10u);
-    ASSERT_NE(entity.dataManager().getRaw(damageId), nullptr);
+    ASSERT_TRUE(entity.dataManager().getRaw(damageId).has_value());
     EXPECT_EQ(entity.dataManager().getRaw(damageId)->index(), 3u); // f32/Float
 }
 
@@ -269,11 +272,11 @@ TEST(EntityMetadataIdGoldenTest, ZombieEntityFieldIdAndTypeAlignVanilla)
     EXPECT_EQ(specialTypeId, 17u);
     EXPECT_EQ(drownedId, 18u);
 
-    ASSERT_NE(mgr.getRaw(babyId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(babyId).has_value());
     EXPECT_EQ(mgr.getRaw(babyId)->index(), 5u); // DATA_BABY → bool/Boolean
-    ASSERT_NE(mgr.getRaw(specialTypeId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(specialTypeId).has_value());
     EXPECT_EQ(mgr.getRaw(specialTypeId)->index(), 1u); // DATA_SPECIAL_TYPE → i32/Int
-    ASSERT_NE(mgr.getRaw(drownedId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(drownedId).has_value());
     EXPECT_EQ(mgr.getRaw(drownedId)->index(), 5u); // DATA_DROWNED_CONVERSION → bool/Boolean
 }
 
@@ -303,7 +306,7 @@ TEST(EntityMetadataIdGoldenTest, ZombieVillagerEntityHasIds0To20)
     // wire20 VILLAGER_DATA 必为 VillagerDataValue（variant index 19 → serializerId 18 VILLAGER_DATA）。
     const u16 vdId = ZombieVillagerEntity::getVillagerDataParamId();
     EXPECT_EQ(vdId, 20u);
-    ASSERT_NE(zv.dataManager().getRaw(vdId), nullptr);
+    ASSERT_TRUE(zv.dataManager().getRaw(vdId).has_value());
     EXPECT_EQ(zv.dataManager().getRaw(vdId)->index(), 19u); // VillagerDataValue
 }
 
@@ -333,7 +336,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractFishFromBucketFieldIdAndTypeAlignVanill
 
     const u16 fromBucketId = AbstractFishEntity::getFromBucketParamId();
     EXPECT_EQ(fromBucketId, 16u);
-    ASSERT_NE(mgr.getRaw(fromBucketId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(fromBucketId).has_value());
     EXPECT_EQ(mgr.getRaw(fromBucketId)->index(), 5u); // FROM_BUCKET → bool/Boolean
 }
 
@@ -395,7 +398,7 @@ TEST(EntityMetadataIdGoldenTest, AgeableEntityBabyFieldIdAndTypeAlignVanilla)
 
     const u16 babyId = AgeableEntity::getBabyParamId();
     EXPECT_EQ(babyId, 16u);
-    ASSERT_NE(mgr.getRaw(babyId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(babyId).has_value());
     EXPECT_EQ(mgr.getRaw(babyId)->index(), 5u); // DATA_BABY → bool/Boolean
 }
 
@@ -412,13 +415,13 @@ TEST(EntityMetadataIdGoldenTest, WolfEntityHasIds0To21AndFlagsAt17)
     // getTamedParamId() 语义为「flags 字段 id」（保留旧名兼容调用方）。
     const u16 flagsId = WolfEntity::getTamedParamId();
     EXPECT_EQ(flagsId, 17u);
-    ASSERT_NE(wolf.dataManager().getRaw(flagsId), nullptr);
+    ASSERT_TRUE(wolf.dataManager().getRaw(flagsId).has_value());
     EXPECT_EQ(wolf.dataManager().getRaw(flagsId)->index(), 0u); // DATA_FLAGS → i8/Byte
 
     // DATA_OWNERUUID 必为 id18（OptionalUuidValue，对齐 vanilla DATA_OWNERUUID_ID）。
     const u16 ownerUuidId = WolfEntity::getOwnerUuidParamId();
     EXPECT_EQ(ownerUuidId, 18u);
-    ASSERT_NE(wolf.dataManager().getRaw(ownerUuidId), nullptr);
+    ASSERT_TRUE(wolf.dataManager().getRaw(ownerUuidId).has_value());
     EXPECT_EQ(wolf.dataManager().getRaw(ownerUuidId)->index(), 21u); // OptionalUuidValue
 
     // DATA_ANGER_END_TIME 必为 id21 且类型为 i64/Long（variant index 2 → serializerId 2 VAR_LONG）。
@@ -426,7 +429,7 @@ TEST(EntityMetadataIdGoldenTest, WolfEntityHasIds0To21AndFlagsAt17)
     // 真 Java 客户端 set_entity_data field21 类型校验崩（disconnect-2026-08-04：old=-1(Long) new=0(Integer)）。
     const u16 angerId = WolfEntity::getAngerTimeParamId();
     EXPECT_EQ(angerId, 21u);
-    ASSERT_NE(wolf.dataManager().getRaw(angerId), nullptr);
+    ASSERT_TRUE(wolf.dataManager().getRaw(angerId).has_value());
     EXPECT_EQ(wolf.dataManager().getRaw(angerId)->index(), 2u); // i64/Long（非 i32/Int 的 index 1）
 }
 
@@ -448,25 +451,25 @@ TEST(EntityMetadataIdGoldenTest, CatEntityHasIds0To22AndVariantAt19)
     // wire19 DATA_VARIANT_ID 必为 HolderVariantValue（variant index 18 → serializerId 21 CAT_VARIANT）。
     const u16 variantId = CatEntity::getVariantParamId();
     EXPECT_EQ(variantId, 19u);
-    ASSERT_NE(cat.dataManager().getRaw(variantId), nullptr);
+    ASSERT_TRUE(cat.dataManager().getRaw(variantId).has_value());
     EXPECT_EQ(cat.dataManager().getRaw(variantId)->index(), 18u); // HolderVariantValue
 
     // wire20 IS_LYING 必为 bool（variant index 5 → serializerId 8 BOOLEAN）。
     const u16 lyingId = CatEntity::getLyingParamId();
     EXPECT_EQ(lyingId, 20u);
-    ASSERT_NE(cat.dataManager().getRaw(lyingId), nullptr);
+    ASSERT_TRUE(cat.dataManager().getRaw(lyingId).has_value());
     EXPECT_EQ(cat.dataManager().getRaw(lyingId)->index(), 5u); // bool/Boolean
 
     // wire21 RELAX_STATE_ONE 必为 bool。
     const u16 relaxId = CatEntity::getRelaxStateOneParamId();
     EXPECT_EQ(relaxId, 21u);
-    ASSERT_NE(cat.dataManager().getRaw(relaxId), nullptr);
+    ASSERT_TRUE(cat.dataManager().getRaw(relaxId).has_value());
     EXPECT_EQ(cat.dataManager().getRaw(relaxId)->index(), 5u); // bool/Boolean
 
     // wire22 DATA_COLLAR_COLOR 必为 i32/Int（variant index 1 → serializerId 1 INT）。
     const u16 collarId = CatEntity::getCollarColorParamId();
     EXPECT_EQ(collarId, 22u);
-    ASSERT_NE(cat.dataManager().getRaw(collarId), nullptr);
+    ASSERT_TRUE(cat.dataManager().getRaw(collarId).has_value());
     EXPECT_EQ(cat.dataManager().getRaw(collarId)->index(), 1u); // i32/Int
 }
 
@@ -486,19 +489,19 @@ TEST(EntityMetadataIdGoldenTest, NautilusEntityHasIds0To19AndFlagsAt17)
     // DATA_FLAGS(Byte) 必为 id17（对齐 vanilla TamableAnimal.DATA_FLAGS_ID）。
     const u16 flagsId = NautilusEntity::getTamedParamId();
     EXPECT_EQ(flagsId, 17u);
-    ASSERT_NE(nautilus.dataManager().getRaw(flagsId), nullptr);
+    ASSERT_TRUE(nautilus.dataManager().getRaw(flagsId).has_value());
     EXPECT_EQ(nautilus.dataManager().getRaw(flagsId)->index(), 0u); // DATA_FLAGS → i8/Byte
 
     // DATA_OWNERUUID(OptionalLivingEntityRef) 必为 id18。
     const u16 ownerUuidId = NautilusEntity::getOwnerUuidParamId();
     EXPECT_EQ(ownerUuidId, 18u);
-    ASSERT_NE(nautilus.dataManager().getRaw(ownerUuidId), nullptr);
+    ASSERT_TRUE(nautilus.dataManager().getRaw(ownerUuidId).has_value());
     EXPECT_EQ(nautilus.dataManager().getRaw(ownerUuidId)->index(), 21u); // OptionalUuidValue
 
     // DATA_DASH(Boolean) 必为 id19（AbstractNautilusEntity 层）。
     const u16 dashId = AbstractNautilusEntity::getDashParamId();
     EXPECT_EQ(dashId, 19u);
-    ASSERT_NE(nautilus.dataManager().getRaw(dashId), nullptr);
+    ASSERT_TRUE(nautilus.dataManager().getRaw(dashId).has_value());
     EXPECT_EQ(nautilus.dataManager().getRaw(dashId)->index(), 5u); // DATA_DASH → bool/Boolean
 }
 
@@ -525,7 +528,7 @@ TEST(EntityMetadataIdGoldenTest, AbstractRaiderIsCelebratingFieldIdAndTypeAlignV
 
     const u16 celebratingId = AbstractRaiderEntity::getIsCelebratingParamId();
     EXPECT_EQ(celebratingId, 16u);
-    ASSERT_NE(mgr.getRaw(celebratingId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(celebratingId).has_value());
     EXPECT_EQ(mgr.getRaw(celebratingId)->index(), 5u); // IS_CELEBRATING → bool/Boolean
 }
 
@@ -562,7 +565,7 @@ TEST(EntityMetadataIdGoldenTest, SquidBabyPlaceholderFieldIdAndTypeAlignVanilla)
 
     const u16 placeholderId = SquidEntity::getBabyPlaceholderParamId();
     EXPECT_EQ(placeholderId, 16u);
-    ASSERT_NE(mgr.getRaw(placeholderId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(placeholderId).has_value());
     EXPECT_EQ(mgr.getRaw(placeholderId)->index(), 5u); // DATA_BABY 占位 → bool/Boolean
 }
 
@@ -576,11 +579,11 @@ TEST(EntityMetadataIdGoldenTest, GlowSquidEntityDarkTicksAt17AndBabyPlaceholderA
     // DATA_DARK_TICKS 必为 id17（修复前错占 id16）。
     const u16 darkTicksId = GlowSquidEntity::getDarkTicksRemainingParamId();
     EXPECT_EQ(darkTicksId, 17u);
-    ASSERT_NE(mgr.getRaw(darkTicksId), nullptr);
+    ASSERT_TRUE(mgr.getRaw(darkTicksId).has_value());
     EXPECT_EQ(mgr.getRaw(darkTicksId)->index(), 1u); // DATA_DARK_TICKS → i32/Int
 
     // id16 必为 Boolean 占位（修复前为 Int，撞客户端 DATA_BABY(Boolean)）。
-    ASSERT_NE(mgr.getRaw(16), nullptr);
+    ASSERT_TRUE(mgr.getRaw(16).has_value());
     EXPECT_EQ(mgr.getRaw(16)->index(), 5u); // 占位 → bool/Boolean
 }
 
@@ -632,8 +635,8 @@ TEST(EntityMetadataIdGoldenTest, OptionalLivingEntityRefCodecRoundTrip)
 
     ASSERT_TRUE(EntityMetadataSerializer::deserialize(packet, mgr));
 
-    const auto* raw = mgr.getRaw(ownerId);
-    ASSERT_NE(raw, nullptr);
+    const auto raw = mgr.getRaw(ownerId);
+    ASSERT_TRUE(raw.has_value());
     ASSERT_EQ(raw->index(), 21u); // OptionalUuidValue
     const auto restored = raw->get<entity::OptionalUuidValue>();
     EXPECT_TRUE(restored.present);

@@ -155,6 +155,24 @@
 
                     ##容易踩的坑
 
+                    ## #EntityDataManager 槽位数组的两条契约
+
+    槽位容器是按 id 稠密索引的 `std::vector<DataEntry>`（替换了原先的 `std::unordered_map<u16, DataEntry>`——
+    服务端 id 由 `registerData` 沿继承链递增分配、空间稠密，实测最大 22，而 map 每个条目都要单独分配约 80 字节的节点）。
+    id 即数组下标。两条必须遵守：
+
+    - **落在数组范围内不等于已注册**。只注册了 id0..8 的实体，其数组尾部仍是未注册槽位，必须用
+      `DataEntry::present` 判断；`hasParam` / `getRaw` / `getAllEntries` 的序列化遍历都已据此处理，
+      新增遍历点不要漏掉 `present` 检查。
+    - **`getRaw` 返回副本（`std::optional<DataValue>`）而非内部指针**。数组任何一次写入都可能扩容
+      并令旧指针失效；按值返回同时消除了旧实现"函数内释放锁、调用方在锁外解引用"的竞态。
+      取值后不要缓存它跨写入使用。
+
+    客户端路径不同：它从不调用 `registerParam`，只按服务端下发的 u8 字节索引（0..254，`0xFF` 为终止符）
+    `setRaw`，数组按需扩容；服务端实际 id 不超过 22，因此不会增长到理论上限。
+
+    契约测试：`tests/unit/entity/EntityDataManagerStorageTest.cpp`。
+
                     ## #实体随机数生成器（getRandom）
                 - `Entity::getRandom()` 返回 `math::Random
         &`（持久化引用），每个实体拥有独立的 `m_random` 成员

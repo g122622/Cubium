@@ -317,15 +317,15 @@ TEST_F(FishingBobberHookEntityTest, RegisterDataRegistersHookedEntityAndBitingPa
     // DATA_HOOKED_ENTITY_PARAM 应已注册，初始值为 0（无被钩住实体）
     const u16 hookedParamId = entity::FishingBobberEntity::getHookedEntityParamId();
     EXPECT_TRUE(bobber.dataManager().hasParam(hookedParamId));
-    const auto* hookedValue = bobber.dataManager().getRaw(hookedParamId);
-    ASSERT_NE(hookedValue, nullptr);
+    const auto hookedValue = bobber.dataManager().getRaw(hookedParamId);
+    ASSERT_TRUE(hookedValue.has_value());
     EXPECT_EQ(hookedValue->get<i32>(), 0);
 
     // DATA_BITING_PARAM 应已注册，初始值为 false
     const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
     EXPECT_TRUE(bobber.dataManager().hasParam(bitingParamId));
-    const auto* bitingValue = bobber.dataManager().getRaw(bitingParamId);
-    ASSERT_NE(bitingValue, nullptr);
+    const auto bitingValue = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_TRUE(bitingValue.has_value());
     EXPECT_FALSE(bitingValue->get<bool>());
 }
 
@@ -347,8 +347,8 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithNullWritesZero)
 
     // 验证数据管理器中的值也为 0
     const u16 paramId = entity::FishingBobberEntity::getHookedEntityParamId();
-    const auto* value = bobber.dataManager().getRaw(paramId);
-    ASSERT_NE(value, nullptr);
+    const auto value = bobber.dataManager().getRaw(paramId);
+    ASSERT_TRUE(value.has_value());
     EXPECT_EQ(value->get<i32>(), 0);
 }
 
@@ -375,8 +375,8 @@ TEST_F(FishingBobberHookEntityTest, SyncCaughtEntityIdWithEntityWritesIdPlusOne)
 
     // 验证数据管理器中的值：42 + 1 = 43
     const u16 paramId = entity::FishingBobberEntity::getHookedEntityParamId();
-    const auto* value = bobber.dataManager().getRaw(paramId);
-    ASSERT_NE(value, nullptr);
+    const auto value = bobber.dataManager().getRaw(paramId);
+    ASSERT_TRUE(value.has_value());
     EXPECT_EQ(value->get<i32>(), 43);
 
     // 验证标记为脏（用于 EntityTracker 广播）
@@ -452,8 +452,8 @@ TEST_F(FishingBobberHookEntityTest, BitingParam_InitialValueIsFalse)
     auto& bobber = m_world->addEntity<entity::FishingBobberEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     const u16 bitingParamId = entity::FishingBobberEntity::getBitingParamId();
-    const auto* value = bobber.dataManager().getRaw(bitingParamId);
-    ASSERT_NE(value, nullptr);
+    const auto value = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_TRUE(value.has_value());
     EXPECT_FALSE(value->get<bool>());
 }
 
@@ -482,8 +482,8 @@ TEST_F(FishingBobberHookEntityTest, BitingParam_SetToFalse_WhenFishingStateExpir
     // 执行一次 tick，m_ticksCatchable 应递减到 0，触发 DATA_BITING = false
     bobber.tick();
 
-    const auto* value = bobber.dataManager().getRaw(bitingParamId);
-    ASSERT_NE(value, nullptr);
+    const auto value = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_TRUE(value.has_value());
     EXPECT_FALSE(value->get<bool>());
     EXPECT_EQ(bobber.state(), FishingBobberState::Bobbing);
 }
@@ -510,8 +510,8 @@ TEST_F(FishingBobberHookEntityTest, BitingParam_Cleared_WhenFishingStateWithZero
 
     bobber.tick();
 
-    const auto* value = bobber.dataManager().getRaw(bitingParamId);
-    ASSERT_NE(value, nullptr);
+    const auto value = bobber.dataManager().getRaw(bitingParamId);
+    ASSERT_TRUE(value.has_value());
     EXPECT_FALSE(value->get<bool>());
 }
 

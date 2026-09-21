@@ -30,11 +30,13 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <atomic>
 #include <cstddef>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -434,6 +436,13 @@ private:
 struct DataEntry {
     DataValue value;
     bool dirty = false;
+    /// 该槽位是否已被注册/写入。
+    ///
+    /// 槽位按 id 稠密索引（见 EntityDataManager::m_entries），落在数组范围内不等于
+    /// "该参数存在"——例如只注册了 id 0..8 的实体会把 id 9..22 的槽位留在数组里。
+    /// 因此必须用本标志区分"未注册"与"注册了默认值"。它落在 DataValue 之后的对齐
+    /// 空隙中，不增加 sizeof。
+    bool present = false;
 };
 
 /**
@@ -581,7 +590,12 @@ public:
                 param.assignId(id);
             }
         }
-        m_entries[param.id()] = DataEntry{DataValue(std::move(defaultValue)), false};
+        const u16 id = param.id();
+        MC_ASSERT_RELEASE(id != kUnassignedId);
+        DataEntry& entry = _ensureSlot(id);
+        entry.value = DataValue(std::move(defaultValue));
+        entry.dirty = false;
+        entry.present = true;
     }
 
     /**
@@ -595,14 +609,20 @@ public:
     void set(DataParameter<T> param, T value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_entries.find(param.id());
-        if (it == m_entries.end()) {
+        const u16 id = param.id();
+        if (id == kUnassignedId) {
+            return;
+        }
+        if (!_isPresent(id)) {
             // 参数未注册，创建新条目
-            m_entries[param.id()] = DataEntry{DataValue(value), true};
+            DataEntry& created = _ensureSlot(id);
+            created.value = DataValue(value);
+            created.dirty = true;
+            created.present = true;
             return;
         }
 
-        DataEntry& entry = it->second;
+        DataEntry& entry = m_entries[id];
         if (entry.value.get<T>() != value) {
             entry.value.set(value);
             entry.dirty = true;
@@ -618,13 +638,18 @@ public:
     bool setRaw(u16 id, const DataValue& value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_entries.find(id);
-        if (it == m_entries.end()) {
-            m_entries[id] = DataEntry{value, true};
+        if (id == kUnassignedId) {
+            return false;
+        }
+        if (!_isPresent(id)) {
+            DataEntry& created = _ensureSlot(id);
+            created.value = value;
+            created.dirty = true;
+            created.present = true;
             return true;
         }
 
-        DataEntry& entry = it->second;
+        DataEntry& entry = m_entries[id];
         if (entry.value != value) {
             entry.value = value;
             entry.dirty = true;
@@ -643,26 +668,28 @@ public:
     [[nodiscard]] T get(DataParameter<T> param) const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_entries.find(param.id());
-        if (it == m_entries.end()) {
+        if (!_isPresent(param.id())) {
             return T{};
         }
-        return it->second.value.template get<T>();
+        return m_entries[param.id()].value.template get<T>();
     }
 
     /**
      * @brief 按原始参数ID获取值
      * @param id 参数ID
-     * @return 数据值指针，如果不存在返回 nullptr
+     * @return 数据值的副本；该参数不存在时返回 nullopt
+     *
+     * 返回**副本**而非内部指针：槽位改存于连续数组后，任何一次写入都可能触发扩容并
+     * 令既有指针失效；且旧实现"函数内释放锁、调用方在锁外解引用"本身即存在竞态。
+     * 按值返回同时消除这两个问题。
      */
-    [[nodiscard]] const DataValue* getRaw(u16 id) const
+    [[nodiscard]] std::optional<DataValue> getRaw(u16 id) const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_entries.find(id);
-        if (it == m_entries.end()) {
-            return nullptr;
+        if (!_isPresent(id)) {
+            return std::nullopt;
         }
-        return &it->second.value;
+        return m_entries[id].value;
     }
 
     /**
@@ -672,7 +699,7 @@ public:
     [[nodiscard]] bool hasParam(u16 id) const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        return m_entries.find(id) != m_entries.end();
+        return _isPresent(id);
     }
 
     /**
@@ -683,9 +710,9 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<u16> dirty;
-        for (const auto& [id, entry] : m_entries) {
-            if (entry.dirty) {
-                dirty.push_back(id);
+        for (size_t i = 0; i < m_entries.size(); ++i) {
+            if (m_entries[i].present && m_entries[i].dirty) {
+                dirty.push_back(static_cast<u16>(i));
             }
         }
         return dirty;
@@ -698,15 +725,12 @@ public:
     void clearDirty(u16 id = 0xFFFF)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        if (id == 0xFFFF) {
-            for (auto& [entryId, entry] : m_entries) {
+        if (id == kUnassignedId) {
+            for (auto& entry : m_entries) {
                 entry.dirty = false;
             }
-        } else {
-            auto it = m_entries.find(id);
-            if (it != m_entries.end()) {
-                it->second.dirty = false;
-            }
+        } else if (_isPresent(id)) {
+            m_entries[id].dirty = false;
         }
     }
 
@@ -716,8 +740,8 @@ public:
     [[nodiscard]] bool hasDirtyData() const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        for (const auto& [id, entry] : m_entries) {
-            if (entry.dirty) {
+        for (const auto& entry : m_entries) {
+            if (entry.present && entry.dirty) {
                 return true;
             }
         }
@@ -725,9 +749,12 @@ public:
     }
 
     /**
-     * @brief 获取所有数据条目（用于序列化）
+     * @brief 获取全部槽位（用于序列化）
+     *
+     * 返回按 id 升序稠密排列的数组，**不是**稀疏的已注册条目列表：调用方须自行跳过
+     * `present == false` 的槽位。id 即数组下标。
      */
-    [[nodiscard]] const std::unordered_map<u16, DataEntry>& getAllEntries() const { return m_entries; }
+    [[nodiscard]] const std::vector<DataEntry>& getAllEntries() const { return m_entries; }
 
     /**
      * @brief 从其他管理器复制数据
@@ -742,7 +769,29 @@ public:
 
 private:
     mutable std::mutex m_mutex;
-    std::unordered_map<u16, DataEntry> m_entries;
+
+    /// 按 id 稠密索引的槽位数组：id 即下标，`present == false` 表示该槽位未注册。
+    ///
+    /// 原先用 `std::unordered_map<u16, DataEntry>`：服务端的 id 空间是稠密的（由
+    /// allocateIdForCurrentClass 沿继承链递增分配，实测最大 id 为 22），而 map 每个条目
+    /// 都要单独分配一个约 80 字节的节点，外加桶数组。数组方案每槽 48 字节、且只分配一次。
+    ///
+    /// 客户端情形不同：它从不调用 registerParam，只经 setRaw 接收服务端下发的 u8 字节
+    /// 索引（有效范围 0..254，0xFF 是终止符），因此数组会按需扩容以容纳任意索引；
+    /// 由于服务端的 id 不超过 22，实际不会增长到那个理论上限。
+    std::vector<DataEntry> m_entries;
+
+    /// 槽位是否在数组范围内且已注册
+    [[nodiscard]] bool _isPresent(u16 id) const { return id < m_entries.size() && m_entries[id].present; }
+
+    /// 确保 id 对应的槽位存在并返回可写引用（按需扩容，id 即下标）
+    DataEntry& _ensureSlot(u16 id)
+    {
+        if (m_entries.size() <= id) {
+            m_entries.resize(static_cast<size_t>(id) + 1);
+        }
+        return m_entries[id];
+    }
 
     // 哨兵 id：createKey 返回此值，registerParam 填入真实 id
     static constexpr u16 kUnassignedId = 0xFFFF;
