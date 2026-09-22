@@ -1610,6 +1610,13 @@ add_executable(mc_tests
     common/world/storage/JavaChunkReaderTest.cpp
     common/world/storage/JavaColumnReaderTest.cpp
     common/world/storage/BedrockChunkReaderTest.cpp
+    # 真实 Java 存档读取测试（素材：tests/unit/testdata/worlds/java-anvil-1.21.11）
+    common/world/storage/JavaRealWorldRegionFileTest.cpp
+    common/world/storage/JavaRealWorldReaderTest.cpp
+    common/world/storage/JavaRealWorldDecoderTest.cpp
+    common/world/storage/JavaRealWorldLevelDatTest.cpp
+    common/world/storage/JavaRealWorldFormatDetectorTest.cpp
+    common/world/storage/JavaRealWorldBackendTest.cpp
     # 村庄系统测试
     common/world/village/VillageTest.cpp
     # 村庄交易系统测试
