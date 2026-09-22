@@ -64,4 +64,12 @@ BendingTrunkPlacer 的所有树叶附着点均使用 `trunkTop = false`，因为
 
 ### 4. TrunkPlacer 聚合文件
 
-`TrunkPlacers.hpp/cpp` 聚合了 DarkOak、Fancy、Forky、Giant、MegaJungle 五种放置器。BendingTrunkPlacer、CherryTrunkPlacer 和 StraightTrunkPlacer 拥有独立头文件，由 `TreeFeature.cpp` 直接包含。
+`TrunkPlacers.hpp` 是聚合头文件，**只转出** DarkOak、Fancy、Forky、Giant、MegaJungle 各自的头文件，自身不声明任何类——历史上它曾内联重复声明这五个类，与独立头文件构成 ODR 隐患（改一处漏一处即产生不一致的类定义）。`TrunkPlacers.cpp` 以 `#include "XxxTrunkPlacer.cpp"` 的方式聚合实现。BendingTrunkPlacer、CherryTrunkPlacer 和 StraightTrunkPlacer 拥有独立头文件，由 `TreeFeature.cpp` 直接包含。
+
+### 5. FancyTrunkPlacer 的高度必须全程用相对偏移
+
+`FancyTrunkPlacer::placeTrunk` 中，扫描分支的高度、`_getBranchLength` 的入参、分支末端坐标三者必须统一为**相对** `startPos.y` 的偏移量。一旦混入绝对 Y，`|halfHeight - relY| >= halfHeight` 会恒成立而使 `_getBranchLength` 恒返回 0，分支长度退化为 0、全部重合在树干正上方，**且不产生任何报错**。
+
+### 6. 零长度 limb 除零会得到越界坐标
+
+`_makeLimb` 以 `max(|dx|,|dy|,|dz|)` 作除数。若 `start == end` 且 `place == true` 走到除法处，步数 0 会得到 `0.0f / 0.0f = NaN`；`NaN` 转整型在 arm64 上饱和为 0、在 x86 上为 `INT_MIN`，前者会写入 `(0,0,0)` 并触发 `WorldGenRegion` 的访问窗口断言。故 `if (!place && start == end) return true;` 是承重判断：所有**探测**必须传 `place = false`，真正的放置留到扫描结束，并由 `!(basePos == branchEnd)` 守卫。

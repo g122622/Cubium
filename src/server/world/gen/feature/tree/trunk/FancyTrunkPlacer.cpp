@@ -59,20 +59,27 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     i32 branchCount =
         std::min(1, static_cast<i32>(std::floor(1.382 + std::pow(static_cast<f64>(trunkHeight) / 13.0, 2.0))));
 
-    // 初始化树叶位置列表
+    // 分支连接点的高度上限（绝对 Y）
     i32 baseY = startPos.y + foliageHeight;
-    i32 topY = startPos.y + trunkHeight - 5;
 
-    // 内部结构用于跟踪分支
+    // 自顶向下扫描分支时的起始高度偏移。此处必须保持**相对**语义（相对 startPos.y），
+    // 一旦混入绝对 Y，_getBranchLength 收到的参数会超出 [0, trunkHeight] 区间，
+    // 使 |halfHeight - y| 恒 >= halfHeight 而恒返回 0，分支长度退化为 0。
+    i32 topOffset = trunkHeight - 5;
+
+    // 待放置的分支列表。树干顶端本身视作一条特殊分支参与统一处理：
+    // 连接点固定为树冠基点，终点为树干顶端，它同时承担"把主干从树冠基点延伸至顶端"的职责。
     struct BranchFoliage {
         BlockPos branchEnd;
         i32 branchBaseY;
+        bool trunkTop;
     };
     std::vector<BranchFoliage> branchFoliages;
+    branchFoliages.push_back({startPos.up(topOffset), baseY, true});
 
-    // 从上往下生成分支
-    for (i32 y = topY; y >= 0; --y) {
-        f32 branchLength = _getBranchLength(trunkHeight, y);
+    // 自顶向下扫描分支
+    for (i32 relY = topOffset; relY >= 0; --relY) {
+        f32 branchLength = _getBranchLength(trunkHeight, relY);
         if (branchLength < 0.0f) {
             continue;
         }
@@ -85,61 +92,58 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
             f32 dz = actualLength * std::cos(angle) + 0.5f;
 
             BlockPos branchEnd(
-                startPos.x + static_cast<i32>(dx), startPos.y + y - 1, startPos.z + static_cast<i32>(dz));
+                startPos.x + static_cast<i32>(dx), startPos.y + relY - 1, startPos.z + static_cast<i32>(dz));
             BlockPos branchTop = branchEnd.up(5);
 
-            // 检查分支路径是否可行
-            if (_checkAndPlaceBranch(world, random, startPos, branchEnd, false, trunkBlocks, trunkBlock)) {
-                // 计算分支连接点
-                i32 relX = startPos.x - branchEnd.x;
-                i32 relZ = startPos.z - branchEnd.z;
-                f64 dist =
-                    static_cast<f64>(branchEnd.y) - std::sqrt(static_cast<f64>(relX * relX + relZ * relZ)) * 0.381;
-                i32 connectionY = dist > static_cast<f64>(baseY) ? baseY : static_cast<i32>(dist);
+            // 先检查分支末端向上 5 格的空间是否通畅（只探测，不放置）
+            if (!_makeLimb(world, random, branchEnd, branchTop, false, trunkBlocks, trunkBlock)) {
+                continue;
+            }
 
-                BlockPos connectionPos(startPos.x, connectionY, startPos.z);
+            // 计算分支与树干的连接点，连接点不高于树冠基点
+            i32 relX = startPos.x - branchEnd.x;
+            i32 relZ = startPos.z - branchEnd.z;
+            f64 dist = static_cast<f64>(branchEnd.y) - std::sqrt(static_cast<f64>(relX * relX + relZ * relZ)) * 0.381;
+            i32 connectionY = dist > static_cast<f64>(baseY) ? baseY : static_cast<i32>(dist);
 
-                // 放置连接分支
-                if (_checkAndPlaceBranch(world, random, connectionPos, branchEnd, true, trunkBlocks, trunkBlock)) {
-                    branchFoliages.push_back({branchEnd, connectionY});
-                }
+            BlockPos connectionPos(startPos.x, connectionY, startPos.z);
+
+            // 再探测连接路径是否通畅（只探测，不放置）；放置统一推迟到扫描结束之后
+            if (_makeLimb(world, random, connectionPos, branchEnd, false, trunkBlocks, trunkBlock)) {
+                branchFoliages.push_back({branchEnd, connectionY, false});
             }
         }
     }
 
-    // 放置主干
-    _placeLine(world, random, startPos, startPos.up(foliageHeight), true, trunkBlocks, trunkBlock);
+    // 放置主干（自起始位置到树冠基点）
+    _makeLimb(world, random, startPos, startPos.up(foliageHeight), true, trunkBlocks, trunkBlock);
 
-    // 放置分支到主干的连接
+    // 放置各分支到主干的连接，并收集有效的树叶位置
     for (const auto& bf : branchFoliages) {
         BlockPos basePos(startPos.x, bf.branchBaseY, startPos.z);
+
+        // 连接点与分支末端重合时无需放置，否则会得到零长度的 limb
         if (!(basePos == bf.branchEnd) && _shouldKeepFoliage(trunkHeight, bf.branchBaseY - startPos.y)) {
-            _placeLine(world, random, basePos, bf.branchEnd, true, trunkBlocks, trunkBlock);
+            _makeLimb(world, random, basePos, bf.branchEnd, true, trunkBlocks, trunkBlock);
         }
-    }
 
-    // 收集有效的树叶位置
-    for (const auto& bf : branchFoliages) {
         if (_shouldKeepFoliage(trunkHeight, bf.branchBaseY - startPos.y)) {
-            foliagePositions.emplace_back(bf.branchEnd, 0, false);
+            foliagePositions.emplace_back(bf.branchEnd, 0, bf.trunkTop);
         }
     }
-
-    // 添加顶部树叶位置
-    foliagePositions.emplace_back(startPos.up(topY), 0, true);
 
     return foliagePositions;
 }
 
-f32 FancyTrunkPlacer::_getBranchLength(i32 trunkHeight, i32 y) const
+f32 FancyTrunkPlacer::_getBranchLength(i32 trunkHeight, i32 relY) const
 {
-    // 根据高度计算分支长度
-    if (static_cast<f32>(y) < static_cast<f32>(trunkHeight) * 0.3f) {
+    // 根据相对起始位置的高度计算分支长度，relY 必须落在 [0, trunkHeight] 区间内
+    if (static_cast<f32>(relY) < static_cast<f32>(trunkHeight) * 0.3f) {
         return -1.0f;
     }
 
     f32 halfHeight = static_cast<f32>(trunkHeight) / 2.0f;
-    f32 diff = halfHeight - static_cast<f32>(y);
+    f32 diff = halfHeight - static_cast<f32>(relY);
     f32 result = std::sqrt(halfHeight * halfHeight - diff * diff);
 
     if (diff == 0.0f) {
@@ -151,7 +155,7 @@ f32 FancyTrunkPlacer::_getBranchLength(i32 trunkHeight, i32 y) const
     return result * 0.5f;
 }
 
-bool FancyTrunkPlacer::_checkAndPlaceBranch(WorldGenRegion& world,
+bool FancyTrunkPlacer::_makeLimb(WorldGenRegion& world,
     math::Random& random,
     const BlockPos& start,
     const BlockPos& end,
@@ -159,6 +163,8 @@ bool FancyTrunkPlacer::_checkAndPlaceBranch(WorldGenRegion& world,
     std::set<BlockPos>& trunkBlocks,
     const BlockState* trunkBlock)
 {
+    // 零长度 limb 在仅探测时视为通畅。该判断是承重的，不可删除：一旦让 start == end
+    // 走到下方，steps 为 0，步长退化成 0.0f / 0.0f = NaN，再经浮点转整型会得到越界坐标。
     if (!place && start == end) {
         return true;
     }
@@ -185,17 +191,6 @@ bool FancyTrunkPlacer::_checkAndPlaceBranch(WorldGenRegion& world,
     }
 
     return true;
-}
-
-void FancyTrunkPlacer::_placeLine(WorldGenRegion& world,
-    math::Random& random,
-    const BlockPos& start,
-    const BlockPos& end,
-    bool place,
-    std::set<BlockPos>& trunkBlocks,
-    const BlockState* trunkBlock)
-{
-    _checkAndPlaceBranch(world, random, start, end, place, trunkBlocks, trunkBlock);
 }
 
 i32 FancyTrunkPlacer::_getSteps(const BlockPos& delta) const

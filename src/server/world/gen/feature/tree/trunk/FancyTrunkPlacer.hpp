@@ -54,25 +54,20 @@ public:
 
 private:
     /**
-     * @brief 计算分支长度
+     * @brief 计算指定相对高度处的分支长度
+     *
+     * @param trunkHeight 树干总高
+     * @param relY 相对起始位置的高度偏移，必须落在 [0, trunkHeight] 区间内
+     * @return 分支长度；该高度不生成分支时返回负值
      */
-    [[nodiscard]] f32 _getBranchLength(i32 trunkHeight, i32 y) const;
+    [[nodiscard]] f32 _getBranchLength(i32 trunkHeight, i32 relY) const;
 
     /**
-     * @brief 检查并放置分支
+     * @brief 沿两点连线逐格推进，探测或放置方块
+     *
+     * @param place 为 true 时逐格放置方块，为 false 时仅探测路径是否通畅
      */
-    bool _checkAndPlaceBranch(WorldGenRegion& world,
-        math::Random& random,
-        const BlockPos& start,
-        const BlockPos& end,
-        bool place,
-        std::set<BlockPos>& trunkBlocks,
-        const BlockState* trunkBlock);
-
-    /**
-     * @brief 放置直线
-     */
-    void _placeLine(WorldGenRegion& world,
+    bool _makeLimb(WorldGenRegion& world,
         math::Random& random,
         const BlockPos& start,
         const BlockPos& end,
