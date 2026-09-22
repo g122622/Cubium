@@ -125,12 +125,10 @@ struct RocksDBConfig {
     // ========================================================================
 
     /// 是否启用WAL
+    ///
+    /// 关闭后进程崩溃即丢数据，只适合可重建的缓存型库；世界存档必须保持启用。
+    /// 是否**等待 fsync** 由 consistencyMode 单独决定，不由本字段决定。
     bool enableWAL = true;
-
-    /// WAL同步模式
-    /// - true: 每次写入后fsync
-    /// - false: 依赖操作系统刷盘
-    bool walSync = true;
 
     /// WAL文件复用数量
     /// 减少文件分配开销
@@ -240,15 +238,12 @@ struct RocksDBConfig {
     {
         rocksdb::WriteOptions options;
 
-        // WAL配置
+        // WAL 是否写入由 enableWAL 决定；每次写入是否等 fsync 由一致性模式决定。
+        // 这两件事必须分开表达：本函数此前把 sync 直接绑在单独一个布尔开关上，导致
+        // ConsistencyMode::Eventual（服务端实际使用的模式）对写路径完全无效，每次
+        // put/deleteRange 都白白付一次 fsync。
         options.disableWAL = !enableWAL;
-        options.sync = walSync;
-
-        // 一致性模式
-        ConsistencyConfig consistency{consistencyMode};
-        if (consistencyMode == ConsistencyMode::Strongest) {
-            options.sync = true;
-        }
+        options.sync = consistencyModeSyncsEveryWrite(consistencyMode);
 
         return options;
     }

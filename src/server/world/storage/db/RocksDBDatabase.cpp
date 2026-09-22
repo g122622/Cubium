@@ -264,6 +264,11 @@ Result<void> RocksDBDatabase::put(
 Result<void> RocksDBDatabase::put(
     const std::string& cfName, const rocksdb::Slice& key, const rocksdb::Slice& value, bool sync)
 {
+    // 空键在 RocksDB 里合法，但在本项目的键格式（section/entity/player 等）中必然是构造缺陷，
+    // 且它会静默变成一条永远查不到的行，污染列族。放在写入前挡住。
+    MC_ASSERT_RELEASE_MSG(!key.empty(), "RocksDBDatabase::put: refusing to write an empty key");
+    MC_ASSERT_RELEASE_MSG(!cfName.empty(), "RocksDBDatabase::put: column family name must not be empty");
+
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
         "RocksDBDatabase::put",
         "cf",
@@ -356,6 +361,10 @@ bool RocksDBDatabase::exists(const std::string& cfName, const std::vector<u8>& k
 Result<void> RocksDBDatabase::writeBatch(rocksdb::WriteBatch& batch, bool sync)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::writeBatch", "count", batch.Count(), "sync", sync);
+
+    // 空批次提交同样要付一次完整 WAL 写入（sync 时还要等一次 fsync），纯属浪费；
+    // 出现空批次说明调用方的"有没有要写的数据"判断漏了一处，直接暴露出来。
+    MC_ASSERT_RELEASE_MSG(batch.Count() > 0, "RocksDBDatabase::writeBatch: refusing to commit an empty WriteBatch");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
@@ -463,6 +472,11 @@ Result<void> RocksDBDatabase::deleteRange(
     if (!cf) {
         return Error(ErrorCode::NotFound, fmt::format("Column family not found: {}", cfName));
     }
+
+    // 结束键必须严格大于起始键：区间为空时 RocksDB 会返回 InvalidArgument，但更糟的是
+    // 调用方自以为删掉了整段前缀、实际一行没删，残留行会在下次加载时复活成重复实体。
+    MC_ASSERT_RELEASE_MSG(
+        startKey < endKey, "RocksDBDatabase::deleteRange: start key must sort strictly before end key");
 
     rocksdb::WriteOptions options = m_config.createWriteOptions();
 
@@ -658,8 +672,14 @@ void RocksDBDatabase::close()
 
     spdlog::info("Closing database at {}", m_path.string());
 
-    // 刷新所有数据
-    flush("", false);
+    // 刷新所有列族，并**等待**刷新完成后再拆句柄。
+    // 本层的写入默认不逐条 fsync（由一致性模式决定），memtable 里可能还压着数百 MB
+    // 只存在于 WAL 的数据；此时若不等待就销毁列族句柄与 DB 实例，这次会话的写入就只剩下
+    // WAL 一条退路——一旦 WAL 文件所在的页缓存丢失（如断电），本次会话的数据全部作废。
+    // 这是一次性开销（实测毫秒级），换掉整个会话的落盘保证是划算的。
+    if (auto flushResult = flush("", true); flushResult.failed()) {
+        spdlog::error("Failed to flush database before close: {}", flushResult.error().message());
+    }
 
     // 销毁所有列族句柄（必须在 delete m_db 之前调用）
     _destroyColumnFamilyHandles();

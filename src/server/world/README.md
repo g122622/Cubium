@@ -260,7 +260,10 @@ stack guard region`）而非 SIGSEGV，极易被误判为非法指令。
 每个维度 `ServerWorld` 都自己 `open()` 世界目录会导致下界/末地初始化时重复获取同一个 `WorldSessionLock`。**`SingleLevelStorageManager` 提升到 MinecraftServer 层，只初始化一次**。
 
 ### 共享存储重复全量保存
-三个 `ServerWorld` 共享存储，关服时如果每个都执行 `saveAll()` 会重复落盘。**共享存储的全量保存由 MinecraftServer 统一执行，`ServerWorld::shutdown()` 只释放自身资源**。
+三个 `ServerWorld` 共享存储，关服时如果每个都执行 `saveAll()` 会重复落盘。**共享存储的 section/玩家全量保存由 MinecraftServer 统一执行**；`ServerWorld::shutdown()` 只额外落盘**本维度自己**的实体（实体按维度归属，不存在重复），其 section 与玩家数据不在这里写。
+
+### 关服实体落盘必须合成一个批次
+`ServerWorld::shutdown()` 遍历全部已加载区块，把每个区块的"整段删除旧行 + 写存活实体"收集成 `ChunkEntityWrite`，**一次性**交给 `EntityStorageManager::replaceEntitiesInChunks` 提交。绝不能逐区块各提交一次：那是区块数量次 WAL fsync，视野距离 16 下 1089 个区块实测约 3.4 秒，而其中绝大多数区块根本没有实体、整段删除是空操作。`forEachLoadedChunk` 的结果条数必须与落盘条目数一一对应（有断言把关）——漏掉任一区块，它就不再是"清理 + 重写"的收敛状态，残留在盘上的旧行会在下次加载时复活成同 UUID 的重复实体。
 
 ### 析构函数里做业务关闭
 析构函数执行保存、发包、广播等业务逻辑会导致重复副作用。**析构函数只允许兜底式本地释放，`shutdown()/close()` 必须幂等**。

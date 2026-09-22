@@ -408,6 +408,76 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSna
     }
 }
 
+/**
+ * saveAll 把缓存里的全部段聚合成**一个** WriteBatch 提交（此前是逐段 put，等于逐段
+ * 等一次 WAL fsync）。聚合写入最容易出的错是"聚合过程中漏条目"或"把干净段跳过"，
+ * 两者都不会报错、只会静默少写数据，因此这里覆盖：
+ * - 跨维度、多条区块列的批量落盘，条数必须精确等于写入的段数
+ * - 连做两次 saveAll：契约是"无论是否脏都保存"，第二次条数必须不变（写完即标干净，
+ *   若实现错误地依赖脏标记，第二次会返回 0，落盘内容也就跟着丢了）
+ * - 重开后逐段校验内容，确保条数对只是巧合的可能性被排除
+ */
+TEST_F(SingleLevelStorageManagerTest, SaveAllPersistsEveryCachedSectionInOneBatch)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    config.consistencyMode = ConsistencyMode::Eventual;
+    config.sectionCacheCapacity = 256;
+
+    auto openResult = storage.open(testDir, config);
+    ASSERT_TRUE(openResult.success()) << openResult.error().message();
+
+    constexpr i32 CHUNK_COUNT = 12;
+    constexpr i8 SECTION_Y = 3;
+    constexpr u32 FILL_BASE = 1000;
+
+    for (const DimensionId dimension : {DimensionId(0), DimensionId(1)}) {
+        for (i32 i = 0; i < CHUNK_COUNT; ++i) {
+            ChunkData chunk(i, 7);
+            ChunkSection* section = chunk.createSection(SECTION_Y);
+            ASSERT_NE(section, nullptr);
+            section->setBlockStateId(0, 0, 0, FILL_BASE + static_cast<u32>(i));
+            chunk.setLoaded(true);
+            chunk.setFullyGenerated(true);
+            chunk.setDirty(false);
+
+            auto saveResult = storage.saveChunk(chunk, dimension);
+            ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+        }
+    }
+
+    const size_t expectedSections = static_cast<size_t>(CHUNK_COUNT) * 2;
+
+    auto firstSave = storage.saveAll();
+    ASSERT_TRUE(firstSave.success()) << firstSave.error().message();
+    EXPECT_EQ(firstSave.value(), expectedSections);
+
+    auto secondSave = storage.saveAll();
+    ASSERT_TRUE(secondSave.success()) << secondSave.error().message();
+    EXPECT_EQ(secondSave.value(), expectedSections)
+        << "saveAll 的契约是无论是否脏都保存，第二次不应跳过已标记为干净的段";
+
+    storage.close();
+
+    SingleLevelStorageManager reopened;
+    auto reopenResult = reopened.open(testDir, config);
+    ASSERT_TRUE(reopenResult.success()) << reopenResult.error().message();
+
+    for (const DimensionId dimension : {DimensionId(0), DimensionId(1)}) {
+        for (i32 i = 0; i < CHUNK_COUNT; ++i) {
+            auto loadResult = reopened.loadChunk(i, 7, dimension);
+            ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+            ASSERT_TRUE(loadResult.value().has_value()) << "chunk (" << i << ", 7) 在维度 " << dimension << " 未落盘";
+
+            const ChunkSection* reopenedSection = loadResult.value().value().getSection(SECTION_Y);
+            ASSERT_NE(reopenedSection, nullptr);
+            EXPECT_EQ(reopenedSection->getBlockStateId(0, 0, 0), FILL_BASE + static_cast<u32>(i));
+        }
+    }
+
+    reopened.close();
+}
+
 TEST_F(SingleLevelStorageManagerTest, InvalidSectionKey)
 {
     SingleLevelStorageManager storage;

@@ -377,6 +377,18 @@ private:
     Result<std::vector<std::shared_ptr<const SectionData>>> _loadFromDatabaseBatch(const std::vector<SectionKey>& keys);
 
     /**
+     * @brief 按配置把 Section 序列化为待写入数据库的字节
+     *
+     * 统一收敛"是否需要先算哈希"这个分支：computeHash 开启时在本地副本上算，
+     * 绝不原地修改缓存里的共享 SectionData。所有写路径都必须经由此方法，
+     * 否则不同路径写出的字节会不一致。
+     *
+     * @param data Section数据
+     * @return 序列化结果，失败返回错误
+     */
+    Result<std::vector<u8>> _serializeSection(const SectionData& data);
+
+    /**
      * @brief 保存Section到数据库
      */
     Result<void> _saveToDatabase(const SectionKey& key, const SectionData& data, bool sync = false);

@@ -14,6 +14,7 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/entity/EntityStorageManager.hpp"
 #include <filesystem>
 #include <functional>
 #include <gtest/gtest.h>
@@ -210,6 +211,89 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
     ASSERT_TRUE(newChunkResult.success()) << newChunkResult.error().message();
     ASSERT_EQ(newChunkResult.value().size(), 1u);
     EXPECT_NEAR(newChunkResult.value()[0]->x(), 33.0f, 0.001f);
+}
+
+/**
+ * EntityStorageManager::replaceEntitiesInChunks 是关服落盘路径，它把上百个区块的
+ * "整段删除 + 写存活实体"聚合成一次 WriteBatch 提交。本用例用四个区块覆盖它的全部语义：
+ *
+ * - (0,0) 批次条目为空  → 必须清空该前缀下的残留行（"存档尸体"）
+ * - (1,0) 同一批内先删后写 → 旧行消失、新行存活（验证批内顺序语义，见 RocksDBDatabaseTest）
+ * - (2,0) 批次内新增     → 新行必须落盘
+ * - (3,0) 不在批次内     → 原样保留，不能被别的区块的删除误伤
+ */
+TEST_F(ServerWorldPersistenceTest, ReplaceEntitiesInChunksRemovesStaleRowsAcrossChunksInOneBatch)
+{
+    auto world = createWorld();
+
+    auto* entityStorage = m_storage.entityStorage();
+    ASSERT_NE(entityStorage, nullptr);
+
+    // 显式指定 UUID，使断言可以按"键是否存在"精确校验，不依赖反序列化是否还原 UUID。
+    auto makeEntity = [&world](const std::string& uuid) {
+        auto entity = std::make_unique<Entity>(0, world.get(), mc::test::testEcsRegistry());
+        entity->setTypeId("minecraft:unknown");
+        entity->setUuid(uuid);
+        return entity;
+    };
+
+    const std::string uuidA = "00000000-0000-0000-0000-00000000000a";
+    const std::string uuidB = "00000000-0000-0000-0000-00000000000b";
+    const std::string uuidC = "00000000-0000-0000-0000-00000000000c";
+
+    auto entityA = makeEntity(uuidA);
+    auto entityB = makeEntity(uuidB);
+    auto entityC = makeEntity(uuidC);
+
+    // 预置盘上状态：模拟上一次会话留下的记录
+    ASSERT_TRUE(entityStorage->saveEntity(*entityA, 0, 0, 0).success());
+    ASSERT_TRUE(entityStorage->saveEntity(*entityC, 1, 0, 0).success());
+    ASSERT_TRUE(entityStorage->saveEntity(*entityC, 3, 0, 0).success());
+
+    std::vector<world::storage::ChunkEntityWrite> writes;
+
+    world::storage::ChunkEntityWrite clearOnly;
+    clearOnly.chunkX = 0;
+    clearOnly.chunkZ = 0;
+    writes.push_back(std::move(clearOnly));
+
+    world::storage::ChunkEntityWrite replaceInPlace;
+    replaceInPlace.chunkX = 1;
+    replaceInPlace.chunkZ = 0;
+    replaceInPlace.entities.emplace_back(*entityB);
+    writes.push_back(std::move(replaceInPlace));
+
+    world::storage::ChunkEntityWrite freshWrite;
+    freshWrite.chunkX = 2;
+    freshWrite.chunkZ = 0;
+    freshWrite.entities.emplace_back(*entityA);
+    writes.push_back(std::move(freshWrite));
+
+    auto batchResult = entityStorage->replaceEntitiesInChunks(writes, 0, true);
+    ASSERT_TRUE(batchResult.success()) << batchResult.error().message();
+
+    // (0,0)：空条目只做整段删除，残留行必须消失
+    auto chunk00 = entityStorage->loadEntitiesInChunk(0, 0, 0, mc::test::testEcsRegistry());
+    ASSERT_TRUE(chunk00.success()) << chunk00.error().message();
+    EXPECT_TRUE(chunk00.value().empty()) << "批次中的空条目没有清空该区块的残留行";
+
+    // (1,0)：同一批内先删后写
+    auto loadedB = entityStorage->loadEntity(uuidB, 1, 0, 0, mc::test::testEcsRegistry());
+    ASSERT_TRUE(loadedB.success()) << "同一批内后写入的实体行被 RangeTombstone 一并抹掉了";
+    EXPECT_NE(loadedB.value(), nullptr);
+
+    auto loadedCInChunk1 = entityStorage->loadEntity(uuidC, 1, 0, 0, mc::test::testEcsRegistry());
+    EXPECT_FALSE(loadedCInChunk1.success()) << "同一批内的整段删除没有清除该区块的旧行";
+
+    // (2,0)：新增的行必须落盘
+    auto loadedA = entityStorage->loadEntity(uuidA, 2, 0, 0, mc::test::testEcsRegistry());
+    ASSERT_TRUE(loadedA.success()) << "批次中新增的实体行未落盘";
+    EXPECT_NE(loadedA.value(), nullptr);
+
+    // (3,0)：不在批次内，必须原样保留
+    auto loadedCInChunk3 = entityStorage->loadEntity(uuidC, 3, 0, 0, mc::test::testEcsRegistry());
+    ASSERT_TRUE(loadedCInChunk3.success()) << "批次外的区块被误删";
+    EXPECT_NE(loadedCInChunk3.value(), nullptr);
 }
 
 } // namespace

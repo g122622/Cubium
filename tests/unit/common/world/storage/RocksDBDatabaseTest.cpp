@@ -24,7 +24,10 @@
 #include "server/world/storage/db/RocksDBDatabase.hpp"
 #include "common/TempDirHelper.hpp"
 #include "server/world/storage/db/ColumnFamilies.hpp"
+#include "server/world/storage/db/ConsistencyMode.hpp"
+#include "server/world/storage/db/RocksDBConfig.hpp"
 #include <filesystem>
+#include <string>
 #include <vector>
 #include <gtest/gtest.h>
 
@@ -535,6 +538,92 @@ TEST_F(RocksDBDatabaseTest, Property)
 // ============================================================================
 // ClosedDatabase 操作
 // ============================================================================
+
+// ============================================================================
+// 批次内 DeleteRange 与 Put 的顺序语义
+// ============================================================================
+
+/**
+ * 回归测试：同一个 WriteBatch 内"先 DeleteRange 整段删除、再 Put 新行"必须得到
+ * "旧行消失、新行存活"的结果。
+ *
+ * EntityStorageManager::replaceEntitiesInChunks 完全建立在这个语义之上：它把每个区块的
+ * 整段删除与该区块存活实体的写入放进同一个批次。若 RocksDB 让先插入的 RangeTombstone
+ * 覆盖后插入的 Put，那批内刚写进去的实体会被自己那条删除指令抹掉，表现为关服/卸载后
+ * 区块里的实体全部消失——而且不会有任何报错。
+ */
+TEST_F(RocksDBDatabaseTest, WriteBatchDeleteRangeThenPutKeepsNewEntries)
+{
+    auto result = RocksDBDatabase::open(getDbPath("batch_range_delete"));
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto db = std::move(result.value());
+
+    auto* cf = db->getCF(cf::ENTITIES_OVERWORLD);
+    ASSERT_NE(cf, nullptr);
+
+    const std::vector<u8> staleA{'0', ':', '0', ':', 'a'};
+    const std::vector<u8> staleB{'0', ':', '0', ':', 'b'};
+    const std::string freshKey = "0:0:c";
+
+    // 预置两行"存档尸体"，模拟上一次会话遗留在该区块前缀下的记录
+    ASSERT_TRUE(db->put(cf::ENTITIES_OVERWORLD, staleA, {9}).success());
+    ASSERT_TRUE(db->put(cf::ENTITIES_OVERWORLD, staleB, {9}).success());
+    ASSERT_TRUE(db->exists(cf::ENTITIES_OVERWORLD, staleA));
+    ASSERT_TRUE(db->exists(cf::ENTITIES_OVERWORLD, staleB));
+
+    const std::string prefix = "0:0:";
+    const std::string endKey = prefix + static_cast<char>(0xFF);
+
+    rocksdb::WriteBatch batch;
+    batch.DeleteRange(cf, rocksdb::Slice(prefix.data(), prefix.size()), rocksdb::Slice(endKey.data(), endKey.size()));
+    batch.Put(cf, rocksdb::Slice(freshKey.data(), freshKey.size()), rocksdb::Slice("value-c"));
+    ASSERT_TRUE(db->writeBatch(batch, true).success());
+
+    EXPECT_FALSE(db->exists(cf::ENTITIES_OVERWORLD, staleA)) << "批内的 RangeTombstone 未清除旧行";
+    EXPECT_FALSE(db->exists(cf::ENTITIES_OVERWORLD, staleB)) << "批内的 RangeTombstone 未清除旧行";
+
+    auto freshResult = db->get(cf::ENTITIES_OVERWORLD, rocksdb::Slice(freshKey.data(), freshKey.size()));
+    ASSERT_TRUE(freshResult.success()) << "同一批内后写入的行被 RangeTombstone 一并抹掉了";
+    EXPECT_EQ(freshResult.value(), (std::vector<u8>{'v', 'a', 'l', 'u', 'e', '-', 'c'}));
+
+    db->close();
+}
+
+// ============================================================================
+// 一致性模式对默认写入选项的映射
+// ============================================================================
+
+/**
+ * 回归测试：ConsistencyMode 必须真正决定默认写入是否等待 WAL fsync。
+ *
+ * 历史缺陷：createWriteOptions() 构造了一个 ConsistencyConfig 却从未使用它，options.sync
+ * 实际取自 RocksDBConfig::walSync（默认 true），于是服务端显式配置的
+ * ConsistencyMode::Eventual 被完全架空——每次 put/deleteRange 都仍要等一次 fsync，
+ * 关服 2048 个 section + 1089 次范围删除因此多花了约 10 秒。
+ */
+TEST_F(RocksDBDatabaseTest, ConsistencyModeControlsDefaultWriteSync)
+{
+    EXPECT_FALSE(consistencyModeSyncsEveryWrite(ConsistencyMode::Eventual));
+    EXPECT_FALSE(consistencyModeSyncsEveryWrite(ConsistencyMode::Strong));
+    EXPECT_TRUE(consistencyModeSyncsEveryWrite(ConsistencyMode::Strongest));
+
+    for (const ConsistencyMode mode :
+        {ConsistencyMode::Eventual, ConsistencyMode::Strong, ConsistencyMode::Strongest}) {
+        RocksDBConfig config;
+        config.consistencyMode = mode;
+
+        const rocksdb::WriteOptions options = config.createWriteOptions();
+        EXPECT_EQ(options.sync, consistencyModeSyncsEveryWrite(mode)) << "consistencyMode=" << static_cast<i32>(mode);
+
+        // sync 只决定是否等待 fsync；WAL 本身始终写入，因此进程崩溃后仍可由 WAL 回放恢复
+        EXPECT_FALSE(options.disableWAL) << "consistencyMode=" << static_cast<i32>(mode);
+    }
+
+    // 只有显式关闭 WAL 才会禁用 WAL 写入，与一致性模式无关
+    RocksDBConfig walDisabled;
+    walDisabled.enableWAL = false;
+    EXPECT_TRUE(walDisabled.createWriteOptions().disableWAL);
+}
 
 TEST_F(RocksDBDatabaseTest, OperationsOnClosedDatabase)
 {

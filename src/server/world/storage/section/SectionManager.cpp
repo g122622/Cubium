@@ -356,6 +356,11 @@ Result<size_t> SectionManager::flushDirtySections()
 
     spdlog::info("Flushing {} dirty sections", dirtySections.size());
 
+    auto* cf = m_db.getCF(m_cfName);
+    if (cf == nullptr) {
+        return Error(ErrorCode::InvalidState, fmt::format("Column family not found: {}", m_cfName));
+    }
+
     // 批量保存
     rocksdb::WriteBatch batch;
     size_t savedCount = 0;
@@ -367,7 +372,7 @@ Result<size_t> SectionManager::flushDirtySections()
         }
 
         // 序列化Section
-        auto serializeResult = data->serialize();
+        auto serializeResult = _serializeSection(*data);
         if (!serializeResult.success()) {
             spdlog::error("Failed to serialize section at ({}, {}, {}): {}",
                 key.chunkX,
@@ -383,11 +388,6 @@ Result<size_t> SectionManager::flushDirtySections()
 
         rocksdb::Slice keySlice(reinterpret_cast<const char*>(keyBytes.data()), keyBytes.size());
         rocksdb::Slice valueSlice(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size());
-
-        auto* cf = m_db.getCF(m_cfName);
-        if (!cf) {
-            return Error(ErrorCode::InvalidState, fmt::format("Column family not found: {}", m_cfName));
-        }
 
         batch.Put(cf, keySlice, valueSlice);
         ++savedCount;
@@ -427,20 +427,79 @@ Result<size_t> SectionManager::saveAll()
 
     // 获取所有缓存中的Section，确保 saveAll 真正保存全部内容。
     auto allSections = m_cache.getAllSections();
-    size_t savedCount = 0;
+    if (allSections.empty()) {
+        return 0;
+    }
+
+    auto* cf = m_db.getCF(m_cfName);
+    if (cf == nullptr) {
+        return Error(ErrorCode::InvalidState, fmt::format("Column family not found: {}", m_cfName));
+    }
+
+    // 全部 section 聚合成**一个** WriteBatch，结束时只提交一次。
+    //
+    // 逐条 put 会把这里放大成 section 数量次独立的 WAL 写入、每次各等一次 fsync：
+    // 视野距离 16 下缓存里有 2048 个 section，实测 6.6 秒几乎全部耗在 fsync 等待上，
+    // 而这段数据的量级（约 100MB）本身只需要几十毫秒就能写完。RocksDB 的
+    // WriteBatch 对每次提交只付一次 fsync，代价只是把待写数据先在内存里攒齐。
+    rocksdb::WriteBatch batch;
+    std::vector<SectionKey> writtenKeys;
+    writtenKeys.reserve(allSections.size());
 
     for (const auto& [key, data] : allSections) {
         if (!data) {
             continue;
         }
 
-        auto result = saveSectionSync(key, *data, false);
-        if (result.success()) {
-            ++savedCount;
+        // 缓存里只应存在本维度的 section：维度写错会把整批数据落到别的列族，
+        // 而按本维度再也读不回来，属于静默丢档。
+        MC_ASSERT_RELEASE_MSG(key.dimension == m_dimension,
+            "SectionManager::saveAll: section key dimension does not match this manager's dimension");
+
+        auto serializeResult = _serializeSection(*data);
+        if (serializeResult.failed()) {
+            // 单个 section 序列化失败不该让整次全量保存失败：其余 section 仍要落盘，
+            // 失败项保持脏标记，留给下一次保存重试。
+            spdlog::error("Failed to serialize section at ({}, {}, {}) during saveAll: {}",
+                key.chunkX,
+                key.chunkZ,
+                static_cast<i32>(key.sectionY),
+                serializeResult.error().message());
+            continue;
         }
+
+        auto keyBytes = key.toKey();
+        const auto& valueBytes = serializeResult.value();
+        batch.Put(cf,
+            rocksdb::Slice(reinterpret_cast<const char*>(keyBytes.data()), keyBytes.size()),
+            rocksdb::Slice(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()));
+        writtenKeys.push_back(key);
     }
 
-    return savedCount;
+    // 批次条目数必须与记录的键数严格一致：少了说明有条目被静默吞掉（那些 section 会
+    // 在"已保存"的假象下丢掉），多了说明同一条目被重复计入。
+    MC_ASSERT_RELEASE(batch.Count() == writtenKeys.size());
+    MC_ASSERT_RELEASE(writtenKeys.size() <= allSections.size());
+
+    if (writtenKeys.empty()) {
+        return 0;
+    }
+
+    // 全量保存服务于关服与显式 /save-all，返回前必须等 WAL fsync 落盘；
+    // 有 WriteBatch 在，这份保证只要付一次 fsync 的钱。
+    auto writeResult = m_db.writeBatch(batch, true);
+    if (writeResult.failed()) {
+        return writeResult.error();
+    }
+
+    // 只清理已成功提交的键，避免序列化失败的数据被错误标记为干净。
+    for (const SectionKey& key : writtenKeys) {
+        m_cache.markClean(key);
+        std::lock_guard<std::mutex> lock(m_dirtyMutex);
+        m_dirtySet.erase(key);
+    }
+
+    return writtenKeys.size();
 }
 
 // ============================================================================
@@ -718,6 +777,19 @@ Result<std::vector<std::shared_ptr<const SectionData>>> SectionManager::_loadFro
     return results;
 }
 
+Result<std::vector<u8>> SectionManager::_serializeSection(const SectionData& data)
+{
+    // 需要预计算哈希（用于快照去重）时必须改在本地副本上做：data 可能是缓存里的共享对象，
+    // 原地 computeHash 会写坏其他读者看到的 SectionData。
+    if (m_config.computeHash) {
+        SectionData dataToSerialize = data;
+        dataToSerialize.computeHash();
+        return dataToSerialize.serialize();
+    }
+
+    return data.serialize();
+}
+
 Result<void> SectionManager::_saveToDatabase(const SectionKey& key, const SectionData& data, bool sync)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Section,
@@ -731,32 +803,14 @@ Result<void> SectionManager::_saveToDatabase(const SectionKey& key, const Sectio
         "sync",
         sync);
 
-    // 计算哈希时使用本地副本，避免原地修改共享缓存对象
-    if (m_config.computeHash) {
-        SectionData dataToSerialize = data;
-        dataToSerialize.computeHash();
-
-        const bool syncWrites = sync || m_config.consistencyMode != ConsistencyMode::Eventual;
-
-        auto serializeResult = dataToSerialize.serialize();
-        if (!serializeResult.success()) {
-            return serializeResult.error();
-        }
-
-        // 写入数据库
-        auto keyBytes = key.toKey();
-        return m_db.put(m_cfName, keyBytes, serializeResult.value(), syncWrites);
-    }
-
-    const bool syncWrites = sync || m_config.consistencyMode != ConsistencyMode::Eventual;
-
-    // 序列化
-    auto serializeResult = data.serialize();
+    auto serializeResult = _serializeSection(data);
     if (!serializeResult.success()) {
         return serializeResult.error();
     }
 
-    // 写入数据库
+    // 单条写入的 fsync 由一致性模式与调用方的 sync 共同决定
+    const bool syncWrites = sync || m_config.consistencyMode != ConsistencyMode::Eventual;
+
     auto keyBytes = key.toKey();
     return m_db.put(m_cfName, keyBytes, serializeResult.value(), syncWrites);
 }

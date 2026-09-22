@@ -293,47 +293,55 @@ void ServerWorld::shutdown()
     // 先保存所有已加载区块内的实体
     if (m_storage && m_storage->isOpen() && m_chunkManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::SaveEntitiesInChunks");
-        m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
-            auto* entityStorage = m_storage->entityStorage();
-            if (entityStorage == nullptr) {
-                return true;
-            }
 
-            // 走 3D section 空间索引取该 chunk 列内全部实体 ID（遍历该 (cx,cz) 列 24 个 section 合并）。
-            // 区块卸载/关机保存是低频操作，24 次哈希查找 vs 原 tracker 单次查找，差异可忽略。
-            auto entityIds = m_entityManager.spatialIndex().getEntityIdsInChunkColumn(chunk.x(), chunk.z());
+        auto* entityStorage = m_storage->entityStorage();
+        if (entityStorage != nullptr) {
+            // 逐区块收集"先删前缀、再写存活实体"的落盘意图，最后用一个批次一次性提交。
+            // 绝不能让每个区块各自提交：那是区块数量次 WAL fsync，视野距离 16 下 1089 个
+            // 区块实测约 3.4 秒，而其中绝大多数区块根本没有实体、整段删除是空操作。
+            std::vector<world::storage::ChunkEntityWrite> writes;
+            size_t loadedChunkCount = 0;
 
-            // 与 ServerWorld::onChunkUnloading 一致的"先删前缀、再写存活实体"同步。
-            // 列内没有实体时**更**必须删除：那些行的实体早已离开本区块，跳过删除会把
-            // "存档尸体"永久留在盘上，下次加载本区块时复活成同 UUID 的重复实体。
-            auto deleteResult = entityStorage->deleteEntitiesInChunk(chunk.x(), chunk.z(), m_config.dimension);
-            if (deleteResult.failed()) {
-                spdlog::error("Failed to clear old entity records for chunk ({}, {}) during shutdown: {}",
-                    chunk.x(),
-                    chunk.z(),
-                    deleteResult.error().message());
-            }
+            m_chunkManager->forEachLoadedChunk([this, &writes, &loadedChunkCount](ChunkData& chunk) {
+                ++loadedChunkCount;
 
-            std::vector<std::reference_wrapper<Entity>> entitiesToSave;
-            entitiesToSave.reserve(entityIds.size());
-            for (EntityInstanceId id : entityIds) {
-                Entity* entity = m_entityManager.getEntity(id);
-                if (entity) {
-                    entitiesToSave.emplace_back(*entity);
+                world::storage::ChunkEntityWrite write;
+                write.chunkX = chunk.x();
+                write.chunkZ = chunk.z();
+
+                // 走 3D section 空间索引取该 chunk 列内全部实体 ID（遍历该 (cx,cz) 列 24 个 section 合并）。
+                // 区块卸载/关机保存是低频操作，24 次哈希查找 vs 原 tracker 单次查找，差异可忽略。
+                auto entityIds = m_entityManager.spatialIndex().getEntityIdsInChunkColumn(chunk.x(), chunk.z());
+                write.entities.reserve(entityIds.size());
+                for (EntityInstanceId id : entityIds) {
+                    Entity* entity = m_entityManager.getEntity(id);
+                    if (entity) {
+                        write.entities.emplace_back(*entity);
+                    }
                 }
-            }
-            if (!entitiesToSave.empty()) {
-                auto saveResult =
-                    entityStorage->saveEntitiesInChunk(entitiesToSave, chunk.x(), chunk.z(), m_config.dimension);
+                // 空间索引里取到的 ID 不该多于索引返回的 ID 数；少掉的是"索引里有、管理器里没有"
+                // 的悬空 ID，属索引与管理器失同步，必须暴露而不是悄悄少存实体。
+                MC_ASSERT_RELEASE(write.entities.size() <= entityIds.size());
+
+                writes.push_back(std::move(write));
+                return true;
+            });
+
+            // 每个已加载区块都必须产出一个落盘条目：漏掉任何一个，该区块的实体就既不会被
+            // 更新、也不会被整段清理，"存档尸体"会留在盘上，下次加载复活成重复实体。
+            MC_ASSERT_RELEASE_MSG(writes.size() == loadedChunkCount,
+                "ServerWorld::shutdown: every loaded chunk must yield exactly one entity write entry");
+
+            if (!writes.empty()) {
+                // 关服是最后的落盘点，要求这次提交等待 fsync 完成后再返回。
+                auto saveResult = entityStorage->replaceEntitiesInChunks(writes, m_config.dimension, true);
                 if (saveResult.failed()) {
-                    spdlog::error("Failed to save entities for chunk ({}, {}) during shutdown: {}",
-                        chunk.x(),
-                        chunk.z(),
+                    spdlog::error("Failed to save entities of {} loaded chunks during shutdown: {}",
+                        writes.size(),
                         saveResult.error().message());
                 }
             }
-            return true;
-        });
+        }
     }
 
     // 先清理袭击管理器（可能引用村庄）
@@ -2256,20 +2264,7 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
         return;
     }
 
-    // 无条件清空该区块前缀下的实体行，再写入当前列内的存活实体——这是一个"同步"操作，
-    // 完成后必须满足不变量：【前缀 `x:z:` 下的行集合 ≡ 存档归属该区块的存活实体集合】。
-    //
-    // 绝不能因列内没有实体就跳过删除：实体离开本区块（被拾取、合并、超龄消失、跨区块漂移）后，
-    // 它在原区块前缀下的行仍在，而本区块的列已经空了。跳过删除会把这具"存档尸体"永久留在盘上，
-    // 此后每次加载本区块都把它复活成一个与现存实例同 UUID 的重复实体——重复实例撞 UUID 后
-    // 旧实例不被回收，堆积成常驻内存（实测单次会话即可堆积 15 万条、占用 388 MB）。
-    auto deleteResult = entityStorage->deleteEntitiesInChunk(x, z, m_config.dimension);
-    if (deleteResult.failed()) {
-        spdlog::error(
-            "Failed to clear old entity records for chunk ({}, {}): {}", x, z, deleteResult.error().message());
-    }
-
-    // 收集实体引用用于批量保存
+    // 收集实体引用；列内没有实体时 entities 为空，落盘仍会整段删除该区块。
     std::vector<std::reference_wrapper<Entity>> entitiesToSave;
     entitiesToSave.reserve(entityIds.size());
 
@@ -2279,13 +2274,27 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
             entitiesToSave.emplace_back(*entity);
         }
     }
+    // 少掉的是"空间索引里有、EntityManager 里没有"的悬空 ID，属索引与管理器失同步；
+    // 它会让实体既不被保存也不被移除，必须暴露而不是悄悄吞掉。
+    MC_ASSERT_RELEASE(entitiesToSave.size() <= entityIds.size());
 
-    // 批量保存
-    if (!entitiesToSave.empty()) {
-        auto saveResult = entityStorage->saveEntitiesInChunk(entitiesToSave, x, z, m_config.dimension);
-        if (saveResult.failed()) {
-            spdlog::error("Failed to save entities for chunk ({}, {}): {}", x, z, saveResult.error().message());
-        }
+    // 无条件清空该区块前缀下的实体行，再写入当前列内的存活实体——这是一个"同步"操作，
+    // 完成后必须满足不变量：【前缀 `x:z:` 下的行集合 ≡ 存档归属该区块的存活实体集合】。
+    //
+    // 绝不能因列内没有实体就跳过删除：实体离开本区块（被拾取、合并、超龄消失、跨区块漂移）后，
+    // 它在原区块前缀下的行仍在，而本区块的列已经空了。跳过删除会把这具"存档尸体"永久留在盘上，
+    // 此后每次加载本区块都把它复活成一个与现存实例同 UUID 的重复实体——重复实例撞 UUID 后
+    // 旧实例不被回收，堆积成常驻内存（实测单次会话即可堆积 15 万条、占用 388 MB）。
+    // 带空实体的 ChunkEntityWrite 正是"只整段删除"。
+    //
+    // 单区块也走批量接口：它把"1 次范围删除 + N 次实体写入"合成一次 RocksDB 写入，
+    // 而逐条 put 会让每次卸载各付 N+1 次 WAL fsync。
+    std::vector<world::storage::ChunkEntityWrite> writes;
+    writes.push_back(world::storage::ChunkEntityWrite{x, z, std::move(entitiesToSave)});
+
+    auto saveResult = entityStorage->replaceEntitiesInChunks(writes, m_config.dimension, false);
+    if (saveResult.failed()) {
+        spdlog::error("Failed to replace entity records for chunk ({}, {}): {}", x, z, saveResult.error().message());
     }
 
     // 从世界移除实体（先发 destroy 包并取消追踪，再从 EntityManager 移除）

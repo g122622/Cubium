@@ -31,50 +31,39 @@ namespace mc::world::storage {
 /**
  * @brief 一致性模式
  *
- * 控制RocksDB写入的持久化级别。
+ * 只控制一件事：RocksDB 的**默认**写入是否需要等待 WAL fsync。
+ *
+ * 无论哪个模式，WAL 都照常写入，因此进程崩溃后的数据都能由 WAL 回放恢复；各模式
+ * 的差别只在于是否抵御操作系统崩溃/断电。需要额外保证的关键写入（关服全量保存、
+ * 显式 flush）不必切换到 Strongest，直接在同步接口上要求一次 sync 即可
+ * （见 put(..., sync=true) / writeBatch(batch, sync=true)）。
  */
 enum class ConsistencyMode : u8 {
-    /// 强一致性：关键写入使用WAL+sync，事务跨列族原子性
-    /// 适合：服务器关闭、重要操作
-    Strong,
-
-    /// 最终一致性：区块写入不sync，依赖后台压缩持久化
-    /// 适合：正常游戏运行
+    /// 最终一致性：默认写入不等待 WAL fsync，依赖 WAL 回放与后台压缩持久化。
+    /// 适合：正常游戏运行的区块/实体/玩家写入。
     Eventual,
 
-    /// 最强一致性：每个区块写入都sync
-    /// 适合：崩溃测试、开发调试
+    /// 强一致性：默认写入同样不逐条 fsync；关键写入由调用方显式要求同步。
+    /// 适合：默认配置。
+    Strong,
+
+    /// 最强一致性：每次写入都等待 WAL fsync。
+    /// 适合：崩溃测试、开发调试。
     Strongest
 };
 
 /**
- * @brief 一致性配置
+ * @brief 该一致性模式下，默认写入是否需要等待 WAL fsync
  *
- * 根据一致性模式返回适当的RocksDB配置。
+ * 描述的是"默认值"：即便返回 false，调用方仍可通过同步接口把单次写入提升为
+ * 同步落盘，无需切换到 Strongest。
+ *
+ * @param mode 一致性模式
+ * @return Strongest 为 true，其余为 false
  */
-struct ConsistencyConfig {
-    ConsistencyMode mode = ConsistencyMode::Strong;
-
-    /**
-     * @brief 是否启用WAL同步
-     *
-     * - Strong: true（关键写入）
-     * - Eventual: false
-     * - Strongest: true（所有写入）
-     */
-    [[nodiscard]] bool walSync() const noexcept
-    {
-        return mode == ConsistencyMode::Strong || mode == ConsistencyMode::Strongest;
-    }
-
-    /**
-     * @brief 是否在每次写入后sync
-     *
-     * - Strong: false（仅关键写入sync）
-     * - Eventual: false
-     * - Strongest: true
-     */
-    [[nodiscard]] bool syncOnWrite() const noexcept { return mode == ConsistencyMode::Strongest; }
-};
+[[nodiscard]] constexpr bool consistencyModeSyncsEveryWrite(ConsistencyMode mode) noexcept
+{
+    return mode == ConsistencyMode::Strongest;
+}
 
 } // namespace mc::world::storage

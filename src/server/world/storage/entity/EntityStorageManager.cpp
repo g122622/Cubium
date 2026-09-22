@@ -27,7 +27,10 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "server/world/storage/db/ColumnFamilies.hpp"
 #include "server/world/storage/db/RocksDBDatabase.hpp"
 #include "server/world/storage/entity/EntityKey.hpp"
@@ -38,10 +41,14 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <fmt/format.h>
 #include <rocksdb/slice.h>
+#include <rocksdb/write_batch.h>
+
+using namespace mc::trace;
 
 namespace mc::world::storage {
 
@@ -102,6 +109,9 @@ EntityStorageManager::EntityStorageManager(RocksDBDatabase& db)
 Result<void> EntityStorageManager::saveEntity(
     const Entity& entity, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
+    MC_ASSERT_RELEASE_MSG(
+        isValidChunkCoord(chunkX, chunkZ), "EntityStorageManager::saveEntity: chunk coordinate out of world bounds");
+
     // 乘客不单独落盘：乘客作为载具 Passengers 标签的一部分被递归序列化，
     // 参考 MC Java: Entity.save → isPassenger 时返回 false，不写入顶层 Entities 列表。
     // 若乘客也单独保存，会在区块中产生冗余记录，反序列化时与载具的 Passengers 重复 spawn。
@@ -115,25 +125,16 @@ Result<void> EntityStorageManager::saveEntity(
         return binaryResult.error();
     }
 
-    // 键由调用方给出的区块坐标构造，**不**按实体当前位置推导：落键必须与
-    // deleteEntitiesInChunk 的"按区块前缀整段删除"共用同一坐标口径。若按实体位置落键，
-    // 实体一旦跨区块漂移，它写出的键就落在删除范围之外，旧行永远清不掉。
-    EntityKey key;
-    key.chunkX = chunkX;
-    key.chunkZ = chunkZ;
-    key.uuid = entity.uuid();
-    MC_ASSERT_RELEASE_MSG(
-        !key.uuid.empty(), "EntityStorageManager::saveEntity: refusing to persist an entity with an empty UUID");
-
-    auto dbKey = _makeKey(key);
-
-    // 写入数据库
-    return m_db.put(_columnFamilyName(dimension), dbKey, binaryResult.value());
+    return m_db.put(_columnFamilyName(dimension), _makeEntityDbKey(entity, chunkX, chunkZ), binaryResult.value());
 }
 
 Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
     const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry)
 {
+    MC_ASSERT_RELEASE_MSG(!uuid.empty(), "EntityStorageManager::loadEntity: entity UUID must not be empty");
+    MC_ASSERT_RELEASE_MSG(
+        isValidChunkCoord(chunkX, chunkZ), "EntityStorageManager::loadEntity: chunk coordinate out of world bounds");
+
     EntityKey key{chunkX, chunkZ, uuid};
     auto dbKey = _makeKey(key);
 
@@ -153,6 +154,10 @@ Result<std::unique_ptr<Entity>> EntityStorageManager::loadEntity(
 Result<void> EntityStorageManager::deleteEntity(
     const std::string& uuid, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
+    MC_ASSERT_RELEASE_MSG(!uuid.empty(), "EntityStorageManager::deleteEntity: entity UUID must not be empty");
+    MC_ASSERT_RELEASE_MSG(
+        isValidChunkCoord(chunkX, chunkZ), "EntityStorageManager::deleteEntity: chunk coordinate out of world bounds");
+
     EntityKey key{chunkX, chunkZ, uuid};
     auto dbKey = _makeKey(key);
     return m_db.del(_columnFamilyName(dimension), dbKey);
@@ -163,6 +168,9 @@ Result<void> EntityStorageManager::deleteEntity(
 Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesInChunk(
     ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension, ecs::EntityRegistry& registry)
 {
+    MC_ASSERT_RELEASE_MSG(isValidChunkCoord(chunkX, chunkZ),
+        "EntityStorageManager::loadEntitiesInChunk: chunk coordinate out of world bounds");
+
     std::vector<std::unique_ptr<Entity>> entities;
 
     auto prefix = _makeChunkPrefixKey(chunkX, chunkZ);
@@ -215,6 +223,9 @@ Result<void> EntityStorageManager::saveEntitiesInChunk(const std::vector<std::re
     ChunkCoord chunkZ,
     DimensionId dimension)
 {
+    MC_ASSERT_RELEASE_MSG(isValidChunkCoord(chunkX, chunkZ),
+        "EntityStorageManager::saveEntitiesInChunk: chunk coordinate out of world bounds");
+
     // 所有实体一律落在传入的区块坐标下，与调用方枚举它们的区块列、以及
     // deleteEntitiesInChunk 的删除范围保持同一口径。
     for (const auto& entityRef : entities) {
@@ -234,9 +245,91 @@ Result<void> EntityStorageManager::saveEntitiesInChunk(const std::vector<std::re
 
 Result<void> EntityStorageManager::deleteEntitiesInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
+    MC_ASSERT_RELEASE_MSG(isValidChunkCoord(chunkX, chunkZ),
+        "EntityStorageManager::deleteEntitiesInChunk: chunk coordinate out of world bounds");
+
     auto startKey = _makeChunkPrefixKey(chunkX, chunkZ);
     auto endKey = _makeChunkEndKey(chunkX, chunkZ);
     return m_db.deleteRange(_columnFamilyName(dimension), startKey, endKey);
+}
+
+Result<void> EntityStorageManager::replaceEntitiesInChunks(
+    const std::vector<ChunkEntityWrite>& writes, DimensionId dimension, bool sync)
+{
+    MC_TRACE_SCOPED_EVENT(
+        TraceEvents.Storage.Db, "EntityStorageManager::replaceEntitiesInChunks", "chunks", writes.size(), "sync", sync);
+
+    if (writes.empty()) {
+        return Result<void>::ok();
+    }
+
+    const char* cfName = _columnFamilyName(dimension);
+    auto* cf = m_db.getCF(cfName);
+    if (cf == nullptr) {
+        return Error(ErrorCode::InvalidState, fmt::format("Column family not found: {}", cfName));
+    }
+
+    // 同一批次内区块坐标重复会让后一条的 DeleteRange 把前一条刚写入的实体一并抹掉，
+    // 是静默丢数据的来源，必须挡住。顺带校验坐标本身合法。
+    {
+        std::unordered_set<u64> seenChunks;
+        seenChunks.reserve(writes.size());
+        for (const ChunkEntityWrite& write : writes) {
+            MC_ASSERT_RELEASE_MSG(isValidChunkCoord(write.chunkX, write.chunkZ),
+                "EntityStorageManager::replaceEntitiesInChunks: chunk coordinate out of world bounds");
+
+            const u64 packed = (static_cast<u64>(static_cast<u32>(write.chunkX)) << 32) |
+                static_cast<u64>(static_cast<u32>(write.chunkZ));
+            const bool inserted = seenChunks.insert(packed).second;
+            MC_ASSERT_RELEASE_MSG(
+                inserted, "EntityStorageManager::replaceEntitiesInChunks: duplicate chunk coordinate in batch");
+        }
+    }
+
+    rocksdb::WriteBatch batch;
+
+    for (const ChunkEntityWrite& write : writes) {
+        // 先放删除、再放写入。WriteBatch 内部按插入顺序分配递增的序列号，因此同一个批里
+        // 后插入的 Put 不会被先插入的 RangeTombstone 覆盖，结果与"先调 deleteEntitiesInChunk、
+        // 再逐条 saveEntity"完全一致——但只产生一次 WAL 写入。
+        auto startKey = _makeChunkPrefixKey(write.chunkX, write.chunkZ);
+        auto endKey = _makeChunkEndKey(write.chunkX, write.chunkZ);
+        batch.DeleteRange(cf,
+            rocksdb::Slice(reinterpret_cast<const char*>(startKey.data()), startKey.size()),
+            rocksdb::Slice(reinterpret_cast<const char*>(endKey.data()), endKey.size()));
+
+        for (const auto& entityRef : write.entities) {
+            const Entity& entity = entityRef.get();
+            // 乘客不单独落盘（详见 saveEntity 注释）
+            if (entity.isRiding()) {
+                continue;
+            }
+
+            auto binaryResult = entity::serialization::EntityDeserializer::serializeToBinary(entity);
+            if (!binaryResult.success()) {
+                return binaryResult.error();
+            }
+
+            auto dbKey = _makeEntityDbKey(entity, write.chunkX, write.chunkZ);
+
+            // 【本接口的核心不变量】实体的落键必须落在本条目自己的删除前缀之内。
+            // 一旦越界，这条实体写进去就永远删不掉，会在同一 UUID 上不断堆积副本；
+            // 而这正是本批次"整段删除 + 写入"能收敛的前提。
+            MC_ASSERT_RELEASE_MSG(
+                dbKey.size() > startKey.size() && std::memcmp(dbKey.data(), startKey.data(), startKey.size()) == 0,
+                "EntityStorageManager::replaceEntitiesInChunks: entity key falls outside its chunk prefix");
+
+            const auto& valueBytes = binaryResult.value();
+            batch.Put(cf,
+                rocksdb::Slice(reinterpret_cast<const char*>(dbKey.data()), dbKey.size()),
+                rocksdb::Slice(reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()));
+        }
+    }
+
+    // 每个条目至少贡献一条 DeleteRange，因此条目数只可能多于区块数。
+    MC_ASSERT_RELEASE(batch.Count() >= writes.size());
+
+    return m_db.writeBatch(batch, sync);
 }
 
 // ========== 私有方法 ==========
@@ -250,6 +343,17 @@ std::vector<u8> EntityStorageManager::_makeKey(const EntityKey& key)
 {
     std::string str = key.toString();
     return std::vector<u8>(str.begin(), str.end());
+}
+
+std::vector<u8> EntityStorageManager::_makeEntityDbKey(const Entity& entity, ChunkCoord chunkX, ChunkCoord chunkZ)
+{
+    EntityKey key;
+    key.chunkX = chunkX;
+    key.chunkZ = chunkZ;
+    key.uuid = entity.uuid();
+    MC_ASSERT_RELEASE_MSG(!key.uuid.empty(), "EntityStorageManager: refusing to persist an entity with an empty UUID");
+
+    return _makeKey(key);
 }
 
 std::vector<u8> EntityStorageManager::_makeChunkPrefixKey(ChunkCoord chunkX, ChunkCoord chunkZ)
