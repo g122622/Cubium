@@ -1095,11 +1095,9 @@ void MinecraftServer::setupWorldCallbacks()
         // 通过 EntityTracker 向追踪玩家发送 destroy 包。
         world->setServer(this);
         // 设置区块加载回调 - 当区块加载/生成完成时触发
-        // 注：onChunkLoaded（加载区块内实体）由调用方负责，不在此回调内调用：
-        //   - 存档加载路径：ServerChunkManager::_resolveChunkSourceSync 在 m_chunkLoadedCallback 之前
-        //     已直接调用 m_world->onChunkLoaded。
-        //   - 生成路径：ServerChunkManager::_drainPendingPostProcess 在 m_chunkLoadedCallback 之前
-        //     已直接调用 m_world->onChunkLoaded。
+        // 注：onChunkLoaded（加载区块内实体）由调用方负责，不在此回调内调用。
+        //   两条加载路径已统一：存档命中与生成均先经 ServerChunkManager::_enqueuePostProcess 入队，
+        //   再由 _drainPendingPostProcess 在主线程依序调用 onChunkLoaded → m_chunkLoadedCallback（本回调）。
         //   此回调仅入队区块加载光照任务（③-2b 统一异步调度），重复调用 onChunkLoaded 会导致实体重复生成。
         //   光照由 worker 完成（ChunkLoadLightTask），完成后经发送续延队列在主线程 send——
         //   保证 serialize 读到已光照 nibble，客户端不收全黑区块。

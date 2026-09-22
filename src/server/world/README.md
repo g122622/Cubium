@@ -195,6 +195,24 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 `SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载检查每 20 tick 一次、单轮最多卸载 200 个区块，同步写盘（24 个 section 的快照序列化 + ZSTD + RocksDB 写）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
 
+### 完成队列的排空不得同步重入
+
+`ServerChunkManager::_drainPendingLoadCompletes` 处理**存档命中**完成项时，下游链条会回到它自身：
+`_onChunkLoadComplete`（旧实现内联调用）→ `m_chunkLoadedCallback` → `ServerWorld::enqueueChunkLoadLight`
+→ `addLightTicket` → `processTicketUpdatesSync` → 再次排空。每项递归一层，深度正比于队列长度；主循环
+跑在 `std::thread` 创建的线程上（macOS 默认栈仅 512KB），玩家加入触发视距内数百区块同时加载时直接
+撞穿栈保护页——macOS arm64 把栈保护页命中报成 **SIGILL**（`Could not determine thread index for
+stack guard region`）而非 SIGSEGV，极易被误判为非法指令。
+
+两道防线缺一不可：① `onChunkLoaded` / `m_chunkLoadedCallback` 必须经 `_enqueuePostProcess` 延后到
+`tick()` 的 `_drainPendingPostProcess` 执行（与生成路径一致），不得在排空栈内内联调用；②
+`_drainPendingLoadCompletes` 的重入标志（`m_drainingLoadCompletes`）让重入调用直接返回，由最外层
+循环继续消费队列，栈深度为常量。
+
+**回归测试的陷阱**：生成路径的回调本就经 `onChunkGenComplete` 延后，所以只加载新生成区块的用例
+即使把回调改回内联也照样通过（恒真的无效回归）。覆盖存档命中分支必须走「生成 → 卸载落盘 → 重载命中」，
+见 `ServerChunkManagerPostProcessTest.StoredChunkLoadCompleteDefersCallback_NoUnboundedRecursion`。
+
 ### 实体追踪器内存泄漏
 实体移除后未从追踪器取消追踪会导致泄漏。`ServerWorld::removeEntity()` 会自动处理追踪器状态更新。如果直接调用 `entityManager().removeEntity()`，需要手动调用 `entityTracker().untrackEntity()`。
 

@@ -99,6 +99,31 @@ void _fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, b
     }
 }
 
+/**
+ * @brief 排空重入标志的 RAII 守卫
+ *
+ * _onChunkLoadComplete 的下游会同步回到 _drainPendingLoadCompletes（经区块加载回调 →
+ * addLightTicket → processTicketUpdatesSync）。守卫保证排空期间标志始终置位，
+ * 且在任意路径退出时复位——标志一旦泄漏，后续所有存档加载完成回调都不再出队，
+ * 整个区块加载链路永久停滞。
+ */
+class _DrainFlagGuard {
+public:
+    explicit _DrainFlagGuard(bool& flag)
+        : m_flag(flag)
+    {
+        m_flag = true;
+    }
+
+    ~_DrainFlagGuard() { m_flag = false; }
+
+    _DrainFlagGuard(const _DrainFlagGuard&) = delete;
+    _DrainFlagGuard& operator=(const _DrainFlagGuard&) = delete;
+
+private:
+    bool& m_flag;
+};
+
 } // namespace
 
 // ============================================================================
@@ -309,8 +334,10 @@ ChunkData* ServerChunkManager::requestChunkSync(ChunkCoord x, ChunkCoord z, cons
     // m_pendingLoadCompletes，需主线程 _drainPendingLoadCompletes 出队处理（_onChunkLoadComplete
     // 存档命中→_completeReadyWaiters fulfill promise）。requestChunkSync 在主线程阻塞等待期间
     // 主动 pump 该队列，否则存档命中时 promise 永不 fulfill（主线程卡在 future.get 不进 tick()）。
-    // 仅 pump m_pendingLoadCompletes：_onChunkLoadComplete 内联调 onChunkLoaded/callback，不依赖
-    // _drainPendingPostProcess；生成路径 onChunkGenComplete 在 worker 线程直接 fulfill promise。
+    // 仅 pump m_pendingLoadCompletes：返回时只保证区块数据本身已就绪（m_chunks 命中或 primer 可用）。
+    // onChunkLoaded 与 m_chunkLoadedCallback 与生成路径统一，由 tick() 的 _drainPendingPostProcess
+    // 延后执行，本方法不 pump 该队列——生成路径同样如此（onChunkGenComplete 在 worker 线程直接
+    // fulfill promise，其入队的后处理也要等下一个 tick）。调用方不得依赖返回时区块内实体或光照已就绪。
     // 此方法仅可在主线程调用（worker 线程请用 requestChunkAsync）。
     while (future.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
         _drainPendingLoadCompletes();
@@ -478,9 +505,16 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
 void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
     ChunkCoord z,
     mc::DimensionId dimension,
-    mc::Result<std::optional<mc::ChunkData>> result,
+    mc::Result<std::optional<mc::ChunkData>>&& result,
     std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder)
 {
+    // 入队方（_resolveChunkSourceSync 的完成回调）恒持有 owner SCLM 的共享所有权；
+    // 为空说明入队路径已损坏，后续的实例一致性校验会失去依据。
+    MC_ASSERT_RELEASE(lifecycleHolder != nullptr);
+    // 本函数下游（_enqueuePostProcess → _drainPendingPostProcess → m_chunkLoadedCallback）
+    // 会同步回到 _drainPendingLoadCompletes。调用方必须处于排空保护之内，否则递归不受抑制。
+    MC_ASSERT_RELEASE(m_drainingLoadCompletes);
+
     const u64 key = posToKey(x, z);
 
     // 取出条目（owner + attachedWaiters），从追踪表移除。
@@ -525,7 +559,9 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             return;
         }
 
-        std::optional<ChunkData> chunkOpt = std::move(result).value();
+        // 直接引用队列条目内的 optional，避免把 ChunkData 外壳（~3KB）再按值搬到栈上局部。
+        // result 是命名右值引用，本身是左值表达式，故此处走 value() & 重载返回 T&。
+        std::optional<ChunkData>& chunkOpt = result.value();
         hit = chunkOpt.has_value();
         if (hit) {
             std::unique_ptr<ChunkData> loadedChunk = std::make_unique<ChunkData>(std::move(chunkOpt.value()));
@@ -548,18 +584,17 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             std::shared_ptr<ChunkData> sharedData = primer->shareChunkData();
             auto decision = lifecycleManager.publishStorageLoaded(std::move(primer));
             ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(sharedData), &lifecycleManager);
+            // 存入成功即应能在内存缓存中按坐标查到同一实例（_storeChunkInMemorySync 的发布语义）。
+            MC_ASSERT_RELEASE(stored == nullptr || tryToGetChunkInMem(x, z) == stored);
             if (stored && m_world) {
-                bool alreadyProcessed;
-                {
-                    std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
-                    alreadyProcessed = !m_postProcessedChunks.insert(key).second;
-                }
-                if (!alreadyProcessed) {
-                    m_world->onChunkLoaded(x, z);
-                    if (m_chunkLoadedCallback) {
-                        m_chunkLoadedCallback(x, z);
-                    }
-                }
+                // onChunkLoaded / m_chunkLoadedCallback 与生成路径统一：不在本回调内联执行，
+                // 而是入队主线程后处理队列，由 tick() 的 _drainPendingPostProcess 出队执行
+                // （去重同样由该队列的 m_postProcessedChunks 负责，此处无需自行插表）。
+                //
+                // 内联执行会让 _onChunkLoadComplete 经 m_chunkLoadedCallback 同步回到
+                // processTicketUpdatesSync → _drainPendingLoadCompletes，形成无界递归。
+                // 存档加载路径不产生生成期实体，故 spawnedEntities 传空、needsPostProcess 为 false。
+                _enqueuePostProcess(x, z, {}, /*needsPostProcess=*/false);
             }
             // markLoadedFromStorageReady 在 _storeChunkInMemorySync 内部完成（sourceState→Ready，
             // currentGenStatus→FULL）。存档命中不走生成任务，故不触发 onChunkGenComplete→
@@ -625,14 +660,42 @@ void ServerChunkManager::_fanOutAttachedWaiters(
 
 void ServerChunkManager::_drainPendingLoadCompletes()
 {
-    std::vector<PendingLoadComplete> pending;
-    {
-        std::lock_guard<std::mutex> lock(m_pendingLoadCompletesMutex);
-        pending.swap(m_pendingLoadCompletes);
+    // 重入保护：_onChunkLoadComplete 的下游会经 m_chunkLoadedCallback →
+    // ServerWorld::enqueueChunkLoadLight → ServerChunkManager::addLightTicket → processTicketUpdatesSync
+    // 同步回到本方法。重入时立即返回，由最外层调用者的循环继续消费新入队的项。
+    // 不加保护则每处理一个完成项就递归一层，递归深度正比于待加载区块数；主循环跑在
+    // std::thread 创建的线程上（macOS 默认栈 512KB），数十层即撞穿栈保护页——macOS arm64
+    // 会把它报成 SIGILL（"Could not determine thread index for stack guard region"）而不是 SIGSEGV。
+    if (m_drainingLoadCompletes) {
+        return;
     }
+    _DrainFlagGuard guard(m_drainingLoadCompletes);
+    // 守卫置位后才继续排空——下游回调链依赖此不变量判断"是否已处于排空中"。
+    MC_ASSERT_RELEASE(m_drainingLoadCompletes);
 
-    for (auto& item : pending) {
-        _onChunkLoadComplete(item.x, item.z, item.dimension, std::move(item.result), std::move(item.lifecycleHolder));
+    // 循环排空而非单次 swap：处理过程中新入队的完成项由本轮继续消费，保证返回时队列已空
+    // （维持 processTicketUpdatesSync 的同步语义），同时把栈深度压到常量。
+    //
+    // 收敛性：_onChunkLoadComplete 只入队后处理、不再同步回调 addLightTicket，故不会自反馈
+    // 产生新完成项；新项只来自处理期间并行完成的其它存档读取，轮次有限。此上限是防病态环的哨兵。
+    constexpr u32 MAX_DRAIN_ROUNDS = 10000;
+    u32 rounds = 0;
+    for (;;) {
+        MC_ASSERT_RELEASE_MSG(++rounds <= MAX_DRAIN_ROUNDS, "_drainPendingLoadCompletes did not converge");
+        std::vector<PendingLoadComplete> pending;
+        {
+            std::lock_guard<std::mutex> lock(m_pendingLoadCompletesMutex);
+            if (m_pendingLoadCompletes.empty()) {
+                break;
+            }
+            pending.swap(m_pendingLoadCompletes);
+        }
+        MC_ASSERT_RELEASE(!pending.empty());
+
+        for (auto& item : pending) {
+            _onChunkLoadComplete(
+                item.x, item.z, item.dimension, std::move(item.result), std::move(item.lifecycleHolder));
+        }
     }
 }
 

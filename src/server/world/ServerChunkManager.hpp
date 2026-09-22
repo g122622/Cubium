@@ -464,11 +464,16 @@ public:
      * 但存档完成回调尚未出队”的 TOCTOU 窗口——否则后续 requestChunkSync/状态查询
      * 会看到 holder 仍处 ResolvingStorage。
      *
-     * 无重入：_drainPendingLoadCompletes→_onChunkLoadComplete 下游
-     * （_advanceChunkState/_storeChunkInMemorySync/_completeReadyWaiters/
-     * ChunkTaskScheduler::onLoadedFromStorageReady）均不调 processUpdates 或
+     * 存在同步重入：_drainPendingLoadCompletes→_onChunkLoadComplete 的下游会经
+     * m_chunkLoadedCallback（MinecraftServer 注入的 ServerWorld::enqueueChunkLoadLight）
+     * →addLightTicket→本方法，回到 _drainPendingLoadCompletes。
+     * 该重入由 _drainPendingLoadCompletes 的排空重入标志吸收（重入调用直接返回，
+     * 由最外层循环继续消费队列），栈深度不随待加载区块数增长。
+     *
+     * 注意：_onChunkLoadComplete 下游的其余路径（_advanceChunkState/_storeChunkInMemorySync/
+     * _completeReadyWaiters/ChunkTaskScheduler::onLoadedFromStorageReady）均不调 processUpdates 或
      * registerTicket/releaseTicket；_onTicketLevelChanged 经 processUpdates 同步触发，
-     * 但其 _submitChunkRequest 仅触发异步 I/O 或调度器 schedule，不重入 processUpdates。
+     * 但其 _submitChunkRequest 仅触发异步 I/O 或调度器 schedule。
      */
     void processTicketUpdatesSync()
     {
@@ -756,8 +761,10 @@ private:
      * - 存档命中：先构造 ChunkPrimer（耗时较长，须在状态发布前完成），再 publishStorageLoaded 原子发布
      *   （同一临界区内安装 primer + currentGenStatus→FULL + sourceState→LoadedFromStorage），随后
      *   _storeChunkInMemorySync（按坐标入 m_chunks，并在 owner 身份校验通过时 markLoadedFromStorageReady(FULL)
-     *   + _completeReadyWaiters）+ 直接调用 onChunkLoaded/m_chunkLoadedCallback（主线程路径，
-     *   不走 _enqueuePostProcess；由 m_postProcessedChunks 去重，防止重复执行）
+     *   + _completeReadyWaiters）+ 经 _enqueuePostProcess 入队 onChunkLoaded/m_chunkLoadedCallback，
+     *   与生成路径统一延后到 tick() 的 _drainPendingPostProcess 执行（去重由该队列负责）。
+     *   不得在此内联调用二者——那会经 m_chunkLoadedCallback 同步回到 _drainPendingLoadCompletes
+     *   形成无界递归
      * - 存档缺失：noteStorageMissing() + _advanceChunkState（走 StorageMissing→生成链路）
      * - 从 m_pendingLoadTasks 移除追踪条目（owner 校验），扇出 attachedWaiters（命中→Ready，缺失→生成）
      * - owner 已 unload（ownerAlive=false）：跳过 owner 推进，扇出 attachedWaiters 走生成路径
@@ -765,13 +772,14 @@ private:
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
      * @param dimension 维度
-     * @param result 加载结果（成功含 ChunkData，失败/不存在为空/错误）
+     * @param result 加载结果（成功含 ChunkData，失败/不存在为空/错误）。
+     *               右值引用：直接引用调用方（队列条目）的存储，避免按值搬运 ChunkData 外壳
      * @param lifecycleHolder 异步发起时持有的 SCLM 共享指针，用于实例一致性校验
      */
     void _onChunkLoadComplete(ChunkCoord x,
         ChunkCoord z,
         mc::DimensionId dimension,
-        mc::Result<std::optional<mc::ChunkData>> result,
+        mc::Result<std::optional<mc::ChunkData>>&& result,
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder);
 
     /**
@@ -793,6 +801,11 @@ private:
      * @brief 出队并执行异步存档加载完成回调（仅主线程调用）
      *
      * 在 tick() 中调用，把 worker 线程入队的 m_pendingLoadCompletes 逐个交给 _onChunkLoadComplete。
+     * 循环排空直到队列为空，保证返回时无遗留完成项。
+     *
+     * 重入安全：_onChunkLoadComplete 的下游会同步回到本方法（见 processTicketUpdatesSync 注释）。
+     * m_drainingLoadCompletes 置位期间的重入调用直接返回，由最外层调用者的循环继续消费新入队项，
+     * 从而把栈深度压到常量而非正比于待加载区块数。
      */
     void _drainPendingLoadCompletes();
 
@@ -1120,6 +1133,13 @@ private:
     };
     std::mutex m_pendingLoadCompletesMutex;
     std::vector<PendingLoadComplete> m_pendingLoadCompletes;
+
+    /// 完成队列的排空重入标志（仅主线程访问，由 _DrainFlagGuard 置位/复位）。
+    ///
+    /// _onChunkLoadComplete 的下游会同步回到 _drainPendingLoadCompletes（详见该方法注释），
+    /// 置位期间的重入调用直接返回，由最外层调用者的循环继续消费队列——否则递归深度正比于
+    /// 待加载区块数，在 std::thread 的 512KB 默认栈上数十层即溢出。
+    bool m_drainingLoadCompletes = false;
 
     /**
      * @brief 进行中的异步存档加载追踪表（含 SCM 层去重合并）

@@ -161,7 +161,11 @@ else()
 endif()
 
 # 架构信息
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+# 注意：不能用 CMAKE_SIZEOF_VOID_P 判定架构——指针宽度只能区分 64/32 位，
+# 会把 arm64（macOS Apple Silicon、Linux aarch64）误报成 x64。
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|ARM64|aarch64|AARCH64)$")
+    set(MC_BUILD_ARCH "arm64")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(MC_BUILD_ARCH "x64")
 else()
     set(MC_BUILD_ARCH "x86")

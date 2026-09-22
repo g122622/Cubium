@@ -2385,11 +2385,15 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
     // 主线程调用（chunkLoadedCallback）。先 add LIGHT 票据保活区块（level=Full=33，
     // shouldLoad true→不卸载），覆盖 worker 在途 + processTicketUpdates 生效窗口。
     // shared_ptr 5×5 保活由 RuntimeLightingProvider 构造时建立，与票据互补。
-    if (m_chunkManager) {
-        m_chunkManager->addLightTicket(x, z);
-    }
+    // 本回调仅在 ServerWorld 已挂载 chunkManager 时被注入（见 MinecraftServer::setupWorldCallbacks
+    // 的注册前提是 world->chunkManager() 非空），故直接解引用而非判空兜底。
+    // 注意：这里同步调用 addLightTicket → processTicketUpdatesSync → _drainPendingLoadCompletes，
+    // 而本回调可能正从 _drainPendingPostProcess 的链条上执行（此时不在排空保护内，属正常一层），
+    // 但绝不可在 _onChunkLoadComplete 的栈内执行——那会形成无界递归。
+    MC_ASSERT_RELEASE(m_chunkManager != nullptr);
+    m_chunkManager->addLightTicket(x, z);
 
-    util::UniversalWorkerPool* executor = m_chunkManager ? m_chunkManager->radiusAwareExecutor() : nullptr;
+    util::UniversalWorkerPool* executor = m_chunkManager->radiusAwareExecutor();
     if (executor == nullptr) {
         // 启动早期/测试环境：主线程同步执行（无 worker 池）。
         RuntimeLightingProvider provider(*this, x, z);

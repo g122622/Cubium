@@ -24,6 +24,7 @@
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -31,6 +32,7 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <future>
@@ -113,6 +115,10 @@ protected:
     // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
     ServerChunkManager* m_manager = nullptr;
     int m_chunkLoadedCallCount = 0;
+    // 区块加载回调的当前/峰值嵌套深度。重入回归用例以此代替"是否栈溢出"作为观测量：
+    // gtest 主线程栈远大于生产 std::thread 的 512KB，溢出与否不可靠，而嵌套深度是等价契约。
+    int m_callbackDepth = 0;
+    int m_maxCallbackDepth = 0;
     world::storage::SingleLevelStorageManager m_storage;
     std::filesystem::path m_testDir;
 
@@ -160,6 +166,103 @@ TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)
     m_manager->tick();
     m_manager->tick();
     EXPECT_EQ(m_chunkLoadedCallCount, 1) << "多次 tick 不应重复触发后处理";
+
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
+/**
+ * @brief 存档命中路径的加载回调必须延后执行，且不得形成无界递归
+ *
+ * 复现 MinecraftServer::setupWorldCallbacks 注入的区块加载回调的真实形态：
+ * ServerWorld::enqueueChunkLoadLight → ServerChunkManager::addLightTicket → processTicketUpdatesSync，
+ * 而 processTicketUpdatesSync 会排空异步存档加载完成队列、再次进入 _onChunkLoadComplete。
+ *
+ * 历史上该回调由 _onChunkLoadComplete 的**存档命中分支**内联调用，于是
+ * "处理一个完成项 → 回调 → 再次排空队列 → 处理下一项"，每项递归一层，深度正比于待加载区块数。
+ * 主循环跑在 std::thread 创建的线程上（macOS 默认栈 512KB），玩家加入触发视距内数百区块同时
+ * 加载时直接撞穿栈保护页——在 macOS arm64 上被报成 SIGILL（"Could not determine thread index
+ * for stack guard region"）而非 SIGSEGV，极具误导性。
+ *
+ * 用例必须走**存档命中**分支才有效：生成路径的回调本就由 onChunkGenComplete 经 _enqueuePostProcess
+ * 延后，只加载新生成区块的用例即使把回调改回内联也照样通过（是恒真的无效回归）。
+ * 故此处先生成落盘、再卸载、最后并发重载，并让完成项在排空期间堆积（递归的必要条件）。
+ */
+TEST_F(ServerChunkManagerPostProcessTest, StoredChunkLoadCompleteDefersCallback_NoUnboundedRecursion)
+{
+    m_workerPool->start();
+    m_manager->initialize();
+
+    constexpr i32 kRadius = 1;
+    constexpr int kChunks = (2 * kRadius + 1) * (2 * kRadius + 1);
+
+    // 阶段一：生成并落盘。
+    for (i32 dx = -kRadius; dx <= kRadius; ++dx) {
+        for (i32 dz = -kRadius; dz <= kRadius; ++dz) {
+            ASSERT_NE(m_manager->getChunkSync(dx, dz), nullptr) << "生成失败: " << dx << "," << dz;
+        }
+    }
+    m_manager->tick();
+
+    // 阶段二：全部卸载。stage1 发起异步保存，stage3 收尾（移出内存）由后续 tick 驱动——
+    // 因此"内存中已无该区块"即意味着存档已写入，后续重载必定命中存档。
+    for (i32 dx = -kRadius; dx <= kRadius; ++dx) {
+        for (i32 dz = -kRadius; dz <= kRadius; ++dz) {
+            m_manager->unloadChunkSync(dx, dz);
+        }
+    }
+    for (int i = 0; i < 400 && m_manager->loadedChunkCount() > 0; ++i) {
+        m_manager->tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    ASSERT_EQ(m_manager->loadedChunkCount(), 0) << "卸载完成后不应有区块驻留内存";
+
+    // 阶段三：并发重载。回调形态与生产环境一致（会重入票据处理链）。
+    // 嵌套深度代替"是否栈溢出"作为观测量：gtest 主线程栈远大于生产 std::thread 的 512KB，
+    // 溢出与否不可靠，而回调嵌套深度是等价契约。
+    m_chunkLoadedCallCount = 0;
+    m_maxCallbackDepth = 0;
+    m_manager->setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
+        const int depth = ++m_callbackDepth;
+        m_maxCallbackDepth = std::max(m_maxCallbackDepth, depth);
+        ++m_chunkLoadedCallCount;
+        m_manager->addLightTicket(x, z);
+        --m_callbackDepth;
+    });
+
+    std::vector<std::future<ChunkData*>> futures;
+    futures.reserve(static_cast<size_t>(kChunks));
+    for (i32 dx = -kRadius; dx <= kRadius; ++dx) {
+        for (i32 dz = -kRadius; dz <= kRadius; ++dz) {
+            futures.push_back(m_manager->requestChunkAsync(dx, dz, mc::world::chunk::ChunkStatuses::FULL));
+        }
+    }
+
+    // 等待期间主动 pump 完成队列——这正是原始崩溃的排空时机：队列中已堆积多个完成项，
+    // 处理其中任一项时若回调内联执行，就会同步回到排空并接着处理其余项，逐项递归。
+    for (auto& future : futures) {
+        while (future.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
+            m_manager->processTicketUpdatesSync();
+        }
+        ASSERT_NE(future.get(), nullptr) << "存档命中重载失败";
+    }
+
+    // 存档命中路径不得在排空期间内联触发加载回调。
+    EXPECT_EQ(m_chunkLoadedCallCount, 0)
+        << "存档命中路径的加载回调必须在 tick() 的后处理排水中延后执行，不得在排空期间内联触发";
+    EXPECT_EQ(m_maxCallbackDepth, 0) << "尚未 tick，加载回调不应被触发过";
+
+    // 回调延后到 tick() 的后处理排水执行，且该排水每轮只消费当轮快照，
+    // 期间新入队的项留到下一轮，故多 tick 直至计数收敛。
+    for (int i = 0; i < 50 && m_chunkLoadedCallCount < kChunks; ++i) {
+        m_manager->tick();
+    }
+
+    EXPECT_LE(m_maxCallbackDepth, 1) << "区块加载回调不得相互嵌套——嵌套即意味着完成项处理链发生了自递归"
+                                        "（峰值深度 "
+                                     << m_maxCallbackDepth << "）";
+    EXPECT_GE(m_chunkLoadedCallCount, kChunks)
+        << "重载的每个区块都应至少触发一次加载回调（实际 " << m_chunkLoadedCallCount << " 次）";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
