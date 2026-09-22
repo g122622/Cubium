@@ -35,6 +35,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/base/SectionPos.hpp"
@@ -1178,7 +1179,10 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
             if (!blockState->isLiquid()) {
                 BlockState updated = Block::updateFromNeighbourShapes(*blockState, *m_world, pos);
                 if (updated != *blockState) {
-                    m_world->setBlockState(pos, &updated, 276);
+                    m_world->setBlockState(pos,
+                        &updated,
+                        world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE |
+                            world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS);
                 }
             }
         }

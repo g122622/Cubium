@@ -30,6 +30,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/MultifaceSpreader.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -114,7 +115,7 @@ bool placeGrowthIfPossible(IWorld& world,
         if (placed == nullptr) {
             return false;
         }
-        world.setBlockState(pos, placed, 3);
+        world.setBlockState(pos, placed, world::BlockUpdateFlags::UPDATE_ALL);
         if (random.nextFloat() < config.chanceOfSpreading) {
             // MC: placeBlock.getSpreader().spreadFromFaceTowardRandomDirection(placed, level, pos, direction, random,
             // true)。

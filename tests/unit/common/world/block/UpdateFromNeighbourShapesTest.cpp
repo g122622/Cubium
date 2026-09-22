@@ -39,6 +39,7 @@
 #include "common/util/Direction.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -304,13 +305,10 @@ TEST_F(UpdateFromNeighbourShapesTest, LiquidBlockNotUpdated_SemanticTest)
 
 TEST_F(UpdateFromNeighbourShapesTest, SetBlockFlags276_SemanticTest)
 {
-    // 区块后处理和结构放置使用 flags=276
-    // 276 = 256 | 16 | 4 = SKIP_BLOCK_ENTITY_SIDEEFFECTS | KNOWN_SHAPE | INVISIBLE
-    // 验证 flags 值的语义
-    constexpr i32 FLAG_SKIP_BE_SIDEEFFECTS = 256;
-    constexpr i32 FLAG_KNOWN_SHAPE = 16;
-    constexpr i32 FLAG_INVISIBLE = 4;
-    constexpr i32 flags = FLAG_SKIP_BE_SIDEEFFECTS | FLAG_KNOWN_SHAPE | FLAG_INVISIBLE;
+    // 区块后处理和结构放置使用的组合：跳过方块实体移除副作用 + 已知形状 + 不向客户端回发
+    // 期望数值 276 与原版一致
+    constexpr i32 flags = mc::world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS |
+        mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE | mc::world::BlockUpdateFlags::UPDATE_INVISIBLE;
     EXPECT_EQ(flags, 276);
 }
 

@@ -56,6 +56,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
@@ -352,7 +353,7 @@ void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, co
         if (!mainHandItem.isEmpty() && mainHandItem.getItem()->isIn(item::tag::ItemTags::BREAKS_DECORATED_POTS())) {
             if (!item::enchant::EnchantmentHelper::hasSilkTouch(mainHandItem)) {
                 BlockState crackedState = state.with(BlockStateProperties::CRACKED(), true);
-                world.setBlockState(pos, &crackedState, 260);
+                world.setBlockState(pos, &crackedState, world::BlockUpdateFlags::UPDATE_NONE);
             }
         }
     }
@@ -378,15 +379,19 @@ void DecoratedPotBlock::onProjectileHit(
         BlockPos blockPos = hitResult.blockPos();
         if (!state.get(BlockStateProperties::CRACKED())) {
             BlockState crackedState = state.with(BlockStateProperties::CRACKED(), true);
-            world.setBlockState(blockPos, &crackedState, 260);
+            world.setBlockState(blockPos, &crackedState, world::BlockUpdateFlags::UPDATE_NONE);
         }
         // 将方块设为空气以触发 onBlockRemoved（掉落陶片）和方块移除
-        world.setBlockState(blockPos, nullptr, 3);
+        world.setBlockState(blockPos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
-void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
+    // TODO: 装饰陶罐的掉落（CRACKED 时掉落 4 个陶片，否则掉落内容物）应迁到
+    //       DecoratedPotBlockEntity::preRemoveSideEffects，并由
+    //       UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控；放在这里会在不含 UPDATE_NEIGHBORS
+    //       的写入下漏掉。
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
         auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
@@ -418,7 +423,7 @@ void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
         }
     }
 
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 ItemStack DecoratedPotBlock::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const
@@ -542,7 +547,7 @@ const CollisionShape& SnifferEggBlock::getShape(const BlockState& state) const
     return m_noCrackShape;
 }
 
-void SnifferEggBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void SnifferEggBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 对齐 MC SnifferEggBlock.onPlace：放置后调度首个孵化 tick。
     // MC 原版通过 ServerLevel.scheduleTick 调用，天然只在服务端执行。
@@ -591,7 +596,7 @@ void SnifferEggBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
             0.7f,
             0.9f + random.nextFloat() * 0.2f);
         BlockState newState = state.with(BlockStateProperties::HATCH_0_2(), hatch + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 调度下一阶段 tick：MC 原版通过 onPlace 在 setBlock 时重新调度，
         // 本项目 onBlockAdded 仅在方块类型变化时触发，因此需在 tick 中显式调度下一阶段。
@@ -620,7 +625,7 @@ void SnifferEggBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
         // 销毁蛋方块（对齐 MC level.destroyBlock(pos, false)）
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
-            world.setBlockState(pos, airState, 2);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
 
         // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS

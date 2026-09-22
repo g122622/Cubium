@@ -28,6 +28,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -86,7 +87,7 @@ bool ConfiguredSnowAndFreezeFeature::place(WorldGenRegion& region,
             if (biome.shouldFreeze(region, worldX, freezeY, worldZ, seaLevel, false)) {
                 const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
                 if (iceState) {
-                    region.setBlockState(worldX, freezeY, worldZ, iceState, 2);
+                    region.setBlockState(worldX, freezeY, worldZ, iceState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                 }
             }
 
@@ -95,7 +96,7 @@ bool ConfiguredSnowAndFreezeFeature::place(WorldGenRegion& region,
                 // 放置雪层
                 const BlockState* snowState = &VanillaBlocks::SNOW->defaultState();
                 if (snowState) {
-                    region.setBlockState(worldX, snowY, worldZ, snowState, 2);
+                    region.setBlockState(worldX, snowY, worldZ, snowState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
                     // 更新下方方块的 SNOWY 属性（草方块、菌丝等）
                     if (freezeY >= world::MIN_BUILD_HEIGHT) {
@@ -103,7 +104,8 @@ bool ConfiguredSnowAndFreezeFeature::place(WorldGenRegion& region,
                         if (belowBlock && belowBlock->hasProperty(BlockStateProperties::SNOWY())) {
                             const BlockState* snowyState = &belowBlock->with(BlockStateProperties::SNOWY(), true);
                             if (snowyState) {
-                                region.setBlockState(worldX, freezeY, worldZ, snowyState, 2);
+                                region.setBlockState(
+                                    worldX, freezeY, worldZ, snowyState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                             }
                         }
                     }

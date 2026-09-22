@@ -89,9 +89,9 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 

@@ -61,6 +61,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -806,10 +807,10 @@ void WitherEntity::_breakNearbyBlocks()
                     VanillaBlocks::AIR != nullptr ? &VanillaBlocks::AIR->defaultState() : nullptr;
 
                 if (airState != nullptr) {
-                    // 设置为空气方块，flags=3 表示通知邻居并更新客户端
+                    // 设置为空气方块，并通知邻居与同步客户端
                     // 调用 spawnAfterBreak 以支持虫蚀方块等特殊行为（凋灵破坏方块不使用工具，不产生经验）
                     const BlockState* oldState = state;
-                    worldPtr->setBlockState(pos, airState, 3);
+                    worldPtr->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
                     block.spawnAfterBreak(*worldPtr, pos, *oldState, nullptr, false);
                     anyBlockBroken = true;
                 }

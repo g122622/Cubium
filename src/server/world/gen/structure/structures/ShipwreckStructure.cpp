@@ -34,6 +34,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -182,7 +183,11 @@ void ShipwreckPiece::generate(IWorldWriter& world,
 
     // 放置模板（使用中心偏移，需要调整位置）
     BlockPos adjustedPos(m_minX - STRUCTURE_OFFSET.x, m_minY, m_minZ - STRUCTURE_OFFSET.z);
-    m_template->place(world, adjustedPos, settings, rng, 18);
+    m_template->place(world,
+        adjustedPos,
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 // ============================================================================

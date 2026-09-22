@@ -39,6 +39,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/functional/ComposterBlock.hpp"
@@ -164,10 +165,8 @@ void FarmerWorkGoal::_tryPlant()
         if (block == nullptr) continue;
 
         // 种植作物：放置默认状态（age=0）
-        // 对应 MC: level.setBlock(pos, block.defaultBlockState(), Block.UPDATE_ALL)
-        // flags=3 等价于 Block.UPDATE_ALL（更新邻居 + 通知客户端）
         const BlockState& plantState = block->defaultState();
-        world->setBlockState(pos, &plantState, 3);
+        world->setBlockState(pos, &plantState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 播放种植音效（对应 MC: level.playSound(null, pos, SoundEvents.ITEM_CROP_PLANT, ...)）
         world->playSound(SoundEvents::ITEM_CROP_PLANT,
@@ -370,12 +369,12 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
     }
 
     // 通知方块即将被移除（触发 onBlockRemoved 回调，如耕地湿润度更新等）
-    cropBlock->onBlockRemoved(*world, pos, cropState);
+    cropBlock->onBlockRemoved(*world, pos, cropState, false);
 
     // 将作物方块设为空气
     const BlockState* airState = BlockRegistry::instance().airState();
     if (airState) {
-        world->setBlockState(pos, airState, 2);
+        world->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 

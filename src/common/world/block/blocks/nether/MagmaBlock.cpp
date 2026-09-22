@@ -41,7 +41,7 @@ MagmaBlock::MagmaBlock(BlockProperties properties)
     : Block(std::move(properties))
 {}
 
-void MagmaBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void MagmaBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 调度 tick 以检查气泡柱
     Block& block = state.getBlockMutable();

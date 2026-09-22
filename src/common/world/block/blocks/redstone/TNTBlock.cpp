@@ -45,6 +45,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -88,7 +89,7 @@ bool TNTBlock::isUnstable(const BlockState& state)
     return state.get(BlockStateProperties::UNSTABLE());
 }
 
-void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // TNT 放置后检查是否有红石信号或火焰，如果有则自动点燃
     // 对应 MC Java 的 TntBlock.onPlace()：先 prime()，成功后移除方块
@@ -97,7 +98,7 @@ void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState
 
     if (hasPower || hasFire) {
         if (prime(world, pos, nullptr)) {
-            world.setBlockState(pos, nullptr, 11);
+            world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         }
     }
 }
@@ -120,7 +121,7 @@ void TNTBlock::neighborChanged(
     if (hasPower) {
         // 对应 MC Java 的 TntBlock.neighborChanged()：先 prime()，成功后移除方块
         if (prime(world, pos, nullptr)) {
-            world.setBlockState(pos, nullptr, 11);
+            world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         }
         return;
     }
@@ -129,7 +130,7 @@ void TNTBlock::neighborChanged(
     bool hasFire = _hasFlammableNeighbor(world, pos);
     if (hasFire) {
         if (prime(world, pos, nullptr)) {
-            world.setBlockState(pos, nullptr, 11);
+            world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         }
     }
 }
@@ -164,7 +165,7 @@ BlockActionResult TNTBlock::onBlockActivated(const BlockState& state,
     // 先 prime()，成功后移除方块并消耗物品
     if (prime(world, pos, &player)) {
         // 移除TNT方块
-        world.setBlockState(pos, nullptr, 11);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
         // 消耗物品
         if (isFlintAndSteel) {
@@ -224,7 +225,7 @@ void TNTBlock::onProjectileHit(
 
         // prime() 成功后移除TNT方块
         if (prime(world, hitResult.blockPos(), igniter)) {
-            world.setBlockState(hitResult.blockPos(), nullptr, 11);
+            world.setBlockState(hitResult.blockPos(), nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         }
     }
 }
@@ -240,7 +241,7 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
 
     // 先尝试 prime（生成实体+音效），成功后移除方块
     if (prime(world, pos, igniter)) {
-        world.setBlockState(pos, nullptr, 11);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         return true;
     }
     return false;
@@ -322,12 +323,12 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
     // 检查 tntExplodes 游戏规则
     if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         // 即使不允许爆炸，也要移除方块（与 MC Java 行为一致）
-        world.setBlockState(pos, nullptr, 11);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         return;
     }
 
     // 移除TNT方块
-    world.setBlockState(pos, nullptr, 11);
+    world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
     // 创建爆炸
     world.createExplosion(

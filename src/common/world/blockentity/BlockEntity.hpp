@@ -199,6 +199,19 @@ public:
     virtual void remove() { m_removed = true; }
 
     /**
+     * @brief 方块实体被移除前的副作用处理
+     *
+     * 当所在位置的方块被替换或移除、且旧方块实体不会被迁移保留时调用，用于处理
+     * "随方块一起消失"的副作用（典型：容器掉落全部内容物）。默认实现为空。
+     * 仅服务端调用，并受 setBlockState 的 UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS
+     * 标志位门控。
+     *
+     * @param pos 方块位置
+     * @param state 被移除时的方块状态
+     */
+    virtual void preRemoveSideEffects(const BlockPos& pos, const BlockState& state);
+
+    /**
      * @brief 验证方块实体是否有效
      *
      * 在方块实体添加到世界时调用。

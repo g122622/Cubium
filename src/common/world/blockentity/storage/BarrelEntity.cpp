@@ -26,6 +26,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -142,7 +143,7 @@ void BarrelEntity::_updateBlockState(IWorld& world, bool open)
     }
 
     const BlockState& updated = state->with(BlockStateProperties::OPEN(), open);
-    world.setBlockState(m_pos, &updated, 3);
+    world.setBlockState(m_pos, &updated, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 void BarrelEntity::_playSound(bool isOpen)

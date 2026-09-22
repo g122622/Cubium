@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
@@ -207,7 +208,7 @@ void NoteBlock::neighborChanged(
             triggerNote(world, pos, *state);
         }
         BlockState newState = state->with(BlockStateProperties::POWERED(), shouldPower);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -230,7 +231,7 @@ BlockActionResult NoteBlock::onBlockActivated(const BlockState& state,
 
     // 服务端逻辑（vanilla !isClientSide 守卫）。GameTest 服务端跑，走此分支。
     BlockState newState = cycleNote(state); // note (cur+1) % 25 循环升半音
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     triggerNote(world, pos, newState); // 用新 note 播放音符
 
     return ActionResultType::Success;

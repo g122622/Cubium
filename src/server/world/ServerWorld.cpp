@@ -795,6 +795,25 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
     i32 oldLightLevel = oldState ? oldState->lightLevel() : 0;
     i32 newLightLevel = newState ? newState->lightLevel() : 0;
 
+    // 解析本次写入的更新标志位
+    const bool updateNeighbors = (flags & world::BlockUpdateFlags::UPDATE_NEIGHBORS) != 0;
+    const bool updateClients = (flags & world::BlockUpdateFlags::UPDATE_CLIENTS) != 0;
+    const bool skipKnownShape = (flags & world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE) != 0;
+    const bool skipBlockEntitySideEffects =
+        (flags & world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS) != 0;
+    const bool skipOnPlace = (flags & world::BlockUpdateFlags::UPDATE_SKIP_ON_PLACE) != 0;
+    const bool movedByPiston = (flags & world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON) != 0;
+
+    // 旧方块实体的移除副作用（容器掉落内容物等）。必须在写入区块之前执行：
+    // 区块写入会丢弃旧方块实体，之后再取就取不到了。
+    // 新方块要求保留旧实体时（铜箱子氧化/涂蜡等）跳过该副作用——实体随后由迁移路径复用。
+    if (!oldIsAir && blockTypeChanged && oldState->getBlock().hasBlockEntity() && !skipBlockEntitySideEffects &&
+        !oldState->getBlock().shouldChangedStateKeepBlockEntity(*oldState)) {
+        if (BlockEntity* oldBlockEntity = chunk->getBlockEntity(changedPos)) {
+            oldBlockEntity->preRemoveSideEffects(changedPos, *oldState);
+        }
+    }
+
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
             "ServerWorld::setBlockState::WriteChunk",
@@ -824,9 +843,10 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
             m_villageManager->onBlockRemoved(changedPos);
         }
 
-        if (!oldIsAir && blockTypeChanged) {
+        // 旧方块移除回调：受 UPDATE_NEIGHBORS 门控；活塞推动（UPDATE_MOVE_BY_PISTON）同样触发
+        if (!oldIsAir && blockTypeChanged && (updateNeighbors || movedByPiston)) {
             Block& oldBlock = oldState->getBlockMutable();
-            oldBlock.onBlockRemoved(*this, changedPos, *oldState);
+            oldBlock.onBlockRemoved(*this, changedPos, *oldState, movedByPiston);
         }
     }
 
@@ -839,13 +859,15 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.World, "ServerWorld::setBlockState::NewBlockCallbacks", "x", x, "y", y, "z", z);
 
-        if (m_onBlockChanged) {
+        // 方块变化同步：受 UPDATE_CLIENTS 门控（UPDATE_INVISIBLE 仅客户端侧有意义，服务端不消费）
+        if (updateClients && m_onBlockChanged) {
             m_onBlockChanged(changedPos, currentState ? currentState->stateId() : 0u);
         }
 
-        if (!newIsAir && blockTypeChanged) {
+        // 放置回调：受 UPDATE_SKIP_ON_PLACE 门控
+        if (!newIsAir && blockTypeChanged && !skipOnPlace) {
             Block& newBlock = newState->getBlockMutable();
-            newBlock.onBlockAdded(*this, changedPos, *newState);
+            newBlock.onBlockAdded(*this, changedPos, *newState, movedByPiston);
         }
 
         // 新方块有方块实体时创建。
@@ -911,78 +933,74 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
         {0, 0, -1, Direction::North},
         {0, 0, 1, Direction::South}}};
 
-    // flags&UPDATE_NEIGHBORS==0 时跳过邻居更新（对齐 vanilla）：结构放置等静默写入
-    // 场景传 flags=18（无 bit0），不触发 neighborChanged/updatePostPlacement，避免依附
-    // 类方块（按钮/火把/梯子等）在支撑尚未放置时被邻居通知自毁变 air。
-    const bool notifyNeighbors = (flags & world::BlockUpdateFlags::UPDATE_NEIGHBORS) != 0;
+    // 邻居更新（UPDATE_NEIGHBORS）：对 6 向邻居触发 neighborChanged。
+    // 不含该位时跳过（结构放置等静默写入场景），避免依附类方块（按钮/火把/梯子等）
+    // 在支撑尚未放置时被邻居通知自毁变 air。
+    if (updateNeighbors) {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
 
-    if (notifyNeighbors) {
-        {
-            MC_TRACE_SCOPED_EVENT(
-                TraceEvents.Server.World, "ServerWorld::setBlockState::NeighborUpdates", "x", x, "y", y, "z", z);
+        for (const auto& neighbor : NEIGHBOR_DELTAS) {
+            const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
+            const BlockState* neighborState =
+                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
 
-            for (const auto& neighbor : NEIGHBOR_DELTAS) {
-                const BlockPos neighborPos(x + neighbor.dx, y + neighbor.dy, z + neighbor.dz);
-                const BlockState* neighborState =
-                    canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
+            MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+                "ServerWorld::setBlockState::NeighborChanged",
+                "x",
+                neighborPos.x,
+                "y",
+                neighborPos.y,
+                "z",
+                neighborPos.z);
 
-                const BlockState* updatedState = nullptr;
-
-                {
-                    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
-                        "ServerWorld::setBlockState::NeighborUpdatePostPlacement",
-                        "x",
-                        neighborPos.x,
-                        "y",
-                        neighborPos.y,
-                        "z",
-                        neighborPos.z);
-
-                    if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
-                        Block& neighborBlock = neighborState->getBlockMutable();
-                        const BlockState* stateBeforeUpdate = neighborState;
-                        BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
-                            Directions::opposite(neighbor.direction),
-                            *newState,
-                            *this,
-                            neighborPos,
-                            changedPos);
-
-                        const BlockState* stateAfterUpdate = canonicalizeState(getBlockState(neighborPos));
-                        if (stateAfterUpdate != stateBeforeUpdate) {
-                            neighborState = stateAfterUpdate;
-                        } else {
-                            updatedState = blockRegistry.getBlockState(updatedStateValue.stateId());
-                            if (updatedState == nullptr && updatedStateValue.isAir()) {
-                                updatedState = airState;
-                            }
-                        }
-                    }
-                }
-
-                if (updatedState != nullptr && updatedState != neighborState) {
-                    setBlockState(neighborPos, updatedState);
-                    neighborState = canonicalizeState(getBlockState(neighborPos));
-                }
-
-                {
-                    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
-                        "ServerWorld::setBlockState::NeighborChanged",
-                        "x",
-                        neighborPos.x,
-                        "y",
-                        neighborPos.y,
-                        "z",
-                        neighborPos.z);
-
-                    if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
-                        Block& neighborBlock = neighborState->getBlockMutable();
-                        neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
-                    }
-                }
+            if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
+                Block& neighborBlock = neighborState->getBlockMutable();
+                neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
             }
         }
-    } // end if (notifyNeighbors)
+    }
+
+    // 形状更新（UPDATE_KNOWN_SHAPE 未置位时执行）：按 UPDATE_SHAPE_ORDER 对 6 向邻居调用
+    // updatePostPlacement，形状发生变化时经 Block::updateOrDestroy 写回——结果为空气则移除
+    // 该邻居，否则写入新状态。级联写入会再次进入本函数并继续传播形状更新。
+    // TODO: 原版在此处还会调用 updateIndirectNeighbourShapes（间接邻居形状更新，基类默认空实现），
+    //       项目尚未提供该方法；红石线等依赖间接形状传播的方块暂由其自身的 updatePostPlacement 覆盖。
+    if (!skipKnownShape) {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.Server.World, "ServerWorld::setBlockState::ShapeUpdates", "x", x, "y", y, "z", z);
+
+        for (Direction direction : Block::UPDATE_SHAPE_ORDER) {
+            const BlockPos neighborPos = changedPos.offset(direction);
+            const BlockState* neighborState =
+                canonicalizeState(getBlockState(neighborPos.x, neighborPos.y, neighborPos.z));
+            if (neighborState == nullptr || neighborState->isAir()) {
+                continue;
+            }
+
+            // UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE：目标为红石线时跳过其形状更新，
+            // 避免红石网络在放置/破坏时产生 O(n²) 的形状重算风暴。
+            if ((flags & world::BlockUpdateFlags::UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE) != 0 &&
+                VanillaBlocks::REDSTONE_WIRE != nullptr && neighborState->is(VanillaBlocks::REDSTONE_WIRE)) {
+                continue;
+            }
+
+            Block& neighborBlock = neighborState->getBlockMutable();
+            const BlockState updatedState = neighborBlock.updatePostPlacement(
+                *neighborState, Directions::opposite(direction), *newState, *this, neighborPos, changedPos);
+            if (updatedState.stateId() == neighborState->stateId()) {
+                continue;
+            }
+
+            // 传给下游的 flags 剥掉 UPDATE_NEIGHBORS 与 UPDATE_SUPPRESS_DROPS，避免邻居通知
+            // 递归以及掉落抑制语义泄漏到级联写入。
+            Block::updateOrDestroy(*neighborState,
+                updatedState,
+                *this,
+                neighborPos,
+                flags & ~world::BlockUpdateFlags::UPDATE_NEIGHBORS & ~world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
+        }
+    }
 
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -1032,7 +1050,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
 
         // 邻居流体调度属邻居通知范畴，随 UPDATE_NEIGHBORS 门控；本方块自身流体调度
         // （上方 scheduleFluidAt(changedPos)）与邻居无关，结构放置仍需触发流动。
-        if (notifyNeighbors) {
+        if (updateNeighbors) {
             constexpr std::array<std::array<i32, 3>, 6> NEIGHBOR_OFFSETS = {
                 {{{-1, 0, 0}}, {{1, 0, 0}}, {{0, -1, 0}}, {{0, 1, 0}}, {{0, 0, -1}}, {{0, 0, 1}}}};
 
@@ -1484,7 +1502,8 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
             if (biome.shouldFreeze(*this, surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL, true)) {
                 const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
                 if (iceState) {
-                    setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, iceState, 3);
+                    setBlockState(
+                        surfacePos.x, surfacePos.y, surfacePos.z, iceState, world::BlockUpdateFlags::UPDATE_ALL);
                 }
             }
 
@@ -1508,21 +1527,33 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
                             if (newState) {
                                 // 使用 pushEntitiesUp 将嵌入方块的实体向上推出
                                 Block::pushEntitiesUp(*currentBlock, *newState, *this, aboveSurfacePos);
-                                setBlockState(aboveSurfacePos.x, aboveSurfacePos.y, aboveSurfacePos.z, newState, 3);
+                                setBlockState(aboveSurfacePos.x,
+                                    aboveSurfacePos.y,
+                                    aboveSurfacePos.z,
+                                    newState,
+                                    world::BlockUpdateFlags::UPDATE_ALL);
                             }
                         }
                     } else if (currentBlock->isAir()) {
                         // 空气：放置新的雪层
                         const BlockState* snowState = &VanillaBlocks::SNOW->defaultState();
                         if (snowState) {
-                            setBlockState(aboveSurfacePos.x, aboveSurfacePos.y, aboveSurfacePos.z, snowState, 3);
+                            setBlockState(aboveSurfacePos.x,
+                                aboveSurfacePos.y,
+                                aboveSurfacePos.z,
+                                snowState,
+                                world::BlockUpdateFlags::UPDATE_ALL);
 
                             // 更新下方方块的 SNOWY 属性（如草方块、菌丝等）
                             const BlockState* belowBlock = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
                             if (belowBlock && belowBlock->hasProperty(BlockStateProperties::SNOWY())) {
                                 const BlockState* snowyState = &belowBlock->with(BlockStateProperties::SNOWY(), true);
                                 if (snowyState) {
-                                    setBlockState(surfacePos.x, surfacePos.y, surfacePos.z, snowyState, 3);
+                                    setBlockState(surfacePos.x,
+                                        surfacePos.y,
+                                        surfacePos.z,
+                                        snowyState,
+                                        world::BlockUpdateFlags::UPDATE_ALL);
                                 }
                             }
                         }

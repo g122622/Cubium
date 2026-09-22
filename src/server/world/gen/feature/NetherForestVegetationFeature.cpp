@@ -26,6 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>
@@ -83,7 +84,7 @@ bool ConfiguredNetherForestVegetationFeature::place(WorldGenRegion& region,
         // canSurvive 检查省略：下方 nylium 已确认，下界植被在此 canSurvive 恒真。
         const BlockState* state = provider.getState(region, random, target.x, target.y, target.z);
         if (state != nullptr) {
-            region.setBlockState(target, state, 2);
+            region.setBlockState(target, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
             ++placed;
         }
     }

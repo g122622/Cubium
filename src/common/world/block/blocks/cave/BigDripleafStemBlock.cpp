@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -146,7 +147,7 @@ void BigDripleafStemBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
             spawnAfterBreak(world, pos, state, nullptr, false);
-            world.setBlockState(pos, airState, 3);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

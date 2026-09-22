@@ -28,6 +28,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/tree/decorator/TreeDecorator.hpp"
@@ -108,7 +109,7 @@ BlockPos FallenTreeFeature::placeLogBlock(WorldGenRegion& region,
         return pos;
     }
     const BlockState* finalState = stateModifier(sampled);
-    region.setBlockState(pos, finalState, 3);
+    region.setBlockState(pos, finalState, world::BlockUpdateFlags::UPDATE_ALL);
     return pos;
 }
 
@@ -125,7 +126,7 @@ void FallenTreeFeature::decorateLogs(WorldGenRegion& region,
     }
     decorator::TreeDecoratorContext::DecorationSetter setter = [&region](const BlockPos& pos, const BlockState* state) {
         // MC getDecorationSetter: setBlock(pos, state, 19)。项目 flags 语义不同，用 3（通知+客户端）。
-        region.setBlockState(pos, state, 3);
+        region.setBlockState(pos, state, world::BlockUpdateFlags::UPDATE_ALL);
     };
     decorator::TreeDecoratorContext context(region, setter, random, logs, {}, {});
     for (const auto& decorator : decorators) {

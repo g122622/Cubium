@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/CarrotBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -244,11 +245,11 @@ void RaidGardenGoal::_raidCarrot(const BlockPos& carrotPos, const BlockState* ca
         // MC 中先设为 AIR 再调用 destroyBlock，但 destroyBlock 看到 AIR 直接返回（空操作），
         // 因此 AGE==0 的胡萝卜直接消失，无粒子/音效/掉落。此处忠实复刻此行为。
         const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-        world->setBlockState(carrotPos, airState, 2);
+        world->setBlockState(carrotPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
         // 对应 MC：level.setBlock(blockpos, blockstate.setValue(CarrotBlock.AGE, i - 1), 2);
         const BlockState& newState = carrotBlock->withAge(age - 1);
-        world->setBlockState(carrotPos, &newState, 2);
+        world->setBlockState(carrotPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 对应 MC：level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(this.rabbit));
         world->gameEvent(gameevent::GameEvents::BLOCK_CHANGE, carrotPos, gameevent::GameEvent::Context::of(m_rabbit));

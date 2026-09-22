@@ -253,7 +253,7 @@ public:
      * 如果移除时处于 Active 状态，需要通知邻居更新红石信号，
      * 否则邻居可能仍认为有信号输入。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
@@ -466,7 +466,7 @@ public:
      * 如果方块正在 SHRIEKING 状态时被移除，仍需执行 tryRespond()
      * 以确保警告效果（黑暗效果、监守者召唤检查）被触发。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 静态方法 ==========
 

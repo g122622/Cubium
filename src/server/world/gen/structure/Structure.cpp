@@ -33,6 +33,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -191,9 +192,9 @@ void StructurePiece::setBlockState(
             transformedState = &transformedState->getBlock().rotate(*transformedState, m_rotation);
         }
 
-        world.setBlockState(worldX, worldY, worldZ, transformedState, 2);
+        world.setBlockState(worldX, worldY, worldZ, transformedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
-        world.setBlockState(worldX, worldY, worldZ, state, 2);
+        world.setBlockState(worldX, worldY, worldZ, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -412,7 +413,7 @@ void StructurePiece::replaceAirAndLiquidDownwards(
     while (worldY > world::MIN_BUILD_HEIGHT) {
         const BlockState* current = world.getBlockState(worldX, worldY, worldZ);
         if (current == nullptr || current->isAir() || current->getMaterial().isLiquid()) {
-            world.setBlockState(worldX, worldY, worldZ, state, 2);
+            world.setBlockState(worldX, worldY, worldZ, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
             --worldY;
         } else {
             break;

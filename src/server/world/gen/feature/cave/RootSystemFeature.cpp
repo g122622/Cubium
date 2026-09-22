@@ -27,6 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureRegistry.hpp"
@@ -75,7 +76,7 @@ void RootSystemFeature::placeRootedDirtColumn(
         BlockPos dirtPos(origin.x, y, origin.z);
         const BlockState* existing = region.getBlockState(dirtPos);
         if (existing != nullptr && matchesTag(*existing, config.rootReplaceableTag)) {
-            region.setBlockState(dirtPos, config.rootState, 3);
+            region.setBlockState(dirtPos, config.rootState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 
@@ -87,7 +88,7 @@ void RootSystemFeature::placeRootedDirtColumn(
 
         const BlockState* existing = region.getBlockState(rootPos);
         if (existing != nullptr && matchesTag(*existing, config.rootReplaceableTag)) {
-            region.setBlockState(rootPos, config.rootState, 3);
+            region.setBlockState(rootPos, config.rootState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }
@@ -116,7 +117,7 @@ void RootSystemFeature::placeHangingRoots(
         BlockPos abovePos = rootPos.offset(Direction::Up);
         const BlockState* aboveState = region.getBlockState(abovePos);
         if (aboveState != nullptr && aboveState->isSolid()) {
-            region.setBlockState(rootPos, config.hangingRootState, 3);
+            region.setBlockState(rootPos, config.hangingRootState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

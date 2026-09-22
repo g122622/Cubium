@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <optional>
 #include <vector>
@@ -53,7 +54,7 @@ bool MultifaceSpreadConfig::placeBlock(
         return false;
     }
     MC_UNUSED(worldGen);
-    return world.setBlockState(spreadPos.pos, placed, 2);
+    return world.setBlockState(spreadPos.pos, placed, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 // ============================================================================

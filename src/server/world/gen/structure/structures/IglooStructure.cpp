@@ -33,6 +33,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -199,7 +200,11 @@ void IglooPiece::_generateTop(IWorldWriter& world, math::Random& rng, const Stru
     BlockPos adjustedPos(m_minX - transformedOffset.x, m_minY, m_minZ - transformedOffset.z);
 
     // 放置模板
-    m_topTemplate->place(world, adjustedPos, settings, rng, 18);
+    m_topTemplate->place(world,
+        adjustedPos,
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 void IglooPiece::_generateMiddle(
@@ -225,7 +230,11 @@ void IglooPiece::_generateMiddle(
 
     BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
 
-    m_middleTemplate->place(world, adjustedPos, settings, rng, 18);
+    m_middleTemplate->place(world,
+        adjustedPos,
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 void IglooPiece::_generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
@@ -250,7 +259,11 @@ void IglooPiece::_generateBottom(IWorldWriter& world, math::Random& rng, const S
 
     BlockPos adjustedPos(m_minX - transformedOffset.x, y, m_minZ - transformedOffset.z);
 
-    m_bottomTemplate->place(world, adjustedPos, settings, rng, 18);
+    m_bottomTemplate->place(world,
+        adjustedPos,
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 // ============================================================================

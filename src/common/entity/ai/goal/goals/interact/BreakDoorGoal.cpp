@@ -32,6 +32,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <utility>
@@ -192,7 +193,7 @@ void BreakDoorGoal::tick()
 
             // 将门方块设为空气
             const BlockState* airState = BlockRegistry::instance().airState();
-            m_mob->world()->setBlockState(m_doorPos, airState, 3);
+            m_mob->world()->setBlockState(m_doorPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

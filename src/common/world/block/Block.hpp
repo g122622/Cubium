@@ -1103,7 +1103,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    virtual void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state);
+    virtual void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston);
 
     /**
      * @brief 方块被移除时的处理
@@ -1115,7 +1115,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
+    virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston);
 
     /**
      * @brief 状态变更时是否保留方块实体
@@ -2141,6 +2141,22 @@ public:
      */
     [[nodiscard]] static BlockState updateFromNeighbourShapes(
         const BlockState& state, IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 更新或销毁方块：新状态为空气时移除方块，否则写入新状态。
+     *
+     * 形状更新级联的统一出口。新状态为空气时移除该方块，且当 flags 含
+     * UPDATE_SUPPRESS_DROPS 时一并抑制移除带来的掉落（含容器内容物）；
+     * 新状态非空气时写入新状态，并剥掉该标志位以免语义泄漏到下游写入。
+     *
+     * @param oldState 变化前的方块状态
+     * @param newState 变化后的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @param flags 更新标志
+     */
+    static void updateOrDestroy(
+        const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags);
 
     // ========================================================================
     // 攻击和交互

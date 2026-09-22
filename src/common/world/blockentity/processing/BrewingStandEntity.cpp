@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -243,7 +244,7 @@ void BrewingStandEntity::_updateBlockState(IWorld& world)
                                     .with(BlockStateProperties::HAS_BOTTLE_1(), hasBottle(1))
                                     .with(BlockStateProperties::HAS_BOTTLE_2(), hasBottle(2));
 
-    world.setBlockState(getPos(), &updated, 3);
+    world.setBlockState(getPos(), &updated, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 bool BrewingStandEntity::load(const nlohmann::json& data)

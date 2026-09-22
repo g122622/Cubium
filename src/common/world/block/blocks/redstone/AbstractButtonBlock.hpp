@@ -72,7 +72,7 @@ public:
     // 石按钮（StoneButtonBlock）/木按钮（WoodButtonBlock）继承本类，继承本方法自动获得正确朝向。
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;

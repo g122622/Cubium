@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
@@ -126,7 +127,7 @@ bool IOxidizableBlock::tryOxidize(IWorld& world, const BlockPos& pos, BlockState
     if (random.nextFloat() < f1) {
         // 使用 withPropertiesOf 保留共有属性（如楼梯朝向、台阶类型、含水等）
         const BlockState& nextState = nextBlock->defaultState().withPropertiesOf(state);
-        world.setBlockState(pos, &nextState, 3);
+        world.setBlockState(pos, &nextState, world::BlockUpdateFlags::UPDATE_ALL);
         return true;
     }
 

@@ -113,6 +113,13 @@ public:
     }
 
     /**
+     * @brief 容器被移除前的副作用：掉落全部内容物
+     *
+     * 覆写基类实现，对应原版容器方块实体在方块被移除时掉落内容物的行为。
+     */
+    void preRemoveSideEffects(const BlockPos& pos, const BlockState& state) override;
+
+    /**
      * @brief 检查玩家是否可以使用此容器
      * @param player 玩家
      * @param maxDistanceSq 最大距离的平方（默认64.0，即8格）

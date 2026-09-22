@@ -32,6 +32,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -110,7 +111,7 @@ void NetherWartBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState&
         // 随机生长
         if (random.nextInt(10) == 0) {
             BlockState newState = withAge(age + 1);
-            world.setBlockState(pos, &newState, 2);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }

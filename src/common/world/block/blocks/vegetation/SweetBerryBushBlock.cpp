@@ -47,6 +47,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 #include <algorithm>
@@ -119,7 +120,7 @@ void SweetBerryBushBlock::randomTick(IWorld& world, const BlockPos& pos, BlockSt
     // 1/5 概率生长
     if (random.nextInt(5) == 0) {
         const BlockState& newState = withAge(state, age + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -152,7 +153,7 @@ void SweetBerryBushBlock::grow(IWorld& world, math::IRandom& random, const Block
     i32 age = getAge(state);
     if (age < getMaxAge()) {
         const BlockState& newState = withAge(state, age + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -246,7 +247,7 @@ BlockActionResult SweetBerryBushBlock::onBlockActivated(const BlockState& state,
 
         // AGE 重置为 1
         const BlockState& newState = withAge(state, 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         return ActionResultType::Success;
     }

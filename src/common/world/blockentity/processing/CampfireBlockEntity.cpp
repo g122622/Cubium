@@ -214,31 +214,6 @@ bool CampfireBlockEntity::addItem(ItemStack& stack, i32 cookTime)
     return false;
 }
 
-void CampfireBlockEntity::dropAllItems(IWorld& world)
-{
-    // 掉落所有槽位中的物品
-
-    std::vector<ItemStack> drops;
-
-    for (i32 i = 0; i < SLOT_COUNT; ++i) {
-        ItemStack stack = m_inventory.getItem(i);
-        if (!stack.isEmpty()) {
-            drops.push_back(stack);
-        }
-    }
-
-    if (!drops.empty()) {
-        ItemDropHelper::spawnItemEntities(&world, m_pos, drops, m_rng);
-    }
-
-    // 清空槽位
-    m_inventory.clear();
-    m_cookTimes.fill(0);
-    m_cookTimesTotal.fill(0);
-
-    ContainerBlockEntity::setChanged();
-}
-
 void CampfireBlockEntity::clear()
 {
     m_inventory.clear();

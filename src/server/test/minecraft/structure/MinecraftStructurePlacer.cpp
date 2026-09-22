@@ -1,4 +1,5 @@
 #include "server/test/minecraft/structure/MinecraftStructurePlacer.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 
 #include "common/core/Types.hpp" // i32
 #include "common/resource/ResourceLocation.hpp"
@@ -45,11 +46,12 @@ const Template* _getTemplate(const std::string& structureName)
 /**
  * @brief 用 air 清空指定 StructureBoundingBox 范围（含方块更新）。
  *
- * @param flags setBlockState flags（对齐 vanilla Block.setFlags）：默认 3（UPDATE_NEIGHBORS|NOTIFY）
- *              触发 6 向邻居更新，适合小范围 padding 清理；大范围清理（如 skyAccess 清空高空 worldgen）
- *              传 18（UPDATE_CLIENTS|NOTIFY，无 bit0）避免每方块 6 向邻居更新的指数级开销。
+ * @param flags setBlockState 的更新标志：传 UPDATE_ALL 时逐方块触发 6 向邻居更新，适合小范围
+ *              padding 清理；大范围清理（如 skyAccess 清空高空 worldgen）应传
+ *              UPDATE_CLIENTS | UPDATE_KNOWN_SHAPE（不含 UPDATE_NEIGHBORS），避免每方块
+ *              6 向邻居更新带来的指数级开销。
  */
-void _clearBox(mc::server::ServerWorld& world, const StructureBoundingBox& box, i32 flags = 3)
+void _clearBox(mc::server::ServerWorld& world, const StructureBoundingBox& box, i32 flags)
 {
     const mc::BlockState* air = mc::BlockRegistry::instance().airState();
     for (i32 x = box.minX(); x <= box.maxX(); ++x) {
@@ -197,12 +199,16 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
             placedBox.maxX() + data.padding(),
             placedBox.maxY() + data.padding(),
             placedBox.maxZ() + data.padding());
-        _clearBox(world, padBox);
+        _clearBox(world, padBox, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
-    // 放置结构（含方块/方块实体/实体），flags=18 对齐 vanilla 默认（UPDATE_CLIENTS|NOTIFY）
+    // 放置结构（含方块/方块实体/实体）：不带 UPDATE_NEIGHBORS 位，避免逐方块触发邻居更新
     mc::math::Random& rng = world.getRandom();
-    const bool ok = tpl->placeInWorld(world, placeOrigin, settings, rng, 18);
+    const bool ok = tpl->placeInWorld(world,
+        placeOrigin,
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     if (!ok) {
         spdlog::warn("GameTest: failed to place structure '{}'", data.structure());
         return nullptr;
@@ -217,7 +223,7 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
             placedBox.maxX() + data.padding(),
             placedBox.maxY() + 1,
             placedBox.maxZ() + data.padding());
-        _clearBox(world, topBox);
+        _clearBox(world, topBox, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
     // skyAccess=true 时清空结构 footprint（含 padding 外围）正上方至世界顶部的所有方块，
@@ -238,10 +244,10 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
             placedBox.maxX() + padXZ,
             mc::world::MAX_BUILD_HEIGHT - 1,
             placedBox.maxZ() + padXZ);
-        // flags=18（UPDATE_CLIENTS|NOTIFY，无 UPDATE_NEIGHBORS bit0）：清空高空 worldgen 不触发
-        // 6 向邻居更新（30300 方块 ×6 邻居的指数级开销），对齐 placeInWorld 的 flags=18 语义。
+        // 不带 UPDATE_NEIGHBORS 位：清空高空 worldgen 不触发 6 向邻居更新
+        // （30300 方块 ×6 邻居的指数级开销）。
         // 光照变更仍入队 m_lightQueue（flags 不影响光照入队），后续 tick 重算 skyLight。
-        _clearBox(world, skyBox, 18);
+        _clearBox(world, skyBox, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     }
 
     // 结构尺寸由 placedBox 跨度推导（旋转后权威值）
@@ -260,7 +266,7 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
 
 void MinecraftStructurePlacer::clearArea(mc::server::ServerWorld& world, const StructureBounds& bounds, i32 padding)
 {
-    _clearBox(world, bounds.paddingBounds(padding));
+    _clearBox(world, bounds.paddingBounds(padding), world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 } // namespace mc::test

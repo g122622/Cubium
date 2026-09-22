@@ -31,6 +31,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -520,7 +521,11 @@ void MineshaftCorridor::_generateSpawner(
                 if ((dx == 0 && dz == 0) || !chunkBounds.contains(x + dx, y, z + dz)) {
                     continue;
                 }
-                world.setBlockState(x + dx, y, z + dz, webState, 18);
+                world.setBlockState(x + dx,
+                    y,
+                    z + dz,
+                    webState,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -535,10 +540,15 @@ void MineshaftCorridor::_generateChestMinecart(
     const BlockState* lootMarker = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
 
     if (railState) {
-        world.setBlockState(x, y, z, railState, 18);
+        world.setBlockState(
+            x, y, z, railState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     }
     if (lootMarker) {
-        world.setBlockState(x, y + 1, z, lootMarker, 18);
+        world.setBlockState(x,
+            y + 1,
+            z,
+            lootMarker,
+            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     }
 }
 

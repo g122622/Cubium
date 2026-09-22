@@ -29,6 +29,7 @@
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
@@ -433,7 +434,7 @@ TEST_F(EatGrassGoalGameRuleTest, GrassBlockTurnsToDirt_WhenMobGriefingEnabled)
     world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS,
         BlockPos(0, 63, 0),
         static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
-    world.setBlockState(0, 63, 0, &VanillaBlocks::DIRT->defaultState(), 2);
+    world.setBlockState(0, 63, 0, &VanillaBlocks::DIRT->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 验证方块变化
     const BlockState* finalState = world.getBlockState(0, 63, 0);
@@ -482,7 +483,7 @@ TEST_F(EatGrassGoalGameRuleTest, ShortGrassRemoved_WhenMobGriefingEnabled)
     EXPECT_TRUE(initialState->is(VanillaBlocks::SHORT_GRASS));
 
     // 模拟吃草的逻辑（设置空气）
-    world.setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState(), 2);
+    world.setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     const BlockState* finalState = world.getBlockState(0, 64, 0);
     ASSERT_NE(finalState, nullptr);
@@ -545,7 +546,7 @@ TEST_F(EatGrassGoalGameRuleTest, TallGrassHandled_WhenMobGriefingEnabled)
     EXPECT_TRUE(initialState->is(VanillaBlocks::TALL_GRASS));
 
     // 模拟吃高草的逻辑
-    world.setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState(), 2);
+    world.setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     const BlockState* finalState = world.getBlockState(0, 64, 0);
     ASSERT_NE(finalState, nullptr);

@@ -32,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -266,13 +267,13 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state)
         if (correctState.isEmpty()) {
             state = correctState;
             if (VanillaBlocks::AIR != nullptr) {
-                world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 3);
+                world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
             }
         } else if (!(correctState == state)) {
             state = correctState;
             const BlockState* newBlockState = correctState.getBlockState();
             if (newBlockState != nullptr) {
-                world.setBlockState(pos, newBlockState, 2);
+                world.setBlockState(pos, newBlockState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             }
             world.tickManager().scheduleFluidTick(pos, correctState.getFluid(), tickDelay);
         }
@@ -490,10 +491,9 @@ void FlowingFluid::flowInto(
 
     // 设置流体方块
     // 必须使用传入状态自身的流体类型做方块映射，避免 source/fluid 实例错配。
-    // 使用 flags=3 来通知邻居和更新客户端
     const BlockState* newBlockState = state.getBlockState();
     if (newBlockState != nullptr) {
-        world.setBlockState(pos, newBlockState, 3);
+        world.setBlockState(pos, newBlockState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

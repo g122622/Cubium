@@ -40,6 +40,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -71,7 +72,7 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context)
 
     // 放置水方块
     const BlockState* waterState = VanillaBlocks::getState(VanillaBlocks::WATER);
-    world.setBlockState(placePos, waterState, 3);
+    world.setBlockState(placePos, waterState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 调度流体 tick
     fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);

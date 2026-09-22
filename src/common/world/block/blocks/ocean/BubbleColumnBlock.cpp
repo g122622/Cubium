@@ -37,6 +37,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -79,7 +80,7 @@ void BubbleColumnBlock::placeBubbleColumn(IWorld& world, const BlockPos& pos, bo
     if (canHoldBubbleColumn(world, pos)) {
         const BlockState& bubbleState =
             VanillaBlocks::BUBBLE_COLUMN->defaultState().with(BlockStateProperties::DRAG(), drag);
-        world.setBlockState(pos, &bubbleState, 2);
+        world.setBlockState(pos, &bubbleState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -133,7 +134,7 @@ bool BubbleColumnBlock::isDrag(const BlockState& state) const
     return state.get(BlockStateProperties::DRAG());
 }
 
-void BubbleColumnBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BubbleColumnBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 气泡柱被添加时，在上方放置气泡柱
     // DRAG 状态由下方方块决定

@@ -26,6 +26,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -92,7 +93,7 @@ void TorchflowerCropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockS
     const i32 randomBound = static_cast<i32>(25.0f / growthChance) + 1;
     if (random.nextInt(randomBound) == 0) {
         const i32 newAge = getAge(state) + 1;
-        world.setBlockState(pos, &withAge(newAge), 2);
+        world.setBlockState(pos, &withAge(newAge), world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -111,7 +112,7 @@ void TorchflowerCropBlock::grow(IWorld& world, math::IRandom& random, const Bloc
     MC_UNUSED(random);
 
     const i32 newAge = getAge(state) + getBonemealAgeIncrease(world, pos);
-    world.setBlockState(pos, &withAge(newAge), 2);
+    world.setBlockState(pos, &withAge(newAge), world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 // ========== 形状 ==========

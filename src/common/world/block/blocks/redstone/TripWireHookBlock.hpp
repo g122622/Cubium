@@ -69,14 +69,14 @@ public:
     // 枚举，不可写入 Up/Down（会越界），须先水平化收窄。
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,

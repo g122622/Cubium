@@ -36,6 +36,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include <utility>
 
@@ -89,7 +90,7 @@ void AbstractCandleBlock::extinguish(IWorld& world, const BlockPos& pos, BlockSt
 
     if (isLit(state)) {
         BlockState newState = state.with(BlockStateProperties::LIT(), false);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 熄灭时播放蜡烛熄灭音效
         if (!world.isClientSide()) {
@@ -102,7 +103,7 @@ void AbstractCandleBlock::extinguish(IWorld& world, const BlockPos& pos, BlockSt
 void AbstractCandleBlock::setLit(IWorld& world, const BlockPos& pos, const BlockState& state, bool lit)
 {
     BlockState newState = state.with(BlockStateProperties::LIT(), lit);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 // ========== 投掷物交互 ==========

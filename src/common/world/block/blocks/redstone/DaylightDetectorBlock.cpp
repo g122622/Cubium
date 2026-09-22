@@ -36,6 +36,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -119,13 +120,14 @@ void DaylightDetectorBlock::toggleMode(IWorld& world, const BlockPos& pos, const
     i32 power = _calculateSignalStrength(world, pos, newInverted);
     newState = withPower(newState, power);
 
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 通知相邻方块
     _notifyNeighbors(world, pos);
 }
 
-void DaylightDetectorBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void DaylightDetectorBlock::onBlockAdded(
+    IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 立即更新信号强度
     _updatePower(world, pos, state);
@@ -216,7 +218,7 @@ void DaylightDetectorBlock::_updatePower(IWorld& world, const BlockPos& pos, con
 
     if (oldPower != newPower) {
         BlockState newState = withPower(state, newPower);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 通知相邻方块更新
         _notifyNeighbors(world, pos);

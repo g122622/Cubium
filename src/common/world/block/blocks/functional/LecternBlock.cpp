@@ -44,6 +44,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/LecternEntity.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -259,8 +260,11 @@ BlockActionResult LecternBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Pass;
 }
 
-void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
+    // TODO: 讲台的书掉落应迁到 LecternEntity::preRemoveSideEffects，并由
+    //       UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控；放在这里会在不含 UPDATE_NEIGHBORS
+    //       的写入（结构放置、活塞推动等）下漏掉书的掉落。
     // 如果有书，掉落书本
     if (state.get(BlockStateProperties::HAS_BOOK())) {
         _dropBook(world, pos, state);
@@ -271,7 +275,7 @@ void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
         updateBelow(world, pos, state.getBlockMutable());
     }
 
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 void LecternBlock::_dropBook(IWorld& world, const BlockPos& pos, const BlockState& state)
@@ -336,7 +340,7 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, bool hasBook)
 
     BlockState updated =
         currentState->with(BlockStateProperties::HAS_BOOK(), hasBook).with(BlockStateProperties::POWERED(), false);
-    world.setBlockState(pos, &updated, 3);
+    world.setBlockState(pos, &updated, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 通知下方方块红石更新（POWERED 状态可能改变）
     updateBelow(world, pos, updated.getBlockMutable());
@@ -356,7 +360,7 @@ void LecternBlock::pulse(IWorld& world, const BlockPos& pos, const BlockState& s
 void LecternBlock::changePowered(IWorld& world, const BlockPos& pos, const BlockState& state, bool powered)
 {
     BlockState updated = state.with(BlockStateProperties::POWERED(), powered);
-    world.setBlockState(pos, &updated, 3);
+    world.setBlockState(pos, &updated, world::BlockUpdateFlags::UPDATE_ALL);
     updateBelow(world, pos, state.getBlockMutable());
 }
 

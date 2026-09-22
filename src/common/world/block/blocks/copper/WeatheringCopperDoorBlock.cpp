@@ -26,6 +26,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/DoorBlock.hpp"
 
 namespace mc {
@@ -55,7 +56,7 @@ void WeatheringCopperDoorBlock::randomTick(IWorld& world, const BlockPos& pos, B
         const BlockState* upperState = world.getBlockState(upperPos);
         if (upperState != nullptr && upperState->is(this)) {
             const BlockState& upperNext = m_nextOxidationBlock->defaultState().withPropertiesOf(*upperState);
-            world.setBlockState(upperPos, &upperNext, 3);
+            world.setBlockState(upperPos, &upperNext, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

@@ -33,6 +33,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/end/EndPortalFrameBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/state/pattern/BlockInWorld.hpp"
@@ -53,7 +54,7 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
     // 对应 MC Java: EnderEyeItem.useOn()
     //
     // 1. 检查目标方块是否为 END_PORTAL_FRAME 且 !hasEye
-    // 2. 若是：设置 EYE=true（setBlockState flags=2），播放 levelEvent(1503)（END_PORTAL_FRAME_FILL）
+    // 2. 若是：设置 EYE=true（仅同步客户端），播放 levelEvent(1503)（END_PORTAL_FRAME_FILL）
     // 3. 消耗物品（非创造模式，shrink(1)）
     // 4. 调用 EndPortalFrameBlock::getOrCreatePortalShape().find() 检测 12 框架
     // 5. 若匹配：在内部 3×3 区域放置 END_PORTAL 方块并广播 globalLevelEvent(1038, centerPos, 0)
@@ -80,7 +81,7 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
     // 设置含眼状态：EYE=true
     // 对应 MC Java: level.setBlock(blockpos, blockstate.setValue(HAS_EYE, true), 2);
     const BlockState& newState = statePtr->with(BlockStateProperties::EYE(), true);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 播放框架填充音效/粒子事件（事件 1503）
     // 对应 MC Java: level.levelEvent(1503, blockpos, 0);
@@ -127,7 +128,7 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
                         // TODO: 对齐 MC Java level.destroyBlock(portalPos, true, null) —
                         //   放置 END_PORTAL 前需先销毁该位置的方块（掉落物 + 移除）。
                         //   Cubium 目前缺少 destroyBlock 等价接口，暂直接覆盖放置。
-                        world.setBlockState(portalPos, endPortalState, 2);
+                        world.setBlockState(portalPos, endPortalState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                     }
                 }
             }

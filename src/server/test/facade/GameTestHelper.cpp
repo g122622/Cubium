@@ -1,4 +1,5 @@
 #include "server/test/facade/GameTestHelper.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -585,7 +586,7 @@ GameTestResult GameTestHelper::destroyBlock(BlockPos relativePos, bool dropResou
     if (air == nullptr) {
         return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Air block state unavailable"};
     }
-    if (!m_world.setBlockState(worldPos, air, 3)) {
+    if (!m_world.setBlockState(worldPos, air, world::BlockUpdateFlags::UPDATE_ALL)) {
         // setBlockState 对“格子已是 air”返回 false（no-op 成功），原版 destroyBlock 同样视为成功。
         // 仅当格子确实未被写入（chunk 未加载等）时才报真失败。
         if (!_blockAlreadyMatches(m_world, worldPos, air)) {
@@ -718,7 +719,7 @@ GameTestResult GameTestHelper::setBlockPermutation(const mc::BlockState& permuta
     // 对齐基岩 Test.setBlockPermutation：按 BlockPermutation（C++ 侧为 BlockState）设 pos 方块。
     // 复用 setBlock 的写入路径（m_world.setBlockState），入参从 blockType 字符串换成 BlockState&。
     const BlockPos worldPos = worldBlockPosition(relativePos);
-    if (!m_world.setBlockState(worldPos, &permutation, 3)) {
+    if (!m_world.setBlockState(worldPos, &permutation, world::BlockUpdateFlags::UPDATE_ALL)) {
         // setBlockState 对“格子已是目标状态”返回 false（no-op 成功），原版 Test.setBlockPermutation
         // 同样视为成功。仅当格子确实未被写入（chunk 未加载等）时才报真失败。
         if (!_blockAlreadyMatches(m_world, worldPos, &permutation)) {

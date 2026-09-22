@@ -335,7 +335,7 @@ TEST_F(SpongeBlockTest, SpongeOnBlockAddedTriggersAbsorb)
     world.setBlockDirectly(spongePos, &spongeState);
 
     // 调用 onBlockAdded
-    sponge->onBlockAdded(world, spongePos, spongeState);
+    sponge->onBlockAdded(world, spongePos, spongeState, false);
 
     // 验证海绵变成湿润海绵
     const BlockState* finalState = world.getBlockState(spongePos.x, spongePos.y, spongePos.z);
@@ -366,7 +366,7 @@ TEST_F(WetSpongeBlockTest, WetSpongeDriesInNether)
     world.setBlockDirectly(spongePos, &wetSpongeState);
 
     // 调用 onBlockAdded
-    wetSponge->onBlockAdded(world, spongePos, wetSpongeState);
+    wetSponge->onBlockAdded(world, spongePos, wetSpongeState, false);
 
     // 验证湿海绵变成干海绵
     const BlockState* finalState = world.getBlockState(spongePos.x, spongePos.y, spongePos.z);
@@ -404,7 +404,7 @@ TEST_F(WetSpongeBlockTest, WetSpongeStaysWetInOverworld)
     world.setBlockDirectly(spongePos, &wetSpongeState);
 
     // 调用 onBlockAdded
-    wetSponge->onBlockAdded(world, spongePos, wetSpongeState);
+    wetSponge->onBlockAdded(world, spongePos, wetSpongeState, false);
 
     // 验证湿海绵保持不变
     const BlockState* finalState = world.getBlockState(spongePos.x, spongePos.y, spongePos.z);

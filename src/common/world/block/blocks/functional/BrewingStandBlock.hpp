@@ -158,7 +158,7 @@ public:
      *
      * 掉落酿造台内的物品。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 寻路 ==========
 

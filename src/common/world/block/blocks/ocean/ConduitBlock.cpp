@@ -87,7 +87,7 @@ BlockState ConduitBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(BlockStateProperties::WATERLOGGED(), true);
 }
 
-void ConduitBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ConduitBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
@@ -101,7 +101,7 @@ void ConduitBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockS
     }
 }
 
-void ConduitBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ConduitBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 

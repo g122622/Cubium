@@ -74,7 +74,7 @@ public:
      *
      * 清理 PistonBlockEntity。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 获取推动反应

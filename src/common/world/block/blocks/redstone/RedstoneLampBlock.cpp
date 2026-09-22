@@ -29,6 +29,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
@@ -73,14 +74,14 @@ BlockState RedstoneLampBlock::withLit(BlockState state, bool lit) noexcept
     return state.with(BlockStateProperties::LIT(), lit);
 }
 
-void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneLampBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 检查是否应该点亮
     bool shouldLit = world::redstone::RedstonePower::isPowered(world, pos);
     if (shouldLit != isLit(state)) {
         if (shouldLit) {
             BlockState newState = withLit(state, true);
-            world.setBlockState(pos, &newState, 2);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         } else {
             world.tickManager().scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
         }
@@ -107,7 +108,7 @@ void RedstoneLampBlock::neighborChanged(
         if (shouldLit) {
             // 被充能，立即点亮
             BlockState newState = withLit(*state, true);
-            world.setBlockState(pos, &newState, 2);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         } else {
             // 失去信号，调度熄灭
             world.tickManager().scheduleBlockTick(pos, *this, 4, world::tick::TickPriority::High);
@@ -122,7 +123,7 @@ void RedstoneLampBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     bool shouldLit = world::redstone::RedstonePower::isPowered(world, pos);
     if (!shouldLit && isLit(state)) {
         BlockState newState = withLit(state, false);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 

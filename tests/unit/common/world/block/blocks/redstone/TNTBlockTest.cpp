@@ -662,7 +662,7 @@ TEST_F(TNTBlockTest, OnBlockAdded_WithFire_PrimesAndRemovesBlock)
     m_world.setBlockAt(firePos, &VanillaBlocks::FIRE->defaultState());
     m_world.setClientSide(false);
 
-    tntBlock->onBlockAdded(m_world, tntPos, tntBlock->defaultState());
+    tntBlock->onBlockAdded(m_world, tntPos, tntBlock->defaultState(), false);
 
     // 应该生成 TNT 实体
     EXPECT_EQ(m_world.spawnedTNTCount(), 1);

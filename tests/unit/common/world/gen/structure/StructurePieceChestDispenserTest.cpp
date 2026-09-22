@@ -30,6 +30,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -431,14 +432,14 @@ TEST_F(StructurePieceChestDispenserTest, ReorientChest_NoAdjacentBlocks_ReturnsN
     // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
     const BlockState* airState = &BaseBlocks::AIR->defaultState();
     BlockPos chestPos(5, 65, 5);
-    m_region->setBlockState(5, 65, 5, airState, 2);
-    m_region->setBlockState(4, 65, 5, airState, 2);
-    m_region->setBlockState(6, 65, 5, airState, 2);
-    m_region->setBlockState(5, 65, 4, airState, 2);
-    m_region->setBlockState(5, 65, 6, airState, 2);
+    m_region->setBlockState(5, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(4, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(6, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 4, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 6, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 在空气中放置宝箱（周围都是空气）
-    m_region->setBlockState(5, 65, 5, chestState, 2);
+    m_region->setBlockState(5, 65, 5, chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
     ASSERT_NE(result, nullptr);
@@ -459,14 +460,14 @@ TEST_F(StructurePieceChestDispenserTest, ReorientChest_OneSolidBlock_FacesAwayFr
     // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
     const BlockState* airState = &BaseBlocks::AIR->defaultState();
     BlockPos chestPos(5, 65, 5);
-    m_region->setBlockState(5, 65, 5, airState, 2);
-    m_region->setBlockState(4, 65, 5, airState, 2);
-    m_region->setBlockState(6, 65, 5, airState, 2);
-    m_region->setBlockState(5, 65, 4, airState, 2);
-    m_region->setBlockState(5, 65, 6, airState, 2);
+    m_region->setBlockState(5, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(4, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(6, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 4, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 6, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 只在宝箱北侧放置石头（宝箱在 (5, 65, 5)，北侧是 (5, 65, 4)）
-    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), 2);
+    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
     ASSERT_NE(result, nullptr);
@@ -485,15 +486,15 @@ TEST_F(StructurePieceChestDispenserTest, ReorientChest_TwoSolidBlocks_KeepsDefau
     // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
     const BlockState* airState = &BaseBlocks::AIR->defaultState();
     BlockPos chestPos(5, 65, 5);
-    m_region->setBlockState(5, 65, 5, airState, 2);
-    m_region->setBlockState(4, 65, 5, airState, 2);
-    m_region->setBlockState(6, 65, 5, airState, 2);
-    m_region->setBlockState(5, 65, 4, airState, 2);
-    m_region->setBlockState(5, 65, 6, airState, 2);
+    m_region->setBlockState(5, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(4, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(6, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 4, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 6, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 北侧和南侧都放置石头，东西两侧是空气
-    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), 2);
-    m_region->setBlockState(5, 65, 6, &VanillaBlocks::STONE->defaultState(), 2);
+    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 6, &VanillaBlocks::STONE->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
     ASSERT_NE(result, nullptr);
@@ -516,14 +517,14 @@ TEST_F(StructurePieceChestDispenserTest, ReorientChest_AdjacentChest_KeepsDefaul
     // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
     const BlockState* airState = &BaseBlocks::AIR->defaultState();
     BlockPos chestPos(5, 65, 5);
-    m_region->setBlockState(5, 65, 5, airState, 2);
-    m_region->setBlockState(4, 65, 5, airState, 2);
-    m_region->setBlockState(6, 65, 5, airState, 2);
-    m_region->setBlockState(5, 65, 4, airState, 2);
-    m_region->setBlockState(5, 65, 6, airState, 2);
+    m_region->setBlockState(5, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(4, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(6, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 4, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 6, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 在宝箱东侧放置另一个宝箱
-    m_region->setBlockState(6, 65, 5, chestState, 2);
+    m_region->setBlockState(6, 65, 5, chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     const BlockState* result = StructurePiece::reorientChest(*m_region, chestPos, chestState);
     ASSERT_NE(result, nullptr);
@@ -551,14 +552,14 @@ TEST_F(StructurePieceChestDispenserTest, AutoFacingGenerateChest_PlacesChestWith
 
     // 清除宝箱位置及其四个水平邻居的石头（SetUp 填充了 y=60..70 的石头）
     const BlockState* airState = &BaseBlocks::AIR->defaultState();
-    m_region->setBlockState(5, 65, 5, airState, 2);
-    m_region->setBlockState(4, 65, 5, airState, 2);
-    m_region->setBlockState(6, 65, 5, airState, 2);
-    m_region->setBlockState(5, 65, 4, airState, 2);
-    m_region->setBlockState(5, 65, 6, airState, 2);
+    m_region->setBlockState(5, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(4, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(6, 65, 5, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 4, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    m_region->setBlockState(5, 65, 6, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 只在宝箱北侧放置石头，宝箱应朝向南
-    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), 2);
+    m_region->setBlockState(5, 65, 4, &VanillaBlocks::STONE->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 使用自动朝向版本的 generateChest
     piece.generateChest(*m_region, bounds, rng, 0, 0, 0, ResourceLocation("minecraft", "chests/stronghold_crossing"));

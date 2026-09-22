@@ -41,6 +41,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -160,7 +161,7 @@ BlockState ScaffoldingBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-void ScaffoldingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ScaffoldingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     // 方块添加时调度 tick
@@ -194,7 +195,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
 
             // 移除方块
             const BlockState* airState = BlockRegistry::instance().airState();
-            world.setBlockState(pos, airState, 3);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 掉落脚手架物品
             const Block* block = &currentState->getBlock();
@@ -217,7 +218,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
 
             // 移除原方块
             const BlockState* airState = BlockRegistry::instance().airState();
-            if (airState != nullptr && world.setBlockState(pos, airState, 3)) {
+            if (airState != nullptr && world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL)) {
                 // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
                 auto* registry = world.entityRegistry();
                 if (registry == nullptr) {
@@ -238,13 +239,13 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
                 const EntityInstanceId entityId = world.spawnEntity(std::move(fallingEntity));
                 if (entityId == 0) {
                     // 生成失败，恢复方块
-                    world.setBlockState(pos, currentState, 3);
+                    world.setBlockState(pos, currentState, world::BlockUpdateFlags::UPDATE_ALL);
                 }
             }
         }
     } else if (state != newState) {
         // 状态改变，更新方块
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

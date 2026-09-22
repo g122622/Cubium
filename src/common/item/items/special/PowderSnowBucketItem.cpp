@@ -37,6 +37,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 
@@ -107,7 +108,7 @@ bool PowderSnowBucketItem::emptyContents(Player* player, IWorld& world, const Bl
         return false;
     }
 
-    world.setBlockState(pos, powderSnowState, 3);
+    world.setBlockState(pos, powderSnowState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 触发方块放置游戏事件
     world.gameEvent(gameevent::GameEvents::BLOCK_PLACE,

@@ -21,6 +21,7 @@
  */
 
 #include "server/test/script/binding/ScriptTestHelper.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 
 #include "common/entity/core/EntityClassification.hpp" // entity::EntityClassification（spawnNaturalAt category 映射）
 #include "common/item/core/ItemStack.hpp"              // mc::ItemStack（_unwrapItemStack/assertContainerContains）
@@ -229,7 +230,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         3);
 
-    // --- setBlock(blockType, blockPos, updateFlags=3) ---
+    // --- setBlock(blockType, blockPos, updateFlags 默认 UPDATE_ALL) ---
     reg.method(
         "setBlock",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -248,7 +249,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!_parseBlockPos(ctx, args[1], pos)) {
                 return nullptr;
             }
-            i32 flags = 3;
+            i32 flags = mc::world::BlockUpdateFlags::UPDATE_ALL;
             if (argc >= 3 && ctx.isNumber(args[2])) {
                 auto f = ctx.toInt32(args[2]);
                 if (f) {
@@ -260,7 +261,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         },
         3);
 
-    // --- setBlockWithStates(blockType, blockPos, statesStr, updateFlags=3) ---
+    // --- setBlockWithStates(blockType, blockPos, statesStr, updateFlags 默认 UPDATE_ALL) ---
     // 按 typeId + 属性字符串设带 block state 的方块。statesStr 格式 "prop=value" 或 "p1=v1,p2=v2"
     // （如 "age=3"）。绑定上下文无枚举 JS 对象 key 的 API，故用字符串编码属性，绑定层解析为
     // unordered_map<string,string> 传 facade。用于放置成熟甜浆果丛等带 state 方块。
@@ -286,7 +287,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!statesStr) {
                 return ctx.throwInternalError("Failed to read statesStr");
             }
-            i32 flags = 3;
+            i32 flags = mc::world::BlockUpdateFlags::UPDATE_ALL;
             if (argc >= 4 && ctx.isNumber(args[3])) {
                 auto f = ctx.toInt32(args[3]);
                 if (f) {
@@ -856,7 +857,7 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         1);
 
     // --- setBlockType(blockType, pos) ---
-    // 基岩版 setBlockType 是 setBlock 的历史别名（无 updateFlags 参数，等价 setBlock(blockType, pos, 3)）。
+    // setBlockType 是 setBlock 的历史别名（无 updateFlags 参数，等价于传 UPDATE_ALL）。
     reg.method(
         "setBlockType",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {

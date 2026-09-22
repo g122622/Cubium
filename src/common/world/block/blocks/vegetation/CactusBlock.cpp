@@ -36,6 +36,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -198,14 +199,14 @@ void CactusBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
         if (age >= 15) {
             // 生长新的仙人掌
             const BlockState& newTopState = defaultState();
-            world.setBlockState(abovePos, &newTopState, 2);
+            world.setBlockState(abovePos, &newTopState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
             const BlockState& resetState = withAge(0);
-            world.setBlockState(pos, &resetState, 2);
+            world.setBlockState(pos, &resetState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         } else {
             // 增加年龄
             const BlockState& agedState = withAge(age + 1);
-            world.setBlockState(pos, &agedState, 2);
+            world.setBlockState(pos, &agedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }

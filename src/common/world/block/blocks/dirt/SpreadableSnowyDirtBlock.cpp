@@ -35,6 +35,7 @@
 #include "common/world/biome/BiomeGenerationSettings.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/dirt/SnowyDirtBlock.hpp"
@@ -262,7 +263,7 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 
                         const BlockState* flower = m_flowerPlacer(chosenId, random);
                         if (flower != nullptr) {
-                            world.setBlockState(currentPos, flower, 3);
+                            world.setBlockState(currentPos, flower, world::BlockUpdateFlags::UPDATE_ALL);
                             continue;
                         }
                     }
@@ -270,12 +271,14 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 
                 // 生物群系没有花卉特征或获取失败时，回退到默认花朵（蒲公英）
                 if (VanillaBlocks::DANDELION != nullptr) {
-                    world.setBlockState(currentPos, &VanillaBlocks::DANDELION->defaultState(), 3);
+                    world.setBlockState(
+                        currentPos, &VanillaBlocks::DANDELION->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
                 }
             } else {
                 // 7/8 概率放置短草
                 if (VanillaBlocks::SHORT_GRASS != nullptr) {
-                    world.setBlockState(currentPos, &VanillaBlocks::SHORT_GRASS->defaultState(), 3);
+                    world.setBlockState(
+                        currentPos, &VanillaBlocks::SHORT_GRASS->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
                 }
             }
         }

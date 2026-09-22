@@ -28,6 +28,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -95,7 +96,7 @@ bool ConfiguredVinesFeature::place(WorldGenRegion& region,
             const BlockState* vineDefault = &VanillaBlocks::VINE->defaultState();
             const BooleanProperty* face = getPropertyForFace(direction);
             const BlockState* placed = (face != nullptr) ? &vineDefault->with(*face, true) : vineDefault;
-            region.setBlockState(origin, placed, 2);
+            region.setBlockState(origin, placed, world::BlockUpdateFlags::UPDATE_CLIENTS);
             return true;
         }
     }

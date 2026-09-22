@@ -41,6 +41,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/pale_garden/EyeblossomBlock.hpp"
 #include "common/world/block/blocks/pale_garden/EyeblossomEnvironment.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -146,7 +147,7 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
 
         // 服务端：替换方块为对应 potted_*，并消耗物品
         const BlockState& pottedState = targetPot->defaultState();
-        world.setBlockState(pos, &pottedState, 3);
+        world.setBlockState(pos, &pottedState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
 
         // 消耗物品（玩家手持物品数量 -1）
@@ -189,7 +190,7 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
         Block* emptyPot = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:flower_pot"));
         if (emptyPot != nullptr) {
             const BlockState& emptyState = emptyPot->defaultState();
-            world.setBlockState(pos, &emptyState, 3);
+            world.setBlockState(pos, &emptyState, world::BlockUpdateFlags::UPDATE_ALL);
             world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
         }
     }
@@ -261,7 +262,7 @@ void FlowerPotBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         return;
     }
     const BlockState& oppositeState = oppositePot->defaultState();
-    world.setBlockState(pos, &oppositeState, 3);
+    world.setBlockState(pos, &oppositeState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 生成转换粒子（粒子颜色由新状态决定，复用 EyeblossomBlock 的实现）
     // 切换后的新类型 = 当前类型的反状态

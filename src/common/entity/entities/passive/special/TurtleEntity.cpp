@@ -52,6 +52,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -238,7 +239,7 @@ void TurtleEntity::_layEgg()
 
     // 放置海龟蛋方块
     // flags = 3: 通知客户端 + 通知邻居
-    world()->setBlockState(footPos, &eggState, 3);
+    world()->setBlockState(footPos, &eggState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 播放下蛋音效
     f32 pitch = 0.9f + getRandom().nextFloat() * 0.2f;

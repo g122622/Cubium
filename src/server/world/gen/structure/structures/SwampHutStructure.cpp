@@ -33,6 +33,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -185,7 +186,11 @@ void SwampHutPiece::_generatePillars(IWorldWriter& world, const StructureBoundin
             BlockPos pos(px, y, pz);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_FENCE) {
-                    world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::OAK_FENCE->defaultState(), 2);
+                    world.setBlockState(pos.x,
+                        pos.y,
+                        pos.z,
+                        &VanillaBlocks::OAK_FENCE->defaultState(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS);
                 }
             }
         }
@@ -201,7 +206,11 @@ void SwampHutPiece::_generateFloor(IWorldWriter& world, const StructureBoundingB
             BlockPos pos(x, m_minY, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_PLANKS) {
-                    world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::OAK_PLANKS->defaultState(), 2);
+                    world.setBlockState(pos.x,
+                        pos.y,
+                        pos.z,
+                        &VanillaBlocks::OAK_PLANKS->defaultState(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS);
                 }
             }
         }
@@ -225,7 +234,11 @@ void SwampHutPiece::_generateWalls(IWorldWriter& world, const StructureBoundingB
                     BlockPos pos(x, y, z);
                     if (bounds.contains(pos.x, pos.y, pos.z)) {
                         if (VanillaBlocks::SPRUCE_PLANKS) {
-                            world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::SPRUCE_PLANKS->defaultState(), 2);
+                            world.setBlockState(pos.x,
+                                pos.y,
+                                pos.z,
+                                &VanillaBlocks::SPRUCE_PLANKS->defaultState(),
+                                world::BlockUpdateFlags::UPDATE_CLIENTS);
                         }
                     }
                 }
@@ -245,7 +258,11 @@ void SwampHutPiece::_generateRoof(IWorldWriter& world, const StructureBoundingBo
             BlockPos pos(x, m_minY + 4, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_STAIRS) {
-                    world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::OAK_STAIRS->defaultState(), 2);
+                    world.setBlockState(pos.x,
+                        pos.y,
+                        pos.z,
+                        &VanillaBlocks::OAK_STAIRS->defaultState(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS);
                 }
             }
         }
@@ -257,7 +274,11 @@ void SwampHutPiece::_generateRoof(IWorldWriter& world, const StructureBoundingBo
             BlockPos pos(x, m_minY + 5, z);
             if (bounds.contains(pos.x, pos.y, pos.z)) {
                 if (VanillaBlocks::OAK_STAIRS) {
-                    world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::OAK_STAIRS->defaultState(), 2);
+                    world.setBlockState(pos.x,
+                        pos.y,
+                        pos.z,
+                        &VanillaBlocks::OAK_STAIRS->defaultState(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS);
                 }
             }
         }
@@ -274,8 +295,11 @@ void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, co
     BlockPos brewingPos(m_minX + 1, m_minY + 1, m_minZ + 1);
     if (bounds.contains(brewingPos.x, brewingPos.y, brewingPos.z)) {
         if (VanillaBlocks::BREWING_STAND) {
-            world.setBlockState(
-                brewingPos.x, brewingPos.y, brewingPos.z, &VanillaBlocks::BREWING_STAND->defaultState(), 2);
+            world.setBlockState(brewingPos.x,
+                brewingPos.y,
+                brewingPos.z,
+                &VanillaBlocks::BREWING_STAND->defaultState(),
+                world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 
@@ -283,8 +307,11 @@ void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, co
     BlockPos cauldronPos(m_maxX - 1, m_minY + 1, m_minZ + 1);
     if (bounds.contains(cauldronPos.x, cauldronPos.y, cauldronPos.z)) {
         if (VanillaBlocks::CAULDRON) {
-            world.setBlockState(
-                cauldronPos.x, cauldronPos.y, cauldronPos.z, &VanillaBlocks::CAULDRON->defaultState(), 2);
+            world.setBlockState(cauldronPos.x,
+                cauldronPos.y,
+                cauldronPos.z,
+                &VanillaBlocks::CAULDRON->defaultState(),
+                world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 
@@ -292,8 +319,11 @@ void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, co
     BlockPos redMushroomPos(m_minX + 1, m_minY + 1, m_maxZ - 2);
     if (bounds.contains(redMushroomPos.x, redMushroomPos.y, redMushroomPos.z)) {
         if (VanillaBlocks::RED_MUSHROOM) {
-            world.setBlockState(
-                redMushroomPos.x, redMushroomPos.y, redMushroomPos.z, &VanillaBlocks::RED_MUSHROOM->defaultState(), 2);
+            world.setBlockState(redMushroomPos.x,
+                redMushroomPos.y,
+                redMushroomPos.z,
+                &VanillaBlocks::RED_MUSHROOM->defaultState(),
+                world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 
@@ -305,7 +335,7 @@ void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, co
                 brownMushroomPos.y,
                 brownMushroomPos.z,
                 &VanillaBlocks::BROWN_MUSHROOM->defaultState(),
-                2);
+                world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 
@@ -313,8 +343,11 @@ void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, co
     BlockPos craftingPos(m_minX + 1, m_minY + 1, m_minZ + 2);
     if (bounds.contains(craftingPos.x, craftingPos.y, craftingPos.z)) {
         if (VanillaBlocks::CRAFTING_TABLE) {
-            world.setBlockState(
-                craftingPos.x, craftingPos.y, craftingPos.z, &VanillaBlocks::CRAFTING_TABLE->defaultState(), 2);
+            world.setBlockState(craftingPos.x,
+                craftingPos.y,
+                craftingPos.z,
+                &VanillaBlocks::CRAFTING_TABLE->defaultState(),
+                world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }

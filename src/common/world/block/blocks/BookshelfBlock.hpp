@@ -64,7 +64,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 书架被移除后，通知附近附魔台重算附魔力量
@@ -72,7 +72,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
 private:
     /**

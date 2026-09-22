@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -115,7 +116,7 @@ bool ConfiguredScatteredOreFeature::place(WorldGenRegion& region,
         for (const auto& target : m_config->targets) {
             if (canPlaceOre(current, region, random, *m_config, target, pos)) {
                 if (target.state != nullptr) {
-                    region.setBlockState(pos, target.state, 2);
+                    region.setBlockState(pos, target.state, world::BlockUpdateFlags::UPDATE_CLIENTS);
                 }
                 break;
             }

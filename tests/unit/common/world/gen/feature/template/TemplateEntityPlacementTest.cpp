@@ -45,6 +45,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
@@ -227,7 +228,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_NoRotation_SyncsBodyHeadToYaw)
     settings.setMirror(Mirror::None);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -252,7 +257,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_Rotation90_SyncsBodyHeadToFinal
     settings.setRotation(Rotation::Clockwise90);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -278,7 +287,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_Rotation180_SyncsBodyHeadToFina
     settings.setRotation(Rotation::Clockwise180);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -302,7 +315,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_Rotation270_SyncsBodyHeadToFina
     settings.setRotation(Rotation::CounterClockwise90);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -327,7 +344,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_MirrorFrontBack_SyncsBodyHeadTo
     settings.setMirror(Mirror::FrontBack);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -352,7 +373,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_MirrorLeftRight_SyncsBodyHeadTo
     settings.setMirror(Mirror::LeftRight);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -378,7 +403,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_RotationAndMirror_Combined_Sync
     settings.setMirror(Mirror::LeftRight);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -404,7 +433,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_NonZeroNbtYaw_SyncsBodyHeadToTr
     settings.setRotation(Rotation::Clockwise90);
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();
@@ -430,7 +463,11 @@ TEST_F(TemplateEntityPlacementTest, PlaceInWorld_ReadsNbtRotation_BodyHeadSynced
     PlacementSettings settings; // 默认无旋转/镜像
 
     math::Random rng(42);
-    templ.placeInWorld(world, BlockPos(0, 0, 0), settings, rng);
+    templ.placeInWorld(world,
+        BlockPos(0, 0, 0),
+        settings,
+        rng,
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
     ASSERT_EQ(world.spawnedCount(), 1u);
     auto* spawned = world.lastSpawnedEntity();

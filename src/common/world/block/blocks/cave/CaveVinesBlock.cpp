@@ -38,6 +38,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/growing_plant/GrowingPlantHeadBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -140,7 +141,7 @@ void CaveVinesBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& 
     // MC 1.21.11: 骨粉对洞穴藤蔓的效果是设置 BERRIES=true
     if (!state.get(BlockStateProperties::BERRIES())) {
         const BlockState& newState = state.with(BlockStateProperties::BERRIES(), true);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -176,7 +177,7 @@ BlockActionResult CaveVinesBlock::onBlockActivated(const BlockState& state,
         }
 
         const BlockState& newState = state.with(BlockStateProperties::BERRIES(), false);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         // 触发 BLOCK_CHANGE 游戏事件，通知附近的幽匿感测体
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
         return ActionResultType::Success;

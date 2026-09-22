@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/interactive/BrushableBlockEntity.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -114,7 +115,7 @@ bool BrushableBlockEntity::brush(
         const BlockState* currentState = world.getBlockState(m_pos);
         if (currentState != nullptr) {
             const BlockState* newState = &currentState->with(BlockStateProperties::DUSTED(), newCompletion);
-            world.setBlockState(m_pos, newState, 3);
+            world.setBlockState(m_pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 
@@ -136,7 +137,7 @@ void BrushableBlockEntity::checkReset(IWorld& world)
             const BlockState* currentState = world.getBlockState(m_pos);
             if (currentState != nullptr) {
                 const BlockState* newState = &currentState->with(BlockStateProperties::DUSTED(), newCompletion);
-                world.setBlockState(m_pos, newState, 3);
+                world.setBlockState(m_pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
 
@@ -310,7 +311,7 @@ void BrushableBlockEntity::brushingCompleted(IWorld& world, LivingEntity& entity
     }
 
     if (newState != nullptr) {
-        world.setBlockState(m_pos, newState, 3);
+        world.setBlockState(m_pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

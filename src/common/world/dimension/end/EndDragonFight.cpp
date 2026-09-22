@@ -43,6 +43,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/state/pattern/BlockInWorld.hpp"
 #include "common/world/block/state/pattern/BlockPattern.hpp"
@@ -978,7 +979,7 @@ void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrys
                         blockpattern::BlockInWorld blockInWorld = match->getBlock(i, j, k);
                         const BlockState* state = blockInWorld.getState();
                         if (state != nullptr && (state->is(bedrockBlock) || state->is(endPortalBlock))) {
-                            world.setBlockState(blockInWorld.pos(), endStoneState, 3);
+                            world.setBlockState(blockInWorld.pos(), endStoneState, world::BlockUpdateFlags::UPDATE_ALL);
                         }
                     }
                 }

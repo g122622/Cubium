@@ -31,6 +31,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 
@@ -238,14 +239,15 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
     world.removeBlockEntity(m_pos);
 
     if (m_shouldRenderHead) {
-        world.setBlockState(m_pos, nullptr, 3);
+        world.setBlockState(m_pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
 
     if (m_pistonState != nullptr) {
         // 先根据邻居状态更新被移动方块的形状（如栅栏连接、楼梯朝向等）
         BlockState updatedState = Block::updateFromNeighbourShapes(*m_pistonState, world, m_pos);
-        world.setBlockState(m_pos, &updatedState, 67);
+        world.setBlockState(
+            m_pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
         Block& block = updatedState.getBlockMutable();
         for (Direction dir : Directions::all()) {

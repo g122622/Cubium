@@ -30,6 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cstddef>
 #include <memory>
@@ -135,8 +136,10 @@ public:
     [[nodiscard]] const BlockPos& getCenterOffset() const { return m_centerOffset; }
     PlacementSettings& setCenterOffset(const BlockPos& offset);
 
-    [[nodiscard]] u32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
-    PlacementSettings& setBlockUpdateFlags(u32 flags);
+    // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
+    //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
+    [[nodiscard]] i32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
+    PlacementSettings& setBlockUpdateFlags(i32 flags);
 
     [[nodiscard]] bool keepLiquids() const { return m_keepLiquids; }
     PlacementSettings& setKeepLiquids(bool keep);
@@ -183,7 +186,7 @@ private:
     bool m_keepLiquids = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
-    u32 m_blockUpdateFlags = 18; // 默认标志：更新邻居和通知观察者
+    i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;  // 可选的世界读取器
     math::Random* m_random = nullptr; // 可选的预设随机数生成器
@@ -567,7 +570,7 @@ public:
         const BlockPos& pos,
         const PlacementSettings& settings,
         math::Random& rng,
-        u32 flags = 18) const;
+        i32 flags) const;
 
     /**
      * @brief 放置模板到世界（完整版本）
@@ -585,7 +588,7 @@ public:
      * @return 是否成功放置
      */
     bool placeInWorld(
-        IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags = 18) const;
+        IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, i32 flags) const;
 
     [[nodiscard]] static BlockPos transformBlockPos(
         const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center);

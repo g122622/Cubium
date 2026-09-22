@@ -34,6 +34,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -95,13 +96,13 @@ bool RedstoneDiodeBlock::isPowered(const BlockState& state)
     return state.get(BlockStateProperties::POWERED());
 }
 
-void RedstoneDiodeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneDiodeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 放置时通知邻居更新
     notifyNeighbors(world, pos, state);
 }
 
-void RedstoneDiodeBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneDiodeBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 移除时通知邻居更新
     notifyNeighbors(world, pos, state);
@@ -159,7 +160,7 @@ void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     if (shouldPower != isCurrentlyPowered) {
         // 改变状态
         BlockState newState = state.with(BlockStateProperties::POWERED(), shouldPower);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 通知输出端相邻方块更新
         Direction facing = getFacing(state);

@@ -37,6 +37,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 
 namespace mc {
@@ -104,12 +105,12 @@ bool DragonEggBlock::_teleport(IWorld& world, const BlockPos& pos, const BlockSt
         // 客户端：生成粒子效果；服务端：移动方块
         if (!world.isClientSide()) {
             // 服务端逻辑：在新位置放置龙蛋，移除原位置龙蛋
-            world.setBlockState(targetPos, &state, 2);
+            world.setBlockState(targetPos, &state, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
             // 移除原位置的龙蛋（设置空气，不触发方块更新以避免递归）
             const BlockState* airState = BlockRegistry::instance().airState();
             if (airState != nullptr) {
-                world.setBlockState(pos, airState, 2);
+                world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             }
         } else {
             // 客户端逻辑：生成传送门粒子效果

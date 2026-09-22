@@ -37,6 +37,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cstddef>
@@ -299,7 +300,7 @@ void BambooBlock::_growBamboo(
 
     // 更新当前竹子的叶子类型
     BlockState updatedState = currentState.with(BlockStateProperties::BAMBOO_LEAVES_PROP(), newLeaves);
-    world.setBlockState(pos, &updatedState, 2);
+    world.setBlockState(pos, &updatedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 在上方放置新的竹子
     BlockState newState =
@@ -308,7 +309,7 @@ void BambooBlock::_growBamboo(
             .with(BlockStateProperties::STAGE_0_1(), 0)
             .with(BlockStateProperties::BAMBOO_LEAVES_PROP(), BlockStateProperties::BambooLeaves::None);
 
-    world.setBlockState(abovePos, &newState, 3);
+    world.setBlockState(abovePos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 // ========== IPlantable 接口实现 ==========
@@ -446,7 +447,7 @@ void BambooSaplingBlock::_growBamboo(IWorld& world, const BlockPos& pos)
     // 将幼苗替换为竹子
     if (VanillaBlocks::BAMBOO != nullptr) {
         const BlockState& bambooState = VanillaBlocks::BAMBOO->defaultState();
-        world.setBlockState(pos, &bambooState, 3);
+        world.setBlockState(pos, &bambooState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

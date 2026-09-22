@@ -39,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FlowingFluid.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -116,7 +117,7 @@ void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 只有当 reactWithNeighbors 返回 true 时才调度流体 tick
     // 如果岩浆放置时旁边有水，会先反应变成石头/黑曜石，返回 false，不再调度 tick
@@ -234,7 +235,7 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
             }
 
             if (resultBlock != nullptr) {
-                world.setBlockState(pos, &resultBlock->defaultState(), 3);
+                world.setBlockState(pos, &resultBlock->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
                 triggerMixEffects(world, pos);
                 return false;
             }
@@ -247,7 +248,8 @@ bool LiquidBlock::reactWithNeighbors(IWorld& world, const BlockPos& pos, const B
                 neighborBlock->is(VanillaBlocks::BLUE_ICE)) {
                 // 岩浆 + 蓝冰 + 灵魂土 -> 玄武岩
                 if (VanillaBlocks::BASALT != nullptr) {
-                    world.setBlockState(pos, &VanillaBlocks::BASALT->defaultState(), 3);
+                    world.setBlockState(
+                        pos, &VanillaBlocks::BASALT->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
                     triggerMixEffects(world, pos);
                     return false;
                 }
@@ -290,7 +292,8 @@ fluid::Fluid* LiquidBlock::pickupFluid(IWorld& world, const BlockPos& pos, const
     if (blockLevel == 0) { // 源头
         // 移除流体方块
         if (VanillaBlocks::AIR != nullptr) {
-            world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 11);
+            world.setBlockState(
+                pos, &VanillaBlocks::AIR->defaultState(), world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         }
         return &m_fluid.getStill();
     }

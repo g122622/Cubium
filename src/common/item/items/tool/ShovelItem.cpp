@@ -38,6 +38,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -73,7 +74,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
         if (blocks::CampfireBlock::isLit(*state)) {
             // 熄灭营火
             BlockState newState = state->with(BlockStateProperties::LIT(), false);
-            world.setBlockState(pos, &newState, 11);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
             // 播放熄灭音效
             if (context.getPlayer() != nullptr) {
@@ -97,7 +98,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
         if (blocks::CampfireBlock::isLit(*state)) {
             // 熄灭灵魂营火
             BlockState newState = state->with(BlockStateProperties::LIT(), false);
-            world.setBlockState(pos, &newState, 11);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
             // 播放熄灭音效
             if (context.getPlayer() != nullptr) {
@@ -145,7 +146,7 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
     }
 
     // 设置新方块状态
-    world.setBlockState(pos, &newState, 11);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
     // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
     // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。

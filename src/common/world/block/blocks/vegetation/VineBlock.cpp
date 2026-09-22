@@ -36,6 +36,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -294,11 +295,11 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
             if (hasCW && _canAttachTo(static_cast<IBlockReader&>(world), cwAdjPos, cwDir)) {
                 // 从顺时针方向蔓延
                 const BlockState& newState = defaultState().with(*cwProp, true);
-                world.setBlockState(adjPos, &newState, 2);
+                world.setBlockState(adjPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             } else if (hasCCW && _canAttachTo(static_cast<IBlockReader&>(world), ccwAdjPos, ccwDir)) {
                 // 从逆时针方向蔓延
                 const BlockState& newState = defaultState().with(*ccwProp, true);
-                world.setBlockState(adjPos, &newState, 2);
+                world.setBlockState(adjPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             } else {
                 // 尝试向对面蔓延
                 Direction oppositeDir = Directions::opposite(direction);
@@ -310,32 +311,33 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
                     const BooleanProperty* oppositeProp = _getPropertyFor(oppositeDir);
                     if (oppositeProp != nullptr) {
                         const BlockState& newState = defaultState().with(*oppositeProp, true);
-                        world.setBlockState(cwAdjPos, &newState, 2);
+                        world.setBlockState(cwAdjPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                     }
                 } else if (hasCCW && adjState->isAir() &&
                     _canAttachTo(static_cast<IBlockReader&>(world), ccwSourcePos, oppositeDir)) {
                     const BooleanProperty* oppositeProp = _getPropertyFor(oppositeDir);
                     if (oppositeProp != nullptr) {
                         const BlockState& newState = defaultState().with(*oppositeProp, true);
-                        world.setBlockState(ccwAdjPos, &newState, 2);
+                        world.setBlockState(ccwAdjPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                     }
                 } else if (random.nextFloat() < 0.05f) {
                     // 小概率向上附着
                     BlockPos aboveAdjPos = adjPos.up();
                     if (_canAttachTo(static_cast<IBlockReader&>(world), aboveAdjPos, Direction::Up)) {
                         const BlockState& newState = defaultState().with(BlockStateProperties::UP(), true);
-                        world.setBlockState(adjPos, &newState, 2);
+                        world.setBlockState(adjPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                     }
                 }
             }
         } else if (_canAttachTo(static_cast<IBlockReader&>(world), adjPos, direction)) {
             // 目标位置是可附着的固体方块
-            world.setBlockState(pos, &state.with(*prop, true), 2);
+            world.setBlockState(pos, &state.with(*prop, true), world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     } else if (direction == Direction::Up && pos.y < world::MAX_BUILD_HEIGHT - 1) {
         // 向上蔓延
         if (_canAttachTo(static_cast<IBlockReader&>(world), pos, Direction::Up)) {
-            world.setBlockState(pos, &state.with(BlockStateProperties::UP(), true), 2);
+            world.setBlockState(
+                pos, &state.with(BlockStateProperties::UP(), true), world::BlockUpdateFlags::UPDATE_CLIENTS);
             return;
         }
 
@@ -363,7 +365,7 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
             // 检查是否至少有一个水平连接
             if (_hasHorizontalConnection(newState)) {
-                world.setBlockState(abovePos, &newState, 2);
+                world.setBlockState(abovePos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             }
         }
     } else if (direction == Direction::Down && pos.y > world::MIN_BUILD_HEIGHT) {
@@ -379,7 +381,7 @@ void VineBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
 
             // 检查是否至少有一个水平连接
             if (_hasHorizontalConnection(belowNewState)) {
-                world.setBlockState(belowPos, &belowNewState, 2);
+                world.setBlockState(belowPos, &belowNewState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             }
         }
     }

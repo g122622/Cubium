@@ -35,6 +35,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cstddef>
 #include <memory>
@@ -184,11 +185,11 @@ bool CakeBlock::eatSlice(IWorld& world, const BlockPos& pos, const BlockState& s
     if (bites < 6) {
         // 还有剩余片数，增加已吃片数
         BlockState newState = state.with(BlockStateProperties::BITES_0_6(), bites + 1);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         return true;
     } else {
         // 最后一片，移除方块
-        world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), 3);
+        world.setBlockState(pos, &VanillaBlocks::AIR->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
         return true;
     }
 }

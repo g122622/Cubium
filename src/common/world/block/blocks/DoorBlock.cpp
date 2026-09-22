@@ -41,6 +41,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -119,7 +120,7 @@ void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockS
     BlockPos abovePos = pos.up();
     BlockState upperState =
         state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
-    world.setBlockState(abovePos, &upperState, 3);
+    world.setBlockState(abovePos, &upperState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 void DoorBlock::neighborChanged(
@@ -150,13 +151,13 @@ void DoorBlock::neighborChanged(
         bool wasOpen = state.get(BlockStateProperties::OPEN());
         BlockState newState =
             state.with(BlockStateProperties::POWERED(), powered).with(BlockStateProperties::OPEN(), powered);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         const BlockState* otherStatePtr = world.getBlockState(otherHalfPos);
         if (otherStatePtr != nullptr && &otherStatePtr->getBlock() == this &&
             otherStatePtr->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == otherHalf) {
             BlockState otherState = newState.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), otherHalf);
-            world.setBlockState(otherHalfPos, &otherState, 2);
+            world.setBlockState(otherHalfPos, &otherState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
         if (wasOpen != powered) {
             _playSound(world, pos, powered);
@@ -257,9 +258,11 @@ void DoorBlock::toggleDoor(IWorld& world, const BlockPos& pos, bool open)
     BlockPos otherHalfPos = (half == BlockStateProperties::DoubleBlockHalf::Lower) ? pos.up() : pos.down();
 
     BlockState newState = state.with(BlockStateProperties::OPEN(), open);
-    world.setBlockState(pos, &newState, 10);
+    world.setBlockState(
+        pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_IMMEDIATE);
     BlockState otherState = newState.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), otherHalf);
-    world.setBlockState(otherHalfPos, &otherState, 10);
+    world.setBlockState(
+        otherHalfPos, &otherState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_IMMEDIATE);
     _playSound(world, pos, open);
 }
 

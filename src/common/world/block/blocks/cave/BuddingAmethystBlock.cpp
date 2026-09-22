@@ -30,6 +30,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/cave/AmethystBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
@@ -91,7 +92,7 @@ void BuddingAmethystBlock::randomTick(IWorld& world, const BlockPos& pos, BlockS
             newState = newState.with(BlockStateProperties::WATERLOGGED(), true);
         }
 
-        world.setBlockState(neighborPos, &newState, 3);
+        world.setBlockState(neighborPos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

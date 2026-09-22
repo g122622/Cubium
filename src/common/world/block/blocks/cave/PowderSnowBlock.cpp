@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
@@ -127,7 +128,7 @@ const Item* PowderSnowBlock::pickupItem(IWorld& world, const BlockPos& pos, cons
     // 将细雪方块替换为空气
     const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
     if (airState != nullptr) {
-        world.setBlockState(pos, airState, 3);
+        world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
     // 返回细雪桶物品

@@ -26,6 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 
@@ -103,7 +104,7 @@ bool ConfiguredReplaceBlobsFeature::place(WorldGenRegion& region,
                 const BlockPos pos(center.x + dx, center.y + dy, center.z + dz);
                 const BlockState* state = region.getBlockState(pos);
                 if (state != nullptr && state->is(targetBlock)) {
-                    region.setBlockState(pos, m_config->replaceState, 3);
+                    region.setBlockState(pos, m_config->replaceState, world::BlockUpdateFlags::UPDATE_ALL);
                     any = true;
                 }
             }

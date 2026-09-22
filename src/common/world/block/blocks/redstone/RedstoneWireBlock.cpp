@@ -37,6 +37,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -238,7 +239,7 @@ BlockState RedstoneWireBlock::updatePostPlacement(const BlockState& state,
     }
 }
 
-void RedstoneWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     // 对齐 vanilla RedStoneWireBlock#onPlace：放置即重算 power 与四方向连接形态（updatePower 内部
@@ -247,7 +248,7 @@ void RedstoneWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
     updatePower(world, pos);
 }
 
-void RedstoneWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     // 通知相邻方块更新
@@ -360,7 +361,7 @@ bool RedstoneWireBlock::updatePower(IWorld& world, const BlockPos& pos)
     newState = calculateConnections(world, pos, newState);
 
     if (newState != *state) {
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 通知相邻红石线更新
         _notifyWireNeighbors(world, pos);
@@ -568,7 +569,7 @@ BlockActionResult RedstoneWireBlock::onBlockActivated(const BlockState& state,
         newState = calculateConnections(world, pos, newState);
 
         if (newState != state) {
-            world.setBlockState(pos, &newState, 3);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 通知对角邻居更新
             _notifyDiagonalNeighbors(world, pos, state, newState);

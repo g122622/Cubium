@@ -31,6 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/sculk/SculkBehaviour.hpp"
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"
@@ -138,7 +139,8 @@ bool SculkPatchFeature::place(IWorld& world,
     if (random.nextFloat() <= config.catalystChance) {
         const BlockState* belowState = world.getBlockState(below);
         if (belowState != nullptr && belowState->getBlock().getCollisionShape(*belowState).isFullBlock()) {
-            world.setBlockState(origin, &VanillaBlocks::SCULK_CATALYST->defaultState(), 3);
+            world.setBlockState(
+                origin, &VanillaBlocks::SCULK_CATALYST->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 
@@ -155,7 +157,7 @@ bool SculkPatchFeature::place(IWorld& world,
             belowGrowth->isFaceSturdy(world, growthPos.down(), Direction::Up, SupportType::Full)) {
             const BlockState* shrieker =
                 &VanillaBlocks::SCULK_SHRIEKER->defaultState().with(BlockStateProperties::CAN_SUMMON(), true);
-            world.setBlockState(growthPos, shrieker, 3);
+            world.setBlockState(growthPos, shrieker, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 

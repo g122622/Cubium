@@ -36,6 +36,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
@@ -155,7 +156,7 @@ void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     const i32 age = getAge(state);
     if (age < 7) {
         // 未成熟：增加年龄
-        world.setBlockState(pos, &withAge(age + 1), 2);
+        world.setBlockState(pos, &withAge(age + 1), world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
         // 已成熟：尝试生成果实
         tryGrowFruit(state, world, pos, random);
@@ -193,7 +194,7 @@ void StemBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
 
     const auto newAge = std::min(getAge(state) + getBonemealAgeIncrease(world, pos), getMaxAge());
     const BlockState& newState = withAge(newAge);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 骨粉使茎达到最大年龄后，调用 randomTick 尝试生成果实
     // 这与原版逻辑一致：performBonemeal 中 AGE 达到 7 后调用 blockstate.randomTick()
@@ -276,14 +277,14 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
         // 放置果实
         if (m_crop != nullptr) {
             const BlockState& cropDefaultState = m_crop->defaultState();
-            world.setBlockState(fruitPos, &cropDefaultState, 3);
+            world.setBlockState(fruitPos, &cropDefaultState, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 将茎变为连接茎，朝向果实方向
             const Block* attachedStem = m_crop->getAttachedStem();
             if (attachedStem != nullptr) {
                 const BlockState& stemState =
                     attachedStem->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), dir);
-                world.setBlockState(pos, &stemState, 3);
+                world.setBlockState(pos, &stemState, world::BlockUpdateFlags::UPDATE_ALL);
             }
 
             return true;

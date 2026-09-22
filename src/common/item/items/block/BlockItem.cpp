@@ -40,6 +40,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ShulkerBoxBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -301,7 +302,8 @@ bool BlockItem::placeBlock(BlockItemUseContext& context, const BlockState* state
 
     // 在世界中设置方块状态
     // 参数 11 = 1 (通知邻居) | 2 (通知观察者) | 8 (同步到客户端)
-    return context.getWorld().setBlockState(context.placementPos(), state, 11);
+    return context.getWorld().setBlockState(
+        context.placementPos(), state, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 }
 
 bool BlockItem::onBlockPlaced(
@@ -429,7 +431,7 @@ const BlockState* BlockItem::applyBlockStateFromNBT(
 
     // 如果状态发生了变化，更新世界中的方块状态
     if (currentState != &state) {
-        world.setBlockState(pos, currentState, 2);
+        world.setBlockState(pos, currentState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 
     return currentState;

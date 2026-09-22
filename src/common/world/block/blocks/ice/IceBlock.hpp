@@ -61,7 +61,7 @@ public:
      * @brief 方块被移除后
      * 冰在非寒冷生物群系会融化成水，在温暖光源附近也会融化
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 随机刻
@@ -125,7 +125,7 @@ public:
     /**
      * @brief 方块被添加时
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 邻居方块变化

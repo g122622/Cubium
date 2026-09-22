@@ -34,6 +34,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
@@ -158,9 +159,9 @@ void KelpBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     if (random.nextFloat() < 0.14f) { // 约14%概率
         // 增加上方海带
         const BlockState& kelpState = defaultState();
-        world.setBlockState(abovePos, &kelpState, 2);
+        world.setBlockState(abovePos, &kelpState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         const BlockState& agedState = withAge(age + 1);
-        world.setBlockState(pos, &agedState, 2);
+        world.setBlockState(pos, &agedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -208,9 +209,9 @@ void KelpBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
     }
 
     const BlockState& kelpState = defaultState();
-    world.setBlockState(abovePos, &kelpState, 2);
+    world.setBlockState(abovePos, &kelpState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     const BlockState& agedState = withAge(age + 1);
-    world.setBlockState(pos, &agedState, 2);
+    world.setBlockState(pos, &agedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 const CollisionShape& KelpBlock::getShape(const BlockState& state) const

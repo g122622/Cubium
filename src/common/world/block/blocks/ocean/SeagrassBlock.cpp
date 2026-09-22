@@ -28,6 +28,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -170,8 +171,8 @@ void SeagrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& p
     const BlockState* upperState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
         BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
 
-    world.setBlockState(pos, lowerState, 3);
-    world.setBlockState(abovePos, upperState, 3);
+    world.setBlockState(pos, lowerState, world::BlockUpdateFlags::UPDATE_ALL);
+    world.setBlockState(abovePos, upperState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 // ========== 流体状态 ==========

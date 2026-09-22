@@ -46,6 +46,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -209,7 +210,7 @@ BlockActionResult CopperGolemStatueBlock::onBlockActivated(const BlockState& sta
 
                 // 移除方块（对应 MC: p_435157_.removeBlock(p_435733_, false)）
                 const BlockState& airState = VanillaBlocks::AIR->defaultState();
-                world.setBlockState(pos, &airState, 3);
+                world.setBlockState(pos, &airState, world::BlockUpdateFlags::UPDATE_ALL);
 
                 // 返回 Success 并携带损坏后的斧头，同步到客户端物品栏
                 return BlockActionResult::success(heldItem);
@@ -285,7 +286,7 @@ void CopperGolemStatueBlock::updatePose(
     auto currentPose = state.get(BlockStateProperties::COPPER_GOLEM_POSE());
     auto nextPose = getNextPose(currentPose);
     const BlockState& newState = state.with(BlockStateProperties::COPPER_GOLEM_POSE(), nextPose);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 触发 BLOCK_CHANGE 游戏事件
     // 对应 MC Java: gameEvent(player, GameEvent.BLOCK_CHANGE, pos)

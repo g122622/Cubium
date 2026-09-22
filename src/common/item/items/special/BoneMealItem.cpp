@@ -40,6 +40,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -299,7 +300,7 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
                 targetFluid->getFluid().isIn(fluid::FluidTags::WATER()) &&
                 targetFluid->getLevel() == fluid::SOURCE_LEVEL) {
                 // 放置方块
-                world.setBlockState(currentPos, stateToPlace, 3);
+                world.setBlockState(currentPos, stateToPlace, world::BlockUpdateFlags::UPDATE_ALL);
                 placedAny = true;
             }
         } else if (targetState != nullptr && targetState->is(VanillaBlocks::SEAGRASS)) {

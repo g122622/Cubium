@@ -29,6 +29,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc::blocks {
@@ -114,7 +115,7 @@ void NetherrackBlock::grow(IWorld& world, math::IRandom& random, const BlockPos&
     }
 
     if (newState != nullptr) {
-        world.setBlockState(pos, newState, 3);
+        world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

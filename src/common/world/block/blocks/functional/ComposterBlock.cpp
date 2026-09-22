@@ -42,6 +42,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -125,7 +126,7 @@ void ComposterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state,
     if (level == 7) {
         // 等级7时，经过20 tick后变成等级8（可以收获骨粉）
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 8);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 播放堆肥完成音效
         if (!world.isClientSide()) {
@@ -184,7 +185,7 @@ BlockState ComposterBlock::attemptCompost(
     if (random.nextFloat() < chance) {
         i32 newLevel = level + 1;
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 通过 WorldEvent 广播堆肥成功事件（客户端同时播放音效和粒子效果）
         // data=1 表示成功升级，data=0 表示仅填充未升级
@@ -238,7 +239,7 @@ BlockState ComposterBlock::empty(IWorld& world, const BlockPos& pos, BlockState&
 
     // 重置为等级0
     BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), 0);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 播放清空音效
     if (!world.isClientSide()) {

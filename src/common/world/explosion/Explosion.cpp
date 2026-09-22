@@ -52,6 +52,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -755,7 +756,7 @@ void Explosion::_destroyBlocks()
         // 移除方块
         if (m_mode == ExplosionMode::Break) {
             // 破坏但不掉落
-            m_world.setBlockState(pos, airState, 3);
+            m_world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         } else if (m_mode == ExplosionMode::Destroy && canDrop) {
             // 破坏并掉落
             if (m_lootTableManager != nullptr) {
@@ -787,10 +788,10 @@ void Explosion::_destroyBlocks()
                     }
                 }
             }
-            m_world.setBlockState(pos, airState, 3);
+            m_world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         } else {
             // DESTROY 模式但方块不掉落（如玻璃）
-            m_world.setBlockState(pos, airState, 3);
+            m_world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
 
         // 调用方块的破坏后生成回调（如 InfestedBlock 生成蠹虫）
@@ -1112,7 +1113,7 @@ void Explosion::_spawnFire()
             if (belowState && belowState->isOpaqueCube(m_world, belowPos)) {
                 // 根据下方方块类型选择火焰种类：灵魂沙/灵魂土上方生成灵魂火，否则生成普通火
                 const BlockState& fireState = blocks::FireBlock::getFireState(m_world, pos);
-                m_world.setBlockState(pos, &fireState, 11);
+                m_world.setBlockState(pos, &fireState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
             }
         }
     }

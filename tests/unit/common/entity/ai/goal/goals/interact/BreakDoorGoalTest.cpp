@@ -32,6 +32,7 @@
 #include "common/entity/ecs/components/PhysicsStateComponent.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/DoorBlock.hpp"
 #include "common/world/block/registry/BuildingVariantBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -613,7 +614,7 @@ TEST_F(BreakDoorGoalTest, DoorBlockRemovedAfterBreakCompletes)
     ASSERT_NE(airState, nullptr);
 
     // 模拟直接调用 setBlockState 将门替换为空气（验证世界操作正确）
-    world.setBlockState(0, 65, 0, airState, 3);
+    world.setBlockState(0, 65, 0, airState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 验证门已被移除
     const BlockState* finalState = world.getBlockState(0, 65, 0);

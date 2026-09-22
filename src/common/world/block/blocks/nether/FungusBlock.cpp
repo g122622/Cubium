@@ -26,6 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -97,7 +98,7 @@ void FungusBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
 
     // 清除下界菌方块（巨型真菌会从该位置向上生成）
     const BlockState* airState = BlockRegistry::instance().airState();
-    world.setBlockState(pos, airState, 2);
+    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 调用巨型真菌生成器（lambda 内部会将 IWorld& 转为 WorldGenRegion&）
     m_fungusGrower(*region, pos, rng);

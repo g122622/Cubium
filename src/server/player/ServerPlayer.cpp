@@ -59,6 +59,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
@@ -483,7 +484,7 @@ void ServerPlayer::stopSleepInBed(bool resetTimer)
         // 清除床的占用状态
         if (hasOccupied) {
             BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
-            m_world->setBlockState(bedPos.value(), &newBedState, 3);
+            m_world->setBlockState(bedPos.value(), &newBedState, world::BlockUpdateFlags::UPDATE_ALL);
         }
 
         // 使用 BedBlock::findStandUpPosition 计算起床位置

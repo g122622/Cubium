@@ -173,7 +173,7 @@ public:
      * 掉落陶罐内存储的物品，并触发容器邻居更新。
      * 陶罐物品本身由战利品表系统处理掉落。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 中键选取物品（创造模式）
@@ -322,7 +322,7 @@ public:
      * （12000 或 24000 tick），分三阶段调度（i / 3 + [0, 300) tick）。
      * 加速时广播 EGG_CRACK 粒子事件，并发出 BLOCK_PLACE 游戏事件。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 计划刻回调 - 推进孵化进度

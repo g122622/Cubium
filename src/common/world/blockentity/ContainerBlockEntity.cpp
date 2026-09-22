@@ -23,6 +23,9 @@
 
 #include "world/blockentity/ContainerBlockEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "entity/entities/player/Player.hpp"
 
@@ -68,6 +71,34 @@ bool ContainerBlockEntity::isUsableByPlayer(const Player& player, f32 maxDistanc
     return player.distanceSqTo(static_cast<f32>(pos.x) + 0.5f,
                static_cast<f32>(pos.y) + 0.5f,
                static_cast<f32>(pos.z) + 0.5f) <= maxDistanceSq;
+}
+
+void ContainerBlockEntity::preRemoveSideEffects(const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    IInventory* inventory = getInventory();
+    if (inventory == nullptr || inventory->isEmpty()) {
+        return;
+    }
+
+    IWorld* world = getWorld();
+    MC_ASSERT_RELEASE(world != nullptr);
+
+    std::vector<ItemStack> drops;
+    const i32 containerSize = inventory->getContainerSize();
+    drops.reserve(static_cast<size_t>(containerSize));
+    for (i32 slot = 0; slot < containerSize; ++slot) {
+        const ItemStack& stack = inventory->getItem(slot);
+        if (!stack.isEmpty()) {
+            drops.push_back(stack);
+        }
+    }
+    inventory->clear();
+
+    if (!drops.empty() && !world->isClientSide()) {
+        ItemDropHelper::spawnItemEntities(world, pos, drops, world->getRandom());
+    }
 }
 
 } // namespace mc

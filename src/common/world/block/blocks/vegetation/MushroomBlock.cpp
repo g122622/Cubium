@@ -37,6 +37,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 
 #include <algorithm>
@@ -149,7 +150,7 @@ void MushroomBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     }
 
     const BlockState& mushroomState = defaultState();
-    world.setBlockState(spreadPos, &mushroomState, 2);
+    world.setBlockState(spreadPos, &mushroomState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 // ========== IGrowable 接口实现 ==========
@@ -218,7 +219,7 @@ void MushroomBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& p
 
     // 清除蘑菇方块（巨型蘑菇会从该位置向上生成）
     const BlockState* airState = BlockRegistry::instance().airState();
-    world.setBlockState(pos, airState, 2);
+    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 通过 WorldGenRegion 调用巨型蘑菇生成器
     m_bigMushroomGenerator(*region, pos, rng);

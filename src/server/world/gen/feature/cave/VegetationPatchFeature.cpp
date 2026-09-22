@@ -30,6 +30,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
@@ -159,7 +160,7 @@ bool VegetationPatchFeature::placeGround(WorldGenRegion& region,
             return placedAny; // i != 0 返回true，i == 0 返回false
         }
 
-        region.setBlockState(current, config.groundState, 3);
+        region.setBlockState(current, config.groundState, world::BlockUpdateFlags::UPDATE_ALL);
         placedAny = true;
         current = current.offset(surfaceDir);
     }
@@ -264,7 +265,7 @@ bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region,
             // 内部位置填水
             const BlockState* water = VanillaBlocks::getState(VanillaBlocks::WATER);
             if (water != nullptr) {
-                region.setBlockState(groundPos, water, 3);
+                region.setBlockState(groundPos, water, world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
     }
@@ -288,7 +289,7 @@ bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region,
                         const BlockState* vegState = region.getBlockState(vegetationPos);
                         if (vegState != nullptr && vegState->hasProperty(BlockStateProperties::WATERLOGGED())) {
                             const BlockState& waterlogged = vegState->with(BlockStateProperties::WATERLOGGED(), true);
-                            region.setBlockState(vegetationPos, &waterlogged, 3);
+                            region.setBlockState(vegetationPos, &waterlogged, world::BlockUpdateFlags::UPDATE_ALL);
                         }
                     }
                 }

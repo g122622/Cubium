@@ -24,6 +24,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
@@ -94,7 +95,11 @@ void JigsawPlacer::placeFallbackBlocks(
                     z == box.maxZ()) {
                     // 添加一些随机性，避免过于规则
                     if (rng.nextInt(100) < 80) {
-                        world.setBlockState(x, y, z, markerBlock, 18);
+                        world.setBlockState(x,
+                            y,
+                            z,
+                            markerBlock,
+                            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                     }
                 }
             }

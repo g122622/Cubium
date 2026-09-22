@@ -78,7 +78,7 @@ public:
     /**
      * @brief 方块被添加到世界时的处理
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 执行方块计划刻

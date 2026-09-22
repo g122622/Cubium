@@ -39,6 +39,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
@@ -261,7 +262,7 @@ void CrafterBlock::neighborChanged(
         // 红石信号上升沿：调度4 tick延时后执行合成
         world.tickManager().scheduleBlockTick(pos, *this, CRAFTING_TICK_DELAY, world::tick::TickPriority::High);
         BlockState newState = state->with(BlockStateProperties::TRIGGERED(), true);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 同步方块实体的触发状态
         BlockEntity* be = world.getBlockEntity(pos);
@@ -272,7 +273,7 @@ void CrafterBlock::neighborChanged(
         // 红石信号下降沿：重置触发状态和合成状态
         BlockState newState =
             state->with(BlockStateProperties::TRIGGERED(), false).with(BlockStateProperties::CRAFTING(), false);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 同步方块实体的触发状态
         BlockEntity* be = world.getBlockEntity(pos);
@@ -283,30 +284,18 @@ void CrafterBlock::neighborChanged(
     }
 }
 
-void CrafterBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void CrafterBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
-    // 方块移除时掉落合成器内的物品
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity != nullptr && entity->getType() == BlockEntityType::Crafter) {
-        auto* crafter = static_cast<CrafterBlockEntity*>(entity);
-        IInventory* inventory = crafter->getInventory();
-
-        // 掉落所有物品
-        math::Random rng;
-        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
-            ItemStack stack = inventory->removeItemNoUpdate(i);
-            if (!stack.isEmpty()) {
-                ItemDropHelper::spawnItemEntity(&world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
-            }
-        }
-
+    // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理
+    if (BlockEntity* entity = world.getBlockEntity(pos);
+        entity != nullptr && entity->getType() == BlockEntityType::Crafter) {
         // 通知比较器更新
         world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
     }
 
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 BlockActionResult CrafterBlock::onBlockActivated(const BlockState& state,
@@ -370,7 +359,7 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
     // 合成成功：设置合成动画倒计时和 CRAFTING 状态
     crafter->setCraftingTicksRemaining(CrafterBlockEntity::MAX_CRAFTING_TICKS);
     BlockState craftingState = state.with(BlockStateProperties::CRAFTING(), true);
-    world.setBlockState(pos, &craftingState, 2);
+    world.setBlockState(pos, &craftingState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 播放合成成功音效
     // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_CRAFT, pos, 0)

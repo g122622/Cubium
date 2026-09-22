@@ -40,6 +40,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
@@ -105,7 +106,7 @@ Direction PistonBlock::getFacing(const BlockState& state)
     return state.get(BlockStateProperties::FACING());
 }
 
-void PistonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void PistonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 放置时检查是否需要伸出
     _checkForMove(world, pos, state);
@@ -296,7 +297,8 @@ bool PistonBlock::extend(IWorld& world, const BlockPos& pos, const BlockState& s
 
     // 更新活塞状态为伸出
     const BlockState& newState = withExtended(state, true);
-    world.setBlockState(pos, &newState, 67);
+    world.setBlockState(
+        pos, &newState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
     return true;
 }
@@ -307,7 +309,8 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
 
     // 更新活塞状态为收回
     const BlockState& newState = withExtended(state, false);
-    world.setBlockState(pos, &newState, 67);
+    world.setBlockState(
+        pos, &newState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
     if (m_sticky) {
         // 粘性活塞：尝试拉回方块
@@ -329,11 +332,13 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
         }
 
         // 移除活塞头
-        world.setBlockState(frontPos, nullptr, 20);
+        world.setBlockState(
+            frontPos, nullptr, world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     } else {
         // 普通活塞：移除活塞头
         BlockPos frontPos = pos.offset(facing);
-        world.setBlockState(frontPos, nullptr, 20);
+        world.setBlockState(
+            frontPos, nullptr, world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     }
 
     return true;
@@ -347,7 +352,9 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
     if (!extending) {
         const BlockState* headState = world.getBlockState(frontPos);
         if (headState && headState->is(VanillaBlocks::PISTON_HEAD)) {
-            world.setBlockState(frontPos, nullptr, 20);
+            world.setBlockState(frontPos,
+                nullptr,
+                world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
         }
     }
 
@@ -380,7 +387,9 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
                         rng);
                 }
             }
-            world.setBlockState(destroyPos, nullptr, 18);
+            world.setBlockState(destroyPos,
+                nullptr,
+                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             destroyBlock->spawnAfterBreak(world, destroyPos, *destroyState, nullptr, false);
         }
     }
@@ -397,14 +406,18 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
         // 创建移动活塞方块
         const BlockState& movingState =
             VanillaBlocks::MOVING_PISTON->defaultState().with(BlockStateProperties::FACING(), facing);
-        world.setBlockState(newPos, &movingState, 68);
+        world.setBlockState(newPos,
+            &movingState,
+            world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
         // 创建 PistonBlockEntity
         auto entity = std::make_unique<blockentity::PistonBlockEntity>(newPos, moveState, facing, extending, false);
         world.setBlockEntity(newPos, entity.release());
 
         // 清除原位置
-        world.setBlockState(movePos, nullptr, 68);
+        world.setBlockState(movePos,
+            nullptr,
+            world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
     }
 
     // 如果是伸出，在活塞位置创建移动活塞（用于活塞头动画）
@@ -424,7 +437,9 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
                 .with(PistonHeadBlock::getTypeProperty(),
                     m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
-        world.setBlockState(pos, &movingState, 68);
+        world.setBlockState(pos,
+            &movingState,
+            world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
         // 创建 PistonBlockEntity 用于活塞头
         // pistonHeadState 是持久化引用，可以安全获取其指针

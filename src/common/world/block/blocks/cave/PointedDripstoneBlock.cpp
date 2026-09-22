@@ -43,6 +43,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/blocks/LavaCauldronBlock.hpp"
@@ -297,7 +298,7 @@ void PointedDripstoneBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
             spawnAfterBreak(world, pos, state, nullptr, false);
-            world.setBlockState(pos, airState, 3);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     } else if (isStalactite(state)) {
         // 钟乳石失去支撑：从最高处开始逐个生成掉落方块实体
@@ -752,7 +753,7 @@ void PointedDripstoneBlock::createDripstone(
                                       .with(BlockStateProperties::VERTICAL_DIRECTION(), direction)
                                       .with(BlockStateProperties::DRIPSTONE_THICKNESS(), thickness)
                                       .with(BlockStateProperties::WATERLOGGED(), waterlogged);
-    world.setBlockState(pos, newState, 3);
+    world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 void PointedDripstoneBlock::createMergedTips(IWorld& world, const BlockPos& pos, const BlockState& upState)
@@ -795,7 +796,7 @@ void PointedDripstoneBlock::grow(IWorld& world, const BlockPos& tipPos, Directio
                      .with(BlockStateProperties::VERTICAL_DIRECTION(), direction)
                      .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
                      .with(BlockStateProperties::WATERLOGGED(), true);
-            world.setBlockState(growPos, newState, 3);
+            world.setBlockState(growPos, newState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }
@@ -928,7 +929,7 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     // 如果根方块上方是泥巴且流体为水，将泥巴替换为粘土
     if (isMudWithWater) {
         const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
-        world.setBlockState(fluidPos, clayState, 3);
+        world.setBlockState(fluidPos, clayState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, fluidPos, clayState);
         world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);
         return;
@@ -975,12 +976,12 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
             // 含水滴石掉落时替换为流体对应的方块状态
             const BlockState* fluidBlockState = fluidState->getBlockState();
             if (fluidBlockState != nullptr) {
-                world.setBlockState(currentPos, fluidBlockState, 3);
+                world.setBlockState(currentPos, fluidBlockState, world::BlockUpdateFlags::UPDATE_ALL);
             } else {
-                world.setBlockState(currentPos, airState, 3);
+                world.setBlockState(currentPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
             }
         } else {
-            world.setBlockState(currentPos, airState, 3);
+            world.setBlockState(currentPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
 
         // 创建掉落方块实体

@@ -145,7 +145,7 @@ public:
      *
      * 掉落讲台上的书本。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 工具方法 ==========
 

@@ -26,6 +26,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
@@ -183,7 +184,11 @@ void SingleJigsawPiece::place(IWorldWriter& world,
     }
 
     // 放置模板
-    templ->place(world, placed.position, settings, rng, 18);
+    templ->place(world,
+        placed.position,
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 } // namespace jigsaw

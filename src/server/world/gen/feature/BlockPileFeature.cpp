@@ -28,6 +28,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
@@ -69,7 +70,7 @@ void tryPlaceBlock(
     }
     const BlockState* state = provider.getState(region, random, pos.x, pos.y, pos.z);
     if (state != nullptr) {
-        region.setBlockState(pos, state, 260);
+        region.setBlockState(pos, state, world::BlockUpdateFlags::UPDATE_NONE);
     }
 }
 

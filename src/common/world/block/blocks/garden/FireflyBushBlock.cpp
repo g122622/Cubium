@@ -28,6 +28,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 
 #include <array>
@@ -86,9 +87,9 @@ void FireflyBushBlock::grow(IWorld& world, math::IRandom& random, const BlockPos
 
     const std::optional<BlockPos> target = getSpreadableNeighbourPos(static_cast<IBlockReader&>(world), pos, dirs);
     if (target.has_value()) {
-        // 放置默认灌木状态。flags=3 触发邻居更新 + 同步（与 BigDripleafStemBlock 等生成新方块一致），
+        // 放置默认灌木状态并触发完整更新（与 BigDripleafStemBlock 等生成新方块一致），
         // 确保新灌木立即接入支撑/光照判定链路。
-        world.setBlockState(target.value(), &defaultState(), 3);
+        world.setBlockState(target.value(), &defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

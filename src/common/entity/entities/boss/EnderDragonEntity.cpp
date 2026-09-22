@@ -44,6 +44,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
@@ -699,7 +700,7 @@ bool EnderDragonEntity::_destroyBlocksInAABB(const AxisAlignedBB& area)
 
                 // 破坏方块：使用 setBlockState 设为空气 + spawnAfterBreak 触发掉落
                 // MC 原版使用 removeBlock(pos, false)，效果等价于 setBlockState(air, 3)
-                worldPtr->setBlockState(pos, airState, 3);
+                worldPtr->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
                 block.spawnAfterBreak(*worldPtr, pos, *state, nullptr, false);
 
                 // 生成爆炸粒子效果

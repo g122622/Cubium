@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -40,7 +41,7 @@ WetSpongeBlock::WetSpongeBlock(const BlockProperties& properties)
     : Block(properties)
 {}
 
-void WetSpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void WetSpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
@@ -48,7 +49,7 @@ void WetSpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const Bloc
     if (world.isUltraWarm()) {
         // 变为干海绵
         const BlockState& spongeState = VanillaBlocks::SPONGE->defaultState();
-        world.setBlockState(pos, &spongeState, 3);
+        world.setBlockState(pos, &spongeState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 播放蒸汽效果（事件 2009）
         world.playEvent(world::WorldEvents::WET_SPONGE_DRY, pos, 0);

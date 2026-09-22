@@ -57,13 +57,13 @@ BookshelfBlock::BookshelfBlock(const BlockProperties& properties)
 
 // ========== 放置和移除 ==========
 
-void BookshelfBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BookshelfBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     _notifyNearbyEnchantingTables(world, pos);
 }
 
-void BookshelfBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BookshelfBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     _notifyNearbyEnchantingTables(world, pos);

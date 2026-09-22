@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -176,7 +177,7 @@ void CocoaBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& stat
     // 1/5 概率生长
     if (random.nextInt(5) == 0) {
         const BlockState& newState = withAge(state, age + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -209,7 +210,7 @@ void CocoaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
     i32 age = getAge(state);
     if (age < getMaxAge()) {
         const BlockState& newState = withAge(state, age + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 

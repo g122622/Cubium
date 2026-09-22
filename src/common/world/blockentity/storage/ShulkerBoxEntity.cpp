@@ -451,5 +451,10 @@ bool ShulkerBoxEntity::canExtractItem(i32 slot, const ItemStack& stack, Directio
     return true;
 }
 
+void ShulkerBoxEntity::preRemoveSideEffects(const BlockPos& /*pos*/, const BlockState& /*state*/)
+{
+    // 潜影盒内容物随方块物品的 NBT 一起保留，移除时不掉落
+}
+
 } // namespace blockentity
 } // namespace mc

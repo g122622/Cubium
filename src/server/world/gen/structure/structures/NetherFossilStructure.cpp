@@ -34,6 +34,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -139,7 +140,11 @@ void NetherFossilPiece::generate(IWorldWriter& world,
     settings.setBoundingBox(&chunkBounds);
 
     // 放置模板
-    m_template->place(world, BlockPos(m_minX, m_minY, m_minZ), settings, rng, 18);
+    m_template->place(world,
+        BlockPos(m_minX, m_minY, m_minZ),
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 // ============================================================================

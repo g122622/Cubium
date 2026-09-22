@@ -41,6 +41,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/FireInfoRegistry.hpp"
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -212,7 +213,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     // 1. 检查位置有效性
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(state, blockReader, pos)) {
-        world.setBlockState(pos, nullptr, 3);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
 
@@ -245,7 +246,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         // 熄灭概率: 0.2 + age * 0.03
         f32 extinguishChance = 0.2f + static_cast<f32>(age) * 0.03f;
         if (random.nextFloat() < extinguishChance) {
-            world.setBlockState(pos, nullptr, 3);
+            world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
             return;
         }
     }
@@ -258,7 +259,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
         i32 newAge = std::min(15, age + random.nextInt(3) / 2);
         if (newAge != age) {
             BlockState newState = withAge(newAge);
-            world.setBlockState(pos, &newState, 2);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             state = newState; // 更新本地状态引用
             age = newAge;
         }
@@ -273,7 +274,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
             bool hasSolidBelow = supportState != nullptr && supportState->isSolidSide(world, pos.down(), Direction::Up);
 
             if (!hasSolidBelow || age > 3) {
-                world.setBlockState(pos, nullptr, 3);
+                world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
                 return;
             }
         } else {
@@ -281,7 +282,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
             if (age == 15 && random.nextInt(4) == 0) {
                 // 检查下方是否可燃
                 if (!canCatchFire(world, pos.down(), Direction::Up)) {
-                    world.setBlockState(pos, nullptr, 3);
+                    world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
                     return;
                 }
             }
@@ -292,7 +293,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     trySpread(world, pos, age, random);
 }
 
-void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void FireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 对齐 vanilla FireBlock.onPlace（FireBlock.java:294-297）：
     //   1. 检测并点燃下界传送门（立即，而非 tick 时）；
@@ -486,7 +487,7 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
                             // 设置火焰
                             i32 newAge = std::min(15, age + random.nextInt(5) / 4);
                             BlockState fireState = withAge(newAge);
-                            world.setBlockState(targetPos, &fireState, 3);
+                            world.setBlockState(targetPos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
                         }
                     }
                 }
@@ -613,11 +614,11 @@ void FireBlock::tryCatchFire(
         // 点燃：设置火焰方块
         i32 newAge = std::min(15, age + random.nextInt(5) / 4);
         BlockState fireState = withAge(newAge);
-        world.setBlockState(pos, &fireState, 3);
+        world.setBlockState(pos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
     } else {
         // 直接烧毁：移除方块
         // MC Java 中火焰烧毁方块时不调用 spawnAfterBreak，仅移除方块
-        world.setBlockState(pos, nullptr, 3);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
     // 对齐 vanilla checkBurnOut:251-254：若被烧毁/点燃的方块是 TNT，则 prime 引爆。

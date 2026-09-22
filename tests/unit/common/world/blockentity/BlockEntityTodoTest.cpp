@@ -881,7 +881,7 @@ TEST(BlockEntityTodoTest, BookshelfBlock_OnBlockAdded_NotifiesEnchantingTable)
 
     // 调用BookshelfBlock::onBlockAdded
     blocks::BookshelfBlock& bookshelfBlock = static_cast<blocks::BookshelfBlock&>(*VanillaBlocks::BOOKSHELF);
-    bookshelfBlock.onBlockAdded(world, BlockPos(2, 0, 0), *bookshelfState);
+    bookshelfBlock.onBlockAdded(world, BlockPos(2, 0, 0), *bookshelfState, false);
 
     // 附魔台应被通知重新计算，附魔力量应为1
     EXPECT_EQ(table.getEnchantPower(), 1);
@@ -925,7 +925,7 @@ TEST(BlockEntityTodoTest, BookshelfBlock_OnBlockRemoved_NotifiesEnchantingTable)
 
     // 调用BookshelfBlock::onBlockRemoved
     blocks::BookshelfBlock& bookshelfBlock = static_cast<blocks::BookshelfBlock&>(*VanillaBlocks::BOOKSHELF);
-    bookshelfBlock.onBlockRemoved(world, BlockPos(2, 0, 0), *bookshelfState);
+    bookshelfBlock.onBlockRemoved(world, BlockPos(2, 0, 0), *bookshelfState, false);
 
     // 附魔台应被通知重新计算，附魔力量应回到0
     EXPECT_EQ(table.getEnchantPower(), 0);
@@ -959,7 +959,7 @@ TEST(BlockEntityTodoTest, BookshelfBlock_DoesNotNotifyDistantEnchantingTable)
     world.setBlockState(3, 0, 0, bookshelfState);
 
     blocks::BookshelfBlock& bookshelfBlock = static_cast<blocks::BookshelfBlock&>(*VanillaBlocks::BOOKSHELF);
-    bookshelfBlock.onBlockAdded(world, BlockPos(3, 0, 0), *bookshelfState);
+    bookshelfBlock.onBlockAdded(world, BlockPos(3, 0, 0), *bookshelfState, false);
 
     // 附魔台不应受到影响（书架在3格外，不会被通知）
     EXPECT_EQ(table.getEnchantPower(), 0);

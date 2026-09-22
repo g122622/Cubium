@@ -49,6 +49,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBucketPickupHandler.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
@@ -506,7 +507,7 @@ ItemStack BucketDispenseBehavior::dispense(
                 }
 
                 // 放置流体方块
-                world.setBlockState(targetPos, fluidBlockState, 3);
+                world.setBlockState(targetPos, fluidBlockState, world::BlockUpdateFlags::UPDATE_ALL);
 
                 // 通过世界调度器调度流体 tick，而非直接调用
                 world.tickManager().scheduleFluidTick(targetPos, *m_fluid, m_fluid->getTickDelay(world));
@@ -650,13 +651,13 @@ ItemStack FlintAndSteelDispenseBehavior::dispense(
         Block* fireBlock = item::tool::FlintAndSteelItem::getFireForPlacement(world, targetPos);
         if (fireBlock != nullptr) {
             const BlockState& fireState = fireBlock->getDefaultState();
-            world.setBlockState(targetPos, &fireState, 11);
+            world.setBlockState(targetPos, &fireState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         }
     }
     // 情况2：目标是可点燃的方块（有 LIT 属性且当前为 false）
     else if (targetState->hasProperty(BlockStateProperties::LIT()) && !targetState->get(BlockStateProperties::LIT())) {
         BlockState newState = targetState->with(BlockStateProperties::LIT(), true);
-        world.setBlockState(targetPos, &newState, 11);
+        world.setBlockState(targetPos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
     }
     // 情况3：目标是 TNT 方块
     else if (targetState->is(VanillaBlocks::TNT)) {

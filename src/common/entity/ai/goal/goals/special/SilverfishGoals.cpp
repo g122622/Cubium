@@ -24,6 +24,7 @@
 #include "SilverfishGoals.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "entity/ai/pathfinding/PathNavigator.hpp"
 #include "entity/core/MobEntity.hpp"
@@ -133,7 +134,7 @@ void SilverfishHideInStoneGoal::startExecuting()
             const BlockState* infestedState = blocks::InfestedBlock::infest(block);
             if (infestedState != nullptr) {
                 // 将普通方块转换为虫蚀方块
-                world->setBlockState(targetPos, infestedState, 3);
+                world->setBlockState(targetPos, infestedState, world::BlockUpdateFlags::UPDATE_ALL);
 
                 // 粒子效果会在实体移除时由客户端自动处理
                 // 由于此文件在 common 模块，无法直接包含客户端头文件
@@ -210,7 +211,7 @@ void SilverfishSummonOthersGoal::tick()
                                 const BlockState* airState = BlockRegistry::instance().airState();
                                 if (airState != nullptr) {
                                     // 先移除方块，再调用 spawnAfterBreak（与 MC Java destroyBlock 行为一致）
-                                    world->setBlockState(checkPos, airState, 3);
+                                    world->setBlockState(checkPos, airState, world::BlockUpdateFlags::UPDATE_ALL);
                                     block.spawnAfterBreak(*world, checkPos, *state, nullptr, true);
                                 }
                             } else {
@@ -218,7 +219,8 @@ void SilverfishSummonOthersGoal::tick()
                                 u32 hostBlockId = infestedBlock->getHostBlock();
                                 const Block* hostBlock = BlockRegistry::instance().getBlock(hostBlockId);
                                 if (hostBlock != nullptr) {
-                                    world->setBlockState(checkPos, &hostBlock->defaultState(), 3);
+                                    world->setBlockState(
+                                        checkPos, &hostBlock->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
                                 }
                             }
 

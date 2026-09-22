@@ -25,6 +25,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>
@@ -71,7 +72,7 @@ bool SimpleBlockFeature::place(
         return false;
     }
 
-    region.setBlockState(pos, toPlace, 3);
+    region.setBlockState(pos, toPlace, world::BlockUpdateFlags::UPDATE_ALL);
     return true;
 }
 

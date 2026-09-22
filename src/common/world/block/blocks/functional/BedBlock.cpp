@@ -44,6 +44,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -175,7 +176,8 @@ const CollisionShape& BedBlock::getShape(const BlockState& state) const
 void BedBlock::setOccupied(IWorld& world, const BlockPos& pos, BlockState& state, bool occupied)
 {
     if (state.hasProperty(BlockStateProperties::OCCUPIED())) {
-        world.setBlockState(pos, &state.with(BlockStateProperties::OCCUPIED(), occupied), 2);
+        world.setBlockState(
+            pos, &state.with(BlockStateProperties::OCCUPIED(), occupied), world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -349,7 +351,7 @@ BlockActionResult BedBlock::onBlockActivated(const BlockState& state,
     if (!dimType.bedWorks()) {
         // 在下界或末地使用床会爆炸
         // 移除床方块
-        world.setBlockState(pos, nullptr, 11);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
         // 检查是否为床的头部，如果是脚部则同时移除头部
         BlockStateProperties::BedPart part = state.get(BlockStateProperties::BED_PART());
@@ -359,7 +361,7 @@ BlockActionResult BedBlock::onBlockActivated(const BlockState& state,
             const BlockState* headState = world.getBlockState(headPos);
             if (headState && headState->hasProperty(BlockStateProperties::BED_PART()) &&
                 headState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Head) {
-                world.setBlockState(headPos, nullptr, 11);
+                world.setBlockState(headPos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
             }
         }
 
@@ -403,12 +405,12 @@ BlockActionResult BedBlock::onBlockActivated(const BlockState& state,
     if (result == entity::SleepResult::OK) {
         // 睡眠成功，标记床为占用状态
         BlockState newHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
-        world.setBlockState(bedHeadPos, &newHeadState, 2);
+        world.setBlockState(bedHeadPos, &newHeadState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 如果交互的是脚部，也标记脚部
         if (part == BlockStateProperties::BedPart::Foot) {
             BlockState newFootState = state.with(BlockStateProperties::OCCUPIED(), true);
-            world.setBlockState(pos, &newFootState, 2);
+            world.setBlockState(pos, &newFootState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
 
         // 播放睡眠音效
@@ -435,7 +437,7 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
 
     // 在脚部前方放置头部方块
     BlockState headState = state.with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
-    world.setBlockState(headPos, &headState, 3);
+    world.setBlockState(headPos, &headState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 void BedBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
@@ -452,7 +454,9 @@ void BedBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const Block
             headState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Head) {
             // 创造模式：销毁头部方块但不产生掉落物
             if (auto* airState = BlockRegistry::instance().airState()) {
-                world.setBlockState(headPos, airState, 35);
+                world.setBlockState(headPos,
+                    airState,
+                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
             }
         }
     }

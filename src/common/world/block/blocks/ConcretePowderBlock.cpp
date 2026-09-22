@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -71,7 +72,7 @@ void ConcretePowderBlock::onEndFalling(IWorld& world,
 {
     // 落地时检查：如果落地点接触水，固化为混凝土
     if (shouldSolidify(world, pos, hitState)) {
-        world.setBlockState(pos, &m_concrete->defaultState(), 3);
+        world.setBlockState(pos, &m_concrete->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

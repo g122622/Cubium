@@ -34,6 +34,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -206,7 +207,11 @@ void OceanRuinPiece::generate(IWorldWriter& world,
     settings.setProcessors(&processors);
 
     // 放置模板
-    m_template->place(world, BlockPos(m_minX, m_minY, m_minZ), settings, rng, 18);
+    m_template->place(world,
+        BlockPos(m_minX, m_minY, m_minZ),
+        settings,
+        rng,
+        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
 // ============================================================================

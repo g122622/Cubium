@@ -39,6 +39,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -86,7 +87,7 @@ BlockState HopperBlock::getStateForPlacement(BlockItemUseContext& context)
         .with(BlockStateProperties::ENABLED(), true);
 }
 
-void HopperBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void HopperBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     _updateState(world, pos, state);
 }
@@ -236,7 +237,7 @@ void HopperBlock::_updateState(IWorld& world, const BlockPos& pos, const BlockSt
     const bool enabled = !powered;
     if (enabled != isEnabled(state)) {
         const BlockState newState = state.with(BlockStateProperties::ENABLED(), enabled);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 

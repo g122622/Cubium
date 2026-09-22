@@ -115,7 +115,7 @@ public:
      *
      * 掉落木桶内的物品。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
 protected:
     /// 木桶形状

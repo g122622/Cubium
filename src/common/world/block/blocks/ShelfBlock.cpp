@@ -46,6 +46,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -169,7 +170,7 @@ BlockState ShelfBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-void ShelfBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ShelfBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     if (state.get(BlockStateProperties::POWERED())) {
         // 充能时：尝试连接邻居书架
@@ -213,7 +214,7 @@ void ShelfBlock::neighborChanged(
                     BlockStateProperties::SIDE_CHAIN_PART(), BlockStateProperties::SideChainPart::Unconnected);
             }
 
-            world.setBlockState(pos, &state, 3);
+            world.setBlockState(pos, &state, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 播放充能/断电音效
             playSound(world, pos, hasSignal ? SoundEvents::BLOCK_SHELF_ACTIVATE : SoundEvents::BLOCK_SHELF_DEACTIVATE);
@@ -226,33 +227,14 @@ void ShelfBlock::neighborChanged(
     }
 }
 
-void ShelfBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ShelfBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    // 掉落书架内物品
-    BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Shelf) {
-        auto* shelf = static_cast<blockentity::ShelfBlockEntity*>(blockEntity);
-        IInventory* inventory = shelf->getInventory();
-        if (inventory != nullptr && !world.isClientSide()) {
-            math::Random rng;
-            for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
-                ItemStack stack = inventory->removeItemNoUpdate(i);
-                if (!stack.isEmpty()) {
-                    ItemDropHelper::spawnItemEntity(&world,
-                        stack,
-                        static_cast<f32>(pos.x) + 0.5f,
-                        static_cast<f32>(pos.y) + 0.5f,
-                        static_cast<f32>(pos.z) + 0.5f,
-                        rng);
-                }
-            }
-        }
-    }
+    // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理
 
     // 断开侧链连接
     updateNeighborsAfterPoweringDown(world, pos, state);
 
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 // ============================================================================
@@ -580,7 +562,7 @@ void ShelfBlock::setSideChainPart(IWorld& world, const BlockPos& pos, BlockState
     auto currentPart = statePtr->get(BlockStateProperties::SIDE_CHAIN_PART());
     if (currentPart != part) {
         BlockState newState = statePtr->with(BlockStateProperties::SIDE_CHAIN_PART(), part);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

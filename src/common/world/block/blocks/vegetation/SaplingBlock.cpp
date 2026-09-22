@@ -33,6 +33,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -126,7 +127,7 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state)
 
     if (stage < 1) {
         const BlockState& nextState = withStage(stage + 1);
-        world.setBlockState(pos, &nextState, 2);
+        world.setBlockState(pos, &nextState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         return true;
     }
 
@@ -155,7 +156,7 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state)
 
     // 清除树苗方块
     const BlockState* airState = BlockRegistry::instance().airState();
-    world.setBlockState(pos, airState, 2);
+    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 调用树木生成器（lambda 内部会将 IWorld& 转为 WorldGenRegion&）
     m_treeGenerator(*region, pos, rng);

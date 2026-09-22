@@ -38,6 +38,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -123,7 +124,7 @@ BlockState TripWireHookBlock::withConnected(BlockState state, bool connected)
     return state.with(BlockStateProperties::ATTACHED(), connected);
 }
 
-void TripWireHookBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void TripWireHookBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 检查支撑方块
     Direction facing = getFacing(state);
@@ -146,7 +147,7 @@ void TripWireHookBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
                     rng);
             }
         }
-        world.setBlockState(pos, nullptr, 3);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -184,7 +185,7 @@ void TripWireHookBlock::neighborChanged(
                     rng);
             }
         }
-        world.setBlockState(pos, nullptr, 3);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
     } else {
         // 重新计算状态
         _calculateState(world, pos, facing, *state, true);
@@ -198,7 +199,7 @@ void TripWireHookBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     _calculateState(world, pos, facing, state, false);
 }
 
-void TripWireHookBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void TripWireHookBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 如果是触发状态，通知相邻方块
     if (isPowered(state)) {
@@ -346,7 +347,7 @@ bool TripWireHookBlock::_calculateState(
         BlockState newState = currentState;
         newState = withPowered(newState, shouldPower);
         newState = withConnected(newState, foundChain);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 通知相邻方块
         if (shouldTriggerOnChange && shouldPower != wasPowered) {

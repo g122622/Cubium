@@ -152,7 +152,7 @@ public:
      * 则不掉落物品（方块实体将由 createBlockEntity 克隆保留）；
      * 否则调用父类逻辑掉落物品内容物。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 方块实体 ==========
 

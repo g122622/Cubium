@@ -26,6 +26,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/MultifaceBlock.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
@@ -173,7 +174,7 @@ i32 SculkBlock::attemptUseCharge(ChargeCursor& cursor,
             const BlockPos above = pos.up();
             const BlockState* growth = getRandomGrowthState(world, above, random, spreader.isWorldGeneration());
             if (growth != nullptr) {
-                world.setBlockState(above, growth, 3);
+                world.setBlockState(above, growth, world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
         return std::max(0, charge - cost);
@@ -396,7 +397,7 @@ void SculkSensorBlock::activate(const Entity* sourceEntity,
     const BlockState* newState =
         &state.with(BlockStateProperties::SCULK_SENSOR_PHASE(), BlockStateProperties::SculkSensorPhase::Active)
              .with(BlockStateProperties::POWER_0_15(), redstoneStrength);
-    world.setBlockState(pos, newState, 3);
+    world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 2. 调度 tick：ACTIVE_TICKS 后触发（通过虚方法获取，校准版为10tick）
     Block& block = state.getBlockMutable();
@@ -440,7 +441,7 @@ void SculkSensorBlock::deactivate(IWorld& world, const BlockPos& pos, const Bloc
     const BlockState* newState =
         &state.with(BlockStateProperties::SCULK_SENSOR_PHASE(), BlockStateProperties::SculkSensorPhase::Cooldown)
              .with(BlockStateProperties::POWER_0_15(), 0);
-    world.setBlockState(pos, newState, 3);
+    world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 调度 COOLDOWN_TICKS 后再 tick（Cooldown -> Inactive）
     world.tickManager().scheduleBlockTick(pos, state.getBlock(), COOLDOWN_TICKS);
@@ -462,7 +463,7 @@ void SculkSensorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
         // Cooldown -> Inactive
         const BlockState* newState =
             &state.with(BlockStateProperties::SCULK_SENSOR_PHASE(), BlockStateProperties::SculkSensorPhase::Inactive);
-        world.setBlockState(pos, newState, 3);
+        world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 播放 SCULK_CLICKING_STOP 声音（非水浸状态下）
         if (!state.get(BlockStateProperties::WATERLOGGED())) {
@@ -476,7 +477,7 @@ void SculkSensorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
     // Inactive 状态不应有 scheduled tick，忽略
 }
 
-void SculkSensorBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void SculkSensorBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 如果移除时处于 Active 状态，需要通知邻居更新红石信号
     if (getPhase(state) == BlockStateProperties::SculkSensorPhase::Active) {
@@ -484,7 +485,7 @@ void SculkSensorBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const 
     }
 
     // 调用基类处理方块实体移除等
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 // ============================================================================
@@ -766,7 +767,7 @@ void SculkVeinBlock::onDischarged(IWorld& world, const BlockState& state, const 
         result = (fluid != nullptr && !fluid->isEmpty()) ? &VanillaBlocks::WATER->defaultState()
                                                          : &VanillaBlocks::AIR->defaultState();
     }
-    world.setBlockState(pos, result, 3);
+    world.setBlockState(pos, result, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 bool SculkVeinBlock::hasSubstrateAccess(IWorld& world, const BlockState& state, const BlockPos& pos)
@@ -806,7 +807,7 @@ bool SculkVeinBlock::regrow(
     if (fluid != nullptr && !fluid->isEmpty()) {
         vein = vein.with(BlockStateProperties::WATERLOGGED(), true);
     }
-    world.setBlockState(pos, &vein, 3);
+    world.setBlockState(pos, &vein, world::BlockUpdateFlags::UPDATE_ALL);
     return true;
 }
 
@@ -837,7 +838,7 @@ bool SculkVeinBlock::attemptPlaceSculk(
             continue;
         }
         const BlockState* sculkState = &VanillaBlocks::SCULK->defaultState();
-        world.setBlockState(neighbor, sculkState, 3);
+        world.setBlockState(neighbor, sculkState, world::BlockUpdateFlags::UPDATE_ALL);
         Block::pushEntitiesUp(*neighborState, *sculkState, world, neighbor);
         // MC: veinSpreader.spreadAll 返回成功扩散数，此处仅用副作用（蔓延脉络），忽略计数。
         (void)m_veinSpreader.spreadAll(*sculkState, world, neighbor, spreader.isWorldGeneration());
@@ -972,7 +973,7 @@ void SculkShriekerBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     if (state.get(BlockStateProperties::SHRIEKING())) {
         // 将 SHRIEKING 设回 false
         const BlockState* newState = &state.with(BlockStateProperties::SHRIEKING(), false);
-        world.setBlockState(pos, newState, 3);
+        world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 尖啸结束后，通知服务端执行响应逻辑（警告声音、黑暗效果、召唤检查）
         // 由于 block tick 在 common 层，设置方块实体标记以让服务端处理
@@ -985,7 +986,7 @@ void SculkShriekerBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
     }
 }
 
-void SculkShriekerBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void SculkShriekerBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 如果方块正在 SHRIEKING 状态时被移除，仍需执行响应逻辑
     if (state.get(BlockStateProperties::SHRIEKING())) {
@@ -997,14 +998,14 @@ void SculkShriekerBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, cons
         }
     }
 
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 void SculkShriekerBlock::shriek(IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* sourceEntity)
 {
     // 1. 设置 SHRIEKING 方块状态为 true
     const BlockState* newState = &state.with(BlockStateProperties::SHRIEKING(), true);
-    world.setBlockState(pos, newState, 3);
+    world.setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 2. 调度 tick：SHRIEKING_TICKS 后触发状态转换回 false
     world.tickManager().scheduleBlockTick(pos, state.getBlock(), SHRIEKING_TICKS);

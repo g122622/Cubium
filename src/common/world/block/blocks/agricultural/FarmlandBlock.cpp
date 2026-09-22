@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -161,14 +162,17 @@ void FarmlandBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& s
     if (!nearWater && !raining) {
         // 没有水且不下雨，湿润度降低
         if (moisture > 0) {
-            world.setBlockState(pos, &state.with(BlockStateProperties::MOISTURE_0_7(), moisture - 1), 2);
+            world.setBlockState(pos,
+                &state.with(BlockStateProperties::MOISTURE_0_7(), moisture - 1),
+                world::BlockUpdateFlags::UPDATE_CLIENTS);
         } else if (!hasCrops(world, pos)) {
             // 没有作物且干燥，转变为泥土
             turnToDirt(nullptr, world, pos, state);
         }
     } else if (moisture < 7) {
         // 有水或下雨，增加湿润度
-        world.setBlockState(pos, &state.with(BlockStateProperties::MOISTURE_0_7(), 7), 2);
+        world.setBlockState(
+            pos, &state.with(BlockStateProperties::MOISTURE_0_7(), 7), world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -234,7 +238,7 @@ void FarmlandBlock::turnToDirt(Entity* entity, IWorld& world, const BlockPos& po
         // 使用 Block::pushEntitiesUp 将嵌入方块的实体向上推出
         // 耕地高度为 15/16 格，泥土为完整方块（1 格），碰撞形状增大时实体需要被推出
         Block::pushEntitiesUp(state, *dirtState, world, pos);
-        world.setBlockState(pos, dirtState, 3);
+        world.setBlockState(pos, dirtState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

@@ -34,6 +34,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
 #include <cstddef>
@@ -106,7 +107,7 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     if (shouldBePowered != isCurrentlyPowered) {
         // 更新状态 - 修改传入的state引用
         state = state.with(POWERED(), shouldBePowered);
-        world.setBlockState(pos.x, pos.y, pos.z, &state, 3);
+        world.setBlockState(pos.x, pos.y, pos.z, &state, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 通知相邻方块更新
         world.updateNeighbors(pos, *this);

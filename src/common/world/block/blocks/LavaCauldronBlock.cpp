@@ -40,6 +40,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include <cstddef>
@@ -112,7 +113,7 @@ BlockActionResult LavaCauldronBlock::onBlockActivated(const BlockState& state,
         if (!world.isClientSide()) {
             // 将岩浆炼药锅替换为空炼药锅
             const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
-            world.setBlockState(pos, cauldronState, 3);
+            world.setBlockState(pos, cauldronState, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 播放岩浆桶填充音效
             world.playSound(SoundEvents::ITEM_BUCKET_FILL_LAVA,

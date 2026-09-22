@@ -33,6 +33,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 
 namespace mc {
@@ -75,8 +76,10 @@ public:
     [[nodiscard]] const BlockPos& getCenterOffset() const { return m_centerOffset; }
     PlacementSettings& setCenterOffset(const BlockPos& offset);
 
-    [[nodiscard]] u32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
-    PlacementSettings& setBlockUpdateFlags(u32 flags);
+    // TODO: blockUpdateFlags 目前尚无任何消费点（结构放置的 flags 由 Template::place/placeInWorld
+    //       的参数直接指定），待放置流程改由本字段驱动时接入 setBlockState。
+    [[nodiscard]] i32 getBlockUpdateFlags() const { return m_blockUpdateFlags; }
+    PlacementSettings& setBlockUpdateFlags(i32 flags);
 
     [[nodiscard]] const StructureProcessorList* getProcessors() const { return m_processors; }
     PlacementSettings& setProcessors(const StructureProcessorList* processors);
@@ -120,7 +123,7 @@ private:
     bool m_keepLiquids = false;
     const structure::StructureBoundingBox* m_boundingBox = nullptr;
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
-    u32 m_blockUpdateFlags = 18;
+    i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;
     math::Random* m_random = nullptr;

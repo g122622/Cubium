@@ -24,6 +24,7 @@
 #include "entity/inventory/container/AnvilContainer.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -609,10 +610,10 @@ void AnvilContainer::_damageAnvilIfNecessary(Player& player)
         const BlockState* damagedState = blocks::AnvilBlock::damageAnvil(*currentState);
         if (damagedState != nullptr) {
             // 降级成功：替换为损坏等级更高的铁砧
-            m_world->setBlockState(m_position, damagedState, 3);
+            m_world->setBlockState(m_position, damagedState, world::BlockUpdateFlags::UPDATE_ALL);
         } else {
             // 完全损坏：移除铁砧方块（设为空气）
-            m_world->setBlockState(m_position, nullptr, 3);
+            m_world->setBlockState(m_position, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         }
         // 完全损坏播放 1029 (ANVIL_DESTROYED_SOUND)，降级播放 1030 (ANVIL_USE_SOUND)
         if (damagedState == nullptr) {

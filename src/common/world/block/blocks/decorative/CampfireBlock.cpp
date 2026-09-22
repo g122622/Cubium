@@ -48,6 +48,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -266,17 +267,10 @@ void CampfireBlock::onEntityCollision(const BlockState& state, IWorld& world, co
     livingEntity->hurt(damageSource, damageAmount);
 }
 
-void CampfireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void CampfireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    // 方块被移除时，掉落所有烹饪中的物品
-
-    BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Campfire) {
-        auto* campfire = static_cast<blockentity::CampfireBlockEntity*>(blockEntity);
-        campfire->dropAllItems(world);
-    }
-
-    Block::onBlockRemoved(world, pos, state);
+    // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 const BlockState& CampfireBlock::rotate(const BlockState& state, Rotation rotation) const
@@ -338,7 +332,7 @@ void CampfireBlock::light(IWorld& world, const BlockPos& pos, BlockState& state)
 {
     if (!isLit(state) && !state.get(BlockStateProperties::WATERLOGGED())) {
         BlockState newState = state.with(BlockStateProperties::LIT(), true);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         // 点燃音效使用通用的火焰点燃声，此处不播放特定音效
         // 粒子效果由客户端渲染器处理
     }
@@ -348,7 +342,7 @@ void CampfireBlock::extinguish(IWorld& world, const BlockPos& pos, BlockState& s
 {
     if (isLit(state)) {
         BlockState newState = state.with(BlockStateProperties::LIT(), false);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 熄灭时播放音效
         if (!world.isClientSide()) {

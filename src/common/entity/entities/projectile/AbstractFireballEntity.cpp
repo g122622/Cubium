@@ -42,6 +42,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionContext.hpp"
@@ -255,7 +256,7 @@ void SmallFireballEntity::onBlockHit(const RayTraceResult& result)
         if (placeState != nullptr && placeState->isAir()) {
             // 根据环境选择正确的火焰类型（灵魂火或普通火）
             const BlockState& fireState = blocks::FireBlock::getFireState(*worldPtr, placePos);
-            worldPtr->setBlockState(placePos, &fireState, 3);
+            worldPtr->setBlockState(placePos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 

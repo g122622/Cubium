@@ -583,7 +583,7 @@ TEST_F(PistonHeadBlockTest, OnBlockRemoved_WithFittingBase_SetsBaseToAir)
     EXPECT_TRUE(baseBefore->is(VanillaBlocks::PISTON));
 
     // 调用 onBlockRemoved（ItemDropHelper::spawnItemEntity 可能因测试世界不完整而返回 nullptr，但不应崩溃）
-    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState, false));
 
     // 验证基座已被设为空气
     const BlockState* baseAfter = m_world.getBlockState(basePos);
@@ -613,7 +613,7 @@ TEST_F(PistonHeadBlockTest, OnBlockRemoved_NoFittingBase_NoChange)
     EXPECT_TRUE(baseBefore->isAir());
 
     // 调用 onBlockRemoved
-    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState, false));
 
     // 反方向应仍然为空气（未被修改）
     const BlockState* baseAfter = m_world.getBlockState(basePos);
@@ -643,7 +643,7 @@ TEST_F(PistonHeadBlockTest, OnBlockRemoved_BaseNotExtended_NoCascade)
     BlockPos basePos(0, 64, 0);
 
     // 调用 onBlockRemoved
-    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState, false));
 
     // 基座应仍然存在（未被销毁）
     const BlockState* baseAfter = m_world.getBlockState(basePos);
@@ -854,7 +854,7 @@ TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_ThenOnBlockRemoved_No
 
     // 然后调用 onBlockRemoved（模拟方块实际被移除时的回调）
     // 由于基座已被设为空气，isFittingBase 应返回 false，不会重复销毁
-    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState, false));
 
     // 基座应仍然为空气（未被重复操作）
     const BlockState* baseAfterOnRemoved = m_world.getBlockState(basePos);

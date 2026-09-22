@@ -30,6 +30,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>
 #include <memory>
@@ -82,7 +83,7 @@ void RedstoneOreBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState
 
     if (state.get(BlockStateProperties::LIT())) {
         auto newState = state.with(BlockStateProperties::LIT(), false);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -90,7 +91,7 @@ void RedstoneOreBlock::interact(IWorld& world, const BlockPos& pos, BlockState& 
 {
     if (!state.get(BlockStateProperties::LIT())) {
         auto newState = state.with(BlockStateProperties::LIT(), true);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         // 调度tick以在一段时间后熄灭
         world.tickManager().scheduleBlockTick(pos, const_cast<RedstoneOreBlock&>(*this), 30); // MC中熄灭延迟约30 ticks
     }

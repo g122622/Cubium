@@ -142,22 +142,14 @@ bool CopperChestBlock::chestCanConnectTo(const BlockState& neighborState) const
         neighborState.hasProperty(BlockStateProperties::CHEST_TYPE());
 }
 
-void CopperChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void CopperChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
-    // 铜箱子被移除时：若新方块仍然是铜箱子（氧化/涂蜡/除蜡/刮削导致的方块类型变化），
-    // 则不掉落物品（方块实体将由 ServerWorld::setBlockState 通过 shouldChangedStateKeepBlockEntity 保留）。
-    // 否则按普通箱子逻辑掉落内容物。
-    // 对应 MC Java: ChestBlock.onRemove + CopperChestBlock.shouldChangedStateKeepBlockEntity
-    const BlockState* newState = world.getBlockState(pos);
-    if (newState != nullptr && BlockTags::COPPER_CHESTS().contains(*newState)) {
-        // 新方块仍然是铜箱子：方块实体会被保留，不掉落物品
-        return;
-    }
-
-    // 新方块不是铜箱子（被破坏或替换为其他方块）：调用父类逻辑掉落物品
-    ChestBlock::onBlockRemoved(world, pos, state);
+    // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理。
+    // "新方块仍是铜箱子时不掉落"由 ServerWorld::setBlockState 的
+    // shouldChangedStateKeepBlockEntity 守卫保证（此时不会调用 preRemoveSideEffects）。
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 std::unique_ptr<BlockEntity> CopperChestBlock::createBlockEntity(const BlockPos& pos)

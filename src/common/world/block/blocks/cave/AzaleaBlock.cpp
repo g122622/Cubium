@@ -31,6 +31,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/vegetation/SaplingBlock.hpp"
@@ -143,7 +144,7 @@ void AzaleaBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos
     // MC 1.21.11: growTree 在放置前先把方块设为流体遗留状态（空气或水）
     // 杜鹃方块无流体，直接置为空气
     const BlockState* airState = BlockRegistry::instance().airState();
-    world.setBlockState(pos, airState, 2);
+    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 通过 WorldGenRegion 调用杜鹃树生成器
     m_treeGenerator(*region, pos, rng);

@@ -56,7 +56,7 @@ class TreeDecorator;
  */
 class TreeDecoratorContext {
 public:
-    /// MC BiConsumer<BlockPos, BlockState>：把装饰方块写入世界（flags=3）。
+    /// 把装饰方块写入世界，触发完整更新。
     using DecorationSetter = std::function<void(const BlockPos&, const BlockState*)>;
 
     TreeDecoratorContext(WorldGenRegion& region,

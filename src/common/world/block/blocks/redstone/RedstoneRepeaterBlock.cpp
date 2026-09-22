@@ -36,6 +36,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/RedstoneDiodeBlock.hpp"
 
 #include <algorithm>
@@ -168,7 +169,7 @@ BlockActionResult RedstoneRepeaterBlock::onBlockActivated(const BlockState& stat
 
     // 设置新的延迟档位
     BlockState newState = withDelay(state, newDelay);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 播放点击音效
     world.playSound(

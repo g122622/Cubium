@@ -182,7 +182,7 @@ public:
      *
      * 掉落营火中的所有物品。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 旋转/镜像 ==========
 

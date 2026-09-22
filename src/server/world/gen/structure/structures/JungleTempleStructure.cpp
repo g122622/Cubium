@@ -33,6 +33,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -125,7 +126,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
             for (i32 z = 0; z < length; ++z) {
                 i32 wx = baseX + x, wy = baseY + y, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, randomCobble(), 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        randomCobble(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -138,13 +143,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
             {
                 i32 wx = baseX + x, wy = baseY + y, wz = baseZ;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        randomBrick(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = baseX + x, wy = baseY + y, wz = baseZ + length - 1;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        randomBrick(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -153,13 +166,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
             {
                 i32 wx = baseX, wy = baseY + y, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        randomBrick(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = baseX + width - 1, wy = baseY + y, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        randomBrick(),
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -171,19 +192,31 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + entranceX - 1, wy = baseY + y, wz = baseZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, air, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    air,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + entranceX, wy = baseY + y, wz = baseZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, air, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    air,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + entranceX + 1, wy = baseY + y, wz = baseZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, air, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    air,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -193,7 +226,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         for (i32 x = entranceX - 1; x <= entranceX + 1; ++x) {
             i32 wx = baseX + x, wy = baseY + 2 - step, wz = baseZ - step - 1;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, cobblestone, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    cobblestone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -203,7 +240,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         for (i32 z = 1; z < length - 1; ++z) {
             i32 wx = baseX + x, wy = baseY + 2, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    stoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -214,13 +255,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + x, wy = baseY + 3, wz = baseZ + corridorZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    stoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + x, wy = baseY + 4, wz = baseZ + corridorZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    stoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -229,13 +278,15 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
     {
         i32 wx = baseX + entranceX, wy = baseY + 3, wz = baseZ + corridorZ;
         if (bounds.contains(wx, wy, wz)) {
-            world.setBlockState(wx, wy, wz, air, 18);
+            world.setBlockState(
+                wx, wy, wz, air, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
         }
     }
     {
         i32 wx = baseX + entranceX, wy = baseY + 4, wz = baseZ + corridorZ;
         if (bounds.contains(wx, wy, wz)) {
-            world.setBlockState(wx, wy, wz, air, 18);
+            world.setBlockState(
+                wx, wy, wz, air, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
         }
     }
 
@@ -247,13 +298,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + puzzleX, wy = baseY + y, wz = baseZ + puzzleZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, chiseledStoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    chiseledStoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + puzzleX + 1, wy = baseY + y, wz = baseZ + puzzleZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, chiseledStoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    chiseledStoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -264,13 +323,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + trapX, wy = baseY + 3, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, air, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    air,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + trapX + 1, wy = baseY + 3, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, air, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    air,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -281,13 +348,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + trapX + 2, wy = baseY + 3, wz = baseZ + 3;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, tripwireHook, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    tripwireHook,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + trapX + 2, wy = baseY + 3, wz = baseZ + 4;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, tripwireHook, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    tripwireHook,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
 
@@ -296,13 +371,21 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
             {
                 i32 wx = baseX + trapX, wy = baseY + 3, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, tripwire, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        tripwire,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = baseX + trapX + 1, wy = baseY + 3, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, tripwire, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        tripwire,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -342,19 +425,31 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + chestX - 1, wy = baseY + y, wz = baseZ + chestZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, mossyStoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    mossyStoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + chestX, wy = baseY + y, wz = baseZ + chestZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, mossyStoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    mossyStoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + chestX + 1, wy = baseY + y, wz = baseZ + chestZ;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, mossyStoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    mossyStoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -364,7 +459,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         for (i32 z = chestZ + 1; z < length - 1; ++z) {
             i32 wx = baseX + x, wy = baseY + 3, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    stoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -392,7 +491,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         for (i32 y = height; y < height + TOWER_EXTRA_HEIGHT; ++y) {
             i32 wx = baseX + cx, wy = baseY + y, wz = baseZ + cz;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, randomBrick(), 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    randomBrick(),
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
 
@@ -400,7 +503,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         {
             i32 wx = baseX + cx, wy = baseY + height + TOWER_EXTRA_HEIGHT, wz = baseZ + cz;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, chiseledStoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    chiseledStoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -410,7 +517,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         for (i32 z = 1; z < length - 1; ++z) {
             i32 wx = baseX + x, wy = baseY + height, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, stoneBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    stoneBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -442,7 +553,11 @@ void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, 
         if (rng.nextInt(100) < 40) {
             i32 wwx = baseX + wx, wwy = baseY + vy, wwz = baseZ + wz;
             if (bounds.contains(wwx, wwy, wwz)) {
-                world.setBlockState(wwx, wwy, wwz, vine, 18);
+                world.setBlockState(wwx,
+                    wwy,
+                    wwz,
+                    vine,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }

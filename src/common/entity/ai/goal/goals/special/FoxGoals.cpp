@@ -50,6 +50,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -783,7 +784,7 @@ void FoxEatBerriesGoal::_pickSweetBerries(const BlockState& state)
 
     // 将 AGE 重置为 1
     const BlockState& newState = sweetBerry->withAge(state, 1);
-    world->setBlockState(m_targetPos, &newState, 2);
+    world->setBlockState(m_targetPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 重置目标
     m_eatTimer = 0;
@@ -825,7 +826,7 @@ void FoxEatBerriesGoal::_pickGlowBerry(const BlockState& state)
 
     // 设置 BERRIES = false（藤蔓保留）
     const BlockState& newState = state.with(BlockStateProperties::BERRIES(), false);
-    world->setBlockState(m_targetPos, &newState, 2);
+    world->setBlockState(m_targetPos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 重置目标
     m_eatTimer = 0;

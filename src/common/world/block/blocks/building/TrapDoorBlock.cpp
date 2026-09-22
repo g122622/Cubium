@@ -38,6 +38,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -184,7 +185,7 @@ void TrapDoorBlock::neighborChanged(
     bool wasOpen = state.get(BlockStateProperties::OPEN());
     BlockState newState =
         state.with(BlockStateProperties::POWERED(), isPowered).with(BlockStateProperties::OPEN(), isPowered);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, pos);
@@ -266,7 +267,8 @@ void TrapDoorBlock::toggle(IWorld& world, const BlockPos& pos, const BlockState&
     }
 
     BlockState newState = state.with(BlockStateProperties::OPEN(), open);
-    world.setBlockState(pos, &newState, 10);
+    world.setBlockState(
+        pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_IMMEDIATE);
 
     if (newState.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, pos);

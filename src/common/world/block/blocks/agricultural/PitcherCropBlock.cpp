@@ -36,6 +36,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
@@ -237,7 +238,7 @@ void PitcherCropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState
             const BlockState& lowerState = defaultState()
                                                .with(BlockStateProperties::AGE_0_4(), newAge)
                                                .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower);
-            world.setBlockState(pos, &lowerState, 2);
+            world.setBlockState(pos, &lowerState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
             // 如果新年龄使植物变为双格，放置上半部分
             if (isDouble(newAge)) {
@@ -246,7 +247,7 @@ void PitcherCropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState
                     defaultState()
                         .with(BlockStateProperties::AGE_0_4(), newAge)
                         .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Upper);
-                world.setBlockState(abovePos, &upperState, 3);
+                world.setBlockState(abovePos, &upperState, world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
     }
@@ -307,7 +308,7 @@ void PitcherCropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos
     const BlockState& newLowerState = defaultState()
                                           .with(BlockStateProperties::AGE_0_4(), newAge)
                                           .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Lower);
-    world.setBlockState(lowerPos, &newLowerState, 2);
+    world.setBlockState(lowerPos, &newLowerState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 如果新年龄使植物变为双格，放置上半部分
     if (isDouble(newAge)) {
@@ -315,7 +316,7 @@ void PitcherCropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos
         const BlockState& upperState = defaultState()
                                            .with(BlockStateProperties::AGE_0_4(), newAge)
                                            .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), DoubleBlockHalf::Upper);
-        world.setBlockState(abovePos, &upperState, 3);
+        world.setBlockState(abovePos, &upperState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -382,10 +383,13 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
         if (belowState != nullptr && belowState->is(this) && getHalf(*belowState) == DoubleBlockHalf::Lower) {
             // 创造模式下直接清除下半部分（不掉落）
             if (player.isCreative()) {
-                world.setBlockState(belowPos, BlockRegistry::instance().airState(), 35);
+                world.setBlockState(belowPos,
+                    BlockRegistry::instance().airState(),
+                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
             } else {
                 // 生存模式：清除下半部分（触发掉落）
-                world.setBlockState(belowPos, BlockRegistry::instance().airState(), 3);
+                world.setBlockState(
+                    belowPos, BlockRegistry::instance().airState(), world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
     } else {
@@ -395,7 +399,9 @@ void PitcherCropBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, con
             const BlockState* aboveState = world.getBlockState(abovePos);
             if (aboveState != nullptr && aboveState->is(this) &&
                 aboveState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == DoubleBlockHalf::Upper) {
-                world.setBlockState(abovePos, BlockRegistry::instance().airState(), 35);
+                world.setBlockState(abovePos,
+                    BlockRegistry::instance().airState(),
+                    world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
             }
         }
     }
@@ -435,7 +441,7 @@ void PitcherCropBlock::onEntityCollision(
     // 保存方块对象引用，因为 setBlockState 后 state 可能失效
     const Block& brokenBlock = state.getBlock();
 
-    world.setBlockState(pos, airState, 3);
+    world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
     brokenBlock.spawnAfterBreak(world, pos, state, nullptr, true);
 }
 

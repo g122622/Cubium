@@ -32,6 +32,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -91,19 +92,21 @@ BlockState ObserverBlock::withPowered(BlockState state, bool powered)
     return state.with(BlockStateProperties::POWERED(), powered);
 }
 
-void ObserverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ObserverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 放置时如果状态是激活的，需要先设置为非激活状态
     // 这通常不应该发生，因为默认状态是非激活的
     if (isPowered(state)) {
         // 如果已经有tick调度，需要先取消
         BlockState unpoweredState = withPowered(state, false);
-        world.setBlockState(pos, &unpoweredState, 18);
+        world.setBlockState(pos,
+            &unpoweredState,
+            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
         _updateNeighborsInFront(world, pos, unpoweredState);
     }
 }
 
-void ObserverBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ObserverBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 移除时如果正在输出且有tick调度，需要通知邻居
     if (isPowered(state)) {
@@ -170,11 +173,11 @@ void ObserverBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     if (isPowered(state)) {
         // 脉冲结束，停止输出
         BlockState newState = withPowered(state, false);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
         // 激活并调度熄灭
         BlockState newState = withPowered(state, true);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         world.tickManager().scheduleBlockTick(pos, *this, PULSE_DURATION, world::tick::TickPriority::High);
     }
 

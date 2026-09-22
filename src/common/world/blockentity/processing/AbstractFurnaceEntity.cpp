@@ -30,6 +30,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateHolder.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/LockableBlockEntity.hpp"
@@ -922,7 +923,7 @@ void AbstractFurnaceEntity::updateBurnState(IWorld& world)
         return;
     }
 
-    world.setBlockState(m_pos, &state->with(BlockStateProperties::LIT(), burning), 3);
+    world.setBlockState(m_pos, &state->with(BlockStateProperties::LIT(), burning), world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 const crafting::SmeltingRecipe* AbstractFurnaceEntity::getRecipe(IWorld& world) const

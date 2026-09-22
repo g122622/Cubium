@@ -51,6 +51,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 #include <memory>
@@ -385,7 +386,7 @@ void RavagerEntity::_breakLeavesOnCollision()
                     // 调用 spawnAfterBreak 以支持特殊方块行为（掠夺者破坏不使用工具，不产生经验）
                     const Block& brokenBlock = state->getBlock();
                     const BlockState* airState = BlockRegistry::instance().airState();
-                    worldPtr->setBlockState(pos, airState, 3);
+                    worldPtr->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
                     brokenBlock.spawnAfterBreak(*worldPtr, pos, *state, nullptr, false);
                     brokeAny = true;
                 }

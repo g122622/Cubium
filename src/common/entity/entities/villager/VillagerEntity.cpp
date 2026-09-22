@@ -84,6 +84,7 @@
 #include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/timeline/Timelines.hpp"
@@ -1182,7 +1183,7 @@ void VillagerEntity::startSleeping(BlockPos pos)
             // 设置床头为占用
             if (hasOccupied) {
                 BlockState occupiedState = bedState->with(BlockStateProperties::OCCUPIED(), true);
-                m_world->setBlockState(pos, &occupiedState, 3);
+                m_world->setBlockState(pos, &occupiedState, world::BlockUpdateFlags::UPDATE_ALL);
             }
             // 如果当前是脚部，也设置头部为占用
             if (isFoot && hasFacing) {
@@ -1190,7 +1191,7 @@ void VillagerEntity::startSleeping(BlockPos pos)
                 const BlockState* headState = m_world->getBlockState(headPos);
                 if (headState != nullptr && headState->hasProperty(BlockStateProperties::OCCUPIED())) {
                     BlockState occupiedHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
-                    m_world->setBlockState(headPos, &occupiedHeadState, 3);
+                    m_world->setBlockState(headPos, &occupiedHeadState, world::BlockUpdateFlags::UPDATE_ALL);
                 }
             }
         }
@@ -1234,7 +1235,7 @@ void VillagerEntity::stopSleeping()
         // 清除床的占用状态
         if (hasOccupied) {
             BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
-            m_world->setBlockState(bedPos, &newBedState, 3);
+            m_world->setBlockState(bedPos, &newBedState, world::BlockUpdateFlags::UPDATE_ALL);
         }
 
         // 使用床的朝向计算起床位置

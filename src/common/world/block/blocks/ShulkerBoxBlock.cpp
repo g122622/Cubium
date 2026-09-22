@@ -175,7 +175,7 @@ i32 ShulkerBoxBlock::getComparatorInputOverride(const BlockState& state, IWorld&
 
 // ========== 移除处理 ==========
 
-void ShulkerBoxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ShulkerBoxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 潜影盒被破坏时会保留物品，物品会通过 BlockItem 保留到 ItemStack 的 NBT 中
     // 这里不需要像普通容器那样掉落物品
@@ -188,7 +188,7 @@ void ShulkerBoxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
     }
 
     // 调用基类处理
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 // ========== 静态工具方法 ==========

@@ -112,7 +112,7 @@ public:
      *
      * 掉落唱片机内的唱片。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 工具方法 ==========
 

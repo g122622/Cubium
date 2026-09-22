@@ -41,6 +41,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -416,7 +417,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_ClearsStoredItem)
     world.setBlockEntity(pos, std::move(entity));
 
     // 移除方块
-    pot_->onBlockRemoved(world, pos, state);
+    pot_->onBlockRemoved(world, pos, state, false);
 
     // 方块实体中的物品应被清空
     auto* entityAfter = world.getBlockEntity(pos);
@@ -650,9 +651,9 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SwordSetsCracked)
         i32 setBlockBefore = m_world.setBlockCallCount();
         pot_->playerWillDestroy(m_world, pos, state, *player);
 
-        // 应调用 setBlockState 设置 CRACKED 状态（flags=260）
+        // 应调用 setBlockState 设置 CRACKED 状态（UPDATE_NONE）
         EXPECT_GT(m_world.setBlockCallCount(), setBlockBefore);
-        EXPECT_EQ(m_world.lastSetBlockFlags(), 260);
+        EXPECT_EQ(m_world.lastSetBlockFlags(), mc::world::BlockUpdateFlags::UPDATE_NONE);
 
         // 验证方块被设为 CRACKED
         const BlockState* newState = m_world.getBlockState(pos.x, pos.y, pos.z);
@@ -779,7 +780,7 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_ProjectileSetsCrackedAndDestroys)
     i32 setBlockBefore = m_world.setBlockCallCount();
     pot_->onProjectileHit(m_world, state, hitResult, arrow);
 
-    // 应调用 setBlockState 两次：一次设置 CRACKED（flags=260），一次移除方块（flags=3）
+    // 应调用 setBlockState 两次：一次设置 CRACKED（UPDATE_NONE），一次移除方块（UPDATE_ALL）
     EXPECT_GE(m_world.setBlockCallCount(), setBlockBefore + 1);
 
     // 方块应被移除（设为空气）
@@ -937,11 +938,11 @@ TEST_F(DecoratedPotBlockTest, OnProjectileHit_AlreadyCracked_StillDestroys)
     i32 setBlockBefore = m_world.setBlockCallCount();
     pot_->onProjectileHit(m_world, crackedState, hitResult, arrow);
 
-    // 应调用 setBlockState 移除方块（flags=3）
-    // 因为已是 CRACKED，不应再调用 setBlockState 设置 CRACKED（flags=260）
+    // 应调用 setBlockState 移除方块（UPDATE_ALL）
+    // 因为已是 CRACKED，不应再调用 setBlockState 设置 CRACKED（UPDATE_NONE）
     // 所以调用次数应为 setBlockBefore + 1（仅移除）
     EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore + 1);
-    EXPECT_EQ(m_world.lastSetBlockFlags(), 3);
+    EXPECT_EQ(m_world.lastSetBlockFlags(), mc::world::BlockUpdateFlags::UPDATE_ALL);
 
     // 方块应被移除
     const BlockState* finalState = m_world.getBlockState(pos.x, pos.y, pos.z);
@@ -980,7 +981,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_CrackedState_ClearsStoredItem)
     m_world.setBlockEntity(pos, std::move(entity));
 
     i32 spawnBefore = m_world.spawnedEntityCount();
-    pot_->onBlockRemoved(m_world, pos, crackedState);
+    pot_->onBlockRemoved(m_world, pos, crackedState, false);
 
     // CRACKED 状态应生成物品实体（4个陶片）
     // spawnEntity 可能被 ItemDropHelper 调用，但因为测试世界可能无法完全模拟
@@ -1010,7 +1011,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NonCrackedState_ClearsStoredItem)
 
     m_world.setBlockEntity(pos, std::move(entity));
 
-    pot_->onBlockRemoved(m_world, pos, state);
+    pot_->onBlockRemoved(m_world, pos, state, false);
 
     // 方块实体中物品应被清空
     auto* entityAfter = m_world.getBlockEntity(pos);
@@ -1035,7 +1036,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NonCrackedEmptyPot_NoDrop)
     m_world.setBlockEntity(pos, std::move(entity));
 
     i32 spawnBefore = m_world.spawnedEntityCount();
-    pot_->onBlockRemoved(m_world, pos, state);
+    pot_->onBlockRemoved(m_world, pos, state, false);
 
     // 空陶罐不应生成物品实体
     EXPECT_EQ(m_world.spawnedEntityCount(), spawnBefore);
@@ -1061,7 +1062,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_ClientSide_DoesNotDropItems)
     m_world.setBlockEntity(pos, std::move(entity));
 
     i32 spawnBefore = m_world.spawnedEntityCount();
-    pot_->onBlockRemoved(m_world, pos, state);
+    pot_->onBlockRemoved(m_world, pos, state, false);
 
     // 客户端侧不应生成物品实体
     EXPECT_EQ(m_world.spawnedEntityCount(), spawnBefore);
@@ -1075,7 +1076,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NoBlockEntity_DoesNotCrash)
     m_world.setBlockAt(pos, &state);
     // 不设置方块实体
 
-    EXPECT_NO_THROW(pot_->onBlockRemoved(m_world, pos, state));
+    EXPECT_NO_THROW(pot_->onBlockRemoved(m_world, pos, state, false));
 }
 
 TEST_F(DecoratedPotBlockTest, OnBlockRemoved_WrongBlockEntityType_DoesNotCrash)
@@ -1087,7 +1088,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_WrongBlockEntityType_DoesNotCrash)
     m_world.setBlockAt(pos, &state);
     // 不设置方块实体——getBlockEntity 返回 nullptr，应安全跳过
 
-    EXPECT_NO_THROW(pot_->onBlockRemoved(m_world, pos, state));
+    EXPECT_NO_THROW(pot_->onBlockRemoved(m_world, pos, state, false));
 }
 
 // ============================================================================
@@ -1224,7 +1225,7 @@ TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SilkTouchPreventsCracked)
 
         // 验证 CRACKED 被设置（因为没有精准采集）
         EXPECT_GT(m_world.setBlockCallCount(), setBlockBefore);
-        EXPECT_EQ(m_world.lastSetBlockFlags(), 260);
+        EXPECT_EQ(m_world.lastSetBlockFlags(), mc::world::BlockUpdateFlags::UPDATE_NONE);
     }
 }
 

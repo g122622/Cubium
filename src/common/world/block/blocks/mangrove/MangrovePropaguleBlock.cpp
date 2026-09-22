@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -144,7 +145,7 @@ void MangrovePropaguleBlock::randomTick(IWorld& world, const BlockPos& pos, Bloc
         int age = state.get(BlockStateProperties::AGE_0_4());
         if (age < MAX_AGE) {
             auto newState = state.with(BlockStateProperties::AGE_0_4(), age + 1);
-            world.setBlockState(pos, &newState, 3);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

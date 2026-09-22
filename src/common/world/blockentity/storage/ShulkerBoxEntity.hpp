@@ -89,6 +89,14 @@ public:
     // ========== IInventory 接口实现 ==========
 
     [[nodiscard]] IInventory* getInventory() override { return &m_inventory; }
+
+    /**
+     * @brief 潜影盒被移除时不掉落内容物
+     *
+     * 覆写容器基类的掉落行为：潜影盒内容物随方块物品的 NBT 一起保留，
+     * 移除时若再散落一次会导致内容物重复。
+     */
+    void preRemoveSideEffects(const BlockPos& pos, const BlockState& state) override;
     [[nodiscard]] const IInventory* getInventory() const override { return &m_inventory; }
     [[nodiscard]] i32 getContainerSize() const override { return SHULKER_BOX_SIZE; }
 

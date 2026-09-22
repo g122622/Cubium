@@ -468,7 +468,7 @@ TEST_F(SnifferEggBlockTest, OnBlockAdded_WithMossBelow_FiresEggCrackEvent)
     world_.setBlockAt(eggPos, &eggState);
 
     world_.clearSpawnedEntities();
-    snifferEgg_->onBlockAdded(world_, eggPos, eggState);
+    snifferEgg_->onBlockAdded(world_, eggPos, eggState, false);
 
     // 验证：播放了 EGG_CRACK (3009) 事件
     bool foundEggCrack = false;
@@ -488,7 +488,7 @@ TEST_F(SnifferEggBlockTest, OnBlockAdded_WithoutMossBelow_DoesNotFireEggCrackEve
     BlockState eggState = snifferEgg_->defaultState().with(BlockStateProperties::HATCH_0_2(), 0);
     world_.setBlockAt(eggPos, &eggState);
 
-    snifferEgg_->onBlockAdded(world_, eggPos, eggState);
+    snifferEgg_->onBlockAdded(world_, eggPos, eggState, false);
 
     // 验证：没有播放 EGG_CRACK (3009) 事件
     bool foundEggCrack = false;
@@ -514,7 +514,7 @@ TEST_F(SnifferEggBlockTest, OnBlockAdded_ClientSide_DoesNotScheduleTick)
     ASSERT_NE(VanillaBlocks::MOSS_BLOCK, nullptr);
     world_.setBlockAt(belowPos, &VanillaBlocks::MOSS_BLOCK->defaultState());
 
-    snifferEgg_->onBlockAdded(world_, eggPos, eggState);
+    snifferEgg_->onBlockAdded(world_, eggPos, eggState, false);
 
     // 验证：没有播放任何事件
     EXPECT_TRUE(world_.playedEvents().empty());
@@ -542,7 +542,7 @@ TEST_F(SnifferEggBlockTest, OnBlockAdded_BoostedSchedulesEarlierThanRegular)
     world_.setBlockAt(belowPosBoost, &VanillaBlocks::MOSS_BLOCK->defaultState());
     BlockState eggState = snifferEgg_->defaultState().with(BlockStateProperties::HATCH_0_2(), 0);
     world_.setBlockAt(eggPosBoost, &eggState);
-    snifferEgg_->onBlockAdded(world_, eggPosBoost, eggState);
+    snifferEgg_->onBlockAdded(world_, eggPosBoost, eggState, false);
 
     // 推进 tick 到 4300（加速模式最大延迟边界）
     world_.setCurrentTick(4300);

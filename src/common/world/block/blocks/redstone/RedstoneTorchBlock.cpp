@@ -34,6 +34,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -80,7 +81,7 @@ bool RedstoneTorchBlock::isLit(const BlockState& state)
     return state.get(BlockStateProperties::LIT());
 }
 
-void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 放置时通知六个方向的邻居
     for (Direction dir : Directions::all()) {
@@ -101,7 +102,7 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
     }
 }
 
-void RedstoneTorchBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneTorchBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 移除时清理烧毁记录
     world::redstone::RedstoneSystem::instance().clearTorchRecord(pos);
@@ -151,7 +152,7 @@ void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
 
         // 改变状态
         BlockState newState = state.with(BlockStateProperties::LIT(), shouldBeLit);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 更新相邻方块
         world::redstone::RedstoneSystem::instance().updateNeighborsExcept(world, pos, *this, Direction::Down);

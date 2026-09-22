@@ -51,6 +51,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -343,7 +344,7 @@ void EndermanPlaceBlockGoal::tick()
     }
 
     // 放置方块
-    world->setBlockState(pos, &updatedState, 3);
+    world->setBlockState(pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 发出方块放置游戏事件
     world->gameEvent(gameevent::GameEvents::BLOCK_PLACE,
@@ -485,7 +486,7 @@ void EndermanTakeBlockGoal::tick()
     if (airState == nullptr) {
         return;
     }
-    world->setBlockState(pos, airState, 3);
+    world->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 发出方块破坏游戏事件
     world->gameEvent(gameevent::GameEvents::BLOCK_DESTROY,

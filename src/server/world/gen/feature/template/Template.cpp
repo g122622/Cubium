@@ -43,6 +43,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -284,7 +285,7 @@ PlacementSettings::PlacementSettings()
     , m_mirror(Mirror::None)
     , m_boundingBox(nullptr)
     , m_centerOffset(0, 0, 0)
-    , m_blockUpdateFlags(18)
+    , m_blockUpdateFlags(world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
 {}
 
 PlacementSettings& PlacementSettings::setRotation(Rotation rotation)
@@ -317,7 +318,7 @@ PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset)
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setBlockUpdateFlags(u32 flags)
+PlacementSettings& PlacementSettings::setBlockUpdateFlags(i32 flags)
 {
     m_blockUpdateFlags = flags;
     return *this;
@@ -592,7 +593,7 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
 }
 
 bool Template::place(
-    IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags) const
+    IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, i32 flags) const
 {
     // 选择调色板
     const Palette* selectedPalette = selectPalette(rng);
@@ -782,11 +783,7 @@ bool Template::place(
         }
 
         // 放置方块
-        world.setBlockState(processedBlock.pos.x,
-            processedBlock.pos.y,
-            processedBlock.pos.z,
-            transformedState,
-            static_cast<i32>(flags));
+        world.setBlockState(processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, flags);
 
         // 方块实体数据由 placeInWorld 方法处理
         // 此处仅负责方块状态放置
@@ -800,7 +797,7 @@ bool Template::place(
 }
 
 bool Template::placeInWorld(
-    IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, u32 flags) const
+    IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, i32 flags) const
 {
     // 选择调色板
     const Palette* selectedPalette = selectPalette(rng);
@@ -938,11 +935,8 @@ bool Template::placeInWorld(
         }
 
         // 放置方块
-        bool placed = world.setBlockState(processedBlock.pos.x,
-            processedBlock.pos.y,
-            processedBlock.pos.z,
-            transformedState,
-            static_cast<i32>(flags));
+        bool placed = world.setBlockState(
+            processedBlock.pos.x, processedBlock.pos.y, processedBlock.pos.z, transformedState, flags);
 
         if (!placed) {
             continue;
@@ -1052,7 +1046,10 @@ bool Template::placeInWorld(
         }
         BlockState updated = Block::updateFromNeighbourShapes(*currentState, world, processedBlock.pos);
         if (updated != *currentState) {
-            world.setBlockState(processedBlock.pos, &updated, 276);
+            world.setBlockState(processedBlock.pos,
+                &updated,
+                world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE |
+                    world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS);
         }
     }
 

@@ -29,6 +29,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
@@ -59,7 +60,7 @@ bool EndIslandFeature::place(WorldGenRegion& world, math::Random& random, const 
             for (i32 dz = minOffset; dz <= maxOffset; ++dz) {
                 if (static_cast<f32>(dx * dx + dz * dz) <= radiusSq) {
                     BlockPos blockPos(pos.x + dx, pos.y - layer, pos.z + dz);
-                    world.setBlockState(blockPos, endStone, 3);
+                    world.setBlockState(blockPos, endStone, world::BlockUpdateFlags::UPDATE_ALL);
                     placed = true;
                 }
             }

@@ -149,7 +149,7 @@ public:
      * 检测是否可以生成雪傀儡或铁傀儡。
      * 仅在方块类型实际改变时触发（防止 FACING 属性变化时重复触发）。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 傀儡生成静态方法 ==========
 
@@ -327,7 +327,7 @@ public:
      * 检测是否可以生成雪傀儡或铁傀儡。
      * 仅在方块类型实际改变时触发（防止 FACING 属性变化时重复触发）。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 };
 
 // ============================================================================

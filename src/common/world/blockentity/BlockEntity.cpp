@@ -71,4 +71,9 @@ nbt::CompoundTag BlockEntity::getUpdateTag() const
     return tag;
 }
 
+void BlockEntity::preRemoveSideEffects(const BlockPos& /*pos*/, const BlockState& /*state*/)
+{
+    // 默认实现：无副作用
+}
+
 } // namespace mc

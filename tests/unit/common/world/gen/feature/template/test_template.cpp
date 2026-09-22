@@ -31,6 +31,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/feature/template/RuleTest.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
@@ -216,7 +217,8 @@ TEST_F(TemplateTest, PlacementSettings_DefaultValues)
     EXPECT_EQ(settings.getCenterOffset().x, 0);
     EXPECT_EQ(settings.getCenterOffset().y, 0);
     EXPECT_EQ(settings.getCenterOffset().z, 0);
-    EXPECT_EQ(settings.getBlockUpdateFlags(), 18u);
+    EXPECT_EQ(settings.getBlockUpdateFlags(),
+        mc::world::BlockUpdateFlags::UPDATE_CLIENTS | mc::world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     EXPECT_EQ(settings.keepLiquids(), false);
     EXPECT_EQ(settings.getProcessors(), nullptr);
 }
@@ -231,7 +233,7 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters)
                        .setMirror(Mirror::LeftRight)
                        .setIgnoreEntities(true)
                        .setCenterOffset(offset)
-                       .setBlockUpdateFlags(2)
+                       .setBlockUpdateFlags(mc::world::BlockUpdateFlags::UPDATE_CLIENTS)
                        .setKeepLiquids(true)
                        .setProcessors(&processorList);
 
@@ -242,7 +244,7 @@ TEST_F(TemplateTest, PlacementSettings_ChainedSetters)
     EXPECT_EQ(settings.getCenterOffset().x, 10);
     EXPECT_EQ(settings.getCenterOffset().y, 20);
     EXPECT_EQ(settings.getCenterOffset().z, 30);
-    EXPECT_EQ(settings.getBlockUpdateFlags(), 2u);
+    EXPECT_EQ(settings.getBlockUpdateFlags(), mc::world::BlockUpdateFlags::UPDATE_CLIENTS);
     EXPECT_EQ(settings.keepLiquids(), true);
     EXPECT_EQ(settings.getProcessors(), &processorList);
 }
@@ -253,14 +255,16 @@ TEST_F(TemplateTest, PlacementSettings_Copy)
     original.setRotation(Rotation::Clockwise180)
         .setMirror(Mirror::FrontBack)
         .setIgnoreEntities(true)
-        .setBlockUpdateFlags(5);
+        .setBlockUpdateFlags(
+            mc::world::BlockUpdateFlags::UPDATE_NEIGHBORS | mc::world::BlockUpdateFlags::UPDATE_INVISIBLE);
 
     PlacementSettings copy = original.copy();
 
     EXPECT_EQ(copy.getRotation(), Rotation::Clockwise180);
     EXPECT_EQ(copy.getMirror(), Mirror::FrontBack);
     EXPECT_EQ(copy.ignoreEntities(), true);
-    EXPECT_EQ(copy.getBlockUpdateFlags(), 5u);
+    EXPECT_EQ(copy.getBlockUpdateFlags(),
+        mc::world::BlockUpdateFlags::UPDATE_NEIGHBORS | mc::world::BlockUpdateFlags::UPDATE_INVISIBLE);
 }
 
 // ============================================================================

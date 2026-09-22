@@ -39,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
@@ -134,7 +135,7 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
     int charges = getCharges(state);
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         // 注意：充能音效和粒子效果由调用方处理（onBlockActivated 中播放）
         return newState;
     }
@@ -146,7 +147,7 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     int charges = getCharges(state);
     if (charges > 0) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges - 1);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -197,7 +198,7 @@ BlockActionResult RespawnAnchorBlock::onBlockActivated(const BlockState& state,
     if (!dimType.respawnAnchorWorks()) {
         // 在非下界使用重生锚会爆炸
         // 移除重生锚
-        world.setBlockState(pos, nullptr, 11);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
         // 爆炸强度为 5.0，破坏方块但不生成火焰
         world.createExplosion(pos.center(),

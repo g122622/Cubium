@@ -32,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -69,7 +70,7 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 
             // 点燃方块
             BlockState newState = blockStatePtr->with(BlockStateProperties::LIT(), true);
-            world.setBlockState(blockPos, &newState, 11);
+            world.setBlockState(blockPos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
             // 消耗耐久：直接对玩家权威手持物（player->getHeldItem(hand)）做 hurtAndBreak，而非
             // context.getItemStackMut()（调用方局部拷贝，耐久损耗不回写权威物品栏——同桶类对齐缺陷）。
@@ -93,7 +94,7 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
         if (fireBlock != nullptr) {
             // 放置火焰
             const BlockState& fireState = fireBlock->getDefaultState();
-            world.setBlockState(firePos, &fireState, 11);
+            world.setBlockState(firePos, &fireState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
             // 消耗耐久：同上方点燃分支，操作权威手持（player->getHeldItem(hand)）做 hurtAndBreak。
             if (player != nullptr) {

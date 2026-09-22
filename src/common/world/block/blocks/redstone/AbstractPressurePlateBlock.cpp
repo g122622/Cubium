@@ -33,6 +33,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -87,7 +88,8 @@ BlockState AbstractPressurePlateBlock::withStoredSignal(BlockState state, i32 si
     return withPowered(std::move(state), signal > 0);
 }
 
-void AbstractPressurePlateBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void AbstractPressurePlateBlock::onBlockAdded(
+    IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -111,7 +113,7 @@ void AbstractPressurePlateBlock::neighborChanged(
     //   canSupportRigidBlock(world, pos.below()) || canSupportCenter(world, pos.below(), Direction.UP)
     // 下方支撑失效时移除压力板
     if (!_canSurvive(world, pos)) {
-        world.setBlockState(pos, nullptr, 2);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -132,7 +134,7 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
     if (newSignal != oldSignal) {
         // 信号变化，写入持久化状态
         BlockState newState = withStoredSignal(state, newSignal);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 播放音效（按下/弹起切换时）
         playClickSound(world, pos, newSignal > 0);

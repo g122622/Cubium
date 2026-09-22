@@ -24,6 +24,7 @@
 #include "CrafterBlockEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "item/core/ItemStack.hpp"
@@ -129,7 +130,7 @@ void CrafterBlockEntity::tick(IWorld& world)
             if (state != nullptr && state->hasProperty(BlockStateProperties::CRAFTING()) &&
                 state->get(BlockStateProperties::CRAFTING())) {
                 BlockState newState = state->with(BlockStateProperties::CRAFTING(), false);
-                world.setBlockState(m_pos, &newState, 3);
+                world.setBlockState(m_pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
     }

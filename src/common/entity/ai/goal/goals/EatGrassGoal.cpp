@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
@@ -164,9 +165,9 @@ void EatGrassGoal::_eatGrass()
                     m_targetPos,
                     static_cast<i32>(VanillaBlocks::GRASS_BLOCK->defaultState().stateId()));
 
-                // 设置为泥土，flags=2 表示通知邻居并同步客户端
+                // 设置为泥土并同步客户端
                 const BlockState* dirtState = &VanillaBlocks::DIRT->defaultState();
-                m_world->setBlockState(m_targetPos, dirtState, 2);
+                m_world->setBlockState(m_targetPos, dirtState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             }
         }
     } else {
@@ -177,7 +178,7 @@ void EatGrassGoal::_eatGrass()
             if (canGrief) {
                 // 不掉落物品，直接移除
                 const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-                m_world->setBlockState(m_targetPos, airState, 2);
+                m_world->setBlockState(m_targetPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             }
         }
     }

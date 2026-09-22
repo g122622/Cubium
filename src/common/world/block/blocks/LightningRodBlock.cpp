@@ -33,6 +33,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/DirectionalBlock.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -180,7 +181,9 @@ void LightningRodBlock::neighborChanged(
     bool wasPowered = world.getBlockState(pos)->get(BlockStateProperties::POWERED());
 
     if (isPowered != wasPowered) {
-        world.setBlockState(pos, &world.getBlockState(pos)->with(BlockStateProperties::POWERED(), isPowered), 3);
+        world.setBlockState(pos,
+            &world.getBlockState(pos)->with(BlockStateProperties::POWERED(), isPowered),
+            world::BlockUpdateFlags::UPDATE_ALL);
 
         if (isPowered) {
             // 激活时安排tick来关闭
@@ -197,7 +200,8 @@ void LightningRodBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     if (state.get(BlockStateProperties::POWERED())) {
         bool stillPowered = world::redstone::RedstoneSystem::instance().isBlockPowered(world, pos);
         if (!stillPowered) {
-            world.setBlockState(pos, &state.with(BlockStateProperties::POWERED(), false), 3);
+            world.setBlockState(
+                pos, &state.with(BlockStateProperties::POWERED(), false), world::BlockUpdateFlags::UPDATE_ALL);
         } else {
             // 仍然被充能，继续安排tick
             world.tickManager().scheduleBlockTick(pos, *this, ACTIVATION_TICKS);
@@ -264,7 +268,7 @@ void LightningRodBlock::onLightningStrike(IWorld& world, const BlockPos& pos)
     }
 
     BlockState newState = currentState->with(BlockStateProperties::POWERED(), true);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     world.tickManager().scheduleBlockTick(pos, *this, ACTIVATION_TICKS);
 }
 

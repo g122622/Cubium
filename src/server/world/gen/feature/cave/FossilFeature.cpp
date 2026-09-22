@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -149,12 +150,12 @@ bool FossilFeature::place(
     const StructureProcessorList* fossilProcessors =
         jigsaw::ProcessorListRegistry::instance().getList(config.fossilProcessors);
     settings.setProcessors(fossilProcessors);
-    fossilTemplate->placeInWorld(world, blockpos2, settings, random, 260);
+    fossilTemplate->placeInWorld(world, blockpos2, settings, random, world::BlockUpdateFlags::UPDATE_NONE);
 
     const StructureProcessorList* overlayProcessors =
         jigsaw::ProcessorListRegistry::instance().getList(config.overlayProcessors);
     settings.setProcessors(overlayProcessors);
-    overlayTemplate->placeInWorld(world, blockpos2, settings, random, 260);
+    overlayTemplate->placeInWorld(world, blockpos2, settings, random, world::BlockUpdateFlags::UPDATE_NONE);
 
     return true;
 }

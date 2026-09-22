@@ -49,6 +49,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
@@ -264,37 +265,10 @@ BlockActionResult ChestBlock::onBlockActivated(const BlockState& state,
 
 // ========== 移除处理 ==========
 
-void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void ChestBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    // 箱子被移除时需要掉落其内容物
-    BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity != nullptr &&
-        (blockEntity->getType() == BlockEntityType::Chest || blockEntity->getType() == BlockEntityType::TrappedChest)) {
-        auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-
-        // 收集箱子中的所有物品
-        std::vector<ItemStack> drops;
-        IInventory* inventory = chest->getInventory();
-        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
-            ItemStack stack = inventory->getItem(i);
-            if (!stack.isEmpty()) {
-                drops.push_back(stack);
-            }
-        }
-
-        // 在方块位置掉落所有物品
-        if (!drops.empty() && !world.isClientSide()) {
-            math::Random rng;
-            ItemDropHelper::spawnItemEntities(&world, pos, drops, rng);
-        }
-
-        // 清空物品
-        chest->clearContainer();
-        MC_UNUSED(state);
-    }
-
-    // 调用基类处理
-    Block::onBlockRemoved(world, pos, state);
+    // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 // ========== 红石 ==========
@@ -447,7 +421,8 @@ void ChestBlock::combineChests(const BlockState& state, IWorld& world, const Blo
         newType = BlockStateProperties::ChestType::Left;
     }
 
-    world.setBlockState(pos, &state.with(BlockStateProperties::CHEST_TYPE(), newType), 3);
+    world.setBlockState(
+        pos, &state.with(BlockStateProperties::CHEST_TYPE(), newType), world::BlockUpdateFlags::UPDATE_ALL);
 
     // 更新相邻箱子的类型
     BlockPos neighborPos = pos.offset(facing);
@@ -457,7 +432,9 @@ void ChestBlock::combineChests(const BlockState& state, IWorld& world, const Blo
         BlockStateProperties::ChestType neighborType = newType == BlockStateProperties::ChestType::Left
             ? BlockStateProperties::ChestType::Right
             : BlockStateProperties::ChestType::Left;
-        world.setBlockState(neighborPos, &neighborState.with(BlockStateProperties::CHEST_TYPE(), neighborType), 3);
+        world.setBlockState(neighborPos,
+            &neighborState.with(BlockStateProperties::CHEST_TYPE(), neighborType),
+            world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

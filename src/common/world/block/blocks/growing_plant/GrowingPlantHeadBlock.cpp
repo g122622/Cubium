@@ -31,6 +31,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/growing_plant/GrowingPlantBlock.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
@@ -94,12 +95,12 @@ void GrowingPlantHeadBlock::randomTick(IWorld& world, const BlockPos& pos, Block
     const BlockState bodyState = updateBodyAfterConvertedFromHead(state);
     const Block* bodyBlock = getBodyBlock();
     if (bodyBlock) {
-        world.setBlockState(pos, &bodyState, 2);
+        world.setBlockState(pos, &bodyState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 
     // 在目标位置放置新的头部方块
     const BlockState newHeadState = getGrowIntoState(world, growPos, state, random);
-    world.setBlockState(growPos, &newHeadState, 2);
+    world.setBlockState(growPos, &newHeadState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 bool GrowingPlantHeadBlock::isValidBonemealTarget(
@@ -162,11 +163,11 @@ void GrowingPlantHeadBlock::grow(IWorld& world, math::IRandom& random, const Blo
 
     // 在原头部位置放置身体方块
     const BlockState bodyState = updateBodyAfterConvertedFromHead(state);
-    world.setBlockState(pos, &bodyState, 2);
+    world.setBlockState(pos, &bodyState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 在生长目标位置放置新的头部方块（age+1）
     const BlockState newHeadState = getGrowIntoState(world, growPos, const_cast<BlockState&>(state), random);
-    world.setBlockState(growPos, &newHeadState, 2);
+    world.setBlockState(growPos, &newHeadState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 BlockState GrowingPlantHeadBlock::getGrowIntoState(

@@ -25,6 +25,7 @@
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -69,7 +70,7 @@ void RootedDirtBlock::grow(IWorld& world, math::IRandom& random, const BlockPos&
 
     // 在下方放置垂根
     const BlockState& hangingRootsState = VanillaBlocks::HANGING_ROOTS->defaultState();
-    world.setBlockState(belowPos, &hangingRootsState, 3);
+    world.setBlockState(belowPos, &hangingRootsState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 } // namespace blocks

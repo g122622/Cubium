@@ -33,6 +33,7 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -245,7 +246,11 @@ void CityTemplate::generate(IWorldWriter& world,
                         BlockPos worldPos =
                             BlockPos(m_templatePosition.x + x, m_templatePosition.y + y, m_templatePosition.z + z);
                         if (chunkBounds.contains(worldPos.x, worldPos.y, worldPos.z)) {
-                            world.setBlockState(worldPos.x, worldPos.y, worldPos.z, endStoneBricks, 2);
+                            world.setBlockState(worldPos.x,
+                                worldPos.y,
+                                worldPos.z,
+                                endStoneBricks,
+                                world::BlockUpdateFlags::UPDATE_CLIENTS);
                         }
                     }
                 }
@@ -257,8 +262,13 @@ void CityTemplate::generate(IWorldWriter& world,
     // 更新模板大小
     m_size = templ->getSize();
 
-    // 放置模板
-    templ->place(world, m_templatePosition, m_settings, rng, m_overwrite ? 18 : 2);
+    // 放置模板：覆盖模式声明形状已知（跳过形状重算），非覆盖模式仅同步客户端
+    templ->place(world,
+        m_templatePosition,
+        m_settings,
+        rng,
+        m_overwrite ? (world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
+                    : world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 更新边界框 - 根据旋转计算实际尺寸
     switch (m_rotation) {

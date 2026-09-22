@@ -33,6 +33,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -248,15 +249,15 @@ void SmallDripleafBlock::grow(IWorld& world, math::IRandom& random, const BlockP
 
     // 移除小滴叶（上下两部分）
     const BlockState& airState = VanillaBlocks::AIR->defaultState();
-    world.setBlockState(basePos, &airState, 3);
-    world.setBlockState(BlockPos(basePos.x, basePos.y + 1, basePos.z), &airState, 3);
+    world.setBlockState(basePos, &airState, world::BlockUpdateFlags::UPDATE_ALL);
+    world.setBlockState(BlockPos(basePos.x, basePos.y + 1, basePos.z), &airState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 放置大滴叶茎
     const BlockState& stemState =
         VanillaBlocks::BIG_DRIPLEAF_STEM->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
     for (i32 i = 0; i < stemHeight; ++i) {
         BlockPos stemPos(basePos.x, basePos.y + i, basePos.z);
-        world.setBlockState(stemPos, &stemState, 3);
+        world.setBlockState(stemPos, &stemState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
     // 放置大滴叶叶片
@@ -264,7 +265,7 @@ void SmallDripleafBlock::grow(IWorld& world, math::IRandom& random, const BlockP
                                       .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
                                       .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
     BlockPos leafPosition(basePos.x, basePos.y + stemHeight, basePos.z);
-    world.setBlockState(leafPosition, &leafState, 3);
+    world.setBlockState(leafPosition, &leafState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 // ========== IPlantable 接口实现 ==========

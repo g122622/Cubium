@@ -49,7 +49,7 @@ PlacementSettings::PlacementSettings()
     , m_mirror(Mirror::None)
     , m_boundingBox(nullptr)
     , m_centerOffset(0, 0, 0)
-    , m_blockUpdateFlags(18)
+    , m_blockUpdateFlags(world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE)
 {}
 
 PlacementSettings& PlacementSettings::setRotation(Rotation rotation)
@@ -82,7 +82,7 @@ PlacementSettings& PlacementSettings::setCenterOffset(const BlockPos& offset)
     return *this;
 }
 
-PlacementSettings& PlacementSettings::setBlockUpdateFlags(u32 flags)
+PlacementSettings& PlacementSettings::setBlockUpdateFlags(i32 flags)
 {
     m_blockUpdateFlags = flags;
     return *this;

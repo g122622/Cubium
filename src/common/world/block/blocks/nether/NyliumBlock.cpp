@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/lighting/LightEngineUtils.hpp"
 #include <utility>
@@ -168,7 +169,7 @@ void NyliumBlock::_placeNetherVegetation(
         }
 
         if (vegetationBlock != nullptr) {
-            world.setBlockState(currentPos, &vegetationBlock->defaultState(), 3);
+            world.setBlockState(currentPos, &vegetationBlock->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }
@@ -199,7 +200,8 @@ void NyliumBlock::_placeNetherSprouts(IWorld& world, math::IRandom& random, cons
         }
 
         if (VanillaBlocks::NETHER_SPROUTS != nullptr) {
-            world.setBlockState(currentPos, &VanillaBlocks::NETHER_SPROUTS->defaultState(), 3);
+            world.setBlockState(
+                currentPos, &VanillaBlocks::NETHER_SPROUTS->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }
@@ -257,10 +259,12 @@ void NyliumBlock::_placeTwistingVines(IWorld& world, math::IRandom& random, cons
 
             if (h < vineHeight - 1) {
                 // 藤蔓身体
-                world.setBlockState(vinePos, &VanillaBlocks::TWISTING_VINES_PLANT->defaultState(), 3);
+                world.setBlockState(
+                    vinePos, &VanillaBlocks::TWISTING_VINES_PLANT->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
             } else {
                 // 藤蔓头部（带 AGE 属性）
-                world.setBlockState(vinePos, &VanillaBlocks::TWISTING_VINES->defaultState(), 3);
+                world.setBlockState(
+                    vinePos, &VanillaBlocks::TWISTING_VINES->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
     }

@@ -38,6 +38,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/RedstoneDiodeBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/redstone/ComparatorEntity.hpp"
@@ -323,7 +324,7 @@ BlockActionResult RedstoneComparatorBlock::onBlockActivated(const BlockState& st
 
     // 设置新模式
     BlockState newState = withMode(state, newMode);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 播放点击音效
     f32 pitch = (newMode == ComparatorMode::Subtract) ? 0.55f : 0.5f;

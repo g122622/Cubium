@@ -40,6 +40,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/building/WallBlock.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -141,7 +142,7 @@ void FenceGateBlock::neighborChanged(
     bool wasOpen = state.get(BlockStateProperties::OPEN());
     BlockState newState =
         state.with(BlockStateProperties::POWERED(), powered).with(BlockStateProperties::OPEN(), powered);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     if (wasOpen != powered) {
         _playSound(world, pos, powered);
@@ -183,7 +184,8 @@ BlockActionResult FenceGateBlock::onBlockActivated(const BlockState& state,
 
     bool wasOpen = state.get(BlockStateProperties::OPEN());
     BlockState newState = state.with(BlockStateProperties::OPEN(), !wasOpen);
-    world.setBlockState(pos, &newState, 10);
+    world.setBlockState(
+        pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_IMMEDIATE);
     _playSound(world, pos, !wasOpen);
     return ActionResultType::Success;
 }

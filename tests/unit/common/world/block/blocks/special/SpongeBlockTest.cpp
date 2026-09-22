@@ -42,6 +42,7 @@
 #include "common/item/loot/entries/ItemLootEntry.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/LiquidBlock.hpp"
 #include "common/world/block/blocks/special/WetSpongeBlock.hpp"
@@ -250,7 +251,8 @@ protected:
     {
         // 设置水方块
         if (VanillaBlocks::WATER != nullptr) {
-            world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::WATER->defaultState(), 3);
+            world.setBlockState(
+                pos.x, pos.y, pos.z, &VanillaBlocks::WATER->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
         }
         // 设置水源流体状态
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
@@ -265,7 +267,7 @@ protected:
      */
     void placeBlock(SpongeDropTestWorld& world, const BlockPos& pos, const BlockState& state)
     {
-        world.setBlockState(pos.x, pos.y, pos.z, &state, 3);
+        world.setBlockState(pos.x, pos.y, pos.z, &state, world::BlockUpdateFlags::UPDATE_ALL);
     }
 
     /**
@@ -275,7 +277,7 @@ protected:
         SpongeDropTestWorld& world, const BlockPos& pos, const BlockState& plantState, const BlockState& waterState)
     {
         // 设置植物方块
-        world.setBlockState(pos.x, pos.y, pos.z, &plantState, 3);
+        world.setBlockState(pos.x, pos.y, pos.z, &plantState, world::BlockUpdateFlags::UPDATE_ALL);
         // 设置水源流体（海洋植物需要在水里）
         fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
         if (waterFluid != nullptr) {

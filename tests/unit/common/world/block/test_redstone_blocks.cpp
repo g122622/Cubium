@@ -367,7 +367,7 @@ TEST_F(RedstoneBlockTest, HopperBlockOnBlockAdded_PoweredDisablesHopper)
     world.setBlockAt(pos, hopper.defaultState());
     setPowerSource(world, pos.north());
 
-    hopper.onBlockAdded(world, pos, hopper.defaultState());
+    hopper.onBlockAdded(world, pos, hopper.defaultState(), false);
 
     const BlockState* updated = world.getBlockState(pos);
     ASSERT_NE(updated, nullptr);

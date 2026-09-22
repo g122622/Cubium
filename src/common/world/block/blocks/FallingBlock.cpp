@@ -33,6 +33,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <memory>
@@ -45,7 +46,7 @@ FallingBlock::FallingBlock(const BlockProperties& properties)
     : Block(properties)
 {}
 
-void FallingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void FallingBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     world.tickManager().scheduleBlockTick(pos, *this, getFallDelay(), world::tick::TickPriority::Normal);
@@ -102,7 +103,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     }
 
     // 原格先变 air，再生成下落实体；即使实体生成失败，原格 air 也已成立。
-    if (!world.setBlockState(pos, airState, 3)) {
+    if (!world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL)) {
         return;
     }
 
@@ -125,7 +126,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
 
     const EntityInstanceId entityId = world.spawnEntity(std::move(fallingEntity));
     if (entityId == 0) {
-        world.setBlockState(pos, currentState, 3);
+        world.setBlockState(pos, currentState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

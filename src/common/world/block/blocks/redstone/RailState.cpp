@@ -24,6 +24,7 @@
 #include "RailState.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include <cstddef>
 #include <memory>
@@ -247,7 +248,7 @@ void RailState::connectTo(RailState& other)
     // 更新世界中的方块状态
     // 使用 m_state（构造时传入的状态）来构建新状态，确保安全性
     BlockState newState = m_block.withRailShape(m_state, shape);
-    m_world.setBlockState(m_pos.x, m_pos.y, m_pos.z, &newState, 3);
+    m_world.setBlockState(m_pos.x, m_pos.y, m_pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     // 同步更新 m_state，因为后续操作可能需要基于新状态
     m_state = newState;
     updateConnections(shape);
@@ -392,7 +393,7 @@ BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentSh
     // updateBlock=true 时（放置或neighborChanged），直接设置方块状态并传播连接
     // updateBlock=false 时（updatePostPlacement），仅返回计算后的状态，由调用方设置
     if (shapeChanged && updateBlock) {
-        m_world.setBlockState(m_pos.x, m_pos.y, m_pos.z, &newState, 3);
+        m_world.setBlockState(m_pos.x, m_pos.y, m_pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 传播连接到相邻铁轨
         for (const auto& connPos : m_connections) {

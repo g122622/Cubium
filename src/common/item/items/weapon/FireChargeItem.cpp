@@ -39,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
@@ -76,7 +77,7 @@ ActionResultType FireChargeItem::onItemUse(ItemUseContext& context)
 
             // 点燃方块
             BlockState newState = blockStatePtr->with(BlockStateProperties::LIT(), true);
-            world.setBlockState(blockPos, &newState, 11);
+            world.setBlockState(blockPos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
             playUseSound(world, blockPos);
             success = true;
         }
@@ -102,7 +103,7 @@ ActionResultType FireChargeItem::onItemUse(ItemUseContext& context)
                 const BlockState& fireState = fireBlock->getDefaultState();
                 IBlockReader& blockReader = static_cast<IBlockReader&>(world);
                 if (fireBlock->isValidPosition(fireState, blockReader, firePos)) {
-                    world.setBlockState(firePos, &fireState, 11);
+                    world.setBlockState(firePos, &fireState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
                     playUseSound(world, firePos);
                     success = true;
                 }

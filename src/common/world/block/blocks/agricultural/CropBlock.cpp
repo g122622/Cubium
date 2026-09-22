@@ -36,6 +36,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -159,7 +160,7 @@ void CropBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
     const f32 growthChance = std::max(1.0f, getGrowthChance(*this, static_cast<IBlockReader&>(world), pos));
     const i32 randomBound = static_cast<i32>(25.0f / growthChance) + 1;
     if (random.nextInt(randomBound) == 0) {
-        world.setBlockState(pos, &withAge(getAge(state) + 1), 2);
+        world.setBlockState(pos, &withAge(getAge(state) + 1), world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -199,7 +200,7 @@ void CropBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
         newAge = maxAge;
     }
 
-    world.setBlockState(pos, &withAge(newAge), 2);
+    world.setBlockState(pos, &withAge(newAge), world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 void CropBlock::grow(IWorld& world, const BlockPos& pos, const BlockState& state)

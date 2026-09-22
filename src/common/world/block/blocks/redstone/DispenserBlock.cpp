@@ -39,6 +39,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/dispense/IDispenseItemBehavior.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -108,7 +109,7 @@ Direction DispenserBlock::getFacing(const BlockState& state)
     return state.get(BlockStateProperties::FACING());
 }
 
-void DispenserBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void DispenserBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 发射器放置时不触发额外行为
 }
@@ -136,7 +137,7 @@ void DispenserBlock::neighborChanged(
         }
         // 更新触发状态
         BlockState newState = withTriggered(*state, shouldTrigger);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 

@@ -38,6 +38,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -75,7 +76,7 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
             context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
         }
 
-        world.setBlockState(pos, &newState, 11);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
         // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。
         // 无玩家场景（如发射器）不损耗玩家槽位耐久，方块替换照常（对齐 vanilla）。
@@ -95,7 +96,7 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
             // 使用 withPropertiesOf 保留共有属性（楼梯朝向、台阶类型、含水状态等）
             const BlockState& newState = previousBlock->defaultState().withPropertiesOf(*state);
 
-            world.setBlockState(pos, &newState, 11);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
             // 去氧化播放 SCRAPE 粒子效果（worldEvent 3005 已包含音效和粒子）
             world.playEvent(world::WorldEvents::SCRAPE, pos, 0);
             // 消耗耐久：操作权威手持（player->getHeldItem(hand)）做 hurtAndBreak（同剥皮分支）。
@@ -112,7 +113,7 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
     auto waxedOffState = item::items::HoneycombItem::getWaxedOff(*state);
     if (waxedOffState.has_value()) {
         // 除蜡：播放 WAX_OFF 世界事件（包含音效+粒子），无需单独调用 playSound
-        world.setBlockState(pos, &waxedOffState.value(), 11);
+        world.setBlockState(pos, &waxedOffState.value(), world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
         world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
         // 消耗耐久：直接对玩家权威手持物做 hurtAndBreak，而非 context.getItemStackMut() 拷贝
         // （耐久损耗不回写权威物品栏，同桶类对齐缺陷）。外层 damage 对比跳过通用 shrink。

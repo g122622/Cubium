@@ -34,6 +34,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/PlantType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -180,11 +181,11 @@ void SugarCaneBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         i32 age = getAge(state);
         if (age >= 15) {
             // 生长新的甘蔗
-            world.setBlockState(abovePos, &defaultState(), 2);
-            world.setBlockState(pos, &withAge(0), 2);
+            world.setBlockState(abovePos, &defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
+            world.setBlockState(pos, &withAge(0), world::BlockUpdateFlags::UPDATE_CLIENTS);
         } else {
             // 增加年龄
-            world.setBlockState(pos, &withAge(age + 1), 2);
+            world.setBlockState(pos, &withAge(age + 1), world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }

@@ -50,6 +50,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ConcretePowderBlock.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
@@ -185,7 +186,7 @@ void FallingBlockEntity::tick()
                     fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
                     // 混凝土粉末接触水，立即固化为混凝土
                     const BlockState* concreteState = &concretePowder->getConcreteBlock()->defaultState();
-                    worldPtr->setBlockState(currentPos, concreteState, 3);
+                    worldPtr->setBlockState(currentPos, concreteState, world::BlockUpdateFlags::UPDATE_ALL);
                     remove();
                     return;
                 }
@@ -344,7 +345,7 @@ bool FallingBlockEntity::_tryPlaceBlock(
 
     // 尝试放置方块
     // flags = 3 表示通知邻居 + 同步客户端
-    bool success = world->setBlockState(landingPos, placementState, 3);
+    bool success = world->setBlockState(landingPos, placementState, world::BlockUpdateFlags::UPDATE_ALL);
 
     if (success) {
         // 调用 FallingBlock 的 onEndFalling 回调

@@ -31,6 +31,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -126,7 +127,7 @@ void TargetBlock::onProjectileHit(
 
     if (!world.tickManager().isBlockTickScheduled(pos, *this)) {
         BlockState newState = withPower(state, strength);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         world.tickManager().scheduleBlockTick(pos, *this, duration, world::tick::TickPriority::High);
     }
 
@@ -153,7 +154,7 @@ void TargetBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     i32 currentPower = getPower(state);
     if (currentPower > 0) {
         BlockState newState = withPower(state, 0);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 通知相邻方块红石信号变化
         world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, *this);

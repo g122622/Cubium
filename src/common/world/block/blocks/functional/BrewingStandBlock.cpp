@@ -171,27 +171,10 @@ void BrewingStandBlock::onBlockPlacedBy(
     }
 }
 
-void BrewingStandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BrewingStandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    MC_UNUSED(state);
-
-    // 方块移除时掉落酿造台内的物品
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
-        auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
-        IInventory* inventory = brewingStand->getInventory();
-
-        // 掉落所有物品
-        math::Random rng;
-        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
-            ItemStack stack = inventory->removeItemNoUpdate(i);
-            if (!stack.isEmpty()) {
-                ItemDropHelper::spawnItemEntity(&world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
-            }
-        }
-    }
-
-    Block::onBlockRemoved(world, pos, state);
+    // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 } // namespace blocks

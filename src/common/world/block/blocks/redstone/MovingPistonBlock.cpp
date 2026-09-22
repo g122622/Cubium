@@ -73,7 +73,7 @@ MovingPistonBlock::MovingPistonBlock(const BlockProperties& properties)
 // Block 接口实现
 // ============================================================================
 
-void MovingPistonBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void MovingPistonBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
@@ -87,7 +87,7 @@ void MovingPistonBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
     }
 
     // 调用基类实现
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 std::unique_ptr<BlockEntity> MovingPistonBlock::createBlockEntity(const BlockPos& pos)

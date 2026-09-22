@@ -32,6 +32,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/RedstoneTorchBlock.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -100,7 +101,8 @@ bool RedstoneWallTorchBlock::_canPlaceAt(IWorld& world, const BlockPos& pos, Dir
     return attachState->getBlock().isSolidSide(*attachState, world, attachPos, facing);
 }
 
-void RedstoneWallTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void RedstoneWallTorchBlock::onBlockAdded(
+    IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 放置时通知邻居
     for (Direction dir : Directions::all()) {
@@ -135,7 +137,7 @@ void RedstoneWallTorchBlock::neighborChanged(
     Direction facing = getFacing(*state);
     if (!_canPlaceAt(world, pos, facing)) {
         // 支撑丢失，火把掉落
-        world.setBlockState(pos, nullptr, 2);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_CLIENTS);
         return;
     }
 

@@ -141,7 +141,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 邻居方块变化通知

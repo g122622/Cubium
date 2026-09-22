@@ -47,6 +47,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -386,7 +387,7 @@ void SnowGolemEntity::_placeSnowLayer()
         if (!blocks::SnowBlock::canSurviveAt(*worldPtr, pos)) {
             continue;
         }
-        worldPtr->setBlockState(pos.x, pos.y, pos.z, snowState, 3);
+        worldPtr->setBlockState(pos.x, pos.y, pos.z, snowState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

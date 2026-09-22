@@ -39,6 +39,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include <cstddef>
 #include <memory>
@@ -198,7 +199,7 @@ void FlowerBedBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& 
     i32 amount = state.get(AMOUNT());
     if (amount < 4) {
         // 增加1个花瓣
-        world.setBlockState(pos, &state.with(AMOUNT(), amount + 1), 2);
+        world.setBlockState(pos, &state.with(AMOUNT(), amount + 1), world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
         // 已满4个，弹出一个物品
         const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*this);

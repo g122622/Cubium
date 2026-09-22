@@ -33,6 +33,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -115,7 +116,7 @@ Direction LeverBlock::getFacing(const BlockState& state)
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-void LeverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void LeverBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -157,7 +158,7 @@ void LeverBlock::neighborChanged(
     const BlockState* supportState = world.getBlockState(supportPos);
     if (!supportState || supportState->isAir()) {
         // 拉杆掉落 - 设置为空气方块
-        world.setBlockState(pos, nullptr, 2);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -181,7 +182,7 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
 {
     bool newPowered = !isPowered(state);
     BlockState newState = withPowered(state, newPowered);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 播放音效
     _playClickSound(world, pos, newPowered);

@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -108,11 +109,10 @@ bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal
         &VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), portal.axis);
 
     for (const BlockPos& blockPos : blocks) {
-        // Block update flags: 2 = notify neighbors, 16 = prevent recursion
-        // Combined: 18 = notify neighbors without triggering recursive updates
-        constexpr i32 BLOCK_UPDATE_NOTIFY_NEIGHBORS = 2;
-        constexpr i32 BLOCK_UPDATE_NO_RECURSION = 16;
-        world.setBlockState(blockPos, portalState, BLOCK_UPDATE_NOTIFY_NEIGHBORS | BLOCK_UPDATE_NO_RECURSION);
+        // 传送门方块逐个放置：同步客户端，但声明形状已知以避免逐方块递归重算形状
+        world.setBlockState(blockPos,
+            portalState,
+            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
     }
 
     return true;

@@ -39,6 +39,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBucketPickupHandler.hpp"
 #include "common/world/block/ILiquidContainer.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
@@ -291,7 +292,7 @@ bool BucketItem::tryPlaceContainedLiquid(
         }
 
         if (fluidBlockState != nullptr) {
-            world.setBlockState(pos, fluidBlockState, 3);
+            world.setBlockState(pos, fluidBlockState, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 通过世界调度器调度流体 tick，而非直接调用
             world.tickManager().scheduleFluidTick(pos, *m_containedFluid, m_containedFluid->getTickDelay(world));
@@ -314,7 +315,7 @@ bool BucketItem::tryPlaceContainedLiquid(
         }
 
         if (fluidBlockState != nullptr) {
-            world.setBlockState(pos, fluidBlockState, 3);
+            world.setBlockState(pos, fluidBlockState, world::BlockUpdateFlags::UPDATE_ALL);
             return true;
         }
     }

@@ -152,15 +152,6 @@ public:
     bool addItem(ItemStack& stack, i32 cookTime);
 
     /**
-     * @brief 掉落所有物品
-     * @param world 世界引用
-     *
-     * 在营火被熄灭或破坏时调用。
-     * 在营火位置生成物品实体。
-     */
-    void dropAllItems(IWorld& world);
-
-    /**
      * @brief 清空所有槽位
      */
     void clear();

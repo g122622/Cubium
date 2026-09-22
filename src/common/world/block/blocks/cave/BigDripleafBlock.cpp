@@ -39,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -328,7 +329,7 @@ void BigDripleafBlock::_setTilt(IWorld& world, const BlockPos& pos, BlockState& 
 {
     BlockStateProperties::Tilt oldTilt = state.get(BlockStateProperties::TILT());
     BlockState newState = state.with(BlockStateProperties::TILT(), tilt);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     state = newState;
 
     // FULL倾斜会触发振动事件（通知幽匿感测体）

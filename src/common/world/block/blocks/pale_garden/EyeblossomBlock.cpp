@@ -40,6 +40,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/blocks/pale_garden/EyeblossomEnvironment.hpp"
 #include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
@@ -280,7 +281,7 @@ bool EyeblossomBlock::tryChangingState(IWorld& world, const BlockPos& pos, Block
         return false;
     }
     const BlockState& newState = newBlock->defaultState();
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 4. 触发 BLOCK_CHANGE 游戏事件（供幽匿感测体感知）
     world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);

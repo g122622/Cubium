@@ -53,6 +53,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/HorizontalBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/blocks/copper/CopperChestBlock.hpp"
@@ -146,7 +147,7 @@ BlockActionResult PumpkinBlock::onBlockActivated(const BlockState& state,
     }
 
     // flag 11: 通知邻居 + 更新客户端
-    world.setBlockState(pos, carvedState, 11);
+    world.setBlockState(pos, carvedState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
     // 生成南瓜种子（4个）
     math::Random rng(static_cast<u64>(pos.x ^ pos.y ^ pos.z));
@@ -193,7 +194,7 @@ BlockState CarvedPumpkinBlock::getStateForPlacement(BlockItemUseContext& context
     return defaultState().with(FACING(), Directions::opposite(context.horizontalDirection()));
 }
 
-void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void CarvedPumpkinBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     trySpawnGolem(world, pos);
@@ -356,14 +357,14 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
 
     // 移除南瓜头部
     if (airState != nullptr) {
-        world.setBlockState(headPos, airState, 2);
+        world.setBlockState(headPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, headPos, 0);
 
     // 移除第一个雪块
     const BlockState* snowBlock1 = world.getBlockState(below1);
     if (airState != nullptr) {
-        world.setBlockState(below1, airState, 2);
+        world.setBlockState(below1, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     if (snowBlock1 != nullptr) {
         world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below1, static_cast<i32>(snowBlock1->stateId()));
@@ -372,7 +373,7 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
     // 移除第二个雪块
     const BlockState* snowBlock2 = world.getBlockState(below2);
     if (airState != nullptr) {
-        world.setBlockState(below2, airState, 2);
+        world.setBlockState(below2, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     if (snowBlock2 != nullptr) {
         world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below2, static_cast<i32>(snowBlock2->stateId()));
@@ -443,7 +444,7 @@ void CarvedPumpkinBlock::spawnIronGolem(
     for (const BlockPos& blockPos : blocksToRemove) {
         const BlockState* blockState = world.getBlockState(blockPos);
         if (airState != nullptr) {
-            world.setBlockState(blockPos, airState, 2);
+            world.setBlockState(blockPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
         if (blockState != nullptr) {
             world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, static_cast<i32>(blockState->stateId()));
@@ -601,13 +602,13 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
 
     // 步骤 1: 移除南瓜头部
     if (airState != nullptr) {
-        world.setBlockState(headPos, airState, 2);
+        world.setBlockState(headPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, headPos, 0);
 
     // 步骤 2: 移除铜块
     if (airState != nullptr) {
-        world.setBlockState(copperPos, airState, 2);
+        world.setBlockState(copperPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
     if (copperStatePtr != nullptr) {
         world.playEvent(
@@ -655,7 +656,7 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
     // 对应 MC: replaceCopperBlockWithChest -> CopperChestBlock.getFromCopperBlock
     if (copperBlockPtr != nullptr) {
         BlockState chestState = blocks::CopperChestBlock::getFromCopperBlock(copperBlockPtr, facing, world, copperPos);
-        world.setBlockState(copperPos, &chestState, 2);
+        world.setBlockState(copperPos, &chestState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 
@@ -682,7 +683,7 @@ BlockState JackOLanternBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(FACING(), Directions::opposite(context.horizontalDirection()));
 }
 
-void JackOLanternBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void JackOLanternBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     // 复用 CarvedPumpkinBlock 的傀儡生成逻辑

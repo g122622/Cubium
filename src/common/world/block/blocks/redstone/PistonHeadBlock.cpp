@@ -210,9 +210,9 @@ void PistonHeadBlock::neighborChanged(
     }
 }
 
-void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 
     // 活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座
     // 如果有，级联销毁活塞基座并产生掉落物

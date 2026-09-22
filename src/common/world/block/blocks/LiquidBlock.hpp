@@ -124,7 +124,7 @@ public:
      *
      * 流体方块放置时需要调度流体tick。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 邻居方块更新

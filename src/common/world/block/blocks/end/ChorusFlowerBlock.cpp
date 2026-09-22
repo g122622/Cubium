@@ -35,6 +35,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -151,7 +152,7 @@ void ChorusFlowerBlock::randomTick(IWorld& world, const BlockPos& pos, BlockStat
     if (age < getMaxAge()) {
         if (random.nextInt(5) == 0) {
             BlockState newState = withAge(age + 1);
-            world.setBlockState(pos, &newState, 2);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }
@@ -174,7 +175,7 @@ void ChorusFlowerBlock::generatePlant(
     }
 
     BlockState connectedState = ChorusPlantBlock::getStateWithConnections(world, pos, *chorusPlantState);
-    world.setBlockState(pos, &connectedState, 2);
+    world.setBlockState(pos, &connectedState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     growTreeRecursive(world, pos, random, pos, maxHorizontalDistance, 0);
 }
@@ -206,10 +207,10 @@ void ChorusFlowerBlock::growTreeRecursive(IWorld& world,
             return;
         }
         BlockState aboveState = ChorusPlantBlock::getStateWithConnections(world, abovePos, *chorusPlantState);
-        world.setBlockState(abovePos, &aboveState, 2);
+        world.setBlockState(abovePos, &aboveState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         BlockPos belowPos(pos.x, pos.y + j, pos.z);
         BlockState belowState = ChorusPlantBlock::getStateWithConnections(world, belowPos, *chorusPlantState);
-        world.setBlockState(belowPos, &belowState, 2);
+        world.setBlockState(belowPos, &belowState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 
     // 尝试水平分枝
@@ -240,14 +241,14 @@ void ChorusFlowerBlock::growTreeRecursive(IWorld& world,
                 branched = true;
                 BlockState branchBlockState =
                     ChorusPlantBlock::getStateWithConnections(world, branchPos, *chorusPlantState);
-                world.setBlockState(branchPos, &branchBlockState, 2);
+                world.setBlockState(branchPos, &branchBlockState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                 Direction oppositeDir = Directions::opposite(direction);
                 BlockPos oppositePos(branchPos.x + Directions::xOffset(oppositeDir),
                     branchPos.y,
                     branchPos.z + Directions::zOffset(oppositeDir));
                 BlockState oppositeBlockState =
                     ChorusPlantBlock::getStateWithConnections(world, oppositePos, *chorusPlantState);
-                world.setBlockState(oppositePos, &oppositeBlockState, 2);
+                world.setBlockState(oppositePos, &oppositeBlockState, world::BlockUpdateFlags::UPDATE_CLIENTS);
                 growTreeRecursive(world, branchPos, random, origin, maxHorizontalDistance, depth + 1);
             }
         }
@@ -258,7 +259,7 @@ void ChorusFlowerBlock::growTreeRecursive(IWorld& world,
         BlockPos topPos(pos.x, pos.y + stemHeight, pos.z);
         const ChorusFlowerBlock& flowerBlock = static_cast<const ChorusFlowerBlock&>(chorusFlowerState->getBlock());
         BlockState deadFlowerState = flowerBlock.withAge(5);
-        world.setBlockState(topPos, &deadFlowerState, 2);
+        world.setBlockState(topPos, &deadFlowerState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
 }
 

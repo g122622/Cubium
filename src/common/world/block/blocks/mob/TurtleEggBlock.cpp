@@ -47,6 +47,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
@@ -214,7 +215,7 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
                 0.9f + random.nextFloat() * 0.2f);
         }
         const BlockState& newState = state.with(BlockStateProperties::HATCH_0_2(), hatch + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
         // 孵化完成，生成海龟
         if (!world.isClientSide()) {
@@ -229,7 +230,7 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
         // 移除方块
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
-            world.setBlockState(pos, airState, 2);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
 
         // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
@@ -358,12 +359,12 @@ void TurtleEggBlock::_removeOneEgg(IWorld& world, const BlockPos& pos, const Blo
         // 减少蛋数量，重置孵化进度
         const BlockState& newState =
             state.with(BlockStateProperties::EGGS_1_4(), eggs - 1).with(BlockStateProperties::HATCH_0_2(), 0);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     } else {
         // 移除方块
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
-            world.setBlockState(pos, airState, 2);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }

@@ -28,6 +28,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -56,7 +57,8 @@ bool isRoofBlock(const BlockState* state)
 /// MC WeepingVinesFeature.placeRoofNetherWart。
 void placeRoofNetherWart(WorldGenRegion& world, math::Random& random, const BlockPos& origin)
 {
-    world.setBlockState(origin, &VanillaBlocks::NETHER_WART_BLOCK->defaultState(), 2);
+    world.setBlockState(
+        origin, &VanillaBlocks::NETHER_WART_BLOCK->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     static constexpr Direction kAllDirections[] = {
         Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
@@ -83,7 +85,8 @@ void placeRoofNetherWart(WorldGenRegion& world, math::Random& random, const Bloc
             }
         }
         if (count == 1) {
-            world.setBlockState(probe, &VanillaBlocks::NETHER_WART_BLOCK->defaultState(), 2);
+            world.setBlockState(
+                probe, &VanillaBlocks::NETHER_WART_BLOCK->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
     }
 }
@@ -99,10 +102,11 @@ void placeWeepingVinesColumn(
                 const i32 age = random.nextInt(minAge, maxAge);
                 const BlockState* head = &VanillaBlocks::WEEPING_VINES->defaultState().with(
                     BlockStateProperties::AGE_0_25(), std::min(age, 25));
-                world.setBlockState(pos, head, 2);
+                world.setBlockState(pos, head, world::BlockUpdateFlags::UPDATE_CLIENTS);
                 break;
             }
-            world.setBlockState(pos, &VanillaBlocks::WEEPING_VINES_PLANT->defaultState(), 2);
+            world.setBlockState(
+                pos, &VanillaBlocks::WEEPING_VINES_PLANT->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
         pos.move(Direction::Down);
     }

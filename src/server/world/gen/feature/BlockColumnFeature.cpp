@@ -25,6 +25,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include <algorithm>
@@ -117,7 +118,7 @@ bool BlockColumnFeature::place(
             if (layerState != nullptr) {
                 const BlockState* existing = region.getBlockState(current);
                 if (existing == nullptr || existing->canBeReplaced()) {
-                    region.setBlockState(current, layerState, 3);
+                    region.setBlockState(current, layerState, world::BlockUpdateFlags::UPDATE_ALL);
                     placedAny = true;
                 }
             }

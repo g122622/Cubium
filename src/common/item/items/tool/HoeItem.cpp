@@ -35,6 +35,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <unordered_map>
@@ -89,7 +90,7 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context)
     }
 
     // 设置新方块状态
-    world.setBlockState(pos, &newState, 11);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
     // 消耗耐久：直接对玩家权威手持物（player->getHeldItem(hand)）做 hurtAndBreak，而非
     // context.getItemStackMut()（调用方局部拷贝，耐久损耗不回写权威物品栏——同桶类对齐缺陷）。

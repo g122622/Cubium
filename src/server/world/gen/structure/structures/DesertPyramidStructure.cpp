@@ -32,6 +32,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -97,7 +98,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
             i32 wy = baseY;
             i32 wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, sandstone, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -114,7 +119,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
                     i32 wy = baseY + layer;
                     i32 wz = baseZ + offset + z;
                     if (bounds.contains(wx, wy, wz)) {
-                        world.setBlockState(wx, wy, wz, sandstone, 18);
+                        world.setBlockState(wx,
+                            wy,
+                            wz,
+                            sandstone,
+                            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                     }
                 }
             }
@@ -136,7 +145,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
                     i32 wy = baseY + y;
                     i32 wz = baseZ + tz + z;
                     if (bounds.contains(wx, wy, wz)) {
-                        world.setBlockState(wx, wy, wz, sandstone, 18);
+                        world.setBlockState(wx,
+                            wy,
+                            wz,
+                            sandstone,
+                            world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                     }
                 }
             }
@@ -148,7 +161,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
             i32 wy = baseY + 7;
             i32 wz = baseZ + tz + 1;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, chiseledSandstone, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    chiseledSandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -163,7 +180,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
             i32 wy = baseY + step;
             i32 wz = baseZ + entranceZ + step + 1;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, sandstone, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -180,7 +201,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
             i32 wy = chamberY;
             i32 wz = chamberZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, sandstone, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -189,18 +214,34 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
     for (i32 y = 1; y <= 4; ++y) {
         for (i32 x = 0; x < 7; ++x) {
             if (bounds.contains(chamberX + x, chamberY + y, chamberZ)) {
-                world.setBlockState(chamberX + x, chamberY + y, chamberZ, sandstone, 18);
+                world.setBlockState(chamberX + x,
+                    chamberY + y,
+                    chamberZ,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
             if (bounds.contains(chamberX + x, chamberY + y, chamberZ + 6)) {
-                world.setBlockState(chamberX + x, chamberY + y, chamberZ + 6, sandstone, 18);
+                world.setBlockState(chamberX + x,
+                    chamberY + y,
+                    chamberZ + 6,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         for (i32 z = 0; z < 7; ++z) {
             if (bounds.contains(chamberX, chamberY + y, chamberZ + z)) {
-                world.setBlockState(chamberX, chamberY + y, chamberZ + z, sandstone, 18);
+                world.setBlockState(chamberX,
+                    chamberY + y,
+                    chamberZ + z,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
             if (bounds.contains(chamberX + 6, chamberY + y, chamberZ + z)) {
-                world.setBlockState(chamberX + 6, chamberY + y, chamberZ + z, sandstone, 18);
+                world.setBlockState(chamberX + 6,
+                    chamberY + y,
+                    chamberZ + z,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -212,7 +253,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
             i32 wy = chamberY + 5;
             i32 wz = chamberZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, sandstone, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    sandstone,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -227,16 +272,28 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
 
         if (tnt) {
             if (bounds.contains(trapX, chamberY - 1, trapZ)) {
-                world.setBlockState(trapX, chamberY - 1, trapZ, tnt, 18);
+                world.setBlockState(trapX,
+                    chamberY - 1,
+                    trapZ,
+                    tnt,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
             if (bounds.contains(trapX, chamberY - 2, trapZ)) {
-                world.setBlockState(trapX, chamberY - 2, trapZ, tnt, 18);
+                world.setBlockState(trapX,
+                    chamberY - 2,
+                    trapZ,
+                    tnt,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
 
         if (stonePressurePlate) {
             if (bounds.contains(trapX, chamberY + 1, trapZ)) {
-                world.setBlockState(trapX, chamberY + 1, trapZ, stonePressurePlate, 18);
+                world.setBlockState(trapX,
+                    chamberY + 1,
+                    trapZ,
+                    stonePressurePlate,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -247,7 +304,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
         i32 chestX = chamberX + 3;
         i32 chestZ = chamberZ + 3;
         if (goldBlock && bounds.contains(chestX, chamberY + 1, chestZ)) {
-            world.setBlockState(chestX, chamberY + 1, chestZ, goldBlock, 18);
+            world.setBlockState(chestX,
+                chamberY + 1,
+                chestZ,
+                goldBlock,
+                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
         }
     }
 
@@ -289,7 +350,11 @@ void DesertPyramidPiece::_generatePyramid(IWorldWriter& world, math::Random& rng
             }
 
             // 放置可疑沙方块
-            world.setBlockState(sx, sy, sz, suspiciousSand, 18);
+            world.setBlockState(sx,
+                sy,
+                sz,
+                suspiciousSand,
+                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 
             // 设置考古战利品表
             if (iworld != nullptr) {

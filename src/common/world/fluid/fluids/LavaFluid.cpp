@@ -36,6 +36,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -150,7 +151,7 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
                 // 检查周围是否有可燃方块
                 if (_isSurroundingBlockFlammable(world, checkPos)) {
                     const BlockState& fireState = blocks::FireBlock::getFireState(world, checkPos);
-                    world.setBlockState(checkPos, &fireState, 3);
+                    world.setBlockState(checkPos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
                     return;
                 }
             } else if (blockState->owner().material().blocksMovement()) {
@@ -181,7 +182,7 @@ void LavaFluid::randomTick(IWorld& world, const BlockPos& pos, const FluidState&
             const BlockState* aboveState = world.getBlockState(abovePos);
             if (aboveState != nullptr && aboveState->isAir() && _isBlockFlammable(world, checkPos)) {
                 const BlockState& fireState = blocks::FireBlock::getFireState(world, abovePos);
-                world.setBlockState(abovePos, &fireState, 3);
+                world.setBlockState(abovePos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
             }
         }
     }
@@ -248,7 +249,7 @@ void LavaFluid::flowInto(
         if (targetFluid != nullptr && !targetFluid->isEmpty() && targetFluid->getFluid().isIn(FluidTags::WATER())) {
             // 岩浆向下流入水 -> 生成石头
             if (VanillaBlocks::STONE != nullptr) {
-                world.setBlockState(pos, &VanillaBlocks::STONE->defaultState(), 3);
+                world.setBlockState(pos, &VanillaBlocks::STONE->defaultState(), world::BlockUpdateFlags::UPDATE_ALL);
             }
             _triggerEffects(world, pos);
             return;

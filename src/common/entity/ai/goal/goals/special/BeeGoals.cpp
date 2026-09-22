@@ -46,6 +46,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
@@ -937,7 +938,7 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
 
     // 如果成功生长（newState 有效），更新方块状态并播放粒子
     if (newState != nullptr) {
-        world->setBlockState(pos, newState, 2);
+        world->setBlockState(pos, newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
         // 区别是不播放骨粉使用音效
         world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);

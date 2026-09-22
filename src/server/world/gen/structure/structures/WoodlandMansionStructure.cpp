@@ -34,6 +34,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
@@ -205,7 +206,11 @@ void WoodlandMansionPiece::generate(IWorldWriter& world,
                     for (int z = 0; z < 8; ++z) {
                         BlockPos worldPos(m_templatePosition.x + x, m_templatePosition.y + y, m_templatePosition.z + z);
                         if (chunkBounds.contains(worldPos.x, worldPos.y, worldPos.z)) {
-                            world.setBlockState(worldPos.x, worldPos.y, worldPos.z, darkOakPlanks, 2);
+                            world.setBlockState(worldPos.x,
+                                worldPos.y,
+                                worldPos.z,
+                                darkOakPlanks,
+                                world::BlockUpdateFlags::UPDATE_CLIENTS);
                         }
                     }
                 }
@@ -224,7 +229,7 @@ void WoodlandMansionPiece::generate(IWorldWriter& world,
     math::Random localRng(0);
 
     // 应用模板到世界
-    templ->place(world, m_templatePosition, settings, localRng, 2);
+    templ->place(world, m_templatePosition, settings, localRng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 更新边界框
     BlockPos size = templ->getSize();

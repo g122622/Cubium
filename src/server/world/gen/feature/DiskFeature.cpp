@@ -26,6 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <memory>
@@ -67,7 +68,7 @@ bool ConfiguredDiskFeature::place(WorldGenRegion& region,
                 if (target.test(region, pos)) {
                     const BlockState* state = provider.getState(region, random, pos.x, pos.y, pos.z);
                     if (state != nullptr) {
-                        region.setBlockState(pos, state, 2);
+                        region.setBlockState(pos, state, world::BlockUpdateFlags::UPDATE_CLIENTS);
                         any = true;
                     }
                 }

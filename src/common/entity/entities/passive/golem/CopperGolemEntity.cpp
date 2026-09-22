@@ -51,6 +51,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/ChestBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
@@ -490,7 +491,7 @@ void CopperGolemEntity::turnToStatue()
                                      .with(BlockStateProperties::HORIZONTAL_FACING(), facing);
 
     // 放置方块
-    w->setBlockState(blockPos, &newState, 3);
+    w->setBlockState(blockPos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 获取方块实体并保存自定义名称
     BlockEntity* be = w->getBlockEntity(blockPos);

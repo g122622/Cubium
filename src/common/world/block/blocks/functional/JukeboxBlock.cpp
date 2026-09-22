@@ -38,6 +38,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/JukeboxEntity.hpp"
 #include <cstddef>
@@ -136,7 +137,7 @@ BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
 
             // 更新方块状态为无唱片
             BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), false);
-            world.setBlockState(pos, &newState, 3);
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
             // 掉落唱片到方块上方
             math::Random rng;
@@ -158,7 +159,7 @@ BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
 
         // 更新方块状态为有唱片
         BlockState newState = state.with(BlockStateProperties::HAS_RECORD(), true);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 消耗玩家手中的唱片（非创造模式）
         if (!player.isCreative()) {
@@ -171,27 +172,17 @@ BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Pass;
 }
 
-void JukeboxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void JukeboxBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
-    // 方块移除时掉落唱片机内的唱片
+    // 唱片掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理，这里只负责停止播放
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::Jukebox) {
-        auto* jukebox = static_cast<blockentity::JukeboxEntity*>(entity);
-
-        // 停止播放
-        jukebox->stopPlaying(world);
-
-        // 获取并掉落唱片
-        ItemStack record = jukebox->getRecord();
-        if (!record.isEmpty()) {
-            math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world, record, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
-        }
+        static_cast<blockentity::JukeboxEntity*>(entity)->stopPlaying(world);
     }
 
-    Block::onBlockRemoved(world, pos, state);
+    Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 
 } // namespace blocks

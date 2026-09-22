@@ -43,6 +43,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -501,7 +502,7 @@ void BellBlock::neighborChanged(
             attemptToRing(world, pos, state->get(BlockStateProperties::HORIZONTAL_FACING()));
         }
         BlockState newState = state->with(BlockStateProperties::POWERED(), shouldPower);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

@@ -235,10 +235,18 @@ public:
     /**
      * @brief 设置方块状态（带更新标志）。
      *
-     * 对齐 vanilla 语义：仅当 flags 含 UPDATE_NEIGHBORS(bit0) 时才触发 6 向邻居的
-     * neighborChanged + updatePostPlacement；否则只写区块 + onBlockAdded/Removed +
-     * 方块实体 + 光照 + 客户端发包。结构放置传 flags=18（无 bit0）故不触发邻居
-     * 更新，避免依附类方块（按钮/火把等）在支撑尚未放置时被邻居通知自毁。
+     * 各标志位控制的副作用：
+     * - UPDATE_NEIGHBORS：对 6 向邻居触发 neighborChanged；
+     * - UPDATE_CLIENTS：向客户端发包同步方块变化；
+     * - UPDATE_KNOWN_SHAPE：跳过形状更新（对 6 向邻居的 updatePostPlacement）;
+     * - UPDATE_MOVE_BY_PISTON：以 movedByPiston 语义下传给 onBlockAdded/onBlockRemoved；
+     * - UPDATE_SUPPRESS_DROPS：抑制本次移除带来的掉落（经 Block::updateOrDestroy）；
+     * - UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS：跳过旧方块实体的移除副作用（容器内容物掉落等）；
+     * - UPDATE_SKIP_ON_PLACE：跳过 onBlockAdded 回调；
+     * - UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE：形状更新时跳过红石线，避免 O(n²) 重算。
+     *
+     * 结构放置通常只传 UPDATE_CLIENTS | UPDATE_KNOWN_SHAPE：既不通知邻居也不做形状更新，
+     * 避免依附类方块（按钮/火把等）在支撑尚未放置时被邻居通知自毁。
      */
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override;
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override;

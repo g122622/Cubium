@@ -48,6 +48,7 @@
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
@@ -181,7 +182,7 @@ void LayeredCauldronBlock::handlePrecipitation(
     i32 level = getLevel(*currentState);
     if (level < 3) {
         BlockState newState = currentState->with(BlockStateProperties::LEVEL_1_3(), level + 1);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
@@ -312,7 +313,7 @@ void LayeredCauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const Bl
     i32 currentLevel = getLevel(state);
     if (currentLevel != level) {
         BlockState newState = state.with(BlockStateProperties::LEVEL_1_3(), level);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -322,12 +323,12 @@ void LayeredCauldronBlock::lowerFillLevel(IWorld& world, const BlockPos& pos, co
     if (level <= 1) {
         // 水位降至0，替换为空炼药锅
         const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
-        world.setBlockState(pos, cauldronState, 3);
+        world.setBlockState(pos, cauldronState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, cauldronState);
     } else {
         // 降低水位1级
         BlockState newState = state.with(BlockStateProperties::LEVEL_1_3(), level - 1);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
@@ -368,7 +369,7 @@ void LayeredCauldronBlock::receiveStalactiteDrip(
     if (fluid.isIn(fluid::FluidTags::WATER()) && !isFull(state)) {
         i32 level = getLevel(state);
         BlockState newState = state.with(BlockStateProperties::LEVEL_1_3(), level + 1);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
         world.playEvent(world::WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND, pos, 0);
     }
@@ -431,7 +432,7 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
                 const BlockState* waterCauldronState =
                     &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState().with(
                         BlockStateProperties::LEVEL_1_3(), 3);
-                world.setBlockState(pos, waterCauldronState, 3);
+                world.setBlockState(pos, waterCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
             } else {
                 // 水炼药锅：装满到水位3
                 setLevel(world, pos, state, 3);
@@ -466,7 +467,7 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
                 // 细雪炼药锅（满）：取出细雪桶，替换为空炼药锅
                 // 参考: MC POWDER_SNOW 交互图中的 BUCKET 条目
                 const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
-                world.setBlockState(pos, cauldronState, 3);
+                world.setBlockState(pos, cauldronState, world::BlockUpdateFlags::UPDATE_ALL);
                 world.playSound(SoundEvents::ITEM_BUCKET_FILL_POWDER_SNOW,
                     sound::SoundCategory::Blocks,
                     Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -490,7 +491,7 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
             } else {
                 // 水炼药锅（满）：取出水桶，替换为空炼药锅
                 const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
-                world.setBlockState(pos, cauldronState, 3);
+                world.setBlockState(pos, cauldronState, world::BlockUpdateFlags::UPDATE_ALL);
                 world.playSound(SoundEvents::ITEM_BUCKET_FILL,
                     sound::SoundCategory::Blocks,
                     Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -521,7 +522,7 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
     if (item == Items::LAVA_BUCKET) {
         if (!world.isClientSide()) {
             const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
-            world.setBlockState(pos, lavaCauldronState, 3);
+            world.setBlockState(pos, lavaCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
             world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_LAVA,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),

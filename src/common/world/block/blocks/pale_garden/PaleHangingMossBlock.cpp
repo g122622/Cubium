@@ -32,6 +32,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -137,7 +138,7 @@ void PaleHangingMossBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
         // 不满足存活条件，替换为空气并掉落物品
         const BlockState* airState = VanillaBlocks::AIR ? &VanillaBlocks::AIR->defaultState() : nullptr;
         if (airState != nullptr) {
-            world.setBlockState(pos, airState, 3);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

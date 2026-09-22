@@ -52,6 +52,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/decorative/AbstractCandleBlock.hpp"
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -664,7 +665,7 @@ void PotionEntity::_dowseFire(const BlockPos& pos)
         // 火：destroyBlock(pos, false, this) → 置空气。Cubium 无 IWorld::destroyBlock，
         // 用 setBlockState(air) 等价（与 RavagerEntity/EnderDragonEntity 破坏方块范式一致）。
         const BlockState* airState = &VanillaBlocks::AIR->defaultState();
-        m_world->setBlockState(pos, airState, 3);
+        m_world->setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
     } else if (blocks::AbstractCandleBlock::isLit(*state)) {
         // 蜡烛：extinguish(null, state, level, pos)。extinguish 是 AbstractCandleBlock 虚函数，
         // Block 基类无此声明，需 dynamic_cast 到 AbstractCandleBlock 后调用（CandleBlock/CandleCakeBlock

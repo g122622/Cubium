@@ -39,6 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/decorative/AbstractCandleBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cstddef>
@@ -213,14 +214,14 @@ BlockActionResult CandleCakeBlock::onBlockActivated(const BlockState& state,
         const BlockState& cakeState = cakeBlock->getDefaultState();
         if (cakeState.hasProperty(BlockStateProperties::BITES_0_6())) {
             BlockState bittenState = cakeState.with(BlockStateProperties::BITES_0_6(), 1);
-            world.setBlockState(pos, &bittenState, 3);
+            world.setBlockState(pos, &bittenState, world::BlockUpdateFlags::UPDATE_ALL);
         } else {
-            world.setBlockState(pos, &cakeState, 3);
+            world.setBlockState(pos, &cakeState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     } else {
         // 如果蛋糕方块不可用，直接移除方块
         if (auto* airState = BlockRegistry::instance().airState()) {
-            world.setBlockState(pos, airState, 3);
+            world.setBlockState(pos, airState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 

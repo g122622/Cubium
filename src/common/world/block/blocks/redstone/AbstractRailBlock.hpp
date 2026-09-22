@@ -120,7 +120,7 @@ public:
      * getStateForPlacement 只根据玩家朝向返回初始形状，
      * 真正的邻居连接计算在此处触发。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 邻居变化通知

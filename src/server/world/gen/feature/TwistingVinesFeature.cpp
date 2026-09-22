@@ -28,6 +28,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -98,10 +99,11 @@ void placeTwistingVinesColumn(
                 const i32 age = random.nextInt(minAge, maxAge);
                 const BlockState* head = &VanillaBlocks::TWISTING_VINES->defaultState().with(
                     BlockStateProperties::AGE_0_25(), std::min(age, 25));
-                world.setBlockState(pos, head, 2);
+                world.setBlockState(pos, head, world::BlockUpdateFlags::UPDATE_CLIENTS);
                 break;
             }
-            world.setBlockState(pos, &VanillaBlocks::TWISTING_VINES_PLANT->defaultState(), 2);
+            world.setBlockState(
+                pos, &VanillaBlocks::TWISTING_VINES_PLANT->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
         pos.move(Direction::Up);
     }

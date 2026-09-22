@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBucketPickupHandler.hpp"
 #include "common/world/block/blocks/LiquidBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -57,7 +58,7 @@ bool SpongeBlock::tryAbsorbWater(IWorld& world, const BlockPos& pos)
     if (absorbedCount > 0) {
         // 将海绵变为湿润海绵
         const BlockState& wetSpongeState = VanillaBlocks::WET_SPONGE->defaultState();
-        world.setBlockState(pos, &wetSpongeState, 3);
+        world.setBlockState(pos, &wetSpongeState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 播放水被吸收的视觉效果（事件 2001，data 为水的方块状态 ID）
         const BlockState& waterState = VanillaBlocks::WATER->defaultState();
@@ -68,7 +69,7 @@ bool SpongeBlock::tryAbsorbWater(IWorld& world, const BlockPos& pos)
     return false;
 }
 
-void SpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void SpongeBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     // 放置时尝试吸水
@@ -146,7 +147,7 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
             else if (dynamic_cast<block::LiquidBlock*>(&block) != nullptr) {
                 // 移除流动水方块，设置为空气
                 const BlockState& airState = VanillaBlocks::AIR->defaultState();
-                world.setBlockState(neighborPos, &airState, 3);
+                world.setBlockState(neighborPos, &airState, world::BlockUpdateFlags::UPDATE_ALL);
                 ++absorbedCount;
                 if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
                     visited.insert(neighborPos);
@@ -161,7 +162,7 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
                 Block::dropResources(world, neighborPos, *blockState);
 
                 const BlockState& airState = VanillaBlocks::AIR->defaultState();
-                world.setBlockState(neighborPos, &airState, 3);
+                world.setBlockState(neighborPos, &airState, world::BlockUpdateFlags::UPDATE_ALL);
                 ++absorbedCount;
                 if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
                     visited.insert(neighborPos);

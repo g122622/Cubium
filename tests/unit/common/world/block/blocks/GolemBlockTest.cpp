@@ -339,7 +339,7 @@ TEST_F(SnowGolemSpawnTest, CarvedPumpkin_SnowGolemPattern_SpawnsEntity)
     world_->setSnowBlockAt(0, 8, 0); // 第二块雪块
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -360,7 +360,7 @@ TEST_F(SnowGolemSpawnTest, JackOLantern_SnowGolemPattern_SpawnsEntity)
     world_->setSnowBlockAt(5, 18, 5); // 第二块雪块
 
     // 触发 onBlockAdded
-    jackOLantern_->onBlockAdded(*world_, pumpkinPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, pumpkinPos, jackOLantern_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -381,7 +381,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_RemovesBlocks)
     world_->setSnowBlockAt(0, 8, 0);
 
     // 触发生成
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证方块被移除（变成空气）
     const BlockState* pumpkinState = world_->getBlockState(0, 10, 0);
@@ -406,7 +406,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_PlaysBreakEvent)
     world_->setSnowBlockAt(0, 8, 0);
 
     // 触发生成
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证播放了破坏事件（应该有3次：南瓜 + 2个雪块）
     EXPECT_GE(world_->getEventCount(), 3);
@@ -421,7 +421,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_IncompletePattern_NoSpawn)
     world_->setSnowBlockAt(0, 9, 0); // 只有一个雪块
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成实体
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -436,7 +436,7 @@ TEST_F(SnowGolemSpawnTest, SnowGolem_WrongBlock_NoSpawn)
     world_->setIronBlockAt(0, 8, 0);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成雪傀儡（铁块模式会触发铁傀儡检测，但需要T形）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -519,7 +519,7 @@ TEST_F(IronGolemSpawnTest, CarvedPumpkin_IronGolemEastWest_SpawnsEntity)
     setupIronGolemEastWest(pumpkinPos);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -547,7 +547,7 @@ TEST_F(IronGolemSpawnTest, JackOLantern_IronGolemEastWest_SpawnsEntity)
     world_->setIronBlockAt(px, py - 2, pz);
 
     // 触发 onBlockAdded
-    jackOLantern_->onBlockAdded(*world_, pumpkinPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, pumpkinPos, jackOLantern_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -565,7 +565,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_NorthSouth_SpawnsEntity)
     setupIronGolemNorthSouth(pumpkinPos);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -583,7 +583,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_RemovesAllBlocks)
     setupIronGolemEastWest(pumpkinPos);
 
     // 触发生成
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证所有构成方块被移除
     // 南瓜
@@ -602,7 +602,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_PlaysBreakEvents)
     setupIronGolemEastWest(pumpkinPos);
 
     // 触发生成
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证播放了破坏事件（应该有5次：南瓜 + 4个铁块）
     EXPECT_GE(world_->getEventCount(), 5);
@@ -619,7 +619,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_MissingArmBlock_NoSpawn)
     world_->setIronBlockAt(0, 8, 0); // 身体
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成实体
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -636,7 +636,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_MissingBodyBlock_NoSpawn)
     // 缺少 (0, 8, 0)
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成实体
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -653,7 +653,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_ArmPositionBlocked_NoSpawn)
     world_->setIronBlockAt(1, 10, 0);  // 阻挡顶层东侧
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成实体（空气检测失败）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -670,7 +670,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_BottomPositionBlocked_NoSpawn)
     world_->setIronBlockAt(1, 8, 0);  // 阻挡底层东侧
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成实体（空气检测失败）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -690,7 +690,7 @@ TEST_F(IronGolemSpawnTest, IronGolem_WrongBlock_NoSpawn)
     }
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成任何傀儡（泥土不会触发傀儡）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -724,7 +724,7 @@ TEST_F(GolemPatternPriorityTest, SnowGolemHasPriorityOverIronGolem)
     world_->setSnowBlockAt(0, 8, 0);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成的是雪傀儡（使用 dynamic_cast 验证类型）
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -760,7 +760,7 @@ TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnSnowGolem)
     world_->setSnowBlockAt(0, 8, 0);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 客户端不应该生成实体
     // 注意：当前实现可能没有检查 isClientSide，这个测试用于验证行为
@@ -781,7 +781,7 @@ TEST_F(GolemClientSideTest, ClientSideDoesNotSpawnIronGolem)
     world_->setIronBlockAt(0, 8, 0);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 暂时只验证不会崩溃
     EXPECT_TRUE(true);
@@ -810,7 +810,7 @@ TEST_F(GolemBoundaryTest, EmptyWorld_NoSpawn)
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证没有生成实体
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -825,7 +825,7 @@ TEST_F(GolemBoundaryTest, HighYCoordinate_SnowGolemSpawns)
     world_->setSnowBlockAt(1000, 254, 1000);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -842,7 +842,7 @@ TEST_F(GolemBoundaryTest, NegativeCoordinate_IronGolemSpawns)
     world_->setIronBlockAt(-100, 48, -200);
 
     // 触发 onBlockAdded
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -855,7 +855,7 @@ TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed)
     world_->setBlockAt(pumpkinPos1, &carvedPumpkin_->defaultState());
     world_->setSnowBlockAt(0, 9, 0);
     world_->setSnowBlockAt(0, 8, 0);
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos1, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos1, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 
@@ -869,7 +869,7 @@ TEST_F(GolemBoundaryTest, MultipleAttempts_AfterPatternDestroyed)
     world_->setBlockAt(pumpkinPos2, &carvedPumpkin_->defaultState());
     world_->setSnowBlockAt(10, 19, 10);
     world_->setSnowBlockAt(10, 18, 10);
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos2, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos2, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 }
@@ -915,7 +915,7 @@ TEST_F(JackOLanternGolemTest, SnowGolem_SpawnsWithJackOLantern)
     world_->setSnowBlockAt(5, 14, 5);
     world_->setSnowBlockAt(5, 13, 5);
 
-    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
     Entity* entity = world_->getSpawnedEntity(0);
@@ -934,7 +934,7 @@ TEST_F(JackOLanternGolemTest, IronGolem_SpawnsWithJackOLantern_EastWest)
     world_->setIronBlockAt(6, 19, 5); // 东
     world_->setIronBlockAt(5, 18, 5); // 身体
 
-    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
     Entity* entity = world_->getSpawnedEntity(0);
@@ -954,7 +954,7 @@ TEST_F(JackOLanternGolemTest, IronGolem_SpawnsWithJackOLantern_NorthSouth)
     world_->setIronBlockAt(5, 24, 6); // 南
     world_->setIronBlockAt(5, 23, 5); // 身体
 
-    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
     Entity* entity = world_->getSpawnedEntity(0);
@@ -969,7 +969,7 @@ TEST_F(JackOLanternGolemTest, NoGolem_WithoutPattern)
     BlockPos jackPos(5, 10, 5);
     world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
 
-    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
@@ -1004,7 +1004,7 @@ TEST_F(IronGolemDirectionTest, NorthSouth_RemovesCorrectBlocks)
     world_->setIronBlockAt(0, 9, 1);  // 南
     world_->setIronBlockAt(0, 8, 0);  // 身体
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证南北方向手臂铁块被移除
     EXPECT_TRUE(world_->getBlockState(0, 9, -1)->isAir()); // 北
@@ -1036,7 +1036,7 @@ TEST_F(IronGolemDirectionTest, EastWest_RemovesCorrectBlocks)
         world_->setBlockAt(BlockPos(0, 9, 1), &VanillaBlocks::IRON_BLOCK->defaultState());
     }
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证东西方向手臂铁块被移除
     EXPECT_TRUE(world_->getBlockState(-1, 9, 0)->isAir()); // 西
@@ -1070,7 +1070,7 @@ TEST_F(IronGolemDirectionTest, CrossShape_PrefersEastWestDirection)
     // 身体
     world_->setIronBlockAt(0, 8, 0);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 东西方向铁块被移除（MC优先检测东西方向）
     EXPECT_TRUE(world_->getBlockState(-1, 9, 0)->isAir()); // 西
@@ -1280,7 +1280,7 @@ TEST_F(CopperGolemSpawnTest, CarvedPumpkin_CopperGolemPattern_SpawnsEntity)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证生成了实体
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
@@ -1305,7 +1305,7 @@ TEST_F(CopperGolemSpawnTest, JackOLantern_CopperGolemPattern_SpawnsEntity)
     world_->setBlockAt(jackPos, &jackOLantern_->defaultState());
     world_->setCopperBlockAt(5, 19, 5);
 
-    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState());
+    jackOLantern_->onBlockAdded(*world_, jackPos, jackOLantern_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 
@@ -1324,7 +1324,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_RemovesBlocks)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 南瓜位置变为空气
     const BlockState* pumpkinState = world_->getBlockState(0, 10, 0);
@@ -1349,7 +1349,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_PlaysBreakEvents)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证播放了破坏事件（南瓜 + 铜块 = 2 次）
     EXPECT_GE(world_->getEventCount(), 2);
@@ -1362,7 +1362,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_NoCopperBlock_NoSpawn)
     BlockPos pumpkinPos(0, 10, 0);
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
 }
@@ -1374,7 +1374,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_WrongBlock_NoSpawn)
     world_->setBlockAt(pumpkinPos, &carvedPumpkin_->defaultState());
     world_->setIronBlockAt(0, 9, 0); // 铁块不是铜块
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 铁块单独不会触发任何傀儡（需要 T 形结构）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -1390,7 +1390,7 @@ TEST_F(CopperGolemSpawnTest, ExposedCopper_SpawnsExposedGolem)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::EXPOSED_COPPER);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 
@@ -1419,7 +1419,7 @@ TEST_F(CopperGolemSpawnTest, WeatheredCopper_SpawnsWeatheredGolem)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::WEATHERED_COPPER);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 
@@ -1440,7 +1440,7 @@ TEST_F(CopperGolemSpawnTest, OxidizedCopper_SpawnsOxidizedGolem)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::OXIDIZED_COPPER);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 
@@ -1462,7 +1462,7 @@ TEST_F(CopperGolemSpawnTest, WaxedExposedCopper_SpawnsExposedGolem)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::WAXED_EXPOSED_COPPER);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
 
@@ -1493,7 +1493,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_PriorityAfterSnowAndIron)
     world_->setSnowBlockAt(0, 9, 0);   // 雪块
     world_->setCopperBlockAt(0, 8, 0); // 铜块（不紧邻南瓜）
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 不满足任何完整模式
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -1509,7 +1509,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_ReplacesCopperWithChest)
     BlockPos pumpkinPos(0, 10, 0);
     setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 验证铜块位置现在是铜箱子
     const BlockState* chestState = world_->getBlockState(0, 9, 0);
@@ -1534,7 +1534,7 @@ TEST_F(CopperGolemSpawnTest, CopperGolem_SpawnPosition_AtPumpkinLevel)
     BlockPos pumpkinPos(5, 30, 7);
     setupCopperGolem(pumpkinPos, VanillaBlocks::COPPER_BLOCK);
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
     Entity* entity = world_->getSpawnedEntity(0);
@@ -1577,7 +1577,7 @@ TEST_F(GolemPriorityWithCopperTest, SnowGolem_PriorityOverCopperGolem)
     world_->setSnowBlockAt(0, 9, 0);
     world_->setCopperBlockAt(0, 8, 0); // 铜块在底部，不紧邻南瓜
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     // 不满足任何模式（雪傀儡需要两个雪块，铜傀儡需要铜块紧邻南瓜）
     EXPECT_EQ(world_->spawnedEntityCount(), 0u);
@@ -1602,7 +1602,7 @@ TEST_F(GolemPriorityWithCopperTest, IronGolem_PriorityOverCopperGolem)
     world_->setIronBlockAt(0, 8, 0);
     world_->setCopperBlockAt(5, 9, 5); // 铜块在远处，不影响
 
-    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState());
+    carvedPumpkin_->onBlockAdded(*world_, pumpkinPos, carvedPumpkin_->defaultState(), false);
 
     EXPECT_EQ(world_->spawnedEntityCount(), 1u);
     Entity* entity = world_->getSpawnedEntity(0);

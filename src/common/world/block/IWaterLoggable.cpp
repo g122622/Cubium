@@ -27,6 +27,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
@@ -64,7 +65,7 @@ bool IWaterLoggable::receiveFluid(
 
     // 设置 WATERLOGGED=true
     BlockState newState = state.with(BlockStateProperties::WATERLOGGED(), true);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 调度流体 tick
     waterloggable::scheduleWaterTick(world, pos);
@@ -85,7 +86,7 @@ fluid::Fluid* IWaterLoggable::pickupFluid(IWorld& world, const BlockPos& pos, co
 
     // 设置 WATERLOGGED=false
     BlockState newState = state.with(BlockStateProperties::WATERLOGGED(), false);
-    world.setBlockState(pos, &newState, 3);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
     // 返回水流体
     return waterloggable::getWaterFluid();

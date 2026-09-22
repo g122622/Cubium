@@ -34,6 +34,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
@@ -118,7 +119,7 @@ void LeavesBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
     if (newState != nullptr) {
         BlockState updated = _updateDistance(*newState, world, pos);
         if (updated != *newState) {
-            world.setBlockState(pos, &updated, 3);
+            world.setBlockState(pos, &updated, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }
@@ -139,7 +140,7 @@ void LeavesBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
         // 移除树叶方块
         // NOTE: 物品掉落需要在方块破坏系统中统一处理
         // 未来可调用 spawnDrops(state, world, pos) 或类似方法
-        world.setBlockState(pos, BlockRegistry::instance().airState(), 3);
+        world.setBlockState(pos, BlockRegistry::instance().airState(), world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

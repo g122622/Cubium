@@ -78,6 +78,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -808,8 +809,7 @@ void LivingEntity::createWitherRose(LivingEntity* killCredit)
             // isValidPosition 对应原版 canSurvive。
             if (VanillaBlocks::WITHER_ROSE->isValidPosition(
                     witherRoseState, static_cast<IBlockReader&>(*m_world), blockPos)) {
-                // setBlock(pos, blockstate, 3)：flags=3 即 NOTIFY(1)|SYNC_CLIENT(2)。
-                m_world->setBlockState(blockPos, &witherRoseState, 3);
+                m_world->setBlockState(blockPos, &witherRoseState, world::BlockUpdateFlags::UPDATE_ALL);
                 placed = true;
             }
         }

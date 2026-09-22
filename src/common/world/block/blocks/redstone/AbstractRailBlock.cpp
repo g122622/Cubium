@@ -31,6 +31,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <cstddef>
@@ -130,7 +131,7 @@ BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
     return withRailShape(defaultState(), defaultShape).with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
-void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 铁轨放置后立即重新计算连接形状。
     // getStateForPlacement 只根据玩家朝向返回初始形状，
@@ -198,13 +199,13 @@ void AbstractRailBlock::neighborChanged(
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     if (!isValidPosition(*state, blockReader, pos)) {
         // 铁轨下方无支撑，移除方块（掉落物由 onBlockRemoved 处理）
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        world.setBlockState(pos.x, pos.y, pos.z, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
 
     // 检查斜坡铁轨支撑
     if (shouldBeRemoved(*state, blockReader, pos)) {
-        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        world.setBlockState(pos.x, pos.y, pos.z, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
 

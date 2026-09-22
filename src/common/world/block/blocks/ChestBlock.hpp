@@ -203,7 +203,7 @@ public:
      * @param pos 方块位置
      * @param state 方块状态
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 静态工具方法 ==========
 

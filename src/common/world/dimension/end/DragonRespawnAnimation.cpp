@@ -30,6 +30,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/end/EndSpikes.hpp"
@@ -179,7 +180,7 @@ void dragon_respawn::tickSummoningPillars(IWorld& world,
                             // MC: p_64035_.removeBlock(blockpos, false)
                             // Cubium: setBlockState 设为空气
                             if (world.isWithinWorldBounds(bx, by, bz)) {
-                                world.setBlockState(bx, by, bz, airState, 3);
+                                world.setBlockState(bx, by, bz, airState, world::BlockUpdateFlags::UPDATE_ALL);
                             }
                         }
                     }

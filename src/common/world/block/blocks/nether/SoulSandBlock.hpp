@@ -56,7 +56,7 @@ public:
      *
      * 调度 tick 以检查上方水源并生成涌流气泡柱。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 邻居更新

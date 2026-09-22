@@ -103,8 +103,10 @@
 #include "common/util/text/TextStyle.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
@@ -1365,7 +1367,9 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 // 1.21.11 BlockEvent: blockPos + b0(action) + b1(param) + blockId。
                 // 客户端按位置取 BlockEntity 调 triggerEvent(action, param) 触发客户端侧动画
                 // （BellBlockEntity/DecoratedPotBlockEntity/EndGatewayEntity 等已实现该虚函数）。
-                // 无 BlockEntity 的方块（活塞/音符盒）当前无客户端表现，静默忽略。
+                // TODO: 原版在此执行 BlockState.triggerEvent(*, IWorld&, ...)，使活塞等无方块实体的
+                //       方块能在客户端本地重跑逻辑；项目客户端尚无 IWorld 实现（ClientWorld 不继承
+                //       IWorld），故这类方块的事件暂静默忽略。
                 if (auto* be = m_app.m_world.getBlockEntity(pos)) {
                     (void)be->triggerEvent(static_cast<i32>(p.b0), static_cast<i32>(p.b1));
                 }

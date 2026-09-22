@@ -324,7 +324,7 @@ TEST_F(LecternBlockTest, OnBlockRemoved_PoweredState_NotifiesBelow)
 
     EXPECT_EQ(world.updateNeighborsCalls(), 0);
 
-    m_block->onBlockRemoved(world, pos, poweredState);
+    m_block->onBlockRemoved(world, pos, poweredState, false);
 
     // onBlockRemoved 在 POWERED 状态时应调用 updateBelow
     EXPECT_EQ(world.updateNeighborsCalls(), 1);
@@ -339,7 +339,7 @@ TEST_F(LecternBlockTest, OnBlockRemoved_UnpoweredState_DoesNotNotifyBelow)
     LecternTestWorld world(*m_block);
     const BlockPos pos(1, 2, 3);
 
-    m_block->onBlockRemoved(world, pos, unpoweredState);
+    m_block->onBlockRemoved(world, pos, unpoweredState, false);
 
     // 未供电状态不应触发红石更新
     EXPECT_EQ(world.updateNeighborsCalls(), 0);

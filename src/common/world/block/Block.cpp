@@ -62,6 +62,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -513,7 +514,7 @@ void Block::neighborChanged(
     (void)isMoving;
 }
 
-void Block::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void Block::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 默认实现：空操作
     // 需要特殊初始化的方块应重写此方法
@@ -522,7 +523,7 @@ void Block::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& s
     (void)state;
 }
 
-void Block::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void Block::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 默认实现：空操作
     // 需要特殊清理的方块应重写此方法
@@ -660,6 +661,33 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
             currentState, direction, *neighborState, world, pos, neighborPos);
     }
     return currentState;
+}
+
+void Block::updateOrDestroy(
+    const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos, i32 flags)
+{
+    if (newState.stateId() == oldState.stateId()) {
+        return;
+    }
+
+    if (newState.isAir()) {
+        // 客户端不执行方块移除（方块变化由服务端下发）
+        if (world.isClientSide()) {
+            return;
+        }
+
+        // 移除方块。置位 UPDATE_SUPPRESS_DROPS 时抑制移除带来的掉落：项目中方块自身的
+        // 掉落由玩家破坏路径处理，这里的掉落只有方块实体的移除副作用（容器内容物），
+        // 故等价地叠加 UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS。
+        i32 removeFlags = world::BlockUpdateFlags::UPDATE_ALL;
+        if ((flags & world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS) != 0) {
+            removeFlags |= world::BlockUpdateFlags::UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS;
+        }
+        world.setBlockState(pos, &newState, removeFlags);
+        return;
+    }
+
+    world.setBlockState(pos, &newState, flags & ~world::BlockUpdateFlags::UPDATE_SUPPRESS_DROPS);
 }
 
 bool Block::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

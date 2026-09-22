@@ -29,6 +29,7 @@
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include <cstddef>
@@ -87,7 +88,7 @@ void ActivatorRailBlock::neighborChanged(
     bool isCurrentlyPowered = isPowered(*currentState);
     if (shouldBePowered != isCurrentlyPowered) {
         BlockState newState = currentState->with(POWERED(), shouldBePowered);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, 3);
+        world.setBlockState(pos.x, pos.y, pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 

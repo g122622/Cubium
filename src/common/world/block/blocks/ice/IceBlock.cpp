@@ -33,6 +33,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -84,7 +85,7 @@ void replaceIceState(IWorld& world, const BlockPos& pos, const BlockState* repla
     }
 
     IceReplacementGuard guard;
-    world.setBlockState(pos, replacementState, 3);
+    world.setBlockState(pos, replacementState, world::BlockUpdateFlags::UPDATE_ALL);
 }
 
 void meltIce(IWorld& world, const BlockPos& pos)
@@ -121,7 +122,7 @@ IceBlock::IceBlock(BlockProperties properties)
     // 冰的滑度通过 BlockProperties.slipperiness() 在注册时设置
 }
 
-void IceBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void IceBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
@@ -191,7 +192,7 @@ FrostedIceBlock::FrostedIceBlock(BlockProperties properties)
     setDefaultState(defaultState().with(AGE_PROP(), 0));
 }
 
-void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     // 霜冰生成后调度一次延迟 tick，初始延迟为 60-120 ticks。
     world.tickManager().scheduleBlockTick(
@@ -301,7 +302,7 @@ bool FrostedIceBlock::_slightlyMelt(IWorld& world, const BlockPos& pos, BlockSta
     if (age < 3) {
         // 增加 AGE
         BlockState newState = state.with(AGE_PROP(), age + 1);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         return false;
     } else {
         // 完全融化成水

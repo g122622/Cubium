@@ -41,6 +41,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include <cstddef>
@@ -132,7 +133,7 @@ bool TripWireBlock::shouldConnectTo(const BlockState& neighborState, Direction d
     return false;
 }
 
-void TripWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void TripWireBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -171,7 +172,7 @@ void TripWireBlock::neighborChanged(
                     rng);
             }
         }
-        world.setBlockState(pos, nullptr, 3);
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
     }
 }
 
@@ -183,7 +184,7 @@ void TripWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     updateState(world, pos);
 }
 
-void TripWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+void TripWireBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
     // 移除时通知绊线钩
@@ -269,7 +270,7 @@ void TripWireBlock::updateState(IWorld& world, const BlockPos& pos)
     if (hasEntity != isCurrentlyPowered) {
         BlockState newState = *state;
         newState = newState.with(BlockStateProperties::POWERED(), hasEntity);
-        world.setBlockState(pos, &newState, 3);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 通知绊线钩
         _notifyHooks(world, pos);

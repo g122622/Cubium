@@ -31,6 +31,7 @@
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/world/gen/jigsaw/AssemblyTypes.hpp"
@@ -156,32 +157,52 @@ void FortressFallbackPiece::_generateFallbackFortress(
         for (i32 x = 0; x < 5; ++x) {
             i32 wx = baseX + x, wy = baseY, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         // 围栏
         {
             i32 wx = baseX, wy = baseY + 1, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + 4, wy = baseY + 1, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX, wy = baseY + 2, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
         {
             i32 wx = baseX + 4, wy = baseY + 2, wz = baseZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
 
@@ -190,19 +211,31 @@ void FortressFallbackPiece::_generateFallbackFortress(
             {
                 i32 wx = baseX + 1, wy = baseY + y, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, air, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        air,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = baseX + 2, wy = baseY + y, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, air, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        air,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = baseX + 3, wy = baseY + y, wz = baseZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, air, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        air,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -219,7 +252,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
         for (i32 z = 0; z < 9; ++z) {
             i32 wx = throneX + x, wy = throneY, wz = throneZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -230,13 +267,21 @@ void FortressFallbackPiece::_generateFallbackFortress(
             {
                 i32 wx = throneX + x, wy = throneY + y, wz = throneZ;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = throneX + x, wy = throneY + y, wz = throneZ + 8;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -244,13 +289,21 @@ void FortressFallbackPiece::_generateFallbackFortress(
             {
                 i32 wx = throneX, wy = throneY + y, wz = throneZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = throneX + 6, wy = throneY + y, wz = throneZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -261,7 +314,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
         for (i32 z = 0; z < 9; ++z) {
             i32 wx = throneX + x, wy = throneY + 8, wz = throneZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -270,7 +327,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
     {
         i32 wx = throneX + 3, wy = throneY + 5, wz = throneZ + 4;
         if (bounds.contains(wx, wy, wz)) {
-            world.setBlockState(wx, wy, wz, netherWartBlock ? netherWartBlock : netherBricks, 18);
+            world.setBlockState(wx,
+                wy,
+                wz,
+                netherWartBlock ? netherWartBlock : netherBricks,
+                world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
         }
     }
 
@@ -285,7 +346,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
         for (i32 z = 0; z < 13; ++z) {
             i32 wx = wartRoomX + x, wy = wartRoomY, wz = wartRoomZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, soulSand, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    soulSand,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -296,13 +361,21 @@ void FortressFallbackPiece::_generateFallbackFortress(
             {
                 i32 wx = wartRoomX + x, wy = wartRoomY + y, wz = wartRoomZ;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = wartRoomX + x, wy = wartRoomY + y, wz = wartRoomZ + 12;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -310,13 +383,21 @@ void FortressFallbackPiece::_generateFallbackFortress(
             {
                 i32 wx = wartRoomX, wy = wartRoomY + y, wz = wartRoomZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
             {
                 i32 wx = wartRoomX + 12, wy = wartRoomY + y, wz = wartRoomZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherBricks, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherBricks,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -327,7 +408,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
         for (i32 z = 0; z < 13; ++z) {
             i32 wx = wartRoomX + x, wy = wartRoomY + 14, wz = wartRoomZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, netherBricks, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    netherBricks,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }
@@ -339,7 +424,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
             if (netherWart) {
                 i32 wx = wartRoomX + x, wy = wartRoomY + 1, wz = wartRoomZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherWart, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherWart,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -349,7 +438,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
             if (netherWart) {
                 i32 wx = wartRoomX + x, wy = wartRoomY + 1, wz = wartRoomZ + z;
                 if (bounds.contains(wx, wy, wz)) {
-                    world.setBlockState(wx, wy, wz, netherWart, 18);
+                    world.setBlockState(wx,
+                        wy,
+                        wz,
+                        netherWart,
+                        world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
                 }
             }
         }
@@ -366,7 +459,11 @@ void FortressFallbackPiece::_generateFallbackFortress(
         for (i32 z = 0; z < 5; ++z) {
             i32 wx = entranceX + x, wy = entranceY - 1, wz = entranceZ + z;
             if (bounds.contains(wx, wy, wz)) {
-                world.setBlockState(wx, wy, wz, lava, 18);
+                world.setBlockState(wx,
+                    wy,
+                    wz,
+                    lava,
+                    world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
             }
         }
     }

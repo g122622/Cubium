@@ -34,6 +34,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -121,7 +122,7 @@ Direction AbstractButtonBlock::getFacing(const BlockState& state) noexcept
     return state.get(BlockStateProperties::HORIZONTAL_FACING());
 }
 
-void AbstractButtonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void AbstractButtonBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -137,9 +138,9 @@ void AbstractButtonBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 对齐 vanilla：按钮（FaceAttachedHorizontalDirectionalBlock）不在 neighborChanged 中
-    // 检查支撑——支撑检查在 updatePostPlacement（vanilla updateShape）中，受 setBlockState
-    // 的 flags 门控（结构放置 flags=18 含 UPDATE_KNOWN_SHAPE 跳过形状更新，故不触发自毁）。
+    // 按钮（FaceAttachedHorizontalDirectionalBlock）不在 neighborChanged 中检查支撑——
+    // 支撑检查在 updatePostPlacement（形状更新）中，该路径受 setBlockState 的
+    // UPDATE_NEIGHBORS 门控；结构放置不带该位，故不触发自毁。
     // 此前项目把支撑自毁放在 neighborChanged，而红石线 _notifyWireNeighbors 会绕过 flags
     // 直接调 neighborChanged，导致结构放置时按钮在支撑（红石线）尚未放置前被通知自毁。
     // TODO: vanilla 按钮继承默认 neighborChanged（无 override）；项目保留空实现以兼容现有调用约定。
@@ -162,8 +163,8 @@ BlockState AbstractButtonBlock::updatePostPlacement(const BlockState& state,
     // getConnectedDirection（vanilla）：CEILING→Down, FLOOR→Up, WALL→FACING（朝向/输出方向）。
     // 其 opposite = 支撑方向。仅当邻居变化方向 == 支撑方向时检查 canSurvive。
     // canSurvive = 支撑方块 isFaceSturdy；项目用 isAir 判定支撑缺失（简化）。
-    // 此方法由 setBlockState 邻居循环调用，受 flags&UPDATE_NEIGHBORS 门控；结构放置 flags=18
-    // 跳过邻居循环故不触发，避免按钮在支撑未放置时自毁。
+    // 此方法由 setBlockState 邻居循环调用，受 UPDATE_NEIGHBORS 门控；结构放置不带该位，
+    // 故不触发，避免按钮在支撑未放置时自毁。
     const AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
     Direction connectedDir;
     switch (attachFace) {
@@ -199,7 +200,7 @@ void AbstractButtonBlock::tick(IWorld& world, const BlockPos& pos, BlockState& s
     if (isPowered(state)) {
         // 按钮弹起
         BlockState newState = withPowered(state, false);
-        world.setBlockState(pos, &newState, 2);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
         // 播放弹起音效
         playClickSound(world, pos, false);
@@ -288,7 +289,7 @@ void AbstractButtonBlock::press(IWorld& world, const BlockPos& pos, const BlockS
 
     // 按下按钮
     BlockState newState = withPowered(state, true);
-    world.setBlockState(pos, &newState, 2);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 播放按下音效
     playClickSound(world, pos, true);

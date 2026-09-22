@@ -30,6 +30,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
@@ -88,7 +89,7 @@ ActionResultType HoneycombItem::onItemUse(ItemUseContext& context)
     }
 
     // 涂蜡成功：替换方块状态
-    world.setBlockState(pos, &waxedState.value(), 11);
+    world.setBlockState(pos, &waxedState.value(), world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
 
     // 播放涂蜡粒子与音效
     world.playEvent(world::WorldEvents::WAX_ON, pos, 0);

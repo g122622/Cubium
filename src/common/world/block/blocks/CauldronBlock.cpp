@@ -46,6 +46,7 @@
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -127,13 +128,13 @@ void CauldronBlock::handlePrecipitation(
     if (precipitation == world::biome::BiomeClimate::Precipitation::Rain) {
         // 雨天 → 水炼药锅
         const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
-        world.setBlockState(pos, waterCauldronState, 3);
+        world.setBlockState(pos, waterCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, waterCauldronState);
     } else if (precipitation == world::biome::BiomeClimate::Precipitation::Snow) {
         // 雪天 → 细雪炼药锅
         const BlockState* powderSnowCauldronState =
             &block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState();
-        world.setBlockState(pos, powderSnowCauldronState, 3);
+        world.setBlockState(pos, powderSnowCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, powderSnowCauldronState);
     }
 }
@@ -220,13 +221,13 @@ void CauldronBlock::receiveStalactiteDrip(
     if (fluid.isIn(fluid::FluidTags::WATER())) {
         // 水滴：空炼药锅 → 替换为水位1的水炼药锅
         const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
-        world.setBlockState(pos, waterCauldronState, 3);
+        world.setBlockState(pos, waterCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, waterCauldronState);
         world.playEvent(world::WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND, pos, 0);
     } else if (fluid.isIn(fluid::FluidTags::LAVA())) {
         // 岩浆滴：空炼药锅 → 替换为岩浆炼药锅
         const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
-        world.setBlockState(pos, lavaCauldronState, 3);
+        world.setBlockState(pos, lavaCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, lavaCauldronState);
         world.playEvent(world::WorldEvents::DRIP_LAVA_INTO_CAULDRON_SOUND, pos, 0);
     }
@@ -249,7 +250,7 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
         if (!world.isClientSide()) {
             const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState().with(
                 BlockStateProperties::LEVEL_1_3(), 3);
-            world.setBlockState(pos, waterCauldronState, 3);
+            world.setBlockState(pos, waterCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
             world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -281,7 +282,7 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
     if (item == Items::LAVA_BUCKET) {
         if (!world.isClientSide()) {
             const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
-            world.setBlockState(pos, lavaCauldronState, 3);
+            world.setBlockState(pos, lavaCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
             world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_LAVA,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -316,7 +317,7 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
             const BlockState* powderSnowCauldronState =
                 &block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState().with(
                     BlockStateProperties::LEVEL_1_3(), 3);
-            world.setBlockState(pos, powderSnowCauldronState, 3);
+            world.setBlockState(pos, powderSnowCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
             world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_POWDER_SNOW,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -360,7 +361,7 @@ ActionResultType CauldronBlock::_handleBottleInteraction(
     if (item == Items::POTION && potion::PotionUtils::isWaterBottle(heldItem)) {
         if (!world.isClientSide()) {
             const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
-            world.setBlockState(pos, waterCauldronState, 3);
+            world.setBlockState(pos, waterCauldronState, world::BlockUpdateFlags::UPDATE_ALL);
             world.playSound(SoundEvents::ITEM_BOTTLE_EMPTY,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),

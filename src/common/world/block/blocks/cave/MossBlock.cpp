@@ -27,6 +27,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -85,7 +86,7 @@ void MossBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
 
                 // 替换为苔藓块
                 const BlockState& mossState = VanillaBlocks::MOSS_BLOCK->defaultState();
-                world.setBlockState(targetPos, &mossState, 3);
+                world.setBlockState(targetPos, &mossState, world::BlockUpdateFlags::UPDATE_ALL);
 
                 // 在苔藓块上方的空气位置放置植被
                 _placeMossVegetation(world, random, abovePos);
@@ -99,7 +100,7 @@ void MossBlock::_placeMossVegetation(IWorld& world, math::IRandom& random, const
     // 50%概率放置苔藓地毯
     if (random.nextInt(4) == 0) {
         const BlockState& carpetState = VanillaBlocks::MOSS_CARPET->defaultState();
-        world.setBlockState(pos, &carpetState, 3);
+        world.setBlockState(pos, &carpetState, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
 
@@ -108,10 +109,10 @@ void MossBlock::_placeMossVegetation(IWorld& world, math::IRandom& random, const
         // 2/3概率普通杜鹃，1/3概率开花杜鹃
         if (random.nextInt(3) < 2) {
             const BlockState& azaleaState = VanillaBlocks::AZALEA->defaultState();
-            world.setBlockState(pos, &azaleaState, 3);
+            world.setBlockState(pos, &azaleaState, world::BlockUpdateFlags::UPDATE_ALL);
         } else {
             const BlockState& floweringState = VanillaBlocks::FLOWERING_AZALEA->defaultState();
-            world.setBlockState(pos, &floweringState, 3);
+            world.setBlockState(pos, &floweringState, world::BlockUpdateFlags::UPDATE_ALL);
         }
     }
 }

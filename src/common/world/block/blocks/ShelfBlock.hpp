@@ -130,7 +130,7 @@ public:
      * 当 POWERED=true 时，执行侧链连接计算。
      * 当 POWERED=false 时，断开邻居侧链连接。
      */
-    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     /**
      * @brief 邻居方块变化时的回调
@@ -146,7 +146,7 @@ public:
      *
      * 掉落书架内物品，并断开侧链连接。
      */
-    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
 
     // ========== 碰撞箱 ==========
 

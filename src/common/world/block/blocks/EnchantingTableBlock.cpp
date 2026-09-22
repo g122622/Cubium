@@ -116,7 +116,7 @@ const CollisionShape& EnchantingTableBlock::getOcclusionShape(const BlockState& 
 
 // ========== 放置和更新 ==========
 
-void EnchantingTableBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+void EnchantingTableBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
     MC_UNUSED(state);
 
