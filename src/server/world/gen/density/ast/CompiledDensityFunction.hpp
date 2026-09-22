@@ -78,6 +78,19 @@ enum class RegAxis : u8 { X, Y, Z };
 /// 不宜过大：栈数组每层 eval 递归独立持有一份（SharedSubtreeCall/Marker/Spline/FindTopSurface 递归）。
 inline constexpr u32 kInlineRegCount = 128;
 
+/// 【重要 · 承重契约】eval 的寄存器数组不做值初始化，依赖以下不变量：
+/// **解释执行的指令流中，任何指令读取的寄存器都在所有可达路径上先被写过。**
+/// 该不变量由 BytecodeGen 的结构保证：
+///   1. 寄存器单调分配（allocReg 只增不减、无复用），`m_regCount` = 已分配槽位数；
+///   2. 发射顺序为「子节点先于父节点」，故 src 的定义点 pc 严格小于读取点 pc；
+///   3. 控制流跳转全部前向，且 JumpIfCmp 两臂、RangeChoice 两段都写自己的 dst。
+/// 唯一的理论破坏途径是同一个 AstNode 指针同时出现在「被跳过的 region」与其跳转目标之后
+/// （BytecodeGen 的 m_shared 按节点地址去重）。当前 McToAst 对每个 DF 节点都新建 AST 节点、
+/// 不做指针 memo，AST 恒为树，故不可达；将来若把 m_shared 扩展为「结构等价即共享寄存器」，
+/// 必须同时保证不跨越跳转段。
+/// 该契约在 JIT 路径上早已承重（DensityJitCompiler 同样不初始化寄存器）。
+/// 差分探测：evalInterpreter 刻意保留零初始化，与 JIT 逐点对比可暴露误读未写槽位。
+
 /// 一元运算类型（UNARY 指令操作数）。覆盖 Abs/Square/Cube/Squeeze/Sqrt/Sin/Cos/Floor/Ceil。
 enum class UnaryOp : u8 {
     Abs,

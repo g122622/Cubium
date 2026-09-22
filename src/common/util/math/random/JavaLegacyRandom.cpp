@@ -23,6 +23,7 @@
 
 #include "JavaLegacyRandom.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::math {
 
@@ -61,9 +62,8 @@ i32 JavaLegacyRandom::nextInt()
 i32 JavaLegacyRandom::nextInt(i32 bound)
 {
     // Java: Random.nextInt(bound) - 拒绝采样法
-    if (bound <= 0) {
-        return 0;
-    }
+    // bound 必须为正：Java 原版对非正 bound 抛 IllegalArgumentException，此处用断言暴露调用方缺陷。
+    MC_ASSERT_RELEASE(bound > 0);
 
     if ((bound & (bound - 1)) == 0) {
         // 2 的幂：直接取高位
@@ -73,10 +73,14 @@ i32 JavaLegacyRandom::nextInt(i32 bound)
     // 非 2 的幂：拒绝采样
     i32 bits = 0;
     i32 val = 0;
+    u32 rejected = 0;
     do {
         bits = next(31);
         val = bits % bound;
-    } while (bits - val + (bound - 1) < 0);
+        // Java 的 `bits - val + (bound - 1) < 0` 依赖 int 回绕判定溢出，
+        // 而 C++ 的有符号溢出是 UB，故用 u32 显式回绕后按有符号解释，逐位复刻 Java 语义。
+        rejected = static_cast<u32>(bits) - static_cast<u32>(val) + static_cast<u32>(bound - 1);
+    } while (static_cast<i32>(rejected) < 0);
 
     return val;
 }

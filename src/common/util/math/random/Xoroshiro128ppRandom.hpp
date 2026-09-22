@@ -55,8 +55,11 @@ public:
      * @brief 使用种子构造随机数生成器
      * @param seed 随机种子
      *
-     * @note 种子通过 MC 的 upgradeSeedTo128bit 算法扩展为 128 位状态
-     *       （mixStafford13(seed ^ SILVER_RATIO_64), mixStafford13(seed + GOLDEN_RATIO_64)）
+     * @note 种子通过 MC 的 upgradeSeedTo128bit 算法扩展为 128 位状态：
+     *       lo = seed ^ SILVER_RATIO_64
+     *       hi = lo + GOLDEN_RATIO_64
+     *       state = (mixStafford13(lo), mixStafford13(hi))
+     *       注意 hi 的加法基准是 lo（即 seed 异或 SILVER 之后的结果），不是原始 seed。
      */
     explicit Xoroshiro128ppRandom(u64 seed = 0);
 
@@ -108,6 +111,18 @@ public:
      *   if (k < bound) { rejection loop } return (int)(j >> 32);
      */
     [[nodiscard]] i32 nextInt(i32 bound) override;
+
+    /**
+     * @brief 返回 32 位范围内的随机整数
+     *
+     * MC XoroshiroRandomSource.nextInt() 的实现是 `(int) this.randomNumberGenerator.nextLong()`，
+     * 即取 nextLong() 结果的**低 32 位**。
+     *
+     * 必须覆写：基类 IRandom::nextInt() 取的是 nextU64() 的**高 32 位**，取位不同会使
+     * 所有调用无参 nextInt() 的代码产生与原版不同的随机序列（例如结构生成中的
+     * nextInt() 用法）。nextInt(i32 bound) 不受影响，它显式取低 32 位。
+     */
+    [[nodiscard]] i32 nextInt() override;
 
     /**
      * @brief 跳过指定数量的随机数

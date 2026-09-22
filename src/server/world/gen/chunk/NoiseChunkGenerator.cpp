@@ -967,11 +967,13 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
             "z",
             chunk.z());
 
-        // 使用 RandomState 中的 aquiferRandom（与 MC 1.21 RandomState.aquiferRandom() 对应）
-        auto positionalRandom = std::make_unique<math::PositionalRandomFactory>(
-            m_randomState->aquiferRandom().seedLo(), m_randomState->aquiferRandom().seedHi());
+        // 随机工厂直接取 RandomState 上持有者（生命周期与维度相同，跨全部区块存活）。
+        // 【重要】不要把工厂复制到本作用域的局部对象、再取引用传给含水层/矿脉：本 if 块
+        // 在逐方块填充主循环开始前就结束，而含水层与矿脉填充器的存活期远长于本块，
+        // 传入局部对象的引用会在主循环里悬垂。RandomState 持有的工厂不存在此问题。
+        // 含水层用 aquiferRandom、矿脉用 oreRandom，二者是相互独立的随机流。
 
-        // MC 1.21: 使用缓存的全局流体选择器
+        // 使用缓存的全局流体选择器
         auto fluidPickerCopy = m_globalFluidPicker;
 
         if (m_settings.noise.aquifersEnabled) {
@@ -979,7 +981,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                 chunkX,
                 chunkZ,
                 noiseChunk.router(),
-                *positionalRandom,
+                m_randomState->aquiferRandom(),
                 m_settings.noise.minY,
                 m_settings.noise.height,
                 std::move(fluidPickerCopy));
@@ -997,7 +999,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
             if (m_settings.oreVeinsEnabled) {
                 auto& router = noiseChunk.router();
                 fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
-                    router.veinToggle(), router.veinRidged(), router.veinGap(), *positionalRandom));
+                    router.veinToggle(), router.veinRidged(), router.veinGap(), m_randomState->oreRandom()));
             }
 
             noiseChunk.setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));

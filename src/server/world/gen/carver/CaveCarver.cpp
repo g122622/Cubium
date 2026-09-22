@@ -114,7 +114,8 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
 
             const f32 thickness = getThickness(rng);
 
-            const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4 + 1);
+            // 原版上界为 i / 4（i = tunnelLength），无 +1
+            const i32 length = tunnelLength - rng.nextInt(tunnelLength / 4);
 
             _createTunnel(chunk,
                 context,

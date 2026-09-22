@@ -53,7 +53,7 @@ public:
      * @param veinToggle 矿脉切换密度函数（正=铜，负=铁）
      * @param veinRidged 矿脉脊线密度函数
      * @param veinGap 矿脉间隙密度函数
-     * @param randomFactory 位置化随机工厂
+     * @param randomFactory 位置化随机工厂（按值拷贝，见 m_randomFactory 注释）
      */
     OreVeinifier(const DensityFunction& veinToggle,
         const DensityFunction& veinRidged,
@@ -66,7 +66,14 @@ private:
     const DensityFunction& m_veinToggle;
     const DensityFunction& m_veinRidged;
     const DensityFunction& m_veinGap;
-    const math::PositionalRandomFactory& m_randomFactory;
+
+    /// 位置化随机工厂，必须按值持有（仅 16 字节）。
+    /// OreVeinifier 被移入 NoiseChunk::m_blockStateRule 后，存活期跨越逐方块填充主循环，
+    /// 远长于装配它的 NoiseChunkGenerator 作用域。若按引用/指针持有，一旦调用方传入的
+    /// 工厂生命周期短于 NoiseChunk（例如装配处的局部对象），逐方块 `at()` 就会解引用
+    /// 已释放内存（UB，矿脉分布随堆复用漂移）。按值持有从类型上杜绝该问题。
+    /// NoiseBasedAquifer 同样按值持有，保持一致的取值语义。
+    math::PositionalRandomFactory m_randomFactory;
 
     // 缓存的方块状态指针（懒初始化）
     const BlockState* m_copperOre = nullptr;

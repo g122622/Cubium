@@ -29,6 +29,7 @@
 #include "server/world/gen/surface/SurfaceRule.hpp"
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace mc::world::chunk {
 class ChunkPrimer;
@@ -130,6 +131,12 @@ private:
     const world::gen::noise::NormalNoise* m_surfaceDepthNoise = nullptr;
     const world::gen::noise::NormalNoise* m_surfaceSecondaryNoise = nullptr;
     const world::gen::noise::NormalNoise* m_clayBandsOffsetNoise = nullptr;
+
+    // 恶地陶土带（MC: SurfaceSystem.clayBands），构造期生成一次后只读
+    std::vector<const BlockState*> m_clayBands;
+
+    /** 生成陶土带（MC: SurfaceSystem.generateBands），仅构造期调用一次 */
+    void _generateClayBands();
 
     // Badlands 和冰山噪声（从 RandomState 获取，不拥有）
     const world::gen::noise::NormalNoise* m_badlandsPillarNoise = nullptr;

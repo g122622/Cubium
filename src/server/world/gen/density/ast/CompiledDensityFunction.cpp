@@ -218,8 +218,16 @@ f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
     }
 
     // 回退路径：原 switch 解释器 evalImpl。
+    //
+    // 【无零初始化是有意为之】寄存器数组不做值初始化：evalImpl 的每条指令都满足
+    // 「先写后读」（BytecodeGen 的寄存器单调分配 + 子节点先于父节点发射保证），
+    // 故零初始化是纯死存储。此处曾写 std::array<f64, kInlineRegCount> regs{}，
+    // 使每次 eval（含 SharedSubtreeCall/Marker/Spline 的递归 eval）都真实调用
+    // memset 清零 1KB；实测该项占区块生成 CPU 的约 15%（RelWithDebInfo/arm64 采样）。
+    // 同一契约在 JIT 路径上早已是承重的：DensityJitCompiler 也只按 regCount 分配
+    // 寄存器、不做任何初始化。
     if (m_regCount <= kInlineRegCount) [[likely]] {
-        std::array<f64, kInlineRegCount> regs{};
+        std::array<f64, kInlineRegCount> regs;
         return evalImpl(x, y, z, regs.data());
     }
     std::vector<f64> regs(m_regCount);
@@ -229,7 +237,11 @@ f64 CompiledDensityFunction::eval(i32 x, i32 y, i32 z) const
 f64 CompiledDensityFunction::evalInterpreter(i32 x, i32 y, i32 z) const
 {
     // 测试/调试专用：绕过 JIT 强制走 switch 解释器 evalImpl（纯解释器求值供
-    // DensityJitBaselineTest 与 JIT 机器码求值逐点对比）。缓冲策略与 eval 一致。
+    // DensityJitBaselineTest 与 JIT 机器码求值逐点对比）。
+    //
+    // 这里**保留**零初始化，与 eval() 不同：JIT 路径不初始化寄存器，若某条指令
+    // 误读了未写过的槽位，JIT 侧读到的是垃圾、本方法读到的是 0.0，两者逐点对比
+    // 即会暴露该缺陷。故本方法是「寄存器先写后读」契约的差分探测器，不可去掉 {}。
     if (m_regCount <= kInlineRegCount) [[likely]] {
         std::array<f64, kInlineRegCount> regs{};
         return evalImpl(x, y, z, regs.data());

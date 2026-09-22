@@ -53,6 +53,7 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
     const world::gen::noise::NormalNoise* surfaceDepthNoise,
     const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
     const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
+    const std::vector<const BlockState*>& clayBands,
     const density::NoiseChunk& noiseChunk,
     const math::PositionalRandomFactory& positionalRandom,
     world::gen::RandomState* randomState,
@@ -67,10 +68,8 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
     , m_positionalRandom(positionalRandom)
     , m_randomState(randomState)
     , m_heightProvider(std::move(heightProvider))
-{
-    // MC: SurfaceSystem.generateBands() — 使用 fromHashOf("minecraft:clay_bands") 种子
-    generateClayBands(positionalRandom);
-}
+    , m_clayBands(clayBands)
+{}
 
 void SurfaceRuleContext::updateXZ(i32 blockX, i32 blockZ)
 {
@@ -146,6 +145,20 @@ f64 SurfaceRuleContext::surfaceSecondary() const
         }
     }
     return m_surfaceSecondaryValue;
+}
+
+const math::PositionalRandomFactory& SurfaceRuleContext::resolvedRandomFactory(
+    const SurfaceCondition* self, const std::string& name) const
+{
+    const auto it = m_resolvedFactoryCache.find(self);
+    if (it != m_resolvedFactoryCache.end()) {
+        return *it->second;
+    }
+
+    // 工厂所有权在 RandomState（跨区块长期存活），ctx 生命周期嵌套其内，指针不会悬垂。
+    const math::PositionalRandomFactory& factory = m_randomState->getOrCreateRandomFactory(name);
+    m_resolvedFactoryCache.emplace(self, &factory);
+    return factory;
 }
 
 const BlockState* SurfaceRuleContext::getBand(i32 blockY) const
@@ -239,73 +252,6 @@ bool SurfaceRuleContext::temperature() const
     // 使用 SurfaceRuleContext 中的 seaLevel 而非硬编码的 SEA_LEVEL
     const Biome& biome = BiomeRegistry::instance().get(m_biome);
     return biome.doesSnowGenerate(m_blockX, m_blockY, m_blockZ, m_seaLevel);
-}
-
-void SurfaceRuleContext::generateClayBands(const math::PositionalRandomFactory& random)
-{
-    // MC: SurfaceSystem.generateBands()
-    // 使用 fromHashOf("minecraft:clay_bands") 种子
-    auto rng = random.fromHashOf("minecraft:clay_bands");
-
-    // 生成 192 个陶土带
-    m_clayBands.resize(192);
-
-    const BlockState* terracotta = VanillaBlocks::TERRACOTTA ? &VanillaBlocks::TERRACOTTA->defaultState() : nullptr;
-    const BlockState* orangeTerracotta =
-        VanillaBlocks::ORANGE_TERRACOTTA ? &VanillaBlocks::ORANGE_TERRACOTTA->defaultState() : nullptr;
-    const BlockState* yellowTerracotta =
-        VanillaBlocks::YELLOW_TERRACOTTA ? &VanillaBlocks::YELLOW_TERRACOTTA->defaultState() : nullptr;
-    const BlockState* brownTerracotta =
-        VanillaBlocks::BROWN_TERRACOTTA ? &VanillaBlocks::BROWN_TERRACOTTA->defaultState() : nullptr;
-    const BlockState* redTerracotta =
-        VanillaBlocks::RED_TERRACOTTA ? &VanillaBlocks::RED_TERRACOTTA->defaultState() : nullptr;
-    const BlockState* whiteTerracotta =
-        VanillaBlocks::WHITE_TERRACOTTA ? &VanillaBlocks::WHITE_TERRACOTTA->defaultState() : nullptr;
-    const BlockState* lightGrayTerracotta =
-        VanillaBlocks::LIGHT_GRAY_TERRACOTTA ? &VanillaBlocks::LIGHT_GRAY_TERRACOTTA->defaultState() : nullptr;
-
-    // 用 terracotta 填充
-    for (auto& band : m_clayBands) {
-        band = terracotta;
-    }
-
-    // 橙色条纹
-    for (size_t k = 0; k < m_clayBands.size();) {
-        k += static_cast<size_t>(rng->nextInt(5)) + 1;
-        if (k < m_clayBands.size()) {
-            m_clayBands[k] = orangeTerracotta;
-        }
-    }
-
-    // 辅助 lambda: 生成指定颜色的条纹
-    auto makeBands = [&](i32 count, const BlockState* color) {
-        const i32 bandCount = rng->nextInt(10) + 6;
-        for (i32 j = 0; j < bandCount; ++j) {
-            i32 bandWidth = count + rng->nextInt(3);
-            i32 start = rng->nextInt(static_cast<i32>(m_clayBands.size()));
-            for (i32 i1 = 0; (start + i1) < static_cast<i32>(m_clayBands.size()) && i1 < bandWidth; ++i1) {
-                m_clayBands[static_cast<size_t>(start + i1)] = color;
-            }
-        }
-    };
-
-    makeBands(1, yellowTerracotta);
-    makeBands(2, brownTerracotta);
-    makeBands(1, redTerracotta);
-
-    // 白色条纹
-    const i32 l = rng->nextInt(7) + 9;
-    i32 i = 0;
-    for (i32 j = 0; i < l && j < static_cast<i32>(m_clayBands.size()); j += rng->nextInt(16) + 4) {
-        m_clayBands[static_cast<size_t>(j)] = whiteTerracotta;
-        if (j - 1 > 0 && rng->nextInt(2) == 0) {
-            m_clayBands[static_cast<size_t>(j - 1)] = lightGrayTerracotta;
-        }
-        if (j + 1 < static_cast<i32>(m_clayBands.size()) && rng->nextInt(2) == 0) {
-            m_clayBands[static_cast<size_t>(j + 1)] = lightGrayTerracotta;
-        }
-        ++i;
-    }
 }
 
 } // namespace mc::world::gen::surface

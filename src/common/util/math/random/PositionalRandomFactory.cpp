@@ -30,25 +30,25 @@
 namespace mc::math {
 
 // ============================================================================
-// Stafford13 混合函数（与 MC RandomSupport.mixStafford13 一致）
-// ============================================================================
-
-static u64 mixStafford13(u64 z)
-{
-    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-    return z ^ (z >> 31);
-}
-
-// ============================================================================
 // MC Mth.getSeed — 坐标到种子的确定性转换
 // ============================================================================
 
 static i64 getSeed(i32 x, i32 y, i32 z)
 {
-    i64 i = static_cast<i64>(x) * 3129871L ^ static_cast<i64>(z) * 116129781L ^ static_cast<i64>(y);
-    i = i * i * 42317861L + i * 11L;
-    return i >> 16;
+    // Java 源码（Mth.getSeed）：
+    //   long l = (long)(x * 3129871) ^ (long) z * 116129781L ^ (long) y;
+    //   l = l * l * 42317861L + l * 11L;
+    //   return l >> 16;
+    // 两处整型回绕都必须逐位复刻，而 C++ 的有符号溢出是 UB，故全程用无符号运算显式回绕：
+    // - `x * 3129871` 是 Java 的 **int** 乘法，先在 int32 内回绕，再符号扩展为 long。
+    //   若按 64 位乘法计算，|x| >= 687 时结果即与原版发散（正常世界坐标几乎全部越界）。
+    // - `l * l * 42317861L + l * 11L` 是 Java 的 long 回绕运算。
+    // - 末尾 `>> 16` 是 Java 的算术右移。
+    const i32 xTerm = static_cast<i32>(static_cast<u32>(x) * 3129871u);
+    u64 i = static_cast<u64>(xTerm) ^ static_cast<u64>(static_cast<i64>(z)) * 116129781ULL ^
+        static_cast<u64>(static_cast<i64>(y));
+    i = i * i * 42317861ULL + i * 11ULL;
+    return static_cast<i64>(i) >> 16;
 }
 
 // ============================================================================
@@ -63,8 +63,10 @@ PositionalRandomFactory::PositionalRandomFactory(u64 seedLo, u64 seedHi)
 std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromHashOf(const std::string& key) const
 {
     // MC 1.21: XoroshiroPositionalRandomFactory.fromHashOf(String)
-    // 使用 MD5 哈希字符串，将 128 位哈希与工厂种子 XOR
-    // 然后经过 mixStafford13 混合后作为新 RNG 的种子
+    //   RandomSupport.Seed128bit s = RandomSupport.seedFromHashOf(s);
+    //   return new XoroshiroRandomSource(s.xor(this.seedLo, this.seedHi));
+    // seedFromHashOf 返回**未经混合**的 MD5 高/低 64 位，xor 只做逐位异或，
+    // 两参构造 Xoroshiro128PlusPlus(lo, hi) 直接写状态——全程没有 mixStafford13。
     //
     // Java 的 Longs.fromBytes() 使用大端序解释字节：
     //   long lo = Longs.fromBytes(bytes[0], bytes[1], ..., bytes[7])
@@ -83,11 +85,7 @@ std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromHashOf(const 
         (static_cast<u64>(digest[12]) << 24) | (static_cast<u64>(digest[13]) << 16) |
         (static_cast<u64>(digest[14]) << 8) | static_cast<u64>(digest[15]);
 
-    // XOR 工厂种子并混合
-    const u64 finalLo = mixStafford13(hashLo ^ m_seedLo);
-    const u64 finalHi = mixStafford13(hashHi ^ m_seedHi);
-
-    return std::make_unique<Xoroshiro128ppRandom>(finalLo, finalHi);
+    return std::make_unique<Xoroshiro128ppRandom>(hashLo ^ m_seedLo, hashHi ^ m_seedHi);
 }
 
 std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromSeed(u64 seed) const

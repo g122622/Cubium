@@ -78,8 +78,9 @@ public:
      * @param surfaceDepthNoise 地表深度噪声（MC: Noises.SURFACE）
      * @param surfaceSecondaryNoise 地表次要噪声（MC: Noises.SURFACE_SECONDARY）
      * @param clayBandsOffsetNoise 陶土带偏移噪声
+     * @param clayBands 恶地陶土带（维度级产物，所有权在 SurfaceSystem，本类只借用）
      * @param noiseChunk NoiseChunk 引用，用于查询 preliminarySurfaceLevel
-     * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth 抖动和 clayBands 种子）
+     * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth 抖动）
      * @param randomState RandomState 引用，用于噪声名称查找和随机工厂查找
      * @param heightProvider 高度查询回调（用于 steep 条件）
      */
@@ -89,6 +90,7 @@ public:
         const world::gen::noise::NormalNoise* surfaceDepthNoise,
         const world::gen::noise::NormalNoise* surfaceSecondaryNoise,
         const world::gen::noise::NormalNoise* clayBandsOffsetNoise,
+        const std::vector<const BlockState*>& clayBands,
         const density::NoiseChunk& noiseChunk,
         const math::PositionalRandomFactory& positionalRandom,
         world::gen::RandomState* randomState,
@@ -111,6 +113,26 @@ public:
     [[nodiscard]] bool cachedXZ(const SurfaceCondition* self, const LazyXZCondition& cond) const;
     /** 查询/求值 Y 依赖条件：当前 Y 步内命中缓存则直接返回，否则调 cond.compute 并缓存。 */
     [[nodiscard]] bool cachedY(const SurfaceCondition* self, const LazyYCondition& cond) const;
+
+    /**
+     * @brief 按 SurfaceCondition 身份解析并缓存随机工厂
+     *
+     * 等价于原版 SurfaceRules.ConditionSource.apply() —— 原版在**每区块**调用 apply()
+     * 时解析一次工厂并捕获进闭包，compute() 内不再解析。本项目规则树在构造期一次性
+     * 建好并跨 RandomState/线程共享，没有 apply() 这个每区块时机，故把等价缓存放在
+     * per-chunk 的 SurfaceRuleContext 上（以 condition 身份为 key 惰性解析一次）。
+     *
+     * 【不变量】缓存的是 const 指针，指向 RandomState 持有的工厂。SurfaceRuleContext 由
+     * buildSurface 在栈上创建，其生命周期严格嵌套在 RandomState 之内，故该指针不可能
+     * 跨 RandomState 悬垂。这与 gen/README「容易踩的坑」第 14 条禁止在**共享规则树节点**上
+     * 缓存裸指针并不冲突（此处缓存位于 per-chunk 对象上）。
+     *
+     * @param self 条件对象身份（this 指针），作为缓存 key
+     * @param name 条件持有的随机工厂名（如 "minecraft:bedrock_floor"）
+     * @return 该条件对应随机工厂的引用
+     */
+    [[nodiscard]] const math::PositionalRandomFactory& resolvedRandomFactory(
+        const SurfaceCondition* self, const std::string& name) const;
 
     // ========== 访问器 ==========
 
@@ -169,9 +191,9 @@ private:
     const math::PositionalRandomFactory& m_positionalRandom;
 
     /// RandomState 引用，用于噪声名称查找和随机工厂查找（MC 1.21）
-    /// NoiseThresholdCondition/VerticalGradientCondition 每次 compute() 经此现解析
-    /// NormalNoise/PositionalRandomFactory（不缓存指针：规则树跨 RandomState 共享，
-    /// 缓存会随首个 RandomState 销毁而悬垂）。
+    /// NoiseThresholdCondition 在 compute() 经此现解析 NormalNoise；
+    /// VerticalGradientCondition 的随机工厂则经 resolvedRandomFactory 在本 ctx 上缓存
+    /// （缓存仅存在于 per-chunk 的 ctx 内，不会随 RandomState 销毁而悬垂）。
     world::gen::RandomState* m_randomState;
 
     /// 高度查询回调（用于 steep 条件）
@@ -201,6 +223,10 @@ private:
     };
     mutable std::unordered_map<const SurfaceCondition*, ConditionCacheEntry> m_conditionCache;
 
+    // per-chunk 随机工厂解析缓存：condition 身份 → RandomState 持有的工厂指针。
+    // 生命周期安全（见 resolvedRandomFactory 文档）。ctx 单线程独占，无需同步。
+    mutable std::unordered_map<const SurfaceCondition*, const math::PositionalRandomFactory*> m_resolvedFactoryCache;
+
     // 缓存
     mutable bool m_surfaceSecondaryCached = false;
     mutable f64 m_surfaceSecondaryValue = 0.0;
@@ -209,9 +235,9 @@ private:
     mutable i32 m_preliminarySurfaceCache[4] = {};
     mutable i32 m_minSurfaceLevel = 0;
 
-    // Bandlands 陶土带
-    std::vector<const BlockState*> m_clayBands;
-    void generateClayBands(const math::PositionalRandomFactory& random);
+    // 恶地陶土带（MC: SurfaceSystem.clayBands）。维度级生成一次，所有权在 SurfaceSystem；
+    // SurfaceSystem 的生命周期长于本 ctx，故此处只持引用。
+    const std::vector<const BlockState*>& m_clayBands;
 };
 
 } // namespace mc::world::gen::surface

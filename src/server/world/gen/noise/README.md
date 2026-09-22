@@ -230,7 +230,7 @@ f64 value = noise.getValue(safeX, y, z);
 
 ### 7. BlendedNoise 涂抹效果
 
-BlendedNoise 使用 `PerlinNoise::getValueWithSmear()` 对 Y 轴方向应用涂抹效果，产生条纹状结构。涂抹参数 `smearScaleMultiplier * yMultiplier / yFactor` 控制 Y 方向拉伸程度。
+BlendedNoise 对 Y 轴方向应用涂抹效果，产生条纹状结构：生产路径走 `perlinSampleSoA(..., yScale, yMax)`（yScale≠0 时启用涂抹），涂抹参数 `smearScaleMultiplier * yMultiplier / yFactor` 控制 Y 方向拉伸程度。标量 `PerlinNoise::getValueWithSmear()` 仅作 ULP 测试的 reference，生产不使用。
 
 ### 8. SimplexNoise 种子初始化
 

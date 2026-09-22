@@ -284,4 +284,8 @@ Jigsaw 模板在方块注册前加载会失败。初始化顺序（`MinecraftSer
 
 曾经 `VerticalGradientCondition`/`NoiseThresholdCondition` 用 `std::call_once` 在共享 Condition 节点上缓存 `PositionalRandomFactory*`/`NormalNoise*` 原始指针。首个 RandomState 销毁后该缓存指针即悬垂；下一个 RandomState 复用同一规则树时 `compute()` 解引用已释放内存 → UAF（`ACCESS_VIOLATION`，崩在 `PositionalRandomFactory::at`/`NormalNoise::getValue`）。该 bug 仅在"同维度创建第二个 RandomState"时触发，单区块单 RandomState 用例永远命中不到，极具隐蔽性。
 
-**正确做法（对齐 MC 1.21 `SurfaceRules`）**：Condition 节点上**不缓存**任何 RandomState 私有对象指针，每次 `compute()` 经 `ctx.randomState()->getOrCreate*()` 现解析。布尔结果仍由 `SurfaceRuleContext::cachedXZ/cachedY` 按 XZ/Y 戳缓存（这才是 MC `LazyCondition` 的语义，缓存的是结果而非依赖指针）。回归测试见 `tests/server/world/gen/SurfaceConditionLifecycleTest.cpp`。
+**正确做法**：Condition 节点上**不缓存**任何 RandomState 私有对象指针。需要的依赖在 `compute()` 时经 `ctx` 获取：`VerticalGradientCondition` 用 `SurfaceRuleContext::resolvedRandomFactory()` 在**每区块的 ctx 上**惰性缓存一次（等价原版每区块 `apply()` 解析一次；ctx 生命周期嵌套在 RandomState 之内，故不会跨 RandomState 悬垂），`NoiseThresholdCondition` 每次现解析。布尔结果仍由 `SurfaceRuleContext::cachedXZ/cachedY` 按 XZ/Y 戳缓存（缓存的是结果而非依赖指针）。回归测试见 `tests/unit/common/world/gen/SurfaceConditionLifecycleTest.cpp`。
+
+### 15. 被移入 NoiseChunk 的填充器不得持有调用方局部对象的引用
+
+`NoiseChunkGenerator::_generateNoiseWithDensityFunction` 在 `if (noiseChunk.aquifer() == nullptr)` 块内装配 `AquiferFiller`/`OreVeinifier`，装配完成后经 `NoiseChunk::setBlockStateRule` 移入 NoiseChunk；而该块在**逐方块填充主循环开始前**就结束。因此任何被移入 NoiseChunk 的填充器都**不能**持有该块内局部对象（如局部 `unique_ptr<PositionalRandomFactory>`）的引用或指针，否则主循环里逐方块解引用即 UAF（症状：矿脉分布不确定、值随堆复用漂移）。正确做法是持有 RandomState 长期存活对象（`m_randomState->oreRandom()`）或按值拷贝（`OreVeinifier` 现按值持有 16 字节的工厂）。

@@ -116,9 +116,9 @@ bool NoiseThresholdCondition::compute(const SurfaceRuleContext& ctx) const
 
 // ============================================================================
 // VerticalGradientCondition — MC: VerticalGradientConditionSource (LazyYCondition)
-// 用于基岩层等（随机梯度过渡）。不缓存 PositionalRandomFactory*（规则树跨 RandomState
-// 共享，缓存会随首个 RandomState 销毁而悬垂 → UAF）。每次 compute 现解析，结果已由
-// SurfaceRuleContext::cachedY 按 Y 戳缓存。
+// 用于基岩层等（随机梯度过渡）。不缓存 PositionalRandomFactory* 到本节点（规则树跨
+// RandomState 共享，缓存会随首个 RandomState 销毁而悬垂 → UAF）；改为在 per-chunk 的
+// SurfaceRuleContext 上按条件身份缓存，等价原版每区块 apply() 解析一次工厂的行为。
 // ============================================================================
 
 bool VerticalGradientCondition::compute(const SurfaceRuleContext& ctx) const
@@ -135,7 +135,9 @@ bool VerticalGradientCondition::compute(const SurfaceRuleContext& ctx) const
     }
 
     // MC 1.21: 使用 PositionalRandomFactory.at(x, y, z).nextFloat()
-    auto rng = ctx.randomState()->getOrCreateRandomFactory(m_randomName).at(ctx.blockX(), blockY, ctx.blockZ());
+    // 工厂在 ctx 上按条件身份解析并缓存（等价原版每区块 apply() 时解析一次），
+    // 避免每列每 Y 都走一次 shared_mutex + 字符串哈希 + map 查找。
+    auto rng = ctx.resolvedRandomFactory(this, m_randomName).at(ctx.blockX(), blockY, ctx.blockZ());
     const f64 chance = static_cast<f64>(rng->nextFloat());
     const f64 threshold = static_cast<f64>(falseY - blockY) / static_cast<f64>(falseY - trueY);
     return chance < threshold;

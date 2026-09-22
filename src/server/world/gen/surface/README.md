@@ -84,3 +84,7 @@ SurfaceRules.hpp（聚合头文件）
 ### 5. 基岩生成由 SurfaceRules 驱动
 
 MC 1.21 中基岩不再由区块生成器直接放置，而是通过 SurfaceRules 的 `VerticalGradientCondition` 规则实现。主世界和下界的基岩层均通过此机制生成。
+
+### 6. 陶土带是维度级产物，不能在每区块的 Context 里重算
+
+恶地陶土带（`m_clayBands`，192 项）在 `SurfaceSystem` **构造期由 `fromHashOf("minecraft:clay_bands")` 生成一次**，`SurfaceRuleContext` 只按 const 引用借用。它依赖 `PositionalRandomFactory` 的派生种子，若下放到 per-chunk 的 `SurfaceRuleContext` 里生成，每区块都要重跑一次 MD5 哈希 + RNG 序列 + 堆分配。新增维度级派生数据时注意区分「每维度一次」与「每区块一次」。

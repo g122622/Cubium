@@ -82,6 +82,76 @@ SurfaceSystem::SurfaceSystem(std::shared_ptr<SurfaceRule> surfaceRule,
     m_icebergPillarNoise = &randomState.getOrCreateNoise(noise::Noises::ICEBERG_PILLAR);
     m_icebergPillarRoofNoise = &randomState.getOrCreateNoise(noise::Noises::ICEBERG_PILLAR_ROOF);
     m_icebergSurfaceNoise = &randomState.getOrCreateNoise(noise::Noises::ICEBERG_SURFACE);
+
+    // 陶土带是维度级产物（原版在 SurfaceSystem 构造期生成一次），不能下放到每区块的
+    // SurfaceRuleContext 里重复生成。
+    _generateClayBands();
+}
+
+void SurfaceSystem::_generateClayBands()
+{
+    // 原版：generateBands(positionalRandomFactory.fromHashOf(Identifier.withDefaultNamespace("clay_bands")))
+    auto rng = m_positionalRandom.fromHashOf("minecraft:clay_bands");
+
+    // 生成 192 个陶土带
+    m_clayBands.resize(192);
+
+    const BlockState* terracotta = VanillaBlocks::TERRACOTTA ? &VanillaBlocks::TERRACOTTA->defaultState() : nullptr;
+    const BlockState* orangeTerracotta =
+        VanillaBlocks::ORANGE_TERRACOTTA ? &VanillaBlocks::ORANGE_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* yellowTerracotta =
+        VanillaBlocks::YELLOW_TERRACOTTA ? &VanillaBlocks::YELLOW_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* brownTerracotta =
+        VanillaBlocks::BROWN_TERRACOTTA ? &VanillaBlocks::BROWN_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* redTerracotta =
+        VanillaBlocks::RED_TERRACOTTA ? &VanillaBlocks::RED_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* whiteTerracotta =
+        VanillaBlocks::WHITE_TERRACOTTA ? &VanillaBlocks::WHITE_TERRACOTTA->defaultState() : nullptr;
+    const BlockState* lightGrayTerracotta =
+        VanillaBlocks::LIGHT_GRAY_TERRACOTTA ? &VanillaBlocks::LIGHT_GRAY_TERRACOTTA->defaultState() : nullptr;
+
+    // 用 terracotta 填充
+    for (auto& band : m_clayBands) {
+        band = terracotta;
+    }
+
+    // 橙色条纹
+    for (size_t k = 0; k < m_clayBands.size();) {
+        k += static_cast<size_t>(rng->nextInt(5)) + 1;
+        if (k < m_clayBands.size()) {
+            m_clayBands[k] = orangeTerracotta;
+        }
+    }
+
+    // 辅助 lambda: 生成指定颜色的条纹
+    auto makeBands = [&](i32 count, const BlockState* color) {
+        const i32 bandCount = rng->nextInt(10) + 6;
+        for (i32 j = 0; j < bandCount; ++j) {
+            const i32 bandWidth = count + rng->nextInt(3);
+            const i32 start = rng->nextInt(static_cast<i32>(m_clayBands.size()));
+            for (i32 i1 = 0; (start + i1) < static_cast<i32>(m_clayBands.size()) && i1 < bandWidth; ++i1) {
+                m_clayBands[static_cast<size_t>(start + i1)] = color;
+            }
+        }
+    };
+
+    makeBands(1, yellowTerracotta);
+    makeBands(2, brownTerracotta);
+    makeBands(1, redTerracotta);
+
+    // 白色条纹
+    const i32 l = rng->nextInt(7) + 9;
+    i32 i = 0;
+    for (i32 j = 0; i < l && j < static_cast<i32>(m_clayBands.size()); j += rng->nextInt(16) + 4) {
+        m_clayBands[static_cast<size_t>(j)] = whiteTerracotta;
+        if (j - 1 > 0 && rng->nextInt(2) == 0) {
+            m_clayBands[static_cast<size_t>(j - 1)] = lightGrayTerracotta;
+        }
+        if (j + 1 < static_cast<i32>(m_clayBands.size()) && rng->nextInt(2) == 0) {
+            m_clayBands[static_cast<size_t>(j + 1)] = lightGrayTerracotta;
+        }
+        ++i;
+    }
 }
 
 bool SurfaceSystem::isStone(const BlockState* state) const
@@ -265,6 +335,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
         m_surfaceDepthNoise,
         m_surfaceSecondaryNoise,
         m_clayBandsOffsetNoise,
+        m_clayBands,
         noiseChunk,
         m_positionalRandom,
         &m_randomState,

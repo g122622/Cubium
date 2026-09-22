@@ -30,6 +30,16 @@
 namespace mc::math {
 
 // ============================================================================
+// 种子扩展常量（与 MC RandomSupport 一致）
+// ============================================================================
+
+/// Java RandomSupport.GOLDEN_RATIO_64 = -7046029254386353131L
+inline constexpr u64 GOLDEN_RATIO_64 = 0x9e3779b97f4a7c15ULL;
+
+/// Java RandomSupport.SILVER_RATIO_64 = 7640891576956012809L
+inline constexpr u64 SILVER_RATIO_64 = 0x6a09e667f3bcc909ULL;
+
+// ============================================================================
 // Stafford13 混合函数（与 MC RandomSupport.mixStafford13 一致）
 // ============================================================================
 
@@ -52,11 +62,11 @@ Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seedLo, u64 seedHi)
     m_state[0] = seedLo;
     m_state[1] = seedHi;
 
-    // 与 MC Xoroshiro128PlusPlus 一致：全零状态时使用默认值
-    // 这些默认值与 upgradeSeedTo128bit 中使用的常量一致
+    // 与 MC Xoroshiro128PlusPlus(long,long) 一致：全零状态时使用默认值
+    // Java 源码：seedLo = -7046029254386353131L（GOLDEN），seedHi = 7640891576956012809L（SILVER）
     if ((m_state[0] | m_state[1]) == 0ULL) {
-        m_state[0] = 0x9e3779b97f4a7c15ULL; // SILVER_RATIO_64
-        m_state[1] = 0x6a09e667f3bcc909ULL; // GOLDEN_RATIO_64
+        m_state[0] = GOLDEN_RATIO_64;
+        m_state[1] = SILVER_RATIO_64;
     }
 
     m_hasGaussian = false;
@@ -64,25 +74,20 @@ Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seedLo, u64 seedHi)
 
 void Xoroshiro128ppRandom::setSeed(u64 seed)
 {
-    // MC 1.21: XoroshiroRandomSource.setSeed(long)
-    // 使用 upgradeSeedTo128bit 扩展种子，而非 SplitMix64
-    // Java 流程：
-    //   long lo = mixStafford13(seed ^ SILVER_RATIO_64)
-    //   long hi = mixStafford13(seed + GOLDEN_RATIO_64)
-    //   new Xoroshiro128PlusPlus(Seed128bit(lo, hi))
-    //
-    // 其中 SILVER_RATIO_64 = 0x9e3779b97f4a7c15L
-    //      GOLDEN_RATIO_64 = 0x6a09e667f3bcc909L
-    constexpr u64 SILVER_RATIO_64 = 0x9e3779b97f4a7c15ULL;
-    constexpr u64 GOLDEN_RATIO_64 = 0x6a09e667f3bcc909ULL;
+    // MC 1.21: XoroshiroRandomSource.setSeed(long) → upgradeSeedTo128bit(seed)
+    // Java 源码（RandomSupport）：
+    //   upgradeSeedTo128bitUnmixed(i): lo = i ^ SILVER_RATIO_64; hi = lo + GOLDEN_RATIO_64
+    //   upgradeSeedTo128bit(i) = unmixed(i).mixed()  // 对 lo/hi 各做一次 mixStafford13
+    // 注意 hi 的加法基准是 **lo**（即 seed^SILVER），不是原始 seed。
+    const u64 lo = seed ^ SILVER_RATIO_64;
 
-    m_state[0] = mixStafford13(seed ^ SILVER_RATIO_64);
-    m_state[1] = mixStafford13(seed + GOLDEN_RATIO_64);
+    m_state[0] = mixStafford13(lo);
+    m_state[1] = mixStafford13(lo + GOLDEN_RATIO_64);
 
     // 与 MC Xoroshiro128PlusPlus 一致：全零状态时使用默认值
     if ((m_state[0] | m_state[1]) == 0ULL) {
-        m_state[0] = SILVER_RATIO_64;
-        m_state[1] = GOLDEN_RATIO_64;
+        m_state[0] = GOLDEN_RATIO_64;
+        m_state[1] = SILVER_RATIO_64;
     }
 
     m_hasGaussian = false;
@@ -107,12 +112,13 @@ u64 Xoroshiro128ppRandom::nextU64()
 f64 Xoroshiro128ppRandom::nextDouble()
 {
     // MC XoroshiroRandomSource.nextDouble():
-    //   return (double)((float)(this.nextLong() >>> 11) * 1.1102230246251565E-16F);
-    // Java 的 >>> 是无符号右移，C++ 需要先转 u64 再右移
-    // Java 二元数值提升：long * float → long 拓宽为 float（约24位精度），乘法结果为 float
-    // 然后 float 拓宽为 double 返回
+    //   return (double) this.nextBits(53) * 1.1102230246251565E-16D;
+    // nextBits(53) = nextLong() >>> (64 - 53) = nextLong() >>> 11，结果落在 [0, 2^53)。
+    // Java 的 >>> 是无符号右移，C++ 需要先转 u64 再右移。
+    // 原版全程是 double 精度（long 拓宽为 double 时 val < 2^53 可精确表示），
+    // 中间不得降为 float——那会丢掉 29 位有效位，与原版产生可见偏差。
     const u64 val = static_cast<u64>(nextLong()) >> 11;
-    return static_cast<f64>(static_cast<f32>(static_cast<f64>(val)) * 1.1102230246251565E-16f);
+    return static_cast<f64>(val) * 1.1102230246251565E-16;
 }
 
 f32 Xoroshiro128ppRandom::nextFloat()
@@ -123,6 +129,13 @@ f32 Xoroshiro128ppRandom::nextFloat()
     // Java 的 >>> 是无符号右移
     const i32 bits = static_cast<i32>(static_cast<u64>(nextLong()) >> 40);
     return static_cast<f32>(bits) * 5.9604645E-8f;
+}
+
+i32 Xoroshiro128ppRandom::nextInt()
+{
+    // MC XoroshiroRandomSource.nextInt(): return (int) this.randomNumberGenerator.nextLong();
+    // 取 nextLong() 的低 32 位（nextLong 即 nextU64 的位模式）。
+    return static_cast<i32>(static_cast<u32>(nextU64()));
 }
 
 i32 Xoroshiro128ppRandom::nextInt(i32 bound)

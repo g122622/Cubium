@@ -130,9 +130,13 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
         alignas(64) f64 mainDs[noise::kMaxPerlinOctaves];
         // 预计算 d11_k = 2^(k-(count-1)) 数组:std::ldexp 是不可向量化的 libm 调用,
         // 放循环外预填(此预填循环不强求向量化),采样循环只读数组 → 可向量化。
+        // 同时预填倒数:d11_k 恒为 2 的整数幂,其倒数为精确可表示值,故把累加循环里的
+        // 除法换成乘法不改变任何一位结果,却能消掉累加链上的串行 fdiv 依赖。
         alignas(64) f64 mainD11[noise::kMaxPerlinOctaves];
+        alignas(64) f64 mainInvD11[noise::kMaxPerlinOctaves];
         for (u32 k = 0; k < mainCount; ++k) {
             mainD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(mainCount - 1));
+            mainInvD11[k] = 1.0 / mainD11[k];
         }
 
 #pragma clang loop vectorize_width(4) interleave_count(2)
@@ -149,7 +153,7 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
 
         // 反向标量累加:k=count-1..0 对应原循环 i=0..count-1。每项除以 d11_k(=2 的整数幂,精确)。
         for (u32 k = mainCount; k-- > 0;) {
-            d10 += mainDs[k] / mainD11[k];
+            d10 += mainDs[k] * mainInvD11[k];
         }
     }
 
@@ -172,56 +176,60 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
     const u32 minCount = minSoa.count();
     const u32 maxCount = maxSoa.count();
 
-    // 两路都短路时直接跳过采样(flag1 && flag2 理论不可能:d16>=1 与 d16<=0 互斥,但写防御性分支)。
-    if (!flag1 || !flag2) {
-        alignas(64) f64 minDs[noise::kMaxPerlinOctaves];
-        alignas(64) f64 maxDs[noise::kMaxPerlinOctaves];
+    // flag1 与 flag2 互斥(d16>=1 与 d16<=0 不可能同时成立),故 min/max 两路不可能同时短路,
+    // 无需再包一层「两路都短路则跳过」的外层判断。
+    alignas(64) f64 minDs[noise::kMaxPerlinOctaves];
+    alignas(64) f64 maxDs[noise::kMaxPerlinOctaves];
 
-        // 预计算 d11_k 数组(std::ldexp 不可向量化,放循环外预填)。
-        alignas(64) f64 minD11[noise::kMaxPerlinOctaves];
-        alignas(64) f64 maxD11[noise::kMaxPerlinOctaves];
-        for (u32 k = 0; k < minCount; ++k) {
-            minD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(minCount - 1));
-        }
-        for (u32 k = 0; k < maxCount; ++k) {
-            maxD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(maxCount - 1));
-        }
+    // 预计算 d11_k 数组(std::ldexp 不可向量化,放循环外预填)及其倒数。
+    // 同 mainNoise:d11_k 恒为 2 的整数幂,倒数精确,累加循环的除法可安全换成乘法。
+    alignas(64) f64 minD11[noise::kMaxPerlinOctaves];
+    alignas(64) f64 maxD11[noise::kMaxPerlinOctaves];
+    alignas(64) f64 minInvD11[noise::kMaxPerlinOctaves];
+    alignas(64) f64 maxInvD11[noise::kMaxPerlinOctaves];
+    for (u32 k = 0; k < minCount; ++k) {
+        minD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(minCount - 1));
+        minInvD11[k] = 1.0 / minD11[k];
+    }
+    for (u32 k = 0; k < maxCount; ++k) {
+        maxD11[k] = std::ldexp(1.0, static_cast<i32>(k) - static_cast<i32>(maxCount - 1));
+        maxInvD11[k] = 1.0 / maxD11[k];
+    }
 
-        const u32 minLoop = flag1 ? 0 : minCount;
-        const u32 maxLoop = flag2 ? 0 : maxCount;
+    const u32 minLoop = flag1 ? 0 : minCount;
+    const u32 maxLoop = flag2 ? 0 : maxCount;
 
-        // min 采样向量化(flag1 时跳过)。
+    // min 采样向量化(flag1 时跳过)。
 #pragma clang loop vectorize_width(4) interleave_count(2)
-        for (u32 k = 0; k < minLoop; ++k) {
-            const f64 d11 = minD11[k];
-            const f64 d12 = noise::perlinWrap(d0 * d11);
-            const f64 d13 = noise::perlinWrap(d1 * d11);
-            const f64 d14 = noise::perlinWrap(d2 * d11);
-            const f64 d15 = d6 * d11;
-            minDs[k] = noise::perlinSampleSoA(minSoa, k, d12, d13, d14, d15, d1 * d11);
-        }
+    for (u32 k = 0; k < minLoop; ++k) {
+        const f64 d11 = minD11[k];
+        const f64 d12 = noise::perlinWrap(d0 * d11);
+        const f64 d13 = noise::perlinWrap(d1 * d11);
+        const f64 d14 = noise::perlinWrap(d2 * d11);
+        const f64 d15 = d6 * d11;
+        minDs[k] = noise::perlinSampleSoA(minSoa, k, d12, d13, d14, d15, d1 * d11);
+    }
 
-        // max 采样向量化(flag2 时跳过)。
+    // max 采样向量化(flag2 时跳过)。
 #pragma clang loop vectorize_width(4) interleave_count(2)
-        for (u32 k = 0; k < maxLoop; ++k) {
-            const f64 d11 = maxD11[k];
-            const f64 d12 = noise::perlinWrap(d0 * d11);
-            const f64 d13 = noise::perlinWrap(d1 * d11);
-            const f64 d14 = noise::perlinWrap(d2 * d11);
-            const f64 d15 = d6 * d11;
-            maxDs[k] = noise::perlinSampleSoA(maxSoa, k, d12, d13, d14, d15, d1 * d11);
-        }
+    for (u32 k = 0; k < maxLoop; ++k) {
+        const f64 d11 = maxD11[k];
+        const f64 d12 = noise::perlinWrap(d0 * d11);
+        const f64 d13 = noise::perlinWrap(d1 * d11);
+        const f64 d14 = noise::perlinWrap(d2 * d11);
+        const f64 d15 = d6 * d11;
+        maxDs[k] = noise::perlinSampleSoA(maxSoa, k, d12, d13, d14, d15, d1 * d11);
+    }
 
-        // 反向标量累加(复刻原 j=0..15 顺序)。
-        if (!flag1) {
-            for (u32 k = minCount; k-- > 0;) {
-                d8 += minDs[k] / minD11[k];
-            }
+    // 反向标量累加(复刻原 j=0..15 顺序)。
+    if (!flag1) {
+        for (u32 k = minCount; k-- > 0;) {
+            d8 += minDs[k] * minInvD11[k];
         }
-        if (!flag2) {
-            for (u32 k = maxCount; k-- > 0;) {
-                d9 += maxDs[k] / maxD11[k];
-            }
+    }
+    if (!flag2) {
+        for (u32 k = maxCount; k-- > 0;) {
+            d9 += maxDs[k] * maxInvD11[k];
         }
     }
 

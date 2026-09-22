@@ -56,10 +56,10 @@ public:
     /**
      * @brief 从字符串哈希创建随机数生成器
      *
-     * 使用 MD5 哈希字符串，将 128 位哈希结果与工厂种子 XOR，
-     * 然后经过 mixStafford13 混合后作为新 RNG 的种子。
+     * 使用 MD5 哈希字符串，将 128 位哈希结果与工厂种子逐位异或后作为新 RNG 的种子。
+     * 不经过 mixStafford13 混合——原版 seedFromHashOf 返回的就是未混合的原始摘要。
      *
-     * 与 MC 1.21 XoroshiroPositionalRandomFactory.fromHashOf() 完全一致。
+     * 与 MC 1.21 XoroshiroPositionalRandomFactory.fromHashOf() 一致。
      *
      * @param key 字符串键（如 "octave_0", "octave_1" 等）
      * @return 新的随机数生成器
