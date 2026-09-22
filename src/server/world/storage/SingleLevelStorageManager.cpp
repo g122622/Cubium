@@ -179,6 +179,13 @@ Result<void> SingleLevelStorageManager::open(
     }
     m_config.formatInfo = formatResult.value();
 
+    // Native 格式必须可写：detect 只对外来格式（JavaAnvil / BedrockLDB）置 readonly。
+    // 一旦出现 Native + readonly，说明检测逻辑把本可写的世界降级成了只读，此后所有落盘
+    // 都会静默失败（readonly 下 saveChunk/saveEntity 直接返回），世界数据不保存却毫无征兆——
+    // 新建世界被误判为外来 Java 格式时正是这种情况。
+    MC_ASSERT_RELEASE_MSG(m_config.formatInfo.format != SaveFormat::Native || !m_config.formatInfo.readonly,
+        "SingleLevelStorageManager::open: Native world detected as readonly; persistence would be silently discarded");
+
     // 外来格式：使用后端读取，强制只读
     if (m_config.formatInfo.format != SaveFormat::Native) {
         m_config.readonly = true;

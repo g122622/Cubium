@@ -28,6 +28,11 @@
 #include <filesystem>
 #include <string>
 
+namespace mc::nbt::tags {
+/// 前向声明：_isCubiumAuthoredWorld 只接收引用，无需在此引入完整 NBT 定义
+struct compound_tag;
+} // namespace mc::nbt::tags
+
 namespace mc::world::storage {
 
 /**
@@ -95,6 +100,18 @@ private:
 
     /// 从 Java level.dat 读取版本信息
     static Result<SaveFormatInfo> _detectJavaVersion(const std::filesystem::path& worldDir);
+
+    /**
+     * @brief 判断 level.dat 是否由本项目写出
+     *
+     * 本项目写出的 level.dat 其 `Data.Version.Name` 为 "Cubium"（_detectJavaVersion 会拼成
+     * "Java Cubium"）。用于把"新建的 Cubium 世界"与"外来的 Java 世界"区分开：
+     * 前者应判为 Native 可写，后者必须判为 JavaAnvil 只读。
+     *
+     * @param root 已解析的 level.dat 根复合标签
+     * @return true 表示由本项目写出
+     */
+    static bool _isCubiumAuthoredWorld(mc::nbt::tags::compound_tag& root);
 
     /// 从 Bedrock level.dat 读取版本信息
     static Result<SaveFormatInfo> _detectBedrockVersion(const std::filesystem::path& worldDir);
