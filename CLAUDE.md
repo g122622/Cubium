@@ -28,7 +28,7 @@
 在macos上：
 ```bash
 cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
-# 当前机器核心数要通过命令获取 你必须尽可能吃满全核！
+# 当前机器核心数要通过命令获取
 ```
 
 如果仍然对于构建过程存在疑难问题，可参考`docs/BUILD.md`
