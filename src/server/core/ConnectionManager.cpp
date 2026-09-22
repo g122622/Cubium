@@ -133,26 +133,23 @@ void ConnectionManager::disconnectAll(const std::string& reason)
     }
 }
 
-size_t ConnectionManager::cleanupDisconnectedPlayers(std::vector<PlayerId>* removedPlayers)
+size_t ConnectionManager::cleanupDisconnectedPlayers()
 {
-    std::vector<PlayerId> toRemove;
-    toRemove.reserve(m_playerManager.playerCount());
+    std::vector<PlayerId> disconnected;
+    disconnected.reserve(m_playerManager.playerCount());
 
-    m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
+    m_playerManager.forEachPlayer([&](const ServerPlayerData& player) {
         if (!player.hasConnection()) {
-            toRemove.push_back(player.playerId);
+            disconnected.push_back(player.playerId);
         }
     });
 
-    for (PlayerId playerId : toRemove) {
+    // 分两步：先收集再移除，避免在遍历 m_players 的过程中修改它。
+    for (PlayerId playerId : disconnected) {
         m_playerManager.removePlayer(playerId);
     }
 
-    if (removedPlayers) {
-        *removedPlayers = toRemove;
-    }
-
-    return toRemove.size();
+    return disconnected.size();
 }
 
 } // namespace mc::server::core

@@ -202,6 +202,21 @@ public:
     }
 
     /**
+     * @brief 检查区块是否处于"方块可 tick"范围
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return true 表示该区块的方块应推进 tick（随机刻、方块实体、降雪结算等）
+     *
+     * 等级由玩家票据在距离图中逐区块传播，故本判定等价于"该区块落在某个玩家的模拟距离内"。
+     * 只加载不 tick 的区块（Border/Full 级）不得推进游戏逻辑，详见 isTickingChunkLevel 注释。
+     */
+    [[nodiscard]] bool isTickingChunk(ChunkCoord x, ChunkCoord z) const
+    {
+        return isTickingChunkLevel(getChunkLevel(x, z));
+    }
+
+    /**
      * @brief 检查区块是否应该加载（静态版本）
      *
      * @param level 区块级别

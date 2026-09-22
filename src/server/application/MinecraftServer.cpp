@@ -289,21 +289,9 @@ void MinecraftServer::tick()
     if (m_tickCounter % CLEANUP_INTERVAL == 0) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "CleanupDisconnected", "phase", "cleanup");
 
-        std::vector<PlayerId> removedPlayers;
-        m_connectionManager->cleanupDisconnectedPlayers(&removedPlayers);
-        // 清理玩家相关的追踪和票据
-        for (PlayerId playerId : removedPlayers) {
-            // 从维度同步管理器中移除玩家
-            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
-            if (playerDim) {
-                if (playerDim->world() && playerDim->world()->chunkManager()) {
-                    playerDim->world()->chunkManager()->removePlayer(playerId);
-                }
-                if (auto* cs = playerDim->chunkSendManager()) {
-                    cs->removePlayer(playerId);
-                }
-            }
-        }
+        // 移除全部连接已断开的玩家。区块资源的释放由 PlayerManager 的移除钩子统一完成，
+        // 此处无需重复调用（重复释放虽为幂等，但会让"释放只有一处"的约定失效）。
+        m_connectionManager->cleanupDisconnectedPlayers();
     }
 
     ++m_tickCounter;
@@ -385,16 +373,8 @@ void MinecraftServer::tick()
         auto timedOutPlayers = m_keepAliveManager->getTimedOutPlayers(currentTimeMs);
         for (PlayerId playerId : timedOutPlayers) {
             spdlog::warn("MinecraftServer: Player {} timed out", playerId);
-            // 从维度同步管理器中移除玩家
-            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
-            if (playerDim) {
-                if (playerDim->world() && playerDim->world()->chunkManager()) {
-                    playerDim->world()->chunkManager()->removePlayer(playerId);
-                }
-                if (auto* cs = playerDim->chunkSendManager()) {
-                    cs->removePlayer(playerId);
-                }
-            }
+            // 断开连接。disconnectPlayer 内部经 PlayerManager::removePlayer 触发移除钩子，
+            // 由钩子统一释放区块票据与区块发送跟踪。
             m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
         }
     }
@@ -442,6 +422,10 @@ void MinecraftServer::initializeCoreManagers()
 
     // 创建核心管理器
     m_playerManager = std::make_unique<core::PlayerManager>(m_settings.maxPlayers.get());
+    // 把区块资源释放挂到玩家移除入口上。玩家离场路径有 5 条以上（客户端断线、被踢/封禁/白名单拒绝、
+    // KeepAlive 超时、登录阶段失败、关服批量断开），逐点补调用一定会漏；挂在入口才能保证
+    // "先释放区块票据、后移除玩家" 这一顺序对所有路径成立。
+    m_playerManager->setPlayerRemovalHook([this](PlayerId playerId) { this->releasePlayerChunkResources(playerId); });
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
     // MC 1.16.5: 新世界初始 dayTime = 0（日出时刻）
     m_timeManager = std::make_unique<core::TimeManager>(0, 0);
@@ -1771,6 +1755,28 @@ ServerWorld* MinecraftServer::getPlayerWorld(PlayerId playerId)
 {
     auto* dim = m_dimensionManager->getPlayerDimensionWorld(playerId);
     return dim ? dim->world() : nullptr;
+}
+
+void MinecraftServer::releasePlayerChunkResources(PlayerId playerId)
+{
+    MC_ASSERT_RELEASE(m_dimensionManager != nullptr);
+
+    auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(playerId);
+    if (playerDim == nullptr) {
+        // 登录阶段失败、尚未分配维度的玩家没有区块资源可释放，属正常情况。
+        return;
+    }
+
+    // 释放区块票据：距离图中该玩家作为 source 的等级会随之升级，其视距范围内的区块
+    // 才会重新满足 shouldLoad()==false 的卸载前提。
+    if (playerDim->world() != nullptr && playerDim->world()->chunkManager() != nullptr) {
+        playerDim->world()->chunkManager()->removePlayer(playerId);
+    }
+
+    // 解除该玩家的区块发送跟踪，避免 ChunkSendManager 持有已离场玩家。
+    if (auto* chunkSendManager = playerDim->chunkSendManager()) {
+        chunkSendManager->removePlayer(playerId);
+    }
 }
 
 // ============================================================================

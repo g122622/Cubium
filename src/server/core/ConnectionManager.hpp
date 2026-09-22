@@ -94,11 +94,13 @@ public:
     void disconnectAll(const std::string& reason = "");
 
     /**
-     * @brief 清理已断开连接的玩家
-     * @param removedPlayers 输出参数，存放被移除的玩家ID列表
-     * @return 清理的玩家数量
+     * @brief 移除所有连接已断开的玩家
+     *
+     * 区块票据等玩家资源的释放由 PlayerManager 的移除钩子统一完成，此处无需额外处理。
+     *
+     * @return 被移除的玩家数量
      */
-    size_t cleanupDisconnectedPlayers(std::vector<PlayerId>* removedPlayers = nullptr);
+    size_t cleanupDisconnectedPlayers();
 
 private:
     PlayerManager& m_playerManager;

@@ -135,7 +135,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
         }
         return true;
     });
-    auto entitySaveResult = m_storage.entityStorage()->saveAllEntities(entitiesToSave, 0);
+    auto entitySaveResult = m_storage.entityStorage()->saveEntitiesInChunk(entitiesToSave, 0, 0, 0);
     ASSERT_TRUE(entitySaveResult.success()) << entitySaveResult.error().message();
 
     const ChunkData* persistedChunk = world->getChunk(0, 0);
@@ -164,24 +164,49 @@ TEST_F(ServerWorldPersistenceTest, ChunkUnloadPersistsMovedEntityToNewChunkWitho
 
     world->tick();
 
-    Entity* runtimeEntity = world->getEntity(entityId);
-    ASSERT_NE(runtimeEntity, nullptr);
-    runtimeEntity->setPosition(33.0f, 64.0f, 1.0f);
+    auto* entityStorage = m_storage.entityStorage();
+    ASSERT_NE(entityStorage, nullptr);
 
-    world->tick();
+    // 制造"存档尸体"：先让该实体在区块 (0,0) 落一次盘（等价于上一次会话保存过它），
+    // 使 `0:0:<uuid>` 这一行真实存在。没有这一步，本用例就无法覆盖它名字里声称的场景。
+    {
+        Entity* runtimeEntity = world->getEntity(entityId);
+        ASSERT_NE(runtimeEntity, nullptr);
+        std::vector<std::reference_wrapper<Entity>> toSave;
+        toSave.emplace_back(*runtimeEntity);
+        auto saveResult = entityStorage->saveEntitiesInChunk(toSave, 0, 0, 0);
+        ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+    }
+    {
+        auto rowsInOldChunk = entityStorage->loadEntitiesInChunk(0, 0, 0, mc::test::testEcsRegistry());
+        ASSERT_TRUE(rowsInOldChunk.success()) << rowsInOldChunk.error().message();
+        ASSERT_EQ(rowsInOldChunk.value().size(), 1u) << "前置条件：区块 (0,0) 下应已存在一行实体记录";
+    }
 
-    // 实体空间归属现已由 EntitySpatialIndex 按实体当前坐标实时维护（reapplyPosition 钩子），
-    // 不再有 EntityChunkTracker 中间态可断言。下方 onChunkUnloading(2, 0) 会按实体当前坐标
-    // （chunk (2,0)）取该列实体并保存，验证最终持久化结果即可。
+    // 实体漂移到区块 (2,0)。空间归属由 EntitySpatialIndex 按实体当前坐标实时维护
+    // （reapplyPosition 钩子），故此后 (0,0) 的实体列已空，但它的前缀下仍留着上面写的行。
+    {
+        Entity* runtimeEntity = world->getEntity(entityId);
+        ASSERT_NE(runtimeEntity, nullptr);
+        runtimeEntity->setPosition(33.0f, 64.0f, 1.0f);
+        world->tick();
+    }
+
+    // 核心断言：卸载一个"实体列已空、但前缀下仍有残留行"的区块，必须清空该前缀。
+    // 历史实现在列空时直接 return，残留行永久存活，下次加载 (0,0) 会把它复活成一个
+    // 与存活实例同 UUID 的重复实体。
+    world->onChunkUnloading(0, 0);
+
+    auto staleChunkResult = entityStorage->loadEntitiesInChunk(0, 0, 0, mc::test::testEcsRegistry());
+    ASSERT_TRUE(staleChunkResult.success()) << staleChunkResult.error().message();
+    EXPECT_TRUE(staleChunkResult.value().empty()) << "区块 (0,0) 的残留实体行未被清除";
+
+    // 实体随后随 (2,0) 卸载并正常落盘
     world->onChunkUnloading(2, 0);
 
     EXPECT_EQ(world->getEntity(entityId), nullptr);
 
-    auto oldChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(0, 0, 0, mc::test::testEcsRegistry());
-    ASSERT_TRUE(oldChunkResult.success()) << oldChunkResult.error().message();
-    EXPECT_TRUE(oldChunkResult.value().empty());
-
-    auto newChunkResult = m_storage.entityStorage()->loadEntitiesInChunk(2, 0, 0, mc::test::testEcsRegistry());
+    auto newChunkResult = entityStorage->loadEntitiesInChunk(2, 0, 0, mc::test::testEcsRegistry());
     ASSERT_TRUE(newChunkResult.success()) << newChunkResult.error().message();
     ASSERT_EQ(newChunkResult.value().size(), 1u);
     EXPECT_NEAR(newChunkResult.value()[0]->x(), 33.0f, 0.001f);

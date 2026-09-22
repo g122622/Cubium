@@ -29,6 +29,7 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -1375,6 +1376,11 @@ void ServerChunkManager::_checkChunkUnloading()
     // pair: {level, key}，升序排序后从末尾（最大 level）取。
     std::vector<std::pair<i32, u64>> forcedCandidates;
 
+    // TODO: 软上限强制卸载当前是**不可启用**的状态，切勿调用 setMaxLoadedChunks 打开它。
+    // 它卸载的是 shouldLoad()==true（票据仍要求加载）的区块：卸载后票据立刻又把同一区块
+    // 重新加载回来，在加载数超过上限时形成 load/unload 抖动，且每次卸载都要落盘、每次加载
+    // 都要读盘。启用前必须先让"强制卸载"与票据体系自洽（例如仅卸载无票据覆盖的区块，
+    // 或让超额区间在距离图上真正降级），并补覆盖该场景的测试。
     const bool enforceSoftCap = m_maxLoadedChunks > 0;
     size_t loadedCount = 0;
 
@@ -1402,8 +1408,24 @@ void ServerChunkManager::_checkChunkUnloading()
             // 票级高于 Border（shouldLoad=false）且无追踪玩家且可安全卸载 → 常规卸载候选
             if (!lifecycleManager->shouldLoad() && !m_ticketManager.hasTrackingPlayers(key) &&
                 lifecycleManager->isSafeToUnload()) {
-                toUnload.push_back(key);
+                // 延迟卸载：区块刚离开玩家视距时先挂起一段时间再真正卸载，避免玩家沿区块边界
+                // 往返移动时反复"加载→卸载"（每次卸载要落盘、每次加载要读盘）。
+                // 计时状态挂在区块自身的生命周期对象上，随区块销毁而消失，不会旁挂累积。
+                const u64 nowMs = util::TimeUtils::getCurrentTimeMs();
+                const u64 sinceMs = lifecycleManager->unloadCandidateSinceMs();
+                if (sinceMs == 0) {
+                    lifecycleManager->setUnloadCandidateSinceMs(nowMs);
+                    continue;
+                }
+                if (nowMs - sinceMs >= world::CHUNK_UNLOAD_DELAY_MS) {
+                    toUnload.push_back(key);
+                }
                 continue;
+            }
+
+            // 该区块重新被需要（票据回升、有玩家追踪、或不满足安全卸载）：撤销延迟卸载计时
+            if (lifecycleManager->unloadCandidateSinceMs() != 0) {
+                lifecycleManager->setUnloadCandidateSinceMs(0);
             }
 
             // 软上限统计：所有仍加载（shouldLoad=true）的区块计入强制卸载候选池。
@@ -1630,6 +1652,36 @@ void ServerChunkManager::forEachLoadedChunk(const std::function<bool(ChunkData&)
 
     for (auto& chunk : chunks) {
         if (chunk && !callback(*chunk)) {
+            break;
+        }
+    }
+}
+
+void ServerChunkManager::forEachTickingChunk(const std::function<bool(ChunkData&)>& callback)
+{
+    std::vector<std::shared_ptr<ChunkData>> chunks;
+    {
+        std::lock_guard<std::mutex> lock(m_chunksMutex);
+        chunks.reserve(m_chunks.size());
+        for (const auto& [key, chunk] : m_chunks) {
+            MC_UNUSED(key);
+            if (chunk) {
+                chunks.push_back(chunk);
+            }
+        }
+    }
+
+    for (auto& chunk : chunks) {
+        if (!chunk) {
+            continue;
+        }
+        // 只推进玩家模拟距离内区块的游戏逻辑。仅加载不 tick 的区块（Border/Full 级）
+        // 必须跳过：它们若参与随机刻/方块实体 tick，会在无人靠近处产生掉落物、积雪等副作用，
+        // 且让每 tick 开销随加载区块总数增长。
+        if (!m_ticketManager.isTickingChunk(chunk->x(), chunk->z())) {
+            continue;
+        }
+        if (!callback(*chunk)) {
             break;
         }
     }

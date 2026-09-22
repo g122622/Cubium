@@ -77,18 +77,6 @@ public:
     // ========== 单实体操作 ==========
 
     /**
-     * @brief 保存实体到存储
-     *
-     * 将实体序列化为 NBT 并写入 RocksDB。
-     * 自动根据实体位置计算区块坐标和列族。
-     *
-     * @param entity 实体引用
-     * @param dimension 维度ID
-     * @return 成功或错误
-     */
-    Result<void> saveEntity(const Entity& entity, DimensionId dimension);
-
-    /**
      * @brief 从存储加载单个实体
      *
      * 仅反序列化实体本身，不处理 Passengers。若 NBT 含 Passengers 标签，
@@ -153,15 +141,23 @@ public:
         DimensionId dimension);
 
     /**
-     * @brief 保存当前已加载的全部实体
+     * @brief 保存单个实体到存储
      *
-     * 用于统一全量保存入口，避免实体数据只依赖区块卸载时落盘。
+     * 将实体序列化为 NBT 并写入 RocksDB。
      *
-     * @param entities 全部实体引用
+     * @param entity 实体引用
+     * @param chunkX 存档归属区块 X
+     * @param chunkZ 存档归属区块 Z
      * @param dimension 维度ID
      * @return 成功或错误
+     *
+     * @warning `chunkX/chunkZ` **必须**与调用方枚举该实体所用的区块列一致，且必须是
+     *          deleteEntitiesInChunk 使用的同一坐标系：落键与"按区块前缀整段删除"共用一套
+     *          坐标口径，二者只要出现分歧，被删的行与写入的行就会错位，留下永不清理的残留行。
+     *          因此本方法不按实体自身位置推导区块——那样会在实体跨区块漂移时写出与删除口径
+     *          不符的键。实体按区块列整体保存请用 saveEntitiesInChunk。
      */
-    Result<size_t> saveAllEntities(const std::vector<std::reference_wrapper<Entity>>& entities, DimensionId dimension);
+    Result<void> saveEntity(const Entity& entity, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension);
 
     /**
      * @brief 删除区块内所有实体

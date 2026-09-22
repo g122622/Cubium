@@ -84,6 +84,23 @@ inline bool shouldChunkLoad(i32 level)
     return level <= static_cast<i32>(ChunkLoadLevel::Border);
 }
 
+/**
+ * @brief 检查区块是否处于"方块可 tick"范围
+ * @param level 票据级别
+ * @return true 表示该区块的方块应推进 tick（随机刻、方块实体、降雪结算等）
+ *
+ * 本判定等价于"该区块落在某个玩家的模拟距离内"：等级由玩家票据在距离图中逐区块传播而来，
+ * 与玩家距离一一对应。对应 MC 的 FullChunkStatus.BLOCK_TICKING 及以上。
+ *
+ * 【重要】不要把"已加载"等同于"可 tick"。仅因加载（Border/Full 级）而常驻的区块不推进
+ * 游戏逻辑，否则远处无人靠近的区块也会产生随机刻副作用（掉落物、积雪、作物生长），
+ * 既与 MC 行为不符，也会让 tick 开销随加载区块总数而非玩家数增长。
+ */
+inline bool isTickingChunkLevel(i32 level)
+{
+    return level <= static_cast<i32>(ChunkLoadLevel::BlockTicking);
+}
+
 // ============================================================================
 // 区块加载级别常量（从 ChunkLevel 合并）
 // ============================================================================

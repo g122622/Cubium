@@ -294,30 +294,42 @@ void ServerWorld::shutdown()
     if (m_storage && m_storage->isOpen() && m_chunkManager) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ServerWorld::shutdown::SaveEntitiesInChunks");
         m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
+            auto* entityStorage = m_storage->entityStorage();
+            if (entityStorage == nullptr) {
+                return true;
+            }
+
             // 走 3D section 空间索引取该 chunk 列内全部实体 ID（遍历该 (cx,cz) 列 24 个 section 合并）。
             // 区块卸载/关机保存是低频操作，24 次哈希查找 vs 原 tracker 单次查找，差异可忽略。
             auto entityIds = m_entityManager.spatialIndex().getEntityIdsInChunkColumn(chunk.x(), chunk.z());
-            if (!entityIds.empty()) {
-                auto* entityStorage = m_storage->entityStorage();
-                if (entityStorage) {
-                    std::vector<std::reference_wrapper<Entity>> entitiesToSave;
-                    entitiesToSave.reserve(entityIds.size());
-                    for (EntityInstanceId id : entityIds) {
-                        Entity* entity = m_entityManager.getEntity(id);
-                        if (entity) {
-                            entitiesToSave.emplace_back(*entity);
-                        }
-                    }
-                    if (!entitiesToSave.empty()) {
-                        auto saveResult = entityStorage->saveEntitiesInChunk(
-                            entitiesToSave, chunk.x(), chunk.z(), m_config.dimension);
-                        if (saveResult.failed()) {
-                            spdlog::error("Failed to save entities for chunk ({}, {}) during shutdown: {}",
-                                chunk.x(),
-                                chunk.z(),
-                                saveResult.error().message());
-                        }
-                    }
+
+            // 与 ServerWorld::onChunkUnloading 一致的"先删前缀、再写存活实体"同步。
+            // 列内没有实体时**更**必须删除：那些行的实体早已离开本区块，跳过删除会把
+            // "存档尸体"永久留在盘上，下次加载本区块时复活成同 UUID 的重复实体。
+            auto deleteResult = entityStorage->deleteEntitiesInChunk(chunk.x(), chunk.z(), m_config.dimension);
+            if (deleteResult.failed()) {
+                spdlog::error("Failed to clear old entity records for chunk ({}, {}) during shutdown: {}",
+                    chunk.x(),
+                    chunk.z(),
+                    deleteResult.error().message());
+            }
+
+            std::vector<std::reference_wrapper<Entity>> entitiesToSave;
+            entitiesToSave.reserve(entityIds.size());
+            for (EntityInstanceId id : entityIds) {
+                Entity* entity = m_entityManager.getEntity(id);
+                if (entity) {
+                    entitiesToSave.emplace_back(*entity);
+                }
+            }
+            if (!entitiesToSave.empty()) {
+                auto saveResult =
+                    entityStorage->saveEntitiesInChunk(entitiesToSave, chunk.x(), chunk.z(), m_config.dimension);
+                if (saveResult.failed()) {
+                    spdlog::error("Failed to save entities for chunk ({}, {}) during shutdown: {}",
+                        chunk.x(),
+                        chunk.z(),
+                        saveResult.error().message());
                 }
             }
             return true;
@@ -1310,9 +1322,10 @@ void ServerWorld::tickBlockEntities()
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickBlockEntities");
 
-    // 遍历所有已加载区块，对需要tick的方块实体调用tick()
+    // 遍历玩家模拟距离内的区块，对需要tick的方块实体调用tick()
     // 快照方块实体列表以避免迭代期间修改导致的问题
-    m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
+    // 注意用 forEachTickingChunk 而非 forEachLoadedChunk：仅加载不 tick 的区块不推进方块实体。
+    m_chunkManager->forEachTickingChunk([this](ChunkData& chunk) {
         auto blockEntities = chunk.getAllBlockEntities();
         for (auto* blockEntity : blockEntities) {
             if (blockEntity != nullptr && !blockEntity->isRemoved() && blockEntity->needsTick()) {
@@ -1338,8 +1351,10 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
 
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "ServerWorld::tickEnvironment", "randomTickSpeed", randomTickSpeed);
 
-    // 遍历所有已加载区块
-    m_chunkManager->forEachLoadedChunk([this, randomTickSpeed](ChunkData& chunk) {
+    // 遍历玩家模拟距离内的区块执行随机刻
+    // 注意用 forEachTickingChunk 而非 forEachLoadedChunk：随机刻会改变世界状态（作物生长、
+    // 积雪、方块掉落），在无人靠近的仅加载区块上执行既不符合 MC 行为，也会在远处堆积掉落物。
+    m_chunkManager->forEachTickingChunk([this, randomTickSpeed](ChunkData& chunk) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "tickChunk", "x", chunk.x(), "z", chunk.z());
 
         // 获取区块起始坐标（方块坐标）
@@ -1426,7 +1441,8 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
     const i32 maxSnowAccumulation = m_gameRules.getInt(world::gamerule::GameRuleKeys::MAX_SNOW_ACCUMULATION_HEIGHT);
     const bool isRaining = m_weatherManager && m_weatherManager->isRaining();
 
-    m_chunkManager->forEachLoadedChunk([this, randomTickSpeed, maxSnowAccumulation, isRaining](ChunkData& chunk) {
+    // 注意用 forEachTickingChunk 而非 forEachLoadedChunk：积雪/结冰会改变世界状态
+    m_chunkManager->forEachTickingChunk([this, randomTickSpeed, maxSnowAccumulation, isRaining](ChunkData& chunk) {
         i32 chunkX = chunk.x() * world::CHUNK_WIDTH;
         i32 chunkZ = chunk.z() * world::CHUNK_WIDTH;
 
@@ -2240,10 +2256,13 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
         return;
     }
 
-    if (entityIds.empty()) {
-        return;
-    }
-
+    // 无条件清空该区块前缀下的实体行，再写入当前列内的存活实体——这是一个"同步"操作，
+    // 完成后必须满足不变量：【前缀 `x:z:` 下的行集合 ≡ 存档归属该区块的存活实体集合】。
+    //
+    // 绝不能因列内没有实体就跳过删除：实体离开本区块（被拾取、合并、超龄消失、跨区块漂移）后，
+    // 它在原区块前缀下的行仍在，而本区块的列已经空了。跳过删除会把这具"存档尸体"永久留在盘上，
+    // 此后每次加载本区块都把它复活成一个与现存实例同 UUID 的重复实体——重复实例撞 UUID 后
+    // 旧实例不被回收，堆积成常驻内存（实测单次会话即可堆积 15 万条、占用 388 MB）。
     auto deleteResult = entityStorage->deleteEntitiesInChunk(x, z, m_config.dimension);
     if (deleteResult.failed()) {
         spdlog::error(

@@ -275,9 +275,14 @@ public:
 
     /**
      * @brief 获取等待我的邻居及所需状态（用于 onChunkGenComplete 通知）
+     *
+     * @note 返回**副本**并持锁读取。不能返回内部容器的引用：worker 线程会在持调度区域锁时
+     * 增删该映射，而诊断路径（ServerChunkManager 的卡死转储）不持有任何锁，暴露内部容器
+     * 会让两者并发读写同一个 unordered_map。
      */
-    [[nodiscard]] const std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*>& waitingNeighbours() const
+    [[nodiscard]] std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*> waitingNeighbours() const
     {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         return m_waitingNeighbours;
     }
 
@@ -317,13 +322,25 @@ public:
 
     /**
      * @brief 获取我正在等待的邻居数量
+     *
+     * @note 持锁读取：诊断路径会在不持调度区域锁的情况下调用本方法。
      */
-    [[nodiscard]] size_t blockingNeighbourCount() const { return m_blockingNeighbours.size(); }
+    [[nodiscard]] size_t blockingNeighbourCount() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        return m_blockingNeighbours.size();
+    }
 
     /**
      * @brief 我是否正在等待任何邻居（阻塞中）
+     *
+     * @note 持锁读取：诊断路径会在不持调度区域锁的情况下调用本方法。
      */
-    [[nodiscard]] bool isWaitingForNeighbors() const { return !m_blockingNeighbours.empty(); }
+    [[nodiscard]] bool isWaitingForNeighbors() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        return !m_blockingNeighbours.empty();
+    }
 
     /**
      * @brief 清空我正在等待的邻居集合（onChunkGenComplete 推进后调用）
@@ -422,6 +439,24 @@ public:
     [[nodiscard]] i32 level() const { return m_level.load(std::memory_order::acquire); }
     void setLevel(i32 level) { m_level.store(level, std::memory_order::release); }
     [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
+
+    /**
+     * @brief 获取该区块"进入可卸载状态"的起始时刻（毫秒）
+     * @return 起始时刻；0 表示当前并非可卸载状态（仍在加载或重新被需要）
+     *
+     * 状态挂在区块自身的生命周期对象上，而非 ServerChunkManager 的旁挂映射表：
+     * 对象随区块创建/销毁，不存在"表项生命周期与区块不一致"而残留累积的风险。
+     */
+    [[nodiscard]] u64 unloadCandidateSinceMs() const
+    {
+        return m_unloadCandidateSinceMs.load(std::memory_order::acquire);
+    }
+
+    /**
+     * @brief 记录/清除"进入可卸载状态"的起始时刻
+     * @param sinceMs 起始时刻（毫秒）；传 0 表示该区块重新被需要，撤销延迟卸载计时
+     */
+    void setUnloadCandidateSinceMs(u64 sinceMs) { m_unloadCandidateSinceMs.store(sinceMs, std::memory_order::release); }
 
     [[nodiscard]] SourceState sourceState() const;
     void addTicket(const ChunkLoadTicket& ticket);
@@ -585,6 +620,9 @@ private:
 
     // === 票据与玩家 ===
     std::atomic<i32> m_level{static_cast<i32>(ChunkLoadLevel::MaxLevel)};
+
+    /// "进入可卸载状态"的起始时刻（毫秒），0 表示非可卸载状态；见 unloadCandidateSinceMs
+    std::atomic<u64> m_unloadCandidateSinceMs{0};
     std::vector<ChunkLoadTicket> m_tickets;
     std::unordered_set<PlayerId> m_trackingPlayers;
 

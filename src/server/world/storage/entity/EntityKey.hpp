@@ -30,8 +30,6 @@
 
 namespace mc {
 
-class Entity; // 前向声明，Entity 在 mc 命名空间
-
 namespace world::storage {
 
 /**
@@ -71,13 +69,6 @@ struct EntityKey {
      * @return 解析成功返回 EntityKey，失败返回错误信息
      */
     [[nodiscard]] static Result<EntityKey> parse(const std::string& str);
-
-    /**
-     * @brief 从实体创建键
-     * @param entity 实体引用
-     * @return 包含实体位置和UUID的键
-     */
-    [[nodiscard]] static EntityKey fromEntity(const Entity& entity);
 
     /**
      * @brief 构建区块前缀，用于范围查询

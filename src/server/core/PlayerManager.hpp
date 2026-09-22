@@ -83,6 +83,22 @@ public:
         mc::server::net::IServerClientConnection* connection);
 
     /**
+     * @brief 设置玩家移除前的资源释放钩子
+     *
+     * 由 MinecraftServer 注入，在 `removePlayer` / `removePlayerBySessionId` 真正摘除玩家记录
+     * **之前**调用，用于释放该玩家占用的区块票据与区块发送跟踪。
+     *
+     * 之所以做成钩子、而不是在各调用点逐个补调用：玩家离场路径有 5 条以上（客户端主动断开、
+     * 被踢/封禁/白名单拒绝、KeepAlive 超时、登录阶段失败、关服批量断开），逐点补调用一旦漏掉
+     * 任意一条，该玩家的区块票据就会永久残留在距离图中——其视距范围内的区块将因
+     * `shouldLoad()` 恒为真而永不满足卸载条件，并被无门控地全量 tick。
+     * 挂在移除入口上可让"先释放、后移除"成为结构性保证。
+     *
+     * @note 未设置钩子时移除玩家会触发断言失败：不存在不需要释放区块资源的玩家。
+     */
+    void setPlayerRemovalHook(std::function<void(PlayerId)> hook);
+
+    /**
      * @brief 移除玩家
      * @param playerId 玩家ID
      * @note 线程安全
@@ -310,6 +326,13 @@ public:
     [[nodiscard]] const ServerPlayerData* findByUuid(const std::string& uuid) const;
 
 private:
+    /**
+     * @brief 调用玩家移除钩子释放其占用的资源
+     *
+     * @warning 调用方必须已持有 m_mutex，且必须在**摘除玩家记录之前**调用
+     */
+    void _notifyPlayerRemoval(PlayerId playerId);
+
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<PlayerId, ServerPlayerData> m_players;
     std::unordered_map<u32, PlayerId> m_sessionToPlayer; ///< 会话ID -> 玩家ID
@@ -319,6 +342,9 @@ private:
     i32 m_maxPlayers = 20;
 
     sync::ChunkSyncManager m_chunkSyncManager;
+
+    /// 玩家移除前的资源释放钩子，见 setPlayerRemovalHook
+    std::function<void(PlayerId)> m_playerRemovalHook;
 };
 
 } // namespace mc::server::core

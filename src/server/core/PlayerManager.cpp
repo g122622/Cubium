@@ -23,6 +23,7 @@
 
 #include "PlayerManager.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/base/IServerClientConnection.hpp"
 #include "server/network/sync/chunk/PlayerChunkTracker.hpp"
@@ -31,6 +32,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 #include <spdlog/spdlog.h>
 
@@ -82,6 +84,23 @@ ServerPlayerData* PlayerManager::addPlayer(PlayerId playerId,
     return &player;
 }
 
+void PlayerManager::setPlayerRemovalHook(std::function<void(PlayerId)> hook)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // 重复安装会静默丢弃前一个钩子，从而漏掉一半的区块资源释放 —— 明确禁止。
+    MC_ASSERT_RELEASE_MSG(m_playerRemovalHook == nullptr, "PlayerManager::setPlayerRemovalHook called twice");
+    m_playerRemovalHook = std::move(hook);
+}
+
+void PlayerManager::_notifyPlayerRemoval(PlayerId playerId)
+{
+    // 调用方须已持有 m_mutex。
+    MC_ASSERT_RELEASE_MSG(m_playerRemovalHook != nullptr,
+        "PlayerManager: removing a player before the removal hook was installed; the player's chunk tickets "
+        "would leak permanently");
+    m_playerRemovalHook(playerId);
+}
+
 void PlayerManager::removePlayer(PlayerId playerId)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -89,10 +108,11 @@ void PlayerManager::removePlayer(PlayerId playerId)
     auto it = m_players.find(playerId);
     if (it == m_players.end()) return;
 
-    std::string username = it->second.username;
-    u32 sessionId = it->second.sessionId;
+    // 先释放玩家占用的区块资源、再摘除玩家记录。顺序不可颠倒：释放钩子需要在玩家仍在册时定位其维度。
+    _notifyPlayerRemoval(playerId);
 
     // 移除会话映射
+    const u32 sessionId = it->second.sessionId;
     if (sessionId != 0) {
         m_sessionToPlayer.erase(sessionId);
     }
@@ -113,7 +133,8 @@ void PlayerManager::removePlayerBySessionId(u32 sessionId)
     auto playerIt = m_players.find(playerId);
     if (playerIt == m_players.end()) return;
 
-    std::string username = playerIt->second.username;
+    // 与 removePlayer 同理：必须先释放区块资源
+    _notifyPlayerRemoval(playerId);
 
     // 移除会话映射
     m_sessionToPlayer.erase(sessionId);

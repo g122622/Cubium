@@ -98,13 +98,25 @@ EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 
     // 维护 UUID 索引
     const std::string& uuid = entity->uuid();
-    if (!uuid.empty()) {
-        if (m_uuidToEntity.find(uuid) != m_uuidToEntity.end()) {
-            // UUID 冲突：输出警告但不阻止添加
-            spdlog::warn("Duplicate entity UUID {}: entity {} will override existing mapping", uuid, id);
-        }
-        m_uuidToEntity[uuid] = entity.get();
+    MC_ASSERT_RELEASE_MSG(!uuid.empty(), "EntityManager::addEntity: entity has an empty UUID");
+
+    // UUID 必须全局唯一。两个存活实体共用 UUID 时，UUID 索引只能指向其中一个，另一个成为
+    // 既无法通过 UUID 寻址、也不会被任何查找命中的孤实体，只能等所属区块卸载才被清理——
+    // 若该区块长期驻留，它连同其 ECS 组件、DataEntry 数组、tracker 条目一起永久占住内存。
+    //
+    // 历史实现在此**仅打印警告并覆盖映射**，于是"存档中的重复行"被静默转成了
+    // "同时存活的重复实例"：实测单次会话即堆积 157,180 个实体、388 MB 常驻内存。
+    // 重复 UUID 是不变量被破坏的确凿信号，必须当场暴露而不是掩盖。
+    if (m_uuidToEntity.find(uuid) != m_uuidToEntity.end()) {
+        const Entity* existing = m_uuidToEntity[uuid];
+        spdlog::error("EntityManager: duplicate entity UUID {}: entity {} would override existing entity {}",
+            uuid,
+            id,
+            existing != nullptr ? existing->id() : 0);
+        MC_ASSERT_RELEASE_MSG(false,
+            "EntityManager::addEntity: two live entities share one UUID; the second would silently orphan the first");
     }
+    m_uuidToEntity[uuid] = entity.get();
 
     // 绑定反向指针并登记到空间索引（按当前位置一次性注册）。须在 move 进 m_entities
     // 前完成——move 后 entity 为 nullptr。setEntityManager 后若实体再 setPosition 会经

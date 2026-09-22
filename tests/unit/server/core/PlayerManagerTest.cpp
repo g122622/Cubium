@@ -108,10 +108,20 @@ TEST_F(PlayerManagerTest, RemovePlayer)
 {
     PlayerManager manager;
 
+    // 移除钩子必须在玩家真正被摘除之前调用，且调用时玩家仍在册——区块票据的释放依赖这个顺序。
+    mc::PlayerId hookedPlayerId = 0;
+    bool playerStillRegisteredWhenHooked = false;
+    manager.setPlayerRemovalHook([&](mc::PlayerId playerId) {
+        hookedPlayerId = playerId;
+        playerStillRegisteredWhenHooked = manager.hasPlayer(playerId);
+    });
+
     manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     EXPECT_EQ(manager.playerCount(), 1u);
 
     manager.removePlayer(1);
+    EXPECT_EQ(hookedPlayerId, 1u);
+    EXPECT_TRUE(playerStillRegisteredWhenHooked);
     EXPECT_EQ(manager.playerCount(), 0u);
     EXPECT_FALSE(manager.hasPlayer(1));
 }
@@ -159,11 +169,16 @@ TEST_F(PlayerManagerTest, RemovePlayerBySessionId)
 {
     PlayerManager manager;
 
+    // 两条移除路径都必须触发资源释放钩子，否则该玩家的区块票据会永久残留
+    mc::PlayerId hookedPlayerId = 0;
+    manager.setPlayerRemovalHook([&](mc::PlayerId playerId) { hookedPlayerId = playerId; });
+
     manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     manager.mapSessionToPlayer(100, 1);
     EXPECT_EQ(manager.playerCount(), 1u);
 
     manager.removePlayerBySessionId(100);
+    EXPECT_EQ(hookedPlayerId, 1u);
     EXPECT_EQ(manager.playerCount(), 0u);
     EXPECT_EQ(manager.getPlayerIdBySession(100), 0u);
 }
@@ -204,6 +219,7 @@ TEST_F(PlayerManagerTest, ForEachPlayerCanNestGetPlayerCall)
 TEST_F(PlayerManagerTest, ForEachPlayerSupportsRemovalDuringIteration)
 {
     PlayerManager manager;
+    manager.setPlayerRemovalHook([](mc::PlayerId /*playerId*/) {});
 
     manager.addPlayer(1, mc::util::uuidToString(mc::util::generateOfflineUuid("Steve")), "Steve", nullptr);
     manager.addPlayer(2, mc::util::uuidToString(mc::util::generateOfflineUuid("Alex")), "Alex", nullptr);

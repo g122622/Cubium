@@ -548,8 +548,25 @@ void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder)
     holder.markFailed();
     holder.clearGenerationTask();
 
+    _releaseDependencyEdgesOnFailure(holder);
+
     // 通知所有等待者失败
     m_manager._failWaiters(holder.takeAllWaiters());
+}
+
+void ChunkTaskScheduler::_releaseDependencyEdgesOnFailure(SingleChunkLifecycleManager& holder)
+{
+    // 失败者必须双向摘除依赖边，否则会把所有等待者永久钉死：
+    // 等待者的 m_blockingNeighbours 里留着本 holder，而本 holder 已不可能再推进状态，
+    // 该边永远等不到 notifyWaitingNeighbours 来清除。任一侧边非空即令
+    // isSafeToUnload() 恒为 false，于是区块既不能卸载、也不能经 cancelGeneration 清理
+    // （该路径同样以 isSafeToUnload() 为前提），holder 与其 ChunkData 永久常驻内存。
+    //
+    // 不在此重新调度被解除阻塞的等待者：它们若重新 schedule，会在 checkNeighbour 的
+    // hasFailedGeneration 分支上再次被判定为阻塞（该分支不建边），只是白跑一趟。
+    // 它们此刻已满足卸载前提，随票据下降被正常驱逐；下次加载会重建 holder 并重新生成。
+    const auto unblockedWaiters = clearAllDependencyEdges(holder);
+    MC_UNUSED(unblockedWaiters);
 }
 
 void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task)
@@ -604,8 +621,39 @@ void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder, m
     holder.markFailed();
     holder.clearGenerationTask();
 
+    _releaseDependencyEdgesOnFailure(holder);
+
     // 通知所有等待者失败
     m_manager._failWaiters(holder.takeAllWaiters());
+}
+
+std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>> ChunkTaskScheduler::clearAllDependencyEdges(
+    SingleChunkLifecycleManager& holder)
+{
+    // 出向：本 holder 正在等待的邻居。从每个邻居的等待表中摘除本 holder，
+    // 使邻居在不再被任何 holder 等待时可以卸载。
+    {
+        const auto blocking = holder.blockingNeighbours();
+        holder.clearBlockingNeighbours();
+        for (SingleChunkLifecycleManager* neighbour : blocking) {
+            if (neighbour != nullptr) {
+                neighbour->removeWaitingNeighbour(&holder);
+            }
+        }
+    }
+
+    // 入向：正在等待本 holder 的邻居。从每个等待者的阻塞表中摘除本 holder，
+    // 否则它们会永久阻塞在一条永远不会被满足的依赖边上，导致其 isSafeToUnload() 恒为 false。
+    auto waiting = holder.takeWaitingNeighbours();
+    for (auto& [neighbour, requiredStatus] : waiting) {
+        if (neighbour != nullptr) {
+            neighbour->removeBlockingNeighbour(&holder);
+            continue;
+        }
+        // 空指针条目不应存在于依赖图中：添加点（checkNeighbour）始终传入有效 holder。
+        MC_ASSERT_RELEASE_MSG(false, "ChunkTaskScheduler: null neighbour in waiting-neighbour map");
+    }
+    return waiting;
 }
 
 void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder)
@@ -652,33 +700,16 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder)
         }
     }
 
-    // 4. 出向依赖：本 holder 等待的邻居（m_blockingNeighbours）。
-    //    从每个邻居的 m_waitingNeighbours 移除本 holder，并清空本 holder 的 m_blockingNeighbours。
-    //    邻居的 m_waitingNeighbours 移除本 holder 后，若邻居不再被任何 holder 等待，
-    //    邻居的 isSafeToUnload 可能为 true（可卸载）。不在此重新调度出向邻居——
-    //    它们原本就在等待本 holder，本 holder 取消后它们通过 _onTicketLevelChanged 重新评估。
-    {
-        const auto blocking = holder.blockingNeighbours();
-        holder.clearBlockingNeighbours();
-        for (SingleChunkLifecycleManager* neighbour : blocking) {
-            if (neighbour != nullptr) {
-                neighbour->removeWaitingNeighbour(&holder);
-            }
-        }
-    }
-
-    // 5. 入向依赖：等本 holder 的邻居（m_waitingNeighbours）。
-    //    从每个邻居的 m_blockingNeighbours 移除本 holder。若邻居不再阻塞且有请求目标，
-    //    重新调度邻居（邻居的 schedule→checkNeighbour 会通过 getOrCreateHolder 重建本 holder）。
-    //    takeWaitingNeighbours 取出并清空本 holder 的 m_waitingNeighbours。
+    // 4+5. 双向摘除依赖边（见 clearAllDependencyEdges 注释：漏摘会让 holder 永久不可卸载）。
+    //    出向邻居不在此重新调度——它们原本就在等待本 holder，本 holder 取消后通过
+    //    _onTicketLevelChanged 重新评估。入向等待者若不再阻塞且有请求目标，收集到 pending，
+    //    释放锁后 rescheduleChunk（邻居的 schedule→checkNeighbour 会通过 getOrCreateHolder 重建本 holder）。
     //    关闭期间（isShuttingDown）不重新调度：所有 holder 的 abortSignal 已失效，
     //    重调度的任务无法被取消，会导致 waitForCompletion 无限循环。
-    auto waiting = holder.takeWaitingNeighbours();
-    for (auto& [neighbour, requiredStatus] : waiting) {
+    for (auto& [neighbour, requiredStatus] : clearAllDependencyEdges(holder)) {
         if (neighbour == nullptr) {
             continue;
         }
-        neighbour->removeBlockingNeighbour(&holder);
         // 邻居不再阻塞且无进行中任务且有请求目标：收集到 pending，释放锁后 rescheduleChunk（关闭期间跳过）。
         // isShuttingDown 在持锁时求值（与原行为一致）。target 为 requestedGenStatus()
         // 的指针（静态单例，释放锁后仍有效）。
@@ -756,22 +787,11 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, m
         }
     }
 
-    {
-        const auto blocking = holder.blockingNeighbours();
-        holder.clearBlockingNeighbours();
-        for (SingleChunkLifecycleManager* neighbour : blocking) {
-            if (neighbour != nullptr) {
-                neighbour->removeWaitingNeighbour(&holder);
-            }
-        }
-    }
-
-    auto waiting = holder.takeWaitingNeighbours();
-    for (auto& [neighbour, requiredStatus] : waiting) {
+    // 与 cancelGeneration(holder) 一致：双向摘除依赖边，并收集可重新调度的入向等待者
+    for (auto& [neighbour, requiredStatus] : clearAllDependencyEdges(holder)) {
         if (neighbour == nullptr) {
             continue;
         }
-        neighbour->removeBlockingNeighbour(&holder);
         // 邻居不再阻塞且无进行中任务且有请求目标：收集到 pending，释放锁后 rescheduleChunk（关闭期间跳过）。
         // isShuttingDown 在持锁时求值（与原行为一致）。target 为 requestedGenStatus()
         // 的指针（静态单例，释放锁后仍有效）。

@@ -28,7 +28,6 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/util/math/MathUtils.hpp"
 #include "server/world/storage/db/ColumnFamilies.hpp"
 #include "server/world/storage/db/RocksDBDatabase.hpp"
 #include "server/world/storage/entity/EntityKey.hpp"
@@ -85,16 +84,6 @@ Result<EntityKey> EntityKey::parse(const std::string& str)
     return key;
 }
 
-EntityKey EntityKey::fromEntity(const Entity& entity)
-{
-    EntityKey key;
-    // 使用 math::toChunkCoord 进行世界坐标到区块坐标的转换，避免硬编码区块尺寸
-    key.chunkX = math::toChunkCoord(entity.position().x);
-    key.chunkZ = math::toChunkCoord(entity.position().z);
-    key.uuid = entity.uuid();
-    return key;
-}
-
 std::string EntityKey::buildChunkPrefix(ChunkCoord chunkX, ChunkCoord chunkZ)
 {
     return std::to_string(chunkX) + ":" + std::to_string(chunkZ) + ":";
@@ -110,7 +99,8 @@ EntityStorageManager::EntityStorageManager(RocksDBDatabase& db)
 
 // ========== 单实体操作 ==========
 
-Result<void> EntityStorageManager::saveEntity(const Entity& entity, DimensionId dimension)
+Result<void> EntityStorageManager::saveEntity(
+    const Entity& entity, ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)
 {
     // 乘客不单独落盘：乘客作为载具 Passengers 标签的一部分被递归序列化，
     // 参考 MC Java: Entity.save → isPassenger 时返回 false，不写入顶层 Entities 列表。
@@ -125,8 +115,16 @@ Result<void> EntityStorageManager::saveEntity(const Entity& entity, DimensionId 
         return binaryResult.error();
     }
 
-    // 计算键
-    EntityKey key = EntityKey::fromEntity(entity);
+    // 键由调用方给出的区块坐标构造，**不**按实体当前位置推导：落键必须与
+    // deleteEntitiesInChunk 的"按区块前缀整段删除"共用同一坐标口径。若按实体位置落键，
+    // 实体一旦跨区块漂移，它写出的键就落在删除范围之外，旧行永远清不掉。
+    EntityKey key;
+    key.chunkX = chunkX;
+    key.chunkZ = chunkZ;
+    key.uuid = entity.uuid();
+    MC_ASSERT_RELEASE_MSG(
+        !key.uuid.empty(), "EntityStorageManager::saveEntity: refusing to persist an entity with an empty UUID");
+
     auto dbKey = _makeKey(key);
 
     // 写入数据库
@@ -217,43 +215,21 @@ Result<void> EntityStorageManager::saveEntitiesInChunk(const std::vector<std::re
     ChunkCoord chunkZ,
     DimensionId dimension)
 {
-    MC_UNUSED(chunkX);
-    MC_UNUSED(chunkZ);
-
+    // 所有实体一律落在传入的区块坐标下，与调用方枚举它们的区块列、以及
+    // deleteEntitiesInChunk 的删除范围保持同一口径。
     for (const auto& entityRef : entities) {
         const Entity& entity = entityRef.get();
         // 乘客不单独落盘（详见 saveEntity 注释）
         if (entity.isRiding()) {
             continue;
         }
-        auto result = saveEntity(entity, dimension);
+        auto result = saveEntity(entity, chunkX, chunkZ, dimension);
         if (!result.success()) {
             return result;
         }
     }
 
     return Result<void>::ok();
-}
-
-Result<size_t> EntityStorageManager::saveAllEntities(
-    const std::vector<std::reference_wrapper<Entity>>& entities, DimensionId dimension)
-{
-    size_t savedCount = 0;
-    for (const auto& entityRef : entities) {
-        const Entity& entity = entityRef.get();
-        // 乘客不单独落盘（详见 saveEntity 注释），但仍计入 savedCount 以便调用方统计
-        if (entity.isRiding()) {
-            ++savedCount;
-            continue;
-        }
-        auto result = saveEntity(entity, dimension);
-        if (result.failed()) {
-            return result.error();
-        }
-        ++savedCount;
-    }
-
-    return savedCount;
 }
 
 Result<void> EntityStorageManager::deleteEntitiesInChunk(ChunkCoord chunkX, ChunkCoord chunkZ, DimensionId dimension)

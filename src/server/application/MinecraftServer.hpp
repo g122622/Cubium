@@ -248,6 +248,21 @@ public:
 
     [[nodiscard]] ServerWorld* getPlayerWorld(PlayerId playerId) override;
 
+    /**
+     * @brief 释放玩家占用的区块相关资源
+     *
+     * 释放该玩家在所处维度留下的区块票据（含距离图中的玩家源票据）与区块发送跟踪。
+     *
+     * 必须在从 PlayerManager 移除该玩家**之前**调用。原因是票据释放依赖
+     * `getPlayerDimensionWorld(playerId)` 定位维度；更重要的是，玩家一旦从 PlayerManager
+     * 移除，`cleanupDisconnectedPlayers` 的兜底扫描（判据为 `!hasConnection()`）就再也看不到
+     * 该玩家，票据将永久残留在距离图中——其视距范围内的区块会因此 `shouldLoad()` 恒为真、
+     * 永不满足卸载条件，进而导致这些区块被无门控地全量 tick。
+     *
+     * 所有玩家离场路径（客户端主动断开、被踢/被封禁/白名单拒绝、KeepAlive 超时）都必须经过本方法。
+     */
+    void releasePlayerChunkResources(PlayerId playerId);
+
     // ========== 维度管理器 ==========
 
     [[nodiscard]] ServerDimensionManager& dimensionManager() override { return *m_dimensionManager; }

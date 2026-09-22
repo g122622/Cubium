@@ -288,8 +288,14 @@ bool SingleChunkLifecycleManager::isSafeToUnload() const
     // 此处持 m_mutex 读取保证与依赖图操作（addWaitingNeighbour/removeBlockingNeighbour）的可见性。
     // 注意：最终卸载一致性由 unloadChunkSync 持调度锁重新检查 isSafeToUnload 保证
     // （见 ServerChunkManager::unloadChunkSync）。
+    //
+    // 生成失败标记（m_hasFailedGeneration）**不**计入本判定。它没有复位接口，一旦计入，
+    // 失败区块就永远无法卸载、其 ChunkData 与其常驻的内存永不释放；而卸载路径
+    // （cancelGeneration）本身又以 isSafeToUnload() 为前提，构成循环门控。
+    // 失败只应决定"是否继续调度生成"（由调度路径上的 hasFailedGeneration 把关），
+    // 不应决定"能否释放内存"——卸载后重新加载会重建 holder 并从头生成。
     return m_neighboursUsingThisChunk.load(std::memory_order::acquire) == 0 && m_generationTask == nullptr &&
-        !hasFailedGeneration() && m_blockingNeighbours.empty() && m_waitingNeighbours.empty();
+        m_blockingNeighbours.empty() && m_waitingNeighbours.empty();
 }
 
 // ============================================================================

@@ -50,6 +50,10 @@ protected:
     void SetUp() override
     {
         m_playerManager = std::make_unique<PlayerManager>();
+        // 生产环境下该钩子由 MinecraftServer 注入（MinecraftServer::releasePlayerChunkResources）。
+        // PlayerManager::removePlayer 会断言钩子已安装——不存在不需要释放区块资源的玩家。
+        m_playerManager->setPlayerRemovalHook(
+            [this](mc::PlayerId playerId) { m_releasedPlayerIds.push_back(playerId); });
         m_connectionManager = std::make_unique<ConnectionManager>(*m_playerManager);
     }
 
@@ -68,6 +72,9 @@ protected:
 
     std::unique_ptr<PlayerManager> m_playerManager;
     std::unique_ptr<ConnectionManager> m_connectionManager;
+
+    /// 记录移除钩子被调用的玩家 ID，用于断言"先释放区块资源、后摘除玩家"
+    std::vector<mc::PlayerId> m_releasedPlayerIds;
 };
 
 TEST_F(ConnectionManagerTest, SendToPlayerReturnsFalseWhenConnectionIsNull)
@@ -108,6 +115,8 @@ TEST_F(ConnectionManagerTest, DisconnectPlayer)
     m_connectionManager->disconnectPlayer(1, "Test disconnect");
 
     EXPECT_FALSE(m_playerManager->hasPlayer(1));
+    // 区块资源释放钩子必须被触发，否则该玩家的区块票据会永久残留在距离图中
+    EXPECT_EQ(m_releasedPlayerIds, std::vector<mc::PlayerId>({1}));
 }
 
 TEST_F(ConnectionManagerTest, DisconnectAll)
@@ -129,5 +138,6 @@ TEST_F(ConnectionManagerTest, CleanupDisconnectedPlayersTreatsNullConnectionAsDi
     // nullptr 连接 hasConnection() 返回 false，被视为已断开
     size_t cleaned = m_connectionManager->cleanupDisconnectedPlayers();
     EXPECT_EQ(cleaned, 1u);
+    EXPECT_EQ(m_releasedPlayerIds, std::vector<mc::PlayerId>({1}));
     EXPECT_EQ(m_playerManager->playerCount(), 0u);
 }

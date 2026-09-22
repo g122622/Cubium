@@ -569,6 +569,20 @@ public:
     void forEachLoadedChunk(const std::function<bool(const ChunkData&)>& callback) const;
 
     /**
+     * @brief 遍历处于"方块可 tick"范围内的区块
+     *
+     * 对齐 MC 的 ticking-chunk 语义（ChunkMap.tickingChunks / FullChunkStatus.BLOCK_TICKING）：
+     * 只有落在某个玩家模拟距离内的区块才推进游戏逻辑（随机刻、方块实体、降雪结算）。
+     *
+     * 【重要】凡是"推进世界状态"的每 tick 遍历都必须用本方法，而不是 forEachLoadedChunk。
+     * 后者会把仅因票据加载而常驻、无人靠近的区块也算进来，导致随机刻副作用在远处发生
+     * （掉落物堆积、积雪变化、作物生长），并使 tick 开销随加载区块总数增长而非随玩家数增长。
+     *
+     * @param callback 回调函数，返回 false 时停止遍历
+     */
+    void forEachTickingChunk(const std::function<bool(ChunkData&)>& callback);
+
+    /**
      * @brief 获取单区块生命周期管理器数量
      */
     [[nodiscard]] size_t lifecycleManagerCount() const;

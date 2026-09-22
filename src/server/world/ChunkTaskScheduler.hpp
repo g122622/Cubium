@@ -331,6 +331,38 @@ private:
     };
 
     /**
+     * @brief 双向摘除该 holder 在依赖图中的全部依赖边
+     *
+     * 出向：holder 的 m_blockingNeighbours（holder 正在等待的邻居）——从每个邻居的
+     *       m_waitingNeighbours 中摘除 holder，再清空 holder 本端记录。
+     * 入向：holder 的 m_waitingNeighbours（正在等待 holder 的邻居）——从每个等待者的
+     *       m_blockingNeighbours 中摘除 holder，并取出（清空）holder 本端记录。
+     *
+     * 取消与失败两条路径都必须调用。遗漏会让边永久留存：任一侧边非空即令
+     * SingleChunkLifecycleManager::isSafeToUnload() 返回 false，而区块卸载又要求
+     * 该判定为真才能进入 cancelGeneration 清理——形成"边不清理→不可卸载→永不清理"的循环门控，
+     * holder 与其 ChunkData 将永久常驻内存。
+     *
+     * @param holder 待清理的生命周期管理器
+     * @return 被摘除的入向等待者（{等待者, 其所需状态}），调用方可在释放区域锁后据此重新调度
+     *
+     * @warning 调用方必须已持有 holder 的调度区域锁
+     */
+    [[nodiscard]] std::vector<
+        std::pair<mc::world::chunk::SingleChunkLifecycleManager*, const mc::world::chunk::ChunkStatus*>>
+    clearAllDependencyEdges(mc::world::chunk::SingleChunkLifecycleManager& holder);
+
+    /**
+     * @brief 生成失败时摘除该 holder 的依赖边
+     *
+     * 与取消路径的差别：失败者已不可能再推进状态，因此被解除阻塞的等待者不需要重新调度
+     * （它们会立刻在 checkNeighbour 的失败邻居分支上再次阻塞）。详见实现处注释。
+     *
+     * @warning 调用方必须已持有 holder 的调度区域锁
+     */
+    void _releaseDependencyEdgesOnFailure(mc::world::chunk::SingleChunkLifecycleManager& holder);
+
+    /**
      * @brief 在 onChunkGenComplete 后通知等待该区块的邻居重新调度
      *
      * 持锁期间仅做依赖图变更（removeBlockingNeighbour/clearSatisfiedWaitingNeighbours），
