@@ -114,14 +114,15 @@ Result<SaveFormatInfo> SaveFormatDetector::detect(const std::filesystem::path& w
                         stream >> mc::nbt::contexts::java;
                         auto root = mc::nbt::tags::compound_tag::read(stream);
                         if (root) {
+                            // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
+                            const mc::nbt::tags::compound_tag& levelData = mc::nbt::unwrapRootCompound(*root);
                             // 本项目写出的世界（Version.Name == "Cubium"）此时既没有 region/ 也没有 db/，
                             // 说明是新建世界或尚未首次落盘。必须判为 Native 且**保持可写**——
                             // RocksDB 会在建库时自行创建 db/ 目录。
                             // 若走下方 JavaAnvil 兜底会被强制 readonly，新世界将什么都不落盘。
-                            if (_isCubiumAuthoredWorld(*root)) {
-                                spdlog::info(
-                                    "SaveFormatDetector: Detected new Cubium-authored world at {}; "
-                                    "treating as writable Native format",
+                            if (_isCubiumAuthoredWorld(levelData)) {
+                                spdlog::info("SaveFormatDetector: Detected new Cubium-authored world at {}; "
+                                             "treating as writable Native format",
                                     worldDir.string());
                                 SaveFormatInfo info;
                                 info.format = SaveFormat::Native;
@@ -278,13 +279,16 @@ Result<SaveFormatInfo> SaveFormatDetector::_detectJavaVersion(const std::filesys
             return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT");
         }
 
+        // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
+        const mc::nbt::tags::compound_tag& levelData = mc::nbt::unwrapRootCompound(*root);
+
         SaveFormatInfo info;
         info.format = SaveFormat::JavaAnvil;
         info.readonly = true;
 
         // 读取 DataVersion
-        if (root->value.count("Data") != 0) {
-            auto* data = dynamic_cast<mc::nbt::tags::compound_tag*>(root->value.at("Data").get());
+        if (levelData.value.count("Data") != 0) {
+            auto* data = dynamic_cast<mc::nbt::tags::compound_tag*>(levelData.value.at("Data").get());
             if (data) {
                 if (data->value.count("DataVersion") != 0) {
                     info.dataVersion = static_cast<i32>(data->get<mc::nbt::tags::int_tag>("DataVersion"));
@@ -311,14 +315,14 @@ Result<SaveFormatInfo> SaveFormatDetector::_detectJavaVersion(const std::filesys
     }
 }
 
-bool SaveFormatDetector::_isCubiumAuthoredWorld(mc::nbt::tags::compound_tag& root)
+bool SaveFormatDetector::_isCubiumAuthoredWorld(const mc::nbt::tags::compound_tag& root)
 {
     // 注意：compound_tag::get<> 内部用 value.at()，键缺失会抛异常，故每一步都必须先查 count。
     auto dataIt = root.value.find("Data");
     if (dataIt == root.value.end()) {
         return false;
     }
-    auto* data = dynamic_cast<mc::nbt::tags::compound_tag*>(dataIt->second.get());
+    const auto* data = dynamic_cast<const mc::nbt::tags::compound_tag*>(dataIt->second.get());
     if (data == nullptr) {
         return false;
     }
@@ -327,7 +331,7 @@ bool SaveFormatDetector::_isCubiumAuthoredWorld(mc::nbt::tags::compound_tag& roo
     if (versionIt == data->value.end()) {
         return false;
     }
-    auto* version = dynamic_cast<mc::nbt::tags::compound_tag*>(versionIt->second.get());
+    const auto* version = dynamic_cast<const mc::nbt::tags::compound_tag*>(versionIt->second.get());
     if (version == nullptr || version->value.find("Name") == version->value.end()) {
         return false;
     }

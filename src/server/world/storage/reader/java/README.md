@@ -49,6 +49,18 @@ JavaWorldReader
 
 ## 容易踩的坑
 
+### NBT 根标签前缀层必须解包
+
+`nbt::tags::compound_tag::read` 按「复合标签体」解析，**不消费根标签自身的 id+name 前缀**。而 Java 写出的 level.dat / 区块列 / playerdata 在根标签体之前都有一个 `TAG_Compound(0x0A)` + 名称长度 + 名称（Java 根名称通常为空），直接读取会得到多出一层的 `{"": <真实内容>}`，按真实键名（`Data`/`xPos`/`sections`…）查找**全部落空**。
+
+所有读取 Java 文件的入口都必须先调 `mc::nbt::unwrapRootCompound()`（`common/util/nbt/Nbt.hpp`）。漏调的症状极具误导性：NBT 能解析成功（不报错、不崩溃），只是所有字段读成默认值或"缺少某标签"，看起来像存档数据有问题。本目录的 `JavaColumnReader` / `JavaWorldReader` / `JavaLevelDatReader`、`backend/JavaAnvilBackend`（playerdata）、`core/SaveFormat`（level.dat）均已接入。
+
+### 位压缩是 padded 而非 compact
+
+Java 1.16（20w17a）起，`block_states.data` 与旧版 `BlockStates` 都使用 **padded** 格式（每个 long 独立存放 `64/bitsPerEntry` 个值，尾部高位弃用）。`unpackLongArray` 的最后一个参数必须传 `true`。
+
+这个错误很难发现：`bitsPerEntry` 为 4（调色板 ≤16 项）时 padded 与 compact 的布局恰好重合，最低段往往解出正确方块；一旦调色板超过 16 项（bits ≥ 5）就整体错位，解出大量错误方块或空气。
+
 ### 区域文件格式 (.mca)
 
 - 8192 字节头部：1024 条偏移记录 + 1024 条时间戳记录
@@ -83,8 +95,8 @@ JavaWorldReader
 
 ### Status 过滤
 
-- 未完成的区块（Status 为 `empty`、`structure_starts` 等低级状态）会被跳过
-- 返回空 `optional` 表示该区块不应加载
+- 采用**完成状态白名单**（`COMPLETED_STATUSES`）：只有 `full`（以及 1.13-1.15 的 `postprocessed`/`mobs_spawned`）会被加载，其余一律返回空 `optional`，表示该区块不应加载
+- 不要改回"未完成状态黑名单"：1.21 的状态序列为 `empty → structure_starts → structure_references → biomes → noise → surface → carvers → features → initialize_light → light → spawn → full`，黑名单漏列一项就会让半成品列被当作完整区块加载，且因为 `features` 之后的列已有 sections 数据、能正常通过后续解析，问题会完全静默
 
 ### 高度图格式
 

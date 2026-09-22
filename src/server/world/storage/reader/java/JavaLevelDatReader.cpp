@@ -85,6 +85,11 @@ Result<std::unique_ptr<compound_tag>> JavaLevelDatReader::_readGzipNbt(const std
         return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT");
     }
 
+    // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
+    if (const compound_tag& unwrapped = unwrapRootCompound(*root); &unwrapped != root.get()) {
+        return std::make_unique<compound_tag>(unwrapped);
+    }
+
     return root;
 }
 

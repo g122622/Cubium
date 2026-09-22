@@ -1219,6 +1219,32 @@ std::unique_ptr<tag> read(std::istream& input)
 
 } // namespace tags
 
+/**
+ * @brief 剥掉 NBT 根标签的 id+name 前缀层
+ *
+ * `tags::compound_tag::read`（内部 `read_compound_bin`）按「复合标签体」解析，不消费根标签
+ * 自身的 id 与 name 前缀。而 Java 版写出的 .dat/.nbt 文件在其根复合标签体之前还有一个
+ * TAG_Compound(0x0A) + 名称长度 + 名称（Java 的根名称通常为空），因此直接读取这类文件会得到
+ * 多出一层的 `{"": <真实内容>}`，直接按真实键名查找全部落空。
+ *
+ * 本函数检测「仅含一个空字符串键、且其值为复合标签」这一形态并解包，返回真实内容。
+ * 对「不复用该前缀层」的数据（例如本项目自己按标签体写出的 NBT 载荷）原样返回，因此
+ * 既可读外部 Java 文件，也可读项目自有载荷。
+ *
+ * @param root 根复合标签（来自 `tags::compound_tag::read`）
+ * @return 剥掉前缀层后的复合标签；无需解包时原样返回 root
+ */
+inline const tags::compound_tag& unwrapRootCompound(const tags::compound_tag& root) noexcept
+{
+    if (root.value.size() == 1) {
+        const auto iter = root.value.find("");
+        if (iter != root.value.end() && iter->second != nullptr && iter->second->id() == TagId::Compound) {
+            return static_cast<const tags::compound_tag&>(*iter->second);
+        }
+    }
+    return root;
+}
+
 // 类型别名 - 符合项目命名风格
 using Tag = tags::tag;
 using CompoundTag = tags::compound_tag;

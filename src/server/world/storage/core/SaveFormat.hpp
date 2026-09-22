@@ -111,7 +111,7 @@ private:
      * @param root 已解析的 level.dat 根复合标签
      * @return true 表示由本项目写出
      */
-    static bool _isCubiumAuthoredWorld(mc::nbt::tags::compound_tag& root);
+    static bool _isCubiumAuthoredWorld(const mc::nbt::tags::compound_tag& root);
 
     /// 从 Bedrock level.dat 读取版本信息
     static Result<SaveFormatInfo> _detectBedrockVersion(const std::filesystem::path& worldDir);

@@ -258,9 +258,15 @@ Result<std::vector<u8>> JavaWorldReader::_mergeEntitiesIntoMain(
 
     auto entityIt = entitySource->value.find("Entities");
     if (entityIt != entitySource->value.end()) {
-        compound_tag* target = dynamic_cast<compound_tag*>(mainRoot.value["Level"].get());
-        if (target == nullptr) {
-            target = &mainRoot;
+        // 旧版（1.13 之前）的列把内容包在 "Level" 下，新格式直接平铺在根上。
+        // 必须用 find 查询：std::map::operator[] 在键缺失时会插入一个空的 unique_ptr 条目，
+        // 该条目随后会被 compound_tag::write 解引用而崩溃。
+        compound_tag* target = &mainRoot;
+        const auto levelIt = mainRoot.value.find("Level");
+        if (levelIt != mainRoot.value.end()) {
+            if (auto* level = dynamic_cast<compound_tag*>(levelIt->second.get())) {
+                target = level;
+            }
         }
         target->value["Entities"] = entityIt->second->copy();
     }
@@ -311,6 +317,10 @@ Result<std::unique_ptr<compound_tag>> JavaWorldReader::_parseJavaRoot(const std:
     auto root = compound_tag::read(stream);
     if (!root) {
         return Error(ErrorCode::ChunkCorrupted, "Failed to parse Java chunk NBT");
+    }
+    // 剥掉 Java 文件的根标签前缀层，使调用方按真实键名访问
+    if (const compound_tag& unwrapped = unwrapRootCompound(*root); &unwrapped != root.get()) {
+        return std::make_unique<compound_tag>(unwrapped);
     }
     return root;
 }

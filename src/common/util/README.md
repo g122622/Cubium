@@ -212,6 +212,14 @@ public:
 - `contexts::bedrock_disk` - Bedrock 磁盘（小端序）
 - `contexts::mojangson` - 文本格式
 
+### 7.1 读取 Java 文件后必须解包根标签前缀层
+
+`tags::compound_tag::read` 按复合标签体解析，不消费根标签自身的 id+name。Java 写出的文件在其前面还有一个 `0x0A` + 名称长度 + 名称，直接读取会得到多一层的 `{"": <真实内容>}`，所有按真实键名的查找静默落空（能解析成功、不报错）。所有读 Java 文件的入口必须先调 `nbt::unwrapRootCompound()`。
+
+### 7.2 `compound_tag::value` 是 map，禁止用 `operator[]` 查询
+
+`value["X"]` 在键缺失时会**插入一个空的 `unique_ptr` 条目**。该条目随后被 `compound_tag::write` 解引用，直接段错误。查询一律用 `find`/`count`，只有确定要写入时才用 `operator[]`。
+
 ### 8. 属性实例必须唯一
 
 不同实例的同名属性不相等。必须使用静态属性或预定义属性（如 `BlockStateProperties::LIT()`），不要重复创建同名属性。

@@ -102,6 +102,7 @@ ChunkData::ChunkData(ChunkData&& other) noexcept
     , m_nibblePtrsInitialized(other.m_nibblePtrsInitialized)
     , m_blockEntities(std::move(other.m_blockEntities))
     , m_loadedEntities(std::move(other.m_loadedEntities))
+    , m_loadedEntityNbt(std::move(other.m_loadedEntityNbt))
     , m_postProcessingSections(std::move(other.m_postProcessingSections))
     , m_postProcessingDone(other.m_postProcessingDone)
     , m_gameEventListenerRegistries(std::move(other.m_gameEventListenerRegistries))
@@ -143,6 +144,7 @@ ChunkData& ChunkData::operator=(ChunkData&& other) noexcept
         m_nibblePtrsInitialized = other.m_nibblePtrsInitialized;
         m_blockEntities = std::move(other.m_blockEntities);
         m_loadedEntities = std::move(other.m_loadedEntities);
+        m_loadedEntityNbt = std::move(other.m_loadedEntityNbt);
         m_postProcessingSections = std::move(other.m_postProcessingSections);
         m_postProcessingDone = other.m_postProcessingDone;
         m_gameEventListenerRegistries = std::move(other.m_gameEventListenerRegistries);

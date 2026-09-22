@@ -143,23 +143,22 @@ const compound_tag& unwrapColumnRoot(const compound_tag& root)
     return level != nullptr ? *level : root;
 }
 
-const std::set<std::string> UNFINISHED_STATUSES = {
-    "empty",
-    "structure_starts",
-    "structure_references",
-    "biomes",
-    "noise",
-    "surface",
-    "carvers",
-    "liquid_carvers",
-    "minecraft:empty",
-    "minecraft:structure_starts",
-    "minecraft:structure_references",
-    "minecraft:biomes",
-    "minecraft:noise",
-    "minecraft:surface",
-    "minecraft:carvers",
-    "minecraft:liquid_carvers",
+// 可完整加载的列状态白名单。
+//
+// 1.21.11 的生成状态序列为 empty → structure_starts → structure_references → biomes → noise
+// → surface → carvers → features → initialize_light → light → spawn → full，只有 full 表示列
+// 已生成完毕。原先这里维护的是「未完成状态」黑名单，只列到 carvers 就停了，导致 features /
+// initialize_light / light / spawn 状态的半成品列被当作完整区块加载（这些状态的列已有
+// sections 数据，能通过后续解析而不报错，因此问题会静默存在）。
+// 改为白名单：任何不在名单内的状态都不加载，新增状态时默认安全。
+const std::set<std::string> COMPLETED_STATUSES = {
+    "full",
+    "minecraft:full",
+    // 早期版本（1.13-1.15）的终结状态名称
+    "postprocessed",
+    "minecraft:postprocessed",
+    "mobs_spawned",
+    "minecraft:mobs_spawned",
 };
 } // namespace
 
@@ -177,7 +176,8 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
         return Error(ErrorCode::ChunkCorrupted, "Failed to parse chunk NBT");
     }
 
-    const compound_tag& columnNbt = unwrapColumnRoot(*root);
+    // 先剥掉 Java 文件的根标签前缀层（根 id+name），再处理旧版的 Level 包装
+    const compound_tag& columnNbt = unwrapColumnRoot(unwrapRootCompound(*root));
     if (columnNbt.value.count("xPos") == 0 || columnNbt.value.count("zPos") == 0) {
         return std::optional<ChunkData>{};
     }
@@ -191,7 +191,7 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
 
     if (columnNbt.value.count("Status") != 0) {
         const std::string status = columnNbt.get<string_tag>("Status");
-        if (UNFINISHED_STATUSES.contains(status)) {
+        if (!COMPLETED_STATUSES.contains(status)) {
             return std::optional<ChunkData>{};
         }
     }

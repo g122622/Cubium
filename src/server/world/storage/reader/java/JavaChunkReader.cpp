@@ -217,7 +217,11 @@ Result<void> JavaChunkReader::readBlockStates(
         auto& dataArray = blockStatesNbt->get<longarray_tag>("data");
         i32 bitsPerEntry =
             std::max(4, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(paletteIds.size()), 2)))));
-        blockIndices = unpackLongArray(dataArray, bitsPerEntry, ChunkSection::VOLUME, false);
+        // Java 1.16（20w17a）起位压缩改为 padded 格式（每个 long 独立、尾部高位弃用），
+        // 1.18+ 的 block_states/data 同样是 padded。此处若按 compact 解包，bitsPerEntry 为 4
+        // 时两种格式恰好重合，看似正常；一旦调色板超过 16 项（bits ≥ 5）就会整体错位，
+        // 解出大量错误方块。
+        blockIndices = unpackLongArray(dataArray, bitsPerEntry, ChunkSection::VOLUME, true);
     } else if (sectionNbt.value.count("BlockStates") != 0) {
         // 1.16.5 格式
         auto& dataArray = sectionNbt.get<longarray_tag>("BlockStates");

@@ -185,7 +185,8 @@ Result<std::optional<PlayerSaveData>> JavaAnvilBackend::loadPlayer(const std::st
         return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse player NBT: {}", playerPath.string()));
     }
 
-    auto playerResult = PlayerSaveData::fromNbt(*root);
+    // Java 写出的 playerdata 根标签带 id+name 前缀，读取时会多出一层空键包装
+    auto playerResult = PlayerSaveData::fromNbt(mc::nbt::unwrapRootCompound(*root));
     if (playerResult.failed()) {
         return playerResult.error();
     }
