@@ -1166,6 +1166,8 @@ add_executable(mc_tests
     common/world/gen/WaterContentRegistryTest.cpp
     common/world/gen/NoiseSurfaceParityTest.cpp
     common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
+    # 同种子世界生成 parity：Cubium 生成结果 vs 原版 1.21.11 真实存档（纯净区块）
+    common/world/gen/JavaAnvilWorldGenParityTest.cpp
     common/world/gen/NetherSurfaceParityTest.cpp
     # 噪声生成器单元测试
     common/world/gen/PerlinNoiseTest.cpp

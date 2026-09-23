@@ -313,17 +313,23 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
                 continue;
             }
 
-            for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
-                for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
-                    const i32 localIndex = bz * BiomeContainer::HORIZ_SIZE + bx;
-                    u32 paletteIndex = 0;
-                    if (!sectionBiomes.indices.empty() && localIndex < static_cast<i32>(sectionBiomes.indices.size())) {
-                        paletteIndex = sectionBiomes.indices[static_cast<size_t>(localIndex)];
-                    }
-                    const BiomeId biome = (paletteIndex < sectionBiomes.palette.size())
-                        ? sectionBiomes.palette[paletteIndex]
-                        : Biomes::Ocean;
-                    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+            // 一段的 4x4x4 = 64 个采样点必须逐点解包：biome 数据的扁平顺序是
+            // y * 16 + z * 4 + x（与 BiomeContainer 的存储布局一致）。
+            // 曾用 bz * HORIZ + bx 的二维索引取数组、再把同一个值写满所有 by——
+            // 那会把整个 4x4x4 体积塌缩成 by=0 平面，使洞穴群系（lush_caves /
+            // dripstone_caves 等垂直分层明显的群系）被算到错误的 Y 上。
+            for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
+                for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
+                    for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
+                        const i32 localIndex = (by * BiomeContainer::HORIZ_SIZE + bz) * BiomeContainer::HORIZ_SIZE + bx;
+                        u32 paletteIndex = 0;
+                        if (!sectionBiomes.indices.empty() &&
+                            localIndex < static_cast<i32>(sectionBiomes.indices.size())) {
+                            paletteIndex = sectionBiomes.indices[static_cast<size_t>(localIndex)];
+                        }
+                        const BiomeId biome = (paletteIndex < sectionBiomes.palette.size())
+                            ? sectionBiomes.palette[paletteIndex]
+                            : Biomes::Ocean;
                         biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
                     }
                 }
