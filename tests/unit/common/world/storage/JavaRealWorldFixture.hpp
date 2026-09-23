@@ -43,6 +43,8 @@
 #include "common/core/Types.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/storage/backend/JavaAnvilBackend.hpp"
 #include "server/world/storage/core/SaveFormat.hpp"
@@ -228,6 +230,11 @@ protected:
         }
 
         mc::VanillaBlocks::initialize();
+        mc::BiomeRegistry::instance().initialize();
+        // JavaBiomeMapper 按名解析群系时委托这张表，生产路径由 RegistryBootstrap 初始化；
+        // 测试不走世界启动流程，须显式调用，否则群系全部解析失败（返回 UnknownBiome）。
+        ASSERT_TRUE(mc::world::biome::JavaBiomeRegistryIdMap::instance().initialize().success())
+            << "JavaBiomeRegistryIdMap 初始化失败";
 
         m_blockMapper = std::make_unique<world::storage::reader::java::JavaBlockStateMapper>();
         m_biomeMapper = std::make_unique<world::storage::reader::java::JavaBiomeMapper>();

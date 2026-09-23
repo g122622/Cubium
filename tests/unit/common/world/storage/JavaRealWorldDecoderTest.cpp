@@ -164,10 +164,12 @@ TEST_F(JavaRealWorldReaderFixture, DecodesBiomeSections)
     ASSERT_TRUE(chunkM47.has_value());
     EXPECT_EQ(chunkM47->getBiomeAtBlock(5, -9, 4), Biomes::Forest);
 
-    // 该列地形为草甸（minecraft:meadow），映射表将其归入平原
+    // 该列地形为草甸（minecraft:meadow），映射到项目内的草甸专用 BiomeId。
+    // 注：此断言曾为 Biomes::Plains——那是旧映射表把 meadow 粗粒度近似成平原的结果，
+    // 属于把缺陷固化成期望值。群系映射改为委托 JavaBiomeRegistryIdMap 后已回到精确映射。
     auto chunkM816 = decodeColumn(*this, "r.-1.0.mca", 24, 16, -8, 16);
     ASSERT_TRUE(chunkM816.has_value());
-    EXPECT_EQ(chunkM816->getBiomeAtBlock(5, -9, 4), Biomes::Plains);
+    EXPECT_EQ(chunkM816->getBiomeAtBlock(5, -9, 4), Biomes::Meadow);
 }
 
 // ============================================================================

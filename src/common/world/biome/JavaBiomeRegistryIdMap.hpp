@@ -27,6 +27,8 @@
 #include "common/core/Types.hpp"
 
 #include <cstddef>
+#include <optional>
+#include <string>
 #include <unordered_map>
 
 namespace mc::world::biome {
@@ -69,6 +71,21 @@ public:
     /// Java biome registry id → 内部 BiomeId；查不到返回 plains 内部 id 并记 warn。
     [[nodiscard]] BiomeId fromJavaRegistryId(u32 javaRegistryId) const;
 
+    /**
+     * @brief Java 1.21.11 群系名 → 内部 BiomeId
+     *
+     * 读取外部 Java 存档/网络包时拿到的都是 Java 侧的名称字符串（如
+     * "minecraft:old_growth_birch_forest"），而项目内部的 BiomeId 是 1.16.5 数值 id，
+     * 两者编号无关，必须经名称这一层转译。
+     *
+     * 本查询复用与本映射同一张权威表（vanillaBiomeNames + 1.18 旧名别名表），
+     * 因此不存在"手工维护的名称表漂移"问题——调用方不必自建一份容易与注册表脱节的对照表。
+     *
+     * @param biomeName 带或不带 "minecraft:" 前缀的 Java 群系名
+     * @return 内部 BiomeId；映射未建立或该名称无对应群系时返回 std::nullopt（并记 warn）
+     */
+    [[nodiscard]] std::optional<BiomeId> biomeIdByName(const std::string& biomeName) const;
+
     /// 是否已建立映射。
     [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 
@@ -81,6 +98,8 @@ private:
     std::unordered_map<BiomeId, u32> m_toJava;
     /// Java registry id → 内部 BiomeId
     std::unordered_map<u32, BiomeId> m_fromJava;
+    /// Java 群系名（带 "minecraft:" 前缀）→ 内部 BiomeId
+    std::unordered_map<std::string, BiomeId> m_nameToId;
 };
 
 } // namespace mc::world::biome

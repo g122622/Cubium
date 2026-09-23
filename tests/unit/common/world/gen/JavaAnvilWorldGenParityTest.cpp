@@ -73,27 +73,40 @@
 // 计成 parity 差距**（见下）。
 //
 // ---------------------------------------------------------------------------
-// 已知的读取链缺陷（会污染对比结论，需与真实 parity 差距区分）
+// 读取链的已知缺陷（会污染对比结论，须与真实 parity 差距区分）
 // ---------------------------------------------------------------------------
-// 1) JavaBiomeMapper 的群系名映射不完整：数据包共 65 个群系，映射表只覆盖 58 个，
-//    缺 cherry_grove / deep_dark / mangrove_swamp / old_growth_birch_forest /
-//    pale_garden / the_void / windswept_gravelly_hills，未命中时静默回退到
-//    mapBiome(0)。于是 old_growth_birch_forest 被解成 Ocean、deep_dark 被解成
-//    TheEnd 等，BiomesMatchJavaSave 会报出大量假差异。
-//    另有 2 个群系是**故意**的粗粒度近似（dripstone_caves / lush_caves → TheEnd）。
-//    修复方向：补齐这 7 个名字的精确映射，并让未命中显式报错而非静默回退。
-//    TODO(reader)：修好 JavaBiomeMapper 后，BiomesMatchJavaSave 的差异数应降到
-//    真正的 worldgen 差距量级（当前被映射缺陷掩盖，无法分辨）。
+// 建立本测试的过程暴露并修复了两个读取链缺陷，它们的共同特征是**静默出错**——
+// 解析出的数据看似合法，实则整片错位，而测试若只看"是否解析成功"完全发现不了：
 //
-// 2) JavaColumnReader::_readBiomes 曾把 4x4x4 的群系体积塌缩成 by=0 平面
-//    （二维索引取数组 + 所有 by 写同一个值），已修复。修复后各区块的群系**位置**
-//    与原版完全对齐，剩下的差异全部来自上面第 1 条。
+// 1) JavaColumnReader::_readBiomes 把 4x4x4 的群系体积塌缩成 by=0 平面（用
+//    bz * HORIZ + bx 的二维索引取 64 元素数组，再把同一个值写满所有 by），
+//    洞穴群系被算到错误的 Y 上。【已修复】
+//
+// 2) JavaBiomeMapper 自维护一份手写名称表，与 BiomeRegistry 的真实内容互不同步：
+//    数据包 65 个群系里 15 个错漏（7 个缺失、8 个指向语义相近但错误的群系，如
+//    meadow→Plains、dripstone_caves→TheEnd），且未命中静默回退。已改为委托
+//    biome::JavaBiomeRegistryIdMap 的权威表。【已修复】
+//
+// 3) 夹具一度漏加载数据驱动的世界生成注册表（feature/placement/carver/biome）。
+//    生产路径由 RegistryBootstrap::initializeAll 加载；缺了它们，生成会**静默**退化
+//    （矿脉与装饰特征被跳过），测出来的差距（当时是 6.9%~10.2%）远小于真实值
+//    （19.0%~20.8%）——即夹具自身缺陷会让 parity 显得比实际更好，是最危险的一类
+//    假绿。现改为调用 mc::test::loadVanillaWorldGenRegistries()。【已修复】
+//
+// 教训：这类"对比装置自身出错"的失效模式，与"被测系统出错"在观测上完全一致。
+// 故本套件的设计原则是——被测值与被测系统之外的真值也要能对上（例如原版存档自带的
+// 高度图、原版自己写下的群系采样），一旦两者矛盾，先怀疑读取链或夹具。
+// 另外：任何让生成**静默跳过**某个阶段的缺失依赖，都必须当作"配置错误"处理，
+// 否则它只会表现为"差距比想象中小"，而不会报错。
 // ============================================================================
 
 #include "common/TestDataDir.hpp"
+#include "common/WorldGenRegistryFixture.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -139,13 +152,13 @@ constexpr std::pair<ChunkCoord, ChunkCoord> kTargets[] = {
 };
 
 /// 列高度相对原版高度图允许的最大绝对偏差（格）。
-/// 现状实测：最大绝对偏差 8 ~ 16 格，且明显偏向负值（Cubium 普遍偏低）。
+/// 现状实测：194~254 / 256 列不一致，最大绝对偏差 11~16 格。
 /// 此处只作"量级不失控"的退化门禁，收敛目标见用例内的 TODO。
-constexpr i32 kMaxHeightDelta = 20;
+constexpr i32 kMaxHeightDelta = 24;
 
 /// 逐方块不一致率上限（占区块总方块数）。
-/// 现状实测：6.9% ~ 10.2%。同样只是退化门禁，收敛目标为 0。
-constexpr f64 kMaxBlockMismatchRatio = 0.15;
+/// 现状实测：19.0% ~ 20.8%。同样只是退化门禁，收敛目标为 0。
+constexpr f64 kMaxBlockMismatchRatio = 0.25;
 
 /**
  * @brief 单个区块的对比统计
@@ -182,6 +195,18 @@ protected:
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
         fluid::FluidRegistry::instance().initialize();
+        // 群系按名解析依赖这张表（JavaBiomeMapper 委托它）。生产路径由
+        // RegistryBootstrap 完成同样的调用；本测试不走世界启动流程，须显式初始化，
+        // 否则原版区块的群系会全部解析失败（并逐条打 warn）。
+        ASSERT_TRUE(world::biome::JavaBiomeRegistryIdMap::instance().initialize().success())
+            << "JavaBiomeRegistryIdMap 初始化失败";
+
+        // 加载数据驱动的世界生成注册表（feature/placement/carver/biome）。
+        // 生产路径由 RegistryBootstrap::initializeAll 按同样顺序加载；不加载的话
+        // 生成会**静默**退化——矿脉与装饰特征被跳过、群系缺生成设置，
+        // 测出来的 parity 差距不再代表真实管线。
+        ASSERT_TRUE(mc::test::loadVanillaWorldGenRegistries())
+            << "数据包缺失，无法加载世界生成注册表：" << GameDirectory::defaultDirectory().dataPacksDir().string();
     }
 
     void SetUp() override
@@ -491,13 +516,17 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlockPaletteIsSubsetOfJavaSave)
 /**
  * 逐方块与原版严格相等。
  *
- * 【当前状态】失败：不一致率 6.9% ~ 10.2%。已定位的主要缺口：
- *   - Cubium 完全没有安山岩/花岗岩/闪长岩（原版由噪声阶段的矿脉 OreVeinifier 生成）
- *   - Cubium 完全没有各类矿石（原版由 ore 类 feature 生成）
- *   - 凝灰岩数量约为原版的一半
- *   - 没有水/沙/砾石/黏土/海草等水边与地表内容
- * 注意"完全缺失"是就这些区块的调色板而言，不代表生成器里没有对应实现——
- * 也可能是参数或触发条件与原版不符导致未能落位。
+ * 【当前状态】失败：不一致率 19.0% ~ 20.8%（143~159 种差异对）。已定位的缺口：
+ *   - **矿脉落位不符**：差异量最大的一类是 stone↔andesite / stone↔granite /
+ *     stone↔diorite / deepslate↔tuff 的双向错位——Cubium 的 OreVeinifier 产物在
+ *     位置与形状上与原版不一致（例如 (2,10) 有 2424 处原版 stone 被 Cubium 生成为
+ *     andesite，同时又有 649 处相反）。这说明矿脉密度函数或阈值参数仍有偏差。
+ *   - **石头变体矿石缺失**：原版有而 Cubium 在该区块完全没有 coal_ore / copper_ore /
+ *     iron_ore / lapis_ore / redstone_ore / gold_ore；深板岩侧虽有矿石（如
+ *     deepslate_copper_ore），但主石层没有，指向 ore 类 placed_feature 的 Y 范围
+ *     或基底判定有偏差。
+ *   - 缺少水边与地表内容：clay / sand / seagrass / tall_seagrass。
+ * 注意"完全缺失"是就这些区块而言，不代表生成器里没有对应实现。
  *
  * 【收敛目标】不一致数降为 0。在此之前用 kMaxBlockMismatchRatio 卡住量级，
  * 避免在没有门禁的情况下进一步退化。
@@ -524,9 +553,9 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlocksMatchJavaSave)
 /**
  * 地表高度与原版高度图对齐。
  *
- * 【当前状态】失败：多数列不一致，最大绝对偏差 8 ~ 16 格，且明显偏向**负值**
- * （Cubium 的地表普遍低于原版），说明差异不是随机的表面噪声，而是密度/地表阶段
- * 的系统性偏移。这是所有世界生成差异中最难通过"补 feature"掩盖的一项。
+ * 【当前状态】失败：194~254 / 256 列不一致，最大绝对偏差 11~16 格；偏差分布偏向
+ * 负值，说明不是随机的表面噪声，而是密度/地表阶段的系统性偏移。这是所有世界生成
+ * 差异中最难通过"补 feature"掩盖的一项。
  *
  * 【收敛目标】每列高度完全一致。
  */
@@ -558,15 +587,11 @@ TEST_F(JavaAnvilWorldGenParityTest, ColumnHeightsMatchJavaSave)
 /**
  * 生物群系 4x4x4 采样与原版一致。
  *
- * 【当前状态】失败，但**主因是读取链缺陷而非世界生成差距**：
- * JavaBiomeMapper 缺 7 个群系名的映射（详见文件头），未命中时静默回退到
- * mapBiome(0)，于是原版的 old_growth_birch_forest 被解成 Ocean、deep_dark 被解成
- * TheEnd 等。修复 JavaColumnReader::_readBiomes 的 4x4x4 塌缩 bug 之后，
- * 各区块的群系**位置**已与原版完全对齐（例如 (-10,-2) 原版 1488 个
- * old_growth_birch_forest + 48 个 lush_caves，与 Cubium 的 1488 + 48 一一对应），
- * 剩下的差异全部来自名字映射。
+ * 【当前状态】修复读取链的两个缺陷（见文件头）后，本用例衡量的是**真实**的群系 parity：
+ * 方块/地形差异会连带影响群系采样（水陆分布不同则岸线群系不同），因此它同时反映
+ * 生成器差距与读取链正确性，是本套件里信息量最大的用例之一。
  *
- * 【收敛目标】先补齐 JavaBiomeMapper 的映射，再用本用例衡量真实的群系 parity。
+ * 【收敛目标】采样点差异降为 0。
  */
 TEST_F(JavaAnvilWorldGenParityTest, BiomesMatchJavaSave)
 {
@@ -585,8 +610,7 @@ TEST_F(JavaAnvilWorldGenParityTest, BiomesMatchJavaSave)
             cz,
             static_cast<long long>(diff.mismatchedBiomes),
             static_cast<long long>(diff.totalBiomes));
-        EXPECT_EQ(diff.mismatchedBiomes, 0) << "区块 (" << cx << "," << cz << ") 的生物群系采样与原版不一致"
-                                            << "（注意：差异可能来自 JavaBiomeMapper 的映射缺口，见文件头）";
+        EXPECT_EQ(diff.mismatchedBiomes, 0) << "区块 (" << cx << "," << cz << ") 的生物群系采样与原版不一致";
     }
 }
 

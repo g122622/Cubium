@@ -163,6 +163,7 @@ Result<void> JavaBiomeRegistryIdMap::initialize()
     m_initialized = false;
     m_toJava.clear();
     m_fromJava.clear();
+    m_nameToId.clear();
 
     // name（带 minecraft: 前缀）→ registry id
     std::unordered_map<std::string, u32> nameToRegistryId;
@@ -190,6 +191,10 @@ Result<void> JavaBiomeRegistryIdMap::initialize()
         if (const auto it = nameToRegistryId.find(fullName); it != nameToRegistryId.end()) {
             registryId = it->second;
             ++matched;
+            // 名称 → 内部 BiomeId：读取外部 Java 存档/网络包时拿到的是 Java 侧名称字符串，
+            // 而内部 BiomeId 是 1.16.5 数值编号，两者无关，必须经名称这层转译。
+            // 与 registry id 表同源推导，避免调用方自建一份容易与注册表脱节的名称对照表。
+            m_nameToId[fullName] = biome.id();
         } else {
             ++fallback;
             spdlog::warn("JavaBiomeRegistryIdMap: biome '{}' (id={}) has no Java registry entry, "
@@ -243,6 +248,31 @@ BiomeId JavaBiomeRegistryIdMap::fromJavaRegistryId(u32 javaRegistryId) const
     }
     spdlog::warn("JavaBiomeRegistryIdMap: fromJavaRegistryId miss for javaRegistryId={}", javaRegistryId);
     return Biomes::Plains; // plains 兜底
+}
+
+std::optional<BiomeId> JavaBiomeRegistryIdMap::biomeIdByName(const std::string& biomeName) const
+{
+    if (!m_initialized) {
+        spdlog::warn("JavaBiomeRegistryIdMap: not initialized, cannot resolve biome name '{}'", biomeName);
+        return std::nullopt;
+    }
+
+    // 允许不带命名空间前缀的调用方写法
+    const std::string fullName = biomeName.find(':') == std::string::npos ? "minecraft:" + biomeName : biomeName;
+
+    if (const auto it = m_nameToId.find(fullName); it != m_nameToId.end()) {
+        return it->second;
+    }
+
+    // 兼容调用方给出的 1.18 旧名（如 tall_birch_forest），与建表时同一套归一化。
+    const std::string path = fullName.substr(fullName.find(':') + 1);
+    const std::string normalized = "minecraft:" + normalizeBiomeName(path);
+    if (const auto it = m_nameToId.find(normalized); it != m_nameToId.end()) {
+        return it->second;
+    }
+
+    spdlog::warn("JavaBiomeRegistryIdMap: biomeIdByName miss for '{}'", biomeName);
+    return std::nullopt;
 }
 
 } // namespace mc::world::biome
