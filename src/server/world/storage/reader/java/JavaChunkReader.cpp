@@ -360,7 +360,13 @@ Result<std::optional<JavaChunkReader::SectionBiomePalette>> JavaChunkReader::rea
     const auto& packed = biomesNbt->get<longarray_tag>("data");
     const i32 bitsPerEntry =
         std::max(1, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(result.palette.size()), 2)))));
-    result.indices = unpackLongArray(packed, bitsPerEntry, BiomeContainer::SECTION_BIOME_SIZE, false);
+    // 磁盘上的位压缩是 padded 格式：vanilla 的 PalettedContainer 序列化走 SimpleBitStorage，
+    // 其 valuesPerLong = 64 / bits、每个元素完整落在单个 long 内、不跨 long 边界。
+    // 此处若按 compact 解包，bits 为 1/2/4 时两种布局恰好重合，看似正常；一旦 bits 为 3、
+    // 5、6、7（如本段 palette 有 5 项时 bits=3）就会整体错位，解出越界或错误的群系索引。
+    // 实测：素材中 r.-1.-1.mca 的 chunk(-18,-1) 两个 section 的 palette 均为 5 项、
+    // data 为 4 个 long，按 padded 解 64/64 索引合法，按 compact 解则有越界索引。
+    result.indices = unpackLongArray(packed, bitsPerEntry, BiomeContainer::SECTION_BIOME_SIZE, true);
     return std::optional<SectionBiomePalette>(std::move(result));
 }
 

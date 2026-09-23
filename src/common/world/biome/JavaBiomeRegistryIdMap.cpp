@@ -127,6 +127,10 @@ static const std::vector<std::string>& vanillaBiomeNames()
 
 // 1.18 旧名 → 新名 别名表。项目 Biome::m_name 仍是 1.16.5 旧名（如 mountains），
 // 须归一化到 1.21.11 vanilla 名（windswept_hills）才能查到 registry id。
+//
+// 除上述"项目内部用名"外，这里也收录 1.16.5 存档里可能出现的旧群系名——它们不会
+// 出现在 1.16.5 的 NBT 里（那时 palette 存的是数值 id），但**资源包/数据包**仍可能
+// 用旧名引用群系，且 1.18 前后同一群系存在多个别名，多收一条的代价为零。
 static const std::unordered_map<std::string, std::string>& renamedBiomeAliases()
 {
     static const std::unordered_map<std::string, std::string> kAliases = {
@@ -140,6 +144,10 @@ static const std::unordered_map<std::string, std::string>& renamedBiomeAliases()
         {"jungle_edge", "sparse_jungle"},
         {"wooded_badlands_plateau", "wooded_badlands"},
         {"shattered_savanna", "windswept_savanna"},
+        // 1.16.5 时代的等价旧名（与上表同义，只是命名不同）
+        {"extreme_hills", "windswept_hills"},
+        {"extreme_hills_with_trees", "windswept_forest"},
+        {"snowy_tundra", "snowy_plains"},
     };
     return kAliases;
 }

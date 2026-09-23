@@ -22,6 +22,7 @@
  */
 
 #include "server/world/storage/reader/java/JavaChunkReader.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "server/world/storage/reader/java/JavaBiomeMapper.hpp"
 #include "server/world/storage/reader/java/JavaBlockStateMapper.hpp"
 #include <gtest/gtest.h>
@@ -82,6 +83,40 @@ TEST(JavaChunkReaderTest, UnpackCompactLongArrayMatchesCrossLongLayout)
     const auto packed = packCompact(values, 4);
     const auto unpacked = JavaChunkReader::unpackLongArray(packed, 4, static_cast<i32>(values.size()), false);
     EXPECT_EQ(unpacked, values);
+}
+
+// ============================================================================
+// 群系 palette 解包格式（1.21.11 群系段）
+// ============================================================================
+
+/**
+ * 群系索引必须是 padded 格式：与 block_states 一样，palette 达 16 项以上时
+ * 单 long 内可容纳的项数为 2 的幂，尾部高位弃用，元素不跨 long。
+ *
+ * 这里用 palette 5 项（bits=3）构造：该位宽是两种布局唯一不同的地方之一
+ * （bits 为 1/2/4 时两种布局恰好重合，因此这类缺陷在多数区块上不可见）。
+ * 若按 compact 解包，第 21 项起会因跨 long 拼接而读到错误的值甚至越界索引。
+ */
+TEST(JavaChunkReaderTest, BiomePaletteIsUnpackedAsPaddedFormat)
+{
+    constexpr i32 kCount = BiomeContainer::SECTION_BIOME_SIZE; // 64
+    constexpr i32 kBits = 3;                                   // 5 项 palette
+    std::vector<u32> values(kCount);
+    for (size_t i = 0; i < values.size(); ++i) {
+        values[i] = static_cast<u32>(i % 5);
+    }
+
+    const auto packed = packPadded(values, kBits);
+    // padded 布局：64 / 3 = 21 项/long，64 项需 ceil(64/21) = 4 个 long
+    ASSERT_EQ(packed.size(), 4u);
+
+    const auto asPadded = JavaChunkReader::unpackLongArray(packed, kBits, kCount, true);
+    EXPECT_EQ(asPadded, values);
+
+    // 反向断言：同一份数据按 compact 解释必然出错——这正是本次修复前的行为，
+    // 保留该断言可防止日后有人"顺手统一"成 compact。
+    const auto asCompact = JavaChunkReader::unpackLongArray(packed, kBits, kCount, false);
+    EXPECT_NE(asCompact, values);
 }
 
 } // namespace

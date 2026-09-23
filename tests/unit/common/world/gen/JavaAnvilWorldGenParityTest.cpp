@@ -48,13 +48,17 @@
 // （存档中 Observable/TSR 半径内的区块会被生成但不一定 tick），因此不可能被
 // 任何运行时逻辑改写，其方块数据即纯 worldgen 产物。
 //
-// 另外 kTargets 的坐标是离线筛选出来的，满足：8 邻域全为 full（排除生成边界
-// 效应——邻居未完成时其 feature 可能写入本区块）、无 block_entities、且 13x13
-// 邻域内无缺口。筛选过程：474 个 InhabitedTime==0 的 full 区块中 175 个 8 邻域
-// 齐全，本文件取其中边距最大（6 格）的三个。
+// 另外 kTargets 的坐标是离线筛选出来的，选取条件是"从未被 tick 过"（InhabitedTime==0）
+// 且邻域状态齐全（排除生成边界效应——邻居未完成时其 feature 可能写入本区块）。
+// 离线筛选结果：474 个 InhabitedTime==0 的 full 区块，其中 6 个的 13x13 邻域内无任何缺口，
+// 本文件取其中 3 个（另 3 个为 (-10,9) (-10,10) (-9,10)，留作后续扩充）。
+// 该筛选脚本未进入仓库，数字无法在测试内复现，故仅存档于此。
 //
-// 若素材被替换，TargetChunksExistAndAreFull 会先行失败，从而把
-// "素材/坐标选取有问题" 与 "parity 有差距" 两种失败区分开。
+// 注意前提的**校验方式**：坐标级条件（区块存在、状态 full、从未被 tick、无方块实体）
+// 由 PristineGroundTruthIsIntact 逐条断言——素材一旦被替换就会立刻失败，从而把
+// "素材/坐标选取有问题" 与 "parity 有差距" 两种失败区分开。但邻域条件只在选取时
+// 校验过一次，运行时不再复查（复查需读取 13x13=169 个区块，代价高于收益）：
+// 若将来换了一份邻域不完整的素材，本测试不会报"素材不合格"，只会表现为 parity 变差。
 //
 // ---------------------------------------------------------------------------
 // 对比维度与断言强度（双轨）
@@ -75,8 +79,8 @@
 // ---------------------------------------------------------------------------
 // 读取链的已知缺陷（会污染对比结论，须与真实 parity 差距区分）
 // ---------------------------------------------------------------------------
-// 建立本测试的过程暴露并修复了两个读取链缺陷，它们的共同特征是**静默出错**——
-// 解析出的数据看似合法，实则整片错位，而测试若只看"是否解析成功"完全发现不了：
+// 建立本测试的过程暴露并修复了三个缺陷，它们的共同特征是**静默出错**——解析或
+// 生成出的数据看似合法，实则整片错位，而若只看"是否成功"完全发现不了：
 //
 // 1) JavaColumnReader::_readBiomes 把 4x4x4 的群系体积塌缩成 by=0 平面（用
 //    bz * HORIZ + bx 的二维索引取 64 元素数组，再把同一个值写满所有 by），
@@ -87,11 +91,17 @@
 //    meadow→Plains、dripstone_caves→TheEnd），且未命中静默回退。已改为委托
 //    biome::JavaBiomeRegistryIdMap 的权威表。【已修复】
 //
-// 3) 夹具一度漏加载数据驱动的世界生成注册表（feature/placement/carver/biome）。
-//    生产路径由 RegistryBootstrap::initializeAll 加载；缺了它们，生成会**静默**退化
-//    （矿脉与装饰特征被跳过），测出来的差距（当时是 6.9%~10.2%）远小于真实值
-//    （19.0%~20.8%）——即夹具自身缺陷会让 parity 显得比实际更好，是最危险的一类
-//    假绿。现改为调用 mc::test::loadVanillaWorldGenRegistries()。【已修复】
+// 3) JavaChunkReader::readSectionBiomePalette 按 compact 格式解包群系索引，而
+//    磁盘上是 padded 格式。bits 为 1/2/4 时两种布局恰好重合（占绝大多数），
+//    palette 达 5 项（bits=3）时才暴露：实测素材 r.-1.-1.mca 的 chunk(-18,-1)
+//    按 compact 解出越界索引，按 padded 解全部合法。【已修复】
+//
+// 另有一个**夹具**缺陷（不在读取链里，但同样属于"让结论失真的假绿"）：
+// 夹具一度漏加载数据驱动的世界生成注册表（feature/placement/carver/biome）。
+// 生产路径由 RegistryBootstrap::initializeAll 加载；缺了它们，生成会**静默**退化
+// （矿脉与装饰特征被跳过），测出来的方块差距（当时 6.9%~10.2%）远小于真实值
+// （19.0%~20.8%）——即夹具缺陷会让 parity 显得比实际更好。现改为调用
+// mc::test::loadVanillaWorldGenRegistries()。【已修复】
 //
 // 教训：这类"对比装置自身出错"的失效模式，与"被测系统出错"在观测上完全一致。
 // 故本套件的设计原则是——被测值与被测系统之外的真值也要能对上（例如原版存档自带的
@@ -172,6 +182,10 @@ struct ChunkDiff {
     i64 javaOnlyBlocks = 0;   ///< 原版有、Cubium 调色板完全没有的方块种类数
     i64 cubiumOnlyBlocks = 0; ///< Cubium 有、原版调色板没有的方块种类数
 
+    /// 注册表查不到的 stateId 出现次数（应为 0；非 0 说明生成或映射写入了裸 stateId）
+    i64 javaUnregisteredStates = 0;
+    i64 cubiumUnregisteredStates = 0;
+
     i64 heightColumns = 0;
     i64 heightMismatched = 0;
     i32 heightMaxAbsDelta = 0;
@@ -183,6 +197,8 @@ struct ChunkDiff {
     std::vector<std::pair<std::string, i64>> topBlockPairs;
     /// 原版有而 Cubium 没有的方块名
     std::vector<std::string> missingBlockNames;
+    /// Cubium 有而原版没有的方块名
+    std::vector<std::string> extraBlockNames;
 };
 
 /**
@@ -279,6 +295,12 @@ protected:
         std::map<std::string, i64> pairCounter;
         std::set<std::string> javaPalette;
         std::set<std::string> cubiumPalette;
+        // 未注册 stateId 直接计数，而不是从调色板名字里反查：原版读取链对未知方块是
+        // **静默映射为空气**（JavaBlockStateMapper 未命中即返回 0），因此映射缺口不会表现为
+        // "出现 <unregistered:...>"，而会表现为"该方块凭空消失"。唯一的可靠信号是
+        // 生成产物里出现注册表查不到的 stateId；原版侧则从调色板名反查注册表。
+        i64 javaUnregisteredStates = 0;
+        i64 cubiumUnregisteredStates = 0;
 
         for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
             for (i32 bz = 0; bz < 16; ++bz) {
@@ -286,6 +308,15 @@ protected:
                     const u32 javaId = javaChunk.getBlockStateId(bx, y, bz);
                     const u32 cubiumId = cubiumChunk.getBlockStateId(bx, y, bz);
                     ++diff.totalBlocks;
+
+                    const BlockState* javaState = BlockRegistry::instance().getBlockState(javaId);
+                    const BlockState* cubiumState = BlockRegistry::instance().getBlockState(cubiumId);
+                    if (javaState == nullptr) {
+                        ++javaUnregisteredStates;
+                    }
+                    if (cubiumState == nullptr) {
+                        ++cubiumUnregisteredStates;
+                    }
 
                     const std::string javaName = blockName(javaId);
                     const std::string cubiumName = blockName(cubiumId);
@@ -309,9 +340,14 @@ protected:
         for (const auto& name : cubiumPalette) {
             if (!javaPalette.count(name)) {
                 ++diff.cubiumOnlyBlocks;
+                diff.extraBlockNames.push_back(name);
             }
         }
         std::sort(diff.missingBlockNames.begin(), diff.missingBlockNames.end());
+        std::sort(diff.extraBlockNames.begin(), diff.extraBlockNames.end());
+
+        diff.javaUnregisteredStates = javaUnregisteredStates;
+        diff.cubiumUnregisteredStates = cubiumUnregisteredStates;
 
         diff.topBlockPairs.assign(pairCounter.begin(), pairCounter.end());
         std::sort(diff.topBlockPairs.begin(), diff.topBlockPairs.end(), [](const auto& a, const auto& b) {
@@ -325,6 +361,11 @@ protected:
      *
      * 用原版自己写下的 WORLD_SURFACE 高度图（而非反推它的方块），可独立于两侧的
      * 方块调色板判断地形高低是否对齐。
+     *
+     * 两侧判据必须同为"非空气"：原版 WORLD_SURFACE 的谓词是 `!block.isAir()`，而
+     * cave_air / void_air 也属于空气家族。若 Cubium 侧改用 `stateId != 0`（只有
+     * minecraft:air 恰好是 0），被雕刻或结构写进 cave_air 的列就会被误判为"有方块"，
+     * 凭空产生几十格的高度差。故此处用 BlockState::isAir()。
      */
     static void compareColumnHeights(const ChunkData& javaChunk, const ChunkData& cubiumChunk, ChunkDiff& diff)
     {
@@ -333,7 +374,9 @@ protected:
                 const i32 javaTop = javaChunk.getHighestBlock(bx, bz);
                 i32 cubiumTop = world::MIN_BUILD_HEIGHT - 1;
                 for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
-                    if (cubiumChunk.getBlockStateId(bx, y, bz) != 0) {
+                    const BlockState* state =
+                        BlockRegistry::instance().getBlockState(cubiumChunk.getBlockStateId(bx, y, bz));
+                    if (state != nullptr && !state->isAir()) {
                         cubiumTop = y;
                         break;
                     }
@@ -391,10 +434,20 @@ protected:
             }
         }
         if (diff.cubiumOnlyBlocks != 0) {
-            std::printf("[PARITY] (%d,%d) Cubium 有而原版没有的方块种类数：%lld\n",
+            std::printf("[PARITY] (%d,%d) Cubium 有而原版没有的方块（%lld 种）：\n",
                 diff.x,
                 diff.z,
                 static_cast<long long>(diff.cubiumOnlyBlocks));
+            for (const auto& name : diff.extraBlockNames) {
+                std::printf("[PARITY]      + %s\n", name.c_str());
+            }
+        }
+        if (diff.javaUnregisteredStates != 0 || diff.cubiumUnregisteredStates != 0) {
+            std::printf("[PARITY] (%d,%d) 注册表查不到的 stateId：原版侧 %lld 个位置，Cubium 侧 %lld 个位置\n",
+                diff.x,
+                diff.z,
+                static_cast<long long>(diff.javaUnregisteredStates),
+                static_cast<long long>(diff.cubiumUnregisteredStates));
         }
         const size_t limit = std::min<size_t>(diff.topBlockPairs.size(), 12);
         std::printf(
@@ -407,6 +460,11 @@ protected:
     }
 
     /// 已加载的原版区块（转存以保证指针存活）
+    ///
+    /// 预分配 kTargets 个容量是**必要**的：loadJavaChunk 返回的是容器内元素的地址，
+    /// 一旦 push_back 触发扩容，先前返回的指针立即悬垂（ChunkData 只可移动，元素会被搬走）。
+    /// 每个用例至多加载 kTargets 个区块，故容量足够；若将来增加目标区块或让某个用例
+    /// 重复加载，必须同步调整这里，或改用 std::deque / vector<unique_ptr<ChunkData>>。
     std::vector<ChunkData> m_javaChunks = [] {
         std::vector<ChunkData> v;
         v.reserve(std::size(kTargets));
@@ -421,20 +479,32 @@ protected:
 // ============================================================================
 
 /**
- * 目标区块在素材中确实存在、坐标正确、状态为 full。
+ * 目标区块是「纯净 ground truth」：坐标正确、状态 full、从未被 tick、无方块实体。
  *
- * 这是其余所有对比的前提：素材被替换、或坐标被改错时，本用例先行失败，
- * 从而把"素材/选取有问题"与"parity 有差距"两种失败区分开。
+ * 这是其余所有对比的前提。四项断言各自对应一类"素材不合格"：
+ *   - 坐标不符 → region 定位或素材布局变了
+ *   - 非 full  → 该列不是完整生成产物
+ *   - InhabitedTime != 0 → 该区块被 tick 过，方块可能被随机刻/流体刻/玩家改动，
+ *     不再是纯 worldgen 结果（这是最容易忽视、也最致命的一项：它不会报错，
+ *     只会让 parity 数字变得无法解释）
+ *   - 存在方块实体 → 容器类方块可能被玩家改动过
+ *
+ * 任一不满足时本用例先行失败，从而把"素材/坐标选取有问题"与"parity 有差距"区分开。
  */
-TEST_F(JavaAnvilWorldGenParityTest, TargetChunksExistAndAreFull)
+TEST_F(JavaAnvilWorldGenParityTest, PristineGroundTruthIsIntact)
 {
     for (const auto& [x, z] : kTargets) {
         const ChunkData* javaChunk = loadJavaChunk(x, z);
         ASSERT_NE(javaChunk, nullptr) << "无法读取区块 (" << x << "," << z << ")";
         EXPECT_EQ(javaChunk->x(), x) << "读取到的区块坐标与请求不一致（region 定位可能出错）";
         EXPECT_EQ(javaChunk->z(), z) << "读取到的区块坐标与请求不一致（region 定位可能出错）";
-        EXPECT_TRUE(javaChunk->isFullyGenerated())
-            << "区块 (" << x << "," << z << ") 不是 full；素材筛选条件已失效，需重新挑选纯净区块";
+        EXPECT_TRUE(javaChunk->isFullyGenerated()) << "区块 (" << x << "," << z << ") 不是 full";
+        EXPECT_EQ(javaChunk->inhabitedTime(), 0)
+            << "区块 (" << x << "," << z
+            << ") 的 InhabitedTime 非 0，说明它被 tick 过，"
+               "方块可能已被运行时逻辑改动，不再是纯 worldgen 产物；需重新挑选纯净区块";
+        EXPECT_EQ(javaChunk->blockEntityCount(), 0)
+            << "区块 (" << x << "," << z << ") 含方块实体，容器内容可能已被玩家改动";
     }
 }
 
@@ -489,14 +559,30 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedChunksAreStructurallySound)
 // ============================================================================
 
 /**
- * Cubium 的方块调色板应当是原版调色板的子集。
+ * 两侧的方块调色板与方块映射链都没有缺口。
  *
- * 【当前状态】失败：区块 (2,10) 的 Cubium 生成结果出现了原版调色板中没有的
- * minecraft:water（原版该区块没有任何水）。
+ * 三项断言各自对应一类"对比失去意义"的情况：
  *
- * 【收敛目标】cubiumOnlyBlocks 降为 0，即 Cubium 不会生成原版在该处没有的方块。
+ * 1. `cubiumUnregisteredStates == 0`：Cubium 生成产物里出现注册表查不到的 stateId，
+ *    说明生成或 stateId 分配有问题。
+ * 2. `javaUnregisteredStates == 0`：从原版存档解出的 stateId 在注册表里查不到。
+ *    注意原版侧**不会**表现为"出现 <unregistered:...>"——JavaBlockStateMapper 对未知
+ *    方块是静默映射为空气的，所以映射缺口的真正症状是"该方块凭空消失"。因此这里
+ *    改成直接对解码出的 stateId 反查注册表，而不是像早先那样遍历调色板名字找
+ *    "<unregistered:" 前缀（那种写法在调色板一致的常见情况下是空循环，等于零断言）。
+ * 3. `cubiumOnlyBlocks == 0`：Cubium 生成了原版在该区块没有的方块。
+ *
+ * 【当前状态】第 3 项失败（第 1、2 项通过）。实测 Cubium 独有的方块：
+ *   - (2,-2)：dripstone_block / pointed_dripstone / glow_lichen / short_grass / wildflowers
+ *   - (2,10)：water / deepslate_coal_ore / deepslate_copper_ore / dandelion / poppy / bush
+ * 其中 water 是明确的地形差异（原版该区块无水而 Cubium 有）；深板岩矿石说明 Cubium 的
+ * 矿石**并非完全没有**，而是分布与原版不重合（(2,-2) 原版有 coal_ore/iron_ore 等而
+ * Cubium 没有，(2,10) 反过来只有 Cubium 有 deepslate 变体）——即"矿石位置对不上"，
+ * 而不是"没有生成矿石"。这与逐方块用例里 stone↔andesite 双向错位的结论一致。
+ *
+ * 【收敛目标】三项断言全部为 0。
  */
-TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlockPaletteIsSubsetOfJavaSave)
+TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
 {
     for (const auto& [cx, cz] : kTargets) {
         const ChunkData* javaChunk = loadJavaChunk(cx, cz);
@@ -505,11 +591,11 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlockPaletteIsSubsetOfJavaSave)
         ASSERT_NE(cubiumChunk, nullptr);
 
         const ChunkDiff diff = compareBlocks(*javaChunk, *cubiumChunk);
+        EXPECT_EQ(diff.cubiumUnregisteredStates, 0)
+            << "区块 (" << cx << "," << cz << ") 的生成产物出现注册表查不到的 stateId";
+        EXPECT_EQ(diff.javaUnregisteredStates, 0)
+            << "区块 (" << cx << "," << cz << ") 从原版存档解出的 stateId 在注册表中不存在";
         EXPECT_EQ(diff.cubiumOnlyBlocks, 0) << "区块 (" << cx << "," << cz << ") 生成了原版在该区块没有的方块";
-        for (const auto& name : diff.missingBlockNames) {
-            EXPECT_NE(name.rfind("<unregistered:", 0), 0)
-                << "区块 (" << cx << "," << cz << ") 原版调色板中的 " << name << " 在方块注册表中不存在";
-        }
     }
 }
 
