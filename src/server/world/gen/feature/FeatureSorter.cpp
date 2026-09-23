@@ -115,7 +115,23 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     }
 
     // Step 3: DFS 拓扑排序
-    // 将 map<FeatureData, set<FeatureData>> 转换为 map<int, vector<int>> 用于 DFS
+    //
+    // 【为什么必须按 (step, globalIndex) 排序后遍历】
+    // 拓扑排序的结果依赖 DFS 的**起始节点顺序**与**邻居遍历顺序**。原版两处都走
+    // TreeMap/TreeSet，比较器是 Comparator.comparingInt(step).thenComparingInt(featureIndex)，
+    // 即先按装饰阶段、再按特征全局索引，因此遍历顺序完全确定。
+    // 若这里改成按 globalIndex 排序，虽然每个节点的**相对先后**仍然合法（都是拓扑序），
+    // 但得到的**具体排列**与原版不同——而这个排列的下标正是 setFeatureSeed 的
+    // featureIndex 参数，进而决定每个特征实例的随机种子。排列一变，所有特征的
+    // 落位全部偏移（表现为 stone↔andesite/granite/diorite 的大规模双向错位）。
+    // 故排序键必须是 (step, globalIndex)，与原版比较器逐字段对应。
+    const auto featureDataLess = [](const FeatureData& a, const FeatureData& b) {
+        if (a.step != b.step) {
+            return a.step < b.step;
+        }
+        return a.globalIndex < b.globalIndex;
+    };
+
     std::unordered_map<i32, std::vector<i32>> adjByIndex;
     std::unordered_map<i32, FeatureData> indexToData;
 
@@ -128,6 +144,15 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
         }
     }
 
+    // 邻居按 (step, globalIndex) 排序（对应原版的 TreeSet 邻居集）。
+    // adjacencyList 的 key 本身也是有序的 std::map<FeatureData, ...>，故下面的
+    // 起始节点遍历天然按同一比较器有序；这里只需保证邻居向量同样有序。
+    for (auto& [nodeIdx, neighbors] : adjByIndex) {
+        std::sort(neighbors.begin(), neighbors.end(), [&indexToData, &featureDataLess](i32 a, i32 b) {
+            return featureDataLess(indexToData.at(a), indexToData.at(b));
+        });
+    }
+
     std::unordered_set<i32> visited;
     std::unordered_set<i32> inProgress;
     std::vector<i32> topoOrder;
@@ -136,7 +161,10 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
 
     bool hasCycle = false;
 
-    for (const auto& [nodeIdx, _] : adjByIndex) {
+    // 起始节点按 (step, globalIndex) 有序遍历（adjacencyList 是 std::map<FeatureData,...>，
+    // 其 key 比较用 FeatureData::operator<，即 (step, globalIndex)，与原版 TreeMap 一致）。
+    for (const auto& [node, _] : adjacencyList) {
+        const i32 nodeIdx = node.globalIndex;
         if (visited.find(nodeIdx) == visited.end()) {
             if (depthFirstSearch(adjByIndex, visited, inProgress, topoOrder, dfsPath, cycles, nodeIdx)) {
                 hasCycle = true;

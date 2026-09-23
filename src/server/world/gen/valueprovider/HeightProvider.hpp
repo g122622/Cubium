@@ -30,10 +30,35 @@
 #include <memory>
 #include <utility>
 
+#include <spdlog/spdlog.h>
+
 namespace mc::world::gen::valueprovider {
 
 // 导入 VerticalAnchor 到此命名空间
 using mc::world::gen::surface::VerticalAnchor;
+
+/**
+ * @brief 闭区间随机整数（对齐 MC Mth.randomBetweenInclusive）
+ *
+ * Java: `nextInt(max - min + 1) + min`。
+ * 注意**不**含 min > max 的保护分支——原版在空区间时先走各自 provider 的
+ * "Empty height range" 早退（不消耗随机数），保护写在这里会让随机数流与原版错位。
+ */
+[[nodiscard]] inline i32 randomBetweenInclusive(math::IRandom& rng, i32 minInclusive, i32 maxInclusive)
+{
+    return rng.nextInt(maxInclusive - minInclusive + 1) + minInclusive;
+}
+
+/**
+ * @brief 闭区间随机整数（对齐 MC Mth.nextInt(RandomSource, min, max)）
+ *
+ * Java: `min >= max ? min : nextInt(max - min + 1) + min`。
+ * 与 randomBetweenInclusive 的区别是**含**退化为定值的分支，且该分支不消耗随机数。
+ */
+[[nodiscard]] inline i32 nextIntBetween(math::IRandom& rng, i32 min, i32 max)
+{
+    return min >= max ? min : rng.nextInt(max - min + 1) + min;
+}
 
 /**
  * @brief 世界生成上下文（MC 1.21 WorldGenerationContext）
@@ -160,10 +185,11 @@ public:
     {
         const i32 minY = m_min.resolveY(context.getMinGenY(), context.getGenDepth());
         const i32 maxY = m_max.resolveY(context.getMinGenY(), context.getGenDepth());
-        if (minY >= maxY) {
+        if (minY > maxY) {
+            spdlog::warn("UniformHeight: empty height range [{}-{}], returning min", minY, maxY);
             return minY;
         }
-        return minY + rng.nextInt(maxY - minY + 1);
+        return randomBetweenInclusive(rng, minY, maxY);
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "uniform"; }
@@ -208,16 +234,17 @@ public:
     {
         const i32 minY = m_min.resolveY(context.getMinGenY(), context.getGenDepth());
         const i32 maxY = m_max.resolveY(context.getMinGenY(), context.getGenDepth());
-        if (minY >= maxY) {
+        // 空区间判定是 j - i - inner + 1 <= 0，即 maxY - minY + 1 <= inner，
+        // 而不是 minY >= maxY——inner 会让有效区间比 [min, max] 更窄。
+        if (maxY - minY - m_inner + 1 <= 0) {
+            spdlog::warn("BiasedToBottomHeight: empty height range [{}-{}] inner={}, returning min",
+                minY,
+                maxY,
+                m_inner);
             return minY;
         }
-        const i32 range = maxY - minY + 1;
-        // MC: min + randomBetweenInclusive(rng, 0, range - inner) + rng.nextInt(inner)
-        const i32 outerRange = range - m_inner;
-        if (outerRange <= 0) {
-            return minY + rng.nextInt(range);
-        }
-        return minY + rng.nextInt(outerRange + 1) + rng.nextInt(m_inner);
+        const i32 k = rng.nextInt(maxY - minY - m_inner + 1);
+        return rng.nextInt(k + m_inner) + minY;
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "biased_to_bottom"; }
@@ -267,17 +294,19 @@ public:
     {
         const i32 minY = m_min.resolveY(context.getMinGenY(), context.getGenDepth());
         const i32 maxY = m_max.resolveY(context.getMinGenY(), context.getGenDepth());
-        if (minY >= maxY) {
+        if (maxY - minY - m_inner + 1 <= 0) {
+            spdlog::warn("VeryBiasedToBottomHeight: empty height range [{}-{}] inner={}, returning min",
+                minY,
+                maxY,
+                m_inner);
             return minY;
         }
-        const i32 range = maxY - minY + 1;
-        // MC: 三层嵌套随机，强烈偏向底部
-        const i32 outerRange = range - m_inner;
-        if (outerRange <= 0) {
-            return minY + rng.nextInt(range);
-        }
-        const i32 biased = rng.nextInt(rng.nextInt(outerRange + 1) + 1);
-        return minY + biased + rng.nextInt(m_inner);
+        // 三层嵌套随机，且每层都是闭区间（对齐 Mth.nextInt(rng, a, b) = a >= b ? a : nextInt(b-a+1)+a）。
+        // 注意内层两次的上下界方向与外层相反（外层 [i+inner, j]，内层 [i, k-1]），
+        // 写成同一个方向的 nextInt 会让分布与原版不同。
+        const i32 k = nextIntBetween(rng, minY + m_inner, maxY);
+        const i32 l = nextIntBetween(rng, minY, k - 1);
+        return nextIntBetween(rng, minY, l - 1 + m_inner);
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "very_biased_to_bottom"; }
@@ -327,28 +356,21 @@ public:
     {
         const i32 minY = m_min.resolveY(context.getMinGenY(), context.getGenDepth());
         const i32 maxY = m_max.resolveY(context.getMinGenY(), context.getGenDepth());
-        if (minY >= maxY) {
+        if (minY > maxY) {
+            spdlog::warn("TrapezoidHeight: empty height range [{}-{}], returning min", minY, maxY);
             return minY;
         }
         const i32 range = maxY - minY;
         if (m_plateau >= range) {
-            return minY + rng.nextInt(range + 1);
+            return randomBetweenInclusive(rng, minY, maxY);
         }
-        // MC 梯形分布算法
-        const i32 bottomSlope = m_plateau + 1;
-        const i32 topSlope = range - m_plateau;
-        const i32 totalArea = bottomSlope + topSlope;
-        const i32 randomValue = rng.nextInt(totalArea);
-        if (randomValue < bottomSlope) {
-            // 在上升斜坡部分
-            const i32 slopeValue = randomValue;
-            // 使用 sqrt 变换产生三角形分布
-            const f32 t = static_cast<f32>(slopeValue) / static_cast<f32>(bottomSlope);
-            const i32 result = static_cast<i32>(t * static_cast<f32>(bottomSlope));
-            return minY + result;
-        }
-        // 在下降斜坡部分或平顶
-        return minY + m_plateau + (randomValue - bottomSlope);
+        // 对齐 MC TrapezoidHeight.sample：
+        //   int l = (k - plateau) / 2;  int i1 = k - l;
+        //   return i + randomBetweenInclusive(rng, 0, i1) + randomBetweenInclusive(rng, 0, l);
+        // 即两个**独立**的均匀量之和（三角形分布），不是一次采样后做 sqrt 变换。
+        const i32 l = (range - m_plateau) / 2;
+        const i32 i1 = range - l;
+        return minY + randomBetweenInclusive(rng, 0, i1) + randomBetweenInclusive(rng, 0, l);
     }
 
     [[nodiscard]] const char* getTypeName() const override { return "trapezoid"; }
