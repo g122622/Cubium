@@ -127,12 +127,16 @@ void PerfettoBackend::initialize(const TraceConfig& config)
     // 初始化 Perfetto
     ::perfetto::TracingInitArgs args;
     args.backends = ::perfetto::kInProcessBackend;
+    // 显式上调生产者 SMB（SDK 默认仅 256KB）：它才是决定突发时是否丢数据的缓冲，
+    // 与 m_config.bufferSizeKb 的环形缓冲无关。详见 ProfilerConfig.hpp 该宏的说明。
+    args.shmem_size_hint_kb = static_cast<uint32_t>(MC_TRACE_SHMEM_SIZE_KB);
     ::perfetto::Tracing::Initialize(args);
     ::perfetto::TrackEvent::Register();
 
     m_initialized = true;
 
     spdlog::info("[Perfetto] Initialized with buffer size {} KB", m_config.bufferSizeKb);
+    spdlog::info("[Perfetto] Producer shared memory buffer: {} KB", MC_TRACE_SHMEM_SIZE_KB);
     spdlog::info("[Perfetto] Output file: {}", m_config.outputPath);
 }
 

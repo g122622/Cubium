@@ -16,7 +16,7 @@
 ```
 src/common/profiler/
 ├── CMakeLists.txt        # 构建配置：perfetto_sdk + TracyClient(vendored submodule) + mc_profiler + mc::profiler 别名
-├── ProfilerConfig.hpp    # 编译时开关（MC_ENABLE_TRACING / MC_ENABLE_TRACY / MC_PROFILER_ENABLED）+ 缓冲区/输出路径
+├── ProfilerConfig.hpp    # 编译时开关（MC_ENABLE_TRACING / MC_ENABLE_TRACY / MC_PROFILER_ENABLED）+ 环形缓冲/生产者 SMB/输出路径
 ├── ProfilerManager.hpp   # 门面单例 + TraceConfig（持有 PerfettoBackend，tracy 命名双写）
 ├── ProfilerManager.cpp   # 门面实现：生命周期委托 PerfettoBackend，setProcessName/setThreadName 双写 tracy
 ├── PerfettoBackend.hpp   # Perfetto 后端声明（Pimpl，仅 MC_ENABLE_TRACING 时编译）
@@ -248,3 +248,14 @@ Tracy 默认（`TRACY_ON_DEMAND=OFF`）在**无 GUI 连接时也把事件写入�
 
 1. **宏必须对 `TracyClient.cpp` 与全体消费方一致定义**。`TracyScoped.hpp` 等头文件中 `m_active` 的取值依赖它，业务 TU 与 client 库分别定义会导致 ODR 违反。只能依赖上游 `set_option()` 的 PUBLIC 传播，**不要**在业务 target 上单独 `target_compile_definitions(... TRACY_ON_DEMAND)`。
 2. **`--profiler_enabled=false` 不能替代它**。该运行期 flag 只门控 `ProfilerManager`（Perfetto 侧），而 `MC_TRACE_*` 宏在编译期就展开为 Tracy 客户端调用，运行期关不掉。
+
+### 18. 丢 trace 数据要看 SMB，不是环形缓冲
+
+Perfetto UI 的 Data Losses 页报 `traced_buf_data_loss_smb_full` / `traced_buf_sequence_packet_loss` 时，成因是**生产者与服务之间的共享内存缓冲区（SMB）**被打满，与 `MC_TRACE_BUFFER_SIZE_KB` 配置的环形缓冲无关：后者只决定"能记录多长"，写满只会回绕覆盖（报 `traced_buf_chunks_overwritten`）。因此**调大环形缓冲无法减少丢包**，唯一有效旋钮是本模块的 `MC_TRACE_SHMEM_SIZE_KB`（SMB 大小，SDK 默认仅 256KB，已在 `PerfettoBackend::initialize` 中显式上调）。
+
+判读要点（`buffer_stats` 里 `chunks_overwritten` / `chunks_discarded` 是否为 0，可区分两类成因）：
+
+- SMB 满属于**排空侧跟不上**：TrackEvent 的默认耗尽策略是 `kDrop`（丢弃而非阻塞），追踪服务线程稍有延迟（被抢占、调度延迟）就批量丢；因为写线程多，一次停顿会让几十条序列同时出现丢标，且每条序列一旦丢一个 chunk，后续包会被连带丢弃直到间隙可清。
+- 丢失**未必与事件量峰值相关**：实测丢点集中在事件速率较低的窗口。
+- UI 计数含固有伪标记：每条写入序列的**首包**必然带 `previous_packet_dropped`（服务端无法判断此前是否丢过），评估严重度前先剔除。
+- 解析 `.perfetto-trace` 时注意时间戳是**增量时钟**（带 `is_incremental`），包内 timestamp 是相对前包的差值，必须按序列累加才能还原时间轴。

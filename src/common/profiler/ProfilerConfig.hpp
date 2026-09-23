@@ -100,6 +100,25 @@
 #define MC_TRACE_BUFFER_SIZE_KB 65536
 #endif
 
+/**
+ * @brief Perfetto 生产者共享内存缓冲区（SMB）大小 (KB)
+ *
+ * SMB 是生产者（本进程的各写线程）与追踪服务之间的中转缓冲：写线程把写满的
+ * chunk 提交到 SMB，由追踪服务线程搬走。它与 MC_TRACE_BUFFER_SIZE_KB 是两个
+ * 独立概念——环形缓冲只决定"能记录多长"，SMB 才决定"突发时会不会丢数据"。
+ *
+ * SDK 默认仅 256KB，在本项目这种几十个写线程、每秒数十万事件的负载下只剩
+ * 数十毫秒余量：追踪服务线程稍有延迟（被抢占、调度延迟），写线程就拿不到空闲
+ * chunk。而 TrackEvent 的默认耗尽策略是 BufferExhaustedPolicy::kDrop（丢弃而非
+ * 阻塞等待），于是静默丢数据（Perfetto UI 的 Data Losses 页报
+ * traced_buf_data_loss_smb_full）。故显式上调至 8MB。
+ *
+ * 取值须为 4KB 的倍数，超过 32MB 会被 SDK 忽略并回退到默认值。
+ */
+#ifndef MC_TRACE_SHMEM_SIZE_KB
+#define MC_TRACE_SHMEM_SIZE_KB 8192
+#endif
+
 // ============================================================================
 // 文件输出配置（仅 Perfetto 用）
 // ============================================================================

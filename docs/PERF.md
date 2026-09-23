@@ -364,6 +364,19 @@ Cubium 项目代码中已大量使用 `MC_TRACE_SCOPED_EVENT` 宏进行 Perfetto
 
 用 Perfetto UI（https://ui.perfetto.dev）打开该文件即可查看可视化 trace。
 
+### 5.3 数据丢失（Data Losses）的判读
+
+Perfetto UI 的 Info → Data Losses 页若出现非零计数，先分清两类成因：
+
+| 计数器 | 成因 | 处置 |
+|--------|------|------|
+| `traced_buf_chunks_overwritten` / `chunks_discarded` | 环形缓冲写满（回绕覆盖 / 丢弃） | 调大 `TraceConfig::bufferSizeKb`（当前 512MB） |
+| `traced_buf_data_loss_smb_full` / `sequence_packet_loss` | 生产者共享内存缓冲区（SMB）满 | 调大 `MC_TRACE_SHMEM_SIZE_KB`，**调环形缓冲无效** |
+
+后者的机制是：写线程把写满的 chunk 提交到 SMB 由追踪服务搬走，SMB 默认仅 256KB，追踪服务线程稍有延迟（被抢占、调度延迟）生产者就拿不到空闲 chunk，而其默认耗尽策略是丢弃而非阻塞，于是静默丢包。因此**丢失未必出现在事件量峰值处**，而往往出现在排空侧卡顿的窗口。
+
+判读时注意两点噪声：每条写入序列的**首包**必然带 `previous_packet_dropped` 标记（服务端无法判断此前是否丢过），属固有伪标记；`.perfetto-trace` 内的时间戳是**增量时钟**（`is_incremental`），包内 timestamp 是相对前包的差值，手工解析时必须按序列累加才能还原时间轴。
+
 ---
 
 ## 六、快速参考命令
