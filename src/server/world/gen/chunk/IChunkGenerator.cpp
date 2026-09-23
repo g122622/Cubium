@@ -447,6 +447,14 @@ i32 WorldGenRegion::getHeightmapFirstAvailable(i32 x, i32 z, HeightmapType type)
     return chunk->getHeightmapFirstAvailable(type, localX, localZ);
 }
 
+i32 WorldGenRegion::getHeight(i32 x, i32 z, HeightmapType type) const
+{
+    // 对齐 MC WorldGenRegion.getHeight：底层 ChunkAccess.getHeight 返回
+    // getFirstAvailable(...) - 1，空列因哨兵为 MIN_BUILD_HEIGHT-1 而返回 MIN_BUILD_HEIGHT-2。
+    // 此处保持同一语义（原值减 1），与 getTopBlockY 的区别在于空列不合并到 MIN_BUILD_HEIGHT。
+    return getHeightmapFirstAvailable(x, z, type) - 1;
+}
+
 i32 WorldGenRegion::_centerIndex() const
 {
     return m_chunkRadius * m_chunkDiameter + m_chunkRadius;

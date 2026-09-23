@@ -373,8 +373,21 @@ public:
     /// 深板岩矿石可替换方块标签（深板岩、凝灰岩）
     static BlockTag& DEEPSLATE_ORE_REPLACEABLES();
 
+    /// 石头层矿石可替换方块标签（石头、花岗岩、闪长岩、安山岩）
+    /// 数据包中 ore_coal/ore_iron/ore_copper 等 17 个 configured_feature 的石头层 target 引用此标签。
+    static BlockTag& STONE_ORE_REPLACEABLES();
+
     /// 主世界基础石头标签（石头、花岗岩、闪长岩、安山岩、凝灰岩、深板岩）
     static BlockTag& BASE_STONE_OVERWORLD();
+
+    /// 下界基础石头标签（下界岩、玄武岩、黑石）
+    static BlockTag& BASE_STONE_NETHER();
+
+    /// 古迹废墟可替换方块标签（沙砾）
+    static BlockTag& TRAIL_RUINS_REPLACEABLE();
+
+    /// 杜鹃可生长方块标签（#dirt + #sand + #terracotta + 雪块 + 细雪）
+    static BlockTag& AZALEA_GROWS_ON();
 
     /// 可被滴水石块替换的方块标签（DripstoneUtils 依赖）
     static BlockTag& DRIPSTONE_REPLACEABLE();

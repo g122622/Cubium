@@ -296,6 +296,33 @@ template <typename T>
 }
 
 /**
+ * @brief 正弦（复刻 MC 的 Mth.sin 查表实现）
+ *
+ * 原版 Mth 不是直接调 Math.sin，而是预计算一张 65536 项的表再按量化索引取用：
+ *   SIN[i] = (float)Math.sin(i / 10430.378350470453)
+ *   sin(v) = SIN[(int)((long)(v * 10430.378350470453) & 65535L)]
+ *
+ * 两者差异约为 float 精度量级（约 1e-7），单独看可忽略；但世界生成中它参与
+ * 半径、位置等几何量的计算并被反复放大，与 std::sin 混用会让生成结果逐位分叉。
+ * 凡是原版写 `Mth.sin` 的地方都必须用本函数，原版写 `Math.sin` 的地方才用 std::sin。
+ *
+ * @param value 弧度值
+ * @return 量化查表得到的 f32 正弦值
+ */
+[[nodiscard]] f32 mthSin(f64 value) noexcept;
+
+/**
+ * @brief 余弦（复刻 MC 的 Mth.cos 查表实现）
+ *
+ * 原版实现为 `SIN[(int)((long)(v * SCALE + 16384.0) & 65535L)]`，
+ * 即在同一张表上偏移四分之一周期（65536 / 4 = 16384）。
+ *
+ * @param value 弧度值
+ * @return 量化查表得到的 f32 余弦值
+ */
+[[nodiscard]] f32 mthCos(f64 value) noexcept;
+
+/**
  * @brief 向上取整到整数
  */
 template <typename T>

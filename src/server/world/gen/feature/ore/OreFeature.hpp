@@ -41,8 +41,13 @@ class WorldGenRegion;
 /**
  * @brief 矿石特征
  *
- * 生成矿脉形状的矿石。
- * 使用球形采样算法在石头中放置矿石。
+ * 生成椭圆体状的矿脉。算法逐行对齐原版 OreFeature.doPlace：
+ * 沿一条随机朝向的轴线等距布置 size 个球心，半径由正弦包络决定，
+ * 再对每个球心做一次球体扫描写入。
+ *
+ * 全程使用 f64：原版所有中间量都是 double，仅在正弦值处取 float
+ * （Mth.sin 返回 float）。用 f32 计算会让球体边界在临界格上偏移，
+ * 导致矿脉形状与原版不一致。
  */
 class OreFeature {
 public:
@@ -68,40 +73,53 @@ public:
 
 private:
     /**
-     * @brief 在指定范围内生成球形矿石
-     * @param chunk 区块数据
+     * @brief 在已确定的轴线与包围盒内放置矿脉（对齐原版 OreFeature.doPlace）
+     *
+     * @param region 世界生成区域
      * @param random 随机数生成器
      * @param config 矿石配置
-     * @param x1 起点X
-     * @param y1 起点Y
-     * @param z1 起点Z
-     * @param x2 终点X
-     * @param y2 终点Y
-     * @param z2 终点Z
-     * @param minX 边界最小X
-     * @param minY 边界最小Y
-     * @param minZ 边界最小Z
-     * @param sizeX 范围大小X
-     * @param sizeY 范围大小Y
-     * @param sizeZ 范围大小Z
-     * @param placedCount 已放置计数（输出）
+     * @param x1 轴线起点 X
+     * @param y1 轴线起点 Y
+     * @param z1 轴线起点 Z
+     * @param x2 轴线终点 X
+     * @param y2 轴线终点 Y
+     * @param z2 轴线终点 Z
+     * @param minX 包围盒最小 X
+     * @param minY 包围盒最小 Y
+     * @param minZ 包围盒最小 Z
+     * @param sizeX 包围盒 X 边长
+     * @param sizeY 包围盒 Y 边长
+     * @param sizeZ 包围盒 Z 边长
+     * @return 实际写入的方块数
      */
-    void _generateSphere(WorldGenRegion& region,
+    static i32 _doPlace(WorldGenRegion& region,
         math::Random& random,
         const OreFeatureConfig& config,
-        f32 x1,
-        f32 y1,
-        f32 z1,
-        f32 x2,
-        f32 y2,
-        f32 z2,
+        f64 x1,
+        f64 y1,
+        f64 z1,
+        f64 x2,
+        f64 y2,
+        f64 z2,
         i32 minX,
         i32 minY,
         i32 minZ,
         i32 sizeX,
         i32 sizeY,
-        i32 sizeZ,
-        i32& placedCount);
+        i32 sizeZ);
+
+    /**
+     * @brief 判断某位置是否可放置矿石（对齐原版 OreFeature.canPlaceOre）
+     *
+     * 先做目标规则匹配，再按 discardChanceOnAirExposure 决定是否要求"不邻接空气"。
+     */
+    static bool _canPlaceOre(WorldGenRegion& region,
+        math::Random& random,
+        const OreFeatureConfig& config,
+        const OreTarget& target,
+        i32 x,
+        i32 y,
+        i32 z);
 };
 
 /**

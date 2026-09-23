@@ -167,8 +167,9 @@ constexpr std::pair<ChunkCoord, ChunkCoord> kTargets[] = {
 constexpr i32 kMaxHeightDelta = 24;
 
 /// 逐方块不一致率上限（占区块总方块数）。
-/// 现状实测：19.0% ~ 20.8%。同样只是退化门禁，收敛目标为 0。
-constexpr f64 kMaxBlockMismatchRatio = 0.25;
+/// 现状实测：12.0% ~ 13.7%（补齐方块标签 + 重写 OreFeature 前为 18.3% ~ 20.8%）。
+/// 仍只是退化门禁，收敛目标为 0。
+constexpr f64 kMaxBlockMismatchRatio = 0.20;
 
 /**
  * @brief 单个区块的对比统计
@@ -189,9 +190,24 @@ struct ChunkDiff {
     i64 heightColumns = 0;
     i64 heightMismatched = 0;
     i32 heightMaxAbsDelta = 0;
+    /// 列高度差（Cubium - 原版）直方图，键为差值（格），值为列数。
+    /// 系统性偏移（全部偏 -1）与随机错位（有正有负）在直方图上形态完全不同，
+    /// 是区分"地形整体抬高/压低"与"个别列异常"的关键判据。
+    std::map<i32, i64> heightDeltaHistogram;
+
+    /// 按 Y 分层的不一致计数（下标 = blockY - MIN_BUILD_HEIGHT）。
+    /// 总量无法区分"深层矿脉差异"与"表层地形差异"，分层后才能定位到具体阶段。
+    std::vector<i64> mismatchByY;
 
     i64 totalBiomes = 0;
     i64 mismatchedBiomes = 0;
+
+    /// 两侧各方块的出现次数。与 topBlockPairs 联合解读可区分两种截然不同的失效模式：
+    ///   - 两侧总量接近、但差异对双向大致相等 → 方块**位置**错位（生成顺序/随机源/坐标偏移）
+    ///   - 两侧总量相差悬殊 → 该方块被**多生成或少生成**（feature 计数/概率/阈值）
+    /// 只看差异对无法区分二者，例如 "stone->andesite 2424" 既可能是多生成也可能是错位。
+    std::map<std::string, i64> javaBlockCounts;
+    std::map<std::string, i64> cubiumBlockCounts;
 
     /// 出现次数最多的差异对（"原版方块 -> Cubium 方块"）
     std::vector<std::pair<std::string, i64>> topBlockPairs;
@@ -295,6 +311,7 @@ protected:
         std::map<std::string, i64> pairCounter;
         std::set<std::string> javaPalette;
         std::set<std::string> cubiumPalette;
+        diff.mismatchByY.assign(static_cast<size_t>(world::MAX_BUILD_HEIGHT - world::MIN_BUILD_HEIGHT), 0);
         // 未注册 stateId 直接计数，而不是从调色板名字里反查：原版读取链对未知方块是
         // **静默映射为空气**（JavaBlockStateMapper 未命中即返回 0），因此映射缺口不会表现为
         // "出现 <unregistered:...>"，而会表现为"该方块凭空消失"。唯一的可靠信号是
@@ -322,9 +339,12 @@ protected:
                     const std::string cubiumName = blockName(cubiumId);
                     javaPalette.insert(javaName);
                     cubiumPalette.insert(cubiumName);
+                    ++diff.javaBlockCounts[javaName];
+                    ++diff.cubiumBlockCounts[cubiumName];
 
                     if (javaId != cubiumId) {
                         ++diff.mismatchedBlocks;
+                        ++diff.mismatchByY[static_cast<size_t>(y - world::MIN_BUILD_HEIGHT)];
                         ++pairCounter[javaName + "  ->  " + cubiumName];
                     }
                 }
@@ -386,6 +406,7 @@ protected:
                 if (delta != 0) {
                     ++diff.heightMismatched;
                 }
+                ++diff.heightDeltaHistogram[delta];
                 diff.heightMaxAbsDelta = std::max(diff.heightMaxAbsDelta, std::abs(delta));
             }
         }
@@ -456,6 +477,100 @@ protected:
             std::printf("[PARITY]      %-72s %lld\n",
                 diff.topBlockPairs[i].first.c_str(),
                 static_cast<long long>(diff.topBlockPairs[i].second));
+        }
+        printBlockCountComparison(diff);
+        printMismatchByY(diff);
+    }
+
+    /**
+     * @brief 打印两侧各方块的总量对比（只列数量相差 100 以上的）
+     *
+     * 差异对只能说明"某个位置该是 A 却是 B"，无法区分 A 被多生成、还是 A 与 B 整体错位。
+     * 总量对比补上这一维度：两侧数量接近而差异对很大 → 位置错位；数量悬殊 → 多/少生成。
+     */
+    static void printBlockCountComparison(const ChunkDiff& diff)
+    {
+        struct Row {
+            std::string name;
+            i64 java = 0;
+            i64 cubium = 0;
+        };
+        std::vector<Row> rows;
+        for (const auto& [name, count] : diff.javaBlockCounts) {
+            const i64 cubiumCount = diff.cubiumBlockCounts.count(name) != 0 ? diff.cubiumBlockCounts.at(name) : 0;
+            if (count != cubiumCount) {
+                rows.push_back({name, count, cubiumCount});
+            }
+        }
+        for (const auto& [name, count] : diff.cubiumBlockCounts) {
+            if (diff.javaBlockCounts.count(name) == 0) {
+                rows.push_back({name, 0, count});
+            }
+        }
+        std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+            return std::abs(a.java - a.cubium) > std::abs(b.java - b.cubium);
+        });
+
+        if (rows.empty()) {
+            return;
+        }
+        const size_t limit = std::min<size_t>(rows.size(), 30);
+        std::printf("[PARITY] (%d,%d) 方块总量对比 top %zu / 共 %zu 种（仅列两侧数量不同的）：\n",
+            diff.x,
+            diff.z,
+            limit,
+            rows.size());
+        for (size_t i = 0; i < limit; ++i) {
+            const i64 delta = rows[i].cubium - rows[i].java;
+            const f64 ratio =
+                rows[i].java != 0 ? static_cast<f64>(rows[i].cubium) / static_cast<f64>(rows[i].java) : 0.0;
+            std::printf("[PARITY]      %-48s 原版 %7lld   Cubium %7lld   (%+lld, %.2fx)\n",
+                rows[i].name.c_str(),
+                static_cast<long long>(rows[i].java),
+                static_cast<long long>(rows[i].cubium),
+                static_cast<long long>(delta),
+                ratio);
+        }
+    }
+
+    /**
+     * @brief 按 Y 区间汇总不一致数
+     *
+     * 总量差异无法区分"深层矿脉"与"表层地形"，按 Y 分层后才能定位到生成阶段：
+     *   - 差异集中在深板岩层（y < 0）→ 矿脉 / 深板岩替换
+     *   - 差异集中在近地表（y 50~90）→ 地表规则 / 含水层
+     *   - 全高度均匀 → 密度函数本身
+     */
+    static void printMismatchByY(const ChunkDiff& diff)
+    {
+        if (diff.mismatchByY.empty()) {
+            return;
+        }
+        // 每 32 格一个区间
+        constexpr i32 kBandHeight = 32;
+        std::map<i32, i64> bands;
+        i64 total = 0;
+        for (size_t i = 0; i < diff.mismatchByY.size(); ++i) {
+            const i32 y = world::MIN_BUILD_HEIGHT + static_cast<i32>(i);
+            bands[(y / kBandHeight) * kBandHeight] += diff.mismatchByY[i];
+            total += diff.mismatchByY[i];
+        }
+        if (total == 0) {
+            return;
+        }
+        std::printf(
+            "[PARITY] (%d,%d) 按 Y 分层的不一致分布（共 %lld）：\n", diff.x, diff.z, static_cast<long long>(total));
+        for (const auto& [bandStart, count] : bands) {
+            if (count == 0) {
+                continue;
+            }
+            const i32 pct = static_cast<i32>(100.0 * static_cast<double>(count) / static_cast<double>(total));
+            std::printf("[PARITY]      y %5d..%5d  %8lld  (%3d%%)  %s\n",
+                bandStart,
+                bandStart + kBandHeight - 1,
+                static_cast<long long>(count),
+                pct,
+                std::string(static_cast<size_t>(pct) / 2, '#').c_str());
         }
     }
 
@@ -572,13 +687,14 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedChunksAreStructurallySound)
  *    "<unregistered:" 前缀（那种写法在调色板一致的常见情况下是空循环，等于零断言）。
  * 3. `cubiumOnlyBlocks == 0`：Cubium 生成了原版在该区块没有的方块。
  *
- * 【当前状态】第 3 项失败（第 1、2 项通过）。实测 Cubium 独有的方块：
- *   - (2,-2)：dripstone_block / pointed_dripstone / glow_lichen / short_grass / wildflowers
- *   - (2,10)：water / deepslate_coal_ore / deepslate_copper_ore / dandelion / poppy / bush
- * 其中 water 是明确的地形差异（原版该区块无水而 Cubium 有）；深板岩矿石说明 Cubium 的
- * 矿石**并非完全没有**，而是分布与原版不重合（(2,-2) 原版有 coal_ore/iron_ore 等而
- * Cubium 没有，(2,10) 反过来只有 Cubium 有 deepslate 变体）——即"矿石位置对不上"，
- * 而不是"没有生成矿石"。这与逐方块用例里 stone↔andesite 双向错位的结论一致。
+ * 【当前状态】第 3 项失败（第 1、2 项通过）。实测 Cubium 独有的方块（补齐方块标签
+ * 与重写 OreFeature 之后）：
+ *   - (2,-2)：deepslate_coal_ore / dripstone_block / glow_lichen / pointed_dripstone /
+ *             short_grass / wildflowers
+ *   - (2,10)：water / dandelion / poppy / bush 等
+ * 其中 dripstone / glow_lichen / short_grass / wildflowers / 花 属于**装饰特征**尚未
+ * 完全对齐（这些方块原版在该区块也没有，是 Cubium 多生成的）；deepslate_coal_ore 说明
+ * 矿石落位仍与原版不重合（差异已从"石头层完全没有矿"缩小到"个别矿脉位置不同"）。
  *
  * 【收敛目标】三项断言全部为 0。
  */
@@ -602,17 +718,27 @@ TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
 /**
  * 逐方块与原版严格相等。
  *
- * 【当前状态】失败：不一致率 19.0% ~ 20.8%（143~159 种差异对）。已定位的缺口：
- *   - **矿脉落位不符**：差异量最大的一类是 stone↔andesite / stone↔granite /
- *     stone↔diorite / deepslate↔tuff 的双向错位——Cubium 的 OreVeinifier 产物在
- *     位置与形状上与原版不一致（例如 (2,10) 有 2424 处原版 stone 被 Cubium 生成为
- *     andesite，同时又有 649 处相反）。这说明矿脉密度函数或阈值参数仍有偏差。
- *   - **石头变体矿石缺失**：原版有而 Cubium 在该区块完全没有 coal_ore / copper_ore /
- *     iron_ore / lapis_ore / redstone_ore / gold_ore；深板岩侧虽有矿石（如
- *     deepslate_copper_ore），但主石层没有，指向 ore 类 placed_feature 的 Y 范围
- *     或基底判定有偏差。
- *   - 缺少水边与地表内容：clay / sand / seagrass / tall_seagrass。
- * 注意"完全缺失"是就这些区块而言，不代表生成器里没有对应实现。
+ * 【当前状态】失败：不一致率 12.0% ~ 13.7%（68~159 种差异对）。
+ * 本轮已消除的缺口（此前 18.3% ~ 20.8%）：
+ *   - **石头层矿石完全缺失**：`stone_ore_replaceables` 方块标签未注册，使 17 个 ore_*
+ *     configured_feature 的石头层 target 恒不匹配，coal/copper/iron/gold/lapis/
+ *     redstone/diamond/emerald 在主石层一个都放不出来。补齐标签后石头层矿石已出现
+ *     （coal_ore 116 对原版 94、copper_ore 130 对 93 等）。
+ *   - **OreFeature 五处算法偏差**：半径漏 /2.0（矿脉体积膨胀 8 倍）、球体重叠判据误用
+ *     r1+r2 而非 |r1-r2|、提前退出误用 WorldSurfaceWG 而非 OceanFloorWG、Y 抖动
+ *     误用 nextInt(-2,2) 而非 nextInt(3)-2、全程 f32 而原版是 f64。
+ *   - **Mth.sin/cos 查表缺失**：原版 `Mth.sin` 是 65536 项量化查表，与 std::sin 差约
+ *     1e-5；矿脉半径包络依赖它，用 std::sin 会让球体边界逐格偏移。
+ *
+ * 【剩余缺口】按差异量排序：
+ *   1. **石头变体（andesite/granite/diorite/tuff/gravel）双向错位**：这些由
+ *      ore_andesite/granite/diorite/tuff/gravel 等 placed_feature 放置，其落位依赖
+ *      每个特征的 setFeatureSeed(featureIndex)。总量已接近（如 andesite 1266 对原版 1345），
+ *      但位置对不上 → 嫌疑在特征排序/索引或 placement 链的随机量消耗。
+ *   2. **地表内容**：clay / sand / seagrass / tall_seagrass 缺失，water 严重偏少
+ *      （3 对 963），grass_block 偏多（256 对 5）——地形高度本身未对齐导致水面/岸线错位。
+ *   3. **装饰特征**：dripstone / glow_lichen / 花 等多生成。
+ *   4. **列高度**：194~254 / 256 列不一致，是上述一切的根因之一。
  *
  * 【收敛目标】不一致数降为 0。在此之前用 kMaxBlockMismatchRatio 卡住量级，
  * 避免在没有门禁的情况下进一步退化。
@@ -663,6 +789,13 @@ TEST_F(JavaAnvilWorldGenParityTest, ColumnHeightsMatchJavaSave)
             static_cast<long long>(diff.heightMismatched),
             static_cast<long long>(diff.heightColumns),
             diff.heightMaxAbsDelta);
+        std::printf("[PARITY] (%d,%d) 列高度差直方图（Cubium - 原版，单位：格）：\n", cx, cz);
+        for (const auto& [delta, count] : diff.heightDeltaHistogram) {
+            std::printf("[PARITY]      %+4d  %4lld  %s\n",
+                delta,
+                static_cast<long long>(count),
+                std::string(static_cast<size_t>(count) / 4, '#').c_str());
+        }
         EXPECT_LE(diff.heightMaxAbsDelta, kMaxHeightDelta)
             << "区块 (" << cx << "," << cz << ") 与原版的列高度最大偏差 " << diff.heightMaxAbsDelta << " 格超过上限 "
             << kMaxHeightDelta;

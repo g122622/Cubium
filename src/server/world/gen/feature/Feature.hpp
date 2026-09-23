@@ -229,8 +229,12 @@ private:
 /**
  * @brief 匹配石头类方块的规则测试
  *
- * 匹配石头、花岗岩、闪长岩、安山岩。
- * 用于自然矿石生成。
+ * 委托 BlockTags::STONE_ORE_REPLACEABLES()，成员为
+ * 石头、花岗岩、闪长岩、安山岩（对齐数据包 tags/block/stone_ore_replaceables.json）。
+ *
+ * 硬编码列表虽然当前与标签成员一致，但数据包扩展标签时不会跟随；且标签缺失时
+ * 查不到成员会静默返回 false（本类曾因此让石头层矿石整体无法生成），走标签查询
+ * 可让这类问题在标签注册处暴露，而不是在矿石生成处表现为"这个区块没有矿"。
  */
 class StoneRuleTest : public RuleTest {
 public:
@@ -242,7 +246,8 @@ public:
 /**
  * @brief 匹配深板岩类方块的规则测试
  *
- * 匹配深板岩和凝灰岩（MC 1.21: DEEPSLATE_ORE_REPLACEABLES 标签）。
+ * 委托 BlockTags::DEEPSLATE_ORE_REPLACEABLES()，成员为深板岩与凝灰岩
+ * （对齐数据包 tags/block/deepslate_ore_replaceables.json）。
  * 用于深层矿石生成，使深层矿石变体在深板岩区域正确替换。
  */
 class DeepslateRuleTest : public RuleTest {

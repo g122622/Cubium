@@ -591,6 +591,15 @@ public:
     [[nodiscard]] i32 getHeightmapFirstAvailable(i32 x, i32 z, HeightmapType type) const;
 
     /**
+     * @brief 获取指定高度图在该列的"最高方块 Y"（对齐 MC WorldGenRegion.getHeight）
+     *
+     * 空列返回 MIN_BUILD_HEIGHT - 1（该 Y 处不可能有方块），与有方块列不会混淆。
+     * 供世界生成特征（如 OreFeature 的放置前提判定）使用——它们依赖
+     * `getHeight(...) >= 某 Y` 这种比较，空列必须落到最小值而非被抬到 MIN_BUILD_HEIGHT。
+     */
+    [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const;
+
+    /**
      * @brief 设置种子（用于生成）
      */
     void setSeed(u64 seed) { m_seed = seed; }

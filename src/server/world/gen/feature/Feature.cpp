@@ -165,9 +165,11 @@ std::unique_ptr<RuleTest> TagMatchRuleTest::clone() const
 bool StoneRuleTest::test(const BlockState& state, math::Random& random) const
 {
     (void)random;
-    // 匹配石头、花岗岩、闪长岩、安山岩
-    return state.is(VanillaBlocks::STONE) || state.is(VanillaBlocks::GRANITE) || state.is(VanillaBlocks::DIORITE) ||
-        state.is(VanillaBlocks::ANDESITE);
+    // 走标签查询而非硬编码方块列表：数据包扩展 stone_ore_replaceables 成员时自动跟随。
+    // 标签未注册时 contains 返回 false（而非崩溃），故标签缺失会表现为"矿石不生成"——
+    // 这类静默失效正是本类此前漏掉 stone_ore_replaceables 时发生的事，改走标签后
+    // 至少能保证与数据包定义同源。
+    return BlockTags::STONE_ORE_REPLACEABLES().contains(state);
 }
 
 std::unique_ptr<RuleTest> StoneRuleTest::clone() const
@@ -182,14 +184,9 @@ std::unique_ptr<RuleTest> StoneRuleTest::clone() const
 bool DeepslateRuleTest::test(const BlockState& state, math::Random& random) const
 {
     (void)random;
-    // 匹配深板岩和凝灰岩（MC 1.21: DEEPSLATE_ORE_REPLACEABLES 标签）
-    if (block_registry::DeepslateBlocks::DEEPSLATE && state.is(block_registry::DeepslateBlocks::DEEPSLATE)) {
-        return true;
-    }
-    if (block_registry::TuffBlocks::TUFF && state.is(block_registry::TuffBlocks::TUFF)) {
-        return true;
-    }
-    return false;
+    // 同 StoneRuleTest：走标签查询，成员为深板岩与凝灰岩
+    // （对齐数据包 tags/block/deepslate_ore_replaceables.json）。
+    return BlockTags::DEEPSLATE_ORE_REPLACEABLES().contains(state);
 }
 
 std::unique_ptr<RuleTest> DeepslateRuleTest::clone() const

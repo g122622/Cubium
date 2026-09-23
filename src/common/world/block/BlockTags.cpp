@@ -599,11 +599,47 @@ BlockTag& BlockTags::DEEPSLATE_ORE_REPLACEABLES()
     return *tag;
 }
 
+BlockTag& BlockTags::STONE_ORE_REPLACEABLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "stone_ore_replaceables"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::BASE_STONE_OVERWORLD()
 {
     static BlockTag* tag = nullptr;
     if (tag == nullptr) {
         tag = getTag(ResourceLocation("minecraft", "base_stone_overworld"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BASE_STONE_NETHER()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "base_stone_nether"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::TRAIL_RUINS_REPLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "trail_ruins_replaceable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::AZALEA_GROWS_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "azalea_grows_on"));
     }
     return *tag;
 }
@@ -2110,6 +2146,19 @@ void BlockTags::initialize()
         {ResourceLocation("minecraft", "deepslate"), ResourceLocation("minecraft", "tuff")});
     tags[deepslateOreReplaceables->getId()] = std::move(deepslateOreReplaceables);
 
+    // 石头层矿石可替换方块。
+    // 数据包中 17 个 ore_* configured_feature（coal/copper/iron/gold/lapis/redstone/diamond/
+    // emerald/infested）的 targets 里，石头层那一项用 tag_match 引用此标签，深板岩那一项引用
+    // deepslate_ore_replaceables。此前只注册了后者，前者缺失使 TagMatchRuleTest 查不到标签直接
+    // 返回 false，导致**所有石头层矿石都无法生成**（深板岩层正常）——这正是 parity 测试中
+    // "原版有 coal_ore/copper_ore/iron_ore 而 Cubium 完全没有"的原因。
+    auto stoneOreReplaceables = std::make_unique<BlockTag>(ResourceLocation("minecraft", "stone_ore_replaceables"));
+    stoneOreReplaceables->addAll({ResourceLocation("minecraft", "stone"),
+        ResourceLocation("minecraft", "granite"),
+        ResourceLocation("minecraft", "diorite"),
+        ResourceLocation("minecraft", "andesite")});
+    tags[stoneOreReplaceables->getId()] = std::move(stoneOreReplaceables);
+
     // 主世界基础石头
     auto baseStoneOverworld = std::make_unique<BlockTag>(ResourceLocation("minecraft", "base_stone_overworld"));
     baseStoneOverworld->addAll({ResourceLocation("minecraft", "stone"),
@@ -2119,6 +2168,37 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "tuff"),
         ResourceLocation("minecraft", "deepslate")});
     tags[baseStoneOverworld->getId()] = std::move(baseStoneOverworld);
+
+    // 下界基础石头（ore_ancient_debris_* 的 tag_match 引用）
+    auto baseStoneNether = std::make_unique<BlockTag>(ResourceLocation("minecraft", "base_stone_nether"));
+    baseStoneNether->addAll({ResourceLocation("minecraft", "netherrack"),
+        ResourceLocation("minecraft", "basalt"),
+        ResourceLocation("minecraft", "blackstone")});
+    tags[baseStoneNether->getId()] = std::move(baseStoneNether);
+
+    // 古迹废墟可替换方块（trail_ruins_*_archaeology 的 processor_list 里 input_predicate 引用）
+    auto trailRuinsReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "trail_ruins_replaceable"));
+    trailRuinsReplaceable->addAll({ResourceLocation("minecraft", "gravel")});
+    tags[trailRuinsReplaceable->getId()] = std::move(trailRuinsReplaceable);
+
+    // 杜鹃可生长方块（rooted_azalea_tree 的 matching_block_tag 引用）。
+    // 数据包定义引用三个子标签（#dirt + #sand + #terracotta）+ snow_block + powder_snow。
+    // BlockTag 不支持 #tag 嵌套引用，故手动展开合并（同 fall_damage_resetting 的合并模式）。
+    {
+        auto azaleaGrowsOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "azalea_grows_on"));
+        std::vector<ResourceLocation> merged;
+        const auto collect = [&merged](const BlockTag& src) {
+            const auto& ids = src.getBlockIds();
+            merged.insert(merged.end(), ids.begin(), ids.end());
+        };
+        collect(*tags.at(ResourceLocation("minecraft", "dirt")));
+        collect(*tags.at(ResourceLocation("minecraft", "sand")));
+        collect(*tags.at(ResourceLocation("minecraft", "terracotta")));
+        merged.push_back(ResourceLocation("minecraft", "snow_block"));
+        merged.push_back(ResourceLocation("minecraft", "powder_snow"));
+        azaleaGrowsOn->addAll(merged);
+        tags[azaleaGrowsOn->getId()] = std::move(azaleaGrowsOn);
+    }
 
     // 可被滴水石块替换的方块（DripstoneUtils.placeDripstoneBlockIfPossible / isDripstoneBase 依赖）
     auto dripstoneReplaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dripstone_replaceable"));

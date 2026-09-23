@@ -377,8 +377,9 @@ TEST_F(RuleTestTest, OreFeatureConfigCreation)
     OreFeatureConfig config(std::move(target), oreState, 9);
 
     EXPECT_EQ(config.size, 9);
-    EXPECT_EQ(config.state, oreState);
-    EXPECT_NE(config.target, nullptr);
+    EXPECT_EQ(config.targets.size(), 1u);
+    EXPECT_EQ(config.targets[0].state, oreState);
+    EXPECT_NE(config.targets[0].target, nullptr);
 }
 
 TEST_F(RuleTestTest, OreFeatureConfigNaturalStone)

@@ -460,3 +460,68 @@ TEST(ExponentialDecayFactor, FormulaCorrectness)
     // rate = 0.1, dt = 1.0: factor = 1 - 0.9^1 = 0.1
     EXPECT_NEAR(exponentialDecayFactor(0.1f, 1.0f), 0.1f, 0.0001f);
 }
+
+// ============================================================================
+// Mth.sin / Mth.cos 查表实现（复刻 MC Mth 的量化行为）
+// ============================================================================
+
+/**
+ * 这些用例锚定的是"与原版同源"，而不是"数学上足够精确"。
+ *
+ * 原版 Mth.sin 不调 Math.sin，而是查一张 65536 项的量化表：
+ *   SIN[i] = (float)Math.sin(i / 10430.378350470453)
+ *   sin(v) = SIN[(int)((long)(v * 10430.378350470453) & 65535L)]
+ * 与 std::sin 的差异只有 1e-7 量级，但世界生成会把它放大成可见的位置偏差，
+ * 因此这里必须验证查表语义本身（含截断与掩码），而非仅仅"接近真值"。
+ */
+TEST(MthSinCos, MatchesQuantizedTableSemantics)
+{
+    constexpr f64 SCALE = 10430.378350470453;
+
+    // 逐个采样点与"手工查表"结果逐位相等，验证索引计算完全一致。
+    for (mc::i32 k = 0; k < 2000; ++k) {
+        const f64 value = -10.0 + static_cast<f64>(k) * 0.01;
+        const auto index = static_cast<mc::i32>(static_cast<mc::i64>(value * SCALE) & 65535);
+        const f32 expected = static_cast<f32>(std::sin(static_cast<f64>(index) / SCALE));
+        EXPECT_EQ(mc::math::mthSin(value), expected) << "value=" << value;
+    }
+}
+
+TEST(MthSinCos, CosIsQuarterPeriodShiftOfSinTable)
+{
+    // 原版 cos 是同一张表偏移 16384（= 65536/4）项，不是独立的余弦表。
+    for (mc::i32 k = 0; k < 500; ++k) {
+        const f64 value = -6.0 + static_cast<f64>(k) * 0.024;
+        EXPECT_EQ(mc::math::mthCos(value), mc::math::mthSin(value + static_cast<f64>(16384) / 10430.378350470453))
+            << "value=" << value;
+    }
+}
+
+TEST(MthSinCos, NegativeAnglesWrapThroughTruncation)
+{
+    // 负角度先截断为负 long，再与 65535 按位与得到正索引。
+    // 若实现改用 fmod 取模，此处会得到不同索引（C++ 的 fmod 保留符号）。
+    constexpr f64 SCALE = 10430.378350470453;
+    for (const f64 value : {-0.001, -1.0, -3.5, -12.75}) {
+        const auto index = static_cast<mc::i32>(static_cast<mc::i64>(value * SCALE) & 65535);
+        EXPECT_GE(index, 0);
+        EXPECT_LE(index, 65535);
+        EXPECT_EQ(mc::math::mthSin(value), static_cast<f32>(std::sin(static_cast<f64>(index) / SCALE)))
+            << "value=" << value;
+    }
+}
+
+TEST(MthSinCos, QuantizationDeviationIsVisible)
+{
+    // 量化表带来的偏差上界：索引截断最多错 1 步，而一步对应 1/10430.378 ≈ 9.59e-5 弧度，
+    // 又 |d(sin)/dx| <= 1，故 |查表值 - 真值| <= 9.59e-5。实测最大约 5.6e-5。
+    // 这个量级足以在几何计算（半径、位置）中被放大成可见差异，因此必须用查表值而非 std::sin。
+    // 若某天有人把实现改回 std::sin，下面的 EXPECT_NE 会立刻失败。
+    constexpr f32 kQuantizationUpperBound = 1e-4f;
+    for (const f64 value : {-1.0, 0.7, 2.3, -0.4}) {
+        const f32 quantized = mc::math::mthSin(value);
+        const f32 exact = static_cast<f32>(std::sin(value));
+        EXPECT_NE(quantized, exact) << "value=" << value;
+        EXPECT_NEAR(quantized, exact, kQuantizationUpperBound) << "value=" << value;
+    }
+}
