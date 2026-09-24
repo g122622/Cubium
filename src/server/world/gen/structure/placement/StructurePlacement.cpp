@@ -62,12 +62,23 @@ bool StructurePlacement::applyAdditionalChunkRestrictions(i32 chunkX, i32 chunkZ
             return rng.nextFloat() < m_frequency;
         }
         case FrequencyReductionMethod::LegacyType1: {
-            // 掠夺者前哨站风格：基于方块坐标计算种子
-            i64 blockX = static_cast<i64>(chunkX) * 16;
-            i64 blockZ = static_cast<i64>(chunkZ) * 16;
-            i64 seed = (blockX >> 4) ^ (blockZ << 4) ^ worldSeed;
+            // 掠夺者前哨站风格。逐字对齐原版 StructurePlacement.legacyPillagerOutpostReducer：
+            //   int i = chunkX >> 4;
+            //   int j = chunkZ >> 4;
+            //   worldgenrandom.setSeed((long)(i ^ j << 4) ^ levelSeed);
+            //   worldgenrandom.nextInt();                              // ← 必须先丢弃一次
+            //   return worldgenrandom.nextInt((int)(1.0F / frequency)) == 0;
+            // Java 中 << 优先级高于 ^，故种子等价于 i ^ (j << 4) ^ levelSeed。
+            // 【曾经的错误】写成 (chunkX*16 >> 4) ^ (chunkZ*16 << 4) ^ worldSeed
+            //   = chunkX ^ (chunkZ << 8)，与 i ^ (j << 4) 完全不同（chunkZ=-10 时原版
+            //   j<<4 为 -16，误写为 -160）；且漏掉了那次用于丢弃的 nextInt()，使后续
+            //   nextInt(bound) 整体错位。二者叠加令前哨站候选区块判定偏离原版。
+            const i32 i = chunkX >> 4;
+            const i32 j = chunkZ >> 4;
+            const i64 seed = (static_cast<i64>(i) ^ (static_cast<i64>(j) << 4)) ^ worldSeed;
             rng.setSeed(static_cast<u64>(seed));
-            i32 bound = static_cast<i32>(1.0 / m_frequency);
+            (void)rng.nextInt(); // 原版丢弃一次抽取，不可省略
+            const i32 bound = static_cast<i32>(1.0F / m_frequency);
             return bound > 0 && rng.nextInt(bound) == 0;
         }
         case FrequencyReductionMethod::LegacyType2: {

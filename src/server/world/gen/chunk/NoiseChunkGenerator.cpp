@@ -238,45 +238,88 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             continue;
         }
 
-        // 按权重选择结构
+        // === 加权选择 + 失败回退重抽 ===
         // MC 1.21.11: 使用 setLargeFeatureSeed 而非 setLargeFeatureWithSalt
         // 参考: ChunkGenerator.createStructures()
         //   WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
-        //   worldgenrandom.setLargeFeatureSeed(levelSeed, chunkX, chunkZ);
+        //   worldgenrandom.setLargeFeatureSeed(levelSeed, chunkpos.x, chunkpos.z);
         // WorldgenRandom 包装 LegacyRandomSource：nextLong() 会拆成两次 next(32)，
         // 与直接在 LegacyRandomSource 上调 nextLong() 等价（LegacyRandomSource.nextLong 也是
         // (next(32)<<32)+next(32)），故这里的包装不改变数值，只是保持原版的类型形状。
         math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
         rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
-        const auto* entry = structureSet.selectEntry(rng);
-        if (!entry) continue;
 
-        // 查找结构定义
-        const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
-        if (!structure) continue;
-
-        // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
-        // 采样噪声生物群系，检查是否匹配该结构的 biomeTag。此处使用 getNoiseBiome()
-        // （四分坐标精度，无 Voronoi 缩放）。
-        // TODO: 采样点与原版不一致。原版在 Structure.findValidGenerationPoint 找到的
-        //   **候选生成点**（candidate generation point）处采样：
-        //     biomeSource.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
-        //                               QuartPos.fromBlock(pos.getY()),
-        //                               QuartPos.fromBlock(pos.getZ()))
-        //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
-        //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
-        //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
-        const BiomeId biomeAtCandidate =
-            getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
-        if (!structure->isValidBiome(biomeAtCandidate)) {
-            continue;
+        // 【为何必须循环重抽】原版对多条目结构集是
+        //     while (!arraylist.isEmpty()) {
+        //         int j = worldgenrandom.nextInt(i);   // i = 当前剩余条目权重之和
+        //         for (entry : arraylist) { j -= entry.weight(); if (j < 0) break; k++; }
+        //         if (tryGenerateStructure(arraylist.get(k), ...)) return;   // 成功即止
+        //         arraylist.remove(k);
+        //         i -= selected.weight();
+        //     }
+        // 即：**某条目生成失败时，把它从候选里剔除并用同一个 RNG 继续重抽**。
+        // 只抽一次就放弃是错的——以 mineshafts 为例（mineshaft 与 mineshaft_mesa 各权重 1），
+        // 在非恶地群系里若先抽中 mineshaft_mesa，原版会回退到 mineshaft 并成功生成，
+        // 而"只抽一次"的实现在 isValidBiome 处直接 continue，导致该处**整片没有矿井**。
+        // 注意：RNG 在重试之间共享（不重新播种），总权重随移除递减。
+        // 单条目结构集（list.size()==1）原版直接 tryGenerateStructure 不消耗随机数；
+        // 本实现统一走循环，首次迭代的 nextInt(1) 恒为 0、结果与直接尝试一致（仅多消耗
+        // 一个随机数），而该 rng 每次进入本结构集都会重新播种、且失败路径不再复用，
+        // 故不影响其余结构。
+        std::vector<const world::gen::structure::StructureSelectionEntry*> candidates;
+        candidates.reserve(structureSet.entries().size());
+        for (const auto& setEntry : structureSet.entries()) {
+            candidates.push_back(&setEntry);
         }
+        i32 remainingWeight = structureSet.totalWeight();
 
-        // 生成结构起点
-        auto start = structure->generate(*this, rng, chunkX, chunkZ);
-        if (start) {
-            chunk.addStructureStart(
-                entry->structureId, std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
+        while (!candidates.empty() && remainingWeight > 0) {
+            i32 roll = rng.nextInt(remainingWeight);
+            size_t chosen = 0;
+            for (; chosen < candidates.size(); ++chosen) {
+                roll -= candidates[chosen]->weight;
+                if (roll < 0) {
+                    break;
+                }
+            }
+            if (chosen >= candidates.size()) {
+                chosen = candidates.size() - 1; // 权重配置异常时的兜底
+            }
+
+            const world::gen::structure::StructureSelectionEntry* entry = candidates[chosen];
+            const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
+
+            // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
+            // 采样噪声生物群系，检查是否匹配该结构的 biomeTag。此处使用 getNoiseBiome()
+            // （四分坐标精度，无 Voronoi 缩放）。
+            // TODO: 采样点与原版不一致。原版在 Structure.findValidGenerationPoint 找到的
+            //   **候选生成点**（candidate generation point）处采样：
+            //     biomeSource.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
+            //                               QuartPos.fromBlock(pos.getY()),
+            //                               QuartPos.fromBlock(pos.getZ()))
+            //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
+            //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
+            //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
+            bool placed = false;
+            if (structure != nullptr) {
+                const BiomeId biomeAtCandidate =
+                    getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
+                if (structure->isValidBiome(biomeAtCandidate)) {
+                    auto start = structure->generate(*this, rng, chunkX, chunkZ);
+                    if (start) {
+                        chunk.addStructureStart(entry->structureId,
+                            std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
+                        placed = true;
+                    }
+                }
+            }
+            if (placed) {
+                break; // 对应原版的 return：成功生成后不再尝试其余条目
+            }
+
+            // 失败：剔除该条目并递减总权重，继续重抽。
+            remainingWeight -= entry->weight;
+            candidates.erase(candidates.begin() + static_cast<std::ptrdiff_t>(chosen));
         }
     }
 
