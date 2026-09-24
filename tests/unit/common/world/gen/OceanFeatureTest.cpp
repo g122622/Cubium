@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "core/Constants.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -61,6 +62,11 @@ protected:
                         }
                     }
                 }
+
+                // 【必须重建高度图】fixture 直接 setBlockState 铺场景，不会自动维护高度图。
+                // 而 SeagrassFeature 等按原版语义用 OCEAN_FLOOR 高度图定位海底，
+                // 不重建会让 getHeightmapFirstAvailable 返回空列哨兵，特征静默不放置。
+                chunk->primeHeightmaps(HeightmapFlag::POST_FEATURES);
 
                 m_chunks[static_cast<size_t>(index)] = chunk.get();
                 m_ownedChunks.push_back(std::move(chunk));
@@ -129,7 +135,8 @@ TEST_F(OceanFeatureWorldTest, KelpFeaturePlacesKelpInWater)
 TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant)
 {
     // 数据驱动迁移：原 SeagrassFeatures::createMixedSeagrass() 胶水已删除，
-    // 测试直接内联构造 SeagrassFeatureConfig（与原工厂同值：tallChance=0.3, tries=48, spread=8）。
+    // 测试直接内联构造 SeagrassFeatureConfig（与原工厂同值：tallChance=0.3）。
+    // 放置偏移固定为 nextInt(8)-nextInt(8)，不可配置，故此处无需额外字段。
     SeagrassFeatureConfig config;
     if (VanillaBlocks::SEAGRASS != nullptr) {
         config.seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
@@ -141,8 +148,6 @@ TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant)
             BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);
     }
     config.tallSeagrassChance = 0.3f;
-    config.tries = 48;
-    config.horizontalSpread = 8;
 
     ASSERT_NE(config.seagrassState, nullptr);
     ASSERT_NE(config.tallSeagrassLowerState, nullptr);
@@ -154,8 +159,11 @@ TEST_F(OceanFeatureWorldTest, SeagrassMixedFeaturePlacesSeaPlant)
     EXPECT_TRUE(feature.place(*m_region, random, BlockPos(0, 0, 0), config));
 
     bool foundSeagrass = false;
-    for (i32 x = 0; x < 16 && !foundSeagrass; ++x) {
-        for (i32 z = 0; z < 16 && !foundSeagrass; ++z) {
+    // 【须扫描整个 3x3 邻域】原版每次只取一个 nextInt(8)-nextInt(8) 的偏移，
+    // 结果可能落在 origin 所在区块之外（本 fixture 铺了 3x3 区块），
+    // 只看当前区块会漏判。
+    for (i32 x = -16; x < 32 && !foundSeagrass; ++x) {
+        for (i32 z = -16; z < 32 && !foundSeagrass; ++z) {
             for (i32 y = 41; y <= 42; ++y) {
                 const BlockState* planted = getWorldBlock(x, y, z);
                 if (planted == nullptr) {

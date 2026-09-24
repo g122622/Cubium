@@ -39,34 +39,6 @@
 
 namespace mc {
 
-namespace {
-
-[[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
-{
-    i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
-    if (oceanFloorY > world::MIN_BUILD_HEIGHT) {
-        return oceanFloorY;
-    }
-
-    // 某些测试会绕过高度图更新，回退到显式扫描。
-    for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT + 1; --y) {
-        const BlockState* state = world.getBlockState(x, y, z);
-        if (state == nullptr || state->isAir()) {
-            continue;
-        }
-
-        if (VanillaBlocks::WATER != nullptr && state->is(VanillaBlocks::WATER)) {
-            continue;
-        }
-
-        return y;
-    }
-
-    return -1;
-}
-
-} // namespace
-
 // ============================================================================
 // SeagrassFeature 实现
 // ============================================================================
@@ -78,44 +50,43 @@ bool SeagrassFeature::place(
         return false;
     }
 
-    // 每次调用尝试多个随机偏移点
-    const i32 tries = std::max(1, config.tries);
-    const i32 spread = std::max(1, config.horizontalSpread);
+    // 对齐 MC SeagrassFeature.place：**只尝试一个随机偏移点**。
+    //
+    // 【曾循环 tries(默认 48) 次】那会让同一配置下的尝试次数是原版的 48 倍，
+    // 表现为海草大面积超量（实测 seagrass 5.14x、tall_seagrass 3.62x）。
+    // 偏移范围固定为 8 —— 原版写死 nextInt(8) - nextInt(8)，并非可配置字段。
+    const i32 offsetX = random.nextInt(8) - random.nextInt(8);
+    const i32 offsetZ = random.nextInt(8) - random.nextInt(8);
 
-    bool placedAny = false;
-    for (i32 attempt = 0; attempt < tries; ++attempt) {
-        const i32 dx = random.nextInt(spread) - random.nextInt(spread);
-        const i32 dz = random.nextInt(spread) - random.nextInt(spread);
+    // 原版用 OCEAN_FLOOR（而非生成期变体 OCEAN_FLOOR_WG），且取的正是"第一个可用高度"
+    // （= 最高固体方块 Y + 1），直接作为放置点 Y。
+    // 注意：WorldGenRegion::getHeight 返回的是 getFirstAvailable - 1（最高方块 Y），
+    // 比原版 LevelReader.getHeight 少 1，故此处必须用 getHeightmapFirstAvailable。
+    const i32 surfaceY = world.getHeightmapFirstAvailable(pos.x + offsetX, pos.z + offsetZ, HeightmapType::OceanFloor);
+    const BlockPos placePos(pos.x + offsetX, surfaceY, pos.z + offsetZ);
 
-        const i32 placeX = pos.x + dx;
-        const i32 placeZ = pos.z + dz;
-        const i32 oceanFloorY = findOceanFloorY(world, placeX, placeZ);
-        if (oceanFloorY <= world::MIN_BUILD_HEIGHT) {
-            continue;
-        }
-
-        const BlockPos placePos(placeX, oceanFloorY + 1, placeZ);
-        if (!_canPlaceAt(world, placePos, *config.seagrassState)) {
-            continue;
-        }
-
-        const bool shouldPlaceTall = config.tallSeagrassChance > 0.0f && config.tallSeagrassLowerState != nullptr &&
-            config.tallSeagrassUpperState != nullptr && random.nextFloat() < config.tallSeagrassChance;
-
-        if (shouldPlaceTall) {
-            const BlockPos abovePos(placePos.x, placePos.y + 1, placePos.z);
-            if (_isWater(world, abovePos)) {
-                _placeTallSeagrass(world, placePos, config);
-                placedAny = true;
-                continue;
-            }
-        }
-
-        world.setBlockState(placePos, config.seagrassState);
-        placedAny = true;
+    if (!_isWater(world, placePos)) {
+        return false;
     }
 
-    return placedAny;
+    // 原版此处是 nextDouble() < probability（不是 nextFloat），随机数消耗量不同。
+    const bool placeTall = random.nextDouble() < static_cast<f64>(config.tallSeagrassChance);
+    // 原版先抽 nextDouble 再判 canSurvive，顺序不可颠倒。
+    if (!_canPlaceAt(world, placePos, *config.seagrassState)) {
+        return false;
+    }
+
+    if (placeTall) {
+        const BlockPos abovePos(placePos.x, placePos.y + 1, placePos.z);
+        if (_isWater(world, abovePos)) {
+            _placeTallSeagrass(world, placePos, config);
+        }
+        // 注意：原版该分支**即便上方不是水也返回 true**（flag 置位在 if 之外）。
+        return true;
+    }
+
+    world.setBlockState(placePos, config.seagrassState);
+    return true;
 }
 
 bool SeagrassFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos, const BlockState& seagrassState) const

@@ -50,33 +50,19 @@ struct SeagrassFeatureConfig : public IFeatureConfig {
     /// 高海草概率 (0.0 - 1.0)
     f32 tallSeagrassChance = 0.0f;
 
-    /// 放置尝试次数
-    i32 tries = 48;
-
-    /// 水平扩散半径（使用 nextInt(spread)-nextInt(spread)）
-    i32 horizontalSpread = 8;
-
     SeagrassFeatureConfig() = default;
 
     explicit SeagrassFeatureConfig(const BlockState* seagrass)
         : seagrassState(seagrass)
         , tallSeagrassChance(0.0f)
-        , tries(48)
-        , horizontalSpread(8)
     {}
 
-    SeagrassFeatureConfig(const BlockState* seagrass,
-        const BlockState* tallLower,
-        const BlockState* tallUpper,
-        f32 tallChance = 0.3f,
-        i32 t = 48,
-        i32 spread = 8)
+    SeagrassFeatureConfig(
+        const BlockState* seagrass, const BlockState* tallLower, const BlockState* tallUpper, f32 tallChance = 0.3f)
         : seagrassState(seagrass)
         , tallSeagrassLowerState(tallLower)
         , tallSeagrassUpperState(tallUpper)
         , tallSeagrassChance(tallChance)
-        , tries(t)
-        , horizontalSpread(spread)
     {}
 };
 
