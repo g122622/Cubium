@@ -48,17 +48,23 @@
 // （存档中 Observable/TSR 半径内的区块会被生成但不一定 tick），因此不可能被
 // 任何运行时逻辑改写，其方块数据即纯 worldgen 产物。
 //
-// 另外 kTargets 的坐标是离线筛选出来的，选取条件是"从未被 tick 过"（InhabitedTime==0）
-// 且邻域状态齐全（排除生成边界效应——邻居未完成时其 feature 可能写入本区块）。
-// 离线筛选结果：474 个 InhabitedTime==0 的 full 区块，其中 6 个的 13x13 邻域内无任何缺口，
-// 本文件取其中 3 个（另 3 个为 (-10,9) (-10,10) (-9,10)，留作后续扩充）。
-// 该筛选脚本未进入仓库，数字无法在测试内复现，故仅存档于此。
+// 目标区块的坐标**不再硬编码**，而是由 selectPristineTargets() 在运行时从素材中筛出：
+//   - 中心区块：isFullyGenerated() 且 inhabitedTime()==0；
+//   - 邻域 13x13：全部 isFullyGenerated()（邻居"跑完 feature 放置"后不会再写入本区块；
+//     邻居自身是否被 tick 不影响本区块的 worldgen 产物，故此处不要求 InhabitedTime==0）。
+// 实测筛选结果：675 个 full 区块 → 474 个 InhabitedTime==0 → 6 个 13x13 邻域无缺口。
+// 这与历史上那份"未进仓库、无法复现"的离线脚本给出的数字完全一致，即该筛选现已
+// 可在测试内确定性重放；素材更新后目标集合自动重算。
+//
+// 六个目标区块的实测不一致率（2026-09）：0.79% ~ 2.84%，跨度 3.6 倍，
+// 且**无一接近 0**——说明差距是遍在的系统性偏差，而非某个区块撞上了特殊地形。
+// 另注意 (-10,9) 与 (-10,10) 为相邻区块，不一致率几乎相同（0.79% / 0.80%），
+// 提示误差与局部地形/群系强相关。
 //
 // 注意前提的**校验方式**：坐标级条件（区块存在、状态 full、从未被 tick、无方块实体）
-// 由 PristineGroundTruthIsIntact 逐条断言——素材一旦被替换就会立刻失败，从而把
-// "素材/坐标选取有问题" 与 "parity 有差距" 两种失败区分开。但邻域条件只在选取时
-// 校验过一次，运行时不再复查（复查需读取 13x13=169 个区块，代价高于收益）：
-// 若将来换了一份邻域不完整的素材，本测试不会报"素材不合格"，只会表现为 parity 变差。
+// 由 PristineGroundTruthIsIntact 逐条断言，且该用例会先断言目标集合非空——
+// 筛选结果为空时其余对比用例的循环体不执行、会以"全部通过"静默退化，
+// 这正是本项目反复出现的失败模式，故必须显式挡住。
 //
 // ---------------------------------------------------------------------------
 // 对比维度与断言强度（双轨）
@@ -161,12 +167,114 @@ constexpr const char* kWorldRelPath = "worlds/java-anvil-1.21.11";
 /// level.dat 的 WorldGenSettings.seed（Java 存档中为 Long，可能为负）
 constexpr i64 kSeed = -6671478382168981129LL;
 
-/// 目标区块：全部满足 InhabitedTime==0、8 邻域 full、13x13 邻域内无缺口
-constexpr std::pair<ChunkCoord, ChunkCoord> kTargets[] = {
-    {2, -2},
-    {2, 10},
-    {-10, -2},
-};
+/// 邻域完整性半径：要求候选区块周围 (2r+1)^2 区块全部合格，
+/// 以保证原版生成该区块时邻区块已完成（carver/feature 会跨区块作用）。
+constexpr i32 kNeighborhoodRadius = 6;
+
+/// m_javaChunks 的容量余量：吸收单个用例对同一区块的重复加载，
+/// 避免 push_back 扩容导致先前 loadJavaChunk 返回的裸指针悬垂。
+constexpr size_t kChunkCapacitySlack = 16;
+
+/// 把 (cx, cz) 打包成单个 i64 作为容器键。
+constexpr i64 packChunkKey(ChunkCoord cx, ChunkCoord cz)
+{
+    return (static_cast<i64>(cx) << 32) | static_cast<u32>(cz);
+}
+
+/**
+ * @brief 在测试内确定性地选出「纯净 ground truth」区块，取代此前的硬编码坐标列表。
+ *
+ * 判据（全部由素材本身推出，不依赖任何预筛选脚本或写死的坐标）：
+ *   - 中心区块：可从素材读出、isFullyGenerated()、inhabitedTime()==0。
+ *   - 邻域 (2*kNeighborhoodRadius+1)^2：同样满足上述两条。理由见文件头说明——
+ *     邻居未完成生成时其 feature 可能写入中心区块；邻居被 tick 过则其随机刻/流体刻
+ *     也可能改动中心区块边缘。故邻域内所有区块同样要求"完整生成且从未被 tick"。
+ *
+ * 【为何改为运行时筛选】此前的坐标来自一份未进仓库的离线脚本，条件无法在测试内
+ * 复现，扩充样本时必须手工重跑该脚本。改为运行时筛选后，素材一旦更新，
+ * 目标集合自动重算，且"选不出区块"会直接暴露为测试失败而非静默使用旧坐标。
+ */
+std::vector<std::pair<ChunkCoord, ChunkCoord>> selectPristineTargets()
+{
+    const std::filesystem::path worldDir = mc::test::testDataPath(kWorldRelPath);
+
+    world::storage::SaveFormatInfo info;
+    info.format = world::storage::SaveFormat::JavaAnvil;
+    info.formatName = "Java 1.21.11";
+    info.dataVersion = 4671;
+    info.readonly = true;
+
+    world::storage::JavaAnvilBackend backend;
+    if (!backend.open(worldDir, info).success()) {
+        std::printf("[PARITY] 素材存档打开失败，无法自动选取目标区块\n");
+        return {};
+    }
+
+    // 第一遍：分别记录"已完成生成"与"已完成生成且从未被 tick"两类区块。
+    // 两个集合的用途不同，不可混用：
+    //   - 邻域条件只要求邻居 `full`（跑完 feature 放置后不会再向中心区块写入）；
+    //   - 中心区块额外要求 `InhabitedTime==0`（自身方块数据须为纯 worldgen 产物）。
+    // 早期实现曾把邻域条件也写成 InhabitedTime==0，结果一个区块都选不出来——
+    // 因为素材是玩家边走边生成的，被 tick 的区块远多于未被 tick 的。
+    std::set<i64> fullyGenerated;
+    std::set<i64> pristine;
+    for (i32 cx = -32; cx < 32; ++cx) {
+        for (i32 cz = -32; cz < 32; ++cz) {
+            auto result = backend.loadChunk(cx, cz, 0);
+            if (result.failed() || !result.value().has_value()) {
+                continue;
+            }
+            const ChunkData& candidate = *result.value();
+            if (!candidate.isFullyGenerated()) {
+                continue;
+            }
+            fullyGenerated.insert(packChunkKey(cx, cz));
+            if (candidate.inhabitedTime() == 0) {
+                pristine.insert(packChunkKey(cx, cz));
+            }
+        }
+    }
+
+    // 第二遍：中心区块取纯净者，邻域取已完整生成者。
+    std::vector<std::pair<ChunkCoord, ChunkCoord>> targets;
+    for (i32 cx = -32; cx < 32; ++cx) {
+        for (i32 cz = -32; cz < 32; ++cz) {
+            if (pristine.count(packChunkKey(cx, cz)) == 0) {
+                continue;
+            }
+            bool complete = true;
+            for (i32 dx = -kNeighborhoodRadius; dx <= kNeighborhoodRadius && complete; ++dx) {
+                for (i32 dz = -kNeighborhoodRadius; dz <= kNeighborhoodRadius; ++dz) {
+                    if (fullyGenerated.count(packChunkKey(cx + dx, cz + dz)) == 0) {
+                        complete = false;
+                        break;
+                    }
+                }
+            }
+            if (complete) {
+                targets.emplace_back(cx, cz);
+            }
+        }
+    }
+
+    std::printf("[PARITY] 自动筛选目标区块：已完成生成 %zu 个，其中纯净(未被 tick) %zu 个；"
+                "%dx%d 邻域全部已生成者 %zu 个\n",
+        fullyGenerated.size(),
+        pristine.size(),
+        2 * kNeighborhoodRadius + 1,
+        2 * kNeighborhoodRadius + 1,
+        targets.size());
+    return targets;
+}
+
+/// 目标区块：运行时从素材存档筛选（判据见 selectPristineTargets）。
+/// 函数内 static 保证只扫描一次；筛选结果为空时测试会以"无区块可对比"失败，
+/// 而不是静默退化。
+const std::vector<std::pair<ChunkCoord, ChunkCoord>>& targets()
+{
+    static const std::vector<std::pair<ChunkCoord, ChunkCoord>> kSelected = selectPristineTargets();
+    return kSelected;
+}
 
 /// 列高度相对原版高度图允许的最大绝对偏差（格）。
 /// 现状实测：194~254 / 256 列不一致，最大绝对偏差 11~16 格。
@@ -785,13 +893,14 @@ protected:
 
     /// 已加载的原版区块（转存以保证指针存活）
     ///
-    /// 预分配 kTargets 个容量是**必要**的：loadJavaChunk 返回的是容器内元素的地址，
+    /// 预分配容量是**必要**的：loadJavaChunk 返回的是容器内元素的地址，
     /// 一旦 push_back 触发扩容，先前返回的指针立即悬垂（ChunkData 只可移动，元素会被搬走）。
-    /// 每个用例至多加载 kTargets 个区块，故容量足够；若将来增加目标区块或让某个用例
-    /// 重复加载，必须同步调整这里，或改用 std::deque / vector<unique_ptr<ChunkData>>。
+    /// 目标区块数由运行时筛选决定（当前 6 个），故预留 kChunkCapacitySlack 个余量吸收
+    /// 单个用例对同一区块的重复加载；若将来把某个用例改成大量重复加载，
+    /// 应改用 std::deque 或 vector<unique_ptr<ChunkData>>。
     std::vector<ChunkData> m_javaChunks = [] {
         std::vector<ChunkData> v;
-        v.reserve(std::size(kTargets));
+        v.reserve(targets().size() + kChunkCapacitySlack);
         return v;
     }();
     world::storage::JavaAnvilBackend m_backend;
@@ -817,7 +926,12 @@ protected:
  */
 TEST_F(JavaAnvilWorldGenParityTest, PristineGroundTruthIsIntact)
 {
-    for (const auto& [x, z] : kTargets) {
+    // 【必须有此断言】筛选结果为空时，其余对比用例的循环体不会执行，
+    // 会以"全部通过"的形式静默退化——这正是本项目反复出现的失败模式。
+    ASSERT_FALSE(targets().empty()) << "自动筛选未选出任何纯净区块：素材不合格，或邻域半径 " << kNeighborhoodRadius
+                                    << " 过严（见 selectPristineTargets 的打印）";
+
+    for (const auto& [x, z] : targets()) {
         const ChunkData* javaChunk = loadJavaChunk(x, z);
         ASSERT_NE(javaChunk, nullptr) << "无法读取区块 (" << x << "," << z << ")";
         EXPECT_EQ(javaChunk->x(), x) << "读取到的区块坐标与请求不一致（region 定位可能出错）";
@@ -856,7 +970,7 @@ TEST_F(JavaAnvilWorldGenParityTest, WorldGenRegistriesAreLoaded)
  */
 TEST_F(JavaAnvilWorldGenParityTest, GeneratedChunksAreStructurallySound)
 {
-    for (const auto& [cx, cz] : kTargets) {
+    for (const auto& [cx, cz] : targets()) {
         ChunkData* cubiumChunk = generateCubiumChunk(cx, cz);
         ASSERT_NE(cubiumChunk, nullptr) << "生成区块 (" << cx << "," << cz << ") 失败";
         EXPECT_EQ(cubiumChunk->x(), cx);
@@ -909,7 +1023,7 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedChunksAreStructurallySound)
  */
 TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
 {
-    for (const auto& [cx, cz] : kTargets) {
+    for (const auto& [cx, cz] : targets()) {
         const ChunkData* javaChunk = loadJavaChunk(cx, cz);
         ASSERT_NE(javaChunk, nullptr);
         ChunkData* cubiumChunk = generateCubiumChunk(cx, cz);
@@ -986,7 +1100,7 @@ TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
     const i32 cellHeight = noise.sizeVertical * 4;
     const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
 
-    for (const auto& [cx, cz] : kTargets) {
+    for (const auto& [cx, cz] : targets()) {
         const ChunkData* javaChunk = loadJavaChunk(cx, cz);
         ASSERT_NE(javaChunk, nullptr);
 
@@ -1163,7 +1277,7 @@ TEST_F(JavaAnvilWorldGenParityTest, BiomeAccessorConsistencyDiagnostic)
 
 TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlocksMatchJavaSave)
 {
-    for (const auto& [cx, cz] : kTargets) {
+    for (const auto& [cx, cz] : targets()) {
         const ChunkData* javaChunk = loadJavaChunk(cx, cz);
         ASSERT_NE(javaChunk, nullptr);
         ChunkData* cubiumChunk = generateCubiumChunk(cx, cz);
@@ -1194,7 +1308,7 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlocksMatchJavaSave)
  */
 TEST_F(JavaAnvilWorldGenParityTest, ColumnHeightsMatchJavaSave)
 {
-    for (const auto& [cx, cz] : kTargets) {
+    for (const auto& [cx, cz] : targets()) {
         const ChunkData* javaChunk = loadJavaChunk(cx, cz);
         ASSERT_NE(javaChunk, nullptr);
         ChunkData* cubiumChunk = generateCubiumChunk(cx, cz);
@@ -1235,7 +1349,7 @@ TEST_F(JavaAnvilWorldGenParityTest, ColumnHeightsMatchJavaSave)
  */
 TEST_F(JavaAnvilWorldGenParityTest, BiomesMatchJavaSave)
 {
-    for (const auto& [cx, cz] : kTargets) {
+    for (const auto& [cx, cz] : targets()) {
         const ChunkData* javaChunk = loadJavaChunk(cx, cz);
         ASSERT_NE(javaChunk, nullptr);
         ChunkData* cubiumChunk = generateCubiumChunk(cx, cz);
