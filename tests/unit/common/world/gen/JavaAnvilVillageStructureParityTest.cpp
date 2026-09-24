@@ -694,6 +694,57 @@ TEST_F(JavaAnvilVillageStructureParityTest, JigsawHarnessIsWired)
         {"minecraft:village/common/cats", 3},
         {"minecraft:village/plains/terminators", 2},
     };
+    // 【模板静默加载失败的检测】模板加载失败时，SingleJigsawPiece 仍会记录模板路径（名字非空），
+    // 但尺寸退化为 (0,0,0)、连接点为空。后果是**静默**的：尺寸为 0 的构件包围盒退化为一个点，
+    // 碰撞检测几乎恒过，于是它会在原版放不下的位置被放下；连接点为 0 又少消耗 (m-1) 次
+    // "连接点洗牌"的随机数。两者都会让装配结果偏离原版而无任何日志。
+    // 地物池元素（feature_pool_element）尺寸本就为 0，须排除。
+    constexpr const char* kPoolsToAudit[] = {
+        "minecraft:village/plains/streets",
+        "minecraft:village/plains/houses",
+        "minecraft:village/plains/decor",
+        "minecraft:village/plains/villagers",
+        "minecraft:village/plains/town_centers",
+        "minecraft:village/common/cats",
+        "minecraft:village/common/animals",
+        "minecraft:village/plains/terminators",
+    };
+    for (const char* poolName : kPoolsToAudit) {
+        const auto* auditPool = TemplatePoolRegistry::instance().getPool(ResourceLocation::parse(poolName));
+        ASSERT_NE(auditPool, nullptr) << "模板池未加载：" << poolName;
+        math::Random auditRng(0ULL);
+        const auto audited = auditPool->getShuffledPieces(auditRng);
+        i64 auditedReal = 0;
+        for (const auto* piece : audited) {
+            if (piece == nullptr || piece->isEmpty()) {
+                continue;
+            }
+            if (piece->getTypeName() == "feature_pool_element") {
+                continue; // 地物元素不加载模板，尺寸恒为 0
+            }
+            ++auditedReal;
+            const BlockPos size = piece->getSize();
+            EXPECT_GT(static_cast<i64>(size.x) * size.y * size.z, 0)
+                << poolName << " 中的 " << piece->getName() << " 尺寸为 0：模板未加载成功";
+            EXPECT_GT(piece->getJoints().size(), 0u)
+                << poolName << " 中的 " << piece->getName() << " 没有连接点：模板未加载成功";
+            // 【多调色板模板】原版取"按位置种子选出的调色板"的连接点，本实现固定读第一个调色板。
+            // 若村庄模板存在多调色板，两者读到的连接点集合会不同，进而使连接点洗牌消耗的
+            // 随机数次数不同——这是"装配结果不同但不报错"的一条隐蔽路径，故显式挡住。
+            const world::gen::feature::template_::Template* pieceTemplate =
+                world::gen::jigsaw::JigsawAssembler::getTemplateManager().getTemplate(
+                    ResourceLocation::parse(piece->getName()));
+            ASSERT_NE(pieceTemplate, nullptr) << piece->getName() << " 的模板无法按名字取回";
+            EXPECT_EQ(pieceTemplate->getPaletteCount(), 1)
+                << piece->getName() << " 是多调色板模板：本实现只读第一个调色板，连接点集合可能不同";
+        }
+        std::printf("[STRUCT-PARITY] 装置自检：池 %-40s 展开 %zu 项（其中模板件 %lld 项已审计）\n",
+            poolName,
+            audited.size(),
+            static_cast<long long>(auditedReal));
+        EXPECT_GT(auditedReal, 0) << poolName << " 没有可审计的模板件，自检形同虚设";
+    }
+
     for (const auto& expected : kExpectedSpans) {
         const auto* spanPool = TemplatePoolRegistry::instance().getPool(ResourceLocation::parse(expected.pool));
         ASSERT_NE(spanPool, nullptr) << "模板池未加载：" << expected.pool;

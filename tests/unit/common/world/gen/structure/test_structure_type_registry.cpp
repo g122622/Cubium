@@ -111,9 +111,11 @@ TEST_F(StructureTypeRegistryTest, RegistersAllSixteenTypes)
     EXPECT_TRUE(reg.has("end_city"));
     EXPECT_TRUE(reg.has("fortress"));
     EXPECT_TRUE(reg.has("igloo"));
-    EXPECT_TRUE(reg.has("jungle_pyramid"));
+    // 原版 1.21 已把该类型由 jungle_pyramid 改名为 jungle_temple
+    EXPECT_TRUE(reg.has("jungle_temple"));
     EXPECT_TRUE(reg.has("nether_fossil"));
-    EXPECT_TRUE(reg.has("monument"));
+    // 原版 1.21 已把该类型由 monument 改名为 ocean_monument
+    EXPECT_TRUE(reg.has("ocean_monument"));
     EXPECT_TRUE(reg.has("ocean_ruin"));
     EXPECT_TRUE(reg.has("ruined_portal"));
     EXPECT_TRUE(reg.has("shipwreck"));
@@ -140,9 +142,12 @@ TEST_F(StructureTypeRegistryTest, DispatchesProceduralTypesToSubclasses)
         {"end_city", [](const Structure* s) { return dynamic_cast<const EndCityStructure*>(s) != nullptr; }},
         {"fortress", [](const Structure* s) { return dynamic_cast<const FortressStructure*>(s) != nullptr; }},
         {"igloo", [](const Structure* s) { return dynamic_cast<const IglooStructure*>(s) != nullptr; }},
-        {"jungle_pyramid", [](const Structure* s) { return dynamic_cast<const JungleTempleStructure*>(s) != nullptr; }},
+        // 原版 1.21 已把该类型由 jungle_pyramid 改名为 jungle_temple
+        {"jungle_temple", [](const Structure* s) { return dynamic_cast<const JungleTempleStructure*>(s) != nullptr; }},
         {"nether_fossil", [](const Structure* s) { return dynamic_cast<const NetherFossilStructure*>(s) != nullptr; }},
-        {"monument", [](const Structure* s) { return dynamic_cast<const OceanMonumentStructure*>(s) != nullptr; }},
+        // 原版 1.21 已把该类型由 monument 改名为 ocean_monument
+        {"ocean_monument",
+            [](const Structure* s) { return dynamic_cast<const OceanMonumentStructure*>(s) != nullptr; }},
         {"ocean_ruin", [](const Structure* s) { return dynamic_cast<const OceanRuinStructure*>(s) != nullptr; }},
         {"ruined_portal", [](const Structure* s) { return dynamic_cast<const RuinedPortalStructure*>(s) != nullptr; }},
         {"shipwreck", [](const Structure* s) { return dynamic_cast<const ShipwreckStructure*>(s) != nullptr; }},
