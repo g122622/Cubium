@@ -28,6 +28,7 @@
 #include "common/util/property/BooleanProperty.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/AgriculturalBlocks.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
@@ -460,6 +461,55 @@ void PaleMossDecorator::place(const TreeDecoratorContext& context) const
                 addMossHanger(context, pos);
             }
         }
+    }
+}
+
+// ============================================================================
+// CreakingHeartDecorator
+// ============================================================================
+
+CreakingHeartDecorator::CreakingHeartDecorator(f32 probability)
+    : m_probability(probability)
+{}
+
+void CreakingHeartDecorator::place(const TreeDecoratorContext& context) const
+{
+    const std::vector<BlockPos>& logs = context.logs();
+    if (logs.empty()) {
+        return;
+    }
+    math::IRandom& random = context.random();
+    if (random.nextFloat() >= m_probability) {
+        return;
+    }
+
+    std::vector<BlockPos> shuffled = logs;
+    random.shuffle(shuffled);
+
+    static constexpr Direction kAllDirs[] = {
+        Direction::Down, Direction::Up, Direction::North, Direction::South, Direction::West, Direction::East};
+    for (const BlockPos& candidate : shuffled) {
+        bool enclosed = true;
+        for (Direction dir : kAllDirs) {
+            // 原版用 checkBlock（含本轮已放置集合）判定六个邻居是否为原木标签。
+            if (!context.checkBlock(
+                    candidate.offset(dir), [](const BlockState& st) { return BlockTags::LOGS().contains(st); })) {
+                enclosed = false;
+                break;
+            }
+        }
+        if (!enclosed) {
+            continue;
+        }
+        if (block_registry::PaleGardenBlocks::CREAKING_HEART == nullptr) {
+            return;
+        }
+        const BlockState* heart =
+            &block_registry::PaleGardenBlocks::CREAKING_HEART->defaultState()
+                 .with(BlockStateProperties::CREAKING_HEART_STATE(), BlockStateProperties::CreakingHeartState::Dormant)
+                 .with(BlockStateProperties::NATURAL(), true);
+        context.setBlock(candidate, heart);
+        return; // 原版 findFirst：放置一个即止
     }
 }
 

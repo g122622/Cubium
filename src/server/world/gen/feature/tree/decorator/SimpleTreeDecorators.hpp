@@ -166,6 +166,23 @@ private:
     f32 m_groundProbability;
 };
 
+/**
+ * @brief 嘎吱之心装饰器（MC CreakingHeartDecorator）
+ *
+ * 苍白橡树专用：以 probability 在原木中挑一个"六面全被原木包裹"的位置埋入
+ * 休眠（DORMANT）且 natural=true 的嘎吱之心。候选顺序为洗牌后顺序，
+ * 洗牌本身会消耗随机数。
+ */
+class CreakingHeartDecorator final : public TreeDecorator {
+public:
+    explicit CreakingHeartDecorator(f32 probability);
+
+    void place(const TreeDecoratorContext& context) const override;
+
+private:
+    f32 m_probability;
+};
+
 } // namespace decorator
 } // namespace tree
 } // namespace feature

@@ -322,6 +322,17 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
                 decoratorJson["ground_probability"].get<f32>()));
     }
 
+    if (typeStr == "creaking_heart") {
+        if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
+            return Error(ErrorCode::InvalidData, "creaking_heart missing 'probability'");
+        }
+        const f32 creakProb = decoratorJson["probability"].get<f32>();
+        if (creakProb < 0.0f || creakProb > 1.0f) {
+            return Error(ErrorCode::InvalidData, "creaking_heart probability out of range [0.0,1.0]");
+        }
+        return std::unique_ptr<TreeDecorator>(std::make_unique<CreakingHeartDecorator>(creakProb));
+    }
+
     return Error(ErrorCode::InvalidData, "unregistered tree decorator type: " + typeStr);
 }
 
