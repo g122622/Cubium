@@ -604,7 +604,7 @@ void AnvilContainer::_damageAnvilIfNecessary(Player& player)
     }
 
     // 12% 概率触发损坏
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
     if (rng.nextFloat() < 0.12f) {
         // 调用 damageAnvil 获取降级后的方块状态
         const BlockState* damagedState = blocks::AnvilBlock::damageAnvil(*currentState);

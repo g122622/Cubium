@@ -1153,7 +1153,7 @@ TEST_F(TemplateTest, ProcessorList_Chain)
 // ============================================================================
 // RuleTest 测试
 //
-// 方块谓词已并入 mc::RuleTest（引用风格 test(const BlockState&, Random&)），
+// 方块谓词已并入 mc::RuleTest（引用风格 test(const BlockState&, math::IRandom&)），
 // template_:: 下的同名类为 mc:: 的别名。位置谓词 PosRuleTest 仍属本命名空间。
 // ============================================================================
 

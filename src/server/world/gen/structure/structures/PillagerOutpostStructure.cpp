@@ -61,7 +61,7 @@ const biome::BiomeTag* PillagerOutpostStructure::defaultBiomeTag() const
 }
 
 bool PillagerOutpostStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
 
@@ -85,7 +85,7 @@ bool PillagerOutpostStructure::canGenerate(
 }
 
 bool PillagerOutpostStructure::_isNearVillage(
-    IChunkGenerator& generator, i64 seed, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, i64 seed, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(rng);
     MC_UNUSED(generator);

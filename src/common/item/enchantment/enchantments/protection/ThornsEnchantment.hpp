@@ -74,7 +74,7 @@ public:
      * @param random 随机数生成器
      * @return true 如果触发
      */
-    [[nodiscard]] static bool shouldTrigger(i32 level, math::Random& random);
+    [[nodiscard]] static bool shouldTrigger(i32 level, math::IRandom& random);
 
     /**
      * @brief 获取荆棘反伤
@@ -86,7 +86,7 @@ public:
      * @param random 随机数生成器
      * @return 反伤点数 [1.0, 5.0)
      */
-    [[nodiscard]] static f32 getThornsDamage(math::Random& random);
+    [[nodiscard]] static f32 getThornsDamage(math::IRandom& random);
 
     /**
      * @brief 获取触发概率

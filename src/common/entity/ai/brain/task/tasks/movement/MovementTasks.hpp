@@ -268,7 +268,7 @@ private:
                 dx /= dist;
                 dz /= dist;
                 // 在目标方向附近随机偏移尝试
-                math::Random& rng = owner->getRandom();
+                math::IRandom& rng = owner->getRandom();
                 for (i32 attempt = 0; attempt < 10; ++attempt) {
                     f64 offsetX = (rng.nextDouble() - 0.5) * 10.0;
                     f64 offsetZ = (rng.nextDouble() - 0.5) * 10.0;

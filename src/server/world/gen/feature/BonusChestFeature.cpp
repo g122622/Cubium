@@ -52,7 +52,7 @@ const ResourceLocation SPAWN_BONUS_CHEST_LOOT("minecraft", "chests/spawn_bonus_c
 bool ConfiguredBonusChestFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     // MC: 对区块内 XZ 列做两次独立洗牌后嵌套遍历，寻找第一个"空或无碰撞"的顶点放宝箱。

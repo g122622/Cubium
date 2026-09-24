@@ -153,7 +153,7 @@ void BundleItem::onDestroyed(ItemStack& stack, IWorld& world, Entity& entity)
     // MC 原版在被销毁的 ItemEntity 精确位置生成新物品实体（无随机速度）
     // 本项目使用 ItemDropHelper::spawnItemAtEntity 复刻此行为
     // 注意：调用方 entity 永远是 ItemEntity（见 ItemEntity::hurt），而非 Player
-    math::Random& rng = entity.getRandom();
+    math::IRandom& rng = entity.getRandom();
     for (const auto& item : contents.itemsCopy()) {
         if (item.isEmpty()) {
             continue;

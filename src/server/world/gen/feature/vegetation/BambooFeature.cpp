@@ -41,7 +41,7 @@ namespace mc {
 // ============================================================================
 
 bool BambooFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BambooFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const BambooFeatureConfig& config)
 {
     if (!config.bambooState) {
         return false;
@@ -150,7 +150,7 @@ ConfiguredBambooFeature::ConfiguredBambooFeature(std::unique_ptr<BambooFeatureCo
 bool ConfiguredBambooFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

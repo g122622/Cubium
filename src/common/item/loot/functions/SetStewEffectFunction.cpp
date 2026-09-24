@@ -58,7 +58,7 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
     }
 
     // 随机选择一个效果
-    math::Random& random = context.getRandom();
+    math::IRandom& random = context.getRandom();
     const size_t effectIndex = static_cast<size_t>(random.nextInt(static_cast<i32>(m_effects.size())));
     const EffectEntry& entry = m_effects[effectIndex];
 

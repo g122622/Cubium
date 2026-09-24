@@ -91,7 +91,7 @@ public:
     ~RuinedPortalPiece() noexcept override = default;
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -160,10 +160,10 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 设置模板管理器
@@ -203,7 +203,7 @@ private:
      * @return 属性配置
      */
     [[nodiscard]] RuinedPortalProperties configureProperties(
-        RuinedPortalType type, math::Random& rng, BiomeId biome) const;
+        RuinedPortalType type, math::IRandom& rng, BiomeId biome) const;
 
     /**
      * @brief 确定垂直放置位置
@@ -211,7 +211,7 @@ private:
      * @param rng 随机数生成器
      * @return 垂直放置位置
      */
-    [[nodiscard]] RuinedPortalLocation determineLocation(RuinedPortalType type, math::Random& rng) const;
+    [[nodiscard]] RuinedPortalLocation determineLocation(RuinedPortalType type, math::IRandom& rng) const;
 };
 
 } // namespace structure

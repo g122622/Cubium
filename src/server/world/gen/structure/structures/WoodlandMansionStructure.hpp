@@ -66,10 +66,10 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     static const std::string s_name;
@@ -86,7 +86,7 @@ public:
         feature::template_::Mirror mirror = feature::template_::Mirror::None);
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -137,7 +137,7 @@ private:
  */
 class MansionGrid {
 public:
-    explicit MansionGrid(math::Random& rng);
+    explicit MansionGrid(math::IRandom& rng);
     ~MansionGrid() = default;
 
     [[nodiscard]] static bool isHouse(const SimpleGrid& grid, i32 x, i32 y);
@@ -159,7 +159,7 @@ private:
     /// 房间网格位标志：0x10000=1x1, 0x20000=1x2, 0x40000=2x2, 0x100000=门位置, 0x200000=走廊入口, 0x400000=楼梯,
     /// 0x800000=楼梯入口
 
-    math::Random& m_rng;
+    math::IRandom& m_rng;
     std::unique_ptr<SimpleGrid> m_baseGrid;
     std::unique_ptr<SimpleGrid> m_thirdFloorGrid;
     std::unique_ptr<SimpleGrid> m_floorRooms[3];
@@ -174,7 +174,7 @@ private:
  */
 class MansionPlacer {
 public:
-    MansionPlacer(math::Random& rng);
+    MansionPlacer(math::IRandom& rng);
     ~MansionPlacer() = default;
 
     void createMansion(const BlockPos& startPos,
@@ -240,7 +240,7 @@ private:
         feature::template_::Rotation rotation,
         i32 floor);
 
-    math::Random& m_rng;
+    math::IRandom& m_rng;
     i32 m_startX;
     i32 m_startY;
 };
@@ -254,13 +254,13 @@ class RoomCollection {
 public:
     virtual ~RoomCollection() = default;
 
-    [[nodiscard]] virtual std::string get1x1(math::Random& rng) const = 0;
-    [[nodiscard]] virtual std::string get1x1Secret(math::Random& rng) const = 0;
-    [[nodiscard]] virtual std::string get1x2SideEntrance(math::Random& rng, bool isStairs) const = 0;
-    [[nodiscard]] virtual std::string get1x2FrontEntrance(math::Random& rng, bool isStairs) const = 0;
-    [[nodiscard]] virtual std::string get1x2Secret(math::Random& rng) const = 0;
-    [[nodiscard]] virtual std::string get2x2(math::Random& rng) const = 0;
-    [[nodiscard]] virtual std::string get2x2Secret(math::Random& rng) const = 0;
+    [[nodiscard]] virtual std::string get1x1(math::IRandom& rng) const = 0;
+    [[nodiscard]] virtual std::string get1x1Secret(math::IRandom& rng) const = 0;
+    [[nodiscard]] virtual std::string get1x2SideEntrance(math::IRandom& rng, bool isStairs) const = 0;
+    [[nodiscard]] virtual std::string get1x2FrontEntrance(math::IRandom& rng, bool isStairs) const = 0;
+    [[nodiscard]] virtual std::string get1x2Secret(math::IRandom& rng) const = 0;
+    [[nodiscard]] virtual std::string get2x2(math::IRandom& rng) const = 0;
+    [[nodiscard]] virtual std::string get2x2Secret(math::IRandom& rng) const = 0;
 };
 
 /**
@@ -268,13 +268,13 @@ public:
  */
 class FirstFloorRoomCollection : public RoomCollection {
 public:
-    [[nodiscard]] std::string get1x1(math::Random& rng) const override;
-    [[nodiscard]] std::string get1x1Secret(math::Random& rng) const override;
-    [[nodiscard]] std::string get1x2SideEntrance(math::Random& rng, bool isStairs) const override;
-    [[nodiscard]] std::string get1x2FrontEntrance(math::Random& rng, bool isStairs) const override;
-    [[nodiscard]] std::string get1x2Secret(math::Random& rng) const override;
-    [[nodiscard]] std::string get2x2(math::Random& rng) const override;
-    [[nodiscard]] std::string get2x2Secret(math::Random& rng) const override;
+    [[nodiscard]] std::string get1x1(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get1x1Secret(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get1x2SideEntrance(math::IRandom& rng, bool isStairs) const override;
+    [[nodiscard]] std::string get1x2FrontEntrance(math::IRandom& rng, bool isStairs) const override;
+    [[nodiscard]] std::string get1x2Secret(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get2x2(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get2x2Secret(math::IRandom& rng) const override;
 };
 
 /**
@@ -282,13 +282,13 @@ public:
  */
 class SecondFloorRoomCollection : public RoomCollection {
 public:
-    [[nodiscard]] std::string get1x1(math::Random& rng) const override;
-    [[nodiscard]] std::string get1x1Secret(math::Random& rng) const override;
-    [[nodiscard]] std::string get1x2SideEntrance(math::Random& rng, bool isStairs) const override;
-    [[nodiscard]] std::string get1x2FrontEntrance(math::Random& rng, bool isStairs) const override;
-    [[nodiscard]] std::string get1x2Secret(math::Random& rng) const override;
-    [[nodiscard]] std::string get2x2(math::Random& rng) const override;
-    [[nodiscard]] std::string get2x2Secret(math::Random& rng) const override;
+    [[nodiscard]] std::string get1x1(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get1x1Secret(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get1x2SideEntrance(math::IRandom& rng, bool isStairs) const override;
+    [[nodiscard]] std::string get1x2FrontEntrance(math::IRandom& rng, bool isStairs) const override;
+    [[nodiscard]] std::string get1x2Secret(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get2x2(math::IRandom& rng) const override;
+    [[nodiscard]] std::string get2x2Secret(math::IRandom& rng) const override;
 };
 
 /**

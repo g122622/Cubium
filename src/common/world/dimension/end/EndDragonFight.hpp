@@ -338,7 +338,7 @@ public:
      * std::function 回调，server 侧提供实现（构造 EndSpikeFeatureConfig
      * 并调用 EndSpikeFeature::placeSpike）。
      */
-    using PlaceSpikeCallback = std::function<void(IWorld&, math::Random&, const EndSpike&)>;
+    using PlaceSpikeCallback = std::function<void(IWorld&, math::IRandom&, const EndSpike&)>;
 
     /**
      * @brief 注入服务端 Boss 栏实现
@@ -369,7 +369,7 @@ public:
      * @param random 随机数生成器
      * @param spike 要放置的柱子
      */
-    void placeSpikeForRespawn(IWorld& world, math::Random& random, const EndSpike& spike);
+    void placeSpikeForRespawn(IWorld& world, math::IRandom& random, const EndSpike& spike);
 
     /**
      * @brief 创建默认的 Boss 栏名称

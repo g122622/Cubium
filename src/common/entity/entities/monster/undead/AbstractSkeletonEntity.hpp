@@ -218,7 +218,7 @@ protected:
      * @param difficulty 区域难度实例
      */
     void populateDefaultEquipmentSlots(
-        math::Random& random, const entity::combat::DifficultyInstance& difficulty) override;
+        math::IRandom& random, const entity::combat::DifficultyInstance& difficulty) override;
 
     /**
      * @brief 定制射出箭矢的钩子（在箭矢发射前调用）

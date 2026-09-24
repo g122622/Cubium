@@ -64,7 +64,7 @@ public:
      * @param random 随机数生成器
      * @return [min, max] 范围内的随机整数
      */
-    [[nodiscard]] i32 operator()(IRandom& random) const { return random.nextInt(m_min, m_max); }
+    [[nodiscard]] i32 operator()(math::IRandom& random) const { return random.nextInt(m_min, m_max); }
 
     /**
      * @brief 创建一个新的 Random 并生成随机数（便捷方法）

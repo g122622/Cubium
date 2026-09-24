@@ -71,7 +71,7 @@ public:
      * @param config 冰刺配置
      * @return 是否成功放置
      */
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const IceSpikeFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const IceSpikeFeatureConfig& config);
 
 private:
     /**
@@ -83,13 +83,13 @@ private:
      * @brief 生成尖塔型冰刺
      */
     void _generateSpike(
-        WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius);
+        WorldGenRegion& world, math::IRandom& random, const BlockPos& basePos, i32 height, i32 baseRadius);
 
     /**
      * @brief 生成冰丘型结构
      */
     void _generateIceberg(
-        WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius);
+        WorldGenRegion& world, math::IRandom& random, const BlockPos& basePos, i32 height, i32 baseRadius);
 };
 
 /**
@@ -102,7 +102,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

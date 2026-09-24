@@ -39,7 +39,7 @@ TrunkPlacer::TrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
     , m_heightRandB(heightRandB)
 {}
 
-i32 TrunkPlacer::getHeight(math::Random& random) const
+i32 TrunkPlacer::getHeight(math::IRandom& random) const
 {
     return m_baseHeight + random.nextInt(m_heightRandA + 1) + random.nextInt(m_heightRandB + 1);
 }

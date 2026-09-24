@@ -143,7 +143,7 @@ protected:
      * WitherSkeleton.populateDefaultEquipmentSlots() 主手石剑。
      */
     void populateDefaultEquipmentSlots(
-        math::Random& random, const entity::combat::DifficultyInstance& difficulty) override;
+        math::IRandom& random, const entity::combat::DifficultyInstance& difficulty) override;
 
 private:
     bool m_hasStoneSword = true;

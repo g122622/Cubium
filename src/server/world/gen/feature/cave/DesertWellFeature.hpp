@@ -42,7 +42,7 @@ namespace mc::world::gen::feature::cave {
  */
 class DesertWellFeature {
 public:
-    bool place(IWorld& world, IChunkGenerator& generator, math::Random& random, const BlockPos& pos);
+    bool place(IWorld& world, IChunkGenerator& generator, math::IRandom& random, const BlockPos& pos);
 };
 
 /**
@@ -55,7 +55,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

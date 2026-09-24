@@ -181,7 +181,7 @@ bool NearestAttackableTargetGoal<T>::shouldExecute()
     // 概率检查。对齐 vanilla NearestAttackableTargetGoal：构造时 randomInterval = reducedTickDelay(chance)，
     // canUse 用 nextInt(randomInterval)。此处 m_chance 为 vanilla 原始值，减半补偿半 tick 评估。
     if (m_chance > 0) {
-        math::Random& rng = m_mob->getRandom();
+        math::IRandom& rng = m_mob->getRandom();
         if (rng.nextInt(reducedTickDelay(m_chance)) != 0) {
             return false;
         }

@@ -118,11 +118,11 @@ public:
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override
+    [[nodiscard]] math::IRandom& getRandom() override
     {
         throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override
+    [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("FlowingFluidTestWorld::getRandom not implemented");
     }

@@ -146,7 +146,7 @@ void SpawnerLogic::onEventTriggered(int eventId)
 // 配置接口
 // ============================================================================
 
-void SpawnerLogic::setEntityId(const ResourceLocation& entityId, math::Random& rng)
+void SpawnerLogic::setEntityId(const ResourceLocation& entityId, math::IRandom& rng)
 {
     m_nextEntityId = entityId;
 
@@ -192,7 +192,7 @@ bool SpawnerLogic::isNearPlayer(IWorld& world, f64 centerX, f64 centerY, f64 cen
     return false;
 }
 
-void SpawnerLogic::delay(math::Random& rng)
+void SpawnerLogic::delay(math::IRandom& rng)
 {
     if (m_maxSpawnDelay <= m_minSpawnDelay) {
         m_spawnDelay = m_minSpawnDelay;
@@ -300,7 +300,7 @@ i32 SpawnerLogic::countNearbyEntities(
     return count;
 }
 
-void SpawnerLogic::selectNextEntity(math::Random& rng)
+void SpawnerLogic::selectNextEntity(math::IRandom& rng)
 {
     if (m_spawnPotentials.empty()) {
         return;

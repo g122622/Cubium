@@ -69,7 +69,7 @@ bool PandaRollGoal::shouldExecute()
     }
 
     // 条件3：检查前方是否有悬崖或概率触发
-    math::Random& rng = m_panda->getRandom();
+    math::IRandom& rng = m_panda->getRandom();
     if (_isCliffInFront()) {
         // 如果前方是悬崖，100% 触发
         return true;
@@ -157,7 +157,7 @@ bool PandaSneezeGoal::shouldExecute()
         return false;
     }
 
-    math::Random& rng = m_panda->getRandom();
+    math::IRandom& rng = m_panda->getRandom();
     // 虚弱性格：1/500 概率（nextInt(reducedTickDelay(500))==1）；否则 1/6000 概率。
     // reducedTickDelay 减半补偿 GoalSelector 每 2 tick 评估一次（对齐 vanilla）。
     // 注：vanilla 用 ==1（非 ==0），原样对齐——仅随机数恰为 1 时触发。

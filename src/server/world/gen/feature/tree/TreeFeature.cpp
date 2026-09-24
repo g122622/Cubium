@@ -61,7 +61,7 @@ namespace mc {
 // ============================================================================
 
 bool TreeFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& startPos, const TreeFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& startPos, const TreeFeatureConfig& config)
 {
     if (config.trunkPlacer == nullptr || config.foliagePlacer == nullptr) {
         return false;
@@ -355,7 +355,7 @@ ConfiguredTreeFeature::ConfiguredTreeFeature(std::unique_ptr<TreeFeatureConfig> 
 bool ConfiguredTreeFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)generator;

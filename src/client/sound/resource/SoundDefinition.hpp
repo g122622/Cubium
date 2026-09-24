@@ -219,7 +219,7 @@ struct SoundEventDefinition {
      * @param rng 随机数生成器
      * @return 选中的声音定义，如果列表为空返回 nullptr
      */
-    [[nodiscard]] const SoundDefinition* selectSound(mc::math::Random& rng) const noexcept;
+    [[nodiscard]] const SoundDefinition* selectSound(mc::math::IRandom& rng) const noexcept;
 };
 
 } // namespace mc::client::sound

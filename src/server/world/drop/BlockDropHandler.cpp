@@ -250,7 +250,7 @@ std::unique_ptr<loot::LootContext> BlockDropHandler::buildLootContext(IWorld& wo
     const BlockState& state,
     const Player* player,
     const ItemStack* tool,
-    math::Random& random)
+    math::IRandom& random)
 {
     auto contextBuilder =
         loot::LootContextBuilder(world).withRandom(random).withSeed(world.seed() ^ static_cast<u64>(pos.x ^ pos.z));
@@ -340,7 +340,7 @@ OreType BlockDropHandler::getOreType(const BlockState& state)
 }
 
 i32 BlockDropHandler::spawnOreExperience(
-    server::ServerWorld& world, const BlockPos& pos, OreType oreType, math::Random& rng)
+    server::ServerWorld& world, const BlockPos& pos, OreType oreType, math::IRandom& rng)
 {
     if (oreType == OreType::None) {
         return 0;
@@ -382,8 +382,11 @@ i32 BlockDropHandler::spawnOreExperience(
     return spawnedCount;
 }
 
-i32 BlockDropHandler::spawnOreExperience(
-    EntityManager& entityManager, PhysicsEngine* physicsEngine, const BlockPos& pos, OreType oreType, math::Random& rng)
+i32 BlockDropHandler::spawnOreExperience(EntityManager& entityManager,
+    PhysicsEngine* physicsEngine,
+    const BlockPos& pos,
+    OreType oreType,
+    math::IRandom& rng)
 {
     if (oreType == OreType::None) {
         return 0;
@@ -442,7 +445,7 @@ i32 BlockDropHandler::spawnOreExperience(
 }
 
 i32 BlockDropHandler::handleBlockBreakExperience(
-    server::ServerWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, math::Random& rng)
+    server::ServerWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, math::IRandom& rng)
 {
     OreType oreType = getOreType(state);
     if (oreType == OreType::None) {
@@ -471,7 +474,7 @@ i32 BlockDropHandler::handleBlockBreakExperience(EntityManager& entityManager,
     const BlockPos& pos,
     const BlockState& state,
     const ItemStack* tool,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     // 检查是否是矿石
     OreType oreType = getOreType(state);

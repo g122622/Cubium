@@ -198,7 +198,7 @@ inline Uuid generateOfflineUuid(const std::string& username)
  * @param random 随机数生成器
  * @return UUID v4 数组（16 字节）
  */
-inline Uuid generateRandomUuid(math::Random& random)
+inline Uuid generateRandomUuid(math::IRandom& random)
 {
     // 生成两个 64 位随机数作为 UUID 的 MSB 和 LSB
     const u64 msb = random.nextU64();

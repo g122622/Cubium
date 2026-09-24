@@ -51,8 +51,8 @@ TEST(EntityRandom, SameEntityReturnsSameRandomInstance)
     // 两次调用返回不同的随机数（极大概率不同）
     // 注意：不是验证两者不等（理论上可能相等），而是验证RNG状态的连续性
     // 通过验证引用同一对象来确认
-    math::Random& ref1 = entity.getRandom();
-    math::Random& ref2 = entity.getRandom();
+    math::IRandom& ref1 = entity.getRandom();
+    math::IRandom& ref2 = entity.getRandom();
     EXPECT_EQ(&ref1, &ref2);
 }
 
@@ -63,8 +63,8 @@ TEST(EntityRandom, DifferentEntitiesHaveIndependentRNG)
     Entity entityB(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
 
     // 两个实体的 getRandom() 返回不同对象的引用
-    math::Random& rngA = entityA.getRandom();
-    math::Random& rngB = entityB.getRandom();
+    math::IRandom& rngA = entityA.getRandom();
+    math::IRandom& rngB = entityB.getRandom();
     EXPECT_NE(&rngA, &rngB);
 
     // 两个实体生成不同的随机数序列
@@ -110,7 +110,7 @@ TEST(EntityRandom, ConstEntityCanCallGetRandom)
     const Entity entity(EntityInstanceId(5), nullptr, mc::test::testEcsRegistry());
 
     // 应能编译且运行正常
-    math::Random& rng = entity.getRandom();
+    math::IRandom& rng = entity.getRandom();
     (void)rng;
 
     // 能在 const 上下文中修改随机数生成器
@@ -125,8 +125,8 @@ TEST(EntityRandom, MobEntityInheritsGetRandomFromEntity)
     // 返回的引用应指向同一对象
     MobEntity mob(EntityInstanceId(10), mc::test::testEcsRegistry());
 
-    math::Random& ref1 = mob.getRandom();
-    math::Random& ref2 = mob.getRandom();
+    math::IRandom& ref1 = mob.getRandom();
+    math::IRandom& ref2 = mob.getRandom();
     EXPECT_EQ(&ref1, &ref2);
 
     // 验证随机数序列连续性

@@ -265,7 +265,7 @@ void FoxEntity::dropHeldItem()
     }
 
     // 使用 ItemDropHelper 在实体位置生成物品实体
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     ItemDropHelper::spawnItemAtEntity(this, *m_heldItem, 0.0f, rng, 10);
 
     // 清空物品引用
@@ -287,7 +287,7 @@ void FoxEntity::spitOutItem(const ItemStack& stack)
     f32 lookX = -std::sin(math::toRadians(yaw()));
     f32 lookZ = std::cos(math::toRadians(yaw()));
 
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     f32 spawnX = static_cast<f32>(x()) + lookX;
     f32 spawnY = static_cast<f32>(y()) + 1.0f;
     f32 spawnZ = static_cast<f32>(z()) + lookZ;
@@ -354,7 +354,7 @@ void FoxEntity::pickUpItem(ItemEntity& itemEntity)
         IWorld* worldPtr = this->world();
         if (worldPtr != nullptr) {
             ItemStack extra(*itemStack.getItem(), count - 1);
-            math::Random& rng = getRandom();
+            math::IRandom& rng = getRandom();
             ItemDropHelper::spawnItemAtEntity(this, extra, 0.0f, rng, 10);
         }
     }
@@ -434,7 +434,7 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
 
     // 遗传皮肤类型：50% 概率从任一父母继承皮肤类型
     FoxEntity* partnerFox = dynamic_cast<FoxEntity*>(&partner);
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     if (rng.nextBoolean()) {
         baby->setFoxType(m_foxType);
     } else if (partnerFox != nullptr) {

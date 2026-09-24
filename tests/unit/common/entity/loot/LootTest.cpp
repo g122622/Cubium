@@ -77,7 +77,7 @@ void writeLootFile(const std::filesystem::path& root, const std::string& relativ
     file << json;
 }
 
-std::unique_ptr<LootContext> buildBlockLootContext(IWorld& world, math::Random& rng, const BlockState& state)
+std::unique_ptr<LootContext> buildBlockLootContext(IWorld& world, math::IRandom& rng, const BlockState& state)
 {
     static const BlockPos s_blockPos(8, 64, -5);
     return LootContextBuilder(world)

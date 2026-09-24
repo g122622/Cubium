@@ -169,7 +169,7 @@ struct SeaLevelConfig : public IPlacementConfig {
 class NoisePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -184,7 +184,7 @@ public:
 class CountNoisePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -199,7 +199,7 @@ public:
 class DepthAveragePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -214,7 +214,7 @@ public:
 class TopSolidPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -229,7 +229,7 @@ public:
 class CarvingMaskPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -244,7 +244,7 @@ public:
 class RandomOffsetPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -259,7 +259,7 @@ public:
 class WaterDepthThresholdPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -274,7 +274,7 @@ public:
 class SeaLevelPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -289,7 +289,7 @@ public:
 class SpreadPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 

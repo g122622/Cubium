@@ -44,7 +44,7 @@ namespace entity {
 // 经验球生成
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 z, i32 totalXp, math::Random* rng)
+i32 ExperienceDropHandler::spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 z, i32 totalXp, math::IRandom* rng)
 {
     if (world == nullptr || totalXp <= 0) {
         return 0;
@@ -56,7 +56,7 @@ i32 ExperienceDropHandler::spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 
 
     // 如果没有提供随机数生成器，使用默认的
     math::Random defaultRng(static_cast<u64>(std::hash<f64>{}(x) ^ std::hash<f64>{}(y) ^ std::hash<f64>{}(z)));
-    math::Random* random = rng ? rng : &defaultRng;
+    math::IRandom* random = rng ? rng : &defaultRng;
 
     i32 spawnedCount = 0;
 
@@ -76,7 +76,7 @@ i32 ExperienceDropHandler::spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 
     return spawnedCount;
 }
 
-i32 ExperienceDropHandler::spawnExperienceOrbs(Entity* entity, i32 totalXp, math::Random* rng)
+i32 ExperienceDropHandler::spawnExperienceOrbs(Entity* entity, i32 totalXp, math::IRandom* rng)
 {
     if (entity == nullptr || totalXp <= 0) {
         return 0;
@@ -109,7 +109,7 @@ i32 ExperienceDropHandler::spawnPlayerDeathXp(Player* player)
 // 矿石经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnOreExperience(IWorld* world, f64 x, f64 y, f64 z, i32 oreType, math::Random& rng)
+i32 ExperienceDropHandler::spawnOreExperience(IWorld* world, f64 x, f64 y, f64 z, i32 oreType, math::IRandom& rng)
 {
     if (world == nullptr) {
         return 0;
@@ -128,7 +128,7 @@ i32 ExperienceDropHandler::spawnOreExperience(IWorld* world, f64 x, f64 y, f64 z
 // 钓鱼经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnFishingExperience(IWorld* world, f64 x, f64 y, f64 z, math::Random& rng)
+i32 ExperienceDropHandler::spawnFishingExperience(IWorld* world, f64 x, f64 y, f64 z, math::IRandom& rng)
 {
     if (world == nullptr) {
         return 0;
@@ -143,7 +143,7 @@ i32 ExperienceDropHandler::spawnFishingExperience(IWorld* world, f64 x, f64 y, f
 // 被动动物经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnPassiveMobExperience(IWorld* world, f64 x, f64 y, f64 z, math::Random& rng)
+i32 ExperienceDropHandler::spawnPassiveMobExperience(IWorld* world, f64 x, f64 y, f64 z, math::IRandom& rng)
 {
     if (world == nullptr) {
         return 0;
@@ -158,7 +158,7 @@ i32 ExperienceDropHandler::spawnPassiveMobExperience(IWorld* world, f64 x, f64 y
 // 怪物经验掉落
 // ============================================================================
 
-i32 ExperienceDropHandler::spawnHostileMobExperience(IWorld* world, f64 x, f64 y, f64 z, i32 baseXp, math::Random* rng)
+i32 ExperienceDropHandler::spawnHostileMobExperience(IWorld* world, f64 x, f64 y, f64 z, i32 baseXp, math::IRandom* rng)
 {
     if (world == nullptr || baseXp <= 0) {
         return 0;

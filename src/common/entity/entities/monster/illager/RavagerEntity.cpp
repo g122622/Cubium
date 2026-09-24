@@ -230,7 +230,7 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
         return;
     }
 
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
 
     // 50% 概率眩晕或发射目标
     if (rng.nextDouble() < STUN_CHANCE) {
@@ -328,7 +328,7 @@ void RavagerEntity::_spawnStunParticles()
     // 眩晕时生成粒子效果
     // 1/6 概率生成 ENTITY_EFFECT 粒子
     // 颜色常量 STUNNED_COLOR = 8356754 即 RGB(127, 131, 146) -> R=0.498, G=0.514, B=0.573
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     if (rng.nextInt(6) != 0) return;
 
     IWorld* worldPtr = world();

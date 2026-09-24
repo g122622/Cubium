@@ -109,7 +109,7 @@ public:
      * @param random 随机数生成器
      * @return 持有 IntProvider 时 provider->sample()；否则 base + random(0, spread)
      */
-    [[nodiscard]] i32 get(math::Random& random) const;
+    [[nodiscard]] i32 get(math::IRandom& random) const;
 
     /**
      * @brief 获取基础值

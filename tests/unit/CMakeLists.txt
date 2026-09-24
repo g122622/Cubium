@@ -1186,6 +1186,8 @@ add_executable(mc_tests
     common/world/gen/Xoroshiro128ppRandomTest.cpp
     # PositionalRandomFactory 单元测试
     common/world/gen/PositionalRandomFactoryTest.cpp
+    # WorldgenRandom 原版黄金值门禁（期望值由独立 Java 参考实现导出，捕捉 decorSeed 位分解偏差）
+    common/world/gen/WorldgenRandomVanillaGoldenTest.cpp
     # BiomeManager 和 LinearCongruentialGenerator 单元测试
     common/world/gen/BiomeManagerTest.cpp
     # Beardifier (BEARD_KERNEL + affectedBox) 和 CarvingContext 扩展单元测试

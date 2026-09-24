@@ -58,7 +58,6 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "server/world/gen/noise/NormalNoise.hpp"
 #include "server/world/gen/noise/PerlinNoise.hpp"
@@ -311,12 +310,12 @@ TEST(DensityAstUlpTest, BlendedNoiseComputeSoAVsScalar)
             const auto rebuildAmplitudes = [](i32 first, i32 last) {
                 return std::vector<f64>(static_cast<size_t>(last - first + 1), 1.0);
             };
-            math::Xoroshiro128ppRandom rebuildRng(seed);
+            math::Random rebuildRng(seed);
             PerlinNoise minLimit(rebuildRng, -15, rebuildAmplitudes(-15, 0));
             PerlinNoise maxLimit(rebuildRng, -15, rebuildAmplitudes(-15, 0));
             PerlinNoise mainNoise(rebuildRng, -7, rebuildAmplitudes(-7, 0));
 
-            math::Xoroshiro128ppRandom noiseRng(seed);
+            math::Random noiseRng(seed);
             const BlendedNoise noise(noiseRng, bc.xzScale, bc.yScale, bc.xzFactor, bc.yFactor, bc.smearScaleMultiplier);
             const f64 xzMultiplier = 684.412 * bc.xzScale;
             const f64 yMultiplier = 684.412 * bc.yScale;

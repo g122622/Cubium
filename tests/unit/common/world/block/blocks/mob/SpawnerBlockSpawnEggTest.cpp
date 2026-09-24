@@ -78,8 +78,8 @@ public:
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_rng; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_rng; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_rng; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_rng; }
 
     [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
 

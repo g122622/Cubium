@@ -351,7 +351,7 @@ void BeeEntity::tick()
             i32 deathChance = math::clamp(1200 - m_timeSinceSting, 1, 1200);
 
             // 获取随机数生成器
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
 
             // rand.nextInt(deathChance) == 0 时死亡
             if (rng.nextInt(deathChance) == 0) {

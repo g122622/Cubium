@@ -57,7 +57,7 @@ void AttachToLogsDecorator::place(const TreeDecoratorContext& context) const
     //       if (random.nextFloat() <= probability && isAir(blockpos1))
     //           setBlock(blockpos1, blockProvider.getState(random, blockpos1));
     //   }
-    math::Random& random = context.random();
+    math::IRandom& random = context.random();
     std::vector<BlockPos> shuffled = context.logs();
     random.shuffle(shuffled);
 

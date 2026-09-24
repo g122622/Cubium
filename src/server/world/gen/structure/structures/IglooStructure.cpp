@@ -139,7 +139,7 @@ void IglooPiece::_updateBoundingBox()
 }
 
 void IglooPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -178,7 +178,7 @@ void IglooPiece::generate(IWorldWriter& world,
     }
 }
 
-void IglooPiece::_generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+void IglooPiece::_generateTop(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     if (!m_topTemplate) {
         return;
@@ -208,7 +208,7 @@ void IglooPiece::_generateTop(IWorldWriter& world, math::Random& rng, const Stru
 }
 
 void IglooPiece::_generateMiddle(
-    IWorldWriter& world, math::Random& rng, i32 index, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, i32 index, const StructureBoundingBox& chunkBounds)
 {
     if (!m_middleTemplate) {
         return;
@@ -237,7 +237,7 @@ void IglooPiece::_generateMiddle(
         world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE);
 }
 
-void IglooPiece::_generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+void IglooPiece::_generateBottom(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     if (!m_bottomTemplate) {
         return;
@@ -280,7 +280,7 @@ const biome::BiomeTag* IglooStructure::defaultBiomeTag() const
 }
 
 bool IglooStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::Random& /*rng*/, i32 chunkX, i32 chunkZ)
+    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ)
 {
     // 检查区块中心位置的生物群系是否为雪地
     const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
@@ -288,7 +288,7 @@ bool IglooStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> IglooStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

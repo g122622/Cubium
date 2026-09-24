@@ -83,7 +83,7 @@ namespace {
 } // namespace
 
 bool DeltaFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const DeltaFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const DeltaFeatureConfig& config)
 {
     if (config.contents == nullptr || config.rim == nullptr) {
         return false;
@@ -146,7 +146,7 @@ ConfiguredDeltaFeature::ConfiguredDeltaFeature(std::unique_ptr<DeltaFeatureConfi
 bool ConfiguredDeltaFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

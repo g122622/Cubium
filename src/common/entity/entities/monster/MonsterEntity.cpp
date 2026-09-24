@@ -175,7 +175,7 @@ void MonsterEntity::updateIdleTimeBasedOnBrightness()
 
 // ========== 静态生成方法 ==========
 
-bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::Random& random)
+bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::IRandom& random)
 {
     // 第一阶段：快速天空光照检查
     // 如果天空光照 > random(0-31)，则太亮不能生成
@@ -202,7 +202,7 @@ bool MonsterEntity::isValidLightLevel(IWorld& world, const BlockPos& pos, math::
 }
 
 bool MonsterEntity::canMonsterSpawnInLight(
-    IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& random)
+    IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::IRandom& random)
 {
     // 检查难度（非和平模式）
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
@@ -243,7 +243,7 @@ bool MonsterEntity::canMonsterSpawnInLight(
 }
 
 bool MonsterEntity::canMonsterSpawn(
-    IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::Random& /*random*/)
+    IWorld& world, SpawnReason /*reason*/, const BlockPos& pos, math::IRandom& /*random*/)
 {
     // 检查难度（非和平模式）
     if (!entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {

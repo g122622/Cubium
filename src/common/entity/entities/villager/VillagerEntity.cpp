@@ -281,7 +281,7 @@ bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
 
     // Normal 50% 概率：用村民自身随机数判定。Hard（100%）时 infectionChance=1.0 必过。
     // 对齐 Java Zombie.killedEntity：Normal 难度 nextBoolean() 为 true 时 return 不感染。
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     if (rng.nextFloat() >= infectionChance) {
         return false;
     }
@@ -1491,7 +1491,7 @@ void WanderingTraderEntity::spawnLlamas()
     if (registry == nullptr) {
         return;
     }
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
 
     for (i32 i = 0; i < m_llamaCount && i < 2; ++i) {
         // 计算生成位置：在商人附近随机位置

@@ -60,7 +60,7 @@ CherryTrunkPlacer::CherryTrunkPlacer(i32 baseHeight,
 {}
 
 std::vector<FoliagePosition> CherryTrunkPlacer::placeTrunk(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,
@@ -138,7 +138,7 @@ std::vector<FoliagePosition> CherryTrunkPlacer::placeTrunk(WorldGenRegion& world
 }
 
 FoliagePosition CherryTrunkPlacer::generateBranch(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 treeHeight,
     const BlockPos& startPos,
     const BlockState* trunkBlock,

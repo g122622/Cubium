@@ -380,7 +380,7 @@ public:
      * @param random 随机数生成器
      * @return 如果应该忽略损耗返回true
      */
-    [[nodiscard]] static bool shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random);
+    [[nodiscard]] static bool shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::IRandom& random);
 
     // ========== 附魔回调分发 ==========
 
@@ -533,7 +533,7 @@ public:
      * @return 附魔等级，如果物品不可附魔返回0
      */
     [[nodiscard]] static i32 calcItemStackEnchantability(
-        math::Random& random, i32 slotIndex, i32 power, const ItemStack& stack);
+        math::IRandom& random, i32 slotIndex, i32 power, const ItemStack& stack);
 
     /**
      * @brief 获取物品可用的附魔列表
@@ -562,7 +562,7 @@ public:
      * @return 附魔列表
      */
     [[nodiscard]] static std::vector<EnchantmentData> buildEnchantmentList(
-        math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure);
+        math::IRandom& random, const ItemStack& stack, i32 level, bool allowTreasure);
 
     /**
      * @brief 移除与指定附魔不兼容的附魔
@@ -585,7 +585,8 @@ public:
      * @param list 附魔列表
      * @return 选中的附魔数据，如果列表为空返回空
      */
-    [[nodiscard]] static EnchantmentData getRandomEnchantment(math::Random& random, std::vector<EnchantmentData>& list);
+    [[nodiscard]] static EnchantmentData getRandomEnchantment(
+        math::IRandom& random, std::vector<EnchantmentData>& list);
 
     /**
      * @brief 添加随机附魔到物品
@@ -600,7 +601,7 @@ public:
      * @param allowTreasure 是否允许宝藏附魔
      * @return 添加了附魔的物品（可能是新的附魔书物品）
      */
-    static ItemStack addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure);
+    static ItemStack addRandomEnchantment(math::IRandom& random, ItemStack stack, i32 level, bool allowTreasure);
 
 private:
     EnchantmentHelper() = delete; // 禁止实例化

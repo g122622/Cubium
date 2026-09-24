@@ -71,7 +71,7 @@ bool SilverfishHideInStoneGoal::shouldExecute()
         return false;
     }
 
-    math::Random& rng = m_silverfish->getRandom();
+    math::IRandom& rng = m_silverfish->getRandom();
 
     // 检查 mobGriefing 游戏规则 && 1/10 概率
     if (world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING) &&
@@ -183,7 +183,7 @@ void SilverfishSummonOthersGoal::tick()
             return;
         }
 
-        math::Random& rng = m_silverfish->getRandom();
+        math::IRandom& rng = m_silverfish->getRandom();
         BlockPos centerPos(m_silverfish->position());
 
         // 遍历周围区域，使用从中心向外扩展的顺序

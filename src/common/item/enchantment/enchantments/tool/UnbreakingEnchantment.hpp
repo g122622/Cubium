@@ -74,7 +74,7 @@ public:
      * @param random 随机数生成器
      * @return true 如果应该消耗耐久，false 如果不消耗
      */
-    [[nodiscard]] static bool shouldConsumeDurability(i32 level, math::Random& random);
+    [[nodiscard]] static bool shouldConsumeDurability(i32 level, math::IRandom& random);
 
     /**
      * @brief 计算盔甲的耐久保护
@@ -82,7 +82,7 @@ public:
      * @param random 随机数生成器
      * @return true 如果应该消耗耐久，false 如果不消耗
      */
-    [[nodiscard]] static bool shouldArmorConsumeDurability(i32 level, math::Random& random);
+    [[nodiscard]] static bool shouldArmorConsumeDurability(i32 level, math::IRandom& random);
 
     /**
      * @brief 获取耐久保护概率（非盔甲）

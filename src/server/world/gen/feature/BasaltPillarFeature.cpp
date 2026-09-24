@@ -47,7 +47,7 @@ namespace {
 }
 
 /// 在垂挂位置随机放置 BASALT（nextInt(10)!=0 放置并继续，==0 停止该方向垂挂）
-[[nodiscard]] bool placeHangOff(WorldGenRegion& region, math::Random& random, const BlockPos& pos)
+[[nodiscard]] bool placeHangOff(WorldGenRegion& region, math::IRandom& random, const BlockPos& pos)
 {
     if (random.nextInt(10) != 0) {
         region.setBlockState(pos, VanillaBlocks::getState(VanillaBlocks::BASALT));
@@ -57,7 +57,7 @@ namespace {
 }
 
 /// 柱底基座垂挂：nextBoolean() 为真则放 BASALT
-void placeBaseHangOff(WorldGenRegion& region, math::Random& random, const BlockPos& pos)
+void placeBaseHangOff(WorldGenRegion& region, math::IRandom& random, const BlockPos& pos)
 {
     if (random.nextBoolean()) {
         region.setBlockState(pos, VanillaBlocks::getState(VanillaBlocks::BASALT));
@@ -69,7 +69,7 @@ void placeBaseHangOff(WorldGenRegion& region, math::Random& random, const BlockP
 bool ConfiguredBasaltPillarFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     // MC: 仅当 origin 为空且其上方非空时生成

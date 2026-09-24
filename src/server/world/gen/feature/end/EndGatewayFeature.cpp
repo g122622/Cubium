@@ -44,7 +44,7 @@ namespace mc {
 // ============================================================================
 
 bool EndGatewayFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndGatewayFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const EndGatewayFeatureConfig& config)
 {
     MC_UNUSED(config);
 
@@ -104,7 +104,7 @@ bool EndGatewayFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) 
     return true;
 }
 
-void EndGatewayFeature::_generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
+void EndGatewayFeature::_generateGateway(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos)
 {
     MC_UNUSED(random);
 
@@ -178,7 +178,7 @@ ConfiguredEndGatewayFeature::ConfiguredEndGatewayFeature(
 bool ConfiguredEndGatewayFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(generator);

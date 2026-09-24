@@ -77,7 +77,7 @@ public:
      * @param random 随机数生成器
      * @return baseHeight + random(0, heightRandA) + random(0, heightRandB)
      */
-    [[nodiscard]] i32 getHeight(math::Random& random) const;
+    [[nodiscard]] i32 getHeight(math::IRandom& random) const;
 
     /**
      * @brief 放置树干
@@ -91,7 +91,7 @@ public:
      * @return 树叶位置列表
      */
     virtual std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,

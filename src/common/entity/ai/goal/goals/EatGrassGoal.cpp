@@ -60,7 +60,7 @@ bool EatGrassGoal::shouldExecute()
     // 概率检查：幼年动物 1/50，成年动物 1/1000。
     // 对齐 vanilla EatBlockGoal.canUse：nextInt(adjustedTickDelay(isBaby?50:1000))。
     // adjustedTickDelay 把门槛减半（ceil(n/2)）以补偿 GoalSelector 每 2 tick 评估一次的半 tick 节流。
-    math::Random& rng = m_mob->getRandom();
+    math::IRandom& rng = m_mob->getRandom();
     const i32 chance = m_isChild && m_isChild() ? CHILD_CHANCE : ADULT_CHANCE;
     if (rng.nextInt(adjustedTickDelay(chance)) != 0) {
         return false;

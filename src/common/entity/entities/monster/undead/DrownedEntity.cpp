@@ -234,7 +234,7 @@ void DrownedEntity::finalizeSpawn(
 
     // 随机决定是否手持三叉戟：约 10% 概率装主手武器，其中 10/16 为三叉戟
     // （综合约 6.25%）。与局部难度无关。转化生成的溺尸不走此路径，不会重新随机。
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     if (rng.nextFloat() > 0.9f) {
         m_hasTrident = rng.nextInt(16) < 10;
     } else {

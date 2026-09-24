@@ -31,6 +31,7 @@
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
@@ -242,10 +243,11 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         // 参考: ChunkGenerator.createStructures()
         //   WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
         //   worldgenrandom.setLargeFeatureSeed(levelSeed, chunkX, chunkZ);
-        math::JavaLegacyRandom legacyRng;
-        legacyRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
-        // selectEntry/generate 需要 math::Random&，从 JavaLegacyRandom 的种子状态创建
-        math::Random rng(legacyRng.nextLong());
+        // WorldgenRandom 包装 LegacyRandomSource：nextLong() 会拆成两次 next(32)，
+        // 与直接在 LegacyRandomSource 上调 nextLong() 等价（LegacyRandomSource.nextLong 也是
+        // (next(32)<<32)+next(32)），故这里的包装不改变数值，只是保持原版的类型形状。
+        math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
+        rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
         const auto* entry = structureSet.selectEntry(rng);
         if (!entry) continue;
 
@@ -606,10 +608,18 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     }
 
     // === MC 1.21: 按装饰阶段交错放置结构和特征 ===
-    // 注意：ConfiguredFeature::place 当前签名需要 math::Random&（Xoroshiro128++），
-    // 但 setDecorationSeed 的种子推导算法需要 JavaLegacyRandom 才能与 MC 一致
-    // TODO: 将 ConfiguredFeature::place 等方法的签名改为 IRandom& 以支持 JavaLegacyRandom
-    math::Random worldgenRandom;
+    // 原版 ChunkGenerator.applyBiomeDecoration:
+    //   WorldgenRandom worldgenrandom = new WorldgenRandom(new
+    //   XoroshiroRandomSource(RandomSupport.generateUniqueSeed())); long i =
+    //   worldgenrandom.setDecorationSeed(level.getSeed(), blockpos.getX(), blockpos.getZ());
+    // setDecorationSeed 先 setSeed 再取两次 nextLong()，故结果与构造时的 uniqueSeed 无关，
+    // 只取决于世界种子与区块原点坐标。
+    //
+    // 【必须用 WorldgenRandom 而非直接用 Random】WorldgenRandom 把所有位宽抽取
+    // 折算成"反复调用内层 nextLong() 取高位"，于是 nextLong() 会消耗**两个**内层 nextLong
+    // 并各取高 32 位，与直接在内层上调 nextLong() 完全不同。用后者会得到不同的 decorSeed，
+    // 进而使所有 placed_feature 的 setFeatureSeed 种子错位。
+    math::WorldgenRandom worldgenRandom(std::make_unique<math::Random>(0ULL));
     const u64 decorSeed = worldgenRandom.setDecorationSeed(m_seed, startX, startZ);
     const BlockPos chunkOrigin(startX, 0, startZ);
 

@@ -37,7 +37,7 @@ namespace jigsaw {
 
 void JigsawPlacer::placePieces(IWorldWriter& world,
     std::vector<PlacedPiece>& placedPieces,
-    math::Random& rng,
+    math::IRandom& rng,
     const structure::StructureBoundingBox* bounds,
     world::chunk::ChunkPrimer* chunk,
     IChunkGenerator* generator)
@@ -55,7 +55,7 @@ void JigsawPlacer::placePieces(IWorldWriter& world,
 
 void JigsawPlacer::placePiece(IWorldWriter& world,
     const PlacedPiece& placed,
-    math::Random& rng,
+    math::IRandom& rng,
     const structure::StructureBoundingBox* bounds,
     world::chunk::ChunkPrimer* chunk,
     IChunkGenerator* generator)
@@ -68,7 +68,7 @@ void JigsawPlacer::placePiece(IWorldWriter& world,
 }
 
 void JigsawPlacer::placeFallbackBlocks(
-    IWorldWriter& world, const PlacedPiece& placed, math::Random& rng, const structure::StructureBoundingBox* bounds)
+    IWorldWriter& world, const PlacedPiece& placed, math::IRandom& rng, const structure::StructureBoundingBox* bounds)
 {
     // 当模板未找到时，放置简单的方块来标记结构位置（从 JigsawManager::_placeFallbackBlocks 迁移）
     const BlockState* markerBlock = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);

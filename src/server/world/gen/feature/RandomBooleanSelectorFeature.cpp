@@ -39,7 +39,7 @@ namespace mc::world::gen::feature::cave {
 bool RandomBooleanSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const RandomBooleanFeatureConfig& config)
 {
@@ -66,7 +66,7 @@ ConfiguredRandomBooleanSelectorFeature::ConfiguredRandomBooleanSelectorFeature(
 bool ConfiguredRandomBooleanSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     if (!m_config) {

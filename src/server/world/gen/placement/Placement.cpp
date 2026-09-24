@@ -47,7 +47,7 @@ namespace mc {
 // HeightRangePlacementConfig 实现
 // ============================================================================
 
-i32 HeightRangePlacementConfig::getRandomY(math::Random& random) const noexcept
+i32 HeightRangePlacementConfig::getRandomY(math::IRandom& random) const noexcept
 {
     // 在 [bottomOffset, maximum - topOffset) 范围内随机选择
     i32 range = maximum - topOffset - bottomOffset;
@@ -82,7 +82,7 @@ ConfiguredPlacement::ConfiguredPlacement(std::unique_ptr<Placement> placement, s
 {}
 
 std::vector<BlockPos> ConfiguredPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const BlockPos& basePos) const
 {
     std::vector<BlockPos> positions = m_placement->getPositions(region, random, *m_config, basePos);
 
@@ -114,7 +114,7 @@ std::unique_ptr<ConfiguredPlacement> ConfiguredPlacement::then(
 // ============================================================================
 
 std::vector<BlockPos> IdentityPlacement::getPositions(WorldGenRegion& /*region*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     const IPlacementConfig& /*config*/,
     const BlockPos& basePos) const
 {
@@ -127,7 +127,7 @@ std::vector<BlockPos> IdentityPlacement::getPositions(WorldGenRegion& /*region*/
 // ============================================================================
 
 std::vector<BlockPos> CountPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
 
@@ -159,7 +159,7 @@ std::vector<BlockPos> CountPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> HeightRangePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     // 尝试使用 HeightProvider 配置（MC 1.21 风格）
     const auto* providerConfig = dynamic_cast<const HeightProviderPlacementConfig*>(&config);
@@ -182,7 +182,7 @@ std::vector<BlockPos> HeightRangePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> SquarePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
     (void)config;
@@ -199,7 +199,7 @@ std::vector<BlockPos> SquarePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> BiomePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)random;
     const auto& biomeConfig = static_cast<const BiomePlacementConfig&>(config);
@@ -217,7 +217,7 @@ std::vector<BlockPos> BiomePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> ChancePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
     const auto& chanceConfig = static_cast<const ChancePlacementConfig&>(config);
@@ -233,7 +233,7 @@ std::vector<BlockPos> ChancePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> SurfacePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)random;
     const auto& surfaceConfig = static_cast<const SurfacePlacementConfig&>(config);
@@ -304,7 +304,7 @@ std::vector<BlockPos> SurfacePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> HeightmapPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)random;
     const auto& heightmapConfig = static_cast<const HeightmapPlacementConfig&>(config);
@@ -340,7 +340,7 @@ std::vector<BlockPos> HeightmapPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> RarityFilterPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
     const auto& rarityConfig = static_cast<const RarityFilterConfig&>(config);
@@ -357,8 +357,10 @@ std::vector<BlockPos> RarityFilterPlacement::getPositions(
 // FixedPlacement 实现
 // ============================================================================
 
-std::vector<BlockPos> FixedPlacement::getPositions(
-    WorldGenRegion& /*region*/, math::Random& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
+std::vector<BlockPos> FixedPlacement::getPositions(WorldGenRegion& /*region*/,
+    math::IRandom& /*random*/,
+    const IPlacementConfig& config,
+    const BlockPos& basePos) const
 {
     const auto& fixedConfig = static_cast<const FixedPlacementConfig&>(config);
 
@@ -416,7 +418,7 @@ i32 findOnGroundYPosition(WorldGenRegion& region, i32 x, i32 startHeightInclusiv
 } // namespace
 
 std::vector<BlockPos> CountOnEveryLayerPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto& layerConfig = static_cast<const CountOnEveryLayerConfig&>(config);
     if (!layerConfig.count) {
@@ -454,8 +456,10 @@ std::vector<BlockPos> CountOnEveryLayerPlacement::getPositions(
 // NoiseThresholdCountPlacement 实现
 // ============================================================================
 
-std::vector<BlockPos> NoiseThresholdCountPlacement::getPositions(
-    WorldGenRegion& /*region*/, math::Random& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
+std::vector<BlockPos> NoiseThresholdCountPlacement::getPositions(WorldGenRegion& /*region*/,
+    math::IRandom& /*random*/,
+    const IPlacementConfig& config,
+    const BlockPos& basePos) const
 {
     const auto& noiseConfig = static_cast<const NoiseThresholdCountConfig&>(config);
 
@@ -475,8 +479,10 @@ std::vector<BlockPos> NoiseThresholdCountPlacement::getPositions(
 // NoiseBasedCountPlacement 实现
 // ============================================================================
 
-std::vector<BlockPos> NoiseBasedCountPlacement::getPositions(
-    WorldGenRegion& /*region*/, math::Random& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
+std::vector<BlockPos> NoiseBasedCountPlacement::getPositions(WorldGenRegion& /*region*/,
+    math::IRandom& /*random*/,
+    const IPlacementConfig& config,
+    const BlockPos& basePos) const
 {
     const auto& noiseConfig = static_cast<const NoiseBasedCountConfig&>(config);
 
@@ -501,7 +507,7 @@ std::vector<BlockPos> NoiseBasedCountPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> SurfaceRelativeThresholdFilterPlacement::getPositions(
-    WorldGenRegion& region, math::Random& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto& filterConfig = static_cast<const SurfaceRelativeThresholdFilterConfig&>(config);
 

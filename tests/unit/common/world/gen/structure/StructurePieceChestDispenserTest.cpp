@@ -240,7 +240,7 @@ public:
     {}
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,

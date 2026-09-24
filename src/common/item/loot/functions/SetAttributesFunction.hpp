@@ -104,7 +104,7 @@ private:
      * @param random 随机数生成器
      * @return UUID 字符串（格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
      */
-    static std::string _generateUUID(math::Random& random);
+    static std::string _generateUUID(math::IRandom& random);
 };
 
 } // namespace loot

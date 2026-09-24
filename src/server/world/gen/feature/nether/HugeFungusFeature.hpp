@@ -83,7 +83,8 @@ public:
      * @param config 真菌配置
      * @return 是否成功放置
      */
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const HugeFungusFeatureConfig& config);
+    bool place(
+        WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const HugeFungusFeatureConfig& config);
 
 private:
     /**
@@ -112,7 +113,7 @@ private:
      * @brief 生成菌盖
      */
     void _generateCap(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& topPos,
         i32 capHeight,
         const BlockState* capState,
@@ -124,7 +125,7 @@ private:
      * @brief 生成藤蔓（垂泪藤或扭曲藤）
      */
     void _generateVines(
-        WorldGenRegion& world, math::Random& random, const BlockPos& stemBase, i32 stemHeight, FungusType type);
+        WorldGenRegion& world, math::IRandom& random, const BlockPos& stemBase, i32 stemHeight, FungusType type);
 
     /**
      * @brief 生成菌岩基座
@@ -142,7 +143,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

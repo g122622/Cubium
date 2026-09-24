@@ -242,7 +242,7 @@ void EggEntity::onImpact(const RayTraceResult& result)
     }
 
     // 1/8 概率孵化小鸡，其中 1/32 子概率孵 4 只（对齐 vanilla nextInt(8)==0 + nextInt(32)==0）。
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
     if (rng.nextInt(8) == 0) {
         const i32 chickCount = (rng.nextInt(32) == 0) ? 4 : 1;
         for (i32 i = 0; i < chickCount; ++i) {
@@ -298,7 +298,7 @@ bool EggEntity::_tryHatchChicken()
 {
     // 12.5% (1/8) 概率孵化（保留供旧调用方/测试访问器使用，新孵化逻辑已迁至 onImpact 内联 + _spawnHatchedChicken）。
     if (m_world) {
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         return rng.nextInt(8) == 0;
     }
     return false;
@@ -769,7 +769,7 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
             return;
         }
 
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         i32 experience = rng.nextInt(3, 11);
 
         // 生成经验球实体

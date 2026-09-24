@@ -27,7 +27,7 @@
 
 namespace mc {
 
-i32 FeatureSpread::get(math::Random& random) const
+i32 FeatureSpread::get(math::IRandom& random) const
 {
     if (m_provider != nullptr) {
         return m_provider->sample(random);

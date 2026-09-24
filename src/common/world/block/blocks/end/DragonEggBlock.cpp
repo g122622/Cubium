@@ -85,7 +85,7 @@ void DragonEggBlock::attack(const BlockState& state, IWorld& world, const BlockP
 bool DragonEggBlock::_teleport(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 随机寻找新位置，最多尝试 1000 次
-    math::Random& random = world.getRandom();
+    math::IRandom& random = world.getRandom();
 
     for (i32 attempt = 0; attempt < MAX_TELEPORT_ATTEMPTS; ++attempt) {
         // 计算随机偏移，X/Z 范围: -15 ~ +15，Y 范围: -7 ~ +7

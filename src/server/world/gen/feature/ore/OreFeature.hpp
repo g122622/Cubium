@@ -62,7 +62,7 @@ public:
      */
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& origin,
         const OreFeatureConfig& config);
 
@@ -93,7 +93,7 @@ private:
      * @return 实际写入的方块数
      */
     static i32 _doPlace(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const OreFeatureConfig& config,
         f64 x1,
         f64 y1,
@@ -114,7 +114,7 @@ private:
      * 先做目标规则匹配，再按 discardChanceOnAirExposure 决定是否要求"不邻接空气"。
      */
     static bool _canPlaceOre(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const OreFeatureConfig& config,
         const OreTarget& target,
         i32 x,
@@ -139,7 +139,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     /**

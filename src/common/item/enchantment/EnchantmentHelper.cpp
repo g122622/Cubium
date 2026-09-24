@@ -321,7 +321,7 @@ i32 EnchantmentHelper::getProtectionFactor(const ItemStack& stack, u32 damageTyp
 
 // ========== 耐久计算 ==========
 
-bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::Random& random)
+bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math::IRandom& random)
 {
     if (level <= 0) {
         return false;
@@ -558,7 +558,7 @@ void EnchantmentHelper::removeEnchantmentAttributeModifiers(
 // ========== 附魔生成（附魔台用） ==========
 
 i32 EnchantmentHelper::calcItemStackEnchantability(
-    math::Random& random, i32 slotIndex, i32 power, const ItemStack& stack)
+    math::IRandom& random, i32 slotIndex, i32 power, const ItemStack& stack)
 {
 
     if (stack.isEmpty()) {
@@ -653,7 +653,7 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::getEnchantmen
 }
 
 std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantmentList(
-    math::Random& random, const ItemStack& stack, i32 level, bool allowTreasure)
+    math::IRandom& random, const ItemStack& stack, i32 level, bool allowTreasure)
 {
 
     std::vector<EnchantmentData> result;
@@ -730,7 +730,7 @@ void EnchantmentHelper::removeIncompatible(std::vector<EnchantmentData>& list, c
 }
 
 EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
-    math::Random& random, std::vector<EnchantmentData>& list)
+    math::IRandom& random, std::vector<EnchantmentData>& list)
 {
 
     if (list.empty()) {
@@ -762,7 +762,7 @@ EnchantmentHelper::EnchantmentData EnchantmentHelper::getRandomEnchantment(
     return list.back();
 }
 
-ItemStack EnchantmentHelper::addRandomEnchantment(math::Random& random, ItemStack stack, i32 level, bool allowTreasure)
+ItemStack EnchantmentHelper::addRandomEnchantment(math::IRandom& random, ItemStack stack, i32 level, bool allowTreasure)
 {
     if (stack.isEmpty()) {
         return stack;

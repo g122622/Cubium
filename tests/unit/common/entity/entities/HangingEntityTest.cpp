@@ -368,8 +368,8 @@ public:
 
     [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
@@ -654,8 +654,8 @@ public:
         return BlockPos(0, 0, 0);
     }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
 private:
     struct GameEventRecord {

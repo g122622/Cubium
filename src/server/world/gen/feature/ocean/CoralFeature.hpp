@@ -66,13 +66,13 @@ struct CoralFeatureConfig : public IFeatureConfig {
 [[nodiscard]] i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z);
 [[nodiscard]] bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralColor color, bool isDead);
 void placeCoralDecorations(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,
     bool includeDecorations);
 [[nodiscard]] bool placeCoralWithDecorations(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,
@@ -86,7 +86,7 @@ void placeCoralDecorations(WorldGenRegion& world,
  */
 class CoralFeature {
 public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 protected:
     [[nodiscard]] bool _canPlaceAt(WorldGenRegion& world, const BlockPos& pos) const;
@@ -106,7 +106,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

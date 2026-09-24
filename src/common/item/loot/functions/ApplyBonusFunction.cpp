@@ -91,7 +91,7 @@ std::unique_ptr<LootFunction> ApplyBonusFunction::clone() const noexcept
     return func;
 }
 
-i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random)
+i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::IRandom& random)
 {
     // MC 1.16.5 OreDropsFormula:
     // if (fortune > 0) {
@@ -118,7 +118,7 @@ i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math:
 }
 
 i32 ApplyBonusFunction::calculateUniformBonus(
-    i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random)
+    i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::IRandom& random)
 {
     // MC 1.16.5 UniformBonusCountFormula:
     // count + random.nextInt(bonusMultiplier * fortune + 1)
@@ -131,7 +131,7 @@ i32 ApplyBonusFunction::calculateUniformBonus(
 }
 
 i32 ApplyBonusFunction::calculateBinomialBonus(
-    i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random)
+    i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::IRandom& random)
 {
     // MC 1.16.5 BinomialWithBonusCountFormula:
     // for (int i = 0; i < fortune + extra; ++i) {

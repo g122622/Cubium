@@ -60,6 +60,14 @@ public:
     void setSeed(u64 seed) override;
     [[nodiscard]] u64 nextU64() override;
 
+    /**
+     * @brief 派生位置随机工厂
+     *
+     * 本类不是 MC 原生算法，没有对应的原版派生语义；此处按 Xoroshiro 的
+     * "两次 nextLong() 组 128 位种子" 形状派生，仅供非原版对齐场景使用。
+     */
+    [[nodiscard]] PositionalRandomFactory forkPositional() override;
+
 private:
     u64 m_state;
 

@@ -166,7 +166,7 @@ bool SoundHandler::hasSoundEvent(const ResourceLocation& id) const
     return m_registry.hasSoundEvent(id);
 }
 
-const SoundDefinition* SoundHandler::getRandomSound(const ResourceLocation& id, mc::math::Random& rng) const
+const SoundDefinition* SoundHandler::getRandomSound(const ResourceLocation& id, mc::math::IRandom& rng) const
 {
     const auto* eventDef = m_registry.getSoundEvent(id);
     if (!eventDef) {

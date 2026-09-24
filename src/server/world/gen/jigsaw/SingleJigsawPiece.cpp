@@ -115,7 +115,7 @@ static std::vector<u32> getStructureAndAirStateIds()
 void SingleJigsawPiece::place(IWorldWriter& world,
     const PlacedPiece& placed,
     TemplateManager& templateManager,
-    math::Random& rng,
+    math::IRandom& rng,
     const structure::StructureBoundingBox* bounds,
     world::chunk::ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)

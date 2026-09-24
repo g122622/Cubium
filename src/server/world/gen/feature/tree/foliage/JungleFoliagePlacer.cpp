@@ -40,13 +40,13 @@ JungleFoliagePlacer::JungleFoliagePlacer(const FeatureSpread& radius, const Feat
     , m_height(height)
 {}
 
-i32 JungleFoliagePlacer::getFoliageHeight(math::Random& random, i32 /*trunkHeight*/) const
+i32 JungleFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 /*trunkHeight*/) const
 {
     return m_height + random.nextInt(2);
 }
 
 void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -70,7 +70,7 @@ void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     }
 }
 
-bool JungleFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
+bool JungleFoliagePlacer::shouldSkip(math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 第一个条件：曼哈顿距离 >= 7 时跳过（防止过大的树叶）
     if (std::abs(dx) + std::abs(dz) >= 7) {

@@ -40,7 +40,7 @@ namespace mc {
 // EndIslandFeature
 // ============================================================================
 
-bool EndIslandFeature::place(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
+bool EndIslandFeature::place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos)
 {
     // 生成锥形/泪滴形末地石岛屿
     // 初始半径在 4.0-6.0 之间随机（nextInt(3) + 4.0）
@@ -85,7 +85,7 @@ ConfiguredEndIslandFeature::ConfiguredEndIslandFeature(const char* featureName)
 bool ConfiguredEndIslandFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return EndIslandFeature::place(region, random, pos);

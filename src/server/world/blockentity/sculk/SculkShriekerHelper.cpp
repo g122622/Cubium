@@ -210,7 +210,7 @@ bool SculkShriekerHelper::_trySummonWarden(ServerWorld& world, const BlockPos& p
     }
 
     // 在尖啸体附近尝试找到有效生成位置
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     for (i32 attempt = 0; attempt < SUMMON_ATTEMPTS; ++attempt) {
         // 随机偏移位置：水平 +/-5
         i32 dx = rng.nextInt(SUMMON_HORIZONTAL_RANGE * 2 + 1) - SUMMON_HORIZONTAL_RANGE;
@@ -289,7 +289,7 @@ void SculkShriekerHelper::_playWardenReplySound(ServerWorld& world, const BlockP
     ResourceLocation soundEvent(WARDEN_SOUND_BY_LEVEL[warningLevel]);
 
     // 在尖啸体附近随机偏移位置播放声音（偏移 +/-10 格）
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     f32 soundX = static_cast<f32>(pos.x + rng.nextInt(21) - 10) + 0.5f;
     f32 soundY = static_cast<f32>(pos.y + rng.nextInt(21) - 10);
     f32 soundZ = static_cast<f32>(pos.z + rng.nextInt(21) - 10) + 0.5f;

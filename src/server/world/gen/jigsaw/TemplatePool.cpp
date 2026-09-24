@@ -67,7 +67,7 @@ void TemplatePool::addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight)
     m_totalWeight += weight;
 }
 
-const JigsawPiece* TemplatePool::getRandomPiece(math::Random& rng) const
+const JigsawPiece* TemplatePool::getRandomPiece(math::IRandom& rng) const
 {
     if (m_entries.empty() || m_totalWeight <= 0) {
         return nullptr;
@@ -83,7 +83,7 @@ const JigsawPiece* TemplatePool::getRandomPiece(math::Random& rng) const
     return m_entries.back().piece;
 }
 
-std::vector<const JigsawPiece*> TemplatePool::getShuffledPieces(math::Random& rng) const
+std::vector<const JigsawPiece*> TemplatePool::getShuffledPieces(math::IRandom& rng) const
 {
     std::vector<const JigsawPiece*> result;
     result.reserve(static_cast<size_t>(m_totalWeight));

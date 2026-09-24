@@ -50,7 +50,7 @@ namespace mc::world::gen::structure {
 // ============================================================================
 
 std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -149,7 +149,7 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
 
 std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -191,7 +191,7 @@ bool MineshaftPiece::_canPlaceAt(i32 /*x*/, i32 y, i32 /*z*/)
     return world::isValidY(y) && y > world::MIN_BUILD_HEIGHT + 4;
 }
 
-void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::Random& rng)
+void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::IRandom& rng)
 {
     const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
@@ -211,7 +211,7 @@ void MineshaftPiece::_generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, 
 // MineshaftRoom 实现
 // ============================================================================
 
-MineshaftRoom::MineshaftRoom(i32 componentType, math::Random& rng, i32 x, i32 y, i32 z, MineshaftType type)
+MineshaftRoom::MineshaftRoom(i32 componentType, math::IRandom& rng, i32 x, i32 y, i32 z, MineshaftType type)
     : MineshaftPiece(componentType, x, y, z, x + 7, y + 3, z + 7, type)
 {
     // 随机选择出口方向
@@ -234,7 +234,7 @@ MineshaftRoom::MineshaftRoom(i32 componentType, math::Random& rng, i32 x, i32 y,
 }
 
 void MineshaftRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -275,7 +275,7 @@ void MineshaftRoom::generate(IWorldWriter& world,
 }
 
 void MineshaftRoom::buildComponent(
-    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth)
+    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     i32 depth = type() + 1;
 
@@ -317,7 +317,7 @@ void MineshaftRoom::buildComponent(
 // ============================================================================
 
 MineshaftCorridor::MineshaftCorridor(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -341,7 +341,7 @@ MineshaftCorridor::MineshaftCorridor(i32 componentType,
 }
 
 void MineshaftCorridor::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -397,7 +397,7 @@ void MineshaftCorridor::generate(IWorldWriter& world,
 }
 
 void MineshaftCorridor::_generateFloor(
-    IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
     const BlockState* cobblestoneState = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
@@ -423,7 +423,7 @@ void MineshaftCorridor::_generateFloor(
 }
 
 void MineshaftCorridor::_generateCeiling(
-    IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, i32 x1, i32 z1, i32 x2, i32 z2, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
 
@@ -443,7 +443,7 @@ void MineshaftCorridor::_generateCeiling(
 }
 
 void MineshaftCorridor::_generatePillars(
-    IWorldWriter& world, i32 /*sectionIndex*/, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, i32 /*sectionIndex*/, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     if (m_direction == 0 || m_direction == 1) {
         // 南北方向：支撑柱在东西两侧
@@ -475,7 +475,7 @@ void MineshaftCorridor::_generatePillars(
 }
 
 void MineshaftCorridor::_generateRails(
-    IWorldWriter& world, math::Random& /*rng*/, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& /*rng*/, const StructureBoundingBox& chunkBounds)
 {
     const BlockState* railState = VanillaBlocks::getState(VanillaBlocks::RAIL);
     if (!railState) {
@@ -532,7 +532,7 @@ void MineshaftCorridor::_generateSpawner(
 }
 
 void MineshaftCorridor::_generateChestMinecart(
-    IWorldWriter& world, i32 x, i32 y, i32 z, math::Random& /*rng*/, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, i32 x, i32 y, i32 z, math::IRandom& /*rng*/, const StructureBoundingBox& chunkBounds)
 {
     if (!chunkBounds.contains(x, y, z)) return;
 
@@ -553,7 +553,7 @@ void MineshaftCorridor::_generateChestMinecart(
 }
 
 void MineshaftCorridor::buildComponent(
-    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth)
+    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     i32 depth = type() + 1;
     if (depth > maxDepth) return;
@@ -602,7 +602,7 @@ MineshaftCross::MineshaftCross(
 {}
 
 void MineshaftCross::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -637,7 +637,7 @@ void MineshaftCross::generate(IWorldWriter& world,
 }
 
 void MineshaftCross::buildComponent(
-    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth)
+    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     i32 depth = type() + 1;
     if (depth > maxDepth) return;
@@ -695,7 +695,7 @@ MineshaftStairs::MineshaftStairs(
 {}
 
 void MineshaftStairs::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -757,7 +757,7 @@ void MineshaftStairs::generate(IWorldWriter& world,
 }
 
 void MineshaftStairs::buildComponent(
-    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::Random& rng, i32 maxDepth)
+    std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
     i32 depth = type() + 1;
     if (depth > maxDepth) return;
@@ -814,7 +814,7 @@ const biome::BiomeTag* MineshaftStructure::defaultBiomeTag() const
 }
 
 bool MineshaftStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
     // 间距检查已由 StructurePlacement::isStructureChunk() 处理
     // 仅做概率检查
@@ -822,7 +822,7 @@ bool MineshaftStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> MineshaftStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

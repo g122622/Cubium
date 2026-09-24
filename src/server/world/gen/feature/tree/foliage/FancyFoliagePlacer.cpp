@@ -41,13 +41,13 @@ FancyFoliagePlacer::FancyFoliagePlacer(const FeatureSpread& radius, const Featur
     , m_height(height)
 {}
 
-i32 FancyFoliagePlacer::getFoliageHeight(math::Random& random, i32 /*trunkHeight*/) const
+i32 FancyFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 /*trunkHeight*/) const
 {
     return m_height + random.nextInt(3);
 }
 
 void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -78,7 +78,7 @@ void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 }
 
 bool FancyFoliagePlacer::shouldSkip(
-    math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
+    math::IRandom& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 使用半径的平方作为阈值，创建更圆形的树叶
     f32 absDx = std::abs(static_cast<f32>(dx) + 0.5f);

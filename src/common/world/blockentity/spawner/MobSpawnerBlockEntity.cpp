@@ -380,7 +380,7 @@ std::unique_ptr<BlockEntity> MobSpawnerBlockEntity::clone() const
 // 配置接口
 // ============================================================================
 
-void MobSpawnerBlockEntity::setEntityId(const ResourceLocation& entityId, math::Random& rng)
+void MobSpawnerBlockEntity::setEntityId(const ResourceLocation& entityId, math::IRandom& rng)
 {
     m_nextEntityId = entityId;
 
@@ -486,7 +486,7 @@ bool MobSpawnerBlockEntity::_isNearPlayer(IWorld& world) const
     return false;
 }
 
-void MobSpawnerBlockEntity::_delay(math::Random& rng)
+void MobSpawnerBlockEntity::_delay(math::IRandom& rng)
 {
     if (m_maxSpawnDelay <= m_minSpawnDelay) {
         m_spawnDelay = m_minSpawnDelay;
@@ -702,7 +702,7 @@ i32 MobSpawnerBlockEntity::_countNearbyEntities(IWorld& world, const ResourceLoc
     return count;
 }
 
-void MobSpawnerBlockEntity::_selectNextEntity(math::Random& rng)
+void MobSpawnerBlockEntity::_selectNextEntity(math::IRandom& rng)
 {
     if (m_spawnPotentials.empty()) {
         return;

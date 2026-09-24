@@ -442,7 +442,7 @@ TEST_F(BigDripleafRedstoneTest, Tick_WithRedstoneSignal_ResetsTiltToNone)
 
     // 触发tick
     BlockState mutableState = getTiltState(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     block_->tick(world_, pos, mutableState, rng);
 
     // 红石信号激活时应重置为NONE
@@ -463,7 +463,7 @@ TEST_F(BigDripleafRedstoneTest, Tick_NoRedstoneSignal_AdvancesTiltState)
     // 不放置红石信号源
     // 触发tick
     BlockState mutableState = getTiltState(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     block_->tick(world_, pos, mutableState, rng);
 
     // 无红石信号时应推进为PARTIAL
@@ -481,7 +481,7 @@ TEST_F(BigDripleafRedstoneTest, Tick_UnstableToPartial_PlaysTiltDownSound)
     world_.setBlockStateCopy(pos, unstableState);
 
     BlockState mutableState = getTiltState(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     block_->tick(world_, pos, mutableState, rng);
 
     // 应播放TILT_DOWN音效
@@ -499,7 +499,7 @@ TEST_F(BigDripleafRedstoneTest, Tick_FullToNone_PlaysTiltUpSound)
     world_.setBlockStateCopy(pos, fullState);
 
     BlockState mutableState = getTiltState(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     block_->tick(world_, pos, mutableState, rng);
 
     // 应播放TILT_UP音效
@@ -522,7 +522,7 @@ TEST_F(BigDripleafRedstoneTest, Tick_RedstoneResetsFromPartial_PlaysTiltUpSound)
     world_.setBlockState(powerPos, &powerBlock_->defaultState());
 
     BlockState mutableState = getTiltState(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     block_->tick(world_, pos, mutableState, rng);
 
     // 红石重置应播放TILT_UP音效
@@ -541,7 +541,7 @@ TEST_F(BigDripleafRedstoneTest, Tick_PartialToFull_TriggersBlockChangeEvent)
     world_.setBlockStateCopy(pos, partialState);
 
     BlockState mutableState = getTiltState(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     block_->tick(world_, pos, mutableState, rng);
 
     // FULL倾斜应触发BLOCK_CHANGE游戏事件
@@ -725,7 +725,7 @@ TEST_F(BigDripleafTiltStateMachineTest, Tick_AdvancesThroughFullCycle)
 {
     BlockPos pos(0, 65, 0);
     setupDripleafAt(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
 
     // UNSTABLE → PARTIAL
     BlockState unstableState =
@@ -751,7 +751,7 @@ TEST_F(BigDripleafTiltStateMachineTest, Tick_NoneState_DoesNothing)
 {
     BlockPos pos(0, 65, 0);
     setupDripleafAt(pos);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
 
     // 默认就是NONE
     EXPECT_EQ(getTiltState(pos).get(BlockStateProperties::TILT()), BlockStateProperties::Tilt::None);

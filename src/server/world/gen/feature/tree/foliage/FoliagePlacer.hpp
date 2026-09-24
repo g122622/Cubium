@@ -70,7 +70,7 @@ public:
      * 保留此重载以兼容现有调用方。
      */
     void placeFoliage(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 trunkHeight,
         const std::vector<FoliagePosition>& foliagePositions,
         const std::set<BlockPos>& trunkBlocks,
@@ -92,7 +92,7 @@ public:
      * @param outFoliageBlocks 输出参数，放置的树叶方块位置集合
      */
     void placeFoliage(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 trunkHeight,
         const std::vector<FoliagePosition>& foliagePositions,
         const std::set<BlockPos>& trunkBlocks,
@@ -107,7 +107,7 @@ public:
      * @param trunkHeight 树干高度
      * @return 树叶层高度
      */
-    [[nodiscard]] virtual i32 getFoliageHeight(math::Random& random, i32 trunkHeight) const = 0;
+    [[nodiscard]] virtual i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const = 0;
 
     /**
      * @brief 获取树叶放置器类型名称
@@ -134,7 +134,7 @@ protected:
      * @param foliageBlock 树叶方块状态
      */
     void placeFoliageLayer(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& centerPos,
         i32 radius,
         std::set<BlockPos>& foliageBlocks,
@@ -154,7 +154,7 @@ protected:
      * @return 是否跳过
      */
     [[nodiscard]] virtual bool shouldSkip(
-        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const;
+        math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const;
 
     /**
      * @brief 内部放置树叶
@@ -163,7 +163,7 @@ protected:
      * 子类只负责将坐标插入 foliageBlocks，实际方块放置由基类统一执行。
      */
     virtual void placeFoliageInternal(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
         i32 foliageHeight,

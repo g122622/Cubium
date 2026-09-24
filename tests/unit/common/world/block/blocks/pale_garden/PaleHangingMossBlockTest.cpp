@@ -153,8 +153,8 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
@@ -525,7 +525,7 @@ TEST_F(PaleHangingMossBlockTest, Tick_NoSupport_ReplacesWithAir)
     auto state = moss_->defaultState().with(BlockStateProperties::TIP(), true);
     world_.setBlockStateCopy(pos, state);
 
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     moss_->tick(world_, pos, state, rng);
 
     // 方块应该被替换为空气
@@ -548,7 +548,7 @@ TEST_F(PaleHangingMossBlockTest, Tick_WithSolidSupport_NotDestroyed)
     auto state = moss_->defaultState().with(BlockStateProperties::TIP(), true);
     world_.setBlockStateCopy(pos, state);
 
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     moss_->tick(world_, pos, state, rng);
 
     // 方块应该仍然存在
@@ -573,7 +573,7 @@ TEST_F(PaleHangingMossBlockTest, Tick_WithMossChainSupport_NotDestroyed)
     auto state = moss_->defaultState().with(BlockStateProperties::TIP(), true);
     world_.setBlockStateCopy(pos, state);
 
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     moss_->tick(world_, pos, state, rng);
 
     // 方块应该仍然存在

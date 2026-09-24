@@ -171,8 +171,8 @@ public:
         throw std::runtime_error("SeagrassTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
     [[nodiscard]] world::border::WorldBorder& worldBorder() override
     {

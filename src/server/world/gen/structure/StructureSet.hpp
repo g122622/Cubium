@@ -87,7 +87,7 @@ public:
      * @param rng 随机数生成器
      * @return 选中的条目，如果集合为空则返回 nullptr
      */
-    [[nodiscard]] const StructureSelectionEntry* selectEntry(math::Random& rng) const;
+    [[nodiscard]] const StructureSelectionEntry* selectEntry(math::IRandom& rng) const;
 
     /** 计算总权重 */
     [[nodiscard]] i32 totalWeight() const;

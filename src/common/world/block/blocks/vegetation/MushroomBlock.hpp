@@ -71,7 +71,7 @@ public:
      * @param pos 蘑菇位置
      * @param random 随机数生成器
      */
-    using BigMushroomGenerator = std::function<void(IWorld&, const BlockPos&, math::Random&)>;
+    using BigMushroomGenerator = std::function<void(IWorld&, const BlockPos&, math::IRandom&)>;
 
     /**
      * @brief 构造函数

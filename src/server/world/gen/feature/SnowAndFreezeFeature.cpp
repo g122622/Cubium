@@ -48,7 +48,7 @@ ConfiguredSnowAndFreezeFeature::ConfiguredSnowAndFreezeFeature(const char* featu
 bool ConfiguredSnowAndFreezeFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)generator;

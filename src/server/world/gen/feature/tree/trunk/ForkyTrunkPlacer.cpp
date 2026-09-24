@@ -44,7 +44,7 @@ namespace {
 
 /// MC: Direction.Plane.HORIZONTAL.getRandomDirection(random)。
 /// 项目 Directions::horizontal() 顺序为 {North,East,South,West}，与 MC 一致。
-Direction randomHorizontalDirection(math::Random& random)
+Direction randomHorizontalDirection(math::IRandom& random)
 {
     const auto dirs = Directions::horizontal();
     return dirs[static_cast<size_t>(random.nextInt(4))];
@@ -53,7 +53,7 @@ Direction randomHorizontalDirection(math::Random& random)
 } // namespace
 
 std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,

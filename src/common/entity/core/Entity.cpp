@@ -527,7 +527,7 @@ void Entity::doWaterSplashEffect()
     }
 
     // 获取随机数生成器
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
 
     // 根据速度选择声音并播放
     // 音调: 1.0F + (this.rand.nextFloat() - this.rand.nextFloat()) * 0.4F

@@ -138,7 +138,7 @@ particle::ParticleTypeId SlimeEntity::getSquishParticle() const
 i32 SlimeEntity::getJumpDelay() const
 {
     // 返回 10-29 tick（0.5-1.45秒）
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     return rng.nextInt(10, 29);
 }
 
@@ -232,7 +232,7 @@ void SlimeEntity::tick()
 
         // 生成粒子效果
         if (world() != nullptr && world()->isClientSide()) {
-            math::Random& random = world()->getRandom();
+            math::IRandom& random = world()->getRandom();
             auto particleType = getSquishParticle();
 
             // 粒子数量 = 尺寸 * 8
@@ -342,7 +342,7 @@ void SlimeEntity::performSplit()
     }
 
     // 分裂后的小史莱姆数量：2-4 个
-    math::Random& rng = world()->getRandom();
+    math::IRandom& rng = world()->getRandom();
     i32 splitCount = rng.nextInt(SPLIT_COUNT_MIN, SPLIT_COUNT_MAX);
 
     // 新史莱姆的尺寸 = 当前尺寸 / 2

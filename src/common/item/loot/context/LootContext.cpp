@@ -32,7 +32,7 @@ namespace loot {
 // LootContext
 // ============================================================================
 
-LootContext::LootContext(IWorld& world, math::Random& random)
+LootContext::LootContext(IWorld& world, math::IRandom& random)
     : m_world(world)
     , m_random(random)
 {}

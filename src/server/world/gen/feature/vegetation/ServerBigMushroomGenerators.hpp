@@ -38,7 +38,7 @@ using namespace blocks;
  * 每个生成器内部创建对应的 BigMushroomFeatureConfig 并调用
  * BigMushroomFeature::place()。
  *
- * BigMushroomGenerator 签名为 void(IWorld&, const BlockPos&, math::Random&)，
+ * BigMushroomGenerator 签名为 void(IWorld&, const BlockPos&, math::IRandom&)，
  * 由 MushroomBlock 在 grow() 中通过 createFeatureRegion() 获取的
  * WorldGenRegion（以 IWorld 接口暴露）回调。lambda 内部将 IWorld&
  * static_cast 为 WorldGenRegion& 后调用 BigMushroomFeature::place()。

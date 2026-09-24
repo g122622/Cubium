@@ -40,7 +40,7 @@ FancyTrunkPlacer::FancyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRa
 {}
 
 std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,
@@ -156,7 +156,7 @@ f32 FancyTrunkPlacer::_getBranchLength(i32 trunkHeight, i32 relY) const
 }
 
 bool FancyTrunkPlacer::_makeLimb(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& start,
     const BlockPos& end,
     bool place,

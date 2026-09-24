@@ -63,7 +63,7 @@ public:
      * @param rng 随机数生成器（用于随机/随机组绑定的解析）
      * @param callback 接收 (alias, target) 对
      */
-    virtual void forEachResolved(math::Random& rng, const Resolver& callback) const = 0;
+    virtual void forEachResolved(math::IRandom& rng, const Resolver& callback) const = 0;
 
     /**
      * @brief 获取别名的虚拟池名
@@ -91,7 +91,7 @@ public:
         , m_target(std::move(targetName))
     {}
 
-    void forEachResolved(math::Random& /*rng*/, const Resolver& callback) const override
+    void forEachResolved(math::IRandom& /*rng*/, const Resolver& callback) const override
     {
         callback(m_alias, m_target);
     }
@@ -140,7 +140,7 @@ public:
         , m_targets(std::move(targets))
     {}
 
-    void forEachResolved(math::Random& rng, const Resolver& callback) const override;
+    void forEachResolved(math::IRandom& rng, const Resolver& callback) const override;
 
     [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override
@@ -158,7 +158,7 @@ public:
      * @param rng 随机数生成器
      * @return 实际目标池；候选为空时返回 alias 自身
      */
-    [[nodiscard]] ResourceLocation resolve(math::Random& rng) const;
+    [[nodiscard]] ResourceLocation resolve(math::IRandom& rng) const;
 
 private:
     ResourceLocation m_alias;
@@ -198,7 +198,7 @@ public:
         , m_groups(std::move(groups))
     {}
 
-    void forEachResolved(math::Random& rng, const Resolver& callback) const override;
+    void forEachResolved(math::IRandom& rng, const Resolver& callback) const override;
 
     [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override;
@@ -232,7 +232,7 @@ public:
      * @param rng 随机数生成器
      * @param callback 接收每个 (alias, target) 对
      */
-    void forEachResolved(math::Random& rng, const PoolAliasBinding::Resolver& callback) const;
+    void forEachResolved(math::IRandom& rng, const PoolAliasBinding::Resolver& callback) const;
 
     /**
      * @brief 是否为空

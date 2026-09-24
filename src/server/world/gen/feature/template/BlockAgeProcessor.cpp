@@ -120,7 +120,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::IRandom& rng)
 {
     // 50% 概率不替换
     if (rng.nextFloat() >= PROBABILITY_OF_REPLACING_FULL_BLOCK) {
@@ -141,7 +141,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::Random& r
     return _getRandomBlock(rng, nonMossyOptions, mossyOptions);
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state, math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state, math::IRandom& rng)
 {
     // 50% 概率不替换
     if (rng.nextFloat() >= PROBABILITY_OF_REPLACING_STAIRS) {
@@ -162,7 +162,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state
     return _getRandomBlock(rng, nonMossyOptions, mossyOptions);
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, math::IRandom& rng)
 {
     // mossiness 概率替换为苔藓石砖台阶，保留原属性
     if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
@@ -171,7 +171,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, 
     return nullptr;
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, math::IRandom& rng)
 {
     // mossiness 概率替换为苔藓石砖墙，保留原属性
     if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
@@ -180,7 +180,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, 
     return nullptr;
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::IRandom& rng)
 {
     // 固定 15% 概率替换为哭泣黑曜石
     if (rng.nextFloat() < PROBABILITY_OF_REPLACING_OBSIDIAN && VanillaBlocks::CRYING_OBSIDIAN) {
@@ -189,7 +189,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::Random& rng)
     return nullptr;
 }
 
-const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::Random& rng, const Block& stairsBlock)
+const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::IRandom& rng, const Block& stairsBlock)
 {
     // 生成随机朝向的楼梯状态：随机水平朝向 + 随机上半/下半
     const BlockState& defaultState = stairsBlock.defaultState();
@@ -213,7 +213,7 @@ const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::Random& rng, c
 }
 
 const BlockState* BlockAgeProcessor::_getRandomBlock(
-    math::Random& rng, const BlockState* const nonMossy[], const BlockState* const mossy[])
+    math::IRandom& rng, const BlockState* const nonMossy[], const BlockState* const mossy[])
 {
     // mossiness 概率选择 mossy 组，否则选择 non-mossy 组
     if (rng.nextFloat() < m_mossiness) {
@@ -223,7 +223,7 @@ const BlockState* BlockAgeProcessor::_getRandomBlock(
 }
 
 const BlockState* BlockAgeProcessor::_pickRandomNonNull(
-    math::Random& rng, const BlockState* const options[], size_t count)
+    math::IRandom& rng, const BlockState* const options[], size_t count)
 {
     // 从选项数组中随机选取一个非空元素
     size_t nonNullCount = 0;

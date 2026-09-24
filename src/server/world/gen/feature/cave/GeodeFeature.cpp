@@ -78,7 +78,7 @@ ConfiguredGeodeFeature::ConfiguredGeodeFeature(std::unique_ptr<GeodeConfig> conf
 bool ConfiguredGeodeFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     if (m_config == nullptr) {
@@ -92,7 +92,7 @@ bool ConfiguredGeodeFeature::place(WorldGenRegion& region,
 // ============================================================================
 
 bool GeodeFeature::place(
-    IWorld& world, IChunkGenerator& generator, math::Random& random, const BlockPos& origin, const GeodeConfig& config)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& random, const BlockPos& origin, const GeodeConfig& config)
 {
     const i32 minOffset = config.minGenOffset;
     const i32 maxOffset = config.maxGenOffset;

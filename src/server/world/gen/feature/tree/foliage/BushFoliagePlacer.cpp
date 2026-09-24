@@ -39,13 +39,13 @@ BushFoliagePlacer::BushFoliagePlacer(const FeatureSpread& radius, const FeatureS
     : FoliagePlacer(radius, offset)
 {}
 
-i32 BushFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
+i32 BushFoliagePlacer::getFoliageHeight(math::IRandom& /*random*/, i32 /*trunkHeight*/) const
 {
     return 1; // 灌木只有一层
 }
 
 void BushFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -69,7 +69,7 @@ void BushFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     }
 }
 
-bool BushFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
+bool BushFoliagePlacer::shouldSkip(math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 球形
     f32 dist = std::sqrt(static_cast<f32>(dx * dx + dz * dz));

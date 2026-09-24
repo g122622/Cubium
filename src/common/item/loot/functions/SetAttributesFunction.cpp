@@ -48,7 +48,7 @@ ItemStack SetAttributesFunction::apply(ItemStack stack, LootContext& context) co
         return stack;
     }
 
-    math::Random& random = context.getRandom();
+    math::IRandom& random = context.getRandom();
 
     // 直接获取或创建标签
     nlohmann::json& attrModifiers = stack.getOrCreateTag();
@@ -118,7 +118,7 @@ i32 SetAttributesFunction::_parseSlotName(const std::string& slotName)
     return static_cast<i32>(EquipmentSlot::MainHand);
 }
 
-std::string SetAttributesFunction::_generateUUID(math::Random& random)
+std::string SetAttributesFunction::_generateUUID(math::IRandom& random)
 {
     const u64 part1 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());
     const u64 part2 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());

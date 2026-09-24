@@ -113,6 +113,7 @@
 #include "common/TestDataDir.hpp"
 #include "common/WorldGenRegistryFixture.hpp"
 #include "common/core/GameDirectory.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -141,6 +142,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <fmt/format.h>
 
 #include <gtest/gtest.h>
 
@@ -483,6 +485,99 @@ protected:
     }
 
     /**
+     * @brief 诊断：按 Y 带拆分差异对
+     *
+     * 总量差异对（如 "stone -> andesite 613"）跨越全部 Y 层，无法区分"深层矿脉"与
+     * "近地表地表规则"。按 32 格分带后，每带的差异对形态直接指向生成阶段：
+     *   - 深板岩层出现 stone->andesite → 石头变体 ore 特征落位错
+     *   - 近地表出现 grass_block->air → 地表规则/高度错
+     *   - 水/空气互换 → 含水层错
+     */
+    static void printMismatchPairsByYBand(const ChunkData& javaChunk, const ChunkData& cubiumChunk, i32 cx, i32 cz)
+    {
+        constexpr i32 kBandHeight = 32;
+        std::map<i32, std::map<std::string, i64>> bandPairs;
+        for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+            const i32 band = math::floorDiv(y, kBandHeight) * kBandHeight;
+            for (i32 bz = 0; bz < 16; ++bz) {
+                for (i32 bx = 0; bx < 16; ++bx) {
+                    const u32 javaId = javaChunk.getBlockStateId(bx, y, bz);
+                    const u32 cubiumId = cubiumChunk.getBlockStateId(bx, y, bz);
+                    if (javaId != cubiumId) {
+                        ++bandPairs[band][blockName(javaId) + " -> " + blockName(cubiumId)];
+                    }
+                }
+            }
+        }
+        for (const auto& [band, pairs] : bandPairs) {
+            std::vector<std::pair<std::string, i64>> sorted(pairs.begin(), pairs.end());
+            std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+            const size_t limit = std::min<size_t>(sorted.size(), 6);
+            std::printf("[DIAG] (%d,%d) y %4d..%4d 差异对 top %zu / 共 %zu：\n",
+                cx,
+                cz,
+                band,
+                band + kBandHeight - 1,
+                limit,
+                sorted.size());
+            for (size_t i = 0; i < limit; ++i) {
+                std::printf(
+                    "[DIAG]      %-60s %lld\n", sorted[i].first.c_str(), static_cast<long long>(sorted[i].second));
+            }
+        }
+    }
+
+    /**
+     * @brief 诊断：打印不一致最严重的若干列的完整方块剖面
+     *
+     * 差异对是聚合量，看不出"从哪一格开始分叉"。逐列剖面能直接指出首个分歧的 Y，
+     * 从而区分"地表规则从第一格就错"与"地形高度整体偏移后内容一致"。
+     * 连续相同方块压缩为 `name×n`，避免刷屏。
+     */
+    static void printWorstColumnProfiles(const ChunkData& javaChunk, const ChunkData& cubiumChunk, i32 cx, i32 cz)
+    {
+        std::vector<std::pair<i32, i32>> columns; // (不一致格数, bz*16+bx)
+        for (i32 bz = 0; bz < 16; ++bz) {
+            for (i32 bx = 0; bx < 16; ++bx) {
+                i32 count = 0;
+                for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                    if (javaChunk.getBlockStateId(bx, y, bz) != cubiumChunk.getBlockStateId(bx, y, bz)) {
+                        ++count;
+                    }
+                }
+                columns.emplace_back(count, bz * 16 + bx);
+            }
+        }
+        std::sort(columns.rbegin(), columns.rend());
+
+        const auto renderColumn = [](const ChunkData& chunk, i32 bx, i32 bz) {
+            std::string out;
+            i32 runStart = world::MIN_BUILD_HEIGHT;
+            u32 runId = chunk.getBlockStateId(bx, world::MIN_BUILD_HEIGHT, bz);
+            for (i32 y = world::MIN_BUILD_HEIGHT + 1; y <= world::MAX_BUILD_HEIGHT; ++y) {
+                const u32 id = y < world::MAX_BUILD_HEIGHT ? chunk.getBlockStateId(bx, y, bz) : ~0u;
+                if (id != runId) {
+                    out += fmt::format("{}x{} ", blockName(runId), y - runStart);
+                    runStart = y;
+                    runId = id;
+                }
+            }
+            return out;
+        };
+
+        const size_t limit = std::min<size_t>(columns.size(), 3);
+        for (size_t i = 0; i < limit; ++i) {
+            const i32 bx = columns[i].second % 16;
+            const i32 bz = columns[i].second / 16;
+            std::printf("[DIAG] (%d,%d) 列 (%d,%d) 不一致 %d 格：\n", cx, cz, bx, bz, columns[i].first);
+            std::printf(
+                "[DIAG]      原版   y=%d 起：%s\n", world::MIN_BUILD_HEIGHT, renderColumn(javaChunk, bx, bz).c_str());
+            std::printf(
+                "[DIAG]      Cubium y=%d 起：%s\n", world::MIN_BUILD_HEIGHT, renderColumn(cubiumChunk, bx, bz).c_str());
+        }
+    }
+
+    /**
      * @brief 打印两侧各方块的总量对比（只列数量相差 100 以上的）
      *
      * 差异对只能说明"某个位置该是 A 却是 B"，无法区分 A 被多生成、还是 A 与 B 整体错位。
@@ -753,6 +848,8 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlocksMatchJavaSave)
 
         const ChunkDiff diff = compareBlocks(*javaChunk, *cubiumChunk);
         printBlockDiffReport(diff);
+        printMismatchPairsByYBand(*javaChunk, *cubiumChunk, cx, cz);
+        printWorstColumnProfiles(*javaChunk, *cubiumChunk, cx, cz);
         const f64 ratio = static_cast<f64>(diff.mismatchedBlocks) / static_cast<f64>(diff.totalBlocks);
         EXPECT_LE(ratio, kMaxBlockMismatchRatio)
             << "区块 (" << cx << "," << cz << ") 与原版的方块不一致率 " << (ratio * 100.0) << "% 超过上限 "

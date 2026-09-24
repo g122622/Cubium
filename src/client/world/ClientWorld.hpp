@@ -736,7 +736,7 @@ private:
     void _requestChunkMeshRebuild(const ChunkId& id);
     void _scheduleNeighborMeshRebuild(const ChunkId& id);
     void _scheduleVisibleChunksWithoutMesh(const MeshSchedulerViewState& viewState, u32 maxChunkCount);
-    void _doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 range, math::Random& random);
+    void _doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 range, math::IRandom& random);
 
     std::array<std::shared_ptr<const ChunkData>, 6> _getNeighborChunkData(const ChunkId& id);
     void _getNeighborChunks(const ChunkId& id, const ChunkData* neighbors[6]);

@@ -114,11 +114,11 @@ public:
     }
 
     // getRandom 不适用于只读的客户端世界适配器
-    [[nodiscard]] math::Random& getRandom() override
+    [[nodiscard]] math::IRandom& getRandom() override
     {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }
-    [[nodiscard]] const math::Random& getRandom() const override
+    [[nodiscard]] const math::IRandom& getRandom() const override
     {
         MC_ASSERT_RELEASE_MSG(false, "ClientWorldBlockReader does not support getRandom");
     }

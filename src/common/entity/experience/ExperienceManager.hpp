@@ -207,7 +207,7 @@ public:
      *
      * @param rng 随机数生成器
      */
-    void resetXpSeed(math::Random& rng);
+    void resetXpSeed(math::IRandom& rng);
 
     /**
      * @brief 附魔后处理
@@ -218,7 +218,7 @@ public:
      * @param rng 随机数生成器
      * @return 是否成功
      */
-    [[nodiscard]] bool onEnchant(i32 levels, math::Random& rng);
+    [[nodiscard]] bool onEnchant(i32 levels, math::IRandom& rng);
 
     // ========== 死亡掉落 ==========
 

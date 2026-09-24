@@ -145,11 +145,11 @@ public:
         throw std::runtime_error("StemGrowthTestWorld::tickManager not implemented");
     }
 
-    [[nodiscard]] math::Random& getRandom() override
+    [[nodiscard]] math::IRandom& getRandom() override
     {
         throw std::runtime_error("StemGrowthTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override
+    [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("StemGrowthTestWorld::getRandom not implemented");
     }

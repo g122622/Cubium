@@ -141,7 +141,7 @@ bool DrownedGoToWaterGoal::_findWater()
     f64 closestDistSq = std::numeric_limits<f64>::max();
     bool found = false;
 
-    math::Random& rng = m_drowned->getRandom();
+    math::IRandom& rng = m_drowned->getRandom();
 
     // 随机采样 10 个位置，在 -10..+10 X, -6..+2 Y, -10..+10 Z 范围内
     for (i32 i = 0; i < 10; ++i) {
@@ -404,7 +404,7 @@ void DrownedSwimUpGoal::tick()
             f64 targetY = static_cast<f64>(m_seaLevel) - 1.0;
 
             // 使用随机偏移寻找可达位置
-            math::Random& rng = m_drowned->getRandom();
+            math::IRandom& rng = m_drowned->getRandom();
             f64 angle = rng.nextFloat() * math::PI_DOUBLE * 2.0;
             f64 dist = static_cast<f64>(rng.nextInt(4, 8));
 

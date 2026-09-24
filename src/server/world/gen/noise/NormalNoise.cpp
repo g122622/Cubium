@@ -44,6 +44,8 @@ NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     // 第一个 PerlinNoise 调用 forkPositional() 消耗两次 nextLong()
     // 第二个 PerlinNoise 再调用 forkPositional() 消耗两次 nextLong()
     // 因此两个工厂的种子不同，产生独立的噪声模式
+    // 【注意】原版 NormalNoise.create 收的是 RandomSource，这里的种子构造是本项目
+    // 自有的便利重载；走的是 Xoroshiro flavor（与 RandomState::getOrCreateNoise 一致）。
     math::Random rng(seed);
     m_first = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
     m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
@@ -51,14 +53,14 @@ NormalNoise::NormalNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     computeValueFactor();
 }
 
-NormalNoise::NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes)
-    : m_seed(std::nullopt) // 通过 Random& 构造，种子未知
+NormalNoise::NormalNoise(math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes)
+    : m_seed(std::nullopt) // 通过 math::IRandom& 构造，种子未知
     , m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
 {
     // MC 1.21: 两次调用 forkPositional() 获取不同的 PositionalRandomFactory
     // 与 MC NormalNoise(RandomSource, NoiseParameters) 一致
-    // 注意：通过 Random& 构造时无法提取种子，clone() 将无法正确工作
+    // 注意：通过 math::IRandom& 构造时无法提取种子，clone() 将无法正确工作
     m_first = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
     m_second = std::make_unique<PerlinNoise>(rng.forkPositional(), m_firstOctave, m_amplitudes);
 
@@ -101,8 +103,8 @@ void NormalNoise::computeValueFactor()
 std::unique_ptr<NormalNoise> NormalNoise::clone() const
 {
     // 只有通过种子构造的 NormalNoise 才能正确克隆
-    // 通过 Random& 构造的实例种子为 nullopt，无法正确克隆
-    MC_ASSERT_RELEASE_MSG(m_seed.has_value(), "Cannot clone NormalNoise constructed from Random& without seed");
+    // 通过 math::IRandom& 构造的实例种子为 nullopt，无法正确克隆
+    MC_ASSERT_RELEASE_MSG(m_seed.has_value(), "Cannot clone NormalNoise constructed from math::IRandom& without seed");
     return std::make_unique<NormalNoise>(*m_seed, m_firstOctave, m_amplitudes);
 }
 

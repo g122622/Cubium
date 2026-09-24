@@ -74,7 +74,7 @@ const BooleanProperty* getPropertyForFace(Direction direction)
 bool ConfiguredVinesFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     const BlockPos& origin) const
 {
     // MC: if (!worldgenlevel.isEmptyBlock(blockpos)) return false;

@@ -70,7 +70,7 @@ public:
      * @note 与 MC 1.21 的 NormalNoise.create(RandomSource, NoiseParameters) 一致。
      *       两次调用 rng.forkPositional() 为两个 PerlinNoise 创建不同的工厂。
      */
-    NormalNoise(math::Random& rng, i32 firstOctave, std::vector<f64> amplitudes);
+    NormalNoise(math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes);
 
     ~NormalNoise() = default;
 
@@ -117,7 +117,7 @@ public:
     /**
      * @brief 构造时使用的种子
      *
-     * 仅当通过种子构造时有效；通过 Random& 构造时为 nullopt。
+     * 仅当通过种子构造时有效；通过 math::IRandom& 构造时为 nullopt。
      */
     [[nodiscard]] const std::optional<u64>& seed() const { return m_seed; }
 
@@ -139,7 +139,7 @@ private:
     static constexpr f64 INPUT_FACTOR = 1.0181268882175227;
     static constexpr f64 VALUE_FACTOR_BASE = 1.0 / 6.0;
 
-    std::optional<u64> m_seed; ///< nullopt = 通过 Random& 构造（无法克隆）
+    std::optional<u64> m_seed; ///< nullopt = 通过 math::IRandom& 构造（无法克隆）
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;
     std::unique_ptr<PerlinNoise> m_first;

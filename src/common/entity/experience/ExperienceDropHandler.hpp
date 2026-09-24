@@ -64,7 +64,7 @@ public:
      * @param rng 随机数生成器（可选，用于随机化速度）
      * @return 生成的经验球数量
      */
-    static i32 spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 z, i32 totalXp, math::Random* rng = nullptr);
+    static i32 spawnExperienceOrbs(IWorld* world, f64 x, f64 y, f64 z, i32 totalXp, math::IRandom* rng = nullptr);
 
     /**
      * @brief 在指定位置生成经验球（向量位置）
@@ -75,7 +75,7 @@ public:
      * @param rng 随机数生成器（可选）
      * @return 生成的经验球数量
      */
-    static i32 spawnExperienceOrbs(IWorld* world, const Vector3& pos, i32 totalXp, math::Random* rng = nullptr)
+    static i32 spawnExperienceOrbs(IWorld* world, const Vector3& pos, i32 totalXp, math::IRandom* rng = nullptr)
     {
         return spawnExperienceOrbs(world, pos.x, pos.y, pos.z, totalXp, rng);
     }
@@ -88,7 +88,7 @@ public:
      * @param rng 随机数生成器（可选）
      * @return 生成的经验球数量
      */
-    static i32 spawnExperienceOrbs(Entity* entity, i32 totalXp, math::Random* rng = nullptr);
+    static i32 spawnExperienceOrbs(Entity* entity, i32 totalXp, math::IRandom* rng = nullptr);
 
     /**
      * @brief 生成玩家死亡掉落的经验
@@ -112,7 +112,7 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
-    static i32 spawnOreExperience(IWorld* world, f64 x, f64 y, f64 z, i32 oreType, math::Random& rng);
+    static i32 spawnOreExperience(IWorld* world, f64 x, f64 y, f64 z, i32 oreType, math::IRandom& rng);
 
     /**
      * @brief 生成钓鱼经验
@@ -124,7 +124,7 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
-    static i32 spawnFishingExperience(IWorld* world, f64 x, f64 y, f64 z, math::Random& rng);
+    static i32 spawnFishingExperience(IWorld* world, f64 x, f64 y, f64 z, math::IRandom& rng);
 
     /**
      * @brief 生成被动动物死亡经验
@@ -138,7 +138,7 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
-    static i32 spawnPassiveMobExperience(IWorld* world, f64 x, f64 y, f64 z, math::Random& rng);
+    static i32 spawnPassiveMobExperience(IWorld* world, f64 x, f64 y, f64 z, math::IRandom& rng);
 
     /**
      * @brief 生成怪物死亡经验
@@ -153,7 +153,7 @@ public:
      * @param rng 随机数生成器（可选）
      * @return 生成的经验球数量
      */
-    static i32 spawnHostileMobExperience(IWorld* world, f64 x, f64 y, f64 z, i32 baseXp, math::Random* rng = nullptr);
+    static i32 spawnHostileMobExperience(IWorld* world, f64 x, f64 y, f64 z, i32 baseXp, math::IRandom* rng = nullptr);
 
 private:
     /**

@@ -90,7 +90,7 @@ ConfiguredDripstoneClusterFeature::ConfiguredDripstoneClusterFeature(
 bool ConfiguredDripstoneClusterFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, random, pos, *m_config);
@@ -173,7 +173,7 @@ void replaceBlocksWithDripstoneBlocks(IWorld& world, const BlockPos& pos, i32 la
 }
 
 [[nodiscard]] i32 getDripstoneHeight(
-    math::Random& random, i32 dx, i32 dz, f32 density, i32 maxHeight, const DripstoneClusterConfig& config)
+    math::IRandom& random, i32 dx, i32 dz, f32 density, i32 maxHeight, const DripstoneClusterConfig& config)
 {
     if (random.nextFloat() > density) {
         return 0;
@@ -194,7 +194,7 @@ void replaceBlocksWithDripstoneBlocks(IWorld& world, const BlockPos& pos, i32 la
 } // namespace
 
 bool DripstoneClusterFeature::place(
-    IWorld& world, math::Random& random, const BlockPos& pos, const DripstoneClusterConfig& config)
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const DripstoneClusterConfig& config)
 {
     if (!DripstoneUtils::isEmptyOrWater(world, pos)) {
         return false;
@@ -217,7 +217,7 @@ bool DripstoneClusterFeature::place(
 }
 
 void DripstoneClusterFeature::placeColumn(IWorld& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& colPos,
     i32 dx,
     i32 dz,

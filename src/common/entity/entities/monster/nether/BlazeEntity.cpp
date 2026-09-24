@@ -109,7 +109,7 @@ void BlazeEntity::tick()
 
     // ========== 客户端粒子效果和音效 ==========
     if (world() != nullptr && world()->isClientSide()) {
-        math::Random& random = world()->getRandom();
+        math::IRandom& random = world()->getRandom();
 
         // 随机播放燃烧音效（24分之1概率）
         if (random.nextInt(24) == 0 && !isSilent()) {
@@ -186,7 +186,7 @@ void BlazeEntity::updateAITasks()
         m_nextHeightOffsetChangeTick = HEIGHT_OFFSET_CHANGE_INTERVAL;
         // MC 原版: this.allowedHeightOffset = (float)this.random.triangle(0.5, 6.891);
         // triangle(mode, deviation) = mode + (nextFloat() - nextFloat()) * deviation
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         m_allowedHeightOffset = HEIGHT_OFFSET_MODE + (rng.nextFloat() - rng.nextFloat()) * HEIGHT_OFFSET_DEVIATION;
     }
 

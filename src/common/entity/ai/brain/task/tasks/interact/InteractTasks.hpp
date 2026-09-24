@@ -418,7 +418,7 @@ private:
             return false;
         }
 
-        math::Random& random = owner->getRandom();
+        math::IRandom& random = owner->getRandom();
 
         for (i32 attempt = 0; attempt < 10; ++attempt) {
             f32 angle = random.nextFloat() * math::TWO_PI;

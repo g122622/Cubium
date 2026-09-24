@@ -151,7 +151,7 @@ public:
     [[nodiscard]] std::unique_ptr<StructureStart> generateStructureStart(const Structure& structure,
         IWorldWriter& world,
         IChunkGenerator& generator,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ);
 
@@ -207,9 +207,9 @@ private:
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param salt 盐值
-     * @return 随机数生成器
+     * @return 随机数生成器（Xoroshiro128++，由调用方持有所有权）
      */
-    [[nodiscard]] math::Random _createRandom(i32 chunkX, i32 chunkZ, i32 salt) const;
+    [[nodiscard]] std::unique_ptr<math::IRandom> _createRandom(i32 chunkX, i32 chunkZ, i32 salt) const;
 };
 
 } // namespace world::gen::structure

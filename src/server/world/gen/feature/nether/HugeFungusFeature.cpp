@@ -42,7 +42,7 @@ namespace mc {
 // ============================================================================
 
 bool HugeFungusFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const HugeFungusFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const HugeFungusFeatureConfig& config)
 {
     // MC 1.21.11: 检查是否可以放置
     if (!_canPlaceAt(world, pos, config)) {
@@ -178,7 +178,7 @@ void HugeFungusFeature::_generateStem(
 }
 
 void HugeFungusFeature::_generateCap(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& topPos,
     i32 capHeight,
     const BlockState* capState,
@@ -236,7 +236,7 @@ void HugeFungusFeature::_generateCap(WorldGenRegion& world,
 }
 
 void HugeFungusFeature::_generateVines(
-    WorldGenRegion& world, math::Random& random, const BlockPos& stemBase, i32 stemHeight, FungusType type)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& stemBase, i32 stemHeight, FungusType type)
 {
     // MC 1.21.11: 绯红真菌 → 垂泪藤（向下），诡异真菌 → 扭曲藤（向上）
     // 垂泪藤从菌盖底部向下生长
@@ -330,7 +330,7 @@ ConfiguredHugeFungusFeature::ConfiguredHugeFungusFeature(
 bool ConfiguredHugeFungusFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, random, pos, *m_config);

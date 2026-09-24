@@ -99,7 +99,7 @@ bool FallenTreeFeature::mayPlaceOn(WorldGenRegion& region, const BlockPos& pos)
 
 BlockPos FallenTreeFeature::placeLogBlock(WorldGenRegion& region,
     const FallenTreeConfig& config,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const std::function<const BlockState*(const BlockState*)>& stateModifier)
 {
@@ -114,7 +114,7 @@ BlockPos FallenTreeFeature::placeLogBlock(WorldGenRegion& region,
 }
 
 void FallenTreeFeature::decorateLogs(WorldGenRegion& region,
-    math::Random& random,
+    math::IRandom& random,
     const std::vector<BlockPos>& logs,
     const std::vector<std::unique_ptr<decorator::TreeDecorator>>& decorators)
 {
@@ -136,7 +136,7 @@ void FallenTreeFeature::decorateLogs(WorldGenRegion& region,
 
 bool FallenTreeFeature::place(WorldGenRegion& region,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     const FallenTreeConfig& config)
 {
@@ -223,7 +223,7 @@ ConfiguredFallenTreeFeature::ConfiguredFallenTreeFeature(
 bool ConfiguredFallenTreeFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     // MC FallenTreeFeature.place 直接调 placeFallenTree 并 return true。

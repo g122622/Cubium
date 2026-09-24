@@ -78,7 +78,7 @@ public:
     {}
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32,
         i32,
         const StructureBoundingBox& chunkBounds,
@@ -185,7 +185,7 @@ jigsaw::PoolAliasBindings TrialChambersStructure::createPoolAliases()
 }
 
 bool TrialChambersStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -202,7 +202,7 @@ bool TrialChambersStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> TrialChambersStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

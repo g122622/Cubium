@@ -69,7 +69,7 @@ public:
     DamageTestWorld() = default;
 
     // 暴露随机数生成器用于验证
-    math::Random& testRandom() { return m_random; }
+    math::IRandom& testRandom() { return m_random; }
 };
 
 // ============================================================================

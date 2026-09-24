@@ -123,7 +123,7 @@ constexpr i32 UNCLUSTERED_SIZE = 15;
 // ============================================================================
 
 bool BasaltColumnFeature::place(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     i32 seaLevel,
     const BasaltColumnFeatureConfig& config)
@@ -219,7 +219,7 @@ ConfiguredBasaltColumnFeature::ConfiguredBasaltColumnFeature(
 bool ConfiguredBasaltColumnFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

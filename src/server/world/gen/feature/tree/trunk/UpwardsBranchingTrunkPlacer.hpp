@@ -60,7 +60,7 @@ public:
         const BlockTag* canGrowThrough);
 
     std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
@@ -72,7 +72,7 @@ public:
 private:
     /// MC: placeLog —— 可放置则放置并返回 true，否则 false。
     bool placeLog(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         std::set<BlockPos>& trunkBlocks,
         const BlockState* trunkBlock);
@@ -82,7 +82,7 @@ private:
 
     /// MC: placeBranch —— 从 (trunkX,trunkZ,branchStartY) 沿 direction 水平延伸分支
     void placeBranch(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         std::set<BlockPos>& trunkBlocks,
         const BlockState* trunkBlock,

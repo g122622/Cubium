@@ -34,6 +34,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
@@ -330,14 +331,19 @@ PlacementSettings& PlacementSettings::setKeepLiquids(bool keep)
     return *this;
 }
 
-math::Random PlacementSettings::getRandom(const BlockPos& pos) const
+std::pair<math::IRandom*, std::unique_ptr<math::IRandom>> PlacementSettings::getRandom(const BlockPos* pos) const
 {
-    // 如果设置了预设随机数，则返回副本；否则基于位置种子创建
-    if (m_random) {
-        return *m_random;
+    // 原版 StructurePlaceSettings.getRandom：
+    //   if (this.random != null) return this.random;
+    //   return pos == null ? RandomSource.create(Util.getMillis()) : RandomSource.create(Mth.getSeed(pos));
+    // RandomSource.create(long) 即 new LegacyRandomSource(seed)，故未设预设时用 LegacyRandomSource。
+    if (m_random != nullptr) {
+        return {m_random, nullptr}; // 借用，不转移所有权
     }
-    // 使用位置种子创建确定性随机数
-    return math::Random(math::getPositionRandom(pos.x, pos.y, pos.z));
+    // TODO: pos == nullptr 分支原版用当前时间做种子（非确定性）。项目内暂无调用方，
+    //       若将来出现该调用，须在此处复刻 Util.getMillis() 语义。
+    MC_ASSERT_RELEASE(pos != nullptr);
+    return {nullptr, std::make_unique<math::JavaLegacyRandom>(math::getPositionRandom(pos->x, pos->y, pos->z))};
 }
 
 PlacementSettings PlacementSettings::copy() const
@@ -521,7 +527,7 @@ const Palette* Template::getPalette(size_t index) const
     return nullptr;
 }
 
-const Palette* Template::selectPalette(math::Random& rng) const
+const Palette* Template::selectPalette(math::IRandom& rng) const
 {
     if (m_palettes.empty()) {
         return nullptr;
@@ -593,7 +599,7 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
 }
 
 bool Template::place(
-    IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, i32 flags) const
+    IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
 {
     // 选择调色板
     const Palette* selectedPalette = selectPalette(rng);
@@ -797,7 +803,7 @@ bool Template::place(
 }
 
 bool Template::placeInWorld(
-    IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, i32 flags) const
+    IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
 {
     // 选择调色板
     const Palette* selectedPalette = selectPalette(rng);
@@ -1716,7 +1722,7 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::IRandom& rng)
 {
     // 50% 概率不替换
     if (rng.nextFloat() >= PROBABILITY_OF_REPLACING_FULL_BLOCK) {
@@ -1737,7 +1743,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::Random& r
     return _getRandomBlock(rng, nonMossyOptions, mossyOptions);
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state, math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state, math::IRandom& rng)
 {
     // 50% 概率不替换
     if (rng.nextFloat() >= PROBABILITY_OF_REPLACING_STAIRS) {
@@ -1758,7 +1764,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state
     return _getRandomBlock(rng, nonMossyOptions, mossyOptions);
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, math::IRandom& rng)
 {
     // mossiness 概率替换为苔藓石砖台阶，保留原属性
     if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
@@ -1767,7 +1773,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, 
     return nullptr;
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, math::IRandom& rng)
 {
     // mossiness 概率替换为苔藓石砖墙，保留原属性
     if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
@@ -1776,7 +1782,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, 
     return nullptr;
 }
 
-const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::Random& rng)
+const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::IRandom& rng)
 {
     // 固定 15% 概率替换为哭泣黑曜石
     if (rng.nextFloat() < PROBABILITY_OF_REPLACING_OBSIDIAN && VanillaBlocks::CRYING_OBSIDIAN) {
@@ -1785,7 +1791,7 @@ const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::Random& rng)
     return nullptr;
 }
 
-const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::Random& rng, const Block& stairsBlock)
+const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::IRandom& rng, const Block& stairsBlock)
 {
     // 生成随机朝向的楼梯状态：随机水平朝向 + 随机上半/下半
     const BlockState& defaultState = stairsBlock.defaultState();
@@ -1810,7 +1816,7 @@ const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::Random& rng, c
 }
 
 const BlockState* BlockAgeProcessor::_getRandomBlock(
-    math::Random& rng, const BlockState* const nonMossy[], const BlockState* const mossy[])
+    math::IRandom& rng, const BlockState* const nonMossy[], const BlockState* const mossy[])
 {
     // mossiness 概率选择 mossy 组，否则选择 non-mossy 组
     if (rng.nextFloat() < m_mossiness) {
@@ -1820,7 +1826,7 @@ const BlockState* BlockAgeProcessor::_getRandomBlock(
 }
 
 const BlockState* BlockAgeProcessor::_pickRandomNonNull(
-    math::Random& rng, const BlockState* const options[], size_t count)
+    math::IRandom& rng, const BlockState* const options[], size_t count)
 {
     // 从选项数组中随机选取一个非空元素
     size_t nonNullCount = 0;

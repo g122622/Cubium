@@ -187,7 +187,7 @@ void AnimalEntity::resetInLove()
 i32 AnimalEntity::getExperiencePoints() const
 {
     // 返回 1-3 经验
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     return 1 + rng.nextInt(3);
 }
 
@@ -264,7 +264,7 @@ void AnimalEntity::spawnHeartParticles()
         return;
     }
 
-    mc::math::Random& rng = getRandom();
+    mc::math::IRandom& rng = getRandom();
     f32 ox = (rng.nextFloat() * 2.0f - 1.0f) * width();
     f32 oy = height() + 0.5f + rng.nextFloat() * 0.5f;
     f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * width();

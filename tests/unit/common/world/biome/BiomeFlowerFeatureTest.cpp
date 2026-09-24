@@ -105,7 +105,7 @@ public:
         , m_stage(stage)
     {}
 
-    bool place(WorldGenRegion&, ChunkPrimer&, IChunkGenerator&, math::Random&, const BlockPos&) const override
+    bool place(WorldGenRegion&, ChunkPrimer&, IChunkGenerator&, math::IRandom&, const BlockPos&) const override
     {
         return false;
     }

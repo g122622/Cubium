@@ -184,7 +184,7 @@ public:
      * @param entityId 实体类型 ID（如 "minecraft:silverfish"）
      * @param rng 随机数生成器（用于设置初始延迟）
      */
-    void setEntityId(const ResourceLocation& entityId, math::Random& rng);
+    void setEntityId(const ResourceLocation& entityId, math::IRandom& rng);
 
     /**
      * @brief 添加生成实体候选
@@ -284,7 +284,7 @@ private:
      * @brief 重置生成延迟
      * @param rng 随机数生成器
      */
-    void delay(math::Random& rng);
+    void delay(math::IRandom& rng);
 
     /**
      * @brief 尝试生成实体
@@ -312,7 +312,7 @@ private:
      * @brief 从 spawnPotentials 中随机选择下一个实体类型
      * @param rng 随机数生成器
      */
-    void selectNextEntity(math::Random& rng);
+    void selectNextEntity(math::IRandom& rng);
 
     /**
      * @brief 检查生成位置是否满足光照和生成规则

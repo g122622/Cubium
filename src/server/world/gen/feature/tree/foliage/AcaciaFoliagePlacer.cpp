@@ -38,13 +38,13 @@ AcaciaFoliagePlacer::AcaciaFoliagePlacer(const FeatureSpread& radius, const Feat
     : FoliagePlacer(radius, offset)
 {}
 
-i32 AcaciaFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
+i32 AcaciaFoliagePlacer::getFoliageHeight(math::IRandom& /*random*/, i32 /*trunkHeight*/) const
 {
     return 0;
 }
 
 void AcaciaFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -75,7 +75,7 @@ void AcaciaFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 }
 
 void AcaciaFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const FoliagePosition& foliagePos,
     i32 radius,
     i32 yOffset,
@@ -95,7 +95,7 @@ void AcaciaFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     }
 }
 
-bool AcaciaFoliagePlacer::shouldSkip(math::Random& /*random*/, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
+bool AcaciaFoliagePlacer::shouldSkip(math::IRandom& /*random*/, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
     if (dy == 0) {
         // 第一层（dy=0时，实际是y=-1-foliageHeight层）

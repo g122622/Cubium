@@ -422,7 +422,7 @@ void BreezeEntity::die(DamageSource& source)
     // 计算掉落数量
     // 基础: 1-2 个狂风杖
     // 抢夺加成: 每级额外 1-2 个
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     i32 count = 1 + rng.nextInt(2); // 基础 1-2
     for (i32 i = 0; i < lootingLevel; ++i) {
         count += 1 + rng.nextInt(2); // 每级额外 1-2

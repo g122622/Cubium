@@ -57,7 +57,7 @@ UpwardsBranchingTrunkPlacer::UpwardsBranchingTrunkPlacer(i32 baseHeight,
 namespace {
 
 /// MC: Direction.Plane.HORIZONTAL.getRandomDirection(random)
-Direction randomHorizontalDirection(math::Random& random)
+Direction randomHorizontalDirection(math::IRandom& random)
 {
     const auto dirs = Directions::horizontal();
     return dirs[static_cast<size_t>(random.nextInt(4))];
@@ -66,7 +66,7 @@ Direction randomHorizontalDirection(math::Random& random)
 } // namespace
 
 bool UpwardsBranchingTrunkPlacer::placeLog(WorldGenRegion& world,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     const BlockPos& pos,
     std::set<BlockPos>& trunkBlocks,
     const BlockState* trunkBlock)
@@ -95,7 +95,7 @@ bool UpwardsBranchingTrunkPlacer::validTreePos(WorldGenRegion& world, const Bloc
 }
 
 void UpwardsBranchingTrunkPlacer::placeBranch(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     std::set<BlockPos>& trunkBlocks,
     const BlockState* trunkBlock,
@@ -139,7 +139,7 @@ void UpwardsBranchingTrunkPlacer::placeBranch(WorldGenRegion& world,
 }
 
 std::vector<FoliagePosition> UpwardsBranchingTrunkPlacer::placeTrunk(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,

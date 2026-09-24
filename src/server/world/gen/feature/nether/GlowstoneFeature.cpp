@@ -40,7 +40,7 @@ namespace mc {
 // ============================================================================
 
 bool GlowstoneFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const GlowstoneFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const GlowstoneFeatureConfig& config)
 {
     (void)config;
 
@@ -126,7 +126,7 @@ ConfiguredGlowstoneFeature::ConfiguredGlowstoneFeature(
 bool ConfiguredGlowstoneFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

@@ -62,7 +62,7 @@ public:
         std::unique_ptr<world::gen::valueprovider::IntProvider> foliageHeight,
         i32 leafPlacementAttempts);
 
-    [[nodiscard]] i32 getFoliageHeight(math::Random& random, i32 trunkHeight) const override;
+    [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
 
     [[nodiscard]] const char* name() const override { return "random_spread"; }
 
@@ -75,7 +75,7 @@ public:
 
 protected:
     void placeFoliageInternal(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
         i32 foliageHeight,
@@ -86,7 +86,7 @@ protected:
 
     /// 本放置器不走 layer 路径，shouldSkip 始终返回 false
     [[nodiscard]] bool shouldSkip(
-        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
+        math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     std::unique_ptr<world::gen::valueprovider::IntProvider> m_foliageHeight;

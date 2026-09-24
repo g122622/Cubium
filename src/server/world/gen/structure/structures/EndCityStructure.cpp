@@ -106,7 +106,8 @@ const biome::BiomeTag* EndCityStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_END_CITY();
 }
 
-bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+bool EndCityStructure::canGenerate(
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -121,7 +122,7 @@ bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
 }
 
 std::unique_ptr<StructureStart> EndCityStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -215,7 +216,7 @@ CityTemplate::CityTemplate(
 }
 
 void CityTemplate::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -355,7 +356,7 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
     CityTemplate& parent,
     const BlockPos& offset,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     // 最大深度为 8
     if (depth > 8) {
@@ -414,7 +415,7 @@ void startHouseTower(feature::template_::TemplateManager& templateManager,
     const BlockPos& startPos,
     feature::template_::Rotation rotation,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     static HouseTowerGenerator houseTowerGen;
     static TowerGenerator towerGen;
@@ -451,7 +452,7 @@ bool HouseTowerGenerator::generate(feature::template_::TemplateManager& template
     CityTemplate& parent,
     const BlockPos& offset,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     if (depth > 8) {
         return false;
@@ -505,7 +506,7 @@ bool TowerGenerator::generate(feature::template_::TemplateManager& templateManag
     CityTemplate& parent,
     const BlockPos& offset,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     feature::template_::Rotation rotation = parent.rotation();
 
@@ -570,7 +571,7 @@ bool TowerBridgeGenerator::generate(feature::template_::TemplateManager& templat
     CityTemplate& parent,
     const BlockPos& offset,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     feature::template_::Rotation rotation = parent.rotation();
 
@@ -644,7 +645,7 @@ bool FatTowerGenerator::generate(feature::template_::TemplateManager& templateMa
     CityTemplate& parent,
     const BlockPos& offset,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     feature::template_::Rotation rotation = parent.rotation();
 

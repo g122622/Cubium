@@ -124,7 +124,7 @@ public:
     static bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const VegetationPatchConfig& config);
 
@@ -133,7 +133,7 @@ public:
      * @return 成功放置的地面位置集合
      */
     static std::vector<BlockPos> placeGroundPatch(
-        WorldGenRegion& region, math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config);
+        WorldGenRegion& region, math::IRandom& random, const BlockPos& pos, const VegetationPatchConfig& config);
 
 private:
     /**
@@ -141,7 +141,7 @@ private:
      * @return 是否放置了至少一个方块
      */
     static bool placeGround(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const VegetationPatchConfig& config,
         Direction surfaceDir,
@@ -153,7 +153,7 @@ private:
     static void distributeVegetation(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const std::vector<BlockPos>& groundPositions,
         const VegetationPatchConfig& config);
 };
@@ -170,7 +170,7 @@ public:
     static bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const VegetationPatchConfig& config);
 
@@ -193,7 +193,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }
@@ -215,7 +215,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }

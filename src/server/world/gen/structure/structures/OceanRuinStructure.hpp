@@ -81,7 +81,7 @@ public:
     ~OceanRuinPiece() override = default;
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -134,10 +134,10 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 设置模板管理器
@@ -176,7 +176,7 @@ private:
         const BlockPos& pos,
         Rotation rotation,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng,
+        math::IRandom& rng,
         const OceanRuinConfig& config,
         bool isLarge,
         f32 integrity) const;
@@ -191,7 +191,7 @@ private:
      * @param pieces 输出片段列表
      */
     void generateClusterPieces(feature::template_::TemplateManager& templateManager,
-        math::Random& rng,
+        math::IRandom& rng,
         Rotation rotation,
         const BlockPos& pos,
         const OceanRuinConfig& config,
@@ -204,7 +204,7 @@ private:
      * @param z Z 坐标
      * @return 候选位置列表
      */
-    [[nodiscard]] std::vector<BlockPos> getCandidatePositions(math::Random& rng, i32 x, i32 z) const;
+    [[nodiscard]] std::vector<BlockPos> getCandidatePositions(math::IRandom& rng, i32 x, i32 z) const;
 
     [[nodiscard]] bool _isWarmBiome(BiomeId biomeId) const noexcept;
 

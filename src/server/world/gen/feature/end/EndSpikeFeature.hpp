@@ -117,7 +117,7 @@ public:
      * @return 是否成功放置
      */
     bool place(
-        WorldGenRegion& world, math::Random& random, i32 chunkX, i32 chunkZ, const EndSpikeFeatureConfig& config);
+        WorldGenRegion& world, math::IRandom& random, i32 chunkX, i32 chunkZ, const EndSpikeFeatureConfig& config);
 
     /**
      * @brief 在运行时放置单根黑曜石柱（含末影水晶）
@@ -136,7 +136,7 @@ public:
      * @param config 配置（使用 crystalBeamTarget / crystalInvulnerable）
      * @param spike 要放置的柱子
      */
-    void placeSpike(IWorld& world, math::Random& random, const EndSpikeFeatureConfig& config, const EndSpike& spike);
+    void placeSpike(IWorld& world, math::IRandom& random, const EndSpikeFeatureConfig& config, const EndSpike& spike);
 
 private:
     /**
@@ -147,7 +147,7 @@ private:
     /**
      * @brief 生成单根黑曜石柱（世界生成阶段，不含末影水晶）
      */
-    void _generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike);
+    void _generateSpike(WorldGenRegion& world, math::IRandom& random, const EndSpike& spike);
 
     /**
      * @brief 生成铁栏杆笼子
@@ -165,7 +165,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

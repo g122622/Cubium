@@ -49,12 +49,12 @@ public:
     /**
      * @brief 生成随机整数
      */
-    [[nodiscard]] virtual i32 generateInt(Random& random) const = 0;
+    [[nodiscard]] virtual i32 generateInt(math::IRandom& random) const = 0;
 
     /**
      * @brief 生成随机浮点数
      */
-    [[nodiscard]] virtual f32 generateFloat(Random& random) const = 0;
+    [[nodiscard]] virtual f32 generateFloat(math::IRandom& random) const = 0;
 
     /**
      * @brief 是否为固定值
@@ -106,7 +106,7 @@ public:
     /**
      * @brief 生成随机浮点数
      */
-    [[nodiscard]] f32 generateFloat(Random& random) const override
+    [[nodiscard]] f32 generateFloat(math::IRandom& random) const override
     {
         if (m_min == m_max) {
             return m_min;
@@ -117,7 +117,7 @@ public:
     /**
      * @brief 生成随机整数
      */
-    [[nodiscard]] i32 generateInt(Random& random) const override
+    [[nodiscard]] i32 generateInt(math::IRandom& random) const override
     {
         if (m_min == m_max) {
             return static_cast<i32>(m_min);
@@ -167,12 +167,15 @@ public:
      *
      * 使用二项分布：进行n次试验，每次有p的概率成功，返回成功的次数。
      */
-    [[nodiscard]] i32 generateInt(Random& random) const override;
+    [[nodiscard]] i32 generateInt(math::IRandom& random) const override;
 
     /**
      * @brief 生成随机浮点数
      */
-    [[nodiscard]] f32 generateFloat(Random& random) const override { return static_cast<f32>(generateInt(random)); }
+    [[nodiscard]] f32 generateFloat(math::IRandom& random) const override
+    {
+        return static_cast<f32>(generateInt(random));
+    }
 
     /**
      * @brief 是否为固定值
@@ -214,12 +217,12 @@ public:
     /**
      * @brief 生成随机整数（固定值）
      */
-    [[nodiscard]] i32 generateInt(Random& /*random*/) const override { return m_value; }
+    [[nodiscard]] i32 generateInt(math::IRandom& /*random*/) const override { return m_value; }
 
     /**
      * @brief 生成随机浮点数（固定值）
      */
-    [[nodiscard]] f32 generateFloat(Random& /*random*/) const override { return static_cast<f32>(m_value); }
+    [[nodiscard]] f32 generateFloat(math::IRandom& /*random*/) const override { return static_cast<f32>(m_value); }
 
     /**
      * @brief 是否为固定值

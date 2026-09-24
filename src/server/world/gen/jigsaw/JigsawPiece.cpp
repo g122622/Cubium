@@ -44,7 +44,7 @@ using feature::template_::Template;
 using feature::template_::TemplateJigsawBlockInfo;
 using feature::template_::TemplateManager;
 
-std::vector<JigsawJoint> JigsawPiece::getShuffledJoints(math::Random& rng) const
+std::vector<JigsawJoint> JigsawPiece::getShuffledJoints(math::IRandom& rng) const
 {
     std::vector<JigsawJoint> shuffled = m_joints;
     rng.shuffle(shuffled);

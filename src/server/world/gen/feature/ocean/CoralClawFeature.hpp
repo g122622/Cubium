@@ -39,11 +39,11 @@ namespace mc {
  */
 class CoralClawFeature {
 public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config);
+    bool place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const CoralFeatureConfig& config);
 
 private:
     void _generateClaw(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         blocks::CoralColor color,
         bool isDead,

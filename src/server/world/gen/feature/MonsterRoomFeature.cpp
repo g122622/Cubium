@@ -58,7 +58,7 @@ const ResourceLocation SIMPLE_DUNGEON_LOOT("minecraft", "chests/simple_dungeon")
 
 } // namespace
 
-bool MonsterRoomFeature::place(WorldGenRegion& region, math::Random& random, i32 x, i32 y, i32 z)
+bool MonsterRoomFeature::place(WorldGenRegion& region, math::IRandom& random, i32 x, i32 y, i32 z)
 {
     // i = 3 (未使用), j = nextInt(2)+2, k1 = nextInt(2)+2
     const i32 j = random.nextInt(2) + 2;
@@ -205,7 +205,7 @@ bool MonsterRoomFeature::safeSetBlock(WorldGenRegion& region, const BlockPos& po
     return region.setBlockState(pos.x, pos.y, pos.z, state);
 }
 
-ResourceLocation MonsterRoomFeature::randomEntityId(math::Random& random)
+ResourceLocation MonsterRoomFeature::randomEntityId(math::IRandom& random)
 {
     // nextInt(MOBS.size()) 取下标
     const i32 idx = random.nextInt(static_cast<i32>(MOBS.size()));
@@ -217,7 +217,7 @@ ConfiguredMonsterRoomFeature::ConfiguredMonsterRoomFeature() = default;
 bool ConfiguredMonsterRoomFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, random, pos.x, pos.y, pos.z);

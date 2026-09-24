@@ -212,6 +212,11 @@ public:
 
     [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
 
+    [[nodiscard]] math::PositionalRandomFactory forkPositional() override
+    {
+        return math::PositionalRandomFactory(static_cast<u64>(nextValue()));
+    }
+
 private:
     [[nodiscard]] i32 nextValue()
     {

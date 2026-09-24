@@ -207,7 +207,7 @@ public:
      * @param advanceWidth 目标前进宽度（非粗体，取 ceil）
      * @return 随机字形指针，如果没有匹配宽度的字形则返回 nullptr
      */
-    [[nodiscard]] const Glyph* getRandomGlyph(math::Random& random, i32 advanceWidth);
+    [[nodiscard]] const Glyph* getRandomGlyph(math::IRandom& random, i32 advanceWidth);
 
     /**
      * @brief 构建宽度索引（按前进宽度索引字形码点）

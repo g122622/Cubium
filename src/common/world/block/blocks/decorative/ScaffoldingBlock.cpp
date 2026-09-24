@@ -205,7 +205,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
                 ItemStack stack(*blockItem, 1);
 
                 // 在方块中心位置生成物品实体
-                math::Random& rng = world.getRandom();
+                math::IRandom& rng = world.getRandom();
                 ItemDropHelper::spawnItemEntity(&world,
                     stack,
                     static_cast<f64>(pos.x) + 0.5,

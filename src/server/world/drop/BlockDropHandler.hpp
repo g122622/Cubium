@@ -191,13 +191,13 @@ public:
      * @param rng 随机数生成器
      * @return 生成的经验球数量
      */
-    static i32 spawnOreExperience(server::ServerWorld& world, const BlockPos& pos, OreType oreType, math::Random& rng);
+    static i32 spawnOreExperience(server::ServerWorld& world, const BlockPos& pos, OreType oreType, math::IRandom& rng);
 
     static i32 spawnOreExperience(EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         OreType oreType,
-        math::Random& rng);
+        math::IRandom& rng);
 
     /**
      * @brief 处理方块破坏的经验掉落
@@ -217,14 +217,14 @@ public:
         const BlockPos& pos,
         const BlockState& state,
         const ItemStack* tool,
-        math::Random& rng);
+        math::IRandom& rng);
 
     static i32 handleBlockBreakExperience(EntityManager& entityManager,
         PhysicsEngine* physicsEngine,
         const BlockPos& pos,
         const BlockState& state,
         const ItemStack* tool,
-        math::Random& rng);
+        math::IRandom& rng);
 
 private:
     /**
@@ -243,7 +243,7 @@ private:
         const BlockState& state,
         const Player* player,
         const ItemStack* tool,
-        math::Random& random);
+        math::IRandom& random);
 
     /**
      * @brief 检查工具是否有精准采集附魔

@@ -45,7 +45,7 @@ namespace mc {
 // 随机速度计算
 // ============================================================================
 
-Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng)
+Vector3 ItemDropHelper::getBlockDropVelocity(math::IRandom& rng)
 {
     // 速度范围：
     // X: (random - 0.5) * 0.1 + random * 0.2 => [-0.05, 0.25]
@@ -57,7 +57,7 @@ Vector3 ItemDropHelper::getBlockDropVelocity(math::Random& rng)
     return Vector3(vx, vy, vz);
 }
 
-Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng)
+Vector3 ItemDropHelper::getSimpleDropVelocity(math::IRandom& rng)
 {
     // 速度范围：
     // X: random * 0.2 - 0.1 => [-0.1, 0.1]
@@ -69,7 +69,7 @@ Vector3 ItemDropHelper::getSimpleDropVelocity(math::Random& rng)
     return Vector3(vx, vy, vz);
 }
 
-Vector3 ItemDropHelper::getPlayerDropVelocity(math::Random& rng, bool dropAround, f32 yaw, f32 pitch)
+Vector3 ItemDropHelper::getPlayerDropVelocity(math::IRandom& rng, bool dropAround, f32 yaw, f32 pitch)
 {
     if (dropAround) {
         // 向四周散射
@@ -103,7 +103,7 @@ Vector3 ItemDropHelper::getPlayerDropVelocity(math::Random& rng, bool dropAround
     }
 }
 
-Vector3 ItemDropHelper::getGaussianVelocity(math::Random& rng, f32 baseVelocity, f32 inaccuracy)
+Vector3 ItemDropHelper::getGaussianVelocity(math::IRandom& rng, f32 baseVelocity, f32 inaccuracy)
 {
     constexpr f32 GAUSSIAN_FACTOR = 0.007499999832361937f;
 
@@ -123,7 +123,7 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
     f64 x,
     f64 y,
     f64 z,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 pickupDelay,
     const std::string& ownerUuid)
 {
@@ -193,7 +193,7 @@ ItemEntity* ItemDropHelper::spawnItemEntity(IWorld* world,
 }
 
 ItemEntity* ItemDropHelper::spawnItemAtEntity(
-    Entity* entity, const ItemStack& stack, f32 offsetY, math::Random& rng, i32 pickupDelay)
+    Entity* entity, const ItemStack& stack, f32 offsetY, math::IRandom& rng, i32 pickupDelay)
 {
     if (entity == nullptr || entity->world() == nullptr || stack.isEmpty()) {
         return nullptr;
@@ -205,7 +205,7 @@ ItemEntity* ItemDropHelper::spawnItemAtEntity(
 std::vector<EntityInstanceId> ItemDropHelper::spawnItemEntities(IWorld* world,
     const BlockPos& pos,
     const std::vector<ItemStack>& drops,
-    math::Random& rng,
+    math::IRandom& rng,
     const std::string& throwerUuid)
 {
     std::vector<EntityInstanceId> spawnedEntities;

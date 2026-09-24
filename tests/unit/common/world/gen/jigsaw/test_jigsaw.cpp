@@ -491,7 +491,7 @@ public:
     void place(IWorldWriter& /*world*/,
         const PlacedPiece& /*placed*/,
         mc::world::gen::feature::template_::TemplateManager& /*templateManager*/,
-        math::Random& /*rng*/,
+        math::IRandom& /*rng*/,
         const mc::world::gen::structure::StructureBoundingBox* /*bounds*/,
         mc::world::chunk::ChunkPrimer* /*chunk*/ = nullptr,
         IChunkGenerator* /*generator*/ = nullptr) override

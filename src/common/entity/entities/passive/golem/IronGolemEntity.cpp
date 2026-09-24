@@ -195,7 +195,7 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
     // 注意：(int)f 是截断取整而非向上取整，但对于整数 ATTACK_DAMAGE=7.0 无差异
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE));
 
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     if (static_cast<i32>(damage) > 0) {
         damage = damage / 2.0f + static_cast<f32>(rng.nextInt(static_cast<i32>(damage)));
     }
@@ -283,7 +283,7 @@ ActionResultType IronGolemEntity::interactMob(Player& player, Hand hand)
     // 治疗生效：播放 IRON_GOLEM_REPAIR 音效，pitch=1.0±0.2（对齐 Java f1）。
     // playSound 在客户端/服务端均可，但 heal 必须服务端生效（heal 内部已处理）。
     if (!isSilent()) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         const f32 pitch = 1.0f + (rng.nextFloat() - rng.nextFloat()) * 0.2f;
         playSound(SoundEvents::ENTITY_IRON_GOLEM_REPAIR, 1.0f, pitch);
     }

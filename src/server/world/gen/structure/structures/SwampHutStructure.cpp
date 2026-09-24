@@ -67,7 +67,7 @@ const biome::BiomeTag* SwampHutStructure::defaultBiomeTag() const
 }
 
 bool SwampHutStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::Random& /*rng*/, i32 chunkX, i32 chunkZ)
+    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ)
 {
     // 检查区块中心位置的生物群系是否为沼泽
     const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
@@ -75,7 +75,7 @@ bool SwampHutStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> SwampHutStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -134,7 +134,7 @@ SwampHutPiece::SwampHutPiece(const BlockPos& pos, feature::template_::Rotation r
 }
 
 void SwampHutPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -153,7 +153,7 @@ void SwampHutPiece::generate(IWorldWriter& world,
     _generateHut(world, rng, chunkBounds);
 }
 
-void SwampHutPiece::_generateHut(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateHut(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds)
 {
     // 生成支柱（支撑小屋）
     _generatePillars(world, bounds);
@@ -285,7 +285,7 @@ void SwampHutPiece::_generateRoof(IWorldWriter& world, const StructureBoundingBo
     }
 }
 
-void SwampHutPiece::_generateInterior(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
+void SwampHutPiece::_generateInterior(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds)
 {
     MC_UNUSED(rng);
 

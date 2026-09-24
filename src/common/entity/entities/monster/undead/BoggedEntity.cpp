@@ -113,7 +113,7 @@ std::vector<ItemStack> BoggedEntity::shear(Player* /*player*/)
 
     // 掉落 2 个随机颜色蘑菇（红/棕各 50%，对齐 wiki"掉落 2 个随机颜色的蘑菇"，
     // 等价原版从 BOGGED_SHEAR 战利品表抽取）。
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     for (i32 i = 0; i < SHEAR_MUSHROOM_COUNT; ++i) {
         // 每个蘑菇独立 50% 概率红/棕（对齐战利品表随机抽取）。
         const Item* mushroom = rng.nextBoolean() ? Items::RED_MUSHROOM : Items::BROWN_MUSHROOM;

@@ -90,7 +90,7 @@ public:
         i32 radius,
         i32 step,
         const std::function<bool(BiomeId)>& predicate,
-        math::Random& random,
+        math::IRandom& random,
         bool stopOnFirst) const
     {
         (void)centerY;

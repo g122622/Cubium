@@ -43,7 +43,7 @@ ConfiguredNetherForestVegetationFeature::ConfiguredNetherForestVegetationFeature
 bool ConfiguredNetherForestVegetationFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     if (!m_config || m_config->stateProvider == nullptr || m_config->spreadWidth <= 0 || m_config->spreadHeight <= 0) {

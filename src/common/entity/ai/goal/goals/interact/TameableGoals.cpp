@@ -168,7 +168,7 @@ bool FollowOwnerGoal::_teleportToOwner()
         return false;
     }
 
-    math::Random& random = worldPtr->getRandom();
+    math::IRandom& random = worldPtr->getRandom();
 
     // 在主人周围尝试传送位置
     for (i32 attempt = 0; attempt < 10; ++attempt) {

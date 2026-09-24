@@ -112,7 +112,7 @@ void NetherFossilPiece::_loadTemplate()
 }
 
 void NetherFossilPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -161,7 +161,7 @@ const biome::BiomeTag* NetherFossilStructure::defaultBiomeTag() const
 }
 
 bool NetherFossilStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -176,7 +176,7 @@ bool NetherFossilStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> NetherFossilStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(generator);
 

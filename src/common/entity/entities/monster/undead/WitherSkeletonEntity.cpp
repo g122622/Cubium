@@ -77,7 +77,7 @@ void WitherSkeletonEntity::registerAttributes()
 }
 
 void WitherSkeletonEntity::populateDefaultEquipmentSlots(
-    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+    math::IRandom& random, const entity::combat::DifficultyInstance& difficulty)
 {
     // 凋灵骷髅主手持石剑（近战武器），不继承基类给弓的逻辑（凋灵骷髅用近战非远程）。
     // 直接调祖父 MonsterEntity 填充护甲，跳过 AbstractSkeletonEntity 的弓。

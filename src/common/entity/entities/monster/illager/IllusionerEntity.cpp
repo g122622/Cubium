@@ -134,7 +134,7 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
         inaccuracy);
 
     // 播放射箭音效
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
     playSound(SoundEvents::ENTITY_SKELETON_SHOOT, 1.0f, pitch);
 
@@ -198,7 +198,7 @@ void IllusionerEntity::_updateIllusionLogic()
     if (hurtTime() == 1 || static_cast<i32>(ticksExisted()) % 1200 == 0) {
         m_clientSideIllusionTicks = ILLUSION_TRANSITION_TICKS;
 
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
 
         // 保存旧偏移作为过渡起点，生成新的目标偏移
         for (i32 i = 0; i < NUM_ILLUSIONS; ++i) {

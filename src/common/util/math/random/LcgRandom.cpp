@@ -23,6 +23,7 @@
 
 #include "LcgRandom.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 
 namespace mc::math {
 
@@ -50,6 +51,12 @@ u64 LcgRandom::nextU64()
     // X_{n+1} = (a * X_n + c) mod 2^64
     m_state = A * m_state + C;
     return m_state;
+}
+
+PositionalRandomFactory LcgRandom::forkPositional()
+{
+    // 非 MC 原生算法，按 Xoroshiro 的形状派生 128 位种子（两次 nextLong）。
+    return PositionalRandomFactory(static_cast<u64>(nextLong()), static_cast<u64>(nextLong()));
 }
 
 } // namespace mc::math

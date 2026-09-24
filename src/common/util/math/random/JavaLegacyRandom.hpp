@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 
 namespace mc::math {
 
@@ -62,12 +63,20 @@ public:
     using IRandom::nextInt;
 
     [[nodiscard]] i32 nextInt() override;
+
     [[nodiscard]] i32 nextInt(i32 bound) override;
     [[nodiscard]] bool nextBoolean() override;
     [[nodiscard]] f32 nextFloat() override;
     [[nodiscard]] f64 nextDouble() override;
     [[nodiscard]] i64 nextLong() override;
     void skip(u64 count) override;
+
+    /**
+     * @brief 派生位置随机工厂（对应 Java LegacyRandomSource.forkPositional）
+     *
+     * 取一次 nextLong() 作 64 位工厂种子，产出 Legacy flavor 的工厂。
+     */
+    [[nodiscard]] PositionalRandomFactory forkPositional() override;
 
     // === Java LegacyRandom 专用方法 ===
 
@@ -77,6 +86,16 @@ public:
      * @return 随机整数的低 bits 位
      */
     [[nodiscard]] i32 next(i32 bits);
+
+    /**
+     * @brief 抽取最高的 bits 位（等价于 Java BitRandomSource.next(bits)）
+     *
+     * LegacyRandomSource 的 next(int) 只推进**一次** LCG，与取 nextU64()（推进两次）不同，
+     * 故必须覆写——否则作为 WorldgenRandom 的内层时，后续整个随机序列会错位。
+     * @param bits 位数 (1-32)
+     * @return 抽取结果
+     */
+    [[nodiscard]] i32 nextBits(i32 bits) override { return next(bits); }
 
     /**
      * @brief 推进指定步数（等价于 Java RandomSource.consumeCount(count)）

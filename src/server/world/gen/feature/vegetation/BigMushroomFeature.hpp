@@ -72,7 +72,7 @@ public:
      * @return 是否成功放置
      */
     bool place(
-        WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BigMushroomFeatureConfig& config);
+        WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const BigMushroomFeatureConfig& config);
 
 protected:
     /**
@@ -89,7 +89,7 @@ protected:
      * @brief 生成蘑菇盖
      */
     virtual void generateCap(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         i32 height,
         const BigMushroomFeatureConfig& config) = 0;
@@ -98,7 +98,7 @@ protected:
      * @brief 生成蘑菇柄
      */
     void generateStem(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const BigMushroomFeatureConfig& config,
         i32 height);
@@ -106,7 +106,7 @@ protected:
     /**
      * @brief 计算蘑菇高度
      */
-    [[nodiscard]] i32 calculateHeight(math::Random& random) const;
+    [[nodiscard]] i32 calculateHeight(math::IRandom& random) const;
 
     /**
      * @brief 检查是否可以放置蘑菇
@@ -128,7 +128,7 @@ protected:
     [[nodiscard]] i32 getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const override;
 
     void generateCap(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         i32 height,
         const BigMushroomFeatureConfig& config) override;
@@ -147,7 +147,7 @@ protected:
     [[nodiscard]] i32 getCapRadius(i32 baseRadius, i32 totalHeight, i32 capRadius, i32 currentHeight) const override;
 
     void generateCap(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         i32 height,
         const BigMushroomFeatureConfig& config) override;
@@ -164,7 +164,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

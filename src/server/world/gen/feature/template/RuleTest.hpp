@@ -62,7 +62,7 @@ enum class RuleTestType : u32 {
 // 方块规则测试
 //
 // 结构处理器的方块谓词统一复用 mc::RuleTest（引用风格 test(const BlockState&,
-// Random&)），不再在此重复定义。下列别名供 template_ 命名空间内代码直接引用，
+// math::IRandom&)），不再在此重复定义。下列别名供 template_ 命名空间内代码直接引用，
 // 与 mc:: 同名（mc::AlwaysTrueRuleTest / mc::BlockMatchRuleTest 等）。
 // ============================================================================
 
@@ -90,7 +90,7 @@ public:
      * @return 是否匹配
      */
     [[nodiscard]] virtual bool test(
-        const BlockPos& originalPos, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const = 0;
+        const BlockPos& originalPos, const BlockPos& worldPos, const BlockPos& seedPos, math::IRandom& rng) const = 0;
 
     /**
      * @brief 获取测试类型ID
@@ -113,7 +113,7 @@ public:
     [[nodiscard]] bool test(const BlockPos& /*originalPos*/,
         const BlockPos& /*worldPos*/,
         const BlockPos& /*seedPos*/,
-        math::Random& /*rng*/) const override
+        math::IRandom& /*rng*/) const override
     {
         return true;
     }
@@ -144,7 +144,7 @@ public:
     [[nodiscard]] bool test(const BlockPos& originalPos,
         const BlockPos& worldPos,
         const BlockPos& seedPos,
-        math::Random& rng) const override;
+        math::IRandom& rng) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::LinearPos); }
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
@@ -179,7 +179,7 @@ public:
     [[nodiscard]] bool test(const BlockPos& originalPos,
         const BlockPos& worldPos,
         const BlockPos& seedPos,
-        math::Random& rng) const override;
+        math::IRandom& rng) const override;
 
     [[nodiscard]] u32 getTypeId() const override { return static_cast<u32>(RuleTestType::AxisAlignedLinearPos); }
     [[nodiscard]] std::unique_ptr<PosRuleTest> clone() const override
@@ -239,7 +239,7 @@ public:
         const BlockPos& originalPos,
         const BlockPos& worldPos,
         const BlockPos& seedPos,
-        math::Random& rng) const;
+        math::IRandom& rng) const;
 
     [[nodiscard]] u32 outputStateId() const { return m_outputStateId; }
     [[nodiscard]] const RuleTest* inputPredicate() const { return m_inputPredicate.get(); }

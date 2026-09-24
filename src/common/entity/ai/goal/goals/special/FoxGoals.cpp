@@ -753,7 +753,7 @@ void FoxEatBerriesGoal::_pickSweetBerries(const BlockState& state)
     const auto* sweetBerry = static_cast<const blocks::SweetBerryBushBlock*>(&state.getBlock());
     i32 age = sweetBerry->getAge(state);
     bool fullyGrown = sweetBerry->isMaxAge(state);
-    math::Random& rng = m_fox->getRandom();
+    math::IRandom& rng = m_fox->getRandom();
 
     // 计算掉落数量：1 + random(0~1) + (fullyGrown ? 1 : 0)
     i32 berryCount = 1 + rng.nextInt(2) + (fullyGrown ? 1 : 0);
@@ -798,7 +798,7 @@ void FoxEatBerriesGoal::_pickGlowBerry(const BlockState& state)
         return;
     }
 
-    math::Random& rng = m_fox->getRandom();
+    math::IRandom& rng = m_fox->getRandom();
 
     // 如果主手为空，给狐狸装备1个发光浆果
     if (!m_fox->isHoldingItem()) {
@@ -1008,7 +1008,7 @@ FoxSitAndLookGoal::FoxSitAndLookGoal(FoxEntity* fox)
 
 bool FoxSitAndLookGoal::canFoxStart()
 {
-    math::Random& rng = m_fox->getRandom();
+    math::IRandom& rng = m_fox->getRandom();
     if (rng.nextFloat() >= TRIGGER_CHANCE) {
         return false;
     }
@@ -1042,7 +1042,7 @@ void FoxSitAndLookGoal::startExecuting()
 {
     _chooseRandomLookDirection();
 
-    math::Random& rng = m_fox->getRandom();
+    math::IRandom& rng = m_fox->getRandom();
     m_lookCount = LOOK_COUNT_MIN + rng.nextInt(LOOK_COUNT_MAX - LOOK_COUNT_MIN + 1);
 
     m_fox->setSitting(true);
@@ -1075,7 +1075,7 @@ void FoxSitAndLookGoal::tick()
 
 void FoxSitAndLookGoal::_chooseRandomLookDirection()
 {
-    math::Random& rng = m_fox->getRandom();
+    math::IRandom& rng = m_fox->getRandom();
 
     f64 angle = static_cast<f64>(math::TWO_PI) * rng.nextDouble();
     m_lookX = std::cos(angle);

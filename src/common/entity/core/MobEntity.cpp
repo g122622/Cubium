@@ -306,7 +306,7 @@ void MobEntity::tick()
 
     // 环境声音检查
     if (isAlive()) {
-        math::Random& random = getRandom();
+        math::IRandom& random = getRandom();
         if (random.nextInt(1000) < m_livingSoundTime++) {
             m_livingSoundTime = -getTalkInterval();
             playAmbientSound();
@@ -467,7 +467,7 @@ void MobEntity::dropExperience()
     }
     // 标记经验已消费，防异常重复掉落（对齐 vanilla skipDropExperience，LivingEntity.java:1639）。
     skipDropExperience();
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
 }
 
@@ -488,7 +488,7 @@ void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlaye
     Entity* causingEntity = cause.getEntity();
     (void)causingEntity; // 预留 processEquipmentDropChance 接入点，当前未使用。
 
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
 
     // 遍历所有装备槽位（对齐 vanilla for (EquipmentSlot : EquipmentSlot.VALUES)）。
     for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
@@ -581,7 +581,7 @@ std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment(const std::function
             // 谓词返回 true 且掉落概率 > 1.0（保留状态）：在实体位置掉落该物品
             // 对应 MC Java 的 spawnAtLocation()
             if (m_world != nullptr) {
-                math::Random& rng = getRandom();
+                math::IRandom& rng = getRandom();
                 ItemDropHelper::spawnItemAtEntity(this, equipment, 0.0f, rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
             }
             // 清空该槽位，防止重复掉落
@@ -661,7 +661,7 @@ void MobEntity::burnUndead()
         // 防护槽位有物品：如果物品可损坏，则物品承受耐久损耗
         // 注意：此处直接增加伤害值，绕过耐久保护附魔，与 MC 原版行为一致
         if (protectionItem.isDamageable()) {
-            math::Random& rng = getRandom();
+            math::IRandom& rng = getRandom();
             i32 addedDamage = rng.nextInt(2); // 0 或 1
             if (addedDamage > 0) {
                 i32 newDamage = protectionItem.getDamage() + addedDamage;
@@ -1145,7 +1145,7 @@ void MobEntity::dropLeash()
     if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         if (Items::LEAD != nullptr) {
             ItemStack stack(*Items::LEAD, 1);
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             ItemDropHelper::spawnItemAtEntity(this, stack, 0.5f, rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
         }
     }
@@ -1547,7 +1547,7 @@ void MobEntity::finalizeSpawn(
 }
 
 void MobEntity::populateDefaultEquipmentSlots(
-    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+    math::IRandom& random, const entity::combat::DifficultyInstance& difficulty)
 {
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
 
@@ -1597,7 +1597,7 @@ void MobEntity::populateDefaultEquipmentSlots(
 }
 
 void MobEntity::populateDefaultEquipmentEnchantments(
-    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+    math::IRandom& random, const entity::combat::DifficultyInstance& difficulty)
 {
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
 
@@ -1688,7 +1688,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
 }
 
 void MobEntity::enchantSpawnedWeapon(
-    math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier)
+    math::IRandom& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier)
 {
     (void)difficulty;
     ItemStack mainHand = getEquipment(EquipmentSlot::MainHand);
@@ -1701,7 +1701,7 @@ void MobEntity::enchantSpawnedWeapon(
 }
 
 void MobEntity::enchantSpawnedArmor(
-    math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier)
+    math::IRandom& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier)
 {
     (void)difficulty;
     // 对每个护甲槽位独立检定

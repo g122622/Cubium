@@ -103,7 +103,7 @@ ConfiguredDesertWellFeature::ConfiguredDesertWellFeature(const char* featureName
 bool ConfiguredDesertWellFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, generator, random, pos);
@@ -114,7 +114,7 @@ bool ConfiguredDesertWellFeature::place(WorldGenRegion& region,
 // ============================================================================
 
 bool DesertWellFeature::place(
-    IWorld& world, IChunkGenerator& /*generator*/, math::Random& random, const BlockPos& origin)
+    IWorld& world, IChunkGenerator& /*generator*/, math::IRandom& random, const BlockPos& origin)
 {
     // MC: BuiltInLootTables.DESERT_WELL_ARCHAEOLOGY
     static const ResourceLocation DESERT_WELL_ARCHAEOLOGY("minecraft", "archaeology/desert_well");

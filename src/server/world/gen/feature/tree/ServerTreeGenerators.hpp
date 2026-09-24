@@ -37,7 +37,7 @@ using namespace blocks;
  * 为每种树苗类型创建对应的 TreeGenerator 回调。
  * 每个生成器内部创建对应的 TreeFeatureConfig 并调用 TreeFeature::place()。
  *
- * TreeGenerator 签名为 void(IWorld&, const BlockPos&, math::Random&)，
+ * TreeGenerator 签名为 void(IWorld&, const BlockPos&, math::IRandom&)，
  * 可直接传给 SaplingBlock 构造函数。lambda 内部将 IWorld& static_cast
  * 为 WorldGenRegion& 后调用 TreeFeature::place()。
  *

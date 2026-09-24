@@ -67,7 +67,7 @@ bool RootSystemFeature::spaceForTree(WorldGenRegion& region, const BlockPos& pos
 }
 
 void RootSystemFeature::placeRootedDirtColumn(
-    WorldGenRegion& region, math::Random& random, const BlockPos& origin, i32 targetY, const RootSystemConfig& config)
+    WorldGenRegion& region, math::IRandom& random, const BlockPos& origin, i32 targetY, const RootSystemConfig& config)
 {
     MC_UNUSED(random);
 
@@ -94,7 +94,7 @@ void RootSystemFeature::placeRootedDirtColumn(
 }
 
 void RootSystemFeature::placeHangingRoots(
-    WorldGenRegion& region, math::Random& random, const BlockPos& rootCenter, const RootSystemConfig& config)
+    WorldGenRegion& region, math::IRandom& random, const BlockPos& rootCenter, const RootSystemConfig& config)
 {
     if (config.hangingRootState == nullptr) {
         return;
@@ -125,7 +125,7 @@ void RootSystemFeature::placeHangingRoots(
 bool RootSystemFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const RootSystemConfig& config)
 {
@@ -195,7 +195,7 @@ ConfiguredRootSystemFeature::ConfiguredRootSystemFeature(
 bool ConfiguredRootSystemFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return RootSystemFeature::place(region, chunk, generator, random, pos, *m_config);

@@ -72,7 +72,7 @@ bool isEmpty(WorldGenRegion& region, const BlockPos& pos)
 bool ConfiguredSpringFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     const BlockPos& origin) const
 {
     if (!m_config || m_config->state == nullptr) {

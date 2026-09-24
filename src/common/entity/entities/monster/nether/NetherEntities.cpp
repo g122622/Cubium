@@ -928,7 +928,7 @@ bool HoglinEntity::attackEntityAsMob(LivingEntity& target)
     //   else f = f1;
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
     if (!m_isBaby && static_cast<i32>(damage) > 0) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         damage = damage / 2.0f + static_cast<f32>(rng.nextInt(static_cast<i32>(damage)));
     }
 
@@ -1123,7 +1123,7 @@ bool ZoglinEntity::attackEntityAsMob(LivingEntity& target)
     // 2. 计算伤害：成年随机化，幼年固定。对齐 HoglinBase.hurtAndThrowTarget。
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
     if (!m_isBaby && static_cast<i32>(damage) > 0) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         damage = damage / 2.0f + static_cast<f32>(rng.nextInt(static_cast<i32>(damage)));
     }
 

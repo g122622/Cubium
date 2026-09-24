@@ -41,7 +41,7 @@ namespace mc {
 
 const AlwaysTrueRuleTest AlwaysTrueRuleTest::INSTANCE;
 
-bool AlwaysTrueRuleTest::test(const BlockState& state, math::Random& random) const
+bool AlwaysTrueRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)state;
     (void)random;
@@ -61,7 +61,7 @@ BlockMatchRuleTest::BlockMatchRuleTest(const Block* block)
     : m_block(block)
 {}
 
-bool BlockMatchRuleTest::test(const BlockState& state, math::Random& random) const
+bool BlockMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
     if (!m_block) return false;
@@ -81,7 +81,7 @@ BlockStateMatchRuleTest::BlockStateMatchRuleTest(const BlockState* state)
     : m_state(state)
 {}
 
-bool BlockStateMatchRuleTest::test(const BlockState& state, math::Random& random) const
+bool BlockStateMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
     if (!m_state) return false;
@@ -103,7 +103,7 @@ RandomBlockMatchRuleTest::RandomBlockMatchRuleTest(const Block* block, f32 proba
     , m_probability(probability)
 {}
 
-bool RandomBlockMatchRuleTest::test(const BlockState& state, math::Random& random) const
+bool RandomBlockMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     if (!m_block) return false;
     return state.is(m_block) && random.nextFloat() < m_probability;
@@ -123,7 +123,7 @@ RandomBlockStateMatchRuleTest::RandomBlockStateMatchRuleTest(const BlockState* s
     , m_probability(probability)
 {}
 
-bool RandomBlockStateMatchRuleTest::test(const BlockState& state, math::Random& random) const
+bool RandomBlockStateMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     if (!m_state) return false;
     return state.stateId() == m_state->stateId() && random.nextFloat() < m_probability;
@@ -142,7 +142,7 @@ TagMatchRuleTest::TagMatchRuleTest(const ResourceLocation& tagId)
     : m_tagId(tagId)
 {}
 
-bool TagMatchRuleTest::test(const BlockState& state, math::Random& random) const
+bool TagMatchRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
     // 查询 BlockTags 并检查方块是否在标签中
@@ -162,7 +162,7 @@ std::unique_ptr<RuleTest> TagMatchRuleTest::clone() const
 // StoneRuleTest 实现
 // ============================================================================
 
-bool StoneRuleTest::test(const BlockState& state, math::Random& random) const
+bool StoneRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
     // 走标签查询而非硬编码方块列表：数据包扩展 stone_ore_replaceables 成员时自动跟随。
@@ -181,7 +181,7 @@ std::unique_ptr<RuleTest> StoneRuleTest::clone() const
 // DeepslateRuleTest 实现
 // ============================================================================
 
-bool DeepslateRuleTest::test(const BlockState& state, math::Random& random) const
+bool DeepslateRuleTest::test(const BlockState& state, math::IRandom& random) const
 {
     (void)random;
     // 同 StoneRuleTest：走标签查询，成员为深板岩与凝灰岩

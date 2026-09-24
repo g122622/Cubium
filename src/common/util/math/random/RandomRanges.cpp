@@ -33,7 +33,7 @@
 namespace mc {
 namespace math {
 
-i32 BinomialRange::generateInt(Random& random) const
+i32 BinomialRange::generateInt(math::IRandom& random) const
 {
     // 使用二项分布生成随机值
     // 进行n次试验，每次有p的概率成功

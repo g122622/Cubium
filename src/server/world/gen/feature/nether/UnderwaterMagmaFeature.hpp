@@ -64,7 +64,7 @@ struct UnderwaterMagmaConfig : public IFeatureConfig {
  */
 class UnderwaterMagmaFeature {
 public:
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const UnderwaterMagmaConfig& config);
+    bool place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const UnderwaterMagmaConfig& config);
 
 private:
     /// MC: getFloorY —— 从水柱原点向下扫描首个非水方块（原点须为水）
@@ -90,7 +90,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

@@ -145,7 +145,7 @@ void ShipwreckPiece::_loadTemplate()
 }
 
 void ShipwreckPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -204,13 +204,13 @@ const biome::BiomeTag* ShipwreckStructure::defaultBiomeTag() const
 }
 
 bool ShipwreckStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
     // 沉船不像海洋废墟那样有随机概率检查，直接由间距设置控制生成频率
     return true;
 }
 
-std::string ShipwreckStructure::_getRandomTemplateName(math::Random& rng, bool isBeached) const
+std::string ShipwreckStructure::_getRandomTemplateName(math::IRandom& rng, bool isBeached) const
 {
     if (isBeached) {
         const size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(s_beachedTemplates.size())));
@@ -222,7 +222,7 @@ std::string ShipwreckStructure::_getRandomTemplateName(math::Random& rng, bool i
 }
 
 std::unique_ptr<StructureStart> ShipwreckStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

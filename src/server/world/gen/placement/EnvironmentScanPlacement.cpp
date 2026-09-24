@@ -34,7 +34,7 @@
 namespace mc {
 
 std::vector<BlockPos> EnvironmentScanPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)random;
     const auto& scanConfig = static_cast<const EnvironmentScanConfig&>(config);

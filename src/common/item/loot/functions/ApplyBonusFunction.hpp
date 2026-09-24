@@ -95,7 +95,7 @@ public:
      * @param random Random number generator
      * @return Drop count
      */
-    [[nodiscard]] static i32 calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::Random& random);
+    [[nodiscard]] static i32 calculateOreDrops(i32 baseCount, i32 fortuneLevel, math::IRandom& random);
 
     /**
      * @brief Calculate uniform distribution bonus
@@ -110,7 +110,7 @@ public:
      * @return Drop count
      */
     [[nodiscard]] static i32 calculateUniformBonus(
-        i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::Random& random);
+        i32 baseCount, i32 fortuneLevel, i32 bonusMultiplier, math::IRandom& random);
 
     /**
      * @brief Calculate binomial distribution bonus
@@ -128,7 +128,7 @@ public:
      * @return Drop count
      */
     [[nodiscard]] static i32 calculateBinomialBonus(
-        i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::Random& random);
+        i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::IRandom& random);
 
 private:
     BonusType m_bonusType;

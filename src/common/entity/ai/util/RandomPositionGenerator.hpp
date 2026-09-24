@@ -337,7 +337,7 @@ private:
      * @param maxAngle 最大角度偏移（弧度）
      * @return 随机偏移的 BlockPos，如果超出范围则返回 nullopt
      */
-    static std::optional<BlockPos> generateRandomDirectionWithinRadians(math::Random& rng,
+    static std::optional<BlockPos> generateRandomDirectionWithinRadians(math::IRandom& rng,
         f64 minRange,
         f64 maxRange,
         i32 verticalRange,

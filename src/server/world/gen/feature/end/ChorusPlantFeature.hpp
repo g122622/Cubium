@@ -64,7 +64,7 @@ public:
      * @param pos 起始位置
      * @return true 如果成功放置
      */
-    static bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos);
+    static bool place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos);
 };
 
 /**
@@ -80,7 +80,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

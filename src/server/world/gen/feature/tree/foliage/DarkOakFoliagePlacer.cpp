@@ -39,13 +39,13 @@ DarkOakFoliagePlacer::DarkOakFoliagePlacer(const FeatureSpread& radius, const Fe
     , m_height(height)
 {}
 
-i32 DarkOakFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
+i32 DarkOakFoliagePlacer::getFoliageHeight(math::IRandom& /*random*/, i32 /*trunkHeight*/) const
 {
     return 4;
 }
 
 void DarkOakFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -79,7 +79,7 @@ void DarkOakFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 }
 
 void DarkOakFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const FoliagePosition& foliagePos,
     i32 radius,
     i32 yOffset,
@@ -99,7 +99,7 @@ void DarkOakFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     }
 }
 
-bool DarkOakFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
+bool DarkOakFoliagePlacer::shouldSkip(math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
     if (dy == -1 && !trunkTop) {
         // 第一层且非trunkTop：跳过角落
@@ -114,7 +114,7 @@ bool DarkOakFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 
 }
 
 bool DarkOakFoliagePlacer::_shouldSkipBase(
-    math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
+    math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
     return FoliagePlacer::shouldSkip(random, dx, dy, dz, radius, trunkTop);
 }

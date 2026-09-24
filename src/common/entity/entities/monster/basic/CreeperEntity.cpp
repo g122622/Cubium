@@ -274,7 +274,7 @@ ActionResultType CreeperEntity::interactMob(Player& player, Hand hand)
     const ResourceLocation& soundEvent =
         (item == Items::FIRE_CHARGE) ? SoundEvents::ITEM_FIRECHARGE_USE : SoundEvents::ITEM_FLINTANDSTEEL_USE;
     if (!isSilent()) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         playSound(soundEvent, 1.0f, rng.nextFloat() * 0.4f + 0.8f);
     }
 

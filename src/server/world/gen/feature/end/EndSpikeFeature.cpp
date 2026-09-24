@@ -53,7 +53,7 @@ namespace mc {
 // ============================================================================
 
 bool EndSpikeFeature::place(
-    WorldGenRegion& world, math::Random& random, i32 chunkX, i32 chunkZ, const EndSpikeFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, i32 chunkX, i32 chunkZ, const EndSpikeFeatureConfig& config)
 {
     // 获取黑曜石柱列表
     const std::vector<EndSpike>& spikes = config.spikes;
@@ -103,7 +103,7 @@ bool EndSpikeFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) co
     return state && &state->getBlock() == VanillaBlocks::END_STONE;
 }
 
-void EndSpikeFeature::_generateSpike(WorldGenRegion& world, math::Random& random, const EndSpike& spike)
+void EndSpikeFeature::_generateSpike(WorldGenRegion& world, math::IRandom& random, const EndSpike& spike)
 {
     (void)random;
 
@@ -191,7 +191,7 @@ void EndSpikeFeature::_generateCage(WorldGenRegion& world, const BlockPos& topPo
 // ============================================================================
 
 void EndSpikeFeature::placeSpike(
-    IWorld& world, math::Random& random, const EndSpikeFeatureConfig& config, const EndSpike& spike)
+    IWorld& world, math::IRandom& random, const EndSpikeFeatureConfig& config, const EndSpike& spike)
 {
     // 对齐 MC 1.21.11 SpikeFeature.placeSpike()
     // 在运行时（非世界生成阶段）放置单根柱子，包括柱体、笼子、基岩底座、末影水晶和底部火焰。
@@ -319,7 +319,7 @@ ConfiguredEndSpikeFeature::ConfiguredEndSpikeFeature(
 bool ConfiguredEndSpikeFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

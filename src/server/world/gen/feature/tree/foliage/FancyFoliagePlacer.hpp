@@ -43,13 +43,13 @@ class FancyFoliagePlacer : public FoliagePlacer {
 public:
     FancyFoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset, i32 height);
 
-    [[nodiscard]] i32 getFoliageHeight(math::Random& random, i32 trunkHeight) const override;
+    [[nodiscard]] i32 getFoliageHeight(math::IRandom& random, i32 trunkHeight) const override;
     [[nodiscard]] const char* name() const override { return "fancy"; }
     [[nodiscard]] std::unique_ptr<FoliagePlacer> clone() const override;
 
 protected:
     void placeFoliageInternal(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 trunkHeight,
         const FoliagePosition& foliagePos,
         i32 foliageHeight,
@@ -59,7 +59,7 @@ protected:
         const BlockState* foliageBlock) override;
 
     [[nodiscard]] bool shouldSkip(
-        math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
+        math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
 
 private:
     i32 m_height;

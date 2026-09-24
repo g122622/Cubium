@@ -146,7 +146,7 @@ struct HeightRangePlacementConfig : public IPlacementConfig {
      * @param random 随机数生成器
      * @return Y坐标
      */
-    [[nodiscard]] i32 getRandomY(math::Random& random) const noexcept;
+    [[nodiscard]] i32 getRandomY(math::IRandom& random) const noexcept;
 };
 
 /**
@@ -352,7 +352,7 @@ public:
      * @return 放置位置列表
      */
     [[nodiscard]] virtual std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const = 0;
 
@@ -372,7 +372,7 @@ public:
 class IdentityPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -387,7 +387,7 @@ public:
 class CountPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -402,7 +402,7 @@ public:
 class HeightRangePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -417,7 +417,7 @@ public:
 class SquarePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -432,7 +432,7 @@ public:
 class BiomePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -447,7 +447,7 @@ public:
 class ChancePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -463,7 +463,7 @@ public:
 class SurfacePlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -479,7 +479,7 @@ public:
 class HeightmapPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -494,7 +494,7 @@ public:
 class RarityFilterPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -509,7 +509,7 @@ public:
 class FixedPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -524,7 +524,7 @@ public:
 class CountOnEveryLayerPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -539,7 +539,7 @@ public:
 class NoiseThresholdCountPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -554,7 +554,7 @@ public:
 class NoiseBasedCountPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -569,7 +569,7 @@ public:
 class SurfaceRelativeThresholdFilterPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 
@@ -589,7 +589,7 @@ public:
      * @brief 获取放置位置
      */
     [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region, math::Random& random, const BlockPos& basePos) const;
+        WorldGenRegion& region, math::IRandom& random, const BlockPos& basePos) const;
 
     /**
      * @brief 链式添加放置器

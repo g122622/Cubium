@@ -41,7 +41,7 @@ namespace mc::world::gen::feature::cave {
 // ============================================================================
 
 bool BlockColumnFeature::place(
-    WorldGenRegion& region, math::Random& random, const BlockPos& pos, const BlockColumnConfig& config)
+    WorldGenRegion& region, math::IRandom& random, const BlockPos& pos, const BlockColumnConfig& config)
 {
     if (config.layers.empty()) {
         return false;
@@ -142,7 +142,7 @@ ConfiguredBlockColumnFeature::ConfiguredBlockColumnFeature(
 bool ConfiguredBlockColumnFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

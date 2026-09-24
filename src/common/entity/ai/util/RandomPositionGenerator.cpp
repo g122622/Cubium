@@ -65,7 +65,7 @@ bool RandomPositionGenerator::findRandomTargetBlockAwayFrom(
         awayDirection = awayDirection * (1.0f / length);
     } else {
         // 如果距离太近，使用随机方向
-        Random& rng = creature->getRandom();
+        math::IRandom& rng = creature->getRandom();
         awayDirection = Vector3(rng.nextFloat() * 2.0f - 1.0f, 0.0f, rng.nextFloat() * 2.0f - 1.0f).normalized();
     }
 
@@ -114,7 +114,7 @@ bool RandomPositionGenerator::findRandomTargetTowardsScaled(
     // 计算目标方向的角度（弧度）
     f64 targetAngle = std::atan2(toTarget.x, toTarget.z);
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // 尝试多次生成有效位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -165,7 +165,7 @@ bool RandomPositionGenerator::getLandPos(CreatureEntity* creature, i32 xzRange, 
     IWorld* world = creature->world();
     if (!world) return false;
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // 尝试多次找到陆地位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -197,7 +197,7 @@ bool RandomPositionGenerator::findRandomTargetAvoidWater(
     IWorld* world = creature->world();
     if (!world) return false;
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // 尝试多次找到避开水域的位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -230,7 +230,7 @@ bool RandomPositionGenerator::findRandomTargetBlock(
     IWorld* world = creature->world();
     if (!world) return false;
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlock
     // 飞行实体使用此方法选择随机的方块位置
@@ -300,7 +300,7 @@ bool RandomPositionGenerator::findRandomTargetBlockTowards(
 
     toTarget = toTarget * (1.0 / distanceToTarget); // 归一化
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // 尝试多次生成有效位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -440,7 +440,7 @@ std::optional<Vector3> RandomPositionGenerator::generateRandomOffset(
 {
     if (!creature) return std::nullopt;
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // 对齐 vanilla RandomPos.generateRandomDirectionWithinRadians（Java 1.21.11）：
     // 当存在方向偏好（findRandomTargetBlockAwayFrom 传远离方向、findRandomTargetTowards 传朝向方向）
@@ -517,7 +517,7 @@ bool RandomPositionGenerator::findBestPosition(
 {
     if (!creature) return false;
 
-    Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     // MC 1.16.5: 尝试生成多个候选位置，选择评分最高的
     Vector3 bestPos;
@@ -608,7 +608,7 @@ bool RandomPositionGenerator::findHoverPosition(CreatureEntity* creature,
         }
 
         // 5. 向上移动到固体方块上方 minAboveSolid~maxAboveSolid 格
-        math::Random& rng = creature->getRandom();
+        math::IRandom& rng = creature->getRandom();
         i32 aboveSolidAmount = rng.nextInt(maxAboveSolid - minAboveSolid + 1) + minAboveSolid;
         worldPos = moveUpToAboveSolid(
             worldPos, aboveSolidAmount, maxY, [&creature](const BlockPos& p) { return isSolidAt(creature, p); });
@@ -733,7 +733,7 @@ bool RandomPositionGenerator::findAirPositionTowards(CreatureEntity* creature,
 // ==================== 飞行位置生成辅助方法实现 ====================
 
 std::optional<BlockPos> RandomPositionGenerator::generateRandomDirectionWithinRadians(
-    math::Random& rng, f64 minRange, f64 maxRange, i32 verticalRange, i32 yOffset, f64 xDir, f64 zDir, f64 maxAngle)
+    math::IRandom& rng, f64 minRange, f64 maxRange, i32 verticalRange, i32 yOffset, f64 xDir, f64 zDir, f64 maxAngle)
 {
     // 计算基础角度：从方向向量计算角度，减去PI/2使0度对应正前方
     f64 baseAngle = std::atan2(zDir, xDir) - (math::PI_DOUBLE / 2.0);
@@ -763,7 +763,7 @@ std::optional<BlockPos> RandomPositionGenerator::generateRandomDirectionWithinRa
 BlockPos RandomPositionGenerator::generatePosTowardDirection(
     CreatureEntity* creature, f64 range, bool isRestricted, const BlockPos& offset)
 {
-    math::Random& rng = creature->getRandom();
+    math::IRandom& rng = creature->getRandom();
 
     f64 offsetX = static_cast<f64>(offset.x);
     f64 offsetZ = static_cast<f64>(offset.z);

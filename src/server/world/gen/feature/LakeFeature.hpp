@@ -86,7 +86,7 @@ public:
     /**
      * @brief 在 (x,y,z) 生成湖泊（y 已是放置点，内部再 below(4)）
      */
-    bool place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, i32 z);
+    bool place(WorldGenRegion& world, math::IRandom& rng, i32 x, i32 y, i32 z);
 
 private:
     /// !state.is(BlockTags.FEATURES_CANNOT_REPLACE)
@@ -112,7 +112,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

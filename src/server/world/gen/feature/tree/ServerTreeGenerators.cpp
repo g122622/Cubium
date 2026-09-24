@@ -42,7 +42,7 @@ namespace {
 /**
  * @brief 创建树木生成器的通用工厂函数
  *
- * TreeGenerator 签名为 void(IWorld&, const BlockPos&, math::Random&)，
+ * TreeGenerator 签名为 void(IWorld&, const BlockPos&, math::IRandom&)，
  * 由 SaplingBlock 在 grow() 中通过 createFeatureRegion() 获取的
  * WorldGenRegion（以 IWorld 接口暴露）回调。lambda 内部将 IWorld&
  * static_cast 为 WorldGenRegion& 后调用 TreeFeature::place()。
@@ -55,7 +55,7 @@ SaplingBlock::TreeGenerator createTreeGenerator(std::function<TreeFeatureConfig(
     auto config = std::make_shared<TreeFeatureConfig>(configCreator());
     auto feature = std::make_shared<TreeFeature>();
 
-    return [config, feature](IWorld& world, const BlockPos& pos, math::Random& random) {
+    return [config, feature](IWorld& world, const BlockPos& pos, math::IRandom& random) {
         auto& region = static_cast<WorldGenRegion&>(world);
         feature->place(region, random, pos, *config);
     };

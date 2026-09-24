@@ -301,7 +301,7 @@ void DolphinEntity::tick()
 
         // 随机跳跃
         if (m_swimTimer >= SWIM_JUMP_INTERVAL && canJumpOutOfWater()) {
-            math::Random& rng = getRandom();
+            math::IRandom& rng = getRandom();
             if (rng.nextInt(1, JUMP_CHANCE_DENOMINATOR) == 1) {
                 // TODO: m_jumping 当前为死代码——全代码库无任何调用方读取
                 // DolphinEntity::isJumping()/m_jumping（DolphinJumpGoal 也不依赖它）。

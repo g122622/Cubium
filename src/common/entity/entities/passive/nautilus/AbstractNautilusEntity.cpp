@@ -395,7 +395,7 @@ void AbstractNautilusEntity::spawnBubbles()
 
         // 随机扩散速度：spread = nextDouble() * 0.8 * (1 + speed)
         // 每个分量 (nextFloat() - 0.5) * spread，对应 MC 原版 d2/d3/d4/d5
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         const f64 spread = rng.nextDouble() * 0.8 * (1.0 + speed);
         const f32 velX = (rng.nextFloat() - 0.5f) * static_cast<f32>(spread);
         const f32 velY = (rng.nextFloat() - 0.5f) * static_cast<f32>(spread);

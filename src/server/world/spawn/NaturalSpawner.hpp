@@ -241,7 +241,7 @@ public:
      * @param random 随机数生成器
      */
     void spawnInChunk(
-        mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::Random& random);
+        mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::IRandom& random);
 
     /**
      * @brief 在世界中进行自然生成（每tick调用）
@@ -367,7 +367,7 @@ private:
         const ChunkData* chunk,
         const Vector3& playerPos,
         EntityDensityManager& densityManager,
-        math::Random& random);
+        math::IRandom& random);
 
     /**
      * @brief 在指定位置尝试生成实体
@@ -377,12 +377,12 @@ private:
      * `spawnCategoryForPosition` 单点入口（static）复用，同时是无状态方法的正确归类。
      */
     static i32 _trySpawnAt(
-        mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random);
+        mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::IRandom& random);
 
     /**
      * @brief 随机选择生成条目
      */
-    [[nodiscard]] static const SpawnEntry* _selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random);
+    [[nodiscard]] static const SpawnEntry* _selectEntry(const std::vector<SpawnEntry>& entries, math::IRandom& random);
 
     /**
      * @brief 检查位置是否可以生成
@@ -409,7 +409,7 @@ private:
         const ChunkData* chunk,
         entity::EntityClassification classification,
         const Vector3i& pos,
-        math::Random& random,
+        math::IRandom& random,
         BiomeId biomeOverride = 0);
 
     /**
@@ -442,7 +442,8 @@ private:
      * @param random 随机数生成器
      * @return 打乱后的可生成区块坐标列表
      */
-    [[nodiscard]] std::vector<ChunkPos> _getSpawnableChunks(mc::server::ServerWorld& world, math::Random& random) const;
+    [[nodiscard]] std::vector<ChunkPos> _getSpawnableChunks(
+        mc::server::ServerWorld& world, math::IRandom& random) const;
 
     /**
      * @brief 检查实体类型是否应该在当前条件下生成

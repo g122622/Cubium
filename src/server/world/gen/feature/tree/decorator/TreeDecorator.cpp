@@ -62,7 +62,7 @@ i32 getY(const BlockPos& pos) noexcept
 
 TreeDecoratorContext::TreeDecoratorContext(WorldGenRegion& region,
     DecorationSetter setter,
-    math::Random& random,
+    math::IRandom& random,
     std::vector<BlockPos> logs,
     std::vector<BlockPos> leaves,
     std::vector<BlockPos> roots)

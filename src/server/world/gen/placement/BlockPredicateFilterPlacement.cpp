@@ -31,7 +31,7 @@
 namespace mc {
 
 std::vector<BlockPos> BlockPredicateFilterPlacement::getPositions(
-    WorldGenRegion& region, math::Random& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& /*random*/, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto& filterConfig = static_cast<const BlockPredicateFilterConfig&>(config);
     if (filterConfig.predicate == nullptr) {

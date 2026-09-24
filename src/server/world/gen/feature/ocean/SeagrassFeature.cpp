@@ -72,7 +72,7 @@ namespace {
 // ============================================================================
 
 bool SeagrassFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SeagrassFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const SeagrassFeatureConfig& config)
 {
     if (!config.seagrassState) {
         return false;
@@ -172,7 +172,7 @@ ConfiguredSeagrassFeature::ConfiguredSeagrassFeature(
 bool ConfiguredSeagrassFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

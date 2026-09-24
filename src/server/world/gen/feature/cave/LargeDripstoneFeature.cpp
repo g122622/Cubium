@@ -138,7 +138,7 @@ public:
         return false;
     }
 
-    void placeBlocks(IWorld& world, math::Random& random, const WindOffsetter& offsetter)
+    void placeBlocks(IWorld& world, math::IRandom& random, const WindOffsetter& offsetter)
     {
         for (i32 i = -m_radius; i <= m_radius; ++i) {
             for (i32 j = -m_radius; j <= m_radius; ++j) {
@@ -228,7 +228,7 @@ ConfiguredLargeDripstoneFeature::ConfiguredLargeDripstoneFeature(
 bool ConfiguredLargeDripstoneFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, random, pos, *m_config);
@@ -242,7 +242,7 @@ namespace {
 
 LargeDripstone makeDripstone(const BlockPos& root,
     bool pointingUp,
-    math::Random& random,
+    math::IRandom& random,
     i32 radius,
     const valueprovider::FloatProvider& blunt,
     const valueprovider::FloatProvider& scale)
@@ -253,7 +253,7 @@ LargeDripstone makeDripstone(const BlockPos& root,
 } // namespace
 
 bool LargeDripstoneFeature::place(
-    IWorld& world, math::Random& random, const BlockPos& pos, const LargeDripstoneConfig& config)
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const LargeDripstoneConfig& config)
 {
     if (!DripstoneUtils::isEmptyOrWater(world, pos)) {
         return false;

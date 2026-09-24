@@ -87,7 +87,7 @@ public:
     virtual void place(IWorldWriter& world,
         const PlacedPiece& placed,
         class feature::template_::TemplateManager& templateManager,
-        math::Random& rng,
+        math::IRandom& rng,
         const structure::StructureBoundingBox* bounds,
         world::chunk::ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr) = 0;
@@ -111,7 +111,7 @@ public:
      * @param rng 随机数生成器
      * @return 排序后的连接点列表
      */
-    std::vector<JigsawJoint> getShuffledJoints(math::Random& rng) const;
+    std::vector<JigsawJoint> getShuffledJoints(math::IRandom& rng) const;
 
     const std::string& getName() const { return m_name; }
     void setName(const std::string& name) { m_name = name; }

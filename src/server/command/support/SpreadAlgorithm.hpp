@@ -66,7 +66,7 @@ struct SpreadPosition {
     [[nodiscard]] bool isSafe(IWorld& world, i32 maxHeight) const;
 
     /// 在指定范围内随机初始化位置
-    void randomize(math::Random& rng, f64 minX, f64 minZ, f64 maxX, f64 maxZ);
+    void randomize(math::IRandom& rng, f64 minX, f64 minZ, f64 maxX, f64 maxZ);
 };
 
 // ============================================================================
@@ -82,7 +82,7 @@ constexpr i32 SPREAD_MAX_ITERATIONS = 10000;
 
 /// 创建初始随机位置
 std::vector<SpreadPosition> createInitialPositions(
-    math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ);
+    math::IRandom& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ);
 
 /// 迭代分散算法：将位置推开到满足最小距离要求
 /// 返回 true 表示分散成功，false 表示超过最大迭代次数仍未收敛
@@ -91,7 +91,7 @@ std::vector<SpreadPosition> createInitialPositions(
 ///   - 输出最小距离以便命令层报告实际分散结果
 bool spreadPositions(f64 spreadDistance,
     IWorld& world,
-    math::Random& rng,
+    math::IRandom& rng,
     f64 minX,
     f64 minZ,
     f64 maxX,

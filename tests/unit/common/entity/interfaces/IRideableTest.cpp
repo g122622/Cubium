@@ -80,7 +80,7 @@ public:
 
     bool boost() override
     {
-        math::Random rng = getRandom();
+        math::IRandom& rng = getRandom();
         return m_boostHelper.boost(rng);
     }
 

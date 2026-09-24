@@ -89,7 +89,7 @@ public:
      * @param random 随机数生成器
      * @return 是否成功启动
      */
-    bool start(IWorld* world, E* owner, i64 gameTime, math::Random& random)
+    bool start(IWorld* world, E* owner, i64 gameTime, math::IRandom& random)
     {
         if (_hasRequiredMemories(owner) && shouldExecute(world, owner)) {
             m_status = TaskStatus::RUNNING;

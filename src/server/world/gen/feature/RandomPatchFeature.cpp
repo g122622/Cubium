@@ -33,7 +33,7 @@ namespace mc::world::gen::feature {
 bool RandomPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     const RandomPatchFeatureConfig& config)
 {
@@ -64,7 +64,7 @@ bool RandomPatchFeature::place(WorldGenRegion& region,
 bool ConfiguredRandomPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     if (m_config == nullptr) {

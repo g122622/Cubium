@@ -74,7 +74,7 @@ public:
      * @param random 随机数生成器
      * @return 持续时间（tick）
      */
-    [[nodiscard]] static i32 getSlownessDuration(i32 level, math::Random& random)
+    [[nodiscard]] static i32 getSlownessDuration(i32 level, math::IRandom& random)
     {
         const f32 minSeconds = 1.5f;
         const f32 maxSeconds = 1.5f + 0.5f * static_cast<f32>(level - 1);

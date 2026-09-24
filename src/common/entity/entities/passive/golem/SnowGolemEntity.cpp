@@ -206,7 +206,7 @@ void SnowGolemEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*c
         SNOWBALL_INACCURACY);
 
     // 播放投掷音效
-    math::Random& random = world()->getRandom();
+    math::IRandom& random = world()->getRandom();
     playSound(SoundEvents::ENTITY_SNOW_GOLEM_SHOOT, 1.0f, 0.4f / (random.nextFloat() * 0.4f + 0.8f));
 
     // 生成实体到世界

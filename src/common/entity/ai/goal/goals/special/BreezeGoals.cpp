@@ -432,7 +432,7 @@ std::optional<Vector3> BreezeLongJumpGoal::_findJumpTargetBehindAttackTarget() c
         return std::nullopt;
     }
 
-    math::Random& rng = m_breeze->world()->getRandom();
+    math::IRandom& rng = m_breeze->world()->getRandom();
 
     // MC 原版：在目标身后选择一个随机位置
     // 角度 = target.yHeadRot + 180 ± gaussian*45
@@ -509,7 +509,7 @@ std::optional<Vector3> BreezeLongJumpGoal::_calculateOptimalJumpVector() const
         return std::nullopt;
     }
 
-    math::Random& rng = m_breeze->world()->getRandom();
+    math::IRandom& rng = m_breeze->world()->getRandom();
 
     // MC 原版：尝试随机排列的 [40, 55, 60, 75, 80] 度角度
     f32 angles[ALLOWED_ANGLES_COUNT] = {
@@ -619,7 +619,7 @@ void BreezeSlideGoal::startExecuting()
         }
     } else {
         // 不在内圈，随机选择目标身后或中圈
-        math::Random& rng = m_breeze->world()->getRandom();
+        math::IRandom& rng = m_breeze->world()->getRandom();
         if (rng.nextBoolean()) {
             slideTarget = _randomPointBehindTarget();
         } else {
@@ -683,7 +683,7 @@ Vector3 BreezeSlideGoal::_randomPointBehindTarget() const
         return m_breeze != nullptr ? m_breeze->position() : Vector3(0, 0, 0);
     }
 
-    math::Random& rng = m_breeze->world()->getRandom();
+    math::IRandom& rng = m_breeze->world()->getRandom();
 
     // MC 原版 BreezeUtil.randomPointBehindTarget：
     // 角度 = target.yHeadRot + 180 ± gaussian*45
@@ -711,7 +711,7 @@ Vector3 BreezeSlideGoal::_randomPointInMiddleCircle() const
         return m_breeze != nullptr ? m_breeze->position() : Vector3(0, 0, 0);
     }
 
-    math::Random& rng = m_breeze->world()->getRandom();
+    math::IRandom& rng = m_breeze->world()->getRandom();
 
     // 对齐 MC 1.21.11 BreezeAi.randomPointInMiddleCircle（Slide.java:60-64）：
     //   Vec3 vec3 = target.position().subtract(breeze.position());   // target - breeze

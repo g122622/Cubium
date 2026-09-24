@@ -288,7 +288,7 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         return;
     }
 
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
 
     // 僵尸位置（取整）
     i32 baseX = math::floorTo<i32>(m_builtIn.stateVector->m_pos.x);
@@ -466,7 +466,7 @@ bool ZombieEntity::attackEntityAsMob(LivingEntity& target)
             // 燃烧概率 = effectiveDifficulty * 0.3
             // 区域难度范围：Easy 0.75~1.375, Normal 1.5~3.5, Hard 2.25~6.75
             // 基础值（新世界）：Easy 0.75, Normal 2.0, Hard 3.0
-            math::Random& rng = getRandom();
+            math::IRandom& rng = getRandom();
             if (rng.nextFloat() < effectiveDifficulty * 0.3f) {
                 // 燃烧时间 = 2 * effectiveDifficulty（秒）
                 f32 fireSeconds = 2.0f * effectiveDifficulty;
@@ -769,7 +769,7 @@ void ZombieEntity::finalizeSpawn(
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
 
     // 设置破门能力：概率 = specialMultiplier * 0.1
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     if (rng.nextFloat() < specialMultiplier * 0.1f) {
         setBreakDoorsAbility(true);
     }
@@ -795,7 +795,7 @@ void ZombieEntity::finalizeSpawn(
     _handleAttributes(rng, specialMultiplier);
 }
 
-void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
+void ZombieEntity::_handleAttributes(math::IRandom& rng, f32 specialMultiplier)
 {
 
     // 随机设置增援概率基础值（0.0 ~ 0.1）
@@ -839,7 +839,7 @@ void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
 }
 
 void ZombieEntity::populateDefaultEquipmentSlots(
-    math::Random& random, const entity::combat::DifficultyInstance& difficulty)
+    math::IRandom& random, const entity::combat::DifficultyInstance& difficulty)
 {
     // 先调用父类方法：基于难度填充护甲
     MonsterEntity::populateDefaultEquipmentSlots(random, difficulty);

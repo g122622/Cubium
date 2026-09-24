@@ -120,7 +120,7 @@ ItemStack DefaultDispenseItemBehavior::_doDispense(IWorld& world,
     }
 
     // 获取随机数生成器
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
 
     // 计算速度：基础速度范围 [BASE_VELOCITY_MIN, BASE_VELOCITY_MIN + BASE_VELOCITY_RANGE]
     f32 baseVelocity = static_cast<f32>(rng.nextDouble() * BASE_VELOCITY_RANGE + BASE_VELOCITY_MIN);
@@ -193,7 +193,7 @@ void DefaultDispenseItemBehavior::_spawnItemEntity(
     }
 
     // 计算速度
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     f32 baseVelocity = static_cast<f32>(rng.nextDouble() * BASE_VELOCITY_RANGE + BASE_VELOCITY_MIN);
     f32 gaussianFactor = GAUSSIAN_FACTOR * 6.0f;
     f32 vx = static_cast<f32>(rng.nextGaussian()) * gaussianFactor +

@@ -103,7 +103,7 @@ void SquidEntity::sprayInk()
     // 在鱿鱼位置生成墨汁粒子
     if (world() != nullptr && world()->isClientSide()) {
         using namespace mc::particle;
-        math::Random& random = world()->getRandom();
+        math::IRandom& random = world()->getRandom();
 
         // 生成多个墨汁粒子形成云状效果
         for (i32 i = 0; i < 30; ++i) {
@@ -151,7 +151,7 @@ void SquidEntity::tick()
 
         // 随机改变方向
         if (m_changeDirectionTimer >= 100) {
-            math::Random& rng = getRandom();
+            math::IRandom& rng = getRandom();
             m_targetSwimAngle = rng.nextFloat(0.0f, 360.0f);
             m_changeDirectionTimer = 0;
         }

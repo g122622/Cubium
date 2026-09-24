@@ -1066,7 +1066,7 @@ math::Vector3f BeeWanderGoal::_getRandomLocation()
     }
 
     // 最终回退：简单随机偏移
-    math::Random& rng = world->getRandom();
+    math::IRandom& rng = world->getRandom();
     f64 targetX = m_bee->x() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + dirX * WANDER_RANGE;
     f64 targetY = m_bee->y() + (rng.nextDouble() * WANDER_HEIGHT * 2 - WANDER_HEIGHT);
     f64 targetZ = m_bee->z() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + dirZ * WANDER_RANGE;

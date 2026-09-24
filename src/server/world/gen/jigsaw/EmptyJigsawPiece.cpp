@@ -47,7 +47,7 @@ std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const
 void EmptyJigsawPiece::place(IWorldWriter& /*world*/,
     const PlacedPiece& /*placed*/,
     class feature::template_::TemplateManager& /*templateManager*/,
-    math::Random& /*rng*/,
+    math::IRandom& /*rng*/,
     const structure::StructureBoundingBox* /*bounds*/,
     world::chunk::ChunkPrimer* /*chunk*/,
     IChunkGenerator* /*generator*/)

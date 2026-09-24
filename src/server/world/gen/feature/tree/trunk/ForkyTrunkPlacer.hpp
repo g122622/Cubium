@@ -43,7 +43,7 @@ public:
     ForkyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
     std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,

@@ -172,7 +172,7 @@ public:
     /**
      * @brief 随机获取主基因或隐藏基因中的一个
      */
-    [[nodiscard]] u8 getOneOfGenesRandomly(math::Random& rng) const;
+    [[nodiscard]] u8 getOneOfGenesRandomly(math::IRandom& rng) const;
 
     /**
      * @brief 从父母遗传基因

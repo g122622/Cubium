@@ -75,7 +75,7 @@ namespace {
 // ============================================================================
 
 bool KelpFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const KelpFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const KelpFeatureConfig& config)
 {
     if (!config.kelpState || !config.kelpTopState) {
         return false;
@@ -182,7 +182,7 @@ ConfiguredKelpFeature::ConfiguredKelpFeature(std::unique_ptr<KelpFeatureConfig> 
 bool ConfiguredKelpFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

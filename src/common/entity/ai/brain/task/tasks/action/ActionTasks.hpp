@@ -348,7 +348,7 @@ protected:
             memory::WalkTarget(BlockPos(partner->position()), m_speed, m_closeEnoughDistance));
 
         // 计算繁殖后代的时间点（对应 MC: gameTime + 60 + random(50)）
-        math::Random& rng = owner->getRandom();
+        math::IRandom& rng = owner->getRandom();
         m_spawnBabyTime = gameTime + SPAWN_BABY_DELAY + rng.nextInt(50);
     }
 
@@ -499,7 +499,7 @@ private:
         baby->setTypeId(animal->getTypeId());
 
         // 设置位置（在父方附近随机偏移）
-        math::Random& rng = owner->getRandom();
+        math::IRandom& rng = owner->getRandom();
         f64 babyX = static_cast<f64>(owner->x()) + (rng.nextDouble() - 0.5) * 2.0;
         f64 babyY = static_cast<f64>(owner->y());
         f64 babyZ = static_cast<f64>(owner->z()) + (rng.nextDouble() - 0.5) * 2.0;

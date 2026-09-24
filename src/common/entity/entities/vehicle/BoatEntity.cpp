@@ -914,7 +914,7 @@ void BoatEntity::dropItem()
     }
 
     // 使用 ItemDropHelper 在船的位置生成物品实体
-    math::Random& rng = worldPtr->getRandom();
+    math::IRandom& rng = worldPtr->getRandom();
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }
 

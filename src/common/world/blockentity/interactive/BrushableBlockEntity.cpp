@@ -352,7 +352,7 @@ void BrushableBlockEntity::dropContent(IWorld& world, LivingEntity& entity, Item
     // 3. 分裂物品（split(random.nextInt(21) + 10)，即 10-30 个）
     // MC: this.item.split(p_373112_.random.nextInt(21) + 10)
     // nextInt(21) 返回 [0, 20]，+10 后为 [10, 30]
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     const i32 splitCount = rng.nextInt(21) + 10;
     ItemStack dropStack = m_item.split(splitCount);
 

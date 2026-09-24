@@ -60,7 +60,7 @@ public:
      * @param bindings 别名绑定集合
      * @param rng 随机数生成器
      */
-    explicit PoolAliasLookup(const PoolAliasBindings& bindings, math::Random& rng)
+    explicit PoolAliasLookup(const PoolAliasBindings& bindings, math::IRandom& rng)
     {
         bindings.forEachResolved(
             rng, [this](const ResourceLocation& alias, const ResourceLocation& target) { m_map[alias] = target; });

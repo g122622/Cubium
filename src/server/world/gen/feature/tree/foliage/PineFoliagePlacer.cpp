@@ -41,13 +41,13 @@ PineFoliagePlacer::PineFoliagePlacer(const FeatureSpread& radius, const FeatureS
     , m_height(height)
 {}
 
-i32 PineFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
+i32 PineFoliagePlacer::getFoliageHeight(math::IRandom& /*random*/, i32 /*trunkHeight*/) const
 {
     return m_height;
 }
 
 void PineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -74,7 +74,7 @@ void PineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 }
 
 bool PineFoliagePlacer::shouldSkip(
-    math::Random& random, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
+    math::IRandom& random, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 跳过角落
     i32 dist = std::abs(dx) + std::abs(dz);

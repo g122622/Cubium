@@ -257,7 +257,7 @@ void PaintingEntity::dropItem()
     // 创建画作物品堆
     if (Items::PAINTING != nullptr) {
         ItemStack stack(*Items::PAINTING, 1);
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         ItemDropHelper::spawnItemEntity(m_world, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
     }
 }
@@ -329,7 +329,7 @@ ActionResultType ItemFrameEntity::processInitialInteract(Player& player, Hand ha
         } else if (player.isSneaking()) {
             // 潜行+右键有物品的展示框：取出物品
             if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
-                math::Random& rng = m_world->getRandom();
+                math::IRandom& rng = m_world->getRandom();
                 ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
             }
             setDisplayedItem(ItemStack(), true);
@@ -361,14 +361,14 @@ void ItemFrameEntity::dropItem()
         // 掉落物品展示框本身
         if (Items::ITEM_FRAME != nullptr) {
             ItemStack frameStack(*Items::ITEM_FRAME, 1);
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             ItemDropHelper::spawnItemEntity(
                 m_world, frameStack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
         }
 
         // 掉落展示框内的物品
         if (!m_displayedItem.isEmpty()) {
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
         }
     }
@@ -637,7 +637,7 @@ void LeashKnotEntity::dropItem()
     // 创建拴绳物品堆
     if (Items::LEAD != nullptr) {
         ItemStack stack(*Items::LEAD, 1);
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         ItemDropHelper::spawnItemEntity(m_world, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
     }
 }

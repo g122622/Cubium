@@ -49,7 +49,7 @@ ItemStack EnchantRandomlyFunction::apply(ItemStack stack, LootContext& context) 
         return stack;
     }
 
-    math::Random& random = context.getRandom();
+    math::IRandom& random = context.getRandom();
     const item::enchant::Enchantment* selectedEnchantment = nullptr;
 
     if (m_enchantments.empty()) {

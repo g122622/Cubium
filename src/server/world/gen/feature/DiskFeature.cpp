@@ -42,7 +42,7 @@ ConfiguredDiskFeature::ConfiguredDiskFeature(std::unique_ptr<DiskConfig> config,
 bool ConfiguredDiskFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     if (!m_config || m_config->stateProvider == nullptr || m_config->target == nullptr || m_config->radius == nullptr) {

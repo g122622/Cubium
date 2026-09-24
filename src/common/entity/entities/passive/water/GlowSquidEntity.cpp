@@ -134,7 +134,7 @@ void GlowSquidEntity::tick()
 
     // 持续生成 GLOW 粒子（对应 MC Java GlowSquid.aiStep 中的 addParticle(GLOW, ...)）
     if (world() != nullptr && world()->isClientSide()) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         // getRandomX/Y/Z 等价：在实体 AABB 范围内随机偏移
         const f32 offsetX = (rng.nextFloat() - 0.5f) * width() * 1.2f;
         const f32 offsetY = rng.nextFloat() * height();

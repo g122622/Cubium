@@ -72,7 +72,7 @@ public:
      * @param rng 随机数生成器
      * @return 随机选择的拼图块指针，如果模板池为空返回 nullptr
      */
-    const JigsawPiece* getRandomPiece(math::Random& rng) const;
+    const JigsawPiece* getRandomPiece(math::IRandom& rng) const;
 
     /**
      * @brief 获取打乱后的拼图块列表
@@ -85,7 +85,7 @@ public:
      * @param rng 随机数生成器
      * @return 打乱后的拼图块指针列表
      */
-    [[nodiscard]] std::vector<const JigsawPiece*> getShuffledPieces(math::Random& rng) const;
+    [[nodiscard]] std::vector<const JigsawPiece*> getShuffledPieces(math::IRandom& rng) const;
 
     /**
      * @brief 获取总权重（Σ 所有条目 weight）

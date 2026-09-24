@@ -309,12 +309,12 @@ i32 ExperienceManager::calculateBarCapacity(i32 level) noexcept
     }
 }
 
-void ExperienceManager::resetXpSeed(math::Random& rng)
+void ExperienceManager::resetXpSeed(math::IRandom& rng)
 {
     m_xpSeed = rng.nextInt();
 }
 
-bool ExperienceManager::onEnchant(i32 levels, math::Random& rng)
+bool ExperienceManager::onEnchant(i32 levels, math::IRandom& rng)
 {
     // 直接消耗等级，不检查是否足够
     m_level -= levels;

@@ -1210,8 +1210,8 @@ public:
      *
      * @return 随机数生成器引用
      */
-    [[nodiscard]] virtual math::Random& getRandom() = 0;
-    [[nodiscard]] virtual const math::Random& getRandom() const = 0;
+    [[nodiscard]] virtual math::IRandom& getRandom() = 0;
+    [[nodiscard]] virtual const math::IRandom& getRandom() const = 0;
 
     // ========== 粒子生成 ==========
 

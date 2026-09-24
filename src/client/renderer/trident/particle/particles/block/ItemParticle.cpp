@@ -76,7 +76,7 @@ constexpr f64 DEFAULT_V1 = 1.0;
  * @return 纹理区域和面方向，如果没有可用纹理返回 nullopt
  */
 std::optional<std::pair<TextureRegion, Direction>> selectRandomFaceTexture(
-    const BlockAppearance* appearance, math::Random& rng)
+    const BlockAppearance* appearance, math::IRandom& rng)
 {
     if (!appearance) {
         return std::nullopt;

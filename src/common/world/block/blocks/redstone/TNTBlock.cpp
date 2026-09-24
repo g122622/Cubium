@@ -283,7 +283,7 @@ bool TNTBlock::prime(IWorld& world, const BlockPos& pos, LivingEntity* igniter)
                 tnt->setPosition(centerX, centerY, centerZ);
 
                 // 设置随机初始速度
-                math::Random& rng = world.getRandom();
+                math::IRandom& rng = world.getRandom();
                 f32 angle = rng.nextFloat() * math::TWO_PI;
                 f32 vx = -std::sin(angle) * 0.02f;
                 f32 vy = 0.2f;
@@ -371,7 +371,7 @@ void TNTBlock::onBlockExploded(
 
                     // 设置随机短引信：MC Java 的公式为 random.nextInt(fuse / 4) + fuse / 8
                     // 其中 fuse = 80 (DEFAULT_FUSE)，即 random.nextInt(20) + 10，范围 [10, 29] ticks
-                    math::Random& rng = world.getRandom();
+                    math::IRandom& rng = world.getRandom();
                     constexpr i32 DEFAULT_FUSE = 80;
                     i32 shortFuse = rng.nextInt(DEFAULT_FUSE / 4) + DEFAULT_FUSE / 8;
                     tnt->ignite(shortFuse);

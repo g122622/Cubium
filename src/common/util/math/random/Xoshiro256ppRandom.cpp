@@ -23,6 +23,7 @@
 
 #include "Xoshiro256ppRandom.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include <cstddef>
 
 namespace mc::math {
@@ -108,6 +109,12 @@ u64 Xoshiro256ppRandom::splitMix64(u64& state)
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
     z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
     return z ^ (z >> 31);
+}
+
+PositionalRandomFactory Xoshiro256ppRandom::forkPositional()
+{
+    // 非 MC 原生算法，按 Xoroshiro 的形状派生 128 位种子（两次 nextLong）。
+    return PositionalRandomFactory(static_cast<u64>(nextLong()), static_cast<u64>(nextLong()));
 }
 
 } // namespace mc::math

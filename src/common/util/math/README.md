@@ -18,7 +18,9 @@ src/common/util/math/
 ├── random/                        # 随机数生成子系统
 │   ├── IRandom.hpp                # 随机数生成器接口
 │   ├── IRandom.cpp                # 接口默认实现
-│   ├── Random.hpp                 # 统一封装（通过宏选择算法，默认 xoroshiro128++）
+│   ├── Random.hpp                 # 具体实现别名（通过宏选择算法，默认 xoroshiro128++）
+│   ├── JavaLegacyRandom.hpp/cpp   # Java LegacyRandomSource（48 位 LCG）
+│   ├── WorldgenRandom.hpp/cpp     # 世界生成装饰种子包装器（委托内层 RNG）
 │   ├── LcgRandom.hpp              # 线性同余生成器
 │   ├── LcgRandom.cpp              # 线性同余实现
 │   ├── Mt19937Random.hpp          # Mersenne Twister 生成器
@@ -27,6 +29,7 @@ src/common/util/math/
 │   ├── Xoroshiro128ppRandom.cpp   # xoroshiro128++ 实现
 │   ├── Xoshiro256ppRandom.hpp     # xoshiro256++ 生成器
 │   ├── Xoshiro256ppRandom.cpp     # xoshiro256++ 实现
+│   ├── PositionalRandomFactory.hpp/cpp  # 位置随机工厂（Xoroshiro / Legacy 两种 flavor）
 │   ├── UniformIntDistribution.hpp    # 均匀整数分布
 │   ├── UniformIntDistribution.cpp    # 均匀整数分布实现
 │   ├── UniformRealDistribution.hpp   # 均匀实数分布
@@ -90,6 +93,42 @@ src/common/util/math/
 - `<cmath>`, `<algorithm>`, `<limits>`, `<functional>` - 标准库
 
 ## 容易踩的坑
+
+### 0. 世界生成的装饰种子必须走 `WorldgenRandom`，不能用裸 `Xoroshiro128ppRandom`
+
+原版 `ChunkGenerator.applyBiomeDecoration` 用 `new WorldgenRandom(new XoroshiroRandomSource(uniqueSeed))`
+派生 decorSeed 与逐特征种子。`WorldgenRandom` 把所有位宽抽取都折算成"反复调用内层 `nextLong()`
+取高位"，于是它自己的 `nextLong()` 会消耗**两个**内层 `nextLong()` 并各取高 32 位；直接在内层上调
+`nextLong()` 则是消耗一个、取全 64 位。两者得到的 decorSeed 完全不同（实测某区块为
+`0xF53DCD247D852AF7` 对 `0x91D8CBEBCC2C2BF7`），会让**所有** placed_feature 的
+`setFeatureSeed` 种子错位，表现为石头变体/矿石/树木的大规模落位偏差，且无任何报错。
+
+同理，`LegacyRandomSource`-flavor 的路径（结构放置的 frequency reducer、要塞环、结构生成）也必须
+`WorldgenRandom(std::make_unique<JavaLegacyRandom>(0))`——其 `nextFloat()/nextDouble()` 与
+Xoroshiro 的同名方法结果不同。
+
+`IRandom` 为此提供了 `nextBits(bits)`：Legacy 覆写为自身的 `next(bits)`（只推进一次 LCG），
+其余实现默认取 `nextU64()` 高位（推进两次）。**不要**在需要复刻按位宽抽取的地方自己写
+`nextU64() >> (64 - bits)`——Legacy 内层会因此整体错位。
+
+### 0.1 世界生成签名收 `math::IRandom&`，不要收 `math::Random&`
+
+`math::Random` 是 `Xoroshiro128ppRandom` 的别名（具体类型）。世界生成链路上凡是"由调用方提供
+随机源"的位置（`ConfiguredFeature::place`、`PlacementModifier::getPositions`、`StructurePiece::generate`、
+`TreeDecorator`、`WorldCarver::carve`、`StructurePlacement::isStructureChunk` 等）一律收
+`math::IRandom&`，才能接受 `WorldgenRandom` / `JavaLegacyRandom`。
+只有"自己新建一个具体 RNG"（`math::Random rng(seed);`）时才用 `math::Random`。
+
+### 0.2 `PositionalRandomFactory` 有两种 flavor，派生算法完全不同
+
+- **Xoroshiro**（`XoroshiroRandomSource.forkPositional()`，128 位种子）：`fromHashOf` 用 **MD5**，
+  `fromSeed` 与工厂种子异或。
+- **Legacy**（`LegacyRandomSource.forkPositional()`，64 位种子）：`fromHashOf` 用
+  **Java `String.hashCode()`**，`fromSeed` **不与工厂种子异或**。
+
+构造方式即区分：`PositionalRandomFactory(seedLo, seedHi)` 得 Xoroshiro，
+`PositionalRandomFactory(seed)` 得 Legacy。晶洞（GeodeFeature）与
+`DualNoiseProvider`/`NoiseBasedStateProvider` 走 Legacy flavor，误用 Xoroshiro 会让噪声图案整体偏离。
 
 ### 1. 随机数种子状态
 

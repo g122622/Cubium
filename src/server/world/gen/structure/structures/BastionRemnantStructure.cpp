@@ -82,7 +82,7 @@ public:
     {}
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32,
         i32,
         const StructureBoundingBox& chunkBounds,
@@ -134,7 +134,7 @@ const biome::BiomeTag* BastionRemnantStructure::defaultBiomeTag() const
 }
 
 bool BastionRemnantStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -148,7 +148,7 @@ bool BastionRemnantStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

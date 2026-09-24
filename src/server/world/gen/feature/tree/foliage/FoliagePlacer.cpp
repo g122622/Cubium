@@ -44,7 +44,7 @@ FoliagePlacer::FoliagePlacer(const FeatureSpread& radius, const FeatureSpread& o
     , m_offset(offset)
 {}
 
-bool FoliagePlacer::shouldSkip(math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool trunkTop) const
+bool FoliagePlacer::shouldSkip(math::IRandom& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool trunkTop) const
 {
     // 基类默认实现：跳过角落
     if (trunkTop) {
@@ -58,7 +58,7 @@ bool FoliagePlacer::shouldSkip(math::Random& /*random*/, i32 dx, i32 /*dy*/, i32
 }
 
 void FoliagePlacer::placeFoliage(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 trunkHeight,
     const std::vector<FoliagePosition>& foliagePositions,
     const std::set<BlockPos>& trunkBlocks,
@@ -78,7 +78,7 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
 }
 
 void FoliagePlacer::placeFoliage(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 trunkHeight,
     const std::vector<FoliagePosition>& foliagePositions,
     const std::set<BlockPos>& /*trunkBlocks*/,
@@ -124,7 +124,7 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
 }
 
 void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& centerPos,
     i32 radius,
     std::set<BlockPos>& foliageBlocks,

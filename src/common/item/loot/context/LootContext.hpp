@@ -60,7 +60,7 @@ public:
     using LootTableResolver = std::function<const LootTable*(const std::string&)>;
     using PredicateResolver = std::function<const LootCondition*(const std::string&)>;
 
-    LootContext(IWorld& world, math::Random& random);
+    LootContext(IWorld& world, math::IRandom& random);
     ~LootContext() = default;
 
     // 禁止拷贝
@@ -155,7 +155,7 @@ public:
     /**
      * @brief 获取随机数生成器
      */
-    [[nodiscard]] math::Random& getRandom() const noexcept { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() const noexcept { return m_random; }
 
     /**
      * @brief 获取幸运值
@@ -236,7 +236,7 @@ public:
 
 private:
     IWorld& m_world;
-    math::Random& m_random;
+    math::IRandom& m_random;
     f32 m_luck = 0.0f;
     i32 m_lootingModifier = 0;
     std::unordered_map<std::string, void*> m_params;

@@ -61,7 +61,7 @@ ConfiguredSculkPatchFeature::ConfiguredSculkPatchFeature(
 bool ConfiguredSculkPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, generator, random, pos, *m_config);
@@ -108,7 +108,7 @@ bool SculkPatchFeature::canSpreadFrom(IWorld& world, const BlockPos& pos)
 
 bool SculkPatchFeature::place(IWorld& world,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     const SculkPatchConfig& config)
 {

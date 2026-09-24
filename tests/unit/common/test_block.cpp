@@ -283,8 +283,8 @@ public:
     }
 
     // Random interface
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
     // WorldBorder interface
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }

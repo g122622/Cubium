@@ -108,7 +108,7 @@ public:
      *
      * 当需要固定随机序列时使用
      */
-    PlacementSettings& setRandom(math::Random* random)
+    PlacementSettings& setRandom(math::IRandom* random)
     {
         m_random = random;
         return *this;
@@ -126,7 +126,7 @@ private:
     i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
     const IWorld* m_world = nullptr;
-    math::Random* m_random = nullptr;
+    math::IRandom* m_random = nullptr;
 };
 
 } // namespace template_

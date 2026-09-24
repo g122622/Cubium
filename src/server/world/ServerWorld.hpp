@@ -415,8 +415,8 @@ public:
 
     // ========== 随机数生成器 ==========
 
-    [[nodiscard]] math::Random& getRandom() noexcept override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const noexcept override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() noexcept override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const noexcept override { return m_random; }
 
     // ========== 游戏规则 ==========
 

@@ -244,7 +244,7 @@ u32 SoundEventDefinition::totalWeight() const noexcept
     return total;
 }
 
-const SoundDefinition* SoundEventDefinition::selectSound(mc::math::Random& rng) const noexcept
+const SoundDefinition* SoundEventDefinition::selectSound(mc::math::IRandom& rng) const noexcept
 {
     if (sounds.empty()) {
         return nullptr;

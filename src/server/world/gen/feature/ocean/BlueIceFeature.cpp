@@ -42,7 +42,7 @@
 namespace mc {
 
 bool BlueIceFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BlueIceFeatureConfig& config, i32 seaLevel)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const BlueIceFeatureConfig& config, i32 seaLevel)
 {
     if (config.blueIceState == nullptr || config.packedIceState == nullptr) {
         return false;
@@ -184,7 +184,7 @@ ConfiguredBlueIceFeature::ConfiguredBlueIceFeature(
 bool ConfiguredBlueIceFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

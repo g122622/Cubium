@@ -87,7 +87,7 @@ LakeFeature::LakeFeature(LakeFeatureConfig config)
     : m_config(std::move(config))
 {}
 
-bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, i32 z)
+bool LakeFeature::place(WorldGenRegion& world, math::IRandom& rng, i32 x, i32 y, i32 z)
 {
     // MC: blockpos.getY() <= worldgenlevel.getMinY() + 4 → return false
     if (y <= world::MIN_BUILD_HEIGHT + 4) {
@@ -271,7 +271,7 @@ ConfiguredLakeFeature::ConfiguredLakeFeature(
 bool ConfiguredLakeFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

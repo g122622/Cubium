@@ -254,7 +254,7 @@ void RangedBowAttackGoal::tick()
 
     // 走位方向变化
     if (m_strafingTime >= 20) {
-        math::Random& rng = m_mob->getRandom();
+        math::IRandom& rng = m_mob->getRandom();
         // 30% 概率改变顺时针/逆时针
         if (rng.nextFloat() < 0.3f) {
             m_strafingClockwise = !m_strafingClockwise;
@@ -318,7 +318,7 @@ void RangedBowAttackGoal::performAttack(LivingEntity* target, f32 charge)
     RangedAttackGoal::performAttack(target, charge);
 
     // 设置攻击冷却（弓箭专用逻辑）
-    math::Random& rng = m_mob->getRandom();
+    math::IRandom& rng = m_mob->getRandom();
     // 防御性 clamp：setMinAttackInterval 已保 max>=min 不变量，但此处兜底确保 bound>=1，
     // 避免任何意外路径（子类直接改 m_attackIntervalMin 等）触发 nextInt 的
     // MC_ASSERT_RELEASE(bound>0) 断言崩溃。
@@ -430,7 +430,7 @@ void RangedCrossbowAttackGoal::tick()
             creature->tryMoveTo(m_target->x(), m_target->y(), m_target->z(), m_speed);
         }
         // 设置移动冷却
-        math::Random& rng = m_mob->getRandom();
+        math::IRandom& rng = m_mob->getRandom();
         m_moveCooldown = MOVE_COOLDOWN_MIN + rng.nextInt(MOVE_COOLDOWN_MAX - MOVE_COOLDOWN_MIN + 1);
     } else if (distSq <= static_cast<f64>(m_attackRadiusSq) && m_seenTime >= MIN_SEEN_TIME) {
         // 在攻击范围内，停止移动
@@ -545,7 +545,7 @@ void RangedCrossbowAttackGoal::_handleChargingState()
         m_crossbowState = CrossbowState::Charged;
 
         // 设置装填后等待时间
-        math::Random& rng = m_mob->getRandom();
+        math::IRandom& rng = m_mob->getRandom();
         m_cooldownTime = CHARGED_WAIT_MIN + rng.nextInt(CHARGED_WAIT_MAX - CHARGED_WAIT_MIN + 1);
     }
 }

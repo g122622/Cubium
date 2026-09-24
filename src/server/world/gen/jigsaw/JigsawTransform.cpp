@@ -115,7 +115,7 @@ structure::StructureBoundingBox JigsawTransform::calculateBoundingBox(
         pos.x, pos.y, pos.z, pos.x + size.x - 1, pos.y + size.y - 1, pos.z + size.z - 1);
 }
 
-Rotation JigsawTransform::getRandomRotation(math::Random& rng)
+Rotation JigsawTransform::getRandomRotation(math::IRandom& rng)
 {
     return static_cast<Rotation>(rng.nextInt(4));
 }

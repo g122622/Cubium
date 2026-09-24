@@ -27,7 +27,9 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/structure/placement/StructurePlacement.hpp"
 #include <memory>
@@ -68,8 +70,9 @@ world::chunk::ChunkPos RandomSpreadStructurePlacement::getPotentialStructureChun
     i32 gridX = math::floorDiv(chunkX, m_spacing);
     i32 gridZ = math::floorDiv(chunkZ, m_spacing);
 
-    // 使用网格坐标和种子初始化随机数生成器
-    math::Random rng;
+    // 原版 RandomSpreadStructurePlacement.getPotentialStructureChunk 用
+    // WorldgenRandom(new LegacyRandomSource(0L)) + setLargeFeatureWithSalt。
+    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
     rng.setLargeFeatureWithSalt(worldSeed, gridX, gridZ, m_salt);
 
     // 偏移范围

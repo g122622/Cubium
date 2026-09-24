@@ -76,7 +76,7 @@ JungleTemplePiece::JungleTemplePiece(const BlockPos& pos)
 {}
 
 void JungleTemplePiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -89,7 +89,7 @@ void JungleTemplePiece::generate(IWorldWriter& world,
     _generateTemple(world, rng, chunkBounds);
 }
 
-void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
+void JungleTemplePiece::_generateTemple(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds)
 {
     const BlockState* cobblestone = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE);
     const BlockState* mossyCobblestone = VanillaBlocks::getState(VanillaBlocks::MOSSY_COBBLESTONE);
@@ -579,7 +579,7 @@ const biome::BiomeTag* JungleTempleStructure::defaultBiomeTag() const
 }
 
 bool JungleTempleStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -589,7 +589,7 @@ bool JungleTempleStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> JungleTempleStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

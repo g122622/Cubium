@@ -23,6 +23,7 @@
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/crypto/Md5.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include <memory>
 #include <string>
@@ -56,12 +57,31 @@ static i64 getSeed(i32 x, i32 y, i32 z)
 // ============================================================================
 
 PositionalRandomFactory::PositionalRandomFactory(u64 seedLo, u64 seedHi)
-    : m_seedLo(seedLo)
+    : m_flavor(Flavor::Xoroshiro)
+    , m_seedLo(seedLo)
     , m_seedHi(seedHi)
 {}
 
-std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromHashOf(const std::string& key) const
+PositionalRandomFactory::PositionalRandomFactory(u64 seed)
+    : m_flavor(Flavor::Legacy)
+    , m_seedLo(seed)
+    , m_seedHi(0)
+{}
+
+std::unique_ptr<IRandom> PositionalRandomFactory::fromHashOf(const std::string& key) const
 {
+    // Java String.hashCode()： s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]，int 回绕
+    // Legacy flavor 需要它，Xoroshiro flavor 不需要（走 MD5）。
+    if (m_flavor == Flavor::Legacy) {
+        i32 hash = 0;
+        for (const char ch : key) {
+            hash = static_cast<i32>(static_cast<u32>(hash) * 31u + static_cast<u32>(static_cast<i8>(ch)));
+        }
+        // Java: new LegacyRandomSource(i ^ this.seed)，i 是 int 并按符号扩展参与 long 异或
+        return std::make_unique<JavaLegacyRandom>(
+            static_cast<u64>(static_cast<i64>(hash) ^ static_cast<i64>(m_seedLo)));
+    }
+
     // MC 1.21: XoroshiroPositionalRandomFactory.fromHashOf(String)
     //   RandomSupport.Seed128bit s = RandomSupport.seedFromHashOf(s);
     //   return new XoroshiroRandomSource(s.xor(this.seedLo, this.seedHi));
@@ -88,16 +108,25 @@ std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromHashOf(const 
     return std::make_unique<Xoroshiro128ppRandom>(hashLo ^ m_seedLo, hashHi ^ m_seedHi);
 }
 
-std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromSeed(u64 seed) const
+std::unique_ptr<IRandom> PositionalRandomFactory::fromSeed(u64 seed) const
 {
+    if (m_flavor == Flavor::Legacy) {
+        // Java: LegacyPositionalRandomFactory.fromSeed(long) → new LegacyRandomSource(seed)
+        // 【注意】这里**不与工厂种子异或**，与 Xoroshiro flavor 的行为不同。
+        return std::make_unique<JavaLegacyRandom>(seed);
+    }
     // MC 1.21: seed XOR factory seedLo/seedHi
     return std::make_unique<Xoroshiro128ppRandom>(seed ^ m_seedLo, seed ^ m_seedHi);
 }
 
-std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::at(i32 x, i32 y, i32 z) const
+std::unique_ptr<IRandom> PositionalRandomFactory::at(i32 x, i32 y, i32 z) const
 {
-    // MC 1.21: Mth.getSeed(x, y, z) XOR factory seedLo
     const i64 posSeed = getSeed(x, y, z);
+    if (m_flavor == Flavor::Legacy) {
+        // Java: LegacyPositionalRandomFactory.at → new LegacyRandomSource(Mth.getSeed(x,y,z) ^ this.seed)
+        return std::make_unique<JavaLegacyRandom>(static_cast<u64>(posSeed) ^ m_seedLo);
+    }
+    // MC 1.21: Mth.getSeed(x, y, z) XOR factory seedLo，seedHi 原样保留
     return std::make_unique<Xoroshiro128ppRandom>(static_cast<u64>(posSeed) ^ m_seedLo, m_seedHi);
 }
 

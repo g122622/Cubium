@@ -93,7 +93,7 @@ ConfiguredFossilFeature::ConfiguredFossilFeature(std::unique_ptr<FossilConfig> c
 bool ConfiguredFossilFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     if (m_config == nullptr) {
@@ -106,8 +106,11 @@ bool ConfiguredFossilFeature::place(WorldGenRegion& region,
 // FossilFeature
 // ============================================================================
 
-bool FossilFeature::place(
-    IWorld& world, IChunkGenerator& generator, math::Random& random, const BlockPos& origin, const FossilConfig& config)
+bool FossilFeature::place(IWorld& world,
+    IChunkGenerator& generator,
+    math::IRandom& random,
+    const BlockPos& origin,
+    const FossilConfig& config)
 {
     if (config.fossilStructures.empty() || config.overlayStructures.empty()) {
         return false;

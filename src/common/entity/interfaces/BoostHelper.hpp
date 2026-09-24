@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/util/math/random/IRandom.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
@@ -106,12 +107,10 @@ public:
 
     /**
      * @brief 触发加速
-     * @tparam Random 随机数生成器类型
      * @param rng 随机数生成器
      * @return 如果成功加速返回true
      */
-    template <typename Random>
-    bool boost(Random& rng)
+    bool boost(math::IRandom& rng)
     {
         if (saddledRaw) {
             return false;

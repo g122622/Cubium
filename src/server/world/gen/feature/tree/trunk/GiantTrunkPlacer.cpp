@@ -31,7 +31,7 @@ GiantTrunkPlacer::GiantTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRa
 {}
 
 std::vector<FoliagePosition> GiantTrunkPlacer::placeTrunk(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,

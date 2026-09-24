@@ -53,7 +53,7 @@ struct BlueIceFeatureConfig : public IFeatureConfig {
 class BlueIceFeature {
 public:
     bool place(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const BlueIceFeatureConfig& config,
         i32 seaLevel);
@@ -77,7 +77,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

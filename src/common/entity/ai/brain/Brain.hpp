@@ -337,7 +337,7 @@ public:
      * @param dayTime 日内时间
      * @param random 随机数生成器（用于任务持续时间）
      */
-    void tick(IWorld* world, E* entity, i64 gameTime, i32 dayTime, math::Random& random)
+    void tick(IWorld* world, E* entity, i64 gameTime, i32 dayTime, math::IRandom& random)
     {
         // 更新记忆TTL
         _tickMemories();
@@ -479,7 +479,7 @@ private:
     /**
      * @brief 启动任务
      */
-    void _startTasks(IWorld* world, E* entity, i64 gameTime, math::Random& random)
+    void _startTasks(IWorld* world, E* entity, i64 gameTime, math::IRandom& random)
     {
         for (auto& [priority, activityMap] : m_tasks) {
             for (auto& [activity, taskSet] : activityMap) {

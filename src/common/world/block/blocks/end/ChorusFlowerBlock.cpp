@@ -166,7 +166,7 @@ const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
 // ========== 世界生成 ==========
 
 void ChorusFlowerBlock::generatePlant(
-    IWorld& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance)
+    IWorld& world, const BlockPos& pos, math::IRandom& random, i32 maxHorizontalDistance)
 {
     // 在起始位置放置一个带连接的紫颂植物茎干，然后递归生长
     const BlockState* chorusPlantState = &VanillaBlocks::CHORUS_PLANT->defaultState();
@@ -182,7 +182,7 @@ void ChorusFlowerBlock::generatePlant(
 
 void ChorusFlowerBlock::growTreeRecursive(IWorld& world,
     const BlockPos& pos,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     i32 maxHorizontalDistance,
     i32 depth)

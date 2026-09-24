@@ -58,7 +58,7 @@ LinearPosRuleTest::LinearPosRuleTest(i32 minDistance, i32 maxDistance, f32 minPr
 }
 
 bool LinearPosRuleTest::test(
-    const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const
+    const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::IRandom& rng) const
 {
     // 使用曼哈顿距离（Manhattan distance）
     i32 distance = worldPos.manhattanDistance(seedPos);
@@ -92,7 +92,7 @@ AxisAlignedLinearPosTest::AxisAlignedLinearPosTest(
 }
 
 bool AxisAlignedLinearPosTest::test(
-    const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::Random& rng) const
+    const BlockPos& /*originalPos*/, const BlockPos& worldPos, const BlockPos& seedPos, math::IRandom& rng) const
 {
     // 计算指定轴方向上的距离
     i32 distance = 0;
@@ -153,7 +153,7 @@ bool RuleEntry::matches(const BlockState* inputState,
     const BlockPos& originalPos,
     const BlockPos& worldPos,
     const BlockPos& seedPos,
-    math::Random& rng) const
+    math::IRandom& rng) const
 {
     // 三个条件必须全部满足。
     // mc::RuleTest 为引用风格，方块状态为空时该谓词视为不匹配（结构处理器生产路径

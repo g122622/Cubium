@@ -179,7 +179,7 @@ bool EvokerSummonSpellGoal::shouldExecute()
 
     // 只有当周围恼鬼少于8个时才召唤
     if (m_evoker->world() != nullptr) {
-        math::Random& rng = m_evoker->world()->getRandom();
+        math::IRandom& rng = m_evoker->world()->getRandom();
         return rng.nextInt(8) + 1 > vexCount;
     }
 
@@ -395,7 +395,7 @@ SheepEntity* EvokerWololoSpellGoal::_findBlueSheep() const
     }
 
     // 随机选择一只蓝色羊
-    math::Random& rng = world->getRandom();
+    math::IRandom& rng = world->getRandom();
     return blueSheep[rng.nextInt(static_cast<i32>(blueSheep.size()))];
 }
 

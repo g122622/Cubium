@@ -26,7 +26,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include "server/world/gen/density/NoiseBindingVisitor.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
@@ -133,7 +133,7 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
 
     // 1. PositionalRandomFactory（必须在 NoiseRouter 之前初始化：buildRouterFromTemplate 经
     //    NoiseBindingVisitor 绑定 old_blended_noise 叶子时调 positionalRandom().fromHashOf("terrain") 派生种子）。
-    ::mc::math::Xoroshiro128ppRandom mainRng(worldSeed);
+    ::mc::math::Random mainRng(worldSeed);
     state->m_positionalRandom = std::make_unique<::mc::math::PositionalRandomFactory>(mainRng.forkPositional());
 
     // 2. NoiseRouter：m_routerDfs 模板经 NoiseBindingVisitor mapAll 绑定（深拷贝 + 占位替换）。
@@ -153,7 +153,7 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
             .c_str());
     std::shared_ptr<surface::SurfaceRule> surfaceRule = resolved->m_surfaceRule;
 
-    ::mc::math::Xoroshiro128ppRandom surfaceRng(worldSeed);
+    ::mc::math::Random surfaceRng(worldSeed);
     auto surfacePositionalRandom = surfaceRng.forkPositional();
     state->m_surfaceSystem = std::make_unique<surface::SurfaceSystem>(surfaceRule,
         resolved->defaultBlock,

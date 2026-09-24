@@ -46,7 +46,7 @@ constexpr i32 kMaxDistFromOrigin = 7;
 /// discardChance<=0 跳过空气检查；否则 nextFloat>=discardChance 才检查，相邻有空气则不放。
 bool canPlaceOre(const BlockState* current,
     WorldGenRegion& region,
-    math::Random& random,
+    math::IRandom& random,
     const OreFeatureConfig& config,
     const OreTarget& target,
     const BlockPos& pos)
@@ -79,7 +79,7 @@ bool canPlaceOre(const BlockState* current,
 }
 
 /// MC ScatteredOreFeature.getRandomPlacementInOneAxisRelativeToOrigin：round((nextFloat - nextFloat) * j)。
-i32 randomAxisOffset(math::Random& random, i32 j)
+i32 randomAxisOffset(math::IRandom& random, i32 j)
 {
     return static_cast<i32>(std::round((random.nextFloat() - random.nextFloat()) * static_cast<f32>(j)));
 }
@@ -95,7 +95,7 @@ ConfiguredScatteredOreFeature::ConfiguredScatteredOreFeature(
 bool ConfiguredScatteredOreFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     if (!m_config || m_config->targets.empty()) {

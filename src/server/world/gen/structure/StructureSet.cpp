@@ -54,7 +54,7 @@ StructureSet::StructureSet(ResourceLocation id,
     MC_ASSERT_RELEASE(m_placement != nullptr);
 }
 
-const StructureSelectionEntry* StructureSet::selectEntry(math::Random& rng) const
+const StructureSelectionEntry* StructureSet::selectEntry(math::IRandom& rng) const
 {
     if (m_entries.empty()) {
         return nullptr;

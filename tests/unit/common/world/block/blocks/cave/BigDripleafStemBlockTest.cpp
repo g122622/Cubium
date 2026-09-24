@@ -339,7 +339,7 @@ TEST_F(BigDripleafStemIntegrationTest, Tick_StillUnsupported_DestroysBlock)
 
     // 直接调用 tick（模拟延迟 tick 触发）
     BlockState mutableState = *stemState;
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     stemBlock_->tick(world_, stemPos, mutableState, rng);
 
     // 方块应被销毁（变为空气）
@@ -368,7 +368,7 @@ TEST_F(BigDripleafStemIntegrationTest, Tick_SupportRestored_BlockSurvives)
 
     // tick 触发 -> 重新检查，支撑已恢复，方块存活
     BlockState mutableState = *stemState;
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     stemBlock_->tick(world_, stemPos, mutableState, rng);
 
     // 方块应存活
@@ -386,7 +386,7 @@ TEST_F(BigDripleafStemIntegrationTest, Tick_BlockReplaced_DoesNothing)
 
     // 尝试对已不存在的茎调用 tick
     BlockState stemState = stemBlock_->defaultState();
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     stemBlock_->tick(world_, stemPos, stemState, rng);
 
     // 位置应仍为空气
@@ -404,7 +404,7 @@ TEST_F(BigDripleafStemIntegrationTest, Tick_BlockReplacedWithDifferentBlock_Does
 
     // 尝试对已被替换的位置调用茎的 tick
     BlockState stemState = stemBlock_->defaultState();
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     stemBlock_->tick(world_, stemPos, stemState, rng);
 
     // 石砖应保持不变

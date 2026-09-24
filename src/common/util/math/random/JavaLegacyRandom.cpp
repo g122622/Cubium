@@ -126,6 +126,12 @@ void JavaLegacyRandom::skip(u64 count)
     }
 }
 
+PositionalRandomFactory JavaLegacyRandom::forkPositional()
+{
+    // Java: LegacyRandomSource.forkPositional() → new LegacyPositionalRandomFactory(this.nextLong())
+    return PositionalRandomFactory(static_cast<u64>(nextLong()));
+}
+
 void JavaLegacyRandom::consumeCount(i32 count)
 {
     // Java: RandomSource.consumeCount(count) - 推进 count 步

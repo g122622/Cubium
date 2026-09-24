@@ -939,7 +939,7 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
 
     // 随机源：用实体自身的随机数生成器 + 掉落表种子（vanilla getLootTableSeed 默认 0）。
     // 为避免每次死亡掉落结果相同，用实体随机数生成器（构造时已播种）。
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     builder.withRandom(rng);
 
     builder.withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this));
@@ -2987,7 +2987,7 @@ i32 LivingEntity::decreaseAirSupply(i32 currentAir)
     const f64 oxygenBonus = attributes().getValue(entity::attribute::Attributes::OXYGEN_BONUS, 0.0);
 
     if (oxygenBonus > 0.0 && m_world != nullptr) {
-        math::Random& random = m_world->getRandom();
+        math::IRandom& random = m_world->getRandom();
         // 对齐 vanilla：random.nextDouble() >= 1.0/(d0+1.0) 时不消耗
         if (random.nextDouble() >= 1.0 / (oxygenBonus + 1.0)) {
             return currentAir; // 属性生效，不消耗空气

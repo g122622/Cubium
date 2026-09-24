@@ -58,7 +58,7 @@ struct BlockPredicateFilterConfig : public IPlacementConfig {
 class BlockPredicateFilterPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 

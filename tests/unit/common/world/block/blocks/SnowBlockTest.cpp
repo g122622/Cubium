@@ -150,8 +150,8 @@ public:
         return *m_tickManagerPtr;
     }
 
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
@@ -220,6 +220,11 @@ public:
     }
     [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
     [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
+
+    [[nodiscard]] math::PositionalRandomFactory forkPositional() override
+    {
+        return math::PositionalRandomFactory(static_cast<u64>(nextValue()));
+    }
 
 private:
     [[nodiscard]] i32 nextValue()

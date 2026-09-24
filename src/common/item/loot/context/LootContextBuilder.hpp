@@ -58,7 +58,7 @@ public:
     /**
      * @brief 设置随机数生成器
      */
-    LootContextBuilder& withRandom(math::Random& random);
+    LootContextBuilder& withRandom(math::IRandom& random);
 
     /**
      * @brief 设置随机种子
@@ -147,7 +147,7 @@ public:
 
 private:
     IWorld& m_world;
-    math::Random* m_random = nullptr;
+    math::IRandom* m_random = nullptr;
     u64 m_seed = 0;
     bool m_hasSeed = false;
     f32 m_luck = 0.0f;

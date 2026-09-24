@@ -129,7 +129,7 @@ void SkeletonHorseEntity::triggerTrap()
 
     // 5. 获取这匹马的位置用于生成
     Vector3 horsePos = position();
-    math::Random& rng = world->getRandom();
+    math::IRandom& rng = world->getRandom();
 
     // 6. 创建第一个骷髅骑手（骑在这匹马上）
     {

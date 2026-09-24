@@ -207,11 +207,11 @@ TEST(NormalNoiseTest, ConstructFromRandom)
     math::Random rng(42);
     NormalNoise noise(rng, -3, {1.0, 1.0, 1.0, 1.0});
 
-    // 通过 Random& 构造的噪声应返回有限值
+    // 通过 math::IRandom& 构造的噪声应返回有限值
     const f64 value = noise.getValue(100.0, 64.0, 200.0);
     EXPECT_TRUE(std::isfinite(value));
 
-    // seed 应为 nullopt（无法从 Random& 提取种子）
+    // seed 应为 nullopt（无法从 math::IRandom& 提取种子）
     EXPECT_FALSE(noise.seed().has_value());
 }
 

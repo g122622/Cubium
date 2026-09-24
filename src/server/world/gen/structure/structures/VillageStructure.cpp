@@ -85,7 +85,7 @@ public:
     {}
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32,
         i32,
         const StructureBoundingBox& chunkBounds,
@@ -138,7 +138,8 @@ const biome::BiomeTag* VillageStructure::defaultBiomeTag() const
     return &biome::BiomeTags::HAS_STRUCTURE_VILLAGE_PLAINS();
 }
 
-bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+bool VillageStructure::canGenerate(
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     (void)world;
     (void)rng;
@@ -180,7 +181,7 @@ bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
 }
 
 std::unique_ptr<StructureStart> VillageStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     using namespace mc::world;
 

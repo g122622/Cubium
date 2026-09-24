@@ -23,7 +23,7 @@
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "server/world/gen/noise/PerlinNoise.hpp"
 #include "server/world/gen/noise/PerlinNoiseSoA.hpp"
 #include <cmath>
@@ -59,7 +59,7 @@ BlendedNoise::BlendedNoise(
     // MC 1.21.11: BlendedNoise(RandomSource, ...) —— 三个 PerlinNoise **共享同一个
     // RandomSource** 顺序消费随机数，对应 PerlinNoise.createLegacyForBlendedNoise。
     // 该 RandomSource 由调用方（RandomState.NoiseWiringHelper）提供，类型随
-    // noise_settings.legacy_random_source 变化（见头文件注释），故此处只收 IRandom&。
+    // noise_settings.legacy_random_source 变化（见头文件注释），故此处只收 math::IRandom&。
     m_minLimitNoise = std::make_shared<noise::PerlinNoise>(random, -15, makeLegacyAmplitudes(-15, 0));
     m_maxLimitNoise = std::make_shared<noise::PerlinNoise>(random, -15, makeLegacyAmplitudes(-15, 0));
     m_mainNoise = std::make_shared<noise::PerlinNoise>(random, -7, makeLegacyAmplitudes(-7, 0));
@@ -257,7 +257,7 @@ std::unique_ptr<BlendedNoise> BlendedNoise::createUnseeded(
 {
     // MC 1.21.11: createUnseeded 用 `new XoroshiroRandomSource(0L)` 构造（BlendedNoise.java
     // 的 public 构造器里写死），只用于序列化占位，运行时由 withNewRandom 换掉。
-    math::Xoroshiro128ppRandom rng(0ULL);
+    math::Random rng(0ULL);
 
     auto minLimitNoise = std::make_shared<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
     auto maxLimitNoise = std::make_shared<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));

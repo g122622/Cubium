@@ -237,10 +237,8 @@ public:
         // 空区间判定是 j - i - inner + 1 <= 0，即 maxY - minY + 1 <= inner，
         // 而不是 minY >= maxY——inner 会让有效区间比 [min, max] 更窄。
         if (maxY - minY - m_inner + 1 <= 0) {
-            spdlog::warn("BiasedToBottomHeight: empty height range [{}-{}] inner={}, returning min",
-                minY,
-                maxY,
-                m_inner);
+            spdlog::warn(
+                "BiasedToBottomHeight: empty height range [{}-{}] inner={}, returning min", minY, maxY, m_inner);
             return minY;
         }
         const i32 k = rng.nextInt(maxY - minY - m_inner + 1);
@@ -295,10 +293,8 @@ public:
         const i32 minY = m_min.resolveY(context.getMinGenY(), context.getGenDepth());
         const i32 maxY = m_max.resolveY(context.getMinGenY(), context.getGenDepth());
         if (maxY - minY - m_inner + 1 <= 0) {
-            spdlog::warn("VeryBiasedToBottomHeight: empty height range [{}-{}] inner={}, returning min",
-                minY,
-                maxY,
-                m_inner);
+            spdlog::warn(
+                "VeryBiasedToBottomHeight: empty height range [{}-{}] inner={}, returning min", minY, maxY, m_inner);
             return minY;
         }
         // 三层嵌套随机，且每层都是闭区间（对齐 Mth.nextInt(rng, a, b) = a >= b ? a : nextInt(b-a+1)+a）。

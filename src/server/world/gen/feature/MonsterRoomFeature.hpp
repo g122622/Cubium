@@ -68,7 +68,7 @@ public:
      * @param z 起点世界 Z 坐标
      * @return 是否成功生成（j2∈[1,5] 且完成建造返回 true，否则 false）
      */
-    bool place(WorldGenRegion& region, math::Random& random, i32 x, i32 y, i32 z);
+    bool place(WorldGenRegion& region, math::IRandom& random, i32 x, i32 y, i32 z);
 
 private:
     /**
@@ -83,7 +83,7 @@ private:
      *
      * MOBS = [skeleton, zombie, zombie, spider]。
      */
-    static ResourceLocation randomEntityId(math::Random& random);
+    static ResourceLocation randomEntityId(math::IRandom& random);
 };
 
 /**
@@ -100,7 +100,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return "monster_room"; }

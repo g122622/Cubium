@@ -154,7 +154,7 @@ void PolarBearEntity::setStanding(bool standing)
     m_standing = standing;
     m_dataManager.set(DATA_STANDING_PARAM, standing);
     if (standing) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         m_standTimer = rng.nextInt(STAND_DURATION_MIN, STAND_DURATION_MAX);
     }
 }
@@ -168,7 +168,7 @@ void PolarBearEntity::setRevengeTarget(LivingEntity* target)
 {
     setAttackTarget(target);
     if (target != nullptr) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         m_angerTime = rng.nextInt(ANGER_TIME_MIN, ANGER_TIME_MAX);
         m_revengeTargetId = target->id();
         m_revengeTimer = MAX_ANGER_TIME;
@@ -199,7 +199,7 @@ LivingEntity* PolarBearEntity::getRevengeTarget() const
 void PolarBearEntity::setAngry(bool angry)
 {
     if (angry) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         m_angerTime = rng.nextInt(ANGER_TIME_MIN, ANGER_TIME_MAX);
     } else {
         m_angerTime = 0;

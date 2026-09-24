@@ -41,13 +41,13 @@ MegaPineFoliagePlacer::MegaPineFoliagePlacer(const FeatureSpread& radius, const 
     , m_height(height)
 {}
 
-i32 MegaPineFoliagePlacer::getFoliageHeight(math::Random& random, i32 /*trunkHeight*/) const
+i32 MegaPineFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 /*trunkHeight*/) const
 {
     return m_height + random.nextInt(4);
 }
 
 void MegaPineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -75,7 +75,7 @@ void MegaPineFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 }
 
 bool MegaPineFoliagePlacer::shouldSkip(
-    math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
+    math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 第一个条件：曼哈顿距离 >= 7 时跳过
     if (std::abs(dx) + std::abs(dz) >= 7) {

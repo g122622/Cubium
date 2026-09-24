@@ -148,7 +148,7 @@ bool ShulkerEntity::_tryTeleportToNewPosition()
 
     for (i32 i = 0; i < TELEPORT_ATTEMPTS; ++i) {
         // 随机目标位置（±8格）
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         i32 targetX = currentPos.x + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
         i32 targetY = currentPos.y + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
         i32 targetZ = currentPos.z + rng.nextInt(TELEPORT_RANGE * 2 + 1) - TELEPORT_RANGE;
@@ -255,7 +255,7 @@ void ShulkerEntity::shootBullet()
     m_world->spawnEntity(std::move(bullet));
 
     // 设置攻击冷却
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
     m_attackCooldown = ATTACK_COOLDOWN_MIN + rng.nextInt(ATTACK_COOLDOWN_RANDOM / 2);
     m_attacking = true;
 
@@ -343,7 +343,7 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
         //      （被同类潜影弹命中：瞬移到新位置并在原位繁殖一只同色潜影贝）
         // 注：vanilla 是 if/else if，即半血逃脱优先，未触发逃脱时才检查潜影弹命中回调。
         if (health() < maxHealth() * 0.5f && m_world != nullptr) {
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             if (rng.nextInt(4) == 0) {
                 _tryTeleportToNewPosition();
             }
@@ -413,7 +413,7 @@ void ShulkerEntity::_hitByShulkerBullet(const Vector3& originalPos)
     //    i>=6 时 f>=1 必不繁殖。注意本实体已瞬移离开原位，故统计中不含自身（getEntitiesInAABB
     //    已排除 this）。
     const f32 threshold = static_cast<f32>(shulkerCount - 1) / 5.0f;
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
     if (rng.nextFloat() < threshold) {
         return; // 概率未通过，不繁殖
     }

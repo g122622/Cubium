@@ -73,7 +73,7 @@ bool RandomWalkingGoal::shouldExecute()
         // 检查执行概率。对齐 vanilla RandomStrollGoal.canUse：
         // nextInt(reducedTickDelay(interval))，interval 默认 120。
         // reducedTickDelay 把门槛减半补偿 GoalSelector 半 tick 评估。
-        math::Random& rng = m_creature->getRandom();
+        math::IRandom& rng = m_creature->getRandom();
         if (rng.nextInt(reducedTickDelay(m_executionChance)) != 0) {
             return false;
         }

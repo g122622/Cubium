@@ -90,7 +90,7 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
 
     // 生成爆炸粒子效果（客户端检查已在上面）
     using namespace mc::particle;
-    math::Random& random = worldPtr->getRandom();
+    math::IRandom& random = worldPtr->getRandom();
     for (i32 i = 0; i < 20; ++i) {
         f32 offsetX = (random.nextFloat() - 0.5f) * width();
         f32 offsetY = random.nextFloat() * height();
@@ -334,7 +334,7 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
     // 遗传皮肤类型
     // 如果双亲类型相同，有 1/1024 概率变异为另一种类型
     // 否则，随机继承双亲之一的类型
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
 
     MooshroomEntity* partnerMooshroom = dynamic_cast<MooshroomEntity*>(&partner);
     if (partnerMooshroom != nullptr) {
@@ -384,7 +384,7 @@ void MooshroomEntity::onStruckByLightning(entity::LightningBoltEntity* lightning
     // 生成爆炸粒子效果（客户端）
     if (world() != nullptr && world()->isClientSide()) {
         using namespace mc::particle;
-        math::Random& random = world()->getRandom();
+        math::IRandom& random = world()->getRandom();
 
         // 生成多个爆炸粒子
         constexpr i32 particleCount = 20;

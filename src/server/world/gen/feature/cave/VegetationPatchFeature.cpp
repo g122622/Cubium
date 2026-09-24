@@ -48,7 +48,7 @@ namespace mc::world::gen::feature::cave {
 // ============================================================================
 
 std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(
-    WorldGenRegion& region, math::Random& random, const BlockPos& pos, const VegetationPatchConfig& config)
+    WorldGenRegion& region, math::IRandom& random, const BlockPos& pos, const VegetationPatchConfig& config)
 {
     std::vector<BlockPos> groundPositions;
 
@@ -132,7 +132,7 @@ std::vector<BlockPos> VegetationPatchFeature::placeGroundPatch(
 }
 
 bool VegetationPatchFeature::placeGround(WorldGenRegion& region,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const VegetationPatchConfig& config,
     Direction surfaceDir,
@@ -171,7 +171,7 @@ bool VegetationPatchFeature::placeGround(WorldGenRegion& region,
 void VegetationPatchFeature::distributeVegetation(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const std::vector<BlockPos>& groundPositions,
     const VegetationPatchConfig& config)
 {
@@ -200,7 +200,7 @@ void VegetationPatchFeature::distributeVegetation(WorldGenRegion& region,
 bool VegetationPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const VegetationPatchConfig& config)
 {
@@ -244,7 +244,7 @@ bool WaterloggedVegetationPatchFeature::isExposed(WorldGenRegion& region, const 
 bool WaterloggedVegetationPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const VegetationPatchConfig& config)
 {
@@ -313,7 +313,7 @@ ConfiguredVegetationPatchFeature::ConfiguredVegetationPatchFeature(
 bool ConfiguredVegetationPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return VegetationPatchFeature::place(region, chunk, generator, random, pos, *m_config);
@@ -332,7 +332,7 @@ ConfiguredWaterloggedPatchFeature::ConfiguredWaterloggedPatchFeature(
 bool ConfiguredWaterloggedPatchFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return WaterloggedVegetationPatchFeature::place(region, chunk, generator, random, pos, *m_config);

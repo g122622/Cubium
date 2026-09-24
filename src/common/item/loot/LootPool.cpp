@@ -115,7 +115,7 @@ void LootPool::generate(std::function<void(const ItemStack&)> consumer, LootCont
     }
 
     // 计算掷骰次数 = 基础次数 + 幸运值加成
-    math::Random& random = context.getRandom();
+    math::IRandom& random = context.getRandom();
     i32 rollCount =
         m_rolls.generateInt(random) + static_cast<i32>(m_bonusRolls.generateFloat(random) * context.getLuck());
     // spdlog::info("LootPool::generate pool='{}' rollCount={} luck={}", m_name, rollCount, context.getLuck());
@@ -187,7 +187,7 @@ void LootPool::_generateRoll(std::function<void(const ItemStack&)> consumer, Loo
     }
 
     // 按权重随机选择
-    math::Random& random = context.getRandom();
+    math::IRandom& random = context.getRandom();
     i32 selected = random.nextInt(totalWeight);
 
     for (const auto& we : weightedEntries) {

@@ -1008,7 +1008,7 @@ void AbstractMinecartEntity::dropItem(DamageSource* source)
     }
 
     // 使用 ItemDropHelper 在实体位置生成物品
-    math::Random& rng = worldPtr->getRandom();
+    math::IRandom& rng = worldPtr->getRandom();
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
 
     remove();
@@ -1183,7 +1183,7 @@ void ChestMinecartEntity::dropItem(DamageSource* source)
 
     if (doEntityDrops && c->m_inventory) {
         // 掉落所有库存物品
-        math::Random& rng = worldPtr->getRandom();
+        math::IRandom& rng = worldPtr->getRandom();
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
             ItemStack stack = c->m_inventory->getItem(i);
             if (!stack.isEmpty()) {
@@ -1294,7 +1294,7 @@ void FurnaceMinecartEntity::tick()
     // 燃烧时产生烟雾粒子
     // 激活状态下每 tick 有 1/4 概率产生大烟雾粒子
     if (isActivated() && worldPtr != nullptr) {
-        math::Random& random = worldPtr->getRandom();
+        math::IRandom& random = worldPtr->getRandom();
         if (random.nextInt(4) == 0) {
             using namespace particle;
             worldPtr->addParticle(ParticleTypeId::LargeSmoke, Vector3(x(), y() + 0.8, z()), Vector3(0.0, 0.0, 0.0));
@@ -1406,7 +1406,7 @@ void FurnaceMinecartEntity::dropItem(DamageSource* source)
         const BlockItem* furnaceBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::FURNACE);
         if (furnaceBlockItem != nullptr) {
             ItemStack stack(*furnaceBlockItem, 1);
-            math::Random& rng = worldPtr->getRandom();
+            math::IRandom& rng = worldPtr->getRandom();
             ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
         }
     }
@@ -1588,7 +1588,7 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
                     const BlockItem* tntBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::TNT);
                     if (tntBlockItem != nullptr) {
                         ItemStack stack(*tntBlockItem, 1);
-                        math::Random& rng = worldPtr->getRandom();
+                        math::IRandom& rng = worldPtr->getRandom();
                         ItemDropHelper::spawnItemEntity(
                             worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
                     }
@@ -1606,7 +1606,7 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
             // 随机点燃时间 0-38 ticks（对应 MC Java 的 random.nextInt(20) + random.nextInt(20)）
             IWorld* worldPtr = world();
             if (worldPtr) {
-                math::Random& rng = worldPtr->getRandom();
+                math::IRandom& rng = worldPtr->getRandom();
                 c->m_fuse = rng.nextInt(20) + rng.nextInt(20);
             } else {
                 c->m_fuse = 20;
@@ -1669,7 +1669,7 @@ void TNTMinecartEntity::_explode(f32 speedFactor, const DamageSource* damageSour
         d0 = 5.0;
     }
 
-    math::Random& rng = worldPtr->getRandom();
+    math::IRandom& rng = worldPtr->getRandom();
     f32 radius = static_cast<f32>(4.0 + rng.nextDouble() * 1.5 * d0);
 
     // 创建爆炸（TNT矿车爆炸时不破坏铁轨）
@@ -1913,7 +1913,7 @@ void HopperMinecartEntity::dropItem(DamageSource* source)
 
     if (doEntityDrops && c->m_inventory) {
         // 掉落所有库存物品
-        math::Random& rng = worldPtr->getRandom();
+        math::IRandom& rng = worldPtr->getRandom();
         for (i32 i = 0; i < INVENTORY_SIZE; ++i) {
             ItemStack stack = c->m_inventory->getItem(i);
             if (!stack.isEmpty()) {

@@ -197,7 +197,7 @@ void RuinedPortalPiece::_updateBoundingBox()
 }
 
 void RuinedPortalPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -357,7 +357,7 @@ RuinedPortalType RuinedPortalStructure::getPortalType(BiomeId biome)
 }
 
 bool RuinedPortalStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
     // 间距检查已由 StructurePlacement::isStructureChunk() 处理
     // 概率检查（约 30% 基础概率，具体由生物群系调整）
@@ -365,7 +365,7 @@ bool RuinedPortalStructure::canGenerate(
 }
 
 RuinedPortalProperties RuinedPortalStructure::configureProperties(
-    RuinedPortalType type, math::Random& rng, BiomeId biome) const
+    RuinedPortalType type, math::IRandom& rng, BiomeId biome) const
 {
     RuinedPortalProperties props;
 
@@ -429,7 +429,7 @@ RuinedPortalProperties RuinedPortalStructure::configureProperties(
     return props;
 }
 
-RuinedPortalLocation RuinedPortalStructure::determineLocation(RuinedPortalType type, math::Random& rng) const
+RuinedPortalLocation RuinedPortalStructure::determineLocation(RuinedPortalType type, math::IRandom& rng) const
 {
     // 根据类型确定垂直放置位置
     switch (type) {
@@ -460,7 +460,7 @@ RuinedPortalLocation RuinedPortalStructure::determineLocation(RuinedPortalType t
 }
 
 std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

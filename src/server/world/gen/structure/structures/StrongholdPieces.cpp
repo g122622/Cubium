@@ -54,7 +54,7 @@ StrongholdPiece::StrongholdPiece(i32 type, i32 minX, i32 minY, i32 minZ, i32 max
     : StructurePiece(type, minX, minY, minZ, maxX, maxY, maxZ)
 {}
 
-StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::Random& rng)
+StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::IRandom& rng)
 {
     i32 value = rng.nextInt(5);
     switch (value) {
@@ -72,7 +72,7 @@ StrongholdPiece::Door StrongholdPiece::getRandomDoor(math::Random& rng)
 }
 
 void StrongholdPiece::generateDoor(
-    IWorldWriter& world, const StructureBoundingBox& bounds, math::Random& rng, Door door, i32 x, i32 y, i32 z)
+    IWorldWriter& world, const StructureBoundingBox& bounds, math::IRandom& rng, Door door, i32 x, i32 y, i32 z)
 {
     (void)rng; // 不需要随机数，保持接口一致
 
@@ -146,7 +146,7 @@ bool StrongholdPiece::canStrongholdGoDeeper(const StructureBoundingBox& box)
 
 StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 offsetX,
     i32 offsetY)
 {
@@ -188,7 +188,7 @@ StructurePiece* StrongholdPiece::getNextComponentNormal(StrongholdStartStairs* s
 
 StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 offsetX,
     i32 offsetY)
 {
@@ -234,7 +234,7 @@ StructurePiece* StrongholdPiece::getNextComponentX(StrongholdStartStairs* start,
 
 StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 offsetX,
     i32 offsetY)
 {
@@ -282,7 +282,7 @@ StructurePiece* StrongholdPiece::getNextComponentZ(StrongholdStartStairs* start,
 // StrongholdStonesSelector 实现
 // ============================================================================
 
-void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32 z, bool isWall)
+void StrongholdStonesSelector::selectBlocks(math::IRandom& rng, i32 x, i32 y, i32 z, bool isWall)
 {
     (void)x;
     (void)y;
@@ -311,7 +311,7 @@ void StrongholdStonesSelector::selectBlocks(math::Random& rng, i32 x, i32 y, i32
 // ============================================================================
 
 StrongholdStraight::StrongholdStraight(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -328,7 +328,7 @@ StrongholdStraight::StrongholdStraight(i32 componentType,
 }
 
 void StrongholdStraight::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -360,7 +360,7 @@ void StrongholdStraight::generate(IWorldWriter& world,
 }
 
 void StrongholdStraight::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -383,7 +383,7 @@ void StrongholdStraight::buildComponent(
 
 std::unique_ptr<StrongholdStraight> StrongholdStraight::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -420,7 +420,7 @@ std::unique_ptr<StrongholdStraight> StrongholdStraight::createPiece(
 // PortalRoom, Corridor
 
 StrongholdPrison::StrongholdPrison(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -435,7 +435,7 @@ StrongholdPrison::StrongholdPrison(i32 componentType,
 }
 
 void StrongholdPrison::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -462,7 +462,7 @@ void StrongholdPrison::generate(IWorldWriter& world,
 }
 
 void StrongholdPrison::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -473,7 +473,7 @@ void StrongholdPrison::buildComponent(
 }
 
 std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -498,7 +498,7 @@ std::unique_ptr<StrongholdPrison> StrongholdPrison::createPiece(std::vector<std:
 
 // LeftTurn
 StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -513,7 +513,7 @@ StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType,
 }
 
 void StrongholdLeftTurn::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -538,7 +538,7 @@ void StrongholdLeftTurn::generate(IWorldWriter& world,
 }
 
 void StrongholdLeftTurn::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -555,7 +555,7 @@ void StrongholdLeftTurn::buildComponent(
 
 std::unique_ptr<StrongholdLeftTurn> StrongholdLeftTurn::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -580,7 +580,7 @@ std::unique_ptr<StrongholdLeftTurn> StrongholdLeftTurn::createPiece(
 
 // RightTurn
 StrongholdRightTurn::StrongholdRightTurn(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -595,7 +595,7 @@ StrongholdRightTurn::StrongholdRightTurn(i32 componentType,
 }
 
 void StrongholdRightTurn::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -620,7 +620,7 @@ void StrongholdRightTurn::generate(IWorldWriter& world,
 }
 
 void StrongholdRightTurn::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -637,7 +637,7 @@ void StrongholdRightTurn::buildComponent(
 
 std::unique_ptr<StrongholdRightTurn> StrongholdRightTurn::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -662,7 +662,7 @@ std::unique_ptr<StrongholdRightTurn> StrongholdRightTurn::createPiece(
 
 // RoomCrossing
 StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -678,7 +678,7 @@ StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType,
 }
 
 void StrongholdRoomCrossing::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -738,7 +738,7 @@ void StrongholdRoomCrossing::generate(IWorldWriter& world,
 }
 
 void StrongholdRoomCrossing::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -752,7 +752,7 @@ void StrongholdRoomCrossing::buildComponent(
 
 std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -777,7 +777,7 @@ std::unique_ptr<StrongholdRoomCrossing> StrongholdRoomCrossing::createPiece(
 
 // StairsStraight
 StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -792,7 +792,7 @@ StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType,
 }
 
 void StrongholdStairsStraight::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -823,7 +823,7 @@ void StrongholdStairsStraight::generate(IWorldWriter& world,
 }
 
 void StrongholdStairsStraight::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -835,7 +835,7 @@ void StrongholdStairsStraight::buildComponent(
 
 std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -860,7 +860,7 @@ std::unique_ptr<StrongholdStairsStraight> StrongholdStairsStraight::createPiece(
 
 // Stairs
 StrongholdStairs::StrongholdStairs(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -875,7 +875,7 @@ StrongholdStairs::StrongholdStairs(i32 componentType,
 }
 
 void StrongholdStairs::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -913,7 +913,7 @@ void StrongholdStairs::generate(IWorldWriter& world,
 }
 
 void StrongholdStairs::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -929,7 +929,7 @@ void StrongholdStairs::buildComponent(
 }
 
 std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -953,7 +953,7 @@ std::unique_ptr<StrongholdStairs> StrongholdStairs::createPiece(std::vector<std:
 }
 
 // StartStairs
-StrongholdStartStairs::StrongholdStartStairs(math::Random& rng, i32 x, i32 z)
+StrongholdStartStairs::StrongholdStartStairs(math::IRandom& rng, i32 x, i32 z)
     : StrongholdStairs(StrongholdPieceTypes::START_STAIRS,
           rng,
           x,
@@ -971,14 +971,14 @@ StrongholdStartStairs::StrongholdStartStairs(math::Random& rng, i32 x, i32 z)
 }
 
 void StrongholdStartStairs::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     StrongholdStairs::buildComponent(component, pieces, rng);
 }
 
 // Crossing
 StrongholdCrossing::StrongholdCrossing(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -997,7 +997,7 @@ StrongholdCrossing::StrongholdCrossing(i32 componentType,
 }
 
 void StrongholdCrossing::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1030,7 +1030,7 @@ void StrongholdCrossing::generate(IWorldWriter& world,
 }
 
 void StrongholdCrossing::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -1077,7 +1077,7 @@ void StrongholdCrossing::buildComponent(
 
 std::unique_ptr<StrongholdCrossing> StrongholdCrossing::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -1102,7 +1102,7 @@ std::unique_ptr<StrongholdCrossing> StrongholdCrossing::createPiece(
 
 // ChestCorridor
 StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -1117,7 +1117,7 @@ StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType,
 }
 
 void StrongholdChestCorridor::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1152,7 +1152,7 @@ void StrongholdChestCorridor::generate(IWorldWriter& world,
 }
 
 void StrongholdChestCorridor::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     auto* start = dynamic_cast<StrongholdStartStairs*>(component);
     if (start == nullptr) {
@@ -1164,7 +1164,7 @@ void StrongholdChestCorridor::buildComponent(
 
 std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -1189,7 +1189,7 @@ std::unique_ptr<StrongholdChestCorridor> StrongholdChestCorridor::createPiece(
 
 // Library
 StrongholdLibrary::StrongholdLibrary(i32 componentType,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 minX,
     i32 minY,
     i32 minZ,
@@ -1205,7 +1205,7 @@ StrongholdLibrary::StrongholdLibrary(i32 componentType,
 }
 
 void StrongholdLibrary::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1263,7 +1263,7 @@ void StrongholdLibrary::generate(IWorldWriter& world,
 }
 
 std::unique_ptr<StrongholdLibrary> StrongholdLibrary::createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -1298,7 +1298,7 @@ StrongholdPortalRoom::StrongholdPortalRoom(
 }
 
 void StrongholdPortalRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1394,7 +1394,7 @@ void StrongholdPortalRoom::generate(IWorldWriter& world,
 }
 
 void StrongholdPortalRoom::buildComponent(
-    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng)
+    StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng)
 {
     // PortalRoom 是终点，不再生成后续组件
     // 但需要将自身注册到 start 的 portalRoom 引用
@@ -1435,7 +1435,7 @@ StrongholdCorridor::StrongholdCorridor(
 }
 
 void StrongholdCorridor::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1468,7 +1468,7 @@ void StrongholdCorridor::generate(IWorldWriter& world,
 
 std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -1494,7 +1494,7 @@ std::unique_ptr<StrongholdCorridor> StrongholdCorridor::createPiece(
 }
 
 StructureBoundingBox StrongholdCorridor::findPieceBox(
-    std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng, i32 x, i32 y, i32 z, Direction direction)
+    std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng, i32 x, i32 y, i32 z, Direction direction)
 {
 
     StructureBoundingBox box = StructureBoundingBox::createBox(x, y, z, -1, -1, 0, 5, 5, 4, direction);
@@ -1556,7 +1556,7 @@ bool canAddStructurePieces(std::vector<StrongholdPieceWeight>& weights, i32& out
 
 std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -1596,7 +1596,7 @@ std::unique_ptr<StrongholdPiece> createStrongholdPiece(i32 pieceType,
 
 std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -1703,7 +1703,7 @@ std::unique_ptr<StrongholdPiece> generatePieceFromSmallDoor(StrongholdStartStair
 
 StructurePiece* generateAndAddPiece(StrongholdStartStairs* start,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,

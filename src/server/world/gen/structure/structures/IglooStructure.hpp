@@ -60,7 +60,7 @@ public:
     ~IglooPiece() override = default;
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -79,9 +79,9 @@ public:
 
 private:
     void _loadTemplates();
-    void _generateTop(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
-    void _generateMiddle(IWorldWriter& world, math::Random& rng, i32 index, const StructureBoundingBox& bounds);
-    void _generateBottom(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void _generateTop(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
+    void _generateMiddle(IWorldWriter& world, math::IRandom& rng, i32 index, const StructureBoundingBox& bounds);
+    void _generateBottom(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
     void _updateBoundingBox();
 
     Rotation m_rotation;
@@ -119,10 +119,10 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 设置模板管理器

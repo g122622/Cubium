@@ -156,19 +156,21 @@ public:
 
     /**
      * @brief 获取确定性随机数生成器
-     * 如果设置了预设随机数，则返回预设的；否则基于位置种子创建
      *
-     * @param pos 位置种子
-     * @return 随机数生成器
+     * 设置了预设随机数时**借用**它（不拥有所有权，调用方保证其存活期覆盖本次使用）；
+     * 否则按原版 StructurePlaceSettings.getRandom 创建一个基于位置种子的 LegacyRandomSource。
+     *
+     * @param pos 位置种子；为空时对应原版的"无位置"分支（基于当前时间，非确定性）
+     * @return 随机数生成器：预设命中时为借用指针，否则为自持有的新实例
      */
-    [[nodiscard]] math::Random getRandom(const BlockPos& pos) const;
+    [[nodiscard]] std::pair<math::IRandom*, std::unique_ptr<math::IRandom>> getRandom(const BlockPos* pos) const;
 
     /**
      * @brief 设置预设随机数生成器
      *
      * 当需要固定随机序列时使用
      */
-    PlacementSettings& setRandom(math::Random* random)
+    PlacementSettings& setRandom(math::IRandom* random)
     {
         m_random = random;
         return *this;
@@ -188,8 +190,8 @@ private:
     BlockPos m_centerOffset = BlockPos(0, 0, 0);
     i32 m_blockUpdateFlags = world::BlockUpdateFlags::UPDATE_CLIENTS | world::BlockUpdateFlags::UPDATE_KNOWN_SHAPE;
     const StructureProcessorList* m_processors = nullptr;
-    const IWorld* m_world = nullptr;  // 可选的世界读取器
-    math::Random* m_random = nullptr; // 可选的预设随机数生成器
+    const IWorld* m_world = nullptr;   // 可选的世界读取器
+    math::IRandom* m_random = nullptr; // 可选的预设随机数生成器
 };
 
 /**
@@ -530,7 +532,7 @@ public:
      * @param rng 随机数生成器
      * @return 选中的调色板，如果没有调色板返回 nullptr
      */
-    [[nodiscard]] const Palette* selectPalette(math::Random& rng) const;
+    [[nodiscard]] const Palette* selectPalette(math::IRandom& rng) const;
 
     /**
      * @brief 获取第一个调色板的方块（兼容旧接口）
@@ -569,7 +571,7 @@ public:
     bool place(IWorldWriter& world,
         const BlockPos& pos,
         const PlacementSettings& settings,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 flags) const;
 
     /**
@@ -588,7 +590,7 @@ public:
      * @return 是否成功放置
      */
     bool placeInWorld(
-        IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::Random& rng, i32 flags) const;
+        IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const;
 
     [[nodiscard]] static BlockPos transformBlockPos(
         const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center);
@@ -828,30 +830,30 @@ private:
 
     /// 尝试替换完整石砖方块（石砖、石头、錾刻石砖）
     /// 可能替换为裂纹石砖、苔藓石砖、随机朝向石砖楼梯或苔藓石砖楼梯
-    [[nodiscard]] const BlockState* _maybeReplaceFullStoneBlock(math::Random& rng);
+    [[nodiscard]] const BlockState* _maybeReplaceFullStoneBlock(math::IRandom& rng);
 
     /// 尝试替换楼梯方块，使用 withPropertiesOf 保留原朝向/半部分属性
-    [[nodiscard]] const BlockState* _maybeReplaceStairs(const BlockState& state, math::Random& rng);
+    [[nodiscard]] const BlockState* _maybeReplaceStairs(const BlockState& state, math::IRandom& rng);
 
     /// 尝试替换台阶方块，使用 withPropertiesOf 保留原类型属性
-    [[nodiscard]] const BlockState* _maybeReplaceSlab(const BlockState& state, math::Random& rng);
+    [[nodiscard]] const BlockState* _maybeReplaceSlab(const BlockState& state, math::IRandom& rng);
 
     /// 尝试替换墙壁方块，使用 withPropertiesOf 保留原连接属性
-    [[nodiscard]] const BlockState* _maybeReplaceWall(const BlockState& state, math::Random& rng);
+    [[nodiscard]] const BlockState* _maybeReplaceWall(const BlockState& state, math::IRandom& rng);
 
     /// 尝试替换黑曜石为哭泣黑曜石
-    [[nodiscard]] static const BlockState* _maybeReplaceObsidian(math::Random& rng);
+    [[nodiscard]] static const BlockState* _maybeReplaceObsidian(math::IRandom& rng);
 
     /// 生成随机朝向的楼梯状态（随机水平朝向 + 随机上半/下半）
-    [[nodiscard]] static const BlockState& _getRandomFacingStairs(math::Random& rng, const Block& stairsBlock);
+    [[nodiscard]] static const BlockState& _getRandomFacingStairs(math::IRandom& rng, const Block& stairsBlock);
 
     /// 根据 mossiness 概率从两组候选中随机选择
     [[nodiscard]] const BlockState* _getRandomBlock(
-        math::Random& rng, const BlockState* const nonMossy[], const BlockState* const mossy[]);
+        math::IRandom& rng, const BlockState* const nonMossy[], const BlockState* const mossy[]);
 
     /// 从选项数组中随机选取一个非空元素
     [[nodiscard]] static const BlockState* _pickRandomNonNull(
-        math::Random& rng, const BlockState* const options[], size_t count);
+        math::IRandom& rng, const BlockState* const options[], size_t count);
 };
 
 /**

@@ -188,7 +188,7 @@ inline void calculateOrbIconUV(i32 iconIndex, f64& u0, f64& v0, f64& u1, f64& v1
  * @param oreType 矿石类型 (0=煤矿, 1=钻石, 2=绿宝石, 3=青金石, 4=下界石英, 5=下界金, 6=红石, 7=刷怪笼)
  * @return 经验值
  */
-inline i32 randomOreExperience(math::Random& rng, i32 oreType)
+inline i32 randomOreExperience(math::IRandom& rng, i32 oreType)
 {
     using namespace constants;
 
@@ -220,7 +220,7 @@ inline i32 randomOreExperience(math::Random& rng, i32 oreType)
  * @param rng 随机数生成器
  * @return 经验值 (1-3)
  */
-inline i32 randomPassiveMobExperience(math::Random& rng)
+inline i32 randomPassiveMobExperience(math::IRandom& rng)
 {
     using namespace constants;
     return rng.nextInt(PASSIVE_MOB_XP_MIN, PASSIVE_MOB_XP_MAX);
@@ -232,7 +232,7 @@ inline i32 randomPassiveMobExperience(math::Random& rng)
  * @param rng 随机数生成器
  * @return 经验值 (1-6)
  */
-inline i32 randomFishingExperience(math::Random& rng)
+inline i32 randomFishingExperience(math::IRandom& rng)
 {
     using namespace constants;
     return rng.nextInt(FISHING_XP_MIN, FISHING_XP_MAX);

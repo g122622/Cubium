@@ -387,7 +387,7 @@ void FallingBlockEntity::_dropItem(IWorld* world, const BlockPos& pos)
     ItemStack stack(blockItem, 1);
 
     // 使用 ItemDropHelper 在方块位置生成物品实体
-    math::Random& rng = world->getRandom();
+    math::IRandom& rng = world->getRandom();
     ItemDropHelper::spawnItemEntity(world,
         stack,
         static_cast<f64>(pos.x) + 0.5,
@@ -463,7 +463,7 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     // 当方块是铁砧、伤害 > 0、且随机概率满足时，铁砧损坏
     // 概率公式: 0.05 + effectiveDistance * 0.05
     if (isAnvil && damage > 0 && m_fallingState != nullptr) {
-        math::Random& rng = world->getRandom();
+        math::IRandom& rng = world->getRandom();
         f32 damageChance = 0.05f + static_cast<f32>(effectiveDistance) * 0.05f;
         if (rng.nextFloat() < damageChance) {
             // 尝试降级铁砧
@@ -578,7 +578,7 @@ void TNTEntity::tick()
 
             // 在 TNT 上方随机位置生成烟雾粒子
             // 每帧有 1/3 概率生成粒子
-            math::Random& random = world()->getRandom();
+            math::IRandom& random = world()->getRandom();
             if (random.nextInt(3) == 0) {
                 // 粒子位置：TNT 上方，带随机偏移
                 f32 px = static_cast<f32>(x()) + random.nextFloat() * 0.6f - 0.3f;

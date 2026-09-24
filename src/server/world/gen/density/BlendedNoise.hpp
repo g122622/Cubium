@@ -61,7 +61,7 @@ public:
      * noise_settings.legacy_random_source：
      *   - false（主世界/放大化/大型群系）→ `random.fromHashOf("minecraft:terrain")` 得到的 Xoroshiro
      *   - true （下界/末地/洞穴/浮岛）  → 由 worldSeed 派生的 LegacyRandomSource
-     * 因此这里必须收 IRandom&，不能收具体类型——收错类型会让置换表与原点偏移全部错位。
+     * 因此这里必须收 math::IRandom&，不能收具体类型——收错类型会让置换表与原点偏移全部错位。
      *
      * @param random 共享随机源（调用后状态被消费）
      */

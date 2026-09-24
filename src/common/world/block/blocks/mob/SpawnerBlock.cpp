@@ -89,7 +89,7 @@ BlockActionResult SpawnerBlock::onBlockActivated(const BlockState& state,
     // 设置刷怪笼的实体类型
     const entity::EntityType& entityType = spawnEgg->getEntityType();
     ResourceLocation entityId(entityType.name());
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     spawner->setEntityId(entityId, rng);
 
     // 非创造模式下消耗刷怪蛋

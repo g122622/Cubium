@@ -156,7 +156,7 @@ public:
      *
      * @return 位置随机工厂
      */
-    [[nodiscard]] PositionalRandomFactory forkPositional();
+    [[nodiscard]] PositionalRandomFactory forkPositional() override;
 
 private:
     u64 m_state[2];

@@ -266,7 +266,7 @@ void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world,
     i32 maxY,
     i32 maxZ,
     bool alwaysReplace,
-    math::Random& rng,
+    math::IRandom& rng,
     BlockSelector& selector)
 {
     // 当 alwaysReplace=true 时，只替换非空气方块
@@ -294,7 +294,7 @@ void StructurePiece::fillWithRandomizedBlocks(IWorldWriter& world,
 
 void StructurePiece::randomlyPlaceBlock(IWorldWriter& world,
     const StructureBoundingBox& bounds,
-    math::Random& rng,
+    math::IRandom& rng,
     f32 chance,
     i32 x,
     i32 y,
@@ -495,7 +495,7 @@ const BlockState* StructurePiece::reorientChest(IWorld& world, const BlockPos& p
 
 void StructurePiece::generateChest(IWorldWriter& world,
     const StructureBoundingBox& bounds,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -549,7 +549,7 @@ void StructurePiece::generateChest(IWorldWriter& world,
 
 void StructurePiece::generateChest(IWorldWriter& world,
     const StructureBoundingBox& bounds,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -588,7 +588,7 @@ void StructurePiece::generateChest(IWorldWriter& world,
 
 void StructurePiece::generateDispenser(IWorldWriter& world,
     const StructureBoundingBox& bounds,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 x,
     i32 y,
     i32 z,
@@ -623,7 +623,7 @@ void StructurePiece::generateDispenser(IWorldWriter& world,
 }
 
 void StructurePiece::buildComponent(
-    StructurePiece* /*component*/, std::vector<std::unique_ptr<StructurePiece>>& /*pieces*/, math::Random& /*rng*/)
+    StructurePiece* /*component*/, std::vector<std::unique_ptr<StructurePiece>>& /*pieces*/, math::IRandom& /*rng*/)
 {
     // 默认实现为空，子类可以覆盖
 }
@@ -653,13 +653,13 @@ bool Structure::isValidBiome(BiomeId biomeId) const
 }
 
 bool Structure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
     return true;
 }
 
 std::unique_ptr<StructureStart> Structure::generate(
-    IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
     return std::make_unique<StructureStart>(chunkX, chunkZ);
 }
@@ -673,12 +673,12 @@ void Structure::placeInChunk(IWorldWriter& world,
 {
     StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 
-    math::Random rng = createRandom(
+    std::unique_ptr<math::IRandom> rng = createRandom(
         static_cast<i64>(chunkX) * 341873128712LL ^ static_cast<i64>(chunkZ) * 132897987541LL, chunkX, chunkZ, 0);
 
     for (const auto& piece : start.pieces()) {
         if (piece->intersectsChunk(chunkX, chunkZ)) {
-            piece->generate(world, rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
+            piece->generate(world, *rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
         }
     }
 }
@@ -688,11 +688,11 @@ void Structure::afterPlace(IWorldWriter& /*world*/, StructureStart& /*start*/, i
     // 默认实现为空，子类可以覆盖以在放置后执行额外操作
 }
 
-math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
+std::unique_ptr<math::IRandom> Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
 {
     u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
         static_cast<u64>(seed) + static_cast<u64>(salt);
-    return math::Random(static_cast<i64>(combinedSeed));
+    return std::make_unique<math::Random>(static_cast<i64>(combinedSeed));
 }
 
 // ========== StructureStart ==========

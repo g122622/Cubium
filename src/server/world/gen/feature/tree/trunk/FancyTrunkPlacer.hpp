@@ -43,7 +43,7 @@ public:
     FancyTrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB);
 
     std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
@@ -68,7 +68,7 @@ private:
      * @param place 为 true 时逐格放置方块，为 false 时仅探测路径是否通畅
      */
     bool _makeLimb(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& start,
         const BlockPos& end,
         bool place,

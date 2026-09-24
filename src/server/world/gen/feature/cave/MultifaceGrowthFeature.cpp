@@ -142,7 +142,7 @@ ConfiguredMultifaceGrowthFeature::ConfiguredMultifaceGrowthFeature(
 bool ConfiguredMultifaceGrowthFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, generator, random, pos, *m_config);
@@ -154,7 +154,7 @@ bool ConfiguredMultifaceGrowthFeature::place(WorldGenRegion& region,
 
 bool MultifaceGrowthFeature::place(IWorld& world,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     const MultifaceGrowthConfig& config)
 {

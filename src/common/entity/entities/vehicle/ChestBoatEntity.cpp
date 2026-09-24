@@ -167,7 +167,7 @@ void ChestBoatEntity::dropItem()
         stack.setCustomName(customNameText());
     }
 
-    math::Random& rng = worldPtr->getRandom();
+    math::IRandom& rng = worldPtr->getRandom();
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }
 
@@ -545,7 +545,7 @@ void ChestBoatEntity::dropInventoryContents()
     // 掉落前先解包战利品表，确保所有物品已生成
     unpackLootTable(nullptr);
 
-    math::Random& rng = worldPtr->getRandom();
+    math::IRandom& rng = worldPtr->getRandom();
     for (i32 i = 0; i < CONTAINER_SIZE; ++i) {
         ItemStack stack = m_inventory->getItem(i);
         if (!stack.isEmpty()) {

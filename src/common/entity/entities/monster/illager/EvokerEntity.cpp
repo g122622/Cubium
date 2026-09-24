@@ -244,7 +244,7 @@ void EvokerEntity::summonVex()
     // 召唤3个恼鬼
     for (i32 i = 0; i < 3; ++i) {
         // 在唤魔者周围随机位置生成
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         i32 offsetX = -2 + rng.nextInt(5);
         i32 offsetZ = -2 + rng.nextInt(5);
         BlockPos spawnPos(static_cast<i32>(x()) + offsetX, static_cast<i32>(y()) + 1, static_cast<i32>(z()) + offsetZ);

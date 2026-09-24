@@ -232,7 +232,7 @@ bool placeCoralBase(WorldGenRegion& world, const BlockPos& pos, blocks::CoralCol
 }
 
 void placeCoralDecorations(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,
@@ -278,7 +278,7 @@ void placeCoralDecorations(WorldGenRegion& world,
 }
 
 bool placeCoralWithDecorations(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,
@@ -297,7 +297,7 @@ bool placeCoralWithDecorations(WorldGenRegion& world,
 // ============================================================================
 
 bool CoralFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     const i32 placeX = pos.x + random.nextInt(world::CHUNK_WIDTH);
     const i32 placeZ = pos.z + random.nextInt(world::CHUNK_WIDTH);
@@ -407,7 +407,7 @@ ConfiguredCoralFeature::ConfiguredCoralFeature(std::unique_ptr<CoralFeatureConfi
 bool ConfiguredCoralFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

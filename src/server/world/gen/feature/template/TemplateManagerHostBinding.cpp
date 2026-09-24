@@ -23,8 +23,8 @@
 
 #include "TemplateManagerHostBinding.hpp"
 #include "TemplateManager.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc {
 namespace world {

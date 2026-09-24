@@ -54,7 +54,7 @@ void GhastMovementController::tick()
     }
 
     // 每次更新后添加随机冷却，避免频繁调整
-    math::Random& rng = m_ghast->getRandom();
+    math::IRandom& rng = m_ghast->getRandom();
     m_courseChangeCooldown = rng.nextInt(5) + 2; // 2-6 ticks
 
     // 计算到目标位置的向量

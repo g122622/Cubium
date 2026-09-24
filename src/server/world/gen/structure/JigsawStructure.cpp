@@ -81,7 +81,7 @@ public:
     {}
 
     void generate(mc::IWorldWriter& world,
-        mc::math::Random& rng,
+        mc::math::IRandom& rng,
         mc::i32 chunkX,
         mc::i32 chunkZ,
         const mc::world::gen::structure::StructureBoundingBox& chunkBounds,
@@ -142,7 +142,7 @@ JigsawStructure::JigsawStructure(ResourceLocation id,
     m_terrainAdaptation = terrainAdaptation;
 }
 
-bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -169,7 +169,7 @@ bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, mat
 }
 
 std::unique_ptr<StructureStart> JigsawStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

@@ -48,7 +48,7 @@ namespace {
 MushroomBlock::BigMushroomGenerator createBigMushroomGenerator(
     std::function<BigMushroomFeatureConfig()> configCreator, std::shared_ptr<BigMushroomFeature> feature)
 {
-    return [configCreator, feature](IWorld& world, const BlockPos& pos, math::Random& random) {
+    return [configCreator, feature](IWorld& world, const BlockPos& pos, math::IRandom& random) {
         auto& region = static_cast<WorldGenRegion&>(world);
         BigMushroomFeatureConfig config = configCreator();
         feature->place(region, random, pos, config);

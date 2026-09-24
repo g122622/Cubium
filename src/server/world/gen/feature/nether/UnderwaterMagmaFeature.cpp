@@ -77,7 +77,7 @@ namespace {
 } // namespace
 
 bool UnderwaterMagmaFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const UnderwaterMagmaConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const UnderwaterMagmaConfig& config)
 {
     const std::optional<i32> floorY = getFloorY(world, pos, config);
     if (!floorY.has_value()) {
@@ -173,7 +173,7 @@ ConfiguredUnderwaterMagmaFeature::ConfiguredUnderwaterMagmaFeature(
 bool ConfiguredUnderwaterMagmaFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

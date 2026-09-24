@@ -54,13 +54,13 @@ CherryFoliagePlacer::CherryFoliagePlacer(const FeatureSpread& radius,
     , m_hangingLeavesExtensionChance(hangingLeavesExtensionChance)
 {}
 
-i32 CherryFoliagePlacer::getFoliageHeight(math::Random& /*random*/, i32 /*trunkHeight*/) const
+i32 CherryFoliagePlacer::getFoliageHeight(math::IRandom& /*random*/, i32 /*trunkHeight*/) const
 {
     return m_height;
 }
 
 void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -126,7 +126,7 @@ void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
         m_hangingLeavesExtensionChance);
 }
 
-bool CherryFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
+bool CherryFoliagePlacer::shouldSkip(math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 底层宽孔洞：y == -1 且在边缘
     if (dy == -1 && (std::abs(dx) == radius || std::abs(dz) == radius) &&
@@ -156,7 +156,7 @@ bool CherryFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 d
 }
 
 void CherryFoliagePlacer::placeLeavesRowWithHangingLeavesBelow(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& centerPos,
     i32 radius,
     i32 y,

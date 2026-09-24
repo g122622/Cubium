@@ -198,7 +198,7 @@ void PhantomEntity::_clientTickEffects()
 
     if (flapCosCurrent > 0.0f && flapCosNext <= 0.0f) {
         // 翅膀拍打过零点：播放拍打音效
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         if (!isSilent()) {
             world()->playSound(SoundEvents::ENTITY_PHANTOM_FLAP,
                 getSoundCategory(),

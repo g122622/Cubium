@@ -68,7 +68,7 @@ struct BiomeFilterConfig : public IPlacementConfig {
 class BiomeFilterPlacement : public Placement {
 public:
     [[nodiscard]] std::vector<BlockPos> getPositions(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const IPlacementConfig& config,
         const BlockPos& basePos) const override;
 

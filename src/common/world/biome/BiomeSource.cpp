@@ -78,7 +78,7 @@ std::optional<BlockPos> IBiomeSource::findBiome(i32 centerX,
     i32 radius,
     i32 step,
     const std::function<bool(BiomeId)>& predicate,
-    math::Random& random,
+    math::IRandom& random,
     bool stopOnFirst) const
 {
     // quart 坐标 = floorDiv(方块坐标, 4)，负坐标下 >> 2 不是向下取整

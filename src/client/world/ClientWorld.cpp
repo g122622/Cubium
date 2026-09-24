@@ -1373,7 +1373,7 @@ void ClientWorld::animateTick(i32 playerX, i32 playerY, i32 playerZ)
     }
 }
 
-void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 range, math::Random& random)
+void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 range, math::IRandom& random)
 {
     // 在玩家周围随机采样一个位置（三角分布近似）
     const i32 x = centerX + random.nextInt(range) - random.nextInt(range);

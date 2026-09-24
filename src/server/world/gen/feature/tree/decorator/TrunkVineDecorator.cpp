@@ -39,7 +39,7 @@ void TrunkVineDecorator::place(const TreeDecoratorContext& context) const
     // MC TrunkVineDecorator.place：对每根原木，west/east/north/south 各以
     // nextInt(3) > 0（2/3 概率）放置藤蔓。藤蔓朝向属性 = 该方向相反面
     // （west 邻居放 EAST=true 的藤蔓，表示藤蔓贴在原木西面/邻居东面）。
-    math::Random& random = context.random();
+    math::IRandom& random = context.random();
     for (const BlockPos& log : context.logs()) {
         if (random.nextInt(3) > 0) {
             const BlockPos west = log.west();

@@ -61,7 +61,7 @@ std::unique_ptr<Entity> ParrotEntity::create(IWorld* /*world*/, ecs::EntityRegis
 
 void ParrotEntity::randomizeVariant()
 {
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     m_variant = static_cast<ParrotVariant>(rng.nextInt(0, 4));
 }
 
@@ -108,7 +108,7 @@ void ParrotEntity::tick()
     }
 
     if (!m_imitating && isTamed()) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         if (rng.nextInt(1, 100) == 1) {
             m_imitateTimer = 60;
         }
@@ -190,7 +190,7 @@ ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
         // 服务端处理驯服逻辑
         if (m_world != nullptr && !m_world->isClientSide()) {
             // 驯服概率 1/10 (10%)
-            math::Random& rng = getRandom();
+            math::IRandom& rng = getRandom();
             if (rng.nextInt(10) == 0) {
                 // 驯服成功
                 setTamed(true);

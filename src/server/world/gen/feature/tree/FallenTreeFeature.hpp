@@ -80,7 +80,7 @@ class FallenTreeFeature {
 public:
     bool place(WorldGenRegion& region,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& origin,
         const FallenTreeConfig& config);
 
@@ -97,13 +97,13 @@ private:
     /// MC FallenTreeFeature.placeLogBlock：写原木方块（应用 stateModifier）。
     [[nodiscard]] static BlockPos placeLogBlock(WorldGenRegion& region,
         const FallenTreeConfig& config,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const std::function<const BlockState*(const BlockState*)>& stateModifier);
 
     /// MC FallenTreeFeature.decorateLogs：对 logs 跑 decorators。
     static void decorateLogs(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const std::vector<BlockPos>& logs,
         const std::vector<std::unique_ptr<decorator::TreeDecorator>>& decorators);
 };
@@ -118,7 +118,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

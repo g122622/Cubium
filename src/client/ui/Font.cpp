@@ -200,7 +200,7 @@ u32 Font::getFontHeight() const
     return m_fontHeight;
 }
 
-const Glyph* Font::getRandomGlyph(math::Random& random, i32 advanceWidth)
+const Glyph* Font::getRandomGlyph(math::IRandom& random, i32 advanceWidth)
 {
     // 确保宽度索引已构建
     if (!m_widthIndexBuilt) {

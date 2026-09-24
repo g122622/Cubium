@@ -242,7 +242,7 @@ void FishingBobberEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pit
     // 添加不准确性
     if (inaccuracy > 0.0f) {
         // 使用世界的随机数生成器添加高斯偏移
-        math::Random& random = shooter.world()->getRandom();
+        math::IRandom& random = shooter.world()->getRandom();
         f32 offsetX = random.nextGaussian() * inaccuracy * 0.0075f;
         f32 offsetY = random.nextGaussian() * inaccuracy * 0.0075f;
         f32 offsetZ = random.nextGaussian() * inaccuracy * 0.0075f;
@@ -618,7 +618,7 @@ i32 FishingBobberEntity::_spawnCatchItems()
     totalLuck += static_cast<f32>(angler->getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
 
     // 获取随机数生成器
-    math::Random& random = m_world->getRandom();
+    math::IRandom& random = m_world->getRandom();
 
     // 构建掉落上下文
     auto context = loot::LootContextBuilder(*m_world)
@@ -689,7 +689,7 @@ void FishingBobberEntity::_spawnExperienceOrbs(i32 totalXp)
         return;
     }
 
-    math::Random& random = m_world->getRandom();
+    math::IRandom& random = m_world->getRandom();
 
     // 分割经验值为多个经验球
     // 经验分割值: 2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3, 1
@@ -1228,11 +1228,11 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 
         // 随机选择一个方向
         if (!possibleDirs.empty()) {
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             newDirection = possibleDirs[rng.nextInt(static_cast<i32>(possibleDirs.size()))];
         } else {
             // 没有可行方向，随机选择
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             for (i32 i = 0; i < 5; ++i) {
                 Direction randomDir = static_cast<Direction>(rng.nextInt(6));
                 BlockPos testPos(myPos.x + Directions::xOffset(randomDir),
@@ -1272,7 +1272,7 @@ void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 
         // 设置飞行步数
         if (m_world != nullptr) {
-            math::Random& rng = m_world->getRandom();
+            math::IRandom& rng = m_world->getRandom();
             bullet->m_flightSteps = MIN_STEPS + rng.nextInt(MAX_STEPS_EXTRA) * 10;
         }
     }
@@ -1777,7 +1777,7 @@ void FireworkRocketEntity::_ensureLifeTimeComputed()
     // 使用世界随机数生成器一次性确定，保证服务端确定性；
     // 客户端不跑 FireworkRocketEntity::tick，无需此值
     if (m_world != nullptr && !m_world->isClientSide()) {
-        math::Random& rng = m_world->getRandom();
+        math::IRandom& rng = m_world->getRandom();
         fw->m_lifeTime = fw->m_flightTime * 10 + rng.nextInt(6) + rng.nextInt(7);
     }
 }

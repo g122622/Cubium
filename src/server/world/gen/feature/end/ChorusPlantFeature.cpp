@@ -37,7 +37,7 @@ namespace mc {
 // ChorusPlantFeature
 // ============================================================================
 
-bool ChorusPlantFeature::place(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
+bool ChorusPlantFeature::place(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos)
 {
     // 检查起始位置是否为空气且下方为末地石
     const BlockState* stateAtPos = world.getBlockState(pos);
@@ -66,7 +66,7 @@ ConfiguredChorusPlantFeature::ConfiguredChorusPlantFeature(const char* featureNa
 bool ConfiguredChorusPlantFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return ChorusPlantFeature::place(region, random, pos);

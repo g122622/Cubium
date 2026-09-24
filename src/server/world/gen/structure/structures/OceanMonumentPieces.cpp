@@ -292,7 +292,7 @@ OceanMonumentDoubleXRoom::OceanMonumentDoubleXRoom(Direction direction, OceanMon
 }
 
 void OceanMonumentDoubleXRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -352,7 +352,7 @@ OceanMonumentDoubleXYRoom::OceanMonumentDoubleXYRoom(Direction direction, OceanM
 }
 
 void OceanMonumentDoubleXYRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -435,7 +435,7 @@ OceanMonumentDoubleYRoom::OceanMonumentDoubleYRoom(Direction direction, OceanMon
 }
 
 void OceanMonumentDoubleYRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -523,7 +523,7 @@ OceanMonumentDoubleYZRoom::OceanMonumentDoubleYZRoom(Direction direction, OceanM
 }
 
 void OceanMonumentDoubleYZRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -607,7 +607,7 @@ OceanMonumentDoubleZRoom::OceanMonumentDoubleZRoom(Direction direction, OceanMon
 }
 
 void OceanMonumentDoubleZRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -685,7 +685,7 @@ OceanMonumentEntryRoom::OceanMonumentEntryRoom(Direction direction, OceanMonumen
 }
 
 void OceanMonumentEntryRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -720,7 +720,7 @@ void OceanMonumentEntryRoom::generate(IWorldWriter& world,
 }
 
 OceanMonumentSimpleRoom::OceanMonumentSimpleRoom(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
     : OceanMonumentPiece(OceanMonumentPieceTypes::SIMPLE_ROOM, direction, createRoomBox(direction, room, 1, 1, 1))
     , m_mainDesign(rng.nextInt(3))
 {
@@ -728,7 +728,7 @@ OceanMonumentSimpleRoom::OceanMonumentSimpleRoom(
 }
 
 void OceanMonumentSimpleRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -900,7 +900,7 @@ OceanMonumentSimpleTopRoom::OceanMonumentSimpleTopRoom(Direction direction, Ocea
 }
 
 void OceanMonumentSimpleTopRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -956,7 +956,7 @@ OceanMonumentCoreRoom::OceanMonumentCoreRoom(Direction direction, OceanMonumentR
 }
 
 void OceanMonumentCoreRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1045,7 +1045,7 @@ OceanMonumentPenthouse::OceanMonumentPenthouse(Direction direction, const Struct
 {}
 
 void OceanMonumentPenthouse::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1100,7 +1100,7 @@ OceanMonumentWingRoom::OceanMonumentWingRoom(Direction direction, const Structur
 {}
 
 void OceanMonumentWingRoom::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1206,7 +1206,7 @@ void OceanMonumentWingRoom::generate(IWorldWriter& world,
     }
 }
 
-OceanMonumentBuilding::OceanMonumentBuilding(math::Random& rng, i32 x, i32 z, Direction direction)
+OceanMonumentBuilding::OceanMonumentBuilding(math::IRandom& rng, i32 x, i32 z, Direction direction)
     : OceanMonumentPiece(
           OceanMonumentPieceTypes::MONUMENT_BUILDING, direction, StructureBoundingBox(x, 39, z, x + 57, 61, z + 57))
 {
@@ -1261,7 +1261,7 @@ OceanMonumentBuilding::OceanMonumentBuilding(math::Random& rng, i32 x, i32 z, Di
     m_childPieces.emplace_back(std::make_unique<OceanMonumentPenthouse>(direction, penthouseBox));
 }
 
-std::vector<OceanMonumentRoomDefinition*> OceanMonumentBuilding::_generateRoomGraph(math::Random& rng)
+std::vector<OceanMonumentRoomDefinition*> OceanMonumentBuilding::_generateRoomGraph(math::IRandom& rng)
 {
     m_roomDefinitions.clear();
     m_roomDefinitions.reserve(75);
@@ -1397,7 +1397,7 @@ std::vector<OceanMonumentRoomDefinition*> OceanMonumentBuilding::_generateRoomGr
 }
 
 void OceanMonumentBuilding::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -1421,7 +1421,7 @@ void OceanMonumentBuilding::generate(IWorldWriter& world,
 }
 
 void OceanMonumentBuilding::_generateWing(
-    bool isLeft, i32 startX, IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    bool isLeft, i32 startX, IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
 
@@ -1535,7 +1535,7 @@ void OceanMonumentBuilding::_generateWing(
 }
 
 void OceanMonumentBuilding::_generateEntranceArchs(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
     if (!doesChunkIntersect(chunkBounds, 22, 5, 35, 17)) {
@@ -1561,7 +1561,7 @@ void OceanMonumentBuilding::_generateEntranceArchs(
 }
 
 void OceanMonumentBuilding::_generateEntranceWall(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
     if (!doesChunkIntersect(chunkBounds, 15, 20, 42, 21)) {
@@ -1623,7 +1623,7 @@ void OceanMonumentBuilding::_generateEntranceWall(
 }
 
 void OceanMonumentBuilding::_generateRoofPiece(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
     if (!doesChunkIntersect(chunkBounds, 21, 21, 36, 36)) {
@@ -1705,7 +1705,7 @@ void OceanMonumentBuilding::_generateRoofPiece(
 }
 
 void OceanMonumentBuilding::_generateLowerWall(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
     if (doesChunkIntersect(chunkBounds, 0, 21, 6, 58)) {
@@ -1781,7 +1781,7 @@ void OceanMonumentBuilding::_generateLowerWall(
 }
 
 void OceanMonumentBuilding::_generateMiddleWall(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
     if (doesChunkIntersect(chunkBounds, 7, 21, 13, 50)) {
@@ -1871,7 +1871,7 @@ void OceanMonumentBuilding::_generateMiddleWall(
 }
 
 void OceanMonumentBuilding::_generateUpperWall(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& chunkBounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
 {
     MC_UNUSED(rng);
     if (doesChunkIntersect(chunkBounds, 14, 21, 20, 43)) {
@@ -1952,7 +1952,7 @@ bool FitSimpleRoomHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> FitSimpleRoomHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     room->setClaimed(true);
     return std::make_unique<OceanMonumentSimpleRoom>(direction, room, rng);
@@ -1964,7 +1964,7 @@ bool FitSimpleRoomTopHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> FitSimpleRoomTopHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
@@ -1978,7 +1978,7 @@ bool XDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> XDoubleRoomFitHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
@@ -1993,7 +1993,7 @@ bool YDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> YDoubleRoomFitHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
@@ -2008,7 +2008,7 @@ bool ZDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> ZDoubleRoomFitHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     MC_UNUSED(rng);
     OceanMonumentRoomDefinition* roomToUse = room;
@@ -2035,7 +2035,7 @@ bool XYDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> XYDoubleRoomFitHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);
@@ -2060,7 +2060,7 @@ bool YZDoubleRoomFitHelper::fits(OceanMonumentRoomDefinition* definition)
 }
 
 std::unique_ptr<OceanMonumentPiece> YZDoubleRoomFitHelper::create(
-    Direction direction, OceanMonumentRoomDefinition* room, math::Random& rng)
+    Direction direction, OceanMonumentRoomDefinition* room, math::IRandom& rng)
 {
     MC_UNUSED(rng);
     room->setClaimed(true);

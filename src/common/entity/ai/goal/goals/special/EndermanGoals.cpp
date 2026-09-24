@@ -316,7 +316,7 @@ void EndermanPlaceBlockGoal::tick()
         return;
     }
 
-    math::Random& rng = m_enderman->getRandom();
+    math::IRandom& rng = m_enderman->getRandom();
 
     // 在末影人周围 2x2x2 范围内随机选择放置位置
     i32 x = math::floorTo<i32>(m_enderman->x() - 1.0 + rng.nextDouble() * 2.0);
@@ -443,7 +443,7 @@ void EndermanTakeBlockGoal::tick()
         return;
     }
 
-    math::Random& rng = m_enderman->getRandom();
+    math::IRandom& rng = m_enderman->getRandom();
 
     // 在末影人周围 4x3x4 范围内随机选择拾取位置
     i32 x = math::floorTo<i32>(m_enderman->x() - 2.0 + rng.nextDouble() * 4.0);

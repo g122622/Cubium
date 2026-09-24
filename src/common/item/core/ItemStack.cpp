@@ -285,7 +285,7 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
 
         // 优先使用实体所在世界的随机数生成器
         // 物品耐久保护的概率计算应使用世界关联的随机源
-        math::Random* random = nullptr;
+        math::IRandom* random = nullptr;
         if (entity != nullptr) {
             IWorld* world = entity->world();
             if (world != nullptr) {

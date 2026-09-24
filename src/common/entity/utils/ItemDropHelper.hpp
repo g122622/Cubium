@@ -81,7 +81,7 @@ public:
      * @param rng 随机数生成器
      * @return 随机速度向量
      */
-    [[nodiscard]] static Vector3 getBlockDropVelocity(math::Random& rng);
+    [[nodiscard]] static Vector3 getBlockDropVelocity(math::IRandom& rng);
 
     /**
      * @brief 获取简单随机速度
@@ -96,7 +96,7 @@ public:
      * @param rng 随机数生成器
      * @return 随机速度向量
      */
-    [[nodiscard]] static Vector3 getSimpleDropVelocity(math::Random& rng);
+    [[nodiscard]] static Vector3 getSimpleDropVelocity(math::IRandom& rng);
 
     /**
      * @brief 获取玩家丢弃物品的速度
@@ -108,7 +108,7 @@ public:
      * @return 随机速度向量
      */
     [[nodiscard]] static Vector3 getPlayerDropVelocity(
-        math::Random& rng, bool dropAround, f32 yaw = 0.0f, f32 pitch = 0.0f);
+        math::IRandom& rng, bool dropAround, f32 yaw = 0.0f, f32 pitch = 0.0f);
 
     /**
      * @brief 获取高斯分布的随机速度
@@ -120,7 +120,7 @@ public:
      * @param inaccuracy 不精确度（标准差因子）
      * @return 随机速度向量（只有 X/Z 有高斯偏移）
      */
-    [[nodiscard]] static Vector3 getGaussianVelocity(math::Random& rng, f32 baseVelocity, f32 inaccuracy);
+    [[nodiscard]] static Vector3 getGaussianVelocity(math::IRandom& rng, f32 baseVelocity, f32 inaccuracy);
 
     // ========== 物品实体生成 ==========
 
@@ -144,7 +144,7 @@ public:
         f64 x,
         f64 y,
         f64 z,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 pickupDelay = DEFAULT_PICKUP_DELAY,
         const std::string& ownerUuid = "");
 
@@ -184,8 +184,11 @@ public:
      * @param pickupDelay 拾取延迟
      * @return 生成的物品实体指针
      */
-    static ItemEntity* spawnItemAtEntity(
-        Entity* entity, const ItemStack& stack, f32 offsetY, math::Random& rng, i32 pickupDelay = DEFAULT_PICKUP_DELAY);
+    static ItemEntity* spawnItemAtEntity(Entity* entity,
+        const ItemStack& stack,
+        f32 offsetY,
+        math::IRandom& rng,
+        i32 pickupDelay = DEFAULT_PICKUP_DELAY);
 
     /**
      * @brief 在方块位置生成多个物品实体
@@ -202,7 +205,7 @@ public:
     static std::vector<EntityInstanceId> spawnItemEntities(IWorld* world,
         const BlockPos& pos,
         const std::vector<ItemStack>& drops,
-        math::Random& rng,
+        math::IRandom& rng,
         const std::string& throwerUuid = "");
 
 private:

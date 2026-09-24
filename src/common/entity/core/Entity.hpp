@@ -1389,8 +1389,8 @@ public:
      *
      * @return 实体随机数生成器的引用
      */
-    [[nodiscard]] math::Random& getRandom() { return m_random; }
-    [[nodiscard]] math::Random& getRandom() const { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() const { return m_random; }
 
     // ========== 存活状态 ==========
 

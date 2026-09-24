@@ -230,7 +230,7 @@ NaturalSpawner::NaturalSpawner()
 {}
 
 void NaturalSpawner::spawnInChunk(
-    mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::Random& random)
+    mc::server::ServerWorld& world, i32 chunkX, i32 chunkZ, const MobSpawnInfo& spawnInfo, math::IRandom& random)
 {
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Entity, "NaturalSpawner::spawnInChunk", "chunkX", chunkX, "chunkZ", chunkZ);
@@ -400,7 +400,7 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
     const ChunkData* chunk,
     const Vector3& playerPos,
     EntityDensityManager& densityManager,
-    math::Random& random)
+    math::IRandom& random)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
         "NaturalSpawner::_spawnForClassificationInChunk",
@@ -563,7 +563,7 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
 }
 
 i32 NaturalSpawner::_trySpawnAt(
-    mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::Random& random)
+    mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::IRandom& random)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Entity,
         "NaturalSpawner::_trySpawnAt",
@@ -661,7 +661,7 @@ i32 NaturalSpawner::_trySpawnAt(
     return spawned;
 }
 
-const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& entries, math::Random& random)
+const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& entries, math::IRandom& random)
 {
     if (entries.empty()) {
         return nullptr;
@@ -856,7 +856,7 @@ const SpawnEntry* NaturalSpawner::_getRandomSpawnEntry(mc::server::ServerWorld& 
     const ChunkData* chunk,
     entity::EntityClassification classification,
     const Vector3i& pos,
-    math::Random& random,
+    math::IRandom& random,
     BiomeId biomeOverride)
 {
     // 从 ChunkData 获取生物群系（biomeOverride 非 0 时强制用注入值，测试专用，见
@@ -997,7 +997,7 @@ i32 NaturalSpawner::_countSpawnableChunks(mc::server::ServerWorld& world) const
     return static_cast<i32>(_collectSpawnableChunks(world).size());
 }
 
-std::vector<ChunkPos> NaturalSpawner::_getSpawnableChunks(mc::server::ServerWorld& world, math::Random& random) const
+std::vector<ChunkPos> NaturalSpawner::_getSpawnableChunks(mc::server::ServerWorld& world, math::IRandom& random) const
 {
     std::vector<ChunkPos> chunks = _collectSpawnableChunks(world);
 

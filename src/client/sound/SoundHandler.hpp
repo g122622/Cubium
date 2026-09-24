@@ -172,7 +172,7 @@ public:
      * @param rng 随机数生成器
      * @return 选中的声音定义，不存在返回 nullptr
      */
-    [[nodiscard]] const SoundDefinition* getRandomSound(const ResourceLocation& id, mc::math::Random& rng) const;
+    [[nodiscard]] const SoundDefinition* getRandomSound(const ResourceLocation& id, mc::math::IRandom& rng) const;
 
     /**
      * @brief 获取所有已注册的声音事件ID

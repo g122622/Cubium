@@ -67,7 +67,7 @@ public:
     ~ShipwreckPiece() override = default;
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -112,10 +112,10 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 设置模板管理器
@@ -142,7 +142,7 @@ private:
      * @param isBeached 是否为搁浅沉船
      * @return 模板名称
      */
-    [[nodiscard]] std::string _getRandomTemplateName(math::Random& rng, bool isBeached) const;
+    [[nodiscard]] std::string _getRandomTemplateName(math::IRandom& rng, bool isBeached) const;
 
     static const std::string m_name;
     ShipwreckConfig m_config;

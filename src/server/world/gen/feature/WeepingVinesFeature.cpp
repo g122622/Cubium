@@ -55,7 +55,7 @@ bool isRoofBlock(const BlockState* state)
 }
 
 /// MC WeepingVinesFeature.placeRoofNetherWart。
-void placeRoofNetherWart(WorldGenRegion& world, math::Random& random, const BlockPos& origin)
+void placeRoofNetherWart(WorldGenRegion& world, math::IRandom& random, const BlockPos& origin)
 {
     world.setBlockState(
         origin, &VanillaBlocks::NETHER_WART_BLOCK->defaultState(), world::BlockUpdateFlags::UPDATE_CLIENTS);
@@ -94,7 +94,7 @@ void placeRoofNetherWart(WorldGenRegion& world, math::Random& random, const Bloc
 /// MC WeepingVinesFeature.placeWeepingVinesColumn（向下生长）。
 /// p_225356_=length, p_225357_=17(minAge), p_225358_=25(maxAge)。
 void placeWeepingVinesColumn(
-    WorldGenRegion& world, math::Random& random, BlockPosMutable pos, i32 length, i32 minAge, i32 maxAge)
+    WorldGenRegion& world, math::IRandom& random, BlockPosMutable pos, i32 length, i32 minAge, i32 maxAge)
 {
     for (i32 i = 0; i <= length; ++i) {
         if (isEmptyBlock(world, pos)) {
@@ -113,7 +113,7 @@ void placeWeepingVinesColumn(
 }
 
 /// MC WeepingVinesFeature.placeRoofWeepingVines。
-void placeRoofWeepingVines(WorldGenRegion& world, math::Random& random, const BlockPos& origin)
+void placeRoofWeepingVines(WorldGenRegion& world, math::IRandom& random, const BlockPos& origin)
 {
     BlockPosMutable probe;
     for (i32 i = 0; i < 100; ++i) {
@@ -142,7 +142,7 @@ void placeRoofWeepingVines(WorldGenRegion& world, math::Random& random, const Bl
 bool ConfiguredWeepingVinesFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     // MC: if (!isEmptyBlock(origin)) return false;

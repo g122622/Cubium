@@ -38,7 +38,7 @@ const biome::BiomeTag* OceanMonumentStructure::defaultBiomeTag() const
 }
 
 bool OceanMonumentStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -66,7 +66,7 @@ bool OceanMonumentStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(generator);
 

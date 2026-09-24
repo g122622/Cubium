@@ -70,7 +70,7 @@ bool VexChargeAttackGoal::shouldExecute()
     }
 
     // 1/7 概率
-    math::Random& rng = m_vex->getRandom();
+    math::IRandom& rng = m_vex->getRandom();
     if (rng.nextInt(CHARGE_PROBABILITY) != 0) {
         return false;
     }
@@ -205,7 +205,7 @@ bool VexMoveRandomGoal::shouldExecute()
         return false;
     }
 
-    math::Random& rng = m_vex->getRandom();
+    math::IRandom& rng = m_vex->getRandom();
     return rng.nextInt(RANDOM_PROBABILITY) == 0;
 }
 
@@ -226,7 +226,7 @@ void VexMoveRandomGoal::tick()
     BlockPos origin(m_vex->position());
 
     // 尝试找到随机位置
-    math::Random& rng = m_vex->getRandom();
+    math::IRandom& rng = m_vex->getRandom();
 
     for (i32 i = 0; i < 3; ++i) {
         // 在原点周围随机选择位置

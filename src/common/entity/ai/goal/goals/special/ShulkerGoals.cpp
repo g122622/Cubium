@@ -141,7 +141,7 @@ bool ShulkerPeekGoal::shouldExecute()
         return false;
     }
 
-    math::Random& rng = world->getRandom();
+    math::IRandom& rng = world->getRandom();
     return rng.nextFloat() < PEEK_CHANCE;
 }
 
@@ -165,7 +165,7 @@ void ShulkerPeekGoal::startExecuting()
     // 随机张望时间
     IWorld* world = m_shulker->world();
     if (world != nullptr) {
-        math::Random& rng = world->getRandom();
+        math::IRandom& rng = world->getRandom();
         m_totalPeekTime = MIN_PEEK_TIME + rng.nextInt(MAX_PEEK_TIME - MIN_PEEK_TIME + 1);
     } else {
         m_totalPeekTime = MIN_PEEK_TIME;
@@ -188,7 +188,7 @@ void ShulkerPeekGoal::tick()
     // 每秒随机看向不同方向
     if (m_peekTime % 20 == 0) {
         IWorld* world = m_shulker->world();
-        math::Random& rng = world->getRandom();
+        math::IRandom& rng = world->getRandom();
         // 随机旋转视角 [-180, 180)
         f32 yaw = rng.nextFloat() * 360.0f - 180.0f;
         m_shulker->setRotation(yaw, m_shulker->pitch());

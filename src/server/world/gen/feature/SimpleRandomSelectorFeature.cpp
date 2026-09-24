@@ -39,7 +39,7 @@ namespace mc::world::gen::feature::cave {
 bool SimpleRandomSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const SimpleRandomFeatureConfig& config)
 {
@@ -67,7 +67,7 @@ ConfiguredSimpleRandomSelectorFeature::ConfiguredSimpleRandomSelectorFeature(
 bool ConfiguredSimpleRandomSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return SimpleRandomSelectorFeature::place(region, chunk, generator, random, pos, *m_config);

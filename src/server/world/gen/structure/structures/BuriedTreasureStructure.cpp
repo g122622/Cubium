@@ -52,7 +52,7 @@ bool BuriedTreasurePiece::_isInBounds(i32 x, i32 y, i32 z, const StructureBoundi
 }
 
 void BuriedTreasurePiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -99,7 +99,7 @@ const biome::BiomeTag* BuriedTreasureStructure::defaultBiomeTag() const
 }
 
 bool BuriedTreasureStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& /*world*/, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     // 使用单独的 salt=10387320 计算种子，然后检查概率
     // 埋藏宝藏的概率检查：nextFloat() < 0.01 (1% 概率)
@@ -107,7 +107,7 @@ bool BuriedTreasureStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

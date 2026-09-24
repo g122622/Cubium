@@ -46,7 +46,7 @@ LootContextBuilder::LootContextBuilder(IWorld& world)
     : m_world(world)
 {}
 
-LootContextBuilder& LootContextBuilder::withRandom(math::Random& random)
+LootContextBuilder& LootContextBuilder::withRandom(math::IRandom& random)
 {
     m_random = &random;
     return *this;
@@ -76,7 +76,7 @@ std::unique_ptr<LootContext> LootContextBuilder::build(const LootParameterSet& p
     // 创建随机数生成器
     static thread_local math::Random defaultRandom(0);
 
-    math::Random* randomToUse = m_random;
+    math::IRandom* randomToUse = m_random;
     if (randomToUse == nullptr) {
         if (m_hasSeed) {
             defaultRandom.setSeed(m_seed);

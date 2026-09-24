@@ -36,7 +36,7 @@ namespace mc::world::gen::feature {
 bool ConfiguredEndPlatformFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     const BlockPos& pos) const
 {
     // MC: createEndPlatform(level, origin, false)

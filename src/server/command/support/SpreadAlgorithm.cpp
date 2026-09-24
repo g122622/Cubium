@@ -150,7 +150,7 @@ bool SpreadPosition::isSafe(IWorld& world, i32 maxHeight) const
     return spawnY < maxHeight;
 }
 
-void SpreadPosition::randomize(math::Random& rng, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
+void SpreadPosition::randomize(math::IRandom& rng, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
 {
     x = rng.nextDouble(minX, maxX);
     z = rng.nextDouble(minZ, maxZ);
@@ -160,7 +160,8 @@ void SpreadPosition::randomize(math::Random& rng, f64 minX, f64 minZ, f64 maxX, 
 // 分散算法函数
 // ============================================================================
 
-std::vector<SpreadPosition> createInitialPositions(math::Random& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
+std::vector<SpreadPosition> createInitialPositions(
+    math::IRandom& rng, i32 count, f64 minX, f64 minZ, f64 maxX, f64 maxZ)
 {
     std::vector<SpreadPosition> positions(static_cast<size_t>(count));
     for (auto& pos : positions) {
@@ -171,7 +172,7 @@ std::vector<SpreadPosition> createInitialPositions(math::Random& rng, i32 count,
 
 bool spreadPositions(f64 spreadDistance,
     IWorld& world,
-    math::Random& rng,
+    math::IRandom& rng,
     f64 minX,
     f64 minZ,
     f64 maxX,

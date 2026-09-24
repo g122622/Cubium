@@ -105,7 +105,7 @@ u8 TropicalFishEntity::getPatternColor() const
 
 void TropicalFishEntity::randomizeVariant()
 {
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
 
     const u8 shape = static_cast<u8>(rng.nextInt(0, 11));
     const u8 baseColor = static_cast<u8>(rng.nextInt(0, 15));

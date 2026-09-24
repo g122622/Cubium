@@ -72,8 +72,8 @@ public:
     bool isClientSide() const override { return false; }
     bool isHardcore() const override { return false; }
     Difficulty difficulty() const override { return Difficulty::Normal; }
-    math::Random& getRandom() override { return m_random; }
-    const math::Random& getRandom() const override { return m_random; }
+    math::IRandom& getRandom() override { return m_random; }
+    const math::IRandom& getRandom() const override { return m_random; }
     world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 

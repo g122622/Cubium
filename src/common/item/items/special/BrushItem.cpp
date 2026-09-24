@@ -219,7 +219,7 @@ void BrushItem::spawnDustParticles(IWorld& world,
 
     // MC: int j = random.nextInt(7, 12);  // [7, 12)
     // Cubium nextInt(min, max) 是 [min, max] 闭区间，因此用 nextInt(7, 11) 等价 [7, 11] = [7, 12)
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     const i32 particleCount = rng.nextInt(7, 11);
 
     const Direction direction = hitResult.face();

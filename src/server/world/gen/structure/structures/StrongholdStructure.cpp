@@ -87,7 +87,7 @@ const biome::BiomeTag* StrongholdStructure::defaultBiomeTag() const
 }
 
 bool StrongholdStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(generator);
@@ -111,7 +111,7 @@ bool StrongholdStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> StrongholdStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     MC_UNUSED(generator);
 
@@ -135,7 +135,7 @@ std::unique_ptr<StructureStart> StrongholdStructure::generate(
 }
 
 void StrongholdStructure::_generateStrongholdPieces(
-    math::Random& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const
+    math::IRandom& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const
 {
     // 生成起始楼梯
     auto startStairs = std::make_unique<StrongholdStartStairs>(rng, startPos.x, startPos.z);
@@ -153,7 +153,7 @@ void StrongholdStructure::_generateStrongholdPieces(
 }
 
 void StrongholdStructure::_generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 depth,
     StrongholdStartStairs* start) const
 {

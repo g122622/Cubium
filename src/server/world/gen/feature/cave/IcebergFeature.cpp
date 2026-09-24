@@ -72,7 +72,7 @@ ConfiguredIcebergFeature::ConfiguredIcebergFeature(std::unique_ptr<IcebergConfig
 bool ConfiguredIcebergFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     if (m_config == nullptr || m_config->state == nullptr) {
@@ -87,7 +87,7 @@ bool ConfiguredIcebergFeature::place(WorldGenRegion& region,
 
 bool IcebergFeature::place(IWorld& world,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     const IcebergConfig& config)
 {
@@ -154,7 +154,7 @@ bool IcebergFeature::place(IWorld& world,
 // ============================================================================
 
 void IcebergFeature::generateCutOut(
-    math::Random& random, IWorld& world, i32 j1, i32 l, const BlockPos& blockpos, bool flag1, i32 i, double d0, i32 j)
+    math::IRandom& random, IWorld& world, i32 j1, i32 l, const BlockPos& blockpos, bool flag1, i32 i, double d0, i32 j)
 {
     i32 signX = random.nextBoolean() ? -1 : 1;
     i32 signZ = random.nextBoolean() ? -1 : 1;
@@ -238,7 +238,7 @@ void IcebergFeature::removeFloatingSnowLayer(IWorld& world, const BlockPos& pos)
 // ============================================================================
 
 void IcebergFeature::generateIcebergBlock(IWorld& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& blockpos,
     i32 l,
     i32 l1,
@@ -267,7 +267,7 @@ void IcebergFeature::generateIcebergBlock(IWorld& world,
 
 void IcebergFeature::setIcebergBlock(const BlockPos& pos,
     IWorld& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 depthFromTop,
     i32 totalHeight,
     bool flag1,
@@ -307,7 +307,7 @@ int IcebergFeature::getEllipseC(int p_66019_, int p_66020_, int p_66021_) const
 }
 
 double IcebergFeature::signedDistanceCircle(
-    int x, int z, const BlockPos& center, int radius, math::Random& random) const
+    int x, int z, const BlockPos& center, int radius, math::IRandom& random) const
 {
     const f32 f = 10.0F * math::clamp(random.nextFloat(), 0.2F, 0.8F) / static_cast<f32>(radius);
     return static_cast<double>(f) + std::pow(static_cast<double>(x - center.x), 2.0) +
@@ -324,7 +324,7 @@ double IcebergFeature::signedDistanceEllipse(int x, int z, const BlockPos& cente
         std::pow((dx * sinA + dz * cosA) / static_cast<double>(b), 2.0) - 1.0;
 }
 
-int IcebergFeature::heightDependentRadiusRound(math::Random& random, int y, int height, int radius) const
+int IcebergFeature::heightDependentRadiusRound(math::IRandom& random, int y, int height, int radius) const
 {
     const f32 f = 3.5F - random.nextFloat();
     f32 f1 = (1.0F - static_cast<f32>(y * y) / (static_cast<f32>(height) * f)) * static_cast<f32>(radius);
@@ -341,7 +341,7 @@ int IcebergFeature::heightDependentRadiusEllipse(int y, int height, int radius) 
     return math::ceilTo<i32>(f1 / 2.0F);
 }
 
-int IcebergFeature::heightDependentRadiusSteep(math::Random& random, int y, int height, int radius) const
+int IcebergFeature::heightDependentRadiusSteep(math::IRandom& random, int y, int height, int radius) const
 {
     const f32 f = 1.0F + random.nextFloat() / 2.0F;
     const f32 f1 = (1.0F - static_cast<f32>(y) / (static_cast<f32>(height) * f)) * static_cast<f32>(radius);

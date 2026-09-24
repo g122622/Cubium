@@ -57,7 +57,7 @@ constexpr i32 PLATFORM_RADIUS = 16;
 bool ConfiguredVoidStartPlatformFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     const BlockPos& pos) const
 {
     // 当前区块坐标

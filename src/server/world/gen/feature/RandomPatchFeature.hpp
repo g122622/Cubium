@@ -77,7 +77,7 @@ public:
     [[nodiscard]] static bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& origin,
         const RandomPatchFeatureConfig& config);
 };
@@ -95,7 +95,7 @@ public:
     [[nodiscard]] bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& origin) const override;
 
     [[nodiscard]] DecorationStage stage() const noexcept override { return DecorationStage::VegetalDecoration; }

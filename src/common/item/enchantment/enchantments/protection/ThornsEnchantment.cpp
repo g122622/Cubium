@@ -33,7 +33,7 @@ namespace mc {
 namespace item {
 namespace enchant {
 
-bool ThornsEnchantment::shouldTrigger(i32 level, math::Random& random)
+bool ThornsEnchantment::shouldTrigger(i32 level, math::IRandom& random)
 {
     if (level <= 0) {
         return false;
@@ -42,7 +42,7 @@ bool ThornsEnchantment::shouldTrigger(i32 level, math::Random& random)
     return random.nextFloat() < static_cast<f32>(level) * 0.15f;
 }
 
-f32 ThornsEnchantment::getThornsDamage(math::Random& random)
+f32 ThornsEnchantment::getThornsDamage(math::IRandom& random)
 {
     // 对齐 vanilla 1.21.11 Enchantments.java:342 THORNS 的 DamageEntity(constant 1.0, constant 5.0)：
     //   Mth.randomBetween(random, 1.0F, 5.0F) = nextFloat() * (5.0 - 1.0) + 1.0 ∈ [1.0, 5.0)

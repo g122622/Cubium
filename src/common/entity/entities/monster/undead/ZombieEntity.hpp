@@ -286,7 +286,7 @@ public:
      * @param difficulty 区域难度实例
      */
     void populateDefaultEquipmentSlots(
-        math::Random& random, const mc::entity::combat::DifficultyInstance& difficulty) override;
+        math::IRandom& random, const mc::entity::combat::DifficultyInstance& difficulty) override;
 
     // ========== NBT 序列化 ==========
 
@@ -358,7 +358,7 @@ private:
      * @param rng 共享的随机数生成器（由调用方传入，避免同tick多次调用getRandom导致种子重复）
      * @param specialMultiplier 区域难度特殊乘数
      */
-    void _handleAttributes(math::Random& rng, f32 specialMultiplier);
+    void _handleAttributes(math::IRandom& rng, f32 specialMultiplier);
 
     /**
      * @brief 尝试在附近生成增援僵尸

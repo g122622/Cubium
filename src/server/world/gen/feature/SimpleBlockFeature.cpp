@@ -38,7 +38,7 @@ namespace mc::world::gen::feature::cave {
 // ============================================================================
 
 bool SimpleBlockFeature::place(
-    WorldGenRegion& region, math::Random& random, const BlockPos& pos, const SimpleBlockConfig& config)
+    WorldGenRegion& region, math::IRandom& random, const BlockPos& pos, const SimpleBlockConfig& config)
 {
     MC_UNUSED(random);
 
@@ -89,7 +89,7 @@ ConfiguredSimpleBlockFeature::ConfiguredSimpleBlockFeature(
 bool ConfiguredSimpleBlockFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

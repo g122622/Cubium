@@ -51,7 +51,7 @@ PlacedFeature::PlacedFeature(
 bool PlacedFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     // 走 placement 链得到候选位置列表

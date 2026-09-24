@@ -147,7 +147,7 @@ public:
      * @return 混合后的颜色（如果没有配方则随机选择父母颜色）
      */
     [[nodiscard]] static DyeColor getDyeColorMixFromParents(
-        DyeColor parent1Color, DyeColor parent2Color, math::Random& random);
+        DyeColor parent1Color, DyeColor parent2Color, math::IRandom& random);
 
     /**
      * @brief 吃草动画计时器
@@ -172,7 +172,7 @@ public:
      * - 0.2% 粉色
      * - 81.8% 白色
      */
-    [[nodiscard]] static DyeColor getRandomSheepColor(math::Random& random);
+    [[nodiscard]] static DyeColor getRandomSheepColor(math::IRandom& random);
 
     /**
      * @brief 根据染料颜色获取对应的羊毛方块

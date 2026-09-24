@@ -69,7 +69,7 @@ public:
         i32 branchEndOffsetFromTopMax);
 
     std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,
@@ -94,7 +94,7 @@ private:
      * @return 分支末端的树叶位置
      */
     FoliagePosition generateBranch(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 treeHeight,
         const BlockPos& startPos,
         const BlockState* trunkBlock,

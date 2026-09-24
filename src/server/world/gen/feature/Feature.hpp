@@ -70,7 +70,7 @@ public:
      * @param random 随机数生成器
      * @return 是否匹配
      */
-    [[nodiscard]] virtual bool test(const BlockState& state, math::Random& random) const = 0;
+    [[nodiscard]] virtual bool test(const BlockState& state, math::IRandom& random) const = 0;
 
     /**
      * @brief 获取规则类型名称
@@ -98,7 +98,7 @@ public:
     static const AlwaysTrueRuleTest INSTANCE;
 
     AlwaysTrueRuleTest() = default;
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "always_true"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };
@@ -116,7 +116,7 @@ class BlockMatchRuleTest : public RuleTest {
 public:
     explicit BlockMatchRuleTest(const Block* block);
 
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "block_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
@@ -139,7 +139,7 @@ class BlockStateMatchRuleTest : public RuleTest {
 public:
     explicit BlockStateMatchRuleTest(const BlockState* state);
 
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "block_state_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
@@ -162,7 +162,7 @@ class RandomBlockMatchRuleTest : public RuleTest {
 public:
     RandomBlockMatchRuleTest(const Block* block, f32 probability);
 
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "random_block_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
@@ -187,7 +187,7 @@ class RandomBlockStateMatchRuleTest : public RuleTest {
 public:
     RandomBlockStateMatchRuleTest(const BlockState* state, f32 probability);
 
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "random_block_state_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
@@ -212,7 +212,7 @@ class TagMatchRuleTest : public RuleTest {
 public:
     explicit TagMatchRuleTest(const ResourceLocation& tagId);
 
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "tag_match"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 
@@ -238,7 +238,7 @@ private:
  */
 class StoneRuleTest : public RuleTest {
 public:
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "stone"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };
@@ -252,7 +252,7 @@ public:
  */
 class DeepslateRuleTest : public RuleTest {
 public:
-    [[nodiscard]] bool test(const BlockState& state, math::Random& random) const override;
+    [[nodiscard]] bool test(const BlockState& state, math::IRandom& random) const override;
     [[nodiscard]] const char* name() const override { return "deepslate"; }
     [[nodiscard]] std::unique_ptr<RuleTest> clone() const override;
 };

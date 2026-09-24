@@ -43,7 +43,7 @@ namespace mc {
 // ============================================================================
 
 bool IceSpikeFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const IceSpikeFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const IceSpikeFeatureConfig& config)
 {
     // 寻找雪块表面
     BlockPos basePos = pos;
@@ -107,7 +107,7 @@ bool IceSpikeFeature::_canPlaceAt(WorldGenRegion& world, const BlockPos& pos) co
 }
 
 void IceSpikeFeature::_generateSpike(
-    WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& basePos, i32 height, i32 baseRadius)
 {
     // 生成尖塔型冰刺，使用浮冰填充
 
@@ -207,7 +207,7 @@ void IceSpikeFeature::_generateSpike(
 }
 
 void IceSpikeFeature::_generateIceberg(
-    WorldGenRegion& world, math::Random& random, const BlockPos& basePos, i32 height, i32 baseRadius)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& basePos, i32 height, i32 baseRadius)
 {
     (void)height;
 
@@ -258,7 +258,7 @@ ConfiguredIceSpikeFeature::ConfiguredIceSpikeFeature(
 bool ConfiguredIceSpikeFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

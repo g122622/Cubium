@@ -536,8 +536,8 @@ public:
     /**
      * @brief 获取随机数生成器
      */
-    [[nodiscard]] math::Random& getRandom() override { return m_random; }
-    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+    [[nodiscard]] math::IRandom& getRandom() override { return m_random; }
+    [[nodiscard]] const math::IRandom& getRandom() const override { return m_random; }
 
     /**
      * @brief 获取世界边界

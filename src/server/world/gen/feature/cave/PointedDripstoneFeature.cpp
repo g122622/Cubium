@@ -61,14 +61,14 @@ ConfiguredPointedDripstoneFeature::ConfiguredPointedDripstoneFeature(
 bool ConfiguredPointedDripstoneFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     return m_feature.place(region, random, pos, *m_config);
 }
 
 bool PointedDripstoneFeature::place(
-    IWorld& world, math::Random& random, const BlockPos& pos, const PointedDripstoneConfig& config)
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const PointedDripstoneConfig& config)
 {
     const std::optional<Direction> direction = getTipDirection(world, pos, random);
     if (!direction.has_value()) {
@@ -87,7 +87,7 @@ bool PointedDripstoneFeature::place(
 }
 
 std::optional<Direction> PointedDripstoneFeature::getTipDirection(
-    IWorld& world, const BlockPos& pos, math::Random& random)
+    IWorld& world, const BlockPos& pos, math::IRandom& random)
 {
     const bool aboveIsBase = DripstoneUtils::isDripstoneBase(world.getBlockState(pos.up()));
     const bool belowIsBase = DripstoneUtils::isDripstoneBase(world.getBlockState(pos.down()));
@@ -104,7 +104,7 @@ std::optional<Direction> PointedDripstoneFeature::getTipDirection(
 }
 
 void PointedDripstoneFeature::createPatchOfDripstoneBlocks(
-    IWorld& world, math::Random& random, const BlockPos& pos, const PointedDripstoneConfig& config)
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const PointedDripstoneConfig& config)
 {
     DripstoneUtils::placeDripstoneBlockIfPossible(world, pos);
 

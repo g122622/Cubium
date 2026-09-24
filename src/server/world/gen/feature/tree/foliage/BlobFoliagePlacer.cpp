@@ -42,7 +42,7 @@ BlobFoliagePlacer::BlobFoliagePlacer(const FeatureSpread& radius, const FeatureS
 {}
 
 void BlobFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -70,7 +70,7 @@ void BlobFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     }
 }
 
-bool BlobFoliagePlacer::shouldSkip(math::Random& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
+bool BlobFoliagePlacer::shouldSkip(math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const
 {
     // 计算到中心的距离
     i32 absDx = std::abs(dx);

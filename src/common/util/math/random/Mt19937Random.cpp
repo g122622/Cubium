@@ -23,6 +23,7 @@
 
 #include "Mt19937Random.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include <random>
 
 namespace mc::math {
@@ -46,6 +47,12 @@ void Mt19937Random::setSeed(u64 seed)
 u64 Mt19937Random::nextU64()
 {
     return m_engine();
+}
+
+PositionalRandomFactory Mt19937Random::forkPositional()
+{
+    // 非 MC 原生算法，按 Xoroshiro 的形状派生 128 位种子（两次 nextLong）。
+    return PositionalRandomFactory(static_cast<u64>(nextLong()), static_cast<u64>(nextLong()));
 }
 
 } // namespace mc::math

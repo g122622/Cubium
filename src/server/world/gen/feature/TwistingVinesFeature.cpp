@@ -90,7 +90,7 @@ bool findFirstAirBlockAboveGround(WorldGenRegion& world, BlockPosMutable& pos)
 /// MC TwistingVinesFeature.placeWeepingVinesColumn（向上生长，名字沿用 MC）。
 /// p_225304_=length, p_225305_=17(minAge), p_225306_=25(maxAge)。
 void placeTwistingVinesColumn(
-    WorldGenRegion& world, math::Random& random, BlockPosMutable pos, i32 length, i32 minAge, i32 maxAge)
+    WorldGenRegion& world, math::IRandom& random, BlockPosMutable pos, i32 length, i32 minAge, i32 maxAge)
 {
     // MC: for (int i = 1; i <= length; i++) —— 注意从 1 开始。
     for (i32 i = 1; i <= length; ++i) {
@@ -114,7 +114,7 @@ void placeTwistingVinesColumn(
 bool ConfiguredTwistingVinesFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     if (m_config == nullptr) {

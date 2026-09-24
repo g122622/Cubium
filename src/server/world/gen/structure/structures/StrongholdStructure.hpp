@@ -78,13 +78,13 @@ public:
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成要塞
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
     /**
      * @brief 计算要塞位置
@@ -106,13 +106,13 @@ private:
      * @brief 使用 StrongholdPieces 生成要塞
      */
     void _generateStrongholdPieces(
-        math::Random& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
+        math::IRandom& rng, const BlockPos& startPos, std::vector<std::unique_ptr<StructurePiece>>& pieces) const;
 
     /**
      * @brief 递归生成走廊
      */
     void _generateCorridor(std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 depth,
         StrongholdStartStairs* start) const;
 

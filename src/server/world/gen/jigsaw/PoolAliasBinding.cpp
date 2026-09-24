@@ -32,7 +32,7 @@ namespace jigsaw {
 
 // ========== RandomPoolAliasBinding ==========
 
-ResourceLocation RandomPoolAliasBinding::resolve(math::Random& rng) const
+ResourceLocation RandomPoolAliasBinding::resolve(math::IRandom& rng) const
 {
     if (m_targets.empty()) {
         return m_alias;
@@ -62,7 +62,7 @@ ResourceLocation RandomPoolAliasBinding::resolve(math::Random& rng) const
     return m_targets.back().pool;
 }
 
-void RandomPoolAliasBinding::forEachResolved(math::Random& rng, const Resolver& callback) const
+void RandomPoolAliasBinding::forEachResolved(math::IRandom& rng, const Resolver& callback) const
 {
     // 对应 MC 1.21 RandomPoolAlias.forEachResolved：按权重随机选一个 target，输出 (alias, target)
     callback(m_alias, resolve(rng));
@@ -85,7 +85,7 @@ std::unique_ptr<PoolAliasBinding> RandomGroupPoolAliasBinding::clone() const
     return std::make_unique<RandomGroupPoolAliasBinding>(m_alias, std::move(clonedGroups));
 }
 
-void RandomGroupPoolAliasBinding::forEachResolved(math::Random& rng, const Resolver& callback) const
+void RandomGroupPoolAliasBinding::forEachResolved(math::IRandom& rng, const Resolver& callback) const
 {
     // 对应 MC 1.21 RandomGroupPoolAlias.forEachResolved：
     // 按组权重随机选一个组，然后解析组内所有绑定，每个绑定通过 callback 输出 (alias, target)
@@ -130,7 +130,7 @@ void PoolAliasBindings::addBinding(std::unique_ptr<PoolAliasBinding> binding)
     }
 }
 
-void PoolAliasBindings::forEachResolved(math::Random& rng, const PoolAliasBinding::Resolver& callback) const
+void PoolAliasBindings::forEachResolved(math::IRandom& rng, const PoolAliasBinding::Resolver& callback) const
 {
     for (const auto& binding : m_bindings) {
         binding->forEachResolved(rng, callback);

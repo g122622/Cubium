@@ -150,7 +150,7 @@ std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
     SheepEntity* partnerSheep = dynamic_cast<SheepEntity*>(&partner);
     if (partnerSheep != nullptr) {
         // 使用颜色混合逻辑
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         DyeColor mixedColor = getDyeColorMixFromParents(getFleeceColor(), partnerSheep->getFleeceColor(), rng);
         baby->setFleeceColor(mixedColor);
     } else {
@@ -177,7 +177,7 @@ void SheepEntity::eatGrassBonus()
     }
 }
 
-DyeColor SheepEntity::getRandomSheepColor(math::Random& random)
+DyeColor SheepEntity::getRandomSheepColor(math::IRandom& random)
 {
     i32 i = random.nextInt(100);
 
@@ -374,7 +374,7 @@ std::optional<DyeColor> findMixingResult(DyeColor c1, DyeColor c2)
 
 } // anonymous namespace
 
-DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor parent2Color, math::Random& random)
+DyeColor SheepEntity::getDyeColorMixFromParents(DyeColor parent1Color, DyeColor parent2Color, math::IRandom& random)
 {
     // 如果两个颜色相同，直接返回该颜色
     if (parent1Color == parent2Color) {

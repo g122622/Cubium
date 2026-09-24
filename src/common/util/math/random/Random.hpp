@@ -37,7 +37,7 @@
  * @code
  * #include "math/random/Random.hpp"
  *
- * mc::math::Random rng(seed);
+ * mc::math::Xoroshiro128ppRandom rng(seed);
  * i32 value = rng.nextInt(100);  // [0, 100)
  * f32 f = rng.nextFloat();        // [0.0, 1.0)
  * bool b = rng.nextBoolean();     // true/false

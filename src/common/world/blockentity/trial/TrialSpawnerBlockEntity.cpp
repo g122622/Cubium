@@ -690,7 +690,7 @@ std::optional<Vector3> TrialSpawnerBlockEntity::_findSpawnPosition(IWorld& world
     // Z: [pos.z + 0.5 - spawnRange, pos.z + 0.5 + spawnRange]
     // 然后检查碰撞
 
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     i32 spawnRange = static_cast<i32>(m_config.spawnRange);
 
     // 最多尝试 20 次寻找合适的位置（对应 MC Java 的 SpawnEggItem/SpawnerLogic 最大尝试次数）

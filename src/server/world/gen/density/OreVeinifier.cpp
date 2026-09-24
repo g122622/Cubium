@@ -25,7 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/CopperBlocks.hpp"

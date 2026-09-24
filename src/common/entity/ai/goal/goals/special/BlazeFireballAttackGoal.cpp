@@ -226,7 +226,7 @@ void BlazeFireballAttackGoal::_performFireballAttack(LivingEntity* target, f64 d
             // 计算散布
             f32 spread = std::sqrt(static_cast<f32>(std::sqrt(distanceToTargetSq))) * 0.5f;
 
-            math::Random& rng = m_blaze->world()->getRandom();
+            math::IRandom& rng = m_blaze->world()->getRandom();
 
             // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
             auto* registry = m_blaze->world()->entityRegistry();

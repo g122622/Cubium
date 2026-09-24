@@ -50,7 +50,7 @@ namespace mc {
 // ============================================================================
 
 std::vector<BlockPos> NoisePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto* noiseConfig = dynamic_cast<const NoisePlacementConfig*>(&config);
     if (!noiseConfig) {
@@ -83,7 +83,7 @@ std::vector<BlockPos> NoisePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> CountNoisePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto* countConfig = dynamic_cast<const CountNoiseConfig*>(&config);
     if (!countConfig) {
@@ -117,7 +117,7 @@ std::vector<BlockPos> CountNoisePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> DepthAveragePlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto* depthConfig = dynamic_cast<const DepthAverageConfig*>(&config);
     if (!depthConfig) {
@@ -141,7 +141,7 @@ std::vector<BlockPos> DepthAveragePlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> TopSolidPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)config;
     (void)random;
@@ -174,7 +174,7 @@ std::vector<BlockPos> TopSolidPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> CarvingMaskPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
     (void)config;
@@ -198,7 +198,7 @@ std::vector<BlockPos> CarvingMaskPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> RandomOffsetPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
     const auto* offsetConfig = dynamic_cast<const RandomOffsetConfig*>(&config);
@@ -220,7 +220,7 @@ std::vector<BlockPos> RandomOffsetPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> WaterDepthThresholdPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto* depthConfig = dynamic_cast<const WaterDepthThresholdConfig*>(&config);
     if (!depthConfig) {
@@ -252,7 +252,7 @@ std::vector<BlockPos> WaterDepthThresholdPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> SeaLevelPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     const auto* seaConfig = dynamic_cast<const SeaLevelConfig*>(&config);
     if (!seaConfig) {
@@ -274,7 +274,7 @@ std::vector<BlockPos> SeaLevelPlacement::getPositions(
 // ============================================================================
 
 std::vector<BlockPos> SpreadPlacement::getPositions(
-    WorldGenRegion& region, math::Random& random, const IPlacementConfig& config, const BlockPos& basePos) const
+    WorldGenRegion& region, math::IRandom& random, const IPlacementConfig& config, const BlockPos& basePos) const
 {
     (void)region;
     (void)config;

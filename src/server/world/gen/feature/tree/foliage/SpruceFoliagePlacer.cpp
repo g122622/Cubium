@@ -40,13 +40,13 @@ SpruceFoliagePlacer::SpruceFoliagePlacer(const FeatureSpread& radius, const Feat
     , m_height(height)
 {}
 
-i32 SpruceFoliagePlacer::getFoliageHeight(math::Random& random, i32 trunkHeight) const
+i32 SpruceFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 trunkHeight) const
 {
     return std::max(4, trunkHeight - m_height);
 }
 
 void SpruceFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -77,7 +77,7 @@ void SpruceFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 }
 
 void SpruceFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const FoliagePosition& foliagePos,
     i32 radius,
     i32 yOffset,
@@ -98,7 +98,7 @@ void SpruceFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
 }
 
 bool SpruceFoliagePlacer::shouldSkip(
-    math::Random& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
+    math::IRandom& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
 {
     // 只跳过角落且半径>0的情况
     return dx == radius && dz == radius && radius > 0;

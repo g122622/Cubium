@@ -166,7 +166,7 @@ public:
          * @param z Z 坐标
          * @param isWall 是否是墙壁（边界）
          */
-        virtual void selectBlocks(math::Random& rng, i32 x, i32 y, i32 z, bool isWall) = 0;
+        virtual void selectBlocks(math::IRandom& rng, i32 x, i32 y, i32 z, bool isWall) = 0;
 
         [[nodiscard]] const BlockState* getBlockState() const { return m_blockState; }
 
@@ -329,7 +329,7 @@ public:
         i32 maxY,
         i32 maxZ,
         bool alwaysReplace,
-        math::Random& rng,
+        math::IRandom& rng,
         BlockSelector& selector);
 
     /**
@@ -337,7 +337,7 @@ public:
      */
     void randomlyPlaceBlock(IWorldWriter& world,
         const StructureBoundingBox& bounds,
-        math::Random& rng,
+        math::IRandom& rng,
         f32 chance,
         i32 x,
         i32 y,
@@ -393,7 +393,7 @@ public:
      */
     void generateChest(IWorldWriter& world,
         const StructureBoundingBox& bounds,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 x,
         i32 y,
         i32 z,
@@ -416,7 +416,7 @@ public:
      */
     void generateChest(IWorldWriter& world,
         const StructureBoundingBox& bounds,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 x,
         i32 y,
         i32 z,
@@ -440,7 +440,7 @@ public:
      */
     void generateDispenser(IWorldWriter& world,
         const StructureBoundingBox& bounds,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 x,
         i32 y,
         i32 z,
@@ -499,7 +499,7 @@ public:
      * @brief 构建组件（由子类覆盖以添加连接组件）
      */
     virtual void buildComponent(
-        StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng);
+        StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::IRandom& rng);
 
     /**
      * @brief 在区块中生成片段
@@ -516,7 +516,7 @@ public:
      * 通过 placeInChunk → generate → JigsawPlacer::placePiece → JigsawPiece::place 链路传递。
      */
     virtual void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -792,7 +792,7 @@ public:
      * @return 是否可以生成
      */
     [[nodiscard]] virtual bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ);
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ);
 
     /**
      * @brief 生成结构起点（仅创建 StructurePiece，禁止写方块）
@@ -808,7 +808,7 @@ public:
      * @return 生成的结构实例
      */
     [[nodiscard]] virtual std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const;
 
     /**
      * @brief 在区块中放置结构片段
@@ -857,9 +857,9 @@ protected:
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param salt 盐值
-     * @return 随机数生成器
+     * @return 随机数生成器（Xoroshiro128++，由调用方持有所有权）
      */
-    [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
+    [[nodiscard]] static std::unique_ptr<math::IRandom> createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
 
     ResourceLocation m_id; ///< 结构资源位置 ID
 

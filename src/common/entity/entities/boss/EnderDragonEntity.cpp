@@ -752,7 +752,7 @@ void EnderDragonEntity::_onDeathUpdate()
         //     float f2 = (this.random.nextFloat() - 0.5F) * 8.0F;
         //     this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER,
         //         this.getX() + f, this.getY() + 2.0 + f1, this.getZ() + f2, 0.0, 0.0, 0.0);
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         const f32 offsetX = (rng.nextFloat() - 0.5f) * 8.0f;
         const f32 offsetY = (rng.nextFloat() - 0.5f) * 4.0f;
         const f32 offsetZ = (rng.nextFloat() - 0.5f) * 8.0f;

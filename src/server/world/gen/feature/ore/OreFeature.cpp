@@ -56,7 +56,7 @@ namespace {
  * 只要 discardChance 落在 (0, 1) 开区间就会消耗一次 nextFloat，
  * 与被测方块是否邻接空气无关——顺序错位会让后续所有随机量整体偏移。
  */
-bool _shouldSkipAirCheck(math::Random& random, f32 discardChance)
+bool _shouldSkipAirCheck(math::IRandom& random, f32 discardChance)
 {
     if (discardChance <= 0.0F) {
         return true;
@@ -88,7 +88,7 @@ bool _isAdjacentToAir(WorldGenRegion& region, i32 x, i32 y, i32 z)
 
 bool OreFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin,
     const OreFeatureConfig& config)
 {
@@ -133,7 +133,7 @@ bool OreFeature::place(WorldGenRegion& region,
 }
 
 i32 OreFeature::_doPlace(WorldGenRegion& region,
-    math::Random& random,
+    math::IRandom& random,
     const OreFeatureConfig& config,
     f64 x1,
     f64 y1,
@@ -283,7 +283,7 @@ i32 OreFeature::_doPlace(WorldGenRegion& region,
 }
 
 bool OreFeature::_canPlaceOre(WorldGenRegion& region,
-    math::Random& random,
+    math::IRandom& random,
     const OreFeatureConfig& config,
     const OreTarget& target,
     i32 x,
@@ -315,7 +315,7 @@ ConfiguredOreFeature::ConfiguredOreFeature(std::unique_ptr<OreFeatureConfig> fea
 bool ConfiguredOreFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)generator;

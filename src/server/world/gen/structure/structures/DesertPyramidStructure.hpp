@@ -47,7 +47,7 @@ public:
     explicit DesertPyramidPiece(const BlockPos& startPos);
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -56,7 +56,7 @@ public:
 
 private:
     BlockPos m_startPos;
-    void _generatePyramid(IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds);
+    void _generatePyramid(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
 };
 
 /**
@@ -89,13 +89,13 @@ public:
      * 检查区块中心生物群系是否为沙漠，以及结构四角最低高度是否不低于海平面。
      */
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成沙漠神殿起点（仅创建 StructurePiece，禁止写方块）
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     static const std::string m_name;

@@ -59,7 +59,7 @@ public:
         std::unique_ptr<world::gen::valueprovider::IntProvider> bendLength);
 
     std::vector<FoliagePosition> placeTrunk(WorldGenRegion& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 height,
         const BlockPos& startPos,
         std::set<BlockPos>& trunkBlocks,

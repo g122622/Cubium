@@ -86,7 +86,7 @@ public:
      * @param rng 随机数生成器
      * @return 旋转角度（None/Clockwise90/Clockwise180/CounterClockwise90 之一）
      */
-    static Rotation getRandomRotation(math::Random& rng);
+    static Rotation getRandomRotation(math::IRandom& rng);
 };
 
 } // namespace jigsaw

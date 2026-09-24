@@ -61,7 +61,7 @@ public:
 
     TreeDecoratorContext(WorldGenRegion& region,
         DecorationSetter setter,
-        math::Random& random,
+        math::IRandom& random,
         std::vector<BlockPos> logs,
         std::vector<BlockPos> leaves,
         std::vector<BlockPos> roots);
@@ -76,7 +76,7 @@ public:
     [[nodiscard]] bool isAir(const BlockPos& pos) const;
 
     [[nodiscard]] WorldGenRegion& region() const noexcept { return m_region; }
-    [[nodiscard]] math::Random& random() const noexcept { return m_random; }
+    [[nodiscard]] math::IRandom& random() const noexcept { return m_random; }
     [[nodiscard]] const std::vector<BlockPos>& logs() const noexcept { return m_logs; }
     [[nodiscard]] const std::vector<BlockPos>& leaves() const noexcept { return m_leaves; }
     [[nodiscard]] const std::vector<BlockPos>& roots() const noexcept { return m_roots; }
@@ -84,7 +84,7 @@ public:
 private:
     WorldGenRegion& m_region;
     DecorationSetter m_setter;
-    math::Random& m_random;
+    math::IRandom& m_random;
     std::vector<BlockPos> m_logs;
     std::vector<BlockPos> m_leaves;
     std::vector<BlockPos> m_roots;

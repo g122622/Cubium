@@ -135,11 +135,11 @@ public:
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override
+    [[nodiscard]] math::IRandom& getRandom() override
     {
         throw std::runtime_error("SweetBerryBushTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override
+    [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("SweetBerryBushTestWorld::getRandom not implemented");
     }
@@ -218,6 +218,11 @@ public:
     [[nodiscard]] i64 nextLong() override { return static_cast<i64>(nextValue()); }
 
     [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
+
+    [[nodiscard]] math::PositionalRandomFactory forkPositional() override
+    {
+        return math::PositionalRandomFactory(static_cast<u64>(nextValue()));
+    }
 
 private:
     [[nodiscard]] i32 nextValue()

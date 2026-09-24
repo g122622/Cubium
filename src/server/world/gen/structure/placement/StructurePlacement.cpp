@@ -24,7 +24,9 @@
 #include "StructurePlacement.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <functional>
@@ -49,7 +51,9 @@ bool StructurePlacement::applyAdditionalChunkRestrictions(i32 chunkX, i32 chunkZ
         return true;
     }
 
-    math::Random rng;
+    // 原版 StructurePlacement 的四种 frequency reducer 都用
+    // WorldgenRandom(new LegacyRandomSource(0L))。
+    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
 
     switch (m_frequencyReduction) {
         case FrequencyReductionMethod::Default: {

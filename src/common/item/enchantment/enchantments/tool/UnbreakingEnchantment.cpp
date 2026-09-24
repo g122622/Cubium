@@ -35,7 +35,7 @@ namespace enchant {
 // 偏离 vanilla 1.21.11 的 nextInt(level+1)>0（工具）/ nextFloat()<0.6 门控+nextInt（盔甲）语义，
 // 且与 EnchantmentHelper::shouldIgnoreDurabilityLoss 功能重复。保留仅因部分测试/文档可能引用，
 // 勿接入损耗链路（会偏离 vanilla 随机序列与边界精度）。未来应统一到 EnchantmentHelper 删除此处。
-bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& random)
+bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::IRandom& random)
 {
     if (level <= 0) {
         return true;
@@ -47,7 +47,7 @@ bool UnbreakingEnchantment::shouldConsumeDurability(i32 level, math::Random& ran
 }
 
 // TODO 死代码：见上 shouldConsumeDurability 注释，同理从未被调用，勿接入损耗链路。
-bool UnbreakingEnchantment::shouldArmorConsumeDurability(i32 level, math::Random& random)
+bool UnbreakingEnchantment::shouldArmorConsumeDurability(i32 level, math::IRandom& random)
 {
     if (level <= 0) {
         return true;

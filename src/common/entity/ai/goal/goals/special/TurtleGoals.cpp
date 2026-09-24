@@ -73,7 +73,7 @@ bool TurtleGoHomeGoal::shouldExecute()
     }
 
     // 1/700 概率检查
-    mc::math::Random& rng = m_turtle->getRandom();
+    mc::math::IRandom& rng = m_turtle->getRandom();
     if (rng.nextInt(RANDOM_TRIGGER_CHANCE) != 0) {
         return false;
     }
@@ -432,7 +432,7 @@ void TurtleTravelGoal::_setRandomTravelPos()
 {
     if (m_turtle == nullptr || m_turtle->world() == nullptr) return;
 
-    mc::math::Random& rng = m_turtle->getRandom();
+    mc::math::IRandom& rng = m_turtle->getRandom();
 
     // 在 512 格范围内随机选择目标
     i32 k = rng.nextInt(TRAVEL_RANGE * 2 + 1) - TRAVEL_RANGE;                   // X: -512 到 +512

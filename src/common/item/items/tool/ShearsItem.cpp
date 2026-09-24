@@ -160,7 +160,7 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
     // 在世界中生成掉落物
     IWorld* world = target.world();
     if (world != nullptr && !drops.empty()) {
-        math::Random& rng = world->getRandom();
+        math::IRandom& rng = world->getRandom();
 
         for (auto& drop : drops) {
             if (!drop.isEmpty()) {

@@ -143,11 +143,11 @@ public:
     }
 
     // Random interface (stubbed for tests)
-    [[nodiscard]] math::Random& getRandom() override
+    [[nodiscard]] math::IRandom& getRandom() override
     {
         throw std::runtime_error("VegetationTestWorld::getRandom not implemented");
     }
-    [[nodiscard]] const math::Random& getRandom() const override
+    [[nodiscard]] const math::IRandom& getRandom() const override
     {
         throw std::runtime_error("VegetationTestWorld::getRandom not implemented");
     }
@@ -226,6 +226,11 @@ public:
 
     [[nodiscard]] i64 nextLong(i64 bound) override { return static_cast<i64>(nextValue() % bound); }
 
+    [[nodiscard]] math::PositionalRandomFactory forkPositional() override
+    {
+        return math::PositionalRandomFactory(static_cast<u64>(nextValue()));
+    }
+
 private:
     [[nodiscard]] i32 nextValue()
     {
@@ -261,7 +266,7 @@ protected:
 
 TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
 {
-    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -280,7 +285,7 @@ TEST_F(VegetationBlockTest, SaplingCanSustainOnDirtLikeBlocks)
 TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
 {
     bool treeCalled = false;
-    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::Random&) { treeCalled = true; },
+    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::IRandom&) { treeCalled = true; },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -304,7 +309,7 @@ TEST_F(VegetationBlockTest, SaplingRandomTickAdvancesStageUnderLight)
 TEST_F(VegetationBlockTest, SaplingGrowUsesWorldSeedAndPosition)
 {
     std::vector<u64> samples;
-    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::Random& random) { samples.push_back(random.nextU64()); },
+    SaplingBlock sapling([&](IWorld&, const BlockPos&, math::IRandom& random) { samples.push_back(random.nextU64()); },
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld worldA;
@@ -513,7 +518,7 @@ TEST_F(VegetationBlockTest, WaterlilyRejectsNonWaterGround)
 
 TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
 {
-    MushroomBlock mushroom([](IWorld&, const BlockPos&, math::Random&) {},
+    MushroomBlock mushroom([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
@@ -533,7 +538,7 @@ TEST_F(VegetationBlockTest, MushroomCanSustainInDarkAndOnMycelium)
 
 TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark)
 {
-    MushroomBlock mushroom([](IWorld&, const BlockPos&, math::Random&) {},
+    MushroomBlock mushroom([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid().lightLevel(1));
 
     VegetationTestWorld world;
@@ -804,7 +809,7 @@ TEST_F(VegetationBlockTest, BambooSaplingGrowMethodReplacesWithBamboo)
 TEST_F(VegetationBlockTest, SaplingCanGrowAlwaysReturnsTrue)
 {
     // canGrow 应始终返回 true（树苗总是可以接受骨粉）
-    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -820,7 +825,7 @@ TEST_F(VegetationBlockTest, SaplingCanUseBonemealProbability)
 {
     // canUseBonemeal 应以约 45% 的概率返回 true
     // 验证概率值与 MC 原版一致（0.45f）
-    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -846,7 +851,7 @@ TEST_F(VegetationBlockTest, SaplingCanUseBonemealProbability)
 TEST_F(VegetationBlockTest, SaplingIGrowableGrowAdvancesStageFromZero)
 {
     // IGrowable::grow 在阶段 0 时应推进到阶段 1
-    SaplingBlock sapling([](IWorld&, const BlockPos&, math::Random&) {},
+    SaplingBlock sapling([](IWorld&, const BlockPos&, math::IRandom&) {},
         BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid());
 
     VegetationTestWorld world;
@@ -970,7 +975,7 @@ TEST_F(SaplingWorldGenRegionTest, TreeGeneratorReceivesWorldGenRegion)
     WorldGenRegion* receivedRegion = nullptr;
     BlockPos receivedPos(0, 0, 0);
 
-    SaplingBlock::TreeGenerator captureGenerator = [&](IWorld& world, const BlockPos& pos, math::Random& /*random*/) {
+    SaplingBlock::TreeGenerator captureGenerator = [&](IWorld& world, const BlockPos& pos, math::IRandom& /*random*/) {
         generatorCalled = true;
         receivedRegion = &static_cast<WorldGenRegion&>(world);
         receivedPos = pos;

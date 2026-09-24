@@ -105,7 +105,7 @@ public:
      * @return 是否应消失
      */
     [[nodiscard]] static bool shouldDespawn(
-        MobEntity& mob, f64 closestPlayerDistSq, Difficulty difficulty, u64 currentTick, math::Random& random);
+        MobEntity& mob, f64 closestPlayerDistSq, Difficulty difficulty, u64 currentTick, math::IRandom& random);
 
     /**
      * @brief 纯函数消失决策（内部自建确定性随机源）

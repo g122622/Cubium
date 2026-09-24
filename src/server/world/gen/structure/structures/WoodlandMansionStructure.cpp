@@ -117,7 +117,7 @@ const biome::BiomeTag* WoodlandMansionStructure::defaultBiomeTag() const
 }
 
 bool WoodlandMansionStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);
     MC_UNUSED(rng);
@@ -128,7 +128,7 @@ bool WoodlandMansionStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -175,7 +175,7 @@ WoodlandMansionPiece::WoodlandMansionPiece(const std::string& templateName,
 }
 
 void WoodlandMansionPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ,
     const StructureBoundingBox& chunkBounds,
@@ -307,7 +307,7 @@ bool SimpleGrid::edgesTo(i32 x, i32 y, i32 value) const
 // woodland_mansion::MansionGrid 实现
 // ============================================================================
 
-MansionGrid::MansionGrid(math::Random& rng)
+MansionGrid::MansionGrid(math::IRandom& rng)
     : m_rng(rng)
     , m_entranceX(ENTRANCE_OFFSET_X)
     , m_entranceY(ENTRANCE_OFFSET_Y)
@@ -658,7 +658,7 @@ void MansionGrid::_setupThirdFloor()
 // woodland_mansion::MansionPlacer 实现
 // ============================================================================
 
-MansionPlacer::MansionPlacer(math::Random& rng)
+MansionPlacer::MansionPlacer(math::IRandom& rng)
     : m_rng(rng)
     , m_startX(0)
     , m_startY(0)
@@ -1076,72 +1076,72 @@ void MansionPlacer::_addRoom2x2Secret(std::vector<std::unique_ptr<StructurePiece
 // RoomCollection 实现
 // ============================================================================
 
-std::string FirstFloorRoomCollection::get1x1(math::Random& rng) const
+std::string FirstFloorRoomCollection::get1x1(math::IRandom& rng) const
 {
     return "1x1_a" + std::to_string(rng.nextInt(5) + 1);
 }
 
-std::string FirstFloorRoomCollection::get1x1Secret(math::Random& rng) const
+std::string FirstFloorRoomCollection::get1x1Secret(math::IRandom& rng) const
 {
     return "1x1_as" + std::to_string(rng.nextInt(4) + 1);
 }
 
-std::string FirstFloorRoomCollection::get1x2SideEntrance(math::Random& rng, bool isStairs) const
+std::string FirstFloorRoomCollection::get1x2SideEntrance(math::IRandom& rng, bool isStairs) const
 {
     return "1x2_a" + std::to_string(rng.nextInt(9) + 1);
 }
 
-std::string FirstFloorRoomCollection::get1x2FrontEntrance(math::Random& rng, bool isStairs) const
+std::string FirstFloorRoomCollection::get1x2FrontEntrance(math::IRandom& rng, bool isStairs) const
 {
     return "1x2_b" + std::to_string(rng.nextInt(5) + 1);
 }
 
-std::string FirstFloorRoomCollection::get1x2Secret(math::Random& rng) const
+std::string FirstFloorRoomCollection::get1x2Secret(math::IRandom& rng) const
 {
     return "1x2_s" + std::to_string(rng.nextInt(2) + 1);
 }
 
-std::string FirstFloorRoomCollection::get2x2(math::Random& rng) const
+std::string FirstFloorRoomCollection::get2x2(math::IRandom& rng) const
 {
     return "2x2_a" + std::to_string(rng.nextInt(4) + 1);
 }
 
-std::string FirstFloorRoomCollection::get2x2Secret(math::Random& rng) const
+std::string FirstFloorRoomCollection::get2x2Secret(math::IRandom& rng) const
 {
     return "2x2_s1";
 }
 
-std::string SecondFloorRoomCollection::get1x1(math::Random& rng) const
+std::string SecondFloorRoomCollection::get1x1(math::IRandom& rng) const
 {
     return "1x1_b" + std::to_string(rng.nextInt(4) + 1);
 }
 
-std::string SecondFloorRoomCollection::get1x1Secret(math::Random& rng) const
+std::string SecondFloorRoomCollection::get1x1Secret(math::IRandom& rng) const
 {
     return "1x1_as" + std::to_string(rng.nextInt(4) + 1);
 }
 
-std::string SecondFloorRoomCollection::get1x2SideEntrance(math::Random& rng, bool isStairs) const
+std::string SecondFloorRoomCollection::get1x2SideEntrance(math::IRandom& rng, bool isStairs) const
 {
     return isStairs ? "1x2_c_stairs" : "1x2_c" + std::to_string(rng.nextInt(4) + 1);
 }
 
-std::string SecondFloorRoomCollection::get1x2FrontEntrance(math::Random& rng, bool isStairs) const
+std::string SecondFloorRoomCollection::get1x2FrontEntrance(math::IRandom& rng, bool isStairs) const
 {
     return isStairs ? "1x2_d_stairs" : "1x2_d" + std::to_string(rng.nextInt(5) + 1);
 }
 
-std::string SecondFloorRoomCollection::get1x2Secret(math::Random& rng) const
+std::string SecondFloorRoomCollection::get1x2Secret(math::IRandom& rng) const
 {
     return "1x2_se" + std::to_string(rng.nextInt(1) + 1);
 }
 
-std::string SecondFloorRoomCollection::get2x2(math::Random& rng) const
+std::string SecondFloorRoomCollection::get2x2(math::IRandom& rng) const
 {
     return "2x2_b" + std::to_string(rng.nextInt(5) + 1);
 }
 
-std::string SecondFloorRoomCollection::get2x2Secret(math::Random& rng) const
+std::string SecondFloorRoomCollection::get2x2Secret(math::IRandom& rng) const
 {
     return "2x2_s1";
 }

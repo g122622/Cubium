@@ -61,7 +61,7 @@ bool SlimeFloatGoal::shouldExecute()
 
 void SlimeFloatGoal::tick()
 {
-    math::Random& rng = m_slime->getRandom();
+    math::IRandom& rng = m_slime->getRandom();
     if (rng.nextFloat() < JUMP_CHANCE) {
         m_slime->jumpController()->setJumping();
     }
@@ -179,7 +179,7 @@ bool SlimeFaceRandomGoal::shouldExecute()
 void SlimeFaceRandomGoal::tick()
 {
     if (m_nextRandomizeTime <= 0) {
-        math::Random& rng = m_slime->getRandom();
+        math::IRandom& rng = m_slime->getRandom();
         m_nextRandomizeTime = RANDOMIZE_TIME_MIN + rng.nextInt(RANDOMIZE_TIME_RANGE);
         m_chosenDegrees = rng.nextFloat() * 360.0f;
     }

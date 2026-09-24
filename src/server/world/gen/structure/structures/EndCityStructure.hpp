@@ -73,10 +73,10 @@ public:
     [[nodiscard]] const biome::BiomeTag* defaultBiomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
     /**
@@ -103,7 +103,7 @@ public:
         const std::string& templateName, const BlockPos& pos, feature::template_::Rotation rotation, bool overwrite);
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32 chunkX,
         i32 chunkZ,
         const StructureBoundingBox& chunkBounds,
@@ -148,7 +148,7 @@ public:
         CityTemplate& parent,
         const BlockPos& offset,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng) = 0;
+        math::IRandom& rng) = 0;
 };
 
 /**
@@ -162,7 +162,7 @@ public:
         CityTemplate& parent,
         const BlockPos& offset,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng) override;
+        math::IRandom& rng) override;
 };
 
 /**
@@ -176,7 +176,7 @@ public:
         CityTemplate& parent,
         const BlockPos& offset,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng) override;
+        math::IRandom& rng) override;
 };
 
 /**
@@ -192,7 +192,7 @@ public:
         CityTemplate& parent,
         const BlockPos& offset,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng) override;
+        math::IRandom& rng) override;
 
 private:
     bool m_shipCreated = false;
@@ -209,7 +209,7 @@ public:
         CityTemplate& parent,
         const BlockPos& offset,
         std::vector<std::unique_ptr<StructurePiece>>& pieces,
-        math::Random& rng) override;
+        math::IRandom& rng) override;
 };
 
 /**
@@ -236,7 +236,7 @@ bool recursiveChildren(feature::template_::TemplateManager& templateManager,
     CityTemplate& parent,
     const BlockPos& offset,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng);
+    math::IRandom& rng);
 
 /**
  * @brief 启动房屋塔生成
@@ -245,7 +245,7 @@ void startHouseTower(feature::template_::TemplateManager& templateManager,
     const BlockPos& startPos,
     feature::template_::Rotation rotation,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng);
+    math::IRandom& rng);
 
 } // namespace end_city
 

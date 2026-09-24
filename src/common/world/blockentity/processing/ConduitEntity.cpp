@@ -299,7 +299,7 @@ void ConduitEntity::_attackMobs(IWorld& world)
 
         if (!hostileMobs.empty()) {
             // 随机选择一个目标
-            math::Random& random = world.getRandom();
+            math::IRandom& random = world.getRandom();
             const i32 index = random.nextInt(static_cast<i32>(hostileMobs.size()));
             m_target = hostileMobs[static_cast<size_t>(index)];
         }
@@ -384,7 +384,7 @@ void ConduitEntity::_spawnParticles(IWorld& world)
         return;
     }
 
-    math::Random& random = world.getRandom();
+    math::IRandom& random = world.getRandom();
 
     // 计算潮涌核心上方的粒子发射点
     // d0 = sin((ticksExisted + 35) * 0.1) / 2 + 0.5

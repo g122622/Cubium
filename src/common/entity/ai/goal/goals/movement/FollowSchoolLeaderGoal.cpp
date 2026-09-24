@@ -182,7 +182,7 @@ void FollowSchoolLeaderGoal::tick()
 i32 FollowSchoolLeaderGoal::_getNewCooldown() const
 {
     // 结果范围：200~219 ticks（约10~11秒）
-    math::Random& rng = m_fish->world()->getRandom();
+    math::IRandom& rng = m_fish->world()->getRandom();
     return 200 + rng.nextInt(200) % 20;
 }
 

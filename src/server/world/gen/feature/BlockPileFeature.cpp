@@ -46,7 +46,7 @@ ConfiguredBlockPileFeature::ConfiguredBlockPileFeature(std::unique_ptr<BlockPile
 namespace {
 
 /// 对齐 MC BlockPileFeature.mayPlaceOn：dirt_path 按 nextBoolean，否则 isFaceSturdy(UP, FULL)。
-bool mayPlaceOn(WorldGenRegion& region, const BlockPos& pos, math::Random& random)
+bool mayPlaceOn(WorldGenRegion& region, const BlockPos& pos, math::IRandom& random)
 {
     const BlockPos below = pos.down();
     const BlockState* belowState = region.getBlockState(below);
@@ -61,7 +61,7 @@ bool mayPlaceOn(WorldGenRegion& region, const BlockPos& pos, math::Random& rando
 
 /// 对齐 MC BlockPileFeature.tryPlaceBlock：目标格为空且 mayPlaceOn 才放置。
 void tryPlaceBlock(
-    WorldGenRegion& region, const BlockPos& pos, math::Random& random, const state::BlockStateProvider& provider)
+    WorldGenRegion& region, const BlockPos& pos, math::IRandom& random, const state::BlockStateProvider& provider)
 {
     const BlockState* current = region.getBlockState(pos);
     const bool empty = (current == nullptr) || current->isAir();
@@ -79,7 +79,7 @@ void tryPlaceBlock(
 bool ConfiguredBlockPileFeature::place(WorldGenRegion& region,
     ChunkPrimer& /*chunk*/,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& origin) const
 {
     if (!m_config || m_config->stateProvider == nullptr) {

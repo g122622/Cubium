@@ -51,7 +51,7 @@ namespace {
 bool dispatchChildFeature(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const ResourceLocation& id)
 {
@@ -76,7 +76,7 @@ bool dispatchChildFeature(WorldGenRegion& region,
 bool RandomSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const RandomSelectorFeatureConfig& config)
 {
@@ -105,7 +105,7 @@ ConfiguredRandomSelectorFeature::ConfiguredRandomSelectorFeature(
 bool ConfiguredRandomSelectorFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     if (!m_config) {

@@ -343,7 +343,7 @@ void EndDragonFight::setPlaceSpikeCallback(PlaceSpikeCallback callback)
     m_placeSpikeCallback = std::move(callback);
 }
 
-void EndDragonFight::placeSpikeForRespawn(IWorld& world, math::Random& random, const EndSpike& spike)
+void EndDragonFight::placeSpikeForRespawn(IWorld& world, math::IRandom& random, const EndSpike& spike)
 {
     if (m_placeSpikeCallback) {
         m_placeSpikeCallback(world, random, spike);
@@ -476,7 +476,7 @@ Entity* EndDragonFight::_createNewDragon(IWorld& world)
     // 3. 设置生成位置 (0, DRAGON_SPAWN_Y, 0) 和随机朝向
     // MC 原版：snapTo(origin.x, 128+origin.y, origin.z, random.nextFloat()*360, 0)
     // origin 默认 (0,0,0)，故生成位置为 (0, 128, 0)
-    math::Random& rng = world.getRandom();
+    math::IRandom& rng = world.getRandom();
     const f32 yaw = rng.nextFloat() * 360.0f;
     dragonEntity->setPosition(Vector3(0.0f, static_cast<f32>(DRAGON_SPAWN_Y), 0.0f));
     dragonEntity->setRotation(yaw, 0.0f);

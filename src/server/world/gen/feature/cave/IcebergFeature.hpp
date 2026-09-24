@@ -62,12 +62,12 @@ class IcebergFeature {
 public:
     bool place(IWorld& world,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const IcebergConfig& config);
 
 private:
-    void generateCutOut(math::Random& random,
+    void generateCutOut(math::IRandom& random,
         IWorld& world,
         i32 j1,
         i32 l,
@@ -87,7 +87,7 @@ private:
         i32 j);
     void removeFloatingSnowLayer(IWorld& world, const BlockPos& pos);
     void generateIcebergBlock(IWorld& world,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& blockpos,
         i32 l,
         i32 l1,
@@ -102,7 +102,7 @@ private:
         const BlockState* blockstate);
     void setIcebergBlock(const BlockPos& pos,
         IWorld& world,
-        math::Random& random,
+        math::IRandom& random,
         i32 p_225128_,
         i32 p_225129_,
         bool flag1,
@@ -110,11 +110,11 @@ private:
         const BlockState* blockstate);
     [[nodiscard]] int getEllipseC(int p_66019_, int p_66020_, int p_66021_) const;
     [[nodiscard]] double signedDistanceCircle(
-        int x, int z, const BlockPos& center, int radius, math::Random& random) const;
+        int x, int z, const BlockPos& center, int radius, math::IRandom& random) const;
     [[nodiscard]] double signedDistanceEllipse(int x, int z, const BlockPos& center, int a, int b, double angle) const;
-    [[nodiscard]] int heightDependentRadiusRound(math::Random& random, int y, int height, int radius) const;
+    [[nodiscard]] int heightDependentRadiusRound(math::IRandom& random, int y, int height, int radius) const;
     [[nodiscard]] int heightDependentRadiusEllipse(int y, int height, int radius) const;
-    [[nodiscard]] int heightDependentRadiusSteep(math::Random& random, int y, int height, int radius) const;
+    [[nodiscard]] int heightDependentRadiusSteep(math::IRandom& random, int y, int height, int radius) const;
     void smooth(IWorld& world, const BlockPos& blockpos, int j1, int l, bool flag1, int i);
     [[nodiscard]] static bool isIcebergState(const BlockState& state);
     [[nodiscard]] bool belowIsAir(IWorld& world, const BlockPos& pos) const;
@@ -130,7 +130,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

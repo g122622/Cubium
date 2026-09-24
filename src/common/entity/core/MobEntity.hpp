@@ -475,7 +475,7 @@ public:
      * @param difficulty 区域难度实例
      */
     virtual void populateDefaultEquipmentSlots(
-        math::Random& random, const entity::combat::DifficultyInstance& difficulty);
+        math::IRandom& random, const entity::combat::DifficultyInstance& difficulty);
 
     /**
      * @brief 根据难度附魔默认装备
@@ -489,7 +489,7 @@ public:
      * @param difficulty 区域难度实例
      */
     virtual void populateDefaultEquipmentEnchantments(
-        math::Random& random, const entity::combat::DifficultyInstance& difficulty);
+        math::IRandom& random, const entity::combat::DifficultyInstance& difficulty);
 
     /**
      * @brief 根据装备槽位和护甲等级获取对应的装备物品
@@ -1254,7 +1254,7 @@ protected:
      * @param specialMultiplier 区域难度特殊乘数
      */
     void enchantSpawnedWeapon(
-        math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
+        math::IRandom& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
 
     /**
      * @brief 附魔生成的护甲
@@ -1266,7 +1266,7 @@ protected:
      * @param specialMultiplier 区域难度特殊乘数
      */
     void enchantSpawnedArmor(
-        math::Random& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
+        math::IRandom& random, const entity::combat::DifficultyInstance& difficulty, f32 specialMultiplier);
 
     // ========== 同步数据参数 ==========
 

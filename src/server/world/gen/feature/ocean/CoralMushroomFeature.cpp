@@ -32,7 +32,7 @@
 namespace mc {
 
 bool CoralMushroomFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     const i32 dimX = random.nextInt(3) + 3;       // 3~5
     const i32 dimY = random.nextInt(3) + 3;       // 3~5
@@ -65,7 +65,7 @@ bool CoralMushroomFeature::place(
 }
 
 void CoralMushroomFeature::_generateCap(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,

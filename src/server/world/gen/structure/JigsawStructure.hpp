@@ -197,13 +197,13 @@ public:
     /**
      * @brief 检查是否可以在指定位置生成结构
      */
-    bool canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+    bool canGenerate(IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
     /**
      * @brief 生成 Jigsaw 结构
      */
     std::unique_ptr<StructureStart> generate(
-        IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
+        IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
 
 protected:
     JigsawConfig m_config;   ///< Jigsaw 配置

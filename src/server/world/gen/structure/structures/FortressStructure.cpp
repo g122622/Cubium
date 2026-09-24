@@ -81,7 +81,7 @@ public:
     {}
 
     void generate(IWorldWriter& world,
-        math::Random& rng,
+        math::IRandom& rng,
         i32,
         i32,
         const StructureBoundingBox& chunkBounds,
@@ -121,7 +121,7 @@ FortressFallbackPiece::FortressFallbackPiece(const BlockPos& pos)
 {}
 
 void FortressFallbackPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -135,7 +135,7 @@ void FortressFallbackPiece::generate(IWorldWriter& world,
 }
 
 void FortressFallbackPiece::_generateFallbackFortress(
-    IWorldWriter& world, math::Random& rng, const StructureBoundingBox& bounds)
+    IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds)
 {
     // 获取方块状态
     const BlockState* netherBricks = VanillaBlocks::getState(VanillaBlocks::NETHERRACK); // 使用下界岩替代
@@ -493,7 +493,7 @@ const biome::BiomeTag* FortressStructure::defaultBiomeTag() const
 }
 
 bool FortressStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ)
 {
     // 下界要塞只检查概率，不检查生物群系
     // 生物群系检查由维度的 BiomeGenerationSettings 决定
@@ -503,7 +503,7 @@ bool FortressStructure::canGenerate(
 }
 
 std::unique_ptr<StructureStart> FortressStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 

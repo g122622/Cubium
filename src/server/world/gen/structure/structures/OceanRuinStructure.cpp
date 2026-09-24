@@ -169,7 +169,7 @@ void OceanRuinPiece::_loadTemplate()
 }
 
 void OceanRuinPiece::generate(IWorldWriter& world,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
@@ -229,7 +229,7 @@ const biome::BiomeTag* OceanRuinStructure::defaultBiomeTag() const
 
 bool OceanRuinStructure::canGenerate([[maybe_unused]] IWorld& world,
     [[maybe_unused]] IChunkGenerator& generator,
-    math::Random& rng,
+    math::IRandom& rng,
     [[maybe_unused]] i32 chunkX,
     [[maybe_unused]] i32 chunkZ)
 {
@@ -237,7 +237,7 @@ bool OceanRuinStructure::canGenerate([[maybe_unused]] IWorld& world,
 }
 
 std::unique_ptr<StructureStart> OceanRuinStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
@@ -296,7 +296,7 @@ void OceanRuinStructure::generatePiece(feature::template_::TemplateManager& temp
     const BlockPos& pos,
     Rotation rotation,
     std::vector<std::unique_ptr<StructurePiece>>& pieces,
-    math::Random& rng,
+    math::IRandom& rng,
     const OceanRuinConfig& config,
     bool isLarge,
     f32 integrity) const
@@ -352,7 +352,7 @@ void OceanRuinStructure::generatePiece(feature::template_::TemplateManager& temp
 }
 
 void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManager& templateManager,
-    math::Random& rng,
+    math::IRandom& rng,
     [[maybe_unused]] Rotation mainRotation,
     const BlockPos& mainPos,
     const OceanRuinConfig& config,
@@ -383,7 +383,7 @@ void OceanRuinStructure::generateClusterPieces(feature::template_::TemplateManag
     }
 }
 
-std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(math::Random& rng, i32 x, i32 z) const
+std::vector<BlockPos> OceanRuinStructure::getCandidatePositions(math::IRandom& rng, i32 x, i32 z) const
 {
     // 生成 8 个候选位置，围绕主废墟
     std::vector<BlockPos> positions;

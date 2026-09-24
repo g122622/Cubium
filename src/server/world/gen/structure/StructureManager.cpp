@@ -161,7 +161,7 @@ StructureManager::StructureManager(i64 seed)
 std::unique_ptr<StructureStart> StructureManager::generateStructureStart(const Structure& structure,
     IWorldWriter& /*world*/,
     IChunkGenerator& generator,
-    math::Random& rng,
+    math::IRandom& rng,
     i32 chunkX,
     i32 chunkZ)
 {
@@ -184,7 +184,7 @@ void StructureManager::clearCache()
     m_structureCheck.clearCache();
 }
 
-math::Random StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) const
+std::unique_ptr<math::IRandom> StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) const
 {
     // 结构生成使用的常量种子混合参数
     constexpr u64 CHUNK_X_MULTIPLIER = 341873128712ULL;
@@ -192,7 +192,7 @@ math::Random StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) c
 
     u64 combinedSeed = static_cast<u64>(chunkX) * CHUNK_X_MULTIPLIER + static_cast<u64>(chunkZ) * CHUNK_Z_MULTIPLIER +
         static_cast<u64>(m_seed) + static_cast<u64>(salt);
-    return math::Random(static_cast<i64>(combinedSeed));
+    return std::make_unique<math::Random>(static_cast<i64>(combinedSeed));
 }
 
 } // namespace mc::world::gen::structure

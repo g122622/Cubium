@@ -82,7 +82,7 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
         auto* spawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
         ResourceLocation entityId(m_entityType.name());
-        math::Random& rng = world.getRandom();
+        math::IRandom& rng = world.getRandom();
         spawner->setEntityId(entityId, rng);
 
         // 通知客户端方块变更并触发 BLOCK_CHANGE 振动事件

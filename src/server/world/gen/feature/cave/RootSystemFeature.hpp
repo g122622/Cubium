@@ -90,7 +90,7 @@ public:
     static bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos,
         const RootSystemConfig& config);
 
@@ -104,7 +104,7 @@ private:
      * @brief 放置缠根泥土柱
      */
     static void placeRootedDirtColumn(WorldGenRegion& region,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& origin,
         i32 targetY,
         const RootSystemConfig& config);
@@ -113,7 +113,7 @@ private:
      * @brief 放置垂根
      */
     static void placeHangingRoots(
-        WorldGenRegion& region, math::Random& random, const BlockPos& rootCenter, const RootSystemConfig& config);
+        WorldGenRegion& region, math::IRandom& random, const BlockPos& rootCenter, const RootSystemConfig& config);
 };
 
 /**
@@ -128,7 +128,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }
     [[nodiscard]] DecorationStage stage() const override { return DecorationStage::VegetalDecoration; }

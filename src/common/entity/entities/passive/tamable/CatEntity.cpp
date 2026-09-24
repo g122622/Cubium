@@ -183,7 +183,7 @@ std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/, ecs::EntityRegistry
 
 void CatEntity::setRandomCatType()
 {
-    math::Random& rng = getRandom();
+    math::IRandom& rng = getRandom();
     // 走 setCatType 以同步 DATA_VARIANT_ID_PARAM(wire)。
     setCatType(static_cast<CatType>(rng.nextInt(0, 10)));
 }

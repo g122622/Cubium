@@ -203,7 +203,7 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
     }
 
     // 放置结构（含方块/方块实体/实体）：不带 UPDATE_NEIGHBORS 位，避免逐方块触发邻居更新
-    mc::math::Random& rng = world.getRandom();
+    mc::math::IRandom& rng = world.getRandom();
     const bool ok = tpl->placeInWorld(world,
         placeOrigin,
         settings,

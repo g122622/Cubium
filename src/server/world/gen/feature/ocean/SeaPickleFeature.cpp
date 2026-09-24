@@ -72,7 +72,7 @@ namespace {
 // ============================================================================
 
 bool SeaPickleFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const SeaPickleFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const SeaPickleFeatureConfig& config)
 {
     if (!config.seaPickleState) {
         return false;
@@ -154,7 +154,7 @@ ConfiguredSeaPickleFeature::ConfiguredSeaPickleFeature(
 bool ConfiguredSeaPickleFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

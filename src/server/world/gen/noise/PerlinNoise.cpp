@@ -198,6 +198,8 @@ PerlinNoise::PerlinNoise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
     , m_amplitudes(std::move(amplitudes))
 {
     // MC 1.21: 使用 PositionalRandomFactory 风格的种子派生
+    // 【注意】原版 PerlinNoise.create 收的是 RandomSource，这里的种子构造是本项目
+    // 自有的便利重载；走的是 Xoroshiro flavor（与 RandomState::getOrCreateNoise 一致）。
     math::Random rng(seed);
     const math::PositionalRandomFactory factory = rng.forkPositional();
     initLayers(factory);

@@ -53,7 +53,7 @@ const BlockState* FlowerFeatureConfig::getRandomFlower(math::IRandom& random) co
 // ============================================================================
 
 bool FlowerFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const FlowerFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const FlowerFeatureConfig& config)
 {
     if (config.flowers.empty()) {
         return false;
@@ -172,7 +172,7 @@ ConfiguredFlowerFeature::ConfiguredFlowerFeature(std::unique_ptr<FlowerFeatureCo
 bool ConfiguredFlowerFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     (void)chunk;

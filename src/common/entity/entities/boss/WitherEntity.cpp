@@ -320,7 +320,7 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
     // 主头有 0.1% 概率发射蓝色凋灵之首，充能状态下主头总是发射蓝色
     bool isBlue = false;
     if (head == 0) {
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         if (isCharged() || rng.nextFloat() < 0.001f) {
             isBlue = true;
         }
@@ -461,7 +461,7 @@ void WitherEntity::die(DamageSource& source)
     // 掉落 1 个下界之星，永不消失
     if (Items::NETHER_STAR != nullptr) {
         ItemStack netherStar(Items::NETHER_STAR, 1);
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         ItemEntity* itemEntity = ItemDropHelper::spawnItemAtEntity(this,
             netherStar,
             0.5f, // offsetY
@@ -536,7 +536,7 @@ void WitherEntity::_updateAITasks()
                 // 当空闲次数超过15时，发射随机蓝色凋灵之首
                 if (m_idleHeadUpdates[i - 1] > 15) {
                     // 在凋灵周围 10x5x10 范围内随机选一个坐标
-                    math::Random& rng = getRandom();
+                    math::IRandom& rng = getRandom();
                     f64 targetX = rng.nextDouble() * 20.0 - 10.0 + x();
                     f64 targetY = rng.nextDouble() * 10.0 - 5.0 + y();
                     f64 targetZ = rng.nextDouble() * 20.0 - 10.0 + z();
@@ -577,7 +577,7 @@ void WitherEntity::_updateHeadTargets()
         }
 
         // 设置下次更新时间：10-20 tick后
-        math::Random& rng = getRandom();
+        math::IRandom& rng = getRandom();
         m_nextHeadUpdate[i - 1] = static_cast<i32>(ticksExisted()) + 10 + rng.nextInt(10);
 
         // 获取当前追踪目标
@@ -956,7 +956,7 @@ bool WitherRandomFlyGoal::shouldExecute()
     }
 
     // 执行概率 0.001
-    math::Random& rng = m_wither->getRandom();
+    math::IRandom& rng = m_wither->getRandom();
     if (rng.nextFloat() >= 0.001f) {
         return false;
     }
@@ -1023,7 +1023,7 @@ bool WitherRandomFlyGoal::_generateFlightTarget()
         return false;
     }
 
-    math::Random& rng = m_wither->getRandom();
+    math::IRandom& rng = m_wither->getRandom();
     f64 srcX = m_wither->x();
     f64 srcY = m_wither->y();
     f64 srcZ = m_wither->z();

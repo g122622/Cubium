@@ -75,7 +75,8 @@ public:
      * @param config 折跃门配置
      * @return 是否成功放置
      */
-    bool place(WorldGenRegion& world, math::Random& random, const BlockPos& pos, const EndGatewayFeatureConfig& config);
+    bool place(
+        WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const EndGatewayFeatureConfig& config);
 
     /**
      * @brief 计算折跃门的传送目标
@@ -94,7 +95,7 @@ private:
     /**
      * @brief 生成折跃门结构
      */
-    void _generateGateway(WorldGenRegion& world, math::Random& random, const BlockPos& pos);
+    void _generateGateway(WorldGenRegion& world, math::IRandom& random, const BlockPos& pos);
 };
 
 /**
@@ -107,7 +108,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

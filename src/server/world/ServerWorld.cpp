@@ -257,7 +257,7 @@ Result<void> ServerWorld::initialize()
         // 调用 server 侧 EndSpikeFeature::placeSpike() 重新生成黑曜石柱。
         // common 层 EndDragonFight 不直接依赖 EndSpikeFeature（server gen），
         // 通过 std::function 回调解耦。
-        m_dragonFight->setPlaceSpikeCallback([](IWorld& world, math::Random& random, const EndSpike& spike) {
+        m_dragonFight->setPlaceSpikeCallback([](IWorld& world, math::IRandom& random, const EndSpike& spike) {
             EndSpikeFeatureConfig config(std::vector<EndSpike>{spike},
                 false,               // destroying=false（placeSpike 不使用此标志）
                 BlockPos(0, 128, 0), // crystalBeamTarget

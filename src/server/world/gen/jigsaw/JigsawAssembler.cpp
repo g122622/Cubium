@@ -84,7 +84,7 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     const TemplatePool& startPool,
     i32 maxDepth,
     const BlockPos& startPos,
-    math::Random& rng,
+    math::IRandom& rng,
     IChunkGenerator& generator,
     const PoolAliasBindings* aliases,
     const structure::MaxDistance* maxDistance,
@@ -226,7 +226,7 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
     IChunkGenerator& generator,
     i32 maxDepth,
     const std::shared_ptr<VoxelShape>& freeShapeHolder,
-    math::Random& rng)
+    math::IRandom& rng)
 {
     // 获取目标模板池（先经池别名查找表解析虚拟池名，对应 MC 1.21 resourcekey = aliasLookup.lookup(pool)）
     ResourceLocation poolLocation(joint.targetPool);

@@ -34,7 +34,7 @@
 namespace mc {
 
 bool CoralTreeFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     const i32 trunkHeight = random.nextInt(3) + 1;
 
@@ -73,7 +73,7 @@ bool CoralTreeFeature::place(
 }
 
 void CoralTreeFeature::_generateBranch(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,

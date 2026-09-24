@@ -35,7 +35,7 @@
 namespace mc {
 
 bool CoralClawFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const CoralFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const CoralFeatureConfig& config)
 {
     bool placedAny = placeCoralWithDecorations(world, random, pos, config.color, config.isDead, config.includeWallFan);
 
@@ -55,7 +55,7 @@ bool CoralClawFeature::place(
 }
 
 void CoralClawFeature::_generateClaw(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     blocks::CoralColor color,
     bool isDead,

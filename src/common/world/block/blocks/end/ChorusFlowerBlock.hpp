@@ -98,7 +98,7 @@ public:
      * @param random 随机数生成器
      * @param maxHorizontalDistance 最大水平扩展距离（原版为8）
      */
-    static void generatePlant(IWorld& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance);
+    static void generatePlant(IWorld& world, const BlockPos& pos, math::IRandom& random, i32 maxHorizontalDistance);
 
 private:
     std::array<CollisionShape, 6> m_shapesByAge;
@@ -117,7 +117,7 @@ private:
      */
     static void growTreeRecursive(IWorld& world,
         const BlockPos& pos,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& origin,
         i32 maxHorizontalDistance,
         i32 depth);

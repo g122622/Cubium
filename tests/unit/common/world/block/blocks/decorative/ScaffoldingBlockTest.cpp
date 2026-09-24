@@ -324,7 +324,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_DistanceSevenFromSix_CreatesFalling
                      .with(BlockStateProperties::DISTANCE_0_7(), 6)
                      .with(BlockStateProperties::BOTTOM(), true);
     world_.setBlockState(pos, world_.storeBlockState(state));
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, pos, state, rng);
     const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(finalState, nullptr);
@@ -339,7 +339,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_DistanceSevenFromSeven_RemovesBlock
                      .with(BlockStateProperties::DISTANCE_0_7(), 7)
                      .with(BlockStateProperties::BOTTOM(), true);
     world_.setBlockState(pos, world_.storeBlockState(state));
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, pos, state, rng);
     const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(finalState, nullptr);
@@ -358,7 +358,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_DistanceNotSeven_UpdatesState)
                      .with(BlockStateProperties::BOTTOM(), true);
     world_.setBlockState(scaffoldingPos, world_.storeBlockState(state));
     size_t entityCountBefore = world_.spawnedEntityCount();
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, scaffoldingPos, state, rng);
     const BlockState* finalState = world_.getBlockState(scaffoldingPos.x, scaffoldingPos.y, scaffoldingPos.z);
     ASSERT_NE(finalState, nullptr);
@@ -374,7 +374,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_BlockReplaced_DoesNothing)
     auto scaffoldingState = scaffolding_->defaultState().with(BlockStateProperties::DISTANCE_0_7(), 7);
     world_.setBlockState(pos, &VanillaBlocks::AIR->defaultState());
     size_t entityCountBefore = world_.spawnedEntityCount();
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, pos, scaffoldingState, rng);
     EXPECT_EQ(world_.spawnedEntityCount(), entityCountBefore);
     const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
@@ -392,7 +392,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_StateUnchanged_NoUpdate)
                      .with(BlockStateProperties::DISTANCE_0_7(), 0)
                      .with(BlockStateProperties::BOTTOM(), false);
     world_.setBlockState(scaffoldingPos, world_.storeBlockState(state));
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, scaffoldingPos, state, rng);
     const BlockState* finalState = world_.getBlockState(scaffoldingPos.x, scaffoldingPos.y, scaffoldingPos.z);
     ASSERT_NE(finalState, nullptr);
@@ -408,7 +408,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_SpawnEntityFail_RestoresBlock)
                      .with(BlockStateProperties::BOTTOM(), true);
     world_.setBlockState(pos, world_.storeBlockState(state));
     world_.setSpawnEntityFail(true);
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, pos, state, rng);
     const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(finalState, nullptr);
@@ -469,7 +469,7 @@ TEST_F(ScaffoldingBlockIntegrationTest, Tick_WaterloggedStatePreserved_InFalling
                      .with(BlockStateProperties::DISTANCE_0_7(), 6)
                      .with(BlockStateProperties::WATERLOGGED(), true);
     world_.setBlockState(pos, world_.storeBlockState(state));
-    math::Random& rng = world_.getRandom();
+    math::IRandom& rng = world_.getRandom();
     scaffolding_->tick(world_, pos, state, rng);
     const BlockState* finalState = world_.getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(finalState, nullptr);

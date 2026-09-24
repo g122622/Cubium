@@ -45,17 +45,17 @@ RandomSpreadFoliagePlacer::RandomSpreadFoliagePlacer(const FeatureSpread& radius
     , m_leafPlacementAttempts(leafPlacementAttempts)
 {}
 
-i32 RandomSpreadFoliagePlacer::getFoliageHeight(math::Random& random, i32 /*trunkHeight*/) const
+i32 RandomSpreadFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 /*trunkHeight*/) const
 {
     if (m_foliageHeight == nullptr) {
         return 0;
     }
-    // IntProvider::sample 接受 IRandom&，math::Random 继承自 IRandom，自动向上转换
+    // IntProvider::sample 接受 math::IRandom&，math::Random 继承自 IRandom，自动向上转换
     return m_foliageHeight->sample(random);
 }
 
 void RandomSpreadFoliagePlacer::placeFoliageInternal(WorldGenRegion& /*world*/,
-    math::Random& random,
+    math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
@@ -83,7 +83,7 @@ void RandomSpreadFoliagePlacer::placeFoliageInternal(WorldGenRegion& /*world*/,
 }
 
 bool RandomSpreadFoliagePlacer::shouldSkip(
-    math::Random& /*random*/, i32 /*dx*/, i32 /*dy*/, i32 /*dz*/, i32 /*radius*/, bool /*trunkTop*/) const
+    math::IRandom& /*random*/, i32 /*dx*/, i32 /*dy*/, i32 /*dz*/, i32 /*radius*/, bool /*trunkTop*/) const
 {
     // 本放置器不走 placeFoliageLayer 路径，shouldSkip 不会被实际调用。
     // 仍然覆盖为 false 以表达原版"不跳过任何位置"的语义。

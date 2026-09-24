@@ -62,7 +62,7 @@ FeatureJigsawPiece::FeatureJigsawPiece(const std::string& featureId, JigsawPlace
 void FeatureJigsawPiece::place(IWorldWriter& world,
     const PlacedPiece& placed,
     class feature::template_::TemplateManager& /*templateManager*/,
-    math::Random& rng,
+    math::IRandom& rng,
     const structure::StructureBoundingBox* /*bounds*/,
     world::chunk::ChunkPrimer* chunk,
     IChunkGenerator* generator)

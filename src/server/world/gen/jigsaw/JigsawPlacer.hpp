@@ -66,7 +66,7 @@ public:
      */
     static void placePieces(IWorldWriter& world,
         std::vector<PlacedPiece>& placedPieces,
-        math::Random& rng,
+        math::IRandom& rng,
         const structure::StructureBoundingBox* bounds,
         world::chunk::ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr);
@@ -86,7 +86,7 @@ public:
      */
     static void placePiece(IWorldWriter& world,
         const PlacedPiece& placed,
-        math::Random& rng,
+        math::IRandom& rng,
         const structure::StructureBoundingBox* bounds,
         world::chunk::ChunkPrimer* chunk = nullptr,
         IChunkGenerator* generator = nullptr);
@@ -103,7 +103,7 @@ public:
      */
     static void placeFallbackBlocks(IWorldWriter& world,
         const PlacedPiece& placed,
-        math::Random& rng,
+        math::IRandom& rng,
         const structure::StructureBoundingBox* bounds);
 };
 

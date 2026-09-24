@@ -127,7 +127,7 @@ public:
         const TemplatePool& startPool,
         i32 maxDepth,
         const BlockPos& startPos,
-        math::Random& rng,
+        math::IRandom& rng,
         IChunkGenerator& generator,
         const PoolAliasBindings* aliases = nullptr,
         const structure::MaxDistance* maxDistance = nullptr,
@@ -165,7 +165,7 @@ public:
         IChunkGenerator& generator,
         i32 maxDepth,
         const std::shared_ptr<VoxelShape>& freeShapeHolder,
-        math::Random& rng);
+        math::IRandom& rng);
 
 private:
     /**

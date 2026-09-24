@@ -72,10 +72,10 @@ TEST_F(MonsterSpawnTest, StaticMethodsExist)
     // 方法签名验证：
     // static bool canMonsterSpawnInLight(LegacyEntityType type, IWorld& world,
     //                                     SpawnReason reason, const BlockPos& pos,
-    //                                     math::Random& random)
+    //                                     math::IRandom& random)
     // static bool canMonsterSpawn(LegacyEntityType type, IWorld& world,
     //                             SpawnReason reason, const BlockPos& pos,
-    //                             math::Random& random)
+    //                             math::IRandom& random)
 
     SUCCEED() << "Static method signatures verified at compile time";
 }

@@ -45,7 +45,7 @@ BendingTrunkPlacer::BendingTrunkPlacer(i32 baseHeight,
 {}
 
 std::vector<FoliagePosition> BendingTrunkPlacer::placeTrunk(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     i32 height,
     const BlockPos& startPos,
     std::set<BlockPos>& trunkBlocks,

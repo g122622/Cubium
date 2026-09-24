@@ -26,7 +26,9 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "server/world/gen/structure/placement/StructurePlacement.hpp"
 
@@ -64,7 +66,9 @@ std::vector<world::chunk::ChunkPos> ConcentricRingsStructurePlacement::generateR
     std::vector<world::chunk::ChunkPos> positions;
     positions.reserve(static_cast<size_t>(m_count));
 
-    math::Random rng;
+    // 原版 ChunkGeneratorStructureState.generateRingPositions 用 RandomSource.create()
+    // （即 LegacyRandomSource）再 setSeed(concentricRingsSeed)。
+    math::WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0ULL));
     rng.setSeed(static_cast<u64>(worldSeed));
 
     // 同心环参数

@@ -42,7 +42,7 @@ namespace mc {
 // ============================================================================
 
 bool BigMushroomFeature::place(
-    WorldGenRegion& world, math::Random& random, const BlockPos& pos, const BigMushroomFeatureConfig& config)
+    WorldGenRegion& world, math::IRandom& random, const BlockPos& pos, const BigMushroomFeatureConfig& config)
 {
     // 计算蘑菇高度
     i32 height = calculateHeight(random);
@@ -62,7 +62,7 @@ bool BigMushroomFeature::place(
 }
 
 void BigMushroomFeature::generateStem(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     const BigMushroomFeatureConfig& config,
     i32 height)
@@ -91,7 +91,7 @@ void BigMushroomFeature::generateStem(WorldGenRegion& world,
     }
 }
 
-i32 BigMushroomFeature::calculateHeight(math::Random& random) const
+i32 BigMushroomFeature::calculateHeight(math::IRandom& random) const
 {
     // 高度范围: 4-6，有 1/12 概率高度翻倍
     i32 height = random.nextInt(3) + 4;
@@ -168,7 +168,7 @@ i32 BigBrownMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 c
 }
 
 void BigBrownMushroomFeature::generateCap(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     i32 height,
     const BigMushroomFeatureConfig& config)
@@ -248,7 +248,7 @@ i32 BigRedMushroomFeature::getCapRadius(i32 baseRadius, i32 totalHeight, i32 cap
 }
 
 void BigRedMushroomFeature::generateCap(WorldGenRegion& world,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos,
     i32 height,
     const BigMushroomFeatureConfig& config)
@@ -332,7 +332,7 @@ ConfiguredBigMushroomFeature::ConfiguredBigMushroomFeature(
 bool ConfiguredBigMushroomFeature::place(WorldGenRegion& region,
     ChunkPrimer& chunk,
     IChunkGenerator& generator,
-    math::Random& random,
+    math::IRandom& random,
     const BlockPos& pos) const
 {
     MC_UNUSED(chunk);

@@ -290,7 +290,7 @@ void OminousItemSpawnerEntity::addParticles()
         return;
     }
 
-    math::Random& rng = m_world->getRandom();
+    math::IRandom& rng = m_world->getRandom();
     i32 count = rng.nextInt(1, 3);
 
     for (i32 i = 0; i < count; ++i) {

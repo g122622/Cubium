@@ -79,7 +79,7 @@ public:
      *
      * @param random 实体的随机数生成器
      */
-    void initCounter(math::Random& random)
+    void initCounter(math::IRandom& random)
     {
         if (m_counter < 0) {
             m_counter = random.nextInt(m_interval);

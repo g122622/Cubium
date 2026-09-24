@@ -66,7 +66,7 @@ public:
     [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
 
     [[nodiscard]] bool canGenerate(
-        IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
+        IWorld& world, IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) override;
 
 private:
     /**
@@ -75,7 +75,7 @@ private:
      * 掠夺者前哨站不会在村庄附近生成（至少10个区块距离）
      */
     [[nodiscard]] bool _isNearVillage(
-        IChunkGenerator& generator, i64 seed, math::Random& rng, i32 chunkX, i32 chunkZ) const;
+        IChunkGenerator& generator, i64 seed, math::IRandom& rng, i32 chunkX, i32 chunkZ) const;
 
     static const std::string s_name;
     static const SpawnOverrides s_spawnOverrides;

@@ -66,14 +66,14 @@ struct PointedDripstoneConfig : public IFeatureConfig {
  */
 class PointedDripstoneFeature {
 public:
-    bool place(IWorld& world, math::Random& random, const BlockPos& pos, const PointedDripstoneConfig& config);
+    bool place(IWorld& world, math::IRandom& random, const BlockPos& pos, const PointedDripstoneConfig& config);
 
 private:
     [[nodiscard]] static std::optional<Direction> getTipDirection(
-        IWorld& world, const BlockPos& pos, math::Random& random);
+        IWorld& world, const BlockPos& pos, math::IRandom& random);
 
     static void createPatchOfDripstoneBlocks(
-        IWorld& world, math::Random& random, const BlockPos& pos, const PointedDripstoneConfig& config);
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const PointedDripstoneConfig& config);
 };
 
 /**
@@ -86,7 +86,7 @@ public:
     bool place(WorldGenRegion& region,
         ChunkPrimer& chunk,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         const BlockPos& pos) const override;
 
     [[nodiscard]] const char* name() const override { return m_name.c_str(); }

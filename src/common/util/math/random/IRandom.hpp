@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -35,12 +36,11 @@ namespace mc::math {
 
 /**
  * @brief 随机数生成器接口
- *
  * 所有随机数算法实现此接口。提供 MC 风格的随机数方法。
  *
  * 使用方法：
  * @code
- * IRandom& rng = ...;
+ * math::IRandom& rng = ...;
  * i32 value = rng.nextInt(100);  // [0, 100)
  * f32 f = rng.nextFloat();        // [0.0, 1.0)
  * bool b = rng.nextBoolean();     // true/false
@@ -73,6 +73,35 @@ public:
      * @note 默认实现取 nextU64() 的高32位
      */
     [[nodiscard]] virtual u32 nextU32();
+
+    /**
+     * @brief 抽取最高的 bits 位（对应 MC BitRandomSource.next(bits) 的语义）
+     *
+     * 只在需要复刻原版**按位宽抽取**的路径上使用（当前唯一消费者是 WorldgenRandom）。
+     * 默认实现取 nextU64() 的高 bits 位，对应原版对"非 Legacy 内层"的处理
+     * （`(int)(randomSource.nextLong() >>> 64 - bits)`）。
+     * JavaLegacyRandom 覆写为自身的 next(bits)，对应原版 `instanceof LegacyRandomSource` 分支。
+     *
+     * 【为什么必须单独一个方法而不是让调用方自己写 nextU64()>>(64-bits)】
+     * 两类内层的**状态推进量不同**：Legacy 的 next(bits) 不论 bits 多少都只推进一次 LCG，
+     * 而取 nextU64() 会推进两次。若统一按 nextU64() 折算，Legacy 内层的后续序列会整体错位。
+     *
+     * @param bits 位数（1..32）
+     * @return 含符号的 bits 位抽取结果（高位置零）
+     */
+    [[nodiscard]] virtual i32 nextBits(i32 bits)
+    {
+        return static_cast<i32>(static_cast<u64>(nextU64()) >> (64 - bits));
+    }
+
+    /**
+     * @brief 派生一个位置随机工厂（对应 MC RandomSource.forkPositional）
+     *
+     * 各实现按原版自己的语义派生：Xoroshiro 取两次 nextLong() 组 128 位种子；
+     * Legacy 取一次 nextLong() 作 64 位种子。世界生成里 PerlinNoise 的现代路径
+     * （`forkPositional().fromHashOf("octave_N")`）依赖它。
+     */
+    [[nodiscard]] virtual PositionalRandomFactory forkPositional() = 0;
 
     // === MC 风格方法 ===
 

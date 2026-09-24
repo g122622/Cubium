@@ -118,19 +118,19 @@ public:
      * @param random 随机数生成器
      * @return 如果光照条件允许生成返回true
      */
-    [[nodiscard]] static bool isValidLightLevel(IWorld& world, const BlockPos& pos, math::Random& random);
+    [[nodiscard]] static bool isValidLightLevel(IWorld& world, const BlockPos& pos, math::IRandom& random);
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（带光照检查）
      */
     [[nodiscard]] static bool canMonsterSpawnInLight(
-        IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
+        IWorld& world, SpawnReason reason, const BlockPos& pos, math::IRandom& random);
 
     /**
      * @brief 检查怪物是否可以在指定位置生成（无光照检查）
      */
     [[nodiscard]] static bool canMonsterSpawn(
-        IWorld& world, SpawnReason reason, const BlockPos& pos, math::Random& random);
+        IWorld& world, SpawnReason reason, const BlockPos& pos, math::IRandom& random);
 
     // ========== 行为 ==========
 
