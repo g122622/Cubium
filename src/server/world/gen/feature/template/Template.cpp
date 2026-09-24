@@ -527,13 +527,24 @@ const Palette* Template::getPalette(size_t index) const
     return nullptr;
 }
 
-const Palette* Template::selectPalette(math::IRandom& rng) const
+const Palette* Template::selectPalette(const PlacementSettings& settings, const BlockPos& pos) const
 {
     if (m_palettes.empty()) {
         return nullptr;
     }
-    // 随机选择一个调色板
-    size_t index = static_cast<size_t>(rng.nextInt(static_cast<i32>(m_palettes.size())));
+
+    // 对应 MC StructurePlaceSettings.getRandomPalette(palettes, pos)：
+    //   palettes.get(this.getRandom(pos).nextInt(palettes.size()))
+    // 注意 `getRandom(pos)` 取的是 **settings 自身的随机源**（未显式设置时为
+    // `RandomSource.create(Mth.getSeed(pos))`，即位置派生的 LegacyRandomSource），
+    // 而**不是** placement 传入的随机源。二者不可混用：
+    //   - 用位置种子 → 同一构件重复放置时调色板稳定，且不推进结构随机源；
+    //   - 若误用结构随机源（且每次都 nextInt，即使只有 1 个调色板），
+    //     会在每个构件处悄悄消耗一次随机数，使后续构件乃至后续区块的
+    //     随机序列整体错位——这类错位不改变本构件外观，极难定位。
+    auto [borrowed, owned] = settings.getRandom(&pos);
+    math::IRandom& paletteRandom = borrowed != nullptr ? *borrowed : *owned;
+    const size_t index = static_cast<size_t>(paletteRandom.nextInt(static_cast<i32>(m_palettes.size())));
     return &m_palettes[index];
 }
 
@@ -601,8 +612,13 @@ structure::StructureBoundingBox Template::getBoundingBox(const PlacementSettings
 bool Template::place(
     IWorldWriter& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
 {
+    // 原版 StructureTemplate.placeInWorld 的 RandomSource 形参在 1.21 已无消费方：
+    // 调色板选择改走 settings.getRandom(pos)（位置派生），处理器链也不接收随机源。
+    // 参数保留是为了与调用方签名一致。
+    (void)rng;
+
     // 选择调色板
-    const Palette* selectedPalette = selectPalette(rng);
+    const Palette* selectedPalette = selectPalette(settings, pos);
     if (!selectedPalette || selectedPalette->empty()) {
         // 没有调色板或调色板为空，检查旧格式的方块列表
         if (m_palettes.empty()) {
@@ -805,8 +821,11 @@ bool Template::place(
 bool Template::placeInWorld(
     IWorld& world, const BlockPos& pos, const PlacementSettings& settings, math::IRandom& rng, i32 flags) const
 {
+    // 同 Template::place：RandomSource 形参已无消费方（见该函数内说明）
+    (void)rng;
+
     // 选择调色板
-    const Palette* selectedPalette = selectPalette(rng);
+    const Palette* selectedPalette = selectPalette(settings, pos);
     if (!selectedPalette || selectedPalette->empty()) {
         if (m_palettes.empty()) {
             return true;
@@ -1305,20 +1324,42 @@ GravityStructureProcessor::GravityStructureProcessor(i32 heightmapType, i32 offs
 
 std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
-    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& rawBlockInfo,
     const BlockInfo& blockInfo,
     const PlacementSettings& settings)
 {
-    // GravityStructureProcessor 根据高度图调整 Y 坐标
-    // 如果有世界访问，则获取地面高度；否则使用简化实现
+    // 落点公式（terrain_matching 投影把构件贴到地形上）：
+    //     i = 高度图取值(x, z) + offset
+    //     j = 原始（模板内）方块信息的 y
+    //     newY = i + j
+    //
+    // 【两处必须精确对齐的语义，任一弄错都会让 terrain_matching 构件错位】
+    //
+    // 1) 原版 `LevelReader.getHeight(type,x,z)` 返回**首个可放置高度**（最高方块 Y + 1）：
+    //    WorldGenRegion 的实现是 `chunk.getHeight(...) + 1`，而 ChunkAccess.getHeight 本身
+    //    是 `getFirstAvailable(...) - 1`，故合起来等于 getFirstAvailable。
+    //    项目的 `IWorld::getHeight(x,z)` 是"最高方块 Y"语义（= getTopBlockY），
+    //    因此必须 **+1** 才是原版在该处的取值（与 placement/Placement.cpp 中对
+    //    "MC getHeight 返回 Y+1、项目 getTopBlockY 返回 Y" 的处理一致）。
+    //    漏掉这个 +1 会把整片构件整体下移 1 格。
+    //
+    // 2) `j` 是方块在**模板内的局部 Y**，不是世界 Y：整块模板沿 Y 平移，使局部 y=0
+    //    恰好落在原版高度图高度上（offset=-1 时即"顶掉地表那一格"）。
+    //    漏掉 j 会把构件的所有方块压到同一层 —— 村庄街道（streets/terminators 均为
+    //    terrain_matching，路面 dirt_path 在局部 y=0、jigsaw 在局部 y=1）会因此把路面
+    //    埋到地表以下一格，在地面上表现为"村庄里看不见路"。
+    //
+    // TODO: 原版在 `level instanceof ServerLevel` 时把 WORLD_SURFACE_WG 换成 WORLD_SURFACE
+    // （OCEAN_FLOOR_WG → OCEAN_FLOOR），用于运行时 `/place` 类路径；项目的 IWorld 查询
+    // 恒用 WorldSurfaceWG，运行时路径的高度图类型尚未区分。
     const IWorld* world = settings.getWorld();
 
     ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     if (world) {
         // 完整实现：使用高度图获取地面高度
-        i32 surfaceY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z);
-        result.pos = BlockPos(blockInfo.pos.x, surfaceY + m_offset, blockInfo.pos.z);
+        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z) + 1;
+        result.pos = BlockPos(blockInfo.pos.x, heightmapFirstFreeY + m_offset + rawBlockInfo.pos.y, blockInfo.pos.z);
     } else {
         // 简化实现：仅应用偏移量
         result.pos = BlockPos(blockInfo.pos.x, blockInfo.pos.y + m_offset, blockInfo.pos.z);

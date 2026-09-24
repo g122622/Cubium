@@ -83,8 +83,10 @@
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/storage/JavaRealWorldFixture.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -102,7 +104,9 @@
 #include "server/world/storage/reader/java/RegionFile.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <set>
@@ -745,6 +749,31 @@ TEST_F(JavaAnvilVillageStructureParityTest, JigsawHarnessIsWired)
         EXPECT_GT(auditedReal, 0) << poolName << " 没有可审计的模板件，自检形同虚设";
     }
 
+    // 连接点的**顺序**必须与模板 NBT 中 jigsaw 方块的出现顺序一致：
+    // 原版与本案都对连接点列表做 Fisher-Yates，输入顺序不同则同一随机数会产出不同排列——
+    // 这会改变父块连接点的处理次序（进而改变"父块内部接合点"共享的可放置空间的演化），
+    // 却**不改变随机数消耗次数**，因此是一种"前若干构件完全一致、之后突然发散"的隐蔽偏差。
+    {
+        const auto* orderPool =
+            TemplatePoolRegistry::instance().getPool(ResourceLocation::parse("minecraft:village/plains/streets"));
+        ASSERT_NE(orderPool, nullptr);
+        math::Random orderRng(0ULL);
+        for (const auto* piece : orderPool->getShuffledPieces(orderRng)) {
+            if (piece == nullptr || piece->isEmpty() ||
+                piece->getName() != "minecraft:village/plains/streets/straight_01") {
+                continue;
+            }
+            std::string order;
+            for (const auto& joint : piece->getJoints()) {
+                order += fmt::format("({},{},{}) ", joint.sourcePos.x, joint.sourcePos.y, joint.sourcePos.z);
+            }
+            // 期望值取自模板 .nbt 中 jigsaw 方块的出现顺序
+            EXPECT_EQ(order, "(2,0,13) (4,0,7) (11,0,6) (11,0,13) (12,0,4) (7,1,0) (7,1,15) ")
+                << "straight_01 的连接点顺序与模板 NBT 不一致：连接点洗牌的输入顺序变了";
+            break;
+        }
+    }
+
     for (const auto& expected : kExpectedSpans) {
         const auto* spanPool = TemplatePoolRegistry::instance().getPool(ResourceLocation::parse(expected.pool));
         ASSERT_NE(spanPool, nullptr) << "模板池未加载：" << expected.pool;
@@ -981,6 +1010,209 @@ TEST_F(JavaAnvilVillageStructureParityTest, VillagePiecesMatchJavaSave)
                 << title << " 第 " << i << " 个构件（放置顺序）与原版不一致";
         }
     }
+}
+
+// ============================================================================
+// 【门禁】用例：村庄街道（terrain_matching 构件）的方块落点与原版一致
+// ============================================================================
+
+/// 区块内的方块位置（区块局部 X/Z + 世界 Y）
+using LocalBlockPos = std::array<i32, 3>;
+
+/**
+ * @brief 收集区块中某个方块的**全部**位置
+ *
+ * 逐方块遍历（而非只看高度图列顶）才能发现"方块被放到别的层"这类错误：
+ * 村庄街道被整体下移一格时，列顶仍然是方块，只有逐格比对才能看出这格去哪了。
+ */
+[[nodiscard]] std::set<LocalBlockPos> collectBlockPositions(const ChunkData& chunk, const std::string& blockName)
+{
+    std::set<LocalBlockPos> positions;
+    for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+            for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                const BlockState* state = BlockRegistry::instance().getBlockState(chunk.getBlockStateId(x, y, z));
+                if (state != nullptr && state->getBlock().blockLocation().toString() == blockName) {
+                    positions.insert({x, y, z});
+                }
+            }
+        }
+    }
+    return positions;
+}
+
+/**
+ * @brief 判定某格是否"被埋"：正上方是实心（不透明碰撞箱）方块
+ *
+ * 被埋的路面在游戏里就是"看不见的路"——这正是本用例要锁死的缺陷形态。
+ * 用"不透明碰撞箱"而非"非空气"作为判据：干草堆、雪层、草丛等不遮挡路面的方块不算埋。
+ */
+[[nodiscard]] bool isBuriedBySolidBlock(const ChunkData& chunk, const LocalBlockPos& pos)
+{
+    const i32 above = pos[1] + 1;
+    if (above >= world::MAX_BUILD_HEIGHT) {
+        return false;
+    }
+    const BlockState* state = BlockRegistry::instance().getBlockState(chunk.getBlockStateId(pos[0], above, pos[2]));
+    return state != nullptr && !state->isAir() && state->hasOpaqueCollisionShape();
+}
+
+/// 路面逐格复现率下限（原版路面格中，Cubium 在同一格也放下路面的比例）
+constexpr f64 kMinRoadReproductionRatio = 0.85;
+
+/// 路面总格数相对原版的偏差上限
+constexpr f64 kMaxRoadCountDeltaRatio = 0.05;
+
+/**
+ * 村庄街道（terrain_matching 构件）的方块落点：既不得被埋，也要与原版逐格吻合。
+ *
+ * 【为什么单独测"街道"】村庄的建筑（houses/town_centers/decor）是 RIGID 投影，模板按绝对
+ * 坐标放置；而**街道与 terminators 是 terrain_matching 投影**，每个方块的落点由
+ * "该列地形高度 + 构件局部 Y"决定。这条链路（GravityStructureProcessor）有两处极易出错的
+ * 语义，且错了**不会报错**、只看构件包围盒也完全看不出来：
+ *   - 原版 `LevelReader.getHeight` 返回"首个可放置高度"（最高方块 Y + 1），而项目的
+ *     `IWorld::getHeight` 返回"最高方块 Y"，少加 1 会把整片构件下移一格；
+ *   - 原版还会叠加**方块在模板内的局部 Y**（整块模板沿 Y 平移），漏掉它会把构件压扁到同一层。
+ * 两者叠加的实际症状：路面 dirt_path 落到地表之下、被草方块盖住——玩家侧就是"村庄里看不见路"。
+ *
+ * 【为什么用 dirt_path 作探针】整个原版数据包中只有村庄的模板含 dirt_path（plains/desert/
+ * savanna/taiga/snowy 的 streets+terminators+houses+town_centers，共 244 个模板），世界中不存在
+ * 其它生成 dirt_path 的途径，它也不会被任何自然过程（随机刻、流体、生物 AI）创建或移除。
+ * 因此它是既灵敏（任何一格错位都会暴露）又抗噪（不受树/草等装饰差异干扰）的探针。
+ *
+ * 【两条判据】
+ *   1) 严格（不依赖素材的方块内容）：Cubium 放下的路面被埋的格数 **不得多于** 原版同区块的
+ *      被埋格数。原版有 6 格被埋在干草堆之下（村庄农场装饰），属合法；而"整片路面下沉一格"
+ *      会让 Cubium 的被埋格数暴增到接近全部格数，立刻 FAIL。这条判据直接锁死"看不见路"。
+ *   2) 量化（对照原版存档）：路面逐格复现率与总格数偏差。当前实测 0.895（272/304），
+ *      门限取 0.85。
+ *
+ * 【残余差异的定位结论（已排查，非结构缺陷）】实测全部差异格都落在**区块边界 8 格以内**，
+ * 一格不差（61/61）。该带正是原版 `ChunkGenerator.applyBiomeDecoration` 用
+ * `[chunkMin-8, chunkMax+8]` 包围盒放置构件的重叠区：同一格会被本区块与邻区块各放一遍，
+ * 每次读的是该时刻的高度图，因此该带内的逐格结果本身对区块处理顺序/时刻敏感
+ * （与 JavaAnvilWorldGenParityTest 文件头记录的"parity 数值不是顺序无关"同源）。
+ * 且差异格在素材侧表现为**从未被结构触碰过的原始地表**（草方块上有短草），
+ * 而按模板这些格本应有路面——素材本身在这些格上与"纯 worldgen 产物"不自洽。
+ * 故这里把逐格完全相等作为**收敛目标**而非当前门限。
+ *
+ * 【边界】本用例要求整条生成管线跑到 FULL（含 FEATURES 阶段的构件放置），与只跑
+ * STRUCTURE_STARTS 的 VillagePiecesMatchJavaSave 互补：后者定位"装配出的构件列表错在哪"，
+ * 本用例定位"构件里的方块放错在哪"。
+ */
+TEST_F(JavaAnvilVillageStructureParityTest, VillageStreetBlocksMatchJavaSave)
+{
+    const std::vector<StartView>& starts = javaStarts();
+    std::set<i64> villageChunks;
+    for (const auto& start : starts) {
+        if (start.structureId == "minecraft:village_plains") {
+            villageChunks.insert(packChunkKey(start.cx, start.cz));
+        }
+    }
+    ASSERT_FALSE(villageChunks.empty()) << "素材中没有 village_plains 起点，无法校验方块落点";
+
+    // 独立于 SetUpTestSuite 生成器的区块管理器：本用例要把区块推进到 FULL，
+    // 会驱动 carver/feature/structure 全链路。
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, static_cast<u64>(m_seed));
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+    auto generator =
+        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+    server::ServerChunkManager manager(std::move(generator));
+
+    i64 javaTotal = 0;
+    i64 cubiumTotal = 0;
+    i64 reproduced = 0;
+    i64 javaBuriedTotal = 0;
+    i64 cubiumBuriedTotal = 0;
+
+    for (const i64 key : villageChunks) {
+        const ChunkCoord cx = static_cast<i32>(key >> 32);
+        const ChunkCoord cz = static_cast<i32>(static_cast<u32>(key));
+
+        auto javaResult = m_backend.loadChunk(cx, cz, 0);
+        ASSERT_TRUE(javaResult.success()) << javaResult.error().message();
+        ASSERT_TRUE(javaResult.value().has_value()) << "素材中不存在区块 (" << cx << "," << cz << ")";
+        const ChunkData& javaChunk = *javaResult.value();
+
+        ChunkData* cubiumChunk = manager.requestFullChunkSync(cx, cz);
+        ASSERT_NE(cubiumChunk, nullptr) << "生成区块 (" << cx << "," << cz << ") 失败";
+        ASSERT_TRUE(cubiumChunk->isFullyGenerated()) << "区块 (" << cx << "," << cz << ") 未推进到 FULL";
+
+        const std::set<LocalBlockPos> javaRoad = collectBlockPositions(javaChunk, "minecraft:dirt_path");
+        const std::set<LocalBlockPos> cubiumRoad = collectBlockPositions(*cubiumChunk, "minecraft:dirt_path");
+
+        std::vector<LocalBlockPos> missing; // 原版有、Cubium 无
+        std::vector<LocalBlockPos> extra;   // Cubium 有、原版无
+        std::set_difference(
+            javaRoad.begin(), javaRoad.end(), cubiumRoad.begin(), cubiumRoad.end(), std::back_inserter(missing));
+        std::set_difference(
+            cubiumRoad.begin(), cubiumRoad.end(), javaRoad.begin(), javaRoad.end(), std::back_inserter(extra));
+
+        i64 javaBuried = 0;
+        for (const auto& pos : javaRoad) {
+            javaBuried += isBuriedBySolidBlock(javaChunk, pos) ? 1 : 0;
+        }
+        i64 cubiumBuried = 0;
+        i64 cubiumBuriedSampleShown = 0;
+        for (const auto& pos : cubiumRoad) {
+            if (isBuriedBySolidBlock(*cubiumChunk, pos)) {
+                ++cubiumBuried;
+                if (cubiumBuriedSampleShown < 3) {
+                    ++cubiumBuriedSampleShown;
+                    std::printf("[VILLAGE-BLOCKS]   被埋 局部(%2d,%3d,%2d)（世界 %d,%d,%d）\n",
+                        pos[0],
+                        pos[1],
+                        pos[2],
+                        cx * world::CHUNK_WIDTH + pos[0],
+                        pos[1],
+                        cz * world::CHUNK_WIDTH + pos[2]);
+                }
+            }
+        }
+
+        const i64 inBoth = static_cast<i64>(javaRoad.size() + cubiumRoad.size() - missing.size() - extra.size()) / 2;
+
+        javaTotal += static_cast<i64>(javaRoad.size());
+        cubiumTotal += static_cast<i64>(cubiumRoad.size());
+        reproduced += inBoth;
+        javaBuriedTotal += javaBuried;
+        cubiumBuriedTotal += cubiumBuried;
+
+        std::printf("[VILLAGE-BLOCKS] 区块 (%2d,%2d) dirt_path：原版 %zu 格 / Cubium %zu 格，逐格相同 %lld 格"
+                    "（缺 %zu、多 %zu）；被埋 原版 %lld / Cubium %lld\n",
+            cx,
+            cz,
+            javaRoad.size(),
+            cubiumRoad.size(),
+            static_cast<long long>(inBoth),
+            missing.size(),
+            extra.size(),
+            static_cast<long long>(javaBuried),
+            static_cast<long long>(cubiumBuried));
+
+        // 严格判据：Cubium 不得比原版埋得更多
+        EXPECT_LE(cubiumBuried, javaBuried)
+            << "区块 (" << cx << "," << cz << ") 的村庄路面被下方地形埋住的格数多于原版——路面被放低了一格";
+    }
+
+    // 素材侧必须真的含路面方块，否则"相等"可能只是"两边都空"的假通过
+    ASSERT_GT(javaTotal, 0) << "素材中的村庄区块不含 dirt_path，探针失效";
+
+    const f64 reproductionRatio = static_cast<f64>(reproduced) / static_cast<f64>(javaTotal);
+    const f64 countDeltaRatio = std::abs(static_cast<f64>(cubiumTotal - javaTotal)) / static_cast<f64>(javaTotal);
+    std::printf("[VILLAGE-BLOCKS] 合计：原版 %lld 格 / Cubium %lld 格，逐格相同 %lld 格（复现率 %.3f），"
+                "被埋 原版 %lld / Cubium %lld\n",
+        static_cast<long long>(javaTotal),
+        static_cast<long long>(cubiumTotal),
+        static_cast<long long>(reproduced),
+        reproductionRatio,
+        static_cast<long long>(javaBuriedTotal),
+        static_cast<long long>(cubiumBuriedTotal));
+
+    EXPECT_GE(reproductionRatio, kMinRoadReproductionRatio)
+        << "村庄路面与原版的逐格复现率低于门限（收敛目标为 1.0，见用例注释）";
+    EXPECT_LE(countDeltaRatio, kMaxRoadCountDeltaRatio) << "村庄路面的总格数与原版偏差过大";
 }
 
 } // namespace

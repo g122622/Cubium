@@ -205,7 +205,26 @@ tileEntity->loadFromNBT(*processedBlock.nbt);
 
 **容器物品序列化**：`LootableContainerBlockEntity` 子类（`ChestEntity`/`BarrelEntity`/`ShulkerBoxEntity`/`DispenserBlockEntity`）已重写 `loadFromNBT`/`saveToNBT`，通过基类 protected 辅助方法 `saveItemsToNBT`/`loadItemsFromNBT` 序列化容器物品列表（`Items` NBT 键）。`LootTable`/`LootTableSeed` 与 `Items` 互斥：模板 NBT 中含 `LootTable` 时仅处理战利品表引用，否则加载/保存实际物品。结构模板放置预填充物品的容器（无战利品表）时物品得以正确保留。
 
-### 14. TemplateManager 是进程级单例，模板来源必须经绑定令牌注入
+### 14. 调色板选择用位置种子，不用 placement 传入的随机源
+
+`Template::selectPalette(settings, pos)` 的随机源取 `settings.getRandom(&pos)`——未显式设置随机源时即 `LegacyRandomSource(Mth.getSeed(pos))`，**位置派生**、与 placement 传入的随机源无关，且**不消耗**它。
+
+- 同一构件被多次放置（同一结构由多个区块各放一遍）时，调色板必须稳定；用结构随机源会让选择随处理次序漂移。
+- 即使模板只有 1 个调色板，`nextInt(1)` 也会推进随机源——每个构件悄悄消耗一次随机数，会让后续构件/区块的随机序列整体错位。这类错位**不改变当前构件外观**，是"前若干个构件完全一致、之后突然发散"的隐蔽成因。
+
+### 15. terrain_matching 投影贴地：公式两处都不能少
+
+`GravityStructureProcessor`（`terrain_matching` 投影专用）的落点公式：
+
+```
+newY = 高度图取值(x, z) + offset + 模板内局部 Y
+```
+
+- **高度图取值是"首个可放置高度"（最高方块 Y + 1）**：`IWorld::getHeight` 返回的是"最高方块 Y"，故此处必须 `+1`（详见 `docs/PROJECT_CONVENTIONS.md` 的"高度图 +1 语义"）。
+- **局部 Y 不可省**：整块模板沿 Y 平移，使局部 y=0 落在高度图处（村庄街道的路面在局部 y=0、jigsaw 在局部 y=1）。
+- 漏掉任一项的症状不同：漏 `+1` 是整片构件**下移一格**；漏局部 Y 是构件被**压扁到同一层**（上层方块覆盖下层）。两者叠加时村庄路面 dirt_path 会被草方块盖住——玩家侧表现为"村庄里看不见路"，而构件包围盒、模板、旋转全都正确，只看结构起点的构件列表完全看不出来。
+
+### 16. TemplateManager 是进程级单例，模板来源必须经绑定令牌注入
 
 `JigsawAssembler::getTemplateManager()` 的实例跨服务端常驻，而它持有的数据包仓库、结构包资源源都是**宿主对象的非拥有指针**。
 

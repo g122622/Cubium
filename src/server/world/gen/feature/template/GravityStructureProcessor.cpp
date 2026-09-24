@@ -48,20 +48,21 @@ GravityStructureProcessor::GravityStructureProcessor(i32 heightmapType, i32 offs
 
 std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
-    const BlockInfo& /*rawBlockInfo*/,
+    const BlockInfo& rawBlockInfo,
     const BlockInfo& blockInfo,
     const PlacementSettings& settings)
 {
-    // 根据高度图调整 Y 坐标
-    // 如果有世界访问，则获取地面高度；否则仅应用偏移量
+    // 落点公式：newY = 高度图取值 + offset + 模板内局部 Y。
+    // 注意高度图取值是"首个可放置高度"（最高方块 Y + 1），而 IWorld::getHeight 是"最高方块 Y"，
+    // 故此处 +1；局部 Y 取原始（模板内）方块信息的 Y。详见 Template.cpp 中的同名实现。
     const IWorld* world = settings.getWorld();
 
     ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     if (world) {
         // 完整实现：使用高度图获取地面高度
-        i32 surfaceY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z);
-        result.pos = BlockPos(blockInfo.pos.x, surfaceY + m_offset, blockInfo.pos.z);
+        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z) + 1;
+        result.pos = BlockPos(blockInfo.pos.x, heightmapFirstFreeY + m_offset + rawBlockInfo.pos.y, blockInfo.pos.z);
     } else {
         // 简化实现：仅应用偏移量
         result.pos = BlockPos(blockInfo.pos.x, blockInfo.pos.y + m_offset, blockInfo.pos.z);

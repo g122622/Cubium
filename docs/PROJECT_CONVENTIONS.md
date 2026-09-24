@@ -517,7 +517,10 @@ MC 1.21.11 生成期间，`WorldGenContext.getHeight(...)` 走 `WorldGenRegion.g
 
 项目的 `WorldGenRegion::getTopBlockY` 转发 `ChunkPrimer::getTopBlockY`，返回 blockY（等价 MC `ChunkAccess.getHeight`），**少了这个 +1**。因此：**凡是对应 MC `ctx.getHeight(...)` 调用的 placement/feature 代码，必须对 `getTopBlockY` 结果 +1**。
 
-漏掉 +1 的典型后果：`HeightmapPlacement` 返回草方块本身 Y → `TreeFeature` 的 `startPos` 落在草方块上 → `_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2 → 所有依赖 heightmap 的 feature（含全部树木）判定"空间不足"而生成失败，且**无任何报错**（feature 失败本就是常态，静默返回 false）。目前已 +1 的有 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement`；新增同类代码务必核对 MC 源码确认调用方是否走 `WorldGenRegion.getHeight`。
+漏掉 +1 的典型后果：`HeightmapPlacement` 返回草方块本身 Y → `TreeFeature` 的 `startPos` 落在草方块上 → `_calculateAvailableHeight` 在 `y=0` 检查草方块（不可替换）立即返回 -2 → 所有依赖 heightmap 的 feature（含全部树木）判定"空间不足"而生成失败，且**无任何报错**（feature 失败本就是常态，静默返回 false）。目前已 +1 的有 `HeightmapPlacement`、`SurfaceRelativeThresholdFilterPlacement`、`CountOnEveryLayerPlacement`、`GravityStructureProcessor`；新增同类代码务必核对 MC 源码确认调用方是否走 `WorldGenRegion.getHeight`。
+
+`GravityStructureProcessor`（terrain_matching 投影贴地）另有一处配套语义：落点是
+`newY = getHeight(...) + offset + 模板内局部 Y`，**局部 Y 不可省**——整块模板沿 Y 平移，使局部 y=0 落在高度图处（村庄街道的路面在局部 y=0、jigsaw 在局部 y=1）。漏掉局部 Y 会把构件压扁到同一层，路面 dirt_path 被上层方块覆盖，表现为"村庄里看不见路"。
 
 ### 2. random_selector / simple_random_selector 子特征引用是 PlacedFeature id
 

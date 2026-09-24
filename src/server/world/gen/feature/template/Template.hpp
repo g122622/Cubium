@@ -529,10 +529,16 @@ public:
 
     /**
      * @brief 选择一个调色板
-     * @param rng 随机数生成器
+     *
+     * 对应 MC `StructurePlaceSettings.getRandomPalette(palettes, pos)`：随机源取
+     * `settings.getRandom(pos)`（未显式设置时为位置派生的 LegacyRandomSource），
+     * 既不消耗 placement 传入的结构随机源，也与放置位置绑定。
+     *
+     * @param settings 放置设置（提供随机源）
+     * @param pos 放置位置（模板原点；随机源按位置的 Mth.getSeed 派生）
      * @return 选中的调色板，如果没有调色板返回 nullptr
      */
-    [[nodiscard]] const Palette* selectPalette(math::IRandom& rng) const;
+    [[nodiscard]] const Palette* selectPalette(const PlacementSettings& settings, const BlockPos& pos) const;
 
     /**
      * @brief 获取第一个调色板的方块（兼容旧接口）

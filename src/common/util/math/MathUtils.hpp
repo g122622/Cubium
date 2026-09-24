@@ -693,14 +693,40 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 // ============================================================================
 
 /**
+ * @brief 坐标 → 位置种子（`Mth.getSeed(int,int,int)` 的逐位复刻）
+ *
+ * 原算法（1.8 起的历代版本一致）：
+ * @code
+ * long l = (long)(x * 3129871) ^ (long) z * 116129781L ^ (long) y;
+ * l = l * l * 42317861L + l * 11L;
+ * return l >> 16;
+ * @endcode
+ *
+ * 【两处整型回绕必须逐位复刻，否则坐标稍大即与原版发散】
+ * - `x * 3129871` 是 Java 的 **int32** 乘法：先在 32 位内回绕，再符号扩展为 long。
+ *   按 64 位乘法计算时 |x| ≥ 687 就会发散，而方块世界坐标几乎必然越界。
+ * - `l * l * 42317861L + l * 11L` 是 Java 的 **long** 回绕运算。
+ * - 末尾 `>> 16` 是 Java 的算术右移（负数补符号位）。
+ * C++ 的有符号溢出是 UB，故全程用无符号运算显式回绕。
+ *
+ * 该值被 `RandomSource.create(long)`（= LegacyRandomSource）消费，是结构放置中
+ * 「按位置取随机」类逻辑（如调色板选择）的随机源。
+ *
+ * @return 位置种子（i64，与 Java long 同语义）
+ */
+[[nodiscard]] inline i64 mthGetSeed(i32 x, i32 y, i32 z) noexcept
+{
+    const i32 xTerm = static_cast<i32>(static_cast<u32>(x) * 3129871u);
+    u64 i = static_cast<u64>(static_cast<i64>(xTerm)) ^ static_cast<u64>(static_cast<i64>(z)) * 116129781ULL ^
+        static_cast<u64>(static_cast<i64>(y));
+    i = i * i * 42317861ULL + i * 11ULL;
+    return static_cast<i64>(i) >> 16;
+}
+
+/**
  * @brief 计算方块位置的确定性哈希值（用于结构完整度等随机数种子）
  *
- * 参考 MC 1.16.5: MathHelper.getPositionRandom / getCoordinateRandom
- * 用于位置相关的随机数生成，确保同一位置的方块在相同种子下行为一致
- *
- * 算法: i = (x * 3129871) XOR (z * 116129781) XOR y
- *       i = i * i * 42317861 + i * 11
- *       return i >> 16
+ * 取值与 mthGetSeed 相同，仅返回类型为 u64 以便直接作随机源种子。
  *
  * @param x X坐标
  * @param y Y坐标
@@ -709,12 +735,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  */
 [[nodiscard]] inline u64 hashBlockPos(i32 x, i32 y, i32 z) noexcept
 {
-    // MC 1.16.5: MathHelper.getCoordinateRandom
-    // 注意：MC 使用 (x * 3129871) XOR (z * 116129781) XOR y
-    // 但这里的 XOR 操作顺序很重要
-    i64 i = static_cast<i64>(x * 3129871) ^ (static_cast<i64>(z) * 116129781LL) ^ static_cast<i64>(y);
-    i = i * i * 42317861LL + i * 11LL;
-    return static_cast<u64>(i >> 16);
+    return static_cast<u64>(mthGetSeed(x, y, z));
 }
 
 /**
@@ -744,9 +765,11 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  */
 [[nodiscard]] inline u64 getPositionRandomXZ(i32 x, i32 z) noexcept
 {
-    i64 i = static_cast<i64>(x * 3129871) ^ (static_cast<i64>(z) * 116129781LL);
-    i = i * i * 42317861LL + i * 11LL;
-    return static_cast<u64>(i >> 16);
+    // 与 mthGetSeed 相同的回绕语义（省去 y 项）
+    const i32 xTerm = static_cast<i32>(static_cast<u32>(x) * 3129871u);
+    u64 i = static_cast<u64>(static_cast<i64>(xTerm)) ^ static_cast<u64>(static_cast<i64>(z)) * 116129781ULL;
+    i = i * i * 42317861ULL + i * 11ULL;
+    return static_cast<u64>(static_cast<i64>(i) >> 16);
 }
 
 // ============================================================================
