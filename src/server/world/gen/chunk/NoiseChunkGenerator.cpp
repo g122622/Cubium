@@ -256,9 +256,16 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         if (!structure) continue;
 
         // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
-        // 在候选区块中心位置采样噪声生物群系，检查是否匹配该结构的 biomeTag。
-        // 此处使用 getNoiseBiome()（四分坐标精度，无 Voronoi 缩放），
-        // 与 MC Java 使用 BiomeSource.getNoiseBiome(QuartPos.fromBlock()) 行为一致。
+        // 采样噪声生物群系，检查是否匹配该结构的 biomeTag。此处使用 getNoiseBiome()
+        // （四分坐标精度，无 Voronoi 缩放）。
+        // TODO: 采样点与原版不一致。原版在 Structure.findValidGenerationPoint 找到的
+        //   **候选生成点**（candidate generation point）处采样：
+        //     biomeSource.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
+        //                               QuartPos.fromBlock(pos.getY()),
+        //                               QuartPos.fromBlock(pos.getZ()))
+        //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
+        //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
+        //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
         const BiomeId biomeAtCandidate =
             getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
         if (!structure->isValidBiome(biomeAtCandidate)) {
@@ -498,10 +505,15 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const ChunkCoord originChunkX = targetChunkX + dx;
             const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-            // Y=0 处采样，quart 坐标 = block >> 2
-            const i32 originBlockX = (originChunkX << 4) + 8;
-            const i32 originBlockZ = (originChunkZ << 4) + 8;
-            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 0, originBlockZ >> 2);
+            // MC 1.21.11 NoiseBasedChunkGenerator#applyCarvers：
+            //   biomeSource.getNoiseBiome(QuartPos.fromBlock(chunkPos.getMinBlockX()), 0,
+            //                             QuartPos.fromBlock(chunkPos.getMinBlockZ()), sampler)
+            // 即以该来源区块的**最小角**换算 quart 坐标（QuartPos.fromBlock(chunkX * 16) == chunkX * 4），
+            // 而非区块中心。气候噪声在 quart 分辨率上逐格变化，角点与中心（+8 格 = +2 quart）
+            // 可能落在不同群系，从而给出不同的雕刻器列表，导致洞穴/流体分布整体错位。
+            const i32 biomeQuartX = originChunkX * 4;
+            const i32 biomeQuartZ = originChunkZ * 4;
+            const BiomeId biomeId = m_biomeSource->getNoiseBiome(biomeQuartX, 0, biomeQuartZ);
             const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
             const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
