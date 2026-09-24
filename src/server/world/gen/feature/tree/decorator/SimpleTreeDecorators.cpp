@@ -124,8 +124,8 @@ void BeehiveDecorator::place(const TreeDecoratorContext& context) const
             continue;
         }
         if (block_registry::NaturalBlocks::BEE_NEST != nullptr) {
-            const BlockState* nest =
-                &block_registry::NaturalBlocks::BEE_NEST->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+            const BlockState* nest = &block_registry::NaturalBlocks::BEE_NEST->defaultState().with(
+                BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
             context.setBlock(pos, nest);
         }
         // MC: level.getBlockEntity(pos, BEEHIVE).ifPresent(h -> {
@@ -228,7 +228,8 @@ void AttachedToLeavesDecorator::place(const TreeDecoratorContext& context) const
     std::set<i64> excluded;
     for (const BlockPos& leaf : shuffled) {
         // MC: Util.getRandom(directions, random) == directions.get(random.nextInt(size))
-        const Direction direction = m_directions[static_cast<size_t>(random.nextInt(static_cast<i32>(m_directions.size())))];
+        const Direction direction =
+            m_directions[static_cast<size_t>(random.nextInt(static_cast<i32>(m_directions.size())))];
         const BlockPos target = leaf.offset(direction);
         if (excluded.count(BlockPos::asLong(target.x, target.y, target.z)) != 0) {
             continue;
@@ -240,8 +241,10 @@ void AttachedToLeavesDecorator::place(const TreeDecoratorContext& context) const
             continue;
         }
         // 放置成功后把该点四周 exclusion 半径内的位置全部标记为占用。
-        const BlockPos lo(target.x - m_exclusionRadiusXZ, target.y - m_exclusionRadiusY, target.z - m_exclusionRadiusXZ);
-        const BlockPos hi(target.x + m_exclusionRadiusXZ, target.y + m_exclusionRadiusY, target.z + m_exclusionRadiusXZ);
+        const BlockPos lo(
+            target.x - m_exclusionRadiusXZ, target.y - m_exclusionRadiusY, target.z - m_exclusionRadiusXZ);
+        const BlockPos hi(
+            target.x + m_exclusionRadiusXZ, target.y + m_exclusionRadiusY, target.z + m_exclusionRadiusXZ);
         for (i32 x = lo.x; x <= hi.x; ++x) {
             for (i32 y = lo.y; y <= hi.y; ++y) {
                 for (i32 z = lo.z; z <= hi.z; ++z) {
@@ -324,8 +327,7 @@ void AlterGroundDecorator::_placeBlockAt(const TreeDecoratorContext& context, co
     for (i32 i = 2; i >= -3; --i) {
         const BlockPos current = pos.up(i);
         if (isGrassOrDirt(context, current)) {
-            const BlockState* state =
-                m_provider->getState(context.region(), context.random(), pos.x, pos.y, pos.z);
+            const BlockState* state = m_provider->getState(context.region(), context.random(), pos.x, pos.y, pos.z);
             if (state != nullptr) {
                 context.setBlock(current, state);
             }

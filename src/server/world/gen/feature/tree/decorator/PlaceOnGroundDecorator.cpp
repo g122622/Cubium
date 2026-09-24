@@ -142,7 +142,8 @@ void PlaceOnGroundDecorator::_attemptToPlaceBlockAbove(const TreeDecoratorContex
         return;
     }
 
-    const BlockState* state = m_blockStateProvider->getState(context.region(), context.random(), above.x, above.y, above.z);
+    const BlockState* state =
+        m_blockStateProvider->getState(context.region(), context.random(), above.x, above.y, above.z);
     if (state != nullptr) {
         context.setBlock(above, state);
     }
