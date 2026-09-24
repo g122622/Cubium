@@ -47,14 +47,16 @@ public:
      *
      * 对拼图块内的局部坐标应用镜像和旋转，转换为模板局部坐标系中的新坐标。
      *
+     * 以模板**原点角**为旋转轴（对应 MC `StructureTemplate.transform(..., pivot=ZERO)`），
+     * 旋转后的坐标可以为负；包围盒需由两个对角点归一化得到（见 calculateBoundingBox）。
+     * 必须与 Template::transformBlockPos（方块实际落点）保持同一约定。
+     *
      * @param pos 原始位置（模板局部坐标）
      * @param rotation 旋转角度
      * @param mirror 镜像模式
-     * @param templateSize 模板尺寸（用于镜像中心计算）
      * @return 变换后的位置
      */
-    static BlockPos transformPosition(
-        const BlockPos& pos, Rotation rotation, Mirror mirror, const BlockPos& templateSize);
+    static BlockPos transformPosition(const BlockPos& pos, Rotation rotation, Mirror mirror);
 
     /**
      * @brief 获取已变换的连接点列表
@@ -73,8 +75,11 @@ public:
     /**
      * @brief 计算拼图块的边界框
      *
+     * 把模板的两个对角点各自变换后归一化，再平移到 pos（对应 MC
+     * `StructureTemplate.getBoundingBox`）。退化模板（任一维为 0）退化为 pos 处的一个点。
+     *
      * @param piece 拼图块
-     * @param pos 放置位置
+     * @param pos 放置位置（模板原点）
      * @param rotation 旋转角度
      * @return 边界框
      */

@@ -47,6 +47,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -153,6 +154,16 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
         dimensionPadding);
 }
 
+std::vector<Rotation> JigsawAssembler::shuffledRotations(math::IRandom& rng)
+{
+    // 对应 MC `Rotation.getShuffled(random)` = Util.shuffledCopy(values(), random)：
+    // 对 [NONE, CW90, CW180, CCW90] 做一次 Fisher-Yates，消耗 3 次随机数。
+    std::vector<Rotation> rotations{
+        Rotation::None, Rotation::Clockwise90, Rotation::Clockwise180, Rotation::CounterClockwise90};
+    rng.shuffle(rotations);
+    return rotations;
+}
+
 std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoolRegistry& poolRegistry,
     const JigsawPiece& startPiece,
     const StartPlacement& placement,
@@ -164,14 +175,8 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
     const structure::MaxDistance* maxDistance,
     const structure::DimensionPadding* dimensionPadding)
 {
-    std::vector<PlacedPiece> placedPieces;
-    // 按优先级降序出队的待处理连接点队列（对应 MC 1.21 JigsawPlacement.Placer.placing）。
-    // 连接点按其 placementPriority 入队，高优先级先出队；同优先级内按入队顺序出队（FIFO）。
-    SequencedPriorityIterator<PendingJoint> pendingJoints;
-
     const BlockPos& startPos = placement.origin;
     const Rotation rotation = placement.rotation;
-    const Mirror mirror = Mirror::None; // 起始块不使用镜像
     const structure::StructureBoundingBox& boundingBox = placement.boundingBox;
 
     // 起始块世界高度边界检查（对应 MC 1.21 JigsawPlacement.isStartTooCloseToWorldHeightLimits）
@@ -185,21 +190,23 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
         const i32 lowerLimit = worldMinY + dimensionPadding->bottom;
         const i32 upperLimit = worldMaxYInclusive - dimensionPadding->top;
         if (boundingBox.minY() < lowerLimit || boundingBox.maxY() > upperLimit) {
-            return placedPieces;
+            return {};
         }
     }
 
-    PlacedPiece startPlaced;
-    startPlaced.piece = startPiece.clone();
-    startPlaced.position = startPos;
-    startPlaced.rotation = rotation;
-    startPlaced.mirror = mirror;
-    startPlaced.groundLevelDelta = startPiece.getGroundLevelDelta();
-    startPlaced.projection = startPiece.getPlacementBehaviour();
-    startPlaced.boundingBox = boundingBox;
-    startPlaced.joints = JigsawTransform::getTransformedJoints(startPiece, startPos, rotation, mirror);
-
-    placedPieces.push_back(std::move(startPlaced));
+    // 【地址稳定性】构件容器用 unique_ptr 持有：组装过程中父构件的 junction 仍会被追加，
+    // 队列元素也持有构件指针，按值存放会在 vector 扩容时失效。
+    std::vector<std::unique_ptr<PlacedPiece>> pieces;
+    auto startPlaced = std::make_unique<PlacedPiece>();
+    startPlaced->piece = startPiece.clone();
+    startPlaced->position = startPos;
+    startPlaced->rotation = rotation;
+    startPlaced->mirror = Mirror::None; // 起始块不使用镜像
+    startPlaced->groundLevelDelta = startPiece.getGroundLevelDelta();
+    startPlaced->projection = startPiece.getPlacementBehaviour();
+    startPlaced->boundingBox = boundingBox;
+    startPlaced->joints = JigsawTransform::getTransformedJoints(startPiece, startPos, rotation, Mirror::None);
+    pieces.push_back(std::move(startPlaced));
 
     // ===== 初始化可放置空间 freeShape（对应 MC 1.21 JigsawPlacement.addPieces）=====
     // freeShape = MaxDistance 包围盒 - 起始块 AABB（ONLY_FIRST = a && !b）
@@ -233,91 +240,257 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
         static_cast<f32>(centerX + dist.horizontal + 1),
         static_cast<f32>(clippedMaxY),
         static_cast<f32>(centerZ + dist.horizontal + 1));
-    VoxelShape globalFreeShape =
-        Shapes::join(Shapes::create(maxDistanceAabb), Shapes::create(toAabb(boundingBox)), BooleanOps::OnlyFirst());
+    auto globalFreeShape = std::make_shared<VoxelShape>(
+        Shapes::join(Shapes::create(maxDistanceAabb), Shapes::create(toAabb(boundingBox)), BooleanOps::OnlyFirst()));
 
-    // 将起始块的连接点添加到待处理队列
-    // 使用打乱后的连接点顺序（getShuffledJoints 内部按 selectionPriority 降序稳定排序）
-    std::vector<JigsawJoint> shuffledJoints = startPiece.getShuffledJoints(rng);
-    for (const auto& joint : shuffledJoints) {
-        // 计算旋转后的朝向
-        JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(joint.orientation, rotation);
+    // 起始块深度为 0；队列元素记录**构件自身**的深度（对应 MC PieceState.depth）
+    SequencedPriorityIterator<PendingPiece> pending;
+    const PendingPiece startState(pieces.back().get(), globalFreeShape, 0);
+    tryPlacingChildren(
+        poolRegistry, pieces, pending, startState, aliasLookup, generator, maxDepth, useExpansionHack, rng);
 
-        PendingJoint pending;
-        pending.position =
-            JigsawTransform::transformPosition(joint.sourcePos, rotation, mirror, startPiece.getSize()) + startPos;
-        pending.sourceName = joint.sourceName;
-        pending.targetPool = joint.targetPool;
-        pending.targetName = joint.targetName;
-        // 【深度语义】depth 记的是"本连接点将放置出的子块"的深度，起始块自身深度为 0，
-        // 故其连接点带出的子块深度为 1。原版 Placer 以"父块深度 d"入队、
-        // 子块以 d+1 入队（d+1 > maxDepth 不再入队）；换算到本记法即
-        // "连接点深度 = 子块深度"，入队条件 joint.depth <= maxDepth。
-        pending.depth = 1;
-        pending.projection = joint.projection;
-        pending.orientation = rotatedOrientation;
-        pending.jointType = joint.jointType;
-        pending.placementPriority = joint.placementPriority;
-        // 记录父块信息用于 TerrainMatching 高度计算（起始块以自身为父）
-        pending.parentMinY = boundingBox.minY();
-        pending.parentGroundLevelDelta = startPiece.getGroundLevelDelta();
-        // 起始块的连接点继承全局 freeShape 和起始块边界框
-        pending.freeShape = std::make_shared<VoxelShape>(globalFreeShape);
-        pending.parentBoundingBox = boundingBox;
-        // 入队时按 placementPriority 分桶（高优先级先出队）
-        pendingJoints.add(std::move(pending), joint.placementPriority);
+    while (pending.hasNext()) {
+        const PendingPiece state = pending.next();
+        tryPlacingChildren(
+            poolRegistry, pieces, pending, state, aliasLookup, generator, maxDepth, useExpansionHack, rng);
     }
 
-    // 处理待处理的连接点
-    // VoxelShape 空间追踪保证不重叠、不越界，无需 maxPieces 硬编码上限（对应 MC 1.21 仅用 maxDepth + freeShape 限制）。
-    while (pendingJoints.hasNext()) {
-        PendingJoint joint = pendingJoints.next();
-
-        // 检查目标模板池
-        if (joint.targetPool.empty() || joint.targetPool == "minecraft:empty") {
-            continue;
-        }
-
-        // 注意：深度已达 maxDepth 的连接点**不能**在这里整体跳过——原版对这种连接点仍会
-        // 从回退池取候选（只是不再取主池、也不再入队子连接点），跳过它会少放一批装饰构件
-        // （村庄的村民/动物/灯具都在末层）。深度控制改在 tryPlacePiece 内部按原版语义执行。
-        tryPlacePiece(poolRegistry,
-            placedPieces,
-            pendingJoints,
-            joint,
-            aliasLookup,
-            generator,
-            maxDepth,
-            useExpansionHack,
-            joint.freeShape,
-            rng);
+    std::vector<PlacedPiece> result;
+    result.reserve(pieces.size());
+    for (auto& owned : pieces) {
+        result.push_back(std::move(*owned));
     }
-
-    return placedPieces;
+    return result;
 }
 
-i32 JigsawAssembler::estimateExpansionHeight(
-    TemplatePoolRegistry& poolRegistry, const JigsawPiece& piece, Rotation rotation, const PoolAliasLookup& aliasLookup)
+void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
+    std::vector<std::unique_ptr<PlacedPiece>>& pieces,
+    SequencedPriorityIterator<PendingPiece>& pending,
+    const PendingPiece& state,
+    const PoolAliasLookup& aliasLookup,
+    IChunkGenerator& generator,
+    i32 maxDepth,
+    bool useExpansionHack,
+    math::IRandom& rng)
+{
+    PlacedPiece& parent = *state.piece;
+    const JigsawPiece& element = *parent.piece;
+    const BlockPos& position = parent.position;
+    const Rotation rotation = parent.rotation;
+    const structure::StructureBoundingBox& parentBox = parent.boundingBox;
+    const i32 parentMinY = parentBox.minY();
+    const bool isRigidParent = element.getPlacementBehaviour() == JigsawPlacementBehaviour::Rigid;
+    const i32 parentGroundLevelDelta = parent.groundLevelDelta;
+
+    // 父块"内部接点"共享的局部可放置空间（对应 MC 的 MutableObject localFree）：
+    // 惰性创建一次，在同一父块的所有内部接点之间共享并被逐次扣减。
+    std::shared_ptr<VoxelShape> localFree;
+
+    const std::vector<JigsawJoint> parentJoints = element.getShuffledJoints(rng);
+    for (size_t jointIndex = 0; jointIndex < parentJoints.size(); ++jointIndex) {
+        const JigsawJoint& parentJoint = parentJoints[jointIndex];
+
+        const JigsawOrientation parentOrientation = JigsawOrientations::rotate(parentJoint.orientation, rotation);
+        const Direction parentFacing = JigsawOrientations::getFacing(parentOrientation);
+
+        // 父连接点的世界位置与"连接面"（连接点朝向前方一格）
+        const BlockPos parentJointPos =
+            JigsawTransform::transformPosition(parentJoint.sourcePos, rotation, Mirror::None) + position;
+        const BlockPos jointSurface(parentJointPos.x + getStepX(parentFacing),
+            parentJointPos.y + getStepY(parentFacing),
+            parentJointPos.z + getStepZ(parentFacing));
+        // 父连接点相对父块包围盒 minY 的高度（对应 MC 的 j = blockpos1.getY() - i）
+        const i32 parentJointRelY = parentJointPos.y - parentMinY;
+        // 懒惰求值的地形高度（对应 MC 的 k；尚未求值时为空）
+        std::optional<i32> terrainY;
+
+        const TemplatePool* pool = poolRegistry.getPool(aliasLookup.lookup(ResourceLocation(parentJoint.targetPool)));
+        const TemplatePool* fallbackPool = (pool != nullptr) ? poolRegistry.getPool(pool->getFallback()) : nullptr;
+
+        // 连接面落在父块内部时使用局部可放置空间（防止结构在自身内部重叠），否则继承父块的空间
+        const bool insideParent = parentBox.contains(jointSurface.x, jointSurface.y, jointSurface.z);
+        if (insideParent && !localFree) {
+            localFree = std::make_shared<VoxelShape>(Shapes::create(toAabb(parentBox)));
+        }
+        std::shared_ptr<VoxelShape> activeFree = insideParent ? localFree : state.freeShape;
+
+        // 候选元素列表（对应 MC 的 list 构造）：主池（深度未达上限时）+ 回退池。
+        // 顺序不可交换——两次 shuffle 都会消耗随机数，且回退池永远追加在末尾。
+        std::vector<const JigsawPiece*> candidates;
+        if (state.depth != maxDepth && pool != nullptr) {
+            const std::vector<const JigsawPiece*> shuffled = pool->getShuffledPieces(rng);
+            candidates.insert(candidates.end(), shuffled.begin(), shuffled.end());
+        }
+        if (fallbackPool != nullptr) {
+            const std::vector<const JigsawPiece*> shuffled = fallbackPool->getShuffledPieces(rng);
+            candidates.insert(candidates.end(), shuffled.begin(), shuffled.end());
+        }
+
+        bool placedForThisJoint = false;
+        for (const JigsawPiece* candidate : candidates) {
+            // 对应原版 `if (cand == EmptyPoolElement.INSTANCE) break;`——终止整个候选枚举
+            if (candidate == nullptr || candidate->isEmpty()) {
+                break;
+            }
+
+            // 旋转顺序对**每个候选元素**重新洗牌一次（对应 MC `Rotation.getShuffled(random)`）
+            const std::vector<Rotation> rotations = shuffledRotations(rng);
+            for (const Rotation candidateRotation : rotations) {
+                // 候选块的连接点（该旋转下）与包围盒；顺序对每个旋转重新洗牌
+                const std::vector<JigsawJoint> candidateJoints = candidate->getShuffledJoints(rng);
+                const structure::StructureBoundingBox candidateLocalBox =
+                    JigsawTransform::calculateBoundingBox(*candidate, BlockPos(0, 0, 0), candidateRotation);
+
+                const i32 expansion = useExpansionHack
+                    ? estimateExpansionHeight(
+                          poolRegistry, *candidate, candidateRotation, candidateLocalBox, candidateJoints, aliasLookup)
+                    : 0;
+
+                for (const JigsawJoint& candidateJoint : candidateJoints) {
+                    // 候选连接点在该旋转下的局部位置与朝向
+                    const BlockPos candidateJointPos =
+                        JigsawTransform::transformPosition(candidateJoint.sourcePos, candidateRotation, Mirror::None);
+                    const JigsawOrientation candidateOrientation =
+                        JigsawOrientations::rotate(candidateJoint.orientation, candidateRotation);
+
+                    // 匹配条件：父的 target == 子的 name、正面朝向互为相反、
+                    // aligned 时两者 top 朝向一致、joint 类型取父块的
+                    if (!JigsawMatcher::canMatch(parentJoint.targetName,
+                            candidateJoint.sourceName,
+                            parentOrientation,
+                            candidateOrientation,
+                            parentJoint.jointType)) {
+                        continue;
+                    }
+
+                    const BlockPos candidateOrigin = jointSurface - candidateJointPos;
+                    const i32 childJointLocalY = candidateJointPos.y;
+                    const i32 l1 = parentJointRelY - childJointLocalY + getStepY(parentFacing);
+                    const bool isRigidChild = candidate->getPlacementBehaviour() == JigsawPlacementBehaviour::Rigid;
+
+                    // 子块基础 Y（对应 MC 的 i2）：双 rigid 走相对几何，否则贴合地形
+                    i32 newPieceBaseY = 0;
+                    if (isRigidParent && isRigidChild) {
+                        newPieceBaseY = parentMinY + l1;
+                    } else {
+                        if (!terrainY.has_value()) {
+                            terrainY =
+                                generator.getHeight(parentJointPos.x, parentJointPos.z, HeightmapType::WorldSurfaceWG);
+                        }
+                        newPieceBaseY = *terrainY - childJointLocalY;
+                    }
+
+                    auto candidateBox =
+                        JigsawTransform::calculateBoundingBox(*candidate, candidateOrigin, candidateRotation);
+                    const i32 yAdjust = newPieceBaseY - candidateBox.minY();
+                    const BlockPos candidatePos(candidateOrigin.x, candidateOrigin.y + yAdjust, candidateOrigin.z);
+                    if (yAdjust != 0) {
+                        candidateBox =
+                            JigsawTransform::calculateBoundingBox(*candidate, candidatePos, candidateRotation);
+                    }
+
+                    // use_expansion_hack：为矮构件预留竖直净空。撑高后的包围盒**同时**用于碰撞判定
+                    // 与构件存储（原版如此），因此它直接决定村庄的 Y 范围。
+                    if (expansion > 0) {
+                        const i32 grownY = std::max(expansion + 1, candidateBox.maxY() - candidateBox.minY());
+                        candidateBox.expandToInclude(
+                            candidateBox.minX(), candidateBox.minY() + grownY, candidateBox.minZ());
+                    }
+
+                    // 碰撞：候选块收缩 0.25 格后必须完全落在可放置空间内
+                    if (Shapes::joinIsNotEmpty(*activeFree,
+                            Shapes::create(toAabb(candidateBox).deflate(0.25f)),
+                            BooleanOps::OnlySecond())) {
+                        continue;
+                    }
+                    // 放置成功：从可放置空间减去候选块 AABB（未收缩的完整 AABB）
+                    *activeFree = Shapes::joinUnoptimized(
+                        *activeFree, Shapes::create(toAabb(candidateBox)), BooleanOps::OnlyFirst());
+
+                    const i32 childGroundLevelDelta =
+                        isRigidChild ? (parentGroundLevelDelta - l1) : candidate->getGroundLevelDelta();
+
+                    // 连接点的"地面高度"（对应 MC 的 i3 三分支）
+                    i32 jointGroundY = 0;
+                    if (isRigidParent) {
+                        jointGroundY = parentMinY + parentJointRelY;
+                    } else if (isRigidChild) {
+                        jointGroundY = newPieceBaseY + childJointLocalY;
+                    } else {
+                        if (!terrainY.has_value()) {
+                            terrainY =
+                                generator.getHeight(parentJointPos.x, parentJointPos.z, HeightmapType::WorldSurfaceWG);
+                        }
+                        jointGroundY = *terrainY + l1 / 2;
+                    }
+
+                    auto newPiece = std::make_unique<PlacedPiece>();
+                    newPiece->piece = candidate->clone();
+                    newPiece->position = candidatePos;
+                    newPiece->rotation = candidateRotation;
+                    newPiece->mirror = Mirror::None;
+                    newPiece->groundLevelDelta = childGroundLevelDelta;
+                    newPiece->projection = candidate->getPlacementBehaviour();
+                    newPiece->boundingBox = candidateBox;
+                    newPiece->joints = JigsawTransform::getTransformedJoints(
+                        *candidate, candidatePos, candidateRotation, Mirror::None);
+                    // 双向 junction：父件侧记子件投影、子件侧记父件投影（对应 MC 的两个 addJunction）
+                    parent.junctions.emplace_back(jointSurface.x,
+                        jointGroundY - parentJointRelY + parentGroundLevelDelta,
+                        jointSurface.z,
+                        l1,
+                        candidate->getPlacementBehaviour());
+                    newPiece->junctions.emplace_back(parentJointPos.x,
+                        jointGroundY - childJointLocalY + childGroundLevelDelta,
+                        parentJointPos.z,
+                        -l1,
+                        element.getPlacementBehaviour());
+
+                    PlacedPiece* stored = newPiece.get();
+                    pieces.push_back(std::move(newPiece));
+
+                    // 子构件入队条件对应 MC `if (depth + 1 <= this.maxDepth)`；
+                    // 优先级取**父连接点**的 placementPriority（对应 MC placing.add(state, l)）
+                    if (state.depth + 1 <= maxDepth) {
+                        pending.add(PendingPiece(stored, activeFree, state.depth + 1), parentJoint.placementPriority);
+                    }
+
+                    placedForThisJoint = true;
+                    break; // 对应原版 label129：该连接点已放置，转到父块的下一个连接点
+                }
+                if (placedForThisJoint) {
+                    break;
+                }
+            }
+            if (placedForThisJoint) {
+                break;
+            }
+        }
+    }
+}
+
+i32 JigsawAssembler::estimateExpansionHeight(TemplatePoolRegistry& poolRegistry,
+    const JigsawPiece& piece,
+    Rotation rotation,
+    const structure::StructureBoundingBox& localBox,
+    const std::vector<JigsawJoint>& joints,
+    const PoolAliasLookup& aliasLookup)
 {
     // 只有"矮"构件才预留竖直净空（原版阈值 16）：高塔类构件自身已经够高，不需要。
     constexpr i32 kMaxCompactYSpan = 16;
-
-    const BlockPos localOrigin(0, 0, 0);
-    const auto pieceBox = JigsawTransform::calculateBoundingBox(piece, localOrigin, rotation);
-    if (pieceBox.ySpan() > kMaxCompactYSpan) {
+    if (localBox.ySpan() > kMaxCompactYSpan) {
         return 0;
     }
 
     i32 best = 0;
-    for (const auto& joint : piece.getJoints()) {
+    for (const auto& joint : joints) {
         // 连接面 = 连接点位置 + 朝向步进；只有落在候选块包围盒内部的接点才算"朝内"，
         // 朝外的接点通向结构外部，其高度不受本构件容纳能力约束。
-        const BlockPos jointPos =
-            JigsawTransform::transformPosition(joint.sourcePos, rotation, Mirror::None, piece.getSize());
+        const BlockPos jointPos = JigsawTransform::transformPosition(joint.sourcePos, rotation, Mirror::None);
         const Direction facing = JigsawOrientations::getFacing(JigsawOrientations::rotate(joint.orientation, rotation));
         const BlockPos surface(
             jointPos.x + getStepX(facing), jointPos.y + getStepY(facing), jointPos.z + getStepZ(facing));
-        if (!pieceBox.contains(surface.x, surface.y, surface.z)) {
+        if (!localBox.contains(surface.x, surface.y, surface.z)) {
             continue;
         }
 
@@ -334,296 +507,6 @@ i32 JigsawAssembler::estimateExpansionHeight(
     }
 
     return best;
-}
-
-bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
-    std::vector<PlacedPiece>& placedPieces,
-    SequencedPriorityIterator<PendingJoint>& pendingJoints,
-    const PendingJoint& joint,
-    const PoolAliasLookup& aliasLookup,
-    IChunkGenerator& generator,
-    i32 maxDepth,
-    bool useExpansionHack,
-    const std::shared_ptr<VoxelShape>& freeShapeHolder,
-    math::IRandom& rng)
-{
-    // 获取目标模板池（先经池别名查找表解析虚拟池名，对应 MC 1.21 resourcekey = aliasLookup.lookup(pool)）
-    ResourceLocation poolLocation(joint.targetPool);
-    const ResourceLocation& resolvedPool = aliasLookup.lookup(poolLocation);
-    const TemplatePool* targetPool = poolRegistry.getPool(resolvedPool);
-
-    // 如果目标池为空或不存在，尝试使用回退池
-    if (!targetPool || targetPool->isEmpty()) {
-        return false;
-    }
-
-    // 构建候选块列表 - 使用打乱的列表而非多次随机选择
-    //
-    // 【深度语义】joint.depth 是"本连接点将放置出的子块"的深度，原版据**父块**深度判断
-    // 能否从主池取候选（父块深度 = joint.depth - 1，条件为 != maxDepth）；由于只入队
-    // joint.depth <= maxDepth 的连接点，二者等价于 `joint.depth <= maxDepth`。
-    // 深度为 maxDepth + 1 的末层只能取回退池，且不再入队子连接点——村庄的装饰构件
-    // （村民/动物/灯具）正是靠回退池出现在末层。
-    const bool canExpandPool = joint.depth <= maxDepth;
-    std::vector<const JigsawPiece*> candidatePieces;
-
-    if (canExpandPool) {
-        // 添加目标池中打乱后的块
-        std::vector<const JigsawPiece*> shuffled = targetPool->getShuffledPieces(rng);
-        candidatePieces.insert(candidatePieces.end(), shuffled.begin(), shuffled.end());
-    }
-
-    // 添加回退池中打乱后的块
-    const ResourceLocation& fallbackLoc = targetPool->getFallback();
-    if (!fallbackLoc.path().empty() && fallbackLoc.toString() != "minecraft:empty") {
-        const TemplatePool* fallbackPool = poolRegistry.getPool(fallbackLoc);
-        if (fallbackPool && !fallbackPool->isEmpty()) {
-            std::vector<const JigsawPiece*> fallbackShuffled = fallbackPool->getShuffledPieces(rng);
-            candidatePieces.insert(candidatePieces.end(), fallbackShuffled.begin(), fallbackShuffled.end());
-        }
-    }
-
-    if (candidatePieces.empty()) {
-        return false;
-    }
-
-    // ===== 两层级 freeShape（对应 MC 1.21 JigsawPlacement.tryPlacingChildren 的 mutableobject 逻辑）=====
-    // flag1 = 父块边界框是否包含连接面（blockpos2 = jigsaw 方块前方一格）。
-    //   若包含：使用局部 freeShape（父块 AABB 形状），子块只能在父块内部放置。
-    //   否则：使用全局 freeShape（freeShapeHolder），子块在父块外部放置。
-    // 局部 freeShape 延迟初始化（对应 MC mutableobject.get() == null 时
-    // setValue(Shapes.create(AABB.of(boundingbox)))）。
-    //
-    // 采用 shared_ptr<VoxelShape> 持有者模型（对应 MC MutableObject<VoxelShape>）：
-    //   - 全局空间：freeShapeHolder 在父块与所有外部子块间共享，放置后通过 *holder = ... 更新，
-    //     兄弟连接点立即看到更新后的剩余空间（与 MC mutableobject1 = p_227266_ 一致）。
-    //   - 局部空间：localHolder 本次调用惰性创建，内部子块共享此持有者（与 MC mutableobject 一致）。
-    const Direction parentFacing = JigsawOrientations::getFacing(joint.orientation);
-    const BlockPos connectionSurface(joint.position.x + getStepX(parentFacing),
-        joint.position.y + getStepY(parentFacing),
-        joint.position.z + getStepZ(parentFacing));
-    const bool childJointInsideParent =
-        joint.parentBoundingBox.contains(connectionSurface.x, connectionSurface.y, connectionSurface.z);
-    // 局部 freeShape 持有者（延迟初始化为父块 AABB 形状），对应 MC 的 mutableobject。
-    std::shared_ptr<VoxelShape> localHolder;
-
-    // 遍历候选块列表，尝试每个块直到找到合适的
-    // 预分配匹配连接点容器（最多有 pieceJoints.size() * 4 个匹配，因为有4种旋转）
-    std::vector<std::pair<size_t, Rotation>> matchingJoints;
-    matchingJoints.reserve(16); // 预估容量避免循环内重复分配
-
-    for (const JigsawPiece* selectedPiece : candidatePieces) {
-        if (!selectedPiece || selectedPiece->isEmpty()) {
-            continue;
-        }
-
-        // 尝试找到可以匹配的连接点
-        const auto& pieceJoints = selectedPiece->getJoints();
-        matchingJoints.clear(); // 清空复用已分配的内存
-
-        for (size_t i = 0; i < pieceJoints.size(); ++i) {
-            const auto& pieceJoint = pieceJoints[i];
-            // 尝试所有旋转
-            for (i32 rotDeg = 0; rotDeg < 360; rotDeg += 90) {
-                Rotation rotEnum = static_cast<Rotation>(rotDeg / 90);
-
-                // 计算旋转后的朝向
-                JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(pieceJoint.orientation, rotEnum);
-
-                // 检查名称和方向是否匹配。
-                // 匹配条件（对应 JigsawBlock.canAttach(父, 子)）：**父的 target == 子的 name**，
-                // 正面朝向互为相反，且 aligned 时两者的 top 朝向一致；joint 类型取**父**的。
-                // 方向不可反：村庄里这两者恰好同名（都叫 minecraft:street / building_entrance），
-                // 反着写"碰巧能跑"；但一旦出现 target 与 name 不同的模板（例如
-                // name=minecraft:bottom / target=minecraft:street），反向比较会静默漏配。
-                if (JigsawMatcher::canMatch(joint.targetName,
-                        pieceJoint.sourceName,
-                        joint.orientation,
-                        rotatedOrientation,
-                        joint.jointType)) {
-                    matchingJoints.emplace_back(i, rotEnum);
-                }
-            }
-        }
-
-        if (matchingJoints.empty()) {
-            continue;
-        }
-
-        // 随机选择一个匹配
-        auto [jointIndex, rotation] = matchingJoints[rng.nextInt(static_cast<i32>(matchingJoints.size()))];
-        const auto& selectedJoint = pieceJoints[jointIndex];
-
-        // 计算放置位置（刚性连接：连接点对齐）
-        // jointOffset = 子块连接点在子块局部坐标系中（旋转后）的位置
-        // placementPos = 父连接点世界位置 - jointOffset（使两连接点对齐）
-        // 对应 MC 1.21: blockpos4 = blockpos2.subtract(blockpos3)
-        BlockPos jointOffset = JigsawTransform::transformPosition(
-            selectedJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize());
-        BlockPos placementPos = joint.position - jointOffset;
-
-        // 计算边界框
-        auto boundingBox = JigsawTransform::calculateBoundingBox(*selectedPiece, placementPos, rotation);
-
-        // ===== TerrainMatching 高度计算（对应 MC 1.21 JigsawPlacement.tryPlacingChildren）=====
-        // MC 变量映射：
-        //   i   = 父块边界框 minY（joint.parentMinY）
-        //   j   = 父 jigsaw 方块 Y 相对父块 minY = blockpos1.getY() - i（parentJointRelY）
-        //   k1  = 子 jigsaw 方块局部 Y（selectedJoint.sourcePos.y = childJointLocalY）
-        //   l1  = j - k1 + facing.getStepY()（连接点的 deltaY，含朝向 Y 步进）
-        //   i2  = newPieceBaseY（子块基础 Y）
-        //   j2  = yAdjust = i2 - boundingbox2.minY()
-        //   l2  = childGroundLevelDelta
-        //   flag  = 父块投影 == RIGID（isRigidParent）
-        //   flag2 = 子块投影 == RIGID（isRigidChild）
-        //
-        // joint.position 是父 jigsaw 方块的世界坐标（非连接面坐标），对应 MC 的 blockpos1。
-        // 因此 parentJointRelY = joint.position.y - joint.parentMinY 等价于 MC 的 j = blockpos1.getY() - i。
-        // facingStepY 对应 MC 的 direction.getStepY()：垂直连接为 ±1，水平连接为 0。
-        const i32 parentJointRelY = joint.position.y - joint.parentMinY;
-        const i32 childJointLocalY = selectedJoint.sourcePos.y;
-        const i32 facingStepY = getStepY(parentFacing);
-        const i32 l1 = parentJointRelY - childJointLocalY + facingStepY;
-
-        const bool isRigidParent = (joint.projection == JigsawPlacementBehaviour::Rigid);
-        const bool isRigidChild = (selectedPiece->getPlacementBehaviour() == JigsawPlacementBehaviour::Rigid);
-
-        // newPieceBaseY（i2）：子块基础 Y
-        //   RIGID + RIGID：父块 minY + l1（相对父块放置）
-        //   否则：世界表面高度 - childJointLocalY（贴合地形）
-        i32 newPieceBaseY;
-        if (isRigidParent && isRigidChild) {
-            newPieceBaseY = joint.parentMinY + l1;
-        } else {
-            const i32 surfaceY = generator.getHeight(joint.position.x, joint.position.z, HeightmapType::WorldSurfaceWG);
-            newPieceBaseY = surfaceY - childJointLocalY;
-        }
-
-        // yAdjust（j2）：将子块放置位置从连接点对齐位置移动到 newPieceBaseY
-        const i32 yAdjust = newPieceBaseY - boundingBox.minY();
-        if (yAdjust != 0) {
-            placementPos.y += yAdjust;
-            boundingBox = JigsawTransform::calculateBoundingBox(*selectedPiece, placementPos, rotation);
-        }
-
-        // ===== use_expansion_hack：为矮构件预留竖直净空（对应 MC JigsawPlacement :376-408 / :437-440）=====
-        // 候选块旋转后 Y 跨度 <= 16 时，预估它接下来可能长出的最高子结构高度，并把它向上
-        // "撑"进包围盒。撑高后的包围盒**同时**用于碰撞判定与构件存储，直接决定村庄的 Y 范围。
-        // 估算值 = 该构件所有"朝内接点"所引用池（含回退池）中元素在 Rotation.NONE 下的最大 Y 跨度。
-        if (useExpansionHack) {
-            const i32 expansion = estimateExpansionHeight(poolRegistry, *selectedPiece, rotation, aliasLookup);
-            if (expansion > 0) {
-                const i32 grownY = std::max(expansion + 1, boundingBox.maxY() - boundingBox.minY());
-                boundingBox.expandToInclude(boundingBox.minX(), boundingBox.minY() + grownY, boundingBox.minZ());
-            }
-        }
-
-        // ===== VoxelShape 空间追踪（对应 MC 1.21 tryPlacingChildren 的 freeShape 检查）=====
-        // 选择当前连接点使用的 freeShape 持有者（两层级）：
-        //   childJointInsideParent → 局部持有者（惰性初始化为父块 AABB 形状，对应 MC mutableobject）
-        //   否则 → 全局持有者（freeShapeHolder，从父块继承，对应 MC p_227266_）
-        // 持有者选择对应 MC：mutableobject1 = flag1 ? mutableobject : p_227266_
-        if (childJointInsideParent && !localHolder) {
-            localHolder = std::make_shared<VoxelShape>(Shapes::create(toAabb(joint.parentBoundingBox)));
-        }
-        const std::shared_ptr<VoxelShape>& activeHolder = childJointInsideParent ? localHolder : freeShapeHolder;
-        const VoxelShape& activeFreeShape = *activeHolder;
-
-        // 检查子块（收缩 0.25 格后）是否完全在 activeFreeShape 内：
-        //   joinIsNotEmpty(activeFreeShape, deflatedNewAABB, ONLY_SECOND) == true 表示子块有部分不在 freeShape 内
-        //   （即与已占用空间相交或超出 MaxDistance），跳过该候选块。
-        //   对应 MC: !Shapes.joinIsNotEmpty(mutableobject1.get(), Shapes.create(AABB.of(boundingbox3).deflate(0.25)),
-        //   BooleanOp.ONLY_SECOND)
-        const AxisAlignedBB deflatedNewAabb = toAabb(boundingBox).deflate(0.25f);
-        if (Shapes::joinIsNotEmpty(activeFreeShape, Shapes::create(deflatedNewAabb), BooleanOps::OnlySecond())) {
-            continue;
-        }
-
-        // groundLevelDelta（l2）：
-        //   RIGID 子块：parentGroundLevelDelta - l1
-        //   TERRAIN_MATCHING 子块：selectedPiece->getGroundLevelDelta()
-        const i32 childGroundLevelDelta =
-            isRigidChild ? (joint.parentGroundLevelDelta - l1) : selectedPiece->getGroundLevelDelta();
-
-        // ===== 放置成功：从 activeFreeShape 减去子块 AABB（对应 MC mutableobject1.setValue(joinUnoptimized(...,
-        // ONLY_FIRST))）===== 注意：减去的是未收缩的完整 AABB（对应 MC 的 AABB.of(boundingbox3)，非 deflate(0.25)）。
-        // 通过 *activeHolder = ... 更新持有者，所有共享该持有者的兄弟连接点立即看到更新后的剩余空间。
-        *activeHolder =
-            Shapes::joinUnoptimized(activeFreeShape, Shapes::create(toAabb(boundingBox)), BooleanOps::OnlyFirst());
-
-        // 创建已放置的块
-        PlacedPiece placed;
-        placed.piece = selectedPiece->clone();
-        placed.position = placementPos;
-        placed.rotation = rotation;
-        placed.mirror = Mirror::None;
-        placed.groundLevelDelta = childGroundLevelDelta;
-        placed.projection = selectedPiece->getPlacementBehaviour();
-        placed.boundingBox = boundingBox;
-        placed.joints = JigsawTransform::getTransformedJoints(*selectedPiece, placementPos, rotation, Mirror::None);
-
-        // 创建 JigsawJunction 用于 NoiseChunkGenerator 地形适配
-        // JigsawJunction 记录连接点的高度信息，用于后续地形平滑
-        i32 sourceGroundY = joint.position.y;
-        i32 destGroundY = placementPos.y;
-        i32 deltaY = sourceGroundY - destGroundY;
-
-        placed.junctions.emplace_back(joint.position.x, // sourceX
-            sourceGroundY,                              // sourceGroundY
-            joint.position.z,                           // sourceZ
-            deltaY,                                     // deltaY
-            joint.projection                            // destProjection
-        );
-
-        placedPieces.push_back(std::move(placed));
-
-        // 子块继承放置后的 freeShape 持有者（shared_ptr 共享，对应 MC PieceState.free = mutableobject1）。
-        // 子连接点位于子块内部时使用局部持有者（惰性创建为子块 AABB），否则共享此持有者。
-        // 共享同一 shared_ptr 而非拷贝，确保兄弟子块放置时通过 *holder = ... 更新彼此可见。
-        const std::shared_ptr<VoxelShape>& childFreeShapeHolder = activeHolder;
-
-        // 添加新的待处理连接点
-        // 使用打乱后的连接点顺序（getShuffledJoints 内部按 selectionPriority 降序稳定排序）
-        std::vector<JigsawJoint> shuffledNewJoints = selectedPiece->getShuffledJoints(rng);
-        for (const auto& newJoint : shuffledNewJoints) {
-            // 跳过已经匹配的连接点（通过比较位置）
-            if (newJoint.sourcePos == selectedJoint.sourcePos) {
-                continue;
-            }
-
-            // 计算旋转后的朝向
-            JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(newJoint.orientation, rotation);
-
-            PendingJoint newPending;
-            newPending.position = JigsawTransform::transformPosition(
-                                      newJoint.sourcePos, rotation, Mirror::None, selectedPiece->getSize()) +
-                placementPos;
-            newPending.sourceName = newJoint.sourceName;
-            newPending.targetPool = newJoint.targetPool;
-            newPending.targetName = newJoint.targetName;
-            // 子连接点带出的构件深度 = 本构件深度 + 1；超出 maxDepth 的不再入队
-            // （对应原版 `if (depth + 1 <= this.maxDepth)`）。
-            newPending.depth = joint.depth + 1;
-            newPending.projection = newJoint.projection;
-            newPending.orientation = rotatedOrientation;
-            newPending.jointType = newJoint.jointType;
-            newPending.placementPriority = newJoint.placementPriority;
-            // 记录父块信息用于子块的 TerrainMatching 高度计算
-            newPending.parentMinY = boundingBox.minY();
-            newPending.parentGroundLevelDelta = childGroundLevelDelta;
-            // 子块继承放置后的 freeShape 持有者（对应 MC PieceState.free = mutableobject1）
-            newPending.freeShape = childFreeShapeHolder;
-            newPending.parentBoundingBox = boundingBox;
-            // 子连接点以其自身的 placementPriority 入队（高优先级先出队，对应 MC Placer.placing.add(state, l)）
-            if (canExpandPool) {
-                pendingJoints.add(std::move(newPending), newJoint.placementPriority);
-            }
-        }
-
-        return true;
-    }
-
-    return false;
 }
 
 } // namespace jigsaw

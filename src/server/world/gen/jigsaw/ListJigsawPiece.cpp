@@ -50,9 +50,7 @@ std::unique_ptr<JigsawPiece> ListJigsawPiece::clone() const
     auto piece = std::make_unique<ListJigsawPiece>(getPlacementBehaviour());
     piece->setGroundLevelDelta(getGroundLevelDelta());
     piece->m_name = m_name;
-    for (const auto& joint : m_joints) {
-        piece->addJoint(joint);
-    }
+    copyJointsTo(*piece);
     // 深拷贝子块（bug 修复 #3：原 ListJigsawPiece::clone 未拷贝 m_joints，此处同时修复）
     for (const auto& child : m_pieces) {
         if (child) {

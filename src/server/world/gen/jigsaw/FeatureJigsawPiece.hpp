@@ -51,9 +51,7 @@ public:
     {
         auto piece = std::make_unique<FeatureJigsawPiece>(m_featureId, getPlacementBehaviour());
         piece->setGroundLevelDelta(getGroundLevelDelta());
-        for (const auto& joint : m_joints) {
-            piece->addJoint(joint);
-        }
+        copyJointsTo(*piece);
         return piece;
     }
     bool isEmpty() const override { return false; }

@@ -82,7 +82,11 @@ public:
         , m_placed(std::move(placed))
         , m_groundLevelDelta(m_placed.groundLevelDelta)
         , m_junctions(m_placed.junctions)
-    {}
+    {
+        // 构件的旋转/镜像必须写回 StructurePiece 基类字段（详见 JigsawPlacedPieceAdapter 说明）
+        setRotation(m_placed.rotation);
+        setMirror(m_placed.mirror);
+    }
 
     void generate(IWorldWriter& world,
         math::IRandom& rng,

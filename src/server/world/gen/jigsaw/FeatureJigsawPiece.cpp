@@ -45,17 +45,27 @@ FeatureJigsawPiece::FeatureJigsawPiece(const std::string& featureId, JigsawPlace
     : JigsawPiece(behaviour)
     , m_featureId(featureId)
 {
-    // 默认携带一个 facing=UP 的连接点，target = "minecraft:bottom"，
-    // 使地物拼图块可被任意向下连接的源连接点匹配。
-    // sourceName 为空（地物块无源连接点名称），targetPool 为空（地物块不向外扩展）。
+    // 虚拟连接点，对应 MC FeaturePoolElement.fillDefaultJigsawNBT() +
+    // getShuffledJigsawBlocks()：name=minecraft:bottom、target=minecraft:empty、
+    // pool=minecraft:empty、joint=ROLLABLE，方块状态为
+    // `FrontAndTop.fromFrontAndTop(Direction.DOWN, Direction.SOUTH)` 即 down_south。
+    //
+    // 【朝向必须是 down_south】连接匹配要求"父连接点的正面 == 子连接点正面的反向"。
+    // 村庄里所有形如 bottom 的父连接点朝向都是 up_north（正面朝上，表示"我上面可以放东西"），
+    // 因此地物的虚拟连接点必须正面朝下；写成朝上会让地物池（树/花/干草堆）**永远匹配失败**，
+    // 整片村庄因此缺少全部植被类装饰，且不产生任何报错。
+    // 名字取地物 id：构件标识（templateLocation）依赖它，否则地物构件在诊断/parity 比对里
+    // 完全不可区分（"是哪个地物"直接决定构件内容）
+    setName(m_featureId);
+
     JigsawJoint joint;
     joint.sourcePos = BlockPos(0, 0, 0);
     joint.sourceName = "minecraft:bottom";
     joint.targetPool = "minecraft:empty";
-    joint.targetName = "minecraft:bottom";
+    joint.targetName = "minecraft:empty";
     joint.projection = behaviour;
     joint.jointType = JigsawJointType::Rollable;
-    joint.orientation = JigsawOrientation::UpNorth; // facing=UP，即 "bottom" 连接点
+    joint.orientation = JigsawOrientation::DownSouth;
     m_joints.push_back(joint);
 }
 

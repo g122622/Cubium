@@ -78,7 +78,12 @@ public:
         , m_placed(std::move(placed))
         , m_groundLevelDelta(m_placed.groundLevelDelta)
         , m_junctions(m_placed.junctions)
-    {}
+    {
+        // 构件的旋转/镜像必须写回 StructurePiece 基类字段：装配信息只存在于 m_placed 里时，
+        // 经 StructurePiece 接口读到的旋转恒为 None、镜像恒为 None，诊断与 parity 校验都会失真。
+        setRotation(m_placed.rotation);
+        setMirror(m_placed.mirror);
+    }
 
     void generate(mc::IWorldWriter& world,
         mc::math::IRandom& rng,

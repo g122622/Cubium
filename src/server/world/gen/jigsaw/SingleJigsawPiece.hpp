@@ -65,9 +65,7 @@ public:
     {
         auto piece = std::make_unique<SingleJigsawPiece>(m_templateName, getPlacementBehaviour(), m_processorListId);
         piece->setGroundLevelDelta(getGroundLevelDelta());
-        for (const auto& joint : m_joints) {
-            piece->addJoint(joint);
-        }
+        copyJointsTo(*piece);
         return piece;
     }
 
@@ -109,9 +107,7 @@ public:
         auto piece =
             std::make_unique<LegacySingleJigsawPiece>(m_templateName, getPlacementBehaviour(), m_processorListId);
         piece->setGroundLevelDelta(getGroundLevelDelta());
-        for (const auto& joint : m_joints) {
-            piece->addJoint(joint);
-        }
+        copyJointsTo(*piece);
         return piece;
     }
     bool isLegacy() const override { return true; }

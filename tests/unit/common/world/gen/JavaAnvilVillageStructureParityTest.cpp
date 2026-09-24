@@ -90,9 +90,9 @@
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/feature/template/TemplateManagerHostBinding.hpp"
-#include "server/world/gen/feature/template/Template.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
@@ -294,9 +294,13 @@ void collectStartsFromRoot(
                 piece.groundLevelDelta = findInt(child, "ground_level_delta");
                 piece.rotation = findString(child, "rotation");
                 if (const auto* element = findCompound(child, "pool_element"); element != nullptr) {
+                    // 单件/legacy 单件元素记模板路径；地物元素记地物 id；其余退化为元素类型名
+                    // （Cubium 侧对应 templateLocation()：模板路径 / 地物 id / 空）
                     piece.templateLocation = findString(*element, "location");
                     if (piece.templateLocation.empty()) {
-                        // list_pool_element / feature_pool_element 没有 location，退化为类型名
+                        piece.templateLocation = findString(*element, "feature");
+                    }
+                    if (piece.templateLocation.empty()) {
                         piece.templateLocation = findString(*element, "element_type");
                     }
                 }
@@ -342,8 +346,7 @@ std::vector<StartView> readJavaStarts(const std::filesystem::path& worldDir)
             if (!root) {
                 continue;
             }
-            collectStartsFromRoot(
-                *root, regionX * 32 + localX, regionZ * 32 + localZ, starts);
+            collectStartsFromRoot(*root, regionX * 32 + localX, regionZ * 32 + localZ, starts);
         }
     }
     return starts;
@@ -453,8 +456,8 @@ protected:
         auto settings = DimensionSettings::overworld();
         auto randomState = world::gen::RandomState::create(settings, static_cast<u64>(m_seed));
         auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
-        m_generator = std::make_unique<NoiseChunkGenerator>(
-            std::move(settings), std::move(biomeSource), std::move(randomState));
+        m_generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
     }
 
     /**
@@ -499,37 +502,55 @@ protected:
             view.templateLocation = std::string(piece->templateLocation());
             views.push_back(std::move(view));
         }
-        std::sort(views.begin(), views.end(), [](const PieceView& a, const PieceView& b) {
-            return a.sortKey() < b.sortKey();
-        });
+        // **不排序**：两侧的构件列表都是"放置顺序"（原版 StructureStart.Children 的写入顺序，
+        // 也是本实现追加到 StructureStart 的顺序），逐位对比能直接指出**第一个分歧的构件**；
+        // 排序后对比则只能看出"集合不同"，无法定位分歧从哪一步开始。
         return views;
     }
 
-    /// 打印两侧构件列表的对照（只打印前 limit 条，避免刷屏）
-    static void printPieceDiff(const std::string& title,
-        const std::vector<PieceView>& javaViews,
-        const std::vector<PieceView>& cubiumViews,
-        size_t limit)
+    /**
+     * @brief 逐位对照两侧构件列表（均为放置顺序），并打印前若干个
+     *
+     * 打印策略：先报"第一个分歧的序号"，再围绕该序号打印上下文；两侧数量不等时把多出来的
+     * 尾部也打印出来。这样一次运行就能看出分歧是"起始构件选错"（序号 0）、"某一步随机数
+     * 错位"（中间某序号）还是"展开提前终止"（尾部少了若干）。
+     */
+    static void printPieceDiff(
+        const std::string& title, const std::vector<PieceView>& javaViews, const std::vector<PieceView>& cubiumViews)
     {
-        std::printf("[STRUCT-PARITY] %s 原版 %zu 个构件 / Cubium %zu 个构件\n",
-            title.c_str(),
-            javaViews.size(),
-            cubiumViews.size());
-        const size_t count = std::min({ javaViews.size(), cubiumViews.size(), limit });
-        for (size_t i = 0; i < count; ++i) {
-            const bool same = javaViews[i].sortKey() == cubiumViews[i].sortKey();
-            std::printf("[STRUCT-PARITY]   [%2zu]%s 原版   %s\n", i, same ? "  " : " !", javaViews[i].text().c_str());
-            if (!same) {
-                std::printf("[STRUCT-PARITY]   [%2zu]   Cubium %s\n", i, cubiumViews[i].text().c_str());
+        const size_t common = std::min(javaViews.size(), cubiumViews.size());
+        size_t firstDiff = common;
+        for (size_t i = 0; i < common; ++i) {
+            if (javaViews[i].sortKey() != cubiumViews[i].sortKey()) {
+                firstDiff = i;
+                break;
             }
         }
-        // 数量不等时把多出来的部分也打出来，否则"多/少了哪些构件"无从判断
+
+        std::printf("[STRUCT-PARITY] %s 原版 %zu 个构件 / Cubium %zu 个构件，逐位相同 %zu 个，首个分歧序号 %s\n",
+            title.c_str(),
+            javaViews.size(),
+            cubiumViews.size(),
+            firstDiff,
+            firstDiff == common ? "无（前缀完全一致）" : std::to_string(firstDiff).c_str());
+
+        constexpr size_t kContext = 6;
+        const size_t begin = firstDiff > kContext ? firstDiff - kContext : 0;
+        const size_t end = std::min(common, firstDiff + kContext);
+        for (size_t i = begin; i < end; ++i) {
+            const bool same = javaViews[i].sortKey() == cubiumViews[i].sortKey();
+            std::printf("[STRUCT-PARITY]   [%3zu]%s 原版   %s\n", i, same ? " " : "!", javaViews[i].text().c_str());
+            if (!same) {
+                std::printf("[STRUCT-PARITY]   [%3zu]  Cubium %s\n", i, cubiumViews[i].text().c_str());
+            }
+        }
         const size_t longer = std::max(javaViews.size(), cubiumViews.size());
-        for (size_t i = count; i < longer && i < count + limit; ++i) {
+        const size_t tailBegin = std::max(end, common);
+        for (size_t i = tailBegin; i < longer && i < tailBegin + kContext; ++i) {
             if (i < javaViews.size()) {
-                std::printf("[STRUCT-PARITY]   [%2zu] - 原版   %s\n", i, javaViews[i].text().c_str());
+                std::printf("[STRUCT-PARITY]   [%3zu] - 原版   %s\n", i, javaViews[i].text().c_str());
             } else {
-                std::printf("[STRUCT-PARITY]   [%2zu] + Cubium %s\n", i, cubiumViews[i].text().c_str());
+                std::printf("[STRUCT-PARITY]   [%3zu] + Cubium %s\n", i, cubiumViews[i].text().c_str());
             }
         }
     }
@@ -635,8 +656,8 @@ TEST_F(JavaAnvilVillageStructureParityTest, JigsawHarnessIsWired)
     EXPECT_GT(templ->getJigsawBlocks().size(), 0u)
         << "模板里没有任何 jigsaw 方块：模板解析有误（连接点为空将使装配无法展开）";
 
-    const auto* pool = TemplatePoolRegistry::instance().getPool(
-        ResourceLocation::parse("minecraft:village/plains/town_centers"));
+    const auto* pool =
+        TemplatePoolRegistry::instance().getPool(ResourceLocation::parse("minecraft:village/plains/town_centers"));
     ASSERT_NE(pool, nullptr) << "村庄起始模板池未加载：结构模板池数据包加载失败";
     EXPECT_FALSE(pool->isEmpty()) << "村庄起始模板池为空";
 
@@ -657,6 +678,32 @@ TEST_F(JavaAnvilVillageStructureParityTest, JigsawHarnessIsWired)
     }
     EXPECT_FALSE(pieces[0]->getName().empty()) << "候选拼图块没有名字，构件无法追溯到模板";
     EXPECT_GT(pieces[0]->getJoints().size(), 0u) << "候选拼图块没有连接点，装配无法展开";
+
+    // use_expansion_hack 的净空估算读的是"池内元素在无旋转下的最大 Y 跨度"，它参与碰撞判定，
+    // 因此其数值必须与数据包里的模板尺寸一致（含回退池）。数值取自 json 权重与 nbt 尺寸，
+    // 是唯一能发现"某模板未加载导致尺寸退化为 0"这类静默故障的检查。
+    struct PoolSpan {
+        const char* pool;
+        i32 expected;
+    };
+    constexpr PoolSpan kExpectedSpans[] = {
+        {"minecraft:village/plains/streets", 2},
+        {"minecraft:village/plains/houses", 12},
+        {"minecraft:village/plains/decor", 4},
+        {"minecraft:village/plains/villagers", 3},
+        {"minecraft:village/common/cats", 3},
+        {"minecraft:village/plains/terminators", 2},
+    };
+    for (const auto& expected : kExpectedSpans) {
+        const auto* spanPool = TemplatePoolRegistry::instance().getPool(ResourceLocation::parse(expected.pool));
+        ASSERT_NE(spanPool, nullptr) << "模板池未加载：" << expected.pool;
+        const i32 actual = spanPool->getMaxYSpan();
+        std::printf("[STRUCT-PARITY] 装置自检：池 %-40s 最大 Y 跨度 = %d（期望 %d）\n",
+            expected.pool,
+            actual,
+            expected.expected);
+        EXPECT_EQ(actual, expected.expected) << expected.pool << " 的最大 Y 跨度与数据包不符";
+    }
 }
 
 /**
@@ -830,32 +877,30 @@ TEST_F(JavaAnvilVillageStructureParityTest, StructureStartDistributionMatchesJav
  *   - 起始构件的 X/Z（原版取区块最小角，无随机）与 Y 投影（project_start_to_heightmap）
  *   - jigsaw 展开：连接点匹配、深度门控、freeShape 裁剪、use_expansion_hack
  *
- * 【当前状态】失败，但已从"每个村庄只有 1 个退化构件"推进到"构件数与起始构件均正确"：
+ * 【当前状态】4 个村庄中 3 个**逐构件完全一致**，第 4 个在前 82 个构件上一致：
  *
- *   区块        原版构件数   Cubium 构件数   起始构件是否一致
- *   (-9,-9)        89            15            一致
- *   (-9,0)         78            11            一致
- *   (0,-9)        179            15            一致
- *   (0,0)         212            13            一致
+ *   区块        原版构件数   Cubium 构件数   逐位相同
+ *   (-9,-9)        89            89           89（完全一致）
+ *   (-9,0)         78            78           78（完全一致）
+ *   (0,-9)        179           179          179（完全一致）
+ *   (0,0)         212           205           82
  *
- * 起始构件（第 0 个）的模板路径、旋转、包围盒现已与原版逐项相同——说明
- * **起始旋转/起始块选择的随机数顺序、起始点 X/Z（区块最小角）、Y 投影与地面线对齐
- * 都已对齐**。剩余差距全部在 jigsaw 展开（Placer）环节。
+ * 逐个构件的模板路径、旋转、地面高度偏移、包围盒都已核对（此前 `rotation` 恒为 None，
+ * 是因为适配器没有把装配得到的旋转写回 StructurePiece 基类字段，现已修复）。
  *
- * 【剩余差距的定位】差距不在"随机数总量"，而在**候选枚举方式**：原版对每个父连接点是
- * 四层嵌套遍历——候选元素（打乱）→ 旋转（打乱）→ 该候选的连接点（打乱）→ 命中即
- * 放置并跳到父块的下一个连接点；本实现是把某候选的全部 (连接点, 旋转) 匹配收集起来
- * **随机挑一个**。二者有双重后果：
- *   1. 随机数消耗模式不同（原版每个候选消耗 3 次旋转洗牌 + (m-1) 次连接点洗牌）；
- *   2. 随机挑中的那一个若因碰撞被拒，本实现会放弃该连接点去试下一个候选元素，
- *      而原版会继续尝试该候选的其余旋转/连接点——直接导致大量连接点被浪费、
- *      构件数远低于原版。
- * 这与"村庄里 name 与 target 同名"无关，是 Placer 循环结构的差异。
+ * 【第 4 个村庄剩余差距的定位】(0,0) 的分歧出现在某个街道构件的连接点枚举上：
+ * 同一个连接点，原版取到 pile_hay、本实现取到 flower_plain，且本实现在一个原版判为
+ * "放不下"的连接点上放下了构件。这类差异**不会**立刻改变已放置构件的包围盒，因此
+ * 前 82 个构件仍然一致，但它会让"本轮尝试了几个候选/旋转"不同，进而使随机数状态错位、
+ * 从第 82 个构件起整体发散。
  *
- * 【收敛路径】把 tryPlacePiece 改写成原版 Placer.tryPlacingChildren 的形态：待处理队列
- * 由"连接点"改为"构件 + 该构件的 freeShape 持有者 + 深度"（PieceState），一次调用处理
- * 一个父构件的全部连接点，内部按上述四层顺序遍历、命中即放置并 break；同时对齐
- * JigsawJunction 的双向记录与 `i3` 的三分支公式。
+ * 已排除的因素：池的展开条目数与权重（streets=49+4、decor=7、houses=87+4 均与数据包一致）、
+ * 池内最大 Y 跨度（use_expansion_hack 的输入，六个池逐一核对一致）、各模板的连接点数
+ * （61 个模板逐一与 .nbt 的 jigsaw 方块数比对一致）、结构自身的随机源独立性
+ * （已与"结构集条目选择"的随机源分离）。
+ *
+ * 尚未排除：`insideParent`（连接面落在父块包围盒内）时使用的局部可放置空间在两边的
+ * 构造时机/共享范围，以及候选元素被拒绝时消耗的随机数次数。
  */
 TEST_F(JavaAnvilVillageStructureParityTest, VillagePiecesMatchJavaSave)
 {
@@ -871,23 +916,18 @@ TEST_F(JavaAnvilVillageStructureParityTest, VillagePiecesMatchJavaSave)
     for (const auto& village : villages) {
         world::chunk::ChunkPrimer* primer = generateStarts(village.cx, village.cz);
         ASSERT_NE(primer, nullptr);
-        const auto* cubiumStart =
-            primer->getStructureStart(ResourceLocation(village.structureId));
-        const std::string title =
-            fmt::format("村庄 ({},{})", village.cx, village.cz);
+        const auto* cubiumStart = primer->getStructureStart(ResourceLocation(village.structureId));
+        const std::string title = fmt::format("村庄 ({},{})", village.cx, village.cz);
         ASSERT_NE(cubiumStart, nullptr) << title << " 没有生成结构起点 " << village.structureId;
 
-        auto javaViews = village.pieces;
-        std::sort(javaViews.begin(), javaViews.end(), [](const PieceView& a, const PieceView& b) {
-            return a.sortKey() < b.sortKey();
-        });
+        const std::vector<PieceView>& javaViews = village.pieces;
         const auto cubiumViews = toPieceViews(*cubiumStart);
-        printPieceDiff(title, javaViews, cubiumViews, 8);
+        printPieceDiff(title, javaViews, cubiumViews);
 
         EXPECT_EQ(cubiumViews.size(), javaViews.size()) << title << " 的构件数与原版不一致";
         for (size_t i = 0; i < std::min(javaViews.size(), cubiumViews.size()); ++i) {
             EXPECT_EQ(cubiumViews[i].sortKey(), javaViews[i].sortKey())
-                << title << " 第 " << i << " 个构件与原版不一致";
+                << title << " 第 " << i << " 个构件（放置顺序）与原版不一致";
         }
     }
 }

@@ -363,7 +363,18 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             }
 
             if (biomeOk) {
-                auto start = structure->generate(*this, rng, chunkX, chunkZ);
+                // 【必须是独立的随机源】原版里"结构集内的条目选择"与"结构自身的生成"用的是
+                // **两个各自 setLargeFeatureSeed 同一种子的 WorldgenRandom 实例**：
+                //   - 条目选择：ChunkGenerator.createStructures 内 `wg.setLargeFeatureSeed(...)` 后
+                //     用 `wg.nextInt(权重和)` 轮盘抽签，失败重抽共用同一个 wg；
+                //   - 结构生成：Structure.GenerateContext.makeRandom 新建实例并
+                //     `setLargeFeatureSeed(seed, cx, cz)`，**每次都从同一个初始状态开始**。
+                // 若复用条目选择的那个实例，结构生成会从"抽过签"之后的状态起算，
+                // 起始旋转、起始块选择等全部错位——实测正是村庄起始构件与原版不符的根因。
+                math::WorldgenRandom structureRng(std::make_unique<math::JavaLegacyRandom>(0ULL));
+                structureRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
+
+                auto start = structure->generate(*this, structureRng, chunkX, chunkZ);
                 // 【必须判 isValid】原版只有 `start.isValid()` 才登记结构起点：空的
                 // StructureStart（构件数为 0，如起始模板池为空）不算生成成功，必须继续
                 // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的

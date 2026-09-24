@@ -25,6 +25,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
+#include <algorithm>
 #include <vector>
 
 namespace mc {
@@ -32,39 +33,41 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
-BlockPos JigsawTransform::transformPosition(
-    const BlockPos& pos, Rotation rotation, Mirror mirror, const BlockPos& templateSize)
+BlockPos JigsawTransform::transformPosition(const BlockPos& pos, Rotation rotation, Mirror mirror)
 {
-    BlockPos result = pos;
+    // 对应 MC 1.21 StructureTemplate.transform(BlockPos, Mirror, Rotation, pivot)：
+    // **以模板原点角为轴**（pivot 恒为 BlockPos.ZERO），镜像先取负、再旋转：
+    //   CCW90 → (z, y, -x)     CW90 → (-z, y, x)     CW180 → (-x, y, -z)
+    // 旋转后坐标可能为负——这是原版语义（包围盒由两个对角点归一化得到），
+    // 与 Template::transformBlockPos 的方块放置变换必须保持同一约定，
+    // 否则"构件包围盒"描述的就不是方块实际落点。
+    i32 i = pos.x;
+    i32 j = pos.y;
+    i32 k = pos.z;
 
-    // 先应用镜像（相对于模板中心）
+    bool mirrored = true;
     switch (mirror) {
-        case Mirror::FrontBack: // X 轴镜像
-            result = BlockPos(templateSize.x - 1 - result.x, result.y, result.z);
-            break;
         case Mirror::LeftRight: // Z 轴镜像
-            result = BlockPos(result.x, result.y, templateSize.z - 1 - result.z);
+            k = -k;
+            break;
+        case Mirror::FrontBack: // X 轴镜像
+            i = -i;
             break;
         default:
+            mirrored = false;
             break;
     }
 
-    // 然后应用旋转
     switch (rotation) {
-        case Rotation::Clockwise90:
-            result = BlockPos(templateSize.z - 1 - result.z, result.y, result.x);
-            break;
-        case Rotation::Clockwise180:
-            result = BlockPos(templateSize.x - 1 - result.x, result.y, templateSize.z - 1 - result.z);
-            break;
         case Rotation::CounterClockwise90:
-            result = BlockPos(result.z, result.y, templateSize.x - 1 - result.x);
-            break;
+            return BlockPos(k, j, -i);
+        case Rotation::Clockwise90:
+            return BlockPos(-k, j, i);
+        case Rotation::Clockwise180:
+            return BlockPos(-i, j, -k);
         default:
-            break;
+            return mirrored ? BlockPos(i, j, k) : pos;
     }
-
-    return result;
 }
 
 std::vector<JigsawJoint> JigsawTransform::getTransformedJoints(
@@ -73,11 +76,9 @@ std::vector<JigsawJoint> JigsawTransform::getTransformedJoints(
     std::vector<JigsawJoint> transformed;
     transformed.reserve(piece.getJoints().size());
 
-    BlockPos size = piece.getSize();
-
     for (const auto& joint : piece.getJoints()) {
         JigsawJoint transformedJoint;
-        transformedJoint.sourcePos = transformPosition(joint.sourcePos, rotation, mirror, size) + position;
+        transformedJoint.sourcePos = transformPosition(joint.sourcePos, rotation, mirror) + position;
         transformedJoint.sourceName = joint.sourceName;
         transformedJoint.targetPool = joint.targetPool;
         transformedJoint.targetName = joint.targetName;
@@ -100,19 +101,24 @@ std::vector<JigsawJoint> JigsawTransform::getTransformedJoints(
 structure::StructureBoundingBox JigsawTransform::calculateBoundingBox(
     const JigsawPiece& piece, const BlockPos& pos, Rotation rotation)
 {
-    BlockPos size = piece.getSize();
-
-    // 根据旋转调整尺寸
-    if (rotation == Rotation::Clockwise90 || rotation == Rotation::CounterClockwise90) {
-        size = BlockPos(size.z, size.y, size.x);
-    }
-
-    if (size.x == 0 || size.y == 0 || size.z == 0) {
+    // 对应 MC StructureTemplate.getBoundingBox(pos, rot, pivot=ZERO, mirror)：
+    // 把模板的两个对角点（0 与 size-1）各自变换后归一化，再整体平移到 pos。
+    // 变换以原点角为轴，故旋转后坐标可为负 —— 不能用"旋转后尺寸直接铺在 pos 上"代替。
+    const BlockPos size = piece.getSize();
+    if (size.x <= 0 || size.y <= 0 || size.z <= 0) {
+        // 退化模板（地物池元素的 getSize 为 Vec3i.ZERO）：没有实体范围，包围盒退化到 pos
         return structure::StructureBoundingBox(pos.x, pos.y, pos.z, pos.x, pos.y, pos.z);
     }
 
-    return structure::StructureBoundingBox(
-        pos.x, pos.y, pos.z, pos.x + size.x - 1, pos.y + size.y - 1, pos.z + size.z - 1);
+    const BlockPos cornerA = transformPosition(BlockPos(0, 0, 0), rotation, Mirror::None);
+    const BlockPos cornerB = transformPosition(BlockPos(size.x - 1, size.y - 1, size.z - 1), rotation, Mirror::None);
+
+    return structure::StructureBoundingBox(pos.x + std::min(cornerA.x, cornerB.x),
+        pos.y + std::min(cornerA.y, cornerB.y),
+        pos.z + std::min(cornerA.z, cornerB.z),
+        pos.x + std::max(cornerA.x, cornerB.x),
+        pos.y + std::max(cornerA.y, cornerB.y),
+        pos.z + std::max(cornerA.z, cornerB.z));
 }
 
 Rotation JigsawTransform::getRandomRotation(math::IRandom& rng)

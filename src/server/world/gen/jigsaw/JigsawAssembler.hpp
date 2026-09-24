@@ -104,7 +104,7 @@ struct StartPlacement {
  * 职责：
  * - 持有静态 TemplateManager（s_templateManager），供 JigsawPiece::loadJointsFromTemplate 等访问
  * - assemble()：BFS 组装，返回 PlacedPiece 列表
- * - tryPlacePiece()：尝试匹配连接点并放置新拼图块
+ * - tryPlacingChildren()：处理一个构件的全部连接点，逐个匹配并放置子构件
  *
  * 对应 MC 1.21 net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement。
  */
@@ -222,39 +222,42 @@ public:
         const structure::DimensionPadding* dimensionPadding);
 
     /**
-     * @brief 尝试匹配连接点并放置新拼图块
+     * @brief 处理一个已放置构件的全部连接点，为每个连接点放置至多一个子构件
      *
-     * 从目标模板池中选择候选块，尝试匹配连接点，放置成功则加入 placedPieces 并入队新连接点。
-     * 使用 freeShape（VoxelShape）进行空间追踪：放置前检测新块是否完全在剩余空间内，
-     * 放置后从 freeShape 中减去新块 AABB。
+     * 对应 MC 1.21 JigsawPlacement.Placer.tryPlacingChildren。遍历顺序（**每一步都消耗
+     * 世界随机数，顺序不可改动**）：
+     *   父构件的连接点（打乱 + 按 selectionPriority 稳定降序）
+     *     → 候选元素（主池 + 回退池，各自按权重展开后打乱）
+     *       → 旋转（四个旋转顺序打乱）
+     *         → 该候选在该旋转下的连接点（打乱）
+     *           → 名称/朝向匹配、定位、碰撞检测；**命中即放置，该连接点处理完毕**
      *
-     * freeShape 采用 shared_ptr<VoxelShape> 持有者模型，对应 MC 1.21 的 MutableObject<VoxelShape>：
-     *   - 全局 freeShape（连接点在父块外部）：父块与子块共享同一持有者，放置后通过 *holder = ... 更新，
-     *     兄弟连接点立即看到更新后的剩余空间。
-     *   - 局部 freeShape（连接点在父块内部）：每次 tryPlacePiece 调用惰性创建新持有者，
-     *     该次调用内的内部子块共享此持有者，与全局空间隔离。
+     * 与"收集全部匹配再随机挑一个"的写法相比，本形态有两个实质性差别：
+     *   1. 随机数消耗模式与原版一致（每个候选元素消耗 3 次旋转洗牌 + (m-1) 次连接点洗牌）；
+     *   2. 某个候选/旋转被碰撞否决时会继续尝试其余候选与旋转，而不是放弃整个连接点。
+     *
+     * 连接点位于父块包围盒内部时使用**本调用内共享**的局部可放置空间（对应 MC 的
+     * MutableObject localFree，惰性创建、被父块各内部接点逐次扣减）；位于外部时继承
+     * 父块的可放置空间。
      *
      * @param poolRegistry 模板池注册表
-     * @param placedPieces 已放置的拼图块列表（输出）
-     * @param pendingJoints 待处理连接点优先级队列（输出，按 placementPriority 降序出队）
-     * @param joint 当前处理的连接点
+     * @param pieces 已放置构件容器（拥有所有权，地址稳定，供队列引用）
+     * @param pending 待处理构件优先级队列（输出，按 placementPriority 降序出队）
+     * @param state 当前处理的父构件（构件 + 继承的可放置空间 + 深度）
      * @param aliasLookup 池别名查找表（解析虚拟池名为实际池名）
-     * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度）
+     * @param generator 区块生成器（TerrainMatching 与高度投影时查询世界表面高度）
      * @param maxDepth 最大递归深度
      * @param useExpansionHack 是否启用 use_expansion_hack
-     * @param freeShapeHolder 剩余可放置空间持有者（VoxelShape，会被本方法修改：放置成功后减去新块 AABB）
      * @param rng 随机数生成器
-     * @return 是否成功放置
      */
-    static bool tryPlacePiece(TemplatePoolRegistry& poolRegistry,
-        std::vector<PlacedPiece>& placedPieces,
-        SequencedPriorityIterator<PendingJoint>& pendingJoints,
-        const PendingJoint& joint,
+    static void tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
+        std::vector<std::unique_ptr<PlacedPiece>>& pieces,
+        SequencedPriorityIterator<PendingPiece>& pending,
+        const PendingPiece& state,
         const PoolAliasLookup& aliasLookup,
         IChunkGenerator& generator,
         i32 maxDepth,
         bool useExpansionHack,
-        const std::shared_ptr<VoxelShape>& freeShapeHolder,
         math::IRandom& rng);
 
 private:
@@ -270,13 +273,24 @@ private:
      * @param poolRegistry 模板池注册表
      * @param piece 候选拼图块
      * @param rotation 候选块的旋转
+     * @param localBox 候选块在原点 + 该旋转下的包围盒（由调用方复用，避免重复计算）
+     * @param joints 候选块在**该旋转下**的连接点（已打乱；顺序不影响取最大值）
      * @param aliasLookup 池别名查找表
      * @return 预估净空高度；无需扩张时返回 0
      */
     [[nodiscard]] static i32 estimateExpansionHeight(TemplatePoolRegistry& poolRegistry,
         const JigsawPiece& piece,
         Rotation rotation,
+        const structure::StructureBoundingBox& localBox,
+        const std::vector<JigsawJoint>& joints,
         const PoolAliasLookup& aliasLookup);
+
+    /**
+     * @brief 取四个旋转的打乱顺序（对应 MC `Rotation.getShuffled(random)`，消耗 3 次随机数）
+     *
+     * 原版对**每个候选元素**都重新洗牌一次旋转顺序——不是每个连接点、也不是全局一次。
+     */
+    [[nodiscard]] static std::vector<Rotation> shuffledRotations(math::IRandom& rng);
 
     /**
      * @brief 从 StructureBoundingBox 构建 AxisAlignedBB（f32 坐标）

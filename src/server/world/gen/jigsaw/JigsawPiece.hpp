@@ -103,6 +103,24 @@ public:
     void clearJoints() { m_joints.clear(); }
 
     /**
+     * @brief 把本构件的连接点复制到目标构件
+     *
+     * **必须先清空目标**：部分子类（Single/Legacy/Feature）的构造函数会自行添加连接点
+     * （从模板读取，或添加默认虚拟连接点），clone() 走"先构造再复制"的模式，若直接追加就会
+     * 让克隆件的连接点翻倍——这会同时改变随机数消耗与候选枚举，使装配结果与原版完全不同，
+     * 且不产生任何报错。为此把"清空 + 复制"收敛到本方法，避免每个 clone() 各写一遍。
+     *
+     * @param target 目标构件
+     */
+    void copyJointsTo(JigsawPiece& target) const
+    {
+        target.clearJoints();
+        for (const auto& joint : m_joints) {
+            target.addJoint(joint);
+        }
+    }
+
+    /**
      * @brief 获取按 selectionPriority 降序稳定排序后的连接点列表
      *
      * 先打乱连接点顺序（Fisher-Yates），再按 selectionPriority 降序稳定排序，

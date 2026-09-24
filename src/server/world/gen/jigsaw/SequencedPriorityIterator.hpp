@@ -48,10 +48,9 @@ namespace jigsaw {
  * MC 实现使用 Int2ObjectOpenHashMap<Deque<T>>（按优先级分桶），Cubium 用
  * std::map<i32, std::deque<T>>（按 key 升序），用反向迭代器取最高优先级。
  *
- * Jigsaw 组装队列（PendingJoint）用 placementPriority 入队：
- * 起始块的连接点按 selectionPriority 排序后逐个入队，每个 PendingJoint 携带
- * 其源连接点的 placementPriority；放置成功后子块的连接点以同样方式入队。
- * 这使高 placementPriority 的子结构先被扩展，对应 MC JigsawPlacement.Placer.placing。
+ * Jigsaw 组装队列（PendingPiece）用 placementPriority 入队：每放置一个子构件，
+ * 就以**它所匹配的父连接点**的 placementPriority 入队该构件；这使高 placementPriority
+ * 的子树先被扩展，对应 MC JigsawPlacement.Placer.placing。
  */
 template <typename T>
 class SequencedPriorityIterator {
