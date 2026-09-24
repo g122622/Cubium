@@ -1186,6 +1186,14 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
         }
         config->foliagePlacer = foliageResult.value();
     }
+    // TODO: root_placer 尚未实现。数据包中 mangrove / tall_mangrove 的 config 带
+    // "root_placer": {"type": "minecraft:mangrove_root_placer", ...}（红树林的支柱根），
+    // 本工厂目前不解析该字段，故红树林能生成但**不长根**。该项是"数据包使用但未注册"
+    // 类型里唯一剩余者（placement/carver/decorator 三类已全部补齐），
+    // 需要时按原版 MangroveRootPlacer 实现：以上方原木为起点做随机游走铺根，
+    // 并按 above_root_placement 概率在根上方放置方块。当前三个 parity 测试区块
+    // 均无 mangrove_swamp，故不影响其对比结果。
+
     // decorators：树体放置完成后依次执行的装饰器（蜂巢/落叶/藤蔓等）。
     // MC BaseTreeFeatureConfig.decorators 为可选，缺省为空列表。
     if (configJson.contains("decorators")) {
