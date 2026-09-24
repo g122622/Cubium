@@ -127,8 +127,12 @@
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/aquifer/Aquifer.hpp"
+#include "server/world/gen/aquifer/FluidPickerFactory.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/density/Beardifier.hpp"
+#include "server/world/gen/density/NoiseChunk.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/settings/NoiseSettingsRegistry.hpp"
 #include "server/world/storage/backend/JavaAnvilBackend.hpp"
@@ -140,6 +144,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 #include <fmt/format.h>
@@ -838,6 +843,130 @@ TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
  * 【收敛目标】不一致数降为 0。在此之前用 kMaxBlockMismatchRatio 卡住量级，
  * 避免在没有门禁的情况下进一步退化。
  */
+
+/**
+ * @brief 临时诊断：含水层流体面链路（preliminarySurfaceLevel → aquifer fluidLevel）
+ *
+ * TODO(parity): 本用例是**收敛过程中的临时诊断**，不参与 parity 断言，parity 达成后删除。
+ *
+ * 已由本用例确认的结论（供后续排查参考）：
+ *   - Cubium 的 preliminarySurfaceLevel 比原版 WORLD_SURFACE 系统性低 8~20 格：
+ *     海洋区块 (2,-2) 全部列都是 48（原版水面 62、海底约 57）。
+ *   - 该值直接决定含水层的水层中心 fluidLevel；偏低会使海域整列判为"地表之上"，
+ *     含水层于 y=40..62 全返回 air（实测 (2,-2) 列 (8,8) 在 y=75..40 全 air），
+ *     表现为整片海域无水、海底被地表规则铺成草地。
+ *   - 该密度函数经 AST 编译为 CompiledDensityFunctionAdapter，故下一步应核对
+ *     McToAst/BytecodeGen 对 FindTopSurface 的转换——它的 density 子树必须用
+ *     循环变量 j（而非外层 ctx 的 y）作为 Y 求值，否则整条搜索会偏到错误的层。
+ */
+TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
+{
+    auto settings = DimensionSettings::overworld();
+    auto state = world::gen::RandomState::create(settings, static_cast<u64>(kSeed));
+    ASSERT_NE(state, nullptr);
+
+    const auto& noise = settings.noise;
+    const i32 cellWidth = noise.sizeHorizontal * 4;
+    const i32 cellHeight = noise.sizeVertical * 4;
+    const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
+
+    for (const auto& [cx, cz] : kTargets) {
+        const ChunkData* javaChunk = loadJavaChunk(cx, cz);
+        ASSERT_NE(javaChunk, nullptr);
+
+        const i32 startX = cx * world::CHUNK_WIDTH;
+        const i32 startZ = cz * world::CHUNK_WIDTH;
+        auto nc = std::make_unique<world::gen::density::NoiseChunk>(*state,
+            cellWidth,
+            cellHeight,
+            cellCountY,
+            startX,
+            noise.minY,
+            startZ,
+            std::make_unique<world::gen::density::BeardifierMarker>(),
+            1);
+
+        // 差值直方图：prelimSurface - (原版 WORLD_SURFACE + 1)
+        // 注意：getHighestBlock 返回的是"最高非空气方块的 Y"（WorldSurface 存 Y+1），
+        // 而原版 getHeight(WORLD_SURFACE) 返回 Y+1；这里统一到 Y+1 便于与原版公式对照。
+        std::map<i32, i32> hist;
+        for (i32 bz = 0; bz < world::CHUNK_WIDTH; ++bz) {
+            for (i32 bx = 0; bx < world::CHUNK_WIDTH; ++bx) {
+                const i32 prelim = nc->samplePreliminarySurfaceLevel(startX + bx, startZ + bz);
+                const i32 javaTop = javaChunk->getHighestBlock(bx, bz);
+                ++hist[prelim - (javaTop + 1)];
+            }
+        }
+        std::printf("[DIAG-AQ] (%d,%d) prelimSurface - (原版WORLD_SURFACE+1) 直方图（海平面 63）：\n", cx, cz);
+        for (const auto& [delta, count] : hist) {
+            std::printf("[DIAG-AQ]      %+4d  %4d\n", delta, count);
+        }
+
+        // 抽样 8 列：prelimSurface 绝对值 vs 原版 WORLD_SURFACE 绝对值
+        std::printf(
+            "[DIAG-AQ] (%d,%d) 抽样列  bx,bz | prelimSurface | 原版表面高度 | 原版方块剖面(顶部12格)：\n", cx, cz);
+        for (i32 k = 0; k < 8; ++k) {
+            const i32 bx = (k * 3) % world::CHUNK_WIDTH;
+            const i32 bz = (k * 5) % world::CHUNK_WIDTH;
+            const i32 prelim = nc->samplePreliminarySurfaceLevel(startX + bx, startZ + bz);
+            const i32 javaTop = javaChunk->getHighestBlock(bx, bz);
+            std::string profile;
+            for (i32 y = javaTop; y > javaTop - 12 && y >= world::MIN_BUILD_HEIGHT; --y) {
+                profile += blockName(javaChunk->getBlockStateId(bx, y, bz)) + " ";
+            }
+            std::printf("[DIAG-AQ]      (%2d,%2d) | %4d | %4d | %s\n", bx, bz, prelim, javaTop, profile.c_str());
+        }
+
+        // 拆解 FindTopSurface：upperBound 取值 + density 在各 y 的符号
+        {
+            const auto* fts =
+                dynamic_cast<const world::gen::density::FindTopSurface*>(&nc->router().preliminarySurfaceLevel());
+            std::printf("[DIAG-AQ] (%d,%d) preliminarySurfaceLevel 是否为 FindTopSurface: %d\n",
+                cx,
+                cz,
+                fts != nullptr ? 1 : 0);
+            std::printf("[DIAG-AQ]      实际类型: %s\n", typeid(nc->router().preliminarySurfaceLevel()).name());
+            if (fts != nullptr) {
+                std::printf("[DIAG-AQ]      lowerBound=%d cellHeight=%d\n", fts->lowerBound(), fts->cellHeight());
+                for (i32 y = 80; y >= 32; y -= 8) {
+                    std::printf("[DIAG-AQ]      列(%d,%d) y=%3d  upperBound=%.6f  density=%.6f\n",
+                        8,
+                        8,
+                        y,
+                        fts->upperBound().compute(startX + 8, 0, startZ + 8),
+                        fts->density().compute(startX + 8, y, startZ + 8));
+                }
+            }
+        }
+
+        // 直接调用含水层：在 y=40..75 上问"若此处非固体（density<0），含水层给出什么流体"
+        auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(*nc,
+            cx,
+            cz,
+            nc->router(),
+            state->aquiferRandom(),
+            noise.minY,
+            noise.height,
+            world::gen::aquifer::createFluidPicker(settings.seaLevel, settings.defaultFluid));
+        const i32 probeBx = 8;
+        const i32 probeBz = 8;
+        std::string aquiferColumn;
+        for (i32 y = 75; y >= 40; --y) {
+            const BlockState* s = aquifer->computeSubstance(startX + probeBx, y, startZ + probeBz, -0.01);
+            aquiferColumn +=
+                (s == nullptr ? std::string("<null>")
+                              : (s->isAir() ? std::string("air") : s->getBlock().blockLocation().toString())) +
+                " ";
+        }
+        std::printf("[DIAG-AQ] (%d,%d) 列(%d,%d) y=75..40 含水层 computeSubstance(density=-0.01)：\n",
+            cx,
+            cz,
+            probeBx,
+            probeBz);
+        std::printf("[DIAG-AQ]      %s\n", aquiferColumn.c_str());
+    }
+}
+
 TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlocksMatchJavaSave)
 {
     for (const auto& [cx, cz] : kTargets) {

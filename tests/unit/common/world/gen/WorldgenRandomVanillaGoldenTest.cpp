@@ -42,10 +42,10 @@
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 
 #include <array>
-#include <gtest/gtest.h>
 #include <memory>
 #include <string>
 #include <vector>
+#include <gtest/gtest.h>
 
 namespace mc {
 namespace {
