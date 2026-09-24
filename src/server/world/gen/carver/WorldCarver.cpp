@@ -89,11 +89,11 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const world::biome::IBiomeSource& biomeSource,
     ChunkCoord targetChunkX,
     ChunkCoord targetChunkZ,
-    f32 centerX,
-    f32 centerY,
-    f32 centerZ,
-    f32 horizontalRadius,
-    f32 verticalRadius,
+    f64 centerX,
+    f64 centerY,
+    f64 centerZ,
+    f64 horizontalRadius,
+    f64 verticalRadius,
     CarvingMask& carvingMask,
     const CarveSkipChecker& skipChecker,
     const Config& config)
@@ -109,9 +109,9 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const i32 chunkStartZ = targetChunkZ * world::CHUNK_WIDTH;
 
     // 检查椭球是否在目标区块范围外
-    const f32 distLimit = horizontalRadius + CARVE_DISTANCE_PADDING + static_cast<f32>(world::CHUNK_WIDTH);
-    const f32 dxC = centerX - static_cast<f32>(chunkStartX + world::CHUNK_WIDTH / 2);
-    const f32 dzC = centerZ - static_cast<f32>(chunkStartZ + world::CHUNK_WIDTH / 2);
+    const f64 distLimit = horizontalRadius + CARVE_DISTANCE_PADDING + static_cast<f64>(world::CHUNK_WIDTH);
+    const f64 dxC = centerX - static_cast<f64>(chunkStartX + world::CHUNK_WIDTH / 2);
+    const f64 dzC = centerZ - static_cast<f64>(chunkStartZ + world::CHUNK_WIDTH / 2);
     if (std::abs(dxC) > distLimit || std::abs(dzC) > distLimit) {
         return false;
     }
@@ -131,15 +131,15 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
 
     for (i32 lx = localMinX; lx <= localMaxX; ++lx) {
         const i32 worldX = targetChunkX * world::CHUNK_WIDTH + lx;
-        const f32 dx = (static_cast<f32>(worldX) + 0.5f - centerX) / horizontalRadius;
-        const f32 dxSq = dx * dx;
+        const f64 dx = (static_cast<f64>(worldX) + 0.5 - centerX) / horizontalRadius;
+        const f64 dxSq = dx * dx;
 
         for (i32 lz = localMinZ; lz <= localMaxZ; ++lz) {
             const i32 worldZ = targetChunkZ * world::CHUNK_WIDTH + lz;
-            const f32 dz = (static_cast<f32>(worldZ) + 0.5f - centerZ) / horizontalRadius;
-            const f32 dzSq = dz * dz;
+            const f64 dz = (static_cast<f64>(worldZ) + 0.5 - centerZ) / horizontalRadius;
+            const f64 dzSq = dz * dz;
 
-            if (dxSq + dzSq >= 1.0f) {
+            if (dxSq + dzSq >= 1.0) {
                 continue;
             }
 
@@ -150,7 +150,7 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
             const i32 topY = std::min(minGenY + genDepth - 1 - CARVE_TOP_Y_OFFSET, endY_world);
 
             for (i32 y = topY; y > bottomY; --y) {
-                const f32 dy = (static_cast<f32>(y) - 0.5f - centerY) / verticalRadius;
+                const f64 dy = (static_cast<f64>(y) - 0.5 - centerY) / verticalRadius;
 
                 if (skipChecker(CarverEllipsePos{dx, dy, dz, y})) {
                     continue;

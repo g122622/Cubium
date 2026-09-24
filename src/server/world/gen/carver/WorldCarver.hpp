@@ -52,9 +52,10 @@ class IBiomeSource;
  * 用于 CarveSkipChecker 回调，提供类型安全的参数传递。
  */
 struct CarverEllipsePos {
-    f32 dx;
-    f32 dy;
-    f32 dz;
+    // 原版 WorldCarver.CarveSkipChecker.shouldSkip 的参数是 double，精度会影响椭球边界取舍。
+    f64 dx;
+    f64 dy;
+    f64 dz;
     i32 y;
 };
 
@@ -143,11 +144,11 @@ protected:
         const world::biome::IBiomeSource& biomeSource,
         ChunkCoord targetChunkX,
         ChunkCoord targetChunkZ,
-        f32 centerX,
-        f32 centerY,
-        f32 centerZ,
-        f32 horizontalRadius,
-        f32 verticalRadius,
+        f64 centerX,
+        f64 centerY,
+        f64 centerZ,
+        f64 horizontalRadius,
+        f64 verticalRadius,
         CarvingMask& carvingMask,
         const CarveSkipChecker& skipChecker,
         const Config& config);
