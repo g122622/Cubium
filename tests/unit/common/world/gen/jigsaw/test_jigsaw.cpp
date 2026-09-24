@@ -530,8 +530,8 @@ TEST(JigsawAssemblerAssembleTest, StartPieceBelowLowerLimitReturnsEmpty)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
 
     EXPECT_TRUE(pieces.empty());
 }
@@ -552,8 +552,8 @@ TEST(JigsawAssemblerAssembleTest, StartPieceAboveUpperLimitReturnsEmpty)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
 
     EXPECT_TRUE(pieces.empty());
 }
@@ -574,8 +574,8 @@ TEST(JigsawAssemblerAssembleTest, ZeroDimensionPaddingAllowsEdgePlacement)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
 
     // ZERO padding 不触发边界检查，应成功放置起始块
     EXPECT_EQ(pieces.size(), 1u);
@@ -595,8 +595,8 @@ TEST(JigsawAssemblerAssembleTest, NullDimensionPaddingSkipsCheck)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, nullptr);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, nullptr);
 
     EXPECT_EQ(pieces.size(), 1u);
 }
@@ -605,7 +605,11 @@ TEST(JigsawAssemblerAssembleTest, NullDimensionPaddingSkipsCheck)
  * @brief 起始块在 DimensionPadding 限制范围内时应成功放置
  *
  * 世界范围 [-64, 320)，DimensionPadding(10, 10) 将有效范围限制到 [-54, 309]。
- * 起始块 size.y=20，startPos.y=0，包围盒 [0, 19] 完全在 [-54, 309] 内，应通过。
+ * 起始块 size.y=20，请求点 Y=0，包围盒 [-1, 18] 完全在 [-54, 309] 内，应通过。
+ *
+ * 起始块会沿 Y 对齐"地面线"：原版令 `包围盒.minY + groundLevelDelta == 目标地面线`
+ * （groundLevelDelta 默认为 1）；不投影高度（project_start_to_heightmap = false）时
+ * 目标地面线就是请求点 Y，故包围盒 minY = 请求点 Y - 1。
  */
 TEST(JigsawAssemblerAssembleTest, StartPieceWithinPaddingSucceeds)
 {
@@ -617,14 +621,14 @@ TEST(JigsawAssemblerAssembleTest, StartPieceWithinPaddingSucceeds)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
 
     EXPECT_EQ(pieces.size(), 1u);
-    // 验证起始块包围盒正确
+    // 验证起始块包围盒正确（minY = 请求点 Y - groundLevelDelta = 0 - 1）
     ASSERT_FALSE(pieces.empty());
-    EXPECT_EQ(pieces[0].boundingBox.minY(), 0);
-    EXPECT_EQ(pieces[0].boundingBox.maxY(), 19);
+    EXPECT_EQ(pieces[0].boundingBox.minY(), -1);
+    EXPECT_EQ(pieces[0].boundingBox.maxY(), 18);
 }
 
 /**
@@ -648,8 +652,8 @@ TEST(JigsawAssemblerAssembleTest, MaxDistanceBottomClippingRejectsStart)
     const mc::world::gen::structure::MaxDistance maxDist(10, 10);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
 
     // 起始块 minY=-60 < lowerLimit=-14，被 isStartTooCloseToWorldHeightLimits 拒绝
     EXPECT_TRUE(pieces.empty());
@@ -672,8 +676,8 @@ TEST(JigsawAssemblerAssembleTest, MaxDistanceTopClippingRejectsStart)
     const mc::world::gen::structure::MaxDistance maxDist(10, 10);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, generator, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, generator, nullptr, &maxDist, &padding);
 
     // 起始块 maxY=316 > upperLimit=269，被拒绝
     EXPECT_TRUE(pieces.empty());
@@ -695,8 +699,8 @@ TEST(JigsawAssemblerAssembleTest, NetherLikeWorldBottomCheck)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, netherGen, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, netherGen, nullptr, &maxDist, &padding);
 
     EXPECT_TRUE(pieces.empty());
 }
@@ -705,7 +709,8 @@ TEST(JigsawAssemblerAssembleTest, NetherLikeWorldBottomCheck)
  * @brief 自定义世界高度（下界 [0, 128)）下起始块在范围内时成功放置
  *
  * 下界 minY=0, genDepth=128。DimensionPadding(10, 10) 将有效范围限制到 [10, 117]。
- * 起始块 size.y=20，startPos.y=50，包围盒 [50, 69] 完全在 [10, 117] 内，应通过。
+ * 起始块 size.y=20，请求点 Y=50，包围盒 [49, 68]（minY = 请求点 Y - groundLevelDelta）
+ * 完全在 [10, 117] 内，应通过。
  */
 TEST(JigsawAssemblerAssembleTest, NetherLikeWorldWithinBoundsSucceeds)
 {
@@ -717,11 +722,11 @@ TEST(JigsawAssemblerAssembleTest, NetherLikeWorldWithinBoundsSucceeds)
     const mc::world::gen::structure::MaxDistance maxDist(80);
 
     Random rng(42);
-    auto pieces =
-        JigsawAssembler::assemble(registry, startPool, 1, startPos, rng, netherGen, nullptr, &maxDist, &padding);
+    auto pieces = JigsawAssembler::assemble(
+        registry, startPool, 1, startPos, false, false, rng, netherGen, nullptr, &maxDist, &padding);
 
     EXPECT_EQ(pieces.size(), 1u);
     ASSERT_FALSE(pieces.empty());
-    EXPECT_EQ(pieces[0].boundingBox.minY(), 50);
-    EXPECT_EQ(pieces[0].boundingBox.maxY(), 69);
+    EXPECT_EQ(pieces[0].boundingBox.minY(), 49);
+    EXPECT_EQ(pieces[0].boundingBox.maxY(), 68);
 }

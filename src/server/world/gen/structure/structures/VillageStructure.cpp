@@ -37,7 +37,9 @@
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
 #include "server/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "server/world/gen/jigsaw/JigsawTransform.hpp"
 #include "server/world/gen/jigsaw/JigsawTypes.hpp"
+#include "server/world/gen/jigsaw/PoolAliasLookup.hpp"
 #include "server/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "server/world/gen/structure/Structure.hpp"
 #include <spdlog/spdlog.h>
@@ -58,8 +60,6 @@ namespace {
 
 // 村庄生成相关常量
 constexpr i32 VILLAGE_MIN_TERRAIN_HEIGHT = 50;   // 村庄最低生成高度
-constexpr i32 VILLAGE_MIN_SURFACE_HEIGHT = 60;   // 地面最低有效高度
-constexpr i32 VILLAGE_DEFAULT_HEIGHT = 64;       // 默认村庄高度
 constexpr i32 VILLAGE_MAX_HEIGHT_VARIATION = 12; // 村庄区域最大高差
 constexpr i32 SAMPLE_OFFSET_DISTANCE = 8;        // 采样点偏移距离（区块半径的一半）
 
@@ -100,6 +100,11 @@ public:
     [[nodiscard]] const std::vector<jigsaw::JigsawJunction>& getJunctions() const override { return m_junctions; }
 
     [[nodiscard]] bool isJigsawPiece() const override { return true; }
+
+    [[nodiscard]] std::string_view templateLocation() const noexcept override
+    {
+        return m_placed.piece ? std::string_view(m_placed.piece->getName()) : std::string_view();
+    }
 
     [[nodiscard]] mc::StructurePieceProjection getProjection() const noexcept override
     {
@@ -180,37 +185,63 @@ bool VillageStructure::canGenerate(
     return (maxHeight - minHeight) <= VILLAGE_MAX_HEIGHT_VARIATION;
 }
 
+bool VillageStructure::validatesBiomeOnCandidatePoint() const
+{
+    return true;
+}
+
 std::unique_ptr<StructureStart> VillageStructure::generate(
     IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const
 {
     using namespace mc::world;
 
-    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    // 结构 JSON（village_*.json）的取值：start_pool / size=6 / start_height={absolute:0} /
+    // project_start_to_heightmap=WORLD_SURFACE_WG / max_distance_from_center=80 /
+    // use_expansion_hack=true / terrain_adaptation=beard_thin。
+    // 这些常量固化在 VillageStructure 中（JSON 字段目前未接入本类）。
 
-    // 获取起始模板池
-    ResourceLocation startPoolLocation = getStartPool(m_config.type);
     auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
-    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(startPoolLocation);
-
-    if (!startPool || startPool->isEmpty()) {
-        return start;
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(getStartPool(m_config.type));
+    if (startPool == nullptr || startPool->isEmpty()) {
+        return nullptr;
     }
 
-    // 计算起始位置
-    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < VILLAGE_MIN_SURFACE_HEIGHT) startY = VILLAGE_DEFAULT_HEIGHT;
+    // ===== 阶段一：求候选生成点 =====
+    // 【随机数顺序不可交换】原版先取起始旋转（Rotation.getRandom）再取起始块
+    // （StructureTemplatePool.getRandomTemplate），两者共用同一个结构随机源。
+    const Rotation rotation = jigsaw::JigsawTransform::getRandomRotation(rng);
+    const jigsaw::JigsawPiece* startPiece = startPool->getRandomPiece(rng);
+    if (startPiece == nullptr || startPiece->isEmpty()) {
+        return nullptr;
+    }
 
-    BlockPos startPos(startX, startY, startZ);
+    // 起始 X/Z 取区块最小角（**无随机数**——原版的随机偏移早在结构集选点
+    // RandomSpreadStructurePlacement.getPotentialStructureChunk 中消耗完毕）；
+    // start_height={"absolute":0} 给出起始 Y = 0，随后由 project_start_to_heightmap 投影到地形。
+    const BlockPos stubPos(chunkX * CHUNK_WIDTH, 0, chunkZ * CHUNK_WIDTH);
+    const jigsaw::StartPlacement placement =
+        jigsaw::JigsawAssembler::resolveStartPlacement(*startPiece, stubPos, rotation, generator, true);
 
-    // 使用 JigsawAssembler 组装村庄结构
-    // 组装获取 PlacedPiece 列表，包含 JigsawJunction 信息用于地形适配
-    auto placedPieces = jigsaw::JigsawAssembler::assemble(
-        patternRegistry, *startPool, m_config.size, startPos, rng, generator, nullptr, nullptr, nullptr);
+    // ===== 生物群系校验（原版在该时刻、该采样点执行）=====
+    // 采样点必须是候选生成点（起始块中心、投影后的地面线高度），不是区块中心：村庄在
+    // y=0 处采样会落到洞穴/深板岩群系上，导致整片该生成村庄的区块被判为"群系不符"。
+    if (!isValidBiomeAt(generator, placement.candidatePoint)) {
+        return nullptr;
+    }
 
-    // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
-    // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息
+    // ===== 阶段二：装配构件 =====
+    auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
+    auto placedPieces = jigsaw::JigsawAssembler::assembleFromStartPlacement(patternRegistry,
+        *startPiece,
+        placement,
+        m_config.size,
+        true, // use_expansion_hack
+        rng,
+        generator,
+        jigsaw::PoolAliasLookup(),
+        nullptr,
+        nullptr);
+
     for (auto& placed : placedPieces) {
         if (placed.piece && !placed.piece->isEmpty()) {
             start->addPiece(std::make_unique<VillagePlacedPieceAdapter>(std::move(placed)));

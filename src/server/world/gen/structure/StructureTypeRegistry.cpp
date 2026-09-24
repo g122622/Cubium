@@ -135,6 +135,7 @@ JigsawConfig buildJigsawConfig(const StructureDefinition& def)
         config.startJigsawName = def.startJigsawName;
     }
     config.projectStartToHeightmap = def.projectStartToHeightmap;
+    config.useExpansionHack = def.useExpansionHack;
     return config;
 }
 

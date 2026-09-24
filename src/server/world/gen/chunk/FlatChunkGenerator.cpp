@@ -193,8 +193,10 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
 
         // 生成结构起点（生物群系兼容性已由 _hasBiomesForStructureSet 预过滤保证，
         // FlatChunkGenerator 使用 FixedBiomeSource，所有位置生物群系相同，无需逐区块检查）
+        // 【必须判 isValid】空的 StructureStart（构件数为 0，如起始模板池为空或结构自行判定
+        // 生物群系不符）不算生成成功，不得登记为结构起点。
         auto start = structure->generate(*this, rng, chunkX, chunkZ);
-        if (start) {
+        if (start && start->isValid()) {
             chunk.addStructureStart(entry->structureId, std::move(start));
         }
     }

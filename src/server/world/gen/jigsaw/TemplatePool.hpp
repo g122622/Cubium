@@ -29,6 +29,7 @@
 #include "common/util/math/random/Random.hpp"
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace mc {
@@ -94,6 +95,19 @@ public:
      */
     size_t getTotalWeight() const noexcept { return static_cast<size_t>(m_totalWeight); }
 
+    /**
+     * @brief 池内元素在**无旋转**下的最大 Y 跨度（格）
+     *
+     * 对应 MC 1.21 StructureTemplatePool.getMaxSize，供 use_expansion_hack 估算
+     * "从本池还能长出多高"。
+     *
+     * 【不消耗随机数】与 getShuffledPieces 不同，本方法只做确定性求值（原版同样不消耗
+     * WorldgenRandom），结果缓存于 m_maxYSpan。
+     *
+     * @return 最大 Y 跨度；池为空时返回 0
+     */
+    [[nodiscard]] i32 getMaxYSpan() const;
+
     bool isEmpty() const noexcept { return m_entries.empty(); }
 
     /**
@@ -130,6 +144,10 @@ private:
 
     // Σ 所有条目 weight，getTotalWeight 直接返回。
     i32 m_totalWeight = 0;
+
+    // getMaxYSpan 的缓存（对应原版 StructureTemplatePool.maxSize 的惰性缓存）。
+    // 用 optional 而非哨兵值，避免把"合法结果 0"与"尚未计算"混淆。
+    mutable std::optional<i32> m_maxYSpan;
 };
 
 } // namespace jigsaw

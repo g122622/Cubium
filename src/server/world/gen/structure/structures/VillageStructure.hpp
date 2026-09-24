@@ -103,9 +103,14 @@ public:
 
     /**
      * @brief 生成村庄
+     *
+     * 候选生成点依赖随机数（起始块要先抽），故由本方法内部按候选点校验生物群系，
+     * 校验不通过返回 nullptr（调用方据此回退到结构集内的其它条目）。
      */
     [[nodiscard]] std::unique_ptr<StructureStart> generate(
         IChunkGenerator& generator, math::IRandom& rng, i32 chunkX, i32 chunkZ) const override;
+
+    [[nodiscard]] bool validatesBiomeOnCandidatePoint() const override;
 
     /**
      * @brief 获取村庄类型的起始模板池

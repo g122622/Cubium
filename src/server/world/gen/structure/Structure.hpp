@@ -36,6 +36,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -555,6 +556,15 @@ public:
     [[nodiscard]] virtual bool isJigsawPiece() const { return false; }
 
     /**
+     * @brief 获取片段的模板资源路径
+     *
+     * Jigsaw 片段记录其来源模板（如 minecraft:village/plains/houses/plains_small_house_1），
+     * 用于诊断与校验"装配出的构件是否与原版一致"——仅凭包围盒无法区分装配选错了模板
+     * 还是摆放位置有偏差。非 Jigsaw 片段（或模板未加载成功）返回空字符串。
+     */
+    [[nodiscard]] virtual std::string_view templateLocation() const noexcept { return {}; }
+
+    /**
      * @brief 获取片段投影类型 — MC 1.21 PoolElementStructurePiece.getElement().getProjection()
      *
      * Jigsaw 片段可以重写此方法返回实际的投影类型。
@@ -715,6 +725,36 @@ public:
      * @return 是否有效
      */
     [[nodiscard]] bool isValidBiome(BiomeId biomeId) const;
+
+    /**
+     * @brief 判定某位置处的噪声生物群系是否在此结构的有效生物群系中
+     *
+     * 采样点是**候选生成点**（对应 MC 1.21 Structure.isValidBiome(GenerationStub, ...)），
+     * 逐维换算四分坐标（QuartPos.fromBlock，即算术右移 2 位）后取噪声生物群系。
+     * 高度参与采样，故用区块中心的 y=0 代替候选点高度会采到洞穴/深板岩群系，
+     * 在群系边界处得出与原版相反的结果。
+     *
+     * @param generator 区块生成器（取自噪声生物群系源）
+     * @param pos 候选生成点（世界坐标）
+     * @return 该点的生物群系是否有效
+     */
+    [[nodiscard]] bool isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const;
+
+    /**
+     * @brief 本结构是否在 generate() 内部按真实候选生成点完成生物群系校验
+     *
+     * 原版的生物群系校验发生在"候选生成点已求出、构件尚未装配"的时刻，采样点是候选点本身
+     * （jigsaw 结构即起始块中心、高度为投影后的地面线）。对于候选点依赖随机数的结构
+     * （要先抽起始块才知道点在哪儿），调用方无法在不重复消耗随机数的前提下预先算出该点，
+     * 故改由结构自身在 generate() 内校验：**校验失败返回 nullptr**，调用方据此回退到结构集
+     * 内的其它条目并继续用同一个随机源重抽（与原版一致）。
+     *
+     * 返回 true 的结构必须在求出候选点之后、装配构件之前调用 isValidBiomeAt()。
+     *
+     * 返回 false（默认）：调用方在区块中心（y=0）处校验，与迁移前的行为一致。
+     * TODO: 其余 jigsaw 结构（掠夺者前哨站、试炼密室等）也应改为按真实候选点校验。
+     */
+    [[nodiscard]] virtual bool validatesBiomeOnCandidatePoint() const { return false; }
 
     /**
      * @brief 获取结构的地形适配模式

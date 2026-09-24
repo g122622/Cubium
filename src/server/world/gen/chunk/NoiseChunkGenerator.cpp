@@ -349,11 +349,26 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
 
             bool placed = false;
             ++dbgAttempts;
-            const BiomeId biomeAtCandidate =
-                getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
-            if (structure->isValidBiome(biomeAtCandidate)) {
+
+            // 生物群系校验。原版在"候选生成点已求出、构件尚未装配"时校验，采样点是候选点本身
+            // （jigsaw 结构为起始块中心、高度为投影后的地面线），而非区块中心。
+            // 候选点依赖随机数的结构（要先抽起始块）无法由调用方预先算出，改由结构自身在
+            // generate() 内校验并返回 nullptr——那种情况下这里跳过预检，避免重复消耗随机数
+            // 与用错误的采样点误杀。
+            bool biomeOk = true;
+            if (!structure->validatesBiomeOnCandidatePoint()) {
+                const BiomeId biomeAtCandidate =
+                    getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
+                biomeOk = structure->isValidBiome(biomeAtCandidate);
+            }
+
+            if (biomeOk) {
                 auto start = structure->generate(*this, rng, chunkX, chunkZ);
-                if (start) {
+                // 【必须判 isValid】原版只有 `start.isValid()` 才登记结构起点：空的
+                // StructureStart（构件数为 0，如起始模板池为空）不算生成成功，必须继续
+                // 用同一个随机源重抽其余条目；若把它当成成功，会静默吞掉该结构集在本区块的
+                // 其余候选，使结构整片缺失。
+                if (start && start->isValid()) {
                     // 【诊断】构件数与包围盒必须在 std::move(start) **之前**读取——
                     // 移动后 start 为空，再解引用即访问违例（此前正是这样崩溃的）。
                     // 结构能否影响到远处区块完全取决于这两者：构件数为 0/1 或包围盒退化，

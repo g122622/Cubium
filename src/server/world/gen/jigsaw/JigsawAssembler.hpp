@@ -62,6 +62,35 @@ class TemplatePool;
 class TemplatePoolRegistry;
 
 /**
+ * @brief 起始块的摆放结果
+ *
+ * 起始块的模板原点、旋转与包围盒。**Y 已完成高度投影对齐**：包围盒的
+ * `minY() + groundLevelDelta` 等于目标地面高度（`stubPos.y + 地形高度` 或 `stubPos.y`）。
+ * 对应 MC 1.21 JigsawPlacement.addPieces 中 `start.move(0, k - l, 0)` 之后的起点 piece。
+ */
+struct StartPlacement {
+    BlockPos origin;
+    Rotation rotation;
+    structure::StructureBoundingBox boundingBox;
+
+    /**
+     * 候选生成点：包围盒 X/Z 中心 + 地面线高度。
+     * 对应原版 `new GenerationStub(new BlockPos(i, i1, j), ...)`，即生物群系校验的采样点。
+     */
+    BlockPos candidatePoint;
+
+    StartPlacement(const BlockPos& origin_,
+        Rotation rotation_,
+        const structure::StructureBoundingBox& box,
+        const BlockPos& candidatePoint_)
+        : origin(origin_)
+        , rotation(rotation_)
+        , boundingBox(box)
+        , candidatePoint(candidatePoint_)
+    {}
+};
+
+/**
  * @brief Jigsaw 结构组装器
  *
  * 实现递归式结构组装：从起始模板池开始，通过连接点逐步扩展结构。
@@ -98,6 +127,29 @@ public:
     static void clearCache();
 
     /**
+     * @brief 求出起始块的摆放（模板原点 + 包围盒），并完成 project_start_to_heightmap 的 Y 对齐
+     *
+     * 对应 MC 1.21 JigsawPlacement.addPieces 的起始段：
+     *   1. 先按请求点算出起始块包围盒；
+     *   2. 取包围盒的 `(minX + maxX) / 2` 与 `(minZ + maxZ) / 2`（**整数除法，注意与原版
+     *      BoundingBox.getCenter() 在跨度为偶数时相差 1**）；
+     *   3. 投影时把该列的地形高度加到请求点 Y 上，得到目标地面线高度 k；
+     *   4. 把起始块沿 Y 平移，使 `包围盒.minY + groundLevelDelta == k`。
+     *
+     * @param startPiece 起始拼图块
+     * @param stubPos 请求点（区块最小角 + start_height 的 Y）
+     * @param rotation 起始块旋转
+     * @param generator 区块生成器（投影时查询地形高度）
+     * @param projectStartToHeightmap 是否把起始点投影到地形高度图
+     * @return 起始块的摆放结果
+     */
+    [[nodiscard]] static StartPlacement resolveStartPlacement(const JigsawPiece& startPiece,
+        const BlockPos& stubPos,
+        Rotation rotation,
+        IChunkGenerator& generator,
+        bool projectStartToHeightmap);
+
+    /**
      * @brief 组装结构
      *
      * 从起始模板池开始，通过连接点 BFS 扩展结构，返回所有已放置的拼图块。
@@ -112,10 +164,15 @@ public:
      * [generator.getMinY() + padding.bottom, generator.getMinY() + getGenDepth() - 1 - padding.top]
      * 时直接返回空列表，避免结构生成在世界边界外。
      *
+     * 【随机数顺序】起始旋转先于起始块选择（对应原版 `Rotation.getRandom(random)` 在
+     * `pool.getRandomTemplate(random)` 之前）。顺序颠倒会让起始块的旋转与类型同时错位。
+     *
      * @param poolRegistry 模板池注册表
      * @param startPool 起始模板池
      * @param maxDepth 最大递归深度
-     * @param startPos 起始位置
+     * @param stubPos 候选生成点（区块最小角 + start_height 的 Y）
+     * @param projectStartToHeightmap 是否把起始点投影到地形高度图
+     * @param useExpansionHack 是否启用 use_expansion_hack（为矮构件预留竖直净空）
      * @param rng 随机数生成器
      * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度，以及获取世界高度边界）
      * @param aliases 池别名绑定集合（可空，用于试炼密室等结构的池随机化）
@@ -126,12 +183,43 @@ public:
     static std::vector<PlacedPiece> assemble(TemplatePoolRegistry& poolRegistry,
         const TemplatePool& startPool,
         i32 maxDepth,
-        const BlockPos& startPos,
+        const BlockPos& stubPos,
+        bool projectStartToHeightmap,
+        bool useExpansionHack,
         math::IRandom& rng,
         IChunkGenerator& generator,
-        const PoolAliasBindings* aliases = nullptr,
-        const structure::MaxDistance* maxDistance = nullptr,
-        const structure::DimensionPadding* dimensionPadding = nullptr);
+        const PoolAliasBindings* aliases,
+        const structure::MaxDistance* maxDistance,
+        const structure::DimensionPadding* dimensionPadding);
+
+    /**
+     * @brief 从已确定的起始块继续组装
+     *
+     * 起始块与旋转已由调用方确定（见 resolveStartPlacement）——把"选起始块"与"生物群系
+     * 校验"分开，使校验点落在真实的候选生成点上、且随机数只消耗一次。
+     *
+     * @param poolRegistry 模板池注册表
+     * @param startPiece 起始拼图块
+     * @param placement 起始块摆放（模板原点 + 旋转 + 包围盒）
+     * @param maxDepth 最大递归深度
+     * @param useExpansionHack 是否启用 use_expansion_hack
+     * @param rng 随机数生成器
+     * @param generator 区块生成器
+     * @param aliasLookup 池别名查找表（无别名时传默认构造的空表，对应 PoolAliasLookup.EMPTY）
+     * @param maxDistance 距结构中心的最大距离约束（可空则用默认值）
+     * @param dimensionPadding 维度填充（可空）
+     * @return 已放置的拼图块列表（含起始块）
+     */
+    static std::vector<PlacedPiece> assembleFromStartPlacement(TemplatePoolRegistry& poolRegistry,
+        const JigsawPiece& startPiece,
+        const StartPlacement& placement,
+        i32 maxDepth,
+        bool useExpansionHack,
+        math::IRandom& rng,
+        IChunkGenerator& generator,
+        const PoolAliasLookup& aliasLookup,
+        const structure::MaxDistance* maxDistance,
+        const structure::DimensionPadding* dimensionPadding);
 
     /**
      * @brief 尝试匹配连接点并放置新拼图块
@@ -153,6 +241,7 @@ public:
      * @param aliasLookup 池别名查找表（解析虚拟池名为实际池名）
      * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度）
      * @param maxDepth 最大递归深度
+     * @param useExpansionHack 是否启用 use_expansion_hack
      * @param freeShapeHolder 剩余可放置空间持有者（VoxelShape，会被本方法修改：放置成功后减去新块 AABB）
      * @param rng 随机数生成器
      * @return 是否成功放置
@@ -164,10 +253,31 @@ public:
         const PoolAliasLookup& aliasLookup,
         IChunkGenerator& generator,
         i32 maxDepth,
+        bool useExpansionHack,
         const std::shared_ptr<VoxelShape>& freeShapeHolder,
         math::IRandom& rng);
 
 private:
+    /**
+     * @brief use_expansion_hack 的净空估算：候选块还能从自身"朝内接点"长出多高
+     *
+     * 对应 MC 1.21 JigsawPlacement.tryPlacingChildren 中计算 i1 的 stream：
+     * 候选块旋转后 Y 跨度 > 16 时返回 0（矮构件才需要预留净空）；
+     * 否则遍历其连接点，只统计**连接面落在候选块包围盒内部**（朝内）的连接点，
+     * 取其所引用池与回退池的最大 Y 跨度的最大值。该值本身不消耗随机数
+     * （原版 getMaxSize 同样是确定性求值并缓存）。
+     *
+     * @param poolRegistry 模板池注册表
+     * @param piece 候选拼图块
+     * @param rotation 候选块的旋转
+     * @param aliasLookup 池别名查找表
+     * @return 预估净空高度；无需扩张时返回 0
+     */
+    [[nodiscard]] static i32 estimateExpansionHeight(TemplatePoolRegistry& poolRegistry,
+        const JigsawPiece& piece,
+        Rotation rotation,
+        const PoolAliasLookup& aliasLookup);
+
     /**
      * @brief 从 StructureBoundingBox 构建 AxisAlignedBB（f32 坐标）
      *

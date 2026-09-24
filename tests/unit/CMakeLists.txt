@@ -1170,6 +1170,10 @@ add_executable(mc_tests
     common/world/gen/NoiseChunkGeneratorCarverParityTest.cpp
     # 同种子世界生成 parity：Cubium 生成结果 vs 原版 1.21.11 真实存档（纯净区块）
     common/world/gen/JavaAnvilWorldGenParityTest.cpp
+    # 结构起点 parity：Cubium 装配出的结构 vs 原版存档的 structures.starts（村庄素材）。
+    # 必须排在 JavaAnvilWorldGenParityTest 之后：本套件会把模板来源绑定到数据包仓库，
+    # 而模板可用与否会改变 jigsaw 结构的生成结果。放在后面可保证前者的既有基线不受影响。
+    common/world/gen/JavaAnvilVillageStructureParityTest.cpp
     common/world/gen/NetherSurfaceParityTest.cpp
     # 噪声生成器单元测试
     common/world/gen/PerlinNoiseTest.cpp

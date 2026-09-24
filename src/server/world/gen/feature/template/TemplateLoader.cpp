@@ -1152,12 +1152,13 @@ TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
         return info;
     }
 
-    // Jigsaw 方块的 NBT 结构:
+    // Jigsaw 方块的 NBT 结构（对应 JigsawBlockEntity.saveAdditional）:
     // id: "minecraft:jigsaw"
-    // name: "minecraft:bottom" (连接点名称)
-    // target_pool: "minecraft:village/street" (目标模板池)
-    // target_name: "minecraft:empty" 或具体名称
+    // name: "minecraft:bottom" (本连接点的名字，子连接点的 target 必须等于它)
+    // target: "minecraft:bottom" (期望连接的对方连接点名字)
+    // pool: "minecraft:village/street" (从哪个模板池挑选子块)
     // joint: "rollable" 或 "aligned"
+    // final_state / placement_priority / selection_priority
 
     // 检查是否是 Jigsaw 方块
     if (nbt->value.count("id") != 0) {
@@ -1175,13 +1176,13 @@ TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
     }
 
     // 读取目标模板池
-    if (nbt->value.count("target_pool") != 0) {
-        info.targetPool = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target_pool")).value;
+    if (nbt->value.count("pool") != 0) {
+        info.targetPool = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("pool")).value;
     }
 
     // 读取目标连接点名称
-    if (nbt->value.count("target_name") != 0) {
-        info.targetName = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target_name")).value;
+    if (nbt->value.count("target") != 0) {
+        info.targetName = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target")).value;
     }
 
     // 读取连接类型

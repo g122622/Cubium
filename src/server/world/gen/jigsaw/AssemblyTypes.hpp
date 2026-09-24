@@ -99,7 +99,7 @@ struct PendingJoint {
     BlockPos position;      ///< 连接点在世界中的位置
     std::string sourceName; ///< 源连接点名称（Jigsaw 方块的 name 字段）
     std::string targetPool; ///< 目标模板池
-    std::string targetType; ///< 目标连接点名称（Jigsaw 方块的 target 字段）
+    std::string targetName; ///< 目标连接点名称（Jigsaw 方块的 target 字段）
     i32 depth = 0;          ///< 当前深度
     JigsawPlacementBehaviour projection = JigsawPlacementBehaviour::Rigid;
     JigsawOrientation orientation = JigsawOrientation::NorthUp; ///< Jigsaw 方块朝向
@@ -114,7 +114,7 @@ struct PendingJoint {
     PendingJoint(const BlockPos& pos,
         const std::string& srcName,
         const std::string& pool,
-        const std::string& tgtType,
+        const std::string& tgtName,
         i32 d,
         JigsawPlacementBehaviour proj = JigsawPlacementBehaviour::Rigid,
         JigsawOrientation orient = JigsawOrientation::NorthUp,
@@ -123,7 +123,7 @@ struct PendingJoint {
         : position(pos)
         , sourceName(srcName)
         , targetPool(pool)
-        , targetType(tgtType)
+        , targetName(tgtName)
         , depth(d)
         , projection(proj)
         , orientation(orient)

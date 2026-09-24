@@ -199,8 +199,10 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         }
     }
 
-    // 计算结构起始位置（区块中心）
-    const BlockPos startPos(chunkX * CHUNK_WIDTH + CHUNK_WIDTH / 2, startY, chunkZ * CHUNK_WIDTH + CHUNK_WIDTH / 2);
+    // 候选生成点：区块最小角 + start_height 给出的 Y（原版 JigsawStructure.findGenerationPoint
+    // 用 chunkPos.getMinBlockX()/getMinBlockZ()，**不含任何随机偏移**——随机偏移早在结构集
+    // 选点时由 RandomSpreadStructurePlacement 消耗完毕）。
+    const BlockPos startPos(chunkX * CHUNK_WIDTH, startY, chunkZ * CHUNK_WIDTH);
 
     // 预解析池别名绑定（试炼密室等结构的池随机化）。
     // 无别名时传 nullptr，JigsawAssembler 使用空查找表（恒等映射）。
@@ -216,6 +218,8 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
         *startPool,
         m_config.size,
         startPos,
+        m_config.projectStartToHeightmap,
+        m_config.useExpansionHack,
         rng,
         generator,
         aliases,

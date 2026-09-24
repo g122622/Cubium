@@ -663,6 +663,13 @@ bool Structure::isValidBiome(BiomeId biomeId) const
     return tag->contains(biomeId);
 }
 
+bool Structure::isValidBiomeAt(IChunkGenerator& generator, const BlockPos& pos) const
+{
+    // QuartPos.fromBlock 即算术右移 2 位（C++20 起有符号右移为算术移位，负坐标同样成立）
+    const BiomeId biomeId = generator.getNoiseBiome(pos.x >> 2, pos.y >> 2, pos.z >> 2);
+    return isValidBiome(biomeId);
+}
+
 bool Structure::canGenerate(
     IWorld& /*world*/, IChunkGenerator& /*generator*/, math::IRandom& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
 {

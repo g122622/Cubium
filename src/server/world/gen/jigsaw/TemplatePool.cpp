@@ -26,7 +26,10 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/jigsaw/JigsawPiece.hpp"
+#include "server/world/gen/jigsaw/JigsawTransform.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -41,6 +44,27 @@ TemplatePool::TemplatePool(const ResourceLocation& name, const ResourceLocation&
     : m_name(name)
     , m_fallback(fallback)
 {}
+
+i32 TemplatePool::getMaxYSpan() const
+{
+    if (m_maxYSpan.has_value()) {
+        return *m_maxYSpan;
+    }
+
+    // 对应 StructureTemplatePool.getMaxSize：池内元素在 Rotation.NONE 下包围盒 Y 跨度的最大值。
+    // 空池（含只含 EmptyJigsawPiece 的池）为 0——与原版 orElse(0) 同义。
+    i32 maxSpan = 0;
+    for (const auto& entry : m_entries) {
+        if (entry.piece == nullptr || entry.piece->isEmpty()) {
+            continue;
+        }
+        const auto box = JigsawTransform::calculateBoundingBox(*entry.piece, BlockPos(0, 0, 0), Rotation::None);
+        maxSpan = std::max(maxSpan, box.ySpan());
+    }
+
+    m_maxYSpan = maxSpan;
+    return maxSpan;
+}
 
 void TemplatePool::addPiece(std::unique_ptr<JigsawPiece> piece, i32 weight)
 {

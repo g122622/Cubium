@@ -65,6 +65,10 @@ SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName,
     , m_templateName(templateName)
     , m_processorListId(processorListId)
 {
+    // 拼图块的名字即其模板资源路径：装配诊断（"这个构件来自哪个模板"）与
+    // 逐构件 parity 校验都依赖它，缺失时无法区分"选错模板"与"摆放位置偏差"。
+    setName(templateName);
+
     // 尝试加载模板并填充连接点
     loadJointsFromTemplate(templateName, m_joints, m_size);
 }

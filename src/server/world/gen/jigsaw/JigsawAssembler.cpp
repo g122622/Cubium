@@ -80,13 +80,87 @@ AxisAlignedBB JigsawAssembler::toAabb(const structure::StructureBoundingBox& box
         static_cast<f32>(box.maxZ() + 1));
 }
 
+StartPlacement JigsawAssembler::resolveStartPlacement(const JigsawPiece& startPiece,
+    const BlockPos& stubPos,
+    Rotation rotation,
+    IChunkGenerator& generator,
+    bool projectStartToHeightmap)
+{
+    // 先按请求点求起始块包围盒——投影用的列坐标由它导出
+    auto boundingBox = JigsawTransform::calculateBoundingBox(startPiece, stubPos, rotation);
+
+    // 【必须用 (minX+maxX)/2 而非包围盒中心】原版 JigsawPlacement 取的是
+    // (bb.maxX() + bb.minX()) / 2 与 (bb.maxZ() + bb.minZ()) / 2（整数除法），
+    // 而 BoundingBox.getCenter() 是 minX + (maxX-minX+1)/2；跨度与奇偶不同时会相差 1 格，
+    // 投影列不同则地形高度不同，整个结构的高度都会跟着偏。
+    const i32 centerX = (boundingBox.minX() + boundingBox.maxX()) / 2;
+    const i32 centerZ = (boundingBox.minZ() + boundingBox.maxZ()) / 2;
+
+    // project_start_to_heightmap：把该列地形高度叠加到请求点 Y 上，得到目标地面线高度。
+    // 不投影时目标地面线就是请求点 Y（即 start_height 给出的绝对高度）。
+    const i32 targetGroundLine = projectStartToHeightmap
+        ? stubPos.y + generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG)
+        : stubPos.y;
+
+    // 起始块的地面线 = 包围盒 minY + groundLevelDelta；平移使其对齐目标地面线。
+    BlockPos origin = stubPos;
+    const i32 groundLine = boundingBox.minY() + startPiece.getGroundLevelDelta();
+    origin.y += targetGroundLine - groundLine;
+
+    // 候选生成点 = 包围盒 X/Z 中心 + 目标地面线高度，原版据此做生物群系校验
+    const BlockPos candidatePoint(centerX, targetGroundLine, centerZ);
+
+    return StartPlacement(
+        origin, rotation, JigsawTransform::calculateBoundingBox(startPiece, origin, rotation), candidatePoint);
+}
+
 std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
     const TemplatePool& startPool,
     i32 maxDepth,
-    const BlockPos& startPos,
+    const BlockPos& stubPos,
+    bool projectStartToHeightmap,
+    bool useExpansionHack,
     math::IRandom& rng,
     IChunkGenerator& generator,
     const PoolAliasBindings* aliases,
+    const structure::MaxDistance* maxDistance,
+    const structure::DimensionPadding* dimensionPadding)
+{
+    // 预解析池别名绑定为不可变查找表（对应 MC 1.21 PoolAliasLookup.create）。
+    // 无别名时使用空查找表（lookup 恒等映射）。一次性解析保证同一别名多次出现时解析结果一致。
+    const PoolAliasLookup aliasLookup = (aliases != nullptr) ? PoolAliasLookup(*aliases, rng) : PoolAliasLookup();
+
+    // 【随机数顺序不可交换】原版先取起始旋转（Rotation.getRandom）再取起始块
+    // （StructureTemplatePool.getRandomTemplate），两者都从同一个 WorldgenRandom 抽取；
+    // 顺序颠倒会让"旋转"与"模板选择"各拿到对方的随机数，起始块类型和朝向同时错位。
+    const Rotation rotation = JigsawTransform::getRandomRotation(rng);
+    const JigsawPiece* startPiece = startPool.getRandomPiece(rng);
+    if (!startPiece || startPiece->isEmpty()) {
+        return {};
+    }
+
+    const StartPlacement placement =
+        resolveStartPlacement(*startPiece, stubPos, rotation, generator, projectStartToHeightmap);
+    return assembleFromStartPlacement(poolRegistry,
+        *startPiece,
+        placement,
+        maxDepth,
+        useExpansionHack,
+        rng,
+        generator,
+        aliasLookup,
+        maxDistance,
+        dimensionPadding);
+}
+
+std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoolRegistry& poolRegistry,
+    const JigsawPiece& startPiece,
+    const StartPlacement& placement,
+    i32 maxDepth,
+    bool useExpansionHack,
+    math::IRandom& rng,
+    IChunkGenerator& generator,
+    const PoolAliasLookup& aliasLookup,
     const structure::MaxDistance* maxDistance,
     const structure::DimensionPadding* dimensionPadding)
 {
@@ -95,20 +169,10 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     // 连接点按其 placementPriority 入队，高优先级先出队；同优先级内按入队顺序出队（FIFO）。
     SequencedPriorityIterator<PendingJoint> pendingJoints;
 
-    // 预解析池别名绑定为不可变查找表（对应 MC 1.21 PoolAliasLookup.create）。
-    // 无别名时使用空查找表（lookup 恒等映射）。一次性解析保证同一别名多次出现时解析结果一致。
-    PoolAliasLookup aliasLookup = (aliases != nullptr) ? PoolAliasLookup(*aliases, rng) : PoolAliasLookup();
-
-    // 从起始模板池选择起始块
-    const JigsawPiece* startPiece = startPool.getRandomPiece(rng);
-    if (!startPiece || startPiece->isEmpty()) {
-        return placedPieces;
-    }
-
-    // 放置起始块
-    Rotation rotation = JigsawTransform::getRandomRotation(rng);
-    Mirror mirror = Mirror::None; // 起始块不使用镜像
-    auto boundingBox = JigsawTransform::calculateBoundingBox(*startPiece, startPos, rotation);
+    const BlockPos& startPos = placement.origin;
+    const Rotation rotation = placement.rotation;
+    const Mirror mirror = Mirror::None; // 起始块不使用镜像
+    const structure::StructureBoundingBox& boundingBox = placement.boundingBox;
 
     // 起始块世界高度边界检查（对应 MC 1.21 JigsawPlacement.isStartTooCloseToWorldHeightLimits）
     // 当 DimensionPadding 非 ZERO（top/bottom 至少一个非零）时，若起始块包围盒超出
@@ -126,14 +190,14 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     }
 
     PlacedPiece startPlaced;
-    startPlaced.piece = startPiece->clone();
+    startPlaced.piece = startPiece.clone();
     startPlaced.position = startPos;
     startPlaced.rotation = rotation;
     startPlaced.mirror = mirror;
-    startPlaced.groundLevelDelta = startPiece->getGroundLevelDelta();
-    startPlaced.projection = startPiece->getPlacementBehaviour();
+    startPlaced.groundLevelDelta = startPiece.getGroundLevelDelta();
+    startPlaced.projection = startPiece.getPlacementBehaviour();
     startPlaced.boundingBox = boundingBox;
-    startPlaced.joints = JigsawTransform::getTransformedJoints(*startPiece, startPos, rotation, mirror);
+    startPlaced.joints = JigsawTransform::getTransformedJoints(startPiece, startPos, rotation, mirror);
 
     placedPieces.push_back(std::move(startPlaced));
 
@@ -141,7 +205,9 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     // freeShape = MaxDistance 包围盒 - 起始块 AABB（ONLY_FIRST = a && !b）
     // 后续每放置一块即从 freeShape 减去其 AABB，保证不与已放置块重叠、不超出 MaxDistance 范围。
     // maxDistance 缺省时使用 MC 默认值 MaxDistance(80)。
-    // 中心点取起始块 AABB 的中心（对应 MC i = (maxX+minX)/2, j = (maxZ+minZ)/2, i1 = startPos.y）
+    // 中心点取起始块 AABB 的中心（对应 MC i = (maxX+minX)/2, j = (maxZ+minZ)/2）；
+    // Y 中心取 **生成点高度**（MC 的 i1 = k），而非起始块包围盒 minY——起始块被平移对齐地面线后
+    // 其 minY = 生成点高度 - groundLevelDelta，两者相差 1，直接用后者会让整个可放置空间下移 1 格。
     //
     // Y 轴裁剪（对应 MC 1.21 JigsawPlacement.addPieces 中的 AABB 构造）：
     //   minY = max(centerY - vertical, worldMinY + padding.bottom)
@@ -153,13 +219,14 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     const structure::MaxDistance& dist = (maxDistance != nullptr) ? *maxDistance : defaultDistance;
     const i32 centerX = (boundingBox.minX() + boundingBox.maxX()) / 2;
     const i32 centerZ = (boundingBox.minZ() + boundingBox.maxZ()) / 2;
-    const i32 centerY = startPos.y;
+    // 起始块经 Y 旋转不变，故模板原点 Y 加回 groundLevelDelta 即生成点高度 k
+    const i32 generationY = startPos.y + startPiece.getGroundLevelDelta();
     const i32 paddingTop = (dimensionPadding != nullptr) ? dimensionPadding->top : 0;
     const i32 paddingBottom = (dimensionPadding != nullptr) ? dimensionPadding->bottom : 0;
     const i32 worldMinY = generator.getMinY();
     const i32 worldMaxExclusive = worldMinY + generator.getGenDepth();
-    const i32 clippedMinY = std::max(centerY - dist.vertical, worldMinY + paddingBottom);
-    const i32 clippedMaxY = std::min(centerY + dist.vertical + 1, worldMaxExclusive - paddingTop);
+    const i32 clippedMinY = std::max(generationY - dist.vertical, worldMinY + paddingBottom);
+    const i32 clippedMaxY = std::min(generationY + dist.vertical + 1, worldMaxExclusive - paddingTop);
     AxisAlignedBB maxDistanceAabb(static_cast<f32>(centerX - dist.horizontal),
         static_cast<f32>(clippedMinY),
         static_cast<f32>(centerZ - dist.horizontal),
@@ -171,25 +238,29 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
 
     // 将起始块的连接点添加到待处理队列
     // 使用打乱后的连接点顺序（getShuffledJoints 内部按 selectionPriority 降序稳定排序）
-    std::vector<JigsawJoint> shuffledJoints = startPiece->getShuffledJoints(rng);
+    std::vector<JigsawJoint> shuffledJoints = startPiece.getShuffledJoints(rng);
     for (const auto& joint : shuffledJoints) {
         // 计算旋转后的朝向
         JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(joint.orientation, rotation);
 
         PendingJoint pending;
         pending.position =
-            JigsawTransform::transformPosition(joint.sourcePos, rotation, mirror, startPiece->getSize()) + startPos;
+            JigsawTransform::transformPosition(joint.sourcePos, rotation, mirror, startPiece.getSize()) + startPos;
         pending.sourceName = joint.sourceName;
         pending.targetPool = joint.targetPool;
-        pending.targetType = joint.targetName;
-        pending.depth = 0;
+        pending.targetName = joint.targetName;
+        // 【深度语义】depth 记的是"本连接点将放置出的子块"的深度，起始块自身深度为 0，
+        // 故其连接点带出的子块深度为 1。原版 Placer 以"父块深度 d"入队、
+        // 子块以 d+1 入队（d+1 > maxDepth 不再入队）；换算到本记法即
+        // "连接点深度 = 子块深度"，入队条件 joint.depth <= maxDepth。
+        pending.depth = 1;
         pending.projection = joint.projection;
         pending.orientation = rotatedOrientation;
         pending.jointType = joint.jointType;
         pending.placementPriority = joint.placementPriority;
         // 记录父块信息用于 TerrainMatching 高度计算（起始块以自身为父）
         pending.parentMinY = boundingBox.minY();
-        pending.parentGroundLevelDelta = startPiece->getGroundLevelDelta();
+        pending.parentGroundLevelDelta = startPiece.getGroundLevelDelta();
         // 起始块的连接点继承全局 freeShape 和起始块边界框
         pending.freeShape = std::make_shared<VoxelShape>(globalFreeShape);
         pending.parentBoundingBox = boundingBox;
@@ -202,20 +273,67 @@ std::vector<PlacedPiece> JigsawAssembler::assemble(TemplatePoolRegistry& poolReg
     while (pendingJoints.hasNext()) {
         PendingJoint joint = pendingJoints.next();
 
-        if (joint.depth >= maxDepth) {
-            continue;
-        }
-
         // 检查目标模板池
         if (joint.targetPool.empty() || joint.targetPool == "minecraft:empty") {
             continue;
         }
 
-        tryPlacePiece(
-            poolRegistry, placedPieces, pendingJoints, joint, aliasLookup, generator, maxDepth, joint.freeShape, rng);
+        // 注意：深度已达 maxDepth 的连接点**不能**在这里整体跳过——原版对这种连接点仍会
+        // 从回退池取候选（只是不再取主池、也不再入队子连接点），跳过它会少放一批装饰构件
+        // （村庄的村民/动物/灯具都在末层）。深度控制改在 tryPlacePiece 内部按原版语义执行。
+        tryPlacePiece(poolRegistry,
+            placedPieces,
+            pendingJoints,
+            joint,
+            aliasLookup,
+            generator,
+            maxDepth,
+            useExpansionHack,
+            joint.freeShape,
+            rng);
     }
 
     return placedPieces;
+}
+
+i32 JigsawAssembler::estimateExpansionHeight(
+    TemplatePoolRegistry& poolRegistry, const JigsawPiece& piece, Rotation rotation, const PoolAliasLookup& aliasLookup)
+{
+    // 只有"矮"构件才预留竖直净空（原版阈值 16）：高塔类构件自身已经够高，不需要。
+    constexpr i32 kMaxCompactYSpan = 16;
+
+    const BlockPos localOrigin(0, 0, 0);
+    const auto pieceBox = JigsawTransform::calculateBoundingBox(piece, localOrigin, rotation);
+    if (pieceBox.ySpan() > kMaxCompactYSpan) {
+        return 0;
+    }
+
+    i32 best = 0;
+    for (const auto& joint : piece.getJoints()) {
+        // 连接面 = 连接点位置 + 朝向步进；只有落在候选块包围盒内部的接点才算"朝内"，
+        // 朝外的接点通向结构外部，其高度不受本构件容纳能力约束。
+        const BlockPos jointPos =
+            JigsawTransform::transformPosition(joint.sourcePos, rotation, Mirror::None, piece.getSize());
+        const Direction facing = JigsawOrientations::getFacing(JigsawOrientations::rotate(joint.orientation, rotation));
+        const BlockPos surface(
+            jointPos.x + getStepX(facing), jointPos.y + getStepY(facing), jointPos.z + getStepZ(facing));
+        if (!pieceBox.contains(surface.x, surface.y, surface.z)) {
+            continue;
+        }
+
+        const TemplatePool* pool = poolRegistry.getPool(aliasLookup.lookup(ResourceLocation(joint.targetPool)));
+        if (pool == nullptr) {
+            continue;
+        }
+        i32 span = pool->getMaxYSpan();
+        const TemplatePool* fallback = poolRegistry.getPool(pool->getFallback());
+        if (fallback != nullptr) {
+            span = std::max(span, fallback->getMaxYSpan());
+        }
+        best = std::max(best, span);
+    }
+
+    return best;
 }
 
 bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
@@ -225,6 +343,7 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
     const PoolAliasLookup& aliasLookup,
     IChunkGenerator& generator,
     i32 maxDepth,
+    bool useExpansionHack,
     const std::shared_ptr<VoxelShape>& freeShapeHolder,
     math::IRandom& rng)
 {
@@ -239,9 +358,16 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
     }
 
     // 构建候选块列表 - 使用打乱的列表而非多次随机选择
+    //
+    // 【深度语义】joint.depth 是"本连接点将放置出的子块"的深度，原版据**父块**深度判断
+    // 能否从主池取候选（父块深度 = joint.depth - 1，条件为 != maxDepth）；由于只入队
+    // joint.depth <= maxDepth 的连接点，二者等价于 `joint.depth <= maxDepth`。
+    // 深度为 maxDepth + 1 的末层只能取回退池，且不再入队子连接点——村庄的装饰构件
+    // （村民/动物/灯具）正是靠回退池出现在末层。
+    const bool canExpandPool = joint.depth <= maxDepth;
     std::vector<const JigsawPiece*> candidatePieces;
 
-    if (joint.depth < maxDepth) {
+    if (canExpandPool) {
         // 添加目标池中打乱后的块
         std::vector<const JigsawPiece*> shuffled = targetPool->getShuffledPieces(rng);
         candidatePieces.insert(candidatePieces.end(), shuffled.begin(), shuffled.end());
@@ -304,13 +430,17 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
                 // 计算旋转后的朝向
                 JigsawOrientation rotatedOrientation = JigsawOrientations::rotate(pieceJoint.orientation, rotEnum);
 
-                // 检查名称和方向是否匹配
-                // 匹配条件: source.targetName == target.sourceName && 方向相反
-                if (JigsawMatcher::canMatch(pieceJoint.targetName,
-                        joint.sourceName,
-                        rotatedOrientation,
+                // 检查名称和方向是否匹配。
+                // 匹配条件（对应 JigsawBlock.canAttach(父, 子)）：**父的 target == 子的 name**，
+                // 正面朝向互为相反，且 aligned 时两者的 top 朝向一致；joint 类型取**父**的。
+                // 方向不可反：村庄里这两者恰好同名（都叫 minecraft:street / building_entrance），
+                // 反着写"碰巧能跑"；但一旦出现 target 与 name 不同的模板（例如
+                // name=minecraft:bottom / target=minecraft:street），反向比较会静默漏配。
+                if (JigsawMatcher::canMatch(joint.targetName,
+                        pieceJoint.sourceName,
                         joint.orientation,
-                        pieceJoint.jointType)) {
+                        rotatedOrientation,
+                        joint.jointType)) {
                     matchingJoints.emplace_back(i, rotEnum);
                 }
             }
@@ -374,6 +504,18 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
         if (yAdjust != 0) {
             placementPos.y += yAdjust;
             boundingBox = JigsawTransform::calculateBoundingBox(*selectedPiece, placementPos, rotation);
+        }
+
+        // ===== use_expansion_hack：为矮构件预留竖直净空（对应 MC JigsawPlacement :376-408 / :437-440）=====
+        // 候选块旋转后 Y 跨度 <= 16 时，预估它接下来可能长出的最高子结构高度，并把它向上
+        // "撑"进包围盒。撑高后的包围盒**同时**用于碰撞判定与构件存储，直接决定村庄的 Y 范围。
+        // 估算值 = 该构件所有"朝内接点"所引用池（含回退池）中元素在 Rotation.NONE 下的最大 Y 跨度。
+        if (useExpansionHack) {
+            const i32 expansion = estimateExpansionHeight(poolRegistry, *selectedPiece, rotation, aliasLookup);
+            if (expansion > 0) {
+                const i32 grownY = std::max(expansion + 1, boundingBox.maxY() - boundingBox.minY());
+                boundingBox.expandToInclude(boundingBox.minX(), boundingBox.minY() + grownY, boundingBox.minZ());
+            }
         }
 
         // ===== VoxelShape 空间追踪（对应 MC 1.21 tryPlacingChildren 的 freeShape 检查）=====
@@ -458,7 +600,9 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
                 placementPos;
             newPending.sourceName = newJoint.sourceName;
             newPending.targetPool = newJoint.targetPool;
-            newPending.targetType = newJoint.targetName;
+            newPending.targetName = newJoint.targetName;
+            // 子连接点带出的构件深度 = 本构件深度 + 1；超出 maxDepth 的不再入队
+            // （对应原版 `if (depth + 1 <= this.maxDepth)`）。
             newPending.depth = joint.depth + 1;
             newPending.projection = newJoint.projection;
             newPending.orientation = rotatedOrientation;
@@ -471,7 +615,9 @@ bool JigsawAssembler::tryPlacePiece(TemplatePoolRegistry& poolRegistry,
             newPending.freeShape = childFreeShapeHolder;
             newPending.parentBoundingBox = boundingBox;
             // 子连接点以其自身的 placementPriority 入队（高优先级先出队，对应 MC Placer.placing.add(state, l)）
-            pendingJoints.add(std::move(newPending), newJoint.placementPriority);
+            if (canExpandPool) {
+                pendingJoints.add(std::move(newPending), newJoint.placementPriority);
+            }
         }
 
         return true;

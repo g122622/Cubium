@@ -239,6 +239,8 @@ std::unique_ptr<StructureStart> TrialChambersStructure::generate(
         *startPool,
         m_config.size,
         startPos,
+        m_config.projectStartToHeightmap,
+        m_config.useExpansionHack,
         rng,
         generator,
         aliases,

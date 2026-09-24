@@ -111,6 +111,7 @@ struct JigsawConfig {
     std::optional<ResourceLocation> startJigsawName;                    ///< 起始 Jigsaw 名称（可选）
     std::unique_ptr<valueprovider::HeightProvider> startHeight;         ///< 起始高度提供者
     bool projectStartToHeightmap = false;                               ///< 是否将起始点投影到高度图
+    bool useExpansionHack = false;                                      ///< 是否为矮构件预留竖直净空
     std::optional<MaxDistance> maxDistanceFromCenter;                   ///< 距中心最大距离约束
     jigsaw::PoolAliasBindings poolAliases;                              ///< 池别名绑定集合
     DimensionPadding dimensionPadding;                                  ///< 维度填充
