@@ -982,8 +982,16 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
             const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
 
             // 使用 BlockStateFiller 链确定方块状态
+            // 原版 NoiseBasedChunkGenerator.iterateNoiseColumn：
+            //   BlockState blockstate = noisechunk.getInterpolatedState();
+            //   BlockState blockstate1 = blockstate == null ? defaultBlock : blockstate;
+            // 【必须无条件替换】规则链未命中时 getInterpolatedState 返回 null（与密度的正负无关），
+            // 原版一律当作**默认方块（石头）**参与高度图判定。若像此前那样只在 density > 0 时替换，
+            // 密度 <= 0 且规则未命中的格子会被判为"非固体"，使该列的高度查询结果偏低——
+            // 而装配期的高度查询（getFirstFreeHeight）正是靠这个判定定位地面线，
+            // 结果就是构件贴地高度偏差、碰撞判定翻转、随机数序列整体错位。
             const BlockState* blockState = noiseChunk->getInterpolatedState(density);
-            if (blockState == nullptr && density > 0.0) {
+            if (blockState == nullptr) {
                 blockState = m_settings.defaultBlock;
             }
 
@@ -1262,8 +1270,9 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                             // Aquifer 在 density <= 0 时返回流体/空气 BlockState，或 nullptr（表示空气）
                             // nullptr 且 density > 0 → 使用默认方块（石头）
                             // nullptr 且 density <= 0 → 空气（不放置任何方块）
+                            // 原版 fillFromNoise 同样是无条件替换（blockstate == null → defaultBlock）
                             const BlockState* blockState = noiseChunk.getInterpolatedState(density);
-                            if (blockState == nullptr && density > 0.0) {
+                            if (blockState == nullptr) {
                                 blockState = m_settings.defaultBlock;
                             }
 
