@@ -23,6 +23,8 @@
 
 #include "TreeDecorator.hpp"
 #include "AttachToLogsDecorator.hpp"
+#include "PlaceOnGroundDecorator.hpp"
+#include "SimpleTreeDecorators.hpp"
 #include "TrunkVineDecorator.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -100,6 +102,22 @@ bool TreeDecoratorContext::isAir(const BlockPos& pos) const
     return state == nullptr || state->isAir();
 }
 
+bool TreeDecoratorContext::checkBlock(
+    const BlockPos& pos, const std::function<bool(const BlockState&)>& predicate) const
+{
+    // MC TreeDecorator.Context.checkBlock：
+    //   BlockState s = level.getBlockState(pos);
+    //   return predicate.test(s) || decorationPositions.contains(pos);
+    // 已放置集合必须参与判定：装饰器之间按顺序执行，后执行的装饰器需要"看见"前者
+    // 刚放下的方块（它在 region 里可能尚未可见）。
+    if (m_decorationPositions.count(BlockPos::asLong(pos.x, pos.y, pos.z)) != 0) {
+        return true;
+    }
+    const BlockState* state = m_region.getBlockState(pos);
+    // nullptr（未加载/越界）不满足任何谓词，与原版对 null 状态抛异常之外的语义保持保守一致。
+    return state != nullptr && predicate(*state);
+}
+
 Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& decoratorJson)
 {
     if (!decoratorJson.is_object() || !decoratorJson.contains("type")) {
@@ -157,6 +175,130 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         std::unique_ptr<TreeDecorator> decorator =
             std::make_unique<AttachToLogsDecorator>(probability, providerResult.value(), std::move(directions));
         return decorator;
+    }
+
+    if (typeStr == "place_on_ground") {
+        // tries(正整数，默认128) / radius(非负，默认2) / height(非负，默认1) / block_state_provider
+        i32 tries = 128;
+        if (decoratorJson.contains("tries")) {
+            if (!decoratorJson["tries"].is_number_integer() || decoratorJson["tries"].get<i32>() <= 0) {
+                return Error(ErrorCode::InvalidData, "place_on_ground 'tries' must be a positive integer");
+            }
+            tries = decoratorJson["tries"].get<i32>();
+        }
+        i32 radius = 2;
+        if (decoratorJson.contains("radius")) {
+            if (!decoratorJson["radius"].is_number_integer() || decoratorJson["radius"].get<i32>() < 0) {
+                return Error(ErrorCode::InvalidData, "place_on_ground 'radius' must be a non-negative integer");
+            }
+            radius = decoratorJson["radius"].get<i32>();
+        }
+        i32 height = 1;
+        if (decoratorJson.contains("height")) {
+            if (!decoratorJson["height"].is_number_integer() || decoratorJson["height"].get<i32>() < 0) {
+                return Error(ErrorCode::InvalidData, "place_on_ground 'height' must be a non-negative integer");
+            }
+            height = decoratorJson["height"].get<i32>();
+        }
+        if (!decoratorJson.contains("block_state_provider")) {
+            return Error(ErrorCode::InvalidData, "place_on_ground missing 'block_state_provider'");
+        }
+        auto groundProviderResult = parser::BlockStateProviderParser::parse(decoratorJson["block_state_provider"]);
+        if (!groundProviderResult.success()) {
+            return groundProviderResult.error();
+        }
+        return std::unique_ptr<TreeDecorator>(
+            std::make_unique<PlaceOnGroundDecorator>(tries, radius, height, groundProviderResult.value()));
+    }
+
+    if (typeStr == "beehive") {
+        // probability[0.0,1.0]
+        if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
+            return Error(ErrorCode::InvalidData, "beehive missing 'probability'");
+        }
+        const f32 probability = decoratorJson["probability"].get<f32>();
+        if (probability < 0.0f || probability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "beehive probability out of range [0.0,1.0]");
+        }
+        return std::unique_ptr<TreeDecorator>(std::make_unique<BeehiveDecorator>(probability));
+    }
+
+    if (typeStr == "leave_vine") {
+        if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
+            return Error(ErrorCode::InvalidData, "leave_vine missing 'probability'");
+        }
+        const f32 probability = decoratorJson["probability"].get<f32>();
+        if (probability < 0.0f || probability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "leave_vine probability out of range [0.0,1.0]");
+        }
+        return std::unique_ptr<TreeDecorator>(std::make_unique<LeaveVineDecorator>(probability));
+    }
+
+    if (typeStr == "cocoa") {
+        if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
+            return Error(ErrorCode::InvalidData, "cocoa missing 'probability'");
+        }
+        const f32 probability = decoratorJson["probability"].get<f32>();
+        if (probability < 0.0f || probability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "cocoa probability out of range [0.0,1.0]");
+        }
+        return std::unique_ptr<TreeDecorator>(std::make_unique<CocoaDecorator>(probability));
+    }
+
+    if (typeStr == "alter_ground") {
+        if (!decoratorJson.contains("provider")) {
+            return Error(ErrorCode::InvalidData, "alter_ground missing 'provider'");
+        }
+        auto alterProviderResult = parser::BlockStateProviderParser::parse(decoratorJson["provider"]);
+        if (!alterProviderResult.success()) {
+            return alterProviderResult.error();
+        }
+        return std::unique_ptr<TreeDecorator>(std::make_unique<AlterGroundDecorator>(alterProviderResult.value()));
+    }
+
+    if (typeStr == "attached_to_leaves") {
+        if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
+            return Error(ErrorCode::InvalidData, "attached_to_leaves missing 'probability'");
+        }
+        const f32 probability = decoratorJson["probability"].get<f32>();
+        if (probability < 0.0f || probability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "attached_to_leaves probability out of range [0.0,1.0]");
+        }
+        for (const char* field : {"exclusion_radius_xz", "exclusion_radius_y", "required_empty_blocks"}) {
+            if (!decoratorJson.contains(field) || !decoratorJson[field].is_number_integer()) {
+                return Error(ErrorCode::InvalidData, std::string("attached_to_leaves missing '") + field + "'");
+            }
+        }
+        if (!decoratorJson.contains("block_provider")) {
+            return Error(ErrorCode::InvalidData, "attached_to_leaves missing 'block_provider'");
+        }
+        auto leafProviderResult = parser::BlockStateProviderParser::parse(decoratorJson["block_provider"]);
+        if (!leafProviderResult.success()) {
+            return leafProviderResult.error();
+        }
+        if (!decoratorJson.contains("directions") || !decoratorJson["directions"].is_array() ||
+            decoratorJson["directions"].empty()) {
+            return Error(ErrorCode::InvalidData, "attached_to_leaves 'directions' must be a non-empty array");
+        }
+        std::vector<Direction> leafDirections;
+        leafDirections.reserve(decoratorJson["directions"].size());
+        for (const auto& dirJson : decoratorJson["directions"]) {
+            if (!dirJson.is_string()) {
+                return Error(ErrorCode::InvalidData, "attached_to_leaves direction entry must be a string");
+            }
+            auto dir = Directions::fromName(dirJson.get<std::string>());
+            if (!dir.has_value()) {
+                return Error(
+                    ErrorCode::InvalidData, "attached_to_leaves unknown direction: " + dirJson.get<std::string>());
+            }
+            leafDirections.push_back(dir.value());
+        }
+        return std::unique_ptr<TreeDecorator>(std::make_unique<AttachedToLeavesDecorator>(probability,
+            decoratorJson["exclusion_radius_xz"].get<i32>(),
+            decoratorJson["exclusion_radius_y"].get<i32>(),
+            leafProviderResult.value(),
+            decoratorJson["required_empty_blocks"].get<i32>(),
+            std::move(leafDirections)));
     }
 
     return Error(ErrorCode::InvalidData, "unregistered tree decorator type: " + typeStr);

@@ -27,6 +27,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
@@ -140,6 +141,30 @@ bool TreeFeature::place(
 
     // 设置树叶距离属性（用于树叶腐烂机制）
     _setFoliageDistance(world, trunkBlocks, foliageBlocks);
+
+    // 树木装饰器（MC BaseTreeFeatureConfig.decorators）
+    //
+    // 必须在树干与树叶全部落位之后、且**共用同一条随机流**执行：原版在 doPlace 的
+    // 同一处调用 decorators.forEach(d -> d.place(ctx))，装饰器消耗的随机数会继续
+    // 影响同一棵树后续装饰器的取点。顺序或时机一旦不同，多装饰器树型的落点即错开。
+    //
+    // Context 的 logs/leaves 直接取自本轮已放置集合（构造时按 Y 升序排序），
+    // roots 留空——Cubium 的 TreeFeature 不含红树林式树根（那由独立 feature 处理）。
+    if (!config.decorators.empty()) {
+        world::gen::feature::tree::decorator::TreeDecoratorContext::DecorationSetter setter =
+            [&world](const BlockPos& pos, const BlockState* state) {
+                if (state != nullptr) {
+                    world.setBlockState(pos, state, ::mc::world::BlockUpdateFlags::UPDATE_ALL);
+                }
+            };
+        std::vector<BlockPos> logPositions(trunkBlocks.begin(), trunkBlocks.end());
+        std::vector<BlockPos> leafPositions(foliageBlocks.begin(), foliageBlocks.end());
+        world::gen::feature::tree::decorator::TreeDecoratorContext context(
+            world, setter, random, std::move(logPositions), std::move(leafPositions), {});
+        for (const auto& decoratorInstance : config.decorators) {
+            decoratorInstance->place(context);
+        }
+    }
 
     return true;
 }

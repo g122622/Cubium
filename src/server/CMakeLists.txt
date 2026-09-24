@@ -126,6 +126,8 @@ add_library(mc_gen OBJECT
     world/gen/feature/tree/FallenTreeFeature.cpp
     world/gen/feature/tree/decorator/TreeDecorator.cpp
     world/gen/feature/tree/decorator/AttachToLogsDecorator.cpp
+    world/gen/feature/tree/decorator/PlaceOnGroundDecorator.cpp
+    world/gen/feature/tree/decorator/SimpleTreeDecorators.cpp
     world/gen/feature/tree/decorator/TrunkVineDecorator.cpp
     world/gen/feature/tree/trunk/TrunkPlacer.cpp
     world/gen/feature/tree/trunk/StraightTrunkPlacer.cpp

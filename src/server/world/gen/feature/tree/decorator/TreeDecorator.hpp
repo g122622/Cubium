@@ -32,6 +32,7 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <functional>
 #include <memory>
+#include <set>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
 
@@ -66,14 +67,32 @@ public:
         std::vector<BlockPos> leaves,
         std::vector<BlockPos> roots);
 
-    /// MC TreeDecorator.Context.setBlock。
-    void setBlock(const BlockPos& pos, const BlockState* state) const { m_setter(pos, state); }
+    /// MC TreeDecorator.Context.setBlock。同时把该位置记入本轮装饰已放置集合。
+    void setBlock(const BlockPos& pos, const BlockState* state) const
+    {
+        m_setter(pos, state);
+        // MC: this.decorationPositions.add(pos.immutable())
+        m_decorationPositions.insert(BlockPos::asLong(pos.x, pos.y, pos.z));
+    }
 
     /// MC TreeDecorator.Context.placeVine：放默认藤蔓并把 face 属性置 true。
     void placeVine(const BlockPos& pos, const BooleanProperty& face) const;
 
     /// MC TreeDecorator.Context.isAir。
     [[nodiscard]] bool isAir(const BlockPos& pos) const;
+
+    /**
+     * @brief MC TreeDecorator.Context.checkBlock
+     *
+     * 判定该位置是否满足谓词。除世界当前方块外，还须把**本轮装饰已放置**的方块
+     * 视为满足——原版用 decorationPositions 集合实现这一点。缺少该集合时，
+     * 后执行的装饰器看不见先执行的装饰器刚放下的方块（如 place_on_ground 放置的
+     * 树叶散落不会被后续装饰器感知），行为与原版不一致。
+     */
+    [[nodiscard]] bool checkBlock(const BlockPos& pos, const std::function<bool(const BlockState&)>& predicate) const;
+
+    /// 本轮装饰已放置的方块位置（BlockPos::asLong 打包），供 checkBlock 查询。
+    [[nodiscard]] const std::set<i64>& decorationPositions() const noexcept { return m_decorationPositions; }
 
     [[nodiscard]] WorldGenRegion& region() const noexcept { return m_region; }
     [[nodiscard]] math::IRandom& random() const noexcept { return m_random; }
@@ -88,6 +107,10 @@ private:
     std::vector<BlockPos> m_logs;
     std::vector<BlockPos> m_leaves;
     std::vector<BlockPos> m_roots;
+
+    /// MC TreeDecorator.Context.decorationPositions。mutable 是因为原版 setBlock
+    /// 会写该集合，而本项目的 place(const Context&) 以 const 引用传递上下文。
+    mutable std::set<i64> m_decorationPositions;
 };
 
 /**

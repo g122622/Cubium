@@ -1186,6 +1186,20 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
         }
         config->foliagePlacer = foliageResult.value();
     }
+    // decorators：树体放置完成后依次执行的装饰器（蜂巢/落叶/藤蔓等）。
+    // MC BaseTreeFeatureConfig.decorators 为可选，缺省为空列表。
+    if (configJson.contains("decorators")) {
+        if (!configJson["decorators"].is_array()) {
+            return Error(ErrorCode::InvalidData, "tree 'decorators' must be an array");
+        }
+        for (const auto& decJson : configJson["decorators"]) {
+            auto decResult = tree::decorator::parseDecorator(decJson);
+            if (!decResult.success()) {
+                return decResult.error();
+            }
+            config->decorators.push_back(std::move(decResult).value());
+        }
+    }
     config->ignoreVines = getBool(configJson, "ignore_vines", false);
     // MC 的 force_dirt 对应项目 forcePlacement（跳过高度检查的强制放置语义最近）
     config->forcePlacement = getBool(configJson, "force_dirt", false);

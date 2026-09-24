@@ -28,6 +28,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
+#include "decorator/TreeDecorator.hpp"
 #include "featuresize/FeatureSize.hpp"
 #include "foliage/FoliagePlacer.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
@@ -38,6 +39,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc {
 
@@ -72,6 +74,11 @@ struct TreeFeatureConfig : public IFeatureConfig {
 
     /// 树叶放置器
     std::unique_ptr<FoliagePlacer> foliagePlacer;
+
+    /// 树木装饰器（MC BaseTreeFeatureConfig.decorators），在树体（树干+树叶）放置完成后
+    /// 依次执行，用于挂载蜂巢、散布落叶、垂落藤蔓等附属物。
+    /// 例：birch/oak 的 `*_leaf_litter` 树型挂 place_on_ground 产生 leaf_litter。
+    std::vector<std::unique_ptr<world::gen::feature::tree::decorator::TreeDecorator>> decorators;
 
     /// 最小尺寸约束（对应 MC 1.21.11 BaseTreeFeatureConfig.minimumSize）
     /// 用于 getMaxFreeTreeHeight 阶段确定每层 y 的水平检查半径。
