@@ -257,6 +257,15 @@ std::vector<std::pair<ChunkCoord, ChunkCoord>> selectPristineTargets()
         }
     }
 
+    // 【顺序必须规范化且稳定】实测 parity 数值**不是顺序无关的**：把目标列表由
+    // (cx,cz) 升序改为降序后，(-10,9) 不一致数 777→620（-20%）、(-9,10) 1837→1952
+    // (+6%)、(2,-2)/(2,10) 则完全不变。根因是生成存在跨区块状态依赖（邻区块的
+    // STRUCTURE_STARTS / 特征越界写入），而测试框架只保证目标区块自身及其状态
+    // 依赖被生成，邻区块是否就绪取决于处理先后。
+    // 因此：这里固定按 (cx,cz) 升序，保证同一素材的数值可跨版本对比；
+    // 任何改动目标集合或顺序的修改都会让"历史数值"失去可比性，必须重测基线。
+    std::sort(targets.begin(), targets.end());
+
     std::printf("[PARITY] 自动筛选目标区块：已完成生成 %zu 个，其中纯净(未被 tick) %zu 个；"
                 "%dx%d 邻域全部已生成者 %zu 个\n",
         fullyGenerated.size(),
