@@ -233,6 +233,7 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     i32 dbgCreated = 0;
     std::vector<std::string> dbgBiomeSkippedSets;   ///< 被"维度无交集"整集跳过的 set id
     std::vector<std::string> dbgBiomeRejectedPairs; ///< 因中心点群系不匹配被拒的 "set/结构" 对
+    std::vector<std::string> dbgCreatedIds;         ///< 实际产出 StructureStart 的 "set/结构" 对
 
     for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
         if (!structureSetPtr) continue;
@@ -357,6 +358,9 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
                         std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
                     placed = true;
                     ++dbgCreated;
+                    if (dbgCreatedIds.size() < 8) {
+                        dbgCreatedIds.push_back(structureSet.id().toString() + " -> " + entry->structureId.toString());
+                    }
                 }
             } else {
                 ++dbgSkipBiomeCheck;
@@ -403,6 +407,14 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         }
         if (!rejected.empty()) {
             spdlog::info("[STRUCT]   biomeRejected: {}", rejected);
+        }
+        if (!dbgCreatedIds.empty()) {
+            std::string createdIds;
+            for (const auto& s2 : dbgCreatedIds) {
+                createdIds += s2;
+                createdIds += ' ';
+            }
+            spdlog::info("[STRUCT]   created: {}", createdIds);
         }
     }
 
