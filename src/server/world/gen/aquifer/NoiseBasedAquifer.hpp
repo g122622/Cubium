@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/aquifer/FluidStatus.hpp"
 #include <vector>
 
@@ -213,22 +214,15 @@ private:
      * MC 1.21 BlockPos.asLong() 格式：
      * 高 26 位: X, 中 12 位: Y, 低 26 位: Z
      */
-    [[nodiscard]] static i64 encodeBlockPos(i32 x, i32 y, i32 z);
-
-    /**
-     * @brief 解码 64 位整数中的 X 坐标
-     */
-    [[nodiscard]] static i32 decodeBlockPosX(i64 pos) { return static_cast<i32>(pos >> 38); }
-
-    /**
-     * @brief 解码 64 位整数中的 Y 坐标
-     */
-    [[nodiscard]] static i32 decodeBlockPosY(i64 pos) { return static_cast<i32>((pos << 52) >> 52); }
-
-    /**
-     * @brief 解码 64 位整数中的 Z 坐标
-     */
-    [[nodiscard]] static i32 decodeBlockPosZ(i64 pos) { return static_cast<i32>((pos << 26) >> 38); }
+    // 位置编解码直接复用 BlockPos::asLong / getXFromLong / getYFromLong / getZFromLong。
+    // 【教训】此前本类自带一份实现，把位布局写成 `x << 38 | y << 26 | z`（正确是
+    // `x << 38 | z << 12 | y`），与解包公式不自洽：负 Z 的区块（如 chunk(2,-2)）会把
+    // 含水层中心解成 704511 这类大正数，computeFluid 于是在错误位置采样地表高度，
+    // fluidLevel 恒为 WAY_BELOW_MIN_Y，整片海域无水。复用既有工具类即天然获得其测试覆盖。
+    [[nodiscard]] static i64 encodeBlockPos(i32 x, i32 y, i32 z) { return BlockPos::asLong(x, y, z); }
+    [[nodiscard]] static i32 decodeBlockPosX(i64 pos) { return BlockPos::getXFromLong(pos); }
+    [[nodiscard]] static i32 decodeBlockPosY(i64 pos) { return BlockPos::getYFromLong(pos); }
+    [[nodiscard]] static i32 decodeBlockPosZ(i64 pos) { return BlockPos::getZFromLong(pos); }
 
     // ========== 成员变量 ==========
 

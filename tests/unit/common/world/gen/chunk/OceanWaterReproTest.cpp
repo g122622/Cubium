@@ -24,17 +24,21 @@
 //
 // 用户反馈：在海洋群系中，地形高度符合海洋特征（约 y=30），但地表之上没有任何水。
 // 本测试通过直接调用 NoiseChunkGenerator 的生成管线（biomes -> noise -> surface），
-// 在已知会生成海洋群系的种子下，验证海洋列在海平面附近是否确实存在水方块。
+// 在已知会生成海洋群系的种子下，验证水域列在海平面附近是否确实存在水方块。
 //
-// 如果断言失败（海洋列在海平面处没有水），则证明水域生成问题真实存在。
+// 如果断言失败（水域列在海平面处没有水），则证明水域生成问题真实存在。
 //
 // 种子选择：曾经用 114514，但该种子在出生点附近的 5x5 区块范围内不生成任何海洋群系
 // （海洋群系落在大陆性噪声低值区，114514 出生点属内陆），导致 ASSERT_TRUE(foundAnyOcean)
 // 始终失败。注意 114514 时期本测试因 buildSurface 阶段 VerticalGradientCondition 的
 // 跨 RandomState 悬垂 UAF 而崩溃（在海洋检测断言之前），掩盖了“无海洋”这一事实；
 // 该 UAF 已修复（见 SurfaceConditionLifecycleTest），本测试才得以真正运行并暴露种子选错。
-// 现改用 987654321：该种子在出生点 5x5 范围内海洋列充足，且海平面下方水方块 100% 命中，
-// 可稳定验证水域生成不变量。
+// 现改用 parity 素材的种子 -6671478382168981129、并改用区块 (2,-2)——该区块在
+// tests/unit/testdata 的真实原版 1.21.11 存档中就是海洋（原版此处水面 62、海底约 57，
+// 有 963 格水）。以真实存档锚定素材，避免"选了个恰好不是海洋的种子导致测试自己失效"。
+//
+// 【历史】此前用的 987654321 在本仓库某次改动后，其出生点 5x5 范围内已不再生成任何
+// 海洋群系（实测 totalOceanColumns=0），使两条断言退化为"找不到海洋"，与水域生成无关。
 // ============================================================================
 
 #include "common/world/WorldConstants.hpp"
@@ -63,6 +67,17 @@ using namespace mc;
 using namespace mc::world::chunk;
 
 namespace {
+
+/// parity 素材（tests/unit/testdata 的真实原版存档）的世界种子
+constexpr u64 kParitySeed = static_cast<u64>(-6671478382168981129LL);
+
+/// 水域群系：海洋或河流。两者的地表以下都应被水填充（海平面/河面）。
+/// 【为何不能只看 IS_OCEAN】parity 素材的区块 (2,-2) 群系是 **river**（河流），
+/// 不是海洋——用 IS_OCEAN 判定会得到"一个水域列都找不到"，测试空转成假失败。
+bool isWaterBiome(BiomeId id)
+{
+    return world::biome::BiomeTags::IS_OCEAN().contains(id) || world::biome::BiomeTags::IS_RIVER().contains(id);
+}
 
 // ============================================================================
 // 测试夹具：海洋水域生成
@@ -122,13 +137,13 @@ protected:
     }
 
     struct OceanColumnStats {
-        i32 oceanColumnCount = 0;             // 海洋群系列数
-        i32 oceanColumnsWithWater = 0;        // 海平面处有水的海洋列数
-        i32 oceanColumnsWithSurfaceWater = 0; // 海洋列中海平面附近有水的列数
-        i32 totalWaterBlocks = 0;             // 海洋列中海平面以下的水方块数（采样）
+        i32 oceanColumnCount = 0;             // 水域群系列数
+        i32 oceanColumnsWithWater = 0;        // 海平面处有水的水域列数
+        i32 oceanColumnsWithSurfaceWater = 0; // 水域列中海平面附近有水的列数
+        i32 totalWaterBlocks = 0;             // 水域列中海平面以下的水方块数（采样）
     };
 
-    // 检查区块中所有海洋列的水方块情况
+    // 检查区块中所有水域列的水方块情况
     static OceanColumnStats analyzeOceanColumns(ChunkPrimer& chunk)
     {
         OceanColumnStats stats;
@@ -136,7 +151,7 @@ protected:
         for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
             for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
                 const BiomeId biomeId = chunk.getBiomeAtBlock(x, world::SEA_LEVEL, z);
-                if (!world::biome::BiomeTags::IS_OCEAN().contains(biomeId)) {
+                if (!isWaterBiome(biomeId)) {
                     continue;
                 }
 
@@ -167,7 +182,7 @@ protected:
         return stats;
     }
 
-    // 输出指定海洋列的垂直方块分布，辅助定位问题
+    // 输出指定水域列的垂直方块分布，辅助定位问题
     static void printOceanColumnDiagnostic(
         ChunkPrimer& chunk, ChunkCoord cx, ChunkCoord cz, i32 x, i32 z, BiomeId biomeId)
     {
@@ -175,7 +190,7 @@ protected:
         const i32 worldZ = cz * world::CHUNK_WIDTH + z;
 
         std::cout << "[OceanWaterRepro] ============================================" << std::endl;
-        std::cout << "[OceanWaterRepro] 海洋列: 区块(" << cx << "," << cz << ") 本地(" << x << "," << z << ") 世界("
+        std::cout << "[OceanWaterRepro] 水域列: 区块(" << cx << "," << cz << ") 本地(" << x << "," << z << ") 世界("
                   << worldX << "," << worldZ << ") 生物群系ID=" << biomeId << std::endl;
         std::cout << "[OceanWaterRepro] 海平面(Y=" << world::SEA_LEVEL << ")附近方块分布:" << std::endl;
 
@@ -208,17 +223,17 @@ protected:
 };
 
 // ============================================================================
-// 测试 1：种子 987654321 在出生点 5x5 范围内生成海洋，海洋列必须有水（回归测试）
+// 测试 1：种子 987654321 在出生点 5x5 范围内生成海洋，水域列必须有水（回归测试）
 //
 // 曾经的 bug：generateBiomes 阶段先创建 NoiseChunk 并缓存，导致 generateNoise 阶段
 // 的 getOrCreateNoiseChunk factory 不执行，含水层（Aquifer）和方块状态规则链
-// （MaterialRuleList）从未被设置，海洋列海平面以下全是空气。
-// 修复后：海洋列海平面以下（Y=seaLevel-1 及更低）应有水方块。
+// （MaterialRuleList）从未被设置，水域列海平面以下全是空气。
+// 修复后：水域列海平面以下（Y=seaLevel-1 及更低）应有水方块。
 // ============================================================================
 
-TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_Seed987654321)
+TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_ParitySeed)
 {
-    const u64 seed = 987654321ULL;
+    const u64 seed = kParitySeed;
     bool foundAnyOcean = false;
     i32 totalOceanColumns = 0;
     i32 totalOceanColumnsWithWater = 0;
@@ -240,27 +255,27 @@ TEST_F(OceanWaterReproTest, Overworld_OceanColumnsContainWater_Seed987654321)
         }
     }
 
-    std::cout << "[OceanWaterRepro] Seed 987654321: totalOceanColumns=" << totalOceanColumns
+    std::cout << "[OceanWaterRepro] ParitySeed: totalOceanColumns=" << totalOceanColumns
               << " oceanColumnsWithWater=" << totalOceanColumnsWithWater
               << " oceanColumnsWithSurfaceWater=" << totalOceanColumnsWithSurfaceWater << std::endl;
 
-    ASSERT_TRUE(foundAnyOcean) << "在 seed=987654321 的 5x5 区块范围内未找到任何海洋群系列，"
+    ASSERT_TRUE(foundAnyOcean) << "在 seed=ParitySeed 的 5x5 区块范围内未找到任何水域群系列，"
                                   "无法验证水域生成。";
 
-    // 核心断言：海洋列在海平面下方（Y=seaLevel-1）应有水方块
+    // 核心断言：水域列在海平面下方（Y=seaLevel-1）应有水方块
     // MC 1.21: 水方块存在于 Y < seaLevel 处，海平面 Y=seaLevel 本身是空气
     EXPECT_GT(totalOceanColumnsWithWater, 0)
-        << "发现 " << totalOceanColumns << " 个海洋列，但没有一个在海平面下方有水！"
+        << "发现 " << totalOceanColumns << " 个水域列，但没有一个在海平面下方有水！"
         << "这表明含水层/方块状态规则链未被正确设置（回归）。";
 }
 
 // ============================================================================
-// 测试 2：详细诊断——输出海洋列的垂直方块分布
+// 测试 2：详细诊断——输出水域列的垂直方块分布
 // ============================================================================
 
-TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_Seed987654321)
+TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_ParitySeed)
 {
-    const u64 seed = 987654321ULL;
+    const u64 seed = kParitySeed;
     bool foundOcean = false;
 
     for (ChunkCoord cx = -2; cx <= 2 && !foundOcean; ++cx) {
@@ -273,7 +288,7 @@ TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_Seed987654321)
             for (i32 x = 0; x < world::CHUNK_WIDTH && !foundOcean; ++x) {
                 for (i32 z = 0; z < world::CHUNK_WIDTH && !foundOcean; ++z) {
                     const BiomeId biomeId = result.centerChunk->getBiomeAtBlock(x, world::SEA_LEVEL, z);
-                    if (!world::biome::BiomeTags::IS_OCEAN().contains(biomeId)) {
+                    if (!isWaterBiome(biomeId)) {
                         continue;
                     }
                     foundOcean = true;
@@ -284,24 +299,24 @@ TEST_F(OceanWaterReproTest, Overworld_OceanColumnDiagnostic_Seed987654321)
     }
 
     if (!foundOcean) {
-        GTEST_SKIP() << "未找到海洋列";
+        GTEST_SKIP() << "未找到水域列";
     }
 }
 
 // ============================================================================
 // 测试 3：根因诊断——直接查询 NoiseChunk 和 Aquifer
 //
-// 在已知的海洋列上，直接查询 preliminarySurfaceLevel、finalDensity 和
+// 在已知的水域列上，直接查询 preliminarySurfaceLevel、finalDensity 和
 // Aquifer::computeSubstance 的返回值，定位水域缺失的根因。
 // 同时验证修复后含水层（Aquifer）已被正确设置且海平面下方有水方块。
 // ============================================================================
 
-TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed987654321)
+TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_ParitySeed)
 {
-    const u64 seed = 987654321ULL;
+    const u64 seed = kParitySeed;
 
-    // 生成区块 (-2,-2)（seed 987654321 下该区块含海洋列，世界 -32,-32 附近）
-    auto result = generateOverworldTerrain(seed, -2, -2);
+    // 生成区块 (2,-2)：该区块在 parity 素材（真实原版存档，同种子）中就是海洋，
+    auto result = generateOverworldTerrain(seed, 2, -2);
     ASSERT_NE(result.centerChunk, nullptr);
     ASSERT_TRUE(result.centerChunk->hasNoiseChunk());
 
@@ -313,14 +328,14 @@ TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed987654321)
     ASSERT_NE(aquifer, nullptr) << "NoiseChunk 的 aquifer 为 nullptr —— "
                                    "getOrCreateNoiseChunk 缓存导致 setAquifer 未执行（回归）";
 
-    // 找到第一个海洋列
+    // 找到第一个水域列
     i32 oceanX = -1;
     i32 oceanZ = -1;
     BiomeId oceanBiome = 0;
     for (i32 x = 0; x < world::CHUNK_WIDTH && oceanX < 0; ++x) {
         for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
             const BiomeId biomeId = result.centerChunk->getBiomeAtBlock(x, world::SEA_LEVEL, z);
-            if (world::biome::BiomeTags::IS_OCEAN().contains(biomeId)) {
+            if (isWaterBiome(biomeId)) {
                 oceanX = x;
                 oceanZ = z;
                 oceanBiome = biomeId;
@@ -328,13 +343,13 @@ TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed987654321)
             }
         }
     }
-    ASSERT_GE(oceanX, 0) << "区块 (-2,-2) 中未找到海洋列";
+    ASSERT_GE(oceanX, 0) << "区块 (2,-2) 中未找到水域列";
 
-    const i32 worldX = -2 * world::CHUNK_WIDTH + oceanX;
+    const i32 worldX = 2 * world::CHUNK_WIDTH + oceanX;
     const i32 worldZ = -2 * world::CHUNK_WIDTH + oceanZ;
 
     std::cout << "[OceanWaterDiag] ============================================" << std::endl;
-    std::cout << "[OceanWaterDiag] 海洋列: 本地(" << oceanX << "," << oceanZ << ") 世界(" << worldX << "," << worldZ
+    std::cout << "[OceanWaterDiag] 水域列: 本地(" << oceanX << "," << oceanZ << ") 世界(" << worldX << "," << worldZ
               << ") 生物群系ID=" << oceanBiome << std::endl;
 
     // 1. preliminarySurfaceLevel —— 已完整实现（FindTopSurface 密度函数）
@@ -369,13 +384,13 @@ TEST_F(OceanWaterReproTest, Overworld_OceanAquiferDiagnostic_Seed987654321)
                   << density << " placed=" << placedName << std::endl;
     }
 
-    // 核心断言：海洋列海平面下方（Y=seaLevel-1）必须有水方块
+    // 核心断言：水域列海平面下方（Y=seaLevel-1）必须有水方块
     // 修复前此处为空气（aquifer 未设置），修复后为水
     const BlockState* seaLevelMinusOne = result.centerChunk->getBlockState(oceanX, world::SEA_LEVEL - 1, oceanZ);
     ASSERT_NE(seaLevelMinusOne, nullptr);
     EXPECT_TRUE(seaLevelMinusOne->isLiquid())
         << "海平面下方第一格 (Y=" << world::SEA_LEVEL - 1 << ") 应为水，修复前为空气（aquifer 未设置）";
-    EXPECT_GT(waterBlocks, 0) << "海洋列中应有水方块，但一个都没找到（aquifer 回归）";
+    EXPECT_GT(waterBlocks, 0) << "水域列中应有水方块，但一个都没找到（aquifer 回归）";
 }
 
 } // namespace

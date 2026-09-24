@@ -849,15 +849,22 @@ TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
  *
  * TODO(parity): 本用例是**收敛过程中的临时诊断**，不参与 parity 断言，parity 达成后删除。
  *
- * 已由本用例确认的结论（供后续排查参考）：
- *   - Cubium 的 preliminarySurfaceLevel 比原版 WORLD_SURFACE 系统性低 8~20 格：
- *     海洋区块 (2,-2) 全部列都是 48（原版水面 62、海底约 57）。
- *   - 该值直接决定含水层的水层中心 fluidLevel；偏低会使海域整列判为"地表之上"，
- *     含水层于 y=40..62 全返回 air（实测 (2,-2) 列 (8,8) 在 y=75..40 全 air），
- *     表现为整片海域无水、海底被地表规则铺成草地。
- *   - 该密度函数经 AST 编译为 CompiledDensityFunctionAdapter，故下一步应核对
- *     McToAst/BytecodeGen 对 FindTopSurface 的转换——它的 density 子树必须用
- *     循环变量 j（而非外层 ctx 的 y）作为 Y 求值，否则整条搜索会偏到错误的层。
+ * 本用例建立时观察到"整片海域无水"（(2,-2) 的 water 原版 963 / Cubium 0，且海底被地表规则铺成草方块）。排查结论已固化：
+ *
+ *   - `preliminarySurfaceLevel` **偏低 8~20 格是原版的正常现象**（实测 (2,-2) 为 48，
+ *     而该处水面 62、海底约 57）。它不是 final_density，本来就只给出粗略高度；
+ *     AST 编译（CompiledDensityFunctionAdapter）与未编译的原始树**结果完全一致**，
+ *     故此前怀疑的 McToAst/BytecodeGen 对 FindTopSurface 的转换已被排除。
+ *
+ *   - 真正的根因是含水层中心的位置编解码错位：NoiseBasedAquifer 自带一份
+ *     encode/decodeBlockPos，把原版布局 `x<<38 | z<<12 | y` 写成了 `x<<38 | y<<26 | z`，
+ *     与它自己的解包公式不自洽。负 Z 区块的水层中心被解成 704511 这类大正数，
+ *     computeFluid 于是在错误位置采样地表高度与 floodedness 噪声，fluidLevel 恒为
+ *     WAY_BELOW_MIN_Y。**已修复**（改为复用 BlockPos::asLong / getXFromLong 等既有工具），
+ *     (2,-2) 的 y=62..40 已恢复为 water。
+ *
+ *   - 本用例保留下来用于观察该链路：直方图反映 preliminarySurfaceLevel 的分布形态，
+ *     抽样列给出绝对值，含水层列剖面给出 computeSubstance 在各 Y 的实际返回。
  */
 TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
 {
@@ -917,6 +924,26 @@ TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
             std::printf("[DIAG-AQ]      (%2d,%2d) | %4d | %4d | %s\n", bx, bz, prelim, javaTop, profile.c_str());
         }
 
+        // 决定性对照：未编译的原始密度函数树 vs AST 编译后的 adapter
+        // 若两者对同一 (x,z) 给出不同的 preliminarySurfaceLevel，则缺陷在 McToAst/BytecodeGen。
+        {
+            const auto* rawFts =
+                dynamic_cast<const world::gen::density::FindTopSurface*>(&state->router().preliminarySurfaceLevel());
+            std::printf("[DIAG-AQ] (%d,%d) 原始树是否为 FindTopSurface: %d\n", cx, cz, rawFts != nullptr ? 1 : 0);
+            if (rawFts != nullptr) {
+                std::printf("[DIAG-AQ]      lowerBound=%d cellHeight=%d\n", rawFts->lowerBound(), rawFts->cellHeight());
+                for (i32 y = 80; y >= 32; y -= 8) {
+                    const f64 upper = rawFts->upperBound().compute(startX + 8, 0, startZ + 8);
+                    const f64 dens = rawFts->density().compute(startX + 8, y, startZ + 8);
+                    std::printf("[DIAG-AQ]      RAW y=%3d upperBound=%.6f density=%.6f\n", y, upper, dens);
+                }
+                std::printf("[DIAG-AQ]      RAW compute(x,0,z)=%.1f | COMPILED compute(x,0,z)=%.1f\n",
+                    rawFts->compute(startX + 8, 0, startZ + 8),
+                    state->compiledRouter()[static_cast<size_t>(RouterSlot::PreliminarySurfaceLevel)]->eval(
+                        startX + 8, 0, startZ + 8));
+            }
+        }
+
         // 拆解 FindTopSurface：upperBound 取值 + density 在各 y 的符号
         {
             const auto* fts =
@@ -939,6 +966,21 @@ TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
             }
         }
 
+        // 深暗之域判定所需的 erosion / depth（computeSurfaceLevel 会据此直接返回 WAY_BELOW_MIN_Y）
+        {
+            const auto& r = state->router();
+            for (i32 y = 70; y >= 40; y -= 6) {
+                std::printf("[DIAG-AQ]      EROSION/DEPTH y=%3d erosion=%.6f depth=%.6f deepDark=%d\n",
+                    y,
+                    r.erosion().compute(startX + 8, y, startZ + 8),
+                    r.depth().compute(startX + 8, y, startZ + 8),
+                    (r.erosion().compute(startX + 8, y, startZ + 8) < -0.225 &&
+                        r.depth().compute(startX + 8, y, startZ + 8) > 0.9)
+                        ? 1
+                        : 0);
+            }
+        }
+
         // 直接调用含水层：在 y=40..75 上问"若此处非固体（density<0），含水层给出什么流体"
         auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(*nc,
             cx,
@@ -953,10 +995,7 @@ TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
         std::string aquiferColumn;
         for (i32 y = 75; y >= 40; --y) {
             const BlockState* s = aquifer->computeSubstance(startX + probeBx, y, startZ + probeBz, -0.01);
-            aquiferColumn +=
-                (s == nullptr ? std::string("<null>")
-                              : (s->isAir() ? std::string("air") : s->getBlock().blockLocation().toString())) +
-                " ";
+            aquiferColumn += (s == nullptr ? std::string("<null>") : s->getBlock().blockLocation().toString()) + " ";
         }
         std::printf("[DIAG-AQ] (%d,%d) 列(%d,%d) y=75..40 含水层 computeSubstance(density=-0.01)：\n",
             cx,
@@ -964,6 +1003,52 @@ TEST_F(JavaAnvilWorldGenParityTest, PreliminarySurfaceLevelDiagnostic)
             probeBx,
             probeBz);
         std::printf("[DIAG-AQ]      %s\n", aquiferColumn.c_str());
+    }
+}
+
+/**
+ * @brief 临时诊断：ChunkData/ChunkPrimer 的 getBiomeAtBlock 与 BiomeContainer 是否自洽
+ *
+ * TODO(parity): 收敛过程中的临时诊断，parity 达成后删除。
+ *
+ * 背景：OceanWaterReproTest 一度以 parity 素材的种子 + 区块 (2,-2) 断言"存在海洋群系",
+ * 却一个海洋列都找不到，而本文件的 compareBiomes 已证明该区块的 BiomeContainer 与原版
+ * 100% 一致。本用例给出的结论：**该区块的群系是 river（河流），不是 ocean**——两侧的
+ * BiomeContainer 与 getBiomeAtBlock 都给出 river，完全自洽；是那条断言的群系类别选错了
+ * （河流不属于 IS_OCEAN）。测试已相应改为按"水域群系"（IS_OCEAN ∪ IS_RIVER）判定。
+ *
+ * 本用例仍保留：它是检验"ChunkData 的 BiomeContainer 与 getBiomeAtBlock 两个访问路径
+ * 是否自洽"的最短路径，且在 getBiomeAtBlock 随 Y 返回洞穴群系（如 dripstone_caves）时，
+ * 能直接暴露 3D 群系采样是否被塌缩成平面。 */
+TEST_F(JavaAnvilWorldGenParityTest, BiomeAccessorConsistencyDiagnostic)
+{
+    const ChunkData* javaChunk = loadJavaChunk(2, -2);
+    ASSERT_NE(javaChunk, nullptr);
+    ChunkData* cubiumChunk = generateCubiumChunk(2, -2);
+    ASSERT_NE(cubiumChunk, nullptr);
+
+    const auto& cubiumBiomes = cubiumChunk->getBiomes();
+    std::printf("[DIAG-BIO] (2,-2) 原版 BiomeContainer 在 section0/by0 的群系名：\n");
+    for (i32 bz = 0; bz < 4; ++bz) {
+        std::string row;
+        for (i32 bx = 0; bx < 4; ++bx) {
+            const BiomeId id = javaChunk->getBiomes().getBiome(0, bx, 0, bz);
+            row += BiomeRegistry::instance().get(id).name() + " ";
+        }
+        std::printf("[DIAG-BIO]   %s\n", row.c_str());
+    }
+    std::printf("[DIAG-BIO] Cubium 生成区块 getBiomeAtBlock(8, y, 8) 随 y 变化：\n");
+    for (i32 y : {-60, -32, 0, 32, 63, 100, 200}) {
+        const BiomeId id = cubiumChunk->getBiomeAtBlock(8, y, 8);
+        std::printf("[DIAG-BIO]   y=%4d biome=%s (id=%u)\n",
+            y,
+            BiomeRegistry::instance().get(id).name().c_str(),
+            static_cast<u32>(id));
+    }
+    std::printf("[DIAG-BIO] BiomeContainer 侧 (section0..3, bx=2, bz=2, by=0)：\n");
+    for (i32 s = 0; s < 4; ++s) {
+        const BiomeId id = cubiumBiomes.getBiome(s, 2, 0, 2);
+        std::printf("[DIAG-BIO]   section=%d biome=%s\n", s, BiomeRegistry::instance().get(id).name().c_str());
     }
 }
 

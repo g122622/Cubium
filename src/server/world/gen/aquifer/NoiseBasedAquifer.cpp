@@ -287,11 +287,15 @@ const BlockState* NoiseBasedAquifer::computeSubstance(i32 blockX, i32 blockY, i3
         m_shouldScheduleFluidUpdate = true;
     }
 
-    // 返回含水层流体
+    // 返回含水层流体：原版此处返回 `blockstate1`，即 `aquifer1.at(blockY)`——
+    // 当 blockY >= fluidLevel 时它是**空气 BlockState**（既不是 nullptr，也不是"保持固体"）。
+    // 【为何必须是空气而不是 nullptr】NoiseChunk 的 MaterialRuleList 在拿到非 null 结果时
+    // 立即短路，因此返回空气会**阻止后续 OreVeinifier 参与**；返回 nullptr 则会让矿脉填充器
+    // 在"本应由含水层判定为空气"的位置继续放 tuff/granite/矿石，表现为深层凭空出现矿脉方块。
     if (blockY < aquifer1.fluidLevel) {
         return aquifer1.fluidType;
     }
-    return nullptr;
+    return VanillaBlocks::getState(VanillaBlocks::AIR);
 }
 
 NoiseBasedAquifer::AquiferStatus NoiseBasedAquifer::getAquiferStatus(i32 gridX, i32 gridY, i32 gridZ)
@@ -370,8 +374,14 @@ NoiseBasedAquifer::AquiferStatus NoiseBasedAquifer::computeFluid(i32 x, i32 y, i
         const bool isAboveSurface = yPlus12 > adjustedSurface;
         if (isAboveSurface || isCenter) {
             FluidStatus surfaceFluid = m_globalFluidPicker(sx, adjustedSurface, sz);
-            // MC 1.21: !aquifer$fluidstatus1.at(k1).isAir() — 检查该处是否有流体
-            if (surfaceFluid.at(adjustedSurface) != nullptr) {
+            // MC 1.21: !aquifer$fluidstatus1.at(k1).isAir()
+            // 【必须判 isAir 而非判空指针】FluidStatus::at() 在 y >= fluidLevel 时返回的是
+            // **空气 BlockState**（与原版 FluidStatus.at 一致），永远不会返回 nullptr。
+            // 写成 `!= nullptr` 会恒为真，于是 adjustedSurface >= 海平面（该处 at() 给出空气）
+            // 时也会被当成"有流体"：既错误地置 centerHasFluid，又会让 isAboveSurface 分支
+            // 提前返回全局流体——直接改变水层中心的 fluidLevel。
+            const BlockState* surfaceAt = surfaceFluid.at(adjustedSurface);
+            if (surfaceAt != nullptr && !surfaceAt->isAir()) {
                 if (isCenter) {
                     centerHasFluid = true;
                 }
@@ -511,12 +521,6 @@ f64 NoiseBasedAquifer::calculatePressure(i32 blockX,
 f64 NoiseBasedAquifer::similarity(i32 dist1Sq, i32 dist2Sq)
 {
     return 1.0 - static_cast<f64>(dist2Sq - dist1Sq) / 25.0;
-}
-
-i64 NoiseBasedAquifer::encodeBlockPos(i32 x, i32 y, i32 z)
-{
-    return (static_cast<i64>(x) & 0x3FFFFFF) << 38 | (static_cast<i64>(y) & 0xFFF) << 26 |
-        (static_cast<i64>(z) & 0x3FFFFFF);
 }
 
 } // namespace mc::world::gen::aquifer

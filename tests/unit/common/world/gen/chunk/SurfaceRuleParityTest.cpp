@@ -301,28 +301,43 @@ TEST_F(SurfaceRuleParityTest, BedrockAtBottomLayer)
  *
  * onFloor + waterBlockCheck(-1, 0) 规则必须在 underFloor 材料层规则之前，
  * 否则地表会被错误替换为泥土。此测试验证规则顺序修复后的效果。
+ *
+ * 【为何在邻域内扫描而非固定取一个区块】"地表有草方块"只在**陆地表层**成立：海洋海床
+ * 按原版保持石头/沙，而沙滩、沙漠、恶地、雪原等群系的地表也不是草。seed 42 的区块 (0,0)
+ * 经查是海洋（地表 256 列全为水）。故在邻域内扫描，断言**至少存在一个**地表含草方块的
+ * 区块——这仍然严格验证了 onFloor 规则确实产出了草方块（且未被 underFloor 覆盖成泥土）。
  */
 TEST_F(SurfaceRuleParityTest, Overworld_SurfaceHasGrassBlock)
 {
-    auto result = generateOverworld(42, 0, 0);
-    ASSERT_NE(result->centerChunk, nullptr);
-
-    const auto& chunk = *result->centerChunk;
-    i32 grassCount = 0;
-
-    for (i32 x = 0; x < 16; ++x) {
-        for (i32 z = 0; z < 16; ++z) {
-            const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-            if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
+    i32 totalGrass = 0;
+    i32 waterSurfaceColumns = 0;
+    for (i32 cx = 0; cx <= 4; ++cx) {
+        for (i32 cz = 0; cz <= 4; ++cz) {
+            auto result = generateOverworld(42, cx, cz);
+            if (result == nullptr || result->centerChunk == nullptr) {
                 continue;
             }
-            if (isBlock(chunk.getBlockState(x, surfaceY, z), VanillaBlocks::GRASS_BLOCK)) {
-                ++grassCount;
+            const auto& chunk = *result->centerChunk;
+            for (i32 x = 0; x < 16; ++x) {
+                for (i32 z = 0; z < 16; ++z) {
+                    const i32 surfaceY = chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+                    if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
+                        continue;
+                    }
+                    const BlockState* state = chunk.getBlockState(x, surfaceY, z);
+                    if (isBlock(state, VanillaBlocks::GRASS_BLOCK)) {
+                        ++totalGrass;
+                    }
+                    if (isBlock(state, VanillaBlocks::WATER)) {
+                        ++waterSurfaceColumns;
+                    }
+                }
             }
         }
     }
 
-    EXPECT_GT(grassCount, 0) << "Overworld surface should have grass blocks";
+    EXPECT_GT(totalGrass, 0) << "Overworld surface should have grass blocks"
+                             << "（扫描 5x5 区块，含水表格 256 列=" << waterSurfaceColumns << " 列）";
 }
 
 /**
@@ -696,31 +711,39 @@ TEST_F(SurfaceRuleParityTest, Overworld_NoDeepslateNearSurface)
  */
 TEST_F(SurfaceRuleParityTest, Overworld_SurfaceBlockDiversity)
 {
-    auto result = generateOverworld(42, 0, 0);
-    ASSERT_NE(result->centerChunk, nullptr);
-
+    // 【为何在邻域内统计】seed 42 的区块 (0,0) 经查是海洋：地表 256 列全为水，
+    // 海床以下 2~8 格是沙/砾石而非草/泥土/石头，故单看该区块会同时缺掉草与石。
+    // 本用例考察的是**地表方块多样性**，在 5x5 邻域上统计才能覆盖陆地表层。
     bool foundGrass = false;
     bool foundDirt = false;
     bool foundStone = false;
 
-    for (i32 x = 0; x < 16; ++x) {
-        for (i32 z = 0; z < 16; ++z) {
-            const i32 surfaceY = result->centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-            if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
+    for (i32 cx = 0; cx <= 4; ++cx) {
+        for (i32 cz = 0; cz <= 4; ++cz) {
+            auto result = generateOverworld(42, cx, cz);
+            if (result == nullptr || result->centerChunk == nullptr) {
                 continue;
             }
-            const BlockState* surfaceBlock = result->centerChunk->getBlockState(x, surfaceY, z);
-            if (isBlock(surfaceBlock, VanillaBlocks::GRASS_BLOCK)) {
-                foundGrass = true;
-            }
-            // 检查地下层（地表下2~8格范围）
-            for (i32 dy = 2; dy <= 8 && surfaceY - dy >= mc::world::MIN_BUILD_HEIGHT; ++dy) {
-                const BlockState* below = result->centerChunk->getBlockState(x, surfaceY - dy, z);
-                if (isBlock(below, VanillaBlocks::DIRT)) {
-                    foundDirt = true;
-                }
-                if (isBlock(below, VanillaBlocks::STONE)) {
-                    foundStone = true;
+            for (i32 x = 0; x < 16; ++x) {
+                for (i32 z = 0; z < 16; ++z) {
+                    const i32 surfaceY = result->centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+                    if (surfaceY < mc::world::MIN_BUILD_HEIGHT) {
+                        continue;
+                    }
+                    const BlockState* surfaceBlock = result->centerChunk->getBlockState(x, surfaceY, z);
+                    if (isBlock(surfaceBlock, VanillaBlocks::GRASS_BLOCK)) {
+                        foundGrass = true;
+                    }
+                    // 检查地下层（地表下 2~8 格范围）
+                    for (i32 dy = 2; dy <= 8 && surfaceY - dy >= mc::world::MIN_BUILD_HEIGHT; ++dy) {
+                        const BlockState* below = result->centerChunk->getBlockState(x, surfaceY - dy, z);
+                        if (isBlock(below, VanillaBlocks::DIRT)) {
+                            foundDirt = true;
+                        }
+                        if (isBlock(below, VanillaBlocks::STONE)) {
+                            foundStone = true;
+                        }
+                    }
                 }
             }
         }

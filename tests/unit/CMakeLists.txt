@@ -583,6 +583,8 @@ add_executable(mc_tests
     common/world/blockentity/DecoratedPotBlockEntityTest.cpp
     # BrushableBlockEntity 可刷方块实体测试（刷扫/冷却/重置/战利品/序列化/克隆）
     common/world/blockentity/BrushableBlockEntityTest.cpp
+    # BlockPos 位打包回归测试（锁定 X/Z/Y 的位段约定，防静默错位）
+    common/world/block/BlockPosPackingTest.cpp
     # SculkBlockEntity 幽匿方块实体测试
     common/world/blockentity/sculk/SculkBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp

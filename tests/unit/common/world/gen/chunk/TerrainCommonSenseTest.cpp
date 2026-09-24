@@ -282,30 +282,35 @@ TEST_F(TerrainCommonSenseTest, Overworld_OceanFloorAboveBedrock)
 
 TEST_F(TerrainCommonSenseTest, Overworld_TerrainHasVariation)
 {
-    // 主世界地形不应完全平坦，不同位置应有不同高度
-    // 使用实际生成的区块数据检测地形起伏
-    auto result = generateOverworldTerrain(42ULL);
-    ASSERT_NE(result.centerChunk, nullptr);
+    // 主世界地形不应完全平坦，不同位置应有不同高度。
+    //
+    // 【为何在邻域内统计】seed 42 的区块 (0,0) 经查是海洋：水面处处等于海平面，
+    // 单该区块的高度差恒为 0。验证"地形有起伏"必须覆盖陆地区块，故在 5x5 邻域上统计。
+    i32 minHeight = std::numeric_limits<i32>::max();
+    i32 maxHeight = std::numeric_limits<i32>::min();
+    i32 sampleCount = 0;
 
-    // 从区块高度图中提取高度
-    std::vector<i32> surfaceHeights;
-    for (i32 x = 0; x < world::CHUNK_WIDTH; x += 2) {
-        for (i32 z = 0; z < world::CHUNK_WIDTH; z += 2) {
-            i32 surfaceY = result.centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-            surfaceHeights.push_back(surfaceY);
+    for (i32 cx = 0; cx <= 4; ++cx) {
+        for (i32 cz = 0; cz <= 4; ++cz) {
+            auto result = generateOverworldTerrain(42ULL, cx, cz, 1);
+            ASSERT_NE(result.centerChunk, nullptr);
+
+            for (i32 x = 0; x < world::CHUNK_WIDTH; x += 2) {
+                for (i32 z = 0; z < world::CHUNK_WIDTH; z += 2) {
+                    const i32 surfaceY = result.centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+                    minHeight = std::min(minHeight, surfaceY);
+                    maxHeight = std::max(maxHeight, surfaceY);
+                    ++sampleCount;
+                }
+            }
         }
     }
 
-    ASSERT_GT(surfaceHeights.size(), 0u);
-
-    i32 minHeight = *std::min_element(surfaceHeights.begin(), surfaceHeights.end());
-    i32 maxHeight = *std::max_element(surfaceHeights.begin(), surfaceHeights.end());
-    i32 range = maxHeight - minHeight;
+    ASSERT_GT(sampleCount, 0);
+    const i32 range = maxHeight - minHeight;
 
     // 即使在一个区块内，地形高度也应有变化
-    // 单个区块 16x16 的范围通常包含一些高度差
-    EXPECT_GE(range, 1) << "Terrain should have height variation within a chunk. Min=" << minHeight
-                        << " Max=" << maxHeight;
+    EXPECT_GE(range, 1) << "Terrain should have height variation. Min=" << minHeight << " Max=" << maxHeight;
 
     // 高度变化不应该超过世界高度（384格）
     EXPECT_LE(range, world::CHUNK_HEIGHT) << "Terrain variation should not exceed world height";
@@ -1854,9 +1859,9 @@ TEST_F(TerrainCommonSenseTest, Overworld_SurfaceLayerComposition)
 {
     // 地表顶层（onFloor 层）应该有合理构成：草方块、泥土、沙子等，而不是只有石头。
     // 同时验证地表以下几层（underFloor 层）有泥土出现。
-    auto result = generateOverworldTerrain(42ULL, 0, 0, 1);
-    ASSERT_NE(result.centerChunk, nullptr);
-
+    //
+    // 【为何在邻域内统计】seed 42 的区块 (0,0) 经查是海洋：地表 256 列全为水，
+    // 海床不是草/泥土。单看该区块无法验证陆地表层构成，故统计 5x5 邻域。
     i32 grassOnSurface = 0;
     i32 dirtOnSurface = 0;
     i32 dirtBelowSurface = 0;
@@ -1866,36 +1871,42 @@ TEST_F(TerrainCommonSenseTest, Overworld_SurfaceLayerComposition)
     i32 otherOnSurface = 0;
     i32 totalColumns = 0;
 
-    // 检查中心区块
-    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-            i32 surfaceY = result.centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
-            const BlockState* surfaceBlock = result.centerChunk->getBlockState(x, surfaceY, z);
-            if (surfaceBlock == nullptr || surfaceBlock->isAir()) {
-                continue;
-            }
-            ++totalColumns;
+    for (i32 cx = 0; cx <= 4; ++cx) {
+        for (i32 cz = 0; cz <= 4; ++cz) {
+            auto result = generateOverworldTerrain(42ULL, cx, cz, 1);
+            ASSERT_NE(result.centerChunk, nullptr);
 
-            // 地表方块分类
-            if (surfaceBlock->is(VanillaBlocks::GRASS_BLOCK)) {
-                ++grassOnSurface;
-            } else if (surfaceBlock->is(VanillaBlocks::DIRT)) {
-                ++dirtOnSurface;
-            } else if (surfaceBlock->is(VanillaBlocks::SAND)) {
-                ++sandOnSurface;
-            } else if (surfaceBlock->is(VanillaBlocks::STONE)) {
-                ++stoneOnSurface;
-            } else if (surfaceBlock->is(VanillaBlocks::WATER)) {
-                ++waterOnSurface;
-            } else {
-                ++otherOnSurface;
-            }
+            for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    i32 surfaceY = result.centerChunk->getTopBlockY(HeightmapType::WorldSurfaceWG, x, z);
+                    const BlockState* surfaceBlock = result.centerChunk->getBlockState(x, surfaceY, z);
+                    if (surfaceBlock == nullptr || surfaceBlock->isAir()) {
+                        continue;
+                    }
+                    ++totalColumns;
 
-            // 检查地表下方1格（应为泥土，由 underFloor 规则生成）
-            if (surfaceY - 1 >= world::MIN_BUILD_HEIGHT) {
-                const BlockState* belowSurface = result.centerChunk->getBlockState(x, surfaceY - 1, z);
-                if (belowSurface != nullptr && belowSurface->is(VanillaBlocks::DIRT)) {
-                    ++dirtBelowSurface;
+                    // 地表方块分类
+                    if (surfaceBlock->is(VanillaBlocks::GRASS_BLOCK)) {
+                        ++grassOnSurface;
+                    } else if (surfaceBlock->is(VanillaBlocks::DIRT)) {
+                        ++dirtOnSurface;
+                    } else if (surfaceBlock->is(VanillaBlocks::SAND)) {
+                        ++sandOnSurface;
+                    } else if (surfaceBlock->is(VanillaBlocks::STONE)) {
+                        ++stoneOnSurface;
+                    } else if (surfaceBlock->is(VanillaBlocks::WATER)) {
+                        ++waterOnSurface;
+                    } else {
+                        ++otherOnSurface;
+                    }
+
+                    // 检查地表下方 1 格（应为泥土，由 underFloor 规则生成）
+                    if (surfaceY - 1 >= world::MIN_BUILD_HEIGHT) {
+                        const BlockState* belowSurface = result.centerChunk->getBlockState(x, surfaceY - 1, z);
+                        if (belowSurface != nullptr && belowSurface->is(VanillaBlocks::DIRT)) {
+                            ++dirtBelowSurface;
+                        }
+                    }
                 }
             }
         }
