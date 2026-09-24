@@ -25,6 +25,7 @@
 #include "CarvingContext.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -156,9 +157,11 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     f32 pitchModifier = 0.0f;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        // MC 1.21.11: horizontalRadius 和 verticalRadius 使用 double 精度
+        // 原版：Mth.sin(i * (float) Math.PI / endIndex) —— 角度按 f32 运算，且用查表版 Mth.sin
+        // （不是精确 std::sin）。
+        const f32 envelopeAngle = static_cast<f32>(i) * static_cast<f32>(math::PI) / static_cast<f32>(endIndex);
         const f64 horizontalRadius =
-            1.5 + std::sin(static_cast<f64>(i) * math::PI / static_cast<f64>(endIndex)) * static_cast<f64>(thickness);
+            1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle))) * static_cast<f64>(thickness);
         f64 verticalRadius = horizontalRadius * yScale;
 
         const f32 horizontalRadiusFactor = config.shape.horizontalRadiusFactor->sample(rng);
@@ -167,11 +170,13 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
         verticalRadius = _updateVerticalRadius(
             config, rng, static_cast<f32>(verticalRadius), static_cast<f32>(endIndex), static_cast<f32>(i));
 
-        const f64 cosPitch = static_cast<f64>(std::cos(pitch));
-        const f64 sinPitch = static_cast<f64>(std::sin(pitch));
-        startX += static_cast<f64>(std::cos(yaw)) * cosPitch;
-        startY += sinPitch;
-        startZ += static_cast<f64>(std::sin(yaw)) * cosPitch;
+        // 原版：float f2 = Mth.cos(pitch); float f3 = Mth.sin(pitch);
+        //       p += Mth.cos(yaw) * f2;   —— 全部是 **f32** 乘法后累加到 double 位置。
+        const f32 cosPitch = math::mthCos(static_cast<f64>(pitch));
+        const f32 sinPitch = math::mthSin(static_cast<f64>(pitch));
+        startX += static_cast<f64>(math::mthCos(static_cast<f64>(yaw)) * cosPitch);
+        startY += static_cast<f64>(sinPitch);
+        startZ += static_cast<f64>(math::mthSin(static_cast<f64>(yaw)) * cosPitch);
 
         pitch *= 0.7f;
         pitch += pitchModifier * 0.05f;
