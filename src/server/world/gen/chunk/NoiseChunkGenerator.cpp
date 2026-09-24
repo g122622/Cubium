@@ -177,7 +177,20 @@ bool NoiseChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure:
 
     for (const auto& entry : structureSet.entries()) {
         const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
-        if (!structure) continue;
+
+        // 【必须断言，不得静默跳过】结构集引用的结构定义查不到，说明结构注册表没有
+        // 按数据驱动路径加载（只剩 StructureManager::initialize() 的兜底表，其键是
+        // 结构"类型基础名"如 minecraft:village，而 structure_set JSON 引用的是细分 id
+        // 如 minecraft:village_plains）。此时若 `continue`，本函数会对每个条目都查不到、
+        // 最终返回 false，于是**整个结构集被静默跳过**——村庄/海底废墟/古迹废墟/远古
+        // 城市永不生成，且不产生任何错误或日志，排查成本极高。
+        // 这是"兜底策略掩盖真实故障"的典型：宁可在此崩溃，也不要让世界悄悄缺内容。
+        if (structure == nullptr) {
+            spdlog::critical("[STRUCT] structure_set '{}' references unregistered structure '{}'",
+                structureSet.id().toString(),
+                entry.structureId.toString());
+        }
+        MC_ASSERT_RELEASE(structure != nullptr);
 
         // 遍历 possibleBiomes，检查是否有任何一个存在于该结构的 biomeTag 中
         for (BiomeId biomeId : possibleBiomes) {
@@ -205,8 +218,25 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     // MC 1.21.11: 遍历 StructureSet，按放置规则决定候选区块，按权重选择结构
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
 
+    // 【诊断】记录各关卡淘汰数，便于定位"结构完全不生成"卡在哪一环。
+    // 各计数含义：sets=注册表条目数；skipExisting=已有有效 start；
+    // skipBiomes=维度 possibleBiomes 与该结构集 biomeTag 无交集；
+    // skipPlacement=非候选区块（isStructureChunk 为假）；
+    // skipBiomeCheck=候选区块但中心点生物群系不匹配该条目；
+    // attempts=实际调用 generate() 次数；created=产出了有效 StructureStart 次数。
+    i32 dbgSets = 0;
+    i32 dbgSkipExisting = 0;
+    i32 dbgSkipBiomes = 0;
+    i32 dbgSkipPlacement = 0;
+    i32 dbgSkipBiomeCheck = 0;
+    i32 dbgAttempts = 0;
+    i32 dbgCreated = 0;
+    std::vector<std::string> dbgBiomeSkippedSets;   ///< 被"维度无交集"整集跳过的 set id
+    std::vector<std::string> dbgBiomeRejectedPairs; ///< 因中心点群系不匹配被拒的 "set/结构" 对
+
     for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
         if (!structureSetPtr) continue;
+        ++dbgSets;
 
         const auto& structureSet = *structureSetPtr;
         const auto& placement = structureSet.placement();
@@ -225,16 +255,24 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
                 break;
             }
         }
-        if (hasExistingStart) continue;
+        if (hasExistingStart) {
+            ++dbgSkipExisting;
+            continue;
+        }
 
         // 对齐 MC 1.21.11: 结构集快速预过滤 — 如果当前维度的 possibleBiomes
         // 与结构集中所有结构的 biomeTag 均无交集，则跳过整个结构集
         if (!_hasBiomesForStructureSet(structureSet)) {
+            ++dbgSkipBiomes;
+            if (dbgBiomeSkippedSets.size() < 12) {
+                dbgBiomeSkippedSets.push_back(structureSet.id().toString());
+            }
             continue;
         }
 
         // 三步检查：1. 是否为候选区块
         if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
+            ++dbgSkipPlacement;
             continue;
         }
 
@@ -300,17 +338,31 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
             //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
             //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
+            // 同 _hasBiomesForStructureSet：查不到结构定义属配置错误，不得静默跳过。
+            if (structure == nullptr) {
+                spdlog::critical("[STRUCT] structure_set '{}' references unregistered structure '{}'",
+                    structureSet.id().toString(),
+                    entry->structureId.toString());
+            }
+            MC_ASSERT_RELEASE(structure != nullptr);
+
             bool placed = false;
-            if (structure != nullptr) {
-                const BiomeId biomeAtCandidate =
-                    getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
-                if (structure->isValidBiome(biomeAtCandidate)) {
-                    auto start = structure->generate(*this, rng, chunkX, chunkZ);
-                    if (start) {
-                        chunk.addStructureStart(entry->structureId,
-                            std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
-                        placed = true;
-                    }
+            ++dbgAttempts;
+            const BiomeId biomeAtCandidate =
+                getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
+            if (structure->isValidBiome(biomeAtCandidate)) {
+                auto start = structure->generate(*this, rng, chunkX, chunkZ);
+                if (start) {
+                    chunk.addStructureStart(entry->structureId,
+                        std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
+                    placed = true;
+                    ++dbgCreated;
+                }
+            } else {
+                ++dbgSkipBiomeCheck;
+                if (dbgBiomeRejectedPairs.size() < 8) {
+                    dbgBiomeRejectedPairs.push_back(
+                        structureSet.id().toString() + " -> " + entry->structureId.toString());
                 }
             }
             if (placed) {
@@ -320,6 +372,37 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             // 失败：剔除该条目并递减总权重，继续重抽。
             remainingWeight -= entry->weight;
             candidates.erase(candidates.begin() + static_cast<std::ptrdiff_t>(chosen));
+        }
+    }
+
+    // 【诊断】仅在有结构集通过"非候选区块"关卡或产出结构时打印，避免刷屏。
+    if (dbgSkipPlacement > 0 || dbgCreated > 0) {
+        std::string skipped;
+        for (const auto& s : dbgBiomeSkippedSets) {
+            skipped += s;
+            skipped += ' ';
+        }
+        std::string rejected;
+        for (const auto& s : dbgBiomeRejectedPairs) {
+            rejected += s;
+            rejected += ' ';
+        }
+        spdlog::info("[STRUCT] ({},{}) sets={} skipExisting={} skipBiomes={} skipPlacement={} "
+                     "skipBiomeCheck={} attempts={} created={}",
+            chunkX,
+            chunkZ,
+            dbgSets,
+            dbgSkipExisting,
+            dbgSkipBiomes,
+            dbgSkipPlacement,
+            dbgSkipBiomeCheck,
+            dbgAttempts,
+            dbgCreated);
+        if (!skipped.empty()) {
+            spdlog::info("[STRUCT]   skipBiomes-sets: {}", skipped);
+        }
+        if (!rejected.empty()) {
+            spdlog::info("[STRUCT]   biomeRejected: {}", rejected);
         }
     }
 

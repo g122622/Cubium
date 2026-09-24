@@ -304,9 +304,13 @@ void initializeBuiltinStructureTypes()
     reg.registerType("end_city", createZeroArg<EndCityStructure>);
     reg.registerType("fortress", createZeroArg<FortressStructure>);
     reg.registerType("igloo", createZeroArg<IglooStructure>);
-    reg.registerType("jungle_pyramid", createZeroArg<JungleTempleStructure>);
+    // 原版 1.21 已把该类型由 minecraft:jungle_pyramid 改名为 minecraft:jungle_temple。
+    // 类型名必须与数据包 structure/*.json 的 "type" 字段逐字一致：不一致会导致该文件
+    // 解析失败、结构未注册，进而其所在结构集被整集跳过（静默消失）。
+    reg.registerType("jungle_temple", createZeroArg<JungleTempleStructure>);
     reg.registerType("nether_fossil", createZeroArg<NetherFossilStructure>);
-    reg.registerType("monument", createZeroArg<OceanMonumentStructure>);
+    // 原版 1.21 已把该类型由 minecraft:monument 改名为 minecraft:ocean_monument。
+    reg.registerType("ocean_monument", createZeroArg<OceanMonumentStructure>);
     reg.registerType("ocean_ruin", createZeroArg<OceanRuinStructure>);
     reg.registerType("ruined_portal", createZeroArg<RuinedPortalStructure>);
     reg.registerType("shipwreck", createZeroArg<ShipwreckStructure>);

@@ -294,24 +294,37 @@ Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, co
         // 数据驱动构造：按 type 工厂从已解析定义构造子类并注册到 StructureRegistry。
         // 工厂内部深拷贝 HeightProvider/PoolAliasBindings，def 所有权保留在 s_definitions。
         // 注意：调用方须先 initializeBuiltinStructureTypes() 注册工厂。
-        // 未注册该 type 时静默跳过（registry 未初始化或该 type 暂无 C++ 实现），
-        // 仅在工厂已注册但构造失败时 warn——避免纯解析场景（如单元测试直接调 loadFromJson）
-        // 产生噪音；生产路径 initializeBuiltinStructureTypes 已注册全部 16 type，构造失败才 warn。
-        // Result<unique_ptr> 特化的 value() 单次取值（取后内部置空），只能调一次。
-        if (StructureTypeRegistry::instance().has(def->type)) {
-            auto createResult = StructureTypeRegistry::instance().create(def->type, *def);
-            if (createResult.success()) {
-                auto structure = createResult.value();
-                if (structure) {
-                    StructureRegistry::registerStructure(std::move(structure));
-                } else {
-                    spdlog::warn(
-                        "Skipped structure '{}': factory returned null for type '{}'", location.toString(), def->type);
-                }
-            } else {
-                spdlog::warn("Skipped structure '{}': {}", location.toString(), createResult.error().message());
-            }
+        //
+        // 【不得静默跳过】此前"未注册该 type 时静默跳过"是一条兜底策略，代价极高：
+        // 结构类型名一旦与原版数据包不一致（原版 1.21 已把 jungle_pyramid 类型改名为
+        // jungle_temple、monument 改名为 ocean_monument，而本文件所在仓库仍注册旧名），
+        // 该结构就会**根本不存在**，其所在结构集随即被 _hasBiomesForStructureSet 判为
+        // "本维度无匹配群系"而整集跳过——表现为丛林神庙/海底神殿整片消失，且不报错。
+        // 现改为硬失败：类型注册表已初始化（生产与测试夹具都会先调
+        // initializeBuiltinStructureTypes）却遇到未知 type，属配置错误，必须立刻暴露。
+        if (!StructureTypeRegistry::instance().has(def->type)) {
+            spdlog::error("[STRUCT] structure '{}' declares unknown type '{}'; the C++ type registry is out of "
+                          "sync with the data pack",
+                location.toString(),
+                def->type);
         }
+        MC_ASSERT_RELEASE(StructureTypeRegistry::instance().has(def->type));
+
+        auto createResult = StructureTypeRegistry::instance().create(def->type, *def);
+        if (createResult.failed()) {
+            spdlog::error("[STRUCT] structure '{}' (type '{}') failed to construct: {}",
+                location.toString(),
+                def->type,
+                createResult.error().message());
+        }
+        MC_ASSERT_RELEASE(createResult.success());
+
+        auto structure = createResult.value();
+        if (structure == nullptr) {
+            spdlog::error("[STRUCT] structure '{}' (type '{}'): factory returned null", location.toString(), def->type);
+        }
+        MC_ASSERT_RELEASE(structure != nullptr);
+        StructureRegistry::registerStructure(std::move(structure));
 
         s_definitions.push_back(std::move(def));
 

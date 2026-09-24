@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -43,6 +44,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc::world::gen::structure {
 
@@ -645,11 +647,20 @@ bool Structure::isValidBiome(BiomeId biomeId) const
 {
     // 使用 BiomeTag 进行 O(1) 查找
     const biome::BiomeTag* tag = biomeTag();
-    if (tag) {
-        return tag->contains(biomeId);
+
+    // 【必须断言，不得静默返回 false】结构 JSON 的 "biomes" 是标签引用
+    // （如 "#minecraft:has_structure/village_plains"）。标签解析失败时 biomeTag()
+    // 为空，若此处静默返回 false，调用方的语义会从"该群系不允许本结构"变成
+    // "**所有**群系都不允许本结构"——该结构将永不生成，且不产生任何错误。
+    // 这与 _hasBiomesForStructureSet 的静默跳过叠加，正是"村庄整片消失却无日志"
+    // 的成因。标签缺失属数据/加载错误，必须立刻暴露。
+    if (tag == nullptr) {
+        spdlog::error(
+            "[STRUCT] structure '{}' has an unresolved biome tag; structure tags not loaded?", id().toString());
     }
-    // 标签未加载时，无法判断，返回 false
-    return false;
+    MC_ASSERT_RELEASE(tag != nullptr);
+
+    return tag->contains(biomeId);
 }
 
 bool Structure::canGenerate(
