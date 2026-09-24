@@ -66,8 +66,9 @@ public:
     /**
      * @brief 在指定区块原点放置特征
      *
-     * 先走 placement 链 getPositions 得到候选位置，
-     * 再对每个位置调用配置化特征的 place()。
+     * 沿 placement 链**惰性**遍历候选位置，每产出一个位置就立刻调用配置化特征的 place()。
+     * 惰性是必要的：原版用 Stream.flatMap 管道 + 终端 forEach，使位置计算与特征放置逐实例
+     * 交错，而特征放置自身会消耗随机数，攒齐全部位置再放置会让随机流从第二个实例起错开。
      *
      * @param region 世界生成区域
      * @param chunk 区块数据

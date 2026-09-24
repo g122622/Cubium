@@ -33,6 +33,7 @@
 #include "server/world/gen/valueprovider/HeightProvider.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -586,19 +587,28 @@ public:
     ConfiguredPlacement(std::unique_ptr<Placement> placement, std::unique_ptr<IPlacementConfig> config);
 
     /**
-     * @brief 获取放置位置
+     * @brief 惰性遍历放置位置（对齐 MC PlacedFeature.placeWithContext 的 Stream.flatMap 语义）
+     *
+     * 【为什么必须惰性求值】原版把整条 placement 链写成 `Stream.flatMap` 管道，
+     * 直到终端 `forEach` 才驱动求值，因此"算出第 k 个候选位置"与"在该位置放置特征"
+     * 是**逐实例交错**的：
+     *     count → in_square(e0) → height_range(e0) → feature.place(e0)
+     *           → in_square(e1) → height_range(e1) → feature.place(e1) → ...
+     *
+     * 而 `feature.place` 自身会消耗大量随机数（OreFeature 要抽 nextFloat 定轴线方向、
+     * 抽 nextInt(3) 抖 Y、每个球心抽 nextDouble 定半径）。若先一次性算完全部候选位置、
+     * 再逐个调用 `feature.place`，则从**第二个实例**起随机流便与原版错开：原版此处消耗的
+     * 是 `place(e0)` 的随机数，本实现消耗的却是 `in_square(e1)` 的，此后步步错位。
+     * 表现为"每个 placed_feature 的首个实例落位正确、其余实例全部错位"，且 count 越大
+     * 偏离越远——实测 `ore_coal`(count=20) 几乎全错，而 count=2 的 `ore_tuff` 命中仅约半数。
+     *
+     * 单个位置的回调返回值被忽略（对齐原版 `forEach` 不短路：即便某次放置失败，
+     * 后续实例仍会依次尝试）。
      */
-    [[nodiscard]] std::vector<BlockPos> getPositions(
-        WorldGenRegion& region, math::IRandom& random, const BlockPos& basePos) const;
-
-    /**
-     * @brief 链式添加放置器
-     * @param placement 放置器
-     * @param config 配置
-     * @return 新的配置化放置器
-     */
-    [[nodiscard]] std::unique_ptr<ConfiguredPlacement> then(
-        std::unique_ptr<Placement> placement, std::unique_ptr<IPlacementConfig> config) const;
+    void forEachPosition(WorldGenRegion& region,
+        math::IRandom& random,
+        const BlockPos& basePos,
+        const std::function<void(const BlockPos&)>& consumer) const;
 
     /**
      * @brief 设置下一个放置器

@@ -81,32 +81,24 @@ ConfiguredPlacement::ConfiguredPlacement(std::unique_ptr<Placement> placement, s
     , m_next(nullptr)
 {}
 
-std::vector<BlockPos> ConfiguredPlacement::getPositions(
-    WorldGenRegion& region, math::IRandom& random, const BlockPos& basePos) const
+void ConfiguredPlacement::forEachPosition(WorldGenRegion& region,
+    math::IRandom& random,
+    const BlockPos& basePos,
+    const std::function<void(const BlockPos&)>& consumer) const
 {
-    std::vector<BlockPos> positions = m_placement->getPositions(region, random, *m_config, basePos);
-
-    // 链式处理
-    if (m_next) {
-        std::vector<BlockPos> result;
-        for (const BlockPos& pos : positions) {
-            auto nextPositions = m_next->getPositions(region, random, pos);
-            result.insert(result.end(), nextPositions.begin(), nextPositions.end());
+    // 单个 modifier 对一个输入位置的处理是一次性算完的（原版 getPositions 返回 Stream，
+    // 其内部同样先算好再供下游消费），故此处取 vector 不破坏语义。
+    // 需要惰性化的是**跨 modifier 的链接**：链尾每产出一个位置就立刻交给终端消费者，
+    // 而不是攒齐整条链的全部输出再统一消费——后者会让 feature.place 的随机数消耗
+    // 滞后到所有候选位置之后，从第二个实例起随机流与原版错开。
+    const std::vector<BlockPos> positions = m_placement->getPositions(region, random, *m_config, basePos);
+    for (const BlockPos& pos : positions) {
+        if (m_next) {
+            m_next->forEachPosition(region, random, pos, consumer);
+        } else {
+            consumer(pos);
         }
-        return result;
     }
-
-    return positions;
-}
-
-std::unique_ptr<ConfiguredPlacement> ConfiguredPlacement::then(
-    std::unique_ptr<Placement> placement, std::unique_ptr<IPlacementConfig> config) const
-{
-    auto next = std::make_unique<ConfiguredPlacement>(std::move(placement), std::move(config));
-
-    // 当前实现采用显式链式构建（通过 setNext）
-    // 此处返回新节点，供调用方挂接到已有链路
-    return next;
 }
 
 // ============================================================================

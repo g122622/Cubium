@@ -54,15 +54,18 @@ bool PlacedFeature::place(WorldGenRegion& region,
     math::IRandom& random,
     const BlockPos& origin) const
 {
-    // 走 placement 链得到候选位置列表
-    const std::vector<BlockPos> positions = m_placement->getPositions(region, random, origin);
-
+    // 【必须惰性遍历】原版 placeWithContext 把 placement 链写成 Stream.flatMap 管道，
+    // 由终端 forEach 驱动求值，"算候选位置"与"放置特征"是逐实例交错的，因此 feature.place
+    // 消耗的随机数发生在下一实例的 in_square/height_range **之前**。
+    // 若先 getPositions 攒齐全部候选位置再逐个放置，从第二个实例起随机流即与原版错开
+    // （详见 ConfiguredPlacement::forEachPosition 的说明）。
     bool anyPlaced = false;
-    for (const BlockPos& pos : positions) {
+    m_placement->forEachPosition(region, random, origin, [&](const BlockPos& pos) {
+        // 回调返回值被忽略（对齐原版 forEach 不短路）：单次放置失败不影响后续实例。
         if (m_feature->place(region, chunk, generator, random, pos)) {
             anyPlaced = true;
         }
-    }
+    });
     return anyPlaced;
 }
 

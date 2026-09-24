@@ -160,14 +160,18 @@ i32 OreFeature::_doPlace(WorldGenRegion& region,
     for (i32 i = 0; i < veinSize; ++i) {
         const f32 progress = static_cast<f32>(i) / static_cast<f32>(veinSize);
 
-        // 注意 Mth.lerp 的参数顺序与项目的 math::lerp 相反：
-        //   Java:   Mth.lerp(delta, start, end) = end + delta * (start - end)
+        // 参数顺序：Java 与项目的 math::lerp 语义**相同**，都是 start + t*(end - start)：
+        //   Java:   Mth.lerp(delta, start, end) = start + delta * (end - start)
         //   Cubium: math::lerp(a, b, t)         = a + t * (b - a)
-        // 即 math::lerp(end, start, delta)。写反会让球心落到与轴线无关的位置，
-        // 球体判定随即全部落空，矿脉一个方块都放不出来。
-        spheres[static_cast<size_t>(i) * 4 + 0] = math::lerp(x2, x1, static_cast<f64>(progress));
-        spheres[static_cast<size_t>(i) * 4 + 1] = math::lerp(y2, y1, static_cast<f64>(progress));
-        spheres[static_cast<size_t>(i) * 4 + 2] = math::lerp(z2, z1, static_cast<f64>(progress));
+        // 故原版 `Mth.lerp(f, x1, x2)` 直译为 math::lerp(x1, x2, f)。
+        // 【历史缺陷】此处曾误按 "参数顺序相反" 写成 math::lerp(x2, x1, f)，等价于把
+        // 轴线端点对调——球心 k 落到原版 progress=(n-k)/n 处（整体沿轴平移一格），
+        // 且第 k 次 nextDouble() 抽出的半径被安到了错误的位置上。半径仅 0.5~2.5 格，
+        // 错配一格即显著改变矿脉形状，实测使石变体（granite/diorite/andesite）与
+        // 深板岩矿石大面积错位。
+        spheres[static_cast<size_t>(i) * 4 + 0] = math::lerp(x1, x2, static_cast<f64>(progress));
+        spheres[static_cast<size_t>(i) * 4 + 1] = math::lerp(y1, y2, static_cast<f64>(progress));
+        spheres[static_cast<size_t>(i) * 4 + 2] = math::lerp(z1, z2, static_cast<f64>(progress));
 
         const f64 radiusScale = random.nextDouble() * static_cast<f64>(veinSize) / 16.0;
         // 半径包络用 Mth.sin 的量化查表值（f32），再与 f64 的 radiusScale 相乘后取半。

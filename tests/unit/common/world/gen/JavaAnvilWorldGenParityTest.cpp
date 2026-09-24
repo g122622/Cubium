@@ -174,9 +174,10 @@ constexpr std::pair<ChunkCoord, ChunkCoord> kTargets[] = {
 constexpr i32 kMaxHeightDelta = 24;
 
 /// 逐方块不一致率上限（占区块总方块数）。
-/// 现状实测：12.0% ~ 13.7%（补齐方块标签 + 重写 OreFeature 前为 18.3% ~ 20.8%）。
+/// 现状实测：1.21% ~ 2.84%（修复"候选位置与特征放置未逐实例交错"前为 9.0% ~ 10.2%；
+/// 更早补齐方块标签 + 重写 OreFeature 前为 18.3% ~ 20.8%）。
 /// 仍只是退化门禁，收敛目标为 0。
-constexpr f64 kMaxBlockMismatchRatio = 0.20;
+constexpr f64 kMaxBlockMismatchRatio = 0.05;
 
 /**
  * @brief 单个区块的对比统计
@@ -583,6 +584,104 @@ protected:
     }
 
     /**
+     * @brief 诊断：同一方块在两侧的"位置集合对齐度"与 Y 重心
+     *
+     * 差异对与总量对比都无法区分成因，本诊断补上最后一维：
+     *   - 数量接近、命中率低、meanY 明显平移 → 放置/高度链路整体错位
+     *   - 数量接近、命中率高                 → 仅边界抖动（形状微小差异）
+     *   - 数量悬殊                            → 多/少生成
+     * 命中率 = |两侧位置集合交集| / 该侧总数（取两侧较小者；两者不等说明有一侧多出
+     * 了"额外的"方块）。同时给出两侧 meanY 与 Y 跨度，用于判断是否存在整体高度平移。
+     */
+    static void printBlockPlacementAlignment(const ChunkData& javaChunk, const ChunkData& cubiumChunk, i32 cx, i32 cz)
+    {
+        struct SideStats {
+            i64 count = 0;
+            i64 sumY = 0;
+            i32 minY = 0;
+            i32 maxY = 0;
+            std::set<i32> cells;
+        };
+        std::map<std::string, std::pair<SideStats, SideStats>> stats;
+
+        const auto accumulate = [&](const ChunkData& chunk, bool isJava) {
+            for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                for (i32 bz = 0; bz < 16; ++bz) {
+                    for (i32 bx = 0; bx < 16; ++bx) {
+                        const std::string name = blockName(chunk.getBlockStateId(bx, y, bz));
+                        if (name == "minecraft:air") {
+                            continue; // 空气的位置对齐无意义，且数量过大
+                        }
+                        SideStats& s = isJava ? stats[name].first : stats[name].second;
+                        if (s.count == 0) {
+                            s.minY = y;
+                            s.maxY = y;
+                        }
+                        ++s.count;
+                        s.sumY += y;
+                        s.minY = std::min(s.minY, y);
+                        s.maxY = std::max(s.maxY, y);
+                        s.cells.insert(bx + bz * 16 + (y - world::MIN_BUILD_HEIGHT) * 256);
+                    }
+                }
+            }
+        };
+        accumulate(javaChunk, true);
+        accumulate(cubiumChunk, false);
+
+        const auto intersection = [](const SideStats& a, const SideStats& b) {
+            i64 inter = 0;
+            for (const i32 cell : a.cells) {
+                if (b.cells.count(cell) != 0) {
+                    ++inter;
+                }
+            }
+            return inter;
+        };
+
+        std::vector<std::pair<f64, std::string>> rows;
+        for (const auto& [name, pair] : stats) {
+            if (pair.first.count + pair.second.count < 64) {
+                continue;
+            }
+            const i64 inter = intersection(pair.first, pair.second);
+            const f64 hitJava =
+                pair.first.count > 0 ? static_cast<f64>(inter) / static_cast<f64>(pair.first.count) : 1.0;
+            const f64 hitCubium =
+                pair.second.count > 0 ? static_cast<f64>(inter) / static_cast<f64>(pair.second.count) : 1.0;
+            rows.emplace_back(std::min(hitJava, hitCubium), name);
+        }
+        std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
+            return a.first != b.first ? a.first < b.first : a.second < b.second;
+        });
+
+        std::printf("[DIAG-ALIGN] (%d,%d) 方块位置对齐（取两侧较小命中率，低者优先）：\n", cx, cz);
+        const auto meanY = [](const SideStats& s) {
+            return s.count > 0 ? static_cast<f64>(s.sumY) / static_cast<f64>(s.count) : 0.0;
+        };
+        const size_t limit = std::min<size_t>(rows.size(), 14);
+        for (size_t i = 0; i < limit; ++i) {
+            const std::string& name = rows[i].second;
+            const SideStats& j = stats[name].first;
+            const SideStats& c = stats[name].second;
+            std::printf("[DIAG-ALIGN] %-38s 命中 %5.1f%%  n %5lld/%-5lld 交集 %5lld  meanY %6.1f/%6.1f (Δ%+.1f)  Yspan "
+                        "%d..%d / %d..%d\n",
+                name.c_str(),
+                rows[i].first * 100.0,
+                static_cast<long long>(j.count),
+                static_cast<long long>(c.count),
+                static_cast<long long>(intersection(j, c)),
+                meanY(j),
+                meanY(c),
+                meanY(c) - meanY(j),
+                j.minY,
+                j.maxY,
+                c.minY,
+                c.maxY);
+        }
+    }
+
+    /**
      * @brief 打印两侧各方块的总量对比（只列数量相差 100 以上的）
      *
      * 差异对只能说明"某个位置该是 A 却是 B"，无法区分 A 被多生成、还是 A 与 B 整体错位。
@@ -652,7 +751,13 @@ protected:
         i64 total = 0;
         for (size_t i = 0; i < diff.mismatchByY.size(); ++i) {
             const i32 y = world::MIN_BUILD_HEIGHT + static_cast<i32>(i);
-            bands[(y / kBandHeight) * kBandHeight] += diff.mismatchByY[i];
+            // 【必须用 floorDiv】C++ 的 `/` 向零截断：y=-33 时 (-33)/32 == -1 会落到
+            // band -32，而 y=-64 时 (-64)/32 == -2 落到 band -64，于是 -64..-33 这一带
+            // 被拆成"仅 y=-64 一行"归入 -64、其余 31 行归入 -32。结果是分层报表
+            // 与 printMismatchPairsByYBand（用 floorDiv）口径不一致，深层差异被静默
+            // 并入上一层，掩盖了真实分布。
+            const i32 band = math::floorDiv(y, kBandHeight) * kBandHeight;
+            bands[band] += diff.mismatchByY[i];
             total += diff.mismatchByY[i];
         }
         if (total == 0) {
@@ -1063,6 +1168,7 @@ TEST_F(JavaAnvilWorldGenParityTest, GeneratedBlocksMatchJavaSave)
         const ChunkDiff diff = compareBlocks(*javaChunk, *cubiumChunk);
         printBlockDiffReport(diff);
         printMismatchPairsByYBand(*javaChunk, *cubiumChunk, cx, cz);
+        printBlockPlacementAlignment(*javaChunk, *cubiumChunk, cx, cz);
         printWorstColumnProfiles(*javaChunk, *cubiumChunk, cx, cz);
         const f64 ratio = static_cast<f64>(diff.mismatchedBlocks) / static_cast<f64>(diff.totalBlocks);
         EXPECT_LE(ratio, kMaxBlockMismatchRatio)
