@@ -28,6 +28,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include <string>
+#include <string_view>
 
 namespace mc::world::gen::feature::cave {
 
@@ -70,7 +71,16 @@ enum class CaveSurface : u8 {
  */
 [[nodiscard]] inline bool matchesTag(const BlockState& state, const std::string& tagName)
 {
-    auto* tag = mc::BlockTags::getTag(mc::ResourceLocation(tagName));
+    // 【必须剥离前导 '#'】数据包里标签引用写作 "#minecraft:moss_replaceable"，
+    // 而 ResourceLocation 按 "namespace:path" 拆分——直接把带 '#' 的串交给它，
+    // namespace 会变成 "#minecraft"，标签查找必然落空，matchesTag 恒为 false。
+    // 此前 vegetation_patch 的 placeGround 因此对每一列都判定"不可替换"，
+    // 使繁茂洞穴的苔藓/杜鹃等特征一个方块都放不出来。
+    std::string_view raw = tagName;
+    if (!raw.empty() && raw.front() == '#') {
+        raw.remove_prefix(1);
+    }
+    auto* tag = mc::BlockTags::getTag(mc::ResourceLocation(std::string(raw)));
     return tag != nullptr && tag->contains(state);
 }
 
