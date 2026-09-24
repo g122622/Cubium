@@ -1200,6 +1200,8 @@ add_executable(mc_tests
     common/world/gen/density/DensityAstBaselineTest.cpp
     # 噪声采样层 SoA 向量化 vs 标量 reference 的 ULP 漂移监控(纯观测,不卡门禁)
     common/world/gen/density/DensityAstUlpTest.cpp
+    # BlendedNoise 原版黄金值门禁（期望值由独立 Java 参考实现导出，捕捉"自洽但与原版不一致"）
+    common/world/gen/density/BlendedNoiseVanillaGoldenTest.cpp
     # AST 优化 pass 结构正确性单元测试（TreeNormalization/FoldConstants/BranchElimination）
     common/world/gen/density/OptoPassesTest.cpp
     # 维度级 AST 编译器端到端数值等价：compiled.eval vs finalDensity.compute

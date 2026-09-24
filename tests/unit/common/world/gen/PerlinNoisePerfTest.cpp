@@ -31,6 +31,7 @@
  */
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "server/world/gen/noise/PerlinNoise.hpp"
 
@@ -139,7 +140,8 @@ TEST(PerlinNoisePerfTest, GetValue16Octave)
 // BlendedNoise::compute: 完整密度计算路径
 TEST(PerlinNoisePerfTest, BlendedNoiseCompute)
 {
-    const BlendedNoise noise(0ULL, 0.25, 0.125, 80.0, 160.0, 8.0);
+    math::Xoroshiro128ppRandom rng(0ULL);
+    const BlendedNoise noise(rng, 0.25, 0.125, 80.0, 160.0, 8.0);
     constexpr int kIters = 500'000;
     const i64 ns = benchCompute(noise, kIters);
     std::printf("[PERF] BlendedNoiseCompute: %lld ns/op (%d iters)\n", static_cast<long long>(ns / kIters), kIters);

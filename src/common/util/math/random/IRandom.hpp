@@ -272,6 +272,24 @@ public:
      */
     virtual void skip(u64 count);
 
+    /**
+     * @brief 消费指定数量的随机数（MC: RandomSource.consumeCount）
+     *
+     * 与 skip() 的区别：原版 `RandomSource.consumeCount(n)` 的默认实现是循环调用
+     * `nextInt()`（一次 32 位抽取），而 `XoroshiroRandomSource` 覆写为循环
+     * `nextLong()`；`skip()` 在本项目里另有语义（Xoroshiro 的 skip 是 2^64 步跳转，
+     * 不是"前进 n 步"）。世界生成里 PerlinNoise 的 skipOctave 依赖此语义，
+     * 故必须与 skip() 分开，不能互相替代。
+     *
+     * 默认实现对齐原版 `RandomSource.consumeCount`：循环 nextInt()。
+     */
+    virtual void consumeCount(i32 count)
+    {
+        for (i32 i = 0; i < count; ++i) {
+            (void)nextInt();
+        }
+    }
+
     // === 洗牌方法 ===
 
     /**

@@ -22,7 +22,8 @@
 
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "server/world/gen/noise/PerlinNoise.hpp"
 #include "server/world/gen/noise/PerlinNoiseSoA.hpp"
 #include <cmath>
@@ -47,29 +48,28 @@ std::vector<f64> makeLegacyAmplitudes(i32 firstOctave, i32 lastOctave)
 // 构造函数
 // ============================================================================
 
-BlendedNoise::BlendedNoise(u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
+BlendedNoise::BlendedNoise(
+    math::IRandom& random, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
     : m_xzScale(xzScale)
     , m_yScale(yScale)
     , m_xzFactor(xzFactor)
     , m_yFactor(yFactor)
     , m_smearScaleMultiplier(smearScaleMultiplier)
-    , m_seed(seed)
 {
-    // MC 1.21.11: BlendedNoise(RandomSource, ...) 使用旧版种子派生
-    // 三个 PerlinNoise 共享同一个 JavaLegacyRandom，顺序消费随机数。
-    // 对应 MC: PerlinNoise.createLegacyForBlendedNoise(p_230462_, IntStream.rangeClosed(-15, 0))
-    math::JavaLegacyRandom rng(seed);
-
-    m_minLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
-    m_maxLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
-    m_mainNoise = std::make_unique<noise::PerlinNoise>(rng, -7, makeLegacyAmplitudes(-7, 0));
+    // MC 1.21.11: BlendedNoise(RandomSource, ...) —— 三个 PerlinNoise **共享同一个
+    // RandomSource** 顺序消费随机数，对应 PerlinNoise.createLegacyForBlendedNoise。
+    // 该 RandomSource 由调用方（RandomState.NoiseWiringHelper）提供，类型随
+    // noise_settings.legacy_random_source 变化（见头文件注释），故此处只收 IRandom&。
+    m_minLimitNoise = std::make_shared<noise::PerlinNoise>(random, -15, makeLegacyAmplitudes(-15, 0));
+    m_maxLimitNoise = std::make_shared<noise::PerlinNoise>(random, -15, makeLegacyAmplitudes(-15, 0));
+    m_mainNoise = std::make_shared<noise::PerlinNoise>(random, -7, makeLegacyAmplitudes(-7, 0));
 
     initFromNoises();
 }
 
-BlendedNoise::BlendedNoise(std::unique_ptr<noise::PerlinNoise> minLimitNoise,
-    std::unique_ptr<noise::PerlinNoise> maxLimitNoise,
-    std::unique_ptr<noise::PerlinNoise> mainNoise,
+BlendedNoise::BlendedNoise(std::shared_ptr<noise::PerlinNoise> minLimitNoise,
+    std::shared_ptr<noise::PerlinNoise> maxLimitNoise,
+    std::shared_ptr<noise::PerlinNoise> mainNoise,
     f64 xzScale,
     f64 yScale,
     f64 xzFactor,
@@ -83,7 +83,6 @@ BlendedNoise::BlendedNoise(std::unique_ptr<noise::PerlinNoise> minLimitNoise,
     , m_xzFactor(xzFactor)
     , m_yFactor(yFactor)
     , m_smearScaleMultiplier(smearScaleMultiplier)
-    , m_seed(0)
 {
     initFromNoises();
 }
@@ -256,13 +255,13 @@ f64 BlendedNoise::compute(i32 blockX, i32 blockY, i32 blockZ) const
 std::unique_ptr<BlendedNoise> BlendedNoise::createUnseeded(
     f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier)
 {
-    // MC 1.21.11: createUnseeded 使用 seed=0 的旧版构造路径。
-    // 仅用于序列化占位，运行时通过 withNewRandom 替换种子。
-    math::JavaLegacyRandom rng(0);
+    // MC 1.21.11: createUnseeded 用 `new XoroshiroRandomSource(0L)` 构造（BlendedNoise.java
+    // 的 public 构造器里写死），只用于序列化占位，运行时由 withNewRandom 换掉。
+    math::Xoroshiro128ppRandom rng(0ULL);
 
-    auto minLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
-    auto maxLimitNoise = std::make_unique<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
-    auto mainNoise = std::make_unique<noise::PerlinNoise>(rng, -7, makeLegacyAmplitudes(-7, 0));
+    auto minLimitNoise = std::make_shared<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
+    auto maxLimitNoise = std::make_shared<noise::PerlinNoise>(rng, -15, makeLegacyAmplitudes(-15, 0));
+    auto mainNoise = std::make_shared<noise::PerlinNoise>(rng, -7, makeLegacyAmplitudes(-7, 0));
 
     return std::make_unique<BlendedNoise>(std::move(minLimitNoise),
         std::move(maxLimitNoise),

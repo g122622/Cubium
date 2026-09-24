@@ -52,15 +52,20 @@ namespace mc::world::gen::density {
 class BlendedNoise final : public DensityFunction {
 public:
     /**
-     * @brief 使用种子和参数构造
-     * @param seed 随机种子
-     * @param xzScale XZ 方向缩放因子
-     * @param yScale Y 方向缩放因子
-     * @param xzFactor XZ 方向因子
-     * @param yFactor Y 方向因子
-     * @param smearScaleMultiplier Y 方向涂抹缩放乘数
+     * @brief 使用 RandomSource 构造（对齐 MC BlendedNoise(RandomSource, ...)）
+     *
+     * 原版 `BlendedNoise(RandomSource, xzScale, yScale, xzFactor, yFactor, smearScaleMultiplier)`
+     * 用**同一个** RandomSource 顺序构造 minLimitNoise/maxLimitNoise/mainNoise 三层
+     * PerlinNoise（走 createLegacyForBlendedNoise，即 PerlinNoise 的 legacy 路径）。
+     * 该 RandomSource 由 RandomState.NoiseWiringHelper 提供，具体类型取决于
+     * noise_settings.legacy_random_source：
+     *   - false（主世界/放大化/大型群系）→ `random.fromHashOf("minecraft:terrain")` 得到的 Xoroshiro
+     *   - true （下界/末地/洞穴/浮岛）  → 由 worldSeed 派生的 LegacyRandomSource
+     * 因此这里必须收 IRandom&，不能收具体类型——收错类型会让置换表与原点偏移全部错位。
+     *
+     * @param random 共享随机源（调用后状态被消费）
      */
-    BlendedNoise(u64 seed, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier);
+    BlendedNoise(math::IRandom& random, f64 xzScale, f64 yScale, f64 xzFactor, f64 yFactor, f64 smearScaleMultiplier);
 
     ~BlendedNoise() override = default;
 
@@ -76,8 +81,20 @@ public:
 
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
-        return visitor.apply(
-            std::make_unique<BlendedNoise>(m_seed, m_xzScale, m_yScale, m_xzFactor, m_yFactor, m_smearScaleMultiplier));
+        // 原版 BlendedNoise 实现 DensityFunction.SimpleFunction，其 mapAll 是
+        // `return visitor.apply(this)`——**不重建实例**。BlendedNoise 构造后三层
+        // PerlinNoise 只读且无 mutable 状态，重建一份既昂贵（3×PerlinNoise + SoA）
+        // 又必须复刻同一随机流（原版此时已拿不到 RandomSource）。
+        // 这里沿用项目叶子节点的既有范式：重建一个共享同一 PerlinNoise 的壳子
+        // （PerlinNoise 不可拷贝，故 shared_ptr 共享），语义等价于原版按实例复用。
+        return visitor.apply(std::make_unique<BlendedNoise>(m_minLimitNoise,
+            m_maxLimitNoise,
+            m_mainNoise,
+            m_xzScale,
+            m_yScale,
+            m_xzFactor,
+            m_yFactor,
+            m_smearScaleMultiplier));
     }
 
     /**
@@ -88,10 +105,14 @@ public:
 
     /**
      * @brief 内部构造函数，接受三个已初始化的 PerlinNoise
+     *
+     * 用 shared_ptr 而非 unique_ptr：PerlinNoise 不可拷贝（内部含 SoA 连续块），
+     * 而 mapAll 需要"共享同一组噪声、重建外层壳子"（原版 mapAll 直接复用实例）。
+     * 三层噪声构造后只读，共享安全。
      */
-    BlendedNoise(std::unique_ptr<noise::PerlinNoise> minLimitNoise,
-        std::unique_ptr<noise::PerlinNoise> maxLimitNoise,
-        std::unique_ptr<noise::PerlinNoise> mainNoise,
+    BlendedNoise(std::shared_ptr<noise::PerlinNoise> minLimitNoise,
+        std::shared_ptr<noise::PerlinNoise> maxLimitNoise,
+        std::shared_ptr<noise::PerlinNoise> mainNoise,
         f64 xzScale,
         f64 yScale,
         f64 xzFactor,
@@ -104,16 +125,15 @@ private:
      */
     void initFromNoises();
 
-    std::unique_ptr<noise::PerlinNoise> m_minLimitNoise;
-    std::unique_ptr<noise::PerlinNoise> m_maxLimitNoise;
-    std::unique_ptr<noise::PerlinNoise> m_mainNoise;
+    std::shared_ptr<noise::PerlinNoise> m_minLimitNoise;
+    std::shared_ptr<noise::PerlinNoise> m_maxLimitNoise;
+    std::shared_ptr<noise::PerlinNoise> m_mainNoise;
 
     f64 m_xzScale;
     f64 m_yScale;
     f64 m_xzFactor;
     f64 m_yFactor;
     f64 m_smearScaleMultiplier;
-    u64 m_seed = 0;
 
     f64 m_xzMultiplier = 0.0; ///< 684.412 * xzScale
     f64 m_yMultiplier = 0.0;  ///< 684.412 * yScale

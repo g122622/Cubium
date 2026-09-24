@@ -112,13 +112,18 @@ u64 Xoroshiro128ppRandom::nextU64()
 f64 Xoroshiro128ppRandom::nextDouble()
 {
     // MC XoroshiroRandomSource.nextDouble():
-    //   return (double) this.nextBits(53) * 1.1102230246251565E-16D;
+    //   return this.nextBits(53) * 1.110223E-16F;
     // nextBits(53) = nextLong() >>> (64 - 53) = nextLong() >>> 11，结果落在 [0, 2^53)。
     // Java 的 >>> 是无符号右移，C++ 需要先转 u64 再右移。
-    // 原版全程是 double 精度（long 拓宽为 double 时 val < 2^53 可精确表示），
-    // 中间不得降为 float——那会丢掉 29 位有效位，与原版产生可见偏差。
+    //
+    // 【字面量是 float 后缀，不是 double】原版常量写作 `1.110223E-16F`（float），其值恰好
+    // 等于 2^-53（2 的整数次幂在 float 里可精确表示），但 Java 的 `long * float` 会先做
+    // 二元数值提升——long 拓宽为 **float**（丢 29 位有效位）再乘，结果只有 24 位精度，
+    // 最后才拓宽为 double 返回。例：k = 2^53-1 时 `k * (float)2^-53` 得 1.0，而
+    // `(double)k * 2^-53` 得 0.9999999999999999——差 1 个 double ULP，足以让依赖严格
+    // 不等号的密度函数分叉。故必须复刻 float 中间精度：先 (f32)val，再乘 f32 常量。
     const u64 val = static_cast<u64>(nextLong()) >> 11;
-    return static_cast<f64>(val) * 1.1102230246251565E-16;
+    return static_cast<f64>(static_cast<f32>(val) * 1.1102230246251565E-16f);
 }
 
 f32 Xoroshiro128ppRandom::nextFloat()

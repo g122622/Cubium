@@ -98,9 +98,18 @@ f32 JavaLegacyRandom::nextFloat()
 
 f64 JavaLegacyRandom::nextDouble()
 {
-    // Java: ((long)(next(26)) << 27) + next(27)) / (1L << 53)
-    return (static_cast<f64>((static_cast<u64>(next(26)) << 27) + static_cast<u64>(next(27)))) /
-        static_cast<f64>(1ULL << 53);
+    // Java: RandomSource.nextDouble()（BitRandomSource 的默认实现）
+    //   int i = this.next(26);
+    //   int j = this.next(27);
+    //   long k = ((long)i << 27) + j;
+    //   return k * 1.110223E-16F;
+    // 【字面量是 float 后缀】1.110223E-16F 的值恰好等于 2^-53（2 的整数次幂在 float
+    // 里可精确表示），但 Java 的 `long * float` 会做二元数值提升——k 先被拓宽为
+    // **float**（丢 29 位有效位）再做 float 乘法，结果只有 24 位精度，最后才拓宽为
+    // double 返回。写成 double 除法会得到 53 位精度的不同值，进而让 PerlinNoise 的
+    // 原点偏移（nextDouble() * 256.0）在 1e-5 量级上偏离原版，整片地形随之分叉。
+    const i64 k = (static_cast<i64>(next(26)) << 27) + static_cast<i64>(next(27));
+    return static_cast<f64>(static_cast<f32>(k) * 1.1102230246251565E-16f);
 }
 
 i64 JavaLegacyRandom::nextLong()

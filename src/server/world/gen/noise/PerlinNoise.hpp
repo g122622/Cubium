@@ -81,13 +81,19 @@ public:
 
     /**
      * @brief 旧版构造函数（共享 RandomSource，顺序消费随机数）
-     * @param rng JavaLegacyRandom 共享随机数生成器（调用后状态会推进）
+     * @param rng 共享随机数生成器（调用后状态会推进）
      * @param firstOctave 首个倍频索引
      * @param amplitudes 倍频振幅列表
      *
      * @note 对应 MC 1.21.11 的 PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false) 构造路径，
      *       即 createLegacyForBlendedNoise 和 createLegacyForLegacyNetherBiome 使用的路径。
      *       旧版模式不使用 PositionalRandomFactory，而是从同一个 RandomSource 顺序消费随机数。
+     *
+     *       **参数类型必须是 IRandom& 而非 JavaLegacyRandom&**：本路径的 RandomSource 由调用方提供，
+     *       其具体类型取决于 noise_settings 的 legacy_random_source——为 true 时原版
+     *       RandomState.NoiseWiringHelper 传 LegacyRandomSource，为 false 时传 XoroshiroRandomSource。
+     *       主世界为 false，故必须传 Xoroshiro 流。若用 JavaLegacyRandom 接收，Xoroshiro 的随机流
+     *       会被当作 LCG 状态直接使用，置换表与原点偏移全部错位，地形整体崩坏。
      *
      *       算法流程（MC PerlinNoise 构造函数 p_230517_==false 分支）：
      *       1. j = -firstOctave（octave 0 在振幅列表中的索引）
@@ -99,7 +105,7 @@ public:
      *
      *       用于 BlendedNoise 和旧版下界生物群系噪声。
      */
-    PerlinNoise(math::JavaLegacyRandom& rng, i32 firstOctave, std::vector<f64> amplitudes);
+    PerlinNoise(math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes);
 
     ~PerlinNoise() = default;
 
@@ -273,16 +279,19 @@ private:
     void initLayers(const math::PositionalRandomFactory& factory);
 
     /**
-     * @brief 初始化倍频层（旧版模式，共享 JavaLegacyRandom）
-     * @param rng JavaLegacyRandom 共享随机数生成器
+     * @brief 初始化倍频层（旧版模式，共享 RandomSource）
+     * @param rng 共享随机数生成器
      *
      * 对应 MC 1.21.11 的 PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false) 构造路径：
      * - j = -firstOctave（octave 0 在振幅列表中的索引）
      * - 创建第一个 ImprovedNoise(rng)，如果 amplitudes[j]!=0 则放入 noiseLevels[j]
      * - 从 i1=j-1 向下到 0：amplitudes[i1]!=0 则创建 ImprovedNoise(rng)，否则 consumeCount(262)
      * - 禁止正倍频（j < octaveCount-1 时抛出异常）
+     *
+     * 参数类型为 IRandom&（而非 JavaLegacyRandom&）：见构造函数注释，具体 RNG 由
+     * noise_settings.legacy_random_source 决定。
      */
-    void initLayersLegacy(math::JavaLegacyRandom& rng);
+    void initLayersLegacy(math::IRandom& rng);
 
     i32 m_firstOctave;
     std::vector<f64> m_amplitudes;

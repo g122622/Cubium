@@ -58,6 +58,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
 #include "server/world/gen/noise/NormalNoise.hpp"
 #include "server/world/gen/noise/PerlinNoise.hpp"
@@ -304,17 +305,19 @@ TEST(DensityAstUlpTest, BlendedNoiseComputeSoAVsScalar)
 
     for (const auto& bc : bcases) {
         for (const u64 seed : seeds) {
-            // BlendedNoise(seed,...) 内部用 JavaLegacyRandom 顺序构造 min/max/main。
-            // 标量重建须用同 rng 序列构造三个独立的 PerlinNoise 复刻相同置换表。
-            math::JavaLegacyRandom rng(seed);
+            // BlendedNoise(RandomSource,...) 用同一个 RandomSource 顺序构造 min/max/main。
+            // 标量重建须用**同类型的同种子** rng 复刻相同置换表（两次独立构造，各自消费）。
+            // 原版主世界 legacy_random_source=false → Xoroshiro，这里同样用 Xoroshiro。
             const auto rebuildAmplitudes = [](i32 first, i32 last) {
                 return std::vector<f64>(static_cast<size_t>(last - first + 1), 1.0);
             };
-            PerlinNoise minLimit(rng, -15, rebuildAmplitudes(-15, 0));
-            PerlinNoise maxLimit(rng, -15, rebuildAmplitudes(-15, 0));
-            PerlinNoise mainNoise(rng, -7, rebuildAmplitudes(-7, 0));
+            math::Xoroshiro128ppRandom rebuildRng(seed);
+            PerlinNoise minLimit(rebuildRng, -15, rebuildAmplitudes(-15, 0));
+            PerlinNoise maxLimit(rebuildRng, -15, rebuildAmplitudes(-15, 0));
+            PerlinNoise mainNoise(rebuildRng, -7, rebuildAmplitudes(-7, 0));
 
-            const BlendedNoise noise(seed, bc.xzScale, bc.yScale, bc.xzFactor, bc.yFactor, bc.smearScaleMultiplier);
+            math::Xoroshiro128ppRandom noiseRng(seed);
+            const BlendedNoise noise(noiseRng, bc.xzScale, bc.yScale, bc.xzFactor, bc.yFactor, bc.smearScaleMultiplier);
             const f64 xzMultiplier = 684.412 * bc.xzScale;
             const f64 yMultiplier = 684.412 * bc.yScale;
 

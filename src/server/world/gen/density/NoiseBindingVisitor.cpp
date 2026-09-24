@@ -24,6 +24,7 @@
 #include "server/world/gen/density/NoiseBindingVisitor.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/gen/density/DensityFunction.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/density/BlendedNoise.hpp"
@@ -184,12 +185,34 @@ std::unique_ptr<DensityFunction> NoiseBindingVisitor::bindUnbound(UnboundNoiseLe
             return std::make_unique<WeirdScaledSampler>(leaf.releaseInput(), noise, leaf.weirdType());
         }
         case UnboundNoiseLeaf::Kind::OldBlendedNoise: {
-            // 原版 NoiseWiringHelper: BlendedNoise 经 wrapNew 用 fromHashOf("minecraft:terrain")
-            // 派生种子构造（与 worldSeed 无关）。
+            // 原版 NoiseWiringHelper.wrapNew 的 BlendedNoise 分支：
+            //   RandomSource randomsource = flag
+            //       ? this.newLegacyInstance(0L)                                   // LegacyRandomSource(worldSeed + 0)
+            //       : RandomState.this.random.fromHashOf(Identifier("terrain"));   // 工厂派生出的 Xoroshiro
+            //   return blendednoise.withNewRandom(randomsource);
+            // 即**把这个 RandomSource 本身**交给 BlendedNoise，由它顺序构造三层 PerlinNoise。
+            // 关键：这里绝不能取 nextLong() 当种子另建 RNG——那既丢掉了随机流本身
+            // （只用了第一个 long），又换了 RNG 类型，置换表与原点偏移会全部错位。
+            //
+            // flag 即 noise_settings.legacy_random_source：主世界/放大化/大型群系为 false
+            // （走 Xoroshiro），下界/末地/洞穴/浮岛为 true（走 Legacy）。
+            if (m_randomState.settings().noise.useLegacyRandomSource) {
+                // newLegacyInstance(0L) = new LegacyRandomSource(worldSeed + 0)
+                math::JavaLegacyRandom legacyRng(static_cast<u64>(m_worldSeed));
+                return std::make_unique<BlendedNoise>(legacyRng,
+                    leaf.xzScale(),
+                    leaf.yScale(),
+                    leaf.xzFactor(),
+                    leaf.yFactor(),
+                    leaf.smearScaleMultiplier());
+            }
             auto terrainRng = m_randomState.positionalRandom().fromHashOf("minecraft:terrain");
-            const u64 seed = static_cast<u64>(terrainRng->nextLong());
-            return std::make_unique<BlendedNoise>(
-                seed, leaf.xzScale(), leaf.yScale(), leaf.xzFactor(), leaf.yFactor(), leaf.smearScaleMultiplier());
+            return std::make_unique<BlendedNoise>(*terrainRng,
+                leaf.xzScale(),
+                leaf.yScale(),
+                leaf.xzFactor(),
+                leaf.yFactor(),
+                leaf.smearScaleMultiplier());
         }
     }
     // Kind 枚举已全覆盖，到达此处的唯一可能是枚举越界（数据损坏）。fail-fast 而非静默返回空叶子，

@@ -86,10 +86,11 @@ public:
     /**
      * @brief 返回 [0.0, 1.0) 范围的随机双精度浮点数
      *
-     * MC XoroshiroRandomSource.nextDouble() 使用 float 精度：
-     *   (float)(nextLong() >>> 11) * 1.1102230246251565E-16F
-     * Java 的 long * float 运算会将 long 拓宽为 float（丢失约29位精度），
-     * 结果为 float 精度后再拓宽为 double。
+     * MC XoroshiroRandomSource.nextDouble()：
+     *   return this.nextBits(53) * 1.110223E-16F;
+     * 常量字面量是 **float** 后缀，Java 的 `long * float` 会把 long 拓宽为 float
+     * （丢失约 29 位精度），结果为 float 精度后再拓宽为 double 返回。
+     * 即中间精度是 float 而非 double——写成 double 运算会在 1 ULP 级别与原版分叉。
      */
     [[nodiscard]] f64 nextDouble() override;
 
@@ -127,8 +128,25 @@ public:
     /**
      * @brief 跳过指定数量的随机数
      * @param count 要跳过的随机数数量（注意：当前实现每次跳过 2^64 个状态）
+     *
+     * **不要**用本方法做"前进 n 步"。Xoroshiro 的 skip 是跳转多项式（一次跳过 2^64 个状态），
+     * 与世界生成里"消费 n 个随机数"的语义完全不同；后者请用 consumeCount()。
      */
     void skip(u64 count) override;
+
+    /**
+     * @brief 消费指定数量的随机数（MC: XoroshiroRandomSource.consumeCount）
+     *
+     * 原版 XoroshiroRandomSource 覆写了 RandomSource.consumeCount，实现是循环 nextLong()
+     * （每次推进 64 位状态），而非基类默认的循环 nextInt()。PerlinNoise 的 skipOctave
+     * 依赖此语义，故必须覆写——否则消费次数相同但状态推进量差一倍，后续所有置换表错位。
+     */
+    void consumeCount(i32 count) override
+    {
+        for (i32 i = 0; i < count; ++i) {
+            (void)nextU64();
+        }
+    }
 
     /**
      * @brief 创建位置随机工厂

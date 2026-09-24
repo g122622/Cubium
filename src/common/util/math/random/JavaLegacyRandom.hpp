@@ -80,9 +80,12 @@ public:
 
     /**
      * @brief 推进指定步数（等价于 Java RandomSource.consumeCount(count)）
+     *
+     * LegacyRandomSource 未覆写 consumeCount，走 RandomSource 默认实现（循环 nextInt()），
+     * 故这里与 IRandom 基类默认实现一致，显式覆写只为避免虚调用开销。
      * @param count 推进步数
      */
-    void consumeCount(i32 count);
+    void consumeCount(i32 count) override;
 
 private:
     /// Java LCG 乘数常量

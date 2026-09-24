@@ -212,7 +212,7 @@ PerlinNoise::PerlinNoise(const math::PositionalRandomFactory& factory, i32 first
     buildSoA();
 }
 
-PerlinNoise::PerlinNoise(math::JavaLegacyRandom& rng, i32 firstOctave, std::vector<f64> amplitudes)
+PerlinNoise::PerlinNoise(math::IRandom& rng, i32 firstOctave, std::vector<f64> amplitudes)
     : m_firstOctave(firstOctave)
     , m_amplitudes(std::move(amplitudes))
 {
@@ -259,10 +259,12 @@ void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
     m_maxValue = edgeValue(2.0);
 }
 
-void PerlinNoise::initLayersLegacy(math::JavaLegacyRandom& rng)
+void PerlinNoise::initLayersLegacy(math::IRandom& rng)
 {
     // MC 1.21.11: PerlinNoise(RandomSource, Pair<Integer, DoubleList>, false) 旧版构造路径
-    // 不使用 PositionalRandomFactory，从同一个 RandomSource 顺序消费随机数
+    // 不使用 PositionalRandomFactory，从同一个 RandomSource 顺序消费随机数。
+    // 具体是 LegacyRandomSource 还是 XoroshiroRandomSource 由调用方按
+    // noise_settings.legacy_random_source 决定（见头文件注释）。
     const i32 octaveCount = static_cast<i32>(m_amplitudes.size());
     m_layers.resize(static_cast<size_t>(octaveCount));
 
@@ -285,7 +287,10 @@ void PerlinNoise::initLayersLegacy(math::JavaLegacyRandom& rng)
         if (i1 < octaveCount && m_amplitudes[static_cast<size_t>(i1)] != 0.0) {
             m_layers[static_cast<size_t>(i1)] = std::make_unique<PerlinLayer>(rng);
         } else {
-            // 跳过此倍频层：consumeCount(262) 消费与 PerlinLayer 等量的随机数
+            // 跳过此倍频层：skipOctave 即 consumeCount(262)。
+            // consumeCount 是虚函数，按 RNG 分派（Xoroshiro 循环 nextLong，Legacy 循环 nextInt），
+            // 与原版 RandomSource/XoroshiroRandomSource.consumeCount 的差异一致——两者推进的
+            // 状态量差一倍，混用会让后续所有置换表错位。
             rng.consumeCount(262);
         }
     }
