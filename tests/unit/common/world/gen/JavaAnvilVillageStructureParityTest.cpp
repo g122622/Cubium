@@ -977,19 +977,38 @@ TEST_F(JavaAnvilVillageStructureParityTest, StructureStartDistributionMatchesJav
  * oak 三个地物元素的虚拟连接点与包围盒完全相同（都是 (0,0,0) 上的单点），因此"取到哪一个"
  * 完全由洗牌后的先后次序决定 —— **候选内容相同而次序不同，等价于随机数状态不同**。
  *
- * 已排除的因素：池的展开条目数与权重（streets=49、decor=7、houses=87 与数据包一致）、
- * 池内最大 Y 跨度（use_expansion_hack 的输入，六个池逐一核对一致）、各模板的连接点数
- * （61 个模板逐一与 .nbt 的 jigsaw 方块数比对一致）、结构自身的随机源独立性
- * （已与"结构集条目选择"的随机源分离）、`Rotation.getShuffled` 的旋转枚举顺序与消耗次数
- * （3 次/候选）、Fisher-Yates 洗牌实现、`SequencedPriorityIterator` 的"高优先级先出队 +
- * 同优先级 FIFO"语义、池查找失败的静默分支（实测无 pool=null / fallback=null）。
+ * 【决定性判据：empty 是否挡在被接受构件之前】`empty_pool_element` 会**立即终止候选枚举**
+ * （原版 `element == EmptyPoolElement.INSTANCE → break`，本实现 `isEmpty() → break`），因此
+ * "原版接受的构件 x 是否排在本实现序列的 empty 之后"可直接判定两侧洗牌结果是否一致。
+ * 实测 (0,0) 村庄有**两处**违反：
+ *   - 父构件 #53 `straight_01 (9,62,0) rot=CCW90` 的连接面 `(15,63,-11)`：原版接受
+ *     `pile_hay`（本实现序列第 6 位），但本实现序列第 2、3 位就是 empty；
+ *   - 父构件 #55 同型构件的连接面 `(12,0,4)`：原版接受 `flower_plain`（第 5 位），
+ *     本实现序列第 3、4 位是 empty。
+ * 两侧的候选**多重集**完全一致（decor 池展开 7 条与数据包权重逐项相同），且
+ * flower_plain / pile_hay / oak 三个地物元素的虚拟连接点与包围盒完全相同（(0,0,0) 上的单点），
+ * 因此"取到哪一个"只由洗牌次序决定 —— 次序不同即**随机数状态不同**。
  *
- * 结论：仍存在**一处未察觉的随机数消耗差异**——两侧在所有"已放置构件"上的决策都一致，
- * 说明差异发生在某个"消耗了随机数但没放下任何构件"的路径上（例如某连接点上尝试的
- * 候选 × 旋转次数不同）。继续定位需要原版侧的逐连接点消耗轨迹，本仓库无法直接产出。
+ * 【随机数消耗已逐位核验为忠实复刻】已用一份独立于本实现的 Python 模型（按原版算法书写：
+ * LegacyRandom 的 LCG 与 `nextLong` 的低位符号扩展、`setLargeFeatureSeed`、池的权重展开、
+ * Fisher-Yates、`Rotation.getShuffled`、父/子连接点洗牌、每个候选 3 次旋转洗牌 + 每旋转
+ * (m-1) 次连接点洗牌、遇 empty 终止）与实现内记录的消耗计数逐连接点比对：
+ *   - 首次比对必须修正 Python 侧 `nextLong` 的"低 32 位符号扩展"语义后才逐位吻合；
+ *   - 修正后，4 个村庄的**全部**连接点消耗一致（残余报告经查是并发日志被截断造成的假象）。
+ * 也就是说：**在本实现当前的决策序列下，随机数消耗与原版算法完全一致**，问题不在消耗本身，
+ * 而在某处**决策**（碰撞判定）与之不同，进而使消耗错位。
  *
- * 尚未排除：`insideParent`（连接面落在父块包围盒内）时使用的局部可放置空间在两边的
- * 构造时机/共享范围，以及候选元素被拒绝时消耗的随机数次数。
+ * 已排除的因素：池的展开顺序与权重（模板加载期逐个打印，与数据包 JSON 顺序逐项一致）、
+ * 池内最大 Y 跨度（use_expansion_hack 的输入）、全部 982 个已加载模板的连接点数
+ * （与 .nbt 的 jigsaw 方块数逐一比对一致）、jigsaw NBT 与方块状态的一致性（105 万个方块中
+ * 无一处"有 jigsaw NBT 但状态不是 jigsaw"）、`Rotation` 枚举顺序（NONE/CW90/CW180/CCW90）、
+ * Fisher-Yates 实现、`SequencedPriorityIterator` 语义、池/回退池查找失败分支（实测无 null）、
+ * `insideParent` 的 `contains` 边界语义（两端均含）、`Shapes::create` 的 ArrayVoxelShape 退化分支
+ * （与原版 `Shapes.create` 的 findBits<0 分支同构）。
+ *
+ * 尚未排除：空池（0 元素且非 `Pools.EMPTY`）时原版会**整连接点跳过**（不洗回退池）而本实现
+ * 仍会洗回退池——本素材上未观察到该情形的实际触发，但这是目前唯一找得到的"决策相同而消耗
+ * 不同"的路径，需在使用空池的结构上继续核实。
  */
 TEST_F(JavaAnvilVillageStructureParityTest, VillagePiecesMatchJavaSave)
 {
