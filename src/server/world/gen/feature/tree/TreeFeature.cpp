@@ -61,8 +61,12 @@ namespace mc {
 // TreeFeature 实现（保持原有实现）
 // ============================================================================
 
-bool TreeFeature::place(
-    WorldGenRegion& world, math::IRandom& random, const BlockPos& startPos, const TreeFeatureConfig& config)
+bool TreeFeature::place(WorldGenRegion& world,
+    math::IRandom& random,
+    const BlockPos& startPos,
+    const TreeFeatureConfig& config,
+    ChunkPrimer* chunk,
+    IChunkGenerator* generator)
 {
     if (config.trunkPlacer == nullptr || config.foliagePlacer == nullptr) {
         return false;
@@ -160,7 +164,7 @@ bool TreeFeature::place(
         std::vector<BlockPos> logPositions(trunkBlocks.begin(), trunkBlocks.end());
         std::vector<BlockPos> leafPositions(foliageBlocks.begin(), foliageBlocks.end());
         world::gen::feature::tree::decorator::TreeDecoratorContext context(
-            world, setter, random, std::move(logPositions), std::move(leafPositions), {});
+            world, chunk, generator, setter, random, std::move(logPositions), std::move(leafPositions), {});
         for (const auto& decoratorInstance : config.decorators) {
             decoratorInstance->place(context);
         }
@@ -395,7 +399,7 @@ bool ConfiguredTreeFeature::place(WorldGenRegion& region,
         return false;
     }
 
-    return m_feature.place(region, random, pos, *m_config);
+    return m_feature.place(region, random, pos, *m_config, &chunk, &generator);
 }
 
 // ============================================================================

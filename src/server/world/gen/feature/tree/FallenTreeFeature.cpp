@@ -128,7 +128,7 @@ void FallenTreeFeature::decorateLogs(WorldGenRegion& region,
         // MC getDecorationSetter: setBlock(pos, state, 19)。项目 flags 语义不同，用 3（通知+客户端）。
         region.setBlockState(pos, state, world::BlockUpdateFlags::UPDATE_ALL);
     };
-    decorator::TreeDecoratorContext context(region, setter, random, logs, {}, {});
+    decorator::TreeDecoratorContext context(region, nullptr, nullptr, setter, random, logs, {}, {});
     for (const auto& decorator : decorators) {
         decorator->place(context);
     }

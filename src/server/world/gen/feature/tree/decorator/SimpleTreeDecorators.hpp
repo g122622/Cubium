@@ -147,6 +147,25 @@ private:
     f32 m_probability;
 };
 
+/**
+ * @brief 苍白苔藓装饰器（MC PaleMossDecorator）
+ *
+ * 苍白橡树专用：先按 ground_probability 在最低原木上方委派放置 `pale_moss_patch`
+ * 这个 configured_feature（因此需要上下文携带 chunk/generator），再对原木与树叶
+ * 分别按 trunk/leaves_probability 向下悬挂苍白垂苔。
+ */
+class PaleMossDecorator final : public TreeDecorator {
+public:
+    PaleMossDecorator(f32 leavesProbability, f32 trunkProbability, f32 groundProbability);
+
+    void place(const TreeDecoratorContext& context) const override;
+
+private:
+    f32 m_leavesProbability;
+    f32 m_trunkProbability;
+    f32 m_groundProbability;
+};
+
 } // namespace decorator
 } // namespace tree
 } // namespace feature

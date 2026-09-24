@@ -30,8 +30,11 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/AgriculturalBlocks.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/ConfiguredFeature.hpp"
+#include "server/world/gen/feature/ConfiguredFeatureRegistry.hpp"
 
 #include <algorithm>
 #include <set>
@@ -377,6 +380,85 @@ void CocoaDecorator::place(const TreeDecoratorContext& context) const
                                            .with(BlockStateProperties::AGE_0_2(), random.nextInt(3))
                                            .with(BlockStateProperties::HORIZONTAL_FACING(), direction);
             context.setBlock(pos, cocoa);
+        }
+    }
+}
+
+// ============================================================================
+// PaleMossDecorator
+// ============================================================================
+
+namespace {
+
+/// MC PaleMossDecorator.addMossHanger：向下延伸苍白垂苔，末端一格 TIP=true。
+void addMossHanger(const TreeDecoratorContext& context, BlockPos pos)
+{
+    if (block_registry::PaleGardenBlocks::PALE_HANGING_MOSS == nullptr) {
+        return;
+    }
+    while (context.isAir(pos.down()) && !(context.random().nextFloat() < 0.5f)) {
+        const BlockState* moss = &block_registry::PaleGardenBlocks::PALE_HANGING_MOSS->defaultState().with(
+            BlockStateProperties::TIP(), false);
+        context.setBlock(pos, moss);
+        pos = pos.down();
+    }
+    const BlockState* tip =
+        &block_registry::PaleGardenBlocks::PALE_HANGING_MOSS->defaultState().with(BlockStateProperties::TIP(), true);
+    context.setBlock(pos, tip);
+}
+
+} // namespace
+
+PaleMossDecorator::PaleMossDecorator(f32 leavesProbability, f32 trunkProbability, f32 groundProbability)
+    : m_leavesProbability(leavesProbability)
+    , m_trunkProbability(trunkProbability)
+    , m_groundProbability(groundProbability)
+{}
+
+void PaleMossDecorator::place(const TreeDecoratorContext& context) const
+{
+    math::IRandom& random = context.random();
+
+    // MC: Util.shuffledCopy(ctx.logs(), random) 后取 Y 最小者——洗牌会消耗随机数，
+    // 且同 Y 时取的是洗牌后靠前者，顺序不能省。
+    std::vector<BlockPos> shuffled = context.logs();
+    random.shuffle(shuffled);
+    if (shuffled.empty()) {
+        return;
+    }
+    BlockPos lowest = shuffled.front();
+    for (const BlockPos& p : shuffled) {
+        if (p.y < lowest.y) {
+            lowest = p;
+        }
+    }
+
+    if (random.nextFloat() < m_groundProbability) {
+        // 委派给 pale_moss_patch（configured_feature）。树苗生长路径无 chunk/generator，跳过。
+        if (context.chunk() != nullptr && context.generator() != nullptr) {
+            const ConfiguredFeatureBase* patch =
+                ConfiguredFeatureRegistry::instance().get(ResourceLocation("minecraft", "pale_moss_patch"));
+            if (patch != nullptr) {
+                patch->place(context.region(), *context.chunk(), *context.generator(), random, lowest.up());
+            }
+        }
+    }
+
+    for (const BlockPos& log : context.logs()) {
+        if (random.nextFloat() < m_trunkProbability) {
+            const BlockPos pos = log.down();
+            if (context.isAir(pos)) {
+                addMossHanger(context, pos);
+            }
+        }
+    }
+
+    for (const BlockPos& leaf : context.leaves()) {
+        if (random.nextFloat() < m_leavesProbability) {
+            const BlockPos pos = leaf.down();
+            if (context.isAir(pos)) {
+                addMossHanger(context, pos);
+            }
         }
     }
 }

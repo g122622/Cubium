@@ -63,12 +63,16 @@ i32 getY(const BlockPos& pos) noexcept
 } // namespace
 
 TreeDecoratorContext::TreeDecoratorContext(WorldGenRegion& region,
+    ChunkPrimer* chunk,
+    IChunkGenerator* generator,
     DecorationSetter setter,
     math::IRandom& random,
     std::vector<BlockPos> logs,
     std::vector<BlockPos> leaves,
     std::vector<BlockPos> roots)
     : m_region(region)
+    , m_chunk(chunk)
+    , m_generator(generator)
     , m_setter(std::move(setter))
     , m_random(random)
     , m_logs(std::move(logs))
@@ -299,6 +303,23 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
             leafProviderResult.value(),
             decoratorJson["required_empty_blocks"].get<i32>(),
             std::move(leafDirections)));
+    }
+
+    if (typeStr == "pale_moss") {
+        // leaves_probability / trunk_probability / ground_probability（三者独立，无默认值）
+        for (const char* field : {"leaves_probability", "trunk_probability", "ground_probability"}) {
+            if (!decoratorJson.contains(field) || !decoratorJson[field].is_number()) {
+                return Error(ErrorCode::InvalidData, std::string("pale_moss missing '") + field + "'");
+            }
+            const f32 v = decoratorJson[field].get<f32>();
+            if (v < 0.0f || v > 1.0f) {
+                return Error(ErrorCode::InvalidData, std::string("pale_moss '") + field + "' out of range [0.0,1.0]");
+            }
+        }
+        return std::unique_ptr<TreeDecorator>(
+            std::make_unique<PaleMossDecorator>(decoratorJson["leaves_probability"].get<f32>(),
+                decoratorJson["trunk_probability"].get<f32>(),
+                decoratorJson["ground_probability"].get<f32>()));
     }
 
     return Error(ErrorCode::InvalidData, "unregistered tree decorator type: " + typeStr);

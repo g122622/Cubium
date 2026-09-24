@@ -38,6 +38,10 @@
 
 namespace mc {
 
+// ChunkPrimer 属于 mc 命名空间；须在进入 decorator 命名空间前声明，
+// 否则会在 decorator 内声明出一个同名但不同的类型。
+class ChunkPrimer;
+
 namespace world {
 namespace gen {
 namespace feature {
@@ -60,7 +64,10 @@ public:
     /// 把装饰方块写入世界，触发完整更新。
     using DecorationSetter = std::function<void(const BlockPos&, const BlockState*)>;
 
+    /// chunk/generator 可空：FallenTreeFeature 路径不持有它们（其装饰器不需要委派子特征）。
     TreeDecoratorContext(WorldGenRegion& region,
+        ChunkPrimer* chunk,
+        IChunkGenerator* generator,
         DecorationSetter setter,
         math::IRandom& random,
         std::vector<BlockPos> logs,
@@ -95,6 +102,10 @@ public:
     [[nodiscard]] const std::set<i64>& decorationPositions() const noexcept { return m_decorationPositions; }
 
     [[nodiscard]] WorldGenRegion& region() const noexcept { return m_region; }
+
+    /// 供需要委派给其它 configured_feature 的装饰器使用（如 pale_moss 调用 pale_moss_patch）。
+    [[nodiscard]] ChunkPrimer* chunk() const noexcept { return m_chunk; }
+    [[nodiscard]] IChunkGenerator* generator() const noexcept { return m_generator; }
     [[nodiscard]] math::IRandom& random() const noexcept { return m_random; }
     [[nodiscard]] const std::vector<BlockPos>& logs() const noexcept { return m_logs; }
     [[nodiscard]] const std::vector<BlockPos>& leaves() const noexcept { return m_leaves; }
@@ -102,6 +113,8 @@ public:
 
 private:
     WorldGenRegion& m_region;
+    ChunkPrimer* m_chunk;
+    IChunkGenerator* m_generator;
     DecorationSetter m_setter;
     math::IRandom& m_random;
     std::vector<BlockPos> m_logs;

@@ -261,7 +261,14 @@ public:
      * @param config 树木配置
      * @return 是否成功放置
      */
-    bool place(WorldGenRegion& world, math::IRandom& random, const BlockPos& startPos, const TreeFeatureConfig& config);
+    /// chunk/generator 仅在需要执行"会委派给其它 configured_feature 的装饰器"时必须；
+    /// 树苗生长路径（ServerTreeGenerators）无此二者，传默认 nullptr。
+    bool place(WorldGenRegion& world,
+        math::IRandom& random,
+        const BlockPos& startPos,
+        const TreeFeatureConfig& config,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr);
 
     /**
      * @brief 检查位置是否可以放置树干
