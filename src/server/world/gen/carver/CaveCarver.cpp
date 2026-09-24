@@ -27,6 +27,7 @@
 #include "WorldCarver.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -189,14 +190,18 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
     f64 currentZ = startZ;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        const f64 horizontalRadius = 1.5 + std::sin(static_cast<f64>(math::PI * i) / endIndex) * thickness;
+        // 原版：Mth.sin((float) Math.PI * j / endIndex) —— 角度按 **f32** 运算后交给
+        // 查表版 Mth.sin（不是精确 std::sin）。两者数值不同，直接决定隧道半径与走向。
+        const f32 envelopeAngle = static_cast<f32>(math::PI) * static_cast<f32>(i) / static_cast<f32>(endIndex);
+        const f64 horizontalRadius = 1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle))) * thickness;
         const f64 verticalRadius = horizontalRadius * yScale;
 
-        const f32 cosPitch = std::cos(pitch);
+        const f32 cosPitch = math::mthCos(static_cast<f64>(pitch));
 
-        currentX += std::cos(static_cast<f64>(yaw)) * cosPitch;
-        currentY += std::sin(static_cast<f64>(pitch));
-        currentZ += std::sin(static_cast<f64>(yaw)) * cosPitch;
+        // 原版这四个三角函数全部是 Mth 查表版（不是 std::sin/std::cos 的精确值）。
+        currentX += static_cast<f64>(math::mthCos(static_cast<f64>(yaw))) * static_cast<f64>(cosPitch);
+        currentY += static_cast<f64>(math::mthSin(static_cast<f64>(pitch)));
+        currentZ += static_cast<f64>(math::mthSin(static_cast<f64>(yaw))) * static_cast<f64>(cosPitch);
 
         pitch *= (canBranch ? 0.92f : 0.7f);
         pitch += pitchModifier * 0.1f;

@@ -144,7 +144,10 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
             }
 
             const i32 bottomY = std::max(minGenY + 1, startY_world);
-            const i32 topY = std::min(minGenY + genDepth - CARVE_TOP_Y_OFFSET, endY_world);
+            // 原版：Math.min(Mth.floor(centerY + verticalRadius) + 1,
+            //                minGenY + genDepth - 1 - j1)，其中 j1 = 7（非 upgrading 时）。
+            // 注意是 **- 1 - 7**（即 -8），此前少减了那个 1，使洞穴上边界整体多挖一层。
+            const i32 topY = std::min(minGenY + genDepth - 1 - CARVE_TOP_Y_OFFSET, endY_world);
 
             for (i32 y = topY; y > bottomY; --y) {
                 const f32 dy = (static_cast<f32>(y) - 0.5f - centerY) / verticalRadius;
