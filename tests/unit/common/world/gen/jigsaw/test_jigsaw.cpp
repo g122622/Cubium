@@ -26,6 +26,9 @@
  * @brief Jigsaw拼图系统单元测试
  */
 
+#include "common/physics/shape/BooleanOp.hpp"
+#include "common/physics/shape/Shapes.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -729,4 +732,51 @@ TEST(JigsawAssemblerAssembleTest, NetherLikeWorldWithinBoundsSucceeds)
     ASSERT_FALSE(pieces.empty());
     EXPECT_EQ(pieces[0].boundingBox.minY(), 49);
     EXPECT_EQ(pieces[0].boundingBox.maxY(), 68);
+}
+
+// ============================================================================
+// 世界坐标下的体素形状布尔运算自检
+// ============================================================================
+// JigsawAssembler 的碰撞判定完全建立在 Shapes 的布尔运算上：
+//   free := Shapes.create(父块 AABB)
+//   接受条件 := !joinIsNotEmpty(free, Shapes.create(候选 AABB.deflate(0.25)), ONLY_SECOND)
+//   接受后   := free = joinUnoptimized(free, Shapes.create(候选 AABB), ONLY_FIRST)
+// 而 Shapes::create 的坐标归一化分支（findBits）是为**方块局部坐标 [0,1]** 设计的，
+// 世界坐标会走 findBits<0 的 ArrayVoxelShape 退化分支（与原版 Shapes.create 同构）。
+// 该分支下布尔运算是否仍等价于"几何集合运算"，直接决定结构装配的碰撞判定是否正确。
+// 本用例用几何直觉锚定：盒内的候选不碰撞、盒外/已占位的候选碰撞。
+TEST(JigsawShapeOpsTest, WorldCoordinateBoxOpsBehaveGeometrically)
+{
+    const auto worldBox = [](i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ) {
+        return Shapes::create(AxisAlignedBB(static_cast<f32>(minX),
+            static_cast<f32>(minY),
+            static_cast<f32>(minZ),
+            static_cast<f32>(maxX + 1),
+            static_cast<f32>(maxY + 1),
+            static_cast<f32>(maxZ + 1)));
+    };
+
+    // 父块包围盒 [9,62,-15]~[24,67,0]（取自 (0,0) 村庄的 straight_01 构件）
+    VoxelShape freeShape = worldBox(9, 62, -15, 24, 67, 0);
+    EXPECT_FALSE(freeShape.isEmpty());
+
+    const auto collides = [](const VoxelShape& free, const AxisAlignedBB& candidateBox) {
+        return Shapes::joinIsNotEmpty(free, Shapes::create(candidateBox.deflate(0.25f)), BooleanOps::OnlySecond());
+    };
+
+    // 1) 盒内的单格候选：不碰撞
+    const AxisAlignedBB inside(22.0f, 63.0f, -2.0f, 23.0f, 64.0f, -1.0f);
+    EXPECT_FALSE(collides(freeShape, inside)) << "位于父块包围盒内的候选被误判为碰撞";
+
+    // 2) 盒外的候选：碰撞
+    const AxisAlignedBB outsideX(30.0f, 63.0f, -2.0f, 31.0f, 64.0f, -1.0f);
+    EXPECT_TRUE(collides(freeShape, outsideX)) << "位于父块包围盒外的候选未被判为碰撞";
+    const AxisAlignedBB outsideY(22.0f, 70.0f, -2.0f, 23.0f, 71.0f, -1.0f);
+    EXPECT_TRUE(collides(freeShape, outsideY)) << "位于父块包围盒上方的候选未被判为碰撞";
+
+    // 3) 减去已放置的候选后，同一位置应判为碰撞
+    VoxelShape occupied = Shapes::joinUnoptimized(freeShape, worldBox(22, 63, -2, 22, 63, -2), BooleanOps::OnlyFirst());
+    EXPECT_TRUE(collides(occupied, inside)) << "已被占用的位置未被判为碰撞";
+    EXPECT_FALSE(collides(occupied, AxisAlignedBB(12.0f, 63.0f, -10.0f, 13.0f, 64.0f, -9.0f)))
+        << "未占用的位置被误判为碰撞";
 }
