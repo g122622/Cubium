@@ -60,6 +60,8 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
 {
     i32 chance = rng.nextInt(100);
 
+    std::unique_ptr<MineshaftPiece> created;
+
     if (chance >= 80) {
         // 20% 概率生成交叉点
         i32 minX = x, maxX = x + 4;
@@ -86,7 +88,7 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
                 break;
         }
 
-        return std::make_unique<MineshaftCross>(
+        created = std::make_unique<MineshaftCross>(
             MineshaftPieceTypes::CROSS, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
     } else if (chance >= 70) {
         // 10% 概率生成楼梯
@@ -114,7 +116,7 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
                 break;
         }
 
-        return std::make_unique<MineshaftStairs>(
+        created = std::make_unique<MineshaftStairs>(
             MineshaftPieceTypes::STAIRS, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
     } else {
         // 70% 概率生成走廊
@@ -142,9 +144,18 @@ std::unique_ptr<MineshaftPiece> createMineshaftPiece(std::vector<std::unique_ptr
                 break;
         }
 
-        return std::make_unique<MineshaftCorridor>(
+        created = std::make_unique<MineshaftCorridor>(
             MineshaftPieceTypes::CORRIDOR, rng, minX, minY, minZ, maxX, maxY, maxZ, direction, type);
     }
+
+    // 【必须设置生成深度】构件类型 ID（ROOM=60/CORRIDOR=61/CROSS=62/STAIRS=63）与生成深度
+    // 是两个不同的量。addMineshaftPiece 用 `depth > 8` 限制展开层数；此前实现把类型 ID
+    // 当深度传入，首次展开即 61 > 8 直接失败，矿井永远只剩起点房间一个构件。
+    if (created) {
+        created->setGenDepth(depth);
+    }
+
+    return created;
 }
 
 std::unique_ptr<MineshaftPiece> addMineshaftPiece(MineshaftPiece* parent,
@@ -277,7 +288,7 @@ void MineshaftRoom::generate(IWorldWriter& world,
 void MineshaftRoom::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
-    i32 depth = type() + 1;
+    const i32 depth = genDepth() + 1;
 
     for (i32 exitDir : m_exits) {
         i32 x, y, z;
@@ -555,7 +566,7 @@ void MineshaftCorridor::_generateChestMinecart(
 void MineshaftCorridor::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
-    i32 depth = type() + 1;
+    const i32 depth = genDepth() + 1;
     if (depth > maxDepth) return;
 
     i32 x, y, z;
@@ -639,7 +650,7 @@ void MineshaftCross::generate(IWorldWriter& world,
 void MineshaftCross::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
-    i32 depth = type() + 1;
+    const i32 depth = genDepth() + 1;
     if (depth > maxDepth) return;
 
     // 交叉点可以向三个方向延伸（除了来的方向）
@@ -759,7 +770,7 @@ void MineshaftStairs::generate(IWorldWriter& world,
 void MineshaftStairs::buildComponent(
     std::vector<std::unique_ptr<MineshaftPiece>>& pieces, math::IRandom& rng, i32 maxDepth)
 {
-    i32 depth = type() + 1;
+    const i32 depth = genDepth() + 1;
     if (depth > maxDepth) return;
 
     i32 x, y, z;

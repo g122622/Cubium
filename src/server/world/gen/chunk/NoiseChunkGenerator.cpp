@@ -354,6 +354,24 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             if (structure->isValidBiome(biomeAtCandidate)) {
                 auto start = structure->generate(*this, rng, chunkX, chunkZ);
                 if (start) {
+                    // 【诊断】构件数与包围盒必须在 std::move(start) **之前**读取——
+                    // 移动后 start 为空，再解引用即访问违例（此前正是这样崩溃的）。
+                    // 结构能否影响到远处区块完全取决于这两者：构件数为 0/1 或包围盒退化，
+                    // 都会使该结构只覆盖起点区块本身。
+                    {
+                        const auto& bbox = start->getBoundingBox();
+                        spdlog::info("[STRUCT-BOX] ({},{}) {} pieces={} bbox=x[{}..{}] y[{}..{}] z[{}..{}]",
+                            chunkX,
+                            chunkZ,
+                            entry->structureId.toString(),
+                            start->pieceCount(),
+                            bbox.minX(),
+                            bbox.maxX(),
+                            bbox.minY(),
+                            bbox.maxY(),
+                            bbox.minZ(),
+                            bbox.maxZ());
+                    }
                     chunk.addStructureStart(entry->structureId,
                         std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
                     placed = true;

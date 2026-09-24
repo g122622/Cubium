@@ -99,6 +99,17 @@ public:
     [[nodiscard]] MineshaftType mineshaftType() const { return m_mineshaftType; }
 
     /**
+     * @brief 生成深度（MC: StructurePiece.genDepth）
+     *
+     * 【与构件类型 ID 是两回事，不可混用】起点房间为 0，每展开一层 +1；
+     * addMineshaftPiece 用 `depth > 8` 限制展开层数。此前实现误用 type()（构件类型 ID，
+     * ROOM=60/CORRIDOR=61/...）作为深度，导致第一次展开即 61 > 8 失败，
+     * 矿井永远只剩起点房间一个构件、包围盒仅 8x4x8，无法覆盖到邻近区块。
+     */
+    [[nodiscard]] i32 genDepth() const noexcept { return m_genDepth; }
+    void setGenDepth(i32 depth) noexcept { m_genDepth = depth; }
+
+    /**
      * @brief 构建连接片段
      * @param pieces 已有片段列表
      * @param rng 随机数生成器
@@ -119,6 +130,9 @@ protected:
     void _generateSupport(IWorldWriter& world, i32 x, i32 y, i32 z, i32 height, math::IRandom& rng);
 
     MineshaftType m_mineshaftType;
+
+    /// 生成深度：起点房间为 0，逐层 +1（见 genDepth 的说明）
+    i32 m_genDepth = 0;
 };
 
 // ============================================================================
