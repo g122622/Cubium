@@ -307,6 +307,24 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
         const TemplatePool* pool = poolRegistry.getPool(aliasLookup.lookup(ResourceLocation(parentJoint.targetPool)));
         const TemplatePool* fallbackPool = (pool != nullptr) ? poolRegistry.getPool(pool->getFallback()) : nullptr;
 
+        // 【空池要整连接点跳过，不是"洗了但没候选"】原版在此处有两道前置检查：
+        //     if (pool.size() == 0 && !pool.is(Pools.EMPTY)) { warn; 跳过整个连接点 }
+        //     if (fallback.size() == 0 && !fallback.is(Pools.EMPTY)) { warn; 跳过整个连接点 }
+        // 即：目标池或回退池**存在但没有元素**（且不是规范空池 `minecraft:empty`）时，
+        // 本连接点连**池洗牌都不做**。跳过与"洗了但一个候选都没试"在**放置结果**上等价
+        // （都是什么都不放），但在**随机数消耗**上不同：后者会白洗一次池，
+        // 使之后所有连接点、乃至整片结构的随机数序列整体错位。
+        // 这类错位在构件列表上表现为"前若干构件完全一致、之后突然发散"，极难定位。
+        // 规范空池 `minecraft:empty` 本身元素数为 0，但原版用 `is(Pools.EMPTY)` 把它排除在外，
+        // 因此必须按**池名**而非"元素数为 0"判定，否则会把正常引用空池的连接点也误跳过。
+        const auto isEmptyNonCanonical = [](const TemplatePool* candidate) {
+            return candidate != nullptr && candidate->getTotalWeight() <= 0 &&
+                candidate->getName().toString() != "minecraft:empty";
+        };
+        if (isEmptyNonCanonical(pool) || isEmptyNonCanonical(fallbackPool)) {
+            continue;
+        }
+
         // 连接面落在父块内部时使用局部可放置空间（防止结构在自身内部重叠），否则继承父块的空间
         const bool insideParent = parentBox.contains(jointSurface.x, jointSurface.y, jointSurface.z);
         if (insideParent && !localFree) {
