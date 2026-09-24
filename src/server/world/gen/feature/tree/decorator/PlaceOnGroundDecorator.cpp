@@ -137,7 +137,10 @@ void PlaceOnGroundDecorator::_attemptToPlaceBlockAbove(const TreeDecoratorContex
 
     // 条件 3：该列的最高阻挡方块不高于上方格——否则说明该点在实心地面**以下**，
     // 在上面放方块会把它埋进地里（原版 getHeightmapPos(MOTION_BLOCKING_NO_LEAVES).getY() <= above.getY()）。
-    const i32 surfaceY = context.region().getHeight(pos.x, pos.z, HeightmapType::MotionBlockingNoLeaves);
+    // 原版 getHeightmapPos(...).getY() 取的是 LevelReader.getHeight（= 最高方块 Y + 1）；
+    // WorldGenRegion::getHeight 返回的是该值 - 1，故此处用 getHeightmapFirstAvailable。
+    const i32 surfaceY =
+        context.region().getHeightmapFirstAvailable(pos.x, pos.z, HeightmapType::MotionBlockingNoLeaves);
     if (surfaceY > above.y) {
         return;
     }

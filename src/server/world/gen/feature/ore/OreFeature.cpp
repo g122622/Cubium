@@ -121,7 +121,9 @@ bool OreFeature::place(WorldGenRegion& region,
     // 高度图取 OCEAN_FLOOR_WG（对齐原版），它不计入水，因此海底列不会把包围盒底"抬高"。
     for (i32 checkX = minX; checkX <= minX + sizeX; ++checkX) {
         for (i32 checkZ = minZ; checkZ <= minZ + sizeZ; ++checkZ) {
-            const i32 topY = region.getHeight(checkX, checkZ, HeightmapType::OceanFloorWG);
+            // 用 getHeightmapFirstAvailable（= 最高固体方块 Y + 1），对齐原版
+            // worldgenlevel.getHeight(...)；WorldGenRegion::getHeight 返回的是该值 - 1。
+            const i32 topY = region.getHeightmapFirstAvailable(checkX, checkZ, HeightmapType::OceanFloorWG);
             if (minY <= topY) {
                 return _doPlace(region, random, config, x1, y1, z1, x2, y2, z2, minX, minY, minZ, sizeX, sizeY, sizeZ) >
                     0;
