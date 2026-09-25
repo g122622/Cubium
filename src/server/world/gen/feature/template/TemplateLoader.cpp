@@ -30,10 +30,12 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/IProperty.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/jigsaw/JigsawOrientation.hpp"
 #include "server/world/gen/feature/template/Template.hpp"
 #include <algorithm>
 #include <cstring>
@@ -1185,10 +1187,21 @@ TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
         info.targetName = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("target")).value;
     }
 
-    // 读取连接类型
-    if (nbt->value.count("joint") != 0) {
-        std::string joint = dynamic_cast<const nbt::StringTag&>(*nbt->value.at("joint")).value;
-        info.jointType = (joint == "aligned") ? 1 : 0;
+    // 连接类型由方块的 orientation 推导，**不读 NBT 的 `joint` 字段**：
+    // 原版 `StructureTemplate.getJointType` 的规则是「front 为水平朝向（东南西北）时 aligned，
+    // 否则 rollable」，NBT 里的 `joint` 只是方块实体的冗余存档，运行期并不使用。
+    // 数据包里大量 jigsaw 方块的这两者互相矛盾（如古代城市的入口构件，全库逾千处），
+    // 照抄 NBT 会让连接点的可连接判定与原版相反，进而多接或少接连接点。
+    info.jointType = 0;
+    if (blockStateId != 0) {
+        const BlockState* state = BlockRegistry::instance().getBlockState(blockStateId);
+        if (state != nullptr) {
+            const Direction facing =
+                mc::world::gen::jigsaw::JigsawOrientations::getFacing(state->get(BlockStateProperties::ORIENTATION()));
+            const bool horizontal = facing == Direction::North || facing == Direction::South ||
+                facing == Direction::West || facing == Direction::East;
+            info.jointType = horizontal ? 1 : 0;
+        }
     }
 
     // 读取优先级（对应 MC 1.21 JigsawBlockEntity NBT 的 placement_priority/selection_priority，默认 0）
