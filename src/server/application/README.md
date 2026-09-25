@@ -37,7 +37,8 @@ src/server/application/
 1. `m_timeManager->tick()` - 更新时间
 2. 清理断开连接玩家
 3. `m_dimensionManager->tick()` - 驱动所有维度（各维度内部执行世界tick、实体同步、区块发送、刷怪等）
-4. `sharedStorage()->tickAutoSave()` - 共享存储自动保存
+4. 自动保存（周期 6000 tick / 5 分钟，受 `/save-on` `/save-off` 控制）：先数一遍各维度的脏区块，
+   有改动才调 `saveAllWorldData(false)` 落盘
 5. `tickEntities()` - 实体tick、物品拾取、实体追踪
 6. `miningManager().tick()` - 更新挖掘进度
 7. `pollNetwork()` - 处理网络事件
@@ -137,11 +138,11 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 
 ### 9. 关服时玩家运行时状态回写（savePlayerRuntimeState 钩子）
 
-**问题背景**：`saveAllWorldData()` 落盘区块、level.dat、玩家缓存数据，但在线玩家的位置、生命、饥饿、经验、背包等运行时状态从未回写到 `PlayerDataManager` 缓存——`PlayerDataManager::fromPlayer()` 虽然存在但全项目无调用方，导致玩家退出后最新进度丢失。
+**问题背景**：`saveAllWorldData()` 落盘区块、level.dat、玩家数据，但在线玩家的位置、生命、饥饿、经验、背包等运行时状态从未回写到 `PlayerDataManager` 缓存——`PlayerDataManager::fromPlayer()` 虽然存在但全项目无调用方，导致玩家退出后最新进度丢失。
 
 **钩子机制**：
 - `MinecraftServer::savePlayerRuntimeState()` 是一个虚函数钩子（默认空实现），由子类 override 提供具体遍历逻辑。基类无法直接实现，因为 `playerEntityManager()` 是纯虚函数。
-- `IntegratedServer::savePlayerRuntimeState()` 和 `StandaloneServer::savePlayerRuntimeState()` 均遍历所有维度的在线 `Player` 实体，调用 `PlayerDataManager::fromPlayer()` 提取运行时状态，再用 `savePlayer()` 更新缓存并标记脏。后续 `stopCore()` → `shutdownManagers()` → `saveAllWorldData()` 会通过 `PlayerDataManager::saveAll()` 把缓存落盘到 RocksDB。
+- `IntegratedServer::savePlayerRuntimeState()` 和 `StandaloneServer::savePlayerRuntimeState()` 均遍历所有维度的在线 `Player` 实体，调用 `PlayerDataManager::fromPlayer()` 提取运行时状态，再用 `savePlayer()` 更新缓存并标记脏。后续 `stopCore()` → `shutdownManagers()` → `saveAllWorldData(true)` 会通过 `PlayerDataManager::saveAllDirty()` 把缓存落盘到 RocksDB。
 
 **调用时机（关键，避免数据竞争）**：
 - `IntegratedServer::stop()`：在 `m_serverThread->join()` 之后、`clearAll()` 之前调用。join 确保主循环已退出，clearAll 之前确保玩家实体仍存在于 EntityManager 中。

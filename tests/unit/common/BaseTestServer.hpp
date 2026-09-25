@@ -142,6 +142,12 @@ public:
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return nullptr; }
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override { return nullptr; }
     [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override { return false; }
+
+    // 测试桩不承载真实世界数据：落盘退化为空操作，自动保存仅记录开关状态。
+    [[nodiscard]] Result<size_t> saveAllWorldData(bool /*sync*/) override { return size_t{0}; }
+    void setAutoSaveEnabled(bool enabled) override { m_autoSaveEnabled = enabled; }
+    [[nodiscard]] bool isAutoSaveEnabled() const override { return m_autoSaveEnabled; }
+
     [[nodiscard]] server::ServerScoreboard& scoreboard() override { return m_scoreboard; }
     [[nodiscard]] const server::ServerScoreboard& scoreboard() const override { return m_scoreboard; }
     [[nodiscard]] server::CustomServerBossInfoManager& bossBarManager() override;
@@ -189,6 +195,7 @@ protected:
     i32 m_simulationDistance = 10;
     i32 m_maxPlayers = 20;
     u64 m_seed = 0;
+    bool m_autoSaveEnabled = true;
     bool m_running = true;
     Difficulty m_difficulty = Difficulty::Normal;
     bool m_difficultyLocked = false;

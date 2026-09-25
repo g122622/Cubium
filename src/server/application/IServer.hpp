@@ -291,6 +291,36 @@ public:
     [[nodiscard]] virtual const world::storage::SingleLevelStorageManager* sharedStorage() const = 0;
     [[nodiscard]] virtual bool isSharedStorageReadonlyForeignWorld() const = 0;
 
+    /**
+     * @brief 保存全部世界数据到磁盘
+     *
+     * 覆盖各维度已加载且有改动的区块、玩家数据缓存、level.dat 运行时数据与调度事件、
+     * 末影龙战斗数据。只读外来存档下为空操作。
+     *
+     * 这是世界落盘的唯一入口：`/save-all` 与自动保存都走这里。此前每个维度各自
+     * 全量保存自身缓存的做法已删除——共享存储下多个维度会重复落盘同一份数据。
+     *
+     * @param sync 是否要求本次提交等待 fsync 落盘。关服与 `/save-all flush` 必须为 true；
+     *             自动保存为 false，交由一致性模式决定。
+     * @return 成功落盘的区块段数
+     */
+    [[nodiscard]] virtual Result<size_t> saveAllWorldData(bool sync) = 0;
+
+    /**
+     * @brief 开关自动保存
+     *
+     * 自动保存的触发依赖"哪些区块被改过"，这份信息只在服务器侧（内存区块表）可见，
+     * 因此开关也由服务器持有，对应 `/save-on` 与 `/save-off`。
+     *
+     * @param enabled 是否启用
+     */
+    virtual void setAutoSaveEnabled(bool enabled) = 0;
+
+    /**
+     * @brief 查询自动保存是否启用
+     */
+    [[nodiscard]] virtual bool isAutoSaveEnabled() const = 0;
+
     // ========== 记分板系统 ==========
 
     /**

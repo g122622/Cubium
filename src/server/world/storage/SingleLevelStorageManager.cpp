@@ -49,8 +49,6 @@
 #include "server/world/storage/entity/EntityStorageManager.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
 #include "server/world/storage/player/PlayerSaveData.hpp"
-#include "server/world/storage/save/AutoSave.hpp"
-#include "server/world/storage/section/SectionCache.hpp"
 #include "server/world/storage/section/SectionManager.hpp"
 #include "server/world/storage/snapshot/BackupManager.hpp"
 #include "server/world/storage/task/StorageTask.hpp"
@@ -99,11 +97,6 @@ SingleLevelStorageManager::SingleLevelStorageManager(SingleLevelStorageManager&&
     , m_config(std::move(other.m_config))
     , m_worldPath(std::move(other.m_worldPath))
 {
-    for (auto& [dim, manager] : m_sectionManagers) {
-        if (manager) {
-            manager->setTaskManager(m_taskManager.get());
-        }
-    }
 
     m_ioWorkerPool = other.m_ioWorkerPool;
     other.m_ioWorkerPool = nullptr;
@@ -127,12 +120,6 @@ SingleLevelStorageManager& SingleLevelStorageManager::operator=(SingleLevelStora
         m_config = std::move(other.m_config);
         m_worldPath = std::move(other.m_worldPath);
 
-        for (auto& [dim, manager] : m_sectionManagers) {
-            if (manager) {
-                manager->setTaskManager(m_taskManager.get());
-            }
-        }
-
         m_ioWorkerPool = other.m_ioWorkerPool;
         other.m_ioWorkerPool = nullptr;
 
@@ -150,13 +137,6 @@ void SingleLevelStorageManager::setIoWorkerPool(util::UniversalWorkerPool* worke
         m_taskManager = std::make_unique<StorageTaskManager>(*m_ioWorkerPool);
     } else {
         m_taskManager.reset();
-    }
-
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    for (auto& [dim, manager] : m_sectionManagers) {
-        if (manager) {
-            manager->setTaskManager(m_taskManager.get());
-        }
     }
 }
 
@@ -305,16 +285,11 @@ void SingleLevelStorageManager::close()
         m_sectionManagers.clear();
     }
 
-    if (m_autoSave) {
-        m_autoSave->stop();
-    }
     m_backupManager.reset();
     m_scoreboardDataManager.reset();
     m_entityStorage.reset();
     m_blockEntityStorage.reset();
     m_playerDataManager.reset();
-    m_autoSave.reset();
-    m_autoSaveInitialized = false;
     m_db.reset();
     m_backend.reset();
     m_taskManager.reset();
@@ -326,9 +301,10 @@ void SingleLevelStorageManager::close()
     m_worldPath.clear();
 }
 
-Result<size_t> SingleLevelStorageManager::flushAllDirty()
+Result<size_t> SingleLevelStorageManager::saveSections(
+    DimensionId dimension, const std::vector<SectionWrite>& writes, bool sync)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::flushAllDirty");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::saveSections", "count", writes.size());
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -338,34 +314,16 @@ Result<size_t> SingleLevelStorageManager::flushAllDirty()
         return Result<size_t>(0);
     }
 
-    size_t totalFlushed = 0;
-
-    {
-        std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-        for (auto& [dim, manager] : m_sectionManagers) {
-            auto result = manager->flushDirtySections();
-            if (!result.success()) {
-                return result.error();
-            }
-            totalFlushed += result.value();
-        }
+    if (writes.empty()) {
+        return 0;
     }
 
-    if (m_playerDataManager) {
-        auto playerResult = m_playerDataManager->saveAllDirty();
-        if (playerResult.failed()) {
-            spdlog::error("Failed to flush dirty player data: {}", playerResult.error().message());
-        } else {
-            totalFlushed += playerResult.value();
-        }
-    }
-
-    return totalFlushed;
+    return _sectionManager(dimension).saveSectionsBatch(writes, sync);
 }
 
-Result<size_t> SingleLevelStorageManager::saveAll()
+Result<size_t> SingleLevelStorageManager::flushPlayerData()
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::saveAll");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World, "SingleLevelStorageManager::flushPlayerData");
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -375,33 +333,15 @@ Result<size_t> SingleLevelStorageManager::saveAll()
         return Result<size_t>(0);
     }
 
-    size_t totalSaved = 0;
-
-    {
-        std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-        for (auto& [dim, manager] : m_sectionManagers) {
-            auto result = manager->saveAll();
-            if (!result.success()) {
-                return result.error();
-            }
-            totalSaved += result.value();
-        }
+    if (!m_playerDataManager) {
+        return 0;
     }
 
-    if (m_playerDataManager) {
-        auto playerResult = m_playerDataManager->saveAll();
-        if (playerResult.failed()) {
-            spdlog::error("Failed to save all player data: {}", playerResult.error().message());
-        } else {
-            totalSaved += playerResult.value();
-        }
+    auto playerResult = m_playerDataManager->saveAllDirty();
+    if (playerResult.failed()) {
+        return playerResult.error();
     }
-
-    if (totalSaved > 0) {
-        spdlog::info("Saved {} cached sections and player data", totalSaved);
-    }
-
-    return totalSaved;
+    return playerResult.value();
 }
 
 Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, DimensionId dimension)
@@ -416,14 +356,11 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
 
     auto& manager = _sectionManager(dimension);
 
-    std::vector<BiomeId> biomes;
-    const auto biomeBytes = chunk.getBiomes().serialize();
-    biomes.reserve(biomeBytes.size() / 2);
-    for (size_t i = 0; i + 1 < biomeBytes.size(); i += 2) {
-        const u16 low = static_cast<u16>(biomeBytes[i]);
-        const u16 high = static_cast<u16>(biomeBytes[i + 1]);
-        biomes.push_back(static_cast<BiomeId>(low | (high << 8)));
-    }
+    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
+
+    // 全部段聚合成一个批次：逐段落盘会让每段各付一次 WAL fsync。
+    std::vector<SectionWrite> writes;
+    writes.reserve(world::CHUNK_SECTIONS);
 
     for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk.getSection(sectionY);
@@ -432,15 +369,16 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
         }
 
         SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
-        auto sectionDataResult = SectionCodec::fromChunkSection(*section, key, biomes);
-        if (sectionDataResult.failed()) {
-            return sectionDataResult.error();
+        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        if (bytesResult.failed()) {
+            return bytesResult.error();
         }
+        writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
+    }
 
-        auto saveResult = manager.saveSectionSync(key, sectionDataResult.value());
-        if (saveResult.failed()) {
-            return saveResult.error();
-        }
+    auto saveResult = manager.saveSectionsBatch(writes);
+    if (saveResult.failed()) {
+        return saveResult.error();
     }
 
     // 保存方块实体
@@ -635,20 +573,14 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
         return;
     }
 
-    // stage1（调用线程，主线程）：序列化区块为快照（vector<SectionData> + biomes + 方块实体副本）。
+    // stage1（调用线程，主线程）：逐段序列化区块为落盘快照（每段只有压缩后的字节）。
     // 序列化读取 ChunkData，与 setBlockState 等 chunk 修改者均在主线程串行执行，无数据竞争。
-    // 快照脱离 ChunkData 后，后续 chunk 修改不影响已捕获的保存数据。
-    std::vector<SectionData> sectionSnapshot;
-    sectionSnapshot.reserve(world::CHUNK_SECTIONS);
+    // 快照只保存压缩字节，脱离 ChunkData 后后续修改不影响已捕获的数据；不保留
+    // SectionData 中间态，避免整列 24 段同时存活时的峰值分配（详见 SectionCodec）。
+    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk->getBiomes());
 
-    std::vector<BiomeId> biomes;
-    const auto biomeBytes = chunk->getBiomes().serialize();
-    biomes.reserve(biomeBytes.size() / 2);
-    for (size_t i = 0; i + 1 < biomeBytes.size(); i += 2) {
-        const u16 low = static_cast<u16>(biomeBytes[i]);
-        const u16 high = static_cast<u16>(biomeBytes[i + 1]);
-        biomes.push_back(static_cast<BiomeId>(low | (high << 8)));
-    }
+    std::vector<SectionWrite> sectionSnapshot;
+    sectionSnapshot.reserve(world::CHUNK_SECTIONS);
 
     for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
         const ChunkSection* section = chunk->getSection(sectionY);
@@ -656,14 +588,14 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
             continue;
         }
         SectionKey key(x, z, static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
-        auto sectionDataResult = SectionCodec::fromChunkSection(*section, key, biomes);
-        if (sectionDataResult.failed()) {
+        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        if (bytesResult.failed()) {
             if (callback) {
-                callback(x, z, sectionDataResult.error());
+                callback(x, z, bytesResult.error());
             }
             return;
         }
-        sectionSnapshot.push_back(std::move(sectionDataResult.value()));
+        sectionSnapshot.push_back(SectionWrite{key, std::move(bytesResult.value())});
     }
 
     // 方块实体：在主线程同步保存。方块实体数量少（每区块通常 < 50），NBT 序列化 + 单条 RocksDB put
@@ -691,16 +623,12 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
     // 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
     auto savePromise = _registerPendingChunkSave(x, z, dimension);
 
-    // stage2（ServerIO）：对快照执行 saveSectionSync × 24（ZSTD 压缩 + RocksDB WriteBatch）。
+    // stage2（ServerIO）：把整列快照聚合成**一个** WriteBatch 落盘（ZSTD 压缩在 stage1 已完成）。
     // 仅触及快照与 SectionManager，不触及 ChunkData，与主线程 chunk 修改无数据竞争。
     auto& sectionManager = _sectionManager(dimension);
-    auto executor = [sectionSnapshot = std::move(sectionSnapshot),
-                        dimension,
-                        &sectionManager,
-                        x,
-                        z,
-                        cb = std::move(callback),
-                        savePromise](const std::atomic<bool>& abortSig) -> bool {
+    auto executor =
+        [sectionSnapshot = std::move(sectionSnapshot), &sectionManager, x, z, cb = std::move(callback), savePromise](
+            const std::atomic<bool>& abortSig) -> bool {
         // savePromise 在任务结束（含取消）时 set_value，确保等待此保存的加载能继续；
         // set_value 后 shared_future 变就绪，loadChunkAsync 的 _waitPendingChunkSave 返回。
         auto fulfill = [&] {
@@ -720,23 +648,15 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
             return false;
         }
 
-        Result<void> result = Result<void>::ok();
-        for (auto& sectionData : sectionSnapshot) {
-            if (abortSig.load(std::memory_order::acquire)) {
-                result = Error(ErrorCode::InvalidState, "Save chunk task cancelled");
-                break;
-            }
-            SectionKey key(x, z, sectionData.key.sectionY, dimension);
-            auto saveResult = sectionManager.saveSectionSync(key, sectionData);
-            if (saveResult.failed()) {
-                result = saveResult;
-                break;
-            }
+        auto result = sectionManager.saveSectionsBatch(sectionSnapshot);
+        Result<void> finalResult = Result<void>::ok();
+        if (result.failed()) {
+            finalResult = result.error();
         }
 
         fulfill();
         if (cb) {
-            cb(x, z, std::move(result));
+            cb(x, z, std::move(finalResult));
         }
         return true;
     };
@@ -1290,12 +1210,9 @@ SectionManager* SingleLevelStorageManager::_createSectionManager(DimensionId dim
         static_cast<i32>(dimension));
 
     SectionManager::Config config;
-    config.cacheCapacity = m_config.sectionCacheCapacity;
-    config.computeHash = m_config.computeHash;
     config.consistencyMode = m_config.consistencyMode;
 
     auto manager = std::make_unique<SectionManager>(*m_db, dimension, config);
-    manager->setTaskManager(m_taskManager.get());
 
     std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
     auto [it, inserted] = m_sectionManagers.emplace(dimension, std::move(manager));
@@ -1311,26 +1228,6 @@ void SingleLevelStorageManager::setConsistencyMode(ConsistencyMode mode)
     spdlog::info("Changed consistency mode to {}", static_cast<i32>(mode));
 }
 
-std::unordered_map<DimensionId, SectionCache::CacheStats> SingleLevelStorageManager::getCacheStats() const
-{
-    std::unordered_map<DimensionId, SectionCache::CacheStats> stats;
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    for (const auto& [dim, manager] : m_sectionManagers) {
-        stats[dim] = manager->getCacheStats();
-    }
-    return stats;
-}
-
-size_t SingleLevelStorageManager::getTotalDirtyCount() const
-{
-    size_t total = 0;
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    for (const auto& [dim, manager] : m_sectionManagers) {
-        total += manager->getDirtyCount();
-    }
-    return total;
-}
-
 std::vector<DimensionId> SingleLevelStorageManager::getOpenDimensions() const
 {
     std::vector<DimensionId> dimensions;
@@ -1340,38 +1237,6 @@ std::vector<DimensionId> SingleLevelStorageManager::getOpenDimensions() const
         dimensions.push_back(dim);
     }
     return dimensions;
-}
-
-void SingleLevelStorageManager::setCacheCapacity(DimensionId dimension, size_t capacity)
-{
-    _sectionManager(dimension).setCacheCapacity(capacity);
-}
-
-void SingleLevelStorageManager::clearCache(DimensionId dimension)
-{
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    auto it = m_sectionManagers.find(dimension);
-    if (it != m_sectionManagers.end()) {
-        it->second->clearCache();
-    }
-}
-
-size_t SingleLevelStorageManager::evictChunkSectionsFromCache(ChunkCoord x, ChunkCoord z, DimensionId dimension)
-{
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    auto it = m_sectionManagers.find(dimension);
-    if (it == m_sectionManagers.end()) {
-        return 0;
-    }
-    return it->second->evictChunkFromCache(x, z);
-}
-
-void SingleLevelStorageManager::clearAllCaches()
-{
-    std::lock_guard<std::mutex> lock(m_sectionManagersMutex);
-    for (auto& [dim, manager] : m_sectionManagers) {
-        manager->clearCache();
-    }
 }
 
 Result<BackupID> SingleLevelStorageManager::createBackup(const std::string& name, const std::string& description)
@@ -1398,79 +1263,6 @@ Result<size_t> SingleLevelStorageManager::pruneOldBackups(size_t keepCount)
     }
 
     return m_backupManager->pruneOldBackups(keepCount);
-}
-
-void SingleLevelStorageManager::initializeAutoSave(const AutoSaveConfig& config)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "SingleLevelStorageManager::initializeAutoSave");
-
-    if (m_autoSaveInitialized) {
-        return;
-    }
-
-    m_autoSave = std::make_unique<AutoSave>(*this);
-    m_autoSave->setConfig(config);
-    m_autoSaveInitialized = true;
-    spdlog::info("AutoSave initialized");
-}
-
-void SingleLevelStorageManager::shutdownAutoSave()
-{
-    if (!m_autoSaveInitialized) {
-        return;
-    }
-
-    if (m_autoSave) {
-        m_autoSave->stop();
-    }
-
-    m_autoSave.reset();
-    m_autoSaveInitialized = false;
-    spdlog::info("AutoSave shutdown complete");
-}
-
-void SingleLevelStorageManager::startAutoSave()
-{
-    MC_ASSERT_RELEASE(m_autoSave != nullptr);
-    m_autoSave->start();
-}
-
-void SingleLevelStorageManager::stopAutoSave()
-{
-    if (m_autoSave) {
-        m_autoSave->stop();
-    }
-}
-
-bool SingleLevelStorageManager::isAutoSaveRunning() const
-{
-    return m_autoSave != nullptr && m_autoSave->isRunning();
-}
-
-void SingleLevelStorageManager::tickAutoSave(u64 tickCount)
-{
-    if (m_autoSave && m_autoSave->isRunning()) {
-        m_autoSave->tick(tickCount);
-    }
-}
-
-Result<size_t> SingleLevelStorageManager::saveNow()
-{
-    if (!isOpen()) {
-        return Error(ErrorCode::InvalidState, "Storage not open");
-    }
-    return flushAllDirty();
-}
-
-Result<size_t> SingleLevelStorageManager::saveNowWithSnapshot(const std::string& snapshotName)
-{
-    if (!isOpen()) {
-        return Error(ErrorCode::InvalidState, "Storage not open");
-    }
-    if (!m_autoSave) {
-        return Error(ErrorCode::InvalidState, "AutoSave not initialized");
-    }
-    return m_autoSave->saveNowWithSnapshot(snapshotName);
 }
 
 } // namespace mc::world::storage

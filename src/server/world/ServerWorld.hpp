@@ -357,6 +357,25 @@ public:
     [[nodiscard]] ServerChunkManager* chunkManager() { return m_chunkManager.get(); }
     [[nodiscard]] const ServerChunkManager* chunkManager() const { return m_chunkManager.get(); }
 
+    /**
+     * @brief 把本维度所有已加载且被修改过的区块落盘
+     *
+     * 数据源是内存中当前已加载的区块，而非任何磁盘缓存：区块一旦加载就常驻内存，
+     * 修改在内存中累积，只有卸载或显式保存时才写回。因此这里遍历 `isDirty()` 的
+     * 区块，逐段序列化后**聚合成一个批次**提交——逐区块各自提交会让每个区块都付出
+     * 独立的 WAL fsync 代价，视野距离 16 下上千个区块是数量级的差异。
+     *
+     * 保存成功后清除脏标记，避免同一份数据被反复重写。
+     *
+     * 调用方必须在区块管理器 `shutdown()` 之前调用本方法：后者会直接清空区块表，
+     * 之后世界发生的一切修改都会丢失。
+     *
+     * @param sync 是否要求本次提交等待 fsync 落盘。关服与显式 `/save-all flush` 必须
+     *             为 true；自动保存为 false，交由一致性模式决定。
+     * @return 成功落盘的区块段数
+     */
+    Result<size_t> saveDirtyChunks(bool sync);
+
     // ========== 天气管理 ==========
 
     [[nodiscard]] WeatherManager* weatherManager() { return m_weatherManager.get(); }

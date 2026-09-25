@@ -8,7 +8,7 @@
 2. **RocksDB 存储层**：高性能 Section 级区块存储
 3. **会话锁和命名规范化**：防止多进程访问冲突
 4. **双层门面接口**：`GlobalStorageManager` 负责跨存档能力，`SingleLevelStorageManager` 负责单存档运行时
-5. **保存协调**：`flushAllDirty()` 仅用于 Section/玩家增量落盘，`saveAll()` 用于全量落盘
+5. **保存原语**：存储层不持有任何常驻数据缓存，只提供批量落盘原语；保存时机由上层编排
 6. **外来存档只读接入**：自动识别 Java Anvil / Bedrock LevelDB，统一门面暴露区块、玩家与 level.dat 读取能力
 
 遵循 Minecraft Java 1.16.5 的 level.dat 格式规范。
@@ -44,14 +44,10 @@ src/server/world/storage/
 │   ├── ConsistencyMode.hpp           # 一致性模式枚举（唯一决定默认写入是否等 fsync）
 │   └── README.md
 ├── section/                          # Section 数据管理
-│   ├── SectionCache.hpp/cpp          # LRU 缓存
-│   ├── SectionManager.hpp/cpp        # Section 加载/保存/缓存
+│   ├── SectionManager.hpp/cpp        # 单维度 Section 批量读写（无缓存）
 │   └── README.md
 ├── snapshot/                         # 快照系统
 │   └── BackupManager.hpp/cpp         # 快照管理
-├── save/                             # 保存管理
-│   ├── DirtyTracker.hpp/cpp          # 脏 Section 追踪
-│   └── AutoSave.hpp/cpp              # 自动保存
 ├── player/                           # 玩家数据存储
 │   ├── PlayerSaveData.hpp/cpp        # 玩家数据结构和 NBT 序列化
 │   ├── PlayerDataManager.hpp/cpp     # 玩家数据管理器（缓存+持久化）
@@ -112,9 +108,9 @@ src/server/world/storage/
 │  └──────┬───────┘ └──────────────┘ └──────────────┘ └──────────────┘    │
 │         │                                                               │
 │         ▼                                                               │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                     │
-│  │SectionCache  │ │SectionCodec  │ │StorageTaskMgr│                     │
-│  └──────────────┘ └──────────────┘ └──────────────┘                     │
+│  ┌──────────────┐ ┌──────────────┐                     │
+│  │SectionCodec  │ │StorageTaskMgr│                     │
+│  └──────────────┘ └──────────────┘                     │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
             ┌───────────────────────┼───────────────────────┐
@@ -138,8 +134,9 @@ src/server/world/storage/
 - `ServerWorld` - 世界运行时通过 `SingleLevelStorageManager` 进行区块/玩家/实体持久化
 - `ServerChunkManager` - 区块加载/保存通过 `loadChunk()` / `saveChunk()`
 - `PlayerManager` - 玩家加入/退出/保存通过 `PlayerDataManager`
-- `MinecraftServer` - 服务器启动时通过 `GlobalStorageManager` 打开存档，关闭时调用 `saveAll()`
-- `/save-all` 命令 - 触发全量保存
+- `MinecraftServer` / `ServerWorld` - 启动时通过 `GlobalStorageManager` 打开存档；保存时由区块层
+  遍历内存中的脏区块、序列化后调用 `SingleLevelStorageManager::saveSections()` 批量落盘
+- `/save-all` 命令 - 经由 `IServer::saveAllWorldData()` 触发全量保存
 - 世界选择界面 - 通过 `WorldListService::listWorlds()` 枚举存档（client 侧仅使用 `WorldListService`，不接触 `GlobalStorageManager`/`SingleLevelStorageManager`）
 
 ### 下游（这个模块依赖了谁）
@@ -162,7 +159,7 @@ src/server/world/storage/
 
 - **跨存档调用方**（世界选择、存档创建、路径解析）只能访问 `GlobalStorageManager`
 - **单存档运行时调用方**（如 ServerWorld、MinecraftServer）只能访问 `SingleLevelStorageManager`
-- **内部模块**（如 SectionManager、RocksDBDatabase、SectionCache、backend/）不允许被外部直接访问
+- **内部模块**（如 SectionManager、RocksDBDatabase、backend/）不允许被外部直接访问
 - `SingleLevelStorageManager` 通过 getter 方法暴露单存档子服务（`playerDataManager()`、`entityStorage()` 等）
 - 区块运行时不应再直接依赖 `SectionCodec`、`SectionKey`、`RocksDBDatabase`、`WorldStoragePaths`
 - 区块持久化细节统一收口到 `SingleLevelStorageManager::saveChunk()` / `loadChunk()`
@@ -174,13 +171,21 @@ src/server/world/storage/
 3. **光照数据**：NibbleArray，每方块 4 位
 4. **列族必须预先创建**：打开数据库时会自动创建缺失的列族
 5. **RocksDB 快照**：内存中的 sequence number，不持久化
-6. **全量保存与增量保存不同**：`flushAllDirty()` 不会写入干净缓存，且当前不覆盖运行时实体/方块实体；`saveAll()` 才会在世界层配合下完整落盘
-7. **`close()` 不负责保存**：关闭存储前必须由上层显式调用 `flushAllDirty()` 或 `saveAll()`，析构/close 只做资源释放
+6. **存储层不持有数据，保存必须由区块层驱动**：`SectionManager` 不缓存任何段，`saveSections()` 的入参
+   由调用方（`ServerWorld::saveDirtyChunks()`）从内存区块逐个序列化后传入。存储层看不到"哪些区块被改过"，
+   因此自动保存与 `/save-all` 都必须由服务器侧编排。**不要把 Section 级缓存加回来**：读路径与写路径访问的
+   是同一批段的概率极低，缓存只会常驻内存而不命中（实测 13 万次查询命中 0 次）。
+7. **`close()` 不负责保存**：关闭存储前必须由上层显式完成落盘，析构/close 只做资源释放。
+   注意 `ServerChunkManager::shutdown()` 会直接清空内存区块表，一切保存都必须发生在那之前
 8. **外来格式 detect 不要下沉到 backend**：backend 只负责按门面层已确认的格式打开和读取
-9. **外来存档强制只读**：`saveChunk()`、`flushAllDirty()`、`saveAll()`、`saveLevelData()` 在外来格式下静默成功但不落盘
+9. **外来存档强制只读**：`saveChunk()`、`saveSections()`、`flushPlayerData()`、`saveLevelData()` 在外来格式下静默成功但不落盘
 10. **`StorageTaskManager` 不拥有线程池**：必须由外部注入 `UniversalWorkerPool`
-11. **缓存命中和批量读取必须分开处理**：先查缓存，只把 miss 交给数据库，不要把所有 key 都无脑送进 `MultiGet`
-12. **批量读取返回顺序必须稳定**：上层 `loadChunk()` 依赖返回顺序与 `sectionY` 顺序一致
+11. **批量读取返回顺序必须稳定**：上层 `loadChunk()` 依赖返回顺序与 `sectionY` 顺序一致
+12. **非空气方块计数与方块数据必须保持一致（否则存档静默丢段）**：`SectionData::isEmpty()` 只看
+   `nonEmptyBlockCount`，而 `serialize()` 对空段**完全跳过方块数据**。一旦计数被置为 0 而 `blockStates`
+   里实际有方块，整段方块会在"已保存"的假象下丢失，且重新读回全是空气、无任何报错。
+   `ChunkSection::setBlockCount()` 可以绕开调色板直接改计数，从外部数据（存档字节、网络包）导入段时
+   若原样采信外部计数就会踩中这条；加载路径必须校验计数与调色板的一致性
 13. **`loadPlayer("~local_player")` 是约定**：本地玩家通过这个特殊字符串读取，Java 从 `Data.Player`，Bedrock 从 `~local_player` 键
 14. **`initialized` 字段必须落盘**：`saveLevelData` / `updateRuntimeData` 的 `initialized` 参数由 `MinecraftServer::m_spawnInitializedThisSession` 提供。新世界首次启动经 `initializeWorldSpawn` 计算出生点后，shutdown 必须写 `initialized=1`，否则每次重启都会重算出生点（虽幂等但浪费）。`saveLevelData` 仅在 shutdown 调用一次，`/save-all` 不刷新该字段。
 15. **SpawnY 是脚下方块 Y**：level.dat 的 `SpawnY` 语义为脚下方块 Y，非玩家脚位置。`ServerWorld::applyLevelRuntimeData` 读取时 +1 转为玩家脚位置（方块上方），`MinecraftServer::saveAllWorldData` 写盘时 -1 转回。读写转换分属 server 层，存储层只存原始整数。
@@ -188,6 +193,6 @@ src/server/world/storage/
 17. **未注入 IO/Compute 池即降级为调用线程同步读写**：`m_taskManager` 为空时 `loadChunkAsyncCallback` / `saveChunkAsyncCallback` 在调用线程内联执行完整的读盘或写盘（含 ZSTD 与 RocksDB 写入）。这对服务端 tick 线程是灾难性的（写盘会垄断 tick），仅适用于测试/独立模式；测试若要走异步路径必须显式注入两个池并 `start()`。
 19. **`loadChunkAsync` 会等待同区块进行中的保存完成**：`_waitPendingChunkSave` 在 IO worker 内阻塞等待保存任务，而保存任务与加载任务共用同一 IO 池。池线程数少且"卸载后立刻重新加载同一区块"频繁时，可能出现全部线程都在等待、而它们所等的保存任务仍排在同池队列中的线程饥饿死锁。
 
-20. **写路径的耗时几乎只由 Write 调用次数决定**：一次 `put`/`del`/`deleteRange` 就是一次完整 Write，`sync=true` 时各付一次 WAL fsync（实测约 3.2ms/次，与数据量无关）。因此凡是"要写很多条"的场景都必须聚合成 `WriteBatch` 一次提交：关服时 2048 个 section 与 1089 个区块实体的落盘曾经因此耗时 10.2 秒，聚合后应降到亚秒级。诊断此类问题先看 `TraceEvents.Storage.Db` 下的 `put`/`deleteRange` 次数——它们直接就是 fsync 次数。
+20. **写路径的耗时几乎只由 Write 调用次数决定**：一次 `put`/`del`/`deleteRange` 就是一次完整 Write，`sync=true` 时各付一次 WAL fsync（实测约 3.2ms/次，与数据量无关）。因此凡是"要写很多条"的场景都必须聚合成 `WriteBatch` 一次提交：视野距离 16 下的 2048 个 section 逐段 `put` 实测约 6.6 秒，聚合后同一份数据只需几十毫秒。`SectionManager::saveSectionsBatch` 与 `ServerWorld::saveDirtyChunks` 都遵循这条：前者把一批段攒成单个 `WriteBatch`，后者把**所有**脏区块的段攒进同一个批次再调用前者。诊断此类问题先看 `TraceEvents.Storage.Db` 下的 `put`/`deleteRange` 次数——它们直接就是 fsync 次数。
 
 21. **`ConsistencyMode` 决定默认写入是否等 fsync，显式保存永远等**：`Eventual`/`Strong` 下默认写入不逐条 fsync（仍写 WAL，进程崩溃可由 WAL 回放恢复），`Strongest` 下每次写入都等。关键写入（关服全量保存、`/save-all`、实体关服批次、`close()` 前的 flush）由调用方显式要求同步，与模式无关。

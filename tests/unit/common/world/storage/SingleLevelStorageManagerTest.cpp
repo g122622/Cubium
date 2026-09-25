@@ -13,6 +13,15 @@ namespace TestBiomes {
 constexpr BiomeId PLAINS = 1;
 }
 
+/// 测试用方块状态的基准值。
+///
+/// 【必须避开 0/1/2】方块状态 0/1/2 分别是空气、洞穴空气、虚空空气，**它们本身就是空气**。
+/// 用它们当"已放置的方块"写进区块，该段会被序列化判定为空段而丢弃方块数据；读回来自然
+/// 还是空气。旧实现读路径命中 SectionCache、拿到的是内存里的原对象而绕过了序列化，
+/// 于是这类测试长期"通过"。段缓存移除后读路径必须真正走一遍序列化/反序列化，
+/// 测试数据必须落在确定非空气的范围内才能表达"这里有方块"。
+constexpr u32 NON_AIR_STATE_BASE = 100;
+
 class StorageTestBase : public ::testing::Test {
 protected:
     std::filesystem::path testDir;
@@ -46,13 +55,67 @@ protected:
 
 class SingleLevelStorageManagerTest : public StorageTestBase {};
 
+/**
+ * @brief 按区块层的实际做法把整个区块落盘
+ *
+ * 存储层不再持有任何缓存，待写段必须由调用方从 `ChunkData` 序列化后传入。
+ * 这里复刻 `ServerWorld::saveDirtyChunks` 的序列化与聚批路径，保证测试覆盖的是
+ * 生产路径而非一条只存在于测试里的捷径。
+ */
+[[nodiscard]] size_t saveChunkSectionsForCount(
+    SingleLevelStorageManager& storage, const ChunkData& chunk, DimensionId dimension);
+
+void saveChunkSections(
+    SingleLevelStorageManager& storage, const ChunkData& chunk, DimensionId dimension, bool sync = false)
+{
+    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
+
+    std::vector<SectionWrite> writes;
+    for (i8 sectionY = 0; sectionY < mc::world::CHUNK_SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk.getSection(sectionY);
+        if (section == nullptr) {
+            continue;
+        }
+        SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(mc::world::sectionIndexToCoord(sectionY)), dimension);
+        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        ASSERT_TRUE(bytesResult.success()) << bytesResult.error().message();
+        writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
+    }
+
+    auto saveResult = storage.saveSections(dimension, writes, sync);
+    ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
+}
+
+size_t saveChunkSectionsForCount(SingleLevelStorageManager& storage, const ChunkData& chunk, DimensionId dimension)
+{
+    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
+
+    std::vector<SectionWrite> writes;
+    for (i8 sectionY = 0; sectionY < mc::world::CHUNK_SECTIONS; ++sectionY) {
+        const ChunkSection* section = chunk.getSection(sectionY);
+        if (section == nullptr) {
+            continue;
+        }
+        SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(mc::world::sectionIndexToCoord(sectionY)), dimension);
+        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        EXPECT_TRUE(bytesResult.success()) << bytesResult.error().message();
+        if (bytesResult.failed()) {
+            return 0;
+        }
+        writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
+    }
+
+    auto saveResult = storage.saveSections(dimension, writes, false);
+    EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
+    return saveResult.success() ? saveResult.value() : 0;
+}
+
 TEST_F(SingleLevelStorageManagerTest, OpenClose)
 {
     SingleLevelStorageManager storage;
 
     SingleLevelStorageConfig config;
     config.consistencyMode = ConsistencyMode::Eventual;
-    config.sectionCacheCapacity = 100;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success()) << result.error().message();
@@ -67,7 +130,6 @@ TEST_F(SingleLevelStorageManagerTest, SaveAndLoadChunk)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
-    config.sectionCacheCapacity = 10;
 
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
@@ -132,7 +194,7 @@ TEST_F(SingleLevelStorageManagerTest, MultipleSections)
     storage.close();
 }
 
-TEST_F(SingleLevelStorageManagerTest, FlushAllDirty)
+TEST_F(SingleLevelStorageManagerTest, SaveChunkPersistsEverySectionImmediately)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
@@ -145,20 +207,27 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirty)
         ChunkData chunk(i, 0);
         ChunkSection* section = chunk.createSection(0);
         ASSERT_NE(section, nullptr);
-        section->setBlockStateId(0, 0, 0, static_cast<u32>(i));
+        section->setBlockStateId(0, 0, 0, NON_AIR_STATE_BASE + static_cast<u32>(i));
         chunk.setLoaded(true);
         chunk.setFullyGenerated(true);
         chunk.setDirty(false);
         ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
     }
 
-    auto flushResult = storage.flushAllDirty();
-    ASSERT_TRUE(flushResult.success());
+    // 存储层不再缓存段数据，saveChunk 返回即已落盘：无需再 flush 一次。
+    for (int i = 0; i < 10; ++i) {
+        auto loadResult = storage.loadChunk(i, 0, 0);
+        ASSERT_TRUE(loadResult.success()) << loadResult.error().message();
+        ASSERT_TRUE(loadResult.value().has_value());
+        const ChunkSection* section = loadResult.value().value().getSection(0);
+        ASSERT_NE(section, nullptr);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), NON_AIR_STATE_BASE + static_cast<u32>(i));
+    }
 
     storage.close();
 }
 
-TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyIncludesEntityAndBlockEntityEntrypoints)
+TEST_F(SingleLevelStorageManagerTest, FlushPlayerDataIsNoOpWithoutDirtyPlayers)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
@@ -167,7 +236,7 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyIncludesEntityAndBlockEntityE
     auto result = storage.open(testDir, config);
     ASSERT_TRUE(result.success());
 
-    auto flushResult = storage.flushAllDirty();
+    auto flushResult = storage.flushPlayerData();
     ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
     EXPECT_EQ(flushResult.value(), 0u);
 
@@ -186,7 +255,7 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
         ChunkData chunk(0, 0);
         ChunkSection* section = chunk.createSection(0);
         ASSERT_NE(section, nullptr);
-        section->setBlockStateId(0, 0, 0, 1);
+        section->setBlockStateId(0, 0, 0, NON_AIR_STATE_BASE + 1);
         chunk.setLoaded(true);
         chunk.setFullyGenerated(true);
         chunk.setDirty(false);
@@ -197,7 +266,7 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
         ChunkData chunk(0, 0);
         ChunkSection* section = chunk.createSection(0);
         ASSERT_NE(section, nullptr);
-        section->setBlockStateId(0, 0, 0, 2);
+        section->setBlockStateId(0, 0, 0, NON_AIR_STATE_BASE + 2);
         chunk.setLoaded(true);
         chunk.setFullyGenerated(true);
         chunk.setDirty(false);
@@ -208,7 +277,7 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
         ChunkData chunk(0, 0);
         ChunkSection* section = chunk.createSection(0);
         ASSERT_NE(section, nullptr);
-        section->setBlockStateId(0, 0, 0, 3);
+        section->setBlockStateId(0, 0, 0, NON_AIR_STATE_BASE + 3);
         chunk.setLoaded(true);
         chunk.setFullyGenerated(true);
         chunk.setDirty(false);
@@ -221,7 +290,7 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
         ASSERT_TRUE(loadResult.value().has_value());
         const ChunkSection* section = loadResult.value().value().getSection(0);
         ASSERT_NE(section, nullptr);
-        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 1u);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), NON_AIR_STATE_BASE + 1);
     }
 
     {
@@ -230,7 +299,7 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
         ASSERT_TRUE(loadResult.value().has_value());
         const ChunkSection* section = loadResult.value().value().getSection(0);
         ASSERT_NE(section, nullptr);
-        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 2u);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), NON_AIR_STATE_BASE + 2);
     }
 
     {
@@ -239,7 +308,7 @@ TEST_F(SingleLevelStorageManagerTest, DifferentDimensions)
         ASSERT_TRUE(loadResult.value().has_value());
         const ChunkSection* section = loadResult.value().value().getSection(0);
         ASSERT_NE(section, nullptr);
-        EXPECT_EQ(section->getBlockStateId(0, 0, 0), 3u);
+        EXPECT_EQ(section->getBlockStateId(0, 0, 0), NON_AIR_STATE_BASE + 3);
     }
 
     storage.close();
@@ -263,9 +332,6 @@ TEST_F(SingleLevelStorageManagerTest, ReopenPreservesData)
         chunk.setFullyGenerated(true);
         chunk.setDirty(false);
         ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
-
-        auto flushResult = storage.flushAllDirty();
-        ASSERT_TRUE(flushResult.success());
 
         storage.close();
     }
@@ -291,7 +357,7 @@ TEST_F(SingleLevelStorageManagerTest, ReopenPreservesData)
     }
 }
 
-TEST_F(SingleLevelStorageManagerTest, SaveAllPreservesOverwrittenSectionSnapshot)
+TEST_F(SingleLevelStorageManagerTest, SaveSectionsBatchPreservesOverwrittenSectionSnapshot)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
@@ -330,8 +396,8 @@ TEST_F(SingleLevelStorageManagerTest, SaveAllPreservesOverwrittenSectionSnapshot
     auto overwriteResult = storage.saveChunk(updatedChunk, 0);
     ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
 
-    auto fullSaveResult = storage.saveAll();
-    ASSERT_TRUE(fullSaveResult.success()) << fullSaveResult.error().message();
+    // 覆盖写：同一段被写入两次，第二次必须真正生效（批内不得残留上一版数据）。
+    saveChunkSections(storage, updatedChunk, 0);
 
     storage.close();
 
@@ -351,7 +417,7 @@ TEST_F(SingleLevelStorageManagerTest, SaveAllPreservesOverwrittenSectionSnapshot
     }
 }
 
-TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSnapshot)
+TEST_F(SingleLevelStorageManagerTest, SaveSectionsBatchPersistsOverwrittenSectionSnapshotWithSync)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
@@ -384,11 +450,7 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSna
     updatedChunk.setLoaded(true);
     updatedChunk.setFullyGenerated(true);
     updatedChunk.setDirty(false);
-    auto overwriteResult = storage.saveChunk(updatedChunk, 0);
-    ASSERT_TRUE(overwriteResult.success()) << overwriteResult.error().message();
-
-    auto flushResult = storage.flushAllDirty();
-    ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
+    saveChunkSections(storage, updatedChunk, 0, /*sync=*/true);
 
     storage.close();
 
@@ -409,20 +471,18 @@ TEST_F(SingleLevelStorageManagerTest, FlushAllDirtyPersistsOverwrittenSectionSna
 }
 
 /**
- * saveAll 把缓存里的全部段聚合成**一个** WriteBatch 提交（此前是逐段 put，等于逐段
- * 等一次 WAL fsync）。聚合写入最容易出的错是"聚合过程中漏条目"或"把干净段跳过"，
- * 两者都不会报错、只会静默少写数据，因此这里覆盖：
- * - 跨维度、多条区块列的批量落盘，条数必须精确等于写入的段数
- * - 连做两次 saveAll：契约是"无论是否脏都保存"，第二次条数必须不变（写完即标干净，
- *   若实现错误地依赖脏标记，第二次会返回 0，落盘内容也就跟着丢了）
+ * 批量落盘把整批段聚合成**一个** WriteBatch 提交（逐段 put 等于逐段等一次 WAL fsync，
+ * 视野距离 16 下 2048 个段实测约 6.6 秒）。聚合写入最容易出的错是"聚合过程中漏条目"，
+ * 它不会报错、只会静默少写数据，因此这里覆盖：
+ * - 跨维度、多条区块列一次提交，返回条数必须精确等于写入的段数
+ * - 同一批段连落两次，第二次条数必须不变（数据源是调用方传入的段列表，不是会被写空的缓存）
  * - 重开后逐段校验内容，确保条数对只是巧合的可能性被排除
  */
-TEST_F(SingleLevelStorageManagerTest, SaveAllPersistsEveryCachedSectionInOneBatch)
+TEST_F(SingleLevelStorageManagerTest, SaveSectionsBatchPersistsEverySectionAcrossDimensions)
 {
     SingleLevelStorageManager storage;
     SingleLevelStorageConfig config;
     config.consistencyMode = ConsistencyMode::Eventual;
-    config.sectionCacheCapacity = 256;
 
     auto openResult = storage.open(testDir, config);
     ASSERT_TRUE(openResult.success()) << openResult.error().message();
@@ -430,32 +490,27 @@ TEST_F(SingleLevelStorageManagerTest, SaveAllPersistsEveryCachedSectionInOneBatc
     constexpr i32 CHUNK_COUNT = 12;
     constexpr i8 SECTION_Y = 3;
     constexpr u32 FILL_BASE = 1000;
-
-    for (const DimensionId dimension : {DimensionId(0), DimensionId(1)}) {
-        for (i32 i = 0; i < CHUNK_COUNT; ++i) {
-            ChunkData chunk(i, 7);
-            ChunkSection* section = chunk.createSection(SECTION_Y);
-            ASSERT_NE(section, nullptr);
-            section->setBlockStateId(0, 0, 0, FILL_BASE + static_cast<u32>(i));
-            chunk.setLoaded(true);
-            chunk.setFullyGenerated(true);
-            chunk.setDirty(false);
-
-            auto saveResult = storage.saveChunk(chunk, dimension);
-            ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
-        }
-    }
-
     const size_t expectedSections = static_cast<size_t>(CHUNK_COUNT) * 2;
 
-    auto firstSave = storage.saveAll();
-    ASSERT_TRUE(firstSave.success()) << firstSave.error().message();
-    EXPECT_EQ(firstSave.value(), expectedSections);
+    auto writeAll = [&storage]() {
+        size_t written = 0;
+        for (const DimensionId dimension : {DimensionId(0), DimensionId(1)}) {
+            for (i32 i = 0; i < CHUNK_COUNT; ++i) {
+                ChunkData chunk(i, 7);
+                ChunkSection* section = chunk.createSection(SECTION_Y);
+                EXPECT_NE(section, nullptr);
+                section->setBlockStateId(0, 0, 0, FILL_BASE + static_cast<u32>(i));
+                chunk.setLoaded(true);
+                chunk.setFullyGenerated(true);
+                chunk.setDirty(false);
+                written += saveChunkSectionsForCount(storage, chunk, dimension);
+            }
+        }
+        return written;
+    };
 
-    auto secondSave = storage.saveAll();
-    ASSERT_TRUE(secondSave.success()) << secondSave.error().message();
-    EXPECT_EQ(secondSave.value(), expectedSections)
-        << "saveAll 的契约是无论是否脏都保存，第二次不应跳过已标记为干净的段";
+    EXPECT_EQ(writeAll(), expectedSections);
+    EXPECT_EQ(writeAll(), expectedSections) << "批量落盘的返回条数不应随上一次写入而变化";
 
     storage.close();
 
@@ -514,20 +569,28 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveOperationsAreSilentAndDoNotPer
     ChunkData chunk(1, 2);
     ChunkSection* section = chunk.createSection(0);
     ASSERT_NE(section, nullptr);
-    section->setBlockStateId(0, 0, 0, 55);
+    section->setBlockStateId(0, 0, 0, NON_AIR_STATE_BASE + 55);
     chunk.setLoaded(true);
     chunk.setFullyGenerated(true);
 
     auto saveResult = storage.saveChunk(chunk, 0);
     ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
 
-    auto flushResult = storage.flushAllDirty();
+    // 只读模式下批量落盘与玩家数据刷盘都必须静默成功且不写入任何数据。
+    const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
+    std::vector<SectionWrite> readonlyWrites;
+    SectionKey readonlyKey(1, 2, 0, 0);
+    auto readonlyBytes = SectionCodec::serializeFromChunkSection(*section, readonlyKey, biomes);
+    ASSERT_TRUE(readonlyBytes.success()) << readonlyBytes.error().message();
+    readonlyWrites.push_back(SectionWrite{readonlyKey, std::move(readonlyBytes.value())});
+
+    auto readonlySaveResult = storage.saveSections(0, readonlyWrites, true);
+    ASSERT_TRUE(readonlySaveResult.success()) << readonlySaveResult.error().message();
+    EXPECT_EQ(readonlySaveResult.value(), 0u);
+
+    auto flushResult = storage.flushPlayerData();
     ASSERT_TRUE(flushResult.success()) << flushResult.error().message();
     EXPECT_EQ(flushResult.value(), 0u);
-
-    auto saveAllResult = storage.saveAll();
-    ASSERT_TRUE(saveAllResult.success()) << saveAllResult.error().message();
-    EXPECT_EQ(saveAllResult.value(), 0u);
 
     storage.close();
 

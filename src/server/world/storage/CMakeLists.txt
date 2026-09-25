@@ -56,9 +56,6 @@ add_library(mc_server_storage OBJECT
     reader/java/JavaWorldReader.cpp
     reader/java/RegionFile.cpp
     request/WorldRequests.cpp
-    save/AutoSave.cpp
-    save/DirtyTracker.cpp
-    section/SectionCache.cpp
     section/SectionManager.cpp
     snapshot/BackupManager.cpp
     task/StorageTask.cpp

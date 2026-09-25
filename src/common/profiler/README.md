@@ -79,7 +79,7 @@ TraceEvents.hpp（MC_TRACE_* 双轨宏，四种组合分支）
 - **客户端核心**：`ClientApplication`、`ClientWorld`、`TridentEngine`、`ChunkRenderer` 等
 - **世界生成**：`NoiseChunkGenerator`、`BiomeRegistry`、光照引擎等
 - **网络同步**：`ChunkSendManager`、`ClientNetwork` 等
-- **存储系统**：`RocksDBDatabase`、`SectionManager`、`AutoSave` 等
+- **存储系统**：`RocksDBDatabase`、`SectionManager`、`SectionCodec` 等
 
 ### 依赖了谁
 

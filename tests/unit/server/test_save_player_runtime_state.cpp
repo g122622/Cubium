@@ -163,7 +163,6 @@ TEST_F(SavePlayerRuntimeStateTest, StopWithNoPlayersDoesNotWritePlayerData)
     SingleLevelStorageManager reopenedStorage;
     SingleLevelStorageConfig storageConfig;
     storageConfig.consistencyMode = ConsistencyMode::Eventual;
-    storageConfig.sectionCacheCapacity = 128;
     storageConfig.enableBackup = false;
 
     auto openResult = reopenedStorage.open(worldPath, storageConfig);

@@ -40,7 +40,6 @@
 #include "server/world/storage/entity/EntityStorageManager.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
 #include "server/world/storage/player/PlayerSaveData.hpp"
-#include "server/world/storage/section/SectionCache.hpp"
 #include "server/world/storage/section/SectionManager.hpp"
 #include "server/world/storage/snapshot/BackupManager.hpp"
 #include "server/world/storage/task/StorageTaskManager.hpp"
@@ -69,18 +68,14 @@ class ServerChunkManager;
 
 namespace mc::world::storage {
 
-struct AutoSaveConfig;
-class AutoSave;
-
 /**
  * @brief 单存档运行时存储配置
  *
  * 该配置控制单个已打开存档的持久化行为，
- * 包括一致性模式、Section 缓存容量、备份开关和 RocksDB 参数。
+ * 包括一致性模式、备份开关和 RocksDB 参数。
  */
 struct SingleLevelStorageConfig {
     ConsistencyMode consistencyMode = ConsistencyMode::Eventual;
-    size_t sectionCacheCapacity = 1024;
     bool enableBackup = true;
     std::optional<RocksDBConfig> rocksdbConfig;
     bool computeHash = false;
@@ -98,7 +93,10 @@ struct SingleLevelStorageConfig {
  * - 管理 RocksDB 数据库与会话锁生命周期
  * - 提供完整区块读写门面
  * - 暴露玩家数据、记分板、备份、异步存储任务等单存档子服务
- * - 内聚自动保存、手动保存和定期脏数据刷盘逻辑
+ * - 提供批量落盘原语，供上层（区块层）编排保存时机
+ *
+ * 该类不持有任何常驻数据缓存：区块数据常驻于世界层的内存区块表，由区块层
+ * 决定何时序列化并调用本类的批量落盘入口；自动保存因此也由服务器驱动。
  *
  * 该类不负责存档发现、世界列表和目录选择；
  * 这类跨存档能力应由 `GlobalStorageManager` 负责。
@@ -143,8 +141,7 @@ public:
      *
      * 只负责关闭数据库/后端、停止自动保存并释放会话锁等资源。
      *
-     * 该方法不负责隐式 `flushAllDirty()` 或 `saveAll()`；
-     * 调用方必须在关闭前自行决定是否执行保存。
+     * 该方法不负责隐式保存；调用方必须在关闭前自行决定是否执行保存。
      */
     void close();
 
@@ -155,22 +152,24 @@ public:
     [[nodiscard]] bool isOpen() const { return m_db != nullptr || m_backend != nullptr; }
 
     /**
-     * @brief 刷新所有脏数据
+     * @brief 把指定维度的待写段批量落盘
      *
-     * 仅刷新脏 Section 与脏玩家数据，适合自动保存与关闭流程。
+     * 自身不产生数据：待写段由调用方（区块层）从 `ChunkData` 直接序列化后传入，
+     * 全部段聚合成**一个** `WriteBatch` 提交，一次调用只付一次 WAL fsync。
      *
-     * @return 成功刷新的数据数量
+     * @param dimension 维度 ID
+     * @param writes 待写段列表
+     * @param sync 是否要求本次提交等待 fsync 落盘；为 false 时由一致性模式决定
+     * @return 成功写回的段数
      */
-    Result<size_t> flushAllDirty();
+    Result<size_t> saveSections(DimensionId dimension, const std::vector<SectionWrite>& writes, bool sync);
 
     /**
-     * @brief 全量保存所有缓存数据
+     * @brief 把玩家数据缓存中标记为脏的条目落盘
      *
-     * 与 `flushAllDirty()` 不同，该方法会遍历所有缓存 Section 并强制写盘。
-     *
-     * @return 成功保存的数据数量
+     * @return 成功保存的玩家数据条数
      */
-    Result<size_t> saveAll();
+    Result<size_t> flushPlayerData();
 
     /**
      * @brief 保存完整区块
@@ -426,52 +425,6 @@ public:
     Result<size_t> pruneOldBackups(size_t keepCount);
 
     /**
-     * @brief 初始化自动保存
-     * @param config 自动保存配置
-     */
-    void initializeAutoSave(const AutoSaveConfig& config);
-
-    /**
-     * @brief 关闭自动保存并执行收尾保存
-     */
-    void shutdownAutoSave();
-
-    /**
-     * @brief 启动自动保存
-     */
-    void startAutoSave();
-
-    /**
-     * @brief 停止自动保存
-     */
-    void stopAutoSave();
-
-    /**
-     * @brief 检查自动保存是否运行
-     * @return 正在运行返回 true
-     */
-    [[nodiscard]] bool isAutoSaveRunning() const;
-
-    /**
-     * @brief 推进自动保存逻辑
-     * @param tickCount 当前服务器 tick
-     */
-    void tickAutoSave(u64 tickCount);
-
-    /**
-     * @brief 立即执行一次脏数据保存
-     * @return 保存的数据数量
-     */
-    Result<size_t> saveNow();
-
-    /**
-     * @brief 立即执行一次保存并附带快照
-     * @param snapshotName 快照名称
-     * @return 保存的数据数量
-     */
-    Result<size_t> saveNowWithSnapshot(const std::string& snapshotName);
-
-    /**
      * @brief 获取当前存储配置
      * @return 配置只读引用
      */
@@ -490,53 +443,10 @@ public:
     [[nodiscard]] const std::filesystem::path& worldPath() const { return m_worldPath; }
 
     /**
-     * @brief 获取所有已打开维度的缓存统计
-     * @return 维度到缓存统计的映射
-     */
-    [[nodiscard]] std::unordered_map<DimensionId, SectionCache::CacheStats> getCacheStats() const;
-
-    /**
-     * @brief 获取所有维度的脏数据总量
-     * @return 脏数据总数
-     */
-    [[nodiscard]] size_t getTotalDirtyCount() const;
-
-    /**
      * @brief 获取当前已创建的维度列表
      * @return 已打开维度 ID 列表
      */
     [[nodiscard]] std::vector<DimensionId> getOpenDimensions() const;
-
-    /**
-     * @brief 修改指定维度缓存容量
-     * @param dimension 维度 ID
-     * @param capacity 新缓存容量
-     */
-    void setCacheCapacity(DimensionId dimension, size_t capacity);
-
-    /**
-     * @brief 清空指定维度缓存
-     * @param dimension 维度 ID
-     */
-    void clearCache(DimensionId dimension);
-
-    /**
-     * @brief 清空所有维度缓存
-     */
-    void clearAllCaches();
-
-    /**
-     * @brief 驱逐指定区块列在缓存中的全部段（只动缓存，不触碰数据库）
-     *
-     * 供区块卸载路径调用：卸载保存会把整列段回填进缓存，若不驱逐，缓存常驻量将正比于
-     * 「历史上加载过的区块」而非「当前已加载的区块」。指定维度没有 SectionManager 时为空操作。
-     *
-     * @param x 区块X坐标
-     * @param z 区块Z坐标
-     * @param dimension 维度 ID
-     * @return 实际驱逐的段数
-     */
-    size_t evictChunkSectionsFromCache(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
     /**
      * @brief 获取存档格式信息
@@ -550,6 +460,8 @@ public:
      */
     [[nodiscard]] bool isForeignFormat() const { return m_backend != nullptr; }
 
+    /// 区块卸载保存的收尾需要清理进行中保存追踪表，该表是本类的内部状态，
+    /// 只有掌握"该区块保存已完成且无新保存启动"这一前提的 ServerChunkManager 才可调用。
     friend class mc::server::ServerChunkManager;
 
 private:
@@ -594,8 +506,6 @@ private:
     std::unique_ptr<EntityStorageManager> m_entityStorage;
     std::unique_ptr<BlockEntityStorageManager> m_blockEntityStorage;
     std::unique_ptr<mc::scoreboard::ScoreboardDataManager> m_scoreboardDataManager;
-    std::unique_ptr<AutoSave> m_autoSave;
-    bool m_autoSaveInitialized = false;
     util::UniversalWorkerPool* m_ioWorkerPool = nullptr;
     std::unique_ptr<StorageTaskManager> m_taskManager;
 

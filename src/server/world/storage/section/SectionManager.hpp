@@ -25,38 +25,40 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/thread/ITask.hpp"
 #include "server/world/storage/db/ConsistencyMode.hpp"
 #include "server/world/storage/db/RocksDBDatabase.hpp"
 #include "server/world/storage/db/SectionCodec.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
-#include "server/world/storage/section/SectionCache.hpp"
-#include "server/world/storage/task/StorageTaskManager.hpp"
-#include <atomic>
 #include <cstddef>
-#include <functional>
-#include <future>
 #include <memory>
-#include <mutex>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace mc::world::storage {
 
 /**
+ * @brief 待落盘的单个区块段
+ *
+ * 保存路径不经过 `SectionData`：`ChunkSection` 序列化后的字节直接放进本结构，
+ * 由 `SectionManager::saveSectionsBatch` 原样写入 RocksDB。`SectionData` 只服务
+ * 读取路径（反序列化中间表示），这样每段的常驻开销只有压缩后的字节数（约 1~5 KB），
+ * 而非 `SectionData` 展开后的约 18.7 KB。
+ */
+struct SectionWrite {
+    /// Section 标识
+    SectionKey key;
+
+    /// 已序列化（含 ZSTD 压缩）的落盘字节
+    std::vector<u8> bytes;
+};
+
+/**
  * @brief Section管理器
  *
- * 负责Section数据的加载、保存、缓存管理。
- * 与RocksDB数据库和区块系统交互。
+ * 负责单维度 Section 数据的批量读取与批量写回，是 `SingleLevelStorageManager`
+ * 与 RocksDB 之间的直接桥梁，自身不持有任何常驻缓存。
  *
  * 线程安全：所有公共方法都是线程安全的。
- *
- * 特性：
- * - LRU缓存，自动淘汰未使用的Section
- * - 脏标记追踪，批量保存
- * - 异步加载/保存，优先级调度
- * - Perfetto追踪集成
  */
 class SectionManager {
 public:
@@ -66,38 +68,9 @@ public:
 
     /// 管理器配置
     struct Config {
-        /// 缓存容量（Section数量）
-        size_t cacheCapacity = 1024;
-
-        /// 是否预计算哈希（用于快照去重）
-        bool computeHash = true;
-
-        /// 自动保存脏Section阈值
-        size_t autoSaveThreshold = 100;
-
-        /// 批量保存大小
-        size_t batchSize = 50;
-
         /// 一致性模式
         ConsistencyMode consistencyMode = ConsistencyMode::Eventual;
-
-        /// 默认配置
-        static Config Default() { return Config{}; }
     };
-
-    // ========================================================================
-    // 回调类型
-    // ========================================================================
-
-    /// 加载完成回调 - 使用共享指针保证缓存对象生命周期安全
-    using LoadCallback = std::function<void(const SectionKey&, std::shared_ptr<const SectionData>)>;
-
-    /// 保存完成回调 - 使用 bool 表示成功/失败
-    using SaveCallback = std::function<void(const SectionKey&, bool success)>;
-
-    // ========================================================================
-    // 构造与析构
-    // ========================================================================
 
     /**
      * @brief 构造Section管理器
@@ -114,7 +87,7 @@ public:
     SectionManager(const SectionManager&) = delete;
     SectionManager& operator=(const SectionManager&) = delete;
 
-    // 禁止移动（有引用成员和不可移动成员）
+    // 禁止移动（有引用成员）
     SectionManager(SectionManager&&) noexcept = delete;
     SectionManager& operator=(SectionManager&&) noexcept = delete;
 
@@ -123,34 +96,9 @@ public:
     // ========================================================================
 
     /**
-     * @brief 同步加载Section
-     *
-     * 优先从缓存加载，缓存未命中则从数据库加载。
-     * 返回共享指针，避免缓存驱逐或并发保存导致悬空指针。
-     *
-     * @param key Section标识
-     * @return Section数据快照，失败返回错误
-     */
-    Result<std::shared_ptr<const SectionData>> loadSectionSync(const SectionKey& key);
-
-    /**
-     * @brief 异步加载Section
-     *
-     * 提交加载任务到工作线程池。
-     *
-     * @param key Section标识
-     * @param priority 任务优先级
-     * @param abortSignal 取消令牌，传入后任务可被取消；为 nullptr 时内部创建不可取消令牌
-     * @return 未来的Section数据快照
-     */
-    std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(const SectionKey& key,
-        util::TaskPriority priority = util::TaskPriority::Normal,
-        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
-
-    /**
      * @brief 批量加载Section
      *
-     * 先命中缓存，再对未命中的 Section 执行一次 RocksDB 批量读取。
+     * 对全部 key 执行一次 RocksDB 批量读取，不再做任何缓存命中判断。
      * 返回结果顺序与输入 keys 完全一致；某个位置返回空 shared_ptr 表示 Section 不存在。
      *
      * @param keys Section标识列表
@@ -158,181 +106,22 @@ public:
      */
     Result<std::vector<std::shared_ptr<const SectionData>>> loadSectionsSync(const std::vector<SectionKey>& keys);
 
-    /**
-     * @brief 异步批量加载Section
-     *
-     * 缓存命中的 Section 在调用线程同步取出（持 m_cache 短锁），未命中的 Section
-     * 通过 StorageTask 提交到 ServerIO 线程池执行一次 _loadFromDatabaseBatch 批量读取。
-     * 适用于区块加载主路径的异步化：RocksDB I/O 在 ServerIO 线程完成，不阻塞主线程。
-     *
-     * 若未注入 StorageTaskManager（测试/独立模式），降级为同步 loadSectionsSync。
-     *
-     * @param keys Section标识列表
-     * @param priority 任务优先级
-     * @param abortSignal 取消令牌，传入后任务执行前/执行中可取消
-     * @return 未来的批量加载结果（与输入顺序一致）
-     */
-    std::future<Result<std::vector<std::shared_ptr<const SectionData>>>> loadSectionsAsync(
-        const std::vector<SectionKey>& keys,
-        util::TaskPriority priority = util::TaskPriority::Normal,
-        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
-
     // ========================================================================
     // Section保存
     // ========================================================================
 
     /**
-     * @brief 保存Section
+     * @brief 批量写回Section
      *
-     * 将Section数据写入数据库并标记为干净。
+     * 把全部待写段聚合成**一个** `WriteBatch` 提交，一次调用只付一次 WAL fsync。
+     * 逐段调用 `RocksDBDatabase::put` 会让每段各付一次 fsync——视野距离 16 下
+     * 2048 个段实测约 6.6 秒，聚合后同一份数据只需几十毫秒。
      *
-     * @param key Section标识
-     * @param data Section数据
-     * @param immediate 是否立即同步写入
-     * @return 成功或错误
+     * @param writes 待写段列表（键 + 已序列化字节）
+     * @param sync 是否要求本次提交等待 fsync 落盘；为 false 时仍受一致性模式约束
+     * @return 成功写回的段数
      */
-    Result<void> saveSectionSync(const SectionKey& key, const SectionData& data, bool immediate = false);
-
-    /**
-     * @brief 异步保存Section
-     *
-     * @param key Section标识
-     * @param data Section数据
-     * @param priority 任务优先级
-     * @return 未来的保存结果
-     */
-    std::future<Result<void>> saveSectionAsync(
-        const SectionKey& key, const SectionData& data, util::TaskPriority priority = util::TaskPriority::Normal);
-
-    /**
-     * @brief 注入任务管理器
-     */
-    void setTaskManager(StorageTaskManager* taskManager) { m_taskManager = taskManager; }
-
-    /**
-     * @brief 批量保存脏Section
-     *
-     * 将所有标记为脏的Section保存到数据库。
-     *
-     * @return 保存的Section数量
-     */
-    Result<size_t> flushDirtySections();
-
-    /**
-     * @brief 保存所有缓存Section
-     *
-     * 无论是否脏都保存。
-     *
-     * @return 保存的Section数量
-     */
-    Result<size_t> saveAll();
-
-    // ========================================================================
-    // Section卸载
-    // ========================================================================
-
-    /**
-     * @brief 卸载Section
-     *
-     * 从缓存中移除Section。如果Section为脏，先保存到数据库。
-     *
-     * @param key Section标识
-     * @return 成功或错误
-     */
-    Result<void> unloadSection(const SectionKey& key);
-
-    /**
-     * @brief 卸载所有Section
-     *
-     * 保存所有脏Section并清空缓存。
-     *
-     * @return 成功或错误
-     */
-    Result<void> unloadAll();
-
-    /**
-     * @brief 驱逐区块列在缓存中的全部段（只动缓存，不触碰数据库）
-     *
-     * 供区块卸载路径调用。与 deleteChunkSections 的区别是后者会连同数据库中的段一起删除；
-     * 与 unloadSection 的区别是后者会先保存脏段，而本方法只做缓存驱逐——卸载时的落盘已由
-     * ServerChunkManager 的保存流程单独驱动。
-     *
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     * @return 实际驱逐的段数
-     */
-    size_t evictChunkFromCache(i32 chunkX, i32 chunkZ);
-
-    // ========================================================================
-    // Section删除
-    // ========================================================================
-
-    /**
-     * @brief 删除Section
-     *
-     * 从缓存和数据库中删除Section。
-     *
-     * @param key Section标识
-     * @return 成功或错误
-     */
-    Result<void> deleteSection(const SectionKey& key);
-
-    /**
-     * @brief 删除区块的所有Section
-     *
-     * @param chunkX 区块X坐标
-     * @param chunkZ 区块Z坐标
-     * @return 删除的Section数量
-     */
-    Result<size_t> deleteChunkSections(i32 chunkX, i32 chunkZ);
-
-    // ========================================================================
-    // 缓存管理
-    // ========================================================================
-
-    /**
-     * @brief 设置缓存容量
-     */
-    void setCacheCapacity(size_t capacity);
-
-    /**
-     * @brief 获取缓存统计
-     */
-    [[nodiscard]] SectionCache::CacheStats getCacheStats() const;
-
-    /**
-     * @brief 清空缓存
-     *
-     * 注意：不保存脏Section，直接丢弃。
-     */
-    void clearCache();
-
-    /**
-     * @brief 检查Section是否在缓存中
-     */
-    [[nodiscard]] bool isCached(const SectionKey& key) const;
-
-    // ========================================================================
-    // 脏标记追踪
-    // ========================================================================
-
-    /**
-     * @brief 标记Section为脏
-     *
-     * @param key Section标识
-     * @return 是否成功（Section必须在缓存中）
-     */
-    bool markDirty(const SectionKey& key);
-
-    /**
-     * @brief 获取脏Section数量
-     */
-    [[nodiscard]] size_t getDirtyCount() const;
-
-    /**
-     * @brief 获取所有脏Section键
-     */
-    [[nodiscard]] std::vector<SectionKey> getDirtyKeys() const;
+    Result<size_t> saveSectionsBatch(const std::vector<SectionWrite>& writes, bool sync = false);
 
     // ========================================================================
     // 访问器
@@ -364,39 +153,12 @@ private:
     // ========================================================================
 
     /**
-     * @brief 从数据库加载Section
-     */
-    Result<std::shared_ptr<const SectionData>> _loadFromDatabase(const SectionKey& key);
-
-    /**
      * @brief 从数据库批量加载多个 Section
      *
      * @param keys Section 标识列表
      * @return 与输入顺序一致的加载结果列表
      */
     Result<std::vector<std::shared_ptr<const SectionData>>> _loadFromDatabaseBatch(const std::vector<SectionKey>& keys);
-
-    /**
-     * @brief 按配置把 Section 序列化为待写入数据库的字节
-     *
-     * 统一收敛"是否需要先算哈希"这个分支：computeHash 开启时在本地副本上算，
-     * 绝不原地修改缓存里的共享 SectionData。所有写路径都必须经由此方法，
-     * 否则不同路径写出的字节会不一致。
-     *
-     * @param data Section数据
-     * @return 序列化结果，失败返回错误
-     */
-    Result<std::vector<u8>> _serializeSection(const SectionData& data);
-
-    /**
-     * @brief 保存Section到数据库
-     */
-    Result<void> _saveToDatabase(const SectionKey& key, const SectionData& data, bool sync = false);
-
-    /**
-     * @brief 删除Section范围
-     */
-    Result<void> _deleteSectionRange(const std::vector<u8>& startKey, const std::vector<u8>& endKey);
 
     // ========================================================================
     // 成员变量
@@ -413,16 +175,6 @@ private:
 
     /// 配置
     Config m_config;
-
-    /// LRU缓存
-    mutable SectionCache m_cache;
-
-    /// 脏Section集合（用于快速查询）
-    mutable std::unordered_set<SectionKey, SectionKey::Hash> m_dirtySet;
-
-    /// 脏集合互斥锁
-    mutable std::mutex m_dirtyMutex;
-    StorageTaskManager* m_taskManager = nullptr;
 };
 
 } // namespace mc::world::storage

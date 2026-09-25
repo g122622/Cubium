@@ -164,11 +164,17 @@
 
 `MinecraftServer.cpp:1698` 的 `LevelChunkWithLight pkt = ir;` 对每个接收玩家各做一次完整深拷贝（60–100 KB/区块）。多玩家同区域时应改为共享只读包或按需 move。单玩家场景收益有限。
 
-### 靶点 5 · SectionCache 容量 —— 收益上限 ~38 MB，风险：低
+### ~~靶点 5 · SectionCache 容量~~ —— 已执行：整个机制已移除
 
-`MinecraftServer.cpp:709` 传入容量 2048，每 `SectionData` ≈ 18.7 KB（blockStates 扁平 4096 × u32 = 16 KB + 双光照 4 KB + biomes 128 B）→ LRU 满时 **38.4 MB 常驻**。存储层（RocksDB）是权威数据源，缩小容量只影响读盘次数，不改变游戏行为。建议把容量做成 `ServerSettings` 的可配置项。
+原设想是把容量 2048 调小（每 `SectionData` ≈ 18.7 KB，LRU 满时约 38.4 MB 常驻）。实测后确认这层缓存**不应存在**，已整体删除（`SectionCache`、`SectionManager` 的缓存与脏集合、`SingleLevelStorageManager` 的全部缓存门面、`storage/save/` 下的 `AutoSave` 与 `DirtyTracker`）。
 
-> 本次测量未单独验证该项（其分配发生在异步 IO 线程且尺寸分散），建议后续用 `TRACY_SYMBOL_OFFLINE_RESOLVE=1` 环境下的堆尺寸直方图对比「玩家进入前/后」验证。
+**实测依据**：给缓存加了每 10 秒的命中率日志后，跑图一分钟得到累计 **`hit=0 miss=131184 rate=0.0%`** —— 13 万次查询一次都没命中。原因是读路径与写路径访问的批次几乎不重叠：写路径（区块保存）把整列段回填进缓存，读路径（区块加载）命中的却总是另一批段；而区块卸载时的驱逐又会把刚回填的段清掉。它是「只写不读」的纯浪费，而非容量调优问题。
+
+**连带修掉的缺陷**（缓存是它们的来源）：
+
+1. `saveAll()` 的唯一数据源就是这层缓存，删除后保存链路改为由区块层驱动（`ServerWorld::saveDirtyChunks`）。
+2. 段级脏标记（`SectionManager::markDirty`）全仓零调用点 → `getDirtyCount()` 恒 0 → `AutoSave::_shouldSave` 两个分支恒假 → **自动保存从未触发过，`/save-on`、`/save-off` 从未生效**。现改为服务器侧按 tick 周期（6000 tick / 5 分钟）驱动，判定依据改为区块级 `isDirty()`。
+3. `ServerChunkManager::shutdown()` 直接清空内存区块表且不保存，而关服保存只写「缓存里的段副本」→ **关服时仍加载、已修改但未卸载的区块，改动会丢失**。现 `saveAllWorldData(true)` 在区块管理器关闭之前遍历脏区块落盘。
 
 ### 靶点 6 · `m_maxLoadedChunks` 未生效 —— 风险：需先修
 
@@ -192,7 +198,7 @@
 
 - `8657`（22.55 MB）、`7377`（7.94 MB）、`32807`（3.57 MB）、`1024`（2.74 MB）四个尺寸类的具体归属。它们**只可能**是区块/世界数据（启动期空载进程的 top-20 中没有它们），但具体是哪个结构体未确证。
 - `3072`（`BiomeContainer`）、`184`（`ChunkSection`）、`856`（`ChunkPrimer`）三类的归属是基于 `sizeof` 推导与块数量级吻合（1513 ≈ 1225 区块）的**推断**，未由 cdb 符号注释或调用栈直接确证。
-- SectionCache 的 38.4 MB 是依据「容量 2048 × 每 SectionData ≈ 18.7 KB」的**计算值**，未在本轮测量中单独剥离验证。
+- ~~SectionCache 的 38.4 MB 是依据「容量 2048 × 每 SectionData ≈ 18.7 KB」的计算值~~ —— 后续实测（命中率日志）直接否定了这层缓存的价值：命中率恒为 0，其存在与否只影响常驻量、不带来任何读盘次数收益。
 - 天空光全亮段的实际占比：抽样 14 块中 3 块全 `0xFF`（21%），按此外推得 ~12 MB；而按 `LIGHT_SECTIONS` 理论推算上限为 ~38 MB。两者相差 3 倍，**取样量不足**，真实值须更大样本确认。
 
 ---

@@ -53,9 +53,8 @@ i32 SaveOnCommand::_enableAutoSave(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
 
     auto* server = source.server();
-    auto* storage = server ? server->sharedStorage() : nullptr;
-    if (!storage) {
-        source.sendMessage("Error: Storage manager not available");
+    if (!server) {
+        source.sendMessage("Error: Server not available");
         return 0;
     }
 
@@ -64,7 +63,7 @@ i32 SaveOnCommand::_enableAutoSave(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    storage->startAutoSave();
+    server->setAutoSaveEnabled(true);
     source.sendMessage("Automatic saving is now enabled");
     return 1;
 }

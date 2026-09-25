@@ -118,28 +118,24 @@ thread_local std::vector<u8> g_decompressScratch;
 // ============================================================================
 
 SectionData::SectionData()
-    : m_memTrack(this)
 {
     initializeDefaults();
 }
 
 SectionData::SectionData(const SectionKey& key)
-    : m_memTrack(this)
-    , key(key)
+    : key(key)
 {
     initializeDefaults();
 }
 
 SectionData::SectionData(i32 chunkX, i32 chunkZ, i8 sectionY, DimensionId dimension)
-    : m_memTrack(this)
-    , key(chunkX, chunkZ, sectionY, dimension)
+    : key(chunkX, chunkZ, sectionY, dimension)
 {
     initializeDefaults();
 }
 
 SectionData::SectionData(const SectionData& other)
-    : m_memTrack(this) // 新对象新地址，bind this 发 alloc（守卫不可拷贝，故显式构造+绑定）
-    , key(other.key)
+    : key(other.key)
     , blockStates(other.blockStates)
     , nonEmptyBlockCount(other.nonEmptyBlockCount)
     , biomes(other.biomes)
@@ -150,8 +146,7 @@ SectionData::SectionData(const SectionData& other)
 {}
 
 SectionData::SectionData(SectionData&& other) noexcept
-    : m_memTrack() // 默认构造为非活跃，body 中重绑定
-    , key(other.key)
+    : key(other.key)
     , blockStates(std::move(other.blockStates))
     , nonEmptyBlockCount(other.nonEmptyBlockCount)
     , biomes(std::move(other.biomes))
@@ -159,13 +154,7 @@ SectionData::SectionData(SectionData&& other) noexcept
     , blockLight(std::move(other.blockLight))
     , dataVersion(other.dataVersion)
     , contentHash(other.contentHash)
-{
-    // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
-    // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
-    // 堆复用该地址时触发 MemAllocTwice 硬失败。
-    other.m_memTrack.unbind();
-    m_memTrack.bind(this);
-}
+{}
 
 SectionData& SectionData::operator=(SectionData&& other) noexcept
 {
@@ -178,11 +167,6 @@ SectionData& SectionData::operator=(SectionData&& other) noexcept
         blockLight = std::move(other.blockLight);
         dataVersion = other.dataVersion;
         contentHash = other.contentHash;
-
-        // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
-        m_memTrack.unbind();
-        other.m_memTrack.unbind();
-        m_memTrack.bind(this);
     }
     return *this;
 }
@@ -523,7 +507,39 @@ Result<SectionData> SectionCodec::fromChunkSection(
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::fromChunkSection");
 
     SectionData data(key);
+    _captureChunkSection(data, section, biomes);
+    return data;
+}
 
+std::vector<BiomeId> SectionCodec::extractBiomes(const BiomeContainer& biomes)
+{
+    const auto bytes = biomes.serialize();
+
+    std::vector<BiomeId> result;
+    result.reserve(bytes.size() / 2);
+    for (size_t i = 0; i + 1 < bytes.size(); i += 2) {
+        const u16 low = static_cast<u16>(bytes[i]);
+        const u16 high = static_cast<u16>(bytes[i + 1]);
+        result.push_back(static_cast<BiomeId>(low | (high << 8)));
+    }
+    return result;
+}
+
+Result<std::vector<u8>> SectionCodec::serializeFromChunkSection(
+    const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::serializeFromChunkSection");
+
+    // 与 fromChunkSection 走同一段抓取逻辑，保证两条路径产出的字节完全一致；
+    // 差别只在本函数不把 SectionData 交还给调用方，其生命周期止于本作用域。
+    SectionData data(key);
+    _captureChunkSection(data, section, biomes);
+    return data.serialize();
+}
+
+void SectionCodec::_captureChunkSection(
+    SectionData& data, const ChunkSection& section, const std::vector<BiomeId>& biomes)
+{
     // 复制方块状态
     data.blockStates.resize(SectionData::VOLUME);
     for (i32 i = 0; i < SectionData::VOLUME; ++i) {
@@ -578,8 +594,6 @@ Result<SectionData> SectionCodec::fromChunkSection(
 
     // 计算哈希
     data.computeHash();
-
-    return data;
 }
 
 Result<void> SectionCodec::toChunkSection(const SectionData& data, ChunkSection& section)

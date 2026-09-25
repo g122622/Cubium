@@ -125,7 +125,6 @@
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/db/ConsistencyMode.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
-#include "server/world/storage/save/AutoSave.hpp"
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -331,9 +330,43 @@ void MinecraftServer::tick()
         }
     }
 
-    if (m_storage) {
+    if (m_storage && m_autoSaveEnabled.load(std::memory_order::relaxed)) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "TickSharedStorageAutoSave");
-        m_storage->tickAutoSave(currentTick());
+
+        // 距上次自动保存不足一个周期时本次 tick 不做任何事，避免每 tick 都去遍历区块表。
+        const u64 currentTickValue = currentTick();
+        if (currentTickValue - m_lastAutoSaveTick >= AUTOSAVE_INTERVAL_TICKS) {
+            // 先判有无脏区块再执行保存：走一遍区块表统计脏区块，比整轮序列化+落盘便宜得多，
+            // 且无改动时不该产生任何写放大。
+            size_t dirtyChunkCount = 0;
+            m_dimensionManager->forEachDimension([&dirtyChunkCount](Dimension& dim) {
+                auto* serverDim = static_cast<ServerDimension*>(&dim);
+                auto* world = serverDim->world();
+                if (world == nullptr || world->chunkManager() == nullptr) {
+                    return;
+                }
+                world->chunkManager()->forEachLoadedChunk([&dirtyChunkCount](const ChunkData& chunk) {
+                    if (chunk.isDirty()) {
+                        ++dirtyChunkCount;
+                    }
+                    return true;
+                });
+            });
+
+            if (dirtyChunkCount > 0) {
+                // 自动保存不要求 fsync：由一致性模式决定何时落盘，避免周期性的长阻塞。
+                auto saveResult = saveAllWorldData(false);
+                if (saveResult.failed()) {
+                    spdlog::error("Automatic save failed: {}", saveResult.error().message());
+                } else {
+                    spdlog::info(
+                        "Automatic save completed: {} dirty chunks, {} sections", dirtyChunkCount, saveResult.value());
+                }
+            }
+
+            // 无脏区块时同样推进计时，否则每 tick 都要重扫一遍区块表。
+            m_lastAutoSaveTick = currentTickValue;
+        }
     }
 
     // 执行实体 tick
@@ -706,7 +739,6 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
 {
     world::storage::SingleLevelStorageConfig storageConfig;
     storageConfig.consistencyMode = world::storage::ConsistencyMode::Eventual;
-    storageConfig.sectionCacheCapacity = 2048;
     storageConfig.enableBackup = true;
 
     m_globalStorage = world::storage::GlobalStorageManager(gameDirectory);
@@ -720,13 +752,13 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
     m_storage->setComputeWorkerPool(&m_computationWorkerPool);
     spdlog::info("World storage opened at {}", m_storage->worldPath().string());
 
-    world::storage::AutoSaveConfig saveConfig;
-    m_storage->initializeAutoSave(saveConfig);
+    // 自动保存由服务器自身在 tick 里驱动（见 tick()），此处不接入存储层的 AutoSave。
+    // 只读外来存档必须关闭自动保存：对其保存是静默空操作，开着只会产生误导性日志。
+    m_autoSaveEnabled.store(!isSharedStorageReadonlyForeignWorld(), std::memory_order::relaxed);
+    m_lastAutoSaveTick = currentTick();
     if (isSharedStorageReadonlyForeignWorld()) {
         spdlog::info("World storage is a readonly foreign world (format: {}); autosave remains disabled",
             m_storage->formatInfo().formatName);
-    } else {
-        m_storage->startAutoSave();
     }
     m_scoreboard->setDataManager(m_storage->scoreboardDataManager());
     m_scoreboard->load();
@@ -743,7 +775,7 @@ void MinecraftServer::shutdownSharedStorage()
     m_storage.reset();
 }
 
-Result<size_t> MinecraftServer::saveAllWorldData()
+Result<size_t> MinecraftServer::saveAllWorldData(bool sync)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::saveAllWorldData");
 
@@ -757,10 +789,31 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         return 0;
     }
 
-    // 保存区块和玩家数据
-    auto result = m_storage->saveAll();
-    if (result.failed()) {
-        return result.error();
+    // 保存各维度已加载的脏区块，并把玩家数据缓存落盘。
+    // 区块的数据源是内存中当前已加载的区块——它们常驻 ChunkData，修改在内存里累积，
+    // 不由任何磁盘缓存承载；逐维度聚合成批次写回。
+    size_t totalSections = 0;
+    m_dimensionManager->forEachDimension([&totalSections, sync](Dimension& dim) {
+        auto* serverDim = static_cast<ServerDimension*>(&dim);
+        auto* world = serverDim->world();
+        if (world == nullptr) {
+            return;
+        }
+        auto chunkSaveResult = world->saveDirtyChunks(sync);
+        if (chunkSaveResult.failed()) {
+            spdlog::error("Failed to save chunks of dimension {}: {}",
+                static_cast<i32>(dim.id()),
+                chunkSaveResult.error().message());
+            return;
+        }
+        totalSections += chunkSaveResult.value();
+    });
+
+    auto playerResult = m_storage->flushPlayerData();
+    if (playerResult.failed()) {
+        spdlog::error("Failed to save player data: {}", playerResult.error().message());
+    } else {
+        totalSections += playerResult.value();
     }
 
     // 保存运行时数据到 level.dat（时间、天气、出生点等）
@@ -838,8 +891,8 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         }
     }
 
-    spdlog::info("Saved {} cached sections and player data during shutdown", result.value());
-    return result.value();
+    spdlog::info("Saved {} sections and player data records", totalSections);
+    return totalSections;
 }
 
 Result<void> MinecraftServer::initializeWorld()
@@ -1415,16 +1468,17 @@ void MinecraftServer::shutdownManagers()
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::shutdownManagers::SaveWorldData");
 
         if (m_storage && m_storage->isOpen()) {
+            // 无论走哪条分支都要停自动保存：关服流程中不允许再有新的自动保存插入。
+            m_autoSaveEnabled.store(false, std::memory_order::relaxed);
+
             if (isSharedStorageReadonlyForeignWorld()) {
-                m_storage->stopAutoSave();
                 spdlog::info("Shutdown skipped persistence for readonly foreign world (format: {})",
                     m_storage->formatInfo().formatName);
             } else {
                 // 注意：savePlayerRuntimeState() 由子类在 stop() 中调用，
                 // 必须在 clearAll() 之前、维度管理器 shutdown 之前执行，
                 // 以保证遍历玩家实体时它们仍存在于世界中。
-                m_storage->shutdownAutoSave();
-                auto saveResult = saveAllWorldData();
+                auto saveResult = saveAllWorldData(true);
                 if (saveResult.failed()) {
                     spdlog::error("Failed to save world during shutdown: {}", saveResult.error().message());
                 }

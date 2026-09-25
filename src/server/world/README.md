@@ -130,7 +130,7 @@ level.dat (SpawnX/Y/Z, SpawnAngle, initialized 字段)
         - initialized=true  → applyLevelRuntimeData 直接使用存档出生点
         - initialized=false → applyLevelRuntimeData 后再 initializeWorldSpawn 覆盖为真实出生点
     → ServerWorld::m_worldSpawnPoint（玩家脚位置，方块上方）
-    → MinecraftServer::saveAllWorldData 写回 level.dat（SpawnY 存脚下方块 Y，initialized 写 true）
+    → MinecraftServer::saveAllWorldData(true) 写回 level.dat（SpawnY 存脚下方块 Y，initialized 写 true）
     → MinecraftServer::sendInitialGameState 通过 SpawnPositionPacket 发送给客户端
     → /setworldspawn 命令修改后广播给所有玩家
 ```
@@ -259,8 +259,14 @@ stack guard region`）而非 SIGSEGV，极易被误判为非法指令。
 ### 多维度重复打开世界存档
 每个维度 `ServerWorld` 都自己 `open()` 世界目录会导致下界/末地初始化时重复获取同一个 `WorldSessionLock`。**`SingleLevelStorageManager` 提升到 MinecraftServer 层，只初始化一次**。
 
-### 共享存储重复全量保存
-三个 `ServerWorld` 共享存储，关服时如果每个都执行 `saveAll()` 会重复落盘。**共享存储的 section/玩家全量保存由 MinecraftServer 统一执行**；`ServerWorld::shutdown()` 只额外落盘**本维度自己**的实体（实体按维度归属，不存在重复），其 section 与玩家数据不在这里写。
+### 保存必须发生在 ServerChunkManager::shutdown() 之前
+`ServerChunkManager::shutdown()` 会直接 `m_chunks.clear()`，之后世界里的任何修改都不再可能落盘。所以**关服落盘一律发生在它之前**：`MinecraftServer::shutdownManagers()` 先调 `saveAllWorldData(true)`，`ServerWorld::shutdown()` 再保存本维度实体，最后才轮到区块管理器关闭。任何"先关区块管理器再保存"的改动都会静默丢掉玩家最后一段时间的建造。
+
+### 区块保存由区块层驱动，存储层没有数据
+存储层不再缓存任何段数据，`SingleLevelStorageManager::saveSections()` 只是"把调用方给的段批量写进 RocksDB"。要保存什么必须由区块层决定：`ServerWorld::saveDirtyChunks(sync)` 遍历内存区块表中 `isDirty()` 且已完全生成的区块，逐段序列化后**把所有脏区块的段攒进同一个批次**一次性提交。不要在存储层重新引入段缓存来"让保存有数据源"——读写路径访问同一批段的概率极低，缓存只会常驻内存而不命中。
+
+### 共享存储下的保存由 MinecraftServer 统一执行
+三个 `ServerWorld` 共享存储，各自保存自己的区块不会重复（区块按维度归属），但玩家数据与 level.dat 只应落盘一次，因此统一收口在 `MinecraftServer::saveAllWorldData()`；`ServerWorld::shutdown()` 只额外落盘**本维度自己**的实体。
 
 ### 关服实体落盘必须合成一个批次
 `ServerWorld::shutdown()` 遍历全部已加载区块，把每个区块的"整段删除旧行 + 写存活实体"收集成 `ChunkEntityWrite`，**一次性**交给 `EntityStorageManager::replaceEntitiesInChunks` 提交。绝不能逐区块各提交一次：那是区块数量次 WAL fsync，视野距离 16 下 1089 个区块实测约 3.4 秒，而其中绝大多数区块根本没有实体、整段删除是空操作。`forEachLoadedChunk` 的结果条数必须与落盘条目数一一对应（有断言把关）——漏掉任一区块，它就不再是"清理 + 重写"的收敛状态，残留在盘上的旧行会在下次加载时复活成同 UUID 的重复实体。

@@ -449,6 +449,9 @@ public:
         return m_storage.get();
     }
     [[nodiscard]] bool isSharedStorageReadonlyForeignWorld() const override;
+    [[nodiscard]] Result<size_t> saveAllWorldData(bool sync) override;
+    void setAutoSaveEnabled(bool enabled) override { m_autoSaveEnabled.store(enabled, std::memory_order::relaxed); }
+    [[nodiscard]] bool isAutoSaveEnabled() const override { return m_autoSaveEnabled.load(std::memory_order::relaxed); }
     [[nodiscard]] PackRepository& resourcePackList() { return m_resourcePackList; }
     [[nodiscard]] const PackRepository& resourcePackList() const { return m_resourcePackList; }
     [[nodiscard]] mc::resource::DataPackRepository& dataPackList() override { return m_dataPackList; }
@@ -481,7 +484,6 @@ protected:
     void attachWorldBindings(ServerWorld& world);
     void attachWorldCommandBindings(ServerWorld& world);
     [[nodiscard]] Result<void> initializeSharedStorage(const GameDirectory& gameDirectory, const std::string& levelId);
-    [[nodiscard]] Result<size_t> saveAllWorldData();
     void shutdownSharedStorage();
 
     /**
@@ -1303,6 +1305,21 @@ protected:
     // 老存档（initialized=true）启动时直接置 true。shutdown 时由 saveAllWorldData 写回 level.dat 的
     // initialized 字段。注意：与 ServerWorld::m_initialized（子系统就绪标志）语义无关，不可复用。
     bool m_spawnInitializedThisSession = false;
+
+    // ========== 自动保存 ==========
+    //
+    // 自动保存由服务器自身驱动而非存储层：待保存的数据（已加载区块）在维度管理器里，
+    // 存储层看不到它们。触发条件是周期到达且有脏区块，不再依赖任何段级脏计数——
+    // 段级脏标记早已没有任何写入方，据其判断会得到"永远不需要保存"。
+
+    /// 自动保存周期（tick）。原版为 6000 tick（5 分钟）。
+    static constexpr u64 AUTOSAVE_INTERVAL_TICKS = 6000;
+
+    /// 自动保存是否启用，对应 /save-on 与 /save-off。
+    std::atomic<bool> m_autoSaveEnabled{true};
+
+    /// 上次执行自动保存的 tick。
+    u64 m_lastAutoSaveTick = 0;
 
     // 维度管理器
     std::unique_ptr<ServerDimensionManager> m_dimensionManager;

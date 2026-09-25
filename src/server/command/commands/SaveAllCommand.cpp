@@ -37,6 +37,7 @@
 #include "server/world/storage/player/PlayerDataManager.hpp"
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
@@ -46,6 +47,9 @@ namespace command {
 
 namespace {
 
+/// 落盘失败的哨兵值。段数 0 是合法结果（没有脏区块），不能用它表示失败。
+constexpr size_t SAVE_FAILED = std::numeric_limits<size_t>::max();
+
 [[nodiscard]] world::storage::SingleLevelStorageManager* getSharedStorage(server::IServer& server)
 {
     auto* storage = server.sharedStorage();
@@ -53,6 +57,25 @@ namespace {
         return nullptr;
     }
     return storage;
+}
+
+/**
+ * @brief 把整个存档落盘并向命令源报告结果
+ *
+ * 落盘路径统一走 `IServer::saveAllWorldData`：待保存的数据是各维度内存中已加载的
+ * 脏区块，存储层看不到它们。返回前等待 WAL fsync 完成，保证命令返回即可断电安全。
+ *
+ * @return 落盘的段数；失败返回 SAVE_FAILED（错误消息已发送给命令源）
+ */
+[[nodiscard]] size_t saveWorldToDisk(server::IServer& server, ServerCommandSource& source)
+{
+    auto result = server.saveAllWorldData(true);
+    if (result.failed()) {
+        source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
+        spdlog::error("Failed to save world: {}", result.error().message());
+        return SAVE_FAILED;
+    }
+    return result.value();
 }
 
 } // namespace
@@ -99,13 +122,8 @@ i32 SaveAllCommand::_saveAll(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    size_t totalSections = 0;
-    auto result = storage->saveAll();
-    if (result.success()) {
-        totalSections += result.value();
-    } else {
-        source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
-        spdlog::error("Failed to save world: {}", result.error().message());
+    const size_t totalSections = saveWorldToDisk(*server, source);
+    if (totalSections == SAVE_FAILED) {
         return 0;
     }
 
@@ -141,15 +159,13 @@ i32 SaveAllCommand::_saveAllFlush(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    size_t totalSections = 0;
-    auto result = storage->saveAll();
-    if (!result.success()) {
-        source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
+    const size_t totalSections = saveWorldToDisk(*server, source);
+    if (totalSections == SAVE_FAILED) {
         return 0;
     }
-    storage->clearAllCaches();
-    totalSections = result.value();
 
+    // flush 的语义是"连缓存一起丢掉"：区块层不再持有段级缓存，这里只需丢弃玩家数据缓存，
+    // 使其后续读取一律回落到已落盘的数据库内容。
     if (auto* playerDataManager = storage->playerDataManager()) {
         playerDataManager->clearCache();
     }

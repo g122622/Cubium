@@ -26,7 +26,6 @@
 #include "SectionKey.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/profiler/MemoryTracking.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include <array>
@@ -120,17 +119,6 @@ struct SectionData {
 
     /// 当前数据版本
     static constexpr u32 CURRENT_DATA_VERSION = 1;
-
-    // ========================================================================
-    // 对象级内存追踪
-    // ========================================================================
-private:
-    // 绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由 move ctor/assign 显式
-    // 「释放旧地址 + 分配新地址」重绑定（守卫不可移动）。仅 MC_ENABLE_MEMORY &&
-    // MC_ENABLE_TRACY 时发事件。sizeof(SectionData) 只含外层结构体，绝对值偏低但
-    // 能正确反映 SectionCache LRU 中 section 的驻留数量波动。
-    // 声明于数据成员之前，使 ctor 初始化列表可将其置于首位（满足 -Wreorder-ctor）。
-    ::mc::profiler::TracyObjectTracker<"SectionCache"> m_memTrack;
 
     // ========================================================================
     // 数据成员
@@ -321,6 +309,33 @@ public:
         const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes = {});
 
     /**
+     * @brief 从区块的生物群系容器提取段级 4x4x4 采样列表
+     *
+     * 落盘格式要求每段携带 64 项扁平生物群系，而 `ChunkData` 侧按整列存放。
+     * 所有写路径都必须经由本方法，否则不同路径写出的生物群系布局会不一致。
+     *
+     * @param biomes 区块的生物群系容器
+     * @return 64 项的 BiomeId 列表
+     */
+    [[nodiscard]] static std::vector<BiomeId> extractBiomes(const BiomeContainer& biomes);
+
+    /**
+     * @brief 直接把ChunkSection序列化为落盘字节
+     *
+     * 保存路径专用：不再把中间态 `SectionData` 交给调用方。`SectionData` 的
+     * `blockStates` 是 4096 项 `u32`（16 KB），整列 24 段全部存活时仅这一项就有
+     * 384 KB；本方法把它的生命周期压在单次调用内，使一次区块保存的峰值分配
+     * 从「整列 24 份 SectionData」降到「单段 SectionData + 压缩后字节」。
+     *
+     * @param section ChunkSection对象
+     * @param key Section标识
+     * @param biomes 生物群系数据（64个）
+     * @return 序列化后的落盘字节，失败返回错误
+     */
+    [[nodiscard]] static Result<std::vector<u8>> serializeFromChunkSection(
+        const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes = {});
+
+    /**
      * @brief 将SectionData应用到ChunkSection
      *
      * @param data Section数据
@@ -375,6 +390,20 @@ public:
 
     /// 最大压缩数据大小
     static constexpr size_t MAX_COMPRESSED_SIZE = UNCOMPRESSED_BLOCK_STATES_SIZE * 2;
+
+private:
+    /**
+     * @brief 把 ChunkSection 的内容抓取进一个已有 SectionData
+     *
+     * `fromChunkSection` 与 `serializeFromChunkSection` 共用，确保两条路径产出的
+     * 字节完全一致；哈希也在此处一并算出。
+     *
+     * @param data 输出目标（复用调用方已分配的对象）
+     * @param section ChunkSection对象
+     * @param biomes 生物群系数据（64个）
+     */
+    static void _captureChunkSection(
+        SectionData& data, const ChunkSection& section, const std::vector<BiomeId>& biomes);
 };
 
 } // namespace mc::world::storage
