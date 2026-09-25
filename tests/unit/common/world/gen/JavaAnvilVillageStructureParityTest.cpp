@@ -106,6 +106,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -146,6 +147,35 @@ constexpr i32 kScanMargin = 12;
  * 字段与原版 NBT `structures.starts.<结构>.Children[i]` 一一对应。
  * 两侧都归一到本结构后逐条比较。
  */
+/**
+ * @brief 原版存档中的一个 JigsawJunction
+ *
+ * 构件侧的 `junctions` 记录两类连接：**父构件接出本构件**时写入的那一条
+ * （source 为父构件连接点的位置），以及**本构件接出各子构件**时逐条写入的
+ * （source 为父侧的连接面）。因此把整个结构起点的全部 junction 汇总后逐条比对，
+ * 等价于比对"结构里到底接出了哪些父子边"——比构件列表更细，
+ * 能直接暴露"某条边多接/少接"，而不必先猜是哪一步装配决策出的问题。
+ */
+struct JunctionView {
+    i32 sourceX = 0;
+    i32 sourceGroundY = 0;
+    i32 sourceZ = 0;
+    i32 deltaY = 0;
+    std::string destProjection;
+
+    /// 排序键：与 JigsawJunction 的相等语义不同，这里把 sourceGroundY 也计入
+    [[nodiscard]] auto sortKey() const
+    {
+        return std::make_tuple(sourceX, sourceGroundY, sourceZ, deltaY, destProjection);
+    }
+
+    [[nodiscard]] std::string text() const
+    {
+        return fmt::format(
+            "({},{}) groundY={} deltaY={} dest={}", sourceX, sourceZ, sourceGroundY, deltaY, destProjection);
+    }
+};
+
 struct PieceView {
     i32 minX = 0;
     i32 minY = 0;
@@ -159,6 +189,7 @@ struct PieceView {
     i32 groundLevelDelta = 0;
     std::string rotation;
     std::string templateLocation;
+    std::vector<JunctionView> junctions;
 
     /// 排序键：不含 origin（Cubium 侧不保存模板原点，只保存包围盒）
     [[nodiscard]] auto sortKey() const
@@ -306,6 +337,22 @@ void collectStartsFromRoot(
                     }
                     if (piece.templateLocation.empty()) {
                         piece.templateLocation = findString(*element, "element_type");
+                    }
+                }
+                // junctions：父构件接出本构件的那一条 + 本构件接出各子构件的若干条
+                const auto junctionIter = child.value.find("junctions");
+                if (junctionIter != child.value.end() && junctionIter->second != nullptr &&
+                    junctionIter->second->id() == nbt::TagId::List) {
+                    const auto& junctions = dynamic_cast<const nbt::tags::compound_list_tag&>(*junctionIter->second);
+                    piece.junctions.reserve(junctions.value.size());
+                    for (const auto& junction : junctions.value) {
+                        JunctionView jv;
+                        jv.sourceX = findInt(junction, "source_x");
+                        jv.sourceGroundY = findInt(junction, "source_ground_y");
+                        jv.sourceZ = findInt(junction, "source_z");
+                        jv.deltaY = findInt(junction, "delta_y");
+                        jv.destProjection = findString(junction, "dest_proj");
+                        piece.junctions.push_back(std::move(jv));
                     }
                 }
                 view.pieces.push_back(std::move(piece));
@@ -504,6 +551,19 @@ protected:
             view.groundLevelDelta = piece->getGroundLevelDelta();
             view.rotation = std::string(rotationName(piece->getRotation()));
             view.templateLocation = std::string(piece->templateLocation());
+            // junction：与 Java 侧同构——父构件接出本构件的那一条，加上本构件接出各子构件的若干条
+            for (const auto& junction : piece->getJunctions()) {
+                JunctionView jv;
+                jv.sourceX = junction.getSourceX();
+                jv.sourceGroundY = junction.getSourceGroundY();
+                jv.sourceZ = junction.getSourceZ();
+                jv.deltaY = junction.getDeltaY();
+                jv.destProjection =
+                    (junction.getDestProjection() == world::gen::jigsaw::JigsawPlacementBehaviour::Rigid)
+                    ? "rigid"
+                    : "terrain_matching";
+                view.junctions.push_back(std::move(jv));
+            }
             views.push_back(std::move(view));
         }
         // **不排序**：两侧的构件列表都是"放置顺序"（原版 StructureStart.Children 的写入顺序，
@@ -538,7 +598,24 @@ protected:
             firstDiff,
             firstDiff == common ? "无（前缀完全一致）" : std::to_string(firstDiff).c_str());
 
-        constexpr size_t kContext = 6;
+        // 默认只打印分歧点附近若干行；设 MC_STRUCT_PARITY_FULL=1 时打印两侧完整列表，
+        // 供离线逐位比对（排查过程中反复使用，避免每次排查都要改代码重编译）。
+        static const size_t kContext = std::getenv("MC_STRUCT_PARITY_FULL") != nullptr ? 4096 : 6;
+        // 分歧构件上把两侧的 junction 一并打出：junction 是"哪条父子边"的唯一记录，
+        // 直接指出该构件多接/少接了哪些子构件，不必再去猜是哪一步装配决策出的问题。
+        if (firstDiff < common) {
+            const auto printJunctions = [firstDiff](const char* side, const PieceView& view) {
+                std::printf(
+                    "[STRUCT-JUNC]   第 %zu 号构件（%s）junction %zu 条：", firstDiff, side, view.junctions.size());
+                for (const auto& junction : view.junctions) {
+                    std::printf(" %s", junction.text().c_str());
+                }
+                std::printf("\n");
+            };
+            printJunctions("原版", javaViews[firstDiff]);
+            printJunctions("Cubium", cubiumViews[firstDiff]);
+        }
+
         const size_t begin = firstDiff > kContext ? firstDiff - kContext : 0;
         const size_t end = std::min(common, firstDiff + kContext);
         for (size_t i = begin; i < end; ++i) {
@@ -555,6 +632,57 @@ protected:
                 std::printf("[STRUCT-PARITY]   [%3zu] - 原版   %s\n", i, javaViews[i].text().c_str());
             } else {
                 std::printf("[STRUCT-PARITY]   [%3zu] + Cubium %s\n", i, cubiumViews[i].text().c_str());
+            }
+        }
+    }
+
+    /**
+     * @brief 汇总整个结构起点的 junction 做多重集比对
+     *
+     * 每条 junction 对应一条"父构件接出子构件"的边。两侧多重集相同 ⟺ 两侧接出的父子边
+     * 完全相同；差异项直接指出"多接/少接了哪条边"（位置 + 地面高度 + 高度偏移 + 目标投影），
+     * 是比构件列表更细的对照信号——构件列表只能看出"集合不同"，而这里能直接定位到连接面。
+     */
+    static void printJunctionDiff(
+        const std::string& title, const std::vector<PieceView>& javaViews, const std::vector<PieceView>& cubiumViews)
+    {
+        const auto collect = [](const std::vector<PieceView>& views) {
+            std::map<std::string, i32> counts;
+            for (const auto& view : views) {
+                for (const auto& junction : view.junctions) {
+                    counts[junction.text()] += 1;
+                }
+            }
+            return counts;
+        };
+        const auto javaCounts = collect(javaViews);
+        const auto cubiumCounts = collect(cubiumViews);
+        i32 javaTotal = 0;
+        i32 cubiumTotal = 0;
+        for (const auto& [key, count] : javaCounts) {
+            javaTotal += count;
+        }
+        for (const auto& [key, count] : cubiumCounts) {
+            cubiumTotal += count;
+        }
+        std::printf("[STRUCT-JUNC] %s 原版 junction %d 条 / Cubium %d 条\n", title.c_str(), javaTotal, cubiumTotal);
+
+        constexpr i32 kMaxShown = 12;
+        i32 shown = 0;
+        for (const auto& [key, count] : javaCounts) {
+            const auto iter = cubiumCounts.find(key);
+            const i32 cubiumCount = (iter == cubiumCounts.end()) ? 0 : iter->second;
+            if (count != cubiumCount && shown < kMaxShown) {
+                std::printf("[STRUCT-JUNC]   仅原版多出 %d 条：%s\n", count - cubiumCount, key.c_str());
+                ++shown;
+            }
+        }
+        for (const auto& [key, count] : cubiumCounts) {
+            const auto iter = javaCounts.find(key);
+            const i32 javaCount = (iter == javaCounts.end()) ? 0 : iter->second;
+            if (count != javaCount && shown < 2 * kMaxShown) {
+                std::printf("[STRUCT-JUNC]   Cubium 多出 %d 条：%s\n", count - javaCount, key.c_str());
+                ++shown;
             }
         }
     }
@@ -1007,8 +1135,37 @@ TEST_F(JavaAnvilVillageStructureParityTest, StructureStartDistributionMatchesJav
  * （与原版 `Shapes.create` 的 findBits<0 分支同构）。
  *
  * 尚未排除：空池（0 元素且非 `Pools.EMPTY`）时原版会**整连接点跳过**（不洗回退池）而本实现
- * 仍会洗回退池——本素材上未观察到该情形的实际触发，但这是目前唯一找得到的"决策相同而消耗
- * 不同"的路径，需在使用空池的结构上继续核实。
+ * 仍会洗回退池——本素材上未观察到该情形的实际触发。
+ *
+ * ── 分歧点已定位到单个连接点（2026-09 结论，尚未修复）──────────────────────────────
+ * 原版 #53 = `streets/straight_01 @ (9,62,0) rot=COUNTERCLOCKWISE_90`。其连接面
+ * `(22,63,-2)`（连接点方块在 `(22,62,-2)`，朝向 up ⟹ 连接面在其上方一格）上：
+ *   - 两侧候选序列相同，都以 `feature_pool_element`（decor 池的 flower_plain）开头；
+ *   - 父构件包围盒同为 `[9,62,-15,24,67,0]`，连接面在该盒**内部** ⟹ 原版应走
+ *     `flag1 == true` 分支，用 `localFree = Shapes.create(AABB.of(父包围盒))` 参与碰撞；
+ *   - 候选是地物（`feature_pool_element`，`getSize()` 为 `Vec3i.ZERO`）⟹ 包围盒是
+ *     `(22,63,-2)` 处的 1×1×1，完整落在父盒内部；
+ *   - ⟹ `Shapes.joinIsNotEmpty(localFree, 候选盒.deflate(0.25), ONLY_SECOND)` 应为 false
+ *     （不碰撞）⟹ **按对原版 `JigsawPlacement.Placer.tryPlacingChildren` 的逐行推导，
+ *     原版应当在此放置该地物**。
+ * 但存档的 `Children` 与 `junctions` 都表明原版在此**没有**放置任何子构件：
+ * `Children[53]` 的 `junctions` 只有 2 条，按"每条 junction 对应一条父子边"计，
+ * 它在本实现之外**一个子构件都没有接出**（另一条是父构件给它的）。
+ *
+ * 本实现多放这一个地物后随机数错位，于是**同一连接点** `(15,63,-11)` 上本实现选到
+ * `flower_plain`、原版选到 `pile_hay`，构件列表自第 82 号起全程错位（212 vs 205）。
+ *
+ * ⟹ 这是一个**硬矛盾**：静态推导说原版应当接受、存档说原版没有接受。矛盾的出口只可能是
+ * 对原版该函数的某处理解有偏差。剩余可疑点（按可疑度排序）：
+ *   1. `Shapes.create(AABB)` 在**绝对坐标**下的 `ArrayVoxelShape` 回退路径，以及
+ *      `Shapes.joinIsNotEmpty` 在该路径下的 `optimize()` 行为——`Shapes.create` 对
+ *      `findBits` 失败时用 `DiscreteVoxelShape.box(1,1,1)` + 原始 min/max 作坐标数组，
+ *      两端是否等价需要单独构造用例判定（注意本素材里父盒跨度 16×6×16、候选盒 0.5³，
+ *      两者坐标系完全不同）；
+ *   2. `localFree`（即 `MutableObject<VoxelShape>`）在"父块自身包围盒"与"父块逐个子构件扣减后的
+ *      剩余空间"之间的生效范围。
+ * 建议下一步先写一个直接针对第 1 点的单元测试：构造"大盒（绝对坐标）减去其内部小盒"的形状对，
+ * 断言 `joinIsNotEmpty(大, 小收缩, ONLY_SECOND) == false`。该断言若成立，矛盾必然在第 2 点。
  */
 TEST_F(JavaAnvilVillageStructureParityTest, VillagePiecesMatchJavaSave)
 {
@@ -1031,6 +1188,7 @@ TEST_F(JavaAnvilVillageStructureParityTest, VillagePiecesMatchJavaSave)
         const std::vector<PieceView>& javaViews = village.pieces;
         const auto cubiumViews = toPieceViews(*cubiumStart);
         printPieceDiff(title, javaViews, cubiumViews);
+        printJunctionDiff(title, javaViews, cubiumViews);
 
         EXPECT_EQ(cubiumViews.size(), javaViews.size()) << title << " 的构件数与原版不一致";
         for (size_t i = 0; i < std::min(javaViews.size(), cubiumViews.size()); ++i) {
