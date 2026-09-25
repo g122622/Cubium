@@ -60,9 +60,17 @@ CMakePresets.json 中预置的全部 preset 见该文件。其中两个 noprof p
 
 | preset | buildType | tests | binaryDir | 说明 |
 |--------|-----------|-------|-----------|------|
-| `windows-clang-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认） |
+| `windows-clang-relwithdebinfo` | RelWithDebInfo | ON | `build` | 日常开发（脚本默认）：Perfetto ON，Tracy/Memory OFF |
 | `windows-clang-relwithdebinfo-noprof` | RelWithDebInfo | ON | `build-noprof` | 关闭 Perfetto/Tracy/memory 插桩 |
 | `windows-clang-release-noprof` | Release | OFF | `build-release-noprof` | 可分发发布版：关插桩 + 关 Vulkan 校验层 + 不含测试/benchmark |
+
+> **Tracy 与 `MC_ENABLE_MEMORY` 默认 OFF**（`CMakeLists.txt` 的 option 默认值）。原因是 Tracy 带来可观的常驻内存开销——Windows 上其符号解析线程会载入全部模块的调试符号（实测约 96 MB），自带的 rpmalloc 按 4 MiB 为单位 `VirtualAlloc`；且**不受 `--profiler-enabled=false` 影响**（该 flag 只门控 Perfetto 侧）。实测对比见 `docs/MEMORY.md`。需要 Tracy 实时火焰图时显式开启：
+>
+> ```bash
+> cmake --preset windows-clang-relwithdebinfo -DMC_ENABLE_TRACY=ON -DMC_ENABLE_MEMORY=ON
+> ```
+>
+> `MC_ENABLE_MEMORY` 依赖 `MC_ENABLE_TRACY`，两者需同时开启。排查期若不想重新构建，可临时设 `TRACY_SYMBOL_OFFLINE_RESOLVE=1` 环境变量剥离开销。
 
 以 `windows-clang-release-noprof` 为例：
 

@@ -5,7 +5,12 @@
 | 后端 | 开关（CMake option） | 默认 | 采集方式 | 查看方式 |
 |------|---------------------|------|----------|----------|
 | Perfetto | `MC_ENABLE_TRACING` | ON | 进程内录制到 `.perfetto-trace` 文件 | ui.perfetto.dev |
-| Tracy | `MC_ENABLE_TRACY` | ON | in-memory，client 自动监听 8086 端口；`MC_TRACY_ON_DEMAND` 控制是否仅在 GUI 连接期间采集 | tracy GUI 连接 8086 拉取 |
+| Tracy | `MC_ENABLE_TRACY` | **OFF** | in-memory，client 自动监听 8086 端口；`MC_TRACY_ON_DEMAND` 控制是否仅在 GUI 连接期间采集 | tracy GUI 连接 8086 拉取 |
+| 内存分配追踪 | `MC_ENABLE_MEMORY` | **OFF** | 仅 Tracy 后端提供实现 | tracy GUI |
+
+> **Tracy 默认关闭的原因**（实测数据见 `docs/MEMORY.md`）：Tracy 的常驻开销在 Windows 上尤为显著且不可回收 —— 其 `SymbolWorker` 线程会调 `SymInitialize`/`SymLoadModuleEx` 把全部已加载模块的调试符号载入堆（实测约 **96 MB**），自带的 rpmalloc 还会按 `DEFAULT_SPAN_MAP_COUNT(64) × 64 KiB = 4 MiB` 为单位 `VirtualAlloc`（实测 72 个 4 MB 区域、288 MB 提交量）。两者叠加使服务端空载工作集从 **120 MB 抬升到 298 MB**（+178 MB），且**不受 `--profiler-enabled=false` 影响**（该运行期 flag 只门控 Perfetto 侧）。
+>
+> 需要 Tracy 时显式开启：`cmake --preset <preset> -DMC_ENABLE_TRACY=ON -DMC_ENABLE_MEMORY=ON`。若仅为排查期临时剥离开销、不想重新构建，可设 `TRACY_SYMBOL_OFFLINE_RESOLVE=1` 环境变量使符号解析短路。
 
 > Tracy 无法进程内写文件（需外部 `tracy-capture` 连 8086 拉取），故 `ProfilerManager` 对 Tracy 不做 start/stop/capture 管理，只做进程/线程命名的双写。
 

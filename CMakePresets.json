@@ -9,7 +9,9 @@
       "installDir": "${sourceDir}/dist",
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "20",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "MC_ENABLE_TRACY": "OFF",
+        "MC_ENABLE_MEMORY": "OFF"
       }
     },
     {
@@ -216,32 +218,6 @@
         "MC_BUILD_SERVER": "ON",
         "MC_BUILD_TESTS": "ON",
         "MC_ENABLE_SANITIZERS": "OFF"
-      }
-    },
-    {
-      "name": "server-only",
-      "displayName": "Server Only",
-      "inherits": "windows-clang-base",
-      "binaryDir": "${sourceDir}/build",
-      "installDir": "${sourceDir}/dist",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "MC_BUILD_CLIENT": "OFF",
-        "MC_BUILD_SERVER": "ON",
-        "MC_BUILD_TESTS": "OFF"
-      }
-    },
-    {
-      "name": "client-only",
-      "displayName": "Client Only",
-      "inherits": "windows-clang-base",
-      "binaryDir": "${sourceDir}/build",
-      "installDir": "${sourceDir}/dist",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "MC_BUILD_CLIENT": "ON",
-        "MC_BUILD_SERVER": "OFF",
-        "MC_BUILD_TESTS": "OFF"
       }
     }
   ],

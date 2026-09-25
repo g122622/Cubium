@@ -31,12 +31,17 @@ option(MC_BUILD_TESTS "Build unit tests" ON)
 option(MC_BUILD_BENCHMARKS "Build benchmark application" ON)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
-option(MC_ENABLE_TRACING "Enable Perfetto tracing (default OFF)" ON)
-option(MC_ENABLE_TRACY "Enable Tracy profiling (default OFF)" ON)
+option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
+# Tracy 默认关闭：它带来可观的常驻内存开销，且不经系统 malloc（无法用常规手段观测）。
+# 代价是 Windows 上 Tracy 的 SymbolWorker 会调 SymInitialize/SymLoadModuleEx 把全部模块的
+# 调试符号载入堆（实测约 96 MB 且不释放），其自带的 rpmalloc 还会按 4 MiB 为单位 VirtualAlloc
+# 做 span map。本项目以 Perfetto 为主要追踪后端，故 Tracy 需显式开启。
+option(MC_ENABLE_TRACY "Enable Tracy profiling" OFF)
 # Tracy 默认在无 GUI 连接时也把事件写入进程内队列，而该队列只在 GUI 连接时才被排空，
 # 长驻服务端下会无限增长（实测约 200KB/s）。ON_DEMAND 让无连接时不采集，消除该增长。
+# 仅 MC_ENABLE_TRACY=ON 时被消费。
 option(MC_TRACY_ON_DEMAND "Enable Tracy on-demand profiling (collect only while a GUI is connected)" ON)
-option(MC_ENABLE_MEMORY "Enable memory allocation tracking via Tracy (default OFF)" ON)
+option(MC_ENABLE_MEMORY "Enable memory allocation tracking via Tracy" OFF)
 option(MC_ENABLE_CCACHE "Enable ccache for faster rebuilds" ON)
 
 # ccache 配置（仅 Unix 平台：Linux/macOS）
