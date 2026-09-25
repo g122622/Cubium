@@ -59,6 +59,7 @@ add_executable(mc_tests
     common/test_entity.cpp
     common/test_entity_physics.cpp
     common/network/test_chunk_serializer.cpp
+    common/network/test_vanilla_chunk_wire.cpp
     common/test_chunkloadticket.cpp
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp

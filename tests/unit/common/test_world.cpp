@@ -105,6 +105,53 @@ TEST_F(ChunkTest, ChunkSection_BlockCount)
     EXPECT_EQ(section.getBlockCount(), 1);
 }
 
+/**
+ * 非空气方块计数必须与方块数据保持一致
+ *
+ * 该计数是 `isEmpty()` 的唯一判据，而 `isEmpty()` 决定序列化是否整段跳过方块数据——
+ * 计数为 0 而实际有方块时，整段地形会在"已保存"的假象下被清空、读回全是空气。
+ * 因此反序列化不能直接采信数据里的计数，必须与刚载入的方块数据交叉验证。
+ */
+TEST_F(ChunkTest, ChunkSection_DeserializeRecomputesMismatchedBlockCount)
+{
+    ChunkSection original;
+    original.setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+    original.setBlockState(1, 1, 1, &VanillaBlocks::DIRT->defaultState());
+
+    auto data = original.serialize();
+    ASSERT_FALSE(data.empty());
+
+    // 篡改序列化数据里的方块计数为 0，模拟失同步的外部数据
+    data[0] = 0;
+    data[1] = 0;
+
+    auto result = ChunkSection::deserialize(data.data(), data.size());
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    const ChunkSection* restored = result.value().get();
+    ASSERT_NE(restored, nullptr);
+
+    // 计数必须由实际方块数据重算得出，而不是采信被篡改的 0
+    EXPECT_EQ(restored->getBlockCount(), 2);
+    EXPECT_FALSE(restored->isEmpty());
+}
+
+TEST_F(ChunkTest, ChunkSection_DeserializeKeepsConsistentBlockCount)
+{
+    ChunkSection original;
+    original.setBlockState(3, 4, 5, &VanillaBlocks::GRASS_BLOCK->defaultState());
+
+    auto data = original.serialize();
+    ASSERT_FALSE(data.empty());
+
+    auto result = ChunkSection::deserialize(data.data(), data.size());
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    const ChunkSection* restored = result.value().get();
+    ASSERT_NE(restored, nullptr);
+    EXPECT_EQ(restored->getBlockCount(), 1);
+}
+
 TEST_F(ChunkTest, ChunkSection_RandomTickCounters)
 {
     ChunkSection section;

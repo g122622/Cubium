@@ -27,6 +27,8 @@
 #undef BYTE_SIZE
 
 #include "server/world/storage/db/SectionCodec.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Types.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
 #include "world/chunk/data/ChunkData.hpp"
@@ -103,7 +105,8 @@ TEST_F(SectionKeyTest, SectionYRange)
 
 class SectionCodecTest : public ::testing::Test {
 protected:
-    void SetUp() override {}
+    // 方块状态的 isAir 判定与 stateId 分配都依赖方块注册表，必须先初始化。
+    void SetUp() override { mc::VanillaBlocks::initialize(); }
 };
 
 SectionData makeMalformedSectionData()
@@ -115,6 +118,41 @@ SectionData makeMalformedSectionData()
     data.blockLight.reset();
     data.nonEmptyBlockCount = 3558;
     return data;
+}
+
+/**
+ * 非空气方块计数的判定必须用 isAir()，不能只看 stateId 是否为 0
+ *
+ * 方块状态 0/1/2 分别是空气、洞穴空气、虚空空气，**三者都是空气**。该计数是
+ * `SectionData::isEmpty()` 的唯一判据，而 `isEmpty()` 决定 `serialize()` 是否整段
+ * 跳过方块数据；把洞穴空气/虚空空气误计为非空气，会让"全空气的段"在落盘时带上
+ * 一整块压缩后的方块数据，反过来若判据方向相反则可能直接丢数据。
+ */
+TEST_F(SectionCodecTest, AirVariantsDoNotCountAsNonAirBlocks)
+{
+    SectionData data(SectionKey(0, 0, 0, 0));
+
+    data.setBlockStateId(0, 0, 0, block_registry::BaseBlocks::AIR->defaultState().stateId());
+    EXPECT_EQ(data.nonEmptyBlockCount, 0u);
+    EXPECT_TRUE(data.isEmpty());
+
+    data.setBlockStateId(1, 0, 0, block_registry::BaseBlocks::CAVE_AIR->defaultState().stateId());
+    EXPECT_EQ(data.nonEmptyBlockCount, 0u) << "洞穴空气被误计为非空气方块";
+    EXPECT_TRUE(data.isEmpty());
+
+    data.setBlockStateId(2, 0, 0, block_registry::BaseBlocks::VOID_AIR->defaultState().stateId());
+    EXPECT_EQ(data.nonEmptyBlockCount, 0u) << "虚空空气被误计为非空气方块";
+    EXPECT_TRUE(data.isEmpty());
+
+    // 换成真正的方块才计数
+    data.setBlockStateId(3, 0, 0, block_registry::BaseBlocks::STONE->defaultState().stateId());
+    EXPECT_EQ(data.nonEmptyBlockCount, 1u);
+    EXPECT_FALSE(data.isEmpty());
+
+    // 再换回空气变体，计数回落
+    data.setBlockStateId(3, 0, 0, block_registry::BaseBlocks::CAVE_AIR->defaultState().stateId());
+    EXPECT_EQ(data.nonEmptyBlockCount, 0u);
+    EXPECT_TRUE(data.isEmpty());
 }
 
 TEST_F(SectionCodecTest, EmptySection)

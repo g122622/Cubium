@@ -39,6 +39,7 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
@@ -299,7 +300,7 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     size_t offset = 0;
 
     // 块数量
-    section->m_blockCount = (static_cast<u16>(data[offset]) << 8) | data[offset + 1];
+    const u16 storedBlockCount = (static_cast<u16>(data[offset]) << 8) | data[offset + 1];
     offset += 2;
 
     // 方块状态ID — 从扁平 u32 数组加载到调色板容器
@@ -329,6 +330,28 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
     std::memcpy(blockLightData.data(), data + offset, NibbleArray::BYTE_SIZE);
 
     section->rebuildTickCounters();
+
+    // 非空方块计数不直接采信外部值，而是从刚载入的方块数据实测得出。
+    //
+    // 该计数是 isEmpty() 的唯一判据，而 isEmpty() 决定序列化是否整段跳过方块数据：若外部
+    // 数据给出"计数为 0"而调色板里实际有方块，本段会在下次保存时被静默清空、读回全是空气。
+    // 实测重算的代价是 O(VOLUME) 一次线性扫描，而它换掉的是"整段地形无声消失"这一类故障。
+    u16 measuredBlockCount = 0;
+    section->m_blockStates.forEach([&measuredBlockCount](i32 /*index*/, u32 stateId) {
+        const BlockState* state = Block::getBlockState(stateId);
+        if (state != nullptr && !state->isAir()) {
+            ++measuredBlockCount;
+        }
+    });
+    section->m_blockCount = measuredBlockCount;
+
+    if (measuredBlockCount != storedBlockCount) {
+        spdlog::warn("ChunkSection deserialize: stored block count {} disagrees with the actual {} "
+                     "non-air blocks in the section data; using the measured value",
+            storedBlockCount,
+            measuredBlockCount);
+    }
+
     return std::move(section);
 }
 

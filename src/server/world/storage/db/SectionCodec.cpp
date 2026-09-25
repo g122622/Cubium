@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
 #include <algorithm>
@@ -41,6 +43,22 @@ using namespace mc::trace;
 namespace mc::world::storage {
 
 namespace {
+
+/**
+ * @brief 判断一个方块状态是否属于空气
+ *
+ * 方块状态 0/1/2 分别是空气、洞穴空气、虚空空气，**它们都是空气**；仅凭 `stateId != 0`
+ * 判断会把后两者误认为实体方块。方块注册表未就绪（测试环境）时查不到状态，此时退化为
+ * 只认 stateId 0——调用方不应在注册表未初始化的前提下依赖精确计数。
+ */
+[[nodiscard]] bool isAirBlockState(u32 stateId)
+{
+    if (stateId == 0) {
+        return true;
+    }
+    const BlockState* state = Block::getBlockState(stateId);
+    return state == nullptr || state->isAir();
+}
 
 [[nodiscard]] Result<void> validateSectionDataLayout(const SectionData& data, const char* context)
 {
@@ -77,6 +95,13 @@ namespace {
                 data.nonEmptyBlockCount,
                 SectionData::VOLUME));
     }
+
+    // 计数为 0 时序列化会整段跳过 blockStates（见 SectionData::serialize 的 IsEmpty 分支），
+    // 因此"计数为 0 但实际有方块"会静默丢光整段数据、读回全是空气且毫无报错。这里是该分支
+    // 唯一的守门点，必须在数据被丢掉之前拦下——这是数据完整性不变量，不是性能优化。
+    MC_ASSERT_RELEASE_MSG(data.nonEmptyBlockCount > 0 || data.isAllAir(),
+        "SectionData block count is zero but block states contain non-air blocks; "
+        "serializing would silently discard the whole section");
 
     if (data.skyLight.has_value() && data.skyLight->size() != SectionCodec::LIGHT_DATA_SIZE) {
         spdlog::error("[{}] skyLight size mismatch: expected {}, got {}",
@@ -220,10 +245,16 @@ void SectionData::setBlockStateId(i32 x, i32 y, i32 z, u32 stateId)
     i32 idx = _blockIndex(x, y, z);
     u32 oldStateId = blockStates[static_cast<size_t>(idx)];
 
-    // 更新非空方块计数
-    if (oldStateId == 0 && stateId != 0) {
+    // 更新非空方块计数。判据必须与 ChunkSection::_updateCounters 一致地走 isAir()：
+    // 方块状态 1/2 分别是洞穴空气与虚空空气，它们本身就是空气，按 stateId != 0 判定会把它们
+    // 误计为非空气，使同一份数据在 SectionData 与 ChunkSection 两侧得到不同的计数。而该计数是
+    // isEmpty() 的唯一判据、isEmpty() 又决定 serialize() 是否整段跳过方块数据，两侧不一致会把
+    // 数据直接送进静默丢弃分支。
+    const bool oldIsAir = isAirBlockState(oldStateId);
+    const bool newIsAir = isAirBlockState(stateId);
+    if (oldIsAir && !newIsAir) {
         ++nonEmptyBlockCount;
-    } else if (oldStateId != 0 && stateId == 0) {
+    } else if (!oldIsAir && newIsAir) {
         --nonEmptyBlockCount;
     }
 
@@ -244,6 +275,16 @@ void SectionData::setBiome(i32 x, i32 y, i32 z, BiomeId biome)
         return;
     }
     biomes[static_cast<size_t>(_biomeIndex(x, y, z))] = biome;
+}
+
+bool SectionData::isAllAir() const
+{
+    for (u32 stateId : blockStates) {
+        if (!isAirBlockState(stateId)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // ============================================================================
@@ -546,8 +587,13 @@ void SectionCodec::_captureChunkSection(
         data.blockStates[static_cast<size_t>(i)] = section.getBlockStateIdFast(i);
     }
 
-    // 复制非空方块计数
+    // 复制非空方块计数。这里刻意直接采信 ChunkSection 的计数而不重算：它与 blockStates 同源，
+    // 重算一遍只是重复劳动。但"计数为 0 而实际有方块"会让 serialize() 整段丢弃方块数据，
+    // 因此在离开本函数前必须验一次，把失同步拦在写盘之前。
     data.nonEmptyBlockCount = section.getBlockCount();
+    MC_ASSERT_RELEASE_MSG(data.nonEmptyBlockCount > 0 || data.isAllAir(),
+        "ChunkSection block count is zero but block states contain non-air blocks; "
+        "saving would silently discard the whole section");
 
     // 复制生物群系：由调用方提供 4x4x4 采样数据，未提供时退回默认平原
     if (!biomes.empty() && biomes.size() == SectionData::BIOME_COUNT) {

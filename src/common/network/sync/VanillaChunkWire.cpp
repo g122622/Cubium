@@ -474,7 +474,6 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
     for (int sec = 0; sec < sectionCount && sec < mc::world::CHUNK_SECTIONS; ++sec) {
         const auto& sw = ir.sections[static_cast<size_t>(sec)];
         ChunkSection* section = chunk->createSection(sec);
-        section->setBlockCount(static_cast<u16>(sw.nonEmptyBlockCount));
 
         // states
         {
@@ -484,6 +483,12 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
                 section->setBlockStateIdFast(i, stateId);
             }
         }
+
+        // 非空方块计数必须在写入方块状态**之后**覆盖：setBlockStateIdFast 会自行维护这个计数
+        // （每个空气→非空气的转换 +1），先赋服务端报告值再写状态会让它被累加两次、得到 2 倍值。
+        // 该计数被 isEmpty() 直接消费，而 isEmpty() 既决定序列化是否整段跳过方块数据，也决定
+        // 渲染剔除是否跳过该段，2 倍值会让这两处都失真。
+        section->setBlockCount(static_cast<u16>(sw.nonEmptyBlockCount));
         // biomes
         {
             std::vector<u32> globalIds = unpackPalettedContainer(sw.biomes, BiomeContainer::SECTION_BIOME_SIZE);
