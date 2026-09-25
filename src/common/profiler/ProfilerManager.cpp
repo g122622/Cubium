@@ -46,10 +46,14 @@
 // tracy::SetThreadName（C++ API，始终编译，TRACY_API 导出）。
 // 注意：TracyCSetThreadName 在 TRACY_ENABLE 未定义时会展开为对未定义符号的调用，
 // 故线程命名走 tracy::SetThreadName 而非该宏。
+//
+// 必须整体受 MC_ENABLE_TRACY 守卫：Tracy 关闭时不会 add_subdirectory 其源码树，
+// `third_party/tracy/public` 不在 include 路径上，无条件包含会直接编译失败。
 #if defined(_MSC_VER)
 #pragma warning(push, 0)
 #endif
 
+#include <common/TracySystem.hpp>
 #include <tracy/Tracy.hpp>
 
 #if defined(_MSC_VER)
@@ -60,7 +64,6 @@
 #include <chrono>
 #include <memory>
 #include <string>
-#include <common/TracySystem.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc {

@@ -224,20 +224,20 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     // skipPlacement=非候选区块（isStructureChunk 为假）；
     // skipBiomeCheck=候选区块但中心点生物群系不匹配该条目；
     // attempts=实际调用 generate() 次数；created=产出了有效 StructureStart 次数。
-    i32 dbgSets = 0;
-    i32 dbgSkipExisting = 0;
-    i32 dbgSkipBiomes = 0;
-    i32 dbgSkipPlacement = 0;
-    i32 dbgSkipBiomeCheck = 0;
-    i32 dbgAttempts = 0;
-    i32 dbgCreated = 0;
+    // i32 dbgSets = 0;
+    // i32 dbgSkipExisting = 0;
+    // i32 dbgSkipBiomes = 0;
+    // i32 dbgSkipPlacement = 0;
+    // i32 dbgSkipBiomeCheck = 0;
+    // i32 dbgAttempts = 0;
+    // i32 dbgCreated = 0;
     std::vector<std::string> dbgBiomeSkippedSets;   ///< 被"维度无交集"整集跳过的 set id
     std::vector<std::string> dbgBiomeRejectedPairs; ///< 因中心点群系不匹配被拒的 "set/结构" 对
     std::vector<std::string> dbgCreatedIds;         ///< 实际产出 StructureStart 的 "set/结构" 对
 
     for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
         if (!structureSetPtr) continue;
-        ++dbgSets;
+        // ++dbgSets;
 
         const auto& structureSet = *structureSetPtr;
         const auto& placement = structureSet.placement();
@@ -257,14 +257,14 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             }
         }
         if (hasExistingStart) {
-            ++dbgSkipExisting;
+            // ++dbgSkipExisting;
             continue;
         }
 
         // 对齐 MC 1.21.11: 结构集快速预过滤 — 如果当前维度的 possibleBiomes
         // 与结构集中所有结构的 biomeTag 均无交集，则跳过整个结构集
         if (!_hasBiomesForStructureSet(structureSet)) {
-            ++dbgSkipBiomes;
+            // ++dbgSkipBiomes;
             if (dbgBiomeSkippedSets.size() < 12) {
                 dbgBiomeSkippedSets.push_back(structureSet.id().toString());
             }
@@ -273,7 +273,7 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
 
         // 三步检查：1. 是否为候选区块
         if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
-            ++dbgSkipPlacement;
+            // ++dbgSkipPlacement;
             continue;
         }
 
@@ -348,7 +348,7 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             MC_ASSERT_RELEASE(structure != nullptr);
 
             bool placed = false;
-            ++dbgAttempts;
+            // ++dbgAttempts;
 
             // 生物群系校验。原版在"候选生成点已求出、构件尚未装配"时校验，采样点是候选点本身
             // （jigsaw 结构为起始块中心、高度为投影后的地面线），而非区块中心。
@@ -401,13 +401,13 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
                     chunk.addStructureStart(entry->structureId,
                         std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
                     placed = true;
-                    ++dbgCreated;
+                    // ++dbgCreated;
                     if (dbgCreatedIds.size() < 8) {
                         dbgCreatedIds.push_back(structureSet.id().toString() + " -> " + entry->structureId.toString());
                     }
                 }
             } else {
-                ++dbgSkipBiomeCheck;
+                // ++dbgSkipBiomeCheck;
                 if (dbgBiomeRejectedPairs.size() < 8) {
                     dbgBiomeRejectedPairs.push_back(
                         structureSet.id().toString() + " -> " + entry->structureId.toString());
@@ -424,43 +424,43 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     }
 
     // 【诊断】仅在有结构集通过"非候选区块"关卡或产出结构时打印，避免刷屏。
-    if (dbgSkipPlacement > 0 || dbgCreated > 0) {
-        std::string skipped;
-        for (const auto& s : dbgBiomeSkippedSets) {
-            skipped += s;
-            skipped += ' ';
-        }
-        std::string rejected;
-        for (const auto& s : dbgBiomeRejectedPairs) {
-            rejected += s;
-            rejected += ' ';
-        }
-        spdlog::info("[STRUCT] ({},{}) sets={} skipExisting={} skipBiomes={} skipPlacement={} "
-                     "skipBiomeCheck={} attempts={} created={}",
-            chunkX,
-            chunkZ,
-            dbgSets,
-            dbgSkipExisting,
-            dbgSkipBiomes,
-            dbgSkipPlacement,
-            dbgSkipBiomeCheck,
-            dbgAttempts,
-            dbgCreated);
-        if (!skipped.empty()) {
-            spdlog::info("[STRUCT]   skipBiomes-sets: {}", skipped);
-        }
-        if (!rejected.empty()) {
-            spdlog::info("[STRUCT]   biomeRejected: {}", rejected);
-        }
-        if (!dbgCreatedIds.empty()) {
-            std::string createdIds;
-            for (const auto& s2 : dbgCreatedIds) {
-                createdIds += s2;
-                createdIds += ' ';
-            }
-            spdlog::info("[STRUCT]   created: {}", createdIds);
-        }
-    }
+    // if (dbgSkipPlacement > 0 || dbgCreated > 0) {
+    //     std::string skipped;
+    //     for (const auto& s : dbgBiomeSkippedSets) {
+    //         skipped += s;
+    //         skipped += ' ';
+    //     }
+    //     std::string rejected;
+    //     for (const auto& s : dbgBiomeRejectedPairs) {
+    //         rejected += s;
+    //         rejected += ' ';
+    //     }
+    //     spdlog::info("[STRUCT] ({},{}) sets={} skipExisting={} skipBiomes={} skipPlacement={} "
+    //                  "skipBiomeCheck={} attempts={} created={}",
+    //         chunkX,
+    //         chunkZ,
+    //         dbgSets,
+    //         dbgSkipExisting,
+    //         dbgSkipBiomes,
+    //         dbgSkipPlacement,
+    //         dbgSkipBiomeCheck,
+    //         dbgAttempts,
+    //         dbgCreated);
+    //     if (!skipped.empty()) {
+    //         spdlog::info("[STRUCT]   skipBiomes-sets: {}", skipped);
+    //     }
+    //     if (!rejected.empty()) {
+    //         spdlog::info("[STRUCT]   biomeRejected: {}", rejected);
+    //     }
+    //     if (!dbgCreatedIds.empty()) {
+    //         std::string createdIds;
+    //         for (const auto& s2 : dbgCreatedIds) {
+    //             createdIds += s2;
+    //             createdIds += ' ';
+    //         }
+    //         spdlog::info("[STRUCT]   created: {}", createdIds);
+    //     }
+    // }
 
     // 通知 StructureCheck 缓存此区块的结构引用数据
     // 对齐 MC 1.21.11 ServerLevel.onStructureStartsAvailable() 通过 structureCheck.onStructureLoad() 的调用
