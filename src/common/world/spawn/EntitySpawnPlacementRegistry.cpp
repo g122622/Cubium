@@ -304,7 +304,7 @@ namespace {
  * 光照检查在 NaturalSpawner 中通过 MonsterEntity::isValidLightLevel() 进行，
  * 这里的谓词仅做基础检查。
  */
-bool canBatSpawn(const ISpawnWorldReader& /*world*/,
+bool _canBatSpawn(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
     math::IRandom& /*random*/,
@@ -322,7 +322,7 @@ bool canBatSpawn(const ISpawnWorldReader& /*world*/,
  * - 下方方块为水（fluidState 是 WATER）
  * - 上方方块为 WATER 方块
  */
-bool canNautilusSpawn(const ISpawnWorldReader& world,
+bool _canNautilusSpawn(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
     math::IRandom& /*random*/,
@@ -361,17 +361,26 @@ bool canNautilusSpawn(const ISpawnWorldReader& world,
 /**
  * @brief 怪物生成条件检查（带光照）
  *
- * 怪物需要光照等级满足 isValidLightLevel() 条件。
- * 光照检查在 NaturalSpawner 中进行。
+ * 怪物要求所在位置的「最大局部原始亮度」不超过 7，即 Monster.isDarkEnoughToSpawn 的
+ * 判定。亮度取 getMaxLocalRawBrightness（已含天空光按 dayTime 的时间衰减与方块光取大），
+ * 因此白天露天的怪物生成会被拒绝，而夜晚露天与洞穴内可通过。
+ *
+ * 该判定原先是 NaturalSpawner 按实体注册分类统一追加的，现下沉到放置谓词，
+ * 使谓词成为光照门槛的唯一来源，与原始版把生成规则挂在 SpawnPlacements 上的结构一致。
+ *
+ * TODO: 原始版 isDarkEnoughToSpawn 是两阶段判定——先以「原始天空光 > random(32)」快速拒绝，
+ * 再比对亮度阈值。本谓词只实现亮度阈值部分，因为 ISpawnWorldReader 未暴露原始天空光读数；
+ * 该阶段目前仅由刷怪笼路径（MobSpawnerBlockEntity）单独补做，自然生成路径缺此阶段。
+ * 若要让两条路径完全统一，需给 ISpawnWorldReader 增加原始天空光访问器并在本谓词内实现两阶段。
  */
-bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
-    const Vector3i& /*pos*/,
+bool _canMonsterSpawnInLightPredicate(const ISpawnWorldReader& world,
+    const Vector3i& pos,
     const std::string& /*entityTypeId*/,
     math::IRandom& /*random*/,
     SpawnReason /*reason*/)
 {
-    // 光照检查在 NaturalSpawner 中进行，这里返回 true
-    return true;
+    constexpr i32 MONSTER_SPAWN_LIGHT_LIMIT = 7;
+    return world.getMaxLocalRawBrightness(pos.x, pos.y, pos.z) <= MONSTER_SPAWN_LIGHT_LIMIT;
 }
 
 /**
@@ -384,9 +393,11 @@ bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
  *    直接使用通用怪物生成规则（仅检查非和平难度）。
  * 2. 沼泽地表生成：生物群系标签 ALLOWS_SURFACE_SLIME_SPAWNS + Y∈(50,70) +
  *    月相概率 + 亮度<=random(8)
- * 3. 地下史莱姆区块生成：仅限 ChunkGeneration 阶段 + isSlimeChunk + random(10)==0 + Y<40
+ * 3. 地下史莱姆区块生成：isSlimeChunk + random(10)==0 + Y<40
+ *    门控口径与原始版一致——原始版只要求关卡可作为世界生成关卡（ServerLevel 已实现该
+ *    接口），与生成原因无关，故运行时的自然生成同样适用本路径。
  */
-bool canSlimeSpawn(const ISpawnWorldReader& world,
+bool _canSlimeSpawn(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
     math::IRandom& random,
@@ -420,19 +431,20 @@ bool canSlimeSpawn(const ISpawnWorldReader& world,
         }
     }
 
-    // 路径3：地下史莱姆区块生成路径（仅限区块生成阶段）
-    if (reason == SpawnReason::ChunkGeneration) {
-        if (pos.y < 40) {
-            const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
-            const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
+    // 路径3：地下史莱姆区块生成路径
+    //
+    // 门控口径：原始版在进入本路径前只检查「关卡可作为世界生成关卡」，不检查生成原因；
+    // ServerLevel 实现了该接口，故运行时的自然生成同样走本路径。此前把门控写成
+    // 「仅 ChunkGeneration」会使运行时地下史莱姆区块完全失效（史莱姆只剩沼泽一条途径），
+    // 与原始版不符，故按同样口径取消生成原因限制。
+    // 抽取顺序沿用原始版：先消耗 1/10 概率判定，再依次检查史莱姆区块与 Y 高度。
+    if (random.nextInt(10) == 0) {
+        const i32 chunkX = pos.x >> world::CHUNK_SHIFT;
+        const i32 chunkZ = pos.z >> world::CHUNK_SHIFT;
 
-            // 使用世界种子确定性判断是否为史莱姆区块（10% 概率）
-            if (SlimeChunkChecker::isSlimeChunk(world.seed(), chunkX, chunkZ)) {
-                // 额外 10% 随机概率通过
-                if (random.nextInt(10) == 0) {
-                    return true;
-                }
-            }
+        // 使用世界种子确定性判断是否为史莱姆区块（10% 概率）
+        if (SlimeChunkChecker::isSlimeChunk(world.seed(), chunkX, chunkZ) && pos.y < 40) {
+            return true;
         }
     }
 
@@ -442,7 +454,7 @@ bool canSlimeSpawn(const ISpawnWorldReader& world,
 /**
  * @brief 岩浆怪生成条件检查
  */
-bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
+bool _canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
     math::IRandom& /*random*/,
@@ -457,7 +469,7 @@ bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
  *
  * 恶魂需要有足够的生成空间。
  */
-bool canGhastSpawn(const ISpawnWorldReader& world,
+bool _canGhastSpawn(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
     math::IRandom& /*random*/,
@@ -482,14 +494,10 @@ bool canGhastSpawn(const ISpawnWorldReader& world,
  * @brief 疣猪兽生成条件检查
  *
  * 疣猪兽不能生成在诡异疣块上方（诡异森林是它的禁区，避免与本生物群系的其他生物重叠）。
- *
- * TODO: 原版疣猪兽的生成规则只含"下方方块非诡异疣块"这一条，不含光照判定；而本项目
- * NaturalSpawner::_canSpawnAt 会按实体注册分类（Monster）追加低光照门槛，使疣猪兽在
- * 下界的明亮位置（岩浆、萤石、菌光体附近）被额外拒绝。差异影响有限（下界天空光恒为 0，
- * 通常亮度即为方块光），但若要完全复刻原版，需把光照判定下沉到各实体自身的放置谓词，
- * 取消按分类统一追加光照门槛的做法。
+ * 原始版的疣猪兽生成规则只有这一条，不含光照判定，因此本谓词一旦注册即代表该实体的
+ * 完整生成门槛（谓词存在时不再按分类追加光照门槛）。
  */
-bool canHoglinSpawn(const ISpawnWorldReader& world,
+bool _canHoglinSpawn(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
     math::IRandom& /*random*/,
@@ -528,7 +536,7 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:elder_guardian", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
     // 鹦鹉螺：带 Y 范围 + 上下方块检查的生成规则（对应 MC AbstractNautilus.checkNautilusSpawnRules）
     registerPlacement(
-        "minecraft:nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves, canNautilusSpawn);
+        "minecraft:nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves, _canNautilusSpawn);
     // 僵尸鹦鹉螺：MC 1.21.11 未在 SpawnPlacements 注册，仅作为溺尸骑乘者生成
     // 这里注册为 InWater 仅用于刷怪蛋/命令生成场景
     registerPlacement("minecraft:zombie_nautilus", PlacementType::InWater, HeightmapType::MotionBlockingNoLeaves);
@@ -562,95 +570,97 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:zombie",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:skeleton",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:creeper",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:cave_spider",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:enderman",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:witch",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:stray",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:giant",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:wither_skeleton",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:zombie_villager",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     // 僵尸马是怪物分类：数据包将其置于 monster 生成列表，须按低光照门槛生成。
     // 若漏掉此光照谓词与 Monster 分类，僵尸马会在白天露天大量生成。
     registerPlacement("minecraft:zombie_horse",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:wither",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:spider",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:evoker",
         PlacementType::NoRestrictions,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:illusioner",
         PlacementType::NoRestrictions,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:vex",
         PlacementType::NoRestrictions,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:vindicator",
         PlacementType::NoRestrictions,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:ravager",
         PlacementType::NoRestrictions,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:pillager",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
 
     // ========== 特殊怪物 ==========
     // 蝙蝠：需要光照 < 4
-    registerPlacement("minecraft:bat", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canBatSpawn);
+    registerPlacement("minecraft:bat", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canBatSpawn);
 
     // 史莱姆：史莱姆区块或沼泽
-    registerPlacement("minecraft:slime", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canSlimeSpawn);
+    registerPlacement(
+        "minecraft:slime", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canSlimeSpawn);
 
     // 岩浆怪：下界无特殊条件
     registerPlacement(
-        "minecraft:magma_cube", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canMagmaCubeSpawn);
+        "minecraft:magma_cube", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canMagmaCubeSpawn);
 
     // 恶魂：需要足够空间
-    registerPlacement("minecraft:ghast", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canGhastSpawn);
+    registerPlacement(
+        "minecraft:ghast", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canGhastSpawn);
 
     // 烈焰人：下界无特殊条件（使用 MonsterEntity::canMonsterSpawn）
     registerPlacement("minecraft:blaze", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
@@ -665,14 +675,14 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:husk",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
-        canMonsterSpawnInLightPredicate);
+        _canMonsterSpawnInLightPredicate);
 
     // 下界生物
     registerPlacement("minecraft:zombified_piglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:piglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
-    // 疣猪兽：禁止生成在诡异疣块上方（详见 canHoglinSpawn 注释）。
+    // 疣猪兽：禁止生成在诡异疣块上方（详见 _canHoglinSpawn 注释）。
     registerPlacement(
-        "minecraft:hoglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canHoglinSpawn);
+        "minecraft:hoglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, _canHoglinSpawn);
 
     // ========== 环境生物 ==========
 

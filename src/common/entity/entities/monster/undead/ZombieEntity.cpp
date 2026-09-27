@@ -322,7 +322,10 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         // 对应 MC 原版 SpawnPlacements.isSpawnPositionOk() 和 SpawnPlacements.checkSpawnRules()
         // - 对于僵尸：PlacementType::OnGround，检查脚底支撑 + 生成位和上方位可通行
         // - 对于溺尸：PlacementType::InWater，检查生成位在水中 + 下方在水中 + 上方非实心
-        // - 谓词检查：canMonsterSpawnInLightPredicate（目前为空，光照检查在 NaturalSpawner 中进行）
+        // - 谓词检查：_canMonsterSpawnInLightPredicate（怪物低光照门槛，最大局部原始亮度 <= 7）。
+        //   原始版增援同样走 SpawnPlacements.checkSpawnRules → Monster.checkMonsterSpawnRules，
+        //   且 EntitySpawnReason.ignoresLightRequirements(REINFORCEMENT)=false（仅 TRIAL_SPAWNER
+        //   忽略光照），故增援位置同样需足够黑暗。
         Vector3i spawnVec(spawnX, spawnY, spawnZ);
         if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(
                 entityTypeId, spawnWorldAdapter, world::spawn::SpawnReason::Reinforcement, spawnVec, rng)) {

@@ -81,7 +81,9 @@ DespawnManager（消失管理）
 >
 > 注：豹猫（ocelot）是刻意例外——原版数据包把它放进 monster 列表，但实体自身 MobCategory 为 CREATURE，故注册为 Creature。
 >
-> 注：`NaturalSpawner::_canSpawnAt` 只经 `canSpawnAtLocation` 检查放置类型，**不调用**注册的放置谓词；谓词仅在 `canSpawnEntity()` 路径（刷怪笼、`WorldGenSpawner`、僵尸增援）生效。
+> 注：`NaturalSpawner::_canSpawnAt` 经 `canSpawnEntity()` 检查放置类型 **并调用实体自身注册的放置谓词**（史莱姆区块/沼泽、鹦鹉螺水深、恶魂空间、疣猪兽诡异疣块、怪物光照等）。谓词存在时它是该实体光照门槛的唯一来源；仅当实体未注册谓词时，才按注册分类追加光照门槛作为兜底（动物要求明亮、怪物与环境生物要求黑暗）。此口径对 `NaturalSpawner` 与刷怪笼/`WorldGenSpawner`/僵尸增援完全一致。
+>
+> 注：怪物光照门槛的完整实现参考 `MonsterEntity::isValidLightLevel` 的两阶段形式（天空光随机门 + 亮度阈值）；放置谓词 `_canMonsterSpawnInLightPredicate` 因 `ISpawnWorldReader` 不暴露原始天空光，只实现亮度阈值部分，刷怪笼路径再由 `MobSpawnerBlockEntity` 补天空光随机门。
 
 ## 生成循环结构
 
@@ -95,6 +97,8 @@ DespawnManager（消失管理）
 | 动物 | 光照 > 7 | 24-128 格 | 每 400 tick 尝试一次 |
 | 环境生物 | 光照 ≤ 7 | 24-128 格 | 随机概率 |
 | 水生生物 | 在水中 | 24-128 格 | 需要水域 |
+
+> 上表是**未注册放置谓词**时的分类兜底门槛。已注册谓词的实体以谓词为准（如史莱姆额外需要史莱姆区块/沼泽条件、鹦鹉螺额外需要海平面下方 5~25 格的 Y 区间、疣猪兽完全没有光照要求）。
 
 ## DespawnManager 消失规则
 

@@ -670,9 +670,11 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
     //   difficulty != PEACEFUL && (ignoresLightRequirements(reason) || isDarkEnoughToSpawn(...))
     // 关键：EntitySpawnReason.ignoresLightRequirements(SPAWNER)=false（仅 TRIAL_SPAWNER 忽略光照），
     // 故普通刷怪笼生成的怪物仍需通过 isDarkEnoughToSpawn 光照检查。
-    // Cubium 的 EntitySpawnPlacementRegistry 怪物谓词 canMonsterSpawnInLightPredicate 是 no-op
-    // （光照检查被拆到 NaturalSpawner::_checkLightLevel 单独做，刷怪笼路径不走 NaturalSpawner，
-    //  故漏查光照），此处对 Monster 分类补一次 MonsterEntity::isValidLightLevel（对齐 isDarkEnoughToSpawn）。
+    // 上面 canSpawnEntity 已使怪物谓词 _canMonsterSpawnInLightPredicate 生效（"最大局部原始亮度
+    // <= 7"），此处再补 isValidLightLevel 的**天空光随机门**（skyLight > random(32) 直接拒绝）
+    // ——该门是 isDarkEnoughToSpawn 的第一阶段，谓词接口不暴露原始天空光故无法在谓词内实现。
+    // 两阶段合起来即完整的 isDarkEnoughToSpawn；谓词的 <=7 项被 isValidLightLevel 的
+    // light <= random(0..7) 蕴含，不引入额外限制。
     // 注：仅 Monster 分类查光照；Ambient（蝙蝠）等分类的刷怪笼光照规则暂未对齐（TODO），按现状放行。
     if (entityType.classification() == entity::EntityClassification::Monster) {
         math::Random lightRng(world.seed() ^ world.getGameTime() ^

@@ -386,8 +386,17 @@ private:
 
     /**
      * @brief 检查位置是否可以生成
+     *
+     * 门槛由两部分组成：
+     *   1. 实体自身注册的放置谓词（EntitySpawnPlacementRegistry，如史莱姆区块/沼泽、
+     *      鹦鹉螺水深、恶魂空间、疣猪兽诡异疣块、怪物光照等），谓词存在时它是该实体
+     *      光照门槛的唯一来源；
+     *   2. 分类兜底光照门槛——仅当该实体未注册放置谓词时按注册分类追加（动物要求明亮、
+     *      怪物与环境生物要求黑暗）。已注册谓词的实体不再重复追加，避免与谓词内的光照
+     *      判定叠加。
      */
-    [[nodiscard]] static bool _canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry);
+    [[nodiscard]] static bool _canSpawnAt(
+        mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::IRandom& random);
 
     /**
      * @brief 检查光照条件

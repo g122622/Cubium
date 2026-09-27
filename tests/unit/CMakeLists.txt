@@ -264,7 +264,7 @@ add_executable(mc_tests
     common/entity/entities/monster/SlimeEntityTest.cpp
     # SlimeChunkChecker 史莱姆区块判断测试
     common/world/spawn/SlimeChunkCheckerTest.cpp
-    # canSlimeSpawn 史莱姆生成条件测试
+    # _canSlimeSpawn 史莱姆生成条件测试
     common/world/spawn/CanSlimeSpawnTest.cpp
     # MagmaCubeEntity 岩浆怪测试（继承自史莱姆）
     common/entity/entities/monster/MagmaCubeEntityTest.cpp

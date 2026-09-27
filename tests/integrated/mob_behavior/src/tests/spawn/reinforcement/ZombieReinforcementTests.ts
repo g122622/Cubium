@@ -24,8 +24,8 @@
 //      调 setBaseValue 覆盖属性。权限 2（创造玩家 permLevel=2，SimulatedPlayer）。
 //      目标用 @e[type=zombie,limit=1,sort=nearest] 选择器（limit=1 规避"多实体"错误，即便有自然生成
 //      残留也只取距玩家最近 1 只）。distance 从命令源（玩家）位置计算。
-//   3. canMonsterSpawnInLightPredicate 是 no-op（EntitySpawnPlacementRegistry 恒返 true，光照检查
-//      在 NaturalSpawner 中进行）——增援不查光照，露天亮处仍生成。
+//   3. _canMonsterSpawnInLightPredicate 要求「最大局部原始亮度 <= 7」——增援与原始版一致需足够黑暗。
+//      night batch 下露天亮度约 4 <= 7，故夜晚增援可用；白天露天 15 > 7 会被拒。
 //   4. 7 格内无存活玩家约束：增援生成位 7 格球内不能有存活玩家。玩家需近战攻击僵尸（attackEntity
 //      在 ENTITY_INTERACTION_RANGE 内约 4.5 格），但攻击瞬间玩家在僵尸旁 2 格，部分小 offset（7）
 //      生成位 7 格内有玩家被拒；大 offset（>=15）生成位距玩家 >=13 格通过。50 次尝试中大 offset
@@ -76,7 +76,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_僵尸.txt#增援
 // Ref: ZombieEntity.cpp trySummonReinforcements/_trySpawnReinforcement
 // Ref: AttributeCommand.cpp _setBaseValue（/attribute base set）
-// Ref: EntitySpawnPlacementRegistry canMonsterSpawnInLightPredicate（no-op，增援不查光照）
+// Ref: EntitySpawnPlacementRegistry _canMonsterSpawnInLightPredicate（最大局部原始亮度 <= 7）
 // Ref: MinecraftStructurePlacer.cpp（gridStartY=-59 结构埋地下 + skyAccess 清空上方制露天）
 
 import * as GameTest from "@minecraft/server-gametest";
@@ -181,8 +181,9 @@ export function registerZombieReinforcementTests(): void {
         // skyAccess(true)：GameTestServer gridStartY=-59 把结构埋在地下 worldgen 石头中，结构上方全是
         // worldgen 方块致内部 skyLight=0 黑暗——NaturalSpawner 会持续自然生成 zombie 污染 countZombies。
         // skyAccess=true 让 MinecraftStructurePlacer 清空结构 footprint 正上方至世界顶部所有方块，制造
-        // 露天列使 skyLight=15，NaturalSpawner 怪物光照门槛 max<=7 拒绝 → 隔离自然生成（只增援生成，
-        // 增援 no-op 谓词不查光）。详见 ZombieTests.zombie_burns_in_daylight 同款注释。
+        // 露天列使 skyLight=15；night batch（dayTime=18000）下天空光按时间衰减，露天亮度约 4 <= 7，
+        // 故夜晚增援与自然生成均可发生（白天露天 15 > 7 两者都被拒）。
+        // 详见 ZombieTests.zombie_burns_in_daylight 同款注释。
         .skyAccess(true)
         // setupTicks(20)：清空上方方块后光照变更入队 m_lightQueue，需若干世界 tick 由 ServerWorld::tick
         // 批量重算 skyLight 达 15。setupTicks 阶段让世界先 tick 20 次让光照稳定，再正式跑测试体。

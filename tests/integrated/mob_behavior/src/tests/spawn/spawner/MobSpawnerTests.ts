@@ -17,8 +17,9 @@
 // 关键事实（核查 Java 1.21.11 源码确认）：
 //   1. EntitySpawnReason.ignoresLightRequirements(SPAWNER)=false（仅 TRIAL_SPAWNER 忽略光照），
 //      故普通刷怪箱生成的怪物仍需通过 isDarkEnoughToSpawn 光照检查——亮处不生成。
-//      Cubium 此前刷怪箱路径谓词 canMonsterSpawnInLightPredicate 是 no-op 致亮处仍生成（bug），
-//      已在 _isValidSpawnPosition 补 isValidLightLevel 修复（2026-08-18）。
+//      Cubium 此前刷怪箱路径谓词 _canMonsterSpawnInLightPredicate 是 no-op 致亮处仍生成（bug），
+//      现已把该谓词实现为「最大局部原始亮度 <= 7」，并在 _isValidSpawnPosition 保留 isValidLightLevel
+//      补天空光随机门（skyLight>random(32)），两者合起来即完整 isDarkEnoughToSpawn。
 //   2. isValidLightLevel 两阶段：skyLight>random(32) 拒绝；getLight<=random(8) 通过。
 //      黑暗结构（封顶遮光 skyLight=0、无光源 blockLight=0）：两阶段恒通过，确定性生成。
 //      亮处（glowstone 提 blockLight=15）：getLight=15，15<=random(8) 恒 false，确定性拒绝。
@@ -276,7 +277,7 @@ function spawnerIgnoresDoMobSpawningGamerule(test: Test): void {
 // 刷怪箱在亮处**会**被光照拒绝——与 Java 不符（蠹虫刷怪箱应不查亮度）。
 //
 // 这是修复引入的副作用：Monster 分类统一查光照，但蠹虫刷怪箱 Java 行为是豁免。
-// TODO: 待对齐 Java 蠢鱼刷怪箱亮度豁免（蠹虫谓词应像 canSlimeSpawn 那样 isSpawnerReason→true 跳过光照），
+// TODO: 待对齐 Java 蠢鱼刷怪箱亮度豁免（蠹虫谓词应像 _canSlimeSpawn 那样 isSpawnerReason→true 跳过光照），
 //   当前 Cubium 蠢鱼刷怪箱在亮处会被光照拒绝（与 Java 偏差）。本测试改为验证"黑暗中蠹虫刷怪箱生成"
 //   正向行为（避开亮度豁免的未对齐点），不测亮处生成。
 //

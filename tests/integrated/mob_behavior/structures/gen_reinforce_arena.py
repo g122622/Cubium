@@ -8,13 +8,12 @@ reinforce_arena：81×7×81 露天草地大场地，专供僵尸增援（ZombieE
 - y=1..6：全 air（无封顶露天，skyLight=15）。
 - 四壁 glass（x=0/x=80, z=0/z=80，y=1..6）透光围栏防僵尸寻路走出。
 
-关键设计：露天亮处（skyLight=15）。
-- 增援不查光照（canMonsterSpawnInLightPredicate 为空 no-op，ZombieEntity.cpp:318-321），
-  在亮处仍生成。
-- NaturalSpawner 自然生成查光照（_checkLightLevel 用原始 skyLight，露天=15>7 拒绝），
-  故露天亮处自然生成不触发——隔离自然生成污染，只增援生成。
-- night batch 避免亡灵（僵尸+增援僵尸）白天燃烧死亡（night batch 设 dayTime=18000，
-  不影响 NaturalSpawner 光照判定，仍 skyLight=15）。
+关键设计：露天大场地（skyLight=15）。
+- 增援与自然生成都查光照，门槛一致：怪物谓词 _canMonsterSpawnInLightPredicate 要求
+  「最大局部原始亮度 <= 7」（ZombieEntity.cpp 经 canSpawnEntity 走该谓词）。
+- night batch 下 dayTime=18000，天空光按时间衰减，露天亮度约 4 <= 7，故夜晚增援与自然生成
+  均可发生；白天露天亮度 15 > 7 两者都被拒绝。
+- night batch 同时避免亡灵（僵尸+增援僵尸）白天燃烧死亡（day batch 会燃烧死亡）。
 
 尺寸 81×81：增援偏移各轴 0~39 格（nextInt(7,40)*nextInt(-1,1)），中心 (40,2,40) 放僵尸+玩家，
 偏移范围 [1,79] 落在结构内，OnGround 脚下 grass_block 支撑。

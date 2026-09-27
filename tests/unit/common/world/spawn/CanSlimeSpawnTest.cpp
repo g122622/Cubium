@@ -48,7 +48,7 @@ namespace test {
 // ============================================================================
 
 /**
- * @brief 用于 canSlimeSpawn 测试的可控世界读取器
+ * @brief 用于 _canSlimeSpawn 测试的可控世界读取器
  *
  * 允许精确控制每个 ISpawnWorldReader 参数：
  * - seed: 世界种子（影响史莱姆区块判断）
@@ -60,7 +60,7 @@ namespace test {
  *
  * 对于 OnGround 放置类型的实体（如史莱姆），canSpawnEntity 会先检查
  * checkOnGroundSpawn（需要脚下有实心方块、上方非实心），
- * 然后才调用 canSlimeSpawn 谓词。因此需要模拟合理的方块状态。
+ * 然后才调用 _canSlimeSpawn 谓词。因此需要模拟合理的方块状态。
  */
 class MockSpawnWorld final : public ISpawnWorldReader {
 public:
@@ -126,7 +126,7 @@ private:
 };
 
 // ============================================================================
-// canSlimeSpawn 测试套件
+// _canSlimeSpawn 测试套件
 // ============================================================================
 
 class CanSlimeSpawnTest : public ::testing::Test {
@@ -276,10 +276,11 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRejectsYAtOrAbove40)
     EXPECT_FALSE(anySuccess);
 }
 
-TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresChunkGeneration)
+TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathAppliesToNaturalAndChunkGeneration)
 {
-    // 地下史莱姆区块路径只在 ChunkGeneration 阶段触发
-    // Natural 阶段即使 Y<40 且在史莱姆区块也不应走地下路径
+    // 地下史莱姆区块路径的门控口径与原始版一致：原始版只要求关卡可作为世界生成关卡
+    // （ServerLevel 已实现该接口），与生成原因无关。故 Natural 与 ChunkGeneration
+    // 两种原因都应能在史莱姆区块的地下位置生成史莱姆。
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;
@@ -305,35 +306,21 @@ TEST_F(CanSlimeSpawnTest, UndergroundSlimeChunkPathRequiresChunkGeneration)
     world.setupOnGroundBlocks(20, spawnX, spawnZ);
     Vector3i pos(spawnX, 20, spawnZ);
 
-    // Natural 阶段不应在地下路径生成史莱姆
-    {
-        bool anySuccess = false;
-        for (i32 i = 0; i < 100; ++i) {
-            math::Random random(static_cast<u64>(i * 7919 + 31));
-            if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                    "minecraft:slime", world, SpawnReason::Natural, pos, random)) {
-                anySuccess = true;
-                break;
-            }
-        }
-        EXPECT_FALSE(anySuccess) << "Slime should not spawn underground via Natural reason";
-    }
-
-    // ChunkGeneration 阶段应该在史莱姆区块的地下路径有可能生成
-    {
+    // 两种生成原因都应走地下路径，成功率均约 10%（容许 5%-20%）
+    for (const SpawnReason reason : {SpawnReason::Natural, SpawnReason::ChunkGeneration}) {
         i32 successCount = 0;
         constexpr i32 TOTAL_ATTEMPTS = 1000;
         for (i32 i = 0; i < TOTAL_ATTEMPTS; ++i) {
             math::Random random(static_cast<u64>(i * 7919 + 31));
-            if (EntitySpawnPlacementRegistry::canSpawnEntity(
-                    "minecraft:slime", world, SpawnReason::ChunkGeneration, pos, random)) {
+            if (EntitySpawnPlacementRegistry::canSpawnEntity("minecraft:slime", world, reason, pos, random)) {
                 ++successCount;
             }
         }
-        // 期望约 10% 的成功率，允许 5%-20% 的范围
         const f32 ratio = static_cast<f32>(successCount) / static_cast<f32>(TOTAL_ATTEMPTS);
-        EXPECT_GT(ratio, 0.05f) << "Slime spawn rate in slime chunk (ChunkGeneration) too low: " << ratio;
-        EXPECT_LT(ratio, 0.20f) << "Slime spawn rate in slime chunk (ChunkGeneration) too high: " << ratio;
+        EXPECT_GT(ratio, 0.05f) << "史莱姆区块地下生成率过低，reason=" << static_cast<i32>(reason)
+                                << " ratio=" << ratio;
+        EXPECT_LT(ratio, 0.20f) << "史莱姆区块地下生成率过高，reason=" << static_cast<i32>(reason)
+                                << " ratio=" << ratio;
     }
 }
 
@@ -660,7 +647,7 @@ TEST_F(CanSlimeSpawnTest, SlimeChunkAndSwampBiomeBothPathsAvailable)
 
 TEST_F(CanSlimeSpawnTest, NonSlimeEntityNotAffected)
 {
-    // 非史莱姆实体不应受 canSlimeSpawn 影响
+    // 非史莱姆实体不应受 _canSlimeSpawn 影响
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Peaceful;
     world.m_seed = 0;
@@ -706,7 +693,7 @@ TEST_F(CanSlimeSpawnTest, QuarterMoonSurfaceSpawnRate)
 
 TEST_F(CanSlimeSpawnTest, SlimeChunkDeterministicWithSameSeed)
 {
-    // 相同种子和位置，canSlimeSpawn 应该是确定性的
+    // 相同种子和位置，_canSlimeSpawn 应该是确定性的
     MockSpawnWorld world;
     world.m_difficulty = Difficulty::Normal;
     world.m_seed = 0;

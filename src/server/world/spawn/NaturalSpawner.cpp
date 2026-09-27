@@ -325,7 +325,7 @@ void NaturalSpawner::spawnInChunk(
             }
 
             // 检查是否可以生成
-            if (!_canSpawnAt(world, x, y, z, *entry)) {
+            if (!_canSpawnAt(world, x, y, z, *entry, random)) {
                 continue;
             }
 
@@ -575,7 +575,7 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
             }
 
             // 检查是否可以生成
-            if (!_canSpawnAt(world, x, y, z, *entry)) {
+            if (!_canSpawnAt(world, x, y, z, *entry, random)) {
                 continue;
             }
 
@@ -626,7 +626,7 @@ i32 NaturalSpawner::_trySpawnAt(
     }
 
     // 检查生成位置
-    if (!_canSpawnAt(world, x, y, z, entry)) {
+    if (!_canSpawnAt(world, x, y, z, entry, random)) {
         return 0;
     }
 
@@ -733,7 +733,8 @@ const SpawnEntry* NaturalSpawner::_selectEntry(const std::vector<SpawnEntry>& en
     return nullptr;
 }
 
-bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry)
+bool NaturalSpawner::_canSpawnAt(
+    mc::server::ServerWorld& world, i32 x, i32 y, i32 z, const SpawnEntry& entry, math::IRandom& random)
 {
     // 获取实体类型
     auto& registry = entity::EntityRegistry::instance();
@@ -748,8 +749,6 @@ bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i
     }
 
     // 使用 EntitySpawnPlacementRegistry 检查放置条件
-    PlacementType placementType = EntitySpawnPlacementRegistry::getPlacementType(entry.entityTypeId);
-
     // 创建世界读取器适配器
     class ServerWorldAdapter : public ISpawnWorldReader {
     public:
@@ -815,12 +814,22 @@ bool NaturalSpawner::_canSpawnAt(mc::server::ServerWorld& world, i32 x, i32 y, i
     ServerWorldAdapter adapter(world);
     Vector3i pos(x, y, z);
 
-    // 检查放置类型条件
-    if (!EntitySpawnPlacementRegistry::canSpawnAtLocation(placementType, adapter, pos, entry.entityTypeId)) {
+    // 放置类型检查 + 实体自身注册的放置谓词（史莱姆区块/沼泽、鹦鹉螺水深、恶魂空间、
+    // 疣猪兽诡异疣块、怪物光照等）。谓词与原始版一致，是实体生成规则的载体。
+    if (!EntitySpawnPlacementRegistry::canSpawnEntity(entry.entityTypeId, adapter, SpawnReason::Natural, pos, random)) {
         return false;
     }
 
-    // 检查分类特定的条件
+    // 已注册放置谓词的实体：光照等门槛由谓词自身负责（例如怪物谓词内含低光照判定，
+    // 疣猪兽谓词则完全没有光照判定），此处不再按分类重复追加，避免叠加出原始版没有的限制。
+    // 注意判定条件是「谓词存在」而非「放置条目存在」——绝大多数实体都注册了放置条目，
+    // 但只有部分实体带谓词（如 pig/cow 只有条目、无谓词），后者仍须走下面的分类兜底。
+    const auto* placementEntry = EntitySpawnPlacementRegistry::getPlacementEntry(entry.entityTypeId);
+    if (placementEntry != nullptr && placementEntry->predicate) {
+        return true;
+    }
+
+    // 未注册放置谓词的实体：按注册分类追加光照门槛作为兜底。
     entity::EntityClassification classification = entityType->classification();
 
     switch (classification) {
@@ -1127,7 +1136,7 @@ i32 NaturalSpawner::spawnCategoryForPosition(mc::server::ServerWorld& world,
         // 放置规则 + 光照门槛 + 碰撞检查（对齐 vanilla isValidSpawnPostitionForType）。
         // 注意：单点入口不检查 cap/SpawnCosts（对齐 vanilla 3 参版恒真 predicate、空回调，
         // 不更新 SpawnState）。cap 节流行为须走真实 tick 测试，非本入口职责。
-        if (!_canSpawnAt(world, x, y, z, *entry)) {
+        if (!_canSpawnAt(world, x, y, z, *entry, random)) {
             continue;
         }
 
