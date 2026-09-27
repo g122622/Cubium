@@ -312,6 +312,10 @@ void VanillaEntities::doRegisterAll()
             .build());
 
     // 豹猫
+    // 分类保持 Creature（实体自身的生成分类口径），但数据包把豹猫放在丛林生物群系的
+    // monster 生成列表里——这是原版既有设计（豹猫按敌对逻辑参与丛林刷怪），并非本项目缺陷。
+    // 因此豹猫在容量统计上计入生物配额、在生成时消耗怪物配额，该差异与僵尸马/疣猪兽的
+    // 分类错配性质不同，刻意不改，避免偏离原版实体分类。
     registry.registerType(EntityTypeKeys::OCELOT,
         EntityType::Builder(&OcelotEntity::create, EntityClassification::Creature)
             .size(0.6f, 0.7f)
@@ -367,8 +371,11 @@ void VanillaEntities::doRegisterAll()
             .build());
 
     // 僵尸鹦鹉螺 - 亡灵变体，阳光下燃烧，不可驯服/繁殖
+    // 生成分类必须为 Monster：僵尸鹦鹉螺是亡灵敌对生物。它没有自然生成列表，
+    // 仅作为溺尸的骑乘者出现，但容量统计与分类语义仍按注册分类口径进行，
+    // 注册为 WaterCreature 会把它错算进水生生物配额。
     registry.registerType(EntityTypeKeys::ZOMBIE_NAUTILUS,
-        EntityType::Builder(&ZombieNautilusEntity::create, EntityClassification::WaterCreature)
+        EntityType::Builder(&ZombieNautilusEntity::create, EntityClassification::Monster)
             .size(0.9f, 0.6f)
             .trackingRange(10)
             .updateInterval(3)
@@ -667,8 +674,12 @@ void VanillaEntities::doRegisterAll()
             .build());
 
     // 僵尸马
+    // 生成分类必须为 Monster：数据包把僵尸马放进平原/热带草原/雪原等生物群系的 monster
+    // 生成列表，而生成流程按「实体注册分类」判定光照门槛、并按「实体注册分类」统计容量。
+    // 注册为 Creature 会产生两处错误后果：(1) 光照门槛反转成"需要明亮"，导致只在白天露天生成；
+    // (2) 已生成个体被计入生物配额而生成时消耗怪物配额，怪物上限永不触顶而无限堆积。
     registry.registerType(EntityTypeKeys::ZOMBIE_HORSE,
-        EntityType::Builder(&ZombieHorseEntity::create, EntityClassification::Creature)
+        EntityType::Builder(&ZombieHorseEntity::create, EntityClassification::Monster)
             .size(1.3964844f, 1.6f)
             .trackingRange(10)
             .updateInterval(3)
@@ -737,8 +748,11 @@ void VanillaEntities::doRegisterAll()
 
     // ========== 村民 ==========
     // 村民
+    // 生成分类为 Misc：村民不参与任何生物群系的自然生成列表，原版归类为 Misc。
+    // 注册为 Creature 会把村民计入生物配额、并让其进入生物分类的生成节流与容量判定，
+    // 与"仅由村庄结构放置、不参与自然生成"的定位不符。
     registry.registerType(EntityTypeKeys::VILLAGER,
-        EntityType::Builder(&VillagerEntity::create, EntityClassification::Creature)
+        EntityType::Builder(&VillagerEntity::create, EntityClassification::Misc)
             .size(0.6f, 1.95f)
             .trackingRange(10)
             .updateInterval(3)
@@ -858,8 +872,11 @@ void VanillaEntities::doRegisterAll()
             .build());
 
     // 疣猪兽
+    // 生成分类必须为 Monster：数据包把疣猪兽放进下界生物群系的 monster 生成列表。
+    // 注册为 Creature 会把已生成个体计入生物配额，而生成时消耗怪物配额，
+    // 导致下界怪物上限失效（与僵尸马同一类缺陷）。
     registry.registerType(EntityTypeKeys::HOGLIN,
-        EntityType::Builder(&HoglinEntity::create, EntityClassification::Creature)
+        EntityType::Builder(&HoglinEntity::create, EntityClassification::Monster)
             .size(1.3964844f, 1.4f)
             .trackingRange(10)
             .updateInterval(3)

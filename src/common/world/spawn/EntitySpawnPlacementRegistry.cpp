@@ -478,6 +478,30 @@ bool canGhastSpawn(const ISpawnWorldReader& world,
     return true;
 }
 
+/**
+ * @brief 疣猪兽生成条件检查
+ *
+ * 疣猪兽不能生成在诡异疣块上方（诡异森林是它的禁区，避免与本生物群系的其他生物重叠）。
+ *
+ * TODO: 原版疣猪兽的生成规则只含"下方方块非诡异疣块"这一条，不含光照判定；而本项目
+ * NaturalSpawner::_canSpawnAt 会按实体注册分类（Monster）追加低光照门槛，使疣猪兽在
+ * 下界的明亮位置（岩浆、萤石、菌光体附近）被额外拒绝。差异影响有限（下界天空光恒为 0，
+ * 通常亮度即为方块光），但若要完全复刻原版，需把光照判定下沉到各实体自身的放置谓词，
+ * 取消按分类统一追加光照门槛的做法。
+ */
+bool canHoglinSpawn(const ISpawnWorldReader& world,
+    const Vector3i& pos,
+    const std::string& /*entityTypeId*/,
+    math::IRandom& /*random*/,
+    SpawnReason /*reason*/)
+{
+    const BlockState* belowState = world.getBlockState(pos.x, pos.y - 1, pos.z);
+    if (belowState != nullptr && belowState->is(VanillaBlocks::NETHER_WART_BLOCK)) {
+        return false;
+    }
+    return true;
+}
+
 } // anonymous namespace
 
 // ============================================================================
@@ -531,7 +555,7 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     registerPlacement("minecraft:trader_llama", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement(
         "minecraft:wandering_trader", PlacementType::NoRestrictions, HeightmapType::MotionBlockingNoLeaves);
-    registerPlacement("minecraft:zombie_horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
+    // 骷髅马是生物分类，按地面 + 明亮光照生成。
     registerPlacement("minecraft:skeleton_horse", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
 
     // ========== 怪物（带光照检查）==========
@@ -572,6 +596,12 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
         HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
     registerPlacement("minecraft:zombie_villager",
+        PlacementType::OnGround,
+        HeightmapType::MotionBlockingNoLeaves,
+        canMonsterSpawnInLightPredicate);
+    // 僵尸马是怪物分类：数据包将其置于 monster 生成列表，须按低光照门槛生成。
+    // 若漏掉此光照谓词与 Monster 分类，僵尸马会在白天露天大量生成。
+    registerPlacement("minecraft:zombie_horse",
         PlacementType::OnGround,
         HeightmapType::MotionBlockingNoLeaves,
         canMonsterSpawnInLightPredicate);
@@ -640,7 +670,9 @@ void EntitySpawnPlacementRegistry::initializeDefaults()
     // 下界生物
     registerPlacement("minecraft:zombified_piglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
     registerPlacement("minecraft:piglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
-    registerPlacement("minecraft:hoglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves);
+    // 疣猪兽：禁止生成在诡异疣块上方（详见 canHoglinSpawn 注释）。
+    registerPlacement(
+        "minecraft:hoglin", PlacementType::OnGround, HeightmapType::MotionBlockingNoLeaves, canHoglinSpawn);
 
     // ========== 环境生物 ==========
 

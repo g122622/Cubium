@@ -161,10 +161,10 @@ TEST_F(EntityPeacefulFlagTest, MonsterClassificationButAllowedInPeaceful)
         EXPECT_TRUE(type->isAllowedInPeaceful())
             << id << " should be allowed in peaceful (Monster class but notInPeaceful not set)";
         EXPECT_FALSE(type->hasFlag(entity::EntityFlags::NotInPeaceful)) << id << " should NOT have NotInPeaceful flag";
-        // 注：ender_dragon 在 Cubium 注册为 Monster 分类但未标 notInPeaceful（和平可召）；
-        // zombie_horse/zombie_nautilus 实际非 Monster 分类（Creature/WaterCreature），
-        // 但仍属"vanilla 未标 notInPeaceful 的可和平召实体"对照集——此处只断言
-        // isAllowedInPeaceful==true 与无 NotInPeaceful 标志，不强制分类。
+        // 注：ender_dragon/shulker/piglin/hoglin 在 Cubium 注册为 Monster 分类但未标
+        // notInPeaceful（和平可召）；zombie_horse/zombie_nautilus 同样未标 notInPeaceful，
+        // 且已按敌对生物口径注册为 Monster 分类。此处只断言 isAllowedInPeaceful==true 与
+        // 无 NotInPeaceful 标志，不强制分类。
     }
 }
 

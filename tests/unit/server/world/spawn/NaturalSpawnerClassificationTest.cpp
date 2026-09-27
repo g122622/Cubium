@@ -27,6 +27,11 @@
 //   分类（数据包 JSON 把它们放在 water_ambient 下），但实体注册时却被错配到
 //   water_creature 分类。生成循环每 tick 从 EntityManager 重新统计真实分类计数，
 //   错配导致 water_ambient 计数永远为 0，容量上限形同虚设，鱼类无限生成。
+//
+// 同一根因后来在敌对生物上复发：minecraft:zombie_horse（僵尸马）在数据包中属于 monster
+// 生成列表，但实体注册时被错配到 Creature。后果是光照门槛反转（转为要求明亮，只在白天
+// 露天生成）叠加怪物容量上限失效（计数落到生物配额），表现为"白天草原上大量生成僵尸马"。
+// minecraft:hoglin（疣猪兽）在下界存在完全相同的错配。
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityClassification.hpp"
@@ -143,4 +148,43 @@ TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMixedFish)
     // cod + salmon 都是 WaterAmbient，squid 是 WaterCreature
     EXPECT_EQ(counts[EntityClassification::WaterAmbient], 15);
     EXPECT_EQ(counts[EntityClassification::WaterCreature], 3);
+}
+
+// ========== 敌对生物的同类错配（僵尸马/疣猪兽） ==========
+//
+// 数据包把僵尸马放进平原、向日葵平原、热带草原、热带高原、风袭热带草原、雪原的
+// monster 生成列表，疣猪兽放进下界生物群系的 monster 列表。若注册为 Creature：
+//   - NaturalSpawner::_canSpawnAt 走 Creature 分支要求明亮光照 → 只在白天露天生成；
+//   - 生成时向怪物配额累加，但 countEntitiesByClassification 把它们算进生物配额，
+//     于是怪物计数永不增长 → 上限失效 → 无限堆积。
+
+TEST_F(NaturalSpawnerClassificationTest, ZombieHorseIsMonster)
+{
+    expectClassification(EntityTypeKeys::ZOMBIE_HORSE, EntityClassification::Monster);
+}
+
+TEST_F(NaturalSpawnerClassificationTest, HoglinIsMonster)
+{
+    expectClassification(EntityTypeKeys::HOGLIN, EntityClassification::Monster);
+}
+
+TEST_F(NaturalSpawnerClassificationTest, CountByClassificationMatchesSpawnCategoryForZombieHorse)
+{
+    const EntityType* zombieHorseType = EntityRegistry::instance().getType(EntityTypeKeys::ZOMBIE_HORSE);
+    ASSERT_NE(zombieHorseType, nullptr);
+
+    constexpr i32 kZombieHorseCount = 30;
+    for (i32 i = 0; i < kZombieHorseCount; ++i) {
+        auto horse = zombieHorseType->create(nullptr, mc::test::testEcsRegistry());
+        ASSERT_NE(horse, nullptr);
+        m_manager.addEntity(std::move(horse));
+    }
+
+    auto counts = m_manager.countEntitiesByClassification();
+
+    // 僵尸马在数据包里属于 monster，所以计数必须落到 Monster；否则怪物容量上限失效，
+    // 僵尸马会无视上限持续堆积（这正是"白天草原大量生成僵尸马"的直接原因之一）。
+    EXPECT_EQ(counts[EntityClassification::Monster], kZombieHorseCount)
+        << "僵尸马计数未落到 Monster，怪物容量上限会因此失效";
+    EXPECT_EQ(counts[EntityClassification::Creature], 0) << "僵尸马不应计入 Creature";
 }

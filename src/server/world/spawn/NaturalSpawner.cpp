@@ -56,12 +56,14 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 using namespace mc::trace;
 
@@ -76,6 +78,43 @@ static constexpr i32 MAX_SPAWN_ATTEMPTS_PER_CHUNK = 3;
 
 /// 生成区块计数基准 (17^2)
 static constexpr i32 MAGIC_NUMBER = 289;
+
+namespace {
+
+/// 已就"数据包引用了未注册实体类型"告警过的类型名集合的互斥锁。
+std::mutex& unregisteredTypeWarnMutex()
+{
+    static std::mutex mutex;
+    return mutex;
+}
+
+/// 已告警过的未注册实体类型名集合。
+std::unordered_set<std::string>& unregisteredTypeWarned()
+{
+    static std::unordered_set<std::string> warned;
+    return warned;
+}
+
+/**
+ * @brief 对"数据包生成列表引用、但项目未注册"的实体类型按类型名去重告警。
+ *
+ * 生物群系的生成列表由数据包提供，可能引用本项目尚未注册的实体，这些条目在每次抽取时
+ * 都会被跳过。若不告警则属于静默失败（问题不可见），若每次抽取都告警则会淹没日志，
+ * 故按类型名去重，仅首次告警。
+ *
+ * TODO: 补齐这些实体的注册与行为实现，使数据包生成列表条目全部生效。当前已知未注册
+ * 但被数据包引用的类型包括 armadillo、camel、frog、goat、parched。补齐后本告警不再触发。
+ */
+void warnUnregisteredSpawnType(const std::string& entityTypeId)
+{
+    std::lock_guard<std::mutex> lock(unregisteredTypeWarnMutex());
+    if (!unregisteredTypeWarned().insert(entityTypeId).second) {
+        return;
+    }
+    spdlog::warn("NaturalSpawner: spawn list references unregistered entity type '{}', entry skipped", entityTypeId);
+}
+
+} // namespace
 
 // ============================================================================
 // MobDensityTracker 实现
@@ -258,6 +297,7 @@ void NaturalSpawner::spawnInChunk(
         auto& registry = entity::EntityRegistry::instance();
         const entity::EntityType* entityType = registry.getType(entry->entityTypeId);
         if (!entityType) {
+            warnUnregisteredSpawnType(entry->entityTypeId);
             continue;
         }
 
@@ -493,6 +533,7 @@ void NaturalSpawner::_spawnForClassificationInChunk(entity::EntityClassification
         auto& registry = entity::EntityRegistry::instance();
         const entity::EntityType* entityType = registry.getType(entry->entityTypeId);
         if (!entityType) {
+            warnUnregisteredSpawnType(entry->entityTypeId);
             continue;
         }
 
@@ -575,6 +616,7 @@ i32 NaturalSpawner::_trySpawnAt(
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entry.entityTypeId);
     if (!entityType) {
+        warnUnregisteredSpawnType(entry.entityTypeId);
         return 0;
     }
 

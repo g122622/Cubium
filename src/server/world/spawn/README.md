@@ -73,7 +73,15 @@ DespawnManager（消失管理）
 | WaterAmbient（鳕鱼/鲑鱼/河豚/热带鱼） | 20 | false | 64 |
 | Misc | -1 | true | 128 |
 
-> **分类对齐要点**：cod/salmon/pufferfish/tropical_fish 属 WaterAmbient（非 WaterCreature），squid/dolphin/nautilus 属 WaterCreature，glow_squid 属 UndergroundWaterCreature。分类错配会导致该分类真实计数永远为 0、cap 永久失效、无限累积。
+> **分类对齐要点**：实体注册时的分类必须与数据包生成列表所属分类口径一致，否则会同时触发两类缺陷：
+> 1. **光照门槛反转**——`NaturalSpawner::_canSpawnAt` 按注册分类判定光照，注册为 Creature 的敌对生物会被要求"明亮"光照，只在白天露天生成；
+> 2. **cap 永久失效**——生成时向数据包列表所属分类累加配额，但计数按注册分类统计，错配导致该分类真实计数永远为 0、cap 永久失效、无限累积。
+>
+> 已知易错项：cod/salmon/pufferfish/tropical_fish 属 WaterAmbient（非 WaterCreature）；squid/dolphin/nautilus 属 WaterCreature；glow_squid 属 UndergroundWaterCreature；**zombie_horse/hoglin 属 Monster（非 Creature）**；villager 属 Misc；zombie_nautilus 属 Monster。黄金表断言见 `tests/unit/server/world/spawn/SpawnListClassificationGoldenTest.cpp`。
+>
+> 注：豹猫（ocelot）是刻意例外——原版数据包把它放进 monster 列表，但实体自身 MobCategory 为 CREATURE，故注册为 Creature。
+>
+> 注：`NaturalSpawner::_canSpawnAt` 只经 `canSpawnAtLocation` 检查放置类型，**不调用**注册的放置谓词；谓词仅在 `canSpawnEntity()` 路径（刷怪笼、`WorldGenSpawner`、僵尸增援）生效。
 
 ## 生成循环结构
 

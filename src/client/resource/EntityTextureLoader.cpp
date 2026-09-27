@@ -399,9 +399,11 @@ u32 EntityTextureLoader::_loadAdditionalTextures(const std::vector<IResourcePack
 u32 EntityTextureLoader::_loadMiscEntityTextures(const std::vector<IResourcePack*>& packs, EntityTextureAtlas& atlas)
 {
     // Misc 类别的实体在主循环中被 needsTexture() 跳过，
-    // 但 SPECIAL_TEXTURE_PATHS 中存在的实体需要加载纹理
+    // 但 SPECIAL_TEXTURE_PATHS 中存在的实体需要加载纹理。
+    // 村民归类为 Misc（不参与自然生成），故须在此显式列出。
     static const std::vector<std::string> MISC_TEXTURE_ENTITIES = {
         "experience_orb",
+        "villager",
     };
 
     u32 loadedCount = 0;

@@ -143,9 +143,15 @@ AnimalEntity
 
 ### #3. 骷髅马的陷阱机制
 
-`TriggerSkeletonTrapGoal` 是动态注册的，只有 `setTrap(true)` 的骷髅马才会触发陷阱。雷暴天气生成的骷髅马需要正确设置陷阱状态。
+`TriggerSkeletonTrapGoal` 是动态注册的，只有 `setTrap(true)` 的骷髅马才会触发陷阱。
 
 `triggerTrap()` 触发时会在骷髅马位置生成一个纯视觉效果的闪电实体（`LightningBoltEntity`，`setEffectOnly(true)`），该闪电不造成伤害、不点燃方块。困难模式下额外生成 3 只骷髅马+骑手，普通/简单模式只生成 1 只骷髅骑手骑原马。
+
+**尚未接通**：雷暴闪电按区域难度概率生成陷阱骷髅马的上游链路没有实现（`WeatherConstants::SKELETON_HORSE_TRAP_CHANCE` 无调用点），因此骷髅马当前**没有任何自然生成途径**，只能经命令、刷怪蛋或 GameTest 的 `set_trap` 事件获得。详见该常量处的 TODO。
+
+### #4. 僵尸马的生成分类与光照门槛
+
+僵尸马在数据包中属于各生物群系的 **monster 生成列表**（平原、向日葵平原、热带草原、热带高原、风袭热带草原、雪原），因此实体注册分类必须是 `Monster`。若误注册为 `Creature`，会同时造成：光照门槛反转（只在白天露天生成）与怪物 cap 失效（计数落到生物配额）而无限堆积。疣猪兽（hoglin）在下界是同一类错配，已一并修正。
 
 ### #4. 骷髅马与僵尸马的日光燃烧行为差异
 

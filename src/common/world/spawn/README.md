@@ -106,7 +106,10 @@ if (costs && costs->isValid()) { /* 使用成本限制 */ }
 仍存在的偏差（以 `TODO(spawn-list-*)` 标注）：
 - `EntityClassification` 已扩展至 8 类，与 MC 1.21.11 `MobCategory` 完全对齐（`Axolotls` 与 `UndergroundWaterCreature` 已加入）。美西螈已归入独立的 `Axolotls` 分类，不再塞进 `WaterCreature`。
 - `UndergroundWaterCreature` 分类与发光鱿鱼（glow_squid）实体均已就绪，LushCaves 已添加 `glow_squid (10,4,6)` spawn entry。
-- 多个 1.16.5 实体未注册（parched、camel、bogged、armadillo），对应 spawn list 待补。nautilus 已注册并加入海洋生物群系。
+- 多个 1.16.5 实体未注册（parched、camel、bogged、armadillo、frog、goat），对应 spawn list 待补。nautilus 已注册并加入海洋生物群系。运行时数据包会引用这些未注册类型，`NaturalSpawner` 会按类型名去重后打印 warn（见 `warnUnregisteredSpawnType` 的 TODO）。
+
+> **分类口径不变式**：实体注册分类必须与该实体所属 spawn list 分类一致。错配会同时导致光照门槛反转（敌对生物只在白天生成）与 cap 失效（无限堆积），`zombie_horse`/`hoglin` 曾因此错注册为 `Creature`。
+
 
 ### 10. Jungle 系列变体使用不同工厂方法
 

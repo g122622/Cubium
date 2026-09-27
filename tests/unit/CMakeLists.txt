@@ -1,4 +1,4 @@
-﻿# tests/CMakeLists.txt
+# tests/CMakeLists.txt
 # 娴嬭瘯閰嶇疆
 
 find_package(GTest CONFIG REQUIRED)
@@ -975,6 +975,8 @@ add_executable(mc_tests
     # NaturalSpawner 实体分类与容量上限对齐测试（修复实体无限累积）
     server/world/spawn/NaturalSpawnerClassificationTest.cpp
     server/world/spawn/NaturalSpawnerCapTest.cpp
+    # 数据包生成列表实体的分类黄金表（防止注册分类与数据包列表口径错配复发）
+    server/world/spawn/SpawnListClassificationGoldenTest.cpp
     server/command/CommandRegistryTest.cpp
     server/command/LocateCommandTest.cpp
     server/command/SetBlockCommandTest.cpp
