@@ -120,6 +120,15 @@
       }
     },
     {
+      "name": "windows-clang-fuzz",
+      "displayName": "Windows Clang Fuzz (libFuzzer harnesses, tests/fuzz)",
+      "inherits": "windows-clang-relwithdebinfo",
+      "cacheVariables": {
+        "MC_BUILD_FUZZERS": "ON",
+        "MC_FUZZ_LIBFUZZER_SOURCE_DIR": "E:/dev/llvm-project/compiler-rt/lib/fuzzer"
+      }
+    },
+    {
       "name": "windows-clang-release-noprof",
       "displayName": "Windows Clang Release (no profiler, distributable)",
       "inherits": "windows-clang-base",
@@ -245,6 +254,20 @@
       "configurePreset": "windows-clang-relwithdebinfo-noprof",
       "configuration": "RelWithDebInfo",
       "jobs": 16
+    },
+    {
+      "name": "windows-clang-fuzz",
+      "configurePreset": "windows-clang-fuzz",
+      "configuration": "RelWithDebInfo",
+      "jobs": 16,
+      "targets": [
+        "fuzz_varint_framing",
+        "fuzz_compression",
+        "fuzz_cipher",
+        "fuzz_java_codec",
+        "fuzz_java_codec_sb",
+        "fuzz_java_codec_cb"
+      ]
     },
     {
       "name": "windows-clang-release-noprof",

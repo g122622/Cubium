@@ -52,6 +52,8 @@ build/bin/RelWithDebInfo/minecraft-server
 
 端到端 bot 测试（以 mineflayer 作为真实 wire 客户端连服务端，并可与原版服务端双跑对比）见 docs/test/E2E_BOT_TEST.md。
 
+协议模糊测试（libFuzzer harness，对"入站字节 → IR 包"解码链路做覆盖率引导测试）见 docs/test/FUZZING.md。
+
 ## clang-tidy 静态分析
 
 见 docs/TIDY.md

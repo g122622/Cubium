@@ -29,6 +29,10 @@ option(MC_BUILD_CLIENT "Build client application" ON)
 option(MC_BUILD_SERVER "Build server application" ON)
 option(MC_BUILD_TESTS "Build unit tests" ON)
 option(MC_BUILD_BENCHMARKS "Build benchmark application" ON)
+# 协议模糊测试目标（libFuzzer harness，源码在 tests/fuzz）。
+# 默认 OFF：fuzz 目标需要 clang 的 -fsanitize=fuzzer 运行时，且只在专门的 fuzz preset
+# 下构建（见 docs/test/FUZZING.md）。开启后目标均标 EXCLUDE_FROM_ALL，不参与常规构建。
+option(MC_BUILD_FUZZERS "Build libFuzzer protocol fuzz targets (tests/fuzz)" OFF)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for debug builds" OFF)
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
@@ -320,6 +324,12 @@ if(MC_BUILD_BENCHMARKS)
     add_subdirectory(benchmark)
 endif()
 
+if(MC_BUILD_FUZZERS)
+    # 协议模糊测试目标（libFuzzer）。目标均为 EXCLUDE_FROM_ALL：不参与 `cmake --build`
+    # 的全量构建，须显式 --target 指定。构建与运行方式见 docs/test/FUZZING.md。
+    add_subdirectory(tests/fuzz)
+endif()
+
 # 安装配置
 include(GNUInstallDirs)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -344,6 +354,7 @@ message(STATUS "  Build Client:   ${MC_BUILD_CLIENT}")
 message(STATUS "  Build Bench:    ${MC_BUILD_BENCHMARKS}")
 message(STATUS "  Build Server:   ${MC_BUILD_SERVER}")
 message(STATUS "  Build Tests:    ${MC_BUILD_TESTS}")
+message(STATUS "  Build Fuzzers:  ${MC_BUILD_FUZZERS}")
 message(STATUS "  Sanitizers:     ${MC_ENABLE_SANITIZERS}")
 message(STATUS "  Vulkan Val:     ${MC_ENABLE_VULKAN_VALIDATION}")
 message(STATUS "  Tracing:        ${MC_ENABLE_TRACING}")
