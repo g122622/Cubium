@@ -368,6 +368,14 @@ mc_add_fuzz_target(fuzz_java_codec
     DEFINES
         MC_FUZZ_FLOW_MODE=2)
 
+# 区块线格式：内部紧凑格式 + 单段 + vanilla LevelChunkWithLight → ChunkData 翻译
+mc_add_fuzz_target(fuzz_chunk_wire
+    SOURCES
+        targets/FuzzChunkWire.cpp
+        support/FuzzSupport.cpp
+    EXTRA_LIBS
+        mc_bedrock_addon)
+
 # Serverbound 专用：只测服务端解码不可信客户端输入的方向（远程攻击面）。
 mc_add_fuzz_target(fuzz_java_codec_sb
     SOURCES

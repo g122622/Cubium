@@ -29,6 +29,7 @@ socket、不需要世界、不需要存档**的前提下，把"入站字节 → 
 | `fuzz_varint_framing` | `pipeline/VarintFraming`（VarInt21 长度前缀切帧） | 整段字节当作一条 TCP 流，按 1/7/全量三种分块粒度喂入 |
 | `fuzz_compression` | `pipeline/CompressionHandlers` → `crypto/ZlibCodec` | 第 1 字节 = 阈值（-1 表示禁用），其余为压缩层字节 |
 | `fuzz_cipher` | `pipeline/CipherHandlers` → `crypto/AesCfb8` | 前 `kSharedSecretBytes` 字节 = 密钥，其余为待处理字节 |
+| `fuzz_chunk_wire` | 区块线格式三条解析路径 | 第 1 字节选子路径（内部紧凑格式 / 单段 / vanilla `LevelChunkWithLight` → `ChunkData`），其余为数据 |
 | `fuzz_java_codec` | Java 1.21.11 五阶段 × 两流向全部包表 | 第 1 字节选阶段，第 2 字节选流向，其余为 `packetID + payload` |
 | `fuzz_java_codec_sb` | 同上，**仅 Serverbound**（服务端解码不可信客户端输入） | 同左，流向强制 Serverbound |
 | `fuzz_java_codec_cb` | 同上，**仅 Clientbound**（客户端解码服务端输入） | 同左，流向强制 Clientbound |
@@ -245,24 +246,47 @@ tests/fuzz/
 - **修复**：改为抛错（保留 `id == End` 这一合法空列表分支不动），由 §7.5 的边界转成
   `Result` 错误。
 
-### 7.7 【未决】畸形 NBT 的异常路径在 fuzz 构建下仍以 int3 终止
+### 7.7 【未决·已定性为工具链缺陷】本工具链上 Sanitizer 运行时破坏 C++ 异常处理
 
-- **现象**：两个种子（见 `tests/fuzz/known-issues/`）在 fuzz 构建下以
-  `STATUS_BREAKPOINT (0x80000003)` 终止；`MC_FUZZ_ASAN=OFF`（无 ASan/UBSan）时**同样
-  复现**，故与 Sanitizer 无关。
-- **已排除**：编译标志差异（与 `mc_common` 逐项对比仅差
-  `-fsanitize=fuzzer-no-link -O1 -fno-omit-frame-pointer`，无异常处理相关项）；
-  `-D_HAS_EXCEPTIONS=0`（只作用于 libFuzzer 自身 TU）；PCH 差异（PCH 未定义任何异常宏）。
-- **反向证据**：等价路径在**无插桩**的 `mc_tests` 中行为正确
-  （`NbtIo.ReadCompoundMalformedReturnsErrorInsteadOfThrowing` 稳定通过），说明产品侧
-  的 `Result` 契约已成立。
-- **已定位**：ASan 构建下该地址符号化为 `nbt_io::readCompound` 的异常处理区。
-- **下一步**：本构建的 `llvm-symbolizer` / `llvm-objdump` 对该地址符号化失败，需先在
-  VEH 报告器里改用 `RtlCaptureStackBackTrace` 输出原始返回地址链，再离线符号化；
-  或对比「仅开覆盖插桩、不链 libFuzzer 运行时」的构建，以确定是覆盖插桩还是运行时
-  引入的问题。
-- **当前处置**：两个种子移入 `tests/fuzz/known-issues/`，**不放入 `corpus/`**，以免
-  每次 fuzz 启动即命中并中断运行。
+**现象**：凡是走到 C++ `throw` 的解码路径，在 fuzz 构建下都以硬终止收场——
+`STATUS_BREAKPOINT (0x80000003)`（int3）或一条指向 `catch` 块的 ASan 报告。
+`MC_FUZZ_ASAN=OFF` 时同样复现，故初判"与 ASan 无关"。
+
+**用独立最小探针（`throw std::runtime_error` + `catch` + `e.what()`）逐项隔离，
+结论是「任何 Sanitizer 运行时都会破坏异常处理」**：
+
+| 探针配置 | 结果 |
+|---|---|
+| 无 sanitizer、无覆盖插桩（仅 `-O1`） | ✅ 三行输出齐全，异常正常 |
+| 官方 libFuzzer（`-fsanitize=fuzzer`，/MT 与默认 CRT 匹配，无 ASan） | ❌ int3 |
+| 仅 ASan（`-fsanitize=address`） | ❌ ASan 报 `global-buffer-overflow`，位置正是 `e.what()`——异常对象 vptr 已损坏 |
+| 仅 ASan/UBSan（无覆盖插桩） | ❌ 同上 |
+
+即：**覆盖插桩所需的 libFuzzer 运行时、以及 ASan，各自单独就能破坏 C++ 异常**；
+无 sanitizer 时一切正常。这与 CRT 混用（§7.1）无关——官方 /MT 运行时与其匹配的
+/MT CRT 组合同样崩。
+
+**影响**：
+
+1. 项目内任何以异常报错的存量路径（首选 `util/nbt` 的 NBT 解析器）都会在 fuzz 中
+   表现为"崩溃"，而**不是**产品缺陷。分诊时必须先看崩溃点是否落在 `throw`/`catch`
+   附近（`NbtIo.cpp` 的异常边界、`nbt_io::readCompound` 等），再决定是否值得追。
+2. `MC_FUZZ_ASAN=OFF` 并不能规避（覆盖插桩本身即触发），所以**没有"干净"的
+   Windows fuzz 配置**：ASan 开则异常路径报 ASan 错（更易误判为内存缺陷），
+   关则报 int3（更易定位但失去内存错误检测能力）。
+3. 因此 **Windows 上的 fuzz 结果只能用于发现"不依赖异常"的缺陷**——本项目已确认的
+   §7.1~7.4 四类内存耗尽缺陷正属此类，fuzz 对它们的有效性已被实测证明。
+
+**建议的规避方向**（未实施，需决策）：
+
+- **优先**：把 fuzz 的**执行**放到 WSL2/Linux。libFuzzer+ASan 在 Linux 上是原生、
+  久经验证的组合（Phase D 的 AFLnet 本就需要 Linux）；harness 代码完全可移植，
+  仅需增加一个 Linux fuzz preset。Windows 侧继续负责构建与运行服务端。
+- 或将 `util/nbt` 等"以异常报错"的存量库重构为 `Result` 语义（符合
+  CODE_CONVENTIONS 对新代码的要求，也一并消除本类噪声），但属大改。
+
+**当前处置**：两个最能代表该问题的种子留在 `tests/fuzz/known-issues/`；文档如实记录，
+不再当作产品缺陷追。
 
 ---
 
@@ -393,7 +417,7 @@ libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | A | 分层解码器 harness（帧化/压缩/加密/Java codec） | ✅ 已落地 |
-| A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | 待做 |
+| A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | ✅ 已落地 |
 | A+ | 种子生成器（由 `tests/e2e/bot` 的 `bot-trace-*.jsonl` 反编码生成结构化种子） | 待做 |
 | B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | 待做 |
 | C | 进程内状态机会话 harness（消息序列变异 + 状态反馈，含 `MinecraftServer` 无头骨架以覆盖 Play 业务层） | 待做 |

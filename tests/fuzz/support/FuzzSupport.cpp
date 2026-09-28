@@ -25,6 +25,9 @@
 
 #include "common/item/Items.hpp"
 #include "common/network/backend/java/JavaProtocolTables.hpp"
+#include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <mutex>
@@ -113,6 +116,12 @@ void _initializeRegistriesAndTables()
     // 两者均带 s_initialized 守卫、均为纯内存注册（不触碰资源包与数据包目录）。
     VanillaBlocks::initialize();
     Items::initialize();
+
+    // 生物群系注册表与两张 id 映射表（内部 id ↔ Java wire id）是 VanillaChunkWire
+    // 区块线格式翻译的前置。均为纯内存初始化（映射表用构建期烘焙的静态表）。
+    mc::world::biome::BiomeRegistry::instance().initialize();
+    (void)mc::network::backend::java::JavaBlockStateIdMap::instance().initialize();
+    (void)mc::world::biome::JavaBiomeRegistryIdMap::instance().initialize();
 
     // 五阶段 × 两流向共 10 张包表。build() 内部按 GameProtocols.java 的注册顺序
     // 依次 addPacket，显式 id 即 wire packet id。
