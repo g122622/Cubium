@@ -30,6 +30,7 @@ socket、不需要世界、不需要存档**的前提下，把"入站字节 → 
 | `fuzz_compression` | `pipeline/CompressionHandlers` → `crypto/ZlibCodec` | 第 1 字节 = 阈值（-1 表示禁用），其余为压缩层字节 |
 | `fuzz_cipher` | `pipeline/CipherHandlers` → `crypto/AesCfb8` | 前 `kSharedSecretBytes` 字节 = 密钥，其余为待处理字节 |
 | `fuzz_chunk_wire` | 区块线格式三条解析路径 | 第 1 字节选子路径（内部紧凑格式 / 单段 / vanilla `LevelChunkWithLight` → `ChunkData`），其余为数据 |
+| `fuzz_connection_wire` | **整条 Wire 入站流水线**（`Connection` + 伪传输） | 4 字节控制头（加密/压缩/阈值/流向、初始阶段、分块粒度、密钥种子）+ 待投递字节流 |
 | `fuzz_java_codec` | Java 1.21.11 五阶段 × 两流向全部包表 | 第 1 字节选阶段，第 2 字节选流向，其余为 `packetID + payload` |
 | `fuzz_java_codec_sb` | 同上，**仅 Serverbound**（服务端解码不可信客户端输入） | 同左，流向强制 Serverbound |
 | `fuzz_java_codec_cb` | 同上，**仅 Clientbound**（客户端解码服务端输入） | 同左，流向强制 Clientbound |
@@ -144,6 +145,13 @@ cd build/bin/fuzz/RelWithDebInfo
 实测产出：143 个种子（sb 41 / cb 102，共约 1.6 KB），逐个单独执行均合法（0 个异常），
 作为起始语料可让覆盖率从约 4.7k/6.3k 起步（而非从空语料冷启）。
 
+生成器还会用 `Connection::send` 把每个包**真正发一遍**，产出 143 个 `corpus/connection_wire/`
+种子（**完整帧**：帧化与压缩已由流水线施加，控制头按压缩启用填写）。这样做而不是在生成器里
+手工重实现帧化/压缩，是为了让生成侧与消费侧共享同一实现，流水线改动时不会脱节。
+
+该语料对 `fuzz_connection_wire` 的效果很显著：起始覆盖率 **cov 2 → cov 5065**，
+且在 2 万次迭代内零异常；不加语料时它会立刻在乱码输入上撞到抛出路劲（§7.7）。
+
 > 注意：fuzz 运行会把新语料条目以 sha1 命名写进第一个语料目录。入库前应删除这些
 > 哈希命名条目，只提交确定性种子与回归种子，避免仓库 churn。
 
@@ -167,7 +175,8 @@ tests/fuzz/
 ├── tools/
 │   └── GenSeeds.cpp            # 种子生成器（fuzz_gen_seeds）
 ├── corpus/                     # 语料
-│   ├── java_codec/{sb,cb}/     # 由 fuzz_gen_seeds 生成的确定性种子
+│   ├── java_codec/{sb,cb}/     # 由 fuzz_gen_seeds 生成的确定性种子（裸 packetID+payload）
+│   ├── connection_wire/        # 同上，但为**完整帧**（帧化+压缩已由 Connection::send 施加）
 │   └── fuzz_java_codec_{sb,cb}/# 已修缺陷的回归种子
 └── known-issues/               # 已知工具链缺陷的现场种子（见 §7.7），勿放入 corpus
 ```
@@ -447,7 +456,7 @@ libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异
 | A | 分层解码器 harness（帧化/压缩/加密/Java codec） | ✅ 已落地 |
 | A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | ✅ 已落地 |
 | A+ | 种子生成器（复用项目编码器遍历全部已登记包；见 §4.1 说明与 trace 方案的取舍） | ✅ 已落地 |
-| B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | 待做 |
+| B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | ✅ 已落地 |
 | C | 进程内状态机会话 harness（消息序列变异 + 状态反馈，含 `MinecraftServer` 无头骨架以覆盖 Play 业务层） | 待做 |
 | D | WSL2/Linux 上基于 AFLnet 的真实网络 fuzz | 待做 |
 | E | Cubium vs vanilla 差分对撞（抓"不崩溃但语义错误"的缺陷） | 待做 |

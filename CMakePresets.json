@@ -266,6 +266,7 @@
         "fuzz_compression",
         "fuzz_cipher",
         "fuzz_chunk_wire",
+        "fuzz_connection_wire",
         "fuzz_java_codec",
         "fuzz_java_codec_sb",
         "fuzz_java_codec_cb",

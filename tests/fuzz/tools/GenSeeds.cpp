@@ -35,10 +35,14 @@
 //   trace 的价值仍可保留：用 tests/e2e 的用例清单核对"真实客户端会发哪些包"，据此
 //   决定优先级（见 docs/test/FUZZING.md）。
 
+#include "support/FakeTransport.hpp"
 #include "support/FuzzSupport.hpp"
 
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/pipeline/Connection.hpp"
+#include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/network/protocol/PacketFlow.hpp"
 #include "common/network/protocol/ProtocolInfo.hpp"
 #include "common/registry/RegistryAccess.hpp"
 
@@ -46,6 +50,7 @@
 #include <filesystem>
 #include <fstream>
 #include <initializer_list>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -59,11 +64,18 @@ using mc::fuzz::FuzzBuf;
 namespace {
 
 std::size_t g_written = 0;
+std::size_t g_connWritten = 0;
 std::filesystem::path g_outDir;
 
 /// 阶段/流向的取值（与 FuzzJavaCodec 的选择子约定一致）。
 constexpr std::size_t kFlowServerbound = 0;
 constexpr std::size_t kFlowClientbound = 1;
+
+/// 连接 harness 的控制头：bit1 置位表示压缩启用（与生成侧的 setupCompression(256) 对应），
+/// [1] 初始阶段、[2] 分块粒度选择子（63 → 64 字节一块）、[3] 密钥种子（未启用加密）。
+constexpr u8 kConnectionFlagsCompressionOn = 0x02;
+constexpr u8 kConnectionChunkSelector = 63;
+constexpr u8 kConnectionSecretSeed = 0;
 
 /**
  * @brief 写一个种子文件：2 字节选择子 + 编码后的 packetID+payload
@@ -82,7 +94,7 @@ void writeSeed(std::size_t phase, std::size_t flow, std::size_t altIndex, const 
     char name[64];
     std::snprintf(name, sizeof(name), "p%zu_f%zu_a%zu.bin", phase, flow, altIndex);
 
-    const std::filesystem::path dir = g_outDir / (flow == kFlowClientbound ? "cb" : "sb");
+    const std::filesystem::path dir = g_outDir / "java_codec" / (flow == kFlowClientbound ? "cb" : "sb");
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
 
@@ -92,6 +104,67 @@ void writeSeed(std::size_t phase, std::size_t flow, std::size_t altIndex, const 
     }
     out.write(reinterpret_cast<const char*>(seed.data()), static_cast<std::streamsize>(seed.size()));
     ++g_written;
+}
+
+/**
+ * @brief 用一条真实 Connection 把 IR 包"发出去"，捕获流水线施加后的完整线上字节
+ *
+ * 这条种子给 fuzz_connection_wire 用：它的输入是**已经过帧化/压缩的完整帧**，
+ * 而不是裸的 packetID+payload。与其在生成器里手工重实现帧化与压缩（一旦流水线改动
+ * 就会与真实实现脱节），不如直接复用 Connection::send —— 生成侧与消费侧共享同一实现。
+ *
+ * 生成侧流向取该包自身的流向（服务端包用 Serverbound 发出），于是消费侧（连接 harness
+ * 以 Clientbound 为本端流向）的入站表正好是它。
+ */
+template <typename Variant>
+void writeConnectionSeed(
+    std::size_t phase, std::size_t flow, std::size_t altIndex, const Variant& value, std::size_t encodedSize)
+{
+    if (encodedSize == 0) {
+        return; // 该 (阶段, 流向) 无出站表或编码为空，跳过
+    }
+
+    auto transportOwner = std::make_unique<fuzz::FakeTransport>();
+    fuzz::FakeTransport* transport = transportOwner.get();
+
+    const auto packetFlow =
+        (flow == kFlowServerbound) ? protocol::PacketFlow::Serverbound : protocol::PacketFlow::Clientbound;
+    pipeline::Connection<FuzzBuf> conn(std::move(transportOwner), fuzz::tables(), packetFlow);
+    const auto connectionPhase = static_cast<protocol::ConnectionProtocol>(phase);
+    conn.setOutboundPhase(connectionPhase);
+    conn.setupCompression(256);
+
+    ir::IrPacket packet;
+    packet.phase = connectionPhase;
+    packet.packet = value;
+    if (!conn.send(std::move(packet)).success()) {
+        return;
+    }
+    if (transport->sentBytes().size() <= 1) {
+        return; // 只有长度前缀说明没编出内容
+    }
+
+    std::vector<u8> seed;
+    seed.reserve(transport->sentBytes().size() + 4);
+    seed.push_back(kConnectionFlagsCompressionOn);
+    seed.push_back(static_cast<u8>(phase));
+    seed.push_back(kConnectionChunkSelector);
+    seed.push_back(kConnectionSecretSeed);
+    seed.insert(seed.end(), transport->sentBytes().begin(), transport->sentBytes().end());
+
+    char name[64];
+    std::snprintf(name, sizeof(name), "p%zu_f%zu_a%zu.bin", phase, flow, altIndex);
+
+    const std::filesystem::path dir = g_outDir / "connection_wire";
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+
+    std::ofstream out(dir / name, std::ios::binary);
+    if (!out) {
+        return;
+    }
+    out.write(reinterpret_cast<const char*>(seed.data()), static_cast<std::streamsize>(seed.size()));
+    ++g_connWritten;
 }
 
 /**
@@ -110,6 +183,7 @@ void _tryEncode(const Info& info, std::size_t phase, std::size_t flow)
         buf.bindRegistry(RegistryAccess::instance());
         if (info.encode(buf, value).success() && !buf.bytes().empty()) {
             writeSeed(phase, flow, I, buf.bytes());
+            writeConnectionSeed<Variant>(phase, flow, I, value, buf.bytes().size());
         }
     }
 }
@@ -155,6 +229,9 @@ int main(int argc, char** argv)
     _genTable<ir::PlayPacket>(t->playSb.get(), 4, kFlowServerbound);
     _genTable<ir::PlayPacket>(t->playCb.get(), 4, kFlowClientbound);
 
-    std::printf("生成 %zu 个种子 -> %s\n", g_written, g_outDir.string().c_str());
+    std::printf("生成 java_codec 种子 %zu 个、connection_wire 种子 %zu 个 -> %s\n",
+        g_written,
+        g_connWritten,
+        g_outDir.string().c_str());
     return 0;
 }

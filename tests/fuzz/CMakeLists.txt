@@ -405,6 +405,14 @@ mc_add_fuzz_target(fuzz_java_codec
     DEFINES
         MC_FUZZ_FLOW_MODE=2)
 
+# 整条 Wire 入站流水线：Connection + 伪传输（覆盖层间组合、TCP 切分、阶段切换）
+mc_add_fuzz_target(fuzz_connection_wire
+    SOURCES
+        targets/FuzzConnectionWire.cpp
+        support/FuzzSupport.cpp
+    EXTRA_LIBS
+        mc_bedrock_addon)
+
 # 区块线格式：内部紧凑格式 + 单段 + vanilla LevelChunkWithLight → ChunkData 翻译
 mc_add_fuzz_target(fuzz_chunk_wire
     SOURCES
