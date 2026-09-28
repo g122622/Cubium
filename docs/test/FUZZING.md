@@ -123,6 +123,30 @@ cd build/bin/fuzz/RelWithDebInfo
 **产物命名**：`oom-<sha1>`（分配超限）、`crash-<sha1>`（崩溃）、`timeout-<sha1>`（超时）。
 它们就是可直接复现的最小输入，应移入 `corpus/` 作为回归种子。
 
+### 4.1 种子生成
+
+`fuzz_gen_seeds` 遍历 5 阶段 × 2 流向共 10 张包表的**每个已登记包**，用默认字段值经项目
+自身的 codec 编码成合法 wire 字节，按流向分目录输出：
+
+```bash
+./fuzz_gen_seeds.exe ../corpus/java_codec          # 生成 corpus/java_codec/{sb,cb}/*.bin
+./fuzz_java_codec_sb.exe corpus/java_codec/sb      # 用生成的语料起跑
+./fuzz_java_codec_cb.exe corpus/java_codec/cb
+```
+
+**为什么不采用「由 `tests/e2e/bot` 的 `bot-trace-*.jsonl` 反编码」**：trace 里的 `params`
+是**解码后的字段 JSON**，且包名是 prismarine/nmp 的名字（与官方名存在别名差异，见
+[E2E_BOT_TEST.md](E2E_BOT_TEST.md) §5.1），要反编码就得为每个包手写"JSON 字段 → IR 字段"
+映射，覆盖度还受限于 bot 实际发过的包。复用项目自身编码器则天然与解码侧对称、且能覆盖
+**每一个**已登记的 packet id。trace 的价值保留在"用 e2e 用例清单核对真实客户端会发哪些
+包、据此排优先级"。
+
+实测产出：143 个种子（sb 41 / cb 102，共约 1.6 KB），逐个单独执行均合法（0 个异常），
+作为起始语料可让覆盖率从约 4.7k/6.3k 起步（而非从空语料冷启）。
+
+> 注意：fuzz 运行会把新语料条目以 sha1 命名写进第一个语料目录。入库前应删除这些
+> 哈希命名条目，只提交确定性种子与回归种子，避免仓库 churn。
+
 **实测吞吐**（本机 clang 20.1.8 + ASan，单核）：帧层 6k~12k exec/s，Java codec 约 25k exec/s。
 
 ---
@@ -133,15 +157,19 @@ cd build/bin/fuzz/RelWithDebInfo
 tests/fuzz/
 ├── CMakeLists.txt              # 插桩库 + 目标定义（受 MC_BUILD_FUZZERS 控制）
 ├── support/
-│   ├── FuzzSupport.hpp/cpp     # 进程级一次性初始化（注册表 + 五阶段包表）
+│   └── FuzzSupport.hpp/cpp     # 进程级一次性初始化（注册表 + 五阶段包表）+ 异常现场报告器
 ├── targets/
 │   ├── FuzzVarintFraming.cpp   # 帧层
 │   ├── FuzzCompression.cpp     # 压缩层
 │   ├── FuzzCipher.cpp          # 加密层
+│   ├── FuzzChunkWire.cpp       # 区块线格式（三条解析路径）
 │   └── FuzzJavaCodec.cpp       # Java 全阶段 codec（经 MC_FUZZ_FLOW_MODE 生成 sb/cb/两者）
-└── corpus/                     # 回归种子（崩溃/超限产物移入此处）
-    ├── fuzz_java_codec_cb/
-    └── fuzz_java_codec_sb/
+├── tools/
+│   └── GenSeeds.cpp            # 种子生成器（fuzz_gen_seeds）
+├── corpus/                     # 语料
+│   ├── java_codec/{sb,cb}/     # 由 fuzz_gen_seeds 生成的确定性种子
+│   └── fuzz_java_codec_{sb,cb}/# 已修缺陷的回归种子
+└── known-issues/               # 已知工具链缺陷的现场种子（见 §7.7），勿放入 corpus
 ```
 
 ---
@@ -418,7 +446,7 @@ libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异
 |---|---|---|
 | A | 分层解码器 harness（帧化/压缩/加密/Java codec） | ✅ 已落地 |
 | A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | ✅ 已落地 |
-| A+ | 种子生成器（由 `tests/e2e/bot` 的 `bot-trace-*.jsonl` 反编码生成结构化种子） | 待做 |
+| A+ | 种子生成器（复用项目编码器遍历全部已登记包；见 §4.1 说明与 trace 方案的取舍） | ✅ 已落地 |
 | B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | 待做 |
 | C | 进程内状态机会话 harness（消息序列变异 + 状态反馈，含 `MinecraftServer` 无头骨架以覆盖 Play 业务层） | 待做 |
 | D | WSL2/Linux 上基于 AFLnet 的真实网络 fuzz | 待做 |

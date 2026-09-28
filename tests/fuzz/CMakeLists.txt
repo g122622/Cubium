@@ -339,6 +339,43 @@ function(mc_add_fuzz_target targetName)
 endfunction()
 
 # ---------------------------------------------------------------------------
+# 种子生成器（普通可执行文件，不是 fuzz 目标）
+#
+# 遍历 10 张包表的每个已登记包，用默认字段值编码成合法 wire 字节，产出结构化起始语料。
+#
+# 有意不链 mc_fuzz_net：后者带覆盖插桩，其 __sanitizer_cov_* 调用需要 libFuzzer 运行时
+# 提供；本工具自带 main、也不需要覆盖率反馈，故直接链未插桩的 mc_common。
+# ---------------------------------------------------------------------------
+add_executable(fuzz_gen_seeds EXCLUDE_FROM_ALL
+    tools/GenSeeds.cpp
+    support/FuzzSupport.cpp)
+
+target_include_directories(fuzz_gen_seeds PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+set(_genSeedsLinkLibraries mc_common mc_offset_allocator)
+if(TARGET mc_bedrock_addon)
+    list(APPEND _genSeedsLinkLibraries mc_bedrock_addon)
+endif()
+
+target_link_libraries(fuzz_gen_seeds PRIVATE
+    ${_genSeedsLinkLibraries}
+    nlohmann_json::nlohmann_json
+)
+
+if(WIN32)
+    target_link_libraries(fuzz_gen_seeds PRIVATE ws2_32)
+endif()
+
+set_target_properties(fuzz_gen_seeds PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/fuzz"
+)
+
+mc_copy_runtime_dlls(fuzz_gen_seeds)
+
+# ---------------------------------------------------------------------------
 # 目标清单
 # ---------------------------------------------------------------------------
 # 帧层：VarInt21 长度前缀切帧（含半包/粘包/非法 VarInt）
