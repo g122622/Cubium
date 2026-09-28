@@ -191,11 +191,10 @@ struct CollectionCodec {
 
     [[nodiscard]] Result<std::vector<T>> decode(B& buf) const
     {
+        // readElementCount 保证 count >= 0 且 <= 剩余可读字节数，避免畸形报文用
+        // 巨大计数驱动 reserve 申请数 GB 内存。
         i32 count = 0;
-        MC_TRY_ASSIGN(count, buf.readVarInt());
-        if (count < 0) {
-            return Error(ErrorCode::InvalidData, "Collection length is negative", "CollectionCodec::decode");
-        }
+        MC_TRY_ASSIGN(count, buf.readElementCount("Collection"));
         std::vector<T> out;
         out.reserve(static_cast<usize>(count));
         for (i32 i = 0; i < count; ++i) {

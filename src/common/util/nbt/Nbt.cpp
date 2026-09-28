@@ -637,6 +637,9 @@ std::string read_string_bin(std::istream& input, const Context& ctxt)
     std::uint32_t size = (ctxt.format == Context::Format::Zigzag || ctxt.format == Context::Format::Zint)
         ? load_varint(input)
         : load_flat<std::uint16_t>(input, ctxt.order);
+    // Java 格式下长度是 uint16（≤65535，天然有界），但基岩格式（Zigzag/Zint）用 VarInt，
+    // 可声明至 4GB。统一按"剩余可读字节数"校验，避免畸形输入诱导巨大分配。
+    validateBinaryElementCount(input, static_cast<std::size_t>(size), 1, "NBT string");
     std::string result;
     result.resize(size);
     input.read(result.data(), size);

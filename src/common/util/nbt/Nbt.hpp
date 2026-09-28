@@ -53,6 +53,12 @@
 
 #include "core/Types.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <optional>
+#include <stdexcept>
+#include <string>
+
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
@@ -444,14 +450,78 @@ template <typename number_t>
 std::vector<number_t> load_array_text(std::istream& input);
 
 /**
+ * @brief reserve 的保守预分配上限
+ *
+ * 声明长度虽已由 validateBinaryElementCount 约束在"剩余可读字节数"内，但元素类型
+ * 可能远大于 1 字节，直接 reserve(count) 仍会造成预分配放大（例如 8MB 的报文可以
+ * 诱导数百 MB 的预留）。故预分配量取计数与此上限的较小者，超出部分交由 vector
+ * 自行按需增长——真实元素读不满时不会浪费内存。
+ */
+inline constexpr std::size_t MAX_NBT_RESERVE_HINT = 4096;
+
+/**
+ * @brief 取流中从当前位置到末尾的剩余字节数
+ *
+ * 用于校验"先声明长度、再逐个读元素"的字段：二进制 NBT 中每个元素至少占 1 字节，
+ * 故声明的元素数/字符串长度不可能超过剩余字节数。畸形输入常声明巨大长度以诱导
+ * 一次性分配数 GB 内存（远程内存耗尽），此函数为该校验提供上界。
+ *
+ * @return 剩余字节数；流不可寻址（如非 seekable 的网络流）时返回 std::nullopt，
+ *         调用方应据此跳过本校验（此时由流的读取失败兜底）
+ */
+[[nodiscard]] inline std::optional<std::size_t> remainingStreamBytes(std::istream& input)
+{
+    const std::streampos current = input.tellg();
+    if (current == std::streampos(-1)) {
+        return std::nullopt;
+    }
+    input.seekg(0, std::ios::end);
+    const std::streampos end = input.tellg();
+    input.seekg(current, std::ios::beg);
+    if (end == std::streampos(-1) || end < current) {
+        return std::nullopt;
+    }
+    return static_cast<std::size_t>(end - current);
+}
+
+/**
+ * @brief 校验二进制格式声明的元素个数是否可信
+ *
+ * @param input        输入流（用于取剩余字节数）
+ * @param count        声明的元素个数
+ * @param elementBytes 单个元素的最小线上字节数（数组传 sizeof(number_t)，列表传 1）
+ * @param what         诊断用的字段名
+ *
+ * @throws std::runtime_error 声明长度超过剩余可读字节所能容纳的上限
+ */
+inline void validateBinaryElementCount(
+    std::istream& input, std::size_t count, std::size_t elementBytes, const char* what)
+{
+    const auto remaining = remainingStreamBytes(input);
+    if (!remaining.has_value()) {
+        return; // 流不可寻址，无法校验
+    }
+    if (elementBytes == 0) {
+        elementBytes = 1;
+    }
+    // 用除法比较，避免 count * elementBytes 溢出。
+    if (count > *remaining / elementBytes) {
+        throw std::runtime_error(std::string(what) + ": declared element count " + std::to_string(count) + " exceeds " +
+            std::to_string(*remaining) + " remaining bytes");
+    }
+}
+
+/**
  * @brief 加载二进制格式数组
  */
 template <typename number_t>
 std::vector<number_t> load_array_bin(std::istream& input, const Context& ctxt)
 {
-    auto size = load_size(input, ctxt);
+    const auto size = load_size(input, ctxt);
+    // 每个元素占 sizeof(number_t) 字节，声明长度不得超过剩余字节所能容纳的数量。
+    validateBinaryElementCount(input, size, sizeof(number_t), "NBT array");
     std::vector<number_t> result;
-    result.reserve(size);
+    result.reserve(std::min(size, MAX_NBT_RESERVE_HINT));
     for (std::size_t i = 0; i < size; i++)
         result.emplace_back(load<number_t>(input, ctxt));
     return result;
@@ -606,7 +676,10 @@ std::unique_ptr<tag_type> load_list(std::istream& input, F action)
     typename tag_type::value_type& result = ptr->value;
     if (ctxt.format != Context::Format::Mojangson) {
         std::size_t size = load_size(input, ctxt);
-        result.reserve(size);
+        // 二进制列表：最紧凑的元素（int8/Byte）也占 1 字节，故声明长度不得超过剩余
+        // 可读字节数。缺失此校验时畸形报文可用一个巨大长度诱导数 GB 预分配。
+        validateBinaryElementCount(input, size, 1, "NBT list");
+        result.reserve(std::min(size, MAX_NBT_RESERVE_HINT));
         for (std::size_t i = 0; i < size; i++)
             result.emplace_back(action(ctxt));
     } else {

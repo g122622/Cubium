@@ -108,8 +108,8 @@ inline void writePotionContentsPayload(
     }
     // List<MobEffectInstance> customEffects。
     i32 effectCount = 0;
-    MC_TRY_ASSIGN(effectCount, buf.readVarInt());
-    pc.customEffects.reserve(static_cast<size_t>(std::max(0, effectCount)));
+    MC_TRY_ASSIGN(effectCount, buf.readElementCount("PotionContents customEffects"));
+    pc.customEffects.reserve(static_cast<size_t>(effectCount));
     for (i32 i = 0; i < effectCount; ++i) {
         auto effectResult = readMobEffectInstance(buf);
         if (effectResult.failed()) {

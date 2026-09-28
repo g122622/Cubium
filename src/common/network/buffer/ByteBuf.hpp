@@ -175,6 +175,24 @@ public:
     [[nodiscard]] Result<std::string> readString();
 
     /**
+     * @brief 读一个"元素计数"（VarInt），并校验其不超过剩余可读字节数
+     *
+     * 用于列表/数组/映射等"先读计数、再逐个读元素"的场景，替代裸
+     * `readVarInt()` + 判非负 + `reserve()` 的写法。
+     *
+     * 依据：**线上每个元素至少占 1 字节**，因此合法计数不可能超过当前剩余可读
+     * 字节数。畸形报文常声明巨大计数以诱导对端在 reserve/resize 时一次性申请
+     * 数 GB 内存（远程内存耗尽），本方法即在分配前拦住这种输入。
+     *
+     * 注意：本方法只提供必要条件（计数 <= 剩余字节数），不替代逐字段的语义上界
+     * （如 palette 条目数应另有 4096 之类的显式上限）；两者可叠加使用。
+     *
+     * @param what 诊断用的字段名，会回显在错误消息中，便于定位是哪个包/字段
+     * @return 计数（保证 >= 0 且 <= readableBytes()）
+     */
+    [[nodiscard]] Result<i32> readElementCount(const char* what);
+
+    /**
      * @brief VarInt 最多占用的字节数（5），用于游标安全检查常量
      */
     static constexpr usize kMaxVarIntBytes = 5;

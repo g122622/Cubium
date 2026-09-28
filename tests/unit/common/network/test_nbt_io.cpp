@@ -153,14 +153,18 @@ TEST(NbtIo, EmptyCompoundRoundTrip)
     EXPECT_TRUE(decoded->value.empty());
 }
 
-TEST(NbtIo, ReadCompoundMalformedThrows)
+TEST(NbtIo, ReadCompoundMalformedReturnsErrorInsteadOfThrowing)
 {
-    // 底层 NBT 解析器（read_compound_bin）遇未知 tag id（>LongArray）抛 std::out_of_range，
-    // nbt_io::readCompound 未捕获——故畸形输入表现为抛异常而非 Result 错误。
+    // 回归：底层 NBT 解析器（read_compound_bin）遇未知 tag id（>LongArray）抛 std::out_of_range。
+    // readCompound 处在该抛出处与网络解码路径之间，必须把异常转成 Result 错误：解码路径
+    // 直接面对不可信字节，异常逃逸到 std::terminate 会让进程直接终止（fuzz 实测：
+    // 畸形 NBT 报文可令对端崩溃）。
     ByteBuf buf;
     buf.writeU8(0xFF); // 非法 tag id
     buf.writeU8(0x00); // 1 字节 key 长度（不足以完整解析，但 id 校验先抛）
-    EXPECT_THROW(readCompound(buf), std::exception);
+    auto result = readCompound(buf);
+    EXPECT_TRUE(result.failed());
+    EXPECT_EQ(result.error().code(), ErrorCode::InvalidData);
 }
 
 TEST(NbtIo, WriteCompoundDoesNotConsumeReadCursor)

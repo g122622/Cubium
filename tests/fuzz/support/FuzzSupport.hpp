@@ -58,4 +58,21 @@ void initializeOnce();
  */
 [[nodiscard]] const std::shared_ptr<FuzzTables>& tables();
 
+#ifdef _WIN32
+/**
+ * @brief 安装"异常现场报告器"（Windows 专用，fuzz 专用）
+ *
+ * 背景：libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异常
+ * （STATUS_BREAKPOINT，0x80000003）不经 SEH 分发，进程会**静默死亡**——既不打印
+ * 栈回溯、也不落盘复现用例，在 fuzz 输出里表现为"无任何提示地退出"，极难定位。
+ *
+ * 本函数用 AddVectoredExceptionHandler 挂在异常分发最前端，借用项目既有的
+ * `mc::assert::CrashHandler::captureStackTraceFromSeh` 输出符号化栈，随后返回
+ * EXCEPTION_CONTINUE_SEARCH 交回默认处理（不改变原有终止语义）。
+ *
+ * 幂等；由 `initializeOnce()` 自动调用。
+ */
+void installExceptionReporter();
+#endif
+
 } // namespace mc::fuzz

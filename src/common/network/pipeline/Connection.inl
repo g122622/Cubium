@@ -23,6 +23,8 @@
 
 // Connection<B> 模板实现。由 Connection.hpp 末尾 include。
 
+#include <spdlog/spdlog.h>
+
 namespace mc::network::pipeline {
 
 template <typename B>
@@ -248,7 +250,24 @@ void Connection<B>::_handleWireBytes(const u8* data, usize size)
 
     // 切帧：m_plainIn 可能含多个完整帧 + 残留。残留留待下次。
     std::vector<u8> frame;
-    while (VarintFraming::tryDecodeFrame(m_plainIn, frame)) {
+    while (true) {
+        auto frameResult = VarintFraming::tryDecodeFrame(m_plainIn, frame);
+        if (!frameResult.success()) {
+            // 帧结构非法（长度前缀超 5 字节，或声明帧长超上限）：流已无法重新同步，
+            // 且继续累积会让 m_plainIn 无上限增长（畸形长度前缀永远凑不满），
+            // 故在此断开连接并清空入站缓冲。
+            spdlog::warn("Connection: invalid frame from peer, closing connection: {}", frameResult.error().toString());
+            m_plainIn.clear();
+            m_encryptedIn.clear();
+            if (m_wireTransport != nullptr) {
+                m_wireTransport->close();
+            }
+            return;
+        }
+        if (!frameResult.value()) {
+            break; // 数据不足，等下一批字节
+        }
+
         std::vector<u8> decompressed;
         if (m_compressionActive && m_compressionDecoder != nullptr) {
             auto r = m_compressionDecoder->decode(frame, decompressed);
@@ -259,7 +278,12 @@ void Connection<B>::_handleWireBytes(const u8* data, usize size)
             decompressed = frame;
         }
         auto dispatchResult = _decodeAndDispatch(decompressed);
-        (void)dispatchResult;
+        if (!dispatchResult.success()) {
+            // 未登记的 packet id、payload 越界、非法 NBT 等：按设计跳过该包并保留连接
+            // （对齐 IdDispatchCodec「调用方按需跳过」的约定），但必须留痕——静默丢弃
+            // 会让协议错误在服务端完全不可观测。
+            spdlog::warn("Connection: dropping undecodable inbound packet: {}", dispatchResult.error().toString());
+        }
     }
 }
 

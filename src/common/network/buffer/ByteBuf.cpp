@@ -322,4 +322,25 @@ Result<std::string> ByteBuf::readString()
     return std::string(view);
 }
 
+Result<i32> ByteBuf::readElementCount(const char* what)
+{
+    i32 count = 0;
+    MC_TRY_ASSIGN(count, readVarInt());
+    if (count < 0) {
+        return Error(ErrorCode::InvalidData,
+            std::string(what) + " count is negative",
+            "mc::network::buffer::ByteBuf::readElementCount");
+    }
+    // 线上每个元素至少占 1 字节，故合法计数不可能超过剩余可读字节数。
+    // 该检查拦住"声明巨大计数诱导对端一次性申请数 GB 内存"的畸形报文。
+    const usize remaining = readableBytes();
+    if (static_cast<usize>(count) > remaining) {
+        return Error(ErrorCode::InvalidData,
+            std::string(what) + " count " + std::to_string(count) + " exceeds remaining " + std::to_string(remaining) +
+                " bytes",
+            "mc::network::buffer::ByteBuf::readElementCount");
+    }
+    return count;
+}
+
 } // namespace mc::network::buffer

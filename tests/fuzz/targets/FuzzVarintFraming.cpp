@@ -45,6 +45,10 @@ namespace {
 /// 单次喂入的最大分块数上限：把逐字节模式限制在短输入上，避免 O(n²) 拖慢 fuzz。
 constexpr usize kByteWiseSizeLimit = 512;
 
+/// 累计触发"帧结构非法"路径的次数。仅用于让该分支产生可观测副作用，
+/// 便于调试时确认畸形长度前缀确实走到了错误路径。
+usize _framingErrors = 0;
+
 /**
  * @brief 把一段字节按指定粒度分块喂入切帧器，并取出全部完整帧
  *
@@ -68,7 +72,18 @@ void _feedInChunks(const u8* data, usize size, usize chunkSize, std::vector<u8>&
         offset += take;
 
         // 一次喂入可能含 0..N 个完整帧；持续切直到不足一帧。
-        while (pipeline::VarintFraming::tryDecodeFrame(scratch, frame)) {
+        while (true) {
+            auto frameResult = pipeline::VarintFraming::tryDecodeFrame(scratch, frame);
+            if (!frameResult.success()) {
+                // 帧结构非法（长度前缀超 5 字节，或声明帧长超上限）。生产侧
+                // Connection::_handleWireBytes 会据此清缓冲并断开连接；harness 只记录
+                // 该路径已覆盖并结束本轮。
+                ++_framingErrors;
+                return;
+            }
+            if (!frameResult.value()) {
+                break; // 数据不足，等下一块
+            }
             // 出站方向往返：对切出的 payload 重新加长度前缀。
             // 结果不参与断言，仅用于覆盖 encodeFrame 的写入路径。
             std::vector<u8> reframed;

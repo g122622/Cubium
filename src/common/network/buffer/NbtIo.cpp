@@ -27,6 +27,7 @@
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
+#include <exception>
 #include <iosfwd>
 #include <memory>
 #include <sstream>
@@ -110,22 +111,33 @@ Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)
 {
     // 读时：剩余字节 → istringstream（带 java 上下文）→ compound_tag::read
     //       解析后按 tellg 差值推进 ByteBuf 游标。
-    std::istringstream in(remainingAsString(buf));
-    in >> mc::nbt::Contexts::java;
+    //
+    // NBT 库以异常报错（存量库，见 CODE_CONVENTIONS 对存量异常处理的说明），而本函数
+    // 处在网络解码路径上、对外契约是 Result。必须在**这里**把异常转成错误：否则畸形
+    // NBT 抛出的异常会逃逸到 std::terminate 直接终止进程（fuzz 实测：非法 tag id
+    // 触发 read_compound_bin 的 std::out_of_range，客户端解码即崩）。
+    try {
+        std::istringstream in(remainingAsString(buf));
+        in >> mc::nbt::Contexts::java;
 
-    const std::streampos before = in.tellg();
-    std::unique_ptr<mc::nbt::tags::compound_tag> tag = mc::nbt::tags::compound_tag::read(in);
-    if (tag == nullptr) {
-        return Error(ErrorCode::InvalidData, "NBT compound tag parse failed", "nbt_io::readCompound");
+        const std::streampos before = in.tellg();
+        std::unique_ptr<mc::nbt::tags::compound_tag> tag = mc::nbt::tags::compound_tag::read(in);
+        if (tag == nullptr) {
+            return Error(ErrorCode::InvalidData, "NBT compound tag parse failed", "nbt_io::readCompound");
+        }
+        const std::streampos after = in.tellg();
+        const usize consumed = (after == std::streampos(-1) || before == std::streampos(-1))
+            ? buf.readableBytes()
+            : static_cast<usize>(after - before);
+
+        // 前进游标到 NBT 实际消耗位置；剩余字节留给后续读取。
+        buf.setReadPosition(buf.readPosition() + consumed);
+        return tag;
     }
-    const std::streampos after = in.tellg();
-    const usize consumed = (after == std::streampos(-1) || before == std::streampos(-1))
-        ? buf.readableBytes()
-        : static_cast<usize>(after - before);
-
-    // 前进游标到 NBT 实际消耗位置；剩余字节留给后续读取。
-    buf.setReadPosition(buf.readPosition() + consumed);
-    return tag;
+    catch (const std::exception& e) {
+        return Error(
+            ErrorCode::InvalidData, std::string("NBT compound parse raised: ") + e.what(), "nbt_io::readCompound");
+    }
 }
 
 Result<void> skipCompound(ByteBuf& buf)

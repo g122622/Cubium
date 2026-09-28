@@ -41,6 +41,50 @@ std::vector<u8> makePayload(usize n)
     return p;
 }
 
+/// 断言"切出一帧"并返回其 payload。
+std::vector<u8> expectFrame(std::vector<u8>& buffer)
+{
+    std::vector<u8> out;
+    auto r = VarintFraming::tryDecodeFrame(buffer, out);
+    EXPECT_TRUE(r.success());
+    if (r.success()) {
+        EXPECT_TRUE(r.value());
+    }
+    return out;
+}
+
+/// 断言"数据不足"（ok(false)，非错误）。
+void expectNeedMore(std::vector<u8>& buffer)
+{
+    std::vector<u8> out;
+    auto r = VarintFraming::tryDecodeFrame(buffer, out);
+    ASSERT_TRUE(r.success());
+    EXPECT_FALSE(r.value());
+    EXPECT_TRUE(out.empty());
+}
+
+/// 断言"帧结构非法"（返回错误，调用方应据此断开连接）。
+void expectFramingError(std::vector<u8>& buffer)
+{
+    std::vector<u8> out;
+    auto r = VarintFraming::tryDecodeFrame(buffer, out);
+    EXPECT_FALSE(r.success());
+}
+
+/// 手写 VarInt 编码（测试内不依赖 ByteBuf，保持帧层测试自洽）。
+std::vector<u8> writeVarUInt(u32 value)
+{
+    std::vector<u8> out;
+    while (true) {
+        if ((value & ~static_cast<u32>(0x7F)) == 0) {
+            out.push_back(static_cast<u8>(value));
+            return out;
+        }
+        out.push_back(static_cast<u8>((value & 0x7Fu) | 0x80u));
+        value >>= 7;
+    }
+}
+
 } // namespace
 
 TEST(VarintFraming, EncodeDecodeRoundTrip)
@@ -52,9 +96,8 @@ TEST(VarintFraming, EncodeDecodeRoundTrip)
     // 帧 = VarInt(256) + 256 字节 = 2 + 256 = 258
     ASSERT_EQ(frame.size(), 258u);
 
-    std::vector<u8> out;
     std::vector<u8> buffer = frame;
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(buffer, out));
+    auto out = expectFrame(buffer);
     EXPECT_EQ(out, payload);
     EXPECT_TRUE(buffer.empty());
 }
@@ -67,11 +110,9 @@ TEST(VarintFraming, HalfFrameReturnsFalseAndRetainsBuffer)
 
     // 只给前半字节
     std::vector<u8> partial(frame.begin(), frame.begin() + frame.size() / 2);
-    std::vector<u8> out;
-    EXPECT_FALSE(VarintFraming::tryDecodeFrame(partial, out));
+    expectNeedMore(partial);
     // 缓冲应保留（未消费）
     EXPECT_FALSE(partial.empty());
-    EXPECT_TRUE(out.empty());
 }
 
 TEST(VarintFraming, MultipleFramesDecodeInOrder)
@@ -84,13 +125,9 @@ TEST(VarintFraming, MultipleFramesDecodeInOrder)
     VarintFraming::encodeFrame(f2.data(), f2.size(), stream);
     VarintFraming::encodeFrame(f3.data(), f3.size(), stream);
 
-    std::vector<u8> out;
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(stream, out));
-    EXPECT_EQ(out, f1);
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(stream, out));
-    EXPECT_EQ(out, f2);
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(stream, out));
-    EXPECT_EQ(out, f3);
+    EXPECT_EQ(expectFrame(stream), f1);
+    EXPECT_EQ(expectFrame(stream), f2);
+    EXPECT_EQ(expectFrame(stream), f3);
     EXPECT_TRUE(stream.empty());
 }
 
@@ -101,9 +138,8 @@ TEST(VarintFraming, BoundarySizes)
         auto payload = makePayload(n);
         std::vector<u8> frame;
         VarintFraming::encodeFrame(payload.data(), payload.size(), frame);
-        std::vector<u8> out;
         std::vector<u8> buf = frame;
-        ASSERT_TRUE(VarintFraming::tryDecodeFrame(buf, out)) << "n=" << n;
+        auto out = expectFrame(buf);
         EXPECT_EQ(out, payload) << "n=" << n;
     }
 }
@@ -116,9 +152,8 @@ TEST(VarintFraming, ZeroLengthFrame)
     ASSERT_EQ(frame.size(), 1u);
     EXPECT_EQ(frame[0], 0x00);
 
-    std::vector<u8> out;
     std::vector<u8> buf = frame;
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(buf, out));
+    auto out = expectFrame(buf);
     EXPECT_TRUE(out.empty());
     EXPECT_TRUE(buf.empty());
 }
@@ -128,9 +163,8 @@ TEST(VarintFraming, LargeFrame64KB)
     std::vector<u8> payload(65536, 0x5A);
     std::vector<u8> frame;
     VarintFraming::encodeFrame(payload.data(), payload.size(), frame);
-    std::vector<u8> out;
     std::vector<u8> buf = frame;
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(buf, out));
+    auto out = expectFrame(buf);
     EXPECT_EQ(out, payload);
     EXPECT_TRUE(buf.empty());
 }
@@ -138,8 +172,7 @@ TEST(VarintFraming, LargeFrame64KB)
 TEST(VarintFraming, EmptyBufferReturnsFalse)
 {
     std::vector<u8> buffer;
-    std::vector<u8> out;
-    EXPECT_FALSE(VarintFraming::tryDecodeFrame(buffer, out));
+    expectNeedMore(buffer);
     EXPECT_TRUE(buffer.empty());
 }
 
@@ -151,9 +184,52 @@ TEST(VarintFraming, DecodeConsumesFromBuffer)
     // 帧后追加哨兵字节
     frame.push_back(0xFF);
 
-    std::vector<u8> out;
-    ASSERT_TRUE(VarintFraming::tryDecodeFrame(frame, out));
-    EXPECT_EQ(out, payload);
+    auto out = expectFrame(frame);
+    EXPECT_EQ(payload, out);
     ASSERT_EQ(frame.size(), 1u); // 仅剩哨兵
     EXPECT_EQ(frame[0], 0xFF);
+}
+
+// ============================================================================
+// 帧结构非法路径的回归用例
+//
+// 这两类输入此前被当作"数据不足"（返回 false），调用方会一直等待"足够的数据"，
+// 而实际上永远等不到 —— 结果是入站缓冲无上限增长直至内存耗尽（可远程触发）。
+// 现在必须返回错误，由调用方断开连接。
+// ============================================================================
+
+TEST(VarintFraming, OversizedDeclaredLengthIsRejected)
+{
+    // VarInt(0x7FFFFFFF) = FF FF FF FF 07，远超声明的帧长上限
+    std::vector<u8> buffer{0xFF, 0xFF, 0xFF, 0xFF, 0x07};
+    expectFramingError(buffer);
+    // 缓冲区不被消费：清理与断连由调用方负责
+    EXPECT_EQ(buffer.size(), 5u);
+}
+
+TEST(VarintFraming, DeclaredLengthJustAboveLimitIsRejected)
+{
+    std::vector<u8> buffer = writeVarUInt(VarintFraming::kMaxFramePayloadSize + 1);
+    expectFramingError(buffer);
+}
+
+TEST(VarintFraming, DeclaredLengthExactlyAtLimitIsNotAnError)
+{
+    // 恰好等于上限属合法声明，只是数据不足 → ok(false)，不得报错
+    std::vector<u8> buffer = writeVarUInt(VarintFraming::kMaxFramePayloadSize);
+    expectNeedMore(buffer);
+}
+
+TEST(VarintFraming, VarIntPrefixExceedingFiveBytesIsRejected)
+{
+    // 5 个字节全部带续位 → 非法 VarInt（无法构成合法长度前缀）
+    std::vector<u8> buffer{0x80, 0x80, 0x80, 0x80, 0x80, 0x01};
+    expectFramingError(buffer);
+}
+
+TEST(VarintFraming, TruncatedVarIntPrefixIsNotAnError)
+{
+    // 前缀被切断（续位仍为 1，但因数据不足而中断）→ 数据不足，等更多字节
+    std::vector<u8> buffer{0x80, 0x80};
+    expectNeedMore(buffer);
 }

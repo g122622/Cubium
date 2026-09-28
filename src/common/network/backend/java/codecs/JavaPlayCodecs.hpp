@@ -147,10 +147,7 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
     // 消费 HashedPatchMap：added(Map<DataComponentType,Int>) + removed(Set<DataComponentType>)。
     // 读入 IR 字段供诊断，但不做哈希校验（我方权威点击走 menu.clicked()，不依赖远端哈希）。
     i32 addedCount = 0;
-    MC_TRY_ASSIGN(addedCount, buf.readVarInt());
-    if (addedCount < 0) {
-        return Error(ErrorCode::InvalidData, "HashedPatchMap added count is negative", "readHashedStack");
-    }
+    MC_TRY_ASSIGN(addedCount, buf.readElementCount("HashedPatchMap added"));
     v.addedHashes.reserve(static_cast<size_t>(addedCount));
     for (i32 i = 0; i < addedCount; ++i) {
         i32 typeId = 0;
@@ -160,10 +157,7 @@ inline void writeHashedStack(B& buf, const ir::play::HashedStack& v)
         v.addedHashes.push_back({typeId, hash});
     }
     i32 removedCount = 0;
-    MC_TRY_ASSIGN(removedCount, buf.readVarInt());
-    if (removedCount < 0) {
-        return Error(ErrorCode::InvalidData, "HashedPatchMap removed count is negative", "readHashedStack");
-    }
+    MC_TRY_ASSIGN(removedCount, buf.readElementCount("HashedPatchMap removed"));
     v.removedTypes.reserve(static_cast<size_t>(removedCount));
     for (i32 i = 0; i < removedCount; ++i) {
         i32 typeId = 0;
@@ -1822,16 +1816,14 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
             ir::play::UpdateAttributes v{};
             MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
             i32 attributeCount = 0;
-            MC_TRY_ASSIGN(attributeCount, buf.readVarInt());
-            MC_ASSERT_RELEASE(attributeCount >= 0);
+            MC_TRY_ASSIGN(attributeCount, buf.readElementCount("attribute"));
             v.attributes.reserve(static_cast<usize>(attributeCount));
             for (i32 i = 0; i < attributeCount; ++i) {
                 ir::play::AttributeSnapshot snapshot{};
                 MC_TRY_ASSIGN(snapshot.attributeRegistryId, buf.readVarInt());
                 MC_TRY_ASSIGN(snapshot.base, buf.readF64());
                 i32 modifierCount = 0;
-                MC_TRY_ASSIGN(modifierCount, buf.readVarInt());
-                MC_ASSERT_RELEASE(modifierCount >= 0);
+                MC_TRY_ASSIGN(modifierCount, buf.readElementCount("attribute modifier"));
                 snapshot.modifiers.reserve(static_cast<usize>(modifierCount));
                 for (i32 j = 0; j < modifierCount; ++j) {
                     ir::play::AttributeModifierWire modifier{};

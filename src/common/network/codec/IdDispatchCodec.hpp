@@ -27,7 +27,9 @@
 #include "common/core/Types.hpp"
 #include "common/network/codec/StreamCodec.hpp"
 
+#include <exception>
 #include <functional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -117,6 +119,11 @@ public:
      * @brief 解码：读 VarInt(id)，查 entries 解码 payload 成 variant
      *
      * 未登记的 id 返回 ProtocolError（调用方可按需跳过该包，保留连接）。
+     *
+     * 异常兜底：解码路径直接面对**不可信字节**，而它依赖的存量库（如 util/nbt 的
+     * NBT 解析器）以异常报错。任何逃逸到这里的异常都会让进程直接终止——即畸形报文
+     * 可远程打崩服务端（fuzz 实测：非法 NBT tag id 触发 std::out_of_range）。
+     * 故在唯一的分发点上统一把异常转成协议错误，使各包 codec 无需各自防御。
      */
     [[nodiscard]] Result<Variant> decode(B& buf) const
     {
@@ -124,7 +131,18 @@ public:
         MC_TRY_ASSIGN(id, buf.readVarInt());
         for (const auto& entry : m_entries) {
             if (entry.id == id) {
-                return entry.decode(buf);
+                try {
+                    return entry.decode(buf);
+                }
+                catch (const std::exception& e) {
+                    return Error(ErrorCode::InvalidData,
+                        std::string("packet decode raised: ") + e.what(),
+                        "IdDispatchCodec::decode");
+                }
+                catch (...) {
+                    return Error(
+                        ErrorCode::InvalidData, "packet decode raised a non-std exception", "IdDispatchCodec::decode");
+                }
             }
         }
         return Error(ErrorCode::ProtocolError, "Unknown packet id " + std::to_string(id), "IdDispatchCodec::decode");

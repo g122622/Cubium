@@ -24,6 +24,7 @@
 #include "common/network/pipeline/VarintFraming.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
+#include <string>
 #include <vector>
 
 namespace mc::network::pipeline {
@@ -42,23 +43,30 @@ void writeVarUInt(std::vector<u8>& out, u32 value)
     }
 }
 
-// VarInt 读取失败原因
-bool tryReadVarUInt(const u8* data, usize size, u32& outValue, usize& outConsumed)
+/// VarInt 读取结果。区分"数据不足"与"结构非法"是关键：
+/// 后者不能当作"等更多数据"，否则畸形长度前缀会让入站缓冲无上限累积。
+enum class VarIntReadStatus : u8 {
+    Ok,        ///< 读到完整 VarInt
+    Truncated, ///< 可用字节不足，需继续累积
+    TooLong,   ///< 已读 5 字节仍有续位，超过 32 位 VarInt 的合法长度
+};
+
+VarIntReadStatus tryReadVarUInt(const u8* data, usize size, u32& outValue, usize& outConsumed)
 {
     u32 value = 0;
     for (usize i = 0; i < 5; ++i) {
         if (i >= size) {
-            return false; // 数据不足
+            return VarIntReadStatus::Truncated;
         }
         const u8 byte = data[i];
         value |= static_cast<u32>(byte & 0x7Fu) << (7 * i);
         if ((byte & 0x80u) == 0) {
             outValue = value;
             outConsumed = i + 1;
-            return true;
+            return VarIntReadStatus::Ok;
         }
     }
-    return false; // 超过 5 字节，非法 VarInt
+    return VarIntReadStatus::TooLong;
 }
 
 } // namespace
@@ -71,7 +79,7 @@ void VarintFraming::encodeFrame(const u8* payload, usize size, std::vector<u8>& 
     }
 }
 
-bool VarintFraming::tryDecodeFrame(std::vector<u8>& buffer, std::vector<u8>& frameOut)
+Result<bool> VarintFraming::tryDecodeFrame(std::vector<u8>& buffer, std::vector<u8>& frameOut)
 {
     if (buffer.empty()) {
         return false;
@@ -79,8 +87,23 @@ bool VarintFraming::tryDecodeFrame(std::vector<u8>& buffer, std::vector<u8>& fra
 
     u32 frameLength = 0;
     usize varIntSize = 0;
-    if (!tryReadVarUInt(buffer.data(), buffer.size(), frameLength, varIntSize)) {
-        return false; // 长度 VarInt 不完整
+    switch (tryReadVarUInt(buffer.data(), buffer.size(), frameLength, varIntSize)) {
+        case VarIntReadStatus::Truncated:
+            return false; // 长度前缀不完整，等更多字节
+        case VarIntReadStatus::TooLong:
+            return Error(
+                ErrorCode::InvalidData, "frame length prefix exceeds 5 bytes", "VarintFraming::tryDecodeFrame");
+        case VarIntReadStatus::Ok:
+            break;
+    }
+
+    // 声明帧长上限校验：缺失此校验时，攻击者发送 VarInt(0x7FFFFFFF) 后持续灌数据
+    // 即可让调用方的入站缓冲无上限增长直至内存耗尽（永远凑不满声明的长度）。
+    if (frameLength > kMaxFramePayloadSize) {
+        return Error(ErrorCode::InvalidData,
+            "declared frame length " + std::to_string(frameLength) + " exceeds limit " +
+                std::to_string(kMaxFramePayloadSize),
+            "VarintFraming::tryDecodeFrame");
     }
 
     const usize totalFrameSize = varIntSize + frameLength;

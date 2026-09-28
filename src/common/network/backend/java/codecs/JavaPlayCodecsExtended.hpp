@@ -1031,10 +1031,7 @@ inline void writeMapPatch(B& buf, const std::optional<ir::play::MapPatchWire>& p
             MC_TRY_ASSIGN(hasDecorations, buf.readBool());
             if (hasDecorations) {
                 i32 count = 0;
-                MC_TRY_ASSIGN(count, buf.readVarInt());
-                if (count < 0) {
-                    return Error(ErrorCode::InvalidData, "map decorations count is negative", "mapItemDataCodec");
-                }
+                MC_TRY_ASSIGN(count, buf.readElementCount("map decorations"));
                 std::vector<ir::play::MapDecorationWire> decos;
                 decos.reserve(static_cast<usize>(count));
                 for (i32 i = 0; i < count; ++i) {
@@ -1414,10 +1411,7 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 {
     std::vector<ir::play::ExplosionParticleInfo> out;
     i32 count = 0;
-    MC_TRY_ASSIGN(count, buf.readVarInt());
-    if (count < 0) {
-        return Error(ErrorCode::InvalidData, "ExplosionParticleInfo count is negative", "readExplosionParticleList");
-    }
+    MC_TRY_ASSIGN(count, buf.readElementCount("ExplosionParticleInfo"));
     out.reserve(static_cast<usize>(count));
     for (i32 i = 0; i < count; ++i) {
         ir::play::ExplosionParticleInfo e{};
