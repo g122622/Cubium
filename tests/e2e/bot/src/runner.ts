@@ -30,8 +30,16 @@ import { detectSurfaceY, waitForAreaLoaded } from "./assert/surface.ts";
 import { startCubiumServer } from "./servers/cubium.ts";
 import { removeVanillaWorld, startVanillaServer } from "./servers/vanilla.ts";
 import type { ServerProcess } from "./servers/server-process.ts";
-import { allocatePort } from "./servers/port.ts";
-import { artifactDirFor, makeRunId, pruneArtifacts, removeDirQuietly, runDirFor } from "./servers/workspace.ts";
+import { allocateVerifiedPort, waitForPortReleased } from "./servers/port.ts";
+import {
+    artifactDirFor,
+    makeRunId,
+    pruneArtifacts,
+    removeDirQuietly,
+    runDirFor,
+    vanillaCacheDir,
+} from "./servers/workspace.ts";
+import { writeOpsFile } from "./servers/ops.ts";
 import { compareSnapshot, renderDifferences } from "./baseline/compare.ts";
 import {
     baselinePath,
@@ -63,6 +71,13 @@ export interface RunnerOptions {
      * 用例自身的 servers 字段声明「适用于哪些服务端」，两者取交集决定实际运行组合。
      */
     readonly enabledServers: readonly ServerKind[];
+    /**
+     * 是否连 skipReason 非空的用例也一起跑。
+     *
+     * 默认跳过被阻塞的用例（它们当前不可能通过，跑只会让整套红灯）；验证服务端修复时
+     * 用 `--include-skipped` 强制运行它们。
+     */
+    readonly includeSkipped: boolean;
 }
 
 /** 单条用例的结果。 */
@@ -89,6 +104,19 @@ const MAX_PLAYERS_PER_CASE = 4;
  * 进程在并发申请端口时可能被抢占。这类失败与用例语义无关，换端口即可恢复。
  */
 const MAX_PORT_ATTEMPTS = 3;
+
+/**
+ * 端口占用探测参数。
+ *
+ * allocateVerifiedPort 会用「主动连接有没有人应答」筛掉内核分到的、实际已被监听的端口
+ * （Windows 的 SO_REUSEADDR 允许重复绑定，详见 port.ts 的说明）。
+ */
+const PORT_PROBE_TIMEOUT_MS = 400;
+const PORT_ALLOCATE_ATTEMPTS = 20;
+
+/** 停止服务端后等待其释放端口的超时（超时按环境问题处理）。 */
+const PORT_RELEASE_TIMEOUT_MS = 15_000;
+const PORT_RELEASE_POLL_MS = 200;
 
 /**
  * 服务端启动失败日志中的端口冲突特征。
@@ -162,6 +190,10 @@ interface ServerLaunch {
  *
  * 每次重试都申请**新的**端口并重新走一遍完整启动流程。服务端进程本身不复用——抢占失败时
  * 它连 listen socket 都没建成，没有可残留的状态。
+ *
+ * 端口来源是 allocateVerifiedPort（确认无人应答），而不是裸的内核分配：Windows 上
+ * SO_REUSEADDR 允许两个 socket 绑同一端口，若不核对，上一个用例尚未退干净的服务端会让
+ * 客户端连到「错误的进程」上。
  */
 async function launchServer(
     serverKind: ServerKind,
@@ -171,7 +203,7 @@ async function launchServer(
 ): Promise<ServerLaunch> {
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= MAX_PORT_ATTEMPTS; attempt++) {
-        const port = await allocatePort();
+        const port = await allocateVerifiedPort(PORT_ALLOCATE_ATTEMPTS, PORT_PROBE_TIMEOUT_MS);
         // vanilla 的工作目录是跨用例共享的（bundler 只解包一次），靠 worldName 隔离世界。
         // 名字里带上 runId 后缀，避免与其他运行的残留世界目录冲突。
         const vanillaWorldName =
@@ -224,6 +256,8 @@ async function runSingleCase(
     removeDirQuietly(runDir);
 
     let server: ServerProcess | null = null;
+    /** 当前服务端占用的端口（restartServer 后会变），用于停止后核对监听是否放开。 */
+    let launchPort: number | null = null;
     /** 本用例已建立的 bot（中途失败时，已建立的部分同样要回收）。 */
     const handles: BotHandle[] = [];
     /** vanilla 侧本用例的世界名（用于结束后清理共享 cwd 下的世界目录）。 */
@@ -236,10 +270,34 @@ async function runSingleCase(
     let surfaceY = 0;
 
     try {
-        const launch = await launchServer(serverKind, runDir, definition.id, runId);
+        // 需要命令权限的用例：必须在服务端**启动之前**把 bot 写进 ops.json（两侧都只在
+        // 启动时读取该文件）。按本用例可能连接的最大 bot 数预写，追加连接的 bot 因此也有权限。
+        if (definition.opPlayers) {
+            const usernames: string[] = [];
+            for (let index = 0; index < MAX_PLAYERS_PER_CASE; index++) {
+                usernames.push(botUsername(definition.id, index));
+            }
+            const opsPath =
+                serverKind === "cubium"
+                    ? path.join(runDir, "ops.json")
+                    : path.join(vanillaCacheDir(), "ops.json");
+            writeOpsFile(opsPath, usernames, serverKind);
+        }
+
+        let launch = await launchServer(serverKind, runDir, definition.id, runId);
         server = launch.server;
+        launchPort = launch.port;
         vanillaWorldName = launch.vanillaWorldName;
-        const { port } = launch;
+
+        /**
+         * 主 bot 在 handles 中的下标。
+         *
+         * 默认为 0（预连接的第一个 bot）——它定义了 surfaceY/spawnX/spawnZ 这套地表基准。
+         * restartServer() 之后，世界已换了一个进程，用例会重新连一个 bot，此时把主 bot
+         * 指向新连接的那个（置 primaryResetPending，由下一次 connectOne 认领）。
+         */
+        let primaryIndex = 0;
+        let primaryResetPending = false;
 
         /**
          * 连接一个 bot 并等待其就绪。预连接（按 botCount）与用例内追加（ctx.connectBot）共用。
@@ -250,24 +308,65 @@ async function runSingleCase(
          */
         const connectOne = async (): Promise<Bot> => {
             const created = createBot({
-                port,
+                // 每次连接都读当前的 launch.port：restartServer() 会换端口。
+                port: launch.port,
                 username: botUsername(definition.id, handles.length),
                 traceLimit: TRACE_LIMIT,
             });
             handles.push(created);
             const label = `bot[${handles.length - 1}]`;
-            await waitForEvent(created.bot, "spawn", {
-                timeoutMs: SPAWN_TIMEOUT_MS,
-                what: `${label} 的 spawn 事件`,
-                describe: () =>
-                    describeBotState(created.bot, created.trace.count("login"), created.trace.count("update_health")),
-            });
+            try {
+                await waitForEvent(created.bot, "spawn", {
+                    timeoutMs: SPAWN_TIMEOUT_MS,
+                    what: `${label} 的 spawn 事件`,
+                    describe: () =>
+                        describeBotState(
+                            created.bot,
+                            created.trace.count("login"),
+                            created.trace.count("update_health"),
+                        ),
+                });
+            } catch (err) {
+                throw classifyConnectFailure(err, launch.port, server);
+            }
             await waitForCondition(() => created.bot.entity?.onGround === true, {
                 timeoutMs: SETTLE_TIMEOUT_MS,
                 pollMs: 50,
                 what: `${label} 稳定落地（onGround === true）`,
             });
+            if (primaryResetPending) {
+                primaryIndex = handles.length - 1;
+                primaryResetPending = false;
+            }
             return created.bot;
+        };
+
+        /**
+         * 关闭服务端并用同一个游戏目录重启它（端口可能变化）。
+         *
+         * 先断开所有 bot：否则它们会连着已死的进程，后续等待全是假失败。
+         */
+        const restartServer = async (): Promise<void> => {
+            for (const entry of handles) {
+                await entry.dispose();
+            }
+            handles.length = 0;
+            const previousPort = launch.port;
+            await server?.stop();
+            if (server?.stopTimedOutFlag === true) {
+                throw new EnvironmentError(
+                    `服务端在关闭 ${previousPort} 端口时超时未退出，无法安全重启（进程残留）`,
+                );
+            }
+            const released = await waitForPortReleased(previousPort, PORT_RELEASE_TIMEOUT_MS, PORT_RELEASE_POLL_MS);
+            if (!released) {
+                throw new EnvironmentError(`端口 ${previousPort} 在 ${PORT_RELEASE_TIMEOUT_MS}ms 内仍被监听，无法安全重启`);
+            }
+            launch = await launchServer(serverKind, runDir, definition.id, runId);
+            server = launch.server;
+            launchPort = launch.port;
+            vanillaWorldName = launch.vanillaWorldName;
+            primaryResetPending = true;
         };
 
         // 串行连接而非并发：多 bot 用例常依赖连接顺序，且串行等待能让失败信息直接指出
@@ -277,12 +376,12 @@ async function runSingleCase(
         }
 
         // 主 bot 定义地表基准：surfaceY/spawnX/spawnZ 与快照的 player 段都由它而来。
-        const { bot, trace } = handles[0];
+        const firstBot = handles[0].bot;
 
-        const position = bot.entity.position;
+        const position = firstBot.entity.position;
         const spawnX = Math.floor(position.x);
         const spawnZ = Math.floor(position.z);
-        surfaceY = await detectSurfaceY(bot, spawnX, spawnZ, {
+        surfaceY = await detectSurfaceY(firstBot, spawnX, spawnZ, {
             scanTop: 64,
             scanBottom: -70,
             timeoutMs: 20_000,
@@ -290,17 +389,28 @@ async function runSingleCase(
         });
         // 出生列可读不代表邻域已送达——区块是逐 tick 推送的。用例若在此时读邻域方块，
         // 会得到大量"未加载"的假失败。此处统一等待一个 7x7 区域加载完成。
-        await waitForAreaLoaded(bot, spawnX, spawnZ, surfaceY, LOADED_AREA_RADIUS, {
+        await waitForAreaLoaded(firstBot, spawnX, spawnZ, surfaceY, LOADED_AREA_RADIUS, {
             timeoutMs: LOADED_AREA_TIMEOUT_MS,
             pollMs: 100,
         });
 
+        // bots/traces/bot/trace 用 getter 而非一次性快照：restartServer() 后 handles 会被
+        // 重建，用例与最终快照都必须看到**重启后**的那批 bot（否则快照会采自已死连接）。
         const context: CaseContext = {
-            bots: handles.map((entry) => entry.bot),
-            traces: handles.map((entry) => entry.trace),
-            bot,
-            trace,
+            get bots() {
+                return handles.map((entry) => entry.bot);
+            },
+            get traces() {
+                return handles.map((entry) => entry.trace);
+            },
+            get bot() {
+                return handles[primaryIndex].bot;
+            },
+            get trace() {
+                return handles[primaryIndex].trace;
+            },
             connectBot: connectOne,
+            restartServer,
             serverKind,
             surfaceY,
             spawnX,
@@ -309,13 +419,14 @@ async function runSingleCase(
         };
         const extra = await withTimeout(definition.run(context), CASE_TIMEOUT_MS, definition.id);
 
+        const snapshotBot = handles[primaryIndex];
         snapshot = captureSnapshot({
-            bot,
+            bot: snapshotBot.bot,
             surfaceY,
             spawned: true,
             kickReason: null,
-            sawLoginPacket: trace.has("login"),
-            sawUpdateHealthPacket: trace.count("update_health") > 0,
+            sawLoginPacket: snapshotBot.trace.has("login"),
+            sawUpdateHealthPacket: snapshotBot.trace.count("update_health") > 0,
             extra,
         });
 
@@ -349,19 +460,28 @@ async function runSingleCase(
                 ? "断言失败"
                 : err instanceof TimeoutError
                   ? "等待超时"
-                  : err instanceof BotFailureError
-                    ? "bot 故障"
-                    : err instanceof BaselineMissingError
-                      ? "基线问题"
-                      : server !== null && server.state === "crashed"
-                        ? "服务端崩溃"
-                        : "其他错误";
+                  : err instanceof EnvironmentError
+                    ? "环境问题"
+                    : err instanceof BotFailureError
+                      ? "bot 故障"
+                      : err instanceof BaselineMissingError
+                        ? "基线问题"
+                        : server !== null && server.state === "crashed"
+                          ? "服务端崩溃"
+                          : "其他错误";
     } finally {
         for (const entry of handles) {
             await entry.dispose();
         }
         if (server !== null) {
+            const stoppedPort = launchPort;
             await server.stop();
+            // 确认监听真的放开了：进程若未退干净就进入下一个用例，新用例会连到残留进程上
+            // （Windows 的 SO_REUSEADDR 允许端口重绑）。这里只记录，不改变失败分类——
+            // 真正的重试逻辑由 runCaseWithRetries 依据「环境问题」执行。
+            if (stoppedPort !== null && server.stopTimedOutFlag) {
+                console.warn(`      服务端未在限期内停止，端口 ${stoppedPort} 可能仍被监听`);
+            }
         }
         if (vanillaWorldName.length > 0) {
             removeVanillaWorld(vanillaWorldName);
@@ -370,7 +490,7 @@ async function runSingleCase(
 
     const ok = failureKind.length === 0;
     if (!ok && server !== null) {
-        const artifactDir = artifactDirFor(runId, definition.id);
+        const artifactDir = artifactDirFor(runId, definition.id, serverKind);
         writeArtifacts(artifactDir, {
             caseId: definition.id,
             title: definition.title,
@@ -416,6 +536,38 @@ async function runSingleCase(
 
 /** 基线缺失/过期——与环境有关，退出码与断言失败区分开。 */
 class BaselineMissingError extends Error {}
+
+/**
+ * 环境问题（端口/进程层面的问题，与用例语义无关）。
+ *
+ * 典型来源：客户端握手期 ECONNREFUSED、服务端未在限期内退出导致端口仍被占用。
+ * 这类失败**不应**计入用例缺陷——它换个端口重试一次通常就好了；退出码也走「环境问题」
+ * 通道（2），而不是「用例失败」（1），否则环境的抖动会长期伪装成产品回归。
+ */
+class EnvironmentError extends Error {}
+
+/** 握手期「连不上服务端」的错误特征（客户端侧 socket 层错误）。 */
+const CONNECT_REFUSED_PATTERN = /ECONNREFUSED|ECONNRESET|EHOSTUNREACH|ENETUNREACH|socket hang up/i;
+
+/**
+ * 把 bot 连接失败按「环境问题」与「bot 故障」分开。
+ *
+ * 判据是错误消息里的 socket 层特征：这类失败说明**服务端没在听**（尚未就绪或已退出），
+ * 而不是用例或服务端业务逻辑的问题。
+ *
+ * @param err 等待 spawn 时抛出的原始错误。
+ * @param port 本次连接的端口。
+ * @param server 当前服务端句柄（用于补充进程状态）。
+ */
+function classifyConnectFailure(err: unknown, port: number, server: ServerProcess | null): Error {
+    const message = (err as Error).message;
+    if (!CONNECT_REFUSED_PATTERN.test(message)) {
+        return err as Error;
+    }
+    return new EnvironmentError(
+        `连接 127.0.0.1:${port} 被拒绝——服务端未在监听（进程状态：${server?.state ?? "未知"}）。\n${message}`,
+    );
+}
 
 /**
  * 由用例 id 生成合法的 MC 用户名。
@@ -472,6 +624,36 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
     }
 }
 
+/**
+ * 执行一条用例，并在**环境问题**上换端口重试。
+ *
+ * 只重试环境问题：断言失败/超时说明用例或服务端行为不对，重试只会浪费时间并掩盖问题。
+ * 重试成功时清掉上一次尝试留下的诊断产物目录——否则一条最终通过的用例会残留一份
+ * 「看起来失败了」的诊断包。
+ */
+async function runCaseWithRetries(
+    definition: CaseDefinition,
+    serverKind: ServerKind,
+    runId: string,
+    options: RunnerOptions,
+): Promise<CaseResult> {
+    let result = await runSingleCase(definition, serverKind, runId, options);
+    for (let attempt = 2; attempt <= MAX_PORT_ATTEMPTS; attempt++) {
+        if (result.ok || result.failureKind !== "环境问题") {
+            return result;
+        }
+        console.log(
+            `      环境问题（${result.failureMessage.split("\n")[0]}），换端口重试（${attempt}/${MAX_PORT_ATTEMPTS}）`,
+        );
+        result = await runSingleCase(definition, serverKind, runId, options);
+    }
+    // 最终仍然通过时，清掉先前失败尝试留下的产物目录（重试过程本身可能已落盘）。
+    if (result.ok) {
+        removeDirQuietly(artifactDirFor(runId, definition.id, serverKind));
+    }
+    return result;
+}
+
 /** 汇总结果。 */
 export interface RunSummary {
     readonly exitCode: number;
@@ -504,12 +686,21 @@ export async function runCases(
     console.log(`运行模式：${modeLabel(options.mode)}    用例数：${selected.length}    runId：${runId}\n`);
 
     const results: CaseResult[] = [];
+    const skipped: CaseDefinition[] = [];
     for (const definition of selected) {
+        if (definition.skipReason !== null && !options.includeSkipped) {
+            // 被服务端缺陷阻塞的用例：不跑、不写基线，但每次运行都把原因打印出来，
+            // 避免「跳过」变成看不见的静默缺失。
+            console.log(`  [跳过] ${definition.id}`);
+            console.log(`      ${definition.skipReason}`);
+            skipped.push(definition);
+            continue;
+        }
         // 用例声明的适用服务端 ∩ 本次启用的服务端。
         const applicable = options.enabledServers.filter((kind) => definition.servers.includes(kind));
         for (const serverKind of applicable) {
             process.stdout.write(`  [${serverKind}] ${definition.id} ... `);
-            const result = await runSingleCase(definition, serverKind, runId, options);
+            const result = await runCaseWithRetries(definition, serverKind, runId, options);
             results.push(result);
             if (result.ok) {
                 console.log(`✓ 通过 (${result.elapsedMs}ms)`);
@@ -563,7 +754,10 @@ export async function runCases(
     }
 
     const failedCount = results.filter((result) => !result.ok).length;
-    console.log(`\n合计：${results.length} 条，通过 ${results.length - failedCount}，失败 ${failedCount}`);
+    console.log(
+        `\n合计：${results.length} 条，通过 ${results.length - failedCount}，失败 ${failedCount}` +
+            (skipped.length > 0 ? `，跳过 ${skipped.length}（见上方原因）` : ""),
+    );
 
     // diff 模式额外产出两端对撞报告（regress 保证各端不回归，diff 保证两端行为一致）。
     if (options.mode === "diff") {
@@ -574,7 +768,11 @@ export async function runCases(
     }
 
     // 退出码语义：0 全通过；1 有用例失败；2 环境/基线问题
-    const envProblem = results.some((result) => result.failureKind === "基线问题");
+    // 「环境问题」（端口/进程层面，见 EnvironmentError）与「基线问题」同属环境，走 2：
+    // 它们不代表产品行为不对，重试或换机器即可，不该让 CI 把它当成回归。
+    const envProblem = results.some(
+        (result) => result.failureKind === "基线问题" || result.failureKind === "环境问题",
+    );
     return { exitCode: failedCount === 0 ? 0 : envProblem ? 2 : 1, results, runId };
 }
 

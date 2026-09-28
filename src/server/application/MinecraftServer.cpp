@@ -2341,7 +2341,14 @@ void MinecraftServer::_handleContainerClickRemote(PlayerId playerId, const mc::n
         }
     }
 
+    // 解析真实玩家实体：丢弃类点击（slot=-999）需要在世界里生成掉落物实体。
+    Player* clickPlayer = nullptr;
+    if (ServerWorld* world = getPlayerWorld(playerId); world != nullptr) {
+        clickPlayer = playerEntityManager().getPlayerEntity(playerId, *world);
+    }
+
     auto clickResult = containerManager().handleClick(playerId,
+        clickPlayer,
         static_cast<mc::ContainerId>(evt.containerId),
         evt.slotNum,
         static_cast<u8>(evt.buttonNum),

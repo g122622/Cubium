@@ -218,3 +218,12 @@ DoorBlock 使用 `HALF` 属性区分上下半部分，操作时需要同时处�
 ### 10. 书架方块使用 BlockTags 而非硬编码
 
 `BookshelfBlock` 和 `EnchantingTableEntity` 使用 `BlockTags::ENCHANTMENT_POWER_PROVIDER` 标签判断书架（而非硬编码 `VanillaBlocks::BOOKSHELF` 指针），使用 `BlockState::canBeReplaced()` 判断中间方块是否可穿透（对应MC的 `ENCHANTMENT_POWER_TRANSMITTER` 标签）。这意味着任何被添加到 `minecraft:enchantment_power_provider` 标签的方块都会增强附魔力量。
+
+### 11. 潜影盒的「打开判定盒」不能与方块本体重叠
+
+`ShulkerBoxBlock::canOpen()` 用 `world.getBlockCollisions(getOpenBoundingBox(pos, facing)).empty()`
+判定能否打开，而方块本体一定是实心的——**只要判定盒与本体重叠，`canOpen()` 就恒为 false，
+潜影盒永远打不开**（表现为右键无反应且无任何日志，只会播一个「上锁」音效）。
+`getOpenBoundingBox` 的语义是「本体朝 facing 方向外扩 0.5 格的那一块」：外扩只能移动朝向那一面，
+随后把反方向那一面推到本体另一侧；不要「两侧各外扩 0.5 再收缩 1.0」（收缩量必须扣掉那次外扩，
+否则留下 0.5 格重叠）。

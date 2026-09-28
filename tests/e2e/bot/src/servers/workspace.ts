@@ -3,9 +3,12 @@
  *
  * 目录布局：
  *   build/e2e/
- *   ├── runs/<runId>/<caseId>/     每次运行的用例工作目录（游戏目录 = 此处）
- *   ├── artifacts/<runId>/<caseId>/ 失败时保留的诊断产物
- *   └── vanilla-cache/             vanilla bundler 解包复用目录（跨运行共享）
+ *   ├── runs/<runId>/<caseId>/         每次运行的用例工作目录（游戏目录 = 此处）
+ *   ├── artifacts/<runId>/<server>/<caseId>/  失败时保留的诊断产物（按服务端分目录）
+ *   └── vanilla-cache/                 vanilla bundler 解包复用目录（跨运行共享）
+ *
+ * 诊断产物必须带服务端一层：双跑（diff）时同一个用例会在 cubium 与 vanilla 各跑一次，
+ * 目录不带服务端名会让后跑的整份覆盖先跑的（排查 cubium 问题时读到 vanilla 的日志）。
  */
 
 import fs from "node:fs";
@@ -27,9 +30,9 @@ export function runDirFor(runId: string, caseId: string): string {
     return path.join(WORK_ROOT, "runs", runId, caseId.replace(/[/\\]/g, "_"));
 }
 
-/** 本次运行的诊断产物目录。 */
-export function artifactDirFor(runId: string, caseId: string): string {
-    return path.join(WORK_ROOT, "artifacts", runId, caseId.replace(/[/\\]/g, "_"));
+/** 本次运行的诊断产物目录（按服务端分目录，避免双跑互相覆盖）。 */
+export function artifactDirFor(runId: string, caseId: string, serverKind: string): string {
+    return path.join(WORK_ROOT, "artifacts", runId, serverKind, caseId.replace(/[/\\]/g, "_"));
 }
 
 /** vanilla bundler 解包缓存目录（跨运行复用，避免每次用例重复解包 30+ 个 jar）。 */

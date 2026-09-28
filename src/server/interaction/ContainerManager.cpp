@@ -117,6 +117,10 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
     openContainer.menu = std::move(createdMenu.menu);
     openContainer.inventoryOwner = std::move(createdMenu.inventoryOwner);
 
+    if (openContainer.menu != nullptr) {
+        _installMenuCallbacks(*openContainer.menu, playerId);
+    }
+
     m_openContainers[playerId] = std::move(openContainer);
 
     // 槽位监听器：把「服务端自己改动了槽位」这件事记下来，由 tickMenus 统一重发全量内容。
@@ -211,8 +215,23 @@ bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventor
     // 它上报的点击也只会带这个 id。
     auto menu = std::make_unique<InventoryCraftingMenu>(mc::inventory::PLAYER_CONTAINER_ID, playerInventory);
     menu->updateResult();
+    _installMenuCallbacks(*menu, playerId);
     m_playerInventoryMenus[playerId] = std::move(menu);
     return true;
+}
+
+void ContainerManager::_installMenuCallbacks(AbstractContainerMenu& menu, PlayerId playerId)
+{
+    // 丢弃物品：菜单只负责把「要丢的堆」交给回调，真正生成掉落物实体要由带 world 的玩家实体完成。
+    // 本项目管理器此前从未设置该回调，AbstractContainerMenu::dropItem 因此是空操作——
+    // 所有第三方客户端（mineflayer 的 toss/tossStack）丢物品都会「客户端以为丢了、服务端没有」。
+    menu.setItemDropCallback([playerId](const ItemStack& stack, Player& player, bool retainOwnership) {
+        ItemStack dropped = stack;
+        if (player.dropItem(dropped, false, retainOwnership) == nullptr) {
+            spdlog::warn("Menu item drop produced no entity for player {} (item empty, or player entity has no world)",
+                playerId);
+        }
+    });
 }
 
 void ContainerManager::tickMenus()
@@ -272,7 +291,7 @@ AbstractContainerMenu* ContainerManager::getPlayerInventoryMenu(PlayerId playerI
 }
 
 Result<ContainerClickResult> ContainerManager::handleClick(
-    PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode)
+    PlayerId playerId, Player* player, mc::ContainerId containerId, i32 slot, u8 button, u8 mode)
 {
     auto* playerData = m_playerManager.getPlayer(playerId);
     if (!playerData || !playerData->loggedIn) {
@@ -311,11 +330,17 @@ Result<ContainerClickResult> ContainerManager::handleClick(
 
     const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(mode), button);
 
-    // ECS 迁移：占位 Player 构造需要 registry 句柄。此处 menuPlayer 仅作容器点击
-    // 回调的 Player 形参（临时占位，非真实世界玩家），无 world 上下文，故配静态 registry。
-    // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
+    // 用**真实玩家实体**结算点击：丢弃类点击（slot=-999）要在世界里生成掉落物实体，而占位
+    // Player 没有 world，dropItem 会直接返回 nullptr——「丢物品」于是静默失效。
+    // 解析不到实体（理论上不该发生）时退回占位 Player 并留告警，避免整条点击链路一起失效。
     static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
     Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
+    if (player == nullptr) {
+        spdlog::warn("ContainerClick: player entity not resolved for player {}; "
+                     "item drops (slot=-999) will have no effect",
+            playerId);
+    }
+    Player& clickPlayer = (player != nullptr) ? *player : menuPlayer;
 
     // 客户端上报的 ContainerClick.carriedItem 是它在本地预测执行完这次点击「之后」的光标
     // （原版客户端先结算菜单再取光标组包），语义上不是点击前状态。把它当成点击前光标写回
@@ -324,7 +349,7 @@ Result<ContainerClickResult> ContainerManager::handleClick(
     // 服务端的光标是权威状态，只由服务端自己在结算中推进；客户端预测值仅用于对账，本实现
     // 改为每次结算后全量下发权威光标（见 setOnContainerUpdate），客户端据此纠正本地预测。
     // 同时这也让「服务端拒绝某次点击」时客户端不会被自己的预测带偏。
-    menu->clicked(slot, button, clickType, menuPlayer);
+    menu->clicked(slot, button, clickType, clickPlayer);
 
     if (m_onContainerUpdate) {
         m_onContainerUpdate(playerId, *menu);

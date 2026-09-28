@@ -12,6 +12,11 @@ import { blockInteractionCases } from "./block-interaction.ts";
 import { inventoryCases } from "./inventory.ts";
 import { craftingCases } from "./crafting.ts";
 import { furnaceCases } from "./furnace.ts";
+import { containerCases } from "./containers.ts";
+import { persistenceCases } from "./persistence.ts";
+import { entityCases } from "./entities.ts";
+import { movementCases } from "./movement.ts";
+import { protocolCases } from "./protocol.ts";
 
 /** 全部用例。 */
 export const ALL_CASES: readonly CaseDefinition[] = [
@@ -21,4 +26,9 @@ export const ALL_CASES: readonly CaseDefinition[] = [
     ...inventoryCases,
     ...craftingCases,
     ...furnaceCases,
+    ...containerCases,
+    ...persistenceCases,
+    ...entityCases,
+    ...movementCases,
+    ...protocolCases,
 ];

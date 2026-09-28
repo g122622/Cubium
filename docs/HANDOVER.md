@@ -2,6 +2,12 @@
 
 > 本文档面向接管本工作的开发者，交代任务背景、已完成内容、当前卡住的问题与后续全部待办。
 > 撰写时的分支：`main`。
+>
+> **2026-09-28 更新**：本轮对 e2e 体系做了一次系统性加固（就绪判定、失败分类、诊断产物隔离、
+> 新增 5 组共 11 条用例），并顺带修掉了几个服务端缺陷。本文件已按当前状态改写：
+> **第三章的「当前卡住的问题」已解决**（cubium 基线在 `86b2c57fe` 刷新，相关用例现已通过）；
+> **第四章 A 的待办已完成**；**第四章 B 中「菜单工厂硬编码主世界」与「木桶/潜影盒打不开」已修**；
+> 另新增第三章之二记录本轮新发现、且**仍阻塞 3 条用例**的服务端缺陷。详见第八节。
 
 ---
 
@@ -54,7 +60,11 @@ c08711c90 feat(server,block): 远程容器进度同步与熔炉点燃状态写�
 
 ---
 
-## 三、当前卡住的问题（**首要待办**）
+## 三、原「当前卡住的问题」（**已解决**，保留供追溯）
+
+> **状态**：已解决。`inventory/player_inventory_click_applies` 现已通过，cubium 基线于
+> `86b2c57fe`（`fix(container,crafting): 修正 open_screen 标题编码、工作台槽位布局与背包合成格写入`）
+> 刷新。以下为当时的记录，其中「已确认的事实」仍然是对该链路的准确描述，排查方向已不再需要。
 
 ### 现象
 
@@ -80,32 +90,53 @@ c08711c90 feat(server,block): 远程容器进度同步与熔炉点燃状态写�
 2. `toItemStackView()` 对空栈的表示是否会让数组项数与槽位错位。
 3. 客户端（mineflayer）对 `window_items` 的解析是否会做槽位重排（可能性低，但可用一个「已知内容」的包比对验证）。
 
-**调试手法建议**：在 `sendContainerContent`/`buildMenuContent` 出口打印构造出的 `items` 数组的非空槽下标（一次性日志，定位后删除）。注意 C++ 侧重编译约 30 秒（增量），e2e 单用例约 3 秒。
+**调试手法建议**：在 `sendContainerContent`/`buildMenuContent` 出口打印构造出的 `items` 数组的非空槽下标（一次性日志，定位后删除）。注意 C++ 侧重编译约 30 秒（增量）。
+
+> 耗时说明：本文档早期写的「e2e 单用例约 3 秒」在当前机器上**不再成立**——一次完整服务端启动
+> （世界创建 + 数据包加载）要 70 秒以上，因此 Cubium 侧实测约 75~90 秒/用例，vanilla 侧约
+> 10~25 秒/用例。改用例时请以此为准（见 `docs/test/E2E_BOT_TEST.md` 的耗时参考）。
 
 ---
 
 ## 四、后续全部待办
 
-### A. e2e 用例
+### A. e2e 用例（**已完成**）
 
-| # | 任务 | 说明 |
+| # | 任务 | 状态 |
 |---|---|---|
-| 1 | 修完上述错位缺陷后刷新基线 | `node run.ts --mode=refresh --accept`。**注意：refresh 会拒绝记录含失败的运行**，故必须先用例全绿 |
-| 2 | 合成用例（工作台 3x3 + shift-click） | 依赖已修好的容器打开链路 |
-| 3 | 熔炉用例（放置、打开、烧炼产出、进度同步、LIT 翻转） | 依赖 `container_set_data`（已接通） |
+| 1 | 修完上述错位缺陷后刷新基线 | ✅ 已于 `86b2c57fe` 完成，其后又多次整体刷新（含 vanilla 侧补齐） |
+| 2 | 合成用例（工作台 3x3 + shift-click） | ✅ `crafting.ts` 4 条：空网格不产出、3x3 经光标合成、shift+点击、背包 2x2 |
+| 3 | 熔炉用例（放置、打开、烧炼产出、进度同步、LIT 翻转） | ✅ `furnace.ts` 2 条：打开收到内容、烧炼产出 + `container_set_data` + LIT 翻转 |
 
-### B. 服务端缺陷（子代理审查结果，**尚未修**）
+本轮又新增 5 组共 11 条：`containers.ts`（木桶/潜影盒/下界）、`persistence.ts`（重启后核对）、
+`entities.ts`（丢弃与拾取闭环）、`movement.ts`（行走与移动触发的区块加载）、`protocol.ts`
+（keep_alive 往返、聊天后连接健康）。当前注册表 46 条，其中 43 条可运行、3 条被服务端缺陷阻塞
+（见第八节）。
+
+### B. 服务端缺陷（子代理审查结果）
 
 **高风险**：
 
-1. **菜单工厂硬编码主世界取方块实体** —— `StandaloneServer` 的 `setMenuFactory` 用 `m_dimensionManager->getOverworld()`，完全不看玩家所在维度。玩家在下界/末地开容器会拿到空隙或串到主世界同坐标的方块实体。（同文件关闭回调用了正确的 `getPlayerDimensionWorld()`，可对照。）
-2. **`BarrelBlock` 用 `ContainerType::Generic9x3`，但工厂要求实体是 `Chest`/`TrappedChest`** —— `BarrelEntity` 继承 `LootableContainerBlockEntity`，故**桶永远打不开且无日志**。`ShulkerBoxBlock` 同型。
-3. **菜单工厂所有失败分支静默返回空菜单**，叠加 `ContainerManager::openContainer` 的无日志 Error 与三个调用方（`openContainerRequest`/`tryOpenCraftingContainer`）丢弃 Error ——整条「右键容器无反应」链路端到端零日志。
-4. `IntegratedServer` 的本地客户端容器点击/关闭有 `if (!m_openMenu || id 不匹配) return;` 的静默分支（`ContainerManager::handleClick` 已修的缺陷的本地复刻）。
-5. `BlockActionHandler` 把「玩家实体查不到（服务端缺陷）」与「距离过远（反作弊）」揉进同一个无日志分支。
-6. `MovementHandler` 中 `serverPlayer == nullptr` 时整段反飞行校验被静默跳过。
+1. ✅ **已修**：菜单工厂硬编码主世界取方块实体 —— `StandaloneServer::_setupContainerCallbacks`
+   现改用 `m_dimensionManager->getPlayerDimensionWorld(playerId)`，与关闭回调同一口径。
+   （对应的下界 e2e 用例仍被「跨维度区块下发」缺陷阻塞，见第八节。）
+2. ✅ **已修**：木桶/潜影盒打不开 —— 工厂的 `Generic9x3`/`ShulkerBox` 分支现接受
+   `BlockEntityType::Barrel` / `ShulkerBox`；另外 `ShulkerBoxBlock::getOpenBoundingBox` 的
+   打开判定盒与方块本体重叠（`canOpen()` 恒为 false）也已修正。两条用例
+   （`containers/barrel_*`、`containers/shulker_box_*`）在两侧均通过。
+3. 🔶 **部分改善**：菜单工厂的失败分支现已全部 `warn`（无维度世界 / 无方块实体 / 实体类型不符），
+   `BlockActionHandler` 的交互拒绝、`BlockInteractionManager` 的交互前置校验、`TeleportManager`
+   的确认分支也都补了 `warn`。`ContainerManager::openContainer` 的无日志 Error 与调用方丢弃
+   Error 仍在。
+4. ⬜ 未修：`IntegratedServer` 的本地客户端容器点击/关闭静默分支（本地客户端已停止维护）。
+5. ✅ **已修**：`BlockActionHandler` 把「玩家实体查不到」与「距离过远」揉进同一个无日志分支 ——
+   交互拒绝现在打印具体原因（`player entity not found ...` 与 `out of interaction range` 分开）。
+6. ⬜ 未修：`MovementHandler` 中 `serverPlayer == nullptr` 时反飞行校验被静默跳过。
 
 **中风险**：`EntityActionHandler`/`MovementHandler`/`PlayerStateHandler` 多处「实体查不到」的静默返回；`ServerPlayHandler` 的兜底分支日志不带变体名。
+
+**本轮新增发现（详见第八节）**：丢物品在服务端完全无效（✅ 已修）；存档重启后实体不与地形碰撞
+（⬜ 仍阻塞用例）；跨维度传送后下发未生成的区块（⬜ 仍阻塞用例）；初次 tick 非主世界维度崩溃（⬜ 未修）。
 
 ### C. 遗留 TODO（代码中已标 `TODO`）
 
@@ -113,7 +144,9 @@ c08711c90 feat(server,block): 远程容器进度同步与熔炉点燃状态写�
 - 补齐 12 条缺失的 vanilla 属性（尤其 `block_break_speed`；补齐后 e2e 方块交互用例应改回 survival 模式）。
 - `update_attributes` 的增量脏刷新（当前只做 spawn/join 时的全量下发）。
 - `NbtHelper.cpp` 的属性 id 序列化缺陷；`AttributeCommand` 的 Identifier 字符集校验；属性名迁移（`generic.*` → `minecraft:*`）。
-- `ContainerManager` 中的**占位 Player**（`handleClick`/`closeContainer` 各构造一个假 Player 仅为传参）应重构掉。
+- `ContainerManager` 中的**占位 Player**：`handleClick` 现已在能解析到真实实体时传入真实实体（丢弃
+  物品必须如此），占位 Player 仅作为「解析不到实体时」的兜底并会打告警；`closeContainer` 仍在用
+  占位 Player，仍应重构掉。
 
 ---
 
@@ -131,13 +164,12 @@ c08711c90 feat(server,block): 远程容器进度同步与熔炉点燃状态写�
 
 `bot.dig` / `bot.placeBlock` / `bot.openContainer` 则**不预测**，等真实回包，可以安全断言。
 
-### 2. **诊断产物目录两侧同名会互相覆盖**
+### 2. **诊断产物目录两侧同名会互相覆盖**（✅ 已修）
 
-e2e 失败时落盘的 `build/e2e/artifacts/<runId>/<caseId>/` 在 cubium 与 vanilla 两侧**使用同一路径**，后跑的会覆盖先跑的。
+e2e 失败时落盘的产物目录在 cubium 与 vanilla 两侧**曾使用同一路径** `build/e2e/artifacts/<runId>/<caseId>/`，
+后跑的会覆盖先跑的。（本文档撰写过程中就踩过，浪费了大量时间。）
 
-用 `--mode=diff` 排查 cubium 问题时，很容易一直在读 vanilla 的日志（本文档撰写过程中就踩过，浪费了大量时间）。
-
-**规避**：排查单侧问题时用 `--mode=regress --case=<子串>`（只跑 cubium）；确需 diff 时先把产物目录改名或立刻取走。
+**现状**：路径已改为 `build/e2e/artifacts/<runId>/<serverKind>/<caseId>/`，双跑时两侧产物各自独立。
 
 ### 3. 服务端入站有**一次 tick 延迟**
 
@@ -174,9 +206,19 @@ cd tests/e2e/bot && node run.ts --mode=diff
 # e2e：刷新基线（仅当全部用例通过）
 cd tests/e2e/bot && node run.ts --mode=refresh --accept
 
+# e2e：两侧一起刷新（cubium + vanilla，约 80~100 分钟）
+cd tests/e2e/bot && node run.ts --mode=refresh --accept --with-vanilla
+
+# e2e：连被阻塞而跳过的用例也跑（验证服务端修复时用）
+cd tests/e2e/bot && node run.ts --mode=regress --include-skipped --case=<id 子串>
+
 # 单元测试（勿跑全量，超时；用过滤器）
 ./build/bin/RelWithDebInfo/mc_tests.exe --gtest_filter="*Container*"
 ```
+
+**退出码**：`0` 全部通过；`1` 有用例失败；`2` 环境或基线问题。注意**「环境问题」也走 2**：
+端口被残留进程占用、握手期连不上服务端这类与用例语义无关的失败会被自动换端口重试一次，
+仍失败才计入结果——排查时先看是否有残留的 `minecraft-server.exe`。
 
 **已知的 3 条既有失败单元测试**（与本链路无关，用户已确认可忽略）：
 `OnChangedBlockChainTest.StopLocationBasedEffectsClearsModifier`、
@@ -192,4 +234,52 @@ cd tests/e2e/bot && node run.ts --mode=refresh --accept
 | vanilla 1.21.11 源码 | `D:\Minecraft\MC研究\Minecraft1.21.11源码` |
 | mineflayer 源码与自带测试 | `E:\dev\MC\mineflayer` |
 | e2e 用例 | `tests/e2e/bot/src/scenarios/` |
-| e2e 框架说明 | `tests/e2e/bot/` 各源文件的文件头注释 |
+| e2e 框架说明 | `docs/test/E2E_BOT_TEST.md`（含坑清单与故障排查表） |
+
+---
+
+## 八、本轮（2026-09-28）e2e 体系加固与新发现
+
+### 8.1 harness 侧改动
+
+| 改动 | 原因 |
+|---|---|
+| 就绪判定改为「服务端日志行 + 端口核对」 | TCP 可连不等于世界已加载；且端口可能被上一个用例残留进程占着（Windows `SO_REUSEADDR` 允许重绑），实测 3/35 条用例因此假失败 |
+| 端口分配增加「主动连接没人应答」筛除；停止流程校验进程真的退出 | 同上 |
+| 握手期 socket 失败归为「环境问题」（退出码 2）并换端口重试一次 | 环境抖动不再伪装成用例缺陷 |
+| 诊断产物目录加 `serverKind` 一层 | 消除双跑互相覆盖 |
+| 用例契约新增 `opPlayers` / `skipReason` / `ctx.restartServer()` | 需要命令权限、需要显式记录阻塞点、需要验证存档持久化 |
+| `CASE_TIMEOUT_MS` 90s → 240s | 持久化用例体内含一次服务端重启（≥70s） |
+| 交互/容器/传送链路的静默分支补 `warn` 日志 | 「右键无反应且零日志」无法定位 |
+| 场景文件去重：槽位常量与交互助手收敛到 `scenarios/shared.ts` | 原先 inventory/crafting/furnace 各有一份副本 |
+
+### 8.2 顺带修掉的服务端缺陷
+
+1. **丢物品在服务端完全无效**（`AbstractContainerMenu::dropItem` 的回调从未被设置）+ 点击用
+   无 world 的占位 Player 结算 → 第三方客户端（mineflayer 的 `toss`/`tossStack`）丢物品
+   「客户端以为丢了、服务端什么都没有」。现在 `ContainerManager::_installMenuCallbacks`
+   统一安装回调，`handleClick` 接收真实玩家实体。
+2. **木桶/潜影盒永远打不开**（菜单工厂只认 Chest/TrappedChest；潜影盒另有
+   `getOpenBoundingBox` 与本体重叠导致 `canOpen()` 恒 false）。
+3. **菜单工厂不看玩家维度**（固定取主世界）。
+
+### 8.3 仍阻塞 3 条 e2e 用例的服务端缺陷（**未修，优先处理**）
+
+| # | 缺陷 | 症状与证据 | 解除条件 |
+|---|---|---|---|
+| 1 | **初次 tick 非主世界维度即崩溃** | `NaturalSpawner::_createDensityManager` 读 0x0 触发 ACCESS_VIOLATION，栈：`NaturalSpawner.cpp:965 ← tick:376 ← ServerDimension::tick:187`；服务端整体退出（exit code 3221225477） | 修好崩溃；下界用例现以 `/gamerule doMobSpawning false` 绕开，修好后移除该绕行 |
+| 2 | **跨维度传送后下发未生成的区块** | 客户端在下界 `(0,125,0)` 周围 5×5（含本该是空气的层）全读到 `netherrack`；命令改动的方块也不会可靠到达客户端 | 阻塞 `containers/container_in_nether_is_not_overworld`（该用例对应的菜单工厂缺陷已修，修好区块下发后应直接通过） |
+| 3 | **存档重启后实体不与地形碰撞** | 客户端能看到地形（`blockAt` = grass_block/bedrock，81 列区块正常），玩家却从出生点坠入虚空（y < -400），服务端不做纠正；同时间段服务端批量刷出又立刻销毁生物（3000+ 次 spawn/destroy） | 阻塞两条 `persistence/*` 用例 |
+
+**复现 3 的快捷方式**：任取一次 e2e 失败留下的 `build/e2e/runs/<runId>/<caseId>/`（内含已保存的
+`saves/`），直接用它当游戏目录起 `minecraft-server.exe --config <runDir>/server_options.json`，
+再连一个 bot 观察其 y 是否持续下降。
+
+### 8.4 mineflayer 侧的两个新坑（写用例必看）
+
+- **跨维度传送/重生后 `openContainer` 会卡住**：mineflayer 收到 `respawn` 后先关物理、延迟 1500ms
+  恢复，而 `openContainer` 内部的 `lookAt(..., false)` 要等一个 `physicsTick`。不等这一步，
+  **客户端连 `use_item_on` 都发不出去**，服务端侧毫无痕迹。用 `shared.ts` 的
+  `waitForPhysicsTick()`。同一窗口期内 `onGround` 还是传送前的旧值，不能用它等落地。
+- **vanilla 在「客户端预测与服务端结算一致」时不发增量包**：`containerSyncCount` 那套判据对
+  vanilla 不成立。改为「关窗后重新打开，断言全量内容」——两侧都成立且是服务端权威状态。

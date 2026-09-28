@@ -158,6 +158,10 @@ public:
      * 光标预测值一律不参与结算。详见实现处说明。
      *
      * @param playerId 玩家ID
+     * @param player 玩家的**真实实体**（须带 world）。丢弃类点击（slot=-999，即把光标上的
+     *               物品丢出窗口）要在世界里生成掉落物实体，而占位 Player 没有 world，
+     *               会静默什么都不做——客户端本地预测看起来已经丢出去了，服务端却什么都没发生。
+     *               nullptr 表示调用方无法解析出实体，此时会退回占位 Player 并记一条告警。
      * @param containerId 容器ID
      * @param slot 槽位索引
      * @param button 鼠标按钮
@@ -165,7 +169,7 @@ public:
      * @return 点击结果（含结算后的权威光标）
      */
     [[nodiscard]] Result<ContainerClickResult> handleClick(
-        PlayerId playerId, mc::ContainerId containerId, i32 slot, u8 button, u8 mode);
+        PlayerId playerId, Player* player, mc::ContainerId containerId, i32 slot, u8 button, u8 mode);
 
     /**
      * @brief 获取打开的菜单
@@ -207,6 +211,18 @@ public:
     void setOnContainerUpdate(std::function<void(PlayerId, const AbstractContainerMenu&)> callback);
 
 private:
+    /**
+     * @brief 给菜单装上容器管理器统一提供的回调。
+     *
+     * 目前只有一项：**丢弃物品**。`AbstractContainerMenu::dropItem` 只是转调一个回调，
+     * 而本项目管理器从未设置过它——于是「把光标上的物品丢出窗口」（slot=-999，所有第三方
+     * 客户端的丢物品路径）在服务端**完全没有效果**，且没有任何日志。
+     *
+     * @param menu 目标菜单（其生命周期由调用方持有）。
+     * @param playerId 玩家ID（仅用于日志定位）。
+     */
+    void _installMenuCallbacks(AbstractContainerMenu& menu, PlayerId playerId);
+
     core::PlayerManager& m_playerManager;
     InventoryManager* m_inventoryManager = nullptr;
 

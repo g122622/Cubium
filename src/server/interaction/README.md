@@ -118,6 +118,17 @@ src/server/interaction/
 
 历史上这里存过一份按值副本，于是同一玩家的背包在内存中有两份、互不感知：拾取走实体层、容器点击后的同步读副本，任何一侧的改动都会被另一侧的下一次同步覆盖。副本已移除。
 
+### 9.1 菜单必须安装「丢物品」回调，且点击要用真实玩家实体
+
+`AbstractContainerMenu::dropItem` 只是转调 `m_itemDropCallback`——**回调不装就等于没有实现**。
+创建菜单的一方（`ContainerManager::_installMenuCallbacks`）必须装上它，否则「把光标上的物品
+丢出窗口」（slot = -999，所有第三方客户端的丢物品路径）在服务端**完全无效且零日志**：
+客户端本地预测看起来已经丢出去了，世界里却不会出现掉落物。
+
+对应的另一半是 `handleClick` 必须拿到**真实玩家实体**（带 `world`）：生成掉落物实体需要世界
+上下文，而占位 `Player` 的 `dropItem` 会因 `m_world == nullptr` 直接返回 nullptr。解析不到实体时
+本实现退回占位 Player 并打告警，不要把这条告警当成噪音——它意味着丢物品链路又断了。
+
 ### 9. 不要固定绑定主世界
 
 `BlockInteractionManager` 必须按玩家维度解析 `ServerWorld`，交互时通过 `IServer::getPlayerWorld(playerId)` 获取当前世界。告示牌命令、掉落物、方块状态查询都基于该玩家当前维度执行。

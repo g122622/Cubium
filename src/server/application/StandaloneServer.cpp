@@ -51,8 +51,10 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
+#include "common/world/blockentity/storage/BarrelEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
+#include "common/world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "server/core/KeepAliveManager.hpp"
@@ -481,6 +483,11 @@ void StandaloneServer::_mainLoop()
 
     spdlog::info("Server is now running!");
     spdlog::info("Connect with port: {}", m_settings.serverPort.get());
+    // 明确的就绪信号：主循环开始 = 世界加载完成 + 入站包会被 drainInbound 派发。
+    // 自动化测试（tests/e2e/bot）以本行作为「服务端真的可以接玩家」的唯一判据——
+    // 只探测 TCP 可连是不够的：端口在 initialize() 内就已 listen，此时世界尚未加载完，
+    // 客户端连上去会拿到空注册表并静默挂起。本行的端口号同时供测试核对监听者身份。
+    spdlog::info("Server ready: accepting connections on port {}", m_settings.serverPort.get());
 
     while (m_running) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "MainLoopIteration");
@@ -540,11 +547,17 @@ void StandaloneServer::_setupContainerCallbacks()
             return result;
         }
 
-        auto* overworld = m_dimensionManager->getOverworld();
-        if (overworld == nullptr || overworld->world() == nullptr) {
+        // 取**玩家所在维度**的世界，而非固定的主世界。玩家经传送门或 /execute in 进入
+        // 下界/末地后，容器方块实体只存在于该维度；此处曾硬编码 getOverworld()，导致非主世界
+        // 开容器要么拿到空菜单（目标维度里的方块实体查不到），要么串到主世界同坐标的方块实体
+        // （把另一个容器的内容显示给玩家，静默错误）。
+        // 关闭回调用的就是 getPlayerDimensionWorld()，与本处保持同一口径。
+        auto* playerDimension = m_dimensionManager->getPlayerDimensionWorld(playerId);
+        auto* world = playerDimension != nullptr ? playerDimension->world() : nullptr;
+        if (world == nullptr) {
+            spdlog::warn("Container menu creation failed: player {} has no dimension world", playerId);
             return result;
         }
-        auto* world = overworld->world();
 
         switch (type) {
             case mc::ContainerType::Crafting: {
@@ -558,6 +571,9 @@ void StandaloneServer::_setupContainerCallbacks()
             case mc::ContainerType::ShulkerBox: {
                 BlockEntity* blockEntity = world->getBlockEntity(pos);
                 if (blockEntity == nullptr) {
+                    spdlog::warn("Container menu creation failed: no block entity at {} for player {}",
+                        pos.toString(),
+                        playerId);
                     return result;
                 }
 
@@ -577,8 +593,27 @@ void StandaloneServer::_setupContainerCallbacks()
                     return result;
                 }
 
+                // 木桶与潜影盒：与箱子一样是「27 格方块实体容器」，但没有双箱合并语义
+                // （木桶/潜影盒各自独立）。此前本分支只接受 Chest/TrappedChest，两者因此
+                // **永远建不出菜单**：右键后服务端返回空菜单、客户端毫无反应、日志无输出。
+                if (type == mc::ContainerType::Generic9x3 && blockEntity->getType() == BlockEntityType::Barrel) {
+                    auto* barrel = static_cast<blockentity::BarrelEntity*>(blockEntity);
+                    result.menu =
+                        blockentity::ChestContainer::createSingle(containerId, playerInventory, barrel->getInventory());
+                    return result;
+                }
+                if (type == mc::ContainerType::ShulkerBox && blockEntity->getType() == BlockEntityType::ShulkerBox) {
+                    auto* shulkerBox = static_cast<blockentity::ShulkerBoxEntity*>(blockEntity);
+                    result.menu = blockentity::ChestContainer::createSingle(
+                        containerId, playerInventory, shulkerBox->getInventory());
+                    return result;
+                }
+
                 if (blockEntity->getType() != BlockEntityType::Chest &&
                     blockEntity->getType() != BlockEntityType::TrappedChest) {
+                    spdlog::warn("Container menu creation failed: block entity type {} at {} is not a chest",
+                        static_cast<i32>(blockEntity->getType()),
+                        pos.toString());
                     return result;
                 }
 
@@ -721,6 +756,12 @@ void StandaloneServer::_setupContainerCallbacks()
                                     connected->closeContainer(nullptr);
                                 }
                             }
+                        } else if (blockEntity->getType() == BlockEntityType::Barrel) {
+                            // 木桶的打开计数/音效由 openContainer/closeContainer 成对维护，
+                            // 缺了这一步木桶会一直停留在「打开」状态（盖板不回落）。
+                            static_cast<blockentity::BarrelEntity*>(blockEntity)->closeContainer(nullptr);
+                        } else if (blockEntity->getType() == BlockEntityType::ShulkerBox) {
+                            static_cast<blockentity::ShulkerBoxEntity*>(blockEntity)->closeContainer(nullptr);
                         }
                         // 末影箱的关闭由 ChestContainer::removed() →
                         // PlayerEnderChestInventory::closeInventory() → stopOpen() 处理，

@@ -13,19 +13,19 @@
  * 材料统一用橡木木板（4 个 → 1 个工作台），它是原版配方、两侧服务端都有。
  */
 
-import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
-
-/**
- * 玩家背包窗口（containerId=0）的槽位号，即 InventoryMenu 布局：
- * 0=合成结果, 1-4=2x2 合成格, 5-8=护甲, 9-35=主背包, 36-44=快捷栏, 45=副手。
- */
-const INV_RESULT_SLOT = 0;
-const INV_GRID_SLOT_START = 1;
-const INV_HOTBAR_SLOT_0 = 36;
+// 槽位常量与交互助手统一来自 shared.ts（本文件此前自带一份副本，见该文件的说明）。
+import {
+    INV_GRID_SLOT_START,
+    INV_HOTBAR_SLOT_0,
+    INV_RESULT_SLOT,
+    containerSyncCount,
+    setSlot,
+    slotItemName,
+} from "./shared.ts";
 
 /**
  * 工作台窗口的槽位号，即 CraftingMenu 布局：
@@ -40,48 +40,6 @@ const TABLE_HOTBAR_SLOT_0 = 37;
 
 /** 合成 4 个橡木木板所需的数量（原版 2x2 配方）。 */
 const PLANKS_PER_CRAFT = 4;
-
-/**
- * 数一遍客户端收到的「容器同步」包。
- *
- * 与 inventory.ts 同一判据，理由见那里的说明：mineflayer 在 clickWindow /
- * creative.setInventorySlot 上都会本地预测、不等服务端回包，只有服务端回包本身能证明
- * 「它确实处理了这个上行包」。合成结果的推送只可能来自服务端，故这里额外要求同步包数增加，
- * 排除「客户端自己预测出一个产物」的假通过。
- */
-function containerSyncCount(trace: { count(name: string): number }): number {
-    return trace.count("window_items") + trace.count("set_slot") + trace.count("container_set_slot");
-}
-
-/** 从 bot 的 registry 里取物品定义。 */
-function itemDef(bot: Bot, itemName: string): { id: number } | undefined {
-    const typed = bot as unknown as { registry: { itemsByName: Record<string, { id: number }> } };
-    return typed.registry.itemsByName[itemName];
-}
-
-/** 读某个窗口槽位当前物品的名称（空格返回 null）。 */
-function slotItemName(window: unknown, slot: number): string | null {
-    const slots = (window as { slots: ({ name?: string } | null)[] }).slots;
-    const item = slots[slot];
-    return item === null || item === undefined ? null : (item.name ?? null);
-}
-
-/** 经创造模式把物品放进玩家背包的指定菜单槽位。 */
-async function setSlot(bot: Bot, slot: number, itemName: string, count: number): Promise<boolean> {
-    const def = itemDef(bot, itemName);
-    if (def === undefined) {
-        return false;
-    }
-    const typed = bot as unknown as {
-        creative: { setInventorySlot(slot: number, item: unknown): Promise<void> };
-        version: string;
-    };
-    type ItemCtor = new (id: number, count: number) => unknown;
-    const ItemModule = (await import("prismarine-item")).default as unknown as (version: string) => ItemCtor;
-    const Item = ItemModule(typed.version);
-    await typed.creative.setInventorySlot(slot, new Item(def.id, count));
-    return true;
-}
 
 /**
  * 在指定坐标旁放一个工作台并打开它，返回窗口句柄。
@@ -130,6 +88,8 @@ export const craftingCases: readonly CaseDefinition[] = [
         title: "空合成网格不产出任何结果（结果槽恒空）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 回归锚点：曾有一条配料全部未注册的配方（其配料物品在项目里未实现，解析时被降级成
             // 空配料）匹配到完全空的网格，结果槽凭空出现产物并随全量同步下发到客户端。空网格
@@ -156,6 +116,8 @@ export const craftingCases: readonly CaseDefinition[] = [
         title: "工作台 3x3：光标摆放材料 → 结果槽出现产物 → 取走",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const window = await placeAndOpenCraftingTable(bot, spawnX - 3, surfaceY, spawnZ - 3);
 
@@ -208,6 +170,8 @@ export const craftingCases: readonly CaseDefinition[] = [
         title: "工作台结果槽 shift+点击直接把产物送进玩家背包",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const window = await placeAndOpenCraftingTable(bot, spawnX + 3, surfaceY, spawnZ - 3);
 
@@ -262,6 +226,8 @@ export const craftingCases: readonly CaseDefinition[] = [
         title: "玩家背包 2x2 合成格产出结果并同步到客户端",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace }): Promise<Record<string, unknown>> {
             // 背包合成格在 wire 上是玩家背包窗口（containerId=0）的槽位 1-4。服务端若把它们
             // 当成「PlayerInventory 里没有的槽位」忽略掉，创造模式改槽写进去的物品会消失，

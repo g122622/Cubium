@@ -46,6 +46,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         title: "挖掘地表草方块：客户端完成判定 + 世界实际改变",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const x = spawnX + 2;
             const z = spawnZ;
@@ -72,6 +74,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         title: "挖掘触发 block_update 与 block_changed_ack 下发",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const x = spawnX + 2;
             const z = spawnZ + 2;
@@ -106,6 +110,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         title: "放置方块：客户端不超时且世界实际改变",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const gave = await giveBlockToBot(bot as never, "stone", 64);
             expectTrue(gave, "无法给 bot 发放石头（itemsByName 中找不到 stone）");
@@ -134,6 +140,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         title: "对同一位置重复放置不使客户端挂起（失败路径仍需应答）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 服务端的 PlacementBlockUpdateGuard 是 RAII：无论放置成功、失败还是提前 return，
             // 析构时都会下发命中的方块更新。本用例走「第二次放置必然失败」的路径，
@@ -183,6 +191,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         title: "挖→放→再挖的完整往返",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const gave = await giveBlockToBot(bot as never, "stone", 64);
             expectTrue(gave, "无法给 bot 发放石头");
@@ -224,6 +234,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         title: "交互全程未因未登记的上行包断开连接",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // mineflayer 会发送一批服务端尚未登记的上行包（player_loaded / swing /
             // client_tick_end 等）。服务端对未登记包的处理是静默丢弃——既不断连也不报错。

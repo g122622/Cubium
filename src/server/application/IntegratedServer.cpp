@@ -673,8 +673,13 @@ void IntegratedServer::handleContainerClickPacket(PlayerId playerId, const mc::n
     // 把它当成点击前光标会让同种物品的「拾取」走成「合并」，物品原地翻倍。
     // 权威光标只由服务端推进，并在下面经 _sendContainerContent 全量下发回客户端。
     const ClickType clickType = ContainerTypes::toClickType(static_cast<ClickAction>(evt->clickType), evt->buttonNum);
+    // 本地客户端同样要传真实玩家实体：丢弃类点击（slot=-999）要在世界里生成掉落物实体。
+    Player* localPlayer = nullptr;
+    if (ServerWorld* world = getPlayerWorld(m_clientPlayerId); world != nullptr) {
+        localPlayer = playerEntityManager().getPlayerEntity(m_clientPlayerId, *world);
+    }
     Player& menuPlayer = _getMenuPlayer();
-    m_openMenu->clicked(evt->slotNum, evt->buttonNum, clickType, menuPlayer);
+    m_openMenu->clicked(evt->slotNum, evt->buttonNum, clickType, (localPlayer != nullptr) ? *localPlayer : menuPlayer);
 
     _sendContainerContent(*m_openMenu);
     _sendPlayerInventory();

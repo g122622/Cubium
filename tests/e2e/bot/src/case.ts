@@ -37,6 +37,14 @@ export interface CaseContext {
      * 追加的 bot 同样计入 bots / traces，并由 runner 统一回收。
      */
     readonly connectBot: () => Promise<Bot>;
+    /**
+     * 关闭当前服务端并用**同一个游戏目录**重新启动它（重启后端口可能变化）。
+     *
+     * 用途：验证存档的持久化——改完世界（先用命令落盘，见 opPlayers）→ 重启 → 重连 →
+     * 确认改动仍在。重启会断开当前所有 bot（连接随进程一起消失），因此重启后必须重新
+     * `connectBot()`；重启后**第一个**连接的 bot 会成为新的主 bot（决定 bot/trace 与最终快照）。
+     */
+    readonly restartServer: () => Promise<void>;
     readonly serverKind: ServerKind;
     /** 探测得到的地表 Y（Cubium=3，vanilla=-61）。 */
     readonly surfaceY: number;
@@ -66,6 +74,23 @@ export interface CaseDefinition {
      * 设计时须让各 bot 在空间上错开，且不得依赖「自己是世界里唯一的行动者」。
      */
     readonly botCount: number;
+    /**
+     * 本用例是否需要让 bot 拥有 OP 权限（命令权限）。
+     *
+     * 为 true 时 runner 会在**启动服务端之前**把本用例可能连接的 bot 名写进 ops.json
+     * （服务端只在启动时读取该文件）。需要服务端执行命令的用例必须声明本字段——
+     * 否则命令会被静默忽略（权限不足只回一条聊天消息，用例会以超时告终）。
+     */
+    readonly opPlayers: boolean;
+    /**
+     * 跳过原因；`null` 表示正常执行。
+     *
+     * 非 null 时 runner **不运行**该用例、不写基线，并在运行时打印原因与解除条件。
+     * 这个字段只允许用于「已经写好、但被服务端缺陷阻塞、当前不可能通过」的用例：
+     * 它把阻塞点变成注册表里可见的一条记录（而不是让整套测试长期红灯），
+     * 修好服务端缺陷后把这里改回 null 即可启用。**原因里必须写明具体缺陷与证据来源。**
+     */
+    readonly skipReason: string | null;
     /**
      * 执行用例。
      *

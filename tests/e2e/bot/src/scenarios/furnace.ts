@@ -11,14 +11,12 @@
  * 材料用圆石（烧成石头）与煤炭（燃料），两者都是原版配方且本项目已注册。
  */
 
-import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { vec3 } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
-
-/** 玩家背包窗口（containerId=0）的快捷栏首槽。 */
-const INV_HOTBAR_SLOT_0 = 36;
+// 槽位常量与交互助手统一来自 shared.ts（本文件此前自带一份副本，见该文件的说明）。
+import { INV_HOTBAR_SLOT_0, setSlot, slotItemName } from "./shared.ts";
 
 /**
  * 熔炉窗口的槽位号，即 1.21.11 FurnaceMenu 布局：
@@ -32,36 +30,6 @@ const FURNACE_TOTAL_SLOTS = 39;
 
 /** 圆石烧成石头是 200 tick（10 秒）的原版配方，留出宽裕余量。 */
 const SMELT_TIMEOUT_MS = 30_000;
-
-/** 从 bot 的 registry 里取物品定义。 */
-function itemDef(bot: Bot, itemName: string): { id: number } | undefined {
-    const typed = bot as unknown as { registry: { itemsByName: Record<string, { id: number }> } };
-    return typed.registry.itemsByName[itemName];
-}
-
-/** 读某个窗口槽位当前物品的名称（空格返回 null）。 */
-function slotItemName(window: unknown, slot: number): string | null {
-    const slots = (window as { slots: ({ name?: string } | null)[] }).slots;
-    const item = slots[slot];
-    return item === null || item === undefined ? null : (item.name ?? null);
-}
-
-/** 经创造模式把物品放进玩家背包的指定菜单槽位。 */
-async function setSlot(bot: Bot, slot: number, itemName: string, count: number): Promise<boolean> {
-    const def = itemDef(bot, itemName);
-    if (def === undefined) {
-        return false;
-    }
-    const typed = bot as unknown as {
-        creative: { setInventorySlot(slot: number, item: unknown): Promise<void> };
-        version: string;
-    };
-    type ItemCtor = new (id: number, count: number) => unknown;
-    const ItemModule = (await import("prismarine-item")).default as unknown as (version: string) => ItemCtor;
-    const Item = ItemModule(typed.version);
-    await typed.creative.setInventorySlot(slot, new Item(def.id, count));
-    return true;
-}
 
 /**
  * 在指定坐标旁放一个熔炉并打开它。
@@ -120,6 +88,8 @@ export const furnaceCases: readonly CaseDefinition[] = [
         title: "打开熔炉后收到窗口内容（39 槽且三格皆空）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             // 熔炉菜单的槽位布局是「输入 / 燃料 / 产物 + 36 格玩家背包」共 39 格。数量或排列
             // 不对时第三方客户端会把物品放进错误的格子里，且不报任何错。
@@ -141,6 +111,8 @@ export const furnaceCases: readonly CaseDefinition[] = [
         title: "熔炉烧炼：进度数据下推 + 产物槽产出 + LIT 翻转",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const x = spawnX - 3;
             const z = spawnZ + 3;

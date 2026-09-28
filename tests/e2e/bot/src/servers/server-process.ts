@@ -2,21 +2,31 @@
  * server-process.ts — 服务端进程抽象（Cubium 与 vanilla 共用）。
  *
  * 两侧差异全部收敛到 ServerSpec 的两个策略字段：
- *   - ready：Cubium 用 TCP 就绪（accept 循环在 initialize() 内启动）；vanilla 必须用日志行
- *     （它先开 listen 再加载世界，TCP 可连不代表世界已就绪）。
+ *   - ready：**一律用日志行**。TCP 可连不是就绪信号——两侧的监听 socket 都在世界加载完成
+ *     之前就已建立（Cubium 在 initialize() 内 listen，vanilla 先开 listen 再加载世界），
+ *     此时连上去会拿到空注册表并静默挂起；而且端口可能被上一个用例尚未退出的服务端占着，
+ *     探测会连到「别人的」监听者上。故两侧各打印一行明确的就绪日志，harness 以它为准，
+ *     并核对日志里的端口号与本次申请的端口一致（等价于核对监听者身份）。
  *   - shutdown：Cubium 在 Windows 上 SIGTERM 走 TerminateProcess，无法触发其 std::signal
- *     优雅退出，故直接硬杀（世界目录一次性、用完即删）；vanilla 支持 stdin `stop`。
+ *     优雅退出，故直接硬杀（每用例独立世界目录）；vanilla 支持 stdin `stop`。
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { waitForPort } from "./port.ts";
 
-/** 就绪判定策略。 */
-export type ReadyStrategy =
-    | { readonly kind: "tcp"; readonly port: number; readonly timeoutMs: number }
-    | { readonly kind: "log"; readonly pattern: RegExp; readonly timeoutMs: number };
+/** 就绪判定策略：匹配日志行，并核对该行是否属于本次启动的进程。 */
+export type ReadyStrategy = {
+    readonly kind: "log";
+    readonly pattern: RegExp;
+    readonly timeoutMs: number;
+    /**
+     * 要求匹配行中出现该端口号；null 表示该服务端不打印端口（vanilla 的 Done 行如此）。
+     *
+     * 这一项是「监听者身份核对」：只匹配日志文本无法排除读到**别的进程**残留日志的可能。
+     */
+    readonly requirePort: number | null;
+};
 
 /** 停止策略。 */
 export type ShutdownStrategy =
@@ -51,6 +61,9 @@ export type ServerState = "idle" | "starting" | "ready" | "stopping" | "stopped"
 
 /** 内存中保留的最大日志行数（诊断用；完整日志始终落盘）。 */
 const MAX_IN_MEMORY_LOG_LINES = 4000;
+
+/** 硬杀后等待进程退出的时间；总等待为其两倍（两次强杀）。 */
+const KILL_GRACE_MS = 5_000;
 
 /**
  * 服务端进程的全局登记表。
@@ -117,6 +130,7 @@ export class ServerProcess {
     private launchedAtMs = 0;
     private readyAtMs = 0;
     private exitWaiters: Array<(info: ExitInfo) => void> = [];
+    private stopTimedOut = false;
 
     constructor(spec: ServerSpec) {
         this.spec = spec;
@@ -133,6 +147,11 @@ export class ServerProcess {
     /** 从 launch 到就绪的毫秒数（未就绪时为 -1）。 */
     get startupMs(): number {
         return this.readyAtMs > 0 ? this.readyAtMs - this.launchedAtMs : -1;
+    }
+
+    /** 停止流程是否超时（进程可能残留，端口可能仍被占用）。 */
+    get stopTimedOutFlag(): boolean {
+        return this.stopTimedOut;
     }
 
     /** 日志尾部若干行，用于失败诊断。 */
@@ -217,31 +236,21 @@ export class ServerProcess {
 
     private async waitUntilReady(child: ChildProcess): Promise<void> {
         const { ready } = this.spec;
-        if (ready.kind === "tcp") {
-            const elapsed = await waitForPort(ready.port, ready.timeoutMs);
-            // TCP 可连后再补一小段等待：Cubium 的 accept 循环在 initialize() 内启动，
-            // 而 run() 的 tick 主循环在其返回后才开始，玩家的入站包需经 pollNetwork → tick
-            // → drainInbound 才能派发。这个窗口极小但存在。
-            void elapsed;
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            if (this.stateValue === "crashed") {
-                throw new Error("服务端在就绪探测期间退出");
-            }
-            return;
-        }
-
         const deadline = Date.now() + ready.timeoutMs;
         while (Date.now() < deadline) {
             if (this.stateValue === "crashed") {
                 throw new Error("服务端在就绪探测期间退出");
             }
-            if (this.logLines.some((line) => ready.pattern.test(line))) {
+            if (this.findLog(ready.pattern).some((line) => ready.requirePort === null || line.includes(String(ready.requirePort)))) {
                 return;
             }
             void child;
             await new Promise((resolve) => setTimeout(resolve, 200));
         }
-        throw new Error(`等待日志匹配 ${ready.pattern} 超时（${ready.timeoutMs}ms）`);
+        throw new Error(
+            `等待就绪日志 ${ready.pattern} 超时（${ready.timeoutMs}ms` +
+                `${ready.requirePort === null ? "" : `，要求端口 ${ready.requirePort}`}）`,
+        );
     }
 
     /** 停止进程。幂等。 */
@@ -268,8 +277,20 @@ export class ServerProcess {
             }
         }
 
+        // 硬杀必须**确认进程真的没了**：上一次实现丢弃了 waitForExit 的返回值，于是
+        // 「5 秒内没退干净」会被静默放过，下一个用例拿到同一端口时探测会连到它身上
+        // （Windows 的 SO_REUSEADDR 允许端口重绑），随后它退出 → 客户端 ECONNREFUSED。
         killTree(child);
-        await this.waitForExit(5000);
+        if (await this.waitForExit(KILL_GRACE_MS)) {
+            this.logStream?.end();
+            return;
+        }
+        // 再补一次带子进程树的强杀，仍不退则记为超时退出（由调用方决定如何处理）。
+        killTree(child);
+        this.stopTimedOut = !(await this.waitForExit(KILL_GRACE_MS));
+        if (this.stopTimedOut) {
+            console.warn(`      ${this.spec.label} 在 ${KILL_GRACE_MS * 2}ms 内未能停止（进程可能残留）`);
+        }
         this.logStream?.end();
     }
 

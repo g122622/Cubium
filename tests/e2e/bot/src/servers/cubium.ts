@@ -92,7 +92,16 @@ export async function startCubiumServer(options: CubiumServerOptions): Promise<S
         command: CUBIUM_SERVER_EXE,
         args: ["--config", configPath],
         cwd: options.runDir,
-        ready: { kind: "tcp", port: options.port, timeoutMs: SERVER_READY_TIMEOUT_MS },
+        // 就绪以服务端自己的日志行为准（StandaloneServer::_mainLoop 打印），并要求该行里
+        // 出现本次申请的端口号。不能用「TCP 可连」判定：端口在 initialize() 内就已 listen，
+        // 那时世界尚未加载完，客户端连上去会拿到空注册表并静默挂起；且端口可能被上一个
+        // 尚未退出的服务端占着，探测会连到别人的监听者上。
+        ready: {
+            kind: "log",
+            pattern: /Server ready: accepting connections on port/,
+            timeoutMs: SERVER_READY_TIMEOUT_MS,
+            requirePort: options.port,
+        },
         shutdown: { kind: "kill" },
         logPath: path.join(options.runDir, "server.log"),
     });

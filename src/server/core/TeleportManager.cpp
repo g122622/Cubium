@@ -88,6 +88,10 @@ bool TeleportManager::confirmTeleport(PlayerId playerId, u32 teleportId)
     }
 
     if (!player->waitingTeleportConfirm) {
+        // 不等待确认时收到确认包：可能是重复确认，也可能是确认包迟到。静默会让
+        // 「确认包到底有没有被受理」无从判断，故留痕（重复确认本身无害）。
+        spdlog::warn(
+            "TeleportManager: Player {} confirmed teleport {} while not waiting for confirm", playerId, teleportId);
         return false;
     }
 

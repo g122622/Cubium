@@ -77,6 +77,14 @@ src/server/application/
 
 ### 1. 维度感知的世界访问
 `m_world` 已从 `MinecraftServer` 移除，所有世界访问必须通过 `ServerDimensionManager` / `ServerDimension` / `getPlayerWorld(PlayerId)` 进行。同步管理器（ChunkSendManager、BlockUpdateSyncManager 等；实体同步由 `EntityTracker` + `ServerWorld` 广播回调承担，无独立管理器）和刷怪管理器现在由各 `ServerDimension` 持有。
+容器菜单工厂同样必须按**玩家所在维度**取世界（`getPlayerDimensionWorld(playerId)`）：曾硬编码 `getOverworld()`，玩家在下界/末地开容器时会在主世界同坐标找方块实体，表现为「容器打不开」或**串台显示另一个容器的内容**；同文件的关闭回调一直是正确写法，可对照。
+
+### 1.1 就绪信号：以日志行为准
+`StandaloneServer::_mainLoop` 在进入 tick 循环前打印
+`Server ready: accepting connections on port <n>`。它是「世界加载完成 + 入站包会被派发」的
+**唯一可靠信号**：TCP 监听在世界加载完成之前就已建立（`initialize()` 内 `startAccept`），
+此时连上来的客户端会拿到空注册表并静默挂起。自动化测试（`tests/e2e/bot`）以该行 + 端口号
+一致作为就绪判据。改动这行文本会同时影响 e2e 的 `servers/cubium.ts`。
 
 ### 2. 线程安全
 IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用 `m_clientDataMutex` 同步。

@@ -74,7 +74,9 @@ function serverProperties(options: VanillaServerOptions): string {
         ["simulation-distance", String(options.profile.simulationDistance)],
         ["max-players", String(options.maxPlayers)],
         ["enable-command-block", "false"],
-        ["allow-nether", "false"],
+        // 下界必须开启：containers/container_in_nether_is_not_overworld 要在两个维度放同坐标的
+        // 容器来判别"菜单工厂是否按玩家维度取世界"。Cubium 侧的三维度与世界预设无关，默认即有。
+        ["allow-nether", "true"],
         ["sync-chunk-writes", "false"],
     ];
     return `${entries.map(([key, value]) => `${key}=${value}`).join("\n")}\n`;
@@ -109,6 +111,9 @@ export async function startVanillaServer(options: VanillaServerOptions): Promise
             kind: "log",
             pattern: /Done \([\d.]+s\)! For help/,
             timeoutMs: SERVER_READY_TIMEOUT_MS,
+            // vanilla 的 Done 行不含端口号，无法用它核对监听者身份；其就绪行只在世界
+            // 加载完成后打印，且调用方已确认端口无人应答，故此处不做端口核对。
+            requirePort: null,
         },
         shutdown: { kind: "stdin", command: "stop", graceMs: 20_000 },
         logPath: path.join(options.runDir, "server.log"),

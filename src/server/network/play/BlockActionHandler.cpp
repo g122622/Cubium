@@ -309,7 +309,12 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
 
     // 对齐 vanilla ServerGamePacketListenerImpl.java:1315 awaitingPositionFromClient == null：
     // 玩家在等待传送确认期间拒绝交互，避免传送瞬间的位置竞态。
+    // 拒绝必须留痕：这个分支此前完全静默，而它一旦长期为真（例如客户端确认包丢了），
+    // 表现为「玩家传送后再也无法与任何方块交互」，从日志里完全看不出来。
     if (m_server.teleportManager().isWaitingForConfirm(playerId)) {
+        spdlog::warn("Rejecting UseItemOn from player {}: still waiting for teleport confirm (teleportId={})",
+            playerId,
+            m_server.teleportManager().getPendingTeleportId(playerId));
         return;
     }
 
@@ -340,6 +345,15 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
         if (!tryOpenCrafting()) {
             const auto useResult =
                 m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
+            // 交互被拒时必须留痕：这条链路（前置校验 → BlockInteractionManager → 方块
+            // onBlockActivated）此前每一层都可以静默 return，真机上表现为「右键毫无反应、
+            // 日志里什么都没有」，无法定位是哪一层拒的。
+            if (useResult.failed() || !useResult.value().success) {
+                spdlog::warn("Block use not handled for player {} at {}: {}",
+                    playerId,
+                    pos.toString(),
+                    useResult.failed() ? useResult.error().message() : useResult.value().message);
+            }
             // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
             if (useResult.success() && useResult.value().success && placementPlayer != nullptr) {
                 _triggerAnyBlockUse(*placementPlayer);

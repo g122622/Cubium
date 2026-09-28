@@ -107,6 +107,13 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
 
     // 验证距离
     if (!_canInteract(player, playerId, pos)) {
+        // 拒绝必须留痕并说明是哪一种失败：player 为空说明「玩家实体不在该维度的
+        // EntityManager 里」（跨维度传送后的典型症状），与「真的离得远」是两回事。
+        spdlog::warn("Interaction rejected for player {} at {}: {}",
+            playerId,
+            pos.toString(),
+            player == nullptr ? "player entity not found in player's dimension world"
+                              : "block is out of interaction range");
         return Error(ErrorCode::InvalidArgument, "Block too far away");
     }
 

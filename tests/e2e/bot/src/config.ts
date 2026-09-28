@@ -39,8 +39,14 @@ export const SERVER_READY_TIMEOUT_MS = 120_000;
 /** 服务端优雅停止等待时间（超时后硬杀）。 */
 export const SERVER_STOP_GRACE_MS = 3_000;
 
-/** 单个用例的默认超时（毫秒）。 */
-export const CASE_TIMEOUT_MS = 90_000;
+/**
+ * 单个用例的默认超时（毫秒）。
+ *
+ * 取 240 秒而不是更小：用例体内可能包含**一次服务端重启**（持久化用例要验证「落盘 → 重启 →
+ * 读回」，而本机一次完整启动约 70~90 秒），90 秒的旧值会让这类用例在重启尚未完成时就超时。
+ * 这个超时只用于兜住「用例挂死」，不用于度量性能。
+ */
+export const CASE_TIMEOUT_MS = 240_000;
 
 /** bot 连接超时（传给 mineflayer 的 checkTimeoutInterval）。 */
 export const BOT_TIMEOUT_MS = 30_000;

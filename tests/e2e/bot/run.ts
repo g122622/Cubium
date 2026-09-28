@@ -22,6 +22,7 @@ interface CliOptions {
     accept: boolean;
     keepArtifacts: boolean;
     withVanilla: boolean;
+    includeSkipped: boolean;
 }
 
 function parseArgs(argv: readonly string[]): CliOptions {
@@ -30,6 +31,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
     let accept = false;
     let keepArtifacts = false;
     let withVanilla = false;
+    let includeSkipped = false;
 
     for (const arg of argv) {
         if (arg.startsWith("--mode=")) {
@@ -46,6 +48,8 @@ function parseArgs(argv: readonly string[]): CliOptions {
             keepArtifacts = true;
         } else if (arg === "--with-vanilla") {
             withVanilla = true;
+        } else if (arg === "--include-skipped") {
+            includeSkipped = true;
         } else if (arg === "--help" || arg === "-h") {
             console.log(
                 [
@@ -55,6 +59,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
                     "  --accept                      refresh 模式下确认写入基线",
                     "  --keep-artifacts              保留成功用例的工作目录",
                     "  --with-vanilla                把 vanilla 服务端纳入运行范围",
+                    "  --include-skipped             连 skipReason 非空的用例也一起跑（验证服务端修复时用）",
                 ].join("\n"),
             );
             process.exit(0);
@@ -65,7 +70,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
     // diff 模式必须两侧都跑；其余模式由 --with-vanilla 决定。
     const withVanillaEffective = withVanilla || mode === "diff";
     void withVanillaEffective;
-    return { mode, caseFilter, accept, keepArtifacts, withVanilla: withVanillaEffective };
+    return { mode, caseFilter, accept, keepArtifacts, withVanilla: withVanillaEffective, includeSkipped };
 }
 
 async function main(): Promise<void> {
@@ -79,6 +84,7 @@ async function main(): Promise<void> {
         accept: cli.accept,
         keepArtifacts: cli.keepArtifacts,
         enabledServers,
+        includeSkipped: cli.includeSkipped,
     });
     if (summary.exitCode !== 0) {
         console.log(`诊断产物目录：build/e2e/artifacts/${summary.runId}/`);

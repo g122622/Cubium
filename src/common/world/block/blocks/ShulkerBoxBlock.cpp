@@ -202,7 +202,11 @@ bool ShulkerBoxBlock::canOpen(IWorld& world, const BlockPos& pos, Direction faci
 
 AxisAlignedBB ShulkerBoxBlock::getOpenBoundingBox(const BlockPos& pos, Direction facing)
 {
-    // 潜影盒打开时会向朝向方向扩展
+    // 打开状态的碰撞盒 = 方块本体朝 facing 方向外扩 0.5 格的那一块，**不含方块本体自身**。
+    // "不含本体"是关键：canOpen() 用 getBlockCollisions(本盒) 是否为空判定能否打开，而方块本体
+    // 一定实心——本盒只要与本体有任何重叠，canOpen() 就恒为 false，潜影盒永远打不开。
+    // 此前实现把朝向与反方向各外扩 0.5、再从反方向收缩 1.0（收缩量没扣掉那次外扩），
+    // 结果本盒与本体重叠 0.5 格，表现为「右键潜影盒毫无反应且无任何日志」。
     f32 minX = static_cast<f32>(pos.x);
     f32 minY = static_cast<f32>(pos.y);
     f32 minZ = static_cast<f32>(pos.z);
@@ -210,26 +214,32 @@ AxisAlignedBB ShulkerBoxBlock::getOpenBoundingBox(const BlockPos& pos, Direction
     f32 maxY = static_cast<f32>(pos.y + 1);
     f32 maxZ = static_cast<f32>(pos.z + 1);
 
-    // 获取相反方向的偏移
-    Direction opposite = Directions::opposite(facing);
+    // 朝向外扩 0.5：只移动 facing 方向的那一面，反方向那一面保持在本体边界上。
+    const f32 offsetX = static_cast<f32>(Directions::xOffset(facing)) * 0.5f;
+    const f32 offsetY = static_cast<f32>(Directions::yOffset(facing)) * 0.5f;
+    const f32 offsetZ = static_cast<f32>(Directions::zOffset(facing)) * 0.5f;
 
-    // 先向朝向方向扩展 0.5，然后向反方向收缩 1.0
-    f32 offsetX = static_cast<f32>(Directions::xOffset(facing)) * 0.5f;
-    f32 offsetY = static_cast<f32>(Directions::yOffset(facing)) * 0.5f;
-    f32 offsetZ = static_cast<f32>(Directions::zOffset(facing)) * 0.5f;
+    if (offsetX > 0) {
+        maxX += offsetX;
+    } else if (offsetX < 0) {
+        minX += offsetX;
+    }
+    if (offsetY > 0) {
+        maxY += offsetY;
+    } else if (offsetY < 0) {
+        minY += offsetY;
+    }
+    if (offsetZ > 0) {
+        maxZ += offsetZ;
+    } else if (offsetZ < 0) {
+        minZ += offsetZ;
+    }
 
-    // 扩展
-    minX -= offsetX;
-    minY -= offsetY;
-    minZ -= offsetZ;
-    maxX += offsetX;
-    maxY += offsetY;
-    maxZ += offsetZ;
-
-    // 向反方向收缩（只保留扩展部分）
-    f32 shrinkX = static_cast<f32>(Directions::xOffset(opposite));
-    f32 shrinkY = static_cast<f32>(Directions::yOffset(opposite));
-    f32 shrinkZ = static_cast<f32>(Directions::zOffset(opposite));
+    // 反方向收缩 1.0：把反方向那一面推到本体的另一侧，从而只留下外扩出来的那 0.5 格。
+    const Direction opposite = Directions::opposite(facing);
+    const f32 shrinkX = static_cast<f32>(Directions::xOffset(opposite));
+    const f32 shrinkY = static_cast<f32>(Directions::yOffset(opposite));
+    const f32 shrinkZ = static_cast<f32>(Directions::zOffset(opposite));
 
     if (shrinkX > 0) {
         maxX -= shrinkX;

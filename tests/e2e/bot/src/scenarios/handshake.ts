@@ -95,6 +95,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "bot 收到 update_health 后触发 spawn（服务端必须主动下发 set_health）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace }): Promise<Record<string, unknown>> {
             // runner 已等到 spawn，此处断言的是「spawn 为何能发生」——mineflayer 的 spawn
             // 完全由首个 health>0 的 update_health 驱动（lib/plugins/health.js:18）。
@@ -117,6 +119,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "五个协议阶段的包序列完整（Login → Configuration → Play）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ trace }): Promise<Record<string, unknown>> {
             // 逐段验证：Login 阶段必须有 success + compress（本服压缩阈值为 256）；
             // Configuration 阶段必须有 select_known_packs 与 finish_configuration；
@@ -154,6 +158,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "registry_data 可被客户端解码（服务端须按客户端声明下发 NBT）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, trace }): Promise<Record<string, unknown>> {
             // 该用例同时是「客户端未声明 minecraft:core 时服务端必须下发完整 NBT」的回归保护：
             // 若服务端对未声明的客户端发 value 缺失的条目，客户端会在解析时抛
@@ -176,6 +182,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "login 包建立的本地实体自洽（bot.entities 中无重复自身条目）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot }): Promise<Record<string, unknown>> {
             // 服务端 login 包的首字段在 vanilla 语义里是玩家**实体实例 id**，而非玩家注册 id——
             // 两者是各自独立的递增序列。本用例只做自洽性检查（自身实体可被该 id 索引到）；
@@ -205,6 +213,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         // 只预连一个：第二个必须在「已制造出非玩家实体」之后才加入，否则两条 id 序列
         // 同步递增，即便服务端填错字段也无从分辨。
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, connectBot }): Promise<Record<string, unknown>> {
             // 服务端的玩家**注册 id**（按加入顺序分配）与**实体实例 id**（每创建一个实体分配）
             // 是两条独立递增的序列。只连两个玩家时它们同步推进（1↔1、2↔2），把 login 的
@@ -252,6 +262,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "实体属性随 spawn 下发（update_attributes）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ trace }): Promise<Record<string, unknown>> {
             // 属性包在实体进入玩家视野时下发一次完整快照。客户端据此才拿得到影响行为的
             // 属性值（如 block_break_speed 决定挖掘耗时）；缺了它客户端只能用本地默认值，
@@ -269,6 +281,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "Tab 列表包含自身（服务端须发送 player_info_update）",
         servers: ["cubium"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot }): Promise<Record<string, unknown>> {
             // player_info_update(cb 68) 的 IR/codec/协议表登记三层齐备，但服务端此前零发送点，
             // 导致 bot.players 为空。本用例是该缺口的回归保护。
@@ -291,6 +305,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         // 必须等第一个 bot 就绪后再连第二个：单向广播（只把条目发给玩家本人）在单 bot 下
         // 与双向广播不可区分，只有让「先加入者的列表里出现后加入者」才能证伪。
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, connectBot }): Promise<Record<string, unknown>> {
             const second = await connectBot();
 
@@ -323,6 +339,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "离场广播（断开者的条目从他人 Tab 列表移除）",
         servers: ["cubium", "vanilla"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot, connectBot }): Promise<Record<string, unknown>> {
             const second = await connectBot();
             const departedName = second.username;
@@ -349,6 +367,8 @@ export const handshakeCases: readonly CaseDefinition[] = [
         title: "客户端主动断开后服务端正常收尾",
         servers: ["cubium"],
         botCount: 1,
+        opPlayers: false,
+        skipReason: null,
         async run({ bot }): Promise<Record<string, unknown>> {
             await delay(200);
             const ended = waitForEvent(bot, "end", {
