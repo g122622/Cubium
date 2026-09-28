@@ -214,6 +214,58 @@ tests/fuzz/
 
 ---
 
+### 7.4 NBT 二进制解析信任声明长度（内存耗尽，已修）
+
+- **位置**：`src/common/util/nbt/Nbt.hpp` 的 `load_list` / `load_array_bin`、
+  `src/common/util/nbt/Nbt.cpp` 的 `read_string_bin`。
+- **触发**：列表/数组的声明元素数、字符串的声明长度直接来自线上，未与流中剩余字节数
+  比对即 `reserve` / `resize`。
+- **实测**：104 字节的 `SetCreativeModeSlot` 报文（Serverbound）触发
+  `malloc(10745544743)`（10.7 GB）。
+- **修复**：新增 `remainingStreamBytes` + `validateBinaryElementCount`，在分配前校验
+  声明长度不超过剩余可读字节数（每个元素至少占 1 字节）；`reserve` 预分配量另加
+  `MAX_NBT_RESERVE_HINT` 上限，避免元素类型远大于 1 字节时的预分配放大。
+
+### 7.5 解码路径异常逃逸（进程崩溃，已修）
+
+- **位置**：`IdDispatchCodec::decode`（所有包 codec 的唯一分发点）、
+  `nbt_io::readCompound`。
+- **触发**：存量 NBT 库以异常报错（如非法 tag id 触发 `std::out_of_range`），而异常
+  沿解码路径逃逸到 `std::terminate` 即终止进程。
+- **修复**：在上述两个边界把异常统一转成 `Result` 协议错误。
+- **契约变更**：单测 `NbtIo.ReadCompoundMalformedThrows` 原本断言"未捕获"这一缺陷，
+  已改为断言返回 `InvalidData` 错误。
+
+### 7.6 断言处理不可信输入（远程拒绝服务，已修）
+
+- **位置**：`src/common/util/nbt/Nbt.cpp` 的 `read_list_content_bridge<TagId::End>`。
+- **触发**：列表的元素类型字节不是任何合法 `TagId` 时落到 `MC_ASSERT_RELEASE_MSG`
+  兜底分支。该字节完全由对端控制，而 `MC_ASSERT_RELEASE` 在 Release 下同样启用、
+  直接终止进程。
+- **修复**：改为抛错（保留 `id == End` 这一合法空列表分支不动），由 §7.5 的边界转成
+  `Result` 错误。
+
+### 7.7 【未决】畸形 NBT 的异常路径在 fuzz 构建下仍以 int3 终止
+
+- **现象**：两个种子（见 `tests/fuzz/known-issues/`）在 fuzz 构建下以
+  `STATUS_BREAKPOINT (0x80000003)` 终止；`MC_FUZZ_ASAN=OFF`（无 ASan/UBSan）时**同样
+  复现**，故与 Sanitizer 无关。
+- **已排除**：编译标志差异（与 `mc_common` 逐项对比仅差
+  `-fsanitize=fuzzer-no-link -O1 -fno-omit-frame-pointer`，无异常处理相关项）；
+  `-D_HAS_EXCEPTIONS=0`（只作用于 libFuzzer 自身 TU）；PCH 差异（PCH 未定义任何异常宏）。
+- **反向证据**：等价路径在**无插桩**的 `mc_tests` 中行为正确
+  （`NbtIo.ReadCompoundMalformedReturnsErrorInsteadOfThrowing` 稳定通过），说明产品侧
+  的 `Result` 契约已成立。
+- **已定位**：ASan 构建下该地址符号化为 `nbt_io::readCompound` 的异常处理区。
+- **下一步**：本构建的 `llvm-symbolizer` / `llvm-objdump` 对该地址符号化失败，需先在
+  VEH 报告器里改用 `RtlCaptureStackBackTrace` 输出原始返回地址链，再离线符号化；
+  或对比「仅开覆盖插桩、不链 libFuzzer 运行时」的构建，以确定是覆盖插桩还是运行时
+  引入的问题。
+- **当前处置**：两个种子移入 `tests/fuzz/known-issues/`，**不放入 `corpus/`**，以免
+  每次 fuzz 启动即命中并中断运行。
+
+---
+
 ## 8. 容易踩的坑
 
 > 本节是本文档最值得优先阅读的部分。以下每一条都是实际踩过的。
@@ -295,7 +347,24 @@ libFuzzer 的 `HandleMalloc`（`FuzzerLoop.cpp:125-136`）在 `DumpCurrentUnit` 
 `PrintStackTrace()`。用 `Select-Object -Last N` 或按关键字过滤输出时极易把这段栈丢掉，
 误判为"看不到调用栈"。抓现场时应把完整输出落盘再检索。
 
-### 8.6 `-malloc_limit_mb` 缺省会回退为 `rss_limit_mb`
+### 8.6 trap 类异常对 libFuzzer 不可见
+
+libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异常
+（`STATUS_BREAKPOINT`，`0x80000003`）不经 SEH、也不触发死回调，进程**静默死亡**：
+既不打印栈回溯，也不落盘复现用例，在 fuzz 输出里只表现为"无任何提示地退出"
+（`[exit code: ...]`，退出码 `-2147483645`）。
+
+`tests/fuzz/support/FuzzSupport.cpp` 的异常现场报告器即为此而设：用
+`AddVectoredExceptionHandler` 挂在分发最前端，打印异常地址与模块内偏移（供离线
+`llvm-symbolizer` 符号化）。三条设计约束都是踩过的：
+
+1. **只处理 `0x80000003`**。把 `0xC0000005` 等也拦下来放行会与 ASan 的处理器相互
+   干扰，表现为反复故障（hang）；`0xE06D7363` 是 C++ 抛出点，属正常控制流。
+2. **绝不在处理器里取栈**。在故障现场调用 `StackWalk64`（`CrashHandler::captureStackTraceFromSeh`）
+   可能再次故障，从而递归重入本处理器 —— 一度表现为无限打印与 hang。
+3. **报告后立即卸载自身**，并加防重入标志。
+
+### 8.7 `-malloc_limit_mb` 缺省会回退为 `rss_limit_mb`
 
 见 `FuzzerDriver.cpp:718-720`：`malloc_limit_mb` 未设置时取 `rss_limit_mb`（默认 2048MB）。
 即**单次分配 ≥2GB 就会中止**。这既是发现 OOM 缺陷的主力手段，也意味着
@@ -330,4 +399,4 @@ libFuzzer 的 `HandleMalloc`（`FuzzerLoop.cpp:125-136`）在 `DumpCurrentUnit` 
 | C | 进程内状态机会话 harness（消息序列变异 + 状态反馈，含 `MinecraftServer` 无头骨架以覆盖 Play 业务层） | 待做 |
 | D | WSL2/Linux 上基于 AFLnet 的真实网络 fuzz | 待做 |
 | E | Cubium vs vanilla 差分对撞（抓"不崩溃但语义错误"的缺陷） | 待做 |
-| F | 修复 §7 的缺陷并补回归用例 | 待批准 |
+| F | 修复 §7 的缺陷并补回归用例 | ✅ 已修 §7.1~7.6；§7.7 未决 |

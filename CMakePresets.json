@@ -125,6 +125,7 @@
       "inherits": "windows-clang-relwithdebinfo",
       "cacheVariables": {
         "MC_BUILD_FUZZERS": "ON",
+        "MC_FUZZ_ASAN": "ON",
         "MC_FUZZ_LIBFUZZER_SOURCE_DIR": "E:/dev/llvm-project/compiler-rt/lib/fuzzer"
       }
     },

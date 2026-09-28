@@ -737,8 +737,15 @@ std::unique_ptr<list_tag> read_list_content_bridge(TagId id, std::istream& input
 template <>
 std::unique_ptr<list_tag> read_list_content_bridge<TagId::End>(TagId id, std::istream& input)
 {
-    MC_ASSERT_RELEASE_MSG(id == TagId::End, "Expected End tag id in list content bridge");
-    return list_by<TagId::End>::read_content(input);
+    // id == End 是合法情况：NBT 空列表的元素类型字节就是 End(0)。
+    if (id == TagId::End) {
+        return list_by<TagId::End>::read_content(input);
+    }
+    // 其余情况说明该元素类型字节不是任何合法 TagId（分发自 LongArray 逐级降到 End）。
+    // 该字节来自不可信输入，绝不能用断言处理：MC_ASSERT_RELEASE 直接终止进程，使畸形
+    // 报文成为远程拒绝服务。改为抛错——本库的错误模型就是异常，且网络侧调用点
+    // （nbt_io::readCompound / IdDispatchCodec::decode）已统一把异常转成 Result 错误。
+    throw std::runtime_error("invalid list element tag id: " + std::to_string(static_cast<int>(id)));
 }
 
 std::unique_ptr<list_tag> read_list_content(TagId tid, std::istream& input)
