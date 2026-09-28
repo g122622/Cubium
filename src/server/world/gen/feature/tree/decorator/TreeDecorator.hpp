@@ -38,9 +38,12 @@
 
 namespace mc {
 
-// ChunkPrimer 属于 mc 命名空间；须在进入 decorator 命名空间前声明，
-// 否则会在 decorator 内声明出一个同名但不同的类型。
+// ChunkPrimer 实际定义在 mc::world::chunk；须用限定前向声明 + using 引入，
+// 否则会在 mc 下声明出一个同名但不同的类型，使各 override 退化为隐藏重载。
+namespace world::chunk {
 class ChunkPrimer;
+}
+using world::chunk::ChunkPrimer;
 
 namespace world {
 namespace gen {
