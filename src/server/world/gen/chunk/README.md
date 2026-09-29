@@ -313,6 +313,16 @@ if (noiseChunk.aquifer() == nullptr) {
 - **`toChunkData()` 对一个 primer 只能调用一次**，重复调用会命中入口断言。
 - **`ChunkPrimer::getHeightmap(HeightmapType)` 的非 const 重载在收尾后会断言失败**：可变访问只在生成期合法，收尾后的高度图维护由 `ChunkData::updateHeightMap` 承担。`updateHeightmap()` 会自动分流到 `ChunkData`，正常路径不会踩到。
 - **邻居读到的高度图从"冻结快照"变为"实时值"**：收尾前邻居读 primer 的副本（快照于收尾时刻），收尾后读 `ChunkData` 的槽位，会被后续世界编辑更新。这与原版一致，但意味着同一份种子在"先编辑邻居再生成新区块"时结果会不同。
-- **存档命中的 primer 生物群系语义被修正**：该路径走 `shareChunkData()`，primer 的 `m_biomes` 从未被填充（全 0），此前 FULL 邻居查到的是生物群系 0；委托后改为读存档里的真实值。
+
+### 14. 存档路径的 primer 不持有 biomes / heightmaps 副本
+
+`ChunkPrimer` 接收 `ChunkData` 的两个构造（`unique_ptr` / `shared_ptr`，分别对应存档命中的 owner 与 fan-out waiter 路径）**不在 primer 侧保留 `m_biomes` / `m_heightmaps` 副本**——这两个成员在该路径上恒为 `nullptr`，所有读取直接委托 `ChunkData`。构造期只用一个临时栈数组重建高度图，写入 `ChunkData` 后即随栈帧归还。相比生成路径，每区块省约 11 KiB，且省掉了一份长期驻留的副本。
+
+要点：
+
+- **生物群系**：存档的 `ChunkData` 已带真实生物群系，而 primer 副本从未被填充（默认全 0）。分配它会让 FULL 邻居经 `getBiomeAtBlock` 读到生物群系 0，而不是存档真实值。故该路径根本不分配。
+- **高度图**：native 段格式（`SectionCodec`）**不持久化高度图**，所以必须重建；外来格式（Java Anvil / Bedrock）的高度图已由读取器经 `setHeightmapFromStorage` 写入。`_rebuildHeightmapsIntoChunkData()` 因此只重建 `isHeightmapInitialized()` 为 false 的类型，避免用重算值覆盖存档真实值。
+- **构造期同时把 `m_persistedStatus` 置为 FULL**：它决定后续方块写入维护哪些高度图（POST_FEATURES 全量），留作 EMPTY 会让运行时编辑只更新 WG 两张高度图。
+- **`getHeightmap(HeightmapType)` 的非 const 重载在存档路径上同样会断言**：该路径的高度图只在构造期写入 `ChunkData`，此后没有可变访问需求。需要修改时改走 `ChunkData`。
 
 **回归测试**：`tests/unit/common/test_chunk_generation.cpp` 的 `ChunkPrimerTest.ToChunkData_ReleasesHeightmapsAndDelegatesReads` 与 `..._ReleasesBiomesAndDelegatesReads`——通过"直接改 `ChunkData` 后 primer 应立即看到新值"同时锁定释放与委托两件事。

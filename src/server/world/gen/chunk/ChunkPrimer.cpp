@@ -82,6 +82,75 @@ void initializeAllHeightmaps(std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>& height
     }
 }
 
+/**
+ * @brief 从方块数据重建高度图（只处理 enabled 标记为 true 的类型）
+ *
+ * 生成路径（ChunkPrimer::updateAllHeightmaps）与存档加载路径
+ * （ChunkPrimer::_rebuildHeightmapsIntoChunkData）共用本实现，避免两处判定逻辑漂移。
+ *
+ * 自顶向下扫描每列，第一个计入该类型的方块写入 Y+1；enabled 的类型全部判定完毕后
+ * 提前跳出该列。enabled 为 false 的槽位保持原值不动——生成路径传全 true（等价于
+ * 全量重建），存档路径只传尚未初始化的类型，从而保留存档里已有的真实高度图。
+ */
+void rebuildHeightmaps(const ChunkData& data,
+    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>& heightmaps,
+    const std::array<bool, HEIGHTMAP_TYPE_COUNT>& enabled)
+{
+    // 重建前先重置 enabled 的槽位，避免雕刻/替换方块后残留旧高度。
+    // 按枚举值直接索引（enabled 与 heightmaps 都以 HeightmapType 为下标），
+    // 不依赖 ALL_HEIGHTMAP_TYPES 的元素顺序。
+    for (size_t i = 0; i < heightmaps.size(); ++i) {
+        if (enabled[i]) {
+            heightmaps[i] = Heightmap(static_cast<HeightmapType>(i));
+        }
+    }
+
+    // resolved 的初始状态：enabled 的类型待判定（false），disabled 的类型直接视为已定值。
+    // 每列从该模板出发，扫描中把命中的类型翻成 true，全翻完即可跳出该列。
+    std::array<bool, ALL_HEIGHTMAP_TYPES.size()> initialResolved{};
+    i32 totalUnresolved = 0;
+    for (size_t i = 0; i < ALL_HEIGHTMAP_TYPES.size(); ++i) {
+        const size_t typeIndex = static_cast<size_t>(ALL_HEIGHTMAP_TYPES[i]);
+        initialResolved[i] = !enabled[typeIndex];
+        if (enabled[typeIndex]) {
+            ++totalUnresolved;
+        }
+    }
+    if (totalUnresolved == 0) {
+        return; // 无需重建任何类型
+    }
+
+    for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
+        for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
+            auto resolved = initialResolved;
+            i32 unresolvedCount = totalUnresolved;
+
+            for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
+                if (unresolvedCount <= 0) {
+                    break;
+                }
+
+                const BlockState* state = data.getBlockState(x, y, z);
+                if (!state || state->isAir()) {
+                    continue;
+                }
+
+                for (size_t i = 0; i < ALL_HEIGHTMAP_TYPES.size(); ++i) {
+                    if (resolved[i]) {
+                        continue;
+                    }
+
+                    auto& heightmap = heightmaps[static_cast<size_t>(ALL_HEIGHTMAP_TYPES[i])];
+                    if (heightmap.update(x, y, z, state)) {
+                        resolved[i] = true;
+                        --unresolvedCount;
+                    }
+                }
+            }
+        }
+    }
+}
+
 } // namespace
 
 // ============================================================================
@@ -94,6 +163,7 @@ ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
     , m_z(z)
     , m_data(std::make_shared<ChunkData>(x, z))
     , m_chunkStatus(&ChunkStatuses::EMPTY)
+    , m_persistedStatus(&ChunkStatuses::EMPTY)
     , m_status(ChunkLoadStatus::Empty)
     , m_biomes(std::make_unique<BiomeContainer>())
     , m_heightmaps(std::make_unique<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>>())
@@ -107,13 +177,10 @@ ChunkPrimer::ChunkPrimer(std::unique_ptr<ChunkData> data)
     , m_z(data->z())
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
+    , m_persistedStatus(&ChunkStatuses::FULL)
     , m_status(ChunkLoadStatus::Loaded)
-    , m_biomes(std::make_unique<BiomeContainer>())
-    , m_heightmaps(std::make_unique<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>>())
 {
-    MC_ASSERT_RELEASE(m_data != nullptr);
-    initializeAllHeightmaps(*m_heightmaps);
-    updateAllHeightmaps();
+    _rebuildHeightmapsIntoChunkData();
 }
 
 ChunkPrimer::ChunkPrimer(std::shared_ptr<ChunkData> data)
@@ -122,13 +189,39 @@ ChunkPrimer::ChunkPrimer(std::shared_ptr<ChunkData> data)
     , m_z(data->z())
     , m_data(std::move(data))
     , m_chunkStatus(&ChunkStatuses::FULL)
+    , m_persistedStatus(&ChunkStatuses::FULL)
     , m_status(ChunkLoadStatus::Loaded)
-    , m_biomes(std::make_unique<BiomeContainer>())
-    , m_heightmaps(std::make_unique<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>>())
+{
+    _rebuildHeightmapsIntoChunkData();
+}
+
+void ChunkPrimer::_rebuildHeightmapsIntoChunkData()
 {
     MC_ASSERT_RELEASE(m_data != nullptr);
-    initializeAllHeightmaps(*m_heightmaps);
-    updateAllHeightmaps();
+
+    // 只重建"尚未被填充"的类型：外来格式（Java Anvil / Bedrock）的高度图已由读取器
+    // 经 setHeightmapFromStorage 写入并置位 m_heightmapInitialized，重算会覆盖存档真实值；
+    // native 段格式不持久化高度图，对应槽位为未初始化，必须在此重建，否则
+    // getTopBlockY 会回退到未初始化的 WorldSurface 槽位，使 ServerWorld::getHeight
+    // 退化为 MIN_BUILD_HEIGHT。
+    std::array<bool, HEIGHTMAP_TYPE_COUNT> enabled{};
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        enabled[i] = !m_data->isHeightmapInitialized(static_cast<HeightmapType>(i));
+    }
+
+    // 临时高度图数组只在构造期存在，写入 ChunkData 后随栈帧归还，不进入稳态驻留集。
+    // 无需预初始化：rebuildHeightmaps 会重置所有 enabled 槽位，disabled 槽位不会被写入。
+    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT> rebuilt;
+    rebuildHeightmaps(*m_data, rebuilt, enabled);
+
+    // 存档区块已是完整持久化状态，重建结果整列写入 ChunkData 并置位 m_heightmapInitialized
+    // （setHeightmapFromStorage 绕过 _isOpaque 判定）。
+    for (size_t i = 0; i < rebuilt.size(); ++i) {
+        if (!enabled[i]) {
+            continue;
+        }
+        m_data->setHeightmapFromStorage(static_cast<HeightmapType>(i), rebuilt[i].getData());
+    }
 }
 
 // ============================================================================
@@ -226,8 +319,8 @@ std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> ChunkPrimer::getSecti
 
 BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
-    // FULL 收尾后本地高度图已释放。此时 ChunkData 的 7 张高度图与收尾瞬间的本地副本逐位相同
-    // （toChunkData 全量写入并置位 m_heightmapInitialized），委托读取即可。
+    // 本地高度图为空有两个来源：FULL 收尾（toChunkData 释放）与存档构造（从不分配）。
+    // 两者此时 ChunkData 的 7 张高度图都已全量写入并置位 m_heightmapInitialized，委托即可。
     // 副作用：此后世界编辑走 ChunkData::updateHeightMap，邻居读到的是实时值而非冻结快照。
     if (!m_heightmaps) {
         return m_data->getTopBlockY(type, x, z);
@@ -242,7 +335,7 @@ BlockCoord ChunkPrimer::getTopBlockY(HeightmapType type, BlockCoord x, BlockCoor
 
 BlockCoord ChunkPrimer::getHeightmapFirstAvailable(HeightmapType type, BlockCoord x, BlockCoord z) const
 {
-    // FULL 收尾后委托 ChunkData，理由同 getTopBlockY。
+    // 本地高度图为空时委托 ChunkData，理由同 getTopBlockY。
     if (!m_heightmaps) {
         return m_data->getHeightmapFirstAvailable(type, x, z);
     }
@@ -255,7 +348,7 @@ BlockCoord ChunkPrimer::getHeightmapFirstAvailable(HeightmapType type, BlockCoor
 
 void ChunkPrimer::updateHeightmap(HeightmapType type, BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
 {
-    // FULL 收尾后本地高度图已释放，维护职责移交 ChunkData（含 m_heightmapInitialized 置位）
+    // 本地高度图为空时维护职责移交 ChunkData（含 m_heightmapInitialized 置位）
     if (!m_heightmaps) {
         m_data->updateHeightmap(type, x, y, z, state);
         return;
@@ -294,8 +387,10 @@ void ChunkPrimer::setPersistedStatus(const ChunkStatus& target)
 
 BiomeId ChunkPrimer::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
 {
-    // FULL 收尾后本地副本已释放（数据已转入 ChunkData），委托底层。邻居在 FEATURES 阶段
-    // 经 WorldGenRegion 逐点读取本区块的 biome，这条路径必须始终有效。
+    // 本地副本为空有两个来源：FULL 收尾（toChunkData 释放）与存档构造（从不分配，因为
+    // 存档已带真实生物群系）。两者都委托底层 ChunkData。邻居在 FEATURES 阶段经
+    // WorldGenRegion 逐点读取本区块的 biome，这条路径必须始终有效——若不置空存档路径的
+    // 副本，这里会读到未填充的全 0 容器（生物群系 0）而非存档真实值。
     if (!m_biomes) {
         return m_data->getBiomeAtBlock(x, y, z);
     }
@@ -308,8 +403,9 @@ BiomeId ChunkPrimer::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) c
 
 Heightmap& ChunkPrimer::getHeightmap(HeightmapType type)
 {
-    // 可变访问只在生成期（FULL 收尾之前）合法：收尾后本地高度图已释放，对高度图的后续
-    // 维护由 ChunkData::updateHeightMap 承担（整列重算）。生成期调用者均早于 FULL。
+    // 可变访问只在生成期（FULL 收尾之前）合法：收尾后本地高度图已释放，存档路径更是
+    // 从未分配，两条路径对高度图的后续维护都由 ChunkData 承担（整列重算 / 构造期写入）。
+    // 生成期调用者均早于 FULL。
     MC_ASSERT_RELEASE(m_heightmaps != nullptr);
     return (*m_heightmaps)[static_cast<size_t>(type)];
 }
@@ -324,42 +420,12 @@ const Heightmap& ChunkPrimer::getHeightmap(HeightmapType type) const
 
 void ChunkPrimer::updateAllHeightmaps()
 {
-    // 全量重建只在生成期（含 toChunkData 收尾）调用，收尾后本地高度图已释放且不再需要重建
+    // 全量重建只在生成期（含 toChunkData 收尾）调用：收尾后本地高度图已释放，存档路径
+    // 则在构造期用临时数组重建一次即可，都不需要（也不允许）再走这里。
     MC_ASSERT_RELEASE(m_heightmaps != nullptr);
-    auto& heightmaps = *m_heightmaps;
-
-    // 每次重建前先重置所有高度图，避免雕刻/替换方块后残留旧高度。
-    initializeAllHeightmaps(heightmaps);
-
-    for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
-        for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
-            std::array<bool, ALL_HEIGHTMAP_TYPES.size()> resolved{};
-            i32 unresolvedCount = static_cast<i32>(ALL_HEIGHTMAP_TYPES.size());
-
-            for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
-                if (unresolvedCount <= 0) {
-                    break;
-                }
-
-                const BlockState* state = m_data->getBlockState(x, y, z);
-                if (!state || state->isAir()) {
-                    continue;
-                }
-
-                for (size_t i = 0; i < ALL_HEIGHTMAP_TYPES.size(); ++i) {
-                    if (resolved[i]) {
-                        continue;
-                    }
-
-                    auto& heightmap = heightmaps[static_cast<size_t>(ALL_HEIGHTMAP_TYPES[i])];
-                    if (heightmap.update(x, y, z, state)) {
-                        resolved[i] = true;
-                        --unresolvedCount;
-                    }
-                }
-            }
-        }
-    }
+    std::array<bool, HEIGHTMAP_TYPE_COUNT> enabled;
+    enabled.fill(true);
+    rebuildHeightmaps(*m_data, *m_heightmaps, enabled);
 }
 
 void ChunkPrimer::markPosForPostprocessing(BlockCoord x, BlockCoord y, BlockCoord z)
@@ -462,8 +528,7 @@ std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
     // 释放 primer 侧的生物群系与高度图副本（合计约 10 KiB/区块）。二者已在上方全量写入
     // m_data 且逐位相同，此后的读取一律经 getBiomeAtBlock/getTopBlockY/
     // getHeightmapFirstAvailable 委托 m_data，邻居经 WorldGenRegion 读取仍得到有效数据。
-    // 注意必须排在上面的拷贝与 m_chunkStatus 置 FULL 之后：委托分支以 status 与
-    // 指针是否为空共同判定，先置空再拷贝会读到空数据。
+    // 委托分支只看本地指针是否为空，故必须排在上面的拷贝之后：先置空再拷贝会读到空数据。
     m_biomes.reset();
     m_heightmaps.reset();
 

@@ -315,6 +315,83 @@ TEST_F(ChunkPrimerTest, ToChunkData_ReleasesBiomesAndDelegatesReads)
     EXPECT_EQ(primer.getBiomes().getBiome(5, 0, 0, 0), Biomes::Plains);
 }
 
+// 存档路径的 primer（接收 ChunkData 的两个构造）不在 primer 侧保留 biomes / heightmaps
+// 副本，所有读取直接委托 ChunkData。下面三个用例锁定该路径的三件事：高度图按方块数据
+// 重建、已初始化的高度图不被覆盖、生物群系读的是存档真实值。
+
+TEST_F(ChunkPrimerTest, StorageConstructedPrimer_RebuildsHeightmapsIntoChunkData)
+{
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+
+    // 模拟 native 段格式读出的区块：方块数据就绪，高度图未初始化（native 格式不持久化它）
+    auto data = std::make_unique<ChunkData>(0, 0);
+    data->setBlockStateId(2, 40, 3, stone->stateId());
+    ASSERT_TRUE(data->isHeightmapInitialized(HeightmapType::WorldSurface)); // 构造时恒为 true
+    ASSERT_FALSE(data->isHeightmapInitialized(HeightmapType::WorldSurfaceWG));
+
+    ChunkData* raw = data.get();
+    ChunkPrimer primer(std::move(data));
+
+    // 高度图必须按方块数据重建并写入 ChunkData（否则 getTopBlockY 会回退到空槽位返回 minY）
+    EXPECT_TRUE(raw->isHeightmapInitialized(HeightmapType::WorldSurfaceWG));
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, 2, 3), 40);
+    EXPECT_EQ(primer.getHeightmapFirstAvailable(HeightmapType::WorldSurfaceWG, 2, 3), 41);
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::MotionBlocking, 2, 3), 40);
+
+    // 空列：重建后应保持哨兵语义，getTopBlockY 回退为 MIN_BUILD_HEIGHT
+    EXPECT_EQ(primer.getHeightmapFirstAvailable(HeightmapType::WorldSurfaceWG, 0, 0), Heightmap::NO_BLOCK_SENTINEL);
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, 0, 0), mc::world::MIN_BUILD_HEIGHT);
+}
+
+TEST_F(ChunkPrimerTest, StorageConstructedPrimer_KeepsStoredHeightmap)
+{
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+
+    // 模拟外来格式（Java Anvil）读出的区块：读取器已把存档高度图写入并置位 initialized
+    auto data = std::make_unique<ChunkData>(0, 0);
+    data->setBlockStateId(2, 40, 3, stone->stateId());
+    std::array<BlockCoord, Heightmap::SIZE> stored{};
+    stored.fill(Heightmap::NO_BLOCK_SENTINEL);
+    stored[3 * mc::world::CHUNK_WIDTH + 2] = 70; // 与方块数据(41)刻意不同
+    data->setHeightmapFromStorage(HeightmapType::WorldSurface, stored);
+
+    ChunkData* raw = data.get();
+    ChunkPrimer primer(std::move(data));
+
+    // 已初始化的槽位不得被重算值覆盖，否则存档里的高度图会静默失真
+    EXPECT_EQ(raw->getHeightmapData(HeightmapType::WorldSurface)[3 * mc::world::CHUNK_WIDTH + 2], 70);
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurface, 2, 3), 69);
+}
+
+TEST_F(ChunkPrimerTest, StorageConstructedPrimer_DelegatesBiomesToChunkData)
+{
+    // 模拟存档区块：生物群系已由存储层写入 ChunkData
+    auto data = std::make_unique<ChunkData>(0, 0);
+    BiomeContainer desert;
+    for (i32 section = 0; section < mc::world::CHUNK_SECTIONS; ++section) {
+        for (i32 sx = 0; sx < BiomeContainer::HORIZ_SIZE; ++sx) {
+            for (i32 sy = 0; sy < BiomeContainer::VERT_SIZE; ++sy) {
+                for (i32 sz = 0; sz < BiomeContainer::HORIZ_SIZE; ++sz) {
+                    desert.setBiome(section, sx, sy, sz, Biomes::Desert);
+                }
+            }
+        }
+    }
+    data->setBiomes(std::move(desert));
+
+    ChunkPrimer primer(std::move(data));
+
+    // primer 侧不分配生物群系副本，读到的是存档真实值（若分配了未填充的副本会是 Ocean=0）
+    EXPECT_EQ(primer.getBiomeAtBlock(3, 16, 3), Biomes::Desert);
+    EXPECT_EQ(primer.getBiomes().getBiome(5, 0, 0, 0), Biomes::Desert);
+
+    // 存档路径的 persistedStatus 必须是 FULL：否则运行时方块写入只更新 WG 两张高度图
+    EXPECT_EQ(primer.getPersistedStatus(), ChunkStatuses::FULL);
+    EXPECT_EQ(primer.getChunkStatus(), ChunkStatuses::FULL);
+}
+
 // ============================================================================
 // SingleChunkLifecycleManager 测试
 // ============================================================================

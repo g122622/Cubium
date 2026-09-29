@@ -85,16 +85,25 @@ public:
 
     /**
      * @brief 从现有 ChunkData 创建（用于加载）
+     *
+     * 构造后 chunkStatus 与 persistedStatus 均为 FULL：存档区块已是完整持久化状态，
+     * persistedStatus 决定后续方块写入要维护哪些高度图（POST_FEATURES 全量），
+     * 留作 EMPTY 会让运行时编辑只更新 WG 两张高度图。
+     *
+     * 高度图按"是否已初始化"补齐后整列写入 ChunkData，生物群系直接复用 ChunkData 中
+     * 存档读入的真实值——两者都不在 primer 侧保留副本（省约 11 KiB/区块）。
+     * 详见 _rebuildHeightmapsIntoChunkData 与 m_biomes / m_heightmaps 的注释。
      */
     explicit ChunkPrimer(std::unique_ptr<ChunkData> data);
 
     /**
      * @brief 从共享所有权的 ChunkData 创建（用于存档命中扇出路径）
      *
-     * 与 unique_ptr 版本语义一致（chunkStatus=FULL、status=Loaded、重算高度图），但接收
-     * shared_ptr，使 primer 与已发布到 m_chunks 的 ChunkData 共享所有权（不拷贝、不独占）。
-     * 用于 _fanOutAttachedWaiters 命中分支：owner 已把 ChunkData 存入 m_chunks，attached
-     * waiter SCLM 需复用同一份 ChunkData 创建 primer（设 currentChunk），避免重复存储。
+     * 与 unique_ptr 版本语义完全一致（chunkStatus/persistedStatus=FULL、status=Loaded、
+     * 高度图全量重建写入 ChunkData），但接收 shared_ptr，使 primer 与已发布到 m_chunks 的
+     * ChunkData 共享所有权（不拷贝、不独占）。用于 _fanOutAttachedWaiters 命中分支：
+     * owner 已把 ChunkData 存入 m_chunks，attached waiter SCLM 需复用同一份 ChunkData
+     * 创建 primer（设 currentChunk），避免重复存储。
      *
      * @param data 共享所有权的 ChunkData（必须非空）
      */
@@ -200,7 +209,8 @@ public:
     /**
      * @brief 设置生物群系容器
      *
-     * FULL 收尾后 primer 侧副本已释放，写入直接落到底层 ChunkData。
+     * 生成路径（m_biomes 非空）写入 primer 侧副本，FULL 收尾时再整体转入 ChunkData；
+     * 存档路径（m_biomes 为空，数据已在 ChunkData）直写 ChunkData。
      */
     void setBiomes(BiomeContainer biomes) noexcept
     {
@@ -214,8 +224,8 @@ public:
     /**
      * @brief 获取生物群系容器
      *
-     * FULL 收尾后 primer 侧副本已释放（数据已转入 ChunkData），改为委托底层 ChunkData，
-     * 于是持有本 primer 的邻居经 WorldGenRegion 读到的仍是有效数据。
+     * 生成路径返回 primer 侧副本；存档路径（副本恒空）与 FULL 收尾后返回 ChunkData 的
+     * 槽位。邻居在 FEATURES 阶段经 WorldGenRegion 读取本区块的 biome，两条路径都必须有效。
      */
     [[nodiscard]] const BiomeContainer& getBiomes() const noexcept
     {
@@ -234,6 +244,10 @@ public:
 
     /**
      * @brief 获取高度图
+     *
+     * 生成路径返回 primer 侧副本（生成期唯一可变访问入口，FULL 收尾后副本释放，
+     * 可变访问即非法，故非 const 重载断言）；存档路径副本恒空，同样命中断言——
+     * 该路径的高度图在构造时即已写入 ChunkData，此后经只读接口委托读取。
      */
     [[nodiscard]] Heightmap& getHeightmap(HeightmapType type);
     [[nodiscard]] const Heightmap& getHeightmap(HeightmapType type) const;
@@ -588,12 +602,22 @@ private:
     // 生物群系（3072 B）。堆持有而非内联：FULL 收尾（toChunkData）后内容已全量转入
     // ChunkData，此处 reset 才能真正归还内存（内联数组成员无法归还，白占 3 KiB/区块）。
     // 释放后所有读取经 getBiomes()/getBiomeAtBlock() 委托 m_data。
+    //
+    // 存档路径（两个接收 ChunkData 的构造）**恒为 nullptr**：存档已带真实生物群系，
+    // 而本副本从未被填充（默认全 0），分配它只会让 FULL 邻居经 getBiomeAtBlock 读到
+    // 生物群系 0。置空后该路径直接委托 ChunkData，无需额外分支。
     std::unique_ptr<BiomeContainer> m_biomes;
 
-    // 高度图（7 × 1028 = 7196 B）。按 HeightmapType 枚举索引，O(1) 访问；构造时全量初始化
-    // 全部类型，故所有槽位恒存在，无需 find/emplace/回退。与 ChunkData::m_heightmaps 风格一致。
+    // 高度图（7 × 1028 = 7196 B）。按 HeightmapType 枚举索引，O(1) 访问；生成路径构造时
+    // 全量初始化全部类型，故所有槽位恒存在，无需 find/emplace/回退。与 ChunkData::m_heightmaps
+    // 风格一致。
     // 堆持有的理由同 m_biomes：FULL 后本地副本与 ChunkData 完全重复，reset 才能归还
     // 约 7 KiB/区块。释放后 getTopBlockY/getHeightmapFirstAvailable 委托 m_data。
+    //
+    // 存档路径**恒为 nullptr**：该路径在构造时用临时栈数组重建一次、写入 ChunkData 后即弃，
+    // 不驻留副本（省 8 KiB/区块）；此后读取同样委托 m_data。因此
+    // getHeightmap(HeightmapType) 的非 const 重载在存档路径上会命中断言，调用方应改走
+    // ChunkData（生成期才有可变访问需求）。
     std::unique_ptr<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>> m_heightmaps;
 
     // 区块生成时生成的实体
@@ -619,6 +643,19 @@ private:
 
     // 辅助方法
     [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
+
+    /**
+     * @brief 存档构造专用：按方块数据重建缺失的高度图并整列写入 ChunkData
+     *
+     * 只重建 `ChunkData::isHeightmapInitialized()` 为 false 的类型：
+     *   - 外来格式（Java Anvil / Bedrock）的高度图已由读取器经 setHeightmapFromStorage
+     *     写入并置位，跳过以免用重算值覆盖存档真实值；
+     *   - native 段格式不持久化高度图，对应槽位未初始化，必须重建，否则 getTopBlockY
+     *     回退到空的 WorldSurface 槽位，ServerWorld::getHeight 退化为 MIN_BUILD_HEIGHT。
+     *
+     * 重建结果只经临时栈数组中转，不驻留 primer（见 m_heightmaps 注释）。
+     */
+    void _rebuildHeightmapsIntoChunkData();
 
     /**
      * @brief 根据当前 ChunkStatus 的 heightmapsAfter 自动更新高度图
