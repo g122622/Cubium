@@ -1619,6 +1619,8 @@ add_executable(mc_tests
     common/world/storage/SectionCodecTest.cpp
     # 调色板容器单元测试
     common/world/chunk/data/PalettedContainerTest.cpp
+    # 高度图位压缩存储单元测试
+    common/world/chunk/data/HeightmapTest.cpp
     common/world/storage/SingleLevelStorageManagerTest.cpp
     common/world/storage/GlobalStorageManagerTest.cpp
     common/world/storage/SaveFormatDetectorTest.cpp

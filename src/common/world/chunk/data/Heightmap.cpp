@@ -39,7 +39,9 @@ namespace mc::world::chunk {
 Heightmap::Heightmap(HeightmapType type)
     : m_type(type)
 {
-    m_heights.fill(NO_BLOCK_SENTINEL);
+    // m_words 默认全 0，而编码 0 即 NO_BLOCK_SENTINEL（见 _encode），故无需显式填充。
+    static_assert(BITS >= 1 && BITS <= 32, "Heightmap 位宽必须落在 (0, 32]");
+    static_assert(VALUES_PER_LONG >= 1, "BITS 不得超过 64");
 }
 
 bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)
@@ -49,13 +51,13 @@ bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockStat
     }
 
     const i32 index = z * mc::world::CHUNK_WIDTH + x;
-    const BlockCoord currentHeight = m_heights[static_cast<size_t>(index)];
+    const BlockCoord currentHeight = _decode(_getEncoded(index));
 
     // 只有当新方块不低于当前高度且是阻挡方块时才更新。
     // currentHeight 为 NO_BLOCK_SENTINEL（MIN_BUILD_HEIGHT-1）时表示该列尚无方块，
     // 任何合法 y（>= MIN_BUILD_HEIGHT）都满足 y >= currentHeight，从而正常写入。
     if (y >= currentHeight && _isOpaque(state)) {
-        m_heights[static_cast<size_t>(index)] = y + 1; // 高度图存储的是 Y+1（即上方空气方块的位置）
+        _setEncoded(index, _encode(y + 1)); // 高度图存储的是 Y+1（即上方空气方块的位置）
         return true;
     }
 
@@ -68,7 +70,7 @@ BlockCoord Heightmap::getHeight(BlockCoord x, BlockCoord z) const
         return NO_BLOCK_SENTINEL;
     }
     const i32 index = z * mc::world::CHUNK_WIDTH + x;
-    return m_heights[static_cast<size_t>(index)];
+    return _decode(_getEncoded(index));
 }
 
 void Heightmap::setHeight(BlockCoord x, BlockCoord z, BlockCoord height)
@@ -77,12 +79,34 @@ void Heightmap::setHeight(BlockCoord x, BlockCoord z, BlockCoord height)
         return;
     }
     const i32 index = z * mc::world::CHUNK_WIDTH + x;
-    m_heights[static_cast<size_t>(index)] = height;
+    _setEncoded(index, _encode(height));
 }
 
-void Heightmap::setData(const std::array<BlockCoord, SIZE>& data)
+void Heightmap::setData(const std::array<BlockCoord, Heightmap::SIZE>& data)
 {
-    m_heights = data;
+    for (i32 index = 0; index < Heightmap::SIZE; ++index) {
+        _setEncoded(index, _encode(data[static_cast<size_t>(index)]));
+    }
+}
+
+void Heightmap::setAll(BlockCoord value)
+{
+    const i32 encoded = _encode(value);
+    // 同一编码值铺满全部字：先把单个字内各槽位填好，再整字复制。
+    u64 word = 0;
+    for (i32 i = 0; i < VALUES_PER_LONG; ++i) {
+        word |= (static_cast<u64>(encoded) & VALUE_MASK) << (i * BITS);
+    }
+    m_words.fill(word);
+}
+
+std::array<BlockCoord, Heightmap::SIZE> Heightmap::getData() const
+{
+    std::array<BlockCoord, SIZE> data{};
+    for (i32 index = 0; index < SIZE; ++index) {
+        data[static_cast<size_t>(index)] = _decode(_getEncoded(index));
+    }
+    return data;
 }
 
 bool Heightmap::_isOpaque(const BlockState* state) const

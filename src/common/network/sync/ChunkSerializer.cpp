@@ -173,7 +173,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
         if ((heightmapPresenceMask & static_cast<u8>(1U << i)) == 0) {
             continue;
         }
-        const auto& data = chunk.getHeightmapData(_FINAL_HEIGHTMAP_TYPES[i]);
+        const auto data = chunk.getHeightmapData(_FINAL_HEIGHTMAP_TYPES[i]);
         for (size_t j = 0; j < data.size(); ++j) {
             ser.writeI16(_encodeHeightmapValue(data[j]));
         }

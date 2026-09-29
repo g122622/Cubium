@@ -56,6 +56,27 @@ enum class HeightmapType : u8 {
 // 高度图类型数量（编译期常量，用于 std::array 索引）
 constexpr size_t HEIGHTMAP_TYPE_COUNT = static_cast<size_t>(HeightmapType::COUNT);
 
+namespace detail {
+
+/**
+ * @brief 求 ceil(log2(n))，n <= 1 时返回 0
+ *
+ * 与 MC 的 Mth.ceillog2 同语义，用于在编译期推导高度图位存储的位宽。
+ */
+[[nodiscard]] constexpr i32 ceilLog2(i32 n) noexcept
+{
+    if (n <= 1) {
+        return 0;
+    }
+    i32 bits = 0;
+    for (i32 value = n - 1; value > 0; value >>= 1) {
+        ++bits;
+    }
+    return bits;
+}
+
+} // namespace detail
+
 // ============================================================================
 // 高度图
 // ============================================================================
@@ -72,6 +93,13 @@ constexpr size_t HEIGHTMAP_TYPE_COUNT = static_cast<size_t>(HeightmapType::COUNT
  * 在主世界（minY=-64）等支持负 Y 的维度中无法区分"无方块"与"Y=-1 处有方块"。
  * 现使用 MIN_BUILD_HEIGHT - 1（主世界为 -65）作为哨兵，确保任何合法 Y+1
  * （范围 [minY+1, maxY] = [-63, 320]）都不会与哨兵冲突。
+ *
+ * 【位压缩存储】底层用 9 bit/列的紧凑位存储（256 列共 37 个 u64 = 296 字节），
+ * 而非扁平的 256 × i32（1028 字节）。位宽与布局对齐原版 1.21.11 的
+ * `SimpleBitStorage`：每 64 bit 字存 64/BITS 个条目、条目不跨字边界。
+ * 每列存的是 `raw - NO_BLOCK_SENTINEL`，故哨兵编码为 0、MIN_BUILD_HEIGHT 为 1，
+ * 既保留了"无方块"与"minY 处有方块"的区分，又让默认全 0 的位存储天然等价于
+ * "全部无方块"。7 张高度图合计从 7196 B/区块降至 2072 B/区块。
  */
 class Heightmap {
 public:
@@ -84,6 +112,22 @@ public:
      * 因此不会与真实高度混淆。getHeight 返回此值表示该列无任何阻挡方块。
      */
     static constexpr BlockCoord NO_BLOCK_SENTINEL = mc::world::MIN_BUILD_HEIGHT - 1;
+
+    // ========================================================================
+    // 位存储布局（编译期由高度限制导出，改 MIN/MAX_BUILD_HEIGHT 无需手工同步）
+    // ========================================================================
+
+    /// 每列的位宽：需覆盖 encoded ∈ [0, MAX_BUILD_HEIGHT - NO_BLOCK_SENTINEL]（主世界 385）
+    static constexpr i32 BITS = detail::ceilLog2(mc::world::MAX_BUILD_HEIGHT - NO_BLOCK_SENTINEL + 1);
+
+    /// 每个 u64 字容纳的条目数（条目不跨字，故向下取整，字尾余位弃用）
+    static constexpr i32 VALUES_PER_LONG = 64 / BITS;
+
+    /// 位存储占用的 u64 字数
+    static constexpr i32 WORD_COUNT = (SIZE + VALUES_PER_LONG - 1) / VALUES_PER_LONG;
+
+    /// 单列编码的位掩码
+    static constexpr u64 VALUE_MASK = (1ULL << BITS) - 1;
 
     explicit Heightmap(HeightmapType type = HeightmapType::WorldSurface);
 
@@ -109,6 +153,9 @@ public:
      * @param x 区块内 X 坐标 (0-15)
      * @param z 区块内 Z 坐标 (0-15)
      * @param height 高度值（Heightmap 内部存储语义，即最高方块 Y+1，NO_BLOCK_SENTINEL 表示无方块）
+     *
+     * 超出 [NO_BLOCK_SENTINEL, MAX_BUILD_HEIGHT] 的值会被夹到边界：位存储无法表示
+     * 越界值，而调用方可能传入来自存档/网络的不可信数据（见 setData）。
      */
     void setHeight(BlockCoord x, BlockCoord z, BlockCoord height);
 
@@ -122,12 +169,16 @@ public:
     /**
      * @brief 将所有高度值设为指定值
      */
-    void setAll(BlockCoord value) { m_heights.fill(value); }
+    void setAll(BlockCoord value);
 
     /**
-     * @brief 获取高度数据
+     * @brief 物化高度数据
+     *
+     * 位存储无法按引用交出 256 列的 i32 视图，故按值返回。单次调用在栈上产生
+     * 1028 字节临时数组，调用频率为"每区块每类型若干次"（落盘、网络同步、FULL 收尾），
+     * 不进入稳态驻留集。
      */
-    [[nodiscard]] const std::array<BlockCoord, SIZE>& getData() const { return m_heights; }
+    [[nodiscard]] std::array<BlockCoord, SIZE> getData() const;
 
     [[nodiscard]] HeightmapType getType() const { return m_type; }
 
@@ -146,7 +197,45 @@ public:
 
 private:
     HeightmapType m_type;
-    std::array<BlockCoord, SIZE> m_heights;
+    std::array<u64, WORD_COUNT> m_words{};
+
+    /// 把内部存储值（Y+1 或哨兵）编码为位存储值。越界值夹到边界。
+    [[nodiscard]] static i32 _encode(BlockCoord raw) noexcept
+    {
+        if (raw < NO_BLOCK_SENTINEL) {
+            return 0;
+        }
+        // 夹到"最高方块"对应的编码值，而非位存储的满值：9 bit 能表示到 511，但
+        // [MAX_BUILD_HEIGHT+1, 511] 段并非合法高度。夹到满值会让越界输入变成
+        // 一个位存储能存、语义却非法的值，后续读出来继续污染地形。
+        constexpr i32 MAX_ENCODED = mc::world::MAX_BUILD_HEIGHT - NO_BLOCK_SENTINEL;
+        static_assert(static_cast<u64>(MAX_ENCODED) <= VALUE_MASK, "位宽不足以表示最高方块");
+        const i32 encoded = raw - NO_BLOCK_SENTINEL;
+        return encoded > MAX_ENCODED ? MAX_ENCODED : encoded;
+    }
+
+    /// 把位存储值解码回内部存储值（Y+1 或哨兵）
+    [[nodiscard]] static BlockCoord _decode(i32 encoded) noexcept
+    {
+        return static_cast<BlockCoord>(encoded) + NO_BLOCK_SENTINEL;
+    }
+
+    /// 读取指定列的编码值（无边界检查，调用方保证 index ∈ [0, SIZE)）
+    [[nodiscard]] i32 _getEncoded(i32 index) const noexcept
+    {
+        const i32 cell = index / VALUES_PER_LONG;
+        const i32 offset = (index - cell * VALUES_PER_LONG) * BITS;
+        return static_cast<i32>((m_words[static_cast<size_t>(cell)] >> offset) & VALUE_MASK);
+    }
+
+    /// 写入指定列的编码值（无边界检查，同 _getEncoded）
+    void _setEncoded(i32 index, i32 encoded) noexcept
+    {
+        const i32 cell = index / VALUES_PER_LONG;
+        const i32 offset = (index - cell * VALUES_PER_LONG) * BITS;
+        auto& word = m_words[static_cast<size_t>(cell)];
+        word = (word & ~(VALUE_MASK << offset)) | ((static_cast<u64>(encoded) & VALUE_MASK) << offset);
+    }
 
     /**
      * @brief 检查方块是否影响此高度图

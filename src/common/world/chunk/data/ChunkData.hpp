@@ -182,8 +182,11 @@ public:
      * 与 getTopBlockY 不同，此方法返回 Heightmap 内部存储语义（最高方块 Y+1，
      * NO_BLOCK_SENTINEL 表示无方块），不做"无方块与 MIN_BUILD_HEIGHT 处有方块"的歧义合并，
      * 供序列化/网络同步无损还原使用。未初始化的类型返回其当前槽位内容（通常为哨兵）。
+     *
+     * 按值返回：Heightmap 底层是位压缩存储，无法交出 256 列的 i32 视图。
+     * 注意不要用 `const auto&` 绑定返回值——临时数组会立即析构。
      */
-    [[nodiscard]] const std::array<BlockCoord, Heightmap::SIZE>& getHeightmapData(HeightmapType type) const
+    [[nodiscard]] std::array<BlockCoord, Heightmap::SIZE> getHeightmapData(HeightmapType type) const
     {
         return m_heightmaps[static_cast<size_t>(type)].getData();
     }
