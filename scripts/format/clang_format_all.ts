@@ -181,9 +181,7 @@ function main() {
     }
 
     if (!CHECK_MODE) {
-        console.log('\n格式化完成。建议：');
-        console.log('  1. git diff 复核');
-        console.log('  2. cmake --build 验证编译');
+        console.log('\n格式化完成。不要重新编译一遍，以免浪费时间');
     }
 }
 
