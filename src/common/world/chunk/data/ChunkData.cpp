@@ -717,40 +717,15 @@ u8 ChunkData::getSkyLight(BlockCoord x, BlockCoord y, BlockCoord z) const
         return 15; // 边界外默认全亮
     }
 
-    i32 sectionIndex = mc::world::toSectionIndex(y);
-    const auto& section = m_sections[sectionIndex];
-
-    if (!section) {
-        return 15; // 未创建的段默认全亮
+    // 未光照（Null/Uninit）的段按"全亮"处理：天空光的默认值就是 15，光照引擎尚未跑过时
+    // 露天地表之上本就该是全亮。
+    const SWMRNibbleArray& nibble = skyNibbleAt(mc::world::toSectionIndex(y));
+    if (nibble.isNullVisible() || nibble.isUninitializedVisible()) {
+        return 15;
     }
 
-    i32 localY = mc::world::toSectionLocalY(y);
-    return section->getSkyLight(x, localY, z);
-}
-
-void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
-{
-    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
-        z < 0 || z >= mc::world::CHUNK_WIDTH) {
-        return;
-    }
-
-    // 独占锁：light==15/0 之外的值会 make_unique 替换 m_sections[idx]，须与 worker
-    // 光照读 section 串行（worker 持共享锁读旧 section 时主线程不能替换它）。
-    auto lock = lockForBlockWrite();
-
-    i32 sectionIndex = mc::world::toSectionIndex(y);
-    auto& section = m_sections[sectionIndex];
-
-    if (!section) {
-        if (light == 15) {
-            return; // 默认就是15，不需要创建段
-        }
-        section = std::make_unique<ChunkSection>();
-    }
-
-    i32 localY = mc::world::toSectionLocalY(y);
-    section->setSkyLight(x, localY, z, light);
+    const i32 localY = mc::world::toSectionLocalY(y);
+    return nibble.getVisible(x, localY, z);
 }
 
 u8 ChunkData::getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const
@@ -760,15 +735,33 @@ u8 ChunkData::getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const
         return 0; // 边界外默认无光
     }
 
-    i32 sectionIndex = mc::world::toSectionIndex(y);
-    const auto& section = m_sections[sectionIndex];
-
-    if (!section) {
-        return 0; // 未创建的段默认无光
+    // 未光照的段按"无光"处理（方块光默认值 0）。
+    const SWMRNibbleArray& nibble = blockNibbleAt(mc::world::toSectionIndex(y));
+    if (nibble.isNullVisible() || nibble.isUninitializedVisible()) {
+        return 0;
     }
 
-    i32 localY = mc::world::toSectionLocalY(y);
-    return section->getBlockLight(x, localY, z);
+    const i32 localY = mc::world::toSectionLocalY(y);
+    return nibble.getVisible(x, localY, z);
+}
+
+void ChunkData::setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
+{
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || y < mc::world::MIN_BUILD_HEIGHT || y >= mc::world::MAX_BUILD_HEIGHT ||
+        z < 0 || z >= mc::world::CHUNK_WIDTH) {
+        return;
+    }
+
+    SWMRNibbleArray& nibble = skyNibbleAt(mc::world::toSectionIndex(y));
+
+    // 首次写入前必须把"全亮 15"materialize 出来：nibble 的零初始化会让本段其余尚未写入的
+    // 坐标从默认的 15 骤变为 0。整体覆盖写（SectionCodec 落盘、客户端 fromData）不走本路径。
+    if (!nibble.isInitializedVisible() && !nibble.isInitializedUpdating()) {
+        nibble.setFull();
+    }
+
+    nibble.set(x, mc::world::toSectionLocalY(y), z, std::min(light, static_cast<u8>(15)));
+    nibble.updateVisible();
 }
 
 void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light)
@@ -778,21 +771,10 @@ void ChunkData::setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light
         return;
     }
 
-    // 独占锁：同 setSkyLight，保护 section 替换与 nibble 写。
-    auto lock = lockForBlockWrite();
-
-    i32 sectionIndex = mc::world::toSectionIndex(y);
-    auto& section = m_sections[sectionIndex];
-
-    if (!section) {
-        if (light == 0) {
-            return; // 默认就是0，不需要创建段
-        }
-        section = std::make_unique<ChunkSection>();
-    }
-
-    i32 localY = mc::world::toSectionLocalY(y);
-    section->setBlockLight(x, localY, z, light);
+    // 方块光的默认值就是 0，零初始化即正确，无需 materialize。
+    SWMRNibbleArray& nibble = blockNibbleAt(mc::world::toSectionIndex(y));
+    nibble.set(x, mc::world::toSectionLocalY(y), z, std::min(light, static_cast<u8>(15)));
+    nibble.updateVisible();
 }
 
 // ============================================================================

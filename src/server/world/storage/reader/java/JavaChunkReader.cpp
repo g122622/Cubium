@@ -137,14 +137,12 @@ std::vector<u32> JavaChunkReader::unpackPaddedLongArray(const std::vector<i64>& 
     return result;
 }
 
-Result<void> JavaChunkReader::readSection(
-    const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight)
+Result<void> JavaChunkReader::readSection(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
 {
-    return readBlockStates(sectionNbt, chunk, sectionY, hasSkyLight);
+    return readBlockStates(sectionNbt, chunk, sectionY);
 }
 
-Result<void> JavaChunkReader::readBlockStates(
-    const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight)
+Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
 {
     // 检查是否有方块状态数据
     if (sectionNbt.value.count("block_states") == 0 && sectionNbt.value.count("Palette") == 0) {
@@ -262,41 +260,13 @@ Result<void> JavaChunkReader::readBlockStates(
     }
 
     // 读取光照数据
-    readLightData(sectionNbt, *section, hasSkyLight);
+    // TODO: Java 存档的 SkyLight/BlockLight 当前不导入——ChunkSection 不再持有光照
+    //   （归 ChunkData 的 SWMRNibbleArray），且加载后 ChunkData::m_lightCorrect 默认为 false，
+    //   ChunkLoadLightTask 必然全量重算并覆盖，导入即被丢弃。与 SectionCodec::toChunkSection
+    //   的 TODO 同源。若日后要做"光照已正确则跳过重算"，需在此把 nibble 灌进
+    //   chunk.skyNibbleAt(sectionIndex)/blockNibbleAt(sectionIndex) 并置 setLightCorrect(true)。
 
     return {};
-}
-
-void JavaChunkReader::readLightData(const compound_tag& sectionNbt, ChunkSection& section, bool hasSkyLight)
-{
-    auto applyNibble = [&section](const bytearray_tag& bytes, bool isSky) {
-        if (bytes.value.size() < NibbleArray::BYTE_SIZE) {
-            return;
-        }
-        for (i32 i = 0; i < ChunkSection::VOLUME; ++i) {
-            const i32 x = i & 0xF;
-            const i32 z = (i >> 4) & 0xF;
-            const i32 y = (i >> 8) & 0xF;
-            const i32 nibbleIndex = i >> 1;
-            const bool lower = (i & 1) == 0;
-            const u8 packed = static_cast<u8>(bytes.value[static_cast<size_t>(nibbleIndex)]);
-            const u8 value = lower ? (packed & 0x0F) : ((packed >> 4) & 0x0F);
-            if (isSky) {
-                section.skyLightNibble().set(x, y, z, value);
-            } else {
-                section.blockLightNibble().set(x, y, z, value);
-            }
-        }
-    };
-
-    // 只在有天空光照的维度（主世界）中加载天空光照数据
-    // 对应 MC Java SerializableChunkData.read() 中的 hasSkyLight 门控
-    if (hasSkyLight && sectionNbt.value.count("SkyLight") != 0) {
-        applyNibble(sectionNbt.get<bytearray_tag>("SkyLight"), true);
-    }
-    if (sectionNbt.value.count("BlockLight") != 0) {
-        applyNibble(sectionNbt.get<bytearray_tag>("BlockLight"), false);
-    }
 }
 
 BiomeId JavaChunkReader::mapBiomeName(const std::string& biomeName) const

@@ -29,7 +29,6 @@
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/NibbleArray.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
@@ -41,8 +40,6 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
-#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
-
 namespace mc::world::chunk {
 
 // ============================================================================
@@ -52,15 +49,11 @@ namespace mc::world::chunk {
 ChunkSection::ChunkSection()
     : m_memTrack(this)
     , m_blockStates() // PalettedContainer 默认 SingleValue(0=空气)
-    , m_skyLight()    // 默认天空光照全亮：空数组语义即 15（见 getSkyLight），不预分配 2048 字节
-    , m_blockLight()  // 默认方块光照无光：空数组语义即 0（见 getBlockLight）
 {}
 
 ChunkSection::ChunkSection(ChunkSection&& other) noexcept
     : m_memTrack() // 默认构造为非活跃，body 中重绑定
     , m_blockStates(std::move(other.m_blockStates))
-    , m_skyLight(std::move(other.m_skyLight))
-    , m_blockLight(std::move(other.m_blockLight))
     , m_blockCount(other.m_blockCount)
     , m_needsRecalculate(other.m_needsRecalculate)
     , m_blockTickRefCount(other.m_blockTickRefCount)
@@ -77,8 +70,6 @@ ChunkSection& ChunkSection::operator=(ChunkSection&& other) noexcept
 {
     if (this != &other) {
         m_blockStates = std::move(other.m_blockStates);
-        m_skyLight = std::move(other.m_skyLight);
-        m_blockLight = std::move(other.m_blockLight);
         m_blockCount = other.m_blockCount;
         m_needsRecalculate = other.m_needsRecalculate;
         m_blockTickRefCount = other.m_blockTickRefCount;
@@ -192,56 +183,11 @@ void ChunkSection::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     setBlockStateId(x, y, z, stateId);
 }
 
-u8 ChunkSection::getSkyLight(i32 x, i32 y, i32 z) const
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return 15;
-    }
-    // 空数组语义为全亮：天空光的默认值是 15（日光），故数组为空时直接返回 15。
-    // 构造时不再预分配整个 2048 字节缓冲，只有真正写入非默认天空光时才会分配
-    // （NibbleArray::set / 可变 data() 均按需 ensureAllocated）。
-    if (m_skyLight.isEmpty()) {
-        return 15;
-    }
-    return m_skyLight.get(x, y, z);
-}
-
-void ChunkSection::setSkyLight(i32 x, i32 y, i32 z, u8 light)
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return;
-    }
-    // 首次写入时按「全亮 15」而非「全零」materialize：天空光的默认值是 15，若放任
-    // NibbleArray::set 的按需分配以 0 填充，本段其余尚未写入的坐标会从默认的 15 骤变为 0。
-    // 整体覆盖写不需要这一步——SectionCodec、ChunkSection::deserialize、JavaChunkReader
-    // 都会写满整个 2048 字节，零填充会被完全覆盖。
-    if (m_skyLight.isEmpty()) {
-        m_skyLight = NibbleArray::filled(15);
-    }
-    m_skyLight.set(x, y, z, std::min(light, static_cast<u8>(15)));
-}
-
-u8 ChunkSection::getBlockLight(i32 x, i32 y, i32 z) const
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return 0;
-    }
-    return m_blockLight.get(x, y, z);
-}
-
-void ChunkSection::setBlockLight(i32 x, i32 y, i32 z, u8 light)
-{
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-        return;
-    }
-    m_blockLight.set(x, y, z, std::min(light, static_cast<u8>(15)));
-}
-
 std::vector<u8> ChunkSection::serialize() const
 {
-    // 格式: 块数量 + 方块状态ID + 天空光照 + 方块光照
-    // 注意：NibbleArray::BYTE_SIZE = 2048 = VOLUME / 2
-    constexpr size_t SECTION_DATA_SIZE = 2 + VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
+    // 格式: 块数量 + 方块状态ID
+    // 光照不在本类中（归 ChunkData 的 SWMRNibbleArray），故不落在这里。
+    constexpr size_t SECTION_DATA_SIZE = 2 + VOLUME * sizeof(u32);
 
     std::vector<u8> data(SECTION_DATA_SIZE);
     u8* out = data.data();
@@ -254,7 +200,6 @@ std::vector<u8> ChunkSection::serialize() const
     auto flat = m_blockStates.toFlat();
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
     std::memcpy(out, flat.data(), VOLUME * sizeof(u32));
-    out += VOLUME * sizeof(u32);
 #else
     for (u32 stateId : flat) {
         *out++ = static_cast<u8>(stateId & 0xFF);
@@ -264,32 +209,13 @@ std::vector<u8> ChunkSection::serialize() const
     }
 #endif
 
-    // 天空光照
-    const auto& skyLightData = m_skyLight.data();
-    if (!skyLightData.empty()) {
-        std::memcpy(out, skyLightData.data(), NibbleArray::BYTE_SIZE);
-    } else {
-        // 如果为空，写入全亮数据
-        std::fill_n(out, NibbleArray::BYTE_SIZE, 0xFF);
-    }
-    out += NibbleArray::BYTE_SIZE;
-
-    // 方块光照
-    const auto& blockLightData = m_blockLight.data();
-    if (!blockLightData.empty()) {
-        std::memcpy(out, blockLightData.data(), NibbleArray::BYTE_SIZE);
-    } else {
-        // 如果为空，写入全黑数据
-        std::fill_n(out, NibbleArray::BYTE_SIZE, 0x00);
-    }
-
     return data;
 }
 
 Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, size_t size)
 {
-    // 新格式大小: 2 + VOLUME * 4 + BYTE_SIZE * 2
-    constexpr size_t expectedSize = 2 + VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
+    // 新格式大小: 2 + VOLUME * 4
+    constexpr size_t expectedSize = 2 + VOLUME * sizeof(u32);
     if (size < expectedSize) [[unlikely]] {
         std::stringstream ss;
         ss << "Invalid section data size, expected at least " << expectedSize << " bytes, got " << size << " bytes";
@@ -317,17 +243,6 @@ Result<std::unique_ptr<ChunkSection>> ChunkSection::deserialize(const u8* data, 
 #endif
     section->m_blockStates.fromFlat(blockStates.data(), VOLUME);
     offset += blockStateBytes;
-
-    // 天空光照
-    auto& skyLightData = section->m_skyLight.data();
-    skyLightData.resize(NibbleArray::BYTE_SIZE);
-    std::memcpy(skyLightData.data(), data + offset, NibbleArray::BYTE_SIZE);
-    offset += NibbleArray::BYTE_SIZE;
-
-    // 方块光照
-    auto& blockLightData = section->m_blockLight.data();
-    blockLightData.resize(NibbleArray::BYTE_SIZE);
-    std::memcpy(blockLightData.data(), data + offset, NibbleArray::BYTE_SIZE);
 
     section->rebuildTickCounters();
 
@@ -366,5 +281,3 @@ void ChunkSection::fill(u32 stateId)
 }
 
 } // namespace mc::world::chunk
-
-#pragma pop_macro("BYTE_SIZE")

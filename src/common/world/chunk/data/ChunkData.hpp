@@ -240,10 +240,55 @@ public:
     void fill(BlockCoord minY, BlockCoord maxY, u32 stateId);
 
     // 光照访问
+    //
+    // 【权威副本】光照只存在于此处的 SWMRNibbleArray（对齐原版 1.21.11：光照归 chunk 层，
+    // LevelChunkSection 只含 states + biomes）。ChunkSection 不再持有光照。
+    //
+    // 语义：段未创建、或 nibble 处于 Null/Uninit（未光照）时，天空光取默认全亮 15、
+    // 方块光取默认无光 0；已初始化的段取 visible 侧值。
     [[nodiscard]] u8 getSkyLight(BlockCoord x, BlockCoord y, BlockCoord z) const;
-    void setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light);
     [[nodiscard]] u8 getBlockLight(BlockCoord x, BlockCoord y, BlockCoord z) const;
+
+    /**
+     * @brief 逐点写入光照并立即发布到可见侧
+     *
+     * 【不用于光照引擎路径】引擎经 `skyNibbleAt/blockNibbleAt` 拿 nibble 指针后直接操作
+     * updating 侧，由 `updateVisible()` 批量发布；逐点调用本方法会在每次写入后各做一次
+     * 写时复制，仅适合测试与调试等低频场景。
+     */
+    void setSkyLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light);
     void setBlockLight(BlockCoord x, BlockCoord y, BlockCoord z, u8 light);
+
+    /**
+     * @brief 取指定段索引对应的天空光照 nibble（可变）
+     *
+     * 段索引 0..CHUNK_SECTIONS-1 对应光照数组下标 1..CHUNK_SECTIONS —— 光照数组
+     * （LIGHT_SECTIONS = CHUNK_SECTIONS + 2）在下界外多留一段缓冲，故整体偏移 1。
+     */
+    [[nodiscard]] SWMRNibbleArray& skyNibbleAt(i32 sectionIndex)
+    {
+        MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
+        return m_skyNibbles[static_cast<size_t>(sectionIndex) + 1];
+    }
+    [[nodiscard]] const SWMRNibbleArray& skyNibbleAt(i32 sectionIndex) const
+    {
+        MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
+        return m_skyNibbles[static_cast<size_t>(sectionIndex) + 1];
+    }
+
+    /**
+     * @brief 取指定段索引对应的方块光照 nibble（可变），索引换算同 skyNibbleAt
+     */
+    [[nodiscard]] SWMRNibbleArray& blockNibbleAt(i32 sectionIndex)
+    {
+        MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
+        return m_blockNibbles[static_cast<size_t>(sectionIndex) + 1];
+    }
+    [[nodiscard]] const SWMRNibbleArray& blockNibbleAt(i32 sectionIndex) const
+    {
+        MC_ASSERT_RELEASE(sectionIndex >= 0 && sectionIndex < mc::world::CHUNK_SECTIONS);
+        return m_blockNibbles[static_cast<size_t>(sectionIndex) + 1];
+    }
 
     // ========================================================================
     // Starlight 光照数据接口 (IChunk 接口实现)

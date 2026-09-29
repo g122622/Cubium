@@ -181,45 +181,26 @@ TEST_F(ChunkTest, ChunkSection_FastAccessRebuildsRandomTickCounters)
     EXPECT_EQ(section.blockTickRefCount(), 1);
 }
 
-TEST_F(ChunkTest, ChunkSection_LightAccess)
+// 光照的权威副本在 ChunkData（SWMRNibbleArray），ChunkSection 不再持有光照
+// （对齐原版 1.21.11：LevelChunkSection 只含 states + biomes）。
+TEST_F(ChunkTest, ChunkData_LightAccess)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
 
-    // 天空光照
-    section.setSkyLight(5, 5, 5, 10);
-    EXPECT_EQ(section.getSkyLight(5, 5, 5), 10);
+    // 未光照（Null/Uninit）的段按默认值：天空光全亮 15、方块光无光 0
+    EXPECT_EQ(chunk.getSkyLight(0, 0, 0), 15);
+    EXPECT_EQ(chunk.getSkyLight(15, 15, 15), 15);
+    EXPECT_EQ(chunk.getBlockLight(8, 8, 8), 0);
 
-    // 方块光照
-    section.setBlockLight(5, 5, 5, 12);
-    EXPECT_EQ(section.getBlockLight(5, 5, 5), 12);
+    // 未光照段不因读取而分配缓冲（惰性）
+    EXPECT_FALSE(chunk.skyNibbleAt(0).isInitializedVisible());
+    EXPECT_FALSE(chunk.blockNibbleAt(0).isInitializedVisible());
 
-    // 边界检查 - 天空光照返回15，方块光照返回0
-    EXPECT_EQ(section.getSkyLight(-1, 0, 0), 15);
-    EXPECT_EQ(section.getBlockLight(-1, 0, 0), 0);
-
-    // 惰性默认值：全新区块段在**未写入任何光照**时，边界内也必须返回默认值
-    // （天空光 15、方块光 0），且此时底层缓冲尚未分配。
-    // 这与「构造时预分配整个 2048 字节全亮缓冲」的旧实现语义等价，但不再预占内存。
-    const ChunkSection fresh;
-    EXPECT_EQ(fresh.getSkyLight(0, 0, 0), 15);
-    EXPECT_EQ(fresh.getSkyLight(15, 15, 15), 15);
-    EXPECT_EQ(fresh.getBlockLight(8, 8, 8), 0);
-    EXPECT_FALSE(fresh.skyLightNibble().isValid());
-    EXPECT_FALSE(fresh.blockLightNibble().isValid());
-
-    // 首次逐点写入后按需分配，且**不得改变**其余坐标的默认天空光：
-    // 必须按「全亮 15」而非「全零」materialize，否则本段其余坐标会从 15 骤变为 0。
-    ChunkSection lazilyAllocated;
-    lazilyAllocated.setSkyLight(1, 2, 3, 7);
-    EXPECT_TRUE(lazilyAllocated.skyLightNibble().isValid());
-    EXPECT_EQ(lazilyAllocated.getSkyLight(1, 2, 3), 7);
-    EXPECT_EQ(lazilyAllocated.getSkyLight(4, 5, 6), 15);
-
-    // 方块光的默认值是 0，按需分配后其余坐标仍为 0
-    lazilyAllocated.setBlockLight(1, 2, 3, 9);
-    EXPECT_TRUE(lazilyAllocated.blockLightNibble().isValid());
-    EXPECT_EQ(lazilyAllocated.getBlockLight(1, 2, 3), 9);
-    EXPECT_EQ(lazilyAllocated.getBlockLight(4, 5, 6), 0);
+    // 边界外：天空光 15、方块光 0
+    EXPECT_EQ(chunk.getSkyLight(-1, 0, 0), 15);
+    EXPECT_EQ(chunk.getBlockLight(-1, 0, 0), 0);
+    EXPECT_EQ(chunk.getSkyLight(0, mc::world::MAX_BUILD_HEIGHT, 0), 15);
+    EXPECT_EQ(chunk.getBlockLight(0, mc::world::MIN_BUILD_HEIGHT - 1, 0), 0);
 }
 
 TEST_F(ChunkTest, ChunkSection_Serialization)
@@ -227,8 +208,6 @@ TEST_F(ChunkTest, ChunkSection_Serialization)
     ChunkSection original;
     original.setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
     original.setBlockState(7, 7, 7, &VanillaBlocks::DIRT->defaultState());
-    original.setSkyLight(3, 3, 3, 15);
-    original.setBlockLight(3, 3, 3, 10);
 
     // 序列化
     auto data = original.serialize();
@@ -245,8 +224,6 @@ TEST_F(ChunkTest, ChunkSection_Serialization)
     ASSERT_NE(block7, nullptr);
     EXPECT_EQ(block0->blockId(), VanillaBlocks::STONE->blockId());
     EXPECT_EQ(block7->blockId(), VanillaBlocks::DIRT->blockId());
-    EXPECT_EQ(restored->getSkyLight(3, 3, 3), 15);
-    EXPECT_EQ(restored->getBlockLight(3, 3, 3), 10);
 }
 
 TEST_F(ChunkTest, ChunkSection_Fill)

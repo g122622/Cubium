@@ -1098,7 +1098,7 @@ public:
      * RuntimeLightTask / ChunkLoadLightTask 在 worker 线程完成光照传播后调用：
      * 把 provider 收集的 dirty section 列表入此队列。主线程下一 tick 开头
      * _drainPendingLightFlushes 时逐项调真正的 markLightChanged
-     * （_syncLightDataToChunk + m_onLightChanged 网络包）。
+     * （标记区块 dirty + m_onLightChanged 网络包）。
      * 线程安全：内部持 m_pendingLightFlushesMutex。
      *
      * @param dirtySections worker 传播期间收集的 (光照类型, 段坐标) 列表
@@ -1514,8 +1514,6 @@ public:
         const BlockPos& center, const ResourceLocation& tagId, i32 maxDistance, bool skipExisting = false) override;
 
 private:
-    void _syncLightDataToChunk(LightType type, const SectionPos& pos);
-
     /// 主线程 tick 开头调用：swap 出 m_pendingLightFlushes，逐项调 markLightChanged
     void _drainPendingLightFlushes();
 

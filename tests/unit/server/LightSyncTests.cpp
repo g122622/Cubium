@@ -23,6 +23,7 @@
 
 #include "common/core/Constants.hpp"
 #include "common/util/NibbleArray.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
@@ -43,6 +44,8 @@ namespace {
  */
 class LightSyncTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+
     void SetUp() override
     {
         // 创建一个最小化的测试环境
@@ -78,68 +81,61 @@ TEST_F(LightSyncTest, NibbleArrayCopy)
 }
 
 /**
- * @brief 测试 ChunkSection 光照数组访问
+ * @brief 测试 ChunkData 光照 nibble 直接访问
  *
- * 验证 ChunkSection 可以正确设置和获取光照值。
+ * 验证经 skyNibbleAt/blockNibbleAt 拿到 nibble 后可直接读写（光照引擎走的路径），
+ * 以及 updateVisible 发布后可见侧可读。
  */
-TEST_F(LightSyncTest, ChunkSectionLightAccess)
+TEST_F(LightSyncTest, ChunkDataDirectNibbleArrayModification)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
 
-    // 设置天空光照
-    section.setSkyLight(5, 10, 7, 12);
-    EXPECT_EQ(section.getSkyLight(5, 10, 7), 12);
+    // 段索引与世界的换算：(worldY - MIN_BUILD_HEIGHT) / 16，主世界 MIN_BUILD_HEIGHT=-64。
+    // 段索引 2 对应 Y=32..47。
+    constexpr i32 kSkySectionIndex = (32 - mc::world::MIN_BUILD_HEIGHT) / 16;
 
-    // 设置方块光照
-    section.setBlockLight(3, 8, 2, 8);
-    EXPECT_EQ(section.getBlockLight(3, 8, 2), 8);
+    // 天空光：首次写入前必须 materialize 成"全亮 15"，否则本段其余坐标会从 15 骤变为 0
+    SWMRNibbleArray& sky = chunk.skyNibbleAt(kSkySectionIndex);
+    sky.setFull();
+    sky.set(0, 0, 0, 7);
+    sky.updateVisible();
 
-    // 测试 NibbleArray 引用访问
-    NibbleArray& skyLight = section.skyLightNibble();
-    skyLight.set(0, 0, 0, 15);
-    EXPECT_EQ(section.getSkyLight(0, 0, 0), 15);
+    EXPECT_EQ(chunk.getSkyLight(0, 32, 0), 7);
+    EXPECT_EQ(chunk.getSkyLight(5, 42, 3), 15); // 未写入的坐标仍是全亮
 
-    NibbleArray& blockLight = section.blockLightNibble();
-    blockLight.set(1, 1, 1, 5);
-    EXPECT_EQ(section.getBlockLight(1, 1, 1), 5);
-}
+    // 方块光：默认 0，无需 materialize。段索引 3 对应 Y=48..63。
+    constexpr i32 kBlockSectionIndex = (48 - mc::world::MIN_BUILD_HEIGHT) / 16;
+    SWMRNibbleArray& block = chunk.blockNibbleAt(kBlockSectionIndex);
+    block.set(1, 1, 1, 5);
+    block.updateVisible();
 
-/**
- * @brief 测试 ChunkSection 光照填充
- *
- * 验证 ChunkSection 可以正确填充光照值。
- */
-TEST_F(LightSyncTest, ChunkSectionLightFill)
-{
-    ChunkSection section;
-
-    // 填充天空光照
-    section.fillSkyLight(15);
-    EXPECT_EQ(section.getSkyLight(0, 0, 0), 15);
-    EXPECT_EQ(section.getSkyLight(15, 15, 15), 15);
-
-    // 填充方块光照
-    section.fillBlockLight(0);
-    EXPECT_EQ(section.getBlockLight(0, 0, 0), 0);
-    EXPECT_EQ(section.getBlockLight(15, 15, 15), 0);
+    EXPECT_EQ(chunk.getBlockLight(1, 49, 1), 5);
+    EXPECT_EQ(chunk.getBlockLight(0, 48, 0), 0);
 }
 
 /**
  * @brief 测试 ChunkData 光照访问
  *
- * 验证 ChunkData 可以正确设置和获取光照值。
+ * 光照的权威副本在 ChunkData（SWMRNibbleArray），ChunkSection 不再持有光照
+ * （对齐原版 1.21.11：LevelChunkSection 只含 states + biomes）。
  */
 TEST_F(LightSyncTest, ChunkDataLightAccess)
 {
     ChunkData chunk(0, 0);
 
-    // 设置天空光照（需要先创建区块段）
+    // 未光照段（Null/Uninit）按默认值：天空光全亮 15、方块光无光 0
+    EXPECT_EQ(chunk.getSkyLight(5, 32, 7), 15);
+    EXPECT_EQ(chunk.getBlockLight(3, 48, 2), 0);
+
+    // 逐点写入（内部会 materialize + 发布可见侧）
     chunk.setSkyLight(5, 32, 7, 14);
     EXPECT_EQ(chunk.getSkyLight(5, 32, 7), 14);
+    // 同段其余坐标必须保持默认全亮，不得被零初始化拉成 0
+    EXPECT_EQ(chunk.getSkyLight(6, 32, 7), 15);
 
-    // 设置方块光照
     chunk.setBlockLight(3, 48, 2, 10);
     EXPECT_EQ(chunk.getBlockLight(3, 48, 2), 10);
+    EXPECT_EQ(chunk.getBlockLight(4, 48, 2), 0);
 
     // 边界检查
     EXPECT_EQ(chunk.getSkyLight(-1, 0, 0), 15);  // 边界外默认全亮
@@ -147,27 +143,31 @@ TEST_F(LightSyncTest, ChunkDataLightAccess)
 }
 
 /**
- * @brief 测试 ChunkSection 序列化保留光照数据
+ * @brief 测试 ChunkSection 序列化只含方块数据
  *
- * 验证 ChunkSection 序列化后光照数据可以正确恢复。
+ * 光照归 ChunkData（SWMRNibbleArray），故段序列化往返后方块数据保真、且字节数与
+ * calculateSectionSize 的预测严格一致（光照不再计入）。
  */
-TEST_F(LightSyncTest, ChunkSectionSerializePreservesLight)
+TEST_F(LightSyncTest, ChunkSectionSerializeCarriesOnlyBlockData)
 {
     ChunkSection original;
-    original.setSkyLight(5, 10, 7, 12);
-    original.setBlockLight(3, 8, 2, 8);
+    original.setBlockState(5, 10, 7, &VanillaBlocks::STONE->defaultState());
+    original.setBlockState(3, 8, 2, &VanillaBlocks::DIRT->defaultState());
 
-    // 序列化
     std::vector<u8> data = original.serialize();
 
-    // 反序列化
+    // 2(计数) + 4096*4(方块状态ID)
+    EXPECT_EQ(data.size(), 2 + ChunkSection::VOLUME * sizeof(u32));
+
     auto result = ChunkSection::deserialize(data.data(), data.size());
     ASSERT_TRUE(result.success());
 
     auto restored = result.value();
     ASSERT_TRUE(restored);
-    EXPECT_EQ(restored->getSkyLight(5, 10, 7), 12);
-    EXPECT_EQ(restored->getBlockLight(3, 8, 2), 8);
+    ASSERT_NE(restored->getBlockState(5, 10, 7), nullptr);
+    EXPECT_EQ(restored->getBlockState(5, 10, 7)->blockId(), VanillaBlocks::STONE->blockId());
+    ASSERT_NE(restored->getBlockState(3, 8, 2), nullptr);
+    EXPECT_EQ(restored->getBlockState(3, 8, 2)->blockId(), VanillaBlocks::DIRT->blockId());
 }
 
 /**
@@ -286,31 +286,6 @@ TEST_F(LightSyncTest, WorldLightManagerTLSEnginePool)
     SectionPos pos(0, 0, 0);
     EXPECT_EQ(lightManager.getData(LightType::BLOCK, pos), nullptr);
     EXPECT_EQ(lightManager.getData(LightType::SKY, pos), nullptr);
-}
-
-/**
- * @brief 测试 ChunkSection 光照 NibbleArray 直接修改
- *
- * 验证通过引用直接修改 ChunkSection 的光照数组。
- */
-TEST_F(LightSyncTest, ChunkSectionDirectNibbleArrayModification)
-{
-    ChunkSection section;
-
-    // 创建测试数据
-    NibbleArray testData = NibbleArray::filled(7);
-
-    // 直接替换天空光照数组
-    section.skyLightNibble() = testData.copy();
-    EXPECT_EQ(section.getSkyLight(0, 0, 0), 7);
-    EXPECT_EQ(section.getSkyLight(5, 10, 3), 7);
-    EXPECT_EQ(section.getSkyLight(15, 15, 15), 7);
-
-    // 直接替换方块光照数组
-    section.blockLightNibble() = NibbleArray::filled(5);
-    EXPECT_EQ(section.getBlockLight(0, 0, 0), 5);
-    EXPECT_EQ(section.getBlockLight(5, 10, 3), 5);
-    EXPECT_EQ(section.getBlockLight(15, 15, 15), 5);
 }
 
 } // namespace

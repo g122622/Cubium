@@ -52,11 +52,8 @@ public:
         const std::vector<u8>& nbtData, ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
 private:
-    [[nodiscard]] Result<void> _readSections(const nbt::tags::compound_tag& columnNbt,
-        ChunkData& chunk,
-        i32 dimMinHeight,
-        i32 dimMaxHeight,
-        bool dimHasSkyLight);
+    [[nodiscard]] Result<void> _readSections(
+        const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight);
     [[nodiscard]] Result<void> _readBiomes(
         const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight);
     void _readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 heightOffset);

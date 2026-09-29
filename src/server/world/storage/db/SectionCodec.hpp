@@ -310,13 +310,21 @@ public:
     /**
      * @brief 从ChunkSection创建SectionData
      *
+     * 光照不在 ChunkSection 中（归 ChunkData 的 SWMRNibbleArray），故必须同时传入所属
+     * 区块与段索引，由本方法从 `chunk.skyNibbleAt/blockNibbleAt(sectionIndex)` 取。
+     *
+     * @param chunk 段所属区块（提供光照权威副本）
+     * @param sectionIndex 段索引 0..CHUNK_SECTIONS-1
      * @param section ChunkSection对象
      * @param key Section标识
      * @param biomes 生物群系数据（可选，64个）
      * @return SectionData
      */
-    [[nodiscard]] static Result<SectionData> fromChunkSection(
-        const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes = {});
+    [[nodiscard]] static Result<SectionData> fromChunkSection(const ChunkData& chunk,
+        i32 sectionIndex,
+        const ChunkSection& section,
+        const SectionKey& key,
+        const std::vector<BiomeId>& biomes = {});
 
     /**
      * @brief 从区块的生物群系容器提取段级 4x4x4 采样列表
@@ -337,13 +345,18 @@ public:
      * 384 KB；本方法把它的生命周期压在单次调用内，使一次区块保存的峰值分配
      * 从「整列 24 份 SectionData」降到「单段 SectionData + 压缩后字节」。
      *
+     * @param chunk 段所属区块（提供光照权威副本）
+     * @param sectionIndex 段索引 0..CHUNK_SECTIONS-1
      * @param section ChunkSection对象
      * @param key Section标识
      * @param biomes 生物群系数据（64个）
      * @return 序列化后的落盘字节，失败返回错误
      */
-    [[nodiscard]] static Result<std::vector<u8>> serializeFromChunkSection(
-        const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes = {});
+    [[nodiscard]] static Result<std::vector<u8>> serializeFromChunkSection(const ChunkData& chunk,
+        i32 sectionIndex,
+        const ChunkSection& section,
+        const SectionKey& key,
+        const std::vector<BiomeId>& biomes = {});
 
     /**
      * @brief 将SectionData应用到ChunkSection
@@ -409,11 +422,16 @@ private:
      * 字节完全一致；哈希也在此处一并算出。
      *
      * @param data 输出目标（复用调用方已分配的对象）
+     * @param chunk 段所属区块（提供光照权威副本）
+     * @param sectionIndex 段索引 0..CHUNK_SECTIONS-1
      * @param section ChunkSection对象
      * @param biomes 生物群系数据（64个）
      */
-    static void _captureChunkSection(
-        SectionData& data, const ChunkSection& section, const std::vector<BiomeId>& biomes);
+    static void _captureChunkSection(SectionData& data,
+        const ChunkData& chunk,
+        i32 sectionIndex,
+        const ChunkSection& section,
+        const std::vector<BiomeId>& biomes);
 };
 
 } // namespace mc::world::storage

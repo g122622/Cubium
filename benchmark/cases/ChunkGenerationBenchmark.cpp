@@ -152,7 +152,8 @@ public:
             } else if (status == ChunkStatuses::FEATURES) {
                 m_generator->placeFeatures(region, *chunk);
             } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
-                chunk->initializeLightSources();
+                // INITIALIZE_LIGHT 为空操作（与 ServerChunkManager::_executeStepTask 一致）：
+                // 光源收集由 BlockStarLightEngine::_getSources 在 LIGHT 阶段完成。
             } else if (status == ChunkStatuses::LIGHT) {
                 // 光照传播由光照引擎异步处理
             } else if (status == ChunkStatuses::SPAWN) {

@@ -310,7 +310,8 @@ Result<size_t> ServerWorld::saveDirtyChunks(bool sync)
             }
             world::storage::SectionKey key(
                 chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(sectionY)), m_config.dimension);
-            auto bytesResult = world::storage::SectionCodec::serializeFromChunkSection(*section, key, biomes);
+            auto bytesResult =
+                world::storage::SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
             if (bytesResult.failed()) {
                 spdlog::error("Failed to serialize section ({}, {}, {}) of dimension {}: {}",
                     key.chunkX,
@@ -2464,8 +2465,6 @@ void ServerWorld::markLightChanged(LightType type, const SectionPos& pos)
         }
     }
 
-    _syncLightDataToChunk(type, pos);
-
     if (m_onLightChanged) {
         m_onLightChanged(type, pos);
     }
@@ -2697,54 +2696,6 @@ i32 ServerWorld::getMaxBuildHeight() const noexcept
 i32 ServerWorld::getSectionCount() const noexcept
 {
     return world::CHUNK_SECTIONS;
-}
-
-void ServerWorld::_syncLightDataToChunk(LightType type, const SectionPos& pos)
-{
-    if (!m_lightManager || !m_chunkManager) {
-        return;
-    }
-
-    ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(pos.x, pos.z);
-    if (!chunk) {
-        return;
-    }
-
-    const i32 sectionIndex = world::sectionCoordToIndex(pos.y);
-    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
-        return;
-    }
-
-    ChunkSection* section = chunk->getSection(sectionIndex);
-    if (!section) {
-        return;
-    }
-
-    SWMRNibbleArray* lightData = m_lightManager->getData(type, pos);
-    if (!lightData) {
-        return;
-    }
-
-    std::vector<u8> data = lightData->toByteArray();
-
-    NibbleArray& targetArray = (type == LightType::SKY) ? section->skyLightNibble() : section->blockLightNibble();
-
-    if (data.size() != NibbleArray::BYTE_SIZE) {
-        // SWMR 侧处于 Null/Uninit 时 toByteArray() 返回空数组，表示本段已无实际光照数据。
-        // 此时必须把 ChunkSection 的副本一并清空：否则该段会保留此前的旧字节，而这份副本
-        // 会被 SectionCodec 写进存档，导致同一坐标上 WorldLightManager（读 SWMR 侧）与
-        // 存档读出的光照值不一致。
-        // 清空后按 NibbleArray 的空数组语义取值——天空光空即全亮 15、方块光空即无光 0，
-        // 与 SectionCodec「默认值不落盘」的约定一致。
-        MC_ASSERT_RELEASE(data.empty());
-        if (!targetArray.isEmpty()) {
-            // 赋空 vector 而非 clear()：clear 只清 size，2048 字节的容量仍被占住
-            targetArray.data() = std::vector<u8>();
-        }
-        return;
-    }
-
-    targetArray.data() = std::move(data);
 }
 
 // ============================================================================

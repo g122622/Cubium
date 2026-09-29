@@ -229,20 +229,6 @@ public:
     [[nodiscard]] BiomeId getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const override;
 
     // ============================================================================
-    // 光源位置
-    // ============================================================================
-
-    /**
-     * @brief 添加光源位置（用于光照计算）
-     */
-    void addLightPosition(BlockCoord x, BlockCoord y, BlockCoord z);
-
-    /**
-     * @brief 获取所有光源位置
-     */
-    [[nodiscard]] const std::vector<BlockCoord>& getLightPositions() const noexcept { return m_lightPositions; }
-
-    // ============================================================================
     // 高度图管理
     // ============================================================================
 
@@ -256,14 +242,6 @@ public:
      * @brief 更新所有高度图
      */
     void updateAllHeightmaps();
-
-    /**
-     * @brief 初始化光源列表
-     *
-     * INITIALIZE_LIGHT 阶段调用：遍历区块中所有方块，
-     * 找到亮度 > 0 的方块（火把、荧石等），注册到光照引擎。
-     */
-    void initializeLightSources();
 
     /**
      * @brief 从已有方块数据初始化指定高度图
@@ -544,7 +522,6 @@ public:
      *                     markPosForPostprocessing 仍会写入；FEATURES 完成后不再有写入）
      *   - m_structureStarts 不释放：邻居在 STRUCTURE_REFERENCES/FEATURES/NOISE 阶段通过
      *                     getIntersectingStructures/getStructureStart 读取，必须存活到 holder 卸载
-     *   - m_lightPositions 不释放：恒为空（addLightPosition/getLightPositions 在生产代码中无调用）
      *
      * @param afterStatus 刚完成的 ChunkStatus
      */
@@ -618,9 +595,6 @@ private:
     // 堆持有的理由同 m_biomes：FULL 后本地副本与 ChunkData 完全重复，reset 才能归还
     // 约 7 KiB/区块。释放后 getTopBlockY/getHeightmapFirstAvailable 委托 m_data。
     std::unique_ptr<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>> m_heightmaps;
-
-    // 光源位置
-    std::vector<BlockCoord> m_lightPositions;
 
     // 区块生成时生成的实体
     std::vector<SpawnedEntityData> m_spawnedEntities;

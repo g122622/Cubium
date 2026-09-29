@@ -23,15 +23,6 @@
 
 #pragma once
 
-// macOS系统头文件<mach/arm/vm_param.h>定义了BYTE_SIZE宏(=8)，
-// 与NibbleArray::BYTE_SIZE静态常量冲突，在此push/undef屏蔽。
-// 不在include后pop_macro，确保后续代码不受影响。
-#ifdef __APPLE__
-#pragma push_macro("BYTE_SIZE")
-#undef BYTE_SIZE
-#endif
-#include "common/util/NibbleArray.hpp"
-
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
@@ -111,28 +102,15 @@ public:
     [[nodiscard]] u16 fluidRefCount() const { return m_fluidRefCount; }
 
     // 光照
-    [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const;
-    void setSkyLight(i32 x, i32 y, i32 z, u8 light);
-    [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const;
-    void setBlockLight(i32 x, i32 y, i32 z, u8 light);
-
-    // 光照访问器
-    /**
-     * @brief 获取天空光照数组（只读）
-     */
-    [[nodiscard]] const NibbleArray& skyLightNibble() const { return m_skyLight; }
-    /**
-     * @brief 获取天空光照数组（可变）
-     */
-    [[nodiscard]] NibbleArray& skyLightNibble() { return m_skyLight; }
-    /**
-     * @brief 获取方块光照数组（只读）
-     */
-    [[nodiscard]] const NibbleArray& blockLightNibble() const { return m_blockLight; }
-    /**
-     * @brief 获取方块光照数组（可变）
-     */
-    [[nodiscard]] NibbleArray& blockLightNibble() { return m_blockLight; }
+    //
+    // 【为何本类不持有光照数据】对齐原版 1.21.11：LevelChunkSection 只含 states + biomes，
+    // 光照（skyLight/blockLight）归 chunk 层。本项目对应 ChunkData 的 SWMRNibbleArray
+    // （skyNibbles()/blockNibbles()），段索引经 world::sectionIndexToCoord 换算到光照段坐标后
+    // 取 LIGHT_SECTIONS 数组中的对应项。
+    //
+    // 历史上本类内联了两份 NibbleArray（各 2048 B/段），由 ServerWorld::_syncLightDataToChunk
+    // 从 SWMR 复制进来、仅供 SectionCodec 落盘读取，服务端从不读回——单玩家 1225 区块实测
+    // 约 11.4 MB 纯冗余。删除后光照只有 SWMR 一份权威副本。
 
     // 序列化
     [[nodiscard]] std::vector<u8> serialize() const;
@@ -140,19 +118,6 @@ public:
 
     // 填充
     void fill(u32 stateId);
-
-    // 填充光照
-    /**
-     * @brief 填充天空光照
-     * @param light 光照值 (0-15)
-     */
-    void fillSkyLight(u8 light) { m_skyLight.fill(light); }
-
-    /**
-     * @brief 填充方块光照
-     * @param light 光照值 (0-15)
-     */
-    void fillBlockLight(u8 light) { m_blockLight.fill(light); }
 
 private:
     // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。move 时由
@@ -163,9 +128,7 @@ private:
     // 调色板压缩存储方块状态 ID（SingleValue/Linear/HashMap/Flat 自适应）
     // 替代原扁平 std::vector<u32> (16 KB/段)，典型段内存降至 2-4 KB
     PalettedContainer m_blockStates;
-    NibbleArray m_skyLight;   // 天空光照 (4位/方块)
-    NibbleArray m_blockLight; // 方块光照 (4位/方块)
-    u16 m_blockCount = 0;     // 非空气方块数量
+    u16 m_blockCount = 0; // 非空气方块数量
     bool m_needsRecalculate = false;
 
     // 随机刻计数器（用于性能优化）

@@ -77,7 +77,7 @@ void saveChunkSections(
             continue;
         }
         SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(mc::world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        auto bytesResult = SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
         ASSERT_TRUE(bytesResult.success()) << bytesResult.error().message();
         writes.push_back(SectionWrite{key, std::move(bytesResult.value())});
     }
@@ -97,7 +97,7 @@ size_t saveChunkSectionsForCount(SingleLevelStorageManager& storage, const Chunk
             continue;
         }
         SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(mc::world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        auto bytesResult = SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
         EXPECT_TRUE(bytesResult.success()) << bytesResult.error().message();
         if (bytesResult.failed()) {
             return 0;
@@ -580,7 +580,7 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveOperationsAreSilentAndDoNotPer
     const std::vector<BiomeId> biomes = SectionCodec::extractBiomes(chunk.getBiomes());
     std::vector<SectionWrite> readonlyWrites;
     SectionKey readonlyKey(1, 2, 0, 0);
-    auto readonlyBytes = SectionCodec::serializeFromChunkSection(*section, readonlyKey, biomes);
+    auto readonlyBytes = SectionCodec::serializeFromChunkSection(chunk, 0, *section, readonlyKey, biomes);
     ASSERT_TRUE(readonlyBytes.success()) << readonlyBytes.error().message();
     readonlyWrites.push_back(SectionWrite{readonlyKey, std::move(readonlyBytes.value())});
 

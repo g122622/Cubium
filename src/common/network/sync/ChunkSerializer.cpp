@@ -395,9 +395,10 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
 
 size_t ChunkSerializer::calculateSectionSize(const ChunkSection& section)
 {
-    // 新格式: 方块数据 (4096 * 4) + 天空光照 (2048) + 方块光照 (2048)
+    // 方块数据 (4096 * 4)。光照不在 ChunkSection 中（归 ChunkData 的 SWMRNibbleArray），
+    // 故本函数与 ChunkSection::serialize 的写入量严格一致，不再计入光照字节。
     (void)section;
-    return 2 + ChunkSection::VOLUME * sizeof(u32) + NibbleArray::BYTE_SIZE * 2;
+    return 2 + ChunkSection::VOLUME * sizeof(u32);
 }
 
 u32 ChunkSerializer::calculateSectionMask(const ChunkData& chunk)

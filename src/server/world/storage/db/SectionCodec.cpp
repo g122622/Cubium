@@ -542,13 +542,16 @@ void SectionData::computeHash()
 // SectionCodec 实现
 // ============================================================================
 
-Result<SectionData> SectionCodec::fromChunkSection(
-    const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes)
+Result<SectionData> SectionCodec::fromChunkSection(const ChunkData& chunk,
+    i32 sectionIndex,
+    const ChunkSection& section,
+    const SectionKey& key,
+    const std::vector<BiomeId>& biomes)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::fromChunkSection");
 
     SectionData data(key);
-    _captureChunkSection(data, section, biomes);
+    _captureChunkSection(data, chunk, sectionIndex, section, biomes);
     return data;
 }
 
@@ -566,20 +569,26 @@ std::vector<BiomeId> SectionCodec::extractBiomes(const BiomeContainer& biomes)
     return result;
 }
 
-Result<std::vector<u8>> SectionCodec::serializeFromChunkSection(
-    const ChunkSection& section, const SectionKey& key, const std::vector<BiomeId>& biomes)
+Result<std::vector<u8>> SectionCodec::serializeFromChunkSection(const ChunkData& chunk,
+    i32 sectionIndex,
+    const ChunkSection& section,
+    const SectionKey& key,
+    const std::vector<BiomeId>& biomes)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "SectionCodec::serializeFromChunkSection");
 
     // 与 fromChunkSection 走同一段抓取逻辑，保证两条路径产出的字节完全一致；
     // 差别只在本函数不把 SectionData 交还给调用方，其生命周期止于本作用域。
     SectionData data(key);
-    _captureChunkSection(data, section, biomes);
+    _captureChunkSection(data, chunk, sectionIndex, section, biomes);
     return data.serialize();
 }
 
-void SectionCodec::_captureChunkSection(
-    SectionData& data, const ChunkSection& section, const std::vector<BiomeId>& biomes)
+void SectionCodec::_captureChunkSection(SectionData& data,
+    const ChunkData& chunk,
+    i32 sectionIndex,
+    const ChunkSection& section,
+    const std::vector<BiomeId>& biomes)
 {
     // 复制方块状态
     data.blockStates.resize(SectionData::VOLUME);
@@ -602,39 +611,34 @@ void SectionCodec::_captureChunkSection(
         data.biomes.assign(SectionData::BIOME_COUNT, 1);
     }
 
-    // 复制光照数据（仅当非默认值时）
-    // 天空光照：默认全15（日光），只有当存在非15值时才存储
-    // 方块光照：默认全0（无光），只有当存在非0值时才存储
-    const auto& skyLight = section.skyLightNibble();
-    const auto& blockLight = section.blockLightNibble();
-
-    // 检查天空光照是否有非默认值（非15）
-    if (!skyLight.isEmpty()) {
-        bool hasNonDefaultSkyLight = false;
-        for (size_t i = 0; i < LIGHT_DATA_SIZE; ++i) {
-            // 每个 nibble 都是 15 才是默认值
-            u8 byte = skyLight.rawData()[i];
-            if (byte != 0xFF) { // 0xFF = 两个 nibble 都是 15
-                hasNonDefaultSkyLight = true;
-                break;
+    // 复制光照数据（仅当非默认值时）。
+    //
+    // 光照的权威副本在 ChunkData 的 SWMRNibbleArray（ChunkSection 不再持有光照），故此处
+    // 从区块按段索引取。索引换算由 ChunkData::skyNibbleAt/blockNibbleAt 负责（光照数组
+    // LIGHT_SECTIONS = CHUNK_SECTIONS + 2，比区块段多留一段上下缓冲，故整体偏移 1）。
+    //
+    // 默认值语义与落盘格式的约定一致：
+    //   天空光：默认全 15（日光），仅当存在非 15 值时才写该段
+    //   方块光：默认全 0（无光），仅当存在非 0 值时才写该段
+    // nibble 处于 Null/Uninit（该段无光照数据）时按默认值处理，不落盘。
+    {
+        alignas(8) std::array<u8, LIGHT_DATA_SIZE> skyScratch{};
+        if (chunk.skyNibbleAt(sectionIndex).copyVisibleTo(skyScratch.data())) {
+            const bool hasNonDefaultSkyLight = std::any_of(skyScratch.begin(), skyScratch.end(), [](u8 byte) {
+                return byte != 0xFF;
+            }); // 0xFF = 两个 nibble 都是 15
+            if (hasNonDefaultSkyLight) {
+                data.skyLight = std::vector<u8>(skyScratch.begin(), skyScratch.end());
             }
         }
-        if (hasNonDefaultSkyLight) {
-            data.skyLight = std::vector<u8>(skyLight.rawData(), skyLight.rawData() + LIGHT_DATA_SIZE);
-        }
-    }
 
-    // 检查方块光照是否有非默认值（非0）
-    if (!blockLight.isEmpty()) {
-        bool hasNonDefaultBlockLight = false;
-        for (size_t i = 0; i < LIGHT_DATA_SIZE; ++i) {
-            if (blockLight.rawData()[i] != 0) {
-                hasNonDefaultBlockLight = true;
-                break;
+        alignas(8) std::array<u8, LIGHT_DATA_SIZE> blockScratch{};
+        if (chunk.blockNibbleAt(sectionIndex).copyVisibleTo(blockScratch.data())) {
+            const bool hasNonDefaultBlockLight =
+                std::any_of(blockScratch.begin(), blockScratch.end(), [](u8 byte) { return byte != 0; });
+            if (hasNonDefaultBlockLight) {
+                data.blockLight = std::vector<u8>(blockScratch.begin(), blockScratch.end());
             }
-        }
-        if (hasNonDefaultBlockLight) {
-            data.blockLight = std::vector<u8>(blockLight.rawData(), blockLight.rawData() + LIGHT_DATA_SIZE);
         }
     }
 
@@ -659,20 +663,15 @@ Result<void> SectionCodec::toChunkSection(const SectionData& data, ChunkSection&
     // 设置非空方块计数
     section.setBlockCount(data.nonEmptyBlockCount);
 
-    // 设置光照数据
-    if (data.skyLight.has_value() && data.skyLight->size() == SectionCodec::LIGHT_DATA_SIZE) {
-        auto& skyLight = section.skyLightNibble();
-        // 确保目标 NibbleArray 已分配，避免向空指针 memcpy。
-        auto& skyLightData = skyLight.data();
-        std::memcpy(skyLightData.data(), data.skyLight->data(), SectionCodec::LIGHT_DATA_SIZE);
-    }
-
-    if (data.blockLight.has_value() && data.blockLight->size() == SectionCodec::LIGHT_DATA_SIZE) {
-        auto& blockLight = section.blockLightNibble();
-        // 默认 ChunkSection 的方块光数组可能为空，这里需要先显式分配。
-        auto& blockLightData = blockLight.data();
-        std::memcpy(blockLightData.data(), data.blockLight->data(), SectionCodec::LIGHT_DATA_SIZE);
-    }
+    // TODO: 落盘的光照（data.skyLight / data.blockLight）目前在加载路径被丢弃——ChunkSection
+    //   不再持有光照，而 ChunkData 的 SWMRNibbleArray 也没有从这里填充；ChunkData::m_lightCorrect
+    //   默认 false，ChunkLoadLightTask 因此必然走全量重算分支（ChunkLoadLightTask.cpp 的 else 分支），
+    //   算完即覆盖。于是"从磁盘解码光照"这一步当前是纯开销（CPU + 每段两次 vector 分配）。
+    //   两条收敛路径：(1) 若确认永不使用落盘光照，则连同 SectionData 的 skyLight/blockLight
+    //   字段与 SectionFlags::HasSkyLight/HasBlockLight 一并删除；(2) 若要做"光照已正确则跳过重算"，
+    //   则在此处把 nibble 灌进 chunk.skyNibbleAt(sectionIndex)/blockNibbleAt(sectionIndex) 并置
+    //   setLightCorrect(true)，同时需要处理落盘光照与方块数据不同步（外部工具改档）的校验。
+    //   当前保留字段与解码逻辑，仅为不改变落盘格式。
 
     // 标记需要重新计算
     section.setNeedsRecalculate(true);

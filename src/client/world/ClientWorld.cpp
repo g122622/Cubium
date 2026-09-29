@@ -312,17 +312,10 @@ u8 ClientWorld::getSkyLight(i32 x, i32 y, i32 z) const
         return 15;
     }
 
-    const i32 localX = toLocalCoord(x);
-    const i32 localZ = toLocalCoord(z);
-
-    const i32 sectionIndex = (y - m_minBuildHeight) / ChunkSection::SIZE;
-    const ChunkSection* section = chunk->data->getSection(sectionIndex);
-    if (!section) {
-        return 15;
-    }
-
-    const i32 localY = y - m_minBuildHeight - sectionIndex * ChunkSection::SIZE;
-    return section->getSkyLight(localX, localY, localZ);
+    // 光照归 ChunkData（SWMRNibbleArray），与客户端 ChunkSection 的方块数据同源。
+    // ChunkData 内部按 MIN_BUILD_HEIGHT 折算段索引，与本类的 m_minBuildHeight 在
+    // 客户端固定为 MIN_BUILD_HEIGHT（见其默认值），语义一致。
+    return chunk->data->getSkyLight(toLocalCoord(x), y, toLocalCoord(z));
 }
 
 u8 ClientWorld::getBlockLight(i32 x, i32 y, i32 z) const
@@ -340,17 +333,7 @@ u8 ClientWorld::getBlockLight(i32 x, i32 y, i32 z) const
         return 0;
     }
 
-    const i32 localX = toLocalCoord(x);
-    const i32 localZ = toLocalCoord(z);
-
-    const i32 sectionIndex = (y - m_minBuildHeight) / ChunkSection::SIZE;
-    const ChunkSection* section = chunk->data->getSection(sectionIndex);
-    if (!section) {
-        return 0;
-    }
-
-    const i32 localY = y - m_minBuildHeight - sectionIndex * ChunkSection::SIZE;
-    return section->getBlockLight(localX, localY, localZ);
+    return chunk->data->getBlockLight(toLocalCoord(x), y, toLocalCoord(z));
 }
 
 void ClientWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
@@ -1153,16 +1136,15 @@ void ClientWorld::onLightSection(i32 chunkX, i32 chunkZ, i32 sectionY, bool isSk
         return;
     }
 
-    ChunkSection* section = chunk->data->getSection(world::sectionCoordToIndex(sectionY));
-    if (!section) {
+    const i32 sectionIndex = world::sectionCoordToIndex(sectionY);
+    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
         return;
     }
 
-    if (isSky) {
-        section->skyLightNibble() = NibbleArray(nibble);
-    } else {
-        section->blockLightNibble() = NibbleArray(nibble);
-    }
+    // 客户端光照同样只存 ChunkData 的 SWMRNibbleArray 一份（与 ChunkSection 无关）。
+    // fromData 会把数据同时填到 updating 与 visible 两侧，故紧随其后的网格重建能立即读到。
+    SWMRNibbleArray& target = isSky ? chunk->data->skyNibbleAt(sectionIndex) : chunk->data->blockNibbleAt(sectionIndex);
+    target = SWMRNibbleArray::fromData(nibble);
 
     _requestChunkMeshRebuild(id);
 }

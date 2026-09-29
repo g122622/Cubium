@@ -448,6 +448,21 @@ std::vector<u8> SWMRNibbleArray::toByteArray() const
     return std::vector<u8>(data->begin(), data->end());
 }
 
+bool SWMRNibbleArray::copyVisibleTo(u8* out) const
+{
+    MC_ASSERT_RELEASE(out != nullptr);
+
+    auto* data = m_storageVisible.load();
+    const State state = m_stateVisible.load();
+
+    if (data == nullptr || state == State::Null || state == State::Uninit) {
+        return false;
+    }
+
+    std::memcpy(out, data->data(), ARRAY_SIZE);
+    return true;
+}
+
 // ============================================================================
 // 私有方法
 // ============================================================================

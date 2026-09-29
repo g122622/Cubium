@@ -32,6 +32,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 
 #undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
@@ -39,135 +40,40 @@ using namespace mc::network;
 using namespace mc;
 
 // ============================================================================
-// ChunkSection 光照序列化测试
-// ============================================================================
-
-class ChunkSectionLightTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        // 创建带有光照数据的区块段
-        section = std::make_unique<ChunkSection>();
-
-        // 设置光照数据
-        NibbleArray& skyLight = section->skyLightNibble();
-        NibbleArray& blockLight = section->blockLightNibble();
-
-        for (i32 y = 0; y < 16; ++y) {
-            for (i32 z = 0; z < 16; ++z) {
-                for (i32 x = 0; x < 16; ++x) {
-                    skyLight.set(x, y, z, static_cast<u8>((15 - y) & 0xF));
-                    blockLight.set(x, y, z, static_cast<u8>((y + z) % 16));
-                }
-            }
-        }
-    }
-
-    std::unique_ptr<ChunkSection> section;
-};
-
-TEST_F(ChunkSectionLightTest, SerializeSectionPreservesLightData)
-{
-    // 序列化
-    auto serialized = ChunkSerializer::serializeSection(*section);
-
-    EXPECT_FALSE(serialized.empty());
-
-    // 反序列化
-    auto result = ChunkSerializer::deserializeChunkSection(serialized.data(), serialized.size());
-
-    ASSERT_TRUE(result.success());
-
-    const auto& deserialized = result.value();
-
-    // 验证光照数据
-    const NibbleArray& origSky = section->skyLightNibble();
-    const NibbleArray& origBlock = section->blockLightNibble();
-    const NibbleArray& deserSky = deserialized->skyLightNibble();
-    const NibbleArray& deserBlock = deserialized->blockLightNibble();
-
-    // 验证数据大小正确
-    EXPECT_EQ(deserSky.data().size(), NibbleArray::BYTE_SIZE);
-    EXPECT_EQ(deserBlock.data().size(), NibbleArray::BYTE_SIZE);
-
-    // 检查光照值是否一致
-    for (i32 y = 0; y < 16; ++y) {
-        for (i32 z = 0; z < 16; ++z) {
-            for (i32 x = 0; x < 16; ++x) {
-                EXPECT_EQ(origSky.get(x, y, z), deserSky.get(x, y, z))
-                    << "Sky light mismatch at (" << x << ", " << y << ", " << z << ")";
-                EXPECT_EQ(origBlock.get(x, y, z), deserBlock.get(x, y, z))
-                    << "Block light mismatch at (" << x << ", " << y << ", " << z << ")";
-            }
-        }
-    }
-}
-
-TEST_F(ChunkSectionLightTest, EmptySectionLightData)
-{
-    // 创建空区块段
-    ChunkSection emptySection;
-
-    // 序列化
-    auto serialized = ChunkSerializer::serializeSection(emptySection);
-
-    EXPECT_FALSE(serialized.empty());
-
-    // 反序列化
-    auto result = ChunkSerializer::deserializeChunkSection(serialized.data(), serialized.size());
-
-    ASSERT_TRUE(result.success());
-
-    const auto& deserialized = result.value();
-
-    // 空区块段的光照数据应该被初始化
-    const NibbleArray& skyLight = deserialized->skyLightNibble();
-    const NibbleArray& blockLight = deserialized->blockLightNibble();
-
-    // 验证数据不为空
-    EXPECT_EQ(skyLight.data().size(), NibbleArray::BYTE_SIZE);
-    EXPECT_EQ(blockLight.data().size(), NibbleArray::BYTE_SIZE);
-}
-
-// ============================================================================
 // ChunkData 光照存储测试
 // ============================================================================
+//
+// 光照的权威副本在 ChunkData 的 SWMRNibbleArray（对齐原版 1.21.11：光照归 chunk 层，
+// LevelChunkSection 只含 states + biomes）。ChunkSection 不再持有光照，故这里全部
+// 经 chunk->skyNibbleAt/blockNibbleAt(sectionIndex) 读写。
 
 class ChunkDataLightTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 创建测试区块
         chunk = std::make_unique<ChunkData>(0, 0);
 
-        // 创建区块段。
-        // 注意: 主世界 MIN_BUILD_HEIGHT=-64，世界Y与段索引的对应关系为
-        //   sectionIndex = (worldY - MIN_BUILD_HEIGHT) / 16
-        // 世界Y=0..15 落在段索引 4（而非 0）。本测试用例统一在段索引 4 上
-        // 设置/读取光照，使 getSkyLight(0, worldY, 0) 能命中被写入的段。
-        // （历史 bug：旧用例误用段索引 0，对应世界Y=-64..-49，与读取坐标不匹配，
-        //  导致 getSkyLight 命中未创建段而返回默认值 15。）
+        // 段索引 4 对应世界 Y=0..15（MIN_BUILD_HEIGHT=-64，故 (0-(-64))/16 = 4）。
+        // 光照 nibble 的索引由 skyNibbleAt/blockNibbleAt 统一换算（内部偏移 1 段）。
         constexpr i32 kSectionIndex = 4;
-        ChunkSection* section = chunk->createSection(kSectionIndex);
 
-        // 设置光照
-        // 注意: localY=0 是区块段底部，localY=15 是区块段顶部
-        // 设置值: y=0 -> 光照=15 (底部最亮), y=15 -> 光照=0 (顶部最暗)
-        // 这与真实光照相反，但用于测试存储功能
-        // 段索引 4 对应世界Y=0..15，故 localY==worldY（在此段内）
-        NibbleArray& skyLight = section->skyLightNibble();
-        NibbleArray& blockLight = section->blockLightNibble();
-
+        // 设置天空光: localY=0 -> 15（底部最亮），localY=15 -> 0（顶部最暗）。
+        // 首次逐点写入前先 materialize 全亮，否则未写入坐标会从默认 15 骤变为 0。
+        SWMRNibbleArray& skyLight = chunk->skyNibbleAt(kSectionIndex);
+        skyLight.setFull();
         for (i32 y = 0; y < 16; ++y) {
             for (i32 z = 0; z < 16; ++z) {
                 for (i32 x = 0; x < 16; ++x) {
-                    // 设置光照: y=0 -> 15, y=15 -> 0
                     skyLight.set(x, y, z, static_cast<u8>(15 - y));
-                    // 方块光为0
-                    blockLight.set(x, y, z, 0);
                 }
             }
         }
+        skyLight.updateVisible();
+
+        // 方块光默认即 0，无需 materialize。
+        SWMRNibbleArray& blockLight = chunk->blockNibbleAt(kSectionIndex);
+        blockLight.setZero();
+        blockLight.updateVisible();
     }
 
     std::unique_ptr<ChunkData> chunk;
@@ -175,19 +81,16 @@ protected:
 
 TEST_F(ChunkDataLightTest, GetSkyLight)
 {
-    // 验证区块光照存储正确
-    // SetUp 在段索引 4（世界Y=0..15）上设置 15-y，故：
-    // worldY=0 -> localY=0 -> 光照=15 (底部)
+    // worldY=0 -> localY=0 -> 光照=15（底部）
     // worldY=1 -> localY=1 -> 光照=14
-    // worldY=15 -> localY=15 -> 光照=0 (顶部)
-    EXPECT_EQ(chunk->getSkyLight(0, 0, 0), 15); // 底层 (localY=0)
-    EXPECT_EQ(chunk->getSkyLight(0, 1, 0), 14); // y=1 -> 15-1=14
-    EXPECT_EQ(chunk->getSkyLight(0, 15, 0), 0); // 顶层 (localY=15)
+    // worldY=15 -> localY=15 -> 光照=0（顶部）
+    EXPECT_EQ(chunk->getSkyLight(0, 0, 0), 15);
+    EXPECT_EQ(chunk->getSkyLight(0, 1, 0), 14);
+    EXPECT_EQ(chunk->getSkyLight(0, 15, 0), 0);
 }
 
 TEST_F(ChunkDataLightTest, GetBlockLight)
 {
-    // 验证方块光照存储正确
     EXPECT_EQ(chunk->getBlockLight(0, 15, 0), 0);
     EXPECT_EQ(chunk->getBlockLight(8, 8, 8), 0);
 }
@@ -202,44 +105,42 @@ TEST_F(ChunkDataLightTest, SetBlockLight)
 
 TEST_F(ChunkDataLightTest, SetSkyLight)
 {
-    // 设置天空光
+    // SetUp 已把整段写成 15-y，故此处只验证逐点覆盖生效、且不影响同层其它坐标。
     chunk->setSkyLight(10, 10, 10, 8);
 
     EXPECT_EQ(chunk->getSkyLight(10, 10, 10), 8);
+    EXPECT_EQ(chunk->getSkyLight(11, 10, 10), 5); // SetUp 在 y=10 写入的 15-10
 }
 
 TEST_F(ChunkDataLightTest, SkyLightNibbleArrayDirectAccess)
 {
-    // 测试直接访问 NibbleArray
-    // 段索引 4 对应世界Y=0..15，与 getSkyLight(worldY) 读取的段一致
-    ChunkSection* section = chunk->getSection(4);
-    ASSERT_NE(section, nullptr);
+    // 经 skyNibbleAt 直接操作 nibble（光照引擎走的路径）
+    SWMRNibbleArray& skyLight = chunk->skyNibbleAt(4);
 
-    NibbleArray& skyLight = section->skyLightNibble();
-
-    // 设置值
     skyLight.set(7, 7, 7, 12);
+    skyLight.updateVisible();
 
-    // 验证读取
-    EXPECT_EQ(skyLight.get(7, 7, 7), 12);
     EXPECT_EQ(chunk->getSkyLight(7, 7, 7), 12);
 }
 
 TEST_F(ChunkDataLightTest, BlockLightNibbleArrayDirectAccess)
 {
-    // 测试直接访问 NibbleArray
-    // 段索引 4 对应世界Y=0..15，与 getBlockLight(worldY) 读取的段一致
-    ChunkSection* section = chunk->getSection(4);
-    ASSERT_NE(section, nullptr);
+    SWMRNibbleArray& blockLight = chunk->blockNibbleAt(4);
 
-    NibbleArray& blockLight = section->blockLightNibble();
-
-    // 设置值
     blockLight.set(3, 5, 7, 8);
+    blockLight.updateVisible();
 
-    // 验证读取
-    EXPECT_EQ(blockLight.get(3, 5, 7), 8);
     EXPECT_EQ(chunk->getBlockLight(3, 5, 7), 8);
+}
+
+TEST_F(ChunkDataLightTest, SectionSerializationCarriesNoLightBytes)
+{
+    // 段序列化只含方块数据；光照归 ChunkData，不进段字节流。
+    ChunkSection section;
+    const auto serialized = ChunkSerializer::serializeSection(section);
+
+    // 2(计数) + 4096*4(方块状态ID)
+    EXPECT_EQ(serialized.size(), 2 + ChunkSection::VOLUME * sizeof(u32));
 }
 
 // ============================================================================

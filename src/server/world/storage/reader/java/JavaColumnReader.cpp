@@ -200,7 +200,6 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
     const DimensionType dimType = DimensionType::fromId(dimension);
     const i32 dimMinHeight = dimType.minHeight();
     const i32 dimMaxHeight = dimType.maxHeight();
-    const bool dimHasSkyLight = dimType.hasSkyLight();
 
     ChunkData chunk(x, z);
     auto biomesResult = _readBiomes(columnNbt, chunk, dimMinHeight);
@@ -210,7 +209,7 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
     _readHeightmaps(columnNbt, chunk, dimMinHeight);
     _readEntities(columnNbt, chunk);
     _readBlockEntities(columnNbt, chunk);
-    auto sectionsResult = _readSections(columnNbt, chunk, dimMinHeight, dimMaxHeight, dimHasSkyLight);
+    auto sectionsResult = _readSections(columnNbt, chunk, dimMinHeight, dimMaxHeight);
     if (sectionsResult.failed()) {
         return sectionsResult.error();
     }
@@ -230,7 +229,7 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
 }
 
 Result<void> JavaColumnReader::_readSections(
-    const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight, bool dimHasSkyLight)
+    const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight)
 {
     const list_tag* sections = getList(columnNbt, "Sections");
     if (sections == nullptr) {
@@ -265,7 +264,7 @@ Result<void> JavaColumnReader::_readSections(
             continue;
         }
 
-        auto result = m_chunkReader.readSection(*sectionNbt, chunk, sectionY, dimHasSkyLight);
+        auto result = m_chunkReader.readSection(*sectionNbt, chunk, sectionY);
         if (result.failed()) {
             spdlog::warn("JavaColumnReader: Failed to read section {} for chunk ({}, {}): {}",
                 sectionY,

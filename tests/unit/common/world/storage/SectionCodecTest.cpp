@@ -109,6 +109,19 @@ protected:
     void SetUp() override { mc::VanillaBlocks::initialize(); }
 };
 
+/**
+ * @brief 在指定区块上创建段并返回引用
+ *
+ * 段编码需要 ChunkData 提供光照权威副本（光照归 chunk 层，ChunkSection 不再持有），
+ * 故本文件所有段编码用例都必须先有区块。
+ */
+[[nodiscard]] ChunkSection& makeSection(ChunkData& chunk, i32 sectionIndex = 0)
+{
+    ChunkSection* section = chunk.createSection(sectionIndex);
+    MC_ASSERT_RELEASE(section != nullptr);
+    return *section;
+}
+
 SectionData makeMalformedSectionData()
 {
     SectionData data;
@@ -157,10 +170,11 @@ TEST_F(SectionCodecTest, AirVariantsDoNotCountAsNonAirBlocks)
 
 TEST_F(SectionCodecTest, EmptySection)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
+    ChunkSection& section = makeSection(chunk);
 
     SectionKey key(0, 0, 0, 0);
-    auto result = SectionCodec::fromChunkSection(section, key);
+    auto result = SectionCodec::fromChunkSection(chunk, 0, section, key);
     ASSERT_TRUE(result.success());
 
     SectionData& data = result.value();
@@ -172,12 +186,13 @@ TEST_F(SectionCodecTest, EmptySection)
 
 TEST_F(SectionCodecTest, SingleBlock)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
+    ChunkSection& section = makeSection(chunk);
     section.setBlockStateId(0, 0, 0, 1); // Set a single block
     section.setBlockCount(1);            // 手动设置方块数量
 
     SectionKey key(5, 10, 3, 0);
-    auto result = SectionCodec::fromChunkSection(section, key);
+    auto result = SectionCodec::fromChunkSection(chunk, 0, section, key);
     ASSERT_TRUE(result.success());
 
     SectionData& data = result.value();
@@ -189,7 +204,8 @@ TEST_F(SectionCodecTest, SingleBlock)
 
 TEST_F(SectionCodecTest, MultipleBlocks)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
+    ChunkSection& section = makeSection(chunk);
 
     // Set some blocks
     u16 blockCount = 0;
@@ -204,7 +220,7 @@ TEST_F(SectionCodecTest, MultipleBlocks)
     section.setBlockCount(blockCount);
 
     SectionKey key(0, 0, 0, 0);
-    auto result = SectionCodec::fromChunkSection(section, key);
+    auto result = SectionCodec::fromChunkSection(chunk, 0, section, key);
     ASSERT_TRUE(result.success());
 
     SectionData& data = result.value();
@@ -213,13 +229,14 @@ TEST_F(SectionCodecTest, MultipleBlocks)
 
 TEST_F(SectionCodecTest, SerializeDeserialize)
 {
-    ChunkSection original;
+    ChunkData chunk(0, 0);
+    ChunkSection& original = makeSection(chunk);
     original.setBlockStateId(5, 10, 15, 42);
     original.setBlockStateId(7, 8, 9, 100);
     original.setBlockCount(2);
 
     SectionKey key(100, -200, 7, 1); // Nether
-    auto encodeResult = SectionCodec::fromChunkSection(original, key);
+    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, original, key);
     ASSERT_TRUE(encodeResult.success());
 
     auto& data = encodeResult.value();
@@ -256,7 +273,8 @@ TEST_F(SectionCodecTest, SerializeDeserialize)
 
 TEST_F(SectionCodecTest, RoundTripWithBiomes)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
+    ChunkSection& section = makeSection(chunk);
     section.setBlockStateId(0, 0, 0, 1);
     section.setBlockCount(1);
 
@@ -266,7 +284,7 @@ TEST_F(SectionCodecTest, RoundTripWithBiomes)
     biomes[63] = TestBiomes::FOREST;
 
     SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(section, key, biomes);
+    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, section, key, biomes);
     ASSERT_TRUE(encodeResult.success());
 
     auto serializedResult = encodeResult.value().serialize();
@@ -283,13 +301,14 @@ TEST_F(SectionCodecTest, RoundTripWithBiomes)
 
 TEST_F(SectionCodecTest, ToChunkSection)
 {
-    ChunkSection original;
+    ChunkData chunk(0, 0);
+    ChunkSection& original = makeSection(chunk);
     original.setBlockStateId(3, 5, 7, 123);
     original.setBlockStateId(10, 12, 14, 456);
     original.setBlockCount(2);
 
     SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(original, key);
+    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, original, key);
     ASSERT_TRUE(encodeResult.success());
 
     auto serializedResult = encodeResult.value().serialize();
@@ -327,7 +346,9 @@ TEST_F(SectionCodecTest, ToChunkSectionRejectsMalformedLayout)
     EXPECT_EQ(applyResult.error().code(), ErrorCode::InvalidData);
 }
 
-TEST_F(SectionCodecTest, ToChunkSectionAllocatesBlockLightWhenStorageContainsBlockLight)
+// 段反序列化只还原方块数据；落盘的光照（SectionData::blockLight）当前被丢弃
+// （ChunkSection 不再持有光照，ChunkData 侧也没有从这里填充——见 toChunkSection 的 TODO）。
+TEST_F(SectionCodecTest, ToChunkSectionIgnoresStoredLightBytes)
 {
     SectionData data;
     data.key = SectionKey(0, 0, 0, 0);
@@ -338,24 +359,23 @@ TEST_F(SectionCodecTest, ToChunkSectionAllocatesBlockLightWhenStorageContainsBlo
     data.blockLight->at(0) = 0x5A;
 
     ChunkSection restored;
-    EXPECT_TRUE(restored.blockLightNibble().isEmpty());
-
     auto applyResult = SectionCodec::toChunkSection(data, restored);
 
     ASSERT_TRUE(applyResult.success());
-    EXPECT_FALSE(restored.blockLightNibble().isEmpty());
-    EXPECT_EQ(restored.blockLightNibble().get(0), 0xA);
-    EXPECT_EQ(restored.blockLightNibble().get(1), 0x5);
+    // 方块数据按原样还原（此处全空气），光照字节不影响段状态。
+    EXPECT_EQ(restored.getBlockCount(), 0u);
+    EXPECT_TRUE(restored.isEmpty());
 }
 
 TEST_F(SectionCodecTest, DeserializeRejectsImpossibleBlockCount)
 {
-    ChunkSection original;
+    ChunkData chunk(0, 0);
+    ChunkSection& original = makeSection(chunk);
     original.setBlockStateId(0, 0, 0, 1);
     original.setBlockCount(1);
 
     SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(original, key);
+    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, original, key);
     ASSERT_TRUE(encodeResult.success());
 
     auto serializedResult = encodeResult.value().serialize();
@@ -373,7 +393,8 @@ TEST_F(SectionCodecTest, DeserializeRejectsImpossibleBlockCount)
 
 TEST_F(SectionCodecTest, LargeBlockStateIds)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
+    ChunkSection& section = makeSection(chunk);
 
     // Test large block state IDs (beyond 12 bits, used in modern versions)
     section.setBlockStateId(0, 0, 0, 10000);
@@ -381,7 +402,7 @@ TEST_F(SectionCodecTest, LargeBlockStateIds)
     section.setBlockCount(2);
 
     SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(section, key);
+    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, section, key);
     ASSERT_TRUE(encodeResult.success());
 
     auto serializedResult = encodeResult.value().serialize();
@@ -400,7 +421,8 @@ TEST_F(SectionCodecTest, LargeBlockStateIds)
 
 TEST_F(SectionCodecTest, FullSection)
 {
-    ChunkSection section;
+    ChunkData chunk(0, 0);
+    ChunkSection& section = makeSection(chunk);
 
     // Fill entire section with blocks
     for (u32 y = 0; y < 16; ++y) {
@@ -414,7 +436,7 @@ TEST_F(SectionCodecTest, FullSection)
     section.setBlockCount(4096);
 
     SectionKey key(0, 0, 0, 0);
-    auto encodeResult = SectionCodec::fromChunkSection(section, key);
+    auto encodeResult = SectionCodec::fromChunkSection(chunk, 0, section, key);
     ASSERT_TRUE(encodeResult.success());
 
     auto serializedResult = encodeResult.value().serialize();

@@ -303,17 +303,6 @@ BiomeId ChunkPrimer::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) c
 }
 
 // ============================================================================
-// 光源位置
-// ============================================================================
-
-void ChunkPrimer::addLightPosition(BlockCoord x, BlockCoord y, BlockCoord z)
-{
-    m_lightPositions.push_back(x);
-    m_lightPositions.push_back(y);
-    m_lightPositions.push_back(z);
-}
-
-// ============================================================================
 // 高度图管理
 // ============================================================================
 
@@ -390,27 +379,6 @@ void ChunkPrimer::addPackedPostProcessing(const std::vector<u16>& packedPosition
         auto& section = m_postProcessingSections[sectionIndex];
         section.reserve(section.size() + packedPositions.size());
         section.insert(section.end(), packedPositions.begin(), packedPositions.end());
-    }
-}
-
-void ChunkPrimer::initializeLightSources()
-{
-    // INITIALIZE_LIGHT 阶段：遍历区块中所有方块，找到亮度 > 0 的方块
-    // 注册到光照引擎。光照系统完整集成后，此处应将光源位置注册到 WorldLightManager。
-    // 当前实现：标记方块级光源位置到 ChunkData 的 nibble array 中
-    for (i32 sectionY = 0; sectionY < mc::world::CHUNK_SECTIONS; ++sectionY) {
-        for (i32 x = 0; x < mc::world::CHUNK_WIDTH; ++x) {
-            for (i32 z = 0; z < mc::world::CHUNK_WIDTH; ++z) {
-                for (i32 y = 0; y < mc::world::CHUNK_SECTION_HEIGHT; ++y) {
-                    const i32 worldY = sectionY * mc::world::CHUNK_SECTION_HEIGHT + y + mc::world::MIN_BUILD_HEIGHT;
-                    const BlockState* state = m_data->getBlockState(x, worldY, z);
-                    if (state && state->lightLevel() > 0) {
-                        // 标记此位置的方块光照到区块光照数据
-                        m_data->setBlockLight(x, worldY, z, state->lightLevel());
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -557,8 +525,6 @@ void ChunkPrimer::releaseGenOnlyData(const ChunkStatus& afterStatus)
     // m_structureStarts：不能释放——邻居在 STRUCTURE_REFERENCES（半径8）、FEATURES、
     //   _buildBeardifier（BIOMES/NOISE）中通过 getIntersectingStructures/getStructureStart 读取。
     //   必须存活到 holder 卸载。
-
-    // m_lightPositions：恒为空（addLightPosition 在生产代码中无调用），无需处理
 }
 
 // ============================================================================
@@ -647,7 +613,6 @@ ChunkPrimer::ChunkPrimer(ChunkPrimer&& other) noexcept
     , m_modified(other.m_modified)
     , m_biomes(std::move(other.m_biomes))
     , m_heightmaps(std::move(other.m_heightmaps))
-    , m_lightPositions(std::move(other.m_lightPositions))
     , m_spawnedEntities(std::move(other.m_spawnedEntities))
     , m_structureStarts(std::move(other.m_structureStarts))
     , m_structureReferences(std::move(other.m_structureReferences))
@@ -674,7 +639,6 @@ ChunkPrimer& ChunkPrimer::operator=(ChunkPrimer&& other) noexcept
         m_modified = other.m_modified;
         m_biomes = std::move(other.m_biomes);
         m_heightmaps = std::move(other.m_heightmaps);
-        m_lightPositions = std::move(other.m_lightPositions);
         m_spawnedEntities = std::move(other.m_spawnedEntities);
         m_structureStarts = std::move(other.m_structureStarts);
         m_structureReferences = std::move(other.m_structureReferences);

@@ -369,7 +369,7 @@ Result<void> SingleLevelStorageManager::saveChunk(const ChunkData& chunk, Dimens
         }
 
         SectionKey key(chunk.x(), chunk.z(), static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        auto bytesResult = SectionCodec::serializeFromChunkSection(chunk, sectionY, *section, key, biomes);
         if (bytesResult.failed()) {
             return bytesResult.error();
         }
@@ -588,7 +588,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
             continue;
         }
         SectionKey key(x, z, static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
-        auto bytesResult = SectionCodec::serializeFromChunkSection(*section, key, biomes);
+        auto bytesResult = SectionCodec::serializeFromChunkSection(*chunk, sectionY, *section, key, biomes);
         if (bytesResult.failed()) {
             if (callback) {
                 callback(x, z, bytesResult.error());
