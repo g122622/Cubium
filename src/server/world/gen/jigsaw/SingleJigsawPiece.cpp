@@ -69,8 +69,10 @@ SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName,
     // 逐构件 parity 校验都依赖它，缺失时无法区分"选错模板"与"摆放位置偏差"。
     setName(templateName);
 
-    // 尝试加载模板并填充连接点
-    loadJointsFromTemplate(templateName, m_joints, m_size);
+    // 不在此处解析模板：模板池在启动期会构造全部 ~1 200 个本类实例，同步解析会让数据包里
+    // 989 个结构模板（约 7.5 MB）在服务端开始接受连接之前全部读入并长期驻留，而其中绝大多数
+    // 在本次运行中不会被用到。连接点与尺寸推迟到首次访问时经 _ensureLoaded() 解析，
+    // 对应 MC 原版 SinglePoolElement 只持有模板 id、getSize/place 时才 getOrCreate 的行为。
 }
 
 LegacySingleJigsawPiece::LegacySingleJigsawPiece(const std::string& templateName,

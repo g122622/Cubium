@@ -98,7 +98,17 @@ public:
     virtual i32 getGroundLevelDelta() const { return m_groundLevelDelta; }
     void setGroundLevelDelta(i32 delta) { m_groundLevelDelta = delta; }
 
-    const std::vector<JigsawJoint>& getJoints() const { return m_joints; }
+    /**
+     * @brief 获取连接点列表
+     *
+     * 先经 `_ensureLoaded()` 完成惰性加载（见其注释）。子类若在构造期就填满 m_joints
+     * （FeatureJigsawPiece 的虚拟连接点），钩子为空实现，无额外开销。
+     */
+    const std::vector<JigsawJoint>& getJoints() const
+    {
+        _ensureLoaded();
+        return m_joints;
+    }
     void addJoint(const JigsawJoint& joint) { m_joints.push_back(joint); }
     void clearJoints() { m_joints.clear(); }
 
@@ -115,7 +125,8 @@ public:
     void copyJointsTo(JigsawPiece& target) const
     {
         target.clearJoints();
-        for (const auto& joint : m_joints) {
+        // 经 getJoints() 而非直接读 m_joints：源可能是尚未触发惰性加载的 SingleJigsawPiece
+        for (const auto& joint : getJoints()) {
             target.addJoint(joint);
         }
     }
@@ -146,13 +157,23 @@ public:
 
     /**
      * @brief 获取拼图块大小
+     *
+     * 先经 `_ensureLoaded()` 完成惰性加载。FeatureJigsawPiece / EmptyJigsawPiece 覆写本方法
+     * 返回固定尺寸，不触碰 m_size。
      */
-    virtual BlockPos getSize() const { return BlockPos(1, 1, 1); }
+    virtual BlockPos getSize() const
+    {
+        _ensureLoaded();
+        return BlockPos(1, 1, 1);
+    }
 
     /**
      * @brief 从模板加载 Jigsaw 方块信息
      *
      * 加载模板并提取所有 Jigsaw 方块作为连接点。
+     *
+     * const：作为 `_ensureLoaded()`（在 getJoints/getSize 等 const 上下文中调用）的
+     * 惰性填充实现，输出参数指向 mutable 成员。
      *
      * @param templateName 模板名称（资源位置）
      * @param joints 输出的连接点列表
@@ -160,16 +181,38 @@ public:
      * @return 是否成功加载
      */
     virtual bool loadJointsFromTemplate(
-        const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size);
+        const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size) const;
 
 protected:
     explicit JigsawPiece(JigsawPlacementBehaviour behaviour = JigsawPlacementBehaviour::Rigid)
         : m_placementBehaviour(behaviour)
     {}
 
+    /**
+     * @brief 惰性加载钩子：确保本构件的连接点与尺寸已就绪
+     *
+     * 模板池在启动期会构造全部 ~1 200 个 SingleJigsawPiece（188 个 template_pool JSON 的
+     * 全部元素），若在构造函数里同步解析模板，会把数据包里 989 个结构模板（约 7.5 MB）
+     * 在服务端开始接受连接之前全部读入内存并长期驻留——而这些模板绝大多数在本次运行中
+     * 根本不会被用到。
+     *
+     * 为此把模板解析推迟到**首次访问连接点或尺寸时**（对应 MC 原版：`SinglePoolElement`
+     * 只持有模板 id，`getSize`/`place` 时才经 `StructureTemplateManager.getOrCreate` 加载）。
+     *
+     * 首次访问发生在区块生成 worker 内（FEATURES 阶段的 jigsaw 装配），此时数据包仓库已
+     * 完成绑定。`TemplateManager` 内部有互斥锁，多 worker 并发触发安全；
+     * `DataPackRepository` 及其下的资源包在 `FolderResourcePack::initialize` 期一次性建好
+     * 内存索引后即只读（`readResource` 只读打开文件，不触碰共享状态）。
+     *
+     * 默认空实现——构造期已填好 m_joints 的子类无需覆写。
+     */
+    virtual void _ensureLoaded() const {}
+
     JigsawPlacementBehaviour m_placementBehaviour = JigsawPlacementBehaviour::Rigid;
     i32 m_groundLevelDelta = 1; // 默认值为 1
-    std::vector<JigsawJoint> m_joints;
+
+    /// 连接点。mutable 供 _ensureLoaded 在 const 上下文（getJoints/getSize）里填充惰性缓存
+    mutable std::vector<JigsawJoint> m_joints;
     std::string m_name;
 };
 

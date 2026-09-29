@@ -65,12 +65,35 @@ public:
     {
         auto piece = std::make_unique<SingleJigsawPiece>(m_templateName, getPlacementBehaviour(), m_processorListId);
         piece->setGroundLevelDelta(getGroundLevelDelta());
-        copyJointsTo(*piece);
+        // 源已解析则直接沿用其连接点与尺寸，克隆件不再触发一次模板解析；
+        // 源未解析（模板池启动期 addPiece 的克隆路径）则克隆件同样保持未解析状态——
+        // 二者首次访问时会各自解析出完全相同的结果，等价于"共享同一份模板"。
+        if (m_loaded) {
+            piece->m_size = m_size;
+            piece->m_loaded = true;
+            copyJointsTo(*piece);
+        }
         return piece;
     }
 
-    BlockPos getSize() const override { return m_size; }
-    void setSize(const BlockPos& size) { m_size = size; }
+    BlockPos getSize() const override
+    {
+        _ensureLoaded();
+        return m_size;
+    }
+
+    /**
+     * @brief 显式指定尺寸，并关闭惰性解析
+     *
+     * 用于构造无需真实模板的构件（单元测试中构造已知尺寸的构件来验证
+     * 变换/包围盒计算）。置 m_loaded 后 getSize/getJoints 不再触发模板解析，
+     * 因此调用方需自行保证尺寸与连接点自洽。
+     */
+    void setSize(const BlockPos& size)
+    {
+        m_size = size;
+        m_loaded = true;
+    }
 
     void place(IWorldWriter& world,
         const PlacedPiece& placed,
@@ -81,9 +104,28 @@ public:
         IChunkGenerator* generator = nullptr) override;
 
 protected:
+    /**
+     * @brief 惰性加载：首次访问连接点/尺寸时解析模板
+     *
+     * 构造期不解析（模板池启动时会构造全部 ~1 200 个本类实例），把模板读取推迟到
+     * 真正被装配访问时。见 JigsawPiece::_ensureLoaded 的完整论证。
+     *
+     * `m_loaded` 一旦置位就不再重试：模板缺失时也必须置位，否则每次 getJoints() 都会
+     * 重走一次 getTemplate（虽命中负缓存路径但仍有一次锁与 map 查找）。
+     */
+    void _ensureLoaded() const override
+    {
+        if (m_loaded) {
+            return;
+        }
+        m_loaded = true;
+        loadJointsFromTemplate(m_templateName, m_joints, m_size);
+    }
+
     std::string m_templateName;
-    BlockPos m_size;
+    mutable BlockPos m_size;
     std::optional<ResourceLocation> m_processorListId;
+    mutable bool m_loaded = false;
     static std::string s_typeName;
 };
 
@@ -107,7 +149,12 @@ public:
         auto piece =
             std::make_unique<LegacySingleJigsawPiece>(m_templateName, getPlacementBehaviour(), m_processorListId);
         piece->setGroundLevelDelta(getGroundLevelDelta());
-        copyJointsTo(*piece);
+        // 同上：源已解析才复制，未解析则克隆件亦保持未解析
+        if (m_loaded) {
+            piece->m_size = m_size;
+            piece->m_loaded = true;
+            copyJointsTo(*piece);
+        }
         return piece;
     }
     bool isLegacy() const override { return true; }

@@ -46,7 +46,8 @@ using feature::template_::TemplateManager;
 
 std::vector<JigsawJoint> JigsawPiece::getShuffledJoints(math::IRandom& rng) const
 {
-    std::vector<JigsawJoint> shuffled = m_joints;
+    // 经 getJoints() 而非直接读 m_joints：SingleJigsawPiece 的连接点在首次访问时才解析
+    std::vector<JigsawJoint> shuffled = getJoints();
     rng.shuffle(shuffled);
 
     // 按 selectionPriority 降序稳定排序（高优先级先处理），对应 MC 1.21 的
@@ -59,7 +60,7 @@ std::vector<JigsawJoint> JigsawPiece::getShuffledJoints(math::IRandom& rng) cons
 }
 
 bool JigsawPiece::loadJointsFromTemplate(
-    const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size)
+    const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size) const
 {
     ResourceLocation loc(templateName);
     // 通过 JigsawAssembler 的静态 TemplateManager 访问点加载模板（确保数据包集成）
