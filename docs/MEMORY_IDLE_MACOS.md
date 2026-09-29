@@ -359,7 +359,7 @@ cell 采样，实测热点不在此。
 | spdlog 队列 2048→256（§3.9） | −0.7 MB | 低 | 一行常量 |
 | 删除 4 个零使用列族（§3.7） | −0.2 MB | 低 | 全仓库 0 处引用（已核实） |
 | RTree 扁平化（§3.8） | −1.5 MB | 中 | 改查询结构，需 parity 回归 |
-| AST 中间产物释放（§3.4） | −1.0 MB | 低 | 确认编译产物不依赖 AST |
+| 释放维度级 AST（§3.4，**有阻塞**） | −1.0 MB | 低-中 | 需先解决 Sampler 的悬挂引用，见 §5.4 |
 | JigsawJoint 共享字符串（§3.3） | −0.7 MB | 低 | |
 | 进度/配方/战利品懒加载（§3.1 G/I/K） | −4.0 MB | 中 | 三者均为启动期全量装配 |
 | **合计** | **−17.1 MB** | | |
@@ -368,6 +368,36 @@ cell 采样，实测热点不在此。
 误判，已按 §3.7 的查证结果更正为 −0.2 MB。）
 
 终点：`44 − 17 = 27 MB` 堆 → `footprint ≈ 57 MB`。**仍高于 40 MB 约 17 MB。**
+
+### 5.4 一个"看起来该做但会引入悬挂引用"的项：释放维度级 AST
+
+§3.4 曾把"AST 中间产物释放"估为 −1.0 MB，实现方式是在 `RandomState::compileRouter()`
+末尾释放 `m_router`（`NoiseRouter`）——它持有 15 棵 `DensityFunction` 原树，编译成字节码后
+看起来不再需要（`NoiseChunk` 走的是 `m_compiledRouter`，生产路径里 `RandomState::router()`
+只剩测试在用）。**但这条路径上有两个真实的悬挂引用，直接释放会段错误**：
+
+1. **`Sampler` 持有 6 个裸指针**（`Sampler.hpp:101-106`）：
+   `const DensityFunction* m_temperature/humidity/continentalness/erosion/depth/weirdness`。
+   这些指针在 `RandomState.cpp:143` 由 `m_router->createClimateSampler()` 给出，
+   指向 **`m_router` 内部**的 `m_temperature` 等 `unique_ptr<DensityFunction>`。
+   释放 `m_router` 后 `Sampler` 立即悬垂，而 `m_sampler` 是长生命周期成员且
+   `ServerWorld::initializeWorldSpawn()` → `findSpawnPosition()` 会调用它。
+
+2. **`RuntimeObject::densityFunction` 确实指回原树（已核实）**。
+   `BytecodeGen::emitDelegate` 写入 `RuntimeObject{nullptr, n->densityFunction(), nullptr}`
+   （`BytecodeGen.cpp:366`），而 `DelegateNode` 持有的就是**原树的裸指针**
+   （`AstNodes.hpp:681`，由 `McToAst.cpp:337` 用 `&df` 构造）。这是"未识别的
+   DensityFunction 退化为 DelegateNode"的兜底路径，编译产物经它直接回调原树对象。
+
+**要做这一项，必须先做两件事**（均为独立的小重构，非内存优化）：
+
+- 让 `Sampler` 改为**按值持有** 6 个编译产物的 `shared_ptr`（或让 `createClimateSampler`
+  返回独立于 router 的对象），切断它与 `m_router` 的裸指针关系；
+- 让 `McToAst` 对未识别类型不再退化到持有原树裸指针的 `DelegateNode`，而是包装为
+  编译产物自有的求值器（即把"原树对象"的**所有权**转移给编译产物）。
+
+在此之前，`m_router` 的 15 棵原树（约 1.0 MB）必须保留。**这也是 §3.4 里
+"维度按需创建（−5 MB）"之外的次优项，优先级应排在 §5.2 的后半段。**
 
 ### 5.3 结论
 
@@ -401,7 +431,7 @@ cell 采样，实测热点不在此。
 | 3 | NBT 残留归因与释放 | 1.5 MB | 低 | 需先定位 `compound_tag` 拷贝栈 |
 | 4 | JigsawJoint 共享字符串 | 0.7 MB | 低 | `JigsawPiece.cpp` / `SingleJigsawPiece.hpp` |
 | 5 | 删除 4 个零使用列族 | 0.2 MB | 低 | `ColumnFamilies.hpp` |
-| 6 | AST 中间产物释放 | 1.0 MB | 低 | `RandomState.cpp` / `BytecodeGen` |
+| 6 | AST 中间产物释放（**有阻塞**，见 §5.4） | 1.0 MB | 低-中 | `RandomState` / `Sampler` / `McToAst` |
 | 7 | RTree 扁平化 | 1.5 MB | 中 | `climate/RTree*.hpp` |
 | 8 | 进度/配方/战利品懒加载 | 4.0 MB | 中 | 各自 Loader + Manager |
 | 9 | 维度按需创建 | ~5 MB | **高（行为改动）** | `ServerDimensionManager` |
