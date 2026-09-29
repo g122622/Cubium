@@ -27,8 +27,10 @@
 见 §二）。这印证了 §五的结论——**减少小对象的"个数"比减少"总字节"更有效**。
 
 **残留的三大项**（占修订后堆的 56%）：
-`BlockState` 3.13 MB + 密度函数 7.52 MB + RocksDB 4.50 MB。其中密度函数与 RocksDB
-见 §3.4/§3.7 的削减路径；`BlockState` 是原版方块状态空间的直接映射，不可削减。
+`BlockState` 3.13 MB + 密度函数 7.52 MB + RocksDB 4.50 MB。其中密度函数见 §3.4、
+RocksDB 见 §3.7（结论是削不动）；`BlockState` 的 3.13 MB 状态空间本体不可削，
+**但它配套的 `StateContainer::generateStates` 1.95 MB 是纯冗余（同一个 flatIndex
+被存了两遍），是本报告测出来最值得做的一项，见 §3.5。**
 
 ---
 
@@ -95,7 +97,7 @@ macOS malloc small zone 的碎片与保留页（15.9 MB 碎片 / 27–31% + 3.9 
 |---|---|---:|---:|---:|---|
 | A | **结构模板（Template）** | 8.40 MB | 17.5% | 11 242 | **高**（懒加载，−7 MB） |
 | B | **密度函数（Density）** | 7.52 MB | 15.7% | 46 968 | 中（见 §3.4） |
-| C | **方块注册表（Blocks）** | 6.96 MB | 14.5% | 76 512 | 低（核心数据，见 §3.5） |
+| C | **方块注册表（Blocks）** | 6.96 MB | 14.5% | 76 512 | **高**（状态空间不可削，但 `generateStates` 的 1.95 MB 是纯冗余，见 §3.5） |
 | D | RocksDB（Storage） | 4.50 MB | 9.4% | 3 024 | 低（−0.2 MB；原估 −2～3 MB 已作废，见 §3.7） |
 | E | NBT 标签（通用） | 3.66 MB | 7.6% | 61 765 | **高**（启动后应全部释放） |
 | F | 生物群系（Biome） | 2.89 MB | 6.0% | 12 960 | 中（RTree 叶节点紧凑化，−0.7 MB；原"扁平化"已作废） |
@@ -252,12 +254,69 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
 0.12 MB       1 次  StateContainer::Builder::create
 ```
 
-**29 294 个 `BlockState` × 112 B = 3.13 MB 是方块系统的核心数据，不可削减**——这是原版
-方块状态空间（含全部属性组合）的直接映射，`StateContainer::generateStates` 的 1.95 MB 是其
-调色板/属性容器的配套开销。
+**29 294 个 `BlockState` × 112 B = 3.13 MB 是方块系统的核心数据**——这是原版
+方块状态空间（含全部属性组合）的直接映射，**状态总数不可削减**。
 
-**唯一可考虑项**：`WallBlock` 26 个各 6 144 B（合计 0.16 MB）异常偏大，值得单独看一眼
-是否内联了本可下沉的数组。
+但 `StateContainer::generateStates` 的 **1.95 MB 是可削的，且证据很硬**：
+这 1.95 MB 是 **31 925 次 × 64 B** 的堆分配（`heap` 按调用点聚合的单行，
+`msl2.txt` 中无误导）。31 925 ≈ 29 294（BlockState）+ 2 631（其他 StateHolder 子类），
+即**每个状态对象都在构造期单独申请了一块堆内存**。看代码即知它是什么——
+`StateHolder` 的成员 `std::vector<size_t> m_valueIndices`（`StateHolder.hpp:336`），
+由 `StateContainer::generateStates` 在循环里按 `std::vector<size_t> valueIndices(props.size())`
+构造后 `std::move` 进来（`StateContainer.hpp:255-264`）。
+
+**这份数据是完全冗余的，可以从 `m_stateIndex` 推导出来。** `generateStates` 的构造算法是
+
+```cpp
+for (size_t propIndex = 0; propIndex < props.size(); ++propIndex) {
+    valueIndices[propIndex] = remaining % valueCount;   // remaining = flatIndex 起算
+    remaining /= valueCount;
+}
+```
+
+而 PropertyLayout 里已经存了 `stateStride`（= 该属性之前所有 valueCount 的乘积，
+`StateContainer.hpp:244-250`）。两者是同一个数的两种写法：
+
+```
+valueIndices[i] == (m_stateIndex / layouts[i].stateStride) % layouts[i].property->valueCount()
+```
+
+已用 200 组随机属性配置（1–7 个属性、每个 2–6 个值）× 全部状态组合逐位验证一致，
+并验证了 `with()` 的 `targetIndex = currentIndex + (new - cur) * stateStride`
+平移公式在推导式下自洽。**属性数上限实测为 7**（`.add` 链最长 7，`TripWireBlock` /
+`MultifaceBlock` / `TrailsBlocks`；分布：1 个属性 65 个 Builder、2 个 40、3 个 32、
+4 个 7、5 个 9、6 个 4、7 个 3）。
+
+**削减路径**：删掉 `m_valueIndices`，`getValueIndex(slot)` 改为按上式即时计算。
+
+| 项 | 字节 | 说明 |
+|---|---:|---|
+| `BlockState` 对象的 vector 头（24 B × 29 294） | 0.67 MB | `BlockState` 从 112 → 88 B |
+| `generateStates` 的堆缓冲（64 B × 31 925） | 1.95 MB | 整块消失，节点数 −31 925 |
+| **直接合计** | **2.62 MB** | |
+
+**间接收益**：堆节点从 260 033 降到约 228 000（**−12%**）。§二 已论证 footprint 与节点数
+正相关——按当前 11.4 MB / 260 033 节点的碎片率外推，**这一项还能再带来约 1.4 MB 的
+footprint 下降**。合计约 **−4 MB**，是本报告**测出来最有价值的一项**。
+
+**代价与前置条件**：
+- 每次属性读取增加一次除法 + 取模（`size_t` 常数除法，编译器展开为乘法）。
+  但 `get<T>()` 现有路径已经是 `findPropertySlot` 的**线性扫描 + 虚函数 `ownerName()`
+  的异常构造路径**，加一步除法在噪声内；且 `with()` 里本来就有一次乘法。
+- `m_propertyLayouts` 现在是裸指针，指向 `StateContainer` 的成员。若 `m_valueIndices`
+  去掉后 `StateHolder` 不再需要它，可一并瘦身；但它同时供 `findPropertySlot` 使用，
+  应保留。
+- **必须用 `m_stateIndex` 而非 `m_stateId`**：`BlockRegistry::registerBlock` 会把
+  `m_stateId` 覆盖为全局 ID（`BlockRegistry.hpp:130`），二者语义不同。
+- 单元测试需覆盖 `values()` / `getValueIndex()` / `with()` / `withValueIndex()` /
+  `cycle()` / `withPropertiesOf()` / `toString()` 七处读取点。
+
+**注意与"BlockState 3.13 MB"的区别**：那 3.13 MB 是不可削的状态空间本体；
+**这 1.95 MB 是同一份信息被存了两遍**（一遍是 `m_stateIndex`，一遍是 `m_valueIndices`）。
+初版把这两笔混在一起记为"核心数据，不可削减"，是漏判。
+
+**另一项可考虑**：`WallBlock` 26 个各 6 144 B（合计 0.16 MB）异常偏大，值得确认是否
+内联了本可下沉的数组。
 
 ### 3.6 E · NBT 标签 3.66 MB / 61 765 节点 —— 应当归零
 
@@ -433,17 +492,24 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
 
 | 优化项 | 收益 | 风险 | 前提 |
 |---|---:|---|---|
+| **`m_valueIndices` 改按需推导（§3.5）** | **−2.6 MB 直接 + 约 1.4 MB 碎片** | 中 | 属性数上限 7；已用 200 组随机配置逐位验证推导式 |
 | 删除 4 个零使用列族（§3.7） | −0.2 MB | 低 | 全仓库 0 处引用（已核实） |
 | RTree 叶节点紧凑化（§3.8） | −0.7 MB | 中 | 保持索引结构，仅去掉叶节点与 `m_entries` 重复的参数副本 |
 | 释放维度级 AST（§3.4，**有阻塞**） | −1.0 MB | 低-中 | 需先解决 Sampler 与 DelegateNode 的悬挂引用，见 §5.4 |
 | 维度按需创建（§3.4） | ~5 MB | **高（行为改动）** | 改变"三维度始终存在"的语义 |
-| **合计（不含维度按需创建）** | **−1.9 MB** | | |
+| **合计（不含维度按需创建）** | **−5.9 MB** | | |
 
-终点：`49 MB − 1.9 MB ≈ 47 MB`。**距 40 MB 还有 7 MB**，而剩下的 3 项里
-有 2 项需要先做重构（RTree 叶节点需改 `ParameterList` 耦合、AST 释放需改
-`Sampler` 与 `McToAst`），第 3 项（维度按需创建）是行为改动。
-**在不动"启动期全量装配"与"小对象布局"这两条架构前提的情况下，40 MB 不可达**
-（§5.3 结论仍然成立）。
+终点：`49 MB − 5.9 MB ≈ 43 MB`。**距 40 MB 还有 3 MB。**
+
+§3.5 那项（去掉 `m_valueIndices`）是本轮复核发现的最高价值项：
+它同时削减堆字节（2.6 MB）与**节点数（−31 925，约 12%）**，而 §二 已论证
+footprint 与节点数正相关。**若碎片侧的推算成立，单项就能把 footprint 推到约 45 MB**，
+再叠加 RTree 叶节点与列族清理即接近 40 MB。
+
+**但这不改变"40 MB 需要架构级改动"的结论**：剩下的距离要靠 §5.3 提到的
+"小对象池化 + 紧凑数组"（`BlockState` 从逐个 `new` 改为 arena 分配等），
+那是内存布局重构而非优化项。**维度按需创建（−5 MB）是唯一能单独立项跨过 40 MB 的
+改动，但它改变语义。**
 
 ### 5.4 一个"看起来该做但会引入悬挂引用"的项：释放维度级 AST
 
@@ -531,18 +597,20 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
 
 按「收益 ÷ 风险」排序，前四项可立即执行：
 
-| 序 | 项 | 收益 | 风险 | 涉及文件 |
+| 序 | 项 | 收益 | 风险 | 状态 |
 |---:|---|---:|---|---|
-| 1 | spdlog 队列 2048 → 256 | 0.7 MB | 极低 | `common/application/LogManager.hpp` |
-| 2 | 结构模板懒加载 | 7.5 MB | 中 | `TemplatePoolLoader` / `SingleJigsawPiece` / `JigsawPiece` |
-| 3 | NBT 残留归因与释放 | 1.5 MB | 低 | 需先定位 `compound_tag` 拷贝栈 |
-| 4 | JigsawJoint 共享字符串 | 0.7 MB | 低 | `JigsawPiece.cpp` / `SingleJigsawPiece.hpp` |
-| 5 | 删除 4 个零使用列族 | 0.2 MB | 低 | `ColumnFamilies.hpp` |
-| 6 | AST 中间产物释放（**有阻塞**，见 §5.4） | 1.0 MB | 低-中 | `RandomState` / `Sampler` / `McToAst` |
-| 7 | RTree 叶节点紧凑化 | 0.7 MB | 中 | `climate/RTree.hpp` + `ParameterList.hpp`（叶节点改存下标） |
-| 8 | 维度按需创建 | ~5 MB | **高（行为改动）** | `ServerDimensionManager` |
-
-第 8 项收益最大但会改变"三维度始终存在"的语义，需单独立项评估。
+| 1 | spdlog 队列 2048 → 256 | 0.7 MB | 极低 | ✅ 已落地 `73d105360` |
+| 2 | 结构模板懒加载 | 7.5 MB + 8 MB 碎片 | 中 | ✅ 已落地 `b69d8179f` |
+| 3 | ~~NBT 残留释放~~ | — | — | 已随第 2 项归零 |
+| 4 | ~~JigsawJoint 共享字符串~~ | — | — | 已随第 2 项归零 |
+| 5 | **`m_valueIndices` 改按需推导** | **2.6 MB + 1.4 MB 碎片** | 中 | **待做（本轮新增，见 §3.5）** |
+| 6 | 删除 4 个零使用列族 | 0.2 MB | 低 | 待做 |
+| 7 | RTree 叶节点紧凑化 | 0.7 MB | 中 | 待做 |
+| 8 | AST 中间产物释放（**有阻塞**） | 1.0 MB | 低-中 | 待做，见 §5.4 |
+| 9 | 维度按需创建 | ~5 MB | **高（行为改动）** | 待做，需单项评估 |
+| — | ~~进度/配方/战利品懒加载~~ | — | — | 已排除，见 §5.3 |
+| — | ~~RocksDB 缓冲配置~~ | — | — | 已排除，见 §7 |
+| — | ~~RTree 扁平化~~ | — | — | 已排除，见 §3.8 |
 RocksDB 层的按列族差异化配置**未列入本表**：§7 已论证它在空载基线下测不出收益，
 需带负载的 A/B 才能判定，属独立的调优议题而非内存优化项。
 
