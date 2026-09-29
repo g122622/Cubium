@@ -95,7 +95,7 @@ macOS malloc small zone 的碎片与保留页（15.9 MB 碎片 / 27–31% + 3.9 
 | C | **方块注册表（Blocks）** | 6.96 MB | 14.5% | 76 512 | 低（核心数据，见 §3.5） |
 | D | RocksDB（Storage） | 4.50 MB | 9.4% | 3 024 | 中（−2～3 MB） |
 | E | NBT 标签（通用） | 3.66 MB | 7.6% | 61 765 | **高**（启动后应全部释放） |
-| F | 生物群系（Biome） | 2.89 MB | 6.0% | 12 960 | 中（RTree 改扁平，−1.5 MB） |
+| F | 生物群系（Biome） | 2.89 MB | 6.0% | 12 960 | 中（RTree 叶节点紧凑化，−0.7 MB；原"扁平化"已作废） |
 | G | 进度（Advancement） | 1.81 MB | 3.8% | 15 049 | 中（懒加载） |
 | H | 资源/数据包（Resource） | 1.51 MB | 3.1% | 21 075 | 低 |
 | I | 配方（Recipe） | 1.35 MB | 2.8% | 6 879 | 中（懒加载） |
@@ -190,9 +190,14 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
 `RandomState` 并 `compileRouter()`（`ServerDimensionManager.cpp:114/125/136`）。下界与末地
 在没有玩家进入时也各持一份完整的密度函数编译产物。
 
-**行 2287 次 `Op` push_back 的 3.31 MB 是字节码本体**，约 1 450 B/root。`Op` 结构本身
-（`CompiledDensityFunction.hpp:232-247`）含 4 个 `f64` 立即数 + 9 个 `u32` + 1 个 `u8`，
-按对齐后 56 字节：60 000 条指令左右。
+**行 2287 次 `Op` push_back 的 3.31 MB 是字节码本体**。`Op` 结构
+（`CompiledDensityFunction.hpp:232-247`）含 4 个 `f64` 立即数 + 9 个 `u32` + 2 个 `u8`，
+`sizeof(Op) = 80`（实测），故存活的 Op 缓冲合计约 **43 000 条指令**，即
+**每维度约 14 500 条、每个 router root 约 965 条**。
+
+`3.31 MB / 2 287 次分配 = 1 520 B/次`——但 2 287 次是**扩容链的次数**（每次 `push_back`
+触发扩容就计一次），不是 2 287 个独立的 vector。字节码总量应按"存活缓冲总字节"读，
+即 3.31 MB ≈ 43 000 条 Op。
 
 **削减路径（需先量准）**：
 1. 维度按需创建（下界/末地推迟到首个玩家进入）——若成立可省 2/3，约 −5 MB。**但这是行为
@@ -202,7 +207,34 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
    若 `CompiledDensityFunction` 已不依赖原始 AST，可在 `compileRouter()` 末尾释放
    `m_router` 的 AST 树，省下 `Marker` 0.10 MB + `Constant` 0.07 MB + `SharedTopology`
    0.06 MB + `TwoArgument` 0.09 MB + `CubicSpline` 0.08 MB + `ShiftNoise` 0.08 MB
-   + `ShiftedNoise` 0.06 MB + `Mapped` 0.04 MB ≈ **0.6 MB**（含 shared_ptr 控制块共约 1 MB）。
+   + `ShiftedNoise` 0.06 MB + `Mapped` 0.04 MB ≈ **1.0 MB**（含 shared_ptr 控制块）。
+   **此项有阻塞，见 §5.4。**
+
+> **一条被算错、现已排除的方向：去掉"常量样条点的独立求值器"。**
+>
+> 初版注意到 `emitSpline` 对每个常量控制点都调 `makeConstantEvaluator`
+> （`BytecodeGen.cpp:664`），生成一个只含 `LOAD_CONST + RETURN` 两条指令的
+> `CompiledDensityFunction`（224 B 对象 + 160 B Op 缓冲 + shared_ptr 控制块），
+> 并猜想 7 461 个求值器里大部分是这类常量壳、可改为内联 `f64` 存进 `CompiledSpline`
+> 直接索引，估省 1–2 MB。
+>
+> 重新核算后不成立。三条独立的估算一致指向同一量级：
+>
+> | 估法 | 依据 | 常量壳数量上界 | 收益上界 |
+> |---|---:|---:|---:|
+> | 按 Op 条数反推 | 存活 Op 缓冲 3.31 MB / 80 B = 43 000 条 Op；2 条指令的壳最多占其 1/3 | ≲ 2 000 | ≲ 1 MB |
+> | 按尺寸类直方图 | `160[9094]` 减去 `RTreeLeaf` 7 598 = 1 496 | **1 496** | **0.62 MB** |
+> | 按代码路径 | `emitSpline` 的 `4 164` 次分配对应约 611 个样条的控制点；常量点约占其 2/3 | ≈ 790 | 0.33 MB |
+>
+> **实际可省 0.3–0.6 MB**，且需要改动样条求值路径（`CompiledSpline` 要同时提供
+> evaluator 与 `f64` 两种值来源，`evalSpline` 里加分支判断），并重新验证与 JIT
+> trampoline 的数值一致性。**收益与风险不成比例，已排除。**
+>
+> 更重要的结论：**7 461 个求值器里主体是真实子树**（嵌套子样条、`SharedSubtreeRef`、
+> `FindTopSurface.density`、`Marker.delegate` 各自独立编译），平均 5.8 条 Op/求值器。
+> 密度函数的 7.52 MB 里可削部分只占很小一块，**主体是真实必要的编译产物**
+> （3.31 MB 字节码 + 1.63 MB 求值器对象 + 0.73 MB 编译期缓冲）。
+> §5.2 表里未列此项。
 
 ### 3.5 D · 方块注册表 6.96 MB / 76 512 节点
 
@@ -294,14 +326,36 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
 0.09 MB     1 次  OverworldBiomeBuilder::addSurfaceBiome（912 KB）
 ```
 
-**11–12 万个 RTree 节点**（7 598 叶 + 1 520 子树 + 上级）承载的是原版 `ParameterPoint` 的
-气候参数空间划分。3 个维度的 biome source 各自构造一份。
+**11–12 千个 RTree 节点**（7 598 叶 + 1 520 子树）承载的是原版 `ParameterPoint` 的
+气候参数空间划分。主世界与下界各构造一份（末地走 `EndBiomeSource`，不用 RTree）。
 
-**削减路径**：RTree 的 11 万节点可改为**排序后的扁平数组 + 二分/线性扫描**。原版
-`Climate.Sampler` 用的就是 `ParameterList`（扁平列表 + 逐项距离比较），并非树结构。
-扁平化后每个 `ParameterPoint` 一条记录（约 40 B），总量约 0.5 MB，**省约 1.5 MB**。
-代价：查询从 O(log n) 变为 O(n)（n ≈ 数千），但原版本就是线性扫描，且只在区块生成时按
-cell 采样，实测热点不在此。
+> **初版给出的"RTree 扁平化 −1.5 MB"削减路径已作废，理由是它误解了原版。**
+>
+> 初版声称"原版 `Climate.Sampler` 用的就是 `ParameterList`（扁平列表 + 逐项距离比较），
+> 并非树结构"。**原版确实有 RTree，而且结构与本项目一致**：
+> `Climate.ParameterList` 同时持有 `values`（扁平列表）和 `index`（`Climate.RTree`），
+> `findValue()` 走 `index.search()`（`Climate.java:242-252`）；RTree 的
+> `CHILDREN_PER_NODE = 6`、`build` 递归分桶（`Climate.java:284-355`）、
+> 叶/子树类（`Climate.java:410-449`）与本项目逐项对应。
+> 项目里那个"暴力搜索"的 `findValueBruteForce` 同样存在，且原版标注为
+> `@VisibleForTesting`——它是**测试用的对照实现**，不是生产路径。
+>
+> 因此"删掉 RTree 改线性扫描"不是"回归原版"，而是**偏离原版**：`ParameterPoint` 的
+> 分量与查询点相距很远时（跨气候带采样），线性扫描需要逐个计算 7 维 fitness，
+> 而 RTree 用参数空间包围盒做分支限界剪枝。改扁平化会改变区块生成的热点耗时，
+> 属于"用正确性换 1.5 MB 内存"的交换，不应作为内存优化项列入。
+>
+> 若日后确实要削减这部分，正确的方向是**压缩叶节点存储**：每个 `RTreeLeaf` 实测 160 B，
+> 其中 `std::array<Parameter, 7> parameterSpace` 占 112 B —— 而这 7 个 `Parameter`
+> 就是从它持有的 `ParameterPoint` 逐字段复制来的（`ParameterPoint::parameterSpace()`
+> 只是把 6 个气候参数 + offset 重新打包成数组），**同一份气候边界在内存里存了两遍**
+> （`ParameterList::m_entries` 一份、每个叶节点一份）。
+>
+> 让叶节点只存 `m_entries` 的下标 + value（约 20 B），`parameterSpace()` 改为按需从
+> `m_entries[idx].first` 计算，可省 **约 0.70 MB**（7 598 × 92 B）。
+> 代价：`RTree` 需持有 `m_entries` 的引用，二者生命周期耦合；`ParameterList::add()`
+> 会重建索引，`m_entries` 扩容期间不能解引用旧地址（用下标而非指针即可规避）。
+> 这是一次有明确收益但有耦合代价的局部重构，不是"顺手优化"。
 
 ### 3.9 O · spdlog 日志队列 0.82 MB —— 一行配置
 
@@ -358,16 +412,16 @@ cell 采样，实测热点不在此。
 | NBT 残留释放（§3.6） | −1.5 MB | 低 | 先定位拷贝栈 |
 | spdlog 队列 2048→256（§3.9） | −0.7 MB | 低 | 一行常量 |
 | 删除 4 个零使用列族（§3.7） | −0.2 MB | 低 | 全仓库 0 处引用（已核实） |
-| RTree 扁平化（§3.8） | −1.5 MB | 中 | 改查询结构，需 parity 回归 |
+| RTree 叶节点紧凑化（§3.8；原"扁平化"方案已作废） | −0.7 MB | 中 | 保持索引结构，仅去掉叶节点与 m_entries 重复的参数副本 |
 | 释放维度级 AST（§3.4，**有阻塞**） | −1.0 MB | 低-中 | 需先解决 Sampler 的悬挂引用，见 §5.4 |
 | JigsawJoint 共享字符串（§3.3） | −0.7 MB | 低 | |
 | 进度/配方/战利品懒加载（§3.1 G/I/K） | −4.0 MB | 中 | 三者均为启动期全量装配 |
-| **合计** | **−17.1 MB** | | |
+| **合计** | **−16.3 MB** | | |
 
 （初版曾列 "RocksDB per-thread 缓冲 −2.0 MB"，系对 `cacheline_aligned_alloc` 来源的
 误判，已按 §3.7 的查证结果更正为 −0.2 MB。）
 
-终点：`44 − 17 = 27 MB` 堆 → `footprint ≈ 57 MB`。**仍高于 40 MB 约 17 MB。**
+终点：`44 − 16.3 = 27.7 MB` 堆 → `footprint ≈ 58 MB`。**仍高于 40 MB 约 18 MB。**
 
 ### 5.4 一个"看起来该做但会引入悬挂引用"的项：释放维度级 AST
 
@@ -432,7 +486,7 @@ cell 采样，实测热点不在此。
 | 4 | JigsawJoint 共享字符串 | 0.7 MB | 低 | `JigsawPiece.cpp` / `SingleJigsawPiece.hpp` |
 | 5 | 删除 4 个零使用列族 | 0.2 MB | 低 | `ColumnFamilies.hpp` |
 | 6 | AST 中间产物释放（**有阻塞**，见 §5.4） | 1.0 MB | 低-中 | `RandomState` / `Sampler` / `McToAst` |
-| 7 | RTree 扁平化 | 1.5 MB | 中 | `climate/RTree*.hpp` |
+| 7 | RTree 叶节点紧凑化 | 0.7 MB | 中 | `climate/RTree.hpp` + `ParameterList.hpp`（叶节点改存下标） |
 | 8 | 进度/配方/战利品懒加载 | 4.0 MB | 中 | 各自 Loader + Manager |
 | 9 | 维度按需创建 | ~5 MB | **高（行为改动）** | `ServerDimensionManager` |
 
