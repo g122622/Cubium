@@ -54,10 +54,11 @@ public:
     /// 异步日志队列容量（条数）。
     ///
     /// 该容量直接决定常驻内存：队列在初始化时一次性分配（槽位 = 容量 + 1，每条 async_msg 约
-    /// 408 字节），2048 条约 0.84MB，8192 条约 3.34MB。策略为 overrun_oldest（丢旧保新、主线程
+    /// 408 字节），实测 2048 条为 832KB、256 条为 104KB。策略为 overrun_oldest（丢旧保新、主线程
     /// 永不阻塞），故容量只影响「日志风暴时能吸收多长的尖峰」，不影响正确性；溢出由监控线程
-    /// 经 stderr 告警兜底。取 2048 在内存与尖峰吸收之间折中。
-    static constexpr size_t kQueueSize = 2048;
+    /// 经 stderr 告警兜底。启动期实测日志不过数百行、且消费线程与生产同速，256 条足以吸收
+    /// 常规尖峰，同时把常驻内存压到最小。
+    static constexpr size_t kQueueSize = 256;
 
     /// 后台消费线程数。spdlog 异步模型单线程消费即可，多线程反而增加锁竞争。
     static constexpr size_t kWorkerCount = 1;
