@@ -29,6 +29,8 @@ socket、不需要世界、不需要存档**的前提下，把"入站字节 → 
 | `fuzz_varint_framing` | `pipeline/VarintFraming`（VarInt21 长度前缀切帧） | 整段字节当作一条 TCP 流，按 1/7/全量三种分块粒度喂入 |
 | `fuzz_compression` | `pipeline/CompressionHandlers` → `crypto/ZlibCodec` | 第 1 字节 = 阈值（-1 表示禁用），其余为压缩层字节 |
 | `fuzz_cipher` | `pipeline/CipherHandlers` → `crypto/AesCfb8` | 前 `kSharedSecretBytes` 字节 = 密钥，其余为待处理字节 |
+| `fuzz_chunk_wire` | 区块线格式三条解析路径 | 第 1 字节选子路径（内部紧凑格式 / 单段 / vanilla `LevelChunkWithLight` → `ChunkData`），其余为数据 |
+| `fuzz_connection_wire` | **整条 Wire 入站流水线**（`Connection` + 伪传输） | 4 字节控制头（加密/压缩/阈值/流向、初始阶段、分块粒度、密钥种子）+ 待投递字节流 |
 | `fuzz_java_codec` | Java 1.21.11 五阶段 × 两流向全部包表 | 第 1 字节选阶段，第 2 字节选流向，其余为 `packetID + payload` |
 | `fuzz_java_codec_sb` | 同上，**仅 Serverbound**（服务端解码不可信客户端输入） | 同左，流向强制 Serverbound |
 | `fuzz_java_codec_cb` | 同上，**仅 Clientbound**（客户端解码服务端输入） | 同左，流向强制 Clientbound |
@@ -122,6 +124,37 @@ cd build/bin/fuzz/RelWithDebInfo
 **产物命名**：`oom-<sha1>`（分配超限）、`crash-<sha1>`（崩溃）、`timeout-<sha1>`（超时）。
 它们就是可直接复现的最小输入，应移入 `corpus/` 作为回归种子。
 
+### 4.1 种子生成
+
+`fuzz_gen_seeds` 遍历 5 阶段 × 2 流向共 10 张包表的**每个已登记包**，用默认字段值经项目
+自身的 codec 编码成合法 wire 字节，按流向分目录输出：
+
+```bash
+./fuzz_gen_seeds.exe ../corpus/java_codec          # 生成 corpus/java_codec/{sb,cb}/*.bin
+./fuzz_java_codec_sb.exe corpus/java_codec/sb      # 用生成的语料起跑
+./fuzz_java_codec_cb.exe corpus/java_codec/cb
+```
+
+**为什么不采用「由 `tests/e2e/bot` 的 `bot-trace-*.jsonl` 反编码」**：trace 里的 `params`
+是**解码后的字段 JSON**，且包名是 prismarine/nmp 的名字（与官方名存在别名差异，见
+[E2E_BOT_TEST.md](E2E_BOT_TEST.md) §5.1），要反编码就得为每个包手写"JSON 字段 → IR 字段"
+映射，覆盖度还受限于 bot 实际发过的包。复用项目自身编码器则天然与解码侧对称、且能覆盖
+**每一个**已登记的 packet id。trace 的价值保留在"用 e2e 用例清单核对真实客户端会发哪些
+包、据此排优先级"。
+
+实测产出：143 个种子（sb 41 / cb 102，共约 1.6 KB），逐个单独执行均合法（0 个异常），
+作为起始语料可让覆盖率从约 4.7k/6.3k 起步（而非从空语料冷启）。
+
+生成器还会用 `Connection::send` 把每个包**真正发一遍**，产出 143 个 `corpus/connection_wire/`
+种子（**完整帧**：帧化与压缩已由流水线施加，控制头按压缩启用填写）。这样做而不是在生成器里
+手工重实现帧化/压缩，是为了让生成侧与消费侧共享同一实现，流水线改动时不会脱节。
+
+该语料对 `fuzz_connection_wire` 的效果很显著：起始覆盖率 **cov 2 → cov 5065**，
+且在 2 万次迭代内零异常；不加语料时它会立刻在乱码输入上撞到抛出路劲（§7.7）。
+
+> 注意：fuzz 运行会把新语料条目以 sha1 命名写进第一个语料目录。入库前应删除这些
+> 哈希命名条目，只提交确定性种子与回归种子，避免仓库 churn。
+
 **实测吞吐**（本机 clang 20.1.8 + ASan，单核）：帧层 6k~12k exec/s，Java codec 约 25k exec/s。
 
 ---
@@ -132,15 +165,20 @@ cd build/bin/fuzz/RelWithDebInfo
 tests/fuzz/
 ├── CMakeLists.txt              # 插桩库 + 目标定义（受 MC_BUILD_FUZZERS 控制）
 ├── support/
-│   ├── FuzzSupport.hpp/cpp     # 进程级一次性初始化（注册表 + 五阶段包表）
+│   └── FuzzSupport.hpp/cpp     # 进程级一次性初始化（注册表 + 五阶段包表）+ 异常现场报告器
 ├── targets/
 │   ├── FuzzVarintFraming.cpp   # 帧层
 │   ├── FuzzCompression.cpp     # 压缩层
 │   ├── FuzzCipher.cpp          # 加密层
+│   ├── FuzzChunkWire.cpp       # 区块线格式（三条解析路径）
 │   └── FuzzJavaCodec.cpp       # Java 全阶段 codec（经 MC_FUZZ_FLOW_MODE 生成 sb/cb/两者）
-└── corpus/                     # 回归种子（崩溃/超限产物移入此处）
-    ├── fuzz_java_codec_cb/
-    └── fuzz_java_codec_sb/
+├── tools/
+│   └── GenSeeds.cpp            # 种子生成器（fuzz_gen_seeds）
+├── corpus/                     # 语料
+│   ├── java_codec/{sb,cb}/     # 由 fuzz_gen_seeds 生成的确定性种子（裸 packetID+payload）
+│   ├── connection_wire/        # 同上，但为**完整帧**（帧化+压缩已由 Connection::send 施加）
+│   └── fuzz_java_codec_{sb,cb}/# 已修缺陷的回归种子
+└── known-issues/               # 已知工具链缺陷的现场种子（见 §7.7），勿放入 corpus
 ```
 
 ---
@@ -211,6 +249,81 @@ tests/fuzz/
 **修复方向**：每个元素在线上至少占 1 字节，因此**任何计数的合法上界都不可能超过
 `buf.readableBytes()`**。在 `reserve` 前统一加此校验（或按字段给显式上限，如 palette
 的 4096），即可系统性消除该模式。`JavaPlayCodecs.hpp:1100` 是应予推广的现有范式。
+
+---
+
+### 7.4 NBT 二进制解析信任声明长度（内存耗尽，已修）
+
+- **位置**：`src/common/util/nbt/Nbt.hpp` 的 `load_list` / `load_array_bin`、
+  `src/common/util/nbt/Nbt.cpp` 的 `read_string_bin`。
+- **触发**：列表/数组的声明元素数、字符串的声明长度直接来自线上，未与流中剩余字节数
+  比对即 `reserve` / `resize`。
+- **实测**：104 字节的 `SetCreativeModeSlot` 报文（Serverbound）触发
+  `malloc(10745544743)`（10.7 GB）。
+- **修复**：新增 `remainingStreamBytes` + `validateBinaryElementCount`，在分配前校验
+  声明长度不超过剩余可读字节数（每个元素至少占 1 字节）；`reserve` 预分配量另加
+  `MAX_NBT_RESERVE_HINT` 上限，避免元素类型远大于 1 字节时的预分配放大。
+
+### 7.5 解码路径异常逃逸（进程崩溃，已修）
+
+- **位置**：`IdDispatchCodec::decode`（所有包 codec 的唯一分发点）、
+  `nbt_io::readCompound`。
+- **触发**：存量 NBT 库以异常报错（如非法 tag id 触发 `std::out_of_range`），而异常
+  沿解码路径逃逸到 `std::terminate` 即终止进程。
+- **修复**：在上述两个边界把异常统一转成 `Result` 协议错误。
+- **契约变更**：单测 `NbtIo.ReadCompoundMalformedThrows` 原本断言"未捕获"这一缺陷，
+  已改为断言返回 `InvalidData` 错误。
+
+### 7.6 断言处理不可信输入（远程拒绝服务，已修）
+
+- **位置**：`src/common/util/nbt/Nbt.cpp` 的 `read_list_content_bridge<TagId::End>`。
+- **触发**：列表的元素类型字节不是任何合法 `TagId` 时落到 `MC_ASSERT_RELEASE_MSG`
+  兜底分支。该字节完全由对端控制，而 `MC_ASSERT_RELEASE` 在 Release 下同样启用、
+  直接终止进程。
+- **修复**：改为抛错（保留 `id == End` 这一合法空列表分支不动），由 §7.5 的边界转成
+  `Result` 错误。
+
+### 7.7 【未决·已定性为工具链缺陷】本工具链上 Sanitizer 运行时破坏 C++ 异常处理
+
+**现象**：凡是走到 C++ `throw` 的解码路径，在 fuzz 构建下都以硬终止收场——
+`STATUS_BREAKPOINT (0x80000003)`（int3）或一条指向 `catch` 块的 ASan 报告。
+`MC_FUZZ_ASAN=OFF` 时同样复现，故初判"与 ASan 无关"。
+
+**用独立最小探针（`throw std::runtime_error` + `catch` + `e.what()`）逐项隔离，
+结论是「任何 Sanitizer 运行时都会破坏异常处理」**：
+
+| 探针配置 | 结果 |
+|---|---|
+| 无 sanitizer、无覆盖插桩（仅 `-O1`） | ✅ 三行输出齐全，异常正常 |
+| 官方 libFuzzer（`-fsanitize=fuzzer`，/MT 与默认 CRT 匹配，无 ASan） | ❌ int3 |
+| 仅 ASan（`-fsanitize=address`） | ❌ ASan 报 `global-buffer-overflow`，位置正是 `e.what()`——异常对象 vptr 已损坏 |
+| 仅 ASan/UBSan（无覆盖插桩） | ❌ 同上 |
+
+即：**覆盖插桩所需的 libFuzzer 运行时、以及 ASan，各自单独就能破坏 C++ 异常**；
+无 sanitizer 时一切正常。这与 CRT 混用（§7.1）无关——官方 /MT 运行时与其匹配的
+/MT CRT 组合同样崩。
+
+**影响**：
+
+1. 项目内任何以异常报错的存量路径（首选 `util/nbt` 的 NBT 解析器）都会在 fuzz 中
+   表现为"崩溃"，而**不是**产品缺陷。分诊时必须先看崩溃点是否落在 `throw`/`catch`
+   附近（`NbtIo.cpp` 的异常边界、`nbt_io::readCompound` 等），再决定是否值得追。
+2. `MC_FUZZ_ASAN=OFF` 并不能规避（覆盖插桩本身即触发），所以**没有"干净"的
+   Windows fuzz 配置**：ASan 开则异常路径报 ASan 错（更易误判为内存缺陷），
+   关则报 int3（更易定位但失去内存错误检测能力）。
+3. 因此 **Windows 上的 fuzz 结果只能用于发现"不依赖异常"的缺陷**——本项目已确认的
+   §7.1~7.4 四类内存耗尽缺陷正属此类，fuzz 对它们的有效性已被实测证明。
+
+**建议的规避方向**（未实施，需决策）：
+
+- **优先**：把 fuzz 的**执行**放到 WSL2/Linux。libFuzzer+ASan 在 Linux 上是原生、
+  久经验证的组合（Phase D 的 AFLnet 本就需要 Linux）；harness 代码完全可移植，
+  仅需增加一个 Linux fuzz preset。Windows 侧继续负责构建与运行服务端。
+- 或将 `util/nbt` 等"以异常报错"的存量库重构为 `Result` 语义（符合
+  CODE_CONVENTIONS 对新代码的要求，也一并消除本类噪声），但属大改。
+
+**当前处置**：两个最能代表该问题的种子留在 `tests/fuzz/known-issues/`；文档如实记录，
+不再当作产品缺陷追。
 
 ---
 
@@ -295,7 +408,24 @@ libFuzzer 的 `HandleMalloc`（`FuzzerLoop.cpp:125-136`）在 `DumpCurrentUnit` 
 `PrintStackTrace()`。用 `Select-Object -Last N` 或按关键字过滤输出时极易把这段栈丢掉，
 误判为"看不到调用栈"。抓现场时应把完整输出落盘再检索。
 
-### 8.6 `-malloc_limit_mb` 缺省会回退为 `rss_limit_mb`
+### 8.6 trap 类异常对 libFuzzer 不可见
+
+libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异常
+（`STATUS_BREAKPOINT`，`0x80000003`）不经 SEH、也不触发死回调，进程**静默死亡**：
+既不打印栈回溯，也不落盘复现用例，在 fuzz 输出里只表现为"无任何提示地退出"
+（`[exit code: ...]`，退出码 `-2147483645`）。
+
+`tests/fuzz/support/FuzzSupport.cpp` 的异常现场报告器即为此而设：用
+`AddVectoredExceptionHandler` 挂在分发最前端，打印异常地址与模块内偏移（供离线
+`llvm-symbolizer` 符号化）。三条设计约束都是踩过的：
+
+1. **只处理 `0x80000003`**。把 `0xC0000005` 等也拦下来放行会与 ASan 的处理器相互
+   干扰，表现为反复故障（hang）；`0xE06D7363` 是 C++ 抛出点，属正常控制流。
+2. **绝不在处理器里取栈**。在故障现场调用 `StackWalk64`（`CrashHandler::captureStackTraceFromSeh`）
+   可能再次故障，从而递归重入本处理器 —— 一度表现为无限打印与 hang。
+3. **报告后立即卸载自身**，并加防重入标志。
+
+### 8.7 `-malloc_limit_mb` 缺省会回退为 `rss_limit_mb`
 
 见 `FuzzerDriver.cpp:718-720`：`malloc_limit_mb` 未设置时取 `rss_limit_mb`（默认 2048MB）。
 即**单次分配 ≥2GB 就会中止**。这既是发现 OOM 缺陷的主力手段，也意味着
@@ -324,10 +454,10 @@ libFuzzer 的 `HandleMalloc`（`FuzzerLoop.cpp:125-136`）在 `DumpCurrentUnit` 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | A | 分层解码器 harness（帧化/压缩/加密/Java codec） | ✅ 已落地 |
-| A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | 待做 |
-| A+ | 种子生成器（由 `tests/e2e/bot` 的 `bot-trace-*.jsonl` 反编码生成结构化种子） | 待做 |
-| B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | 待做 |
+| A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | ✅ 已落地 |
+| A+ | 种子生成器（复用项目编码器遍历全部已登记包；见 §4.1 说明与 trace 方案的取舍） | ✅ 已落地 |
+| B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | ✅ 已落地 |
 | C | 进程内状态机会话 harness（消息序列变异 + 状态反馈，含 `MinecraftServer` 无头骨架以覆盖 Play 业务层） | 待做 |
 | D | WSL2/Linux 上基于 AFLnet 的真实网络 fuzz | 待做 |
 | E | Cubium vs vanilla 差分对撞（抓"不崩溃但语义错误"的缺陷） | 待做 |
-| F | 修复 §7 的缺陷并补回归用例 | 待批准 |
+| F | 修复 §7 的缺陷并补回归用例 | ✅ 已修 §7.1~7.6；§7.7 未决 |

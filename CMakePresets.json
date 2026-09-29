@@ -125,6 +125,7 @@
       "inherits": "windows-clang-relwithdebinfo",
       "cacheVariables": {
         "MC_BUILD_FUZZERS": "ON",
+        "MC_FUZZ_ASAN": "ON",
         "MC_FUZZ_LIBFUZZER_SOURCE_DIR": "E:/dev/llvm-project/compiler-rt/lib/fuzzer"
       }
     },
@@ -264,9 +265,12 @@
         "fuzz_varint_framing",
         "fuzz_compression",
         "fuzz_cipher",
+        "fuzz_chunk_wire",
+        "fuzz_connection_wire",
         "fuzz_java_codec",
         "fuzz_java_codec_sb",
-        "fuzz_java_codec_cb"
+        "fuzz_java_codec_cb",
+        "fuzz_gen_seeds"
       ]
     },
     {
