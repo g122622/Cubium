@@ -28,8 +28,8 @@ src/server/network/
 │   └── LoginFlow.hpp/cpp              # 进入 Play 的入场序列（建号 + 初始状态推送整簇）
 ├── play/                              # Play 阶段入站处理（按包族拆分）
 │   ├── base/PlayHandlerBase.hpp       # 处理器基座（只提供 MinecraftServer&）
-│   ├── ServerPlayHandler.hpp/cpp      # 聚合门面：24 路 std::visit 分发表
-│   ├── MovementHandler.hpp/cpp        # 移动 / 载具输入 / 传送确认
+│   ├── ServerPlayHandler.hpp/cpp      # 聚合门面：27 路 holds_alternative 分发表
+│   ├── MovementHandler.hpp/cpp        # 移动 / 载具输入 / 传送确认 / 客户端 tick 结束
 │   ├── BlockActionHandler.hpp/cpp     # 挖掘 / 物品动作 / 放置 / 使用物品 / 告示牌
 │   ├── EntityActionHandler.hpp/cpp    # 实体交互（INTERACT / ATTACK / INTERACT_AT）
 │   ├── ChatHandler.hpp/cpp            # 聊天与命令执行
@@ -74,7 +74,7 @@ src/server/network/
                 ▼
 ┌───────────────────────────────┐   ┌───────────────────────────────┐
 │ handshake/ServerHandshake     │   │ play/ServerPlayHandler        │
-│  Handshake→Status→Login→Conf  │──▶│   24 路 std::visit 分发        │
+│  Handshake→Status→Login→Conf  │──▶│   27 路 holds_alternative 分发  │
 │  Configuration 载荷来自 ↓      │   │   + 各 handle*Packet 处理体    │
 │  handshake/RegistryDataBuilder│   └───────────────────────────────┘
 │   └─ EnchantmentNbtBuilder    │

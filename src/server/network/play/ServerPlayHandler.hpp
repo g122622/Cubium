@@ -43,7 +43,7 @@ namespace mc::server::net {
  * @brief Play 包处理聚合门面
  *
  * 只做两件事：
- *  - `route`：24 路 `std::holds_alternative` 分发表，把包转给对应包族处理器；4 个分支
+ *  - `route`：27 路 `std::holds_alternative` 分发表，把包转给对应包族处理器；4 个分支
  *    回调 `MinecraftServer` 的纯虚（handleHotbarSelect / handleContainerClick /
  *    handleCloseContainer / SetCreativeModeSlot），保留子类 override 的多态分发。
  *  - `updateEntityTrackingForPlayer`：登录序列与维度切换的对外入口，转调 MovementHandler。

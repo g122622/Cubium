@@ -6,7 +6,7 @@
 src/server/application/
 ├── IServer.hpp                    # 服务器统一接口定义
 ├── MinecraftServer.hpp            # 服务器抽象基类声明
-├── MinecraftServer.cpp            # 服务器抽象基类实现（共享逻辑 + routeInboundPlayPacket）
+├── MinecraftServer.cpp            # 服务器抽象基类实现（共享逻辑）
 ├── IntegratedServer.hpp           # 内置服务器声明（单机模式）
 ├── IntegratedServer.cpp           # 内置服务器实现（LocalTransport 同进程零拷贝 IR 通信）
 ├── StandaloneServer.hpp           # 独立服务器声明（多人模式）
@@ -29,7 +29,7 @@ src/server/application/
 
 **继承关系：**
 - `IServer` 定义服务器接口契约（含 `publishToLan` 局域网发布接口）
-- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包经 `routeInboundPlayPacket` 委托 `server/network/play/ServerPlayHandler` 分发
+- `MinecraftServer` 实现共享逻辑，委托网络层给子类；入站 Play 包由 `session/ClientSession::handleInbound` 委派给 `server/network/play/ServerPlayHandler` 分发
 - `IntegratedServer` 使用 `transport/LocalTransport` 实现同进程零拷贝 IR 通信；`publishToLan()` 调 `ServerNetwork::startAccept` 接受远程玩家（单 `ServerNetwork` 双模式架构，详见下文第 11 节）
 - `StandaloneServer` 使用 `ServerNetwork::startAccept`（Wire 模式 TCP）实现多人网络；`publishToLan()` 返回 `Unsupported`
 

@@ -20,7 +20,7 @@ src/server/core/
 └── OpListManager.hpp/cpp     # OP 权限列表管理器
 ```
 
-> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `MinecraftServer::routeInboundPlayPacket` + `server/network/play/ServerPlayHandler`（`std::visit` over `ir::PlayPacket`）。
+> **注**：旧的 `PacketHandler.hpp/.cpp` 和 `PacketHandlerInternal.hpp` 已删除。入站数据包处理逻辑迁移到 `server/network/session/ClientSession::handleInbound` + `server/network/play/ServerPlayHandler`（`holds_alternative` 链 over `ir::PlayPacket`）。
 
 ## 模块关系图
 
@@ -31,7 +31,7 @@ src/server/core/
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
-│              MinecraftServer::routeInboundPlayPacket          │
+│      server/network/session/ClientSession::handleInbound      │
 │        + server/network/play/ServerPlayHandler (ir::PlayPacket)     │
 │  (入站数据包分发入口，协调各管理器；旧 PacketHandler 已删除)    │
 └────────┬─────────────────────────────────────────────────────┘
@@ -78,7 +78,7 @@ src/server/core/
 ```
 
 **依赖关系：**
-- 入站包分发（`ServerPlayHandler` + `MinecraftServer::routeInboundPlayPacket`）依赖所有其他管理器
+- 入站包分发（`ServerPlayHandler` + `ClientSession::handleInbound`）依赖所有其他管理器
 - `ConnectionManager` 依赖 `PlayerManager`
 - `KeepAliveManager` 依赖 `PlayerManager`
 - `TeleportManager` 依赖 `PlayerManager`、`ConnectionManager`
@@ -166,7 +166,7 @@ if (!teleportManager.confirmTeleport(playerId, packet.teleportId())) {
 
 ### 6. 数据包处理顺序
 
-未登录玩家发送某些数据包会导致逻辑错误。入站 Play 包在 `MinecraftServer::routeInboundPlayPacket` + `ServerPlayHandler::route` 中分发，需检查登录状态：
+未登录玩家发送某些数据包会导致逻辑错误。入站 Play 包在 `ClientSession::handleInbound` + `ServerPlayHandler::route` 中分发，需检查登录状态：
 
 ```cpp
 PlayerId playerId = m_playerManager.getPlayerIdBySession(sessionId);

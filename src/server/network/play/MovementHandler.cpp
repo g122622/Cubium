@@ -508,6 +508,31 @@ void MovementHandler::handlePaddleBoatPacket(PlayerId playerId, const mc::networ
     boat->setPaddleState(evt->left, evt->right);
 }
 
+void MovementHandler::handleClientTickEndPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (!player || !player->loggedIn) {
+        return;
+    }
+
+    const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
+    const auto* evt = std::get_if<mc::network::ir::play::ClientTickEnd>(&play);
+    if (evt == nullptr) {
+        return;
+    }
+
+    // TODO(client_tick_end): 客户端 tick 边界语义尚未落地。完整语义是——本 tick 内**未**收到
+    // 含位置的移动包（move_player_* / move_vehicle）时，把"客户端已知运动量"归零；无论是否
+    // 归零都把本 tick 的收到标记复位。落地前需先补齐三样东西：
+    //   1) ServerPlayer 侧的 knownMovement（"最近一次收到的客户端运动量"）与
+    //      receivedMovementThisTick 标记；
+    //   2) handlePlayerMovePacket / handleMoveVehiclePacket 在真正采纳位置后写入 knownMovement
+    //      并置位标记（只有 StatusOnly/Rot 这类不含位置的包不算）；
+    //   3) 本包在 tick 末尾收口：标记为假则清零运动量，随后复位标记。
+    // 未落地前，以下玩法取不到正确的客户端运动量：横扫之刃的扫击判定（按水平位移平方与
+    // 移速比较）、重锤下落攻击的伤害计算（按已知运动量）、拴绳/弹射物/实体谓词的运动量取用。
+}
+
 void MovementHandler::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,

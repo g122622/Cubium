@@ -598,6 +598,13 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
         [](B&) -> Result<ir::play::ConfigurationAcknowledged> { return ir::play::ConfigurationAcknowledged{}; });
 }
 
+/// ClientTickEnd（C→S，id=12，空包）：客户端每 tick 结束时发送，无 payload
+[[nodiscard]] inline auto clientTickEndCodec()
+{
+    return makeCodec<ir::play::ClientTickEnd>([](B&, const ir::play::ClientTickEnd&) {},
+        [](B&) -> Result<ir::play::ClientTickEnd> { return ir::play::ClientTickEnd{}; });
+}
+
 // ============================================================================
 // 服务端→客户端：进游戏与全局状态
 // ============================================================================

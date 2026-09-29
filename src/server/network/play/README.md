@@ -14,8 +14,8 @@ src/server/network/play/
 ├── base/
 │   ├── README.md
 │   └── PlayHandlerBase.hpp        # 处理器基座：只提供 MinecraftServer&
-├── ServerPlayHandler.hpp/cpp      # 聚合门面：24 路 std::visit 分发表 + 对外 updateEntityTrackingForPlayer
-├── MovementHandler.hpp/cpp        # 移动 / 载具移动 / 客户端输入 / 传送确认
+├── ServerPlayHandler.hpp/cpp      # 聚合门面：27 路 holds_alternative 分发表 + 对外 updateEntityTrackingForPlayer
+├── MovementHandler.hpp/cpp        # 移动 / 载具移动 / 客户端输入 / 传送确认 / 客户端 tick 结束
 ├── BlockActionHandler.hpp/cpp     # 挖掘 / 物品动作 / 使用物品 / 放置 / 告示牌
 ├── EntityActionHandler.hpp/cpp    # 实体交互（INTERACT / ATTACK / INTERACT_AT）
 ├── ChatHandler.hpp/cpp            # 聊天与命令执行
@@ -30,7 +30,7 @@ ClientSession::handleInbound（session/）
         │ 握手已消费则返回；否则 phase / playerId 守卫
         ▼
 ServerPlayHandler::route          ← 唯一的 std::holds_alternative 分发表
-        ├─ 22 个分支 ──▶ 对应包族处理器（m_movement / m_blockAction / …）
+        ├─ 23 个分支 ──▶ 对应包族处理器（m_movement / m_blockAction / …）
         └─  4 个分支 ──▶ MinecraftServer 纯虚（handleHotbarSelect / handleContainerClick
                           / handleCloseContainer / SetCreativeModeSlot）
 ```
@@ -44,7 +44,7 @@ ServerPlayHandler::route          ← 唯一的 std::holds_alternative 分发表
 
 | 依赖 | 用途 |
 |---|---|
-| `common/network/ir/packets/play/*` | C→S 包定义（`std::visit` 的变体） |
+| `common/network/ir/packets/play/*` | C→S 包定义（`holds_alternative` 分发表的变体） |
 | `common/entity/*`、`common/item/*`、`common/world/*` | 各处理体的实体/物品/世界操作 |
 | `common/advancement/*` | `ChatHandler` 之外的成就触发（方块使用 / 实体交互） |
 | `server/application/MinecraftServer.hpp` | 各处理体的业务入口与 4 个纯虚 |

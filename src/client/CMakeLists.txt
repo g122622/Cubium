@@ -441,7 +441,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/application/IntegratedServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/application/MinecraftServer.cpp
     # 新网络层服务端实现：IntegratedServer.cpp 引用 ServerNetwork/ServerHandshake/
-    # RegistryDataBuilder，MinecraftServer.cpp 定义 routeInboundPlayPacket 供 Play 处理门面调用。
+    # RegistryDataBuilder，MinecraftServer.cpp 供 Play 处理门面（ServerPlayHandler）调用。
     # 客户端内置服需登记全部文件（与 server/CMakeLists.txt 一致）。
     # 连接基座（IServerClientConnection + Local/Wire 双模单连接实现）
     ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp

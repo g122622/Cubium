@@ -171,7 +171,8 @@ using B = buffer::RegistryByteBuf;
     //   UseItem(14) UseItemOn(15) ... SignUpdate(69) ServerboundMoveVehicle(83) ClientboundMoveVehicle(84)
     //   PaddleBoat(85) Interact(86) ... PlaceRecipe(88) ... ChunkBatchReceived(107) ChatCommand(108)
     //   SetCreativeModeSlot(109)。
-    // Java Sb id（1.21.11 权威表，serverbound 从 0 起）：accept_teleportation=0, chat_command=6, chat=8,
+    // Java Sb id（1.21.11 权威表，serverbound 从 0 起）：accept_teleportation=0, client_tick_end=12,
+    //   chat_command=6, chat=8,
     //   keep_alive=27, set_carried_item=52, move_player_pos=29, move_player_pos_rot=30,
     //   move_player_rot=31, move_player_status_only=32, player_action=40, player_command=41,
     //   player_input=42, use_item=64, use_item_on=63, configuration_acknowledged=15,
@@ -241,6 +242,10 @@ using B = buffer::RegistryByteBuf;
     // ---- 区块相关数据包（altIndex 107）----
     b.addPacket<ir::play::ChunkBatchReceived>(
         10, PacketType{PacketFlow::Serverbound, "chunk_batch_received"}, 107, codecs::chunkBatchReceivedCodec());
+    // client_tick_end(id=12)：客户端每完成一个 tick 的处理即发送一次（20 Hz，空 payload）。
+    // 之前未登记，导致服务端每 50 ms 丢弃一包并打出 Unknown packet id 12 的 warn。
+    b.addPacket<ir::play::ClientTickEnd>(
+        12, PacketType{PacketFlow::Serverbound, "client_tick_end"}, 115, codecs::clientTickEndCodec());
     return b.build();
 }
 

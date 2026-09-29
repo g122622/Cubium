@@ -295,7 +295,7 @@ add_executable(minecraft-server
     network/handshake/RegistryDataBuilder.cpp
     network/handshake/EnchantmentNbtBuilder.cpp
     network/handshake/LoginFlow.cpp
-    # Play 阶段入站处理（routeInboundPlayPacket + 13 个非纯虚 handle*Packet +
+    # Play 阶段入站处理（ServerPlayHandler::route + 13 个非纯虚 handle*Packet +
     # updateEntityTrackingForPlayer 整簇下沉自 MinecraftServer）
     network/play/ServerPlayHandler.cpp
     # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）

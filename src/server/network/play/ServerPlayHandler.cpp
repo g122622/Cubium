@@ -108,6 +108,8 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         m_playerState.handlePlaceRecipePacket(playerId, packet);
     } else if (std::holds_alternative<irplay::ChunkBatchReceived>(play)) {
         m_sessionSignal.handleChunkBatchReceivedPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ClientTickEnd>(play)) {
+        m_movement.handleClientTickEndPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::SetCreativeModeSlot>(play)) {
         m_server.handleSetCreativeModeSlotPacket(playerId, packet);
     } else {

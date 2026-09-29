@@ -319,7 +319,7 @@ GameTest 框架整体作为 server 的一部分，物理位于 `src/server/test/
 1. **入站数据包**：
    ```
    网络 → transport 收字节 → pipeline::Connection 解帧
-   → MinecraftServer.routeInboundPlayPacket() → ServerPlayHandler (ir::PlayPacket std::visit)
+   → ServerPlayHandler (ir::PlayPacket holds_alternative 分发)
    → 各 Manager 处理 → 世界状态更新
    ```
 

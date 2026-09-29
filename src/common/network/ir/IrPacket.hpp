@@ -199,7 +199,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::PlayerCombatEnter, // 111
     play::PlayerCombatEnd,   // 112
     play::PlayerCombatKill,  // 113
-    play::UpdateAttributes>; // 114
+    play::UpdateAttributes,  // 114
+    play::ClientTickEnd>;    // 115
 
 /**
  * @brief 顶层包标签：携带阶段信息 + 阶段变体
