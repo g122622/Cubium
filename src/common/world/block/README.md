@@ -23,6 +23,7 @@
 ├── IBucketPickupHandler.hpp #桶提取接口（支持 pickupFluid 流体拾取和 pickupItem 非流体拾取双路径）
 ├── IGrowable.hpp #可生长方块接口（含 BoneMealType 枚举、getParticlePos 方法）
 ├── ILiquidContainer.hpp #液体容器接口
+├── ILiquidSealed.hpp / cpp #液体密封方块接口（永不接收液体、也不被液体替换；水下植物实现）
 ├── IWaterLoggable.hpp / cpp #含水方块接口
 ├── Material.hpp / cpp #材质系统（物理属性）
 ├── SupportType.hpp / cpp #方块支撑类型（Full / Center / Rigid），用于 isFaceSturdy / canSupportCenter / canSupportRigidBlock 判定
@@ -182,6 +183,11 @@
 
     Material（材质定义）
 └── 描述方块物理属性（固体、透明、可燃等）
+
+    ILiquidContainer（液体容器接口）
+├── IWaterLoggable（含水接口）：总是接收水 → canContainFluid 依 WATERLOGGED 属性判定
+├── ILiquidSealed（液体密封接口）：永不接收、也不被替换 → canContainFluid 恒 false
+└── 被 kelp / kelp_plant / seagrass / tall_seagrass 实现（缺此实现会被水流冲毁并掉落物品，见坑 #41）
 
     IWaterLoggable（含水接口）
 ├── 继承 ILiquidContainer 和 IBucketPickupHandler
@@ -848,3 +854,14 @@ MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副�
 
 **调用方**：`BrushItem::onUseTick` 中判断 `blockState->shouldSpawnTerrainParticles() && !blockState->isInvisibleRenderType()` 才调用 `spawnDustParticles`，与 MC 1.21.11 `BrushItem.onUseTick` 中的 `blockstate.shouldSpawnTerrainParticles() && blockstate.getRenderShape() != INVISIBLE` 对齐。
 
+
+## #41. 水下植物必须实现 ILiquidContainer，否则会被水流冲毁
+
+`FlowingFluid::isBlocked()` 对**未实现 `ILiquidContainer`** 的方块只按 `canBeReplacedByFluid()`（= `canBeReplaced || !isSolid`）判定是否可被流体替换。而 `kelp` / `kelp_plant` / `seagrass` / `tall_seagrass` 都注册为 `.noCollision().notSolid()`，`m_isSolid` 为 false，于是被判为"可被流体替换"：水流每次 tick 都把它们当作被冲毁的方块，经 `WaterFluid::beforeReplacingBlock` 当作"方块被水破坏"生成一次掉落物。实测单次会话堆积 19326 个物品实体（该批区块常驻内存，而实体在模拟距离外被冻结、`age` 不增长，故永不超龄消失）。
+
+原版语义：这四类方块都实现 `LiquidBlockContainer` 且 `canPlaceLiquid()`/`placeLiquid()` 恒返 false——流体既不能灌入该格，也不能替换该格的植物。项目侧对应 `ILiquidSealed`（`ILiquidContainer` 的"永不接收"实现，与 `IWaterLoggable` 的"总是接收"互为对立）。
+
+配套注意两点：
+
+1. `FlowingFluid::flowInto` 对 `ILiquidContainer` 分支必须**独占接管**（委派 `receiveFluid` 后直接返回），不可在 `receiveFluid` 返回 false 时继续落到"替换方块 + 生成掉落物"路径。原版 `FlowingFluid::spreadTo` 是 if/else 结构，容器分支不会落到 `beforeDestroyingBlock` + `setBlock`。
+2. 新增任何"占位于水中、但不应被水流替换"的方块（含水植物、水下装饰等）都必须实现 `ILiquidSealed`，只靠 `.notSolid()` 是不够的。回归测试见 `tests/unit/common/world/fluid/SealedPlantLiquidTest.cpp`。

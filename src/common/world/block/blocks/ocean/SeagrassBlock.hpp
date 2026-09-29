@@ -29,6 +29,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include "common/world/block/ILiquidSealed.hpp"
 #include "common/world/block/PlantType.hpp"
 
 namespace mc {
@@ -54,8 +55,11 @@ namespace blocks {
  * - 必须放置在水源方块中（流体等级=8）
  * - 可用骨粉催熟变成高海草
  * - 实现 IGrowable 接口
+ *
+ * 同时实现 ILiquidSealed：海草不被水流替换（否则水流每次 tick 都会把海草当作被冲毁的
+ * 方块而生成一次掉落物）。
  */
-class SeagrassBlock : public Block, public IGrowable, public IPlantable {
+class SeagrassBlock : public Block, public IGrowable, public IPlantable, public ILiquidSealed {
 public:
     explicit SeagrassBlock(const BlockProperties& properties);
     ~SeagrassBlock() override = default;

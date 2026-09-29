@@ -747,6 +747,7 @@ add_library(mc_common STATIC
     world/block/registry/CandleBlocks.cpp
     world/block/registry/FlowerPotBlocks.cpp
     world/block/IWaterLoggable.cpp
+    world/block/ILiquidSealed.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
     world/block/blocks/FallingBlock.cpp
@@ -887,6 +888,7 @@ add_library(mc_common STATIC
     # World - Block - Ocean
     world/block/blocks/ocean/SeaPickleBlock.cpp
     world/block/blocks/ocean/KelpBlock.cpp
+    world/block/blocks/ocean/KelpPlantBlock.cpp
     world/block/blocks/ocean/SeagrassBlock.cpp
     world/block/blocks/ocean/TallSeagrassBlock.cpp
     world/block/blocks/ocean/BubbleColumnBlock.cpp

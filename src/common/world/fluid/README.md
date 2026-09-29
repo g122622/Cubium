@@ -173,3 +173,9 @@ FluidTags ←── Fluid（标签分类）
 
 **解决方案**：取空/水/岩浆默认状态一律走 fluidId 路径：`&Fluids::EMPTY()->defaultState()` / `&Fluids::WATER()->defaultState()` / `&Fluids::LAVA()->defaultState()`。stateId 反查 API（`Fluid::getFluidState(u32)` / `FluidRegistry::getFluidState(u32)` / `m_statesById` / `fluidStateCount()`）已删除，按 stateId 反查会编译失败。
 
+
+### 13. flowInto 的 ILiquidContainer 分支必须独占接管
+
+**问题**：`FlowingFluid::flowInto` 若在 `container->receiveFluid()` 返回 false 时继续往下执行，会落到"替换方块 + 生成掉落物"路径，把容器方块本身破坏掉。
+
+**解决方案**：对 `ILiquidContainer` 方块，委派 `receiveFluid()` 后必须**立即 return**，无论其是否接收成功。对齐原版 `FlowingFluid::spreadTo` 的 if/else 结构——`LiquidBlockContainer` 分支不会落到 `beforeDestroyingBlock` + `setBlock`。这条曾经导致水下植物（`canContainFluid` 恒 false）每次水流 tick 都被冲毁并生成一次掉落物，实测单次会话堆积 19326 个物品实体。回归测试见 `tests/unit/common/world/fluid/SealedPlantLiquidTest.cpp`。

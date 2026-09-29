@@ -474,13 +474,14 @@ void FlowingFluid::flowInto(
     if (blockState != nullptr) {
         Block* blockRef = Block::getBlock(blockState->blockId());
 
-        // 支持 ILiquidContainer（如大锅）优先接收流体，不直接替换为液体方块。
+        // 液体容器（大锅、含水方块、水下植物等）独占接管本次流入：只委派 receiveFluid，
+        // 无论其是否成功都不得继续走"替换方块"分支——否则会破坏容器自身并生成掉落物。
+        // 对齐原版 FlowingFluid::spreadTo 的 if/else 结构（LiquidBlockContainer 分支不落到
+        // beforeDestroyingBlock + setBlock）。
         if (blockRef != nullptr) {
             if (auto* container = dynamic_cast<ILiquidContainer*>(blockRef)) {
-                if (container->canContainFluid(world, pos, *blockState, state.getFluid()) &&
-                    container->receiveFluid(world, pos, *blockState, state)) {
-                    return;
-                }
+                container->receiveFluid(world, pos, *blockState, state);
+                return;
             }
         }
 

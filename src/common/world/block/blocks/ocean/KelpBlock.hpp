@@ -31,6 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/IGrowable.hpp"
+#include "common/world/block/ILiquidSealed.hpp"
 #include "common/world/block/PlantType.hpp"
 
 namespace mc {
@@ -49,17 +50,19 @@ namespace blocks {
  *
  * ## 状态属性
  * - AGE_0_25: 年龄 (0-25)，控制生长阶段
- * - WATERLOGGED: 是否含水
  *
- * ## 生长机制 (MC 1.16.5)
+ * ## 生长机制
  * - 通过随机 tick 生长
  * - 高度限制基于 AGE_0_25 (最大 25 格)
  * - 只能在水中生长
- * - 生长概率约 14%
+ * - 生长概率 14%
  *
- * 参考: net.minecraft.block.KelpBlock
+ * 同时实现 ILiquidSealed：海带不被水流替换（否则水流每次 tick 都会把海带当作被冲毁的
+ * 方块而生成一次掉落物）。
+ *
+ * 参考: net.minecraft.world.level.block.KelpBlock
  */
-class KelpBlock : public Block, public IPlantable, public IGrowable {
+class KelpBlock : public Block, public IPlantable, public IGrowable, public ILiquidSealed {
 public:
     explicit KelpBlock(const BlockProperties& properties);
     ~KelpBlock() override = default;

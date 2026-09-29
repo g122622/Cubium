@@ -29,6 +29,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/ILiquidSealed.hpp"
 #include "common/world/block/PlantType.hpp"
 
 namespace mc {
@@ -54,9 +55,12 @@ namespace blocks {
  * - 上半部分需要连接到下半部分
  * - 掉落物为海草物品（非自身）
  *
- * 参考: net.minecraft.block.TallSeaGrassBlock
+ * 同时实现 ILiquidSealed：高海草不被水流替换（否则水流每次 tick 都会把高海草当作被冲毁的
+ * 方块而生成一次掉落物）。
+ *
+ * 参考: net.minecraft.world.level.block.TallSeagrassBlock
  */
-class TallSeagrassBlock : public Block, public IPlantable {
+class TallSeagrassBlock : public Block, public IPlantable, public ILiquidSealed {
 public:
     explicit TallSeagrassBlock(const BlockProperties& properties);
     ~TallSeagrassBlock() override = default;

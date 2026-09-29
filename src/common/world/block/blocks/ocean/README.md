@@ -7,9 +7,10 @@
 ```
 ocean/
 ├── SeaPickleBlock.hpp/cpp    # 海泡菜方块（可堆叠1-4个，水下发光）
-├── KelpBlock.hpp/cpp         # 海带方块（可生长的水下植物，AGE_0_25，IPlantable(Water)）
-├── SeagrassBlock.hpp/cpp     # 海草方块（单格水下植物，实现IGrowable+IPlantable(Water)接口）
-├── TallSeagrassBlock.hpp/cpp # 高海草方块（双格水下植物，HALF属性，IPlantable(Water)）
+├── KelpBlock.hpp/cpp         # 海带头部方块（可生长的水下植物，AGE_0_25，IPlantable(Water)，ILiquidSealed）
+├── KelpPlantBlock.hpp/cpp    # 海带茎方块（SimpleBlock 子类，ILiquidSealed）
+├── SeagrassBlock.hpp/cpp     # 海草方块（单格水下植物，IGrowable+IPlantable(Water)+ILiquidSealed）
+├── TallSeagrassBlock.hpp/cpp # 高海草方块（双格水下植物，HALF属性，IPlantable(Water)+ILiquidSealed）
 ├── BubbleColumnBlock.hpp/cpp # 气泡柱方块（推动实体，DRAG属性）
 ├── DriedKelpBlock.hpp/cpp    # 干海带块（装饰性方块，可作为燃料）
 └── ConduitBlock.hpp/cpp      # 潮涌核心（水下信标，需要框架激活）
@@ -54,6 +55,7 @@ ocean/
 | `world/fluid/FluidTags` | 流体标签（检查是否为水） |
 | `util/property/Properties` | 方块属性（PICKLES_1_4, AGE_0_25, DRAG, DOUBLE_BLOCK_HALF等） |
 | `physics/collision/CollisionShape` | 碰撞形状 |
+| `world/block/ILiquidSealed` | 液体密封接口（水下植物拒绝被水流替换） |
 | `block/registry/VanillaBlocks` | 原版方块注册表（获取TALL_SEAGRASS等） |
 
 ### 下游依赖
@@ -130,3 +132,11 @@ if (VanillaBlocks::TALL_SEAGRASS == nullptr) {
 - **上推模式 (DRAG=false)**：生成 2 个 `BUBBLE_COLUMN_UP` 粒子，1/200 概率播放 `BUBBLE_COLUMN_UPWARDS_AMBIENT` 环境音
 
 注意：气泡柱的粒子/音效效果由 `animateTick` 产生，而非 `randomTick`（后者是服务端逻辑）。
+
+### 8. 水下植物必须实现 ILiquidSealed，否则会被水流冲毁
+
+**问题**：`kelp` / `kelp_plant` / `seagrass` / `tall_seagrass` 注册时带 `.noCollision().notSolid()`，`m_isSolid` 为 false。`FlowingFluid::isBlocked()` 对未实现 `ILiquidContainer` 的方块只按 `canBeReplacedByFluid()`（= `canBeReplaced || !isSolid`）判定，于是把它们当作"可被水流替换"——水流每次 tick 都把这些植物当成被冲毁的方块，经 `WaterFluid::beforeReplacingBlock` 生成一次掉落物。实测单次会话堆积 19326 个物品实体，连带约 41 MB 常驻内存。
+
+**解决方案**：四类方块都实现 `ILiquidSealed`（`canContainFluid`/`receiveFluid`/`containsFluid` 恒返 false），对齐原版 `LiquidBlockContainer` 中 `canPlaceLiquid`/`placeLiquid` 恒返 false 的水下植物。海带茎原本直接注册 `SimpleBlock`，为此新增了 `KelpPlantBlock`。
+
+注意只加 `.notSolid()` 或 `.replaceable()` 都不够：水流判定走的是 `ILiquidContainer` 动态转型，与 `canBeReplacedByFluid()` 无关。新增同类方块（水下装饰、含水植物）时务必一并实现该接口。详见 `world/block/README.md` 坑 #41 与 `tests/unit/common/world/fluid/SealedPlantLiquidTest.cpp`。

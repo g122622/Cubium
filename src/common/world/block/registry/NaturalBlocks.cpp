@@ -47,6 +47,7 @@
 #include "world/block/blocks/ocean/ConduitBlock.hpp"
 #include "world/block/blocks/ocean/DriedKelpBlock.hpp"
 #include "world/block/blocks/ocean/KelpBlock.hpp"
+#include "world/block/blocks/ocean/KelpPlantBlock.hpp"
 #include "world/block/blocks/ocean/SeaPickleBlock.hpp"
 #include "world/block/blocks/ocean/SeagrassBlock.hpp"
 #include "world/block/blocks/ocean/TallSeagrassBlock.hpp"
@@ -242,7 +243,7 @@ void registerNaturalBlocks()
     // 海带顶部和海带茎
     NaturalBlocks::KELP = &registry.registerBlock<blocks::KelpBlock>(
         ResourceLocation("minecraft:kelp"), BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid());
-    NaturalBlocks::KELP_PLANT = &registry.registerBlock<SimpleBlock>(
+    NaturalBlocks::KELP_PLANT = &registry.registerBlock<blocks::KelpPlantBlock>(
         ResourceLocation("minecraft:kelp_plant"), BlockProperties(Material::OCEAN_PLANT).noCollision().notSolid());
 
     // 海草与高海草
