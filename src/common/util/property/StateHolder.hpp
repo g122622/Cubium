@@ -25,7 +25,9 @@
 
 #include "Property.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/IProperty.hpp"
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -37,6 +39,27 @@
 #include <vector>
 
 namespace mc {
+
+/**
+ * @brief 单个状态对象允许的属性数上限
+ *
+ * 属性值索引改为内联存储（见 StateHolder::m_valueIndices）后，数组必须有编译期上界。
+ * 取 8 的依据：全项目 174 个 `StateContainer::Builder` 的 `.add` 链长度实测分布为
+ * 1 个属性 65 个、2 个 40、3 个 32、4 个 7、5 个 9、6 个 4、7 个 3，**最长 7**
+ * （`TripWireBlock` / `MultifaceBlock` / `TrailsBlocks`）。
+ *
+ * 超出时 `StateContainer::generateStates` 会当场断言（而非静默截断）：属性被丢掉会让
+ * `with()` 算出错误的 targetIndex，进而让方块切到不相干的状态，且不产生任何报错。
+ *
+ * 这个上限同时约束了热路径：`findPropertySlot` 的线性扫描最长 8 次指针比较。
+ */
+inline constexpr size_t MAX_STATE_PROPERTIES = 8;
+
+/// 单个属性值索引。属性值数量实测上限 26（`age` [0,25]），u8 足够。
+using StateValueIndex = u8;
+
+/// 一个状态对象各属性的值索引数组（按 PropertyLayout::slotIndex 对齐）
+using StateValueIndices = std::array<StateValueIndex, MAX_STATE_PROPERTIES>;
 
 /**
  * @brief 状态持有者基类模板
@@ -66,6 +89,9 @@ public:
         size_t slotIndex = 0;
         size_t stateStride = 0;
     };
+
+    /// 单个属性值索引的类型别名（等价于 mc::StateValueIndex）
+    using ValueIndex = StateValueIndex;
 
     virtual ~StateHolder() = default;
 
@@ -204,7 +230,7 @@ public:
         std::vector<PropertyEntry> result;
         const auto& layouts = propertyLayouts();
         result.reserve(layouts.size());
-        for (size_t i = 0; i < layouts.size(); ++i) {
+        for (size_t i = 0; i < m_propertyCount; ++i) {
             result.push_back(PropertyEntry{layouts[i].property, m_valueIndices[i]});
         }
         return result;
@@ -232,10 +258,10 @@ public:
         std::ostringstream ss;
         ss << ownerName();
         const auto& layouts = propertyLayouts();
-        if (!layouts.empty()) {
+        if (m_propertyCount > 0) {
             ss << '[';
             bool first = true;
-            for (size_t i = 0; i < layouts.size(); ++i) {
+            for (size_t i = 0; i < m_propertyCount; ++i) {
                 const IProperty* prop = layouts[i].property;
                 const size_t valueIndex = m_valueIndices[i];
                 if (!first) ss << ',';
@@ -263,7 +289,7 @@ public:
     {
         const State* result = &static_cast<const State&>(*this);
         const auto& sourceLayouts = source.propertyLayouts();
-        for (size_t i = 0; i < sourceLayouts.size(); ++i) {
+        for (size_t i = 0; i < source.m_propertyCount; ++i) {
             const IProperty* sourceProp = sourceLayouts[i].property;
             // 通过属性指针匹配检查当前状态是否也有此属性
             size_t targetSlot = findPropertySlot(*sourceProp);
@@ -291,17 +317,22 @@ public:
 
 protected:
     StateHolder(const Owner* owner,
-        std::vector<size_t> valueIndices,
+        std::array<ValueIndex, MAX_STATE_PROPERTIES> valueIndices,
+        size_t propertyCount,
         const std::vector<PropertyLayout>* propertyLayouts,
         const std::vector<State*>* allStates,
         u32 stateId)
         : m_owner(owner)
-        , m_valueIndices(std::move(valueIndices))
+        , m_valueIndices(valueIndices)
+        , m_propertyCount(static_cast<u8>(propertyCount))
         , m_propertyLayouts(propertyLayouts != nullptr ? propertyLayouts : &emptyPropertyLayouts())
         , m_allStates(allStates)
         , m_stateIndex(stateId)
         , m_stateId(stateId)
-    {}
+    {
+        MC_ASSERT_RELEASE_MSG(
+            propertyCount <= MAX_STATE_PROPERTIES, "StateHolder: property count exceeds MAX_STATE_PROPERTIES");
+    }
 
     /**
      * @brief 设置状态ID（由BlockRegistry调用）
@@ -318,7 +349,8 @@ protected:
     [[nodiscard]] size_t findPropertySlot(const IProperty& prop) const
     {
         const auto& layouts = propertyLayouts();
-        for (size_t i = 0; i < layouts.size(); ++i) {
+        const size_t count = m_propertyCount < layouts.size() ? m_propertyCount : layouts.size();
+        for (size_t i = 0; i < count; ++i) {
             if (layouts[i].property == &prop) {
                 return i;
             }
@@ -333,7 +365,25 @@ protected:
     }
 
     const Owner* m_owner;
-    std::vector<size_t> m_valueIndices;
+
+    /// 各属性的值索引，与 `*m_propertyLayouts` 的 slotIndex 一一对应。
+    ///
+    /// **内联定长数组而非 `std::vector<size_t>`**：一个 `BlockState` 是一个 value
+    /// 对象、全局有 29 294 个，若每个都持一个 vector，就要为每个状态对象单独申请一块
+    /// 堆内存（实测 `StateContainer::generateStates` 分配 31 925 次 × 64 B = 1.95 MB），
+    /// 外加 vector 头 24 B × 29 294 = 0.67 MB。两项都不随状态内容变化，是纯粹的
+    /// "容器开销"。改用 `array<u8, 8>` 后：
+    ///   - 堆分配整块消失（−1.95 MB，且堆节点数 −31 925，约 −12%）
+    ///   - 对象内从 24 B 降到 9 B（8 个 u8 + 1 个计数），BlockState 112 → 96 B
+    /// u8 足够：属性值数量实测上限 26（`age` [0,25]），存量类型也要求更大时
+    /// 会由 `static_assert` 或断言当场暴露，不会静默截断。
+    std::array<ValueIndex, MAX_STATE_PROPERTIES> m_valueIndices{};
+
+    /// 实际使用的属性槽位数（<= MAX_STATE_PROPERTIES）。
+    /// 与 `m_propertyLayouts->size()` 冗余，此处单存一份是为了让属性数量可内联读取
+    /// （`values()` / `toString()` 的循环上界不再依赖指针解引用）。
+    u8 m_propertyCount = 0;
+
     const std::vector<PropertyLayout>* m_propertyLayouts = nullptr;
     const std::vector<State*>* m_allStates = nullptr;
     u32 m_stateIndex = 0;

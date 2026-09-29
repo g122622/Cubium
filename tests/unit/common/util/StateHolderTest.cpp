@@ -40,12 +40,18 @@ public:
     TestStateBlock()
         : Block(BlockProperties(Material::ROCK).hardness(1.0f))
     {
-        auto container = StateContainer<Block, BlockState>::Builder(*this)
-                             .add(BlockStateProperties::HORIZONTAL_FACING())
-                             .add(BlockStateProperties::LIT())
-                             .create([](const Block& block, auto values, auto layouts, auto allStates, u32 id) {
-                                 return std::make_unique<BlockState>(block, std::move(values), layouts, allStates, id);
-                             });
+        auto container =
+            StateContainer<Block, BlockState>::Builder(*this)
+                .add(BlockStateProperties::HORIZONTAL_FACING())
+                .add(BlockStateProperties::LIT())
+                .create([](const Block& block,
+                            StateValueIndices valueIndices,
+                            size_t propertyCount,
+                            auto layouts,
+                            auto allStates,
+                            u32 id) {
+                    return std::make_unique<BlockState>(block, valueIndices, propertyCount, layouts, allStates, id);
+                });
         createBlockState(std::move(container));
         setDefaultState(defaultState()
                 .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
@@ -61,10 +67,14 @@ public:
     SimpleBlock()
         : Block(BlockProperties(Material::ROCK).hardness(1.0f))
     {
-        auto container = StateContainer<Block, BlockState>::Builder(*this).create(
-            [](const Block& block, auto values, auto layouts, auto allStates, u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), layouts, allStates, id);
-            });
+        auto container = StateContainer<Block, BlockState>::Builder(*this).create([](const Block& block,
+                                                                                      StateValueIndices valueIndices,
+                                                                                      size_t propertyCount,
+                                                                                      auto layouts,
+                                                                                      auto allStates,
+                                                                                      u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, layouts, allStates, id);
+        });
         createBlockState(std::move(container));
     }
 

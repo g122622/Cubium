@@ -104,7 +104,8 @@ public:
      * @brief 构造方块状态
      */
     BlockState(const Block& block,
-        std::vector<size_t> valueIndices,
+        StateValueIndices valueIndices,
+        size_t propertyCount,
         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
         const std::vector<BlockState*>* allStates,
         u32 stateId);

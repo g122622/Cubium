@@ -288,11 +288,12 @@ LavaSourceFluid::LavaSourceFluid()
         StateContainer<Fluid, FluidState>::Builder(*this)
             .add(FluidProperties::FALLING())
             .create([this](const Fluid& fluid,
-                        auto values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
                         const std::vector<FluidState*>* allStates,
                         u32 id) {
-                return std::make_unique<FluidState>(fluid, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<FluidState>(fluid, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());
@@ -324,11 +325,12 @@ LavaFlowingFluid::LavaFlowingFluid()
             .add(FluidProperties::LEVEL_1_8())
             .add(FluidProperties::FALLING())
             .create([this](const Fluid& fluid,
-                        auto values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
                         const std::vector<FluidState*>* allStates,
                         u32 id) {
-                return std::make_unique<FluidState>(fluid, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<FluidState>(fluid, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createFluidState(std::move(container));
     setDefaultState(stateContainer().baseState());

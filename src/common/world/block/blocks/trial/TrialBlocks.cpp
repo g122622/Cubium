@@ -75,11 +75,12 @@ TrialSpawnerBlock::TrialSpawnerBlock(const BlockProperties& properties)
             .add(BlockStateProperties::TRIAL_SPAWNER_STATE())
             .add(BlockStateProperties::OMINOUS())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -140,11 +141,12 @@ VaultBlock::VaultBlock(const BlockProperties& properties)
             .add(BlockStateProperties::VAULT_STATE())
             .add(BlockStateProperties::OMINOUS())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -185,11 +187,12 @@ CrafterBlock::CrafterBlock(const BlockProperties& properties)
             .add(BlockStateProperties::TRIGGERED())
             .add(BlockStateProperties::CRAFTING())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 

@@ -95,11 +95,12 @@ ChiseledBookshelfBlock::ChiseledBookshelfBlock(const BlockProperties& properties
             .add(BlockStateProperties::SLOT_4_OCCUPIED())
             .add(BlockStateProperties::SLOT_5_OCCUPIED())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -160,11 +161,12 @@ DecoratedPotBlock::DecoratedPotBlock(const BlockProperties& properties)
             .add(BlockStateProperties::CRACKED())
             .add(BlockStateProperties::WATERLOGGED())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -460,11 +462,12 @@ BrushableBlock::BrushableBlock(const BlockProperties& properties,
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::DUSTED())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 
@@ -509,11 +512,12 @@ SnifferEggBlock::SnifferEggBlock(const BlockProperties& properties)
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::HATCH_0_2())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 

@@ -65,11 +65,12 @@ BarrelBlock::BarrelBlock(const BlockProperties& properties)
             .add(BlockStateProperties::FACING())
             .add(BlockStateProperties::OPEN())
             .create([](const Block& block,
-                        std::vector<size_t> values,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
                         const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                         const std::vector<BlockState*>* allStates,
                         u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
     createBlockState(std::move(container));
 

@@ -41,10 +41,13 @@ AirBlock::AirBlock(BlockProperties properties)
     // 空气没有属性，创建空状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
         [](const Block& block,
-            std::vector<size_t> values,
+            StateValueIndices valueIndices,
+            size_t propertyCount,
             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
             const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+            u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+        });
     createBlockState(std::move(container));
 }
 

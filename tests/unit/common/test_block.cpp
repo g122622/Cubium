@@ -70,11 +70,12 @@ public:
         // 创建空状态容器
         auto container = StateContainer<Block, BlockState>::Builder(*this).create(
             [](const Block& block,
-                auto values,
+                StateValueIndices valueIndices,
+                size_t propertyCount,
                 const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                 const std::vector<BlockState*>* allStates,
                 u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
         createBlockState(std::move(container));
     }
@@ -87,11 +88,12 @@ public:
     {
         auto container = StateContainer<Block, BlockState>::Builder(*this).addAxis("axis").create(
             [](const Block& block,
-                auto values,
+                StateValueIndices valueIndices,
+                size_t propertyCount,
                 const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                 const std::vector<BlockState*>* allStates,
                 u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
         createBlockState(std::move(container));
     }
@@ -110,11 +112,12 @@ public:
     {
         auto container = StateContainer<Block, BlockState>::Builder(*this).addHorizontalDirection("facing").create(
             [](const Block& block,
-                auto values,
+                StateValueIndices valueIndices,
+                size_t propertyCount,
                 const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                 const std::vector<BlockState*>* allStates,
                 u32 id) {
-                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
             });
         createBlockState(std::move(container));
     }
@@ -133,11 +136,13 @@ public:
         auto container =
             StateContainer<Block, BlockState>::Builder(*this).addHorizontalDirection("facing").addBoolean("lit").create(
                 [](const Block& block,
-                    auto values,
+                    StateValueIndices valueIndices,
+                    size_t propertyCount,
                     const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                     const std::vector<BlockState*>* allStates,
                     u32 id) {
-                    return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                    return std::make_unique<BlockState>(
+                        block, valueIndices, propertyCount, propertyLayouts, allStates, id);
                 });
         createBlockState(std::move(container));
     }
@@ -340,11 +345,13 @@ public:
             StateContainer<Block, BlockState>::Builder(*this)
                 .add(BlockStateProperties::AGE_0_7())
                 .create([](const Block& block,
-                            std::vector<size_t> values,
+                            StateValueIndices valueIndices,
+                            size_t propertyCount,
                             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                             const std::vector<BlockState*>* allStates,
                             u32 id) {
-                    return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                    return std::make_unique<BlockState>(
+                        block, valueIndices, propertyCount, propertyLayouts, allStates, id);
                 });
         createBlockState(std::move(container));
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));
@@ -363,11 +370,13 @@ public:
             StateContainer<Block, BlockState>::Builder(*this)
                 .add(BlockStateProperties::AGE_0_7())
                 .create([](const Block& block,
-                            std::vector<size_t> values,
+                            StateValueIndices valueIndices,
+                            size_t propertyCount,
                             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
                             const std::vector<BlockState*>* allStates,
                             u32 id) {
-                    return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+                    return std::make_unique<BlockState>(
+                        block, valueIndices, propertyCount, propertyLayouts, allStates, id);
                 });
         createBlockState(std::move(container));
         setDefaultState(defaultState().with(BlockStateProperties::AGE_0_7(), 0));

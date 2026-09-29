@@ -43,10 +43,13 @@ DirectionalBlock::DirectionalBlock(const BlockProperties& properties)
     // 创建状态容器，添加 FACING 属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).create(
         [](const Block& block,
-            std::vector<size_t> values,
+            StateValueIndices valueIndices,
+            size_t propertyCount,
             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
             const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+            u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+        });
     createBlockState(std::move(container));
 
     // 默认朝向为北

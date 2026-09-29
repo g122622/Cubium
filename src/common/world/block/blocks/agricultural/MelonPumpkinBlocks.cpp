@@ -180,10 +180,13 @@ CarvedPumpkinBlock::CarvedPumpkinBlock(const BlockProperties& properties)
 {
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).create(
         [](const Block& block,
-            std::vector<size_t> values,
+            StateValueIndices valueIndices,
+            size_t propertyCount,
             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
             const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+            u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+        });
     createBlockState(std::move(container));
 
     setDefaultState(defaultState().with(FACING(), Direction::North));
@@ -669,10 +672,13 @@ JackOLanternBlock::JackOLanternBlock(const BlockProperties& properties)
 {
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(FACING()).create(
         [](const Block& block,
-            std::vector<size_t> values,
+            StateValueIndices valueIndices,
+            size_t propertyCount,
             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
             const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+            u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+        });
     createBlockState(std::move(container));
 
     setDefaultState(defaultState().with(FACING(), Direction::North));

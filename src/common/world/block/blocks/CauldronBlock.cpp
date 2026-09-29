@@ -69,10 +69,13 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
     // 空炼药锅没有水位属性，不需要额外的状态属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
         [](const Block& block,
-            std::vector<size_t> values,
+            StateValueIndices valueIndices,
+            size_t propertyCount,
             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
             const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+            u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+        });
     createBlockState(std::move(container));
 
     // 炼药锅外部形状（与 LayeredCauldronBlock 和 LavaCauldronBlock 共享相同几何）

@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <regex>
 #include <sstream>
@@ -65,7 +66,8 @@ template <typename Owner, typename State>
 class StateContainer {
 public:
     using StateFactory = std::function<std::unique_ptr<State>(const Owner&,
-        std::vector<size_t>,
+        StateValueIndices,
+        size_t,
         const std::vector<typename StateHolder<Owner, State>::PropertyLayout>*,
         const std::vector<State*>*,
         u32)>;
@@ -233,6 +235,12 @@ private:
 
     void generateStates(const std::vector<const IProperty*>& props, StateFactory factory)
     {
+        // 内联值索引数组的容量上限。属性被静默丢掉会让 with() 算出错误的 targetIndex、
+        // 把方块切换到不相干的状态，且不产生任何报错，故在此当场拦下。
+        MC_ASSERT_RELEASE_MSG(props.size() <= MAX_STATE_PROPERTIES,
+            "StateContainer::generateStates: property count exceeds MAX_STATE_PROPERTIES; "
+            "raise the constant (and re-check hot-path assumptions) rather than dropping properties");
+
         size_t totalStates = 1;
         for (const auto* prop : props) {
             totalStates *= prop->valueCount();
@@ -243,6 +251,9 @@ private:
 
         size_t stride = 1;
         for (const auto* prop : props) {
+            MC_ASSERT_RELEASE_MSG(
+                prop->valueCount() <= static_cast<size_t>(std::numeric_limits<StateValueIndex>::max()),
+                "StateContainer::generateStates: property has more values than StateValueIndex can hold");
             m_propertyLayouts.push_back(PropertyLayout{prop, m_propertyLayouts.size(), stride});
             stride *= prop->valueCount();
         }
@@ -253,15 +264,15 @@ private:
 
         u32 stateId = 0;
         for (size_t flatIndex = 0; flatIndex < totalStates; ++flatIndex) {
-            std::vector<size_t> valueIndices(props.size(), 0);
+            StateValueIndices valueIndices{};
             size_t remaining = flatIndex;
             for (size_t propIndex = 0; propIndex < props.size(); ++propIndex) {
                 const size_t valueCount = props[propIndex]->valueCount();
-                valueIndices[propIndex] = remaining % valueCount;
+                valueIndices[propIndex] = static_cast<StateValueIndex>(remaining % valueCount);
                 remaining /= valueCount;
             }
 
-            auto state = factory(m_owner, std::move(valueIndices), &m_propertyLayouts, &m_statePointers, stateId);
+            auto state = factory(m_owner, valueIndices, props.size(), &m_propertyLayouts, &m_statePointers, stateId);
             m_statePointers.push_back(state.get());
             m_states.push_back(std::move(state));
             stateId++;

@@ -53,10 +53,13 @@ CartographyTableBlock::CartographyTableBlock(const BlockProperties& properties)
     // 制图台没有特殊状态属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
         [](const Block& block,
-            std::vector<size_t> values,
+            StateValueIndices valueIndices,
+            size_t propertyCount,
             const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
             const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+            u32 id) {
+            return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+        });
     createBlockState(std::move(container));
 
     // 制图台形状是完整方块

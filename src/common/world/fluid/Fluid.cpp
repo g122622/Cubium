@@ -49,11 +49,12 @@ namespace fluid {
 // ============================================================================
 
 FluidState::FluidState(const Fluid& fluid,
-    std::vector<size_t> valueIndices,
+    StateValueIndices valueIndices,
+    size_t propertyCount,
     const std::vector<StateHolder<Fluid, FluidState>::PropertyLayout>* propertyLayouts,
     const std::vector<FluidState*>* allStates,
     u32 stateId)
-    : StateHolder<Fluid, FluidState>(&fluid, std::move(valueIndices), propertyLayouts, allStates, stateId)
+    : StateHolder<Fluid, FluidState>(&fluid, valueIndices, propertyCount, propertyLayouts, allStates, stateId)
 {
     m_fluidId = fluid.fluidId();
 }
