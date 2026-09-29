@@ -262,15 +262,27 @@ joint 列表；或至少共享 `sourceName` / `targetPool` / `targetName` 三个
 16 个列族（每种存储对象一个）各自带 `TableCache` / `BlobFileCache` / `MemTable` /
 `HistogramImpl`。空载无读写时这些是纯固定开销。
 
-**削减路径**：
-1. `cacheline_aligned_alloc` 4 块 × 548 KB = 2.09 MB 是 RocksDB 的 per-thread 缓存行缓冲，
-   可由 `BlockBasedTableOptions` / `Env` 配置收紧（**需先确认 548 KB/块的来源**：
-   疑似 `kNumCacheLineLocks` 或 `MemTable` 的 arena block）。
-2. 列族数若能从 16 降到实际需要的数量，每减一个省约 0.03 MB（TableCache + BlobFileCache
-   + MemTable + Histogram），但收益有限（16 个合计仅 0.85 MB）。
-3. `MemTable` 的 `write_buffer_size` 下调：空载时每个 8 KB，合计仅 0.12 MB，收益可忽略。
+**`cacheline_aligned_alloc` 的真实来源（已查清，推翻了本报告初版的猜测）**：
+它是 `ShardedCache<CacheShard>::shards_`（`cache/sharded_cache.h:142`），即
+`AutoHyperClockTable` 的 `HandleImpl` 数组 —— 由**块缓存容量**决定，不是 per-thread 缓冲：
 
-综合预期 **−2～3 MB**（主要来自第 1 项）。
+```
+548160 B = 8565 槽 × 64 B（sizeof(HandleImpl)）
+```
+
+它出现在 MSL 快照而不出现在无 MSL 快照是 `heap` 的符号化差异（`memalign` 需 MSL 才能解析
+调用栈），**不是 MSL 引入的开销** —— 两份快照的堆总量一致（31.39 vs 31.71 MB）。
+调它的唯一手段是调块缓存容量；实测无净收益，见 §7.1。
+
+**削减路径（修订后）**：
+1. **删掉 4 个零使用列族**（`poi_*` 3 个 + `snapshots`）：省 4 × (20 KB TableCache
+   + 20 KB BlobFileCache + 8 KB MemTable + 7 KB Histogram) ≈ **0.22 MB**，且消除
+   "POI 已落盘"的误解。全仓库 0 处引用（已核实）。
+2. 列族数从 16 降到 12 后，`DB::Open` 也少 4 次列族初始化。
+3. `MemTable` 的 `write_buffer_size` 空载时每列族仅 8 KB，下调无收益（见 §7.3）。
+
+综合预期 **约 −0.2 MB**。本报告初版记的"−2～3 MB"是基于对 `cacheline_aligned_alloc`
+来源的错误判断，已作废。
 
 ### 3.8 G · 生物群系 2.89 MB
 
@@ -345,14 +357,17 @@ cell 采样，实测热点不在此。
 | 结构模板懒加载（§3.2） | −7.5 MB | 中 | 需重排 `SingleJigsawPiece` 的模板解析时机 |
 | NBT 残留释放（§3.6） | −1.5 MB | 低 | 先定位拷贝栈 |
 | spdlog 队列 2048→256（§3.9） | −0.7 MB | 低 | 一行常量 |
-| RocksDB per-thread 缓冲（§3.7） | −2.0 MB | 中 | 先确认 548 KB 来源 |
+| 删除 4 个零使用列族（§3.7） | −0.2 MB | 低 | 全仓库 0 处引用（已核实） |
 | RTree 扁平化（§3.8） | −1.5 MB | 中 | 改查询结构，需 parity 回归 |
 | AST 中间产物释放（§3.4） | −1.0 MB | 低 | 确认编译产物不依赖 AST |
 | JigsawJoint 共享字符串（§3.3） | −0.7 MB | 低 | |
 | 进度/配方/战利品懒加载（§3.1 G/I/K） | −4.0 MB | 中 | 三者均为启动期全量装配 |
-| **合计** | **−18.9 MB** | | |
+| **合计** | **−17.1 MB** | | |
 
-终点：`44 − 19 = 25 MB` 堆 → `footprint ≈ 55 MB`。**仍高于 40 MB 约 15 MB。**
+（初版曾列 "RocksDB per-thread 缓冲 −2.0 MB"，系对 `cacheline_aligned_alloc` 来源的
+误判，已按 §3.7 的查证结果更正为 −0.2 MB。）
+
+终点：`44 − 17 = 27 MB` 堆 → `footprint ≈ 57 MB`。**仍高于 40 MB 约 17 MB。**
 
 ### 5.3 结论
 
@@ -385,17 +400,151 @@ cell 采样，实测热点不在此。
 | 2 | 结构模板懒加载 | 7.5 MB | 中 | `TemplatePoolLoader` / `SingleJigsawPiece` / `JigsawPiece` |
 | 3 | NBT 残留归因与释放 | 1.5 MB | 低 | 需先定位 `compound_tag` 拷贝栈 |
 | 4 | JigsawJoint 共享字符串 | 0.7 MB | 低 | `JigsawPiece.cpp` / `SingleJigsawPiece.hpp` |
-| 5 | RocksDB 缓冲配置 | 2.0 MB | 中 | `RocksDBConfig.hpp` / `RocksDBDatabase.cpp` |
+| 5 | 删除 4 个零使用列族 | 0.2 MB | 低 | `ColumnFamilies.hpp` |
 | 6 | AST 中间产物释放 | 1.0 MB | 低 | `RandomState.cpp` / `BytecodeGen` |
 | 7 | RTree 扁平化 | 1.5 MB | 中 | `climate/RTree*.hpp` |
 | 8 | 进度/配方/战利品懒加载 | 4.0 MB | 中 | 各自 Loader + Manager |
 | 9 | 维度按需创建 | ~5 MB | **高（行为改动）** | `ServerDimensionManager` |
 
 第 9 项收益最大但会改变"三维度始终存在"的语义，需单独立项评估。
+RocksDB 层的按列族差异化配置**未列入本表**：§7 已论证它在空载基线下测不出收益，
+需带负载的 A/B 才能判定，属独立的调优议题而非内存优化项。
 
 ---
 
-## 七、测量方法学（复用要点）
+## 七、RocksDB 块缓存与列族策略（设计讨论与实测）
+
+本节记录一次针对 RocksDB 层的内存讨论。**结论是三项设想中两项前提不成立、一项需分维度看待**，
+故当前实现保持不变，全部结论以"待验证的假设"形式留档，避免后人重复走一遍。
+
+### 7.1 设想一：区块列族不需要块缓存 —— **不成立**
+
+**设想的依据**：已加载的区块本来就以 `ChunkData` 形式驻留 `m_chunks`，RocksDB 再加一层块缓存
+是重复缓存。
+
+**为什么这个类比不成立**：`ChunkData` 缓存与 RocksDB 块缓存**不是同一层级的缓存**——
+
+| | `ChunkData` 缓存（`m_chunks`） | RocksDB 块缓存 |
+|---|---|---|
+| 缓存对象 | **已解析的区块对象**（PalettedContainer、光照、高度图） | **未解析的磁盘 data block 字节** |
+| 命中回避的工作 | 反序列化 + 光照初始化 + 对象构造 | 磁盘 I/O + 解压 |
+| 生命周期 | 玩家离开 → 卸载 → 落盘 → 释放 | 跨卸载/重载存活，直到被 LRU 淘汰 |
+
+关键在**生命周期不重叠**：`ChunkData` 只在"区块已加载"期间存在；块缓存只在"区块被重新读入"
+那一刻有用（卸载后重进、玩家来回走动、传送）。二者在时间上没有交集，因此不存在重复。
+
+**实测的判据**：这次改动**没有实测到任何收益**。
+
+```
+基线（每列族一个 RocksDB 默认 HyperClockCache）: 49 / 49 / 46 MB
+改动（16 个列族共享 8 MB 显式 LRUCache）:        50 / 50 / 49 MB
+```
+
+改动反而略差约 1 MB，来自 LRU 相对 AutoHCC 的固定元数据开销。原因不是缓存没用，而是
+**空载场景下两者都没有被真正使用**（无读写即无缓存填充），差异全在"创建一个缓存对象的
+固定开销"上——RocksDB 默认的 `AutoHyperClockCache` 惰性分配，实际开销比 8 MB 的
+`LRUCache` 更小。
+
+**如何真正判定"块缓存对区块 CF 是否有效"**：需要带负载的 A/B ——
+让一个机器人反复跨区块边界走动（触发"卸载 → 重进"循环），对比
+`block_cache->GetUsage()` 与实际读放大（`rocksdb.block.cache.hit` / `.miss` ticker，
+配置里已开 `enableStatistics`）。空载测量对此无判别力。
+
+### 7.2 设想二：非区块列族保留缓存，区块列族去掉 —— **方向对，但代价与维度错了**
+
+两处需要修正：
+
+**（a）键粒度不是"每个列族"而是"每个列族内的访问模式"。**
+
+15 个列族里有三种截然不同的访问模式：
+
+| 访问模式 | 列族 | 键 | 一次操作触及的 data block |
+|---|---|---|---|
+| **整块多读** | `sections_*` (3) | 13 字节定长 `SectionKey` | 一个区块 24 段 ≈ 75 KB ≈ **19 个 block** |
+| **前缀迭代** | `entities_*`、`block_entities_*` (6) | `chunkX:chunkZ:uuid` 字符串 | 一个区块的全部实体，**block 数不定** |
+| **单点小读** | `players`、`scoreboard`、`default` (3) | 定长/短字符串 | **1 个 block** |
+| **零使用** | `poi_*` (3)、`snapshots` | — | 从未读写 |
+
+`sections_*` 的 MultiGet 一次取 24 段、跨度约 19 个 data block，**恰好是块缓存最擅长的模式**
+（第一次读会把整批 block 带进缓存，紧邻区块重读时全部命中）。反而是 `players`/`scoreboard`
+这类点读模式收益最小（一次只省一个 block，且访问间隔以分钟计）。
+
+**"区块 CF 不该缓存"的直觉方向是对的，但理由要换成"写后短期不再读"**：区块的读发生在
+"加载时读一次"，此后长时间只写（卸载时 SaveChunk）不读，**读-写时间比极高**。
+块缓存对"读一次就长期持有"的模式没有收益——这是真正的理由，而非"和 ChunkData 重复"。
+
+**（b）RocksDB 没有 CF 级的块缓存开关。**
+
+`BlockBasedTableOptions::no_block_cache` 只在**表工厂**上，而表工厂是 `ColumnFamilyOptions`
+的字段（`options.table_factory`）。要按 CF 差异化，必须为不同 CF 构造**不同的
+`ColumnFamilyOptions`**，各自 `NewBlockBasedTableFactory`。目前
+`RocksDBDatabase::_createCFOptions()` 是单例式的、所有 CF 共用一份拷贝——这正是 §3.7 里
+"16 个列族各持一个 32 MB 缓存"的成因。
+
+**（c）关掉区块 CF 的块缓存有明确代价，需实测能否接受。**
+
+`ReadOptions::fill_cache` 默认 `true`，迭代器（`entities_*` 的前缀扫描）同样走块缓存
+（`block_based_table_iterator.cc:71`）。若 `no_block_cache = true`，`sections_*` 的
+MultiGet 会**每次重新从 SST 读并解压那 19 个 block**。以每段 3.1 KB 压缩后计，一个区块
+约 75 KB，2048 个区块的批量加载会显著变慢。**收益（省下缓存对象）与代价（每次加载重新解压）
+都不大**，属于中等优先级的调优项。
+
+### 7.3 设想三：给不同 CF 配置不同的 block_cache 与 write_buffer_size —— **正确，但当前测不出收益**
+
+方向正确：15 个列族的访问模式、数据量、写入频率差异明显，一刀切的配置必然次优。
+但**在当前空载基线下这两项都测不出收益**：
+
+**（a）`write_buffer_size` 是上限，不是预分配。**
+
+空载实测 `rocksdb::MemTable` = **16 个 × 8 KB = 131 KB**（每列族一个空的 MemTable 骨架）。
+把 `write_buffer_size` 从 8 MB 调到 64 MB 或 1 MB，空载堆**完全不变**——它只在写入撑满时
+才逐步增长。当前 8 MB 的真实约束对象是"理论上界"（`write_buffer_size × max_write_buffer_number
+× 列族数`，已由 `memtableMemoryLimit = 64 MB` 的 `WriteBufferManager` 全局封顶），
+与空载 footprint 无关。
+
+真正需要按 CF 区分 `write_buffer_size` 的场景是**写入频率差异**：`sections_*` 在区块卸载时
+一次写约 75 KB（24 段一个 WriteBatch），`scoreboard` 每次分数变化写几十字节。
+后者的 buffer 长期只占几 KB、前者可能反复触发 flush。但这是**运行时**的行为差异，
+要在"大量放置/破坏方块并来回走动"的负载下才能观察到。
+
+**（b）块缓存容量同理**，需要一个能让缓存真正被填充并淘汰的负载。
+
+### 7.4 落地建议
+
+按优先级排序，前两项是确定性的清理，后两项需带负载验证：
+
+| 序 | 项 | 性质 | 判据 |
+|---:|---|---|---|
+| 1 | **删除 `poi_*` (3) 与 `snapshots` (1) 四个零使用列族** | 确定性 | 全仓库 0 处引用（已核实） |
+| 2 | **`SectionKey` 去掉 2 字节 padding**（13 → 11 字节） | 确定性 | 定长键更紧凑，但改磁盘格式，需迁移 |
+| 3 | 按访问模式拆分 `ColumnFamilyOptions`（区块 CF `no_block_cache`；点读 CF 小缓存） | 需实测 | 带负载 A/B，看 ticker 的 hit/miss 与加载耗时 |
+| 4 | 按写入频率拆分 `write_buffer_size` | 需实测 | 方块编辑 + 跨区块走动的负载 |
+
+第 1 项顺带说明了一个更普遍的隐患：**`ALL_COLUMN_FAMILIES` 有 16 项，但只有 8 项被真正使用**
+（`META` / `SECTIONS_*` / `ENTITIES_*` / `BLOCK_ENTITIES_*` / `PLAYERS` / `SCOREBOARD`）。
+多出的 4 个空列族本身几乎不占内存（空 MemTable 8 KB + TableCache 20 KB），但会让每次
+`DB::Open` 多做 4 次列族初始化，且是误解的来源——`POI` 的存在会让人以为兴趣点已落盘，
+实际是走别的路径（或尚未实现）。
+
+### 7.5 一条被本次讨论否证的旧笔记
+
+§3.7 曾把 `rocksdb::port::cacheline_aligned_alloc` 的 4 × 548 160 B 记为"per-thread 缓冲，
+可由 Env 收紧"。**这个判断是错的**：该分配来自
+`ShardedCache<CacheShard>::shards_`（`cache/sharded_cache.h:142`），即
+`AutoHyperClockTable` 的 `HandleImpl` 数组，大小由**块缓存容量**决定而非线程数：
+
+```
+548160 B = 8565 槽 × 64 B（sizeof(HandleImpl)）
+8565 槽 ≈ 32 MB 默认块缓存 / (4 KB block × 负载因子) 对应的槽位数
+```
+
+它出现在 MSL 快照中而不出现在无 MSL 快照中，是 `heap` 的符号化差异（`memalign` 的调用栈
+需 MSL 才能解析），**不是 MSL 引入的开销**——堆总量在两份快照中一致（31.39 vs 31.71 MB）。
+调整它的唯一手段就是调整块缓存容量（§7.1 的实测表明这样做无净收益）。
+
+---
+
+## 八、测量方法学（复用要点）
 
 1. **必须先关 profiler**：`--profiler_enabled=false`。默认启动时 Perfetto 的
    `TracingTLS`（38 个线程 × 28 KB = 1.09 MB）+ 各后端池使 footprint 从 74 MB 涨到 95–99 MB。
