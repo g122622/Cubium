@@ -53,18 +53,51 @@ PVOID _reporterHandle = nullptr;
 /// 防重入：报告期间发生的任何二次故障一律直接放行。
 volatile LONG _reporting = 0;
 
+/// 当前正在执行的 fuzz 输入（见 setCurrentInput）。
+const std::uint8_t* g_currentInput = nullptr;
+std::size_t g_currentInputSize = 0;
+
+/**
+ * @brief 把当前输入落盘为可复现文件
+ *
+ * 刻意走 Win32 API 而非 CRT 的 fopen/fwrite：故障现场 CRT/堆可能已经损坏（实测表现为
+ * fwrite 写出 0 字节），只有内核态的 CreateFile/WriteFile 还可靠。
+ */
+void _dumpCurrentInput(DWORD code)
+{
+    if (g_currentInput == nullptr || g_currentInputSize == 0) {
+        return;
+    }
+    char name[128];
+    std::snprintf(name,
+        sizeof(name),
+        "fuzz-crash-%08lX-%lu.bin",
+        static_cast<unsigned long>(code),
+        static_cast<unsigned long>(GetCurrentProcessId()));
+
+    HANDLE file = CreateFileA(name, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        return;
+    }
+    DWORD written = 0;
+    (void)WriteFile(file, g_currentInput, static_cast<DWORD>(g_currentInputSize), &written, nullptr);
+    CloseHandle(file);
+
+    std::fprintf(stderr, "[fuzz] 当前输入已落盘: %s (%lu 字节)\n", name, static_cast<unsigned long>(written));
+    std::fflush(stderr);
+}
+
 /// 异常现场报告器。
 LONG CALLBACK _exceptionReporter(EXCEPTION_POINTERS* info)
 {
     const DWORD code = info->ExceptionRecord->ExceptionCode;
 
-    // 只报告 int3/断点类异常（STATUS_BREAKPOINT）。这是唯一一类 Sanitizer 死回调覆盖
-    // 不到的异常：进程会静默死亡，既不打印栈回溯也不落盘复现用例。
-    // 其余异常一律原样放行，交由 Sanitizer/libFuzzer 正常处理——
-    //   - 0xE06D7363：MSVC C++ 抛出点，属存量库的正常控制流；
-    //   - 0xC0000005：访问违例，由 ASan 的处理器负责报告。
-    // 若把这些也拦下来放行，会与 ASan 的处理器相互干扰，表现为反复故障（hang）。
-    if (code != 0x80000003) {
+    // 只报告两类"Sanitizer 死回调覆盖不到、进程会静默死亡"的异常：
+    //   0x80000003 STATUS_BREAKPOINT（int3）
+    //   0xC0000005 访问违例（ASan 未及报告时）
+    // 其余异常一律原样放行——尤其 0xE06D7363 是 MSVC C++ 抛出点，属存量库的正常控制流；
+    // 把不该拦的拦下来放行会与 ASan 的处理器相互干扰，表现为反复故障（hang）。
+    if (code != 0x80000003u && code != 0xC0000005u) {
         return EXCEPTION_CONTINUE_SEARCH;
     }
     if (InterlockedExchange(&_reporting, 1) != 0) {
@@ -78,14 +111,17 @@ LONG CALLBACK _exceptionReporter(EXCEPTION_POINTERS* info)
 
     const auto base = reinterpret_cast<std::uintptr_t>(GetModuleHandleW(nullptr));
     const auto addr = reinterpret_cast<std::uintptr_t>(info->ExceptionRecord->ExceptionAddress);
-    const auto rva = static_cast<unsigned long long>(addr - base);
     std::fprintf(stderr,
-        "\n[fuzz] int3/breakpoint at %p (module base %p)\n"
+        "\n[fuzz] 异常 0x%08lX at %p (module base %p)\n"
         "       用 llvm-symbolizer --obj=<该可执行文件> 0x%llX 符号化\n",
+        static_cast<unsigned long>(code),
         reinterpret_cast<const void*>(addr),
         reinterpret_cast<const void*>(base),
-        rva);
+        static_cast<unsigned long long>(addr - base));
     std::fflush(stderr);
+
+    _dumpCurrentInput(code);
+
     // 刻意不做栈回溯：在故障现场调用 StackWalk64 可能再次故障，从而递归重入本处理器。
 
     _reporting = 0;
@@ -93,6 +129,12 @@ LONG CALLBACK _exceptionReporter(EXCEPTION_POINTERS* info)
 }
 
 } // namespace
+
+void setCurrentInput(const std::uint8_t* data, std::size_t size)
+{
+    g_currentInput = data;
+    g_currentInputSize = size;
+}
 
 void installExceptionReporter()
 {

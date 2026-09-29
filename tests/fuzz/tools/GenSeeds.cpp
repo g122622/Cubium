@@ -67,6 +67,11 @@ std::size_t g_written = 0;
 std::size_t g_connWritten = 0;
 std::filesystem::path g_outDir;
 
+/// Serverbound 全量消息序列（按阶段顺序累加），供状态机 harness 作起始语料。
+/// 状态机 fuzz 的关键是"报文顺序"，而随机序列几乎不可能自然形成合法的阶段推进，
+/// 故直接给出一条含全部 Serverbound 包的序列作为起点。
+std::vector<u8> g_serverboundSequence;
+
 /// 阶段/流向的取值（与 FuzzJavaCodec 的选择子约定一致）。
 constexpr std::size_t kFlowServerbound = 0;
 constexpr std::size_t kFlowClientbound = 1;
@@ -184,6 +189,10 @@ void _tryEncode(const Info& info, std::size_t phase, std::size_t flow)
         if (info.encode(buf, value).success() && !buf.bytes().empty()) {
             writeSeed(phase, flow, I, buf.bytes());
             writeConnectionSeed<Variant>(phase, flow, I, value, buf.bytes().size());
+            if (flow == kFlowServerbound && buf.bytes().size() <= 255u) {
+                g_serverboundSequence.push_back(static_cast<u8>(buf.bytes().size()));
+                g_serverboundSequence.insert(g_serverboundSequence.end(), buf.bytes().begin(), buf.bytes().end());
+            }
         }
     }
 }
@@ -233,5 +242,24 @@ int main(int argc, char** argv)
         g_written,
         g_connWritten,
         g_outDir.string().c_str());
+
+    // 状态机 harness 的起始语料：控制头（离线模式 + 压缩启用）+ 全量 Serverbound 序列。
+    if (!g_serverboundSequence.empty()) {
+        const std::filesystem::path dir = g_outDir / "handshake_session";
+        std::error_code seqEc;
+        std::filesystem::create_directories(dir, seqEc);
+
+        std::vector<u8> seed;
+        seed.reserve(g_serverboundSequence.size() + 1);
+        seed.push_back(0x03); // bit0 离线模式、bit1 压缩阈值 256
+        seed.insert(seed.end(), g_serverboundSequence.begin(), g_serverboundSequence.end());
+
+        std::ofstream out(dir / "sb-sequence.bin", std::ios::binary);
+        if (out) {
+            out.write(reinterpret_cast<const char*>(seed.data()), static_cast<std::streamsize>(seed.size()));
+            std::printf("生成 handshake_session 序列种子 %zu 字节\n", seed.size());
+        }
+    }
+
     return 0;
 }

@@ -30,6 +30,7 @@ socket、不需要世界、不需要存档**的前提下，把"入站字节 → 
 | `fuzz_compression` | `pipeline/CompressionHandlers` → `crypto/ZlibCodec` | 第 1 字节 = 阈值（-1 表示禁用），其余为压缩层字节 |
 | `fuzz_cipher` | `pipeline/CipherHandlers` → `crypto/AesCfb8` | 前 `kSharedSecretBytes` 字节 = 密钥，其余为待处理字节 |
 | `fuzz_chunk_wire` | 区块线格式三条解析路径 | 第 1 字节选子路径（内部紧凑格式 / 单段 / vanilla `LevelChunkWithLight` → `ChunkData`），其余为数据 |
+| `fuzz_handshake_session` | **握手四阶段的服务端状态机**（消息**序列**变异） | 1 字节 flags（离线模式/压缩阈值）+ 消息序列 `[u8 len][payload]…` |
 | `fuzz_connection_wire` | **整条 Wire 入站流水线**（`Connection` + 伪传输） | 4 字节控制头（加密/压缩/阈值/流向、初始阶段、分块粒度、密钥种子）+ 待投递字节流 |
 | `fuzz_java_codec` | Java 1.21.11 五阶段 × 两流向全部包表 | 第 1 字节选阶段，第 2 字节选流向，其余为 `packetID + payload` |
 | `fuzz_java_codec_sb` | 同上，**仅 Serverbound**（服务端解码不可信客户端输入） | 同左，流向强制 Serverbound |
@@ -177,6 +178,7 @@ tests/fuzz/
 ├── corpus/                     # 语料
 │   ├── java_codec/{sb,cb}/     # 由 fuzz_gen_seeds 生成的确定性种子（裸 packetID+payload）
 │   ├── connection_wire/        # 同上，但为**完整帧**（帧化+压缩已由 Connection::send 施加）
+│   ├── handshake_session/      # 状态机 harness 的起始语料（全量 Serverbound 消息序列）
 │   └── fuzz_java_codec_{sb,cb}/# 已修缺陷的回归种子
 └── known-issues/               # 已知工具链缺陷的现场种子（见 §7.7），勿放入 corpus
 ```
@@ -432,6 +434,25 @@ libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异
 `-rss_limit_mb=0` 会连同该检查一起关掉（复现时想看 ASan 的诊断信息，应显式设
 `-malloc_limit_mb=0 -rss_limit_mb=0`，但那样就不再复现 OOM 中止本身）。
 
+### 8.8 静默崩溃要自己存输入：`fuzz-crash-*.bin`
+
+有些异常（`int3`、访问违例）会绕过 Sanitizer 的死回调，此时 libFuzzer **既不打栈也不落盘**，
+现场只剩一个退出码。`tests/fuzz/support/FuzzSupport.*` 的异常报告器为此内置了两件事：
+
+- **落盘当前输入**：harness 每轮调 `fuzz::setCurrentInput(data, size)` 登记，异常时报告器把
+  输入写成 `fuzz-crash-<异常码>-<pid>.bin`。**必须走 Win32 API**
+  （`CreateFileA`/`WriteFile`）而非 `fopen`/`fwrite`——实测故障现场 CRT/堆可能已损坏，
+  `fwrite` 会写出 **0 字节**，只有内核态调用还可靠。
+- **打印异常地址与模块内偏移**，供离线 `llvm-symbolizer --obj=<exe> 0x<VA>` 符号化
+  （注意：COFF 要传 `ImageBase + RVA` 的 VA，只传 RVA 会得到 `??:0:0`；被符号化过的
+  反例见 §7.7 中 `nbt_io::readCompound` 的定位）。
+
+**注意首次机会异常**：并非所有被报告出来的异常都是致命崩溃。实测 `fuzz_handshake_session`
+上 3 字节输入 `8F 23 01` 会确定性触发一次 `0xC0000005`（故障地址在系统 DLL 内），
+但**进程存活并继续跑完**——它是被上层处理掉的首次机会异常，与 §7.7 的工具链缺陷同源，
+**不是产品缺陷**。报告器对它只做记录并原样放行（`EXCEPTION_CONTINUE_SEARCH`），
+Sanitizer 仍在其后正常处理，故不会掩盖真实的内存错误。
+
 ---
 
 ## 9. 排查手册
@@ -457,7 +478,8 @@ libFuzzer 的崩溃检测依赖 Sanitizer 的死回调；而 `int3`/断点类异
 | A+ | 区块线格式 harness（`VanillaChunkWire` / `ChunkSerializer`） | ✅ 已落地 |
 | A+ | 种子生成器（复用项目编码器遍历全部已登记包；见 §4.1 说明与 trace 方案的取舍） | ✅ 已落地 |
 | B | 整条入站流水线 harness（`Connection` + 假 `ITransport`，覆盖粘包/半包与阶段切换） | ✅ 已落地 |
-| C | 进程内状态机会话 harness（消息序列变异 + 状态反馈，含 `MinecraftServer` 无头骨架以覆盖 Play 业务层） | 待做 |
+| C-1 | 握手四阶段的服务端状态机 harness（消息序列变异；含全量 Serverbound 序列种子） | ✅ 已落地 |
+| C-2 | Play 阶段路由 + 无头服务端骨架（`ServerPlayHandler` 需要 `MinecraftServer`） | 待做 |
 | D | WSL2/Linux 上基于 AFLnet 的真实网络 fuzz | 待做 |
 | E | Cubium vs vanilla 差分对撞（抓"不崩溃但语义错误"的缺陷） | 待做 |
 | F | 修复 §7 的缺陷并补回归用例 | ✅ 已修 §7.1~7.6；§7.7 未决 |

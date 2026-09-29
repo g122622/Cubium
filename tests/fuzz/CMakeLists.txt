@@ -99,6 +99,29 @@ set(MC_FUZZ_INSTRUMENTED_SOURCES
     ${CMAKE_SOURCE_DIR}/src/common/network/backend/java/handshake/JavaLoginHandshaker.cpp
     ${CMAKE_SOURCE_DIR}/src/common/network/sync/ChunkSerializer.cpp
     ${CMAKE_SOURCE_DIR}/src/common/network/sync/VanillaChunkWire.cpp
+
+    # ------------------------------------------------------------------------
+    # 服务端网络层（握手/会话状态机）——C 阶段的状态机 harness 需要
+    #
+    # 这些文件不在 mc_common 里（它们直接编进 minecraft-server 可执行文件），
+    # 故须在此单独编译以获得插桩。
+    #
+    # 只取**握手四阶段**真正需要的那几个：已核实 ServerClientConnection.cpp /
+    # ServerNetwork.cpp / ServerHandshake.cpp 对 MinecraftServer / PlayerManager /
+    # ServerWorld / IntegratedServer 的引用为 0 处；RegistryDataBuilder.cpp 与
+    # EnchantmentNbtBuilder.cpp 中各自唯一的一处只出现在注释里。
+    # LoginFlow.cpp（11 处服务端引用）与 ServerPlayHandler 及 6 个包族处理器属
+    # Play 阶段，需要 MinecraftServer 与无头服务端骨架，不在本阶段范围内。
+    #
+    # 插桩这些文件同时带来 trace-cmp 值反馈：状态机的 phase/状态枚举比较会被
+    # -fsanitize=fuzzer 的 trace-cmp 插桩捕获，配合 -use_value_profile=1 即可引导
+    # 搜索走向新状态——这正是 AFLnet「状态反馈」思想的进程内等价物。
+    # ------------------------------------------------------------------------
+    ${CMAKE_SOURCE_DIR}/src/server/network/base/ServerClientConnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/session/ServerNetwork.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
 )
 
 # ---------------------------------------------------------------------------
@@ -404,6 +427,14 @@ mc_add_fuzz_target(fuzz_java_codec
         mc_bedrock_addon
     DEFINES
         MC_FUZZ_FLOW_MODE=2)
+
+# 握手四阶段服务端状态机：消息**序列**变异（对应 AFLnet 的状态机 fuzz 价值）
+mc_add_fuzz_target(fuzz_handshake_session
+    SOURCES
+        targets/FuzzHandshakeSession.cpp
+        support/FuzzSupport.cpp
+    EXTRA_LIBS
+        mc_bedrock_addon)
 
 # 整条 Wire 入站流水线：Connection + 伪传输（覆盖层间组合、TCP 切分、阶段切换）
 mc_add_fuzz_target(fuzz_connection_wire
