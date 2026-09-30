@@ -40,6 +40,8 @@
 // 10. 与 MC 1.21.11 FlatLevelSource 的行为对齐
 // ============================================================================
 
+#include "common/TestWorldHelper.hpp"
+#include "common/WorldGenRegistryFixture.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -59,6 +61,12 @@ protected:
     {
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
+        // 结构注册表为纯数据驱动（无硬编码兜底）：GenerateStructureStarts 用例设置
+        // structureOverrides={minecraft:villages} 后走真实结构集装配路径，
+        // 需要从数据包装配结构/结构集注册表（幂等，进程级共享）。
+        // SetUpTestSuite 里不能用 ASSERT_（非 void 返回值路径），加载失败由夹具内部的
+        // MC_ASSERT_RELEASE 硬失败兜底。
+        (void)mc::test::loadVanillaWorldGenRegistries();
     }
 };
 

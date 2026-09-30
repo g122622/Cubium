@@ -37,6 +37,11 @@ BaseTestServer::BaseTestServer()
     , m_commandRegistry()
     , m_scoreboard(*this)
 {
+    // 玩家移除钩子：生产路径由 MinecraftServer 安装（释放区块票据，防止区块永不卸载），
+    // PlayerManager::removePlayer 在钩子未安装时硬断言拒绝（先释放后摘除是结构性保证）。
+    // 测试桩没有维度/区块管理器，无需真实释放，安装空实现即满足契约并保持可移除语义。
+    m_playerManager.setPlayerRemovalHook([](PlayerId) {});
+
     // 物品栏下发出口：生产的实现挂在 MinecraftServer 上，命令侧统一经
     // InventoryManager::syncToClient 触发。测试桩若不接这条链路，命令改完物品栏后
     // 「客户端收到同步」就无从断言——本桩补上与生产同形的 ContainerSetContent(containerId=0)。

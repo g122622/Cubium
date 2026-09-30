@@ -102,14 +102,20 @@ private:
  * @brief 结构集合注册表
  *
  * 管理所有注册的结构集合，支持按 ID 查询。
+ *
+ * 【纯数据驱动，无硬编码兜底】本表只由 StructureSetLoader 从数据包的
+ * worldgen/structure_set 目录下的 JSON 装配。历史上这里有一份 20 个原版结构集的硬编码
+ * 兜底注册（键与数据包 id 完全相同的重复实现），供未加载数据包的调用方使用；但
+ * 其条目引用的结构 id 在硬编码 StructureRegistry 里对不上，jigsaw 结构所需的模板池
+ * 也只存在于数据包，兜底注册在结构上无法支撑结构生成。兜底已删除：未加载数据包时
+ * 本表为空 → 不生成任何结构，与"结构集引用的结构必须已注册"的启动期校验
+ * （WorldGenRegistryFixture / RegistryBootstrap 调 validateAgainstStructureRegistry）
+ * 共同构成数据驱动管线的完整闭环。
  */
 class StructureSetRegistry {
 public:
     /** 获取单例实例 */
     static StructureSetRegistry& instance();
-
-    /** 初始化所有原版结构集合 */
-    void initialize();
 
     /** 注册结构集合 */
     void registerSet(std::unique_ptr<StructureSet> set);
@@ -135,27 +141,23 @@ public:
     void clear();
 
     /**
-     * @brief 是否已初始化
+     * @brief 启动期完整性校验：每个结构集条目引用的结构必须已在 StructureRegistry 注册
      *
-     * 数据驱动加载（MinecraftServer::initializeRegistries 调 StructureSetLoader）完成后
-     * 或硬编码 initialize() 兜底后置位。区块生成器据此判断是否需要回退硬编码注册。
-     */
-    [[nodiscard]] bool isInitialized() const { return m_initialized; }
-
-    /**
-     * @brief 标记为已初始化（数据驱动加载完成后调用）
+     * 【为何必须】_hasBiomesForStructureSet / generateStructureStarts 对"结构集引用了
+     * 未注册的结构"取硬断言策略（宁可崩溃也不整集静默跳过）。若把校验留到首个区块生成，
+     * 故障会以"每区块一次崩溃"的形式爆发；在此一次性校验，把故障前移到装配完成时刻，
+     * 且日志能一次列全所有缺失 id。
      *
-     * StructureSetLoader 通过 registerSet 注册结构集合但不会置 m_initialized，
-     * 加载完成后调用本方法置位，使区块生成器的兜底守卫不再触发硬编码注册。
+     * 在 StructureSetLoader 装配完成后调用（生产路径 RegistryBootstrap，测试路径
+     * WorldGenRegistryFixture）。注册表为空时为空操作（未加载数据包是合法状态）。
      */
-    void markInitialized() { m_initialized = true; }
+    void validateAgainstStructureRegistry() const;
 
 private:
     StructureSetRegistry() = default;
     std::vector<std::unique_ptr<StructureSet>> m_sets;
     std::unordered_map<ResourceLocation, StructureSet*> m_byId;
     std::unordered_map<ResourceLocation, StructureSet*> m_byStructureId; ///< 结构 ID → 所属结构集合的反向索引
-    bool m_initialized = false;
 };
 
 } // namespace mc::world::gen::structure

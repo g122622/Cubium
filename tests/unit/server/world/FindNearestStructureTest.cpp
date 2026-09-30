@@ -22,6 +22,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/WorldGenRegistryFixture.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
@@ -33,13 +35,16 @@ using namespace mc::world::gen::structure;
  * @brief 结构定位测试
  *
  * 测试 StructureSetRegistry::findByStructure 和相关功能
+ *
+ * 【注册表来源】结构集注册表是纯数据驱动（无硬编码兜底），须由数据包装配。
+ * loadVanillaWorldGenRegistries() 幂等且进程级共享，重复调用安全。
  */
 class FindNearestStructureTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        // 初始化结构集合注册表
-        StructureSetRegistry::instance().initialize();
+        // 从数据包装配结构注册表 + 结构集注册表（含启动期完整性校验）
+        ASSERT_TRUE(mc::test::loadVanillaWorldGenRegistries()) << "数据包缺失，无法加载结构集注册表";
     }
 };
 

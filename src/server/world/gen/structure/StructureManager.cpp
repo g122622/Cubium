@@ -26,30 +26,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "server/world/gen/feature/Feature.hpp"
-#include "server/world/gen/jigsaw/JigsawPiece.hpp"
 #include "server/world/gen/jigsaw/TemplatePoolLoader.hpp"
 #include "server/world/gen/structure/Structure.hpp"
-#include "server/world/gen/structure/pools/Pools.hpp"
-#include "server/world/gen/structure/structures/BastionRemnantStructure.hpp"
-#include "server/world/gen/structure/structures/BuriedTreasureStructure.hpp"
-#include "server/world/gen/structure/structures/DesertPyramidStructure.hpp"
-#include "server/world/gen/structure/structures/EndCityStructure.hpp"
-#include "server/world/gen/structure/structures/FortressStructure.hpp"
-#include "server/world/gen/structure/structures/IglooStructure.hpp"
-#include "server/world/gen/structure/structures/JungleTempleStructure.hpp"
-#include "server/world/gen/structure/structures/MineshaftStructure.hpp"
-#include "server/world/gen/structure/structures/NetherFossilStructure.hpp"
-#include "server/world/gen/structure/structures/OceanMonumentStructure.hpp"
-#include "server/world/gen/structure/structures/OceanRuinStructure.hpp"
-#include "server/world/gen/structure/structures/PillagerOutpostStructure.hpp"
-#include "server/world/gen/structure/structures/RuinedPortalStructure.hpp"
-#include "server/world/gen/structure/structures/ShipwreckStructure.hpp"
-#include "server/world/gen/structure/structures/StrongholdStructure.hpp"
-#include "server/world/gen/structure/structures/SwampHutStructure.hpp"
-#include "server/world/gen/structure/structures/VillageStructure.hpp"
-#include "server/world/gen/structure/structures/WoodlandMansionStructure.hpp"
-#include "structures/TrialChambersStructure.hpp"
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -61,7 +39,8 @@
 namespace mc::world::gen::structure {
 
 // StructureRegistry 实现
-bool StructureRegistry::s_initialized = false;
+// 【无硬编码兜底】注册表只由 StructureDefinitionLoader 从数据包装配，故不持有初始化标志。
+// 详见头文件类注释。
 
 std::unordered_map<ResourceLocation, std::unique_ptr<Structure>>& StructureRegistry::getStructures()
 {
@@ -75,47 +54,10 @@ std::vector<const Structure*>& StructureRegistry::getStructureList()
     return structureList;
 }
 
-void StructureRegistry::initialize()
-{
-    if (s_initialized) return;
-
-    // 初始化 Jigsaw 模板池
-    pools::Pools::initialize();
-
-    // 注册原版结构（兜底路径：数据驱动未加载时使用，键为结构类型基础名）
-    registerStructure(std::make_unique<RuinedPortalStructure>(ResourceLocation("minecraft", "ruined_portal")));
-    registerStructure(std::make_unique<BuriedTreasureStructure>(ResourceLocation("minecraft", "buried_treasure")));
-    registerStructure(std::make_unique<MineshaftStructure>(ResourceLocation("minecraft", "mineshaft")));
-    registerStructure(std::make_unique<VillageStructure>(ResourceLocation("minecraft", "village")));
-    registerStructure(std::make_unique<StrongholdStructure>(ResourceLocation("minecraft", "stronghold")));
-    registerStructure(std::make_unique<DesertPyramidStructure>(ResourceLocation("minecraft", "desert_pyramid")));
-    registerStructure(std::make_unique<JungleTempleStructure>(ResourceLocation("minecraft", "jungle_pyramid")));
-    registerStructure(std::make_unique<OceanMonumentStructure>(ResourceLocation("minecraft", "monument")));
-    registerStructure(std::make_unique<ShipwreckStructure>(ResourceLocation("minecraft", "shipwreck")));
-    registerStructure(std::make_unique<OceanRuinStructure>(ResourceLocation("minecraft", "ocean_ruin")));
-    registerStructure(std::make_unique<FortressStructure>(ResourceLocation("minecraft", "fortress")));
-    registerStructure(std::make_unique<IglooStructure>(ResourceLocation("minecraft", "igloo")));
-    registerStructure(std::make_unique<SwampHutStructure>(ResourceLocation("minecraft", "swamp_hut")));
-    registerStructure(std::make_unique<NetherFossilStructure>(ResourceLocation("minecraft", "nether_fossil")));
-    registerStructure(std::make_unique<PillagerOutpostStructure>(ResourceLocation("minecraft", "pillager_outpost")));
-    registerStructure(std::make_unique<WoodlandMansionStructure>(ResourceLocation("minecraft", "mansion")));
-    registerStructure(std::make_unique<EndCityStructure>(ResourceLocation("minecraft", "end_city")));
-    registerStructure(std::make_unique<BastionRemnantStructure>(ResourceLocation("minecraft", "bastion_remnant")));
-    registerStructure(std::make_unique<TrialChambersStructure>(ResourceLocation("minecraft", "trial_chambers")));
-
-    s_initialized = true;
-}
-
 void StructureRegistry::clear()
 {
     getStructures().clear();
     getStructureList().clear();
-    s_initialized = false;
-}
-
-void StructureRegistry::markInitialized()
-{
-    s_initialized = true;
 }
 
 void StructureRegistry::registerStructure(std::unique_ptr<Structure> structure)

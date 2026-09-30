@@ -85,19 +85,16 @@ inline bool loadVanillaWorldGenRegistries()
 
     // 结构管线：模板池 → 结构定义 → 处理器列表 → 结构标签 → 结构集。
     //
-    // 【为何必须加载】缺了这一段，StructureRegistry 只剩 StructureManager::initialize()
-    // 的兜底表，而兜底表按**结构类型基础名**注册（minecraft:village、minecraft:ocean_ruin），
-    // 与 structure_set JSON 引用的**细分 id**（minecraft:village_plains、
-    // minecraft:ocean_ruin_cold）对不上。后果是：
-    //   noiseSettingsGenerator::_hasBiomesForStructureSet 对每个条目调
-    //   StructureRegistry::get(entry.structureId) 得到 nullptr，遂判定"本维度与
-    //   该结构集的 biomeTag 无交集"而**整集跳过**——村庄/海底废墟/古迹废墟/
-    //   远古城市因此永不生成，且全过程**不产生任何报错或日志**。
-    // 该缺陷一度使本套件测出的 parity 数值完全不含结构贡献（测试与真实存档的
-    // 结构差异被整片计入"不一致"），属于文件头所警告的"夹具缺陷让结论失真"。
+    // 【为何必须加载】结构注册表是纯数据驱动（无硬编码兜底，兜底表已于 2026-09 删除）。
+    // 若测试不加载这一段，StructureRegistry 与 StructureSetRegistry 均为空 →
+    // 不生成任何结构。更早的历史教训：曾有一份按"结构类型基础名"注册的硬编码兜底表
+    // （minecraft:village、minecraft:ocean_ruin），与 structure_set JSON 引用的细分 id
+    // （minecraft:village_plains、minecraft:ocean_ruin_cold）对不上，导致
+    // _hasBiomesForStructureSet 把村庄/海底废墟/古迹废墟整集静默跳过，parity 数值
+    // 完全不含结构贡献，且全过程不产生任何报错。该教训是"夹具缺陷让结论失真"的典型。
     //
     // 顺序与生产路径 RegistryBootstrap::initializeAll 一致（模板池须先于结构定义，
-    // 结构标签须先于结构集）。
+    // 结构标签须先于结构集），装配完成后做与生产同款的启动期完整性校验。
     world::gen::structure::pools::Pools::initialize();
     (void)world::gen::structure::StructureRegistry::loadTemplatePoolsFromDataPacks(repo);
     world::gen::structure::StructureRegistry::clear();
@@ -105,7 +102,6 @@ inline bool loadVanillaWorldGenRegistries()
         const auto structureResult = world::gen::structure::StructureDefinitionLoader::loadFromDataPackRepository(repo);
         MC_ASSERT_RELEASE_MSG(structureResult.success(), "structures failed to load from data packs");
     }
-    world::gen::structure::StructureRegistry::markInitialized();
     (void)world::gen::jigsaw::ProcessorListLoader::loadFromDataPackRepository(repo);
     {
         const auto tagResult = world::gen::structure::StructureTagLoader::loadFromDataPackRepository(repo);
@@ -116,7 +112,7 @@ inline bool loadVanillaWorldGenRegistries()
         const auto setResult = world::gen::structure::StructureSetLoader::loadFromDataPackRepository(repo);
         MC_ASSERT_RELEASE_MSG(setResult.success(), "structure sets failed to load from data packs");
     }
-    world::gen::structure::StructureSetRegistry::instance().markInitialized();
+    world::gen::structure::StructureSetRegistry::instance().validateAgainstStructureRegistry();
 
     return true;
 }

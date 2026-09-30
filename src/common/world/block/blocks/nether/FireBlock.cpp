@@ -352,7 +352,8 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
     // fireIgnite 语义：
     //   - fireImmune() → 不处理（此处 isImmuneToFire 守卫等价）；
     //   - remainingFireTicks < 0（免疫期）→ +1 趋零；
-    //   - else if ServerPlayer → +nextInt(1,3)（即 +1 或 +2）；
+    //   - else if ServerPlayer → +nextInt(1, 3)（MC RandomSource.nextInt(i,j) = i + nextInt(j-i)
+    //     = nextInt(2) + 1，即 +1 或 +2）；
     //   - else（非玩家非免疫期）→ 不增加；
     //   - remainingFireTicks >= 0 → igniteForSeconds(8.0)。
     // 1. 检查实体是否免疫火焰
@@ -366,8 +367,11 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
         // 免疫期：每 tick +1 直到归零（vanilla fireIgnite:141-142）
         entity.setRemainingFireTicks(fireTicks + 1);
     } else if (dynamic_cast<Player*>(&entity) != nullptr) {
-        // 非免疫期 + 玩家：+1~2（vanilla fireIgnite:143-146，nextInt(1,3)=[1,2]）
-        entity.forceFireTicks(fireTicks + world.getRandom().nextInt(1, 3));
+        // 非免疫期 + 玩家：+1~2（vanilla fireIgnite:143-146）。注意必须复刻 MC
+        // RandomSource.nextInt(origin, bound) = origin + nextInt(bound - origin) 的
+        // **半开区间**语义（[1,2]），而非本仓库 IRandom::nextInt(min,max) 的闭区间
+        // （[1,3]）——后者会让 timer 每次多涨 1，燃烧时间系统性偏离原版。
+        entity.forceFireTicks(fireTicks + 1 + world.getRandom().nextInt(2));
     }
     // 非免疫期 + 非玩家：不增加（vanilla fireIgnite 无此分支）
 

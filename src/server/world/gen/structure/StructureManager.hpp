@@ -55,30 +55,27 @@ namespace world::gen::structure {
  * @brief 结构注册表
  *
  * 管理所有已注册的结构类型。按 ResourceLocation 索引结构。
+ *
+ * 【纯数据驱动，无硬编码兜底】本表只由 StructureDefinitionLoader 从数据包的
+ * worldgen/structure 目录下的 JSON 装配（经 StructureTypeRegistry 工厂构造）。历史上这里有一份
+ * 按"结构类型基础名"（minecraft:village、minecraft:ocean_ruin）注册的硬编码兜底表，供
+ * 未加载数据包的调用方使用；它与 structure_set 引用的细分 id（minecraft:village_plains、
+ * minecraft:ocean_ruin_cold）对不上，且 jigsaw 结构所需的模板池同样来自数据包，兜底表
+ * 结构上无法支撑结构生成。该兜底已删除：未加载数据包时本表为空，结构集也为空，于是
+ * 不生成任何结构——这是明确的可观测状态，而不是一份看似可用、实则与数据包漂移的第二事实来源。
  */
 class StructureRegistry {
 public:
-    static void initialize();
     static void registerStructure(std::unique_ptr<Structure> structure);
 
     /**
      * @brief 清空结构注册表
      *
-     * 清空已注册的结构映射与列表并重置初始化标志，供数据驱动重新加载前调用
-     * （MinecraftServer::initializeRegistries 重载世界时）。不清理模板池
-     * （模板池有独立生命周期，由 Pools::initialize 自带守卫）。保留该入口后，
-     * 硬编码 initialize() 仍可作为测试/旧入口的兜底。
+     * 清空已注册的结构映射与列表，供数据驱动重新加载前调用
+     * （RegistryBootstrap::initializeAll 重载世界时）。不清理模板池
+     * （模板池有独立生命周期，由 Pools::initialize 自带守卫）。
      */
     static void clear();
-
-    /**
-     * @brief 标记注册表为已初始化（数据驱动加载完成后调用）
-     *
-     * 数据驱动路径通过 StructureDefinitionLoader 注册结构，但不会像硬编码
-     * initialize() 那样置 s_initialized。加载完成后调用本方法置位，使区块
-     * 生成器的兜底守卫（if (!isInitialized()) initialize()）不再触发硬编码注册。
-     */
-    static void markInitialized();
 
     /**
      * @brief 按资源位置获取结构
@@ -99,13 +96,12 @@ public:
     [[nodiscard]] static const Structure* get(const std::string& name);
 
     [[nodiscard]] static const std::vector<const Structure*>& getAll();
-    [[nodiscard]] static bool isInitialized() { return s_initialized; }
 
     /**
      * @brief 从数据包加载模板池
      *
      * 加载数据包中的模板池 JSON 文件并注册到 TemplatePoolRegistry。
-     * 应在 initialize() 之后调用，或在加载世界数据包时调用。
+     * 须在装配结构定义之前调用（jigsaw 结构引用模板池）。
      *
      * @param dataPackList 数据包列表
      * @return 加载的模板池数量
@@ -115,7 +111,6 @@ public:
 private:
     static std::unordered_map<ResourceLocation, std::unique_ptr<Structure>>& getStructures();
     static std::vector<const Structure*>& getStructureList();
-    static bool s_initialized;
 };
 
 /**

@@ -98,15 +98,18 @@ EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
 
     // 维护 UUID 索引
     const std::string& uuid = entity->uuid();
-    MC_ASSERT_RELEASE_MSG(!uuid.empty(), "EntityManager::addEntity: entity has an empty UUID");
 
-    // UUID 必须全局唯一。两个存活实体共用 UUID 时，UUID 索引只能指向其中一个，另一个成为
-    // 既无法通过 UUID 寻址、也不会被任何查找命中的孤实体，只能等所属区块卸载才被清理——
-    // 若该区块长期驻留，它连同其 ECS 组件、DataEntry 数组、tracker 条目一起永久占住内存。
+    // UUID 必须全局唯一且非空（对齐 MC 1.21.11 PersistentEntitySectionManager.addEntityUuid：
+    // UUID 是实体的存档主键与网络身份，重复 UUID 被原版判定为 addEntity 失败并拒绝入册）。
     //
-    // 历史实现在此**仅打印警告并覆盖映射**，于是"存档中的重复行"被静默转成了
-    // "同时存活的重复实例"：实测单次会话即堆积 157,180 个实体、388 MB 常驻内存。
-    // 重复 UUID 是不变量被破坏的确凿信号，必须当场暴露而不是掩盖。
+    // 历史实现在此"警告并覆盖映射"，于是"存档中的重复行"被静默转成了"同时存活的重复实例"：
+    // 实测单次会话即堆积 157,180 个实体、388 MB 常驻内存。重复 UUID 是不变量被破坏的确凿
+    // 信号，必须当场暴露而不是掩盖。空 UUID 同理——构造期已自动生成随机 UUID（Entity 构造
+    // 函数），addEntity 时仍为空只可能是调用方显式 setUuid("") 破坏契约。
+    if (uuid.empty()) {
+        spdlog::error("EntityManager::addEntity: entity {} has an empty UUID; rejecting", id);
+        MC_ASSERT_RELEASE_MSG(false, "EntityManager::addEntity: entity has an empty UUID");
+    }
     if (m_uuidToEntity.find(uuid) != m_uuidToEntity.end()) {
         const Entity* existing = m_uuidToEntity[uuid];
         spdlog::error("EntityManager: duplicate entity UUID {}: entity {} would override existing entity {}",

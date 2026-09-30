@@ -31,6 +31,8 @@
 //    2.5 isValidBiome 与 BiomeTag::contains 行为一致
 // ============================================================================
 
+#include "common/TestWorldHelper.hpp"
+#include "common/WorldGenRegistryFixture.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
@@ -63,10 +65,10 @@ protected:
         VanillaBlocks::initialize();
         BiomeRegistry::instance().initialize();
         fluid::FluidRegistry::instance().initialize();
-        // 结构注册表和结构集合注册表在 NoiseChunkGenerator 构造时自动初始化，
-        // 但某些测试直接访问 StructureSetRegistry，需要显式初始化
-        world::gen::structure::StructureRegistry::initialize();
-        world::gen::structure::StructureSetRegistry::instance().initialize();
+        // 结构注册表为纯数据驱动（无硬编码兜底），且部分用例直接访问 StructureSetRegistry，
+        // 须从数据包装配（幂等，进程级共享）。NoiseChunkGenerator 自身不再兜底注册。
+        // SetUpTestSuite 无法用 ASSERT_ 返回，失败由夹具内部 MC_ASSERT_RELEASE 硬失败兜底。
+        (void)mc::test::loadVanillaWorldGenRegistries();
     }
 };
 

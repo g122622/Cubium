@@ -361,7 +361,7 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
 
     // 数据驱动加载结构定义（worldgen/structure/*.json）
     // 顺序：模板池 → 结构定义（jigsaw 结构引用模板池）→ … → 结构标签（依赖结构已注册）。
-    // 先 clear() 重置硬编码 initialize() 兜底写入的状态，再由 Loader 按 type 工厂构造并注册。
+    // 先 clear() 重置上一轮装配状态（世界重载），再由 Loader 按 type 工厂构造并注册。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Structures");
         world::gen::structure::StructureRegistry::clear();
@@ -372,8 +372,6 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         } else {
             spdlog::info("Loaded {} structures from data packs", structureResult.value());
         }
-        // 数据驱动注册完成后置位，使区块生成器兜底守卫不再触发硬编码注册。
-        world::gen::structure::StructureRegistry::markInitialized();
     }
 
     // 加载处理器列表（从数据包加载，补充硬编码注册未覆盖的列表）
@@ -516,8 +514,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
 
     // 数据驱动加载结构集合（worldgen/structure_set/*.json）
     // 顺序：结构定义（已注册）→ 生物群系标签（stronghold_biased_to 已填充）→ 结构集合
-    // （要塞集合的 preferred_biomes 依赖生物群系标签）。先 clear() 重置硬编码兜底状态，
-    // 再由 Loader 按 placement 类型构造并注册，最后 markInitialized() 置位。
+    // （要塞集合的 preferred_biomes 依赖生物群系标签）。先 clear() 重置上一轮装配状态
+    // （世界重载），再由 Loader 按 placement 类型构造并注册，最后启动期校验完整性：
+    // 每个结构集条目引用的结构必须已注册（消费侧对该条件取硬断言策略，此处前移暴露）。
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::StructureSets");
         world::gen::structure::StructureSetRegistry::instance().clear();
@@ -527,7 +526,7 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         } else {
             spdlog::info("Loaded {} structure sets from data packs", setResult.value());
         }
-        world::gen::structure::StructureSetRegistry::instance().markInitialized();
+        world::gen::structure::StructureSetRegistry::instance().validateAgainstStructureRegistry();
     }
 
     // 注册实体类型（可选）

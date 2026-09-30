@@ -31,7 +31,7 @@
  */
 
 #include "common/resource/ResourceLocation.hpp"
-#include "server/world/gen/structure/StructureDefinitionLoader.hpp"
+#include "server/world/gen/structure/StructureTypeRegistry.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -40,7 +40,13 @@ using namespace mc::world::gen::jigsaw;
 
 class StructureDefinitionLoaderTest : public ::testing::Test {
 protected:
-    void SetUp() override { StructureDefinitionLoader::clear(); }
+    void SetUp() override
+    {
+        StructureDefinitionLoader::clear();
+        // loadFromJson 末尾按 type 工厂构造并注册到 StructureRegistry（硬失败策略），
+        // 类型注册表未装配时对任何 type 都会断言崩溃，故与生产/其它夹具同款先注册内置类型。
+        initializeBuiltinStructureTypes();
+    }
     void TearDown() override { StructureDefinitionLoader::clear(); }
 
     /// 加载 JSON 并断言成功，返回解析后的定义指针

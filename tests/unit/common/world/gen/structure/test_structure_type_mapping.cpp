@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/WorldGenRegistryFixture.hpp"
 #include "server/world/gen/structure/StructureSet.hpp"
 
 using namespace mc;
@@ -32,12 +34,15 @@ using namespace mc::world::gen::structure;
 // StructureSetRegistry::findByStructure 测试
 // ============================================================================
 
-// 注册表是 Meyers 单例,默认空,需显式 initialize() 填充原版 20 个结构集;
-// 否则 findByStructure 一律返回 nullptr。用例间 clear() 避免相互污染。
+// 结构集注册表是纯数据驱动（硬编码兜底已删除），须从数据包装配。
+// loadVanillaWorldGenRegistries() 幂等且进程级共享；注意不要在 TearDown 里 clear()——
+// 进程内其它套件（集成服、parity 测试）依赖装配后的全局注册表存活。
 class StructureSetRegistryTest : public ::testing::Test {
 protected:
-    void SetUp() override { StructureSetRegistry::instance().initialize(); }
-    void TearDown() override { StructureSetRegistry::instance().clear(); }
+    void SetUp() override
+    {
+        ASSERT_TRUE(mc::test::loadVanillaWorldGenRegistries()) << "数据包缺失，无法加载结构集注册表";
+    }
 };
 
 TEST_F(StructureSetRegistryTest, FindByStructure_KnownStructures)

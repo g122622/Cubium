@@ -278,59 +278,57 @@ TEST_F(EntityManagerUuidTest, RemoveDeadEntities_ClearsUuidIndex)
 // UUID 冲突处理测试
 // ============================================================================
 
-TEST_F(EntityManagerUuidTest, AddEntity_DuplicateUuid_OverrideMapping)
+// 【与生产契约对齐】对齐 MC 1.21.11 PersistentEntitySectionManager.addEntityUuid：
+// UUID 是实体的存档主键与网络身份，重复 UUID 时原版拒绝入册（addEntityUuid 返回 false）。
+// 本仓库 addEntity 对重复 UUID 取硬断言策略（2026-09 cd40af64b：重复 UUID 曾把
+// "存档中的重复行"静默转成 15.6 万同时存活的重复实例）。因此这里验证的是
+// "第二个同 UUID 实体被断言拒绝"，而不是旧行为的"覆盖映射"。
+// 注：MC_ASSERT_RELEASE 触发 abort，进程级失败，无法在进程内断言（death test 因
+// CrashHandler + 每用例进程隔离代价被禁用，见 ReentrantAreaLockTest.cpp:553 的同款说明），
+// 故此处只验证单实体正常路径的 UUID 索引不变量。
+TEST_F(EntityManagerUuidTest, AddEntity_DuplicateUuid)
 {
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
-    // 手动设置相同UUID的两个实体
+    // 正常路径：不同 UUID 的两个实体各占一条 UUID 索引
     auto pig1 = pigType->create(nullptr, mc::test::testEcsRegistry());
     auto pig2 = pigType->create(nullptr, mc::test::testEcsRegistry());
-
-    // 强制设置相同的UUID
-    const std::string sharedUuid = "test_shared_uuid_1234567890abcdef";
-    pig1->setUuid(sharedUuid);
-    pig2->setUuid(sharedUuid);
+    const std::string uuid1 = pig1->uuid();
+    const std::string uuid2 = pig2->uuid();
+    ASSERT_NE(uuid1, uuid2);
 
     EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
     EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
-    // UUID索引应指向最后添加的实体（覆盖行为）
-    Entity* found = m_manager.getEntityByUuid(sharedUuid);
-    ASSERT_NE(found, nullptr);
-    // UUID索引指向后添加的实体
-    EXPECT_EQ(found->id(), id2);
-
-    // 两个实体都存在于ID索引中
+    // 两个实体各自可通过自己的 UUID 寻址，互不覆盖
+    ASSERT_NE(m_manager.getEntityByUuid(uuid1), nullptr);
+    ASSERT_NE(m_manager.getEntityByUuid(uuid2), nullptr);
+    EXPECT_EQ(m_manager.getEntityByUuid(uuid1)->id(), id1);
+    EXPECT_EQ(m_manager.getEntityByUuid(uuid2)->id(), id2);
     EXPECT_TRUE(m_manager.hasEntity(id1));
     EXPECT_TRUE(m_manager.hasEntity(id2));
 }
 
-TEST_F(EntityManagerUuidTest, RemoveEntity_DuplicateUuid_NoAccidentalDelete)
+TEST_F(EntityManagerUuidTest, RemoveEntity_ClearsOnlyOwnUuid)
 {
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
-    // 手动设置相同UUID的两个实体
+    // 两个正常 UUID 的实体，移除其一后另一条 UUID 索引不受影响
     auto pig1 = pigType->create(nullptr, mc::test::testEcsRegistry());
     auto pig2 = pigType->create(nullptr, mc::test::testEcsRegistry());
-
-    const std::string sharedUuid = "test_shared_uuid_1234567890abcdef";
-    pig1->setUuid(sharedUuid);
-    pig2->setUuid(sharedUuid);
+    const std::string uuid1 = pig1->uuid();
+    const std::string uuid2 = pig2->uuid();
 
     EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
     EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
-    // 移除第一个实体（UUID索引指向第二个实体）
     m_manager.removeEntity(id1);
 
-    // UUID索引应仍然有效（指向第二个实体）
-    Entity* found = m_manager.getEntityByUuid(sharedUuid);
-    ASSERT_NE(found, nullptr);
-    EXPECT_EQ(found->id(), id2);
-
-    // 第二个实体仍存在
+    EXPECT_EQ(m_manager.getEntityByUuid(uuid1), nullptr);
+    ASSERT_NE(m_manager.getEntityByUuid(uuid2), nullptr);
+    EXPECT_EQ(m_manager.getEntityByUuid(uuid2)->id(), id2);
     EXPECT_TRUE(m_manager.hasEntity(id2));
 }
 
@@ -338,21 +336,19 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_DuplicateUuid_NoAccidentalDelete)
 // 空UUID处理测试
 // ============================================================================
 
-TEST_F(EntityManagerUuidTest, AddEntity_EmptyUuid_NotIndexed)
+// 【与生产契约对齐】构造期 Entity 已自动生成随机 UUID；addEntity 时 UUID 为空只可能是
+// 调用方显式 setUuid("") 破坏契约，生产代码取硬断言策略拒绝（同上，进程级失败无法
+// 在进程内断言）。此处验证正常实体 UUID 非空、且 getEntityByUuid 对未知值返回 nullptr。
+TEST_F(EntityManagerUuidTest, EmptyUuid_IsRejectedByContract)
 {
     const EntityType* pigType = EntityRegistry::instance().getType(EntityTypeKeys::PIG);
     ASSERT_NE(pigType, nullptr);
 
     auto pig = pigType->create(nullptr, mc::test::testEcsRegistry());
-    // 强制设置空UUID
-    pig->setUuid("");
+    // 构造期已自动生成 UUID，非空
+    EXPECT_FALSE(pig->uuid().empty());
 
-    EntityInstanceId id = m_manager.addEntity(std::move(pig));
-
-    // 实体应该被成功添加
-    EXPECT_TRUE(m_manager.hasEntity(id));
-
-    // 空UUID不应被索引
+    // 未注册的 UUID 查不到
     EXPECT_FALSE(m_manager.hasEntityWithUuid(""));
     EXPECT_EQ(m_manager.getEntityByUuid(""), nullptr);
 }

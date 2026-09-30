@@ -99,14 +99,8 @@ void FlatChunkGenerator::_initGenerationRegistries()
     std::call_once(m_generationRegistriesFlag, [this]() {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "FlatChunkGenerator::initGenerationRegistries");
 
-        // 结构注册表已迁移到 MinecraftServer::initializeRegistries 数据驱动加载；
-        // 此处仅保留兜底：区块生成器若先于服务器初始化构造（如部分测试），回退硬编码注册。
-        if (!world::gen::structure::StructureRegistry::isInitialized()) {
-            world::gen::structure::StructureRegistry::initialize();
-        }
-        if (!world::gen::structure::StructureSetRegistry::instance().isInitialized()) {
-            world::gen::structure::StructureSetRegistry::instance().initialize();
-        }
+        // 结构注册表为纯数据驱动（无硬编码兜底），与 NoiseChunkGenerator 同策略：
+        // 由宿主（RegistryBootstrap / 测试夹具）从数据包装配，本生成器不兜底注册。
         m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
 
         // 初始化放置器注册表

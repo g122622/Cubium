@@ -291,7 +291,8 @@ void OminousItemSpawnerEntity::addParticles()
     }
 
     math::IRandom& rng = m_world->getRandom();
-    i32 count = rng.nextInt(1, 3);
+    // MC OminousItemSpawner.addParticles：nextIntBetweenInclusive(1, 3) = 1 + nextInt(3)，即 [1,3]
+    i32 count = 1 + rng.nextInt(3);
 
     for (i32 i = 0; i < count; ++i) {
         f64 offsetX = 0.4 * (rng.nextGaussian() - rng.nextGaussian());

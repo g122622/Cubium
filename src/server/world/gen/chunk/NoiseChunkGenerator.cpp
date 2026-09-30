@@ -130,14 +130,10 @@ void NoiseChunkGenerator::_initGenerationRegistries()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "NoiseChunkGenerator::initGenerationRegistries");
 
-    // 结构注册表已迁移到 MinecraftServer::initializeRegistries 数据驱动加载；
-    // 此处仅保留兜底：区块生成器若先于服务器初始化构造（如部分测试），回退硬编码注册。
-    if (!world::gen::structure::StructureRegistry::isInitialized()) {
-        world::gen::structure::StructureRegistry::initialize();
-    }
-    if (!world::gen::structure::StructureSetRegistry::instance().isInitialized()) {
-        world::gen::structure::StructureSetRegistry::instance().initialize();
-    }
+    // 结构注册表为纯数据驱动（无硬编码兜底）：由 MinecraftServer::initializeRegistries /
+    // 测试夹具 WorldGenRegistryFixture 从数据包装配。本生成器不做任何兜底注册——
+    // 未装载数据包时注册表为空，结构集为空，结构生成自然为空集（可观测的明确状态），
+    // 而不是一份与数据包漂移、结构上无法支撑结构生成的假注册表。
     m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
 
     // 初始化放置器注册表

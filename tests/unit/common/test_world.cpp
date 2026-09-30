@@ -128,7 +128,10 @@ TEST_F(ChunkTest, ChunkSection_DeserializeRecomputesMismatchedBlockCount)
     auto result = ChunkSection::deserialize(data.data(), data.size());
     ASSERT_TRUE(result.success()) << result.error().message();
 
-    const ChunkSection* restored = result.value().get();
+    // 【必须持有 unique_ptr，不得只接裸指针】Result<unique_ptr<T>>::value() 按值返回并转移
+    // 所有权（见 Result.hpp 的 takeValue()），写成 `const ChunkSection* p = result.value().get();`
+    // 时临时 unique_ptr 在全表达式结束即析构并 delete 对象，p 当场悬垂，后续读取是 UB。
+    auto restored = result.value();
     ASSERT_NE(restored, nullptr);
 
     // 计数必须由实际方块数据重算得出，而不是采信被篡改的 0
@@ -147,7 +150,8 @@ TEST_F(ChunkTest, ChunkSection_DeserializeKeepsConsistentBlockCount)
     auto result = ChunkSection::deserialize(data.data(), data.size());
     ASSERT_TRUE(result.success()) << result.error().message();
 
-    const ChunkSection* restored = result.value().get();
+    // 同 ChunkSection_DeserializeRecomputesMismatchedBlockCount：unique_ptr 必须由局部变量持有
+    auto restored = result.value();
     ASSERT_NE(restored, nullptr);
     EXPECT_EQ(restored->getBlockCount(), 1);
 }

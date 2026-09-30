@@ -337,12 +337,14 @@ void LightningBoltEntity::_initializeState()
     if (m_world != nullptr) {
         math::Random rng(static_cast<u64>(m_world->currentTick()) ^ m_world->seed());
         m_boltVertex = rng.nextLong();
-        m_boltLivingTime = rng.nextInt(1, 3); // 1-3
+        // MC LightningBolt 构造：flashes = nextInt(3) + 1，即 [1,3]
+        m_boltLivingTime = rng.nextInt(3) + 1;
     } else {
         // 无世界时使用确定性种子（基于时间）
         math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
         m_boltVertex = rng.nextLong();
-        m_boltLivingTime = rng.nextInt(1, 3);
+        // 同上：flashes = nextInt(3) + 1
+        m_boltLivingTime = rng.nextInt(3) + 1;
     }
 
     m_initialized = true;

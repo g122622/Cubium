@@ -23,6 +23,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/WorldGenRegistryFixture.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
@@ -82,20 +84,16 @@ TEST(WaterContentRegistryTest, RegistersWaterUpdateRelatedBlocks)
 
 TEST(WaterContentRegistryTest, RegistersShipwreckAndOceanRuinStructures)
 {
-    world::gen::structure::StructureRegistry::initialize();
+    // 结构注册表是纯数据驱动（硬编码兜底已删除），统一从数据包装配（幂等，进程级共享）。
+    // 数据包按具体变体注册：ocean_ruin_cold / ocean_ruin_warm，不存在 minecraft:ocean_ruin。
+    ASSERT_TRUE(mc::test::loadVanillaWorldGenRegistries()) << "数据包缺失，无法加载世界生成注册表";
 
-    // 结构注册表是进程级全局，且有两种注册模式：
-    //   * 兜底模式（StructureRegistry::initialize，键为结构类型基础名）：海底废墟注册为 ocean_ruin
-    //   * 数据包模式（RegistryBootstrap 装配后调 markInitialized）：数据包只有具体变体
-    //     ocean_ruin_cold / ocean_ruin_warm，不存在 minecraft:ocean_ruin
-    // 因此本用例只断言"两种模式下都至少注册了一种海底废墟"，不断言具体 id，
-    // 否则会依赖进程内其它用例（如集成服启动）是否执行过。
     const auto* shipwreck = world::gen::structure::StructureRegistry::get("shipwreck");
     ASSERT_NE(shipwreck, nullptr);
     EXPECT_EQ(shipwreck->id(), ResourceLocation("minecraft", "shipwreck"));
 
-    const auto* oceanRuin = world::gen::structure::StructureRegistry::get("ocean_ruin");
-    const auto* oceanRuinVariant = world::gen::structure::StructureRegistry::get("ocean_ruin_cold");
-    EXPECT_TRUE(oceanRuin != nullptr || oceanRuinVariant != nullptr)
-        << "海底废墟结构既未以兜底名 ocean_ruin 注册，也未以数据包变体 ocean_ruin_cold 注册";
+    const auto* oceanRuinCold = world::gen::structure::StructureRegistry::get("ocean_ruin_cold");
+    const auto* oceanRuinWarm = world::gen::structure::StructureRegistry::get("ocean_ruin_warm");
+    EXPECT_TRUE(oceanRuinCold != nullptr || oceanRuinWarm != nullptr)
+        << "海底废墟结构未以数据包变体 ocean_ruin_cold / ocean_ruin_warm 注册";
 }
