@@ -30,19 +30,24 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
 #else
+#include <cerrno>
 #include <csignal>
 #include <cstdlib>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
@@ -71,13 +76,73 @@ constexpr i32 LAUNCH_TIMEOUT_MS = 300000;
 // 被测进程返回码约定：124 = 超时被杀（与 GNU timeout 一致）。
 constexpr int EXIT_CODE_TIMEOUT = 124;
 
+// 被测进程控制台日志文件名（落在本次启动专用的临时世界目录内，随目录一起清理）。
+constexpr const char* SERVER_CONSOLE_LOG_NAME = "server_console.log";
+
+// 失败回显日志时头/尾各保留的行数上限：服务端启动日志通常上千行，全量回显会刷屏，
+// 而关键信息既可能在开头（gflags/配置解析报错）也可能在结尾（崩溃前的最后动作）。
+constexpr std::size_t LOG_ECHO_HEAD_LINES = 80;
+constexpr std::size_t LOG_ECHO_TAIL_LINES = 120;
+
+/// 回显被测进程的控制台日志（仅在启动失败或非零退出时调用）。
+/// \param logPath 日志文件路径
+/// \param exitCode 被测进程退出码
+void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
+{
+    std::ifstream input(logPath, std::ios::binary);
+    if (!input.is_open()) {
+        spdlog::warn(
+            "benchmark: server exited with code {} and no console log was captured ({})", exitCode, logPath.string());
+        return;
+    }
+
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(input, line)) {
+        lines.push_back(std::move(line));
+    }
+
+    spdlog::error("benchmark: server exited with code {}; console log: {}", exitCode, logPath.string());
+    if (lines.empty()) {
+        std::cerr << "[mc_benchmark] (server console log is empty)" << std::endl;
+        return;
+    }
+
+    const std::size_t total = lines.size();
+    const std::size_t headCount = std::min(total, LOG_ECHO_HEAD_LINES);
+    // 未超上限时把剩余行全部放在尾部一起回显，保证短日志不被截断。
+    const std::size_t tailCount =
+        total > headCount ? std::min(total - headCount, LOG_ECHO_TAIL_LINES) : static_cast<std::size_t>(0);
+    const std::size_t omitted = total - headCount - tailCount;
+
+    std::cerr << "[mc_benchmark] ----- server console log begin -----\n";
+    for (std::size_t i = 0; i < headCount; ++i) {
+        std::cerr << lines[i] << '\n';
+    }
+    if (omitted > 0) {
+        std::cerr << "[mc_benchmark] ... " << omitted << " lines omitted ...\n";
+    }
+    for (std::size_t i = total - tailCount; i < total; ++i) {
+        std::cerr << lines[i] << '\n';
+    }
+    std::cerr << "[mc_benchmark] ----- server console log end -----" << std::endl;
+}
+
 /// 启动一次被测服务端并阻塞等待其退出。
+///
+/// 被测进程的 stdout/stderr 一律重定向到 `<worldDir>/server_console.log`（两个平台行为
+/// 一致）：既能拿到启动失败的真实原因（gflags 报错、存档初始化失败等），又不会让多次
+/// 重复的服务端日志与基准输出交错刷屏。非零退出时由 echoServerConsoleLog 回显日志。
+///
 /// \param modeFlag 服务端 benchmark 退出 flag（--benchmark-exit-after-shell-init /
 ///                 --benchmark-exit-after-world-init）
-/// \param worldDir 本次启动专用的新临时世界目录
+/// \param worldDir 本次启动专用的新临时世界目录（配置与控制台日志都落在其中）
 /// \return 进程退出码；启动失败返回 -1
 [[nodiscard]] int launchServerOnce(const std::string& modeFlag, const std::filesystem::path& worldDir)
 {
+    const std::filesystem::path logPath = worldDir / SERVER_CONSOLE_LOG_NAME;
+    int exitCode = -1;
+
 #ifdef _WIN32
     // 与 POSIX 分支参数完全对齐：--config 指向本次启动专用的临时配置，服务端由配置路径
     // 推导游戏目录（saves/<worldName> 落在临时目录内），保证每次都是全新世界冷启动；
@@ -94,23 +159,48 @@ constexpr int EXIT_CODE_TIMEOUT = 124;
     std::wstring wideCommandLine = L"\"" + wideExecutable + L"\" " + widenAscii(modeFlag) + L" --config \"" +
         configPath.wstring() + L"\" --profiler_enabled=false";
 
-    // TODO: 被测服务端的 stdout/stderr 随 CREATE_NO_WINDOW 进入隐藏控制台，启动失败时只能
-    // 从退出码判断原因（POSIX 分支经 fork 继承终端，日志直接可见）。若需要被测进程的启动
-    // 日志诊断，应改为管道捕获并写入归档目录。
+    // 子进程 std 句柄指向日志文件（STARTF_USESTDHANDLES + 可继承句柄）。
+    // 仍保留 CREATE_NO_WINDOW：子进程的控制台窗口不显示，但 std 输出已被文件接管。
+    const HANDLE logHandle = CreateFileW(logPath.wstring().c_str(),
+        GENERIC_WRITE,
+        FILE_SHARE_READ,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+    if (logHandle == INVALID_HANDLE_VALUE) {
+        spdlog::warn(
+            "benchmark: failed to create server console log {} (GetLastError={})", logPath.string(), GetLastError());
+        return -1;
+    }
+    if (SetHandleInformation(logHandle, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) == FALSE) {
+        spdlog::warn("benchmark: failed to make console log handle inheritable (GetLastError={})", GetLastError());
+        CloseHandle(logHandle);
+        return -1;
+    }
+
+    // stdin 透传父进程的标准输入（被测服务端当前不读 stdin，留作后续交互式诊断的入口）。
+    const HANDLE stdInput = GetStdHandle(STD_INPUT_HANDLE);
+
     STARTUPINFOW startupInfo{};
     startupInfo.cb = sizeof(startupInfo);
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startupInfo.hStdInput = (stdInput == nullptr || stdInput == INVALID_HANDLE_VALUE) ? nullptr : stdInput;
+    startupInfo.hStdOutput = logHandle;
+    startupInfo.hStdError = logHandle;
     PROCESS_INFORMATION processInfo{};
 
     const BOOL createResult = CreateProcessW(wideExecutable.c_str(),
         wideCommandLine.data(),
         nullptr,
         nullptr,
-        FALSE,
+        TRUE, // bInheritHandles：STARTF_USESTDHANDLES 指定的句柄必须可继承
         CREATE_NO_WINDOW,
         nullptr,
         nullptr, // 工作目录 = 继承 mc_benchmark 的 CWD（仓库根）
         &startupInfo,
         &processInfo);
+    CloseHandle(logHandle); // 子进程已持有自己的副本，父进程不再需要
     if (createResult == FALSE) {
         spdlog::warn("benchmark: failed to launch server process (GetLastError={})", GetLastError());
         return -1;
@@ -121,27 +211,42 @@ constexpr int EXIT_CODE_TIMEOUT = 124;
         TerminateProcess(processInfo.hProcess, EXIT_CODE_TIMEOUT);
         WaitForSingleObject(processInfo.hProcess, 5000);
     }
-    DWORD exitCode = 0;
-    GetExitCodeProcess(processInfo.hProcess, &exitCode);
+    DWORD processExitCode = 0;
+    GetExitCodeProcess(processInfo.hProcess, &processExitCode);
     CloseHandle(processInfo.hThread);
     CloseHandle(processInfo.hProcess);
-    return static_cast<int>(exitCode);
+    exitCode = static_cast<int>(processExitCode);
 #else
     // 临时存档隔离：每次启动用全新游戏目录（--config 指向临时目录内的空配置，
     // 服务端从配置路径推导游戏目录与 saves/），保证每次启动都是全新世界冷启动。
     const std::string configPath = (worldDir / "server_options.json").string();
 
+    // 控制台输出重定向到日志文件（与 Windows 分支行为一致）。
+    const std::string logPathString = logPath.string();
+    const int logFd = ::open(logPathString.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (logFd < 0) {
+        spdlog::warn("benchmark: failed to create server console log {} (errno={})", logPathString, errno);
+        return -1;
+    }
+
     const pid_t pid = fork();
     if (pid < 0) {
+        ::close(logFd);
         return -1;
     }
     if (pid == 0) {
-        // 子进程：启动被测服务端。超时保护用外部方式不可用，这里以 alarm 兜底
+        // 子进程：stdout/stderr 指向日志文件。超时保护用外部方式不可用，这里以 alarm 兜底
         // （启动超过 LAUNCH_TIMEOUT_MS 秒后 SIGALRM 终止子进程）。
+        if (::dup2(logFd, STDOUT_FILENO) < 0 || ::dup2(logFd, STDERR_FILENO) < 0) {
+            _exit(127);
+        }
+        if (logFd > STDERR_FILENO) {
+            ::close(logFd);
+        }
+
         std::signal(SIGALRM, [](int) { _exit(EXIT_CODE_TIMEOUT); });
         alarm(static_cast<unsigned>(LAUNCH_TIMEOUT_MS / 1000));
 
-        // 掩蔽服务端 stdout/stderr 之外的额外 fd 继承（保持 0/1/2 原样输出日志）。
         execl(SERVER_EXECUTABLE,
             SERVER_EXECUTABLE,
             modeFlag.c_str(),
@@ -151,6 +256,7 @@ constexpr int EXIT_CODE_TIMEOUT = 124;
             static_cast<char*>(nullptr));
         _exit(127); // exec 失败
     }
+    ::close(logFd); // 父进程不再持有日志文件描述符
 
     int status = 0;
     const pid_t waited = waitpid(pid, &status, 0);
@@ -158,13 +264,16 @@ constexpr int EXIT_CODE_TIMEOUT = 124;
         return -1;
     }
     if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
+        exitCode = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+        exitCode = 128 + WTERMSIG(status);
     }
-    if (WIFSIGNALED(status)) {
-        return 128 + WTERMSIG(status);
-    }
-    return -1;
 #endif
+
+    if (exitCode != 0) {
+        echoServerConsoleLog(logPath, exitCode);
+    }
+    return exitCode;
 }
 
 /// 为一次启动准备全新的临时世界目录（空目录，内含空配置文件）。
@@ -234,12 +343,15 @@ void serverInitializeShell(::benchmark::State& state)
 
         const std::filesystem::path worldDir = prepareTempWorldDir("shell", static_cast<i32>(state.iterations()));
         const int exitCode = launchServerOnce(modeFlag, worldDir);
-        cleanupTempWorldDir(worldDir);
 
         if (exitCode != 0) {
-            state.SkipWithError(fmt::format("server exited with code {}", exitCode));
+            // 失败时保留临时世界目录（内含 server_console.log，launchServerOnce 已回显头尾），
+            // 供事后排查；同名目录会在下一次运行前被 prepareTempWorldDir 清理。
+            state.SkipWithError(
+                fmt::format("server exited with code {} (world dir kept: {})", exitCode, worldDir.string()));
             return;
         }
+        cleanupTempWorldDir(worldDir);
     }
 }
 
@@ -255,12 +367,15 @@ void serverInitializeWorld(::benchmark::State& state)
 
         const std::filesystem::path worldDir = prepareTempWorldDir("world", static_cast<i32>(state.iterations()));
         const int exitCode = launchServerOnce(modeFlag, worldDir);
-        cleanupTempWorldDir(worldDir);
 
         if (exitCode != 0) {
-            state.SkipWithError(fmt::format("server exited with code {}", exitCode));
+            // 失败时保留临时世界目录（内含 server_console.log，launchServerOnce 已回显头尾），
+            // 供事后排查；同名目录会在下一次运行前被 prepareTempWorldDir 清理。
+            state.SkipWithError(
+                fmt::format("server exited with code {} (world dir kept: {})", exitCode, worldDir.string()));
             return;
         }
+        cleanupTempWorldDir(worldDir);
     }
 }
 

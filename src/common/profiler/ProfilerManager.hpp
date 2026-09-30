@@ -176,6 +176,18 @@ public:
     void flush();
 
     /**
+     * @brief 重新指定 trace 输出文件路径
+     *
+     * 用于"每个用例/每次运行一个 trace 文件"的场景（如 benchmark 的 ProfilerManager
+     * 适配器）：outputPath 仅在 stopTracing() 落盘时使用，不参与 session 创建，因此可在
+     * 会话之间自由切换。Perfetto 的 Tracing::Initialize 是进程级一次性初始化，切换路径
+     * 不需要（也不能）重新 initialize()。
+     *
+     * @param outputPath 新的输出文件路径
+     */
+    void setOutputPath(const std::string& outputPath);
+
+    /**
      * @brief 检查追踪是否已启用
      *
      * @return true 如果 Perfetto 后端已初始化且正在记录
@@ -305,6 +317,7 @@ public:
     void startTracing() noexcept {}
     void stopTracing() noexcept {}
     void flush() noexcept {}
+    void setOutputPath(const std::string&) noexcept {}
 
     [[nodiscard]] bool isEnabled() const noexcept { return false; }
     [[nodiscard]] bool isInitialized() const noexcept { return false; }

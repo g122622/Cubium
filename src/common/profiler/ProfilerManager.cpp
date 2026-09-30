@@ -187,6 +187,18 @@ void ProfilerManager::flush()
 #endif
 }
 
+void ProfilerManager::setOutputPath(const std::string& outputPath)
+{
+    // 门面与后端各持一份配置：后端那份在 stopTracing() 落盘时使用，必须同步更新。
+    m_config.outputPath = outputPath;
+
+#if MC_ENABLE_TRACING
+    if (m_perfetto) {
+        m_perfetto->setOutputPath(outputPath);
+    }
+#endif
+}
+
 bool ProfilerManager::isEnabled() const noexcept
 {
 #if MC_ENABLE_TRACING

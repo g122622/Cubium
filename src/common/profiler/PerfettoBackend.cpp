@@ -243,7 +243,13 @@ void PerfettoBackend::stopTracing()
         std::vector<char> trace_data = m_impl->tracingSession->ReadTraceBlocking();
         spdlog::info("[Perfetto] Read {} bytes of trace data", trace_data.size());
 
-        if (!trace_data.empty() && !m_config.outputPath.empty()) {
+        if (trace_data.empty()) {
+            spdlog::warn("[Perfetto] No trace data captured");
+        } else if (!m_config.outputToFile) {
+            spdlog::info("[Perfetto] outputToFile=false, discarding {} bytes of trace data", trace_data.size());
+        } else if (m_config.outputPath.empty()) {
+            spdlog::warn("[Perfetto] No output path configured, discarding {} bytes of trace data", trace_data.size());
+        } else {
             std::ofstream output(m_config.outputPath, std::ios::binary);
             if (output.is_open()) {
                 output.write(trace_data.data(), trace_data.size());
@@ -252,8 +258,6 @@ void PerfettoBackend::stopTracing()
             } else {
                 spdlog::error("[Perfetto] Failed to open output file: {}", m_config.outputPath);
             }
-        } else if (trace_data.empty()) {
-            spdlog::warn("[Perfetto] No trace data captured");
         }
 
         m_impl->tracingSession.reset();
@@ -270,6 +274,11 @@ void PerfettoBackend::flush()
     }
 
     ::perfetto::TrackEvent::Flush();
+}
+
+void PerfettoBackend::setOutputPath(const std::string& outputPath)
+{
+    m_config.outputPath = outputPath;
 }
 
 void PerfettoBackend::setProcessName(const std::string& name)

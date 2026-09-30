@@ -84,6 +84,17 @@ public:
     /** @brief 刷新 TrackEvent 数据源 */
     void flush();
 
+    /**
+     * @brief 重新指定 trace 输出文件路径
+     *
+     * outputPath 只在 stopTracing() 落盘时使用，不参与 session 创建；而 Perfetto 的
+     * Tracing::Initialize 是进程级一次性初始化，故切换落盘路径无需重新 initialize()。
+     * 供"每个用例/每次运行一个 trace 文件"的调用方在会话之间调用。
+     *
+     * @param outputPath 新的输出文件路径
+     */
+    void setOutputPath(const std::string& outputPath);
+
     /** @brief 是否已初始化 */
     [[nodiscard]] bool isInitialized() const noexcept { return m_initialized; }
 

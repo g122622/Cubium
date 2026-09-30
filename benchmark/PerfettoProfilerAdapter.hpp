@@ -34,24 +34,19 @@ namespace mc::benchmark {
 /**
  * @brief Perfetto/Tracy 追踪适配器（挂接 google/benchmark ProfilerManager 钩子）
  *
- * 注册为 google/benchmark 的 ProfilerManager 后，每个 benchmark 用例在
- * "setup 完成 → 开始计时" 边界回调 AfterSetupStart()，在 "计时结束 → teardown"
- * 边界回调 BeforeTeardownStop()。本适配器在这两个边界启停 mc::profiler 的
- * Perfetto 后端，使每个用例输出一个独立的 .perfetto-trace 文件。
+ * 注册为 google/benchmark 的 ProfilerManager 后，google/benchmark 会为每个用例的
+ * 每次重复额外跑一遍"带 profiler 的 run"：先用正常 run 计时，再在同一个重复内跑一遍
+ * 被 AfterSetupStart()/BeforeTeardownStop() 包住的 run。本适配器在这两个边界启停
+ * mc::profiler 的 Perfetto 后端，使每次重复的 profile run 输出一个独立的
+ * .perfetto-trace 文件。
  *
- * 注意：google/benchmark 的 ProfilerManager 语义是"额外跑一遍带 profiler 的
- * 基准"（如果启用 ProfilerManager 感知的流程），但当前版本（1.9.x）的默认
- * 实现是在每次重复的 setup/teardown 边界都回调本适配器——因此适配器内部
- * 按文件名递增生成 trace 文件，同一名义用例的多次重复会各自产生独立文件
- * （后缀 .rep<N>），避免互相覆盖。
+ * trace 文件命名：<outputDir>/<benchmarkName>.perfetto-trace，同一用例的第 N（N≥2）次
+ * 重复追加 .rep<N> 后缀；benchmarkName 中的 '/'、'\\' 替换为 '_'
+ * （形如 chunk_generation_threads=4_batch=16）。
  *
- * trace 文件命名：<outputDir>/<benchmarkName>.perfetto-trace
- * （benchmarkName 形如 chunk_generation/threads=4，其中 '/' 替换为 '_'。）
- *
- * 已知局限（TODO）：AfterSetupStart 回调不携带用例名，当前用例名依赖用例侧
- * 在循环首行调用 PerfettoProfilerAdapter::setCaseName 显式设置；未设置的用例
- * trace 文件名为 unknown.perfetto-trace。后续可改为经 benchmark::State::name()
- * 在用例函数体内设置。
+ * 已知局限（TODO）：AfterSetupStart 回调不携带用例名，当前用例名依赖用例侧在函数体
+ * 首行调用 PerfettoProfilerAdapter::setCaseName 显式设置（正常 run 先于 profile run，
+ * 因此钩子触发时名字已就绪）；未设置的用例 trace 文件名为 unknown。
  */
 class PerfettoProfilerAdapter final : public ::benchmark::ProfilerManager {
 public:
@@ -73,6 +68,8 @@ private:
     /// 当前运行的用例名（AfterSetupStart 不携带用例名，由用例侧经 setCaseName 设置；
     /// 未设置时用 "unknown"）。
     static std::string s_currentCaseName;
+    /// 当前用例已开始的 profile run 计数（每个重复自增，用于 .rep<N> 后缀），
+    /// 用例名变化时由 setCaseName 归零。
     static u32 s_repeatIndex;
 };
 

@@ -41,8 +41,9 @@ benchmark/
 
 - `serverInitializeShell`：服务端带 `--benchmark-exit-after-shell-init`，子系统初始化 + 网络监听就绪即退出
 - `serverInitializeWorld`：服务端带 `--benchmark-exit-after-world-init`，再加世界创建 + 出生区域（`SPAWN_CHUNK_RADIUS`）区块全部生成 FULL 后退出
-- 每次启动使用全新临时世界目录（`$TMPDIR/mc_benchmark_server_init/<case>_<n>`，内含空配置指定独立 worldName 与随机端口），退出后删除，保证冷启动口径一致
+- 每次启动使用全新临时世界目录（`$TMPDIR/mc_benchmark_server_init/<case>_<n>`，内含空配置指定独立 worldName 与随机端口），成功退出后删除，保证冷启动口径一致
 - 被测服务端进程显式传 `--profiler_enabled=false`，trace 只录基准进程侧
+- 被测进程的 stdout/stderr 重定向到 `<临时世界目录>/server_console.log`（两个平台一致）：非零退出时回显日志头 80 行 + 尾 120 行（超长中间省略）**并保留该临时世界目录**供事后排查；成功退出时静默删除
 - 依赖：须先构建 `minecraft-server`（路径 `build/bin/RelWithDebInfo/minecraft-server` 硬编码，相对仓库根目录运行）
 
 ## 构建与运行
@@ -66,7 +67,9 @@ cmake --build --preset macos-relwithdebinfo
 每次运行输出到 `benchmark_results/yyyy-MM-dd_HH-mm-ss/`（已 gitignore）：
 
 - `results.json`：全部用例的 JSON 结果（含聚合统计与内存指标）
-- `<case>.perfetto-trace`：每用例一个 trace 文件（ui.perfetto.dev 分析）；同一用例多次重复为 `<case>.rep2.perfetto-trace` 等
+- `<case>.perfetto-trace`：每个用例的**每次重复**一个 trace 文件（ui.perfetto.dev 分析）；同一用例第 N（N≥2）次重复为 `<case>.rep2.perfetto-trace`、`.rep3`……命名主干由用例经 `PerfettoProfilerAdapter::setCaseName` 设置（`/` 替换为 `_`）
+
+> 注册了 `ProfilerManager` 后，google/benchmark 会为每次重复**额外多跑一遍带 profiler 的 run**（`benchmark.h` 的 ProfilerManager 注释）：先正常 run 计时，再跑一遍被 `AfterSetupStart`/`BeforeTeardownStop` 包住的 run，trace 记录的是后者。因此 `serverInitialize*` 这类进程启动用例的**墙钟耗时约为计时值之和的两倍**（每次重复启动两个服务端进程），统计值本身不受影响。
 
 ### 内存指标
 
@@ -110,9 +113,15 @@ google/benchmark 经 libpfm4 支持 `--benchmark_perf_counters=CYCLES,INSTRUCTIO
 
 ### 被测服务端的启动参数必须两平台一致（Windows 分支曾漏传 `--config`）
 
-`serverInitialize*` 依赖 `--config <临时目录>/server_options.json` 让被测服务端把游戏目录推导到临时目录内（`saves/<worldName>`，冷启动隔离），并显式传 `--profiler_enabled=false`。gflags 遇到**未定义**的 flag 会直接 `exit(1)`：曾出现 Windows 分支只传 `--world-name`（服务端无此 flag）而漏传 `--config`，表现为两个用例稳定报 `server exited with code 1`。被测进程 stdout/stderr 在 Windows 上随 `CREATE_NO_WINDOW` 进入隐藏控制台，gflags 的原始报错不会出现在基准输出中，排查时须手动用同样的参数直接跑一次 `minecraft-server`。
+`serverInitialize*` 依赖 `--config <临时目录>/server_options.json` 让被测服务端把游戏目录推导到临时目录内（`saves/<worldName>`，冷启动隔离），并显式传 `--profiler_enabled=false`。gflags 遇到**未定义**的 flag 会直接 `exit(1)`：曾出现 Windows 分支只传 `--world-name`（服务端无此 flag）而漏传 `--config`，表现为两个用例稳定报 `server exited with code 1`。被测进程日志现已重定向到 `<临时世界目录>/server_console.log` 并在失败时回显（见上文案），因此这类 gflags 原始报错会直接出现在基准输出中。
 
 Windows 侧的命令行必须以宽字符拼装：`std::filesystem::path::string()` 返回的是 **ANSI 代码页**编码（不是 UTF-8），含非 ASCII 的临时目录路径经窄字符串中转会失真（曾导致被测进程拿到错误配置路径、退出码 1），应直接用 `path::wstring()` 拼 `CreateProcessW` 的命令行。被测服务端自身仍是窄字符 `main()`（gflags 解析 `char** argv`），超出当前 ANSI 代码页的字符仍无法传递——需要完全 Unicode 支持时须改 `wmain`/UTF-8 argv。新增或调整用例参数时，POSIX 的 `execl` 参数列表与 Windows 的 `CreateProcessW` 命令行必须同步。
+
+### trace 输出路径只能在 initialize 时确定（ProfilerManager 是进程级单例）
+
+`mc::profiler::ProfilerManager` 的 `initialize()` 是一次性的（第二次调用直接 `Already initialized, skipping`），而 Perfetto 的 `Tracing::Initialize` 本身就是进程级初始化。因此需要"每个用例/每次重复一个 trace 文件"的调用方**不能**靠重复 `initialize()` 换 `outputPath`——那样所有用例都会写进首个用例的文件、互相覆盖（表现为整个进程只落一个 trace，且内容是最后一个用例的）。正确做法是 `setOutputPath()` 在会话之间切换路径（`outputPath` 只在 `stopTracing()` 落盘时使用，不参与 session 创建），见 `PerfettoProfilerAdapter::AfterSetupStart`。
+
+`PerfettoProfilerAdapter::setCaseName` 也只在**用例名变化**时重置重复计数：google/benchmark 的每个重复先跑正常 run（用例函数体首行设置名字）再跑 profile run，若每次调用都重置计数，重复序号永远是 1，多次重复同样会互相覆盖。
 
 ### benchmark 名大小写
 

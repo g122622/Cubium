@@ -30,7 +30,9 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 | 文件 | 内容 |
 |---|---|
 | `results.json` | 全部结果，含 mean/median/stddev 聚合与内存指标 |
-| `<case>.perfetto-trace` | 每用例一个 trace（ui.perfetto.dev 分析火焰图） |
+| `<case>.perfetto-trace` | 每个用例的每次重复一个 trace（ui.perfetto.dev 分析火焰图）；第 N（N≥2）次重复为 `<case>.repN.perfetto-trace` |
+
+> 注册了 `ProfilerManager` 后，google/benchmark 会为每次重复额外多跑一遍"带 profiler 的 run"（trace 记录的是这一遍）。因此进程启动类用例（`serverInitialize*`）的墙钟耗时约为计时值之和的两倍，`_mean/_median` 统计值不受影响。
 
 命令行 flag 为 google/benchmark 原生（`--benchmark_filter/--benchmark_min_time/--benchmark_repetitions/--benchmark_out` 等），完整列表见 `--help`。
 
@@ -66,7 +68,7 @@ TLS 方块光引擎批量更新：每迭代对一个 16×16 截面层做 256 个
 - **Shell**：`--benchmark-exit-after-shell-init`——子系统初始化 + 网络监听就绪即退出（实测 macOS ~2.05s）
 - **World**：`--benchmark-exit-after-world-init`——再加世界创建 + 出生区域（`SPAWN_CHUNK_RADIUS`）全部生成 FULL（实测 macOS ~12.3s）
 
-每次启动使用全新临时世界目录（`$TMPDIR/mc_benchmark_server_init/`，退出即删），保证冷启动口径；被测进程 `--profiler_enabled=false`，trace 只录基准进程侧。**须先构建 `minecraft-server`。**
+每次启动使用全新临时世界目录（`$TMPDIR/mc_benchmark_server_init/`），保证冷启动口径；被测进程 `--profiler_enabled=false`，trace 只录基准进程侧；被测进程 stdout/stderr 写入该临时目录下的 `server_console.log`，非零退出时回显日志头尾（头 80 行 + 尾 120 行）并保留目录供排查。**须先构建 `minecraft-server`。**
 
 ## 指标解读
 
