@@ -152,3 +152,17 @@ PvP 保护机制的单元测试位于：
 | `tests/common/entity/player/PlayerSpectatorTest.cpp` | Player 旁观者模式状态、noclip、camera 清除、旁观攻击（13 个测试） |
 
 > 旧的 `tests/network/SetCameraPacketTest.cpp` 随 `SetCameraPacket` 类删除已移除；SetCamera 现走 IR `ir::play::SetCamera`，序列化由 IR codec 统一覆盖。
+
+### 13. 客户端 tick 运动量（knownMovement）由 client_tick_end 收口
+
+`ServerPlayer::m_lastKnownClientMovement` 是"客户端上报的每 tick 位移"，只由两条路径写入：
+`MovementHandler::handlePlayerMovePacket`（玩家移动包被采纳后）与 `handleMoveVehiclePacket`（自控载具位移），
+两者都经 `recordClientMovement()`；收口只发生在 `MovementHandler::handleClientTickEndPacket` → `endClientTick()`。
+
+**坑**：不要在 `ServerPlayer::tick()` 里清零该字段。客户端站着不动时**不发**移动包，服务端要等 `client_tick_end`
+才知道"本 tick 没有上报"，此时才清零；若在服务端 tick 里盲目清零，会把"玩家本 tick 的移动"提前抹掉。
+被反飞行闸拒绝（回弹）的移动包不记账，否则会把外挂位移当成合法运动量。
+
+**用途**：横扫攻击的"几乎静止"判定（`Player::isSweepStationary()`）。该判定必须用客户端上报位移而非服务端自身
+速度——玩家位置由客户端权威申报，服务端速度不含其行走。无客户端连接的实体（`SimulatedPlayer`）覆写
+`getKnownMovement()` 回退到自身速度。

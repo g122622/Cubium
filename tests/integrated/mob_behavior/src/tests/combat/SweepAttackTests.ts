@@ -3,9 +3,11 @@
 // 验证 Cubium Player::attack 横扫攻击触发条件对齐 MC Java 1.21.11 Player.isSweepAttack
 // 与 doSweepAttack。
 //
-// 横扫触发条件（对齐 vanilla Player.java:1042-1048 isSweepAttack）：
-//   满冷却（progress>0.9）&& 非暴击 && 非疾跑击退 && 在地面 && 几乎静止（distanceWalked<aiMoveSpeed）
-//   && 主手持剑（ItemTags.SWORDS）。
+// 横扫触发条件（对齐 vanilla Player.isSweepAttack）：
+//   满冷却（progress>0.9）&& 非暴击 && 非疾跑击退 && 在地面 && 几乎静止 && 主手持剑（ItemTags.SWORDS）。
+//   「几乎静止」= 已知水平位移² < (移动速度属性 × 2.5)²（Player::isSweepStationary）。运动量来源：
+//   服务端玩家取客户端上报的每 tick 位移（client_tick_end 收口）；SimulatedPlayer 无客户端连接，
+//   覆写为自身速度（每 tick 位移）。
 //   【关键】vanilla 不要求 SweepingEdge 附魔——无附魔剑满冷却站立攻击仍横扫周围生物。
 //
 // 横扫伤害公式（对齐 vanilla Player.java:1143,1151 doSweepAttack）：
@@ -27,7 +29,7 @@
 // 横扫范围（对齐 vanilla doSweepAttack:1145）：victimA 碰撞箱 expand(1, 0.25, 1) 内 + 距 attacker
 // ≤3 格（distanceSqTo < 9）。victimB 置于 victimA 旁 1 格（横扫范围内）且距 attacker √5≈2.24 格（<3）。
 //
-// 几乎静止条件：SimulatedPlayer spawn 后不施加移动指令，distanceWalkedDelta≈0 < aiMoveSpeed（0.1），
+// 几乎静止条件：SimulatedPlayer spawn 后不施加移动指令，自身速度≈0（阈值 0.25，见 isSweepStationary），
 // 满足横扫的"几乎静止"要求。attackEntity 不改变玩家位置（近战无位移），故 tick 30 攻击时玩家静止。
 //
 // 无敌帧规避：victimA 被直接攻击（满冷却 7.0 伤害），victimB 被横扫（1.0 伤害）。两者是不同实体，
@@ -79,8 +81,9 @@ function equipWeapon(player: any, itemId: string): void {
 //   若横扫门控未移除（仍要求 SweepingEdge 附魔），victimB 不掉血 HP=20，HP∈[18,20] 满足但需进一步
 //   确认 victimB 确实掉血——故断言 victimB HP≤19（掉≥1），排除"victimB 未受横扫"假通过。
 //
-// Ref: Player.cpp:2750-2755（canSweep 条件，主手剑+满冷却+非暴击+非疾跑+在地面+几乎静止）
-// Ref: Player.cpp:2759（sweepDamage = (1.0 + sweepRatio*damage) * cooldownProgress，无附魔=1.0）
+// Ref: Player.cpp（canSweep 条件：主手剑+满冷却+非暴击+非疾跑+在地面+几乎静止）与
+//      Player::isSweepStationary（几乎静止判定，依据已知运动量）
+// Ref: Player.cpp（sweepDamage = (1.0 + sweepRatio*damage) * cooldownProgress，无附魔=1.0）
 function swordSweepsNearbyMobWithoutEnchantment(test: Test): void {
     (test as any).killAllEntities();
     const victimA = test.spawn("minecraft:villager", VICTIM_A_POS);

@@ -2685,6 +2685,19 @@ f32 Player::getItemSwapScale(f32 adjustTicks) const
     return std::min(adjustedTicks / cooldownPeriod, 1.0f);
 }
 
+bool Player::isSweepStationary() const
+{
+    // vanilla Player.isSweepAttack 的静止项：已知水平位移² < (移动速度属性 × 2.5)²。
+    // 运动量取"客户端上报的每 tick 位移"（服务端玩家由 client_tick_end 收口），
+    // 而非服务端自行模拟出的实体速度——玩家位置由客户端权威申报，服务端速度不含其行走。
+    const Vector3 knownMovement = getKnownMovement();
+    const f64 horizontalMovementSqr = static_cast<f64>(knownMovement.x) * static_cast<f64>(knownMovement.x) +
+        static_cast<f64>(knownMovement.z) * static_cast<f64>(knownMovement.z);
+    const f64 sweepSpeed =
+        static_cast<f64>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.1)) * 2.5;
+    return horizontalMovementSqr < sweepSpeed * sweepSpeed;
+}
+
 void Player::attack(Entity& target)
 {
     // 旁观者模式下攻击实体等同于设置旁观目标
@@ -2851,24 +2864,14 @@ void Player::attack(Entity& target)
         causeExtraKnockback(target, knockbackStrength, preHurtVelocity);
 
         // 17. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
-        // 对齐 vanilla Player.isSweepAttack:1042-1048：横扫触发条件为主手持剑（ItemTags.SWORDS）+
+        // 对齐 vanilla Player.isSweepAttack：横扫触发条件为主手持剑（ItemTags.SWORDS）+
         //   满冷却 + 非暴击 + 非疾跑击退 + 在地面 + 几乎静止，不要求横扫之刃附魔。SweepingEdge 仅
         //   提升横扫伤害比例，不影响是否触发。此前 Cubium 误加 if (sweepRatio > 0.0f) 门控，致无附魔
         //   剑不横扫（vanilla 无附魔剑满冷却站立攻击仍横扫周围生物，横扫伤害=1.0），偏离 vanilla。
-        // 几乎静止判定（对齐 vanilla isSweepAttack:1044-1046）：
-        //   vanilla: d0 = getKnownMovement().horizontalDistanceSqr()  // 玩家水平速度向量平方
-        //            d1 = getSpeed() * 2.5                              // 移动速度属性 × 2.5
-        //            条件: d0 < square(d1)  即 水平速度² < (移动速度×2.5)²
-        //   getKnownMovement 对无乘客玩家 = getDeltaMovement（实体速度向量，玩家输入产生），静止时≈0。
-        //   此前 Cubium 误用 distanceWalkedDelta（累计行走距离差，含物理 settling）< aiMoveSpeed（速度），
-        //   量纲不匹配且 SimulatedPlayer 静止时 distanceWalkedDelta=0、aiMoveSpeed=0.1 量纲错，致横扫
-        //   触发条件失真。改用 velocity() 水平分量平方 < (MOVEMENT_SPEED属性×2.5)² 对齐 vanilla 语义。
-        const Vector3 vel = velocity();
-        f64 horizontalSpeedSqr = static_cast<f64>(vel.x * vel.x + vel.z * vel.z);
-        f64 moveSpeed = static_cast<f64>(getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.1));
-        f64 sweepSpeedThreshold = moveSpeed * 2.5;
-        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround() &&
-            (horizontalSpeedSqr < sweepSpeedThreshold * sweepSpeedThreshold);
+        // 几乎静止判定见 isSweepStationary()：运动量取客户端的每 tick 位移上报
+        // （服务端玩家由 client_tick_end 收口），与 vanilla Player.getKnownMovement 同源，
+        // 而非服务端自行模拟出的实体速度。
+        bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround() && isSweepStationary();
         if (canSweep) {
             // 检查主手是否持有剑
             const item::tool::SwordItem* sword = dynamic_cast<const item::tool::SwordItem*>(mainHand.getItem());

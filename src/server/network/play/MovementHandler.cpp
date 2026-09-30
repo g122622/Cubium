@@ -106,6 +106,10 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
 
     // 保存旧位置用于村庄进入检测
     BlockPos prevPos(static_cast<i32>(player->x), static_cast<i32>(player->y), static_cast<i32>(player->z));
+    // 保存旧坐标（f64 精度）用于客户端 tick 运动量记账：vanilla 用采纳前后坐标之差作为已知运动量。
+    const f64 prevX = player->x;
+    const f64 prevY = player->y;
+    const f64 prevZ = player->z;
 
     // ===== 反飞行阈值校验（moved-too-quickly / moved-wrongly 双闸） =====
     // 对齐 Java ServerGamePacketListenerImpl.handleMovePlayer。仅对含位置变更的包生效；
@@ -205,7 +209,7 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
 
     auto* world = m_server.getPlayerWorld(playerId);
     if (world) {
-        world->entityManager().forEachEntity([playerId, player](Entity* entity) {
+        world->entityManager().forEachEntity([playerId, player, prevX, prevY, prevZ](Entity* entity) {
             auto* playerEntity = dynamic_cast<Player*>(entity);
             if (playerEntity == nullptr || playerEntity->playerId() != playerId) {
                 return true;
@@ -214,6 +218,15 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
             playerEntity->setPosition(player->x, player->y, player->z);
             playerEntity->setRotation(player->yaw, player->pitch);
             playerEntity->setOnGround(player->onGround);
+
+            // 客户端 tick 运动量记账（vanilla handlePlayerKnownMovement）：用本包被采纳后的位移。
+            // 被反飞行闸拒绝的包已在上面提前 return，不会走到这里；纯朝向/着地包位移为零，
+            // 同样算作"本 tick 收到了客户端上报"（vanilla 也走同一条 handlePlayerKnownMovement）。
+            if (auto* serverPlayer = playerEntity->asServerPlayer(); serverPlayer != nullptr) {
+                serverPlayer->recordClientMovement(Vector3(static_cast<f32>(player->x - prevX),
+                    static_cast<f32>(player->y - prevY),
+                    static_cast<f32>(player->z - prevZ)));
+            }
             return false;
         });
     }
@@ -457,9 +470,20 @@ void MovementHandler::handleMoveVehiclePacket(PlayerId playerId, const mc::netwo
         serverPlayer->advanceVehicleLastGood(evt->x, evt->y, evt->z);
     }
 
+    // 客户端 tick 运动量记账用的载具位移（vanilla handleMoveVehicle：absSnapTo 前后坐标之差）。
+    const Vector3 vehicleDelta(static_cast<f32>(evt->x) - vehicle->position().x,
+        static_cast<f32>(evt->y) - vehicle->position().y,
+        static_cast<f32>(evt->z) - vehicle->position().z);
+
     vehicle->setPosition(static_cast<f32>(evt->x), static_cast<f32>(evt->y), static_cast<f32>(evt->z));
     vehicle->setRotation(evt->yRot, evt->xRot);
     vehicle->setOnGround(evt->onGround);
+
+    // 客户端 tick 运动量记账：骑乘自控载具时以载具位移记账（vanilla 同样写玩家的已知运动量）。
+    // 上面的 moved-too-quickly 分支已提前 return，不记账。
+    if (auto* serverPlayer = playerEntity->asServerPlayer(); serverPlayer != nullptr) {
+        serverPlayer->recordClientMovement(vehicleDelta);
+    }
 
     // 回送校正：服务端权威位置回传客户端，使客户端载具与服务端对齐
     // （对齐 MC Java ServerGamePacketListenerImpl.handleMoveVehicle 发 ClientboundMoveVehicle）。
@@ -521,16 +545,23 @@ void MovementHandler::handleClientTickEndPacket(PlayerId playerId, const mc::net
         return;
     }
 
-    // TODO(client_tick_end): 客户端 tick 边界语义尚未落地。完整语义是——本 tick 内**未**收到
-    // 含位置的移动包（move_player_* / move_vehicle）时，把"客户端已知运动量"归零；无论是否
-    // 归零都把本 tick 的收到标记复位。落地前需先补齐三样东西：
-    //   1) ServerPlayer 侧的 knownMovement（"最近一次收到的客户端运动量"）与
-    //      receivedMovementThisTick 标记；
-    //   2) handlePlayerMovePacket / handleMoveVehiclePacket 在真正采纳位置后写入 knownMovement
-    //      并置位标记（只有 StatusOnly/Rot 这类不含位置的包不算）；
-    //   3) 本包在 tick 末尾收口：标记为假则清零运动量，随后复位标记。
-    // 未落地前，以下玩法取不到正确的客户端运动量：横扫之刃的扫击判定（按水平位移平方与
-    // 移速比较）、重锤下落攻击的伤害计算（按已知运动量）、拴绳/弹射物/实体谓词的运动量取用。
+    // 客户端 tick 边界：本 tick 一次移动上报都没收到（玩家站着没动，客户端不发移动包）时，
+    // 把"客户端已知运动量"清零；无论是否清零都复位本 tick 的收到标记。
+    // 该运动量是横扫攻击"几乎静止"判定的输入（Player::isSweepStationary）：玩家位置由客户端
+    // 权威申报，服务端瞬时速度无法反映其行走，只能靠这条上报链。
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+
+    auto* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        return;
+    }
+
+    if (auto* serverPlayer = playerEntity->asServerPlayer(); serverPlayer != nullptr) {
+        serverPlayer->endClientTick();
+    }
 }
 
 void MovementHandler::updateEntityTrackingForPlayer(PlayerId playerId, f64 x, f64 y, f64 z)

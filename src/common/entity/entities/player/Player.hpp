@@ -679,6 +679,19 @@ public:
     [[nodiscard]] virtual class ServerPlayer* asServerPlayer() { return nullptr; }
     [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const { return nullptr; }
 
+    // ========== 客户端已知运动量 ==========
+
+    /**
+     * @brief 客户端已知运动量（每 tick 位移向量）
+     *
+     * 服务端玩家由客户端上报的移动包驱动：ServerPlayer 覆写为最近一个客户端 tick 内被采纳的
+     * 位移，由 client_tick_end 收口（该 tick 无任何移动上报则清零）；其余实体回退到自身速度
+     * ——速度本身就是每 tick 位移，量纲与客户端上报一致。
+     *
+     * 消费方：横扫攻击的"几乎静止"判定（见 isSweepStationary）。
+     */
+    [[nodiscard]] virtual Vector3 getKnownMovement() const { return velocity(); }
+
     /**
      * @brief 向玩家客户端发送速度同步包
      *
@@ -805,6 +818,14 @@ public:
     // 状态
     [[nodiscard]] bool isOnGround() const { return m_builtIn.physicsState->m_onGround; }
     [[nodiscard]] bool isSprinting() const { return m_isSprinting; }
+
+    /**
+     * @brief 横扫攻击的"几乎静止"判定
+     *
+     * 判定条件为「客户端已知水平位移² < (移动速度属性 × 2.5)²」。运动量取 getKnownMovement()：
+     * 服务端玩家是客户端上报的每 tick 位移（由 client_tick_end 收口），其余实体回退到速度。
+     */
+    [[nodiscard]] bool isSweepStationary() const;
 
     /**
      * @brief 玩家是否处于潜行（蹲伏）状态

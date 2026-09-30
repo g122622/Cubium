@@ -237,8 +237,8 @@ export const blockInteractionCases: readonly CaseDefinition[] = [
         opPlayers: false,
         skipReason: null,
         async run({ bot, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
-            // mineflayer 会发送一批服务端尚未登记的上行包（player_loaded / swing /
-            // client_tick_end 等）。服务端对未登记包的处理是静默丢弃——既不断连也不报错。
+            // mineflayer 会发送一批服务端尚未登记的上行包（player_loaded / swing 等）。
+            // 服务端对未登记包的处理是丢弃该包并留一条 warn——既不断连也不把包当作协议错误。
             // 本用例是那个行为的回归保护：若将来有人误把未登记包当成协议错误处理，这里会红。
             // 这些包的 id 与已登记集合零交集，不会误解析成别的包。
             const x = spawnX - 2;

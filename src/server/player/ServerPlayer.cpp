@@ -1349,6 +1349,34 @@ void ServerPlayer::attack(Entity& target)
     Player::attack(target);
 }
 
+// ============================================================================
+// 客户端 tick 运动量记账
+// ============================================================================
+
+void ServerPlayer::recordClientMovement(const Vector3& movement)
+{
+    // 运动量显著（长度平方 > 1e-5）时还需重置"最后动作时间"，供空闲踢出
+    // （player-idle-timeout）判定玩家是否真的在操作。
+    // TODO(player_idle_timeout): IServer::playerIdleTimeoutMinutes 已存在但空闲踢出逻辑尚未实现，
+    // 该逻辑落地时须在此处按上述阈值同步推进最后动作时间戳。
+    m_lastKnownClientMovement = movement;
+    m_receivedMovementThisTick = true;
+}
+
+void ServerPlayer::endClientTick()
+{
+    // 本 tick 一次移动上报都没有：玩家相对服务端是静止的，运动量清零。
+    if (!m_receivedMovementThisTick) {
+        m_lastKnownClientMovement = Vector3(0.0f, 0.0f, 0.0f);
+    }
+    m_receivedMovementThisTick = false;
+}
+
+Vector3 ServerPlayer::getKnownMovement() const
+{
+    return m_lastKnownClientMovement;
+}
+
 // ========== 旁观者跟踪系统实现 ==========
 
 void ServerPlayer::tick()

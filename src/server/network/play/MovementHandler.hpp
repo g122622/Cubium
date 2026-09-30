@@ -58,7 +58,7 @@ public:
     /// PaddleBoat：划桨状态
     void handlePaddleBoatPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
-    /// ClientTickEnd：客户端 tick 结束边界（空包）；消费端语义未落地，见 .cpp 内 TODO
+    /// ClientTickEnd：客户端 tick 结束边界（空包）；本 tick 无移动上报则清零客户端已知运动量
     void handleClientTickEndPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
     /// 刷新指定玩家的实体追踪范围（移动/传送确认后调用；门面亦对外转发本方法）

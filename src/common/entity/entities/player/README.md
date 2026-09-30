@@ -83,8 +83,10 @@
         / fly speed。
     - ** 挖掘速度公式**：最终挖掘速度 =
         基础速度 × 效率附魔加成 × 急迫效果乘数 × 挖掘疲劳乘数 × 水下惩罚 × 空中惩罚。各乘数叠加顺序影响结果精度。 -
-        **攻击冷却判定 * *：横扫攻击需要玩家 "几乎静止"（`distanceWalkedModified - prevDistanceWalkedModified <
-    aiMoveSpeed()`），否则不会触发横扫效果。 - **权限等级与游戏模式分离 * *：`m_permissionLevel`（0 -
+        **攻击冷却判定 * *：横扫攻击要求玩家 "几乎静止"，判定依据是**客户端已知运动量**（`Player::isSweepStationary()`：
+    已知水平位移² < (移动速度属性 × 2.5)²），而非服务端自行模拟出的实体速度——玩家位置由客户端权威申报。
+    服务端玩家的运动量来自客户端上报的每 tick 位移（`ServerPlayer::recordClientMovement`），由 `client_tick_end`
+    收口（`ServerPlayer::endClientTick`）；无客户端连接的实体（如 SimulatedPlayer）回退到自身速度。 - **权限等级与游戏模式分离 * *：`m_permissionLevel`（0 -
         4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel
     >= 2`。 - ** 权限等级网络同步**：服务端 `/ op`/`/ deop` 后会通过 `ir::play::EntityEvent`（携带 `network::EntityStatus::permissionLevel(level)`，status byte = 24 +
             level）通知客户端权限等级变更，客户端收到后在 `ClientPlayVisitor` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。 -

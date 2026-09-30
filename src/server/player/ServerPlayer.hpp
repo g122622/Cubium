@@ -784,6 +784,39 @@ public:
         m_firstGoodZ = m_lastGoodZ;
     }
 
+    // ========== 客户端 tick 运动量（跨 tick 状态） ==========
+    // 玩家位置由客户端权威申报，故"玩家是否在移动"只能由客户端上报的每 tick 位移判定。
+    // 移动包被采纳后经 recordClientMovement 记账，客户端 tick 结束包（client_tick_end）
+    // 经 endClientTick 收口：本 tick 一次上报都没有时，运动量清零。
+
+    /**
+     * @brief 记录本 tick 收到的客户端运动量（移动包被采纳后调用）
+     *
+     * 只有被采纳的移动包才记账：被反飞行闸拒绝（回弹）的包不记账，与服务端不采纳该位置的
+     * 语义一致。纯朝向/着地包位移为零，同样算作"本 tick 有上报"。
+     *
+     * @param movement 本包带来的位移（新位置 - 旧位置）
+     */
+    void recordClientMovement(const Vector3& movement);
+
+    /**
+     * @brief 客户端 tick 收口（收到 client_tick_end 时调用）
+     *
+     * 本 tick 未收到任何移动上报 → 运动量清零（玩家静止）；随后复位"本 tick 已上报"标记。
+     */
+    void endClientTick();
+
+    /**
+     * @brief 客户端已知运动量（覆写 Player 版本）
+     *
+     * 返回最近一个客户端 tick 内被采纳的位移；骑乘自控载具时由 move_vehicle 写入载具位移。
+     *
+     * TODO(known_movement): vanilla 在"骑乘**他控**载具"时改取载具的已知运动量
+     * （ServerPlayer.getKnownMovement 的载具分支）。本项目乘客位暂仍返回本字段，
+     * 待载具控制者模型（Entity::getControllingPassenger 返回实体而非 id）完善后补齐。
+     */
+    [[nodiscard]] Vector3 getKnownMovement() const override;
+
 private:
     /**
      * @brief 发送睡眠包给客户端
@@ -871,6 +904,11 @@ private:
     f64 m_vehicleLastGoodZ = 0.0;
     bool m_vehicleAntiFlightInited = false;
     EntityInstanceId m_lastVehicleId = INVALID_ENTITY_ID;
+
+    // 客户端已知运动量（对齐 Java ServerPlayer.lastKnownClientMovement）与"本 tick 是否收到
+    // 移动上报"标记（对齐 Java ServerGamePacketListenerImpl.receivedMovementThisTick）。
+    Vector3 m_lastKnownClientMovement{0.0f, 0.0f, 0.0f};
+    bool m_receivedMovementThisTick = false;
 
     // 方块变更 ACK 累积序列号（对齐 Java ServerGamePacketListenerImpl.ackBlockChangesUpTo，
     // 字段定义于该类 :234，取 max 累积、每 tick 末批量发送一个 ClientboundBlockChangedAckPacket）。

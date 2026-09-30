@@ -21,30 +21,43 @@
  *
  */
 
+// 横扫攻击"几乎静止"判定（Player::isSweepStationary）测试。
+//
+// 判定条件（vanilla Player.isSweepAttack 的静止项）：已知水平位移² < (移动速度属性 × 2.5)²，
+// 玩家移动速度为 0.1 时阈值 = 0.25²  = 0.0625。
+// 运动量来源分两条路径：
+//   - 客户端驱动的服务端玩家：取客户端上报的每 tick 位移（ServerPlayer 覆写 getKnownMovement，
+//     由 client_tick_end 收口；本 tick 无上报则清零）——服务端自身速度不参与判定；
+//   - 其余实体（无客户端连接，如 SimulatedPlayer）：回退到自身速度（每 tick 位移，量纲一致）。
+//
+// 注意：本文件替代了此前的 1.16.5 版 distanceWalkedModified < aiMoveSpeed 条件测试——该条件
+// 已不是项目的实现（其量纲不匹配，且在服务端玩家位置上根本取不到客户端行走）。
+
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "entity/core/LivingEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/test/simulated/SimulatedPlayer.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 
 using namespace mc;
 
-/**
- * @brief 横扫攻击静止检测条件测试
- *
- * MC 1.16.5 中横扫攻击（sweeping attack）触发条件：
- * - 冷却 > 90%
- * - 非暴击
- * - 非疾跑击退
- * - 在地面上
- * - 玩家几乎静止（distanceWalkedModified - prevDistanceWalkedModified < aiMoveSpeed）
- *
- * 参考 MC 1.16.5 PlayerEntity.attackTargetEntityWithCurrentItem() 行 1147-1148
- */
+namespace {
+
+/// 默认移动速度 0.1 对应的横扫阈值：(0.1 × 2.5)² = 0.0625。
+/// 取 0.2 / 0.3 这类远离阈值的位移做断言，避免 f32/f64 在边界上的精度抖动。
+constexpr f32 kBelowThresholdDisplacement = 0.2f; // 0.04 < 0.0625 → 几乎静止
+constexpr f32 kAboveThresholdDisplacement = 0.3f; // 0.09 > 0.0625 → 不算静止
+
+} // namespace
+
 class SweepAttackConditionTest : public ::testing::Test {
 protected:
     void SetUp() override
@@ -53,305 +66,155 @@ protected:
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
         item::enchant::EnchantmentRegistry::initialize();
-
-        m_player =
-            std::make_unique<Player>(static_cast<EntityInstanceId>(1), "TestPlayer", mc::test::testEcsRegistry());
     }
 
-    void TearDown() override
-    {
-        m_player.reset();
-        item::enchant::EnchantmentRegistry::clear();
-    }
-
-    std::unique_ptr<Player> m_player;
+    void TearDown() override { item::enchant::EnchantmentRegistry::clear(); }
 };
 
 // ============================================================================
-// distanceWalkedModified 基础测试
+// 基类 Player：运动量回退到实体速度
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, MoveDistanceWalked_InitialValue_IsZero)
+TEST_F(SweepAttackConditionTest, BasePlayer_InitialVelocityIsZero_IsStationary)
 {
-    // 初始状态下移动距离应为 0
-    EXPECT_FLOAT_EQ(m_player->moveDistanceWalked(), 0.0f);
-    EXPECT_FLOAT_EQ(m_player->prevMoveDistanceWalked(), 0.0f);
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+
+    EXPECT_EQ(player.getKnownMovement(), Vector3(0.0f, 0.0f, 0.0f));
+    EXPECT_TRUE(player.isSweepStationary());
 }
 
-TEST_F(SweepAttackConditionTest, MoveDistanceWalked_AfterMovement_HasDelta)
+TEST_F(SweepAttackConditionTest, BasePlayer_MovingHorizontally_IsNotStationary)
 {
-    // 模拟移动后 distanceWalkedModified 应该增加
-    // 首先设置玩家位置并模拟一些移动
-    m_player->setPosition(0.0f, 64.0f, 0.0f);
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
 
-    // 通过调用 updateMoveDistance 来更新移动距离
-    // 在实际游戏中，这由 Player::tick() 调用
-    // 这里我们无法直接设置 m_moveDistanceWalked，但可以验证 getter 工作正常
+    player.setVelocity(kAboveThresholdDisplacement, 0.0f, 0.0f);
+    EXPECT_FALSE(player.isSweepStationary()) << "X 方向位移超过阈值不应判为几乎静止";
 
-    // 验证 getter 返回的值是有效的浮点数
-    f32 current = m_player->moveDistanceWalked();
-    f32 prev = m_player->prevMoveDistanceWalked();
-    EXPECT_FALSE(std::isnan(current));
-    EXPECT_FALSE(std::isnan(prev));
+    player.setVelocity(0.0f, 0.0f, kAboveThresholdDisplacement);
+    EXPECT_FALSE(player.isSweepStationary()) << "Z 方向位移同样计入水平位移";
 }
 
-// ============================================================================
-// aiMoveSpeed 测试
-// ============================================================================
-
-TEST_F(SweepAttackConditionTest, AiMoveSpeed_DefaultValue_IsValid)
+TEST_F(SweepAttackConditionTest, BasePlayer_SlowHorizontalMovement_IsStationary)
 {
-    // aiMoveSpeed() 继承自 LivingEntity，使用 m_landMovementFactor
-    // 默认值应该是有效的正浮点数
-    f32 speed = m_player->aiMoveSpeed();
-    EXPECT_GT(speed, 0.0f);
-    EXPECT_FALSE(std::isnan(speed));
-    EXPECT_FALSE(std::isinf(speed));
+    Player player(EntityInstanceId(3), "TestPlayer", mc::test::testEcsRegistry());
+
+    player.setVelocity(kBelowThresholdDisplacement, 0.0f, kBelowThresholdDisplacement);
+    // 0.2² + 0.2² = 0.08 > 0.0625：两轴叠加后超阈值，故分别构造单轴与对角两种场景。
+    EXPECT_FALSE(player.isSweepStationary()) << "两轴叠加位移超阈值时不应判为静止";
+
+    player.setVelocity(kBelowThresholdDisplacement, 0.0f, 0.0f);
+    EXPECT_TRUE(player.isSweepStationary()) << "单轴慢速位移仍在阈值内";
 }
 
-TEST_F(SweepAttackConditionTest, AiMoveSpeed_CanBeModified)
+TEST_F(SweepAttackConditionTest, BasePlayer_VerticalVelocity_IsIgnored)
 {
-    // 获取默认速度
-    f32 defaultSpeed = m_player->aiMoveSpeed();
+    Player player(EntityInstanceId(4), "TestPlayer", mc::test::testEcsRegistry());
 
-    // 设置新的速度
-    m_player->setAIMoveSpeed(0.2f);
-    EXPECT_FLOAT_EQ(m_player->aiMoveSpeed(), 0.2f);
-
-    // 设置另一个速度
-    m_player->setAIMoveSpeed(0.15f);
-    EXPECT_FLOAT_EQ(m_player->aiMoveSpeed(), 0.15f);
-
-    // 恢复默认值
-    m_player->setAIMoveSpeed(defaultSpeed);
-    EXPECT_FLOAT_EQ(m_player->aiMoveSpeed(), defaultSpeed);
+    // 判定只看水平位移：纯垂直速度（自由落体/跳跃）不影响横扫静止判定。
+    player.setVelocity(0.0f, 1.0f, 0.0f);
+    EXPECT_TRUE(player.isSweepStationary());
 }
 
 // ============================================================================
-// 横扫攻击静止检测条件边界测试
+// ServerPlayer：运动量取客户端上报的每 tick 位移
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_ExactlyEqualsAiMoveSpeed)
+TEST_F(SweepAttackConditionTest, ServerPlayer_NoClientReport_IsStationary)
 {
-    // 测试边界情况：distanceWalkedDelta == aiMoveSpeed
-    // MC 条件: distanceWalkedDelta < aiMoveSpeed，等于时不应触发
+    ServerPlayer player(EntityInstanceId(5), "ServerPlayer", mc::test::testEcsRegistry());
 
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 当 delta == aiSpeed 时，条件应为 false（因为 < 而非 <=）
-    f32 deltaExactlyEqual = aiSpeed;
-    bool shouldSweep = (deltaExactlyEqual < static_cast<f64>(aiSpeed));
-    EXPECT_FALSE(shouldSweep) << "当 distanceWalkedDelta == aiMoveSpeed 时，横扫攻击不应触发";
+    EXPECT_EQ(player.getKnownMovement(), Vector3(0.0f, 0.0f, 0.0f));
+    EXPECT_TRUE(player.isSweepStationary());
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyLessThanAiMoveSpeed)
+TEST_F(SweepAttackConditionTest, ServerPlayer_ClientReportedMovement_IsNotStationary)
 {
-    // 测试略小于的情况：distanceWalkedDelta < aiMoveSpeed
-    // 应该触发横扫攻击
+    ServerPlayer player(EntityInstanceId(6), "ServerPlayer", mc::test::testEcsRegistry());
 
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 略小于 aiSpeed
-    f32 deltaSlightlyLess = aiSpeed * 0.99f;
-    bool shouldSweep = (static_cast<f64>(deltaSlightlyLess) < static_cast<f64>(aiSpeed));
-    EXPECT_TRUE(shouldSweep) << "当 distanceWalkedDelta < aiMoveSpeed 时，横扫攻击应触发";
+    player.recordClientMovement(Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    EXPECT_EQ(player.getKnownMovement(), Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    EXPECT_FALSE(player.isSweepStationary());
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_SlightlyGreaterThanAiMoveSpeed)
+TEST_F(SweepAttackConditionTest, ServerPlayer_OwnVelocityIsNotUsedForSweep)
 {
-    // 测试略大于的情况：distanceWalkedDelta > aiMoveSpeed
-    // 不应触发横扫攻击
+    ServerPlayer player(EntityInstanceId(7), "ServerPlayer", mc::test::testEcsRegistry());
 
-    f32 aiSpeed = m_player->aiMoveSpeed();
+    // 服务端玩家的位置由客户端权威申报，服务端自身速度（击退/物理残留）不代表其在行走：
+    // 速度很大但客户端未上报位移时，仍应判为几乎静止。
+    player.setVelocity(kAboveThresholdDisplacement, 0.0f, 0.0f);
+    EXPECT_TRUE(player.isSweepStationary()) << "ServerPlayer 的判定必须用客户端上报运动量而非自身速度";
 
-    // 略大于 aiSpeed
-    f32 deltaSlightlyGreater = aiSpeed * 1.01f;
-    bool shouldSweep = (static_cast<f64>(deltaSlightlyGreater) < static_cast<f64>(aiSpeed));
-    EXPECT_FALSE(shouldSweep) << "当 distanceWalkedDelta > aiMoveSpeed 时，横扫攻击不应触发";
+    // 反之，客户端上报了位移时，即便自身速度为零也不算静止。
+    player.setVelocity(0.0f, 0.0f, 0.0f);
+    player.recordClientMovement(Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    EXPECT_FALSE(player.isSweepStationary());
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchLessThanAiMoveSpeed)
+TEST_F(SweepAttackConditionTest, ServerPlayer_ReportedMovementSurvivesClientTickEnd)
 {
-    // 测试远小于的情况（玩家静止）
-    // 应该触发横扫攻击
+    ServerPlayer player(EntityInstanceId(8), "ServerPlayer", mc::test::testEcsRegistry());
 
-    f32 aiSpeed = m_player->aiMoveSpeed();
+    player.recordClientMovement(Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    player.endClientTick(); // 本 tick 有上报 → 收口时不清零
 
-    // 远小于 aiSpeed（玩家几乎静止）
-    f32 deltaMuchLess = aiSpeed * 0.1f;
-    bool shouldSweep = (static_cast<f64>(deltaMuchLess) < static_cast<f64>(aiSpeed));
-    EXPECT_TRUE(shouldSweep) << "当玩家几乎静止时，横扫攻击应触发";
+    EXPECT_EQ(player.getKnownMovement(), Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    EXPECT_FALSE(player.isSweepStationary());
 }
 
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_Zero_PlayerStandingStill)
+TEST_F(SweepAttackConditionTest, ServerPlayer_IdleClientTickZeroesMovement)
 {
-    // 测试玩家完全静止（delta = 0）
-    // 应该触发横扫攻击
+    ServerPlayer player(EntityInstanceId(9), "ServerPlayer", mc::test::testEcsRegistry());
 
-    f32 aiSpeed = m_player->aiMoveSpeed();
+    player.recordClientMovement(Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    player.endClientTick();
 
-    // 玩家完全静止
-    f32 deltaZero = 0.0f;
-    bool shouldSweep = (static_cast<f64>(deltaZero) < static_cast<f64>(aiSpeed));
-    EXPECT_TRUE(shouldSweep) << "当玩家完全静止时，横扫攻击应触发";
-}
-
-TEST_F(SweepAttackConditionTest, SweepCondition_DistanceDelta_MuchGreaterThanAiMoveSpeed)
-{
-    // 测试远大于的情况（玩家正在移动）
-    // 不应触发横扫攻击
-
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 远大于 aiSpeed（玩家正在快速移动）
-    f32 deltaMuchGreater = aiSpeed * 5.0f;
-    bool shouldSweep = (static_cast<f64>(deltaMuchGreater) < static_cast<f64>(aiSpeed));
-    EXPECT_FALSE(shouldSweep) << "当玩家正在快速移动时，横扫攻击不应触发";
+    // 下一个客户端 tick 没有收到任何移动上报：玩家静止，运动量清零。
+    player.endClientTick();
+    EXPECT_EQ(player.getKnownMovement(), Vector3(0.0f, 0.0f, 0.0f));
+    EXPECT_TRUE(player.isSweepStationary());
 }
 
 // ============================================================================
-// 横扫攻击条件组合测试
+// SimulatedPlayer：无客户端连接，运动量取自身速度
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, SweepCondition_AllConditionsMet_CanSweep)
+TEST_F(SweepAttackConditionTest, SimulatedPlayer_UsesOwnVelocity)
 {
-    // 测试所有条件都满足时可以触发横扫攻击
-    f32 aiSpeed = m_player->aiMoveSpeed();
+    mc::test::SimulatedPlayer bot(EntityInstanceId(10), "SimulatedPlayer", mc::test::testEcsRegistry());
 
-    // 模拟所有条件满足：
-    // - isFullCooldown = true (冷却 > 90%)
-    // - !isCritical = true (非暴击)
-    // - !isSprintKnockback = true (非疾跑击退)
-    // - isOnGround() = true (在地面)
-    // - distanceWalkedDelta < aiMoveSpeed (几乎静止)
+    EXPECT_TRUE(bot.isSweepStationary());
 
-    bool isFullCooldown = true;
-    bool isCritical = false;
-    bool isSprintKnockback = false;
-    bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f); // 小于 aiMoveSpeed
+    bot.setVelocity(kAboveThresholdDisplacement, 0.0f, 0.0f);
+    EXPECT_FALSE(bot.isSweepStationary()) << "模拟玩家在移动时不应被判为几乎静止";
 
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
-        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
-
-    EXPECT_TRUE(canSweep) << "所有条件满足时，横扫攻击应触发";
-}
-
-TEST_F(SweepAttackConditionTest, SweepCondition_MovingPlayer_CannotSweep)
-{
-    // 测试玩家正在移动时不能触发横扫攻击
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 玩家正在移动（distanceWalkedDelta > aiMoveSpeed）
-    bool isFullCooldown = true;
-    bool isCritical = false;
-    bool isSprintKnockback = false;
-    bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 2.0f); // 大于 aiMoveSpeed
-
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
-        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
-
-    EXPECT_FALSE(canSweep) << "玩家正在移动时，横扫攻击不应触发";
-}
-
-TEST_F(SweepAttackConditionTest, SweepCondition_CriticalHit_CannotSweep)
-{
-    // 测试暴击时不能触发横扫攻击
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 暴击攻击
-    bool isFullCooldown = true;
-    bool isCritical = true; // 暴击
-    bool isSprintKnockback = false;
-    bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
-
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
-        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
-
-    EXPECT_FALSE(canSweep) << "暴击时，横扫攻击不应触发";
-}
-
-TEST_F(SweepAttackConditionTest, SweepCondition_SprintKnockback_CannotSweep)
-{
-    // 测试疾跑击退时不能触发横扫攻击
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 疾跑击退
-    bool isFullCooldown = true;
-    bool isCritical = false;
-    bool isSprintKnockback = true; // 疾跑击退
-    bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
-
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
-        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
-
-    EXPECT_FALSE(canSweep) << "疾跑击退时，横扫攻击不应触发";
-}
-
-TEST_F(SweepAttackConditionTest, SweepCondition_NotOnGround_CannotSweep)
-{
-    // 测试不在地面时不能触发横扫攻击
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 不在地面
-    bool isFullCooldown = true;
-    bool isCritical = false;
-    bool isSprintKnockback = false;
-    bool isOnGround = false; // 不在地面
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
-
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
-        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
-
-    EXPECT_FALSE(canSweep) << "不在地面时，横扫攻击不应触发";
-}
-
-TEST_F(SweepAttackConditionTest, SweepCondition_LowCooldown_CannotSweep)
-{
-    // 测试冷却不足时不能触发横扫攻击
-    f32 aiSpeed = m_player->aiMoveSpeed();
-
-    // 冷却不足
-    bool isFullCooldown = false; // 冷却不足
-    bool isCritical = false;
-    bool isSprintKnockback = false;
-    bool isOnGround = true;
-    f64 distanceWalkedDelta = static_cast<f64>(aiSpeed * 0.5f);
-
-    bool canSweep = isFullCooldown && !isCritical && !isSprintKnockback && isOnGround &&
-        (distanceWalkedDelta < static_cast<f64>(aiSpeed));
-
-    EXPECT_FALSE(canSweep) << "冷却不足时，横扫攻击不应触发";
+    // 模拟玩家不参与客户端 tick 收口：收口不会改变其判定依据。
+    bot.endClientTick();
+    EXPECT_FALSE(bot.isSweepStationary());
 }
 
 // ============================================================================
-// 数值范围验证
+// 虚分派：经 Player* 调用取到的是派生类实现
 // ============================================================================
 
-TEST_F(SweepAttackConditionTest, AiMoveSpeed_TypicalRange)
+TEST_F(SweepAttackConditionTest, VirtualDispatch_UsesDerivedKnownMovement)
 {
-    // 验证典型的 aiMoveSpeed 范围
-    // MC 1.16.5 中玩家的基础移动速度约为 0.1
-    f32 speed = m_player->aiMoveSpeed();
+    ServerPlayer serverPlayer(EntityInstanceId(11), "ServerPlayer", mc::test::testEcsRegistry());
+    mc::test::SimulatedPlayer bot(EntityInstanceId(12), "SimulatedPlayer", mc::test::testEcsRegistry());
+    Player base(EntityInstanceId(13), "BasePlayer", mc::test::testEcsRegistry());
 
-    // 典型范围应该在 0.05 ~ 0.5 之间
-    EXPECT_GT(speed, 0.0f);
-    EXPECT_LT(speed, 1.0f) << "aiMoveSpeed 应该小于 1.0（玩家移动速度通常在 0.1 左右）";
-}
+    base.setVelocity(kAboveThresholdDisplacement, 0.0f, 0.0f);
 
-TEST_F(SweepAttackConditionTest, DistanceWalkedDelta_CalculationConsistency)
-{
-    // 验证距离计算的一致性
-    // distanceWalkedDelta = distanceWalkedModified - prevDistanceWalkedModified
+    serverPlayer.recordClientMovement(Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
 
-    // 获取当前值
-    f32 current = m_player->moveDistanceWalked();
-    f32 prev = m_player->prevMoveDistanceWalked();
+    Player* asBase = &serverPlayer;
+    EXPECT_EQ(asBase->getKnownMovement(), Vector3(kAboveThresholdDisplacement, 0.0f, 0.0f));
+    EXPECT_FALSE(asBase->isSweepStationary());
 
-    // delta 应该等于 current - prev
-    f32 delta = current - prev;
-    EXPECT_FLOAT_EQ(delta, m_player->moveDistanceWalked() - m_player->prevMoveDistanceWalked());
+    Player* botAsBase = &bot;
+    EXPECT_EQ(botAsBase->getKnownMovement(), bot.velocity());
+
+    Player* plainAsBase = &base;
+    EXPECT_EQ(plainAsBase->getKnownMovement(), base.velocity());
+    EXPECT_FALSE(plainAsBase->isSweepStationary());
 }

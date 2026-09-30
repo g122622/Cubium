@@ -410,9 +410,8 @@ struct ConfigurationAcknowledged {
  * @brief ClientTickEnd（C→S，id=12，空 payload）
  *
  * 客户端每完成一个客户端 tick 的处理后发送一次（无字段，整帧只有 packet id）。
- * 服务端以它为 tick 边界：本 tick 内未收到含位置的移动包时，把"客户端已知移动量"
- * 归零。本项目尚未引入该移动状态，消费端当前为桩，见
- * MovementHandler::handleClientTickEndPacket 的 TODO。
+ * 服务端以它为 tick 边界：本 tick 内未收到含位置的移动包时，把"客户端已知运动量"
+ * 归零（该运动量是横扫攻击"几乎静止"判定的输入）。
  */
 struct ClientTickEnd {
     BedrockMeta bedrock{};

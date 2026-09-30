@@ -207,6 +207,15 @@ public:
      */
     void respawn();
 
+    /**
+     * @brief 客户端已知运动量：模拟玩家无真实客户端连接，其"上报运动"即自身每 tick 位移
+     *
+     * 覆写 ServerPlayer 的客户端上报版本——后者只由移动包驱动，模拟玩家不发包会恒为零，
+     * 从而在移动中仍被横扫攻击的"几乎静止"判定当成静止。速度本身就是每 tick 位移，
+     * 与被覆写版本的量纲一致。
+     */
+    [[nodiscard]] Vector3 getKnownMovement() const override { return velocity(); }
+
     // === TODO stub（依赖未就绪体系）===
 
     // TODO: flyToLocation / glide / swim（飞行/滑翔/游泳物理，依赖 LivingEntity fall-flying 状态机细化）
