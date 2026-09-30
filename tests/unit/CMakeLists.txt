@@ -1,5 +1,5 @@
 # tests/CMakeLists.txt
-# 娴嬭瘯閰嶇疆
+# 测试配置
 
 find_package(GTest CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
@@ -55,14 +55,14 @@ add_executable(mc_tests
     common/DefaultValuesTest.cpp
     common/PackTypeTest.cpp
     common/DataPackRepositoryTest.cpp
-    # common/test_blockid.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
-    # common/test_noise.cpp     # 宸茬Щ闄?- Noise 绫诲凡鍒犻櫎
+    # common/test_blockid.cpp  # 已移除 - 使用新的方块系统
+    # common/test_noise.cpp     # 已移除 - Noise 类已删除
     common/test_entity.cpp
     common/test_entity_physics.cpp
     common/network/test_chunk_serializer.cpp
     common/network/test_vanilla_chunk_wire.cpp
     common/test_chunkloadticket.cpp
-    # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
+    # common/test_collision.cpp  # 暂时禁用 - 依赖旧的碰撞系统
     common/test_property.cpp
     common/util/StateHolderTest.cpp
     common/util/text/Utf8Test.cpp
@@ -1264,21 +1264,21 @@ add_executable(mc_tests
     common/world/gen/jigsaw/test_template_pool_loader.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp
-    # Perfetto 娴嬭瘯锛堥泦鎴愬埌涓绘祴璇曞浠讹級
+    # Perfetto 测试（集成到主测试套件）
     common/profiler/PerfettoTest.cpp
-    # Tick 绯荤粺娴嬭瘯
+    # Tick 系统测试
     common/world/tick/ServerTickListTest.cpp
-    # 娴佷綋绯荤粺娴嬭瘯
+    # 流体系统测试
     common/world/fluid/FluidTest.cpp
     common/world/fluid/WaterFluidDropTest.cpp
     common/world/fluid/LavaFluidIgnitionTest.cpp
     common/world/fluid/SealedPlantLiquidTest.cpp
-    # 绾㈢煶绯荤粺娴嬭瘯
+    # 红石系统测试
     common/world/redstone/RedstoneContextTest.cpp
     common/world/redstone/RedstoneHelperTest.cpp
     common/world/redstone/RedstoneSystemTest.cpp
     common/world/redstone/RedstonePowerTest.cpp
-    # 绾㈢煶鏂瑰潡娴嬭瘯
+    # 红石方块测试
     common/world/block/test_redstone_blocks.cpp
     common/world/block/InfestedBlockTest.cpp
     common/world/block/blocks/building/StairsBlockTest.cpp
@@ -1307,10 +1307,11 @@ add_executable(mc_tests
     common/world/explosion/ExplosionIgnoreTest.cpp
     common/world/explosion/ExplosionLosBlockTest.cpp
     common/world/explosion/ExplosionRedirectProjectileTest.cpp
-    # 灏勭嚎妫€娴嬫祴璇?    common/math/RaycastTest.cpp
+    # 射线检测测试
+    common/math/RaycastTest.cpp
     # 视锥剔除测试
     common/util/math/FrustumTest.cpp
-    # 瀹炰綋鐢熸垚鍥炶皟娴嬭瘯
+    # 实体生成回调测试
     server/ServerChunkManagerCallbackTest.cpp
     # ServerChunkManager 后处理去重测试（m_postProcessedChunks / isPostProcessingDone）
     server/ServerChunkManagerPostProcessTest.cpp
@@ -1323,7 +1324,7 @@ add_executable(mc_tests
     common/world/EntityManagerSimulationDistanceTest.cpp
     # 3D section 空间索引单元测试
     common/world/entity/EntitySpatialIndexTest.cpp
-    # 纰版挒缂撳瓨娴嬭瘯
+    # 碰撞缓存测试
     physics/CollisionCacheTests.cpp
     # 物理引擎测试
     physics/PhysicsEngineTests.cpp
@@ -1333,11 +1334,14 @@ add_executable(mc_tests
     physics/CollisionShapeTest.cpp
     # VoxelShape 布尔运算和 IndexMerger 测试
     physics/VoxelShapeJoinTest.cpp
-    # ServerWorld 纰版挒妫€娴嬫祴璇?    server/ServerWorldCollisionTests.cpp
-    # 瀹炰綋杩借釜鍣ㄦ祴璇?    server/world/EntityTrackerTest.cpp
+    # ServerWorld 碰撞检测测试
+    server/ServerWorldCollisionTests.cpp
+    # 实体追踪器测试
+    server/world/EntityTrackerTest.cpp
     # EntityTracker UUID 测试
     server/world/EntityTrackerUuidTest.cpp
-    # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
+    # 物品拾取管理器测试
+    server/world/ItemPickupManagerTest.cpp
     # ServerWorld 方块实体测试
     server/world/ServerWorldBlockEntityTest.cpp
     # ServerWorld::broadcastBlockEntity 广播回调测试
@@ -1356,18 +1360,21 @@ add_executable(mc_tests
     server/world/IsBlockInLineTest.cpp
     # StaticChunkCache2D 预分配二维区块缓存测试
     server/world/StaticChunkCache2DTest.cpp
-    # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
-    # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
+    # 资源包兼容层测试
+    # 内置模型着色配置测试
+    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
     common/resource/PackRepositorySelfContainedTest.cpp
     # 语言管理器测试
     common/resource/LanguageManagerTest.cpp
-    # 缂撳瓨鎬ц兘瀵规瘮娴嬭瘯
+    # 缓存性能对比测试
     common/util/cache/CacheBenchmark.cpp
-    # 妞嶈鐗瑰緛闆嗘垚娴嬭瘯
-    # 涓栫晫鐢熸垚纭畾鎬ф祴璇?    server/world/gen/WorldGenDeterminismTest.cpp
-    # 瀹㈡埛绔懡浠ゆ爲鍚屾涓庤ˉ鍏ㄦ祴璇?    client/command/ClientCommandManagerTest.cpp
-    # 鍏夌収绯荤粺娴嬭瘯
+    # 植物特征集成测试
+    # 世界生成确定性测试（文件实际位于 common/world/gen/）
+    common/world/gen/WorldGenDeterminismTest.cpp
+    # 客户端命令树同步与补全测试
+    client/command/ClientCommandManagerTest.cpp
+    # 光照系统测试
     lighting/LightingTest.cpp
     lighting/LightUpdateTest.cpp
     lighting/BlockLightRegressionTest.cpp
@@ -1382,15 +1389,16 @@ add_executable(mc_tests
     lighting/ChunkLoadLightTaskTest.cpp
     # 运行时光照 worker 传播 + 主线程 flush 并发测试（③-1）
     lighting/RuntimeLightConcurrencyTest.cpp
-    # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
+    # 环境光遮蔽测试
+    client/renderer/AmbientOcclusionCalculatorTest.cpp
     client/renderer/trident/blockentity/ChestModelTest.cpp
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
     client/renderer/trident/blockentity/BlockEntityRendererGameTimeTest.cpp
-    # NaturalSpawner 娴嬭瘯
+    # NaturalSpawner 测试
     server/world/spawn/NaturalSpawnerTest.cpp
     # VillageSiege 测试
     server/world/spawn/VillageSiegeTest.cpp
-    # 鍏夌収鍚屾娴嬭瘯
+    # 光照同步测试
     server/LightSyncTests.cpp
     # Kagero UI模板系统测试
     ui/kagero/template/template_test.cpp
@@ -1400,7 +1408,7 @@ add_executable(mc_tests
     ui/kagero/template/BuiltinEventsTest.cpp
     # Kagero UI内置 Widget 工厂测试（grid/slot 等属性解析与生效）
     client/ui/kagero/template/BuiltinWidgetsTest.cpp
-    # Kagero UI甯冨眬绯荤粺娴嬭瘯
+    # Kagero UI布局系统测试
     client/ui/kagero/layout/MeasureSpecTest.cpp
     client/ui/kagero/layout/LayoutConstraintsTest.cpp
     client/ui/kagero/layout/FlexLayoutTest.cpp
@@ -1409,13 +1417,14 @@ add_executable(mc_tests
     client/ui/kagero/layout/FlexLayoutAlgorithmTest.cpp
     client/ui/kagero/layout/GridLayoutTest.cpp
     client/ui/kagero/layout/AnchorLayoutTest.cpp
-    # Kagero UI鐘舵€佺郴缁熸祴璇?    client/ui/kagero/state/StateStoreTest.cpp
+    # Kagero UI 状态系统测试
+    client/ui/kagero/state/StateStoreTest.cpp
     client/ui/kagero/state/ReactiveStateTest.cpp
     client/ui/kagero/state/StateBindingTest.cpp
     client/ui/kagero/state/StateObserverTest.cpp
-    # Kagero UI浜嬩欢绯荤粺娴嬭瘯
+    # Kagero UI事件系统测试
     ui/kagero/event/event_test.cpp
-    # Kagero UI Widget娴嬭瘯
+    # Kagero UI Widget测试
     client/ui/kagero/widget/WidgetTest.cpp
     client/ui/kagero/widget/ButtonWidgetTest.cpp
     client/ui/kagero/widget/ButtonWidgetPaintTest.cpp
@@ -1459,17 +1468,18 @@ add_executable(mc_tests
     client/ui/minecraft/screens/SignEditScreenTest.cpp
     # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
     client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
-    # 闄勯瓟绯荤粺娴嬭瘯
+    # 附魔系统测试
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/item/enchantment/LocationEnchantmentTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
-    # 鑷姩璺宠穬娴嬭瘯
+    # 自动跳跃测试
     common/entity/movement/AutoJumpTest.cpp
     common/entity/player/SleepManagerTest.cpp
-    # 鐜╁绉诲姩娴嬭瘯
+    # 玩家移动测试
     common/entity/PlayerMovementTest.cpp
-    # Assert搴撴祴璇?    common/util/assert/AssertTest.cpp
+    # Assert 库测试
+    common/util/assert/AssertTest.cpp
     # UniversalWorkerPool 测试
     common/util/thread/UniversalWorkerPoolTest.cpp
     # UniversalWorkerPool 区域互斥测试（对齐 Moonrise 区域锁执行器）
@@ -1500,7 +1510,8 @@ add_executable(mc_tests
     util/NbtJsonUtilsTest.cpp
     # NBT标签深度比较测试
     util/NbtEqualsTest.cpp
-    # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    server/world/gen/DebugChunkGeneratorTest.cpp
+    # 调试区块生成器测试（文件实际位于 common/world/gen/）
+    common/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试
     common/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
     # WorldGenRegion测试
@@ -1539,11 +1550,11 @@ add_executable(mc_tests
     common/world/gen/settings/SettingsTest.cpp
     # spawnTarget 数据流集成测试（NoiseChunk/RandomState/ServerWorld）
     common/world/gen/density/SpawnTargetIntegrationTest.cpp
-    # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
+    # 生物群系颜色测试
     client/world/color/BiomeColorsTest.cpp
-    # 鐢熺墿缇ょ郴棰滆壊娣峰悎娴嬭瘯
+    # 生物群系颜色混合测试
     client/world/color/blend/BiomeColorBlenderTest.cpp
-    # 绮掑瓙绯荤粺娴嬭瘯
+    # 粒子系统测试
     client/renderer/particle/ParticleTest.cpp
     client/renderer/particle/ParticleRegistryTest.cpp
     client/renderer/particle/WhiteSmokeParticleTest.cpp
@@ -1582,7 +1593,7 @@ add_executable(mc_tests
     client/renderer/trident/particle/particles/liquid/LiquidParticleTest.cpp
     # Particle tick behavior tests
     client/renderer/trident/particle/particles/TickBehaviorTest.cpp
-    # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
+    # 第一人称手部渲染测试
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
     client/renderer/firstperson/ItemInHandRendererTest.cpp
@@ -1591,7 +1602,7 @@ add_executable(mc_tests
     client/renderer/firstperson/EvaluateWhichHandsToRenderTest.cpp
     # D12 第一人称手持物品 3D 升级测试
     client/renderer/firstperson/HeldItemMesh3DTest.cpp
-    # 澹伴煶绯荤粺娴嬭瘯
+    # 声音系统测试
     common/sound/SoundCategoryTest.cpp
     common/sound/test_sound_events.cpp
     # JukeboxSong/JukeboxSongs/JukeboxSongPlayer 唱片机歌曲注册表与播放器测试
@@ -1680,7 +1691,7 @@ add_executable(mc_tests
     server/test/test_gametest_script_binding.cpp
 )
 
-# 娣诲姞鏈嶅姟绔簮鏂囦欢
+# 添加服务端源文件
 target_sources(mc_tests
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src/server/core/PlayerManager.cpp
@@ -1922,7 +1933,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/interaction/ContainerManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/SignCommandHelper.cpp
-        # 缁村害妯″潡
+        # 维度模块
         # 统计系统
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
         ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
@@ -2014,7 +2025,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
         ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
-        # 绮掑瓙绯荤粺
+        # 粒子系统
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/Particle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleRegistry.cpp
@@ -2114,7 +2125,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/spawn/MobSpawnInfo.cpp
-        # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
+        # ${CMAKE_SOURCE_DIR}/src/common/world/BlockID.cpp  # 已移除 - 使用新的方块系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/player/Player.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/player/SleepManager.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/core/Entity.cpp
@@ -2142,8 +2153,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/movement/AutoJump.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/PhysicsEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/common/physics/CollisionCache.cpp
-        # ${CMAKE_SOURCE_DIR}/src/common/physics/collision/BlockCollision.cpp  # 宸茬Щ闄?- 浣跨敤鏂扮殑鏂瑰潡绯荤粺
-        # 鏂扮殑鏂瑰潡绯荤粺婧愭枃浠?        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
+        # ${CMAKE_SOURCE_DIR}/src/common/physics/collision/BlockCollision.cpp  # 已移除 - 使用新的方块系统
+        # 新的方块系统源文件
+        ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/registry/VanillaBlocks.cpp
@@ -2151,9 +2163,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/block/FireInfoRegistry.cpp
-        # 鏃堕棿绯荤粺
+        # 时间系统
         ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
-        # 鐗╁搧绯荤粺
+        # 物品系统
         ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
@@ -2163,10 +2175,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/context/ItemUseContext.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/context/BlockItemUseContext.cpp
-        # 宸ュ叿灞傜骇绯荤粺
+        # 工具层级系统
         ${CMAKE_SOURCE_DIR}/src/common/item/tier/IItemTier.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tier/ItemTiers.cpp
-        # 宸ュ叿绯荤粺
+        # 工具系统
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ToolType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/TieredItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ToolItem.cpp
@@ -2183,7 +2195,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerInventory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerEnderChestInventory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/CraftingInventory.cpp
-        # 鍚堟垚绯荤粺
+        # 合成系统
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTagLoader.cpp
@@ -2196,7 +2208,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeBook.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/TransmuteRecipe.cpp
-        # 鏂瑰潡瀹炰綋绯荤粺
+        # 方块实体系统
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntityType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/BlockEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/LockableBlockEntity.cpp
@@ -2221,9 +2233,9 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/VaultBlockEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/TrialSpawnerBlockEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/CrafterBlockEntity.cpp
-        # 鐗╁搧瀹炰綋鍜屾帀钀借〃
+        # 物品实体和掉落表
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
-        # 鎺夎惤绯荤粺
+        # 掉落系统
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootContext.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootContextBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/loot/context/LootParameterSet.cpp
@@ -2294,7 +2306,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/AvoidVibrationTrigger.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
-        # 澶╀綋璁＄畻
+        # 天体计算
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/sky/CelestialCalculations.cpp
         # 射线检测
         ${CMAKE_SOURCE_DIR}/src/common/util/math/ray/Raycast.cpp
@@ -2317,7 +2329,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshResultQueue.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildTask.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/mesh/MeshBuildScheduler.cpp
-        # 鍖哄潡缃戞牸鐢熸垚
+        # 区块网格生成
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
@@ -2375,13 +2387,13 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BlockEntityModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/ChestModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/blockentity/model/BeaconBeamModel.cpp
-        # 绗竴浜虹О鎵嬮儴娓叉煋
+        # 第一人称手部渲染
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/MatrixStack.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemCameraTransforms.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/PlayerModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/ItemInHandRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/firstperson/FirstPersonTransforms.cpp
-        # 鍖哄潡妯″瀷缂撳瓨
+        # 区块模型缓存
         ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
         ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelLoader.cpp
@@ -2414,13 +2426,13 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/bindings/BuiltinWidgets.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/compiler/TemplateCompiler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/UpdateScheduler.cpp
-        # Kagero UI甯冨眬绯荤粺
+        # Kagero UI布局系统
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/core/LayoutEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/algorithms/FlexLayout.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/algorithms/GridLayout.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/algorithms/AnchorLayout.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/layout/integration/WidgetLayoutAdaptor.cpp
-        # Kagero UI Widget缁勪欢
+        # Kagero UI Widget组件
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/Widget.cpp
@@ -2439,14 +2451,15 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/MessageScreen.cpp
         # SignEditScreen 测试依赖：告示牌编辑屏幕实现（Tab切换/Enter提交/ESC取消）
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/SignEditScreen.cpp
-        # Assert搴?        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
+        # Assert 库
+        ${CMAKE_SOURCE_DIR}/src/common/util/assert/Assert.cpp
         # Crypto utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha256.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Sha1.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/crypto/Md5.cpp
         # UUID utilities
         ${CMAKE_SOURCE_DIR}/src/common/util/UuidUtils.cpp
-        # 澹伴煶绯荤粺 - Common
+        # 声音系统 - Common
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundCategory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvent.cpp
         ${CMAKE_SOURCE_DIR}/src/common/sound/SoundEvents.cpp
@@ -2469,7 +2482,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/skin/network/SkinPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/client/skin/ClientSkinManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/skin/SkinTextureUploader.cpp
-        # 澹伴煶绯荤粺 - Client
+        # 声音系统 - Client
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundDefinition.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/resource/SoundRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/SoundHandler.cpp
@@ -2542,7 +2555,7 @@ endif()
 mc_disable_all_warnings_for_tests(mc_tests)
 mc_copy_runtime_dlls(mc_tests)
 
-# 鍙戠幇娴嬭瘯
+# 发现测试
 include(GoogleTest)
 
 # 单个测试用例执行超时（秒）。ctest 跑到该时长未结束即判失败，
@@ -2589,7 +2602,7 @@ endif()
 
 
 # ============================================================================
-# Trident 娓叉煋寮曟搸娴嬭瘯
+# Trident 渲染引擎测试
 # ============================================================================
 
 if(MC_BUILD_CLIENT)
@@ -2611,7 +2624,7 @@ if(MC_BUILD_CLIENT)
             # Trident 缓冲区
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/buffer/TridentBuffer.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/buffer/TridentStagingBufferPool.cpp
-            # Trident 绾圭悊
+            # Trident 纹理
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/texture/TridentTexture.cpp
             # Trident 绠＄嚎
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/pipeline/TridentPipeline.cpp
@@ -2620,7 +2633,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/UniformManager.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/DescriptorManager.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/core/render/RenderPassManager.cpp
-            # 璧勬簮鍔犺浇
+            # 资源加载
             ${CMAKE_SOURCE_DIR}/src/client/resource/TextureAtlasBuilder.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/BlockModelCache.cpp
             ${CMAKE_SOURCE_DIR}/src/client/resource/ItemModelCache.cpp
@@ -2632,12 +2645,12 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/client/renderer/MeshTypes.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/ChunkMesher.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/chunk/AmbientOcclusionCalculator.cpp
-            # 鐢熺墿缇ょ郴棰滆壊
+            # 生物群系颜色
             ${CMAKE_SOURCE_DIR}/src/client/world/color/BiomeColors.cpp
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorCache.cpp
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/BiomeColorBlender.cpp
             ${CMAKE_SOURCE_DIR}/src/client/world/color/blend/ChunkBiomeAccessor.cpp
-            # 甯哥敤璧勬簮
+            # 常用资源
             ${CMAKE_SOURCE_DIR}/src/common/resource/ResourceLocation.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackRepository.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/repository/PackListBase.cpp
@@ -2645,7 +2658,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/ZipResourcePack.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/IResourcePack.cpp
             ${CMAKE_SOURCE_DIR}/src/common/resource/pack/PackMetadata.cpp
-            # 鏂瑰潡绯荤粺
+            # 方块系统
             ${CMAKE_SOURCE_DIR}/src/common/world/block/Material.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/Block.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/BlockRegistry.cpp
@@ -2653,7 +2666,7 @@ if(MC_BUILD_CLIENT)
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/AirBlock.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/SimpleBlock.cpp
             ${CMAKE_SOURCE_DIR}/src/common/world/block/blocks/RotatedPillarBlock.cpp
-            # 璁剧疆
+            # 设置
             ${CMAKE_SOURCE_DIR}/src/client/settings/ClientSettings.cpp
             # 按键绑定（自 common/input 迁入 client/input）
             ${CMAKE_SOURCE_DIR}/src/client/input/KeyBinding.cpp
@@ -2689,23 +2702,27 @@ if(MC_BUILD_CLIENT)
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 
-    # GUI绾圭悊绯荤粺娴嬭瘯锛堢函鏁版嵁缁撴瀯娴嬭瘯锛屼笉闇€瑕乂ulkan锛?    # 杩欎簺娴嬭瘯鏀惧湪涓绘祴璇曞浠朵腑锛岄伩鍏峍ulkan渚濊禆
+    # GUI 纹理系统测试（纯数据结构测试，不需要 Vulkan）
+    # 这些测试放在主测试套件中，避免 Vulkan 依赖
     target_sources(mc_tests
         PRIVATE
-            # GuiSprite 鍜?GuiNinePatch 娴嬭瘯
+            # GuiSprite 和 GuiNinePatch 测试
             ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteTest.cpp
-            # GuiSpriteManager 娴嬭瘯锛堜笉渚濊禆Vulkan锛?            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteManagerTest.cpp
-            # GuiSpriteParser JSON瑙ｆ瀽娴嬭瘯锛堜笉闇€瑕佽祫婧愬寘锛?            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteParserTest.cpp
+            # GuiSpriteManager 测试（不依赖 Vulkan）
+            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteManagerTest.cpp
+            # GuiSpriteParser JSON 解析测试（不需要资源包）
+            ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteParserTest.cpp
             # GuiSpriteRegistry data correctness test (slider/handle/attack indicator coords and nine-patch; no Vulkan)
             ${CMAKE_CURRENT_SOURCE_DIR}/client/renderer/trident/gui/GuiSpriteRegistryTest.cpp
-            # 婧愭枃浠讹紙GuiSprite.hpp 鏄函澶存枃浠讹級
+            # 源文件（GuiSprite.hpp 是纯头文件）
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiSpriteManager.cpp
             ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiSpriteParser.cpp
     )
 
-    # GUI绾圭悊绯荤粺娴嬭瘯锛堥渶瑕乂ulkan鐨勬祴璇曟殏鏃剁鐢級
-    # GuiTextureAtlas 渚濊禆 GuiRenderer 鍜?Vulkan锛岃€屽叾鍔熻兘宸茶 GuiSpriteManager 娴嬭瘯瑕嗙洊
-    # 濡傛灉闇€瑕佹祴璇?GuiTextureAtlas 鐨?Vulkan 鍔熻兘锛屽彲浠ユ坊鍔犲洖锛?    # target_sources(mc_trident_tests
+    # GUI 纹理系统测试（需要 Vulkan 的测试暂时禁用）
+    # GuiTextureAtlas 依赖 GuiRenderer 和 Vulkan，而其功能已被 GuiSpriteManager 测试覆盖
+    # 如果需要测试 GuiTextureAtlas 的 Vulkan 功能，可以添加回来
+    # target_sources(mc_trident_tests
     #     PRIVATE
     #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiTextureAtlas.cpp
     #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiSpriteRegistry.cpp

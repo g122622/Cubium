@@ -24,6 +24,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/BiomeContainer.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -97,15 +98,23 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceNoiseBatchMatchesScalarSamp
     constexpr i32 width = 7;
     constexpr i32 height = 6;
 
-    std::array<BiomeId, width * height> batch{};
-    source->fillBiomeContainer(batch, startNoiseX / 4, startNoiseZ / 4);
-
-    size_t idx = 0;
-    for (i32 z = 0; z < height; ++z) {
-        for (i32 x = 0; x < width; ++x) {
-            const BiomeId scalar = source->getNoiseBiome(startNoiseX + x, 0, startNoiseZ + z);
-            EXPECT_EQ(batch[idx], scalar) << "Noise batch mismatch at local(" << x << ", " << z << ")";
-            ++idx;
+    // 噪声网格批次：覆盖 7x6 采样点需要 2x2 个 4x4 网格单元，逐单元格批量填充后与标量采样对比。
+    BiomeContainer cell;
+    for (i32 cellX = 0; cellX < (width + 3) / 4; ++cellX) {
+        for (i32 cellZ = 0; cellZ < (height + 3) / 4; ++cellZ) {
+            source->fillBiomeContainer(cell, startNoiseX / 4 + cellX, startNoiseZ / 4 + cellZ);
+            for (i32 bx = 0; bx < 4; ++bx) {
+                for (i32 bz = 0; bz < 4; ++bz) {
+                    const i32 gx = cellX * 4 + bx;
+                    const i32 gz = cellZ * 4 + bz;
+                    if (gx >= width || gz >= height) {
+                        continue;
+                    }
+                    const BiomeId batched = cell.getBiome(0, bx, 0, bz);
+                    const BiomeId scalar = source->getNoiseBiome(startNoiseX + gx, 0, startNoiseZ + gz);
+                    EXPECT_EQ(batched, scalar) << "Noise batch mismatch at local(" << gx << ", " << gz << ")";
+                }
+            }
         }
     }
 }
@@ -278,8 +287,8 @@ TEST_F(WorldGenDeterminismTest, PerlinNoiseDeterminism)
     const u64 seed = 12345;
 
     // 创建两个 PerlinNoise 实例（MC 1.18+ 新噪声系统）
-    noise::PerlinNoise noise1(seed, -3, {1.0, 1.0, 1.0, 1.0});
-    noise::PerlinNoise noise2(seed, -3, {1.0, 1.0, 1.0, 1.0});
+    world::gen::noise::PerlinNoise noise1(seed, -3, {1.0, 1.0, 1.0, 1.0});
+    world::gen::noise::PerlinNoise noise2(seed, -3, {1.0, 1.0, 1.0, 1.0});
 
     // 测试噪声值是否相同
     for (int i = 0; i < 100; ++i) {
@@ -302,8 +311,8 @@ TEST_F(WorldGenDeterminismTest, NormalNoiseDeterminism)
     const u64 seed = 54321;
 
     // 创建两个 NormalNoise 实例
-    noise::NormalNoise noise1(seed, -3, {1.0, 1.0, 1.0, 1.0});
-    noise::NormalNoise noise2(seed, -3, {1.0, 1.0, 1.0, 1.0});
+    world::gen::noise::NormalNoise noise1(seed, -3, {1.0, 1.0, 1.0, 1.0});
+    world::gen::noise::NormalNoise noise2(seed, -3, {1.0, 1.0, 1.0, 1.0});
 
     // 测试噪声值是否相同
     for (int i = 0; i < 100; ++i) {

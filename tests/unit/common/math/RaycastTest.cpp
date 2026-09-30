@@ -27,10 +27,14 @@
 #include "core/Constants.hpp"
 #include "util/Direction.hpp"
 #include "util/math/ray/Ray.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "world/tick/manager/TickManager.hpp"
+#include <stdexcept>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -96,6 +100,36 @@ public:
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
     [[nodiscard]] bool isClientSide() const override { return false; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("TestBlockReader::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("TestBlockReader::tickManager not implemented");
+    }
+
+    // Random interface (stubbed for tests)
+    [[nodiscard]] math::IRandom& getRandom() override
+    {
+        throw std::runtime_error("TestBlockReader::getRandom not implemented");
+    }
+    [[nodiscard]] const math::IRandom& getRandom() const override
+    {
+        throw std::runtime_error("TestBlockReader::getRandom not implemented");
+    }
+
+    // WorldBorder interface (stubbed for tests)
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override
+    {
+        throw std::runtime_error("TestBlockReader::worldBorder not implemented");
+    }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override
+    {
+        throw std::runtime_error("TestBlockReader::worldBorder not implemented");
+    }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)

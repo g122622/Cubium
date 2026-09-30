@@ -26,6 +26,7 @@
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -97,6 +98,17 @@ protected:
     std::filesystem::path m_testDir;
 };
 
+namespace {
+/// 可推挤的最小实体桩：isPushable 默认 false 的 Entity 无法计入实体碰撞。
+class TestPushableEntity final : public Entity {
+public:
+    TestPushableEntity(EntityInstanceId id, IWorld* world)
+        : Entity(id, world, mc::test::testEcsRegistry())
+    {}
+    [[nodiscard]] bool isPushable() const override { return true; }
+};
+} // namespace
+
 // ========== 物理引擎测试 ==========
 
 TEST_F(ServerWorldCollisionTest, PhysicsEngineInitialized)
@@ -112,7 +124,8 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineInitialized)
 TEST_F(ServerWorldCollisionTest, CollisionCacheInitialized)
 {
     // 验证碰撞缓存已初始化
-    EXPECT_NO_THROW(world->clearCollisionCache());
+    EXPECT_NE(world->collisionCache(), nullptr);
+    EXPECT_NO_THROW(world->collisionCache()->clear());
 }
 
 // ========== 方块碰撞检测测试 ==========
@@ -144,14 +157,13 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround)
     ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
-    // 在出生点附近找一个非空气位置
-    // 遍历寻找地面
+    // 找一个非空气且碰撞形状非空的方块（草/花等植被方块无碰撞箱，不能作为地面）
     bool foundGround = false;
     i32 groundY = 0;
 
     for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = chunk->getBlockState(8, y, 8);
-        if (state && !state->isAir()) {
+        if (state && !state->isAir() && !state->getCollisionShape().isEmpty()) {
             groundY = y;
             foundGround = true;
             break;
@@ -187,7 +199,7 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionNoEntities)
 TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity)
 {
     // 创建实体
-    auto entity = std::make_unique<Entity>(EntityInstanceId(1), world.get(), mc::test::testEcsRegistry());
+    auto entity = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     entity->setPosition(5.0f, 5.0f, 5.0f);
 
     EntityInstanceId entityId = world->spawnEntity(std::move(entity));
@@ -205,7 +217,7 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionWithEntity)
 TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf)
 {
     // 创建实体
-    auto entity = std::make_unique<Entity>(EntityInstanceId(1), world.get(), mc::test::testEcsRegistry());
+    auto entity = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     entity->setPosition(5.0f, 5.0f, 5.0f);
 
     EntityInstanceId entityId = world->spawnEntity(std::move(entity));
@@ -222,11 +234,11 @@ TEST_F(ServerWorldCollisionTest, HasEntityCollisionExceptSelf)
 TEST_F(ServerWorldCollisionTest, GetEntityCollisions)
 {
     // 创建多个实体
-    auto entity1 = std::make_unique<Entity>(EntityInstanceId(1), world.get(), mc::test::testEcsRegistry());
+    auto entity1 = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     entity1->setPosition(5.0f, 5.0f, 5.0f);
     world->spawnEntity(std::move(entity1));
 
-    auto entity2 = std::make_unique<Entity>(EntityInstanceId(2), world.get(), mc::test::testEcsRegistry());
+    auto entity2 = std::make_unique<TestPushableEntity>(EntityInstanceId(2), world.get());
     entity2->setPosition(5.5f, 5.0f, 5.0f);
     world->spawnEntity(std::move(entity2));
 
@@ -263,13 +275,13 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround)
     ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
-    // 寻找地面
+    // 找一个非空气且碰撞形状非空的方块（植被方块无碰撞箱，不能作为地面）
     bool foundGround = false;
     i32 groundY = 0;
 
     for (i32 y = mc::world::MAX_BUILD_HEIGHT - 1; y >= mc::world::MIN_BUILD_HEIGHT; --y) {
         const BlockState* state = chunk->getBlockState(8, y, 8);
-        if (state && !state->isAir()) {
+        if (state && !state->isAir() && !state->getCollisionShape().isEmpty()) {
             groundY = y;
             foundGround = true;
             break;
@@ -298,8 +310,8 @@ TEST_F(ServerWorldCollisionTest, InvalidateCollisionCache)
     ASSERT_NE(chunk, nullptr);
 
     // 使缓存失效应该不会抛出异常
-    EXPECT_NO_THROW(world->invalidateCollisionCache(0, 0));
-    EXPECT_NO_THROW(world->clearCollisionCache());
+    EXPECT_NO_THROW(world->collisionCache()->invalidateChunk(0, 0));
+    EXPECT_NO_THROW(world->collisionCache()->clear());
 }
 
 // ========== ICollisionWorld 接口测试 ==========
@@ -344,32 +356,32 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt)
 
 TEST_F(ServerWorldCollisionTest, SpawnEntity)
 {
-    auto entity = std::make_unique<Entity>(EntityInstanceId(1), world.get(), mc::test::testEcsRegistry());
+    auto entity = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     entity->setPosition(10.0f, 64.0f, 10.0f);
 
     EntityInstanceId id = world->spawnEntity(std::move(entity));
     EXPECT_NE(id, 0);
-    EXPECT_EQ(world->entityCount(), 1);
+    EXPECT_EQ(world->entityManager().entityCount(), 1u);
 }
 
 TEST_F(ServerWorldCollisionTest, RemoveEntity)
 {
-    auto entity = std::make_unique<Entity>(EntityInstanceId(1), world.get(), mc::test::testEcsRegistry());
+    auto entity = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     EntityInstanceId id = world->spawnEntity(std::move(entity));
 
     auto removed = world->removeEntity(id);
     EXPECT_NE(removed, nullptr);
-    EXPECT_EQ(world->entityCount(), 0);
+    EXPECT_EQ(world->entityManager().entityCount(), 0u);
 }
 
 TEST_F(ServerWorldCollisionTest, GetEntitiesInAABB)
 {
     // 创建多个实体
-    auto entity1 = std::make_unique<Entity>(EntityInstanceId(1), world.get(), mc::test::testEcsRegistry());
+    auto entity1 = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     entity1->setPosition(0.0f, 0.0f, 0.0f);
     world->spawnEntity(std::move(entity1));
 
-    auto entity2 = std::make_unique<Entity>(EntityInstanceId(2), world.get(), mc::test::testEcsRegistry());
+    auto entity2 = std::make_unique<TestPushableEntity>(EntityInstanceId(2), world.get());
     entity2->setPosition(100.0f, 100.0f, 100.0f);
     world->spawnEntity(std::move(entity2));
 

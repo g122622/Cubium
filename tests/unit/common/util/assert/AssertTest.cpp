@@ -30,6 +30,7 @@
 #include <vector>
 #include <gtest/gtest.h>
 
+using namespace mc;
 using namespace mc::assert;
 
 // ============================================================================

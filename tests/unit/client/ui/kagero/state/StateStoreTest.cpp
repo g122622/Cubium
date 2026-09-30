@@ -63,6 +63,9 @@ protected:
 
     void TearDown() override
     {
+        // 必须清空全部订阅者：用例注册的 lambda 捕获栈上局部变量，
+        // StateStore 为进程级单例，悬挂回调会在后续用例 set 同键时解引用已释放栈帧导致 SIGSEGV
+        StateStore::instance().clearAllSubscribers();
         StateStore::instance().clear();
         StateStore::instance().clearMiddlewares();
     }
@@ -272,8 +275,11 @@ TEST_F(StateStoreTest, SubscribeToDifferentKeys)
     int healthCount = 0;
     int manaCount = 0;
 
-    store.subscribe("player.health", [&]() { healthCount++; });
-    store.subscribe("player.mana", [&]() { manaCount++; });
+    // 订阅捕获栈上局部变量，用例结束前必须取消订阅，
+    // 否则悬挂回调会在后续用例 set("player.health"/"player.mana") 时解引用已释放的栈帧导致 SIGSEGV
+    // （StateStore 为进程级单例，跨用例存活）。
+    const StateStore::SubscriberId healthId = store.subscribe("player.health", [&]() { healthCount++; });
+    const StateStore::SubscriberId manaId = store.subscribe("player.mana", [&]() { manaCount++; });
 
     store.set<i32>("player.health", 100);
     EXPECT_EQ(healthCount, 1);
@@ -282,6 +288,9 @@ TEST_F(StateStoreTest, SubscribeToDifferentKeys)
     store.set<i32>("player.mana", 50);
     EXPECT_EQ(healthCount, 1);
     EXPECT_EQ(manaCount, 1);
+
+    store.unsubscribe(healthId);
+    store.unsubscribe(manaId);
 }
 
 // ============================================================================

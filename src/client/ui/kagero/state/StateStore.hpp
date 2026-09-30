@@ -294,6 +294,19 @@ public:
         }
     }
 
+    /**
+     * @brief 清空所有键的全部订阅者
+     *
+     * 用于进程级单例的完整重置（测试、屏幕切换等场景）。
+     */
+    void clearAllSubscribers()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_subscribers.clear();
+        m_subscriberToKey.clear();
+        m_nextSubscriberId = 0;
+    }
+
     // ==================== 动作 ====================
 
     /**
