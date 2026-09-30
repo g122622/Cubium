@@ -33,6 +33,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <system_error>
 
 #ifdef _WIN32
@@ -56,6 +57,12 @@ namespace {
 constexpr const char* SERVER_EXECUTABLE = "build/bin/RelWithDebInfo/minecraft-server";
 #ifdef _WIN32
 constexpr const char* SERVER_EXECUTABLE_WITH_EXT = "build/bin/RelWithDebInfo/minecraft-server.exe";
+
+/// ASCII 字面量（被测可执行文件路径、benchmark flag 名）→ 宽字符。
+[[nodiscard]] std::wstring widenAscii(std::string_view ascii)
+{
+    return std::wstring(ascii.begin(), ascii.end());
+}
 #endif
 
 // 单次启动超时（毫秒）。冷启动 + 出生区域（23×23 区块）生成在低端机上可能超过 1 分钟。
@@ -72,19 +79,30 @@ constexpr int EXIT_CODE_TIMEOUT = 124;
 [[nodiscard]] int launchServerOnce(const std::string& modeFlag, const std::filesystem::path& worldDir)
 {
 #ifdef _WIN32
-    std::string commandLine = fmt::format(
-        "\"{}\" {} --world-name \"{}\"", SERVER_EXECUTABLE_WITH_EXT, modeFlag, worldDir.filename().string());
-    // TODO: --world-name 仅影响存档名，隔离需配合 --config 指向临时游戏目录；
-    // Windows 路径处理与 CreateProcessW 工作目录参数待补全后移除此 TODO。
-    std::vector<char> commandBuffer(commandLine.begin(), commandLine.end());
-    commandBuffer.push_back('\0');
+    // 与 POSIX 分支参数完全对齐：--config 指向本次启动专用的临时配置，服务端由配置路径
+    // 推导游戏目录（saves/<worldName> 落在临时目录内），保证每次都是全新世界冷启动；
+    // --profiler_enabled=false 关闭被测进程侧的 Perfetto。
+    //
+    // 命令行整体以宽字符拼装：std::filesystem::path::string() 在 Windows 上按 ANSI 代码页
+    // 编码（并非 UTF-8），经窄字符串中转会让含非 ASCII 的临时目录路径失真，必须直接用
+    // path::wstring()。
+    // TODO: 被测服务端走窄字符 main()（gflags 解析 char** argv），MSVC CRT 会把宽命令行按
+    // 当前 ANSI 代码页转回窄 argv，因此临时目录路径中超出该代码页的字符仍无法传递；如需
+    // 完全 Unicode 支持，须服务端改用 wmain / UTF-8 argv（app manifest activeCodePage）。
+    const std::filesystem::path configPath = worldDir / "server_options.json";
+    const std::wstring wideExecutable = widenAscii(SERVER_EXECUTABLE_WITH_EXT);
+    std::wstring wideCommandLine = L"\"" + wideExecutable + L"\" " + widenAscii(modeFlag) + L" --config \"" +
+        configPath.wstring() + L"\" --profiler_enabled=false";
 
-    STARTUPINFOA startupInfo{};
+    // TODO: 被测服务端的 stdout/stderr 随 CREATE_NO_WINDOW 进入隐藏控制台，启动失败时只能
+    // 从退出码判断原因（POSIX 分支经 fork 继承终端，日志直接可见）。若需要被测进程的启动
+    // 日志诊断，应改为管道捕获并写入归档目录。
+    STARTUPINFOW startupInfo{};
     startupInfo.cb = sizeof(startupInfo);
     PROCESS_INFORMATION processInfo{};
 
-    const BOOL createResult = CreateProcessA(nullptr,
-        commandBuffer.data(),
+    const BOOL createResult = CreateProcessW(wideExecutable.c_str(),
+        wideCommandLine.data(),
         nullptr,
         nullptr,
         FALSE,
@@ -94,6 +112,7 @@ constexpr int EXIT_CODE_TIMEOUT = 124;
         &startupInfo,
         &processInfo);
     if (createResult == FALSE) {
+        spdlog::warn("benchmark: failed to launch server process (GetLastError={})", GetLastError());
         return -1;
     }
 
@@ -213,8 +232,7 @@ void serverInitializeShell(::benchmark::State& state)
         // 设置本用例的 Perfetto trace 文件名主干（每次重复一个文件）。
         mc::benchmark::PerfettoProfilerAdapter::setCaseName("server_initialize_shell");
 
-        const std::filesystem::path worldDir =
-            prepareTempWorldDir("shell", static_cast<i32>(state.iterations()));
+        const std::filesystem::path worldDir = prepareTempWorldDir("shell", static_cast<i32>(state.iterations()));
         const int exitCode = launchServerOnce(modeFlag, worldDir);
         cleanupTempWorldDir(worldDir);
 
@@ -235,8 +253,7 @@ void serverInitializeWorld(::benchmark::State& state)
         // 设置本用例的 Perfetto trace 文件名主干（每次重复一个文件）。
         mc::benchmark::PerfettoProfilerAdapter::setCaseName("server_initialize_world");
 
-        const std::filesystem::path worldDir =
-            prepareTempWorldDir("world", static_cast<i32>(state.iterations()));
+        const std::filesystem::path worldDir = prepareTempWorldDir("world", static_cast<i32>(state.iterations()));
         const int exitCode = launchServerOnce(modeFlag, worldDir);
         cleanupTempWorldDir(worldDir);
 

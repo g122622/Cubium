@@ -108,6 +108,12 @@ google/benchmark 经 libpfm4 支持 `--benchmark_perf_counters=CYCLES,INSTRUCTIO
 
 `serverInitialize*` 用例以相对路径 `build/bin/RelWithDebInfo/minecraft-server` 启动被测进程；结果目录也基于 CWD。
 
+### 被测服务端的启动参数必须两平台一致（Windows 分支曾漏传 `--config`）
+
+`serverInitialize*` 依赖 `--config <临时目录>/server_options.json` 让被测服务端把游戏目录推导到临时目录内（`saves/<worldName>`，冷启动隔离），并显式传 `--profiler_enabled=false`。gflags 遇到**未定义**的 flag 会直接 `exit(1)`：曾出现 Windows 分支只传 `--world-name`（服务端无此 flag）而漏传 `--config`，表现为两个用例稳定报 `server exited with code 1`。被测进程 stdout/stderr 在 Windows 上随 `CREATE_NO_WINDOW` 进入隐藏控制台，gflags 的原始报错不会出现在基准输出中，排查时须手动用同样的参数直接跑一次 `minecraft-server`。
+
+Windows 侧的命令行必须以宽字符拼装：`std::filesystem::path::string()` 返回的是 **ANSI 代码页**编码（不是 UTF-8），含非 ASCII 的临时目录路径经窄字符串中转会失真（曾导致被测进程拿到错误配置路径、退出码 1），应直接用 `path::wstring()` 拼 `CreateProcessW` 的命令行。被测服务端自身仍是窄字符 `main()`（gflags 解析 `char** argv`），超出当前 ANSI 代码页的字符仍无法传递——需要完全 Unicode 支持时须改 `wmain`/UTF-8 argv。新增或调整用例参数时，POSIX 的 `execl` 参数列表与 Windows 的 `CreateProcessW` 命令行必须同步。
+
 ### benchmark 名大小写
 
 注册名即函数名（如 `ChunkGeneration`、`Lighting`），`--benchmark_filter` 是正则且大小写敏感。
