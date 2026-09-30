@@ -23,18 +23,25 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter="ChunkGeneration/8/16"
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=Lighting --benchmark_min_time=3s
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=serverInitialize
+
+# 录制 Perfetto trace（默认关闭；见下表）
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_trace --benchmark_filter=Lighting
 ```
+
+命令行 flag 为 google/benchmark 原生（`--benchmark_filter/--benchmark_min_time/--benchmark_repetitions/--benchmark_out` 等），完整列表见 `--help`。`mc_benchmark` 只有一个自有 flag：
+
+| flag | 默认 | 说明 |
+|---|---|---|
+| `--benchmark_trace[=true\|false]` | `false` | 录制 `.perfetto-trace`。**默认关闭**：不产任何 trace 文件，也不会触发下面那种"额外 profile run"（进程启动类用例的墙钟时间因此约为开启时的一半）。该 flag 在 `benchmark::Initialize` 之前由 `benchmark/main.cpp` 解析并剥离 |
 
 结果输出到 `benchmark_results/<时间戳>/`（已 gitignore）：
 
 | 文件 | 内容 |
 |---|---|
 | `results.json` | 全部结果，含 mean/median/stddev 聚合与内存指标 |
-| `<case>.perfetto-trace` | 每个用例的每次重复一个 trace（ui.perfetto.dev 分析火焰图）；第 N（N≥2）次重复为 `<case>.repN.perfetto-trace` |
+| `<case>.perfetto-trace` | **仅在 `--benchmark_trace` 时产出**：每个用例的每次重复一个 trace（ui.perfetto.dev 分析火焰图）；第 N（N≥2）次重复为 `<case>.repN.perfetto-trace` |
 
-> 注册了 `ProfilerManager` 后，google/benchmark 会为每次重复额外多跑一遍"带 profiler 的 run"（trace 记录的是这一遍）。因此进程启动类用例（`serverInitialize*`）的墙钟耗时约为计时值之和的两倍，`_mean/_median` 统计值不受影响。
-
-命令行 flag 为 google/benchmark 原生（`--benchmark_filter/--benchmark_min_time/--benchmark_repetitions/--benchmark_out` 等），完整列表见 `--help`。
+> 开启 `--benchmark_trace` 后，google/benchmark 会为每次重复额外多跑一遍"带 profiler 的 run"（trace 记录的是这一遍）。因此进程启动类用例（`serverInitialize*`）的墙钟耗时约为计时值之和的两倍，`_mean/_median` 统计值不受影响。
 
 ## 现有用例
 
@@ -62,6 +69,52 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 ### Lighting（光照引擎本体）
 
 TLS 方块光引擎批量更新：每迭代对一个 16×16 截面层做 256 个方块光变更，GLOWSTONE/AIR 交替翻转保证传播工作量稳定；报告 `blocks_per_second`。不经过 tick 级调度（那属于系统吞吐，由 ChunkGeneration 间接覆盖）。
+
+### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写 vs 工作模式）
+
+对 `PalettedContainer`（16³ = 4096 格）扫描元素种类数量 k=1..4096，用同一条固定随机序列测随机读（`get`）与随机写（`set`），为 `_modeForBits` 的模式切换阈值提供实测依据（此前阈值是照搬原版/拍脑袋，没有实测）。
+
+- 32 档扫描点：SingleValue(1)、Linear(2..16)、HashMap 的每个位宽档（bits 5..12，各取低/中/高）
+- 口径：一次迭代 = 4×4096 次随机访问；**装配（填 k 种值）与预热（8 轮同序列访问）都在计时循环之前，不计入结果**（google/benchmark 只对 `for (auto _ : state)` 循环体计时）
+- 写入值取自当前 k 种取值集合 → 调色板不增长，测稳态读写，不含扩容/模式转换
+- 报告 `reads_per_second` / `writes_per_second`，并附带 `bits_per_entry` / `palette_size` / `memory_bytes`
+
+复现（`--benchmark_trace` 与本用例无关，默认关闭即可）：
+
+```bash
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_repetitions=3 --benchmark_report_aggregates_only=true \
+    --benchmark_filter=PalettedContainerRandom
+python benchmark/scripts/plot_paletted_container.py \
+    --results benchmark_results/<时间戳>/results.json \
+    --output docs/paletted_container_random_access.png
+```
+
+![PalettedContainer 随机读写性能 vs 工作模式](paletted_container_random_access.png)
+
+实测（i7-14700KF，3 次重复取中位数；Mops/s 越高越好）：
+
+| 区间 | k | 模式（bits） | 随机读 | 随机写 | 估算内存 |
+|---|---|---|---|---|---|
+| SingleValue | 1 | SingleValue (0) | 2007.5 | 520.8 † | 116 B |
+| Linear | 2 | Linear (4) | 388.6 | 109.2 | 2.2 KB |
+| Linear | 8 | Linear (4) | 372.8 | 78.3 | 2.2 KB |
+| Linear | 16 | Linear (4) | 348.0 | 66.6 | 2.2 KB |
+| HashMap | 17 | HashMap (5) | 317.8 | 172.1 | 2.9 KB |
+| HashMap | 129/192/256 | HashMap (8) | 381.3 / 392.8 / 395.1 | 182.1 / 184.2 / 170.2 | 5.8~7.5 KB |
+| HashMap | 1025..2048 | HashMap (11) | 249.9~266.9 | 133.5~145.9 | 18.2~31.7 KB |
+| HashMap | 4096 | HashMap (12) | 266.9 | 136.6 | 60.6 KB |
+
+† k=1 时写入值恒等于容器唯一值 → `SingleValue` 早退，属无操作写入，不代表真实写入成本。
+
+**结论（调参依据）**
+
+1. **阈值只影响写入，不影响读取**：读路径是"位存储 → 调色板正向索引"，不做反查；写路径才需要 `_idFor`（线性扫描 vs 哈希查找）。因此 `Linear→HashMap` 阈值应由写性能决定，用读曲线调阈值是没有意义的。
+2. **阈值 16 对写入明显偏晚**：Linear 写在 k=16 已降到 66.6 Mops/s（线性扫描 16 项），而 HashMap 在 k=17 是 172.1 Mops/s（**2.6×**）。线性扫描成本随 k 单调增长（k=2: 109 → k=16: 67），交叉点应在更小的 k；但当前实现把"策略"与"位宽"绑死（`bits<=4 → Linear`），**无法在 k≤16 上测到哈希路径**，要定准交叉点必须先解耦二者再做 A/B。
+3. **位宽非 2 的幂时有 20%~30% 惩罚**：bits=8（k=129..256）读 ~390 / 写 ~179，明显高于 bits=5..7 与 9..12（读 247~321 / 写 139~166）；bits=4（也是 2 的幂）读 348~389、但写只有 67~109（受线性扫描拖累）。根因是 `_readBits/_writeBits` 允许条目跨 u64 字（"跨两个字"分支）。可选调法：**(a)** 改成原版 MC 的 `valuesPerLong = 64/bits` 布局（每字内不对齐但不跨字，内存增加约 2%~17%，bits=11 档最差）；**(b)** 位宽向上取整到 2 的幂（如 k=17 用 bits=8：内存 2.9 KB→4 KB，换约 +25% 速度）。
+4. **`Flat`（`MIN_BITS_FOR_FLAT = 16`）在 `VOLUME = 4096` 下不可达**：k≤4096 → `paletteSize`≤4096 → bits≤12，`_modeForBits` 永不返回 `Flat`；`fromFlat` 里 `uniqueCount >= 1<<16` 的分支同样不可达（注释也已标注"VOLUME=4096 时不可达，保留兜底"）。另外 `_calculateBitsForValue()` 全项目只有定义、没有调用点（死代码）。二者若确认无用应清理，否则会给"以为 Flat 阈值在起作用"的错误印象。
+5. **SingleValue 是绝对甜点**：读 2007.5 Mops/s（比 Linear 快 5×）、内存 116 B。让空气段尽量保持 SingleValue，收益远大于任何阈值微调。
+
+> 说明：以上为单机（Windows / i7-14700KF）中位数结果，绝对吞吐随机器变化；调阈值时请以**同机相对比较**为准（例如"k=16 Linear 写 vs k=17 HashMap 写"）。
 
 ### serverInitializeShell / serverInitializeWorld（服务端启动）
 
@@ -116,7 +169,7 @@ macOS 表中 threads=8 的 20.4× **超过 8 个 worker**，纯 CPU 并行不可
 1. TODO: 在 macOS 上给 `ChunkGeneration` 加 `->MeasureProcessCPUTime()` 复测单线程档位，确认口径差异（预期其 CPU/墙钟 ≈1.0，而非本机的 1.94）。零风险，优先级最高。
 2. TODO: 给 `ChunkGeneration` 增加「稀疏批次」参数（区块间隔 ≥5）与密集批次对比：若稀疏批明显更快，即坐实 (a)(b) 的区域锁/停等结论。
 3. TODO: 用 CPU affinity 把基准绑到 8 个 P-core 复测，剥离 E-core/超线程影响（无需改代码）。
-4. TODO: 用已能正确归档的 `.perfetto-trace`（每用例/每重复一个文件）在 ui.perfetto.dev 查看 worker 线程的 park/阻塞分布，与 (a)(d) 对照。
+4. TODO: 用已能正确归档的 `.perfetto-trace`（每用例/每重复一个文件，需传 `--benchmark_trace`）在 ui.perfetto.dev 查看 worker 线程的 park/阻塞分布，与 (a)(d) 对照。
 5. TODO: 结构性优化（需评估后再动）：`_incrementInhabitedTime` 改为仅有玩家追踪时遍历；区域互斥任务冲突时改为跳过并取下一个可运行任务而非自等；评估按实际访问半径收紧 `onChunkGenComplete` 的区域锁半径。
 
 ## 指标解读
@@ -150,10 +203,11 @@ macOS 表中 threads=8 的 20.4× **超过 8 个 worker**，纯 CPU 并行不可
    - 计算型：默认自动迭代（每用例跑 ≥0.5s）
    - 一次性事件（进程启动等）：`->Repetitions(N)->Iterations(1)`，**禁止**让它自动校准（会启动几百个进程）
 3. 每参数独立装配用 `->Setup(...)/->Teardown(...)`；参数用 `->Arg/->Args` 编码，`state.range(i)` 读取
-4. 需要独立 trace 文件：循环首行 `PerfettoProfilerAdapter::setCaseName("名称")`
-5. `benchmark/CMakeLists.txt` 登记源文件；引用 server 符号时按链接错误补齐源闭包（参照 `tests/unit/CMakeLists.txt`）
-6. 有迭代间状态时在 `PauseTiming()/ResumeTiming()` 区间内清理；复用 `ServerChunkManager` 必须主线程 tick 泵送（见 benchmark/README.md 容易踩的坑）
-7. 更新 `benchmark/README.md` 的用例清单
+4. 需要独立 trace 文件：计时循环前调 `PerfettoProfilerAdapter::setCaseName("名称")`（使用者需传 `--benchmark_trace` 才会注册适配器）
+5. 随机访问/访存类用例必须预热，预热放在计时循环**之前**（google/benchmark 只对循环体计时），参照 `PalettedContainerBenchmark.cpp`
+6. `benchmark/CMakeLists.txt` 登记源文件；引用 server 符号时按链接错误补齐源闭包（参照 `tests/unit/CMakeLists.txt`）
+7. 有迭代间状态时在 `PauseTiming()/ResumeTiming()` 区间内清理；复用 `ServerChunkManager` 必须主线程 tick 泵送（见 benchmark/README.md 容易踩的坑）
+8. 更新 `benchmark/README.md` 的用例清单
 
 ## 性能回归工作流
 

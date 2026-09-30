@@ -6,14 +6,17 @@
 
 ```
 benchmark/
-├── main.cpp                          # 入口：benchmark::Initialize/RunSpecifiedBenchmarks + 时间戳归档目录
+├── main.cpp                          # 入口：flag 解析（--benchmark_trace / --benchmark_out 注入）+ 时间戳归档目录
 ├── MemoryProfiler.hpp/.cpp           # MemoryManager 实现（全局 operator new/delete 钩子统计内存指标）
-├── PerfettoProfilerAdapter.hpp/.cpp  # ProfilerManager 适配器（每用例一个 .perfetto-trace）
+├── PerfettoProfilerAdapter.hpp/.cpp  # ProfilerManager 适配器（每用例/每重复一个 .perfetto-trace，默认不注册）
 ├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式）
-└── cases/
-    ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）
-    ├── LightingBenchmark.cpp         # 光照引擎本体（16×16 整层批量方块光更新）
-    └── ServerInitializeBenchmark.cpp # 服务端启动耗时（外部进程测量，shell/world 两个用例）
+├── cases/
+│   ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）
+│   ├── LightingBenchmark.cpp         # 光照引擎本体（16×16 整层批量方块光更新）
+│   ├── PalettedContainerBenchmark.cpp # 调色板容器随机读写（元素种类数 1..4096 扫描工作模式）
+│   └── ServerInitializeBenchmark.cpp # 服务端启动耗时（外部进程测量，shell/world 两个用例）
+└── scripts/
+    └── plot_paletted_container.py    # 由 results.json 生成调色板读写折线图（输出到 docs/）
 ```
 
 ## 用例说明
@@ -46,6 +49,16 @@ benchmark/
 - 被测进程的 stdout/stderr 重定向到 `<临时世界目录>/server_console.log`（两个平台一致）：非零退出时回显日志头 80 行 + 尾 120 行（超长中间省略）**并保留该临时世界目录**供事后排查；成功退出时静默删除
 - 依赖：须先构建 `minecraft-server`（路径 `build/bin/RelWithDebInfo/minecraft-server` 硬编码，相对仓库根目录运行）
 
+### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写）
+
+对 `PalettedContainer`（16³ = 4096 格）扫描元素种类数量 k=1..4096，用同一条固定随机序列测随机读（`get`）与随机写（`set`）吞吐，为"模式切换阈值"提供实测依据。
+
+- 32 档扫描点：SingleValue(1)、Linear(2..16)、HashMap 的每个位宽档（bits 5..12，各取低/中/高），能看清 16/17 阈值拐点与"跨 u64 字"（非 2 的幂位宽）的影响
+- 一次迭代 = 4×4096 次随机访问；**装配（填 k 种值）与预热（8 轮同序列访问）都在计时循环之前，不计入结果**
+- 写入值取自当前 k 种取值集合 → 调色板不增长，测的是稳态读写，不含扩容/模式转换
+- 报告 `reads_per_second` / `writes_per_second`，附带 `bits_per_entry` / `palette_size` / `memory_bytes`
+- 图表与调参结论见 [docs/BENCHMARK.md](../docs/BENCHMARK.md) 的同名小节，绘图脚本 `scripts/plot_paletted_container.py`
+
 ## 构建与运行
 
 ```bash
@@ -60,16 +73,27 @@ cmake --build --preset macos-relwithdebinfo
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter="ChunkGeneration/8/16"
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=Lighting --benchmark_min_time=3s
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=serverInitializeShell
+
+# mc_benchmark 自有 flag：录制 Perfetto trace（默认关闭）
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_trace --benchmark_filter=Lighting
 ```
+
+### mc_benchmark 自有 flag
+
+| flag | 默认 | 说明 |
+|---|---|---|
+| `--benchmark_trace[=true\|false]` | `false` | 是否注册 `ProfilerManager` 适配器、录制 `.perfetto-trace`。**默认关闭**：不产任何 trace 文件，也不会触发 google/benchmark 的额外 profile run（否则每次重复会被多跑一遍，进程启动类用例的墙钟时间约为计时值的两倍） |
+
+该 flag 在 `main.cpp` 里于 `benchmark::Initialize` **之前**解析并剥离（google/benchmark 只识别自己的已知 flag，不认识它）。
 
 ### 输出
 
 每次运行输出到 `benchmark_results/yyyy-MM-dd_HH-mm-ss/`（已 gitignore）：
 
 - `results.json`：全部用例的 JSON 结果（含聚合统计与内存指标）
-- `<case>.perfetto-trace`：每个用例的**每次重复**一个 trace 文件（ui.perfetto.dev 分析）；同一用例第 N（N≥2）次重复为 `<case>.rep2.perfetto-trace`、`.rep3`……命名主干由用例经 `PerfettoProfilerAdapter::setCaseName` 设置（`/` 替换为 `_`）
+- `<case>.perfetto-trace`：**仅在传 `--benchmark_trace` 时产出**，每个用例的**每次重复**一个文件（ui.perfetto.dev 分析）；同一用例第 N（N≥2）次重复为 `<case>.rep2.perfetto-trace`、`.rep3`……命名主干由用例经 `PerfettoProfilerAdapter::setCaseName` 设置（`/` 替换为 `_`）
 
-> 注册了 `ProfilerManager` 后，google/benchmark 会为每次重复**额外多跑一遍带 profiler 的 run**（`benchmark.h` 的 ProfilerManager 注释）：先正常 run 计时，再跑一遍被 `AfterSetupStart`/`BeforeTeardownStop` 包住的 run，trace 记录的是后者。因此 `serverInitialize*` 这类进程启动用例的**墙钟耗时约为计时值之和的两倍**（每次重复启动两个服务端进程），统计值本身不受影响。
+> 传了 `--benchmark_trace` 后，google/benchmark 会为每次重复**额外多跑一遍带 profiler 的 run**（`benchmark.h` 的 ProfilerManager 注释）：先正常 run 计时，再跑一遍被 `AfterSetupStart`/`BeforeTeardownStop` 包住的 run，trace 记录的是后者。因此 `serverInitialize*` 这类进程启动用例的**墙钟耗时约为计时值之和的两倍**（每次重复启动两个服务端进程），统计值本身不受影响；不传该 flag 时没有这遍额外执行。
 
 ### 内存指标
 
@@ -90,8 +114,9 @@ google/benchmark 经 libpfm4 支持 `--benchmark_perf_counters=CYCLES,INSTRUCTIO
 1. 在 `cases/` 新建 `.cpp`，写 `void MyBench(::benchmark::State& state)` 函数 + `BENCHMARK(MyBench)->...` 注册
 2. 计算型用例默认自动迭代即可；一次性事件用 `->Repetitions(N)->Iterations(1)`（**禁止**让进程启动类用例自动校准迭代，会启动几百个进程）
 3. 需要每参数独立装配时用 `->Setup(...)/->Teardown(...)` 回调
-4. 需要每用例独立 trace 文件时，在循环首行调 `PerfettoProfilerAdapter::setCaseName("名称")`
-5. 在 `benchmark/CMakeLists.txt` 登记源文件；若引用 server 模块符号，按链接错误补齐源闭包（参照 `tests/unit/CMakeLists.txt` 对 mc_tests 的登记）
+4. 需要每用例独立 trace 文件时，在计时循环前的首行调 `PerfettoProfilerAdapter::setCaseName("名称")`（并提示使用者传 `--benchmark_trace`，否则不会注册适配器、不产 trace）
+5. 在 `benchmark/CMakeLists.txt` 登记源文件；若引用 server 模块符号，按链接错误补齐源包闭包（参照 `tests/unit/CMakeLists.txt` 对 mc_tests 的登记）
+6. 随机访问/访存类用例必须预热，且预热只能放在计时循环**之前**（见下）
 
 ## 容易踩的坑
 
@@ -122,6 +147,14 @@ Windows 侧的命令行必须以宽字符拼装：`std::filesystem::path::string
 `mc::profiler::ProfilerManager` 的 `initialize()` 是一次性的（第二次调用直接 `Already initialized, skipping`），而 Perfetto 的 `Tracing::Initialize` 本身就是进程级初始化。因此需要"每个用例/每次重复一个 trace 文件"的调用方**不能**靠重复 `initialize()` 换 `outputPath`——那样所有用例都会写进首个用例的文件、互相覆盖（表现为整个进程只落一个 trace，且内容是最后一个用例的）。正确做法是 `setOutputPath()` 在会话之间切换路径（`outputPath` 只在 `stopTracing()` 落盘时使用，不参与 session 创建），见 `PerfettoProfilerAdapter::AfterSetupStart`。
 
 `PerfettoProfilerAdapter::setCaseName` 也只在**用例名变化**时重置重复计数：google/benchmark 的每个重复先跑正常 run（用例函数体首行设置名字）再跑 profile run，若每次调用都重置计数，重复序号永远是 1，多次重复同样会互相覆盖。
+
+### 预热必须放在计时循环之前
+
+google/benchmark 只对 `for (auto _ : state)` 的迭代计时：循环之前的装配与预热**一律不计入结果**，这就是做预热（把位存储/调色板/访问序列压进 L1/L2）的唯一正确位置。不要在循环体内"先跑几轮再开始统计"（要么污染结果，要么得靠 `PauseTiming` 手工剔除，容易出错）。`PalettedContainerBenchmark` 是范例：`buildContainer` → `warmUp*`（8 轮同序列访问）→ 计时循环。
+
+### 随机访问类用例必须用固定种子生成访问序列
+
+`PalettedContainerBenchmark` 用 xorshift32 + 固定种子预生成 `indices/values` 数组（装配阶段完成）：同一序列跨运行、跨档位完全一致，否则不同 k 的曲线不可比，且序列生成开销会混进测量区间。
 
 ### benchmark 名大小写
 

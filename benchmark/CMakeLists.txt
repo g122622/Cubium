@@ -6,6 +6,7 @@ add_executable(mc_benchmark
     PerfettoProfilerAdapter.cpp
     cases/ChunkGenerationBenchmark.cpp
     cases/LightingBenchmark.cpp
+    cases/PalettedContainerBenchmark.cpp
     cases/ServerInitializeBenchmark.cpp
 )
 
