@@ -23,6 +23,7 @@
 
 #include "common/util/assert/AssertAll.hpp"
 #include <barrier>
+#include <chrono>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
