@@ -80,6 +80,13 @@ private:
     /// --gametest-tests：测试名过滤通配符（空=跑全部非 manualOnly 非 broken 测试）。
     std::string m_gametestTestsFilter;
 
+    /// --benchmark-exit-after-shell-init：shell 初始化完成即退出（不进主循环）。
+    bool m_benchmarkExitAfterShellInit{false};
+
+    /// --benchmark-exit-after-world-init：shell 初始化 + 出生区块全部生成后退出。
+    /// 隐含 shell-init 路径（onFlagsParsed 中联动置位）。
+    bool m_benchmarkExitAfterWorldInit{false};
+
     /// 收到 SIGINT/SIGTERM 后置 true，runApplication 主循环轮询此标志优雅退出。
     static std::atomic<bool> s_shouldExit;
 

@@ -54,6 +54,8 @@ build/bin/RelWithDebInfo/minecraft-server
 
 协议模糊测试（libFuzzer harness，对"入站字节 → IR 包"解码链路做覆盖率引导测试）见 docs/test/FUZZING.md。
 
+性能基准测试（google/benchmark：区块生成吞吐、光照引擎、服务端启动耗时，含内存指标与 Perfetto trace）见 docs/BENCHMARK.md。
+
 ## clang-tidy 静态分析
 
 见 docs/TIDY.md

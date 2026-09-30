@@ -27,6 +27,7 @@
     "leveldb",
     "gflags",
     "asmjit",
+    "benchmark",
     "simdjson"
   ],
   "features": {

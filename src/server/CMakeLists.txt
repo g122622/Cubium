@@ -6,7 +6,7 @@
 #
 # 架构规则：src/common 不得依赖 src/server。world/gen 实现物理迁移到
 # src/server/world/gen/ 后，既被 minecraft-server（生产服务端）编译，
-# 也被 minecraft-client（内置服）/ mc_tests / mc_benchmarks /
+# 也被 minecraft-client（内置服）/ mc_tests / mc_benchmark /
 # mc_trident_tests 编译。这些 target 的 .o（含 mc_common 静态库中
 # 违规引用 server gen 头的 TreeGenerators/FungusBlock/
 # BigMushroomGenerators/SpreadableSnowyDirtBlock）需要 gen 符号实现。
@@ -258,7 +258,7 @@ add_library(mc_gen OBJECT
 # spdlog/nlohmann_json/simdjson/asmjit/fmt 等第三方头（均由 mc_common PUBLIC 链接）。
 # 故 mc_gen 须 PRIVATE 链接 mc_common：编译 mc_gen 自身 .cpp 时需要 common 符号与头路径，
 # 但 mc_gen 是纯实现 OBJECT 库，不对外暴露头接口，故用 PRIVATE 避免向使用方传递
-# mc_common 链接（minecraft-server / minecraft-client / mc_tests / mc_benchmarks /
+# mc_common 链接（minecraft-server / minecraft-client / mc_tests / mc_benchmark /
 # mc_trident_tests 本就各自直接链接 mc_common，传递会造成 "duplicate libraries" 警告）。
 target_link_libraries(mc_gen PRIVATE mc_common)
 
@@ -494,7 +494,7 @@ add_executable(minecraft-server
     # -------------------------------------------------------------------
     # gen 源文件已提取为 mc_gen OBJECT 库（见本文件末尾），供所有需要
     # world/gen 实现的 target（minecraft-server / minecraft-client /
-    # mc_tests / mc_benchmarks / mc_trident_tests）统一链接，避免 common
+    # mc_tests / mc_benchmark / mc_trident_tests）统一链接，避免 common
     # 静态库中违规引用 server gen 头的 .o（TreeGenerators/FungusBlock/
     # BigMushroomGenerators/SpreadableSnowyDirtBlock）在非 server target
     # 上找不到 gen 符号实现。

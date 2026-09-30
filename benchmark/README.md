@@ -1,243 +1,117 @@
-# Benchmark 框架
+# Benchmark 框架（google/benchmark）
 
-本目录包含 Cubium 项目的基准测试框架，用于测试计算密集型游戏逻辑的性能。
+本目录包含 Cubium 项目的基准测试框架，基于 [google/benchmark](https://github.com/google/benchmark)（经 vcpkg 引入，目标名 `mc_benchmark`）。
 
 ## 目录结构
 
 ```
 benchmark/
-├── main.cpp                    # 入口点，配置加载和运行调度
-├── BenchmarkTypes.hpp          # 核心类型定义
-├── BenchmarkConfig.hpp/.cpp    # 配置加载（benchmark.json）
-├── BenchmarkCase.hpp/.cpp      # Benchmark 用例接口和执行逻辑
-├── BenchmarkRegistry.hpp/.cpp  # 用例注册表
-├── BenchmarkRunner.hpp/.cpp    # 运行器，串行执行多个用例
-├── BenchmarkResultWriter.hpp/.cpp # 结果写入 JSON/CSV
-├── scripts/
-│   └── visualize.py            # 基于统一 CSV 生成每个 case 的图像
+├── main.cpp                          # 入口：benchmark::Initialize/RunSpecifiedBenchmarks + 时间戳归档目录
+├── MemoryProfiler.hpp/.cpp           # MemoryManager 实现（全局 operator new/delete 钩子统计内存指标）
+├── PerfettoProfilerAdapter.hpp/.cpp  # ProfilerManager 适配器（每用例一个 .perfetto-trace）
+├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式）
 └── cases/
-    ├── ClientInitializeBenchmark.cpp # 启动外部 minecraft-client 进程并测量 initialize 完成退出耗时
-    ├── ChunkGenerationBenchmark.cpp  # 区块生成性能测试
-    ├── LightingBenchmark.cpp         # 光照引擎性能测试
-    └── ChunkMeshBenchmark.cpp        # 区块网格生成（暂时禁用）
+    ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）
+    ├── LightingBenchmark.cpp         # 光照引擎本体（16×16 整层批量方块光更新）
+    └── ServerInitializeBenchmark.cpp # 服务端启动耗时（外部进程测量，shell/world 两个用例）
 ```
 
-## 模块关系
+## 用例说明
 
-```mermaid
-flowchart TB
-    subgraph 框架核心
-        main[main.cpp] --> Config[BenchmarkConfig]
-        main --> Runner[BenchmarkRunner]
-        Runner --> Registry[BenchmarkRegistry]
-        Runner --> Case[BenchmarkCase]
-        Runner --> Writer[BenchmarkResultWriter]
-    end
+### ChunkGeneration（区块生成吞吐）
 
-    subgraph 用例
-        Registry --> ChunkGen[ChunkGenerationBenchmark]
-        Registry --> Lighting[LightingBenchmark]
-        Registry --> ClientInit[ClientInitializeBenchmark]
-    end
+走**生产级区块生成系统**完整链路：`ServerChunkManager` 请求聚合 → `ChunkTaskScheduler` 邻居依赖调度（ReentrantAreaLock）→ `UniversalWorkerPool` 区域互斥执行 → `ChunkProgressionTask` 逐状态推进 → FULL 完成回收。
 
-    subgraph 依赖
-        ChunkGen --> WorldGen[world/gen 模块]
-        ChunkGen --> VanillaBlocks[common/world/block]
-        Lighting --> WorldLight[world/lighting 模块]
-        Lighting --> VanillaBlocks
-        ClientInit --> ClientExe[minecraft-client.exe]
-    end
-```
+- 参数：`threads`（生成系统内部线程池大小，1/2/4/8）× `batch`（每迭代生成的 n×n 区块批，8/16/32）
+- 口径：一次迭代 = 提交一批 FULL 请求 → 主线程 `tick()` 泵送驱动 → 全部完成。报告 `chunks_per_second`
+- 迭代间经 `unloadChunkSync` 卸载本批区块（PauseTiming 区间内），保证每轮都测真实生成而非缓存命中
+- 存储为临时目录 RocksDB（`$TMPDIR/mc_bench_chunkgen`），seed 固定 12345，中心区块 (0,0)
 
-## 整体职责
+**关键约束**：`ServerChunkManager` 的线程模型要求主线程 tick 驱动调度推进（存档解析完成回调等只在 `tick()` 出队）。异步批量提交后只等 future 不 tick 会**死锁**——基准内已复现生产主循环节拍（泵 `tick()`），新增类似用例务必遵守。
 
-- **配置加载**：从根目录 `benchmark.json` 读取配置，不支持命令行参数
-- **用例注册**：通过静态注册机制，用例代码自主注册到全局注册表
-- **串行执行**：按配置顺序执行用例，支持预热和多次测量
-- **结果输出**：控制台摘要 + 时间目录归档的 JSON/CSV/图像/Perfetto trace
-- **错误处理**：配置错误或运行失败会记录但继续执行其他用例
+### Lighting（光照引擎本体）
 
-## 输入/输出
+直接驱动 TLS 方块光引擎（`acquireBlockLightEngine` → `blocksChangedInChunk` → `release`），不经过 ServerLightQueue/RuntimeLightTask 等 tick 级调度。
 
-### 输入
+- 口径：一次迭代 = 对 (0,0) 区块一个 16×16 截面层批量方块光更新（256 方块），GLOWSTONE/AIR 交替翻转保证每轮传播工作量稳定。报告 `blocks_per_second`
 
-- `benchmark.json`：配置文件（位于仓库根目录）
+### serverInitializeShell / serverInitializeWorld（服务端启动耗时）
 
-配置文件结构：
-```json
-{
-  "traceEnabled": true,
-  "threadCount": 4,
-  "outputDirectory": "benchmark_results",
-  "resultJsonFileName": "benchmark_results.json",
-  "resultCsvFileName": "benchmark_results.csv",
-  "traceFileName": "benchmark_trace.perfetto-trace",
-  "visualizeScriptPath": "benchmark/scripts/visualize.py",
-  "pythonExecutable": "C:/Users/Administrator/AppData/Local/Programs/Python/Python310/python.exe",
-  "measurement": {
-    "warmupIterations": 2,
-    "measuredIterations": 5,
-    "minDurationMs": 1
-  },
-  "cases": [
-    {
-      "name": "chunk_generation",
-      "threadCount": 4,
-      "measurement": {
-        "warmupIterations": 2,
-        "measuredIterations": 5,
-        "minDurationMs": 1
-      },
-      "parameters": {
-        "seed": 12345,
-        "chunkX": 0,
-        "chunkZ": 0
-      }
-    },
-    {
-      "name": "client_initialize",
-      "threadCount": 1,
-      "measurement": {
-        "warmupIterations": 1,
-        "measuredIterations": 3,
-        "minDurationMs": 1
-      },
-      "parameters": {
-        "clientExecutable": "build/bin/RelWithDebInfo/minecraft-client.exe",
-        "timeoutMs": 300000
-      }
-    }
-  ]
-}
+每次重复启动一个外部 `minecraft-server` 进程并阻塞等待其退出，共 5 次重复取 mean/median/stddev。
+
+- `serverInitializeShell`：服务端带 `--benchmark-exit-after-shell-init`，子系统初始化 + 网络监听就绪即退出
+- `serverInitializeWorld`：服务端带 `--benchmark-exit-after-world-init`，再加世界创建 + 出生区域（`SPAWN_CHUNK_RADIUS`）区块全部生成 FULL 后退出
+- 每次启动使用全新临时世界目录（`$TMPDIR/mc_benchmark_server_init/<case>_<n>`，内含空配置指定独立 worldName 与随机端口），退出后删除，保证冷启动口径一致
+- 被测服务端进程显式传 `--profiler_enabled=false`，trace 只录基准进程侧
+- 依赖：须先构建 `minecraft-server`（路径 `build/bin/RelWithDebInfo/minecraft-server` 硬编码，相对仓库根目录运行）
+
+## 构建与运行
+
+```bash
+# 构建（也可只构建目标：cmake --build --preset macos-relwithdebinfo -- -j16 mc_benchmark）
+cmake --build --preset macos-relwithdebinfo
+
+# 在仓库根目录运行（结果输出到 benchmark_results/<时间戳>/）
+./build/bin/RelWithDebInfo/mc_benchmark
+
+# 常用 flag（google/benchmark 原生）
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_list_tests
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter="ChunkGeneration/8/16"
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=Lighting --benchmark_min_time=3s
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=serverInitializeShell
 ```
 
 ### 输出
 
-- **控制台摘要**：每个用例的平均耗时和吞吐量
-- **时间目录**：结果统一输出到 `benchmark_results/yyyy-mm-dd_hh-mm-ss/`
-- **JSON 结果文件**：`benchmark_results.json`，包含聚合指标和每次 measured iteration 的耗时
-- **CSV 明细文件**：`benchmark_results.csv`，所有 case 共用一个明细表
-- **每个 case 图像**：`<case_name>.png`，展示该 case 每轮 measured iteration 的耗时变化
-- **Perfetto trace**：`benchmark_trace.perfetto-trace`
+每次运行输出到 `benchmark_results/yyyy-MM-dd_HH-mm-ss/`（已 gitignore）：
 
-输出目录示例：
+- `results.json`：全部用例的 JSON 结果（含聚合统计与内存指标）
+- `<case>.perfetto-trace`：每用例一个 trace 文件（ui.perfetto.dev 分析）；同一用例多次重复为 `<case>.rep2.perfetto-trace` 等
 
-```text
-benchmark_results/
-└── 2026-05-18_14-30-45/
-    ├── benchmark_results.json
-    ├── benchmark_results.csv
-    ├── benchmark_trace.perfetto-trace
-    ├── chunk_generation.png
-    └── lighting.png
-```
+### 内存指标
 
-## 依赖项
+main 注册了 `MemoryProfiler`（`benchmark::MemoryManager` 实现），JSON 结果自动携带：
 
-- `mc_common`：核心游戏逻辑
-- `mc::profiler`：性能追踪
-- `nlohmann_json`：JSON 解析
+- `num_allocs` / `allocs_per_iter`：区间内分配次数（总次数 / 每迭代）
+- `total_allocated_bytes`：累计分配字节
+- `max_bytes_used` / `net_heap_growth`：累计分配 - 累计释放（近似在用，非精确峰值——纯 new/delete 钩子无法逐块跟踪）
 
-## 使用方法
+实现为全局 `operator new/delete` 替换（本 TU 参与链接即生效，跨平台行为一致）。注意 `Start/Stop` 之间未捕获 sized-delete 的字节（无 size 的 delete 变体只计次数），`net_heap_growth` 是下界近似口径。
 
-### 构建
+### CPU 硬件计数器（缓存命中率等）
 
-```bash
-cmake --build --preset windows-clang-relwithdebinfo
-```
+google/benchmark 经 libpfm4 支持 `--benchmark_perf_counters=CYCLES,INSTRUCTIONS,...`，**仅 Linux**（依赖 PMU + `BENCHMARK_ENABLE_LIBPFM`，vcpkg port 未开启该选项，需自行定制 port 或 bazel 构建）。macOS（Apple Silicon PMU 不暴露用户态）与 Windows 均不可用。macOS 上如需缓存分析可用 `xctrace` 对 `mc_benchmark` 进程做外部采样。
 
-### 运行
+## 添加新用例
 
-```bash
-cd <仓库根目录>
-./build/bin/RelWithDebInfo/mc_benchmarks
-```
-
-### 添加新用例
-
-1. 在 `cases/` 目录创建新的 `.cpp` 文件
-2. 实现 `IBenchmarkCase` 接口
-3. 使用静态注册：
-```cpp
-const bool g_registered = []() {
-    BenchmarkRegistry::instance().registerCase("my_benchmark", []() {
-        return std::make_unique<MyBenchmark>();
-    });
-    return true;
-}();
-```
-4. 在 `benchmark.json` 添加配置
-5. 在 `CMakeLists.txt` 添加源文件
+1. 在 `cases/` 新建 `.cpp`，写 `void MyBench(::benchmark::State& state)` 函数 + `BENCHMARK(MyBench)->...` 注册
+2. 计算型用例默认自动迭代即可；一次性事件用 `->Repetitions(N)->Iterations(1)`（**禁止**让进程启动类用例自动校准迭代，会启动几百个进程）
+3. 需要每参数独立装配时用 `->Setup(...)/->Teardown(...)` 回调
+4. 需要每用例独立 trace 文件时，在循环首行调 `PerfettoProfilerAdapter::setCaseName("名称")`
+5. 在 `benchmark/CMakeLists.txt` 登记源文件；若引用 server 模块符号，按链接错误补齐源闭包（参照 `tests/unit/CMakeLists.txt` 对 mc_tests 的登记）
 
 ## 容易踩的坑
 
-### 配置文件缺失
+### ServerChunkManager 异步请求必须由主线程 tick 驱动
 
-- 框架不使用默认值，配置文件缺失或字段缺失会导致错误退出
-- 确保 `benchmark.json` 位于工作目录（通常是仓库根目录）
-- `outputDirectory`、`resultJsonFileName`、`resultCsvFileName`、`traceFileName`、`visualizeScriptPath`、`pythonExecutable` 都是必填字段
+批量 `requestChunkAsync` 后只 `future.get()` 而不调 `tick()` 会**永久死锁**：存档解析完成回调入队 `m_pendingLoadCompletes`，只有 `tick()`（或 `requestChunkSync` 内部的主动 pump）出队。基准用"非阻塞收割 + tick 泵送"复现生产主循环；新用例若复用 ServerChunkManager，必须遵守此模型。
 
-### 用例未注册
+### 迭代间必须卸载区块
 
-- 静态注册依赖全局变量初始化顺序
-- 确保用例源文件被链接到目标
+`ChunkGeneration` 若不卸载，第二轮起全部命中内存缓存，测的是缓存查询而非生成（实测 78ms → 0.046ms 的假象差异）。卸载 + 排空必须放在 `PauseTiming()/ResumeTiming()` 之间。
 
-### Perfetto 未启用
+### worldgen 数据驱动注册表须显式加载
 
-- 如果 `MC_ENABLE_TRACING=0`，trace 文件将为空
-- 检查 CMake 配置确保 Perfetto 已启用
+`RandomState::create` 查 `NoiseSettingsRegistry`，数据包未加载时断言崩溃。进程内首次使用前须经 `ensureWorldGenRegistriesLoaded()` 同类逻辑按依赖拓扑加载：noise → density_function → noise_settings → world_preset（参照 `tests/unit/main.cpp` 的 `WorldGenRegistryEnvironment`）。
 
-### Python 绘图依赖
+### mc_benchmark 必须在仓库根目录运行
 
-- `visualize.py` 依赖 `pandas` 和 `matplotlib`
-- `pythonExecutable` 指向的解释器若缺少依赖，JSON/CSV/trace 会先正常生成，但图像生成会失败并在控制台报错
+`serverInitialize*` 用例以相对路径 `build/bin/RelWithDebInfo/minecraft-server` 启动被测进程；结果目录也基于 CWD。
 
-### 客户端依赖
+### benchmark 名大小写
 
-- 某些用例（如 ChunkMeshBenchmark）依赖客户端渲染模块
-- 当前框架只链接 `mc_common`，此类用例需要单独处理
+注册名即函数名（如 `ChunkGeneration`、`Lighting`），`--benchmark_filter` 是正则且大小写敏感。
 
-## 测试用例说明
+### 全局 new/delete 替换的影响范围
 
-### ChunkGenerationBenchmark
-
-测试区块生成的性能，包括：
-- 生物群系生成
-- 噪声地形生成
-
-参数：
-- `seed`：世界种子
-- `chunkX`、`chunkZ`：区块坐标
-
-### LightingBenchmark
-
-测试光照引擎的性能，包括：
-- 方块光照更新
-- 天空光照传播
-
-参数：
-- `updatesPerIteration`：每次迭代的光照更新数量
-
-### ClientInitializeBenchmark
-
-测试外部 `minecraft-client.exe` 从进程启动到 `ClientApplication::initialize` 完成并退出的耗时。
-
-参数：
-- `clientExecutable`：客户端可执行文件路径，必填
-- `timeoutMs`：单次启动超时时间，选填，默认 300000
-
-实现约束：
-- benchmark 框架不会链接 client 目标
-- case 会硬编码附加 `--benchmark-exit-after-initialize`
-- client 在该模式下只做 shell 初始化，不进入世界、不连接服务器、不运行主循环
-- client 自身不写 perfetto trace，但仍执行正常 shutdown 收尾
-
-### ChunkMeshBenchmark（暂时禁用）
-
-测试区块网格生成的性能。
-
-**禁用原因**：依赖客户端渲染模块（BlockModelCache、MeshData 等），当前框架只链接 `mc_common`。
-
-启用方法：
-1. 创建链接客户端模块的独立 benchmark 目标
-2. 或创建最小化的 ChunkMesher 测试路径
+`MemoryProfiler.cpp` 的 operator new/delete 替换作用于整个进程（含库自身）。`Start/Stop` 边界外的分配不计入结果，但会轻微影响全局分配路径性能；若怀疑影响被测口径，可在 profiler 实现中加旁路开关。

@@ -7,13 +7,13 @@
 # section/、snapshot/、task/、reader/ RocksDB 运行时层）从 common 迁移到 server 后，
 # 既被 minecraft-server（生产服务端）编译，也被 minecraft-client（内置服，client
 # CMakeLists.txt 直接编译 IntegratedServer.cpp/MinecraftServer.cpp）/ mc_tests /
-# mc_benchmarks / mc_trident_tests 编译。抽成 OBJECT 库后，同一批 .o 被各 target
+# mc_benchmark / mc_trident_tests 编译。抽成 OBJECT 库后，同一批 .o 被各 target
 # 复用，避免重复编译与重复符号。
 #
 # mc_server_storage PRIVATE 链接 mc_common：编译 mc_server_storage 自身 .cpp 时需要
 # common 符号与头路径（Result.hpp/各 world 类/CompressionUtils 等），但 mc_server_storage
 # 是纯实现 OBJECT 库，不对外暴露头接口，故用 PRIVATE 避免向使用方传递 mc_common 链接
-# （minecraft-server / minecraft-client / mc_tests / mc_benchmarks / mc_trident_tests
+# （minecraft-server / minecraft-client / mc_tests / mc_benchmark / mc_trident_tests
 # 本就各自直接链接 mc_common，传递会造成 "duplicate libraries" 警告）。
 #
 # 外部库归属（随 storage 从 mc_common 迁移至 mc_server_storage）：

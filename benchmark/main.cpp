@@ -21,17 +21,17 @@
  *
  */
 
-#include "BenchmarkConfig.hpp"
-#include "BenchmarkResultWriter.hpp"
-#include "BenchmarkRunner.hpp"
+#include "MemoryProfiler.hpp"
+#include "PerfettoProfilerAdapter.hpp"
 
-#include "common/profiler/ProfilerManager.hpp"
-#include "common/profiler/TraceEvents.hpp"
+#include <benchmark/benchmark.h>
 #include <chrono>
 #include <ctime>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -64,59 +64,52 @@ namespace {
         localTime.tm_sec);
 }
 
-[[nodiscard]] int runVisualizeScript(const std::filesystem::path& pythonExecutable,
-    const std::filesystem::path& scriptPath,
-    const std::filesystem::path& resultDirectory,
-    const std::filesystem::path& csvPath)
+// 检测用户是否显式传了 --benchmark_out（在 benchmark::Initialize 之前扫描：
+// Initialize 会把已识别的 flag 从 argv 中剔除）。
+[[nodiscard]] bool argvContainsBenchmarkOut(int argc, char** argv)
 {
-#ifdef _WIN32
-    std::string commandLine = fmt::format("\"{}\" \"{}\" \"{}\" \"{}\"",
-        pythonExecutable.string(),
-        scriptPath.string(),
-        resultDirectory.string(),
-        csvPath.string());
-
-    STARTUPINFOA startupInfo{};
-    startupInfo.cb = sizeof(startupInfo);
-
-    PROCESS_INFORMATION processInformation{};
-    const BOOL createResult = CreateProcessA(
-        nullptr, commandLine.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startupInfo, &processInformation);
-    if (createResult == FALSE) {
-        return static_cast<int>(GetLastError());
+    for (int i = 1; i < argc; ++i) {
+        const std::string_view arg = argv[i];
+        if (arg.rfind("--benchmark_out=", 0) == 0 || arg.rfind("--benchmark-out=", 0) == 0) {
+            return true;
+        }
     }
-
-    WaitForSingleObject(processInformation.hProcess, INFINITE);
-
-    DWORD exitCode = 0;
-    GetExitCodeProcess(processInformation.hProcess, &exitCode);
-    CloseHandle(processInformation.hThread);
-    CloseHandle(processInformation.hProcess);
-    return static_cast<int>(exitCode);
-#else
-    std::string command = fmt::format("\"{}\" \"{}\" \"{}\" \"{}\"",
-        pythonExecutable.string(),
-        scriptPath.string(),
-        resultDirectory.string(),
-        csvPath.string());
-    return std::system(command.c_str());
-#endif
+    return false;
 }
 
 } // namespace
 
-int main()
+int main(int argc, char** argv)
 {
+    // 时间戳归档目录必须在 CreateProcess 前确定（结果 JSON 路径要注入 argv），
+    // 但 Initialize 须在 argv 注入前完成解析顺序问题——把目录计算提前即可：
+    // 归档目录只依赖当前时间，不依赖任何 flag。
     const std::filesystem::path rootDirectory = std::filesystem::current_path();
-    auto configResult = mc::benchmark::loadBenchmarkConfig(rootDirectory);
-    if (!configResult.success()) {
-        std::cerr << configResult.error().message() << std::endl;
-        return 1;
+    const std::filesystem::path resultDirectory =
+        rootDirectory / "benchmark_results" / formatTimestampDirectoryName();
+
+    // 用户未显式传 --benchmark_out 时，把默认 JSON 输出路径
+    // "<归档目录>/results.json" 作为附加参数注入 argv（库原生 file reporter 路径）。
+    // 必须在 Initialize 之前注入：Initialize 解析后即固化 FLAGS_benchmark_out。
+    const bool userProvidedOut = argvContainsBenchmarkOut(argc, argv);
+    std::vector<std::string> injectedArgs;
+    std::vector<char*> injectedArgv;
+    if (!userProvidedOut) {
+        for (int i = 0; i < argc; ++i) {
+            injectedArgs.emplace_back(argv[i]);
+        }
+        injectedArgs.emplace_back(
+            fmt::format("--benchmark_out={}", (resultDirectory / "results.json").string()));
+        injectedArgv.reserve(injectedArgs.size());
+        for (auto& arg : injectedArgs) {
+            injectedArgv.push_back(arg.data());
+        }
+        argc = static_cast<int>(injectedArgv.size());
+        argv = injectedArgv.data();
     }
 
-    const mc::benchmark::BenchmarkConfig& config = configResult.value();
-    const std::filesystem::path resultRootDirectory = rootDirectory / config.outputDirectory;
-    const std::filesystem::path resultDirectory = resultRootDirectory / formatTimestampDirectoryName();
+    // 命令行完全交给 google/benchmark 的 flags 解析（--benchmark_filter 等）。
+    ::benchmark::Initialize(&argc, argv);
 
     std::error_code directoryError;
     if (!std::filesystem::create_directories(resultDirectory, directoryError) && directoryError) {
@@ -125,63 +118,23 @@ int main()
         return 1;
     }
 
-    const std::filesystem::path traceOutputPath = resultDirectory / config.traceFileName;
-    const std::filesystem::path resultJsonPath = resultDirectory / config.resultJsonFileName;
-    const std::filesystem::path resultCsvPath = resultDirectory / config.resultCsvFileName;
-    const std::filesystem::path visualizeScriptPath = rootDirectory / config.visualizeScriptPath;
-    const std::filesystem::path pythonExecutablePath = config.pythonExecutable;
+    // 内存指标：注册 MemoryManager（全局 operator new/delete 钩子在进程加载期即生效，
+    // enableHook 仅作文档化声明）。注册后每个用例的 JSON 结果自动携带
+    // num_allocs / max_bytes_used / total_allocated_bytes / net_heap_growth 指标。
+    static mc::benchmark::MemoryProfiler& memoryProfiler = mc::benchmark::MemoryProfiler::instance();
+    mc::benchmark::MemoryProfiler::enableHook();
+    ::benchmark::RegisterMemoryManager(&memoryProfiler);
 
-    mc::profiler::TraceConfig traceConfig;
-    traceConfig.enabled = config.traceEnabled;
-    traceConfig.outputToFile = true;
-    traceConfig.outputPath = traceOutputPath.string();
-    mc::profiler::ProfilerManager::instance().initialize(traceConfig);
-    mc::profiler::ProfilerManager::instance().setProcessName("mc_benchmarks");
-    mc::profiler::ProfilerManager::instance().setThreadName("benchmark-main");
-    mc::profiler::ProfilerManager::instance().startTracing();
+    // Perfetto trace：注册 ProfilerManager 适配器，在每个用例的 setup/teardown 边界
+    // 启停 mc::profiler，每用例一个 .perfetto-trace 文件（写入时间戳归档目录）。
+    static mc::benchmark::PerfettoProfilerAdapter profilerAdapter(resultDirectory.string());
+    ::benchmark::RegisterProfilerManager(&profilerAdapter);
 
-    mc::benchmark::BenchmarkRunner runner;
-    auto runResult = runner.run(config);
-    mc::profiler::ProfilerManager::instance().stopTracing();
-    mc::profiler::ProfilerManager::instance().shutdown();
+    ::benchmark::SetDefaultTimeUnit(::benchmark::kMillisecond);
 
-    if (!runResult.success()) {
-        std::cerr << runResult.error().message() << std::endl;
-        return 1;
-    }
+    const size_t matched = ::benchmark::RunSpecifiedBenchmarks();
 
-    const auto& results = runResult.value();
-    auto writeResult = mc::benchmark::writeBenchmarkResults(resultJsonPath, results);
-    if (!writeResult.success()) {
-        std::cerr << writeResult.error().message() << std::endl;
-        return 1;
-    }
-
-    auto writeCsvResult = mc::benchmark::writeBenchmarkResultCsv(resultCsvPath, results);
-    if (!writeCsvResult.success()) {
-        std::cerr << writeResult.error().message() << std::endl;
-        return 1;
-    }
-
-    const int visualizeExitCode =
-        runVisualizeScript(pythonExecutablePath, visualizeScriptPath, resultDirectory, resultCsvPath);
-    if (visualizeExitCode != 0) {
-        std::cerr << fmt::format("benchmark visualization failed with exit code {}", visualizeExitCode) << std::endl;
-    }
-
-    bool hasFailure = false;
-    for (const auto& result : results) {
-        std::cout << result.name << ": ";
-        if (result.status == mc::benchmark::BenchmarkStatus::Success && result.metrics.has_value()) {
-            std::cout << result.metrics->averageMs << " ms avg, " << result.metrics->operationsPerSecond << " ops/s";
-        } else {
-            hasFailure = true;
-            std::cout << "FAILED: " << result.errorMessage;
-        }
-        std::cout << std::endl;
-    }
-
+    ::benchmark::Shutdown();
     std::cout << "results directory: " << resultDirectory.string() << std::endl;
-
-    return hasFailure ? 1 : 0;
+    return matched == 0 ? 1 : 0;
 }

@@ -143,7 +143,7 @@ cmake --build --preset windows-clang-relwithdebinfo
 ./build/bin/RelWithDebInfo/minecraft-client
 
 # 运行 benchmark
-./build/bin/RelWithDebInfo/mc_benchmarks
+./build/bin/RelWithDebInfo/mc_benchmark
 ```
 
 增加新的着色器之后要在 `shaders/CMakeLists.txt` 中新增文件

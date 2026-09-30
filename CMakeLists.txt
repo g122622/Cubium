@@ -200,6 +200,9 @@ find_package(leveldb CONFIG REQUIRED)
 find_package(gflags CONFIG REQUIRED)
 find_package(asmjit CONFIG REQUIRED)
 
+# 基准测试框架（google/benchmark，仅 mc_benchmark 目标使用）
+find_package(benchmark CONFIG REQUIRED)
+
 # ============================================================
 # QuickJS-NG - JavaScript 引擎，用于基岩版Addon脚本系统
 # ============================================================

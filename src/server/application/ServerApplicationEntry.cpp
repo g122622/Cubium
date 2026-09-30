@@ -47,6 +47,10 @@
 #include "server/test/script/GameTestModuleBinding.hpp"
 
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
+#include "common/world/WorldConstants.hpp"                    // SPAWN_CHUNK_RADIUS / toChunkCoord
+#include "common/world/chunk/data/ChunkData.hpp"              // ChunkData 完整类型（requestFullChunkSync 返回值）
+#include "server/world/ServerChunkManager.hpp"                // requestFullChunkSync/tick
+#include "server/world/ServerWorld.hpp"                       // worldSpawnPoint()/chunkManager()
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 
 namespace mc::server {
@@ -81,6 +85,16 @@ DEFINE_string(gametest_world,
     "Used by the outer coordinator script (scripts/test/run-gametests.ts) to give each "
     "parallel shard/rerun process an isolated world directory (saves/<name>), avoiding "
     "concurrent world write conflicts across processes.");
+DEFINE_bool(benchmark_exit_after_shell_init,
+    false,
+    "Benchmark mode: exit right after server shell initialization "
+    "(registries, core managers, settings, network listen ready) completes, "
+    "before the main loop starts");
+DEFINE_bool(benchmark_exit_after_world_init,
+    false,
+    "Benchmark mode: exit after shell initialization AND world creation AND spawn "
+    "area chunk generation (SPAWN_CHUNK_RADIUS around world spawn) fully completes, "
+    "then exit without running the main loop. Implies the full shell-init path");
 
 std::atomic<bool> ServerApplicationEntry::s_shouldExit{false};
 
@@ -175,6 +189,14 @@ void ServerApplicationEntry::onFlagsParsed()
     m_gametestMode = FLAGS_gametest;
     m_gametestReportPath = FLAGS_gametest_report;
     m_gametestTestsFilter = FLAGS_gametest_tests;
+
+    // benchmark 退出模式：world-init 模式包含 shell-init 路径（初始化链路完全一致，
+    // 只是退出时机更晚），故 world 置位时 shell 一并置位。
+    m_benchmarkExitAfterShellInit = FLAGS_benchmark_exit_after_shell_init;
+    m_benchmarkExitAfterWorldInit = FLAGS_benchmark_exit_after_world_init;
+    if (m_benchmarkExitAfterWorldInit) {
+        m_benchmarkExitAfterShellInit = true;
+    }
 }
 
 void ServerApplicationEntry::prepareRun()
@@ -262,6 +284,66 @@ int ServerApplicationEntry::runApplication()
     // 接入 GameTest 框架（/gametest 命令 + GameTestTicker 驱动 + JS gametest 模块）。
     // 仅 minecraft-server exe，须在 initialize 成功后（commandRegistry/scriptManager 已就绪）调用。
     _initializeServerGameTest(server);
+
+    // --benchmark-exit-after-shell-init：shell 初始化（子系统构造、注册表、配置、
+    // 网络监听就绪）完成即退出，不进入主循环。对应基准 server_initialize_shell。
+    // 退出走 stop()（完整落盘收尾，与原 client benchmark 模式行为对齐），
+    // 但此时世界刚创建尚无修改，落盘为空操作级开销，不影响测量口径。
+    if (m_benchmarkExitAfterShellInit && !m_benchmarkExitAfterWorldInit) {
+        spdlog::info("Benchmark shell-init-only run completed successfully");
+        _cleanupServerGameTest();
+        server.stop();
+        return 0;
+    }
+
+    // --benchmark-exit-after-world-init：在 shell 初始化基础上追加"世界就绪"等待：
+    // 主世界出生点周围 SPAWN_CHUNK_RADIUS 半径内的所有区块全部生成到 FULL 后退出。
+    // 对应基准 server_initialize_world（测真实玩家首次进服前的完整启动路径）。
+    if (m_benchmarkExitAfterWorldInit) {
+        auto* overworld = server.dimensionManager().getOverworld();
+        if (overworld == nullptr || overworld->world() == nullptr) {
+            spdlog::error("Benchmark world-init mode: overworld not available");
+            _cleanupServerGameTest();
+            server.stop();
+            return 1;
+        }
+        auto* world = overworld->world();
+        auto* chunkManager = world->chunkManager();
+        const Vector3d spawnPoint = world->worldSpawnPoint();
+        const i32 spawnChunkX = world::toChunkCoord(static_cast<i32>(spawnPoint.x));
+        const i32 spawnChunkZ = world::toChunkCoord(static_cast<i32>(spawnPoint.z));
+
+        spdlog::info("Benchmark world-init mode: generating spawn area chunks (radius={}, center=({}, {}))",
+            world::SPAWN_CHUNK_RADIUS,
+            spawnChunkX,
+            spawnChunkZ);
+
+        // 提交出生区域全部 FULL 请求并阻塞等待（requestChunkSync 内部泵完成队列，
+        // 与生产 requestFullChunkSync 路径一致）。逐区块同步请求：调度器内部按邻居
+        // 依赖并行推进，提交顺序不影响并行度。
+        for (i32 dx = -world::SPAWN_CHUNK_RADIUS; dx <= world::SPAWN_CHUNK_RADIUS; ++dx) {
+            for (i32 dz = -world::SPAWN_CHUNK_RADIUS; dz <= world::SPAWN_CHUNK_RADIUS; ++dz) {
+                ChunkData* chunk = chunkManager->requestFullChunkSync(spawnChunkX + dx, spawnChunkZ + dz);
+                if (chunk == nullptr) {
+                    spdlog::error("Benchmark world-init mode: chunk ({}, {}) failed to generate",
+                        spawnChunkX + dx,
+                        spawnChunkZ + dz);
+                    _cleanupServerGameTest();
+                    server.stop();
+                    return 1;
+                }
+            }
+        }
+
+        // 生成完成后再排空一次主线程后处理队列（onChunkLoaded/实体生成/后处理），
+        // 使退出时序与"世界真正就绪可进玩家"对齐。
+        chunkManager->tick();
+
+        spdlog::info("Benchmark world-init-only run completed successfully");
+        _cleanupServerGameTest();
+        server.stop();
+        return 0;
+    }
 
     // 启动服务端主循环（非阻塞，内部线程由 StandaloneServer 持有）
     auto runResult = server.run();
