@@ -144,7 +144,7 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 
     for (int x = -HALF; x <= HALF; ++x) {
         for (int z = -HALF; z <= HALF; ++z) {
-            futures.push_back(m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL));
+            futures.push_back(m_manager->requestChunkAsync(x, z, ChunkStatuses::FULL));
         }
     }
 
@@ -204,7 +204,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
         std::vector<std::future<ChunkData*>> seeds;
         for (int x = -4; x <= 4; ++x) {
             for (int z = -4; z <= 4; ++z) {
-                seeds.push_back(m_manager->getChunkAsync(x, z, &ChunkStatuses::STRUCTURE_REFERENCES));
+                seeds.push_back(m_manager->requestChunkAsync(x, z, ChunkStatuses::STRUCTURE_REFERENCES));
             }
         }
         for (auto& f : seeds) {
@@ -399,7 +399,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     const int base = (tid * 17 + i * 7) % 40 - 20;
                     const int x = base + ((i * 5) % 8);
                     const int z = ((tid * 13 + i * 11) % 40) - 20 + ((i * 3) % 6);
-                    auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::STRUCTURE_REFERENCES);
+                    auto future = m_manager->requestChunkAsync(x, z, ChunkStatuses::STRUCTURE_REFERENCES);
                     inflight.push_back(std::move(future));
                     if (static_cast<int>(inflight.size()) > MAX_INFLIGHT) {
                         inflight.front().get();
@@ -580,14 +580,14 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 }
                 const int x = (i * 7) % 32 - 16;
                 const int z = (i * 13) % 32 - 16;
-                auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL);
+                auto future = m_manager->requestChunkAsync(x, z, ChunkStatuses::FULL);
                 inflight.push_back(std::move(future));
                 if (static_cast<int>(inflight.size()) > MAX_INFLIGHT) {
                     inflight.front().get();
                     inflight.erase(inflight.begin());
                 }
                 if (i % 8 == 0) {
-                    (void)m_manager->getChunkSync(x, z);
+                    (void)m_manager->requestFullChunkSync(x, z);
                 }
                 // 高水位加大 sleep,低水位保持原速
                 std::this_thread::sleep_for(

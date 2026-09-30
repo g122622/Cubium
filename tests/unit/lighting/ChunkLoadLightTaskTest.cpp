@@ -133,14 +133,14 @@ protected:
 };
 
 // fallback 主线程同步路径（无 worker 池）：enqueueChunkLoadLight 直接完成光照。
-// 区块经 getChunkSync 生成（LIGHT 阶段已 lightCorrect=true），手动置 false 强制 else 分支重算，
+// 区块经 requestFullChunkSync 生成（LIGHT 阶段已 lightCorrect=true），手动置 false 强制 else 分支重算，
 // enqueue 后 lightCorrect 应回 true 且方块光 nibble 传播生效。
 TEST_F(ChunkLoadLightTaskTest, FallbackPathRelightsChunkOnMainThread)
 {
     // 无 worker 池：radiusAwareExecutor() 返回 nullptr → fallback 同步路径
     m_manager->initialize();
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     // 生成路径 LIGHT 阶段已完成光照
     EXPECT_TRUE(chunk->isLightCorrect());
@@ -181,7 +181,7 @@ TEST_F(ChunkLoadLightTaskTest, FallbackPathAlreadyCorrectChunkIsCheap)
 {
     m_manager->initialize();
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     EXPECT_TRUE(chunk->isLightCorrect());
 
@@ -205,7 +205,7 @@ TEST_F(ChunkLoadLightTaskTest, WorkerAsyncPathCompletesAndFlushes)
     std::atomic<int> lightChangeCount{0};
     m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) { lightChangeCount.fetch_add(1); });
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     EXPECT_TRUE(chunk->isLightCorrect());
 
@@ -247,7 +247,7 @@ TEST_F(ChunkLoadLightTaskTest, FallbackPathLeavesNoPendingLightWork)
 {
     m_manager->initialize();
 
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
     m_world->enqueueChunkLoadLight(0, 0);
 
     // fallback 同步执行：光照/send/票据释放当场完成，队列无积压

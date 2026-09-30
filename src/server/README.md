@@ -355,7 +355,7 @@ GameTest 框架整体作为 server 的一部分，物理位于 `src/server/test/
 
 6. **区块生成**：
    ```
-   ServerChunkManager.getChunkAsync() → UniversalWorkerPool
+   ServerChunkManager.requestChunkAsync() → UniversalWorkerPool
    → ChunkGenerateTask 执行 → 回调主线程 → 存入缓存
    ```
 

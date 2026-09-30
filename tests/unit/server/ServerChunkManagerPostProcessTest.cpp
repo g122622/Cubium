@@ -141,7 +141,7 @@ TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)
     m_manager->initialize();
 
     // 同步生成区块（FULL 完成），worker 线程已入队一次 PendingPostProcess。
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // tick 之前再直接入队一次（模拟重复入队/竞态）：同一区块、带实体、needsPostProcess=true。
@@ -199,7 +199,7 @@ TEST_F(ServerChunkManagerPostProcessTest, StoredChunkLoadCompleteDefersCallback_
     // 阶段一：生成并落盘。
     for (i32 dx = -kRadius; dx <= kRadius; ++dx) {
         for (i32 dz = -kRadius; dz <= kRadius; ++dz) {
-            ASSERT_NE(m_manager->getChunkSync(dx, dz), nullptr) << "生成失败: " << dx << "," << dz;
+            ASSERT_NE(m_manager->requestFullChunkSync(dx, dz), nullptr) << "生成失败: " << dx << "," << dz;
         }
     }
     m_manager->tick();
@@ -273,7 +273,7 @@ TEST_F(ServerChunkManagerPostProcessTest, UnloadClearsDedup_AllowsReprocess)
     m_workerPool->start();
     m_manager->initialize();
 
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
     m_manager->tick();
     ASSERT_EQ(m_chunkLoadedCallCount, 1);
 

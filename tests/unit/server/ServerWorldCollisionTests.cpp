@@ -129,7 +129,7 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionEmptyWorld)
 TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithAir)
 {
     // 生成一个区块
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 在空气区域检测碰撞（Y=100 远离地形）
@@ -141,7 +141,7 @@ TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithAir)
 TEST_F(ServerWorldCollisionTest, HasBlockCollisionWithGround)
 {
     // 生成一个区块
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 在出生点附近找一个非空气位置
@@ -260,7 +260,7 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround)
     ASSERT_NE(physics, nullptr);
 
     // 生成区块
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 寻找地面
@@ -294,7 +294,7 @@ TEST_F(ServerWorldCollisionTest, PhysicsEngineIsOnGround)
 TEST_F(ServerWorldCollisionTest, InvalidateCollisionCache)
 {
     // 生成区块
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 使缓存失效应该不会抛出异常
@@ -307,7 +307,7 @@ TEST_F(ServerWorldCollisionTest, InvalidateCollisionCache)
 TEST_F(ServerWorldCollisionTest, ICollisionWorldGetBlockState)
 {
     // 生成区块
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // ICollisionWorld 接口测试
@@ -331,7 +331,7 @@ TEST_F(ServerWorldCollisionTest, ICollisionWorldIsWithinWorldBounds)
 TEST_F(ServerWorldCollisionTest, ICollisionWorldGetChunkAt)
 {
     // 生成区块
-    ChunkData* chunk = world->chunkManager()->getChunkSync(5, 5);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(5, 5);
     ASSERT_NE(chunk, nullptr);
 
     // ICollisionWorld 接口测试

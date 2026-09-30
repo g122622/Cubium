@@ -132,7 +132,7 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
     // 强制加载结构覆盖的所有 chunk（FORCED ticket + 同步生成），须在 placeInWorld 之前。
     // GameTestServer 是无头门面，无玩家无 spawn chunk 加载范围；initializeWorldSpawn 仅加载单一
     // 出生区块。测试结构沿 gridStart 在 X 方向线性铺开（跨多个 chunk），远离出生区块的结构所在
-    // chunk 不会被加载，setBlockState/getBlockState 因 getChunkSync 返回 nullptr 而失败——
+    // chunk 不会被加载，setBlockState/getBlockState 因 requestFullChunkSync 返回 nullptr 而失败——
     // 表现为"结构放置静默失败"（placeInWorld 不检查 placed）+ 测试体 setBlockType/spawn 报错
     // （如 zombie_villager_chase 的 brick_block 在 chunk(6,0) 失败）。
     // 对齐原版 GameTestRunner：为每个测试结构区域加 forced chunk ticket，确保测试期间 chunk 常驻。

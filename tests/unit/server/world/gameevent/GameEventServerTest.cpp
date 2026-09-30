@@ -392,7 +392,7 @@ TEST_F(GameEventServerTest, Dispatcher_PostDeliversToNearbyListener)
 {
     createWorld();
     // 确保目标区块已加载
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 创建监听器并注册到区块段
@@ -417,7 +417,7 @@ TEST_F(GameEventServerTest, Dispatcher_PostDeliversToNearbyListener)
 TEST_F(GameEventServerTest, Dispatcher_PostDoesNotDeliverToDistantListener)
 {
     createWorld();
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 半径为 2 的监听器
@@ -441,7 +441,7 @@ TEST_F(GameEventServerTest, Dispatcher_PostDoesNotDeliverToDistantListener)
 TEST_F(GameEventServerTest, Dispatcher_ByDistanceMode_SortsByDistance)
 {
     createWorld();
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 创建三个 BY_DISTANCE 监听器，距离不同
@@ -481,7 +481,7 @@ TEST_F(GameEventServerTest, DynamicListener_AddAndRemove)
     DynamicGameEventListener dynamicListener(listener);
 
     // 确保区块已加载
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 添加监听器
@@ -507,7 +507,7 @@ TEST_F(GameEventServerTest, DynamicListener_MoveBetweenSections)
     TestListener listener(BlockPos(0, 0, 0), 16);
     DynamicGameEventListener dynamicListener(listener);
 
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 添加监听器
@@ -744,7 +744,7 @@ TEST_F(GameEventServerTest, VibrationTicker_MultipleVibrationsSequentially)
 TEST_F(GameEventServerTest, ServerWorld_GameEventDispatches)
 {
     createWorld();
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     TestListener listener(BlockPos(0, 0, 0), 16);
@@ -775,13 +775,13 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_AllChunksBlockTi
     ASSERT_NE(chunkManager, nullptr);
 
     // 先逐个同步加载 3x3 区块到内存。若先 updatePlayerPosition 批量预触发 ~25 个区块的
-    // 异步存档加载（完成回调入队 m_pendingLoadCompletes），后续 getChunkSync 触发生成时
+    // 异步存档加载（完成回调入队 m_pendingLoadCompletes），后续 requestFullChunkSync 触发生成时
     // 邻居 holder 仍处于 ResolvingStorage，会命中 executeEmptyLoad 的 ResolvingStorage 守卫
-    // 而 markFailed，导致 getChunkSync 返回 nullptr。逐个 getChunkSync 让每个区块独立完成
+    // 而 markFailed，导致 requestFullChunkSync 返回 nullptr。逐个 requestFullChunkSync 让每个区块独立完成
     // 生成（邻居调度时 holder 状态机已推进到 StorageMissing），避免该竞态。
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
-            auto* chunk = chunkManager->getChunkSync(dx, dz);
+            auto* chunk = chunkManager->requestFullChunkSync(dx, dz);
             ASSERT_NE(chunk, nullptr) << "Failed to load chunk (" << dx << ", " << dz << ")";
         }
     }
@@ -836,7 +836,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_NoRequire_CheckN
     // 默认 requiresAdjacentChunksToBeTicking = false
 
     // 只加载中心区块
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 设置振动并传播完成
@@ -859,7 +859,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_RetryOnFailedChe
     createWorld();
 
     // 只加载中心区块，不加载相邻区块，导致 3x3 检查失败
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     TestVibrationSystem system(BlockPos(0, 64, 0), 16);
@@ -897,7 +897,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_UsesListenerPosi
     // （理由见 VibrationTicker_AdjacentChunksCheck_AllChunksBlockTicking_ReceivesVibration 注释）。
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
-            auto* chunk = chunkManager->getChunkSync(dx, dz);
+            auto* chunk = chunkManager->requestFullChunkSync(dx, dz);
             ASSERT_NE(chunk, nullptr) << "Failed to load chunk (" << dx << ", " << dz << ")";
         }
     }
@@ -934,7 +934,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_ChunkNotInMemory
     ASSERT_NE(chunkManager, nullptr);
 
     // 只强制加载中心区块到内存
-    auto* chunk = chunkManager->getChunkSync(0, 0);
+    auto* chunk = chunkManager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     TestVibrationSystem system(BlockPos(0, 64, 0), 16);
@@ -966,7 +966,7 @@ TEST_F(GameEventServerTest, VibrationOcclusion_WoolBlocksAllSides_VibrationBlock
     createWorld();
 
     // 确保区块已加载
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 在 Y=300 高度（远离地形）创建羊毛包围结构
@@ -1008,7 +1008,7 @@ TEST_F(GameEventServerTest, VibrationOcclusion_WoolBlocksPartial_VibrationNotBlo
     // 监听器放在源正上方，这样向上的射线不会经过侧面羊毛方块。
     createWorld();
 
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     const i32 sx = 5, sy = 300, sz = 5;
@@ -1047,7 +1047,7 @@ TEST_F(GameEventServerTest, VibrationOcclusion_StoneBlocksAllSides_VibrationNotB
     // 石头不在 OCCLUDES_VIBRATION_SIGNALS 标签中，即使完全包围也不会遮挡振动。
     createWorld();
 
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     const i32 sx = 5, sy = 300, sz = 5;
@@ -1081,7 +1081,7 @@ TEST_F(GameEventServerTest, VibrationOcclusion_NoBlocks_VibrationNotBlocked)
     // 无遮挡方块时振动正常传播。
     createWorld();
 
-    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    auto* chunk = world().chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // Y=300 高度无任何方块（空气），振动不应被遮挡

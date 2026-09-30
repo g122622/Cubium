@@ -33,7 +33,7 @@ namespace {
 // 区块坐标转换：方块坐标 → 区块坐标（地板除法对负数也正确，对齐 Minecraft 语义）。
 // Minecraft 的 ChunkPos.x = floor(blockX / 16)，C++ 整数除法对负数已是向零截断，
 // 故需显式 floor。但项目 ChunkCoord 转换历史上一致用 >> 4（算术右移即 floor），
-// 此处沿用 getChunkSync 等同款位移语义避免不一致。
+// 此处沿用 requestFullChunkSync 等同款位移语义避免不一致。
 ChunkCoord blockToChunk(i32 blockCoord) noexcept
 {
     return blockCoord >> 4;

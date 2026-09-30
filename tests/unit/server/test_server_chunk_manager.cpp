@@ -140,7 +140,7 @@ protected:
      * @brief 反复 tick 直到条件成立或超时
      *
      * 区块生成在 worker 线程完成：完成请求的 promise 在 _storeChunkInMemorySync 内 fulfill，而承载
-     * 主线程后处理入队的 _enqueuePostProcess 紧随其后执行，故 getChunkSync 返回时后处理可能尚未入队。
+     * 主线程后处理入队的 _enqueuePostProcess 紧随其后执行，故 requestFullChunkSync 返回时后处理可能尚未入队。
      * 测试按条件等待而非固定 tick 次数，避免依赖调度时序（高负载下固定次数会偶发不足）。
      *
      * @param predicate 条件
@@ -222,7 +222,7 @@ TEST_F(ServerChunkManagerTest, HasChunk_NotExists)
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_CreatesChunk)
 {
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
 
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
@@ -258,15 +258,15 @@ TEST_F(ServerChunkManagerTest, RequestStructureReferencesSync_GeneratesDirectDep
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk)
 {
-    ChunkData* chunk1 = m_manager->getChunkSync(5, 10);
-    ChunkData* chunk2 = m_manager->getChunkSync(5, 10);
+    ChunkData* chunk1 = m_manager->requestFullChunkSync(5, 10);
+    ChunkData* chunk2 = m_manager->requestFullChunkSync(5, 10);
 
     EXPECT_EQ(chunk1, chunk2);
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_AfterGeneration)
 {
-    m_manager->getChunkSync(3, 7);
+    m_manager->requestFullChunkSync(3, 7);
 
     ChunkData* chunk = m_manager->tryToGetChunkInMem(3, 7);
     ASSERT_NE(chunk, nullptr);
@@ -278,7 +278,7 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks)
 {
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
-            ChunkData* chunk = m_manager->getChunkSync(x, z);
+            ChunkData* chunk = m_manager->requestFullChunkSync(x, z);
             ASSERT_NE(chunk, nullptr) << "Failed to generate chunk (" << x << ", " << z << ")";
         }
     }
@@ -301,9 +301,9 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
     m_workerPool->start();
     m_manager->initialize();
 
-    auto future = m_manager->getChunkAsync(0, 0, &ChunkStatuses::FULL);
+    auto future = m_manager->requestChunkAsync(0, 0, ChunkStatuses::FULL);
 
-    // getChunkAsync 仅入队异步存档加载请求；完成回调由 ServerCompute 线程入队到
+    // requestChunkAsync 仅入队异步存档加载请求；完成回调由 ServerCompute 线程入队到
     // m_pendingLoadCompletes,需主线程 tick() 出队(_drainPendingLoadCompletes→_onChunkLoadComplete
     // →调度生成→worker 完成→_drainPendingPostProcess→fulfill promise)。生产环境由服务端主循环
     // 每 tick 驱动;此处等待期间持续 tick() 推进管线,对齐生产契约。否则 future 永不 ready。
@@ -332,16 +332,12 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
     std::atomic<bool> completed{false};
     ChunkData* resultChunk = nullptr;
 
-    m_manager->getChunkAsync(
-        5,
-        5,
-        [&](bool success, ChunkData* chunk) {
-            completed = true;
-            resultChunk = chunk;
-        },
-        &ChunkStatuses::FULL);
+    m_manager->requestChunkAsync(5, 5, ChunkStatuses::FULL, [&](bool success, ChunkData* chunk) {
+        completed = true;
+        resultChunk = chunk;
+    });
 
-    // getChunkAsync 回调重载与 future 重载同路径:完成回调由 worker 线程经主线程
+    // requestChunkAsync 回调重载与 future 重载同路径:完成回调由 worker 线程经主线程
     // _drainPendingPostProcess 触发(_completeReadyWaiters→_fulfillWaiters)。生产环境由
     // 服务端主循环 tick 驱动;此处轮询期间持续 tick() 推进管线,对齐生产契约。
     for (int i = 0; i < 200 && !completed; ++i) {
@@ -362,11 +358,11 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached)
     m_manager->initialize();
 
     // 先同步生成
-    ChunkData* syncChunk = m_manager->getChunkSync(10, 10);
+    ChunkData* syncChunk = m_manager->requestFullChunkSync(10, 10);
     ASSERT_NE(syncChunk, nullptr);
 
     // 异步获取应该立即返回缓存
-    auto future = m_manager->getChunkAsync(10, 10, &ChunkStatuses::FULL);
+    auto future = m_manager->requestChunkAsync(10, 10, ChunkStatuses::FULL);
 
     auto status = future.wait_for(std::chrono::milliseconds(100));
     EXPECT_NE(status, std::future_status::timeout);
@@ -384,11 +380,11 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached)
 
 TEST_F(ServerChunkManagerTest, UnloadChunk)
 {
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
     m_manager->unloadChunkSync(0, 0);
-    // getChunkSync 生成的区块是脏块(m_dirty=true),unloadChunkSync 走异步存档保存路径
+    // requestFullChunkSync 生成的区块是脏块(m_dirty=true),unloadChunkSync 走异步存档保存路径
     // (saveChunkAsyncCallback 后 early-return),实际 m_chunks.erase 推迟到 stage3
     // _finalizeUnloadAfterSave,由主线程 tick() 的 _drainPendingUnloadFinishes 出队完成。
     // 生产环境由服务端主循环 tick 驱动;此处 tick() 推进 stage3 收尾,对齐生产契约。
@@ -469,11 +465,11 @@ TEST_F(ServerChunkManagerTest, LoadedChunkCount)
 {
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
 
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
     EXPECT_EQ(m_manager->loadedChunkCount(), 1);
 
-    m_manager->getChunkSync(1, 0);
-    m_manager->getChunkSync(0, 1);
+    m_manager->requestFullChunkSync(1, 0);
+    m_manager->requestFullChunkSync(0, 1);
     EXPECT_EQ(m_manager->loadedChunkCount(), 3);
 }
 
@@ -503,7 +499,7 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks)
     m_workerPool->start();
     m_manager->initialize();
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 检查区块是否有一些非空气方块
@@ -532,15 +528,15 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks)
 
 // 多线程并发"请求"区块。
 //
-// 契约约束:getChunkSync → requestChunkSync 的等待循环里调 _drainPendingLoadCompletes →
+// 契约约束:requestFullChunkSync → requestChunkSync 的等待循环里调 _drainPendingLoadCompletes →
 // _onChunkLoadComplete → _findLifecycleManager,后者无锁读 m_lifecycleManagers;
 // requestChunkAsync → _submitChunkRequest → _advanceChunkState → _resolveChunkSourceSync 也会触碰
 // 主线程独占状态(m_world->isStorageOpen()、m_pendingLoadTasks 等)。ServerChunkManager.cpp:282
 // 注释明确"requestChunkSync 仅可在主线程调用";实际两条同步入口都假设主线程串行调用。
 // 多线程并发任一入口都会在 unordered_map/主线程状态上数据竞争 → 进程崩溃(EXITCODE 3)。
 //
-// 故测试保留"4 线程并发提交坐标请求"的并发语义,但实际的区块请求(getChunkSync)在主线程串行
-// 执行:4 个 worker 线程把坐标 push 进队列,主线程消费队列调 getChunkSync。这既验证并发请求入口
+// 故测试保留"4 线程并发提交坐标请求"的并发语义,但实际的区块请求(requestFullChunkSync)在主线程串行
+// 执行:4 个 worker 线程把坐标 push 进队列,主线程消费队列调 requestFullChunkSync。这既验证并发请求入口
 // 的正确性(4 线程同时驱动的负载),又满足主线程串行契约,不会数据竞争。
 TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
 {
@@ -576,7 +572,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
         });
     }
 
-    // 主线程串行消费:getChunkSync 阻塞等待生成完成,期间内部 pump _drainPendingLoadCompletes
+    // 主线程串行消费:requestFullChunkSync 阻塞等待生成完成,期间内部 pump _drainPendingLoadCompletes
     // 推进存档加载完成回调(生成路径 promise 由 worker 线程直接 fulfill,无需外部 tick)。
     // 满足 requestChunkSync 仅主线程调用的契约。无 worker 池时 ChunkTaskScheduler 在线降级执行。
     int successCount = 0;
@@ -592,7 +588,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
             }
         }
         if (have) {
-            ChunkData* chunk = m_manager->getChunkSync(req.x, req.z);
+            ChunkData* chunk = m_manager->requestFullChunkSync(req.x, req.z);
             if (chunk) {
                 ++successCount;
             }
@@ -784,7 +780,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
             for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                 const int x = (i * 7) % 24 - 12;
                 const int z = (i * 13) % 24 - 12;
-                auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL);
+                auto future = m_manager->requestChunkAsync(x, z, ChunkStatuses::FULL);
                 inflight.push_back(std::move(future));
                 // 超过 MAX_INFLIGHT 时回收最旧的 future（等待其完成或取消）
                 if (static_cast<int>(inflight.size()) > MAX_INFLIGHT) {
@@ -838,7 +834,7 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
 
     // 同步生成区块：worker 线程 _finalizeGeneratedChunkSync 入队 PendingPostProcess，
     // 但 _drainPendingPostProcess 仅在 tick() 中执行，故生成完成后 isPostProcessingDone 仍为 false。
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     EXPECT_FALSE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之前未执行";
 
@@ -857,7 +853,7 @@ TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
     m_workerPool->start();
     m_manager->initialize();
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 等待主线程后处理入队并被 tick 出队执行（见 pumpUntil 注释）。
@@ -879,7 +875,7 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     m_workerPool->start();
     m_manager->initialize();
 
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
     ASSERT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1; }))
         << "区块加载回调应在后处理完成后触发一次";
 
@@ -895,7 +891,7 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
 
     // 重新生成：存档中 isPostProcessingDone 不持久化（重载为新 ChunkData，标志为 false），
     // 重新入队 PendingPostProcess，tick 后应再次触发回调（计数 +1）。
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
     EXPECT_TRUE(pumpUntil([this] { return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 2; }))
         << "卸载后重新加载应重新执行后处理（m_postProcessedChunks 已清除 key）";
 
@@ -908,7 +904,7 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_NotSetBeforeTick)
     m_workerPool->start();
     m_manager->initialize();
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // tick 之前：区块已生成（在 m_chunks 中），但后处理尚未 drain。

@@ -123,7 +123,7 @@ TEST_F(RuntimeLightConcurrencyTest, ProviderKeepaliveAndRange)
     m_manager->initialize();
 
     // 同步生成中心区块 (0,0)，其邻居部分会被加载（radiusAware 生成会触达半径2）
-    ChunkData* center = m_manager->getChunkSync(0, 0);
+    ChunkData* center = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(center, nullptr);
 
     RuntimeLightingProvider provider(*m_world, 0, 0);
@@ -148,7 +148,7 @@ TEST_F(RuntimeLightConcurrencyTest, ProviderCollectsDirtySections)
     m_workerPool->start();
     m_manager->initialize();
 
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
 
     RuntimeLightingProvider provider(*m_world, 0, 0);
 
@@ -177,7 +177,7 @@ TEST_F(RuntimeLightConcurrencyTest, FlushQueueRoundTrip)
     m_manager->initialize();
 
     // 生成中心区块，使 markLightChanged 内部 tryToGetChunkInMem 命中、_syncLightDataToChunk 有 nibble 可读
-    m_manager->getChunkSync(0, 0);
+    m_manager->requestFullChunkSync(0, 0);
 
     // 用 setOnLightChanged 计数 flush 实际触发
     std::atomic<int> lightChangeCount{0};
@@ -209,7 +209,7 @@ TEST_F(RuntimeLightConcurrencyTest, WorkerAsyncPropagationAndFlush)
     std::atomic<int> lightChangeCount{0};
     m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) { lightChangeCount.fetch_add(1); });
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 放置发光方块，入队光照变更

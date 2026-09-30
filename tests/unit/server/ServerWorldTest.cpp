@@ -154,7 +154,7 @@ TEST_F(ServerWorldTest, HasChunk_NotExists)
 
 TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk)
 {
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
@@ -163,15 +163,15 @@ TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk)
 
 TEST_F(ServerWorldTest, GetChunkSync_ReturnsSameChunk)
 {
-    ChunkData* chunk1 = world->chunkManager()->getChunkSync(5, 10);
-    ChunkData* chunk2 = world->chunkManager()->getChunkSync(5, 10);
+    ChunkData* chunk1 = world->chunkManager()->requestFullChunkSync(5, 10);
+    ChunkData* chunk2 = world->chunkManager()->requestFullChunkSync(5, 10);
 
     EXPECT_EQ(chunk1, chunk2);
 }
 
 TEST_F(ServerWorldTest, GetChunk_AfterGeneration)
 {
-    world->chunkManager()->getChunkSync(3, 7);
+    world->chunkManager()->requestFullChunkSync(3, 7);
 
     ChunkData* chunk = world->getChunk(3, 7);
     ASSERT_NE(chunk, nullptr);
@@ -182,10 +182,10 @@ TEST_F(ServerWorldTest, GetChunk_AfterGeneration)
 TEST_F(ServerWorldTest, UnloadChunk)
 {
     ASSERT_TRUE(world->initialize().success());
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
     EXPECT_TRUE(world->hasChunk(0, 0));
 
-    // 区块系统重构后（commit 8264678db），单次 getChunkSync 会因区块生成邻居依赖
+    // 区块系统重构后（commit 8264678db），单次 requestFullChunkSync 会因区块生成邻居依赖
     // 扩散加载周边区块（MC Java 正常行为：加载区块会扩散到邻居/出生点区域）。
     // unloadChunkSync 为异步流程（stage1 提交异步保存，stage3 在 tick 中收尾），
     // 且 _finalizeUnloadAfterSave 会复检 shouldLoad()——扩散持有的票据/邻居引用
@@ -202,7 +202,7 @@ TEST_F(ServerWorldTest, UnloadChunk)
 
 TEST_F(ServerWorldTest, ChunkCount)
 {
-    // 区块系统重构后（commit 8264678db），单次 getChunkSync 会因区块生成邻居依赖
+    // 区块系统重构后（commit 8264678db），单次 requestFullChunkSync 会因区块生成邻居依赖
     // 扩散加载周边区块（MC Java 正常行为）。chunkCount() 反映生命周期管理器数量，
     // 故加载 (0,0) 后 chunkCount 远大于 1（约 23²=529，取决于视距与依赖半径）。
     // 此处用宽松断言验证“加载使区块数增加、后续加载不减少”的核心意图，
@@ -210,12 +210,12 @@ TEST_F(ServerWorldTest, ChunkCount)
     ASSERT_TRUE(world->initialize().success());
     EXPECT_EQ(world->chunkCount(), 0);
 
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
     const size_t countAfterFirst = world->chunkCount();
     EXPECT_GE(countAfterFirst, 1u); // 至少含请求的 (0,0)
 
-    world->chunkManager()->getChunkSync(1, 0);
-    world->chunkManager()->getChunkSync(0, 1);
+    world->chunkManager()->requestFullChunkSync(1, 0);
+    world->chunkManager()->requestFullChunkSync(0, 1);
     const size_t countAfterMore = world->chunkCount();
     EXPECT_GE(countAfterMore, countAfterFirst); // 加载更多区块不应减少总数
 
@@ -232,11 +232,11 @@ TEST_F(ServerWorldTest, MultipleChunks)
 {
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
-            world->chunkManager()->getChunkSync(x, z);
+            world->chunkManager()->requestFullChunkSync(x, z);
         }
     }
 
-    // 区块系统重构后（commit 8264678db），每次 getChunkSync 会因邻居依赖扩散加载
+    // 区块系统重构后（commit 8264678db），每次 requestFullChunkSync 会因邻居依赖扩散加载
     // 周边区块（MC Java 正常行为）。加载 5x5=25 个区块后，实际 chunkCount 远大于 25
     // （约 27²=729，取决于视距与依赖半径）。此处用宽松断言验证“至少含请求的 25 个”，
     // 保留 hasChunk 逐个检查以确认请求的区块均已加载。
@@ -322,7 +322,7 @@ TEST_F(ServerWorldTest, GetHeight_ReturnsAirLayerAboveTopBlock)
 {
     ASSERT_TRUE(world->initialize().success());
 
-    ChunkData* chunk = world->chunkManager()->getChunkSync(0, 0);
+    ChunkData* chunk = world->chunkManager()->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     const i32 localX = 0;
@@ -396,7 +396,7 @@ TEST_F(ServerWorldTest, ChunkUnloading)
     world->initialize();
 
     // 创建一个区块
-    world->chunkManager()->getChunkSync(100, 100);
+    world->chunkManager()->requestFullChunkSync(100, 100);
 
     // 执行多次 tick 触发卸载检查
     for (int i = 0; i < 200; ++i) {
@@ -423,7 +423,7 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess)
             for (int j = 0; j < 100; ++j) {
                 int x = (i * 100 + j) % 20 - 10;
                 int z = (i * 100 + j + 50) % 20 - 10;
-                world->chunkManager()->getChunkSync(x, z);
+                world->chunkManager()->requestFullChunkSync(x, z);
                 world->hasChunk(x, z);
             }
         });
@@ -542,7 +542,7 @@ TEST_F(ServerWorldTest, GetBlockEntity_ReturnsNullptr_WhenNoEntity)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 没有方块实体时返回 nullptr
     BlockEntity* entity = world->getBlockEntity(BlockPos(0, 64, 0));
@@ -563,7 +563,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(5, 64, 10));
@@ -585,7 +585,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建第一个方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -607,7 +607,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -624,7 +624,7 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建并设置方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -645,7 +645,7 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_NoEntity_NoCrash)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 移除不存在的方块实体不应崩溃
     world->removeBlockEntity(BlockPos(0, 64, 0));
@@ -666,7 +666,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建多个方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -692,9 +692,9 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建多个区块
-    world->chunkManager()->getChunkSync(0, 0);
-    world->chunkManager()->getChunkSync(1, 0);
-    world->chunkManager()->getChunkSync(0, 1);
+    world->chunkManager()->requestFullChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(1, 0);
+    world->chunkManager()->requestFullChunkSync(0, 1);
 
     // 在不同区块创建方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -720,7 +720,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_Nullptr_DoesNothing)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 设置 nullptr 不应崩溃
     world->setBlockEntity(BlockPos(0, 64, 0), nullptr);
@@ -734,7 +734,7 @@ TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建并设置方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
@@ -752,7 +752,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes)
     ASSERT_TRUE(world->initialize().success());
 
     // 创建区块
-    world->chunkManager()->getChunkSync(0, 0);
+    world->chunkManager()->requestFullChunkSync(0, 0);
 
     // 创建不同类型的方块实体
     auto furnace = std::make_unique<blockentity::FurnaceEntity>(BlockPos(0, 64, 0));

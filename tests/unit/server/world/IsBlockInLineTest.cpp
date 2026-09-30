@@ -94,7 +94,7 @@ protected:
     ServerWorld& world() { return *m_world; }
 
     /// 确保指定区块坐标处的区块已加载
-    void ensureChunk(i32 chunkX, i32 chunkZ) { m_world->chunkManager()->getChunkSync(chunkX, chunkZ); }
+    void ensureChunk(i32 chunkX, i32 chunkZ) { m_world->chunkManager()->requestFullChunkSync(chunkX, chunkZ); }
 
     /// 在指定位置放置羊毛方块（属于 OCCLUDES_VIBRATION_SIGNALS 标签）
     void placeWool(i32 x, i32 y, i32 z)

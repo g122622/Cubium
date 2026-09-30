@@ -275,13 +275,6 @@ public:
     [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord x, ChunkCoord z);
 
     /**
-     * @brief 以同步方式请求 FULL 区块
-     *
-     * 这是旧调用点迁移期间保留的薄别名，内部直接转发到 `requestFullChunkSync()`。
-     */
-    [[nodiscard]] ChunkData* getChunkSync(ChunkCoord x, ChunkCoord z) { return requestFullChunkSync(x, z); }
-
-    /**
      * @brief 以异步 Future 方式请求区块
      *
      * @param x 区块 X 坐标
@@ -293,27 +286,6 @@ public:
         ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus);
 
     /**
-     * @brief 以异步 Future 方式请求 FULL 区块
-     *
-     * 这是旧调用点迁移期间保留的薄别名。
-     */
-    [[nodiscard]] std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z)
-    {
-        return requestChunkAsync(x, z, ChunkStatuses::FULL);
-    }
-
-    /**
-     * @brief 以异步 Future 方式请求区块
-     *
-     * 这是旧调用点迁移期间保留的薄别名。
-     */
-    [[nodiscard]] std::future<ChunkData*> getChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus* targetStatus)
-    {
-        MC_ASSERT_RELEASE(targetStatus != nullptr);
-        return requestChunkAsync(x, z, *targetStatus);
-    }
-
-    /**
      * @brief 以异步回调方式请求区块
      *
      * @param x 区块 X 坐标
@@ -322,27 +294,6 @@ public:
      * @param callback 完成回调
      */
     void requestChunkAsync(ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, ChunkCallback callback);
-
-    /**
-     * @brief 以异步回调方式请求 FULL 区块
-     *
-     * 这是旧调用点迁移期间保留的薄别名。
-     */
-    void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback)
-    {
-        requestChunkAsync(x, z, ChunkStatuses::FULL, std::move(callback));
-    }
-
-    /**
-     * @brief 以异步回调方式请求区块
-     *
-     * 这是旧调用点迁移期间保留的薄别名。
-     */
-    void getChunkAsync(ChunkCoord x, ChunkCoord z, ChunkCallback callback, const ChunkStatus* targetStatus)
-    {
-        MC_ASSERT_RELEASE(targetStatus != nullptr);
-        requestChunkAsync(x, z, *targetStatus, std::move(callback));
-    }
 
     /**
      * @brief 卸载指定区块

@@ -813,7 +813,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.World, "ServerWorld::setBlockState::ChunkLookup", "chunkX", chunkX, "chunkZ", chunkZ);
 
-        chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
+        chunk = m_chunkManager->requestFullChunkSync(chunkX, chunkZ);
         if (!chunk) {
             return false;
         }
@@ -1202,7 +1202,7 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
     // 获取区块
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
-    ChunkData* chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
+    ChunkData* chunk = m_chunkManager->requestFullChunkSync(chunkX, chunkZ);
     if (!chunk) {
         // 区块未加载，无法设置方块实体
         // 注意：如果区块未加载，方块实体会丢失
@@ -1247,7 +1247,7 @@ void ServerWorld::removeBlockEntity(const BlockPos& pos)
     // 获取区块
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
-    ChunkData* chunk = m_chunkManager->getChunkSync(chunkX, chunkZ);
+    ChunkData* chunk = m_chunkManager->requestFullChunkSync(chunkX, chunkZ);
     if (!chunk) {
         return;
     }

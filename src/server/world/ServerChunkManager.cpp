@@ -865,7 +865,7 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     // 修复：仅当 holder 已安全可卸载（isSafeToUnload）时才立即取消生成并清理依赖图。
     //   - isSafeToUnload 为 false（holder 正被邻居使用/正在生成/有依赖图）：不取消生成，
     //     不失败等待者。holder 的生成继续由邻居 checkNeighbour 驱动，请求等待者
-    //     （getChunkAsync）在 holder 完成 FULL 后由 _publishGeneratedChunk/_finalizeGeneratedChunkSync 唤醒。
+    //     （requestChunkAsync）在 holder 完成 FULL 后由 _publishGeneratedChunk/_finalizeGeneratedChunkSync 唤醒。
     //     holder 的 abortSignal 保持 false，运行中的任务正常完成。当依赖图清空
     //     （邻居完成/取消释放引用、等待者解除），_checkChunkUnloading 通过 isSafeToUnload 卸载 holder。
     //   - isSafeToUnload 为 true（holder 无依赖）：安全取消生成并清理依赖图，_checkChunkUnloading 卸载。

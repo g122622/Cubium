@@ -110,7 +110,7 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities)
 {
     // 实体生成回调在 worker 线程执行(无 ServerWorld 模式下,_finalizeGeneratedChunkSync
     // 行 992 else 分支直接在 worker 线程调 m_entitySpawnCallback)。且 promise->set_value
-    // 在回调之前完成,故 getChunkSync 返回时 worker 可能仍在跑回调。回调内写 receivedEntities
+    // 在回调之前完成,故 requestFullChunkSync 返回时 worker 可能仍在跑回调。回调内写 receivedEntities
     // 与主线程读 receivedEntities.empty() 须互斥,否则负载下 worker/主线程抢占拉长 set_value
     // 与回调间的窗口,主线程读到撕裂的 vector 控制块 → SEH 0xc0000005(实测 -j8 稳定复现)。
     // 同 fixture 的 MultipleChunksGenerate 用 atomic<int> 不崩,印证根因是测试侧 data race
@@ -125,7 +125,7 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities)
         });
 
     // 同步生成一个区块（会触发实体生成）
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 持 shared_ptr 保活区块:fixture 未注册 ticket/玩家,(0,0) 默认 level=MaxLevel(46)>Border(34),
@@ -170,9 +170,9 @@ TEST_F(ServerChunkManagerCallbackTest, MultipleChunksGenerate)
     });
 
     // 生成多个区块
-    ChunkData* chunk1 = m_manager->getChunkSync(0, 0);
-    ChunkData* chunk2 = m_manager->getChunkSync(1, 0);
-    ChunkData* chunk3 = m_manager->getChunkSync(0, 1);
+    ChunkData* chunk1 = m_manager->requestFullChunkSync(0, 0);
+    ChunkData* chunk2 = m_manager->requestFullChunkSync(1, 0);
+    ChunkData* chunk3 = m_manager->requestFullChunkSync(0, 1);
 
     EXPECT_NE(chunk1, nullptr);
     EXPECT_NE(chunk2, nullptr);
@@ -203,7 +203,7 @@ TEST_F(ServerChunkManagerCallbackTest, AsyncGenerateWithCallback)
         });
 
     // 异步生成
-    auto future = m_manager->getChunkAsync(5, 5);
+    auto future = m_manager->requestChunkAsync(5, 5, ChunkStatuses::FULL);
     ASSERT_TRUE(future.valid());
 
     // 等待生成完成
@@ -248,7 +248,7 @@ TEST_F(ServerChunkManagerCallbackTest, ResetCallback)
     // 重置为空回调
     m_manager->setEntitySpawnCallback(nullptr);
 
-    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
 
     // 等待处理
@@ -269,11 +269,11 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount)
 {
     EXPECT_EQ(m_manager->loadedChunkCount(), 0u);
 
-    static_cast<void>(m_manager->getChunkSync(0, 0));
+    static_cast<void>(m_manager->requestFullChunkSync(0, 0));
     EXPECT_EQ(m_manager->loadedChunkCount(), 1u);
 
-    static_cast<void>(m_manager->getChunkSync(1, 0));
-    static_cast<void>(m_manager->getChunkSync(0, 1));
+    static_cast<void>(m_manager->requestFullChunkSync(1, 0));
+    static_cast<void>(m_manager->requestFullChunkSync(0, 1));
     EXPECT_EQ(m_manager->loadedChunkCount(), 3u);
 }
 
@@ -281,7 +281,7 @@ TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount)
 {
     EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
 
-    static_cast<void>(m_manager->getChunkSync(0, 0));
+    static_cast<void>(m_manager->requestFullChunkSync(0, 0));
     // FULL 区块请求会为依赖区域创建多个 SCLM:STRUCTURE_STARTS 累积半径 11 → 23×23=529 个
     // 生命周期管理器(对齐 Moonrise,见 ChunkPyramid/ChunkTaskScheduler)。m_lifecycleManagers
     // 含 FULL 目标本块 + 中间状态的依赖邻居,而 m_chunks 仅 FULL 发布块。故

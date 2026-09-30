@@ -99,7 +99,7 @@ protected:
     /**
      * @brief 生成并加载一个区块
      */
-    ChunkData* ensureChunk(i32 x, i32 z) { return m_world->chunkManager()->getChunkSync(x, z); }
+    ChunkData* ensureChunk(i32 x, i32 z) { return m_world->chunkManager()->requestFullChunkSync(x, z); }
 
     std::unique_ptr<ServerWorld> m_world;
     world::storage::SingleLevelStorageManager m_storage;
