@@ -32,7 +32,7 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 
 | flag | 默认 | 说明 |
 |---|---|---|
-| `--benchmark_trace[=true\|false]` | `false` | 录制 `.perfetto-trace`。**默认关闭**：不产任何 trace 文件，也不会触发下面那种"额外 profile run"（进程启动类用例的墙钟时间因此约为开启时的一半）。该 flag 在 `benchmark::Initialize` 之前由 `benchmark/main.cpp` 解析并剥离 |
+| `--benchmark_trace[=true\|false]` | `false` | 录制 `.perfetto-trace`。**默认关闭**：不产任何 trace 文件，也不触发下面的额外 profile run（进程启动类用例的墙钟时间可省约 1/3）。该 flag 在 `benchmark::Initialize` 之前由 `benchmark/main.cpp` 解析并剥离 |
 
 结果输出到 `benchmark_results/<时间戳>/`（已 gitignore）：
 
@@ -41,7 +41,7 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 | `results.json` | 全部结果，含 mean/median/stddev 聚合与内存指标 |
 | `<case>.perfetto-trace` | **仅在 `--benchmark_trace` 时产出**：每个用例的每次重复一个 trace（ui.perfetto.dev 分析火焰图）；第 N（N≥2）次重复为 `<case>.repN.perfetto-trace` |
 
-> 开启 `--benchmark_trace` 后，google/benchmark 会为每次重复额外多跑一遍"带 profiler 的 run"（trace 记录的是这一遍）。因此进程启动类用例（`serverInitialize*`）的墙钟耗时约为计时值之和的两倍，`_mean/_median` 统计值不受影响。
+> **墙钟时间 ≠ 计时值之和**：google/benchmark 在注册了 `MemoryManager`（内存指标，本项目**始终注册**）与 `ProfilerManager`（trace，需 `--benchmark_trace`）时，会为**每次重复**各额外跑一遍基准函数（额外那几遍不计时）。用计数桩实测 `serverInitializeShell` 的 5 次重复：默认 **10 次**启动被测服务端，带 `--benchmark_trace` **15 次**。因此进程启动类用例的墙钟耗时约为计时值之和的 2 倍（带 trace 为 3 倍），而 `Time` / `_mean/_median` 统计值不受影响。
 
 ## 现有用例
 
@@ -118,7 +118,7 @@ python benchmark/scripts/plot_paletted_container.py \
 
 ### serverInitializeShell / serverInitializeWorld（服务端启动）
 
-每次重复启动外部 `minecraft-server`（5 次重复），统计 mean/median/stddev：
+每次重复启动外部 `minecraft-server`（5 次重复），统计 mean/median/stddev（实际每次重复会启动 2 次被测进程：一遍采集内存指标、一遍计时；带 `--benchmark_trace` 时为 3 次，见「运行」一节的墙钟说明）：
 
 - **Shell**：`--benchmark-exit-after-shell-init`——子系统初始化 + 网络监听就绪即退出（实测 macOS ~2.05s）
 - **World**：`--benchmark-exit-after-world-init`——再加世界创建 + 出生区域（`SPAWN_CHUNK_RADIUS`）全部生成 FULL（实测 macOS ~12.3s）

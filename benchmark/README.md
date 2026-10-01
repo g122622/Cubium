@@ -93,7 +93,9 @@ cmake --build --preset macos-relwithdebinfo
 - `results.json`：全部用例的 JSON 结果（含聚合统计与内存指标）
 - `<case>.perfetto-trace`：**仅在传 `--benchmark_trace` 时产出**，每个用例的**每次重复**一个文件（ui.perfetto.dev 分析）；同一用例第 N（N≥2）次重复为 `<case>.rep2.perfetto-trace`、`.rep3`……命名主干由用例经 `PerfettoProfilerAdapter::setCaseName` 设置（`/` 替换为 `_`）
 
-> 传了 `--benchmark_trace` 后，google/benchmark 会为每次重复**额外多跑一遍带 profiler 的 run**（`benchmark.h` 的 ProfilerManager 注释）：先正常 run 计时，再跑一遍被 `AfterSetupStart`/`BeforeTeardownStop` 包住的 run，trace 记录的是后者。因此 `serverInitialize*` 这类进程启动用例的**墙钟耗时约为计时值之和的两倍**（每次重复启动两个服务端进程），统计值本身不受影响；不传该 flag 时没有这遍额外执行。
+> **墙钟时间 ≠ 计时值之和**：google/benchmark 在注册了 `MemoryManager`（内存指标，本项目**始终注册**）与 `ProfilerManager`（trace，需 `--benchmark_trace`）时，会为**每次重复**各额外跑一遍基准函数（额外那几遍不计时，只用于采集指标）。用计数桩实测 `serverInitializeShell` 的 5 次重复：默认 **10 次**启动被测服务端，带 `--benchmark_trace` **15 次**。
+>
+> 因此进程启动类用例（`serverInitialize*`）的**墙钟耗时约为计时值之和的 2 倍（带 trace 为 3 倍）**，`Time` / `_mean/_median` 统计值不受影响；不开 trace 可省掉其中约 1/3 的墙钟。需要"一次运行 = 一次启动"时，只能靠减少 `Repetitions`。
 
 ### 内存指标
 
