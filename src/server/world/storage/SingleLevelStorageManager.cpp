@@ -485,7 +485,11 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
         if (beResult.success()) {
             for (auto& blockEntity : beResult.value()) {
                 if (blockEntity != nullptr) {
-                    chunk.setBlockEntity(blockEntity->getPos(), std::move(blockEntity));
+                    // 【求值顺序】必须先取出位置再移交所有权：C++ 实参求值顺序未指定，
+                    // 若 std::move(blockEntity) 先完成参数移动构造（置空该指针），
+                    // 随后的 blockEntity->getPos() 就是对空指针解引用（实测崩溃点：读地址 0x14）。
+                    const BlockPos blockEntityPos = blockEntity->getPos();
+                    chunk.setBlockEntity(blockEntityPos, std::move(blockEntity));
                 }
             }
         }
@@ -865,7 +869,9 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
             if (state->blockEntityReady && state->blockEntityResult.success()) {
                 for (auto& blockEntity : state->blockEntityResult.value()) {
                     if (blockEntity != nullptr) {
-                        chunk.setBlockEntity(blockEntity->getPos(), std::move(blockEntity));
+                        // 同同步路径：先取位置再移动所有权，避免求值顺序导致对空指针解引用
+                        const BlockPos blockEntityPos = blockEntity->getPos();
+                        chunk.setBlockEntity(blockEntityPos, std::move(blockEntity));
                     }
                 }
             }
