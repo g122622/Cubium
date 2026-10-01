@@ -1,0 +1,21 @@
+[1] ServerCompute �߳�������Ƭ������ͳ���л�룬15s ֮��:
+    15s �� 51 �����л�����: [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54] ...
+
+[2] �����������: 2s����� 66s��
+    �� ��Ҫ 20 tick(=1s) ��������: �ɴ�
+
+[3] 15s �����������Ƭ�������ж����Ƿ�ֻ��"δ���"��:
+    NaturalSpawner::_spawnForClassificationInChunk           n=30993678
+    tickChunk                                                n=25772310
+    EntityManager::tick.perEntity                            n=1338336
+    ServerWorld::setBlockState::NeighborChanged              n=1151334
+    ReentrantAreaLock::unlock                                n=861462
+    ReentrantAreaLock::lock                                  n=861462
+    ServerChunkManager::onTicketLevelChanged                 n=848826
+    ChunkDistanceGraph::onLevelChanged                       n=848826
+    MainLoopIteration                                        n=770202
+    ChunkTaskScheduler::cancelGeneration                     n=767286
+    ExecutingTick                                            n=693252
+    FlowingFluid::tick                                       n=513783
+
+DONE

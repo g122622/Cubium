@@ -1,0 +1,43 @@
+[1] ��ʯ/ģ��������Ƭ��ȷ���������ɱ����޸��Ƿ񱻸��ǣ�:
+
+[2] ��������/ģ�������Ƭ TOP10������ʯδ��������ģ���������Ƭ��֤����·��������:
+    PlaceFeatures                                            n=1233
+
+[3] ĩβ 3 ��ؼ�����������Ƭ���ж��Ǹɾ��رջ��Ǳ�����ֹ��:
+     66.95s  MinecraftServer::stopCore                                n=1
+     66.95s  MinecraftServer::stopCore::ShutdownWorkerPools           n=1
+     66.96s  MinecraftServer::shutdownManagers                        n=1
+     66.96s  MinecraftServer::shutdownManagers::SaveWorldData         n=1
+     66.96s  MinecraftServer::saveAllWorldData                        n=1
+     66.96s  MinecraftServer::shutdownManagers::ShutdownAdvancementAndScript n=1
+     66.96s  MinecraftServer::shutdownManagers::ReleaseTemplateManagerSources n=1
+     66.96s  MinecraftServer::shutdownManagers::ResetInteractionManagers n=1
+     66.96s  MinecraftServer::shutdownManagers::ResetCoreManagers     n=1
+     66.96s  MinecraftServer::shutdownManagers::ResetCoreManagers::ShutdownDimensionManager n=1
+     66.96s  ServerDimensionManager::shutdown                         n=1
+     66.96s  ServerDimension::shutdown                                n=3
+     66.96s  ServerDimension::shutdown::DestroyWorld                  n=3
+     66.96s  ServerWorld::shutdown                                    n=3
+     66.96s  ServerWorld::shutdown::SaveEntitiesInChunks              n=3
+     66.98s  ServerWorld::shutdown::ShutdownChunkManager              n=3
+     66.98s  ServerChunkManager::shutdown                             n=6
+     67.05s  MinecraftServer::shutdownSharedStorage                   n=1
+     67.08s  MinecraftServer::shutdownManagers::ResetCoreManagers::ResetRemainingManagers n=1
+
+[4] �ڴ�б�ʹ���ÿ 5s �� mem ��ֵ��������:
+      0s mem=  56.1MB 
+      5s mem= 110.0MB ��=+53.9MB
+     10s mem= 384.1MB ��=+274.1MB
+     15s mem= 407.9MB ��=+23.8MB
+     20s mem= 424.1MB ��=+16.2MB
+     25s mem= 434.4MB ��=+10.3MB
+     30s mem= 444.4MB ��=+10.1MB
+     35s mem= 453.9MB ��=+9.4MB
+     40s mem= 463.2MB ��=+9.4MB
+     45s mem= 472.2MB ��=+9.0MB
+     50s mem= 481.0MB ��=+8.8MB
+     55s mem= 489.6MB ��=+8.6MB
+     60s mem= 498.2MB ��=+8.7MB
+     65s mem= 509.6MB ��=+11.3MB
+
+DONE

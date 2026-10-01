@@ -1,0 +1,79 @@
+[1] trace ʱ�� 19.4s���յ� ts=760441576490599��
+
+[2] ���������:
+    ProcessCommit                      n=  10826 min=      23.0 max=     903.0
+    ProcessMemory                      n=  10826 min=      18.0 max=     916.0
+    TotalEntityCount                   n=    303 min=       0.0 max=     391.0
+    TotalLoadedChunkCount              n=    303 min=       0.0 max=    1089.0
+    TotalChunkHolderCount              n=    303 min=       0.0 max=    8038.0
+    PlayerCount                        n=    303 min=       0.0 max=       1.0
+    TPS                                n=    303 min=       3.0 max=      19.0
+
+[3] ����ʱ���� -> E:/dev/minecraft-reborn-branch-1/scripts/trace_analysis\new_timeline_1s.csv
+    sec  memMB commitMB loaded holders  ent plc tps
+      0   56.2     50.3    nan     nan  nan nan  nan
+      1  101.4     89.1    nan     nan  nan nan  nan
+      2  115.5    101.8      0     212    0   0   19
+      3  109.0     95.0      0       0    0   0   19
+      4  109.0     95.0      0       0    0   0   19
+      5  109.0     95.0      0       0    0   0   19
+      6  138.1    124.2      0    1322    0   0   18
+      7  232.1    214.5     28    2574   40   1   19
+      8  278.5    261.0    196    2388  144   1   17
+      9  307.1    288.0    345    2935  186   1   16
+     10  337.1    317.8    480    3483  238   1   17
+     11  355.9    336.5    562    3271  257   1   18
+     12  387.0    368.6    771    4403  314   1   17
+     13  420.2    402.3    925    4574  354   1   16
+     14  469.8    451.6   1038    5488  383   1   18
+     15  508.8    490.4   1088    5697  390   1   18
+     16  533.7    517.5   1089    6022  390   1   18
+     17  561.7    544.3   1089    6825  390   1   18
+     18  609.1    592.8   1089    7642  390   1   18
+     19  786.7    771.0   1089    6835  390   1   19
+
+[4] ж��/����/Ʊ��·����Ƭ���������. = 0������ = ������* = ��10��:
+    ChunkSendManager::onChunkPreUnload total=30560
+        ..*...**************
+    ChunkSendManager::unloadChunkFromPlayers total=30560
+        ..*...**************
+    SectionCodec::serializeFromChunkSection total=9
+        ..9.................
+    RocksDBDatabase::writeBatch total=30561
+        ..*...**************
+    ChunkTaskScheduler::cancelGeneration total=26304
+        ..*...**************
+    ChunkDistanceGraph::onLevelChanged total=23235
+        ..*...*..**********2
+    ChunkLoadTicketManager::processUpdates total=4175
+        3.******************
+    ServerChunkManager::onTicketLevelChanged total=23235
+        ..*...*..**********2
+
+[5] trace ĩβ 400ms ����Ƭ TOP20:
+    MainLoopIteration                                        n=  178     400.4ms [None]
+    MinecraftServerTick                                      n=    8     121.6ms [None]
+    TickAllDimensions                                        n=    8     109.1ms [None]
+    ServerDimension::tick                                    n=   24     109.1ms [None]
+    ServerWorld::tick                                        n=   24      89.2ms [None]
+    ServerWorld::tick::ChunkTick                             n=   24      48.5ms [None]
+    ServerWorld::tick::EnvironmentTick                       n=   24      34.3ms [None]
+    ServerWorld::tickEnvironment                             n=   24      31.9ms [None]
+    tickChunk                                                n= 7688      27.9ms [None]
+    EntityStorageManager::replaceEntitiesInChunks            n= 2376      23.4ms [None]
+    RocksDBDatabase::writeBatch                              n= 2376      20.1ms [None]
+    NaturalSpawner::tick                                     n=   24      14.9ms [None]
+    MinecraftServer::tickEntities()                          n=    8      11.5ms [None]
+    MinecraftServer::tickEntities().Dim                      n=   24      11.4ms [None]
+    NaturalSpawner::_spawnForClassificationInChunk           n= 9248      10.0ms [None]
+    EntityManager::tick                                      n=   24       7.7ms [None]
+    EntitySystemScheduler::tick.system                       n=   96       7.7ms [None]
+    EntityManager::tick.perEntity                            n=  488       5.5ms [None]
+    FlushBlockUpdates                                        n=   24       4.3ms [None]
+    EntityTracker::tick                                      n=   24       3.6ms [None]
+
+[6] ���ɽ׶���Ƭ����״̬��ȫ��ͳ��:
+    ChunkProgressionTask::executeStatusStep                  n= 42368   183316.2ms
+    ServerChunkManager::executeStepTask                      n= 42368   148092.8ms
+
+DONE
