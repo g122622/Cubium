@@ -12,7 +12,7 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -26,7 +26,6 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
 
-#include <array>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -37,10 +36,10 @@ namespace mc::world::chunk {
 
 // ============================================================================
 // 内存追踪：调色板内部 vector 用 TracyTrackingAlloc 追踪（按池分组）
-//   - storage / hashMap 用 "ChunkPaletteStorage"（u64/u32 位存储与哈希槽）
+//   - storage / hashMap 用 "ChunkPaletteStorage"（u64 位存储与哈希槽）
 //   - palette 用 "ChunkPalette"（u32 调色板值）
 // 分配器 is_always_equal=true，无状态，不影响 move 语义（PalettedContainer 仅 move
-// unique_ptr<Data>，不触碰内部 vector）。仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件。
+// 内部 vector）。
 // ============================================================================
 template <typename T>
 using PaletteStorageAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkPaletteStorage">;
@@ -48,19 +47,24 @@ template <typename T>
 using PaletteAlloc = ::mc::profiler::TracyTrackingAlloc<T, "ChunkPalette">;
 
 // ============================================================================
-// 调色板容器 — 方块状态存储的内存优化替代方案
+// 调色板容器 — 方块状态存储
 //
-// 替代 ChunkSection 中扁平的 std::vector<u32> (16 KB/段)，
-// 使用调色板 + 位压缩存储，典型情况下将内存占用降低 5-10 倍。
+// 只有一种工作模式：**调色板 + 位压缩存储 + 开放寻址反向哈希表**
+//   - palette：paletteIndex → stateId（u32 数组）
+//   - storage：每格 bits 位的压缩存储，存 paletteIndex
+//   - hashMap：stateId → paletteIndex 的反向映射，开放寻址 + 线性探测
 //
-// 调色板模式：
-//   SingleValue — 0-1 种唯一值，无 storage 数组（空气段趋近 0 字节）
-//   Linear      — 2-15 种唯一值，线性扫描调色板，bitsPerEntry = max(4, ceil(log2(count)))
-//   HashMap     — 16+ 种唯一值，哈希双射调色板，bitsPerEntry = ceil(log2(count))
-//   Flat        — bitsPerEntry >= MIN_BITS_FOR_FLAT 时退化直存，与原 vector<u32> 等价
+// 位宽 bits = max(MIN_BITS, ceil(log2(唯一值个数)))，即从 1 位起步，不设 4 位下限。
 //
-// 参考: net.minecraft.world.level.chunk.PalettedContainer (MC 1.16.5)
-//       ca.spottedleaf.moonrise.mixin.fast_palette (Moonrise fast_palette 优化)
+// 均匀态（唯一值个数 == 1）：bits = 0 且 **不分配 storage / hashMap**，整段按
+// palette[0] 取值——空气段与"整段同一方块"因此零额外内存（fill() 也是 O(1) 释放）。
+//
+// 磁盘/网络格式与本内部表示无关：读写方（JavaChunkReader / ChunkSerializer /
+// VanillaChunkWire）各自按 MC 规则重新计算位数与打包方式，本类的 bits 只用于内部
+// 内存布局。
+//
+// 参考: net.minecraft.world.level.chunk.PalettedContainer
+//       ca.spottedleaf.moonrise.mixin.fast_palette
 // ============================================================================
 
 class PalettedContainer {
@@ -71,27 +75,21 @@ public:
     static constexpr i32 VOLUME = 4096;
 
     /**
-     * @brief 调色板最小位数（对齐原版 MC，线性调色板至少 4 位）
+     * @brief 最小位宽（唯一值个数 ≥ 2 时）
+     *
+     * 不再沿用原版"线性调色板至少 4 位"的下限：位宽直接取 ceil(log2(唯一值个数))，
+     * 从 1 位起步（唯一值个数 == 1 的均匀态为 0 位且无 storage）。
      */
-    static constexpr i32 MIN_BITS = 4;
-
-    /**
-     * @brief 退化直存的位数阈值（bitsPerEntry >= 此值时直接存 stateId）
-     */
-    static constexpr i32 MIN_BITS_FOR_FLAT = 16;
+    static constexpr i32 MIN_BITS = 1;
 
     // ========================================================================
     // 构造 / 赋值
     // ========================================================================
 
+    /**
+     * @brief 构造为空段（均匀态：stateId 0=空气，不分配 storage / 哈希表）
+     */
     PalettedContainer();
-
-    ~PalettedContainer() = default;
-
-    PalettedContainer(const PalettedContainer& other);
-    PalettedContainer(PalettedContainer&& other) noexcept;
-    PalettedContainer& operator=(const PalettedContainer& other);
-    PalettedContainer& operator=(PalettedContainer&& other) noexcept;
 
     // ========================================================================
     // 元素访问
@@ -129,7 +127,7 @@ public:
     /**
      * @brief 用单一值填充整个容器
      *
-     * 重置为 SingleValue 模式，不分配 storage。O(1)。
+     * 回到均匀态：palette = {value}、bits = 0，并释放 storage 与哈希表。O(1)。
      *
      * @param value 填充值
      */
@@ -138,7 +136,7 @@ public:
     /**
      * @brief 导出为扁平 u32 数组
      *
-     * 用于序列化（与磁盘格式兼容）和批量遍历。
+     * 用于序列化（写盘/发网络包，写方再按 MC 规则重新打包）与批量遍历。
      *
      * @return 包含 VOLUME 个 stateId 的 vector
      */
@@ -147,7 +145,7 @@ public:
     /**
      * @brief 从扁平 u32 数组加载
      *
-     * 分析数据中的唯一值数量，选择最优调色板模式。
+     * 统计唯一值数量后建立调色板、位置存储与反向哈希表（唯一值时回到均匀态）。
      *
      * @param data 指向 VOLUME 个 u32 的数据
      * @param count 元素数量（必须为 VOLUME）
@@ -177,36 +175,14 @@ public:
     // ========================================================================
 
     /**
-     * @brief 获取调色板大小（唯一值数量）
+     * @brief 获取调色板大小（唯一值数量，均匀态为 1）
      */
     [[nodiscard]] i32 paletteSize() const;
 
     /**
-     * @brief 获取当前位数
+     * @brief 获取当前位宽（均匀态为 0）
      */
     [[nodiscard]] i32 bitsPerEntry() const;
-
-    /**
-     * @brief 获取调色板中指定索引的值
-     *
-     * @param paletteIndex 调色板索引
-     * @return 方块状态 ID
-     */
-    [[nodiscard]] u32 paletteValue(i32 paletteIndex) const;
-
-    /**
-     * @brief 获取原始调色板数组指针（fast_palette 优化）
-     *
-     * 调色板变更后指针可能失效，必须重新获取。
-     *
-     * @return 指向调色板数组的指针，SingleValue 模式下返回内部单元素数组
-     */
-    [[nodiscard]] const u32* rawPalette() const;
-
-    /**
-     * @brief 获取位存储数据（只读，用于高级序列化）
-     */
-    [[nodiscard]] const std::vector<u64, PaletteStorageAlloc<u64>>& storage() const;
 
     /**
      * @brief 估算内存占用（字节）
@@ -215,61 +191,29 @@ public:
 
 private:
     // ========================================================================
-    // 调色板模式
-    // ========================================================================
-    enum class Mode : u8 {
-        SingleValue, ///< 0-1 种唯一值，无 storage
-        Linear,      ///< 2-15 种唯一值，线性扫描
-        HashMap,     ///< 16+ 种唯一值，哈希双射
-        Flat         ///< bitsPerEntry >= MIN_BITS_FOR_FLAT，直存
-    };
-
-    // ========================================================================
     // 内部数据
     // ========================================================================
     struct Data {
-        Mode mode = Mode::SingleValue;
-
-        // 位存储（小端，LSB-first）
-        // SingleValue 模式下为空；其他模式存储调色板索引
+        // 位存储（小端，LSB-first，条目可跨 u64 字）
+        // 均匀态（paletteSize == 1）下为空，所有位置按 palette[0] 取值
         std::vector<u64, PaletteStorageAlloc<u64>> storage;
 
-        // 位数（每个条目占用的 bit 数）
+        // 位宽（每个条目占用的 bit 数；均匀态为 0）
         i32 bits = 0;
 
-        // 调色板值数组
-        // SingleValue: 仅 m_palette[0] 有效
-        // Linear: 按插入顺序
-        // HashMap: 稀疏数组（index → value），配 m_paletteSize 使用
-        // Flat: 空（stateId 直接存于 storage）
+        // 调色板：paletteIndex → stateId（paletteSize 之后的元素无效）
         std::vector<u32, PaletteAlloc<u32>> palette;
 
-        // 实际调色板条目数（HashMap 模式下可能 < palette.size()）
+        // 有效调色板条目数
         i32 paletteSize = 0;
 
-        // SingleValue 专用：单一值（mode == SingleValue 时使用）
-        u32 singleValue = 0;
-
-        // fast_palette 缓存：指向 palette.data() 的原始指针
-        // 每次 resize/mutation 后刷新
-        const u32* rawPalettePtr = nullptr;
-
-        // HashMap 专用：反向映射 stateId → paletteIndex
-        // 使用开放寻址哈希表，避免 std::unordered_map 开销
-        std::vector<u32, PaletteStorageAlloc<u32>> hashMap; // 哈希槽，存储 (paletteIndex + 1)，0 表示空
-        i32 hashMapCapacity = 0;                            // 哈希表容量（2 的幂）
-        i32 hashMapMask = 0;                                // hashMapCapacity - 1
-
-        Data() = default;
-
-        /**
-         * @brief 刷新 fast_palette 缓存指针
-         */
-        void refreshRawPalette();
+        // 反向映射 stateId → paletteIndex 的开放寻址哈希表
+        // 槽存储 (paletteIndex + 1)，0 表示空槽；均匀态下为空
+        std::vector<u32, PaletteStorageAlloc<u32>> hashMap;
+        i32 hashMapCapacity = 0; // 容量（2 的幂）
+        i32 hashMapMask = 0;     // hashMapCapacity - 1
     };
 
-    // Data 直接内联为成员，消除 unique_ptr 间接层。
-    // get/getAndSet 热路径不再解引用 m_data，this 指针即数据起点。
     Data m_data;
 
     // ========================================================================
@@ -277,69 +221,49 @@ private:
     // ========================================================================
 
     /**
-     * @brief 获取调色板索引对应的 stateId
-     */
-    [[nodiscard]] u32 _paletteLookup(i32 paletteIndex) const;
-
-    /**
-     * @brief 查找或插入 stateId 到调色板，返回调色板索引
-     *
-     * 如果调色板已满（需要更多位数），触发 resize。
-     *
-     * @param value 方块状态 ID
-     * @return 调色板索引
-     */
-    i32 _idFor(u32 value);
-
-    /**
-     * @brief 从位存储中读取指定索引的值
+     * @brief 从位存储中读取指定索引的 paletteIndex
      */
     [[nodiscard]] i32 _readBits(i32 index) const;
 
     /**
-     * @brief 向位存储中写入指定索引的值，返回旧值
+     * @brief 向位存储中写入指定索引的 paletteIndex，返回旧值
      */
     i32 _writeBits(i32 index, i32 value);
 
     /**
-     * @brief 从位存储中读取并写入指定索引的值，返回旧值
-     */
-    i32 _getAndSetBits(i32 index, i32 value);
-
-    /**
-     * @brief 扩容调色板（升级位数和模式）
+     * @brief 扩容位宽（重打包 storage；不改变 paletteIndex 语义）
      *
-     * @param newBits 新的位数
+     * @param newBits 新的位宽（> 当前位宽）
      */
     void _onResize(i32 newBits);
 
     /**
-     * @brief 从 SingleValue 转换为 Linear
+     * @brief 查找或插入 stateId 到调色板，返回 paletteIndex
+     *
+     * 未命中时追加到调色板（必要时升位宽、建哈希表）。
+     *
+     * @param value 方块状态 ID
+     * @return paletteIndex
      */
-    void _transitionSingleToLinear(u32 existingValue, u32 newValue, i32 index);
+    i32 _idFor(u32 value);
 
     /**
-     * @brief HashMap: 查找 stateId 对应的调色板索引（-1 表示未找到）
+     * @brief 哈希表：查找 stateId 对应的 paletteIndex（-1 表示未找到）
      */
     [[nodiscard]] i32 _hashMapLookup(u32 value) const;
 
     /**
-     * @brief HashMap: 插入 stateId → paletteIndex 映射
+     * @brief 哈希表：插入 stateId → paletteIndex 映射
      */
     void _hashMapInsert(u32 value, i32 paletteIndex);
 
     /**
-     * @brief HashMap: 重建哈希表（扩容或全量重建）
+     * @brief 哈希表：按当前 paletteSize 重建（首次建立或扩容）
      */
     void _hashMapRebuild();
 
     /**
-     * @brief 计算存储给定值所需的位数
-     */
-    [[nodiscard]] static i32 _calculateBitsForValue(u32 value);
-
-    /**
-     * @brief 计算存储 count 个调色板条目所需的位数
+     * @brief 计算存储 count 个调色板条目所需的位宽（count ≥ 2 时 ceil(log2(count))，下限 MIN_BITS）
      */
     [[nodiscard]] static i32 _calculateBitsForCount(i32 count);
 
@@ -347,11 +271,6 @@ private:
      * @brief 计算 bits 位下需要的 u64 字数
      */
     [[nodiscard]] static i32 _storageWordCount(i32 bits);
-
-    /**
-     * @brief 根据当前调色板大小决定调色板模式
-     */
-    [[nodiscard]] static Mode _modeForBits(i32 bits);
 };
 
 } // namespace mc::world::chunk

@@ -48,7 +48,7 @@ namespace mc::world::chunk {
 
 ChunkSection::ChunkSection()
     : m_memTrack(this)
-    , m_blockStates() // PalettedContainer 默认 SingleValue(0=空气)
+    , m_blockStates() // PalettedContainer 默认均匀态（唯一值 0=空气，不分配 storage）
 {}
 
 ChunkSection::ChunkSection(ChunkSection&& other) noexcept

@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <random>
 #include <set>
+#include <utility>
+#include <vector>
 
 namespace mc::world::chunk {
 namespace {
@@ -62,10 +64,10 @@ void expectContainerEquals(const PalettedContainer& container, const std::vector
 }
 
 // ============================================================================
-// SingleValue 模式测试
+// 均匀态测试（唯一值 == 1：bits = 0 且不分配 storage / 哈希表）
 // ============================================================================
 
-TEST(PalettedContainerTest, DefaultConstructorIsSingleValueZero)
+TEST(PalettedContainerTest, DefaultConstructorIsUniformAir)
 {
     PalettedContainer container;
     EXPECT_EQ(container.paletteSize(), 1);
@@ -75,7 +77,7 @@ TEST(PalettedContainerTest, DefaultConstructorIsSingleValueZero)
     }
 }
 
-TEST(PalettedContainerTest, FillResetsToSingleValue)
+TEST(PalettedContainerTest, FillResetsToUniform)
 {
     PalettedContainer container;
     // 先填充一些不同的值
@@ -84,7 +86,7 @@ TEST(PalettedContainerTest, FillResetsToSingleValue)
     container.set(2, 300);
     EXPECT_GT(container.paletteSize(), 1);
 
-    // fill 应该重置为 SingleValue
+    // fill 应该重置为均匀态
     container.fill(42);
     EXPECT_EQ(container.paletteSize(), 1);
     EXPECT_EQ(container.bitsPerEntry(), 0);
@@ -93,36 +95,56 @@ TEST(PalettedContainerTest, FillResetsToSingleValue)
     }
 }
 
-TEST(PalettedContainerTest, SingleValueGetAndSetSameValue)
+TEST(PalettedContainerTest, UniformGetAndSetSameValue)
 {
     PalettedContainer container;
     container.fill(7);
-    // 设置相同值应该保持 SingleValue
+    // 设置相同值应该保持均匀态
     u32 old = container.getAndSet(100, 7);
     EXPECT_EQ(old, 7u);
     EXPECT_EQ(container.paletteSize(), 1);
+    EXPECT_EQ(container.bitsPerEntry(), 0);
     EXPECT_EQ(container.get(100), 7u);
 }
 
 // ============================================================================
-// Linear 模式测试 (2-15 种唯一值)
+// 位宽增长测试：bits = max(1, ceil(log2(唯一值个数)))，从 1 位起步
 // ============================================================================
 
-TEST(PalettedContainerTest, TransitionSingleToLinear)
+/// 断言"恰好 count 个唯一值"时的位宽与它们一一对应（覆盖 1~12 位全档）
+TEST(PalettedContainerTest, BitWidthMatchesPaletteSize)
+{
+    // {唯一值个数, 期望位宽}
+    const std::pair<i32, i32> cases[] = {
+        {1, 0}, {2, 1}, {3, 2}, {4, 2}, {5, 3}, {8, 3}, {9, 4}, {16, 4}, {17, 5}, {32, 5}, {33, 6}, {256, 8}};
+
+    for (const auto& [uniqueCount, expectedBits] : cases) {
+        PalettedContainer container;
+        // 逐格写入 uniqueCount 个不同值。取值集合包含默认值 0，否则 0 会作为孤立条目
+        // 留在调色板里（调色板不回收孤立条目，与 MC 一致），paletteSize 会多 1。
+        for (i32 i = 0; i < PalettedContainer::VOLUME; ++i) {
+            container.set(i, static_cast<u32>(i % uniqueCount) * 37);
+        }
+        EXPECT_EQ(container.paletteSize(), uniqueCount) << "uniqueCount=" << uniqueCount;
+        EXPECT_EQ(container.bitsPerEntry(), expectedBits) << "uniqueCount=" << uniqueCount;
+    }
+}
+
+TEST(PalettedContainerTest, TransitionUniformToTwoValues)
 {
     PalettedContainer container;
-    container.fill(0); // SingleValue
+    container.fill(0); // 均匀态
 
-    // 引入第二个值，应转为 Linear
+    // 引入第二个值：升到 1 位
     container.set(0, 1);
     EXPECT_EQ(container.paletteSize(), 2);
-    EXPECT_EQ(container.bitsPerEntry(), 4); // MIN_BITS
+    EXPECT_EQ(container.bitsPerEntry(), 1);
     EXPECT_EQ(container.get(0), 1u);
     EXPECT_EQ(container.get(1), 0u); // 其他位置仍为 0
     EXPECT_EQ(container.get(PalettedContainer::VOLUME - 1), 0u);
 }
 
-TEST(PalettedContainerTest, LinearWithFewValues)
+TEST(PalettedContainerTest, FewValues)
 {
     PalettedContainer container;
     const u32 values[] = {0, 1, 2, 3, 5, 8, 13};
@@ -136,44 +158,44 @@ TEST(PalettedContainerTest, LinearWithFewValues)
     }
 
     EXPECT_EQ(container.paletteSize(), valueCount);
+    EXPECT_EQ(container.bitsPerEntry(), 3); // ceil(log2(7)) = 3
     expectContainerEquals(container, expected);
 }
 
-TEST(PalettedContainerTest, LinearSetOverwrite)
+TEST(PalettedContainerTest, SetOverwriteDoesNotShrinkPalette)
 {
     PalettedContainer container;
     container.set(0, 1);
     container.set(0, 2);
     container.set(0, 3);
     EXPECT_EQ(container.get(0), 3u);
-    // 调色板不回收孤立条目（与原版 MC 1.16.5 一致）：值 0/1/2/3 均被加入调色板，
+    // 调色板不回收孤立条目（与原版 MC 一致）：值 0/1/2/3 均被加入调色板，
     // 即使索引 0 最终只引用值 3。paletteSize 反映累计添加的唯一值数。
     EXPECT_EQ(container.paletteSize(), 4);
+    EXPECT_EQ(container.bitsPerEntry(), 2);
     // 但其他索引仍为 0（默认值）
     EXPECT_EQ(container.get(1), 0u);
     EXPECT_EQ(container.get(PalettedContainer::VOLUME - 1), 0u);
 }
 
 // ============================================================================
-// HashMap 模式测试 (16+ 种唯一值)
+// 大调色板 / 大 stateId
 // ============================================================================
 
-TEST(PalettedContainerTest, TransitionToHashMap)
+TEST(PalettedContainerTest, PaletteGrowthRaisesBits)
 {
     PalettedContainer container;
-    // 设置 16 种唯一值，应触发 HashMap 模式
+    // 16 种唯一值 → ceil(log2(16)) = 4 位
     for (u32 v = 0; v < 16; ++v) {
         container.set(static_cast<i32>(v), v);
     }
     EXPECT_EQ(container.paletteSize(), 16);
-    // 16 种值需要 4 位（2^4=16），但 _calculateBitsForCount(16) = 4，仍为 Linear
-    // 实际上 16 种值 ceil(log2(16))=4，所以还是 Linear
-    // 需要 17 种才触发 HashMap
+    EXPECT_EQ(container.bitsPerEntry(), 4);
 
+    // 第 17 种 → 5 位
     container.set(16, 16);
     EXPECT_EQ(container.paletteSize(), 17);
-    // 17 种值需要 5 位，仍 < MIN_BITS_FOR_FLAT(16)，应为 HashMap
-    EXPECT_GE(container.bitsPerEntry(), 5);
+    EXPECT_EQ(container.bitsPerEntry(), 5);
 
     // 验证所有值
     for (u32 v = 0; v <= 16; ++v) {
@@ -181,7 +203,7 @@ TEST(PalettedContainerTest, TransitionToHashMap)
     }
 }
 
-TEST(PalettedContainerTest, HashMapWithManyValues)
+TEST(PalettedContainerTest, ManyValues)
 {
     PalettedContainer container;
     const u32 uniqueCount = 100;
@@ -189,30 +211,22 @@ TEST(PalettedContainerTest, HashMapWithManyValues)
 
     container.fromFlat(data.data(), PalettedContainer::VOLUME);
     expectContainerEquals(container, data);
-    EXPECT_GE(container.paletteSize(), 1);
+    EXPECT_EQ(container.paletteSize(), uniqueCount);
+    EXPECT_EQ(container.bitsPerEntry(), 7); // ceil(log2(100)) = 7
 }
 
-// ============================================================================
-// Flat 模式测试
-// ============================================================================
-// 注意：Flat 模式（bitsPerEntry >= 16）仅在唯一值数 >= 32768 时触发，
-// 但 VOLUME=4096，调色板最多 4096 项，_calculateBitsForCount 最多返回 12。
-// 因此 Flat 模式在运行时不可达，仅在 fromFlat 中显式判定 uniqueCount >= 65536
-// （同样不可达，因 VOLUME=4096）。Flat 路径作为安全兜底保留。
-// 大 stateId 值通过调色板索引存储，不需要更多位数。
-
-TEST(PalettedContainerTest, TransitionToFlat)
+TEST(PalettedContainerTest, LargeStateIdsDoNotGrowBits)
 {
+    // 位宽只由唯一值个数决定，与 stateId 的数值大小无关（大 id 仍存调色板索引）
     PalettedContainer container;
-    // 大 stateId 不触发 Flat（位数由调色板条目数决定，非值大小）
     container.set(0, 70000);
     EXPECT_EQ(container.get(0), 70000u);
     EXPECT_EQ(container.get(1), 0u);
-    // 应为 SingleValue->Linear，bits = MIN_BITS = 4
+    EXPECT_EQ(container.paletteSize(), 2);
     EXPECT_EQ(container.bitsPerEntry(), PalettedContainer::MIN_BITS);
 }
 
-TEST(PalettedContainerTest, FlatWithLargeStateIds)
+TEST(PalettedContainerTest, LargeStateIdsRoundTrip)
 {
     PalettedContainer container;
     // 设置多个大 stateId
@@ -231,7 +245,7 @@ TEST(PalettedContainerTest, FlatWithLargeStateIds)
 // toFlat / fromFlat 测试
 // ============================================================================
 
-TEST(PalettedContainerTest, ToFlatSingleValue)
+TEST(PalettedContainerTest, ToFlatUniform)
 {
     PalettedContainer container;
     container.fill(42);
@@ -242,16 +256,17 @@ TEST(PalettedContainerTest, ToFlatSingleValue)
     }
 }
 
-TEST(PalettedContainerTest, FromFlatSingleValue)
+TEST(PalettedContainerTest, FromFlatUniform)
 {
     std::vector<u32> data(PalettedContainer::VOLUME, 7);
     PalettedContainer container;
     container.fromFlat(data.data(), PalettedContainer::VOLUME);
     EXPECT_EQ(container.paletteSize(), 1);
+    EXPECT_EQ(container.bitsPerEntry(), 0);
     expectContainerEquals(container, data);
 }
 
-TEST(PalettedContainerTest, FromFlatLinear)
+TEST(PalettedContainerTest, FromFlatFewValues)
 {
     std::vector<u32> data(PalettedContainer::VOLUME);
     for (i32 i = 0; i < PalettedContainer::VOLUME; ++i) {
@@ -259,27 +274,32 @@ TEST(PalettedContainerTest, FromFlatLinear)
     }
     PalettedContainer container;
     container.fromFlat(data.data(), PalettedContainer::VOLUME);
-    EXPECT_LE(container.paletteSize(), 10);
+    EXPECT_EQ(container.paletteSize(), 10);
+    EXPECT_EQ(container.bitsPerEntry(), 4); // ceil(log2(10)) = 4
     expectContainerEquals(container, data);
 }
 
-TEST(PalettedContainerTest, FromFlatHashMap)
+TEST(PalettedContainerTest, FromFlatManyValues)
 {
     auto data = makeRandomData(50, 123);
     PalettedContainer container;
     container.fromFlat(data.data(), PalettedContainer::VOLUME);
+    EXPECT_EQ(container.paletteSize(), 50);
+    EXPECT_EQ(container.bitsPerEntry(), 6); // ceil(log2(50)) = 6
     expectContainerEquals(container, data);
 }
 
 TEST(PalettedContainerTest, FromFlatAllUnique)
 {
-    // 所有 4096 个值都不同
+    // 所有 4096 个值都不同 → 满位宽 12
     std::vector<u32> data(PalettedContainer::VOLUME);
     for (i32 i = 0; i < PalettedContainer::VOLUME; ++i) {
         data[static_cast<size_t>(i)] = static_cast<u32>(i);
     }
     PalettedContainer container;
     container.fromFlat(data.data(), PalettedContainer::VOLUME);
+    EXPECT_EQ(container.paletteSize(), PalettedContainer::VOLUME);
+    EXPECT_EQ(container.bitsPerEntry(), 12);
     expectContainerEquals(container, data);
 }
 
@@ -313,23 +333,25 @@ TEST(PalettedContainerTest, GetAndSetReturnsOldValue)
     EXPECT_EQ(container.get(100), 20u);
 }
 
-TEST(PalettedContainerTest, GetAndSetTransitionsModes)
+TEST(PalettedContainerTest, GetAndSetAcrossBitWidths)
 {
     PalettedContainer container;
     container.fill(0);
 
-    // SingleValue -> Linear
+    // 均匀态 → 1 位
     container.getAndSet(0, 1);
     EXPECT_EQ(container.get(0), 1u);
     EXPECT_EQ(container.get(1), 0u);
 
-    // Linear -> Linear (新值)
+    // 引入第三个取值 → 2 位
     container.getAndSet(1, 2);
     EXPECT_EQ(container.get(1), 2u);
+    EXPECT_EQ(container.bitsPerEntry(), 2);
 
     // 覆盖已有值
     container.getAndSet(2, 1);
     EXPECT_EQ(container.get(2), 1u);
+    EXPECT_EQ(container.bitsPerEntry(), 2);
 }
 
 // ============================================================================
@@ -378,31 +400,61 @@ TEST(PalettedContainerTest, IndexZeroAndLast)
 // 内存占用测试
 // ============================================================================
 
-TEST(PalettedContainerTest, SingleValueMemoryIsMinimal)
+TEST(PalettedContainerTest, UniformMemoryIsMinimal)
 {
     PalettedContainer container;
     container.fill(0);
-    // SingleValue 模式应该有非常小的内存占用
-    // storage 为空，palette 容量 1（4B），Data 结构体 + unique_ptr 开销
+    // 均匀态：无 storage、无哈希表，只有 Data 结构与 1 项调色板
     size_t mem = container.estimatedMemoryUsage();
     EXPECT_LT(mem, 256u);
 }
 
-TEST(PalettedContainerTest, LinearMemoryLessThanFlat)
+TEST(PalettedContainerTest, FillReleasesStorageAndHashTable)
 {
-    PalettedContainer linear;
-    for (u32 v = 0; v < 10; ++v) {
-        linear.set(static_cast<i32>(v), v);
+    PalettedContainer container;
+    for (u32 v = 0; v < 100; ++v) {
+        container.set(static_cast<i32>(v), v);
     }
-    // Linear 4 位：4096*4/8 = 2048 字节 + 调色板
-    EXPECT_LT(linear.estimatedMemoryUsage(), 4096u * 4u); // 16 KB 扁平
+    const size_t packedMemory = container.estimatedMemoryUsage();
+    ASSERT_GT(packedMemory, 256u);
+
+    // fill 回到均匀态：位存储与哈希表都应被释放（而不是只留 capacity）
+    container.fill(77);
+    EXPECT_EQ(container.bitsPerEntry(), 0);
+    EXPECT_EQ(container.paletteSize(), 1);
+    EXPECT_LT(container.estimatedMemoryUsage(), 256u);
+    EXPECT_EQ(container.get(0), 77u);
+    EXPECT_EQ(container.get(PalettedContainer::VOLUME - 1), 77u);
+}
+
+TEST(PalettedContainerTest, PackedMemoryGrowsWithBitWidth)
+{
+    // 位宽越窄，位存储越小：2 值(1 位) < 4 值(2 位) < 8 值(3 位) < 16 值(4 位)
+    const auto memoryFor = [](i32 uniqueCount) {
+        PalettedContainer container;
+        for (i32 i = 0; i < PalettedContainer::VOLUME; ++i) {
+            container.set(i, static_cast<u32>(i % uniqueCount) * 37 + 1);
+        }
+        return container.estimatedMemoryUsage();
+    };
+
+    const size_t twoValues = memoryFor(2);
+    const size_t fourValues = memoryFor(4);
+    const size_t eightValues = memoryFor(8);
+    const size_t sixteenValues = memoryFor(16);
+
+    EXPECT_LT(twoValues, fourValues);
+    EXPECT_LT(fourValues, eightValues);
+    EXPECT_LT(eightValues, sixteenValues);
+    // 16 值 = 4 位 = 2048B 位存储 + 调色板 + 哈希表；远小于 16 KB 扁平数组
+    EXPECT_LT(sixteenValues, PalettedContainer::VOLUME * sizeof(u32));
 }
 
 // ============================================================================
 // forEach 遍历测试
 // ============================================================================
 
-TEST(PalettedContainerTest, ForEachSingleValue)
+TEST(PalettedContainerTest, ForEachUniform)
 {
     PalettedContainer container;
     container.fill(42);
@@ -414,7 +466,7 @@ TEST(PalettedContainerTest, ForEachSingleValue)
     EXPECT_EQ(count, PalettedContainer::VOLUME);
 }
 
-TEST(PalettedContainerTest, ForEachLinear)
+TEST(PalettedContainerTest, ForEachPacked)
 {
     PalettedContainer container;
     std::vector<u32> expected(PalettedContainer::VOLUME);
@@ -481,25 +533,28 @@ TEST(PalettedContainerTest, CopyAssignment)
 }
 
 // ============================================================================
-// rawPalette 测试
+// 反向哈希表行为测试
 // ============================================================================
 
-TEST(PalettedContainerTest, RawPaletteNonEmptyForNonFlat)
+/// 反复写入"已存在的取值"不得让调色板增长（证明反向哈希表命中，而不是每次追加）
+TEST(PalettedContainerTest, ExistingValuesDoNotGrowPalette)
 {
     PalettedContainer container;
-    container.set(0, 10);
-    container.set(1, 20);
-    const u32* palette = container.rawPalette();
-    EXPECT_NE(palette, nullptr);
-    // 调色板应包含 10 和 20
-    bool found10 = false;
-    bool found20 = false;
-    for (i32 i = 0; i < container.paletteSize(); ++i) {
-        if (palette[static_cast<size_t>(i)] == 10) found10 = true;
-        if (palette[static_cast<size_t>(i)] == 20) found20 = true;
+    for (u32 v = 0; v < 64; ++v) {
+        container.set(static_cast<i32>(v), v);
     }
-    EXPECT_TRUE(found10);
-    EXPECT_TRUE(found20);
+    const i32 paletteSizeAfterFill = container.paletteSize();
+    ASSERT_EQ(paletteSizeAfterFill, 64);
+
+    std::mt19937 rng(2024);
+    for (i32 iter = 0; iter < 5000; ++iter) {
+        const i32 index = static_cast<i32>(rng() % static_cast<u32>(PalettedContainer::VOLUME));
+        const u32 value = static_cast<u32>(iter % 64);
+        container.set(index, value);
+    }
+
+    EXPECT_EQ(container.paletteSize(), paletteSizeAfterFill);
+    EXPECT_EQ(container.bitsPerEntry(), 6); // ceil(log2(64)) = 6
 }
 
 } // namespace

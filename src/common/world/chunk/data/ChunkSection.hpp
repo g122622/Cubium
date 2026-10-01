@@ -125,8 +125,8 @@ private:
     // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
     ::mc::profiler::TracyObjectTracker<"ChunkSection"> m_memTrack;
 
-    // 调色板压缩存储方块状态 ID（SingleValue/Linear/HashMap/Flat 自适应）
-    // 替代原扁平 std::vector<u32> (16 KB/段)，典型段内存降至 2-4 KB
+    // 调色板压缩存储方块状态 ID（调色板 + 位压缩 + 反向哈希表；唯一值时为均匀态、无 storage）
+    // 替代原扁平 std::vector<u32> (16 KB/段)，典型段内存降至 0.5-2 KB
     PalettedContainer m_blockStates;
     u16 m_blockCount = 0; // 非空气方块数量
     bool m_needsRecalculate = false;

@@ -70,6 +70,7 @@ flowchart LR
 区块数据存储与访问：
 - **IChunk** — 区块接口（定义 HeightmapType、ChunkLoadStatus 等）
 - **ChunkSection** — 16x16x16 方块段（状态ID存储、随机刻计数；**不含光照**，光照归 ChunkData 的 SWMRNibbleArray）
+- **PalettedContainer** — 段内方块状态存储：调色板 + 位压缩 storage + 开放寻址反向哈希表（唯一值只有 1 个时为均匀态：`bits=0`、不分配 storage/哈希表）；位宽 = `max(1, ceil(log2(唯一值个数)))`（**只有这一种工作模式**，见 docs/BENCHMARK.md 的设计变更记录）
 - **ChunkData** — 完整区块数据（实现 IChunk，包含段数组、高度图、方块实体、光照等）
 - **ChunkPrimer** — 生成中间状态（ProtoChunk）
 - **BiomeContainer** — 生物群系采样容器
