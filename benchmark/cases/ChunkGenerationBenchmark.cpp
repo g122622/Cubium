@@ -22,16 +22,17 @@
  */
 
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
-#include "common/util/thread/UniversalWorkerPool.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/gen/chunk/IChunkGenerator.hpp"
-#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/noise/NoiseLoader.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
@@ -48,9 +49,13 @@
 #include <benchmark/benchmark.h>
 #include <spdlog/spdlog.h>
 
+#include <array>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <future>
+#include <set>
+#include <string>
 #include <system_error>
 #include <vector>
 
@@ -146,8 +151,8 @@ struct ChunkGenFixture {
         auto settings = mc::DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, BENCH_SEED);
         auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
-        auto generator =
-            std::make_unique<mc::NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto generator = std::make_unique<mc::NoiseChunkGenerator>(
+            std::move(settings), std::move(biomeSource), std::move(randomState));
         auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
         chunkManager->setWorkerPool(workerPool.get());
         manager = chunkManager.get();
@@ -192,6 +197,62 @@ void chunkGenTeardown(const ::benchmark::State&)
     g_fixture.destroy();
 }
 
+// ============================================================================
+// TODO(临时诊断): 生成结束后把整批区块的全部 section 调色板位数导出为 CSV，
+// TODO(临时诊断): 用于评估各 section 的位宽/模式分布；定位完成后删除本段与调用点。
+// ============================================================================
+
+/// 导出当前已加载区块的 section 调色板信息到
+/// `benchmark_results/palette_bits/chunk_palette_bits_threads=<N>_batch=<side>.csv`。
+///
+/// 列：chunk_x,chunk_z,section_index,section_min_y,present,bits_per_entry,palette_size
+/// （未创建的段 present=0、bits=-1；palette_size 为唯一值个数）
+///
+/// 调用前提：本批生成已全部完成（所有 future 就绪）、且处于 PauseTiming 区间，
+/// worker 不再触碰这些区块，故直接读 section 快照。
+void dumpSectionPaletteBits(const mc::server::ServerChunkManager& manager, i32 threadCount, i32 side)
+{
+    const std::filesystem::path outputPath = std::filesystem::current_path() / "benchmark_results" / "palette_bits" /
+        fmt::format("chunk_palette_bits_threads={}_batch={}.csv", threadCount, side);
+
+    std::error_code ec;
+    std::filesystem::create_directories(outputPath.parent_path(), ec);
+    std::ofstream output(outputPath, std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) {
+        spdlog::warn("chunk_palette_bits: failed to open {}", outputPath.string());
+        return;
+    }
+
+    output << "chunk_x,chunk_z,section_index,section_min_y,present,bits_per_entry,palette_size\n";
+
+    size_t chunkCount = 0;
+    size_t presentSectionCount = 0;
+    manager.forEachLoadedChunk([&](const mc::ChunkData& chunk) {
+        ++chunkCount;
+        const std::array<const mc::world::chunk::ChunkSection*, mc::world::CHUNK_SECTIONS> sections =
+            chunk.getSections();
+        for (i32 sectionIndex = 0; sectionIndex < mc::world::CHUNK_SECTIONS; ++sectionIndex) {
+            const i32 sectionMinY = mc::world::MIN_BUILD_HEIGHT + sectionIndex * mc::world::CHUNK_SECTION_HEIGHT;
+            const mc::world::chunk::ChunkSection* section = sections[static_cast<size_t>(sectionIndex)];
+            if (section == nullptr) {
+                output << chunk.x() << ',' << chunk.z() << ',' << sectionIndex << ',' << sectionMinY << ",0,-1,0\n";
+                continue;
+            }
+            const mc::world::chunk::PalettedContainer& container = section->blockStates();
+            output << chunk.x() << ',' << chunk.z() << ',' << sectionIndex << ',' << sectionMinY << ",1,"
+                   << container.bitsPerEntry() << ',' << container.paletteSize() << '\n';
+            ++presentSectionCount;
+        }
+        return true;
+    });
+
+    output.close();
+    spdlog::info("chunk_palette_bits: {} chunks / {} sections written to {}",
+        chunkCount,
+        presentSectionCount,
+        outputPath.string());
+}
+
 /**
  * @brief 区块生成吞吐基准（生产级并行生成系统）
  *
@@ -215,6 +276,13 @@ void ChunkGeneration(::benchmark::State& state)
     // 设置本用例的 Perfetto trace 文件名主干（setup/teardown 边界经适配器读取）。
     mc::benchmark::PerfettoProfilerAdapter::setCaseName(
         fmt::format("chunk_generation/threads={}/batch={}", state.range(0), side));
+
+    // TODO(临时诊断): 每个 (threads, batch) 档位每个进程只导出一次 CSV。
+    // 注册了 MemoryManager 后 google/benchmark 会把基准函数跑两遍（内存指标一遍 + 计时一遍），
+    // 用进程级静态集合去重，避免同一文件被重复写、日志出现两行。
+    static std::set<std::string> s_dumpedPaletteBits;
+    const std::string paletteBitsKey = fmt::format("{}x{}", state.range(0), side);
+    bool paletteBitsDumped = s_dumpedPaletteBits.contains(paletteBitsKey);
 
     for (auto _ : state) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "ChunkGeneration::batch");
@@ -240,8 +308,7 @@ void ChunkGeneration(::benchmark::State& state)
         while (remaining > 0) {
             // 先收割已完成的请求（非阻塞），全部完成则退出泵送循环。
             for (size_t i = 0; i < futures.size(); ++i) {
-                if (!done[i] &&
-                    futures[i].wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                if (!done[i] && futures[i].wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
                     done[i] = true;
                     --remaining;
                 }
@@ -257,6 +324,16 @@ void ChunkGeneration(::benchmark::State& state)
                 state.SkipWithError("chunk generation returned null chunk");
                 return;
             }
+        }
+
+        // TODO(临时诊断): 首次迭代生成完成后导出整批区块的全部 section 调色板位数。
+        // 放在 PauseTiming 区间内：CSV 的 I/O 不进入测量口径。
+        if (!paletteBitsDumped) {
+            state.PauseTiming();
+            dumpSectionPaletteBits(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
+            state.ResumeTiming();
+            s_dumpedPaletteBits.insert(paletteBitsKey);
+            paletteBitsDumped = true;
         }
 
         // 卸载本批区块（计时暂停区间内，不计入测量）：否则第二轮迭代起全部命中
@@ -275,8 +352,8 @@ void ChunkGeneration(::benchmark::State& state)
         state.ResumeTiming();
     }
 
-    state.counters["chunks_per_second"] = ::benchmark::Counter(
-        static_cast<double>(totalChunks), ::benchmark::Counter::kIsIterationInvariantRate);
+    state.counters["chunks_per_second"] =
+        ::benchmark::Counter(static_cast<double>(totalChunks), ::benchmark::Counter::kIsIterationInvariantRate);
     state.counters["chunks"] = ::benchmark::Counter(static_cast<double>(totalChunks));
     state.counters["threads"] = ::benchmark::Counter(static_cast<double>(state.range(0)));
 }
