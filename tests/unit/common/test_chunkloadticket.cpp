@@ -62,13 +62,22 @@ TEST_F(ChunkLoadTicketTest, TicketTypeWithLifespan)
 
 TEST_F(ChunkLoadTicketTest, TicketExpiration)
 {
-    auto type = ChunkLoadTicketType<ChunkPos>::create("test_expire", 100);
+    ChunkLoadTicketType<ChunkPos> type = ChunkLoadTicketType<ChunkPos>::create("test_expire", 100);
     ChunkLoadTicket ticket(type, 31, ChunkPos(0, 0));
 
-    ticket.setTimestamp(0);
-    EXPECT_FALSE(ticket.isExpired(50));  // 未过期
-    EXPECT_FALSE(ticket.isExpired(100)); // 刚好过期时间
-    EXPECT_TRUE(ticket.isExpired(101));  // 已过期
+    // 存活期从加入时刻起算：带生命周期票据按剩余 tick 递减
+    EXPECT_TRUE(ticket.hasTimeout());
+    EXPECT_EQ(ticket.lifespan(), 100u);
+
+    for (u32 i = 0; i < 99; ++i) {
+        EXPECT_FALSE(ticket.tickLifetime());
+    }
+    EXPECT_TRUE(ticket.tickLifetime()); // 第 100 次递减后到期
+
+    // 永不过期票据的递减恒为 false
+    ChunkLoadTicket permanent(TicketTypes::FORCED, 31, ChunkPos(0, 0));
+    EXPECT_FALSE(permanent.hasTimeout());
+    EXPECT_FALSE(permanent.tickLifetime());
 }
 
 TEST_F(ChunkLoadTicketTest, TicketLevel)
@@ -131,24 +140,26 @@ TEST(ChunkTicketSetTest, MinLevel)
 
 TEST(ChunkTicketSetTest, RemoveExpired)
 {
-    auto expireType = ChunkLoadTicketType<ChunkPos>::create("expire", 10);
-    auto permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
+    ChunkLoadTicketType<ChunkPos> expireType = ChunkLoadTicketType<ChunkPos>::create("expire", 10);
+    ChunkLoadTicketType<ChunkPos> permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
 
     ChunkTicketSet set;
     ChunkLoadTicket expiring(expireType, 32, ChunkPos(0, 0));
-    expiring.setTimestamp(0);
-
     ChunkLoadTicket permanent(permanentType, 31, ChunkPos(0, 0));
 
     set.addTicket(expiring);
     set.addTicket(permanent);
     EXPECT_EQ(set.size(), 2u);
+    EXPECT_EQ(set.timedTicketCount(), 1); // 只有 expiring 带生命周期
 
-    set.removeExpired(5); // 未过期
+    for (i32 i = 0; i < 9; ++i) {
+        EXPECT_EQ(set.tickLifetimes(), 0); // 未到期
+    }
     EXPECT_EQ(set.size(), 2u);
 
-    set.removeExpired(20); // 过期
+    EXPECT_EQ(set.tickLifetimes(), 1); // 第 10 次递减到期
     EXPECT_EQ(set.size(), 1u);
+    EXPECT_EQ(set.timedTicketCount(), 0);
     EXPECT_EQ(set.getMinLevel(), 31); // permanent 票据仍然存在
 }
 
@@ -608,27 +619,23 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, PortalTicketExpiration)
 
     // 添加 PORTAL 票据（300 tick 生命周期）
     manager.registerTicket(TicketTypes::PORTAL, 50, 50, 31, ChunkPos(50, 50));
-
-    // 设置票据时间戳（票据创建时时间戳为0，需要设置当前时间）
-    const ChunkTicketSet* tickets = manager.getChunkTickets(50, 50);
-    ASSERT_NE(tickets, nullptr);
-    // 注意：票据的时间戳需要通过 tick() 递增来检查过期
-    // 但由于票据创建时时间戳为0，而 manager.tick() 从0开始，
-    // 所以需要超过300 tick才会过期
-
     manager.processUpdates();
 
     // 区块应该加载
     EXPECT_TRUE(manager.shouldChunkLoad(50, 50));
+    ASSERT_NE(manager.getChunkTickets(50, 50), nullptr);
 
-    // 运行 300 tick
-    for (int i = 0; i < 300; ++i) {
+    // 存活期从加入时刻起算：递减 299 次仍未到期
+    for (i32 i = 0; i < 299; ++i) {
         manager.tick();
     }
-    manager.processUpdates();
+    EXPECT_TRUE(manager.shouldChunkLoad(50, 50));
+    ASSERT_NE(manager.getChunkTickets(50, 50), nullptr);
 
-    // 区块仍应加载（票据可能未过期，因为时间戳是相对的）
-    // 注意：这个测试验证票据系统的行为，实际过期逻辑可能需要额外设置
+    // 第 300 次递减到期：票据被移除，票级回升到未加载
+    manager.tick();
+    EXPECT_EQ(manager.getChunkTickets(50, 50), nullptr);
+    EXPECT_FALSE(manager.shouldChunkLoad(50, 50));
 }
 
 TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedChunkPersistsAfterPlayerLeave)
@@ -1241,23 +1248,24 @@ TEST_F(ChunkLoadTicketExtendedTest, PortalTicketExpiration)
 {
     // PORTAL 票据有 300 tick 生命周期
     ChunkLoadTicket portalTicket(TicketTypes::PORTAL, 31, ChunkPos(10, 20));
-    portalTicket.setTimestamp(0);
 
-    EXPECT_FALSE(portalTicket.isExpired(0));
-    EXPECT_FALSE(portalTicket.isExpired(299)); // 刚好未过期
-    EXPECT_TRUE(portalTicket.isExpired(301));  // 已过期
-    EXPECT_TRUE(portalTicket.isExpired(1000)); // 已过期很久
+    EXPECT_EQ(portalTicket.lifespan(), 300u);
+    for (u32 i = 0; i < 299; ++i) {
+        EXPECT_FALSE(portalTicket.tickLifetime()); // 未到期
+    }
+    EXPECT_TRUE(portalTicket.tickLifetime()); // 第 300 次递减到期
 }
 
 TEST_F(ChunkLoadTicketExtendedTest, PostTeleportTicketExpiration)
 {
     // POST_TELEPORT 票据有 5 tick 生命周期
     ChunkLoadTicket teleportTicket(TicketTypes::POST_TELEPORT, 31, 42u);
-    teleportTicket.setTimestamp(0);
 
-    EXPECT_FALSE(teleportTicket.isExpired(0));
-    EXPECT_FALSE(teleportTicket.isExpired(5)); // 刚好未过期
-    EXPECT_TRUE(teleportTicket.isExpired(6));  // 已过期
+    EXPECT_EQ(teleportTicket.lifespan(), 5u);
+    for (u32 i = 0; i < 4; ++i) {
+        EXPECT_FALSE(teleportTicket.tickLifetime());
+    }
+    EXPECT_TRUE(teleportTicket.tickLifetime()); // 第 5 次递减到期
 }
 
 TEST_F(ChunkLoadTicketExtendedTest, TicketTypeComparison)
@@ -1346,35 +1354,40 @@ TEST_F(ChunkTicketSetExtendedTest, MultipleTicketsOfDifferentTypes)
 
 TEST_F(ChunkTicketSetExtendedTest, TicketSetWithExpiration)
 {
-    auto expireType1 = ChunkLoadTicketType<ChunkPos>::create("expire1", 10);
-    auto expireType2 = ChunkLoadTicketType<ChunkPos>::create("expire2", 20);
-    auto permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
+    ChunkLoadTicketType<ChunkPos> expireType1 = ChunkLoadTicketType<ChunkPos>::create("expire1", 10);
+    ChunkLoadTicketType<ChunkPos> expireType2 = ChunkLoadTicketType<ChunkPos>::create("expire2", 20);
+    ChunkLoadTicketType<ChunkPos> permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
 
     ChunkTicketSet set;
 
     ChunkLoadTicket t1(expireType1, 31, ChunkPos(0, 0));
-    t1.setTimestamp(0);
     ChunkLoadTicket t2(expireType2, 32, ChunkPos(0, 0));
-    t2.setTimestamp(0);
     ChunkLoadTicket t3(permanentType, 33, ChunkPos(0, 0));
-    t3.setTimestamp(0);
 
     set.addTicket(t1);
     set.addTicket(t2);
     set.addTicket(t3);
 
     EXPECT_EQ(set.size(), 3u);
+    EXPECT_EQ(set.timedTicketCount(), 2);
 
-    // t1 过期（10 tick 后）
-    set.removeExpired(15);
+    // 递减 10 次：t1 到期
+    for (i32 i = 0; i < 10; ++i) {
+        set.tickLifetimes();
+    }
     EXPECT_EQ(set.size(), 2u);
 
-    // t2 过期（20 tick 后）
-    set.removeExpired(25);
+    // 再递减 10 次（累计 20）：t2 到期
+    for (i32 i = 0; i < 10; ++i) {
+        set.tickLifetimes();
+    }
     EXPECT_EQ(set.size(), 1u);
+    EXPECT_EQ(set.timedTicketCount(), 0);
 
-    // t3 永不过期
-    set.removeExpired(100000);
+    // t3 永不过期：继续递减不改变集合
+    for (i32 i = 0; i < 100; ++i) {
+        EXPECT_EQ(set.tickLifetimes(), 0);
+    }
     EXPECT_EQ(set.size(), 1u);
 }
 
@@ -1388,10 +1401,15 @@ TEST_F(ChunkTicketSetExtendedTest, RemoveNonExistentTicket)
     set.addTicket(t1);
     EXPECT_EQ(set.size(), 1u);
 
-    // 尝试移除不存在的票据
-    bool removed = set.removeTicket(t2);
-    EXPECT_FALSE(removed);
+    // 尝试移除不存在的票据：返回 nullopt
+    EXPECT_FALSE(set.removeTicket(t2).has_value());
     EXPECT_EQ(set.size(), 1u);
+
+    // 移除存在的票据：返回被移除的票据本体
+    const std::optional<ChunkLoadTicket> removed = set.removeTicket(t1);
+    ASSERT_TRUE(removed.has_value());
+    EXPECT_EQ(removed->level(), 31);
+    EXPECT_TRUE(set.empty());
 }
 
 TEST_F(ChunkTicketSetExtendedTest, MinLevelWithEmptySet)
@@ -1470,8 +1488,8 @@ TEST_F(ChunkTicketSetExtendedTest, TicketSetIterator)
 
 TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel)
 {
-    auto expireType = ChunkLoadTicketType<ChunkPos>::create("expire", 5);
-    auto permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
+    ChunkLoadTicketType<ChunkPos> expireType = ChunkLoadTicketType<ChunkPos>::create("expire", 5);
+    ChunkLoadTicketType<ChunkPos> permanentType = ChunkLoadTicketType<ChunkPos>::create("permanent");
 
     ChunkTicketSet set;
 
@@ -1481,13 +1499,14 @@ TEST_F(ChunkTicketSetExtendedTest, ExpirationPreservesMinLevel)
 
     // 添加过期票据（低级别）
     ChunkLoadTicket expiring(expireType, 31, ChunkPos(0, 0));
-    expiring.setTimestamp(0);
     set.addTicket(expiring);
 
     EXPECT_EQ(set.getMinLevel(), 31); // 过期票据提供最小级别
 
-    // 过期后
-    set.removeExpired(10);
+    // 递减 5 次后到期
+    for (i32 i = 0; i < 5; ++i) {
+        set.tickLifetimes();
+    }
     EXPECT_EQ(set.getMinLevel(), 33); // 只剩永久票据
 }
 

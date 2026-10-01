@@ -38,21 +38,22 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `ChunkId` - 64 位区块标识符
 - `BlockState` - 带属性的方块状态
 - `ChunkSection` - 16x16x16 方块段
-- `ChunkData` - 完整区块数据（16 个段）
+- `ChunkData` - 完整区块数据（CHUNK_SECTIONS 个段，主世界为 24）
 
 ### 区块生成类型
-- `ChunkStatus`：生成阶段（EMPTY → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → LIGHT → HEIGHTMAPS → FULL）
-- `ChunkPrimer`：生成过程中的中间区块状态
-- `SingleChunkLifecycleManager`：管理区块加载状态和 future
-- `ChunkGenerateTask`：区块生成任务，提交到 UniversalWorkerPool 执行
-- `IChunk`：生成的区块接口
+- `ChunkStatus`：生成阶段（EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → INITIALIZE_LIGHT → LIGHT → SPAWN → FULL）
+- `ChunkPrimer`：生成过程中的中间区块（累积式，同一对象贯穿所有状态）
+- `ChunkProgressionTask`：单状态推进任务，提交到 UniversalWorkerPool 执行（`src/server/world/`）
+- `ChunkTaskScheduler`：生成调度核心（双向邻居依赖图 + 区域锁，`src/server/world/`）
+- `SingleChunkLifecycleManager`：单区块生命周期状态机（NewChunkHolder 等价物，`src/server/world/`）
+- `IChunk`：区块接口
 
 ### 生物群系类型
 - `BiomeId` - 生物群系标识符（含主世界/下界/末界，对齐 MC 1.21.11）
 - `Biome` - 生物群系定义，包含气候、特性、雕刻器
 - `BiomeContainer` - 4x4x4 采样生物群系存储
-- `BiomeProvider` - 生物群系分布基类
-- `MultiNoiseBiomeSource` - 多噪声生物群系生成（对齐 MC 1.18+，取代旧版 LayerBiomeProvider）
+- `IBiomeSource` - 生物群系分布接口（`common/world/biome/BiomeSource.hpp`）
+- `MultiNoiseBiomeSource` / `EndBiomeSource` / `FixedBiomeSource` - 具体分布实现（`server/world/gen/biome/source/`）
 
 ### 网络类型
 - `protocol::ConnectionProtocol` - 连接协议阶段枚举（Handshake/Login/Configuration/Play），位于 `network/protocol/ConnectionProtocol.hpp`
@@ -113,12 +114,10 @@ src/common/world/
 ├── GlobalPos.hpp               # 全局位置类型
 
 src/common/world/chunk/
-├── ChunkData.hpp/cpp              # 区块数据存储（ChunkSection、ChunkData、ChunkDataRef）
-├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
-├── ChunkPos.hpp                   # 区块位置类型
-├── ChunkStatus.hpp/cpp            # 区块生成阶段定义
-├── IChunk.hpp/cpp                 # 区块接口和基础类型
-├── SectionPos.hpp                 # 区块段位置类型
+├── base/                       # 位置与标识纯值类型（ChunkPos、SectionPos、ChunkId）
+├── data/                       # 区块数据模型（ChunkData、ChunkPrimer、ChunkSection、Heightmap、BiomeContainer、IChunk）
+├── gen/                        # 生成管线（ChunkStatus、ChunkPyramid、ChunkStep、ChunkDependencies）
+└── load/                       # 加载票据系统（ChunkLoadTicket、ChunkLoadTicketManager、ChunkDistanceGraph、ChunkLoadLevel）
 
 block/
 ├── Block.hpp/cpp                   # 方块基类，定义核心属性和行为
@@ -175,108 +174,16 @@ block/
 
 `mc::world` 命名空间：
 - `MIN_BUILD_HEIGHT`, `MAX_BUILD_HEIGHT`, `SEA_LEVEL` - 高度限制。【重要】只能使用这些mc::world下的常量作为高度限制，不能硬编码0、256等数字，因为未来可能会频繁修改这些高度限制。
-- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS`, `CHUNK_VOLUME` - 区块尺寸。【重要】只能使用这些mc::world下的常量作为区块尺寸，不能硬编码16等数字，因为未来可能会频繁修改区块尺寸。另外，有些地方可能使用位运算来计算区块坐标（例如 `x >> CHUNK_SHIFT`），务必使用这些常量来确保位运算的正确性，而不是简单 >> 4。
+- `CHUNK_WIDTH`, `CHUNK_HEIGHT`, `CHUNK_SECTION_HEIGHT`, `CHUNK_SECTIONS` - 区块尺寸。【重要】只能使用这些mc::world下的常量作为区块尺寸，不能硬编码16等数字，因为未来可能会频繁修改区块尺寸。另外，有些地方可能使用位运算来计算区块坐标（例如 `x >> CHUNK_SHIFT`），务必使用这些常量来确保位运算的正确性，而不是简单 >> 4。
 【重要】CHUNK_HEIGHT和MAX_BUILD_HEIGHT值不同，语义也完全不同。CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT = 320 - (-64) = 384，而MAX_BUILD_HEIGHT = 320。使用的时候务必小心这个区别！
-这些常量定义在 `src/common/world/WorldConstants.hpp` 中（`Constants.hpp` 通过 include 重新导出以保持兼容）。
 - `CHUNK_SHIFT`, `SECTION_SHIFT`, `CHUNK_MASK` - 区块位运算常量
-- `CHUNK_LOAD_RADIUS`, `CHUNK_UNLOAD_RADIUS`, `MAX_CHUNKS_LOADED` - 区块加载
-- `WORLD_SEED_DEFAULT`, `SPAWN_CHUNK_RADIUS` - 世界生成
-- `BLOCK_UPDATE_RADIUS` - 方块更新范围
+- `CHUNK_LOAD_RADIUS` - 默认区块加载半径
+- `SPAWN_CHUNK_RADIUS` - 出生点常驻区块半径
 
-另外，`src\common\world\WorldConstants.hpp` 这个文件也提供了巨量的世界相关常量和工具方法，必须尽可能复用而不是自己硬编码：
-
-```cpp
-enum class ChunkLoadPriority : i32 {
-    Critical = 0,  // 玩家所在区块
-    High = 1,      // 玩家周围区块
-    Normal = 2,    // 正常加载
-    Low = 3,       // 远处区块
-    Background = 4 // 后台生成
-};
-constexpr u32 CHUNK_UNLOAD_DELAY_MS = 30000; // 30秒
-
-// 区块保存间隔 (毫秒)
-constexpr u32 CHUNK_SAVE_INTERVAL_MS = 60000; // 1分钟
-
-constexpr f32 TERRAIN_HEIGHT_VARIATION = 16.0f;
-constexpr f32 TERRAIN_BASE_HEIGHT = 64.0f;
-constexpr f32 CAVE_FREQUENCY = 0.02f;
-constexpr f32 ORE_FREQUENCY = 0.01f;
-
-constexpr i32 LIGHT_UPDATE_DISTANCE = 15;
-
-constexpr i32 BLOCK_UPDATE_DISTANCE = 64;
-
-// 红石更新延迟 (ticks)
-constexpr i32 REDSTONE_DELAY = 2;
-
-constexpr i32 ENTITY_ACTIVATION_RANGE_PLAYER = 128;
-constexpr i32 ENTITY_ACTIVATION_RANGE_MONSTER = 32;
-constexpr i32 ENTITY_ACTIVATION_RANGE_ANIMAL = 32;
-constexpr i32 ENTITY_ACTIVATION_RANGE_MISC = 16;
-
-// 实体追踪范围
-constexpr i32 ENTITY_TRACKING_RANGE_PLAYER = 64;
-constexpr i32 ENTITY_TRACKING_RANGE_MONSTER = 64;
-constexpr i32 ENTITY_TRACKING_RANGE_ANIMAL = 48;
-constexpr i32 ENTITY_TRACKING_RANGE_MISC = 32;
-
-// 实体消失范围
-constexpr i32 ENTITY_DESPAWN_RANGE = 128;
-
-// 检查Y坐标是否在有效范围内
-inline bool isValidY(i32 y)
-{
-    return y >= MIN_BUILD_HEIGHT && y < MAX_BUILD_HEIGHT;
-}
-
-// 将世界坐标转换为区块坐标
-inline i32 toChunkCoord(i32 worldCoord)
-{
-    return worldCoord >= 0 ? worldCoord / CHUNK_WIDTH : (worldCoord + 1) / CHUNK_WIDTH - 1;
-}
-
-// 将世界坐标转换为区块内本地坐标
-inline i32 toLocalCoord(i32 worldCoord)
-{
-    i32 local = worldCoord % CHUNK_WIDTH;
-    return local >= 0 ? local : local + CHUNK_WIDTH;
-}
-
-// 将区块坐标转换为世界坐标
-inline i32 toWorldCoord(i32 chunkCoord)
-{
-    return chunkCoord * CHUNK_WIDTH;
-}
-
-// 将Y坐标转换为区块段索引
-inline i32 toSectionIndex(i32 y)
-{
-    return (y - MIN_BUILD_HEIGHT) / CHUNK_SECTION_HEIGHT;
-}
-
-// 将区块段索引转换为Y坐标
-inline i32 sectionToY(i32 sectionIndex)
-{
-    return MIN_BUILD_HEIGHT + sectionIndex * CHUNK_SECTION_HEIGHT;
-}
-
-// 检查区块坐标是否有效
-inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ)
-{
-    constexpr i32 WORLD_BORDER = 30000000;
-    constexpr i32 MIN_CHUNK = -WORLD_BORDER / CHUNK_WIDTH;
-    constexpr i32 MAX_CHUNK = WORLD_BORDER / CHUNK_WIDTH;
-    return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK && chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;
-}
-
-```
+世界常量、尺寸与坐标换算工具统一定义在 `src/common/world/WorldConstants.hpp`（`Constants.hpp` 通过 include 重新导出）。使用时直接 include 该头文件并引用其中常量/函数，不要硬编码数字；具体清单以该文件为准，本文档不再重复罗列——重复罗列会随代码演进迅速失真。
 
 `mc::entity` 命名空间：
-- `MAX_ENTITIES_PER_CHUNK`, `MAX_PLAYERS`, `MAX_ENTITIES` - 实体数量限制
-- `LegacyEntityTypeId` - 实体类型ID枚举（旧版，用于网络同步）
-- `EntityStatus` - 实体状态枚举
-- `ENTITY_TRACKING_RANGE`, `PLAYER_TRACKING_RANGE` - 追踪距离
+- `MAX_ENTITIES_PER_CHUNK`, `MAX_ENTITIES` - 实体数量限制
 
 `mc::item` 命名空间：
 - `DEFAULT_MAX_STACK_SIZE` - 物品默认最大堆叠数（64）

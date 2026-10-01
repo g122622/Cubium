@@ -251,6 +251,14 @@ void ServerChunkManager::shutdown()
     std::lock_guard<std::mutex> lock(m_chunksMutex);
     m_chunks.clear();
 
+    // 清理卸载候选队列：holder 已全部移除，残留候选无意义；同时避免下次 initialize 复用
+    // 同一实例时旧候选干扰（队列与成员集合必须一起清，否则集合残留会让入队去重失效）。
+    {
+        std::lock_guard<std::mutex> queueLock(m_unloadQueueMutex);
+        m_unloadQueue.clear();
+        m_inUnloadQueue.clear();
+    }
+
     // 清理后处理队列与去重标记，避免 shutdown 后残留状态影响下次 initialize
     {
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
@@ -778,6 +786,11 @@ SingleChunkLifecycleManager& ServerChunkManager::_getOrCreateLifecycleManager(Ch
 
     auto lifecycleManager = std::make_shared<SingleChunkLifecycleManager>(x, z);
     auto* ptr = lifecycleManager.get();
+    // 注入卸载状态观察者：持有者的卸载安全性变化时（生成任务设置/清除、邻居引用计数 0↔1、
+    // 依赖图增删）重新评估卸载候选资格。这是事件驱动的核心——取代周期全量扫描。
+    // 观察者捕获 this，生命周期由 ServerChunkManager 保证（持有者存活于 m_lifecycleManagers 内，
+    // 管理器先于所有持有者析构；_updateUnloadCandidate 内部还有 m_shuttingDown 守卫）。
+    ptr->setUnloadStateObserver([this](SingleChunkLifecycleManager& holder) { _updateUnloadCandidate(holder); });
     m_lifecycleManagers[key] = std::move(lifecycleManager);
     return *ptr;
 }
@@ -844,16 +857,22 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
         const ChunkStatus& effectiveTarget =
             (existingRequested.ordinal() > targetStatus.ordinal()) ? existingRequested : targetStatus;
         _submitChunkRequest(x, z, effectiveTarget, {}, {});
+
+        // 票级回到加载阈值内：若该区块仍在卸载候选队列中（例如刚刚越过阈值又立刻回转），
+        // 立即撤销候选资格，避免其残留在队列中直到被弹出时才发现已不需要卸载。
+        _updateUnloadCandidate(lifecycleManager);
         return;
     }
 
-    // 票据级别降至卸载阈值以下：标记卸载意图，由 _checkChunkUnloading 安全卸载。
+    // 票据级别越过加载阈值：持有者不再被需要。
     //
     // 语义：
-    //   - 标记卸载意图时取消生成任务，但 holder 仅在 isSafeToUnload
-    //     （totalNeighboursUsingThisChunk==0 且无依赖图）时才真正卸载。
-    //     被其他 holder 当作邻居使用或正在生成中的 holder 不会被取消/卸载，
-    //     其生成由邻居的 checkNeighbour 按需驱动，完成后 _checkChunkUnloading 卸载。
+    //   - 候选资格由 _updateUnloadCandidate 重新评估（本函数末尾调用）：票级越阈值 +
+    //     安全可卸载 + 无玩家追踪 + 无在途保存 → 进入卸载候选队列，由 _processChunkUnloads
+    //     按保底批量卸载。这是事件驱动的入队点，取代原先每 20 tick 的全量扫描 + 30 秒延迟。
+    //   - 被其他 holder 当作邻居使用或正在生成中的 holder 不会被立即取消/卸载，其生成由
+    //     邻居的 checkNeighbour 按需驱动；其状态一旦变得安全，生命周期管理器的观察者回调
+    //     会重新评估候选资格并入队。
     //
     // Cubium 之前的实现对所有 out-of-range holder 都调用 cancelGeneration + cancelActiveWork，
     // 即使该 holder 正被邻居使用或正在生成中。这导致 cancel-revive 抖动：
@@ -866,23 +885,20 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     //   - isSafeToUnload 为 false（holder 正被邻居使用/正在生成/有依赖图）：不取消生成，
     //     不失败等待者。holder 的生成继续由邻居 checkNeighbour 驱动，请求等待者
     //     （requestChunkAsync）在 holder 完成 FULL 后由 _publishGeneratedChunk/_finalizeGeneratedChunkSync 唤醒。
-    //     holder 的 abortSignal 保持 false，运行中的任务正常完成。当依赖图清空
-    //     （邻居完成/取消释放引用、等待者解除），_checkChunkUnloading 通过 isSafeToUnload 卸载 holder。
-    //   - isSafeToUnload 为 true（holder 无依赖）：安全取消生成并清理依赖图，_checkChunkUnloading 卸载。
+    //     holder 的 abortSignal 保持 false，运行中的任务正常完成。
+    //   - isSafeToUnload 为 true（holder 无依赖）：安全取消生成并清理依赖图，随即入队卸载。
     //
     // 注意：isSafeToUnload 在此处的检查不持调度锁（_onTicketLevelChanged 由 tick 主线程调用，
-    // 非 worker 线程的 onChunkGenComplete/schedule 持锁路径）。isSafeToUnload 的最终一致性由
-    // unloadChunkSync 持调度锁重新检查保证。此处仅作为快速过滤：若 isSafeToUnload 为 false，
-    // 立即取消会导致 cancel-revive 抖动；若为 true，cancelGeneration 持锁清理后 unloadChunkSync
-    // 再次检查（持锁）确认安全后移除 holder。
+    // 非 worker 线程的 onChunkGenComplete/schedule 持锁路径）。最终一致性由卸载收尾
+    // （_finalizeUnloadAfterSave）持调度锁重新检查 isSafeToUnload 保证。
     if (m_taskScheduler != nullptr && lifecycleManager.isSafeToUnload()) {
         m_taskScheduler->cancelGeneration(lifecycleManager);
         lifecycleManager.cancelActiveWork();
         _failWaiters(lifecycleManager.takeAllWaiters());
     }
-    // isSafeToUnload 为 false 时：不取消、不失败等待者。holder 保留在 m_lifecycleManagers 中，
-    // 由 _checkChunkUnloading（每 UNLOAD_CHECK_INTERVAL_TICKS tick）在安全后卸载。
-    // holder 的 shouldLoad() 已为 false（newLevel > MAX_LOADED_LEVEL），_checkChunkUnloading 会尝试卸载。
+
+    // 无论是否取消成功，都重评候选资格：可安全卸载者入队，否则保持/撤出队列。
+    _updateUnloadCandidate(lifecycleManager);
 }
 
 // ============================================================================
@@ -1214,8 +1230,20 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
 
     // stage1（对齐 Moonrise unloadStage1）：捕获脏区块快照并提交异步保存，不阻塞主 tick。
     // 保存完成（stage2，ServerIO）后回调入队 m_pendingUnloadFinishes，由 stage3 完成卸载收尾。
-    // 非脏区块（无存储或未修改）无需异步保存，直接进入 stage3 收尾。
+    // 无脏数据（未修改或未开存储）时无需异步保存，同样入队由下次排空完成 stage3。
     std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder = _findLifecycleManagerShared(x, z);
+
+    // 统一置位"卸载在途"标记（无论后续是否真的发起异步保存）：候选资格判定据此排除本区块，
+    // 覆盖完整的 stage1→stage3 窗口。否则无保存路径的区块在收尾前会被再次选中，导致重复
+    // 卸载通知（客户端重复收到卸载包、实体被重复移除）。标记由 _finalizeUnloadAfterSave 的所有
+    // 退出路径清除。
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        if (!m_unloadSaveInProgress.insert(key).second) {
+            // 已有在途卸载：忽略本次请求（调用方已按候选资格过滤，此处为并发兜底）。
+            return;
+        }
+    }
 
     bool asyncSaveStarted = false;
     if (m_world && m_world->isStorageOpen() && lifecycleHolder != nullptr) {
@@ -1229,13 +1257,6 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         }
 
         if (chunkToSave) {
-            // 标记异步卸载保存进行中，使 _checkChunkUnloading 跳过本区块，避免重复发起保存。
-            // 持有 m_pendingUnloadFinishesMutex 与现有注释一致（m_unloadSaveInProgress 共用此锁）。
-            {
-                std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
-                m_unloadSaveInProgress.insert(key);
-            }
-
             // 立即清除脏标记：保存快照已捕获（saveChunkAsyncCallback 在主线程序列化），后续修改会重新置脏
             // 并在下次卸载时重新保存。避免 stage3 完成前重复保存。
             chunkToSave->setDirty(false);
@@ -1276,11 +1297,22 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         return;
     }
 
-    // 非脏路径：直接进入 stage3 收尾（无异步保存等待）。
-    _finalizeUnloadAfterSave(x, z, m_world ? m_world->dimension() : mc::DimensionId{}, std::move(lifecycleHolder));
+    // 无异步保存（区块不脏或未开存储）时同样把收尾推迟到下一次 _drainPendingUnloadFinishes：
+    // 这给出一个 tick 的反悔窗口——玩家在相邻 tick 内返回时，_finalizeUnloadAfterSave 的
+    // shouldLoad 复检会中止卸载。原实现对此路径同步收尾，等于零窗口；对齐 Moonrise
+    // playerChunkUnloadDelay 的默认延迟（0t → 下限 1 tick）语义。
+    PendingUnloadFinish item;
+    item.x = x;
+    item.z = z;
+    item.dimension = m_world ? m_world->dimension() : mc::DimensionId{};
+    item.lifecycleHolder = std::move(lifecycleHolder);
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        m_pendingUnloadFinishes.push_back(std::move(item));
+    }
 }
 
-bool ServerChunkManager::_finalizeUnloadAfterSave(
+void ServerChunkManager::_finalizeUnloadAfterSave(
     ChunkCoord x, ChunkCoord z, mc::DimensionId dimension, std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder)
 {
     const u64 key = posToKey(x, z);
@@ -1296,7 +1328,7 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
     if (lifecycleHolder != nullptr && lifecycleHolder->shouldLoad()) {
         std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
         m_unloadSaveInProgress.erase(key);
-        return true; // 中止卸载，条目丢弃
+        return; // 中止卸载，条目丢弃
     }
 
     std::shared_ptr<SingleChunkLifecycleManager> lifecycleManager = std::move(lifecycleHolder);
@@ -1311,7 +1343,7 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
         m_postProcessedChunks.erase(key);
         std::lock_guard<std::mutex> uLock(m_pendingUnloadFinishesMutex);
         m_unloadSaveInProgress.erase(key);
-        return true;
+        return;
     }
 
     if (m_taskScheduler != nullptr) {
@@ -1322,11 +1354,22 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
         lifecycleManager->cancelActiveWork();
 
         if (!lifecycleManager->isSafeToUnload()) {
-            // 仍有邻居引用（其他 holder 的任务正在使用本 holder）：保留条目，下一 tick stage3 重试。
-            // 区块已保存（落盘），holder 与 m_chunks 保留，下个 tick 重试时不再重复保存
-            // （_finalizeUnloadAfterSave 不触发保存，仅完成移除）。m_unloadSaveInProgress 保留以阻止
-            // _checkChunkUnloading 重复选中。未触发卸载通知，重试时不会重复通知客户端/移除实体。
-            return false;
+            // 仍有邻居引用（其他 holder 的任务正在使用本 holder）：注册卸载冷却票据把该区块
+            // 按 Border 级钉住 UNLOAD_COOLDOWN 时长，使后续检查不再每 tick 立即重试同一区块
+            // （对齐 Moonrise 的 UNLOAD_COOLDOWN 退避）。票据到期后票级升过加载阈值，
+            // _onTicketLevelChanged 会重新评估候选资格并入队。
+            // 区块已保存（落盘）且 holder 与 m_chunks 保留，冷却期内不会被重复保存
+            // （m_unloadSaveInProgress 清除后，isDirty 已为 false，重新卸载走无保存路径）。
+            {
+                std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+                m_unloadSaveInProgress.erase(key);
+            }
+            m_ticketManager.registerTicket(world::chunk::TicketTypes::UNLOAD_COOLDOWN,
+                x,
+                z,
+                static_cast<i32>(world::chunk::ChunkLoadLevel::Border),
+                world::chunk::Unit{});
+            return;
         }
 
         {
@@ -1338,10 +1381,19 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
         }
         _failWaiters(lifecycleManager->takeAllWaiters());
     } else {
-        // 无调度器（独立/测试模式）：直接检查并移除
+        // 无调度器（独立/测试模式）：直接检查并移除；不安全时同样转入冷却退避
         lifecycleManager->cancelActiveWork();
         if (!lifecycleManager->isSafeToUnload()) {
-            return false;
+            {
+                std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+                m_unloadSaveInProgress.erase(key);
+            }
+            m_ticketManager.registerTicket(world::chunk::TicketTypes::UNLOAD_COOLDOWN,
+                x,
+                z,
+                static_cast<i32>(world::chunk::ChunkLoadLevel::Border),
+                world::chunk::Unit{});
+            return;
         }
         {
             std::lock_guard<std::mutex> lmLock(m_lifecycleManagersMutex);
@@ -1389,7 +1441,6 @@ bool ServerChunkManager::_finalizeUnloadAfterSave(
         std::lock_guard<std::mutex> uLock(m_pendingUnloadFinishesMutex);
         m_unloadSaveInProgress.erase(key);
     }
-    return true;
 }
 
 void ServerChunkManager::_drainPendingUnloadFinishes()
@@ -1400,130 +1451,99 @@ void ServerChunkManager::_drainPendingUnloadFinishes()
         pending.swap(m_pendingUnloadFinishes);
     }
 
-    std::vector<PendingUnloadFinish> retry;
     for (auto& item : pending) {
-        // 持有 holder 副本：_finalizeUnloadAfterSave 返回 false（重试）时 item.lifecycleHolder
-        // 已被 move 置空，需用 holderForRetry 重新填入重试条目。
-        std::shared_ptr<SingleChunkLifecycleManager> holderForRetry = item.lifecycleHolder;
-        const bool done = _finalizeUnloadAfterSave(item.x, item.z, item.dimension, std::move(item.lifecycleHolder));
-        if (!done) {
-            // isSafeToUnload=false：保留至下一 tick 重试。holder 仍在 m_lifecycleManagers（未移除）。
-            PendingUnloadFinish retryItem;
-            retryItem.x = item.x;
-            retryItem.z = item.z;
-            retryItem.dimension = item.dimension;
-            retryItem.lifecycleHolder = std::move(holderForRetry);
-            retry.push_back(std::move(retryItem));
-        }
-    }
-
-    if (!retry.empty()) {
-        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
-        // 重试条目插回队尾，下一 tick 继续处理。
-        for (auto& item : retry) {
-            m_pendingUnloadFinishes.push_back(std::move(item));
-        }
+        _finalizeUnloadAfterSave(item.x, item.z, item.dimension, std::move(item.lifecycleHolder));
     }
 }
 
-void ServerChunkManager::_checkChunkUnloading()
+void ServerChunkManager::_processChunkUnloads()
 {
-    // 候选区块：可卸载的（shouldLoad=false 且无追踪玩家且 isSafeToUnload）
-    std::vector<u64> toUnload;
-
-    // 软上限强制卸载候选池：仍加载（shouldLoad=true）的区块及其 level。
-    // level 越高 = 越远 = 越应优先卸载。仅当 m_maxLoadedChunks > 0 时收集。
-    // pair: {level, key}，升序排序后从末尾（最大 level）取。
-    std::vector<std::pair<i32, u64>> forcedCandidates;
-
-    // TODO: 软上限强制卸载当前是**不可启用**的状态，切勿调用 setMaxLoadedChunks 打开它。
-    // 它卸载的是 shouldLoad()==true（票据仍要求加载）的区块：卸载后票据立刻又把同一区块
-    // 重新加载回来，在加载数超过上限时形成 load/unload 抖动，且每次卸载都要落盘、每次加载
-    // 都要读盘。启用前必须先让"强制卸载"与票据体系自洽（例如仅卸载无票据覆盖的区块，
-    // 或让超额区间在距离图上真正降级），并补覆盖该场景的测试。
-    const bool enforceSoftCap = m_maxLoadedChunks > 0;
-    size_t loadedCount = 0;
-
-    // 复制一份进行中的卸载保存集合，避免在持锁遍历 m_lifecycleManagers 时
-    // 再去加 m_pendingUnloadFinishesMutex（与 m_lifecycleManagersMutex 无固定次序，防死锁）。
-    std::unordered_set<u64> saveInProgress;
+    // 事件驱动入队 + 保底批量出队（对齐 Moonrise ChunkHolderManager.processUnloads）：
+    // 入队由 _updateUnloadCandidate 在各状态变更点完成，此处只负责按批取出并复核。
+    size_t pending = 0;
     {
-        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
-        saveInProgress = m_unloadSaveInProgress;
+        std::lock_guard<std::mutex> lock(m_unloadQueueMutex);
+        pending = m_inUnloadQueue.size();
+    }
+    if (pending == 0) {
+        return;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
-        for (const auto& [key, lifecycleManager] : m_lifecycleManagers) {
-            if (!lifecycleManager) {
-                continue;
-            }
+    // 保底批量：至少 MIN_CHUNK_UNLOAD_COUNT 个，或候选总数的 MIN_CHUNK_UNLOAD_FRACTION。
+    // 该值是下限而非上限（Moonrise 语义）：小队列一次清空，大队列按保底量平滑推进，
+    // 不会因队列长期轻微超额而永不收敛。
+    const size_t batch = std::max<size_t>(MIN_CHUNK_UNLOAD_COUNT,
+        static_cast<size_t>(std::ceil(static_cast<double>(pending) * MIN_CHUNK_UNLOAD_FRACTION)));
 
-            // 已有异步卸载保存进行中（stage1 已发起、stage3 未完成）：跳过。
-            // 由 _drainPendingUnloadFinishes 负责其 stage3 收尾，避免重复发起保存。
-            if (saveInProgress.count(key) > 0) {
-                continue;
-            }
-
-            // 票级高于 Border（shouldLoad=false）且无追踪玩家且可安全卸载 → 常规卸载候选
-            if (!lifecycleManager->shouldLoad() && !m_ticketManager.hasTrackingPlayers(key) &&
-                lifecycleManager->isSafeToUnload()) {
-                // 延迟卸载：区块刚离开玩家视距时先挂起一段时间再真正卸载，避免玩家沿区块边界
-                // 往返移动时反复"加载→卸载"（每次卸载要落盘、每次加载要读盘）。
-                // 计时状态挂在区块自身的生命周期对象上，随区块销毁而消失，不会旁挂累积。
-                const u64 nowMs = util::TimeUtils::getCurrentTimeMs();
-                const u64 sinceMs = lifecycleManager->unloadCandidateSinceMs();
-                if (sinceMs == 0) {
-                    lifecycleManager->setUnloadCandidateSinceMs(nowMs);
-                    continue;
-                }
-                if (nowMs - sinceMs >= world::CHUNK_UNLOAD_DELAY_MS) {
-                    toUnload.push_back(key);
-                }
-                continue;
-            }
-
-            // 该区块重新被需要（票据回升、有玩家追踪、或不满足安全卸载）：撤销延迟卸载计时
-            if (lifecycleManager->unloadCandidateSinceMs() != 0) {
-                lifecycleManager->setUnloadCandidateSinceMs(0);
-            }
-
-            // 软上限统计：所有仍加载（shouldLoad=true）的区块计入强制卸载候选池。
-            // 超限时按 level 降序（最远优先）强制卸载。
-            if (enforceSoftCap && lifecycleManager->shouldLoad()) {
-                forcedCandidates.emplace_back(lifecycleManager->level(), key);
-                ++loadedCount;
-            }
-        }
-    }
-
-    // 1) 常规卸载：受每 tick 预算限制，平滑卸载尖峰（对齐 Moonrise processUnloads）
-    i32 unloadBudget = MAX_UNLOADS_PER_TICK;
-    for (u64 key : toUnload) {
-        if (unloadBudget <= 0) {
+    size_t unloaded = 0;
+    while (unloaded < batch) {
+        u64 key = 0;
+        if (!_tryPopUnloadCandidate(key)) {
             break;
         }
-        auto chunkId = ChunkId::fromId(key);
+
+        // 复核候选资格：入队后状态可能已变化（票级回升、邻居开始引用、已在途保存）。
+        // 不通过者直接丢弃条目——资格变化会经观察者回调重新入队，无需在此重试。
+        const ChunkId chunkId = ChunkId::fromId(key);
+        auto lifecycleHolder = _findLifecycleManagerShared(chunkId.x, chunkId.z);
+        if (lifecycleHolder == nullptr || !_isUnloadCandidate(*lifecycleHolder)) {
+            continue;
+        }
+
         unloadChunkSync(chunkId.x, chunkId.z);
-        --unloadBudget;
+        ++unloaded;
+    }
+}
+
+void ServerChunkManager::_updateUnloadCandidate(SingleChunkLifecycleManager& holder)
+{
+    if (m_shuttingDown.load(std::memory_order::acquire)) {
+        return;
     }
 
-    // 2) 软上限强制卸载：加载区块数超过 m_maxLoadedChunks 时，按最远优先强制卸载。
-    //    forcedCandidates 升序排序后从末尾（最大 level = 最远）取，直到不再超限或预算耗尽。
-    //    强制卸载也消耗同一预算，避免与常规卸载叠加造成单 tick 尖峰。
-    if (enforceSoftCap && loadedCount > static_cast<size_t>(m_maxLoadedChunks)) {
-        std::sort(forcedCandidates.begin(), forcedCandidates.end());
-        const size_t excess = loadedCount - static_cast<size_t>(m_maxLoadedChunks);
-        size_t unloaded = 0;
-        for (auto it = forcedCandidates.rbegin();
-            it != forcedCandidates.rend() && unloaded < excess && unloadBudget > 0;
-            ++it) {
-            auto chunkId = ChunkId::fromId(it->second);
-            unloadChunkSync(chunkId.x, chunkId.z);
-            ++unloaded;
-            --unloadBudget;
+    const u64 key = posToKey(holder.x(), holder.z());
+    const bool isCandidate = _isUnloadCandidate(holder);
+
+    std::lock_guard<std::mutex> lock(m_unloadQueueMutex);
+    if (isCandidate) {
+        if (m_inUnloadQueue.insert(key).second) {
+            m_unloadQueue.push_back(key);
+        }
+    } else {
+        // 惰性移除：只撤销成员资格，队列中的残留键由 _tryPopUnloadCandidate 弹出时丢弃。
+        m_inUnloadQueue.erase(key);
+    }
+}
+
+bool ServerChunkManager::_isUnloadCandidate(const SingleChunkLifecycleManager& holder)
+{
+    if (holder.shouldLoad() || !holder.isSafeToUnload()) {
+        return false;
+    }
+
+    const u64 key = posToKey(holder.x(), holder.z());
+    if (m_ticketManager.hasTrackingPlayers(key)) {
+        // 仍在向玩家发送/追踪的区块不得卸载（发送视距 ⊆ 加载视距，正常不会同时成立，
+        // 此处作为发送链路与票级收敛之间的时序兜底）。
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+    return m_unloadSaveInProgress.count(key) == 0;
+}
+
+bool ServerChunkManager::_tryPopUnloadCandidate(u64& key)
+{
+    std::lock_guard<std::mutex> lock(m_unloadQueueMutex);
+    while (!m_unloadQueue.empty()) {
+        key = m_unloadQueue.front();
+        m_unloadQueue.pop_front();
+        // 仅当成员集合中仍存在该键时才是有效候选；否则为已撤出的失效条目。
+        if (m_inUnloadQueue.erase(key) > 0) {
+            return true;
         }
     }
+    return false;
 }
 
 // ============================================================================
@@ -1579,6 +1599,9 @@ void ServerChunkManager::setViewDistance(i32 distance)
 void ServerChunkManager::tick()
 {
     ++m_currentTick;
+    // 票据过期（带生命周期票据倒计时）与距离图传播。必须在卸载处理之前：本 tick 的票级
+    // 变化要先转化为卸载候选的入队/撤出，_processChunkUnloads 才能取到当 tick 的候选。
+    m_ticketManager.tick();
     // processTicketUpdatesSync 内部已出队异步存档加载完成回调（_drainPendingLoadCompletes），
     // 对齐 MC Java runDistanceManagerUpdates 把票据更新与完成交接合到同一步。
     processTicketUpdatesSync();
@@ -1590,17 +1613,15 @@ void ServerChunkManager::tick()
     _drainPendingPostProcess();
 
     // 出队并执行异步卸载保存完成回调（ServerIO 线程入队的 stage3 收尾）。
-    // 必须在 _checkChunkUnloading 之前：先消化进行中的卸载收尾，避免与新发起的卸载相互干扰，
+    // 必须在 _processChunkUnloads 之前：先消化进行中的卸载收尾，避免与新发起的卸载相互干扰，
     // 也确保 shouldLoad() 复检（玩家重新靠近）能及时中止卸载。
     _drainPendingUnloadFinishes();
 
     // 增加有玩家附近的区块的居住时间（每 tick +1）
     _incrementInhabitedTime();
 
-    if (m_currentTick - m_lastUnloadCheckTick >= UNLOAD_CHECK_INTERVAL_TICKS) {
-        _checkChunkUnloading();
-        m_lastUnloadCheckTick = m_currentTick;
-    }
+    // 处理卸载候选队列（事件驱动入队 + 保底批量出队）
+    _processChunkUnloads();
 }
 
 void ServerChunkManager::_incrementInhabitedTime()

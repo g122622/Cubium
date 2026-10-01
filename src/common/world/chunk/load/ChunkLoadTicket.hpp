@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -195,6 +196,17 @@ extern const ChunkLoadTicketType<Unit> DRAGON;
  */
 extern const ChunkLoadTicketType<ChunkPos> LIGHT;
 
+/**
+ * @brief 卸载重试冷却票据
+ *
+ * 卸载收尾（stage3）发现区块仍不安全（邻居仍在使用、依赖图未清空）时，把该区块按
+ * Border 级重新钉住一段时间。作用不是"延迟卸载"，而是退避：避免卸载流程在后续每个
+ * tick 立即重试同一区块。票据到期后等级自然升过加载阈值，卸载候选资格被重新评估。
+ *
+ * 生命周期：100 tick（5 秒）。
+ */
+extern const ChunkLoadTicketType<Unit> UNLOAD_COOLDOWN;
+
 } // namespace TicketTypes
 
 // ============================================================================
@@ -218,7 +230,7 @@ extern const ChunkLoadTicketType<ChunkPos> LIGHT;
  * - Level 35-45：生成中间状态
  * - Level >= 46：未加载
  *
- * @note 显式 ticket 是不可变的，创建后无法修改
+ * @note 除剩余生命周期倒计时外，显式 ticket 不可变（类型/级别/关联值创建后不可修改）
  */
 class ChunkLoadTicket {
 public:
@@ -235,8 +247,8 @@ public:
     ChunkLoadTicket(const ChunkLoadTicketType<T>& type, i32 level, const T& value)
         : m_typeName(type.name())
         , m_level(level)
-        , m_timestamp(0)
         , m_lifespan(type.lifespan())
+        , m_ticksLeft(type.lifespan())
     {
         if constexpr (std::is_same_v<T, ChunkPos>) {
             m_chunkValue = value;
@@ -284,27 +296,43 @@ public:
     [[nodiscard]] u32 intValue() const noexcept { return m_intValue; }
     [[nodiscard]] bool hasIntValue() const noexcept { return m_hasIntValue; }
 
-    /** @brief 设置时间戳（用于过期检查） */
-    void setTimestamp(u64 timestamp) noexcept { m_timestamp = timestamp; }
+    /**
+     * @brief 获取票据生命周期（tick 数）
+     * @return 生命周期；0 表示永不过期
+     */
+    [[nodiscard]] u32 lifespan() const noexcept { return m_lifespan; }
 
     /**
-     * @brief 检查是否过期
-     * @param currentTime 当前时间
-     * @return true 表示已过期
-     *
-     * @note 生命周期为 0 的票据永不过期
+     * @brief 是否带生命周期（需要逐 tick 递减剩余存活时间）
      */
-    [[nodiscard]] bool isExpired(u64 currentTime) const noexcept
+    [[nodiscard]] bool hasTimeout() const noexcept { return m_lifespan > 0; }
+
+    /**
+     * @brief 递减剩余生命周期一个 tick
+     *
+     * 采用"剩余 tick 倒计时"而非"绝对时间戳 + 存活期"：存活期必须从**票据加入时刻**起算。
+     * 绝对时间戳方案要求每个票据在加入时记录当前时间，一旦漏记（时间戳保持默认 0），
+     * 票据会在全局时间超过存活期后立刻被判为过期——此前 PORTAL/POST_TELEPORT 的
+     * 生命周期在服务端运行超过其存活期后就完全失效，即为该缺陷。
+     *
+     * @return true 表示本次递减后已到期，调用方应移除该票据
+     */
+    [[nodiscard]] bool tickLifetime() noexcept
     {
-        if (m_lifespan == 0) return false;
-        return currentTime - m_timestamp > m_lifespan;
+        if (m_lifespan == 0) {
+            return false;
+        }
+        if (m_ticksLeft > 0) {
+            --m_ticksLeft;
+        }
+        return m_ticksLeft == 0;
     }
 
 private:
     std::string m_typeName;
     i32 m_level = static_cast<i32>(ChunkLoadLevel::MaxLevel); // 默认为未加载级别
-    u64 m_timestamp = 0;
-    u32 m_lifespan = 0;
+    u32 m_lifespan = 0;                                       // 生命周期总长（tick），0 = 永不过期
+    u32 m_ticksLeft = 0;                                      // 剩余生命周期（tick）
 
     ChunkPos m_chunkValue{0, 0};
     u32 m_intValue = 0;
@@ -328,17 +356,19 @@ public:
     /**
      * @brief 添加票据
      * @param ticket 要添加的票据
-     *
-     * @note 如果相同票据已存在，不会重复添加
+     * @return true 表示实际加入；false 表示同票据已存在（被去重丢弃）
      */
-    void addTicket(ChunkLoadTicket ticket);
+    [[nodiscard]] bool addTicket(ChunkLoadTicket ticket);
 
     /**
      * @brief 移除票据
      * @param ticket 要移除的票据
-     * @return true 如果成功移除
+     * @return 被移除的票据；未命中返回 std::nullopt
+     *
+     * 返回被移除的票据而非 bool：调用方需要依据它的 hasTimeout() 维护过期票据索引，
+     * 仅凭 bool 无法区分"移除的是带生命周期票据"还是"永不过期票据"。
      */
-    bool removeTicket(const ChunkLoadTicket& ticket);
+    [[nodiscard]] std::optional<ChunkLoadTicket> removeTicket(const ChunkLoadTicket& ticket);
 
     /**
      * @brief 获取最小级别（最高优先级）
@@ -350,10 +380,18 @@ public:
     [[nodiscard]] bool empty() const { return m_tickets.empty(); }
 
     /**
-     * @brief 清理过期票据
-     * @param currentTime 当前时间
+     * @brief 递减本集合内所有带生命周期票据的剩余存活时间，并移除到期者
+     * @return 本次移除的票据数量
      */
-    void removeExpired(u64 currentTime);
+    i32 tickLifetimes();
+
+    /**
+     * @brief 带生命周期票据数量
+     *
+     * 供票据管理器维护"存在可过期票据的区块"索引，使逐 tick 过期处理只访问这些区块，
+     * 而非遍历全部票据集合。
+     */
+    [[nodiscard]] i32 timedTicketCount() const;
 
     /** @brief 票据数量 */
     [[nodiscard]] size_t size() const { return m_tickets.size(); }

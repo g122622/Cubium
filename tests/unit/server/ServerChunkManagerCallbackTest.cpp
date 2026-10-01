@@ -129,7 +129,7 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities)
     ASSERT_NE(chunk, nullptr);
 
     // 持 shared_ptr 保活区块:fixture 未注册 ticket/玩家,(0,0) 默认 level=MaxLevel(46)>Border(34),
-    // shouldLoad()=false。tick() 每 20 次触发 _checkChunkUnloading,生成完成且 isSafeToUnload()=true
+    // shouldLoad()=false。tick() 处理卸载候选队列（事件驱动入队 + 保底批量出队）,生成完成且 isSafeToUnload()=true
     // 时会 unloadChunkSync→m_chunks.erase,使裸 chunk 悬垂。-j8 负载下 worker 回调慢,主线程 tick
     // 循环跑满~1s 触发多次卸载判定,erase 后 chunk->x()/chunk->z() 解悬垂 → SEH 0xc0000005。
     // 生产契约要求调用方持票(ticket/forceChunk)保活裸指针;测试用 tryToGetChunkSharedInMem 拿

@@ -88,9 +88,9 @@ flowchart LR
 
 区块加载优先级管理：
 - **ChunkLoadLevel** — 加载级别枚举 + `shouldChunkLoad()`/`viewDistanceToLevel()` + `FULL_CHUNK_LEVEL`/`BLOCK_TICKING_LEVEL`/`ENTITY_TICKING_LEVEL` 常量
-- **ChunkLoadTicket** — 票据类型与集合
+- **ChunkLoadTicket** — 票据类型与集合；带生命周期票据按**剩余 tick 倒计时**（`tickLifetime()`，存活期从加入时刻起算）
 - **ChunkDistanceGraph** — BFS 级别传播算法
-- **ChunkLoadTicketManager** — 聚合显式 ticket 和玩家 source
+- **ChunkLoadTicketManager** — 聚合显式 ticket 和玩家 source；`tick()` 每 tick 递减带生命周期票据并处理传播，并通过「存在可过期票据的区块」索引把过期处理限制在这些区块上
 
 ## 生成依赖模型
 
@@ -137,11 +137,11 @@ flowchart LR
 
 ## 容易踩的坑
 
-1. **忘记调用 processUpdates()** — 显式 ticket、玩家 source 和追踪系统的更新是批处理的
+1. **`ChunkLoadTicketManager::tick()` 必须每 tick 调用一次** — 带生命周期票据（PORTAL 300t、POST_TELEPORT 5t、UNLOAD_COOLDOWN 100t 等）的剩余 tick 只在这里递减；漏调会让它们永不失效，其钉住的票级也不会释放（历史上 `tick()` 无调用方，导致票据过期机制整体失效）。显式 ticket、玩家 source 和追踪系统的更新仍是批处理的，需要在添加/移除后调用 `processUpdates()`
 2. **线程安全** — `SingleChunkLifecycleManager` 使用互斥锁；`ChunkData` 和 `ChunkPrimer` 不是线程安全的
 3. **区块段懒创建** — 设置空气方块不会创建区块段；写入非空气方块才会创建
 4. **光照初始化是惰性的** — 天空光照默认 15（全亮），方块光照默认 0（无光），两者都**不预分配**底层 2048 字节缓冲：**数组为空即代表默认值**（`getSkyLight` 对空数组返回 15、`getBlockLight` 返回 0），只有真正写入非默认值时才按需分配（`NibbleArray::set` 与可变 `data()` 都会 `ensureAllocated`）。空数组与「全 15」在格式上等价，`SectionCodec` 直接按 `isEmpty()` 判断「是默认值、不落盘」。改动此处语义时必须同时核对这两处。**光照的权威副本只有 `ChunkData` 的 `SWMRNibbleArray` 一处**（`ChunkSection` 不持有光照）
-5. **level 语义** — 级别越小优先级越高；级别 ≤ 33 的区块应该被加载
+5. **level 语义** — 级别越小优先级越高；级别 ≤ 34（`ChunkLoadLevel::Border`）的区块应该被加载，≤ 32（BlockTicking）的区块才推进游戏逻辑
 6. **ChunkStatus 比较** — 使用 `isAtLeast()` 和 `isBefore()`，不要直接比较 ordinal
 7. **高度图内部存储** — `Heightmap` 内部存储 `y + 1`，不是实际方块 Y。`getTopBlockY` 返回方块本身 Y（内部值 -1），但**空列回退为 `MIN_BUILD_HEIGHT`**（与"minY 处有方块"无法区分）；需精确识别空列的调用方（如 `HeightmapPlacement`）改用 `getHeightmapFirstAvailable` 拿原始值（`y+1` 或 `NO_BLOCK_SENTINEL`），对齐 MC `Heightmap.getFirstAvailable`
 8. **高度图底层是位压缩存储，`getData()` 按值返回** — `Heightmap` 用 9 bit/列的紧凑位存储（256 列 37 个 u64 = 296 B，7 张合计 2072 B/区块），位宽与布局对齐原版 `SimpleBitStorage`。因此 `Heightmap::getData()` 与 `ChunkData::getHeightmapData()` 都**按值返回** `std::array<BlockCoord, 256>`，**不要用 `const auto&` 绑定**——临时数组会立即析构，后续读到栈上垃圾。位存储内部每列存 `raw - NO_BLOCK_SENTINEL`（哨兵编码为 0，故零初始化天然等价于"全部无方块"），越界输入夹到 `[NO_BLOCK_SENTINEL, MAX_BUILD_HEIGHT]` 而非回绕成另一个合法高度

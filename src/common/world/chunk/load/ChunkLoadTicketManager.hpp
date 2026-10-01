@@ -227,8 +227,9 @@ public:
     /**
      * @brief 处理票据更新
      *
-     * 清理过期票据、处理距离图更新。
-     * 应该每 tick 调用一次。
+     * 递减带生命周期票据的剩余存活时间并移除到期者，随后处理距离图传播。
+     * **必须每 tick 调用一次**：票据过期与级别传播都依赖它；漏调会让带生命周期票据
+     *（传送门、卸载冷却等）永不失效，其钉住的票据级别也不会释放。
      */
     void tick();
 
@@ -412,6 +413,9 @@ private:
     /// 重新计算单个区块的聚合源级别并同步到距离图
     void _refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z);
 
+    /// 维护"存在带生命周期票据的区块"索引（按票据集合当前内容重算该键的归属）
+    void _refreshExpiringIndex(u64 key);
+
     /// 更新玩家来源中心区块
     void _updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos);
 
@@ -448,8 +452,8 @@ private:
     /// 距离传播图（统一承载 ticket 和玩家来源的聚合结果）
     ChunkDistanceGraph m_distanceGraph;
 
-    /// 当前时间（用于票据过期）
-    u64 m_currentTime = 0;
+    /// 存在带生命周期票据的区块键集合（过期处理只遍历该集合，而非全部票据集合）
+    std::unordered_set<u64> m_expiringChunks;
 
     /// 视距
     i32 m_viewDistance = 10;

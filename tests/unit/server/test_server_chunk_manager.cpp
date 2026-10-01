@@ -301,6 +301,11 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
     m_workerPool->start();
     m_manager->initialize();
 
+    // 持 FORCED 票据保活 (0,0)：生产契约要求调用方为"需要继续使用的区块"持票。
+    // 卸载改为事件驱动（票级越阈 + 安全即入队，每 tick 按保底批量回收）后，无票据、无玩家来源的
+    // 区块在请求完成后会被立即回收，不再有 30 秒滞留窗口；不持票时 hasChunkInMem 不成立。
+    m_manager->forceChunk(0, 0, true);
+
     auto future = m_manager->requestChunkAsync(0, 0, ChunkStatuses::FULL);
 
     // requestChunkAsync 仅入队异步存档加载请求；完成回调由 ServerCompute 线程入队到
@@ -320,6 +325,7 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
     EXPECT_EQ(chunk->z(), 0);
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
+    m_manager->forceChunk(0, 0, false);
     m_manager->shutdown();
     m_workerPool->shutdown();
 }
@@ -618,13 +624,13 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
 // 并发生成与卸载竞态测试
 //
 // 复现场景：worker 线程执行 ChunkProgressionTask::execute → onChunkGenComplete 期间，
-// 主线程 tick→_checkChunkUnloading→unloadChunkSync 销毁 holder，导致 use-after-free
+// 主线程 tick→_processChunkUnloads→unloadChunkSync 销毁 holder，导致 use-after-free
 // （notifyWaitingNeighbours 读取已释放 holder 的 m_waitingNeighbours，size=385290616 垃圾值）。
 //
 // 测试策略：
 // 1. 启动 worker 池
 // 2. 一个线程不断请求生成新区块（触发 ChunkTaskScheduler 调度，worker 执行 onChunkGenComplete）
-// 3. 同时不断移除玩家/更新位置（触发票据级别变化→_checkChunkUnloading→unloadChunkSync）
+// 3. 同时不断移除玩家/更新位置（触发票据级别变化→_processChunkUnloads→unloadChunkSync）
 // 4. 持续运行若干秒，观察是否崩溃
 //
 // 若 holder 在 onChunkGenComplete 期间被 unloadChunkSync 销毁，测试会触发 access violation
@@ -733,7 +739,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
         }
     });
 
-    // 线程 A：移动玩家位置，触发票据级别变化 → _checkChunkUnloading → unloadChunkSync。
+    // 线程 A：移动玩家位置，触发票据级别变化 → _processChunkUnloads → unloadChunkSync。
     // 6 区块半径（viewDistance=8 范围内），减少并发 inflight 任务数，
     // 避免任务饥饿（大规模 mover+generator 会堆积大量 inflight 任务级联阻塞）。
     constexpr int MOVE_ITERATIONS = 20;
@@ -746,7 +752,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                 const double wx = std::cos(angle) * radius;
                 const double wz = std::sin(angle) * radius;
                 m_manager->updatePlayerPosition(1, wx, wz);
-                m_manager->tick(); // tick 处理票据更新 + _checkChunkUnloading
+                m_manager->tick(); // tick 处理票据更新 + _processChunkUnloads
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
             // 移动循环结束后继续驱动 tick() 直到 generator 完成（stop 置位），避免 generator 的

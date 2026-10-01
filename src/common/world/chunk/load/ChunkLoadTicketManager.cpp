@@ -43,6 +43,9 @@ using namespace mc::trace;
 
 namespace {
 
+/// 卸载重试冷却票据的生命周期（tick）
+constexpr mc::u32 _UNLOAD_COOLDOWN_TICKS = 100;
+
 struct TrackingChangeEvent {
     mc::PlayerId playerId;
     mc::ChunkCoord x;
@@ -80,33 +83,39 @@ const ChunkLoadTicketType<Unit> DRAGON = ChunkLoadTicketType<Unit>::create("drag
 // 光照计算票据
 const ChunkLoadTicketType<ChunkPos> LIGHT = ChunkLoadTicketType<ChunkPos>::create("light");
 
+// 卸载重试冷却票据（100 tick 生命周期）
+const ChunkLoadTicketType<Unit> UNLOAD_COOLDOWN =
+    ChunkLoadTicketType<Unit>::create("unload_cooldown", _UNLOAD_COOLDOWN_TICKS);
+
 } // namespace TicketTypes
 
 // ============================================================================
 // ChunkTicketSet 实现
 // ============================================================================
 
-void ChunkTicketSet::addTicket(ChunkLoadTicket ticket)
+bool ChunkTicketSet::addTicket(ChunkLoadTicket ticket)
 {
     // 去重
     for (const auto& existingTicket : m_tickets) {
         if (existingTicket == ticket) {
-            return;
+            return false;
         }
     }
 
     m_tickets.push_back(std::move(ticket));
+    return true;
 }
 
-bool ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket)
+std::optional<ChunkLoadTicket> ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket)
 {
     for (auto it = m_tickets.begin(); it != m_tickets.end(); ++it) {
         if (*it == ticket) {
+            std::optional<ChunkLoadTicket> removed = std::move(*it);
             m_tickets.erase(it);
-            return true;
+            return removed;
         }
     }
-    return false;
+    return std::nullopt;
 }
 
 i32 ChunkTicketSet::getMinLevel() const noexcept
@@ -124,16 +133,30 @@ i32 ChunkTicketSet::getMinLevel() const noexcept
     return minLevel;
 }
 
-void ChunkTicketSet::removeExpired(u64 currentTime)
+i32 ChunkTicketSet::tickLifetimes()
 {
+    i32 removed = 0;
     auto it = m_tickets.begin();
     while (it != m_tickets.end()) {
-        if (it->isExpired(currentTime)) {
+        if (it->tickLifetime()) {
             it = m_tickets.erase(it);
+            ++removed;
         } else {
             ++it;
         }
     }
+    return removed;
+}
+
+i32 ChunkTicketSet::timedTicketCount() const
+{
+    i32 count = 0;
+    for (const auto& ticket : m_tickets) {
+        if (ticket.hasTimeout()) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 // ============================================================================
@@ -156,7 +179,13 @@ void ChunkLoadTicketManager::_addTicket(ChunkPos pos, ChunkLoadTicket ticket)
     u64 key = _posToKey(pos.x, pos.z);
 
     auto& ticketSet = m_chunkTickets[key];
-    ticketSet.addTicket(std::move(ticket));
+    const bool hasTimeout = ticket.hasTimeout();
+    const bool added = ticketSet.addTicket(std::move(ticket));
+
+    // 去重未实际加入时集合内容不变，无需重算索引
+    if (added && hasTimeout) {
+        m_expiringChunks.insert(key);
+    }
 
     m_dirtyChunks.insert(key);
 }
@@ -166,17 +195,38 @@ void ChunkLoadTicketManager::_removeTicket(ChunkPos pos, const ChunkLoadTicket& 
     u64 key = _posToKey(pos.x, pos.z);
 
     auto it = m_chunkTickets.find(key);
-    if (it != m_chunkTickets.end()) {
-        it->second.removeTicket(ticket);
-
-        // 如果票据集合为空，移除整个条目
-        if (it->second.empty()) {
-            m_chunkTickets.erase(it);
-        }
-
-        // 标记区块为脏
-        m_dirtyChunks.insert(key);
+    if (it == m_chunkTickets.end()) {
+        return;
     }
+
+    const std::optional<ChunkLoadTicket> removed = it->second.removeTicket(ticket);
+    if (!removed.has_value()) {
+        return;
+    }
+
+    // 只有移除带生命周期票据才可能影响过期索引
+    if (removed->hasTimeout()) {
+        _refreshExpiringIndex(key);
+    }
+
+    // 如果票据集合为空，移除整个条目
+    if (it->second.empty()) {
+        m_chunkTickets.erase(it);
+        m_expiringChunks.erase(key);
+    }
+
+    // 标记区块为脏
+    m_dirtyChunks.insert(key);
+}
+
+void ChunkLoadTicketManager::_refreshExpiringIndex(u64 key)
+{
+    auto it = m_chunkTickets.find(key);
+    if (it == m_chunkTickets.end() || it->second.timedTicketCount() == 0) {
+        m_expiringChunks.erase(key);
+        return;
+    }
+    m_expiringChunks.insert(key);
 }
 
 void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord x, ChunkCoord z)
@@ -238,23 +288,32 @@ i32 ChunkLoadTicketManager::getChunkLevel(ChunkCoord x, ChunkCoord z) const
 
 void ChunkLoadTicketManager::tick()
 {
-    ++m_currentTime;
+    // 过期处理只遍历"存在带生命周期票据"的区块，而非全部票据集合。
+    // 遍历期间会修改 m_expiringChunks（到期票据被移除后该区块不再需要逐 tick 处理），
+    // 故先取键快照。
+    if (!m_expiringChunks.empty()) {
+        const std::vector<u64> expiringKeys(m_expiringChunks.begin(), m_expiringChunks.end());
+        for (u64 key : expiringKeys) {
+            auto it = m_chunkTickets.find(key);
+            if (it == m_chunkTickets.end()) {
+                m_expiringChunks.erase(key);
+                continue;
+            }
 
-    // 清理过期票据
-    for (auto& [key, ticketSet] : m_chunkTickets) {
-        const size_t oldSize = ticketSet.size();
-        ticketSet.removeExpired(m_currentTime);
-        if (ticketSet.size() != oldSize) {
-            m_dirtyChunks.insert(key);
-        }
-    }
+            const i32 removed = it->second.tickLifetimes();
+            const bool nowEmpty = it->second.empty();
+            const bool stillHasTimedTicket = !nowEmpty && it->second.timedTicketCount() > 0;
 
-    // 移除空的票据集合
-    for (auto it = m_chunkTickets.begin(); it != m_chunkTickets.end();) {
-        if (it->second.empty()) {
-            it = m_chunkTickets.erase(it);
-        } else {
-            ++it;
+            if (nowEmpty) {
+                m_chunkTickets.erase(key);
+            }
+            if (removed > 0) {
+                // 票据级别可能因此升高，标记为待重算
+                m_dirtyChunks.insert(key);
+            }
+            if (!stillHasTimedTicket) {
+                m_expiringChunks.erase(key);
+            }
         }
     }
 

@@ -191,9 +191,19 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 判断 holder 能否推进状态，需要同时知道"区块对象是否存在"与"存档来源是否已解析 / 生成状态是否达标"。这些字段虽在同一临界区内一并写入，但若**分多次加锁读取**，两次读取之间仍可能跨越一次状态发布，读出"区块为空 + 状态就绪"这一在真实状态中并不存在的组合。故 `ChunkTaskScheduler::schedule` 统一用 `SingleChunkLifecycleManager::generationSnapshot()` 一次取齐；`buildNeighbourCache` 对邻居用 `getChunkIfPresentUnchecked`（状态 ∧ 对象的合取）而非只比较状态。
 
+### 区块卸载是事件驱动 + 保底批量（Moonrise 对齐）
+
+`ServerChunkManager` 的卸载路径不再有周期性全量扫描，也没有秒级延迟观察期：
+
+- **候选入队**：票级越过加载阈值（`shouldLoad()==false`）、生成任务设置/清除、邻居引用计数 0↔1、依赖图增删等**状态变更点**都会经 `SingleChunkLifecycleManager` 的卸载状态观察者回调触发 `_updateUnloadCandidate`，满足「票级越阈 + `isSafeToUnload()` + 无玩家追踪 + 无在途保存」即进入候选队列。原「每 20 tick 全量扫描 + 30 秒延迟」已删除。
+- **每 tick 出队**：`_processChunkUnloads` 按保底批量 `max(50, 候选数×5%)` 取用（对齐 Moonrise `minChunkUnloadCount`/`minChunkUnloadFraction`）；该值是下限而非上限——小队列一次清空，大队列按保底量平滑推进。队列惰性移除：撤出候选只改成员集合，deque 中的残留键弹出时丢弃。
+- **三阶段卸载**：stage1（主线程捕获脏区块快照并置位「卸载在途」标记）→ stage2（ServerIO 异步落盘）→ stage3（`_finalizeUnloadAfterSave` 复检 `shouldLoad()`，持调度锁 `cancelGeneration` + `isSafeToUnload` 复检后移除 holder）。无脏数据的区块同样入队延后一个 tick 收尾，给出「玩家在相邻 tick 返回即中止卸载」的反悔窗口。
+- **失败退避**：stage3 发现仍不安全（邻居在用、依赖图未清）时注册 `UNLOAD_COOLDOWN` 票据把该区块按 Border 级钉住 100 tick，到期后票级升过阈值自然重评候选资格；不再每 tick 立即重试。
+- **已删除**：`CHUNK_UNLOAD_DELAY_MS`（30 秒延迟）、`UNLOAD_CHECK_INTERVAL_TICKS`、`MAX_UNLOADS_PER_TICK`、以及此前不可启用的 `m_maxLoadedChunks` 软上限强制卸载（Moonrise 与原版均无全局已加载上限；限制内存应靠视距与加载/发送速率限制，而非强制卸载应当加载的区块）。
+
 ### 测试夹具必须注入存储线程池
 
-`SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载检查每 20 tick 一次、单轮最多卸载 200 个区块，同步写盘（24 个 section 的快照序列化 + ZSTD + RocksDB 写）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
+`SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载按保底批量推进（每 tick 至少 `max(50, 候选数×5%)` 个区块），同步写盘（24 个 section 的快照序列化 + ZSTD + RocksDB 写）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
 
 ### 完成队列的排空不得同步重入
 

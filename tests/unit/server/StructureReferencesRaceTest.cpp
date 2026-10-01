@@ -302,7 +302,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     });
 
     // 线程 A：激进传送玩家。每次传送到远处，触发大批区块 ticket 级别下降（shouldLoad=false）→
-    // _checkChunkUnloading→unloadChunkSync→cancelGeneration（释放邻居引用计数）→邻居卸载。
+    // _processChunkUnloads→unloadChunkSync→cancelGeneration（释放邻居引用计数）→邻居卸载。
     // 再传回原点附近，触发重新生成。反复横跳最大化 cancel 与 STRUCTURE_REFERENCES 并发窗口。
     // 迭代数/远距原为 200/48 区块,产生 cancel-reschedule 任务风暴超过 8 worker + 单线程 tick
     // 消化能力,稳定表现为 CTest 超时(非 UAF——0x50 已由 cb2a3f7f5 的 shared_ptr<SCLM> 修复)。
@@ -343,7 +343,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     const double jz = ((i * 53) % 32 - 16) * 16.0;
                     m_manager->updatePlayerPosition(1, jx, jz);
                 }
-                // 每个 tick 触发 _checkChunkUnloading（每 UNLOAD_CHECK_INTERVAL_TICKS=20 tick 一次卸载扫描）
+                // 每个 tick 处理卸载候选队列（事件驱动入队 + 保底批量出队）
                 for (int t = 0; t < 25; ++t) {
                     m_manager->tick();
                 }

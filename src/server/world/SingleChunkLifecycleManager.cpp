@@ -170,6 +170,7 @@ void SingleChunkLifecycleManager::addBlockingNeighbour(SingleChunkLifecycleManag
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (neighbour != nullptr) {
         m_blockingNeighbours.insert(neighbour);
+        _notifyUnloadStateChanged();
     }
 }
 
@@ -179,21 +180,25 @@ void SingleChunkLifecycleManager::addWaitingNeighbour(
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (neighbour != nullptr) {
         m_waitingNeighbours[neighbour] = requiredStatus;
+        _notifyUnloadStateChanged();
     }
 }
 
 void SingleChunkLifecycleManager::removeBlockingNeighbour(SingleChunkLifecycleManager* neighbour)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (neighbour != nullptr) {
-        m_blockingNeighbours.erase(neighbour);
+    if (neighbour != nullptr && m_blockingNeighbours.erase(neighbour) > 0) {
+        _notifyUnloadStateChanged();
     }
 }
 
 void SingleChunkLifecycleManager::clearBlockingNeighbours()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    m_blockingNeighbours.clear();
+    if (!m_blockingNeighbours.empty()) {
+        m_blockingNeighbours.clear();
+        _notifyUnloadStateChanged();
+    }
 }
 
 std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::clearSatisfiedWaitingNeighbours(
@@ -210,6 +215,9 @@ std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::clearSati
             ++it;
         }
     }
+    if (!removed.empty()) {
+        _notifyUnloadStateChanged();
+    }
     return removed;
 }
 
@@ -222,15 +230,18 @@ SingleChunkLifecycleManager::takeWaitingNeighbours()
     for (auto& [neighbour, requiredStatus] : m_waitingNeighbours) {
         result.emplace_back(neighbour, requiredStatus);
     }
-    m_waitingNeighbours.clear();
+    if (!m_waitingNeighbours.empty()) {
+        m_waitingNeighbours.clear();
+        _notifyUnloadStateChanged();
+    }
     return result;
 }
 
 void SingleChunkLifecycleManager::removeWaitingNeighbour(SingleChunkLifecycleManager* neighbour)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (neighbour != nullptr) {
-        m_waitingNeighbours.erase(neighbour);
+    if (neighbour != nullptr && m_waitingNeighbours.erase(neighbour) > 0) {
+        _notifyUnloadStateChanged();
     }
 }
 
@@ -272,13 +283,18 @@ void SingleChunkLifecycleManager::setGenerationTask(
     MC_ASSERT_RELEASE(m_generationTask == nullptr);
     m_generationTask = task;
     m_scheduledStatus = &scheduledStatus;
+    _notifyUnloadStateChanged();
 }
 
 void SingleChunkLifecycleManager::clearGenerationTask()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    const bool hadTask = (m_generationTask != nullptr);
     m_generationTask = nullptr;
     m_scheduledStatus = nullptr;
+    if (hadTask) {
+        _notifyUnloadStateChanged();
+    }
 }
 
 bool SingleChunkLifecycleManager::isSafeToUnload() const
@@ -296,6 +312,15 @@ bool SingleChunkLifecycleManager::isSafeToUnload() const
     // 不应决定"能否释放内存"——卸载后重新加载会重建 holder 并从头生成。
     return m_neighboursUsingThisChunk.load(std::memory_order::acquire) == 0 && m_generationTask == nullptr &&
         m_blockingNeighbours.empty() && m_waitingNeighbours.empty();
+}
+
+void SingleChunkLifecycleManager::_notifyUnloadStateChanged()
+{
+    // 观察者只读取本类状态（isSafeToUnload/shouldLoad），故允许在 m_mutex 内被调用；
+    // m_mutex 为递归锁，观察者重新加锁不会死锁。未注入观察者时为空操作。
+    if (m_unloadStateObserver) {
+        m_unloadStateObserver(*this);
+    }
 }
 
 // ============================================================================
@@ -464,9 +489,13 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancel
         m_abortSignal->store(true, std::memory_order::release);
     }
     ++m_requestGeneration;
+    const bool hadTask = (m_generationTask != nullptr);
     m_generationTask = nullptr;
     m_scheduledStatus = nullptr;
     m_requestPriority = std::numeric_limits<i32>::max();
+    if (hadTask) {
+        _notifyUnloadStateChanged();
+    }
     return _buildDecisionLocked();
 }
 

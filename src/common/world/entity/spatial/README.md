@@ -67,4 +67,4 @@ src/common/world/entity/spatial/
 
 ### 7. `getEntityIdsInChunkColumn` 遍历 24 个 section
 
-区块卸载取实体遍历该 chunk 列 y 从 `MIN_SECTION_Y(-4)` 到 `MAX_SECTION_Y(19)` 共 24 个 section。区块卸载是低频操作（受 `CHUNK_UNLOAD_RADIUS` 与 tick 节流），24 次哈希查找可忽略。不要把它用于热路径查询。
+区块卸载取实体遍历该 chunk 列 y 从 `MIN_SECTION_Y(-4)` 到 `MAX_SECTION_Y(19)` 共 24 个 section。区块卸载是低频操作（由票级越过加载阈值触发、按每 tick 保底批量推进），24 次哈希查找可忽略。不要把它用于热路径查询。

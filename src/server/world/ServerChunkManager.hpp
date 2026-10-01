@@ -39,6 +39,7 @@
 #include "server/world/gen/structure/Structure.hpp"
 #include <atomic>
 #include <cstddef>
+#include <deque>
 #include <functional>
 #include <future>
 #include <memory>
@@ -368,21 +369,6 @@ public:
      * @param distance 新的视距
      */
     void setViewDistance(i32 distance);
-
-    /**
-     * @brief 设置加载区块软上限（0 = 不限制）
-     *
-     * 当加载区块数超过此值时，_checkChunkUnloading 会优先卸载票级最高（最远）的区块，
-     * 防止极端视距或强制加载导致内存无界增长。对齐 Moonrise maxLoaded 配置项。
-     *
-     * @param maxLoadedChunks 加载区块软上限，0 表示不限制
-     */
-    void setMaxLoadedChunks(i32 maxLoadedChunks) { m_maxLoadedChunks = maxLoadedChunks; }
-
-    /**
-     * @brief 获取当前加载区块软上限
-     */
-    [[nodiscard]] i32 maxLoadedChunks() const noexcept { return m_maxLoadedChunks; }
 
     /**
      * @brief 设置票据级别变化回调
@@ -939,29 +925,61 @@ private:
     void _notifyChunkUnload(ChunkCoord x, ChunkCoord z);
 
     /**
-     * @brief 检查并卸载无需求区块
+     * @brief 重新评估单个持有者的卸载候选资格，并同步到卸载候选队列
+     *
+     * 由生命周期管理器在状态变更点经观察者回调触发（票级变化、生成任务设置/清除、
+     * 邻居引用计数 0↔1、依赖图增删），也可由本类直接调用。语义等价 Moonrise 的
+     * `NewChunkHolder.checkUnload()`：满足"票级已越过加载阈值 + 安全可卸载 + 无玩家追踪
+     * + 无在途卸载保存"则入队，否则撤出。队列采用惰性移除（撤出只改成员集合）。
+     *
+     * @param holder 待评估的生命周期管理器
      */
-    void _checkChunkUnloading();
+    void _updateUnloadCandidate(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
-     * @brief 异步卸载保存完成后，主线程完成卸载收尾（stage3，对齐 Moonrise unloadStage3）
+     * @brief 判断持有者当前是否满足卸载候选条件（只读语义，但需读在途保存集合）
+     */
+    [[nodiscard]] bool _isUnloadCandidate(const mc::world::chunk::SingleChunkLifecycleManager& holder);
+
+    /**
+     * @brief 从卸载候选队列取出一个有效候选键（仅主线程调用）
      *
-     * 在 _drainPendingUnloadFinishes 中出队调用（非脏路径由 unloadChunkSync 直接调用）。处理：
+     * 惰性移除语义：撤出候选只从 m_inUnloadQueue 删除，队列中残留的键成为失效条目，
+     * 在此处弹出时丢弃。避免 deque 中部删除的 O(n) 成本。
+     *
+     * @param key 输出参数：取到的有效候选键
+     * @return true 取到有效候选；false 队列中已无有效候选
+     */
+    bool _tryPopUnloadCandidate(u64& key);
+
+    /**
+     * @brief 每 tick 处理卸载候选队列
+     *
+     * 批量为 Moonrise 的保底语义：max(MIN_CHUNK_UNLOAD_COUNT, 候选总数 × MIN_CHUNK_UNLOAD_FRACTION)，
+     * 逐个复核候选资格后发起卸载（stage1）。复核不通过者直接丢弃条目——其资格变化会经
+     * 观察者回调重新入队。
+     */
+    void _processChunkUnloads();
+
+    /**
+     * @brief 异步卸载保存完成后，主线程完成卸载收尾（stage3）
+     *
+     * 在 _drainPendingUnloadFinishes 中出队调用。处理：
      * - 复检区块是否被重新请求（shouldLoad=true）：是则中止卸载，保留区块与 holder
      *   （区块数据已保存，若再次变脏会重新保存）。
-     * - 否则完成卸载：持调度锁 cancelGeneration + isSafeToUnload 复检 → 通过后
-     *   _notifyChunkUnload（实体保存+移除/卸载发送/callback，仅触发一次）→
-     *   移除 holder 与 m_chunks 条目、清理后处理去重标记。
-     * - isSafeToUnload 为 false（保存期间邻居开始引用本 holder）：保留条目，下一 tick 重试。
-     *   重试路径不触发卸载通知，避免重复通知客户端/移除实体。
+     * - 否则持调度锁 cancelGeneration + isSafeToUnload 复检 → 通过后 _notifyChunkUnload
+     *   （实体保存+移除/卸载发送/callback，仅触发一次）→ 移除 holder 与 m_chunks 条目、
+     *   清理后处理去重标记。
+     * - isSafeToUnload 为 false（保存期间邻居开始引用本 holder）：注册 UNLOAD_COOLDOWN
+     *   冷却票据把该区块按 Border 级钉住一段时间后退避重试（对齐 Moonrise UNLOAD_COOLDOWN），
+     *   不再于后续每个 tick 立即重试。
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
      * @param dimension 维度
-     * @param lifecycleHolder 异步发起时持有的 SCLM 共享指针
-     * @return true 已完成卸载（或中止卸载），条目可丢弃；false 需下一 tick 重试
+     * @param lifecycleHolder 发起时持有的 SCLM 共享指针
      */
-    bool _finalizeUnloadAfterSave(ChunkCoord x,
+    void _finalizeUnloadAfterSave(ChunkCoord x,
         ChunkCoord z,
         mc::DimensionId dimension,
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder);
@@ -969,8 +987,8 @@ private:
     /**
      * @brief 出队并执行异步卸载保存完成回调（仅主线程调用）
      *
-     * 在 tick() 中调用，把 ServerIO 线程入队的 m_pendingUnloadFinishes 逐个交给
-     * _finalizeUnloadAfterSave。未完成（isSafeToUnload=false）的条目保留至下一 tick 重试。
+     * 在 tick() 中调用，把 ServerIO 线程（以及本类的无异步保存路径）入队的
+     * m_pendingUnloadFinishes 逐个交给 _finalizeUnloadAfterSave。
      */
     void _drainPendingUnloadFinishes();
 
@@ -1132,11 +1150,12 @@ private:
     /**
      * @brief 进行中异步卸载保存的区块 key 集合
      *
-     * unloadChunkSync（stage1）置位，_finalizeUnloadAfterSave（stage3）完成或中止后清除。
-     * _checkChunkUnloading 跳过此集合中的区块，避免重复发起卸载保存。
+     * unloadChunkSync（stage1）置位，_finalizeUnloadAfterSave（stage3）完成、中止或转入
+     * 冷却后清除。候选资格判定（_isUnloadCandidate）据此排除在途保存的区块，
+     * 避免重复发起卸载保存。
      *
      * 线程安全：由 m_pendingUnloadFinishesMutex 保护（与 m_pendingUnloadFinishes 共用锁，
-     * _checkChunkUnloading / unloadChunkSync / _drainPendingUnloadFinishes 均持锁访问）。
+     * _isUnloadCandidate / unloadChunkSync / _drainPendingUnloadFinishes 均持锁访问）。
      */
     std::unordered_set<u64> m_unloadSaveInProgress;
 
@@ -1164,13 +1183,25 @@ private:
     std::atomic<bool> m_shuttingDown{false};
 
     u64 m_currentTick = 0;
-    u64 m_lastUnloadCheckTick = 0;
 
-    static constexpr u32 UNLOAD_CHECK_INTERVAL_TICKS = 20;
+    /// 每 tick 卸载保底数量（对齐 Moonrise minChunkUnloadCount 默认值）
+    static constexpr size_t MIN_CHUNK_UNLOAD_COUNT = 50;
 
-    /// 每 tick 卸载预算上限（对齐 Moonrise ChunkHolderManager.processUnloads）
-    /// 防止单 tick 卸载过多区块造成卡顿
-    static constexpr i32 MAX_UNLOADS_PER_TICK = 200;
+    /// 每 tick 卸载保底比例（对齐 Moonrise minChunkUnloadFraction 默认值）
+    static constexpr double MIN_CHUNK_UNLOAD_FRACTION = 0.05;
+
+    /**
+     * @brief 卸载候选队列与成员集合
+     *
+     * 入队/撤出由 _updateUnloadCandidate 在状态变更点完成；_processChunkUnloads 每 tick 按
+     * 保底批量取用。deque 允许残留失效条目（撤出只改集合），弹出时按集合过滤。
+     *
+     * 线程安全：m_unloadQueueMutex 保护（观察者回调可能来自 worker 线程的
+     * removeNeighbourUsingChunk / clearGenerationTask 等路径）。
+     */
+    std::deque<u64> m_unloadQueue;
+    std::unordered_set<u64> m_inUnloadQueue;
+    mutable std::mutex m_unloadQueueMutex;
 
     /// 主线程后处理队列软上限。
     ///
@@ -1186,10 +1217,6 @@ private:
     /// 完全排空。每区块最多一个在途加载（m_pendingLoadTasks 去重），正常积压受限于视距内待加载
     /// 区块数。超过阈值记录警告（暴露主 tick 跟不上加载速率的病态积压），不拒绝入队，排空语义不变。
     static constexpr size_t PENDING_LOAD_COMPLETES_WARN_THRESHOLD = 256;
-
-    /// 加载区块软上限（0 = 不限制）
-    /// 当 m_chunks + m_lifecycleManagers 总数超过此值时，按最远票级强制卸载
-    i32 m_maxLoadedChunks = 0;
 
     friend class ServerChunkManagerPostProcessTest;
 };

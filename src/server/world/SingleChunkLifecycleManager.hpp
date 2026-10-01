@@ -404,13 +404,27 @@ public:
 
     /**
      * @brief 增加邻居引用计数（有邻居正在使用我的快照生成）
+     *
+     * 0→1 的跃迁会让本持有者变得不可安全卸载，必须通知候选队列撤销候选资格。
      */
-    void addNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_add(1, std::memory_order::acq_rel); }
+    void addNeighbourUsingChunk()
+    {
+        if (m_neighboursUsingThisChunk.fetch_add(1, std::memory_order::acq_rel) == 0) {
+            _notifyUnloadStateChanged();
+        }
+    }
 
     /**
      * @brief 减少邻居引用计数
+     *
+     * 1→0 的跃迁可能让本持有者变得可安全卸载，必须通知候选队列重新评估。
      */
-    void removeNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order::acq_rel); }
+    void removeNeighbourUsingChunk()
+    {
+        if (m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order::acq_rel) == 1) {
+            _notifyUnloadStateChanged();
+        }
+    }
 
     /**
      * @brief 是否安全卸载（无邻居引用、无进行中任务）
@@ -441,22 +455,23 @@ public:
     [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
 
     /**
-     * @brief 获取该区块"进入可卸载状态"的起始时刻（毫秒）
-     * @return 起始时刻；0 表示当前并非可卸载状态（仍在加载或重新被需要）
+     * @brief 卸载状态变化观察者
      *
-     * 状态挂在区块自身的生命周期对象上，而非 ServerChunkManager 的旁挂映射表：
-     * 对象随区块创建/销毁，不存在"表项生命周期与区块不一致"而残留累积的风险。
+     * 当本持有者的卸载安全性（isSafeToUnload）或加载需求（shouldLoad）可能发生变化时被调用。
+     * 由 ServerChunkManager 在创建持有者时注入，其实现决定该区块进入还是退出卸载候选队列。
+     *
+     * 与 Moonrise NewChunkHolder.checkUnload 的对应关系：Moonrise 在每个状态变更点直接调用
+     * checkUnload()（持有者持有调度器引用）；Cubium 的生命周期管理器不反向依赖
+     * ServerChunkManager，故以观察者回调解耦，语义等价——"状态变了就通知候选队列重评"。
+     *
+     * 回调须轻量（只做候选资格判定与队列增删），不得反向调用会改变本持有者状态的方法。
      */
-    [[nodiscard]] u64 unloadCandidateSinceMs() const
-    {
-        return m_unloadCandidateSinceMs.load(std::memory_order::acquire);
-    }
+    using UnloadStateObserver = std::function<void(SingleChunkLifecycleManager&)>;
 
     /**
-     * @brief 记录/清除"进入可卸载状态"的起始时刻
-     * @param sinceMs 起始时刻（毫秒）；传 0 表示该区块重新被需要，撤销延迟卸载计时
+     * @brief 设置卸载状态观察者（仅 ServerChunkManager 在创建持有者时注入一次）
      */
-    void setUnloadCandidateSinceMs(u64 sinceMs) { m_unloadCandidateSinceMs.store(sinceMs, std::memory_order::release); }
+    void setUnloadStateObserver(UnloadStateObserver observer) { m_unloadStateObserver = std::move(observer); }
 
     [[nodiscard]] SourceState sourceState() const;
     void addTicket(const ChunkLoadTicket& ticket);
@@ -578,6 +593,14 @@ private:
      */
     [[nodiscard]] EnqueueDecision _buildDecisionLocked() const;
 
+    /**
+     * @brief 通知卸载状态观察者重新评估本持有者的卸载候选资格
+     *
+     * 在所有可能改变 isSafeToUnload()/shouldLoad() 结果的状态变更点调用。回调为可选
+     * （未注入时为空操作），且必须容忍在本类互斥锁内被调用（观察者只读取本类状态）。
+     */
+    void _notifyUnloadStateChanged();
+
     // 对象级内存追踪守卫：绑定本对象地址，ctor 发 alloc、dtor 发 free。本类不可移动
     // （含 mutex 与 atomic），故无需 move 重绑定，ctor 初始化列表绑定 this 即可。
     // 仅 MC_ENABLE_MEMORY && MC_ENABLE_TRACY 时发事件，其余分支空操作。
@@ -611,7 +634,7 @@ private:
 
     // === 邻居引用计数 ===
     // 原子：worker 线程（scheduleStatusStep add / releaseNeighbourRefCounts remove，持调度锁）
-    // 与主线程（_checkChunkUnloading isSafeToUnload 读，不持调度锁）并发访问。
+    // 与主线程（卸载候选资格判定读 isSafeToUnload，不持调度锁）并发访问。
     // 卸载决策的最终一致性由 unloadChunkSync 持调度锁重新检查 isSafeToUnload 保证。
     std::atomic<i32> m_neighboursUsingThisChunk{0};
 
@@ -621,8 +644,8 @@ private:
     // === 票据与玩家 ===
     std::atomic<i32> m_level{static_cast<i32>(ChunkLoadLevel::MaxLevel)};
 
-    /// "进入可卸载状态"的起始时刻（毫秒），0 表示非可卸载状态；见 unloadCandidateSinceMs
-    std::atomic<u64> m_unloadCandidateSinceMs{0};
+    /// 卸载状态观察者；见 UnloadStateObserver
+    UnloadStateObserver m_unloadStateObserver;
     std::vector<ChunkLoadTicket> m_tickets;
     std::unordered_set<PlayerId> m_trackingPlayers;
 

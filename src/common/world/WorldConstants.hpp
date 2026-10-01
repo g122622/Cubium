@@ -44,7 +44,6 @@ constexpr i32 CHUNK_WIDTH = 16;
 constexpr i32 CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT;
 constexpr i32 CHUNK_SECTION_HEIGHT = 16;
 constexpr i32 CHUNK_SECTIONS = CHUNK_HEIGHT / CHUNK_SECTION_HEIGHT;
-constexpr i32 CHUNK_VOLUME = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH;
 
 // 区块尺寸（区块内的位偏移）
 constexpr i32 CHUNK_SHIFT = 4; // log2(16) = 4
@@ -66,21 +65,12 @@ constexpr i32 SEA_LEVEL = 63;
 // ============================================================================
 
 constexpr i32 CHUNK_LOAD_RADIUS = 10;
-constexpr i32 CHUNK_UNLOAD_RADIUS = 12;
-constexpr i32 MAX_CHUNKS_LOADED = 1024;
 
 // ============================================================================
 // 世界生成
 // ============================================================================
 
-constexpr i64 WORLD_SEED_DEFAULT = 0;
 constexpr i32 SPAWN_CHUNK_RADIUS = 11;
-
-// ============================================================================
-// 方块更新
-// ============================================================================
-
-constexpr i32 BLOCK_UPDATE_RADIUS = 16;
 
 // ============================================================================
 // 世界边界
@@ -111,67 +101,11 @@ inline bool isInSpawnableBounds(i32 x, i32 y, i32 z) noexcept
 }
 
 // ============================================================================
-// 区块加载优先级
+// 红石更新
 // ============================================================================
-
-enum class ChunkLoadPriority : i32 {
-    Critical = 0,  // 玩家所在区块
-    High = 1,      // 玩家周围区块
-    Normal = 2,    // 正常加载
-    Low = 3,       // 远处区块
-    Background = 4 // 后台生成
-};
-
-// ============================================================================
-// 区块卸载延迟 (毫秒)
-// ============================================================================
-
-constexpr u32 CHUNK_UNLOAD_DELAY_MS = 30000; // 30秒
-
-// 区块保存间隔 (毫秒)
-constexpr u32 CHUNK_SAVE_INTERVAL_MS = 60000; // 1分钟
-
-// ============================================================================
-// 地形生成参数
-// ============================================================================
-
-constexpr f32 TERRAIN_HEIGHT_VARIATION = 16.0f;
-constexpr f32 TERRAIN_BASE_HEIGHT = 64.0f;
-constexpr f32 CAVE_FREQUENCY = 0.02f;
-constexpr f32 ORE_FREQUENCY = 0.01f;
-
-// ============================================================================
-// 光照更新距离
-// ============================================================================
-
-constexpr i32 LIGHT_UPDATE_DISTANCE = 15;
-
-// ============================================================================
-// 方块更新传播距离
-// ============================================================================
-
-constexpr i32 BLOCK_UPDATE_DISTANCE = 64;
 
 // 红石更新延迟 (ticks)
 constexpr i32 REDSTONE_DELAY = 2;
-
-// ============================================================================
-// 实体激活范围
-// ============================================================================
-
-constexpr i32 ENTITY_ACTIVATION_RANGE_PLAYER = 128;
-constexpr i32 ENTITY_ACTIVATION_RANGE_MONSTER = 32;
-constexpr i32 ENTITY_ACTIVATION_RANGE_ANIMAL = 32;
-constexpr i32 ENTITY_ACTIVATION_RANGE_MISC = 16;
-
-// 实体追踪范围
-constexpr i32 ENTITY_TRACKING_RANGE_PLAYER = 64;
-constexpr i32 ENTITY_TRACKING_RANGE_MONSTER = 64;
-constexpr i32 ENTITY_TRACKING_RANGE_ANIMAL = 48;
-constexpr i32 ENTITY_TRACKING_RANGE_MISC = 32;
-
-// 实体消失范围
-constexpr i32 ENTITY_DESPAWN_RANGE = 128;
 
 // ============================================================================
 // 辅助函数
@@ -275,12 +209,6 @@ inline bool isValidChunkCoord(i32 chunkX, i32 chunkZ) noexcept
     constexpr i32 MIN_CHUNK = -WORLD_BORDER / CHUNK_WIDTH;
     constexpr i32 MAX_CHUNK = WORLD_BORDER / CHUNK_WIDTH;
     return chunkX >= MIN_CHUNK && chunkX <= MAX_CHUNK && chunkZ >= MIN_CHUNK && chunkZ <= MAX_CHUNK;
-}
-
-// 检查方块坐标是否在区块范围内
-inline bool isValidBlockInChunk(i32 x, i32 y, i32 z) noexcept
-{
-    return x >= 0 && x < CHUNK_WIDTH && y >= MIN_BUILD_HEIGHT && y < MAX_BUILD_HEIGHT && z >= 0 && z < CHUNK_WIDTH;
 }
 
 // 将Y坐标转换为区块段内本地Y坐标
