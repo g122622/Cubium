@@ -1,0 +1,327 @@
+[1] �ؼ���Ƭ����������̷߳��飬���߳�/������:
+
+  BroadcastLightUpdate [None] total=9027 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ChunkDistanceGraph::onLevelChanged [None] total=31820 ��Ծ����=4-7s
+     ....****.......................................................
+
+  ChunkDistanceGraph::onLevelChanged [ServerMainThread] total=1000 ��Ծ����=61-61s
+     .............................................................*.
+
+  ChunkSendManager::onChunkPreUnload [None] total=5616 ��Ծ����=38-52s
+     ......................................**************g..........
+
+  ChunkSendManager::unloadChunkFromPlayers [None] total=5616 ��Ծ����=38-52s
+     ......................................**************g..........
+
+  ChunkSendManager::unloadChunkFromPlayers [ServerMainThread] total=1089 ��Ծ����=61-61s
+     .............................................................*.
+
+  ChunkTaskScheduler::cancelGeneration [None] total=19077 ��Ծ����=4-52s
+     ....****..............................**************8..........
+
+  ChunkTaskScheduler::cancelGeneration [ServerMainThread] total=1225 ��Ծ����=61-61s
+     .............................................................*.
+
+  RocksDBDatabase::writeBatch [None] total=5616 ��Ծ����=38-52s
+     ......................................**************g..........
+
+  RocksDBDatabase::writeBatch [ServerIO-0] total=19 ��Ծ����=38-48s
+     ......................................11121321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-1] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-10] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-11] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-12] total=19 ��Ծ����=38-48s
+     ......................................11112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-13] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-14] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-15] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-16] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-17] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-18] total=19 ��Ծ����=39-48s
+     .......................................2.21421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-19] total=19 ��Ծ����=38-47s
+     ......................................1112132134...............
+
+  RocksDBDatabase::writeBatch [ServerIO-2] total=19 ��Ծ����=39-48s
+     .......................................1121322241..............
+
+  RocksDBDatabase::writeBatch [ServerIO-20] total=19 ��Ծ����=38-48s
+     ......................................11121321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-21] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-22] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-23] total=19 ��Ծ����=39-48s
+     .......................................2.21331331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-24] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-25] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-26] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-3] total=19 ��Ծ����=38-48s
+     ......................................11121321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-4] total=19 ��Ծ����=39-48s
+     .......................................2.21331331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-5] total=19 ��Ծ����=39-48s
+     .......................................2111421331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-6] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-7] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-8] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerIO-9] total=19 ��Ծ����=39-48s
+     .......................................2112321331..............
+
+  RocksDBDatabase::writeBatch [ServerMainThread] total=2 ��Ծ����=61-61s
+     .............................................................2.
+
+  SectionCodec::compress [None] total=4726 ��Ծ����=38-48s
+     ......................................***********..............
+
+  SectionCodec::compress [ServerMainThread] total=10990 ��Ծ����=61-61s
+     .............................................................*.
+
+  SectionCodec::serializeFromChunkSection [None] total=4726 ��Ծ����=38-48s
+     ......................................***********..............
+
+  SectionCodec::serializeFromChunkSection [ServerMainThread] total=10995 ��Ծ����=61-61s
+     .............................................................*.
+
+  ServerChunkManager::executeStepTask [ServerCompute-0] total=160 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-1] total=195 ��Ծ����=5-7s
+     .....*t*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-10] total=144 ��Ծ����=5-7s
+     .....*q*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-11] total=160 ��Ծ����=5-7s
+     .....*w*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-12] total=129 ��Ծ����=5-7s
+     .....wt*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-13] total=175 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-14] total=246 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-15] total=198 ��Ծ����=5-7s
+     .....o**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-16] total=166 ��Ծ����=5-7s
+     .....x**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-17] total=146 ��Ծ����=5-7s
+     .....l**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-18] total=176 ��Ծ����=5-7s
+     .....r**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-19] total=222 ��Ծ����=5-7s
+     .....yv*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-2] total=145 ��Ծ����=5-7s
+     .....sp*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-20] total=188 ��Ծ����=5-7s
+     .....*z*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-21] total=168 ��Ծ����=5-7s
+     .....vy*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-22] total=202 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-23] total=139 ��Ծ����=5-7s
+     .....vo*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-24] total=172 ��Ծ����=5-7s
+     .....t**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-25] total=159 ��Ծ����=5-7s
+     .....yl*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-26] total=194 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-3] total=171 ��Ծ����=5-7s
+     .....*x*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-4] total=210 ��Ծ����=5-7s
+     .....*i*.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-5] total=136 ��Ծ����=5-7s
+     .....v**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-6] total=231 ��Ծ����=4-7s
+     ....1w**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-7] total=192 ��Ծ����=5-7s
+     .....***.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-8] total=225 ��Ծ����=5-7s
+     .....v**.......................................................
+
+  ServerChunkManager::executeStepTask [ServerCompute-9] total=163 ��Ծ����=5-7s
+     .....x**.......................................................
+
+[2] �����ڴ�/���飨0-62s��5s һ����ֵ��:
+     0- 4s: mem=  81.0MB commit=  69.5MB chunks=    15 holders=    15
+     5- 9s: mem= 351.5MB commit= 333.0MB chunks=  1631 holders=  3916
+    10-14s: mem= 397.2MB commit= 377.2MB chunks=  1701 holders=  4033
+    15-19s: mem= 405.8MB commit= 385.8MB chunks=  1701 holders=  4033
+    20-24s: mem= 414.4MB commit= 394.3MB chunks=  1701 holders=  4033
+    25-29s: mem= 423.0MB commit= 402.9MB chunks=  1701 holders=  4033
+    30-34s: mem= 431.5MB commit= 411.4MB chunks=  1701 holders=  4033
+    35-39s: mem= 440.3MB commit= 420.7MB chunks=  1693 holders=  3934
+    40-44s: mem= 452.0MB commit= 433.0MB chunks=  1544 holders=  3097
+    45-49s: mem= 442.4MB commit= 425.8MB chunks=  1272 holders=  2115
+    50-54s: mem= 394.1MB commit= 388.2MB chunks=  1188 holders=  1306
+    55-59s: mem= 396.5MB commit= 392.3MB chunks=  1188 holders=  1225
+    60-62s: mem= 364.8MB commit= 352.3MB chunks=  1188 holders=  1225
+
+[3] ���䴰 45-52s ��Ƭ TOP25������ʱ����:
+    MainLoopIteration                                    n=   3704 tot=   6993.0ms avg=  1888.0us [None]
+    MinecraftServerTick                                  n=    137 tot=   1066.6ms avg=  7785.6us [None]
+    TickAllDimensions                                    n=    137 tot=    922.7ms avg=  6735.0us [None]
+    ServerDimension::tick                                n=    411 tot=    922.2ms avg=  2243.9us [None]
+    ServerWorld::tick                                    n=    411 tot=    723.9ms avg=  1761.3us [None]
+    ServerWorld::tick::EnvironmentTick                   n=    411 tot=    456.8ms avg=  1111.3us [None]
+    ServerWorld::tickEnvironment                         n=    411 tot=    436.7ms avg=  1062.6us [None]
+    tickChunk                                            n= 131657 tot=    390.8ms avg=     3.0us [None]
+    ServerWorld::tick::ChunkTick                         n=    411 tot=    235.3ms avg=   572.5us [None]
+    NaturalSpawner::tick                                 n=    411 tot=    189.8ms avg=   461.7us [None]
+    NaturalSpawner::_spawnForClassificationInChunk       n= 158372 tot=    139.3ms avg=     0.9us [None]
+    MinecraftServer::tickEntities()                      n=    137 tot=    138.5ms avg=  1011.2us [None]
+    MinecraftServer::tickEntities().Dim                  n=    411 tot=    138.2ms avg=   336.3us [None]
+    SectionCodec::serializeFromChunkSection              n=   1987 tot=    109.4ms avg=    55.1us [None]
+    EntityManager::tick                                  n=    411 tot=     89.2ms avg=   216.9us [None]
+    EntitySystemScheduler::tick.system                   n=   1644 tot=     88.4ms avg=    53.8us [None]
+    EntityManager::tick.perEntity                        n=  13837 tot=     68.9ms avg=     5.0us [None]
+    SectionData::serialize                               n=   1987 tot=     58.4ms avg=    29.4us [None]
+    SectionCodec::compress                               n=   1987 tot=     54.0ms avg=    27.2us [None]
+    EntityTracker::tick                                  n=    411 tot=     47.8ms avg=   116.2us [None]
+    EntityStorageManager::replaceEntitiesInChunks        n=   2800 tot=     33.5ms avg=    12.0us [None]
+    RocksDBDatabase::writeBatch                          n=   2800 tot=     29.2ms avg=    10.4us [None]
+    ServerWorld::tick::BlockEntityTick                   n=    411 tot=     26.9ms avg=    65.5us [None]
+    ServerWorld::tickBlockEntities                       n=    411 tot=     26.8ms avg=    65.2us [None]
+    ServerWorld::tick::PrecipitationTick                 n=    411 tot=     19.6ms avg=    47.6us [None]
+
+[3] ������ 52-61s ��Ƭ TOP25������ʱ����:
+    MainLoopIteration                                    n=   4877 tot=   8990.3ms avg=  1843.4us [None]
+    MinecraftServerTick                                  n=    177 tot=   1063.0ms avg=  6005.4us [None]
+    TickAllDimensions                                    n=    177 tot=    890.4ms avg=  5030.8us [None]
+    ServerDimension::tick                                n=    531 tot=    889.9ms avg=  1675.8us [None]
+    ServerWorld::tick                                    n=    531 tot=    649.6ms avg=  1223.3us [None]
+    ServerWorld::tick::EnvironmentTick                   n=    531 tot=    557.8ms avg=  1050.5us [None]
+    ServerWorld::tickEnvironment                         n=    531 tot=    532.3ms avg=  1002.4us [None]
+    tickChunk                                            n= 170097 tot=    473.6ms avg=     2.8us [None]
+    NaturalSpawner::tick                                 n=    531 tot=    231.3ms avg=   435.6us [None]
+    NaturalSpawner::_spawnForClassificationInChunk       n= 204612 tot=    169.5ms avg=     0.8us [None]
+    MinecraftServer::tickEntities()                      n=    177 tot=    165.5ms avg=   934.9us [None]
+    MinecraftServer::tickEntities().Dim                  n=    531 tot=    165.1ms avg=   310.9us [None]
+    EntityManager::tick                                  n=    531 tot=    105.0ms avg=   197.6us [None]
+    EntitySystemScheduler::tick.system                   n=   2124 tot=    103.9ms avg=    48.9us [None]
+    EntityManager::tick.perEntity                        n=  17877 tot=     78.8ms avg=     4.4us [None]
+    EntityTracker::tick                                  n=    531 tot=     58.5ms avg=   110.1us [None]
+    ServerWorld::tick::ChunkTick                         n=    531 tot=     56.7ms avg=   106.7us [None]
+    ServerWorld::tick::BlockEntityTick                   n=    531 tot=     29.6ms avg=    55.8us [None]
+    ServerWorld::tickBlockEntities                       n=    531 tot=     29.4ms avg=    55.4us [None]
+    ServerWorld::tick::PrecipitationTick                 n=    531 tot=     25.0ms avg=    47.1us [None]
+    ServerWorld::tickPrecipitation                       n=    531 tot=     24.8ms avg=    46.7us [None]
+    ItemEntity::tick                                     n=   4779 tot=     13.5ms avg=     2.8us [None]
+    DespawnManager::tick                                 n=    531 tot=      6.0ms avg=    11.4us [None]
+    ServerWorld::tick::TickManager                       n=    531 tot=      1.4ms avg=     2.7us [None]
+    PollNetwork                                          n=    177 tot=      1.4ms avg=     7.8us [None]
+
+[3] ����ж�ش� 35-45s ��Ƭ TOP25������ʱ����:
+    MainLoopIteration                                    n=   5339 tot=   9989.5ms avg=  1871.1us [None]
+    MinecraftServerTick                                  n=    197 tot=   1493.9ms avg=  7583.3us [None]
+    TickAllDimensions                                    n=    197 tot=   1240.8ms avg=  6298.3us [None]
+    ServerDimension::tick                                n=    591 tot=   1240.1ms avg=  2098.3us [None]
+    ServerWorld::tick                                    n=    591 tot=    961.6ms avg=  1627.1us [None]
+    ServerWorld::tick::EnvironmentTick                   n=    591 tot=    655.7ms avg=  1109.5us [None]
+    ServerWorld::tickEnvironment                         n=    591 tot=    621.9ms avg=  1052.3us [None]
+    tickChunk                                            n= 189317 tot=    555.0ms avg=     2.9us [None]
+    NaturalSpawner::tick                                 n=    591 tot=    264.7ms avg=   447.9us [None]
+    ServerWorld::tick::ChunkTick                         n=    591 tot=    257.2ms avg=   435.2us [None]
+    MinecraftServer::tickEntities()                      n=    197 tot=    245.2ms avg=  1244.6us [None]
+    MinecraftServer::tickEntities().Dim                  n=    591 tot=    244.7ms avg=   414.1us [None]
+    NaturalSpawner::_spawnForClassificationInChunk       n= 227755 tot=    191.6ms avg=     0.8us [None]
+    EntityManager::tick                                  n=    591 tot=    151.3ms avg=   256.0us [None]
+    EntitySystemScheduler::tick.system                   n=   2364 tot=    149.4ms avg=    63.2us [None]
+    EntityManager::tick.perEntity                        n=  22881 tot=    119.3ms avg=     5.2us [None]
+    SectionCodec::serializeFromChunkSection              n=   2739 tot=    116.7ms avg=    42.6us [None]
+    EntityTracker::tick                                  n=    591 tot=     91.3ms avg=   154.5us [None]
+    SectionData::serialize                               n=   2739 tot=     58.3ms avg=    21.3us [None]
+    SectionCodec::compress                               n=   2739 tot=     53.8ms avg=    19.6us [None]
+    ServerWorld::tick::BlockEntityTick                   n=    591 tot=     40.9ms avg=    69.2us [None]
+    ServerWorld::tickBlockEntities                       n=    591 tot=     40.7ms avg=    68.8us [None]
+    EntityStorageManager::replaceEntitiesInChunks        n=   2800 tot=     33.8ms avg=    12.1us [None]
+    ServerWorld::tick::PrecipitationTick                 n=    591 tot=     33.1ms avg=    56.0us [None]
+    ServerWorld::tickPrecipitation                       n=    591 tot=     32.9ms avg=    55.6us [None]
+
+[4] ������ 52-61s ��Ƭ���� TOP20:
+    NaturalSpawner::_spawnForClassificationInChunk       n=  204612 [None]
+    tickChunk                                            n=  170097 [None]
+    EntityManager::tick.perEntity                        n=   17877 [None]
+    MainLoopIteration                                    n=    4877 [None]
+    ItemEntity::tick                                     n=    4779 [None]
+    EntitySystemScheduler::tick.system                   n=    2124 [None]
+    ChunkDistanceGraph::processUpdates                   n=     540 [None]
+    ChunkLoadTicketManager::processUpdates               n=     540 [None]
+    BlockTicks                                           n=     531 [None]
+    DespawnManager::tick                                 n=     531 [None]
+    EntityManager::tick                                  n=     531 [None]
+    EntityTracker::tick                                  n=     531 [None]
+    FluidTicks                                           n=     531 [None]
+    FlushBlockUpdates                                    n=     531 [None]
+    ItemPickupManager::tick                              n=     531 [None]
+    MinecraftServer::tickEntities().Dim                  n=     531 [None]
+    MiningManager::tick                                  n=     531 [None]
+    NaturalSpawner::tick                                 n=     531 [None]
+    ServerDimension::tick                                n=     531 [None]
+    ServerWorld::tick                                    n=     531 [None]
+
+[5] ʱ���� CSV -> E:/dev/minecraft-reborn-branch-1/trace_analysis\timeline_1s.csv
+
+DONE

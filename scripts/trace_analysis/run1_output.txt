@@ -1,0 +1,185 @@
+[A] trace ʱ��: 62.1s  ��� ts=744255173039400
+
+[A] �߳���Ƭ�� TOP30���߳��� / ������ / ��Ƭ����:
+    None                                     MinecraftServer        2918070
+    ServerMainThread                         MinecraftServer          68203
+    ServerCompute-6                          MinecraftServer           9476
+    ServerCompute-18                         MinecraftServer           8590
+    ServerCompute-19                         MinecraftServer           8549
+    ServerCompute-22                         MinecraftServer           8312
+    ServerCompute-11                         MinecraftServer           8054
+    ServerCompute-26                         MinecraftServer           8053
+    ServerCompute-4                          MinecraftServer           8004
+    ServerCompute-16                         MinecraftServer           7833
+    ServerCompute-7                          MinecraftServer           7646
+    ServerCompute-8                          MinecraftServer           7585
+    ServerCompute-21                         MinecraftServer           7580
+    ServerCompute-24                         MinecraftServer           7527
+    ServerCompute-13                         MinecraftServer           7489
+    ServerCompute-1                          MinecraftServer           7377
+    ServerCompute-20                         MinecraftServer           7361
+    ServerCompute-9                          MinecraftServer           7302
+    ServerCompute-10                         MinecraftServer           7125
+    ServerCompute-25                         MinecraftServer           7058
+    ServerCompute-3                          MinecraftServer           7003
+    ServerCompute-17                         MinecraftServer           6937
+    ServerCompute-2                          MinecraftServer           6896
+    ServerCompute-14                         MinecraftServer           6661
+    ServerCompute-0                          MinecraftServer           6604
+    ServerCompute-12                         MinecraftServer           6058
+    ServerCompute-23                         MinecraftServer           5972
+    ServerCompute-5                          MinecraftServer           5945
+    ServerCompute-15                         MinecraftServer           5185
+    ServerIO-17                              MinecraftServer           3329
+
+[B] ��������������� / ���� / ��С / ��� / ����ʱ��s��:
+    ProcessCommit                            n=  36788 min=        23.0 max=       443.0 span=62.1s
+    ProcessMemory                            n=  36788 min=        18.0 max=       461.0 span=62.1s
+    TotalEntityCount                         n=   1150 min=         0.0 max=       247.0 span=60.5s
+    TotalLoadedChunkCount                    n=   1150 min=         0.0 max=      1701.0 span=60.5s
+    TotalChunkHolderCount                    n=   1150 min=         0.0 max=      4033.0 span=60.5s
+    PlayerCount                              n=   1150 min=         0.0 max=         1.0 span=60.5s
+    TPS                                      n=   1150 min=         1.0 max=        19.0 span=60.5s
+
+[C] ProcessMemory: 63s ��Ч����, CSV -> E:/dev/minecraft-reborn-branch-1/trace_analysis\processmemory_1s.csv
+
+[C] ProcessCommit: 63s ��Ч����, CSV -> E:/dev/minecraft-reborn-branch-1/trace_analysis\processcommit_1s.csv
+
+[C] ProcessMemory ���䴰�� TOP8������>=30MB, ����������:
+    ��ֵʱ��s  ��ֵMB    ��ֵʱ��s  ��ֵMB    ����MB
+          45     459.6         61     388.2      71.4
+    ȫ��: ��� 58.8MB@0s  ��ֵ 459.6MB@45s  �յ� 289.4MB@62s
+
+[C] ProcessCommit ���䴰�� TOP8������>=30MB, ����������:
+    ��ֵʱ��s  ��ֵMB    ��ֵʱ��s  ��ֵMB    ����MB
+          45     440.0         60     382.5      57.6
+    ȫ��: ��� 52.3MB@0s  ��ֵ 440.0MB@45s  �յ� 271.2MB@62s
+
+[D] ȫ trace ��Ƭ���� TOP50������ʱ����name / ���� / ��ms / ��us / ���ms / �̣߳�:
+    MainLoopIteration                                       n=   31219 tot=   60546.7ms avg=   1939.4us max=    703.5ms [None]
+    MinecraftServerTick                                     n=    1150 tot=   10200.6ms avg=   8870.1us max=    703.5ms [None]
+    TickAllDimensions                                       n=    1150 tot=    8158.7ms avg=   7094.5us max=    671.8ms [None]
+    ServerDimension::tick                                   n=    3450 tot=    8154.9ms avg=   2363.7us max=    671.8ms [None]
+    ServerWorld::tick                                       n=    3450 tot=    5636.4ms avg=   1633.8us max=    314.0ms [None]
+    ServerWorld::tick::EnvironmentTick                      n=    3450 tot=    3503.3ms avg=   1015.5us max=      7.8ms [None]
+    ServerWorld::tickEnvironment                            n=    3450 tot=    3328.5ms avg=    964.8us max=      7.5ms [None]
+    tickChunk                                               n= 1028270 tot=    2969.8ms avg=      2.9us max=      0.5ms [None]
+    MinecraftServer::tickEntities()                         n=    1150 tot=    1603.2ms avg=   1394.1us max=     13.6ms [None]
+    MinecraftServer::tickEntities().Dim                     n=    3450 tot=    1600.6ms avg=    464.0us max=     13.6ms [None]
+    ExecuteTask                                             n=     383 tot=    1579.7ms avg=   4124.5us max=    765.9ms [ServerCompute-15]
+    TaskExecution                                           n=     383 tot=    1578.7ms avg=   4122.1us max=    765.9ms [ServerCompute-15]
+    NaturalSpawner::tick                                    n=    3450 tot=    1474.3ms avg=    427.3us max=      5.7ms [None]
+    ChunkProgressionTask::executeStatusStep                 n=     198 tot=    1408.5ms avg=   7113.4us max=    765.9ms [ServerCompute-15]
+    ServerChunkManager::executeStepTask                     n=     198 tot=    1350.5ms avg=   6820.7us max=    765.5ms [ServerCompute-15]
+    ServerWorld::tick::ChunkTick                            n=    3450 tot=    1225.4ms avg=    355.2us max=    251.0ms [None]
+    NaturalSpawner::_spawnForClassificationInChunk          n= 1237074 tot=    1073.4ms avg=      0.9us max=      0.8ms [None]
+    ExecuteTask                                             n=     644 tot=    1065.9ms avg=   1655.1us max=     32.8ms [ServerCompute-6]
+    TaskExecution                                           n=     644 tot=    1064.5ms avg=   1652.9us max=     32.8ms [ServerCompute-6]
+    ExecuteTask                                             n=     529 tot=    1039.0ms avg=   1964.1us max=     35.5ms [ServerCompute-7]
+    TaskExecution                                           n=     529 tot=    1037.9ms avg=   1962.0us max=     35.5ms [ServerCompute-7]
+    ExecuteTask                                             n=     561 tot=    1016.0ms avg=   1811.0us max=    144.2ms [ServerCompute-11]
+    TaskExecution                                           n=     561 tot=    1014.6ms avg=   1808.6us max=    144.2ms [ServerCompute-11]
+    ExecuteTask                                             n=     533 tot=    1005.5ms avg=   1886.4us max=     31.5ms [ServerCompute-1]
+    TaskExecution                                           n=     533 tot=    1004.0ms avg=   1883.7us max=     31.5ms [ServerCompute-1]
+    ExecuteTask                                             n=     557 tot=     991.3ms avg=   1779.7us max=     30.2ms [ServerCompute-21]
+    TaskExecution                                           n=     557 tot=     990.0ms avg=   1777.3us max=     30.2ms [ServerCompute-21]
+    ExecuteTask                                             n=     543 tot=     982.2ms avg=   1808.8us max=     35.4ms [ServerCompute-16]
+    ExecuteTask                                             n=     582 tot=     982.1ms avg=   1687.4us max=     31.4ms [ServerCompute-4]
+    TaskExecution                                           n=     543 tot=     980.9ms avg=   1806.5us max=     35.4ms [ServerCompute-16]
+    TaskExecution                                           n=     582 tot=     980.9ms avg=   1685.3us max=     31.4ms [ServerCompute-4]
+    processPendingSends                                     n=    3450 tot=     977.0ms avg=    283.2us max=    494.4ms [None]
+    EntityManager::tick                                     n=    3450 tot=     974.1ms avg=    282.3us max=     12.9ms [None]
+    ExecuteTask                                             n=     489 tot=     972.8ms avg=   1989.4us max=     38.9ms [ServerCompute-2]
+    ExecuteTask                                             n=     475 tot=     972.5ms avg=   2047.4us max=     29.5ms [ServerCompute-3]
+    TaskExecution                                           n=     489 tot=     971.6ms avg=   1986.9us max=     38.9ms [ServerCompute-2]
+    TaskExecution                                           n=     475 tot=     971.2ms avg=   2044.7us max=     29.5ms [ServerCompute-3]
+    ExecuteTask                                             n=     583 tot=     967.8ms avg=   1660.1us max=     28.8ms [ServerCompute-22]
+    TaskExecution                                           n=     583 tot=     966.5ms avg=   1657.9us max=     28.8ms [ServerCompute-22]
+    EntitySystemScheduler::tick.system                      n=   13800 tot=     966.1ms avg=     70.0us max=     12.8ms [None]
+    ExecuteTask                                             n=     528 tot=     961.8ms avg=   1821.5us max=     33.3ms [ServerCompute-24]
+    TaskExecution                                           n=     528 tot=     960.6ms avg=   1819.2us max=     33.3ms [ServerCompute-24]
+    ExecuteTask                                             n=     590 tot=     958.1ms avg=   1623.9us max=     32.6ms [ServerCompute-18]
+    ExecuteTask                                             n=     623 tot=     957.3ms avg=   1536.5us max=     34.6ms [ServerCompute-19]
+    ExecuteTask                                             n=     510 tot=     956.8ms avg=   1876.2us max=     35.2ms [ServerCompute-13]
+    TaskExecution                                           n=     590 tot=     956.8ms avg=   1621.7us max=     32.6ms [ServerCompute-18]
+    ExecuteTask                                             n=     498 tot=     956.6ms avg=   1920.9us max=     32.3ms [ServerCompute-25]
+    TaskExecution                                           n=     623 tot=     955.9ms avg=   1534.4us max=     34.6ms [ServerCompute-19]
+    TaskExecution                                           n=     510 tot=     955.4ms avg=   1873.4us max=     35.2ms [ServerCompute-13]
+    TaskExecution                                           n=     498 tot=     955.3ms avg=   1918.3us max=     32.3ms [ServerCompute-25]
+
+[D] ȫ trace ��Ƭ���� TOP30��name / ���� / �̣߳�:
+    NaturalSpawner::_spawnForClassificationInChunk          n=  1237074 [None]
+    tickChunk                                               n=  1028270 [None]
+    EntityManager::tick.perEntity                           n=   137015 [None]
+    ServerWorld::OnLightChangedCallback.END                 n=    38248 [None]
+    ServerWorld::OnLightChangedCallback.START               n=    38248 [None]
+    ServerWorld::markLightChanged                           n=    38248 [None]
+    ChunkDistanceGraph::onLevelChanged                      n=    31820 [None]
+    ServerChunkManager::onTicketLevelChanged                n=    31820 [None]
+    MainLoopIteration                                       n=    31219 [None]
+    ItemEntity::tick                                        n=    28890 [None]
+    ReentrantAreaLock::lock                                 n=    25995 [None]
+    ReentrantAreaLock::unlock                               n=    25995 [None]
+    ChunkTaskScheduler::cancelGeneration                    n=    19077 [None]
+    EntitySystemScheduler::tick.system                      n=    13800 [None]
+    McToAst::convert                                        n=    13697 [ServerMainThread]
+    SectionCodec::serializeFromChunkSection                 n=    10995 [ServerMainThread]
+    SectionData::serialize                                  n=    10995 [ServerMainThread]
+    SectionCodec::compress                                  n=    10990 [ServerMainThread]
+    BroadcastLightUpdate                                    n=     9027 [None]
+    ChunkDistanceGraph::processUpdates                      n=     6989 [None]
+    ChunkLoadTicketManager::processUpdates                  n=     6989 [None]
+    BytecodeGen::compile                                    n=     5741 [ServerMainThread]
+    ChunkSendManager::onChunkPreUnload                      n=     5616 [None]
+    ChunkSendManager::unloadChunkFromPlayers                n=     5616 [None]
+    ChunkSendManager::unloadChunkFromTrackingPlayers        n=     5616 [None]
+    EntityStorageManager::replaceEntitiesInChunks           n=     5616 [None]
+    RocksDBDatabase::writeBatch                             n=     5616 [None]
+    SectionCodec::compress                                  n=     4726 [None]
+    SectionCodec::serializeFromChunkSection                 n=     4726 [None]
+    SectionData::serialize                                  n=     4726 [None]
+
+[E] ����䴰��: 45s(459.6MB) -> 61s(388.2MB), ���� 71.4MB
+    ��������Ƭ TOP40��name / ���� / ��ms / �̣߳�:
+    MainLoopIteration                                       n=   8689 tot=   16187.9ms [None]
+    MinecraftServerTick                                     n=    318 tot=    2150.5ms [None]
+    TickAllDimensions                                       n=    318 tot=    1830.2ms [None]
+    ServerDimension::tick                                   n=    954 tot=    1829.1ms [None]
+    ServerWorld::tick                                       n=    954 tot=    1385.5ms [None]
+    ServerWorld::tick::EnvironmentTick                      n=    954 tot=    1024.9ms [None]
+    ServerWorld::tickEnvironment                            n=    954 tot=     978.8ms [None]
+    tickChunk                                               n= 305598 tot=     873.0ms [None]
+    MinecraftServer::stopCore                               n=      1 tot=     855.5ms [ServerMainThread]
+    MinecraftServer::shutdownManagers                       n=      1 tot=     847.1ms [ServerMainThread]
+    MinecraftServer::shutdownManagers::SaveWorldData        n=      1 tot=     738.7ms [ServerMainThread]
+    MinecraftServer::saveAllWorldData                       n=      1 tot=     738.7ms [ServerMainThread]
+    ServerWorld::saveDirtyChunks                            n=      3 tot=     734.2ms [ServerMainThread]
+    SectionCodec::serializeFromChunkSection                 n=  10995 tot=     647.7ms [ServerMainThread]
+    NaturalSpawner::tick                                    n=    954 tot=     425.9ms [None]
+    SectionData::serialize                                  n=  10995 tot=     417.9ms [ServerMainThread]
+    SectionCodec::compress                                  n=  10990 tot=     377.4ms [ServerMainThread]
+    NaturalSpawner::_spawnForClassificationInChunk          n= 367608 tot=     312.4ms [None]
+    MinecraftServer::tickEntities()                         n=    318 tot=     307.7ms [None]
+    MinecraftServer::tickEntities().Dim                     n=    954 tot=     307.0ms [None]
+    ServerWorld::tick::ChunkTick                            n=    954 tot=     293.0ms [None]
+    EntityManager::tick                                     n=    954 tot=     196.5ms [None]
+    EntitySystemScheduler::tick.system                      n=   3816 tot=     194.7ms [None]
+    EntityManager::tick.perEntity                           n=  32118 tot=     149.2ms [None]
+    SectionCodec::serializeFromChunkSection                 n=   1987 tot=     109.4ms [None]
+    EntityTracker::tick                                     n=    954 tot=     107.5ms [None]
+    MinecraftServer::shutdownManagers::ResetCoreManagers    n=      1 tot=     105.7ms [ServerMainThread]
+    MinecraftServer::shutdownManagers::ResetCoreManagers::ShutdownDimensionManager n=      1 tot=      68.6ms [ServerMainThread]
+    ServerDimensionManager::shutdown                        n=      1 tot=      68.6ms [ServerMainThread]
+    ServerDimension::shutdown                               n=      1 tot=      68.0ms [ServerMainThread]
+    ServerDimension::shutdown::DestroyWorld                 n=      1 tot=      62.2ms [ServerMainThread]
+    ServerWorld::shutdown                                   n=      1 tot=      58.9ms [ServerMainThread]
+    SectionData::serialize                                  n=   1987 tot=      58.4ms [None]
+    ServerWorld::tick::BlockEntityTick                      n=    954 tot=      57.1ms [None]
+    ServerWorld::tickBlockEntities                          n=    954 tot=      56.7ms [None]
+    SectionCodec::compress                                  n=   1987 tot=      54.0ms [None]
+    ServerWorld::tick::PrecipitationTick                    n=    954 tot=      45.0ms [None]
+    ServerWorld::tickPrecipitation                          n=    954 tot=      44.7ms [None]
+    SingleLevelStorageManager::saveSections                 n=      1 tot=      41.0ms [ServerMainThread]
+    SectionManager::saveSectionsBatch                       n=      1 tot=      41.0ms [ServerMainThread]
+
+DONE
