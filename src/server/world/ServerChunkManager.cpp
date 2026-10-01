@@ -786,6 +786,10 @@ SingleChunkLifecycleManager& ServerChunkManager::_getOrCreateLifecycleManager(Ch
 
     auto lifecycleManager = std::make_shared<SingleChunkLifecycleManager>(x, z);
     auto* ptr = lifecycleManager.get();
+    // 以距离图的当前级别初始化：按需创建的邻居持有者若恰在 halo 最外沿（45），
+    // 初始级别应为 45（保留）而非哨兵 46（可回收）——否则生成期最外圈邻居会被
+    // 创建即回收，引发"销毁→重建→重新生成"风暴。
+    ptr->setLevel(m_ticketManager.getChunkLevel(x, z));
     // 注入卸载状态观察者：持有者的卸载安全性变化时（生成任务设置/清除、邻居引用计数 0↔1、
     // 依赖图增删）重新评估卸载候选资格。这是事件驱动的核心——取代周期全量扫描。
     // 观察者捕获 this，生命周期由 ServerChunkManager 保证（持有者存活于 m_lifecycleManagers 内，
@@ -915,6 +919,10 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         chunk.z(),
         "status",
         status.name());
+
+    // 记录生成活动时刻：供 _isGenerationIdle 判定"生成已收敛"，作为生成 halo 回收的门控。
+    // 本函数在 worker 线程执行，仅写一个原子 u64，开销可忽略。
+    m_lastGenerationActivityMs.store(util::TimeUtils::getCurrentTimeMs(), std::memory_order::release);
 
     if (status == ChunkStatuses::STRUCTURE_STARTS) {
         m_generator->generateStructureStarts(region, chunk);
@@ -1322,10 +1330,10 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
         m_world->storage()._removePendingChunkSave(x, z, dimension);
     }
 
-    // 复检是否被重新请求（对齐 Moonrise unloadStage3 复检 currentChunk/entityChunk/poiChunk）：
-    // 异步保存期间票据可能返回（玩家重新靠近），此时中止卸载，保留区块与 holder。
-    // 区块数据已在 m_chunks（异步保存未移除它），重新加载经 _waitPendingChunkSave 读到保存后数据。
-    if (lifecycleHolder != nullptr && lifecycleHolder->shouldLoad()) {
+    // 复检该区块是否重新"被需要"（对齐 Moonrise unloadStage3 复检 currentChunk/entityChunk/poiChunk）：
+    // 判据与候选资格同源（_isUnloadSuppressed）：加载环内、或处于生成 halo 而生成已重新开始，
+    // 都中止卸载并保留区块与 holder。异步保存期间区块数据仍在 m_chunks，重新加载读到的是保存后数据。
+    if (lifecycleHolder != nullptr && _isUnloadSuppressed(*lifecycleHolder)) {
         std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
         m_unloadSaveInProgress.erase(key);
         return; // 中止卸载，条目丢弃
@@ -1460,6 +1468,21 @@ void ServerChunkManager::_processChunkUnloads()
 {
     // 事件驱动入队 + 保底批量出队（对齐 Moonrise ChunkHolderManager.processUnloads）：
     // 入队由 _updateUnloadCandidate 在各状态变更点完成，此处只负责按批取出并复核。
+    const bool generationIdle = _isGenerationIdle();
+    // 【顺序要紧】必须先置位 armed，再做空闲过渡扫描：扫描内部经 _isUnloadCandidate 判定，
+    // 而该判定对 halo（level ∈ (Border, Unloaded)）要求 armed 已置位；若先扫描后置位，
+    // 被扫描到的 halo 会全部被判为"不可回收"，整条空闲回收路径静默失效
+    // （表现为：生成结束后 halo 持有者与区块数据永久驻留）。
+    const bool wasArmed = m_idleHaloReclaimArmed;
+    m_idleHaloReclaimArmed = generationIdle;
+    if (m_idleHaloReclaimArmed && !wasArmed) {
+        // 空闲过渡（armed false→true）时做一次 halo 回收登记：把仍驻留的生成 halo 持有者
+        // 登记为卸载候选，回收登录/跑图突发期间累积的区块数据与 primer（恢复低水位常驻）。
+        // 生成一旦恢复（armed 清零），队列中尚未弹出的 halo 条目会在复核时被丢弃，
+        // 也不会在生成期进入收尾——不会在生成期被回收。
+        _enqueueIdleHaloReclaim();
+    }
+
     size_t pending = 0;
     {
         std::lock_guard<std::mutex> lock(m_unloadQueueMutex);
@@ -1495,6 +1518,63 @@ void ServerChunkManager::_processChunkUnloads()
     }
 }
 
+bool ServerChunkManager::_isGenerationIdle()
+{
+    // 判据 = 距最近一次区块生成步骤已超过 UNLOAD_IDLE_DEBOUNCE_MS，且主线程侧待处理队列全空。
+    // 不使用 worker 池计数：实测静置期 RuntimeLightTask 持续占用池线程（trace 9s–65s 无间断），
+    // 池计数判定永远不空闲；而生成 halo 持有者只被生成邻居复用，与光照任务无关。
+    const u64 nowMs = util::TimeUtils::getCurrentTimeMs();
+    const u64 lastActivityMs = m_lastGenerationActivityMs.load(std::memory_order::acquire);
+    if (lastActivityMs != 0 && nowMs - lastActivityMs < UNLOAD_IDLE_DEBOUNCE_MS) {
+        return false;
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_pendingLoadCompletesMutex);
+        if (!m_pendingLoadCompletes.empty()) {
+            return false;
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+        if (!m_pendingPostProcess.empty()) {
+            return false;
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        if (!m_pendingUnloadFinishes.empty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void ServerChunkManager::_enqueueIdleHaloReclaim()
+{
+    // 一次性扫描：登记生成 halo 区间内可安全回收的持有者。仅在空闲过渡时执行一次，
+    // 不是周期扫描——事件驱动路径（出界级别 46 + 状态变更回调）覆盖日常回收，
+    // 本扫描只负责"突发结束后批量回收 halo"这一没有自然事件的场景。
+    std::vector<std::shared_ptr<SingleChunkLifecycleManager>> holders;
+    {
+        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
+        holders.reserve(m_lifecycleManagers.size());
+        for (auto& [key, lifecycleManager] : m_lifecycleManagers) {
+            MC_UNUSED(key);
+            if (lifecycleManager) {
+                holders.push_back(lifecycleManager);
+            }
+        }
+    }
+
+    constexpr i32 unloadedLevel = static_cast<i32>(world::chunk::ChunkLoadLevel::Unloaded);
+    for (auto& lifecycleManager : holders) {
+        const i32 level = lifecycleManager->level();
+        if (level > world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL && level < unloadedLevel) {
+            _updateUnloadCandidate(*lifecycleManager);
+        }
+    }
+}
+
 void ServerChunkManager::_updateUnloadCandidate(SingleChunkLifecycleManager& holder)
 {
     if (m_shuttingDown.load(std::memory_order::acquire)) {
@@ -1515,9 +1595,23 @@ void ServerChunkManager::_updateUnloadCandidate(SingleChunkLifecycleManager& hol
     }
 }
 
+bool ServerChunkManager::_isUnloadSuppressed(const SingleChunkLifecycleManager& holder) const
+{
+    const i32 level = holder.level();
+    if (level <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+        return true; // 加载环内：必须保留
+    }
+    if (level < static_cast<i32>(world::chunk::ChunkLoadLevel::Unloaded) && !m_idleHaloReclaimArmed) {
+        // 生成 halo（Border < level < Unloaded）：生成未收敛时保留（避免"销毁→重建→重新生成"风暴）；
+        // 生成空闲后允许回收，以恢复低水位常驻内存。
+        return true;
+    }
+    return false;
+}
+
 bool ServerChunkManager::_isUnloadCandidate(const SingleChunkLifecycleManager& holder)
 {
-    if (holder.shouldLoad() || !holder.isSafeToUnload()) {
+    if (_isUnloadSuppressed(holder) || !holder.isSafeToUnload()) {
         return false;
     }
 

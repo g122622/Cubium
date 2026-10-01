@@ -310,8 +310,12 @@ bool SingleChunkLifecycleManager::isSafeToUnload() const
     // （cancelGeneration）本身又以 isSafeToUnload() 为前提，构成循环门控。
     // 失败只应决定"是否继续调度生成"（由调度路径上的 hasFailedGeneration 把关），
     // 不应决定"能否释放内存"——卸载后重新加载会重建 holder 并从头生成。
+    //
+    // m_waiters 非空同样不可卸载：等待者只在"请求已受理但尚未交付"期间存在
+    // （交付/失败/取消都会取走它们），此刻回收区块会以 (false, nullptr) 失败这些请求，
+    // 让调用方拿到空指针。故"有未完成请求者"等价于"区块仍被需要"。
     return m_neighboursUsingThisChunk.load(std::memory_order::acquire) == 0 && m_generationTask == nullptr &&
-        m_blockingNeighbours.empty() && m_waitingNeighbours.empty();
+        m_blockingNeighbours.empty() && m_waitingNeighbours.empty() && m_waiters.empty();
 }
 
 void SingleChunkLifecycleManager::_notifyUnloadStateChanged()

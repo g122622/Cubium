@@ -70,10 +70,14 @@ class ChunkDistanceGraph {
 public:
     using ChunkCallback = std::function<void(ChunkCoord, ChunkCoord, i32, i32)>;
 
-    /// 最大级别（未加载）= ChunkPyramid::maxLevel() + 1 = 45
-    /// 此值在初始化时由 ChunkPyramid 动态计算，静态常量用于编译期初始化。
-    /// 实际值通过 maxLevel() 方法获取。
+    /// 传播上限（最外沿级别）。达到该级别的区块不再继续向外传播——它同时是"生成 halo
+    /// 的最外圈"（可能被邻居生成按需使用），持有者必须保留。
     static constexpr i32 MAX_LEVEL = 45;
+
+    /// "未被任何源触达"的哨兵级别（= ChunkLoadLevel::Unloaded）。
+    /// 与 MAX_LEVEL 区分：45 = halo 最外沿（保留），46 = 传播范围之外（可立即回收）。
+    /// getLevel() 对无级别区块返回该哨兵；onLevelChanged 的新级别也用它表达"已离开传播范围"。
+    static constexpr i32 UNREACHED_LEVEL = MAX_LEVEL + 1;
 
     ChunkDistanceGraph() noexcept = default;
     virtual ~ChunkDistanceGraph() = default;

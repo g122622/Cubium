@@ -40,6 +40,13 @@ inline i32 clampLevel(i32 level)
 
 // ============================================================================
 // ChunkDistanceGraph 实现
+//
+// 级别语义：
+//   - [0, MAX_LEVEL-1]：被源/邻居触达的传播级别；
+//   - MAX_LEVEL：传播最外沿（仍被触达，仅不再继续向外传播）——生成 halo 的最外圈，
+//     其持有者可能被邻居生成按需复用，必须保留；
+//   - UNREACHED_LEVEL：未被任何源触达的哨兵。getLevel 对无级别区块返回它；
+//     onLevelChanged 的新级别用它表达"已离开传播范围"，使持有者可据此立即回收。
 // ============================================================================
 
 void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing)
@@ -48,7 +55,7 @@ void ChunkDistanceGraph::updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level
     const i32 clampedLevel = clampLevel(level);
 
     auto sourceIt = m_sourceLevels.find(key);
-    const i32 oldSourceLevel = (sourceIt != m_sourceLevels.end()) ? sourceIt->second : MAX_LEVEL;
+    const i32 oldSourceLevel = (sourceIt != m_sourceLevels.end()) ? sourceIt->second : UNREACHED_LEVEL;
     i32 newSourceLevel = oldSourceLevel;
 
     if (isDecreasing) {
@@ -90,17 +97,22 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
         keyToPos(key, x, z);
         const i32 currentLevel = getLevel(x, z);
 
-        // 重新计算该区块的最优级别：
-        // min(自身源级别, 八邻居级别 + 1)
-        // getSourceLevel 与邻居传播结果均已被 clamp 至 [0, MAX_LEVEL]（propagatedLevel 对
-        // MAX_LEVEL 邻居取 MAX_LEVEL 而非 +1，避免溢出），故 recomputedLevel ≤ MAX_LEVEL 恒成立。
+        // 重新计算该区块的最优级别：min(自身源级别, 可传播邻居级别 + 1)。
+        // 【关键】只有级别 < MAX_LEVEL 的邻居才向外传播：MAX_LEVEL 是传播最外沿，
+        // 若最外沿也 +1 再封顶回 MAX_LEVEL，45 会沿连通区域无限扩散，"halo 最外沿"
+        // 与"传播范围之外"将无法区分（持有者回收判据随之失效）。
+        // 故 recomputedLevel 的取值范围是 [0, MAX_LEVEL]，无源且无可传播邻居时为
+        // UNREACHED_LEVEL（> MAX_LEVEL）。
         i32 recomputedLevel = getSourceLevel(x, z);
 
         for (i32 dz = -1; dz <= 1; ++dz) {
             for (i32 dx = -1; dx <= 1; ++dx) {
                 if (dx == 0 && dz == 0) continue;
                 const i32 neighborLevel = getLevel(x + dx, z + dz);
-                const i32 propagatedLevel = (neighborLevel >= MAX_LEVEL) ? MAX_LEVEL : (neighborLevel + 1);
+                if (neighborLevel >= MAX_LEVEL) {
+                    continue; // 最外沿/未触达的邻居不向外传播
+                }
+                const i32 propagatedLevel = neighborLevel + 1;
                 if (propagatedLevel < recomputedLevel) {
                     recomputedLevel = propagatedLevel;
                 }
@@ -111,9 +123,9 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
             continue;
         }
 
-        // 到达 MAX_LEVEL（无源且无更近邻居）的条目从 m_levels 剪枝，保持映射有界：
-        // 未加载区块统一由 getLevel 返回 MAX_LEVEL，无需存储。
-        if (recomputedLevel >= MAX_LEVEL) {
+        // UNREACHED_LEVEL（无源且无可传播邻居）的条目从 m_levels 剪枝，保持映射有界；
+        // MAX_LEVEL（最外沿）正常存储——它是"仍被触达"的状态，必须能从表里读出。
+        if (recomputedLevel >= UNREACHED_LEVEL) {
             m_levels.erase(key);
         } else {
             m_levels[key] = recomputedLevel;
@@ -135,7 +147,7 @@ i32 ChunkDistanceGraph::getLevel(ChunkCoord x, ChunkCoord z) const
     if (it != m_levels.end()) {
         return it->second;
     }
-    return MAX_LEVEL; // 未加载
+    return UNREACHED_LEVEL; // 未被触达
 }
 
 void ChunkDistanceGraph::clear()
@@ -155,7 +167,7 @@ i32 ChunkDistanceGraph::getSourceLevel(ChunkCoord x, ChunkCoord z) const
     if (it != m_sourceLevels.end()) {
         return it->second;
     }
-    return MAX_LEVEL;
+    return UNREACHED_LEVEL;
 }
 
 void ChunkDistanceGraph::onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)

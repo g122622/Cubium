@@ -942,6 +942,14 @@ private:
     [[nodiscard]] bool _isUnloadCandidate(const mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
+     * @brief 持有者是否"仍被需要"（票级在加载阈值内，或处于生成 halo 且生成尚未收敛）
+     *
+     * 只做票级/生成空闲判定，不含 isSafeToUnload 等在途状态。卸载收尾（stage3）用它做
+     * 中止复检：生成一旦恢复，halo 持有者应保留，即便其卸载已在进行中。
+     */
+    [[nodiscard]] bool _isUnloadSuppressed(const mc::world::chunk::SingleChunkLifecycleManager& holder) const;
+
+    /**
      * @brief 从卸载候选队列取出一个有效候选键（仅主线程调用）
      *
      * 惰性移除语义：撤出候选只从 m_inUnloadQueue 删除，队列中残留的键成为失效条目，
@@ -958,8 +966,22 @@ private:
      * 批量为 Moonrise 的保底语义：max(MIN_CHUNK_UNLOAD_COUNT, 候选总数 × MIN_CHUNK_UNLOAD_FRACTION)，
      * 逐个复核候选资格后发起卸载（stage1）。复核不通过者直接丢弃条目——其资格变化会经
      * 观察者回调重新入队。
+     *
+     * 同时驱动"生成空闲"门控：生成 halo 区间（level ∈ (Border, Unloaded)）的持有者是
+     * 邻居生成的高频复用对象，生成期间回收必然引发"销毁→重建→重新生成"风暴；
+     * 仅在生成管线连续空闲 UNLOAD_IDLE_DEBOUNCE_TICKS 后，经一次性扫描登记回收。
      */
     void _processChunkUnloads();
+
+    /**
+     * @brief 生成管线是否已收敛（worker 池无 pending/running、主线程待处理队列全空）
+     */
+    [[nodiscard]] bool _isGenerationIdle();
+
+    /**
+     * @brief 空闲过渡时的一次性 halo 回收登记（扫描 level ∈ (Border, Unloaded) 的持有者）
+     */
+    void _enqueueIdleHaloReclaim();
 
     /**
      * @brief 异步卸载保存完成后，主线程完成卸载收尾（stage3）
@@ -1189,6 +1211,19 @@ private:
 
     /// 每 tick 卸载保底比例（对齐 Moonrise minChunkUnloadFraction 默认值）
     static constexpr double MIN_CHUNK_UNLOAD_FRACTION = 0.05;
+
+    /// 生成空闲判据：最近一次区块生成步骤（_executeStepTask）距今至少该毫秒数才视为空闲。
+    /// 【必须】基于"生成步骤"而非"worker 池空闲"：实测静置期 RuntimeLightTask 持续占用池线程
+    /// （trace：9s–65s 持续活动），用池计数会永远判不出空闲；而 halo 持有者只被生成邻居复用，
+    /// 与运行时/加载光照任务无关。
+    static constexpr u64 UNLOAD_IDLE_DEBOUNCE_MS = 1000;
+
+    /// 最近一次区块生成步骤的时刻（毫秒）。worker 线程写入、主线程读取。
+    std::atomic<u64> m_lastGenerationActivityMs{0};
+
+    /// halo 回收 armed 标志：生成空闲时置位，生成恢复即清零。
+    /// 置位期间生成 halo 区间（level ∈ (Border, Unloaded)）的持有者可被回收。
+    bool m_idleHaloReclaimArmed = false;
 
     /**
      * @brief 卸载候选队列与成员集合

@@ -174,9 +174,9 @@ protected:
 
 TEST_F(ChunkDistanceGraphTest, InitialLevel)
 {
-    // 未设置的区块级别应为 MAX_LEVEL
-    EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
-    EXPECT_EQ(graph.getLevel(100, -50), ChunkDistanceGraph::MAX_LEVEL);
+    // 未设置（未被任何源触达）的区块级别应为哨兵 UNREACHED_LEVEL（= MAX_LEVEL + 1）
+    EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::UNREACHED_LEVEL);
+    EXPECT_EQ(graph.getLevel(100, -50), ChunkDistanceGraph::UNREACHED_LEVEL);
 }
 
 TEST_F(ChunkDistanceGraphTest, SetSourceLevel)
@@ -231,7 +231,7 @@ TEST_F(ChunkDistanceGraphTest, LevelChangeCallback)
     for (size_t i = 0; i < xs.size(); ++i) {
         if (xs[i] == 0 && zs[i] == 0) {
             foundCenter = true;
-            EXPECT_EQ(oldLevels[i], ChunkDistanceGraph::MAX_LEVEL);
+            EXPECT_EQ(oldLevels[i], ChunkDistanceGraph::UNREACHED_LEVEL);
             EXPECT_EQ(newLevels[i], 31);
         }
     }
@@ -245,7 +245,7 @@ TEST_F(ChunkDistanceGraphTest, ClearGraph)
     EXPECT_EQ(graph.getLevel(0, 0), 0);
 
     graph.clear();
-    EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
+    EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::UNREACHED_LEVEL);
 }
 
 // ============================================================================
@@ -281,14 +281,14 @@ TEST_F(ChunkDistanceGraphExtendedTest, LevelIncreaseOnSourceRemoval)
     // 移除源（设置级别为 MAX_LEVEL）
     graph.updateSourceLevel(0, 0, ChunkDistanceGraph::MAX_LEVEL, false);
 
-    // 8方向传播下，移除源后需要多轮传播才能使所有区块回到 MAX_LEVEL
+    // 8方向传播下，移除源后需要多轮传播才能使所有区块回到哨兵级别
     // 每轮处理 1000 个更新，需要足够轮次让级别从边缘向中心收敛
     for (int i = 0; i < 50; ++i) {
         graph.processUpdates(1000);
     }
 
-    // 级别应该升高到 MAX_LEVEL
-    EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::MAX_LEVEL);
+    // 级别应该升高到哨兵（未被任何源触达）
+    EXPECT_EQ(graph.getLevel(0, 0), ChunkDistanceGraph::UNREACHED_LEVEL);
 }
 
 TEST_F(ChunkDistanceGraphExtendedTest, LevelPropagationChain)
@@ -334,12 +334,12 @@ TEST_F(ChunkDistanceGraphExtendedTest, LevelChangeCallbackOrder)
     // 应该有多个级别变化
     EXPECT_FALSE(changes.empty());
 
-    // 中心区块应该从 MAX_LEVEL 变为 30
+    // 中心区块应该从哨兵（未触达）变为 30
     bool foundCenter = false;
     for (const auto& [x, z, oldLevel, newLevel] : changes) {
         if (x == 0 && z == 0) {
             foundCenter = true;
-            EXPECT_EQ(oldLevel, ChunkDistanceGraph::MAX_LEVEL);
+            EXPECT_EQ(oldLevel, ChunkDistanceGraph::UNREACHED_LEVEL);
             EXPECT_EQ(newLevel, 30);
             break;
         }

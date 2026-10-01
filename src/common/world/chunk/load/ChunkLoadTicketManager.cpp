@@ -388,7 +388,7 @@ void ChunkLoadTicketManager::_refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z
 {
     const u64 key = _posToKey(x, z);
 
-    i32 sourceLevel = ChunkDistanceGraph::MAX_LEVEL;
+    i32 sourceLevel = ChunkDistanceGraph::UNREACHED_LEVEL;
     auto ticketIt = m_chunkTickets.find(key);
     if (ticketIt != m_chunkTickets.end()) {
         sourceLevel = std::min(sourceLevel, ticketIt->second.getMinLevel());
