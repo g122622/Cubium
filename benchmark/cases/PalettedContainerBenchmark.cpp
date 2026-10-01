@@ -86,10 +86,10 @@ struct AccessPattern {
 
 /// 装配容器：把 VOLUME 个位置均匀填成 k 种取值（各约 VOLUME/k 个位置）。
 ///
-/// 先 fill(1) 建立 SingleValue 基线，再逐格 set()：k=1 时全部 set 命中单一值、容器保持
-/// SingleValue（bits=0）；k≥2 时首次 set 触发 SingleValue→Linear 转换，随后调色板按新值
-/// 出现顺序增长到恰好 k 项。与生产路径（ChunkSection 逐格写入）一致，含真实的
-/// _onResize 位数提升。
+/// 先 fill(1) 建立均匀态基线，再逐格 set()：k=1 时全部 set 命中唯一值、容器保持均匀态
+/// （bits=0、无 storage）；k≥2 时首次 set 升到 1 位并建立反向哈希表，随后调色板按新值
+/// 出现顺序增长到恰好 k 项、位宽升到 ceil(log2(k))。与生产路径（ChunkSection 逐格写入）
+/// 一致，含真实的 _onResize 位宽提升。
 void buildContainer(PalettedContainer& container, i32 k)
 {
     container.fill(1);
@@ -138,14 +138,14 @@ void warmUpWrites(PalettedContainer& container, const AccessPattern& pattern)
 }
 
 /**
- * @brief 随机读基准（按元素种类数量扫描调色板模式）
+ * @brief 随机读基准（按元素种类数量扫描位宽）
  *
- * 一次迭代 = 对固定随机索引序列做 4×VOLUME 次 get()。工作模式由 k 决定：
- * k=1 → SingleValue（bits=0，直取单值）；k=2..16 → Linear（bits=4，线性调色板）；
- * k=17..4096 → HashMap（bits=5..12，哈希双射调色板 + 跨 u64 字的位存储）。
+ * 一次迭代 = 对固定随机索引序列做 4×VOLUME 次 get()。容器只有一种工作模式
+ * （调色板 + 位压缩 + 反向哈希表），k 只决定位宽：k=1 为均匀态（bits=0、无 storage，
+ * 直取 palette[0]），k≥2 时 bits = max(1, ceil(log2(k)))（k=2..4096 → 1..12 位）。
  *
  * 报告 reads_per_second（User Counter，迭代不变速率），并附带 bits_per_entry /
- * palette_size / memory_bytes 便于与内存换性能一起权衡阈值。
+ * palette_size / memory_bytes 便于与内存一起权衡。
  */
 void PalettedContainerRandomRead(::benchmark::State& state)
 {
@@ -173,11 +173,11 @@ void PalettedContainerRandomRead(::benchmark::State& state)
 }
 
 /**
- * @brief 随机写基准（按元素种类数量扫描调色板模式）
+ * @brief 随机写基准（按元素种类数量扫描位宽）
  *
  * 一次迭代 = 对固定随机索引序列做 4×VOLUME 次 set()，写入值取自当前 k 种取值集合，
- * 因此调色板不会增长（测稳态写入：Linear 的线性扫描 vs HashMap 的开放寻址哈希查找，
- * 以及不同的位存储宽度/调色板驻留大小）。
+ * 因此调色板不会增长（测稳态写入：反向哈希表查找 + 位存储读改写，以及不同位宽/
+ * 调色板驻留大小的成本）。
  */
 void PalettedContainerRandomWrite(::benchmark::State& state)
 {
@@ -209,9 +209,9 @@ void PalettedContainerRandomWrite(::benchmark::State& state)
 /**
  * @brief 元素种类数量扫描点（横轴），共 32 档
  *
- * 覆盖 SingleValue(1)、Linear(2..16)、HashMap 的每个位宽档（bits 5..12，各取低/中/高）：
- * 既能看清 Linear→HashMap 阈值（16/17）附近的拐点，也能对比非 2 的幂位宽（跨 u64 字
- * 读写）与 2 的幂位宽（bits=8，恰好 8 项/字、无跨字）的差异。
+ * 覆盖均匀态（k=1，bits=0）与每个位宽档（bits 1..12，各取低/中/高）：
+ * 既能看到"1 位/2 位/3 位"这些新支持的窄位宽（真实地形段的常见档位），也能对比非 2 的
+ * 幂位宽（跨 u64 字读写）与 2 的幂位宽（bits=1/2/4/8，无跨字）的差异。
  *
  * 这里用展开宏而不是函数：`BENCHMARK()` 宏展开成一个**声明**（内部生成 static 变量，
  * 返回值不能作为表达式实参传递），因此只能把同一份清单展开进两个 BENCHMARK 声明，

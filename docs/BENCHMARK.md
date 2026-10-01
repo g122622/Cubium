@@ -70,14 +70,17 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 
 TLS 方块光引擎批量更新：每迭代对一个 16×16 截面层做 256 个方块光变更，GLOWSTONE/AIR 交替翻转保证传播工作量稳定；报告 `blocks_per_second`。不经过 tick 级调度（那属于系统吞吐，由 ChunkGeneration 间接覆盖）。
 
-### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写 vs 工作模式）
+### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写 vs 位宽）
 
-对 `PalettedContainer`（16³ = 4096 格）扫描元素种类数量 k=1..4096，用同一条固定随机序列测随机读（`get`）与随机写（`set`），为 `_modeForBits` 的模式切换阈值提供实测依据（此前阈值是照搬原版/拍脑袋，没有实测）。
+对 `PalettedContainer`（16³ = 4096 格）扫描元素种类数量 k=1..4096，用同一条固定随机序列测随机读（`get`）与随机写（`set`）。容器**只有一种工作模式**（调色板 + 位压缩 + 开放寻址反向哈希表），k 只决定位宽：k=1 是均匀态（`bits=0`、不分配 storage），k≥2 时 `bits = max(1, ceil(log2 k))`（即 1..12 位）。
 
-- 32 档扫描点：SingleValue(1)、Linear(2..16)、HashMap 的每个位宽档（bits 5..12，各取低/中/高）
+> 该用例是为"要不要去掉 Linear/Flat/SingleValue 三种模式、破除 4 位下限"提供实测依据而加的；结论已被采纳并落地（见文末「设计变更记录」）。
+
+- 32 档扫描点：均匀态(1) + 每个位宽档（bits 1..12，各取低/中/高）
 - 口径：一次迭代 = 4×4096 次随机访问；**装配（填 k 种值）与预热（8 轮同序列访问）都在计时循环之前，不计入结果**（google/benchmark 只对 `for (auto _ : state)` 循环体计时）
-- 写入值取自当前 k 种取值集合 → 调色板不增长，测稳态读写，不含扩容/模式转换
+- 写入值取自当前 k 种取值集合 → 调色板不增长，测稳态读写，不含扩容/位宽提升
 - 报告 `reads_per_second` / `writes_per_second`，并附带 `bits_per_entry` / `palette_size` / `memory_bytes`
+- 图表纵轴为**线性、从 0 开始**（横轴为 log2），便于直读绝对吞吐
 
 复现（`--benchmark_trace` 与本用例无关，默认关闭即可）：
 
@@ -89,32 +92,54 @@ python benchmark/scripts/plot_paletted_container.py \
     --output docs/paletted_container_random_access.png
 ```
 
-![PalettedContainer 随机读写性能 vs 工作模式](paletted_container_random_access.png)
+![PalettedContainer 随机读写性能 vs 位宽](paletted_container_random_access.png)
 
 实测（i7-14700KF，3 次重复取中位数；Mops/s 越高越好）：
 
-| 区间 | k | 模式（bits） | 随机读 | 随机写 | 估算内存 |
-|---|---|---|---|---|---|
-| SingleValue | 1 | SingleValue (0) | 2007.5 | 520.8 † | 116 B |
-| Linear | 2 | Linear (4) | 388.6 | 109.2 | 2.2 KB |
-| Linear | 8 | Linear (4) | 372.8 | 78.3 | 2.2 KB |
-| Linear | 16 | Linear (4) | 348.0 | 66.6 | 2.2 KB |
-| HashMap | 17 | HashMap (5) | 317.8 | 172.1 | 2.9 KB |
-| HashMap | 129/192/256 | HashMap (8) | 381.3 / 392.8 / 395.1 | 182.1 / 184.2 / 170.2 | 5.8~7.5 KB |
-| HashMap | 1025..2048 | HashMap (11) | 249.9~266.9 | 133.5~145.9 | 18.2~31.7 KB |
-| HashMap | 4096 | HashMap (12) | 266.9 | 136.6 | 60.6 KB |
+| k | bits | 随机读 | 随机写 | 估算内存 |
+|---|---|---|---|---|
+| 1 | 0（均匀态） | 1864.1 | 522.0 † | 100 B |
+| 2 | 1 | 399.5 | 192.5 | 680 B |
+| 3 / 4 | 2 | 386.6 / 416.5 | 184.2 / 195.7 | 1.2 KB |
+| 6 / 8 | 3 | 390.2 / 385.7 | 182.1 / 174.0 | 1.7 KB |
+| 12 / 16 | 4 | 430.2 / 409.2 | 191.0 / 184.2 | 2.3 KB |
+| 17 / 32 | 5 | 327.7 / 322.4 | 162.0 / 159.8 | 2.9~3.0 KB |
+| 129 / 256 | 8 | 420.2 / 425.5 | 180.7 / 186.4 | 5.8~7.5 KB |
+| 1025 / 2048 | 11 | 286.4 / 286.4 | 145.9 / 139.8 | 18.2~31.7 KB |
+| 4096 | 12 | 301.1 | 149.1 | 60.6 KB |
 
-† k=1 时写入值恒等于容器唯一值 → `SingleValue` 早退，属无操作写入，不代表真实写入成本。
+† k=1 时写入值恒等于唯一值 → 均匀态早退，属无操作写入，不代表真实写入成本。
 
-**结论（调参依据）**
+**结论**
 
-1. **阈值只影响写入，不影响读取**：读路径是"位存储 → 调色板正向索引"，不做反查；写路径才需要 `_idFor`（线性扫描 vs 哈希查找）。因此 `Linear→HashMap` 阈值应由写性能决定，用读曲线调阈值是没有意义的。
-2. **阈值 16 对写入明显偏晚**：Linear 写在 k=16 已降到 66.6 Mops/s（线性扫描 16 项），而 HashMap 在 k=17 是 172.1 Mops/s（**2.6×**）。线性扫描成本随 k 单调增长（k=2: 109 → k=16: 67），交叉点应在更小的 k；但当前实现把"策略"与"位宽"绑死（`bits<=4 → Linear`），**无法在 k≤16 上测到哈希路径**，要定准交叉点必须先解耦二者再做 A/B。
-3. **位宽非 2 的幂时有 20%~30% 惩罚**：bits=8（k=129..256）读 ~390 / 写 ~179，明显高于 bits=5..7 与 9..12（读 247~321 / 写 139~166）；bits=4（也是 2 的幂）读 348~389、但写只有 67~109（受线性扫描拖累）。根因是 `_readBits/_writeBits` 允许条目跨 u64 字（"跨两个字"分支）。可选调法：**(a)** 改成原版 MC 的 `valuesPerLong = 64/bits` 布局（每字内不对齐但不跨字，内存增加约 2%~17%，bits=11 档最差）；**(b)** 位宽向上取整到 2 的幂（如 k=17 用 bits=8：内存 2.9 KB→4 KB，换约 +25% 速度）。
-4. **`Flat`（`MIN_BITS_FOR_FLAT = 16`）在 `VOLUME = 4096` 下不可达**：k≤4096 → `paletteSize`≤4096 → bits≤12，`_modeForBits` 永不返回 `Flat`；`fromFlat` 里 `uniqueCount >= 1<<16` 的分支同样不可达（注释也已标注"VOLUME=4096 时不可达，保留兜底"）。另外 `_calculateBitsForValue()` 全项目只有定义、没有调用点（死代码）。二者若确认无用应清理，否则会给"以为 Flat 阈值在起作用"的错误印象。
-5. **SingleValue 是绝对甜点**：读 2007.5 Mops/s（比 Linear 快 5×）、内存 116 B。让空气段尽量保持 SingleValue，收益远大于任何阈值微调。
+1. **位宽只由唯一值个数决定，2 的幂位宽仍明显更优**：bits=8 档（k=129..256）读 ~420 / 写 ~183，高于 bits=5..7 与 9..12（读 286~352 / 写 146~176）。根因仍是 `_readBits/_writeBits` 允许条目跨 u64 字（"跨两个字"分支）；bits=1/2/4/8 不跨字。若要把这几档的 20%~30% 拿回来，可改成原版 MC 的 `valuesPerLong = 64/bits` 布局（代价：内存 +2%~17%，bits=11 档最差）。
+2. **读比写快、且写入受唯一值个数影响小**：写路径要经反向哈希表查找（开放寻址 + 线性探测，负载 ≤ 75%），读路径只做"位提取 + 调色板正向索引"。
+3. **均匀态是绝对甜点**：读 1864 Mops/s、写 522 Mops/s（无操作早退）、内存 100 B。让空气段/整段同值保持均匀态（不分配 storage）收益最大。
 
-> 说明：以上为单机（Windows / i7-14700KF）中位数结果，绝对吞吐随机器变化；调阈值时请以**同机相对比较**为准（例如"k=16 Linear 写 vs k=17 HashMap 写"）。
+> 说明：以上为单机（Windows / i7-14700KF）中位数结果，绝对吞吐随机器变化；跨机只比相对值。
+
+### 设计变更记录：PalettedContainer 收敛为单一哈希模式（2026-10-01）
+
+上述基准得出"Linear 线性扫描让 k=2..16 的写入塌到 67~109 Mops/s、而哈希在 k=17 是 172"的结论后，`PalettedContainer` 已按此重构：
+
+- **删除** `SingleValue` / `Linear` / `Flat` 三种模式与 `_modeForBits`、`MIN_BITS_FOR_FLAT`、`_transitionSingleToLinear`：只剩"调色板 + 位压缩 + 反向哈希表"一种实现
+- **破除 4 位下限**：`bits = max(1, ceil(log2(唯一值个数)))`；唯一值为 1 时是均匀态（`bits=0`、不分配 storage / 哈希表，`fill()` 释放二者）
+- **删除死接口**：`rawPalette()` / `storage()` / `paletteValue()` / `rawPalettePtr` / `_calculateBitsForValue()`（其中前两者类外无调用者，`rawPalettePtr` 只写不读）
+- **磁盘/网络格式不受影响**：`JavaChunkReader` / `ChunkSerializer` / `VanillaChunkWire` 各自按 MC 规则重算位数与打包，内部位宽只影响内存布局
+- 顺带修掉一处潜在重复插入：`_hashMapInsert` 在触发扩容重建后直接返回（重建已把新增条目纳入表中）
+
+效果（同机同口径，中位数）：
+
+| 指标 | 旧实现 | 新实现 |
+|---|---|---|
+| k=2 写 / 读 | 109.2 / 388.6 Mops/s | **192.5 / 399.5** |
+| k=8 写 / 读 | 78.3 / 372.8 Mops/s | **174.0 / 385.7** |
+| k=16 写 / 读 | 66.6 / 348.0 Mops/s | **184.2 / 409.2** |
+| k=16 段内存 | 2.2 KB（恒 4 位） | **2.3 KB**（4 位）+ 哈希 64 B |
+| k=2 段内存 | 2.2 KB（恒 4 位） | **680 B**（1 位） |
+| 真实地形 256 区块批的位存储合计 | 4.62 MB（2254 段全 4 位） | **2.40 MB（-48%）**：1 位 259 段 / 2 位 1549 段 / 3 位 446 段 |
+
+真实地形分布由 `ChunkGeneration` 的临时 CSV 导出测得（`benchmark_results/palette_bits/`）：出生点 256 区块内 2254 个已创建段的 `palette_size` 全落在 **2..8**（无单值段），因此新位宽是 1~3 位。
 
 ### serverInitializeShell / serverInitializeWorld（服务端启动）
 

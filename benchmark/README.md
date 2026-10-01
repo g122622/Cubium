@@ -49,15 +49,15 @@ benchmark/
 - 被测进程的 stdout/stderr 重定向到 `<临时世界目录>/server_console.log`（两个平台一致）：非零退出时回显日志头 80 行 + 尾 120 行（超长中间省略）**并保留该临时世界目录**供事后排查；成功退出时静默删除
 - 依赖：须先构建 `minecraft-server`（路径 `build/bin/RelWithDebInfo/minecraft-server` 硬编码，相对仓库根目录运行）
 
-### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写）
+### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写 vs 位宽）
 
-对 `PalettedContainer`（16³ = 4096 格）扫描元素种类数量 k=1..4096，用同一条固定随机序列测随机读（`get`）与随机写（`set`）吞吐，为"模式切换阈值"提供实测依据。
+对 `PalettedContainer`（16³ = 4096 格）扫描元素种类数量 k=1..4096，用同一条固定随机序列测随机读（`get`）与随机写（`set`）。容器只有一种工作模式（调色板 + 位压缩 + 反向哈希表），k 只决定位宽：k=1 为均匀态（`bits=0`、无 storage），k≥2 时 `bits = max(1, ceil(log2 k))`。
 
-- 32 档扫描点：SingleValue(1)、Linear(2..16)、HashMap 的每个位宽档（bits 5..12，各取低/中/高），能看清 16/17 阈值拐点与"跨 u64 字"（非 2 的幂位宽）的影响
+- 32 档扫描点：均匀态(1) + 每个位宽档（bits 1..12，各取低/中/高）
 - 一次迭代 = 4×4096 次随机访问；**装配（填 k 种值）与预热（8 轮同序列访问）都在计时循环之前，不计入结果**
-- 写入值取自当前 k 种取值集合 → 调色板不增长，测的是稳态读写，不含扩容/模式转换
+- 写入值取自当前 k 种取值集合 → 调色板不增长，测的是稳态读写，不含扩容/位宽提升
 - 报告 `reads_per_second` / `writes_per_second`，附带 `bits_per_entry` / `palette_size` / `memory_bytes`
-- 图表与调参结论见 [docs/BENCHMARK.md](../docs/BENCHMARK.md) 的同名小节，绘图脚本 `scripts/plot_paletted_container.py`
+- 图表与设计变更记录见 [docs/BENCHMARK.md](../docs/BENCHMARK.md) 的同名小节，绘图脚本 `scripts/plot_paletted_container.py`（纵轴线性、从 0 开始；横轴 log2）
 
 ## 构建与运行
 

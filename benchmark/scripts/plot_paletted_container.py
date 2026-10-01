@@ -28,10 +28,17 @@ from matplotlib.ticker import FuncFormatter, LogLocator
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = REPO_ROOT / "docs" / "paletted_container_random_access.png"
 
-# 模式边界（与 PalettedContainer::_modeForBits 一致）：bits==0 → SingleValue；
-# bits<=4 → Linear；bits<16 → HashMap；bits>=16 → Flat。
-LINEAR_MAX_KINDS = 16
-FLAT_MIN_BITS = 16
+# 容器只有一种工作模式（调色板 + 位压缩 + 反向哈希表）：k=1 是均匀态（bits=0、无 storage），
+# k>=2 时位宽 = max(1, ceil(log2(k)))。下面是用于标注的位宽档位边界。
+MIN_BITS = 1
+BIT_WIDTH_REGIONS = [
+    (1, 1, "uniform"),
+    (2, 2, "1 bit"),
+    (3, 4, "2 bits"),
+    (5, 8, "3 bits"),
+    (9, 16, "4 bits"),
+    (17, 4096, "5..12 bits"),
+]
 
 READ_PREFIX = "PalettedContainerRandomRead"
 WRITE_PREFIX = "PalettedContainerRandomWrite"
@@ -98,38 +105,33 @@ def load_series(results_path: Path) -> dict:
     return {"series": series, "context": context, "path": results_path}
 
 
-def mode_of(kinds: int, bits: int) -> str:
-    if bits == 0:
-        return "SingleValue"
-    if bits <= 4:
-        return "Linear"
-    if bits < FLAT_MIN_BITS:
-        return "HashMap"
-    return "Flat"
+def state_of(bits: int) -> str:
+    """位宽 → 状态标签（bits=0 即均匀态：无 storage）。"""
+    return "uniform" if bits == 0 else f"{bits} bits"
 
 
 def print_tables(data: dict) -> None:
     read, write = data["series"]["read"], data["series"]["write"]
     kinds_all = sorted(set(read) | set(write))
-    print(f"{'kinds':>6} {'bits':>5} {'mode':>11} {'palette':>8} {'mem(B)':>8} "
+    print(f"{'kinds':>6} {'bits':>5} {'state':>9} {'palette':>8} {'mem(B)':>8} "
           f"{'read Mops/s':>12} {'write Mops/s':>13} {'read ns':>8} {'write ns':>9}")
     for kinds in kinds_all:
         row = read.get(kinds) or write.get(kinds)
         r, w = read.get(kinds), write.get(kinds)
-        print(f"{kinds:>6} {row['bits']:>5} {mode_of(kinds, row['bits']):>11} {row['palette']:>8} "
+        print(f"{kinds:>6} {row['bits']:>5} {state_of(row['bits']):>9} {row['palette']:>8} "
               f"{row['memory_bytes']:>8.0f} "
               f"{(r['mops'] if r else float('nan')):>12.1f} {(w['mops'] if w else float('nan')):>13.1f} "
               f"{(r['ns_per_op'] if r else float('nan')):>8.2f} {(w['ns_per_op'] if w else float('nan')):>9.2f}")
 
-    # 阈值邻域对比：Linear 上界 vs HashMap 下界
-    print("\n阈值邻域（Linear 上界 k=16 vs HashMap 下界 k=17）:")
-    for kinds in (16, 17):
+    # 均匀态 → 1 位 的拐点（唯一值从 1 增到 2）
+    print("\n均匀态(k=1, 无 storage) vs 1 位(k=2):")
+    for kinds in (1, 2):
         r, w = read.get(kinds), write.get(kinds)
         if r and w:
             print(f"  k={kinds:>4}: read {r['mops']:8.1f} Mops/s  write {w['mops']:8.1f} Mops/s  "
                   f"bits={r['bits']} mem={r['memory_bytes']:.0f}B")
 
-    # 每个位宽档的读写均值（看位宽对性能的影响，尤其是 2 的幂位宽 bits=8）
+    # 每个位宽档的读写均值（看位宽对性能的影响，尤其是 2 的幂位宽不跨 u64 字）
     print("\n按位宽汇总（同档位所有 k 的算术平均）:")
     by_bits: dict[int, list[tuple[float, float]]] = {}
     for kinds, r in read.items():
@@ -165,11 +167,14 @@ def render(data: dict, output: Path) -> None:
             color="#d94801", label=t("随机写 set()", "random write set()"))
 
     ax.set_xscale("log", base=2)
-    ax.set_yscale("log")
+    # 纵轴线性且从 0 开始（不使用指数缩放）
+    ax.set_yscale("linear")
+    peak_mops = max([v["mops"] for v in read.values()] + [v["mops"] for v in write.values()])
+    ax.set_ylim(0.0, peak_mops * 1.08)
     ax.set_xlabel(t("元素种类数量（唯一值个数 k）", "distinct element kinds (k)"), fontsize=12)
     ax.set_ylabel(t("随机读写性能（Mops/s，越高越好）", "random access throughput (Mops/s)"), fontsize=12)
-    ax.set_title(t("PalettedContainer 随机读写性能 vs 工作模式（每次迭代 4×4096 次随机访问，已预热、已剔除预热阶段）",
-                   "PalettedContainer random access vs working mode (4x4096 random ops/iteration, warmed up)"),
+    ax.set_title(t("PalettedContainer 随机读写性能 vs 位宽（每次迭代 4×4096 次随机访问，已预热、已剔除预热阶段）",
+                   "PalettedContainer random access vs bit width (4x4096 random ops/iteration, warmed up)"),
                  fontsize=13)
     ax.grid(True, which="both", linestyle=":", linewidth=0.6, alpha=0.55)
     ax.legend(fontsize=11, loc="lower left")
@@ -180,20 +185,19 @@ def render(data: dict, output: Path) -> None:
     ax.get_xaxis().set_major_formatter(FuncFormatter(lambda value, _pos: f"{int(value):d}"))
     ax.xaxis.set_minor_locator(LogLocator(base=2.0, subs="auto", numticks=40))
 
-    # 模式分界：Linear 2..16 / HashMap 17..4096；Flat 在 VOLUME=4096 下不可达
-    ax.axvline(LINEAR_MAX_KINDS + 0.5, color="#555555", linestyle="--", linewidth=1.1)
+    # 位宽档分界（只有一种工作模式，k 决定位宽）：均匀态 | 1 | 2 | 3 | 4 | 5..12 位
     ymin, ymax = ax.get_ylim()
-    ax.annotate(t(f"Linear | HashMap 阈值 = {LINEAR_MAX_KINDS}",
-                  f"Linear | HashMap threshold = {LINEAR_MAX_KINDS}"),
-                xy=(LINEAR_MAX_KINDS + 0.5, ymax), xytext=(LINEAR_MAX_KINDS * 1.35, ymax * 0.86),
-                fontsize=10, color="#333333",
-                arrowprops={"arrowstyle": "->", "color": "#333333", "linewidth": 0.9})
-    ax.text(1.02, ymax * 0.55, t("SingleValue\n(1 种)", "SingleValue\n(1 kind)"), fontsize=9, color="#444444")
-    ax.text(2.2, ymax * 0.55, t("Linear（bits=4，k≤16）", "Linear (bits=4, k<=16)"), fontsize=9.5, color="#444444")
-    ax.text(40, ymax * 0.55, t("HashMap（bits=5..12）", "HashMap (bits=5..12)"), fontsize=9.5, color="#444444")
+    for _lo, hi, _label in BIT_WIDTH_REGIONS[:-1]:
+        ax.axvline(hi + 0.5, color="#888888", linestyle=":", linewidth=0.9, alpha=0.8)
+    for lo, hi, label in BIT_WIDTH_REGIONS:
+        center = math.sqrt(lo * hi) if lo != hi else lo
+        ax.text(center, ymax * 0.62, t(label.replace("bits", "位").replace("uniform", "均匀态"),
+                                      label),
+                fontsize=9, color="#555555", ha="center")
     ax.text(0.995, 0.02,
-            t(f"注：Flat（bits≥{FLAT_MIN_BITS}）在 VOLUME=4096 下不可达（k≤4096 → bits≤12）",
-              f"note: Flat (bits>={FLAT_MIN_BITS}) is unreachable at VOLUME=4096"),
+            t(f"注：位宽 = max({MIN_BITS}, ceil(log2 k))；k=1 为均匀态（bits=0、无 storage）；"
+              "非 2 的幂位宽（3/5/6/7/9..12）条目跨 u64 字",
+              f"note: bits = max({MIN_BITS}, ceil(log2 k)); k=1 is uniform (no storage)"),
             transform=ax.transAxes, ha="right", fontsize=9, color="#666666")
 
     ctx = data["context"]
