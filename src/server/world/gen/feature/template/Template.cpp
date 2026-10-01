@@ -1215,6 +1215,28 @@ bool Template::placeInWorld(
     return true;
 }
 
+BlockPos Template::getZeroPositionWithTransform(const BlockPos& pos, Mirror mirror, Rotation rotation) const
+{
+    // 对齐 MC 1.21.11 StructureTemplate.java:616-637（static getZeroPositionWithTransform）：
+    // 尺寸先各减 1，再按镜像决定偏移分量 i/j，最后按旋转选择偏移组合。全程只做 offset，
+    // 不对 pos 本身做镜像/旋转坐标系变换——结果不会离开 pos 的一个模板尺寸邻域。
+    const i32 sizeX = m_size.x - 1;
+    const i32 sizeZ = m_size.z - 1;
+    const i32 i = (mirror == Mirror::FrontBack) ? sizeX : 0;
+    const i32 j = (mirror == Mirror::LeftRight) ? sizeZ : 0;
+
+    switch (rotation) {
+        case Rotation::CounterClockwise90:
+            return BlockPos(pos.x + j, pos.y, pos.z + sizeX - i);
+        case Rotation::Clockwise90:
+            return BlockPos(pos.x + sizeZ - j, pos.y, pos.z + i);
+        case Rotation::Clockwise180:
+            return BlockPos(pos.x + sizeX - i, pos.y, pos.z + sizeZ - j);
+        default:
+            return BlockPos(pos.x + i, pos.y, pos.z + j);
+    }
+}
+
 BlockPos Template::transformBlockPos(const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center)
 {
     BlockPos result = pos;

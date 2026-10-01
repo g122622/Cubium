@@ -602,6 +602,24 @@ public:
         const BlockPos& pos, Mirror mirror, Rotation rotation, const BlockPos& center);
 
     /**
+     * @brief 计算经镜像/旋转后的模板放置原点（MC StructureTemplate#getZeroPositionWithTransform）
+     *
+     * 对齐 MC 1.21.11 StructureTemplate.java:612-637：实例方法传入自身尺寸的 x/z，
+     * static 版本先各减 1，再按镜像与旋转选择偏移分量（offset），**只做偏移、不做
+     * 坐标系旋转**——结果永远落在 pos 的一个模板尺寸邻域内。
+     *
+     * 用于把"中心锚点"（如 FossilFeature 的 blockpos1）换算成 placeInWorld 的放置原点。
+     * 【重要】不要对世界坐标使用 transformBlockPos(pivot=原点) 代替本方法：那是绕
+     * 世界原点旋转，90/270 度会把放置点送到数千格外（化石放置访问窗口断言崩溃的根因）。
+     *
+     * @param pos 中心锚点
+     * @param mirror 镜像
+     * @param rotation 旋转
+     * @return 变换后的放置原点
+     */
+    [[nodiscard]] BlockPos getZeroPositionWithTransform(const BlockPos& pos, Mirror mirror, Rotation rotation) const;
+
+    /**
      * @brief 变换实体精确位置（f64）
      *
      * 对应 MC 1.21.11 StructureTemplate#transform(Vec3, Mirror, Rotation, BlockPos)。

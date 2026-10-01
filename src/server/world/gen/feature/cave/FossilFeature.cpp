@@ -138,9 +138,12 @@ bool FossilFeature::place(IWorld& world,
     }
 
     const i32 i1 = std::max(j - 15 - random.nextInt(10), world.getMinBuildHeight() + 10);
-    // MC: getZeroPositionWithTransform(blockpos1.atY(i1), Mirror.NONE, rotation)
+    // MC 1.21.11 FossilFeature.java:57：blockpos2 = structuretemplate.getZeroPositionWithTransform(
+    //   blockpos1.atY(i1), Mirror.NONE, rotation)。该换算只按化石模板尺寸做偏移；
+    // 【不可】用 transformBlockPos(pivot=世界原点) 代替——那是绕原点旋转，90/270 度会把
+    // 放置原点送到数千格外，触发 WorldGenRegion 访问窗口断言（负坐标区块必崩）。
     const BlockPos blockpos2 =
-        Template::transformBlockPos(BlockPos(blockpos1.x, i1, blockpos1.z), Mirror::None, rotation, BlockPos(0, 0, 0));
+        fossilTemplate->getZeroPositionWithTransform(BlockPos(blockpos1.x, i1, blockpos1.z), Mirror::None, rotation);
 
     PlacementSettings settings;
     settings.setRotation(rotation).setMirror(Mirror::None).setRandom(&random);
