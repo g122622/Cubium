@@ -105,7 +105,9 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -1032,7 +1034,9 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
@@ -1407,7 +1411,9 @@ public:
         return setBlockState(x, y, z, state);
     }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {

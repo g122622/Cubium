@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include <gtest/gtest.h>
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -67,8 +68,6 @@ public:
     }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }

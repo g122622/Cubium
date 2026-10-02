@@ -292,6 +292,32 @@ public:
 };
 
 /**
+ * @brief WorldGenRegion 的区块管理器
+ *
+ * 生成期区域是有限的世界视图，只暴露生成区域内已就绪的区块，不触发任何加载。
+ * 四个操作的语义与本次重构之前 `IWorld::getChunk` / `hasChunk` / `getOrLoadChunk`
+ * 在 `WorldGenRegion` 上的行为逐一对齐（后者当时继承默认实现，即只查内存）。
+ *
+ * 注意：非 const 的 `tryToGetChunkInMem` 会交出可变 `ChunkData*`——这与
+ * `WorldGenRegion::getChunkAt` 交出可变 `IChunk*` 的既有约定一致（生成与光照代码
+ * 本就经该路径直接改段数据）。
+ */
+class WorldGenRegionChunkManager final : public world::chunk::IChunkManager {
+public:
+    explicit WorldGenRegionChunkManager(WorldGenRegion& region)
+        : m_region(region)
+    {}
+
+    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) override;
+    [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) const override;
+    [[nodiscard]] bool hasChunkInMem(ChunkCoord x, ChunkCoord z) const override;
+    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord x, ChunkCoord z) override;
+
+private:
+    WorldGenRegion& m_region;
+};
+
+/**
  * @brief 世界生成区域
  *
  * 提供有限的世界视图给生成器。
@@ -405,17 +431,25 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
 
     /**
-     * @brief 获取区块数据（IWorld 接口）
+     * @brief 获取区块数据
      *
      * MC 1.21.11: 从区块数组获取 ChunkPrimer 底层的 ChunkData。
      * 如果区块不在区域内或不是 ChunkPrimer，返回 nullptr。
      */
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const;
 
     /**
-     * @brief 检查区块是否存在
+     * @brief 检查区块是否位于生成区域内且已就绪
      */
-    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override;
+    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 获取区块管理器（IWorld 接口）
+     *
+     * 只暴露生成区域内的区块，不触发加载。
+     */
+    [[nodiscard]] world::chunk::IChunkManager* chunkManager() override { return &m_chunkManager; }
+    [[nodiscard]] const world::chunk::IChunkManager* chunkManager() const override { return &m_chunkManager; }
 
     /**
      * @brief 获取最高方块 Y 坐标
@@ -713,6 +747,9 @@ private:
 
     // 调试追踪
     std::string m_currentlyGenerating; ///< 当前正在生成的结构/特性名称（崩溃报告上下文）
+
+    /// 声明在末尾：构造时以 *this 反向引用自身，只做转发，不触碰未初始化成员。
+    WorldGenRegionChunkManager m_chunkManager{*this};
 
     [[nodiscard]] i32 _centerIndex() const;
 };

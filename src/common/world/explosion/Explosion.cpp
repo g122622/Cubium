@@ -926,7 +926,7 @@ bool Explosion::_isLineOfSightBlocked(
         if (cache.cachedChunk == nullptr || chunkX != cache.cachedChunkX || chunkZ != cache.cachedChunkZ) {
             cache.cachedChunkX = chunkX;
             cache.cachedChunkZ = chunkZ;
-            cache.cachedChunk = m_world.getChunk(chunkX, chunkZ);
+            cache.cachedChunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
             cache.cachedChunkIsNull = (cache.cachedChunk == nullptr);
             // 区块变更后段缓存失效，强制重取
             cache.cachedSectionIndex = -1;

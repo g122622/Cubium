@@ -38,7 +38,7 @@ namespace {
 
 [[nodiscard]] const mc::Biome* getBiomeAt(const mc::IWorld& world, const mc::BlockPos& pos)
 {
-    const mc::world::chunk::ChunkData* chunk = world.getChunk(pos.chunkX(), pos.chunkZ());
+    const mc::world::chunk::ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
     if (chunk == nullptr) {
         return nullptr;
     }

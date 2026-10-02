@@ -111,8 +111,9 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
     // 充足光照（模拟室外环境）

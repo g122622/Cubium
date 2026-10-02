@@ -80,6 +80,79 @@ private:
 };
 
 /**
+ * @brief 测试用区块管理器桩（固定返回同一份区块数据）
+ *
+ * 供测试桩世界覆写 `IWorld::chunkManager()` 时直接返回，避免每个测试各自实现
+ * `IChunkManager` 的四个方法。`chunk` 与 `loaded` 相互独立：既有测试中存在
+ * "`hasChunk` 返回 true 但 `getChunk` 返回 nullptr"（区块已加载却读不到数据）的语义。
+ */
+class StubChunkManager final : public mc::world::chunk::IChunkManager {
+public:
+    StubChunkManager(ChunkData* chunk, bool loaded)
+        : m_chunk(chunk)
+        , m_loaded(loaded)
+    {}
+
+    void setChunk(ChunkData* chunk) noexcept { m_chunk = chunk; }
+    void setChunkLoaded(bool loaded) noexcept { m_loaded = loaded; }
+
+    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) override { return m_chunk; }
+
+    [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override
+    {
+        return m_chunk;
+    }
+
+    [[nodiscard]] bool hasChunkInMem(ChunkCoord /*x*/, ChunkCoord /*z*/) const override { return m_loaded; }
+
+    // 与 IWorld 引入 chunkManager() 之前的 getOrLoadChunk 默认实现一致：只查内存。
+    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord /*x*/, ChunkCoord /*z*/) override { return m_chunk; }
+
+private:
+    ChunkData* m_chunk;
+    bool m_loaded;
+};
+
+/**
+ * @brief 测试用区块管理器：直接把 ChunkData 表当作区块内存缓存
+ *
+ * 供 `BaseChunkBackedTestWorld` 覆写 `chunkManager()`。
+ */
+class MapChunkManager final : public mc::world::chunk::IChunkManager {
+public:
+    using ChunkMap = std::unordered_map<ChunkPos, std::unique_ptr<ChunkData>>;
+
+    explicit MapChunkManager(ChunkMap& chunks)
+        : m_chunks(chunks)
+    {}
+
+    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) override
+    {
+        const auto it = m_chunks.find(ChunkPos(x, z));
+        return it != m_chunks.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) const override
+    {
+        const auto it = m_chunks.find(ChunkPos(x, z));
+        return it != m_chunks.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] bool hasChunkInMem(ChunkCoord x, ChunkCoord z) const override
+    {
+        return m_chunks.find(ChunkPos(x, z)) != m_chunks.end();
+    }
+
+    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord x, ChunkCoord z) override
+    {
+        return tryToGetChunkInMem(x, z);
+    }
+
+private:
+    ChunkMap& m_chunks;
+};
+
+/**
  * @brief 测试用基础世界桩
  *
  * 提供 tests 中最常见的 IWorld 默认实现，避免每个测试重复样板代码。
@@ -94,8 +167,6 @@ public:
         // 走 fluidId 路径取 EMPTY 流体默认状态（Fluids::EMPTY()->defaultState()）。
         return fluid::Fluids::EMPTY() != nullptr ? &fluid::Fluids::EMPTY()->defaultState() : nullptr;
     }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     // 返回世界最大建造高度，原硬编码 64 会导致 PistonBlock::canPush 等检查
     // pos.y >= getHeight() 时误判 y=64 方块超出高度（64>=64）。MC 主世界高度上限为 320。
     [[nodiscard]] i32 getHeight(i32, i32) const override { return world::MAX_BUILD_HEIGHT; }
@@ -191,16 +262,8 @@ protected:
  */
 class BaseChunkBackedTestWorld : public BaseTestWorld {
 public:
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override
-    {
-        const auto it = m_chunks.find(ChunkPos(x, z));
-        return it != m_chunks.end() ? it->second.get() : nullptr;
-    }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override
-    {
-        return m_chunks.find(ChunkPos(x, z)) != m_chunks.end();
-    }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_chunkManager; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_chunkManager; }
 
     ChunkData& ensureChunk(ChunkCoord x, ChunkCoord z)
     {
@@ -214,6 +277,8 @@ public:
 
 protected:
     std::unordered_map<ChunkPos, std::unique_ptr<ChunkData>> m_chunks;
+    /// 声明在 m_chunks 之后：初始化顺序按声明顺序，构造时它引用 m_chunks。
+    MapChunkManager m_chunkManager{m_chunks};
 };
 
 } // namespace test

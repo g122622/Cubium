@@ -57,7 +57,7 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        const ChunkData* chunk = getChunk(x >> 4, z >> 4);
+        const ChunkData* chunk = chunkManager()->tryToGetChunkInMem(x >> 4, z >> 4);
         if (chunk == nullptr) {
             return getAirState();
         }
@@ -80,7 +80,7 @@ public:
 
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
     {
-        const ChunkData* chunk = getChunk(x >> 4, z >> 4);
+        const ChunkData* chunk = chunkManager()->tryToGetChunkInMem(x >> 4, z >> 4);
         if (chunk == nullptr) {
             return 0;
         }

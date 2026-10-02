@@ -616,7 +616,7 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
         {
             const ChunkCoord chunkX = world::toChunkCoord(x);
             const ChunkCoord chunkZ = world::toChunkCoord(z);
-            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
             if (chunk == nullptr) {
                 return m_world.getHeight(x, z);
             }
@@ -629,7 +629,7 @@ bool MobSpawnerBlockEntity::_isValidSpawnPosition(
         {
             const ChunkCoord chunkX = world::toChunkCoord(x);
             const ChunkCoord chunkZ = world::toChunkCoord(z);
-            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
             if (chunk == nullptr) {
                 return Biomes::Plains;
             }

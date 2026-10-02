@@ -142,7 +142,7 @@ namespace {
             }
 
             // 条件2：区块已在内存中
-            if (!world.hasChunk(cx, cz)) {
+            if (!chunkManager->hasChunkInMem(cx, cz)) {
                 return false;
             }
         }

@@ -607,7 +607,9 @@ public:
         return false;
     }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
     void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override

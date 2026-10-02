@@ -528,11 +528,11 @@ bool FireBlock::canDieAt(IWorld& world, const BlockPos& pos) const
 bool FireBlock::getIncreasedFireBurnout(IWorld& world, const BlockPos& pos) const
 {
     // 对齐 vanilla Level.getBiome(pos) 运行时查 chunk biome palette 的语义：
-    // 经 IWorld::getChunk 取已生成区块的 ChunkData，再查其 BiomeContainer（O(1) 数组索引，
+    // 经 world.chunkManager() 取已生成区块的 ChunkData，再查其 BiomeContainer（O(1) 数组索引，
     // 无 Voronoi 重算，等价 vanilla 运行时精度）。chunk 未加载时返回 false——火焰在未加载
     // 区块的蔓延本就不会发生，跳过即可。
     // 注意：ChunkData::getBiomeAtBlock 期望 chunk 局部 x/z（0-15）+ 世界绝对 y。
-    const ChunkData* chunk = world.getChunk(pos.x >> 4, pos.z >> 4);
+    const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(pos.x >> 4, pos.z >> 4);
     if (chunk == nullptr) {
         return false;
     }

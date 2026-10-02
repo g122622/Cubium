@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/TestWorldHelper.hpp"
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
@@ -105,8 +106,6 @@ public:
     // ========== 桩实现 ==========
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }

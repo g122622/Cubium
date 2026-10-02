@@ -66,7 +66,7 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        const ChunkData* chunk = getChunk(math::toChunkCoord(x), math::toChunkCoord(z));
+        const ChunkData* chunk = chunkManager()->tryToGetChunkInMem(math::toChunkCoord(x), math::toChunkCoord(z));
         if (chunk == nullptr) {
             return nullptr;
         }

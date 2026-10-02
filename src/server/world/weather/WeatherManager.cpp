@@ -300,7 +300,7 @@ std::pair<bool, BlockPos> WeatherManager::trySpawnLightning()
     ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerPos.z / static_cast<f32>(world::CHUNK_WIDTH)));
 
     // 获取该区块
-    const ChunkData* chunk = m_world->getChunk(playerChunkX, playerChunkZ);
+    const ChunkData* chunk = m_world->chunkManager()->tryToGetChunkInMem(playerChunkX, playerChunkZ);
     if (chunk == nullptr) {
         return {false, BlockPos(0, 0, 0)};
     }

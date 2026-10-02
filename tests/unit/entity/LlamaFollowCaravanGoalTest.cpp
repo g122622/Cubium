@@ -74,7 +74,9 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return EntityInstanceId(0); }
 

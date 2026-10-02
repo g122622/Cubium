@@ -139,7 +139,7 @@ TEST_F(ServerWorldPersistenceTest, SaveAllPersistsRuntimeEntitiesAndBlockEntitie
     auto entitySaveResult = m_storage.entityStorage()->saveEntitiesInChunk(entitiesToSave, 0, 0, 0);
     ASSERT_TRUE(entitySaveResult.success()) << entitySaveResult.error().message();
 
-    const ChunkData* persistedChunk = world->getChunk(0, 0);
+    const ChunkData* persistedChunk = world->chunkManager()->tryToGetChunkInMem(0, 0);
     ASSERT_NE(persistedChunk, nullptr);
     auto blockEntitySaveResult = m_storage.saveChunk(*persistedChunk, 0);
     ASSERT_TRUE(blockEntitySaveResult.success()) << blockEntitySaveResult.error().message();

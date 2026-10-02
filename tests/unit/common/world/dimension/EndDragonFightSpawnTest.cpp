@@ -70,7 +70,7 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        const ChunkData* chunk = getChunk(toChunkCoord(x), toChunkCoord(z));
+        const ChunkData* chunk = chunkManager()->tryToGetChunkInMem(toChunkCoord(x), toChunkCoord(z));
         if (chunk == nullptr) {
             return nullptr;
         }

@@ -45,7 +45,9 @@ using namespace mc::blocks;
 
 class LavaCauldronTestWorld : public mc::test::BaseTestWorld {
 public:
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 };
 
 // ============================================================================

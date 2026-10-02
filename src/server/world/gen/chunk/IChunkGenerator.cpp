@@ -505,6 +505,34 @@ i32 WorldGenRegion::getHeight(i32 x, i32 z) const
     return getTopBlockY(x, z, HeightmapType::WorldSurfaceWG);
 }
 
+// ============================================================================
+// WorldGenRegion 的区块管理器
+// ============================================================================
+
+ChunkData* WorldGenRegionChunkManager::tryToGetChunkInMem(ChunkCoord x, ChunkCoord z)
+{
+    IChunk* chunk = m_region.getIChunk(x, z, ChunkStatuses::EMPTY);
+    auto* primer = dynamic_cast<ChunkPrimer*>(chunk);
+    return primer != nullptr ? primer->getChunkData() : nullptr;
+}
+
+const ChunkData* WorldGenRegionChunkManager::tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) const
+{
+    return m_region.getChunk(x, z);
+}
+
+bool WorldGenRegionChunkManager::hasChunkInMem(ChunkCoord x, ChunkCoord z) const
+{
+    return m_region.hasChunk(x, z);
+}
+
+ChunkData* WorldGenRegionChunkManager::requestFullChunkSync(ChunkCoord x, ChunkCoord z)
+{
+    // 生成期区域是有限世界视图，不存在"触发加载"的语义：与重构前
+    // WorldGenRegion 继承的 IWorld::getOrLoadChunk 默认实现一致，只查内存。
+    return tryToGetChunkInMem(x, z);
+}
+
 u8 WorldGenRegion::getBlockLight(i32 x, i32 y, i32 z) const
 {
     // 生成期间光照未计算，返回 0

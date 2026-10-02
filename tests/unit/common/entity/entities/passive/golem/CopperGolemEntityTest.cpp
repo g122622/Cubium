@@ -62,7 +62,9 @@ class CopperGolemTestWorld final : public mc::test::BaseTestWorld {
 public:
     CopperGolemTestWorld() = default;
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isClientSide() const override { return false; }
 

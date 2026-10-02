@@ -246,7 +246,8 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
             // 1/8 概率放置花朵：从生物群系获取花列表
             if (random.nextInt(8) == 0) {
                 // 获取散布位置对应的生物群系
-                const ChunkData* chunk = world.getChunk(currentPos.chunkX(), currentPos.chunkZ());
+                const ChunkData* chunk =
+                    world.chunkManager()->tryToGetChunkInMem(currentPos.chunkX(), currentPos.chunkZ());
                 if (chunk != nullptr) {
                     const BiomeId biomeId =
                         chunk->getBiomeAtBlock(currentPos.localX(), currentPos.y, currentPos.localZ());

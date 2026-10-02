@@ -30,6 +30,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
+#include "common/world/chunk/IChunkManager.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
@@ -91,7 +92,7 @@ struct ChunkStepDependencyInfo {
  * - 维护内存区块缓存
  * - 处理区块卸载与回调通知
  */
-class ServerChunkManager {
+class ServerChunkManager : public mc::world::chunk::IChunkManager {
 public:
     // ChunkTaskScheduler 和 ChunkProgressionTask 需要访问私有方法
     // （_executeStepTask / _finalizeGeneratedChunkSync / _storeChunkInMemorySync /
@@ -211,7 +212,7 @@ public:
      * @param z 区块 Z 坐标
      * @return 内存中的区块指针；若不存在则返回 nullptr
      */
-    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) override;
 
     /**
      * @brief 获取当前已缓存的区块（const 版本）
@@ -220,7 +221,7 @@ public:
      * @param z 区块 Z 坐标
      * @return 内存中的区块指针；若不存在则返回 nullptr
      */
-    [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] const ChunkData* tryToGetChunkInMem(ChunkCoord x, ChunkCoord z) const override;
 
     /**
      * @brief 获取当前已缓存区块的共享所有权
@@ -249,7 +250,7 @@ public:
      * @param z 区块 Z 坐标
      * @return 若该区块已缓存则返回 true
      */
-    [[nodiscard]] bool hasChunkInMem(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] bool hasChunkInMem(ChunkCoord x, ChunkCoord z) const override;
 
     /**
      * @brief 以同步方式请求区块
@@ -273,7 +274,7 @@ public:
      * @param z 区块 Z 坐标
      * @return 成功时返回区块指针；失败时返回 nullptr
      */
-    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord x, ChunkCoord z);
+    [[nodiscard]] ChunkData* requestFullChunkSync(ChunkCoord x, ChunkCoord z) override;
 
     /**
      * @brief 以异步 Future 方式请求区块

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/world/IWorld.hpp"
@@ -53,15 +54,8 @@ public:
     {
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override
-    {
-        auto it = m_chunks.find(ChunkPos(x, z));
-        return it != m_chunks.end() ? it->second.get() : nullptr;
-    }
-    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override
-    {
-        return m_chunks.find(ChunkPos(x, z)) != m_chunks.end();
-    }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_chunkManager; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_chunkManager; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
@@ -132,6 +126,8 @@ private:
     world::border::WorldBorder m_worldBorder;
     world::gamerule::GameRules m_gameRules;
     std::unordered_map<ChunkPos, std::unique_ptr<ChunkData>> m_chunks;
+    /// 声明在 m_chunks 之后：初始化顺序按声明顺序，构造时它引用 m_chunks。
+    mc::test::MapChunkManager m_chunkManager{m_chunks};
 };
 
 // ============================================================================

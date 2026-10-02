@@ -252,7 +252,9 @@ class InheritMalusTestWorld final : public mc::test::BaseTestWorld {
 public:
     InheritMalusTestWorld() = default;
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     // 覆写 getEntity 以支持 getVehicle() → Entity* 解引用
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override

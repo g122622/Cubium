@@ -670,15 +670,15 @@ public:
 };
 } // namespace mc::blockentity
 
-// 测试用的区块支撑世界：基于 BaseChunkBackedTestWorld，支持 getOrLoadChunk
-// （通过 IWorld 默认实现委托 getChunk）、方块读写、方块实体注入
+// 测试用的区块支撑世界：基于 BaseChunkBackedTestWorld，支持 requestFullChunkSync、
+// 方块读写、方块实体注入
 class EndGatewayChunkTestWorld : public mc::test::BaseChunkBackedTestWorld {
 public:
     EndGatewayChunkTestWorld() { mc::VanillaBlocks::initialize(); }
 
     [[nodiscard]] const mc::BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        const mc::world::chunk::ChunkData* chunk = getChunk(x >> 4, z >> 4);
+        const mc::world::chunk::ChunkData* chunk = chunkManager()->tryToGetChunkInMem(x >> 4, z >> 4);
         if (chunk == nullptr) {
             return getAirState();
         }

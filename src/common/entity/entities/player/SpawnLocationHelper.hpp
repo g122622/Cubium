@@ -69,7 +69,7 @@ public:
     {
         const ChunkCoord chunkX = x >> world::CHUNK_SHIFT;
         const ChunkCoord chunkZ = z >> world::CHUNK_SHIFT;
-        const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+        const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
         if (chunk == nullptr) {
             return std::nullopt;
         }

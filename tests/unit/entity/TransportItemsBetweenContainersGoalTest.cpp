@@ -178,7 +178,9 @@ class TransportItemsTestWorld final : public mc::test::BaseTestWorld {
 public:
     TransportItemsTestWorld() = default;
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 

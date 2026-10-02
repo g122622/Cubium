@@ -2522,7 +2522,7 @@ std::optional<Vector3d> Entity::findSafeTeleportPosition(f64 x, f64 y, f64 z, bo
     // 检查区块是否加载（简化实现：检查目标区块是否可用）
     ChunkCoord chunkX = world::toChunkCoord(blockPos.x);
     ChunkCoord chunkZ = world::toChunkCoord(blockPos.z);
-    const ChunkData* chunk = m_world->getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = m_world->chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
     if (chunk == nullptr) {
         return std::nullopt;
     }

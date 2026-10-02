@@ -347,19 +347,23 @@ world/
 - 区块未加载的事件会重新入队等待下次处理
 - `Block::triggerEvent()` 默认委托给 `BlockEntity::triggerEvent()`，子类可覆写
 
-### 16. IWorld::getOrLoadChunk() 同步区块加载
+### 16. IWorld::chunkManager() 区块访问
 
-**问题**：common 层代码需要在判断区块是否为空时触发区块加载（如末地折跃门出口生成扫描外岛区块），但 common 不能依赖 server 层的 `ServerChunkManager::requestFullChunkSync`。
+**问题**：common 层代码需要按区块粒度访问数据（生物群系、按类型高度图、`inhabitedTime`、section 级缓存、区块加载判定、同步加载），但 common 不能依赖 server 层的 `ServerChunkManager`。
 
-**解决**：`IWorld` 提供虚方法 `getOrLoadChunk(ChunkCoord x, ChunkCoord z)`，对应 MC Java 的 `Level.getChunk(x, z, require=true)`：
-- 默认实现委托给 `getChunk(x, z)`（仅查内存缓存，不触发加载）
-- `ServerWorld` 覆写为调用 `m_chunkManager->requestFullChunkSync(x, z)`，同步触发区块加载/生成
-- `WorldGenRegion` 等只读快照实现继承默认行为（仅查内存）
-- `BaseTestWorld`/`BaseChunkBackedTestWorld` 测试桩继承默认行为
+**解决**：`IWorld` 暴露 `chunkManager()` 访问器，返回 common 层窄接口 `world::chunk::IChunkManager`（声明于 `chunk/IChunkManager.hpp`），只含 4 个操作：
 
-**线程安全**：与 `requestFullChunkSync` 相同，仅在服务端主线程调用安全。
+| 操作 | 语义 |
+|------|------|
+| `tryToGetChunkInMem(x, z)` | 仅查内存缓存，不触发加载/生成 |
+| `hasChunkInMem(x, z)` | 区块是否已在内存中 |
+| `requestFullChunkSync(x, z)` | 同步触发加载/生成，对应 MC Java `Level.getChunk(x, z, require=true)`；仅服务端主线程安全 |
 
-**使用场景**：`EndGatewayEntity::_generateExitPortal` 通过 `world.getOrLoadChunk()` 扫描外岛区块判空，完整复刻 MC Java 的 `findExitPortalXZPosTentative` 行为。需要仅查询内存时（不触发加载）仍使用 `getChunk()`。
+`ServerChunkManager` 实现该接口；`ServerWorld::chunkManager()` 借 C++ 协变返回类型返回具体类型 `ServerChunkManager*`，因此服务端代码看到的是完整管理器 API，而 common 代码只看到这 4 个方法。`IWorld` 自身不再提供 `getChunk`/`hasChunk`/`getOrLoadChunk` 这类逐操作转发方法。
+
+**默认实现**：`IWorld::chunkManager()` 默认返回 `EmptyChunkManager`（null object，语义为"所有区块均未加载"），供客户端只读适配器、测试桩世界等不持有区块存储的实现使用。测试侧另有 `mc::test::StubChunkManager`（固定返回一份 ChunkData）与 `mc::test::MapChunkManager`（把测试的 ChunkData 表当作缓存）。
+
+**使用场景**：`EndGatewayEntity::_generateExitPortal` 经 `world.chunkManager()->requestFullChunkSync(...)` 同步加载外岛区块并逐段判空，完整复刻 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative` 行为。
 
 ### 17. IWorld 粒子生成虚接口
 

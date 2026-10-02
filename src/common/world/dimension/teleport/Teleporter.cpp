@@ -88,7 +88,7 @@ std::vector<BlockPos> Teleporter::searchPortalBlocks(IWorld& world, const BlockP
     for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
         for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
             // 获取区块
-            const ChunkData* chunk = world.getChunk(cx, cz);
+            const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(cx, cz);
             if (chunk == nullptr) {
                 continue;
             }

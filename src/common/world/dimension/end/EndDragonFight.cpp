@@ -586,7 +586,7 @@ bool EndDragonFight::_hasActiveExitPortal(IWorld& world)
 
     for (ChunkCoord cx = -ARENA_CHUNK_RADIUS; cx <= ARENA_CHUNK_RADIUS; ++cx) {
         for (ChunkCoord cz = -ARENA_CHUNK_RADIUS; cz <= ARENA_CHUNK_RADIUS; ++cz) {
-            const ChunkData* chunk = world.getChunk(cx, cz);
+            const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(cx, cz);
             if (chunk == nullptr) {
                 continue;
             }
@@ -680,7 +680,7 @@ std::optional<blockpattern::BlockPatternMatch> EndDragonFight::_findExitPortal(I
     // ========== 策略 1：扫描竞技场区块中的 END_PORTAL 方块 ==========
     for (ChunkCoord cx = -ARENA_CHUNK_RADIUS; cx <= ARENA_CHUNK_RADIUS; ++cx) {
         for (ChunkCoord cz = -ARENA_CHUNK_RADIUS; cz <= ARENA_CHUNK_RADIUS; ++cz) {
-            const ChunkData* chunk = world.getChunk(cx, cz);
+            const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(cx, cz);
             if (chunk == nullptr) {
                 continue;
             }
@@ -737,7 +737,7 @@ bool EndDragonFight::_isArenaLoaded(IWorld& world)
     // 检查原点周围的区块是否已加载
     for (ChunkCoord cx = -ARENA_CHUNK_RADIUS; cx <= ARENA_CHUNK_RADIUS; ++cx) {
         for (ChunkCoord cz = -ARENA_CHUNK_RADIUS; cz <= ARENA_CHUNK_RADIUS; ++cz) {
-            if (!world.hasChunk(cx, cz)) {
+            if (!world.chunkManager()->hasChunkInMem(cx, cz)) {
                 return false;
             }
         }

@@ -22,6 +22,7 @@
  */
 
 #include "world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/math/random/Random.hpp"
@@ -65,10 +66,6 @@ public:
         const BlockState* state = getBlockState(x, y, z);
         return state != nullptr ? state->getFluidState() : &fluid::Fluids::EMPTY()->defaultState();
     }
-
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
 
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override
     {

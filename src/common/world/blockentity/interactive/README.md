@@ -97,7 +97,7 @@
 
         `_generateExitPortal()` 在出口折跃门方块实体上设置返回位置（`setExitPortal(m_pos, false)`），形成双向传送链。
 
-        `_generateExitPortal()` 的区块扫描算法对齐 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative`：从主岛沿方向向量前进 1024 格后，先回退跳过非空区块（最多 16 次），再前进跳过空区块（最多 16 次），每次步进一个区块宽度（16 格）。扫描通过 `IWorld::getOrLoadChunk()` 同步加载目标区块，再用私有静态助手 `_isChunkEmpty(const ChunkData*)` 判空——遍历全部 `CHUNK_SECTIONS` 个区段，存在非空区段即视为非空区块，nullptr 区块视为空区块。这对应 MC Java 的 `isChunkEmpty` + `getHighestFilledSectionIndex() == -1` 语义。出口位置 Y 坐标固定为 75，再由 `_findHighestBlock` 向上 10 格放置折跃门结构。
+        `_generateExitPortal()` 的区块扫描算法对齐 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative`：从主岛沿方向向量前进 1024 格后，先回退跳过非空区块（最多 16 次），再前进跳过空区块（最多 16 次），每次步进一个区块宽度（16 格）。扫描通过 `world.chunkManager()->requestFullChunkSync()` 同步加载目标区块，再用私有静态助手 `_isChunkEmpty(const ChunkData*)` 判空——遍历全部 `CHUNK_SECTIONS` 个区段，存在非空区段即视为非空区块，nullptr 区块视为空区块。这对应 MC Java 的 `isChunkEmpty` + `getHighestFilledSectionIndex() == -1` 语义。出口位置 Y 坐标固定为 75，再由 `_findHighestBlock` 向上 10 格放置折跃门结构。
 
         ## #6. SignEntity 的涂蜡状态与编辑者追踪
 

@@ -6,7 +6,7 @@
 
 ```
 src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/getOrLoadChunk同步区块加载）
+├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历/chunkManager区块访问）
 ├── ServerLightQueue.hpp/cpp         # 运行时方块变更光照延迟队列（按区块分组去重，tick drain→submit worker 或 fallback 同步）
 ├── RuntimeLightingProvider.hpp/cpp  # 运行时/区块加载光照 worker provider（继承 StarLightLightingProvider；构造时 5×5 shared_ptr 保活；markLightChanged 收集 dirty section 而非回调）
 ├── RuntimeLightTask.hpp/cpp         # 运行时光照传播 worker 任务（继承 ITask；execute 经 TLS 引擎调 blocksChangedInChunk 传播→取 dirty→_enqueueLightFlush 入主线程 flush 队列）
@@ -351,13 +351,13 @@ data/end_dragon_fight.json
 - 方块实体在 tick 期间可能修改所在区块的方块实体映射（如活塞移动方块实体），因此必须使用 `getAllBlockEntities()` 的快照而非直接引用 `m_blockEntities`。
 - 如果 tick 中的方块实体被移除（`isRemoved() == true`），应跳过其 tick。
 
-### getOrLoadChunk 同步区块加载
+### chunkManager() 区块访问
 
-`ServerWorld` 覆写 `IWorld::getOrLoadChunk(ChunkCoord x, ChunkCoord z)`，委托给 `m_chunkManager->requestFullChunkSync(x, z)`，对应 MC Java 的 `Level.getChunk(x, z, require=true)`：区块已加载则直接返回，否则在主线程上同步触发加载/生成。
+`IWorld::chunkManager()` 返回 common 层窄接口 `world::chunk::IChunkManager`（`tryToGetChunkInMem` / `hasChunkInMem` / `requestFullChunkSync`）。`ServerWorld` 借 C++ **协变返回类型**把它覆写为返回具体的 `ServerChunkManager*`，因此服务端代码拿到的是完整管理器 API，common 层代码只看到那 3 个查询/加载入口——`ServerWorld` 自身不再需要 `getChunk`/`hasChunk`/`getOrLoadChunk` 这类逐操作转发方法。
 
-**线程安全**：与 `requestFullChunkSync` 相同，仅在服务端主线程调用安全（内部通过 `_drainPendingLoadCompletes` 泵送避免死锁）。
+**线程安全**：`requestFullChunkSync` 与 `ServerChunkManager::requestFullChunkSync` 相同，仅在服务端主线程调用安全（内部通过 `_drainPendingLoadCompletes` 泵送避免死锁）。
 
-**使用场景**：`EndGatewayEntity::_generateExitPortal` 在末地外岛扫描区块判空时调用 `world.getOrLoadChunk()`，完整复刻 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative` 行为。其他 common 层代码需要按需加载区块时也应使用此接口，而非直接调用 `ServerChunkManager`（common 层无法依赖 server 层）。
+**使用场景**：`EndGatewayEntity::_generateExitPortal` 在末地外岛扫描区块判空时调用 `world.chunkManager()->requestFullChunkSync(...)`，完整复刻 MC Java 的 `TheEndGatewayBlockEntity.findExitPortalXZPosTentative` 行为。其他 common 层代码需要按需加载区块时也走同一入口，而非直接依赖 `ServerChunkManager` 类型（common 层无法依赖 server 层）。
 
 ### broadcastBlockEntity 方块实体数据广播
 

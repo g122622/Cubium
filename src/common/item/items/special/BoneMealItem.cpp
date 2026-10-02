@@ -232,7 +232,7 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
         const BlockState* stateToPlace = &VanillaBlocks::SEAGRASS->defaultState();
 
         // 获取当前位置的生物群系
-        const ChunkData* chunk = world.getChunk(currentPos.chunkX(), currentPos.chunkZ());
+        const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(currentPos.chunkX(), currentPos.chunkZ());
         if (chunk != nullptr) {
             const BiomeId biomeId = chunk->getBiomeAtBlock(currentPos.localX(), currentPos.y, currentPos.localZ());
             const bool isWarmOcean = (biomeId == Biomes::WarmOcean || biomeId == Biomes::DeepWarmOcean);

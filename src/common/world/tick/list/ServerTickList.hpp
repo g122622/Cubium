@@ -470,7 +470,7 @@ template <typename T>
 bool ServerTickList<T>::_canTick(const BlockPos& pos) const
 {
     // 检查区块是否加载
-    return m_world.hasChunk(toChunkCoord(pos.x), toChunkCoord(pos.z));
+    return m_world.chunkManager()->hasChunkInMem(toChunkCoord(pos.x), toChunkCoord(pos.z));
 }
 
 } // namespace world::tick

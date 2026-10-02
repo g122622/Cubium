@@ -34,7 +34,7 @@ namespace mc::blockpattern {
 const BlockState* BlockInWorld::getState() const
 {
     if (!m_stateCached) {
-        if (m_loadChunks || m_world.hasChunk(m_pos.chunkX(), m_pos.chunkZ())) {
+        if (m_loadChunks || m_world.chunkManager()->hasChunkInMem(m_pos.chunkX(), m_pos.chunkZ())) {
             m_state = m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
         }
         m_stateCached = true;

@@ -156,7 +156,7 @@ TEST_F(TickPrecipitationTest, HighRandomTickSpeedTriggersPrecipitation)
         // 检查所有已加载区块
         for (i32 cx = -1; cx <= 1 && !foundIceOrSnow; ++cx) {
             for (i32 cz = -1; cz <= 1 && !foundIceOrSnow; ++cz) {
-                ChunkData* c = m_world->getChunk(cx, cz);
+                ChunkData* c = m_world->chunkManager()->tryToGetChunkInMem(cx, cz);
                 if (c == nullptr) continue;
                 for (i32 x = 0; x < 16 && !foundIceOrSnow; ++x) {
                     for (i32 z = 0; z < 16 && !foundIceOrSnow; ++z) {
@@ -270,7 +270,7 @@ TEST_F(TickPrecipitationTest, MaxSnowAccumulationHeightLimitsSnowLayers)
     }
 
     // 如果有雪层，检查是否超过 maxSnowAccumulation
-    ChunkData* chunk = m_world->getChunk(0, 0);
+    ChunkData* chunk = m_world->chunkManager()->tryToGetChunkInMem(0, 0);
     if (chunk != nullptr) {
         bool foundOverLimitSnow = false;
         for (i32 x = 0; x < 16 && !foundOverLimitSnow; ++x) {

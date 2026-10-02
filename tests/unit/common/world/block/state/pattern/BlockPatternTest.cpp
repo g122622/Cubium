@@ -58,7 +58,8 @@ class PatternTestWorld : public mc::test::BaseChunkBackedTestWorld {
 public:
     [[nodiscard]] const mc::BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        const mc::ChunkData* chunk = getChunk(mc::math::toChunkCoord(x), mc::math::toChunkCoord(z));
+        const mc::ChunkData* chunk =
+            chunkManager()->tryToGetChunkInMem(mc::math::toChunkCoord(x), mc::math::toChunkCoord(z));
         if (chunk == nullptr) {
             return nullptr;
         }

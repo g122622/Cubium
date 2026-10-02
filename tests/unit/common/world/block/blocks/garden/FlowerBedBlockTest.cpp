@@ -81,7 +81,9 @@ public:
         return true;
     }
 
-    [[nodiscard]] bool hasChunk(i32, i32) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {

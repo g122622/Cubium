@@ -180,7 +180,9 @@ public:
         // 测试中忽略声音播放
     }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
     [[nodiscard]] bool isClientSide() const override { return false; }
@@ -307,7 +309,9 @@ public:
 
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
     [[nodiscard]] bool isClientSide() const override { return false; }

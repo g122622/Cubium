@@ -61,7 +61,7 @@ DifficultyInstance DifficultyInstance::at(const IWorld& world, const BlockPos& p
     i64 chunkInhabitedTime = 0;
     const ChunkCoord chunkX = world::toChunkCoord(pos.x);
     const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
-    if (const auto* chunk = world.getChunk(chunkX, chunkZ)) {
+    if (const auto* chunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ)) {
         chunkInhabitedTime = chunk->inhabitedTime();
     }
 

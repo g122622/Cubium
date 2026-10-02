@@ -58,13 +58,13 @@ namespace {
 /**
  * @brief 检查区域是否已加载
  */
-bool isAreaLoaded(IWorld& world, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
+bool isAreaLoaded(server::ServerWorld& world, i32 minX, i32 minY, i32 minZ, i32 maxX, i32 maxY, i32 maxZ)
 {
     for (i32 x = minX; x <= maxX; x += world::CHUNK_WIDTH) {
         for (i32 z = minZ; z <= maxZ; z += world::CHUNK_WIDTH) {
             ChunkCoord chunkX = world::toChunkCoord(x);
             ChunkCoord chunkZ = world::toChunkCoord(z);
-            if (!world.hasChunk(chunkX, chunkZ)) {
+            if (!world.chunkManager()->hasChunkInMem(chunkX, chunkZ)) {
                 return false;
             }
         }

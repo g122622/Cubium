@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -550,7 +550,7 @@ void ServerWorld::runBlockEvents()
         // 检查区块是否已加载并处于tick状态
         const ChunkCoord chunkX = world::toChunkCoord(event.pos.x);
         const ChunkCoord chunkZ = world::toChunkCoord(event.pos.z);
-        if (hasChunk(chunkX, chunkZ)) {
+        if (m_chunkManager->hasChunkInMem(chunkX, chunkZ)) {
             if (doBlockEvent(event)) {
                 // 事件成功执行，广播给客户端。
                 // IR BlockEvent.blockId 语义 = 方块注册表 id（与 vanilla ClientboundBlockEventPacket
@@ -724,33 +724,6 @@ void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& 
 }
 
 // ============================================================================
-// 区块管理
-// ============================================================================
-
-// 注意：非const版本的 getChunk 提供可变访问，供需要修改区块的场景使用。
-// const版本是 IWorld 接口实现。
-ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z)
-{
-    return m_chunkManager->tryToGetChunkInMem(x, z);
-}
-
-const ChunkData* ServerWorld::getChunk(ChunkCoord x, ChunkCoord z) const
-{
-    return m_chunkManager->tryToGetChunkInMem(x, z);
-}
-
-bool ServerWorld::hasChunk(ChunkCoord x, ChunkCoord z) const
-{
-    return m_chunkManager->hasChunkInMem(x, z);
-}
-
-const ChunkData* ServerWorld::getOrLoadChunk(ChunkCoord x, ChunkCoord z)
-{
-    // 同步加载区块：如果已加载则直接返回，否则在主线程上同步触发加载/生成
-    return m_chunkManager->requestFullChunkSync(x, z);
-}
-
-// ============================================================================
 // 方块操作
 // ============================================================================
 
@@ -759,7 +732,7 @@ const BlockState* ServerWorld::getBlockState(i32 x, i32 y, i32 z) const
     ChunkCoord chunkX = CoordConverter::blockToChunk(x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
 
-    const ChunkData* chunk = getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(chunkX, chunkZ);
     if (!chunk) return nullptr;
 
     i32 localX = x - chunkX * world::CHUNK_WIDTH;
@@ -1158,7 +1131,7 @@ BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos)
     // 获取区块
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
-    ChunkData* chunk = getChunk(chunkX, chunkZ);
+    ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(chunkX, chunkZ);
     if (!chunk) {
         return nullptr;
     }
@@ -1177,7 +1150,7 @@ const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const
     // 获取区块
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
-    const ChunkData* chunk = getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(chunkX, chunkZ);
     if (!chunk) {
         return nullptr;
     }
@@ -1827,7 +1800,7 @@ i32 ServerWorld::getHeight(i32 x, i32 z) const
     const ChunkCoord chunkX = CoordConverter::blockToChunk(x);
     const ChunkCoord chunkZ = CoordConverter::blockToChunk(z);
 
-    const ChunkData* chunk = getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = m_chunkManager->tryToGetChunkInMem(chunkX, chunkZ);
     if (!chunk) {
         // 区块未加载时返回海平面附近，避免调用方得到无意义常量值。
         return world::SEA_LEVEL + 1;
@@ -1909,7 +1882,7 @@ bool _forEachCollisionCandidate(const ServerWorld& world, const AxisAlignedBB& b
 
     for (ChunkCoord cz = minChunkZ; cz <= maxChunkZ; ++cz) {
         for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
-            const ChunkData* chunk = world.getChunk(cx, cz);
+            const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(cx, cz);
             if (!chunk) continue;
 
             i32 minY = std::max(world::MIN_BUILD_HEIGHT, static_cast<i32>(std::floor(box.minY)));

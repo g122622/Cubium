@@ -44,8 +44,6 @@ public:
     const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
     const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
-    const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
     i32 getHeight(i32, i32) const override { return 0; }
     u8 getBlockLight(i32, i32, i32) const override { return 0; }

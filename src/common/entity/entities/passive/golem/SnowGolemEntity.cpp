@@ -142,7 +142,7 @@ bool SnowGolemEntity::willMelt() const
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
     // 通过区块获取生物群系
-    const ChunkData* chunk = worldPtr->getChunk(pos.chunkX(), pos.chunkZ());
+    const ChunkData* chunk = worldPtr->chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
     if (chunk == nullptr) {
         return false;
     }
@@ -369,7 +369,7 @@ void SnowGolemEntity::_placeSnowLayer()
         }
 
         // 检查生物群系温度
-        const ChunkData* chunk = worldPtr->getChunk(pos.chunkX(), pos.chunkZ());
+        const ChunkData* chunk = worldPtr->chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
         if (chunk == nullptr) {
             continue;
         }

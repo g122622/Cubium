@@ -216,19 +216,6 @@ public:
      */
     void setDifficultyCallback(std::function<Difficulty()> callback) { m_difficultyCallback = std::move(callback); }
 
-    // ========== 区块管理 ==========
-
-    /**
-     * @brief 获取区块（可变版本，供需要修改区块的场景使用）
-     *
-     * 这是 ServerWorld 特有的方法，提供非 const 访问。
-     * IWorld 接口的 const 版本也会委托给此方法。
-     */
-    [[nodiscard]] ChunkData* getChunk(ChunkCoord x, ChunkCoord z);
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override;
-    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override;
-    [[nodiscard]] const ChunkData* getOrLoadChunk(ChunkCoord x, ChunkCoord z) override;
-
     // ========== 方块操作 ==========
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override;
@@ -354,8 +341,8 @@ public:
 
     // ========== 区块管理器 ==========
 
-    [[nodiscard]] ServerChunkManager* chunkManager() { return m_chunkManager.get(); }
-    [[nodiscard]] const ServerChunkManager* chunkManager() const { return m_chunkManager.get(); }
+    [[nodiscard]] ServerChunkManager* chunkManager() override { return m_chunkManager.get(); }
+    [[nodiscard]] const ServerChunkManager* chunkManager() const override { return m_chunkManager.get(); }
 
     /**
      * @brief 把本维度所有已加载且被修改过的区块落盘
@@ -1013,7 +1000,7 @@ public:
 
     [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord x, ChunkCoord z) const noexcept override
     {
-        return getChunk(x, z);
+        return m_chunkManager->tryToGetChunkInMem(x, z);
     }
 
     // ========== 实体管理 ==========

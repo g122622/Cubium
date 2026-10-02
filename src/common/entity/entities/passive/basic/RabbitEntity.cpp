@@ -193,7 +193,7 @@ RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
     BlockPos pos(
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
-    const ChunkData* chunk = worldPtr->getChunk(pos.chunkX(), pos.chunkZ());
+    const ChunkData* chunk = worldPtr->chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
     if (chunk == nullptr) {
         return RabbitType::Brown;
     }

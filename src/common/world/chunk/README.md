@@ -6,6 +6,7 @@
 
 ```
 src/common/world/chunk/
+├── IChunkManager.hpp                 # 区块管理器窄接口（IWorld::chunkManager() 的返回类型）+ EmptyChunkManager 空对象
 ├── base/
 │   ├── ChunkId.hpp                    # 区块唯一标识符（包含维度）
 │   ├── ChunkPos.hpp                   # 区块位置类型
@@ -57,6 +58,10 @@ flowchart LR
 ```
 
 ## 子目录职责
+
+### IChunkManager.hpp — 区块管理器窄接口
+
+`IWorld::chunkManager()` 的返回类型，供 common 层游戏逻辑按区块粒度取数，只含 `tryToGetChunkInMem` / `hasChunkInMem` / `requestFullChunkSync` 三个操作。`ServerChunkManager`（server 层）实现它，`ServerWorld::chunkManager()` 借协变返回类型返回具体类型；`EmptyChunkManager` 是默认空对象（语义为"所有区块均未加载"），供客户端只读适配器与测试桩世界使用。详见 `src/common/world/README.md` 第 16 节。
 
 ### base/ — 位置与标识类型
 

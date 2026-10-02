@@ -403,7 +403,7 @@ void NaturalSpawner::tick(mc::server::ServerWorld& world, bool hostile, bool pas
     std::vector<ChunkPos> spawnableChunks = _getSpawnableChunks(world, random);
 
     for (const ChunkPos& chunkPos : spawnableChunks) {
-        const ChunkData* chunk = world.getChunk(chunkPos.x, chunkPos.z);
+        const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(chunkPos.x, chunkPos.z);
         if (chunk == nullptr) {
             continue;
         }
@@ -770,7 +770,7 @@ bool NaturalSpawner::_canSpawnAt(
         {
             ChunkCoord chunkX = world::toChunkCoord(bx);
             ChunkCoord chunkZ = world::toChunkCoord(bz);
-            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
             if (!chunk) {
                 return m_world.getHeight(bx, bz);
             }
@@ -783,7 +783,7 @@ bool NaturalSpawner::_canSpawnAt(
         {
             ChunkCoord chunkX = world::toChunkCoord(bx);
             ChunkCoord chunkZ = world::toChunkCoord(bz);
-            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
             if (!chunk) {
                 return Biomes::Plains;
             }
@@ -886,7 +886,7 @@ i32 NaturalSpawner::_getSpawnHeight(mc::server::ServerWorld& world, i32 x, i32 z
     ChunkCoord chunkX = world::toChunkCoord(x);
     ChunkCoord chunkZ = world::toChunkCoord(z);
 
-    const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
     if (!chunk) {
         return -1;
     }
@@ -1029,7 +1029,7 @@ std::vector<ChunkPos> NaturalSpawner::_collectSpawnableChunks(mc::server::Server
             for (i32 dz = -SPAWN_DISTANCE_CHUNK; dz <= SPAWN_DISTANCE_CHUNK; ++dz) {
                 const ChunkCoord chunkX = playerChunkX + dx;
                 const ChunkCoord chunkZ = playerChunkZ + dz;
-                if (!world.hasChunk(chunkX, chunkZ)) {
+                if (!world.chunkManager()->hasChunkInMem(chunkX, chunkZ)) {
                     continue;
                 }
                 const ChunkPos chunk(chunkX, chunkZ);
@@ -1104,7 +1104,7 @@ i32 NaturalSpawner::spawnCategoryForPosition(mc::server::ServerWorld& world,
     // 取种子位所在区块（供 _getRandomSpawnEntry 取 biome；biomeOverride 非 0 时 chunk 仅用于 fallback）。
     const ChunkCoord chunkX = world::toChunkCoord(pos.x);
     const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
-    const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
 
     // 随机数：用世界 tick 派生（对齐 tick 路径用 worldTime 作种子），保证可复现。
     math::Random random(static_cast<u64>(world.currentTick()));

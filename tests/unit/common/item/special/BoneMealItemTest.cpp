@@ -79,6 +79,7 @@ public:
 
         // 创建一个简单的区块
         m_chunk = std::make_unique<ChunkData>(0, 0);
+        m_stubChunks.setChunk(m_chunk.get());
 
         // 填充空气和水
         for (i32 x = 0; x < 16; ++x) {
@@ -126,9 +127,9 @@ public:
         return state->getFluidState();
     }
 
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return m_chunk.get(); }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }

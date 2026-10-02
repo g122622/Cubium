@@ -114,13 +114,15 @@ namespace {
 // - getEntitiesInAABB() 返回预设的实体列表（用于 _findNearestCandidate 搜索）
 // - isBrightOutside() 返回 true（对应 MC level().isBrightOutside()）
 // - spawnEntity() 捕获生成的 ItemEntity（用于 dropPreservedEquipment 集成测试）
-// - hasChunk() 返回 true
+// - chunkManager()->hasChunkInMem() 返回 true
 
 class OfferFlowerTestWorld final : public mc::test::BaseTestWorld {
 public:
     OfferFlowerTestWorld() = default;
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     [[nodiscard]] bool isClientSide() const override { return false; }
 
     [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override

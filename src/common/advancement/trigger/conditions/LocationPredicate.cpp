@@ -119,7 +119,7 @@ bool LocationPredicate::test(const IWorld& world, f64 x, f64 y, f64 z) const
         ChunkCoord chunkZ = math::toChunkCoord(blockZ);
 
         // 获取区块
-        const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+        const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
         if (chunk == nullptr) {
             // 区块未加载，无法判断
             return false;

@@ -58,7 +58,9 @@ public:
     {
         throw std::runtime_error("unused");
     }
-    [[nodiscard]] bool hasChunk(mc::ChunkCoord, mc::ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 };
 
 } // namespace

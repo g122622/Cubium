@@ -55,7 +55,7 @@ public:
             z >= world::CHUNK_WIDTH) {
             return nullptr;
         }
-        const ChunkData* chunk = getChunk(x >> 4, z >> 4);
+        const ChunkData* chunk = chunkManager()->tryToGetChunkInMem(x >> 4, z >> 4);
         if (chunk == nullptr) {
             return nullptr;
         }

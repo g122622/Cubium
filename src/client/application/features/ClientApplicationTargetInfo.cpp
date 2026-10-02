@@ -73,8 +73,6 @@ public:
         // 射线检测桩：无方块流体处返回空流体默认状态（走 fluidId 路径，EMPTY()->defaultState()）。
         return &fluid::Fluids::EMPTY()->defaultState();
     }
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override { return m_world.getHeight(x, z); }
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override { return m_world.getBlockLight(x, y, z); }
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override { return m_world.getSkyLight(x, y, z); }

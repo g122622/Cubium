@@ -142,14 +142,14 @@ TEST_F(ServerWorldTest, Shutdown)
 
 TEST_F(ServerWorldTest, GetChunk_NotExists)
 {
-    ChunkData* chunk = world->getChunk(0, 0);
+    ChunkData* chunk = world->chunkManager()->tryToGetChunkInMem(0, 0);
     EXPECT_EQ(chunk, nullptr);
 }
 
 TEST_F(ServerWorldTest, HasChunk_NotExists)
 {
-    EXPECT_FALSE(world->hasChunk(0, 0));
-    EXPECT_FALSE(world->hasChunk(100, 100));
+    EXPECT_FALSE(world->chunkManager()->hasChunkInMem(0, 0));
+    EXPECT_FALSE(world->chunkManager()->hasChunkInMem(100, 100));
 }
 
 TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk)
@@ -158,7 +158,7 @@ TEST_F(ServerWorldTest, GetChunkSync_CreatesChunk)
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 0);
     EXPECT_EQ(chunk->z(), 0);
-    EXPECT_TRUE(world->hasChunk(0, 0));
+    EXPECT_TRUE(world->chunkManager()->hasChunkInMem(0, 0));
 }
 
 TEST_F(ServerWorldTest, GetChunkSync_ReturnsSameChunk)
@@ -173,7 +173,7 @@ TEST_F(ServerWorldTest, GetChunk_AfterGeneration)
 {
     world->chunkManager()->requestFullChunkSync(3, 7);
 
-    ChunkData* chunk = world->getChunk(3, 7);
+    ChunkData* chunk = world->chunkManager()->tryToGetChunkInMem(3, 7);
     ASSERT_NE(chunk, nullptr);
     EXPECT_EQ(chunk->x(), 3);
     EXPECT_EQ(chunk->z(), 7);
@@ -183,16 +183,16 @@ TEST_F(ServerWorldTest, UnloadChunk)
 {
     ASSERT_TRUE(world->initialize().success());
     world->chunkManager()->requestFullChunkSync(0, 0);
-    EXPECT_TRUE(world->hasChunk(0, 0));
+    EXPECT_TRUE(world->chunkManager()->hasChunkInMem(0, 0));
 
     // 区块系统重构后（commit 8264678db），单次 requestFullChunkSync 会因区块生成邻居依赖
     // 扩散加载周边区块（MC Java 正常行为：加载区块会扩散到邻居/出生点区域）。
     // unloadChunkSync 为异步流程（stage1 提交异步保存，stage3 在 tick 中收尾），
     // 且 _finalizeUnloadAfterSave 会复检 shouldLoad()——扩散持有的票据/邻居引用
-    // 可能使卸载中止或延迟到后续 tick。因此卸载后立即检查 hasChunk 可能仍为 true。
+    // 可能使卸载中止或延迟到后续 tick。因此卸载后立即检查 hasChunkInMem 可能仍为 true。
     // 此处仅提交卸载请求并断言流程不崩溃；卸载最终生效由 tick 驱动（见 ChunkUnloading 测试）。
     world->chunkManager()->unloadChunkSync(0, 0);
-    // 不再断言 hasChunk(0,0)==false：扩散引用使同步卸载未必立即移除区块。
+    // 不再断言 hasChunkInMem(0,0)==false：扩散引用使同步卸载未必立即移除区块。
     // 推进若干 tick 让异步卸载收尾（_drainPendingUnloadFinishes）。
     for (int i = 0; i < 50; ++i) {
         world->tick();
@@ -244,7 +244,7 @@ TEST_F(ServerWorldTest, MultipleChunks)
 
     for (int x = -2; x <= 2; ++x) {
         for (int z = -2; z <= 2; ++z) {
-            EXPECT_TRUE(world->hasChunk(x, z));
+            EXPECT_TRUE(world->chunkManager()->hasChunkInMem(x, z));
         }
     }
 }
@@ -260,7 +260,7 @@ TEST_F(ServerWorldTest, SetBlock_CreatesChunk)
     const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     world->setBlockState(0, 64, 0, stoneState);
 
-    EXPECT_TRUE(world->hasChunk(0, 0));
+    EXPECT_TRUE(world->chunkManager()->hasChunkInMem(0, 0));
 }
 
 TEST_F(ServerWorldTest, SetBlock_GetBlock)
@@ -424,7 +424,7 @@ TEST_F(ServerWorldTest, ConcurrentChunkAccess)
                 int x = (i * 100 + j) % 20 - 10;
                 int z = (i * 100 + j + 50) % 20 - 10;
                 world->chunkManager()->requestFullChunkSync(x, z);
-                world->hasChunk(x, z);
+                world->chunkManager()->hasChunkInMem(x, z);
             }
         });
     }

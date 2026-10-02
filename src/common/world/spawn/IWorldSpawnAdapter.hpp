@@ -70,7 +70,7 @@ public:
     {
         const ChunkCoord chunkX = toChunkCoord(x);
         const ChunkCoord chunkZ = toChunkCoord(z);
-        const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+        const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
         if (chunk == nullptr) {
             return m_world.getHeight(x, z);
         }
@@ -83,7 +83,7 @@ public:
     {
         const ChunkCoord chunkX = toChunkCoord(x);
         const ChunkCoord chunkZ = toChunkCoord(z);
-        const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+        const ChunkData* chunk = m_world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
         if (chunk == nullptr) {
             return Biomes::Plains;
         }

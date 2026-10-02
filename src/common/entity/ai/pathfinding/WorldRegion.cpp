@@ -57,7 +57,7 @@ bool WorldRegion::isLoaded(i32 x, i32 z) const
     if (m_world == nullptr) {
         return false;
     }
-    return m_world->hasChunk(blockToChunk(x), blockToChunk(z));
+    return m_world->chunkManager()->hasChunkInMem(blockToChunk(x), blockToChunk(z));
 }
 
 i32 WorldRegion::getHeight(i32 x, i32 z) const

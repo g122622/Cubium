@@ -35,6 +35,7 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/chunk/IChunkManager.hpp"
 #include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include "gameevent/GameEvent.hpp"
@@ -346,30 +347,34 @@ public:
     // ========== 区块访问 ==========
 
     /**
-     * @brief 获取区块
-     * @param x, z 区块坐标
-     * @return 区块数据指针，如果未加载返回 nullptr
+     * @brief 获取区块管理器
+     *
+     * common 层的游戏逻辑（方块、实体、方块实体、寻路、进度条件等）通过它直接向区块
+     * 子系统索取区块数据，例如 `world.chunkManager()->tryToGetChunkInMem(x, z)` /
+     * `hasChunkInMem(x, z)` / `requestFullChunkSync(x, z)`。
+     *
+     * 不持有区块存储的实现（客户端只读适配器、测试桩世界等）沿用默认返回值
+     * `EmptyChunkManager`，语义为"所有区块均未加载"，与本方法引入之前这些实现
+     * 由 getChunk/hasChunk 返回 nullptr/false 的行为一致。
+     *
+     * @return 区块管理器；不会返回 nullptr
      */
-    [[nodiscard]] virtual const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const = 0;
+    [[nodiscard]] virtual world::chunk::IChunkManager* chunkManager()
+    {
+        return &world::chunk::EmptyChunkManager::instance();
+    }
 
     /**
-     * @brief 检查区块是否存在
+     * @brief 获取区块管理器（const 版本）
+     *
+     * const 版本只能用于查询，不能触发区块加载。
+     *
+     * @return 区块管理器；不会返回 nullptr
      */
-    [[nodiscard]] virtual bool hasChunk(ChunkCoord x, ChunkCoord z) const = 0;
-
-    /**
-     * @brief 同步获取或加载区块
-     *
-     * 对应 MC Java 的 Level.getChunk(x, z, require=true)：
-     * 如果区块已加载则直接返回，否则同步触发区块加载/生成。
-     *
-     * 仅在服务端主线程调用安全（与 requestFullChunkSync 同样的约束）。
-     * 客户端和其他不支持的实现返回 nullptr。
-     *
-     * @param x, z 区块坐标
-     * @return 区块数据指针，如果无法加载返回 nullptr
-     */
-    [[nodiscard]] virtual const ChunkData* getOrLoadChunk(ChunkCoord x, ChunkCoord z) { return getChunk(x, z); }
+    [[nodiscard]] virtual const world::chunk::IChunkManager* chunkManager() const
+    {
+        return &world::chunk::EmptyChunkManager::instance();
+    }
 
     // ========== 声音播放 ==========
 

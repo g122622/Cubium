@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
@@ -97,8 +98,9 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override { return nullptr; }
     // 默认返回 nullptr（保持现有 41 个测试行为）；flag1 链路测试经 setChunkData 注入带 biome 的 ChunkData。
-    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return m_chunkData.get(); }
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return m_chunkData != nullptr; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, false};
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
@@ -150,7 +152,12 @@ public:
     void setDifficulty(Difficulty value) { m_difficulty = value; }
 
     // 注入带 biome 的 ChunkData 供 FireBlock::getIncreasedFireBurnout 链路测试。
-    void setChunkData(std::unique_ptr<ChunkData> chunk) { m_chunkData = std::move(chunk); }
+    void setChunkData(std::unique_ptr<ChunkData> chunk)
+    {
+        m_chunkData = std::move(chunk);
+        m_stubChunks.setChunk(m_chunkData.get());
+        m_stubChunks.setChunkLoaded(m_chunkData != nullptr);
+    }
     [[nodiscard]] ChunkData* mutableChunkData() { return m_chunkData.get(); }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override

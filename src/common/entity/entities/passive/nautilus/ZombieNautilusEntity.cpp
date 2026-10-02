@@ -171,7 +171,7 @@ ZombieNautilusVariant ZombieNautilusEntity::selectVariantForBiome() const
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
 
     // 查询当前位置的生物群系
-    const ChunkData* chunk = worldPtr->getChunk(pos.chunkX(), pos.chunkZ());
+    const ChunkData* chunk = worldPtr->chunkManager()->tryToGetChunkInMem(pos.chunkX(), pos.chunkZ());
     if (chunk == nullptr) {
         return ZombieNautilusVariant::Temperate;
     }

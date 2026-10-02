@@ -64,7 +64,9 @@ public:
 
     [[nodiscard]] f32 getBrightness(const BlockPos& /*pos*/) const override { return 1.0f; }
 
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override { return &m_stubChunks; }
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override { return &m_stubChunks; }
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
 
     EntityInstanceId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
 

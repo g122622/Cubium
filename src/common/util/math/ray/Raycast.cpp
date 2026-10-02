@@ -245,7 +245,7 @@ BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& wo
         if (cachedChunk == nullptr || chunkX != cachedChunkX || chunkZ != cachedChunkZ) {
             cachedChunkX = chunkX;
             cachedChunkZ = chunkZ;
-            cachedChunk = world.getChunk(chunkX, chunkZ);
+            cachedChunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
             cachedChunkIsNull = (cachedChunk == nullptr);
         }
         if (cachedChunkIsNull) {

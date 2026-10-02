@@ -366,7 +366,7 @@ bool VillageSiege::_isMushroomBiome(server::ServerWorld& world, const BlockPos& 
     // 获取玩家所在区块
     const ChunkCoord chunkX = pos.x >> world::CHUNK_SHIFT;
     const ChunkCoord chunkZ = pos.z >> world::CHUNK_SHIFT;
-    const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+    const ChunkData* chunk = world.chunkManager()->tryToGetChunkInMem(chunkX, chunkZ);
 
     if (!chunk) {
         // 区块未加载，保守返回 false（不是蘑菇岛）

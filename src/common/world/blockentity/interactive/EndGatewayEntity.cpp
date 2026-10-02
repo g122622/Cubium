@@ -290,7 +290,7 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     // 沿方向搜索合适的区块
     // 先沿方向前进 1024 格，然后跳过非空区块（回退），再跳过空区块（前进）
     // 与 MC Java 的 TheEndGatewayBlockEntity.findExitPortalXZPosTentative 一致
-    // 使用 getOrLoadChunk 同步加载区块以判断是否为空，完整复刻原版行为
+    // 使用 requestFullChunkSync 同步加载区块以判断是否为空，完整复刻原版行为
     f64 vecX = dirX * 1024.0;
     f64 vecZ = dirZ * 1024.0;
 
@@ -298,7 +298,7 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     for (i32 i = 0; i < 16; ++i) {
         i32 chunkX = world::toChunkCoord(static_cast<i32>(std::floor(vecX)));
         i32 chunkZ = world::toChunkCoord(static_cast<i32>(std::floor(vecZ)));
-        const world::chunk::ChunkData* chunk = world.getOrLoadChunk(chunkX, chunkZ);
+        const world::chunk::ChunkData* chunk = world.chunkManager()->requestFullChunkSync(chunkX, chunkZ);
 
         if (!_isChunkEmpty(chunk)) {
             // 非空区块，继续回退
@@ -313,7 +313,7 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     for (i32 i = 0; i < 16; ++i) {
         i32 chunkX = world::toChunkCoord(static_cast<i32>(std::floor(vecX)));
         i32 chunkZ = world::toChunkCoord(static_cast<i32>(std::floor(vecZ)));
-        const world::chunk::ChunkData* chunk = world.getOrLoadChunk(chunkX, chunkZ);
+        const world::chunk::ChunkData* chunk = world.chunkManager()->requestFullChunkSync(chunkX, chunkZ);
 
         if (_isChunkEmpty(chunk)) {
             // 空区块，继续前进
