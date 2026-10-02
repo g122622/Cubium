@@ -1611,6 +1611,11 @@ bool ServerChunkManager::_isUnloadSuppressed(const SingleChunkLifecycleManager& 
 
 bool ServerChunkManager::_isUnloadCandidate(const SingleChunkLifecycleManager& holder)
 {
+    // 基准模式抑制自动卸载（见 setSuppressAutoUnloadForBenchmark）：切断"卸载→冷却票据→
+    // 距离图源→扩散创建→再卸载"正反馈环，使吞吐测量只反映生成链路。
+    if (m_suppressAutoUnload) {
+        return false;
+    }
     if (_isUnloadSuppressed(holder) || !holder.isSafeToUnload()) {
         return false;
     }

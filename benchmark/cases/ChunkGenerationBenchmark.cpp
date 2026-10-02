@@ -80,6 +80,10 @@ constexpr i32 THREAD_COUNTS[] = {1, 2, 4, 8};
 // 批量大小档位（->Arg 编码，arg(1) = 边长 n，每迭代生成 n×n 区块）。
 constexpr i32 BATCH_SIZES[] = {8, 16, 32};
 
+// 单批生成泵送循环的墙钟超时上限。正常单批（最大 32×32）远低于此值；
+// 超时即判定生成状态机卡死（promise 永不 fulfill），SkipWithError 中止，避免无限空转。
+constexpr std::chrono::seconds PUMP_TIMEOUT{300};
+
 /// 数据驱动注册表一次性加载守卫：RandomState::create 查 NoiseSettingsRegistry，
 /// 必须先从原版数据包加载 Noises/DensityFunctions/NoiseSettings/WorldPresets。
 /// 与 tests/unit/main.cpp 的 WorldGenRegistryEnvironment 同一加载顺序（依赖拓扑）。
@@ -160,6 +164,11 @@ struct ChunkGenFixture {
 
         (void)world->initialize();
         (void)manager->initialize();
+
+        // 基准不注册持久票据，距离图无合法源；若允许自动卸载，"卸载→UNLOAD_COOLDOWN 票据→
+        // 距离图源→扩散创建→再卸载"会形成正反馈环，淹没生成吞吐测量。抑制自动卸载候选判定，
+        // 仅在 PauseTiming 区间手动 unloadChunkSync。
+        manager->setSuppressAutoUnloadForBenchmark(true);
     }
 
     void destroy()
@@ -303,6 +312,14 @@ void ChunkGeneration(::benchmark::State& state)
         // requestChunkSync 的同步等待也是靠主动 pump 这一队列实现的）。异步批量提交
         // 后只等 future 不 tick 会死锁（存档解析完成回调永不交接）。故这里复现生产
         // 主循环节拍：未全部完成前持续 tick()，这是"一帧内提交的生成负载"的真实口径。
+        //
+        // 墙钟超时守卫：退出条件是全部 future 就绪，若某个请求的 promise 永不 fulfill
+        // （生成状态机卡在中间态 / 完成信号丢失），本循环会永久空转（主线程满速 tick、
+        // results.json 永不追加）。正常单批生成耗时远低于此上限，超时即判定卡死并
+        // SkipWithError 中止，把"卡死"变成可诊断的失败而非无限空转。
+        const auto pumpStart = std::chrono::steady_clock::now();
+        auto lastProgressLog = pumpStart;
+        size_t lastLoggedRemaining = futures.size();
         size_t remaining = futures.size();
         std::vector<bool> done(futures.size(), false);
         while (remaining > 0) {
@@ -313,9 +330,32 @@ void ChunkGeneration(::benchmark::State& state)
                     --remaining;
                 }
             }
-            if (remaining > 0) {
-                g_fixture.manager->tick();
+            if (remaining == 0) {
+                break;
             }
+            const auto now = std::chrono::steady_clock::now();
+            // 每 5 秒打印一次进度：用于区分"硬卡死"（remaining 恒定）与"渐进收敛"（remaining 缓慢下降）。
+            if (now - lastProgressLog > std::chrono::seconds(5)) {
+                const auto elapsedS = std::chrono::duration_cast<std::chrono::seconds>(now - pumpStart).count();
+                spdlog::info("chunk_generation: progress t={}s remaining={}/{} (delta {} since last log)",
+                    elapsedS,
+                    remaining,
+                    futures.size(),
+                    lastLoggedRemaining - remaining);
+                lastLoggedRemaining = remaining;
+                lastProgressLog = now;
+            }
+            if (now - pumpStart > PUMP_TIMEOUT) {
+                state.PauseTiming();
+                spdlog::error("chunk_generation: pump loop timed out after {}s with {} / {} futures still pending",
+                    std::chrono::duration_cast<std::chrono::seconds>(PUMP_TIMEOUT).count(),
+                    remaining,
+                    futures.size());
+                state.ResumeTiming();
+                state.SkipWithError("chunk generation stalled: pump loop timeout");
+                return;
+            }
+            g_fixture.manager->tick();
         }
 
         // 校验全部请求成功；任何失败（nullptr）都视为基准数据无效。

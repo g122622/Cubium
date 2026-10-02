@@ -372,6 +372,22 @@ public:
     void setViewDistance(i32 distance);
 
     /**
+     * @brief 基准模式下抑制自动卸载路径（打破生成 halo 卸载正反馈环）
+     *
+     * 基准用例（ChunkGeneration）直接 requestChunkAsync 请求区块、不注册任何持久票据，
+     * 整个距离图无合法源。生成 halo 中的按需 holder（level 46）在生成完成后立即成为卸载
+     * 候选；卸载收尾若发现仍不安全则注册 UNLOAD_COOLDOWN（Border 级）票据——该票据作为
+     * 距离图源向外传播，经 _onTicketLevelChanged 为传播范围内每个区块创建新 holder，形成
+     * "卸载→冷却票据→源→扩散创建→再卸载"的正反馈环（实测 created≈35 万、unloads≈35 万、
+     * levelChanges≈211 万，吞吐被淹没）。抑制自动卸载候选判定即可切断该环，使吞吐测量
+     * 只反映生成链路。
+     *
+     * 仅影响自动卸载候选判定（_isUnloadCandidate）；基准在 PauseTiming 区间手动调用
+     * unloadChunkSync 清理不受影响。生产路径不调用本方法，标志恒为 false。
+     */
+    void setSuppressAutoUnloadForBenchmark(bool suppress) { m_suppressAutoUnload = suppress; }
+
+    /**
      * @brief 设置票据级别变化回调
      *
      * @param callback 票据级别变化回调
@@ -1225,6 +1241,10 @@ private:
     /// halo 回收 armed 标志：生成空闲时置位，生成恢复即清零。
     /// 置位期间生成 halo 区间（level ∈ (Border, Unloaded)）的持有者可被回收。
     bool m_idleHaloReclaimArmed = false;
+
+    /// 基准模式下抑制自动卸载候选判定（见 setSuppressAutoUnloadForBenchmark）。
+    /// 生产路径恒为 false；基准 Setup 置 true。
+    bool m_suppressAutoUnload = false;
 
     /**
      * @brief 卸载候选队列与成员集合
