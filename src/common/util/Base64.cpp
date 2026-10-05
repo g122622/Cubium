@@ -40,8 +40,8 @@ std::string base64Encode(std::span<const u8> data)
     const usize size = data.size();
     usize i = 0;
     for (; i + 3 <= size; i += 3) {
-        const u32 chunk = (static_cast<u32>(data[i]) << 16) | (static_cast<u32>(data[i + 1]) << 8) |
-            static_cast<u32>(data[i + 2]);
+        const u32 chunk =
+            (static_cast<u32>(data[i]) << 16) | (static_cast<u32>(data[i + 1]) << 8) | static_cast<u32>(data[i + 2]);
         encoded.push_back(BASE64_ALPHABET[(chunk >> 18) & 0x3F]);
         encoded.push_back(BASE64_ALPHABET[(chunk >> 12) & 0x3F]);
         encoded.push_back(BASE64_ALPHABET[(chunk >> 6) & 0x3F]);
@@ -56,8 +56,7 @@ std::string base64Encode(std::span<const u8> data)
         encoded.push_back(BASE64_ALPHABET[(chunk >> 12) & 0x3F]);
         encoded.push_back('=');
         encoded.push_back('=');
-    }
-    else if (remaining == 2) {
+    } else if (remaining == 2) {
         const u32 chunk = (static_cast<u32>(data[i]) << 16) | (static_cast<u32>(data[i + 1]) << 8);
         encoded.push_back(BASE64_ALPHABET[(chunk >> 18) & 0x3F]);
         encoded.push_back(BASE64_ALPHABET[(chunk >> 12) & 0x3F]);

@@ -166,4 +166,6 @@ MC 1.16.5 的水下挖掘惩罚检测玩家**眼睛位置**是否在水中，不
 
 派发顺序对齐 vanilla `ServerPlayerGameMode.useItemOn`：项目无 vanilla ①`BlockState.useItemOn`，故为 ②`handleBlockUse`（useWithoutItem）→ 未短路才 ③`handleItemUseOn`（Item.useOn）。空手不调 ③。
 
+消耗/同步的**槽位随 hand 选择**：主手取当前选中槽（`PlayerInventory::getSelectedStackRef`），副手取 `OFFHAND` 槽。`handleItemUseOn` 与 `handleBlockUse` 均经 `Player::getHeldItem(hand)` 取权威槽快照、写回与比较，不再固定主手槽——否则 `hand==OffHand` 的 useOn/useWithoutItem 会误消耗主手物品。
+
 另：真 Java 客户端的 `use_item_on`/`use_item`/挖掘包带递增 sequence，服务端必须回 `BlockChangedAck`（在 `ServerPlayHandler` 三处 handler 内）否则客户端方块预测状态机卡死、右键静默失效。

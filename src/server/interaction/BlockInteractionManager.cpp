@@ -415,11 +415,12 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     // damage 变化，itemId 不变）。两种情况外层都不应再 shrink（否则误消耗返回物或把耐久损耗
     // 误当数量消耗）。骨粉等"仅 shrink 原物品、不替换也不改耐久"的物品 itemId+damage 均不变，
     // 仍走外层 shrink 补足。
+    //
+    // 权威槽随 hand 选择：主手取当前选中槽，副手取 OFFHAND 槽（对齐 vanilla Player#getItemInHand）。
+    // 此前固定取主手槽，hand==OffHand 时会误消耗主手（矿车/盾牌等副手 useOn 场景）。
     const ItemStack heldBefore = [&]() -> ItemStack {
-        if (m_inventoryManager != nullptr) {
-            if (PlayerInventory* inv = m_inventoryManager->getInventory(playerId); inv != nullptr) {
-                return inv->getSelectedStack();
-            }
+        if (player != nullptr) {
+            return player->getHeldItem(hand);
         }
         return ItemStack();
     }();
@@ -431,32 +432,30 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     const bool success = (result == ActionResultType::Success || result == ActionResultType::Consume);
 
     // 消耗权威物品栏（仅 success 时，对齐 handleBlockPlacement:350-368 的消耗范式）。
-    // TODO(副手消耗): 当前 getSelectedStack 取主手槽位，hand==OffHand 时会误消耗主手。
-    // vanilla 副手 useOn 场景极少（矿车等通常主手），首版接受此限制。
+    // 消耗/损耗的写回目标是 hand 对应的槽：主手=当前选中槽，副手=OFFHAND 槽。
     bool itemConsumed = false;
-    if (success && playerData->gameMode != GameMode::Creative && m_inventoryManager != nullptr) {
-        PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
-        if (inventory != nullptr) {
-            // onItemUse 若已自行改过权威手持物（itemId 变化=自管理替换，或 damage 变化=耐久损耗），
-            // 说明物品已处理完消耗/损耗，外层只推一次同步、不再 shrink。itemId+damage 均不变时
-            // （如骨粉只 shrink 了自己的局部拷贝）才由外层 shrink(1) 补足权威槽的消耗。
-            const ItemStack heldAfter = inventory->getSelectedStack();
-            const ItemId itemIdAfter = heldAfter.isEmpty() ? ItemId{0} : heldAfter.getItem()->itemId();
-            const i32 damageAfter = heldAfter.isEmpty() ? 0 : heldAfter.getDamage();
-            const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
-            if (selfManaged) {
-                itemConsumed = true;
+    if (success && playerData->gameMode == GameMode::Creative) {
+        itemConsumed = true; // 创造模式不实际消耗
+    } else if (success && player != nullptr) {
+        ItemStack& authoritative = player->getHeldItem(hand);
+        // onItemUse 若已自行改过权威手持物（itemId 变化=自管理替换，或 damage 变化=耐久损耗），
+        // 说明物品已处理完消耗/损耗，外层只推一次同步、不再 shrink。itemId+damage 均不变时
+        // （如骨粉只 shrink 了自己的局部拷贝）才由外层 shrink(1) 补足权威槽的消耗。
+        const ItemId itemIdAfter = authoritative.isEmpty() ? ItemId{0} : authoritative.getItem()->itemId();
+        const i32 damageAfter = authoritative.isEmpty() ? 0 : authoritative.getDamage();
+        const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
+        if (selfManaged) {
+            itemConsumed = true;
+            if (m_inventoryManager != nullptr) {
                 m_inventoryManager->syncToClient(playerId);
-            } else if (!heldAfter.isEmpty() && heldAfter.getCount() > 0) {
-                ItemStack shrunk = heldAfter;
-                shrunk.shrink(1);
-                inventory->setItem(inventory->getSelectedSlot(), shrunk);
-                itemConsumed = true;
+            }
+        } else if (!authoritative.isEmpty() && authoritative.getCount() > 0) {
+            authoritative.shrink(1);
+            itemConsumed = true;
+            if (m_inventoryManager != nullptr) {
                 m_inventoryManager->syncToClient(playerId);
             }
         }
-    } else if (success && playerData->gameMode == GameMode::Creative) {
-        itemConsumed = true; // 创造模式不实际消耗
     }
 
     return ItemUseResult{success, itemConsumed, result, success ? "Item used on block" : "Item use pass"};
@@ -515,8 +514,9 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         realPlayer->setGameMode(playerData->gameMode);
     }
 
-    // 交互前的手持物快照，供尾部识别「方块自行改过手持物」的情况。
-    const ItemStack heldBeforeUse = (realPlayer != nullptr) ? realPlayer->inventory().getSelectedStack() : ItemStack();
+    // 交互前的手持物快照，供尾部识别「方块自行改过手持物」的情况。取 hand 对应槽
+    // （主手=当前选中槽，副手=OFFHAND 槽），与交互后比较。
+    const ItemStack heldBeforeUse = (realPlayer != nullptr) ? realPlayer->getHeldItem(hand) : ItemStack();
 
     BlockActionResult result = [&]() -> BlockActionResult {
         if (realPlayer != nullptr) {
@@ -594,18 +594,16 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     }
 
     // 方块交互可能改动手持物，需要推给客户端。两个来源：
-    //   1. 方块显式返回 heldItemTransformedTo —— 用它更新权威槽位；
+    //   1. 方块显式返回 heldItemTransformedTo —— 用它更新 hand 对应槽位；
     //   2. 方块通过 player.getHeldItem(hand) 引用直接改了物品栏 —— 那就是实体背包本身，
     //      与交互前的快照比较即可发现。
     if (handled && realPlayer != nullptr && m_inventoryManager != nullptr) {
-        PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
-        if (inventory != nullptr) {
-            if (result.heldItemTransformedTo().has_value()) {
-                inventory->setItem(inventory->getSelectedSlot(), result.heldItemTransformedTo().value());
-                m_inventoryManager->syncToClient(playerId);
-            } else if (!(inventory->getSelectedStack() == heldBeforeUse)) {
-                m_inventoryManager->syncToClient(playerId);
-            }
+        ItemStack& authoritative = realPlayer->getHeldItem(hand);
+        if (result.heldItemTransformedTo().has_value()) {
+            authoritative = result.heldItemTransformedTo().value();
+            m_inventoryManager->syncToClient(playerId);
+        } else if (!(authoritative == heldBeforeUse)) {
+            m_inventoryManager->syncToClient(playerId);
         }
     }
 
