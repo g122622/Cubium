@@ -34,6 +34,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponentFwd.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
@@ -84,6 +85,17 @@ public:
      * @param message 系统消息内容。
      */
     void sendSystemMessage(const std::string& message);
+
+    /**
+     * @brief 发送文本组件系统消息给玩家。
+     *
+     * 与 sendSystemMessage 同走 SystemChat(overlay=false)，但内容为任意 ITextComponent
+     * （含翻译组件/样式），经 1.21.11 Component NBT wire 序列化下发。用于需要本地化
+     * （translate 键）或富样式的服务端提示，如 build.tooHigh（红字 + 翻译键）。
+     *
+     * @param component 文本组件（nullptr 时下发空文本）。
+     */
+    void sendSystemMessage(const text::ITextComponent& component);
 
     /**
      * @brief 打开告示牌编辑器（重写 Player 基类）。

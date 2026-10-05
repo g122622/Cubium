@@ -1632,6 +1632,7 @@ add_executable(mc_tests
     # 富文本系统测试
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp
+    common/util/text/ComponentNbtSerializationTest.cpp
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     # 调色板容器单元测试

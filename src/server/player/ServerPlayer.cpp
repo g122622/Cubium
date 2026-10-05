@@ -56,6 +56,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -154,6 +155,21 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
     }
     mc::network::ir::play::SystemChat pkt;
     pkt.content = ::mc::text::plainTextToNbtBytes(message);
+    pkt.overlay = false; // 聊天窗口
+    static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
+}
+
+void ServerPlayer::sendSystemMessage(const text::ITextComponent& component)
+{
+    // 与字符串重载同走 SystemChat(overlay=false)，但序列化完整 Component（保留 translate/with
+    // 与 style），供需要本地化或富样式的服务端提示使用（如 build.tooHigh 的红字翻译键）。
+    if (!hasConnection()) {
+        spdlog::info("ServerPlayer: S->C system message dropped (no connection, player={})", username());
+        return;
+    }
+    mc::network::ir::play::SystemChat pkt;
+    pkt.content = ::mc::text::componentToNbtBytes(&component);
     pkt.overlay = false; // 聊天窗口
     static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));

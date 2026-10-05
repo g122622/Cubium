@@ -29,6 +29,7 @@
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -94,16 +95,39 @@ void writeStyleToCompound(nbt::tags::compound_tag& comp, const Style& style)
     }
 }
 
-/// 把不可折叠组件递归序列化为 compound_tag（text + style + extra）。当前仅支持纯文本 contents
-/// （StringTextComponent），非纯文本（TranslationTextComponent 等）以 text=getUnformattedText 降级承载。
+/// 把不可折叠组件递归序列化为 compound_tag（contents + style + extra）。
+/// contents 支持纯文本（StringTextComponent → "text" 键）与翻译（TranslationTextComponent →
+/// "translate" + "with" 键，对齐 vanilla TranslatableContents.MAP_CODEC）；其余类型以
+/// text=getUnformattedText 降级承载。
 void writeComponentToCompound(nbt::tags::compound_tag& comp, const ITextComponent& component)
 {
     // contents：纯文本走 "text" 键（对齐 PlainTextContents.MAP_CODEC fieldOf("text")）
     const auto* str = dynamic_cast<const StringTextComponent*>(&component);
+    const auto* translatable = dynamic_cast<const TranslationTextComponent*>(&component);
     if (str != nullptr) {
         comp.put("text", str->getText());
+    } else if (translatable != nullptr) {
+        // 翻译组件：translate(键) + with(参数列表)，对齐 vanilla TranslatableContents.MAP_CODEC
+        // （fieldOf("translate") + optionalFieldOf("with")）。真 Java 客户端据此查语言表本地化，
+        // 故必须保留 translate/with 结构，不能折叠成 text。
+        comp.put("translate", translatable->getKey());
+        const auto& params = translatable->getParams();
+        if (!params.empty()) {
+            auto withList = std::make_unique<nbt::tags::tag_list_tag>(nbt::TagId::Compound);
+            for (const auto& param : params) {
+                if (param == nullptr) {
+                    continue;
+                }
+                // with 元素是 Component：可折叠则写 StringTag，否则 CompoundTag。ListTag 元素类型
+                // 须一致，故统一用 CompoundTag 承载（可折叠元素也包成 {text:"..."}），与 extra 同范式。
+                auto child = std::make_unique<nbt::tags::compound_tag>();
+                writeComponentToCompound(*child, *param);
+                withList->value.push_back(std::unique_ptr<nbt::tags::tag>(child.release()));
+            }
+            comp.value.emplace("with", std::unique_ptr<nbt::tags::tag>(withList.release()));
+        }
     } else {
-        // 非纯文本 contents 暂以纯文本降级（项目业务无 translatable/keybind 用于这些 S→C 包）
+        // 其余 contents（keybind/score/selector 等）暂以纯文本降级（项目业务无此类 S→C 包）
         comp.put("text", component.getUnformattedText());
     }
 

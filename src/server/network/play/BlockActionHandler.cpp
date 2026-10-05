@@ -42,6 +42,9 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -298,9 +301,14 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
         if (pos.y > maxY) {
             if (placementPlayer != nullptr) {
                 if (auto* sp = placementPlayer->asServerPlayer()) {
-                    // TODO: 对齐 vanilla Component.translatable("build.tooHigh", i)。
-                    //       当前 sendSystemMessage 仅支持纯文本，待补齐翻译组件序列化后改为翻译键。
-                    sp->sendSystemMessage("§cCannot place block above build height (" + std::to_string(maxY) + ")");
+                    // 对齐 vanilla：Component.translatable("build.tooHigh", i).withStyle(RED)。
+                    // 翻译键 + 红字样式经 Component NBT 下发，真 Java 客户端按本地语言显示。
+                    mc::text::TranslationTextComponent msg("build.tooHigh");
+                    msg.addParam(std::make_unique<mc::text::StringTextComponent>(std::to_string(maxY)));
+                    mc::text::Style style;
+                    style.setColor(mc::text::TextFormatting::Red);
+                    msg.setStyle(style);
+                    sp->sendSystemMessage(msg);
                 }
             }
             return;
