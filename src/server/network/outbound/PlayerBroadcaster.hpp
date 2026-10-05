@@ -148,13 +148,14 @@ public:
      *   - 不同维度：使用玩家自身位置
      * 构造 globalEvent=true 的 LevelEvent 包逐玩家发送。
      *
+     * @param sourceDimensionId 发起广播的世界维度（用于判断玩家是否同维度）
      * @param eventId 事件ID
      * @param x X坐标
      * @param y Y坐标
      * @param z Z坐标
      * @param data 事件数据
      */
-    void broadcastGlobalLevelEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+    void broadcastGlobalLevelEvent(DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data);
     void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockId, f32 range = 64.0f);
     void broadcastBlockEntityInRange(
         const BlockPos& pos, BlockEntityType type, std::shared_ptr<nbt::CompoundTag> tag, f32 range = 64.0f);

@@ -1014,13 +1014,14 @@ protected:
      * 构造 globalEvent=true 的 LevelEvent 包逐玩家发送。
      * 若规则为 false，降级为普通 broadcastWorldEventInRange（64格范围）。
      *
+     * @param sourceDimensionId 发起广播的世界维度
      * @param eventId 事件ID
      * @param x X坐标
      * @param y Y坐标
      * @param z Z坐标
      * @param data 事件数据
      */
-    void broadcastGlobalLevelEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+    void broadcastGlobalLevelEvent(DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data);
 
     /**
      * @brief 广播世界事件给指定范围内的玩家

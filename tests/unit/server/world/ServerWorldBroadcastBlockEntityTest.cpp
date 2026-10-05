@@ -177,3 +177,42 @@ TEST_F(ServerWorldBroadcastBlockEntityTest, SetOnBroadcastBlockEntityOverwritesP
     EXPECT_EQ(firstCount, 0);
     EXPECT_EQ(secondCount, 1);
 }
+
+// ========== globalLevelEvent 回调触发测试 ==========
+
+TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventPassesDimensionAndCoords)
+{
+    bool invoked = false;
+    DimensionId capturedDimension = -1;
+    i32 capturedEventId = 0;
+    i32 capturedX = 0;
+    i32 capturedY = 0;
+    i32 capturedZ = 0;
+    i32 capturedData = 0;
+
+    world->setOnBroadcastGlobalLevelEvent([&](DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+        invoked = true;
+        capturedDimension = dimensionId;
+        capturedEventId = eventId;
+        capturedX = x;
+        capturedY = y;
+        capturedZ = z;
+        capturedData = data;
+    });
+
+    // 世界配置的维度为 0（overworld）。
+    world->globalLevelEvent(2001, BlockPos(10, 64, -30), 7);
+
+    EXPECT_TRUE(invoked);
+    EXPECT_EQ(capturedDimension, world->dimension());
+    EXPECT_EQ(capturedEventId, 2001);
+    EXPECT_EQ(capturedX, 10);
+    EXPECT_EQ(capturedY, 64);
+    EXPECT_EQ(capturedZ, -30);
+    EXPECT_EQ(capturedData, 7);
+}
+
+TEST_F(ServerWorldBroadcastBlockEntityTest, GlobalLevelEventWithoutCallbackDoesNotCrash)
+{
+    EXPECT_NO_THROW(world->globalLevelEvent(2001, BlockPos(0, 0, 0), 0));
+}

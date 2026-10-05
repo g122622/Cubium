@@ -488,7 +488,9 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
 void ServerWorld::globalLevelEvent(i32 eventId, const BlockPos& pos, i32 data)
 {
     if (m_onBroadcastGlobalLevelEvent) {
-        m_onBroadcastGlobalLevelEvent(eventId, pos.x, pos.y, pos.z, data);
+        // 传入本世界维度：广播侧据此判断每个玩家是否与事件同维度（同维度用真实事件位置，
+        // 跨维度用玩家自身位置），对齐 vanilla ServerLevel.globalLevelEvent 的 p.level()==this 判定。
+        m_onBroadcastGlobalLevelEvent(dimension(), eventId, pos.x, pos.y, pos.z, data);
     }
 }
 

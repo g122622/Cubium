@@ -711,7 +711,8 @@ public:
      * 当服务端需要广播全局事件给全服玩家时调用（跨维度）。
      * 参数：事件ID、位置x/y/z、数据
      */
-    using GlobalLevelEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
+    using GlobalLevelEventCallback =
+        std::function<void(DimensionId dimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastGlobalLevelEvent(GlobalLevelEventCallback callback)
     {
