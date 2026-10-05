@@ -172,4 +172,42 @@ TEST_F(GiveCommandTest, GiveCommandWithMultipleTargets)
     EXPECT_EQ(result.value(), 0);
 }
 
+// ============================================================================
+// air 特判：/give @s air 是 no-op（不塞入 air 物品堆），但命令按成功计
+// ============================================================================
+
+TEST_F(GiveCommandTest, GiveAirToPlayerDoesNotInsertItem)
+{
+    // 注册一个真实玩家（PlayerManager 记录），使其可被 @a 选中。
+    auto* player = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(player, nullptr);
+
+    auto* inventory = m_server.playerInventory(1);
+    ASSERT_NE(inventory, nullptr);
+    const i32 beforeCount = inventory->getSelectedStack().getCount();
+
+    // 无 count 参数（默认 1）与带 count 两种写法都应是 no-op。
+    const auto result = m_server.commandRegistry().execute("give @a minecraft:air 64", m_console);
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1); // 目标玩家数（air 走 no-op 分支，成功计）
+
+    // 背包未变（未塞入 air 堆）。
+    EXPECT_EQ(inventory->getSelectedStack().getCount(), beforeCount);
+    EXPECT_TRUE(inventory->getSelectedStack().isEmpty());
+}
+
+TEST_F(GiveCommandTest, GiveAirWithoutCountIsNoOp)
+{
+    auto* player = m_server.addTestPlayer(1, "Steve");
+    ASSERT_NE(player, nullptr);
+
+    auto* inventory = m_server.playerInventory(1);
+    ASSERT_NE(inventory, nullptr);
+
+    const auto result = m_server.commandRegistry().execute("give @a air", m_console);
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1);
+    EXPECT_TRUE(inventory->getSelectedStack().isEmpty());
+}
+
 } // namespace mc::command

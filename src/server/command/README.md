@@ -235,3 +235,10 @@ server/command
     - rotation 用 `RotationArgumentType`（接 yaw pitch 两值，对齐 vanilla `RotationArgument`）；yaw 存 `ServerWorld::m_spawnAngle`，pitch 暂丢弃（TODO 完整建模）
     - yaw 通过 `math::wrapDegrees()` 归一化到 [-180, 180]
     - 修改出生点后需同时更新 `ServerWorld::setWorldSpawnPoint(pos, angle)` 和广播 `SpawnPositionPacket(angle)`
+
+12. **air 物品的语义分叉（give vs replaceitem）**
+    - Cubium 的 `minecraft:air` 是普通注册物品（`itemId=1`），**不是**空堆——`ItemStack` 持有 air 时 `isEmpty()` 仍为 false。这与 vanilla（air 堆即空堆）不同，命令层须显式处理。
+    - `ItemArgumentType` 解析时标记 `ItemInput::isAir()`（namespace==minecraft && path==air）供下游识别。
+    - `/give ... air`：vanilla 是 no-op（背包不变但命令成功）；Cubium 在 `GiveCommand::_giveItem` 识别 `itemInput.isAir()` 直接跳过实际给予，仍按成功计（返回目标玩家数）。
+    - `/replaceitem ... air`：语义是**清空槽位**，`ReplaceItemCommand` 识别 `isAir()` 后构造空堆写入槽位。
+    - 两条路径语义不同，不可互相复用：give 是"不塞任何东西"，replaceitem 是"把槽位清空"。
