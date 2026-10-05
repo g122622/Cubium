@@ -46,6 +46,7 @@
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/network/sync/WeatherSyncService.hpp"
+#include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
@@ -84,6 +85,40 @@ namespace {
 }
 
 } // namespace
+
+void LoginFlow::resendJoinSequenceForPlayer(PlayerId playerId)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "LoginFlow::resendJoinSequenceForPlayer", "playerId", playerId);
+
+    auto* playerData = m_server.playerManager().getPlayer(playerId);
+    if (playerData == nullptr) {
+        spdlog::warn("LoginFlow::resendJoinSequenceForPlayer: player {} not found", playerId);
+        return;
+    }
+
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        spdlog::warn("LoginFlow::resendJoinSequenceForPlayer: player {} has no world", playerId);
+        return;
+    }
+    Player* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    if (playerEntity == nullptr) {
+        spdlog::warn("LoginFlow::resendJoinSequenceForPlayer: player {} has no entity", playerId);
+        return;
+    }
+
+    // 重配置完成后客户端已重新进入 Play 阶段、本地世界被清空。重发 play::Login 与初始游戏
+    // 状态，使其重新建立本地实体并进入世界。不重复创建玩家实体/背包菜单（均已存在）。
+    const bool isFlat = (m_server.settings().levelType.get() == LevelType::Flat);
+    const bool hardcore = m_server.settings().hardcore.get();
+    const i64 seed = static_cast<i64>(m_server.settings().parseSeed());
+
+    sendLoginResponseForConnection(playerId, playerEntity->id(), hardcore, seed, isFlat);
+    sendInitialGameState(playerId, playerData->x, playerData->y, playerData->z, playerData->yaw, playerData->pitch);
+
+    // 重下发物品栏（客户端本地世界已重建，背包内容需重推）。
+    m_server.inventoryManager().syncToClient(playerId);
+}
 
 LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     mc::server::net::ServerClientConnection& connection,
@@ -138,6 +173,10 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     const u64 nowMs = util::TimeUtils::getCurrentTimeMs();
     playerData->lastKeepAliveSent = nowMs;
     playerData->lastKeepAliveReceived = nowMs;
+
+    // 初始化「最后动作时间」：对齐 vanilla ServerPlayer.lastActionTime 初值 Util.getMillis()，
+    // 使玩家加入后从此刻起算空闲（玩家不操作才会被 player-idle-timeout 踢出）。
+    playerData->resetLastActionTime(nowMs);
 
     // 设置玩家初始状态
     setupInitialPlayerState(playerData, static_cast<GameMode>(m_server.settings().defaultGameMode.get()));

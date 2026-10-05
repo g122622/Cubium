@@ -28,6 +28,7 @@
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <functional>
@@ -97,6 +98,20 @@ public:
      * @return 容器ID
      */
     [[nodiscard]] Result<mc::ContainerId> openContainer(PlayerId playerId, mc::ContainerType type, const BlockPos& pos);
+
+    /**
+     * @brief 打开实体容器（村民交易、箱子船等）
+     *
+     * 与方块容器共用同一条打开链路：关闭旧容器 → 分配容器 id → 由提供者创建菜单 →
+     * 登记进 m_openContainers → 下发 OpenScreen。菜单由 `provider.createMenu` 创建，
+     * 容器类型取自 `provider.getMenuType`，标题取自 `provider.getDisplayName`。
+     *
+     * @param playerId 玩家ID
+     * @param provider 命名容器提供者（实体）
+     * @param player 玩家的真实实体（创建菜单需要其物品栏）
+     * @return 成功打开返回 true；提供者拒绝（返回空菜单）或玩家未登录返回 false
+     */
+    [[nodiscard]] bool openEntityContainer(PlayerId playerId, INamedContainerProvider& provider, Player& player);
 
     /**
      * @brief 关闭容器
@@ -222,6 +237,21 @@ private:
      * @param playerId 玩家ID（仅用于日志定位）。
      */
     void _installMenuCallbacks(AbstractContainerMenu& menu, PlayerId playerId);
+
+    /**
+     * @brief 通知服务器「某玩家打开了容器」并下发 OpenScreen
+     *
+     * 方块容器与实体容器共用：标题为空时回落到容器类型的默认标题，槽位数以实际菜单为准。
+     *
+     * @param playerId 玩家ID
+     * @param containerId 容器ID
+     * @param type 容器类型（决定客户端建出哪个窗口）
+     * @param title 自定义标题（空则用默认标题）
+     */
+    void _announceContainerOpened(PlayerId playerId,
+        mc::ContainerId containerId,
+        mc::ContainerType type,
+        const std::string& title = std::string());
 
     core::PlayerManager& m_playerManager;
     InventoryManager* m_inventoryManager = nullptr;

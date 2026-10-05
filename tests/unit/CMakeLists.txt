@@ -1880,6 +1880,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SayCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetIdleTimeoutCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DebugConfigCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SummonCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/SetBlockCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/FillCommand.cpp

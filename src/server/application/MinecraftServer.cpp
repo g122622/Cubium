@@ -37,6 +37,7 @@
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -521,6 +522,31 @@ void MinecraftServer::tick()
             // 断开连接。disconnectPlayer 内部经 PlayerManager::removePlayer 触发移除钩子，
             // 由钩子统一释放区块票据与区块发送跟踪。
             m_connectionManager->disconnectPlayer(playerId, "Connection timed out");
+        }
+    }
+
+    // 空闲踢出（player-idle-timeout）。对齐 vanilla ServerGamePacketListenerImpl.tick：
+    //   lastActionTime > 0 && playerIdleTimeout() > 0 &&
+    //   now - lastActionTime > MINUTES.toMillis(timeout)
+    // 时长 <=0 时该特性关闭（vanilla 默认 0）。wall-clock 每 tick 判定，避免低 TPS 下漏判。
+    if (m_playerIdleTimeoutMinutes > 0) {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "CheckPlayerIdleTimeout", "phase", "idle_timeout");
+
+        const u64 currentTimeMs = util::TimeUtils::getCurrentTimeMs();
+        const u64 idleTimeoutMs = static_cast<u64>(m_playerIdleTimeoutMinutes) * 60ULL * 1000ULL;
+
+        // 先收集再断开，避免在遍历中修改玩家表。
+        std::vector<PlayerId> idlePlayers;
+        m_playerManager->forEachPlayer([&](ServerPlayerData& player) {
+            if (player.lastActionTime > 0 && currentTimeMs > player.lastActionTime &&
+                (currentTimeMs - player.lastActionTime) > idleTimeoutMs) {
+                idlePlayers.push_back(player.playerId);
+            }
+        });
+        for (PlayerId playerId : idlePlayers) {
+            spdlog::warn("MinecraftServer: Player {} kicked for idling", playerId);
+            // 对齐 vanilla disconnect(Component.translatable("multiplayer.disconnect.idling"))。
+            m_connectionManager->disconnectPlayer(playerId, "You have been idle for too long!");
         }
     }
 
@@ -1397,6 +1423,10 @@ void MinecraftServer::setupWorldCallbacks()
             return openContainerRequest(type, pos, player);
         });
 
+        world->setOnOpenEntityContainer([this](INamedContainerProvider& provider, Player& player) {
+            return openEntityContainerRequest(provider, player);
+        });
+
         // 设置方块变化回调：写入后记录到同步管理器，统一在 tick 末发送
         world->setOnBlockChanged([serverDim](const BlockPos& pos, u32 blockStateId) {
             if (auto* bus = serverDim->blockUpdateSyncManager()) {
@@ -1575,6 +1605,30 @@ void MinecraftServer::setupDragonFightBossBar()
 bool MinecraftServer::openContainerRequest(ContainerType type, const BlockPos& pos, Player& player)
 {
     return containerManager().openContainer(player.playerId(), type, pos).success();
+}
+
+bool MinecraftServer::openEntityContainerRequest(INamedContainerProvider& provider, Player& player)
+{
+    return containerManager().openEntityContainer(player.playerId(), provider, player);
+}
+
+void MinecraftServer::recordPlayerAction(PlayerId playerId)
+{
+    // 对齐 vanilla ServerPlayer#resetLastActionTime：在移动/交互/使用物品/容器点击等
+    // C→S 处理器里推进。wall-clock 毫秒，供 tick 的空闲踢出判定使用。
+    auto* playerData = m_playerManager->getPlayer(playerId);
+    if (playerData != nullptr) {
+        playerData->resetLastActionTime(util::TimeUtils::getCurrentTimeMs());
+    }
+}
+
+bool MinecraftServer::startConfigurationForPlayer(PlayerId playerId)
+{
+    // 仅远程会话支持重配置（本地客户端 sessionId=0 无 ClientSession，见 ClientSessionManager 头注释）。
+    if (m_clientSessionManager == nullptr) {
+        return false;
+    }
+    return m_clientSessionManager->startConfigurationForPlayer(playerId);
 }
 
 void MinecraftServer::shutdownManagers()

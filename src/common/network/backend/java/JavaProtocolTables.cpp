@@ -455,6 +455,10 @@ using B = buffer::RegistryByteBuf;
         64, PacketType{PacketFlow::Clientbound, "player_combat_end"}, 112, codecs::playerCombatEndCodec());
     b.addPacket<ir::play::PlayerCombatKill>(
         66, PacketType{PacketFlow::Clientbound, "player_combat_kill"}, 113, codecs::playerCombatKillCodec());
+    // StartConfiguration（S→C，id=116，terminal）：无负载。服务端发起 Play→Configuration
+    // 重配置时发送（对齐 vanilla ClientboundStartConfigurationPacket）。altIndex=116 对齐 variant 末尾。
+    b.addPacket<ir::play::StartConfiguration>(
+        116, PacketType{PacketFlow::Clientbound, "start_configuration"}, 116, codecs::startConfigurationCodec());
     return b.build();
 }
 

@@ -119,6 +119,22 @@ public:
 
     void onPlayerReady(PlayerReadyCallback cb) { m_onReady = std::move(cb); }
 
+    /// 重配置完成回调（ConfigurationAcknowledged 后重推配置数据完成时触发）。
+    /// 由 ClientSessionManager 绑入，用于重推 post-Play 加入序列（play::Login 等）。
+    void onReconfiguration(PlayerReadyCallback cb) { m_onReconfiguration = std::move(cb); }
+
+    /**
+     * @brief 重新发起配置阶段（Play→Configuration 重配置的服务端侧）
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl#handleConfigurationAcknowledged：收到
+     * ConfigurationAcknowledged 后创建新的配置监听器并 startConfiguration()。此处重置配置
+     * 进度标志并重发 SelectKnownPacks，客户端回包后经 _pushConfigurationData 重推
+     * RegistryData/UpdateTags/UpdateEnabledFeatures/FinishConfiguration。
+     *
+     * @return 成功发送 SelectKnownPacks 返回 ok
+     */
+    [[nodiscard]] Result<void> restartConfiguration();
+
     /// 注入服务器状态信息提供者（Status 阶段 StatusRequest 时调用，构造 StatusResponse JSON）
     using StatusProvider = std::function<StatusInfo()>;
     void onStatusRequest(StatusProvider cb) { m_statusProvider = std::move(cb); }
@@ -149,12 +165,17 @@ private:
     bool m_loginFinishedSent = false;
     bool m_configurationStarted = false;
     bool m_playReady = false;
+    /// 是否处于 Play→Configuration 重配置流程（收到 ConfigurationAcknowledged 后置位）。
+    /// 重配置期间再次 FinishConfiguration 时不重复触发 onPlayerReady（玩家已存在），
+    /// 而是触发 onReconfiguration 重推 post-Play 加入序列。
+    bool m_reconfiguring = false;
 
     // 在线模式加密握手中间态
     std::vector<u8> m_serverPrivateKeyDer;
     std::vector<u8> m_verifyToken;
 
     PlayerReadyCallback m_onReady;
+    PlayerReadyCallback m_onReconfiguration;
     StatusProvider m_statusProvider;
     bool m_hasRequestedStatus = false; ///< StatusRequest 单次守卫（二次请求断连，对齐 Java）
 

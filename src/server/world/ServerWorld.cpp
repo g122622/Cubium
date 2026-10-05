@@ -610,10 +610,13 @@ bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player&
 
 bool ServerWorld::openEntityContainer(INamedContainerProvider& provider, Player& player)
 {
-    // TODO: 实体容器打开回调尚未接线（MinecraftServer 未注册），当前恒返回 false。
-    (void)provider;
-    (void)player;
-    return false;
+    // 转发到 MinecraftServer 注册的回调（见 setupWorldCallbacks）。回调经 ContainerManager
+    // 分配容器 id、登记菜单并下发 OpenScreen，与方块容器共用同一条打开链路。
+    if (!m_onOpenEntityContainer) {
+        return false;
+    }
+
+    return m_onOpenEntityContainer(provider, player);
 }
 
 void ServerWorld::setChunkManager(std::unique_ptr<ServerChunkManager> manager)

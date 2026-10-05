@@ -2602,6 +2602,21 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 }
                 return Result<void>::ok();
             }
+            // ---- StartConfiguration（S→C，id=116，terminal）----
+            else if constexpr (std::is_same_v<T, irplay::StartConfiguration>) {
+                // 服务端发起 Play→Configuration 重配置。客户端须切回 Configuration 阶段并回
+                // ConfigurationAcknowledged(C→S,id=15)，随后按服务端重推的 RegistryData/
+                // UpdateTags 重新配置。
+                //
+                // TODO(client_reconfiguration): 本项目客户端已停止维护，且阶段切换需与
+                //   ClientNetwork 的出/入站阶段状态机联动（本 visitor 只处理 Play 包消费，
+                //   不持有阶段控制权），故此处仅记录；真 Java 客户端会自行完成该流程。
+                //   待客户端重新维护时，需在 ClientNetwork 补 StartConfiguration 的出站阶段切换
+                //   与 ConfigurationAcknowledged 的发送。
+                spdlog::info("[ClientPlayVisitor] StartConfiguration received; client-side reconfiguration "
+                             "not implemented (client unmaintained)");
+                return Result<void>::ok();
+            }
             // ---- 默认：未处理包静默忽略 ----
             else {
                 return Result<void>::ok();

@@ -543,13 +543,26 @@ public:
     }
     [[nodiscard]] bool openContainer(ContainerType type, const BlockPos& pos, Player& player) override;
 
+    /// 实体容器打开回调类型（村民交易、箱子船等）：返回 true 表示已成功打开。
+    using OpenEntityContainerCallback = std::function<bool(INamedContainerProvider&, Player&)>;
+
+    void setOnOpenEntityContainer(OpenEntityContainerCallback callback)
+    {
+        if (m_onOpenEntityContainer) {
+            throw std::runtime_error("Open entity container callback already set");
+        }
+
+        m_onOpenEntityContainer = std::move(callback);
+    }
+
     /**
      * @brief 打开实体容器
      * @param provider 命名容器提供者（村民、矿车等）
      * @param player 玩家
      * @return 如果成功打开返回 true
      *
-     * TODO: 实体容器打开回调尚未接线（MinecraftServer 未注册），当前恒返回 false。
+     * 转发到 MinecraftServer 注册的回调（见 setupWorldCallbacks）。回调经 ContainerManager
+     * 分配容器 id、登记菜单并下发 OpenScreen，与方块容器共用同一条打开链路。
      */
     [[nodiscard]] bool openEntityContainer(INamedContainerProvider& provider, Player& player) override;
 
@@ -1565,6 +1578,7 @@ private:
     f32 m_spawnAngle = 0.0f;                                                        // 世界出生点朝向（度）
 
     OpenContainerCallback m_onOpenContainer;
+    OpenEntityContainerCallback m_onOpenEntityContainer;
 
     // 村庄和袭击系统
     std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;

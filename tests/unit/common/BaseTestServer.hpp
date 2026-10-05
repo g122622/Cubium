@@ -168,6 +168,7 @@ public:
     void setDefaultGameMode(GameMode mode) override { m_defaultGameMode = mode; }
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_idleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override { m_idleTimeoutMinutes = timeoutMinutes; }
+    bool startConfigurationForPlayer(PlayerId /*playerId*/) override { return false; }
     void requestStop() override
     {
         m_stopRequested = true;

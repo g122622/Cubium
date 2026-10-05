@@ -107,10 +107,21 @@ public:
     /// 当前远程会话数（诊断/测试用）。
     [[nodiscard]] std::size_t sessionCount() const noexcept;
 
+    /**
+     * @brief 让指定玩家的远程会话发起 Play→Configuration 重配置
+     * @param playerId 目标玩家ID
+     * @return 找到该玩家的会话并发起成功返回 true；无远程会话（本地客户端/未连接）返回 false
+     */
+    [[nodiscard]] bool startConfigurationForPlayer(PlayerId playerId);
+
 private:
     /// 握手完成回调（onClientConnect 内绑入 handshake.onPlayerReady）：创建玩家实体 +
     /// 回填路由器 playerId。
     void onPlayerReady(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
+
+    /// 重配置完成回调（绑入 handshake.onReconfiguration）：玩家已存在，仅重推 post-Play
+    /// 加入序列（play::Login 等），不重建玩家。
+    void onReconfiguration(u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid);
 
     MinecraftServer& m_server;
     std::string m_logPrefix;

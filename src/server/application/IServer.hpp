@@ -421,6 +421,17 @@ public:
     virtual void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) = 0;
 
     /**
+     * @brief 让指定玩家切回 Configuration 阶段（Play→Configuration 重配置）
+     *
+     * 对齐 vanilla `/debugconfig config`：发 StartConfiguration(S→C) 并切换出站阶段，
+     * 客户端回 ConfigurationAcknowledged 后重新走一遍配置阶段。
+     *
+     * @param playerId 目标玩家ID
+     * @return 成功发起返回 true（无该玩家的远程会话/本地客户端时返回 false）
+     */
+    virtual bool startConfigurationForPlayer(PlayerId playerId) = 0;
+
+    /**
      * @brief 请求服务器优雅停机。
      *
      * 只触发停机流程，不在调用线程里直接释放资源。

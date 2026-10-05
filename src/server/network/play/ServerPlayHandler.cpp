@@ -36,6 +36,28 @@
 
 namespace mc::server::net {
 
+namespace {
+
+/// 该 C→S 包是否属于「玩家主动动作」——对齐 vanilla ServerGamePacketListenerImpl 中调用
+/// `player.resetLastActionTime()` 的处理器集合（player_input / player_action / use_item_on /
+/// use_item / set_carried_item / chat / chat_command / player_command / interact /
+/// container_click / place_recipe / sign_update）。自动回包（keep_alive / pong / ping_request）
+/// 不在此列——否则挂机客户端会被 KeepAlive 续命、空闲踢出永不触发。
+/// 移动包（MovePlayer*）亦不在此列：vanilla 经 handlePlayerKnownMovement 仅在位移显著时推进，
+/// 由 MovementHandler 单独处理。
+bool isPlayerActionPacket(const mc::network::ir::PlayPacket& play)
+{
+    namespace irplay = mc::network::ir::play;
+    return std::holds_alternative<irplay::PlayerInput>(play) || std::holds_alternative<irplay::PlayerAction>(play) ||
+        std::holds_alternative<irplay::UseItemOn>(play) || std::holds_alternative<irplay::UseItem>(play) ||
+        std::holds_alternative<irplay::SetCarriedItem>(play) || std::holds_alternative<irplay::Chat>(play) ||
+        std::holds_alternative<irplay::ChatCommand>(play) || std::holds_alternative<irplay::PlayerCommand>(play) ||
+        std::holds_alternative<irplay::Interact>(play) || std::holds_alternative<irplay::ContainerClick>(play) ||
+        std::holds_alternative<irplay::PlaceRecipe>(play) || std::holds_alternative<irplay::SignUpdate>(play);
+}
+
+} // namespace
+
 ServerPlayHandler::ServerPlayHandler(MinecraftServer& server)
     : PlayHandlerBase(server)
     , m_movement(server)
@@ -54,6 +76,12 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
     MC_ASSERT_RELEASE(packet.phase == mc::network::protocol::ConnectionProtocol::Play);
     const auto& play = std::get<mc::network::ir::PlayPacket>(packet.packet);
     namespace irplay = mc::network::ir::play;
+
+    // 空闲踢出的「最后动作时间」推进：对齐 vanilla 各 C→S 处理器里的 player.resetLastActionTime()。
+    // 集中在此判定，避免散落到 6 个处理器；集合定义见 isPlayerActionPacket。
+    if (isPlayerActionPacket(play)) {
+        m_server.recordPlayerAction(playerId);
+    }
 
     if (std::holds_alternative<irplay::MovePlayerPos>(play) || std::holds_alternative<irplay::MovePlayerPosRot>(play) ||
         std::holds_alternative<irplay::MovePlayerRot>(play) ||

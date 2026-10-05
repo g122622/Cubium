@@ -87,6 +87,18 @@ public:
         i64 seed,
         bool isFlat);
 
+    /**
+     * @brief 重推 post-Play 加入序列（玩家已存在，不重建）
+     *
+     * 用于 Play→Configuration 重配置完成后重新进入 Play 阶段：客户端已重新走完配置阶段、
+     * 本地世界被清空，需重发 play::Login 等加入序列包使其重建本地实体与状态。
+     * 与 createPlayerForConnection 的差别：不分配 playerId、不创建实体、不初始化存档，
+     * 只重发下游包。
+     *
+     * @param playerId 目标玩家ID（须已存在）
+     */
+    void resendJoinSequenceForPlayer(PlayerId playerId);
+
 private:
     void setupInitialPlayerState(ServerPlayerData* player, GameMode gameMode);
     /// @param playerId 网络路由用的玩家注册 id（sendPacketToPlayer 按它寻址）

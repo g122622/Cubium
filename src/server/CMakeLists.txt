@@ -420,6 +420,7 @@ add_executable(minecraft-server
     command/commands/SayCommand.cpp
     command/commands/StopCommand.cpp
     command/commands/SetIdleTimeoutCommand.cpp
+    command/commands/DebugConfigCommand.cpp
     command/commands/SummonCommand.cpp
     command/commands/SetBlockCommand.cpp
     command/commands/FillCommand.cpp

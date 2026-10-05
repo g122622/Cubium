@@ -86,6 +86,7 @@
 
 namespace mc {
 class BlockPos;
+class INamedContainerProvider;
 enum class ContainerType : u8;
 namespace particle {
 enum class ParticleTypeId : u16;
@@ -422,6 +423,7 @@ public:
     void setDefaultGameMode(GameMode mode) override;
     [[nodiscard]] i32 playerIdleTimeoutMinutes() const override { return m_playerIdleTimeoutMinutes; }
     void setPlayerIdleTimeoutMinutes(i32 timeoutMinutes) override;
+    bool startConfigurationForPlayer(PlayerId playerId) override;
     void requestStop() override;
 
     // ========== 便捷方法 ==========
@@ -597,10 +599,31 @@ protected:
      */
     void shutdownManagers();
 
+public:
+    /**
+     * @brief 推进指定玩家的「最后动作时间」
+     *
+     * 由各 C→S Play 处理器在对应 vanilla `resetLastActionTime` 的位置调用（移动、
+     * 攻击/交互、使用物品、快捷栏切换、命令、容器点击、动画、聊天、放下物品等）。
+     * MinecraftServer::tick 据此判定空闲踢出（player-idle-timeout）。
+     *
+     * @param playerId 玩家ID
+     */
+    void recordPlayerAction(PlayerId playerId);
+
+protected:
     /**
      * @brief 处理世界层的开容器请求
      */
     [[nodiscard]] virtual bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player);
+
+    /**
+     * @brief 处理世界层的实体容器打开请求（村民交易、箱子船等）
+     *
+     * 基类默认实现为远程玩家路径：经 ContainerManager 分配容器 id、登记菜单并下发
+     * OpenScreen（与方块容器共用同一链路）。IntegratedServer 覆写以处理本地客户端。
+     */
+    [[nodiscard]] virtual bool openEntityContainerRequest(INamedContainerProvider& provider, Player& player);
     /**
      * @brief 执行实体 tick
      */

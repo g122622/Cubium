@@ -159,6 +159,19 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 实体交互（玩家右键）
+     *
+     * 对齐 vanilla AbstractVillager#mobInteract：手持刷怪蛋 / 已死 / 交易中 / 睡觉时交基类；
+     * 幼体只表现不高兴；否则服务端调 startTrading 并打开交易界面（经 openContainer →
+     * IWorld::openEntityContainer），主手交互计入 talked_to_villager 统计。
+     *
+     * @param player 交互的玩家
+     * @param hand 交互的手
+     * @return 交互结果
+     */
+    ActionResultType interactMob(Player& player, Hand hand) override;
+
     // ========== INamedContainerProvider 接口实现 ==========
 
     /**
@@ -181,6 +194,15 @@ public:
      * @return 显示名称
      */
     [[nodiscard]] std::string getDisplayName() const override;
+
+    /**
+     * @brief 获取容器类型
+     *
+     * 村民交易界面固定为 `ContainerType::Merchant`（对齐 vanilla MenuType.MERCHANT）。
+     *
+     * @return 容器类型
+     */
+    [[nodiscard]] ContainerType getMenuType() const override;
 
     // ========== 交易系统 ==========
 
@@ -348,6 +370,13 @@ public:
      */
     void playTradeSound(bool success);
 
+    /**
+     * @brief 设置不高兴状态（幼体被交互时表现）
+     *
+     * 对齐 vanilla AbstractVillager#setUnhappy：置 40 tick 的不高兴计数器并播放否定音效。
+     */
+    void setUnhappy();
+
 protected:
     // 交易列表
     std::unique_ptr<MerchantOffers> m_offers;
@@ -366,6 +395,9 @@ protected:
 
     // 交易次数（用于升级）
     i32 m_tradesMade = 0;
+
+    // 不高兴计数器（对齐 vanilla AbstractVillager.unhappyCounter，幼体被交互时置 40）
+    i32 m_unhappyCounter = 0;
 };
 
 } // namespace entity

@@ -235,3 +235,32 @@ TEST_F(NetworkTestBase, PlayContainerSetDataNegativeValue)
     ASSERT_EQ(out.index(), 42u);
     EXPECT_EQ(std::get<ContainerSetData>(out), in);
 }
+
+// StartConfiguration（S→C，id=116，terminal）：无负载。altIndex=116 为 variant 末位。
+// 线格式：整帧只有 VarInt(packetID)=116，无 payload（116 = 0x74，单字节 VarInt）。
+TEST_F(NetworkTestBase, PlayStartConfigurationRoundTrip)
+{
+    StartConfiguration in{};
+    auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
+    ASSERT_EQ(out.index(), 116u);
+    EXPECT_EQ(std::get<StartConfiguration>(out), in);
+}
+
+TEST_F(NetworkTestBase, PlayStartConfigurationWireIdIs116AndPayloadEmpty)
+{
+    // 表级往返用同一张表编解码，wire id 登记错了也能通过，故做字节级锁定：
+    // id=116 是单字节 VarInt（0x74），空 payload ⇒ 整帧恰好 1 字节。
+    StartConfiguration in{};
+    auto encodeBuf = makeBoundBuf();
+    auto enc = tables()->playCb->encode(encodeBuf, PlayPacket{in});
+    ASSERT_TRUE(enc.success()) << enc.error().toString();
+
+    ASSERT_EQ(encodeBuf.size(), 1u);
+    EXPECT_EQ(encodeBuf.bytes()[0], 0x74u);
+
+    buffer::RegistryByteBuf readBuf(encodeBuf.data(), encodeBuf.size(), RegistryAccess::instance());
+    auto id = readBuf.readVarInt();
+    ASSERT_TRUE(id.success()) << id.error().toString();
+    EXPECT_EQ(id.value(), 116);
+    EXPECT_EQ(readBuf.readableBytes(), 0u);
+}

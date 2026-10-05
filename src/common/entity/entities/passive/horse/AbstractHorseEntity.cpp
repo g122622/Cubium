@@ -622,9 +622,11 @@ void AbstractHorseEntity::openInventory(Player& player)
     if (m_world != nullptr && !m_world->isClientSide()) {
         if (!isBeingRidden() || isPassenger(player.id())) {
             if (isTame()) {
-                // TODO: 当马背包 ContainerMenu 系统实现后，在此打开马背包 GUI
+                // TODO: 当马背包 ContainerMenu 系统实现后，在此打开马背包 GUI。
                 // 当前马背包 SimpleInventory 已存在（HorseInventoryComponent.m_inventory），
                 // 但尚未实现 HorseContainer（类似 HorseInventoryMenu）来连接马装备栏与玩家背包。
+                // 注：实体容器打开链路（ServerWorld::openEntityContainer → ContainerManager
+                //  → OpenScreen）已接通，待 HorseContainer 就位后此处调 player.openContainer(*this) 即可。
             }
         }
     }

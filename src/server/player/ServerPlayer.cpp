@@ -1407,10 +1407,8 @@ void ServerPlayer::attack(Entity& target)
 
 void ServerPlayer::recordClientMovement(const Vector3& movement)
 {
-    // 运动量显著（长度平方 > 1e-5）时还需重置"最后动作时间"，供空闲踢出
-    // （player-idle-timeout）判定玩家是否真的在操作。
-    // TODO(player_idle_timeout): IServer::playerIdleTimeoutMinutes 已存在但空闲踢出逻辑尚未实现，
-    // 该逻辑落地时须在此处按上述阈值同步推进最后动作时间戳。
+    // 记录客户端上报的运动量。空闲踢出的「最后动作时间」推进在 MovementHandler 中按
+    // vanilla handlePlayerKnownMovement 的「位移显著才推进」语义处理（见该处注释）。
     m_lastKnownClientMovement = movement;
     m_receivedMovementThisTick = true;
 }

@@ -384,6 +384,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     spdlog::info("Max players: {}", m_settings.maxPlayers.get());
     spdlog::info("World: {}", m_settings.worldName.get());
 
+    // 应用玩家空闲踢出时长（0=关闭）。运行时变更经 _applySettings 的 onChange 回调生效。
+    setPlayerIdleTimeoutMinutes(m_settings.playerIdleTimeout.get());
+    spdlog::info("Player idle timeout: {} minute(s)", m_settings.playerIdleTimeout.get());
+
     m_initialized = true;
     return Result<void>::ok();
 }
@@ -838,6 +842,13 @@ void StandaloneServer::_applySettings()
         if (m_playerManager) {
             m_playerManager->setMaxPlayers(value);
         }
+    });
+
+    // 玩家空闲踢出时长（player-idle-timeout）。运行时变更即时生效于 MinecraftServer::tick 的
+    // 空闲判定；0 表示关闭该特性。
+    m_settings.playerIdleTimeout.onChange([this](i32 value) {
+        spdlog::info("Player idle timeout changed to: {} minute(s)", value);
+        setPlayerIdleTimeoutMinutes(value);
     });
 
     // 注：viewDistance / simulationDistance 运行时变更回调已下沉至基类

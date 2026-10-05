@@ -1958,6 +1958,13 @@ inline void writeEntry(B& buf, u16 actions, const ir::play::PlayerInfoEntry& e)
         [](B&) -> Result<ir::play::ChunkBatchStart> { return ir::play::ChunkBatchStart{}; });
 }
 
+/// StartConfiguration（S→C，id=116，terminal）：无负载（StreamCodec.unit）
+[[nodiscard]] inline auto startConfigurationCodec()
+{
+    return makeCodec<ir::play::StartConfiguration>([](B&, const ir::play::StartConfiguration&) {},
+        [](B&) -> Result<ir::play::StartConfiguration> { return ir::play::StartConfiguration{}; });
+}
+
 /// ChunkBiomes（S→C，id=13）：VarInt(count) + count×{Long(packedChunkPos) + ByteArray(data)}
 [[nodiscard]] inline auto chunkBiomesCodec()
 {

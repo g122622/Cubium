@@ -209,7 +209,7 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
 
     auto* world = m_server.getPlayerWorld(playerId);
     if (world) {
-        world->entityManager().forEachEntity([playerId, player, prevX, prevY, prevZ](Entity* entity) {
+        world->entityManager().forEachEntity([this, playerId, player, prevX, prevY, prevZ](Entity* entity) {
             auto* playerEntity = dynamic_cast<Player*>(entity);
             if (playerEntity == nullptr || playerEntity->playerId() != playerId) {
                 return true;
@@ -223,9 +223,17 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
             // 被反飞行闸拒绝的包已在上面提前 return，不会走到这里；纯朝向/着地包位移为零，
             // 同样算作"本 tick 收到了客户端上报"（vanilla 也走同一条 handlePlayerKnownMovement）。
             if (auto* serverPlayer = playerEntity->asServerPlayer(); serverPlayer != nullptr) {
-                serverPlayer->recordClientMovement(Vector3(static_cast<f32>(player->x - prevX),
+                const Vector3 movement(static_cast<f32>(player->x - prevX),
                     static_cast<f32>(player->y - prevY),
-                    static_cast<f32>(player->z - prevZ)));
+                    static_cast<f32>(player->z - prevZ));
+                serverPlayer->recordClientMovement(movement);
+
+                // 空闲踢出的「最后动作时间」推进（对齐 vanilla handlePlayerKnownMovement：
+                // 仅在位移长度平方 > 1.0e-5 时调 player.resetLastActionTime）。纯朝向/着地包
+                // 位移为零，不推进——否则原地转视角的挂机玩家永不被踢。
+                if (movement.lengthSquared() > 1.0e-5f) {
+                    m_server.recordPlayerAction(playerId);
+                }
             }
             return false;
         });
@@ -483,6 +491,11 @@ void MovementHandler::handleMoveVehiclePacket(PlayerId playerId, const mc::netwo
     // 上面的 moved-too-quickly 分支已提前 return，不记账。
     if (auto* serverPlayer = playerEntity->asServerPlayer(); serverPlayer != nullptr) {
         serverPlayer->recordClientMovement(vehicleDelta);
+
+        // 空闲踢出的「最后动作时间」推进（对齐 vanilla handlePlayerKnownMovement 的显著位移门控）。
+        if (vehicleDelta.lengthSquared() > 1.0e-5f) {
+            m_server.recordPlayerAction(playerId);
+        }
     }
 
     // 回送校正：服务端权威位置回传客户端，使客户端载具与服务端对齐

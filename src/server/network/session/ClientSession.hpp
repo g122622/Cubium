@@ -73,6 +73,21 @@ public:
     [[nodiscard]] ServerClientConnection* connection() const noexcept { return m_connection; }
     [[nodiscard]] u32 sessionId() const noexcept { return m_sessionId; }
 
+    /// 是否已收到 ConfigurationAcknowledged 完成重配置（对齐 vanilla waitingForSwitchToConfig）。
+    [[nodiscard]] bool waitingForConfig() const noexcept { return m_waitingForConfig; }
+
+    /**
+     * @brief 发起 Play→Configuration 重配置
+     *
+     * 对齐 vanilla ServerGamePacketListenerImpl#switchToConfig：置等待标志、发
+     * StartConfiguration(S→C) 并把出站阶段切到 Configuration。此后玩家需重新走一遍
+     * Configuration 阶段（服务端收到 ConfigurationAcknowledged 后由框架切回 Configuration
+     * 入站阶段并重推配置数据）。
+     *
+     * @return 成功发起返回 true；连接不可用返回 false。
+     */
+    [[nodiscard]] Result<void> startConfiguration();
+
     /// 握手完成后回填玩家ID（构造时占位 0）
     void setPlayerId(PlayerId playerId) noexcept { m_playerId = playerId; }
     [[nodiscard]] PlayerId playerId() const noexcept { return m_playerId; }
@@ -87,11 +102,21 @@ public:
     [[nodiscard]] Result<void> handleInbound(const mc::network::ir::IrPacket& packet);
 
 private:
+    /**
+     * @brief 处理 ConfigurationAcknowledged（重配置请求的客户端确认）
+     *
+     * 校验此前已发起重配置，随后重置握手状态机并重发 SelectKnownPacks 开启新一轮配置阶段。
+     *
+     * @return 成功处理返回 true
+     */
+    bool handleConfigurationAcknowledged();
+
     ServerClientConnection* m_connection; // 非拥有，所有权归 ServerNetwork
     ServerHandshakeStateMachine m_handshake;
     ServerPlayHandler& m_playHandler;
     PlayerId m_playerId;
     u32 m_sessionId;
+    bool m_waitingForConfig = false;
 };
 
 } // namespace mc::server::net

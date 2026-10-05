@@ -118,9 +118,9 @@ struct AttackRange {
 
     [[nodiscard]] bool operator==(const AttackRange& other) const noexcept
     {
-        return minRange == other.minRange && maxRange == other.maxRange &&
-            minCreativeRange == other.minCreativeRange && maxCreativeRange == other.maxCreativeRange &&
-            hitboxMargin == other.hitboxMargin && mobFactor == other.mobFactor;
+        return minRange == other.minRange && maxRange == other.maxRange && minCreativeRange == other.minCreativeRange &&
+            maxCreativeRange == other.maxCreativeRange && hitboxMargin == other.hitboxMargin &&
+            mobFactor == other.mobFactor;
     }
 };
 

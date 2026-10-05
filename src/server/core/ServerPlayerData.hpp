@@ -116,6 +116,17 @@ struct ServerPlayerData {
     u64 lastKeepAliveSentTick = 0; // 发送心跳时的 tick
     u32 ping = 0;                  // 延迟（毫秒）
 
+    /// 最后一次「玩家动作」的 wall-clock 毫秒时间戳（对齐 vanilla ServerPlayer.lastActionTime）。
+    /// 由各 C→S 处理器经 MinecraftServer::recordPlayerAction 推进；MinecraftServer::tick 据此
+    /// 判定空闲踢出（player-idle-timeout）。0 表示尚未初始化（玩家尚未加入）。
+    u64 lastActionTime = 0;
+
+    /**
+     * @brief 推进最后动作时间（对齐 vanilla ServerPlayer#resetLastActionTime）
+     * @param nowMs 当前 wall-clock 毫秒
+     */
+    void resetLastActionTime(u64 nowMs) noexcept { lastActionTime = nowMs; }
+
     // ========== 客户端加载状态（对齐 ServerGamePacketListenerImpl） ==========
     /// 玩家死亡后等待重生（对齐 waitingForRespawn）。
     /// 置位后 hasClientLoaded() 返回 false，直到 PERFORM_RESPAWN 触发 restartClientLoadTimerAfterRespawn()。

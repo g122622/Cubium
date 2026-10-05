@@ -29,6 +29,8 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "server/application/MinecraftServer.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include "server/network/handshake/LoginFlow.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
@@ -62,6 +64,14 @@ void ClientSessionManager::onClientConnect(ServerClientConnection& conn)
     session->handshake().onPlayerReady(
         [this, sessionId](const std::string& username, const std::array<u8, 16>& offlineUuid) {
             onPlayerReady(sessionId, username, offlineUuid);
+        });
+
+    // 重配置完成回调：Play→Configuration 重配置走完（客户端回 ConfigurationAcknowledged 并
+    // 再次 FinishConfiguration）后触发。玩家已存在，只需重推 post-Play 加入序列（play::Login
+    // 等），不重建玩家。
+    session->handshake().onReconfiguration(
+        [this, sessionId](const std::string& username, const std::array<u8, 16>& offlineUuid) {
+            onReconfiguration(sessionId, username, offlineUuid);
         });
 
     // Status（服务器列表 ping）信息提供者：读 MinecraftServer 的周期性状态缓存
@@ -119,6 +129,25 @@ void ClientSessionManager::onPlayerReady(
     }
     // 回填会话 playerId（构造时占位 0），此后 Play 包按真实 playerId 派发。
     session->setPlayerId(creation.playerId);
+}
+
+void ClientSessionManager::onReconfiguration(
+    u32 sessionId, const std::string& username, const std::array<u8, 16>& offlineUuid)
+{
+    // 重配置完成：玩家已存在，不重建实体。重推 post-Play 加入序列（play::Login 等），
+    // 使客户端在重新进入 Play 阶段后重新建立本地世界/实体。
+    (void)offlineUuid;
+    const PlayerId playerId = m_server.playerManager().getPlayerIdBySession(sessionId);
+    if (playerId == 0) {
+        spdlog::warn("{}: onReconfiguration for unknown sessionId={}", m_logPrefix, sessionId);
+        return;
+    }
+
+    // 重推 play::Login（客户端据此重新建立本地实体并进入世界）。玩家实体已存在，
+    // sendRejoinSequence 只重发加入序列包，不重复创建玩家。
+    m_server.loginFlow().resendJoinSequenceForPlayer(playerId);
+    spdlog::info(
+        "{}: re-pushed join sequence for '{}' (playerId={}) after reconfiguration", m_logPrefix, username, playerId);
 }
 
 void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
@@ -181,6 +210,38 @@ std::size_t ClientSessionManager::sessionCount() const noexcept
 {
     std::lock_guard<std::mutex> lock(m_sessionsMutex);
     return m_sessions.size();
+}
+
+bool ClientSessionManager::startConfigurationForPlayer(PlayerId playerId)
+{
+    if (playerId == 0) {
+        return false;
+    }
+
+    // 按 playerId 反查会话：m_sessions 以 sessionId 为键，玩家数据上存有其 sessionId
+    // （LoginFlow 中回填；本地客户端 sessionId=0，无远程会话）。
+    const auto* playerData = m_server.playerManager().getPlayer(playerId);
+    if (playerData == nullptr) {
+        return false;
+    }
+    const u32 sessionId = playerData->sessionId;
+    if (sessionId == 0) {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(m_sessionsMutex);
+    auto it = m_sessions.find(sessionId);
+    if (it == m_sessions.end() || it->second == nullptr) {
+        return false;
+    }
+
+    auto result = it->second->startConfiguration();
+    if (!result.success()) {
+        spdlog::warn(
+            "{}: failed to start reconfiguration for player {}: {}", m_logPrefix, playerId, result.error().toString());
+        return false;
+    }
+    return true;
 }
 
 } // namespace mc::server::net

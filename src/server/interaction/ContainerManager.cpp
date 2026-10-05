@@ -29,6 +29,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -154,19 +155,87 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
         });
     }
 
-    std::string title = std::string(ContainerTypes::getDefaultTitle(type));
-    i32 slotCount = ContainerTypes::getSlotCount(type);
+    _announceContainerOpened(playerId, containerId, type);
 
-    const auto& opened = m_openContainers[playerId];
-    if (opened.menu) {
-        slotCount = opened.menu->getSlotCount();
+    return containerId;
+}
+
+bool ContainerManager::openEntityContainer(PlayerId playerId, INamedContainerProvider& provider, Player& player)
+{
+    auto* playerData = m_playerManager.getPlayer(playerId);
+    if (!playerData || !playerData->loggedIn) {
+        spdlog::warn("Open entity container rejected: player {} not found or not logged in", playerId);
+        return false;
+    }
+
+    // 打开新容器前先关闭旧容器，与方块容器路径（openContainer 开头）一致，
+    // 避免「已开着箱子时右键村民」留下旧菜单：旧菜单不入 m_openContainers 被覆写后无人清理，
+    // 其 removed() 永不触发（支付槽物品不返还、交易不 stopTrading）。
+    if (auto it = m_openContainers.find(playerId); it != m_openContainers.end() && it->second.menu) {
+        closeContainer(playerId);
+    }
+
+    // 分配容器 id：规则与方块容器一致（从 PLAYER_CONTAINER_ID+1 起，逐玩家递增）。
+    mc::ContainerId containerId = m_nextContainerIds[playerId];
+    constexpr mc::ContainerId kFirstContainerId = mc::inventory::PLAYER_CONTAINER_ID + 1;
+    if (containerId < kFirstContainerId) {
+        containerId = kFirstContainerId;
+    }
+    m_nextContainerIds[playerId] = containerId + 1;
+
+    // 由提供者自身创建菜单（村民交易 / 箱子船各建各自的菜单类）。
+    std::unique_ptr<AbstractContainerMenu> menu = provider.createMenu(containerId, player);
+    if (menu == nullptr) {
+        // 提供者拒绝打开（如旁观者对未解包战利品表容器）。对齐 vanilla：openMenu 返回空
+        // OptionalInt，玩家界面不变。
+        spdlog::info("Entity container provider refused to open a menu for player {}", playerId);
+        return false;
+    }
+
+    const ContainerType type = provider.getMenuType();
+
+    OpenContainer openContainer;
+    openContainer.type = type;
+    openContainer.position = BlockPos();
+    openContainer.menu = std::move(menu);
+
+    _installMenuCallbacks(*openContainer.menu, playerId);
+    m_openContainers[playerId] = std::move(openContainer);
+
+    // 槽位监听器：实体容器同样可能由服务端自己改动槽位（如箱子船被其他系统写入），
+    // 由 tickMenus 统一重发全量内容。
+    {
+        const mc::ContainerId openedId = containerId;
+        m_openContainers[playerId].menu->addListener([this, playerId, openedId](i32 slot, ItemStack stack) {
+            (void)slot;
+            (void)stack;
+            auto it = m_openContainers.find(playerId);
+            if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
+                it->second.slotChangePending = true;
+            }
+        });
+    }
+
+    _announceContainerOpened(playerId, containerId, type, provider.getDisplayName());
+
+    return true;
+}
+
+void ContainerManager::_announceContainerOpened(
+    PlayerId playerId, mc::ContainerId containerId, mc::ContainerType type, const std::string& title)
+{
+    // 标题：调用方给出的自定义标题优先（如村民显示名），缺省回落到容器类型的默认标题。
+    const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
+
+    // 槽位数以实际菜单为准（方块容器可能因双箱/特殊布局与类型默认值不同）。
+    i32 slotCount = ContainerTypes::getSlotCount(type);
+    if (auto it = m_openContainers.find(playerId); it != m_openContainers.end() && it->second.menu != nullptr) {
+        slotCount = it->second.menu->getSlotCount();
     }
 
     if (m_onContainerOpen) {
-        m_onContainerOpen(playerId, containerId, type, title, slotCount);
+        m_onContainerOpen(playerId, containerId, type, resolvedTitle, slotCount);
     }
-
-    return containerId;
 }
 
 void ContainerManager::closeContainer(PlayerId playerId)

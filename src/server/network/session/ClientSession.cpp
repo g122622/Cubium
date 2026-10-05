@@ -25,16 +25,29 @@
 
 #include "common/core/Result.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 
+#include <variant>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::net {
 
 Result<void> ClientSession::handleInbound(const mc::network::ir::IrPacket& packet)
 {
+    // 重配置确认拦截：Play 阶段的 ConfigurationAcknowledged 是本会话对重配置请求的响应，
+    // 不应走通用 Play 路由（SessionSignalHandler 只做确认）。此处就地处理并发起新一轮配置。
+    if (packet.phase == mc::network::protocol::ConnectionProtocol::Play) {
+        if (const auto* play = std::get_if<mc::network::ir::PlayPacket>(&packet.packet);
+            play != nullptr && std::holds_alternative<mc::network::ir::play::ConfigurationAcknowledged>(*play)) {
+            handleConfigurationAcknowledged();
+            return Result<void>::ok();
+        }
+    }
+
     // 握手状态机优先：Handshake/Status/Login/Configuration 包在此消费。
     auto handled = m_handshake.handleInbound(packet);
     if (!handled.success()) {
@@ -60,6 +73,52 @@ Result<void> ClientSession::handleInbound(const mc::network::ir::IrPacket& packe
     }
 
     m_playHandler.route(m_playerId, packet);
+    return Result<void>::ok();
+}
+
+bool ClientSession::handleConfigurationAcknowledged()
+{
+    // 对齐 vanilla ServerGamePacketListenerImpl#handleConfigurationAcknowledged：仅当此前
+    // 已发起重配置（waitingForSwitchToConfig）时有效，否则忽略（vanilla 抛异常，此处降级告警）。
+    if (!m_waitingForConfig) {
+        spdlog::warn(
+            "ClientSession: ConfigurationAcknowledged but no switch was requested (sessionId={})", m_sessionId);
+        return false;
+    }
+    m_waitingForConfig = false;
+
+    // 重置握手状态机并发起新一轮配置阶段（重发 SelectKnownPacks → 重推 RegistryData 等）。
+    auto result = m_handshake.restartConfiguration();
+    if (!result.success()) {
+        spdlog::error("ClientSession: failed to restart configuration: {}", result.error().toString());
+        return false;
+    }
+    spdlog::info("ClientSession: restarted configuration phase for player {} (sessionId={})", m_playerId, m_sessionId);
+    return true;
+}
+
+Result<void> ClientSession::startConfiguration()
+{
+    if (m_connection == nullptr || !m_connection->isConnected()) {
+        return Error(ErrorCode::InvalidState, "Connection unavailable", "ClientSession::startConfiguration");
+    }
+
+    // 对齐 vanilla ServerGamePacketListenerImpl#switchToConfig：
+    //   waitingForSwitchToConfig = true; send(ClientboundStartConfigurationPacket.INSTANCE);
+    //   connection.setupOutboundProtocol(Configuration)
+    // 先切出站阶段（使 StartConfiguration 之后发的 Configuration 包按 Configuration 表编码），
+    // 再发 StartConfiguration（terminal，发送侧自动切出站阶段，此处显式设置保证顺序确定）。
+    m_waitingForConfig = true;
+    m_connection->setOutboundPhase(mc::network::protocol::ConnectionProtocol::Configuration);
+
+    mc::network::ir::play::StartConfiguration start;
+    auto result = m_connection->send(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(start)}});
+    if (!result.success()) {
+        m_waitingForConfig = false;
+        return result;
+    }
+    spdlog::info("ClientSession: sent StartConfiguration to player {} (sessionId={})", m_playerId, m_sessionId);
     return Result<void>::ok();
 }
 

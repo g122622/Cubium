@@ -33,6 +33,7 @@
 #include "commands/DataCommand.hpp"
 #include "commands/DataPackCommand.hpp"
 #include "commands/DeOpCommand.hpp"
+#include "commands/DebugConfigCommand.hpp"
 #include "commands/DefaultGameModeCommand.hpp"
 #include "commands/DifficultyCommand.hpp"
 #include "commands/EffectCommand.hpp"
@@ -166,6 +167,7 @@ void CommandRegistry::registerDefaults()
     SayCommand::registerTo(m_dispatcher);
     StopCommand::registerTo(m_dispatcher);
     SetIdleTimeoutCommand::registerTo(m_dispatcher);
+    DebugConfigCommand::registerTo(m_dispatcher);
     SummonCommand::registerTo(m_dispatcher);
     SetBlockCommand::registerTo(m_dispatcher);
     FillCommand::registerTo(m_dispatcher);

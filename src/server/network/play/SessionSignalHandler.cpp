@@ -83,12 +83,12 @@ void SessionSignalHandler::handleConfigurationAcknowledgedPacket(
 {
     // ConfigurationAcknowledged（C→S terminal）：客户端收到服务端 StartConfiguration(S→C) 后回此包，
     // 双方切回 Configuration 阶段。入站阶段由框架 ProtocolSwapHandler 自动切回 Configuration
-    // （见 ProtocolSwapHandler.cpp Play 分支识别此 terminal），无需此处手动 setInboundPhase。
+    // （见 ProtocolSwapHandler.cpp Play 分支识别此 terminal）。
     //
-    // TODO(Play→Configuration reconfiguration): 完整 reconfiguration 需服务端在此显式
-    // setOutboundPhase(Configuration) 后重推 RegistryData/UpdateTags 等；但当前项目无
-    // StartConfiguration(S→C) IR 结构体，服务端无发起 reconfiguration 的路径，此包运行时不被
-    // 客户端触发。本处理仅确认接收，保证 terminal 自动阶段切换链路不被 route 兜底干扰。
+    // 注意：重配置的实质处理（重置握手状态机 + 重发 SelectKnownPacks）在 ClientSession::
+    // handleConfigurationAcknowledged 中完成——它需要访问该连接的握手状态机，而本处理器只有
+    // 服务器门面。ClientSession::handleInbound 在进入 Play 路由前已拦截此包，故本处理器仅在
+    // 包从非会话路径到达时（理论上不会发生）作为兜底，只做确认日志。
     (void)packet;
     auto* player = m_server.playerManager().getPlayer(playerId);
     if (player == nullptr || !player->loggedIn) {

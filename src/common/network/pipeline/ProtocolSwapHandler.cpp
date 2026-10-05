@@ -84,10 +84,15 @@ protocol::ConnectionProtocol ProtocolSwapHandler::nextForTerminal(
         case ConnectionProtocol::Status:
             return packet.phase;
         case ConnectionProtocol::Play: {
-            // ConfigurationAcknowledged（C→S，terminal）→ 回 Configuration（服务端发
-            // StartConfiguration 后客户端确认，双方切回配置阶段）。其余 Play 包非 terminal。
+            // Play 阶段的两个 terminal 包都指向 Configuration：
+            //  - ConfigurationAcknowledged（C→S）：客户端收到服务端 StartConfiguration 后确认，
+            //    双方切回配置阶段（服务端入站阶段回 Configuration）。
+            //  - StartConfiguration（S→C）：服务端发起重配置，客户端随后回 ConfigurationAcknowledged
+            //    （服务端出站阶段切 Configuration，使后续 RegistryData 等按 Configuration 表编码）。
             const auto* play = std::get_if<ir::PlayPacket>(&packet.packet);
-            if (play != nullptr && std::holds_alternative<ir::play::ConfigurationAcknowledged>(*play)) {
+            if (play != nullptr &&
+                (std::holds_alternative<ir::play::ConfigurationAcknowledged>(*play) ||
+                    std::holds_alternative<ir::play::StartConfiguration>(*play))) {
                 return ConnectionProtocol::Configuration;
             }
             return ConnectionProtocol::Play;

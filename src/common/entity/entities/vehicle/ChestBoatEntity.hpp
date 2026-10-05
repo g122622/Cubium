@@ -171,6 +171,16 @@ public:
      */
     [[nodiscard]] std::string getDisplayName() const override;
 
+    /**
+     * @brief 获取容器类型
+     *
+     * 箱子船容器为 27 格（3 行 9 列），与普通大箱子同布局，故类型为 `Generic9x3`
+     * （对齐 vanilla `MenuType.GENERIC_9x3`；vanilla 箱子船 createMenu 亦用此类型）。
+     *
+     * @return 容器类型
+     */
+    [[nodiscard]] ContainerType getMenuType() const override;
+
     // ========== 战利品表接口 ==========
 
     /**

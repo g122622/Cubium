@@ -28,6 +28,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
+#include "common/item/Items.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
@@ -104,9 +105,63 @@ void AbstractVillagerEntity::tick()
 {
     AgeableEntity::tick();
 
+    // 不高兴计数器每 tick 递减（对齐 vanilla AbstractVillager.tick）。
+    if (m_unhappyCounter > 0) {
+        --m_unhappyCounter;
+    }
+
     // 更新交易状态
     if (m_tradingPlayer && !m_tradingPlayer->isAlive()) {
         stopTrading();
+    }
+}
+
+ActionResultType AbstractVillagerEntity::interactMob(Player& player, Hand hand)
+{
+    // 对齐 vanilla AbstractVillager#mobInteract：
+    //   手持刷怪蛋 / 已死 / 交易中 / 睡觉 → 交基类；
+    //   幼体 → 只表现不高兴；
+    //   其余 → 服务端 startTrading + 打开交易界面，主手交互计入统计。
+    const ItemStack& heldItem = player.getHeldItem(hand);
+    const bool holdsSpawnEgg = heldItem.getItem() == Items::VILLAGER_SPAWN_EGG;
+
+    if (holdsSpawnEgg || !isAlive() || isTrading() || pose() == EntityPose::Sleeping) {
+        return MobEntity::interactMob(player, hand);
+    }
+
+    if (isChild()) {
+        setUnhappy();
+        return ActionResultType::Success;
+    }
+
+    if (!isClientSide()) {
+        const bool noOffers = getOffers().empty();
+        if (hand == Hand::MainHand) {
+            if (noOffers) {
+                setUnhappy();
+            }
+            player.awardCustomStat(ResourceLocation("minecraft:talked_to_villager"), 1);
+        }
+
+        if (noOffers) {
+            return ActionResultType::Consume;
+        }
+
+        startTrading(&player);
+        // 经 IWorld::openEntityContainer 打开交易界面（与箱子船共用同一条链路）。
+        // 返回 false 表示服务端未接线/提供者拒绝打开——界面不开，但不影响本次交互成功语义。
+        (void)player.openContainer(*this);
+    }
+
+    return ActionResultType::Success;
+}
+
+void AbstractVillagerEntity::setUnhappy()
+{
+    // 对齐 vanilla AbstractVillager#setUnhappy：置 40 tick 计数器，服务端播放否定音效。
+    m_unhappyCounter = 40;
+    if (!isClientSide()) {
+        playSound(SoundEvents::ENTITY_VILLAGER_NO, 1.0f, 1.0f);
     }
 }
 
@@ -139,6 +194,12 @@ std::string AbstractVillagerEntity::getDisplayName() const
     }
     // 默认返回实体类型名称
     return "Villager";
+}
+
+ContainerType AbstractVillagerEntity::getMenuType() const
+{
+    // 村民交易界面固定为 Merchant（对齐 vanilla MenuType.MERCHANT）。
+    return ContainerType::Merchant;
 }
 
 // ============================================================================

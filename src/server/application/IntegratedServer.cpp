@@ -28,6 +28,7 @@
 #include "common/entity/inventory/ContainerTypeUtils.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
@@ -992,6 +993,22 @@ bool IntegratedServer::openContainerRequest(ContainerType type, const BlockPos& 
 
     // 本地客户端
     return _openContainerMenu(type, pos);
+}
+
+bool IntegratedServer::openEntityContainerRequest(INamedContainerProvider& provider, Player& player)
+{
+    // 本地客户端与远程 TCP 玩家都走 ContainerManager 多玩家路径——与方块容器的本地路径
+    // （_openContainerMenu，手动把菜单绑到 m_clientInventory）不同，实体容器的菜单由
+    // provider.createMenu 创建，其内部用 player.inventory()。此处无法像方块容器那样替换
+    // 背包指针，故沿用 provider 语义。
+    //
+    // TODO(integrated_local_inventory): 本地客户端的实体容器菜单绑定的是玩家实体自带的
+    //   PlayerInventory，而本地客户端的权威背包是 IntegratedServer::m_clientInventory
+    //   （playerInventory() 覆写即返回它），二者不是同一对象，本地路径下交易/箱子船界面
+    //   的物品移动会与客户端看到的背包分叉。本项目客户端已停止维护、实际以 Java 客户端连
+    //   服务端（走 StandaloneServer 或本服的远程 TCP 路径，二者背包同源无此问题），故此处
+    //   暂不处理；待本地客户端重新维护时，需统一本地客户端背包来源（让实体背包即权威背包）。
+    return containerManager().openEntityContainer(player.playerId(), provider, player);
 }
 
 bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& pos)

@@ -331,6 +331,13 @@ std::string ChestBoatEntity::getDisplayName() const
     return "container.chestBoat";
 }
 
+ContainerType ChestBoatEntity::getMenuType() const
+{
+    // 箱子船容器为 27 格（3 行 9 列），与普通大箱子同布局，故类型为 Generic9x3
+    // （对齐 vanilla MenuType.GENERIC_9x3）。
+    return ContainerType::Generic9x3;
+}
+
 // ============================================================================
 // IInventory 代理方法
 // ============================================================================

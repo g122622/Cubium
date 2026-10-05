@@ -282,6 +282,15 @@ Result<void> ServerHandshakeStateMachine::_handleKey(const mc::network::ir::logi
     return Result<void>::ok();
 }
 
+Result<void> ServerHandshakeStateMachine::restartConfiguration()
+{
+    // 重配置：置标志、重置配置进度，重发 SelectKnownPacks 开启新一轮配置阶段。
+    // 出站阶段已由调用方（ClientSession::startConfiguration）切到 Configuration。
+    m_reconfiguring = true;
+    m_configurationStarted = false;
+    return _beginConfiguration();
+}
+
 Result<void> ServerHandshakeStateMachine::_beginConfiguration()
 {
     if (m_configurationStarted) {
@@ -370,6 +379,18 @@ Result<void> ServerHandshakeStateMachine::_handleConfigurationPacket(const mc::n
         // 对齐 Java handleConfigurationFinished：先 setupOutboundProtocol(Play)，使 onPlayerReady
         // 回调里发的 play::Login 按 Play 出站表编码。入站阶段由框架收 FinishConfiguration(terminal)
         // 自动切 Play。
+        if (m_reconfiguring) {
+            // 重配置流程：玩家已存在，不重复触发 onPlayerReady（会重复创建玩家/重发 play::Login），
+            // 改为触发 onReconfiguration 重推 post-Play 加入序列（play::Login 等）。
+            m_reconfiguring = false;
+            m_conn.setOutboundPhase(mc::network::protocol::ConnectionProtocol::Play);
+            m_conn.setState(HandshakeState::Play);
+            spdlog::info("ServerHandshake: reconfiguration finished, re-entering Play");
+            if (m_onReconfiguration) {
+                m_onReconfiguration(m_username, m_offlineUuid);
+            }
+            return Result<void>::ok();
+        }
         // 幂等守卫：迟到的重发不应二次触发 onPlayerReady（否则重复创建玩家/重发 play::Login）。
         if (m_playReady) {
             spdlog::info("ServerHandshake: duplicate FinishConfiguration ignored (already Play ready)");

@@ -1205,6 +1205,21 @@ struct ChunkBiomes {
 };
 
 /**
+ * @brief StartConfiguration（S→C，id=116，terminal）
+ *
+ * 对应 Java 1.21.11 ClientboundStartConfigurationPacket：无负载（StreamCodec.unit）。
+ * 服务端发起 Play→Configuration 重配置时发送，客户端收到后切回 Configuration 阶段并回
+ * ConfigurationAcknowledged(C→S,id=15)，双方重新走一遍配置阶段（重推 RegistryData/UpdateTags）。
+ * 对齐 vanilla ServerGamePacketListenerImpl#switchToConfig（/debugconfig config 命令触发）。
+ */
+struct StartConfiguration {
+    static constexpr bool kTerminal = true;
+
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const StartConfiguration&, const StartConfiguration&) noexcept = default;
+};
+
+/**
  * @brief ForgetLevelChunk（S→C，id=37）
  *
  * 对应 Java 1.21.11 ClientboundForgetLevelChunkPacket：单个 ChunkPos，经

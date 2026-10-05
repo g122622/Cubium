@@ -77,6 +77,19 @@ public:
      * @return 显示名称
      */
     [[nodiscard]] virtual std::string getDisplayName() const = 0;
+
+    /**
+     * @brief 获取容器的网络类型（决定客户端建出哪个窗口）
+     *
+     * 该值经 `ContainerTypes::toNetworkType` 原样作为 `open_screen` 的 menuType 上线，
+     * 客户端据此建窗口、定槽位布局。故实现者必须返回与自身菜单布局匹配的注册表项：
+     * 村民交易返回 `Merchant`，箱子船返回 `Generic9x3`。返回错误类型不会报错，只会让
+     * 客户端建出另一个窗口、槽位语义整体错位。
+     *
+     * 对齐 vanilla `MenuProvider#getMenuType` / `ContainerEntity`：容器提供者自身即知晓
+     * 其菜单类型，无需外部按实体类别硬编码映射表。
+     */
+    [[nodiscard]] virtual ContainerType getMenuType() const = 0;
 };
 
 } // namespace mc

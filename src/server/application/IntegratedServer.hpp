@@ -156,6 +156,7 @@ protected:
     void handleOpenPlayerInventoryPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     void handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet) override;
     [[nodiscard]] bool openContainerRequest(ContainerType type, const BlockPos& pos, Player& player) override;
+    [[nodiscard]] bool openEntityContainerRequest(INamedContainerProvider& provider, Player& player) override;
 
 public:
     // ========== IntegratedServer 特有接口 ==========
