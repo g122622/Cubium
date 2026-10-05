@@ -1555,11 +1555,13 @@ void MinecraftServer::setupDragonFightBossBar()
         return;
     }
 
-    // TODO: 创建服务端末影龙 Boss 栏并注入 EndDragonFight
-
     // 使用世界种子 + 当前时间生成 UUID 随机数种子，保证每次启动生成不同的 Boss 栏 UUID
     math::Random uuidRng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
 
+    // 创建服务端末影龙 Boss 栏并注入 EndDragonFight。对齐 vanilla EndDragonFight.dragonEvent：
+    // 名称 entity.minecraft.ender_dragon、颜色 PINK、样式 PROGRESS，且
+    // setPlayBossMusic(true).setCreateWorldFog(true)——后两者由 ServerDragonBossBar 的
+    // m_playEndBossMusic/m_createFog 默认 true 承载。
     auto bossBar = std::make_unique<ServerDragonBossBar>(*this,
         util::generateRandomUuid(uuidRng),
         EndDragonFight::createDefaultBossName(),
