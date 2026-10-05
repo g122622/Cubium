@@ -411,6 +411,19 @@ bool LivingEntity::isScoping() const
     return item != nullptr && item->getUseAction(m_activeItem) == UseAction::Spyglass;
 }
 
+item::component::AttackRange LivingEntity::entityAttackRange() const
+{
+    // 对应 MC LivingEntity.entityAttackRange：优先取当前使用中（或主手）物品的
+    // attack_range 组件，缺省回退到基于 entity_interaction_range 属性的默认范围。
+    const ItemStack& active = getActiveItem();
+    if (const auto* range = active.getAttackRange(); range != nullptr) {
+        return *range;
+    }
+    const f32 interactionRange =
+        static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ENTITY_INTERACTION_RANGE, 3.0));
+    return item::component::AttackRange::defaultFor(interactionRange);
+}
+
 void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 {
     if (amount <= 0.0f) {

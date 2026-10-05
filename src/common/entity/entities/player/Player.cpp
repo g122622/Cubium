@@ -3287,6 +3287,11 @@ bool Player::isWithinEntityInteractionRange(const AxisAlignedBB& aabb, f64 paddi
     return distSq < range * range;
 }
 
+bool Player::isWithinAttackRange(const AxisAlignedBB& aabb, f64 padding) const
+{
+    return entityAttackRange().isInRange(*this, aabb, padding);
+}
+
 bool Player::isWearingPumpkin() const
 {
     // 检查玩家头盔是否为雕刻南瓜或南瓜灯

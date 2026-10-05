@@ -27,6 +27,7 @@
 #include "UseAction.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemRarity.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <functional>
 #include <memory>
@@ -81,20 +82,6 @@ class ItemTag;
 namespace item {
 class ItemAttributeModifiers;
 }
-
-// ============================================================================
-// 物品稀有度
-// ============================================================================
-
-/**
- * @brief 物品稀有度枚举
- */
-enum class ItemRarity : u8 {
-    Common = 0,   // 普通 - 白色
-    Uncommon = 1, // 少见 - 黄色
-    Rare = 2,     // 稀有 - 青色
-    Epic = 3      // 史诗 - 紫色
-};
 
 // ============================================================================
 // 物品属性构建器
@@ -292,21 +279,9 @@ public:
     [[nodiscard]] bool hasContainerItem() const { return m_containerItem != nullptr; }
 
     /**
-     * @brief 获取稀有度
+     * @brief 获取物品基础稀有度
      */
     [[nodiscard]] ItemRarity rarity() const { return m_rarity; }
-
-    /**
-     * @brief 获取稀有度（带ItemStack参数）
-     *
-     * 考虑附魔状态对稀有度的影响：
-     * - 附魔物品至少为稀有（RARE）
-     * - 已附魔的稀有物品变为史诗（EPIC）
-     *
-     * @param stack 物品堆
-     * @return 稀有度
-     */
-    [[nodiscard]] ItemRarity getRarity(const ItemStack& stack) const;
 
     /**
      * @brief 是否可燃烧
@@ -319,16 +294,12 @@ public:
     [[nodiscard]] bool isRepairable() const { return m_repairable; }
 
     /**
-     * @brief 检查物品是否可附魔
+     * @brief 获取物品基础附魔能力
      *
-     * 物品可附魔当且仅当：
-     * - 堆叠数为1
-     * - 物品可损坏（有耐久度）
-     *
-     * @param stack 物品堆
-     * @return 是否可附魔
+     * 返回值仅为物品类型自身的附魔能力（enchantable 组件的缺省值）。运行时判定
+     * 应改用 ItemStack::getEnchantmentValue()（会优先取 enchantable 组件覆盖）。
      */
-    [[nodiscard]] virtual bool isEnchantable(const ItemStack& stack) const;
+    [[nodiscard]] virtual i32 getItemEnchantability() const { return 0; }
 
     /**
      * @brief 检查物品堆是否可以用作修复材料
@@ -389,12 +360,6 @@ public:
      * @return 物品名称
      */
     [[nodiscard]] virtual std::string getName() const;
-
-    /**
-     * @brief 获取附魔能力
-     * @return 附魔能力值（0表示不可附魔）
-     */
-    [[nodiscard]] virtual i32 getItemEnchantability() const { return 0; }
 
     /**
      * @brief 物品是否为食物

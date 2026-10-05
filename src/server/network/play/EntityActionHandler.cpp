@@ -90,13 +90,14 @@ void EntityActionHandler::handleInteractPacket(PlayerId playerId, const mc::netw
     }
 
     // 距离校验：对齐 vanilla ServerGamePacketListenerImpl.handleInteract
-    // (ServerGamePacketListenerImpl.java:729)：player.isWithinEntityInteractionRange(entity, 3.0)。
-    // isWithinEntityInteractionRange 内部按 entityInteractionRange() 属性 + padding 计算
-    // （生存 3.0、创造 5.0，padding 3.0 为容差），而非此处原先硬编码的 3.0+3.0=6.0。
-    // 这样 generic.entity_interaction_range 属性（含创造模式 +2.0 修饰符）才真正生效。
-    // ATTACK 走同样阈值（vanilla ATTACK 用 isWithinAttackRange，项目暂无 attack range
-    // attribute，统一用交互阈值——TODO: 待引入 entity_attack_range 属性后分离）。
-    if (!playerEntity->isWithinEntityInteractionRange(*target, 3.0)) {
+    // (ServerGamePacketListenerImpl.java:729)：ServerboundInteractPacket.isWithinRange 按
+    // 动作类型分派——ATTACK 走 player.isWithinAttackRange(entityAABB, 3.0)（基于
+    // attack_range 组件，玩家创造/旁观按 creative 分支），其余走
+    // player.isWithinEntityInteractionRange(entityAABB, 3.0)（基于 entity_interaction_range 属性）。
+    // 故 ATTACK 与 INTERACT 使用不同阈值：只有引入 attack_range 组件后二者才真正分离。
+    const bool withinRange = (evt->action == 1) ? playerEntity->isWithinAttackRange(target->boundingBox(), 3.0)
+                                                : playerEntity->isWithinEntityInteractionRange(*target, 3.0);
+    if (!withinRange) {
         return;
     }
 

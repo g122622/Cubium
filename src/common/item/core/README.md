@@ -118,9 +118,13 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 ### 8.1 ItemExtras：稀有字段外置与惰性分配
 
 `ItemStack` 只内联 `m_item`/`m_count`/`m_damage`/`m_repairCost`/`m_customName`/`m_enchantments`，
-其余五个字段（`lore`、`potionId`、`customData`、`canPlaceOn`、`canDestroy`）寄存在
-`std::unique_ptr<ItemExtras> m_extras` 中，**惰性分配**。`sizeof(ItemStack)` 因此从 232 字节降到 64 字节
-（五个外置字段合计约 176 字节，其中两个 `AdventureModePredicate` 就占 112）。
+其余字段寄存在 `std::unique_ptr<ItemExtras> m_extras` 中，**惰性分配**。`sizeof(ItemStack)` 因此从
+232 字节降到 64 字节。寄存字段分两类：
+
+- **承载型**（`lore`、`potionId`、`customData`、`canPlaceOn`、`canDestroy`）：物品自身数据。
+- **组件覆盖型**（`maxStackSizeOverride`、`maxDamageOverride`、`unbreakable`、`itemName`、`itemModel`、
+  `rarityOverride`、`enchantableOverride`、`attackRange`）：1.21.11 数据组件对物品基础默认值的覆盖。
+  未设置时各 getter 回退到 `Item` 基础值，语义与无覆盖一致。`hasComponentOverrides()` 供惰性分配判断。
 
 收益面：`EquipmentComponent` 内联 16 个槽（3.7 KB → 1 KB/生物）、`PlayerInventory` 41 个槽、
 以及容器每 tick 的逐槽拷贝都随之缩小。实测空闲服务端即省约 1.7 MB。
@@ -130,17 +134,36 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 - **extras 一旦分配就只增不减、绝不重建**。`getLore()`/`getCanPlaceOn()` 等会把内部引用交给调用方
   （如 `EnchantmentHelper` 先取可变引用再逐个增删），重建会让那些引用立刻悬垂。写路径一律走
   `_ensureExtras()`（已分配时原地复用）。
-- **"清除"不得反向分配**。`clearLore()`/`setPotionId("")`/`setCanPlaceOn({})` 以及
-  `applyComponentPatch` 的 removed 分支都是 no-op 或就地清空，不会为一次清除新建 extras。
-- **拷贝要深拷贝**。`ItemExtras` 手写拷贝构造/赋值，`lore` 内的文本组件逐行 `deepCopy()`；
+- **"清除"不得反向分配**。`clearLore()`/`setPotionId("")`/`setCanPlaceOn({})`/`setUnbreakable(false)`/
+  `setEnchantableOverride(0)` 以及 `applyComponentPatch` 的 removed 分支都是 no-op 或就地清空，
+  不会为一次清除新建 extras。
+- **拷贝要深拷贝**。`ItemExtras` 手写拷贝构造/赋值，`lore`/`itemName` 内的文本组件逐项 `deepCopy()`；
   空 extras 必须原样传 `nullptr`（拷贝构造里不得无条件 `make_unique`，否则每 tick 的容器拷贝会把这笔优化吃掉）。
 - **无 extras 时各 getter 返回共享空实例**（`_emptyLore()`/`_emptyPredicate()`/`_emptyString()`/`_emptyJson()`），
-  语义与旧的内联默认成员一致，因此 `operator==` 与 `canMergeWith` 无需特判。
+  语义与旧的内联默认成员一致，因此 `operator==` 与 `canMergeWith` 无需特判；组件覆盖的比较另走
+  `_componentOverridesEqual()`（两堆都无覆盖时短路为相等）。
 - **`getTag()` 返回裸指针**，指向 `m_extras->customData`，其地址在 extras 生命周期内稳定。
 
 **行为修正**：`copy()`/`split()` 原先会丢掉 `canPlaceOn`/`canDestroy`（与 vanilla `ItemStack#copy` 不符），
 随本次外置一并按整体深拷贝修正，测试见 `ItemStackTest.CopyAndSplitCarryExtras`。
 `m_repairCost` 仍未随 `copy()` 复制，属既有缺陷，未在本次改动范围内。
+
+### 8.2 数据组件（1.21.11 Item Components）
+
+组件模型位于 `item/component/`：`DataComponentType`（typeId 严格对齐 vanilla `DataComponents.register`
+声明顺序）+ `DataComponentMap/Patch`（added/removed 覆盖）+ NBT/wire 双 codec。运行时消费点为 `ItemStack`：
+
+- **已落地组件**：custom_data / max_stack_size / max_damage / damage / unbreakable / custom_name /
+  item_name / item_model / lore / rarity / enchantments / can_place_on / can_break / repair_cost /
+  attack_range / enchantable / potion_contents。
+- **消费链路**：`getMaxStackSize`/`getMaxDamage`/`isDamageable`/`getRarity`/`getEnchantmentValue`/
+  `isEnchantable`/`getDisplayName` 均优先读组件覆盖，缺省回退 `Item` 基础值；
+  `getAttackRange` 由 `LivingEntity::entityAttackRange()` 消费（缺省回退 entity_interaction_range 属性）；
+  `getEnchantmentValue` 由 `EnchantmentHelper`/附魔台槽位消费。
+- **稀有度**：`ItemRarity`（common/uncommon/rare/epic，id 对齐 vanilla）独立于 `Item.hpp` 放在
+  `ItemRarity.hpp`，供 `ItemStack.hpp` 引用而不引入循环依赖。`ItemStack::getRarity()` 已取代
+  原先零调用的 `Item::getRarity(ItemStack&)`。
+
 
 ### 9. ProjectileItem 接口与多态创建弹射物
 

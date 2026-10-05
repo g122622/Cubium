@@ -39,30 +39,35 @@ namespace component {
  * 每个组件类型有一个整数 typeId（网络 wire 中的 VarInt，= Java
  * DATA_COMPONENT_TYPE 注册表 id）和一个资源位置名（NBT patch 的键，如
  * "minecraft:damage"）。typeId 严格对齐 Java 1.21.11 DataComponents.register
- * 声明顺序：custom_data(0) max_stack_size(1) max_damage(2) damage(3)
- * unbreakable(4) ... custom_name(6) ... lore(11) rarity(12) enchantments(13)
- * can_place_on(14) can_break(15) ... repair_cost(19) ... potion_contents(49)。
+ * 声明顺序（见 vanilla DataComponents.java）：
+ *   custom_data(0) max_stack_size(1) max_damage(2) damage(3) unbreakable(4)
+ *   use_effects(5) custom_name(6) minimum_attack_charge(7) item_name(8)
+ *   item_model(9) lore(10) rarity(11) enchantments(12) can_place_on(13)
+ *   can_break(14) ... repair_cost(18) ... attack_range(29) enchantable(30)
+ *   ... potion_contents(48)
  *
- * 本项目仅落地 ItemStack 现有 9 个组件字段对应的子集，未落地的类型占位与
- * Java 一致，将来扩展零冲击。
+ * 本项目仅落地部分组件；未落地的类型占位与 Java 一致，将来扩展零冲击。
+ * 未落地的 typeId 在 wire 读入时会因"无长度前缀无法安全跳过"而报错，故不得
+ * 依赖未落地组件参与真实 Java 对端通信。
  */
 enum class DataComponentType : i32 {
     CustomData = 0,      // minecraft:custom_data —— 嵌套 NBT（本项目承载 m_customData）
-    MaxStackSize = 1,    // TODO 暂未落地
-    MaxDamage = 2,       // TODO 暂未落地
+    MaxStackSize = 1,    // minecraft:max_stack_size —— int（覆盖最大堆叠数）
+    MaxDamage = 2,       // minecraft:max_damage —— int（覆盖最大耐久）
     Damage = 3,          // minecraft:damage —— int（已承受伤害）
-    Unbreakable = 4,     // TODO 暂未落地
+    Unbreakable = 4,     // minecraft:unbreakable —— Unit（不可损坏）
     CustomName = 6,      // minecraft:custom_name —— Component（文本）
-    ItemName = 9,        // TODO 暂未落地
-    ItemModel = 10,      // TODO 暂未落地
-    Lore = 11,           // minecraft:lore —— list<Component>
-    Rarity = 12,         // TODO 暂未落地
-    Enchantments = 13,   // minecraft:enchantments —— ItemEnchantments
-    CanPlaceOn = 14,     // minecraft:can_place_on —— BlockPredicates
-    CanBreak = 15,       // minecraft:can_break —— BlockPredicates
-    RepairCost = 19,     // minecraft:repair_cost —— int
-    Enchantable = 31,    // TODO 暂未落地
-    PotionContents = 49, // minecraft:potion_contents —— record{potion,color,effects,name}
+    ItemName = 8,        // minecraft:item_name —— Component（默认显示名覆盖）
+    ItemModel = 9,       // minecraft:item_model —— Identifier（模型覆盖，仅序列化）
+    Lore = 10,           // minecraft:lore —— list<Component>
+    Rarity = 11,         // minecraft:rarity —— Rarity（稀有度覆盖）
+    Enchantments = 12,   // minecraft:enchantments —— ItemEnchantments
+    CanPlaceOn = 13,     // minecraft:can_place_on —— BlockPredicates
+    CanBreak = 14,       // minecraft:can_break —— BlockPredicates
+    RepairCost = 18,     // minecraft:repair_cost —— int
+    AttackRange = 29,    // minecraft:attack_range —— record（攻击范围）
+    Enchantable = 30,    // minecraft:enchantable —— int（附魔能力覆盖）
+    PotionContents = 48, // minecraft:potion_contents —— record{potion,color,effects,name}
 };
 
 /**

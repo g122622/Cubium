@@ -570,8 +570,8 @@ i32 EnchantmentHelper::calcItemStackEnchantability(
         return 0;
     }
 
-    // 获取物品的可附魔度
-    i32 enchantability = item->getItemEnchantability();
+    // 获取物品的可附魔度（enchantable 组件覆盖优先，缺省回退物品自身附魔能力）
+    i32 enchantability = stack.getEnchantmentValue();
     if (enchantability <= 0) {
         return 0;
     }
@@ -667,7 +667,7 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantm
         return result;
     }
 
-    i32 enchantability = item->getItemEnchantability();
+    i32 enchantability = stack.getEnchantmentValue();
     if (enchantability <= 0) {
         return result;
     }

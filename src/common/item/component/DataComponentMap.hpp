@@ -26,8 +26,10 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
@@ -68,16 +70,42 @@ struct PotionContentsPayload {
  * @brief 单个数据组件的异构值载荷
  *
  * variant 以 std::monostate 起始，区分"未设置"与"显式设置为某值"。
- * 各备选项对应本项目落地的 9 个组件的载荷类型。
+ * 各备选项对应本项目已落地的组件载荷类型。索引常量集中定义于
+ * ComponentPayloadIndex，供编解码与 ItemStack 覆盖读写统一引用，避免散落魔数。
  */
 using DataComponentPayload = std::variant<std::monostate,
-    i32,                                                // Damage / RepairCost
-    std::unique_ptr<text::ITextComponent>,              // CustomName
+    i32,                                                // Damage / RepairCost / MaxStackSize / MaxDamage / Enchantable
+    std::unique_ptr<text::ITextComponent>,              // CustomName / ItemName
     std::vector<std::unique_ptr<text::ITextComponent>>, // Lore
     item::enchant::EnchantmentContainer,                // Enchantments
     PotionContentsPayload,                              // PotionContents
     AdventureModePredicate,                             // CanPlaceOn / CanBreak
-    nlohmann::json>;                                    // CustomData（对象）
+    nlohmann::json,                                     // CustomData（对象）
+    bool,                                               // Unbreakable
+    ItemRarity,                                         // Rarity
+    std::string,                                        // ItemModel（资源位置）
+    AttackRange>;                                       // AttackRange
+
+/**
+ * @brief DataComponentPayload 各备选项索引
+ *
+ * 与上面的 variant 声明顺序严格一一对应。编解码与 ItemStack 覆盖读写统一用这些
+ * 常量做 std::in_place_index / std::get_if 索引。
+ */
+namespace ComponentPayloadIndex {
+constexpr usize Monostate = 0;
+constexpr usize Int = 1;                // i32
+constexpr usize TextComponent = 2;      // unique_ptr<ITextComponent>
+constexpr usize TextComponentList = 3;  // vector<unique_ptr<ITextComponent>>
+constexpr usize Enchantments = 4;       // EnchantmentContainer
+constexpr usize PotionContents = 5;     // PotionContentsPayload
+constexpr usize AdventurePredicate = 6; // AdventureModePredicate
+constexpr usize Json = 7;               // nlohmann::json
+constexpr usize Bool = 8;               // bool
+constexpr usize Rarity = 9;             // ItemRarity
+constexpr usize Identifier = 10;        // std::string
+constexpr usize AttackRange = 11;       // AttackRange
+} // namespace ComponentPayloadIndex
 
 /**
  * @brief 一个数据组件的 typeId + 值
@@ -101,7 +129,8 @@ struct DataComponentEntry {
  * Wire 格式（STREAM_CODEC）：VarInt(addedCount) + [VarInt(typeId)+value]*
  *   + VarInt(removedCount) + [VarInt(typeId)]*。
  *
- * 本项目仅承载 9 个已落地组件；未知 typeId 在读入时跳过（透传不影响已落地字段）。
+ * 仅已落地组件参与编解码；未落地 typeId 在读入时报错（vanilla patch 无长度前缀
+ * 无法安全跳过），写出时跳过。
  */
 class DataComponentPatch {
 public:

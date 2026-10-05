@@ -25,9 +25,11 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/network/backend/java/codecs/ItemEnchantmentsCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
@@ -96,13 +98,41 @@ using nbt::tags::compound_tag;
     using network::backend::java::writePotionContentsPayload;
     switch (type) {
         case DataComponentType::Damage:
-        case DataComponentType::RepairCost: {
+        case DataComponentType::RepairCost:
+        case DataComponentType::MaxStackSize:
+        case DataComponentType::MaxDamage:
+        case DataComponentType::Enchantable: {
             // 裸 VarInt。
             const auto* p = std::get_if<i32>(&payload);
             buf.writeVarInt(p ? *p : 0);
             return {};
         }
-        case DataComponentType::CustomName: {
+        case DataComponentType::Unbreakable: {
+            // Unit.STREAM_CODEC 写 0 字节。
+            return {};
+        }
+        case DataComponentType::Rarity: {
+            const auto* p = std::get_if<ItemRarity>(&payload);
+            buf.writeVarInt(rarityId(p ? *p : ItemRarity::Common));
+            return {};
+        }
+        case DataComponentType::ItemModel: {
+            const auto* p = std::get_if<std::string>(&payload);
+            buf.writeString(p ? *p : std::string{});
+            return {};
+        }
+        case DataComponentType::AttackRange: {
+            const auto& ar = std::get<AttackRange>(payload);
+            buf.writeF32(ar.minRange);
+            buf.writeF32(ar.maxRange);
+            buf.writeF32(ar.minCreativeRange);
+            buf.writeF32(ar.maxCreativeRange);
+            buf.writeF32(ar.hitboxMargin);
+            buf.writeF32(ar.mobFactor);
+            return {};
+        }
+        case DataComponentType::CustomName:
+        case DataComponentType::ItemName: {
             // Component NBT（自定界，无外层长度前缀）。
             const auto& comp = std::get<std::unique_ptr<text::ITextComponent>>(payload);
             const auto nbtBytes = text::componentToNbtBytes(comp.get());
@@ -150,10 +180,9 @@ using nbt::tags::compound_tag;
             }
             return network::buffer::nbt_io::writeRootCompound(buf, tag);
         }
-        default:
-            // 未落地组件：写空 compound 占位（仅项目内部往返，不与 vanilla 互通）。
-            return network::buffer::nbt_io::writeRootCompound(buf, compound_tag{});
     }
+    // 枚举已全覆盖，此处不可达（保留以满足 -Wreturn-type）。
+    return {};
 }
 
 /// 从 wire 读单个组件 value（按 type 分派到专属 codec）。
@@ -163,12 +192,40 @@ using nbt::tags::compound_tag;
     using network::backend::java::readPotionContentsPayload;
     switch (type) {
         case DataComponentType::Damage:
-        case DataComponentType::RepairCost: {
+        case DataComponentType::RepairCost:
+        case DataComponentType::MaxStackSize:
+        case DataComponentType::MaxDamage:
+        case DataComponentType::Enchantable: {
             i32 value = 0;
             MC_TRY_ASSIGN(value, buf.readVarInt());
             return DataComponentPayload{std::in_place_index<1>, value};
         }
-        case DataComponentType::CustomName: {
+        case DataComponentType::Unbreakable: {
+            // Unit.STREAM_CODEC 读 0 字节。
+            return DataComponentPayload{std::in_place_index<8>, true};
+        }
+        case DataComponentType::Rarity: {
+            i32 id = 0;
+            MC_TRY_ASSIGN(id, buf.readVarInt());
+            return DataComponentPayload{std::in_place_index<9>, rarityFromId(id)};
+        }
+        case DataComponentType::ItemModel: {
+            std::string model;
+            MC_TRY_ASSIGN(model, buf.readString());
+            return DataComponentPayload{std::in_place_index<10>, std::move(model)};
+        }
+        case DataComponentType::AttackRange: {
+            AttackRange ar{};
+            MC_TRY_ASSIGN(ar.minRange, buf.readF32());
+            MC_TRY_ASSIGN(ar.maxRange, buf.readF32());
+            MC_TRY_ASSIGN(ar.minCreativeRange, buf.readF32());
+            MC_TRY_ASSIGN(ar.maxCreativeRange, buf.readF32());
+            MC_TRY_ASSIGN(ar.hitboxMargin, buf.readF32());
+            MC_TRY_ASSIGN(ar.mobFactor, buf.readF32());
+            return DataComponentPayload{std::in_place_index<11>, ar};
+        }
+        case DataComponentType::CustomName:
+        case DataComponentType::ItemName: {
             std::vector<u8> nbtBytes;
             MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
             // 把 NBT wire 字节还原为 ITextComponent：解析为纯文本后构造 StringTextComponent。
@@ -228,11 +285,9 @@ using nbt::tags::compound_tag;
             auto tag = tagResult.value();
             return DataComponentPayload{std::in_place_index<7>, nbt::nbtToJson(*tag)};
         }
-        default:
-            // 未落地组件：跳过一个根 NBT（占位读丢）。
-            MC_TRY(network::buffer::nbt_io::skipCompound(buf));
-            return DataComponentPayload{};
     }
+    // 枚举已全覆盖，此处不可达（保留以满足 -Wreturn-type）。
+    return DataComponentPayload{};
 }
 
 } // namespace

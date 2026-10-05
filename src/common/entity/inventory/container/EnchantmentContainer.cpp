@@ -127,8 +127,8 @@ public:
         if (stack.isEmpty() || stack.getItem() == nullptr) {
             return false;
         }
-        // 只接受可附魔的物品
-        i32 enchantability = stack.getItem()->getItemEnchantability();
+        // 只接受可附魔的物品（enchantable 组件覆盖优先，缺省回退物品自身附魔能力）
+        i32 enchantability = stack.getEnchantmentValue();
         return enchantability > 0;
     }
 

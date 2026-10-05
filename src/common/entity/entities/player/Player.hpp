@@ -1820,6 +1820,19 @@ public:
     [[nodiscard]] bool isWithinEntityInteractionRange(const AxisAlignedBB& aabb, f64 padding) const;
 
     /**
+     * @brief 检查目标 AABB 是否在玩家的攻击范围内
+     *
+     * 对应 MC 1.21.11 Player.isWithinAttackRange(AABB, double)：委托
+     * entityAttackRange().isInRange(this, aabb, padding)，玩家创造/旁观模式按
+     * attack_range 组件的 creative 分支取值。
+     *
+     * @param aabb 目标碰撞箱
+     * @param padding 额外容差
+     * @return 在攻击范围内返回 true
+     */
+    [[nodiscard]] bool isWithinAttackRange(const AxisAlignedBB& aabb, f64 padding) const;
+
+    /**
      * @brief 检查玩家是否戴着南瓜头
      *
      * 戴着南瓜头的玩家不会激怒末影人。

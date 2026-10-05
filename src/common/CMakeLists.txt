@@ -473,6 +473,7 @@ add_library(mc_common STATIC
     entity/inventory/container/MerchantResultSlot.cpp
 
     # Item System - Component（1.21.11 数据组件：DataComponentType/Map/Patch + NBT/wire codec）
+    item/component/AttackRange.cpp
     item/component/DataComponentType.cpp
     item/component/DataComponentPayloadCodec.cpp
     item/component/DataComponentPatchNbt.cpp
@@ -481,6 +482,7 @@ add_library(mc_common STATIC
     # Item System - Core
     item/core/AdventureModePredicate.cpp
     item/core/Item.cpp
+    item/core/ItemRarity.cpp
     item/core/ItemStack.cpp
     item/core/ItemRegistry.cpp
     item/core/ItemGroup.cpp

@@ -417,31 +417,6 @@ bool Item::isInGroup(const ItemGroup& group) const
 // 新增方法实现
 // ============================================================================
 
-ItemRarity Item::getRarity(const ItemStack& stack) const
-{
-    // 附魔物品稀有度提升
-    if (stack.hasEnchantments()) {
-        switch (m_rarity) {
-            case ItemRarity::Common:
-            case ItemRarity::Uncommon:
-                return ItemRarity::Rare;
-            case ItemRarity::Rare:
-                return ItemRarity::Epic;
-            case ItemRarity::Epic:
-            default:
-                return m_rarity;
-        }
-    }
-    return m_rarity;
-}
-
-bool Item::isEnchantable(const ItemStack& stack) const
-{
-    // 物品可附魔当且仅当堆叠数为1且可损坏
-    (void)stack;
-    return m_maxStackSize == 1 && isDamageable();
-}
-
 bool Item::getIsRepairable(const ItemStack& toRepair, const ItemStack& repair) const
 {
     // 默认实现：检查修复材料是否是容器物品

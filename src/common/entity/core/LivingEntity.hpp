@@ -44,6 +44,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/enchantment/LocationEnchantmentTracker.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
+#include "common/item/component/AttackRange.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -1574,6 +1575,17 @@ public:
      * @return 是否正在使用物品
      */
     [[nodiscard]] bool isUsingItem() const { return m_activeItemUseCount > 0 && !m_activeItem.isEmpty(); }
+
+    /**
+     * @brief 获取实体当前近战攻击范围
+     *
+     * 取当前使用中（或主手）物品的 attack_range 组件；未携带时回退到基于
+     * generic.entity_interaction_range 属性的默认范围（AttackRange::defaultFor）。
+     * 用于 ATTACK 距离校验与近战命中判定。
+     *
+     * @return 攻击范围
+     */
+    [[nodiscard]] item::component::AttackRange entityAttackRange() const;
 
     /**
      * @brief 是否正在使用望远镜瞄准（对应 MC LivingEntity.isScoping）

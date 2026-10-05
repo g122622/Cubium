@@ -25,9 +25,11 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
+#include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
@@ -47,6 +49,7 @@ namespace detail {
 
 using nbt::TagId;
 using nbt::tags::compound_tag;
+using nbt::tags::float_tag;
 using nbt::tags::int_tag;
 using nbt::tags::list_tag;
 using nbt::tags::short_tag;
@@ -56,15 +59,29 @@ using nbt::tags::string_tag;
 std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataComponentPayload& payload)
 {
     switch (type) {
-        case DataComponentType::Damage: {
+        case DataComponentType::Damage:
+        case DataComponentType::RepairCost:
+        case DataComponentType::MaxStackSize:
+        case DataComponentType::MaxDamage:
+        case DataComponentType::Enchantable: {
             const auto* p = std::get_if<i32>(&payload);
             return std::make_unique<nbt::tags::int_tag>(p ? *p : 0);
         }
-        case DataComponentType::RepairCost: {
-            const auto* p = std::get_if<i32>(&payload);
-            return std::make_unique<nbt::tags::int_tag>(p ? *p : 0);
+        case DataComponentType::Unbreakable: {
+            // Unit 组件：NBT 写空 compound（vanilla Unit.CODEC = MapCodec.unit）
+            return std::make_unique<compound_tag>();
         }
-        case DataComponentType::CustomName: {
+        case DataComponentType::Rarity: {
+            const auto* p = std::get_if<ItemRarity>(&payload);
+            const auto name = rarityName(p ? *p : ItemRarity::Common);
+            return std::make_unique<string_tag>(std::string(name.value_or("common")));
+        }
+        case DataComponentType::ItemModel: {
+            const auto* p = std::get_if<std::string>(&payload);
+            return std::make_unique<string_tag>(p ? *p : std::string{});
+        }
+        case DataComponentType::CustomName:
+        case DataComponentType::ItemName: {
             const auto& p = std::get<std::unique_ptr<text::ITextComponent>>(payload);
             return std::make_unique<nbt::tags::string_tag>(p ? p->toJson().dump() : std::string{});
         }
@@ -79,6 +96,17 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
         case DataComponentType::Enchantments: {
             const auto& ench = std::get<item::enchant::EnchantmentContainer>(payload);
             return ench.toNbt();
+        }
+        case DataComponentType::AttackRange: {
+            const auto& ar = std::get<AttackRange>(payload);
+            auto compound = std::make_unique<compound_tag>();
+            compound->put("min_reach", static_cast<f32>(ar.minRange));
+            compound->put("max_reach", static_cast<f32>(ar.maxRange));
+            compound->put("min_creative_reach", static_cast<f32>(ar.minCreativeRange));
+            compound->put("max_creative_reach", static_cast<f32>(ar.maxCreativeRange));
+            compound->put("hitbox_margin", static_cast<f32>(ar.hitboxMargin));
+            compound->put("mob_factor", static_cast<f32>(ar.mobFactor));
+            return compound;
         }
         case DataComponentType::PotionContents: {
             const auto& pc = std::get<PotionContentsPayload>(payload);
@@ -122,15 +150,6 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             }
             return std::make_unique<compound_tag>();
         }
-        case DataComponentType::MaxStackSize:
-        case DataComponentType::MaxDamage:
-        case DataComponentType::Enchantable:
-        case DataComponentType::Unbreakable:
-        case DataComponentType::ItemName:
-        case DataComponentType::ItemModel:
-        case DataComponentType::Rarity:
-            // TODO: 未落地组件暂以空 compound 占位，待支持对应 payload 后实现编解码。
-            return std::make_unique<compound_tag>();
     }
     return std::make_unique<compound_tag>();
 }
@@ -138,7 +157,11 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
 DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& tag)
 {
     switch (type) {
-        case DataComponentType::Damage: {
+        case DataComponentType::Damage:
+        case DataComponentType::RepairCost:
+        case DataComponentType::MaxStackSize:
+        case DataComponentType::MaxDamage:
+        case DataComponentType::Enchantable: {
             if (tag.id() == TagId::Int) {
                 return DataComponentPayload{std::in_place_index<1>, dynamic_cast<const int_tag&>(tag).value};
             }
@@ -148,13 +171,47 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             }
             return DataComponentPayload{std::in_place_index<1>, 0};
         }
-        case DataComponentType::RepairCost: {
-            if (tag.id() == TagId::Int) {
-                return DataComponentPayload{std::in_place_index<1>, dynamic_cast<const int_tag&>(tag).value};
-            }
-            return DataComponentPayload{std::in_place_index<1>, 0};
+        case DataComponentType::Unbreakable: {
+            // Unit 组件：存在即不可损坏
+            return DataComponentPayload{std::in_place_index<8>, true};
         }
-        case DataComponentType::CustomName: {
+        case DataComponentType::Rarity: {
+            ItemRarity rarity = ItemRarity::Common;
+            if (tag.id() == TagId::String) {
+                const auto& s = dynamic_cast<const string_tag&>(tag).value;
+                rarity = rarityFromName(s).value_or(ItemRarity::Common);
+            }
+            return DataComponentPayload{std::in_place_index<9>, rarity};
+        }
+        case DataComponentType::ItemModel: {
+            std::string model;
+            if (tag.id() == TagId::String) {
+                model = dynamic_cast<const string_tag&>(tag).value;
+            }
+            return DataComponentPayload{std::in_place_index<10>, std::move(model)};
+        }
+        case DataComponentType::AttackRange: {
+            AttackRange ar{};
+            if (tag.id() == TagId::Compound) {
+                const auto& c = dynamic_cast<const compound_tag&>(tag);
+                auto readF32 = [&c](const char* key, f32 fallback) -> f32 {
+                    auto it = c.value.find(key);
+                    if (it != c.value.end() && it->second->id() == TagId::Float) {
+                        return dynamic_cast<const float_tag&>(*it->second).value;
+                    }
+                    return fallback;
+                };
+                ar.minRange = readF32("min_reach", ar.minRange);
+                ar.maxRange = readF32("max_reach", ar.maxRange);
+                ar.minCreativeRange = readF32("min_creative_reach", ar.minCreativeRange);
+                ar.maxCreativeRange = readF32("max_creative_reach", ar.maxCreativeRange);
+                ar.hitboxMargin = readF32("hitbox_margin", ar.hitboxMargin);
+                ar.mobFactor = readF32("mob_factor", ar.mobFactor);
+            }
+            return DataComponentPayload{std::in_place_index<11>, ar};
+        }
+        case DataComponentType::CustomName:
+        case DataComponentType::ItemName: {
             if (tag.id() == TagId::String) {
                 const auto& s = dynamic_cast<const string_tag&>(tag).value;
                 if (!s.empty()) {
@@ -234,15 +291,6 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             }
             return DataComponentPayload{std::in_place_index<7>, nlohmann::json::object()};
         }
-        case DataComponentType::MaxStackSize:
-        case DataComponentType::MaxDamage:
-        case DataComponentType::Enchantable:
-        case DataComponentType::Unbreakable:
-        case DataComponentType::ItemName:
-        case DataComponentType::ItemModel:
-        case DataComponentType::Rarity:
-            // TODO: 未落地组件暂以 monostate 占位，待支持对应 payload 后实现编解码。
-            return DataComponentPayload{};
     }
     return DataComponentPayload{};
 }

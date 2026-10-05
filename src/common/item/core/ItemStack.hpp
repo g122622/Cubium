@@ -25,8 +25,10 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
+#include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
@@ -74,6 +76,10 @@ namespace mc {
  * 刻意不含 m_enchantments 与 m_customName：前者在 LivingEntity 每 tick 的装备变更
  * 检测（ItemStack::operator==）里被读取，外置会给这条热路径平添一次间接寻址；后者
  * 的裸指针会经 getCustomNameComponent() 交出并在多处逃逸。
+ *
+ * 另外承载数据组件对物品基础默认值的"覆盖"（componentOverrides）：这些覆盖同属稀有
+ * 字段（仅物品自带或命令/NBT 显式设置），一并外置。未设置时各 getter 回退到 Item 的
+ * 基础值，语义与无覆盖一致。
  */
 struct ItemExtras {
     std::vector<std::unique_ptr<text::ITextComponent>> lore;
@@ -82,14 +88,32 @@ struct ItemExtras {
     AdventureModePredicate canPlaceOn;
     AdventureModePredicate canDestroy;
 
+    // ===== 数据组件覆盖（未设置=回退到 Item 基础值） =====
+    std::optional<i32> maxStackSizeOverride;                 // max_stack_size
+    std::optional<i32> maxDamageOverride;                    // max_damage
+    bool unbreakable = false;                                // unbreakable
+    std::unique_ptr<text::ITextComponent> itemName;          // item_name
+    std::optional<std::string> itemModel;                    // item_model（仅序列化）
+    std::optional<ItemRarity> rarityOverride;                // rarity
+    std::optional<i32> enchantableOverride;                  // enchantable（附魔能力）
+    std::optional<item::component::AttackRange> attackRange; // attack_range
+
     ItemExtras() = default;
 
-    /// 深拷贝：lore 内的文本组件必须逐行 deepCopy，不能共享 unique_ptr
+    /// 深拷贝：lore / itemName 内的文本组件必须逐项 deepCopy，不能共享 unique_ptr
     ItemExtras(const ItemExtras& other)
         : potionId(other.potionId)
         , customData(other.customData)
         , canPlaceOn(other.canPlaceOn)
         , canDestroy(other.canDestroy)
+        , maxStackSizeOverride(other.maxStackSizeOverride)
+        , maxDamageOverride(other.maxDamageOverride)
+        , unbreakable(other.unbreakable)
+        , itemName(other.itemName ? other.itemName->deepCopy() : nullptr)
+        , itemModel(other.itemModel)
+        , rarityOverride(other.rarityOverride)
+        , enchantableOverride(other.enchantableOverride)
+        , attackRange(other.attackRange)
     {
         lore.reserve(other.lore.size());
         for (const auto& line : other.lore) {
@@ -104,6 +128,14 @@ struct ItemExtras {
             customData = other.customData;
             canPlaceOn = other.canPlaceOn;
             canDestroy = other.canDestroy;
+            maxStackSizeOverride = other.maxStackSizeOverride;
+            maxDamageOverride = other.maxDamageOverride;
+            unbreakable = other.unbreakable;
+            itemName = other.itemName ? other.itemName->deepCopy() : nullptr;
+            itemModel = other.itemModel;
+            rarityOverride = other.rarityOverride;
+            enchantableOverride = other.enchantableOverride;
+            attackRange = other.attackRange;
             lore.clear();
             lore.reserve(other.lore.size());
             for (const auto& line : other.lore) {
@@ -111,6 +143,14 @@ struct ItemExtras {
             }
         }
         return *this;
+    }
+
+    /// 是否含任何"组件覆盖"字段（用于惰性分配判断）
+    [[nodiscard]] bool hasComponentOverrides() const noexcept
+    {
+        return maxStackSizeOverride.has_value() || maxDamageOverride.has_value() || unbreakable ||
+            itemName != nullptr || itemModel.has_value() || rarityOverride.has_value() ||
+            enchantableOverride.has_value() || attackRange.has_value();
     }
 };
 
@@ -217,6 +257,8 @@ public:
 
     /**
      * @brief 获取最大堆叠数量
+     *
+     * 优先取 max_stack_size 组件覆盖，缺省回退物品基础值；有耐久度的物品恒为 1。
      */
     [[nodiscard]] i32 getMaxStackSize() const;
 
@@ -267,6 +309,96 @@ public:
      * @param level 附魔等级
      */
     void addEnchantment(const std::string& enchantmentId, i32 level);
+
+    // ========== 数据组件覆盖（覆盖物品基础默认值） ==========
+
+    /**
+     * @brief 是否携带不可损坏组件
+     *
+     * 对齐 vanilla `ItemStack.isDamageableItem()` 中的 `!has(UNBREAKABLE)` 门控：
+     * 置位后物品不再消耗耐久，也不会被视为可损坏。
+     */
+    [[nodiscard]] bool isUnbreakable() const { return m_extras && m_extras->unbreakable; }
+
+    /**
+     * @brief 设置/清除不可损坏组件
+     * @param value true 置位（惰性分配 extras），false 清除（不反向分配）
+     */
+    void setUnbreakable(bool value);
+
+    /**
+     * @brief 获取稀有度（含组件覆盖与附魔提升）
+     *
+     * 对齐 vanilla `ItemStack.getRarity()`：基础稀有度取 rarity 组件（缺省回退物品
+     * 自身稀有度），若已附魔则按 COMMON/UNCOMMON→RARE、RARE→EPIC 提升。
+     */
+    [[nodiscard]] ItemRarity getRarity() const;
+
+    /**
+     * @brief 获取 item_name 组件覆盖的显示名
+     * @return 组件文本组件指针，未设置返回 nullptr
+     */
+    [[nodiscard]] const text::ITextComponent* getItemNameComponent() const
+    {
+        return (m_extras && m_extras->itemName) ? m_extras->itemName.get() : nullptr;
+    }
+
+    /**
+     * @brief 设置 item_name 组件（默认显示名覆盖）
+     * @param name 文本组件（所有权转移）
+     */
+    void setItemNameComponent(std::unique_ptr<text::ITextComponent> name);
+
+    /**
+     * @brief 获取 item_model 组件（模型资源位置，仅序列化承载）
+     * @return 资源位置字符串指针，未设置返回 nullptr
+     */
+    [[nodiscard]] const std::string* getItemModel() const
+    {
+        return (m_extras && m_extras->itemModel) ? &*m_extras->itemModel : nullptr;
+    }
+
+    /**
+     * @brief 设置 item_model 组件
+     * @param model 模型资源位置（空串清除）
+     */
+    void setItemModel(const std::string& model);
+
+    /**
+     * @brief 获取附魔能力（enchantable 组件覆盖，缺省回退物品自身附魔能力）
+     *
+     * 对齐 vanilla `EnchantmentHelper.getEnchantmentCost/selectEnchantment` 读取
+     * `DataComponents.ENCHANTABLE` 的 value。
+     */
+    [[nodiscard]] i32 getEnchantmentValue() const;
+
+    /**
+     * @brief 是否可附魔（enchantable 组件存在且当前无附魔）
+     *
+     * 对齐 vanilla `ItemStack.isEnchantable()`：`has(ENCHANTABLE) && ENCHANTMENTS.isEmpty()`。
+     */
+    [[nodiscard]] bool isEnchantable() const;
+
+    /**
+     * @brief 设置 enchantable 组件覆盖
+     * @param value 附魔能力（<=0 清除）
+     */
+    void setEnchantableOverride(i32 value);
+
+    /**
+     * @brief 获取 attack_range 组件
+     * @return 组件指针，未设置返回 nullptr（由持有者回退到 entityAttackRange 默认值）
+     */
+    [[nodiscard]] const item::component::AttackRange* getAttackRange() const
+    {
+        return (m_extras && m_extras->attackRange) ? &*m_extras->attackRange : nullptr;
+    }
+
+    /**
+     * @brief 设置 attack_range 组件
+     * @param range 攻击范围
+     */
+    void setAttackRange(item::component::AttackRange range);
 
     // ========== 自定义数据 ==========
 
@@ -374,6 +506,8 @@ public:
 
     /**
      * @brief 获取最大耐久度
+     *
+     * 优先取 max_damage 组件覆盖，缺省回退物品基础值。
      */
     [[nodiscard]] i32 getMaxDamage() const;
 
@@ -887,6 +1021,14 @@ public:
      * - minecraft:can_place_on     —— m_extras->canPlaceOn
      * - minecraft:can_break        —— m_extras->canDestroy
      * - minecraft:custom_data      —— m_extras->customData（JSON↔NBT 转换）
+     * - minecraft:max_stack_size   —— m_extras->maxStackSizeOverride
+     * - minecraft:max_damage       —— m_extras->maxDamageOverride
+     * - minecraft:unbreakable      —— m_extras->unbreakable
+     * - minecraft:item_name        —— m_extras->itemName
+     * - minecraft:item_model       —— m_extras->itemModel
+     * - minecraft:rarity           —— m_extras->rarityOverride
+     * - minecraft:enchantable      —— m_extras->enchantableOverride
+     * - minecraft:attack_range     —— m_extras->attackRange
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
 
@@ -956,6 +1098,9 @@ private:
     [[nodiscard]] static const AdventureModePredicate& _emptyPredicate();
     /// 无 extras 时 getPotionId() 返回的共享空串
     [[nodiscard]] static const std::string& _emptyString();
+
+    /// 比较两个物品堆的组件覆盖集合是否一致（operator== 用）
+    [[nodiscard]] bool _componentOverridesEqual(const ItemStack& other) const;
 
     const Item* m_item = nullptr;
     i32 m_count = 0;

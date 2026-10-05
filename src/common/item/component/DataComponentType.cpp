@@ -37,16 +37,24 @@ struct Entry {
     const char* name;
 };
 
-// 仅本项目落地的组件子集。typeId 与 Java 1.21.11 一致（见枚举注释）。
+// 本项目已落地的组件子集。typeId 与 Java 1.21.11 一致（见枚举注释）。
 constexpr Entry kEntries[] = {
     {DataComponentType::CustomData, "minecraft:custom_data"},
+    {DataComponentType::MaxStackSize, "minecraft:max_stack_size"},
+    {DataComponentType::MaxDamage, "minecraft:max_damage"},
     {DataComponentType::Damage, "minecraft:damage"},
+    {DataComponentType::Unbreakable, "minecraft:unbreakable"},
     {DataComponentType::CustomName, "minecraft:custom_name"},
+    {DataComponentType::ItemName, "minecraft:item_name"},
+    {DataComponentType::ItemModel, "minecraft:item_model"},
     {DataComponentType::Lore, "minecraft:lore"},
+    {DataComponentType::Rarity, "minecraft:rarity"},
     {DataComponentType::Enchantments, "minecraft:enchantments"},
     {DataComponentType::CanPlaceOn, "minecraft:can_place_on"},
     {DataComponentType::CanBreak, "minecraft:can_break"},
     {DataComponentType::RepairCost, "minecraft:repair_cost"},
+    {DataComponentType::AttackRange, "minecraft:attack_range"},
+    {DataComponentType::Enchantable, "minecraft:enchantable"},
     {DataComponentType::PotionContents, "minecraft:potion_contents"},
 };
 

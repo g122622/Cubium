@@ -188,10 +188,114 @@ i32 ItemStack::getMaxStackSize() const
         return 0;
     }
     // 如果有耐久度，堆叠数为1
-    if (m_item->isDamageable()) {
+    if (isDamageable()) {
         return 1;
     }
+    // max_stack_size 组件覆盖优先，缺省回退物品基础值
+    if (m_extras && m_extras->maxStackSizeOverride.has_value()) {
+        return *m_extras->maxStackSizeOverride;
+    }
     return m_item->maxStackSize();
+}
+
+// ============================================================================
+// 数据组件覆盖
+// ============================================================================
+
+void ItemStack::setUnbreakable(bool value)
+{
+    if (!value) {
+        // 清除不该反向分配 extras
+        if (m_extras) {
+            m_extras->unbreakable = false;
+        }
+        return;
+    }
+    _ensureExtras().unbreakable = true;
+}
+
+ItemRarity ItemStack::getRarity() const
+{
+    if (isEmpty()) {
+        return ItemRarity::Common;
+    }
+    // 基础稀有度：rarity 组件覆盖优先，缺省回退物品自身稀有度
+    ItemRarity rarity =
+        (m_extras && m_extras->rarityOverride.has_value()) ? *m_extras->rarityOverride : m_item->rarity();
+    // 已附魔则提升稀有度（对齐 vanilla ItemStack.getRarity 的 switch）
+    if (!hasEnchantments()) {
+        return rarity;
+    }
+    switch (rarity) {
+        case ItemRarity::Common:
+        case ItemRarity::Uncommon:
+            return ItemRarity::Rare;
+        case ItemRarity::Rare:
+            return ItemRarity::Epic;
+        case ItemRarity::Epic:
+        default:
+            return rarity;
+    }
+}
+
+void ItemStack::setItemNameComponent(std::unique_ptr<text::ITextComponent> name)
+{
+    if (name == nullptr) {
+        if (m_extras) {
+            m_extras->itemName = nullptr;
+        }
+        return;
+    }
+    _ensureExtras().itemName = std::move(name);
+}
+
+void ItemStack::setItemModel(const std::string& model)
+{
+    if (model.empty()) {
+        if (m_extras) {
+            m_extras->itemModel.reset();
+        }
+        return;
+    }
+    _ensureExtras().itemModel = model;
+}
+
+i32 ItemStack::getEnchantmentValue() const
+{
+    if (isEmpty()) {
+        return 0;
+    }
+    // enchantable 组件覆盖优先，缺省回退物品自身附魔能力
+    if (m_extras && m_extras->enchantableOverride.has_value()) {
+        return *m_extras->enchantableOverride;
+    }
+    return m_item->getItemEnchantability();
+}
+
+bool ItemStack::isEnchantable() const
+{
+    // 对齐 vanilla ItemStack.isEnchantable：存在 enchantable 组件且当前无附魔。
+    // enchantable 组件缺省时回退到物品基础附魔能力（>0 视为具备 enchantable）。
+    if (getEnchantmentValue() <= 0) {
+        return false;
+    }
+    return !hasEnchantments();
+}
+
+void ItemStack::setEnchantableOverride(i32 value)
+{
+    if (value <= 0) {
+        if (m_extras) {
+            m_extras->enchantableOverride.reset();
+        }
+        return;
+    }
+    _ensureExtras().enchantableOverride = value;
+}
+
+void ItemStack::setAttackRange(item::component::AttackRange range)
+{
+    _ensureExtras().attackRange = range;
 }
 
 // ============================================================================
@@ -221,6 +325,14 @@ bool ItemStack::isDamageable() const
 {
     if (isEmpty()) {
         return false;
+    }
+    // unbreakable 组件置位后物品不可损坏（对齐 vanilla isDamageableItem 的 !has(UNBREAKABLE)）
+    if (m_extras && m_extras->unbreakable) {
+        return false;
+    }
+    // max_damage 组件覆盖优先
+    if (m_extras && m_extras->maxDamageOverride.has_value()) {
+        return *m_extras->maxDamageOverride > 0;
     }
     return m_item->isDamageable();
 }
@@ -261,6 +373,10 @@ i32 ItemStack::getMaxDamage() const
 {
     if (isEmpty()) {
         return 0;
+    }
+    // max_damage 组件覆盖优先，缺省回退物品基础值
+    if (m_extras && m_extras->maxDamageOverride.has_value()) {
+        return *m_extras->maxDamageOverride;
     }
     return m_item->maxDamage();
 }
@@ -439,6 +555,11 @@ bool ItemStack::canMergeWith(const ItemStack& other) const
     }
 
     if (_dataRef() != other._dataRef()) {
+        return false;
+    }
+
+    // 组件覆盖须一致（含 unbreakable / rarity / attack_range 等）
+    if (!_componentOverridesEqual(other)) {
         return false;
     }
 
@@ -626,6 +747,12 @@ std::unique_ptr<text::ITextComponent> ItemStack::getDisplayName() const
         return m_customName->deepCopy();
     }
 
+    // item_name 组件覆盖优先于物品默认名（对齐 vanilla ItemStack.getHoverName：
+    // custom_name 优先，其次 item_name，最后物品默认名）
+    if (m_extras && m_extras->itemName) {
+        return m_extras->itemName->deepCopy();
+    }
+
     // 否则返回物品名称
     return std::make_unique<text::StringTextComponent>(m_item->getName());
 }
@@ -673,6 +800,41 @@ nlohmann::json ItemStack::toJson() const
 
     if (hasTag()) {
         json["Tag"] = _dataRef();
+    }
+
+    // 数据组件覆盖（JSON 用组件名做键，缺省不写出）
+    if (m_extras) {
+        if (m_extras->maxStackSizeOverride.has_value()) {
+            json["minecraft:max_stack_size"] = *m_extras->maxStackSizeOverride;
+        }
+        if (m_extras->maxDamageOverride.has_value()) {
+            json["minecraft:max_damage"] = *m_extras->maxDamageOverride;
+        }
+        if (m_extras->unbreakable) {
+            json["minecraft:unbreakable"] = true;
+        }
+        if (m_extras->itemName) {
+            json["minecraft:item_name"] = m_extras->itemName->toJson();
+        }
+        if (m_extras->itemModel.has_value()) {
+            json["minecraft:item_model"] = *m_extras->itemModel;
+        }
+        if (m_extras->rarityOverride.has_value()) {
+            const auto name = rarityName(*m_extras->rarityOverride);
+            json["minecraft:rarity"] = std::string(name.value_or("common"));
+        }
+        if (m_extras->enchantableOverride.has_value()) {
+            json["minecraft:enchantable"] = *m_extras->enchantableOverride;
+        }
+        if (m_extras->attackRange.has_value()) {
+            const auto& ar = *m_extras->attackRange;
+            json["minecraft:attack_range"] = {{"min_reach", ar.minRange},
+                {"max_reach", ar.maxRange},
+                {"min_creative_reach", ar.minCreativeRange},
+                {"max_creative_reach", ar.maxCreativeRange},
+                {"hitbox_margin", ar.hitboxMargin},
+                {"mob_factor", ar.mobFactor}};
+        }
     }
 
     return json;
@@ -742,6 +904,57 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         stack._ensureExtras().customData = json["Tag"];
     }
 
+    // 数据组件覆盖（与 toJson 的写出键对应）
+    if (json.contains("minecraft:max_stack_size") && json["minecraft:max_stack_size"].is_number()) {
+        stack._ensureExtras().maxStackSizeOverride = json["minecraft:max_stack_size"].get<i32>();
+    }
+    if (json.contains("minecraft:max_damage") && json["minecraft:max_damage"].is_number()) {
+        stack._ensureExtras().maxDamageOverride = json["minecraft:max_damage"].get<i32>();
+    }
+    if (json.contains("minecraft:unbreakable") && json["minecraft:unbreakable"].is_boolean()) {
+        stack.setUnbreakable(json["minecraft:unbreakable"].get<bool>());
+    }
+    if (json.contains("minecraft:item_name")) {
+        const auto& nameJson = json["minecraft:item_name"];
+        if (nameJson.is_object()) {
+            stack.setItemNameComponent(text::ITextComponent::fromJson(nameJson));
+        }
+    }
+    if (json.contains("minecraft:item_model") && json["minecraft:item_model"].is_string()) {
+        stack.setItemModel(json["minecraft:item_model"].get<std::string>());
+    }
+    if (json.contains("minecraft:rarity") && json["minecraft:rarity"].is_string()) {
+        if (auto rarity = rarityFromName(json["minecraft:rarity"].get<std::string>()); rarity.has_value()) {
+            stack._ensureExtras().rarityOverride = *rarity;
+        }
+    }
+    if (json.contains("minecraft:enchantable") && json["minecraft:enchantable"].is_number()) {
+        stack.setEnchantableOverride(json["minecraft:enchantable"].get<i32>());
+    }
+    if (json.contains("minecraft:attack_range") && json["minecraft:attack_range"].is_object()) {
+        const auto& ar = json["minecraft:attack_range"];
+        item::component::AttackRange range{};
+        if (ar.contains("min_reach")) {
+            range.minRange = ar["min_reach"].get<f32>();
+        }
+        if (ar.contains("max_reach")) {
+            range.maxRange = ar["max_reach"].get<f32>();
+        }
+        if (ar.contains("min_creative_reach")) {
+            range.minCreativeRange = ar["min_creative_reach"].get<f32>();
+        }
+        if (ar.contains("max_creative_reach")) {
+            range.maxCreativeRange = ar["max_creative_reach"].get<f32>();
+        }
+        if (ar.contains("hitbox_margin")) {
+            range.hitboxMargin = ar["hitbox_margin"].get<f32>();
+        }
+        if (ar.contains("mob_factor")) {
+            range.mobFactor = ar["mob_factor"].get<f32>();
+        }
+        stack.setAttackRange(range);
+    }
+
     return stack;
 }
 
@@ -799,6 +1012,40 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
     }
     if (hasTag()) {
         patch.add(DataComponentType::CustomData, DataComponentPayload{std::in_place_index<7>, _dataRef()});
+    }
+    // 数据组件覆盖（仅非空时写出）
+    if (m_extras) {
+        if (m_extras->maxStackSizeOverride.has_value()) {
+            patch.add(DataComponentType::MaxStackSize,
+                DataComponentPayload{std::in_place_index<1>, *m_extras->maxStackSizeOverride});
+        }
+        if (m_extras->maxDamageOverride.has_value()) {
+            patch.add(DataComponentType::MaxDamage,
+                DataComponentPayload{std::in_place_index<1>, *m_extras->maxDamageOverride});
+        }
+        if (m_extras->unbreakable) {
+            patch.add(DataComponentType::Unbreakable, DataComponentPayload{std::in_place_index<8>, true});
+        }
+        if (m_extras->itemName) {
+            patch.add(DataComponentType::ItemName,
+                DataComponentPayload{std::in_place_index<2>, m_extras->itemName->deepCopy()});
+        }
+        if (m_extras->itemModel.has_value()) {
+            patch.add(
+                DataComponentType::ItemModel, DataComponentPayload{std::in_place_index<10>, *m_extras->itemModel});
+        }
+        if (m_extras->rarityOverride.has_value()) {
+            patch.add(
+                DataComponentType::Rarity, DataComponentPayload{std::in_place_index<9>, *m_extras->rarityOverride});
+        }
+        if (m_extras->enchantableOverride.has_value()) {
+            patch.add(DataComponentType::Enchantable,
+                DataComponentPayload{std::in_place_index<1>, *m_extras->enchantableOverride});
+        }
+        if (m_extras->attackRange.has_value()) {
+            patch.add(
+                DataComponentType::AttackRange, DataComponentPayload{std::in_place_index<11>, *m_extras->attackRange});
+        }
     }
     return patch;
 }
@@ -878,15 +1125,45 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 }
                 break;
             }
-            case DataComponentType::MaxStackSize:
-            case DataComponentType::MaxDamage:
-            case DataComponentType::Enchantable:
-            case DataComponentType::Unbreakable:
-            case DataComponentType::ItemName:
-            case DataComponentType::ItemModel:
-            case DataComponentType::Rarity:
-                // TODO: 未落地组件不映射到 ItemStack 字段。
+            case DataComponentType::MaxStackSize: {
+                if (const auto* p = std::get_if<i32>(&entry.value)) {
+                    _ensureExtras().maxStackSizeOverride = *p;
+                }
                 break;
+            }
+            case DataComponentType::MaxDamage: {
+                if (const auto* p = std::get_if<i32>(&entry.value)) {
+                    _ensureExtras().maxDamageOverride = *p;
+                }
+                break;
+            }
+            case DataComponentType::Unbreakable: {
+                setUnbreakable(true);
+                break;
+            }
+            case DataComponentType::ItemName: {
+                const auto& p = std::get<std::unique_ptr<text::ITextComponent>>(entry.value);
+                setItemNameComponent(p ? p->deepCopy() : nullptr);
+                break;
+            }
+            case DataComponentType::ItemModel: {
+                setItemModel(std::get<std::string>(entry.value));
+                break;
+            }
+            case DataComponentType::Rarity: {
+                _ensureExtras().rarityOverride = std::get<ItemRarity>(entry.value);
+                break;
+            }
+            case DataComponentType::Enchantable: {
+                if (const auto* p = std::get_if<i32>(&entry.value)) {
+                    setEnchantableOverride(*p);
+                }
+                break;
+            }
+            case DataComponentType::AttackRange: {
+                setAttackRange(std::get<item::component::AttackRange>(entry.value));
+                break;
+            }
         }
     }
     for (i32 typeId : patch.removed()) {
@@ -926,13 +1203,36 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 }
                 break;
             case DataComponentType::MaxStackSize:
+                if (m_extras) {
+                    m_extras->maxStackSizeOverride.reset();
+                }
+                break;
             case DataComponentType::MaxDamage:
-            case DataComponentType::Enchantable:
+                if (m_extras) {
+                    m_extras->maxDamageOverride.reset();
+                }
+                break;
             case DataComponentType::Unbreakable:
+                setUnbreakable(false);
+                break;
             case DataComponentType::ItemName:
+                setItemNameComponent(nullptr);
+                break;
             case DataComponentType::ItemModel:
+                setItemModel(std::string{});
+                break;
             case DataComponentType::Rarity:
-                // TODO: 未落地组件不映射到 ItemStack 字段。
+                if (m_extras) {
+                    m_extras->rarityOverride.reset();
+                }
+                break;
+            case DataComponentType::Enchantable:
+                setEnchantableOverride(0);
+                break;
+            case DataComponentType::AttackRange:
+                if (m_extras) {
+                    m_extras->attackRange.reset();
+                }
                 break;
         }
     }
@@ -1151,10 +1451,41 @@ bool ItemStack::operator==(const ItemStack& other) const
         }
     }
 
+    // 数据组件覆盖：两个物品堆的覆盖集合须一致（无覆盖时退化为全部 nullopt/false）
+    const bool overridesEqual = _componentOverridesEqual(other);
+
     return m_item == other.m_item && m_count == other.m_count && m_damage == other.m_damage && customNameEqual &&
         loreEqual && getPotionId() == other.getPotionId() && _dataRef() == other._dataRef() &&
         m_enchantments.getAll() == other.m_enchantments.getAll() && getCanPlaceOn() == other.getCanPlaceOn() &&
-        getCanDestroy() == other.getCanDestroy();
+        getCanDestroy() == other.getCanDestroy() && overridesEqual;
+}
+
+bool ItemStack::_componentOverridesEqual(const ItemStack& other) const
+{
+    const auto& a = m_extras;
+    const auto& b = other.m_extras;
+
+    const bool aHas = a && a->hasComponentOverrides();
+    const bool bHas = b && b->hasComponentOverrides();
+    if (!aHas && !bHas) {
+        return true;
+    }
+    if (aHas != bHas) {
+        return false;
+    }
+
+    const auto sameText = [](const std::unique_ptr<text::ITextComponent>& x,
+                              const std::unique_ptr<text::ITextComponent>& y) {
+        if (x && y) {
+            return *x == *y;
+        }
+        return !x && !y;
+    };
+
+    return a->maxStackSizeOverride == b->maxStackSizeOverride && a->maxDamageOverride == b->maxDamageOverride &&
+        a->unbreakable == b->unbreakable && sameText(a->itemName, b->itemName) && a->itemModel == b->itemModel &&
+        a->rarityOverride == b->rarityOverride && a->enchantableOverride == b->enchantableOverride &&
+        a->attackRange == b->attackRange;
 }
 
 // ============================================================================
