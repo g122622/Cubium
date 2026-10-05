@@ -33,10 +33,10 @@
  * 解析回读用 NbtIo::readRootCompound（对齐 Java FriendlyByteBuf.readNbt = readAnyTag）。
  */
 
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/nbt/Nbt.hpp"
-#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"

@@ -761,4 +761,26 @@ TEST_F(ScoreboardTest, ForAllObjectives)
     EXPECT_EQ(totalDeaths, 30); // 10 + 20
 }
 
+TEST_F(ScoreboardTest, ForAllObjectivesCreatesScoreOnFirstTrigger)
+{
+    // 对齐 vanilla getOrCreatePlayerScore(forceCreate=true)：玩家在该目标上尚无分数条目时，
+    // forAllObjectives 也应创建条目并执行 action（首次触发即计数）。
+    Scoreboard scoreboard;
+    auto* deathCount = ScoreCriteriaRegistry::instance().getCriteria("deathCount");
+    scoreboard.addObjective("deaths", *deathCount);
+
+    i32 incremented = 0;
+    scoreboard.forAllObjectives(*deathCount, "Alex", [&incremented](Score& score) {
+        score.incrementScore();
+        ++incremented;
+    });
+
+    EXPECT_EQ(incremented, 1);
+    auto* obj = scoreboard.getObjective("deaths");
+    ASSERT_NE(obj, nullptr);
+    auto* score = scoreboard.getScore("Alex", *obj);
+    ASSERT_NE(score, nullptr);
+    EXPECT_EQ(score->getScorePoints(), 1);
+}
+
 // main 函数由 gtest_main 库提供

@@ -47,6 +47,7 @@
 #include "common/scoreboard/core/Team.hpp"
 #include "common/scoreboard/criteria/DeathCountCriteria.hpp"
 #include "common/scoreboard/criteria/KillCountCriteria.hpp"
+#include "common/scoreboard/criteria/TeamKillCriteria.hpp"
 #include "common/stats/Stats.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -57,6 +58,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -1293,6 +1295,33 @@ void ServerPlayer::tellNeutralMobsThatIDied()
     }
 }
 
+void ServerPlayer::_handleTeamKill(const std::string& scorerName, const std::string& victimName, bool killedByTeam)
+{
+    // 对齐 vanilla ServerPlayer.handleTeamKill(holder, otherHolder, criteria)：
+    // 取 otherHolder（victimName）所属队伍的颜色，在 teamkill.{color}（击杀者视角）
+    // 或 killedByTeam.{color}（被杀者视角）判据上为 scorerName 递增分数。
+    scoreboard::Scoreboard* scoreboard = getScoreboard();
+    if (scoreboard == nullptr) {
+        return;
+    }
+    scoreboard::ScorePlayerTeam* victimTeam = scoreboard->getPlayersTeam(victimName);
+    if (victimTeam == nullptr) {
+        return;
+    }
+    // 队伍颜色仅 16 种基础色支持队伍击杀判据（TeamKillCriteria::isSupportedColor 同源）。
+    const text::TextFormatting color = victimTeam->getColor();
+    if (!scoreboard::TeamKillCriteria::isSupportedColor(color)) {
+        return;
+    }
+    const std::string criteriaName = scoreboard::TeamKillCriteria::generateName(color,
+        killedByTeam ? scoreboard::TeamKillCriteria::Type::KilledByTeam : scoreboard::TeamKillCriteria::Type::TeamKill);
+    auto* criteria = scoreboard::ScoreCriteriaRegistry::instance().getCriteria(criteriaName);
+    if (criteria == nullptr) {
+        return;
+    }
+    scoreboard->forAllObjectives(*criteria, scorerName, [](scoreboard::Score& score) { score.incrementScore(); });
+}
+
 void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& source)
 {
     // 对齐 MC Java 1.21.11 ServerPlayer.awardKillScore（ServerPlayer.java:950-967）。
@@ -1305,11 +1334,15 @@ void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& sour
     //   } else {
     //       awardStat(MOB_KILLS);
     //   }
-    //   handleTeamKill(this, killedEntity, TEAM_KILL);         —— Cubium 未实现，见 TODO
-    //   handleTeamKill(killedEntity, this, KILLED_BY_TEAM);    —— Cubium 未实现，见 TODO
+    //   handleTeamKill(this, killedEntity, TEAM_KILL);
+    //   handleTeamKill(killedEntity, this, KILLED_BY_TEAM);
     //   CriteriaTriggers.PLAYER_KILLED_ENTITY.trigger(...)     —— 已由事件系统承担，见注释
 
     // 基类 LivingEntity::awardKillScore 为空实现（对齐 Entity.awardKillScore），无需显式调用。
+    // vanilla 首行守卫：if (killedEntity != this)——自杀不计数。
+    if (&killedEntity == this) {
+        return;
+    }
 
     scoreboard::Scoreboard* scoreboard = getScoreboard();
     if (scoreboard == nullptr) {
@@ -1321,12 +1354,9 @@ void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& sour
     // KILL_COUNT_PLAYERS（"playerKillCount"）。
     auto& criteriaRegistry = scoreboard::ScoreCriteriaRegistry::instance();
 
-    // 1. 总击杀计数判据递增（KILL_COUNT_ALL）。
+    // 1. 总击杀计数判据递增（KILL_COUNT_ALL）。forAllObjectives 为创建式查找（对齐原版
+    //    getOrCreatePlayerScore(forceCreate=true)），首次击杀即创建条目并计数。
     if (auto* totalKillCount = criteriaRegistry.getCriteria(scoreboard::TotalKillCountCriteria::NAME)) {
-        // 注意：Cubium 的 forAllObjectives 内部使用 getScore（仅查找不创建），
-        // 与原版 getOrCreateScore（创建语义）不同。这意味着首次击杀时若该玩家在该目标上
-        // 尚无分数条目，则不会创建、不会递增——这是与原版的已知偏差。
-        // TODO: 对齐原版 getOrCreateScore 语义（将 forAllObjectives 改为创建式查找）。
         scoreboard->forAllObjectives(
             *totalKillCount, username(), [](scoreboard::Score& score) { score.incrementScore(); });
     }
@@ -1346,10 +1376,16 @@ void ServerPlayer::awardKillScore(Entity& killedEntity, const DamageSource& sour
     }
 
     // 3. 队伍击杀判据递增（handleTeamKill）。
-    // 原版 handleTeamKill 按击杀者/被杀者所属队伍颜色，
-    // 在 teamkill.{color} / killedByTeam.{color} 判据上递增分数。
-    // TODO: Cubium 未实现 TeamKillCriteria / KilledByTeamCriteria 判据注册，
-    //       亦无 handleTeamKill 方法。待队伍击杀判据体系落地后补全。
+    // vanilla: handleTeamKill(this, killedEntity, TEAM_KILL) —— 击杀者视角，按被杀者队伍颜色；
+    //          handleTeamKill(killedEntity, this, KILLED_BY_TEAM) —— 被杀者视角，按击杀者队伍颜色。
+    // Cubium 记分板以玩家名（username）为 holder 键（对齐 vanilla getScoreboardName=stringUUID，
+    // 本项目 username 即其记分板名）。被杀者非 Player（如生物）时其 getScoreboardName 无意义，
+    // 故仅在被杀者为 Player 时处理队伍击杀判据。
+    if (killedIsPlayer) {
+        auto* killedPlayer = dynamic_cast<Player*>(&killedEntity);
+        _handleTeamKill(username(), killedPlayer->username(), /*killedByTeam=*/false);
+        _handleTeamKill(killedPlayer->username(), username(), /*killedByTeam=*/true);
+    }
 }
 
 void ServerPlayer::attack(Entity& target)

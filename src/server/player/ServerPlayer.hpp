@@ -379,13 +379,26 @@ public:
      * @brief 授予击杀记分（重写 LivingEntity 基类）
      *
      * 对齐 MC Java 1.21.11 ServerPlayer.awardKillScore（ServerPlayer.java:950-967）：
-     * 递增 KILL_COUNT_ALL；若被杀者是 Player 则递增 KILL_COUNT_PLAYERS。
+     * 递增 KILL_COUNT_ALL；若被杀者是 Player 则递增 KILL_COUNT_PLAYERS，并处理
+     * 队伍击杀判据（handleTeamKill）。自杀（killedEntity == this）不计数。
      * 基类 LivingEntity::awardKillScore 为空实现（对齐 Entity.awardKillScore）。
      *
      * @param killedEntity 被杀实体
      * @param source 致死伤害来源
      */
     void awardKillScore(Entity& killedEntity, const DamageSource& source) override;
+
+    /**
+     * @brief 递增队伍击杀判据（对齐 vanilla ServerPlayer.handleTeamKill）
+     *
+     * 取 victimName 所属队伍颜色，在 teamkill.{color}（击杀者视角）或
+     * killedByTeam.{color}（被杀者视角）判据上为 scorerName 递增分数。
+     *
+     * @param scorerName 记分对象（获得分数的玩家名）
+     * @param victimName 提供队伍颜色的玩家名
+     * @param killedByTeam false=TEAM_KILL（击杀者视角），true=KILLED_BY_TEAM（被杀者视角）
+     */
+    void _handleTeamKill(const std::string& scorerName, const std::string& victimName, bool killedByTeam);
 
     /**
      * @brief 攻击实体（重写 Player 基类）

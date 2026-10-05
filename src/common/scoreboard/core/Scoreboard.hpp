@@ -410,6 +410,11 @@ public:
     /**
      * @brief 对所有使用指定判据的目标执行操作
      *
+     * 采用**创建式**查找（getOrCreateScore）：对齐 vanilla
+     * `Scoreboard.forAllObjectives(criteria, holder, action)` 内部对每个目标调
+     * `getOrCreatePlayerScore(holder, objective, forceCreate=true)`。故首次触发
+     * （玩家尚无分数条目）也会创建条目并执行 action，而非静默跳过。
+     *
      * @param criteria 判据
      * @param playerName 玩家名称
      * @param action 操作函数

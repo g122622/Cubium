@@ -541,7 +541,11 @@ void Scoreboard::forAllObjectives(
     }
 
     for (ScoreObjective* objective : it->second) {
-        Score* score = getScore(playerName, *objective);
+        // 创建式查找：对齐 vanilla Scoreboard.forAllObjectives 的
+        // getOrCreatePlayerScore(holder, objective, /*forceCreate=*/true)——首次递增时
+        // 即使该玩家尚无分数条目也会创建。此前用 getScore（仅查找）会漏掉首次触发
+        // （如首次击杀/首次死亡不计数）。
+        Score* score = getOrCreateScore(playerName, *objective);
         if (score) {
             action(*score);
         }
