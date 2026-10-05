@@ -43,7 +43,7 @@ src/server/interaction/
 
 - **BlockInteractionManager**：处理方块放置、破坏、使用、物品 useOn，依赖 InventoryManager 获取手持物品
 - **MiningManager**：追踪挖掘进度，挖掘完成后触发 BlockInteractionManager 的破坏逻辑；通过 `setOnBreakAnimBroadcast` 回调广播破坏动画（由 MinecraftServer 注入），通过 `setEntityIdResolver` 回调获取正确的 EntityId（PlayerId ≠ EntityId）
-- **ContainerManager**：管理容器菜单，独立于其他管理器
+- **ContainerManager**：管理容器菜单，独立于其他管理器。方块容器（`openContainer(type,pos)`）与实体容器（`openEntityContainer(provider)`）共用同一条打开链路：关闭旧容器 → 分配容器 id → 建菜单 → 登记 → 经 `_announceContainerOpened` 下发 OpenScreen。实体容器的菜单由 `INamedContainerProvider::createMenu` 创建，类型取自 `getMenuType`、标题取自 `getDisplayName`
 - **InventoryManager**：物品栏状态管理，被 BlockInteractionManager 依赖
 - **SignCommandHelper**：服务端告示牌命令执行，被 BlockInteractionManager 调用
 
@@ -101,6 +101,10 @@ src/server/interaction/
 ### 6. 容器菜单未清理
 
 容器菜单由 `ContainerManager` 按玩家持有，玩家离开时经会话结束回调关闭。物品栏无需清理——它随玩家实体一起消失，`InventoryManager` 不持有任何副本。
+
+**实体容器与方块容器共用 `m_openContainers`**：同一玩家同时只能开一个容器，实体容器打开前同样先 `closeContainer`（否则旧菜单的 `removed()` 不触发——支付槽物品不返还、交易不 `stopTrading`）。实体容器的容器类型由提供者 `getMenuType()` 决定，**不可外部按实体类别硬编码**：填错不报错，只会让客户端建出另一个窗口、槽位语义整体错位。村民交易 = `Merchant`，箱子船 = `Generic9x3`（对齐 vanilla `MenuType`）。
+
+**本地客户端（IntegratedServer）的实体容器背包来源**：实体容器菜单由 `provider.createMenu` 创建，其内部用 `player.inventory()`（实体自带的那份），而本地客户端的权威背包是 `IntegratedServer::m_clientInventory`，二者不是同一对象。本项目客户端已停维护、实际以 Java 客户端连服务端（走 StandaloneServer / 远程 TCP，背包同源无此问题），故本地路径暂不处理，已在 `IntegratedServer::openEntityContainerRequest` 留 TODO。
 
 ### 7. 创造模式瞬间破坏
 

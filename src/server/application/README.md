@@ -187,6 +187,7 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 | `handleContainerClickPacket()` | 内联处理（guard + setCarriedItem + toClickType + clicked）+ `m_openMenu` | `ContainerManager::handleClick()` |
 | `handleCloseContainerPacket()` | `_closeCurrentContainer()` | `ContainerManager::closeContainer()` |
 | `openContainerRequest()` | `_openContainerMenu()` | `ContainerManager::openContainer()` |
+| `openEntityContainerRequest()` | `ContainerManager::openEntityContainer()`（本地客户端暂用同一路径，背包来源差异见 TODO） | `ContainerManager::openEntityContainer()` |
 | `getHeldItemForPlacement()` | `m_clientInventory.getSelectedStack()` | `InventoryManager::getHeldItem()` |
 | `getSelectedHotbarSlot()` | `m_clientInventory.getSelectedSlot()` | `InventoryManager::getSelectedSlot()` |
 | `setInventoryItem()` | `m_clientInventory.setItem()` | `InventoryManager::setItem()` |

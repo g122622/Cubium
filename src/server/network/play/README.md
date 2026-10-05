@@ -6,6 +6,14 @@
 按**包族**拆分为 6 个处理器，由 `ServerPlayHandler` 聚合门面统一分发。每个处理器是
 `play/` 子树内的独立对象，持 `MinecraftServer&`（见 `base/PlayHandlerBase`），只认领自己那族包。
 
+`ConfigurationAcknowledged` 是例外：它是重配置请求的响应，需访问该连接的握手状态机，故在
+`ClientSession::handleInbound` 进入 Play 路由**之前**被就地拦截（见 ClientSession），不会到达本层。
+
+**空闲踢出时间戳**：`route()` 在分发前对「玩家主动动作」包集合（`isPlayerActionPacket`）调
+`MinecraftServer::recordPlayerAction`，对齐 vanilla 各 C→S 处理器里的 `player.resetLastActionTime()`。
+集合**不含**自动回包（`keep_alive`/`pong`/`ping_request`）——否则挂机客户端会被心跳续命、永不超时；
+移动包另由 `MovementHandler` 按「位移显著才推进」处理（对齐 vanilla `handlePlayerKnownMovement`）。
+
 ## 目录结构
 
 ```

@@ -74,12 +74,17 @@ AbstractVillagerEntity (抽象村民基类)
 
 ## 交易系统交互流程
 
-1. 玩家与村民交互 → `AbstractVillagerEntity::createMenu()` 创建 `MerchantContainerMenu`
+1. 玩家与村民交互（`AbstractVillagerEntity::interactMob`，对齐 vanilla `AbstractVillager#mobInteract`）→ 服务端 `startTrading` + `player.openContainer(*this)` → `IWorld::openEntityContainer` → `ContainerManager::openEntityContainer` → `AbstractVillagerEntity::createMenu()` 创建 `MerchantContainerMenu` 并下发 OpenScreen
 2. `createMenu()` 内部创建 `MerchantContainer`（3格交易容器）并添加到菜单
 3. 玩家在支付槽放入物品 → `MerchantContainer::updateSellItem()` 自动匹配交易
 4. 玩家从结果槽取出物品 → `MerchantResultSlot::onTake()` 执行交易
 5. 交易执行：`offer.take(buyA, buyB)` 扣除物品 → `merchant.notifyTrade()` 增加使用次数和经验
 6. 关闭界面 → `MerchantContainerMenu::removed()` 返还支付槽物品并调用 `merchant.stopTrading()`
+
+**interactMob 分支**：手持刷怪蛋 / 已死 / 交易中 / 睡觉 → 交基类 `MobEntity::interactMob`；
+幼体 → `setUnhappy()` 后返回 Success；否则服务端 `startTrading` + 开界面，主手交互计入
+`talked_to_villager` 统计，无交易（`getOffers().empty()`）时返回 Consume。村民交易界面的容器
+类型经 `getMenuType()` 返回 `ContainerType::Merchant`（对齐 vanilla `MenuType.MERCHANT`）。
 
 **经验奖励链**：`onTake()` → `notifyTrade()` → `rewardTradeXp()` → `addVillagerExperience()`
 
