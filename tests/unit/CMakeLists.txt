@@ -45,6 +45,7 @@ add_executable(mc_tests
     common/network/JavaAttributeIdMapTest.cpp
     common/network/test_registry_data_builder.cpp
     common/network/test_server_handshake.cpp
+    common/network/test_server_status.cpp
     common/network/test_itemstack_bridge_extra.cpp
     common/network/test_server_network_local.cpp
     common/network/test_client_network_local.cpp
@@ -1502,6 +1503,8 @@ add_executable(mc_tests
     common/util/crypto/Md5Test.cpp
     # UUID 工具测试
     common/util/UuidUtilsTest.cpp
+    # Base64 编解码 + PNG 头解析测试
+    common/util/Base64AndPngInfoTest.cpp
     # 特殊日期工具测试
     common/util/SpecialDatesTest.cpp
     # LinkedHashSet 有序集合测试

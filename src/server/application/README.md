@@ -203,3 +203,11 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 
 ### 12. GameTest 接入须留在 ServerApplicationEntry（不上提 common）
 `_initializeServerGameTest` / `_cleanupServerGameTest` 依赖 `mc_test` 符号（GameTestRegistry/GameTestTicker/GameTestServer 等），而 `mc_test` 仅 `minecraft-server` exe 链接，`minecraft-client` exe 不链接。若把这两个函数上提到 `common/application`（编入 `mc_common`，client exe 也链接），会导致 client exe 链接失败。故 GameTest 接入代码必须留在 `ServerApplicationEntry.cpp`（只编入 server exe）。`ServerApplicationEntry` 的 `--gametest` 分支走 `GameTestServer` 无头门面（自含行为包加载/JS 模块注册/runner 构造），与在线路径（`_initializeServerGameTest` 挂 post-tick 回调驱动 ticker）互斥，不复用同一套接入逻辑。
+
+### 13. 服务器列表状态（Status/favicon）由 MinecraftServer 统一构建
+`MinecraftServer::buildServerStatus()` 组装 `net::StatusInfo`（MOTD/玩家数/样本/favicon/enforcesSecureChat），
+`statusInfo()` 带 5 秒缓存（`tick()` 周期重建，对齐 vanilla `status` 字段）。`ClientSessionManager`
+的 `onStatusRequest` 只做转发，不要在两子类各写一份取值逻辑（会漂移）。favicon 由
+`_refreshServerIcon()` 在 `initializeSharedStorage` 中从 `server-icon.png`（回落存档 `icon.png`）
+加载一次（须 64×64），缓存为 Data URL；玩家样本按上限 12 随机截取。JSON 组装在
+`ServerHandshake::_buildStatusJson`（空值字段省略而非 null）。

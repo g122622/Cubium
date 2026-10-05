@@ -64,6 +64,7 @@
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/interaction/MiningManager.hpp"
+#include "server/network/handshake/ServerHandshake.hpp"
 #include "server/network/session/ServerNetwork.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
@@ -379,6 +380,28 @@ public:
      */
     [[nodiscard]] Result<void> loadBehaviorPacks();
 
+    /**
+     * @brief 构造服务器列表 ping 状态信息（Status 阶段 StatusResponse 用）
+     *
+     * 对齐 vanilla `MinecraftServer.buildServerStatus`：MOTD、玩家数、版本、favicon、
+     * 玩家样本、enforcesSecureChat。玩家样本按 `hideOnlinePlayers` 与上限 12 裁剪；
+     * favicon 取已缓存的 server-icon.png Data URL（空则省略）。
+     *
+     * @return 填充完毕的 StatusInfo
+     */
+    [[nodiscard]] net::StatusInfo buildServerStatus() const;
+
+    /**
+     * @brief 取服务器列表状态（带 5 秒缓存，对齐 vanilla `MinecraftServer.status`）
+     *
+     * Status 阶段 StatusResponse 直接复用本方法返回值；缓存由 tick() 周期刷新，无锁读取
+     * （调用在主线程 drainInbound 内）。缓存尚未建立（首 tick 之前）时即时构造一份。
+     */
+    [[nodiscard]] net::StatusInfo statusInfo() const
+    {
+        return m_cachedStatus.has_value() ? *m_cachedStatus : buildServerStatus();
+    }
+
     // ========== 配置 ==========
 
     [[nodiscard]] i32 viewDistance() const override { return m_settings.viewDistance.get(); }
@@ -485,6 +508,18 @@ protected:
     void attachWorldCommandBindings(ServerWorld& world);
     [[nodiscard]] Result<void> initializeSharedStorage(const GameDirectory& gameDirectory, const std::string& levelId);
     void shutdownSharedStorage();
+
+    /**
+     * @brief 加载服务器列表图标（server-icon.png → Data URL）
+     *
+     * 对齐 vanilla `MinecraftServer.loadStatusIcon`：优先游戏目录下的 `server-icon.png`，
+     * 回落到存档 `icon.png`；尺寸必须 64×64，否则忽略并清空缓存。在 `initializeSharedStorage`
+     * 中调用一次。
+     *
+     * @param gameDirectory 游戏目录（server-icon.png 相对其解析）
+     * @param levelId 存档目录名（icon.png 回退路径用）
+     */
+    void _refreshServerIcon(const GameDirectory& gameDirectory, const std::string& levelId);
 
     /**
      * @brief 回写所有在线玩家运行时状态到 PlayerDataManager 缓存
@@ -1410,6 +1445,24 @@ protected:
 
     // Tick 计数器
     u64 m_tickCounter = 0;
+
+    // ========== 服务器列表图标（favicon） ==========
+    //
+    // 对齐 vanilla `MinecraftServer.statusIcon`：世界打开时加载一次（server-icon.png，
+    // 必须 64×64），存为 Data URL 字符串，Status 响应直接复用。未提供或加载失败时为空串。
+    std::string m_serverIconDataUrl;
+
+    // ========== 服务器列表状态（Status 响应） ==========
+    //
+    // 对齐 vanilla `MinecraftServer.status` 字段：每 STATUS_EXPIRE 周期重建一次（含随机
+    // 玩家样本），避免每次 ping 都重算。`m_lastServerStatusTick` 记录上次重建的 tick。
+    mutable std::optional<net::StatusInfo> m_cachedStatus;
+    mutable u64 m_lastServerStatusTick = 0;
+    /// 状态缓存有效期（tick）。原版 STATUS_EXPIRE_TIME_NANOS = 5s。
+    static constexpr u64 STATUS_EXPIRE_TICKS = 100;
+
+    /// 状态样本轮换用随机数（原版用服务端共享 RandomSource）。
+    mutable math::Random m_serverStatusRandom;
 
     // 调试统计（原子变量，供客户端线程读取）
     ServerDebugStats m_debugStats;

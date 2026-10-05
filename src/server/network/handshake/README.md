@@ -94,3 +94,12 @@ Configuration 阶段不动，首先确认 `KnownPacks` 是否命中 core。
 `LoginFlow` 负责**编排**（何时发、发给谁、失败后是否中断序列），`outbound/PacketBuilders` 负责
 **纯构造**（只返回 IR 包，不发包、不依赖 `MinecraftServer`）。命令树编码失败时 `LoginFlow` 记录日志
 并继续（玩家已进入 Play，可恢复），不要升级为中断登录。
+
+### 6. Status 响应字段是"省略而非 null"
+
+`_buildStatusJson` 组装 `StatusInfo` → JSON。`favicon`/`enforcesSecureChat`/`players.sample`
+在空值或默认值时**必须省略该键**（对齐 Java `lenientOptionalFieldOf` 的"缺字段回落默认"语义）；
+写成 `null` 会让客户端解析失败。`StatusInfo` 由 `MinecraftServer::buildServerStatus` 填充
+（MOTD/玩家数/样本/favicon），经 5 秒缓存（`statusInfo()`）复用；`ClientSessionManager` 只做转发。
+favicon 是 `data:image/png;base64,` 前缀的 Data URL，由 `MinecraftServer::_refreshServerIcon`
+在世界打开时从 `server-icon.png`（回落存档 `icon.png`）加载，尺寸须 64×64。

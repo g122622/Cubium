@@ -453,21 +453,38 @@ Result<void> ServerHandshakeStateMachine::_handleStatusPacket(const mc::network:
 std::string ServerHandshakeStateMachine::_buildStatusJson(const StatusInfo& info)
 {
     // 对齐 MC Java 1.21.11 ServerStatus Codec（经 JsonOps 序列化）。字段"省略而非 null"：
-    // favicon/enforcesSecureChat 在离线默认下省略；1.21.11 已无 previewsChat。
+    // favicon/enforcesSecureChat/sample 在空值/默认值时省略——与 Java
+    // `lenientOptionalFieldOf(...)` 的"缺字段回落默认"语义一致（写 null 会让客户端解析失败）。
     // nlohmann::json::dump() 默认不转义 HTML，等价 Java Gson disableHtmlEscaping()。
     nlohmann::json j;
     j["description"] = nlohmann::json::object({{"text", info.motd}});
-    j["players"] = nlohmann::json::object({
+
+    nlohmann::json players = nlohmann::json::object({
         {"max", info.maxPlayers},
         {"online", info.onlinePlayers},
-        {"sample", nlohmann::json::array()}, // TODO: 真实玩家样本（name + offline uuid，上限 12）
     });
+    // sample 空列表时省略（对齐 vanilla：hide-online-players 为 true 或无在线玩家时不写该键）。
+    if (!info.sample.empty()) {
+        nlohmann::json sample = nlohmann::json::array();
+        for (const auto& entry : info.sample) {
+            sample.push_back(nlohmann::json::object({{"name", entry.name}, {"id", entry.id}}));
+        }
+        players["sample"] = std::move(sample);
+    }
+    j["players"] = std::move(players);
+
     j["version"] = nlohmann::json::object({
         {"name", info.versionName},
         {"protocol", info.protocolVersion},
     });
-    // TODO: favicon（server-icon.png 加载为
-    // data:image/png;base64,...）；enforcesSecureChat（在线模式+enforce-secure-profile）
+
+    if (!info.favicon.empty()) {
+        j["favicon"] = info.favicon;
+    }
+    // enforcesSecureChat 默认 false 时省略（对齐 Java `lenientOptionalFieldOf("enforcesSecureChat", false)`）。
+    if (info.enforcesSecureChat) {
+        j["enforcesSecureChat"] = true;
+    }
     return j.dump();
 }
 

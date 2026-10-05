@@ -27,8 +27,8 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
 #include "common/skin/core/SkinTypes.hpp"
+#include "common/util/Base64.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include <cctype>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -39,77 +39,6 @@
 namespace mc::skin {
 
 namespace {
-
-/**
- * @brief Base64 解码
- */
-std::vector<u8> base64Decode(const std::string& encoded)
-{
-    static const std::string base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    std::vector<u8> decoded;
-
-    if (encoded.empty()) {
-        return decoded;
-    }
-
-    // 移除空白字符
-    std::string cleanEncoded;
-    for (char c : encoded) {
-        if (!std::isspace(static_cast<unsigned char>(c))) {
-            cleanEncoded.push_back(c);
-        }
-    }
-
-    if (cleanEncoded.length() % 4 != 0) {
-        spdlog::warn("SkinMetadataParser: Invalid base64 length: {}", cleanEncoded.length());
-        return decoded;
-    }
-
-    size_t padding = 0;
-    if (cleanEncoded.length() >= 1 && cleanEncoded.back() == '=') {
-        padding++;
-        if (cleanEncoded.length() >= 2 && cleanEncoded[cleanEncoded.length() - 2] == '=') {
-            padding++;
-        }
-    }
-
-    decoded.reserve((cleanEncoded.length() / 4) * 3 - padding);
-
-    u32 buffer = 0;
-    i32 bits = 0;
-
-    for (size_t i = 0; i < cleanEncoded.length(); ++i) {
-        char c = cleanEncoded[i];
-
-        if (c == '=') {
-            buffer <<= 6;
-            bits += 6;
-            continue;
-        }
-
-        size_t pos = base64Chars.find(c);
-        if (pos == std::string::npos) {
-            spdlog::warn("SkinMetadataParser: Invalid base64 character: {}", c);
-            // 遇到非法字符时整体解码失败（返回空），与"Invalid base64 length"路径
-            // 的失败语义保持一致。此前实现仅 continue 跳过非法字符，会导致
-            // 形如 "!!!invalid-base64!!!" 的恶意/损坏签名被部分解码成非空字节，
-            // 进而使 getSignatureState 误判为可验证签名（Unsigned）而非 INVALID。
-            decoded.clear();
-            return decoded;
-        }
-
-        buffer = (buffer << 6) | static_cast<u32>(pos);
-        bits += 6;
-
-        if (bits >= 8) {
-            bits -= 8;
-            decoded.push_back(static_cast<u8>((buffer >> bits) & 0xFF));
-        }
-    }
-
-    return decoded;
-}
 
 /**
  * @brief 从纹理 JSON 对象中提取 URL 和哈希
@@ -157,7 +86,7 @@ Result<SkinTextures> SkinMetadataParser::parse(const GameProfileProperty& proper
 Result<SkinTextures> SkinMetadataParser::parseBase64(const std::string& base64Data)
 {
     // Base64 解码
-    auto decoded = base64Decode(base64Data);
+    auto decoded = util::base64Decode(base64Data);
     if (decoded.empty()) {
         return Error(ErrorCode::InvalidData, "Failed to decode base64 data");
     }
@@ -207,7 +136,7 @@ SignatureState SkinMetadataParser::getSignatureState(const GameProfileProperty& 
     const std::string& valueBytes = property.value;
 
     // 签名本身是 Base64 编码的
-    auto signatureBytes = base64Decode(property.signature.value());
+    auto signatureBytes = util::base64Decode(property.signature.value());
     if (signatureBytes.empty()) {
         spdlog::warn("SkinMetadataParser: Failed to decode signature base64");
         return SignatureState::Invalid;

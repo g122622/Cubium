@@ -64,16 +64,10 @@ void ClientSessionManager::onClientConnect(ServerClientConnection& conn)
             onPlayerReady(sessionId, username, offlineUuid);
         });
 
-    // Status（服务器列表 ping）信息提供者：两子类均读基类 m_settings，此处统一取值。
-    session->handshake().onStatusRequest([this]() -> StatusInfo {
-        auto& s = m_server.settings();
-        return StatusInfo{s.motd.get(),
-            std::string("1.21.11"),
-            mc::network::backend::java::kJavaProtocolVersion,
-            s.maxPlayers.get(),
-            static_cast<i32>(m_server.playerManager().playerCount()),
-            s.onlineMode.get()};
-    });
+    // Status（服务器列表 ping）信息提供者：读 MinecraftServer 的周期性状态缓存
+    // （MOTD/玩家数/样本/favicon/enforcesSecureChat，由 buildServerStatus 组装，每 5 秒重建一次）。
+    // 与 vanilla ServerStatusPacketListenerImpl 持 status 快照一致：一次 ping 用一份完整状态。
+    session->handshake().onStatusRequest([this]() -> StatusInfo { return m_server.statusInfo(); });
 
     // 装配 Wire 入站派发分支（主线程 drainInbound 调用）：会话自行完成
     // 「握手状态机 → phase/playerId 守卫 → Play 处理器」的整条派发链。

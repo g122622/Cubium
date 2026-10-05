@@ -1272,6 +1272,9 @@ add_library(mc_common STATIC
     # UUID utilities
     util/UuidUtils.cpp
 
+    # Base64 utilities（RFC 4648 §4 编解码，服务端图标/皮肤元数据共用）
+    util/Base64.cpp
+
     # Platform utilities
     util/PlatformInfo.cpp
 

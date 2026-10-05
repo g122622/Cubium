@@ -40,6 +40,7 @@
 #include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
@@ -54,6 +55,8 @@
 #include "common/scoreboard/core/ScoreCriteria.hpp" // ScoreCriteriaRegistry::registerBuiltinCriteria（服务端记分板判据注册）
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Base64.hpp"
+#include "common/util/PngInfo.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -123,14 +126,18 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/GlobalStorageManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include "server/world/storage/core/WorldStoragePaths.hpp"
 #include "server/world/storage/db/ConsistencyMode.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <filesystem>
+#include <fstream>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -156,6 +163,9 @@ namespace {
 // tick 耗时指数移动平均平滑因子（与 MC 一致），_updateTickDebugStats 使用。
 constexpr f32 kTickTimeSmoothFactor = 0.2f;
 
+// 服务器列表状态：玩家样本最多展示的在线玩家数（对齐 vanilla `Math.min(list.size(), 12)`）。
+constexpr i32 MAX_STATUS_SAMPLE_PLAYERS = 12;
+
 } // namespace
 
 MinecraftServer::MinecraftServer(ServerSettings& settings)
@@ -164,7 +174,99 @@ MinecraftServer::MinecraftServer(ServerSettings& settings)
     , m_ioWorkerPool(-1, "ServerIO", 200)
     , m_lootTableManager()
     , m_templateManagerBinding(world::gen::jigsaw::JigsawAssembler::getTemplateManager())
+    , m_serverStatusRandom(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()))
 {}
+
+net::StatusInfo MinecraftServer::buildServerStatus() const
+{
+    net::StatusInfo info;
+    info.motd = m_settings.motd.get();
+    info.versionName = "1.21.11";
+    info.protocolVersion = mc::network::backend::java::kJavaProtocolVersion;
+    info.maxPlayers = m_settings.maxPlayers.get();
+    info.onlinePlayers = static_cast<i32>(m_playerManager->playerCount());
+    info.favicon = m_serverIconDataUrl;
+
+    // enforcesSecureChat：对齐 vanilla DedicatedServer.enforceSecureProfile——
+    // enforceSecureProfile && onlineMode && services.canValidateProfileKeys()。
+    // Cubium 尚未建模 enforce-secure-profile 与 profile key 校验服务，故恒 false（JSON 省略该键）。
+    info.enforcesSecureChat = false;
+
+    // 玩家样本：对齐 vanilla buildPlayerStatus——hideOnlinePlayers 时为空列表，
+    // 否则从在线玩家中随机取一段（原版取 [0, size-j] 起始的连续 j 个）。样本里
+    // 玩家名与 UUID 已在 PlayerManager 中记录，直接复用；hide-online-players 未建模，
+    // 故仅做上限裁剪。
+    const i32 total = info.onlinePlayers;
+    if (total > 0) {
+        const i32 sampleCount = std::min(total, MAX_STATUS_SAMPLE_PLAYERS);
+        // 随机起始偏移，使样本随时间轮换（对齐 vanilla Mth.nextInt(random, 0, size-j)）。
+        const i32 maxStart = total - sampleCount;
+        const i32 start = maxStart > 0 ? m_serverStatusRandom.nextInt(0, maxStart) : 0;
+        info.sample.reserve(static_cast<usize>(sampleCount));
+
+        // PlayerManager 内部用无序 map，取 ID 列表后按需排序以获得稳定遍历顺序。
+        std::vector<PlayerId> playerIds = m_playerManager->getPlayerIds();
+        std::sort(playerIds.begin(), playerIds.end());
+        const usize startIndex = static_cast<usize>(start);
+        for (i32 i = 0; i < sampleCount; ++i) {
+            const usize index = startIndex + static_cast<usize>(i);
+            if (index >= playerIds.size()) {
+                break;
+            }
+            const ServerPlayerData* playerData = m_playerManager->getPlayer(playerIds[index]);
+            if (playerData == nullptr) {
+                continue;
+            }
+            net::PlayerSampleEntry entry;
+            entry.name = playerData->username;
+            // uuid 在 PlayerManager 中以 32 位无连字符十六进制存储（util::uuidToString），
+            // 而协议要求带连字符的标准格式，故先解析回 16 字节再格式化。
+            entry.id = util::uuidToStringWithDashes(util::uuidFromString(playerData->uuid));
+            info.sample.push_back(std::move(entry));
+        }
+    }
+    return info;
+}
+
+void MinecraftServer::_refreshServerIcon(const GameDirectory& gameDirectory, const std::string& levelId)
+{
+    // 对齐 vanilla loadStatusIcon：优先游戏目录下的 server-icon.png，回落到存档 icon.png。
+    std::error_code ec;
+    std::filesystem::path iconPath = gameDirectory.root() / "server-icon.png";
+    if (!std::filesystem::is_regular_file(iconPath, ec)) {
+        iconPath = world::storage::WorldStoragePaths::fromGameDirectory(gameDirectory).iconPath(levelId);
+    }
+    if (!std::filesystem::is_regular_file(iconPath, ec)) {
+        m_serverIconDataUrl.clear();
+        return;
+    }
+
+    std::ifstream file(iconPath, std::ios::binary);
+    if (!file) {
+        spdlog::warn("Couldn't open server icon at {}", iconPath.string());
+        m_serverIconDataUrl.clear();
+        return;
+    }
+    std::vector<u8> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    auto pngInfo = util::parsePngInfo(bytes);
+    if (pngInfo.failed()) {
+        spdlog::warn("Couldn't parse server icon '{}': {}", iconPath.string(), pngInfo.error().message());
+        m_serverIconDataUrl.clear();
+        return;
+    }
+    if (pngInfo.value().width != 64 || pngInfo.value().height != 64) {
+        spdlog::warn("Invalid world icon size [{}, {}], but expected [64, 64] ({})",
+            pngInfo.value().width,
+            pngInfo.value().height,
+            iconPath.string());
+        m_serverIconDataUrl.clear();
+        return;
+    }
+
+    m_serverIconDataUrl = "data:image/png;base64," + util::base64Encode(bytes);
+    spdlog::info("Server icon loaded from {}", iconPath.string());
+}
 
 void MinecraftServer::setDifficulty(Difficulty difficulty)
 {
@@ -294,6 +396,16 @@ void MinecraftServer::tick()
     }
 
     ++m_tickCounter;
+
+    // 服务器列表状态周期性重建（对齐 vanilla：STATUS_EXPIRE 到期后重算一次，含随机玩家样本），
+    // 使玩家数/样本在多次 ping 间保持稳定而非每次重算。
+    {
+        const u64 tickNow = m_tickCounter;
+        if (!m_cachedStatus.has_value() || tickNow - m_lastServerStatusTick >= STATUS_EXPIRE_TICKS) {
+            m_lastServerStatusTick = tickNow;
+            m_cachedStatus = buildServerStatus();
+        }
+    }
 
     // 更新所有维度
     if (m_dimensionManager) {
@@ -762,6 +874,9 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
     }
     m_scoreboard->setDataManager(m_storage->scoreboardDataManager());
     m_scoreboard->load();
+
+    // 服务器列表图标（favicon）：世界打开后加载一次，供 Status 响应复用。
+    _refreshServerIcon(gameDirectory, levelId);
     return Result<void>::ok();
 }
 

@@ -859,9 +859,7 @@ TEST_F(BiomeFactoryClimateTest, AllSavannaBiomesHaveHotDryClimate)
 {
     // MC 1.21.11: All savanna biomes have temperature=2.0 and hasPrecipitation=false
     const BiomeId savannaBiomes[] = {
-        Biomes::Savanna,
-        Biomes::ShatteredSavanna,
-        Biomes::SavannaPlateau,
+        Biomes::Savanna, Biomes::ShatteredSavanna, Biomes::SavannaPlateau,
         // 注：ShatteredSavannaPlateau 是 1.16.5 已删除变体，1.21.11 已移除，
         // BiomeRegistry 有意不注册（对齐 vanilla），故不纳入本聚合断言。
     };

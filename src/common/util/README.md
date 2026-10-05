@@ -70,12 +70,14 @@ util/
 │   ├── UniversalWorkerPool.hpp/cpp   # 服务端任务池
 │   └── README.md
 ├── AxisAlignedBB.hpp/cpp          # 轴对齐包围盒
+├── Base64.hpp/cpp                 # 标准 Base64 编解码（RFC 4648 §4）
 ├── CompressionUtils.hpp/cpp       # gzip 压缩/解压
 ├── DateTimeUtils.hpp              # 日期时间格式化/解析（MC Java 版兼容格式）
 ├── Direction.hpp                  # 方向枚举及工具
 ├── LinkedHashSet.hpp              # 保持插入顺序的哈希集合
 ├── NibbleArray.hpp/cpp            # 4 位数组（光照数据）
 ├── PlatformInfo.hpp/cpp           # 平台信息
+├── PngInfo.hpp                    # PNG 头解析（签名 + IHDR 宽高）
 ├── RateLimiter.hpp                # 限流器
 ├── StringUtils.hpp                # 字符串工具
 ├── TimeUtils.hpp                  # 时间工具（时间戳、file_time_type 跨平台转换）
@@ -270,3 +272,7 @@ MD5 已被证明不安全，**仅用于兼容性需求**（如 Minecraft 离线 
 ### 17. DateTimeUtils 与 MC Java 版兼容性
 
 `MC_DATE_FORMAT` 常量（`"%Y-%m-%d %H:%M:%S %z"`）与 MC Java 版的 `DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z")` 完全对应。成就进度（`CriterionProgress`）的 JSON 序列化使用此格式，可直接读写 Java 版存档文件。BannedPlayerList/BannedIpList 也使用此格式存储封禁时间。
+
+### 18. Base64 与 PngInfo 是纯工具，不做业务校验
+
+`Base64.hpp` 只做 RFC 4648 §4 编解码（`base64Encode` 输出带 `=` 填充、无换行；`base64Decode` 忽略 ASCII 空白、遇非法字符或长度非法时整体返回空 vector）。`PngInfo.hpp` 只解析 PNG 签名 + IHDR 宽高（24 字节），**不解码像素**。业务侧校验（如服务端图标必须 64×64、皮肤签名验证）由调用方完成，不要把这些规则塞进工具本身。皮肤元数据解析（`SkinMetadataParser`）与服务端 favicon 共用 `util::base64Decode`，勿再各自维护一份。

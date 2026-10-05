@@ -44,11 +44,24 @@
 namespace mc::server::net {
 
 /**
+ * @brief 玩家样本条目（服务器列表 hover 时展示的在线玩家）
+ *
+ * 对齐 MC Java 1.21.11 `NameAndId`：`id` 为带连字符的标准 UUID 字符串。
+ */
+struct PlayerSampleEntry {
+    std::string name; ///< 玩家名
+    std::string id;   ///< 带连字符的 UUID 字符串（xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+};
+
+/**
  * @brief 服务器列表 ping 状态信息（由应用层从设置/玩家管理器填充）
  *
  * 对齐 MC Java 1.21.11 ServerStatus：description(纯文本 motd)、players(max/online/sample)、
- * version(name/protocol)。favicon/enforcesSecureChat 在离线默认下省略（对齐 Java Codec
- * 的"省略而非 null"规则）。
+ * version(name/protocol)、favicon、enforcesSecureChat。
+ *
+ * `sample` 为空时 JSON 省略 players.sample 键；`favicon` 为空时省略 favicon 键；
+ * `enforcesSecureChat` 为 false 时省略该键——均对齐 Java Codec 的
+ * `lenientOptionalFieldOf(...)` 省略语义（缺字段回落到默认值，而非写 null）。
  */
 struct StatusInfo {
     std::string motd;        ///< description.text
@@ -56,7 +69,12 @@ struct StatusInfo {
     i32 protocolVersion;     ///< 774
     i32 maxPlayers;          ///< players.max
     i32 onlinePlayers;       ///< players.online
-    bool onlineMode;         ///< 是否在线模式（影响 enforcesSecureChat，当前省略）
+    /// 在线玩家样本（应用层已按 hide-online-players 与上限 12 裁剪；空则 JSON 省略 sample）
+    std::vector<PlayerSampleEntry> sample;
+    /// 服务端图标 Data URL（"data:image/png;base64,..."）；空则 JSON 省略 favicon
+    std::string favicon;
+    /// 是否强制安全聊天（对齐 vanilla enforceSecureProfile；false 时 JSON 省略该键）
+    bool enforcesSecureChat = false;
 };
 
 /**

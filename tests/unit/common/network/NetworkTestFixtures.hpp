@@ -247,6 +247,16 @@ protected:
     [[nodiscard]] const std::string& readyUsername() const noexcept { return m_readyUsername; }
     [[nodiscard]] const std::array<u8, 16>& readyUuid() const noexcept { return m_readyUuid; }
 
+    /// 从客户端侧 transport 的入站队列中取出服务端发出的下一个包（无包返回 nullopt）。
+    /// 用于断言 StatusResponse 等 S→C 包内容：服务端 send → 客户端队列，再 pumpClient 取回。
+    [[nodiscard]] std::optional<mc::network::ir::IrPacket> pumpClient()
+    {
+        std::optional<mc::network::ir::IrPacket> received;
+        m_clientTransport->onPacket([&received](const mc::network::ir::IrPacket& packet) { received = packet; });
+        m_clientTransport->pump();
+        return received;
+    }
+
 private:
     std::unique_ptr<mc::server::net::ServerNetwork> m_serverNetwork;
     mc::server::net::ServerClientConnection* m_serverConn = nullptr;
