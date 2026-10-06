@@ -103,14 +103,14 @@ Result<_RawTagData> _parseJsonRaw(const std::string& json, const ResourceLocatio
             } else if (value.is_object()) {
                 // 对象格式: {"id":"minecraft:stone","required":false}
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn(
+                    spdlog::error(
                         "GenericTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn(
+                    spdlog::error(
                         "GenericTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                     continue;
                 }
@@ -122,7 +122,7 @@ Result<_RawTagData> _parseJsonRaw(const std::string& json, const ResourceLocatio
 
                 rawData.entries.push_back({id, required});
             } else {
-                spdlog::warn(
+                spdlog::error(
                     "GenericTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
             }
         }
@@ -151,6 +151,8 @@ void _resolveEntry(const _RawTagEntry& entry,
     const TagMemberReader& readTag)
 {
     if (entry.id.empty()) {
+        // 空条目 id：解析阶段已对对象条目过滤空 id，走到这里只可能是字符串条目为 ""，属数据包异常。
+        spdlog::error("GenericTagLoader: empty entry id in tag '{}', skipped", tagLocation.toString());
         return;
     }
 
@@ -205,7 +207,9 @@ void _resolveAndFill(const ResourceLocation& location,
     const TagFiller& fillTag)
 {
     if (data.entries.empty()) {
-        // 空标签（可能因 replace 清空）仍须写入以应用 replace 语义
+        // 空标签（可能因 replace 清空）仍须写入以应用 replace 语义。
+        // 数据包侧出现空标签极不寻常（vanilla 无），明确告警以便定位。
+        spdlog::warn("GenericTagLoader: tag '{}' has NO entries; writing empty tag", location.toString());
         fillTag(location, {}, data.replace);
         return;
     }
@@ -218,11 +222,14 @@ void _resolveAndFill(const ResourceLocation& location,
         _resolveEntry(entry, members, visitedTags, location, resolveMember, readTag);
     }
 
-    fillTag(location, members, data.replace);
-
     if (members.empty()) {
-        spdlog::info("GenericTagLoader: tag '{}' resolved no valid members", location.toString());
+        // 所有条目都解析失败：写出的标签为空，依赖它的标签也会连带为空，明确 error 而非 info。
+        spdlog::error("GenericTagLoader: tag '{}' resolved ZERO members (all entries unresolved); "
+                      "dependent tags will inherit empty members",
+            location.toString());
     }
+
+    fillTag(location, members, data.replace);
 }
 
 /**
@@ -343,6 +350,11 @@ Result<size_t> GenericTagLoader::loadFromDataPackRepository(const resource::Data
 
     auto namespacesResult = dataPackList.getResourceNamespaces();
     if (!namespacesResult.success()) {
+        // 枚举命名空间失败：整个目录的标签都不会被加载，静默返回 0 会让上层误以为"无标签"，
+        // 明确 error 报告失败原因。
+        spdlog::error("GenericTagLoader: getResourceNamespaces failed for '{}': {}; NO tags loaded",
+            std::string(tagDirectory),
+            namespacesResult.error().message());
         return loadedCount;
     }
 
@@ -368,7 +380,7 @@ Result<size_t> GenericTagLoader::loadFromDataPackRepository(const resource::Data
 
                 auto parseResult = _parseJsonRaw(version.content, location);
                 if (!parseResult.success()) {
-                    spdlog::warn("GenericTagLoader: failed to parse tag {} (from datapack {}): {}",
+                    spdlog::error("GenericTagLoader: failed to parse tag {} (from datapack {}): {}",
                         location.toString(),
                         version.packName,
                         parseResult.error().message());
@@ -401,6 +413,9 @@ Result<size_t> GenericTagLoader::loadFromResourcePack(const resource::IResourceP
 
     auto namespacesResult = pack.getResourceNamespaces(resource::PackType::ServerData);
     if (!namespacesResult.success()) {
+        spdlog::error("GenericTagLoader: getResourceNamespaces failed for '{}': {}; NO tags loaded",
+            std::string(tagDirectory),
+            namespacesResult.error().message());
         return loadedCount;
     }
 
@@ -419,13 +434,13 @@ Result<size_t> GenericTagLoader::loadFromResourcePack(const resource::IResourceP
 
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
             if (!readResult.success()) {
-                spdlog::warn("GenericTagLoader: failed to read tag file: {}", resourcePath);
+                spdlog::error("GenericTagLoader: failed to read tag file: {}", resourcePath);
                 continue;
             }
 
             auto parseResult = _parseJsonRaw(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn(
+                spdlog::error(
                     "GenericTagLoader: failed to parse tag {}: {}", location.toString(), parseResult.error().message());
                 continue;
             }

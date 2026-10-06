@@ -51,6 +51,8 @@
 #include "common/resource/pack/InMemoryResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/block/BlockTagLoader.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
@@ -192,10 +194,8 @@ protected:
             "weight": 2
         })");
 
-        // BLOCK 标签（wind_burst.immune_blocks 用；纯名字无嵌套 #，走直读 JSON 路径）。
-        writeTextFile(dir,
-            "data/minecraft/tags/block/blocks_wind_charge_explosions.json",
-            R"({"values": ["minecraft:barrier", "minecraft:bedrock"]})");
+        // BLOCK 标签不再写入临时 datapack：EnchantmentNbtBuilder 已改为经 BlockTags 注册表解析
+        // （生产路径由 BlockTagLoader 启动期加载），测试用 loadBlockTagsIntoRegistry() 注入。
 
         return dir;
     }
@@ -231,6 +231,19 @@ protected:
             R"({"values": ["minecraft:arrow", "minecraft:tipped_arrow", "minecraft:spectral_arrow"]})");
         auto r = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
         ASSERT_TRUE(r.success()) << "ItemTagLoader::loadFromResourcePack failed";
+    }
+
+    // 用与临时 datapack 相同的 BLOCK 标签内容构造 InMemoryResourcePack，加载进 BlockTags
+    // （wind_burst.immune_blocks:#blocks_wind_charge_explosions 走 BlockTags::getTag 解析）。
+    // 生产路径中 BlockTagLoader 在 RegistryBootstrap 启动期加载全部 block tags，故此处亦经
+    // BlockTagLoader 注入（而非直读 JSON）——与生产一致。
+    static void loadBlockTagsIntoRegistry()
+    {
+        auto pack = std::make_unique<mc::InMemoryResourcePack>("ench_nbt_block_pack");
+        pack->addServerDataResource("minecraft/tags/block/blocks_wind_charge_explosions.json",
+            R"({"values": ["minecraft:barrier", "minecraft:bedrock"]})");
+        auto r = mc::BlockTagLoader::loadFromResourcePack(*pack);
+        ASSERT_TRUE(r.success()) << "BlockTagLoader::loadFromResourcePack failed";
     }
 };
 
@@ -441,13 +454,15 @@ TEST_F(EnchantmentNbtBuilderTest, BaneOfArthropodsPredicateTypeFlattened)
     EXPECT_TRUE(hasArrow) << "predicate.type 应含 minecraft:arrow";
 }
 
-// effects 树内 effect.immune_blocks 的 BLOCK #tag 展平（走直读 BLOCK 标签 JSON 路径）。
+// effects 树内 effect.immune_blocks 的 BLOCK #tag 展平（走 BlockTags 注册表路径）。
 // wind_burst 的 effect.immune_blocks:"#minecraft:blocks_wind_charge_explosions" 须展平为名字列表
 // ["minecraft:barrier","minecraft:bedrock"]，无残留 #。验证 effects 递归展平命中【顶层效果 HolderSet
 // 字段】（immune_blocks 非 type/blocks/items 谓词字段，按 # 开头值盲展平判据覆盖）。
 TEST_F(EnchantmentNbtBuilderTest, WindBurstImmuneBlocksFlattened)
 {
     loadItemTagsIntoRegistry();
+    // BLOCK 标签经 BlockTagLoader 加载（对齐生产路径，不再依赖 EnchantmentNbtBuilder 直读 JSON）。
+    loadBlockTagsIntoRegistry();
 
     const auto dir = buildTestDatapack();
     mc::resource::DataPackRepository repo;

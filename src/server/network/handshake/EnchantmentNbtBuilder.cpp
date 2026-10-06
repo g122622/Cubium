@@ -115,7 +115,7 @@ const std::vector<std::string_view> kEnchantmentIds = {
 // packTypeDirectoryName(ServerData)="data" 前缀，最终落盘 root/data/<path>。故此处 path
 // 不含 "data/" 前缀（与 ItemTagLoader 用 namespace+"/tags/item" 同一约定，见 ItemTagLoader.cpp）。
 // 误加 "data/" 会双重前缀（root/data/data/...）致 readTextResource 永久 ResourceNotFound。
-std::string enchantmentIdToResourcePath(std::string_view id)
+std::string _enchantmentIdToResourcePath(std::string_view id)
 {
     // id 形如 "namespace:path"
     const auto colon = id.find(':');
@@ -128,8 +128,8 @@ std::string enchantmentIdToResourcePath(std::string_view id)
 }
 
 /// 把 "#minecraft:exclusive_set/damage" → "minecraft/tags/enchantment/exclusive_set/damage.json"
-// 同 enchantmentIdToResourcePath：不含 "data/" 前缀（FolderResourcePack 预置）。
-std::string enchantmentTagRefToResourcePath(std::string_view tagRef)
+// 同 _enchantmentIdToResourcePath：不含 "data/" 前缀（FolderResourcePack 预置）。
+std::string _enchantmentTagRefToResourcePath(std::string_view tagRef)
 {
     // tagRef 形如 "#namespace:path"（已剥 # 后调用亦可）
     std::string_view ref = tagRef;
@@ -142,12 +142,12 @@ std::string enchantmentTagRefToResourcePath(std::string_view tagRef)
     return ns + "/tags/enchantment/" + path + ".json";
 }
 
-/// 从 datapack 读文本资源；失败返回空串并记日志。
-std::string readDataPackText(const mc::resource::DataPackRepository& repo, const std::string& resourcePath)
+/// 从 datapack 读文本资源；失败返回空串并记 error（调用方据此回退或发 nullopt）。
+std::string _readDataPackText(const mc::resource::DataPackRepository& repo, const std::string& resourcePath)
 {
     auto r = repo.readTextResource(resourcePath);
     if (!r.success()) {
-        spdlog::warn("EnchantmentNbtBuilder: readTextResource failed: {} ({})", resourcePath, r.error().toString());
+        spdlog::error("EnchantmentNbtBuilder: readTextResource failed: {} ({})", resourcePath, r.error().toString());
         return {};
     }
     return std::move(r).value();
@@ -157,10 +157,13 @@ std::string readDataPackText(const mc::resource::DataPackRepository& repo, const
 /// "namespace:path" 或单元素名 → 直接返回该名字；
 /// "#namespace:path" → 优先 ItemTags::getTag（已递归展平嵌套 #），未命中则直读
 ///   tags/enchantment/*.json 的 values 数组（vanilla exclusive_set 仅含名字，无嵌套 #）。
-std::vector<std::string> flattenHolderSet(const mc::resource::DataPackRepository& repo, const std::string& holderSetVal)
+std::vector<std::string> _flattenHolderSet(
+    const mc::resource::DataPackRepository& repo, const std::string& holderSetVal)
 {
     std::vector<std::string> result;
     if (holderSetVal.empty()) {
+        // 空值：调用方仅在该字段存在且为字符串时调用，空串是数据包异常，明确报错。
+        spdlog::error("EnchantmentNbtBuilder: _flattenHolderSet called with empty value; datapack field is blank");
         return result;
     }
     if (holderSetVal[0] != '#') {
@@ -177,83 +180,49 @@ std::vector<std::string> flattenHolderSet(const mc::resource::DataPackRepository
         for (const mc::Item* item : itemTag->getItems()) {
             result.push_back(item->itemLocation().toString());
         }
+        if (result.empty()) {
+            spdlog::warn("EnchantmentNbtBuilder: ITEM #tag '{}' exists but resolved ZERO members", holderSetVal);
+        }
         return result;
     }
 
     // 回退：直读 tags/enchantment/<...>.json（enchantment exclusive_set 等未在服务端注册的标签）
-    const std::string tagPath = enchantmentTagRefToResourcePath(holderSetVal);
-    const std::string text = readDataPackText(repo, tagPath);
+    const std::string tagPath = _enchantmentTagRefToResourcePath(holderSetVal);
+    const std::string text = _readDataPackText(repo, tagPath);
     if (text.empty()) {
-        spdlog::warn(
-            "EnchantmentNbtBuilder: tag {} not in ItemTags and datapack file missing ({})", holderSetVal, tagPath);
+        // 静默回退缺陷源头：既不在 ItemTags 也无数据包文件，下游会拿到空 HolderSet。
+        // 明确 error 报告标签名与查找路径，便于定位是"标签名拼错"还是"数据包缺失"。
+        spdlog::error("EnchantmentNbtBuilder: #tag '{}' NOT in ItemTags and datapack file missing ({}); "
+                      "downstream HolderSet will be empty",
+            holderSetVal,
+            tagPath);
         return result;
     }
     try {
         const auto j = nlohmann::json::parse(text);
-        if (j.contains("values") && j["values"].is_array()) {
-            for (const auto& v : j["values"]) {
-                if (v.is_string()) {
-                    // vanilla exclusive_set 仅含 enchantment 名字；遇嵌套 # 记 warn 跳过
-                    // （完整 # 解析需 EnchantmentTagLoader，本任务不做，见 plan 风险 4）
-                    const std::string s = v.get<std::string>();
-                    if (!s.empty() && s[0] == '#') {
-                        spdlog::warn("EnchantmentNbtBuilder: nested tag ref {} in {} not resolved", s, tagPath);
-                        continue;
-                    }
-                    result.push_back(s);
+        if (!j.contains("values") || !j["values"].is_array()) {
+            spdlog::error("EnchantmentNbtBuilder: tag json {} missing 'values' array", tagPath);
+            return result;
+        }
+        for (const auto& v : j["values"]) {
+            if (v.is_string()) {
+                const std::string s = v.get<std::string>();
+                if (!s.empty() && s[0] == '#') {
+                    // 嵌套 # 引用未解析：原样丢弃会让 HolderSet 缺项，明确 error（而非静默 continue）。
+                    spdlog::error("EnchantmentNbtBuilder: nested tag ref '{}' in {} not resolved; "
+                                  "item will be MISSING from the resulting HolderSet",
+                        s,
+                        tagPath);
+                    continue;
                 }
+                result.push_back(s);
+            } else {
+                spdlog::error("EnchantmentNbtBuilder: non-string value in tag json {} values array", tagPath);
             }
         }
     }
     catch (const std::exception& e) {
-        spdlog::warn("EnchantmentNbtBuilder: parse tag json {} failed: {}", tagPath, e.what());
-    }
-    return result;
-}
-
-/// 把 "#minecraft:soul_speed_blocks" → "minecraft/tags/block/soul_speed_blocks.json"
-// 同 enchantmentTagRefToResourcePath：不含 "data/" 前缀（FolderResourcePack 预置）。
-std::string blockTagRefToResourcePath(std::string_view tagRef)
-{
-    std::string_view ref = tagRef;
-    if (!ref.empty() && ref[0] == '#') {
-        ref = ref.substr(1);
-    }
-    const auto colon = ref.find(':');
-    std::string ns = (colon == std::string_view::npos) ? std::string("minecraft") : std::string(ref.substr(0, colon));
-    std::string path = (colon == std::string_view::npos) ? std::string(ref) : std::string(ref.substr(colon + 1));
-    return ns + "/tags/block/" + path + ".json";
-}
-
-/// 直读 datapack 的 BLOCK 标签 JSON，取 values 数组中的纯方块名。
-/// vanilla 3 个所需 BLOCK 标签（lightning_rods/soul_speed_blocks/blocks_wind_charge_explosions）均仅含
-/// 纯名字无嵌套 #（已核对）；遇嵌套 # 记 warn 跳过（完整 BLOCK 标签加载器不在本任务范围）。
-std::vector<std::string> flattenBlockTagToNames(const mc::resource::DataPackRepository& repo, const std::string& tagRef)
-{
-    std::vector<std::string> result;
-    const std::string tagPath = blockTagRefToResourcePath(tagRef);
-    const std::string text = readDataPackText(repo, tagPath);
-    if (text.empty()) {
-        spdlog::warn("EnchantmentNbtBuilder: block tag {} datapack file missing ({})", tagRef, tagPath);
-        return result;
-    }
-    try {
-        const auto j = nlohmann::json::parse(text);
-        if (j.contains("values") && j["values"].is_array()) {
-            for (const auto& v : j["values"]) {
-                if (v.is_string()) {
-                    const std::string s = v.get<std::string>();
-                    if (!s.empty() && s[0] == '#') {
-                        spdlog::warn("EnchantmentNbtBuilder: nested tag ref {} in {} not resolved", s, tagPath);
-                        continue;
-                    }
-                    result.push_back(s);
-                }
-            }
-        }
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("EnchantmentNbtBuilder: parse block tag json {} failed: {}", tagPath, e.what());
+        spdlog::error("EnchantmentNbtBuilder: parse tag json {} failed: {}", tagPath, e.what());
     }
     return result;
 }
@@ -278,7 +247,7 @@ enum class EffectsTagRegistry {
 };
 
 /// 把 key 名映射为注册表提示（仅对已知 HolderSet 字段 key 命中，其余返回 Unknown）。
-EffectsTagRegistry registryHintForKey(std::string_view key)
+EffectsTagRegistry _registryHintForKey(std::string_view key)
 {
     if (key == "type") {
         return EffectsTagRegistry::EntityType; // EntityTypePredicate.type
@@ -302,15 +271,25 @@ EffectsTagRegistry registryHintForKey(std::string_view key)
 /// 该注册表解析，避免跨注册表撞名（如 #arrows 同名 ITEM/ENTITY_TYPE 标签）误选。Unknown 时按安全
 /// 顺序 ENTITY_TYPE→BLOCK→ITEM 回退（绝不让 ITEM 优先，因 predicate.type 字段最易与 ITEM 撞名）。
 /// 全失败返回空（调用方保留原 # 串 + 记 warn，让客户端报错定位）。
-std::vector<std::string> flattenTagToNames(
+std::vector<std::string> _flattenTagToNames(
     const mc::resource::DataPackRepository& repo, const std::string& tagRef, EffectsTagRegistry registryHint)
 {
     std::vector<std::string> result;
     if (tagRef.empty() || tagRef[0] != '#') {
-        return result; // 非 #tag 引用，不处理
+        // 非 #tag 引用：调用方按 key 值判定后才调用本函数，走到这里说明调用方逻辑有误，明确报错。
+        spdlog::error("EnchantmentNbtBuilder: _flattenTagToNames called with non-tag value '{}'; caller bug", tagRef);
+        return result;
     }
     const std::string refStr = tagRef.substr(1);
     const mc::ResourceLocation loc = mc::ResourceLocation::parse(refStr);
+
+    // Unknown hint 意味着"该字段 key 不在已知 HolderSet 字段表内"，只能按安全顺序猜测注册表——
+    // 这正是跨注册表撞名（如 #arrows 同名 ITEM/ENTITY_TYPE）的隐患点，明确告警而非静默猜。
+    if (registryHint == EffectsTagRegistry::Unknown) {
+        spdlog::warn("EnchantmentNbtBuilder: effects #tag '{}' has unknown registry hint (field key not recognized); "
+                     "guessing registries in order ENTITY_TYPE→BLOCK→ITEM",
+            tagRef);
+    }
 
     // 按注册表尝试顺序：hint 已知则只查该注册表；Unknown 按 ENTITY_TYPE→BLOCK→ITEM 安全回退
     // （不让 ITEM 优先，规避 #arrows 跨注册表撞名）。
@@ -319,41 +298,74 @@ std::vector<std::string> flattenTagToNames(
         (registryHint == EffectsTagRegistry::EntityType || registryHint == EffectsTagRegistry::Unknown);
     const bool tryBlock = (registryHint == EffectsTagRegistry::Block || registryHint == EffectsTagRegistry::Unknown);
 
+    // 每个注册表分支的命中判定记录，供全部落空时给出可定位的错误信息（哪个注册表查过、
+    // 该注册表当前是否初始化、标签名是否撞名）。
+    bool entityLookupAttempted = false;
+    bool blockLookupAttempted = false;
+    bool itemLookupAttempted = false;
+
     // ENTITY_TYPE 标签（启动期 EntityTypeTagLoader 已递归解析嵌套 #）
     if (tryEntity) {
+        entityLookupAttempted = true;
         if (auto* entityTag = mc::EntityTypeTags::getTag(loc)) {
             for (const mc::ResourceLocation& id : entityTag->getEntityTypeIds()) {
                 result.push_back(id.toString());
             }
+            if (result.empty()) {
+                // 标签存在但成员为空：数据包定义/加载顺序异常，静默返回空会让下游拿到空列表，
+                // 明确告警以便定位（空标签在 vanilla 里几乎不存在）。
+                spdlog::warn("EnchantmentNbtBuilder: ENTITY_TYPE #tag '{}' exists but resolved ZERO members", tagRef);
+            }
             return result;
         }
     }
-    // BLOCK 标签（BlockTags::initialize 硬编码的，如 lightning_rods）
+    // BLOCK 标签（启动期 BlockTagLoader 已递归解析嵌套 #，含数据包定义的新标签）
     if (tryBlock) {
+        blockLookupAttempted = true;
         if (auto* blockTag = mc::BlockTags::getTag(loc)) {
             for (const mc::ResourceLocation& id : blockTag->getBlockIds()) {
                 result.push_back(id.toString());
             }
+            if (result.empty()) {
+                spdlog::warn("EnchantmentNbtBuilder: BLOCK #tag '{}' exists but resolved ZERO members", tagRef);
+            }
             return result;
-        }
-        // 回退：直读 BLOCK 标签 JSON（覆盖未硬编码的 soul_speed_blocks/blocks_wind_charge_explosions）
-        auto blockNames = flattenBlockTagToNames(repo, tagRef);
-        if (!blockNames.empty()) {
-            return blockNames;
         }
     }
     // ITEM 标签（启动期 ItemTagLoader 已递归解析嵌套 #）
     if (tryItem) {
+        itemLookupAttempted = true;
         if (auto* itemTag = mc::item::tag::ItemTags::getTag(loc)) {
             for (const mc::Item* item : itemTag->getItems()) {
                 result.push_back(item->itemLocation().toString());
+            }
+            if (result.empty()) {
+                spdlog::warn("EnchantmentNbtBuilder: ITEM #tag '{}' exists but resolved ZERO members", tagRef);
             }
             return result;
         }
     }
 
-    spdlog::warn(
-        "EnchantmentNbtBuilder: effects #tag {} not resolved (hint={})", tagRef, static_cast<int>(registryHint));
+    // 全部落空：这是"静默回退"型缺陷的源头——effects 内 #tag 展平失败会原样保留 "#..." 串发给客户端，
+    // 客户端按 HolderSetCodec 解码失败并 disconnect，而服务端日志此前只有一条 warn 无法定位。
+    // 此处升级为 error，并逐项报告查询过的注册表、各注册表是否已初始化、以及跨注册表撞名诊断。
+    spdlog::error("EnchantmentNbtBuilder: effects #tag '{}' (hint={}) unresolved in ALL candidate registries; "
+                  "the raw '#' string will be sent to the client and cause a disconnect",
+        tagRef,
+        static_cast<int>(registryHint));
+    if (entityLookupAttempted) {
+        spdlog::error("  - ENTITY_TYPE registry queried: EntityTypeTags::isInitialized()={}",
+            mc::EntityTypeTags::isInitialized());
+    }
+    if (blockLookupAttempted) {
+        spdlog::error("  - BLOCK registry queried: BlockTags::getTag('{}')={}",
+            loc.toString(),
+            mc::BlockTags::getTag(loc) != nullptr ? "present" : "absent");
+    }
+    if (itemLookupAttempted) {
+        spdlog::error(
+            "  - ITEM registry queried: ItemTags::isInitialized()={}", mc::item::tag::ItemTags::isInitialized());
+    }
     return result;
 }
 
@@ -365,8 +377,8 @@ std::vector<std::string> flattenTagToNames(
 /// jsonToNbt 把名字数组转为 string_list_tag（HolderSetCodec 名字列表线格式）。
 ///
 /// 仅作用于 effects 子树——顶层 supported_items/primary_items/exclusive_set（含 networkable ENCHANTMENT
-/// 标签）由现有 flattenHolderSet 处理，本函数不触及。visited 防标签自环（vanilla 无，兜底）。
-void flattenEffectsTagRefsInPlace(const mc::resource::DataPackRepository& repo,
+/// 标签）由现有 _flattenHolderSet 处理，本函数不触及。visited 防标签自环（vanilla 无，兜底）。
+void _flattenEffectsTagRefsInPlace(const mc::resource::DataPackRepository& repo,
     nlohmann::json& node,
     EffectsTagRegistry parentHint,
     std::unordered_set<std::string>& visited)
@@ -381,16 +393,18 @@ void flattenEffectsTagRefsInPlace(const mc::resource::DataPackRepository& repo,
         for (const auto& key : keys) {
             auto& value = node[key];
             // 子节点的注册表提示由当前 key 决定（消费字段 key → 注册表）。
-            const EffectsTagRegistry childHint = registryHintForKey(key);
+            const EffectsTagRegistry childHint = _registryHintForKey(key);
             if (value.is_string()) {
                 const std::string s = value.get<std::string>();
                 if (!s.empty() && s[0] == '#') {
                     if (visited.count(s) != 0) {
-                        spdlog::warn("EnchantmentNbtBuilder: tag ref cycle detected at {}, skipping", s);
+                        spdlog::error("EnchantmentNbtBuilder: tag ref cycle detected at '{}'; "
+                                      "aborting this branch to avoid infinite recursion",
+                            s);
                         continue;
                     }
                     visited.insert(s);
-                    auto names = flattenTagToNames(repo, s, childHint);
+                    auto names = _flattenTagToNames(repo, s, childHint);
                     visited.erase(s);
                     if (!names.empty()) {
                         nlohmann::json arr = nlohmann::json::array();
@@ -399,23 +413,27 @@ void flattenEffectsTagRefsInPlace(const mc::resource::DataPackRepository& repo,
                         }
                         value = std::move(arr);
                     } else {
-                        spdlog::warn("EnchantmentNbtBuilder: effects #tag {} flatten failed, leaving as-is", s);
+                        // 展平失败却原样保留 "#..." 串：客户端 HolderSetCodec 会拒绝该值并 disconnect。
+                        // 明确 error（具体注册表诊断已在 _flattenTagToNames 内打印）。
+                        spdlog::error("EnchantmentNbtBuilder: effects #tag '{}' flatten returned EMPTY; "
+                                      "leaving raw '#' string which will cause a client disconnect",
+                            s);
                     }
                 }
             } else {
-                flattenEffectsTagRefsInPlace(repo, value, childHint, visited);
+                _flattenEffectsTagRefsInPlace(repo, value, childHint, visited);
             }
         }
     } else if (node.is_array()) {
         for (auto& elem : node) {
             // 数组元素继承父 hint（如 terms[]/predicate 链下，子元素仍属同一注册表上下文）。
-            flattenEffectsTagRefsInPlace(repo, elem, parentHint, visited);
+            _flattenEffectsTagRefsInPlace(repo, elem, parentHint, visited);
         }
     }
 }
 
 /// 构造字符串列表 tag（HolderSet 名字列表 / slots 列表的线格式）。
-std::unique_ptr<mc::nbt::tags::tag_list_tag> makeStringList(const std::vector<std::string>& names)
+std::unique_ptr<mc::nbt::tags::tag_list_tag> _makeStringList(const std::vector<std::string>& names)
 {
     auto list = std::make_unique<mc::nbt::tags::tag_list_tag>(mc::nbt::TagId::String);
     for (const auto& name : names) {
@@ -427,7 +445,7 @@ std::unique_ptr<mc::nbt::tags::tag_list_tag> makeStringList(const std::vector<st
 /// 构造 Cost 子 compound（base + per_level_above_first 均为 int_tag，对齐 Java Enchantment.Cost CODEC）。
 /// 用 put(name, i32) 走 tag_of<int32_t>=int_tag 推断（项目约定，见 test_nbt_io.cpp 注释：
 /// 勿用 put<int_tag>，find_of<int_tag> 未特化）。
-std::unique_ptr<mc::nbt::tags::compound_tag> makeCostCompound(const nlohmann::json& costJson)
+std::unique_ptr<mc::nbt::tags::compound_tag> _makeCostCompound(const nlohmann::json& costJson)
 {
     auto cost = std::make_unique<mc::nbt::tags::compound_tag>();
     if (costJson.contains("base")) {
@@ -441,12 +459,16 @@ std::unique_ptr<mc::nbt::tags::compound_tag> makeCostCompound(const nlohmann::js
 
 /// 构造单个 enchantment 的内联 NBT 字节（Java 根 NBT 线格式）。
 /// 失败返回 nullopt（调用方据此回退 data=nullopt 或跳过）。
-std::optional<std::vector<u8>> buildEnchantmentEntryData(
+std::optional<std::vector<u8>> _buildEnchantmentEntryData(
     const mc::resource::DataPackRepository& repo, std::string_view id)
 {
-    const std::string resourcePath = enchantmentIdToResourcePath(id);
-    const std::string text = readDataPackText(repo, resourcePath);
+    const std::string resourcePath = _enchantmentIdToResourcePath(id);
+    const std::string text = _readDataPackText(repo, resourcePath);
     if (text.empty()) {
+        // 资源文件缺失：调用方据此发 nullopt 给客户端。已由 _readDataPackText 记 error，
+        // 此处补一条指明是哪个 enchantment，便于定位。
+        spdlog::error(
+            "EnchantmentNbtBuilder: enchantment '{}' resource missing ({}); sending nullopt", id, resourcePath);
         return std::nullopt;
     }
     nlohmann::json j;
@@ -454,7 +476,7 @@ std::optional<std::vector<u8>> buildEnchantmentEntryData(
         j = nlohmann::json::parse(text);
     }
     catch (const std::exception& e) {
-        spdlog::warn("EnchantmentNbtBuilder: parse {} failed: {}", resourcePath, e.what());
+        spdlog::error("EnchantmentNbtBuilder: parse {} failed: {}; sending nullopt", resourcePath, e.what());
         return std::nullopt;
     }
 
@@ -475,10 +497,10 @@ std::optional<std::vector<u8>> buildEnchantmentEntryData(
 
     // Cost 子 compound（base/per_level_above_first 均 int_tag）
     if (j.contains("min_cost")) {
-        root->value.emplace("min_cost", makeCostCompound(j["min_cost"]));
+        root->value.emplace("min_cost", _makeCostCompound(j["min_cost"]));
     }
     if (j.contains("max_cost")) {
-        root->value.emplace("max_cost", makeCostCompound(j["max_cost"]));
+        root->value.emplace("max_cost", _makeCostCompound(j["max_cost"]));
     }
 
     // slots：字符串列表
@@ -487,23 +509,36 @@ std::optional<std::vector<u8>> buildEnchantmentEntryData(
         for (const auto& s : j["slots"]) {
             if (s.is_string()) {
                 slots.push_back(s.get<std::string>());
+            } else {
+                // 非字符串槽位名：静默跳过会让 slots 缺项，客户端按 EquipmentSlot 名解码时缺项，明确报错。
+                spdlog::error("EnchantmentNbtBuilder: enchantment '{}' slots contains non-string entry, skipped", id);
             }
         }
-        root->value.emplace("slots", makeStringList(slots));
+        root->value.emplace("slots", _makeStringList(slots));
+    } else if (j.contains("slots")) {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' slots field is not an array, omitted", id);
     }
 
-    // HolderSet 字段：展平 #tag → 显式名字列表（绕开 lookupTag 与未绑定 Named）
-    if (j.contains("supported_items") && j["supported_items"].is_string()) {
-        const auto names = flattenHolderSet(repo, j["supported_items"].get<std::string>());
-        root->value.emplace("supported_items", makeStringList(names));
+    // HolderSet 字段：展平 #tag → 显式名字列表（绕开 lookupTag 与未绑定 Named）。
+    // 这三个字段在 vanilla Enchantment CODEC 中均为必需；缺失会导致客户端解码失败，明确报错。
+    const bool hasSupportedItems = j.contains("supported_items") && j["supported_items"].is_string();
+    if (hasSupportedItems) {
+        const auto names = _flattenHolderSet(repo, j["supported_items"].get<std::string>());
+        root->value.emplace("supported_items", _makeStringList(names));
+    } else {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing/invalid 'supported_items' (required)", id);
     }
     if (j.contains("primary_items") && j["primary_items"].is_string()) {
-        const auto names = flattenHolderSet(repo, j["primary_items"].get<std::string>());
-        root->value.emplace("primary_items", makeStringList(names));
+        const auto names = _flattenHolderSet(repo, j["primary_items"].get<std::string>());
+        root->value.emplace("primary_items", _makeStringList(names));
+    } else {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing/invalid 'primary_items' (required)", id);
     }
     if (j.contains("exclusive_set") && j["exclusive_set"].is_string()) {
-        const auto names = flattenHolderSet(repo, j["exclusive_set"].get<std::string>());
-        root->value.emplace("exclusive_set", makeStringList(names));
+        const auto names = _flattenHolderSet(repo, j["exclusive_set"].get<std::string>());
+        root->value.emplace("exclusive_set", _makeStringList(names));
+    } else {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing/invalid 'exclusive_set' (required)", id);
     }
 
     // description（Component）：jsonToNbt 透传。{"translate":"..."} → compound{translate:string}
@@ -511,7 +546,12 @@ std::optional<std::vector<u8>> buildEnchantmentEntryData(
         auto descTag = mc::nbt::jsonToNbt(j["description"]);
         if (descTag) {
             root->value.emplace("description", std::move(descTag));
+        } else {
+            // jsonToNbt 失败会让 description 缺失，客户端 Enchantment CODEC 拒绝（Component 必需）。
+            spdlog::error("EnchantmentNbtBuilder: enchantment '{}' description jsonToNbt failed, omitted", id);
         }
+    } else {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing 'description' (required)", id);
     }
 
     // effects 树：先把静态注册表 #tag 引用（predicate.type/blocks/items、effect.immune_blocks 等
@@ -521,11 +561,15 @@ std::optional<std::vector<u8>> buildEnchantmentEntryData(
     // 名字列表线格式），effects 数值子树仍走 jsonToNbt（Java FloatCodec/NumberProvider 接受任意数值 tag）。
     if (j.contains("effects")) {
         std::unordered_set<std::string> visited;
-        flattenEffectsTagRefsInPlace(repo, j["effects"], EffectsTagRegistry::Unknown, visited);
+        _flattenEffectsTagRefsInPlace(repo, j["effects"], EffectsTagRegistry::Unknown, visited);
         auto effectsTag = mc::nbt::jsonToNbt(j["effects"]);
         if (effectsTag) {
             root->value.emplace("effects", std::move(effectsTag));
+        } else {
+            spdlog::error("EnchantmentNbtBuilder: enchantment '{}' effects jsonToNbt failed, omitted", id);
         }
+    } else {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing 'effects' (required)", id);
     }
 
     return mc::network::buffer::nbt_io::serializeRootCompoundToBytes(*root);
@@ -546,9 +590,10 @@ std::vector<mc::network::ir::configuration::RegistryEntry> buildEnchantmentRegis
     for (const auto id : kEnchantmentIds) {
         mc::network::ir::configuration::RegistryEntry entry;
         entry.id = std::string(id);
-        entry.data = buildEnchantmentEntryData(repo, id);
+        entry.data = _buildEnchantmentEntryData(repo, id);
         if (!entry.data.has_value()) {
-            spdlog::warn("EnchantmentNbtBuilder: enchantment {} inline NBT build failed, sending nullopt", id);
+            // 内联 NBT 构建失败 → 发 nullopt，客户端该 enchantment 注册表条目为空，明确 error。
+            spdlog::error("EnchantmentNbtBuilder: enchantment '{}' inline NBT build failed, sending nullopt", id);
         }
         entries.push_back(std::move(entry));
     }
@@ -560,7 +605,7 @@ struct EnchantmentCache {
     std::once_flag flag;
     std::vector<mc::network::ir::configuration::RegistryEntry> entries;
 };
-EnchantmentCache& enchantmentCache()
+EnchantmentCache& _enchantmentCache()
 {
     static EnchantmentCache inst;
     return inst;
@@ -569,7 +614,7 @@ EnchantmentCache& enchantmentCache()
 
 std::vector<mc::network::ir::configuration::RegistryEntry> buildEnchantmentRegistryEntries()
 {
-    auto& c = enchantmentCache();
+    auto& c = _enchantmentCache();
     std::call_once(c.flag, [&c] {
         if (g_datapackRepo == nullptr) {
             spdlog::error("EnchantmentNbtBuilder: datapack source not registered "
