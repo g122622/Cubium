@@ -95,6 +95,12 @@ Block* NaturalBlocks::DEAD_BUBBLE_CORAL_BLOCK = nullptr;
 Block* NaturalBlocks::DEAD_FIRE_CORAL_BLOCK = nullptr;
 Block* NaturalBlocks::DEAD_HORN_CORAL_BLOCK = nullptr;
 
+Block* NaturalBlocks::DEAD_TUBE_CORAL = nullptr;
+Block* NaturalBlocks::DEAD_BRAIN_CORAL = nullptr;
+Block* NaturalBlocks::DEAD_BUBBLE_CORAL = nullptr;
+Block* NaturalBlocks::DEAD_FIRE_CORAL = nullptr;
+Block* NaturalBlocks::DEAD_HORN_CORAL = nullptr;
+
 Block* NaturalBlocks::DEAD_TUBE_CORAL_FAN = nullptr;
 Block* NaturalBlocks::DEAD_BRAIN_CORAL_FAN = nullptr;
 Block* NaturalBlocks::DEAD_BUBBLE_CORAL_FAN = nullptr;
@@ -112,6 +118,12 @@ Block* NaturalBlocks::BRAIN_CORAL_BLOCK = nullptr;
 Block* NaturalBlocks::BUBBLE_CORAL_BLOCK = nullptr;
 Block* NaturalBlocks::FIRE_CORAL_BLOCK = nullptr;
 Block* NaturalBlocks::HORN_CORAL_BLOCK = nullptr;
+
+Block* NaturalBlocks::TUBE_CORAL = nullptr;
+Block* NaturalBlocks::BRAIN_CORAL = nullptr;
+Block* NaturalBlocks::BUBBLE_CORAL = nullptr;
+Block* NaturalBlocks::FIRE_CORAL = nullptr;
+Block* NaturalBlocks::HORN_CORAL = nullptr;
 
 Block* NaturalBlocks::TUBE_CORAL_FAN = nullptr;
 Block* NaturalBlocks::BRAIN_CORAL_FAN = nullptr;
@@ -285,8 +297,20 @@ void registerNaturalBlocks()
     NaturalBlocks::DEAD_HORN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:dead_horn_coral_block"), blocks::CoralColor::Horn, deadCoralBlockProps);
 
-    // 死珊瑚方块体（dead_*_coral_block）当前无消费方：CoralBlockBlock 注释明确"不会因缺水而死亡"
-    // （CoralBlock.hpp:283），无 m_deadBlock 字段，故不在此取 id。保留注释说明，避免误以为需要。
+    // 死珊瑚方块体（dead_*_coral_block）不会因缺水而死亡（CoralBlockBlock 无 m_deadBlock 字段）。
+    NaturalBlocks::DEAD_TUBE_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:dead_tube_coral"), blocks::CoralColor::Tube, deadFallbackId, deadCoralPlantProps);
+    NaturalBlocks::DEAD_BRAIN_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:dead_brain_coral"), blocks::CoralColor::Brain, deadFallbackId, deadCoralPlantProps);
+    NaturalBlocks::DEAD_BUBBLE_CORAL =
+        &registry.registerBlock<blocks::CoralPlantBlock>(ResourceLocation("minecraft:dead_bubble_coral"),
+            blocks::CoralColor::Bubble,
+            deadFallbackId,
+            deadCoralPlantProps);
+    NaturalBlocks::DEAD_FIRE_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:dead_fire_coral"), blocks::CoralColor::Fire, deadFallbackId, deadCoralPlantProps);
+    NaturalBlocks::DEAD_HORN_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:dead_horn_coral"), blocks::CoralColor::Horn, deadFallbackId, deadCoralPlantProps);
 
     NaturalBlocks::DEAD_TUBE_CORAL_FAN =
         &registry.registerBlock<blocks::CoralFanBlock>(ResourceLocation("minecraft:dead_tube_coral_fan"),
@@ -376,6 +400,32 @@ void registerNaturalBlocks()
         ResourceLocation("minecraft:fire_coral_block"), blocks::CoralColor::Fire, coralBlockProps);
     NaturalBlocks::HORN_CORAL_BLOCK = &registry.registerBlock<blocks::CoralBlockBlock>(
         ResourceLocation("minecraft:horn_coral_block"), blocks::CoralColor::Horn, coralBlockProps);
+
+    // 活珊瑚脱水死亡应变为对应的死珊瑚（构造传入的死珊瑚即为死亡目标方块）。
+    const u32 deadTubeCoralBlockId =
+        NaturalBlocks::DEAD_TUBE_CORAL ? NaturalBlocks::DEAD_TUBE_CORAL->blockId() : deadFallbackId;
+    const u32 deadBrainCoralBlockId =
+        NaturalBlocks::DEAD_BRAIN_CORAL ? NaturalBlocks::DEAD_BRAIN_CORAL->blockId() : deadFallbackId;
+    const u32 deadBubbleCoralBlockId =
+        NaturalBlocks::DEAD_BUBBLE_CORAL ? NaturalBlocks::DEAD_BUBBLE_CORAL->blockId() : deadFallbackId;
+    const u32 deadFireCoralBlockId =
+        NaturalBlocks::DEAD_FIRE_CORAL ? NaturalBlocks::DEAD_FIRE_CORAL->blockId() : deadFallbackId;
+    const u32 deadHornCoralBlockId =
+        NaturalBlocks::DEAD_HORN_CORAL ? NaturalBlocks::DEAD_HORN_CORAL->blockId() : deadFallbackId;
+
+    NaturalBlocks::TUBE_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:tube_coral"), blocks::CoralColor::Tube, deadTubeCoralBlockId, coralPlantProps);
+    NaturalBlocks::BRAIN_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:brain_coral"), blocks::CoralColor::Brain, deadBrainCoralBlockId, coralPlantProps);
+    NaturalBlocks::BUBBLE_CORAL =
+        &registry.registerBlock<blocks::CoralPlantBlock>(ResourceLocation("minecraft:bubble_coral"),
+            blocks::CoralColor::Bubble,
+            deadBubbleCoralBlockId,
+            coralPlantProps);
+    NaturalBlocks::FIRE_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:fire_coral"), blocks::CoralColor::Fire, deadFireCoralBlockId, coralPlantProps);
+    NaturalBlocks::HORN_CORAL = &registry.registerBlock<blocks::CoralPlantBlock>(
+        ResourceLocation("minecraft:horn_coral"), blocks::CoralColor::Horn, deadHornCoralBlockId, coralPlantProps);
 
     NaturalBlocks::TUBE_CORAL_FAN = &registry.registerBlock<blocks::CoralFanBlock>(
         ResourceLocation("minecraft:tube_coral_fan"), blocks::CoralColor::Tube, deadTubeFanBlockId, coralPlantProps);

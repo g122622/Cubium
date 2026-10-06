@@ -39,6 +39,8 @@ struct BaseBlocks {
     static Block* GRASS_BLOCK;
     static Block* DIRT;
     static Block* COBBLESTONE;
+    /// 平滑石头（熔炉烧炼石头所得）
+    static Block* SMOOTH_STONE;
     static Block* OAK_PLANKS;
     static Block* WATER;
     static Block* LAVA;

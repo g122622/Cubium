@@ -135,6 +135,7 @@ Block* BuildingBlocks::INFESTED_CHISELED_STONE_BRICKS = nullptr;
 Block* BuildingBlocks::QUARTZ_BLOCK = nullptr;
 Block* BuildingBlocks::CHISELED_QUARTZ_BLOCK = nullptr;
 Block* BuildingBlocks::QUARTZ_PILLAR = nullptr;
+Block* BuildingBlocks::QUARTZ_BRICKS = nullptr;
 Block* BuildingBlocks::SMOOTH_QUARTZ = nullptr;
 
 // 海晶系列
@@ -440,6 +441,10 @@ void registerBuildingBlocks()
     // 石英柱 - 有轴属性
     BuildingBlocks::QUARTZ_PILLAR =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:quartz_pillar"), quartzProps);
+
+    // 石英砖
+    BuildingBlocks::QUARTZ_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:quartz_bricks"), quartzProps);
 
     // 平滑石英
     BuildingBlocks::SMOOTH_QUARTZ = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_quartz"),

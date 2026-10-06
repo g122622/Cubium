@@ -56,6 +56,7 @@ Block* BaseBlocks::STONE = nullptr;
 Block* BaseBlocks::GRASS_BLOCK = nullptr;
 Block* BaseBlocks::DIRT = nullptr;
 Block* BaseBlocks::COBBLESTONE = nullptr;
+Block* BaseBlocks::SMOOTH_STONE = nullptr;
 Block* BaseBlocks::OAK_PLANKS = nullptr;
 Block* BaseBlocks::WATER = nullptr;
 Block* BaseBlocks::LAVA = nullptr;
@@ -215,6 +216,15 @@ void registerBaseBlocks()
     // 圆石
     BaseBlocks::COBBLESTONE = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:cobblestone"), BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f));
+
+    // 平滑石头（熔炉烧炼石头所得，用于合成平滑石头台阶等）
+    BaseBlocks::SMOOTH_STONE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_stone"),
+        BlockProperties(Material::ROCK)
+            .hardness(2.0f)
+            .resistance(6.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .harvestLevel(0)
+            .requiresTool());
 
     // 橡木木板
     BaseBlocks::OAK_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_planks"),

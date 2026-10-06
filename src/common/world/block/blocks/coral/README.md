@@ -7,7 +7,7 @@
 ```
 coral/
 ├── README.md           # 本文档
-├── CoralBlock.hpp/cpp  # 珊瑚方块和珊瑚扇类定义（CoralBlock、CoralFanBlock、CoralWallFanBlock、CoralBlockBlock）
+├── CoralBlock.hpp/cpp  # 珊瑚类定义（CoralPlantBlock、CoralFanBlock、CoralWallFanBlock、CoralBlockBlock）
 ```
 
 ## 内部模块关系
@@ -16,8 +16,8 @@ coral/
 CoralColor (枚举)
     ↓ 共享
 ┌───────────────────────────────────────────────────────────┐
-│  CoralBlock          → 活珊瑚（含水，离水死亡）            │
-│  CoralFanBlock       → 珊瑚扇（地面放置，需附着面）        │
+│  CoralPlantBlock     → 珊瑚植物（地面放置，需下方支撑，15/16 高）│
+│  CoralFanBlock       → 珊瑚扇（地面放置，需附着面，1/16 薄层）│
 │  CoralWallFanBlock   → 墙珊瑚扇（墙面放置）                │
 │  CoralBlockBlock     → 珊瑚块（固体，不会死亡）            │
 └───────────────────────────────────────────────────────────┘
@@ -26,14 +26,15 @@ IWaterLoggable 接口
 ```
 
 **类继承关系**：
-- `CoralBlock` → `Block`, `IWaterLoggable`
+- `CoralPlantBlock` → `Block`, `IWaterLoggable`
 - `CoralFanBlock` → `Block`, `IWaterLoggable`
 - `CoralWallFanBlock` → `Block`, `IWaterLoggable`
 - `CoralBlockBlock` → `Block`（无含水功能）
 
 **珊瑚死亡机制**：
-- `CoralBlock`、`CoralFanBlock`、`CoralWallFanBlock` 在 `updatePostPlacement()` 中检测周围是否有水
-- 无水时转换为对应的死珊瑚方块（通过 `m_deadBlock` ID 查找）
+- `CoralPlantBlock`、`CoralFanBlock`、`CoralWallFanBlock` 在 `updatePostPlacement()` 中检测周围是否有水
+- 无水时经 `TickManager::scheduleBlockTick` 延迟 60~99 tick 后由 `tick()` 转换为对应的死珊瑚
+  （通过 `m_deadBlock` ID 查找）；`onBlockAdded` 在放置时同样调度死亡，对齐 vanilla `tryScheduleDieTick`
 
 ## 上下游外部依赖关系
 

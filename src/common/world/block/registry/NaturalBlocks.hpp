@@ -64,6 +64,12 @@ struct NaturalBlocks {
     static Block* DEAD_FIRE_CORAL_BLOCK;
     static Block* DEAD_HORN_CORAL_BLOCK;
 
+    static Block* DEAD_TUBE_CORAL;
+    static Block* DEAD_BRAIN_CORAL;
+    static Block* DEAD_BUBBLE_CORAL;
+    static Block* DEAD_FIRE_CORAL;
+    static Block* DEAD_HORN_CORAL;
+
     static Block* DEAD_TUBE_CORAL_FAN;
     static Block* DEAD_BRAIN_CORAL_FAN;
     static Block* DEAD_BUBBLE_CORAL_FAN;
@@ -81,6 +87,12 @@ struct NaturalBlocks {
     static Block* BUBBLE_CORAL_BLOCK;
     static Block* FIRE_CORAL_BLOCK;
     static Block* HORN_CORAL_BLOCK;
+
+    static Block* TUBE_CORAL;
+    static Block* BRAIN_CORAL;
+    static Block* BUBBLE_CORAL;
+    static Block* FIRE_CORAL;
+    static Block* HORN_CORAL;
 
     static Block* TUBE_CORAL_FAN;
     static Block* BRAIN_CORAL_FAN;

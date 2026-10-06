@@ -34,7 +34,9 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -421,6 +423,126 @@ bool CoralWallFanBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Di
 // ========== IWaterLoggable 接口实现 ==========
 
 const fluid::FluidState* CoralWallFanBlock::getFluidState(const BlockState& state) const
+{
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+
+// ========== CoralPlantBlock ==========
+
+CoralPlantBlock::CoralPlantBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties)
+    : Block(properties)
+    , m_color(color)
+    , m_deadBlock(deadBlock)
+{
+    // 创建状态容器（仅 waterlogged，对齐 vanilla BaseCoralPlantTypeBlock）
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block,
+                        StateValueIndices valueIndices,
+                        size_t propertyCount,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
+            });
+    createBlockState(std::move(container));
+
+    // 设置默认状态（vanilla 默认 waterlogged=true）
+    setDefaultState(defaultState().with(BlockStateProperties::WATERLOGGED(), true));
+}
+
+BlockState CoralPlantBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    const IWorld& world = context.getWorld();
+    BlockPos pos = context.placementPos();
+
+    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+
+    return defaultState().with(BlockStateProperties::WATERLOGGED(), waterlogged);
+}
+
+bool CoralPlantBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    // 与 vanilla BaseCoralPlantTypeBlock.canSurvive 一致：检查下方块顶面是否坚固
+    return canAttachTo(world, pos, Direction::Down);
+}
+
+BlockState CoralPlantBlock::updatePostPlacement(const BlockState& state,
+    Direction facing,
+    const BlockState& facingState,
+    IWorld& world,
+    const BlockPos& currentPos,
+    const BlockPos& facingPos)
+{
+    MC_UNUSED(facingState);
+    MC_UNUSED(facingPos);
+
+    // 下方支撑失效则移除（vanilla CoralPlantBlock.updateShape: facing==DOWN && !canSurvive -> AIR）
+    if (facing == Direction::Down && !canAttachTo(static_cast<IBlockReader&>(world), currentPos, Direction::Down)) {
+        if (auto* airState = BlockRegistry::instance().airState()) {
+            return *airState;
+        }
+    }
+
+    if (state.get(BlockStateProperties::WATERLOGGED())) {
+        waterloggable::scheduleWaterTick(world, currentPos);
+    }
+
+    // 离水则调度死亡（延迟 60~99 tick 后转死珊瑚），而非立即替换——对齐 vanilla tryScheduleDieTick。
+    if (!hasNearbyWater(world, currentPos)) {
+        world.tickManager().scheduleBlockTick(currentPos, *this, 60 + world.getRandom().nextInt(40));
+    }
+
+    return state;
+}
+
+void CoralPlantBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(movedByPiston);
+    // 放置时若无水，调度死亡（对齐 vanilla CoralPlantBlock.onPlace -> tryScheduleDieTick）
+    if (!hasNearbyWater(world, pos)) {
+        world.tickManager().scheduleBlockTick(pos, *this, 60 + world.getRandom().nextInt(40));
+    }
+}
+
+void CoralPlantBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+    // 计划刻到期：仍无水则转死珊瑚（对齐 vanilla CoralPlantBlock.tick）
+    if (!hasNearbyWater(world, pos)) {
+        if (const BlockState* deadState = getDeadBlockState(m_deadBlock); deadState != nullptr) {
+            world.setBlockState(pos, deadState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        }
+    }
+}
+
+const CollisionShape& CoralPlantBlock::getShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 珊瑚植物是 12x12 的柱状（高 15/16），对齐 vanilla Block.column(12.0, 0.0, 15.0)
+    static CollisionShape shape = CollisionShape::box(0.125f, 0.0f, 0.125f, 0.875f, 0.9375f, 0.875f);
+    return shape;
+}
+
+bool CoralPlantBlock::canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const
+{
+    BlockPos adjPos = pos.offset(direction);
+    const BlockState* adjState = world.getBlockState(adjPos);
+
+    if (adjState == nullptr) {
+        return false;
+    }
+
+    return adjState->isSolidSide(world, adjPos, direction);
+}
+
+// ========== IWaterLoggable 接口实现 ==========
+
+const fluid::FluidState* CoralPlantBlock::getFluidState(const BlockState& state) const
 {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);

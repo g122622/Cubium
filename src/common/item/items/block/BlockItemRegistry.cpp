@@ -158,6 +158,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::GRASS_BLOCK, "grass_block");
     registerSimpleBlock(VanillaBlocks::DIRT, "dirt");
     registerSimpleBlock(VanillaBlocks::COBBLESTONE, "cobblestone");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_STONE, "smooth_stone");
     registerSimpleBlock(VanillaBlocks::OAK_PLANKS, "oak_planks");
     registerSimpleBlock(VanillaBlocks::BEDROCK, "bedrock");
     registerSimpleBlock(VanillaBlocks::SAND, "sand");
@@ -401,6 +402,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 石英系列
     registerSimpleBlock(VanillaBlocks::QUARTZ_BLOCK, "quartz_block");
     registerSimpleBlock(VanillaBlocks::SMOOTH_QUARTZ, "smooth_quartz");
+    registerSimpleBlock(VanillaBlocks::QUARTZ_BRICKS, "quartz_bricks");
     registerSimpleBlock(VanillaBlocks::CHISELED_QUARTZ_BLOCK, "chiseled_quartz_block");
     registerSimpleBlock(VanillaBlocks::QUARTZ_PILLAR, "quartz_pillar");
 
@@ -637,6 +639,20 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::DEAD_BUBBLE_CORAL_BLOCK, "dead_bubble_coral_block");
     registerSimpleBlock(VanillaBlocks::DEAD_FIRE_CORAL_BLOCK, "dead_fire_coral_block");
     registerSimpleBlock(VanillaBlocks::DEAD_HORN_CORAL_BLOCK, "dead_horn_coral_block");
+
+    // 珊瑚植物 - 活
+    registerSimpleBlock(VanillaBlocks::TUBE_CORAL, "tube_coral");
+    registerSimpleBlock(VanillaBlocks::BRAIN_CORAL, "brain_coral");
+    registerSimpleBlock(VanillaBlocks::BUBBLE_CORAL, "bubble_coral");
+    registerSimpleBlock(VanillaBlocks::FIRE_CORAL, "fire_coral");
+    registerSimpleBlock(VanillaBlocks::HORN_CORAL, "horn_coral");
+
+    // 珊瑚植物 - 死
+    registerSimpleBlock(VanillaBlocks::DEAD_TUBE_CORAL, "dead_tube_coral");
+    registerSimpleBlock(VanillaBlocks::DEAD_BRAIN_CORAL, "dead_brain_coral");
+    registerSimpleBlock(VanillaBlocks::DEAD_BUBBLE_CORAL, "dead_bubble_coral");
+    registerSimpleBlock(VanillaBlocks::DEAD_FIRE_CORAL, "dead_fire_coral");
+    registerSimpleBlock(VanillaBlocks::DEAD_HORN_CORAL, "dead_horn_coral");
 
     // 珊瑚扇 - 活
     registerSimpleBlock(VanillaBlocks::TUBE_CORAL_FAN, "tube_coral_fan");

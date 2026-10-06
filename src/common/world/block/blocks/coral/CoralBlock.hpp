@@ -278,6 +278,78 @@ protected:
 };
 
 /**
+ * @brief 珊瑚（珊瑚植物）方块
+ *
+ * 与珊瑚扇同属"珊瑚植物"族（vanilla CoralPlantBlock extends BaseCoralPlantTypeBlock），
+ * 需下方支撑、含水、离水死亡。与珊瑚扇的区别仅在碰撞形状（15/16 高 vs 1/16 薄层）。
+ * 实现 IWaterLoggable 接口支持含水功能。
+ *
+ * 状态属性：
+ * - WATERLOGGED: 是否含水
+ */
+class CoralPlantBlock : public Block, public IWaterLoggable {
+public:
+    CoralPlantBlock(CoralColor color, u32 deadBlock, const BlockProperties& properties);
+    ~CoralPlantBlock() override = default;
+
+    // ========== 放置逻辑 ==========
+
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    // ========== 死亡调度 ==========
+
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
+
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    // ========== 形状 ==========
+
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    [[nodiscard]] bool isOpaque(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return false;
+    }
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 获取流体状态
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
+    /**
+     * @brief 检查方块是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
+        return state.get(BlockStateProperties::WATERLOGGED());
+    }
+
+protected:
+    /**
+     * @brief 检查是否可以附着到指定方向
+     */
+    [[nodiscard]] bool canAttachTo(IBlockReader& world, const BlockPos& pos, Direction direction) const;
+
+    /// 珊瑚颜色
+    CoralColor m_color;
+    /// 死珊瑚方块ID
+    u32 m_deadBlock;
+};
+
+/**
  * @brief 珊瑚块方块
  *
  * 固体的珊瑚块，不会因缺水而死亡。
