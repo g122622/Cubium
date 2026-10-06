@@ -34,7 +34,10 @@
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
@@ -380,6 +383,129 @@ TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision)
     const PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
     ASSERT_NE(inventory, nullptr);
     EXPECT_EQ(inventory->getSelectedStack().getCount(), 15);
+}
+
+// ============================================================================
+// 端到端：新增方块（铜火把 / 蜜脾块 / 干燥恶魂 / 生物头颅）放置与方块实体
+// ============================================================================
+
+namespace {
+
+// 把任意物品注入主手槽（不限于 BlockItem 的 blockId 反查）
+void setHeldItem(
+    server::interaction::InventoryManager& inventoryManager, PlayerId playerId, const Item& item, i32 count)
+{
+    PlayerInventory* inventory = inventoryManager.getInventory(playerId);
+    ASSERT_NE(inventory, nullptr);
+    inventory->setSelectedSlot(0);
+    inventory->setItem(0, ItemStack(item, count));
+}
+
+} // namespace
+
+// 铜火把放置在石头顶面：成功放置且消耗 1 个
+TEST_F(BlockInteractionManagerPlacementTest, PlaceCopperTorchOnStoneTop)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldItem(*m_inventoryManager, m_playerId, *Items::COPPER_TORCH, 8);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().success);
+    EXPECT_TRUE(result.value().blockPlaced);
+
+    const BlockState* placed = m_world->getBlockState(0, 64, 0);
+    ASSERT_NE(placed, nullptr);
+    // 铜火把放置后为 COPPER_TORCH 方块（非墙挂变体）
+    EXPECT_TRUE(placed->is(VanillaBlocks::COPPER_TORCH));
+
+    const PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
+    ASSERT_NE(inventory, nullptr);
+    EXPECT_EQ(inventory->getSelectedStack().getCount(), 7);
+}
+
+// 蜜脾块放置：成功且消耗 1 个
+TEST_F(BlockInteractionManagerPlacementTest, PlaceHoneycombBlock)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldBlockItem(*VanillaBlocks::HONEYCOMB_BLOCK, 4);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().blockPlaced);
+
+    const BlockState* placed = m_world->getBlockState(0, 64, 0);
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::HONEYCOMB_BLOCK));
+}
+
+// 玩家头颅放置后应创建 SkullBlockEntity（含红石 POWERED 状态初始化）
+TEST_F(BlockInteractionManagerPlacementTest, PlacePlayerHead_CreatesSkullBlockEntity)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldItem(*m_inventoryManager, m_playerId, *Items::PLAYER_HEAD, 2);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().blockPlaced);
+
+    const BlockState* placed = m_world->getBlockState(0, 64, 0);
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::PLAYER_HEAD));
+
+    // 头颅方块实体已被创建
+    BlockEntity* blockEntity = m_world->getBlockEntity(BlockPos(0, 64, 0));
+    ASSERT_NE(blockEntity, nullptr);
+    EXPECT_EQ(blockEntity->getType(), BlockEntityType::Skull);
+}
+
+// 干燥恶魂放置到水中：WATERLOGGED=true
+TEST_F(BlockInteractionManagerPlacementTest, PlaceDriedGhastInWater_Waterlogged)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    // 放置位置注入水源（水方块）
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::WATER->defaultState());
+    setHeldBlockItem(*VanillaBlocks::DRIED_GHAST, 2);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().blockPlaced);
+
+    const BlockState* placed = m_world->getBlockState(0, 64, 0);
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::DRIED_GHAST));
+    EXPECT_TRUE(placed->get(BlockStateProperties::WATERLOGGED()));
 }
 
 } // namespace

@@ -599,6 +599,8 @@ add_executable(mc_tests
     common/world/block/blocks/LightningRodBlockTest.cpp
     common/world/block/blocks/LecternBlockTest.cpp
     common/world/block/blocks/MobBlocksTest.cpp
+    # 新增内容（材料/染料/旗帜图案物品、铜火把、蜜脾块、干燥恶魂、生物头颅）测试
+    common/world/block/blocks/NewContentBlocksTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp
     common/world/storage/PlayerStorageTest.cpp

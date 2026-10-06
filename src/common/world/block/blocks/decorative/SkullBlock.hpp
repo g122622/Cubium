@@ -88,11 +88,8 @@ public:
     /**
      * @brief 邻居方块更新：红石信号变化时翻转 POWERED
      */
-    void neighborChanged(IWorld& world,
-        const BlockPos& pos,
-        Block& neighborBlock,
-        const BlockPos& neighborPos,
-        bool isMoving) override;
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
@@ -151,7 +148,8 @@ public:
 
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
-    [[nodiscard]] bool isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,

@@ -75,10 +75,10 @@ void _buildWallShapes(CollisionShape out[4], f32 widthPixels)
     const f32 half = widthPixels / 2.0f / 16.0f;
     const f32 cx = 0.5f;
     // North: Z 靠 0 侧（贴北墙）；South: Z 靠 1 侧；West: X 靠 0 侧；East: X 靠 1 侧
-    out[0] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.0f, cx + half, 1.0f, 0.5f);        // North
-    out[1] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.5f, cx + half, 1.0f, 1.0f);        // South
-    out[2] = CollisionShape::box(0.0f, 8.0f / 16.0f, cx - half, 0.5f, 1.0f, cx + half);        // West
-    out[3] = CollisionShape::box(0.5f, 8.0f / 16.0f, cx - half, 1.0f, 1.0f, cx + half);        // East
+    out[0] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.0f, cx + half, 1.0f, 0.5f); // North
+    out[1] = CollisionShape::box(cx - half, 8.0f / 16.0f, 0.5f, cx + half, 1.0f, 1.0f); // South
+    out[2] = CollisionShape::box(0.0f, 8.0f / 16.0f, cx - half, 0.5f, 1.0f, cx + half); // West
+    out[3] = CollisionShape::box(0.5f, 8.0f / 16.0f, cx - half, 1.0f, 1.0f, cx + half); // East
 }
 
 /// 方向到形状表下标（水平方向）
@@ -131,8 +131,8 @@ std::unique_ptr<BlockEntity> AbstractSkullBlock::createBlockEntity(const BlockPo
 
 BlockState AbstractSkullBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    return defaultState().with(
-        BlockStateProperties::POWERED(), world::redstone::RedstonePower::isPowered(context.getWorld(), context.placementPos()));
+    return defaultState().with(BlockStateProperties::POWERED(),
+        world::redstone::RedstonePower::isPowered(context.getWorld(), context.placementPos()));
 }
 
 void AbstractSkullBlock::neighborChanged(
@@ -182,7 +182,8 @@ SkullBlock::SkullBlock(SkullType type, const BlockProperties& properties)
             });
     createBlockState(std::move(container));
 
-    setDefaultState(defaultState().with(BlockStateProperties::POWERED(), false).with(BlockStateProperties::ROTATION_0_15(), 0));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::POWERED(), false).with(BlockStateProperties::ROTATION_0_15(), 0));
 }
 
 const CollisionShape& SkullBlock::getShape(const BlockState& state) const
@@ -197,8 +198,9 @@ BlockState SkullBlock::getStateForPlacement(BlockItemUseContext& context)
     i32 rotation = static_cast<i32>(std::floor((180.0f + context.getPlayerYaw()) * 16.0f / 360.0f + 0.5f)) & 15;
 
     bool powered = world::redstone::RedstonePower::isPowered(context.getWorld(), context.placementPos());
-    return defaultState().with(BlockStateProperties::POWERED(), powered).with(
-        BlockStateProperties::ROTATION_0_15(), rotation);
+    return defaultState()
+        .with(BlockStateProperties::POWERED(), powered)
+        .with(BlockStateProperties::ROTATION_0_15(), rotation);
 }
 
 const BlockState& SkullBlock::rotate(const BlockState& state, Rotation rotation) const
