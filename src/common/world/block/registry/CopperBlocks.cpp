@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/CopperBlocks.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/property/Properties.hpp"
@@ -44,6 +45,8 @@
 #include "world/block/blocks/copper/WeatheringCopperStairBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
 #include "world/block/blocks/copper/WeatheringLightningRodBlock.hpp"
+#include "world/block/blocks/decorative/TorchBlock.hpp"
+#include "world/block/blocks/decorative/WallTorchBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -191,6 +194,12 @@ Block* CopperBlocks::WAXED_COPPER_LANTERN = nullptr;
 Block* CopperBlocks::WAXED_EXPOSED_COPPER_LANTERN = nullptr;
 Block* CopperBlocks::WAXED_WEATHERED_COPPER_LANTERN = nullptr;
 Block* CopperBlocks::WAXED_OXIDIZED_COPPER_LANTERN = nullptr;
+
+// ============================================================================
+// 1.21.11 铜火把（2个）
+// ============================================================================
+Block* CopperBlocks::COPPER_TORCH = nullptr;
+Block* CopperBlocks::COPPER_WALL_TORCH = nullptr;
 
 // ============================================================================
 // 避雷针（1.17 基础 + 1.21 铜扩展氧化变种）
@@ -891,6 +900,19 @@ void registerCopperBlocks()
 
     CopperBlocks::WAXED_OXIDIZED_COPPER_LANTERN = &registry.registerBlock<blocks::WaxedCopperLanternBlock>(
         ResourceLocation("minecraft:waxed_oxidized_copper_lantern"), copperLanternProps, 15);
+
+    // ============================================================================
+    // 1.21.11 铜火把（2个）
+    // 光照等级 14，铜火焰粒子（copper_fire_flame），木质音效
+    // ============================================================================
+    auto copperTorchProps =
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14).soundType(BlockSoundTypes::WOOD);
+
+    CopperBlocks::COPPER_TORCH = &registry.registerBlock<blocks::TorchBlock>(
+        ResourceLocation("minecraft:copper_torch"), copperTorchProps, particle::ParticleTypeId::CopperFireFlame);
+
+    CopperBlocks::COPPER_WALL_TORCH = &registry.registerBlock<blocks::WallTorchBlock>(
+        ResourceLocation("minecraft:copper_wall_torch"), copperTorchProps, particle::ParticleTypeId::CopperFireFlame);
 
     // ============================================================================
     // 避雷针（1.17 基础 + 1.21 铜扩展氧化变种）

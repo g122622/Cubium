@@ -8,7 +8,7 @@
 - 已注册集合：扫描 `src/common/world/block/registry/**.cpp`、`src/common/item/**.cpp` 中出现的真实注册范式（`ResourceLocation("minecraft:X")` 字面量、`register*()` 调用内的字符串名）。
 - 该口径为**近似**：仅在注释里出现名字不计入已注册（避免漏报），但个别间接注册（id 由变量拼接而非字面量）可能被计入缺失（可能轻微高报）。
 
-## 汇总：未实现方块 14 个，未实现物品 14 个
+## 汇总：未实现方块 10 个，未实现物品 11 个
 
 ### 未实现方块
 
@@ -17,10 +17,6 @@
 - `minecraft:light`
 - `minecraft:test_block`
 - `minecraft:test_instance_block`
-
-**干燥恶魂**（1）
-
-- `minecraft:dried_ghast`
 
 **生物头颅 / 头（Skull / Head，含墙挂变体）**（7）
 
@@ -31,15 +27,6 @@
 - `minecraft:skeleton_wall_skull`
 - `minecraft:wither_skeleton_wall_skull`
 - `minecraft:zombie_wall_head`
-
-**蜜脾块**（1）
-
-- `minecraft:honeycomb_block`
-
-**铜火把**（2）
-
-- `minecraft:copper_torch`
-- `minecraft:copper_wall_torch`
 
 ### 未实现物品
 
@@ -59,16 +46,4 @@
 - `minecraft:spyglass`
 - `minecraft:tadpole_bucket`
 - `minecraft:totem_of_undying`
-
-**干燥恶魂**（1）
-
-- `minecraft:dried_ghast`
-
-**蜜脾块**（1）
-
-- `minecraft:honeycomb_block`
-
-**铜火把**（1）
-
-- `minecraft:copper_torch`
 

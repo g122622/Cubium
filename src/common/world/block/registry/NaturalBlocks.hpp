@@ -57,6 +57,10 @@ struct NaturalBlocks {
     static Block* BUBBLE_COLUMN;
     static Block* TURTLE_EGG;
 
+    // 蜜脾块 / 干燥恶魂
+    static Block* HONEYCOMB_BLOCK;
+    static Block* DRIED_GHAST;
+
     // 珊瑚方块
     static Block* DEAD_TUBE_CORAL_BLOCK;
     static Block* DEAD_BRAIN_CORAL_BLOCK;

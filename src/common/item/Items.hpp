@@ -760,20 +760,21 @@ public:
     static Item* CRIMSON_SHELF;  // 绯红木书架
     static Item* WARPED_SHELF;   // 诡异木书架
 
-    static Item* BONE_BLOCK;  // 骨块
-    static Item* SLIME_BLOCK; // 史莱姆块
-    static Item* HONEY_BLOCK; // 蜂蜜块
-    static Item* RED_SAND;    // 红沙
-    static Item* COBWEB;      // 蛛网
-    static Item* FARMLAND;    // 耕地
-    static Item* GRASS_PATH;  // 草径
-    static Item* MYCELIUM;    // 菌丝
-    static Item* PACKED_ICE;  // 浮冰
-    static Item* BLUE_ICE;    // 蓝冰
-    static Item* COARSE_DIRT; // 砂土
-    static Item* PODZOL;      // 灰化土
-    static Item* TORCH;       // 火把
-    static Item* SOUL_TORCH;  // 灵魂火把
+    static Item* BONE_BLOCK;   // 骨块
+    static Item* SLIME_BLOCK;  // 史莱姆块
+    static Item* HONEY_BLOCK;  // 蜂蜜块
+    static Item* RED_SAND;     // 红沙
+    static Item* COBWEB;       // 蛛网
+    static Item* FARMLAND;     // 耕地
+    static Item* GRASS_PATH;   // 草径
+    static Item* MYCELIUM;     // 菌丝
+    static Item* PACKED_ICE;   // 浮冰
+    static Item* BLUE_ICE;     // 蓝冰
+    static Item* COARSE_DIRT;  // 砂土
+    static Item* PODZOL;       // 灰化土
+    static Item* TORCH;        // 火把
+    static Item* SOUL_TORCH;   // 灵魂火把
+    static Item* COPPER_TORCH; // 铜火把
 
     // ========================================================================
     // 石头变种

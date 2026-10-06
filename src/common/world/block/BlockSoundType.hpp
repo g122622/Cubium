@@ -488,6 +488,9 @@ extern const BlockSoundType SHELF;
 // 蜡烛
 extern const BlockSoundType CANDLE;
 
+// 干燥恶魂（break/step/fall 有音效，place/hit 为空）
+extern const BlockSoundType DRIED_GHAST;
+
 /**
  * @brief 初始化预定义声音类型
  *

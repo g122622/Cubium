@@ -986,6 +986,7 @@ add_library(mc_common STATIC
     world/block/blocks/mob/InfestedRotatedPillarBlock.cpp
     world/block/blocks/mob/SpawnerBlock.cpp
     world/block/blocks/mob/DragonBreathBlock.cpp
+    world/block/blocks/mob/DriedGhastBlock.cpp
 
     # World - Block - Sculk
     world/block/blocks/sculk/SculkBlocks.cpp

@@ -977,6 +977,19 @@ public:
         return *prop;
     }
 
+    /**
+     * @brief 干燥恶魂湿润等级属性 (0-3)
+     *
+     * 对应 MC 原版 BlockStateProperties.DRIED_GHAST_HYDRATION_LEVELS (IntegerProperty, 0-3)。
+     * 干燥恶魂置于水中时等级逐级上升（每 5000 tick 一级），达到 3 时孵化为幼年恶魂；
+     * 离开水则等级逐级下降，降至 0 后不再变化。
+     */
+    static const IntegerProperty& DRIED_GHAST_HYDRATION_LEVELS()
+    {
+        static auto prop = IntegerProperty::create("hydration", 0, 3);
+        return *prop;
+    }
+
     // ========================================================================
     // 竹子属性
     // ========================================================================

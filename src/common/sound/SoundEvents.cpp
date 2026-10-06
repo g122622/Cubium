@@ -1653,6 +1653,20 @@ const ResourceLocation BRUSH_SAND_COMPLETED("minecraft:item.brush.brushing.sand.
 const ResourceLocation BRUSH_GRAVEL_COMPLETED("minecraft:item.brush.brushing.gravel.complete");
 
 // ============================================================================
+// 干燥恶魂音效 (DRIED_GHAST_ / GHASTLING_)
+// ============================================================================
+
+const ResourceLocation DRIED_GHAST_BREAK("minecraft:block.dried_ghast.break");
+const ResourceLocation DRIED_GHAST_STEP("minecraft:block.dried_ghast.step");
+const ResourceLocation DRIED_GHAST_FALL("minecraft:block.dried_ghast.fall");
+const ResourceLocation DRIED_GHAST_AMBIENT("minecraft:block.dried_ghast.ambient");
+const ResourceLocation DRIED_GHAST_AMBIENT_WATER("minecraft:block.dried_ghast.ambient_water");
+const ResourceLocation DRIED_GHAST_PLACE("minecraft:block.dried_ghast.place");
+const ResourceLocation DRIED_GHAST_PLACE_IN_WATER("minecraft:block.dried_ghast.place_in_water");
+const ResourceLocation DRIED_GHAST_TRANSITION("minecraft:block.dried_ghast.transition");
+const ResourceLocation GHASTLING_SPAWN("minecraft:entity.ghastling.spawn");
+
+// ============================================================================
 // 初始化
 // ============================================================================
 

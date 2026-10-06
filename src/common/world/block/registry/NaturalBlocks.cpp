@@ -42,6 +42,7 @@
 #include "world/block/blocks/garden/WaterlilyBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/mob/BeehiveBlock.hpp"
+#include "world/block/blocks/mob/DriedGhastBlock.hpp"
 #include "world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "world/block/blocks/ocean/ConduitBlock.hpp"
@@ -87,6 +88,10 @@ Block* NaturalBlocks::SEAGRASS = nullptr;
 Block* NaturalBlocks::TALL_SEAGRASS = nullptr;
 Block* NaturalBlocks::BUBBLE_COLUMN = nullptr;
 Block* NaturalBlocks::TURTLE_EGG = nullptr;
+
+// 蜜脾块 / 干燥恶魂
+Block* NaturalBlocks::HONEYCOMB_BLOCK = nullptr;
+Block* NaturalBlocks::DRIED_GHAST = nullptr;
 
 // 珊瑚方块
 Block* NaturalBlocks::DEAD_TUBE_CORAL_BLOCK = nullptr;
@@ -277,6 +282,20 @@ void registerNaturalBlocks()
     NaturalBlocks::TURTLE_EGG =
         &registry.registerBlock<blocks::TurtleEggBlock>(ResourceLocation("minecraft:turtle_egg"),
             BlockProperties(Material::CORAL).hardness(0.5f).noCollision().notSolid());
+
+    // 蜜脾块 - 固体装饰方块（硬度 0.6，珊瑚块音效）
+    NaturalBlocks::HONEYCOMB_BLOCK = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:honeycomb_block"),
+        BlockProperties(Material::ORGANIC).hardness(0.6f).soundType(BlockSoundTypes::CORAL));
+
+    // 干燥恶魂 - 含水方块，遇水逐级提升湿润等级，满级孵化为幼年恶魂
+    NaturalBlocks::DRIED_GHAST =
+        &registry.registerBlock<blocks::DriedGhastBlock>(ResourceLocation("minecraft:dried_ghast"),
+            BlockProperties(Material::ORGANIC)
+                .hardness(0.0f)
+                .noCollision()
+                .notSolid()
+                .tickRandomly()
+                .soundType(BlockSoundTypes::DRIED_GHAST));
 
     // 珊瑚（补齐死亡变种，便于海洋废墟/暖海装饰复用）
     const u32 deadFallbackId = BaseBlocks::AIR ? BaseBlocks::AIR->blockId() : 0;

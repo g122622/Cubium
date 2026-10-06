@@ -737,6 +737,7 @@ Item* Items::COARSE_DIRT = nullptr;
 Item* Items::PODZOL = nullptr;
 Item* Items::TORCH = nullptr;
 Item* Items::SOUL_TORCH = nullptr;
+Item* Items::COPPER_TORCH = nullptr;
 
 // 石头变种
 Item* Items::GRANITE = nullptr;
@@ -3600,6 +3601,11 @@ void Items::_registerBuildingBlocks()
     SOUL_TORCH = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:soul_torch"),
         *VanillaBlocks::SOUL_TORCH,
         *VanillaBlocks::SOUL_WALL_TORCH,
+        ItemProperties().maxStackSize(64));
+
+    COPPER_TORCH = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:copper_torch"),
+        *VanillaBlocks::COPPER_TORCH,
+        *VanillaBlocks::COPPER_WALL_TORCH,
         ItemProperties().maxStackSize(64));
 
     // 石头变种

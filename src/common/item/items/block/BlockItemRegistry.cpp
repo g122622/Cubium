@@ -1199,6 +1199,10 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::REDSTONE_WALL_TORCH, "redstone_torch");
     registerSimpleBlock(VanillaBlocks::SOUL_TORCH, "soul_torch");
     registerSimpleBlock(VanillaBlocks::SOUL_WALL_TORCH, "soul_torch");
+    registerSimpleBlock(VanillaBlocks::COPPER_TORCH, "copper_torch");
+    registerSimpleBlock(VanillaBlocks::COPPER_WALL_TORCH, "copper_torch");
+    registerSimpleBlock(VanillaBlocks::HONEYCOMB_BLOCK, "honeycomb_block");
+    registerSimpleBlock(VanillaBlocks::DRIED_GHAST, "dried_ghast");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "comparator");

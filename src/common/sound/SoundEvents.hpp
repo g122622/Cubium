@@ -1821,6 +1821,46 @@ extern const ResourceLocation BRUSH_SAND_COMPLETED;
 extern const ResourceLocation BRUSH_GRAVEL_COMPLETED;
 
 // ============================================================================
+// 干燥恶魂音效 (DRIED_GHAST_ / GHASTLING_)
+// ============================================================================
+
+/// 干燥恶魂破坏音效
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_BREAK = "block.dried_ghast.break"
+extern const ResourceLocation DRIED_GHAST_BREAK;
+
+/// 干燥恶魂踩踏音效
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_STEP = "block.dried_ghast.step"
+extern const ResourceLocation DRIED_GHAST_STEP;
+
+/// 干燥恶魂下落音效
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_FALL = "block.dried_ghast.fall"
+extern const ResourceLocation DRIED_GHAST_FALL;
+
+/// 干燥恶魂环境音（无水时）
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_AMBIENT = "block.dried_ghast.ambient"
+extern const ResourceLocation DRIED_GHAST_AMBIENT;
+
+/// 干燥恶魂环境音（水中）
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_AMBIENT_WATER = "block.dried_ghast.ambient_water"
+extern const ResourceLocation DRIED_GHAST_AMBIENT_WATER;
+
+/// 干燥恶魂放置音效
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_PLACE = "block.dried_ghast.place"
+extern const ResourceLocation DRIED_GHAST_PLACE;
+
+/// 干燥恶魂放入水中音效
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_PLACE_IN_WATER = "block.dried_ghast.place_in_water"
+extern const ResourceLocation DRIED_GHAST_PLACE_IN_WATER;
+
+/// 干燥恶魂孵化过渡音效（湿润等级提升时）
+/// 对应 MC Java: SoundEvents.DRIED_GHAST_TRANSITION = "block.dried_ghast.transition"
+extern const ResourceLocation DRIED_GHAST_TRANSITION;
+
+/// 幼年恶魂生成音效
+/// 对应 MC Java: SoundEvents.GHASTLING_SPAWN = "entity.ghastling.spawn"
+extern const ResourceLocation GHASTLING_SPAWN;
+
+// ============================================================================
 // 初始化
 // ============================================================================
 

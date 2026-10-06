@@ -1214,6 +1214,15 @@ const BlockSoundType CANDLE(ResourceLocation("minecraft:block.candle.break"),
     1.0f,
     1.0f);
 
+// 干燥恶魂 - place/hit 音效为空（对齐 vanilla SoundType.DRIED_GHAST 使用 SoundEvents.EMPTY）
+const BlockSoundType DRIED_GHAST(ResourceLocation("minecraft:block.dried_ghast.break"),
+    ResourceLocation("minecraft:block.dried_ghast.step"),
+    ResourceLocation("minecraft:empty"),
+    ResourceLocation("minecraft:empty"),
+    ResourceLocation("minecraft:block.dried_ghast.fall"),
+    1.0f,
+    1.0f);
+
 void initialize()
 {
     // 静态初始化已在全局对象构造时完成
