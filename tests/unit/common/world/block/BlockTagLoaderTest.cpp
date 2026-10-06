@@ -93,12 +93,11 @@ TEST_F(BlockTagLoaderTest, TagReferenceResolvesMembers)
 {
     // 标签引用：test_all 引用 test_sub_a / test_sub_b，应展开全部成员
     auto pack = std::make_unique<mc::InMemoryResourcePack>("ref_block_pack");
-    pack->addServerDataResource("minecraft/tags/block/test_sub_a.json",
-        R"({"values": ["minecraft:stone", "minecraft:dirt"]})");
-    pack->addServerDataResource("minecraft/tags/block/test_sub_b.json",
-        R"({"values": ["minecraft:sand"]})");
-    pack->addServerDataResource("minecraft/tags/block/test_all.json",
-        R"({"values": ["#minecraft:test_sub_a", "#minecraft:test_sub_b"]})");
+    pack->addServerDataResource(
+        "minecraft/tags/block/test_sub_a.json", R"({"values": ["minecraft:stone", "minecraft:dirt"]})");
+    pack->addServerDataResource("minecraft/tags/block/test_sub_b.json", R"({"values": ["minecraft:sand"]})");
+    pack->addServerDataResource(
+        "minecraft/tags/block/test_all.json", R"({"values": ["#minecraft:test_sub_a", "#minecraft:test_sub_b"]})");
 
     auto result = BlockTagLoader::loadFromResourcePack(*pack);
     ASSERT_TRUE(result.success());
@@ -140,8 +139,7 @@ TEST_F(BlockTagLoaderTest, AppendSemanticsKeepsBuiltinMembers)
     builtin.add(ResourceLocation("minecraft", "bedrock"));
 
     auto pack = std::make_unique<mc::InMemoryResourcePack>("append_block_pack");
-    pack->addServerDataResource("minecraft/tags/block/test_append_builtin.json",
-        R"({"values": ["minecraft:stone"]})");
+    pack->addServerDataResource("minecraft/tags/block/test_append_builtin.json", R"({"values": ["minecraft:stone"]})");
 
     auto result = BlockTagLoader::loadFromResourcePack(*pack);
     ASSERT_TRUE(result.success());
@@ -191,8 +189,8 @@ TEST_F(BlockTagLoaderTest, DataPackAppendsToBuiltinTag)
     builtin.add(ResourceLocation("minecraft", "stone"));
 
     auto pack = std::make_unique<mc::InMemoryResourcePack>("append_builtin_pack");
-    pack->addServerDataResource("minecraft/tags/block/test_builtin_append.json",
-        R"({"values": ["minecraft:bedrock"]})");
+    pack->addServerDataResource(
+        "minecraft/tags/block/test_builtin_append.json", R"({"values": ["minecraft:bedrock"]})");
 
     auto result = BlockTagLoader::loadFromResourcePack(*pack);
     ASSERT_TRUE(result.success());

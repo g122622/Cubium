@@ -59,7 +59,7 @@ struct _RawTagEntry {
  * @brief 单个标签文件的原始解析数据（未解析引用）
  */
 struct _RawTagData {
-    bool replace = false;             ///< 数据包 replace 语义标志
+    bool replace = false;              ///< 数据包 replace 语义标志
     std::vector<_RawTagEntry> entries; ///< 原始条目列表
 };
 
@@ -103,8 +103,8 @@ Result<_RawTagData> _parseJsonRaw(const std::string& json, const ResourceLocatio
             } else if (value.is_object()) {
                 // 对象格式: {"id":"minecraft:stone","required":false}
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("GenericTagLoader: object entry in tag '{}' missing 'id' field, skipped",
-                        location.toString());
+                    spdlog::warn(
+                        "GenericTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                     continue;
                 }
 

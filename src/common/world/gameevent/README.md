@@ -74,12 +74,11 @@ GameEventTagLoader（数据包覆盖）
 **未初始化时标签为空**：任何调用 `isIgnoredBySneaking()` 的测试 / 代码，必须先确保 `GameEventTags::initialize()`
 被调用，否则查询恒返回 false（曾使 `VibrationSystemTest` 的 13 个用例静默失败）。
 
-### 2. GameEventTag 是扁平集合，不支持 #tag 嵌套
+### 2. 内置默认值无法表达 #tag 引用
 
-`GameEventTag` 内部为 `unordered_set<const GameEvent*>`，不支持标签引用另一个标签。数据包侧的
-`#minecraft:xxx` 引用由加载器展开；但 `GameEventTags::initialize()` 里的内置默认值若需要"引用其他标签"
-（如 `warden_can_listen` = `vibrations` + `shriek` + `#shrieker_can_listen`），须手动合并成员
-（同 `BlockTags` 中 `lava_pool_resetting` 一类标签的合并写法）。
+`GameEventTag` 内部为 `unordered_set<const GameEvent*>`（扁平集合）。数据包侧的 `#minecraft:xxx` 引用由
+`GameEventTagLoader` 按依赖顺序展开；但 `GameEventTags::initialize()` 里的内置默认值无法表达引用
+（如 `warden_can_listen` = `vibrations` + `shriek` + `#shrieker_can_listen`），须手动合并成员。
 
 ### 3. isValidVibration 的 dampensVibrations 依赖
 

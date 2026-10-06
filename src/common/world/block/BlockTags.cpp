@@ -1349,8 +1349,8 @@ void BlockTags::initialize()
 
     // 创建 DRY_VEGETATION_MAY_PLACE_ON 标签（干草类可种植标签）
     // vanilla 定义：.addTag(SAND).addTag(TERRACOTTA).addTag(DIRT).add(FARMLAND)
-    // BlockTag 是扁平 unordered_set，不支持 #tag 嵌套引用，故手动合并三个已建标签成员
-    // （同 lava_pool_stone_cannot_replace 的合并模式），再单独加入 farmland。
+    // BlockTag 本身是扁平集合，内置默认值无法表达 #tag 引用，故此处手动合并三个已建标签成员
+    // （数据包侧由 BlockTagLoader 按依赖顺序展开引用），再单独加入 farmland。
     {
         auto dryVegetationMayPlaceOn =
             std::make_unique<BlockTag>(ResourceLocation("minecraft", "dry_vegetation_may_place_on"));
@@ -1575,8 +1575,8 @@ void BlockTags::initialize()
     tags[fenceGates->getId()] = std::move(fenceGates);
 
     // 创建 UNSTABLE_BOTTOM_CENTER 标签
-    // MC 1.21.11 数据包中本标签内容为 #minecraft:fence_gates
-    // 由于项目当前未实现标签到标签的引用，这里直接内联栅栏门列表
+    // MC 1.21.11 数据包中本标签内容为 #minecraft:fence_gates。
+    // 内置默认值无法表达 #tag 引用，故内联栅栏门列表（数据包侧由 BlockTagLoader 展开引用）。
     auto unstableBottomCenter = std::make_unique<BlockTag>(ResourceLocation("minecraft", "unstable_bottom_center"));
     unstableBottomCenter->addAll({ResourceLocation("minecraft", "oak_fence_gate"),
         ResourceLocation("minecraft", "spruce_fence_gate"),
@@ -1612,7 +1612,7 @@ void BlockTags::initialize()
     // 对齐 vanilla 1.21.11 data/minecraft/tags/block/bamboo_plantable_on.json：
     //   { "#minecraft:sand", "#minecraft:dirt", "minecraft:bamboo",
     //     "minecraft:bamboo_sapling", "minecraft:gravel", "minecraft:suspicious_gravel" }
-    // Cubium 标签不支持子标签引用（#sand/#dirt），此处手动展开为完整成员集合：
+    // 内置默认值无法表达 #tag 引用（数据包侧由 BlockTagLoader 展开），此处手动展开为完整成员集合：
     //   #dirt（10）+ #sand（3）+ bamboo + bamboo_sapling + gravel + suspicious_gravel = 17 项。
     // 注意：原实现误含 farmland（vanilla 无），已移除——竹子不应能种在耕地上。
     // wiki tech_竹子.txt#生长 列举的可种植方块：草方块/菌丝体/灰化土/泥土/缠根泥土/砂土/泥巴/沾泥的红树根/
@@ -2188,7 +2188,7 @@ void BlockTags::initialize()
 
     // 杜鹃可生长方块（rooted_azalea_tree 的 matching_block_tag 引用）。
     // 数据包定义引用三个子标签（#dirt + #sand + #terracotta）+ snow_block + powder_snow。
-    // BlockTag 不支持 #tag 嵌套引用，故手动展开合并（同 fall_damage_resetting 的合并模式）。
+    // 内置默认值无法表达 #tag 引用（数据包侧由 BlockTagLoader 展开），故手动展开合并。
     {
         auto azaleaGrowsOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "azalea_grows_on"));
         std::vector<ResourceLocation> merged;
@@ -3615,7 +3615,7 @@ void BlockTags::initialize()
     // 熔岩湖边界石不可替换标签。
     // 数据包 data/minecraft/tags/block/lava_pool_stone_cannot_replace.json 引用三个子标签：
     //   ["#minecraft:features_cannot_replace", "#minecraft:leaves", "#minecraft:logs"]
-    // BlockTag 体系是扁平的（unordered_set<ResourceLocation>，不支持 #tag 嵌套引用），故在此把三个
+    // 内置默认值无法表达 #tag 引用（数据包侧由 BlockTagLoader 按依赖顺序展开），故在此把三个
     // 已完整填充的标签内容合并到 lava_pool_stone_cannot_replace。features_cannot_replace（基岩/刷怪笼/
     // 箱子等）、leaves、logs 在上方均已 addAll 完毕，合并顺序无依赖。LakeFeature 边界方块放置时用它
     // 判定哪些固体方块不被熔岩湖边界石覆盖。
@@ -3654,9 +3654,8 @@ void BlockTags::initialize()
 
     // 创建 FALL_DAMAGE_RESETTING 标签（摔落伤害重置方块）
     // vanilla 定义（fall_damage_resetting.json）：#climbable + sweet_berry_bush + cobweb。
-    // BlockTag 不支持 #tag 嵌套引用，故手动合并 CLIMBABLE 成员 + sweet_berry_bush + cobweb
-    // （同 dry_vegetation_may_place_on / lava_pool_stone_cannot_replace 的合并模式）。
-    // 运行时消费：Entity::moveWithCollision → _checkFallDamageResettingBlocks 沿实体本帧移动
+    // 内置默认值无法表达 #tag 引用（数据包侧由 BlockTagLoader 展开），故手动合并 CLIMBABLE 成员 + sweet_berry_bush +
+    // cobweb。 运行时消费：Entity::moveWithCollision → _checkFallDamageResettingBlocks 沿实体本帧移动
     // 路径射线检测，命中此标签方块即 resetFallDistance（实体穿过蜘蛛网/甜浆果丛/可攀爬方块
     // 下落不累积摔落距离，落到下方实方块时不摔伤）。对齐 vanilla Entity.move:718-725
     // 的 FALLDAMAGE_RESETTING ClipContext 射线。CLIMBABLE 已在上方 addAll 完毕，合并无依赖。

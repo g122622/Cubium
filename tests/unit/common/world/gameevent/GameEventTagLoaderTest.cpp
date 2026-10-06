@@ -109,10 +109,8 @@ TEST_F(GameEventTagLoaderTest, UnknownGameEventIsSkipped)
 TEST_F(GameEventTagLoaderTest, TagReferenceResolvesMembers)
 {
     auto pack = std::make_unique<mc::InMemoryResourcePack>("ref_game_event_pack");
-    pack->addServerDataResource("minecraft/tags/game_event/test_event_a.json",
-        R"({"values": ["minecraft:step"]})");
-    pack->addServerDataResource("minecraft/tags/game_event/test_event_b.json",
-        R"({"values": ["minecraft:swim"]})");
+    pack->addServerDataResource("minecraft/tags/game_event/test_event_a.json", R"({"values": ["minecraft:step"]})");
+    pack->addServerDataResource("minecraft/tags/game_event/test_event_b.json", R"({"values": ["minecraft:swim"]})");
     pack->addServerDataResource("minecraft/tags/game_event/test_event_all.json",
         R"({"values": ["#minecraft:test_event_a", "#minecraft:test_event_b"]})");
 

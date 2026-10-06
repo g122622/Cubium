@@ -85,10 +85,8 @@ TEST_F(FluidTagLoaderTest, UnknownFluidMemberIsSkipped)
 TEST_F(FluidTagLoaderTest, TagReferenceResolvesMembers)
 {
     auto pack = std::make_unique<mc::InMemoryResourcePack>("ref_fluid_pack");
-    pack->addServerDataResource("minecraft/tags/fluid/test_fluid_a.json",
-        R"({"values": ["minecraft:water"]})");
-    pack->addServerDataResource("minecraft/tags/fluid/test_fluid_b.json",
-        R"({"values": ["minecraft:lava"]})");
+    pack->addServerDataResource("minecraft/tags/fluid/test_fluid_a.json", R"({"values": ["minecraft:water"]})");
+    pack->addServerDataResource("minecraft/tags/fluid/test_fluid_b.json", R"({"values": ["minecraft:lava"]})");
     pack->addServerDataResource("minecraft/tags/fluid/test_fluid_all.json",
         R"({"values": ["#minecraft:test_fluid_a", "#minecraft:test_fluid_b"]})");
 
@@ -130,8 +128,8 @@ TEST_F(FluidTagLoaderTest, DataPackAppendsToBuiltinTag)
     builtin.add(ResourceLocation("minecraft:water"));
 
     auto pack = std::make_unique<mc::InMemoryResourcePack>("append_fluid_builtin_pack");
-    pack->addServerDataResource("minecraft/tags/fluid/test_fluid_builtin_append.json",
-        R"({"values": ["minecraft:lava"]})");
+    pack->addServerDataResource(
+        "minecraft/tags/fluid/test_fluid_builtin_append.json", R"({"values": ["minecraft:lava"]})");
 
     auto result = FluidTagLoader::loadFromResourcePack(*pack);
     ASSERT_TRUE(result.success());

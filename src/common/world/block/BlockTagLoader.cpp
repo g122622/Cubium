@@ -102,8 +102,7 @@ void _buildCallbacks(_BlockMemberPool& pool,
         return members;
     };
 
-    fillTag = [&pool](
-                  const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
+    fillTag = [&pool](const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
         BlockTag& tag = BlockTags::registerTag(tagId);
         if (replace) {
             tag.clear();

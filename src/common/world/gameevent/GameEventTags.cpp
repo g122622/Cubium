@@ -21,8 +21,8 @@
  *
  */
 
-#include "common/world/gameevent/GameEventTag.hpp"
 #include "common/world/gameevent/GameEventTags.hpp"
+#include "common/world/gameevent/GameEventTag.hpp"
 
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -225,8 +225,8 @@ void GameEventTags::initialize()
     tags[shriekerCanListen->getId()] = std::move(shriekerCanListen);
 
     // warden_can_listen：监守者可监听的振动事件（= vibrations + shriek + #shrieker_can_listen）。
-    // GameEventTag 是扁平集合（不支持 #tag 嵌套引用），故把 vibrations 与 shrieker_can_listen
-    // 的成员内联合并（同 BlockTags 中 lava_pool_stone_cannot_replace 的合并模式）。
+    // 内置默认值无法表达 #tag 引用（数据包侧由 GameEventTagLoader 展开），故把 vibrations 与
+    // shrieker_can_listen 的成员内联合并。
     auto wardenCanListen = std::make_unique<GameEventTag>(ResourceLocation("minecraft", "warden_can_listen"));
     for (const auto* event : tags.at(ResourceLocation("minecraft", "vibrations"))->getEvents()) {
         wardenCanListen->add(event);

@@ -102,8 +102,7 @@ void _buildCallbacks(_GameEventMemberPool& pool,
         return members;
     };
 
-    fillTag = [&pool](
-                  const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
+    fillTag = [&pool](const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
         gameevent::GameEventTag& tag = gameevent::GameEventTags::registerTag(tagId);
         if (replace) {
             tag.clear();

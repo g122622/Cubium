@@ -72,7 +72,8 @@ using TagMemberReader = std::function<std::vector<std::size_t>(const ResourceLoc
  * （不存在则创建）；replace=true 时先清空已有成员（含内置默认值）再写入，
  * 否则追加。通用加载器在第一阶段用空成员集合调用本回调注册占位标签。
  */
-using TagFiller = std::function<void(const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace)>;
+using TagFiller =
+    std::function<void(const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace)>;
 
 /**
  * @brief 通用标签 JSON 加载器

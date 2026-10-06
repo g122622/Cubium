@@ -69,6 +69,6 @@ Block
 
 5. **FlowerBedBlock 的形状计算**: 形状由 FACING 和 AMOUNT 共同决定（4x4=16种），每个花瓣段为 8x3x8 像素盒子，逆时针旋转叠加。
 
-6. **干草类 canSurvive 走 #dry_vegetation_may_place_on 标签**：该标签 = SAND + TERRACOTTA + DIRT + FARMLAND（是 #dirt 的超集），比普通植物的 #dirt 更宽松以支持沙漠/恶地生成。项目 BlockTag 不支持 #tag 嵌套引用，故该标签在 BlockTags.cpp 用合并模式（同 lava_pool_stone_cannot_replace）把 SAND/TERRACOTTA/DIRT 三个标签成员合并后再 add FARMLAND。新增依赖该标签的代码无需关心合并细节，直接用 `BlockTags::DRY_VEGETATION_MAY_PLACE_ON().contains(state)`。
+6. **干草类 canSurvive 走 #dry_vegetation_may_place_on 标签**：该标签 = SAND + TERRACOTTA + DIRT + FARMLAND（是 #dirt 的超集），比普通植物的 #dirt 更宽松以支持沙漠/恶地生成。`BlockTags::initialize()` 的内置默认值无法表达 #tag 引用，故该标签在 BlockTags.cpp 用合并模式把 SAND/TERRACOTTA/DIRT 三个标签成员合并后再 add FARMLAND（数据包侧同名标签由 `BlockTagLoader` 按依赖顺序展开 `#` 引用）。新增依赖该标签的代码无需关心合并细节，直接用 `BlockTags::DRY_VEGETATION_MAY_PLACE_ON().contains(state)`。
 
 7. **野花地物生成**: MC Java 中野花通过 `WildflowerFeature` 在世界生成时放置（初始 AMOUNT 为1-4随机，4 朝向 × 4 数量共 16 种状态等权重）。本项目复用 `FlowerFeature` 实现，通过 `FlowerFeatures::createWildflowersBirchForest()`（tries=64）和 `FlowerFeatures::createWildflowersMeadow()`（tries=8，稀疏分布）两个预设配置，分别在白桦森林和草甸生物群系中生成。

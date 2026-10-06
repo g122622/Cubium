@@ -94,8 +94,7 @@ void _buildCallbacks(_FluidMemberPool& pool,
         return members;
     };
 
-    fillTag = [&pool](
-                  const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
+    fillTag = [&pool](const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
         fluid::FluidTag& tag = fluid::FluidTags::registerTag(tagId);
         if (replace) {
             tag.clear();
