@@ -88,8 +88,8 @@ protected:
     /// 创建并登记一个探针实体，返回其 id
     EntityInstanceId addProbe()
     {
-        auto probe = std::make_unique<ProbeEntity>(EntityInstanceId(0), mc::test::testEcsRegistry(), &m_destroyCount,
-            &m_removalCount);
+        auto probe = std::make_unique<ProbeEntity>(
+            EntityInstanceId(0), mc::test::testEcsRegistry(), &m_destroyCount, &m_removalCount);
         return m_manager.addEntity(std::move(probe));
     }
 

@@ -27,7 +27,9 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
 
@@ -296,14 +298,18 @@ TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_VirtualDispatch)
     EXPECT_FALSE(basePtr->isDebugGenerator());
 }
 
-TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_FlatSettings)
+TEST(NoiseChunkGeneratorIsDebugTest, FlatGenerator_IsDebugGeneratorReturnsFalse)
 {
-    // 使用 flat 设置也应该返回 false
-    auto settings = DimensionSettings::flat();
-    auto randomState = world::gen::RandomState::create(settings, 12345ULL);
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
-    NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
+    // 超平坦世界走 FlatChunkGenerator（非 NoiseChunkGenerator）：其 DimensionSettings 由
+    // DimensionSettings::flat() 提供，不挂 noise_settings RL（flat 无对应 vanilla noise_settings
+    // JSON，RandomState::create 对 flat 断言失败属预期——flat 不走噪声路由路径）。
+    // 此处验证 flat 生成器的 isDebugGenerator() 返回 false（与 DebugChunkGenerator 的 true 相对）。
+    FlatChunkGenerator generator(12345ULL, FlatLevelGeneratorSettings::createDefault());
     EXPECT_FALSE(generator.isDebugGenerator());
+
+    // 经基类指针调用，验证虚函数分派
+    IChunkGenerator* basePtr = &generator;
+    EXPECT_FALSE(basePtr->isDebugGenerator());
 }
 
 TEST(NoiseChunkGeneratorIsDebugTest, IsDebugGenerator_AmplifiedSettings)

@@ -418,9 +418,12 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     //
     // 权威槽随 hand 选择：主手取当前选中槽，副手取 OFFHAND 槽（对齐 vanilla Player#getItemInHand）。
     // 此前固定取主手槽，hand==OffHand 时会误消耗主手（矿车/盾牌等副手 useOn 场景）。
+    // 经 m_inventoryManager 解析（单源权威栏），与下方消耗写回同一来源，保证 before/after 可比。
     const ItemStack heldBefore = [&]() -> ItemStack {
-        if (player != nullptr) {
-            return player->getHeldItem(hand);
+        if (m_inventoryManager != nullptr) {
+            if (const PlayerInventory* inventory = m_inventoryManager->getInventory(playerId)) {
+                return (hand == Hand::OffHand) ? inventory->getOffhandItem() : inventory->getSelectedStack();
+            }
         }
         return ItemStack();
     }();
@@ -433,26 +436,32 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
 
     // 消耗权威物品栏（仅 success 时，对齐 handleBlockPlacement:350-368 的消耗范式）。
     // 消耗/损耗的写回目标是 hand 对应的槽：主手=当前选中槽，副手=OFFHAND 槽。
+    //
+    // 物品栏只有实体上这一份（见 InventoryManager 单源改造），故权威手持物一律经
+    // m_inventoryManager 解析，而非经 player 实体的 getHeldItem()——后者在测试环境
+    // （只注入解析器、不构造完整 Player 实体，如 SpawnEggAddEntityE2ETest）拿不到。
+    // 生产环境解析器返回的就是 player->inventory()，两者等价；测试环境解析器返回
+    // 测试持有的 PlayerInventory，消耗语义仍被正确验证。
     bool itemConsumed = false;
     if (success && playerData->gameMode == GameMode::Creative) {
         itemConsumed = true; // 创造模式不实际消耗
-    } else if (success && player != nullptr) {
-        ItemStack& authoritative = player->getHeldItem(hand);
-        // onItemUse 若已自行改过权威手持物（itemId 变化=自管理替换，或 damage 变化=耐久损耗），
-        // 说明物品已处理完消耗/损耗，外层只推一次同步、不再 shrink。itemId+damage 均不变时
-        // （如骨粉只 shrink 了自己的局部拷贝）才由外层 shrink(1) 补足权威槽的消耗。
-        const ItemId itemIdAfter = authoritative.isEmpty() ? ItemId{0} : authoritative.getItem()->itemId();
-        const i32 damageAfter = authoritative.isEmpty() ? 0 : authoritative.getDamage();
-        const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
-        if (selfManaged) {
-            itemConsumed = true;
-            if (m_inventoryManager != nullptr) {
+    } else if (success && m_inventoryManager != nullptr) {
+        if (PlayerInventory* inventory = m_inventoryManager->getInventory(playerId)) {
+            // 权威槽随 hand 选择：主手=当前选中槽，副手=OFFHAND 槽（对齐 vanilla Player#getItemInHand）。
+            ItemStack& authoritative =
+                (hand == Hand::OffHand) ? inventory->getOffhandItemRef() : inventory->getSelectedStackRef();
+            // onItemUse 若已自行改过权威手持物（itemId 变化=自管理替换，或 damage 变化=耐久损耗），
+            // 说明物品已处理完消耗/损耗，外层只推一次同步、不再 shrink。itemId+damage 均不变时
+            // （如骨粉只 shrink 了自己的局部拷贝）才由外层 shrink(1) 补足权威槽的消耗。
+            const ItemId itemIdAfter = authoritative.isEmpty() ? ItemId{0} : authoritative.getItem()->itemId();
+            const i32 damageAfter = authoritative.isEmpty() ? 0 : authoritative.getDamage();
+            const bool selfManaged = (itemIdAfter != itemIdBefore) || (damageAfter != damageBefore);
+            if (selfManaged) {
+                itemConsumed = true;
                 m_inventoryManager->syncToClient(playerId);
-            }
-        } else if (!authoritative.isEmpty() && authoritative.getCount() > 0) {
-            authoritative.shrink(1);
-            itemConsumed = true;
-            if (m_inventoryManager != nullptr) {
+            } else if (!authoritative.isEmpty() && authoritative.getCount() > 0) {
+                authoritative.shrink(1);
+                itemConsumed = true;
                 m_inventoryManager->syncToClient(playerId);
             }
         }
@@ -597,13 +606,18 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
     //   1. 方块显式返回 heldItemTransformedTo —— 用它更新 hand 对应槽位；
     //   2. 方块通过 player.getHeldItem(hand) 引用直接改了物品栏 —— 那就是实体背包本身，
     //      与交互前的快照比较即可发现。
-    if (handled && realPlayer != nullptr && m_inventoryManager != nullptr) {
-        ItemStack& authoritative = realPlayer->getHeldItem(hand);
-        if (result.heldItemTransformedTo().has_value()) {
-            authoritative = result.heldItemTransformedTo().value();
-            m_inventoryManager->syncToClient(playerId);
-        } else if (!(authoritative == heldBeforeUse)) {
-            m_inventoryManager->syncToClient(playerId);
+    // 写回目标经 m_inventoryManager 解析（单源权威栏），而非 realPlayer->getHeldItem()——
+    // 后者在测试环境（只注入解析器、不构造完整 Player 实体）拿不到；生产环境两者等价。
+    if (handled && m_inventoryManager != nullptr) {
+        if (PlayerInventory* inventory = m_inventoryManager->getInventory(playerId)) {
+            ItemStack& authoritative =
+                (hand == Hand::OffHand) ? inventory->getOffhandItemRef() : inventory->getSelectedStackRef();
+            if (result.heldItemTransformedTo().has_value()) {
+                authoritative = result.heldItemTransformedTo().value();
+                m_inventoryManager->syncToClient(playerId);
+            } else if (!(authoritative == heldBeforeUse)) {
+                m_inventoryManager->syncToClient(playerId);
+            }
         }
     }
 

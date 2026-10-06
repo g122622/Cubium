@@ -44,8 +44,16 @@
 using namespace mc;
 using namespace mc::entity;
 
+namespace {
+
 /**
  * @brief 测试用的 LivingEntity 子类
+ *
+ * 必须置于匿名 namespace：`mc_tests` 将全部测试源文件链入同一二进制，其他测试文件
+ * （如 test_entity_physics.cpp）也在全局作用域定义了同名 `TestLivingEntity`。两处同名
+ * 类的内联构造函数构成 ODR 冲突，链接器折叠时只保留一份——若保留的是别处那份（不调
+ * registerData），本文件的数据参数将停留哨兵 id 0xFFFF，set/get 静默失效，测试假失败。
+ * 匿名 namespace 赋予内部链接，消除跨 TU 冲突。
  */
 class TestLivingEntity : public LivingEntity {
 public:
@@ -63,6 +71,8 @@ public:
     [[nodiscard]] f64 publicGetEffectiveGravity() const { return getEffectiveGravity(); }
     Vector3 publicUpdateFallFlyingMovement(const Vector3& v) const { return updateFallFlyingMovement(v); }
 };
+
+} // namespace
 
 /**
  * @brief isElytraFlying() 测试

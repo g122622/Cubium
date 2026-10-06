@@ -23,7 +23,10 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <memory>
 #include <thread>
+#include <vector>
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -38,6 +41,8 @@ using namespace mc::server;
 // ============================================================================
 // Test Helper: Minimal Entity for testing
 // ============================================================================
+
+namespace {
 
 class TestEntity : public Entity {
 public:
@@ -72,6 +77,8 @@ public:
         setHealth(maxHealth());
     }
 };
+
+} // namespace
 
 // ============================================================================
 // EntityTracker Basic Tests
@@ -217,14 +224,22 @@ TEST_F(EntityTrackerTest, TrackingDistanceCalculation)
 
 TEST_F(EntityTrackerTest, ConcurrentTrackUntrack)
 {
-    std::vector<std::thread> threads;
+    // 实体构造必须在主线程串行完成：Entity 构造会向共享的 ECS 注册表
+    // （mc::test::testEcsRegistry()）create 实体并 emplace 组件，多线程并发构造会对同一
+    // 注册表产生数据竞争（实测偶发 ACCESS_VIOLATION）。本用例只验证 EntityTracker 自身
+    // 的并发安全（trackEntity/untrackEntity 内部持锁），故实体预先建好再并发调用 tracker。
+    std::vector<std::unique_ptr<TestEntity>> entities;
+    entities.reserve(10);
+    for (size_t i = 0; i < 10; ++i) {
+        entities.push_back(std::make_unique<TestEntity>(static_cast<EntityInstanceId>(i)));
+    }
 
+    std::vector<std::thread> threads;
     // 并发追踪和取消追踪
     for (size_t i = 0; i < 10; ++i) {
-        threads.emplace_back([this, i]() {
+        threads.emplace_back([this, i, &entities]() {
             const EntityInstanceId entityId = static_cast<EntityInstanceId>(i);
-            TestEntity entity(entityId);
-            tracker->trackEntity(&entity);
+            tracker->trackEntity(entities[i].get());
             tracker->isTracking(entityId);
             tracker->untrackEntity(entityId);
         });
@@ -240,15 +255,21 @@ TEST_F(EntityTrackerTest, ConcurrentTrackUntrack)
 
 TEST_F(EntityTrackerTest, ConcurrentTrackAndCount)
 {
+    // 实体构造串行完成（理由同 ConcurrentTrackUntrack：共享 ECS 注册表不可并发构造）。
+    std::vector<std::unique_ptr<TestEntity>> entities;
+    entities.reserve(10);
+    for (size_t i = 0; i < 10; ++i) {
+        entities.push_back(std::make_unique<TestEntity>(static_cast<EntityInstanceId>(i)));
+    }
+
     std::vector<std::thread> threads;
     std::atomic<int> successCount{0};
 
     // 并发追踪和计数
     for (size_t i = 0; i < 10; ++i) {
-        threads.emplace_back([this, i, &successCount]() {
+        threads.emplace_back([this, i, &successCount, &entities]() {
             const EntityInstanceId entityId = static_cast<EntityInstanceId>(i);
-            TestEntity entity(entityId);
-            tracker->trackEntity(&entity);
+            tracker->trackEntity(entities[i].get());
 
             if (tracker->isTracking(entityId)) {
                 successCount++;
