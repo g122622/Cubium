@@ -135,9 +135,9 @@ void WindChargeEntity::onEntityHit(const RayTraceResult& result)
         living->hurt(damageSource, PLAYER_DAMAGE);
     }
 
-    // 命中实体后触发风爆
+    // 命中实体后触发风爆，随后静默消失（对齐 vanilla AbstractWindCharge.onHitEntity 的 discard）
     applyWindBurst();
-    remove();
+    discard();
 }
 
 void WindChargeEntity::onBlockHit(const RayTraceResult& result)
@@ -156,9 +156,9 @@ void WindChargeEntity::onBlockHit(const RayTraceResult& result)
         }
     }
 
-    // 命中方块后触发风爆
+    // 命中方块后触发风爆，随后静默消失（对齐 vanilla AbstractWindCharge.onHitBlock 的 discard）
     applyWindBurst();
-    remove();
+    discard();
 }
 
 void WindChargeEntity::onImpact(const RayTraceResult& result)
@@ -175,11 +175,11 @@ void WindChargeEntity::onImpact(const RayTraceResult& result)
     // 同构（任务 #327），后果更严重（雪球至少 remove，风弹连 remove 都跳过）。
     ProjectileEntity::onImpact(result);
 
-    // dispatch 后无条件 remove（对齐 vanilla AbstractWindCharge.onHit 的 !isClientSide → discard）。
-    // onEntityHit/onBlockHit 末尾已 remove()，此处对已 removed 实体是幂等（Entity::remove 仅置 m_removed=true）；
-    // 偏转分支基类 onImpact return 前不调 onEntityHit/onBlockHit，故此处 remove 覆盖偏转后风弹应消失的语义。
+    // dispatch 后无条件 discard（对齐 vanilla AbstractWindCharge.onHit 的 !isClientSide → discard）。
+    // onEntityHit/onBlockHit 末尾已 discard()，此处对已移除实体是幂等（Entity::remove 首行守卫）；
+    // 偏转分支基类 onImpact return 前不调 onEntityHit/onBlockHit，故此处 discard 覆盖偏转后风弹应消失的语义。
     if (!isRemoved()) {
-        remove();
+        discard();
     }
 }
 

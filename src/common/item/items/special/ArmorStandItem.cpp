@@ -34,10 +34,10 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
-#include "common/util/AxisAlignedBB.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
@@ -65,7 +65,8 @@ ActionResultType ArmorStandItem::onItemUse(ItemUseContext& context)
 
     // 对齐 vanilla：按 yaw 对齐到 45 度取整
     const f32 yaw =
-        static_cast<f32>(math::floorTo<i32>((math::wrapDegrees(context.getPlayerYaw() - 180.0f) + 22.5f) / 45.0f)) * 45.0f;
+        static_cast<f32>(math::floorTo<i32>((math::wrapDegrees(context.getPlayerYaw() - 180.0f) + 22.5f) / 45.0f)) *
+        45.0f;
 
     // 对齐 vanilla：检查目标位置的实体碰撞（有实体占据则不放置）
     const AxisAlignedBB aabb(static_cast<f32>(placePos.x),
@@ -93,13 +94,15 @@ ActionResultType ArmorStandItem::onItemUse(ItemUseContext& context)
             return ActionResultType::Fail;
         }
 
-        armorStand->setPosition(static_cast<f32>(placePos.x) + 0.5f, static_cast<f32>(placePos.y), static_cast<f32>(placePos.z) + 0.5f);
+        armorStand->setPosition(
+            static_cast<f32>(placePos.x) + 0.5f, static_cast<f32>(placePos.y), static_cast<f32>(placePos.z) + 0.5f);
         armorStand->setRotation(yaw, 0.0f);
         world.spawnEntity(std::move(armorStand));
 
         world.playSound(SoundEvents::ENTITY_ARMOR_STAND_PLACE,
             sound::SoundCategory::Blocks,
-            Vector3(static_cast<f32>(placePos.x) + 0.5f, static_cast<f32>(placePos.y), static_cast<f32>(placePos.z) + 0.5f),
+            Vector3(
+                static_cast<f32>(placePos.x) + 0.5f, static_cast<f32>(placePos.y), static_cast<f32>(placePos.z) + 0.5f),
             0.75f,
             0.8f);
     }

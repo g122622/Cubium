@@ -369,8 +369,7 @@ TEST_F(ServerWorldCollisionTest, RemoveEntity)
     auto entity = std::make_unique<TestPushableEntity>(EntityInstanceId(1), world.get());
     EntityInstanceId id = world->spawnEntity(std::move(entity));
 
-    auto removed = world->removeEntity(id);
-    EXPECT_NE(removed, nullptr);
+    world->destroyEntity(id, RemovalReason::Discarded);
     EXPECT_EQ(world->entityManager().entityCount(), 0u);
 }
 

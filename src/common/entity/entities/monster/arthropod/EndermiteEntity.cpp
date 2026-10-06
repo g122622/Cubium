@@ -81,7 +81,8 @@ void EndermiteEntity::tick()
     if (!isNoDespawnRequired()) {
         m_lifetime++;
         if (m_lifetime >= DESPAWN_TIME) {
-            remove();
+            // 存活时间到期静默消失（对齐 vanilla Endermite.tick 的 discard()）。
+            discard();
         }
     }
 }

@@ -435,7 +435,8 @@ bool ItemEntity::tryMergeWith(ItemEntity& other)
         m_pickupDelay = std::max(m_pickupDelay, other.m_pickupDelay);
         m_age = std::min(m_age, other.m_age);
 
-        other.remove();
+        // 合并后另一个物品实体静默丢弃（对齐 vanilla ItemEntity.mergeWithNeighbours 的 discard()）
+        other.discard();
         return true;
     }
 

@@ -1286,7 +1286,7 @@ void MinecraftServer::setupWorldCallbacks()
             return;
         }
 
-        // 注入服务器接口，供 ServerWorld 在主动移除实体（removeEntity / 区块卸载）时
+        // 注入服务器接口，供 ServerWorld 在主动销毁实体（destroyEntity / 区块卸载）时
         // 通过 EntityTracker 向追踪玩家发送 destroy 包。
         world->setServer(this);
         // 设置区块加载回调 - 当区块加载/生成完成时触发

@@ -39,13 +39,13 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
-#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/entity/entities/passive/water/TadpoleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
@@ -160,10 +160,7 @@ public:
 
     // 测试辅助
     [[nodiscard]] std::size_t spawnedCount() const noexcept { return m_spawned.size(); }
-    [[nodiscard]] Entity* lastSpawned() const noexcept
-    {
-        return m_spawned.empty() ? nullptr : m_spawned.back().get();
-    }
+    [[nodiscard]] Entity* lastSpawned() const noexcept { return m_spawned.empty() ? nullptr : m_spawned.back().get(); }
 
 private:
     static i64 key(i32 x, i32 y, i32 z)
@@ -272,8 +269,15 @@ TEST_F(ArmorStandItemTest, PlacesArmorStandOnTopFace)
     auto player = makeCreativePlayer();
     ItemStack stack(*Items::ARMOR_STAND, 1);
 
-    ItemUseContext context(
-        world, player.get(), stack, Vector3(0.5f, 64.0f, 0.5f), BlockPos(0, 63, 0), Direction::Up, Hand::MainHand, 0.0f, 0.0f);
+    ItemUseContext context(world,
+        player.get(),
+        stack,
+        Vector3(0.5f, 64.0f, 0.5f),
+        BlockPos(0, 63, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,
+        0.0f);
 
     auto* armorStandItem = dynamic_cast<item::items::ArmorStandItem*>(Items::ARMOR_STAND);
     ASSERT_NE(armorStandItem, nullptr);

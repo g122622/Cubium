@@ -212,8 +212,8 @@ void GatherItemsGoal::_pickupItem()
     if (!remaining.isEmpty()) {
         item->setItemStack(remaining);
     } else {
-        // 完全拾取，移除物品实体
-        item->remove();
+        // 完全拾取，静默丢弃物品实体
+        item->discard();
     }
 
     m_targetItem = 0; // 清除目标

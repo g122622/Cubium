@@ -1772,8 +1772,8 @@ void HopperMinecartEntity::_suckItems()
         ItemStack remaining = c->m_inventory->addItem(stack);
 
         if (remaining.isEmpty()) {
-            // 完全吸收
-            itemEntity->remove();
+            // 完全吸收，静默丢弃物品实体
+            itemEntity->discard();
             c->m_suckCooldown = TRANSFER_COOLDOWN;
             return; // 每tick只处理一个物品
         } else if (remaining.getCount() < stack.getCount()) {

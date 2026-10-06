@@ -112,7 +112,8 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     Player* playerPtr = dynamic_cast<Player*>(entity);
     if (!playerPtr) {
         spdlog::error("ServerPlayerEntityManager: Entity is not a Player for {}", username);
-        world.removeEntity(entityId);
+        // 生成回滚：静默丢弃非 Player 实体（无死亡掉落/副作用）。
+        world.destroyEntity(entityId, RemovalReason::Discarded);
         return nullptr;
     }
 
@@ -187,11 +188,9 @@ void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorl
 
     EntityInstanceId entityId = it->second;
 
-    // 从实体追踪器移除
-    world.entityTracker().untrackEntity(entityId);
-
-    // 从世界实体池移除
-    world.removeEntity(entityId);
+    // 从世界销毁玩家实体（走统一入口：取消追踪 + 标记 UnloadedWithPlayer 逻辑移除 +
+    // 入 graveyard 延迟析构）。玩家退出不掉落、不存档。
+    world.destroyEntity(entityId, RemovalReason::UnloadedWithPlayer);
 
     // 清除映射
     m_playerToEntity.erase(it);
@@ -204,10 +203,9 @@ void ServerPlayerEntityManager::clearAll(ServerWorld& world)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // 移除所有玩家实体
+    // 销毁所有玩家实体（经统一入口，内部已取消追踪）
     for (const auto& [playerId, entityId] : m_playerToEntity) {
-        world.entityTracker().untrackEntity(entityId);
-        world.removeEntity(entityId);
+        world.destroyEntity(entityId, RemovalReason::UnloadedWithPlayer);
     }
 
     m_playerToEntity.clear();

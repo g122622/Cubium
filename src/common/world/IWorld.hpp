@@ -29,6 +29,7 @@
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/RemovalReason.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -1976,6 +1977,28 @@ public:
         (void)entity;
         (void)killer;
         (void)cause;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 通知世界实体已被移除（逻辑移除时刻）
+     *
+     * 由 EntityManager 在 tick 安全点冲刷移除通知队列时调用（实体已从 m_entities 摘除、
+     * 尚未物理析构）。ServerWorld 重写此方法发布 EntityRemovedEvent，供 BossBar 追踪、
+     * 拴绳、进度/成就、mod 等外部订阅者清理自身缓存的实体引用。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 与 onEntityDeath 的分工：onEntityDeath 在死亡流程内触发（携带 killer/DamageSource）；
+     * 本方法覆盖全部移除原因（含区块卸载/玩家退出/切维度/静默丢弃），是"实体离开世界"的
+     * 统一通知点。event 载荷携带 reason 供订阅者区分（如仅对 Killed 做掉落统计）。
+     *
+     * @param entity 被移除的实体（裸指针在冲刷时有效，回调内可安全读取；勿跨 tick 缓存）
+     * @param reason 移除原因
+     */
+    virtual void onEntityRemoved(Entity* entity, RemovalReason reason)
+    {
+        (void)entity;
+        (void)reason;
         // 默认空实现
     }
 

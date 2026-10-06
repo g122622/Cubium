@@ -94,7 +94,8 @@ void DespawnManager::tick(::mc::server::ServerWorld& world)
 
         math::Random random(static_cast<u64>(mob->id()) + currentTick);
         if (shouldDespawn(*mob, effectiveDistSq, difficulty, currentTick, random)) {
-            mob->remove();
+            // 超距消失是静默移除（对齐 vanilla Mob.checkDespawn 的 discard()）：不掉落、不触发死亡流程。
+            mob->discard();
         }
         return true;
     });

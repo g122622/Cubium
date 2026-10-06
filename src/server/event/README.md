@@ -34,6 +34,7 @@ server/event/
 │  │  events/ServerEvents.hpp                             │   │
 │  │  - BlockBreakEvent, BlockPlaceEvent, ...            │   │
 │  │  - EntityDeathEvent, PlayerKillEntityEvent, ...     │   │
+│  │  - EntityRemovedEvent, ...                          │   │
 │  │  - PlayerLoginEvent, InventoryChangedEvent, ...     │   │
 │  │  - 共 40+ 事件类型，继承自 ServerEvent 基类          │   │
 │  └─────────────────────────────────────────────────────┘   │
@@ -70,7 +71,7 @@ server/event/
 | `common/entity/entities/passive/horse/AbstractHorseEntity` | TameAnimalEvent（通过 IWorld::onTameAnimal） |
 | `server/command/commands/SummonCommand` | SummonedEntityEvent（通过 IWorld::onSummonedEntity） |
 | `common/world/dimension/end/EndDragonFight` | SummonedEntityEvent（通过 IWorld::onSummonedEntity，龙重生 END 阶段对 Boss 栏可见玩家触发） |
-| `server/world/ServerWorld` | CuredZombieVillagerEvent, ChanneledLightningEvent, BredAnimalsEvent 等（IWorld 回调重写） |
+| `server/world/ServerWorld` | CuredZombieVillagerEvent, ChanneledLightningEvent, BredAnimalsEvent, **EntityRemovedEvent** 等（IWorld 回调重写） |
 | `server/advancement/AdvancementEventHandler` | 订阅 22 种事件触发成就（InventoryChangedEvent, PlayerKillEntityEvent, TameAnimalEvent, SummonedEntityEvent 等） |
 | `server/application/MinecraftServer` | 初始化和关闭 AdvancementEventHandler |
 
@@ -109,3 +110,12 @@ auto id = ServerEventBus::instance().subscribe<BlockBreakEvent>(handler);
 ### 6. 优先级顺序
 
 优先级数值越大越先执行。默认优先级为 0。需要先处理的事件（如日志记录）应设置较高优先级。
+
+### 7. EntityRemovedEvent 的发布时机与载荷
+
+`EntityRemovedEvent` 由 `ServerWorld::onEntityRemoved()`（重写 `IWorld::onEntityRemoved`）发布，触发点在 `EntityManager` 的移除通知队列冲刷（tick 安全点，见 `common/world/entity/README.md` 第 10 条）。
+
+- **覆盖全部移除原因**（`Killed`/`Discarded`/`UnloadedToChunk`/`UnloadedWithPlayer`/`ChangedDimension`），与仅覆盖死亡的 `EntityDeathEvent` 互补。载荷携带 `RemovalReason` 供订阅者区分。
+- **载荷携带 `dimension`**：事件总线是进程级单例，三维度共享，订阅者须按维度区分世界。
+- **载荷的 `entity` 裸指针仅在发布时有效**（实体尚未物理析构），订阅者不应跨 tick 缓存。需要长期引用请改用 `EntityInstanceId`。
+- **发布是同步调用**（`publish` 持锁直接跑 handler）。handler 内禁止再 `publish`（`ServerEventBus` 用非递归 `std::mutex`，会自死锁）。

@@ -923,17 +923,19 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
             EntityManager& sourceEntityManager = sourceWorld->entityManager();
             EntityManager& targetEntityManager = targetWorld->entityManager();
             sourceEntityManager.requestDimensionTransfer([entityId, &sourceEntityManager, &targetEntityManager]() {
-                auto entityPtr = sourceEntityManager.removeEntity(entityId);
+                // 跨维度迁移是所有权移交，不是销毁：用 takeEntity 取出 unique_ptr 再交给目标
+                // EntityManager（addEntity 接管），实体对象不被析构、裸指针持有者仍有效。
+                auto entityPtr = sourceEntityManager.takeEntity(entityId);
                 if (entityPtr != nullptr) {
                     // addEntity 内部再次 setEntityManager(this)（幂等），并向目标空间索引登记。
                     // 若实体 ID 在目标 EntityManager 已被占用，addEntity 会分配新 ID 并 setId；
                     // 跨维度迁移保留原 ID 是常态（各 EntityManager 的 ID 空间独立，碰撞罕见）。
                     [[maybe_unused]] EntityInstanceId newId = targetEntityManager.addEntity(std::move(entityPtr));
                 } else {
-                    // removeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
+                    // takeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
                     // 记日志但不回滚——transferPlayerToDimension 已更新 m_playerDimensions，回滚会引入
                     // 更严重的不一致。
-                    spdlog::warn("ServerPlayer::_performDimensionTransfer: removeEntity returned null for "
+                    spdlog::warn("ServerPlayer::_performDimensionTransfer: takeEntity returned null for "
                                  "entity {} during dimension migration",
                         entityId);
                 }

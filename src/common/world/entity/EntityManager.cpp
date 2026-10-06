@@ -131,7 +131,7 @@ EntityInstanceId EntityManager::addEntity(std::unique_ptr<Entity> entity)
     return id;
 }
 
-std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
+std::unique_ptr<Entity> EntityManager::takeEntity(EntityInstanceId id)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
@@ -159,14 +159,34 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityInstanceId id)
 
     m_entities.erase(it);
 
-    // 路径B：实体从 EntityManager 移除（如区块卸载 ServerWorld.cpp:2276 丢弃 unique_ptr 立即 free）。
-    // 此时 JS 侧 owned=false 的 Entity/组件句柄仍持裸 Entity*，必须立即 invalidate（置 ptr=nullptr），
-    // 否则后续 getComponent("minecraft:onfire").isOnFire() 等回调解引用悬垂指针 UAF 段错误。
-    // 路径A（remove()/discard → graveyard 延迟析构）由 ~Entity 兜底 invalidate，但路径B可能绕过
-    // graveyard（unique_ptr 直接丢弃），故此处为路径B的唯一兜底入口。
+    // 所有权移交路径：实体从 EntityManager 摘除但所有权交给调用者（跨维度迁移），
+    // 若调用者丢弃 unique_ptr 实体立即 free。此时 JS 侧 owned=false 的 Entity/组件句柄
+    // 仍持裸 Entity*，必须立即 invalidate（置 ptr=nullptr），否则后续
+    // getComponent("minecraft:onfire").isOnFire() 等回调解引用悬垂指针 UAF 段错误。
+    // 销毁路径（destroyEntity）不经此方法，由 ~Entity 兜底 invalidate。
     mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(id);
 
     return entity;
+}
+
+bool EntityManager::destroyEntity(EntityInstanceId id, RemovalReason reason)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    auto it = m_entities.find(id);
+    if (it == m_entities.end()) {
+        return false;
+    }
+
+    // 先按原因标记逻辑移除（置 m_removalReason + 断骑乘 + onRemoval 子类清理）。此后
+    // isRemoved()==true，多数系统"看不见"它，但对象仍存活，直到 tick 末尾 graveyard 冲刷。
+    it->second->remove(reason);
+
+    // 从各索引摘除并入延迟析构队列。
+    auto entity = std::move(it->second);
+    m_entities.erase(it);
+    _detachAndGrave(std::move(entity), reason);
+    return true;
 }
 
 void EntityManager::requestDimensionTransfer(std::function<void()> transferAction)
@@ -312,18 +332,26 @@ void EntityManager::tick()
 
     // 1.5 处理本 tick 期间入队的延迟跨维度迁移请求。changeDimension 可能在 entity->tick()
     //     调用栈内触发（doBlockCollisions→onEntityCollision→changeDimension），此时 _tickEntities
-    //     正遍历 m_entities，同步 removeEntity 会 erase 当前节点致 ++it 失效→SIGSEGV。故迁移
+    //     正遍历 m_entities，同步 takeEntity 会 erase 当前节点致 ++it 失效→SIGSEGV。故迁移
     //     延迟到遍历结束（此时 m_scheduler.tick 已返回）后执行，erase 安全。
     _processPendingDimensionTransfers();
 
-    // 2. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
+    // 2. 冲刷待发送的移除通知（安全点：所有实体遍历已结束，回调订阅者增删 m_entities 不会
+    //    破坏遍历）。须在 m_graveyard.clear() 之前——此时实体尚未析构，裸指针有效。
+    _flushRemovalNotifications();
+
+    // 3. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
     //    必须在 entity tick 之后：若放开头，graveyard 实体在 goal 跑 shouldContinueExecuting 前就析构了。
     m_graveyard.clear();
 
-    // 3. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
+    // 4. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
     _removeDeadEntitiesInternal();
 
-    // 4. DEBUG 一致性断言：校验空间索引与主存储一致（每实体在正确 section、玩家专表一致）。
+    // 5. 冲刷本步新入队的移除通知（死亡实体本 tick 标记、tick 末尾即通知，不等下 tick）。
+    //    与步骤 2 互补：步骤 2 覆盖上 tick 的 destroyEntity 入队，本步覆盖本 tick 的死亡标记。
+    _flushRemovalNotifications();
+
+    // 6. DEBUG 一致性断言：校验空间索引与主存储一致（每实体在正确 section、玩家专表一致）。
     //    仅调试构建生效（_assertConsistent 内 #ifndef NDEBUG 守卫），及早暴露索引漂移。
 #ifndef NDEBUG
     m_spatialIndex._assertConsistent(m_entities);
@@ -418,9 +446,12 @@ void EntityManager::_tickBrains()
 void EntityManager::removeDeadEntities()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    // 与 tick 时序对齐：先释放上一批 graveyard，再收集本批死亡实体入 graveyard。
+    // 与 tick 时序对齐：先冲刷移除通知（graveyard 未 clear 时实体裸指针有效），
+    // 再释放上一批 graveyard，最后收集本批死亡实体入 graveyard。
+    _flushRemovalNotifications();
     m_graveyard.clear();
     _removeDeadEntitiesInternal();
+    _flushRemovalNotifications();
 }
 
 void EntityManager::_removeDeadEntitiesInternal()
@@ -428,27 +459,56 @@ void EntityManager::_removeDeadEntitiesInternal()
     // 内部方法，假设已持有锁
     for (auto it = m_entities.begin(); it != m_entities.end();) {
         if (it->second->isRemoved()) {
-            // 维护 UUID 索引（erase 时同步清，不等 graveyard 析构时才清）
-            const std::string& uuid = it->second->uuid();
-            if (!uuid.empty()) {
-                auto uuidIt = m_uuidToEntity.find(uuid);
-                if (uuidIt != m_uuidToEntity.end() && uuidIt->second == it->second.get()) {
-                    m_uuidToEntity.erase(uuidIt);
-                }
-            }
-
-            // 从空间索引移除并解绑反向指针（须在 move 入 graveyard 前，此时对象仍有效）。
-            // 顺手修复现存隐患：原 _removeDeadEntitiesInternal 不通知任何 tracker，死亡实体
-            // 残留索引导致后续查询命中已死实体（靠 isRemoved 双保险兜底，但索引应保持干净）。
-            m_spatialIndex.removeEntity(*it->second);
-            it->second->setEntityManager(nullptr);
-
-            // 延迟析构：实体对象入 graveyard，下一 tick 末尾才真正析构。
-            // 避免持裸指针的 goal 在本 tick 末尾或下 tick 开头解引用悬垂内存。
-            m_graveyard.push_back(std::move(it->second));
+            // 取出移除原因（标记时已由 remove(reason) 写入），随实体一并交 _detachAndGrave
+            // 入通知队列。nullopt 理论不可达（isRemoved 即 removalReason 有值），兜底用 Discarded。
+            const RemovalReason reason = it->second->removalReason().value_or(RemovalReason::Discarded);
+            auto entity = std::move(it->second);
             it = m_entities.erase(it); // it->second 已被 move 成 nullptr，erase 仅移除 map 条目
+            // 延迟析构 + 断引用 + 入通知队列：实体对象入 graveyard，下一 tick 末尾才真正析构。
+            // 避免持裸指针的 goal 在本 tick 末尾或下 tick 开头解引用悬垂内存。
+            _detachAndGrave(std::move(entity), reason);
         } else {
             ++it;
+        }
+    }
+}
+
+void EntityManager::_detachAndGrave(std::unique_ptr<Entity> entity, RemovalReason reason)
+{
+    // 内部方法，假设已持有锁。
+    // 维护 UUID 索引（erase 时同步清，不等 graveyard 析构时才清）。
+    const std::string& uuid = entity->uuid();
+    if (!uuid.empty()) {
+        auto uuidIt = m_uuidToEntity.find(uuid);
+        if (uuidIt != m_uuidToEntity.end() && uuidIt->second == entity.get()) {
+            m_uuidToEntity.erase(uuidIt);
+        }
+    }
+
+    // 从空间索引移除并解绑反向指针（须在 move 入 graveyard 前，此时对象仍有效）。
+    m_spatialIndex.removeEntity(*entity);
+    entity->setEntityManager(nullptr);
+
+    // 入移除通知队列（tick 安全点冲刷）。裸指针在此有效——实体尚未析构（graveyard 未 clear）。
+    m_pendingRemovalNotifications.emplace_back(entity.get(), reason);
+
+    m_graveyard.push_back(std::move(entity));
+}
+
+void EntityManager::_flushRemovalNotifications()
+{
+    // 内部方法，假设已持有锁。对每条通知取实体 world() 调 onEntityRemoved。
+    // 须在 graveyard.clear() 之前调用，此时实体裸指针有效。
+    if (m_pendingRemovalNotifications.empty()) {
+        return;
+    }
+
+    std::vector<std::pair<Entity*, RemovalReason>> pending;
+    pending.swap(m_pendingRemovalNotifications);
+
+    for (auto& [entity, reason] : pending) {
+        if (IWorld* world = entity->world()) {
+            world->onEntityRemoved(entity, reason);
         }
     }
 }
@@ -463,7 +523,7 @@ void EntityManager::_onEntityPositionChanged(Entity& entity)
 void EntityManager::_processPendingDimensionTransfers()
 {
     // _tickEntities 遍历已完成（m_scheduler.tick 已返回），此时 erase 当前节点安全。
-    // swap 出队列后逐个执行迁移回调（removeEntity + spawnEntity），避免遍历期间 erase
+    // swap 出队列后逐个执行迁移回调（takeEntity + spawnEntity），避免遍历期间 erase
     // 致 for 循环 ++it 解引用失效迭代器→SIGSEGV。
     if (m_pendingDimensionTransfers.empty()) {
         return;

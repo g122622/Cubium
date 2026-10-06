@@ -194,9 +194,8 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_ClearsUuidIndex)
     EXPECT_TRUE(m_manager.hasEntityWithUuid(uuid));
     EXPECT_NE(m_manager.getEntityByUuid(uuid), nullptr);
 
-    // 移除实体
-    auto removed = m_manager.removeEntity(id);
-    ASSERT_NE(removed, nullptr);
+    // 移除实体（走统一销毁入口，标记 Discarded 后入 graveyard 延迟析构）
+    EXPECT_TRUE(m_manager.destroyEntity(id, RemovalReason::Discarded));
 
     // UUID索引应被清理
     EXPECT_FALSE(m_manager.hasEntityWithUuid(uuid));
@@ -217,7 +216,7 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_OnlyRemovesOwnUuid)
     EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
     // 移除第一个实体
-    m_manager.removeEntity(id1);
+    m_manager.destroyEntity(id1, RemovalReason::Discarded);
 
     // 第一个UUID应被清理
     EXPECT_FALSE(m_manager.hasEntityWithUuid(uuid1));
@@ -232,9 +231,8 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_OnlyRemovesOwnUuid)
 
 TEST_F(EntityManagerUuidTest, RemoveEntity_NonexistentId_NoCrash)
 {
-    // 移除不存在的实体ID不应崩溃
-    auto result = m_manager.removeEntity(99999u);
-    EXPECT_EQ(result, nullptr);
+    // 销毁不存在的实体ID不应崩溃
+    EXPECT_FALSE(m_manager.destroyEntity(99999u, RemovalReason::Discarded));
 }
 
 // ============================================================================
@@ -324,7 +322,7 @@ TEST_F(EntityManagerUuidTest, RemoveEntity_ClearsOnlyOwnUuid)
     EntityInstanceId id1 = m_manager.addEntity(std::move(pig1));
     EntityInstanceId id2 = m_manager.addEntity(std::move(pig2));
 
-    m_manager.removeEntity(id1);
+    m_manager.destroyEntity(id1, RemovalReason::Discarded);
 
     EXPECT_EQ(m_manager.getEntityByUuid(uuid1), nullptr);
     ASSERT_NE(m_manager.getEntityByUuid(uuid2), nullptr);
@@ -427,7 +425,7 @@ TEST_F(EntityManagerUuidTest, RemoveAndReAdd_UuidIndexRestored)
     EXPECT_TRUE(m_manager.hasEntityWithUuid(uuid));
 
     // 移除实体
-    m_manager.removeEntity(id1);
+    m_manager.destroyEntity(id1, RemovalReason::Discarded);
     EXPECT_FALSE(m_manager.hasEntityWithUuid(uuid));
 
     // 添加新实体（新UUID）

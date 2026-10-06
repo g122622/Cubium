@@ -1020,16 +1020,19 @@ public:
     // ========== 实体管理 ==========
 
     /**
-     * @brief 移除实体
+     * @brief 销毁实体
      *
-     * 注意：此方法不仅从 EntityManager 移除实体，还会取消实体追踪。
-     * 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
+     * 注意：此方法不仅销毁实体，还会取消实体追踪。
+     * 调用者应使用此方法而非直接调用 entityManager().destroyEntity()，
      * 以确保实体追踪器状态正确更新。
      *
-     * @param id 要移除的实体ID
-     * @return 被移除的实体所有权，如果实体不存在返回 nullptr
+     * 内部经 EntityManager 统一销毁入口：标记逻辑移除（Entity::remove(reason)）+ 断引用 +
+     * 入 graveyard 延迟析构，本 tick 末尾才物理销毁。
+     *
+     * @param id 要销毁的实体ID
+     * @param reason 移除原因（决定是否执行摧毁类副作用与是否存档）
      */
-    std::unique_ptr<Entity> removeEntity(EntityInstanceId id);
+    void destroyEntity(EntityInstanceId id, RemovalReason reason);
     [[nodiscard]] EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override;
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override;
     [[nodiscard]] const Entity* getEntity(EntityInstanceId id) const override;
@@ -1476,6 +1479,17 @@ public:
      * @param cause 死亡原因（DamageSource）
      */
     void onEntityDeath(Entity* entity, Entity* killer, const DamageSource* cause) override;
+
+    /**
+     * @brief 通知世界实体已被移除
+     *
+     * 重写 IWorld::onEntityRemoved()，发布 EntityRemovedEvent（携带移除原因与维度），
+     * 供 BossBar 追踪、拴绳、进度/成就、mod 等订阅者清理自身缓存的实体引用。
+     *
+     * @param entity 被移除的实体
+     * @param reason 移除原因
+     */
+    void onEntityRemoved(Entity* entity, RemovalReason reason) override;
 
     // ========== 结构定位 ==========
 

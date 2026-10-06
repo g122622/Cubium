@@ -2127,12 +2127,12 @@ EntityInstanceId ServerWorld::spawnEntity(std::unique_ptr<Entity> entity)
     return id;
 }
 
-// 注意：此方法不仅移除实体，还负责取消追踪。
-// 调用者应使用此方法而非直接调用 entityManager().removeEntity()，
+// 注意：此方法不仅销毁实体，还负责取消追踪。
+// 调用者应使用此方法而非直接调用 entityManager().destroyEntity()，
 // 以确保实体追踪器状态正确更新。
-std::unique_ptr<Entity> ServerWorld::removeEntity(EntityInstanceId id)
+void ServerWorld::destroyEntity(EntityInstanceId id, RemovalReason reason)
 {
-    // 先向追踪玩家发送 destroy 包并取消追踪：必须在 EntityManager 移除实体之前完成，
+    // 先向追踪玩家发送 destroy 包并取消追踪：必须在 EntityManager 销毁实体之前完成，
     // 否则客户端缓存的旧 ClientEntity（typeId 不可变、网格按 ID 缓存）可能残留，
     // 在后续同 ID 实体生成时被错误复用渲染（虽然 ID 已不复用，主动发包消除时序窗口）。
     if (m_server) {
@@ -2141,12 +2141,11 @@ std::unique_ptr<Entity> ServerWorld::removeEntity(EntityInstanceId id)
         m_entityTracker.untrackEntity(id);
     }
 
-    auto entity = m_entityManager.removeEntity(id);
-    // EntityManager::removeEntity 内部已从空间索引移除实体，无需此处手动注销。
-    if (!entity) {
-        spdlog::error("Attempted to remove non-existent entity with ID {}", id);
+    // 经 EntityManager 统一销毁入口：标记逻辑移除 + 断引用 + 入 graveyard 延迟析构
+    // （本 tick 末尾物理销毁），不再有"当场 free"的旁路，持裸指针的 goal 有一帧缓冲。
+    if (!m_entityManager.destroyEntity(id, reason)) {
+        spdlog::error("ServerWorld::destroyEntity: attempted to destroy non-existent entity with ID {}", id);
     }
-    return entity;
 }
 
 // IWorld 接口实现：委托给 EntityManager
@@ -2336,9 +2335,9 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     auto entityIds = m_entityManager.spatialIndex().getEntityIdsInChunkColumn(x, z);
 
     if (!m_storage || !m_storage->isOpen()) {
-        // 存储不可用时，仅移除实体（不保存）
+        // 存储不可用时，仅销毁实体（不保存）
         for (EntityInstanceId id : entityIds) {
-            removeEntity(id);
+            destroyEntity(id, RemovalReason::UnloadedToChunk);
         }
         return;
     }
@@ -2346,7 +2345,7 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
     auto* entityStorage = m_storage->entityStorage();
     if (!entityStorage) {
         for (EntityInstanceId id : entityIds) {
-            removeEntity(id);
+            destroyEntity(id, RemovalReason::UnloadedToChunk);
         }
         return;
     }
@@ -2384,17 +2383,12 @@ void ServerWorld::onChunkUnloading(ChunkCoord x, ChunkCoord z)
         spdlog::error("Failed to replace entity records for chunk ({}, {}): {}", x, z, saveResult.error().message());
     }
 
-    // 从世界移除实体（先发 destroy 包并取消追踪，再从 EntityManager 移除）
-    // EntityManager::removeEntity 内部已从空间索引移除实体，无需此处手动注销。
+    // 从世界销毁实体（走统一入口 destroyEntity：取消追踪 + 标记 UnloadedToChunk 逻辑移除 +
+    // 入 graveyard 延迟析构，本 tick 末尾物理销毁）。
+    // 保存已在上方 replaceEntitiesInChunks 完成，故此处 reason 用 UnloadedToChunk
+    // （shouldSave=true 的语义由调用点已保证落盘顺序体现）。
     for (EntityInstanceId id : entityIds) {
-        // 向追踪玩家发送 destroy 包并取消追踪（必须在实体被移除前完成）
-        if (m_server) {
-            m_entityTracker.untrackEntity(*m_server, id);
-        } else {
-            m_entityTracker.untrackEntity(id);
-        }
-
-        m_entityManager.removeEntity(id);
+        destroyEntity(id, RemovalReason::UnloadedToChunk);
     }
 }
 
@@ -3011,6 +3005,14 @@ void ServerWorld::onEntityDeath(Entity* entity, Entity* killer, const DamageSour
             event::ServerEventBus::instance().publish(killEvent);
         }
     }
+}
+
+void ServerWorld::onEntityRemoved(Entity* entity, RemovalReason reason)
+{
+    // 发布 EntityRemovedEvent（实体离开世界的统一通知点，覆盖全部移除原因）。
+    // 携带维度：事件总线为进程级单例，三维度共享，订阅者据此区分世界。
+    event::EntityRemovedEvent removedEvent{currentTick(), entity, reason, dimension()};
+    event::ServerEventBus::instance().publish(removedEvent);
 }
 
 // ============================================================================

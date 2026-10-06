@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
+#include "common/entity/core/RemovalReason.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/ecs/systems/EntitySystemScheduler.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -92,11 +93,36 @@ public:
     EntityInstanceId addEntity(std::unique_ptr<Entity> entity);
 
     /**
-     * @brief 移除实体
+     * @brief 移交实体所有权（摘除并把句柄交出来）
+     *
+     * 仅用于跨维度迁移等"实体未死、只是换个 EntityManager 归属"的场景。调用后实体从本
+     * 管理器的 m_entities/UUID 索引/空间索引摘除并解绑反向指针，所有权随返回值交给调用者
+     * （由其 addEntity 到目标管理器）。
+     *
+     * 【不要用它销毁实体】销毁请用 destroyEntity()——本方法返回的 unique_ptr 若被调用者
+     * 直接丢弃，实体会当场析构，绕过 graveyard 延迟队列，导致持裸指针的 goal 悬垂 UAF。
+     *
      * @param id 实体ID
-     * @return 被移除的实体指针（调用者获得所有权），如果不存在返回nullptr
+     * @return 实体所有权，如果不存在返回 nullptr
      */
-    std::unique_ptr<Entity> removeEntity(EntityInstanceId id);
+    std::unique_ptr<Entity> takeEntity(EntityInstanceId id);
+
+    /**
+     * @brief 销毁实体（标记 + 断引用 + 入延迟析构队列）
+     *
+     * 实体销毁的唯一入口：按 reason 标记逻辑移除（Entity::remove(reason)），从 UUID 索引
+     * 与空间索引摘除，解绑反向指针，移入 graveyard 延迟队列——本 tick 末尾由 tick() 统一
+     * 物理析构，给持裸实体指针的 goal 一帧时间通过 isAlive() 检测并放手，避免 use-after-free。
+     *
+     * 这是"逻辑移除 → 物理销毁"两阶段的统一收口：无论死亡（remove/discard 标记后由 tick
+     * 收走）还是区块卸载/玩家退出（直接调用本方法），销毁都经 graveyard，不再有"当场 free"
+     * 的旁路。
+     *
+     * @param id 实体ID
+     * @param reason 移除原因（决定是否执行摧毁类副作用与是否存档）
+     * @return 是否命中并销毁（实体不存在返回 false）
+     */
+    bool destroyEntity(EntityInstanceId id, RemovalReason reason);
 
     /**
      * @brief 检查实体是否存在
@@ -260,12 +286,12 @@ public:
      *
      * 当 `changeDimension` 在 `entity->tick()` 调用栈内被触发时（如 `doBlockCollisions`
      * → `EndPortalBlock::onEntityCollision` → `changeDimension`），源 EntityManager 的
-     * `_tickEntities` 正持有当前迭代器遍历 `m_entities`。此时同步调 `removeEntity`
+     * `_tickEntities` 正持有当前迭代器遍历 `m_entities`。此时同步调 `takeEntity`
      * 会 erase 当前节点，for 循环 `++it` 解引用失效迭代器→SIGSEGV。
      *
      * 本方法把迁移回调入队 `m_pendingDimensionTransfers`，由 `tick()` 在
      * `_tickEntities` 遍历完成后（`m_scheduler.tick` 返回后）统一执行。回调内封装
-     * `removeEntity` + `spawnEntity`，由调用方（`ServerPlayer::_performDimensionTransfer`）
+     * `takeEntity` + `spawnEntity`，由调用方（`ServerPlayer::_performDimensionTransfer`）
      * 构造，故本类无需感知 `ServerWorld`（避免 common 层依赖 server 层）。
      *
      * @param transferAction 迁移回调（从源 EntityManager 取出实体并 spawn 到目标）
@@ -291,8 +317,17 @@ private:
     // 避免 use-after-free（LookAtGoal::shouldContinueExecuting 等解引用已被 erase 析构的目标）。
     std::vector<std::unique_ptr<Entity>> m_graveyard;
 
+    // 待发送的实体移除通知队列（实体裸指针 + 移除原因）。入 graveyard 时同步入队，由 tick()
+    // 在遍历全部结束后（安全点）flush——对每条调 `entity->world()->onEntityRemoved(entity, reason)`。
+    //
+    // 为何不在 remove() 内直接发：remove() 会在 _tickEntities / _removeDeadEntitiesInternal
+    // 的遍历中被调用，同步回调订阅者若增删 m_entities（如史莱姆分裂经 spawnEntity→addEntity）
+    // 会导致 unordered_map 重排、迭代器失效。延迟到 tick 安全点与 BDS ActorGarbageCollector
+    // 把 onRemove 放在 update() 是同一设计。裸指针在 flush 时仍有效（graveyard 尚未 clear）。
+    std::vector<std::pair<Entity*, RemovalReason>> m_pendingRemovalNotifications;
+
     // 延迟跨维度迁移请求队列（本 EntityManager 为源）。changeDimension 在 entity->tick()
-    // 调用栈内触发时，_tickEntities 正遍历 m_entities，同步 removeEntity 会 erase 当前节点
+    // 调用栈内触发时，_tickEntities 正遍历 m_entities，同步 takeEntity 会 erase 当前节点
     // 致 for 循环 ++it 解引用失效迭代器→SIGSEGV。故 _performDimensionTransfer 改为把迁移
     // 回调入队此队列，tick() 在 _tickEntities 遍历完成后统一执行。
     std::vector<std::function<void()>> m_pendingDimensionTransfers;
@@ -301,10 +336,30 @@ private:
      * @brief 处理延迟跨维度迁移队列
      *
      * 由 tick() 在 m_scheduler.tick 返回后调用。对每个待迁移实体：从源 EntityManager
-     * removeEntity 取出 unique_ptr<Entity>，再向目标 EntityManager spawnEntity。
+     * takeEntity 取出 unique_ptr<Entity>，再向目标 EntityManager spawnEntity。
      * 遍历已结束，erase 安全。
      */
     void _processPendingDimensionTransfers();
+
+    /**
+     * @brief 冲刷待发送的实体移除通知队列（假设已持有锁）
+     *
+     * 由 tick()/removeDeadEntities() 在实体遍历全部结束后调用。对每条通知取实体的
+     * world() 调 onEntityRemoved(entity, reason)。须在 m_graveyard.clear() 之前调用——
+     * 此时实体尚未析构，裸指针有效。
+     */
+    void _flushRemovalNotifications();
+
+    /**
+     * @brief 从各索引摘除实体并入 graveyard 延迟析构队列（假设已持有锁）
+     *
+     * destroyEntity() 与 _removeDeadEntitiesInternal() 共用的收口：清 UUID 索引、
+     * 从空间索引移除、解绑反向指针、入 graveyard 与移除通知队列。
+     *
+     * @param entity 待回收实体（所有权转移给 graveyard）
+     * @param reason 移除原因（用于移除通知）
+     */
+    void _detachAndGrave(std::unique_ptr<Entity> entity, RemovalReason reason);
 
     EntityInstanceId m_nextId = 1;
 

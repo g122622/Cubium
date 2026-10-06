@@ -115,8 +115,8 @@ void ItemPickupManager::checkPlayerPickup(ServerWorld& world, IServer& server, E
 
         // 尝试拾取
         if (tryPickupItem(world, server, player, *itemEntity)) {
-            // 物品被完全拾取，标记移除
-            itemEntity->remove();
+            // 物品被完全拾取，静默丢弃物品实体
+            itemEntity->discard();
         }
     }
 }

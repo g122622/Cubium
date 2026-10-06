@@ -148,8 +148,8 @@ bool BeehiveBlockEntity::addOccupant(BeeEntity& bee)
             1.0f);
     }
 
-    // 从世界移除蜜蜂实体
-    bee.remove();
+    // 蜜蜂离开蜂巢，静默丢弃实体（对齐 vanilla BeehiveBlockEntity 的 discard()）
+    bee.discard();
 
     setChanged();
     return true;

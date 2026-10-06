@@ -319,8 +319,8 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity)
     ItemStack remaining = putStackInInventoryAllSlots(nullptr, inventory, stack, Direction::None);
 
     if (remaining.isEmpty()) {
-        // 物品完全被捕获，移除实体
-        itemEntity->remove();
+        // 物品完全被捕获，静默丢弃物品实体（对齐 vanilla HopperBlockEntity 的 discard()）
+        itemEntity->discard();
         return true;
     }
 

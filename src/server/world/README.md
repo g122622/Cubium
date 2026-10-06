@@ -224,7 +224,7 @@ stack guard region`）而非 SIGSEGV，极易被误判为非法指令。
 见 `ServerChunkManagerPostProcessTest.StoredChunkLoadCompleteDefersCallback_NoUnboundedRecursion`。
 
 ### 实体追踪器内存泄漏
-实体移除后未从追踪器取消追踪会导致泄漏。`ServerWorld::removeEntity()` 会自动处理追踪器状态更新。如果直接调用 `entityManager().removeEntity()`，需要手动调用 `entityTracker().untrackEntity()`。
+实体销毁后未从追踪器取消追踪会导致泄漏。`ServerWorld::destroyEntity()` 会自动处理追踪器状态更新（内部调 `entityTracker().untrackEntity()`）。如果直接调用 `entityManager().destroyEntity()`，需要手动调用 `entityTracker().untrackEntity()`。
 
 ### 物品拾取延迟
 刚丢弃的物品会被立即拾取。`ItemEntity` 默认有 10 tick 拾取延迟，`ItemPickupManager` 自动处理此逻辑。

@@ -132,6 +132,30 @@ struct EntityDeathEvent : ServerEvent {
 };
 
 /**
+ * @brief 实体移除事件
+ *
+ * 实体被逻辑移除时发布（EntityManager 在 tick 安全点冲刷移除通知队列）。覆盖全部移除
+ * 原因（Killed/Discarded/UnloadedToChunk/UnloadedWithPlayer/ChangedDimension），是"实体
+ * 离开世界"的统一通知点，供 BossBar 追踪、拴绳、进度/成就、mod 等订阅者清理自身缓存的
+ * 实体引用。与 EntityDeathEvent 互补：后者仅在死亡流程内触发且携带击杀者/伤害来源。
+ *
+ * 注意：事件载荷的 entity 裸指针在发布时有效（实体尚未物理析构），但订阅者不应跨 tick
+ * 缓存它——下一 tick 末尾 graveyard 冲刷后即悬垂。
+ */
+struct EntityRemovedEvent : ServerEvent {
+    Entity* entity;        ///< 被移除的实体
+    RemovalReason reason;  ///< 移除原因
+    DimensionId dimension; ///< 移除发生的维度（事件总线为进程级单例，跨三维度共享，须带维度）
+
+    EntityRemovedEvent(u64 tick, Entity* e, RemovalReason r, DimensionId dim)
+        : ServerEvent(tick)
+        , entity(e)
+        , reason(r)
+        , dimension(dim)
+    {}
+};
+
+/**
  * @brief 玩家击杀实体事件
  */
 struct PlayerKillEntityEvent : ServerEvent {

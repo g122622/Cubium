@@ -1422,11 +1422,11 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return ctx.createUndefined();
             }
             // 实体有效性守卫：JS 包装对象 owned=false 持裸 mc::Entity*，实体销毁后句柄悬垂。
-            // 项目 EntityManager 有 graveyard 延迟析构——remove() 标记后对象存活到下一 tick 末尾才 free，
-            // 此窗口内 isRemoved()=true。此处检查挡住"已 remove 但尚未 free"的实体（对齐 graveyard 设计
-            // 意图：给裸指针持有方一帧时间通过 isAlive/isRemoved 检查避免 UAF，见 EntityManager.hpp 注释）。
-            // 注：对"立即 free"路径（removeEntity 丢弃 unique_ptr，如区块卸载）此检查仍可能 UAF，
-            // 彻底根治需脚本句柄持 EntityInstanceId 而非裸指针（TODO: 后续重构）。
+            // 项目 EntityManager 有 graveyard 延迟析构——remove()/destroyEntity 标记后对象存活到下一 tick
+            // 末尾才 free，此窗口内 isRemoved()=true。此处检查挡住"已标记但尚未 free"的实体（对齐 graveyard
+            // 设计意图：给裸指针持有方一帧时间通过 isAlive/isRemoved 检查避免 UAF，见 EntityManager.hpp 注释）。
+            // 注：跨维度迁移经 takeEntity 移交所有权，已由 ScriptHandleRegistry::invalidateAll 主动置空句柄
+            // （见该头文件），此处检查为补充。
             if (ent->isRemoved()) {
                 return ctx.createUndefined();
             }

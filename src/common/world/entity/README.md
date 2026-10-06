@@ -69,6 +69,11 @@ EntityId id = manager.addEntity(std::move(pig));
 Entity* entity = manager.getEntity(id);
 ```
 
+销毁与移交是**两个语义正交的方法**，勿混用：
+
+- `destroyEntity(id, reason)` — 真正销毁（标记 + 断引用 + 入 graveyard 延迟析构）。区块卸载、玩家退出、生成回滚走此路。
+- `takeEntity(id)` — 所有权移交（摘除并把 `unique_ptr` 交出来）。**仅跨维度迁移使用**——调用者拿到的 `unique_ptr` 若直接丢弃，实体当场析构、绕过延迟队列，持裸指针的 goal 悬垂 UAF。
+
 ### 2. ID 永不复用
 
 实体 ID 单调递增、永不复用（`allocateId()` 为 `m_nextId++`）。移除实体后其 ID 不会被新实体复用：
@@ -99,9 +104,9 @@ manager.forEachEntity([&](Entity* entity) {
 
 `EntityManager` 维护两个索引：`m_entities`（EntityId → Entity）和 `m_uuidToEntity`（UUID → Entity*）。在以下场景需注意一致性：
 
-- **UUID 冲突**：添加 UUID 相同的实体时，UUID 索引会被覆盖，旧映射丢失。此时会输出 spdlog::warn 警告。
-- **空 UUID**：UUID 为空字符串的实体不会被索引，`getEntityByUuid("")` 始终返回 nullptr。
-- **移除后索引清理**：`removeEntity()` 和 `removeDeadEntities()` 会同步清理 UUID 索引，仅当映射指向当前实体时才移除（防止 UUID 冲突时误删新映射）。
+- **UUID 冲突**：添加 UUID 相同的实体时，`addEntity` 会断言失败并拒绝入册（重复 UUID 是不变量被破坏的确凿信号，不静默覆盖）。
+- **空 UUID**：UUID 为空字符串的实体同样被 `addEntity` 拒绝。
+- **移除后索引清理**：`destroyEntity()` / `takeEntity()` / `_removeDeadEntitiesInternal()` 会同步清理 UUID 索引，仅当映射指向当前实体时才移除（防止 UUID 冲突时误删新映射）。
 - **setUuid() 不会更新索引**：在 `addEntity()` 之后调用 `Entity::setUuid()` 不会更新 UUID 索引。NBT 反序列化时 UUID 的设置应在 `addEntity()` 之前完成，否则需重新添加实体以更新索引。
 
 ### 5. getEntity/getEntityByUuid 返回空指针
@@ -114,17 +119,22 @@ if (Entity* entity = manager.getEntityByUuid(someUuid)) {
 }
 ```
 
-### 6. 实体移除时机
+### 6. 实体销毁时机（两阶段：逻辑移除 → 物理销毁）
 
-`entity->remove()` 只是标记实体为移除状态，实体会在下一次 `tick()` 时被真正移除。如需立即移除：
+销毁经统一入口 `destroyEntity(id, reason)`，分两阶段：
 
 ```cpp
-entity->remove();  // 标记
-manager.tick();    // 此后实体被移除
+// 阶段一：逻辑移除——实体立即从 m_entities 摘除（hasEntity/getEntity 返回空），
+// 但对象仍存活，入 graveyard 延迟队列。此窗口内 isRemoved()==true。
+manager.destroyEntity(entity->id(), RemovalReason::Killed);
 
-// 或立即移除
-manager.removeEntity(entity->id());
+// 阶段二：物理销毁——本 tick 末尾 tick() 冲刷 graveyard，才真正析构。
+manager.tick();
 ```
+
+同理，`entity->remove()` / `entity->discard()` 只标记（`m_removalReason` 置位），实体在**下一次** `tick()` 末尾被收走、再下一次末尾才析构（比 `destroyEntity` 多一 tick，因标记发生在 tick 中段）。
+
+**为何延迟**：给持有裸实体指针的 goal 一帧时间通过 `isAlive()==false` 检测并 reset 指针，避免 use-after-free（`LookAtGoal::shouldContinueExecuting` 等解引用已被析构的目标）。
 
 ### 7. 空间查询性能
 
@@ -138,10 +148,18 @@ manager.removeEntity(entity->id());
 
 - **addEntity** 时按实体当前 AABB 中心一次性登记到对应 section，并按类型加入玩家专表（PLAYER）。
 - **实体 move** 经 `Entity::reapplyPosition()`（位置变更统一收口）末尾的 `m_entityManager->_onEntityPositionChanged` 通知索引，跨 section 移动立即迁移。同一 tick 内移动后查询读到新位置。
-- **removeEntity**/`_removeDeadEntitiesInternal` 时从索引移除，空 section 立即回收。
+- **destroyEntity**/`takeEntity`/`_removeDeadEntitiesInternal` 时从索引移除（经 `_detachAndGrave` 收口），空 section 立即回收。
 
-注意：`entity->remove()` 仅标记 `m_removed=true`，下次 tick 的 `_removeDeadEntitiesInternal` 才从索引移除，故标记到清理之间死亡实体仍可能在索引中被枚举到——查询层用 `isRemoved()` 双保险过滤。`Entity` 持 `EntityManager*` 反向指针（非 `m_world`）使通知在 `m_world=nullptr` 的测试场景也工作。详见 `spatial/README.md`。
+注意：`entity->remove()` 仅标记 `m_removalReason`，下次 tick 的 `_removeDeadEntitiesInternal` 才从索引移除，故标记到清理之间死亡实体仍可能在索引中被枚举到——查询层用 `isRemoved()` 双保险过滤。`Entity` 持 `EntityManager*` 反向指针（非 `m_world`）使通知在 `m_world=nullptr` 的测试场景也工作。详见 `spatial/README.md`。
 
 ### 9. 区块卸载取实体
 
-区块卸载/关机保存取实体改走 `EntityManager::spatialIndex().getEntityIdsInChunkColumn(cx, cz)`（遍历该 chunk 列 24 个 section 合并实体 ID），按实体**当前坐标**所在 section 取列——比原按 tracker 归属（可能滞后）更准确（实体真实在哪存哪）。
+区块卸载/关机保存取实体改走 `EntityManager::spatialIndex().getEntityIdsInChunkColumn(cx, cz)`（遍历该 chunk 列 24 个 section 合并实体 ID），按实体**当前坐标**所在 section 取列——比原按 tracker 归属（可能滞后）更准确（实体真实在哪存哪）。取到 ID 后经 `ServerWorld::destroyEntity(id, RemovalReason::UnloadedToChunk)` 销毁。
+
+### 10. 移除通知队列（安全点冲刷）
+
+实体移除通知不即时发送，而是入队 `m_pendingRemovalNotifications`，由 `tick()` 在**所有实体遍历结束后的安全点**冲刷（对每条取 `entity->world()` 调 `IWorld::onEntityRemoved(entity, reason)`）。
+
+**为何延迟**：`remove()` 会在 `_tickEntities` / `_removeDeadEntitiesInternal` 的遍历中被调用，同步回调订阅者若增删 `m_entities`（如史莱姆分裂经 `spawnEntity`→`addEntity`）会导致 `unordered_map` 重排、迭代器失效。延迟到 tick 安全点与 BDS `ActorGarbageCollector` 把 `onRemove` 放在 `update()` 是同一设计。
+
+注意：事件载荷的实体裸指针在冲刷时有效（graveyard 尚未 clear），但订阅者不应跨 tick 缓存它。`destroyEntity` 在 `EntityManager::tick` 之外（如区块卸载）调用时，通知在下一 tick 冲刷。

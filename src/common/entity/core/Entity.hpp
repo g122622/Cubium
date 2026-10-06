@@ -28,6 +28,7 @@
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
 #include "MoverType.hpp"
+#include "RemovalReason.hpp"
 #include "common/command/ICommandSource.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -301,7 +302,7 @@ public:
     /**
      * @brief 绑定/解绑所属 EntityManager（用于空间索引实时维护）
      *
-     * 由 `EntityManager::addEntity` 绑定 this、`removeEntity`/`_removeDeadEntitiesInternal`
+     * 由 `EntityManager::addEntity` 绑定 this、`takeEntity`/`_detachAndGrave`
      * 解绑 nullptr。`reapplyPosition()` 经此反向指针通知索引迁移，使 3D section 索引
      * 实时准确（同一 tick 内移动后查询读到新位置）。裸指针非拥有，EntityManager 与
      * Entity 同在 common 模块，不破坏 common 不依赖 server。
@@ -456,7 +457,15 @@ public:
     // ========== 状态 ==========
 
     [[nodiscard]] bool onGround() const { return m_builtIn.physicsState->m_onGround; }
-    [[nodiscard]] bool isRemoved() const { return m_removed; }
+    [[nodiscard]] bool isRemoved() const { return m_removalReason.has_value(); }
+
+    /**
+     * @brief 获取移除原因
+     *
+     * 未移除时返回 nullopt。对齐 vanilla Entity.getRemovalReason()。移除副作用（掉落、
+     * 存档决策、断骑乘）据此判定，取代原先"仅一个 bool"的粗粒度表达。
+     */
+    [[nodiscard]] std::optional<RemovalReason> removalReason() const { return m_removalReason; }
     // pose/flags 已迁入 ecs::EntityStateComponent/EntityFlagsComponent（真相源），经组件查询读取。
     [[nodiscard]] EntityPose pose() const
     {
@@ -1085,23 +1094,52 @@ public:
     // ========== 移除 ==========
 
     /**
-     * @brief 移除实体
+     * @brief 移除实体（死亡流程默认入口）
      *
-     * 标记实体为已移除状态。子类可以重写此方法在移除前执行额外逻辑
-     * （例如史莱姆分裂）。
-     * 对应 MC Java 的 Entity.remove(RemovalReason.KILLED)。
+     * 等价 remove(RemovalReason::Killed)。子类如需在移除时执行额外逻辑，应重写
+     * onRemoval(RemovalReason) 而非本方法——remove() 会被 discard() 与 EntityManager
+     * 销毁路径共用，重写本方法会漏掉后两者（详见 onRemoval 说明）。
      */
-    virtual void remove() { m_removed = true; }
+    virtual void remove() { remove(RemovalReason::Killed); }
+
+    /**
+     * @brief 按指定原因移除实体
+     *
+     * 对齐 vanilla 1.21.11 Entity.setRemoved(RemovalReason)（Entity.java:3889-3900）：
+     * 1. 首次移除才记录原因（后续重复调用不覆盖，vanilla 的 `if (removalReason == null)`）；
+     * 2. 置 m_removed（此后 isRemoved()==true、isAlive()==false，多数系统"看不见"它）；
+     * 3. shouldDestroy 时自己下骑（对齐 vanilla 的 `if (removalReason.shouldDestroy()) stopRiding()`）；
+     * 4. 所有乘客下车（对齐 vanilla 的 `getPassengers().forEach(Entity::stopRiding)`）；
+     * 5. 回调 onRemoval(reason) 供子类清理（对齐 vanilla Entity.onRemoval 虚函数）。
+     *
+     * 本方法只做"逻辑移除"（标记 + 断引用 + 副作用），实体的物理销毁由 EntityManager
+     * 经 graveyard 延迟队列在 tick 安全点完成。
+     */
+    virtual void remove(RemovalReason reason);
 
     /**
      * @brief 静默丢弃实体
      *
-     * 与 remove() 不同，discard() 不触发任何掉落物、经验或其他死亡相关逻辑，
-     * 仅将实体标记为已移除。适用于实体需要立即消失但不应产生副作用的场景，
-     * 例如末影龙战斗状态扫描中发现无传送门的孤龙时将其丢弃。
-     * 对应 MC Java 的 Entity.discard()。
+     * 等价 remove(RemovalReason::Discarded)。不触发任何掉落物、经验或其他死亡相关逻辑，
+     * 仅标记实体为已移除。适用于实体需要立即消失但不应产生副作用的场景，例如末影龙战斗
+     * 状态扫描中发现无传送门的孤龙时将其丢弃、消失管理器移除超距生物、爆炸后自毁的实体。
+     *
+     * 对齐 vanilla Entity.discard()（`public final`，转调 remove(DISCARDED)）。
      */
-    virtual void discard() { m_removed = true; }
+    void discard() { remove(RemovalReason::Discarded); }
+
+    /**
+     * @brief 子类移除清理钩子
+     *
+     * 对齐 vanilla Entity.onRemoval(RemovalReason)（Entity.java:413）。在 remove(reason) 内、
+     * 置位 m_removed 与断骑乘引用之后调用，供子类按原因执行清理（释放 POI、掉落容器内容物、
+     * 分裂、停用位置依赖附魔效果等）。默认空实现。
+     *
+     * 各层重写须调用基类版本（对齐 vanilla 的 super.onRemoval），保持继承链清理不被截断。
+     * 需要判断"是否摧毁"的子类（如容器实体掉落内容物）应查 shouldDestroy(reason)——
+     * 区块卸载/玩家退出/切维度时内容物须随实体保留，不可掉落。
+     */
+    virtual void onRemoval(RemovalReason reason) { (void)reason; }
 
     /**
      * @brief 由 /kill 命令调用
@@ -1398,7 +1436,7 @@ public:
      * @brief 检查实体是否存活
      * @return 如果实体未被移除且未死亡则返回 true
      */
-    [[nodiscard]] virtual bool isAlive() const { return !m_removed; }
+    [[nodiscard]] virtual bool isAlive() const { return !isRemoved(); }
 
     // ========== 玩家碰撞 ==========
 
@@ -3028,7 +3066,11 @@ protected:
     mutable math::Random m_random; ///< 实体随机数生成器，构造时初始化
 
     // m_onGround 已迁入 PhysicsStateComponent（见 m_builtIn.physicsState->m_onGround）。
-    bool m_removed = false;
+    // 移除原因：nullopt=存活；有值=已逻辑移除（此后 isRemoved()==true）。取代原先单一
+    // bool m_removed，使 Killed/Discarded/UnloadedToChunk/UnloadedWithPlayer/ChangedDimension
+    // 五种语义可区分（对齐 vanilla Entity.removalReason）。物理销毁由 EntityManager
+    // 经 graveyard 延迟队列在 tick 安全点执行。
+    std::optional<RemovalReason> m_removalReason;
     bool m_noClip = false;  // 是否无视碰撞（用于三叉戟返回等）
     bool m_glowing = false; // 发光状态（服务端使用）
     // m_pose / m_flags 已迁入 ecs::EntityStateComponent / EntityFlagsComponent（真相源），

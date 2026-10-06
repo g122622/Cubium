@@ -171,14 +171,16 @@ void ChestBoatEntity::dropItem()
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
 }
 
-void ChestBoatEntity::remove()
+void ChestBoatEntity::onRemoval(RemovalReason reason)
 {
-    // 在服务端且实体被销毁时，掉落容器内容
-    if (m_world && !m_world->isClientSide()) {
+    // 摧毁类原因（Killed/Discarded）且服务端时掉落容器内容。对齐 vanilla
+    // AbstractChestBoat.remove（AbstractChestBoat.java:70-76）：`shouldDestroy()` 门控——
+    // 区块卸载/玩家退出/切维度时内容物须随船保留（NBT 已存盘），不可掉落。
+    if (shouldDestroy(reason) && m_world && !m_world->isClientSide()) {
         dropInventoryContents();
     }
 
-    BoatEntity::remove();
+    BoatEntity::onRemoval(reason);
 }
 
 f64 ChestBoatEntity::getMountedYOffset() const

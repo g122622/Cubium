@@ -139,7 +139,8 @@ Result<void> EntityDeserializer::attachPassengers(Entity& vehicle, IWorld& world
         // 此时 vehicle 已被 spawn（由调用方在调用本方法前完成），id 为真实值，
         // startRiding 会把乘客的 m_vehicle 记为 vehicle.id()（真实 id），关系持久有效
         if (!spawnedPassenger->startRiding(vehicle)) {
-            spawnedPassenger->remove();
+            // 骑乘挂载失败：静默丢弃该乘客实体（生成回滚，无副作用）
+            spawnedPassenger->discard();
             return Error(ErrorCode::InvalidState,
                 fmt::format("Failed to attach passenger '{}' to vehicle '{}'",
                     spawnedPassenger->getTypeId(),

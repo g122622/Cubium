@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 

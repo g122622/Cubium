@@ -35,7 +35,7 @@ src/common/world/entity/spatial/
 
 | 模块 | 路径 | 用途 |
 |------|------|------|
-| `EntityManager` | `common/world/entity/EntityManager.hpp` | 持有 `m_spatialIndex`，4 类查询转发至此；`addEntity/removeEntity/_removeDeadEntitiesInternal` 维护索引 |
+| `EntityManager` | `common/world/entity/EntityManager.hpp` | 持有 `m_spatialIndex`，4 类查询转发至此；`addEntity` 登记、`_detachAndGrave`（`destroyEntity`/`takeEntity`/`_removeDeadEntitiesInternal` 共用收口）移除 |
 | `Entity` | `common/entity/core/Entity.cpp` | `reapplyPosition()` 经 EntityManager 反向指针触发 `onEntityPositionChanged` |
 | `ServerWorld` | `server/world/ServerWorld.cpp` | `onChunkUnloading/shutdown` 调 `getEntityIdsInChunkColumn` 取区块卸载/关机保存的实体（替代已删除的 `EntityChunkTracker`） |
 

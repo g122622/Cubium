@@ -180,8 +180,8 @@ bool ExperienceOrbEntity::tryMergeWith(ExperienceOrbEntity& other)
     // 重置存活时间为较新的那个
     m_age = std::min(m_age, other.m_age);
 
-    // 移除另一个经验球
-    other.remove();
+    // 合并后另一个经验球静默丢弃（对齐 vanilla ExperienceOrb.merge 的 discard()）
+    other.discard();
 
     return true;
 }

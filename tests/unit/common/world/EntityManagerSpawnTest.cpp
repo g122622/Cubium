@@ -207,7 +207,7 @@ TEST_F(EntityManagerSpawnTest, RemoveEntity)
 
     EXPECT_TRUE(m_manager.hasEntity(id));
 
-    m_manager.removeEntity(id);
+    EXPECT_TRUE(m_manager.destroyEntity(id, RemovalReason::Discarded));
 
     EXPECT_FALSE(m_manager.hasEntity(id));
     EXPECT_EQ(m_manager.entityCount(), 0u);
@@ -215,8 +215,8 @@ TEST_F(EntityManagerSpawnTest, RemoveEntity)
 
 TEST_F(EntityManagerSpawnTest, RemoveNonExistentEntity)
 {
-    // 移除不存在的实体不应崩溃
-    m_manager.removeEntity(99999);
+    // 销毁不存在的实体不应崩溃
+    EXPECT_FALSE(m_manager.destroyEntity(99999, RemovalReason::Discarded));
     EXPECT_EQ(m_manager.entityCount(), 0u);
 }
 
@@ -232,7 +232,7 @@ TEST_F(EntityManagerSpawnTest, RemoveAndAddAgain)
     EXPECT_TRUE(m_manager.hasEntity(id1));
     EXPECT_EQ(m_manager.entityCount(), 1u);
 
-    m_manager.removeEntity(id1);
+    m_manager.destroyEntity(id1, RemovalReason::Discarded);
     EXPECT_FALSE(m_manager.hasEntity(id1));
     EXPECT_EQ(m_manager.entityCount(), 0u);
 
@@ -387,10 +387,10 @@ TEST_F(EntityManagerSpawnTest, RemoveMultipleEntities)
 
     EXPECT_EQ(m_manager.entityCount(), 5u);
 
-    // 逐个移除
+    // 逐个销毁
     for (EntityInstanceId id : ids) {
         EXPECT_TRUE(m_manager.hasEntity(id));
-        m_manager.removeEntity(id);
+        EXPECT_TRUE(m_manager.destroyEntity(id, RemovalReason::Discarded));
         EXPECT_FALSE(m_manager.hasEntity(id));
     }
 

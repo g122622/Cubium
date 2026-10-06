@@ -644,8 +644,8 @@ void PlayWithItemsGoal::tick()
             ItemStack stack = item->getItemStack();
             m_dolphin->setMainHandItem(stack);
 
-            // 标记物品实体为移除
-            item->remove();
+            // 标记物品实体为移除（被海豚拾取，静默丢弃）
+            item->discard();
         } else {
             // 向物品移动
             m_dolphin->tryMoveToEntity(*item, 1.2);

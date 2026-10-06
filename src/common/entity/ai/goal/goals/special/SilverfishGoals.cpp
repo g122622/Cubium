@@ -139,8 +139,8 @@ void SilverfishHideInStoneGoal::startExecuting()
                 // 粒子效果会在实体移除时由客户端自动处理
                 // 由于此文件在 common 模块，无法直接包含客户端头文件
 
-                // 移除蠹虫实体
-                m_silverfish->remove();
+                // 钻入虫蚀方块后静默消失（对齐 vanilla Silverfish 的 discard()）
+                m_silverfish->discard();
             }
         }
     } else {

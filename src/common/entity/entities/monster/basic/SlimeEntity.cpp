@@ -322,16 +322,17 @@ void SlimeEntity::updateSizeAttributes()
     m_experienceValue = m_size;
 }
 
-void SlimeEntity::remove()
+void SlimeEntity::onRemoval(RemovalReason reason)
 {
-    // 在移除前尝试分裂
-    // 只有尺寸大于 1 的史莱姆才会分裂
-    if (canSplit()) {
+    // 在移除前尝试分裂。对齐 vanilla Slime.remove（Slime.java:201-204）：仅尺寸>1 且
+    // 处于濒死状态时分裂（vanilla `isDeadOrDying()` = isDead() || isDying()），且仅摧毁类
+    // 原因（Killed/Discarded）——区块卸载/玩家退出/切维度时史莱姆须原样保留，不可分裂出新实体。
+    if (canSplit() && (isDead() || isDying()) && shouldDestroy(reason)) {
         performSplit();
     }
 
-    // 调用父类移除
-    MonsterEntity::remove();
+    // 调用父类清理
+    MonsterEntity::onRemoval(reason);
 }
 
 void SlimeEntity::performSplit()

@@ -1336,6 +1336,8 @@ add_executable(mc_tests
     common/world/EntityManagerSpawnTest.cpp
     # EntityManager UUID 索引测试
     common/world/EntityManagerUuidTest.cpp
+    # EntityManager 实体销毁生命周期测试（RemovalReason / 延迟析构 / takeEntity）
+    common/world/EntityManagerLifecycleTest.cpp
     # EntityManager 模拟距离实体冻结语义测试
     common/world/EntityManagerSimulationDistanceTest.cpp
     # 3D section 空间索引单元测试

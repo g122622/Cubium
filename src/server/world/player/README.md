@@ -88,10 +88,10 @@ player/
 
 移除玩家时必须调用 `removePlayerEntity()`，确保：
 - 从 EntityTracker 移除追踪
-- 从 EntityManager 移除实体
+- 从 EntityManager 销毁实体（`destroyEntity`，标记 `UnloadedWithPlayer`）
 - 清除 PlayerId ↔ EntityId 映射
 
-如果直接调用 `world.removeEntity()` 或 `entityManager.removeEntity()`，会导致追踪器和映射残留。
+如果直接调用 `entityManager().destroyEntity()`，会导致追踪器和映射残留。
 
 ### 3. 实体指针生命周期
 

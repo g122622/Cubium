@@ -1094,13 +1094,21 @@ void LivingEntity::onKillCommand()
     hurt(damageSource, std::numeric_limits<f32>::max());
 }
 
-void LivingEntity::remove()
+void LivingEntity::onRemoval(RemovalReason reason)
 {
-    // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
-    // 防止实体被移除后属性修饰符残留
+    // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符），防止实体被移除后属性修饰符残留。
+    // 此前置于 remove() 重写内，仅覆盖 remove() 路径；迁到 onRemoval 后 discard() 与
+    // EntityManager 销毁路径亦统一生效。
     item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
 
-    Entity::remove();
+    // TODO: 对齐 vanilla LivingEntity.remove（LivingEntity.java:703-712）的 triggerOnDeathMobEffects：
+    //   shouldDestroy(reason) 时遍历所有活跃效果调 MobEffect.onMobRemoved 回调并清空效果列表。
+    //   当前效果系统（EffectInstance）无 onMobRemoved 钩子，且 Oozing/Weaving/WindCharged/Infested
+    //   的移除行为未实现（见 EffectType.cpp），待效果系统完善后在此补全（须以 shouldDestroy(reason) 门控，
+    //   卸载类原因不清空效果以免丢失存档中的效果状态）。
+    (void)reason;
+
+    Entity::onRemoval(reason);
 }
 
 // ============================================================================

@@ -372,8 +372,8 @@ void FoxEntity::pickUpItem(ItemEntity& itemEntity)
     ItemStack toHold(*itemStack.getItem(), 1);
     m_heldItem = std::make_unique<ItemStack>(std::move(toHold));
 
-    // 移除物品实体
-    itemEntity.remove();
+    // 物品被狐狸叼走，静默丢弃物品实体（对齐 vanilla Fox 的 discard()）
+    itemEntity.discard();
 
     // 重置进食计时器
     m_ticksSinceEaten = 0;

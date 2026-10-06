@@ -126,7 +126,8 @@ void CreeperEntity::explode()
 
     IWorld* worldPtr = world();
     if (!worldPtr) {
-        remove();
+        // 无世界引用（异常路径）静默丢弃，不做爆炸与掉落。
+        discard();
         return;
     }
 
@@ -151,8 +152,8 @@ void CreeperEntity::explode()
         this   // 爆炸源实体
     );
 
-    // 移除实体
-    remove();
+    // 爆炸后自毁（对齐 vanilla Creeper.explode 的 discard()）：静默移除，不掉落、不再触发死亡流程。
+    discard();
 
     // 生成滞留药水云（如果有药水效果）
     _spawnLingeringCloud();

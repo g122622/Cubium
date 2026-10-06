@@ -264,10 +264,12 @@ public:
     // ========== 生命周期 ==========
 
     /**
-     * @brief 移除实体
-     * 重写以实现史莱姆分裂逻辑。
+     * @brief 实体移除清理钩子
+     *
+     * 重写以实现史莱姆死亡分裂逻辑（对齐 vanilla Slime.remove）。仅摧毁类原因
+     * （Killed/Discarded）且濒死时分裂，区块卸载等场景不分裂。
      */
-    void remove() override;
+    void onRemoval(RemovalReason reason) override;
 
     void tick() override;
 

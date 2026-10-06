@@ -16,6 +16,7 @@
 ├── EntityDataManager.hpp #实体数据同步管理（客户端 -
     服务端数据同步）
 ├── EntityPose.hpp #实体姿态枚举（站立、潜行、游泳、睡眠等）
+├── RemovalReason.hpp #实体移除原因枚举（Killed/Discarded/UnloadedToChunk/UnloadedWithPlayer/ChangedDimension）
 ├── EntitySize.hpp #实体尺寸定义（宽度、高度、眼睛高度）
 ├── EntityClassification.hpp / cpp #实体分类（怪物、动物、环境等）
 ├── EntityUtils.hpp #模板型实体工具函数（搜索、距离）
@@ -805,6 +806,27 @@
             -
             典型覆写示例：`VillagerEntity::
                 setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
+
+## #实体移除语义（RemovalReason / remove / discard / onRemoval）
+
+对齐 vanilla 1.21.11 `Entity.RemovalReason` 的两阶段移除：**逻辑移除**（`Entity::remove(reason)` 标记 + 断骑乘 + `onRemoval` 回调）与**物理销毁**（`EntityManager` 经 graveyard 延迟队列在 tick 安全点析构）分离。
+
+- `remove()` — 便捷重载，等价 `remove(RemovalReason::Killed)`（死亡流程 `tickDeath` 收尾用）。
+- `remove(RemovalReason)` — 首次移除才生效（重复调用不覆盖原因、不重复 `onRemoval`），内部：置 `m_removalReason` → `shouldDestroy(reason)` 时 `stopRiding()` → 所有乘客 `stopRiding()` → `onRemoval(reason)`。
+- `discard()` — 等价 `remove(RemovalReason::Discarded)`（静默移除，无掉落/经验）。
+- `onRemoval(RemovalReason)` — 子类清理钩子（对齐 vanilla `Entity.onRemoval`）。**各层重写须调基类版本**（`super.onRemoval`），保持继承链清理不被截断。
+- `isRemoved()` = `m_removalReason.has_value()`；`removalReason()` 返回 `std::optional<RemovalReason>`。
+- `shouldDestroy(reason)` — 仅 `Killed`/`Discarded` 为真：决定是否执行"摧毁类"副作用（掉落容器内容物、史莱姆分裂、断骑乘）。
+- `shouldSave(reason)` — 仅 `UnloadedToChunk` 为真：决定实体是否需写盘。
+
+已迁移到 `onRemoval` 的子类：`LivingEntity`（停位置依赖附魔效果）、`SlimeEntity`（死亡分裂，加 `isDead() && shouldDestroy(reason)` 门控）、`ChestBoatEntity`（掉落容器内容物，加 `shouldDestroy(reason)` 门控）、`VillagerEntity`（释放 POI）。
+
+**容易踩的坑**：
+
+- **不要在子类重写 `remove()`**：`remove()` 会被 `discard()` 与 `EntityManager::destroyEntity` 共用，重写它只能覆盖一条路径。移除清理一律走 `onRemoval(RemovalReason)`。
+- **`discard()` 与 `remove()` 现在有语义差异**：前者 `Discarded`、后者 `Killed`，两者 `shouldDestroy` 都为真但事件载荷/子类判定可区分。原先两者实现体全等，按 `remove()` 语义写的子类逻辑在 `discard()` 路径下不生效——迁移到 `onRemoval` 后统一。
+- **卸载类原因不应执行摧毁副作用**：`UnloadedToChunk`/`UnloadedWithPlayer`/`ChangedDimension` 下实体只是离开当前世界视图，容器内容物、骑乘关系必须保留。凡在 `onRemoval` 内做掉落/分裂的子类，必须查 `shouldDestroy(reason)`。
+- **`remove()` 内不直接发事件**：`EntityManager` 把移除通知入队，在 tick 安全点冲刷（见 `world/entity/README.md`），避免遍历中回调订阅者改容器致迭代器失效。
 
 ## #setYBodyRot / setYHeadRot 虚方法（身体/头部偏航角同步）
 

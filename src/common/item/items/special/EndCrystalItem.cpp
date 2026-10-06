@@ -55,8 +55,8 @@ ActionResultType EndCrystalItem::onItemUse(ItemUseContext& context)
     const BlockState* clickedState = world.getBlockState(blockPos);
 
     // 对齐 vanilla EndCrystalItem#useOn：仅在黑曜石或基岩上放置
-    if (clickedState == nullptr || (!clickedState->is(VanillaBlocks::OBSIDIAN) &&
-                                       !clickedState->is(VanillaBlocks::BEDROCK))) {
+    if (clickedState == nullptr ||
+        (!clickedState->is(VanillaBlocks::OBSIDIAN) && !clickedState->is(VanillaBlocks::BEDROCK))) {
         return ActionResultType::Fail;
     }
 

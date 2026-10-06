@@ -854,12 +854,8 @@ TEST_F(ServerWorldTest, RemoveEntity_AutoUntracksFromEntityTracker)
     // 验证实体的追踪器状态
     EXPECT_TRUE(world->entityTracker().isTracking(entityId));
 
-    // 移除实体 - 应该自动从追踪器中移除
-    auto removedEntity = world->removeEntity(entityId);
-
-    // 验证实体被正确移除
-    ASSERT_NE(removedEntity, nullptr);
-    EXPECT_EQ(removedEntity->id(), entityId);
+    // 销毁实体 - 应该自动从追踪器中移除
+    world->destroyEntity(entityId, RemovalReason::Discarded);
 
     // 验证实体不再被追踪
     EXPECT_FALSE(world->entityTracker().isTracking(entityId));
@@ -872,9 +868,8 @@ TEST_F(ServerWorldTest, RemoveEntity_NonExistentEntity_ReturnsNullptr)
 {
     ASSERT_TRUE(world->initialize().success());
 
-    // 移除不存在的实体应该返回 nullptr
-    auto result = world->removeEntity(EntityInstanceId(99999));
-    EXPECT_EQ(result, nullptr);
+    // 销毁不存在的实体不应崩溃（内部记录错误日志）
+    EXPECT_NO_FATAL_FAILURE(world->destroyEntity(EntityInstanceId(99999), RemovalReason::Discarded));
 }
 
 TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved)
@@ -903,10 +898,8 @@ TEST_F(ServerWorldTest, RemoveEntity_MultipleEntities_OnlyTargetRemoved)
     EXPECT_TRUE(world->entityTracker().isTracking(id2));
     EXPECT_TRUE(world->entityTracker().isTracking(id3));
 
-    // 移除中间的实体
-    auto removed = world->removeEntity(id2);
-    ASSERT_NE(removed, nullptr);
-    EXPECT_EQ(removed->id(), id2);
+    // 销毁中间的实体
+    world->destroyEntity(id2, RemovalReason::Discarded);
 
     // 验证只有目标实体被移除和取消追踪
     EXPECT_FALSE(world->entityTracker().isTracking(id2));

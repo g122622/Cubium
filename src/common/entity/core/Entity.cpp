@@ -189,13 +189,47 @@ Entity::~Entity()
         m_entityContext->registry().destroy(m_entityContext->entity());
     }
 
-    // 路径A兜底：实体析构（remove()/discard → graveyard 延迟析构，或其它直接析构路径）。
+    // 兜底：实体析构（EntityManager::destroyEntity → graveyard 延迟析构，或其它直接析构路径）。
     // invalidateAll 把所有指向本实体的 JS 句柄 ObjectData::ptr 置 nullptr，防 owned=false 裸 Entity*
-    // 句柄悬垂 UAF（见 ScriptHandleRegistry.hpp 问题背景）。与 EntityManager::removeEntity 的
-    // invalidateAll（路径B立即 free）形成双保险：路径A经 graveyard 延迟，可能先于析构就被 removeEntity
-    // 处理过（此时 invalidate 已幂等 no-op），也可能不经 removeEntity 直接析构（此处兜底）。
+    // 句柄悬垂 UAF（见 ScriptHandleRegistry.hpp 问题背景）。与 EntityManager::takeEntity 的
+    // invalidateAll（跨维度迁移时若调用者丢弃 unique_ptr 立即 free）形成双保险：销毁路径经
+    // graveyard 延迟，由此处兜底；takeEntity 路径可能先于析构就 invalidate（此时幂等 no-op）。
     // 重复调用安全：已 invalidate 的 id 在注册表中已 erase，再次调为 no-op。
     mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(m_id);
+}
+
+void Entity::remove(RemovalReason reason)
+{
+    // 首次移除才生效（对齐 vanilla setRemoved 的 `if (removalReason == null)`）：重复调用
+    // 不覆盖原因、不重复执行断骑乘与 onRemoval。死亡流程中 tickDeath 与兜底路径可能各调一次。
+    if (m_removalReason.has_value()) {
+        return;
+    }
+    m_removalReason = reason;
+
+    // 摧毁类原因（Killed/Discarded）才让自己下骑（对齐 vanilla
+    // `if (removalReason.shouldDestroy()) this.stopRiding()`）。区块卸载/玩家退出/切维度时
+    // 骑乘关系应随实体保留，不主动下骑。
+    if (shouldDestroy(reason)) {
+        stopRiding();
+    }
+
+    // 所有乘客下车（对齐 vanilla setRemoved 的 `getPassengers().forEach(Entity::stopRiding)`）。
+    // 先拷贝乘客列表再遍历：乘客 stopRiding() 会回调 removePassenger 修改 m_passengers，
+    // 直接迭代会失效（同 propagateFallToPassengers 的处理）。
+    // 无世界引用（单元测试夹具）时乘客无法定位，跳过——此时亦无真实骑乘关系需断。
+    if (m_world != nullptr) {
+        auto passengers = m_passengers;
+        for (EntityInstanceId passengerId : passengers) {
+            if (Entity* passenger = m_world->getEntity(passengerId)) {
+                passenger->stopRiding();
+            }
+        }
+    }
+
+    // 子类清理钩子（对齐 vanilla Entity.onRemoval）。须在断引用之后、物理销毁之前调用，
+    // 使子类仍能访问世界与自身状态（如掉落容器内容物、释放 POI、史莱姆分裂）。
+    onRemoval(reason);
 }
 
 void Entity::registerData()
@@ -2268,12 +2302,12 @@ bool Entity::hurt(DamageSource& source, f32 amount)
 bool Entity::isInvulnerableTo(DamageSource& source) const
 {
     // 0. 已移除实体对所有伤害免疫（对齐 vanilla Entity.isInvulnerableToBase:2919 首项 isRemoved()）。
-    //    remove()/discard() 标记 m_removed=true 后，实体将在本 tick 末从世界移除；此窗口内
+    //    remove()/discard() 标记后，实体将在本 tick 末从世界移除；此窗口内
     //    （僵尸窗口，见 world/entity/README.md:143）若被 hurt 应免疫，避免对正在清理的实体
     //    施加伤害（重复死亡链路/UAF）。vanilla 把此守卫放在 isInvulnerableToBase final 首项
     //    做最底层兜底；Cubium 此前仅在遍历层过滤，hurt 入口缺兜底，新增 hurt 调用点若忘查
     //    isAlive 即穿透。此处补齐对齐 vanilla。
-    if (m_removed) {
+    if (isRemoved()) {
         return true;
     }
     // 1. invulnerable 标志守卫（对齐 vanilla isInvulnerableToBase:2920：

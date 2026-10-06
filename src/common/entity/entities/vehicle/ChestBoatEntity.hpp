@@ -96,9 +96,11 @@ public:
     void dropItem() override;
 
     /**
-     * @brief 实体被移除时掉落容器内容
+     * @brief 实体移除时掉落容器内容
+     *
+     * 仅摧毁类原因（Killed/Discarded）掉落，区块卸载等场景内容物随船保留。
      */
-    void remove() override;
+    void onRemoval(RemovalReason reason) override;
 
     /**
      * @brief 箱子船最多承载1名乘客

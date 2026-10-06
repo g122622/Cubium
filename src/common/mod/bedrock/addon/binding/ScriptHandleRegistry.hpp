@@ -40,15 +40,15 @@ namespace mc::mod::bedrock::addon {
  * C++ 侧实体销毁后这些 JS 句柄悬垂，后续 `getComponent("minecraft:onfire")` 等回调解引用悬垂
  * 指针（如 `Entity::isOnFire`）即 UAF，段错误杀掉整个 GameTestServer 全量运行。
  *
- * 实体销毁两条路径（见 `EntityManager` graveyard 机制）：
- * - 路径A（`remove()`/discard 标记 → graveyard 延迟析构）：对象标记后存活到下一 tick 末尾才 free，
- *   此窗口内 `isRemoved()=true`。`getComponent` 入口的 `if (ent->isRemoved()) return undefined`
- *   止血守卫在此窗口有效。
- * - 路径B（`EntityManager::removeEntity` 丢弃 `unique_ptr` → 立即 free，如区块卸载
- *   `ServerWorld::onChunkUnloading`）：对象立即 free，`isRemoved()` 守卫本身在已 free 对象上调用
- *   即 UAF，止血无效。
+ * 实体销毁两条路径（见 `EntityManager` 的两阶段销毁：逻辑移除 → graveyard 延迟析构）：
+ * - 销毁路径（`EntityManager::destroyEntity` / `remove()`+tick 收走 → graveyard 延迟析构）：
+ *   对象标记后存活到下一 tick 末尾才 free，此窗口内 `isRemoved()=true`。`getComponent` 入口的
+ *   `if (ent->isRemoved()) return undefined` 止血守卫在此窗口有效，且析构时由 `~Entity` 兜底 invalidate。
+ * - 移交路径（`EntityManager::takeEntity` 把 `unique_ptr` 交给调用者，跨维度迁移）：若调用者
+ *   丢弃 unique_ptr 实体立即 free，`isRemoved()` 守卫本身在已 free 对象上调用即 UAF。故 takeEntity
+ *   内主动 invalidate 作为该路径的止血点。
  *
- * 本注册表彻底根治两条路径：实体销毁时（`EntityManager::removeEntity` + `Entity::~Entity` 兜底）
+ * 本注册表彻底根治两条路径：实体销毁/移交时（`EntityManager::takeEntity` + `Entity::~Entity` 兜底）
  * 调 `invalidateAll(id)`，把所有指向该实体的 `ObjectData::ptr` 置 nullptr。之后 `unwrap` 返 nullptr，
  * 各绑定调用点已有的 `if (ent == nullptr) return undefined;` 守卫拦截，JS 侧得到 undefined 而非 UAF。
  *

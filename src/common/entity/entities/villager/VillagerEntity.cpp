@@ -382,15 +382,18 @@ bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
     return true;
 }
 
-void VillagerEntity::remove()
+void VillagerEntity::onRemoval(RemovalReason reason)
 {
-    // 村民被移除时释放POI并通知村庄。村民不会因距离远而消失，
-    // 但当确实被移除时（死亡动画结束、区块卸载等）需要清理POI占用。
-
+    // 村民被移除时释放 POI 并通知村庄。村民不会因距离远而消失，但当确实被移除时
+    // （死亡动画结束、区块卸载等）需要清理 POI 占用。
+    // TODO: 对齐 vanilla 语义——vanilla 在 Villager.die 内释放 POI（Villager.java:616），
+    //   remove() 无重写，即区块卸载（UNLOADED_TO_CHUNK）不释放 POI（重新加载后仍持原 POI）。
+    //   当前在 onRemoval 无条件释放，卸载场景会提前放弃 POI。待 POI 生命周期与区块加载路径
+    //   核对后改为按 shouldDestroy(reason) 门控（或迁至 die()）。
     releaseAllPois();
 
-    // 调用父类 remove()
-    AbstractVillagerEntity::remove();
+    // 调用父类清理
+    AbstractVillagerEntity::onRemoval(reason);
 }
 
 // ============================================================================
@@ -852,8 +855,8 @@ void VillagerEntity::pickUpItem(ItemEntity& itemEntity)
     }
 
     if (remainder.isEmpty()) {
-        // 全部装入，移除物品实体（对齐 Java p_219614_.discard()）
-        itemEntity.remove();
+        // 全部装入，静默丢弃物品实体（对齐 vanilla 的 discard()）
+        itemEntity.discard();
     } else {
         // 部分装入，把剩余 count 写回 ItemEntity（对齐 Java itemstack.setCount(itemstack1.getCount())）
         itemEntity.setItemStack(remainder);

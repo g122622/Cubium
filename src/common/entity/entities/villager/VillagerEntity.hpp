@@ -118,13 +118,12 @@ public:
     void die(DamageSource& cause) override;
 
     /**
-     * @brief 重写实体移除回调
+     * @brief 重写实体移除清理钩子
      *
-     * 村民被移除时释放占用的POI并通知村庄管理器。
-     * 与 die() 不同，remove() 在实体被标记为移除时调用（如死亡动画结束后、
-     * 区块卸载、/kill 命令等场景）。
+     * 村民被移除时释放占用的 POI 并通知村庄管理器。
+     * 在实体被标记为移除时调用（死亡动画结束后、区块卸载、/kill 命令等场景）。
      */
-    void remove() override;
+    void onRemoval(RemovalReason reason) override;
 
     /**
      * @brief 释放村民占用的所有POI

@@ -256,13 +256,16 @@ public:
     void createWitherRose(LivingEntity* killCredit);
 
     /**
-     * @brief 重写 Entity::remove()，在实体移除时清理位置依赖附魔效果
+     * @brief 重写 Entity::onRemoval()，在实体移除时清理死亡相关状态
      *
-     * 当实体被移除（包括死亡后被清除、卸载等场景）时，
-     * 需要停用所有活跃的位置依赖附魔效果（如灵魂疾行的速度修饰符），
-     * 防止属性修饰符残留。
+     * 当实体被移除（死亡收尾、区块卸载、玩家退出、跨维度迁移）时清理：
+     * - 摧毁类原因（Killed/Discarded）下触发效果移除回调并清空所有药水效果
+     *   （对齐 vanilla LivingEntity.remove 的 triggerOnDeathMobEffects）；
+     * - 停用所有活跃的位置依赖附魔效果（如灵魂疾行的速度修饰符），防止属性修饰符残留。
+     *
+     * 须调用基类 onRemoval（对齐 vanilla super.onRemoval），保持继承链清理不被截断。
      */
-    void remove() override;
+    void onRemoval(RemovalReason reason) override;
 
     /**
      * @brief 由 /kill 命令调用
