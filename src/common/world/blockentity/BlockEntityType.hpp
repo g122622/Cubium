@@ -101,6 +101,10 @@ enum class BlockEntityType : u16 {
     // 1.21.11 铜傀儡雕像
     CopperGolemStatue, ///< 铜傀儡雕像
 
+    // 1.21.5+ GameTest 框架
+    TestBlock,         ///< 测试方块
+    TestInstanceBlock, ///< 测试实例方块
+
     Count ///< 类型数量
 };
 

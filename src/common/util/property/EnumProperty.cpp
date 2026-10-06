@@ -671,6 +671,42 @@ std::optional<BlockStateProperties::StructureMode> EnumProperty<BlockStateProper
 }
 
 // ============================================================================
+// TestBlockMode Traits 实现（1.21.5+ GameTest 框架）
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::TestBlockMode>::Traits::toString(
+    const BlockStateProperties::TestBlockMode& value)
+{
+    switch (value) {
+        case BlockStateProperties::TestBlockMode::Start:
+            return "start";
+        case BlockStateProperties::TestBlockMode::Log:
+            return "log";
+        case BlockStateProperties::TestBlockMode::Fail:
+            return "fail";
+        case BlockStateProperties::TestBlockMode::Accept:
+            return "accept";
+        default:
+            return "fail";
+    }
+}
+
+std::optional<BlockStateProperties::TestBlockMode> EnumProperty<BlockStateProperties::TestBlockMode>::Traits::fromName(
+    std::string_view name)
+{
+    if (name == "start") {
+        return BlockStateProperties::TestBlockMode::Start;
+    } else if (name == "log") {
+        return BlockStateProperties::TestBlockMode::Log;
+    } else if (name == "fail") {
+        return BlockStateProperties::TestBlockMode::Fail;
+    } else if (name == "accept") {
+        return BlockStateProperties::TestBlockMode::Accept;
+    }
+    return std::nullopt;
+}
+
+// ============================================================================
 // DripstoneThickness Traits 实现 (1.17+)
 // ============================================================================
 

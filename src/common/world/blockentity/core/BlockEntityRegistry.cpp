@@ -43,6 +43,8 @@
 #include "world/blockentity/interactive/ShelfBlockEntity.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/interactive/SkullBlockEntity.hpp"
+#include "world/blockentity/interactive/TestBlockEntity.hpp"
+#include "world/blockentity/interactive/TestInstanceBlockEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
@@ -219,6 +221,14 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册可刷方块实体（可疑沙/可疑沙砾）
     registerType(BlockEntityType::BrushableBlock,
         [](const BlockPos& pos) { return std::make_unique<BrushableBlockEntity>(pos); });
+
+    // 注册测试方块实体（GameTest 框架）
+    registerType(BlockEntityType::TestBlock,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::TestBlockEntity>(pos); });
+
+    // 注册测试实例方块实体（GameTest 框架）
+    registerType(BlockEntityType::TestInstanceBlock,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::TestInstanceBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

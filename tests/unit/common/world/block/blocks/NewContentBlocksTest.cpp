@@ -29,6 +29,8 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/block/WallOrFloorItem.hpp"
+#include "common/skin/core/GameProfile.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
@@ -51,8 +53,6 @@
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/skin/core/GameProfile.hpp"
-#include "common/sound/SoundEvents.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -313,13 +313,13 @@ TEST_F(CopperTorchTest, TorchBlock_RequiresSupportBelow)
     const BlockPos torchPos(4, 1, 4);
 
     // 无下方支撑：不可存活
-    EXPECT_FALSE(VanillaBlocks::COPPER_TORCH->isValidPosition(
-        VanillaBlocks::COPPER_TORCH->defaultState(), world, torchPos));
+    EXPECT_FALSE(
+        VanillaBlocks::COPPER_TORCH->isValidPosition(VanillaBlocks::COPPER_TORCH->defaultState(), world, torchPos));
 
     // 下方放置石头：可存活
     world.setBlockAt(torchPos.down(), &VanillaBlocks::STONE->defaultState());
-    EXPECT_TRUE(VanillaBlocks::COPPER_TORCH->isValidPosition(
-        VanillaBlocks::COPPER_TORCH->defaultState(), world, torchPos));
+    EXPECT_TRUE(
+        VanillaBlocks::COPPER_TORCH->isValidPosition(VanillaBlocks::COPPER_TORCH->defaultState(), world, torchPos));
 }
 
 TEST_F(CopperTorchTest, TorchBlock_RemovedWhenSupportLost)
@@ -593,10 +593,10 @@ TEST_F(SkullBlockTest, WallSkull_UpdatePostPlacement_RemovedWhenWallGone)
 
 TEST_F(SkullBlockTest, PiglinStandingHead_HasLargerShape)
 {
-    const CollisionShape& normalShape = VanillaBlocks::SKELETON_SKULL->getShape(
-        VanillaBlocks::SKELETON_SKULL->defaultState());
-    const CollisionShape& piglinShape = VanillaBlocks::PIGLIN_HEAD->getShape(
-        VanillaBlocks::PIGLIN_HEAD->defaultState());
+    const CollisionShape& normalShape =
+        VanillaBlocks::SKELETON_SKULL->getShape(VanillaBlocks::SKELETON_SKULL->defaultState());
+    const CollisionShape& piglinShape =
+        VanillaBlocks::PIGLIN_HEAD->getShape(VanillaBlocks::PIGLIN_HEAD->defaultState());
     // 猪灵头碰撞箱更宽，两者不应为同一对象
     EXPECT_NE(&normalShape, &piglinShape);
 }
@@ -650,8 +650,7 @@ TEST_F(SkullBlockTest, SkullEntity_AnimationAccumulatesWhenPowered)
     const f32 before = entity.getAnimation(0.0f);
 
     // 激活：动画计数增长
-    world.setBlockAt(pos,
-        &VanillaBlocks::DRAGON_HEAD->defaultState().with(BlockStateProperties::POWERED(), true));
+    world.setBlockAt(pos, &VanillaBlocks::DRAGON_HEAD->defaultState().with(BlockStateProperties::POWERED(), true));
     entity.tick(world);
     EXPECT_GT(entity.getAnimation(0.0f), before);
 }

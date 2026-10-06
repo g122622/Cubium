@@ -1322,6 +1322,35 @@ public:
     }
 
     // ========================================================================
+    // 测试方块模式属性（1.21.5+ GameTest 框架）
+    // ========================================================================
+
+    /**
+     * @brief 测试方块模式枚举
+     *
+     * 对齐 MC 1.21.11 net.minecraft.world.level.block.state.properties.TestBlockMode。
+     * 用于 TestBlock，表示测试方块在 GameTest 中的角色。
+     */
+    enum class TestBlockMode : u8 {
+        Start = 0, ///< 起始方块 - 被红石信号触发时启动测试
+        Log = 1,   ///< 日志方块 - 被触发时输出消息
+        Fail = 2,  ///< 失败方块 - 被触发时使测试失败
+        Accept = 3 ///< 通过方块 - 被触发时使测试通过
+    };
+
+    /**
+     * @brief 测试方块模式属性
+     *
+     * 对齐 MC 1.21.11 net.minecraft.world.level.block.state.properties.BlockStateProperties.TEST_BLOCK_MODE。
+     */
+    static const EnumProperty<TestBlockMode>& TEST_BLOCK_MODE()
+    {
+        static auto prop = EnumProperty<TestBlockMode>::create(
+            "mode", {TestBlockMode::Start, TestBlockMode::Log, TestBlockMode::Fail, TestBlockMode::Accept});
+        return *prop;
+    }
+
+    // ========================================================================
     // 其他布尔属性
     // ========================================================================
 
@@ -1977,6 +2006,16 @@ template <>
 struct mc::EnumProperty<mc::BlockStateProperties::StructureMode>::Traits {
     static std::string toString(const mc::BlockStateProperties::StructureMode& value);
     static std::optional<mc::BlockStateProperties::StructureMode> fromName(std::string_view name);
+};
+
+// ============================================================================
+// TestBlockMode 枚举特征特化（1.21.5+ GameTest 框架）
+// ============================================================================
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::TestBlockMode>::Traits {
+    static std::string toString(const mc::BlockStateProperties::TestBlockMode& value);
+    static std::optional<mc::BlockStateProperties::TestBlockMode> fromName(std::string_view name);
 };
 
 // ============================================================================

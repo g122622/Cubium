@@ -39,9 +39,12 @@
 #include "world/block/blocks/special/ChainCommandBlock.hpp"
 #include "world/block/blocks/special/CommandBlock.hpp"
 #include "world/block/blocks/special/JigsawBlock.hpp"
+#include "world/block/blocks/special/LightBlock.hpp"
 #include "world/block/blocks/special/RepeatingCommandBlock.hpp"
 #include "world/block/blocks/special/StructureBlock.hpp"
 #include "world/block/blocks/special/StructureVoidBlock.hpp"
+#include "world/block/blocks/special/TestBlock.hpp"
+#include "world/block/blocks/special/TestInstanceBlock.hpp"
 #include "world/block/registry/BaseBlocks.hpp"
 #include "world/block/registry/BuildingBlocks.hpp"
 
@@ -183,6 +186,11 @@ Block* BuildingVariantBlocks::BARRIER = nullptr;
 Block* BuildingVariantBlocks::COMMAND_BLOCK = nullptr;
 Block* BuildingVariantBlocks::REPEATING_COMMAND_BLOCK = nullptr;
 Block* BuildingVariantBlocks::CHAIN_COMMAND_BLOCK = nullptr;
+
+// 1.21.5+ GameTest 框架调试方块
+Block* BuildingVariantBlocks::LIGHT = nullptr;
+Block* BuildingVariantBlocks::TEST_BLOCK = nullptr;
+Block* BuildingVariantBlocks::TEST_INSTANCE_BLOCK = nullptr;
 
 // ============================================================================
 // 楼梯、台阶、墙、栅栏、门、栅栏门、活板门、染色玻璃板、特殊方块注册
@@ -734,6 +742,29 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::CHAIN_COMMAND_BLOCK =
         &registry.registerBlock<blocks::ChainCommandBlock>(ResourceLocation("minecraft:chain_command_block"),
             BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // ========== 1.21.5+ GameTest 框架调试方块 ==========
+
+    // 光源方块 - 不可见的可调亮度光源，创造模式管理员可用。
+    // 对齐 vanilla Blocks.LIGHT：replaceable、strength(-1, 3600000)、noLootTable、noOcclusion、
+    // lightLevel(state -> LEVEL)。
+    BuildingVariantBlocks::LIGHT = &registry.registerBlock<blocks::LightBlock>(ResourceLocation("minecraft:light"),
+        BlockProperties(Material::DECORATION)
+            .replaceable()
+            .hardness(-1.0f)
+            .resistance(3600000.0f)
+            .noLootTable()
+            .opacity(0));
+
+    // 测试方块 - GameTest 框架的调试方块（start/log/fail/accept 四模式）
+    BuildingVariantBlocks::TEST_BLOCK =
+        &registry.registerBlock<blocks::TestBlock>(ResourceLocation("minecraft:test_block"),
+            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 测试实例方块 - 标记测试实例结构位置，无遮挡
+    BuildingVariantBlocks::TEST_INSTANCE_BLOCK =
+        &registry.registerBlock<blocks::TestInstanceBlock>(ResourceLocation("minecraft:test_instance_block"),
+            BlockProperties(Material::TEST_BLOCK).hardness(-1.0f).resistance(3600000.0f).noLootTable().opacity(0));
 }
 
 } // namespace block_registry

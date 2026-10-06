@@ -508,4 +508,59 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceDriedGhastInWater_Waterlogged)
     EXPECT_TRUE(placed->get(BlockStateProperties::WATERLOGGED()));
 }
 
+// 光源方块放置：默认 LEVEL=15，且无方块实体
+TEST_F(BlockInteractionManagerPlacementTest, PlaceLightBlock_DefaultLevel15)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldBlockItem(*VanillaBlocks::LIGHT, 4);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().blockPlaced);
+
+    const BlockState* placed = m_world->getBlockState(0, 64, 0);
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::LIGHT));
+    EXPECT_EQ(placed->get(BlockStateProperties::LEVEL_0_15()), 15);
+    // 光源方块无方块实体
+    EXPECT_EQ(m_world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
+}
+
+// 测试方块放置：创建 TestBlockEntity
+TEST_F(BlockInteractionManagerPlacementTest, PlaceTestBlock_CreatesTestBlockEntity)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldBlockItem(*VanillaBlocks::TEST_BLOCK, 2);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().blockPlaced);
+
+    const BlockState* placed = m_world->getBlockState(0, 64, 0);
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::TEST_BLOCK));
+
+    // 测试方块实体已被创建，默认 MODE=Fail
+    BlockEntity* blockEntity = m_world->getBlockEntity(BlockPos(0, 64, 0));
+    ASSERT_NE(blockEntity, nullptr);
+    EXPECT_EQ(blockEntity->getType(), BlockEntityType::TestBlock);
+    EXPECT_EQ(placed->get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Fail);
+}
+
 } // namespace

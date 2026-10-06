@@ -54,6 +54,7 @@
 #include "common/item/items/special/BoneMealItem.hpp"
 #include "common/item/items/special/BrushItem.hpp"
 #include "common/item/items/special/BucketItem.hpp"
+#include "common/item/items/special/DebugStickItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/EnderEyeItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
@@ -444,6 +445,7 @@ Item* Items::BELL = nullptr;
 Item* Items::SUSPICIOUS_SAND = nullptr;
 Item* Items::SUSPICIOUS_GRAVEL = nullptr;
 Item* Items::NAME_TAG = nullptr;
+Item* Items::DEBUG_STICK = nullptr;
 Item* Items::SADDLE = nullptr;
 Item* Items::STRING = nullptr;
 Item* Items::FEATHER = nullptr;
@@ -2524,6 +2526,10 @@ void Items::_registerMisc()
     // 命名牌 - 给生物命名，使其持久化
     NAME_TAG = &registry.registerItem<item::items::NameTagItem>(
         ResourceLocation("minecraft:name_tag"), ItemProperties().maxStackSize(64));
+
+    // 调试棒 - 管理员调试工具，循环切换方块状态属性
+    DEBUG_STICK = &registry.registerItem<item::items::DebugStickItem>(
+        ResourceLocation("minecraft:debug_stick"), ItemProperties().maxStackSize(1));
 
     // 鞍 - 用于装备可骑乘实体（猪、炽足兽、马等）
     SADDLE = &registry.registerItem<item::items::SaddleItem>(

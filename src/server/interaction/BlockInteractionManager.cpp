@@ -653,6 +653,17 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     // 获取手持物品作为工具
     ItemStack tool = _getHeldTool(playerId);
 
+    // 工具/物品的破坏前钩子（对齐 vanilla Item.canDestroyBlock：调试棒左键选中属性等）。
+    // 返回 false 表示"不允许破坏该方块"，中止后续破坏流程（如调试棒左键仅切换属性、不破坏方块）。
+    if (!tool.isEmpty()) {
+        if (Player* breakerEntity = _getPlayerEntity(playerId, *world)) {
+            if (tool.getItem() != nullptr &&
+                !tool.getItem()->canDestroyBlock(tool, oldState, *world, pos, *breakerEntity)) {
+                return BlockBreakResult{false, 0, "Block break prevented by item"};
+            }
+        }
+    }
+
     // 派发自定义方块组件回调 - onPlayerBreak
     auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
     std::string blockTypeId = oldState.getBlock().blockLocation().toString();

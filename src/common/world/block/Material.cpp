@@ -523,4 +523,10 @@ const Material& Material::POWDER_SNOW = []() -> const Material& {
     return material;
 }();
 
+const Material& Material::TEST_BLOCK = []() -> const Material& {
+    static const Material material =
+        MaterialBuilder().solid().opaque().pushReaction(Material::PushReaction::Block).build();
+    return material;
+}();
+
 } // namespace mc

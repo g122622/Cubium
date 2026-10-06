@@ -579,6 +579,7 @@ add_library(mc_common STATIC
     item/items/special/bundle/BundleContents.cpp
     item/items/special/bundle/BundleItem.cpp
     item/items/special/BucketItem.cpp
+    item/items/special/DebugStickItem.cpp
     item/items/special/FishBucketItem.cpp
     item/items/special/FlintAndSteelItem.cpp
     item/items/special/HarnessItem.cpp
@@ -970,6 +971,9 @@ add_library(mc_common STATIC
     world/block/blocks/special/StructureVoidBlock.cpp
     world/block/blocks/special/StructureBlock.cpp
     world/block/blocks/special/JigsawBlock.cpp
+    world/block/blocks/special/LightBlock.cpp
+    world/block/blocks/special/TestBlock.cpp
+    world/block/blocks/special/TestInstanceBlock.cpp
     world/block/blocks/special/CommandBlock.cpp
     world/block/blocks/special/RepeatingCommandBlock.cpp
     world/block/blocks/special/ChainCommandBlock.cpp
@@ -1064,6 +1068,8 @@ add_library(mc_common STATIC
     world/blockentity/interactive/LecternEntity.cpp
     world/blockentity/interactive/ShelfBlockEntity.cpp
     world/blockentity/interactive/SkullBlockEntity.cpp
+    world/blockentity/interactive/TestBlockEntity.cpp
+    world/blockentity/interactive/TestInstanceBlockEntity.cpp
     world/blockentity/interactive/CopperGolemStatueBlockEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp

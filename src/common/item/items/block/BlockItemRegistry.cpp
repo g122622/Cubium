@@ -1538,6 +1538,12 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         registerGameMasterBlock(VanillaBlocks::COMMAND_BLOCK, "command_block");
         registerGameMasterBlock(VanillaBlocks::REPEATING_COMMAND_BLOCK, "repeating_command_block");
         registerGameMasterBlock(VanillaBlocks::CHAIN_COMMAND_BLOCK, "chain_command_block");
+
+        // 1.21.5+ GameTest 框架调试方块 - 均为管理员方块
+        // 光源方块：vanilla 用 GameMasterBlockItem（创造模式 + OP>=2 才能放置）
+        registerGameMasterBlock(VanillaBlocks::LIGHT, "light");
+        registerGameMasterBlock(VanillaBlocks::TEST_BLOCK, "test_block");
+        registerGameMasterBlock(VanillaBlocks::TEST_INSTANCE_BLOCK, "test_instance_block");
     }
 
     // 花盆方块

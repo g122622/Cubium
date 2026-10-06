@@ -722,6 +722,26 @@ public:
         ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker);
 
     /**
+     * @brief 检查物品是否允许破坏该方块（左键点击方块）
+     *
+     * 当持有此物品的玩家尝试破坏方块时调用，在方块实际被移除之前。
+     * 返回 false 表示"不允许破坏"——调用方应中止破坏流程，方块不被移除、不产生掉落。
+     *
+     * 对应 MC 1.21.11 Item#canDestroyBlock(ItemStack, BlockState, Level, BlockPos, LivingEntity)，
+     * 默认实现返回 true（普通物品可破坏方块）。典型反例：调试棒左键选中方块属性，
+     * 重写此方法执行属性切换后返回 false（不破坏方块）。
+     *
+     * @param stack 物品堆
+     * @param state 被点击的方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param breaker 破坏者（玩家）
+     * @return 是否允许破坏该方块（false 则中止破坏）
+     */
+    virtual bool canDestroyBlock(
+        ItemStack& stack, const BlockState& state, IWorld& world, const BlockPos& pos, LivingEntity& breaker) const;
+
+    /**
      * @brief 物品是否适合作为方块工具
      *
      * 检查物品是否可以用于采集指定方块。

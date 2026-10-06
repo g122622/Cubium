@@ -391,6 +391,18 @@ bool Item::onBlockDestroyed(
     return false;
 }
 
+bool Item::canDestroyBlock(
+    ItemStack& stack, const BlockState& state, IWorld& world, const BlockPos& pos, LivingEntity& breaker) const
+{
+    // 默认实现：允许破坏方块（对齐 vanilla Item#canDestroyBlock 返回 true）
+    (void)stack;
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)breaker;
+    return true;
+}
+
 bool Item::isSuitableFor(const BlockState& state) const
 {
     // 默认实现：不适用于任何方块

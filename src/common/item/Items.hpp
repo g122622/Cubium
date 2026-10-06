@@ -440,6 +440,7 @@ public:
     static Item* SUSPICIOUS_SAND;   // 可疑的沙子
     static Item* SUSPICIOUS_GRAVEL; // 可疑的沙砾
     static Item* NAME_TAG;          // 命名牌
+    static Item* DEBUG_STICK;       // 调试棒（管理员调试工具）
     static Item* SADDLE;            // 鞍
     static Item* STRING;
     static Item* FEATHER;

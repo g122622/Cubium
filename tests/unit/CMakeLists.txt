@@ -159,6 +159,8 @@ add_executable(mc_tests
     common/item/special/BrushItemTest.cpp
     # SpawnEggItem 刷怪蛋物品测试（spawnEntity 反查 EntityRegistry、onItemUse/onItemRightClick Java 行为对齐）
     common/item/items/special/SpawnEggItemTest.cpp
+    # 调试棒 + 光源方块 / 测试方块单元测试（GameTest 框架调试内容）
+    common/item/special/DebugStickItemTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp

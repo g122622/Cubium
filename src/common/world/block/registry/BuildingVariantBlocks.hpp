@@ -162,6 +162,11 @@ struct BuildingVariantBlocks {
     static Block* COMMAND_BLOCK;
     static Block* REPEATING_COMMAND_BLOCK;
     static Block* CHAIN_COMMAND_BLOCK;
+
+    // 1.21.5+ GameTest 框架调试方块
+    static Block* LIGHT;
+    static Block* TEST_BLOCK;
+    static Block* TEST_INSTANCE_BLOCK;
 };
 
 void registerBuildingVariantBlocks();
