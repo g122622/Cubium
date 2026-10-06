@@ -210,8 +210,20 @@ Item* Items::COPPER_INGOT = nullptr;
 Item* Items::NETHERITE_INGOT = nullptr;
 Item* Items::NETHERITE_SCRAP = nullptr;
 Item* Items::BRICK = nullptr;
+Item* Items::NETHER_BRICK = nullptr;
 Item* Items::RESIN_BRICK = nullptr;
 Item* Items::AMETHYST_SHARD = nullptr;
+Item* Items::CLAY_BALL = nullptr;
+Item* Items::GOLD_NUGGET = nullptr;
+Item* Items::IRON_NUGGET = nullptr;
+Item* Items::COPPER_NUGGET = nullptr;
+Item* Items::PRISMARINE_SHARD = nullptr;
+Item* Items::PRISMARINE_CRYSTALS = nullptr;
+Item* Items::SHULKER_SHELL = nullptr;
+Item* Items::POPPED_CHORUS_FRUIT = nullptr;
+Item* Items::ECHO_SHARD = nullptr;
+Item* Items::GLOW_INK_SAC = nullptr;
+Item* Items::DISC_FRAGMENT_5 = nullptr;
 
 // 粗矿（Raw Ore）
 Item* Items::RAW_IRON = nullptr;
@@ -478,6 +490,9 @@ Item* Items::LIGHT_BLUE_DYE = nullptr;
 Item* Items::MAGENTA_DYE = nullptr;
 Item* Items::ORANGE_DYE = nullptr;
 Item* Items::WHITE_DYE = nullptr;
+Item* Items::BLACK_DYE = nullptr;
+Item* Items::BLUE_DYE = nullptr;
+Item* Items::BROWN_DYE = nullptr;
 
 // 种子
 Item* Items::WHEAT_SEEDS = nullptr;
@@ -1303,6 +1318,8 @@ Item* Items::BREEZE_ROD = nullptr;
 Item* Items::MACE = nullptr;
 Item* Items::GUSTER_BANNER_PATTERN = nullptr;
 Item* Items::FLOW_BANNER_PATTERN = nullptr;
+Item* Items::FIELD_MASONED_BANNER_PATTERN = nullptr;
+Item* Items::BORDURE_INDENTED_BANNER_PATTERN = nullptr;
 
 // 锻造模板物品
 Item* Items::NETHERITE_UPGRADE_SMITHING_TEMPLATE = nullptr;
@@ -1630,6 +1647,46 @@ void Items::_registerMaterials()
 
     // 砖（合成材料）
     BRICK = &registry.registerItem(ResourceLocation("minecraft:brick"), ItemProperties().maxStackSize(64));
+
+    // 下界砖（合成材料）
+    NETHER_BRICK =
+        &registry.registerItem(ResourceLocation("minecraft:nether_brick"), ItemProperties().maxStackSize(64));
+
+    // 粘土球（合成材料，可烧制成红砖）
+    CLAY_BALL = &registry.registerItem(ResourceLocation("minecraft:clay_ball"), ItemProperties().maxStackSize(64));
+
+    // 矿物粒（金/铁/铜粒，9 粒合成 1 锭）
+    GOLD_NUGGET = &registry.registerItem(ResourceLocation("minecraft:gold_nugget"), ItemProperties().maxStackSize(64));
+
+    IRON_NUGGET = &registry.registerItem(ResourceLocation("minecraft:iron_nugget"), ItemProperties().maxStackSize(64));
+
+    COPPER_NUGGET =
+        &registry.registerItem(ResourceLocation("minecraft:copper_nugget"), ItemProperties().maxStackSize(64));
+
+    // 海洋材料
+    PRISMARINE_SHARD =
+        &registry.registerItem(ResourceLocation("minecraft:prismarine_shard"), ItemProperties().maxStackSize(64));
+
+    PRISMARINE_CRYSTALS =
+        &registry.registerItem(ResourceLocation("minecraft:prismarine_crystals"), ItemProperties().maxStackSize(64));
+
+    // 末地材料
+    SHULKER_SHELL =
+        &registry.registerItem(ResourceLocation("minecraft:shulker_shell"), ItemProperties().maxStackSize(64));
+
+    POPPED_CHORUS_FRUIT =
+        &registry.registerItem(ResourceLocation("minecraft:popped_chorus_fruit"), ItemProperties().maxStackSize(64));
+
+    // 幽匿 / 深暗材料
+    ECHO_SHARD = &registry.registerItem(ResourceLocation("minecraft:echo_shard"), ItemProperties().maxStackSize(64));
+
+    // 荧光墨囊（发光鱿鱼掉落物）
+    GLOW_INK_SAC =
+        &registry.registerItem(ResourceLocation("minecraft:glow_ink_sac"), ItemProperties().maxStackSize(64));
+
+    // 唱片残片 5（远古城市战利品，9 个合成唱片）
+    DISC_FRAGMENT_5 =
+        &registry.registerItem(ResourceLocation("minecraft:disc_fragment_5"), ItemProperties().maxStackSize(64));
 
     // 树脂砖（合成材料）
     RESIN_BRICK = &registry.registerItem(ResourceLocation("minecraft:resin_brick"), ItemProperties().maxStackSize(64));
@@ -2575,6 +2632,12 @@ void Items::_registerDyes()
     ORANGE_DYE = &registry.registerItem(ResourceLocation("minecraft:orange_dye"), ItemProperties().maxStackSize(64));
 
     WHITE_DYE = &registry.registerItem(ResourceLocation("minecraft:white_dye"), ItemProperties().maxStackSize(64));
+
+    BLACK_DYE = &registry.registerItem(ResourceLocation("minecraft:black_dye"), ItemProperties().maxStackSize(64));
+
+    BLUE_DYE = &registry.registerItem(ResourceLocation("minecraft:blue_dye"), ItemProperties().maxStackSize(64));
+
+    BROWN_DYE = &registry.registerItem(ResourceLocation("minecraft:brown_dye"), ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerSeeds()
@@ -4702,6 +4765,18 @@ void Items::_registerTrialChamberItems()
     FLOW_BANNER_PATTERN =
         &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:flow_banner_pattern"),
             blockentity::BannerPatternType::Flow,
+            ItemProperties().maxStackSize(1));
+
+    // 砖纹旗帜图案 - 对应 bricks 图案
+    FIELD_MASONED_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:field_masoned_banner_pattern"),
+            blockentity::BannerPatternType::Bricks,
+            ItemProperties().maxStackSize(1));
+
+    // 波纹边旗帜图案 - 对应 curly_border 图案
+    BORDURE_INDENTED_BANNER_PATTERN =
+        &registry.registerItem<item::BannerPatternItem>(ResourceLocation("minecraft:bordure_indented_banner_pattern"),
+            blockentity::BannerPatternType::CurlyBorder,
             ItemProperties().maxStackSize(1));
 
     // ========================================================================

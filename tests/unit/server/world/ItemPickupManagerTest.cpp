@@ -284,16 +284,20 @@ protected:
     }
 };
 
+// 注意：PlayerInventory::add 的返回值语义是「剩余未添加的数量」（见头文件 @return），
+// 与 vanilla Player.add() 的「拾取数量」相反。成功添加时返回 0，部分/完全失败时返回剩余量。
+// 消费方（GiveCommand/LootCommand 等）均按此约定判断是否掉落。
+
 TEST_F(PlayerInventoryPickupTest, AddItem_EmptyInventory)
 {
     PlayerInventory inventory(nullptr);
 
     // 添加一个物品
     ItemStack stack(Items::DIAMOND, 32);
-    i32 added = inventory.add(stack);
+    i32 remaining = inventory.add(stack);
 
-    // 应该完全添加
-    EXPECT_EQ(added, 32);
+    // 应该完全添加（无剩余）
+    EXPECT_EQ(remaining, 0);
     EXPECT_TRUE(stack.isEmpty());
 }
 
@@ -307,11 +311,11 @@ TEST_F(PlayerInventoryPickupTest, AddItem_ExistingStack)
 
     // 添加更多相同物品
     ItemStack stack(Items::DIAMOND, 16);
-    i32 added = inventory.add(stack);
+    i32 remaining = inventory.add(stack);
 
-    // 应该合并到已有堆叠
-    EXPECT_EQ(added, 16);                           // 添加了 16 个
-    EXPECT_TRUE(stack.isEmpty());                   // 原堆叠应该为空
+    // 应该合并到已有堆叠（无剩余）
+    EXPECT_EQ(remaining, 0);
+    EXPECT_TRUE(stack.isEmpty());
     EXPECT_EQ(inventory.getItem(0).getCount(), 48); // 32 + 16 = 48
 }
 
@@ -320,17 +324,19 @@ TEST_F(PlayerInventoryPickupTest, AddItem_FullInventory)
     PlayerInventory inventory(nullptr);
 
     // 填满背包（快捷栏 + 主背包 = 36 槽位，每个堆叠 64）
+    // 注意：add() 会优先尝试合并到副手槽（OFFHAND=40），故此处一并填满。
     for (int i = 0; i < 36; ++i) {
         ItemStack stack(Items::DIAMOND, 64);
         inventory.setItem(i, stack);
     }
+    inventory.setItem(InventorySlots::OFFHAND, ItemStack(Items::DIAMOND, 64));
 
     // 尝试添加更多物品
     ItemStack stack(Items::DIAMOND, 16);
-    i32 added = inventory.add(stack);
+    i32 remaining = inventory.add(stack);
 
-    // 背包已满，无法添加
-    EXPECT_EQ(added, 0);
+    // 背包已满，全部无法添加 → 剩余 16
+    EXPECT_EQ(remaining, 16);
     EXPECT_EQ(stack.getCount(), 16); // 原堆叠未改变
 }
 
@@ -338,15 +344,33 @@ TEST_F(PlayerInventoryPickupTest, AddItem_DifferentItems)
 {
     PlayerInventory inventory(nullptr);
 
-    // 添加钻石
+    // 添加钻石（selected=0 为空，落入快捷栏槽 0）
     ItemStack diamonds(Items::DIAMOND, 32);
     inventory.add(diamonds);
 
-    // 添加铁锭
+    // 添加铁锭（与钻石不可合并，落入下一个空槽）
     ItemStack iron(Items::IRON_INGOT, 16);
-    i32 added = inventory.add(iron);
+    i32 remaining = inventory.add(iron);
 
-    EXPECT_EQ(added, 16);
-    EXPECT_EQ(inventory.getItem(0).getCount(), 32); // 钻石
-    EXPECT_EQ(inventory.getItem(1).getCount(), 16); // 铁锭
+    EXPECT_EQ(remaining, 0); // 全部添加成功，无剩余
+
+    // 定位钻石与铁锭所在槽位（不假设具体槽号）
+    i32 diamondSlot = -1;
+    i32 ironSlot = -1;
+    for (i32 i = 0; i < PlayerInventory::TOTAL_SIZE; ++i) {
+        const ItemStack& slotStack = inventory.getItem(i);
+        if (slotStack.isEmpty()) {
+            continue;
+        }
+        if (slotStack.getItem() == Items::DIAMOND) {
+            diamondSlot = i;
+        } else if (slotStack.getItem() == Items::IRON_INGOT) {
+            ironSlot = i;
+        }
+    }
+
+    ASSERT_NE(diamondSlot, -1);
+    ASSERT_NE(ironSlot, -1);
+    EXPECT_EQ(inventory.getItem(diamondSlot).getCount(), 32);
+    EXPECT_EQ(inventory.getItem(ironSlot).getCount(), 16);
 }

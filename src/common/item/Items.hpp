@@ -61,8 +61,28 @@ public:
     static Item* NETHERITE_INGOT;
     static Item* NETHERITE_SCRAP;
     static Item* BRICK;          // 砖（合成材料）
+    static Item* NETHER_BRICK;   // 下界砖（合成材料）
     static Item* RESIN_BRICK;    // 树脂砖（合成材料）
     static Item* AMETHYST_SHARD; // 紫水晶碎片
+    static Item* CLAY_BALL;      // 粘土球
+
+    // ========================================================================
+    // 矿物粒（Nugget）
+    // ========================================================================
+    static Item* GOLD_NUGGET;   // 金粒
+    static Item* IRON_NUGGET;   // 铁粒
+    static Item* COPPER_NUGGET; // 铜粒
+
+    // ========================================================================
+    // 海洋 / 末地 / 幽匿材料
+    // ========================================================================
+    static Item* PRISMARINE_SHARD;    // 海晶碎片
+    static Item* PRISMARINE_CRYSTALS; // 海晶砂粒
+    static Item* SHULKER_SHELL;       // 潜影壳
+    static Item* POPPED_CHORUS_FRUIT; // 爆裂紫颂果
+    static Item* ECHO_SHARD;          // 回响碎片
+    static Item* GLOW_INK_SAC;        // 荧光墨囊
+    static Item* DISC_FRAGMENT_5;     // 唱片残片
 
     // ========================================================================
     // 粗矿（Raw Ore）
@@ -467,6 +487,9 @@ public:
     static Item* MAGENTA_DYE;
     static Item* ORANGE_DYE;
     static Item* WHITE_DYE;
+    static Item* BLACK_DYE;
+    static Item* BLUE_DYE;
+    static Item* BROWN_DYE;
 
     // ========================================================================
     // 种子
@@ -1372,14 +1395,16 @@ public:
     // ========================================================================
     // 试炼密室 (Trial Chambers)
     // ========================================================================
-    static Item* TRIAL_KEY;             // 试炼钥匙
-    static Item* OMINOUS_TRIAL_KEY;     // 不祥试炼钥匙
-    static Item* OMINOUS_BOTTLE;        // 不祥之瓶
-    static Item* WIND_CHARGE;           // 风弹
-    static Item* BREEZE_ROD;            // 狂风杖
-    static Item* MACE;                  // 重锤
-    static Item* GUSTER_BANNER_PATTERN; // 旋风旗帜图案
-    static Item* FLOW_BANNER_PATTERN;   // 涡流旗帜图案
+    static Item* TRIAL_KEY;                       // 试炼钥匙
+    static Item* OMINOUS_TRIAL_KEY;               // 不祥试炼钥匙
+    static Item* OMINOUS_BOTTLE;                  // 不祥之瓶
+    static Item* WIND_CHARGE;                     // 风弹
+    static Item* BREEZE_ROD;                      // 狂风杖
+    static Item* MACE;                            // 重锤
+    static Item* GUSTER_BANNER_PATTERN;           // 旋风旗帜图案
+    static Item* FLOW_BANNER_PATTERN;             // 涡流旗帜图案
+    static Item* FIELD_MASONED_BANNER_PATTERN;    // 砖纹旗帜图案（对应 bricks 图案）
+    static Item* BORDURE_INDENTED_BANNER_PATTERN; // 波纹边旗帜图案（对应 curly_border 图案）
 
     // ========================================================================
     // 锻造模板物品（盔甲纹饰 + 下界合金升级）
