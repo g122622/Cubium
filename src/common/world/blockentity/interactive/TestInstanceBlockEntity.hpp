@@ -54,9 +54,9 @@ public:
      * 对齐 vanilla TestInstanceBlockEntity.Status。
      */
     enum class Status : u8 {
-        Cleared = 0,  ///< 已清除
-        Running = 1,  ///< 运行中
-        Finished = 2  ///< 已完成
+        Cleared = 0, ///< 已清除
+        Running = 1, ///< 运行中
+        Finished = 2 ///< 已完成
     };
 
     /**
@@ -149,15 +149,15 @@ public:
     //   对齐 vanilla TestInstanceBlockEntity 的同名方法。
 
 private:
-    std::string m_testId;                      ///< 测试标识（空表示无测试，对齐 Data.test Optional）
-    i32 m_sizeX = 0;                           ///< 结构尺寸 X
-    i32 m_sizeY = 0;                           ///< 结构尺寸 Y
-    i32 m_sizeZ = 0;                           ///< 结构尺寸 Z
-    Rotation m_rotation = Rotation::None;      ///< 结构旋转
-    bool m_ignoreEntities = false;             ///< 是否忽略实体
-    Status m_status = Status::Cleared;         ///< 运行状态
-    std::string m_errorMessage;                ///< 错误信息
-    std::vector<ErrorMarker> m_errorMarkers;   ///< 错误标记
+    std::string m_testId;                    ///< 测试标识（空表示无测试，对齐 Data.test Optional）
+    i32 m_sizeX = 0;                         ///< 结构尺寸 X
+    i32 m_sizeY = 0;                         ///< 结构尺寸 Y
+    i32 m_sizeZ = 0;                         ///< 结构尺寸 Z
+    Rotation m_rotation = Rotation::None;    ///< 结构旋转
+    bool m_ignoreEntities = false;           ///< 是否忽略实体
+    Status m_status = Status::Cleared;       ///< 运行状态
+    std::string m_errorMessage;              ///< 错误信息
+    std::vector<ErrorMarker> m_errorMarkers; ///< 错误标记
 };
 
 } // namespace blockentity

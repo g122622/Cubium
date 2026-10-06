@@ -215,8 +215,7 @@ TEST_F(DebugStickRegistrationTest, LightTestBlocksRegistered)
     auto& registry = BlockRegistry::instance();
     EXPECT_EQ(registry.getBlock(ResourceLocation("minecraft:light")), VanillaBlocks::LIGHT);
     EXPECT_EQ(registry.getBlock(ResourceLocation("minecraft:test_block")), VanillaBlocks::TEST_BLOCK);
-    EXPECT_EQ(registry.getBlock(ResourceLocation("minecraft:test_instance_block")),
-        VanillaBlocks::TEST_INSTANCE_BLOCK);
+    EXPECT_EQ(registry.getBlock(ResourceLocation("minecraft:test_instance_block")), VanillaBlocks::TEST_INSTANCE_BLOCK);
 }
 
 // ============================================================================
@@ -302,8 +301,7 @@ TEST_F(TestBlockTest, TestBlockIsGameMasterAndHasBlockEntity)
 {
     EXPECT_TRUE(VanillaBlocks::TEST_BLOCK->isGameMaster());
     EXPECT_TRUE(VanillaBlocks::TEST_BLOCK->hasBlockEntity());
-    EXPECT_EQ(VanillaBlocks::TEST_BLOCK->createBlockEntity(BlockPos(0, 64, 0))->getType(),
-        BlockEntityType::TestBlock);
+    EXPECT_EQ(VanillaBlocks::TEST_BLOCK->createBlockEntity(BlockPos(0, 64, 0))->getType(), BlockEntityType::TestBlock);
 }
 
 TEST_F(TestBlockTest, TestInstanceBlockIsGameMasterAndHasBlockEntity)
@@ -317,9 +315,8 @@ TEST_F(TestBlockTest, TestInstanceBlockIsGameMasterAndHasBlockEntity)
 TEST_F(TestBlockTest, StartModeOutputsRedstoneWhenPowered)
 {
     DebugStickTestWorld world;
-    const BlockState& startState =
-        VanillaBlocks::TEST_BLOCK->defaultState().with(BlockStateProperties::TEST_BLOCK_MODE(),
-            BlockStateProperties::TestBlockMode::Start);
+    const BlockState& startState = VanillaBlocks::TEST_BLOCK->defaultState().with(
+        BlockStateProperties::TEST_BLOCK_MODE(), BlockStateProperties::TestBlockMode::Start);
     world.setBlockState(0, 64, 0, &startState);
 
     auto be = VanillaBlocks::TEST_BLOCK->createBlockEntity(BlockPos(0, 64, 0));
@@ -401,8 +398,8 @@ TEST_F(DebugStickItemTest, LeftClickSelectsPropertyAndConsumesBreak)
     auto* debugStick = dynamic_cast<item::items::DebugStickItem*>(Items::DEBUG_STICK);
     ASSERT_NE(debugStick, nullptr);
 
-    bool consumed = debugStick->canDestroyBlock(
-        stack, *world.getBlockState(0, 64, 0), world, BlockPos(0, 64, 0), *player);
+    bool consumed =
+        debugStick->canDestroyBlock(stack, *world.getBlockState(0, 64, 0), world, BlockPos(0, 64, 0), *player);
     // 调试棒左键返回 false（不允许破坏该方块），但已完成选中属性切换
     EXPECT_FALSE(consumed);
 

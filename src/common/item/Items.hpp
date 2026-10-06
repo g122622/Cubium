@@ -441,6 +441,11 @@ public:
     static Item* SUSPICIOUS_GRAVEL; // 可疑的沙砾
     static Item* NAME_TAG;          // 命名牌
     static Item* DEBUG_STICK;       // 调试棒（管理员调试工具）
+    static Item* ARMOR_STAND;       // 盔甲架
+    static Item* END_CRYSTAL;       // 末影水晶
+    static Item* GOAT_HORN;         // 山羊角
+    static Item* SPYGLASS;          // 望远镜
+    static Item* TOTEM_OF_UNDYING;  // 不死图腾
     static Item* SADDLE;            // 鞍
     static Item* STRING;
     static Item* FEATHER;
@@ -602,6 +607,7 @@ public:
     static Item* PUFFERFISH_BUCKET;    // 河豚桶
     static Item* TROPICAL_FISH_BUCKET; // 热带鱼桶
     static Item* AXOLOTL_BUCKET;       // 美西螈桶
+    static Item* TADPOLE_BUCKET;       // 蝌蚪桶
     static Item* MILK_BUCKET;          // 牛奶桶
 
     // ========================================================================
@@ -660,9 +666,10 @@ public:
     // ========================================================================
     // 悬挂实体物品
     // ========================================================================
-    static Item* PAINTING;   // 画作
-    static Item* ITEM_FRAME; // 物品展示框
-    static Item* LEAD;       // 拴绳
+    static Item* PAINTING;        // 画作
+    static Item* ITEM_FRAME;      // 物品展示框
+    static Item* GLOW_ITEM_FRAME; // 荧光物品展示框
+    static Item* LEAD;            // 拴绳
 
     // ========================================================================
     // 告示牌物品（12种木材类型）

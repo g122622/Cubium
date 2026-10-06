@@ -154,6 +154,7 @@ add_library(mc_common STATIC
     entity/entities/passive/water/GlowSquidEntity.cpp
     entity/entities/passive/water/DolphinEntity.cpp
     entity/entities/passive/water/AxolotlEntity.cpp
+    entity/entities/passive/water/TadpoleEntity.cpp
     # Entity - Passive Animals (nautilus)
     entity/entities/passive/nautilus/AbstractNautilusEntity.cpp
     entity/entities/passive/nautilus/NautilusEntity.cpp
@@ -576,11 +577,16 @@ add_library(mc_common STATIC
 
     # Item - Special Items
     item/items/special/BoneMealItem.cpp
+    item/items/special/ArmorStandItem.cpp
     item/items/special/bundle/BundleContents.cpp
     item/items/special/bundle/BundleItem.cpp
     item/items/special/BucketItem.cpp
     item/items/special/DebugStickItem.cpp
+    item/items/special/EndCrystalItem.cpp
     item/items/special/FishBucketItem.cpp
+    item/items/special/GoatHornItem.cpp
+    item/items/special/ItemFrameItem.cpp
+    item/items/special/SpyglassItem.cpp
     item/items/special/FlintAndSteelItem.cpp
     item/items/special/HarnessItem.cpp
     item/items/special/HoneycombItem.cpp

@@ -553,11 +553,66 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
 
     // 11. 死亡检查
     if (health() <= 0.0f) {
-        playDeathSound();
-        die(source);
+        // 死亡保护（不死图腾）：对齐 vanilla LivingEntity.checkTotemDeathProtection
+        // （LivingEntity.java:1242-1249）。持有带 DEATH_PROTECTION 组件的物品时，本次死亡
+        // 被取消——生命值恢复为 1、施加物品的保护效果（吸收/生命恢复/抗火/抗性）、消耗物品。
+        // 返回 false 表示未受保护，继续走死亡流程。
+        if (!_checkTotemDeathProtection(source)) {
+            playDeathSound();
+            die(source);
+        }
     } else {
         playHurtSound(source);
     }
+}
+
+bool LivingEntity::_checkTotemDeathProtection(DamageSource& source)
+{
+    // 对齐 vanilla LivingEntity.checkTotemDeathProtection（LivingEntity.java:1358-1391）：
+    // 绕过无敌判定的伤害（BYPASSES_INVULNERABILITY，如 /kill）不可被图腾救回。
+    if (source.is(DamageTypeTags::BYPASSES_INVULNERABILITY())) {
+        return false;
+    }
+
+    // 检查主手与副手是否持有带 death_protection 组件的物品
+    const Item* totemItem = nullptr;
+    for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
+        const ItemStack& stack = getEquipment(slot);
+        if (stack.isEmpty() || stack.getItem() == nullptr) {
+            continue;
+        }
+        // TODO: 数据驱动 DeathProtection 组件接入后，改为读取物品的 DEATH_PROTECTION 组件
+        //   （当前以不死图腾物品类型判定，等价于 vanilla 中唯一携带该组件的物品）。
+        if (stack.getItem() == Items::TOTEM_OF_UNDYING) {
+            totemItem = stack.getItem();
+            break;
+        }
+    }
+
+    if (totemItem == nullptr) {
+        return false;
+    }
+
+    // 消耗一个图腾（直接操作权威装备槽）
+    for (EquipmentSlot slot : {EquipmentSlot::MainHand, EquipmentSlot::OffHand}) {
+        ItemStack& stack = const_cast<ItemStack&>(getEquipment(slot));
+        if (!stack.isEmpty() && stack.getItem() == totemItem) {
+            stack.shrink(1);
+            break;
+        }
+    }
+
+    // 对齐 vanilla：生命恢复为 1、施加保护效果、广播实体事件 35（图腾使用粒子）
+    setHealth(1.0f);
+    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Absorption, 100, 1));
+    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Regeneration, 900, 1));
+    addEffect(entity::effect::EffectInstance(entity::effect::EffectType::FireResistance, 800, 0));
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        m_world->broadcastEntityStatus(m_id, 35); // 图腾使用粒子（对齐 vanilla broadcastEntityEvent(this, (byte)35)）
+    }
+    playSound(SoundEvents::ITEM_TOTEM_USE, 1.0f, 1.0f);
+
+    return true;
 }
 
 bool LivingEntity::canBlockDamageSource(DamageSource& /*source*/) const

@@ -211,6 +211,7 @@ const EntityType* ARMOR_STAND = nullptr;
 const EntityType* OMINOUS_ITEM_SPAWNER = nullptr;
 const EntityType* PAINTING = nullptr;
 const EntityType* ITEM_FRAME = nullptr;
+const EntityType* GLOW_ITEM_FRAME = nullptr;
 const EntityType* LEASH_KNOT = nullptr;
 
 // ============================================================================
@@ -378,6 +379,7 @@ void initialize()
     OMINOUS_ITEM_SPAWNER = registry.getType(EntityTypeKeys::OMINOUS_ITEM_SPAWNER);
     PAINTING = registry.getType(EntityTypeKeys::PAINTING);
     ITEM_FRAME = registry.getType(EntityTypeKeys::ITEM_FRAME);
+    GLOW_ITEM_FRAME = registry.getType(EntityTypeKeys::GLOW_ITEM_FRAME);
     LEASH_KNOT = registry.getType(EntityTypeKeys::LEASH_KNOT);
 }
 
@@ -504,6 +506,7 @@ void reset()
     OMINOUS_ITEM_SPAWNER = nullptr;
     PAINTING = nullptr;
     ITEM_FRAME = nullptr;
+    GLOW_ITEM_FRAME = nullptr;
     LEASH_KNOT = nullptr;
 }
 

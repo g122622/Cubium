@@ -245,6 +245,7 @@ constexpr const char* SQUID = "minecraft:squid";
 constexpr const char* GLOW_SQUID = "minecraft:glow_squid";
 constexpr const char* DOLPHIN = "minecraft:dolphin";
 constexpr const char* AXOLOTL = "minecraft:axolotl";
+constexpr const char* TADPOLE = "minecraft:tadpole";
 constexpr const char* NAUTILUS = "minecraft:nautilus";
 constexpr const char* ZOMBIE_NAUTILUS = "minecraft:zombie_nautilus";
 
@@ -353,6 +354,7 @@ constexpr const char* OMINOUS_ITEM_SPAWNER = "minecraft:ominous_item_spawner";
 // 悬挂实体
 constexpr const char* PAINTING = "minecraft:painting";
 constexpr const char* ITEM_FRAME = "minecraft:item_frame";
+constexpr const char* GLOW_ITEM_FRAME = "minecraft:glow_item_frame";
 constexpr const char* LEASH_KNOT = "minecraft:leash_knot";
 } // namespace EntityTypeKeys
 

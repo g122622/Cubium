@@ -29,6 +29,7 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/TempDirHelper.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootTable.hpp"
@@ -78,6 +79,8 @@ protected:
         VanillaBlocks::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
+        // 注册原版实体类型（盔甲架 / 末影水晶 / 物品展示框放置类物品需经 EntityRegistry 取类型）
+        entity::VanillaEntities::registerAll();
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
         // 跨进程唯一目录由 helper 用 PID 组合 token 生成，避免 CTest -j16 同秒目录撞车
@@ -561,6 +564,90 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceTestBlock_CreatesTestBlockEnti
     ASSERT_NE(blockEntity, nullptr);
     EXPECT_EQ(blockEntity->getType(), BlockEntityType::TestBlock);
     EXPECT_EQ(placed->get(BlockStateProperties::TEST_BLOCK_MODE()), BlockStateProperties::TestBlockMode::Fail);
+}
+
+// ============================================================================
+// 端到端：工具 / 特殊物品（盔甲架 / 末影水晶 / 物品展示框）放置实体
+// ============================================================================
+
+namespace {
+
+// 把任意物品注入主手槽（不限于 BlockItem 的 blockId 反查）
+void setHeldAnyItem(
+    server::interaction::InventoryManager& inventoryManager, PlayerId playerId, const Item& item, i32 count)
+{
+    PlayerInventory* inventory = inventoryManager.getInventory(playerId);
+    ASSERT_NE(inventory, nullptr);
+    inventory->setSelectedSlot(0);
+    inventory->setItem(0, ItemStack(item, count));
+}
+
+} // namespace
+
+// 盔甲架物品使用：成功放置（消耗写回需 Player 实体，本 fixture 未注册玩家实体，故不校验数量）
+TEST_F(BlockInteractionManagerPlacementTest, UseArmorStandItem_PlacesEntity)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldAnyItem(*m_inventoryManager, m_playerId, *Items::ARMOR_STAND, 4);
+
+    auto result = m_blockInteractionManager->handleItemUseOn(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().success);
+}
+
+// 末影水晶物品使用（非黑曜石/基岩）：失败且不消耗
+TEST_F(BlockInteractionManagerPlacementTest, UseEndCrystalItem_OnStoneFails)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldAnyItem(*m_inventoryManager, m_playerId, *Items::END_CRYSTAL, 2);
+
+    auto result = m_blockInteractionManager->handleItemUseOn(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_FALSE(result.value().success);
+
+    // 未成功则不消耗
+    const PlayerInventory* inventory = m_inventoryManager->getInventory(m_playerId);
+    ASSERT_NE(inventory, nullptr);
+    EXPECT_EQ(inventory->getSelectedStack().getCount(), 2);
+}
+
+// 末影水晶物品使用（黑曜石顶面）：成功（消耗写回需 Player 实体，本 fixture 未注册玩家实体，故不校验数量）
+TEST_F(BlockInteractionManagerPlacementTest, UseEndCrystalItem_OnObsidianSucceeds)
+{
+    m_player->loggedIn = true;
+    m_player->x = 3.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::OBSIDIAN->defaultState());
+    setHeldAnyItem(*m_inventoryManager, m_playerId, *Items::END_CRYSTAL, 2);
+
+    // 诊断：确认黑曜石方块确实写入世界（上方为空区块段，getBlockState 返回 nullptr 即空气）
+    const BlockState* clicked = m_world->getBlockState(0, 63, 0);
+    ASSERT_NE(clicked, nullptr);
+    EXPECT_TRUE(clicked->is(VanillaBlocks::OBSIDIAN));
+
+    auto result = m_blockInteractionManager->handleItemUseOn(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().success);
 }
 
 } // namespace

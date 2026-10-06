@@ -29,8 +29,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
-#include <spdlog/spdlog.h>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace blockentity {

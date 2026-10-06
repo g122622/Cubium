@@ -65,7 +65,8 @@ TestBlock::TestBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 对齐 vanilla：TestBlock 默认 MODE=FAIL
-    setDefaultState(defaultState().with(BlockStateProperties::TEST_BLOCK_MODE(), BlockStateProperties::TestBlockMode::Fail));
+    setDefaultState(
+        defaultState().with(BlockStateProperties::TEST_BLOCK_MODE(), BlockStateProperties::TestBlockMode::Fail));
 }
 
 std::unique_ptr<BlockEntity> TestBlock::createBlockEntity(const BlockPos& pos)

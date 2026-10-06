@@ -73,12 +73,8 @@ DebugStickItem::DebugStickItem(ItemProperties properties)
     : Item(std::move(properties))
 {}
 
-bool DebugStickItem::_handleInteraction(Player& player,
-    ItemStack& stack,
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    bool isRightClick)
+bool DebugStickItem::_handleInteraction(
+    Player& player, ItemStack& stack, const BlockState& state, IWorld& world, const BlockPos& pos, bool isRightClick)
 {
     // 对齐 vanilla DebugStickItem#handleInteraction：仅管理员可用
     if (!player.canUseGameMasterBlocks()) {
@@ -168,8 +164,8 @@ bool DebugStickItem::_handleInteraction(Player& player,
     // 本项目使用 UPDATE_CLIENTS，其余副作用由 setBlockState 常规处理。
     world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
-    player.sendStatusMessage(std::string("debug Stick: ") + selectedProp->name() + " = " +
-            selectedProp->valueToString(nextValueIndex),
+    player.sendStatusMessage(
+        std::string("debug Stick: ") + selectedProp->name() + " = " + selectedProp->valueToString(nextValueIndex),
         true);
     return true;
 }

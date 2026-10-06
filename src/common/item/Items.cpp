@@ -51,16 +51,20 @@
 #include "common/item/items/potion/LingeringPotionItem.hpp"
 #include "common/item/items/potion/PotionItem.hpp"
 #include "common/item/items/potion/SplashPotionItem.hpp"
+#include "common/item/items/special/ArmorStandItem.hpp"
 #include "common/item/items/special/BoneMealItem.hpp"
 #include "common/item/items/special/BrushItem.hpp"
 #include "common/item/items/special/BucketItem.hpp"
 #include "common/item/items/special/DebugStickItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
+#include "common/item/items/special/EndCrystalItem.hpp"
 #include "common/item/items/special/EnderEyeItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/item/items/special/GoatHornItem.hpp"
 #include "common/item/items/special/HarnessItem.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
+#include "common/item/items/special/ItemFrameItem.hpp"
 #include "common/item/items/special/KnowledgeBookItem.hpp"
 #include "common/item/items/special/LeadItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
@@ -71,6 +75,7 @@
 #include "common/item/items/special/SaddleItem.hpp"
 #include "common/item/items/special/SmithingTemplateItem.hpp"
 #include "common/item/items/special/SpawnEggItem.hpp"
+#include "common/item/items/special/SpyglassItem.hpp"
 #include "common/item/items/special/StickItems.hpp"
 #include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/item/items/tool/AxeItem.hpp"
@@ -446,6 +451,11 @@ Item* Items::SUSPICIOUS_SAND = nullptr;
 Item* Items::SUSPICIOUS_GRAVEL = nullptr;
 Item* Items::NAME_TAG = nullptr;
 Item* Items::DEBUG_STICK = nullptr;
+Item* Items::ARMOR_STAND = nullptr;
+Item* Items::END_CRYSTAL = nullptr;
+Item* Items::GOAT_HORN = nullptr;
+Item* Items::SPYGLASS = nullptr;
+Item* Items::TOTEM_OF_UNDYING = nullptr;
 Item* Items::SADDLE = nullptr;
 Item* Items::STRING = nullptr;
 Item* Items::FEATHER = nullptr;
@@ -598,6 +608,7 @@ Item* Items::SALMON_BUCKET = nullptr;
 Item* Items::PUFFERFISH_BUCKET = nullptr;
 Item* Items::TROPICAL_FISH_BUCKET = nullptr;
 Item* Items::AXOLOTL_BUCKET = nullptr;
+Item* Items::TADPOLE_BUCKET = nullptr;
 Item* Items::MILK_BUCKET = nullptr;
 
 // ============================================================================
@@ -658,6 +669,7 @@ Item* Items::BAMBOO_CHEST_RAFT = nullptr;
 // ============================================================================
 Item* Items::PAINTING = nullptr;
 Item* Items::ITEM_FRAME = nullptr;
+Item* Items::GLOW_ITEM_FRAME = nullptr;
 Item* Items::LEAD = nullptr;
 
 // ============================================================================
@@ -2531,6 +2543,27 @@ void Items::_registerMisc()
     DEBUG_STICK = &registry.registerItem<item::items::DebugStickItem>(
         ResourceLocation("minecraft:debug_stick"), ItemProperties().maxStackSize(1));
 
+    // 盔甲架 - 放置后生成 ArmorStandEntity
+    ARMOR_STAND = &registry.registerItem<item::items::ArmorStandItem>(
+        ResourceLocation("minecraft:armor_stand"), ItemProperties().maxStackSize(16));
+
+    // 末影水晶 - 在黑曜石/基岩上放置末影水晶实体
+    END_CRYSTAL = &registry.registerItem<item::items::EndCrystalItem>(
+        ResourceLocation("minecraft:end_crystal"), ItemProperties().maxStackSize(64));
+
+    // 山羊角 - 吹奏乐器。vanilla 中单一物品 id，音色由 INSTRUMENT 数据组件决定（8 种变体）。
+    // TODO: 接入 Instrument 数据组件后，按组件读取音色（当前固定为变体 0）。
+    GOAT_HORN = &registry.registerItem<item::items::GoatHornItem>(
+        ResourceLocation("minecraft:goat_horn"), 0, ItemProperties().maxStackSize(1));
+
+    // 望远镜 - 右键进入缩放视角
+    SPYGLASS = &registry.registerItem<item::items::SpyglassItem>(
+        ResourceLocation("minecraft:spyglass"), ItemProperties().maxStackSize(1));
+
+    // 不死图腾 - 死亡时消耗以保命（见 LivingEntity::_checkTotemDeathProtection）
+    TOTEM_OF_UNDYING = &registry.registerItem(
+        ResourceLocation("minecraft:totem_of_undying"), ItemProperties().maxStackSize(1).rarity(ItemRarity::Uncommon));
+
     // 鞍 - 用于装备可骑乘实体（猪、炽足兽、马等）
     SADDLE = &registry.registerItem<item::items::SaddleItem>(
         ResourceLocation("minecraft:saddle"), ItemProperties().maxStackSize(64));
@@ -3012,6 +3045,11 @@ void Items::_registerBuckets()
         mc::entity::EntityTypeKeys::AXOLOTL,
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
+    // 蝌蚪桶 - 装蝌蚪的水桶，使用后返回空桶
+    TADPOLE_BUCKET = &registry.registerItem<item::FishBucketItem>(ResourceLocation("minecraft:tadpole_bucket"),
+        mc::entity::EntityTypeKeys::TADPOLE,
+        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+
     // 牛奶桶 - 清除所有药水效果
     MILK_BUCKET = &registry.registerItem<item::special::MilkBucketItem>(
         ResourceLocation("minecraft:milk_bucket"), ItemProperties().maxStackSize(1).containerItem(BUCKET));
@@ -3233,7 +3271,12 @@ void Items::_registerHangingItems()
     PAINTING = &registry.registerItem(ResourceLocation("minecraft:painting"), ItemProperties().maxStackSize(16));
 
     // 物品展示框
-    ITEM_FRAME = &registry.registerItem(ResourceLocation("minecraft:item_frame"), ItemProperties().maxStackSize(16));
+    ITEM_FRAME = &registry.registerItem<item::items::ItemFrameItem>(
+        ResourceLocation("minecraft:item_frame"), false, ItemProperties().maxStackSize(16));
+
+    // 荧光物品展示框
+    GLOW_ITEM_FRAME = &registry.registerItem<item::items::ItemFrameItem>(
+        ResourceLocation("minecraft:glow_item_frame"), true, ItemProperties().maxStackSize(16));
 
     // 拴绳
     LEAD = &registry.registerItem<item::items::LeadItem>(

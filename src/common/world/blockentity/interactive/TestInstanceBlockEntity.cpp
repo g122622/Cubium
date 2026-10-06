@@ -185,7 +185,8 @@ void TestInstanceBlockEntity::save(nlohmann::json& data) const
     if (!m_errorMarkers.empty()) {
         nlohmann::json errors = nlohmann::json::array();
         for (const auto& marker : m_errorMarkers) {
-            errors.push_back(nlohmann::json{{"pos", {marker.pos.x, marker.pos.y, marker.pos.z}}, {"text", marker.text}});
+            errors.push_back(
+                nlohmann::json{{"pos", {marker.pos.x, marker.pos.y, marker.pos.z}}, {"text", marker.text}});
         }
         data["errors"] = std::move(errors);
     }

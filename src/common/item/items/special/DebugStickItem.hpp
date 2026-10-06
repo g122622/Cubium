@@ -57,8 +57,11 @@ public:
      * 返回 false 表示不允许破坏该方块（对齐 vanilla DebugStickItem#canDestroyBlock），
      * 调用方据此中止破坏流程，方块不被移除。
      */
-    bool canDestroyBlock(
-        ItemStack& stack, const BlockState& state, IWorld& world, const BlockPos& pos, LivingEntity& breaker) const override;
+    bool canDestroyBlock(ItemStack& stack,
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        LivingEntity& breaker) const override;
 
 private:
     /**

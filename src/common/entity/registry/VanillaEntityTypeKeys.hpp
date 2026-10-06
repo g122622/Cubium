@@ -224,6 +224,7 @@ extern const EntityType* ARMOR_STAND;
 extern const EntityType* OMINOUS_ITEM_SPAWNER;
 extern const EntityType* PAINTING;
 extern const EntityType* ITEM_FRAME;
+extern const EntityType* GLOW_ITEM_FRAME;
 extern const EntityType* LEASH_KNOT;
 
 /**

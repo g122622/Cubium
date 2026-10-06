@@ -45,6 +45,7 @@ enum class UseAction : u8 {
     TotemOfUndying = 8, ///< 不死图腾动作
     Brush = 9,          ///< 刷扫动作（刷子）
     Bundle = 10,        ///< 收纳袋动作（右键使用收纳袋）
+    TootHorn = 11,      ///< 吹号角动作（山羊角）
     Trident = Spear     ///< 别名，与Spear相同
 };
 
@@ -78,6 +79,8 @@ enum class UseAction : u8 {
             return "brush";
         case UseAction::Bundle:
             return "bundle";
+        case UseAction::TootHorn:
+            return "toot_horn";
         default:
             return "unknown";
     }

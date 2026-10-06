@@ -1068,6 +1068,13 @@ extern const ResourceLocation ENTITY_COD_DEATH;
 extern const ResourceLocation ENTITY_COD_FLOP;
 extern const ResourceLocation ENTITY_COD_HURT;
 
+/// 蝌蚪
+/// 对应 MC Java: SoundEvents.TADPOLE_DEATH/FLOP/GROW_UP/HURT
+extern const ResourceLocation ENTITY_TADPOLE_DEATH;
+extern const ResourceLocation ENTITY_TADPOLE_FLOP;
+extern const ResourceLocation ENTITY_TADPOLE_GROW_UP;
+extern const ResourceLocation ENTITY_TADPOLE_HURT;
+
 extern const ResourceLocation ENTITY_SALMON_AMBIENT;
 extern const ResourceLocation ENTITY_SALMON_DEATH;
 extern const ResourceLocation ENTITY_SALMON_FLOP;
@@ -1576,6 +1583,14 @@ extern const ResourceLocation ENTITY_ITEM_FRAME_PLACE;
 extern const ResourceLocation ENTITY_ITEM_FRAME_REMOVE_ITEM;
 extern const ResourceLocation ENTITY_ITEM_FRAME_ROTATE_ITEM;
 
+/// 荧光物品展示框
+/// 对应 MC Java: SoundEvents.GLOW_ITEM_FRAME_ADD_ITEM/PLACE/REMOVE_ITEM/ROTATE_ITEM/BREAK
+extern const ResourceLocation ENTITY_GLOW_ITEM_FRAME_ADD_ITEM;
+extern const ResourceLocation ENTITY_GLOW_ITEM_FRAME_PLACE;
+extern const ResourceLocation ENTITY_GLOW_ITEM_FRAME_REMOVE_ITEM;
+extern const ResourceLocation ENTITY_GLOW_ITEM_FRAME_ROTATE_ITEM;
+extern const ResourceLocation ENTITY_GLOW_ITEM_FRAME_BREAK;
+
 extern const ResourceLocation ENTITY_PAINTING_BREAK;
 extern const ResourceLocation ENTITY_PAINTING_PLACE;
 
@@ -1635,6 +1650,16 @@ extern const ResourceLocation ITEM_CHORUS_FRUIT_TELEPORT;
 extern const ResourceLocation ITEM_FLINTANDSTEEL_USE;
 extern const ResourceLocation ITEM_FIRECHARGE_USE;
 extern const ResourceLocation ITEM_TOTEM_USE;
+extern const ResourceLocation ITEM_SPYGLASS_USE;
+extern const ResourceLocation ITEM_SPYGLASS_STOP_USING;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_0;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_1;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_2;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_3;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_4;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_5;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_6;
+extern const ResourceLocation ITEM_GOAT_HORN_SOUND_7;
 extern const ResourceLocation ITEM_BOOK_PAGE_TURN;
 extern const ResourceLocation ITEM_BOOK_PUT;
 extern const ResourceLocation ITEM_BONE_MEAL_USE;

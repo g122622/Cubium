@@ -100,6 +100,7 @@
 #include "common/entity/entities/passive/water/DolphinEntity.hpp"
 #include "common/entity/entities/passive/water/GlowSquidEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
+#include "common/entity/entities/passive/water/TadpoleEntity.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -423,6 +424,15 @@ void VanillaEntities::doRegisterAll()
     registry.registerType(EntityTypeKeys::TROPICAL_FISH,
         EntityType::Builder(&TropicalFishEntity::create, EntityClassification::WaterAmbient)
             .size(0.5f, 0.4f)
+            .trackingRange(8)
+            .updateInterval(3)
+            .canSummon(true)
+            .build());
+
+    // 蝌蚪
+    registry.registerType(EntityTypeKeys::TADPOLE,
+        EntityType::Builder(&TadpoleEntity::create, EntityClassification::WaterAmbient)
+            .size(0.4f, 0.3f)
             .trackingRange(8)
             .updateInterval(3)
             .canSummon(true)
@@ -1317,6 +1327,14 @@ void VanillaEntities::doRegisterAll()
 
     // 物品展示框
     registry.registerType(EntityTypeKeys::ITEM_FRAME,
+        EntityType::Builder(&ItemFrameEntity::create, EntityClassification::Misc)
+            .size(0.5f, 0.5f)
+            .trackingRange(10)
+            .updateInterval(20)
+            .build());
+
+    // 荧光物品展示框
+    registry.registerType(EntityTypeKeys::GLOW_ITEM_FRAME,
         EntityType::Builder(&ItemFrameEntity::create, EntityClassification::Misc)
             .size(0.5f, 0.5f)
             .trackingRange(10)

@@ -161,6 +161,8 @@ add_executable(mc_tests
     common/item/items/special/SpawnEggItemTest.cpp
     # 调试棒 + 光源方块 / 测试方块单元测试（GameTest 框架调试内容）
     common/item/special/DebugStickItemTest.cpp
+    # 工具 / 特殊物品（盔甲架、末影水晶、物品展示框、山羊角、望远镜、蝌蚪桶、不死图腾）
+    common/item/special/SpecialToolsItemsTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp

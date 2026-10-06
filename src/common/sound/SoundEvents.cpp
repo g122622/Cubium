@@ -923,6 +923,12 @@ const ResourceLocation ENTITY_COD_DEATH("minecraft:entity.cod.death");
 const ResourceLocation ENTITY_COD_FLOP("minecraft:entity.cod.flop");
 const ResourceLocation ENTITY_COD_HURT("minecraft:entity.cod.hurt");
 
+// 蝌蚪
+const ResourceLocation ENTITY_TADPOLE_DEATH("minecraft:entity.tadpole.death");
+const ResourceLocation ENTITY_TADPOLE_FLOP("minecraft:entity.tadpole.flop");
+const ResourceLocation ENTITY_TADPOLE_GROW_UP("minecraft:entity.tadpole.grow_up");
+const ResourceLocation ENTITY_TADPOLE_HURT("minecraft:entity.tadpole.hurt");
+
 const ResourceLocation ENTITY_SALMON_AMBIENT("minecraft:entity.salmon.ambient");
 const ResourceLocation ENTITY_SALMON_DEATH("minecraft:entity.salmon.death");
 const ResourceLocation ENTITY_SALMON_FLOP("minecraft:entity.salmon.flop");
@@ -1432,6 +1438,13 @@ const ResourceLocation ENTITY_ITEM_FRAME_PLACE("minecraft:entity.item_frame.plac
 const ResourceLocation ENTITY_ITEM_FRAME_REMOVE_ITEM("minecraft:entity.item_frame.remove_item");
 const ResourceLocation ENTITY_ITEM_FRAME_ROTATE_ITEM("minecraft:entity.item_frame.rotate_item");
 
+// 荧光物品展示框
+const ResourceLocation ENTITY_GLOW_ITEM_FRAME_ADD_ITEM("minecraft:entity.glow_item_frame.add_item");
+const ResourceLocation ENTITY_GLOW_ITEM_FRAME_PLACE("minecraft:entity.glow_item_frame.place");
+const ResourceLocation ENTITY_GLOW_ITEM_FRAME_REMOVE_ITEM("minecraft:entity.glow_item_frame.remove_item");
+const ResourceLocation ENTITY_GLOW_ITEM_FRAME_ROTATE_ITEM("minecraft:entity.glow_item_frame.rotate_item");
+const ResourceLocation ENTITY_GLOW_ITEM_FRAME_BREAK("minecraft:entity.glow_item_frame.break");
+
 const ResourceLocation ENTITY_PAINTING_BREAK("minecraft:entity.painting.break");
 const ResourceLocation ENTITY_PAINTING_PLACE("minecraft:entity.painting.place");
 
@@ -1490,6 +1503,16 @@ const ResourceLocation ITEM_CHORUS_FRUIT_TELEPORT("minecraft:item.chorus_fruit.t
 const ResourceLocation ITEM_FLINTANDSTEEL_USE("minecraft:item.flintandsteel.use");
 const ResourceLocation ITEM_FIRECHARGE_USE("minecraft:item.firecharge.use");
 const ResourceLocation ITEM_TOTEM_USE("minecraft:item.totem.use");
+const ResourceLocation ITEM_SPYGLASS_USE("minecraft:item.spyglass.use");
+const ResourceLocation ITEM_SPYGLASS_STOP_USING("minecraft:item.spyglass.stop_using");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_0("minecraft:item.goat_horn.sound.0");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_1("minecraft:item.goat_horn.sound.1");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_2("minecraft:item.goat_horn.sound.2");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_3("minecraft:item.goat_horn.sound.3");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_4("minecraft:item.goat_horn.sound.4");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_5("minecraft:item.goat_horn.sound.5");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_6("minecraft:item.goat_horn.sound.6");
+const ResourceLocation ITEM_GOAT_HORN_SOUND_7("minecraft:item.goat_horn.sound.7");
 const ResourceLocation ITEM_BOOK_PAGE_TURN("minecraft:item.book.page_turn");
 const ResourceLocation ITEM_BOOK_PUT("minecraft:item.book.put");
 const ResourceLocation ITEM_BONE_MEAL_USE("minecraft:item.bone_meal.use");

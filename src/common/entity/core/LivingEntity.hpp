@@ -228,6 +228,21 @@ public:
     virtual void die(DamageSource& cause);
 
     /**
+     * @brief 死亡保护检查（不死图腾）
+     *
+     * 对齐 vanilla LivingEntity.checkTotemDeathProtection（LivingEntity.java:1358-1391）：
+     * 当实体即将死亡时，若主手/副手持有带 death_protection 组件的物品（当前以不死图腾
+     * 物品类型判定），则取消本次死亡——消耗该物品、生命值恢复为 1、施加保护效果
+     * （吸收 II 5s / 生命恢复 II 45s / 抗火 I 40s）、播放图腾音效与粒子。
+     *
+     * 绕过无敌判定的伤害（BYPASSES_INVULNERABILITY，如 /kill）不可被图腾救回。
+     *
+     * @param source 致死伤害源
+     * @return true 表示已受保护（死亡被取消），false 表示未受保护
+     */
+    [[nodiscard]] bool _checkTotemDeathProtection(DamageSource& source);
+
+    /**
      * @brief 在死亡位置生成凋零玫瑰（对齐 vanilla LivingEntity.createWitherRose）
      *
      * 对齐 MC Java 1.21.11 LivingEntity.createWitherRose（LivingEntity.java:1463-1482）。
