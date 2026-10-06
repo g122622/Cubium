@@ -34,6 +34,7 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "world/block/blocks/coral/CoralBlock.hpp"
+#include "world/block/blocks/decorative/SkullBlock.hpp"
 #include "world/block/blocks/decorative/TorchBlock.hpp"
 #include "world/block/blocks/decorative/WallTorchBlock.hpp"
 #include "world/block/blocks/dirt/DirtPathBlock.hpp"
@@ -92,6 +93,22 @@ Block* NaturalBlocks::TURTLE_EGG = nullptr;
 // 蜜脾块 / 干燥恶魂
 Block* NaturalBlocks::HONEYCOMB_BLOCK = nullptr;
 Block* NaturalBlocks::DRIED_GHAST = nullptr;
+
+// 生物头颅 / 头（站立 + 墙挂变体）
+Block* NaturalBlocks::SKELETON_SKULL = nullptr;
+Block* NaturalBlocks::SKELETON_WALL_SKULL = nullptr;
+Block* NaturalBlocks::WITHER_SKELETON_SKULL = nullptr;
+Block* NaturalBlocks::WITHER_SKELETON_WALL_SKULL = nullptr;
+Block* NaturalBlocks::PLAYER_HEAD = nullptr;
+Block* NaturalBlocks::PLAYER_WALL_HEAD = nullptr;
+Block* NaturalBlocks::ZOMBIE_HEAD = nullptr;
+Block* NaturalBlocks::ZOMBIE_WALL_HEAD = nullptr;
+Block* NaturalBlocks::CREEPER_HEAD = nullptr;
+Block* NaturalBlocks::CREEPER_WALL_HEAD = nullptr;
+Block* NaturalBlocks::DRAGON_HEAD = nullptr;
+Block* NaturalBlocks::DRAGON_WALL_HEAD = nullptr;
+Block* NaturalBlocks::PIGLIN_HEAD = nullptr;
+Block* NaturalBlocks::PIGLIN_WALL_HEAD = nullptr;
 
 // 珊瑚方块
 Block* NaturalBlocks::DEAD_TUBE_CORAL_BLOCK = nullptr;
@@ -296,6 +313,52 @@ void registerNaturalBlocks()
                 .notSolid()
                 .tickRandomly()
                 .soundType(BlockSoundTypes::DRIED_GHAST));
+
+    // ============================================================================
+    // 生物头颅 / 头（站立 + 墙挂变体）
+    // 站立头颅持有 ROTATION_0_15 + POWERED，墙挂头颅持有 HORIZONTAL_FACING + POWERED。
+    // 头颅均持有 SkullBlockEntity（存储玩家档案 / 自定义名称 / 龙首与猪灵头张嘴动画）。
+    // TODO: 音符盒乐器（MOB_HEAD 类：骷髅/凋灵骷髅/僵尸/苦力怕/龙/猪灵/自定义头）尚未接入
+    //   BlockProperties::Instrument（当前枚举仅含 16 个基础乐器），头颅上方放置音符盒时
+    //   不会发出对应生物音效。待扩展 Instrument 枚举后补全。
+    // ============================================================================
+    const BlockProperties skullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
+    const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
+
+    NaturalBlocks::SKELETON_SKULL = &registry.registerBlock<blocks::SkullBlock>(
+        ResourceLocation("minecraft:skeleton_skull"), blocks::SkullType::Skeleton, skullProps);
+    NaturalBlocks::SKELETON_WALL_SKULL = &registry.registerBlock<blocks::WallSkullBlock>(
+        ResourceLocation("minecraft:skeleton_wall_skull"), blocks::SkullType::Skeleton, wallSkullProps);
+
+    NaturalBlocks::WITHER_SKELETON_SKULL = &registry.registerBlock<blocks::WitherSkullBlock>(
+        ResourceLocation("minecraft:wither_skeleton_skull"), skullProps);
+    NaturalBlocks::WITHER_SKELETON_WALL_SKULL = &registry.registerBlock<blocks::WitherWallSkullBlock>(
+        ResourceLocation("minecraft:wither_skeleton_wall_skull"), wallSkullProps);
+
+    NaturalBlocks::PLAYER_HEAD =
+        &registry.registerBlock<blocks::PlayerHeadBlock>(ResourceLocation("minecraft:player_head"), skullProps);
+    NaturalBlocks::PLAYER_WALL_HEAD = &registry.registerBlock<blocks::PlayerWallHeadBlock>(
+        ResourceLocation("minecraft:player_wall_head"), wallSkullProps);
+
+    NaturalBlocks::ZOMBIE_HEAD = &registry.registerBlock<blocks::SkullBlock>(
+        ResourceLocation("minecraft:zombie_head"), blocks::SkullType::Zombie, skullProps);
+    NaturalBlocks::ZOMBIE_WALL_HEAD = &registry.registerBlock<blocks::WallSkullBlock>(
+        ResourceLocation("minecraft:zombie_wall_head"), blocks::SkullType::Zombie, wallSkullProps);
+
+    NaturalBlocks::CREEPER_HEAD = &registry.registerBlock<blocks::SkullBlock>(
+        ResourceLocation("minecraft:creeper_head"), blocks::SkullType::Creeper, skullProps);
+    NaturalBlocks::CREEPER_WALL_HEAD = &registry.registerBlock<blocks::WallSkullBlock>(
+        ResourceLocation("minecraft:creeper_wall_head"), blocks::SkullType::Creeper, wallSkullProps);
+
+    NaturalBlocks::DRAGON_HEAD = &registry.registerBlock<blocks::SkullBlock>(
+        ResourceLocation("minecraft:dragon_head"), blocks::SkullType::Dragon, skullProps);
+    NaturalBlocks::DRAGON_WALL_HEAD = &registry.registerBlock<blocks::WallSkullBlock>(
+        ResourceLocation("minecraft:dragon_wall_head"), blocks::SkullType::Dragon, wallSkullProps);
+
+    NaturalBlocks::PIGLIN_HEAD = &registry.registerBlock<blocks::SkullBlock>(
+        ResourceLocation("minecraft:piglin_head"), blocks::SkullType::Piglin, skullProps);
+    NaturalBlocks::PIGLIN_WALL_HEAD = &registry.registerBlock<blocks::PiglinWallSkullBlock>(
+        ResourceLocation("minecraft:piglin_wall_head"), wallSkullProps);
 
     // 珊瑚（补齐死亡变种，便于海洋废墟/暖海装饰复用）
     const u32 deadFallbackId = BaseBlocks::AIR ? BaseBlocks::AIR->blockId() : 0;

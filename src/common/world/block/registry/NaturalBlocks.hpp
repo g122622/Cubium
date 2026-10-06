@@ -61,6 +61,22 @@ struct NaturalBlocks {
     static Block* HONEYCOMB_BLOCK;
     static Block* DRIED_GHAST;
 
+    // 生物头颅 / 头（站立 + 墙挂变体）
+    static Block* SKELETON_SKULL;
+    static Block* SKELETON_WALL_SKULL;
+    static Block* WITHER_SKELETON_SKULL;
+    static Block* WITHER_SKELETON_WALL_SKULL;
+    static Block* PLAYER_HEAD;
+    static Block* PLAYER_WALL_HEAD;
+    static Block* ZOMBIE_HEAD;
+    static Block* ZOMBIE_WALL_HEAD;
+    static Block* CREEPER_HEAD;
+    static Block* CREEPER_WALL_HEAD;
+    static Block* DRAGON_HEAD;
+    static Block* DRAGON_WALL_HEAD;
+    static Block* PIGLIN_HEAD;
+    static Block* PIGLIN_WALL_HEAD;
+
     // 珊瑚方块
     static Block* DEAD_TUBE_CORAL_BLOCK;
     static Block* DEAD_BRAIN_CORAL_BLOCK;

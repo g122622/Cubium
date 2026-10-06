@@ -1203,6 +1203,22 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::COPPER_WALL_TORCH, "copper_torch");
     registerSimpleBlock(VanillaBlocks::HONEYCOMB_BLOCK, "honeycomb_block");
     registerSimpleBlock(VanillaBlocks::DRIED_GHAST, "dried_ghast");
+
+    // 生物头颅 / 头（站立 + 墙挂变体映射到同一物品）
+    registerSimpleBlock(VanillaBlocks::SKELETON_SKULL, "skeleton_skull");
+    registerSimpleBlock(VanillaBlocks::SKELETON_WALL_SKULL, "skeleton_skull");
+    registerSimpleBlock(VanillaBlocks::WITHER_SKELETON_SKULL, "wither_skeleton_skull");
+    registerSimpleBlock(VanillaBlocks::WITHER_SKELETON_WALL_SKULL, "wither_skeleton_skull");
+    registerSimpleBlock(VanillaBlocks::PLAYER_HEAD, "player_head");
+    registerSimpleBlock(VanillaBlocks::PLAYER_WALL_HEAD, "player_head");
+    registerSimpleBlock(VanillaBlocks::ZOMBIE_HEAD, "zombie_head");
+    registerSimpleBlock(VanillaBlocks::ZOMBIE_WALL_HEAD, "zombie_head");
+    registerSimpleBlock(VanillaBlocks::CREEPER_HEAD, "creeper_head");
+    registerSimpleBlock(VanillaBlocks::CREEPER_WALL_HEAD, "creeper_head");
+    registerSimpleBlock(VanillaBlocks::DRAGON_HEAD, "dragon_head");
+    registerSimpleBlock(VanillaBlocks::DRAGON_WALL_HEAD, "dragon_head");
+    registerSimpleBlock(VanillaBlocks::PIGLIN_HEAD, "piglin_head");
+    registerSimpleBlock(VanillaBlocks::PIGLIN_WALL_HEAD, "piglin_head");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "comparator");

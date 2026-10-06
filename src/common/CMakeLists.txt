@@ -843,6 +843,7 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/CandleBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
     world/block/blocks/decorative/BannerBlock.cpp
+    world/block/blocks/decorative/SkullBlock.cpp
     world/block/blocks/decorative/TorchBlock.cpp
     world/block/blocks/decorative/WallTorchBlock.cpp
 
@@ -1062,6 +1063,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
     world/blockentity/interactive/ShelfBlockEntity.cpp
+    world/blockentity/interactive/SkullBlockEntity.cpp
     world/blockentity/interactive/CopperGolemStatueBlockEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp

@@ -181,8 +181,7 @@ void DriedGhastBlock::_tickWaterlogged(IWorld& world, const BlockPos& pos, Block
 {
     if (!_isReadyToSpawn(state)) {
         // 未达阈值：播放过渡音效并提升一级湿润等级
-        world.playSound(
-            SoundEvents::DRIED_GHAST_TRANSITION, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+        world.playSound(SoundEvents::DRIED_GHAST_TRANSITION, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
         world.setBlockState(pos,
             &state.with(BlockStateProperties::DRIED_GHAST_HYDRATION_LEVELS(), getHydrationLevel(state) + 1),
             world::BlockUpdateFlags::UPDATE_CLIENTS);
@@ -297,9 +296,8 @@ bool DriedGhastBlock::receiveFluid(
     // 调度水流体 tick 并播放入水音效
     if (!state.get(BlockStateProperties::WATERLOGGED()) && waterloggable::isWaterFluidState(&fluidState)) {
         if (!world.isClientSide()) {
-            world.setBlockState(pos,
-                &state.with(BlockStateProperties::WATERLOGGED(), true),
-                world::BlockUpdateFlags::UPDATE_ALL);
+            world.setBlockState(
+                pos, &state.with(BlockStateProperties::WATERLOGGED(), true), world::BlockUpdateFlags::UPDATE_ALL);
             waterloggable::scheduleWaterTick(world, pos);
             world.playSound(
                 SoundEvents::DRIED_GHAST_PLACE_IN_WATER, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);

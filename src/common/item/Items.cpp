@@ -5237,34 +5237,45 @@ void Items::_registerSkulls()
     // ========================================================================
     // 头颅物品
     //
-    // MC Java 中头颅物品使用 StandingAndWallBlockItem（本项目对应 WallOrFloorItem），
-    // 因为头颅可以放置在地板上或墙壁上。当前 SkullBlock / WallSkullBlock 尚未实现，
-    // TODO: 待 SkullBlock/WallSkullBlock 实现后，升级为 WallOrFloorItem 注册，
-    // 格式如下：
-    //   PLAYER_HEAD = &registry.registerItem<WallOrFloorItem>(
-    //       ResourceLocation("minecraft:player_head"),
-    //       *VanillaBlocks::PLAYER_HEAD,
-    //       *VanillaBlocks::PLAYER_WALL_HEAD,
-    //       ItemProperties().maxStackSize(64));
-    //
+    // 头颅可放置在地板上或墙壁上，使用 WallOrFloorItem（对应 MC Java
+    // StandingAndWallBlockItem）。玩家头颅的皮肤档案经物品 SkullOwner 组件
+    // 传递，由 PlayerHeadBlock::onBlockPlacedBy 写入 SkullBlockEntity。
     // ========================================================================
 
-    SKELETON_SKULL =
-        &registry.registerItem(ResourceLocation("minecraft:skeleton_skull"), ItemProperties().maxStackSize(64));
+    SKELETON_SKULL = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:skeleton_skull"),
+        *VanillaBlocks::SKELETON_SKULL,
+        *VanillaBlocks::SKELETON_WALL_SKULL,
+        ItemProperties().maxStackSize(64));
 
-    WITHER_SKELETON_SKULL =
-        &registry.registerItem(ResourceLocation("minecraft:wither_skeleton_skull"), ItemProperties().maxStackSize(64));
+    WITHER_SKELETON_SKULL = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:wither_skeleton_skull"),
+        *VanillaBlocks::WITHER_SKELETON_SKULL,
+        *VanillaBlocks::WITHER_SKELETON_WALL_SKULL,
+        ItemProperties().maxStackSize(64));
 
-    PLAYER_HEAD = &registry.registerItem(ResourceLocation("minecraft:player_head"), ItemProperties().maxStackSize(64));
+    PLAYER_HEAD = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:player_head"),
+        *VanillaBlocks::PLAYER_HEAD,
+        *VanillaBlocks::PLAYER_WALL_HEAD,
+        ItemProperties().maxStackSize(64));
 
-    ZOMBIE_HEAD = &registry.registerItem(ResourceLocation("minecraft:zombie_head"), ItemProperties().maxStackSize(64));
+    ZOMBIE_HEAD = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:zombie_head"),
+        *VanillaBlocks::ZOMBIE_HEAD,
+        *VanillaBlocks::ZOMBIE_WALL_HEAD,
+        ItemProperties().maxStackSize(64));
 
-    CREEPER_HEAD =
-        &registry.registerItem(ResourceLocation("minecraft:creeper_head"), ItemProperties().maxStackSize(64));
+    CREEPER_HEAD = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:creeper_head"),
+        *VanillaBlocks::CREEPER_HEAD,
+        *VanillaBlocks::CREEPER_WALL_HEAD,
+        ItemProperties().maxStackSize(64));
 
-    DRAGON_HEAD = &registry.registerItem(ResourceLocation("minecraft:dragon_head"), ItemProperties().maxStackSize(64));
+    DRAGON_HEAD = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:dragon_head"),
+        *VanillaBlocks::DRAGON_HEAD,
+        *VanillaBlocks::DRAGON_WALL_HEAD,
+        ItemProperties().maxStackSize(64));
 
-    PIGLIN_HEAD = &registry.registerItem(ResourceLocation("minecraft:piglin_head"), ItemProperties().maxStackSize(64));
+    PIGLIN_HEAD = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:piglin_head"),
+        *VanillaBlocks::PIGLIN_HEAD,
+        *VanillaBlocks::PIGLIN_WALL_HEAD,
+        ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerHarnesses()

@@ -42,6 +42,7 @@
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
 #include "world/blockentity/interactive/ShelfBlockEntity.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
+#include "world/blockentity/interactive/SkullBlockEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
 #include "world/blockentity/processing/BrewingStandEntity.hpp"
@@ -179,6 +180,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册旗帜方块实体
     registerType(BlockEntityType::Banner, [](const BlockPos& pos) { return std::make_unique<BannerEntity>(pos); });
+
+    // 注册头颅方块实体
+    registerType(BlockEntityType::Skull,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::SkullBlockEntity>(pos); });
 
     // 注册蜂巢方块实体
     registerType(BlockEntityType::Beehive,
