@@ -37,6 +37,8 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
+// TODO 这个文件里面大量硬编码了交易数据 看看mc原版也这样吗？还是走的数据驱动？
+
 namespace mc {
 namespace world {
 namespace village {
