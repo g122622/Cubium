@@ -55,10 +55,14 @@
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
+#include "common/world/block/BlockTagLoader.hpp"
 #include "common/world/block/dispense/DispenseItemBehaviorRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/JavaBlockEntityTypeIdMap.hpp"
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
+#include "common/world/fluid/FluidTagLoader.hpp"
+#include "common/world/gameevent/GameEventTagLoader.hpp"
+#include "common/world/gameevent/GameEventTags.hpp"
 #include "common/world/map/MaterialColor.hpp"
 #include "common/world/timeline/Timelines.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
@@ -117,6 +121,43 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         VanillaBlocks::initialize();
     }
     spdlog::info("Vanilla blocks initialized");
+
+    // 从数据包加载方块标签（追加到或替换内置默认值）。
+    // 必须在 VanillaBlocks::initialize()（内部调用 BlockTags::initialize()）之后。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::BlockTagLoader");
+        auto blockTagResult = BlockTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (blockTagResult.failed()) {
+            spdlog::error("Failed to load block tags from data packs: {}", blockTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} block tags from data packs", blockTagResult.value());
+        }
+    }
+
+    // 从数据包加载流体标签（追加到或替换内置默认值）。
+    // 必须在流体注册表初始化（FluidTags::initialize 随 BaseBlocks 一并完成）之后。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::FluidTagLoader");
+        auto fluidTagResult = FluidTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (fluidTagResult.failed()) {
+            spdlog::error("Failed to load fluid tags from data packs: {}", fluidTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} fluid tags from data packs", fluidTagResult.value());
+        }
+    }
+
+    // 初始化游戏事件标签（幽匿感测体/尖啸体/监守者可监听事件集合），
+    // 并从数据包加载（追加到或替换内置默认值）。无实体/方块依赖。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::GameEventTags");
+        gameevent::GameEventTags::initialize();
+        auto gameEventTagResult = GameEventTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (gameEventTagResult.failed()) {
+            spdlog::error("Failed to load game event tags from data packs: {}", gameEventTagResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} game event tags from data packs", gameEventTagResult.value());
+        }
+    }
 
     // 方块注册完成后，向 SaplingBlock / AzaleaBlock 注入真实树木生成器。
     // common 层注册时传入空 TreeGenerator，由 server 侧后置注入捕获 TreeFeature

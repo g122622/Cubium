@@ -716,6 +716,7 @@ add_library(mc_common STATIC
     world/block/FireInfoRegistry.cpp
     world/block/BlockSoundType.cpp
     world/block/BlockTags.cpp
+    world/block/BlockTagLoader.cpp
     world/block/SupportType.cpp
     world/block/state/pattern/BlockInWorld.cpp
     world/block/state/pattern/BlockPattern.cpp
@@ -1109,6 +1110,8 @@ add_library(mc_common STATIC
     # World - Game Event System
     # Note: .cpp files that depend on server headers are in src/server/world/gameevent/
     world/gameevent/GameEvents.cpp
+    world/gameevent/GameEventTags.cpp
+    world/gameevent/GameEventTagLoader.cpp
     world/gameevent/VibrationSystem.cpp
 
     # World - Generation - Settings
@@ -1189,6 +1192,7 @@ add_library(mc_common STATIC
     world/fluid/FluidRegistry.cpp
     world/fluid/Fluids.cpp
     world/fluid/FluidTags.cpp
+    world/fluid/FluidTagLoader.cpp
     world/fluid/FlowingFluid.cpp
     world/fluid/fluids/EmptyFluid.cpp
     world/fluid/fluids/WaterFluid.cpp
@@ -1236,6 +1240,9 @@ add_library(mc_common STATIC
     resource/repository/PackRepository.cpp
     resource/pack/InMemoryResourcePack.cpp
     resource/VanillaResources.cpp
+
+    # Resource - Generic Tag Loader（通用两阶段标签加载骨架，被 Block/Fluid/GameEvent 标签加载器复用）
+    resource/tag/GenericTagLoader.cpp
 
     # Resource - Metadata
     resource/metadata/AnimationMetadata.cpp

@@ -1,303 +1,303 @@
-#Block 模块
+# Block 模块
 
-方块系统的核心模块，定义了 Minecraft 中所有方块的基础架构和实现。
+方块系统的核心模块，定义了 Minecraft 中所有方块的基础架构与实现。
 
-    ##目录结构
+## 目录结构
 
-``` block /
-├── Block.hpp /
-    cpp #方块基类，定义核心属性和行为（含 updateFromNeighbourShapes 静态方法、UPDATE_SHAPE_ORDER 常量、isExceptionForConnection 连接例外判断）
-├── BlockState.hpp / cpp #方块状态类，不可变状态对象
-├── BlockPos.hpp #方块位置坐标类
-├── BlockRegistry.hpp / cpp #方块注册表（单例）
-├── BlockSoundType.hpp / cpp #方块声音类型定义
-├── BlockTags.hpp /
-    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS、CHAINS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD、BEE_ATTRACTIVE
-        等）
-├── FireInfoRegistry.hpp /
-    cpp #火焰信息注册表（燃烧 / 蔓延属性）
-├── GameMasterBlock.hpp #游戏管理员方块标记接口（命令方块、结构方块等）
-├── HarvestTool.hpp #挖掘工具类型定义
-├── IBeaconBeamColorProvider.hpp #信标光束颜色提供者接口
-├── IBlockAnimateContext.hpp #方块动画 tick 上下文接口（客户端粒子 / 音效）
-├── IBucketPickupHandler.hpp #桶提取接口（支持 pickupFluid 流体拾取和 pickupItem 非流体拾取双路径）
-├── IGrowable.hpp #可生长方块接口（含 BoneMealType 枚举、getParticlePos 方法）
-├── ILiquidContainer.hpp #液体容器接口
-├── ILiquidSealed.hpp / cpp #液体密封方块接口（永不接收液体、也不被液体替换；水下植物实现）
-├── IWaterLoggable.hpp / cpp #含水方块接口
-├── Material.hpp / cpp #材质系统（物理属性）
-├── SupportType.hpp / cpp #方块支撑类型（Full / Center / Rigid），用于 isFaceSturdy / canSupportCenter / canSupportRigidBlock 判定
-├── PlantType.hpp #植物类型定义
-├── WaterLoggableHelpers.hpp #含水方块工具函数
-├── FenceGateHelpers.hpp #栅栏门连接检测工具函数
-├── dispense / #发射器行为系统
-│   ├── IDispenseItemBehavior.hpp / cpp #发射行为接口和基类
-│   ├── DispenseItemBehaviorRegistry.hpp / cpp #发射行为注册表
+```text
+src/common/world/block/
+├── Block.hpp/cpp                       # 方块基类（含 updateFromNeighbourShapes 静态方法、UPDATE_SHAPE_ORDER 常量、isExceptionForConnection 连接例外判断）
+├── BlockState.hpp/cpp                  # 方块状态类，不可变状态对象
+├── BlockPos.hpp                        # 方块位置坐标类
+├── BlockRegistry.hpp/cpp               # 方块注册表（单例）
+├── BlockSoundType.hpp/cpp              # 方块声音类型定义
+├── BlockTags.hpp/cpp                   # 方块标签系统（分组判断）
+├── BlockTagLoader.hpp/cpp              # 方块标签数据包加载器（data/<ns>/tags/block/）
+├── FireInfoRegistry.hpp/cpp            # 火焰信息注册表（燃烧 / 蔓延属性）
+├── GameMasterBlock.hpp                 # 游戏管理员方块标记接口（命令方块、结构方块等）
+├── HarvestTool.hpp                     # 挖掘工具类型定义
+├── IBeaconBeamColorProvider.hpp        # 信标光束颜色提供者接口
+├── IBlockAnimateContext.hpp            # 方块动画 tick 上下文接口（客户端粒子 / 音效）
+├── IBucketPickupHandler.hpp            # 桶提取接口（pickupFluid 流体拾取 / pickupItem 非流体拾取双路径）
+├── IGrowable.hpp                       # 可生长方块接口（含 BoneMealType 枚举、getParticlePos）
+├── ILiquidContainer.hpp                # 液体容器接口
+├── ILiquidSealed.hpp/cpp               # 液体密封方块接口（永不接收液体、也不被液体替换；水下植物实现）
+├── IWaterLoggable.hpp/cpp              # 含水方块接口
+├── Material.hpp/cpp                    # 材质系统（物理属性）
+├── SupportType.hpp/cpp                 # 方块支撑类型（Full / Center / Rigid）
+├── PlantType.hpp                       # 植物类型定义
+├── WaterLoggableHelpers.hpp            # 含水方块工具函数
+├── FenceGateHelpers.hpp                # 栅栏门连接检测工具函数
+├── dispense/                           # 发射器行为系统
+│   ├── IDispenseItemBehavior.hpp/cpp   # 发射行为接口与基类
+│   ├── DispenseItemBehaviorRegistry.hpp/cpp # 发射行为注册表
 │   └── README.md
-├── registry / #原版方块注册
-│   ├── VanillaBlocks.hpp / cpp #主入口，所有原版方块静态引用
-│   ├── BaseBlocks.hpp / cpp #基础方块、矿石、矿物、原木、木板
-│   ├── BuildingBlocks.hpp / cpp #建筑、功能方块、石砖、石英、海晶
-│   ├── BuildingVariantBlocks.hpp / cpp #楼梯 / 台阶 / 墙 / 门 / 栅栏门 / 活板门
-│   ├── ColoredBlocks.hpp / cpp #染色方块（羊毛、地毯、玻璃、混凝土、床）
-│   ├── NaturalBlocks.hpp / cpp #自然方块（冰变种、珊瑚、海洋方块）
-│   ├── NetherBlocks.hpp / cpp #下界方块、末地方块
-│   ├── RedstoneBlocks.hpp / cpp #红石方块、铁轨方块
-│   ├── SignBannerBlocks.hpp / cpp #告示牌、旗帜
-│   ├── VegetationBlocks.hpp / cpp #植被（草、花、蘑菇、树苗）
+├── registry/                           # 原版方块注册
+│   ├── VanillaBlocks.hpp/cpp           # 主入口，所有原版方块静态引用
+│   ├── BaseBlocks.hpp/cpp              # 基础方块、矿石、矿物、原木、木板
+│   ├── BuildingBlocks.hpp/cpp          # 建筑、功能方块、石砖、石英、海晶
+│   ├── BuildingVariantBlocks.hpp/cpp   # 楼梯 / 台阶 / 墙 / 门 / 栅栏门 / 活板门
+│   ├── ColoredBlocks.hpp/cpp           # 染色方块（羊毛、地毯、玻璃、混凝土、床）
+│   ├── NaturalBlocks.hpp/cpp           # 自然方块（冰变种、珊瑚、海洋方块）
+│   ├── NetherBlocks.hpp/cpp            # 下界方块、末地方块
+│   ├── RedstoneBlocks.hpp/cpp          # 红石方块、铁轨方块
+│   ├── SignBannerBlocks.hpp/cpp        # 告示牌、旗帜
+│   ├── VegetationBlocks.hpp/cpp        # 植被（草、花、蘑菇、树苗）
 │   └── README.md
-└── blocks / #具体方块实现（详见 blocks / README.md）
-    ├── AirBlock.hpp / cpp #空气方块
-    ├── LiquidBlock.hpp / cpp #液体方块
-    ├── RotatedPillarBlock.hpp / cpp #旋转柱状方块
-    ├── SimpleBlock.hpp / cpp #简单方块基类
-    ├── FallingBlock.hpp / cpp #可下落方块基类
-    ├── ChestBlock.hpp / cpp #箱子方块
-    ├── HopperBlock.hpp / cpp #漏斗方块
-    ├── DoorBlock.hpp / cpp #门方块
-    ├── FenceGateBlock.hpp / cpp #栅栏门方块
-    ├── CauldronBlock.hpp / cpp #炼药锅方块（水位0-3，支持水桶/玻璃瓶/皮革盔甲清洗/旗帜清洗/盾牌清洗交互）
-    ├── EnchantingTableBlock.hpp / cpp #附魔台方块
-    ├── SignBlock.hpp / cpp #告示牌方块
-    ├── HangingSignBlock.hpp / cpp #悬挂告示牌
-    ├── ShulkerBoxBlock.hpp / cpp #潜影盒方块（16色+无色变体，27格存储，防递归嵌套）
-    ├── LightningRodBlock.hpp / cpp #避雷针方块
-    ├── DirectionalBlock.hpp / cpp #有朝向的方块基类
-    ├── HorizontalBlock.hpp / cpp #水平朝向方块基类
-    ├── AbstractFurnaceBlock.hpp / cpp #熔炉基类
-    ├── FurnaceBlock.hpp / cpp #普通熔炉
-    ├── BlastFurnaceBlock.hpp / cpp #高炉
-    ├── SmokerBlock.hpp / cpp #烟熏炉
-    ├── TrappedChestBlock.hpp / cpp #陷阱箱
-    ├── agricultural / #农业方块（农作物、农田）
-    │   ├── CropBlock.hpp / cpp #作物基类
-    │   ├── WheatBlock.hpp / cpp #小麦
-    │   ├── CarrotBlock.hpp / cpp #胡萝卜
-    │   ├── PotatoBlock.hpp / cpp #土豆
-    │   ├── BeetrootBlock.hpp / cpp #甜菜根
-    │   ├── FarmlandBlock.hpp / cpp #农田
-    │   ├── StemBlock.hpp / cpp #茎（南瓜 / 西瓜茎）
-    │   ├── CocoaBlock.hpp / cpp #可可豆
-    │   └── MelonPumpkinBlocks.hpp / cpp #南瓜 / 西瓜
-    ├── building / #建筑方块（详见 building / README.md）
-    │   ├── StairsBlock.hpp / cpp #楼梯
-    │   ├── SlabBlock.hpp / cpp #台阶
-    │   ├── WallBlock.hpp / cpp #墙
-    │   ├── FenceBlock.hpp / cpp #栅栏
-    │   └── TrapDoorBlock.hpp / cpp #活板门
-    ├── cave / #洞穴方块（紫水晶等）
-    │   └── AmethystBlock.hpp / cpp
-    ├── copper / #铜方块
-    ├── coral / #珊瑚方块（详见 coral / README.md）
-    │   └── CoralBlock.hpp / cpp
-    ├── decorative / #装饰方块（详见 decorative / README.md）
-    │   ├── BannerBlock.hpp / cpp #旗帜
-    │   ├── CampfireBlock.hpp / cpp #营火
-    │   ├── CarpetBlock.hpp / cpp #地毯
-    │   ├── ChainBlock.hpp / cpp #锁链
-    │   ├── FlowerPotBlock.hpp / cpp #花盆
-    │   ├── LanternBlock.hpp / cpp #灯笼
-    │   ├── LadderBlock.hpp / cpp #梯子
-    │   ├── PaneBlock.hpp / cpp #玻璃板 / 铁栏杆
-    │   ├── ScaffoldingBlock.hpp / cpp #脚手架
-    │   └── StainedGlassBlock.hpp / cpp #染色玻璃
-    ├── dirt / #泥土类方块
-    ├── end / #末地方块（详见 end / README.md）
-    │   └── EndPortalBlock.hpp / cpp
-    ├── functional / #功能方块（详见 functional / README.md）
-    │   ├── BarrelBlock.hpp / cpp #木桶
-    │   ├── BeaconBlock.hpp / cpp #信标
-    │   ├── BedBlock.hpp / cpp #床
-    │   ├── BellBlock.hpp / cpp #钟
-    │   ├── BrewingStandBlock.hpp / cpp #酿造台
-    │   ├── CakeBlock.hpp / cpp #蛋糕
-    │   ├── ComposterBlock.hpp / cpp #堆肥桶
-    │   ├── GrindstoneBlock.hpp / cpp #砂轮
-    │   ├── JukeboxBlock.hpp / cpp #唱片机
-    │   ├── LecternBlock.hpp / cpp #讲台
-    │   └── RespawnAnchorBlock.hpp / cpp #重生锚
-    ├── ice / #冰方块
-    ├── mangrove / #红树林方块
-    ├── mob / #生物相关方块
-    ├── nether / #下界方块（详见 nether / README.md）
-    │   ├── FireBlock.hpp / cpp #火焰
-    │   ├── SoulFireBlock.hpp / cpp #灵魂火
-    │   ├── MagmaBlock.hpp / cpp #岩浆块
-    │   └── NetherPortalBlock.hpp / cpp #下界传送门
-    ├── ocean / #海洋方块（详见 ocean / README.md）
-    │   ├── BubbleColumnBlock.hpp / cpp #气泡柱
-    │   ├── ConduitBlock.hpp / cpp #潮涌核心
-    │   ├── KelpBlock.hpp / cpp #海带
-    │   └── SeagrassBlock.hpp / cpp #海草
-    ├── pale_garden / #苍白花园方块
-    ├── redstone / #红石方块（详见 redstone / README.md）
-    │   ├── AbstractButtonBlock.hpp / cpp #按钮基类
-    │   ├── AbstractPressurePlateBlock.hpp / cpp #压力板基类
-    │   ├── AbstractRailBlock.hpp / cpp #铁轨基类
-    │   ├── RedstoneWireBlock.hpp / cpp #红石线
-    │   ├── RedstoneTorchBlock.hpp / cpp #红石火把
-    │   ├── RedstoneRepeaterBlock.hpp / cpp #红石中继器
-    │   ├── RedstoneComparatorBlock.hpp / cpp #红石比较器
-    │   ├── ObserverBlock.hpp / cpp #侦测器
-    │   ├── PistonBlock.hpp / cpp #活塞
-    │   ├── DispenserBlock.hpp / cpp #发射器
-    │   └── ... 更多红石方块
-    ├── sculk / #幽匿方块
-    ├── special / #特殊方块（详见 special / README.md）
-    │   └── SpecialBlocks.hpp / cpp #海绵、屏障、命令方块等
-    ├── trial / #试炼密室方块（TrialSpawnerBlock、VaultBlock、CrafterBlock）
-    └── vegetation / #植被方块（详见 vegetation / README.md）
-        ├── BambooBlock.hpp / cpp #竹子
-        ├── CactusBlock.hpp / cpp #仙人掌
-        ├── FlowerBlock.hpp / cpp #花
-        ├── LeavesBlock.hpp / cpp #树叶
-        ├── SaplingBlock.hpp / cpp #树苗
-        ├── VineBlock.hpp /
-    cpp #藤蔓
-        └── ... 更多植被
+└── blocks/                             # 具体方块实现（详见 blocks/README.md）
+    ├── AirBlock.hpp/cpp                # 空气方块
+    ├── LiquidBlock.hpp/cpp             # 液体方块
+    ├── RotatedPillarBlock.hpp/cpp      # 旋转柱状方块
+    ├── SimpleBlock.hpp/cpp             # 简单方块基类
+    ├── FallingBlock.hpp/cpp            # 可下落方块基类
+    ├── ChestBlock.hpp/cpp              # 箱子方块
+    ├── HopperBlock.hpp/cpp             # 漏斗方块
+    ├── DoorBlock.hpp/cpp               # 门方块
+    ├── FenceGateBlock.hpp/cpp          # 栅栏门方块
+    ├── CauldronBlock.hpp/cpp           # 炼药锅方块（水位0-3，支持水桶/玻璃瓶/皮革盔甲清洗/旗帜清洗/盾牌清洗交互）
+    ├── EnchantingTableBlock.hpp/cpp    # 附魔台方块
+    ├── SignBlock.hpp/cpp               # 告示牌方块
+    ├── HangingSignBlock.hpp/cpp        # 悬挂告示牌
+    ├── ShulkerBoxBlock.hpp/cpp         # 潜影盒方块（16色+无色变体，27格存储，防递归嵌套）
+    ├── LightningRodBlock.hpp/cpp       # 避雷针方块
+    ├── DirectionalBlock.hpp/cpp        # 有朝向的方块基类
+    ├── HorizontalBlock.hpp/cpp         # 水平朝向方块基类
+    ├── AbstractFurnaceBlock.hpp/cpp    # 熔炉基类
+    ├── FurnaceBlock.hpp/cpp            # 普通熔炉
+    ├── BlastFurnaceBlock.hpp/cpp       # 高炉
+    ├── SmokerBlock.hpp/cpp             # 烟熏炉
+    ├── TrappedChestBlock.hpp/cpp       # 陷阱箱
+    ├── agricultural/                   # 农业方块（农作物、农田）
+    │   ├── CropBlock.hpp/cpp           # 作物基类
+    │   ├── WheatBlock.hpp/cpp          # 小麦
+    │   ├── CarrotBlock.hpp/cpp         # 胡萝卜
+    │   ├── PotatoBlock.hpp/cpp         # 土豆
+    │   ├── BeetrootBlock.hpp/cpp       # 甜菜根
+    │   ├── FarmlandBlock.hpp/cpp       # 农田
+    │   ├── StemBlock.hpp/cpp           # 茎（南瓜 / 西瓜茎）
+    │   ├── CocoaBlock.hpp/cpp          # 可可豆
+    │   └── MelonPumpkinBlocks.hpp/cpp  # 南瓜 / 西瓜
+    ├── building/                       # 建筑方块（详见 building/README.md）
+    │   ├── StairsBlock.hpp/cpp         # 楼梯
+    │   ├── SlabBlock.hpp/cpp           # 台阶
+    │   ├── WallBlock.hpp/cpp           # 墙
+    │   ├── FenceBlock.hpp/cpp          # 栅栏
+    │   └── TrapDoorBlock.hpp/cpp       # 活板门
+    ├── cave/                           # 洞穴方块（紫水晶等）
+    ├── copper/                         # 铜方块
+    ├── coral/                          # 珊瑚方块（详见 coral/README.md）
+    ├── decorative/                     # 装饰方块（详见 decorative/README.md）
+    │   ├── BannerBlock.hpp/cpp         # 旗帜
+    │   ├── CampfireBlock.hpp/cpp       # 营火
+    │   ├── CarpetBlock.hpp/cpp         # 地毯
+    │   ├── ChainBlock.hpp/cpp          # 锁链
+    │   ├── FlowerPotBlock.hpp/cpp      # 花盆
+    │   ├── LanternBlock.hpp/cpp        # 灯笼
+    │   ├── LadderBlock.hpp/cpp         # 梯子
+    │   ├── PaneBlock.hpp/cpp           # 玻璃板 / 铁栏杆
+    │   ├── ScaffoldingBlock.hpp/cpp    # 脚手架
+    │   └── StainedGlassBlock.hpp/cpp   # 染色玻璃
+    ├── dirt/                           # 泥土类方块
+    ├── end/                            # 末地方块（详见 end/README.md）
+    ├── functional/                     # 功能方块（详见 functional/README.md）
+    │   ├── BarrelBlock.hpp/cpp         # 木桶
+    │   ├── BeaconBlock.hpp/cpp         # 信标
+    │   ├── BedBlock.hpp/cpp            # 床
+    │   ├── BellBlock.hpp/cpp           # 钟
+    │   ├── BrewingStandBlock.hpp/cpp   # 酿造台
+    │   ├── CakeBlock.hpp/cpp           # 蛋糕
+    │   ├── ComposterBlock.hpp/cpp      # 堆肥桶
+    │   ├── GrindstoneBlock.hpp/cpp     # 砂轮
+    │   ├── JukeboxBlock.hpp/cpp        # 唱片机
+    │   ├── LecternBlock.hpp/cpp        # 讲台
+    │   └── RespawnAnchorBlock.hpp/cpp  # 重生锚
+    ├── ice/                            # 冰方块
+    ├── mangrove/                       # 红树林方块
+    ├── mob/                            # 生物相关方块
+    ├── nether/                         # 下界方块（详见 nether/README.md）
+    │   ├── FireBlock.hpp/cpp           # 火焰
+    │   ├── SoulFireBlock.hpp/cpp       # 灵魂火
+    │   ├── MagmaBlock.hpp/cpp          # 岩浆块
+    │   └── NetherPortalBlock.hpp/cpp   # 下界传送门
+    ├── ocean/                          # 海洋方块（详见 ocean/README.md）
+    │   ├── BubbleColumnBlock.hpp/cpp   # 气泡柱
+    │   ├── ConduitBlock.hpp/cpp        # 潮涌核心
+    │   ├── KelpBlock.hpp/cpp           # 海带
+    │   └── SeagrassBlock.hpp/cpp       # 海草
+    ├── pale_garden/                    # 苍白花园方块
+    ├── redstone/                       # 红石方块（详见 redstone/README.md）
+    │   ├── AbstractButtonBlock.hpp/cpp # 按钮基类
+    │   ├── AbstractPressurePlateBlock.hpp/cpp # 压力板基类
+    │   ├── AbstractRailBlock.hpp/cpp   # 铁轨基类
+    │   ├── RedstoneWireBlock.hpp/cpp   # 红石线
+    │   ├── RedstoneTorchBlock.hpp/cpp  # 红石火把
+    │   ├── RedstoneRepeaterBlock.hpp/cpp # 红石中继器
+    │   ├── RedstoneComparatorBlock.hpp/cpp # 红石比较器
+    │   ├── ObserverBlock.hpp/cpp       # 侦测器
+    │   ├── PistonBlock.hpp/cpp         # 活塞
+    │   ├── DispenserBlock.hpp/cpp      # 发射器
+    │   └── ...                         # 更多红石方块
+    ├── sculk/                          # 幽匿方块
+    ├── special/                        # 特殊方块（详见 special/README.md）
+    ├── trial/                          # 试炼密室方块（TrialSpawnerBlock、VaultBlock、CrafterBlock）
+    └── vegetation/                     # 植被方块（详见 vegetation/README.md）
+        ├── BambooBlock.hpp/cpp         # 竹子
+        ├── CactusBlock.hpp/cpp         # 仙人掌
+        ├── FlowerBlock.hpp/cpp         # 花
+        ├── LeavesBlock.hpp/cpp         # 树叶
+        ├── SaplingBlock.hpp/cpp        # 树苗
+        ├── VineBlock.hpp/cpp           # 藤蔓
+        └── ...                         # 更多植被
 ```
 
-    ##内部模块关系
+## 内部模块关系
 
-``` Block（基类）
+```
+Block（基类）
 ├── SimpleBlock（无状态静态方块）
 ├── AirBlock（空气方块）
 ├── FallingBlock（可下落方块）
 ├── RotatedPillarBlock（旋转柱状方块）
 ├── LiquidBlock（液体方块，关联 Fluid 系统）
-├── HorizontalBlock /
-    DirectionalBlock（朝向方块基类）
-├── ChestBlock,
-    HopperBlock,
-    DoorBlock 等功能方块
+├── HorizontalBlock / DirectionalBlock（朝向方块基类）
+├── ChestBlock、HopperBlock、DoorBlock 等功能方块
 └── 各子目录中的具体方块实现
 
-        BlockState（状态对象）
+BlockState（状态对象）
 └── StateHolder<Block, BlockState>（支持 O(1) 状态转换）
 
-    BlockRegistry（单例注册表）
+BlockRegistry（单例注册表）
 ├── 管理所有 Block 实例
-└── 提供 ID
-    /
-    资源位置查找
+└── 提供 ID / 资源位置查找
 
-    Material（材质定义）
+Material（材质定义）
 └── 描述方块物理属性（固体、透明、可燃等）
 
-    ILiquidContainer（液体容器接口）
+ILiquidContainer（液体容器接口）
 ├── IWaterLoggable（含水接口）：总是接收水 → canContainFluid 依 WATERLOGGED 属性判定
 ├── ILiquidSealed（液体密封接口）：永不接收、也不被替换 → canContainFluid 恒 false
 └── 被 kelp / kelp_plant / seagrass / tall_seagrass 实现（缺此实现会被水流冲毁并掉落物品，见坑 #41）
 
-    IWaterLoggable（含水接口）
-├── 继承 ILiquidContainer 和 IBucketPickupHandler
-└── 被 StairsBlock,
-    SlabBlock,
-    WallBlock 等 19 +
-        种方块实现
+IWaterLoggable（含水接口）
+├── 继承 ILiquidContainer 与 IBucketPickupHandler
+└── 被 StairsBlock、SlabBlock、WallBlock 等 19+ 种方块实现
 
-            GameMasterBlock（管理员方块标记接口）
+GameMasterBlock（管理员方块标记接口）
 ├── CommandBlock、StructureBlock、JigsawBlock 实现此接口并重写 Block::isGameMaster() 返回 true
 ├── Block::isGameMaster() 虚方法默认返回 false，用于替代 dynamic_cast 做权限检查
-└── BlockInteractionManager::_canBreakBlock() 和 GameMasterBlockItem::getStateForPlacement() 检查此权限
+└── BlockInteractionManager::_canBreakBlock() 与 GameMasterBlockItem::getStateForPlacement() 检查此权限
 
-            IBlockAnimateContext（方块动画 tick 上下文）
+IBlockAnimateContext（方块动画 tick 上下文）
 ├── 轻量级接口，为 Block::animateTick 提供客户端操作能力
 ├── addAnimateParticle() → 生成粒子效果
 ├── playLocalSound() → 播放本地音效
 ├── getBlockState() → 查询方块状态
 └── ClientWorld 实现此接口，在 animateTick 调度时传入自身
 
-            dispense
-            / 子模块
+dispense/ 子模块
 ├── IDispenseItemBehavior（发射行为接口）
 ├── DispenseItemBehaviorRegistry（行为注册表）
 └── 各种具体发射行为（投射物、船、桶、打火石、骨粉等）
-        - BucketDispenseBehavior：装满流体的桶放置流体，成功后替换为空桶
-        - EmptyBucketDispenseBehavior：空桶收集流体，成功后替换为满桶
-        - FlintAndSteelDispenseBehavior：打火石点燃方块 / 引燃TNT，消耗耐久 -
-        BonemealDispenseBehavior：骨粉催熟方块 /
-            水中海草，消耗数量
+    ├── BucketDispenseBehavior：装满流体的桶放置流体，成功后替换为空桶
+    ├── EmptyBucketDispenseBehavior：空桶收集流体，成功后替换为满桶
+    ├── FlintAndSteelDispenseBehavior：打火石点燃方块 / 引燃 TNT，消耗耐久
+    └── BonemealDispenseBehavior：骨粉催熟方块 / 水中海草，消耗数量
 ```
 
-            ##上下游依赖关系
+## 上下游依赖关系
 
-            ## #上游依赖（本模块依赖）
+### 上游依赖（本模块依赖）
 
-    | 模块 | 用途 | | -- -- --| -- -- --| | `core / Types.hpp` | 基础类型定义 | | `core / Constants.hpp` | 游戏常量 |
-    | `util / Direction.hpp` | 方向枚举 | | `util / property /` | 状态属性系统 | | `physics / collision /` | 碰撞形状 |
-    | `world / fluid /` | 流体系统（LiquidBlock 关联） | | `entity / loot /` | 掉落表系统 |
-    | `util / math / random /` | 随机数接口 |
+| 模块 | 用途 |
+|------|------|
+| `core/Types.hpp` | 基础类型定义 |
+| `core/Constants.hpp` | 游戏常量 |
+| `util/Direction.hpp` | 方向枚举 |
+| `util/property/` | 状态属性系统 |
+| `physics/collision/` | 碰撞形状 |
+| `world/fluid/` | 流体系统（LiquidBlock 关联） |
+| `entity/loot/` | 掉落表系统 |
+| `util/math/random/` | 随机数接口 |
 
-    ## #下游依赖（谁依赖本模块）
+### 下游依赖（谁依赖本模块）
 
-    | 模块 | 用途 | | -- -- --| -- -- --| | `VanillaBlocks.hpp` | 原版方块静态引用 |
-    | `world / chunk /` | 区块存储方块状态 | | `world / gen /` | 世界生成放置方块 | | `renderer /` | 方块渲染 |
-    | `entity /` | 实体与方块交互 | | `item /` | 物品与方块对应 | | `network /` | 方块状态同步 |
+| 模块 | 用途 |
+|------|------|
+| `VanillaBlocks.hpp` | 原版方块静态引用 |
+| `world/chunk/` | 区块存储方块状态 |
+| `world/gen/` | 世界生成放置方块 |
+| `renderer/` | 方块渲染 |
+| `entity/` | 实体与方块交互 |
+| `item/` | 物品与方块对应 |
+| `network/` | 方块状态同步 |
 
-    ##容易踩的坑
+## 容易踩的坑
 
-    ## #1. 状态不可变性
+### 1. 状态不可变性
 
 `BlockState::with()` 返回新状态，不修改原状态：
+
 ```cpp
-    // 错误：没有使用返回值
-    state.with(property, value); // 状态未改变！
+// 错误：没有使用返回值
+state.with(property, value); // 状态未改变！
+
 // 正确：使用返回的新状态
 const BlockState& newState = state.with(property, value);
 ```
 
-    ## #2. 材质比较必须用地址比较
+### 2. 材质比较必须用地址比较
 
 ```cpp
-    // 正确：使用预定义材质引用
-    if (block.material() == Material::ROCK)
-{}
+// 正确：使用预定义材质引用
+if (block.material() == Material::ROCK) {}
 
 // 错误：创建新实例比较永远为 false
 Material myRock = MaterialBuilder().solid().opaque().build();
 if (block.material() == myRock) {} // 始终 false！
 ```
 
-    ## #3. 空气方块 ID 固定为 0
+### 3. 空气方块 ID 固定为 0
 
-`minecraft : air` 始终获得 ID 0，其他方块从 ID 1 开始。协议编码和存储时需注意。
+`minecraft:air` 始终获得 ID 0，其他方块从 ID 1 开始。协议编码和存储时需注意。
 
-              ## #4. BlockState 缓存不可变
+### 4. BlockState 缓存不可变
 
 `BlockState` 构造时缓存属性值，方块属性在构造后不可修改。
 
-              ## #5. 状态ID vs 方块ID
+### 5. 状态ID vs 方块ID
 
-              -
-              方块ID：标识方块类型 -
-              状态ID：标识方块的特定状态（包含属性值）
+- 方块ID：标识方块类型
+- 状态ID：标识方块的特定状态（包含属性值）
 
-```cpp u32 blockId = block.blockId(); // 方块ID
-u32 stateId = state.stateId();         // 状态ID
+```cpp
+u32 blockId = block.blockId();  // 方块ID
+u32 stateId = state.stateId();  // 状态ID
 ```
 
-    ## #6. 光照透明度 vs 天空光传播
+### 6. 光照透明度 vs 天空光传播
 
-`opacity` 和 `propagatesSkylightDown` 是两个独立属性： -
-    玻璃：`opacity = 0` 但 `propagatesSkylightDown = false` - 树叶：`opacity = 0` 且 `propagatesSkylightDown = true`
+`opacity` 和 `propagatesSkylightDown` 是两个独立属性：
 
-    ## #7. LiquidBlock 等级映射
+- 玻璃：`opacity = 0` 但 `propagatesSkylightDown = false`
+- 树叶：`opacity = 0` 且 `propagatesSkylightDown = true`
 
-        方块 level 与流体 level 映射： -
-    方块 level = 0 → 流体 level = 8（源头） - 方块 level = 1 - 7 → 流体 level = 1 - 7 - 方块 level =
-                                                                                    8 - 15 → 流体 level = 8,
-          falling = true
+### 7. LiquidBlock 等级映射
 
-    ## #8. 挖掘工具类型同步
+方块 level 与流体 level 映射：
+
+- 方块 level = 0 → 流体 level = 8（源头）
+- 方块 level = 1-7 → 流体 level = 1-7
+- 方块 level = 8-15 → 流体 level = 8, falling = true
+
+### 8. 挖掘工具类型同步
 
 `HarvestTool` 命名空间中的常量必须与 `item::tool::ToolType` 枚举值保持同步。
 
-    ## #9. 树苗和树木生成支撑方块一致性
+### 9. 树苗和树木生成支撑方块一致性
 
-`SaplingBlock` 和 `TreeFeature` 必须就根支撑方块达成一致，否则会出现 "可以放置但不能生长"的不匹配。
+`SaplingBlock` 和 `TreeFeature` 必须就根支撑方块达成一致，否则会出现"可以放置但不能生长"的不匹配。
 
-## #10. getBlock() vs getBlockMutable()
+### 10. getBlock() vs getBlockMutable()
 
 `BlockState::getBlock()` 返回 `const Block&`，适用于只读访问。当需要调用非 const 方法（如 `tick`、`neighborChanged`、`onBlockRemoved`、`scheduleBlockTick` 等）时，使用 `getBlockMutable()` 获取 `Block&`：
 
@@ -309,346 +309,283 @@ const Block& block = state->getBlock();
 Block& block = state->getBlockMutable();
 ```
 
-    ## #10. 冰块融化与破坏路径分离
+### 11. 冰块融化与破坏路径分离
 
 `IceBlock::randomTick()` 只负责融化，`onBlockRemoved()` 只负责破坏后的替换。不要让随机刻回调 `onBlockRemoved()`。
 
-    ## #11. 作物骨粉增长随机数
+### 12. 作物骨粉增长随机数
 
-        骨粉增长必须从世界种子和方块位置派生随机数，不能使用全局 `rand()`。
+骨粉增长必须从世界种子和方块位置派生随机数，不能使用全局 `rand()`。
 
-    ## #12. 农田降雨补湿条件
+### 13. 农田降雨补湿条件
 
 `FarmlandBlock` 的降雨补湿要同时检查 `isRaining()` 和 `canRainAt(pos.up())`，否则测试会出现伪阳性。
 
-    ## #13. 天气降水判定
+### 14. 天气降水判定
 
-`WeatherUtils::
-        canRainAt()` / `canSnowAt()` 需要结合生物群系的 `hasPrecipitation()` 布尔值以及温度阈值一起判断。沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式设置 `hasPrecipitation` 为 `false`（通过 `setHasPrecipitation(
-            false)`）。
+`WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `hasPrecipitation()` 布尔值以及温度阈值一起判断。沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式设置 `hasPrecipitation` 为 `false`（通过 `setHasPrecipitation(false)`）。
 
-    ## #14. PaneBlock 连接形状
+### 15. PaneBlock 连接形状
 
 `PaneBlock` 连接形状按 4 位掩码缓存并使用规范化坐标，不要回退到单个中心形状占位符。
 
-    ## #15. 重复注册静默返回已存在方块
+### 16. 重复注册静默返回已存在方块
 
-        重复注册同一资源位置的方块会返回已存在的方块，新属性被忽略。
+重复注册同一资源位置的方块会返回已存在的方块，新属性被忽略。
 
-    ## #16. AirBlock 碰撞特殊性
+### 17. AirBlock 碰撞特殊性
 
-        AirBlock 的 `isSolid()` 返回 `false`，碰撞检测时需同时检查 `isAir()`：
-```cpp if (!state.isAir() && state.isSolid())
-{
+`AirBlock` 的 `isSolid()` 返回 `false`，碰撞检测时需同时检查 `isAir()`：
+
+```cpp
+if (!state.isAir() && state.isSolid()) {
     // 执行碰撞检测
 }
 ```
 
-        ## #17. RotatedPillarBlock 默认轴向
+### 18. RotatedPillarBlock 默认轴向
 
-            默认轴向是 `Axis::X`（枚举第一个值），但大多数原木默认应该是 `Axis::Y`。注册时需要设置默认状态。
+默认轴向是 `Axis::X`（枚举第一个值），但大多数原木默认应该是 `Axis::Y`。注册时需要设置默认状态。
 
-        ## #18. 门方块双方块结构
+### 19. 门方块双方块结构
 
-            DoorBlock 使用 `HALF` 属性区分上下半部分，操作时需同时处理两个方块位置。
+`DoorBlock` 使用 `HALF` 属性区分上下半部分，操作时需同时处理两个方块位置。
 
-        ## #19. 炼药锅无方块实体
+### 20. 炼药锅无方块实体
 
-            CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0 -
-        3），交互操作直接修改方块状态，不需要方块实体。
+`CauldronBlock` 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直接修改方块状态，不需要方块实体。
 
-        ## #20. 含水方块实现步骤
+### 21. 含水方块实现步骤
 
-            实现 `IWaterLoggable` 接口需要： 1. 添加 `WATERLOGGED` 属性到状态容器 2. 在 `getStateForPlacement()` 中检测水
-        3. 在 `updatePostPlacement()` 中调度流体 tick 4. 实现 `getFluidState()` 返回水流体状态
+实现 `IWaterLoggable` 接口需要：
 
-        ## #21. FireInfoRegistry 火焰参数系统
+1. 添加 `WATERLOGGED` 属性到状态容器
+2. 在 `getStateForPlacement()` 中检测水
+3. 在 `updatePostPlacement()` 中调度流体 tick
+4. 实现 `getFluidState()` 返回水流体状态
 
-`Block::getFlammability()` 和 `Block::
-            getFireSpreadSpeed()` 的默认实现已改为查询 `FireInfoRegistry`，无需子类重写即可获得正确的燃烧参数。
+### 22. FireInfoRegistry 火焰参数系统
 
-        - `FireInfoRegistry::initializeVanillaFireInfos()` 在 `VanillaBlocks::initialize()` 末尾自动调用
-        - 仅注册 MC 原版 `FireBlock.bootStrap()` 中注册的可燃方块，未注册的方块火焰不会蔓延到其上
-        - 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
-        - 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值 -
-        部分方块（如 SHELF）尚待对应方块指针注册后补充
+`Block::getFlammability()` 和 `Block::getFireSpreadSpeed()` 的默认实现已改为查询 `FireInfoRegistry`，无需子类重写即可获得正确的燃烧参数。
 
-                ** 火焰蔓延 vs 岩浆点燃**：火焰蔓延（FireBlock）仅依赖本注册表，不检查
-            Material。岩浆点燃（LavaFluid）通过 `Material::
-                isFlammable()` 判断，是独立系统。因此，告示牌、树苗等虽然未在本注册表中注册（与原版一致），但由于使用
-            WOOD
-            /
-            PLANT 材质，仍可被岩浆点燃。
+- `FireInfoRegistry::initializeVanillaFireInfos()` 在 `VanillaBlocks::initialize()` 末尾自动调用
+- 仅注册 MC 原版 `FireBlock.bootStrap()` 中注册的可燃方块，未注册的方块火焰不会蔓延到其上
+- 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
+- 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值
+- 部分方块（如 SHELF）尚待对应方块指针注册后补充
 
-            ## #22. canBeReplaced
-            /
-            canBeReplacedByFluid 语义
+**火焰蔓延 vs 岩浆点燃**：火焰蔓延（FireBlock）仅依赖本注册表，不检查 Material。岩浆点燃（LavaFluid）通过 `Material::isFlammable()` 判断，是独立系统。因此，告示牌、树苗等虽然未在本注册表中注册（与原版一致），但由于使用 WOOD / PLANT 材质，仍可被岩浆点燃。
+
+### 23. canBeReplaced / canBeReplacedByFluid 语义
 
 `BlockState` 提供两个可替换性查询方法：
 
-        -
-        **`canBeReplaced()`**：对应 MC 的 `BlockState.canBeReplaced()` 无参版，缓存自 `Block
-              .m_isReplaceable`。空气、水、岩浆、花草、火、雪层等返回 `true`；石头、泥土等实心方块返回 `false`。等价于 `isAir() ||
-    getMaterial().isReplaceable()` 但性能更优（缓存值）。 -
-        **`canBeReplacedByFluid()`**：对应 MC 的 `BlockBehaviour.canBeReplaced(
-            BlockState, Fluid)`，实现为 `canBeReplaced() ||
-    !isSolid()`。非固体但不可替换的方块（门、告示牌等）也返回 `true`，允许流体流入。
+- **`canBeReplaced()`**：对应 MC 的 `BlockState.canBeReplaced()` 无参版，缓存自 `Block.m_isReplaceable`。空气、水、岩浆、花草、火、雪层等返回 `true`；石头、泥土等实心方块返回 `false`。等价于 `isAir() || getMaterial().isReplaceable()` 但性能更优（缓存值）。
+- **`canBeReplacedByFluid()`**：对应 MC 的 `BlockBehaviour.canBeReplaced(BlockState, Fluid)`，实现为 `canBeReplaced() || !isSolid()`。非固体但不可替换的方块（门、告示牌等）也返回 `true`，允许流体流入。
 
-        | 场景 | 使用哪个方法 | | -- -- --| -- -- -- -- -- --| | 世界生成（ReplaceablePredicate）、掉落方块判断
-        | `canBeReplaced()` | | 方块放置替换
-        | `canBeReplaced()`（上下文感知版应使用 `Block::isReplaceable(state, context)`） | | 流体流动 / 桶放置流体
-        | `canBeReplacedByFluid()` |
+| 场景 | 使用哪个方法 |
+|------|--------------|
+| 世界生成（ReplaceablePredicate）、掉落方块判断 | `canBeReplaced()` |
+| 方块放置替换 | `canBeReplaced()`（上下文感知版应使用 `Block::isReplaceable(state, context)`） |
+| 流体流动 / 桶放置流体 | `canBeReplacedByFluid()` |
 
-        **注意 * *：不要再用 `isAir() ||
-    getMaterial().isReplaceable()` 手动判断可替换性，统一使用 `canBeReplaced()`。
+**注意**：不要再用 `isAir() || getMaterial().isReplaceable()` 手动判断可替换性，统一使用 `canBeReplaced()`。
 
-                ## #23. GameMasterBlock 权限检查
+#### canBeReplacedByFluid 与 FlowingFluid::isBlocked 的关系
 
-                管理员方块（CommandBlock、StructureBlock、JigsawBlock）有三层权限防护：
+`canBeReplacedByFluid()` 仅描述方块的结构属性（是否允许流体占据），不包含 MC Java 中的业务黑名单。`FlowingFluid::isBlocked()` 在 `canBeReplacedByFluid()` 之上叠加了额外的黑名单逻辑：
 
-                1. *
-                *放置限制 *
-                *：使用 `GameMasterBlockItem`（继承
-                 BlockItem），重写 `getStateForPlacement()` 检查 `player.canUseGameMasterBlocks()`（创造模式
-            +
-            OP≥2） 2. * *破坏限制 *
-                *：`BlockInteractionManager::_canBreakBlock()` 检查 `block.isGameMaster()`，无权限阻止破坏 3. *
-                *交互限制 *
-                *：各方块 `onBlockActivated()` 中检查 `player
-                     .canUseGameMasterBlocks()`
+1. **ILiquidContainer 方块**（含水方块等）→ 委托给 `canContainFluid()` 判断
+2. **路径黑名单**：`_door`、`_sign`、`ladder`、`sugar_cane`、`bubble_column` → 返回 `true`（阻挡流体），尽管这些方块的 `canBeReplacedByFluid()` 返回 `true`
+3. **材质黑名单**：`Material::PORTAL`、`Material::STRUCTURE_VOID` → 返回 `true`（阻挡流体）
+4. **默认**：`!canBeReplacedByFluid()` → 如果方块不可被流体替换，则阻挡
 
-                 判断是否为管理员方块应使用 `block
-                     .isGameMaster()` 虚方法，而非 `dynamic_cast<GameMasterBlock>`（性能更好）。新增管理员方块时需：
-                 1. 继承 `GameMasterBlock` 标记接口
-                 2. 重写 `isGameMaster()` 返回 `true` 3. 在 `BlockItemRegistry` 中使用 `GameMasterBlockItem` 注册
-                 4. 在 `onBlockActivated()` 中添加权限检查
+这是 MC Java 中 `canHoldAnyFluid()` 的精确对应：黑名单方块虽然 `canBeReplaced(Fluid)` 返回 `true`，但 MC Java 明确排除了它们。
 
-                 ## #24. animateTick 系统与 IBlockAnimateContext
+#### 液体方块的 canBeReplacedByFluid
 
-`Block::animateTick()` 是客户端方块动画 tick
-                 方法，每 tick 由 `ClientWorld::animateTick()` 调度，用于生成粒子效果、播放环境音效等视觉效果。
+液体方块（水、岩浆）的 `canBeReplacedByFluid()` 返回 `true`（因为 `canBeReplaced() = true`）。这与 MC Java 一致：`BucketItem.emptyContents()` 允许在已有液体上放置桶装流体。旧代码中 `canBeReplaced() && !isLiquid()` 的 `!isLiquid()` 检查是错误的——MC Java 不检查目标方块是否已是液体。放置在已有液体上的行为是 `setBlock` 替换同类型液体（无操作）或水 / 岩浆交互。
 
-            - **仅客户端执行 * *：animateTick 在服务端永远不会被调用 -
-            **IBlockAnimateContext 接口 * *：为避免 Block 直接依赖完整的 IWorld，animateTick 接收 `IBlockAnimateContext
-        &` 而非 `IWorld &`，仅提供 `addAnimateParticle()`、`playLocalSound()`、`getBlockState()` 三个轻量方法 -
-            **签名 *
-                *：`virtual void animateTick(IBlockAnimateContext & context,
-                    const BlockPos& pos,
-                    const BlockState& state,
-                    math::IRandom& random) const;
-` - **基类默认实现 **：空操作（无粒子、无音效） - **调度逻辑 **：ClientWorld 每帧执行 667 次迭代 × 2 范围 pass（16 +
-    32），共 1334 次随机采样 - **已实现的方块 **：BubbleColumnBlock（气泡 / 漩涡粒子 +
-    环境音）、SporeBlossomBlock（孢子花粒子）
+### 24. GameMasterBlock 权限检查
 
-        ####canBeReplacedByFluid 与 FlowingFluid::isBlocked 的关系
+管理员方块（CommandBlock、StructureBlock、JigsawBlock）有三层权限防护：
 
-`canBeReplacedByFluid()` 仅描述方块的结构属性（是否允许流体占据），不包含 MC Java
-        中的业务黑名单。`FlowingFluid::isBlocked()` 在 `canBeReplacedByFluid()` 之上叠加了额外的黑名单逻辑：
+1. **放置限制**：使用 `GameMasterBlockItem`（继承 BlockItem），重写 `getStateForPlacement()` 检查 `player.canUseGameMasterBlocks()`（创造模式 + OP≥2）
+2. **破坏限制**：`BlockInteractionManager::_canBreakBlock()` 检查 `block.isGameMaster()`，无权限阻止破坏
+3. **交互限制**：各方块 `onBlockActivated()` 中检查 `player.canUseGameMasterBlocks()`
 
-        1. *
-        *ILiquidContainer 方块 **（含水方块等）→ 委托给 `canContainFluid()` 判断 2. *
-        *路径黑名单 *
-            *：`_door`、`_sign`、`ladder`、`sugar_cane`、`bubble_column` → 返回 `true`（阻挡流体），尽管这些方块的 `canBeReplacedByFluid()` 返回 `true` 3. *
-        *材质黑名单 **：`Material::PORTAL`、`Material::STRUCTURE_VOID` → 返回 `true`（阻挡流体） 4. *
-        *默认 **：`!canBeReplacedByFluid()` → 如果方块不可被流体替换，则阻挡
+判断是否为管理员方块应使用 `block.isGameMaster()` 虚方法，而非 `dynamic_cast<GameMasterBlock>`（性能更好）。新增管理员方块时需：
 
-        这是 MC Java 中 `canHoldAnyFluid()` 的精确对应：黑名单方块虽然 `canBeReplaced(
-            Fluid)` 返回 `true`，但 MC Java 明确排除了它们。
+1. 继承 `GameMasterBlock` 标记接口
+2. 重写 `isGameMaster()` 返回 `true`
+3. 在 `BlockItemRegistry` 中使用 `GameMasterBlockItem` 注册
+4. 在 `onBlockActivated()` 中添加权限检查
 
-        ####液体方块的 canBeReplacedByFluid
+### 25. animateTick 系统与 IBlockAnimateContext
 
-        液体方块（水、岩浆）的 `canBeReplacedByFluid()` 返回 `true`（因为 `canBeReplaced() =
-    true`）。这与 MC Java 一致：`BucketItem.emptyContents()` 允许在已有液体上放置桶装流体。旧代码中 `canBeReplaced() &&
-    !isLiquid()` 的 `!isLiquid()` 检查是错误的——MC Java
-                    不检查目标方块是否已是液体。放置在已有液体上的行为是 `setBlock` 替换同类型液体（无操作）或水
-                    /
-                    岩浆交互。
+`Block::animateTick()` 是客户端方块动画 tick 方法，每 tick 由 `ClientWorld::animateTick()` 调度，用于生成粒子效果、播放环境音效等视觉效果。
 
-                    ## #25. MUSHROOM_GROW_BLOCK 标签与蘑菇放置
+- **仅客户端执行**：animateTick 在服务端永远不会被调用
+- **IBlockAnimateContext 接口**：为避免 Block 直接依赖完整的 IWorld，animateTick 接收 `IBlockAnimateContext&` 而非 `IWorld&`，仅提供 `addAnimateParticle()`、`playLocalSound()`、`getBlockState()` 三个轻量方法
+- **签名**：`virtual void animateTick(IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const;`
+- **基类默认实现**：空操作（无粒子、无音效）
+- **调度逻辑**：ClientWorld 每帧执行 667 次迭代 × 2 范围 pass（16 + 32），共 1334 次随机采样
+- **已实现的方块**：BubbleColumnBlock（气泡 / 漩涡粒子 + 环境音）、SporeBlossomBlock（孢子花粒子）
+
+### 26. MUSHROOM_GROW_BLOCK 标签与蘑菇放置
 
 `BlockTags::MUSHROOM_GROW_BLOCK()` 标签包含菌丝（mycelium）、灰化土（podzol）、绯红菌岩（crimson_nylium）、诡异菌岩（warped_nylium），用于蘑菇放置判定。
 
-                    蘑菇（`MushroomBlock`）的放置判定分两层： 1. *
-                    *`Block::canSustainPlant()`*
-                    *（`PlantType::Cave` 分支）：检查下方方块是否属于 `MUSHROOM_GROW_BLOCK` 标签，只有标签内的方块才返回
-                    true 2. *
-                    *`MushroomBlock::isValidPosition()`* *：在标签方块上无条件允许放置，在其他固体方块上需光照 <
-                13
+蘑菇（`MushroomBlock`）的放置判定分两层：
 
-                    * *注意 *
-                    *：不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查——光照检查由 `MushroomBlock::
-                         isValidPosition()` 独立完成。`canSustainPlant` 只负责判断土壤类型兼容性。
+1. **`Block::canSustainPlant()`**（`PlantType::Cave` 分支）：检查下方方块是否属于 `MUSHROOM_GROW_BLOCK` 标签，只有标签内的方块才返回 true
+2. **`MushroomBlock::isValidPosition()`**：在标签方块上无条件允许放置，在其他固体方块上需光照 < 13
 
-                     蘑菇注册使用 `blocks::MushroomBlock` 而非 `SimpleBlock`，巨型蘑菇方块使用 `blocks::
-                         HugeMushroomBlock`（具有 6 方向布尔属性）。
+**注意**：不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查——光照检查由 `MushroomBlock::isValidPosition()` 独立完成。`canSustainPlant` 只负责判断土壤类型兼容性。
 
-                     ## #26. Block::pushEntitiesUp 实体推出
+蘑菇注册使用 `blocks::MushroomBlock` 而非 `SimpleBlock`，巨型蘑菇方块使用 `blocks::HugeMushroomBlock`（具有 6 方向布尔属性）。
 
-`Block::pushEntitiesUp(oldState,
-                         newState,
-                         world,
-                         pos)` 是一个静态工具方法，当方块碰撞形状增大时将嵌入方块内的实体向上推出。对应 MC Java
-                     的 `Block.pushEntitiesUp()`。
+### 27. Block::pushEntitiesUp 实体推出
 
-                    * *工作原理 *
-                    *： 1. 计算 `oldState` 与 `newState` 的碰撞形状差集（`BooleanOps::OnlySecond`，即"在 newState 中但不在 oldState 中"的部分）并平移到世界坐标 2. 若差集形状为空，直接返回 `newState` 3. 取差集形状的世界 AABB，查找其中的所有实体 4. 对每个实体：将其碰撞箱上移 1 格，沿 Y 轴向下（`movement = -1.0`）与差集形状做碰撞，得到最大可下落距离 `d0`（非正数） 5. 让实体相对上移 `1 + d0`，即正好停在差集形状顶部之上
+`Block::pushEntitiesUp(oldState, newState, world, pos)` 是一个静态工具方法，当方块碰撞形状增大时将嵌入方块内的实体向上推出。对应 MC Java 的 `Block.pushEntitiesUp()`。
 
-                        * *使用场景 * *： -
-                    **雪层增加 * *：`tickPrecipitation()` 中雪层层数增加时调用 `pushEntitiesUp` 推出站在雪上的实体 -
-                    **耕地变泥土 * *：`FarmlandBlock::turnToDirt()` 中耕地（15 / 16格高）变为泥土（1格高）时推出实体 -
-                    **其他碰撞形状增大的场景 * *：任何方块状态变化导致碰撞形状增大的情况
+**工作原理**：
 
-                        * *签名 * *：`static const BlockState
-            &
-            pushEntitiesUp(const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)`
+1. 计算 `oldState` 与 `newState` 的碰撞形状差集（`BooleanOps::OnlySecond`，即"在 newState 中但不在 oldState 中"的部分）并平移到世界坐标
+2. 若差集形状为空，直接返回 `newState`
+3. 取差集形状的世界 AABB，查找其中的所有实体
+4. 对每个实体：将其碰撞箱上移 1 格，沿 Y 轴向下（`movement = -1.0`）与差集形状做碰撞，得到最大可下落距离 `d0`（非正数）
+5. 让实体相对上移 `1 + d0`，即正好停在差集形状顶部之上
 
-                    * *注意 * *： -
-                方法返回 `newState`，方便链式调用
-                - 实现与 MC Java 1.21.11 完全一致，使用 `Shapes::joinUnoptimized` + `BooleanOps::OnlySecond` 计算形状差集，再用 `VoxelShape::collide(Axis::Y, ..., -1.0)` 计算推出距离 -
-                实体移动通过 `Entity::move(MoverType::Piston, delta)` 完成，该重载不做碰撞检测，与 MC 的 `entity.teleportRelative(...)` 语义一致 -
-                必须在 `setBlockState` * *之前 *
-                    *调用，先推出实体再更新方块状态
+**使用场景**：
 
-                    ## #27. Block::handlePrecipitation 降水方块处理
+- **雪层增加**：`tickPrecipitation()` 中雪层层数增加时调用 `pushEntitiesUp` 推出站在雪上的实体
+- **耕地变泥土**：`FarmlandBlock::turnToDirt()` 中耕地（15/16格高）变为泥土（1格高）时推出实体
+- **其他碰撞形状增大的场景**
 
-`Block::handlePrecipitation(IWorld&,
-                        const BlockPos&,
-                        BiomeClimate::
-                            Precipitation)` 是方块的降水处理虚方法，默认实现为空操作。方块可以重写此方法来响应降水：
+**签名**：`static const BlockState& pushEntitiesUp(const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)`
 
-                - **CauldronBlock * *：雨天 5 % 概率增加水位、雪天 10 % 概率增加水位，水位上限为 3 -
-                **LightningRodBlock * *：雷暴天气且避雷针朝上时，通过 `onLightningStrike()` 激活避雷针
+**注意**：
 
-                    * *调用时机 *
-                    *：`ServerWorld::tickPrecipitation()` 在每个降水 tick
-                     中，对表面方块调用 `biome.getPrecipitationAt()` 确定降水类型后，调用 `block.handlePrecipitation(
-                         world, pos, precipitation)`。
+- 方法返回 `newState`，方便链式调用
+- 实现与 MC Java 1.21.11 一致，使用 `Shapes::joinUnoptimized` + `BooleanOps::OnlySecond` 计算形状差集，再用 `VoxelShape::collide(Axis::Y, ..., -1.0)` 计算推出距离
+- 实体移动通过 `Entity::move(MoverType::Piston, delta)` 完成，该重载不做碰撞检测
+- 必须在 `setBlockState` **之前**调用，先推出实体再更新方块状态
 
-                    * *注意 * *： -
-                此方法替代了旧的 `fillWithRain()` 方法，增加了降水类型参数（Rain / Snow / None）
-                - 降水类型由 `Biome::getPrecipitationAt()` 确定，综合考虑生物群系降水设置和高度调整后的温度 -
-                只有 `isRaining()` 为 true 时才会调用 `handlePrecipitation`（在 `tickPrecipitation` 中判断）
+### 28. Block::handlePrecipitation 降水方块处理
 
-                    ## #28. Block::onFallenUpon 摔落伤害系统
+`Block::handlePrecipitation(IWorld&, const BlockPos&, BiomeClimate::Precipitation)` 是方块的降水处理虚方法，默认实现为空操作。方块可以重写此方法来响应降水：
 
-`Block::onFallenUpon(IWorld&,
-                        const BlockPos&,
-                        const BlockState&,
-                        Entity&,
-                        f32 fallDistance)` 是方块响应实体摔落的虚方法。对应 MC Java 的 `Block.fallOn()`。
+- **CauldronBlock**：雨天 5% 概率增加水位、雪天 10% 概率增加水位，水位上限为 3
+- **LightningRodBlock**：雷暴天气且避雷针朝上时，通过 `onLightningStrike()` 激活避雷针
 
-                    * *默认实现 *
-                    *：调用 `entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害。
+**调用时机**：`ServerWorld::tickPrecipitation()` 在每个降水 tick 中，对表面方块调用 `biome.getPrecipitationAt()` 确定降水类型后，调用 `block.handlePrecipitation(world, pos, precipitation)`。
 
-                    * *调用链 * *：
-``` Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
+**注意**：
+
+- 此方法替代了旧的 `fillWithRain()` 方法，增加了降水类型参数（Rain / Snow / None）
+- 降水类型由 `Biome::getPrecipitationAt()` 确定，综合考虑生物群系降水设置和高度调整后的温度
+- 只有 `isRaining()` 为 true 时才会调用 `handlePrecipitation`（在 `tickPrecipitation` 中判断）
+
+### 29. Block::onFallenUpon 摔落伤害系统
+
+`Block::onFallenUpon(IWorld&, const BlockPos&, const BlockState&, Entity&, f32 fallDistance)` 是方块响应实体摔落的虚方法。对应 MC Java 的 `Block.fallOn()`。
+
+**默认实现**：调用 `entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害。
+
+**调用链**：
+
+```
+Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
 ```
 
-                    * *重要 *
-                    *：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::
-                        onFallenUpon` 负责。方块子类通过重写此方法自定义摔落行为：
+**重要**：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。方块子类通过重写此方法自定义摔落行为：
 
-        | 方块 | onFallenUpon 行为 | 摔落伤害 | | -- -- --| -- -- -- -- -- -- -- -- -- -| -- -- -- -- -| | Block（基类）
-        | 调用 `causeFallDamage(dist, 1.0, fall())` | 普通摔落伤害 | | PointedDripstoneBlock（石笋尖端）
-        | 调用 `causeFallDamage(dist + 2.5, 2.0, stalagmite())`，不调用父类 | 增大石笋伤害，替代普通摔落 |
-        | FarmlandBlock | 先执行踩踏逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 | | TurtleEggBlock
-        | 先执行踩破逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
+| 方块 | onFallenUpon 行为 | 摔落伤害 |
+|------|-------------------|----------|
+| Block（基类） | 调用 `causeFallDamage(dist, 1.0, fall())` | 普通摔落伤害 |
+| PointedDripstoneBlock（石笋尖端） | 调用 `causeFallDamage(dist + 2.5, 2.0, stalagmite())`，不调用父类 | 增大石笋伤害，替代普通摔落 |
+| FarmlandBlock | 先执行踩踏逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
+| TurtleEggBlock | 先执行踩破逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
 
-        **与 onLanded 的区别 *
-                *： - `onLanded`：实体着地时修改运动向量（蜂蜜块取消摔落距离、史莱姆块弹跳），在 `updateFallDistance` 之前调用
-            - `onFallenUpon`：实体着地后施加摔落伤害，由 `updateFallDistance` 内部调用
+**与 onLanded 的区别**：
 
-                * *乘客摔落伤害传播 *
-                *：
-`Entity::causeFallDamage` 会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），因此当载具（如马、船、矿车）受到摔落伤害时，乘客也会受到相同的摔落伤害。参考
-                 MC 1.21.11 `Entity
-                     .propagateFallToPassengers`。
+- `onLanded`：实体着地时修改运动向量（蜂蜜块取消摔落距离、史莱姆块弹跳），在 `updateFallDistance` 之前调用
+- `onFallenUpon`：实体着地后施加摔落伤害，由 `updateFallDistance` 内部调用
 
-                 ## #29. Block::playerWillDestroy 玩家即将破坏方块回调
+**乘客摔落伤害传播**：`Entity::causeFallDamage` 会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），因此当载具（如马、船、矿车）受到摔落伤害时，乘客也会受到相同的摔落伤害。
 
-`Block::playerWillDestroy(IWorld&,
-                         const BlockPos&,
-                         const BlockState&,
-                         Player&)` 是玩家即将破坏方块时调用的虚方法。对应 MC Java 的 `Block.playerWillDestroy()`。
+### 30. Block::playerWillDestroy 玩家即将破坏方块回调
 
-                * *默认实现 * *：空操作。需要特殊行为的方块应重写此方法。
+`Block::playerWillDestroy(IWorld&, const BlockPos&, const BlockState&, Player&)` 是玩家即将破坏方块时调用的虚方法。对应 MC Java 的 `Block.playerWillDestroy()`。
 
-                * *与 onBlockRemoved 的区别 *
-                *： - `playerWillDestroy`：在方块被移除 * *之前 * *调用，接收玩家信息，可区分创造 / 生存模式
-            - `onBlockRemoved`：在方块状态变更 * *之后 * *调用，不包含玩家上下文，由 `ServerWorld::setBlockState` 触发
+**默认实现**：空操作。需要特殊行为的方块应重写此方法。
 
-                * *调用时机 *
-                *：`BlockInteractionManager::
-                    handleBlockBreak` 和 `StopDestroyBlock` 中，在生成掉落物和设置方块为空气之前调用
+**与 onBlockRemoved 的区别**：
 
-                * *已实现方块 *
-                *： - `PistonHeadBlock`：创造模式下破坏活塞头时，级联销毁匹配的活塞基座且不产生掉落物；生存模式不执行操作（级联销毁和掉落物由 `onBlockRemoved` 处理）
+- `playerWillDestroy`：在方块被移除**之前**调用，接收玩家信息，可区分创造 / 生存模式
+- `onBlockRemoved`：在方块状态变更**之后**调用，不包含玩家上下文，由 `ServerWorld::setBlockState` 触发
 
-                * *创造模式掉落物抑制 *
-                *：`BlockInteractionManager` 在 `playerWillDestroy` 之后检查 `player
-                     .isCreative()`，创造模式下跳过 `_generateBlockDrops`，与 MC Java 行为一致
+**调用时机**：`BlockInteractionManager::handleBlockBreak` 和 `StopDestroyBlock` 中，在生成掉落物和设置方块为空气之前调用。
 
-                * *注意 * *：新增方块如需在破坏时区分创造 /
-                生存模式行为，应重写 `playerWillDestroy` 而非在 `onBlockRemoved` 中判断
+**已实现方块**：
 
-                ## #30. Block::updateFromNeighbourShapes 邻居形状更新
+- `PistonHeadBlock`：创造模式下破坏活塞头时，级联销毁匹配的活塞基座且不产生掉落物；生存模式不执行操作（级联销毁和掉落物由 `onBlockRemoved` 处理）
 
-`Block::updateFromNeighbourShapes(
-                    state, world, pos)` 是静态方法，按照 `UPDATE_SHAPE_ORDER`（WEST→EAST→NORTH→SOUTH→DOWN→UP
-                轴对顺序）遍历6个方向，对每个方向调用 `updatePostPlacement` 累积更新方块状态。对应 MC Java 的 `Block
-                    .updateFromNeighbourShapes()`。
+**创造模式掉落物抑制**：`BlockInteractionManager` 在 `playerWillDestroy` 之后检查 `player.isCreative()`，创造模式下跳过 `_generateBlockDrops`。
 
-                        **调用场景 *
-                            *： - `ServerChunkManager::_postProcessChunk`：区块后处理生成，非液体方块形状更新（flags =
-        276） - `PistonBlockEntity::clearPistonBlockEntity`：活塞完成移动后更新被移动方块形状
-    - `EndermanPlaceBlockGoal::tick`：末影人放置方块后更新形状
-    - `Template::placeInWorld`：结构模板放置后批量更新所有方块形状（flags = 276）
+**注意**：新增方块如需在破坏时区分创造 / 生存模式行为，应重写 `playerWillDestroy` 而非在 `onBlockRemoved` 中判断。
 
-            **flags = 276 含义 * *：`SKIP_BLOCK_ENTITY_SIDEEFFECTS | KNOWN_SHAPE | INVISIBLE`（256 | 16 |
-    4），区块后处理和结构放置不需要通知邻居和客户端。
+### 31. Block::updateFromNeighbourShapes 邻居形状更新
 
-        * *方向迭代顺序 * *：轴对排列（WEST→EAST,
-                                                                          NORTH→SOUTH,
-                                                                          DOWN→UP），同轴方向连续处理确保方块形状在轴向上一致收敛。这个顺序与 `ServerWorld::
-                                                                              setBlockState` 中的邻居通知顺序不同，后者使用 `NEIGHBOR_DELTAS`（WEST→EAST→DOWN→UP→NORTH→SOUTH）。
+`Block::updateFromNeighbourShapes(state, world, pos)` 是静态方法，按照 `UPDATE_SHAPE_ORDER`（WEST→EAST→NORTH→SOUTH→DOWN→UP 轴对顺序）遍历 6 个方向，对每个方向调用 `updatePostPlacement` 累积更新方块状态。对应 MC Java 的 `Block.updateFromNeighbourShapes()`。
 
-                                                                                  **注意 *
-                                                                                      *：`getBlockState` 返回 `nullptr` 时（区块未加载）安全跳过该方向；`updatePostPlacement` 是非
-                                                                          const 虚方法，内部使用 `const_cast` 调用。
+**调用场景**：
 
-                                                                          ## #31. Block::dropResources 非玩家掉落生成
+- `ServerChunkManager::_postProcessChunk`：区块后处理生成，非液体方块形状更新（flags = 276）
+- `PistonBlockEntity::clearPistonBlockEntity`：活塞完成移动后更新被移动方块形状
+- `EndermanPlaceBlockGoal::tick`：末影人放置方块后更新形状
+- `Template::placeInWorld`：结构模板放置后批量更新所有方块形状（flags = 276）
 
-`Block::dropResources(IWorld&, const BlockPos&, const BlockState&)` 是静态方法，用于方块被非玩家方式破坏时（如海绵吸水、爆炸等）在世界中生成掉落物品。对应
-                                                                          MC Java 的 `Block.dropResources(BlockState,
-                                                                              LevelAccessor,
-                                                                              BlockPos,
-                                                                              BlockEntity)`。
+**flags = 276 含义**：`SKIP_BLOCK_ENTITY_SIDEEFFECTS | KNOWN_SHAPE | INVISIBLE`（256 | 16 | 4），区块后处理和结构放置不需要通知邻居和客户端。
 
-                                                                              **与
-                                                                          BlockDropHandler 的区别 *
-                                                                              *： - `BlockDropHandler`：服务端专用，处理玩家破坏方块的掉落，携带工具和玩家上下文，支持时运
-        / 精准采集加成
-    - `Block::dropResources`：通用侧（common），不携带工具和玩家上下文，仅使用方块的掉落表生成物品
+**方向迭代顺序**：轴对排列（WEST→EAST, NORTH→SOUTH, DOWN→UP），同轴方向连续处理确保方块形状在轴向上一致收敛。这个顺序与 `ServerWorld::setBlockState` 中的邻居通知顺序不同，后者使用 `NEIGHBOR_DELTAS`（WEST→EAST→DOWN→UP→NORTH→SOUTH）。
 
-        **调用场景 **： - `SpongeBlock::absorb`：海绵吸收海带、海草等海洋植物时生成掉落物
-    -
-    爆炸等其他非玩家破坏场景
+**注意**：`getBlockState` 返回 `nullptr` 时（区块未加载）安全跳过该方向；`updatePostPlacement` 是非 const 虚方法，内部使用 `const_cast` 调用。
 
-        **实现细节 **： 1. 检查 `world
-            .lootTableManager()` 是否为空（客户端返回 nullptr，直接退出） 2. 获取方块的掉落表，如果为空则退出
-    3. 构建 `LootContext`（使用世界共享随机 `world.getRandom()`，与 MC 原版 `ServerLevel.random` 一致）
-    4. 设置必需参数 `BLOCK_STATE` 和 `BLOCK_POS`（通过 `const_cast` 转为非 const
-    指针，与 `BlockDropHandler::buildLootContext` 一致） 5. 设置掉落表解析器和条件解析器
-    6. 调用 `LootTable::generate()` 生成物品列表 7. 通过 `ItemDropHelper::spawnItemEntities()` 在世界中生成掉落物实体
-    8. 调用 `Block::spawnAfterBreak()` 触发额外效果
+### 32. Block::dropResources 非玩家掉落生成
 
-        **客户端安全 **：`lootTableManager()` 在客户端返回 `nullptr`，方法直接返回，不生成任何掉落物
+`Block::dropResources(IWorld&, const BlockPos&, const BlockState&)` 是静态方法，用于方块被非玩家方式破坏时（如海绵吸水、爆炸等）在世界中生成掉落物品。对应 MC Java 的 `Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)`。
 
-                    ## #32. Block::isExceptionForConnection 连接例外方块判断
+**与 BlockDropHandler 的区别**：
+
+- `BlockDropHandler`：服务端专用，处理玩家破坏方块的掉落，携带工具和玩家上下文，支持时运 / 精准采集加成
+- `Block::dropResources`：通用侧（common），不携带工具和玩家上下文，仅使用方块的掉落表生成物品
+
+**调用场景**：
+
+- `SpongeBlock::absorb`：海绵吸收海带、海草等海洋植物时生成掉落物
+- 爆炸等其他非玩家破坏场景
+
+**实现细节**：
+
+1. 检查 `world.lootTableManager()` 是否为空（客户端返回 nullptr，直接退出）
+2. 获取方块的掉落表，如果为空则退出
+3. 构建 `LootContext`（使用世界共享随机 `world.getRandom()`）
+4. 设置必需参数 `BLOCK_STATE` 和 `BLOCK_POS`（通过 `const_cast` 转为非 const 指针，与 `BlockDropHandler::buildLootContext` 一致）
+5. 设置掉落表解析器和条件解析器
+6. 调用 `LootTable::generate()` 生成物品列表
+7. 通过 `ItemDropHelper::spawnItemEntities()` 在世界中生成掉落物实体
+8. 调用 `Block::spawnAfterBreak()` 触发额外效果
+
+**客户端安全**：`lootTableManager()` 在客户端返回 `nullptr`，方法直接返回，不生成任何掉落物。
+
+### 33. Block::isExceptionForConnection 连接例外方块判断
 
 `Block::isExceptionForConnection(const BlockState& state)` 是静态方法，判断方块是否属于"连接例外"——即虽然是固体方块但不应与栅栏、墙、玻璃板建立连接。对应 MC Java 的 `Block.isExceptionForConnection()`。
 
 **连接例外方块列表**：
+
 - `BlockTags::LEAVES()` — 所有树叶（橡树、云杉、白桦等）
 - `BlockTags::SHULKER_BOXES()` — 所有潜影盒变体（16色 + 无色）
 - `barrier` — 屏障方块
@@ -658,71 +595,95 @@ Block& block = state->getBlockMutable();
 - `pumpkin` — 南瓜
 
 **使用场景**：
+
 - `FenceBlock::_canConnect()` — 固体方块连接时排除例外：`!Block::isExceptionForConnection(state) && isNeighborSolid`
 - `WallBlock::_getWallHeight()` — 固体方块连接时排除例外：`!Block::isExceptionForConnection(state) && state.isSolid()`
 - `PaneBlock::shouldConnectTo()` — 固体侧面连接时排除例外：`!Block::isExceptionForConnection(neighborState) && isSolidSide`
 
 **注意**：不要在连接逻辑中仅检查 `isSolid()` 而忘记 `isExceptionForConnection()`，否则栅栏/墙/玻璃板会错误地连接到树叶、潜影盒等方块。
 
-                    ## #33. BlockTags 新增标签说明
+### 34. BlockTag 数据驱动（BlockTagLoader）
 
-### BARS 标签
+`BlockTags::initialize()`（随 `VanillaBlocks::initialize()` 调用）注册内置默认标签；随后 `BlockTagLoader::loadFromDataPackRepository()` 从数据包 `data/<ns>/tags/block/` 加载，在默认值之上追加或替换（`replace=true` 时先 `BlockTag::clear()` 再写入）。加载由通用骨架 `common/resource/tag/GenericTagLoader` 完成，成员为方块资源位置，经 `BlockRegistry::getBlock` 校验存在性（未注册的方块成员被跳过并告警）。数据包引用其他标签（`#minecraft:xxx`）由加载器按依赖顺序展开。
+
+**依赖顺序**：`BlockTagLoader` 必须在 `VanillaBlocks::initialize()` 之后运行（`RegistryBootstrap::initializeAll` 已按此接线）。**新增方块标签成员**时，若该成员同时被硬编码在 `BlockTags::initialize()` 中，数据包加载会在其上追加，二者不冲突；但 `replace=true` 的数据包会清空硬编码默认值。
+
+**陷阱**：数据包中大量方块（coral、quartz_wall、light、test_block 等）在 Cubium 尚未实现，加载时会打印 `GenericTagLoader: unknown member ... (required), skipped` 告警并被跳过——这是预期行为（该方块本就无法放置），不是缺陷。判断"某标签是否被正确加载"应核对已实现方块，而非以告警数量为准。
+
+### 35. BlockTags 各标签说明
+
+#### BARS 标签
+
 `BlockTags::BARS()` 包含铁栏杆（`iron_bars`）和铜栏杆变体，用于：
+
 - WallBlock 的 `_getWallHeight()` 判断——铁栏杆与墙连接时返回 `WallHeight::Low`（低连接）
 - PaneBlock / WeatheringCopperBarsBlock / WaxedCopperBarsBlock 的 `shouldConnectTo()` 连接判定
 - 上述三个类的 `skipRendering()` 面剔除——BARS 标签方块之间水平双向连接时跳过内侧面渲染
 
-### SHULKER_BOXES 标签
+#### SHULKER_BOXES 标签
+
 `BlockTags::SHULKER_BOXES()` 包含所有潜影盒变体（无色 + 16色），用于 `Block::isExceptionForConnection()` 判断——潜影盒虽然是固体，但不应与栅栏、墙、玻璃板建立连接。
 
-### WALL_POST_OVERRIDE 标签
+#### WALL_POST_OVERRIDE 标签
+
 `BlockTags::WALL_POST_OVERRIDE()` 包含放置在墙上时强制显示墙柱的方块：火把、灵魂火把、红石火把、绊线、告示牌（站立/墙面所有变体）、旗帜（站立/墙面所有颜色）、压力板（木质/石质/铜质/金质/铁质所有变体）。用于 WallBlock 的 `_shouldRaisePost()` 判断——当直线 Tall 墙上方有 WALL_POST_OVERRIDE 标签方块时，强制升起墙柱（UP=true）。
 
-### DOES_NOT_BLOCK_HOPPERS 标签
+#### DOES_NOT_BLOCK_HOPPERS 标签
+
 `BlockTags::DOES_NOT_BLOCK_HOPPERS()` 包含蜂巢(bee_nest)和蜂箱(beehive)，即与 BEEHIVES 标签相同的方块。用于 `HopperEntity::pullItems()` 中的漏斗吸取判断——即使上方方块碰撞形状为完整方块（`isFaceFull(Direction::Down)` 为 true），若该方块在此标签中，漏斗仍可吸取上方物品实体。这允许漏斗与蜂巢/蜂箱交互（吸取蜂蜜瓶/空瓶）。
 
-### CHAINS 标签
-`BlockTags::CHAINS()` 包含铁锁链（iron_chain）和所有铜锁链变体（copper_chain、exposed_copper_chain、weathered_copper_chain、oxidized_copper_chain 及其涂蜡变种），共9种方块。对应 MC 原版标签 `minecraft:chains`。用于锁链方块的分组判断（如攀爬检测、连接形状等）。
+#### CHAINS 标签
+
+`BlockTags::CHAINS()` 包含铁锁链（iron_chain）和所有铜锁链变体（copper_chain、exposed_copper_chain、weathered_copper_chain、oxidized_copper_chain 及其涂蜡变种），共 9 种方块。对应 MC 原版标签 `minecraft:chains`。用于锁链方块的分组判断（如攀爬检测、连接形状等）。
 
 **注意**：MC 1.21+ 将原 `minecraft:chain` 方块重命名为 `minecraft:iron_chain`，与铜锁链命名风格统一。
 
-### WOODEN_DOORS 标签
-`BlockTags::WOODEN_DOORS()` 包含所有12种木门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、红树木、樱花木、竹木、苍白橡木、绯红木、诡异木）。对应 MC 原版标签 `minecraft:wooden_doors`。用于区分木门和其他材质门（铁门、铜门），影响红石信号判定、僵尸破门等游戏逻辑。
+#### WOODEN_DOORS 标签
 
-### DOORS 标签
-`BlockTags::DOORS()` 包含所有门方块：12种木门 + 铁门 + 8种铜门（含氧化和涂蜡变种），共21种方块。对应 MC 原版标签 `minecraft:doors`。用于通用的门方块判断逻辑。
+`BlockTags::WOODEN_DOORS()` 包含所有 12 种木门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、红树木、樱花木、竹木、苍白橡木、绯红木、诡异木）。对应 MC 原版标签 `minecraft:wooden_doors`。用于区分木门和其他材质门（铁门、铜门），影响红石信号判定、僵尸破门等游戏逻辑。
 
-### WOODEN_TRAPDOORS 标签
-`BlockTags::WOODEN_TRAPDOORS()` 包含所有12种木活板门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、红树木、樱花木、竹木、苍白橡木、绯红木、诡异木）。对应 MC 原版标签 `minecraft:wooden_trapdoors`。用于区分木活板门和其他材质活板门（铁活板门、铜活板门），影响红石信号判定等游戏逻辑。
+#### DOORS 标签
 
-### TRAPDOORS 标签
-`BlockTags::TRAPDOORS()` 包含所有活板门方块：12种木活板门 + 铁活板门 + 8种铜活板门（含氧化和涂蜡变种），共21种方块。对应 MC 原版标签 `minecraft:trapdoors`。用于通用的活板门方块判断逻辑。
+`BlockTags::DOORS()` 包含所有门方块：12 种木门 + 铁门 + 8 种铜门（含氧化和涂蜡变种），共 21 种方块。对应 MC 原版标签 `minecraft:doors`。用于通用的门方块判断逻辑。
 
-### NON_FLAMMABLE_WOOD 标签
-`BlockTags::NON_FLAMMABLE_WOOD()` 包含所有不可燃烧的木材方块（绯红木和诡异木系列），包括原木/菌柄、去皮原木/去皮菌柄、菌丝体/去皮菌丝体、木板、台阶、楼梯、栅栏、栅栏门、门、活板门、按钮、压力板、告示牌、墙面告示牌、悬挂告示牌、墙面悬挂告示牌、书架等，共34种方块。对应 MC 原版标签 `minecraft:non_flammable_wood`。用于火灾蔓延判定——标签内的方块不会被火焰点燃或烧毁。
+#### WOODEN_TRAPDOORS 标签
 
-### BEE_ATTRACTIVE 标签
+`BlockTags::WOODEN_TRAPDOORS()` 包含所有 12 种木活板门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、红树木、樱花木、竹木、苍白橡木、绯红木、诡异木）。对应 MC 原版标签 `minecraft:wooden_trapdoors`。用于区分木活板门和其他材质活板门（铁活板门、铜活板门），影响红石信号判定等游戏逻辑。
+
+#### TRAPDOORS 标签
+
+`BlockTags::TRAPDOORS()` 包含所有活板门方块：12 种木活板门 + 铁活板门 + 8 种铜活板门（含氧化和涂蜡变种），共 21 种方块。对应 MC 原版标签 `minecraft:trapdoors`。用于通用的活板门方块判断逻辑。
+
+#### NON_FLAMMABLE_WOOD 标签
+
+`BlockTags::NON_FLAMMABLE_WOOD()` 包含所有不可燃烧的木材方块（绯红木和诡异木系列），包括原木/菌柄、去皮原木/去皮菌柄、菌丝体/去皮菌丝体、木板、台阶、楼梯、栅栏、栅栏门、门、活板门、按钮、压力板、告示牌、墙面告示牌、悬挂告示牌、墙面悬挂告示牌、书架等，共 34 种方块。对应 MC 原版标签 `minecraft:non_flammable_wood`。用于火灾蔓延判定——标签内的方块不会被火焰点燃或烧毁。
+
+#### BEE_ATTRACTIVE 标签
+
 `BlockTags::BEE_ATTRACTIVE()` 包含 29 种吸引蜜蜂的花朵方块：蒲公英、开放眼眸花、虞美人、蓝花美耳草、绒球葱、蓝色滨菊、郁金香（红/橙/白/粉）、滨菊、矢车菊、铃兰、凋零玫瑰、火把花、向日葵、丁香、牡丹、玫瑰丛、瓶子草、开花杜鹃树叶、开花杜鹃、红树胎生苗、樱花树叶、粉瓣花、野花、紫颂花、孢子花、仙人掌花。对应 MC 原版标签 `minecraft:bee_attractive`。
 
 **关键点**：
+
 - 闭合眼眸花**不在**此标签中（与 MC 1.21.11 数据包一致），因此蜜蜂不被闭合眼眸花吸引
 - 含水（`waterlogged=true`）的可水合花朵由 `BeeEntity::attractsBees()` 工具函数排除
 - 向日葵仅上半部分（`DoubleBlockHalf::Upper`）吸引蜜蜂，由 `BeeEntity::attractsBees()` 处理
 - 该标签被 `EyeblossomBlock::onEntityCollision` 通过 `BeeEntity::attractsBees(state)` 间接使用，决定蜜蜂接触眼眸花时是否中毒
 
-                    ## #34. getEntityInsideCollisionShape 实体内部碰撞形状
+### 36. getEntityInsideCollisionShape 实体内部碰撞形状
 
 `Block::getEntityInsideCollisionShape(const BlockState&)` 是虚方法，返回方块用于实体内部碰撞检测的形状。对应 MC 原版 `BlockBehaviour.getEntityInsideCollisionShape()`。
 
 **默认行为**：基类返回 `VoxelShapes::fullCube()`（完整方块），与 MC 原版 `Shapes.block()` 一致。大多数方块不需要重写此方法。
 
 **重写方块**：
+
 | 方块 | 返回形状 | 说明 |
 |------|----------|------|
 | CauldronBlock | 水位0: `fullCube()`; 水位1-3: `m_filledShapes[level-1]` | 空炼药锅返回完整方块（继承默认），有水时返回外部形状∪内容区域 |
 | LavaCauldronBlock | `m_filledShape` | 外部形状∪岩浆内容区域，始终满 |
 
 **与 getCollisionShape 的区别**：
+
 - `getCollisionShape()`：物理碰撞形状（实体推动、站立），炼药锅返回仅外部壁的形状
 - `getEntityInsideCollisionShape()`：实体内部检测形状，决定实体何时被视为"在方块内部"以触发 `onEntityCollision` 回调
 
@@ -730,31 +691,32 @@ Block& block = state->getBlockMutable();
 
 **重要**：空炼药锅（水位0）返回 `fullCube()` 是 MC 原版行为——`AbstractCauldronBlock` 不重写 `getEntityInsideCollisionShape`，因此继承 `Shapes.block()`。这意味着实体只要在空炼药锅的方块格子内就会触发 `onEntityCollision`，但 `CauldronBlock::onEntityCollision` 内部检查水位为0时直接返回，所以空炼药锅不会灭火。
 
-## #35. IBucketPickupHandler 双路径拾取（pickupFluid / pickupItem）
+### 37. IBucketPickupHandler 双路径拾取（pickupFluid / pickupItem）
 
 `IBucketPickupHandler` 接口支持两种拾取路径：
 
 1. **流体拾取（pickupFluid）**：流体方块（水、岩浆）重写此方法返回对应的 `Fluid*`，空桶拾取后获得满桶物品（水桶/岩浆桶）。`BucketItem::onItemUse` 的空桶路径优先尝试此方法。
-
 2. **非流体拾取（pickupItem）**：非流体方块（如细雪 PowderSnowBlock）重写此方法返回对应的 `const Item*`（如 `Items::POWDER_SNOW_BUCKET`），空桶拾取后获得细雪桶。当 `pickupFluid()` 返回 nullptr 时，`BucketItem::onItemUse` 会继续尝试 `pickupItem()`。默认实现返回 nullptr。
-
 3. **拾取音效（getPickupSound）**：非流体方块可重写此方法返回拾取时播放的音效（如细雪返回 `SoundEvents::ITEM_BUCKET_FILL_POWDER_SNOW`）。流体方块使用 `BucketItem` 中硬编码的 `ITEM_BUCKET_FILL` 音效，无需重写此方法。默认实现返回 nullptr。
 
 **实现规则**：
+
 - 流体方块只需实现 `pickupFluid()`，`pickupItem()` 和 `getPickupSound()` 保持默认即可
 - 非流体方块只需实现 `pickupItem()` 和 `getPickupSound()`，`pickupFluid()` 返回 nullptr
 - `BucketItem::onItemUse` 的空桶路径先尝试 `pickupFluid()`，失败后再尝试 `pickupItem()`
 - `EmptyBucketDispenseBehavior` 同样遵循此双路径逻辑
 
-## #36. getShadeBrightness 遮光亮度与 AO 阴影
+### 38. getShadeBrightness 遮光亮度与 AO 阴影
 
 `Block::getShadeBrightness(const BlockState&, IWorld*, const BlockPos*)` 是虚方法，返回方块的遮光亮度值（0.0~1.0），决定方块在环境光遮蔽（Ambient Occlusion）渲染中的阴影程度。对应 MC Java 的 `BlockBehaviour.getShadeBrightness()`。
 
 **默认行为**：
+
 ```cpp
 // Block::getShadeBrightness 默认实现
 return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 ```
+
 - `0.2f`（有AO阴影）：碰撞形状完整且不透明的方块（如石头、泥土）
 - `1.0f`（无AO阴影）：碰撞形状不完整或透明的方块（如玻璃、楼梯、台阶）
 
@@ -771,13 +733,14 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 | BarrierBlock | 1.0f | 不可见方块，不应影响AO计算 |
 
 **添加新重写的注意事项**：
+
 - 如果方块碰撞形状不完整但视觉上应产生阴影（如 MudBlock），需要显式重写返回 0.2f
 - 如果方块有完整碰撞形状但不应产生阴影（如 BarrierBlock），需要显式重写返回 1.0f
 - 默认行为基于 `hasOpaqueCollisionShape()`（即 `isOpaque && material().blocksMovement()`），大部分方块无需重写
 
-## #37. ColoredBlocks 床方块注册
+### 39. ColoredBlocks 床方块注册
 
-16色床方块在 `ColoredBlocks.hpp/.cpp` 中注册，使用 `blocks::BedBlock` 类并传入 `DyeColor` 参数。每种颜色对应一个独立的 `BedBlock` 实例（white_bed、orange_bed、...、black_bed）。
+16 色床方块在 `ColoredBlocks.hpp/.cpp` 中注册，使用 `blocks::BedBlock` 类并传入 `DyeColor` 参数。每种颜色对应一个独立的 `BedBlock` 实例（white_bed、orange_bed、...、black_bed）。
 
 **注册方式**：`registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:xxx_bed"), DyeColor::Xxx, bedProps)`
 
@@ -789,7 +752,7 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 
 **注意**：床的双方块结构（HEAD/FOOT）要求放置和破坏时同时处理两个方块位置，详见 `functional/README.md` 中的 BedBlock 文档。
 
-## #38. SupportType 支撑类型与 canSupportCenter / canSupportRigidBlock
+### 40. SupportType 支撑类型与 canSupportCenter / canSupportRigidBlock
 
 `SupportType` 对应 MC 1.21.11 `net.minecraft.world.level.block.SupportType`，用于判断方块面是否足够坚固以支撑其他方块（火把、灯笼、钟、压力板、铁轨等）。三种支撑类型：
 
@@ -802,23 +765,26 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 **判定基于方块的 BlockSupportShape（支撑形状）**，默认等于碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，但支撑形状是完整方块。
 
 **关键 API**：
+
 - `BlockState::isFaceSturdy(world, pos, direction, supportType)`：委托到 `supportType.isSupporting(*this, world, pos, direction)`
 - `Block::canSupportCenter(world, pos, direction)`：CEILING 路径专用，对 `UNSTABLE_BOTTOM_CENTER` 标签方块（栅栏门）在 `Direction::Down` 方向返回 false
 - `Block::canSupportRigidBlock(world, pos)`：等价于 `state.isFaceSturdy(world, pos, Direction::Up, SupportType::Rigid)`，用于铁轨、压力板
 
 **与 hasEnoughSolidSide 的区别**：
+
 - `hasEnoughSolidSide`：Cubium 遗留方法，检查 `isSolidSide && doesSideFillSquare(collisionShape)`，无 MC 1.21.11 对应（MC 中 `hasEnoughSolidSide` 已移除）
 - `isFaceSturdy(Full)`：基于 `blockSupportShape` 判定，与 MC 1.21.11 一致
 
 **迁移指南**：悬挂类方块（BellBlock CEILING、LanternBlock、TorchBlock、CandleBlock、SporeBlossomBlock）应使用 `canSupportCenter`；墙面附着类（WallTorchBlock、BellBlock 墙面路径）应使用 `isFaceSturdy(Full)`；铁轨、压力板使用 `canSupportRigidBlock`（压力板还需 `|| canSupportCenter`）。
 
-**注意**：`UNSTABLE_BOTTOM_CENTER` 标签数据包内容为 `#minecraft:fence_gates`（12 种栅栏门），项目当前未实现标签到标签的引用，因此直接内联栅栏门列表。未来若实现标签引用系统，可改为 `addAll({TagReference("minecraft:fence_gates")})`。
+**注意**：`UNSTABLE_BOTTOM_CENTER` 标签数据包内容为 `#minecraft:fence_gates`（12 种栅栏门）。`BlockTags::initialize()` 中直接内联栅栏门列表；数据包加载器（BlockTagLoader）具备标签引用解析能力，可正确展开 `#fence_gates`。
 
-## #39. Block::onBlockActivated 返回类型与 heldItemTransformedTo 语义
+### 41. Block::onBlockActivated 返回类型与 heldItemTransformedTo 语义
 
 `Block::onBlockActivated` 的返回类型为 `BlockActionResult`（定义在 `common/item/core/BlockActionResult.hpp`），封装 `ActionResultType + std::optional<ItemStack>`，参考 MC 1.21.11 `InteractionResult.Success.heldItemTransformedTo(ItemStack)`。
 
 **签名**：
+
 ```cpp
 virtual BlockActionResult onBlockActivated(
     const BlockState& state,
@@ -830,20 +796,20 @@ virtual BlockActionResult onBlockActivated(
 ```
 
 **返回值语义**：
+
 - 仅返回 `ActionResultType`（Success/Consume/Fail/Pass）：表示方块交互未修改玩家手持物品，`heldItemTransformedTo` 为 `std::nullopt`
 - 返回 `BlockActionResult::success(ItemStack)` 或 `success().heldItemTransformedTo(stack)`：表示方块交互修改了玩家手持物品，携带转换后的物品堆
 
-**向后兼容**：
-`BlockActionResult` 提供从 `ActionResultType` 的隐式转换构造函数，已有的 52 个 `onBlockActivated` override 直接返回 `ActionResultType` 无需修改即可工作（自动包装为 `BlockActionResult`，`heldItemTransformedTo` 为 `std::nullopt`）。只有需要传递 `heldItemTransformedTo` 的方块（如 `ShelfBlock`）才使用新的工厂方法。
+**向后兼容**：`BlockActionResult` 提供从 `ActionResultType` 的隐式转换构造函数，已有的 `onBlockActivated` override 直接返回 `ActionResultType` 无需修改即可工作（自动包装为 `BlockActionResult`，`heldItemTransformedTo` 为 `std::nullopt`）。只有需要传递 `heldItemTransformedTo` 的方块（如 `ShelfBlock`）才使用新的工厂方法。
 
 **使用场景**：
+
 - 方块交互修改了玩家手持物品时（如 `ShelfBlock` 放入/取出/交换物品），应通过 `BlockActionResult::success(ItemStack)` 携带转换后的物品，消费方（`BlockInteractionManager`）据此同步物品栏到客户端
 - `BlockInteractionManager::handleBlockUse` 在调用 `onBlockActivated` 后，会消费 `heldItemTransformedTo`（若存在）或检测 `Player::m_inventory` 变更，回写到 `InventoryManager` 并 `syncToClient`
 
-**C++ 引用语义注意**：
-MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中 `player.getHeldItem(hand)` 返回 `ItemStack&`（引用 `m_items[selectedSlot]`），`inventory.setItem()` 会修改该引用指向的值。因此若需要在 `setItem` 后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::onBlockActivated` 实现）。
+**C++ 引用语义注意**：MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中 `player.getHeldItem(hand)` 返回 `ItemStack&`（引用 `m_items[selectedSlot]`），`inventory.setItem()` 会修改该引用指向的值。因此若需要在 `setItem` 后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::onBlockActivated` 实现）。
 
-## #40. BlockState 粒子与渲染类型查询方法
+### 42. BlockState 粒子与渲染类型查询方法
 
 `BlockState` 提供两个用于刷子粒子生成等场景的查询方法：
 
@@ -854,8 +820,7 @@ MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副�
 
 **调用方**：`BrushItem::onUseTick` 中判断 `blockState->shouldSpawnTerrainParticles() && !blockState->isInvisibleRenderType()` 才调用 `spawnDustParticles`，与 MC 1.21.11 `BrushItem.onUseTick` 中的 `blockstate.shouldSpawnTerrainParticles() && blockstate.getRenderShape() != INVISIBLE` 对齐。
 
-
-## #41. 水下植物必须实现 ILiquidContainer，否则会被水流冲毁
+### 43. 水下植物必须实现 ILiquidContainer，否则会被水流冲毁
 
 `FlowingFluid::isBlocked()` 对**未实现 `ILiquidContainer`** 的方块只按 `canBeReplacedByFluid()`（= `canBeReplaced || !isSolid`）判定是否可被流体替换。而 `kelp` / `kelp_plant` / `seagrass` / `tall_seagrass` 都注册为 `.noCollision().notSolid()`，`m_isSolid` 为 false，于是被判为"可被流体替换"：水流每次 tick 都把它们当作被冲毁的方块，经 `WaterFluid::beforeReplacingBlock` 当作"方块被水破坏"生成一次掉落物。实测单次会话堆积 19326 个物品实体（该批区块常驻内存，而实体在模拟距离外被冻结、`age` 不增长，故永不超龄消失）。
 

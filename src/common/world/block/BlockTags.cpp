@@ -52,6 +52,11 @@ void BlockTag::addAll(const std::vector<ResourceLocation>& blockIds)
     }
 }
 
+void BlockTag::clear()
+{
+    m_blockIds.clear();
+}
+
 bool BlockTag::contains(const ResourceLocation& blockId) const noexcept
 {
     return m_blockIds.find(blockId) != m_blockIds.end();
@@ -3680,6 +3685,17 @@ BlockTag* BlockTags::getTag(const ResourceLocation& id)
         return it->second.get();
     }
     return nullptr;
+}
+
+BlockTag& BlockTags::registerTag(const ResourceLocation& id)
+{
+    auto& tags = _getTags();
+    auto it = tags.find(id);
+    if (it != tags.end()) {
+        return *it->second;
+    }
+    auto inserted = tags.emplace(id, std::make_unique<BlockTag>(id));
+    return *inserted.first->second;
 }
 
 void BlockTags::forEachTag(std::function<void(BlockTag&)> callback)

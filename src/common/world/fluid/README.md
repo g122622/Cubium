@@ -12,7 +12,8 @@ src/common/world/fluid/
 ├── FlowingFluid.hpp/cpp       # 流动流体抽象类（核心流动算法）
 ├── FluidRegistry.hpp/cpp      # 流体注册表（单例）
 ├── Fluids.hpp/cpp             # 内置流体静态访问器（类似 VanillaBlocks）
-├── FluidTags.hpp/cpp          # 流体标签系统
+├── FluidTags.hpp/cpp          # 流体标签系统（内置默认值 + registerTag/getTag/forEachTag）
+├── FluidTagLoader.hpp/cpp     # 流体标签数据包加载器（data/<ns>/tags/fluid/，复用 GenericTagLoader）
 ├── README.md                  # 本文档
 └── fluids/                    # 具体流体实现
     ├── EmptyFluid.hpp/cpp     # 空流体（表示无流体状态）
@@ -179,3 +180,13 @@ FluidTags ←── Fluid（标签分类）
 **问题**：`FlowingFluid::flowInto` 若在 `container->receiveFluid()` 返回 false 时继续往下执行，会落到"替换方块 + 生成掉落物"路径，把容器方块本身破坏掉。
 
 **解决方案**：对 `ILiquidContainer` 方块，委派 `receiveFluid()` 后必须**立即 return**，无论其是否接收成功。对齐原版 `FlowingFluid::spreadTo` 的 if/else 结构——`LiquidBlockContainer` 分支不会落到 `beforeDestroyingBlock` + `setBlock`。这条曾经导致水下植物（`canContainFluid` 恒 false）每次水流 tick 都被冲毁并生成一次掉落物，实测单次会话堆积 19326 个物品实体。回归测试见 `tests/unit/common/world/fluid/SealedPlantLiquidTest.cpp`。
+
+### 14. FluidTag 数据驱动（FluidTagLoader）
+
+`FluidTags::initialize()` 注册内置默认标签（水/岩浆），随后 `FluidTagLoader::loadFromDataPackRepository()`
+从数据包 `data/<ns>/tags/fluid/` 加载，在默认值之上追加或替换。加载由通用骨架
+`common/resource/tag/GenericTagLoader` 完成，成员为流体资源位置，经 `FluidRegistry::getFluid` 校验存在性。
+
+**注意**：`FluidTag` 内部是 `unordered_set<ResourceLocation>`，`contains(const Fluid&)` 按
+`fluid.fluidLocation()` 匹配——数据包成员 `minecraft:water` / `minecraft:flowing_water` 与注册表一致。
+`FluidTags::registerTag()` 用于注册数据包定义的新标签（不存在则创建）。

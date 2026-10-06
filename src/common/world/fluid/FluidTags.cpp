@@ -101,6 +101,17 @@ FluidTag* FluidTags::getTag(const ResourceLocation& id)
     return it != tags.end() ? it->second.get() : nullptr;
 }
 
+FluidTag& FluidTags::registerTag(const ResourceLocation& id)
+{
+    auto& tags = _getTags();
+    auto it = tags.find(id);
+    if (it != tags.end()) {
+        return *it->second;
+    }
+    auto inserted = tags.emplace(id, std::make_unique<FluidTag>(id));
+    return *inserted.first->second;
+}
+
 void FluidTags::forEachTag(std::function<void(FluidTag&)> callback)
 {
     for (auto& [id, tag] : _getTags()) {

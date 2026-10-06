@@ -682,9 +682,13 @@ add_executable(mc_tests
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
+    # BlockTagLoader 数据包方块标签加载测试
+    common/world/block/BlockTagLoaderTest.cpp
     common/world/block/SupportTypeTest.cpp
     common/world/block/IGrowableTest.cpp
     common/world/gameevent/VibrationSystemTest.cpp
+    # GameEventTagLoader 数据包游戏事件标签加载测试
+    common/world/gameevent/GameEventTagLoaderTest.cpp
     # VibrationSystem 序列化测试
     common/world/gameevent/VibrationSystemSerializationTest.cpp
     # BlockEvent 方块事件测试
@@ -1274,6 +1278,8 @@ add_executable(mc_tests
     common/world/tick/ServerTickListTest.cpp
     # 流体系统测试
     common/world/fluid/FluidTest.cpp
+    # FluidTagLoader 数据包流体标签加载测试
+    common/world/fluid/FluidTagLoaderTest.cpp
     common/world/fluid/WaterFluidDropTest.cpp
     common/world/fluid/LavaFluidIgnitionTest.cpp
     common/world/fluid/SealedPlantLiquidTest.cpp

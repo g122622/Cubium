@@ -20,6 +20,8 @@ src/common/resource/
 │   └── DataPackRepository.hpp      # 服务端数据包仓库（原 DataPackList），默认 PackType::ServerData
 ├── VanillaResources.hpp/cpp        # 原版模型/方块状态等基础资源
 ├── LanguageManager.hpp/cpp         # 多语言翻译管理器，从资源包加载语言文件，支持占位符替换
+├── tag/                            # 通用标签加载骨架（被具体标签系统复用）
+│   └── GenericTagLoader.hpp/cpp    # 两阶段标签加载器：JSON 解析 + 多数据包 replace 合并 + # 引用依赖解析
 └── metadata/                       # 资源元数据
     └── AnimationMetadata.hpp/cpp   # 动画纹理元数据（.mcmeta）
 ```
@@ -76,3 +78,5 @@ src/common/resource/
 - **语言文件占位符**：支持 `%s`（顺序参数）、`%1$s`/`%2$s`（位置参数）、`%%`（转义百分号）。
 - **`IResourcePack` 的路径工具方法**：`normalizePath`、`makeTypedPath`、`matchesExtension` 是静态保护方法，供子类复用。
 - **`InMemoryResourcePack` 统一接口**：使用 `addResource(PackType, path, content)` 方法，`addClientResource`/`addServerDataResource` 为便捷方法。
+- **`GenericTagLoader` 是通用骨架，不直接面向成员类型**：它只负责 JSON 解析、多数据包合并、`#` 引用依赖解析，成员解析 / 读取 / 写入通过三个回调（`TagMemberResolver` / `TagMemberReader` / `TagFiller`）注入。具体标签系统（`BlockTagLoader` / `FluidTagLoader` / `GameEventTagLoader`）各自提供回调，把成员映射为 `size_t` 索引并落回自身注册表。新增一类标签时复用此骨架，不要重写两阶段加载逻辑。
+- **回调须在 `loadFrom*` 调用期间保持有效**：`GenericTagLoader` 不持有回调的所有权，三个回调（及其捕获的成员池）必须在调用返回前保持存活。

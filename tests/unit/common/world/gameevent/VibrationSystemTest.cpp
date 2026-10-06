@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/gameevent/GameEventTags.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 
@@ -30,36 +31,45 @@ using namespace mc;
 using namespace mc::gameevent;
 
 // ============================================================================
-// isIgnoredBySneaking 测试 - 验证硬编码事件 ID 与 GameEvents 常量一致
+// isIgnoredBySneaking 依赖 GameEventTags::IGNORE_VIBRATIONS_SNEAKING 标签，
+// 故相关用例统一经此 fixture 初始化标签（幂等）。
 // ============================================================================
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_HitGround)
+class VibrationSneakIgnoreTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { GameEventTags::initialize(); }
+};
+
+// ============================================================================
+// isIgnoredBySneaking 测试 - 验证标签成员与 GameEvents 常量一致
+// ============================================================================
+
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_HitGround)
 {
-    // 验证 "hit_ground" 字符串与 GameEvents::HIT_GROUND 的 ID 一致
     EXPECT_TRUE(VibrationSystem::isIgnoredBySneaking(GameEvents::HIT_GROUND));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_ProjectileShoot)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_ProjectileShoot)
 {
     EXPECT_TRUE(VibrationSystem::isIgnoredBySneaking(GameEvents::PROJECTILE_SHOOT));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_Step)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_Step)
 {
     EXPECT_TRUE(VibrationSystem::isIgnoredBySneaking(GameEvents::STEP));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_Swim)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_Swim)
 {
     EXPECT_TRUE(VibrationSystem::isIgnoredBySneaking(GameEvents::SWIM));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_ItemInteractStart)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_ItemInteractStart)
 {
     EXPECT_TRUE(VibrationSystem::isIgnoredBySneaking(GameEvents::ITEM_INTERACT_START));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_ItemInteractFinish)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_ItemInteractFinish)
 {
     EXPECT_TRUE(VibrationSystem::isIgnoredBySneaking(GameEvents::ITEM_INTERACT_FINISH));
 }
@@ -68,38 +78,38 @@ TEST(VibrationSystemTest, IsIgnoredBySneaking_ItemInteractFinish)
 // isIgnoredBySneaking 测试 - 不应被潜行忽略的事件
 // ============================================================================
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_BlockPlace_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_BlockPlace_NotIgnored)
 {
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::BLOCK_PLACE));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_BlockDestroy_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_BlockDestroy_NotIgnored)
 {
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::BLOCK_DESTROY));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_EntityDamage_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_EntityDamage_NotIgnored)
 {
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::ENTITY_DAMAGE));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_Explode_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_Explode_NotIgnored)
 {
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::EXPLODE));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_BlockActivate_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_BlockActivate_NotIgnored)
 {
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::BLOCK_ACTIVATE));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_Flap_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_Flap_NotIgnored)
 {
     // FLAP 不在 IGNORE_VIBRATIONS_SNEAKING 中，即使频率为 1
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::FLAP));
 }
 
-TEST(VibrationSystemTest, IsIgnoredBySneaking_SculkSensorTendrilsClicking_NotIgnored)
+TEST_F(VibrationSneakIgnoreTest, IsIgnoredBySneaking_SculkSensorTendrilsClicking_NotIgnored)
 {
     EXPECT_FALSE(VibrationSystem::isIgnoredBySneaking(GameEvents::SCULK_SENSOR_TENDRILS_CLICKING));
 }

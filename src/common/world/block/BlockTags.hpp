@@ -75,6 +75,14 @@ public:
     void addAll(const std::vector<ResourceLocation>& blockIds);
 
     /**
+     * @brief 清空标签中的所有方块
+     *
+     * 用于数据包加载的 replace 语义：当数据包标签指定 replace=true 时，
+     * 先清空已有标签内容（含内置默认值），再追加新内容。
+     */
+    void clear();
+
+    /**
      * @brief 检查方块是否在标签中
      * @param blockId 方块资源位置
      * @return 是否在标签中
@@ -646,6 +654,17 @@ public:
      * @return 标签指针，如果不存在返回 nullptr
      */
     [[nodiscard]] static BlockTag* getTag(const ResourceLocation& id);
+
+    /**
+     * @brief 注册或获取指定ID的标签
+     *
+     * 若标签已存在则直接返回；否则创建空标签并注册。
+     * 供数据包标签加载器（BlockTagLoader）注册数据包定义的新标签。
+     *
+     * @param id 标签资源位置
+     * @return 标签引用
+     */
+    static BlockTag& registerTag(const ResourceLocation& id);
 
     /**
      * @brief 遍历所有标签
