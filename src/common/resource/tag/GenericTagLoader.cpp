@@ -207,9 +207,8 @@ void _resolveAndFill(const ResourceLocation& location,
     const TagFiller& fillTag)
 {
     if (data.entries.empty()) {
-        // 空标签（可能因 replace 清空）仍须写入以应用 replace 语义。
-        // 数据包侧出现空标签极不寻常（vanilla 无），明确告警以便定位。
-        spdlog::warn("GenericTagLoader: tag '{}' has NO entries; writing empty tag", location.toString());
+        // values 为空数组：vanilla 数据包中这是合法写法（如 incorrect_for_netherite_tool 恒为空），
+        // 非异常，静默写入空标签即可。
         fillTag(location, {}, data.replace);
         return;
     }
@@ -223,9 +222,11 @@ void _resolveAndFill(const ResourceLocation& location,
     }
 
     if (members.empty()) {
-        // 所有条目都解析失败：写出的标签为空，依赖它的标签也会连带为空，明确 error 而非 info。
-        spdlog::error("GenericTagLoader: tag '{}' resolved ZERO members (all entries unresolved); "
-                      "dependent tags will inherit empty members",
+        // 有条目但全部解析失败：标签写出来为空，依赖它的标签也会连带为空。此时每个失败条目已各自
+        // 告警（unknown member / referenced tag no members），此处补一条汇总 warn 便于定位"整标签为空"。
+        // 级别取 warn 而非 error：绝大多数成因是"成员方块/实体尚未实现"，属数据覆盖缺口而非缺陷。
+        spdlog::warn("GenericTagLoader: tag '{}' resolved ZERO members (all entries unresolved); "
+                     "dependent tags will inherit empty members",
             location.toString());
     }
 
