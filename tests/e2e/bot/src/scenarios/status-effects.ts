@@ -40,22 +40,7 @@ export const statusEffectCases: readonly CaseDefinition[] = [
         servers: ["cubium", "vanilla"],
         botCount: 1,
         opPlayers: true,
-        // 阻塞点：服务端侧的效果变更**从不下发** entity_effect(cb 130)。实测 `/effect give`
-        // 后服务端日志确认效果已施加（属性修饰符生效、剩余时间递减），但客户端收到的
-        // entity_effect 计数恒为 0，`bot.entity.effects` 永远为空——玩家屏幕上没有效果图标，
-        // 服务端却在按效果结算（移动速度加成、持续伤害/回血等），两侧状态长期背离且无任何日志。
-        // 根因：`LivingEntity::addEffect`/`EffectManager::addEffect` 只写服务端状态，没有任何
-        // 「效果变更 → 广播」通路；且 clientbound 的 `entity_effect`(cb 130) / `remove_entity_effect`
-        // (cb 76) / `update_mob_effect` 三层（IR + codec + 协议表登记）全缺，无法发送。
-        // 证据：见本次 refresh 运行落盘的 artifacts（runId 见运行输出），bot-trace 中
-        //       entity_effect 计数为 0，而服务端日志显示效果已施加。
-        // 解除条件：补齐 effect 三包的 IR/codec/协议表登记 + 服务端「效果变更即广播」通路
-        //           （对齐 vanilla ServerPlayer.onEffectUpdated/onEffectRemoved → 广播给追踪者），
-        //           然后移除此跳过标记。
-        skipReason:
-            "服务端施加状态效果后从不下发 entity_effect(cb 130)（且该包 IR/codec/协议表三层全缺），" +
-            "客户端状态栏看不到任何效果；待补齐效果同步链路后移除此跳过标记",
-        async run({ bot }): Promise<Record<string, unknown>> {
+        skipReason: null,        async run({ bot }): Promise<Record<string, unknown>> {
             // 以自身为目标施加 speed（0 号效果）。命令名不带命名空间——两侧均接受裸名。
             await runCommand(bot, "/effect give @s speed 30 0", COMMAND_FEEDBACK_TIMEOUT_MS);
 

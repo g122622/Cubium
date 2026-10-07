@@ -37,19 +37,7 @@ export const playerVisualCases: readonly CaseDefinition[] = [
         servers: ["cubium", "vanilla"],
         botCount: 2,
         opPlayers: false,
-        // 阻塞点：服务端**从不发送 entity_equipment(cb 100)**——该包三层（IR + codec + 协议表
-        // 登记）全缺（全仓库 grep `SetEquipment` 零命中，`PlayPackets*.hpp` 无该结构体），
-        // 实体追踪器（EntityTracker）也没有「装备/手持物变化 → 广播」的通路。
-        // 表现：A 手持钻石剑，A 自己看得到（本地预测），但 B 世界里 A 的实体手里永远是空的；
-        // 服务端无任何报错。同类缺口还包括护甲槽（别人看不到你穿的盔甲）。
-        // 证据：见本次 refresh 运行落盘的 artifacts，第二个 bot 的 bot-trace 中 entity_equipment
-        //       计数为 0，且 A 的实体 heldItem 恒为 null。
-        // 解除条件：补齐 SetEquipment 的 IR/codec/协议表登记 + EntityTracker 的手持物变化广播
-        //           （对齐 vanilla ServerPlayer 的 containerMenu broadcastChanges → 装备同步），
-        //           然后移除此跳过标记。
-        skipReason:
-            "服务端从不下发 entity_equipment(cb 100)（该包 IR/codec/协议表三层全缺），" +
-            "其他玩家看不到你的手持物与护甲；待补齐装备同步链路后移除此跳过标记",
+        skipReason: null,
         async run({ bots }): Promise<Record<string, unknown>> {
             const [holder, observer] = bots;
 
