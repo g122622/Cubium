@@ -50,12 +50,14 @@
 #include <benchmark/benchmark.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <map>
 #include <set>
 #include <string>
 #include <system_error>
@@ -365,6 +367,109 @@ void dumpNibbleStats(const mc::server::ServerChunkManager& manager, i32 threadCo
         outputPath.string());
 }
 
+// ============================================================================
+// TODO(临时诊断): primer 状态普查。回答"稳态里有多少 primer、停在什么状态、
+// TODO(临时诊断): 还持有哪些生成期暂存数据"，用于判定"非 FULL primer 持有的
+// TODO(临时诊断): biomes/heightmaps/noiseChunk 是否可提前释放"。定位完成后删除。
+// ============================================================================
+
+/// 统计所有 lifecycleManager 的 primer 状态与暂存数据持有情况。
+///
+/// 【为何需要】稳态实测显示 `ChunkPrimer` ctor 占每区块边际成本的 33%（23.4 KB/区块），
+/// 而 primers 数量（2916）是目标区块数（1024）的 2.85 倍 —— 差额是调度器为满足依赖
+/// 创建的邻居 primer。`m_biomes`/`m_heightmaps` 只在 FULL 的 `toChunkData()` 里 reset，
+/// `m_noiseChunk` 在 CARVERS 后释放。若大量 primer 停在中间状态，它们持有的这些
+/// 暂存数据就是稳态的可削项；若几乎都是 FULL，则不可削。
+void dumpPrimerStats(const mc::server::ServerChunkManager& manager, i32 threadCount, i32 side)
+{
+    const std::filesystem::path outputPath = std::filesystem::current_path() / "benchmark_results" / "primer_stats" /
+        fmt::format("primer_stats_threads={}_batch={}.csv", threadCount, side);
+
+    std::error_code ec;
+    std::filesystem::create_directories(outputPath.parent_path(), ec);
+    std::ofstream output(outputPath, std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) {
+        spdlog::warn("primer_stats: failed to open {}", outputPath.string());
+        return;
+    }
+
+    output << "chunk_x,chunk_z,gen_status,req_status,has_primer,has_local_biomes,has_local_heightmaps,has_noise_chunk,"
+              "has_carving_mask,safe_to_unload,should_load\n";
+
+    const auto rows = manager.debugCollectPrimerStats();
+
+    for (const auto& r : rows) {
+        output << r.x << ',' << r.z << ',' << r.genStatus << ',' << r.reqStatus << ',' << (r.hasPrimer ? 1 : 0) << ','
+               << (r.hasLocalBiomes ? 1 : 0) << ',' << (r.hasLocalHeightmaps ? 1 : 0) << ','
+               << (r.hasNoiseChunk ? 1 : 0) << ',' << (r.hasCarvingMask ? 1 : 0) << ',' << (r.safeToUnload ? 1 : 0)
+               << ',' << (r.shouldLoad ? 1 : 0) << '\n';
+    }
+    output.close();
+
+    // 汇总：按 gen_status 分组，统计各状态下 primer 数与暂存数据持有数
+    std::map<std::string, std::array<size_t, 4>> byStatus; // {count, localBiomes, localHeightmaps, noiseChunk}
+    size_t primerCount = 0;
+    for (const auto& r : rows) {
+        if (!r.hasPrimer) {
+            continue;
+        }
+        ++primerCount;
+        auto& agg = byStatus[r.genStatus];
+        agg[0]++;
+        if (r.hasLocalBiomes) {
+            agg[1]++;
+        }
+        if (r.hasLocalHeightmaps) {
+            agg[2]++;
+        }
+        if (r.hasNoiseChunk) {
+            agg[3]++;
+        }
+    }
+
+    spdlog::info("primer_stats: holders={} primers={} -> {}", rows.size(), primerCount, outputPath.string());
+    for (const auto& [status, agg] : byStatus) {
+        spdlog::info(
+            "primer_stats:   status={:<18} primers={:<6} localBiomes={:<6} localHeightmaps={:<6} noiseChunk={}",
+            status,
+            agg[0],
+            agg[1],
+            agg[2],
+            agg[3]);
+    }
+}
+
+// ============================================================================
+// TODO(临时诊断): 排空 ServerTickList（流体/方块 tick 条目）。定位完成后删除。
+// ============================================================================
+
+/// 推进游戏刻若干次以排空 `ServerTickList` 里累积的 tick 条目。
+///
+/// 【为何需要】基准的 `ServerChunkManager::tick()` 只推进区块管理器自己的计数器，
+/// 不调用 `ServerWorld::tick()` → `TickManager::tick()`，因此 `_postProcessChunk`
+/// 里 `scheduleFluidTick` 入队的条目**永不执行、持续累积**（实测 7.1 MB / 1024 区块）。
+/// 真实服务端下它们会随游戏刻排空，故这 7.1 MB 是基准口径产物。
+///
+/// 本函数用 `TickManager::tick` 推进足够多的刻数把它们排空，用于验证这一判断
+/// （对比排空前后 heaptrack 的稳态存活量）。
+void drainTickLists(mc::server::ServerWorld& world, u64 ticks)
+{
+    auto& tm = world.tickManager();
+    const size_t beforeBlock = tm.blockTicks().pendingCount();
+    const size_t beforeFluid = tm.fluidTicks().pendingCount();
+    // TickManager 不暴露当前刻号，用两条 tick list 的 max 作为起点（两者由同一 tick 驱动）。
+    const u64 base = std::max(tm.blockTicks().currentTick(), tm.fluidTicks().currentTick());
+    for (u64 i = 0; i < ticks; ++i) {
+        tm.tick(base + 1 + i);
+    }
+    spdlog::info("drain_tick_lists: ticks={} blockPending {} -> {}  fluidPending {} -> {}",
+        ticks,
+        beforeBlock,
+        tm.blockTicks().pendingCount(),
+        beforeFluid,
+        tm.fluidTicks().pendingCount());
+}
+
 /**
  * @brief 区块生成吞吐基准（生产级并行生成系统）
  *
@@ -394,9 +499,11 @@ void ChunkGeneration(::benchmark::State& state)
     // 用进程级静态集合去重，避免同一文件被重复写、日志出现两行。
     static std::set<std::string> s_dumpedPaletteBits;
     static std::set<std::string> s_dumpedNibbleStats;
+    static std::set<std::string> s_dumpedPrimerStats;
     const std::string paletteBitsKey = fmt::format("{}x{}", state.range(0), side);
     bool paletteBitsDumped = s_dumpedPaletteBits.contains(paletteBitsKey);
     bool nibbleStatsDumped = s_dumpedNibbleStats.contains(paletteBitsKey);
+    bool primerStatsDumped = s_dumpedPrimerStats.contains(paletteBitsKey);
 
     for (auto _ : state) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "ChunkGeneration::batch");
@@ -488,6 +595,23 @@ void ChunkGeneration(::benchmark::State& state)
             state.ResumeTiming();
             s_dumpedNibbleStats.insert(paletteBitsKey);
             nibbleStatsDumped = true;
+        }
+
+        // TODO(临时诊断): 同一次快照上导出 primer 状态普查（判定暂存数据是否可提前释放）。
+        if (!primerStatsDumped) {
+            state.PauseTiming();
+            dumpPrimerStats(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
+            state.ResumeTiming();
+            s_dumpedPrimerStats.insert(paletteBitsKey);
+            primerStatsDumped = true;
+        }
+
+        // TODO(临时诊断): MC_BENCH_DRAIN_TICK_LISTS=1 时推进游戏刻排空 ServerTickList。
+        // TODO(临时诊断): 用于验证"7.1 MB 的 ScheduledTick 是基准口径产物"这一判断。
+        if (std::getenv("MC_BENCH_DRAIN_TICK_LISTS") != nullptr && g_fixture.world != nullptr) {
+            state.PauseTiming();
+            drainTickLists(*g_fixture.world, 1000);
+            state.ResumeTiming();
         }
 
         // TODO(临时诊断): MC_BENCH_FREEZE_STEADY=1 时在稳态快照后立刻 _Exit(0)（跳过全部析构与

@@ -2067,4 +2067,49 @@ void ServerChunkManager::_debugDumpStuckHolders()
     spdlog::info("[stuck] holdersWithWaiters={} totalWaiters={}", holdersWithWaiters, totalWaiters);
 }
 
+// ============================================================================
+// TODO(临时诊断): primer 状态普查（稳态归因用）。定位完成后删除本段。
+// ============================================================================
+
+std::vector<ServerChunkManager::PrimerStatsRow> ServerChunkManager::debugCollectPrimerStats() const
+{
+    std::vector<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> lifecycleManagersCopy;
+    {
+        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
+        lifecycleManagersCopy.reserve(m_lifecycleManagers.size());
+        for (const auto& [k, v] : m_lifecycleManagers) {
+            MC_UNUSED(k);
+            if (v) {
+                lifecycleManagersCopy.push_back(v);
+            }
+        }
+    }
+
+    std::vector<PrimerStatsRow> rows;
+    rows.reserve(lifecycleManagersCopy.size());
+    for (const auto& lm : lifecycleManagersCopy) {
+        if (!lm) {
+            continue;
+        }
+        PrimerStatsRow row;
+        row.x = lm->x();
+        row.z = lm->z();
+        row.genStatus = lm->getCurrentGenStatus().name();
+        row.reqStatus = lm->requestedGenStatus().name();
+        row.safeToUnload = lm->isSafeToUnload();
+        row.shouldLoad = lm->shouldLoad();
+
+        const mc::world::chunk::ChunkPrimer* primer = lm->getCurrentChunk();
+        if (primer != nullptr) {
+            row.hasPrimer = true;
+            row.hasLocalBiomes = primer->hasLocalBiomes();
+            row.hasLocalHeightmaps = primer->hasLocalHeightmaps();
+            row.hasNoiseChunk = primer->hasNoiseChunk();
+            row.hasCarvingMask = primer->hasCarvingMask();
+        }
+        rows.push_back(std::move(row));
+    }
+    return rows;
+}
+
 } // namespace mc::server

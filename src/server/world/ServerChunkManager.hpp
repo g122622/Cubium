@@ -575,6 +575,28 @@ public:
      */
     void _debugDumpStuckHolders();
 
+    // ========================================================================
+    // TODO(临时诊断): primer 状态普查（稳态归因用）。定位完成后删除本段。
+    // ========================================================================
+
+    /// 单个 holder 的 primer 状态快照（供 dumpPrimerStats 导出 CSV）
+    struct PrimerStatsRow {
+        ChunkCoord x = 0;
+        ChunkCoord z = 0;
+        std::string genStatus;  ///< 当前已达到的生成状态名
+        std::string reqStatus;  ///< 请求的目标状态名
+        bool hasPrimer = false; ///< getCurrentChunk() != nullptr
+        bool hasLocalBiomes = false;
+        bool hasLocalHeightmaps = false;
+        bool hasNoiseChunk = false;
+        bool hasCarvingMask = false;
+        bool safeToUnload = false;
+        bool shouldLoad = false;
+    };
+
+    /// 收集全部 holder 的 primer 状态快照（无锁 best-effort，仅供诊断）
+    [[nodiscard]] std::vector<PrimerStatsRow> debugCollectPrimerStats() const;
+
     /**
      * @brief 获取当前区块生成器（const 版本）
      */
