@@ -14,12 +14,15 @@
 
 | 口径 | 含义 | 8/32 实测 |
 |---|---|---:|
-| **生成峰值** | 1024 区块并行生成过程中进程堆的最高点 | **207.7 MB** |
-| **生成后稳态** | 同一批区块全部 FULL 后、仍驻留内存时的堆 | **117.8 MB** |
+| **生成峰值** | 1024 区块并行生成过程中进程堆的最高点 | **159.4 MB**（优化前 207.7） |
+| **生成后稳态** | 同一批区块全部 FULL 后、仍驻留内存时的堆 | **104.8 MB**（优化前 117.8） |
 | 服务端空载（不生成区块） | `--benchmark-exit-after-shell_init` 路径的堆峰值 | 27.8 MB |
 | 服务端进主循环（含出生区区块） | 堆峰值 / 稳态 | 42.1 / 39.7 MB |
 
-**一句话结论**：生成峰值里**最大的单项是密度函数区块级实例的 Op 序列深拷贝（86.0 MB / 41%）**，而代码注释已自证这份拷贝是冗余的（区块级 Op 与维度级字节完全相同）。**这一项是本轮测出的第一优先削减目标**，且不改变任何行为语义。
+**一句话结论**：生成峰值里最大的单项曾是密度函数区块级实例的 Op 序列深拷贝
+（86.0 MB / 41%），代码注释已自证该拷贝冗余——**已落地修复，峰值降 23%**（见 §五靶点 1）。
+下一阶段的最大目标是**稳态侧的光照 nibble**（原版 `DataLayer` 有常量态、Cubium 的
+`setFull()` 无条件物化实体缓冲，见 §五靶点 7）。
 
 ---
 
@@ -143,9 +146,9 @@
 
 ## 五、优化靶点（按「收益 ÷ 风险」排序）
 
-### 靶点 1 · 密度函数区块级实例共享维度级 Op 序列 —— 收益 **−86 MB（生成峰值 −41%）**，风险：低
+### 靶点 1 · 密度函数区块级实例共享维度级 Op 序列 —— **✅ 已落地 `a2f98b278`（峰值 −48.2 MB）**
 
-**这是本轮测出的第一优先项，且证据来自代码自身的注释。**
+**证据来自代码自身的注释。**
 
 `CompiledDensityFunction::newInstance`（`src/server/world/gen/density/ast/CompiledDensityFunction.cpp:104`）
 在每个区块创建时执行：
@@ -169,18 +172,35 @@ for (auto& op : newOps) {
 `Op` 实测 `sizeof = 80 B`（4×f64 + 9×u32 + 1×u8，对齐到 8），
 峰值时存活的 Op 缓冲合计约 **86 MB ≈ 110 万个 Op**。
 
-**削减路径**：把 `m_ops` 从值成员改为 `std::shared_ptr<const std::vector<Op>>`（或让区块级实例持有
-维度级的 `const` 引用 + 生命周期保证），区块级实例直接共享维度级的 Op 缓冲。
-`m_jitFn` 已经是共享的，Op 共享与之自洽。
+**削减路径**：把 `m_ops` 从值成员改为 `std::shared_ptr<const std::vector<Op>>`，
+区块级实例拷贝指针即共享维度级的 Op 缓冲。`m_jitFn` 本来就是共享的，Op 共享与之自洽。
 
 **代价与前置**：
-- `Op` 序列必须**真正不可变**——当前 `newInstance` 循环确实不写 `op`，但需加断言/`const` 固化这一不变量。
+- `Op` 序列必须**真正不可变**——`const` 由编译器强制这一不变量。
 - `m_evalCtx` 已指向本实例的 `m_objects/m_subEvaluators/m_splines`，与 Op 缓冲无关，不受影响。
-- 需覆盖单元测试：`ops()` 返回值语义、JIT 复用路径、区块级 `newInstance` 后求值数值一致性。
 
-**预期**：生成峰值 207.7 → 约 122 MB；稳态不变（稳态已无 NoiseChunk）。
+> **已落地（`a2f98b278`）**：`m_ops` 改为 `shared_ptr<const std::vector<Op>>`，
+> `GenContext::compile` / `makeConstantEvaluator` 建缓冲后转移所有权，
+> `newInstance` 直接拷贝 shared_ptr（零字节复制）。实测：
+>
+> | 指标 | 改动前 | 改动后 | 差值 |
+> |---|---:|---:|---:|
+> | 生成峰值堆 | 207.6 MB | **159.4 MB** | **−48.2 MB（−23%）** |
+> | `CompiledDensityFunction.cpp:106` 分配点 | 86.0 MB | **0**（条目消失） | −86.0 MB |
+> | `newInstance` 子树合计 | 88.3 MB | 34.1 MB | −54.2 MB |
+> | 生成后稳态 | 116.9 MB | **104.8 MB** | −12.1 MB |
+> | 吞吐（8/32） | 190.0 chunks/s | 193.5 chunks/s | 无回归 |
+>
+> 降幅（48.2 MB）小于该分配点的 86.0 MB，因为 `newInstance` 子树的其余分配
+> （`make_shared` 16.6 MB、`newObjects` 3.4 MB、`newSubEvaluators` 3.5 MB、
+> Adapter/CacheOnce/Cache2D/FlatCache 约 11.4 MB）仍在；它们随区块数量线性增长，
+> 见靶点 5/7 与 §六。
+>
+> **注意**：实际收益比预估的"−86 MB"小，因为估算是按"该分配点单独归零"算的，
+> 而实测受"峰值时刻并非所有区块都持有 Op 缓冲"影响——共享后峰值时刻的存活量下降
+> 不等于分配总量的下降。
 
-### 靶点 2 · `NoiseInterpolator` 双 slice 缓冲按需分配 —— 收益 **−25 MB（峰值 −12%）**，风险：低
+### 靶点 2 · `NoiseInterpolator` 双 slice 缓冲 —— 收益 **不可削（已核实对齐原版）**，风险：—
 
 `NoiseInterpolator`（`NoiseChunk.cpp:103-104`）构造时无条件分配两个扁平缓冲：
 
@@ -191,50 +211,74 @@ m_slice1.assign(zPoints * yPoints, 0.0);   // → 2 × 42 × 25 × 8 B = 16.8 KB
 
 8/32 实测 **46 208 次分配 / 24.8 MB**（`:103` 与 `:104` 各 23 104 次，即约 23 104 个 interpolator）。
 注意基准因 `MemoryProfiler` 注册会**跑两遍**，故单轮约 11 552 个 interpolator / 1024 区块 ≈ **11.3 个/区块**。
-但这些缓冲**只在 NOISE 状态的双层 Z 扫描期间被填充**；对只在单层使用的 interpolator，
-`m_slice1` 从未被写入。
 
-**削减路径**：
-1. 让 `m_slice1` **惰性分配**（首次需要双层滚动时再 `assign`），或
-2. 两个 slice 合并为**一个 `2 × zPoints × yPoints` 缓冲**并按 `m_sliceIndex` 交替（省一次分配头 + 改善局部性），或
-3. 若某 interpolator 的填充路径确定不滚动，则只分配一个 slice。
+**核实结论：两个 slice 都是必要的，且与原版一致。**
+- `NoiseChunk::advanceCellX` 对**每一个** interpolator 调 `fillSlice(*this, false, ...)` 填充 `m_slice1`
+  （`NoiseChunk.cpp:527`），`initializeForFirstCellX` 则填 `m_slice0`——**两个缓冲在每区块的
+  每个 cellX 迭代中都被完整写入**，不存在"未使用的 slice"。
+- MC 1.21.11 `NoiseChunk.NoiseInterpolator` 构造同样是
+  `slice0 = allocateSlice(cellCountY, cellCountXZ); slice1 = allocateSlice(...)` 两份都分配
+  （`NoiseChunk.java:703-704`），且 `allocateSlice` 用 `double[][]` 逐行 `new double[j]`
+  （Java 侧是 `(cellCountXZ+1)` 个独立数组，**比 Cubium 的扁平单块更差**）。
 
-**代价**：需核对 `compute()`/`updateForZ()`/`fillSlice` 的全部读写点，确认惰性分配不影响
-"未填充即读取"的语义（当前 `assign(..., 0.0)` 隐含"未填充读到 0"）。
+**因此这一项不是缺陷，不应削减**（初版把它列为"−25 MB 可削"是误判，已作废）。
+真正可评估的是 `m_cellCountZ` 参数的语义：Cubium 的 `NoiseInterpolator(filler, cellCountZ, cellCountY)`
+第一个参数是 Z 方向点数，调用处传 `cellCfg.cellCountXZ`（`CompiledDensityFunction.cpp:137`），
+两者在区块生成下同为 4，属**命名与语义错位**（原版 `allocateSlice(cellCountY, cellCountXZ)`
+的第一个参数是 cellCountY）。若未来支持非方形 XZ/Y cell 配置，此处会出错——建议改名为
+`cellCountXZ` 并加断言。**这是正确性问题，不是内存问题。**
 
-### 靶点 3 · Heightmap 位压缩 —— 收益 **−6 MB（稳态 −5%）**，风险：低-中
+### 靶点 3 · Heightmap —— **已实现，无剩余收益**
 
-`ChunkData::m_heightmaps = std::array<Heightmap, 7>`，每 `Heightmap` 为
-`std::array<BlockCoord /*=i32*/, 256>` = **1024 B/类型**，7 类型 = 7 196 B/区块 → 1024 区块共 **7.2 MB**。
+`ChunkData::m_heightmaps = std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>`，实测
+`sizeof(Heightmap) = 296 B`（`BITS=9`、`VALUES_PER_LONG=7`、`WORD_COUNT=37` → 37×8 B），
+7 类型 = **2 072 B/区块** → 1024 区块共 **2.02 MB**。
 
-**原版对照**：MC 1.21.11 `Heightmap.java:39-41` 用
-`SimpleBitStorage(Mth.ceillog2(chunk.getHeight()+1), 256)`，即按维度高度**位压缩**
-（385 → 9 bit/列 → **288 B/类型**）。7 类型 = 2 016 B/区块，节省 5 180 B/区块 × 1024 = **6.3 MB**。
+**位压缩已经落地**：`Heightmap.hpp:120-127` 的 `BITS = ceilLog2(MAX_BUILD_HEIGHT - NO_BLOCK_SENTINEL + 1) = 9`、
+`m_words` 为 `std::array<u64, WORD_COUNT>`——这正是原版 `SimpleBitStorage(9, 256)` 的等价实现。
+`docs/MEMORY.md`（Windows，2026-09-25）记录的"`array<BlockCoord,256>` = 7 196 B/区块"
+是**过时数据**，该报告写作时位压缩尚未落地。**本项无剩余收益，已作废。**
 
-**与 Windows 报告一致**（`docs/MEMORY.md` 靶点 3，估 6.3 MB）。
-**改动面**：`Heightmap.hpp` 的 `m_heights` 改位压缩存储，保持 `getHeight`/`setHeight`/`getData`/`setData`
-接口语义；`getData()` 从"返回 const 引用"变为"返回值/填充缓冲"，需检查调用点。
-**附加收益**：若实测确认某些 `HeightmapType` 在服务端零消费，可再省一档。
-
-### 靶点 4 · `samplePreliminarySurfaceLevel` 缓存改定长数组 —— 收益 **−4.7 MB（峰值 −2.3%）**，风险：低
+### 靶点 4 · `samplePreliminarySurfaceLevel` 缓存 —— 收益 **−4.7 MB（峰值 −2.3%）**，风险：低
 
 `NoiseChunk::samplePreliminarySurfaceLevel`（`NoiseChunk.cpp:648`）用
 `std::unordered_map<i64, i32> m_preliminarySurfaceLevelCache` 缓存预表面高度，
 峰值实测 **4.7 MB / 534 976 次分配**。
 
-缓存键是 quart 对齐坐标 `(quartAlignedX, quartAlignedZ)`，取值范围**有界**
-（一个区块 4×4 quart 网格）。改用**定长数组 / 小 map**（键为相对坐标的稠密索引）可消除
-`unordered_map` 的节点开销与 rehash 抖动。
+**原版对照**：MC 1.21.11 用 fastutil 的 `Long2IntOpenHashMap`（`NoiseChunk.java:35`）——
+开放寻址、无节点分配、`computeIfAbsent`。Cubium 的 `std::unordered_map` 每节点 32 B + 桶数组，
+是这 4.7 MB 的主因。
 
-### 靶点 5 · `FlatCache` 预计算表 —— 收益 **待评估（峰值 −10.9 MB 上限）**，风险：中
+**削减路径（已排除定长数组）**：初版曾建议改"定长数组（键为相对坐标的稠密索引）"。
+**该方案不成立**——查询键**并非**只落在本区块的 4 方块网格内：
+- `NoiseBasedAquifer::computeSubstance` 按 `SURFACE_SAMPLING_OFFSETS_IN_CHUNKS`
+  查询 `x + offset[0]*16`（offset ∈ [-3, 1]），即**区块外 ±3 区块**（`NoiseBasedAquifer.cpp:362-366`）；
+- `maxPreliminarySurfaceLevel` 在网格范围 `[minGridX, maxGridX]` 上迭代，网格按
+  `gridX(minBlockX - 5)` / `gridX(maxBlockX - 5) + 1` 构造（对齐原版 `Aquifer.java:124`），
+  同样越出本区块。
+
+（实现过程中曾按"5×5 定长数组"改过一版，边界推导错误，已回退并改为此处记录的结论。）
+
+**正确做法**：换成开放寻址的 `i64 → i32` 扁平表（线性探测，容量取 2 的幂，
+对齐原版 `Long2IntOpenHashMap` 的语义），保留任意坐标键的通用性。收益约 −4.7 MB。
+
+### 靶点 5 · `FlatCache` 预计算表 —— 收益 **待评估（峰值 −11.3 MB 上限）**，风险：中
 
 `FlatCache::FlatCache(..., precompute=true)`（`DensityFunctions.hpp:998`）在构造期
-双 for 填满 `m_values`，尺寸 `(sizeXZ+1)²`。峰值实测 **10.9 MB / 199 272 次**。
+双 for 填满 `m_values`，尺寸 `(sizeXZ+1)²`。峰值实测 **11.3 MB / 199 272 次**。
 
-**对齐原版**：MC 的 `NoiseChunk.FlatCache` 同样在构造期预计算——**这是对齐原版的行为**，
-不能简单删除。可评估的是**尺寸与缓存粒度**（原版是否也缓存全部 router slot 的 FlatCache）。
-**建议**：先确认 15 个 router root 里哪些真的需要 FlatCache 预计算，再决定是否收窄。
-**此项需独立评估，不宜与靶点 1–4 同期做。**
+**对齐原版**：MC 1.21.11 `NoiseChunk.FlatCache` 同样在构造期预计算
+（`NoiseChunk.java:619-637`，`sizeXZ = noiseSizeXZ + 1`、`values = new double[sizeXZ * sizeXZ]`）
+——**这是对齐原版的行为**，不能简单删除。
+
+**但要核对数量**：原版 `FlatCache` 只由 `wrapNew` 在遇到 `Marker.Type.FlatCache` 时按需创建
+（`NoiseChunk.java:378`），且原版**没有"维度级编译产物"这一层**——每个区块的 NoiseChunk
+各自持有一份 FlatCache。Cubium 的路径相同（`CompiledDensityFunction::newInstance` 的
+`MarkerType::FlatCache` 分支），但需确认：数据包里 16 处 `flat_cache` 引用在编译后的
+router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 5832 primer ≈ **34 个/区块**，
+若原版实际只有 6–10 个，说明有重复编译。
+
+**此项需独立评估**（先统计原版每个 NoiseChunk 实际创建多少个 FlatCache），不宜与靶点 1–4 同期做。
 
 ### 靶点 6 · `PalettedContainer` 段外壳与空段 —— 收益 **需实测**，风险：中
 
@@ -243,7 +287,31 @@ m_slice1.assign(zPoints * yPoints, 0.0);   // → 2 × 42 × 25 × 8 B = 16.8 KB
 **方向**：空段的 `unique_ptr<ChunkSection>` 已为 `nullptr`（不占位存储），
 可评估的是**非空段的外壳开销**（`bits=1/2/3` 时 palette 数组仅 2–6 项，哈希表可能偏大）。
 
-### 靶点 7 · 段/区块的**预分配池化** —— 收益 **潜在 −10~20 MB**，风险：中-高
+### 靶点 7 · 光照 nibble 的常量态 —— 收益 **潜在 −20~40 MB（稳态主力）**，风险：中
+
+`SWMRNibbleArray` 每段 2 048 B（`ARRAY_SIZE`），`LIGHT_SECTIONS = CHUNK_SECTIONS + 2 = 26`，
+天空光 + 方块光各 26 段 → 每区块最多 52 × 2 048 B = **106 KB**。1024 区块满配约 **104 MB**，
+是稳态 104.8 MB 里**最大的一块**（远大于段位存储的 9.09 MB）。
+
+**原版有常量态、Cubium 没有**：MC 1.21.11 `DataLayer` 用 `defaultValue` + 惰性 `data`
+（`DataLayer.java:16-19, 38-43`）——`fill(15)` 只设 `defaultValue=15` 并**把 `data` 置 null**，
+`getData()` 才按需物化并 `Arrays.fill`。Cubium 的 `SWMRNibbleArray::setFull()`
+（`SWMRNibbleArray.cpp:165-185`）**立即 `_allocateBytes()` 分配 2 048 B 实体缓冲**，
+没有"全 15 常量态"的表示。
+
+**收益来源**：`SkyStarLightEngine::initNibble` 对"最高非空段之上"的每一段调 `setFull()`，
+这些段语义上就是常量全 15。`docs/MEMORY.md`（Windows）靶点 2 抽样 14 块 2 048 B 缓冲，
+3 块全 `0xFF`（天空光全亮），按此外推约 12 MB；按 `LIGHT_SECTIONS − 最高非空段`
+理论推算上限约 38 MB。
+
+**改动面**：`SWMRNibbleArray` 的 `State` 枚举扩展一个"全满常量态"（现有 `Null`/`Uninit`
+已有语义可参照），`get()` 在常量态直接返回 15、首次 `set()` 时才物化实体缓冲。
+**风险**：这是光照引擎核心，任何遗漏会导致光照计算偏差；且需与 thread_local 池
+（`POOL_CAPACITY_PER_THREAD`）的分配/释放路径协同。
+
+**建议**：这是稳态侧最大的单项，值得单独立项并配光照正确性回归测试。
+
+### 靶点 8 · 段/区块的**预分配池化** —— 收益 **潜在 −10~20 MB**，风险：中-高
 
 `ChunkPrimer` ctor 三行合计 **32.4 MB / 5 832 次**（每 primer 约 5.7 KB）：
 `make_shared<ChunkData>` + `BiomeContainer` + `array<Heightmap,7>` 三块独立堆分配。
@@ -256,39 +324,37 @@ m_slice1.assign(zPoints * yPoints, 0.0);   // → 2 × 42 × 25 × 8 B = 16.8 KB
 - **`ChunkPrimer` 与 `NoiseChunk` 的释放时机已是正确实现**：`releaseGenOnlyData` 在
   CARVERS 之后 `m_noiseChunk.reset()`（`ChunkPrimer.cpp:566`），生成期数据不残留到稳态。
   **不要**误以为"生成期内存常驻"而去改这里。
-- **稳态 117.8 MB 中不可削的部分**：1024 个区块的 `ChunkData` 本体（外壳 + 高度图 + 生物群系 + 位存储）
-  是"区块已加载"的语义要求，只能通过靶点 3/6/7 的结构性压缩来削，不能靠懒加载消除。
+- **稳态 104.8 MB 中不可削的部分**：1024 个区块的 `ChunkData` 本体（外壳 + 高度图 + 生物群系 + 位存储）
+  是"区块已加载"的语义要求，只能通过靶点 6/7/8 的结构性压缩来削，不能靠懒加载消除。
 
 ---
 
 ## 六、"内存砍半"的路径评估
 
-以 8/32 为口径：
+以 8/32 为口径（**靶点 1 已落地**）：
 
 ```
-生成峰值  207.7 MB
-├── 靶点 1（Op 共享）        −86.0 MB   ← 单独立项即可砍掉 41%
-├── 靶点 2（slice 惰性）     −25.0 MB
-├── 靶点 4（surface 缓存）    −4.7 MB
-├── 靶点 3（heightmap 压缩）  −6.0 MB   ← 稳态侧，峰值侧同样受益
-└── 其余                     −3.5 MB（靶点 5 上限 10.9 MB 需评估）
-                     合计   −125 MB → 约 83 MB（−60%）
+生成峰值  207.7 → 159.4 MB（已落地 −48.2 MB）
+├── 靶点 1（Op 共享）        −48.2 MB  ✅ 已落地 a2f98b278
+├── 靶点 4（surface 缓存）    −4.7 MB   ← 改开放寻址扁平表
+├── 靶点 5（FlatCache 数量）  −? MB     ← 先核实原版数量，上限 −11.3 MB
+└── 靶点 8（arena 池化）     −10~20 MB ← 需立项
+                     合计   约 −75~84 MB → 约 76~84 MB（−60~64%）
 ```
 
 ```
-生成后稳态  117.8 MB
-├── 靶点 3（heightmap 压缩） −6.3 MB
-├── 靶点 7（arena 池化）    −10~20 MB（需立项）
-└── 靶点 6（段外壳）        待实测
-                     合计   −16~26 MB → 约 92~102 MB（−13~22%）
+生成后稳态  116.9 → 104.8 MB（靶点 1 顺带 −12.1 MB）
+├── 靶点 7（光照常量态）     −20~40 MB  ← 稳态最大单项，需立项
+├── 靶点 6（段外壳）        待实测
+└── 靶点 8（arena 池化）    −10~20 MB（需立项）
+                     合计   约 −30~60 MB → 约 45~75 MB（−29~57%）
 ```
 
 **结论**：
-1. **生成峰值可以一步砍半**——靶点 1 单独就贡献 41%，加靶点 2 即达 −53%，
-   且两者都是**局部、不改变行为语义**的改动。
-2. **生成后稳态砍半更难**：主体是 1024 个区块的 `ChunkData` 本体，属"已加载区块"的固有开销。
-   要达到 −50% 需叠加靶点 3（位压缩）+ 6（段外壳）+ 7（arena 池化），
-   其中靶点 7 是内存布局重构，需要单独立项。
+1. **生成峰值已经降了 23%**（靶点 1 落地）。要到 −50% 需再叠加靶点 4 + 5 + 8。
+2. **生成后稳态砍半的关键是靶点 7（光照 nibble 常量态）**：它是稳态里最大的一块
+   （理论满配 104 MB），且原版 `DataLayer` 本就有该机制——Cubium 的 `setFull()`
+   无条件物化实体缓冲是**偏离原版**。这一项单独立项就可能把稳态砍掉 20–40%。
 3. **空载基线（17–28 MB 堆）不是主战场**：构成以数据包资源、方块/物品注册表、命令树、
    脚本引擎为主，多为"启动即可查"的原版语义要求，可削空间有限
    （与 `docs/MEMORY_IDLE_MACOS.md` §5.3 的结论一致）。
