@@ -503,6 +503,17 @@ public:
     [[nodiscard]] bool hasNoiseChunk() const noexcept { return m_noiseChunk != nullptr; }
 
     // ============================================================================
+    // TODO(临时诊断): 生成期暂存数据的持有状态查询，用于统计"非 FULL primer 仍持有
+    // TODO(临时诊断): biomes/heightmaps/noiseChunk"的规模（稳态归因用）。定位完成后删除。
+    // ============================================================================
+
+    /// 是否仍持有 primer 侧的 BiomeContainer 暂存副本（FULL 的 toChunkData 会 reset）
+    [[nodiscard]] bool hasLocalBiomes() const noexcept { return m_biomes != nullptr; }
+
+    /// 是否仍持有 primer 侧的 Heightmap[7] 暂存副本（FULL 的 toChunkData 会 reset）
+    [[nodiscard]] bool hasLocalHeightmaps() const noexcept { return m_heightmaps != nullptr; }
+
+    // ============================================================================
     // 转换方法
     // ============================================================================
 
