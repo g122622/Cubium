@@ -21,6 +21,9 @@ function(mc_set_compiler_warnings target)
             -Wno-implicit-float-conversion # 禁用：隐式浮点转换警告
             -Wno-implicit-int-conversion # 禁用：隐式整数转换警告
             -Wno-float-conversion         # 禁用：浮点转换警告
+            # google/benchmark 的 BENCHMARK 宏用 __COUNTER__ 生成唯一名；Clang 20+
+            # 把 __COUNTER__ 归入 C2y 扩展，-pedantic 下 -Werror 会把宏展开判为错误。
+            -Wno-c2y-extensions           # 禁用：C2y 扩展警告（如 __COUNTER__）
 
             # 将关键警告视为错误。不用手动启用，因为 -Werror=all 已经包含了这些。
             # -Werror=return-local-addr    # 错误：返回局部变量地址
