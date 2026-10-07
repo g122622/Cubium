@@ -26,6 +26,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
+#include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -51,6 +52,7 @@
 
 #include <array>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <future>
@@ -232,10 +234,11 @@ void dumpSectionPaletteBits(const mc::server::ServerChunkManager& manager, i32 t
         return;
     }
 
-    output << "chunk_x,chunk_z,section_index,section_min_y,present,bits_per_entry,palette_size\n";
+    output << "chunk_x,chunk_z,section_index,section_min_y,present,bits_per_entry,palette_size,container_bytes\n";
 
     size_t chunkCount = 0;
     size_t presentSectionCount = 0;
+    size_t containerBytesTotal = 0;
     manager.forEachLoadedChunk([&](const mc::ChunkData& chunk) {
         ++chunkCount;
         const std::array<const mc::world::chunk::ChunkSection*, mc::world::CHUNK_SECTIONS> sections =
@@ -244,21 +247,121 @@ void dumpSectionPaletteBits(const mc::server::ServerChunkManager& manager, i32 t
             const i32 sectionMinY = mc::world::MIN_BUILD_HEIGHT + sectionIndex * mc::world::CHUNK_SECTION_HEIGHT;
             const mc::world::chunk::ChunkSection* section = sections[static_cast<size_t>(sectionIndex)];
             if (section == nullptr) {
-                output << chunk.x() << ',' << chunk.z() << ',' << sectionIndex << ',' << sectionMinY << ",0,-1,0\n";
+                output << chunk.x() << ',' << chunk.z() << ',' << sectionIndex << ',' << sectionMinY << ",0,-1,0,0\n";
                 continue;
             }
             const mc::world::chunk::PalettedContainer& container = section->blockStates();
             output << chunk.x() << ',' << chunk.z() << ',' << sectionIndex << ',' << sectionMinY << ",1,"
-                   << container.bitsPerEntry() << ',' << container.paletteSize() << '\n';
+                   << container.bitsPerEntry() << ',' << container.paletteSize() << ','
+                   << container.estimatedMemoryUsage() << '\n';
             ++presentSectionCount;
+            containerBytesTotal += container.estimatedMemoryUsage();
         }
         return true;
     });
 
     output.close();
-    spdlog::info("chunk_palette_bits: {} chunks / {} sections written to {}",
+    spdlog::info("chunk_palette_bits: {} chunks / {} sections, container_bytes={:.2f}MB -> {}",
         chunkCount,
         presentSectionCount,
+        static_cast<double>(containerBytesTotal) / 1048576.0,
+        outputPath.string());
+}
+
+// ============================================================================
+// TODO(临时诊断): 统计 nibble（天空光/方块光）的缓冲分配量，用于评估"常量态"
+// TODO(临时诊断): 优化的上限；定位完成后删除本段与调用点。
+// ============================================================================
+
+/// 统计当前已加载区块全部 nibble 缓冲的**实际物化量**，输出到
+/// `benchmark_results/nibble_stats/nibble_stats_threads=<N>_batch=<side>.csv`。
+///
+/// 列：chunk_x,chunk_z,layer(0=sky,1=block),light_section_index,state_visible,
+///     has_storage,materialized_bytes,all_full,all_zero
+///
+/// 【为何需要本统计】`SWMRNibbleArray` 每段 2048 B，天空光 + 方块光共 2×26=52 段/区块，
+/// 理论满配 106 KB/区块。但 nibble 是延迟分配的——`setFull()`/`setZero()` 会**立即物化**
+/// 2048 B 实体缓冲（不像原版 `DataLayer.fill(v)` 只设默认值并把 data 置 null）。
+/// 本统计给出"实际物化了多少 B"与"其中全 15 / 全 0 的占比"，即常量态优化的收益上限。
+///
+/// 调用前提同 dumpSectionPaletteBits：本批生成已全部完成、处于 PauseTiming 区间。
+void dumpNibbleStats(const mc::server::ServerChunkManager& manager, i32 threadCount, i32 side)
+{
+    const std::filesystem::path outputPath = std::filesystem::current_path() / "benchmark_results" / "nibble_stats" /
+        fmt::format("nibble_stats_threads={}_batch={}.csv", threadCount, side);
+
+    std::error_code ec;
+    std::filesystem::create_directories(outputPath.parent_path(), ec);
+    std::ofstream output(outputPath, std::ios::binary | std::ios::trunc);
+    if (!output.is_open()) {
+        spdlog::warn("nibble_stats: failed to open {}", outputPath.string());
+        return;
+    }
+
+    output << "chunk_x,chunk_z,layer,light_section_index,state_visible,has_storage,materialized_bytes,all_full,"
+              "all_zero\n";
+
+    size_t totalBytes = 0;
+    size_t totalFull = 0;
+    size_t totalZero = 0;
+    size_t materializedCount = 0;
+    size_t slotCount = 0;
+
+    manager.forEachLoadedChunk([&](const mc::ChunkData& chunk) {
+        for (i32 layer = 0; layer < 2; ++layer) {
+            const auto& nibbles = (layer == 0) ? chunk.skyNibbles() : chunk.blockNibbles();
+            for (i32 lightSection = 0; lightSection < mc::ChunkData::LIGHT_SECTIONS; ++lightSection) {
+                ++slotCount;
+                const mc::SWMRNibbleArray& nibble = nibbles[static_cast<size_t>(lightSection)];
+
+                // 用 toByteArray() 判断实际物化：Null/Uninit 返回空 vector（零字节）；
+                // 否则返回 2048 字节副本（注意这是可见侧的快照）。
+                const std::vector<u8> bytes = nibble.toByteArray();
+                const bool materialized = !bytes.empty();
+                const size_t byteCount = bytes.size();
+                bool allFull = materialized;
+                bool allZero = materialized;
+                if (materialized) {
+                    for (const u8 b : bytes) {
+                        if (b != 0xFF) {
+                            allFull = false;
+                        }
+                        if (b != 0x00) {
+                            allZero = false;
+                        }
+                        if (!allFull && !allZero) {
+                            break;
+                        }
+                    }
+                }
+
+                if (materialized) {
+                    totalBytes += byteCount;
+                    ++materializedCount;
+                    if (allFull) {
+                        ++totalFull;
+                    }
+                    if (allZero) {
+                        ++totalZero;
+                    }
+                }
+
+                output << chunk.x() << ',' << chunk.z() << ',' << layer << ',' << lightSection << ','
+                       << (nibble.isNullVisible() ? "Null" : (nibble.isUninitializedVisible() ? "Uninit" : "Init"))
+                       << ',' << (materialized ? 1 : 0) << ',' << byteCount << ',' << (allFull ? 1 : 0) << ','
+                       << (allZero ? 1 : 0) << '\n';
+            }
+        }
+        return true;
+    });
+
+    output.close();
+    spdlog::info("nibble_stats: slots={} materialized={} bytes={:.2f}MB allFull={} allZero={} -> {}",
+        slotCount,
+        materializedCount,
+        static_cast<double>(totalBytes) / 1048576.0,
+        totalFull,
+        totalZero,
         outputPath.string());
 }
 
@@ -290,8 +393,10 @@ void ChunkGeneration(::benchmark::State& state)
     // 注册了 MemoryManager 后 google/benchmark 会把基准函数跑两遍（内存指标一遍 + 计时一遍），
     // 用进程级静态集合去重，避免同一文件被重复写、日志出现两行。
     static std::set<std::string> s_dumpedPaletteBits;
+    static std::set<std::string> s_dumpedNibbleStats;
     const std::string paletteBitsKey = fmt::format("{}x{}", state.range(0), side);
     bool paletteBitsDumped = s_dumpedPaletteBits.contains(paletteBitsKey);
+    bool nibbleStatsDumped = s_dumpedNibbleStats.contains(paletteBitsKey);
 
     for (auto _ : state) {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Benchmark.Run, "ChunkGeneration::batch");
@@ -374,6 +479,22 @@ void ChunkGeneration(::benchmark::State& state)
             state.ResumeTiming();
             s_dumpedPaletteBits.insert(paletteBitsKey);
             paletteBitsDumped = true;
+        }
+
+        // TODO(临时诊断): 同一次快照上导出 nibble 缓冲统计（常量态优化的收益上限）。
+        if (!nibbleStatsDumped) {
+            state.PauseTiming();
+            dumpNibbleStats(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
+            state.ResumeTiming();
+            s_dumpedNibbleStats.insert(paletteBitsKey);
+            nibbleStatsDumped = true;
+        }
+
+        // TODO(临时诊断): MC_BENCH_FREEZE_STEADY=1 时在稳态快照后立刻 _Exit(0)（跳过全部析构与
+        // TODO(临时诊断): atexit），使 heaptrack 的"未释放"报告即稳态存活分配的真实构成。
+        // TODO(临时诊断): 用于给稳态 104.8 MB 做逐项归因（massif 的 detailed 子树在本版本不可用）。
+        if (std::getenv("MC_BENCH_FREEZE_STEADY") != nullptr) {
+            std::_Exit(0);
         }
 
         // 卸载本批区块（计时暂停区间内，不计入测量）：否则第二轮迭代起全部命中
