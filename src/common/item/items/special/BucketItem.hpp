@@ -130,6 +130,17 @@ protected:
     bool canBlockContainFluid(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
 private:
+    /**
+     * @brief 将放不进背包的桶掉落到玩家脚下
+     *
+     * 在 `inventory().add` 返回剩余量 > 0 时调用，把剩余物品掉落到地面，
+     * 对齐 vanilla `ItemUtils.createFilledResult` 中 `player.drop(itemstack, false)` 分支。
+     *
+     * @param player 玩家
+     * @param stack 放不下的物品堆
+     */
+    static void _dropToGround(Player& player, const ItemStack& stack);
+
     fluid::Fluid* m_containedFluid;
 };
 

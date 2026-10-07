@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/entities/passive/basic/CowEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
@@ -37,6 +38,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
@@ -115,7 +117,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                             ItemStack filledStack = filledBucket->getDefaultInstance();
                             const i32 remaining = player->inventory().add(filledStack);
                             if (remaining > 0 && !filledStack.isEmpty()) {
-                                // TODO: 背包满时掉落到地面（需 ItemDropHelper，与 _returnEmptyBucket 同构）
+                                _dropToGround(*player, filledStack);
                             }
                         }
                     }
@@ -153,7 +155,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                         ItemStack pickedStack(pickedItem, 1);
                         const i32 remaining = player->inventory().add(pickedStack);
                         if (remaining > 0 && !pickedStack.isEmpty()) {
-                            // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                            _dropToGround(*player, pickedStack);
                         }
                     }
                 }
@@ -205,7 +207,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                                 ItemStack emptyStack = emptyBucket->getDefaultInstance();
                                 const i32 remaining = player->inventory().add(emptyStack);
                                 if (remaining > 0 && !emptyStack.isEmpty()) {
-                                    // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                                    _dropToGround(*player, emptyStack);
                                 }
                             }
                         }
@@ -233,7 +235,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                     ItemStack emptyStack = emptyBucket->getDefaultInstance();
                     const i32 remaining = player->inventory().add(emptyStack);
                     if (remaining > 0 && !emptyStack.isEmpty()) {
-                        // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                        _dropToGround(*player, emptyStack);
                     }
                 }
             }
@@ -406,12 +408,24 @@ bool BucketItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
             ItemStack milkBucket(Items::MILK_BUCKET, 1);
             const i32 remaining = player.inventory().add(milkBucket);
             if (remaining > 0 && !milkBucket.isEmpty()) {
-                // TODO: 背包满时掉落到地面（需 ItemDropHelper）
+                _dropToGround(player, milkBucket);
             }
         }
     }
 
     return true;
+}
+
+void BucketItem::_dropToGround(Player& player, const ItemStack& stack)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    // 与 FishBucketItem/MilkBucketItem/PowderSnowBucketItem 的"背包满掉落"分支同构：
+    // 在玩家位置以 0.5 格偏移生成物品实体（对齐 vanilla player.drop(itemstack, false)）。
+    math::Random rng;
+    ItemDropHelper::spawnItemAtEntity(&player, stack, 0.5f, rng);
 }
 
 } // namespace mc
