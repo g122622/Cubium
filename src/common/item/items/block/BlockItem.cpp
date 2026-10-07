@@ -144,6 +144,11 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
     }
 
     // 检查放置的方块是否正确
+    // TODO: vanilla 此处按"实际放置的方块"判定（blockstate1.is(blockstate.getBlock())），故方块侧放置状态
+    //       替换为另一方块时（如 DirtPathBlock → DIRT），后续 setPlacedBy/方块实体 NBT 处理仍会对新方块
+    //       执行。此处按物品自身方块 m_block 判定，转换场景下会整段跳过——因涉及的替换目标（泥土、混凝土）
+    //       均无方块实体与 setPlacedBy 副作用，当前无实际影响。若未来出现带副作用的替换目标，需改判据为
+    //       `&actualState->owner() == &state->owner()`。
     if (&actualState->owner() == m_block) {
         // 从 NBT 应用方块状态
         actualState = applyBlockStateFromNBT(pos, world, stack, *actualState);
@@ -206,16 +211,19 @@ const BlockState* BlockItem::getStateForPlacement(const BlockItemUseContext& con
     //
     // Block::getStateForPlacement 返回 BlockState 值（其 stateId 指向注册表预计算状态）。此处将其规范化
     // 为注册表持有的 canonical 指针后返回（对齐 ServerWorld::setBlockState 的 canonicalize 范式），
-    // 避免返回栈上临时值的指针。若方块侧返回的 state 不在注册表中（理论上不应发生），回退默认状态。
+    // 避免返回栈上临时值的指针。
+    //
+    // 允许返回**其他方块**的状态：部分方块的放置结果会整体替换为另一方块（如 DirtPathBlock 上方为
+    // 固体方块时改放泥土），vanilla 中 level.setBlock 直接写入该状态，BlockItem 不施加归属限制。
+    // 故此处不校验 canonical 归属 m_block，仅校验其归属与 placed 一致——未注册方块（测试用临时方块）
+    // 的 placed.stateId() 会与注册表其他方块（如 air，stateId=0）冲突而误命中，此时规范化是错误的，
+    // 须回退到本方块默认状态。
     //
     // m_block 是 const Block* 成员，Block::getStateForPlacement 非 const（部分 override 会读 world 但
     // 不改 block 自身），此处 const_cast 仅用于满足签名，不破坏逻辑不变量。
     BlockState placed = const_cast<Block&>(*m_block).getStateForPlacement(const_cast<BlockItemUseContext&>(context));
     if (BlockState* canonical = Block::getBlockState(placed.stateId())) {
-        // 规范化命中的 canonical 须确实属于本方块：未注册方块的 placed.stateId() 会与注册表中
-        // 其他方块（如 air，stateId=0）冲突而误命中，此时规范化是错误的，须回退到本方块默认状态。
-        // 对已注册方块，placed.stateId() 恒属于本方块，canonical->is(m_block) 必成立，不回退。
-        if (canonical->is(m_block)) {
+        if (&canonical->owner() == &placed.owner()) {
             return canonical;
         }
     }

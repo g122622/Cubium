@@ -154,6 +154,7 @@ import { registerWeightedPressurePlateTests } from "./tests/redstone/WeightedPre
 import { registerBeaconTests } from "./tests/functional/BeaconTests.js";
 import { registerPodzolTests } from "./tests/dirt/PodzolTests.js";
 import { registerMyceliumTests } from "./tests/dirt/MyceliumTests.js";
+import { registerDirtPathTests } from "./tests/dirt/DirtPathTests.js";
 
 registerLiquidTests();
 registerWaterLavaInteractionTests();
@@ -300,3 +301,4 @@ registerWeightedPressurePlateTests();
 registerBeaconTests();
 registerPodzolTests();
 registerMyceliumTests();
+registerDirtPathTests();

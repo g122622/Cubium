@@ -7,7 +7,7 @@
 ```
 dirt/
 ├── README.md                        # 本文档
-├── DirtPathBlock.hpp/cpp            # 草径方块（渲染+碰撞均15/16格高，不可路径寻找；转变泥土逻辑TODO）
+├── DirtPathBlock.hpp/cpp            # 草径方块（渲染+碰撞均15/16格高，不可路径寻找，上方固体时转回泥土）
 ├── MudBlock.hpp/cpp                 # 泥巴方块（碰撞箱略矮，14/16格高，不可路径寻找）
 ├── SnowyDirtBlock.hpp/cpp           # 雪覆盖泥土基类（持有 SNOWY 属性，不蔓延；podzol 直接使用）
 └── SpreadableSnowyDirtBlock.hpp/cpp # 可蔓延泥土基类（继承 SnowyDirtBlock，草方块、菌丝的基类）
@@ -88,7 +88,11 @@ Block
 
 草径（dirt_path）的渲染形状与碰撞形状**均为 15/16 格高**（顶部矮 1 像素），与 FarmlandBlock 不同——FarmlandBlock 的碰撞形状是完整方块，只有渲染形状是 15/16。因碰撞箱矮，DirtPathBlock 同 MudBlock 一样必须显式重写 `allowsMovement` 返回 false，否则实体会把草径当可通过路径。
 
-转变泥土逻辑（上方落入实体或放置方块时变回泥土）**尚未实现**（hpp/cpp 中已标 TODO），当前仅修复渲染高度。
+上方存在固体方块（**栅栏门除外**）时草径无法存活，两条路径收敛为泥土：
+- **放置时**：`getStateForPlacement` 检测到上方固体，直接改放泥土（经 `Block::pushEntitiesUp` 推出嵌入新增碰撞形状的实体）；
+- **运行中**：上方方块变化触发 `updatePostPlacement(Up)`，不满足存活条件则 `scheduleBlockTick(1)`，`tick` 内转回泥土（与耕地退化共用 `FarmlandBlock::turnToDirt`）。
+
+`isValidPosition`（对应 vanilla `canSurvive`）的栅栏门例外不可省：栅栏门非固体但关闭时碰撞箱横跨整格，vanilla 显式放行。
 
 ### 2. SNOWY 属性更新时机
 
