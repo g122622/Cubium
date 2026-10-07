@@ -69,7 +69,7 @@ using eval_helpers::getRarity;
 
 } // namespace
 
-CompiledDensityFunction::CompiledDensityFunction(std::vector<Op> ops,
+CompiledDensityFunction::CompiledDensityFunction(std::shared_ptr<const std::vector<Op>> ops,
     u32 regCount,
     std::vector<RuntimeObject> objects,
     std::vector<std::shared_ptr<CompiledDensityFunction>> subEvaluators,
@@ -102,8 +102,9 @@ CompiledDensityFunction::CompiledDensityFunction(std::vector<Op> ops,
 std::shared_ptr<CompiledDensityFunction> CompiledDensityFunction::newInstance(
     ::mc::world::gen::density::NoiseChunk& chunk) const
 {
-    // 1. 深拷贝 Op 序列与运行时对象表（Op 是 POD，RuntimeObject 是可拷贝 POD-like）。
-    std::vector<Op> newOps = m_ops;
+    // 1. 运行时对象表按值深拷贝（RuntimeObject 是可拷贝 POD-like）；Op 序列**共享**——
+    //    下面第 3 步只改 newObjects 里的缓存对象，从不改动 Op，故区块级与维度级字节码逐字节相同。
+    //    按值拷贝 Op 会让每个区块各持一份整序列，实测占生成峰值堆的 41%（86 MB / 207.7 MB）。
     std::vector<RuntimeObject> newObjects = m_objects;
 
     // 2. 递归子求值器：含 MARKER/BEARDIFIER 的递归 newInstance 得区块级，不含的共享维度级（零深拷贝）。
@@ -120,9 +121,9 @@ std::shared_ptr<CompiledDensityFunction> CompiledDensityFunction::newInstance(
     // 区块级求值器拥有的缓存对象（CacheOnce/FlatCache/Cache2D 拥有型）。
     std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>> ownedCaches;
 
-    // 3. 遍历 newOps，把 MARKER 占位替换为缓存对象。
+    // 3. 遍历 Op 序列，把 MARKER 占位替换为缓存对象（只写 newObjects，不写 Op）。
     const auto& cellCfg = chunk.cellConfig();
-    for (auto& op : newOps) {
+    for (const Op& op : *m_ops) {
         if (op.code != OpCode::Marker) {
             continue;
         }
@@ -174,12 +175,14 @@ std::shared_ptr<CompiledDensityFunction> CompiledDensityFunction::newInstance(
         }
     }
 
-    // 4. 组装区块级求值器：共享 m_splines（样条不可变），min/max/hasMarkerOrBeardifier 沿用维度级。
+    // 4. 组装区块级求值器：**共享维度级的 Op 缓冲**（m_ops 是 shared_ptr，拷贝即共享，
+    //    零字节复制——见 m_ops 注释）、共享 m_splines（样条不可变），min/max/hasMarkerOrBeardifier
+    //    沿用维度级。
     //    注意：区块级 hasMarkerOrBeardifier 仍为 true（MARKER 指令仍在序列中，只是缓存对象已注入），
     //    这不影响正确性——newInstance 不会被对区块级实例再次调用（NoiseChunk 构造只 newInstance 一次）。
     //    ownedCaches 持有 CacheOnce/FlatCache/Cache2D 的所有权，保证 newObjects 中的裸指针生命周期
     //    与区块级求值器一致（否则返回后悬垂）。
-    auto inst = std::make_shared<CompiledDensityFunction>(std::move(newOps),
+    auto inst = std::make_shared<CompiledDensityFunction>(m_ops,
         m_regCount,
         std::move(newObjects),
         std::move(newSubEvaluators),
@@ -252,9 +255,9 @@ f64 CompiledDensityFunction::evalInterpreter(i32 x, i32 y, i32 z) const
 
 f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
 {
-    const size_t n = m_ops.size();
+    const size_t n = m_ops->size();
     for (size_t pc = 0; pc < n; ++pc) {
-        const Op& op = m_ops[pc];
+        const Op& op = (*m_ops)[pc];
         switch (op.code) {
             case OpCode::Return:
                 return regs[op.dst];
@@ -468,11 +471,11 @@ f64 CompiledDensityFunction::evalImpl(i32 x, i32 y, i32 z, f64* regs) const
 
 void CompiledDensityFunction::compileJit() noexcept
 {
-    // 维度级编译一次：把 m_ops 翻译为 asmjit 机器码。失败（asmjit Error / 非 Win x64 平台 /
+    // 维度级编译一次：把 Op 序列翻译为 asmjit 机器码。失败（asmjit Error / 非 Win x64 平台 /
     // 空 Op 序列）m_jitFn 留 nullptr，eval 自动回退 evalImpl（功能不受影响）。JIT 机器码内存由
     // 进程级 JitRuntime 单例持有至进程结束（求值器不可变，无需 release）。区块级 newInstance
-    // 不调本函数——直接复用维度级 m_jitFn（ops 字节相同）。
-    m_jitFn = compileDensityJit(m_ops, m_regCount);
+    // 不调本函数——直接复用维度级 m_jitFn（Op 缓冲本身即共享，字节必然相同）。
+    m_jitFn = compileDensityJit(*m_ops, m_regCount);
 }
 
 } // namespace mc::world::gen::density::ast

@@ -36,12 +36,13 @@ ast/
 DensityFunction 树
   └─McToAst::convert──→ AstNode 树
   └─OptoPasses::optimize──→ 优化后 AstNode 树
-  └─BytecodeGen::compile──→ CompiledDensityFunction（持 m_ops 指令序列）
+  └─BytecodeGen::compile──→ CompiledDensityFunction（持不可变 shared_ptr<const vector<Op>> 指令序列）
                               └─compileJit()──→ compileDensityJit ──→ asmjit 机器码 m_jitFn
 
 区块级复用（NoiseChunk 触发）：
 CompiledDensityFunction::newInstance
-  └─深拷贝 m_ops（字节相同）──→ 复用维度级 m_jitFn
+  └─共享同一份 Op 缓冲（shared_ptr 拷贝，零字节复制）──→ 复用维度级 m_jitFn
+  └─按值深拷贝 m_objects（MARKER 缓存对象注入只改这份）
   └─重建 DensityEvalContext（指向自己的 objects/subEvaluators/splines）
 
 求值路径：
@@ -78,6 +79,6 @@ Adapter 桥接：CompiledDensityFunctionAdapter 把编译产物包装为 Density
 2. **asmjit vcpkg 是 camelCase 旧 API**：`newXmmSd/newIntPtr/newDoubleConst(ConstPoolScope::kLocal,v)/invoke(&call,imm(fnPtr),sig)/InvokeNode::setArg` 等。`asmjit::Error`（uint32_t typedef）与 `mc::Error`（Result.hpp 类）冲突，**绝不能 `using namespace asmjit`**，全部 `asmjit::` 显式限定。
 3. **f64 Imm 参数触发 asmjit error 25 (kErrorInvalidAssignment)**：`moveImmToRegArg` 仅处理整数 TypeIds，f64 常量传给 f64 形参报错 25。修复：f64 常量经 `newDoubleConst`+`movsd` 加载到 Xmm 再传 Xmm（YGradient 的 4 个 f64 常量如此处理）。
 4. **`DensityEvalContext` 与 `DensityJitFn` 定义在 CompiledDensityFunction.hpp**（非 DensityJitCompiler.hpp），以打破循环 include。DensityJitCompiler.hpp/DensityJitTrampolines.hpp 仅前向声明 + include CompiledDensityFunction.hpp 可见这两个类型。DensityJitCompiler.hpp 刻意不 include asmjit（封装在 .cpp）。
-5. **维度级与区块级共享同一 JIT 代码**：newInstance 深拷贝 m_ops 字节相同故复用 m_jitFn，只重建 DensityEvalContext。MARKER 翻译时生成运行时判空（`cacheObj != null` 走 compute / 否则走 delegate eval），维度级（占位）与区块级（注入缓存）两种路径都覆盖。
+5. **维度级与区块级共享同一 Op 缓冲与 JIT 代码**：`m_ops` 是 `shared_ptr<const vector<Op>>`，`newInstance` 拷贝指针即共享（零字节复制），故必然复用 `m_jitFn`，只重建 `DensityEvalContext`。MARKER 翻译时生成运行时判空（`cacheObj != null` 走 compute / 否则走 delegate eval），维度级（占位）与区块级（注入缓存）两种路径都覆盖。**Op 序列必须保持构造后不可变**——`const` 已由编译器强制；若将来有需求要按区块改写 Op，必须回到按值持有（并接受每区块一份整序列的内存代价，实测占生成峰值堆 41%）。
 6. **浮点累加顺序必须 bit-exact**：逐条 Op 顺序翻译 + asmjit 不重排保证浮点累加顺序不变 → JIT 与解释器 1e-9 一致。两操作数指令须先 `movsd(dst,a)` 再 `*sd(dst,b)`（x64 两操作数破坏 dst）。macOS ARM64 JIT 留 TODO，须注意避免 fmadd 融合破坏 bit-exact。
 7. **临时性能插桩已整体移除（2026-08-27）**：曾用 `DensityEvalProfiler.hpp`（双桶差值法 interpreterCycles=topLevelCycles−externalCycles，量化 JIT 收益）在 eval 顶层 + 5 个 A 类叶子外部调用（解释器 evalImpl case + JIT trampoline）per-call `readTsc` 计时。profiler 量化使命完成（JIT 1.59×、external 占 54.9% 已坐实，见 `docs/iterations/密度函数求值器JIT可行性评估.md` 第 7、8 节）后整体删除——每帧约 5.8 万次/区块的噪声采样各 2× rdtsc 计时开销淹没 SoA 向量化收益（详见评估文档第 8.5 节）。evalImpl 5 个 A 类 case 现仅保留核心求值逻辑，无任何计时。Marker 是"递归外部调用"（B 类）曾不可计时，误归 A 类计时致双重计数（externalCycles>totalCycles 悖论）的历史教训记录在评估文档第 6 节。
