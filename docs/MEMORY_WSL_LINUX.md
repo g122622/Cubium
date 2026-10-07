@@ -96,9 +96,9 @@ TODO(临时诊断)）。
 
 | 项 | MB | 占比 | 性质 |
 |---|---:|---:|---|
-| `ChunkPrimer::ChunkPrimer`（`ChunkData` + `BiomeContainer` + `Heightmap[7]`） | 22.8 | 33% | 三次独立堆分配 |
+| `ChunkPrimer::ChunkPrimer`（`ChunkData` + `BiomeContainer` + `Heightmap[7]`） | 22.8 | 33% | 见 §3.4 |
 | `PalettedContainer` 存储（storage/palette/hashMap） | 11.0 | 16% | 三次独立堆分配 |
-| `ServerTickList` 的 `ScheduledTick`（流体 tick） | 7.1 | 10% | **基准口径产物，见下** |
+| `ServerTickList` 的 `ScheduledTick`（流体 tick） | 6.8 | 10% | **基准口径产物，见 §3.5** |
 | `SWMRNibbleArray` 缓冲（天空光/方块光） | 6.7 | 10% | 见 §五靶点 7 |
 | `SingleChunkLifecycleManager` 邻居集 | 4.5 | 7% | — |
 | `CompiledDensityFunction::newInstance`（区块级求值器） | 4.4 | 6% | 见 §五靶点 5 |
@@ -108,10 +108,64 @@ TODO(临时诊断)）。
 | `ChunkData::_setBlockStateUnlockedGen`、`ReentrantAreaLock`、其余 | ~9 | 13% | — |
 | **合计** | **≈ 68.5** | | |
 
-> **`ServerTickList` 的 7.1 MB 大概率是基准口径的产物**：基准在 `_postProcessChunk`
-> 里对每个后处理位置的液体调 `scheduleFluidTick`，而基准的 `tick()` 不推进游戏刻，
-> 这些 tick 条目**永不执行、持续累积**。真实服务端下它们会随 tick 排空，
-> 故这 7.1 MB 不应计入常规稳态。
+### 3.4 `ChunkPrimer` ctor 的 22.8 MB：primers 数量是目标区块的 2.85 倍
+
+`ChunkPrimer` ctor 的边际成本实测 **23.36 KB/区块**，而 `ChunkData` 本体按成员推算只有
+约 8.4 KB（`BiomeContainer` 3 072 B + `Heightmap[7]` 2 072 B + nibble 表 2 080 B + 其余约 1.2 KB）。
+差额来自 **primers 数量远多于目标区块数**。
+
+**primer 状态普查**（新增 `dumpPrimerStats` 诊断，`benchmark_results/primer_stats/`）：
+
+| gen_status | primer 数 | 相对中心距离 | 持有 localBiomes | 持有 noiseChunk |
+|---|---:|---|---:|---:|
+| `structure_starts` | 1 472 | 19–27 | 1 472 | 0 |
+| `full` | 1 024 | 0–16 | **0** | 0 |
+| `biomes` | 148 | 18–19 | 148 | 148 |
+| `carvers` | 140 | 17–18 | 140 | 0 |
+| `initialize_light` | 132 | 16–17 | 132 | 0 |
+| **合计** | **2 916** | | **1 892** | 148 |
+
+- **1024 个 FULL primer**（目标区域 32×32）已正确释放本地副本（`toChunkData` 的 `reset` 生效）。
+- **1892 个非 FULL primer 是"光环"**：目标区域外 16–27 格，各停在某个中间状态，
+  **全部仍持有 `BiomeContainer` + `Heightmap[7]`**（`reset` 只发生在 FULL 路径）。
+- 8.4 KB × 2.85 primer/区块 = 23.9 KB/区块，与实测 23.36 KB 吻合——**这解释了 22.8 MB 的构成**。
+
+**可削项（靶点 9）**：对非 FULL primer 提前释放 `m_biomes`/`m_heightmaps`，
+可省 **1892 × (3 072 + 2 072) B = 9.28 MB（稳态 −8.9%）**。
+
+> **但要注意原版对照**：MC 1.21.11 的 `ProtoChunk` 同样持有 heightmaps
+> （`ChunkAccess.heightmaps` 是 `Map<Types, Heightmap>`，`computeIfAbsent` 惰性创建）
+> 与 biomes（存在 `LevelChunkSection.biomes` 里，section 随区块分配）。
+> 原版**不为"光环"primer 单独保留一份 biomes 副本**——biomes 是 section 的一部分。
+> 所以 Cubium 的"primer 侧独立副本"确实是额外开销，但**能否安全释放取决于这些
+> 光环 primer 在后续状态推进中是否还需要读自己的 `m_biomes`**（`biomes` 状态用
+> `fillBiomesFromNoise` 写入；`surface`/`carvers` 经 `getBiomeAtBlock` 读）。
+> **实现前必须先确认：光环 primer 推进到下一状态时，其 `m_biomes` 是否已被写入。**
+> 若已写入且后续只读，则应改为**写入后即转入 `ChunkData`**（而非等 FULL 才转），
+> 这样 `m_biomes` 从 `biomes` 状态之后就不再需要。
+
+### 3.5 `ServerTickList` 的 6.8 MB 已确认为基准口径产物
+
+初版判断"这 7.1 MB 是基准口径产物"**已由实测证实**（新增 `MC_BENCH_DRAIN_TICK_LISTS=1`
+诊断，用 `TickManager::tick` 推进 1000 游戏刻排空 tick list）：
+
+```
+drain_tick_lists: ticks=1000  blockPending 0 -> 0  fluidPending 54638 -> 8
+```
+
+排空后稳态存活量 **104.0 MB → 100.5 MB（−3.5 MB）**，逐项归因显示消失的正是：
+
+| 项 | 排空前 | 排空后 | 差 |
+|---|---:|---:|---:|
+| `_Rb_tree::_M_insert_unique<ScheduledTick>` | 3.99 MB | **0.00** | −3.99 |
+| `_Hashtable::_M_insert_unique<ScheduledTick>` | 3.44 MB | 0.65 MB | −2.79 |
+| **合计** | **7.43 MB** | 0.65 MB | **−6.78** |
+
+（总量只降 3.5 MB 而非 6.8 MB，因为 tick 执行时会在 `StarLightEngine` 等路径产生新的
+稳态分配，部分抵消。）
+
+**结论**：这 6.8 MB **不应计入常规稳态**。真实服务端下 `ServerWorld::tick()` 每刻排空
+tick list，条目不会累积。修正后的真实稳态约为 **104.8 − 6.8 ≈ 98 MB**。
 
 **与初版（本节旧版）的差异**：初版按结构性推算给出"`ChunkData` 外壳 4.5 MB +
 `Heightmap` 7.2 MB + `BiomeContainer` 3.1 MB"，其中 **`Heightmap` 的 7.2 MB 是错的**——
@@ -364,33 +418,41 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
 
 ### 靶点 8 · 段/区块的**预分配池化** —— 收益 **潜在 −10~20 MB**，风险：中-高
 
-由"1024 − 64 区块"的稳态差分得出的**每区块边际成本约 68.5 KB**，构成如下
-（已归一到 1024 区块）：
+由"1024 − 64 区块"的稳态差分得出的**每区块边际成本约 68.5 KB**，构成见 §三 3.2。
 
-| 项 | MB | 占比 |
-|---|---:|---:|
-| `ChunkPrimer::ChunkPrimer`（`ChunkData` + `BiomeContainer` + `Heightmap[7]`） | 22.8 | 33% |
-| `PalettedContainer` 存储（storage/palette/hashMap） | 11.0 | 16% |
-| `ServerTickList` 的 `ScheduledTick`（流体 tick） | 7.1 | 10% |
-| `SWMRNibbleArray` 缓冲（见靶点 7） | 6.7 | 10% |
-| `CompiledDensityFunction::newInstance`（区块级求值器） | 4.4 | 6% |
-| `SingleChunkLifecycleManager` 邻居集 | 4.5 | 7% |
-| `NoiseInterpolator` 双 slice | 3.1 | 5% |
-| `ChunkProgressionTask::executeEmptyLoad` | 1.7 | 2% |
-| `FlatCache` 预计算表 | 1.3 | 2% |
-| 其余（`ChunkData` 写入、`ReentrantAreaLock` 等） | ~6 | 9% |
-| **合计** | **≈ 68.5** | |
-
-**前两项（33.8 MB）都是"每区块三块独立堆分配"**：`ChunkPrimer` ctor 的
+**前两项（33.8 MB）都是"每区块多次独立堆分配"**：`ChunkPrimer` ctor 的
 `make_shared<ChunkData>` + `BiomeContainer` + `array<Heightmap,7>` 是三次独立分配，
 `PalettedContainer` 的 storage/palette/hashMap 又是三次。按 `MEMORY_IDLE_MACOS.md` §二的
 推论——**malloc 碎片与小对象基数正相关**——改为**单次 arena 分配**（一个区块一块连续内存）
-可同时降低分配次数与碎片。**这是稳态砍半的主力，但属内存布局重构，需单独立项。**
+可同时降低分配次数与碎片。
 
-> **`ServerTickList` 的 7.1 MB 需在真实运行中复核**：基准在 `_postProcessChunk`
-> 里对每个后处理位置的液体调 `scheduleFluidTick`，而基准的 `tick()` 不推进游戏刻，
-> 这些 tick 条目**永不执行、持续累积**。真实服务端下它们会随 tick 排空，
-> 故这 7.1 MB 大概率是**基准口径的产物**，不应计入常规稳态。
+> **但本项的前提在 Linux 侧未经验证**：本报告全部数据在 WSL2/glibc 下测得，
+> 而 macOS 报告的核心论据（碎片与节点数正相关）是 **macOS small zone 特有**的行为。
+> glibc 的 arena/tcache 碎片机制不同，**arena 池化在 Linux 上的收益可能远小于 macOS**。
+> 要判断它值不值，须先在 Windows 或 macOS 上重测同一负载。
+> 故本项虽理论收益大，**性价比存疑，需先量化再决策**。
+
+### 靶点 9 · 非 FULL primer 的 `biomes`/`heightmaps` 提前释放 —— 收益 **−9.3 MB（稳态 −8.9%）**，风险：中
+
+见 §三 3.4 的 primer 状态普查：**1892 个非 FULL primer 全部仍持有
+`BiomeContainer`（3 072 B）+ `Heightmap[7]`（2 072 B）**，因为 `m_biomes`/`m_heightmaps`
+的 `reset` 只发生在 FULL 的 `toChunkData()` 里。
+
+**收益**：1892 × 5 144 B = **9.28 MB**。
+
+**这是本轮排查中收益最大的稳态可削项**（高于 nibble 常量态的 2.6 MB）。
+但**实现前必须确认一个前提**：
+
+- 光环 primer 停在 `biomes`/`carvers`/`initialize_light` 状态，**后续推进时是否还需读自己的 `m_biomes`**？
+  `biomes` 状态由 `fillBiomesFromNoise` 写入；`surface`/`carvers` 经 `getBiomeAtBlock` 读。
+- 若写入后即转入 `ChunkData`（而不是等 FULL），则 `m_biomes` 从 `biomes` 状态之后就不再需要。
+- 但 `m_heightmaps` 不同：生成期高度图读取（`ChunkPrimer::getTopBlockY`）**依赖 primer 侧副本**
+  （`ChunkData::m_heightmaps` 在生成期不被维护，见 `ChunkData.hpp` 的 `_setBlockStateUnlockedGen` 注释），
+  故 `m_heightmaps` 只能等 `primeHeightmaps(POST_FEATURES)` + 后续全量重建之后才可释放——
+  即 **FEATURES 之后**，而不是 `biomes` 之后。
+
+**结论**：`m_biomes` 的提前释放可行且收益 5.5 MB；`m_heightmaps` 需推到 FEATURES 之后
+（收益 3.7 MB）。**两者都需先做一次"光环 primer 的读写审计"确认无遗漏读取点。**
 
 ### 已排除 / 需注意
 
@@ -398,9 +460,10 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
   CARVERS 之后 `m_noiseChunk.reset()`（`ChunkPrimer.cpp:566`），生成期数据不残留到稳态。
   **不要**误以为"生成期内存常驻"而去改这里。
 - **稳态 104.8 MB 中不可削的部分**：1024 个区块的 `ChunkData` 本体是"区块已加载"的
-  语义要求，只能通过靶点 6/7/8 的结构性压缩来削，不能靠懒加载消除。
+  语义要求，只能通过靶点 6/7/8/9 的结构性压缩来削，不能靠懒加载消除。
 - **`ChunkPrimer` 在 FULL 后被刻意保留**（`ChunkProgressionTask.cpp:263-267`：邻居
   `getChunkIfPresentUnchecked` 仍可返回有效指针），直到 holder 卸载。这不是缺陷。
+- **`ServerTickList` 的 6.8 MB 已确认是基准口径产物**（§三 3.5 实测），不计入常规稳态。
 
 ---
 
@@ -413,25 +476,32 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
 ├── 靶点 1（Op 共享）        −48.2 MB  ✅ 已落地 a2f98b278
 ├── 靶点 4（surface 缓存）    −4.7 MB   ← 改开放寻址扁平表
 ├── 靶点 5（FlatCache 数量）  −? MB     ← 先核实原版数量，上限 −11.3 MB
-└── 靶点 8（arena 池化）     −10~20 MB ← 需立项
+└── 靶点 8（arena 池化）     −10~20 MB ← Linux 侧收益存疑，需先量化
                      合计   约 −75~84 MB → 约 76~84 MB（−60~64%）
 ```
 
 ```
-生成后稳态  116.9 → 104.8 MB（靶点 1 顺带 −12.1 MB）
+生成后稳态  104.8 MB（含 6.8 MB 基准口径的 tick 条目；真实稳态约 98 MB）
 每区块边际成本 ≈ 68.5 KB，其中：
-├── 靶点 8（arena 池化）     −10~20 MB ← 覆盖 ctor(22.8) + PalettedContainer(11.0)，需立项
-├── 靶点 7（光照常量态）     −2.6 MB   ← 实测（初版高估为 −20~40 MB）
-└── 靶点 6（段外壳）        待实测
-                     合计   约 −13~23 MB → 约 82~92 MB（−12~22%）
+├── 靶点 9（非 FULL primer 提前释放） −9.3 MB ← 本轮新增，收益最大的稳态可削项
+├── 靶点 7（光照常量态）             −2.6 MB ← 实测（初版高估为 −20~40 MB）
+├── 靶点 6（段外壳）                待实测
+└── 靶点 8（arena 池化）            −? MB   ← Linux 侧收益未验证，需先量化
+                     合计（确定项）  约 −12 MB → 约 93 MB（−11%）
 ```
 
 **结论**：
-1. **生成峰值已降 23%**（靶点 1）。要到 −50% 需再叠加靶点 4 + 5 + 8。
-2. **生成后稳态的瓶颈是"每区块的多次独立堆分配"**（ctor 22.8 MB + PalettedContainer 11.0 MB
-   = 边际成本的 49%），**不是**光照 nibble。初版把 nibble 当稳态最大单项是误判
-   （实测仅 6.7 MB / 10%），已在靶点 7 中更正。
-3. **空载基线（17–28 MB 堆）不是主战场**：构成以数据包资源、方块/物品注册表、命令树、
+1. **生成峰值已降 23%**（靶点 1）。要到 −50% 需再叠加靶点 4 + 5。
+2. **生成后稳态的瓶颈是"primers 数量 × 每 primer 的独立堆分配"**，不是光照 nibble：
+   - `ChunkPrimer` ctor 22.8 MB（33%）——由 **primers 数是目标区块的 2.85 倍** 与
+     **非 FULL primer 仍持有 biomes/heightmaps** 共同造成（§三 3.4）；
+   - `PalettedContainer` 存储 11.0 MB（16%）——位存储本体，必需；
+   - 光照 nibble 只有 6.7 MB（10%），初版把它当稳态最大单项是误判（靶点 7）。
+3. **本轮排查新增的最大稳态可削项是靶点 9（非 FULL primer 提前释放）9.3 MB**，
+   其次是靶点 7（nibble 常量态）2.6 MB。
+4. **靶点 8（arena 池化）的收益在 Linux 侧未经验证**——macOS 报告的核心论据
+   （碎片与节点数正相关）是 macOS small zone 特有，glibc 下可能不成立，需先量化。
+5. **空载基线（17–28 MB 堆）不是主战场**：构成以数据包资源、方块/物品注册表、命令树、
    脚本引擎为主，多为"启动即可查"的原版语义要求，可削空间有限
    （与 `docs/MEMORY_IDLE_MACOS.md` §5.3 的结论一致）。
 
