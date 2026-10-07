@@ -287,7 +287,9 @@ public:
     /// 由 BytecodeGen 编译期标记（emitMarker/emitBeardifier 时置 true，递归子求值器继承）。
     /// ownedCaches 仅区块级 newInstance 填充（CacheOnce/FlatCache/Cache2D 拥有型缓存对象所有权），
     /// 维度级编译传空 vector。
-    CompiledDensityFunction(std::vector<Op> ops,
+    /// ops 以 shared_ptr 传入（非按值）：调用方建好缓冲后转移所有权，维度级持有一份，
+    /// 全部区块级实例经 newInstance 共享同一份（见 m_ops 注释）。
+    CompiledDensityFunction(std::shared_ptr<const std::vector<Op>> ops,
         u32 regCount,
         std::vector<RuntimeObject> objects,
         std::vector<std::shared_ptr<CompiledDensityFunction>> subEvaluators,
@@ -327,7 +329,7 @@ public:
         ::mc::world::gen::density::NoiseChunk& chunk) const;
 
     // === 调试/阶段5 访问器 ===
-    [[nodiscard]] const std::vector<Op>& ops() const { return m_ops; }
+    [[nodiscard]] const std::vector<Op>& ops() const { return *m_ops; }
     [[nodiscard]] u32 regCount() const { return m_regCount; }
     [[nodiscard]] const std::vector<RuntimeObject>& objects() const { return m_objects; }
     [[nodiscard]] const std::vector<std::shared_ptr<CompiledDensityFunction>>& subEvaluators() const
@@ -345,7 +347,18 @@ private:
     /// eval 的求值主循环实现。regs 指向调用方提供的寄存器缓冲（栈数组或堆 vector）。
     [[nodiscard]] f64 evalImpl(i32 x, i32 y, i32 z, f64* regs) const;
 
-    std::vector<Op> m_ops;
+    /// Op 序列，**构造后不可变**，由维度级与全部区块级实例共享同一份缓冲。
+    ///
+    /// 【为何共享而非值持有】区块级 newInstance 只替换 m_objects 里的 MARKER 缓存对象，
+    /// 从不改动 Op 本身——故区块级与维度级的字节码逐字节相同（本类注释与 JIT 复用逻辑
+    /// 均依赖这一不变量）。若按值持有，每个区块各深拷贝一份整序列：实测 1024 区块并发
+    /// 生成时占生成峰值堆的 41%（86 MB / 207.7 MB，见 docs/MEMORY_WSL_LINUX.md §五靶点 1）。
+    /// 共享后该开销归零，且与 m_jitFn 的复用语义自洽。
+    ///
+    /// 用 shared_ptr 而非裸引用：区块级实例的生命周期可能长于触发它的维度级持有者路径，
+    /// shared_ptr 让"最后一个使用者析构"自然释放缓冲，无需外部生命周期约定。
+    /// const 由编译器强制不变量，任何试图改写 Op 的代码都会编译失败。
+    std::shared_ptr<const std::vector<Op>> m_ops;
     u32 m_regCount;
     std::vector<RuntimeObject> m_objects;
     std::vector<std::shared_ptr<CompiledDensityFunction>> m_subEvaluators;

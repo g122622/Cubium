@@ -68,7 +68,7 @@ struct RegOrConst {
     ret.code = OpCode::Return;
     ret.dst = 0;
     ops.push_back(ret);
-    auto evaluator = std::make_shared<CompiledDensityFunction>(std::move(ops),
+    auto evaluator = std::make_shared<CompiledDensityFunction>(std::make_shared<const std::vector<Op>>(std::move(ops)),
         1,
         std::vector<RuntimeObject>{},
         std::vector<std::shared_ptr<CompiledDensityFunction>>{},
@@ -99,18 +99,21 @@ public:
         ret.dst = retReg;
         m_ops.push_back(ret);
 
-        auto evaluator = std::make_shared<CompiledDensityFunction>(std::move(m_ops),
-            m_nextReg,
-            std::move(m_objects),
-            std::move(m_subEvaluators),
-            std::move(m_splines),
-            minValue,
-            maxValue,
-            m_hasMarkerOrBeardifier,
-            std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>>{});
+        // Op 缓冲转为不可变 shared_ptr 后转移：维度级持有一份，全部区块级 newInstance 共享同一份
+        // （省下每区块一次整序列深拷贝，实测占生成峰值堆 41%）。m_ops 此后不再被本 GenContext 触碰。
+        auto evaluator =
+            std::make_shared<CompiledDensityFunction>(std::make_shared<const std::vector<Op>>(std::move(m_ops)),
+                m_nextReg,
+                std::move(m_objects),
+                std::move(m_subEvaluators),
+                std::move(m_splines),
+                minValue,
+                maxValue,
+                m_hasMarkerOrBeardifier,
+                std::vector<std::unique_ptr<::mc::world::gen::density::DensityFunction>>{});
         // 维度级 JIT 编译一次：子求值器（Marker delegate / Spline value / SharedSubtree /
         // FindTopSurface density）经各自 BytecodeGen::compile 递归进入本函数，已各自编译。
-        // 区块级 newInstance 复用本维度级 m_jitFn（ops 字节相同），不重复编译。
+        // 区块级 newInstance 复用本维度级 m_jitFn（Op 缓冲共享，字节必然相同），不重复编译。
         evaluator->compileJit();
         return evaluator;
     }
