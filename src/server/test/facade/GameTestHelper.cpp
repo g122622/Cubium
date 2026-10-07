@@ -1300,13 +1300,13 @@ FenceConnectivity GameTestHelper::getFenceConnectivity(BlockPos relativePos) con
     return conn;
 }
 
-mc::blocks::SculkSpreader* GameTestHelper::getSculkSpreader(BlockPos /*relativePos*/) const
+std::unique_ptr<mc::blocks::SculkSpreader> GameTestHelper::getSculkSpreader(BlockPos /*relativePos*/) const
 {
     // 对齐基岩 Test.getSculkSpreader：取 pos 处的幽匿扩散器。项目无 SculkCatalystBlockEntity
     // （vanilla 中持 SculkSpreader 的载体），无法按 pos 取真实 spreader。返回新建空 spreader 快照
     // （maxCharge=kMaxCharge 做实，cursors 空），供 JS 侧只读访问属性。
     // TODO: SculkCatalystBlockEntity 实现后改为按 pos 取真实 spreader（owned 快照或非拥有引用）。
-    return new mc::blocks::SculkSpreader(mc::blocks::SculkSpreader::createLevelSpreader());
+    return std::make_unique<mc::blocks::SculkSpreader>(mc::blocks::SculkSpreader::createLevelSpreader());
 }
 
 // === 9. 工具 ===

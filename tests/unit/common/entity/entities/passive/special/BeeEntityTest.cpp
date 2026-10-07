@@ -152,10 +152,10 @@ public:
         return nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         if (entity) {
-            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+            m_blockEntities[pos] = std::move(entity);
         } else {
             m_blockEntities.erase(pos);
         }
@@ -285,10 +285,10 @@ public:
         return nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         if (entity) {
-            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+            m_blockEntities[pos] = std::move(entity);
         } else {
             m_blockEntities.erase(pos);
         }

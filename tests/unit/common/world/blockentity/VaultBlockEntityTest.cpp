@@ -58,16 +58,19 @@ public:
     void setPlayersResult(const std::vector<Entity*>& players) { m_players = players; }
     [[nodiscard]] std::vector<Entity*> getPlayers() const override { return m_players; }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) { m_blockEntities[pos] = entity; }
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
-        return it == m_blockEntities.end() ? nullptr : it->second;
+        return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
-        return it == m_blockEntities.end() ? nullptr : it->second;
+        return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -102,7 +105,7 @@ private:
     u64 m_currentTick = 0;
     std::vector<Entity*> m_entitiesInRange;
     std::vector<Entity*> m_players;
-    std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
     std::vector<SoundCall> m_soundCalls;
 };
 

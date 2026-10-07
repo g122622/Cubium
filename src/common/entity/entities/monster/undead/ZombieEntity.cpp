@@ -634,13 +634,11 @@ void ZombieEntity::convertToDrowned()
         drowned->enablePersistence();
     }
 
-    // 9. 释放所有权并生成到世界
-    newEntity.release();
-    EntityInstanceId newId = worldPtr->spawnEntity(std::unique_ptr<Entity>(drowned));
+    // 9. 生成到世界（所有权移交，失败时 spawnEntity 未接管、newEntity 自动析构）
+    EntityInstanceId newId = worldPtr->spawnEntity(std::move(newEntity));
 
     if (newId == 0) {
-        // 生成失败，删除实体
-        delete drowned;
+        // 生成失败，直接返回
         return;
     }
 

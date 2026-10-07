@@ -107,7 +107,7 @@ public:
         return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         // BaseTestWorld 默认空实现；测试通过 setOwnedBlockEntity 注入所有权管理的实体
         MC_UNUSED(pos);

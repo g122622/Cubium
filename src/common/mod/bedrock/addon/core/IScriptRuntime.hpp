@@ -91,9 +91,11 @@ public:
     /**
      * @brief 销毁脚本上下文
      *
-     * @param context 要销毁的上下文
+     * 所有权经参数移交：调用方用 std::move 交出上下文，实现方负责析构。
+     *
+     * @param context 上下文所有权
      */
-    virtual void destroyContext(IScriptContext* context) = 0;
+    virtual void destroyContext(std::unique_ptr<IScriptContext> context) = 0;
 
     /**
      * @brief 执行待处理的异步任务

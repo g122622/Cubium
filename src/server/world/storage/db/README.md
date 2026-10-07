@@ -25,7 +25,7 @@ flowchart LR
     H[EntityStorageManager] -->|put / deleteRange / writeBatch| B
 ```
 
-`RocksDBDatabase` 是全存储层唯一的数据库句柄持有者；其余模块只通过它访问 RocksDB，不直接持有 `rocksdb::DB*`（`rawDB()` 仅供 `BackupManager` 内部使用）。
+`RocksDBDatabase` 是全存储层唯一的数据库句柄持有者（内部持 `std::unique_ptr<rocksdb::DB>`）；其余模块只通过它访问 RocksDB，不直接持有 `rocksdb::DB*`。备份由常驻的 `BackupManager` 持有引擎、经 `RocksDBDatabase::createBackupWith` 完成，数据库不对外暴露裸句柄。
 
 ## 上下游外部依赖关系
 

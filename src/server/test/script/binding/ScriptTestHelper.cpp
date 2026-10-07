@@ -2090,8 +2090,9 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
         1);
 
     // --- getSculkSpreader(pos) -> SculkSpreader | undefined ---
-    // facade 返回 owned mc::blocks::SculkSpreader*（新建空快照）。经 ScriptClassRegistry 查 SculkSpreader
-    // classId/proto（批5注册），owned=true wrap（JS GC 时 delete）。nullptr 返 undefined。
+    // facade 返回 owned unique_ptr（新建空快照）。经 ScriptClassRegistry 查 SculkSpreader
+    // classId/proto（批5注册），owned=true wrap（JS GC 时经 destroy 回调 delete）。
+    // 所有权在 proto 就绪后才 release 移交 wrap——失败路径 unique_ptr 自动析构，无需手工 delete。
     reg.method(
         "getSculkSpreader",
         [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32 argc, void** args) -> void* {
@@ -2106,20 +2107,23 @@ u64 registerTestClassBinding(mc::mod::bedrock::addon::NativeModuleBuilder& build
             if (!_parseBlockPos(ctx, args[0], pos)) {
                 return nullptr;
             }
-            mc::blocks::SculkSpreader* spreader = helper->getSculkSpreader(pos);
-            if (spreader == nullptr) {
+            std::unique_ptr<mc::blocks::SculkSpreader> spreader = helper->getSculkSpreader(pos);
+            if (!spreader) {
                 return ctx.createUndefined();
             }
             const u64 classId = mc::mod::bedrock::addon::ScriptClassRegistry::instance().classIdByName("SculkSpreader");
             void* proto = mc::mod::bedrock::addon::ScriptClassRegistry::instance().proto(classId);
             if (proto == nullptr) {
-                // 类未注册（不应发生）：释放 spreader 避免泄漏，返 undefined。
-                delete spreader;
+                // 类未注册（不应发生）：spreader 随 unique_ptr 自动析构，返 undefined。
                 return ctx.createUndefined();
             }
-            // owned=true：JS GC 时 delete spreader（ScriptObjectRegistry 默认 destroy 用 delete）。
+            // owned=true：JS GC 时经 destroy 回调 delete spreader。
+            // destroy 不可省略：finalizer 的释放条件是 `owned && ptr && destroy`，缺失 destroy
+            // 会使 SculkSpreader 永不释放。
             return mc::mod::bedrock::addon::ScriptObjectRegistry::wrap(
-                ctx, classId, proto, spreader, true, "SculkSpreader");
+                ctx, classId, proto, spreader.release(), true, "SculkSpreader", [](void* p) {
+                    delete static_cast<mc::blocks::SculkSpreader*>(p);
+                });
         },
         1);
 

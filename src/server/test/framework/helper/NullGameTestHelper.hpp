@@ -250,7 +250,7 @@ public:
     // 8. 查询
     [[nodiscard]] const mc::BlockState* getBlock(BlockPos /*relativePos*/) const override { return nullptr; }
     [[nodiscard]] FenceConnectivity getFenceConnectivity(BlockPos /*relativePos*/) const override { return {}; }
-    [[nodiscard]] mc::blocks::SculkSpreader* getSculkSpreader(BlockPos /*relativePos*/) const override
+    [[nodiscard]] std::unique_ptr<mc::blocks::SculkSpreader> getSculkSpreader(BlockPos /*relativePos*/) const override
     {
         return nullptr;
     }

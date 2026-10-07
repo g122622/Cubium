@@ -96,9 +96,8 @@ void ConduitBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockS
     auto& registry = blockentity::BlockEntityRegistry::instance();
     auto blockEntity = registry.create(BlockEntityType::Conduit, pos);
     if (blockEntity != nullptr) {
-        // 设置世界引用并存储方块实体
-        // 注意：setBlockEntity 会接管所有权并设置世界引用
-        world.setBlockEntity(pos, blockEntity.release());
+        // 设置世界引用并存储方块实体（setBlockEntity 接管所有权）
+        world.setBlockEntity(pos, std::move(blockEntity));
     }
 }
 

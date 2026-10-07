@@ -147,7 +147,7 @@ TEST_F(StructurePieceChestDispenserTest, WorldGenRegion_SetBlockEntityManually)
     // 手动设置新的方块实体（替换）
     auto newEntity = std::make_unique<blockentity::ChestEntity>(pos);
     BlockEntity* newEntityPtr = newEntity.get();
-    m_region->setBlockEntity(pos, newEntity.release());
+    m_region->setBlockEntity(pos, std::move(newEntity));
 
     // 验证可以获取到新的方块实体
     BlockEntity* retrievedEntity = m_region->getBlockEntity(pos);
@@ -416,7 +416,7 @@ TEST_F(StructurePieceChestDispenserTest, WorldGenRegion_SetBlockEntityOutsideReg
     // 设置区域外的方块实体不应崩溃
     BlockPos outsidePos(100, 65, 100);
     auto entity = std::make_unique<blockentity::ChestEntity>(outsidePos);
-    m_region->setBlockEntity(outsidePos, entity.release()); // 不应崩溃
+    m_region->setBlockEntity(outsidePos, std::move(entity)); // 不应崩溃
 }
 
 // ============================================================================

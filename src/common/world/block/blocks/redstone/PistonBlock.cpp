@@ -413,7 +413,7 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
 
         // 创建 PistonBlockEntity
         auto entity = std::make_unique<blockentity::PistonBlockEntity>(newPos, moveState, facing, extending, false);
-        world.setBlockEntity(newPos, entity.release());
+        world.setBlockEntity(newPos, std::move(entity));
 
         // 清除原位置
         world.setBlockState(movePos,
@@ -446,7 +446,7 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
         // pistonHeadState 是持久化引用，可以安全获取其指针
         // 参数：pos, pistonState（活塞头状态）, facing, extending, shouldRenderHead
         auto entity = std::make_unique<blockentity::PistonBlockEntity>(pos, &pistonHeadState, facing, true, true);
-        world.setBlockEntity(pos, entity.release());
+        world.setBlockEntity(pos, std::move(entity));
     }
 
     return true;

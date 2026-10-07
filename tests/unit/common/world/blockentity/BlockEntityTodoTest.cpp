@@ -124,7 +124,15 @@ public:
         return it == m_entities.end() ? nullptr : it->second;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override { m_entities[pos] = entity; }
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
+    {
+        m_entities[pos] = entity.release();
+    }
+
+    // 测试辅助：记录一个非拥有（生命周期由测试自身管理）的方块实体指针，
+    // 用于栈上构造的实体（如 TrappedChestEntity table(...)）——接口的 unique_ptr 契约
+    // 会接管所有权，无法传栈对象，故测试世界另开此非拥有入口。
+    void setBlockEntityRaw(const BlockPos& pos, mc::BlockEntity* entity) { m_entities[pos] = entity; }
 
     /**
      * @brief 设置 getEntitiesInAABB 的返回内容，便于构造阻挡场景。
@@ -421,7 +429,7 @@ TEST_F(BlockEntityTodoTestHelper, TrappedChestOpenCloseTriggersNeighborUpdatePat
 
     blockentity::TrappedChestEntity trapped(BlockPos(4, 5, 6));
     trapped.setWorld(&world);
-    world.setBlockEntity(trapped.getPos(), &trapped);
+    world.setBlockEntityRaw(trapped.getPos(), &trapped);
 
     trapped.openContainer(nullptr);
     trapped.openContainer(nullptr);
@@ -871,7 +879,7 @@ TEST(BlockEntityTodoTest, BookshelfBlock_OnBlockAdded_NotifiesEnchantingTable)
 
     // 创建附魔台实体并放入世界
     blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
-    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+    world.setBlockEntityRaw(BlockPos(0, 0, 0), &table);
 
     // 初始附魔力量应为0
     EXPECT_EQ(table.getEnchantPower(), 0);
@@ -913,7 +921,7 @@ TEST(BlockEntityTodoTest, BookshelfBlock_OnBlockRemoved_NotifiesEnchantingTable)
 
     // 创建附魔台实体
     blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
-    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+    world.setBlockEntityRaw(BlockPos(0, 0, 0), &table);
 
     // 先放置书架在(2,0,0)并手动计算附魔力量
     world.setBlockState(2, 0, 0, bookshelfState);
@@ -953,7 +961,7 @@ TEST(BlockEntityTodoTest, BookshelfBlock_DoesNotNotifyDistantEnchantingTable)
     world.setBlockState(0, 0, 0, enchantingTableState);
 
     blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
-    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+    world.setBlockEntityRaw(BlockPos(0, 0, 0), &table);
 
     // 放置书架在(3,0,0)（超出附魔台的2格检测范围）
     world.setBlockState(3, 0, 0, bookshelfState);
@@ -992,7 +1000,7 @@ TEST(BlockEntityTodoTest, EnchantingTableBlock_NeighborChanged_RecalculatesPower
     world.setBlockState(0, 0, 0, enchantingTableState);
 
     blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
-    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+    world.setBlockEntityRaw(BlockPos(0, 0, 0), &table);
 
     // 初始附魔力量应为0
     EXPECT_EQ(table.getEnchantPower(), 0);
@@ -1054,7 +1062,7 @@ TEST(BlockEntityTodoTest, EnchantingTableBlock_Tick_RecalculatesPower)
     world.setBlockState(2, 0, 0, bookshelfState);
 
     blockentity::EnchantingTableEntity table(BlockPos(0, 0, 0));
-    world.setBlockEntity(BlockPos(0, 0, 0), &table);
+    world.setBlockEntityRaw(BlockPos(0, 0, 0), &table);
 
     // 初始附魔力量应为0（尚未计算）
     EXPECT_EQ(table.getEnchantPower(), 0);
@@ -1264,7 +1272,7 @@ TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookSetsEntityBook)
     auto lecternEntity = std::make_unique<blockentity::LecternEntity>(BlockPos(3, 10, 5));
     blockentity::LecternEntity* lecternPtr = lecternEntity.get();
     lecternEntity->setWorld(&world);
-    world.setBlockEntity(BlockPos(3, 10, 5), lecternPtr);
+    world.setBlockEntity(BlockPos(3, 10, 5), std::move(lecternEntity));
 
     // 讲台初始无书
     EXPECT_FALSE(lecternPtr->hasBook());
@@ -1299,7 +1307,7 @@ TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWhenBookAlreadyPr
     auto lecternEntity = std::make_unique<blockentity::LecternEntity>(BlockPos(7, 20, 3));
     blockentity::LecternEntity* lecternPtr = lecternEntity.get();
     lecternEntity->setWorld(&world);
-    world.setBlockEntity(BlockPos(7, 20, 3), lecternPtr);
+    world.setBlockEntity(BlockPos(7, 20, 3), std::move(lecternEntity));
 
     // 先放一本书
     const Item* bookItem = Items::BOOK;
@@ -1330,7 +1338,7 @@ TEST_F(BlockEntityTodoTestHelper, LecternBlockTryPlaceBookFailsWithEmptyStack)
 
     auto lecternEntity = std::make_unique<blockentity::LecternEntity>(BlockPos(0, 0, 0));
     lecternEntity->setWorld(&world);
-    world.setBlockEntity(BlockPos(0, 0, 0), lecternEntity.get());
+    world.setBlockEntity(BlockPos(0, 0, 0), std::move(lecternEntity));
 
     // 空物品堆应该失败
     ItemStack emptyStack;

@@ -355,7 +355,7 @@ const BlockEntity* WorldGenRegion::getBlockEntity(const BlockPos& pos) const
     return data->getBlockEntity(pos);
 }
 
-void WorldGenRegion::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
+void WorldGenRegion::setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
 {
     if (entity == nullptr) {
         return;
@@ -379,8 +379,8 @@ void WorldGenRegion::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
         return;
     }
 
-    // IWorld::setBlockEntity 接受裸指针（获取所有权），转换为 unique_ptr
-    data->setBlockEntity(pos, std::unique_ptr<BlockEntity>(entity));
+    // 所有权继续经参数移交（无法容纳时 entity 自动析构）
+    data->setBlockEntity(pos, std::move(entity));
 }
 
 void WorldGenRegion::removeBlockEntity(const BlockPos& pos)

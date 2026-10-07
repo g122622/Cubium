@@ -123,16 +123,10 @@ Result<BackupID> BackupManager::createBackup(
                 .count());
     }
 
-    // 创建备份
-    rocksdb::Status status;
-    if (metadata.empty()) {
-        status = m_impl->engine->CreateNewBackup(db.rawDB());
-    } else {
-        status = m_impl->engine->CreateNewBackupWithMetadata(db.rawDB(), metadata);
-    }
-
-    if (!status.ok()) {
-        return Error(ErrorCode::RocksDBError, fmt::format("Failed to create backup: {}", status.ToString()));
+    // 创建备份（把当前数据库交给常驻引擎，引擎由本类持有）
+    auto backupResult = db.createBackupWith(*m_impl->engine, metadata);
+    if (backupResult.failed()) {
+        return Error(ErrorCode::RocksDBError, backupResult.error().message());
     }
 
     // 获取最新的备份ID

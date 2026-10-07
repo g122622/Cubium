@@ -151,7 +151,7 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_StoresEntity)
     TestBlockEntity* rawPtr = entity.get();
 
     // 设置方块实体
-    world->setBlockEntity(pos, entity.release());
+    world->setBlockEntity(pos, std::move(entity));
 
     // 获取并验证
     BlockEntity* retrieved = world->getBlockEntity(pos);
@@ -169,7 +169,7 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_SetsWorldReference)
     auto entity = std::make_unique<TestBlockEntity>(pos);
 
     // 设置方块实体（会设置世界引用）
-    world->setBlockEntity(pos, entity.release());
+    world->setBlockEntity(pos, std::move(entity));
 
     // 验证世界引用
     BlockEntity* retrieved = world->getBlockEntity(pos);
@@ -186,12 +186,12 @@ TEST_F(ServerWorldBlockEntityTest, SetBlockEntity_ReplacesExistingEntity)
 
     // 设置第一个方块实体
     auto entity1 = std::make_unique<TestBlockEntity>(pos);
-    world->setBlockEntity(pos, entity1.release());
+    world->setBlockEntity(pos, std::move(entity1));
 
     // 设置第二个方块实体（替换第一个）
     auto entity2 = std::make_unique<TestBlockEntity>(pos);
     TestBlockEntity* rawPtr2 = entity2.get();
-    world->setBlockEntity(pos, entity2.release());
+    world->setBlockEntity(pos, std::move(entity2));
 
     // 验证获取的是第二个
     BlockEntity* retrieved = world->getBlockEntity(pos);
@@ -219,7 +219,7 @@ TEST_F(ServerWorldBlockEntityTest, RemoveBlockEntity_RemovesExistingEntity)
 
     BlockPos pos(10, 64, 10);
     auto entity = std::make_unique<TestBlockEntity>(pos);
-    world->setBlockEntity(pos, entity.release());
+    world->setBlockEntity(pos, std::move(entity));
 
     // 移除方块实体
     world->removeBlockEntity(pos);
@@ -260,7 +260,7 @@ TEST_F(ServerWorldBlockEntityTest, SetAndGetEntityAtWorldBoundary)
     // 测试在边界位置
     BlockPos pos(0, 0, 0);
     auto entity = std::make_unique<TestBlockEntity>(pos);
-    world->setBlockEntity(pos, entity.release());
+    world->setBlockEntity(pos, std::move(entity));
 
     BlockEntity* retrieved = world->getBlockEntity(pos);
     ASSERT_NE(retrieved, nullptr);
@@ -281,9 +281,9 @@ TEST_F(ServerWorldBlockEntityTest, MultipleBlockEntitiesInSameChunk)
     auto entity2 = std::make_unique<TestBlockEntity>(pos2);
     auto entity3 = std::make_unique<TestBlockEntity>(pos3);
 
-    world->setBlockEntity(pos1, entity1.release());
-    world->setBlockEntity(pos2, entity2.release());
-    world->setBlockEntity(pos3, entity3.release());
+    world->setBlockEntity(pos1, std::move(entity1));
+    world->setBlockEntity(pos2, std::move(entity2));
+    world->setBlockEntity(pos3, std::move(entity3));
 
     // 验证所有方块实体都可以正确获取
     EXPECT_NE(world->getBlockEntity(pos1), nullptr);

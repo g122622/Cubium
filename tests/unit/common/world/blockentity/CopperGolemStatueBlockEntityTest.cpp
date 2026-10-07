@@ -101,11 +101,11 @@ public:
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         if (entity != nullptr) {
             entity->setWorld(this);
-            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+            m_blockEntities[pos] = std::move(entity);
         } else {
             m_blockEntities.erase(pos);
         }
@@ -381,7 +381,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_CreatesCopperGolemEntity)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -402,7 +402,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_TransfersCustomName)
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     be->setCustomName("NamedGolem");
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -423,7 +423,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_NoCustomNameLeavesEmpty)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -446,7 +446,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_PositionAtBlockCenter)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -468,7 +468,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_FacingSouth_YawZero)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -487,7 +487,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_FacingWest_Yaw90)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -506,7 +506,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_FacingNorth_Yaw180)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -525,7 +525,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_FacingEast_Yaw270)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -545,7 +545,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_GolemStartsAtUnaffectedWeatherState)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -567,7 +567,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_PlaysSpawnSound)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
@@ -610,7 +610,7 @@ TEST_F(RemoveStatueTest, RemoveStatue_PitchIsZero)
 
     auto be = std::make_unique<CopperGolemStatueBlockEntity>(pos);
     CopperGolemStatueBlockEntity* bePtr = be.get();
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
     bePtr->setWorld(&world);
 
     const BlockState state = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(

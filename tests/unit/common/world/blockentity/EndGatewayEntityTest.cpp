@@ -380,10 +380,13 @@ public:
     BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
-        return it != m_blockEntities.end() ? it->second : nullptr;
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) { m_blockEntities[pos] = entity; }
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
 
     bool isClientSide() const override { return false; }
 
@@ -396,7 +399,7 @@ public:
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
-    std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
 };
 
 class EndGatewayStructureTest : public ::testing::Test {
@@ -696,17 +699,20 @@ public:
     [[nodiscard]] mc::BlockEntity* getBlockEntity(const mc::BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
-        return it != m_blockEntities.end() ? it->second : nullptr;
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    void setBlockEntity(const mc::BlockPos& pos, mc::BlockEntity* entity) { m_blockEntities[pos] = entity; }
+    void setBlockEntity(const mc::BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
 
     [[nodiscard]] bool isClientSide() const override { return false; }
 
 private:
     [[nodiscard]] const mc::BlockState* getAirState() const { return &mc::VanillaBlocks::AIR->defaultState(); }
 
-    std::unordered_map<mc::BlockPos, mc::BlockEntity*> m_blockEntities;
+    std::unordered_map<mc::BlockPos, std::unique_ptr<mc::BlockEntity>> m_blockEntities;
 };
 
 // ---------- _isChunkEmpty 单元测试 ----------
@@ -913,8 +919,7 @@ TEST_F(EndGatewayGenerateExitPortalTest, GenerateExitPortal_SetsReturnPortalOnEx
     world2->setBlockState(exitPos.x, exitPos.y, exitPos.z, endGatewayState);
     auto exitEntity = std::make_unique<EndGatewayEntity>(exitPos);
     EndGatewayEntity* exitEntityPtr = exitEntity.get();
-    world2->setBlockEntity(exitPos, exitEntityPtr);
-    exitEntity.release();
+    world2->setBlockEntity(exitPos, std::move(exitEntity));
 
     // 在新世界上运行 _generateExitPortal
     auto gateway2 = std::make_unique<mc::blockentity::TestEndGatewayEntity>(gatewayPos);

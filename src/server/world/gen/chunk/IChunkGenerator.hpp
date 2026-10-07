@@ -601,7 +601,7 @@ public:
      *
      * 将方块实体存储到 ChunkPrimer 底层的 ChunkData 中。
      */
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override;
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity) override;
 
     /**
      * @brief 移除方块实体（IWorld 接口）

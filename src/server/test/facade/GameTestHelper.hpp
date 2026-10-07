@@ -158,7 +158,7 @@ public:
     // === 8. 查询 ===
     [[nodiscard]] const mc::BlockState* getBlock(BlockPos relativePos) const override;
     [[nodiscard]] FenceConnectivity getFenceConnectivity(BlockPos relativePos) const override;
-    [[nodiscard]] mc::blocks::SculkSpreader* getSculkSpreader(BlockPos relativePos) const override;
+    [[nodiscard]] std::unique_ptr<mc::blocks::SculkSpreader> getSculkSpreader(BlockPos relativePos) const override;
     [[nodiscard]] mc::IWorld& world() noexcept override { return m_world; }
 
     // === 9. 工具 ===

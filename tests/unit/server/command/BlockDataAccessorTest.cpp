@@ -123,7 +123,7 @@ public:
     void notifyBlockUpdate(const BlockPos& pos) override { m_blockUpdateCalls.push_back({pos}); }
 
     // --- 测试辅助方法 ---
-    void setBlockEntity(BlockEntity* entity) { m_blockEntity = entity; }
+    void setBlockEntity(BlockEntity* entity) { m_blockEntity = entity; } // 测试辅助（非 IWorld 虚函数）
 
     [[nodiscard]] const std::vector<BlockUpdateCall>& blockUpdateCalls() const { return m_blockUpdateCalls; }
     void clearTrackedCalls() { m_blockUpdateCalls.clear(); }

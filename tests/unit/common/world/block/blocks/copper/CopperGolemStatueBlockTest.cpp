@@ -137,11 +137,11 @@ public:
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         if (entity != nullptr) {
             entity->setWorld(this);
-            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+            m_blockEntities[pos] = std::move(entity);
         } else {
             m_blockEntities.erase(pos);
         }
@@ -1019,7 +1019,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueSpawns
     // 创建方块实体并设置自定义名称
     auto be = std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos);
     be->setCustomName("TestGolem");
-    world.setBlockEntity(pos, be.release());
+    world.setBlockEntity(pos, std::move(be));
 
     // 创建玩家并设置手持铁斧
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
@@ -1079,7 +1079,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueDamage
     const BlockPos pos(71, 64, 71);
 
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
-    world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
+    world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos));
 
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);
@@ -1159,7 +1159,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeFacingDirectionsCo
         const BlockState placedState = VanillaBlocks::COPPER_GOLEM_STATUE->defaultState().with(
             BlockStateProperties::HORIZONTAL_FACING(), c.facing);
         world.setBlockState(pos, &placedState);
-        world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
+        world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos));
 
         Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
         player.setWorld(&world);
@@ -1190,7 +1190,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueGolemI
     const BlockPos pos(74, 64, 74);
 
     world.setBlockState(pos, &VanillaBlocks::COPPER_GOLEM_STATUE->defaultState());
-    world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos).release());
+    world.setBlockEntity(pos, std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos));
 
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.setWorld(&world);

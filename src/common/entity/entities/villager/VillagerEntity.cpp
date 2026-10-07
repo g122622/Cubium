@@ -353,14 +353,12 @@ bool VillagerEntity::_tryConvertToZombieVillager(DamageSource& cause)
         zombieVillager->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::Conversion);
     }
 
-    // 8. 释放所有权并生成到世界
-    newEntity.release();
-    EntityInstanceId newId = m_world->spawnEntity(std::unique_ptr<Entity>(zombieVillager));
+    // 生成到世界（所有权移交，失败时 spawnEntity 未接管、newEntity 自动析构）
+    EntityInstanceId newId = m_world->spawnEntity(std::move(newEntity));
 
     if (newId == 0) {
         // 生成失败：清理已创建实体，回退到正常死亡流程
         spdlog::error("VillagerEntity::_tryConvertToZombieVillager: failed to spawn zombie_villager entity");
-        delete zombieVillager;
         return false;
     }
 
@@ -477,14 +475,12 @@ void VillagerEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
     // releaseAllPois 内部有 m_poisReleased 守卫，后续 remove() 再调幂等。
     releaseAllPois();
 
-    // 释放所有权并生成女巫到世界
-    newEntity.release();
-    EntityInstanceId newId = m_world->spawnEntity(std::unique_ptr<Entity>(witch));
+    // 生成女巫到世界（所有权移交，失败时 spawnEntity 未接管、newEntity 自动析构）
+    EntityInstanceId newId = m_world->spawnEntity(std::move(newEntity));
 
     if (newId == 0) {
         // 生成失败：清理已创建实体，回退基类受 5 伤害（vanilla convertTo 返 null 同语义）
         spdlog::error("VillagerEntity::onStruckByLightning: failed to spawn witch entity");
-        delete witch;
         AbstractVillagerEntity::onStruckByLightning(lightning);
         return;
     }

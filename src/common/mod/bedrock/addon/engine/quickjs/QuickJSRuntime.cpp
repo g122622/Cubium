@@ -96,14 +96,14 @@ std::unique_ptr<IScriptContext> QuickJSRuntime::createContext(const ContextConfi
     return context;
 }
 
-void QuickJSRuntime::destroyContext(IScriptContext* context)
+void QuickJSRuntime::destroyContext(std::unique_ptr<IScriptContext> context)
 {
     if (!context) {
         return;
     }
 
     spdlog::info("[BedrockAddon] Destroying QuickJS context");
-    delete context;
+    // context 在本函数返回时析构（unique_ptr 默认 deleter）
     if (m_contextCount > 0) {
         m_contextCount--;
     }

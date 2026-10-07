@@ -229,14 +229,15 @@ public:
 
     /**
      * @brief 设置方块实体
+     *
+     * 所有权经参数移交：调用方用 std::move 交出 unique_ptr，实现方接管（存入区块或按需丢弃）。
+     * 位置越界、区块未加载等无法容纳的情况下实现方直接丢弃（unique_ptr 自动析构）。
+     * 默认实现（不支持方块实体的世界）直接丢弃。
+     *
      * @param pos 方块位置
-     * @param entity 方块实体指针（获取所有权）
+     * @param entity 方块实体所有权（可为 nullptr 表示空操作）
      */
-    virtual void setBlockEntity(const BlockPos& pos, BlockEntity* entity)
-    {
-        (void)pos;
-        (void)entity;
-    }
+    virtual void setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity);
 
     /**
      * @brief 移除方块实体

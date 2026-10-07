@@ -109,10 +109,10 @@ public:
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         if (entity != nullptr) {
-            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+            m_blockEntities[pos] = std::move(entity);
         } else {
             m_blockEntities.erase(pos);
         }
@@ -179,7 +179,7 @@ protected:
         // 创建并放置书架方块实体
         m_shelfEntity = std::make_unique<blockentity::ShelfBlockEntity>(m_pos);
         m_shelfEntityPtr = m_shelfEntity.get();
-        m_world.setBlockEntity(m_pos, m_shelfEntity.release());
+        m_world.setBlockEntity(m_pos, std::move(m_shelfEntity));
     }
 
     /// 将书架切换为充能模式（POWERED=true，侧链保持 Unconnected）

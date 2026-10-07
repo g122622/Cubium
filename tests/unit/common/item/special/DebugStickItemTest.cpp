@@ -105,9 +105,9 @@ public:
         const auto it = m_blockEntities.find(pos);
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
-        m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+        m_blockEntities[pos] = std::move(entity);
     }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
@@ -323,7 +323,7 @@ TEST_F(TestBlockTest, StartModeOutputsRedstoneWhenPowered)
     auto* testBe = dynamic_cast<blockentity::TestBlockEntity*>(be.get());
     ASSERT_NE(testBe, nullptr);
     testBe->setPowered(true);
-    world.setBlockEntity(BlockPos(0, 64, 0), be.release());
+    world.setBlockEntity(BlockPos(0, 64, 0), std::move(be));
 
     EXPECT_EQ(VanillaBlocks::TEST_BLOCK->getWeakPower(startState, world, BlockPos(0, 64, 0), Direction::Up), 15);
 }
@@ -339,7 +339,7 @@ TEST_F(TestBlockTest, NonStartModeOutputsNoRedstone)
     auto* testBe = dynamic_cast<blockentity::TestBlockEntity*>(be.get());
     ASSERT_NE(testBe, nullptr);
     testBe->setPowered(true);
-    world.setBlockEntity(BlockPos(0, 64, 0), be.release());
+    world.setBlockEntity(BlockPos(0, 64, 0), std::move(be));
 
     EXPECT_EQ(VanillaBlocks::TEST_BLOCK->getWeakPower(failState, world, BlockPos(0, 64, 0), Direction::Up), 0);
 }

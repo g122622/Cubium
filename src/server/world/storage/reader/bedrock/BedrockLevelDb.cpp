@@ -27,12 +27,14 @@
 #include "common/core/Types.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 #include <fmt/format.h>
 #include <leveldb/db.h>
+#include <leveldb/iterator.h>
 #include <leveldb/options.h>
 #include <leveldb/slice.h>
 #include <leveldb/status.h>
@@ -40,23 +42,22 @@
 
 namespace mc::world::storage::reader::bedrock {
 
+BedrockLevelDb::BedrockLevelDb() = default;
+
 BedrockLevelDb::~BedrockLevelDb()
 {
     close();
 }
 
 BedrockLevelDb::BedrockLevelDb(BedrockLevelDb&& other) noexcept
-    : m_db(other.m_db)
-{
-    other.m_db = nullptr;
-}
+    : m_db(std::move(other.m_db))
+{}
 
 BedrockLevelDb& BedrockLevelDb::operator=(BedrockLevelDb&& other) noexcept
 {
     if (this != &other) {
         close();
-        m_db = other.m_db;
-        other.m_db = nullptr;
+        m_db = std::move(other.m_db);
     }
     return *this;
 }
@@ -72,15 +73,15 @@ Result<void> BedrockLevelDb::open(const std::filesystem::path& dbPath)
     options.error_if_exists = false;
     options.paranoid_checks = false;
 
-    leveldb::DB* db = nullptr;
-    leveldb::Status status = leveldb::DB::Open(options, dbPath.string(), &db);
+    leveldb::DB* rawDb = nullptr;
+    leveldb::Status status = leveldb::DB::Open(options, dbPath.string(), &rawDb);
 
     if (!status.ok()) {
         return Error(ErrorCode::FileOpenFailed,
             fmt::format("Failed to open Bedrock LevelDB at {}: {}", dbPath.string(), status.ToString()));
     }
 
-    m_db = db;
+    m_db.reset(rawDb);
 
     spdlog::info("BedrockLevelDb: Opened database at {}", dbPath.string());
     return {};
@@ -89,8 +90,7 @@ Result<void> BedrockLevelDb::open(const std::filesystem::path& dbPath)
 void BedrockLevelDb::close()
 {
     if (m_db) {
-        delete m_db;
-        m_db = nullptr;
+        m_db.reset();
         spdlog::info("BedrockLevelDb: Closed database");
     }
 }
@@ -130,7 +130,9 @@ Result<void> BedrockLevelDb::iteratePrefix(const std::vector<u8>& prefix, KeyCal
 
     leveldb::Slice prefixSlice(reinterpret_cast<const char*>(prefix.data()), prefix.size());
 
-    auto* iter = m_db->NewIterator(leveldb::ReadOptions());
+    // leveldb::Iterator 析构函数为 public virtual（leveldb/iterator.h），
+    // NewIterator 的裸指针立即交 unique_ptr 接管，异常/提前返回路径不再泄漏。
+    std::unique_ptr<leveldb::Iterator> iter(m_db->NewIterator(leveldb::ReadOptions()));
     if (prefix.empty()) {
         iter->SeekToFirst();
     } else {
@@ -154,9 +156,8 @@ Result<void> BedrockLevelDb::iteratePrefix(const std::vector<u8>& prefix, KeyCal
         iter->Next();
     }
 
-    // 检查迭代错误
+    // 检查迭代错误（迭代器随 unique_ptr 在本函数返回时销毁）
     leveldb::Status iterStatus = iter->status();
-    delete iter;
 
     if (!iterStatus.ok()) {
         return Error(ErrorCode::ChunkLoadFailed, fmt::format("LevelDB iteration error: {}", iterStatus.ToString()));

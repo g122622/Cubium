@@ -238,26 +238,16 @@ public:
     // ========================================================================
 
     /**
-     * @brief 创建备份
+     * @brief 用外部备份引擎为当前数据库创建备份
      *
-     * 使用RocksDB BackupEngine创建增量备份。
+     * 备份引擎的生命周期由调用方持有（通常是常驻的 BackupManager，避免每次备份都重开引擎）。
+     * 本方法只负责把当前数据库句柄交给引擎，不持有引擎。
      *
-     * @param backupDir 备份目录
-     * @param metadata 元数据（JSON格式）
-     * @return 成功返回备份ID，失败返回错误
-     */
-    Result<u64> createBackup(const std::filesystem::path& backupDir, const std::string& metadata = "");
-
-    /**
-     * @brief 从备份恢复
-     *
-     * @param backupDir 备份目录
-     * @param backupId 备份ID（0表示最新）
-     * @param targetDir 目标目录
+     * @param engine 已打开的 RocksDB 备份引擎
+     * @param metadata 元数据（JSON 格式，空串表示无元数据）
      * @return 成功返回空，失败返回错误
      */
-    Result<void> restoreFromBackup(
-        const std::filesystem::path& backupDir, u64 backupId, const std::filesystem::path& targetDir);
+    Result<void> createBackupWith(rocksdb::BackupEngine& engine, const std::string& metadata);
 
     // ========================================================================
     // 管理操作
@@ -321,17 +311,6 @@ public:
      */
     [[nodiscard]] std::vector<std::string> listColumnFamilies() const;
 
-    /**
-     * @brief 获取原始 RocksDB 实例
-     *
-     * 注意：此方法仅供内部模块使用（如 BackupManager）。
-     * 外部代码应通过 RocksDBDatabase 的方法操作数据库。
-     *
-     * @return RocksDB 实例指针
-     */
-    [[nodiscard]] rocksdb::DB* rawDB() { return m_db; }
-    [[nodiscard]] const rocksdb::DB* rawDB() const { return m_db; }
-
 private:
     /**
      * @brief 私有构造函数
@@ -367,7 +346,7 @@ private:
      * @brief 销毁所有列族句柄
      *
      * 在关闭数据库前调用，逐个销毁列族句柄以释放 RocksDB 资源。
-     * 必须在 delete m_db 之前调用。
+     * 必须在 m_db 析构（reset）之前调用。
      */
     void _destroyColumnFamilyHandles();
 
@@ -377,7 +356,9 @@ private:
     [[nodiscard]] rocksdb::ColumnFamilyOptions _createCFOptions() const;
 
     // 成员变量
-    rocksdb::DB* m_db = nullptr;
+    // RocksDB 实例：析构函数为 public virtual（rocksdb/db.h），默认 deleter 直接可用。
+    // 注意列族句柄须先于本成员销毁（见 _destroyColumnFamilyHandles）。
+    std::unique_ptr<rocksdb::DB> m_db;
     std::filesystem::path m_path;
     RocksDBConfig m_config;
     std::unordered_map<std::string, rocksdb::ColumnFamilyHandle*> m_cfHandles;

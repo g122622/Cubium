@@ -119,10 +119,10 @@ public:
         return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
         if (entity != nullptr) {
-            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+            m_blockEntities[pos] = std::move(entity);
         } else {
             m_blockEntities.erase(pos);
         }
@@ -862,7 +862,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesSignEntity)
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(0, 64, 0));
     signEntity->setLineFromLegacy(0, "Hello World");
     blockentity::SignEntity* signPtr = signEntity.get();
-    m_world.setBlockEntity(BlockPos(0, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(0, 64, 0), std::move(signEntity));
 
     // 使用蜜脾
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
@@ -897,7 +897,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_SignAlreadyWaxed_ReturnsPass)
     m_world.setBlockState(0, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(0, 64, 0));
     signEntity->setWaxed(true);
-    m_world.setBlockEntity(BlockPos(0, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(0, 64, 0), std::move(signEntity));
 
     // 使用蜜脾
     ItemStack honeycombStack(Items::HONEYCOMB, 1);
@@ -950,7 +950,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxedSignPreventsTextModification)
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(0, 64, 0));
     signEntity->setLineFromLegacy(0, "Original");
     signEntity->setWaxed(true);
-    m_world.setBlockEntity(BlockPos(0, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(0, 64, 0), std::move(signEntity));
 
     // 获取 SignEntity 指针
     BlockEntity* be = m_world.getBlockEntity(BlockPos(0, 64, 0));
@@ -978,7 +978,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
     m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
     blockentity::SignEntity* signPtr = signEntity.get();
-    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(1, 64, 0), std::move(signEntity));
 
     // 设置告示牌文本
     signPtr->setLineFromLegacy(0, "Hello");
@@ -1014,7 +1014,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_CreativeModeDoesNotConsume
     // 在 (1, 64, 0) 放置告示牌并创建 SignEntity
     m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
-    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(1, 64, 0), std::move(signEntity));
 
     // 创建创造模式玩家并设置手持蜜脾
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
@@ -1041,7 +1041,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_AlreadyWaxedReturnsConsume
     m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
     signEntity->setWaxed(true);
-    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(1, 64, 0), std::move(signEntity));
 
     // 创建玩家并设置手持蜜脾
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
@@ -1092,7 +1092,7 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NonHoneycombItemExecutesCo
     // 在 (1, 64, 0) 放置告示牌并创建 SignEntity
     m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
     auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
-    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+    m_world.setBlockEntity(BlockPos(1, 64, 0), std::move(signEntity));
 
     // 创建玩家但不手持蜜脾（空手）
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());

@@ -82,16 +82,19 @@ public:
         return true;
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) { m_blockEntities[pos] = entity; }
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
-        return it == m_blockEntities.end() ? nullptr : it->second;
+        return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
-        return it == m_blockEntities.end() ? nullptr : it->second;
+        return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -107,7 +110,7 @@ public:
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_blockStates;
-    std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
     i32 m_lastSetBlockFlags = 0;
 };
 

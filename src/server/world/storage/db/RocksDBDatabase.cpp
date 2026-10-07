@@ -66,23 +66,20 @@ RocksDBDatabase::~RocksDBDatabase()
 }
 
 RocksDBDatabase::RocksDBDatabase(RocksDBDatabase&& other) noexcept
-    : m_db(other.m_db)
+    : m_db(std::move(other.m_db))
     , m_path(std::move(other.m_path))
     , m_config(std::move(other.m_config))
     , m_cfHandles(std::move(other.m_cfHandles))
-{
-    other.m_db = nullptr;
-}
+{}
 
 RocksDBDatabase& RocksDBDatabase::operator=(RocksDBDatabase&& other) noexcept
 {
     if (this != &other) {
         close();
-        m_db = other.m_db;
+        m_db = std::move(other.m_db);
         m_path = std::move(other.m_path);
         m_config = std::move(other.m_config);
         m_cfHandles = std::move(other.m_cfHandles);
-        other.m_db = nullptr;
     }
     return *this;
 }
@@ -136,10 +133,14 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "rocksdb::DB::Open", "path", path.string());
 
-        rocksdb::Status status = rocksdb::DB::Open(dbOptions, path.string(), cfDescriptors, &cfHandles, &db->m_db);
+        // DB::Open 经 out 参数返回裸指针，先接住再交给 unique_ptr 接管。
+        // 失败时 RocksDB 保证不写出实例，无需释放。
+        rocksdb::DB* rawDb = nullptr;
+        rocksdb::Status status = rocksdb::DB::Open(dbOptions, path.string(), cfDescriptors, &cfHandles, &rawDb);
         if (!status.ok()) {
             return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open database: {}", status.ToString()));
         }
+        db->m_db.reset(rawDb);
     }
 
     // 初始化列族句柄映射
@@ -151,8 +152,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
                 db->m_db->DestroyColumnFamilyHandle(handle);
             }
         }
-        delete db->m_db;
-        db->m_db = nullptr;
+        db->m_db.reset();
         return initResult.error();
     }
 
@@ -189,12 +189,14 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::openReadOnly(const std
 
     // 以只读模式打开
     std::vector<rocksdb::ColumnFamilyHandle*> cfHandles;
-    status = rocksdb::DB::OpenForReadOnly(dbOptions, path.string(), cfDescriptors, &cfHandles, &db->m_db);
+    rocksdb::DB* rawDb = nullptr;
+    status = rocksdb::DB::OpenForReadOnly(dbOptions, path.string(), cfDescriptors, &cfHandles, &rawDb);
 
     if (!status.ok()) {
         return Error(
             ErrorCode::FileOpenFailed, fmt::format("Failed to open database read-only: {}", status.ToString()));
     }
+    db->m_db.reset(rawDb);
 
     // 初始化列族句柄映射
     auto initResult = db->_initializeColumnFamilies(cfDescriptors, cfHandles);
@@ -204,8 +206,7 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::openReadOnly(const std
                 db->m_db->DestroyColumnFamilyHandle(handle);
             }
         }
-        delete db->m_db;
-        db->m_db = nullptr;
+        db->m_db.reset();
         return initResult.error();
     }
 
@@ -520,83 +521,20 @@ void RocksDBDatabase::releaseSnapshot(const rocksdb::Snapshot* snapshot)
 // 备份
 // ============================================================================
 
-Result<u64> RocksDBDatabase::createBackup(const std::filesystem::path& backupDir, const std::string& metadata)
+Result<void> RocksDBDatabase::createBackupWith(rocksdb::BackupEngine& engine, const std::string& metadata)
 {
-    MC_TRACE_SCOPED_EVENT(
-        TraceEvents.Storage.Db, "RocksDBDatabase::createBackup", "backupDir", backupDir.string(), "metadata", metadata);
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::createBackupWith", "metadata", metadata);
 
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Database is not open");
     }
 
-    rocksdb::BackupEngine* backupEngine = nullptr;
-    rocksdb::BackupEngineOptions backupOptions(backupDir.string());
-
-    rocksdb::Status status = rocksdb::BackupEngine::Open(m_db->GetEnv(), backupOptions, &backupEngine);
+    rocksdb::Status status = metadata.empty() ? engine.CreateNewBackup(m_db.get())
+                                              : engine.CreateNewBackupWithMetadata(m_db.get(), metadata);
 
     if (!status.ok()) {
-        return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open backup engine: {}", status.ToString()));
-    }
-
-    // 创建备份
-    status = backupEngine->CreateNewBackupWithMetadata(m_db, metadata);
-
-    if (!status.ok()) {
-        delete backupEngine;
         return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create backup: {}", status.ToString()));
     }
-
-    // 获取备份ID
-    std::vector<rocksdb::BackupInfo> backupInfos;
-    backupEngine->GetBackupInfo(&backupInfos);
-
-    u64 backupId = backupInfos.empty() ? 0 : backupInfos.back().backup_id;
-
-    delete backupEngine;
-
-    spdlog::info("Created backup {} at {}", backupId, backupDir.string());
-
-    return backupId;
-}
-
-Result<void> RocksDBDatabase::restoreFromBackup(
-    const std::filesystem::path& backupDir, u64 backupId, const std::filesystem::path& targetDir)
-{
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db,
-        "RocksDBDatabase::restoreFromBackup",
-        "backupDir",
-        backupDir.string(),
-        "backupId",
-        backupId,
-        "targetDir",
-        targetDir.string());
-
-    if (!isOpen()) {
-        return Error(ErrorCode::InvalidState, "Database is not open");
-    }
-
-    rocksdb::BackupEngine* backupEngine = nullptr;
-    rocksdb::BackupEngineOptions backupOptions(backupDir.string());
-
-    rocksdb::Status status = rocksdb::BackupEngine::Open(m_db->GetEnv(), backupOptions, &backupEngine);
-
-    if (!status.ok()) {
-        return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open backup engine: {}", status.ToString()));
-    }
-
-    // 恢复数据库
-    status = backupEngine->RestoreDBFromBackup(static_cast<rocksdb::BackupID>(backupId),
-        targetDir.string(), // db_dir
-        targetDir.string()  // wal_dir
-    );
-
-    delete backupEngine;
-
-    if (!status.ok()) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to restore backup: {}", status.ToString()));
-    }
-
-    spdlog::info("Restored backup {} to {}", backupId, targetDir.string());
 
     return {};
 }
@@ -681,12 +619,11 @@ void RocksDBDatabase::close()
         spdlog::error("Failed to flush database before close: {}", flushResult.error().message());
     }
 
-    // 销毁所有列族句柄（必须在 delete m_db 之前调用）
+    // 销毁所有列族句柄（必须在 m_db 析构之前调用）
     _destroyColumnFamilyHandles();
 
-    // 关闭数据库
-    delete m_db;
-    m_db = nullptr;
+    // 关闭数据库（unique_ptr 释放，默认 deleter 调 ~DB）
+    m_db.reset();
 }
 
 std::string RocksDBDatabase::getStatistics() const

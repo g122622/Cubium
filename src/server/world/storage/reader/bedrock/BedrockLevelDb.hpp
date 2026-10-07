@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -44,7 +45,9 @@ namespace mc::world::storage::reader::bedrock {
  */
 class BedrockLevelDb {
 public:
-    BedrockLevelDb() = default;
+    // 构造函数/析构/移动均 out-of-line 定义在 .cpp：本头文件只前向声明 leveldb::DB，
+    // 而 unique_ptr<leveldb::DB> 的析构需要完整类型，故不能在头文件内联 = default。
+    BedrockLevelDb();
     ~BedrockLevelDb();
 
     BedrockLevelDb(const BedrockLevelDb&) = delete;
@@ -135,7 +138,8 @@ public:
     [[nodiscard]] static std::vector<u8> buildActorPrefix();
 
 private:
-    leveldb::DB* m_db = nullptr;
+    // LevelDB 实例：析构函数为 public virtual（leveldb/db.h），默认 deleter 直接可用。
+    std::unique_ptr<leveldb::DB> m_db;
 };
 
 } // namespace mc::world::storage::reader::bedrock

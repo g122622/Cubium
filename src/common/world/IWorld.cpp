@@ -23,6 +23,7 @@
 
 #include "IWorld.hpp"
 #include "block/Block.hpp"
+#include "blockentity/BlockEntity.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "entity/core/Entity.hpp"
@@ -105,6 +106,13 @@ EntityInstanceId IWorld::spawnEntity(std::unique_ptr<Entity> entity)
     // 默认实现：不支持生成实体
     // ServerWorld 会重写此方法
     return 0;
+}
+
+void IWorld::setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
+{
+    (void)pos;
+    (void)entity;
+    // 默认实现：不支持方块实体（entity 随 unique_ptr 析构）
 }
 
 void IWorld::notifyNeighborChanged(const BlockPos& neighborPos,

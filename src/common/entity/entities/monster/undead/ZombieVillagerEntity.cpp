@@ -347,13 +347,11 @@ void ZombieVillagerEntity::finishConverting()
         villager->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::Conversion);
     }
 
-    // 释放所有权并生成到世界
-    newEntity.release();
-    EntityInstanceId newId = m_world->spawnEntity(std::unique_ptr<Entity>(villager));
+    // 生成到世界（所有权移交，失败时 spawnEntity 未接管、newEntity 自动析构）
+    EntityInstanceId newId = m_world->spawnEntity(std::move(newEntity));
 
     if (newId == 0) {
         spdlog::error("ZombieVillagerEntity::finishConverting: failed to spawn villager entity");
-        delete villager;
         return;
     }
 

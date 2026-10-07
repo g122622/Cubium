@@ -56,7 +56,7 @@ public:
 
     // IScriptRuntime接口实现
     [[nodiscard]] std::unique_ptr<IScriptContext> createContext(const ContextConfig& config) override;
-    void destroyContext(IScriptContext* context) override;
+    void destroyContext(std::unique_ptr<IScriptContext> context) override;
     void executePendingJobs() override;
     [[nodiscard]] bool hasPendingJobs() const override;
     [[nodiscard]] RuntimeStats computeStats() const override;

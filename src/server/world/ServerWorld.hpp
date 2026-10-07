@@ -251,9 +251,9 @@ public:
     /**
      * @brief 设置指定位置的方块实体
      * @param pos 方块位置
-     * @param entity 方块实体指针（获取所有权）
+     * @param entity 方块实体所有权（经参数移交）
      */
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override;
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity) override;
 
     /**
      * @brief 移除指定位置的方块实体

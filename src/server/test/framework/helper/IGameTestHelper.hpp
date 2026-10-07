@@ -7,6 +7,7 @@
 #include "server/test/base/error/GameTestResult.hpp"
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -222,7 +223,7 @@ public:
     [[nodiscard]] virtual FenceConnectivity getFenceConnectivity(BlockPos relativePos) const = 0;
     /// 取 pos 处的幽匿扩散器。项目无 SculkCatalystBlockEntity（spreader 载体缺失），返回新建空 spreader
     /// 快照（maxCharge 做实，cursors 空）。TODO: SculkCatalystBlockEntity 实现后取真实 spreader。
-    [[nodiscard]] virtual mc::blocks::SculkSpreader* getSculkSpreader(BlockPos relativePos) const = 0;
+    [[nodiscard]] virtual std::unique_ptr<mc::blocks::SculkSpreader> getSculkSpreader(BlockPos relativePos) const = 0;
     [[nodiscard]] virtual mc::IWorld& world() noexcept = 0;
 
     // === 9. 工具 ===

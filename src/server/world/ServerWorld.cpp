@@ -959,7 +959,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
             }
 
             if (blockEntity != nullptr) {
-                setBlockEntity(changedPos, blockEntity.release());
+                setBlockEntity(changedPos, std::move(blockEntity));
             }
         }
 
@@ -1164,16 +1164,14 @@ const BlockEntity* ServerWorld::getBlockEntity(const BlockPos& pos) const
     return chunk->getBlockEntity(pos);
 }
 
-void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
+void ServerWorld::setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
 {
     if (entity == nullptr) {
         return;
     }
 
-    // 超出世界高度范围不设置
+    // 超出世界高度范围不设置（entity 由 unique_ptr 自动释放）
     if (!isWithinWorldBounds(pos.x, pos.y, pos.z)) {
-        // 释放实体以避免内存泄漏
-        delete entity;
         return;
     }
 
@@ -1182,33 +1180,30 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
     ChunkData* chunk = m_chunkManager->requestFullChunkSync(chunkX, chunkZ);
     if (!chunk) {
-        // 区块未加载，无法设置方块实体
+        // 区块未加载，无法设置方块实体（entity 由 unique_ptr 自动释放）
         // 注意：如果区块未加载，方块实体会丢失
-        delete entity;
         return;
     }
 
     // 设置方块实体的世界引用
     entity->setWorld(this);
 
-    // 将原始指针包装为 unique_ptr 并调用 ChunkData::setBlockEntity
-    // 注意：ChunkData::setBlockEntity 返回旧实体（如果有）
-    // ChunkData::setBlockEntity 接受世界坐标
-    std::unique_ptr<BlockEntity> entityPtr(entity);
-    std::unique_ptr<BlockEntity> oldEntity = chunk->setBlockEntity(pos, std::move(entityPtr));
+    // ChunkData::setBlockEntity 接管所有权并返回旧实体（如果有，返回的 unique_ptr 离开作用域即析构）
+    // 须在 move 前记下裸指针，move 后 entity 为空。
+    BlockEntity* entityPtr = entity.get();
+    chunk->setBlockEntity(pos, std::move(entity));
 
-    // 如果有旧实体，它会被自动销毁
     // 标记区块为已修改
     chunk->setDirty(true);
 
     // 检测幽匿方块实体并注册振动监听器到 GameEventListenerRegistry
-    if (entity->getType() == BlockEntityType::SculkSensor) {
-        auto* sensor = dynamic_cast<blockentity::SculkSensorBlockEntity*>(entity);
+    if (entityPtr->getType() == BlockEntityType::SculkSensor) {
+        auto* sensor = dynamic_cast<blockentity::SculkSensorBlockEntity*>(entityPtr);
         if (sensor != nullptr) {
             m_sculkVibrationManager.registerSculkSensor(*sensor);
         }
-    } else if (entity->getType() == BlockEntityType::SculkShrieker) {
-        auto* shrieker = dynamic_cast<blockentity::SculkShriekerBlockEntity*>(entity);
+    } else if (entityPtr->getType() == BlockEntityType::SculkShrieker) {
+        auto* shrieker = dynamic_cast<blockentity::SculkShriekerBlockEntity*>(entityPtr);
         if (shrieker != nullptr) {
             m_sculkVibrationManager.registerSculkShrieker(*shrieker);
         }

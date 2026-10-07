@@ -732,7 +732,7 @@ TEST_F(WorldGenRegionDetailedTest, SetBlockEntity_NullPtr_DoesNothing)
 {
     BlockPos pos(80, 64, 80);
     // 传入 nullptr 不应崩溃
-    m_region->setBlockEntity(pos, nullptr);
+    m_region->setBlockEntity(pos, nullptr); // unique_ptr 空参
 }
 
 TEST_F(WorldGenRegionDetailedTest, RemoveBlockEntity_NoEntity_DoesNotCrash)

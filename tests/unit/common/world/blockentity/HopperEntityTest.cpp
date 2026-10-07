@@ -73,16 +73,19 @@ public:
     }
 
     // getBlockEntity 控制
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) { m_blockEntities[pos] = entity; }
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         auto it = m_blockEntities.find(pos);
-        return it != m_blockEntities.end() ? it->second : nullptr;
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         auto it = m_blockEntities.find(pos);
-        return it != m_blockEntities.end() ? it->second : nullptr;
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
     }
 
     // getEntitiesInAABB 控制
@@ -100,7 +103,7 @@ private:
     bool m_clientSide = false;
     u64 m_currentTick = 0;
     std::unordered_map<BlockPos, const BlockState*> m_blockStates;
-    std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
     std::vector<Entity*> m_entities;
     mc::test::DummyTickManager m_tickManager;
 };
@@ -918,13 +921,13 @@ TEST_F(HopperEntityTest, GetInventoryAtPosition_BlockEntityWithoutIInheritance_R
     // 实际场景中，HopperBlock 会在 HopperBlock::getInventory() 中处理这种情况
     HopperTestWorld world;
     auto container = std::make_unique<HopperEntity>(BlockPos(10, 21, 30));
-    world.setBlockEntity(BlockPos(10, 21, 30), container.get());
+    world.setBlockEntity(BlockPos(10, 21, 30), std::move(container));
 
     InventoryRef result = HopperEntity::getInventoryAtPosition(&world, BlockPos(10, 21, 30));
     // dynamic_cast<IInventory*>(blockEntity) 对 HopperEntity 返回 nullptr
     EXPECT_EQ(result.get(), nullptr);
 
-    (void)container.release(); // 避免双重释放
+    (void)std::move(container); // 避免双重释放
 }
 
 // ========== getSourceInventory 测试 ==========

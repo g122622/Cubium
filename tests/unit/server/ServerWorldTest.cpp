@@ -570,7 +570,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_StoresEntity)
     blockentity::ChestEntity* rawChest = chest.get();
 
     // 设置方块实体
-    world->setBlockEntity(BlockPos(5, 64, 10), chest.release());
+    world->setBlockEntity(BlockPos(5, 64, 10), std::move(chest));
 
     // 验证可以获取
     BlockEntity* retrieved = world->getBlockEntity(BlockPos(5, 64, 10));
@@ -589,12 +589,12 @@ TEST_F(ServerWorldTest, SetBlockEntity_OverwritesExisting)
 
     // 创建第一个方块实体
     auto chest1 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
-    world->setBlockEntity(BlockPos(0, 64, 0), chest1.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest1));
 
     // 创建第二个方块实体并覆盖
     auto chest2 = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
     blockentity::ChestEntity* rawChest2 = chest2.get();
-    world->setBlockEntity(BlockPos(0, 64, 0), chest2.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest2));
 
     // 验证是第二个实体
     BlockEntity* retrieved = world->getBlockEntity(BlockPos(0, 64, 0));
@@ -611,7 +611,7 @@ TEST_F(ServerWorldTest, SetBlockEntity_SetsWorldReference)
 
     // 创建方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
-    world->setBlockEntity(BlockPos(0, 64, 0), chest.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest));
 
     // 验证世界引用已设置
     BlockEntity* retrieved = world->getBlockEntity(BlockPos(0, 64, 0));
@@ -628,7 +628,7 @@ TEST_F(ServerWorldTest, RemoveBlockEntity_RemovesEntity)
 
     // 创建并设置方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
-    world->setBlockEntity(BlockPos(0, 64, 0), chest.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest));
 
     // 验证存在
     EXPECT_NE(world->getBlockEntity(BlockPos(0, 64, 0)), nullptr);
@@ -677,9 +677,9 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleEntitiesInSameChunk)
     blockentity::ChestEntity* raw2 = chest2.get();
     blockentity::ChestEntity* raw3 = chest3.get();
 
-    world->setBlockEntity(BlockPos(0, 64, 0), chest1.release());
-    world->setBlockEntity(BlockPos(5, 65, 10), chest2.release());
-    world->setBlockEntity(BlockPos(15, 70, 15), chest3.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest1));
+    world->setBlockEntity(BlockPos(5, 65, 10), std::move(chest2));
+    world->setBlockEntity(BlockPos(15, 70, 15), std::move(chest3));
 
     // 验证所有实体都可以获取
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), raw1);
@@ -705,9 +705,9 @@ TEST_F(ServerWorldTest, SetBlockEntity_MultipleChunks)
     blockentity::ChestEntity* raw2 = chest2.get();
     blockentity::ChestEntity* raw3 = chest3.get();
 
-    world->setBlockEntity(BlockPos(0, 64, 0), chest1.release());
-    world->setBlockEntity(BlockPos(16, 64, 0), chest2.release());
-    world->setBlockEntity(BlockPos(0, 64, 16), chest3.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest1));
+    world->setBlockEntity(BlockPos(16, 64, 0), std::move(chest2));
+    world->setBlockEntity(BlockPos(0, 64, 16), std::move(chest3));
 
     // 验证所有实体都可以获取
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0)), raw1);
@@ -738,7 +738,7 @@ TEST_F(ServerWorldTest, ConstGetBlockEntity_ReturnsCorrectEntity)
 
     // 创建并设置方块实体
     auto chest = std::make_unique<blockentity::ChestEntity>(BlockPos(0, 64, 0));
-    world->setBlockEntity(BlockPos(0, 64, 0), chest.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(chest));
 
     // 使用 const 版本获取
     const ServerWorld& constWorld = *world;
@@ -759,9 +759,9 @@ TEST_F(ServerWorldTest, SetBlockEntity_DifferentBlockEntityTypes)
     auto hopper = std::make_unique<blockentity::HopperEntity>(BlockPos(1, 64, 0));
     auto sign = std::make_unique<blockentity::SignEntity>(BlockPos(2, 64, 0));
 
-    world->setBlockEntity(BlockPos(0, 64, 0), furnace.release());
-    world->setBlockEntity(BlockPos(1, 64, 0), hopper.release());
-    world->setBlockEntity(BlockPos(2, 64, 0), sign.release());
+    world->setBlockEntity(BlockPos(0, 64, 0), std::move(furnace));
+    world->setBlockEntity(BlockPos(1, 64, 0), std::move(hopper));
+    world->setBlockEntity(BlockPos(2, 64, 0), std::move(sign));
 
     // 验证类型正确
     EXPECT_EQ(world->getBlockEntity(BlockPos(0, 64, 0))->getType(), BlockEntityType::Furnace);

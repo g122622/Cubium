@@ -110,16 +110,19 @@ public:
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
     {
         const auto it = m_blockEntities.find(pos);
-        return it == m_blockEntities.end() ? nullptr : it->second;
+        return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
     {
         const auto it = m_blockEntities.find(pos);
-        return it == m_blockEntities.end() ? nullptr : it->second;
+        return it == m_blockEntities.end() ? nullptr : it->second.get();
     }
 
-    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override { m_blockEntities[pos] = entity; }
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
 
     void setEntitiesInRangeResult(const std::vector<Entity*>& entities) { m_entitiesInRange = entities; }
 
@@ -136,7 +139,7 @@ public:
 
 private:
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
-    std::unordered_map<BlockPos, BlockEntity*> m_blockEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
     std::vector<Entity*> m_entitiesInAabb;
     std::vector<Entity*> m_entitiesInRange;
 };
@@ -672,7 +675,7 @@ public:
 
     [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override { return nullptr; }
     [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override { return nullptr; }
-    void setBlockEntity(const BlockPos&, BlockEntity*) override {}
+    void setBlockEntity(const BlockPos&, std::unique_ptr<BlockEntity>) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
