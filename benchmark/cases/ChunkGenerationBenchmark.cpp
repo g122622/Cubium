@@ -63,6 +63,11 @@
 #include <system_error>
 #include <vector>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996) // 禁用 getenv 不安全警告（本文件用 getenv 读基准诊断开关）
+#endif
+
 using namespace mc;
 using namespace mc::server;
 using namespace mc::trace;
@@ -661,3 +666,7 @@ BENCHMARK(ChunkGeneration)
     ->Setup(chunkGenSetup)
     ->Teardown(chunkGenTeardown)
     ->Unit(::benchmark::kMillisecond);
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
