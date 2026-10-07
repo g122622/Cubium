@@ -17,6 +17,7 @@
 import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectTrue } from "../assert/expect.ts";
+import { blockNameAt } from "../assert/surface.ts";
 import { delay, waitForCondition } from "../bot/wait.ts";
 import { INV_HOTBAR_SLOT_0, entityIds, newEntityIds, runCommand, setSlot, waitForSlot } from "./shared.ts";
 
@@ -83,7 +84,7 @@ export const entityCases: readonly CaseDefinition[] = [
         botCount: 1,
         opPlayers: true,
         skipReason: null,
-        async run({ bot, trace }): Promise<Record<string, unknown>> {
+        async run({ bot, trace, surfaceY, spawnX, spawnZ }): Promise<Record<string, unknown>> {
             const given = await setSlot(bot, INV_HOTBAR_SLOT_0, "stone", 1);
             expectTrue(given, "无法给 bot 发放石头");
             await waitForSlot(bot, INV_HOTBAR_SLOT_0, "stone", "石头就位");
@@ -136,6 +137,38 @@ export const entityCases: readonly CaseDefinition[] = [
                 "掉落物实体仍在世界里——玩家靠近后未被拾取（服务端拾取未生效）",
             );
             expectTrue(inventoryHas(bot, "stone"), "拾取后物品栏里没有石头——拾取未把物品交还玩家");
+
+            // 收尾必须把玩家送回**确定的**落地状态。本用例把玩家 `/tp` 到了掉落物当时的坐标，
+            // 而掉落物有初速度、落点可能在半空——只等 `onGround` 是不够的：快照里的
+            // `standingOn`/`yRelativeToSurface` 取决于**落在哪一格**，实测同一用例不同次运行
+            // 会分别落在草方块（相对地表 1）与地表被挖掉后的泥土（相对地表 0），基线因此抖动。
+            // （runner 的落地等待只覆盖 spawn 阶段，管不到用例内部的传送；见 §4.1 的瞬态量约束。）
+            //
+            // 修法：把玩家送回**出生点所在列的地表上方**——那是 runner 探测 surfaceY 时用的同一
+            // 个参考点，也是全用例唯一的确定性落点。坐标随出生点走，不硬编码。
+            await runCommand(bot, `/tp @s ${spawnX + 0.5} ${surfaceY + 1} ${spawnZ + 0.5}`, 3_000);
+            await waitForCondition(
+                () => {
+                    const position = bot.entity?.position;
+                    if (position === undefined || bot.entity?.onGround !== true) {
+                        return false;
+                    }
+                    const landedX = Math.floor(position.x);
+                    const landedZ = Math.floor(position.z);
+                    const standingOn = blockNameAt(bot, landedX, surfaceY, landedZ);
+                    return landedX === spawnX && landedZ === spawnZ && standingOn === "grass_block";
+                },
+                {
+                    timeoutMs: 10_000,
+                    pollMs: 50,
+                    what: "拾取后玩家回到出生点地表（快照的前置条件：确定落点）",
+                    describe: () =>
+                        `当前位置 (${String(bot.entity?.position.x)}, ${String(bot.entity?.position.y)}, ` +
+                        `${String(bot.entity?.position.z)})，onGround=${String(bot.entity?.onGround)}`,
+                },
+            );
+            await delay(300);
+
             return {
                 droppedEntityPickedUp: true,
                 nearbyEntityPickupSynchronized: true,

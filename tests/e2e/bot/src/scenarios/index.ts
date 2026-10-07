@@ -17,6 +17,11 @@ import { persistenceCases } from "./persistence.ts";
 import { entityCases } from "./entities.ts";
 import { movementCases } from "./movement.ts";
 import { protocolCases } from "./protocol.ts";
+import { statusEffectCases } from "./status-effects.ts";
+import { chatCases } from "./chat.ts";
+import { playerVisualCases } from "./player-visuals.ts";
+import { blockEventCases } from "./block-events.ts";
+import { playerLifecycleCases } from "./player-lifecycle.ts";
 
 /** 全部用例。 */
 export const ALL_CASES: readonly CaseDefinition[] = [
@@ -31,4 +36,9 @@ export const ALL_CASES: readonly CaseDefinition[] = [
     ...entityCases,
     ...movementCases,
     ...protocolCases,
+    ...statusEffectCases,
+    ...chatCases,
+    ...playerVisualCases,
+    ...blockEventCases,
+    ...playerLifecycleCases,
 ];

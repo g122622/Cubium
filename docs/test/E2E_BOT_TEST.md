@@ -17,8 +17,8 @@
 
 在 e2e 落地前，「真实字节流」这条路径**没有任何自动化覆盖**，唯一手段是人工用 1.21.11 客户端连测。
 
-**当前规模**：注册表 46 个用例，其中 Cubium 侧 43 条、vanilla 侧 41 条可运行（2 条 Cubium 专有；
-**3 条被服务端缺陷阻塞、显式标记跳过**，见 §2.1）。两侧基线均已冻结，日常回归只跑 Cubium。
+**当前规模**：注册表 51 个用例，其中 Cubium 侧 45 条、vanilla 侧 43 条可运行（2 条 Cubium 专有；
+**6 条被服务端缺陷阻塞、显式标记跳过**，见 §2.1）。两侧基线均已冻结，日常回归只跑 Cubium。
 
 **它的实际价值已被反复验证**：首轮 19 个用例发现并定位了 4 个真实缺陷，全部属于
 「单测与 GameTest 都看不见」的类型：
@@ -46,6 +46,23 @@
 > **不核对发送侧**。判断某个包"已实现"时必须额外 grep 服务端是否有构造/发送点。
 > 同理，「回调已就位」不等于「回调被设置」——`dropItem` 就是有接口、有实现、**零设置点**。
 
+第二轮补齐「多人可见性 / 表现层同步」这一簇后（效果、聊天、装备、箱盖动画、离场实体），
+又发现 3 个真实缺陷（均属「服务端自己有、别人看不见 / 自己生效、客户端不知道」），
+另 2 条经验证是**健全的**（转为回归保护）：
+
+| 缺陷 | 性质 | 状态 |
+|---|---|---|
+| 状态效果从不下发 | `LivingEntity::addEffect`/`EffectManager` 只改服务端状态，无「效果变更 → 广播」通路；且 clientbound 的 `entity_effect`(cb 130)/`remove_entity_effect`(cb 76)/`update_mob_effect` **三层全缺** → 客户端状态栏无任何效果图标，服务端却在按效果结算 | **仍阻塞用例** |
+| 聊天从不广播 | `ChatHandler::handleChatMessagePacket` 只写一行服务端日志，无任何广播通路；clientbound 聊天包（`player_chat`/`system_chat`/`profileless_chat`）三层全缺 → 多人游戏聊天完全不可用且零报错 | **仍阻塞用例** |
+| 装备/手持物从不下发 | 服务端**从不发送** `entity_equipment`(cb 100)——该包三层全缺（全仓库 grep `SetEquipment` 零命中）→ 其他玩家看不到你的手持物与护甲 | **仍阻塞用例** |
+| 开箱广播 BlockEvent | `ChestEntity::openContainer`/`closeContainer` → `broadcastChestState` → `blockEvent` 链路**完整可用**，旁观者能收到箱盖开合动画包 | 健全（转回归保护） |
+| 离场玩家实体移除 | 断连经 `world.destroyEntity` → `EntityTracker` 向追踪者广播 `RemoveEntities`(cb 75)，旁观者世界里的实体被正确移除（与 Tab 条目移除是两条独立通路，须分别覆盖） | 健全（转回归保护） |
+
+> **教训（第二轮）**：**「表现层同步」是最容易长期潜伏的一簇缺陷**——它们不改变世界状态、
+> 不影响服务端权威逻辑，因此**不发也不会报错**，只是「箱子开了盖子不动」「别人看不到你拿的剑」。
+> 定位这一类缺陷的有效判据是**旁观者视角**（第二个 bot 看到的），而非当事人（当事人有客户端预测，
+> 会自我欺骗）。**加用例时优先问「这件事在别人眼里对不对」**。
+
 ---
 
 ## 2. 运行方式
@@ -71,18 +88,24 @@ vanilla 侧约 10~25 秒/用例。整套双跑刷新约 80~100 分钟，单侧 C
 用例体的超时上限是 240 秒（`config.ts` 的 `CASE_TIMEOUT_MS`），因为持久化用例要在体内重启一次
 服务端（一次启动就要 70 秒以上）。
 
+> 注：上表是**首次落地时**的旧观测值；后续本机实测 Cubium 单用例已降到 2~7 秒（含
+> `protocol/keep_alive_round_trip` 的 18 秒心跳等待），单侧全量回归约 3~4 分钟。
+
 ### 2.1 被阻塞的用例（`skipReason`）
 
 用例契约里有 `skipReason` 字段：非 null 时 runner **不运行、不写基线**，但每次运行都会把原因
 打印出来（`--include-skipped` 可强制运行）。它只用于「用例已经写好、但被服务端缺陷阻塞、
 当前不可能通过」的情况——目的是让阻塞点变成注册表里可见的一条记录，而不是让整套测试长期红灯。
-写这个字段时必须写清**具体缺陷 + 证据路径 + 解除条件**。当前被阻塞的 3 条：
+写这个字段时必须写清**具体缺陷 + 证据路径 + 解除条件**。当前被阻塞的 6 条：
 
 | 用例 | 阻塞缺陷 |
 |---|---|
 | `containers/container_in_nether_is_not_overworld` | 跨维度传送后服务端下发未生成的默认区块（整片 netherrack），客户端看不到下界真实地形 |
 | `persistence/block_changes_survive_restart` | 从存档重启后实体与地形不再碰撞，玩家一路坠入虚空 |
 | `persistence/container_content_survives_restart` | 同上（bot 无法落地，读不到世界内容） |
+| `effects/give_effect_reaches_client` | 施加效果后从不下发 `entity_effect`(cb 130)，客户端状态栏看不到效果（且该包三层全缺） |
+| `chat/message_broadcast_to_other_player` | 收到聊天只记日志、不广播，其他玩家收不到聊天（clientbound 聊天包三层全缺） |
+| `player-visuals/held_item_syncs_to_others` | 从不下发 `entity_equipment`(cb 100)，其他玩家看不到你的手持物与护甲（该包三层全缺） |
 
 ### 三种模式共用同一套用例
 
@@ -140,6 +163,11 @@ tests/e2e/bot/
 │       ├── entities.ts       # I 掉落物实体闭环
 │       ├── movement.ts       # J 玩家移动与移动触发的区块加载
 │       ├── protocol.ts       # K 协议存活与容错（keep_alive / 聊天）
+│       ├── status-effects.ts # L 状态效果的客户端下发（entity_effect）
+│       ├── chat.ts           # M 聊天广播（多人可见性）
+│       ├── player-visuals.ts # N 玩家视觉状态同步（手持物/装备）
+│       ├── block-events.ts   # O 方块事件广播（箱盖开合动画）
+│       ├── player-lifecycle.ts # P 玩家实体在他人世界的生命周期（离场移除）
 │       └── index.ts          # 显式注册表
 ├── baselines/{cubium,vanilla}.json  # 冻结基线（提交进 git）
 └── tools/                    # 探针与调试脚本
@@ -388,6 +416,65 @@ mineflayer 收到 `respawn`（维度切换/重生）后会先关掉物理，**�
 下界用例目前用 `/gamerule doMobSpawning false` 绕开（`ServerDimension::tick` 用该规则门控自然
 刷怪），修好后应移除该绕行。
 
+### 5.18 「表现层同步」须用旁观者视角判据
+
+「服务端自己有、客户端不知道」的一类缺陷（状态效果、聊天广播、装备/手持物、箱盖动画、
+离场实体移除）有共同特征：**它们不改变世界状态、不影响服务端权威逻辑，因此不发也不会报错**。
+当事人（第一个 bot）身上往往还叠加了客户端预测，会把「服务端没发」伪装成「已经生效」：
+
+- 创造模式改槽后 `bot.heldItem` 已是钻石剑（本地预测），但旁观者看到的仍是空手；
+- 开箱者本地会自己播放盖子动画，但旁观者看不到；
+- `tossStack` 后本地槽位已清空，但物品是否真的进了世界要等实体出现。
+
+因此这类用例的判据必须落在**另一个玩家**身上：B 侧观察到的东西只可能来自服务端。
+`CaseDefinition.botCount = 2`（或 `botCount: 1` + `ctx.connectBot()`）是标准做法，
+`chat.ts` / `player-visuals.ts` / `block-events.ts` / `player-lifecycle.ts` 均如此。
+
+数包时优先数**原始包**（`ctx.traces[i].count("block_action")`），而不是 mineflayer 的高层
+事件——后者会先解析方块名、只在可解析时才 emit，引入与「包发没发」无关的假失败。
+
+### 5.19 表现层用例的取证：必须验证「用例确实触发到了被测分支」
+
+写一个预期会红的用例时，光看「它红了」不足以断定是服务端缺陷——也可能用例压根没跑到被测
+分支（命令被静默拒绝、物品没拿到、目标点超出触及范围）。**取证步骤**：
+
+1. 跑 `--mode=refresh --include-skipped`（不带 `--accept`）让用例真正执行，产物落在
+   `build/e2e/artifacts/<runId>/<serverKind>/<caseId>/`；
+2. 读 `server.log` 确认「上游动作确实成功了」——例如效果用例要看到
+   `system_chat: "Gave Speed to 1 player(s)"`，而不是 `Unknown effect`；
+3. 再读 `bot-trace-<n>.jsonl` 确认「下游包计数为 0」（`entity_effect` / `player_chat` /
+   `entity_equipment` 等）；
+4. 两条合起来才是完整证据链：**服务端确认做了，客户端确认没收到**。
+
+只用「用例超时」当证据，很容易把「用例自己没触发」误判成「服务端缺陷」。
+
+### 5.20 用例内部传送后必须把玩家送回**确定的**落点
+
+`runner` 只在 spawn 阶段等待「稳定落地」（§4.1 的瞬态量约束只覆盖那一段）。用例内部一旦
+`/tp`，玩家落点就由地形决定，而**落点不同会让快照里的 `standingOn`/`yRelativeToSurface` 不同**：
+
+`entities/dropped_item_is_picked_up` 把玩家 `/tp` 到掉落物当时的坐标（掉落物有初速度、落点常在
+半空），实测不同次运行分别落在「草方块（相对地表 1）」与「地表被挖掉后的泥土（相对地表 0）」，
+基线因此抖动——一度把 `onGround=false / standingOn=dirt` 的**中间态**冻进基线，
+下一次运行就报「快照与基线不一致」，看起来像服务端回归，实为用例设计缺陷。
+
+**做法**：用例结束前把玩家送回**出生点所在列的地表上方**（`spawnX + 0.5, surfaceY + 1,
+spawnZ + 0.5`）并等到「落在出生列 + 脚下是草方块 + onGround」三者同时成立——那是 runner
+探测 `surfaceY` 用的同一个参考点，也是全用例唯一的确定性落点。坐标随出生点走，不硬编码。
+
+**排查线索**：若某用例在重复刷新时基线值反复变化（而非稳定报同一个差异），先怀疑落点/
+位置类瞬态量，而不是服务端行为。
+
+玩家进入下界后，客户端拿到的区块是**未生成的默认内容**：实测在下界 `(0,125,0)` 周围 5×5
+（含本该是空气的层）全读到 `netherrack`，且此后用命令改动的方块也不会可靠地出现在客户端
+（有 block_change 在区块数据之前到达而被丢弃的迹象）。服务端一侧的同坐标状态是正常的
+（`/setblock` 返回 1）。因此「在下界放置/打开容器」的用例当前无法成立。
+
+附带发现：**首次 tick 非主世界维度时服务端会崩溃**——`NaturalSpawner::_createDensityManager`
+读取 0x0 触发 ACCESS_VIOLATION（栈：`NaturalSpawner.cpp:965 ← tick:376 ← ServerDimension::tick:187`）。
+下界用例目前用 `/gamerule doMobSpawning false` 绕开（`ServerDimension::tick` 用该规则门控自然
+刷怪），修好后应移除该绕行。
+
 ---
 
 ## 6. 经验沉淀
@@ -473,3 +560,4 @@ Java 的 `FloatCodec`/`DoubleCodec` 接受任意数值 tag。
 | 基线抖动 | 快照含瞬态量 | 参照 §4.1 的归一化规则 |
 | 基线比对报「基线已过期」 | schemaVersion 或协议号变更 | 重新 `--mode=refresh --accept` |
 | 用例被打印成「跳过」 | 注册表里标了 `skipReason` | 读打印出的原因（含证据路径与解除条件），修好服务端后改回 `null` |
+| 旁观者收不到某个同步包（效果/装备/聊天/箱盖） | 服务端可能压根没发（表现层缺陷）或发给了错误的对象 | 查旁观者 `bot-trace-<n>.jsonl` 的包计数；同时核对服务端日志确认上游动作已执行（见 §5.19） |
