@@ -103,3 +103,14 @@ Configuration 阶段不动，首先确认 `KnownPacks` 是否命中 core。
 （MOTD/玩家数/样本/favicon），经 5 秒缓存（`statusInfo()`）复用；`ClientSessionManager` 只做转发。
 favicon 是 `data:image/png;base64,` 前缀的 Data URL，由 `MinecraftServer::_refreshServerIcon`
 在世界打开时从 `server-icon.png`（回落存档 `icon.png`）加载，尺寸须 64×64。
+
+### 7. `EnchantmentNbtBuilder` 的字段必需性以 vanilla CODEC 为准
+
+`Enchantment.DIRECT_CODEC` / `EnchantmentDefinition.CODEC` 中，**只有** `description`、
+`supported_items`、`weight`、`max_level`、`min_cost`、`max_cost`、`anvil_cost`、`slots` 是
+`fieldOf`（必需）；`primary_items`、`exclusive_set`、`effects` 均为 `optionalFieldOf`
+（缺省分别回落 `Optional.empty()` / `HolderSet.direct()` / `DataComponentMap.EMPTY`）。
+因此数据包不写这三个字段是**合法形态**，不是数据包缺陷——构建器对它们只累计后汇总输出一行
+`info`（键一并从内联 NBT 中省略，由客户端取默认值）。**不要把"字段缺失"当作 required 报错**：
+43 个附魔会刷出 60 余条 error，把真正的缺陷（文件缺失 / JSON 语法错 / 标签展平失败）淹没。
+反之，字段**存在但类型不对**（如 `exclusive_set` 写成数组）才是真异常，仍须报 error。

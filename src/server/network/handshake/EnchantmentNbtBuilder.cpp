@@ -457,10 +457,54 @@ std::unique_ptr<mc::nbt::tags::compound_tag> _makeCostCompound(const nlohmann::j
     return cost;
 }
 
+/// 缺失可选字段的累计记录（字段名 → 缺失该字段的附魔 id 列表）。
+///
+/// primary_items / exclusive_set / effects 在原版 Enchantment CODEC 中均为 optionalFieldOf
+/// （分别缺省回落 Optional.empty() / HolderSet.direct() / DataComponentMap.EMPTY），故数据包不写
+/// 这些字段是合法形态，不应逐条报错。此处累计后由调用方汇总输出一行 info，避免 43 条附魔各报
+/// 数条 error 淹没真正缺陷（文件缺失 / JSON 语法错 / 标签展平失败）。
+struct MissingOptionalFieldTally {
+    std::vector<std::string> primaryItems; ///< 未声明 primary_items 的附魔 id
+    std::vector<std::string> exclusiveSet; ///< 未声明 exclusive_set 的附魔 id
+    std::vector<std::string> effects;      ///< 未声明 effects 的附魔 id
+};
+
+/// 把缺失某可选字段的附魔 id 列表格式化为 "N=[a, b, ...]"（空列表→"0"），供汇总行拼装。
+std::string _formatMissingFieldIds(const std::vector<std::string>& ids)
+{
+    if (ids.empty()) {
+        return "0";
+    }
+    std::string s = std::to_string(ids.size());
+    s += "=[";
+    for (usize i = 0; i < ids.size(); ++i) {
+        if (i != 0) {
+            s += ", ";
+        }
+        s += ids[i];
+    }
+    s += "]";
+    return s;
+}
+
+/// 汇总输出缺失可选字段的一行 info（无任何缺失时静默）。
+void _logMissingOptionalFields(const MissingOptionalFieldTally& tally)
+{
+    if (tally.primaryItems.empty() && tally.exclusiveSet.empty() && tally.effects.empty()) {
+        return;
+    }
+    spdlog::info("EnchantmentNbtBuilder: optional enchantment fields absent in datapack "
+                 "(defaults applied per vanilla CODEC optionalFieldOf): primary_items={}; exclusive_set={}; effects={}",
+        _formatMissingFieldIds(tally.primaryItems),
+        _formatMissingFieldIds(tally.exclusiveSet),
+        _formatMissingFieldIds(tally.effects));
+}
+
 /// 构造单个 enchantment 的内联 NBT 字节（Java 根 NBT 线格式）。
 /// 失败返回 nullopt（调用方据此回退 data=nullopt 或跳过）。
+/// tally 累计本条目缺失的可选字段（primary_items/exclusive_set/effects），供调用方汇总一行 info。
 std::optional<std::vector<u8>> _buildEnchantmentEntryData(
-    const mc::resource::DataPackRepository& repo, std::string_view id)
+    const mc::resource::DataPackRepository& repo, std::string_view id, MissingOptionalFieldTally& tally)
 {
     const std::string resourcePath = _enchantmentIdToResourcePath(id);
     const std::string text = _readDataPackText(repo, resourcePath);
@@ -520,7 +564,8 @@ std::optional<std::vector<u8>> _buildEnchantmentEntryData(
     }
 
     // HolderSet 字段：展平 #tag → 显式名字列表（绕开 lookupTag 与未绑定 Named）。
-    // 这三个字段在 vanilla Enchantment CODEC 中均为必需；缺失会导致客户端解码失败，明确报错。
+    // supported_items 在 vanilla Enchantment CODEC 中为必需（fieldOf），缺失会导致客户端解码失败，明确报错；
+    // primary_items / exclusive_set 为可选（optionalFieldOf），缺失属合法形态，仅累计后汇总一行 info。
     const bool hasSupportedItems = j.contains("supported_items") && j["supported_items"].is_string();
     if (hasSupportedItems) {
         const auto names = _flattenHolderSet(repo, j["supported_items"].get<std::string>());
@@ -531,14 +576,21 @@ std::optional<std::vector<u8>> _buildEnchantmentEntryData(
     if (j.contains("primary_items") && j["primary_items"].is_string()) {
         const auto names = _flattenHolderSet(repo, j["primary_items"].get<std::string>());
         root->value.emplace("primary_items", _makeStringList(names));
+    } else if (j.contains("primary_items")) {
+        // 字段存在但类型非字符串：数据包格式异常（非"合法缺省"），明确报错。
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' 'primary_items' present but not a string", id);
     } else {
-        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing/invalid 'primary_items' (required)", id);
+        // 合法缺省：原版 optionalFieldOf 回落 Optional.empty()（该附魔无 primary 限制）。
+        tally.primaryItems.emplace_back(id);
     }
     if (j.contains("exclusive_set") && j["exclusive_set"].is_string()) {
         const auto names = _flattenHolderSet(repo, j["exclusive_set"].get<std::string>());
         root->value.emplace("exclusive_set", _makeStringList(names));
+    } else if (j.contains("exclusive_set")) {
+        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' 'exclusive_set' present but not a string", id);
     } else {
-        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing/invalid 'exclusive_set' (required)", id);
+        // 合法缺省：原版 optionalFieldOf 回落 HolderSet.direct()（该附魔不属于任何互斥组）。
+        tally.exclusiveSet.emplace_back(id);
     }
 
     // description（Component）：jsonToNbt 透传。{"translate":"..."} → compound{translate:string}
@@ -569,7 +621,9 @@ std::optional<std::vector<u8>> _buildEnchantmentEntryData(
             spdlog::error("EnchantmentNbtBuilder: enchantment '{}' effects jsonToNbt failed, omitted", id);
         }
     } else {
-        spdlog::error("EnchantmentNbtBuilder: enchantment '{}' missing 'effects' (required)", id);
+        // 合法缺省：原版 optionalFieldOf 回落 DataComponentMap.EMPTY（该附魔无效果组件，
+        // 如 fortune 的效果走战利品表修改器而非附魔效果）。
+        tally.effects.emplace_back(id);
     }
 
     return mc::network::buffer::nbt_io::serializeRootCompoundToBytes(*root);
@@ -587,16 +641,20 @@ std::vector<mc::network::ir::configuration::RegistryEntry> buildEnchantmentRegis
 {
     std::vector<mc::network::ir::configuration::RegistryEntry> entries;
     entries.reserve(kEnchantmentIds.size());
+    // 累计各附魔缺失的可选字段（primary_items/exclusive_set/effects），循环结束后汇总一行 info，
+    // 避免 43 条附魔逐条报 error 淹没真正缺陷（文件缺失 / JSON 语法错 / 标签展平失败）。
+    MissingOptionalFieldTally tally;
     for (const auto id : kEnchantmentIds) {
         mc::network::ir::configuration::RegistryEntry entry;
         entry.id = std::string(id);
-        entry.data = _buildEnchantmentEntryData(repo, id);
+        entry.data = _buildEnchantmentEntryData(repo, id, tally);
         if (!entry.data.has_value()) {
             // 内联 NBT 构建失败 → 发 nullopt，客户端该 enchantment 注册表条目为空，明确 error。
             spdlog::error("EnchantmentNbtBuilder: enchantment '{}' inline NBT build failed, sending nullopt", id);
         }
         entries.push_back(std::move(entry));
     }
+    _logMissingOptionalFields(tally);
     return entries;
 }
 

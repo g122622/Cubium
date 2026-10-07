@@ -396,6 +396,35 @@ TEST_F(EnchantmentNbtBuilderTest, MissingEnchantmentFileYieldsNullopt)
     EXPECT_TRUE(sharpness->data.has_value());
 }
 
+// 可选字段（primary_items / exclusive_set）在数据包中缺省时：条目仍构建成功，且对应键从内联 NBT 中
+// 省略（客户端按原版 optionalFieldOf 取默认值）。这是"缺字段≠缺陷"契约的回归桩——曾因构建器把
+// 可选字段误判为 required 而逐条报 error，淹没真正缺陷。wind_burst 的临时 JSON 不含 primary_items
+// 与 exclusive_set，恰好覆盖该路径。
+TEST_F(EnchantmentNbtBuilderTest, AbsentOptionalFieldsOmittedAndEntryStillBuilds)
+{
+    loadItemTagsIntoRegistry();
+
+    const auto dir = buildTestDatapack();
+    mc::resource::DataPackRepository repo;
+    ASSERT_TRUE(repo.addPack(dir, true, 0).success());
+
+    const auto entries = buildEnchantmentRegistryEntriesUncached(repo);
+    mc::test::removeTestDir(dir);
+
+    const auto* wb = findEntry(entries, "minecraft:wind_burst");
+    ASSERT_NE(wb, nullptr);
+    ASSERT_TRUE(wb->data.has_value()) << "缺可选字段不应导致构建失败（data 须非 nullopt）";
+    auto root = parseRootNbtBytes(*wb->data);
+    ASSERT_NE(root, nullptr);
+
+    // 必需字段仍在。
+    EXPECT_TRUE(root->value.count("supported_items")) << "supported_items 为必需，须存在";
+    EXPECT_TRUE(root->value.count("effects")) << "wind_burst 声明了 effects，须存在";
+    // 可选字段缺省时对应键须省略（不写空列表），客户端回落 CODEC 默认值。
+    EXPECT_FALSE(root->value.count("primary_items")) << "缺省的可选字段 primary_items 不应出现在 NBT 中";
+    EXPECT_FALSE(root->value.count("exclusive_set")) << "缺省的可选字段 exclusive_set 不应出现在 NBT 中";
+}
+
 // effects 树内 predicate.type 的 ENTITY_TYPE #tag 展平（走 EntityTypeTags::getTag 路径）。
 // bane_of_arthropods 的 requirements.predicate.type:"#minecraft:arrows" 须展平为名字列表
 // ["minecraft:arrow","minecraft:spectral_arrow"]，无残留 #。验证 effects 递归展平命中谓词 type 字段。
