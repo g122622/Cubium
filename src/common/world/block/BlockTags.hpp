@@ -461,9 +461,8 @@ public:
     /// 运行时消费场景：
     /// 1. FALL_DAMAGE_RESETTING 标签的组成项（实体穿过可攀爬方块时重置摔落距离）
     /// 2. vanilla Entity.move 的 FALLDAMAGE_RESETTING 射线检测命中可攀爬方块即 resetFallDistance
-    /// 注意：Cubium 的攀爬物理判定走 Block::isLadder 虚函数（LadderBlock/VineBlock/ScaffoldingBlock/
-    /// TrapDoorBlock 重写），与此标签独立。weeping/twisting/cave vines 未重写 isLadder，
-    /// 故虽在此标签中，实体在其上不能攀爬（与 vanilla 偏差，TODO）。
+    /// 3. Entity::isOnLadder 除 Block::isLadder 虚函数外亦查询本标签，使垂泪藤/扭曲藤/洞穴藤蔓
+    ///    （未重写 isLadder）同样触发攀爬物理
     /// MC 1.21.11: BlockTags.CLIMBABLE
     static BlockTag& CLIMBABLE();
 
@@ -654,6 +653,16 @@ public:
      * @return 标签指针，如果不存在返回 nullptr
      */
     [[nodiscard]] static BlockTag* getTag(const ResourceLocation& id);
+
+    /**
+     * @brief 检查方块标签系统是否已初始化
+     *
+     * 在 initialize() 之前调用标签访问方法会导致空指针解引用。
+     * 供运行期查询标签的实体逻辑（如 Entity::isOnLadder 查 CLIMBABLE）做安全守卫。
+     *
+     * @return 是否已初始化
+     */
+    [[nodiscard]] static bool isInitialized() { return s_initialized; }
 
     /**
      * @brief 注册或获取指定ID的标签

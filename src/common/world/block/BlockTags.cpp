@@ -3637,9 +3637,9 @@ void BlockTags::initialize()
     // 创建 CLIMBABLE 标签（可攀爬方块）
     // vanilla 定义（climbable.json）：ladder、vine、scaffolding、weeping_vines、weeping_vines_plant、
     // twisting_vines、twisting_vines_plant、cave_vines、cave_vines_plant。
-    // 运行时消费：FALL_DAMAGE_RESETTING 标签合并此标签成员（实体穿过可攀爬方块重置摔落距离）。
-    // 注意：Cubium 攀爬物理走 Block::isLadder 虚函数（仅 LadderBlock/VineBlock/ScaffoldingBlock/
-    // TrapDoorBlock 重写），weeping/twisting/cave vines 虽在此标签但不触发攀爬物理（TODO 补 isLadder）。
+    // 运行时消费：FALL_DAMAGE_RESETTING 标签合并此标签成员（实体穿过可攀爬方块重置摔落距离），
+    // 以及 Entity::isOnLadder（除 Block::isLadder 虚函数外亦查本标签，使未重写 isLadder 的
+    // 垂泪藤/扭曲藤/洞穴藤蔓同样触发攀爬物理）。
     auto climbable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "climbable"));
     climbable->addAll({ResourceLocation("minecraft", "ladder"),
         ResourceLocation("minecraft", "vine"),

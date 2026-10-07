@@ -101,9 +101,9 @@ function ladderBreaksWhenAttachedBlockRemoved(test: Test): void {
 //       ...
 //       double d2 = Math.max(p_21298_.y, -0.15F);  // 限制下滑速度
 //   }
-//   onClimbable() 检查碰撞箱内方块 isLadder 或 BlockTags.CLIMBABLE。Cubium isOnLadder 只查 isLadder
-//   虚函数（LadderBlock/VineBlock/ScaffoldingBlock 重写），weeping/twisting/cave vines 未重写 isLadder
-//   故实体在其上不触发攀爬物理（与 vanilla 偏差，TODO，见 BlockTags.hpp CLIMBABLE 注释）。
+//   onClimbable() 检查碰撞箱内方块 isLadder 或 BlockTags.CLIMBABLE。Cubium Entity::isOnLadder 先查
+//   CLIMBABLE 标签（覆盖梯子/藤蔓/脚手架/垂泪藤/扭曲藤/洞穴藤蔓），再查 isLadder 虚函数
+//   （LadderBlock/VineBlock/ScaffoldingBlock 重写、打开的木活板门）——故藤蔓类方块同样触发攀爬物理。
 //
 // 几何（fall_tower 中心 1×1 玻璃管囚禁实体垂直下落，结构尺寸 7×16×7）：
 //   - (3,0,3) cobblestone：承接猪的实方块（fall_tower y=0 中心格默认非固体）。

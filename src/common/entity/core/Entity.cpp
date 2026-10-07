@@ -913,6 +913,9 @@ bool Entity::isOnLadder() const
         return false;
     }
 
+    // 方块标签可能尚未初始化（测试桩世界未跑 VanillaBlocks::initialize），此时跳过标签查询。
+    const bool tagsReady = BlockTags::isInitialized();
+
     // 检查实体碰撞箱内的方块
     const AxisAlignedBB box = boundingBox();
 
@@ -928,6 +931,15 @@ bool Entity::isOnLadder() const
             for (i32 z = minZ; z <= maxZ; ++z) {
                 const BlockState* blockState = m_world->getBlockState(x, y, z);
                 if (blockState != nullptr) {
+                    // CLIMBABLE 标签覆盖梯子/藤蔓/脚手架/垂泪藤/扭曲藤/洞穴藤蔓。垂泪藤、扭曲藤、
+                    // 洞穴藤蔓（含 _plant 变体）未重写 isLadder 虚函数，仅靠此标签查询即可触发攀爬物理。
+                    // TODO: vanilla 另有一条例外——鞘翅滑翔中且方块在 CAN_GLIDE_THROUGH 标签内时不攀爬。
+                    //       Cubium 尚未注册 CAN_GLIDE_THROUGH 标签，此处未实现该例外。
+                    if (tagsReady && BlockTags::CLIMBABLE().contains(*blockState)) {
+                        const_cast<Entity*>(this)->m_lastClimbPos = BlockPos(x, y, z);
+                        return true;
+                    }
+
                     const Block& block = blockState->getBlock();
                     BlockPos pos(x, y, z);
                     if (block.isLadder(*blockState, m_world, &pos, this)) {
