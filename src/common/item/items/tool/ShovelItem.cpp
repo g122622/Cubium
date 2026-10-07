@@ -267,13 +267,21 @@ std::unordered_map<const Block*, const Block*>& ShovelItem::_getPathMap()
     static std::unordered_map<const Block*, const Block*> map = []() {
         std::unordered_map<const Block*, const Block*> m;
 
-        // 草方块 -> 土径
-        if (VanillaBlocks::GRASS_BLOCK && VanillaBlocks::GRASS_PATH) {
-            m[VanillaBlocks::GRASS_BLOCK] = VanillaBlocks::GRASS_PATH;
-        }
-        // TODO: 压土径映射不完整。wiki tech_锹.txt#用途 行281 指出上方为空气的草方块、泥土、砂土、
-        //   菌丝体、灰化土、缠根泥土均可被锹压为土径，此处仅映射了 grass_block。补全 dirt/coarse_dirt/
-        //   mycelium/podzol/rooted_dirt -> GRASS_PATH(DIRT_PATH) 映射后，需同步补集成测试（锹压泥土→土径等）。
+        // 可压成土径的方块集合：草方块、泥土、灰化土、砂土、菌丝体、缠根泥土。
+        // 方块注册顺序不受控，故逐项判空后插入（未注册的方块静默跳过）。
+        const Block* const path = VanillaBlocks::GRASS_PATH;
+        const auto addFlattenable = [&m, path](const Block* source) {
+            if (source != nullptr && path != nullptr) {
+                m[source] = path;
+            }
+        };
+
+        addFlattenable(VanillaBlocks::GRASS_BLOCK);
+        addFlattenable(VanillaBlocks::DIRT);
+        addFlattenable(VanillaBlocks::PODZOL);
+        addFlattenable(VanillaBlocks::COARSE_DIRT);
+        addFlattenable(VanillaBlocks::MYCELIUM);
+        addFlattenable(VanillaBlocks::ROOTED_DIRT);
 
         return m;
     }();

@@ -128,7 +128,7 @@ private:
      *
      * 使用"construct on first use"模式，确保静态方法调用前映射表已初始化
      *
-     * @return 草方块 -> 土径 映射的引用
+     * @return 可压方块 -> 土径 映射的引用
      */
     static std::unordered_map<const Block*, const Block*>& _getPathMap();
 };

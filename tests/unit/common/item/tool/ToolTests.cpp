@@ -497,13 +497,65 @@ TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockGrassBlock)
     EXPECT_EQ(result, grassPath) << "Shovel should convert GRASS_BLOCK to GRASS_PATH";
 }
 
-TEST_F(ToolSpecialFunctionTest, ShovelCannotPathDirt)
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockDirt)
 {
+    // 泥土可被锹压成土径（对齐 vanilla ShovelItem.FLATTENABLES）
     auto* dirt = VanillaBlocks::DIRT;
-    ASSERT_NE(dirt, nullptr);
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+
+    ASSERT_NE(dirt, nullptr) << "DIRT should be registered";
+    ASSERT_NE(grassPath, nullptr) << "GRASS_PATH should be registered";
 
     const Block* result = ShovelItem::getPathBlock(dirt);
-    EXPECT_EQ(result, nullptr) << "Shovel should not be able to create path from dirt";
+    EXPECT_EQ(result, grassPath) << "Shovel should convert DIRT to GRASS_PATH";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockCoarseDirt)
+{
+    auto* coarseDirt = VanillaBlocks::COARSE_DIRT;
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+
+    ASSERT_NE(coarseDirt, nullptr) << "COARSE_DIRT should be registered";
+    ASSERT_NE(grassPath, nullptr) << "GRASS_PATH should be registered";
+
+    const Block* result = ShovelItem::getPathBlock(coarseDirt);
+    EXPECT_EQ(result, grassPath) << "Shovel should convert COARSE_DIRT to GRASS_PATH";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockPodzol)
+{
+    auto* podzol = VanillaBlocks::PODZOL;
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+
+    ASSERT_NE(podzol, nullptr) << "PODZOL should be registered";
+    ASSERT_NE(grassPath, nullptr) << "GRASS_PATH should be registered";
+
+    const Block* result = ShovelItem::getPathBlock(podzol);
+    EXPECT_EQ(result, grassPath) << "Shovel should convert PODZOL to GRASS_PATH";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockMycelium)
+{
+    auto* mycelium = VanillaBlocks::MYCELIUM;
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+
+    ASSERT_NE(mycelium, nullptr) << "MYCELIUM should be registered";
+    ASSERT_NE(grassPath, nullptr) << "GRASS_PATH should be registered";
+
+    const Block* result = ShovelItem::getPathBlock(mycelium);
+    EXPECT_EQ(result, grassPath) << "Shovel should convert MYCELIUM to GRASS_PATH";
+}
+
+TEST_F(ToolSpecialFunctionTest, ShovelGetPathBlockRootedDirt)
+{
+    auto* rootedDirt = VanillaBlocks::ROOTED_DIRT;
+    auto* grassPath = VanillaBlocks::GRASS_PATH;
+
+    ASSERT_NE(rootedDirt, nullptr) << "ROOTED_DIRT should be registered";
+    ASSERT_NE(grassPath, nullptr) << "GRASS_PATH should be registered";
+
+    const Block* result = ShovelItem::getPathBlock(rootedDirt);
+    EXPECT_EQ(result, grassPath) << "Shovel should convert ROOTED_DIRT to GRASS_PATH";
 }
 
 TEST_F(ToolSpecialFunctionTest, ShovelCannotPathStone)
