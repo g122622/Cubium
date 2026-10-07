@@ -14,15 +14,16 @@
 
 | 口径 | 含义 | 8/32 实测 |
 |---|---|---:|
-| **生成峰值** | 1024 区块并行生成过程中进程堆的最高点 | **159.4 MB**（优化前 207.7） |
-| **生成后稳态** | 同一批区块全部 FULL 后、仍驻留内存时的堆 | **104.8 MB**（优化前 117.8） |
+| **生成峰值** | 1024 区块并行生成过程中进程堆的最高点 | **159.4 MB**（优化前 207.6） |
+| **生成后稳态** | 同一批区块全部 FULL 后、仍驻留内存时的堆 | **104.8 MB**（优化前 116.9） |
 | 服务端空载（不生成区块） | `--benchmark-exit-after-shell_init` 路径的堆峰值 | 27.8 MB |
 | 服务端进主循环（含出生区区块） | 堆峰值 / 稳态 | 42.1 / 39.7 MB |
 
 **一句话结论**：生成峰值里最大的单项曾是密度函数区块级实例的 Op 序列深拷贝
 （86.0 MB / 41%），代码注释已自证该拷贝冗余——**已落地修复，峰值降 23%**（见 §五靶点 1）。
-下一阶段的最大目标是**稳态侧的光照 nibble**（原版 `DataLayer` 有常量态、Cubium 的
-`setFull()` 无条件物化实体缓冲，见 §五靶点 7）。
+稳态侧的**每区块边际成本约 68.5 KB**（由 64/1024 区块两次冻结差分实测），
+其中 49% 是 `ChunkPrimer` ctor 与 `PalettedContainer` 的**多次独立堆分配**——
+这是稳态进一步压缩的主攻方向（见 §五靶点 8）。
 
 ---
 
@@ -47,7 +48,7 @@
 
 ---
 
-## 二、生成峰值归因（8/32，207.7 MB）
+## 二、生成峰值归因（8/32，207.6 MB）
 
 由 `heaptrack_print -p 1 -n 400 -s 1`（未合并调用栈，取进程堆峰值时刻的存活分配）聚合到**最深 Cubium 帧**：
 
@@ -57,7 +58,7 @@
 | 2 | `ChunkPrimer::ChunkPrimer` @ `ChunkPrimer.cpp:164/168/169`（`make_shared<ChunkData>` + `BiomeContainer` + `array<Heightmap,7>`） | 32.4 | 15.6% | 5 832 | 半可削 |
 | 3 | `NoiseInterpolator::NoiseInterpolator` @ `NoiseChunk.cpp:103/104`（两个 `m_slice0/m_slice1` 扁平缓冲） | 24.8 | 11.9% | 46 208 | 可削 |
 | 4 | `FlatCache::FlatCache` @ `DensityFunctions.hpp:998`（构造期整张预计算表） | 10.9 | 5.2% | 199 272 | 需评估 |
-| 5 | `TracyTrackingAlloc::allocate` @ `MemoryTracking.hpp:283`（PalettedContainer 位存储 vector） | 7.4 | 3.6% | 119 806 | 本体必要 |
+| 5 | `TracyTrackingAlloc::allocate` @ `MemoryTracking.hpp:283`（PalettedContainer 存储 vector） | 7.4 | 3.6% | 119 806 | 本体必要；**注意 Tracy 已 OFF**（该分配器在关闭态退化为 `std::allocator`，只是类型名仍叫 `TracyTrackingAlloc`） |
 | 6 | `NoiseBasedAquifer::NoiseBasedAquifer` @ `NoiseBasedAquifer.cpp:76/77` | 5.1 | 2.5% | 5 184 | — |
 | 7 | `StaticChunkCache2D<>::StaticChunkCache2D` @ `StaticChunkCache2D.hpp:76` | 5.0 | 2.4% | 24 256 | — |
 | 8 | `NoiseChunk::samplePreliminarySurfaceLevel` @ `NoiseChunk.cpp:648`（`unordered_map` 增长） | 4.7 | 2.3% | 534 976 | 可削 |
@@ -72,38 +73,70 @@
 
 ---
 
-## 三、生成后稳态归因（8/32，117.8 MB）
+## 三、生成后稳态归因（8/32，104.8 MB）
 
-1024 个区块全部 FULL 且仍加载时，进程堆 = **117.8 MB**，即 **约 115 KB/区块**。
-构成与生成期不同：`NoiseChunk` 及其密度求值器已在 CARVERS 之后释放
-（`ChunkPrimer::releaseGenOnlyData`，`ChunkPrimer.cpp:566`），稳态的主体是 **ChunkData 本体**：
+### 3.1 归因方法：稳态冻结快照
 
-| 项 | 每区块 | ×1024 | 来源 |
+heaptrack 的 massif 稳态堆树在本版本（1.5.0）不可用（见 §七 第 2 条），
+故改用**稳态冻结快照**：在基准完成一批生成、拿到全部区块的快照后（此时所有
+worker 已停），直接 `std::_Exit(0)` 跳过全部析构与 atexit——**heaptrack 报出的
+"未释放"即稳态存活分配的真实构成**。
+
+驱动方式：环境变量 `MC_BENCH_FREEZE_STEADY=1`（`benchmark/cases/ChunkGenerationBenchmark.cpp`，
+TODO(临时诊断)）。
+
+用 **64 区块与 1024 区块两次冻结的差分**消除进程固定开销（RocksDB、方块注册表、
+数据包资源、命令树等约 **39.9 MB**），得到**每区块的边际成本**：
+
+```
+(104.0 − 39.9) MB / (1024 − 64) 区块 = 70 102 B/区块 ≈ 68.5 KB/区块
+```
+
+### 3.2 每区块边际成本构成（已归一到 1024 区块）
+
+| 项 | MB | 占比 | 性质 |
 |---|---:|---:|---|
-| `ChunkData` 外壳（`shared_ptr` 控制块 + 成员） | ~4.4 KB | 4.5 MB | **推算**（对齐 `MEMORY.md` §3.4 的 13 777 B 减去 Tracy 开销；Linux 侧无 Tracy，实测未单独拆分） |
-| `m_heightmaps` = `array<Heightmap, 7>` | 7.0 KB | 7.2 MB | 推算：`7 × 1024 B`（`array<BlockCoord,256>`） |
-| `m_biomes` = `BiomeContainer`（`array<u16,1536>`） | 3.0 KB | 3.1 MB | 推算：`1536 × 2 B` |
-| 段 `PalettedContainer` 位存储 | — | 9.1 MB | **本次实测**（见下方位宽分布表）|
-| `m_skyNibbles` + `m_blockNibbles`（52 × 2 KB，池化） | 视光照而定 | — | `SWMRNibbleArray` thread_local 池，上限 128 KB/线程 |
-| RocksDB / 存储层 / 生命周期管理器 / 其余 | — | ~94 MB | 差额（117.8 减去上表可归因项） |
+| `ChunkPrimer::ChunkPrimer`（`ChunkData` + `BiomeContainer` + `Heightmap[7]`） | 22.8 | 33% | 三次独立堆分配 |
+| `PalettedContainer` 存储（storage/palette/hashMap） | 11.0 | 16% | 三次独立堆分配 |
+| `ServerTickList` 的 `ScheduledTick`（流体 tick） | 7.1 | 10% | **基准口径产物，见下** |
+| `SWMRNibbleArray` 缓冲（天空光/方块光） | 6.7 | 10% | 见 §五靶点 7 |
+| `SingleChunkLifecycleManager` 邻居集 | 4.5 | 7% | — |
+| `CompiledDensityFunction::newInstance`（区块级求值器） | 4.4 | 6% | 见 §五靶点 5 |
+| `NoiseInterpolator` 双 slice | 3.1 | 5% | 对齐原版，不可削 |
+| `ChunkProgressionTask::executeEmptyLoad` | 1.7 | 2% | — |
+| `FlatCache` 预计算表 | 1.3 | 2% | 见 §五靶点 5 |
+| `ChunkData::_setBlockStateUnlockedGen`、`ReentrantAreaLock`、其余 | ~9 | 13% | — |
+| **合计** | **≈ 68.5** | | |
 
-> **上表前四项的"每区块字节"是结构性推算，不是本次 heaptrack 实测的归属**。
-> heaptrack 的 massif 稳态堆树在本版本（1.5.0）有 bug（见 §七 第 2 条），
-> 无法直接给出稳态时刻的逐项子树；只有段位存储是通过基准自带的 CSV 精确实测的。
-> 要在 Linux 上得到稳态的逐项归因，需要给 `ChunkData`/`ChunkPrimer` 加
-> **具名分配器（如 `TracyTrackingAlloc` 已有先例）** 后再跑一次 heaptrack。
+> **`ServerTickList` 的 7.1 MB 大概率是基准口径的产物**：基准在 `_postProcessChunk`
+> 里对每个后处理位置的液体调 `scheduleFluidTick`，而基准的 `tick()` 不推进游戏刻，
+> 这些 tick 条目**永不执行、持续累积**。真实服务端下它们会随 tick 排空，
+> 故这 7.1 MB 不应计入常规稳态。
 
-**段调色板位宽实测分布**（`benchmark_results/palette_bits/chunk_palette_bits_threads=8_batch=32.csv`）：
+**与初版（本节旧版）的差异**：初版按结构性推算给出"`ChunkData` 外壳 4.5 MB +
+`Heightmap` 7.2 MB + `BiomeContainer` 3.1 MB"，其中 **`Heightmap` 的 7.2 MB 是错的**——
+位压缩早已落地（`sizeof(Heightmap)=296 B`，7 类型仅 2.0 MB，见 §五靶点 3），
+初版沿用了 `docs/MEMORY.md`（2026-09-25）的过时数据。实测的 22.8 MB（`ChunkPrimer` ctor
+三项合计）与初版推算的 14.8 MB 相差 8 MB，差额即来自此。
 
-| bits | 段数 | 每段字节 | 小计 |
-|---:|---:|---:|---:|
-| 1 | 2 025 | 512 | 0.99 MB |
-| 2 | 6 407 | 1 024 | 6.26 MB |
-| 3 | 1 257 | 1 536 | 1.84 MB |
-| **合计** | **9 689** | 均摊 983 | **9.09 MB** |
+### 3.3 段调色板位宽实测分布
 
-**关键观察**：**最高位宽只有 3 bit**，且 66% 的段是 2 bit。位存储本身没有浪费空间；
-浪费在**每段的固定外壳**（`PalettedContainer` 对象、palette 数组、哈希表）与 **1024 区块 × 24 段 = 24 576 个段槽位**（只有 39.4% 被填充）。
+`benchmark_results/palette_bits/chunk_palette_bits_threads=8_batch=32.csv`
+（含新增的 `container_bytes` 列 = `PalettedContainer::estimatedMemoryUsage()`）：
+
+| bits | 段数 | 位存储字节 | 容器总字节 | 小计 |
+|---:|---:|---:|---:|---:|
+| 1 | 2 025 | 512 | 680 | 1.31 MB |
+| 2 | 6 407 | 1 024 | 1 200 | 7.33 MB |
+| 3 | 1 257 | 1 536 | 1 728 | 2.07 MB |
+| **合计** | **9 689** | 均摊 983 | **均摊 1 160** | **10.72 MB** |
+
+**关键观察**：
+- **最高位宽只有 3 bit**，66% 的段是 2 bit——位存储本身没有浪费。
+- 但**容器总字节比位存储多 1.63 MB**（每段多约 180 B）：这是 palette 数组 + 开放寻址
+  哈希表 + `Data` 头。`bits=1` 时段均 680 B 而位存储只有 512 B，**外壳占 25%**。
+- **1024 区块 × 24 段 = 24 576 个段槽位，只有 9 689 个（39.4%）被填充**；
+  空段的 `unique_ptr<ChunkSection>` 已为 `nullptr`，不占位存储。
 
 ---
 
@@ -287,45 +320,87 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
 **方向**：空段的 `unique_ptr<ChunkSection>` 已为 `nullptr`（不占位存储），
 可评估的是**非空段的外壳开销**（`bits=1/2/3` 时 palette 数组仅 2–6 项，哈希表可能偏大）。
 
-### 靶点 7 · 光照 nibble 的常量态 —— 收益 **潜在 −20~40 MB（稳态主力）**，风险：中
+### 靶点 7 · 光照 nibble 的常量态 —— 实测收益 **−2.6 MB（稳态 −2.5%）**，风险：中
 
-`SWMRNibbleArray` 每段 2 048 B（`ARRAY_SIZE`），`LIGHT_SECTIONS = CHUNK_SECTIONS + 2 = 26`，
-天空光 + 方块光各 26 段 → 每区块最多 52 × 2 048 B = **106 KB**。1024 区块满配约 **104 MB**，
-是稳态 104.8 MB 里**最大的一块**（远大于段位存储的 9.09 MB）。
+**这是初版报告严重高估的一项，实测后从"−20~40 MB"修正为 −2.6 MB。**
 
-**原版有常量态、Cubium 没有**：MC 1.21.11 `DataLayer` 用 `defaultValue` + 惰性 `data`
-（`DataLayer.java:16-19, 38-43`）——`fill(15)` 只设 `defaultValue=15` 并**把 `data` 置 null**，
-`getData()` 才按需物化并 `Arrays.fill`。Cubium 的 `SWMRNibbleArray::setFull()`
-（`SWMRNibbleArray.cpp:165-185`）**立即 `_allocateBytes()` 分配 2 048 B 实体缓冲**，
-没有"全 15 常量态"的表示。
+`SWMRNibbleArray` 每段 2 048 B，`LIGHT_SECTIONS = CHUNK_SECTIONS + 2 = 26`，
+天空光 + 方块光共 52 槽位/区块 → 理论满配 106 KB/区块。初版据此推算"1024 区块满配 104 MB"，
+并断言这是稳态最大单项。**实测推翻了这个推算**——nibble 是延迟分配的，绝大多数槽位根本没物化。
 
-**收益来源**：`SkyStarLightEngine::initNibble` 对"最高非空段之上"的每一段调 `setFull()`，
-这些段语义上就是常量全 15。`docs/MEMORY.md`（Windows）靶点 2 抽样 14 块 2 048 B 缓冲，
-3 块全 `0xFF`（天空光全亮），按此外推约 12 MB；按 `LIGHT_SECTIONS − 最高非空段`
-理论推算上限约 38 MB。
+**实测（新增 `dumpNibbleStats` 诊断，`benchmark_results/nibble_stats/`）**：
 
-**改动面**：`SWMRNibbleArray` 的 `State` 枚举扩展一个"全满常量态"（现有 `Null`/`Uninit`
-已有语义可参照），`get()` 在常量态直接返回 15、首次 `set()` 时才物化实体缓冲。
-**风险**：这是光照引擎核心，任何遗漏会导致光照计算偏差；且需与 thread_local 池
-（`POOL_CAPACITY_PER_THREAD`）的分配/释放路径协同。
+| 项 | 8/32（1024 区块） | 占比 |
+|---|---:|---:|
+| 槽位总数 | 53 248（1024 × 52） | — |
+| **已物化槽位** | **3 457** | **6.5%** |
+| 物化总字节 | **6.75 MB** | — |
+| 其中「全 15」（天空光全亮） | 1 323 槽位 / **2.58 MB** | 38% of 物化 |
+| 其中「全 0」 | 32 槽位 / **0.06 MB** | 1% |
+| 其余（有真实光照梯度） | 2 102 槽位 / 4.11 MB | 61% |
 
-**建议**：这是稳态侧最大的单项，值得单独立项并配光照正确性回归测试。
+**关键数字**：nibble 的**边际成本只有 6.7 MB / 1024 区块 ≈ 6.7 KB/区块**
+（由"1024 区块 − 64 区块"的稳态差分得出，见 §三）。
+
+**原版确实有常量态、Cubium 确实没有**（这一点初版判断正确）：
+- MC 1.21.11 `SkyLightSectionStorage.createDataLayer`（`:92-111`）返回
+  `lightOnInSection(sec) ? new DataLayer(15) : new DataLayer()` —— `DataLayer(int)` 只设
+  `defaultValue`，`data` 保持 null，**零字节分配**；`DataLayer.get()` 在 `data == null` 时
+  直接返回 `defaultValue`（`DataLayer.java:38-43`）。
+- Cubium 的 `SWMRNibbleArray::setFull()`（`SWMRNibbleArray.cpp:165-190`）**立即
+  `_allocateBytes()` 分配 2 048 B 并 `std::fill(0xFF)`**。
+
+**但收益只有 2.6 MB**，因为只有 38% 的物化槽位是全常量态，其余 61% 是真实的光照梯度
+（不可常量化）。若把 1 323 个全 15 + 32 个全 0 槽位改为常量态，可省
+**约 2.6 MB**（稳态 104.8 → 约 102 MB），另有减少 1 355 次 2 KB 分配带来的碎片收益（未量化）。
+
+> **注意**：本项是"对齐原版"的改动（原版确实不物化常量段），但**收益远小于初版预期**。
+> 优先级应低于靶点 8（arena 池化）与靶点 5（FlatCache 数量核实）。
+
+**改动面**：`SWMRNibbleArray` 的 `State` 枚举扩展"全满常量态"，`get()`/`getUpdating()` 在
+常量态直接返回 15（或 0），首次 `set()` 时才物化实体缓冲。需与 thread_local 池
+（`POOL_CAPACITY_PER_THREAD`）的分配/释放路径协同，并覆盖 `updateVisible`/`toByteArray`/
+`copyVisibleTo`/`getSaveState` 等导出路径。
 
 ### 靶点 8 · 段/区块的**预分配池化** —— 收益 **潜在 −10~20 MB**，风险：中-高
 
-`ChunkPrimer` ctor 三行合计 **32.4 MB / 5 832 次**（每 primer 约 5.7 KB）：
-`make_shared<ChunkData>` + `BiomeContainer` + `array<Heightmap,7>` 三块独立堆分配。
-按 `MEMORY_IDLE_MACOS.md` §二的推论——**malloc 碎片与小对象基数正相关**——
-把这三块改为**单次 arena 分配**（一个 primer 一块连续内存）可同时降低分配次数与碎片。
-**此项是"内存砍半"的后半程主力，但属内存布局重构，需单独立项。**
+由"1024 − 64 区块"的稳态差分得出的**每区块边际成本约 68.5 KB**，构成如下
+（已归一到 1024 区块）：
+
+| 项 | MB | 占比 |
+|---|---:|---:|
+| `ChunkPrimer::ChunkPrimer`（`ChunkData` + `BiomeContainer` + `Heightmap[7]`） | 22.8 | 33% |
+| `PalettedContainer` 存储（storage/palette/hashMap） | 11.0 | 16% |
+| `ServerTickList` 的 `ScheduledTick`（流体 tick） | 7.1 | 10% |
+| `SWMRNibbleArray` 缓冲（见靶点 7） | 6.7 | 10% |
+| `CompiledDensityFunction::newInstance`（区块级求值器） | 4.4 | 6% |
+| `SingleChunkLifecycleManager` 邻居集 | 4.5 | 7% |
+| `NoiseInterpolator` 双 slice | 3.1 | 5% |
+| `ChunkProgressionTask::executeEmptyLoad` | 1.7 | 2% |
+| `FlatCache` 预计算表 | 1.3 | 2% |
+| 其余（`ChunkData` 写入、`ReentrantAreaLock` 等） | ~6 | 9% |
+| **合计** | **≈ 68.5** | |
+
+**前两项（33.8 MB）都是"每区块三块独立堆分配"**：`ChunkPrimer` ctor 的
+`make_shared<ChunkData>` + `BiomeContainer` + `array<Heightmap,7>` 是三次独立分配，
+`PalettedContainer` 的 storage/palette/hashMap 又是三次。按 `MEMORY_IDLE_MACOS.md` §二的
+推论——**malloc 碎片与小对象基数正相关**——改为**单次 arena 分配**（一个区块一块连续内存）
+可同时降低分配次数与碎片。**这是稳态砍半的主力，但属内存布局重构，需单独立项。**
+
+> **`ServerTickList` 的 7.1 MB 需在真实运行中复核**：基准在 `_postProcessChunk`
+> 里对每个后处理位置的液体调 `scheduleFluidTick`，而基准的 `tick()` 不推进游戏刻，
+> 这些 tick 条目**永不执行、持续累积**。真实服务端下它们会随 tick 排空，
+> 故这 7.1 MB 大概率是**基准口径的产物**，不应计入常规稳态。
 
 ### 已排除 / 需注意
 
 - **`ChunkPrimer` 与 `NoiseChunk` 的释放时机已是正确实现**：`releaseGenOnlyData` 在
   CARVERS 之后 `m_noiseChunk.reset()`（`ChunkPrimer.cpp:566`），生成期数据不残留到稳态。
   **不要**误以为"生成期内存常驻"而去改这里。
-- **稳态 104.8 MB 中不可削的部分**：1024 个区块的 `ChunkData` 本体（外壳 + 高度图 + 生物群系 + 位存储）
-  是"区块已加载"的语义要求，只能通过靶点 6/7/8 的结构性压缩来削，不能靠懒加载消除。
+- **稳态 104.8 MB 中不可削的部分**：1024 个区块的 `ChunkData` 本体是"区块已加载"的
+  语义要求，只能通过靶点 6/7/8 的结构性压缩来削，不能靠懒加载消除。
+- **`ChunkPrimer` 在 FULL 后被刻意保留**（`ChunkProgressionTask.cpp:263-267`：邻居
+  `getChunkIfPresentUnchecked` 仍可返回有效指针），直到 holder 卸载。这不是缺陷。
 
 ---
 
@@ -334,7 +409,7 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
 以 8/32 为口径（**靶点 1 已落地**）：
 
 ```
-生成峰值  207.7 → 159.4 MB（已落地 −48.2 MB）
+生成峰值  207.6 → 159.4 MB（已落地 −48.2 MB）
 ├── 靶点 1（Op 共享）        −48.2 MB  ✅ 已落地 a2f98b278
 ├── 靶点 4（surface 缓存）    −4.7 MB   ← 改开放寻址扁平表
 ├── 靶点 5（FlatCache 数量）  −? MB     ← 先核实原版数量，上限 −11.3 MB
@@ -344,17 +419,18 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
 
 ```
 生成后稳态  116.9 → 104.8 MB（靶点 1 顺带 −12.1 MB）
-├── 靶点 7（光照常量态）     −20~40 MB  ← 稳态最大单项，需立项
-├── 靶点 6（段外壳）        待实测
-└── 靶点 8（arena 池化）    −10~20 MB（需立项）
-                     合计   约 −30~60 MB → 约 45~75 MB（−29~57%）
+每区块边际成本 ≈ 68.5 KB，其中：
+├── 靶点 8（arena 池化）     −10~20 MB ← 覆盖 ctor(22.8) + PalettedContainer(11.0)，需立项
+├── 靶点 7（光照常量态）     −2.6 MB   ← 实测（初版高估为 −20~40 MB）
+└── 靶点 6（段外壳）        待实测
+                     合计   约 −13~23 MB → 约 82~92 MB（−12~22%）
 ```
 
 **结论**：
-1. **生成峰值已经降了 23%**（靶点 1 落地）。要到 −50% 需再叠加靶点 4 + 5 + 8。
-2. **生成后稳态砍半的关键是靶点 7（光照 nibble 常量态）**：它是稳态里最大的一块
-   （理论满配 104 MB），且原版 `DataLayer` 本就有该机制——Cubium 的 `setFull()`
-   无条件物化实体缓冲是**偏离原版**。这一项单独立项就可能把稳态砍掉 20–40%。
+1. **生成峰值已降 23%**（靶点 1）。要到 −50% 需再叠加靶点 4 + 5 + 8。
+2. **生成后稳态的瓶颈是"每区块的多次独立堆分配"**（ctor 22.8 MB + PalettedContainer 11.0 MB
+   = 边际成本的 49%），**不是**光照 nibble。初版把 nibble 当稳态最大单项是误判
+   （实测仅 6.7 MB / 10%），已在靶点 7 中更正。
 3. **空载基线（17–28 MB 堆）不是主战场**：构成以数据包资源、方块/物品注册表、命令树、
    脚本引擎为主，多为"启动即可查"的原版语义要求，可削空间有限
    （与 `docs/MEMORY_IDLE_MACOS.md` §5.3 的结论一致）。
@@ -370,14 +446,16 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
      无法定位到具体代码行。
 2. **`heaptrack` 的 `-M`（massif 输出）在 1.5.0 上有 bug**：`heap_tree=detailed` 块只有
    `n1` 根节点 + `n0: 0 in N places, all below threshold`，**不输出真实子树**，
-   无论 `--massif-threshold` 调到多低。**不要依赖 massif 做稳态归因**——
-   改用 `-p`/`-a` 的峰值归因 + 时间序列（`mem_heap_B` 逐 snapshot）交叉判断。
+   无论 `--massif-threshold` 调到多低。**不要依赖 massif 做稳态归因**。
+   **稳态归因的正确做法是"冻结快照"**（见 §三 3.1）：在稳态时刻 `std::_Exit(0)`
+   跳过全部析构，再用 `--flamegraph-cost-type leaked` 导出，此时"未释放"即稳态存活。
+   配合 64 / 1024 区块两次冻结的**差分**可消除进程固定开销，得到每区块边际成本。
 3. **区分"峰值"与"稳态"**：massif 时间序列的 `mem_heap_B` 可以直接读出两者
    （8/32：t=14.8s 峰值 203 MB，t=20.3s 稳态 116 MB）。峰值含生成中间态
    （NoiseChunk + 密度求值器），稳态只有 `ChunkData`。
 4. **基准进程的 `MemoryProfiler` 口径 ≠ 进程堆口径**：`mc_benchmark` 的
    `max_bytes_used`/`net_heap_growth` 是"Start/Stop 区间内累计分配 − 累计释放"，
-   8/32 报 30.9 MB；而 heaptrack 报进程堆峰值 207.7 MB。**两者相差近 7 倍**，
+   8/32 报 30.9 MB；而 heaptrack 报进程堆峰值 207.6 MB。**两者相差近 7 倍**，
    因为前者是**单次迭代的净增长**（每次迭代末都卸载了区块），后者是**进程总堆**。
    比较不同来源的数字前必须先确认口径。
 5. **构建必须显式关 Tracy**：`MC_ENABLE_TRACY` 默认 OFF（`CMakePresets.json` 的 `base` preset），
@@ -392,10 +470,10 @@ router 树上展开为**多少个**独立 Marker。实测 199 272 次分配 / 58
    **调用次数**（如 `NoiseInterpolator` 的 23 104 次）约为单轮的 2 倍，
    据此推算"每区块个数"时须**先除以 2**。**字节数不受影响**——两遍的分配在时间上不重叠，
    峰值时刻只统计当时存活的分配。
-8. **本报告中的"每区块 KB"多数是结构性推算**：heaptrack 1.5.0 的 massif 子树不可用
-   （见第 2 条），`ChunkData`/`Heightmap`/`BiomeContainer` 的逐项字节由
-   `sizeof` 与成员声明推导，**已在表中标注"推算"**。要得到 Linux 侧的逐项实测，
-   需要给这些类型加具名分配器（`TracyTrackingAlloc` 是现成范式）后再跑一次 heaptrack。
+8. **"每区块 KB"用 64/1024 两次冻结的差分实测，不再靠结构性推算**：早期版本的
+   §三 用 `sizeof` 推导逐项字节（并因此沿用了 `docs/MEMORY.md` 的过时 `Heightmap`
+   数据，误报 7.2 MB）。现改用稳态冻结 + 差分（见 §三 3.1），得到的是**分配点级**的
+   实测归属，不再需要具名分配器。
 
 ---
 
@@ -420,6 +498,20 @@ heaptrack_print -f /tmp/ht.raw.gz -m 0 -p 1 -n 400 -s 1 > /tmp/peak.txt
 # 时间序列（峰值 vs 稳态）
 heaptrack_print -f /tmp/ht.raw.gz -p 0 -a 0 -T 0 -l 0 -n 0 \
   -M /tmp/massif.txt --massif-detailed-freq 1 > /dev/null
+
+# 稳态归因（冻结快照 + 64/1024 差分）—— massif 子树在本版本不可用，用这个代替
+MC_BENCH_FREEZE_STEADY=1 heaptrack --record-only -o /tmp/frz1024.raw \
+  build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter="ChunkGeneration/8/32" --benchmark_min_time=0.3s
+MC_BENCH_FREEZE_STEADY=1 heaptrack --record-only -o /tmp/frz64.raw \
+  build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter="ChunkGeneration/8/8" --benchmark_min_time=0.3s
+for f in /tmp/frz1024 /tmp/frz64; do
+  heaptrack_print -f $f.raw.gz -p 0 -a 0 -T 0 -l 0 -n 0 \
+    --flamegraph-cost-type leaked -F $f.leak.txt > /dev/null
+done
+# 两者差分即每区块边际成本（脚本见本报告 §三 3.2 的推导）
+
+# 逐段诊断（基准自带 CSV）：palette_bits 与 nibble_stats
+# 输出在 benchmark_results/{palette_bits,nibble_stats}/
 
 # 服务端空载（不生成区块 / 进主循环）
 heaptrack --record-only -o /tmp/srv.raw \
