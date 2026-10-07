@@ -925,6 +925,15 @@ public:
 
     void broadcastPassengersChanged(EntityInstanceId vehicleId) override;
 
+    /// 装备变更广播（委托 EntityTracker，向追踪者下发 SetEquipment cb 100）。
+    void broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots) override;
+
+    /// 状态效果新增/更新广播（委托 EntityTracker，下发 UpdateMobEffect cb 130）。
+    void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect) override;
+
+    /// 状态效果移除广播（委托 EntityTracker，下发 RemoveMobEffect cb 76）。
+    void broadcastMobEffectRemoved(EntityInstanceId entityId, entity::effect::EffectType type) override;
+
     void broadcastExplosion(const Vector3& position,
         f32 strength,
         const std::vector<BlockPos>& affectedBlocks,

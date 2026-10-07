@@ -17,8 +17,8 @@
 
 在 e2e 落地前，「真实字节流」这条路径**没有任何自动化覆盖**，唯一手段是人工用 1.21.11 客户端连测。
 
-**当前规模**：注册表 51 个用例，其中 Cubium 侧 45 条、vanilla 侧 43 条可运行（2 条 Cubium 专有；
-**6 条被服务端缺陷阻塞、显式标记跳过**，见 §2.1）。两侧基线均已冻结，日常回归只跑 Cubium。
+**当前规模**：注册表 51 个用例，其中 Cubium 侧 48 条、vanilla 侧 46 条可运行（2 条 Cubium 专有；
+**3 条被服务端缺陷阻塞、显式标记跳过**，见 §2.1）。两侧基线均已冻结，日常回归只跑 Cubium。
 
 **它的实际价值已被反复验证**：首轮 19 个用例发现并定位了 4 个真实缺陷，全部属于
 「单测与 GameTest 都看不见」的类型：
@@ -52,11 +52,25 @@
 
 | 缺陷 | 性质 | 状态 |
 |---|---|---|
-| 状态效果从不下发 | `LivingEntity::addEffect`/`EffectManager` 只改服务端状态，无「效果变更 → 广播」通路；且 clientbound 的 `entity_effect`(cb 130)/`remove_entity_effect`(cb 76)/`update_mob_effect` **三层全缺** → 客户端状态栏无任何效果图标，服务端却在按效果结算 | **仍阻塞用例** |
-| 聊天从不广播 | `ChatHandler::handleChatMessagePacket` 只写一行服务端日志，无任何广播通路；clientbound 聊天包（`player_chat`/`system_chat`/`profileless_chat`）三层全缺 → 多人游戏聊天完全不可用且零报错 | **仍阻塞用例** |
-| 装备/手持物从不下发 | 服务端**从不发送** `entity_equipment`(cb 100)——该包三层全缺（全仓库 grep `SetEquipment` 零命中）→ 其他玩家看不到你的手持物与护甲 | **仍阻塞用例** |
+| 状态效果从不下发 | `LivingEntity::addEffect`/`EffectManager` 只改服务端状态，无「效果变更 → 广播」通路；且 clientbound 的 `entity_effect`(cb 130)/`remove_entity_effect`(cb 76)/`update_mob_effect` **三层全缺** → 客户端状态栏无任何效果图标，服务端却在按效果结算 | **已修复** |
+| 聊天从不广播 | `ChatHandler::handleChatMessagePacket` 只写一行服务端日志，无任何广播通路 → 多人游戏聊天完全不可用且零报错 | **已修复** |
+| 装备/手持物从不下发 | 服务端**从不发送** `entity_equipment`(cb 100)——该包三层全缺（全仓库 grep `SetEquipment` 零命中）→ 其他玩家看不到你的手持物与护甲 | **已修复** |
 | 开箱广播 BlockEvent | `ChestEntity::openContainer`/`closeContainer` → `broadcastChestState` → `blockEvent` 链路**完整可用**，旁观者能收到箱盖开合动画包 | 健全（转回归保护） |
 | 离场玩家实体移除 | 断连经 `world.destroyEntity` → `EntityTracker` 向追踪者广播 `RemoveEntities`(cb 75)，旁观者世界里的实体被正确移除（与 Tab 条目移除是两条独立通路，须分别覆盖） | 健全（转回归保护） |
+
+**三个缺陷的修复方式**（`SetEquipment` cb 100 / `UpdateMobEffect` cb 130 / `RemoveMobEffect` cb 76
+三层补齐，外加服务端广播通路）：
+
+- **效果**：`EffectManager` 只把变更记进待广播队列（它不持世界上下文），
+  `LivingEntity::tick` 消费队列并经 `IWorld::broadcastMobEffectAdded/Removed` 下发；
+  广播对象同时包含**追踪者与玩家本人**（vanilla `ServerPlayer.onEffectAdded` 直接
+  `connection.send`，本地玩家不依赖追踪关系——这是首版实现漏掉、被 e2e 当场抓住的一点）。
+- **聊天**：`ChatHandler` 收到聊天后渲染成 `<玩家名> 消息` 并经 `SystemChat(overlay=false)`
+  广播给**同维度**的其他玩家（离线模式无签名链路，用 SystemChat 与 vanilla 的
+  `ClientboundPlayerChatPacket` 语义等价——都进聊天框）。
+- **装备**：`LivingEntity::detectEquipmentUpdates` 收集变化槽位后经
+  `IWorld::broadcastEquipmentChanged` 下发；`EntityTracker::broadcastEquipment` 发送该实体的
+  **全部非空装备槽**全量快照（客户端语义是逐槽置换，全量与之等价且无需维护镜像）。
 
 > **教训（第二轮）**：**「表现层同步」是最容易长期潜伏的一簇缺陷**——它们不改变世界状态、
 > 不影响服务端权威逻辑，因此**不发也不会报错**，只是「箱子开了盖子不动」「别人看不到你拿的剑」。
@@ -96,16 +110,16 @@ vanilla 侧约 10~25 秒/用例。整套双跑刷新约 80~100 分钟，单侧 C
 用例契约里有 `skipReason` 字段：非 null 时 runner **不运行、不写基线**，但每次运行都会把原因
 打印出来（`--include-skipped` 可强制运行）。它只用于「用例已经写好、但被服务端缺陷阻塞、
 当前不可能通过」的情况——目的是让阻塞点变成注册表里可见的一条记录，而不是让整套测试长期红灯。
-写这个字段时必须写清**具体缺陷 + 证据路径 + 解除条件**。当前被阻塞的 6 条：
+写这个字段时必须写清**具体缺陷 + 证据路径 + 解除条件**。当前被阻塞的 3 条：
 
 | 用例 | 阻塞缺陷 |
 |---|---|
 | `containers/container_in_nether_is_not_overworld` | 跨维度传送后服务端下发未生成的默认区块（整片 netherrack），客户端看不到下界真实地形 |
 | `persistence/block_changes_survive_restart` | 从存档重启后实体与地形不再碰撞，玩家一路坠入虚空 |
 | `persistence/container_content_survives_restart` | 同上（bot 无法落地，读不到世界内容） |
-| `effects/give_effect_reaches_client` | 施加效果后从不下发 `entity_effect`(cb 130)，客户端状态栏看不到效果（且该包三层全缺） |
-| `chat/message_broadcast_to_other_player` | 收到聊天只记日志、不广播，其他玩家收不到聊天（clientbound 聊天包三层全缺） |
-| `player-visuals/held_item_syncs_to_others` | 从不下发 `entity_equipment`(cb 100)，其他玩家看不到你的手持物与护甲（该包三层全缺） |
+
+> 第二轮新增的 3 条（效果下发 / 聊天广播 / 装备同步）**已随对应缺陷的修复解除阻塞**，
+> 现为常规用例（见 §1 的缺陷表）。
 
 ### 三种模式共用同一套用例
 

@@ -29,7 +29,10 @@
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
 #include "common/entity/core/RemovalReason.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -1624,6 +1627,55 @@ public:
      * @param vehicleId 载具实体ID
      */
     virtual void broadcastPassengersChanged(EntityInstanceId vehicleId) { (void)vehicleId; }
+
+    // ========== 实体装备广播 ==========
+
+    /**
+     * @brief 广播实体装备变更
+     *
+     * 在实体装备槽发生变化时调用（`LivingEntity::detectEquipmentUpdates` 检测到差异后），
+     * 向所有追踪该实体的玩家发送 `SetEquipment`(cb 100)，使其他玩家看到其手持物与护甲。
+     *
+     * @param entityId 装备发生变化的实体
+     * @param changedSlots 发生变化的内部槽位（仅这些槽位需要下发）
+     */
+    virtual void broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots)
+    {
+        (void)entityId;
+        (void)changedSlots;
+    }
+
+    // ========== 实体状态效果广播 ==========
+
+    /**
+     * @brief 广播实体状态效果的新增或更新
+     *
+     * 在实体获得效果或效果被合并/刷新时调用，向所有追踪该实体的玩家发送
+     * `UpdateMobEffect`(cb 130)，使客户端状态栏出现该效果。
+     *
+     * @param entityId 效果发生变化的实体
+     * @param effect 当前生效的效果实例
+     */
+    virtual void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+    {
+        (void)entityId;
+        (void)effect;
+    }
+
+    /**
+     * @brief 广播实体状态效果的移除
+     *
+     * 在实体失去效果（过期、被清除、被更强效果替换）时调用，向所有追踪该实体的玩家
+     * 发送 `RemoveMobEffect`(cb 76)。
+     *
+     * @param entityId 效果发生变化的实体
+     * @param type 被移除的效果类型
+     */
+    virtual void broadcastMobEffectRemoved(EntityInstanceId entityId, entity::effect::EffectType type)
+    {
+        (void)entityId;
+        (void)type;
+    }
 
     // ========== 爆炸事件广播 ==========
 

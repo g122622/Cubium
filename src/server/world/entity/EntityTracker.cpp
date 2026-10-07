@@ -32,8 +32,10 @@
 #include "common/item/core/Item.hpp"
 #include "common/network/backend/java/codecs/JavaWireHelpers.hpp"
 #include "common/network/backend/java/mappings/JavaAttributeIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/codec/EntityMetadataSerializer.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
@@ -48,6 +50,7 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/outbound/AttributeSnapshotBuilder.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -323,6 +326,157 @@ bool EntityTracker::isTracking(EntityInstanceId entityId) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_trackedEntities.find(entityId) != m_trackedEntities.end();
+}
+
+void EntityTracker::broadcastEquipment(IServer& server, ServerWorld& world, EntityInstanceId entityId)
+{
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+    }
+
+    if (trackingPlayers.empty()) {
+        return;
+    }
+
+    Entity* entity = world.entityManager().getEntity(entityId);
+    auto* living = (entity != nullptr) ? dynamic_cast<LivingEntity*>(entity) : nullptr;
+    if (living == nullptr) {
+        return;
+    }
+
+    // 全量快照：把该实体的全部非空装备槽打包成一条 SetEquipment（对齐 vanilla
+    // ServerEntity.sendPairingData；客户端语义是逐槽置换，全量非空快照与之等价且更简单，
+    // 无需维护 lastEquipment 镜像）。
+    mc::network::ir::play::SetEquipment pkt;
+    pkt.entityId = static_cast<i32>(entityId);
+    for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+        const auto slot = static_cast<EquipmentSlot>(i);
+        const ItemStack& stack = living->getEquipment(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        // 内部 EquipmentSlot 序与 vanilla EquipmentSlot 序一致（见 WireEquipmentSlot 注释）。
+        mc::network::ir::play::EquipmentEntry entry{};
+        entry.slot = static_cast<mc::network::ir::play::WireEquipmentSlot>(static_cast<i32>(slot));
+        entry.item = network::ir::toItemStackView(stack);
+        pkt.entries.push_back(std::move(entry));
+    }
+
+    if (pkt.entries.empty()) {
+        return;
+    }
+
+    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
+    for (PlayerId playerId : trackingPlayers) {
+        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->hasConnection()) {
+            player->send(packet);
+        }
+    }
+}
+
+void EntityTracker::broadcastMobEffectAdded(
+    IServer& server, ServerWorld& world, EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+{
+    (void)world;
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+    }
+
+    // 1.21.11 UpdateMobEffect：entityId + effectHolderId + amplifier + duration + Byte(flags)。
+    mc::network::ir::play::UpdateMobEffect pkt;
+    pkt.entityId = static_cast<i32>(entityId);
+    pkt.effectId =
+        static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(effect.type()));
+    pkt.amplifier = effect.amplifier();
+    pkt.duration = effect.duration();
+    pkt.flags = _mobEffectFlags(effect);
+
+    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
+
+    // 实体自身若为玩家，效果也要发给**他本人**——vanilla ServerPlayer.onEffectAdded 直接
+    // `this.connection.send(...)`，本地玩家不依赖追踪关系。追踪表里的集合只含「旁观者」，
+    // 且玩家自己的实体通常无人追踪（trackingPlayers 为空），故这一步必须在空集合早返回之前。
+    const PlayerId ownerPlayerId = server.playerEntityManager().getPlayerIdByEntityId(entityId);
+    if (ownerPlayerId != 0) {
+        ServerPlayerData* owner = server.playerManager().getPlayer(ownerPlayerId);
+        if (owner != nullptr && owner->hasConnection()) {
+            owner->send(mc::network::ir::IrPacket{packet});
+        }
+    }
+
+    for (PlayerId playerId : trackingPlayers) {
+        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->hasConnection()) {
+            player->send(packet);
+        }
+    }
+}
+
+void EntityTracker::broadcastMobEffectRemoved(
+    IServer& server, ServerWorld& world, EntityInstanceId entityId, entity::effect::EffectType type)
+{
+    std::vector<PlayerId> trackingPlayers;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = m_trackedEntities.find(entityId);
+        if (it == m_trackedEntities.end()) {
+            return;
+        }
+        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+    }
+
+    // 1.21.11 RemoveMobEffect：entityId + effectHolderId。
+    mc::network::ir::play::RemoveMobEffect pkt;
+    pkt.entityId = static_cast<i32>(entityId);
+    pkt.effectId = static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(type));
+
+    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
+
+    // 同 broadcastMobEffectAdded：玩家自身的移除包也要发给他本人（在空集合早返回之前）。
+    const PlayerId ownerPlayerId = server.playerEntityManager().getPlayerIdByEntityId(entityId);
+    if (ownerPlayerId != 0) {
+        ServerPlayerData* owner = server.playerManager().getPlayer(ownerPlayerId);
+        if (owner != nullptr && owner->hasConnection()) {
+            owner->send(mc::network::ir::IrPacket{packet});
+        }
+    }
+
+    for (PlayerId playerId : trackingPlayers) {
+        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->hasConnection()) {
+            player->send(packet);
+        }
+    }
+}
+
+u8 EntityTracker::_mobEffectFlags(const entity::effect::EffectInstance& effect)
+{
+    // 1.21.11 ClientboundUpdateMobEffectPacket 位：AMBIENT=1、VISIBLE=2、SHOW_ICON=4、BLEND=8。
+    // 本项目 EffectInstance 无 blend 字段（1.21.11 的 BlendState 属独立子项），恒按 0 处理。
+    u8 flags = 0;
+    if (effect.isAmbient()) {
+        flags |= 0x01;
+    }
+    if (effect.isVisible()) {
+        flags |= 0x02;
+    }
+    if (effect.showIcon()) {
+        flags |= 0x04;
+    }
+    return flags;
 }
 
 size_t EntityTracker::trackedEntityCount() const

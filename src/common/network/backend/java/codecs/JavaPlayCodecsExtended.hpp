@@ -1612,4 +1612,80 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+// ============================================================================
+// 实体装备与状态效果（对齐 Java 1.21.11）
+// ============================================================================
+
+/// SetEquipment（S→C，id=100）
+// 线格式：VarInt(entityId) + 重复 [Byte(slotOrdinal | 0x80) + optional ItemStack]，
+// 末条不带 0x80（vanilla CONTINUE_MASK = -128）。
+[[nodiscard]] inline auto setEquipmentCodec()
+{
+    return makeCodec<ir::play::SetEquipment>(
+        [](B& buf, const ir::play::SetEquipment& v) {
+            buf.writeVarInt(v.entityId);
+            for (std::size_t i = 0; i < v.entries.size(); ++i) {
+                const bool more = (i + 1 < v.entries.size());
+                const u8 slotByte =
+                    static_cast<u8>(static_cast<i32>(v.entries[i].slot) & 0x7F) | (more ? 0x80u : 0x00u);
+                buf.writeU8(slotByte);
+                play_detail::writeItemStack(buf, v.entries[i].item);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SetEquipment> {
+            ir::play::SetEquipment v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            u8 slotByte = 0;
+            do {
+                MC_TRY_ASSIGN(slotByte, buf.readU8());
+                ir::play::EquipmentEntry entry{};
+                entry.slot = static_cast<ir::play::WireEquipmentSlot>(slotByte & 0x7F);
+                MC_TRY_ASSIGN(entry.item, play_detail::readItemStack(buf));
+                v.entries.push_back(std::move(entry));
+            } while ((slotByte & 0x80u) != 0);
+            return v;
+        });
+}
+
+/// UpdateMobEffect（S→C，id=130）
+// 线格式：VarInt(entityId) + VarInt(effectHolderId) + VarInt(amplifier) + VarInt(duration) + Byte(flags)。
+// effectHolderId 经 JavaMobEffectIdMap 在边界翻译。
+[[nodiscard]] inline auto updateMobEffectCodec()
+{
+    return makeCodec<ir::play::UpdateMobEffect>(
+        [](B& buf, const ir::play::UpdateMobEffect& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeVarInt(v.effectId);
+            buf.writeVarInt(v.amplifier);
+            buf.writeVarInt(v.duration);
+            buf.writeU8(v.flags);
+        },
+        [](B& buf) -> Result<ir::play::UpdateMobEffect> {
+            ir::play::UpdateMobEffect v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.effectId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.amplifier, buf.readVarInt());
+            MC_TRY_ASSIGN(v.duration, buf.readVarInt());
+            MC_TRY_ASSIGN(v.flags, buf.readU8());
+            return v;
+        });
+}
+
+/// RemoveMobEffect（S→C，id=76）
+// 线格式：VarInt(entityId) + VarInt(effectHolderId)。
+[[nodiscard]] inline auto removeMobEffectCodec()
+{
+    return makeCodec<ir::play::RemoveMobEffect>(
+        [](B& buf, const ir::play::RemoveMobEffect& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeVarInt(v.effectId);
+        },
+        [](B& buf) -> Result<ir::play::RemoveMobEffect> {
+            ir::play::RemoveMobEffect v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.effectId, buf.readVarInt());
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

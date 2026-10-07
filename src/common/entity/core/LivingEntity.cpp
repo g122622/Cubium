@@ -1291,6 +1291,7 @@ void LivingEntity::detectEquipmentUpdates()
 
     // 检查每个槽位是否有变化
     bool anyChanged = false;
+    std::vector<EquipmentSlot> changedSlots;
 
     for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
         auto slot = static_cast<EquipmentSlot>(i);
@@ -1299,6 +1300,7 @@ void LivingEntity::detectEquipmentUpdates()
 
         if (equipmentHasChanged(lastStack, currentStack)) {
             anyChanged = true;
+            changedSlots.push_back(slot);
 
             // 移除旧物品的属性修饰符
             // 对应 MC 原版 collectEquipmentChanges() 中对旧物品调用 stopLocationBasedEffects()
@@ -1348,6 +1350,13 @@ void LivingEntity::detectEquipmentUpdates()
                 equip->m_lastEquipment[i] = currentStack;
             }
         }
+    }
+
+    // 广播装备变更给追踪者（对齐 vanilla LivingEntity.handleEquipmentChanges：
+    // collectEquipmentChanges 收集变化槽位后经 ServerLevel.sendToTrackingPlayers 下发
+    // ClientboundSetEquipmentPacket）。客户端据此更新其他玩家的手持物与护甲渲染。
+    if (m_world != nullptr && !m_world->isClientSide() && !changedSlots.empty()) {
+        m_world->broadcastEquipmentChanged(m_id, changedSlots);
     }
 }
 
@@ -1556,6 +1565,12 @@ void LivingEntity::tick()
 
     // 更新效果
     m_effectManager.tick(*this);
+
+    // 广播效果变更给追踪者（对齐 vanilla：效果新增/更新经 ServerPlayer.onEffectAdded/
+    // onEffectUpdated 下发 ClientboundUpdateMobEffectPacket，过期/清除经 onEffectsRemoved
+    // 下发 ClientboundRemoveMobEffectPacket）。EffectManager 只记录变更不广播——它不持世界
+    // 上下文，故由持有 m_world 的实体在此统一消费变更队列。
+    _broadcastPendingEffectChanges();
 
     // 检测装备更新（服务端）
     // 对应 MC 原版 LivingEntity.tick() 中的 detectEquipmentUpdates() 调用
@@ -2670,6 +2685,23 @@ const entity::effect::EffectInstance* LivingEntity::getEffect(entity::effect::Ef
 i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const
 {
     return m_effectManager.getEffectLevel(type);
+}
+
+void LivingEntity::_broadcastPendingEffectChanges()
+{
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+    for (const auto& change : m_effectManager.takePendingChanges()) {
+        if (change.added) {
+            const entity::effect::EffectInstance* effect = m_effectManager.getEffect(change.type);
+            if (effect != nullptr) {
+                m_world->broadcastMobEffectAdded(m_id, *effect);
+            }
+        } else {
+            m_world->broadcastMobEffectRemoved(m_id, change.type);
+        }
+    }
 }
 
 // ============================================================================

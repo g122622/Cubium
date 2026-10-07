@@ -1552,6 +1552,15 @@ public:
      */
     [[nodiscard]] const entity::effect::EffectInstance* getEffect(entity::effect::EffectType type) const;
 
+    /**
+     * @brief 消费 EffectManager 的效果变更队列并广播给追踪者。
+     *
+     * 在 tick 中调用。EffectManager 只记录变更（新增/更新/移除），本方法把「新增/更新」经
+     * `IWorld::broadcastMobEffectAdded` 下发 `UpdateMobEffect`(cb 130)、「移除」经
+     * `broadcastMobEffectRemoved` 下发 `RemoveMobEffect`(cb 76)。
+     */
+    void _broadcastPendingEffectChanges();
+
     // ========== 物品使用 ==========
 
     /**

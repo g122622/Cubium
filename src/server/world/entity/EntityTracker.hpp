@@ -25,6 +25,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EquipmentSlot.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <cstddef>
 #include <mutex>
@@ -278,7 +281,45 @@ public:
      */
     void broadcastPassengers(IServer& server, ServerWorld& world, EntityInstanceId vehicleId);
 
+    /**
+     * @brief 向当前追踪该实体的所有玩家广播装备变更（cb SetEquipment）。
+     *
+     * 在 `LivingEntity::detectEquipmentUpdates` 检测到装备槽变化后调用（经
+     * `ServerWorld::broadcastEquipmentChanged`）。发送内容为该实体的**全部非空装备槽**全量快照，
+     * 对齐 vanilla `ServerEntity.sendPairingData` 与 `LivingEntity.handleEquipmentChanges`。
+     *
+     * @param server 服务器接口
+     * @param world 世界引用（用于按 id 取实体读装备）
+     * @param entityId 装备发生变化的实体
+     */
+    void broadcastEquipment(IServer& server, ServerWorld& world, EntityInstanceId entityId);
+
+    /**
+     * @brief 向当前追踪该实体的所有玩家广播状态效果新增/更新（cb UpdateMobEffect）。
+     *
+     * @param server 服务器接口
+     * @param world 世界引用
+     * @param entityId 效果发生变化的实体
+     * @param effect 当前生效的效果实例
+     */
+    void broadcastMobEffectAdded(
+        IServer& server, ServerWorld& world, EntityInstanceId entityId, const entity::effect::EffectInstance& effect);
+
+    /**
+     * @brief 向当前追踪该实体的所有玩家广播状态效果移除（cb RemoveMobEffect）。
+     *
+     * @param server 服务器接口
+     * @param world 世界引用
+     * @param entityId 效果发生变化的实体
+     * @param type 被移除的效果类型
+     */
+    void broadcastMobEffectRemoved(
+        IServer& server, ServerWorld& world, EntityInstanceId entityId, entity::effect::EffectType type);
+
 private:
+    /// 组装 UpdateMobEffect 的 flags 字节（AMBIENT=1 / VISIBLE=2 / SHOW_ICON=4 / BLEND=8）。
+    [[nodiscard]] static u8 _mobEffectFlags(const entity::effect::EffectInstance& effect);
+
     mutable std::mutex m_mutex;
 
     /// 被追踪的实体 (entityId -> TrackedEntity)

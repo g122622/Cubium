@@ -459,6 +459,15 @@ using B = buffer::RegistryByteBuf;
     // 重配置时发送（对齐 vanilla ClientboundStartConfigurationPacket）。altIndex=116 对齐 variant 末尾。
     b.addPacket<ir::play::StartConfiguration>(
         116, PacketType{PacketFlow::Clientbound, "start_configuration"}, 116, codecs::startConfigurationCodec());
+    // 实体装备与状态效果（altIndex 117..119，PlayPacketsExtended.hpp 末尾三包）。
+    // 此前三层全缺：服务端没有任何「效果变更 / 装备变更 → 广播」通路，客户端状态栏看不到
+    // 效果、其他玩家看不到你的手持物与护甲，且服务端无报错。
+    b.addPacket<ir::play::SetEquipment>(
+        100, PacketType{PacketFlow::Clientbound, "set_equipment"}, 117, codecs::setEquipmentCodec());
+    b.addPacket<ir::play::UpdateMobEffect>(
+        130, PacketType{PacketFlow::Clientbound, "update_mob_effect"}, 118, codecs::updateMobEffectCodec());
+    b.addPacket<ir::play::RemoveMobEffect>(
+        76, PacketType{PacketFlow::Clientbound, "remove_mob_effect"}, 119, codecs::removeMobEffectCodec());
     return b.build();
 }
 

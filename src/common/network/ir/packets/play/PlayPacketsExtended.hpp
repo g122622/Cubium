@@ -1308,4 +1308,81 @@ struct UpdateAttributes {
     [[nodiscard]] friend bool operator==(const UpdateAttributes&, const UpdateAttributes&) noexcept = default;
 };
 
+// ============================================================================
+// 实体装备与状态效果（altIndex 117..118）
+// ============================================================================
+
+/**
+ * @brief 装备槽（vanilla EquipmentSlot 序数）
+ *
+ * 线格式里槽位以**序数**编码（见 SetEquipment 的 CONTINUE_MASK），故取值必须与 vanilla
+ * EquipmentSlot 枚举序一致：MAINHAND=0, OFFHAND=1, FEET=2, LEGS=3, CHEST=4, HEAD=5, BODY=6。
+ * 与项目内部 EquipmentSlot（EquipmentSlot.hpp）不同——后者是另一套序，出站边界经
+ * JavaEquipmentSlotMap 翻译。
+ */
+enum class WireEquipmentSlot : i32 {
+    MainHand = 0,
+    OffHand = 1,
+    Feet = 2,
+    Legs = 3,
+    Chest = 4,
+    Head = 5,
+    Body = 6,
+};
+
+/** 一条装备槽条目。 */
+struct EquipmentEntry {
+    WireEquipmentSlot slot;
+    ItemStackView item; // count<=0 即空
+    [[nodiscard]] friend bool operator==(const EquipmentEntry&, const EquipmentEntry&) noexcept = default;
+};
+
+/**
+ * @brief SetEquipment（S→C，id=100，实体装备同步）
+ *
+ * 线格式（对齐 vanilla ClientboundSetEquipmentPacket.write）：
+ *   VarInt(entityId) + 重复 [Byte(slotOrdinal | 0x80 若后续还有条目) + ItemStack.OPTIONAL_STREAM_CODEC]。
+ * 最后一条的字节不带 0x80 续位，读侧据此终止循环。
+ *
+ * 客户端语义：逐条把该槽位置换为下发的物品（含空，用于清除）。
+ */
+struct SetEquipment {
+    i32 entityId;
+    std::vector<EquipmentEntry> entries;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const SetEquipment&, const SetEquipment&) noexcept = default;
+};
+
+/**
+ * @brief UpdateMobEffect（S→C，id=130，状态效果下发）
+ *
+ * 线格式（对齐 vanilla ClientboundUpdateMobEffectPacket.write）：
+ *   VarInt(entityId) + VarInt(effectHolderId) + VarInt(amplifier) + VarInt(durationTicks) + Byte(flags)。
+ * flags 位：AMBIENT=1、VISIBLE=2、SHOW_ICON=4、BLEND=8。
+ *
+ * 与 MobEffectInstance 的完整 wire（含 hiddenEffect 递归）**不同**：本包是扁平 5 字段，
+ * 不携带 hiddenEffect。effect 的 holder id 由 JavaMobEffectIdMap 在边界翻译。
+ */
+struct UpdateMobEffect {
+    i32 entityId;
+    i32 effectId; // vanilla mob_effect 注册表 holder id
+    i32 amplifier;
+    i32 duration;
+    u8 flags;
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const UpdateMobEffect&, const UpdateMobEffect&) noexcept = default;
+};
+
+/**
+ * @brief RemoveMobEffect（S→C，id=76，状态效果移除）
+ *
+ * 线格式：VarInt(entityId) + VarInt(effectHolderId)。
+ */
+struct RemoveMobEffect {
+    i32 entityId;
+    i32 effectId; // vanilla mob_effect 注册表 holder id
+    BedrockMeta bedrock{};
+    [[nodiscard]] friend bool operator==(const RemoveMobEffect&, const RemoveMobEffect&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

@@ -53,6 +53,9 @@ public:
 private:
     /// 执行玩家命令。commandInput 含或不含 '/' 前缀均可（CommandDispatcher::parse 自动剥离）。
     void _executePlayerCommand(PlayerId playerId, const std::string& commandInput);
+
+    /// 取玩家当前所在维度的 id（玩家无世界时回退 0）。
+    [[nodiscard]] DimensionId _playerDimension(PlayerId playerId);
 };
 
 } // namespace mc::server::net

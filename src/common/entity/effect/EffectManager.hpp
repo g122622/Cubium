@@ -104,6 +104,28 @@ public:
      */
     void tick(LivingEntity& entity);
 
+    // ========== 变更通知（供实体层广播给追踪者） ==========
+
+    /**
+     * @brief 一条待广播的效果变更。
+     *
+     * EffectManager 自身不持有世界上下文，无法直接下发网络包；它只把「哪些效果新增/更新、
+     * 哪些被移除」记进队列，由持有 IWorld 的 LivingEntity 在 tick 中消费并广播
+     * （UpdateMobEffect / RemoveMobEffect）。这保持了 common 层对网络层的零依赖。
+     */
+    struct EffectChange {
+        EffectType type;
+        bool added; // true=新增或更新（需下发完整效果），false=移除
+    };
+
+    /**
+     * @brief 取出并清空累计的效果变更队列。
+     *
+     * 调用方（LivingEntity）在每 tick 消费一次，对 added=true 的项从 `getEffect(type)` 取
+     * 当前实例下发 UpdateMobEffect，对 added=false 的项下发 RemoveMobEffect。
+     */
+    [[nodiscard]] std::vector<EffectChange> takePendingChanges();
+
     // ========== 查询 ==========
 
     /**
@@ -129,8 +151,13 @@ private:
      */
     [[nodiscard]] i32 _findEffectIndex(EffectType type) const;
 
+    /// 记录一条待广播的效果变更（同类型合并为最后一条）。
+    void _recordChange(EffectType type, bool added);
+
 private:
     std::vector<EffectInstance> m_effects;
+    /// 待广播的效果变更队列（由 LivingEntity::tick 消费）。
+    std::vector<EffectChange> m_pendingChanges;
 };
 
 } // namespace effect

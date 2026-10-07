@@ -26,8 +26,10 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
@@ -66,6 +68,40 @@ void ChatHandler::handleChatMessagePacket(PlayerId playerId, const mc::network::
     }
 
     spdlog::info("[Chat] {}: {}", player->username, message);
+
+    // 广播给同一维度内的其他玩家。离线模式无签名链路，用 SystemChat(overlay=false) 把
+    // 「<玩家名> 消息」送入聊天窗口（对齐 vanilla：ChatHandler 收到聊天后经 ChatType.Bound
+    // 广播 ClientboundPlayerChatPacket；本项目降级为 SystemChat，语义等价——都进聊天框）。
+    //
+    // 此前这里只写一行服务端日志、没有任何广播通路，多人游戏里聊天完全不可用且零报错。
+    const std::string rendered = "<" + player->username + "> " + message;
+    mc::network::ir::play::SystemChat pkt;
+    pkt.content = ::mc::text::plainTextToNbtBytes(rendered);
+    pkt.overlay = false;
+
+    const DimensionId senderDimension = _playerDimension(playerId);
+    mc::network::ir::IrPacket broadcastPacket{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(pkt)},
+    };
+
+    m_server.playerManager().forEachPlayer([&](ServerPlayerData& other) {
+        // 跳过发送者本人与未登录/无连接的玩家。
+        if (other.playerId == playerId || !other.loggedIn || !other.hasConnection()) {
+            return;
+        }
+        // 只发给同维度玩家（跨维度聊天在 vanilla 中也不送达）。
+        if (_playerDimension(other.playerId) != senderDimension) {
+            return;
+        }
+        other.send(mc::network::ir::IrPacket{broadcastPacket});
+    });
+}
+
+DimensionId ChatHandler::_playerDimension(PlayerId playerId)
+{
+    auto* world = m_server.getPlayerWorld(playerId);
+    return world != nullptr ? world->dimension() : static_cast<DimensionId>(0);
 }
 
 void ChatHandler::handleChatCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

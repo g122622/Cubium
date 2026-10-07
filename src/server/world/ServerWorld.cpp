@@ -2774,6 +2774,28 @@ void ServerWorld::broadcastPassengersChanged(EntityInstanceId vehicleId)
     }
 }
 
+void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>&)
+{
+    // 忽略 changedSlots：按全量非空快照下发（见 EntityTracker::broadcastEquipment 的说明）。
+    if (m_server != nullptr) {
+        m_entityTracker.broadcastEquipment(*m_server, *this, entityId);
+    }
+}
+
+void ServerWorld::broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+{
+    if (m_server != nullptr) {
+        m_entityTracker.broadcastMobEffectAdded(*m_server, *this, entityId, effect);
+    }
+}
+
+void ServerWorld::broadcastMobEffectRemoved(EntityInstanceId entityId, entity::effect::EffectType type)
+{
+    if (m_server != nullptr) {
+        m_entityTracker.broadcastMobEffectRemoved(*m_server, *this, entityId, type);
+    }
+}
+
 void ServerWorld::broadcastExplosion(const Vector3& position,
     f32 strength,
     const std::vector<BlockPos>& affectedBlocks,

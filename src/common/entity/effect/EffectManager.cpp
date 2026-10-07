@@ -86,10 +86,15 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
             existing.apply(entity);
         }
 
+        // 合并成功即需向追踪者重发该效果（对齐 vanilla onEffectUpdated → UpdateMobEffect）。
+        if (merged) {
+            _recordChange(existing.type(), true);
+        }
         return merged;
     } else {
         // 新效果，添加并应用
         effect.apply(entity);
+        _recordChange(effect.type(), true);
         m_effects.push_back(std::move(effect));
         return true;
     }
@@ -100,6 +105,7 @@ void EffectManager::removeEffect(EffectType type, LivingEntity& entity)
     i32 index = _findEffectIndex(type);
     if (index >= 0) {
         m_effects[index].remove(entity);
+        _recordChange(type, false);
         m_effects.erase(m_effects.begin() + index);
     }
 }
@@ -108,8 +114,29 @@ void EffectManager::removeAllEffects(LivingEntity& entity)
 {
     for (auto& effect : m_effects) {
         effect.remove(entity);
+        _recordChange(effect.type(), false);
     }
     m_effects.clear();
+}
+
+std::vector<EffectManager::EffectChange> EffectManager::takePendingChanges()
+{
+    // 显式 clear：move 后源 vector 处于「有效但未指定」状态，不能依赖其为空。
+    std::vector<EffectChange> changes = std::move(m_pendingChanges);
+    m_pendingChanges.clear();
+    return changes;
+}
+
+void EffectManager::_recordChange(EffectType type, bool added)
+{
+    // 同类型合并为最后一条：效果反复刷新时不必逐次下发，只保留最终态。
+    for (auto& change : m_pendingChanges) {
+        if (change.type == type) {
+            change.added = added;
+            return;
+        }
+    }
+    m_pendingChanges.push_back(EffectChange{type, added});
 }
 
 const EffectInstance* EffectManager::getEffect(EffectType type) const
@@ -140,7 +167,8 @@ void EffectManager::tick(LivingEntity& entity)
     // 从后向前遍历，以便安全移除过期效果
     for (i32 i = static_cast<i32>(m_effects.size()) - 1; i >= 0; --i) {
         if (!m_effects[i].tick(entity)) {
-            // 效果过期，移除
+            // 效果过期，移除并记录（对齐 vanilla onEffectsRemoved → RemoveMobEffect）。
+            _recordChange(m_effects[i].type(), false);
             m_effects.erase(m_effects.begin() + i);
         }
     }

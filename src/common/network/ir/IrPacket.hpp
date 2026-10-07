@@ -196,12 +196,16 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::SetCreativeModeSlot, // 109
     play::SetPlayerInventory,  // 110
     // ---- 以下为玩家战斗数据包（altIndex 111..113，PlayPacketsExtended.hpp）----
-    play::PlayerCombatEnter, // 111
-    play::PlayerCombatEnd,   // 112
-    play::PlayerCombatKill,  // 113
-    play::UpdateAttributes,  // 114
-    play::ClientTickEnd,     // 115
-    play::StartConfiguration // 116
+    play::PlayerCombatEnter,  // 111
+    play::PlayerCombatEnd,    // 112
+    play::PlayerCombatKill,   // 113
+    play::UpdateAttributes,   // 114
+    play::ClientTickEnd,      // 115
+    play::StartConfiguration, // 116
+    // ---- 实体装备与状态效果（altIndex 117..119，PlayPacketsExtended.hpp）----
+    play::SetEquipment,    // 117
+    play::UpdateMobEffect, // 118
+    play::RemoveMobEffect  // 119
     >;
 
 /**
