@@ -133,8 +133,6 @@ public:
 
     ~SculkVeinBlock() override = default;
 
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,

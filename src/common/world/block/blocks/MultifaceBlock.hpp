@@ -89,8 +89,20 @@ public:
         const BlockState* currentState, IWorld& world, const BlockPos& pos, Direction direction) const;
 
     // 引入基类玩家放置重载 getStateForPlacement(BlockItemUseContext&)，避免被上方 worldgen
-    // 版本（4 参数）隐藏（-Woverloaded-virtual）。子类按需覆写玩家放置版本。
+    // 版本（4 参数）隐藏（-Woverloaded-virtual）。
     using Block::getStateForPlacement;
+
+    /**
+     * @brief MC MultifaceBlock.getStateForPlacement(BlockPlaceContext)：玩家放置入口
+     *
+     * 按 getNearestLookingDirections() 顺序（玩家视线最近方向优先，未替换点击方块时把
+     * 点击面反向提至首位）逐个尝试 getStateForPlacement(state, level, pos, direction)，
+     * 取首个非空结果。全部方向都不可附着时返回 defaultState()（本项目放置入口无 null 语义，
+     * 该状态随后会被 updatePostPlacement 清除）。
+     *
+     * 子类（GlowLichen/ResinClump/SculkVein）直接继承本实现，不再各自简化成单一方向。
+     */
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     /// MC MultifaceBlock.canAttachTo：相邻方块在 direction 反方向的面是否实心可附着。
     [[nodiscard]] static bool canAttachTo(IWorld& world, Direction direction, const BlockPos& neighborPos);

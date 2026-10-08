@@ -23,14 +23,61 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/cave/GlowLichenBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
+#include <map>
+
 using namespace mc;
 using namespace mc::blocks;
+
+namespace {
+
+/// 支持方块状态读写的测试世界桩（放置状态计算需查询相邻格支撑）
+class GlowLichenTestWorld final : public mc::test::BaseTestWorld {
+public:
+    using IWorld::getBlockState;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        return it != m_blocks.end() ? it->second : nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    void placeBlock(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+};
+
+} // namespace
 
 // ========== GlowLichenBlock 测试 ==========
 
@@ -538,4 +585,72 @@ TEST_F(GlowLichenBlockTest, All64Combinations_NoCrash)
             }
         }
     }
+}
+
+// ============================================================================
+// getStateForPlacement 多方向优先级测试
+// ============================================================================
+//
+// 对齐 vanilla MultifaceBlock.getStateForPlacement(BlockPlaceContext)：
+// 按 getNearestLookingDirections() 顺序逐个尝试，取首个能附着的面。
+// 此前各子类（GlowLichen/ResinClump/SculkVein）各自简化为单一
+// opposite(clickedFace)，斜视场景下无法按视线优先级选中面。
+
+namespace {
+
+/// 构造放置上下文（player 为 nullptr，yaw/pitch 由参数显式提供）
+BlockItemUseContext makeLichenContext(
+    IWorld& world, const BlockPos& clickedPos, Direction face, f32 yaw, f32 pitch = 0.0f)
+{
+    static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
+    return BlockItemUseContext(world,
+        nullptr,
+        EMPTY_STACK,
+        Vector3(static_cast<f32>(clickedPos.x) + 0.5f,
+            static_cast<f32>(clickedPos.y) + 0.5f,
+            static_cast<f32>(clickedPos.z) + 0.5f),
+        clickedPos,
+        face,
+        yaw,
+        pitch);
+}
+
+} // namespace
+
+TEST_F(GlowLichenBlockTest, Placement_OnTopFace_SetsDownFace)
+{
+    // 点击下方石头顶面 Up → 放置位置为其上方空气格，首选项 opposite(Up)=Down → 设 DOWN 面
+    GlowLichenTestWorld world;
+    world.placeBlock(BlockPos(0, 63, 0), &VanillaBlocks::STONE->defaultState());
+
+    BlockItemUseContext context = makeLichenContext(world, BlockPos(0, 63, 0), Direction::Up, 0.0f);
+    ASSERT_TRUE(context.placementPos() == BlockPos(0, 64, 0));
+
+    const BlockState placed = block_->getStateForPlacement(context);
+    EXPECT_TRUE(placed.get(BlockStateProperties::DOWN()));
+    EXPECT_FALSE(placed.get(BlockStateProperties::UP()));
+}
+
+TEST_F(GlowLichenBlockTest, Placement_OnSideFace_SetsOppositeFace)
+{
+    // 点击石头东面 East → 放置位置为其东侧空气格，首选项 opposite(East)=West → 设 WEST 面
+    GlowLichenTestWorld world;
+    world.placeBlock(BlockPos(0, 64, 0), &VanillaBlocks::STONE->defaultState());
+
+    BlockItemUseContext context = makeLichenContext(world, BlockPos(0, 64, 0), Direction::East, 0.0f);
+    ASSERT_TRUE(context.placementPos() == BlockPos(1, 64, 0));
+
+    const BlockState placed = block_->getStateForPlacement(context);
+    EXPECT_TRUE(placed.get(BlockStateProperties::WEST()));
+}
+
+TEST_F(GlowLichenBlockTest, Placement_NoSupport_ReturnsNoFaceState)
+{
+    // 四周无任何可附着方块（放置位置悬空）→ 全部方向都不可附着，返回无面默认状态
+    GlowLichenTestWorld world;
+
+    BlockItemUseContext context = makeLichenContext(world, BlockPos(0, 64, 0), Direction::Up, 0.0f);
+
+    const BlockState placed = block_->getStateForPlacement(context);
+    EXPECT_FALSE(MultifaceBlock::hasAnyFace(placed));
 }

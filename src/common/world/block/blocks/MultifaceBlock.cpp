@@ -23,6 +23,7 @@
 
 #include "MultifaceBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/BooleanProperty.hpp"
 #include "common/util/property/Properties.hpp"
@@ -168,6 +169,32 @@ const BlockState* MultifaceBlock::getStateForPlacement(
     }
 
     return &result->with(*faceProp, true);
+}
+
+BlockState MultifaceBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 对齐 vanilla MultifaceBlock.getStateForPlacement(BlockPlaceContext)（MultifaceBlock.java:180-189）：
+    //   Arrays.stream(getNearestLookingDirections())
+    //       .map(dir -> getStateForPlacement(blockstate, level, blockpos, dir))
+    //       .filter(Objects::nonNull).findFirst().orElse(null);
+    // 即按玩家视线最近方向优先的顺序逐个尝试，取首个能附着的面。
+    // getNearestLookingDirections 已实现「未替换点击方块时把点击面反向提至首位」的语义，
+    // 故点击支撑方块侧面/顶面时首个方向即为 opposite(clickedFace)，与此前各子类的单一方向简化等价，
+    // 但斜视场景下能按视线优先级选中更合适的面。
+    IWorld& world = context.getWorld();
+    const BlockPos pos = context.placementPos();
+    const BlockState* current = world.getBlockState(pos);
+
+    for (Direction direction : context.getNearestLookingDirections()) {
+        const BlockState* placed = getStateForPlacement(current, world, pos, direction);
+        if (placed != nullptr) {
+            return *placed;
+        }
+    }
+
+    // 本项目放置入口的返回值无 null 语义（BlockItem::getStateForPlacement 直接规范化并写入），
+    // 全部方向都不可附着时返回默认状态（无任何面），随后由 updatePostPlacement 清除。
+    return defaultState();
 }
 
 bool MultifaceBlock::canAttachTo(IWorld& world, Direction direction, const BlockPos& neighborPos)

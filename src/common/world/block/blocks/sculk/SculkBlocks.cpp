@@ -659,18 +659,6 @@ size_t SculkVeinBlock::shapeIndex(const BlockState& state)
     return index;
 }
 
-BlockState SculkVeinBlock::getStateForPlacement(BlockItemUseContext& context)
-{
-    const Direction clickedFace = context.getClickedFace();
-    const BlockState* current = context.getWorld().getBlockState(context.placementPos());
-    const BlockState* placed =
-        MultifaceBlock::getStateForPlacement(current, context.getWorld(), context.placementPos(), clickedFace);
-    if (placed == nullptr) {
-        return defaultState();
-    }
-    return *placed;
-}
-
 BlockState SculkVeinBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
