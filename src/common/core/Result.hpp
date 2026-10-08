@@ -380,9 +380,49 @@ public:
     {}
 
     Result(const Result&) = delete;
-    Result(Result&&) noexcept = default;
     Result& operator=(const Result&) = delete;
-    Result& operator=(Result&&) noexcept = default;
+
+    // 移动语义须**手动实现**：本类以裸指针 m_value 持有对象，默认移动只会复制指针而
+    // 不置空源对象，一旦有了析构函数就会双重释放。这里显式转移所有权并把源置空。
+    Result(Result&& other) noexcept
+        : m_error(std::move(other.m_error))
+        , m_value(other.m_value)
+        , m_deleter(std::move(other.m_deleter))
+        , m_success(other.m_success)
+    {
+        other.m_value = nullptr;
+    }
+
+    Result& operator=(Result&& other) noexcept
+    {
+        if (this != &other) {
+            if (m_value != nullptr) {
+                m_deleter(m_value);
+            }
+            m_error = std::move(other.m_error);
+            m_value = other.m_value;
+            m_deleter = std::move(other.m_deleter);
+            m_success = other.m_success;
+            other.m_value = nullptr;
+        }
+        return *this;
+    }
+
+    /**
+     * @brief 析构：释放尚未被 value() 取走的对象
+     *
+     * 【为什么必须有】value() 是**转移所有权**语义（takeValue 把 m_value 置空并把裸指针
+     * 交给 unique_ptr）。若调用方只判 success() 而不取 value()（如 nbt_io::skipCompound
+     * 只借 readCompound 推进游标、丢弃解析结果），没有析构函数就会**泄漏**整个对象。
+     * fuzz 实测：fuzz_java_codec 因此报 LeakSanitizer「64 byte(s) leaked」，泄漏栈为
+     * compound_tag::read ← skipCompound ← readComponentNbt。
+     */
+    ~Result()
+    {
+        if (m_value != nullptr) {
+            m_deleter(m_value);
+        }
+    }
 
     [[nodiscard]] bool success() const noexcept { return m_success; }
     [[nodiscard]] bool failed() const noexcept { return !m_success; }

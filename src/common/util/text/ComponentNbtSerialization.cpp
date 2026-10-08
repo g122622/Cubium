@@ -250,8 +250,16 @@ std::string componentNbtBytesToPlainText(const std::vector<u8>& nbtBytes)
             network::buffer::ByteBuf buf;
             buf.writeBytes(nbtBytes);
             auto result = network::buffer::nbt_io::readRootCompound(buf);
-            if (result.success() && result.value() != nullptr) {
-                std::string text = extractTextFromCompound(*result.value());
+            // 【重要】Result<std::unique_ptr<T>>::value() 是**转移所有权**语义（内部
+            // takeValue() 会把 m_value 置空并把裸指针交出去）。因此绝不能在一个表达式里
+            // 调用两次 value()：第一次调用返回的临时 unique_ptr 在完整表达式结束时即析构、
+            // 对象被释放，第二次调用拿到的是 nullptr，解引用即空指针崩溃。
+            // fuzz 实测：畸形 NBT 走到此处触发 SEGV（地址 0x20，正是 compound_tag 内
+            // value map 的偏移）。必须先把所有权取到局部变量再用。
+            std::unique_ptr<mc::nbt::tags::compound_tag> root =
+                result.success() ? result.value() : nullptr;
+            if (root != nullptr) {
+                std::string text = extractTextFromCompound(*root);
                 if (!text.empty()) {
                     return text;
                 }
