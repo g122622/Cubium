@@ -47,6 +47,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -442,6 +443,17 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
 Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
     const mc::network::ir::play::LevelChunkWithLight& ir)
 {
+    // 区块坐标来自不可信输入（客户端解码服务端 / 服务端解码测试载荷）。先校验其合法
+    // 范围再参与 `x * 16` 这类换算：越界坐标会让乘法**有符号溢出**（UB，UBSan 实测
+    // fuzz_chunk_wire 报 `signed integer overflow: -553639641 * 16`）。溢出后再由
+    // `isValidChunkCoord` 判断已无意义——UB 本身即缺陷，且判定结果不可预期。
+    if (!mc::world::isValidChunkCoord(ir.x, ir.z)) {
+        return Error(ErrorCode::InvalidData,
+            "LevelChunkWithLight: chunk coords out of world border (x=" + std::to_string(ir.x) +
+                ", z=" + std::to_string(ir.z) + ")",
+            "VanillaChunkWire::readLevelChunkWithLightIR");
+    }
+
     auto chunk = std::make_unique<ChunkData>(ir.x, ir.z);
     const int chunkMinY = mc::world::MIN_BUILD_HEIGHT;
 

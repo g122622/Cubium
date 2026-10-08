@@ -25,6 +25,7 @@
 
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/sync/VanillaChunkWire.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
@@ -78,6 +79,35 @@ protected:
         return chunk;
     }
 };
+
+TEST_F(VanillaChunkWireTest, ReadLevelChunkWithLightRejectsOutOfBorderChunkCoords)
+{
+    // 回归（fuzz_chunk_wire 发现）：ir.x / ir.z 来自不可信输入，越界值参与 `x * 16`
+    // 换算会触发有符号整数溢出（UB，UBSan 实测报
+    // `signed integer overflow: -553639641 * 16 cannot be represented in type 'int'`）。
+    // 修复前无范围校验，溢出后行为不可预期。
+    mc::network::ir::play::LevelChunkWithLight ir;
+    ir.x = -553639641;
+    ir.z = 0;
+
+    auto restored = mc::world::chunk::VanillaChunkWire::readLevelChunkWithLightIR(ir);
+    EXPECT_TRUE(restored.failed()) << "越界区块坐标必须被拒绝，而不是带着溢出值继续解析";
+    if (restored.failed()) {
+        EXPECT_EQ(restored.error().code(), ErrorCode::InvalidData);
+    }
+}
+
+TEST_F(VanillaChunkWireTest, ReadLevelChunkWithLightAcceptsBorderChunkCoords)
+{
+    // 边界值应放行（不误伤合法坐标）。
+    constexpr i32 MAX_CHUNK = mc::world::WORLD_BORDER / mc::world::CHUNK_WIDTH;
+    mc::network::ir::play::LevelChunkWithLight ir;
+    ir.x = MAX_CHUNK;
+    ir.z = -MAX_CHUNK;
+
+    auto restored = mc::world::chunk::VanillaChunkWire::readLevelChunkWithLightIR(ir);
+    EXPECT_TRUE(restored.success()) << "世界边界上的合法区块坐标不应被拒绝";
+}
 
 TEST_F(VanillaChunkWireTest, ReadLevelChunkWithLightDoesNotDoubleCountBlocks)
 {
