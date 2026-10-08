@@ -67,9 +67,12 @@ runs:
         echo "--- ninja ---";      ninja --version
         echo "--- clang ---";      clang --version | head -1
         echo "--- clang++ ---";    clang++ --version | head -1
-        echo "--- lld ---";        lld --version | head -1
         echo "--- ccache ---";     ccache --version | head -1
         echo "--- pkg-config ---"; pkg-config --version
+
+        # lld 是通用驱动：直接执行 `lld --version` 只会打印「Invoke ld.lld ... instead」
+        # 并以非零退出。在 `set -e -o pipefail` 下这会直接终止本步骤，故必须查具体驱动。
+        echo "--- ld.lld ---";     ld.lld --version
 
         # clang 版本低于 20 时直接失败：CompilerWarnings.cmake 的 -Wno-c2y-extensions
         # 会以 -Werror 报 unknown warning option，而那个报错指向具体源文件，
@@ -79,6 +82,7 @@ runs:
           echo "::error::clang 版本为 ${clang_major}，低于 20；请检查 clang 22 的安装与 PATH 前置。"
           exit 1
         fi
+        echo "clang major version = ${clang_major} (>= 20, OK)"
 
     - name: Restore ccache
       uses: actions/cache/restore@v4
