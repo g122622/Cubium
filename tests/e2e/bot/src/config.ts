@@ -14,8 +14,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** 仓库根目录（tests/e2e/bot/src → 上溯四级）。 */
 export const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
 
-/** Cubium 服务端可执行文件。 */
-export const CUBIUM_SERVER_EXE = path.join(REPO_ROOT, "build", "bin", "RelWithDebInfo", "minecraft-server.exe");
+/**
+ * Cubium 服务端可执行文件。
+ *
+ * 按平台补后缀：本仓库使用 Ninja Multi-Config 生成器，Linux 与 Windows 的产物
+ * 都落在 `build/bin/RelWithDebInfo/` 下，仅可执行文件名后缀不同。CI 只跑 Linux，
+ * 本地开发多在 Windows，故此处必须平台感知（`run_diff.ts` 已有同样范式）。
+ */
+export const CUBIUM_SERVER_EXE = path.join(
+    REPO_ROOT,
+    "build",
+    "bin",
+    "RelWithDebInfo",
+    process.platform === "win32" ? "minecraft-server.exe" : "minecraft-server",
+);
 
 /** 每次运行的工作根目录（隔离目录、日志、诊断产物都在此下）。 */
 export const WORK_ROOT = path.join(REPO_ROOT, "build", "e2e");

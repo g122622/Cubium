@@ -86,6 +86,29 @@ cmake --build --preset windows-clang-fuzz --target fuzz_java_codec_sb
 fuzz 目标的插桩静态库 `mc_fuzz_net` 只含网络子系统 TU（约 28 个），与之无关的项目
 代码不会被重编。改动 `tests/fuzz/` 下的 harness 只需重链，通常在分钟级内完成。
 
+### 3.5 Linux 构建（推荐用于 fuzz 执行）
+
+Windows 上 fuzz 有两处工具链包袱：libFuzzer 官方预编译运行时是 /MT 而项目是 /MD（§8.1），
+且 Sanitizer 运行时会破坏 C++ 异常处理，致所有以异常报错的路径被误报为崩溃（§7.7）。
+**Linux 上没有这两个问题**——clang 官方预编译 libFuzzer 运行时与项目 CRT 一致，直接
+`-fsanitize=fuzzer` 即可，无需源码自建。因此 nightly CI 的 fuzz job 跑在 Linux 上。
+
+```bash
+# 配置（独立构建树 build-fuzz/，与日常 build/ 隔离）
+cmake --preset linux-clang-fuzz
+
+# 构建全部 fuzz 目标（preset 内已限定 targets）
+cmake --build --preset linux-clang-fuzz -j$(nproc)
+
+# 只构建单个目标
+cmake --build --preset linux-clang-fuzz --target fuzz_java_codec_sb
+```
+
+产物位于 `build-fuzz/bin/fuzz/RelWithDebInfo/`（Ninja Multi-Config 会在
+`RUNTIME_OUTPUT_DIRECTORY` 之后追加配置名子目录）。`linux-clang-fuzz` preset 与
+`windows-clang-fuzz` 的唯一实质差别是**不设** `MC_FUZZ_LIBFUZZER_SOURCE_DIR`（该变量是
+Windows 专属的绕行手段），同时关掉 `MC_BUILD_TESTS` / `MC_BUILD_BENCHMARKS` 以免拖慢构建。
+
 ---
 
 ## 4. 运行

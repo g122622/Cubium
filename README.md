@@ -56,6 +56,8 @@ build/bin/RelWithDebInfo/minecraft-server
 
 性能基准测试（google/benchmark：区块生成吞吐、光照引擎、服务端启动耗时，含内存指标与 Perfetto trace）见 docs/BENCHMARK.md。
 
+持续集成（每晚自动跑一次完整测试并产出服务端 nightly build）见 [docs/CI.md](docs/CI.md)。
+
 ## clang-tidy 静态分析
 
 见 docs/TIDY.md

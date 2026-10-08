@@ -147,3 +147,7 @@ tests/integrated/*/structures/gametests/mediumglass.mcstructure
 tests/integrated/*/structures/gametests/light_box.mcstructure
 # 单包 package-lock 不追踪（用根 package-lock.json 统一锁定）
 tests/integrated/*/package-lock.json
+
+# Python 字节码缓存（scripts/ci 下的 CI 辅助脚本用）
+__pycache__/
+*.pyc

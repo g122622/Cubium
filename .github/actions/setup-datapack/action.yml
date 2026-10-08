@@ -1,0 +1,49 @@
+name: Setup Vanilla Datapack
+
+description: >-
+  把原版 1.21.11 数据包安装到 ~/minecraft_reborn/datapacks/Vanilla。
+  Cubium 的世界生成 100% 数据驱动、无硬编码兜底（StandaloneServer.cpp 扫描
+  GameDirectory::dataPacksDir()，列表为空时经 ensureVanillaBuiltinPack 注入
+  ~/minecraft_reborn/datapacks/Vanilla），单元测试的 WorldGenRegistryEnvironment
+  亦读同一目录，故所有测试类 job 都依赖本步骤。
+
+runs:
+  using: composite
+  steps:
+    - name: Install vanilla datapack from misode/mcmeta
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # misode/mcmeta 的 `1.21.11-data` 是**标签**而非 Release（GitHub API 对该 tag
+        # 的 releases 端点返回 404），可用的是标签归档 zip。
+        MC_VERSION="1.21.11"
+        ARCHIVE_URL="https://github.com/misode/mcmeta/archive/refs/tags/${MC_VERSION}-data.zip"
+        EXTRACT_ROOT="mcmeta-${MC_VERSION}-data"
+
+        DEST_DIR="${HOME}/minecraft_reborn/datapacks"
+        DEST_PACK="${DEST_DIR}/Vanilla"
+
+        if [ -f "${DEST_PACK}/pack.mcmeta" ]; then
+          echo "Vanilla datapack already present at ${DEST_PACK}, skipping download."
+          exit 0
+        fi
+
+        TMP_DIR="$(mktemp -d)"
+        trap 'rm -rf "${TMP_DIR}"' EXIT
+
+        echo "Downloading ${ARCHIVE_URL}"
+        curl -sSL --fail --retry 3 -o "${TMP_DIR}/mcmeta.zip" "${ARCHIVE_URL}"
+        unzip -q "${TMP_DIR}/mcmeta.zip" -d "${TMP_DIR}/extracted"
+
+        mkdir -p "${DEST_DIR}"
+        rm -rf "${DEST_PACK}"
+        mv "${TMP_DIR}/extracted/${EXTRACT_ROOT}" "${DEST_PACK}"
+
+        # 结构校验：缺少 pack.mcmeta 或 data/minecraft 说明归档结构变了，立即失败而非
+        # 让后续测试以「registry 为空 → 断言失败」的形式暴露（那种失败看不出根因）。
+        test -f "${DEST_PACK}/pack.mcmeta"
+        test -d "${DEST_PACK}/data/minecraft"
+
+        echo "Installed vanilla datapack to ${DEST_PACK}"
+        echo "  pack.mcmeta: $(head -c 120 "${DEST_PACK}/pack.mcmeta" | tr -d '\n')"

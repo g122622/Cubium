@@ -18,8 +18,8 @@
  *   # 只跑 mob_behavior 前缀的测试
  *   node scripts/test/run-gametests.ts --filter='mob_*'
  *
- *   # 指定 server 二进制路径（默认 build/bin/RelWithDebInfo/minecraft-server.exe）
- *   node scripts/test/run-gametests.ts --server=./build/bin/RelWithDebInfo/minecraft-server.exe
+ *   # 指定 server 二进制路径（默认按平台：build/bin/RelWithDebInfo/minecraft-server[.exe]）
+ *   node scripts/test/run-gametests.ts --server=./build/bin/RelWithDebInfo/minecraft-server
  *
  * 依赖：仅 Node.js 标准库（fs/path/child_process），无第三方依赖。
  * JUnit XML 解析用手写轻量正则（本项目 JUnitTestReporter 输出格式固定，无需完整 XML parser）。
@@ -268,7 +268,14 @@ async function main(): Promise<void> {
     const args = parseArgs();
     const shards = Number.parseInt(args["shards"] ?? "1", 10);
     const filter = args["filter"] ?? "";
-    const serverPath = args["server"] ?? path.join(REPO_ROOT, "build", "bin", "RelWithDebInfo", "minecraft-server.exe");
+    const serverPath = args["server"]
+        ?? path.join(
+            REPO_ROOT,
+            "build",
+            "bin",
+            "RelWithDebInfo",
+            process.platform === "win32" ? "minecraft-server.exe" : "minecraft-server",
+        );
     const outDir = args["out-dir"] ?? path.join(REPO_ROOT, "build", "gametest-reports");
     const dryRun = args["dry-run"] === "true";
 

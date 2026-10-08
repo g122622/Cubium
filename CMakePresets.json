@@ -229,6 +229,19 @@
         "MC_BUILD_TESTS": "ON",
         "MC_ENABLE_SANITIZERS": "OFF"
       }
+    },
+    {
+      "name": "linux-clang-fuzz",
+      "displayName": "Linux Clang Fuzz (libFuzzer harnesses, tests/fuzz)",
+      "inherits": "linux-relwithdebinfo",
+      "binaryDir": "${sourceDir}/build-fuzz",
+      "installDir": "${sourceDir}/dist-fuzz",
+      "cacheVariables": {
+        "MC_BUILD_TESTS": "OFF",
+        "MC_BUILD_BENCHMARKS": "OFF",
+        "MC_BUILD_FUZZERS": "ON",
+        "MC_FUZZ_ASAN": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -315,6 +328,24 @@
       "configurePreset": "linux-debug",
       "configuration": "Debug",
       "jobs": 0
+    },
+    {
+      "name": "linux-clang-fuzz",
+      "configurePreset": "linux-clang-fuzz",
+      "configuration": "RelWithDebInfo",
+      "jobs": 0,
+      "targets": [
+        "fuzz_varint_framing",
+        "fuzz_compression",
+        "fuzz_cipher",
+        "fuzz_chunk_wire",
+        "fuzz_connection_wire",
+        "fuzz_handshake_session",
+        "fuzz_java_codec",
+        "fuzz_java_codec_sb",
+        "fuzz_java_codec_cb",
+        "fuzz_gen_seeds"
+      ]
     }
   ],
   "testPresets": [

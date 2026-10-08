@@ -1,65 +1,173 @@
-## CI / GitHub Actions
+## CI 与 nightly 构建
 
-项目配置了 GitHub Actions 持续集成，包含主CI工作流和自愈工作流。
+Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:00（北京时间）自动运行一次**，
+不随每次提交触发。目标有三：
 
-### 主CI工作流 (`ci.yml`)
+1. 每晚跑一次完整测试（单元 / 集成 / e2e / fuzz / benchmark）；
+2. 每晚产出可部署的服务端二进制（GitHub Release）；
+3. 把失败结果归档为 artifact 并自动建一个 issue，供人工与 AI 助手排查。
 
-位于 `.github/workflows/ci.yml`，包含以下 Job：
+> 历史：项目曾有一份 `ci.yml`（push/PR 触发，含 Windows/Linux 构建与 ASan/TSan/栈保护等 job）
+> 与一份 `self-heal.yml`（CI 失败时用 GitHub Models 分析根因并派发给 @copilot）。`ci.yml` 的 5 个
+> 构建/测试 job 于 2026-06 起被 `if: false` 静态关闭，只剩格式检查在跑，导致 self-heal 因「CI 永不
+> 失败」而同步休眠。二者均已删除，由本工作流取代。
 
-| Job | 平台 | 说明 |
-|-----|------|------|
-| **build-windows** | Windows / Clang | 客户端+服务端 RelWithDebInfo 构建（快速反馈） |
-| **build-linux** | Linux / Clang | 服务端 RelWithDebInfo 构建并运行测试 |
-| **asan-ubsan** | Linux / Clang | AddressSanitizer + UndefinedBehaviorSanitizer 测试 |
-| **tsan** | Linux / Clang | ThreadSanitizer 测试 |
-| **stack-protect** | Linux / Clang | 栈保护 + 硬化构建（`-fstack-protector-strong`、`-D_FORTIFY_SOURCE=2`、PIE、RELRO、不可执行栈），并验证二进制安全属性 |
-| **format-check** | Linux | clang-format 格式检查（仅检查变更文件） |
+### 为什么只跑 Linux
 
-#### 关键设计
+客户端已停止维护，日常运行以服务端为主；Linux 是项目的 CI 目标平台，Windows/macOS 构建已移除。
+这同时消除了 Windows 上 fuzz 工具链的两处历史包袱（libFuzzer 运行时的 /MT CRT 冲突、Sanitizer
+运行时破坏 C++ 异常处理，见 [test/FUZZING.md](test/FUZZING.md) §7.7 / §8.1）。
 
-- **ASan+UBSan 与 TSan 分离**：两种 sanitizer 互斥，必须独立运行
-- **Sanitizer 构建使用 Debug 模式**：`MC_ENABLE_SANITIZERS=ON` 时自动切换到 `-O1` 并禁用 `-march=native`、LTO、`-fno-stack-protector` 等优化选项
-- **Linux Job 关闭客户端**：CI 无 GPU/Vulkan，所有 Linux Job 使用 `MC_BUILD_CLIENT=OFF`
-- **vcpkg 缓存**：使用 `lukka/run-vcpkg@v11` 并锁定 baseline commit
-- **并发控制**：同一分支/PR 的重复运行会自动取消
-- **失败诊断输出**：每个 Job 在失败时输出结构化摘要信息，供自愈工作流分析
+### 为什么拆成多个 job
 
-### 自愈CI工作流 (`self-heal.yml`)
+GitHub Actions 单个 job 有 **6 小时硬上限**。本项目百万行 C++ 的构建耗时长、单元测试用例数以万计、
+fuzz 约 45 分钟，串行放在一个 job 里必然超时。因此拆为「1 个构建 job + 5 个测试 job + 1 个汇总 job」，
+测试 job 从构建 job 的 artifact 取二进制，不各自重复构建。
 
-位于 `.github/workflows/self-heal.yml`，当主CI工作流失败时自动触发，实现检测→诊断→修复的闭环：
-
-#### 工作流程
+### Job 拓扑
 
 ```
-CI失败 → 自愈工作流触发 → AI分析日志 → 分类
-                                            ├─ 瞬时故障 → 自动重跑失败Jobs
-                                            └─ 非瞬时故障 → 创建Issue分配给@copilot
-                                                             → Copilot Agent自主修复
-                                                             → 创建PR等待人工审查
+build ─┬─> unit-tests
+       ├─> integrated-tests
+       ├─> e2e-tests
+       └─> benchmark
+fuzz ──（独立，自行构建）
+
+以上全部 ──> report（if: always()，汇总 + 建 issue）
 ```
 
-#### 故障分类
+| Job | 内容 | 是否阻塞 |
+|---|---|---|
+| `build` | `linux-relwithdebinfo` 构建，上传 artifact，建 nightly Release | 是 |
+| `unit-tests` | `ctest` 全量单元测试 | **否**（仅归档） |
+| `integrated-tests` | `scripts/test/run-gametests.ts`（含失败隔离重跑） | **否**（仅归档） |
+| `e2e-tests` | `tests/e2e/bot` 的 `regress` 模式（仅 Cubium，不与 vanilla 双跑） | 是 |
+| `fuzz` | 9 个 libFuzzer 目标各 `-max_total_time=300` | 是（崩溃/OOM 即失败） |
+| `benchmark` | `mc_benchmark`，与上一次 nightly 对比 | **否**（仅记录 + 告警） |
+| `report` | 汇总各 job 结果，有失败则建 issue | — |
 
-| 类别 | 说明 | 处理方式 |
-|------|------|----------|
-| **transient** | 网络超时、vcpkg缓存损坏、runner临时问题 | 自动重跑失败的Jobs |
-| **formatting** | clang-format格式违规 | 创建Issue，Copilot运行clang-format修复 |
-| **build-error** | 编译错误（缺少include、类型不匹配、链接错误） | 创建Issue，Copilot修复代码 |
-| **test-failure** | 单元测试断言失败 | 创建Issue，Copilot修复逻辑或测试 |
-| **sanitizer** | ASan/UBSan/TSan违规（内存越界、UAF、数据竞争） | 创建Issue，Copilot修复内存/线程问题 |
-| **infrastructure** | runner故障、磁盘空间不足、工具链问题 | 创建Issue，标记需人工干预 |
+**为什么单元/集成测试不阻塞**：项目存在大量历史遗留失败（`CLAUDE.md` 亦明确指出「很多测试错误是
+以前留下的」）。把它们设成硬门禁会让 nightly 长期红灯、失去信号价值。因此这两类**全量跑、如实记录、
+不 fail**，失败清单由 `report` job 汇总进 issue。
 
-#### 安全机制
+**为什么 benchmark 不阻塞**：nightly 跑在 GitHub 托管的 `ubuntu-latest` 上，**每次都是全新的机器
+实例**，性能绝对值含实例间噪声。单晚差异不足以判定回归，故只输出对比报告并对超阈值项 `::warning::`。
 
-- **防循环**：同一分支最近20次提交中bot提交>=5则停止创建新Issue
-- **去重检查**：同一CI run不创建重复的修复Issue
-- **人工审查**：所有Copilot创建的PR必须经过人工review，不自动合并
-- **最小权限**：工作流仅有`contents:read`、`actions:read`、`issues:write`、`models:read`权限
+### 触发
 
-#### 启用自愈CI的前置条件
+```bash
+# 定时（无需操作，每晚自动运行）
+# 手动触发（首次调试或按需重跑）
+gh workflow run nightly.yml
+```
 
-1. **创建 PAT**：在 GitHub Settings → Developer settings → Fine-grained tokens 创建 `auto-remediation` token，权限：Issues(Read/Write)、Actions(Read)、Models(Read)、Contents(Read)
-2. **添加 Secret**：在仓库 Settings → Secrets → Actions 中添加 `AUTO_REMEDIATION_PAT`
-3. **启用 GitHub Models**：仓库 Settings → Copilot/Models，确保 GitHub Models 已启用
-4. **启用 Copilot Coding Agent**：仓库 Settings → Copilot，确保 Coding Agent 已启用
-5. **分支保护**：`main` 分支要求 PR review + status checks
+cron 为 `0 13 * * *`（UTC）—— GitHub 的 cron 一律按 UTC 解释，13:00 UTC 即北京时间 21:00。
+
+### 数据包依赖
+
+Cubium 的世界生成 **100% 数据驱动、无硬编码兜底**：`StandaloneServer` 扫描
+`GameDirectory::dataPacksDir()`（`~/minecraft_reborn/datapacks/`），列表为空时经
+`DataPackRepository::ensureVanillaBuiltinPack` 注入 `~/minecraft_reborn/datapacks/Vanilla`；
+单元测试的 `WorldGenRegistryEnvironment`（`tests/unit/main.cpp`）读同一目录。数据包缺失时各
+worldgen loader 会加载 0 条目，`RandomState::create` 断言失败。
+
+因此所有测试类 job 都先经 `.github/actions/setup-datapack`（composite action）安装数据包：
+
+```
+https://github.com/misode/mcmeta/archive/refs/tags/1.21.11-data.zip
+```
+
+> 注意：`misode/mcmeta` 的 `1.21.11-data` 是**标签**而非 Release（GitHub API 对该 tag 的
+> releases 端点返回 404），只能用标签归档 zip。解压后 `mcmeta-1.21.11-data/` 的结构与本地
+> `datapacks/Vanilla/` 完全一致（`data/minecraft/` + `pack.mcmeta` + `version.json`），
+> 重命名为 `Vanilla` 即可。
+
+本地复现 nightly 时，需自行准备同一份数据包（放到 `~/minecraft_reborn/datapacks/Vanilla`）。
+
+### 性能基准的对比口径
+
+`benchmark` job 用 `gh run list` 找到最近一次**成功**的 nightly 运行（排除本次），下载其
+`benchmark-results` artifact，再由 `scripts/ci/compare_benchmark.py` 逐用例比对：
+
+- **CPU**：`real_time` 归一化到纳秒后比较，阈值默认 10%；
+- **内存**：`MemoryProfiler` 注入的计数器（`num_allocs` / `max_bytes_used` 等），阈值默认 20%。
+
+超阈值的项在报告中列出并触发 `::warning::`，但**不 fail**。判定真实回归应结合连续多晚的趋势，
+而非单晚的单点差异——托管 runner 的实例差异本身就足以造成超过阈值的抖动。
+
+### 失败归档与 issue
+
+- 各 job 的结果（日志、JUnit XML、benchmark 报告、fuzz 崩溃产物）都作为 artifact 上传，
+  benchmark 结果保留 90 天，其余 30 天。
+- `report` job 用 `scripts/ci/summarize_failures.py` 汇总为一个 Markdown 报告，
+  同时写入 job summary（可在运行页直接查看）并作为 artifact 保留。
+- **是否需要建 issue 的判定集中在 `summarize_failures.py` 的 `has_failures()`**，它综合两类来源：
+  1. job 层面的失败（build / e2e / fuzz / benchmark 任一非 success）；
+  2. 非阻塞 job（unit-tests / integrated-tests）产物中的失败用例——这两个 job 内部吞掉了失败码、
+     恒为 success，必须从产物（`ctest-results.xml`、gametest 的 JUnit XML、e2e 日志、fuzz 产物）里查。
+- 判定结果经 `nightly-status.txt` 传出，`report` job 据此决定是否建 issue（标签 `nightly-ci`，
+  标题 `Nightly CI 失败 (YYYY-MM-DD)`），正文即上述报告。**不派发给任何人**。
+- 去重：同一 run 只建一个 issue。
+
+### 本地复现各 job
+
+```bash
+# 构建（对应 build job）
+./scripts/configure.sh build
+
+# 单元测试（对应 unit-tests job；必须经 ctest 以发挥并行能力并启用单用例限时）
+cd build && ctest --build-config RelWithDebInfo --output-on-failure -j8
+
+# 集成测试（对应 integrated-tests job）
+node scripts/test/run-gametests.ts
+
+# e2e（对应 e2e-tests job）
+cd tests/e2e/bot && npm ci && node run.ts
+
+# fuzz（对应 fuzz job）
+cmake --preset linux-clang-fuzz
+cmake --build --preset linux-clang-fuzz -j$(nproc)
+build-fuzz/bin/fuzz/RelWithDebInfo/fuzz_java_codec_sb \
+  -max_total_time=300 tests/fuzz/corpus/fuzz_java_codec_sb
+
+# benchmark（对应 benchmark job；须在仓库根目录运行）
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_repetitions=3
+python3 scripts/ci/compare_benchmark.py \
+  --current benchmark_results/<本次时间戳>/results.json \
+  --previous <上次的 results.json>
+```
+
+### 相关脚本
+
+| 文件 | 职责 |
+|---|---|
+| `scripts/ci/compare_benchmark.py` | benchmark 跨日对比，生成 Markdown 报告（仅记录 + 告警） |
+| `scripts/ci/summarize_failures.py` | 汇总各测试结果，生成 issue 正文（永不抛异常、输出限长） |
+| `.github/actions/setup-datapack/action.yml` | 安装原版数据包到 `~/minecraft_reborn/datapacks/Vanilla` |
+
+### 平台适配注意
+
+`tests/e2e/bot/src/config.ts` 与 `scripts/test/run-gametests.ts` 中的服务端二进制路径按
+`process.platform` 补后缀（Windows 为 `minecraft-server.exe`，Linux 为 `minecraft-server`）。
+`benchmark/cases/ServerInitializeBenchmark.cpp` 同样已有 `#ifdef _WIN32` 分支。新增任何以
+硬编码路径定位二进制产物（或按路径判平台）的脚本时，务必沿用该平台感知写法。
+
+### 容易踩的坑
+
+1. **cron 按 UTC 解释**：写 `0 21 * * *` 会得到北京时间凌晨 5 点。本项目用 `0 13 * * *`。
+2. **托管 runner 的机器实例每次都不同**：benchmark 的绝对值不可跨夜直接比较「是否回归」，
+   只看趋势与幅度。
+3. **测试 job 与 build job 的 workspace 路径必须一致**：CTest 元数据里存的是绝对路径
+   （`/home/runner/work/<repo>/<repo>`）。标准托管 runner 上两者一致，故可直接解压复用；
+   若改用 self-hosted runner 且路径不同，unit-tests job 需改为在本 job 内重新 configure。
+4. **vcpkg 依赖可能是动态库**：build job 会把 `installed/x64-linux/lib` 一并打进 artifact，
+   测试 job 通过 `LD_LIBRARY_PATH` 引用。若某次构建链接方式改变（改静态链接），这段可以删掉。
+5. **`report` job 必须 `if: always()`**：否则任一前置 job 失败时它不会运行，连 issue 都建不出来。
+6. **行为包的 TS→JS 产物不入 git**：`tests/integrated/*/scripts/` 在 `.gitignore` 中，
+   由 `build.mjs` 在构建期生成。因此任何**不构建**却要跑集成测试或 e2e 的 job，都必须先
+   `node build.mjs` 自行编译一次（`build.mjs` 会在 `node_modules` 缺失时自动 `npm install`）。
+7. **CTest 元数据是构建期产物**：`CTestTestfile.cmake` 与 gtest 的发现文件不在 `bin/` 下，
+   故 build job 单独打包为 `ctest-meta.tar.gz` 供 unit-tests job 复用。**这些文件内含绝对路径**，
+   两个 job 的 workspace 路径必须一致才能直接解压复用。
+8. **fuzz 的语料目录不能传 `tests/fuzz/corpus` 根**：libFuzzer 会把新语料条目以 sha1 命名
+   写进传入的目录，传仓库根语料目录会让工作区变脏。无专属语料的 target 用临时目录起跑。
