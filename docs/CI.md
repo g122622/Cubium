@@ -176,9 +176,16 @@ python3 scripts/ci/compare_benchmark.py \
    开发包，缺失时 configure 会以 `vcpkg install failed` + glfw3 portfile 报错栈的形式失败，
    真实原因（`Could NOT find X11`）藏在 vcpkg 内部日志里，极难定位。完整清单见
    `.github/actions/setup-linux-build-env/action.yml`。
-10. **CTest 用例清单的生成时机随平台不同**：Linux 走 `gtest_discover_tests` 的 POST_BUILD
+10. **clang 必须是 22，不能用 runner 预装的 18**：`cmake/CompilerWarnings.cmake` 使用了
+    `-Wno-c2y-extensions`（Clang 20+ 引入，用于压制 `__COUNTER__` 在 C2y 下被 `-pedantic`
+    判为扩展的警告）。clang 18 不认识该选项，配合 `-Werror` 会直接编译失败于
+    `error: unknown warning option '-Wno-c2y-extensions'`，而该报错指向具体源文件、
+    不会提示「编译器太老」。`setup-linux-build-env` 经 apt.llvm.org 的 llvm.sh 安装
+    clang 22 并把 `/usr/lib/llvm-22/bin` 前置到 `PATH`，同时在 Verify toolchain 步骤里
+    显式校验主版本 ≥ 20 提前暴露根因。
+11. **CTest 用例清单的生成时机随平台不同**：Linux 走 `gtest_discover_tests` 的 POST_BUILD
     模式，清单是 `build/tests/**/*_tests-<Config>.cmake`（数千行 `add_test`）；
     Windows 才是 `DISCOVERY_MODE PRE_TEST`。打包元数据时必须把 `*_tests*.cmake` 一并带上，
     否则 `ctest` 会报「No tests were found」。
-11. **composite action 内不能用 `env` 上下文**：`actions/cache` 的 key 里若需要 `VCPKG_COMMIT`，
+12. **composite action 内不能用 `env` 上下文**：`actions/cache` 的 key 里若需要 `VCPKG_COMMIT`，
     必须作为 `inputs` 传入（见 `setup-linux-build-env`），直接在 composite 里写 `env.X` 会解析为空。

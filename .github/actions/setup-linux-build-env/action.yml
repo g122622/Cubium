@@ -1,14 +1,21 @@
 name: Setup Linux Build Environment
 
 description: >-
-  安装 Linux 构建所需的系统包，并恢复 ccache 与 vcpkg 二进制缓存、安装 vcpkg。
+  安装 Linux 构建所需的工具链与系统包，并恢复 ccache 与 vcpkg 二进制缓存、安装 vcpkg。
   供 nightly 的 build / fuzz 两个 job 复用。
 
-  **系统包清单不可精简**：除编译器与 ninja 外，还必须包含 X11 / Vulkan / Wayland 开发包。
-  vcpkg 的 `glfw3` port 在 Linux 上依赖它们，缺失时 vcpkg 安装阶段即失败于
-  `Could NOT find X11 (missing: X11_X11_INCLUDE_PATH X11_X11_LIB)`，
-  表现为 configure 报 `vcpkg install failed`，而报错栈指向 glfw3 的 portfile，
-  与「缺系统包」这一根因隔了好几层。
+  两点必须注意：
+
+  1. **系统包清单不可精简**。除 ninja 与 ccache 外，还必须包含 X11 / Vulkan / Wayland
+     开发包 —— vcpkg 的 `glfw3` port 依赖它们。缺失时 configure 会以
+     `vcpkg install failed` + glfw3 portfile 报错栈的形式失败，而真实原因
+     （`Could NOT find X11 (missing: X11_X11_INCLUDE_PATH X11_X11_LIB)`）藏在 vcpkg
+     的内部日志里，与根因隔了好几层。
+
+  2. **clang 必须是 22**。runner 预装的是 clang 18，而 `cmake/CompilerWarnings.cmake`
+     使用了 `-Wno-c2y-extensions`（Clang 20+ 才引入的选项，用于压制 `__COUNTER__`
+     在 C2y 下被 `-pedantic` 判为扩展的警告）。clang 18 不认识该选项，配合 `-Werror`
+     会直接以 `unknown warning option '-Wno-c2y-extensions'` 编译失败。
 
 inputs:
   cache-scope:
@@ -33,22 +40,45 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
+        # lsb-release / wget / software-properties-common / gnupg 是 apt.llvm.org 的
+        # llvm.sh 安装脚本的前置依赖（它会检查这些二进制是否存在并在缺失时报错退出）。
         sudo apt-get install -y \
-          ninja-build clang lld llvm ccache pkg-config \
+          ninja-build ccache pkg-config \
+          lsb-release wget software-properties-common gnupg \
           libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
           libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
 
-    # 明确验证工具链就位。本项目用 Ninja Multi-Config 生成器，cmake 找不到 ninja 时会报
-    # 「CMake was unable to find a build program corresponding to "Ninja Multi-Config"」——
-    # 该错误可能与其它 configure 失败级联出现，先在此处暴露真实版本信息便于区分。
+    # 从 LLVM 官方 apt 仓库装 clang 22，并把其 bin 目录前置到 PATH。
+    # 用 PATH 前置而非 update-alternatives：/usr/bin/clang 由预装的 clang-18 包提供，
+    # 未必处于 alternatives 管理之下，直接改 PATH 更少依赖前提，效果等价。
+    - name: Install clang 22
+      shell: bash
+      run: |
+        curl -fsSL -o /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+        chmod +x /tmp/llvm.sh
+        sudo bash /tmp/llvm.sh 22
+        # GITHUB_PATH 写入的路径会被前置到后续步骤的 PATH，故 clang/clang++/lld 解析到 22。
+        echo "/usr/lib/llvm-22/bin" >> "$GITHUB_PATH"
+
     - name: Verify toolchain
       shell: bash
       run: |
-        echo "--- cmake ---";  cmake --version | head -1
-        echo "--- ninja ---";  ninja --version
-        echo "--- clang ---";  clang --version | head -1
-        echo "--- ccache ---"; ccache --version | head -1
+        echo "--- cmake ---";      cmake --version | head -1
+        echo "--- ninja ---";      ninja --version
+        echo "--- clang ---";      clang --version | head -1
+        echo "--- clang++ ---";    clang++ --version | head -1
+        echo "--- lld ---";        lld --version | head -1
+        echo "--- ccache ---";     ccache --version | head -1
         echo "--- pkg-config ---"; pkg-config --version
+
+        # clang 版本低于 20 时直接失败：CompilerWarnings.cmake 的 -Wno-c2y-extensions
+        # 会以 -Werror 报 unknown warning option，而那个报错指向具体源文件，
+        # 不会提示「编译器太老」，在此处提前暴露根因。
+        clang_major=$(clang -dumpversion | cut -d. -f1)
+        if [ "${clang_major}" -lt 20 ]; then
+          echo "::error::clang 版本为 ${clang_major}，低于 20；请检查 clang 22 的安装与 PATH 前置。"
+          exit 1
+        fi
 
     - name: Restore ccache
       uses: actions/cache/restore@v4
