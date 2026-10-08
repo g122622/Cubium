@@ -33,6 +33,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -74,6 +76,38 @@ void WitherRoseBlock::onEntityCollision(
 
     // 6. 施加凋零 I（amplifier=0）/ 40 tick（2 秒）。对齐 wiki：碰撞施加凋零 I、0:02。
     living->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Wither, 40, 0));
+}
+
+bool WitherRoseBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+{
+    // 凋灵玫瑰的放置面 = 普通花朵可用的土壤 + 下界岩 + 灵魂沙 + 灵魂土。
+    // vanilla WitherRoseBlock.mayPlaceOn = super.mayPlaceOn() || NETHERRACK || SOUL_SAND || SOUL_SOIL，
+    // 其中 super 为 VegetationBlock.mayPlaceOn = #dirt 标签 || 耕地。
+    //
+    // 此处不调用 FlowerBlock::canSustain：基类当前用 material().isSolid() 近似（会放行石头/玻璃等
+    // 任意固体方块，偏离 vanilla 的 #dirt + 耕地语义），凋灵玫瑰需要精确语义，故就地实现。
+    // TODO: FlowerBlock::canSustain 的 material().isSolid() 近似应统一收敛为 #dirt 标签 + 耕地
+    //       （vanilla VegetationBlock.mayPlaceOn），届时本方法可改为调基类 + 下界三方块。
+    MC_UNUSED(world);
+    MC_UNUSED(groundPos);
+
+    if (BlockTags::DIRT().contains(groundState)) {
+        return true;
+    }
+    if (VanillaBlocks::FARMLAND != nullptr && groundState.is(VanillaBlocks::FARMLAND)) {
+        return true;
+    }
+    if (VanillaBlocks::NETHERRACK != nullptr && groundState.is(VanillaBlocks::NETHERRACK)) {
+        return true;
+    }
+    if (VanillaBlocks::SOUL_SAND != nullptr && groundState.is(VanillaBlocks::SOUL_SAND)) {
+        return true;
+    }
+    if (VanillaBlocks::SOUL_SOIL != nullptr && groundState.is(VanillaBlocks::SOUL_SOIL)) {
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace blocks

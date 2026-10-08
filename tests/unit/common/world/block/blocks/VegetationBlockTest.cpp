@@ -28,7 +28,9 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/GardenBlocks.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "core/Constants.hpp"
@@ -571,6 +573,42 @@ TEST_F(VegetationBlockTest, MushroomRandomTickSpreadsWhenDark)
     }
 
     EXPECT_TRUE(spreadFound);
+}
+
+TEST_F(VegetationBlockTest, WitherRoseCanSustainOnDirtLikeAndNetherBlocks)
+{
+    // 凋灵玫瑰除普通花朵可用的土壤（#dirt + 耕地）外，还可放置在下界岩、灵魂沙与灵魂土上
+    // （vanilla WitherRoseBlock.mayPlaceOn 在 super 之外显式放行三者）。
+    ASSERT_NE(VanillaBlocks::WITHER_ROSE, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(11, 30, 11);
+    const BlockState& state = VanillaBlocks::WITHER_ROSE->defaultState();
+
+    // 普通花朵土壤
+    world.setBlockAt(pos.down(), &VanillaBlocks::DIRT->defaultState());
+    EXPECT_TRUE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::FARMLAND->defaultState());
+    EXPECT_TRUE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+
+    // 下界岩 / 灵魂沙 / 灵魂土
+    world.setBlockAt(pos.down(), &BaseBlocks::NETHERRACK->defaultState());
+    EXPECT_TRUE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &NetherBlocks::SOUL_SAND->defaultState());
+    EXPECT_TRUE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &NetherBlocks::SOUL_SOIL->defaultState());
+    EXPECT_TRUE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+
+    // 石头：不可存活（普通花朵与凋灵玫瑰均拒绝）
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+
+    // 下方为空：不可存活
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
 }
 
 TEST_F(VegetationBlockTest, CactusCanSustainOnlyOnSandLikeBlocks)
