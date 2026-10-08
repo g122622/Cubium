@@ -1,0 +1,73 @@
+name: Setup Linux Build Environment
+
+description: >-
+  安装 Linux 构建所需的系统包，并恢复 ccache 与 vcpkg 二进制缓存、安装 vcpkg。
+  供 nightly 的 build / fuzz 两个 job 复用。
+
+  **系统包清单不可精简**：除编译器与 ninja 外，还必须包含 X11 / Vulkan / Wayland 开发包。
+  vcpkg 的 `glfw3` port 在 Linux 上依赖它们，缺失时 vcpkg 安装阶段即失败于
+  `Could NOT find X11 (missing: X11_X11_INCLUDE_PATH X11_X11_LIB)`，
+  表现为 configure 报 `vcpkg install failed`，而报错栈指向 glfw3 的 portfile，
+  与「缺系统包」这一根因隔了好几层。
+
+inputs:
+  cache-scope:
+    description: ccache key 的区分前缀（build / fuzz 各自独立，避免互相覆盖）
+    required: true
+  vcpkg-commit:
+    description: vcpkg 的 baseline commit（与 vcpkg.json 的 builtin-baseline 一致）
+    required: true
+
+outputs:
+  vcpkg-cache-hit:
+    description: vcpkg 二进制缓存是否精确命中
+    value: ${{ steps.vcpkg-cache.outputs.cache-hit }}
+  vcpkg-cache-key:
+    description: vcpkg 二进制缓存的主 key（供调用方在 configure 后保存缓存）
+    value: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          ninja-build clang lld llvm ccache pkg-config \
+          libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
+          libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+
+    # 明确验证工具链就位。本项目用 Ninja Multi-Config 生成器，cmake 找不到 ninja 时会报
+    # 「CMake was unable to find a build program corresponding to "Ninja Multi-Config"」——
+    # 该错误可能与其它 configure 失败级联出现，先在此处暴露真实版本信息便于区分。
+    - name: Verify toolchain
+      shell: bash
+      run: |
+        echo "--- cmake ---";  cmake --version | head -1
+        echo "--- ninja ---";  ninja --version
+        echo "--- clang ---";  clang --version | head -1
+        echo "--- ccache ---"; ccache --version | head -1
+        echo "--- pkg-config ---"; pkg-config --version
+
+    - name: Restore ccache
+      uses: actions/cache/restore@v4
+      with:
+        path: .ccache
+        key: ccache-linux-${{ inputs.cache-scope }}-${{ github.run_id }}
+        restore-keys: |
+          ccache-linux-${{ inputs.cache-scope }}-
+
+    - name: Restore vcpkg binary cache
+      id: vcpkg-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: vcpkg-cache
+        key: vcpkg-linux-${{ inputs.vcpkg-commit }}-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-linux-${{ inputs.vcpkg-commit }}-
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: ${{ inputs.vcpkg-commit }}

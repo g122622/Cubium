@@ -59,32 +59,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm ccache pkg-config
-
-      - name: Restore ccache
-        uses: actions/cache/restore@v4
+      - uses: ./.github/actions/setup-linux-build-env
+        id: env-setup
         with:
-          path: .ccache
-          key: ccache-linux-nightly-${{ github.run_id }}
-          restore-keys: |
-            ccache-linux-nightly-
-
-      - name: Restore vcpkg binary cache
-        id: cache-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: vcpkg-cache
-          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
-
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          cache-scope: nightly
+          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
       - name: Configure
         run: ./scripts/configure.sh
@@ -92,11 +71,11 @@ jobs:
       # Configure 阶段 vcpkg 已完成安装，此处立即保存缓存：即使后续 Build 失败，
       # 依赖也已被缓存，下次运行无需重编。
       - name: Save vcpkg binary cache
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: vcpkg-cache
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
 
       - name: Build
         id: build-step
@@ -124,19 +103,29 @@ jobs:
             cp -a "${VCPKG_ROOT}/installed/x64-linux/lib/." vcpkg-libs/ || true
           fi
 
-      # CTest 的用例清单（CTestTestfile.cmake 与 gtest_discover_tests 生成的发现文件）
-      # 是构建期产物，不在 bin/ 下。单独打包出来，unit-tests job 才能在不重新构建的
-      # 前提下用 ctest 跑用例（这些文件里的路径是绝对路径，而两个 job 的 workspace
-      # 路径一致，均为 /home/runner/work/<repo>/<repo>，故可直接复用）。
+      # CTest 的用例清单是**构建期**产物，不在 bin/ 下。Linux 走 gtest_discover_tests 的
+      # POST_BUILD 模式（Windows 才是 PRE_TEST），故清单落在 `*_tests-<Config>.cmake`，
+      # 由 `CTestTestfile.cmake` 直接 include。这里把这些文件全部打包，unit-tests job
+      # 才能在不重新构建的前提下用 ctest 跑用例。
+      #
+      # 这些文件内含**绝对路径**（如 /home/runner/work/<repo>/<repo>/build/bin/...），
+      # 而两个 job 的 workspace 路径完全一致，故解压到仓库根即可直接复用。
       - name: Package CTest metadata
         if: always()
         run: |
           set +e
-          find build \( -name 'CTestTestfile.cmake' -o -name '*_tests.cmake' -o -name '*_include.cmake' \) \
+          find build \
+            \( -name 'CTestTestfile.cmake' \
+               -o -name 'cmake_test_discovery_*.json' \
+               -o -name '*_tests*.cmake' \
+               -o -name '*_include*.cmake' \) \
             -print0 > /tmp/ctest-meta.list
-          if [ -s /tmp/ctest-meta.list ]; then
+          count=$(tr -cd '\0' < /tmp/ctest-meta.list | wc -c)
+          if [ "${count}" -gt 0 ]; then
             tar -czf ctest-meta.tar.gz --null -T /tmp/ctest-meta.list
-            echo "Packaged $(wc -l < /tmp/ctest-meta.list | tr -d ' ') CTest metadata files."
+            echo "Packaged ${count} CTest metadata files."
+            # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
+            find build -name '*_tests*.cmake' | head -5
           else
             echo "::warning::未找到任何 CTest 元数据文件，unit-tests job 可能无法用 ctest 运行。"
           fi
@@ -375,32 +364,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build clang lld llvm ccache pkg-config
-
-      - name: Restore ccache
-        uses: actions/cache/restore@v4
+      - uses: ./.github/actions/setup-linux-build-env
+        id: env-setup
         with:
-          path: .ccache
-          key: ccache-linux-fuzz-${{ github.run_id }}
-          restore-keys: |
-            ccache-linux-fuzz-
-
-      - name: Restore vcpkg binary cache
-        id: cache-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: vcpkg-cache
-          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
-
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+          cache-scope: fuzz
+          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
       # Linux 上无需源码自建 libFuzzer 运行时（Windows 的 /MT CRT 冲突在 Linux 上不存在），
       # 直接用 clang 预编译运行时；故不设 MC_FUZZ_LIBFUZZER_SOURCE_DIR。
@@ -408,11 +376,11 @@ jobs:
         run: cmake --preset linux-clang-fuzz
 
       - name: Save vcpkg binary cache
-        if: steps.cache-restore.outputs.cache-hit != 'true'
+        if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: vcpkg-cache
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
 
       - name: Build fuzz targets
         run: cmake --build --preset linux-clang-fuzz -j"$(nproc)"

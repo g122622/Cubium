@@ -143,6 +143,7 @@ python3 scripts/ci/compare_benchmark.py \
 |---|---|
 | `scripts/ci/compare_benchmark.py` | benchmark 跨日对比，生成 Markdown 报告（仅记录 + 告警） |
 | `scripts/ci/summarize_failures.py` | 汇总各测试结果，生成 issue 正文（永不抛异常、输出限长） |
+| `.github/actions/setup-linux-build-env/action.yml` | 装系统依赖 + 恢复 ccache/vcpkg 缓存 + 安装 vcpkg（build / fuzz 共用） |
 | `.github/actions/setup-datapack/action.yml` | 安装原版数据包到 `~/minecraft_reborn/datapacks/Vanilla` |
 
 ### 平台适配注意
@@ -171,3 +172,13 @@ python3 scripts/ci/compare_benchmark.py \
    两个 job 的 workspace 路径必须一致才能直接解压复用。
 8. **fuzz 的语料目录不能传 `tests/fuzz/corpus` 根**：libFuzzer 会把新语料条目以 sha1 命名
    写进传入的目录，传仓库根语料目录会让工作区变脏。无专属语料的 target 用临时目录起跑。
+9. **Linux 系统依赖不可只装编译器与 ninja**：vcpkg 的 `glfw3` port 依赖 X11 / Vulkan / Wayland
+   开发包，缺失时 configure 会以 `vcpkg install failed` + glfw3 portfile 报错栈的形式失败，
+   真实原因（`Could NOT find X11`）藏在 vcpkg 内部日志里，极难定位。完整清单见
+   `.github/actions/setup-linux-build-env/action.yml`。
+10. **CTest 用例清单的生成时机随平台不同**：Linux 走 `gtest_discover_tests` 的 POST_BUILD
+    模式，清单是 `build/tests/**/*_tests-<Config>.cmake`（数千行 `add_test`）；
+    Windows 才是 `DISCOVERY_MODE PRE_TEST`。打包元数据时必须把 `*_tests*.cmake` 一并带上，
+    否则 `ctest` 会报「No tests were found」。
+11. **composite action 内不能用 `env` 上下文**：`actions/cache` 的 key 里若需要 `VCPKG_COMMIT`，
+    必须作为 `inputs` 传入（见 `setup-linux-build-env`），直接在 composite 里写 `env.X` 会解析为空。
