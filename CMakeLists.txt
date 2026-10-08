@@ -47,6 +47,15 @@ option(MC_ENABLE_TRACY "Enable Tracy profiling" OFF)
 option(MC_TRACY_ON_DEMAND "Enable Tracy on-demand profiling (collect only while a GUI is connected)" ON)
 option(MC_ENABLE_MEMORY "Enable memory allocation tracking via Tracy" OFF)
 option(MC_ENABLE_CCACHE "Enable ccache for faster rebuilds" ON)
+# 针对本机 CPU 生成优化指令（-march=native -mtune=native）。
+#
+# 默认 ON 适合「在本机编译并在本机运行」的日常开发。**跨机器场景必须关闭**：
+# -march=native 会按编译机的 CPU 特性（AVX-512 等）生成指令，产物在缺少该特性的
+# 机器上执行会触发 SIGILL（Illegal instruction）。
+#
+# CI 是典型跨机器场景：build job 与各测试 job 跑在**不同的** runner 实例上，
+# 因此 CI 的 configure 必须显式传 -DMC_ENABLE_NATIVE_ARCH=OFF。
+option(MC_ENABLE_NATIVE_ARCH "Optimize for the build machine's CPU (-march=native)" ON)
 
 # ccache 配置（仅 Unix 平台：Linux/macOS）
 if(MC_ENABLE_CCACHE AND UNIX)
@@ -245,9 +254,16 @@ if(MC_ENABLE_SANITIZERS)
     message(STATUS "Sanitizer build: optimizations reduced, stack protection enabled")
 else()
     add_compile_options(-O2) # 不开o3，o3对缓存不友好、增加编译时间且可能存在bug
-    add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
+    # 仅当明确要求时针对本机 CPU 生成指令（见 MC_ENABLE_NATIVE_ARCH 的说明）。
+    # 跨机器分发产物（CI 的 build job → 测试 job）时必须关闭，否则可能在无对应
+    # CPU 特性的机器上触发 SIGILL。
+    if(MC_ENABLE_NATIVE_ARCH)
+        add_compile_options(-march=native -mtune=native) # 架构专用优化：针对本地 CPU 生成优化指令
+    endif()
     add_compile_options(-ffast-math -fno-finite-math-only) # 启用快速浮点数，但保留 NaN/Inf 语义以允许 isfinite 检查
     add_compile_options(-fno-trapping-math) # 禁用浮点异常
+    # AVX2 是 x86_64 上近乎通用的基线（Haswell 2013+ / Excavator 2015+），
+    # 即便关闭 native 优化也保留，作为项目对 x86_64 的最低要求。
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
         add_compile_options(-mavx2) # 启用 AVX2 指令集（仅 x86_64，arm64 不支持）
     endif()

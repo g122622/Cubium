@@ -65,8 +65,13 @@ jobs:
           cache-scope: nightly
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
+      # 不用 ./scripts/configure.sh：它固定为 `cmake --preset linux-relwithdebinfo`，
+      # 无法追加 -D 覆盖。此处必须关掉 MC_ENABLE_NATIVE_ARCH（即 -march=native）——
+      # 构建产物要被**其它 runner 实例**下载运行（unit/integrated/e2e/benchmark 四个 job），
+      # 而托管 runner 的 CPU 型号不固定，按编译机特性生成的指令（AVX-512 等）在别的实例上
+      # 会触发 SIGILL。实测未关时：集成测试的服务端一启动就 SIGILL 崩溃。
       - name: Configure
-        run: ./scripts/configure.sh
+        run: cmake --preset linux-relwithdebinfo -DMC_ENABLE_NATIVE_ARCH=OFF
 
       # Configure 阶段 vcpkg 已完成安装，此处立即保存缓存：即使后续 Build 失败，
       # 依赖也已被缓存，下次运行无需重编。

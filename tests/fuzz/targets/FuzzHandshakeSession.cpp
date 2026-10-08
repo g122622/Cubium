@@ -134,7 +134,12 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
         return 0;
     }
     fuzz::initializeOnce();
+#ifdef _WIN32
+    // 登记当前输入，供 Windows 专属的异常现场报告器在静默崩溃（int3 / 访问违例绕过
+    // Sanitizer 死回调）时落盘复现用例。Linux 上 libFuzzer 自身能正常捕获信号并落盘
+    // artifact，无需该机制，故 setCurrentInput 仅在 Windows 下存在。
     fuzz::setCurrentInput(data, size);
+#endif
 
     const u8 flags = data[0];
     const bool isOfflineMode = (flags & 0x01u) != 0;
