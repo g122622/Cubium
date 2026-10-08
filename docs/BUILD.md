@@ -87,7 +87,7 @@ cmake --build --preset windows-clang-release-noprof
 
 - 即使在开发过程中，也要尽量使用 relwithdebinfo 构建，因为 Debug 运行非常慢，除非必要否则不要用。
 - 构建命令除了编译 C++ 代码之外，还会编译着色器。
-- 对于 macOS 等系统，默认只会启动一个核心构建，建议加上 `-j6`，并耐心等待 10 分钟左右以完成构建。
+- 对于 macOS 等系统，默认只会启动一个核心构建，建议加上 `-jxxx`，并耐心等待 10 分钟左右以完成构建。
 - Windows 不需要加 `-j` 后缀，系统会自动吃满全部核心。
 - 构建可能出现 "cl: 命令行 error D8040: 创建子进程或与子进程通讯时出错" 这种错误，此时只需要重新跑一遍构建命令就行，不用清理构建目录、不用重新生成构建脚本。
 
@@ -166,8 +166,8 @@ export VCPKG_ROOT=~/vcpkg
 # 配置
 cmake --preset macos-relwithdebinfo
 
-# 构建（-j10 使用10核心并行）
-cmake --build --preset macos-relwithdebinfo -- -j10
+# 构建（-j10 使用16核心并行）
+cmake --build --preset macos-relwithdebinfo -- -j16
 
 # 运行
 export VK_ICD_FILENAMES=/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
