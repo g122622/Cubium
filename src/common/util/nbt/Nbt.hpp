@@ -330,6 +330,11 @@ void dump_varlong(std::ostream& output, std::int64_t value);
 
 /**
  * @brief 从输入流加载原始数值（按上下文字节序）
+ *
+ * 读取不足（流已到末尾）时抛错。**必须显式判错**：早先实现直接返回 union 里的值，
+ * 而 `input.read` 在读不满时只置 failbit、不写目标缓冲区，于是返回的是**未初始化的
+ * 栈内存**。这会让调用方拿到任意巨大的长度值——`load_array_bin` / `load_list` 据此
+ * 循环 `emplace_back`，直到耗尽内存（fuzz 实测 malloc(2GB) 的 OOM）。
  */
 template <typename number_t>
 number_t load_flat(std::istream& input, const Context::Order order)
@@ -338,8 +343,11 @@ number_t load_flat(std::istream& input, const Context::Order order)
     union {
         number_t number;
         char data[n];
-    } tmp;
+    } tmp{};
     input.read(tmp.data, n);
+    if (!input) {
+        throw std::runtime_error("NBT: unexpected end of stream while reading a fixed-width number");
+    }
     return correct_order(tmp.number, order);
 }
 
@@ -468,19 +476,30 @@ inline constexpr std::size_t MAX_NBT_RESERVE_HINT = 4096;
  *
  * @return 剩余字节数；流不可寻址（如非 seekable 的网络流）时返回 std::nullopt，
  *         调用方应据此跳过本校验（此时由流的读取失败兜底）
+ *
+ * 【失败态必须返回 0 而非 nullopt】流一旦处于失败态（此前某次 `read` 读不满而置
+ * failbit），`tellg()` 恒返回 -1，若据此返回 nullopt 就等于**静默关闭全部长度校验**：
+ * 畸形输入只要先制造一次读失败，再用巨大长度声明诱导分配即可绕过所有防线
+ * （fuzz 实测：malloc(2GB) 的 OOM，栈落在 `load_array_bin` 的 emplace_back 循环）。
+ * 失败态下"剩余可读字节"实质为 0，据此拒绝任何 count > 0 的声明才是正确语义。
  */
 [[nodiscard]] inline std::optional<std::size_t> remainingStreamBytes(std::istream& input)
 {
+    // 失败态：已不可能再读出任何字节。
+    if (input.fail()) {
+        return std::size_t{0};
+    }
     const std::streampos current = input.tellg();
     if (current == std::streampos(-1)) {
         return std::nullopt;
     }
     input.seekg(0, std::ios::end);
     const std::streampos end = input.tellg();
-    input.seekg(current, std::ios::beg);
     if (end == std::streampos(-1) || end < current) {
+        // seek 失败（如非 seekable 流）：无法判定剩余量，交由调用方跳过校验。
         return std::nullopt;
     }
+    input.seekg(current, std::ios::beg);
     return static_cast<std::size_t>(end - current);
 }
 

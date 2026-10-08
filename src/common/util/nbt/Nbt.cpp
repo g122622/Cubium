@@ -642,7 +642,13 @@ std::string read_string_bin(std::istream& input, const Context& ctxt)
     validateBinaryElementCount(input, static_cast<std::size_t>(size), 1, "NBT string");
     std::string result;
     result.resize(size);
-    input.read(result.data(), size);
+    input.read(result.data(), static_cast<std::streamsize>(size));
+    // 读不满（流已耗尽）时 read 只置 failbit、不写满缓冲区，此处返回的是**部分未初始化**
+    // 的字符串。必须显式判错：否则畸形输入可静默产出垃圾数据，且失败态会让后续所有
+    // remainingStreamBytes 校验失效（见该函数的说明）。
+    if (!input) {
+        throw std::runtime_error("NBT string: stream ended before the declared length was read");
+    }
     return result;
 }
 

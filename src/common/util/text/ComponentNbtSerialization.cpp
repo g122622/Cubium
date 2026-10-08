@@ -256,8 +256,7 @@ std::string componentNbtBytesToPlainText(const std::vector<u8>& nbtBytes)
             // 对象被释放，第二次调用拿到的是 nullptr，解引用即空指针崩溃。
             // fuzz 实测：畸形 NBT 走到此处触发 SEGV（地址 0x20，正是 compound_tag 内
             // value map 的偏移）。必须先把所有权取到局部变量再用。
-            std::unique_ptr<mc::nbt::tags::compound_tag> root =
-                result.success() ? result.value() : nullptr;
+            std::unique_ptr<mc::nbt::tags::compound_tag> root = result.success() ? result.value() : nullptr;
             if (root != nullptr) {
                 std::string text = extractTextFromCompound(*root);
                 if (!text.empty()) {

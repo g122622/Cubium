@@ -167,6 +167,77 @@ TEST(NbtIo, ReadCompoundMalformedReturnsErrorInsteadOfThrowing)
     EXPECT_EQ(result.error().code(), ErrorCode::InvalidData);
 }
 
+// ============================================================================
+// 畸形长度声明导致的 OOM 回归（fuzz 发现，见 docs/test/FUZZING.md）
+// ============================================================================
+//
+// 两类缺陷都让畸形报文以极少的字节诱导巨量分配（远程内存耗尽）：
+//
+// 1. load_flat 在流读不满时只置 failbit、不写目标缓冲区，却仍返回 union 里的
+//    **未初始化栈内存** → 调用方拿到任意巨大的长度值 → emplace_back 循环到 OOM。
+// 2. 一旦流处于失败态，tellg() 恒返回 -1，remainingStreamBytes 据此返回 nullopt，
+//    使 validateBinaryElementCount **静默跳过**全部长度校验 → 同样可绕过防线。
+//
+// 下面两个用例分别覆盖这两种触发路径。
+
+TEST(NbtIo, TruncatedFixedWidthNumberThrowsInsteadOfReadingGarbage)
+{
+    // 流只剩 2 字节，却要读一个 8 字节 Long。修复前 load_flat 返回未初始化栈值，
+    // 该值可能极大，后续按它分配内存。
+    ByteBuf buf;
+    buf.writeU8(0x04); // Long tag id
+    buf.writeU8(0x00);
+    buf.writeU8(0x01); // name 长度 1
+    buf.writeU8('l');
+    buf.writeU8(0xAA); // 只有 1 字节数据，Long 需要 8 字节
+    auto result = readCompound(buf);
+    EXPECT_TRUE(result.failed()) << "截断的定宽数值必须报错，而非返回未初始化内存";
+}
+
+TEST(NbtIo, OversizedArrayLengthIsRejectedBeforeAllocating)
+{
+    // Compound { ByteArray a: 声明 0x7FFFFFFF 个元素，实际只给 2 字节 }。
+    // 修复前 reserve/emplace_back 会按 0x7FFFFFFF 分配（fuzz 实测 malloc(2GB)）。
+    ByteBuf buf;
+    buf.writeU8(0x07); // ByteArray tag id
+    buf.writeU8(0x00);
+    buf.writeU8(0x01); // name 长度 1
+    buf.writeU8('a');
+    buf.writeU8(0x7F); // size 大端 = 0x7FFFFFFF
+    buf.writeU8(0xFF);
+    buf.writeU8(0xFF);
+    buf.writeU8(0xFF);
+    buf.writeU8(0x01); // 实际数据仅 2 字节
+    buf.writeU8(0x02);
+    auto result = readCompound(buf);
+    EXPECT_TRUE(result.failed()) << "声明长度超过剩余字节数必须被拒绝";
+}
+
+TEST(NbtIo, FailedStreamStateDoesNotDisableLengthValidation)
+{
+    // 关键回归：先用一次读不满把流置入失败态（failbit），再声明巨大数组长度。
+    // 若 remainingStreamBytes 在失败态返回 nullopt，校验会被静默跳过，防线失效。
+    ByteBuf buf;
+    buf.writeU8(0x08); // String tag：声明 64 字节
+    buf.writeU8(0x00);
+    buf.writeU8(0x01); // name 长度 1
+    buf.writeU8('s');
+    buf.writeU8(0x00);
+    buf.writeU8(0x40); // 字符串声明 64 字节
+    buf.writeU8('A');  // 实际只给 2 字节 → 读不满，流进入失败态
+    buf.writeU8('B');
+    buf.writeU8(0x07); // ByteArray tag：声明 0x7FFFFFFF 个元素
+    buf.writeU8(0x00);
+    buf.writeU8(0x01);
+    buf.writeU8('a');
+    buf.writeU8(0x7F);
+    buf.writeU8(0xFF);
+    buf.writeU8(0xFF);
+    buf.writeU8(0xFF);
+    auto result = readCompound(buf);
+    EXPECT_TRUE(result.failed()) << "失败态不得让后续长度校验被跳过";
+}
+
 TEST(NbtIo, WriteCompoundDoesNotConsumeReadCursor)
 {
     // writeCompound 只追加字节，不应影响读游标（ByteBuf 单缓冲，写后读从头）
