@@ -406,8 +406,12 @@ jobs:
 
       # Linux 上无需源码自建 libFuzzer 运行时（Windows 的 /MT CRT 冲突在 Linux 上不存在），
       # 直接用 clang 预编译运行时；故不设 MC_FUZZ_LIBFUZZER_SOURCE_DIR。
+      #
+      # 同样必须关掉 MC_ENABLE_NATIVE_ARCH：fuzz 的 ccache 是跨运行共享的，若某次编译
+      # 落在带 AVX-512 的实例上、下次运行落在不支持的实例上，恢复出的 .o 会直接 SIGILL。
+      # 实测未关时 fuzz_gen_seeds 以「Illegal instruction (core dumped)」崩溃（退出码 132）。
       - name: Configure (fuzz)
-        run: cmake --preset linux-clang-fuzz
+        run: cmake --preset linux-clang-fuzz -DMC_ENABLE_NATIVE_ARCH=OFF
 
       - name: Save vcpkg binary cache
         if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
