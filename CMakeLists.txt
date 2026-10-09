@@ -282,6 +282,24 @@ else()
     endif()
 endif()
 
+# 崩溃调用栈的符号化（Linux）。
+#
+# CrashHandler 用 backtrace_symbols() 取栈帧符号，而该函数只查**动态符号表**（.dynsym）。
+# 可执行文件的函数默认只进 .symtab，于是崩溃日志里全是
+#     minecraft-server(+0xdcb55c) [0x55ba8c22755c]
+# 这种「只有偏移量、没有函数名」的帧，必须事后拿二进制用 addr2line/llvm-symbolizer
+# 逐个换算才能定位，排查成本极高（尤其 CI 上只能靠日志）。
+#
+# -rdynamic（等价于 -Wl,--export-dynamic）把可执行文件的全局符号也导出到 .dynsym，
+# backtrace_symbols 即可直接给出函数名。C++ 名字由 CrashHandler 用 __cxa_demangle 还原。
+# 实测对比：不加为 `./bin(+0x122f)`，加了为 `./bin(main+0x1f)`。
+#
+# 代价是二进制略增大（导出符号表），服务端约数 MB，相对其体积可忽略。
+# macOS 的 ld64 不支持该选项（且默认已导出全部符号），故仅在 Linux 上加。
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_link_options(-rdynamic)
+endif()
+
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(STATUS "Configuring Windows build with Clang: ${CMAKE_CXX_COMPILER}")
 endif()

@@ -320,6 +320,19 @@ jobs:
           # 用例失败（退出码 1）按既定口径不阻塞，失败清单由 report job 汇总。
           exit 0
 
+      # 崩溃栈默认只有裸偏移（如 `minecraft-server(+0xdcb55c)`），排查成本极高。
+      # 这里用带调试信息的二进制把偏移还原成「函数名 + 源文件:行号」——CMakeLists 的
+      # -rdynamic 已能让多数帧直接带名字，本步再补上匿名 namespace/static 函数与内联帧。
+      # 失败不影响 job 结论（崩溃信息本就已在日志里，符号化只是增强）。
+      - name: Symbolize crash stack (if any)
+        if: always()
+        run: |
+          set +e
+          python3 scripts/ci/symbolize_crash.py \
+            --log integrated-tests.log \
+            --binary build/bin/RelWithDebInfo/minecraft-server \
+            --in-place
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
