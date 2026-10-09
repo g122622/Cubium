@@ -1441,6 +1441,21 @@ target_precompile_headers(mc_common PRIVATE pch/pch_common.hpp)
 set_source_files_properties(pch/pch_common.hpp PROPERTIES
     COMPILE_OPTIONS "-Wno-error")
 
+# PCH 与 ccache 的兼容性：Clang 会把 PCH 的创建时间戳写进 .pch，使用方编译时校验该时间戳。
+# CI 每次运行都在新容器里重建 PCH（时间戳必然不同），若不做处理，所有使用 PCH 的 TU 都会
+# 退化为「不可缓存」（ccache 报 could_not_use_precompiled_header），整条缓存链路形同虚设。
+#
+# 官方要求的配置见 ccache 手册「Precompiled headers」：
+#   1. -Xclang -fno-pch-timestamp（Clang 专用）——PCH 不再内嵌时间戳，跨机器/跨次构建可比；
+#   2. CCACHE_SLOPPINESS 含 pch_defines,time_macros（在 workflow 里以环境变量设置）。
+# 二者缺一不可：只设 sloppiness 时命中率仅 ~17%，加上本选项后可达 ~83%（本地实测）。
+#
+# 该选项是 Clang 的 no-op 安全开关：不使用 PCH 的 TU（mc_gen / mc_tests / mc_benchmark）
+# 带上它后产物与不带时逐字节相同，故此处对全部 TU 统一添加，无需按 target 区分。
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-Xclang -fno-pch-timestamp)
+endif()
+
 # 导出头文件
 target_include_directories(mc_common
     PUBLIC

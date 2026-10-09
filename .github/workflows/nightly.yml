@@ -43,6 +43,14 @@ env:
   VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_MAXSIZE: 2G
+  # ccache 与 PCH 并存所必需的宽松策略（见 ccache 手册「Precompiled headers」）：
+  #   - pch_defines,time_macros：ccache 在使用 PCH 时无法探测 #define 变化与 __DATE__/__TIME__，
+  #     必须显式放行，否则会直接判定「不可缓存」（ccache 日志：could_not_use_precompiled_header）。
+  #   - include_file_mtime,include_file_ctime：CI 每次 checkout 都会刷新源文件 mtime/ctime，
+  #     不放行会令 direct mode 失效。实测缺这两项时命中率从 ~83% 掉到 ~25%。
+  # 与之配套的编译期选项 -Xclang -fno-pch-timestamp 在 src/common/CMakeLists.txt 中设置，
+  # 二者缺一不可。
+  CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
   # 构建产物的统一路径（Linux 下无 .exe 后缀）。
   BIN_DIR: build/bin/RelWithDebInfo
 
@@ -85,6 +93,13 @@ jobs:
       - name: Build
         id: build-step
         run: cmake --build --preset linux-relwithdebinfo -j"$(nproc)"
+
+      # 把 ccache 的命中统计打进日志：命中率是判断缓存是否真正生效的唯一直接证据。
+      # 一旦 PCH 相关配置（-Xclang -fno-pch-timestamp / CCACHE_SLOPPINESS）被误删，
+      # 命中率会从 ~80% 掉到个位数，此处立刻可见，无需再靠对比构建耗时反推。
+      - name: ccache statistics
+        if: always()
+        run: ccache --show-stats --verbose || true
 
       - name: Save ccache
         if: always()
@@ -403,6 +418,10 @@ jobs:
 
       - name: Build fuzz targets
         run: cmake --build --preset linux-clang-fuzz -j"$(nproc)"
+
+      - name: ccache statistics
+        if: always()
+        run: ccache --show-stats --verbose || true
 
       - name: Save ccache
         if: always()

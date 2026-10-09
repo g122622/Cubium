@@ -214,6 +214,36 @@ cmake --build --preset linux-relwithdebinfo
 ./build/bin/RelWithDebInfo/mc_tests --gtest_filter="*Math*" --gtest_brief=1
 ```
 
+### ccache 与 PCH 的配合（务必配置，否则缓存形同虚设）
+
+项目开启了 ccache（`MC_ENABLE_CCACHE`，Linux 默认 ON），同时 `mc_common` 使用了预编译头
+（PCH）。**Clang 会把 PCH 的创建时间戳写进 `.pch`，而使用方编译时会校验该时间戳**，因此
+每次重建 PCH（CI 每次运行、本地清理 `build/` 后）都会让所有使用 PCH 的 TU 退化为
+「不可缓存」，ccache 日志中的表现为 `Result: could_not_use_precompiled_header`。
+
+要让它真正生效，必须同时满足两条：
+
+1. **编译期**：加 `-Xclang -fno-pch-timestamp`（Clang 专用）。项目已在
+   `src/common/CMakeLists.txt` 中对所有 Clang 编译统一添加，无需手动处理。
+2. **运行期**：设置环境变量
+
+   ```bash
+   export CCACHE_SLOPPINESS=pch_defines,time_macros,include_file_mtime,include_file_ctime
+   ```
+
+   前两项是 ccache 手册「Precompiled headers」的硬性要求（ccache 无法在使用 PCH 时探测
+   `#define` 变化与 `__DATE__`/`__TIME__`）；`include_file_mtime,include_file_ctime` 用于
+   应对「每次 checkout 刷新源文件时间戳」的场景，缺失时命中率会从约 83% 掉到约 25%。
+
+验证缓存是否真的生效：
+
+```bash
+ccache --show-stats --verbose   # 看 Cacheable calls / Hits
+```
+
+若 `Cacheable calls` 占比很低（大量 `Uncacheable calls`），基本就是上述两项没配齐。
+CI（`nightly.yml`）已在 `env` 中设置 `CCACHE_SLOPPINESS`，并在构建后打印 ccache 统计。
+
 ### Linux preset 一览
 
 CMakePresets.json 中预置的 Linux preset（均设 `MC_BUILD_CLIENT=OFF`，服务端为主）：
