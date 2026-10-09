@@ -1450,11 +1450,11 @@ set_source_files_properties(pch/pch_common.hpp PROPERTIES
 #   2. CCACHE_SLOPPINESS 含 pch_defines,time_macros（在 workflow 里以环境变量设置）。
 # 二者缺一不可：只设 sloppiness 时命中率仅 ~17%，加上本选项后可达 ~83%（本地实测）。
 #
-# 该选项是 Clang 的 no-op 安全开关：不使用 PCH 的 TU（mc_gen / mc_tests / mc_benchmark）
-# 带上它后产物与不带时逐字节相同，故此处对全部 TU 统一添加，无需按 target 区分。
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_compile_options(-Xclang -fno-pch-timestamp)
-endif()
+# 【该选项在顶层 CMakeLists.txt 中设置，不能放在这里】
+# `add_compile_options` 只对**其后创建**的目标生效，而本文件第 7 行的
+# `add_library(mc_common ...)` 早于此处——若在此处添加，恰恰是使用 PCH 的 mc_common
+# 拿不到该选项，只有本文件末尾才创建的 mc_bedrock_addon 拿到，等于没加。
+# 实测（CI 日志 ccache 统计）：放错位置时 Could not use precompiled header 占比 99.75%。
 
 # 导出头文件
 target_include_directories(mc_common

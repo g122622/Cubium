@@ -58,6 +58,9 @@ _INTEGRATED_CRASH_MARKERS = (
 )
 # `run-gametests exit code: 2` / `Round 1 exit code: -1`（崩溃导致非零退出）
 _INTEGRATED_EXIT_LINE = re.compile(r"(?:run-gametests|Round \d+) exit code:\s*(-?\d+)")
+# GitHub Actions 下载的日志每行带 `2026-10-09T05:03:28.4838952Z ` 前缀；
+# 若日志来自网页复制则还带 `Build (Linux...)	UNKNOWN STEP	` 之类前缀。
+_GH_LOG_PREFIX = re.compile(r"^.*?\d{4}-\d{2}-\d{2}T[\d:.]+Z\s?")
 
 _JOB_LABELS = {
     "build": "构建（linux-relwithdebinfo）",
@@ -215,6 +218,61 @@ def collect_integrated_failures(artifacts_dir: Path) -> list[str]:
     return _dedupe(findings)
 
 
+# 崩溃块在日志中的起点标记。其上方一行是 `====` 分隔线，下方是 Reason / Stack trace。
+_CRASH_TITLE = "FATAL CRASH DETECTED"
+# 崩溃块结束标记（栈之后紧跟的内容）。
+_CRASH_TAIL_MARKERS = ("Perfetto tracing stopped", "run-gametests exit code:", "exit code:")
+# 崩溃前保留的上下文行数（用户明确要求包含崩溃前 20 条日志）。
+_CRASH_CONTEXT_LINES = 20
+# 单个崩溃报告最多保留的行数（防止异常日志把 issue 正文撑爆）。
+_CRASH_MAX_LINES = 160
+# 最多提取几份崩溃报告（一次运行通常只崩一次；重跑轮次可能多份）。
+_CRASH_MAX_REPORTS = 3
+
+
+def extract_crash_reports(artifacts_dir: Path) -> list[str]:
+    """提取完整的崩溃报告：崩溃前若干行上下文 + Reason + 完整调用栈 + 收尾行。
+
+    为什么要连上下文一起抓：崩溃日志里真正定位问题的信息有两部分——**调用栈**
+    （哪个函数炸的）与**崩溃前的日志**（当时在跑哪个测试、传送到哪个维度）。
+    只给「日志出现崩溃标记：SIGSEGV」等于什么都没说，排查者仍要去下载 artifact
+    才能看到栈；而 CI 的 artifact 有 30 天保留期且需要登录，把关键信息直接放进
+    issue 正文才能让人一眼看到。
+
+    返回若干个可直接贴进 Markdown 代码块的文本块。
+    """
+    reports: list[str] = []
+    for log in sorted(artifacts_dir.rglob("*integrated*.log")):
+        lines = _read_text(log).splitlines()
+        index = 0
+        while index < len(lines) and len(reports) < _CRASH_MAX_REPORTS:
+            if _CRASH_TITLE not in lines[index]:
+                index += 1
+                continue
+
+            # 标题上方一行是分隔线，上下文再往上数 _CRASH_CONTEXT_LINES 行。
+            start = max(0, index - 1 - _CRASH_CONTEXT_LINES)
+
+            # 从标题往后找收尾标记（Perfetto / 退出码），再多带 2 行。
+            end = index
+            cursor = index
+            while cursor < len(lines) and cursor - index < _CRASH_MAX_LINES:
+                if any(marker in lines[cursor] for marker in _CRASH_TAIL_MARKERS):
+                    end = cursor + 2
+                    break
+                cursor += 1
+            else:
+                end = min(len(lines), index + _CRASH_MAX_LINES)
+
+            block = lines[start:min(end, len(lines))]
+            # 去掉 GitHub Actions 日志行首的时间戳前缀（下载的原始日志没有，
+            # 但手工从网页复制的会有，去掉更整洁）。
+            block = [_GH_LOG_PREFIX.sub("", line) for line in block]
+            reports.append("\n".join(block).strip())
+            index = end
+    return reports
+
+
 def collect_fuzz_artifacts(artifacts_dir: Path) -> list[str]:
     """列出 fuzz 产出的崩溃/OOM/超时用例（这些是可复现的最小输入）。"""
     found: list[str] = []
@@ -263,6 +321,7 @@ def build_body(
     ctest_failures = collect_ctest_failures(artifacts_dir)
     junit_failures = collect_junit_failures(artifacts_dir)
     integrated_failures = collect_integrated_failures(artifacts_dir)
+    crash_reports = extract_crash_reports(artifacts_dir)
     e2e_failures = collect_e2e_failures(artifacts_dir)
     fuzz_artifacts = collect_fuzz_artifacts(artifacts_dir)
     benchmark_report = read_benchmark_report(artifacts_dir)
@@ -301,10 +360,20 @@ def build_body(
         lines.append("### 集成测试崩溃 / 流水线错误")
         lines.append("")
         lines.append("> 这类失败**没有 JUnit XML**（服务端在写出报告前就崩了），"
-                     "因此不会出现在上面的失败用例清单里。完整调用栈见 "
-                     "artifact `integrated-test-results` 中的 `integrated-tests.log`。")
+                     "因此不会出现在上面的失败用例清单里。下方直接给出完整调用栈"
+                     "与崩溃前若干行日志；原始日志见 artifact `integrated-test-results`。")
         lines.append("")
         lines.append(_details_block("崩溃标记", integrated_failures))
+        for i, report in enumerate(crash_reports, start=1):
+            title = "崩溃调用栈" if len(crash_reports) == 1 else f"崩溃调用栈 #{i}"
+            lines.append(f"<details><summary>{title}</summary>")
+            lines.append("")
+            lines.append("```")
+            lines.append(report)
+            lines.append("```")
+            lines.append("")
+            lines.append("</details>")
+            lines.append("")
 
     if e2e_failures:
         lines.append("### 端到端 bot 测试失败")

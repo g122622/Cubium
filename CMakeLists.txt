@@ -70,6 +70,29 @@ if(MC_ENABLE_CCACHE AND UNIX)
     endif()
 endif()
 
+# PCH 与 ccache 的兼容性（Clang 专用）。
+#
+# Clang 会把 PCH 的创建时间戳写进 .pch，使用方编译时校验该时间戳。CI 每次运行都在新容器
+# 里重建 PCH（时间戳必然不同），若不做处理，所有使用 PCH 的 TU 都会被 ccache 判定为
+# 「不可缓存」（ccache 统计中的 Could not use precompiled header），整条缓存链路形同虚设。
+# 实测：CI 日志里该项占比 99.75%。
+#
+# 官方要求的配置见 ccache 手册「Precompiled headers」：
+#   1. -Xclang -fno-pch-timestamp（本处）——PCH 不再内嵌时间戳，跨机器/跨次构建可比；
+#   2. CCACHE_SLOPPINESS 含 pch_defines,time_macros（在 CI workflow 里以环境变量设置）。
+# 二者缺一不可：只设 sloppiness 时命中率仅 ~17%，加上本选项后可达 ~83%（WSL 实测）。
+#
+# 【必须放在顶层，不能放进 src/common/CMakeLists.txt】`add_compile_options` 只对**其后
+# 创建**的目标生效。而 mc_common（唯一使用 PCH 的目标）在 src/common/CMakeLists.txt 第 7 行
+# 就创建了，在该文件里添加只会命中文件末尾才创建的 mc_bedrock_addon，等于没加。
+# 放在此处则在 add_subdirectory 之前，对全部子目录生效。
+#
+# 该选项是 Clang 的 no-op 安全开关：不使用 PCH 的 TU（mc_gen / mc_tests / mc_benchmark）
+# 带上它后产物与不带时逐字节相同，故统一添加，无需按目标区分。
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-Xclang -fno-pch-timestamp)
+endif()
+
 if(DEFINED CMAKE_TOOLCHAIN_FILE)
     message(STATUS "Using vcpkg toolchain: ${CMAKE_TOOLCHAIN_FILE}")
 endif()
