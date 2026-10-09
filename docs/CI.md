@@ -101,6 +101,12 @@ https://github.com/misode/mcmeta/archive/refs/tags/1.21.11-data.zip
   benchmark 结果保留 90 天，其余 30 天。
 - `report` job 用 `scripts/ci/summarize_failures.py` 汇总为一个 Markdown 报告，
   同时写入 job summary（可在运行页直接查看）并作为 artifact 保留。
+- 报告分别列出**失败和跳过**的单元、集成、e2e 用例，并保留原因。单元测试同时显示通过、
+  失败、跳过数量；job 的执行成功不能解释为所有用例通过。集成测试清单含各轮重跑记录。
+- `nightly-report.md` 用于 issue 正文，限制条数和长度；`nightly-report-full.md` 随
+  `nightly-report` artifact 归档，**失败和跳过清单不截断**。跳过不计为通过或失败。
+- JUnit 采用流式 XML 解析，日志完整读取，不限制输入长度。报告缺失、损坏或没有单测用例时
+  按报告错误上报，不能判为 `clean`；日志兜底也识别段错误、超时和未运行用例。
 - **是否需要建 issue 的判定集中在 `summarize_failures.py` 的 `has_failures()`**，它综合两类来源：
   1. job 层面的失败（build / e2e / fuzz / benchmark 任一非 success）；
   2. 非阻塞 job（unit-tests / integrated-tests）产物中的失败用例——这两个 job 内部吞掉了失败码、
@@ -189,3 +195,6 @@ python3 scripts/ci/compare_benchmark.py \
     否则 `ctest` 会报「No tests were found」。
 12. **composite action 内不能用 `env` 上下文**：`actions/cache` 的 key 里若需要 `VCPKG_COMMIT`，
     必须作为 `inputs` 传入（见 `setup-linux-build-env`），直接在 composite 里写 `env.X` 会解析为空。
+13. **限制输出，不能截断输入**：全量单测 XML 可超过 35 MB，CTest 日志超过 7 MB。
+    失败记录通常位于后段；只读前 400 万字符会同时漏掉 XML 失败项和日志末尾失败清单，
+    导致带失败的运行被判为 `clean`。失败与跳过必须完整解析后再限制 issue 展示长度。

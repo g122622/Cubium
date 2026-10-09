@@ -675,6 +675,7 @@ jobs:
             --branch "${GITHUB_REF_NAME}" \
             --commit "${GITHUB_SHA}" \
             --out nightly-report.md \
+            --full-out nightly-report-full.md \
             --status-out nightly-status.txt
 
           STATUS="$(cat nightly-status.txt 2>/dev/null || echo failures)"
@@ -693,6 +694,7 @@ jobs:
           if-no-files-found: warn
           path: |
             nightly-report.md
+            nightly-report-full.md
             nightly-status.txt
 
       # 建 issue 的触发条件：任一 job 失败，或非阻塞 job（unit/integrated）的产物中存在

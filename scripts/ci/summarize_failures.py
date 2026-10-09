@@ -24,6 +24,7 @@ import argparse
 import json
 import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # GitHub issue 正文上限是 65536 字符；留出安全余量。
@@ -32,13 +33,11 @@ _MAX_BODY_CHARS = 60_000
 _MAX_ITEMS_PER_SECTION = 200
 
 # ctest 的失败清单行形如：  "	  1 - TestSuite.Case (Failed)"
-_CTEST_FAILED_LINE = re.compile(r"^\s*\d+\s*-\s*(.+?)\s*\((Failed|Timeout|Subprocess aborted|Exception)\)\s*$")
-# JUnit XML 的 testcase 起始标签。
-_JUNIT_TESTCASE = re.compile(r"<testcase\b([^>]*?)(/?)>", re.DOTALL)
-_JUNIT_ATTR = re.compile(r'(\w+)="([^"]*)"')
+_CTEST_RESULT_LINE = re.compile(r"^\s*\d+\s*-\s*(.+?)\s*\(([^)]+)\)\s*$")
 # e2e runner 的失败行格式：  "  [cubium] containers/barrel ... ✗ 快照不一致 (1234ms)"
 # （见 tests/e2e/bot/src/runner.ts：先 write 前缀，再按结果补 ✓/✗。）
 _E2E_FAIL_LINE = re.compile(r"^\s*\[(\w+)\]\s+(\S+)\s+\.\.\.\s+✗\s*(.*)$")
+_E2E_SKIP_LINE = re.compile(r"^\s*\[跳过\]\s+(\S+)\s*$")
 # e2e 的汇总行：  "合计：48 条，通过 45，失败 3，跳过 0（见上方原因）"
 _E2E_SUMMARY = re.compile(r"^\s*合计：.*失败\s*(\d+)")
 
@@ -73,7 +72,7 @@ _JOB_LABELS = {
 }
 
 _STATUS_ICON = {
-    "success": "✅ 通过",
+    "success": "✅ 完成",
     "failure": "❌ 失败",
     "cancelled": "⚪ 取消",
     "skipped": "⏭️ 跳过",
@@ -92,9 +91,10 @@ def _dedupe(items: list[str]) -> list[str]:
     return ordered
 
 
-def _read_text(path: Path, limit: int = 4_000_000) -> str:
+def _read_text(path: Path) -> str:
     try:
-        return path.read_text(encoding="utf-8", errors="replace")[:limit]
+        # 输入不得截断：失败清单和退出码通常在长日志末尾；仅限制最终 issue 正文。
+        return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return ""
 
@@ -107,78 +107,91 @@ def _truncate_items(items: list[str]) -> list[str]:
     return shown
 
 
-def _details_block(title: str, items: list[str]) -> str:
+def _details_block(title: str, items: list[str], limit_output: bool) -> str:
     if not items:
         return ""
     lines = [f"<details><summary>{title}（{len(items)}）</summary>", ""]
-    lines.extend(f"- `{item}`" if not item.startswith("…") else f"- {item}" for item in _truncate_items(items))
+    shown = _truncate_items(items) if limit_output else items
+    lines.extend(f"- `{item}`" if not item.startswith("…") else f"- {item}" for item in shown)
     lines.extend(["", "</details>", ""])
     return "\n".join(lines)
 
 
+def _read_junit_results(xml_paths: list[Path], include_classname: bool) -> dict[str, list[str]]:
+    """流式解析完整 JUnit，分别保留通过、失败、跳过及报告读取错误。"""
+    results: dict[str, list[str]] = {key: [] for key in ("passed", "failures", "skipped", "errors")}
+    for xml in xml_paths:
+        try:
+            for _, case in ET.iterparse(xml, events=("end",)):
+                if case.tag != "testcase":
+                    continue
+                name = case.get("name", "<unnamed testcase>")
+                classname = case.get("classname", "")
+                if include_classname and classname:
+                    name = f"{classname}:{name}"
+                outcome = case.find("failure")
+                if outcome is None:
+                    outcome = case.find("error")
+                key = "failures"
+                if outcome is None:
+                    outcome = case.find("skipped")
+                    key = "skipped" if outcome is not None else "passed"
+                if outcome is not None:
+                    reason = outcome.get("message", "") or (outcome.text or "").strip()
+                    if key == "skipped" and reason == "SKIP_REGULAR_EXPRESSION_MATCHED":
+                        # CTest 的通用标记不说明原因，补充 GTest 在输出中给出的跳过说明。
+                        skip_reason = re.search(r": Skipped\s*\n([^\n]+)", case.findtext("system-out", ""))
+                        if skip_reason:
+                            reason = skip_reason.group(1).strip()
+                    if reason:
+                        name += f" — {' '.join(reason.split())}"
+                results[key].append(name)
+                # 释放每个用例的大段 system-out，避免整份数十 MB 报告常驻内存。
+                case.clear()
+        except (OSError, ET.ParseError) as exc:
+            results["errors"].append(f"Cannot parse JUnit report {xml.name}: {exc}")
+    # CTest 可能有同名注册项；统计须按 testcase 记录计数，不能按名称去重。
+    return results
+
+
+def collect_ctest_results(artifacts_dir: Path) -> dict[str, list[str]]:
+    """读取单元测试全部结果；报告缺失或损坏时保留错误并从完整日志补充清单。"""
+    xml_paths = sorted(artifacts_dir.rglob("ctest-results.xml"))
+    results = _read_junit_results(xml_paths, False)
+    if not xml_paths:
+        results["errors"].append("CTest JUnit report is missing; unit test results cannot be verified")
+    elif not any(results[key] for key in ("passed", "failures", "skipped")):
+        results["errors"].append("CTest JUnit report contains no testcases")
+    if results["errors"]:
+        for log in artifacts_dir.rglob("*ctest*.log"):
+            for line in _read_text(log).splitlines():
+                match = _CTEST_RESULT_LINE.match(line)
+                if match:
+                    name, outcome = match.groups()
+                    key = "skipped" if outcome == "Skipped" else "failures"
+                    results[key].append(f"{name} — {outcome}")
+        for key in ("failures", "skipped"):
+            results[key] = _dedupe(results[key])
+    return results
+
+
 def collect_ctest_failures(artifacts_dir: Path) -> list[str]:
-    """从 ctest 输出日志中提取失败用例名。
-
-    优先用 `ctest --output-junit` 产出的 XML（结构化、无歧义）；没有时退回解析
-    ctest 的文本输出（形如 `	  1 - TestSuite.Case (Failed)`）。
-    """
-    from_xml = _ctest_junit_failures(artifacts_dir)
-    if from_xml:
-        return from_xml
-
-    failures: list[str] = []
-    for log in artifacts_dir.rglob("*ctest*.log"):
-        for line in _read_text(log).splitlines():
-            match = _CTEST_FAILED_LINE.match(line)
-            if match:
-                failures.append(match.group(1))
-    return _dedupe(failures)
+    """提取单元测试失败及报告错误，供 issue 触发判定使用。"""
+    results = collect_ctest_results(artifacts_dir)
+    return results["failures"] + results["errors"]
 
 
-def _ctest_junit_failures(artifacts_dir: Path) -> list[str]:
-    """从 ctest 的 JUnit XML 中提取失败用例（`<failure>` 子元素）。"""
-    failures: list[str] = []
-    for xml in artifacts_dir.rglob("ctest-results.xml"):
-        text = _read_text(xml)
-        for block in re.split(r"(?=<testcase\b)", text):
-            match = _JUNIT_TESTCASE.match(block)
-            if not match:
-                continue
-            attrs = dict(_JUNIT_ATTR.findall(match.group(1)))
-            name = attrs.get("name")
-            if name and "<failure" in block:
-                failures.append(name)
-    return _dedupe(failures)
+def collect_junit_results(artifacts_dir: Path) -> dict[str, list[str]]:
+    """提取各轮集成测试的失败和跳过；非必需用例的 skipped 也必须公开列出。"""
+    xml_paths = sorted(xml for xml in artifacts_dir.rglob("*.xml") if xml.name != "ctest-results.xml")
+    results = _read_junit_results(xml_paths, True)
+    return {key: _dedupe(items) for key, items in results.items()}
 
 
 def collect_junit_failures(artifacts_dir: Path) -> list[str]:
-    """从集成测试的 JUnit XML 中提取失败的 testcase。
-
-    注意：**不含** ctest 的 `ctest-results.xml`——那份由 `collect_ctest_failures()` 处理，
-    这里跳过以免同一个失败在报告中重复出现两次。
-
-    `JUnitTestReporter` 输出的失败标记是 `<failure>` 子元素；`required=false` 的失败写的是
-    `<skipped>`（「非必需用例」），不算失败，不计入。
-    """
-    failures: list[str] = []
-    for xml in artifacts_dir.rglob("*.xml"):
-        if xml.name == "ctest-results.xml":
-            continue
-        text = _read_text(xml)
-        if "<testcase" not in text:
-            continue
-        for block in re.split(r"(?=<testcase\b)", text):
-            match = _JUNIT_TESTCASE.match(block)
-            if not match:
-                continue
-            attrs = dict(_JUNIT_ATTR.findall(match.group(1)))
-            name = attrs.get("name")
-            if not name or "<failure" not in block:
-                continue
-            classname = attrs.get("classname", "")
-            # GameTest 的 classname 存的是 structure 名，一并带上便于定位。
-            failures.append(f"{classname}:{name}" if classname else name)
-    return _dedupe(failures)
+    """提取集成测试失败及报告错误，跳过不计为失败。"""
+    results = collect_junit_results(artifacts_dir)
+    return results["failures"] + results["errors"]
 
 
 def collect_e2e_failures(artifacts_dir: Path) -> list[str]:
@@ -194,6 +207,19 @@ def collect_e2e_failures(artifacts_dir: Path) -> list[str]:
                 server_kind, case_id, reason = match.group(1), match.group(2), match.group(3).strip()
                 failures.append(f"[{server_kind}] {case_id} — {reason}")
     return _dedupe(failures)
+
+
+def collect_e2e_skipped(artifacts_dir: Path) -> list[str]:
+    """提取 e2e 主动跳过的用例及下一行给出的原因。"""
+    skipped: list[str] = []
+    for log in artifacts_dir.rglob("*e2e*.log"):
+        lines = _read_text(log).splitlines()
+        for index, line in enumerate(lines):
+            match = _E2E_SKIP_LINE.match(line)
+            if match:
+                reason = lines[index + 1].strip() if index + 1 < len(lines) else ""
+                skipped.append(f"{match.group(1)} — {reason}" if reason else match.group(1))
+    return _dedupe(skipped)
 
 
 def collect_integrated_failures(artifacts_dir: Path) -> list[str]:
@@ -284,7 +310,7 @@ def collect_fuzz_artifacts(artifacts_dir: Path) -> list[str]:
 
 def read_benchmark_report(artifacts_dir: Path) -> str:
     for report in artifacts_dir.rglob("benchmark-compare.md"):
-        return _read_text(report, limit=20_000)
+        return _read_text(report)[:20_000]
     return ""
 
 
@@ -317,12 +343,16 @@ def build_body(
     run_url: str,
     branch: str,
     commit: str,
+    limit_output: bool,
 ) -> str:
-    ctest_failures = collect_ctest_failures(artifacts_dir)
-    junit_failures = collect_junit_failures(artifacts_dir)
+    ctest_results = collect_ctest_results(artifacts_dir)
+    ctest_failures = ctest_results["failures"]
+    junit_results = collect_junit_results(artifacts_dir)
+    junit_failures = junit_results["failures"]
     integrated_failures = collect_integrated_failures(artifacts_dir)
     crash_reports = extract_crash_reports(artifacts_dir)
     e2e_failures = collect_e2e_failures(artifacts_dir)
+    e2e_skipped = collect_e2e_skipped(artifacts_dir)
     fuzz_artifacts = collect_fuzz_artifacts(artifacts_dir)
     benchmark_report = read_benchmark_report(artifacts_dir)
 
@@ -336,11 +366,27 @@ def build_body(
 
     lines.append("### 各 job 结论")
     lines.append("")
-    lines.append("| Job | 结论 |")
-    lines.append("|---|---|")
+    lines.append("> 执行结论表示 job 是否完成；非阻塞测试的 job 成功不代表所有用例通过。")
+    lines.append("")
+    lines.append("| Job | 执行结论 | 测试结果 |")
+    lines.append("|---|---|---|")
     for job_id, label in _JOB_LABELS.items():
         status = job_status.get(job_id, "unknown")
-        lines.append(f"| {label} | {_STATUS_ICON.get(status, status)} |")
+        outcome = "—"
+        if job_id == "unit-tests":
+            outcome = (f"通过 {len(ctest_results['passed'])}；失败 {len(ctest_failures)}；"
+                       f"跳过 {len(ctest_results['skipped'])}")
+            if ctest_results["errors"]:
+                outcome += "；报告不完整"
+        elif job_id == "integrated-tests":
+            outcome = f"各轮失败记录 {len(junit_failures)}；跳过记录 {len(junit_results['skipped'])}"
+            if not any(junit_results[key] for key in ("passed", "failures", "skipped")):
+                outcome = "未提供 JUnit 用例记录"
+            if integrated_failures or junit_results["errors"]:
+                outcome += "；崩溃或报告错误"
+        elif job_id == "e2e-tests":
+            outcome = f"失败 {len(e2e_failures)}；跳过 {len(e2e_skipped)}"
+        lines.append(f"| {label} | {_STATUS_ICON.get(status, status)} | {outcome} |")
     lines.append("")
 
     if ctest_failures:
@@ -349,12 +395,25 @@ def build_body(
         lines.append("> 单元测试按既定口径**不阻塞 CI**（项目存在大量历史遗留失败）。"
                      "下列清单供排查参考。")
         lines.append("")
-        lines.append(_details_block("失败用例", ctest_failures))
+        lines.append(_details_block("失败用例", ctest_failures, limit_output))
+
+    if ctest_results["skipped"]:
+        lines.extend(["### 单元测试跳过用例", "",
+                      _details_block("跳过用例", ctest_results["skipped"], limit_output)])
+
+    report_errors = ctest_results["errors"] + junit_results["errors"]
+    if report_errors:
+        lines.extend(["### 测试报告读取错误", "",
+                      _details_block("报告错误", report_errors, limit_output)])
 
     if junit_failures:
         lines.append("### 集成测试失败用例")
         lines.append("")
-        lines.append(_details_block("失败 testcase", junit_failures))
+        lines.append(_details_block("失败 testcase（含各轮）", junit_failures, limit_output))
+
+    if junit_results["skipped"]:
+        lines.extend(["### 集成测试跳过用例", "",
+                      _details_block("跳过 testcase（含各轮）", junit_results["skipped"], limit_output)])
 
     if integrated_failures:
         lines.append("### 集成测试崩溃 / 流水线错误")
@@ -363,7 +422,7 @@ def build_body(
                      "因此不会出现在上面的失败用例清单里。下方直接给出完整调用栈"
                      "与崩溃前若干行日志；原始日志见 artifact `integrated-test-results`。")
         lines.append("")
-        lines.append(_details_block("崩溃标记", integrated_failures))
+        lines.append(_details_block("崩溃标记", integrated_failures, limit_output))
         for i, report in enumerate(crash_reports, start=1):
             title = "崩溃调用栈" if len(crash_reports) == 1 else f"崩溃调用栈 #{i}"
             lines.append(f"<details><summary>{title}</summary>")
@@ -378,7 +437,11 @@ def build_body(
     if e2e_failures:
         lines.append("### 端到端 bot 测试失败")
         lines.append("")
-        lines.append(_details_block("失败行", e2e_failures))
+        lines.append(_details_block("失败行", e2e_failures, limit_output))
+
+    if e2e_skipped:
+        lines.extend(["### 端到端 bot 测试跳过用例", "",
+                      _details_block("跳过用例", e2e_skipped, limit_output)])
 
     if fuzz_artifacts:
         lines.append("### 模糊测试发现的问题")
@@ -386,7 +449,7 @@ def build_body(
         lines.append("> 下列产物是 libFuzzer 落盘的**可复现最小输入**，"
                      "可直接用 `-runs=1 <file>` 复现。")
         lines.append("")
-        lines.append(_details_block("崩溃 / 超限产物", fuzz_artifacts))
+        lines.append(_details_block("崩溃 / 超限产物", fuzz_artifacts, limit_output))
 
     if benchmark_report:
         lines.append("### 性能基准")
@@ -397,13 +460,14 @@ def build_body(
     lines.append("### 排查入口")
     lines.append("")
     lines.append(f"- 完整日志与结果见本次运行的 artifacts：{run_url}")
+    lines.append("- 全部失败和跳过清单见 artifact `nightly-report` 中的 `nightly-report-full.md`。")
     lines.append("- 数据包由 `.github/actions/setup-datapack` 从 misode/mcmeta 安装到 "
                  "`~/minecraft_reborn/datapacks/Vanilla`。")
     lines.append("- 本地复现：先 `./scripts/configure.sh build`，再按 `docs/CI.md` 的对应命令执行。")
     lines.append("")
 
     body = "\n".join(lines)
-    if len(body) > _MAX_BODY_CHARS:
+    if limit_output and len(body) > _MAX_BODY_CHARS:
         body = body[:_MAX_BODY_CHARS] + "\n\n…（正文超长已截断，完整内容见 artifacts）\n"
     return body
 
@@ -416,6 +480,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--branch", default="")
     parser.add_argument("--commit", default="")
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--full-out", type=Path, help="写出不截断失败和跳过清单的完整报告")
     parser.add_argument(
         "--status-out",
         type=Path,
@@ -429,7 +494,12 @@ def main(argv: list[str]) -> int:
     except json.JSONDecodeError:
         job_status = {}
 
-    body = build_body(job_status, args.artifacts_dir, args.run_url, args.branch, args.commit)
+    body = build_body(job_status, args.artifacts_dir, args.run_url, args.branch, args.commit, True)
+
+    if args.full_out:
+        args.full_out.parent.mkdir(parents=True, exist_ok=True)
+        full_body = build_body(job_status, args.artifacts_dir, args.run_url, args.branch, args.commit, False)
+        args.full_out.write_text(full_body, encoding="utf-8")
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
