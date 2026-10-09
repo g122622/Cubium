@@ -36,7 +36,9 @@ concurrency:
 permissions:
   contents: write # 建 nightly Release 需要
   issues: write # 失败时建汇总 issue 需要
-  actions: read # 读取上一次 nightly 的 artifact（benchmark 跨日对比）需要
+  # 读取上一次 nightly 的 artifact（benchmark 跨日对比）+ 删除旧缓存（prune_caches.py）需要。
+  # 注意是 write 而非 read：删除缓存走 DELETE /repos/{owner}/{repo}/actions/caches/{id}。
+  actions: write
 
 env:
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
@@ -107,6 +109,22 @@ jobs:
         with:
           path: .ccache
           key: ccache-linux-nightly-${{ github.run_id }}
+
+      # 每轮保存一份 ~2 GB 的新缓存且从不删旧的，几轮下来就会撞上 GitHub 的
+      # **10 GB 仓库缓存上限**。触顶后按 LRU 自动驱逐，后果不是「缓存变小」而是
+      # **命中率归零**：新一轮只能回退到更旧的缓存，而那份缓存的编译选项往往已经变了
+      # （ccache 视编译选项为命令的一部分），于是全量 miss，构建从 20 分钟劣化到 55 分钟。
+      # 这里在保存之后立即清掉旧份，只保留最新 1 份。
+      # 必须放在 Save ccache **之后**——刚保存的那份才是最新的，才会被保留。
+      - name: Prune old ccache entries
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/ci/prune_caches.py \
+            --repo "${{ github.repository }}" \
+            --prefix ccache-linux-nightly- \
+            --keep 1 || true
 
       - name: Collect shared library dependencies
         if: always()
@@ -446,6 +464,17 @@ jobs:
         with:
           path: .ccache
           key: ccache-linux-fuzz-${{ github.run_id }}
+
+      # 同 build job：只保留最新一份 fuzz ccache，避免撞 10 GB 仓库缓存上限。
+      - name: Prune old ccache entries
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/ci/prune_caches.py \
+            --repo "${{ github.repository }}" \
+            --prefix ccache-linux-fuzz- \
+            --keep 1 || true
 
       # 目标产物的实际布局是 <binaryDir>/bin/fuzz/<config>/（RUNTIME_OUTPUT_DIRECTORY
       # 由 tests/fuzz/CMakeLists.txt 设定，Ninja Multi-Config 再追加配置名子目录）。
