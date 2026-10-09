@@ -42,6 +42,23 @@ _E2E_FAIL_LINE = re.compile(r"^\s*\[(\w+)\]\s+(\S+)\s+\.\.\.\s+✗\s*(.*)$")
 # e2e 的汇总行：  "合计：48 条，通过 45，失败 3，跳过 0（见上方原因）"
 _E2E_SUMMARY = re.compile(r"^\s*合计：.*失败\s*(\d+)")
 
+# 集成测试的崩溃/流水线错误标记。
+#
+# 【为什么必须单独检测】`run-gametests.ts` 在服务端崩溃时以退出码 2（流水线错误）结束，
+# 且**不产出 JUnit XML**（崩溃发生在写报告之前）。而 integrated-tests job 按既定口径
+# 用 `exit 0` 吞掉了退出码，于是：job 恒为 success、无 XML 可解析 —— 整条失败在汇总
+# 报告里完全不可见。必须直接从日志里认这三类标记。
+_INTEGRATED_CRASH_MARKERS = (
+    "FATAL CRASH DETECTED",
+    "Segmentation fault",
+    "SIGSEGV",
+    "SIGILL",
+    "SIGABRT",
+    "Stack trace:",
+)
+# `run-gametests exit code: 2` / `Round 1 exit code: -1`（崩溃导致非零退出）
+_INTEGRATED_EXIT_LINE = re.compile(r"(?:run-gametests|Round \d+) exit code:\s*(-?\d+)")
+
 _JOB_LABELS = {
     "build": "构建（linux-relwithdebinfo）",
     "unit-tests": "单元测试（ctest）",
@@ -176,6 +193,28 @@ def collect_e2e_failures(artifacts_dir: Path) -> list[str]:
     return _dedupe(failures)
 
 
+def collect_integrated_failures(artifacts_dir: Path) -> list[str]:
+    """从集成测试日志中提取**崩溃/流水线错误**（JUnit XML 覆盖不到的那一类失败）。
+
+    背景：`run-gametests.ts` 在服务端崩溃时以退出码 2 结束，且**不产出 JUnit XML**
+    （崩溃发生在写报告之前）。integrated-tests job 按既定口径 `exit 0` 吞掉了退出码，
+    于是 job 恒为 success、无 XML 可解析 —— 整条失败在汇总报告里完全不可见。
+    这里直接从日志里认崩溃标记与非零退出码。
+    """
+    findings: list[str] = []
+    for log in artifacts_dir.rglob("*integrated*.log"):
+        text = _read_text(log)
+        for marker in _INTEGRATED_CRASH_MARKERS:
+            if marker in text:
+                findings.append(f"日志出现崩溃标记：{marker}")
+        for match in _INTEGRATED_EXIT_LINE.finditer(text):
+            code = int(match.group(1))
+            if code != 0:
+                findings.append(f"run-gametests 以非零退出码结束：{code}"
+                                "（2 = 流水线错误，通常是服务端崩溃导致 JUnit XML 未产出）")
+    return _dedupe(findings)
+
+
 def collect_fuzz_artifacts(artifacts_dir: Path) -> list[str]:
     """列出 fuzz 产出的崩溃/OOM/超时用例（这些是可复现的最小输入）。"""
     found: list[str] = []
@@ -205,6 +244,8 @@ def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
         return True
     if collect_junit_failures(artifacts_dir):
         return True
+    if collect_integrated_failures(artifacts_dir):
+        return True
     if collect_e2e_failures(artifacts_dir):
         return True
     if collect_fuzz_artifacts(artifacts_dir):
@@ -221,6 +262,7 @@ def build_body(
 ) -> str:
     ctest_failures = collect_ctest_failures(artifacts_dir)
     junit_failures = collect_junit_failures(artifacts_dir)
+    integrated_failures = collect_integrated_failures(artifacts_dir)
     e2e_failures = collect_e2e_failures(artifacts_dir)
     fuzz_artifacts = collect_fuzz_artifacts(artifacts_dir)
     benchmark_report = read_benchmark_report(artifacts_dir)
@@ -254,6 +296,15 @@ def build_body(
         lines.append("### 集成测试失败用例")
         lines.append("")
         lines.append(_details_block("失败 testcase", junit_failures))
+
+    if integrated_failures:
+        lines.append("### 集成测试崩溃 / 流水线错误")
+        lines.append("")
+        lines.append("> 这类失败**没有 JUnit XML**（服务端在写出报告前就崩了），"
+                     "因此不会出现在上面的失败用例清单里。完整调用栈见 "
+                     "artifact `integrated-test-results` 中的 `integrated-tests.log`。")
+        lines.append("")
+        lines.append(_details_block("崩溃标记", integrated_failures))
 
     if e2e_failures:
         lines.append("### 端到端 bot 测试失败")

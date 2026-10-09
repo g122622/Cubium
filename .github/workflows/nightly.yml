@@ -283,12 +283,26 @@ jobs:
         run: node build.mjs
 
       # run-gametests.ts 自带「失败用例隔离重跑」与 JUnit XML 聚合。
+      #
+      # 退出码语义（见 docs/test/INTEGRATED_TEST.md §7）：
+      #   0 = 全部通过；1 = 有失败用例（含重跑后仍失败）；2 = **流水线错误**
+      #   （服务端崩溃 / Round 1 报告缺失，通常是进程崩在写 JUnit XML 之前）。
+      #
+      # 两类失败必须区别对待：用例失败（1）属既定口径「不阻塞」（项目有大量历史遗留
+      # 失败，设成门禁会让 nightly 长期红灯）；而流水线错误（2）意味着**服务端崩了**，
+      # 是真实缺陷而非历史包袱，且此时没有 JUnit XML、失败在报告里天然不可见。
+      # 故 2 直接判 job 失败，保证它在 job 层面可见。
       - name: Run integrated tests
         run: |
           set +e
           node scripts/test/run-gametests.ts 2>&1 | tee integrated-tests.log
-          echo "run-gametests exit code: ${PIPESTATUS[0]}"
-          # 集成测试同为不阻塞口径，失败清单由 report job 汇总。
+          code=${PIPESTATUS[0]}
+          echo "run-gametests exit code: ${code}"
+          if [ "${code}" -eq 2 ]; then
+            echo "::error::集成测试流水线错误（退出码 2）：服务端崩溃或 JUnit XML 未产出，详见 integrated-tests.log"
+            exit 1
+          fi
+          # 用例失败（退出码 1）按既定口径不阻塞，失败清单由 report job 汇总。
           exit 0
 
       - name: Upload test results
