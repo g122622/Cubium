@@ -2172,6 +2172,7 @@ PlayerId MinecraftServer::getPlayerIdForSession(u32 sessionId) const
 
 void MinecraftServer::sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "MinecraftServer::sendPacketToPlayer", "playerId", playerId);
     // 本地客户端（若注入钩子）：经 m_localClientSender 直传（LocalTransport 零拷贝）。
     if (m_localClientPlayerId.has_value() && playerId == *m_localClientPlayerId) {
         if (m_localClientSender) {
