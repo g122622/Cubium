@@ -25,7 +25,8 @@
  * JUnit XML 解析用手写轻量正则（本项目 JUnitTestReporter 输出格式固定，无需完整 XML parser）。
  */
 
-import { spawn } from "node:child_process";
+import { performance } from "node:perf_hooks";
+import { runProcess, type ProcessResult } from "./gametest-process.ts";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,6 +49,8 @@ interface TestcaseResult {
     time: number;
     /** 是否失败（有 <failure> 子元素）。 */
     failed: boolean;
+    skipped: boolean;
+    errored: boolean;
     /** 失败消息（escaped）。 */
     message: string;
 }
@@ -104,12 +107,11 @@ function parseArgs(): CliArgs {
  * @param xmlText JUnit XML 文本
  * @returns 解析后的测试结果列表
  */
-function parseJunitXml(xmlText: string): TestcaseResult[] {
+export function parseJunitXml(xmlText: string): TestcaseResult[] {
     const results: TestcaseResult[] = [];
 
     // 逐 testcase 块解析
-    const testcaseRegex = /<testcase\s+([^>]*?)\s*>\s*([\s\S]*?)\s*<\/testcase>/g;
-    const selfClosingRegex = /<testcase\s+([^>]*?)\/>/g;
+    const testcaseRegex = /<testcase\s+([^>]*?)(?:\/>|>([\s\S]*?)<\/testcase>)/g;
 
     /**
      * 解析单个 testcase。
@@ -126,11 +128,12 @@ function parseJunitXml(xmlText: string): TestcaseResult[] {
         }
         const failureMatch = innerXml.match(/<failure\s+([^>]*?)\/>/);
         const skippedMatch = innerXml.match(/<skipped\s+([^>]*?)\/>/);
+        const errorMatch = innerXml.match(/<error\s+([^>]*?)\/>/);
         let failed = false;
         let message = "";
-        if (failureMatch) {
+        if (failureMatch || errorMatch) {
             failed = true;
-            const msgMatch = failureMatch[1].match(/message="([^"]*)"/);
+            const msgMatch = (failureMatch ?? errorMatch)![1].match(/message="([^"]*)"/);
             if (msgMatch) {
                 message = unescapeXml(msgMatch[1]);
             }
@@ -147,16 +150,15 @@ function parseJunitXml(xmlText: string): TestcaseResult[] {
             classname: clsMatch ? unescapeXml(clsMatch[1]) : "",
             time: timeMatch ? Number.parseFloat(timeMatch[1]) : 0.0,
             failed,
+            skipped: skippedMatch !== null,
+            errored: errorMatch !== null,
             message,
         });
     }
 
     let m: RegExpExecArray | null;
     while ((m = testcaseRegex.exec(xmlText)) !== null) {
-        parseTestcase(m[1], m[2]);
-    }
-    while ((m = selfClosingRegex.exec(xmlText)) !== null) {
-        parseTestcase(m[1], "");
+        parseTestcase(m[1], m[2] ?? "");
     }
     return results;
 }
@@ -188,22 +190,25 @@ function escapeXml(s: string): string {
  * @param rerunInfo 重跑轮次结果
  * @returns JUnit XML 文本
  */
-function generateJunitXml(
+export function generateJunitXml(
     results: TestcaseResult[],
     rerunInfo: { rerunPassed: string[]; rerunFailed: string[] },
 ): string {
-    const failedCount = results.filter((r) => r.failed).length;
+    const failedCount = results.filter((r) => r.failed && !r.errored).length;
+    const errorCount = results.filter((r) => r.errored).length;
+    const skippedCount = results.filter((r) => r.skipped).length;
     const lines: string[] = [];
     lines.push('<?xml version="1.0" encoding="UTF-8"?>');
     lines.push("<testsuites>");
-    lines.push(`  <testsuite name="GameTest" tests="${results.length}" failures="${failedCount}">`);
+    lines.push(`  <testsuite name="GameTest" tests="${results.length}" failures="${failedCount}" errors="${errorCount}" skipped="${skippedCount}">`);
     for (const r of results) {
         const name = escapeXml(r.name);
         const cls = escapeXml(r.classname);
         lines.push(`    <testcase name="${name}" classname="${cls}" time="${r.time}">`);
-        if (r.failed) {
+        if (r.failed || r.skipped) {
             const msg = escapeXml(r.message);
-            lines.push(`      <failure message="${msg}"/>`);
+            const tag = r.errored ? "error" : r.skipped ? "skipped" : "failure";
+            lines.push(`      <${tag} message="${msg}"/>`);
         }
         lines.push("    </testcase>");
     }
@@ -240,9 +245,8 @@ function generateJunitXml(
  */
 function runServer(
     serverPath: string,
-    opts: { filter?: string; reportPath: string; worldName: string },
-): Promise<number> {
-    return new Promise((resolve, reject) => {
+    opts: { filter: string; reportPath: string; worldName: string; deadline: number },
+): Promise<ProcessResult> {
         const args: string[] = ["--gametest"];
         if (opts.filter !== undefined && opts.filter !== "") {
             args.push(`--gametest-tests=${opts.filter}`);
@@ -252,12 +256,7 @@ function runServer(
         args.push(`--gametest-world=${opts.worldName}`);
 
         console.log(`[gametest-runner] spawning: ${serverPath} ${args.join(" ")}`);
-        const child = spawn(serverPath, args, { stdio: "inherit" });
-        child.on("error", reject);
-        child.on("close", (code) => {
-            resolve(code ?? -1);
-        });
-    });
+        return runProcess(serverPath, args, opts.deadline);
 }
 
 // ============================================================================
@@ -265,6 +264,8 @@ function runServer(
 // ============================================================================
 
 async function main(): Promise<void> {
+    // 所有进程（全量与隔离重跑）共享同一绝对期限，重跑不能重新获得 30 分钟。
+    const deadline = performance.now() + 30 * 60 * 1000;
     const args = parseArgs();
     const shards = Number.parseInt(args["shards"] ?? "1", 10);
     const filter = args["filter"] ?? "";
@@ -276,8 +277,13 @@ async function main(): Promise<void> {
             "RelWithDebInfo",
             process.platform === "win32" ? "minecraft-server.exe" : "minecraft-server",
         );
-    const outDir = args["out-dir"] ?? path.join(REPO_ROOT, "build", "gametest-reports");
+    const outDir = path.resolve(args["out-dir"] ?? path.join(REPO_ROOT, "build", "gametest-reports"));
     const dryRun = args["dry-run"] === "true";
+    if (!Number.isSafeInteger(shards) || shards < 1) {
+        console.error("[gametest-runner] shards must be a positive integer");
+        process.exitCode = 2;
+        return;
+    }
 
     if (!fs.existsSync(serverPath)) {
         console.error(`[gametest-runner] server binary not found: ${serverPath}`);
@@ -286,6 +292,33 @@ async function main(): Promise<void> {
 
     fs.mkdirSync(outDir, { recursive: true });
     const timestamp = Date.now();
+    let infrastructureError = false;
+    const allResults: TestcaseResult[] = [];
+    const emptyReruns = { rerunPassed: [], rerunFailed: [] };
+    const finalReport = path.join(outDir, `gametest-final-${timestamp}.xml`);
+
+    function collectReport(reportPath: string, result: ProcessResult): TestcaseResult[] {
+        const xml = fs.existsSync(reportPath) ? fs.readFileSync(reportPath, "utf-8") : "";
+        const records = parseJunitXml(xml);
+        // 非零正常用例数不是流水线错误；信号、超时、空/不完整报告必须使协调者退出 2。
+        const invalid = !xml.includes("</testsuites>") || records.length === 0;
+        const inconsistentExit = result.code !== 0 && !records.some((r) => r.failed);
+        if (result.timedOut || result.signal !== null || result.code === 124 || invalid || inconsistentExit || records.some((r) => r.errored)) {
+            infrastructureError = true;
+            const message = `GameTest pipeline error: code=${result.code}, signal=${result.signal}, timedOut=${result.timedOut}, invalidReport=${invalid}; report=${reportPath}`;
+            console.error(`[gametest-runner] ${message}`);
+            const error: TestcaseResult = { name: "runner-process-error", classname: "framework", time: 0,
+                failed: true, skipped: false, errored: true, message };
+            fs.writeFileSync(`${reportPath}.runner-error.xml`, generateJunitXml([error], emptyReruns));
+            records.push(error);
+        }
+        return records;
+    }
+
+    if (dryRun) {
+        console.log(`[gametest-runner] dry run: server=${serverPath}, shards=${shards}, filter='${filter}', overall limit=1800 seconds`);
+        return;
+    }
 
     // === 第 1 轮：全量跑（或按 filter）===
     const round1Report = path.join(outDir, `gametest-round1-${timestamp}.xml`);
@@ -293,48 +326,39 @@ async function main(): Promise<void> {
     console.log(`[gametest-runner] shards=${shards}, filter='${filter}'`);
 
     if (shards <= 1) {
-        const exitCode = dryRun ? 0 : await runServer(serverPath, {
+        const result = await runServer(serverPath, {
             filter,
             reportPath: round1Report,
-            worldName: "gametest",
+            worldName: `gametest-${timestamp}`,
+            deadline,
         });
-        console.log(`[gametest-runner] Round 1 exit code: ${exitCode}`);
+        console.log(`[gametest-runner] Round 1 exit code: ${result.code}`);
+        allResults.push(...collectReport(round1Report, result));
     } else {
-        // 多进程并行分片
-        /** @type {Promise<number>[]} */
-        const promises: Promise<number>[] = [];
+        // TODO: 按不重叠的测试集合分片；当前各进程仍执行相同 filter。
+        console.warn("[gametest-runner] shards currently repeat the same filter in independent worlds");
+        const promises: Promise<ProcessResult>[] = [];
         for (let i = 0; i < shards; ++i) {
             const reportPath = path.join(outDir, `gametest-round1-${timestamp}-shard${i}.xml`);
-            const p = dryRun ? Promise.resolve(0) : runServer(serverPath, {
+            const p = runServer(serverPath, {
                 filter,
                 reportPath: reportPath,
-                worldName: `gametest-shard-${i}`,
+                worldName: `gametest-${timestamp}-shard-${i}`,
+                deadline,
             });
             promises.push(p);
         }
-        const exitCodes = await Promise.all(promises);
-        console.log(`[gametest-runner] Round 1 shard exit codes: ${exitCodes.join(", ")}`);
-    }
-
-    // === 解析第 1 轮结果，收集失败测试列表 ===
-    /** @type {TestcaseResult[]} */
-    let allResults: TestcaseResult[];
-    if (shards <= 1) {
-        if (!fs.existsSync(round1Report)) {
-            console.error(`[gametest-runner] Round 1 report not found: ${round1Report}`);
-            process.exit(2);
-        }
-        allResults = parseJunitXml(fs.readFileSync(round1Report, "utf-8"));
-    } else {
-        allResults = [];
+        const results = await Promise.all(promises);
         for (let i = 0; i < shards; ++i) {
             const reportPath = path.join(outDir, `gametest-round1-${timestamp}-shard${i}.xml`);
-            if (!fs.existsSync(reportPath)) {
-                console.warn(`[gametest-runner] shard ${i} report missing, skip: ${reportPath}`);
-                continue;
-            }
-            allResults.push(...parseJunitXml(fs.readFileSync(reportPath, "utf-8")));
+            allResults.push(...collectReport(reportPath, results[i]));
         }
+    }
+
+    if (infrastructureError) {
+        fs.writeFileSync(finalReport, generateJunitXml(allResults, emptyReruns));
+        process.exitCode = 2;
+        return;
     }
 
     const failedTests = allResults.filter((r) => r.failed);
@@ -342,9 +366,8 @@ async function main(): Promise<void> {
 
     if (failedTests.length === 0) {
         // 无失败：直接输出最终报告 + 退出码 0
-        const finalReport = path.join(outDir, `gametest-final-${timestamp}.xml`);
         fs.writeFileSync(finalReport, generateJunitXml(allResults, { rerunPassed: [], rerunFailed: [] }));
-        console.log(`[gametest-runner] All tests passed. Final report: ${finalReport}`);
+        console.log(`[gametest-runner] No failed tests; skipped=${allResults.filter((r) => r.skipped).length}. Final report: ${finalReport}`);
         process.exit(0);
     }
 
@@ -356,19 +379,32 @@ async function main(): Promise<void> {
     const rerunFailed: string[] = [];
 
     for (const failed of failedTests) {
+        if (performance.now() >= deadline) {
+            infrastructureError = true;
+            const error: TestcaseResult = { name: "overall-timeout", classname: "framework", time: 1800,
+                failed: true, skipped: false, errored: true, message: "Overall integration wall-clock timeout after 1800 seconds; remaining reruns were not started" };
+            allResults.push(error);
+            break;
+        }
         const rerunReport = path.join(outDir, `gametest-rerun-${timestamp}-${failed.name}.xml`);
         console.log(`[gametest-runner] rerunning failed test: ${failed.name}`);
-        const exitCode = dryRun ? 0 : await runServer(serverPath, {
+        const result = await runServer(serverPath, {
             filter: failed.name,
             reportPath: rerunReport,
-            worldName: `gametest-rerun-${failed.name}`,
+            worldName: `gametest-rerun-${timestamp}-${failed.name}`,
+            deadline,
         });
-        if (exitCode === 0) {
+        const rerunResults = collectReport(rerunReport, result);
+        if (result.code === 0 && !rerunResults.some((r) => r.failed || r.skipped)) {
             rerunPassed.push(failed.name);
             console.log(`[gametest-runner]   rerun PASSED: ${failed.name}`);
         } else {
             rerunFailed.push(failed.name);
             console.log(`[gametest-runner]   rerun FAILED: ${failed.name}`);
+        }
+        if (infrastructureError) {
+            allResults.push(...rerunResults.filter((r) => r.errored));
+            break;
         }
     }
 
@@ -383,15 +419,14 @@ async function main(): Promise<void> {
     });
 
     const finalFailedCount = finalResults.filter((r) => r.failed).length;
-    const finalReport = path.join(outDir, `gametest-final-${timestamp}.xml`);
     fs.writeFileSync(finalReport, generateJunitXml(finalResults, { rerunPassed, rerunFailed }));
 
     console.log(`[gametest-runner] Final: total=${finalResults.length}, failed=${finalFailedCount}`);
     console.log(`[gametest-runner] Final report: ${finalReport}`);
-    process.exit(finalFailedCount > 0 ? 1 : 0);
+    process.exitCode = infrastructureError ? 2 : finalFailedCount > 0 ? 1 : 0;
 }
 
-main().catch((err) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) main().catch((err) => {
     console.error("[gametest-runner] fatal:", err);
     process.exit(2);
 });

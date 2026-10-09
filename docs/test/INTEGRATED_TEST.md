@@ -136,7 +136,9 @@ Cubium 的 `--gametest` 模式是无头（无世界、无玩家）跑 GameTest�
 
 `run_diff.ts` 跑 Cubium 时同时采集两路输出：
 - **stdout 日志**：含 `[GameTest] Registered test '<className>.<testName>' (structure=...)` 注册日志（`GameTestRegistry.cpp:25`），用于建 testName→className 映射——因为 JUnit XML 的 `testcase.name` 只有 testName、`classname` 存的是 structure 而非 className，className 只能从 stdout 补。
-- **JUnit XML**：结构化结果，`<testcase>` 含 `name`/`time`，`<failure>`/`<skipped>` 标记状态。`time`（秒）× 20 = ticks。
+- **JUnit XML**：结构化结果，`<testcase>` 含 `name`/`time`；`time` 是 steady_clock 实际秒数。
+  `<failure>` 为用例失败，`<error>` 为运行被中止，`<skipped>` 为非必需失败、未开始或自动策略排除。
+  清单在选中测试时落盘，开始/结束时原子更新，进程被终止也保留上一份完整快照。
 
 ### 已知现象
 
@@ -649,11 +651,21 @@ node scripts/test/run-gametests.ts --out-dir=./build/my-reports
 
 ### CI 退出码语义
 
+`--gametest` 的时间限制：从初始化到收尾总计 30 分钟；每批最多 50 个用例，批次初始化、
+执行和清理合计 1 分钟；每次 `MinecraftServer::tick()` + `GameTestTicker::tick()` 合计
+2 秒。切换批次的同步结构放置由批次期限约束。期限使用 steady_clock，独立监控线程在
+主线程卡住时也能报错；超时快速退出 124，另写 `报告路径.timeout.xml`，不会尝试跨线程
+操作世界或安全取消正在执行的 C++ 回调。
+
+外层协调脚本给首轮、所有进程和隔离重跑共享一个 30 分钟期限。超时、进程信号、报告缺失、
+空报告或含 `error` 的报告都返回 2，并保留失败与跳过清单；流水线错误不再尝试重跑。
+`--shards=N` 当前会重复执行相同 filter，尚未按互不重叠的用例集合分片，CI 使用单进程。
+
 | 退出码 | 含义 |
 |---|---|
 | `0` | 全部通过（含重跑通过的测试） |
 | `1` | 有失败（首轮失败且重跑仍失败） |
-| `2` | 流水线错误（如 server 二进制不存在、Round 1 报告缺失） |
+| `2` | 流水线错误（超时、崩溃、报告缺失/不完整或报告含运行错误） |
 
 ### 与现有入口/结果读取方式的关系
 

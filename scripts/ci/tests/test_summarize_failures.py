@@ -102,6 +102,21 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertTrue(summary.collect_integrated_failures(self.artifacts))
         self.assertIn("SIGSEGV", summary.extract_crash_reports(self.artifacts)[0])
 
+    def test_timeout_snapshot_reports_errors_failures_and_unstarted_tests(self):
+        self.write_report("gametest-round1.xml",
+            '<testcase name="Failed"><failure message="assertion"/></testcase>'
+            '<testcase name="Interrupted"><error message="tick exceeded 2 seconds"/></testcase>'
+            '<testcase name="NotRun"><skipped message="Not started"/></testcase>')
+        (self.artifacts / "integrated-tests.log").write_text(
+            "[GameTest] WALL-CLOCK TIMEOUT: tick (2 seconds), batch=default_1\n", encoding="utf-8")
+        body = summary.build_body({"integrated-tests": "success"}, self.artifacts,
+                                  "https://example/run/1", "main", "abc", False)
+        self.assertIn("Failed", body)
+        self.assertIn("Interrupted", body)
+        self.assertIn("NotRun", body)
+        self.assertIn("tick (2 seconds)", body)
+        self.assertTrue(summary.has_failures({"integrated-tests": "success"}, self.artifacts))
+
     def test_repeated_ctest_names_keep_correct_total_and_benchmark_renders(self):
         self.write_report("ctest-results.xml", '<testcase name="Same"/><testcase name="Same"/>')
         (self.artifacts / "benchmark-compare.md").write_text("Benchmark comparison", encoding="utf-8")

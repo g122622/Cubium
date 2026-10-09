@@ -20,6 +20,13 @@ void GlobalTestReporter::clear() noexcept
     m_reporters.clear();
 }
 
+void GlobalTestReporter::onTestStarted(const BaseGameTestInstance& test)
+{
+    for (auto& r : m_reporters) {
+        r->onTestStarted(test);
+    }
+}
+
 void GlobalTestReporter::onTestPassed(const BaseGameTestInstance& test)
 {
     for (auto& r : m_reporters) {

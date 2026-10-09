@@ -48,7 +48,7 @@ facade/
 4. **`GameTestHelper` 回指 `BaseGameTestInstance`**——构造时单阶段绑定（`MinecraftGameTestHelperProvider::createGameTestHelper` 传入 instance）。不绑则 `runAtTickTime`/`succeedIf`/`failIf`/`currentTick`/`maxTicks` 无从转调。`m_instance` 是非拥有引用，instance 由 batch runner 拥有，helper 生命周期短于 instance。
 5. **`GameTestHelper::startSequence` 双轨 TODO**——当前既懒构造 `m_sequence` 又调 `instance.createSequence()` 返回 instance 持有的序列。`m_sequence` 实际未被 tick 推进（instance 只 tick 自己 `createSequence` 出的）。第一阶段样例测试 `thenSucceed()` 立即完成不暴露问题；完整修复需统一为 instance 单一持有（TODO）。
 6. **`GameTestCommand::_launchTests` 实例所有权**——ticker 持裸指针，实例须保活到完成。当前用函数静态 `vector<unique_ptr<BaseGameTestInstance>>` 保活（线程不安全，仅主线程 `/gametest` 调用）。完整修复应由 `IntegratedServer` 持有 vector（1I 接线 TODO）。结构放置失败（无 `.nbt` 资源）会立即 fail，悬垂风险低。
-7. **`GameTestServer` 退出码 = `failedRequiredCount`**——optional 测试失败不计入（CI 契约 0=全必需通过）。`run()` 末尾 `GlobalTestReporter::onAllFinished()` 通知 reporter 收尾。`-j16` 下各 `GameTestServer` 实例须用各自唯一临时目录（`TempDirHelper`）与唯一 `reportPath`，避免文件竞态。
+7. **正常退出码 = `failedRequiredCount`**；未完成、超时或报告 IO 错误返回 124。实际时间限制为整轮 30 分钟、每批 1 分钟、世界/测试 tick 2 秒，独立看门狗覆盖主线程阻塞。批次结构放置和清理计入批次期限。JUnit 每次状态变化保存快照，所有路径都必须使用唯一报告名。
 8. **`GameTestServer::stop()` 顺序**：`m_running=false` → `GameTestTicker::clear()`（清悬垂实例指针）→ 移除 reporter → `runner.reset()` → `stopCore()`（落盘 + `shutdownManagers`）。无玩家/网络，`stopCore` 安全处理空连接。
 9. **`GameTestHelper` 命名空间遮蔽**——`mc::test` 内非限定名 `world::gen::...` 不回退 `mc::world`（见内存 BossBarState 坑）。本目录 cpp 用全限定 `mc::world::gen::structure::StructureBoundingBox` 或 `using` 别名规避。
 10. **门面纪律**：`framework/`/`minecraft/`/`runner/`/`native/`/`simulated/` 的内部头**仅**在 `mc_test`/server exe 内部使用；外部代码只 include `facade/` 与 `base/` 对外头。`GameTestSequence`/`SimulatedPlayer`/`TestData`/`GameTestError` 作为门面返回值/参数对外可见，但其头由 facade 重新导出。

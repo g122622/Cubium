@@ -40,7 +40,7 @@ fuzz ──（独立，自行构建）
 |---|---|---|
 | `build` | `linux-relwithdebinfo` 构建，上传 artifact，建 nightly Release | 是 |
 | `unit-tests` | `ctest` 全量单元测试 | **否**（仅归档） |
-| `integrated-tests` | `scripts/test/run-gametests.ts`（含失败隔离重跑） | **否**（仅归档） |
+| `integrated-tests` | `scripts/test/run-gametests.ts`（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
 | `e2e-tests` | `tests/e2e/bot` 的 `regress` 模式（仅 Cubium，不与 vanilla 双跑） | 是 |
 | `fuzz` | 9 个 libFuzzer 目标各 `-max_total_time=300` | 是（崩溃/OOM 即失败） |
 | `benchmark` | `mc_benchmark`，与上一次 nightly 对比 | **否**（仅记录 + 告警） |
@@ -49,6 +49,15 @@ fuzz ──（独立，自行构建）
 **为什么单元/集成测试不阻塞**：项目存在大量历史遗留失败（`CLAUDE.md` 亦明确指出「很多测试错误是
 以前留下的」）。把它们设成硬门禁会让 nightly 长期红灯、失去信号价值。因此这两类**全量跑、如实记录、
 不 fail**，失败清单由 `report` job 汇总进 issue。
+
+集成测试的实际时间硬限制为：全部批次及失败隔离重跑共 **30 分钟**，每批（最多 50 个）
+**1 分钟**，每个世界/测试 tick **2 秒**。独立看门狗在主线程阻塞时仍能退出，服务端返回
+124，协调脚本转换为流水线错误 2；CI 只允许 0/1 按既定口径继续。测试步骤另设 32 分钟兜底，
+给日志符号化和 artifact 上传留出时间。
+
+JUnit 在选中测试时预先建立完整清单，并在每次开始/结束时原子更新：通过、失败、正在执行
+但被中止（`error`）、未开始/自动策略排除（`skipped`）分别记录。`time` 为实际耗时，
+不再用 tick 数除以 20。超时诊断另写 `*.timeout.xml`，避免覆盖已完成结果。
 
 **为什么 benchmark 不阻塞**：nightly 跑在 GitHub 托管的 `ubuntu-latest` 上，**每次都是全新的机器
 实例**，性能绝对值含实例间噪声。单晚差异不足以判定回归，故只输出对比报告并对超阈值项 `::warning::`。

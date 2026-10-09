@@ -28,6 +28,11 @@
 
 namespace mc::test {
 
+void FailedTestCollector::onTestStarted(const BaseGameTestInstance& test)
+{
+    MC_UNUSED(test);
+}
+
 void FailedTestCollector::onTestPassed(const BaseGameTestInstance& test)
 {
     MC_UNUSED(test);

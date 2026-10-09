@@ -236,6 +236,9 @@ def collect_integrated_failures(artifacts_dir: Path) -> list[str]:
         for marker in _INTEGRATED_CRASH_MARKERS:
             if marker in text:
                 findings.append(f"日志出现崩溃标记：{marker}")
+        for line in text.splitlines():
+            if "WALL-CLOCK TIMEOUT:" in line or "run timed out after" in line:
+                findings.append(line.strip())
         for match in _INTEGRATED_EXIT_LINE.finditer(text):
             code = int(match.group(1))
             if code != 0:

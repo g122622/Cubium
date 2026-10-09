@@ -38,6 +38,7 @@ void BaseGameTestInstance::tick()
 
     // setup 阶段结束（tickCount 首次 >= 0）触发测试函数
     if (m_tickCount == 0 && !m_testFunctionStarted) {
+        _notifyStarted();
         _runTestFunction();
         m_testFunctionStarted = true;
         // 仅当测试函数未在同步路径内终结时才进入 Running。同步测试（如骨粉催熟在函数体末尾直接
@@ -48,7 +49,6 @@ void BaseGameTestInstance::tick()
         if (!isDone(m_state)) {
             m_state = GameTestState::Running;
         }
-        _notifyStarted();
     }
 
     if (isDone(m_state)) {
@@ -141,6 +141,7 @@ void BaseGameTestInstance::succeed()
     if (isDone(m_state)) {
         return;
     }
+    m_finishedAt = std::chrono::steady_clock::now();
     m_state = GameTestState::Succeeded;
     m_runResult.reset(); // 测试结束：释放异步 runResult 持有的 Promise 句柄
     // 执行 runOnFinish 回调
@@ -157,6 +158,7 @@ void BaseGameTestInstance::fail(GameTestError error)
     if (isDone(m_state)) {
         return;
     }
+    m_finishedAt = std::chrono::steady_clock::now();
     m_error = std::move(error);
     m_state = GameTestState::Failed;
     m_runResult.reset(); // 测试结束：释放异步 runResult 持有的 Promise 句柄
@@ -166,6 +168,11 @@ void BaseGameTestInstance::fail(GameTestError error)
         }
     }
     _notifyFailed();
+}
+
+double BaseGameTestInstance::wallTimeSeconds() const noexcept
+{
+    return std::chrono::duration<double>(m_finishedAt.value_or(std::chrono::steady_clock::now()) - m_createdAt).count();
 }
 
 GameTestSequence& BaseGameTestInstance::createSequence()

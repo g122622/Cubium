@@ -23,6 +23,7 @@ public:
     void addReporter(std::shared_ptr<TestReporter> reporter);
     void clear() noexcept;
 
+    void onTestStarted(const BaseGameTestInstance& test);
     void onTestPassed(const BaseGameTestInstance& test);
     void onTestFailed(const BaseGameTestInstance& test);
     void onBatchFinished(const MultipleTestTracker& tracker);

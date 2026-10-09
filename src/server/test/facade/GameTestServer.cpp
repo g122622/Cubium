@@ -11,6 +11,7 @@
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->engine().addModuleFactory
 #include "server/test/facade/GameTestCommand.hpp"           // GameTestCommand::registerTo
 #include "server/test/framework/batch/GameTestBatch.hpp"
+#include "server/test/framework/batch/GameTestBatchListener.hpp"
 #include "server/test/framework/environment/AllOfEnvironment.hpp"
 #include "server/test/framework/environment/EnvironmentRegistry.hpp"
 #include "server/test/framework/environment/TimeOfDayEnvironment.hpp" // TimeOfDayEnvironment（night/day 批时间环境）
@@ -27,6 +28,7 @@
 #include "server/test/runner/reporter/GlobalTestReporter.hpp"
 #include "server/test/runner/reporter/JUnitTestReporter.hpp"
 #include "server/test/runner/reporter/LogTestReporter.hpp"
+#include "server/test/runner/watchdog/GameTestWatchdog.hpp"
 #include "server/test/script/GameTestModuleBinding.hpp" // @minecraft/server-gametest JS 绑定
 #include "server/world/ServerWorld.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
@@ -39,11 +41,36 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <functional>
 #include <unordered_map>
 #include <utility>
 
 namespace mc::test {
+
+namespace {
+constexpr auto _SUITE_LIMIT = std::chrono::minutes(30);
+constexpr auto _BATCH_LIMIT = std::chrono::minutes(1);
+constexpr auto _TICK_LIMIT = std::chrono::seconds(2);
+
+class _DeadlineBatchListener final : public GameTestBatchListener {
+public:
+    _DeadlineBatchListener(
+        std::function<void(const GameTestBatch&)> starting, std::function<void(const GameTestBatch&)> finished)
+        : m_starting(std::move(starting))
+        , m_finished(std::move(finished))
+    {}
+    void onBatchStarting(GameTestBatch& batch) override { m_starting(batch); }
+    void onBatchFinished(GameTestBatch& batch) override { m_finished(batch); }
+
+private:
+    std::function<void(const GameTestBatch&)> m_starting;
+    std::function<void(const GameTestBatch&)> m_finished;
+};
+} // namespace
 
 GameTestServer::GameTestServer()
     : mc::server::MinecraftServer(m_settings)
@@ -63,6 +90,36 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     }
 
     m_params = params;
+    m_suiteDeadline = std::chrono::steady_clock::now() + _SUITE_LIMIT;
+    m_batchDeadline = m_suiteDeadline;
+    const auto gameRoot = params.gameDirectoryRoot.empty() ? mc::GameDirectory::defaultDirectory().root()
+                                                           : std::filesystem::path(params.gameDirectoryRoot);
+    std::filesystem::path timeoutReport(params.reportPath);
+    if (!timeoutReport.empty()) {
+        if (timeoutReport.is_relative()) {
+            timeoutReport = gameRoot / timeoutReport;
+        }
+        timeoutReport += ".timeout.xml";
+    }
+    m_watchdog = std::make_unique<GameTestWatchdog>(
+        m_suiteDeadline, "suite (1800 seconds)", [timeoutReport](const std::string& phase) {
+            // 超时线程只写独立错误文件，避免与主线程 JUnit 快照竞争或触碰世界对象。
+            // 不走异步日志器：主线程可能正卡在日志锁或无法刷新异步队列。
+            std::fprintf(stderr, "[GameTest] WALL-CLOCK TIMEOUT: %s\n", phase.c_str());
+            std::fflush(stderr);
+            if (!timeoutReport.empty()) {
+                std::ofstream out(timeoutReport);
+                out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+                       "<testsuites><testsuite name=\"GameTestFramework\" tests=\"1\" errors=\"1\">"
+                       "<testcase name=\"wall-clock-timeout\" classname=\"framework\" time=\"0\">"
+                       "<error message=\"GameTest wall-clock deadline exceeded; see stderr for phase. "
+                       "Limits: suite=1800s, batch=60s, tick=2s\"/>"
+                       "</testcase></testsuite></testsuites>\n";
+                out.flush();
+            }
+            // 阻塞 tick 无法安全取消；快速终止让 CI 保留快照并把流水线判为错误。
+            std::_Exit(124);
+        });
 
     // === 应用世界参数到设置（镜像 IntegratedServer::initialize）===
     m_settings.viewDistance.set(params.viewDistance);
@@ -432,6 +489,13 @@ bool GameTestServer::_selectAndBuildRunner()
                    .gridStart(gridStart)
                    .testsPerRow(static_cast<std::size_t>(m_params.testsPerRow))
                    .build();
+    m_runner->addBatchListener(std::make_shared<_DeadlineBatchListener>(
+        [this](const GameTestBatch& batch) {
+            m_batchName = batch.name();
+            m_batchDeadline = std::chrono::steady_clock::now() + _BATCH_LIMIT;
+            _armBatchWatchdog();
+        },
+        [this](const GameTestBatch&) { GlobalTestReporter::instance().onBatchFinished(m_runner->tracker()); }));
 
     // 挂 reporter（LogTestReporter 始终挂；JUnit 仅当 reportPath 非空）
     m_logReporter = std::make_shared<LogTestReporter>();
@@ -443,6 +507,14 @@ bool GameTestServer::_selectAndBuildRunner()
             reportFull = m_gameDirectory.root() / reportFull;
         }
         m_junitReporter = std::make_shared<JUnitTestReporter>(reportFull.string());
+        m_junitReporter->prepareTests(selected);
+        for (const auto& fn : selected) {
+            if (fn->data().manualOnly()) {
+                m_junitReporter->onTestSkipped(*fn, "Manual-only test excluded from automatic run");
+            } else if (std::find(fn->tags().begin(), fn->tags().end(), "suite:broken") != fn->tags().end()) {
+                m_junitReporter->onTestSkipped(*fn, "suite:broken test excluded from automatic run");
+            }
+        }
         GlobalTestReporter::instance().addReporter(m_junitReporter);
     }
     // 失败测试收集器：run() 末尾从 failedTestNames() 取失败列表，供重跑过滤使用。
@@ -470,17 +542,22 @@ i32 GameTestServer::run()
         tickOnce();
         ++tickCount;
         if (m_params.maxTicks > 0 && tickCount >= m_params.maxTicks) {
+            if (m_runner->isComplete()) {
+                break;
+            }
             spdlog::error("GameTestServer: run timed out after {} ticks", m_params.maxTicks);
             break;
         }
     }
 
     // 末尾再 tick 一次确保 reporter 收到最终状态
-    if (m_runner->isComplete()) {
-        GlobalTestReporter::instance().onAllFinished(m_runner->tracker());
-    }
+    GlobalTestReporter::instance().onAllFinished(m_runner->tracker());
 
-    m_exitCode = static_cast<i32>(m_runner->failedRequiredCount());
+    m_exitCode = m_runner->isComplete() ? static_cast<i32>(m_runner->failedRequiredCount()) : 124;
+    if (m_junitReporter && m_junitReporter->hasIoError()) {
+        m_exitCode = 124;
+    }
+    m_watchdog->arm(m_suiteDeadline, "suite shutdown (1800 seconds)");
     spdlog::info("GameTestServer run finished: total={}, passed={}, failed={}, exitCode={}",
         m_runner->totalTestCount(),
         m_runner->passedCount(),
@@ -496,13 +573,31 @@ i32 GameTestServer::exitCode() const noexcept
 
 void GameTestServer::tickOnce()
 {
+    const auto phaseDeadline = std::min(m_suiteDeadline, m_batchDeadline);
+    const auto tickDeadline = std::chrono::steady_clock::now() + _TICK_LIMIT;
+    if (tickDeadline < phaseDeadline) {
+        m_watchdog->arm(tickDeadline, "tick (2 seconds), batch=" + m_batchName);
+    } else {
+        _armBatchWatchdog();
+    }
     // 基类世界 tick（维度/实体/时间/区块）
     MinecraftServer::tick();
     // GameTestTicker 推进测试实例状态机（单例）
     GameTestTicker::instance().tick();
+    // 批次调度会同步放置下一批结构，不属于游戏 tick，但受批次和整轮期限约束。
+    _armBatchWatchdog();
     // runner 推进批次调度
     if (m_runner != nullptr) {
         m_runner->tick();
+    }
+}
+
+void GameTestServer::_armBatchWatchdog()
+{
+    if (m_suiteDeadline <= m_batchDeadline) {
+        m_watchdog->arm(m_suiteDeadline, "suite (1800 seconds)");
+    } else {
+        m_watchdog->arm(m_batchDeadline, "batch (60 seconds): " + m_batchName);
     }
 }
 
@@ -551,6 +646,7 @@ void GameTestServer::stop()
 
     // 落盘 + 关闭核心管理器（无玩家/网络，stopCore 会安全处理空连接）
     stopCore();
+    m_watchdog.reset();
 
     m_initialized = false;
     spdlog::info("GameTestServer stopped.");

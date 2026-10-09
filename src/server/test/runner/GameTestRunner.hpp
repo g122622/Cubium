@@ -19,6 +19,7 @@ namespace mc::test {
 
 class BaseGameTestBatchRunner;
 class GameTestRunnerBuilder;
+class GameTestBatchListener;
 
 /**
  * @brief GameTest 运行编排器（内部，被 `GameTestServer`/`GameTestCommand` 门面封装）。
@@ -41,6 +42,8 @@ public:
     GameTestRunner& operator=(const GameTestRunner&) = delete;
 
     void start();
+    /** @brief 注入批次生命周期监听器，在批次初始化前和清理后接收通知。 */
+    void addBatchListener(std::shared_ptr<GameTestBatchListener> listener);
     void tick();
     [[nodiscard]] bool isComplete() const noexcept;
     [[nodiscard]] std::size_t failedRequiredCount() const noexcept;

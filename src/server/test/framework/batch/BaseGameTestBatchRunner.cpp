@@ -35,6 +35,12 @@ void BaseGameTestBatchRunner::_trackInstance(std::unique_ptr<BaseGameTestInstanc
     // 挂载实例级监听器（_RunnerListener）——实例 succeed/fail 时更新 tracker + 广播 GlobalTestReporter。
     if (m_instanceListener) {
         instance->addListener(m_instanceListener);
+        // 结构放置在挂载监听器之前就可能失败，补发终态以免漏掉该用例。
+        if (hasFailed(instance->state())) {
+            m_instanceListener->onTestFailed(*instance);
+        } else if (hasSucceeded(instance->state())) {
+            m_instanceListener->onTestPassed(*instance);
+        }
     }
     m_ticker.add(*instance);
     m_currentBatchInstances.push_back(std::move(instance));
@@ -81,13 +87,13 @@ void BaseGameTestBatchRunner::_runBatch(std::size_t batchIndex)
     m_currentBatch = batchIndex;
     auto& batch = m_batches[batchIndex];
 
-    // beforeBatch 回调
-    if (batch.beforeBatch()) {
-        batch.beforeBatch()();
-    }
-    // 批次开始通知
+    // 初始化也计入批次期限，必须先通知看门狗再执行回调、环境和结构放置。
+    spdlog::info("[GameTest] batch STARTED: {} (tests={})", batch.name(), batch.testFunctions().size());
     for (auto& l : m_batchListeners) {
         l->onBatchStarting(batch);
+    }
+    if (batch.beforeBatch()) {
+        batch.beforeBatch()();
     }
 
     // 环境 setup（minecraft 绑定层经 MinecraftEnvironmentApplier 应用到 ServerWorld）。
@@ -147,11 +153,11 @@ void BaseGameTestBatchRunner::tick()
     if (batch.afterBatch()) {
         batch.afterBatch()();
     }
+    m_currentBatchInstances.clear();
     for (auto& l : m_batchListeners) {
         l->onBatchFinished(batch);
     }
-
-    m_currentBatchInstances.clear();
+    spdlog::info("[GameTest] batch FINISHED: {}", batch.name());
 
     // 推进下一批
     if (m_currentBatch + 1 < m_batches.size()) {

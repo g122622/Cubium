@@ -12,6 +12,7 @@ namespace mc::test {
  */
 class LogTestReporter final : public TestReporter {
 public:
+    void onTestStarted(const BaseGameTestInstance& test) override;
     LogTestReporter() = default;
 
     void onTestPassed(const BaseGameTestInstance& test) override;

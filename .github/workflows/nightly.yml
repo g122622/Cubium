@@ -326,13 +326,14 @@ jobs:
       # 是真实缺陷而非历史包袱，且此时没有 JUnit XML、失败在报告里天然不可见。
       # 故 2 直接判 job 失败，保证它在 job 层面可见。
       - name: Run integrated tests
+        timeout-minutes: 32
         run: |
           set +e
           node scripts/test/run-gametests.ts 2>&1 | tee integrated-tests.log
           code=${PIPESTATUS[0]}
           echo "run-gametests exit code: ${code}"
-          if [ "${code}" -eq 2 ]; then
-            echo "::error::集成测试流水线错误（退出码 2）：服务端崩溃或 JUnit XML 未产出，详见 integrated-tests.log"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 1 ]; then
+            echo "::error::集成测试流水线错误（退出码 ${code}）：超时、服务端崩溃或报告不完整，详见 integrated-tests.log"
             exit 1
           fi
           # 用例失败（退出码 1）按既定口径不阻塞，失败清单由 report job 汇总。

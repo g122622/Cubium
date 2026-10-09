@@ -27,7 +27,7 @@ public:
     {}
 
     void onTestStructureLoaded(BaseGameTestInstance& test) override { MC_UNUSED(test); }
-    void onTestStarted(BaseGameTestInstance& test) override { MC_UNUSED(test); }
+    void onTestStarted(BaseGameTestInstance& test) override { GlobalTestReporter::instance().onTestStarted(test); }
 
     void onTestPassed(BaseGameTestInstance& test) override
     {
@@ -90,6 +90,11 @@ void GameTestRunner::start()
 {
     MC_ASSERT_RELEASE_MSG(m_batchRunner != nullptr, "GameTestRunner: batch runner is null");
     m_batchRunner->start();
+}
+
+void GameTestRunner::addBatchListener(std::shared_ptr<GameTestBatchListener> listener)
+{
+    m_batchRunner->addBatchListener(std::move(listener));
 }
 
 void GameTestRunner::tick()

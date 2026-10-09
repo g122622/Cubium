@@ -43,6 +43,7 @@ class BaseGameTestInstance;
  */
 class FailedTestCollector final : public TestReporter {
 public:
+    void onTestStarted(const BaseGameTestInstance& test) override;
     FailedTestCollector() = default;
     ~FailedTestCollector() override = default;
 

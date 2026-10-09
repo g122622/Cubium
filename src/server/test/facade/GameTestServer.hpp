@@ -7,6 +7,7 @@
 #include "server/application/MinecraftServer.hpp" // mc::server::MinecraftServer
 #include "server/settings/ServerSettings.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -21,6 +22,7 @@ class JUnitTestReporter;
 class LogTestReporter;
 class FailedTestCollector;
 class BehaviorPackStructureSource;
+class GameTestWatchdog;
 
 /**
  * @brief GameTestServer 启动参数（对齐 Java `GameTestMainUtil` CLI + `IntegratedServerParams` 世界字段）。
@@ -73,7 +75,7 @@ struct GameTestServerParams {
     i32 gridStartZ = 0;
     /// 每行测试数（对齐 Java `DEFAULT_TESTS_PER_ROW=8`）。
     i32 testsPerRow = 8;
-    /// 单次 run() 最大 tick 数（防卡死，超时强行停止）。0 表示不限。
+    /// 单次 run() 最大 tick 数；0 仅关闭 tick 数限制，实际时间限制始终生效。
     std::size_t maxTicks = 600000; // 30000s @ 20TPS，足够 CI
 };
 
@@ -91,7 +93,7 @@ struct GameTestServerParams {
  * 生命周期：
  * 1. `initialize(params)`：建世界 → 注册 `/gametest` 命令 → 选测试 → 构造 `GameTestRunner`。
  * 2. `run()`：循环 `tick()`（基类世界 tick + `GameTestTicker::instance().tick()` + `runner->tick()`），
- *    直到 `runner->isComplete()` 或 `maxTicks` 超时。
+ *    直到完成或超时；实际时间限制为整轮 30 分钟、每批 1 分钟、每 tick 2 秒。
  * 3. `exitCode()`：`runner->failedRequiredCount()`（CI 契约：0=全必需通过）。
  * 4. `stop()`：`requestStop()` + `stopCore()` 落盘 + 关闭 reporter。
  *
@@ -135,7 +137,7 @@ public:
     /**
      * @brief 同步运行主循环直到测试完成或超时。在调用线程内循环 `tick()`。
      *
-     * @return 失败的 required 测试数（0=全过）。`initialize` 未成功时返回 1。
+     * @return 正常返回失败的 required 测试数；超时/未完成/报告错误返回 124，未初始化返回 1。
      */
     [[nodiscard]] i32 run();
 
@@ -159,6 +161,8 @@ private:
      * 测试实例状态机；`runner->tick()` 推进批次调度。三者顺序：世界 tick → ticker → runner。
      */
     void tickOnce();
+    /** @brief 发布当前批次与整轮中更早的期限，覆盖结构放置和清理。 */
+    void _armBatchWatchdog();
 
     /// 从 `GameTestRegistry` 选测试（应用 `testsFilter`）并构造批次。
     [[nodiscard]] bool _selectAndBuildRunner();
@@ -180,6 +184,10 @@ private:
     std::unique_ptr<BehaviorPackStructureSource> m_structureSource;
     i32 m_exitCode = 0;
     bool m_runnerBuilt = false;
+    std::chrono::steady_clock::time_point m_suiteDeadline;
+    std::chrono::steady_clock::time_point m_batchDeadline;
+    std::string m_batchName;
+    std::unique_ptr<GameTestWatchdog> m_watchdog;
 };
 
 } // namespace mc::test

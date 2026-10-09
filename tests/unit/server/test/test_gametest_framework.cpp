@@ -36,6 +36,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TempDirHelper.hpp"
 #include "common/util/Direction.hpp" // Rotation
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/base/coords/TestTransform.hpp"
@@ -46,8 +47,17 @@
 #include "server/test/base/error/GameTestResult.hpp"
 #include "server/test/framework/environment/EnvironmentRegistry.hpp"
 #include "server/test/framework/helper/NullGameTestHelper.hpp"
+#include "server/test/framework/instance/BaseGameTestInstance.hpp"
+#include "server/test/framework/listener/IGameTestListener.hpp"
 #include "server/test/framework/sequence/GameTestSequence.hpp"
 #include "server/test/framework/ticker/GameTestTicker.hpp"
+#include "server/test/native/NativeGameTestFunction.hpp"
+#include "server/test/runner/reporter/JUnitTestReporter.hpp"
+#include "server/test/runner/watchdog/GameTestWatchdog.hpp"
+
+#include <fstream>
+#include <future>
+#include <thread>
 
 #include <nlohmann/json.hpp>
 
@@ -64,6 +74,142 @@ bool _driveSequenceToCompletion(mc::test::GameTestSequence& seq, mc::i32 maxTick
     return seq.isComplete() && seq.isSucceeded();
 }
 } // namespace
+
+namespace {
+class _TimeoutHelperProvider final : public mc::test::IGameTestHelperProvider {
+public:
+    std::unique_ptr<mc::test::IGameTestHelper> createGameTestHelper(mc::test::BaseGameTestInstance&) override
+    {
+        return std::make_unique<mc::test::NullGameTestHelper>();
+    }
+    std::unique_ptr<mc::test::IGameTestHelperProvider> clone() const override
+    {
+        return std::make_unique<_TimeoutHelperProvider>();
+    }
+};
+
+class _TimeoutInstance final : public mc::test::BaseGameTestInstance {
+public:
+    explicit _TimeoutInstance(const mc::test::BaseGameTestFunction& function)
+        : BaseGameTestInstance(function, std::make_unique<_TimeoutHelperProvider>())
+    {}
+
+protected:
+    bool hasStructureBlock() const override { return true; }
+    void clearStructure() override {}
+    void spawnStructure() override {}
+    mc::i32 _getLevelTick() const override { return 0; }
+    bool _isTestReady() override { return true; }
+};
+
+std::shared_ptr<mc::test::NativeGameTestFunction> _timeoutFunction(const std::string& name)
+{
+    return std::make_shared<mc::test::NativeGameTestFunction>(
+        "timeouts", name, "empty", mc::test::TestData{}, [](mc::test::IGameTestHelper&) { return mc::test::pass(); });
+}
+} // namespace
+
+TEST(GameTestTimeout, WatchdogFiresWhileCallingThreadWaits)
+{
+    std::promise<std::string> expired;
+    auto result = expired.get_future();
+    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() + std::chrono::milliseconds(30),
+        "tick",
+        [&](const std::string& phase) { expired.set_value(phase); });
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
+    EXPECT_EQ(result.get(), "tick");
+}
+
+TEST(GameTestTimeout, EarlierBatchDeadlineReplacesSuiteDeadline)
+{
+    std::promise<std::string> expired;
+    auto result = expired.get_future();
+    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() + std::chrono::hours(1),
+        "suite",
+        [&](const std::string& phase) { expired.set_value(phase); });
+    watchdog.arm(std::chrono::steady_clock::now() + std::chrono::milliseconds(30), "batch");
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
+    EXPECT_EQ(result.get(), "batch");
+}
+
+TEST(GameTestTimeout, FinishedTickDisarmsItsShortDeadline)
+{
+    std::promise<std::string> expired;
+    auto result = expired.get_future();
+    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() + std::chrono::milliseconds(200),
+        "tick",
+        [&](const std::string& phase) { expired.set_value(phase); });
+    watchdog.arm(std::chrono::steady_clock::now() + std::chrono::milliseconds(500), "batch");
+    EXPECT_EQ(result.wait_for(std::chrono::milliseconds(250)), std::future_status::timeout);
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
+    EXPECT_EQ(result.get(), "batch");
+}
+
+TEST(GameTestTimeout, ExpiredTickCannotBeForgivenByNextBatch)
+{
+    std::promise<std::string> expired;
+    auto result = expired.get_future();
+    mc::test::GameTestWatchdog watchdog(std::chrono::steady_clock::now() - std::chrono::milliseconds(1),
+        "expired tick",
+        [&](const std::string& phase) { expired.set_value(phase); });
+    watchdog.arm(std::chrono::steady_clock::now() + std::chrono::hours(1), "next batch");
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(3)), std::future_status::ready);
+    EXPECT_EQ(result.get(), "expired tick");
+}
+
+TEST(GameTestTimeout, DestructionCancelsOutstandingDeadline)
+{
+    bool fired = false;
+    const auto started = std::chrono::steady_clock::now();
+    {
+        mc::test::GameTestWatchdog watchdog(
+            started + std::chrono::hours(1), "suite", [&](const std::string&) { fired = true; });
+    }
+    EXPECT_FALSE(fired);
+    EXPECT_LT(std::chrono::steady_clock::now() - started, std::chrono::seconds(1));
+}
+
+TEST(GameTestTimeout, SnapshotPreservesFinishedInterruptedAndUnstartedCases)
+{
+    const auto dir = mc::test::makeUniqueTestDir("gametest_timeout_report");
+    const auto report = dir / "results.xml";
+    auto passed = _timeoutFunction("completed");
+    auto failed = _timeoutFunction("failed");
+    auto active = _timeoutFunction("interrupted");
+    auto pending = _timeoutFunction("not_run");
+    auto excluded = _timeoutFunction("manual_only");
+    _TimeoutInstance passedInstance(*passed), failedInstance(*failed), activeInstance(*active);
+    mc::test::JUnitTestReporter reporter(report);
+    reporter.prepareTests({passed, failed, active, pending, excluded});
+    reporter.onTestSkipped(*excluded, "Manual-only test excluded from automatic run");
+    reporter.onTestStarted(activeInstance);
+    passedInstance.succeed();
+    reporter.onTestPassed(passedInstance);
+    failedInstance.fail(mc::test::GameTestError(mc::test::GameTestErrorType::ExecutionTimeout, "timed out"));
+    reporter.onTestFailed(failedInstance);
+    // 不调用 onAllFinished，模拟进程被看门狗中止后读取最后一份完整快照。
+    std::ifstream input(report);
+    const std::string xml(std::istreambuf_iterator<char>{input}, {});
+    EXPECT_FALSE(reporter.hasIoError());
+    EXPECT_NE(xml.find("tests=\"5\" failures=\"1\" skipped=\"2\" errors=\"1\""), std::string::npos);
+    EXPECT_NE(xml.find("<error message=\"Execution interrupted"), std::string::npos);
+    EXPECT_NE(xml.find("<skipped message=\"Not started"), std::string::npos);
+    EXPECT_NE(xml.find("Manual-only test excluded"), std::string::npos);
+    EXPECT_NE(xml.find("</testsuites>"), std::string::npos);
+    input.close();
+    mc::test::removeTestDir(dir);
+}
+
+TEST(GameTestTimeout, FinishedElapsedTimeStopsAdvancing)
+{
+    auto function = _timeoutFunction("elapsed");
+    _TimeoutInstance instance(*function);
+    instance.succeed();
+    const auto elapsed = instance.wallTimeSeconds();
+    EXPECT_GE(elapsed, 0.0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    EXPECT_EQ(instance.wallTimeSeconds(), elapsed);
+}
 
 // ============================================================================
 // GameTestError / GameTestResult

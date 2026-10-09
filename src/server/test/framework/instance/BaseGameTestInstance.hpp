@@ -9,6 +9,7 @@
 #include "server/test/framework/instance/GameTestState.hpp"
 #include "server/test/framework/sequence/GameTestSequence.hpp"
 
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -51,6 +52,8 @@ public:
     void tick();
     void succeed();
     void fail(GameTestError error);
+    /** @brief 已完成实例的实际耗时固定为结束时刻，运行中实例返回当前耗时。 */
+    [[nodiscard]] double wallTimeSeconds() const noexcept;
     [[nodiscard]] GameTestSequence& createSequence();
     void addListener(std::shared_ptr<IGameTestListener> listener);
     void removeListener(const std::shared_ptr<IGameTestListener>& listener);
@@ -116,6 +119,8 @@ private:
     std::optional<GameTestError> m_error;
     RetryOptions m_retryOptions = RetryOptions::noRetries();
     bool m_testFunctionStarted = false;
+    const std::chrono::steady_clock::time_point m_createdAt = std::chrono::steady_clock::now();
+    std::optional<std::chrono::steady_clock::time_point> m_finishedAt;
     // 异步测试函数的运行结果句柄（`ScriptGameTestFunction::run` 返回 AsyncRunResult 时持有 Promise）。
     // 同步测试 run 返回时即 complete，此处仍保存至测试结束以便统一轮询；详见 _runTestFunction/tick。
     std::unique_ptr<IGameTestFunctionRunResult> m_runResult;

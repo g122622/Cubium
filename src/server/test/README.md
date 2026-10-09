@@ -55,6 +55,7 @@ server/test/
 ├── runner/                        # 编排（内部，被 GameTestServer 封装）
 │   ├── spawner/                   # StructureGridSpawner
 │   ├── reporter/                  # GlobalTestReporter/LogTestReporter/JUnitTestReporter/TestReporter
+│   ├── watchdog/                  # 独立线程监控整轮、批次和 tick 的实际期限
 │   ├── tracker/                   # MultipleTestTracker
 │   ├── attempts/                  # ExhaustedAttempts
 │   ├── GameTestRunner.hpp/cpp

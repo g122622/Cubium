@@ -6,9 +6,17 @@
 
 namespace mc::test {
 
+void LogTestReporter::onTestStarted(const BaseGameTestInstance& test)
+{
+    spdlog::info("[GameTest] STARTED: {}", test.function().testName());
+}
+
 void LogTestReporter::onTestPassed(const BaseGameTestInstance& test)
 {
-    spdlog::info("[GameTest] PASSED: {}", test.function().testName());
+    spdlog::info("[GameTest] PASSED: {} (wall_seconds={:.3f}, ticks={})",
+        test.function().testName(),
+        test.wallTimeSeconds(),
+        test.tickCount());
 }
 
 void LogTestReporter::onTestFailed(const BaseGameTestInstance& test)

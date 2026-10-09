@@ -21,6 +21,7 @@ class TestReporter {
 public:
     virtual ~TestReporter() = default;
 
+    virtual void onTestStarted(const BaseGameTestInstance& test) = 0;
     virtual void onTestPassed(const BaseGameTestInstance& test) = 0;
     virtual void onTestFailed(const BaseGameTestInstance& test) = 0;
     virtual void onBatchFinished(const MultipleTestTracker& tracker) = 0;
