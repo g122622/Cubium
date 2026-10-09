@@ -296,6 +296,28 @@ private:
     void _sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos);
 
     /**
+     * @brief 玩家的模式与朝向（跨维度切换时写入 Respawn / PlayerPosition 包）
+     */
+    struct _PlayerState {
+        GameMode gameMode = GameMode::Survival;
+        f32 yaw = 0.0f;
+        f32 pitch = 0.0f;
+    };
+
+    /**
+     * @brief 解析玩家的游戏模式与朝向
+     *
+     * 两条来源按优先级回退：
+     *   1. `PlayerManager::getPlayer(id)`（真实玩家的 ServerPlayerData，含权威朝向）；
+     *   2. 玩家实体（`ServerPlayerEntityManager::getPlayerEntity`）——GameTest 的
+     *      SimulatedPlayer 只存在于实体层、不注册进 PlayerManager，且其朝向需从实体读。
+     *
+     * 两处都取不到时返回默认值（生存模式、朝向 0）。调用方不得假设非空——
+     * 直接解引用 `getPlayer(id)` 的返回值会在 SimulatedPlayer 路径下段错误。
+     */
+    [[nodiscard]] _PlayerState _resolvePlayerState(PlayerId playerId);
+
+    /**
      * @brief 卸载玩家当前维度的区块
      *
      * @param playerId 玩家ID

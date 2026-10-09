@@ -543,6 +543,29 @@ std::unique_ptr<server::ServerWorld> ServerDimensionManager::_createServerWorld(
     return world;
 }
 
+ServerDimensionManager::_PlayerState ServerDimensionManager::_resolvePlayerState(PlayerId playerId)
+{
+    // 优先取 PlayerManager 的权威数据（真实玩家路径，含网络同步的朝向）。
+    if (const auto* data = m_server->playerManager().getPlayer(playerId)) {
+        return _PlayerState{data->gameMode, data->yaw, data->pitch};
+    }
+
+    // 回退到玩家实体：GameTest 的 SimulatedPlayer 只存在于实体层，不注册进 PlayerManager。
+    // 其朝向需从实体读（模拟玩家由 JS 侧 setRotation 驱动）。
+    if (auto* dimension = getPlayerDimensionWorld(playerId)) {
+        if (auto* world = dimension->world()) {
+            if (Player* player = m_server->playerEntityManager().getPlayerEntity(playerId, *world)) {
+                return _PlayerState{player->gameMode(), player->yaw(), player->pitch()};
+            }
+        }
+    }
+
+    // 两处都取不到：返回默认值而非解引用空指针。
+    // TODO: 严格对齐 vanilla 需要在玩家尚未加入时以「未初始化」语义拒绝发送 Respawn，
+    //       当前以默认值兜底保证不崩溃。待玩家生命周期管理完善后再收紧。
+    return _PlayerState{};
+}
+
 void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, DimensionId newDim, const Vector3d& pos)
 {
     // 获取维度类型
@@ -582,9 +605,13 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
     pkt.spawnInfo.dimension = dimensionKey;
     pkt.spawnInfo.seed = static_cast<i64>(util::crypto::Sha256::hashWorldSeed(m_seed));
 
-    // 设置游戏模式（从玩家数据获取）
-    auto* playerData = m_server->playerManager().getPlayer(playerId);
-    pkt.spawnInfo.gameType = playerData->gameMode;
+    // 设置游戏模式与朝向。取值经 _resolvePlayerState 统一解析：
+    // PlayerManager 优先（真实玩家有 ServerPlayerData），回退到玩家实体
+    // （GameTest 的 SimulatedPlayer 只存在于实体层，不进 PlayerManager）。
+    // 注意：**不可**直接 `playerManager().getPlayer(id)->gameMode`——SimulatedPlayer
+    // 路径下 getPlayer 返回 nullptr，解引用即 SIGSEGV（实测崩溃于本函数，栈顶为本函数）。
+    const _PlayerState state = _resolvePlayerState(playerId);
+    pkt.spawnInfo.gameType = state.gameMode;
     pkt.spawnInfo.previousGameType = -1; // NotSet → null（1.21.11 用 -1 表 null）
 
     // 维度切换时保留数据（KEEP_ALL_DATA = 3）
@@ -650,8 +677,8 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
     // waitingTeleportConfirm 状态，发送 PlayerPosition 包。与 Java 的
     // connection.teleport 语义一致（客户端回 AcceptTeleportation 确认）。
     // Respawn 不改朝向，PlayerPosition 传送时保持玩家原朝向。
-    const f32 currentYaw = playerData->yaw;
-    const f32 currentPitch = playerData->pitch;
+    const f32 currentYaw = state.yaw;
+    const f32 currentPitch = state.pitch;
     m_server->teleportManager().requestTeleport(playerId, pos.x, pos.y, pos.z, currentYaw, currentPitch);
 
     // 维度切换后必须补发 LEVEL_CHUNKS_LOAD_START GameEvent（event=13, value=0）。
