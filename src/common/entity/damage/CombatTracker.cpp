@@ -63,8 +63,29 @@ void CombatTracker::trackDamage(DamageSource& source, f32 health, f32 damage)
     // 计算摔落后缀
     _calculateFallSuffix();
 
+    // 在**同步上下文**（伤害发生瞬间，来源实体必然存活）捕获实体 id。
+    // DamageSource::clone() 复制的是裸指针，实体析构后即悬垂；id 则永不悬垂
+    // （EntityInstanceId 单调递增、不复用）。所有需要访问伤害来源实体的逻辑
+    // 都应经 id + IWorld::getEntity() 取，而非解引用 clone 里的指针。
+    // 这与 m_lastDamageSourceTrueId 是同一套 UAF 根治思路（见 LivingEntity::actuallyHurt）。
+    EntityInstanceId trueSourceId = INVALID_ENTITY_ID;
+    EntityInstanceId directSourceId = INVALID_ENTITY_ID;
+    if (Entity* trueSource = source.getTrueSource()) {
+        trueSourceId = trueSource->id();
+    }
+    if (Entity* directSource = source.directSource()) {
+        directSourceId = directSource->id();
+    }
+
     // 创建战斗条目
-    m_entries.emplace_back(source.clone(), damage, currentTime, health, m_fallSuffix, m_owner->fallDistance());
+    m_entries.emplace_back(source.clone(),
+        damage,
+        currentTime,
+        health,
+        m_fallSuffix,
+        m_owner->fallDistance(),
+        trueSourceId,
+        directSourceId);
 
     m_totalDamage += damage;
     m_lastDamageTime = currentTime;
@@ -150,10 +171,23 @@ const CombatEntry* CombatTracker::getBestEntry() const
 Entity* CombatTracker::getLastAttacker() const
 {
     const CombatEntry* entry = getLastEntry();
-    if (!entry || !entry->source()) {
+    if (!entry) {
         return nullptr;
     }
-    return entry->source()->getEntity();
+    // 经 id 反查：真凶析构后 getEntity 返回 nullptr，不会解引用悬垂指针。
+    return _resolveEntity(entry->trueSourceId());
+}
+
+Entity* CombatTracker::_resolveEntity(EntityInstanceId id) const
+{
+    if (id == INVALID_ENTITY_ID || m_owner == nullptr) {
+        return nullptr;
+    }
+    IWorld* world = m_owner->world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+    return world->getEntity(id);
 }
 
 Entity* CombatTracker::getBestAttacker() const
@@ -161,25 +195,31 @@ Entity* CombatTracker::getBestAttacker() const
     // 找到造成最多伤害的生物和玩家
     // 只有当玩家伤害 >= 生物总伤害的 1/3 时才返回玩家
 
-    LivingEntity* bestMob = nullptr;
-    LivingEntity* bestPlayer = nullptr;
+    Entity* bestMob = nullptr;
+    Entity* bestPlayer = nullptr;
     f32 mobDamage = 0.0f;
     f32 playerDamage = 0.0f;
 
     for (const auto& entry : m_entries) {
-        if (!entry.source()) continue;
-
-        Entity* trueSource = entry.source()->getTrueSource();
+        // 经 id 反查实体：真凶析构后返回 nullptr，直接跳过。
+        // 此前这里解引用 entry.source()->getTrueSource() 再做 dynamic_cast——
+        // 那是裸指针，真凶析构即悬垂，dynamic_cast 读虚表指针时崩溃
+        // （实测 SIGSEGV at address 0x38，栈顶 __dynamic_cast）。
+        Entity* trueSource = _resolveEntity(entry.trueSourceId());
         if (!trueSource) continue;
 
         LivingEntity* livingSource = dynamic_cast<LivingEntity*>(trueSource);
         if (!livingSource) continue;
 
-        // 使用 getDamageAmount() 而不是 damage()
-        // 因为虚空伤害返回 Float.MAX_VALUE
-        f32 damage = entry.getDamageAmount();
+        // 用 damage()（本条目的实际伤害值）而非 getDamageAmount()——后者返回的是
+        // **摔落距离**，仅供摔落死亡消息链路（_getBestCombatEntry）判定「摔落是否够重」，
+        // 语义完全不同。此处要的是「谁造成了最多伤害」，必须用真实伤害值；
+        // 误用 getDamageAmount 会让所有非摔落伤害的权重恒为 0（fallDistance 通常为 0），
+        // 于是 bestMob/bestPlayer 永远停留在 nullptr，getKillCredit() 恒返回空。
+        f32 damage = entry.damage();
 
-        if (entry.source()->isPlayerSource()) {
+        // 玩家判定走 isPlayerSource()：它是 DamageType 上的静态属性，不触碰实体指针。
+        if (entry.isPlayerSource()) {
             // 玩家来源
             if (damage > playerDamage) {
                 playerDamage = damage;
@@ -244,7 +284,8 @@ std::string CombatTracker::getDeathMessage() const
 
         // 如果有攻击后有摔落，使用摔落死亡消息
         if (fallEntry && attackEntry && !fallEntry->fallSuffix().empty()) {
-            Entity* attacker = attackEntry->source()->getEntity();
+            // 经 id 反查（见 getBestAttacker 的说明），不解引用 clone 内的裸指针。
+            Entity* attacker = _resolveEntity(attackEntry->trueSourceId());
             if (attacker) {
                 return ownerName + " fell from a high place whilst trying to escape " +
                     attacker->getDisplayName()->getUnformattedText();
@@ -262,9 +303,9 @@ std::string CombatTracker::getDeathMessage() const
         return ownerName + " died";
     }
 
-    // 根据伤害来源类型生成死亡消息
-    Entity* attacker = source->getEntity();
-    std::string deathKey = source->deathMessageKey();
+    // 根据伤害来源类型生成死亡消息。注意 deathMessageKey / isFire / isLava 等
+    // 都是 DamageSource 上的静态属性，不触碰实体指针，可安全直接使用。
+    Entity* attacker = _resolveEntity(bestEntry->trueSourceId());
 
     if (attacker) {
         // 使用带攻击者的死亡消息

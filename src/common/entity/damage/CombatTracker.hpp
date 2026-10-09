@@ -187,6 +187,19 @@ private:
      */
     [[nodiscard]] CombatEntry* _getBestCombatEntry();
 
+    /**
+     * @brief 经实体 id 安全反查实体
+     *
+     * 战斗条目里保存的是 id 而非裸指针（`DamageSource::clone()` 内的实体指针在真凶
+     * 析构后会悬垂，解引用即 UAF——实测 SIGSEGV at 0x38，栈顶 __dynamic_cast）。
+     * 本方法经 `IWorld::getEntity(id)` 反查：真凶已析构时返回 nullptr，不会解引用
+     * 悬垂指针。id 永不悬垂（EntityInstanceId 单调递增、不复用）。
+     *
+     * @param id 实体 id；INVALID_ENTITY_ID 直接返回 nullptr
+     * @return 存活的实体指针；已析构或 world 不可用时返回 nullptr
+     */
+    [[nodiscard]] Entity* _resolveEntity(EntityInstanceId id) const;
+
     LivingEntity* m_owner;              // 拥有者
     std::vector<CombatEntry> m_entries; // 战斗记录
     f32 m_totalDamage = 0.0f;           // 总承受伤害

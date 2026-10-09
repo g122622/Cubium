@@ -494,6 +494,8 @@ add_executable(mc_tests
     common/entity/core/GetLootTableIdTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
+    # CombatTracker UAF 回归测试（真凶析构后 getBestAttacker/getLastAttacker/getDeathMessage 不得段错误）
+    common/entity/combat/CombatTrackerUafTest.cpp
     # CombatRules EPF 测试
     common/entity/combat/CombatRulesEPFTest.cpp
     # BYPASSES_ENCHANTMENTS 标签查询测试（sonic_boom 跳过附魔保护但保留抗性药水）

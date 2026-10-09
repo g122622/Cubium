@@ -223,6 +223,14 @@ public:
         }
     }
 
+    /// 取消 id 反查登记。
+    ///
+    /// 对应生产代码 EntityManager 在实体销毁时把它从 m_entities 中 erase
+    /// （`_removeDeadEntitiesInternal`），此后 `getEntity(id)` 返回 nullptr。
+    /// 测试中实体析构（或 remove）后必须同步调用本方法，否则反查表会残留悬垂指针，
+    /// 使「实体已消失」的语义无法被复现。
+    void unregisterEntityForLookup(EntityInstanceId id) { m_lookupEntities.erase(id); }
+
     [[nodiscard]] Entity* getEntity(EntityInstanceId id) override
     {
         auto it = m_lookupEntities.find(id);
