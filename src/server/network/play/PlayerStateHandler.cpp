@@ -46,6 +46,24 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
+void PlayerStateHandler::handlePlayerAbilitiesPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    const auto& request = std::get<mc::network::ir::play::ServerboundPlayerAbilities>(
+        std::get<mc::network::ir::PlayPacket>(packet.packet));
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+    if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
+        auto& abilities = entity->abilities();
+        abilities.flying = request.flying && abilities.canFly;
+    }
+}
+
 void PlayerStateHandler::handleChangeGameModePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     const auto* player = m_server.playerManager().getPlayer(playerId);

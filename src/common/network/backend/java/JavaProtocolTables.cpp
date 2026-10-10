@@ -251,6 +251,8 @@ using B = buffer::RegistryByteBuf;
     b.addPacket<ir::play::PlayerLoaded>(
         43, PacketType{PacketFlow::Serverbound, "player_loaded"}, 121, codecs::playerLoadedCodec());
     b.addPacket<ir::play::Swing>(60, PacketType{PacketFlow::Serverbound, "swing"}, 122, codecs::swingCodec());
+    b.addPacket<ir::play::ServerboundPlayerAbilities>(
+        39, PacketType{PacketFlow::Serverbound, "player_abilities"}, 123, codecs::serverboundPlayerAbilitiesCodec());
     return b.build();
 }
 

@@ -180,3 +180,50 @@ TEST(PlayerStateRequestTest, ChangeGameModeRequiresGameMasterAndLoggedInPlayer)
     EXPECT_EQ(player->gameMode, GameMode::Creative);
     handler.route(99, request);
 }
+
+TEST_F(NetworkTestBase, PlayServerboundPlayerAbilitiesHasOnlyOneFlagByte)
+{
+    for (bool flying : {false, true}) {
+        auto buf = makeBoundBuf();
+        ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{ServerboundPlayerAbilities{flying}}).success());
+        EXPECT_EQ(buf.bytes(), (std::vector<u8>{39, static_cast<u8>(flying ? 2 : 0)}));
+        auto decoded = tables()->playSb->decode(buf);
+        ASSERT_TRUE(decoded.success());
+        EXPECT_EQ(std::get<ServerboundPlayerAbilities>(decoded.value()).flying, flying);
+    }
+    auto buf = makeBoundBuf();
+    buf.writeVarInt(39);
+    buf.writeU8(0xff);
+    auto decoded = tables()->playSb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_TRUE(std::get<ServerboundPlayerAbilities>(decoded.value()).flying);
+    auto truncated = makeBoundBuf();
+    truncated.writeVarInt(39);
+    EXPECT_FALSE(tables()->playSb->decode(truncated).success());
+}
+
+TEST(PlayerStateRequestTest, AbilitiesCannotGrantFlightOrOtherPrivileges)
+{
+    _PlayerStateRequestServer server;
+    auto* data = server.playerManager().addPlayer(1, "player-uuid", "Player", nullptr);
+    ASSERT_NE(data, nullptr);
+    auto& player = server.addPlayerEntity(1);
+    server::net::ServerPlayHandler handler(server);
+    const IrPacket fly{protocol::ConnectionProtocol::Play, PlayPacket{ServerboundPlayerAbilities{true}}};
+    handler.route(1, fly);
+    EXPECT_FALSE(player.abilities().flying);
+    EXPECT_FALSE(player.abilities().canFly);
+    EXPECT_FALSE(player.abilities().invulnerable);
+    player.setGameMode(GameMode::Creative);
+    handler.route(1, fly);
+    EXPECT_TRUE(player.abilities().flying);
+    handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{ServerboundPlayerAbilities{false}}});
+    EXPECT_FALSE(player.abilities().flying);
+    player.setGameMode(GameMode::Survival);
+    handler.route(1, fly);
+    EXPECT_FALSE(player.abilities().flying);
+    player.setGameMode(GameMode::Creative);
+    data->loggedIn = false;
+    handler.route(1, fly);
+    EXPECT_FALSE(player.abilities().flying);
+}

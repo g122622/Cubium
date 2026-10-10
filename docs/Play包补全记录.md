@@ -8,7 +8,8 @@
 | change_game_mode（sb:4） | 已补协议、权限校验及路由；所有模式切换均更新真实实体 | Windows 构建成功；3 项协议与业务测试通过 |
 | player_loaded（sb:43） | 已接加载计时器，保留等待重生守卫 | 已补黄金字节及状态转换测试；随玩家状态簇集中构建 |
 | swing（sb:60） | 已接真实实体挥手与既有动画广播，重置主动操作时间 | 已补双手黄金字节、非法枚举和实体广播回归；随状态簇集中构建 |
-| teleport_to_entity、client_information、player_abilities | 待处理 | |
+| player_abilities（sb:39） | 独立的单字节上行 codec，仅更新服务端授权的飞行状态 | 已补线格式、截断输入及飞行越权测试；随状态簇集中构建 |
+| teleport_to_entity、client_information | 待处理 | |
 | award_stats、tab_list、damage_event、cooldown | 待处理 | |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |

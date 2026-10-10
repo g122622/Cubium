@@ -133,6 +133,8 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         m_playerState.handleLockDifficultyPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::ChangeGameMode>(play)) {
         m_playerState.handleChangeGameModePacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::ServerboundPlayerAbilities>(play)) {
+        m_playerState.handlePlayerAbilitiesPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::ConfigurationAcknowledged>(play)) {
         m_sessionSignal.handleConfigurationAcknowledgedPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::SeenAdvancements>(play)) {

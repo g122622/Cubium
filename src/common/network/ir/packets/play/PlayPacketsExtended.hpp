@@ -1402,4 +1402,11 @@ struct Swing {
     [[nodiscard]] friend bool operator==(const Swing&, const Swing&) noexcept = default;
 };
 
+/** @brief 客户端请求切换飞行状态（C→S，id=39）。 */
+struct ServerboundPlayerAbilities {
+    bool flying;
+    [[nodiscard]] friend bool operator==(
+        const ServerboundPlayerAbilities&, const ServerboundPlayerAbilities&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

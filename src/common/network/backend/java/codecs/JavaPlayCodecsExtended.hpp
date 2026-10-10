@@ -1724,4 +1724,16 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 上行能力包仅含飞行位，不能复用带速度字段的下行能力包。 */
+[[nodiscard]] inline auto serverboundPlayerAbilitiesCodec()
+{
+    return makeCodec<ir::play::ServerboundPlayerAbilities>(
+        [](B& buf, const ir::play::ServerboundPlayerAbilities& v) { buf.writeU8(v.flying ? 2 : 0); },
+        [](B& buf) -> Result<ir::play::ServerboundPlayerAbilities> {
+            u8 flags = 0;
+            MC_TRY_ASSIGN(flags, buf.readU8());
+            return ir::play::ServerboundPlayerAbilities{(flags & 2) != 0};
+        });
+}
+
 } // namespace mc::network::backend::java::codecs
