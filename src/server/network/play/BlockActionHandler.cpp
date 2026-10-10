@@ -500,7 +500,7 @@ void BlockActionHandler::handleUseItemPacket(PlayerId playerId, const mc::networ
         return;
     }
     if (heldItemC == Items::WRITTEN_BOOK && !playerEntity->isSpectator()) {
-        player->sendPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        player->send(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
             mc::network::ir::PlayPacket{mc::network::ir::play::OpenBook{static_cast<i32>(hand)}}});
         return;
     }
