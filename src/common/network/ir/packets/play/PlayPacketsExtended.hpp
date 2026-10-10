@@ -1520,4 +1520,17 @@ struct ContainerButtonClick {
     [[nodiscard]] friend bool operator==(const ContainerButtonClick&, const ContainerButtonClick&) noexcept = default;
 };
 
+/** @brief 编辑书与笔；title 存在时签名。 */
+struct EditBook {
+    i32 slot;
+    std::vector<std::string> pages;
+    std::optional<std::string> title;
+    friend bool operator==(const EditBook&, const EditBook&) = default;
+};
+/** @brief 打开指定手中的成书。 */
+struct OpenBook {
+    i32 hand;
+    friend bool operator==(const OpenBook&, const OpenBook&) = default;
+};
+
 } // namespace mc::network::ir::play

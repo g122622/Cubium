@@ -572,3 +572,52 @@ TEST_F(ContainerRequestTest, EnchantmentButtonRejectsInsufficientLevelAndCreativ
     EXPECT_EQ(menu->getSlot(1)->getItem().getCount(), 3);
     EXPECT_TRUE(menu->getSlot(0)->getItem().hasEnchantments());
 }
+
+TEST_F(NetworkTestBase, PlayEditBookGoldenAndUtf16Limits)
+{
+    EditBook input{40, {"hello"}, std::string("Title")};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{23, 40, 1, 5, 'h', 'e', 'l', 'l', 'o', 1, 5, 'T', 'i', 't', 'l', 'e'}));
+    EXPECT_EQ(std::get<EditBook>(roundTripGeneric(*tables()->playSb, PlayPacket{input})), input);
+    for (usize n = 1; n < buf.size(); ++n) {
+        buffer::RegistryByteBuf cut(buf.data(), n, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playSb->decode(cut).success());
+    }
+    input.pages = {std::string(1025, 'x')};
+    buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_FALSE(tables()->playSb->decode(buf).success());
+    input.pages = {"ok"};
+    input.title = std::string(33, 'a');
+    buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_FALSE(tables()->playSb->decode(buf).success());
+}
+
+TEST_F(ContainerRequestTest, EditBookValidatesSlotsAndSigningUsesLiteralPagesAndServerAuthor)
+{
+    auto& inventory = m_server->m_player->inventory();
+    inventory.setItem(0, ItemStack(Items::WRITABLE_BOOK, 1));
+    route(PlayPacket{EditBook{0, {"draft"}, std::nullopt}});
+    EXPECT_EQ(inventory.getItem(0).getTag()->at("writable_book_content").at("pages").at(0), "draft");
+    inventory.setItem(9, ItemStack(Items::WRITABLE_BOOK, 1));
+    route(PlayPacket{EditBook{9, {"invalid"}, std::string("bad")}});
+    EXPECT_EQ(inventory.getItem(9).getItem(), Items::WRITABLE_BOOK);
+    route(PlayPacket{EditBook{0, {"{\"selector\":\"@a\"}"}, std::string("Title")}});
+    const auto signedBook = inventory.getItem(0);
+    EXPECT_EQ(signedBook.getItem(), Items::WRITTEN_BOOK);
+    EXPECT_FALSE(signedBook.getTag()->contains("writable_book_content"));
+    const auto& content = signedBook.getTag()->at("written_book_content");
+    EXPECT_EQ(content.at("author"), "Player");
+    EXPECT_EQ(content.at("pages").at(0).at("text"), "{\"selector\":\"@a\"}");
+    EXPECT_TRUE(content.at("resolved").get<bool>());
+    const auto view = toItemStackView(signedBook);
+    ASSERT_FALSE(view.componentsPatch.empty());
+    EXPECT_EQ(view.componentsPatch.at(2), 53);
+    auto restored = fromItemStackView(view);
+    ASSERT_TRUE(restored.success());
+    EXPECT_EQ(toItemStackView(restored.value()).componentsPatch, view.componentsPatch);
+    route(PlayPacket{EditBook{0, {"overwrite"}, std::string("bad")}});
+    EXPECT_EQ(inventory.getItem(0), signedBook);
+}

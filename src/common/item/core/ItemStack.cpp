@@ -1012,6 +1012,13 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
     }
     if (hasTag()) {
         auto custom = _dataRef();
+        for (const auto& [key, type] : {std::pair{"writable_book_content", DataComponentType::WritableBookContent},
+                 std::pair{"written_book_content", DataComponentType::WrittenBookContent}}) {
+            if (custom.contains(key)) {
+                patch.add(type, DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, custom[key]});
+                custom.erase(key);
+            }
+        }
         if (custom.contains("BlockEntityTag") && custom["BlockEntityTag"].contains("Patterns")) {
             patch.add(DataComponentType::BannerPatterns,
                 DataComponentPayload{
@@ -1139,6 +1146,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setCanDestroy(std::get<AdventureModePredicate>(entry.value));
                 break;
             }
+            case DataComponentType::WritableBookContent:
+                getOrCreateTag()["writable_book_content"] = std::get<nlohmann::json>(entry.value);
+                break;
+            case DataComponentType::WrittenBookContent:
+                getOrCreateTag()["written_book_content"] = std::get<nlohmann::json>(entry.value);
+                break;
             case DataComponentType::BannerPatterns:
                 getOrCreateTag()["BlockEntityTag"]["Patterns"] = std::get<nlohmann::json>(entry.value);
                 break;
@@ -1221,6 +1234,12 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             case DataComponentType::CanBreak:
                 setCanDestroy(AdventureModePredicate{});
+                break;
+            case DataComponentType::WritableBookContent:
+                if (m_extras) m_extras->customData.erase("writable_book_content");
+                break;
+            case DataComponentType::WrittenBookContent:
+                if (m_extras) m_extras->customData.erase("written_book_content");
                 break;
             case DataComponentType::BannerPatterns:
                 if (m_extras && m_extras->customData.contains("BlockEntityTag"))

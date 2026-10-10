@@ -2030,4 +2030,53 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         });
 }
 
+/** @brief 书籍编辑限制按 UTF-16 单元计算，列表最多 100 页。 */
+[[nodiscard]] inline auto editBookCodec()
+{
+    return makeCodec<ir::play::EditBook>(
+        [](B& buf, const ir::play::EditBook& v) {
+            buf.writeVarInt(v.slot);
+            buf.writeVarInt(static_cast<i32>(v.pages.size()));
+            for (const auto& page : v.pages)
+                buf.writeString(page);
+            buf.writeBool(v.title.has_value());
+            if (v.title) buf.writeString(*v.title);
+        },
+        [](B& buf) -> Result<ir::play::EditBook> {
+            ir::play::EditBook v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(v.slot, buf.readVarInt());
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || count > 100) return Error(ErrorCode::InvalidData, "Invalid book page count");
+            for (i32 i = 0; i < count; ++i) {
+                std::string page;
+                MC_TRY_ASSIGN(page, buf.readString());
+                const auto length = util::text::utf16Length(page);
+                if (!length || *length > 1024) return Error(ErrorCode::InvalidData, "Invalid book page length");
+                v.pages.push_back(std::move(page));
+            }
+            bool hasTitle = false;
+            MC_TRY_ASSIGN(hasTitle, buf.readBool());
+            if (hasTitle) {
+                std::string title;
+                MC_TRY_ASSIGN(title, buf.readString());
+                const auto length = util::text::utf16Length(title);
+                if (!length || *length > 32) return Error(ErrorCode::InvalidData, "Invalid book title length");
+                v.title = std::move(title);
+            }
+            return v;
+        });
+}
+/** @brief 成书打开只携带手枚举。 */
+[[nodiscard]] inline auto openBookCodec()
+{
+    return makeCodec<ir::play::OpenBook>([](B& buf, const ir::play::OpenBook& v) { buf.writeVarInt(v.hand); },
+        [](B& buf) -> Result<ir::play::OpenBook> {
+            ir::play::OpenBook v{};
+            MC_TRY_ASSIGN(v.hand, buf.readVarInt());
+            if (v.hand < 0 || v.hand > 1) return Error(ErrorCode::InvalidData, "Invalid book hand");
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

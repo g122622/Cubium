@@ -46,25 +46,27 @@ namespace component {
  * 依赖未落地组件参与真实 Java 对端通信。
  */
 enum class DataComponentType : i32 {
-    CustomData = 0,          // minecraft:custom_data —— 嵌套 NBT（本项目承载 m_customData）
-    MaxStackSize = 1,        // minecraft:max_stack_size —— i32（覆盖最大堆叠数）
-    MaxDamage = 2,           // minecraft:max_damage —— i32（覆盖最大耐久）
-    Damage = 3,              // minecraft:damage —— i32（已承受伤害）
-    Unbreakable = 4,         // minecraft:unbreakable —— Unit（不可损坏）
-    CustomName = 6,          // minecraft:custom_name —— Component（文本）
-    ItemName = 9,            // minecraft:item_name —— Component（默认显示名覆盖）
-    ItemModel = 10,          // minecraft:item_model —— Identifier（模型覆盖，仅序列化）
-    Lore = 11,               // minecraft:lore —— list<Component>
-    Rarity = 12,             // minecraft:rarity —— Rarity（稀有度覆盖）
-    Enchantments = 13,       // minecraft:enchantments —— ItemEnchantments
-    CanPlaceOn = 14,         // minecraft:can_place_on —— BlockPredicates
-    CanBreak = 15,           // minecraft:can_break —— BlockPredicates
-    RepairCost = 19,         // minecraft:repair_cost —— i32
-    AttackRange = 30,        // minecraft:attack_range —— record（攻击范围）
-    Enchantable = 31,        // minecraft:enchantable —— i32（附魔能力覆盖）
-    StoredEnchantments = 41, // minecraft:stored_enchantments —— 储存附魔
-    BannerPatterns = 70,     // minecraft:banner_patterns —— 旗帜图层
-    PotionContents = 49,     // minecraft:potion_contents —— record{potion,color,effects,name}
+    CustomData = 0,           // minecraft:custom_data —— 嵌套 NBT（本项目承载 m_customData）
+    MaxStackSize = 1,         // minecraft:max_stack_size —— i32（覆盖最大堆叠数）
+    MaxDamage = 2,            // minecraft:max_damage —— i32（覆盖最大耐久）
+    Damage = 3,               // minecraft:damage —— i32（已承受伤害）
+    Unbreakable = 4,          // minecraft:unbreakable —— Unit（不可损坏）
+    CustomName = 6,           // minecraft:custom_name —— Component（文本）
+    ItemName = 9,             // minecraft:item_name —— Component（默认显示名覆盖）
+    ItemModel = 10,           // minecraft:item_model —— Identifier（模型覆盖，仅序列化）
+    Lore = 11,                // minecraft:lore —— list<Component>
+    Rarity = 12,              // minecraft:rarity —— Rarity（稀有度覆盖）
+    Enchantments = 13,        // minecraft:enchantments —— ItemEnchantments
+    CanPlaceOn = 14,          // minecraft:can_place_on —— BlockPredicates
+    CanBreak = 15,            // minecraft:can_break —— BlockPredicates
+    RepairCost = 19,          // minecraft:repair_cost —— i32
+    AttackRange = 30,         // minecraft:attack_range —— record（攻击范围）
+    Enchantable = 31,         // minecraft:enchantable —— i32（附魔能力覆盖）
+    WritableBookContent = 52, // minecraft:writable_book_content —— 可编辑书页
+    WrittenBookContent = 53,  // minecraft:written_book_content —— 签名书籍
+    StoredEnchantments = 41,  // minecraft:stored_enchantments —— 储存附魔
+    BannerPatterns = 70,      // minecraft:banner_patterns —— 旗帜图层
+    PotionContents = 49,      // minecraft:potion_contents —— record{potion,color,effects,name}
 };
 
 /**

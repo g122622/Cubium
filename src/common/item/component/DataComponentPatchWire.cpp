@@ -42,6 +42,7 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/Utf8.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 
 #include <memory>
@@ -90,6 +91,64 @@ using nbt::tags::compound_tag;
     const usize end = buf.readPosition();
     const u8* base = buf.data() + start;
     return std::vector<u8>(base, base + (end - start));
+}
+
+// Filterable 的未过滤形式是裸值，带过滤形式为 {raw, filtered}。
+const nlohmann::json& _rawBookValue(const nlohmann::json& value)
+{
+    return value.is_object() && value.contains("raw") ? value.at("raw") : value;
+}
+
+Result<void> _writeBookValue(
+    network::buffer::ByteBuf& buf, const nlohmann::json& value, bool component, usize maxLength)
+{
+    auto write = [&](const nlohmann::json& raw) -> Result<void> {
+        if (component) {
+            const auto parsed = text::ITextComponent::fromJson(raw);
+            const auto bytes = text::componentToNbtBytes(parsed.get());
+            buf.writeBytes(bytes.data(), bytes.size());
+        } else {
+            const auto& string = raw.get_ref<const std::string&>();
+            const auto length = util::text::utf16Length(string);
+            if (!length || *length > maxLength) return Error(ErrorCode::InvalidData, "Invalid book string");
+            buf.writeString(string);
+        }
+        return {};
+    };
+    MC_TRY(write(_rawBookValue(value)));
+    const bool filtered = value.is_object() && value.contains("filtered");
+    buf.writeBool(filtered);
+    if (filtered) MC_TRY(write(value.at("filtered")));
+    return {};
+}
+
+Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool component, usize maxLength)
+{
+    auto read = [&]() -> Result<nlohmann::json> {
+        if (component) {
+            std::vector<u8> bytes;
+            MC_TRY_ASSIGN(bytes, readComponentNbtBytes(buf));
+            if (bytes.front() == 8) return nlohmann::json(text::componentNbtBytesToPlainText(bytes));
+            network::buffer::ByteBuf nbtBuf(bytes.data(), bytes.size());
+            auto tagResult = network::buffer::nbt_io::readRootCompound(nbtBuf);
+            if (tagResult.failed()) return tagResult.error();
+            const auto tag = tagResult.value();
+            return nbt::nbtToJson(*tag);
+        }
+        std::string value;
+        MC_TRY_ASSIGN(value, buf.readString());
+        const auto length = util::text::utf16Length(value);
+        if (!length || *length > maxLength) return Error(ErrorCode::InvalidData, "Invalid book string");
+        return nlohmann::json(value);
+    };
+    nlohmann::json raw;
+    MC_TRY_ASSIGN(raw, read());
+    bool filtered = false;
+    MC_TRY_ASSIGN(filtered, buf.readBool());
+    if (!filtered) return raw;
+    nlohmann::json replacement;
+    MC_TRY_ASSIGN(replacement, read());
+    return nlohmann::json{{"raw", std::move(raw)}, {"filtered", std::move(replacement)}};
 }
 
 /// 写单个组件 value 到 wire（按 type 分派到专属 codec）。
@@ -169,6 +228,23 @@ using nbt::tags::compound_tag;
             // TODO: 此处降级为空 list（VarInt(0)，单字节 0x00）保证 vanilla 客户端可接受，
             // 实际谓词由 CustomData 侧承载。完整 BlockPredicate 体系待后续落地。
             buf.writeVarInt(0);
+            return {};
+        }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent: {
+            const auto& book = std::get<nlohmann::json>(payload);
+            const bool written = type == DataComponentType::WrittenBookContent;
+            if (written) {
+                MC_TRY(_writeBookValue(buf, book.at("title"), false, 32));
+                buf.writeString(book.at("author").get<std::string>());
+                buf.writeVarInt(book.value("generation", 0));
+            }
+            const auto pages = book.value("pages", nlohmann::json::array());
+            if (!written && pages.size() > 100) return Error(ErrorCode::InvalidData, "Too many book pages");
+            buf.writeVarInt(static_cast<i32>(pages.size()));
+            for (const auto& page : pages)
+                MC_TRY(_writeBookValue(buf, page, written, 1024));
+            if (written) buf.writeBool(book.value("resolved", false));
             return {};
         }
         case DataComponentType::BannerPatterns: {
@@ -299,6 +375,38 @@ using nbt::tags::compound_tag;
             // 发送非空谓词，真 Java 对端发来的非空谓词场景待完整 BlockPredicate 体系落地。
             (void)count;
             return DataComponentPayload{std::in_place_index<6>, std::move(pred)};
+        }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent: {
+            auto book = nlohmann::json::object();
+            const bool written = type == DataComponentType::WrittenBookContent;
+            if (written) {
+                nlohmann::json title;
+                MC_TRY_ASSIGN(title, _readBookValue(buf, false, 32));
+                std::string author;
+                MC_TRY_ASSIGN(author, buf.readString());
+                i32 generation = 0;
+                MC_TRY_ASSIGN(generation, buf.readVarInt());
+                if (generation < 0 || generation > 3) return Error(ErrorCode::InvalidData, "Invalid book generation");
+                book = {{"title", std::move(title)}, {"author", std::move(author)}, {"generation", generation}};
+            }
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || (!written && count > 100) || static_cast<usize>(count) > buf.readableBytes())
+                return Error(ErrorCode::InvalidData, "Invalid book page count");
+            auto pages = nlohmann::json::array();
+            for (i32 i = 0; i < count; ++i) {
+                nlohmann::json page;
+                MC_TRY_ASSIGN(page, _readBookValue(buf, written, 1024));
+                pages.push_back(std::move(page));
+            }
+            book["pages"] = std::move(pages);
+            if (written) {
+                bool resolved = false;
+                MC_TRY_ASSIGN(resolved, buf.readBool());
+                book["resolved"] = resolved;
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(book)};
         }
         case DataComponentType::BannerPatterns: {
             i32 count = 0;

@@ -151,8 +151,10 @@ i32 BookCloningRecipe::_getGeneration(const ItemStack& stack)
         return 0;
     }
 
-    auto it = tag->find("generation");
-    if (it == tag->end() || !it->is_number()) {
+    const auto book = tag->find("written_book_content");
+    if (book == tag->end()) return 0;
+    auto it = book->find("generation");
+    if (it == book->end() || !it->is_number()) {
         return 0;
     }
 
@@ -162,7 +164,7 @@ i32 BookCloningRecipe::_getGeneration(const ItemStack& stack)
 void BookCloningRecipe::_setGeneration(ItemStack& stack, i32 generation)
 {
     nlohmann::json& tag = stack.getOrCreateTag();
-    tag["generation"] = generation;
+    tag["written_book_content"]["generation"] = generation;
 }
 
 } // namespace crafting

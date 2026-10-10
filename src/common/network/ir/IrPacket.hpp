@@ -220,7 +220,9 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::RenameItem,                 // 131
     play::SelectTrade,                // 132
     play::MerchantOffersUpdate,       // 133
-    play::ContainerButtonClick        // 134
+    play::ContainerButtonClick,       // 134
+    play::EditBook,                   // 135
+    play::OpenBook                    // 136
     >;
 
 /**

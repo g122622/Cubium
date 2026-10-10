@@ -28,6 +28,7 @@
 #include "common/advancement/trigger/impl/AnyBlockUseTrigger.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
@@ -496,6 +497,11 @@ void BlockActionHandler::handleUseItemPacket(PlayerId playerId, const mc::networ
     // 物品在冷却中时直接返回，不进入 onItemRightClick → setActiveHand。否则破盾（斧头
     // 100 tick 冷却）、风弹、紫颂果等设的冷却形同虚设——玩家冷却期内仍可立即重新使用。
     if (playerEntity->hasItemCooldown(heldItemC)) {
+        return;
+    }
+    if (heldItemC == Items::WRITTEN_BOOK && !playerEntity->isSpectator()) {
+        player->sendPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{mc::network::ir::play::OpenBook{static_cast<i32>(hand)}}});
         return;
     }
     // Item 是无状态策略单例，onItemRightClick 非 const；经 ItemRegistry 取非 const 句柄调用。

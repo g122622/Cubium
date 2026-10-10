@@ -163,6 +163,9 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             }
             return list;
         }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent:
+            return nbt::jsonToNbt(std::get<nlohmann::json>(payload));
         case DataComponentType::BannerPatterns: {
             auto layers = nlohmann::json::array();
             for (const auto& layer : std::get<nlohmann::json>(payload)) {
@@ -322,6 +325,9 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             }
             return DataComponentPayload{std::in_place_index<6>, AdventureModePredicate(std::move(preds))};
         }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent:
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, nbt::nbtToJson(tag)};
         case DataComponentType::BannerPatterns: {
             auto layers = nlohmann::json::array();
             for (const auto& layer : nbt::nbtToJson(tag)) {
