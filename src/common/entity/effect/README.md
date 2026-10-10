@@ -119,3 +119,5 @@ EffectType ←── EffectInstance ←── EffectManager
 - 已过期效果（`duration == 0`）：返回 true（0 <= maxDuration），但通常此时效果已被移除
 
 典型用途：美西螈的 `applySupportingEffects()` 使用 `endsWithin(2399)` 判断玩家现有的再生效果是否需要刷新——如果现有再生效果剩余时间超过 2399 tick（即已达上限 2400），则不刷新。
+
+网络变更队列区分首次新增与刷新：新增启用 blend，刷新保留既有渐变进度。同 tick 新增后刷新仍需保持首次新增标志；移除清除此标志。客户端重建世界时由追踪器重发当前全部效果，不依赖脏队列。

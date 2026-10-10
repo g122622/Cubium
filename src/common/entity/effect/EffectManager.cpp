@@ -88,13 +88,13 @@ bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
 
         // 合并成功即需向追踪者重发该效果（对齐 vanilla onEffectUpdated → UpdateMobEffect）。
         if (merged) {
-            _recordChange(existing.type(), true);
+            _recordChange(existing.type(), true, false);
         }
         return merged;
     } else {
         // 新效果，添加并应用
         effect.apply(entity);
-        _recordChange(effect.type(), true);
+        _recordChange(effect.type(), true, true);
         m_effects.push_back(std::move(effect));
         return true;
     }
@@ -105,7 +105,7 @@ void EffectManager::removeEffect(EffectType type, LivingEntity& entity)
     i32 index = _findEffectIndex(type);
     if (index >= 0) {
         m_effects[index].remove(entity);
-        _recordChange(type, false);
+        _recordChange(type, false, false);
         m_effects.erase(m_effects.begin() + index);
     }
 }
@@ -114,7 +114,7 @@ void EffectManager::removeAllEffects(LivingEntity& entity)
 {
     for (auto& effect : m_effects) {
         effect.remove(entity);
-        _recordChange(effect.type(), false);
+        _recordChange(effect.type(), false, false);
     }
     m_effects.clear();
 }
@@ -127,16 +127,18 @@ std::vector<EffectManager::EffectChange> EffectManager::takePendingChanges()
     return changes;
 }
 
-void EffectManager::_recordChange(EffectType type, bool added)
+void EffectManager::_recordChange(EffectType type, bool added, bool blend)
 {
     // 同类型合并为最后一条：效果反复刷新时不必逐次下发，只保留最终态。
     for (auto& change : m_pendingChanges) {
         if (change.type == type) {
+            // 新增后同 tick 刷新时，客户端尚未收到首次新增，仍需启动渐变。
+            change.blend = added && (blend || (change.added && change.blend));
             change.added = added;
             return;
         }
     }
-    m_pendingChanges.push_back(EffectChange{type, added});
+    m_pendingChanges.push_back(EffectChange{type, added, blend});
 }
 
 const EffectInstance* EffectManager::getEffect(EffectType type) const
@@ -168,7 +170,7 @@ void EffectManager::tick(LivingEntity& entity)
     for (i32 i = static_cast<i32>(m_effects.size()) - 1; i >= 0; --i) {
         if (!m_effects[i].tick(entity)) {
             // 效果过期，移除并记录（对齐 vanilla onEffectsRemoved → RemoveMobEffect）。
-            _recordChange(m_effects[i].type(), false);
+            _recordChange(m_effects[i].type(), false, false);
             m_effects.erase(m_effects.begin() + i);
         }
     }

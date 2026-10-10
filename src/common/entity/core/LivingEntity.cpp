@@ -2700,7 +2700,7 @@ void LivingEntity::_broadcastPendingEffectChanges()
         if (change.added) {
             const entity::effect::EffectInstance* effect = m_effectManager.getEffect(change.type);
             if (effect != nullptr) {
-                m_world->broadcastMobEffectAdded(m_id, *effect);
+                m_world->broadcastMobEffectAdded(m_id, *effect, change.blend);
             }
         } else {
             m_world->broadcastMobEffectRemoved(m_id, change.type);

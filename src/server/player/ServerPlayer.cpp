@@ -965,6 +965,9 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
                 }
             });
         }
+        if (targetWorld != nullptr) {
+            targetWorld->entityTracker().sendActiveEffects(*m_server, playerId(), *this);
+        }
     }
 
     return success;

@@ -386,6 +386,13 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
             mc::network::ir::PlayPacket{std::move(spawnPkt)},
         });
 
+    if (playerDim != nullptr && playerDim->world() != nullptr) {
+        auto* world = playerDim->world();
+        if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
+            world->entityTracker().sendActiveEffects(m_server, playerId, *entity);
+        }
+    }
+
     // 发送初始天气状态
     m_server.weatherSyncService().sendInitialWeatherStateToPlayer(playerId);
 

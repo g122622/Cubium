@@ -2824,10 +2824,11 @@ void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std
     }
 }
 
-void ServerWorld::broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+void ServerWorld::broadcastMobEffectAdded(
+    EntityInstanceId entityId, const entity::effect::EffectInstance& effect, bool blend)
 {
     if (m_server != nullptr) {
-        m_entityTracker.broadcastMobEffectAdded(*m_server, *this, entityId, effect);
+        m_entityTracker.broadcastMobEffectAdded(*m_server, *this, entityId, effect, blend);
     }
 }
 

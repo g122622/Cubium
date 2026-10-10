@@ -362,3 +362,81 @@ TEST_F(NetworkTestBase, NewTrackingPlayerGetsEquipmentAndRemovalClearsTheSlot)
     EXPECT_EQ(removal.entries.front().slot, WireEquipmentSlot::MainHand);
     EXPECT_EQ(removal.entries.front().item.count, 0);
 }
+
+TEST_F(NetworkTestBase, PlayMobEffectPreservesRegistryIdFlagsAndInfiniteDuration)
+{
+    const UpdateMobEffect effect{300, 0, 2, 300, 13};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{effect}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{0x82, 1, 0xac, 2, 0, 2, 0xac, 2, 13}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<UpdateMobEffect>(decoded.value()), effect);
+    const UpdateMobEffect infinite{1, 39, 255, -1, 15};
+    EXPECT_EQ(std::get<UpdateMobEffect>(roundTripGeneric(*tables()->playCb, PlayPacket{infinite})), infinite);
+    for (const UpdateMobEffect invalid :
+        {UpdateMobEffect{1, 40, 0, 20, 0}, UpdateMobEffect{1, 0, 256, 20, 0}, UpdateMobEffect{1, 0, 0, -2, 0}}) {
+        auto malformed = makeBoundBuf();
+        ASSERT_TRUE(tables()->playCb->encode(malformed, PlayPacket{invalid}).success());
+        EXPECT_FALSE(tables()->playCb->decode(malformed).success());
+    }
+}
+
+TEST_F(NetworkTestBase, EffectQueueDistinguishesFirstAdditionFromRefresh)
+{
+    using entity::effect::EffectInstance;
+    using entity::effect::EffectType;
+    Player player(1, "Player", mc::test::testEcsRegistry());
+    ASSERT_TRUE(player.addEffect(EffectInstance(EffectType::Speed, 100, 0, false, true, true)));
+    ASSERT_TRUE(player.addEffect(EffectInstance(EffectType::Speed, 200, 0, false, true, true)));
+    auto changes = player.effectManager().takePendingChanges();
+    ASSERT_EQ(changes.size(), 1u);
+    EXPECT_TRUE(changes.front().added);
+    EXPECT_TRUE(changes.front().blend);
+    ASSERT_TRUE(player.addEffect(EffectInstance(EffectType::Speed, 300, 0, false, true, true)));
+    changes = player.effectManager().takePendingChanges();
+    ASSERT_EQ(changes.size(), 1u);
+    EXPECT_TRUE(changes.front().added);
+    EXPECT_FALSE(changes.front().blend);
+    player.removeEffect(EffectType::Speed);
+    changes = player.effectManager().takePendingChanges();
+    ASSERT_EQ(changes.size(), 1u);
+    EXPECT_FALSE(changes.front().added);
+    EXPECT_FALSE(changes.front().blend);
+}
+
+TEST_F(NetworkTestBase, MobEffectsReachUntrackedOwnerAndCanBeReplayed)
+{
+    using entity::effect::EffectInstance;
+    using entity::effect::EffectType;
+    _PacketRecordingConnection connection;
+    mc::test::BaseTestServer server;
+    server::ServerWorld world(server::ServerWorldConfig{2, 2, 0, 1, "effects-packet-test"});
+    world.setServer(&server);
+    ASSERT_NE(server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Player", &connection), nullptr);
+    auto player = std::make_unique<Player>(101, "Player", *world.entityRegistry());
+    auto* entity = player.get();
+    entity->setWorld(&world);
+    const auto entityId = world.entityManager().addEntity(std::move(player));
+    ASSERT_TRUE(server.playerEntityManager().registerExistingPlayerEntity(1, entityId, world));
+    world.entityTracker().untrackEntity(entityId);
+    const EffectInstance effect(EffectType::Speed, 300, 2, true, false, true);
+    world.broadcastMobEffectAdded(entityId, effect, true);
+    ASSERT_EQ(connection.packets.size(), 1u);
+    const auto& added = std::get<UpdateMobEffect>(std::get<PlayPacket>(connection.packets.back().packet));
+    EXPECT_EQ(added.effectId, 0);
+    EXPECT_EQ(added.flags, 13);
+    world.broadcastMobEffectAdded(entityId, effect, false);
+    ASSERT_EQ(connection.packets.size(), 2u);
+    EXPECT_EQ(std::get<UpdateMobEffect>(std::get<PlayPacket>(connection.packets.back().packet)).flags, 5);
+    world.broadcastMobEffectRemoved(entityId, EffectType::Speed);
+    ASSERT_EQ(connection.packets.size(), 3u);
+    EXPECT_EQ(std::get<RemoveMobEffect>(std::get<PlayPacket>(connection.packets.back().packet)).effectId, 0);
+    ASSERT_TRUE(entity->addEffect(effect));
+    world.entityTracker().sendActiveEffects(server, 1, *entity);
+    ASSERT_EQ(connection.packets.size(), 4u);
+    const auto& snapshot = std::get<UpdateMobEffect>(std::get<PlayPacket>(connection.packets.back().packet));
+    EXPECT_EQ(snapshot.duration, 300);
+    EXPECT_EQ(snapshot.amplifier, 2);
+    EXPECT_EQ(snapshot.flags, 5);
+}

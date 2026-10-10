@@ -22,6 +22,7 @@
  */
 
 #include "client/network/ClientPlayVisitor.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 
 #include "client/application/ClientAppStateMachine.hpp"
 #include "client/application/ClientApplication.hpp"

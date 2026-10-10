@@ -43,6 +43,10 @@ namespace mc::network::ir {
 struct IrPacket;
 }
 
+namespace mc {
+class LivingEntity;
+}
+
 namespace mc::server {
 
 // 前向声明
@@ -75,6 +79,9 @@ struct TrackedEntity {
  */
 class EntityTracker {
 public:
+    /** @brief 向指定玩家重发实体的全部当前效果，用于初次追踪或重建客户端世界。 */
+    void sendActiveEffects(IServer& server, PlayerId playerId, const LivingEntity& entity);
+
     /** @brief 将事件发给追踪者与玩家本人，目标尚未被追踪时仍通知本人。 */
     void broadcastPacketAndSelf(IServer& server, EntityInstanceId entityId, const mc::network::ir::IrPacket& packet);
 
@@ -309,8 +316,11 @@ public:
      * @param entityId 效果发生变化的实体
      * @param effect 当前生效的效果实例
      */
-    void broadcastMobEffectAdded(
-        IServer& server, ServerWorld& world, EntityInstanceId entityId, const entity::effect::EffectInstance& effect);
+    void broadcastMobEffectAdded(IServer& server,
+        ServerWorld& world,
+        EntityInstanceId entityId,
+        const entity::effect::EffectInstance& effect,
+        bool blend);
 
     /**
      * @brief 向当前追踪该实体的所有玩家广播状态效果移除（cb RemoveMobEffect）。
@@ -325,7 +335,7 @@ public:
 
 private:
     /// 组装 UpdateMobEffect 的 flags 字节（AMBIENT=1 / VISIBLE=2 / SHOW_ICON=4 / BLEND=8）。
-    [[nodiscard]] static u8 _mobEffectFlags(const entity::effect::EffectInstance& effect);
+    [[nodiscard]] static u8 _mobEffectFlags(const entity::effect::EffectInstance& effect, bool blend);
 
     mutable std::mutex m_mutex;
 

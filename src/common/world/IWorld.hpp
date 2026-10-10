@@ -1663,10 +1663,12 @@ public:
      * @param entityId 效果发生变化的实体
      * @param effect 当前生效的效果实例
      */
-    virtual void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+    virtual void broadcastMobEffectAdded(
+        EntityInstanceId entityId, const entity::effect::EffectInstance& effect, bool blend)
     {
         (void)entityId;
         (void)effect;
+        (void)blend;
     }
 
     /**

@@ -1676,6 +1676,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
             MC_TRY_ASSIGN(v.amplifier, buf.readVarInt());
             MC_TRY_ASSIGN(v.duration, buf.readVarInt());
             MC_TRY_ASSIGN(v.flags, buf.readU8());
+            if (v.effectId < 0 || v.effectId >= 40 || v.amplifier < 0 || v.amplifier > 255 || v.duration < -1) {
+                return Error(ErrorCode::InvalidArgument, "Invalid mob effect update");
+            }
             return v;
         });
 }

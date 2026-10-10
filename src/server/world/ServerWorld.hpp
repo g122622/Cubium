@@ -932,7 +932,8 @@ public:
     void broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source) override;
 
     /// 状态效果新增/更新广播（委托 EntityTracker，下发 UpdateMobEffect cb 130）。
-    void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect) override;
+    void broadcastMobEffectAdded(
+        EntityInstanceId entityId, const entity::effect::EffectInstance& effect, bool blend) override;
 
     /// 状态效果移除广播（委托 EntityTracker，下发 RemoveMobEffect cb 76）。
     void broadcastMobEffectRemoved(EntityInstanceId entityId, entity::effect::EffectType type) override;

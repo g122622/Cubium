@@ -16,7 +16,7 @@
 | damage_event（cb:25） | 接入有效新伤害广播；追踪者与受害玩家本人收到类型、责任/直接来源和显式位置；类型 ID 与配置注册序共用 | 已补黄金字节、截断、注册序、无敌帧及本人未被追踪时的发送回归；随下行簇集中构建 |
 | award_stats（cb:3） | 九类统计 ID 映射及 77 项自定义统计；完整/增量发送、重置零值与请求回复 | 已补黄金字节、计数边界、注册表类型、脏标记独立性、发送失败与真实请求路由测试；随下行簇集中构建 |
 | set_equipment（cb:100） | 修复卸装空槽未同步与新追踪者缺初始快照；补鞍槽及输入校验 | 已补黄金字节、新追踪装备与卸装清槽回归；随下行簇集中构建 |
-| update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
+| update_mob_effect（cb:130） | 修复本人未被追踪时的丢包；登录、重配置、跨维度和新追踪时补效果快照；区分新增/刷新 blend 标志；移除同步共用收口 | 已补黄金字节、无限持续时间、输入范围、队列合并与本人快照回归；随下行簇集中构建。原生客户端本地效果状态已消费，视觉渐变仍按停维护范围保留 TODO |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
 
