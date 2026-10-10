@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -138,5 +140,10 @@ namespace mc::server::net {
  */
 [[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
     particle::ParticleTypeId type, const Vector3& pos, u32 count);
+
+/** @brief 构造严格整数 NBT 的直接对话框，保留所有交互和富文本字段。 */
+[[nodiscard]] Result<mc::network::ir::IrPacket> buildShowDialogIr(const nlohmann::json& definition);
+/** @brief 已配置注册表中的内置对话框使用注册 holder，自定义资源读取后内联。 */
+[[nodiscard]] Result<mc::network::ir::IrPacket> buildShowDialogIr(const ResourceLocation& name);
 
 } // namespace mc::server::net

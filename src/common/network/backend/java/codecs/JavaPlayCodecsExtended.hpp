@@ -2193,4 +2193,27 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return v;
         });
 }
+/** @brief Holder 的零表示直接定义，其余为注册 ID 加一。 */
+[[nodiscard]] inline auto showDialogCodec()
+{
+    return makeCodec<ir::play::ShowDialog>(
+        [](B& buf, const ir::play::ShowDialog& v) {
+            if (const auto* id = std::get_if<i32>(&v.dialog))
+                buf.writeVarInt(*id + 1);
+            else {
+                buf.writeVarInt(0);
+                const auto& nbt = std::get<std::vector<u8>>(v.dialog);
+                buf.writeBytes(nbt.data(), nbt.size());
+            }
+        },
+        [](B& buf) -> Result<ir::play::ShowDialog> {
+            i32 id = 0;
+            MC_TRY_ASSIGN(id, buf.readVarInt());
+            if (id < 0) return Error(ErrorCode::InvalidData, "Invalid dialog holder");
+            if (id > 0) return ir::play::ShowDialog{id - 1};
+            const usize start = buf.readPosition();
+            MC_TRY(buffer::nbt_io::readRootCompound(buf));
+            return ir::play::ShowDialog{std::vector<u8>(buf.data() + start, buf.data() + buf.readPosition())};
+        });
+}
 } // namespace mc::network::backend::java::codecs

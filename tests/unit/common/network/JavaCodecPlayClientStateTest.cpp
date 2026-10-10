@@ -4,11 +4,13 @@
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/mappings/JavaCustomStatIds.hpp"
 #include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -526,4 +528,44 @@ TEST_F(LocalServerFixture, ServerPlayerReplacesAndClearsServerLinks)
     received = pumpClient();
     ASSERT_TRUE(received);
     EXPECT_TRUE(std::get<ServerLinks>(std::get<PlayPacket>(received->packet)).links.empty());
+}
+
+TEST_F(NetworkTestBase, PlayShowDialogSupportsRegisteredAndDirectHolders)
+{
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{ShowDialog{2}}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{0x8a, 1, 3}));
+    auto built = server::net::buildShowDialogIr(nlohmann::json{
+        {"type", "minecraft:notice"}, {"title", "Hello"}, {"action", {{"label", "OK"}, {"width", 150}}}});
+    ASSERT_TRUE(built.success());
+    const auto& packet = std::get<ShowDialog>(std::get<PlayPacket>(built.value().packet));
+    const auto& nbt = std::get<std::vector<u8>>(packet.dialog);
+    buffer::ByteBuf nbtBuf(nbt.data(), nbt.size());
+    auto parsed = buffer::nbt_io::readRootCompound(nbtBuf);
+    ASSERT_TRUE(parsed.success());
+    const auto tag = parsed.value();
+    const auto& action = tag->get<mc::nbt::tags::compound_tag>("action");
+    EXPECT_EQ(action.value.at("width")->id(), mc::nbt::TagId::Int);
+    EXPECT_EQ(std::get<ShowDialog>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+    buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    for (usize n = 1; n < buf.size(); ++n) {
+        buffer::RegistryByteBuf cut(buf.data(), n, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(cut).success());
+    }
+}
+TEST_F(LocalServerFixture, ServerPlayerShowsNamedAndInlineDialogs)
+{
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    ServerPlayer player(1, "Player", mc::test::testEcsRegistry());
+    player.setConnection(serverConn());
+    ASSERT_TRUE(player.showDialog(ResourceLocation("minecraft:server_links")).success());
+    auto packet = pumpClient();
+    ASSERT_TRUE(packet);
+    EXPECT_EQ(std::get<i32>(std::get<ShowDialog>(std::get<PlayPacket>(packet->packet)).dialog), 0);
+    ASSERT_TRUE(player.showDialog(nlohmann::json{{"type", "minecraft:notice"}, {"title", "Hello"}}).success());
+    packet = pumpClient();
+    ASSERT_TRUE(packet);
+    EXPECT_TRUE(
+        std::holds_alternative<std::vector<u8>>(std::get<ShowDialog>(std::get<PlayPacket>(packet->packet)).dialog));
 }

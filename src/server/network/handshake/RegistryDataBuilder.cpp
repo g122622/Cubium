@@ -33,6 +33,7 @@
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "server/network/handshake/EnchantmentNbtBuilder.hpp"
 
 #include <nlohmann/json.hpp>
@@ -68,102 +69,6 @@ mc::network::ir::configuration::RegistryData makeKnownRegistry(
 /// 进程级 datapack 源（服务器启动期由 setRegistryDatapackSource 注册）。
 /// 与 MinecraftServer::m_dataPackList 同生命周期，握手阶段读取安全。
 const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
-
-/// 把 JSON 递归转 NBT，**整数一律落 int_tag**（超出 i32 范围才用 long_tag）。
-///
-/// 与 mc::nbt::jsonToNbt 的关键差异：后者按数值范围窄化——[-128,127] → byte_tag、
-/// [-32768,32767] → short_tag、其余 → int_tag。Java 侧注册表 codec 的整数字段用
-/// Codec.INT 解码，byte_tag/short_tag 会被拒（EnchantmentNbtBuilder.cpp:462 记录了
-/// enchantment 的同类问题：「jsonToNbt 会把 5 推断为 byte_tag，Java i32 CODEC 要求
-/// int_tag，拒绝 byte_tag/short_tag」）。本函数专供注册表 NBT 构造，规避该窄化。
-///
-/// 浮点沿用 jsonToNbt 的推断（能精确表示为 f32 则 float_tag，否则 double_tag）——
-/// Java 的 FloatCodec/DoubleCodec 接受任意数值 tag，无需精确匹配。
-std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json);
-
-/// 同构性未知或元素类型混杂的数组 → 通用 tag_list_tag（元素类型由首个元素决定）。
-std::unique_ptr<mc::nbt::tags::tag_list_tag> makeGenericTagList(const nlohmann::json& json)
-{
-    using namespace mc::nbt::tags;
-    auto list = std::make_unique<tag_list_tag>(mc::nbt::TagId::End);
-    for (const auto& element : json) {
-        list->value.push_back(jsonToNbtStrictInt(element));
-    }
-    return list;
-}
-
-std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json)
-{
-    using namespace mc::nbt::tags;
-
-    if (json.is_null()) {
-        return std::make_unique<compound_tag>();
-    }
-    if (json.is_string()) {
-        return std::make_unique<string_tag>(json.get<std::string>());
-    }
-    if (json.is_boolean()) {
-        return std::make_unique<byte_tag>(json.get<bool>() ? static_cast<i8>(1) : static_cast<i8>(0));
-    }
-    if (json.is_number_integer()) {
-        const i64 val = json.get<i64>();
-        if (val >= static_cast<i64>(std::numeric_limits<i32>::min()) &&
-            val <= static_cast<i64>(std::numeric_limits<i32>::max())) {
-            return std::make_unique<int_tag>(static_cast<i32>(val));
-        }
-        return std::make_unique<long_tag>(val);
-    }
-    if (json.is_number_float()) {
-        const f64 val = json.get<f64>();
-        if (static_cast<f64>(static_cast<f32>(val)) == val) {
-            return std::make_unique<float_tag>(static_cast<f32>(val));
-        }
-        return std::make_unique<double_tag>(val);
-    }
-    if (json.is_object()) {
-        auto result = std::make_unique<compound_tag>();
-        for (const auto& [key, value] : json.items()) {
-            result->value.emplace(key, jsonToNbtStrictInt(value));
-        }
-        return result;
-    }
-    if (json.is_array()) {
-        // 列表类型推断与 mc::nbt::jsonToNbt 对齐（同构列表用对应特化类型），
-        // 但元素一律走本函数以保证整数不窄化。
-        if (json.empty()) {
-            return std::make_unique<end_list_tag>();
-        }
-        const auto& first = json[0];
-        if (first.is_object()) {
-            auto list = std::make_unique<compound_list_tag>();
-            for (const auto& element : json) {
-                if (!element.is_object()) {
-                    return makeGenericTagList(json);
-                }
-                auto child = jsonToNbtStrictInt(element);
-                auto* asCompound = dynamic_cast<compound_tag*>(child.get());
-                if (asCompound == nullptr) {
-                    return makeGenericTagList(json);
-                }
-                // 移动内容到列表；child 析构时释放已被移空的壳。
-                list->value.push_back(std::move(*asCompound));
-            }
-            return list;
-        }
-        if (first.is_string()) {
-            auto list = std::make_unique<string_list_tag>();
-            for (const auto& element : json) {
-                if (!element.is_string()) {
-                    return makeGenericTagList(json);
-                }
-                list->value.push_back(element.get<std::string>());
-            }
-            return list;
-        }
-        return makeGenericTagList(json);
-    }
-    return std::make_unique<compound_tag>();
-}
 
 /// 把 "namespace:path" 转成数据包资源路径 "<ns>/<registryDir>/<path>.json"。
 /// 不含 "data/" 前缀（与 EnchantmentNbtBuilder::enchantmentIdToResourcePath 同一约定，
@@ -202,7 +107,7 @@ std::optional<std::vector<u8>> buildRegistryEntryData(
         return std::nullopt;
     }
 
-    auto root = jsonToNbtStrictInt(j);
+    auto root = mc::nbt::jsonToNbtStrictInt(j);
     auto* asCompound = dynamic_cast<mc::nbt::tags::compound_tag*>(root.get());
     if (asCompound == nullptr) {
         spdlog::warn("RegistryDataBuilder: {} did not convert to a compound tag", resourcePath);
@@ -702,6 +607,17 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     }
 
     return registries;
+}
+
+Result<nlohmann::json> loadDialogDefinition(std::string_view id)
+{
+    if (g_registryDatapackRepo == nullptr)
+        return Error(ErrorCode::InvalidState, "Dialog datapack source is not configured");
+    auto text = g_registryDatapackRepo->readTextResource(registryEntryResourcePath(id, "dialog"));
+    if (text.failed()) return text.error();
+    auto definition = nlohmann::json::parse(text.value(), nullptr, false);
+    if (definition.is_discarded()) return Error(ErrorCode::InvalidData, "Invalid dialog JSON");
+    return definition;
 }
 
 } // namespace mc::server::net

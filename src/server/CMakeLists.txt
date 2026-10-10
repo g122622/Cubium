@@ -442,6 +442,7 @@ add_executable(minecraft-server
     command/commands/MessageCommand.cpp
     command/commands/TellRawCommand.cpp
     command/commands/TitleCommand.cpp
+    command/commands/DialogCommand.cpp
     command/commands/PlaySoundCommand.cpp
     command/commands/StopSoundCommand.cpp
     command/commands/EffectCommand.cpp

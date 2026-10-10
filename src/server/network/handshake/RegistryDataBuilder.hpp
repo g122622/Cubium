@@ -23,6 +23,10 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+#include <string_view>
+#include <nlohmann/json.hpp>
+
 #include "common/core/Types.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 
@@ -126,5 +130,8 @@ void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo);
  */
 [[nodiscard]] std::vector<mc::network::ir::configuration::RegistryData>
 buildConfigurationRegistryDataForUnknownClient();
+
+/** @brief 从当前数据包资源读取对话框定义，用于直接 holder 下发。 */
+[[nodiscard]] Result<nlohmann::json> loadDialogDefinition(std::string_view id);
 
 } // namespace mc::server::net

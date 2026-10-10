@@ -582,6 +582,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/DialogCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp

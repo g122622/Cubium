@@ -68,6 +68,9 @@ namespace mc::nbt {
  */
 [[nodiscard]] std::unique_ptr<tags::compound_tag> jsonToNbt(const nlohmann::json& json);
 
+/** @brief 将任意 JSON 转为 NBT，整数保持 Int/Long，供注册表和对话框严格类型字段使用。 */
+[[nodiscard]] std::unique_ptr<tags::tag> jsonToNbtStrictInt(const nlohmann::json& json);
+
 /**
  * @brief 将 Mojangson 格式字符串解析为 compound_tag
  *

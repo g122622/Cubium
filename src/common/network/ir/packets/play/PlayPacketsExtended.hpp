@@ -1580,4 +1580,9 @@ struct ServerLinks {
     std::vector<ServerLink> links;
     friend bool operator==(const ServerLinks&, const ServerLinks&) = default;
 };
+/** @brief 对话框 holder，整数为零基注册 ID，字节为直接定义的根 Compound NBT。 */
+struct ShowDialog {
+    std::variant<i32, std::vector<u8>> dialog;
+    friend bool operator==(const ShowDialog&, const ShowDialog&) = default;
+};
 } // namespace mc::network::ir::play

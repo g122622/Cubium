@@ -22,6 +22,7 @@
  */
 
 #include "ServerPlayer.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
@@ -172,6 +173,23 @@ bool ServerPlayer::sendServerLinks(const std::vector<mc::network::ir::play::Serv
 {
     return _sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{links}}});
+}
+
+Result<void> ServerPlayer::showDialog(const nlohmann::json& definition)
+{
+    auto packet = server::net::buildShowDialogIr(definition);
+    if (packet.failed()) return packet.error();
+    if (!_sendIrPacket(packet.value()))
+        return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
+    return {};
+}
+Result<void> ServerPlayer::showDialog(const ResourceLocation& name)
+{
+    auto packet = server::net::buildShowDialogIr(name);
+    if (packet.failed()) return packet.error();
+    if (!_sendIrPacket(packet.value()))
+        return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
+    return {};
 }
 
 bool ServerPlayer::sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer)

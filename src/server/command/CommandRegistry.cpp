@@ -35,6 +35,7 @@
 #include "commands/DeOpCommand.hpp"
 #include "commands/DebugConfigCommand.hpp"
 #include "commands/DefaultGameModeCommand.hpp"
+#include "commands/DialogCommand.hpp"
 #include "commands/DifficultyCommand.hpp"
 #include "commands/EffectCommand.hpp"
 #include "commands/EnchantCommand.hpp"
@@ -188,6 +189,7 @@ void CommandRegistry::registerDefaults()
     MessageCommand::registerTo(m_dispatcher);
     TellRawCommand::registerTo(m_dispatcher);
     TitleCommand::registerTo(m_dispatcher);
+    DialogCommand::registerTo(m_dispatcher);
     PlaySoundCommand::registerTo(m_dispatcher);
     StopSoundCommand::registerTo(m_dispatcher);
     EffectCommand::registerTo(m_dispatcher);
