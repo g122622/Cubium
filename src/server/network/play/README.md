@@ -96,3 +96,5 @@ _playPacketIndex<包类型>() 在编译期取得下标，禁止手写数字。
 `handleBlockInteractionPacket` 的 PlayerAction 分支调用，故与方块动作同族；`_triggerAnyBlockUse`
 由方块放置/使用触发，同理留在 `BlockActionHandler`。`updateEntityTrackingForPlayer` 由移动与
 传送确认调用，实现落在 `MovementHandler`，门面只做转发。拆分/新增处理器前先核对调用图。
+
+客户端设置经 MinecraftServer::updateClientInformation 应用；配置阶段与 Play 阶段共用相同负载校验和连接状态。请求视距与服务器上限取较小值，区块追踪变化负责发送与卸载。

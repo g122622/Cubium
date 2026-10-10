@@ -66,7 +66,7 @@ namespace {
 /// | UPDATE_LATENCY(4) | UPDATE_DISPLAY_NAME(5)。条目负载按 action 位升序写入，与 codec 写序一致。
 [[nodiscard]] constexpr u16 _playerInfoEntryActions()
 {
-    return static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5));
+    return static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5) | (1u << 7));
 }
 
 /// 由在线玩家数据构造一条玩家列表条目。
@@ -76,7 +76,8 @@ namespace {
     entry.uuid = util::uuidFromString(player.uuid);
     entry.name = player.username;
     entry.gameMode = static_cast<i32>(player.gameMode);
-    entry.listed = true;
+    entry.listed = !player.clientInformation.has_value() || player.clientInformation->allowsListing;
+    entry.showHat = !player.clientInformation.has_value() || (player.clientInformation->modelCustomisation & 0x40) != 0;
     entry.latency = static_cast<i32>(player.ping);
     // 显示名取用户名（当前无自定义昵称体系）。下发 NBT 字节而非留空，与 vanilla 的包内容
     // 形态一致——留空时对端会回退到 profile 名，渲染结果相同但包内容不同。

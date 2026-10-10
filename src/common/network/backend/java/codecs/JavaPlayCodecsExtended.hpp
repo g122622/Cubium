@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
+#include "common/network/backend/java/codecs/JavaConfigurationCodecs.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/buffer/NbtIo.hpp"
@@ -1733,6 +1734,18 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
             u8 flags = 0;
             MC_TRY_ASSIGN(flags, buf.readU8());
             return ir::play::ServerboundPlayerAbilities{(flags & 2) != 0};
+        });
+}
+
+/** @brief Play 与 Configuration 阶段使用相同的客户端设置负载。 */
+[[nodiscard]] inline auto playClientInformationCodec()
+{
+    return makeCodec<ir::play::ClientInformation>(
+        [](B& buf, const ir::play::ClientInformation& v) { clientInformationCodec().encode(buf, v.information); },
+        [](B& buf) -> Result<ir::play::ClientInformation> {
+            ir::play::ClientInformation v{};
+            MC_TRY_ASSIGN(v.information, clientInformationCodec().decode(buf));
+            return v;
         });
 }
 

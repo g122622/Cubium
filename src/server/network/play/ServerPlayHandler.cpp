@@ -170,6 +170,9 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         case _playPacketIndex<irplay::LockDifficulty>():
             m_playerState.handleLockDifficultyPacket(playerId, packet);
             break;
+        case _playPacketIndex<irplay::ClientInformation>():
+            m_playerState.handleClientInformationPacket(playerId, packet);
+            break;
         case _playPacketIndex<irplay::ChangeGameMode>():
             m_playerState.handleChangeGameModePacket(playerId, packet);
             break;

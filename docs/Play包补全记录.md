@@ -9,7 +9,8 @@
 | player_loaded（sb:43） | 已接加载计时器，保留等待重生守卫 | Windows 构建成功；加载状态与路由测试通过 |
 | swing（sb:60） | 已接真实实体挥手与既有动画广播，重置主动操作时间 | Windows 构建成功；双手、非法枚举及实体广播测试通过 |
 | player_abilities（sb:39） | 独立的单字节上行 codec，仅更新服务端授权的飞行状态 | Windows 构建成功；线格式、截断输入及飞行越权测试通过 |
-| teleport_to_entity、client_information | 待处理 | |
+| client_information（sb:13） | 复用配置负载校验；应用惯用手、皮肤、聊天及玩家列表偏好；每玩家区块追踪视距；初次配置、重配置和跨维度保留 | 已补协议、元数据、列表及视距独立性测试；随玩家状态簇集中构建 |
+| teleport_to_entity | 待处理 | |
 | award_stats、tab_list、damage_event、cooldown | 待处理 | |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |

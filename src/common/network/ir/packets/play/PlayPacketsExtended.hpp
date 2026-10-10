@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -1407,6 +1408,12 @@ struct ServerboundPlayerAbilities {
     bool flying;
     [[nodiscard]] friend bool operator==(
         const ServerboundPlayerAbilities&, const ServerboundPlayerAbilities&) noexcept = default;
+};
+
+/** @brief Play 阶段客户端偏好设置（C→S，id=13）。 */
+struct ClientInformation {
+    configuration::ClientInformation information;
+    [[nodiscard]] friend bool operator==(const ClientInformation&, const ClientInformation&) noexcept = default;
 };
 
 } // namespace mc::network::ir::play

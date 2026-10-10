@@ -203,13 +203,14 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ClientTickEnd,      // 115
     play::StartConfiguration, // 116
     // ---- 实体装备与状态效果（altIndex 117..119，PlayPacketsExtended.hpp）----
-    play::SetEquipment,              // 117
-    play::UpdateMobEffect,           // 118
-    play::RemoveMobEffect,           // 119
-    play::ChangeGameMode,            // 120
-    play::PlayerLoaded,              // 121
-    play::Swing,                     // 122
-    play::ServerboundPlayerAbilities // 123
+    play::SetEquipment,               // 117
+    play::UpdateMobEffect,            // 118
+    play::RemoveMobEffect,            // 119
+    play::ChangeGameMode,             // 120
+    play::PlayerLoaded,               // 121
+    play::Swing,                      // 122
+    play::ServerboundPlayerAbilities, // 123
+    play::ClientInformation           // 124
     >;
 
 /**

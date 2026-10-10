@@ -46,6 +46,13 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
+void PlayerStateHandler::handleClientInformationPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto& request =
+        std::get<mc::network::ir::play::ClientInformation>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    m_server.updateClientInformation(playerId, request.information);
+}
+
 void PlayerStateHandler::handlePlayerAbilitiesPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     const auto* player = m_server.playerManager().getPlayer(playerId);

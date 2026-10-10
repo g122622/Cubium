@@ -42,6 +42,8 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/application/MinecraftServer.hpp"
+#include "server/core/PlayerManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/network/sync/ChunkSendManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -228,6 +230,14 @@ void ServerDimensionManager::playerJoinDimension(PlayerId playerId, DimensionId 
     m_playerDimensions[playerId] = dimId;
     m_dimensionPlayers[dimId].insert(playerId);
     dim->addPlayer(playerId);
+    // 客户端偏好属于连接，切换维度后仍须限制新维度的区块追踪范围。
+    if (m_server != nullptr) {
+        const auto* data = m_server->playerManager().getPlayer(playerId);
+        if (data != nullptr && data->clientInformation.has_value()) {
+            dim->world()->chunkManager()->ticketManager().setPlayerViewDistance(
+                playerId, data->clientInformation->viewDistance);
+        }
+    }
 }
 
 void ServerDimensionManager::playerLeaveDimension(PlayerId playerId)

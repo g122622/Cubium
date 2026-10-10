@@ -67,6 +67,10 @@ void ChatHandler::handleChatMessagePacket(PlayerId playerId, const mc::network::
         return;
     }
 
+    if (player->clientInformation.has_value() && player->clientInformation->chatVisibility != 0) {
+        spdlog::warn("Chat: player {} has disabled player chat", playerId);
+        return;
+    }
     spdlog::info("[Chat] {}: {}", player->username, message);
 
     // 广播给同一维度内的其他玩家。离线模式无签名链路，用 SystemChat(overlay=false) 把
@@ -88,6 +92,9 @@ void ChatHandler::handleChatMessagePacket(PlayerId playerId, const mc::network::
     m_server.playerManager().forEachPlayer([&](ServerPlayerData& other) {
         // 跳过发送者本人与未登录/无连接的玩家。
         if (other.playerId == playerId || !other.loggedIn || !other.hasConnection()) {
+            return;
+        }
+        if (other.clientInformation.has_value() && other.clientInformation->chatVisibility != 0) {
             return;
         }
         // 只发给同维度玩家（跨维度聊天在 vanilla 中也不送达）。

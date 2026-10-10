@@ -129,6 +129,9 @@ void ClientSessionManager::onPlayerReady(
     }
     // 回填会话 playerId（构造时占位 0），此后 Play 包按真实 playerId 派发。
     session->setPlayerId(creation.playerId);
+    if (const auto& information = session->handshake().clientInformation(); information.has_value()) {
+        m_server.updateClientInformation(creation.playerId, *information);
+    }
 }
 
 void ClientSessionManager::onReconfiguration(
@@ -141,6 +144,17 @@ void ClientSessionManager::onReconfiguration(
     if (playerId == 0) {
         spdlog::warn("{}: onReconfiguration for unknown sessionId={}", m_logPrefix, sessionId);
         return;
+    }
+
+    std::optional<mc::network::ir::configuration::ClientInformation> information;
+    {
+        std::lock_guard<std::mutex> lock(m_sessionsMutex);
+        if (auto it = m_sessions.find(sessionId); it != m_sessions.end()) {
+            information = it->second->handshake().clientInformation();
+        }
+    }
+    if (information.has_value()) {
+        m_server.updateClientInformation(playerId, *information);
     }
 
     // 重推 play::Login（客户端据此重新建立本地实体并进入世界）。玩家实体已存在，

@@ -1599,6 +1599,52 @@ bool MinecraftServer::openEntityContainerRequest(INamedContainerProvider& provid
     return containerManager().openEntityContainer(player.playerId(), provider, player);
 }
 
+void MinecraftServer::updateClientInformation(
+    PlayerId playerId, const mc::network::ir::configuration::ClientInformation& information)
+{
+    auto* data = m_playerManager->getPlayer(playerId);
+    if (data == nullptr || !data->loggedIn) {
+        return;
+    }
+    const bool previousHat =
+        !data->clientInformation.has_value() || (data->clientInformation->modelCustomisation & 0x40) != 0;
+    const bool previousListing = !data->clientInformation.has_value() || data->clientInformation->allowsListing;
+    data->clientInformation = information;
+    const i32 viewDistance = std::clamp(static_cast<i32>(information.viewDistance), 2, m_settings.viewDistance.get());
+    data->chunkTracker->setViewDistance(viewDistance);
+    if (auto* world = getPlayerWorld(playerId)) {
+        if (auto* entity = m_playerEntityManager.getPlayerEntity(playerId, *world)) {
+            entity->setChatVisibility(static_cast<ChatVisibility>(information.chatVisibility));
+            entity->setPlayerModelParts(information.modelCustomisation);
+            entity->setPrimaryHand(static_cast<HandSide>(information.mainHand));
+        }
+        if (auto* chunks = world->chunkManager()) {
+            chunks->ticketManager().setPlayerViewDistance(playerId, information.viewDistance);
+        }
+    }
+    mc::network::ir::play::PlayerInfoUpdate update{};
+    mc::network::ir::play::PlayerInfoEntry entry{};
+    entry.uuid = util::uuidFromString(data->uuid);
+    if (previousHat != ((information.modelCustomisation & 0x40) != 0)) {
+        update.actions |= 1u << 7;
+        entry.showHat = (information.modelCustomisation & 0x40) != 0;
+    }
+    if (previousListing != information.allowsListing) {
+        update.actions |= 1u << 3;
+        entry.listed = information.allowsListing;
+    }
+    if (update.actions != 0) {
+        update.entries.push_back(std::move(entry));
+        const mc::network::ir::IrPacket packet{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}};
+        m_playerManager->forEachPlayer([this, &packet](ServerPlayerData& target) {
+            if (target.loggedIn) {
+                sendPacketToPlayer(target.playerId, packet);
+            }
+        });
+    }
+}
+
 void MinecraftServer::recordPlayerAction(PlayerId playerId)
 {
     // 对齐 vanilla ServerPlayer#resetLastActionTime：在移动/交互/使用物品/容器点击等

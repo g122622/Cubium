@@ -60,6 +60,12 @@ public:
         return *result;
     }
 
+    void sendPacketToPlayer(PlayerId playerId, const IrPacket& packet) override
+    {
+        sentPackets.emplace_back(playerId, packet);
+    }
+
+    std::vector<std::pair<PlayerId, IrPacket>> sentPackets;
     std::unique_ptr<_PlayerStateRequestWorld> m_world;
 };
 
@@ -246,4 +252,59 @@ TEST(PlayerStateRequestTest, SwitchKeepsLoadSignalsSeparateFromGameModeRequests)
     handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{SetTime{}}});
     EXPECT_TRUE(data->hasClientLoaded());
     EXPECT_EQ(data->gameMode, GameMode::Creative);
+}
+
+TEST_F(NetworkTestBase, PlayClientInformationSharesConfigurationWire)
+{
+    configuration::ClientInformation information{"en_us", -1, 2, true, 0x40, 0, true, false, 2};
+    const ClientInformation request{information};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{request}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{13, 5, 'e', 'n', '_', 'u', 's', 0xff, 2, 1, 0x40, 0, 1, 0, 2}));
+    auto decoded = tables()->playSb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<ClientInformation>(decoded.value()), request);
+    auto config = makeBoundBuf();
+    ASSERT_TRUE(tables()->configurationSb->encode(config, ConfigurationPacket{information}).success());
+    EXPECT_EQ(std::vector<u8>(buf.bytes().begin() + 1, buf.bytes().end()),
+        std::vector<u8>(config.bytes().begin() + 1, config.bytes().end()));
+    for (i32 invalid : {-1, 3}) {
+        auto malformed = makeBoundBuf();
+        auto bad = information;
+        bad.chatVisibility = invalid;
+        ASSERT_TRUE(tables()->playSb->encode(malformed, PlayPacket{ClientInformation{bad}}).success());
+        EXPECT_FALSE(tables()->playSb->decode(malformed).success());
+    }
+    auto malformed = makeBoundBuf();
+    information.language = std::string(17, 'a');
+    ASSERT_TRUE(tables()->playSb->encode(malformed, PlayPacket{ClientInformation{information}}).success());
+    EXPECT_FALSE(tables()->playSb->decode(malformed).success());
+}
+
+TEST(PlayerStateRequestTest, ClientInformationUpdatesEntityAndRetainsAllPreferences)
+{
+    _PlayerStateRequestServer server;
+    auto* data = server.playerManager().addPlayer(1, "00000000-0000-0000-0000-000000000001", "Player", nullptr);
+    ASSERT_NE(data, nullptr);
+    auto& player = server.addPlayerEntity(1);
+    server::net::ServerPlayHandler handler(server);
+    const configuration::ClientInformation information{"zh_cn", 4, 2, false, 0x01, 0, true, false, 2};
+    handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{ClientInformation{information}}});
+    ASSERT_TRUE(data->clientInformation.has_value());
+    EXPECT_EQ(*data->clientInformation, information);
+    EXPECT_EQ(player.chatVisibility(), ChatVisibility::Hidden);
+    EXPECT_EQ(player.playerModelParts(), 0x01);
+    EXPECT_EQ(player.getPrimaryHand(), HandSide::Left);
+    EXPECT_EQ(data->chunkTracker->viewDistance(), 4);
+    ASSERT_EQ(server.sentPackets.size(), 1u);
+    const auto& update = std::get<PlayerInfoUpdate>(std::get<PlayPacket>(server.sentPackets.back().second.packet));
+    EXPECT_EQ(update.actions, 0x88);
+    EXPECT_EQ(update.entries.front().showHat, false);
+    EXPECT_EQ(update.entries.front().listed, false);
+    data->loggedIn = false;
+    handler.route(1,
+        IrPacket{protocol::ConnectionProtocol::Play,
+            PlayPacket{
+                ClientInformation{configuration::ClientInformation{"en_us", 8, 0, true, 0x7f, 1, false, true, 0}}}});
+    EXPECT_EQ(*data->clientInformation, information);
 }

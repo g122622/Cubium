@@ -611,6 +611,10 @@ public:
      */
     void recordPlayerAction(PlayerId playerId);
 
+    /** @brief 应用连接的客户端设置，同步玩家元数据、视距和玩家列表偏好。 */
+    void updateClientInformation(
+        PlayerId playerId, const mc::network::ir::configuration::ClientInformation& information);
+
 protected:
     /**
      * @brief 处理世界层的开容器请求

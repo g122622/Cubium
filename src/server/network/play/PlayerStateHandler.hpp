@@ -37,6 +37,9 @@ namespace mc::server::net {
  */
 class PlayerStateHandler : public PlayHandlerBase {
 public:
+    /** @brief 更新客户端设置，复用配置阶段的应用入口。 */
+    void handleClientInformationPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
     /** @brief 仅允许具有服务端飞行能力的玩家启用飞行。 */
     void handlePlayerAbilitiesPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
