@@ -169,7 +169,7 @@ jobs:
           "$POCOCC_CI_BINARY_DIR/pococc" run --hosts "$POCOCC_CI_HOSTS" --strict \
             --local-jobs 2 --preprocess-jobs 2 --journal "$GITHUB_WORKSPACE/build-pococc/pococc.tsv" \
             -- cmake --build build-pococc --config RelWithDebInfo \
-              --target minecraft-server mc_tests --parallel 6
+              --target minecraft-server mc_tests --parallel 6 -- -k 0
           python3 scripts/ci/verify_pococc_build.py --build-dir build-pococc
       - name: Verify test binaries and collect runtime libraries
         run: |
