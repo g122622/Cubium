@@ -22,14 +22,19 @@ class CollectRunnerInfoTest(unittest.TestCase):
         self.folder = Path(self.temp.name)
 
     def test_cmake_cache_only_reads_configuration_whitelist(self):
+        """构建配置保留编译与链接参数，其他缓存字段不进入归档。"""
         (self.folder / "CMakeCache.txt").write_text(
             "// comment\nCMAKE_CXX_COMPILER:FILEPATH=/usr/lib/llvm-22/bin/clang++\n"
             "MC_ENABLE_NATIVE_ARCH:BOOL=OFF\nMC_FUZZ_ASAN:BOOL=ON\nSECRET:STRING=do-not-record\n"
-            "CMAKE_GENERATOR:INTERNAL=Ninja Multi-Config\n", encoding="utf-8")
+            "CMAKE_GENERATOR:INTERNAL=Ninja Multi-Config\n"
+            "CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=-Wl,--strip-all\n"
+            "CMAKE_SHARED_LINKER_FLAGS_RELEASE:STRING=-Wl,--strip-all -Wl,--gc-sections\n", encoding="utf-8")
         result = collector.read_build_config(self.folder)
         self.assertEqual(result["CMAKE_CXX_COMPILER"], "/usr/lib/llvm-22/bin/clang++")
         self.assertEqual(result["MC_ENABLE_NATIVE_ARCH"], "OFF")
         self.assertEqual(result["MC_FUZZ_ASAN"], "ON")
+        self.assertEqual(result["CMAKE_EXE_LINKER_FLAGS_RELEASE"], "-Wl,--strip-all")
+        self.assertEqual(result["CMAKE_SHARED_LINKER_FLAGS_RELEASE"], "-Wl,--strip-all -Wl,--gc-sections")
         self.assertNotIn("SECRET", result)
         self.assertEqual(collector.read_build_config(self.folder / "missing"), {})
         self.assertEqual(collector.read_build_config(None), {})

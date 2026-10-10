@@ -351,6 +351,11 @@ python3 -c "import json; print(len(json.load(open('build/compile_commands.json')
 
 ## 本地 Sanitizer 构建
 
+nightly 使用两个独立的 Linux preset：`linux-clang-ci-tests` 保留 RelWithDebInfo 并对 C/C++ 全局启用
+ASan/UBSan，产出服务端与单测；`linux-clang-ci-release` 在独立目录产出无调试信息、无 profiler、
+无 sanitizer 的 Release 服务端与 benchmark。两者均关闭 native-arch，原开发和 fuzz preset 保持原有配置。
+CI 发布前还检查 ELF，并移除静态依赖库可能带入的调试节；仅设置 Release 不足以保证最终包没有调试信息。
+
 ```bash
 # ASan + UBSan
 cmake -B build-sanitize -G Ninja \

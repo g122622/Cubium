@@ -199,6 +199,20 @@
       }
     },
     {
+      "name": "linux-clang-ci-tests",
+      "displayName": "Linux CI Tests (RelWithDebInfo, ASan + UBSan)",
+      "inherits": "linux-relwithdebinfo",
+      "cacheVariables": {
+        "MC_BUILD_BENCHMARKS": "OFF",
+        "MC_ENABLE_SANITIZERS": "ON",
+        "MC_ENABLE_NATIVE_ARCH": "OFF",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
       "name": "linux-release-noprof",
       "displayName": "Linux Clang Release (server-only, no profiler, distributable)",
       "inherits": "linux-base",
@@ -214,6 +228,20 @@
         "MC_ENABLE_TRACING": "OFF",
         "MC_ENABLE_TRACY": "OFF",
         "MC_ENABLE_MEMORY": "OFF"
+      }
+    },
+    {
+      "name": "linux-clang-ci-release",
+      "displayName": "Linux CI Release (no debug information, no profiler, no sanitizers)",
+      "inherits": "linux-release-noprof",
+      "cacheVariables": {
+        "MC_BUILD_BENCHMARKS": "ON",
+        "MC_ENABLE_NATIVE_ARCH": "OFF",
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG -g0",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG -g0",
+        "CMAKE_EXE_LINKER_FLAGS_RELEASE": "-Wl,--strip-all",
+        "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "-Wl,--strip-all",
+        "CMAKE_BUILD_RPATH": "$ORIGIN/lib"
       }
     },
     {
@@ -316,6 +344,20 @@
       "configurePreset": "linux-relwithdebinfo",
       "configuration": "RelWithDebInfo",
       "jobs": 0
+    },
+    {
+      "name": "linux-clang-ci-tests",
+      "configurePreset": "linux-clang-ci-tests",
+      "configuration": "RelWithDebInfo",
+      "jobs": 0,
+      "targets": ["minecraft-server", "mc_tests"]
+    },
+    {
+      "name": "linux-clang-ci-release",
+      "configurePreset": "linux-clang-ci-release",
+      "configuration": "Release",
+      "jobs": 0,
+      "targets": ["minecraft-server", "mc_benchmark"]
     },
     {
       "name": "linux-release-noprof",

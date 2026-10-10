@@ -18,6 +18,7 @@ from pathlib import Path
 # 仅列出每个任务使用的工具，避免把测试机器预装的编译器误当作产物编译器。
 _JOB_TOOLS = {
     "build": ("compiler", "cmake", "ninja", "linker", "ccache", "node", "npm"),
+    "release-build": ("compiler", "cmake", "ninja", "linker", "ccache", "node", "npm"),
     "fuzz": ("compiler", "cmake", "ninja", "linker", "ccache"),
     "unit-tests": ("ctest",),
     "integrated-tests": ("node", "npm"),
@@ -33,6 +34,10 @@ _BUILD_KEYS = (
     "CMAKE_CXX_COMPILER", "CMAKE_LINKER", "CMAKE_GENERATOR", "CMAKE_BUILD_TYPE",
     "CMAKE_CONFIGURATION_TYPES", "MC_ENABLE_NATIVE_ARCH", "MC_ENABLE_SANITIZERS", "MC_FUZZ_ASAN",
     "CMAKE_CXX_FLAGS_RELWITHDEBINFO", "VCPKG_TARGET_TRIPLET",
+    "CMAKE_C_FLAGS", "CMAKE_CXX_FLAGS", "CMAKE_EXE_LINKER_FLAGS", "CMAKE_SHARED_LINKER_FLAGS",
+    "CMAKE_EXE_LINKER_FLAGS_RELEASE", "CMAKE_SHARED_LINKER_FLAGS_RELEASE",
+    "CMAKE_MODULE_LINKER_FLAGS", "CMAKE_MODULE_LINKER_FLAGS_RELEASE",
+    "CMAKE_C_FLAGS_RELEASE", "CMAKE_CXX_FLAGS_RELEASE", "MC_ENABLE_TRACING", "MC_ENABLE_TRACY", "MC_ENABLE_MEMORY",
 )
 
 
@@ -108,7 +113,7 @@ def collect(job: str, build_dir: Path | None) -> dict:
                    "kernel": platform.release(), "architecture": platform.machine(),
                    "libc": " ".join(platform.libc_ver()).strip()},
         "tools": tools, "build": build_config,
-        "vcpkg_baseline": os.environ.get("VCPKG_COMMIT", "") if job in ("build", "fuzz") else "",
+        "vcpkg_baseline": os.environ.get("VCPKG_COMMIT", "") if job in ("build", "release-build", "fuzz") else "",
     }
 
 

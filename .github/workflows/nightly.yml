@@ -5,10 +5,10 @@
 # 设计背景：
 #   - 只跑 Linux。本项目客户端已停止维护，Windows/macOS 构建无必要。
 #   - **不在每次提交时触发**（无 push / pull_request）。日常提交不跑 CI，只有每晚一次。
-#   - 拆成「1 个构建 job + 5 个测试 job + 1 个汇总 job」，而非单 job 串行：GitHub 单个
+#   - 拆成「2 个构建 job + 5 个测试 job + 1 个汇总 job」，而非单 job 串行：GitHub 单个
 #     job 有 6 小时硬上限，而本项目构建耗时长、单元测试用例数以万计、fuzz 约 45 分钟，
 #     串行必然超时。
-#   - 各测试 job 从 build 的 artifact 取二进制，不各自重复构建。
+#   - 单元/集成/e2e 使用 sanitizer 构建，benchmark 与公开 Release 使用独立发布构建。
 #
 # 判定口径（重要）：
 #   - 单元测试 / 集成测试：全量跑，**永不 fail**，仅归档结果。项目存在大量历史遗留失败，
@@ -58,12 +58,15 @@ env:
 
 jobs:
   # ==========================================================================
-  # 构建（服务端 + 单元测试 + benchmark）
+  # 测试构建（服务端 + 单元测试，ASan + UBSan，保留调试符号）
   # ==========================================================================
   build:
-    name: Build (Linux / Clang / RelWithDebInfo)
+    name: Test Build (Linux / RelWithDebInfo / ASan + UBSan)
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,13 +78,10 @@ jobs:
           cache-scope: nightly
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
 
-      # 不用 ./scripts/configure.sh：它固定为 `cmake --preset linux-relwithdebinfo`，
-      # 无法追加 -D 覆盖。此处必须关掉 MC_ENABLE_NATIVE_ARCH（即 -march=native）——
-      # 构建产物要被**其它 runner 实例**下载运行（unit/integrated/e2e/benchmark 四个 job），
-      # 而托管 runner 的 CPU 型号不固定，按编译机特性生成的指令（AVX-512 等）在别的实例上
-      # 会触发 SIGILL。实测未关时：集成测试的服务端一启动就 SIGILL 崩溃。
+      # 专用 preset 在 C/C++ 编译和链接阶段开启 ASan/UBSan，并关闭 native 架构优化。
+      # 保留 RelWithDebInfo 的调试信息；不改变开发 preset 或独立 fuzz preset。
       - name: Configure
-        run: cmake --preset linux-relwithdebinfo -DMC_ENABLE_NATIVE_ARCH=OFF
+        run: cmake --preset linux-clang-ci-tests
 
       # Configure 阶段 vcpkg 已完成安装，此处立即保存缓存：即使后续 Build 失败，
       # 依赖也已被缓存，下次运行无需重编。
@@ -94,7 +94,13 @@ jobs:
 
       - name: Build
         id: build-step
-        run: cmake --build --preset linux-relwithdebinfo -j"$(nproc)"
+        run: cmake --build --preset linux-clang-ci-tests -j"$(nproc)"
+
+      - name: Verify test binaries and collect runtime libraries
+        run: |
+          python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build \
+            --binary "${BIN_DIR}/minecraft-server" --binary "${BIN_DIR}/mc_tests" \
+            --library-dir vcpkg-libs --report build-artifact-check.txt
 
       # 把 ccache 的命中统计打进日志：命中率是判断缓存是否真正生效的唯一直接证据。
       # 一旦 PCH 相关配置（-Xclang -fno-pch-timestamp / CCACHE_SLOPPINESS）被误删，
@@ -125,21 +131,6 @@ jobs:
             --repo "${{ github.repository }}" \
             --prefix ccache-linux-nightly- \
             --keep 1 || true
-
-      - name: Collect shared library dependencies
-        if: always()
-        run: |
-          set -x
-          SERVER="${BIN_DIR}/minecraft-server"
-          if [ -x "${SERVER}" ]; then
-            ldd "${SERVER}" | tee ldd-server.txt || true
-          fi
-          # 把 vcpkg 安装的动态库一并打进 artifact：测试 job 在独立 runner 上运行，
-          # 若二进制依赖 .so 而 runner 上没有，会以「找不到共享库」的形式失败。
-          if [ -n "${VCPKG_ROOT:-}" ] && [ -d "${VCPKG_ROOT}/installed/x64-linux/lib" ]; then
-            mkdir -p vcpkg-libs
-            cp -a "${VCPKG_ROOT}/installed/x64-linux/lib/." vcpkg-libs/ || true
-          fi
 
       # CTest 的用例清单是**构建期**产物，不在 bin/ 下。Linux 走 gtest_discover_tests 的
       # POST_BUILD 模式（Windows 才是 PRE_TEST），故清单落在 `*_tests-<Config>.cmake`，
@@ -177,48 +168,123 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: test-build-artifacts
           retention-days: 30
           if-no-files-found: warn
           path: |
             ${{ env.BIN_DIR }}/minecraft-server
             ${{ env.BIN_DIR }}/mc_tests
-            ${{ env.BIN_DIR }}/mc_benchmark
             vcpkg-libs/
-            ldd-server.txt
+            build-artifact-check.txt
             ctest-meta.tar.gz
             runner-info.json
 
-      # nightly build：服务端二进制作为每日 Release 交付。
+  # ==========================================================================
+  # 独立发布构建（Release，无调试信息、profiler 或 sanitizer；供发布及 benchmark）
+  # ==========================================================================
+  release-build:
+    name: Release Build (Linux / Release / no profiler)
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      RELEASE_BIN_DIR: build-release-noprof/bin/Release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/setup-linux-build-env
+        id: env-setup
+        with:
+          cache-scope: release
+          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
+
+      - name: Configure release
+        run: cmake --preset linux-clang-ci-release
+
+      - name: Save vcpkg binary cache
+        if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: vcpkg-cache
+          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
+
+      - name: Build release server and benchmark
+        run: cmake --build --preset linux-clang-ci-release -j"$(nproc)"
+
+      - name: Verify and package release binaries
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/prepare_build_artifacts.py --variant release --build-dir build-release-noprof \
+            --binary "${RELEASE_BIN_DIR}/minecraft-server" --binary "${RELEASE_BIN_DIR}/mc_benchmark" \
+            --library-dir release-package/lib --report release-artifact-check.txt
+          cp "${RELEASE_BIN_DIR}/minecraft-server" release-package/minecraft-server
+
+      - name: ccache statistics
+        if: always()
+        run: ccache --show-stats --verbose || true
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-release-${{ github.run_id }}
+
+      - name: Prune old release ccache entries
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/ci/prune_caches.py --repo "${{ github.repository }}" \
+            --prefix ccache-linux-release- --keep 1 || true
+
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job release-build --build-dir build-release-noprof --out runner-info.json
+
+      - name: Upload release build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build-artifacts
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            ${{ env.RELEASE_BIN_DIR }}/minecraft-server
+            ${{ env.RELEASE_BIN_DIR }}/mc_benchmark
+            release-package/lib/
+            release-artifact-check.txt
+
+      # 失败时仍单独归档配置；未经核验的二进制不能流入 benchmark 或公开发布。
+      - name: Upload release build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build-diagnostics
+          retention-days: 30
+          path: |
+            runner-info.json
+            release-artifact-check.txt
+
       - name: Publish nightly release
-        if: steps.build-step.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           TAG="nightly-$(date -u +%Y%m%d)"
-          SERVER="${BIN_DIR}/minecraft-server"
-
-          # 二进制加时间戳归档，避免同一晚多次运行时互相覆盖。
           ARCHIVE="minecraft-server-linux-x64-${TAG}-${GITHUB_RUN_NUMBER}.tar.gz"
-          tar -czf "${ARCHIVE}" -C "${BIN_DIR}" minecraft-server
-
-          # 说明文本用 heredoc 写入文件（--notes-file），避免多行内容破坏 YAML 缩进。
+          tar -czf "${ARCHIVE}" -C release-package .
           cat > release-notes.md <<'NOTES_EOF'
-          自动生成的 nightly 构建。
+          自动生成的 Linux x64 服务端发布构建。
 
-          - 构建 preset：`linux-relwithdebinfo`（服务端，RelWithDebInfo）
-
-          > 这是自动化的每日构建，未经人工验证。
+          - Release 构建，不含调试信息、profiler 或 sanitizer。
+          - 归档含服务端及实际依赖的非系统动态库；benchmark 使用同一 Release 构建。
           NOTES_EOF
-
           if gh release view "${TAG}" >/dev/null 2>&1; then
-            echo "Release ${TAG} 已存在，追加资产。"
             gh release upload "${TAG}" "${ARCHIVE}" --clobber
           else
-            gh release create "${TAG}" "${ARCHIVE}" \
-              --title "Nightly ${TAG}" \
-              --notes-file release-notes.md
+            gh release create "${TAG}" "${ARCHIVE}" --title "Nightly ${TAG}" --notes-file release-notes.md
           fi
 
   # ==========================================================================
@@ -229,6 +295,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
 
@@ -236,7 +305,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: test-build-artifacts
 
       - name: Prepare environment
         run: |
@@ -297,6 +366,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -311,7 +383,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: test-build-artifacts
 
       - name: Prepare environment
         run: |
@@ -389,6 +461,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
 
@@ -401,7 +476,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: test-build-artifacts
 
       - name: Prepare environment
         run: |
@@ -587,11 +662,11 @@ jobs:
           path: fuzz-artifacts/
 
   # ==========================================================================
-  # 性能基准（仅记录 + 告警，不阻塞）
+  # 性能基准（独立 runner，使用无 sanitizer 的发布产物）
   # ==========================================================================
   benchmark:
-    name: Benchmark (record + warn only)
-    needs: build
+    name: Benchmark (Release / record + warn only)
+    needs: release-build
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -601,23 +676,23 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-artifacts
+          name: release-build-artifacts
 
       - name: Prepare environment
         run: |
           set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
-          if [ -d vcpkg-libs ]; then
-            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          chmod +x build-release-noprof/bin/Release/*
+          if [ -d release-package/lib ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/release-package/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
 
-      # ServerInitialize 用例以相对路径定位被测服务端，故必须在仓库根目录运行
-      # （见 docs/BENCHMARK.md「运行」）。
+      # 启动用例在 benchmark 同目录定位同配置服务端，不依赖构建 runner 的绝对路径。
       - name: Run benchmarks
         run: |
           set -euo pipefail
           mkdir -p benchmark-out
-          ./build/bin/RelWithDebInfo/mc_benchmark \
+          ./build-release-noprof/bin/Release/mc_benchmark \
+            --benchmark_context=ci_build_profile=release-noprof-nosan-v1 \
             --benchmark_out=benchmark-out/results.json \
             --benchmark_out_format=json \
             --benchmark_repetitions=3 \
@@ -677,7 +752,7 @@ jobs:
   # ==========================================================================
   report:
     name: Summarize & Report
-    needs: [build, unit-tests, integrated-tests, e2e-tests, fuzz, benchmark]
+    needs: [build, release-build, unit-tests, integrated-tests, e2e-tests, fuzz, benchmark]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -702,6 +777,7 @@ jobs:
           # 注意：不能引用 needs.report（job 不能依赖自身）。report 的结论对本 job 无意义。
           JOB_STATUS: >-
             {"build":"${{ needs.build.result }}",
+             "release-build":"${{ needs.release-build.result }}",
              "unit-tests":"${{ needs.unit-tests.result }}",
              "integrated-tests":"${{ needs.integrated-tests.result }}",
              "e2e-tests":"${{ needs.e2e-tests.result }}",
