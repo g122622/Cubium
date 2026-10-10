@@ -502,12 +502,7 @@ protected:
      *
      * 子类可重写此方法以实现特殊合并逻辑。
      */
-    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const
-    {
-        (void)stack;
-        const i32 result = getResultSlotIndex();
-        return result < 0 || slot.getSlotNumber() != result;
-    }
+    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const;
 
     /**
      * @brief 检查玩家是否可以进行合成操作

@@ -246,7 +246,7 @@ bool AnvilContainer::stillValid(const Player& player) const
     }
     if (m_world == nullptr) return true;
     const auto* state = m_world->getBlockState(m_position);
-    return player.getWorld() == m_world && state != nullptr && BlockTags::ANVIL().contains(state->getBlock());
+    return player.world() == m_world && state != nullptr && BlockTags::ANVIL().contains(state->getBlock());
 }
 
 void AnvilContainer::slotsChanged(IInventory* inventory)

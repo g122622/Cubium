@@ -381,7 +381,7 @@ bool EnchantmentContainer::stillValid(const Player& player) const
     if (!isWithinDistance(player, m_position)) return false;
     if (m_world == nullptr) return true;
     const auto* state = m_world->getBlockState(m_position);
-    return player.getWorld() == m_world && state != nullptr && state->getBlock() == VanillaBlocks::ENCHANTING_TABLE;
+    return player.world() == m_world && state != nullptr && &state->getBlock() == VanillaBlocks::ENCHANTING_TABLE;
 }
 
 void EnchantmentContainer::slotsChanged(IInventory* inventory)

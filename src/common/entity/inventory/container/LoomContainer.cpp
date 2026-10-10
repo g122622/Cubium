@@ -176,7 +176,7 @@ bool LoomContainer::stillValid(const Player& player) const
     if (!isWithinDistance(player, m_pos)) return false;
     if (m_world == nullptr) return true;
     const auto* state = m_world->getBlockState(m_pos);
-    return player.getWorld() == m_world && state != nullptr && state->getBlock() == VanillaBlocks::LOOM;
+    return player.world() == m_world && state != nullptr && &state->getBlock() == VanillaBlocks::LOOM;
 }
 
 void LoomContainer::_updateSelectablePatterns()

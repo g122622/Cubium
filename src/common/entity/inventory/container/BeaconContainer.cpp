@@ -63,8 +63,8 @@ BeaconContainer::BeaconContainer(
 bool BeaconContainer::stillValid(const Player& player) const
 {
     const auto* state = m_world.getBlockState(m_position);
-    return player.getWorld() == &m_world && isWithinDistance(player, m_position) && state != nullptr &&
-        state->getBlock() == VanillaBlocks::BEACON && m_world.getBlockEntity(m_position) == &m_beacon;
+    return player.world() == &m_world && isWithinDistance(player, m_position) && state != nullptr &&
+        &state->getBlock() == VanillaBlocks::BEACON && m_world.getBlockEntity(m_position) == &m_beacon;
 }
 
 void BeaconContainer::removed(Player& player)

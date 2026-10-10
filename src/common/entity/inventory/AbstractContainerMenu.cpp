@@ -152,6 +152,12 @@ void AbstractContainerMenu::broadcastChanges()
     detectAndSendChanges();
 }
 
+bool AbstractContainerMenu::canMergeSlot(const ItemStack& stack, const Slot& slot) const
+{
+    (void)stack;
+    return getResultSlotIndex() < 0 || slot.getSlotNumber() != getResultSlotIndex();
+}
+
 void AbstractContainerMenu::detectAndSendChanges()
 {
     // 检查槽位变化
