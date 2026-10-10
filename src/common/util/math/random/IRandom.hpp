@@ -229,10 +229,11 @@ public:
     void setLargeFeatureSeed(i64 seed, i32 chunkX, i32 chunkZ)
     {
         setSeed(static_cast<u64>(seed));
-        const i64 i = nextLong();
-        const i64 j = nextLong();
-        const i64 k = static_cast<i64>(chunkX) * i ^ static_cast<i64>(chunkZ) * j ^ seed;
-        setSeed(static_cast<u64>(k));
+        // Java long 乘法按 64 位回绕；先转换操作数，避免有符号乘法溢出。
+        const u64 i = static_cast<u64>(nextLong());
+        const u64 j = static_cast<u64>(nextLong());
+        const u64 k = static_cast<u64>(chunkX) * i ^ static_cast<u64>(chunkZ) * j ^ static_cast<u64>(seed);
+        setSeed(k);
     }
 
     /**

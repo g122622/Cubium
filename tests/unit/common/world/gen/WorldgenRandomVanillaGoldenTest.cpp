@@ -38,10 +38,13 @@
 // ============================================================================
 
 #include "common/core/Types.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/LinearCongruentialGenerator.hpp"
 #include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 
 #include <array>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -210,6 +213,52 @@ TEST(WorldgenRandomVanillaGoldenTest, SetFeatureSeedIsDeterministicAcrossInstanc
     for (i32 i = 0; i < 8; ++i) {
         EXPECT_EQ(a->nextInt(1000), b->nextInt(1000)) << "setFeatureSeed 后第 " << i << " 次抽取不一致";
     }
+}
+
+TEST(WorldgenRandomVanillaGoldenTest, LargeFeatureSeedWrapsLikeJava)
+{
+    struct Case {
+        i64 seed;
+        i32 chunkX;
+        i32 chunkZ;
+        i64 expectedNextLong;
+    };
+    // 由 Java Random 与大型特征种子公式独立生成，包含触发服务端 UBSan 的坐标。
+    const std::array<Case, 6> cases = {{{0, 15, 0, -4478964318266472651LL},
+        {0, -15, 31, 3529680530055902621LL},
+        {1, std::numeric_limits<i32>::max(), std::numeric_limits<i32>::min(), -430078981758365892LL},
+        {std::numeric_limits<i64>::min(),
+            std::numeric_limits<i32>::min(),
+            std::numeric_limits<i32>::max(),
+            -8430712237811624626LL},
+        {std::numeric_limits<i64>::max(), -1, -1, -1144840015958293627LL},
+        {42, 0, 0, -5025562857975149833LL}}};
+    for (const auto& sample : cases) {
+        WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(0));
+        rng.setLargeFeatureSeed(sample.seed, sample.chunkX, sample.chunkZ);
+        EXPECT_EQ(rng.nextLong(), sample.expectedNextLong);
+    }
+}
+
+TEST(WorldgenRandomVanillaGoldenTest, LegacyNextLongWrapsSignedLowHalf)
+{
+    // 此种子使连续两次 next(32) 均返回 INT32_MIN；Java 的 long 加法必须回绕。
+    math::JavaLegacyRandom rng(247775869193412ULL);
+    EXPECT_EQ(rng.nextLong(), 9223372034707292160LL);
+}
+
+TEST(WorldgenRandomVanillaGoldenTest, WorldgenNextLongWrapsSignedLowHalf)
+{
+    WorldgenRandom rng(std::make_unique<math::JavaLegacyRandom>(247775869193412ULL));
+    EXPECT_EQ(rng.nextLong(), 9223372034707292160LL);
+}
+
+TEST(WorldgenRandomVanillaGoldenTest, LinearCongruentialAdditionWrapsLikeJava)
+{
+    EXPECT_EQ(math::LinearCongruentialGenerator::next(1, std::numeric_limits<i64>::max()), -1416540772119019397LL);
+    EXPECT_EQ(math::LinearCongruentialGenerator::next(-1, std::numeric_limits<i64>::min()), -4301930853896946210LL);
+    EXPECT_EQ(math::LinearCongruentialGenerator::next(std::numeric_limits<i64>::max(), std::numeric_limits<i64>::max()),
+        4921441182957829597LL);
 }
 
 } // namespace

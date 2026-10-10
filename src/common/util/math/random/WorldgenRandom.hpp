@@ -119,9 +119,10 @@ public:
     /// ((long)next(32) << 32) + next(32)
     [[nodiscard]] i64 nextLong() override
     {
-        const i64 hi = static_cast<i64>(nextBits(32));
-        const i64 lo = static_cast<i64>(nextBits(32));
-        return (hi << 32) + lo;
+        // 保留低半部的符号扩展，并在加法后解释为有符号结果。
+        const u64 hi = static_cast<u64>(nextBits(32));
+        const u64 lo = static_cast<u64>(nextBits(32));
+        return static_cast<i64>((hi << 32) + lo);
     }
 
     /// nextBits 直接转发给内层，以保留内层的状态推进语义（Legacy 只推进一次 LCG）
