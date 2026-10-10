@@ -126,9 +126,10 @@ Result<std::unique_ptr<mc::nbt::tags::compound_tag>> readCompound(ByteBuf& buf)
             return Error(ErrorCode::InvalidData, "NBT compound tag parse failed", "nbt_io::readCompound");
         }
         const std::streampos after = in.tellg();
-        const usize consumed = (after == std::streampos(-1) || before == std::streampos(-1))
-            ? buf.readableBytes()
-            : static_cast<usize>(after - before);
+        if (in.fail() || after == std::streampos(-1) || before == std::streampos(-1)) {
+            return Error(ErrorCode::OutOfBounds, "Truncated NBT compound", "nbt_io::readCompound");
+        }
+        const usize consumed = static_cast<usize>(after - before);
 
         // 前进游标到 NBT 实际消耗位置；剩余字节留给后续读取。
         buf.setReadPosition(buf.readPosition() + consumed);

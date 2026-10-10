@@ -680,62 +680,85 @@ TEST_F(NetworkTestBase, WaypointsTrackMoveHideChangeRepresentationAndRespectRule
     source->setPosition(1, 0, 1);
     world.entityManager().addEntity(std::move(sourceOwned));
     auto& manager = world.waypointManager();
+    RecordProperty("stage", "tick_1");
     manager.tick(server, world);
     ASSERT_EQ(connection.packets.size(), 1u);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(
         std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation, WaypointOperation::Track);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_TRUE(std::holds_alternative<WaypointPosition>(
         std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).position));
     connection.packets.clear();
+    RecordProperty("stage", "tick_2");
     manager.tick(server, world);
     EXPECT_TRUE(connection.packets.empty());
     source->setPosition(2, 0, 1);
+    RecordProperty("stage", "tick_3");
     manager.tick(server, world);
     ASSERT_EQ(connection.packets.size(), 1u);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
         WaypointOperation::Update);
     connection.packets.clear();
     source->setSneaking(true);
+    RecordProperty("stage", "tick_4");
     manager.tick(server, world);
     ASSERT_EQ(connection.packets.size(), 1u);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
         WaypointOperation::Untrack);
     source->setSneaking(false);
     source->setPosition(100, 0, 0);
+    RecordProperty("stage", "tick_5");
     manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_TRUE(std::holds_alternative<WaypointChunk>(
         std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).position));
     source->setPosition(400, 0, 0);
+    RecordProperty("stage", "tick_6");
     manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_NEAR(std::get<f32>(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).position),
         -math::PI / 2.0,
         0.00001);
     source->attributes().setBaseValue(entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 10.0);
+    RecordProperty("stage", "tick_7");
     manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
         WaypointOperation::Untrack);
     source->attributes().setBaseValue(entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 60000000.0);
+    RecordProperty("stage", "tick_8");
     manager.tick(server, world);
     world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::LOCATOR_BAR, false, nullptr);
+    RecordProperty("stage", "tick_9");
     manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
         WaypointOperation::Untrack);
     connection.packets.clear();
+    RecordProperty("stage", "tick_10");
     manager.tick(server, world);
     EXPECT_TRUE(connection.packets.empty());
     world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::LOCATOR_BAR, true, nullptr);
     source->setWaypointIcon(ResourceLocation("minecraft:bowtie"), 0x123456u);
+    RecordProperty("stage", "tick_11");
     manager.tick(server, world);
     ASSERT_FALSE(connection.packets.empty());
     const auto& icon = std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet));
     EXPECT_EQ(icon.style, "minecraft:bowtie");
     EXPECT_EQ(icon.color, 0x123456u);
     manager.clearReceiver(server, 1);
+    RecordProperty("stage", "tick_12");
     manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(
         std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation, WaypointOperation::Track);
     source->setEquipment(EquipmentSlot::Head, ItemStack(Items::CARVED_PUMPKIN, 1));
+    RecordProperty("stage", "tick_13");
     manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
     EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
         WaypointOperation::Untrack);
 }
