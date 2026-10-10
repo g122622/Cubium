@@ -41,6 +41,7 @@ class SummarizeFailuresTest(unittest.TestCase):
         return path
 
     def test_runner_table_includes_all_jobs_and_escapes_values(self):
+        """全部任务配置进入两种报告，表格中的元字符正确转义。"""
         for job in summary._JOB_LABELS:
             self.write_runner(job)
         table = "\n".join(summary.runner_info_table({}, self.artifacts))
@@ -205,6 +206,7 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertEqual(results["skipped"], ["MissingItem — Stone item not registered"])
 
     def test_sanitizer_error_in_skipped_case_still_fails_report(self):
+        """用例跳过不能掩盖进程结束时的 sanitizer 错误。"""
         self.write_report("ctest-results.xml", '<testcase name="Skipped"><skipped/>'
                           '<system-out>==42==ERROR: LeakSanitizer: detected memory leaks</system-out></testcase>')
         results = summary.collect_ctest_results(self.artifacts)
@@ -213,6 +215,7 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertTrue(summary.has_failures({"unit-tests": "success"}, self.artifacts))
 
     def test_sanitizer_log_cannot_be_clean_even_when_junit_passes(self):
+        """直接日志中的 sanitizer 错误优先于全部通过的 JUnit。"""
         self.write_report("ctest-results.xml", '<testcase name="Passed"/>')
         (self.artifacts / "ctest-output.log").write_text(
             "==42==ERROR: AddressSanitizer: heap-use-after-free\n", encoding="utf-8")

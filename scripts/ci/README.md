@@ -29,4 +29,5 @@ GitHub CLI，符号化依赖 LLVM 工具和带调试信息的二进制。
 - 未运行与未采集的机器配置要明确区分；采集/解析错误只影响配置展示，不改变测试结论。
 - 回归验证入口为 `python -m unittest discover -s scripts/ci/tests`。
 - 发布二进制不能含调试节或 sanitizer 符号；测试二进制必须有两种 sanitizer 和调试信息。
+- Release 的通用与配置专用编译/链接参数都须在 strip 前检查；归档保留 Release 链接参数。
 - benchmark 只比较相同 `ci_build_profile` 的结果，避免跨优化配置产生错误告警。

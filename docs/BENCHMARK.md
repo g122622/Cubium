@@ -15,8 +15,8 @@ cmake --build --preset macos-relwithdebinfo -- -j{核心数-2} mc_benchmark
 
 ## 运行
 
-结果目录基于当前工作目录。启动用例使用 CMake 注入的同配置服务端目标路径：
-Release benchmark 会启动 Release 服务端。跨 CI job 复用 artifact 时须保留构建目录布局。
+结果目录基于当前工作目录。启动用例使用 CMake 注入的同配置服务端文件名，在运行中的 benchmark
+可执行文件同目录查找：Release benchmark 会启动同目录的 Release 服务端，允许整体移动 artifact。
 
 nightly 的 benchmark 在独立 runner 上执行 `release-build` 的产物，未开启 sanitizer 或 profiler。
 构建配置变更时重新建立跨日比较基线；内存计数器仍由基准工具采集，不会链接进公开服务端。

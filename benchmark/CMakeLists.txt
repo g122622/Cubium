@@ -225,5 +225,5 @@ if(NOT TARGET minecraft-server)
     message(FATAL_ERROR "mc_benchmark requires MC_BUILD_SERVER=ON")
 endif()
 target_compile_definitions(mc_benchmark PRIVATE
-    MC_BENCHMARK_SERVER_EXECUTABLE="$<TARGET_FILE:minecraft-server>")
+    MC_BENCHMARK_SERVER_FILE_NAME="$<TARGET_FILE_NAME:minecraft-server>")
 add_dependencies(mc_benchmark minecraft-server)

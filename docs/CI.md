@@ -84,13 +84,14 @@ cron 为 `0 13 * * *`（UTC）—— GitHub 的 cron 一律按 UTC 解释，13:0
   memory tracing 和 sanitizer；发布前 strip 并检查 ELF 无调试节、无 ASan/UBSan 运行库符号。
   `release-build-artifacts` 含 Release 服务端和 benchmark；公开 tar.gz 仅含服务端及所需的非系统动态库。
 - 两条构建均关闭 `native-arch`，允许跨 runner 运行；fuzz 的 preset、局部插桩和执行流程保持原状。
-- benchmark 使用独立 runner，只下载 Release artifact。启动服务端用例由 CMake 注入同配置的
-  `minecraft-server` 目标路径，不会误用 sanitizer 服务端。Google Benchmark 的内存计数保留在基准工具内，
+- benchmark 使用独立 runner，只下载 Release artifact。CMake 注入同配置的服务端文件名，
+  运行时在 benchmark 同目录定位，不依赖构建机器的绝对路径，也不会误用 sanitizer 服务端。Google Benchmark 的内存计数保留在基准工具内，
   不会被链接进公开服务端。
 - 发布构建使用独立 `ccache-linux-release-*` 缓存，与测试及 fuzz 缓存分开，保存后各保留最新一份。
 
 `prepare_build_artifacts.py` 同时核验配置与 ELF 二进制，收集 `ldd` 中实际使用的 vcpkg/Clang 动态库；
 系统 libc 和加载器由运行系统提供。测试构建必须含调试信息和两种 sanitizer 符号，否则 job 失败。
+Release 在 strip 前拒绝通用及 Release 的编译/链接参数中启用 sanitizer 的配置，防止静态运行库因符号被剥离而漏检。
 sanitizer 错误立即终止进程，日志与现有 JUnit/崩溃产物一起归档；原测试时间限制继续生效。
 
 ### 数据包依赖

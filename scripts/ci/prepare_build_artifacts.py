@@ -15,7 +15,10 @@ from collect_runner_info import read_build_config
 
 
 def _run(command: list[str]) -> str:
-    result = subprocess.run(command, capture_output=True, text=True, timeout=60, check=False)
+    """仅执行固定的 ELF 工具，路径按 argv 传递，不经过 shell 解释。"""
+    if not command or command[0] not in ("readelf", "ldd", "llvm-strip"):
+        raise RuntimeError("Unsupported artifact inspection tool")
+    result = subprocess.run(command, shell=False, capture_output=True, text=True, timeout=60, check=False)
     if result.returncode != 0:
         raise RuntimeError(f"Command failed: {' '.join(command)}: {result.stderr.strip()}")
     return result.stdout
@@ -27,6 +30,11 @@ def verify_configuration(config: dict[str, str], variant: str) -> None:
     if variant == "release":
         expected.update({"CMAKE_BUILD_TYPE": "Release", "MC_ENABLE_SANITIZERS": "OFF",
                          "MC_ENABLE_TRACING": "OFF", "MC_ENABLE_TRACY": "OFF", "MC_ENABLE_MEMORY": "OFF"})
+        # 开关 OFF 不能抵消通用或 Release 编译/链接参数中的显式插桩。
+        for key, value in config.items():
+            if re.fullmatch(r"CMAKE_(?:C|CXX|EXE_LINKER|SHARED_LINKER|MODULE_LINKER)_FLAGS(?:_RELEASE)?", key):
+                if re.search(r"(?<![\w-])-fsanitize(?:=|\s+)", value):
+                    raise RuntimeError(f"Release build must not enable sanitizer instrumentation: {key}")
         for key in ("CMAKE_C_FLAGS_RELEASE", "CMAKE_CXX_FLAGS_RELEASE"):
             if "-g0" not in config.get(key, "").split():
                 raise RuntimeError(f"Release build must disable debug information: {key}")
@@ -43,8 +51,8 @@ def verify_configuration(config: dict[str, str], variant: str) -> None:
 
 def verify_binary(binary: Path, variant: str) -> None:
     """独立检查二进制本身的调试节和 sanitizer 符号，不能只相信 preset。"""
-    sections = _run(["readelf", "--sections", "--wide", str(binary)])
-    symbols = _run(["readelf", "--dyn-syms", "--wide", str(binary)])
+    sections = _run(["readelf", "--sections", "--wide", "--", str(binary)])
+    symbols = _run(["readelf", "--dyn-syms", "--wide", "--", str(binary)])
     debug = re.search(r"\.(?:z?debug_\w+|gnu_debug(?:link|altlink|data)|gdb_index)\b", sections)
     asan = re.search(r"\b__asan_init\b", symbols)
     ubsan = re.search(r"\b__ubsan_handle_\w+", symbols)
@@ -57,7 +65,7 @@ def verify_binary(binary: Path, variant: str) -> None:
 
 def collect_libraries(binary: Path, build_dir: Path, library_dir: Path, variant: str) -> str:
     """仅打包实际加载的 vcpkg/Clang 运行库；系统 libc 和加载器由目标系统提供。"""
-    output = _run(["ldd", str(binary)])
+    output = _run(["ldd", "--", str(binary)])
     if "not found" in output:
         raise RuntimeError(f"Unresolved shared library dependencies for {binary}: {output}")
     roots = [build_dir.resolve() / "vcpkg_installed"]
@@ -74,12 +82,13 @@ def collect_libraries(binary: Path, build_dir: Path, library_dir: Path, variant:
         target = library_dir / name
         shutil.copy2(source, target)
         if variant == "release":
-            _run(["llvm-strip", "--strip-unneeded", str(target)])
+            _run(["llvm-strip", "--strip-unneeded", "--", str(target)])
             verify_binary(target, "release")
     return output
 
 
 def main(argv: list[str]) -> int:
+    """在修改二进制前核验配置，再检查 ELF 并输出动态库依赖报告。"""
     parser = argparse.ArgumentParser(description="Verify and prepare CI build artifacts")
     parser.add_argument("--variant", choices=("release", "test"), required=True)
     parser.add_argument("--build-dir", type=Path, required=True)
@@ -92,7 +101,7 @@ def main(argv: list[str]) -> int:
         lines = []
         for binary in args.binary:
             if args.variant == "release":
-                _run(["llvm-strip", "--strip-all", str(binary)])
+                _run(["llvm-strip", "--strip-all", "--", str(binary)])
             verify_binary(binary, args.variant)
             lines.extend([f"Verified {args.variant} binary: {binary}",
                           collect_libraries(binary, args.build_dir, args.library_dir, args.variant)])

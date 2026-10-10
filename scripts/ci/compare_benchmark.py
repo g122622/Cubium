@@ -87,6 +87,7 @@ def _fmt_pct(value: float | None) -> str:
 
 
 def build_report(current: dict, previous: dict | None, cpu_threshold: float, mem_threshold: float) -> str:
+    """比较同构建配置的 CPU/内存指标；配置变化时输出重建基线的概览。"""
     lines: list[str] = []
     lines.append("# Benchmark 跨日对比")
     lines.append("")

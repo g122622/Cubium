@@ -47,7 +47,7 @@ benchmark/
 - 每次启动使用全新临时世界目录（`$TMPDIR/mc_benchmark_server_init/<case>_<n>`，内含空配置指定独立 worldName 与随机端口），成功退出后删除，保证冷启动口径一致
 - 被测服务端进程显式传 `--profiler_enabled=false`，trace 只录基准进程侧
 - 被测进程的 stdout/stderr 重定向到 `<临时世界目录>/server_console.log`（两个平台一致）：非零退出时回显日志头 80 行 + 尾 120 行（超长中间省略）**并保留该临时世界目录**供事后排查；成功退出时静默删除
-- 依赖：CMake 将同配置的 `minecraft-server` 目标路径注入基准，并建立构建依赖；Release 不会误启动 RelWithDebInfo 服务端。
+- 依赖：CMake 注入同配置服务端的文件名，并建立构建依赖；运行时在 benchmark 同目录查找，Release 不会误启动 RelWithDebInfo 服务端。
 
 ### PalettedContainerRandomRead / PalettedContainerRandomWrite（调色板随机读写 vs 位宽）
 
@@ -136,7 +136,7 @@ google/benchmark 经 libpfm4 支持 `--benchmark_perf_counters=CYCLES,INSTRUCTIO
 
 ### mc_benchmark 必须在仓库根目录运行
 
-`serverInitialize*` 使用构建时注入的同配置服务端路径；跨 job 的 artifact 须保留构建目录布局，结果目录仍基于 CWD。
+`serverInitialize*` 在运行中的 benchmark 可执行文件同目录定位服务端；两者可整体重定位，结果目录仍基于 CWD。
 
 ### 被测服务端的启动参数必须两平台一致（Windows 分支曾漏传 `--config`）
 

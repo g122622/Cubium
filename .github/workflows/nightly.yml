@@ -686,7 +686,7 @@ jobs:
             echo "LD_LIBRARY_PATH=${PWD}/release-package/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
 
-      # 启动用例使用 CMake 注入的同配置服务端路径；完整保留 Release artifact 的目录布局。
+      # 启动用例在 benchmark 同目录定位同配置服务端，不依赖构建 runner 的绝对路径。
       - name: Run benchmarks
         run: |
           set -euo pipefail

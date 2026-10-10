@@ -22,6 +22,7 @@
  */
 
 #include "PerfettoProfilerAdapter.hpp"
+#include "ServerExecutablePath.hpp"
 
 #include "common/profiler/TraceEvents.hpp"
 
@@ -39,11 +40,7 @@
 #include <system_error>
 #include <vector>
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
-#else
+#ifndef _WIN32
 #include <cerrno>
 #include <csignal>
 #include <cstdlib>
@@ -57,8 +54,6 @@ using namespace mc::trace;
 
 namespace {
 
-// CMake 注入与当前基准相同配置的服务端目标路径，支持独立的 Release 构建目录。
-constexpr const char* _SERVER_EXECUTABLE = MC_BENCHMARK_SERVER_EXECUTABLE;
 #ifdef _WIN32
 
 /// ASCII 字面量（被测可执行文件路径、benchmark flag 名）→ 宽字符。
@@ -138,6 +133,13 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
 /// \return 进程退出码；启动失败返回 -1
 [[nodiscard]] i32 launchServerOnce(const std::string& modeFlag, const std::filesystem::path& worldDir)
 {
+    std::error_code pathError;
+    const auto serverExecutable =
+        mc::benchmark::detail::resolveServerExecutable(MC_BENCHMARK_SERVER_FILE_NAME, pathError);
+    if (pathError) {
+        spdlog::error("benchmark: failed to resolve server executable path: {}", pathError.message());
+        return -1;
+    }
     const std::filesystem::path logPath = worldDir / SERVER_CONSOLE_LOG_NAME;
     i32 exitCode = -1;
 
@@ -153,7 +155,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
     // 当前 ANSI 代码页转回窄 argv，因此临时目录路径中超出该代码页的字符仍无法传递；如需
     // 完全 Unicode 支持，须服务端改用 wmain / UTF-8 argv（app manifest activeCodePage）。
     const std::filesystem::path configPath = worldDir / "server_options.json";
-    const std::wstring wideExecutable = widenAscii(_SERVER_EXECUTABLE);
+    const std::wstring wideExecutable = serverExecutable.wstring();
     std::wstring wideCommandLine = L"\"" + wideExecutable + L"\" " + widenAscii(modeFlag) + L" --config \"" +
         configPath.wstring() + L"\" --profiler_enabled=false";
 
@@ -218,6 +220,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
     // 临时存档隔离：每次启动用全新游戏目录（--config 指向临时目录内的空配置，
     // 服务端从配置路径推导游戏目录与 saves/），保证每次启动都是全新世界冷启动。
     const std::string configPath = (worldDir / "server_options.json").string();
+    const std::string executablePath = serverExecutable.string();
 
     // 控制台输出重定向到日志文件（与 Windows 分支行为一致）。
     const std::string logPathString = logPath.string();
@@ -245,8 +248,8 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
         std::signal(SIGALRM, [](i32) { _exit(EXIT_CODE_TIMEOUT); });
         alarm(static_cast<unsigned>(LAUNCH_TIMEOUT_MS / 1000));
 
-        execl(_SERVER_EXECUTABLE,
-            _SERVER_EXECUTABLE,
+        execl(executablePath.c_str(),
+            executablePath.c_str(),
             modeFlag.c_str(),
             "--config",
             configPath.c_str(),
