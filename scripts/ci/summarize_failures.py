@@ -457,6 +457,7 @@ def build_body(
     commit: str,
     limit_output: bool,
 ) -> str:
+    """汇总任务结论、机器配置及失败/跳过记录，按展示场景限制正文长度。"""
     ctest_results = collect_ctest_results(artifacts_dir)
     ctest_failures = ctest_results["failures"]
     junit_results = collect_junit_results(artifacts_dir)
