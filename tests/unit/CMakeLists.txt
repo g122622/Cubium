@@ -35,6 +35,7 @@ add_executable(mc_tests
     common/network/JavaCodecNonPlayTest.cpp
     common/network/JavaCodecPlayMovementTest.cpp
     common/network/JavaCodecPlayContainerTest.cpp
+    common/network/JavaCodecPlayPlayerStateRequestsTest.cpp
     common/network/JavaCodecPlayLoginStateTest.cpp
     common/network/JavaCodecPlayEntityChunkTest.cpp
     common/network/JavaCodecPlayPlayerSoundTest.cpp
@@ -2757,5 +2758,4 @@ if(MC_BUILD_CLIENT)
     #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiTextureLoader.cpp
     # )
 endif()
-
 

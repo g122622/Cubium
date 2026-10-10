@@ -1688,4 +1688,19 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 游戏模式请求：VarInt 枚举，禁止网络输入进入 NotSet 状态。 */
+[[nodiscard]] inline auto changeGameModeCodec()
+{
+    return makeCodec<ir::play::ChangeGameMode>(
+        [](B& buf, const ir::play::ChangeGameMode& v) { buf.writeVarInt(v.mode); },
+        [](B& buf) -> Result<ir::play::ChangeGameMode> {
+            ir::play::ChangeGameMode v{};
+            MC_TRY_ASSIGN(v.mode, buf.readVarInt());
+            if (v.mode < 0 || v.mode > 3) {
+                return Error(ErrorCode::InvalidArgument, "Invalid game mode");
+            }
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

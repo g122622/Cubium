@@ -5,7 +5,8 @@
 | 项目 | 状态 | 验证 |
 | --- | --- | --- |
 | container_close（cb:17） | 已补下行登记、客户端消费、死亡前关闭；远程关闭核对菜单 ID | Windows 构建成功；11 项容器协议测试通过，含下行黄金字节测试 |
-| change_game_mode、swing、teleport_to_entity、client_information、player_abilities、player_loaded | 待处理 | |
+| change_game_mode（sb:4） | 已补协议、权限校验及路由；所有模式切换均更新真实实体 | Windows 构建成功；3 项协议与业务测试通过 |
+| swing、teleport_to_entity、client_information、player_abilities、player_loaded | 待处理 | |
 | award_stats、tab_list、damage_event、cooldown | 待处理 | |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |

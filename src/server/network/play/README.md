@@ -22,12 +22,12 @@ src/server/network/play/
 ├── base/
 │   ├── README.md
 │   └── PlayHandlerBase.hpp        # 处理器基座：只提供 MinecraftServer&
-├── ServerPlayHandler.hpp/cpp      # 聚合门面：27 路 holds_alternative 分发表 + 对外 updateEntityTrackingForPlayer
+├── ServerPlayHandler.hpp/cpp      # 聚合门面：按类型的 holds_alternative 分发表 + 对外 updateEntityTrackingForPlayer
 ├── MovementHandler.hpp/cpp        # 移动 / 载具移动 / 客户端输入 / 传送确认 / 客户端 tick 结束
 ├── BlockActionHandler.hpp/cpp     # 挖掘 / 物品动作 / 使用物品 / 放置 / 告示牌
 ├── EntityActionHandler.hpp/cpp    # 实体交互（INTERACT / ATTACK / INTERACT_AT）
 ├── ChatHandler.hpp/cpp            # 聊天与命令执行
-├── PlayerStateHandler.hpp/cpp     # PlayerCommand / 难度 / 配方书 / 进度界面
+├── PlayerStateHandler.hpp/cpp     # PlayerCommand / 游戏模式 / 难度 / 配方书 / 进度界面
 └── SessionSignalHandler.hpp/cpp   # 心跳 / ping / 阶段重协商确认 / 区块批次反馈
 ```
 

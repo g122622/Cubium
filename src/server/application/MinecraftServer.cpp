@@ -606,35 +606,22 @@ void MinecraftServer::initializeCoreManagers()
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
 
     // 注册游戏模式变化回调：当玩家切入/切出旁观者模式时，更新 ServerPlayer 实体的
-    // 游戏模式（能力/noclip）。切出旁观者额外 resetCamera() 发送 SetCameraPacket。
-    // 原实现两分支各写一遍“遍历维度寻找 ServerPlayer 实体”循环，此处合并为单循环，
-    // 仅在切出旁观者时多调一次 resetCamera()。
+    // 每次模式变化均更新真实实体；玩家 ID 必须经过实体管理器解析。
     m_gameModeManager->setOnGameModeChange([this](PlayerId playerId, GameMode oldMode, GameMode newMode) {
-        const bool leavingSpectator = (oldMode == GameMode::Spectator && newMode != GameMode::Spectator);
-        const bool enteringSpectator = (newMode == GameMode::Spectator);
-        if (!leavingSpectator && !enteringSpectator) {
+        auto* world = getPlayerWorld(playerId);
+        if (world == nullptr) {
             return;
         }
-
-        // 遍历所有维度世界寻找玩家实体（ServerPlayer）
-        for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
-            auto* dimension = m_dimensionManager->getDimension(dimId);
-            if (dimension == nullptr || dimension->world() == nullptr) {
-                continue;
-            }
-            Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
-            if (entity == nullptr) {
-                continue;
-            }
-            auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
-            if (serverPlayer != nullptr) {
-                if (leavingSpectator) {
-                    serverPlayer->resetCamera();
-                }
-                serverPlayer->setGameMode(newMode);
-                break;
+        auto* player = m_playerEntityManager.getPlayerEntity(playerId, *world);
+        if (player == nullptr) {
+            return;
+        }
+        if (oldMode == GameMode::Spectator && newMode != GameMode::Spectator) {
+            if (auto* serverPlayer = player->asServerPlayer()) {
+                serverPlayer->resetCamera();
             }
         }
+        player->setGameMode(newMode);
     });
     m_whitelistManager = std::make_unique<core::WhitelistManager>();
     m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();

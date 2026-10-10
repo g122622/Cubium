@@ -246,6 +246,8 @@ using B = buffer::RegistryByteBuf;
     // 之前未登记，导致服务端每 50 ms 丢弃一包并打出 Unknown packet id 12 的 warn。
     b.addPacket<ir::play::ClientTickEnd>(
         12, PacketType{PacketFlow::Serverbound, "client_tick_end"}, 115, codecs::clientTickEndCodec());
+    b.addPacket<ir::play::ChangeGameMode>(
+        4, PacketType{PacketFlow::Serverbound, "change_game_mode"}, 120, codecs::changeGameModeCodec());
     return b.build();
 }
 

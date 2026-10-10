@@ -46,6 +46,21 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
+void PlayerStateHandler::handleChangeGameModePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::ChangeGameMode>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (request.mode < 0 || request.mode > 3 || m_server.resolveOpLevel(player->uuid) < 2) {
+        spdlog::warn("ChangeGameMode: player {} sent an invalid or unauthorized request", playerId);
+        return;
+    }
+    m_server.gameModeManager().setGameMode(playerId, static_cast<GameMode>(request.mode));
+}
+
 void PlayerStateHandler::handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // PlayerCommand action（对齐 MC 1.21.11 ServerboundPlayerCommandPacket.Action）：

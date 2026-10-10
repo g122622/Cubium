@@ -205,7 +205,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     // ---- 实体装备与状态效果（altIndex 117..119，PlayPacketsExtended.hpp）----
     play::SetEquipment,    // 117
     play::UpdateMobEffect, // 118
-    play::RemoveMobEffect  // 119
+    play::RemoveMobEffect, // 119
+    play::ChangeGameMode   // 120
     >;
 
 /**

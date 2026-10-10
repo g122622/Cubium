@@ -1385,4 +1385,10 @@ struct RemoveMobEffect {
     [[nodiscard]] friend bool operator==(const RemoveMobEffect&, const RemoveMobEffect&) noexcept = default;
 };
 
+/** @brief 请求切换游戏模式（C→S，id=4）。 */
+struct ChangeGameMode {
+    i32 mode;
+    [[nodiscard]] friend bool operator==(const ChangeGameMode&, const ChangeGameMode&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play
