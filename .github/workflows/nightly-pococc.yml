@@ -3,6 +3,12 @@ name: Nightly pococc Test Build
 # 独立实验暂时仅手动触发，避免与现有定时 nightly 自动重叠。
 on:
   workflow_dispatch:
+    inputs:
+      allow_concurrent_nightly:
+        description: 仅本次允许与现有 Nightly 并行，占用额外 runner 并发名额
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -42,7 +48,13 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ALLOW_CONCURRENT_NIGHTLY: ${{ inputs.allow_concurrent_nightly }}
         run: |
+          if [ "$ALLOW_CONCURRENT_NIGHTLY" = true ]; then
+            echo enabled=true >> "$GITHUB_OUTPUT"
+            echo 'Manual override: allowing this experiment to run beside the existing Nightly.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           active=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/nightly.yml/runs?per_page=100" \
             --paginate | jq -s '[.[] | .workflow_runs[] | select(.status != "completed")] | length')
           if [ "$active" -gt 0 ]; then

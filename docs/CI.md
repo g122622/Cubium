@@ -6,7 +6,8 @@
 实验使用 linux-clang-ci-tests，构建 minecraft-server 和 mc_tests，保留 RelWithDebInfo、
 ASan 与 UBSan，显式关闭 PCH 和 modules 扫描，输出至独立 build-pococc 目录。
 
-准备 job 在现有 Nightly CI 活跃时跳过本次实验。实际编译使用一个协调 runner 和两个
+准备 job 默认在现有 Nightly CI 活跃时跳过本次实验；手动输入 allow_concurrent_nightly
+可仅对当前 run 放行并行验证，默认关闭。实际编译使用一个协调 runner 和两个
 Clang 22 worker，通过经过 SSH 认证的临时隧道连接。pococc 源码固定到不可变提交，
 长时间 worker 每分钟查询完成状态，协调构建最多 300 分钟，worker 最多 360 分钟。
 worker 在协调节点启动前的准备与公钥会合有合计 55 分钟的 step 上限，取得公钥后才进入 hold；

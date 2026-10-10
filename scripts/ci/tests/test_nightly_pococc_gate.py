@@ -14,7 +14,7 @@ WORKFLOW = Path(__file__).resolve().parents[3] / ".github/workflows/nightly-poco
 
 @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("jq"), "Requires Linux bash and jq")
 class NightlyPococcGateTests(unittest.TestCase):
-    def _run_gate(self, pages, api_failure):
+    def _run_gate(self, pages, api_failure, override):
         lines = WORKFLOW.read_text(encoding="utf-8").splitlines()
         start = next(index for index, line in enumerate(lines)
                      if line.strip() == "- name: Skip while existing Nightly CI is active")
@@ -49,7 +49,8 @@ class NightlyPococcGateTests(unittest.TestCase):
             environment = dict(os.environ, PATH=str(tools) + ":" + os.environ["PATH"],
                                GITHUB_REPOSITORY="g122622/Cubium", GITHUB_OUTPUT=str(output),
                                GITHUB_STEP_SUMMARY=str(root / "summary"),
-                               API_PAGES=json.dumps(pages), API_FAILURE="1" if api_failure else "0")
+                               API_PAGES=json.dumps(pages), API_FAILURE="1" if api_failure else "0",
+                               ALLOW_CONCURRENT_NIGHTLY="true" if override else "false")
             result = subprocess.run(command + ["-c", "\n".join(body)], env=environment,
                                     text=True, capture_output=True, timeout=10, check=False)
             return result.returncode, output.read_text() if output.exists() else ""
@@ -57,19 +58,24 @@ class NightlyPococcGateTests(unittest.TestCase):
     def test_active_nightly_on_later_page_disables_cluster(self):
         pages = [{"workflow_runs": [{"status": "completed"}] * 100},
                  {"workflow_runs": [{"status": "in_progress"}]}]
-        code, output = self._run_gate(pages, False)
+        code, output = self._run_gate(pages, False, False)
         self.assertEqual(code, 0)
         self.assertEqual(output.strip(), "enabled=false")
 
     def test_completed_pages_enable_cluster(self):
-        code, output = self._run_gate([{"workflow_runs": [{"status": "completed"}]}], False)
+        code, output = self._run_gate([{"workflow_runs": [{"status": "completed"}]}], False, False)
         self.assertEqual(code, 0)
         self.assertEqual(output.strip(), "enabled=true")
 
     def test_api_failure_cannot_enable_cluster(self):
-        code, output = self._run_gate([], True)
+        code, output = self._run_gate([], True, False)
         self.assertNotEqual(code, 0)
         self.assertEqual(output, "")
+
+    def test_explicit_override_enables_only_the_requested_run(self):
+        code, output = self._run_gate([], True, True)
+        self.assertEqual(code, 0)
+        self.assertEqual(output.strip(), "enabled=true")
 
 
 if __name__ == "__main__":
