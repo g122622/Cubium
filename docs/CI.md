@@ -8,7 +8,9 @@ ASan 与 UBSan，显式关闭 PCH 和 modules 扫描，输出至独立 build-poc
 
 准备 job 在现有 Nightly CI 活跃时跳过本次实验。实际编译使用一个协调 runner 和两个
 Clang 22 worker，通过经过 SSH 认证的临时隧道连接。pococc 源码固定到不可变提交，
-长时间 worker 每分钟查询完成状态，协调构建最多 300 分钟，worker 最多 330 分钟。
+长时间 worker 每分钟查询完成状态，协调构建最多 300 分钟，worker 最多 360 分钟。
+worker 在协调节点启动前的准备与公钥会合有合计 55 分钟的 step 上限，取得公钥后才进入 hold；
+hold 设置为 360 分钟，覆盖完整协调构建，worker job 还保留至少 5 分钟清理预算。
 
 ccache 仅位于临时 runner；vcpkg cache 只读恢复，无保存或删除动作，不增加 Actions cache
 容量。workflow 使用独立 concurrency 和 pococc- 前缀的 artifacts，不运行测试、fuzz、

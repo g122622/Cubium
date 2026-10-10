@@ -23,7 +23,7 @@ env:
   CCACHE_SLOPPINESS: include_file_mtime,include_file_ctime
   POCOCC_CI_BINARY_DIR: /tmp/pococc-tools
   POCOCC_CI_ARTIFACT_PREFIX: pococc-
-  POCOCC_CI_HOLD_TIMEOUT: '19200'
+  POCOCC_CI_HOLD_TIMEOUT: '21600'
   POCOCC_CI_RENDEZVOUS_TIMEOUT: '900'
   POCOCC_CI_POLL_INTERVAL: '60'
   POCOCC_CI_WORKER_SLOTS: '2'
@@ -43,7 +43,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           active=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/nightly.yml/runs?per_page=100" \
-            --jq '[.workflow_runs[] | select(.status != "completed")] | length')
+            --paginate --slurp \
+            --jq '[.[] | .workflow_runs[] | select(.status != "completed")] | length')
           if [ "$active" -gt 0 ]; then
             echo enabled=false >> "$GITHUB_OUTPUT"
             echo 'Existing Nightly CI is active; skipping the pococc experiment.' >> "$GITHUB_STEP_SUMMARY"
@@ -219,23 +220,28 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.enabled == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 330
+    # 协调节点启动前的准备与公钥会合最多 55 分钟，完整构建后仍预留 5 分钟清理预算。
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
         worker: [1, 2]
     steps:
       - uses: actions/checkout@v4
+        timeout-minutes: 5
         with:
           sparse-checkout: .github/actions/setup-pococc-toolchain
       - uses: actions/download-artifact@v4
+        timeout-minutes: 5
         with:
           name: pococc-tools-${{ github.run_attempt }}
           path: ${{ env.POCOCC_CI_BINARY_DIR }}
       - uses: ./.github/actions/setup-pococc-toolchain
+        timeout-minutes: 20
         with:
           cubium-dependencies: 'false'
       - name: Start authenticated compile worker
+        timeout-minutes: 25
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -249,6 +255,7 @@ jobs:
           path: ${{ runner.temp }}/pococc-worker/endpoint.json
           retention-days: 1
       - name: Keep worker available
+        # worker 只有取得协调节点的公钥才会进入 hold，此时协调节点已经开始运行。
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" hold --state "$RUNNER_TEMP/pococc-worker"
