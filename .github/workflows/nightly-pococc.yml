@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  POCOCC_REF: 5b9d4311ef103ff54584591dd15e23132657fd92
+  POCOCC_REF: 70955224a6cb37fe52c48ef845c0ea5d83650d7d
   CI_COMPILER: /usr/lib/llvm-22/bin/clang++
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
   VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
