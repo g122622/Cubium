@@ -1311,7 +1311,7 @@ protected:
      *
      * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
      */
-    void _handleCloseContainerRemote(PlayerId playerId);
+    void _handleCloseContainerRemote(PlayerId playerId, i32 containerId);
 
     /**
      * @brief handleContainerClickPacket 远程分支：handleClick + syncToClient

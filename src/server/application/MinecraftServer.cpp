@@ -2492,8 +2492,13 @@ void MinecraftServer::_handleHotbarSelectRemote(PlayerId playerId, i32 slot)
         });
 }
 
-void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId)
+void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId, i32 containerId)
 {
+    // 旧界面的迟到关闭请求不能关闭后来打开的菜单。
+    const auto* menu = containerManager().getOpenMenu(playerId);
+    if (menu == nullptr || menu->getId() != containerId) {
+        return;
+    }
     containerManager().closeContainer(playerId);
     inventoryManager().syncToClient(playerId);
 }
@@ -2615,7 +2620,7 @@ void MinecraftServer::handleCloseContainerPacket(PlayerId playerId, const mc::ne
         return;
     }
 
-    _handleCloseContainerRemote(playerId);
+    _handleCloseContainerRemote(playerId, evt->containerId);
 }
 
 void MinecraftServer::handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

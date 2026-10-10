@@ -714,7 +714,7 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const mc::n
         if (!player || !player->loggedIn) {
             return;
         }
-        _handleCloseContainerRemote(playerId);
+        _handleCloseContainerRemote(playerId, evt->containerId);
         return;
     }
 

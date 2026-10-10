@@ -75,6 +75,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
+#include "server/interaction/ContainerManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/stats/StatType.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -1027,6 +1028,10 @@ void ServerPlayer::indicateDamage(f64 d0, f64 d1)
 
 void ServerPlayer::die(DamageSource& cause)
 {
+    // 先归还菜单内的物品，再处理死亡掉落；关闭回调同时通知客户端退出旧菜单。
+    if (m_server != nullptr) {
+        m_server->containerManager().closeContainer(playerId());
+    }
     // 对齐 MC Java 1.21.11 ServerPlayer.die（ServerPlayer.java:879-939）。
     // 玩家死亡需在 LivingEntity::die 通用逻辑之上，补充玩家特有处理：
     // 死亡消息广播、统计更新、状态清除、最后死亡位置记录。

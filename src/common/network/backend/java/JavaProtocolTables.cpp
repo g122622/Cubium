@@ -278,6 +278,8 @@ using B = buffer::RegistryByteBuf;
         10, PacketType{PacketFlow::Clientbound, "change_difficulty"}, 23, codecs::changeDifficultyCodec());
     b.addPacket<ir::play::ContainerSetContent>(
         18, PacketType{PacketFlow::Clientbound, "container_set_content"}, 39, codecs::containerSetContentCodec());
+    b.addPacket<ir::play::ContainerClose>(
+        17, PacketType{PacketFlow::Clientbound, "container_close"}, 3, codecs::containerCloseCodec());
     b.addPacket<ir::play::ContainerSetData>(
         19, PacketType{PacketFlow::Clientbound, "container_set_data"}, 42, codecs::containerSetDataCodec());
     b.addPacket<ir::play::ContainerSetSlot>(
