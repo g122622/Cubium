@@ -200,7 +200,7 @@ Result<void> PacketDeserializer::readBytesInto(u8* dest, size_t size)
 Result<i32> PacketDeserializer::readVarInt()
 {
     i32 result = 0;
-    int shift = 0;
+    i32 shift = 0;
 
     while (true) {
         if (m_readPos >= m_size) {
@@ -226,7 +226,7 @@ Result<i32> PacketDeserializer::readVarInt()
 Result<i64> PacketDeserializer::readVarLong()
 {
     i64 result = 0;
-    int shift = 0;
+    i32 shift = 0;
 
     while (true) {
         if (m_readPos >= m_size) {

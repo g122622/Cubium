@@ -232,7 +232,7 @@ public:
     /**
      * @brief 获取指定倍频层的噪声生成器
      *
-     * 参考 MC 1.21.11: PerlinNoise.getOctaveNoise(int)
+     * 参考 MC 1.21.11: PerlinNoise.getOctaveNoise(i32)
      * 用于外部访问特定倍频层，例如密度函数导数计算。
      *
      * @param octave 倍频索引（相对于 firstOctave）

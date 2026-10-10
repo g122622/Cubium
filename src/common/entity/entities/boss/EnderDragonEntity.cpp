@@ -747,9 +747,9 @@ void EnderDragonEntity::_onDeathUpdate()
     // 死亡爆炸粒子：在 180-200 tick 之间生成
     // MC: if (this.dragonDeathTime >= 180 && this.dragonDeathTime <= 200) { ... }
     if (m_deathTicks >= 180 && m_deathTicks <= DEATH_DURATION) {
-        // MC: float f = (this.random.nextFloat() - 0.5F) * 8.0F;
-        //     float f1 = (this.random.nextFloat() - 0.5F) * 4.0F;
-        //     float f2 = (this.random.nextFloat() - 0.5F) * 8.0F;
+        // MC: f32 f = (this.random.nextFloat() - 0.5F) * 8.0F;
+        //     f32 f1 = (this.random.nextFloat() - 0.5F) * 4.0F;
+        //     f32 f2 = (this.random.nextFloat() - 0.5F) * 8.0F;
         //     this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER,
         //         this.getX() + f, this.getY() + 2.0 + f1, this.getZ() + f2, 0.0, 0.0, 0.0);
         math::IRandom& rng = getRandom();
@@ -764,7 +764,7 @@ void EnderDragonEntity::_onDeathUpdate()
     }
 
     // 经验掉落总量：首次击杀 12000，后续 500
-    // MC: int i = 500; if (dragonFight != null && !hasPreviouslyKilledDragon()) i = 12000;
+    // MC: i32 i = 500; if (dragonFight != null && !hasPreviouslyKilledDragon()) i = 12000;
     const bool previouslyKilled = (worldPtr != nullptr && worldPtr->dragonFight() != nullptr)
         ? worldPtr->dragonFight()->hasPreviouslyKilled()
         : false;

@@ -227,7 +227,7 @@ void TridentEntity::_tickReturning()
 
     // 检查是否在水中，生成气泡粒子
     if (isInWater() && m_world) {
-        for (int i = 0; i < 4; ++i) {
+        for (i32 i = 0; i < 4; ++i) {
             f32 offset = 0.25f;
             Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
                 y() - m_builtIn.velocity->m_velocity.y * offset,

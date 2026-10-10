@@ -66,7 +66,7 @@ public:
      *
      * 未氧化（Unaffected）返回 0.75，其余等级返回 1.0。
      */
-    [[nodiscard]] float getOxidationChanceModifier() const override
+    [[nodiscard]] f32 getOxidationChanceModifier() const override
     {
         return m_oxidationLevel == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
     }

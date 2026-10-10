@@ -147,7 +147,7 @@ private:
      * @param scale 缩放因子
      * @return 缩放后的整数值
      */
-    static i32 _scaleValue(const nbt::tags::tag& tag, double scale);
+    static i32 _scaleValue(const nbt::tags::tag& tag, f64 scale);
 
     /**
      * @brief 发送错误消息

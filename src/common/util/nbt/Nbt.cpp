@@ -51,7 +51,7 @@ namespace nbt {
 void skip_space(std::istream& input)
 {
     for (;;) {
-        int next = cheof(input);
+        i32 next = cheof(input);
         if (!std::isspace(next)) {
             input.putback(next);
             return;
@@ -59,15 +59,15 @@ void skip_space(std::istream& input)
     }
 }
 
-int context_id()
+i32 context_id()
 {
-    static const int i = std::ios_base::xalloc();
+    static const i32 i = std::ios_base::xalloc();
     return i;
 }
 
 Context*& context_storage(std::ios_base& ios)
 {
-    int i = context_id();
+    i32 i = context_id();
     return reinterpret_cast<Context*&>(ios.pword(i));
 }
 
@@ -80,7 +80,7 @@ const Context& Context::get(std::ios_base& ios)
         return *ctxt;
 }
 
-void ios_callback(std::ios_base::event event, std::ios_base& ios, int)
+void ios_callback(std::ios_base::event event, std::ios_base& ios, i32)
 {
     if (event == std::ios_base::event::erase_event) delete context_storage(ios);
 }
@@ -132,7 +132,7 @@ bool read_text_digits(std::istream& input, std::string& literal)
 {
     bool hasDigit = false;
     for (;;) {
-        int next = input.peek();
+        i32 next = input.peek();
         if (next != EOF && std::isdigit(next) != 0) {
             literal.push_back(static_cast<char>(next));
             input.get();
@@ -141,7 +141,7 @@ bool read_text_digits(std::istream& input, std::string& literal)
         }
         if (next == '_' && hasDigit) {
             input.get();
-            int following = input.peek();
+            i32 following = input.peek();
             if (following != EOF && std::isdigit(following) != 0) {
                 continue;
             }
@@ -169,7 +169,7 @@ bool read_text_digits(std::istream& input, std::string& literal)
  */
 bool read_text_number(std::istream& input, std::string& literal)
 {
-    const int sign = input.peek();
+    const i32 sign = input.peek();
     if (sign == '+' || sign == '-') {
         literal.push_back(static_cast<char>(sign));
         input.get();
@@ -183,11 +183,11 @@ bool read_text_number(std::istream& input, std::string& literal)
         hasDigit = read_text_digits(input, literal) || hasDigit;
     }
 
-    const int exponentMark = input.peek();
+    const i32 exponentMark = input.peek();
     if (hasDigit && (exponentMark == 'e' || exponentMark == 'E')) {
         input.get();
         std::string exponent;
-        const int exponentSign = input.peek();
+        const i32 exponentSign = input.peek();
         if (exponentSign == '+' || exponentSign == '-') {
             exponent.push_back(static_cast<char>(exponentSign));
             input.get();
@@ -214,12 +214,12 @@ number_t convert_text_integer(const std::string& literal)
 {
     errno = 0;
     char* end = nullptr;
-    const long long parsed = std::strtoll(literal.c_str(), &end, 10);
+    const i64 parsed = std::strtoll(literal.c_str(), &end, 10);
     if (end == literal.c_str() || *end != '\0' || errno == ERANGE) {
         throw std::runtime_error("failed to parse number: " + literal);
     }
-    if (parsed < static_cast<long long>(std::numeric_limits<number_t>::min()) ||
-        parsed > static_cast<long long>(std::numeric_limits<number_t>::max())) {
+    if (parsed < static_cast<i64>(std::numeric_limits<number_t>::min()) ||
+        parsed > static_cast<i64>(std::numeric_limits<number_t>::max())) {
         throw std::runtime_error("number out of range: " + literal);
     }
     return static_cast<number_t>(parsed);
@@ -238,7 +238,7 @@ number_t load_text_integer(std::istream& input, char suffix)
         throw std::runtime_error("failed to parse number");
     }
     if (suffix != '\0') {
-        const int next = input.peek();
+        const i32 next = input.peek();
         if (next != EOF && std::tolower(next) == suffix) input.get();
     }
     return convert_text_integer<number_t>(literal);
@@ -258,7 +258,7 @@ number_t load_text_floating(std::istream& input, char suffix, number_t (*convert
         throw std::runtime_error("failed to parse number");
     }
     if (suffix != '\0') {
-        const int next = input.peek();
+        const i32 next = input.peek();
         if (next != EOF && std::tolower(next) == suffix) input.get();
     }
     char* end = nullptr;
@@ -296,15 +296,15 @@ std::int64_t load_text<std::int64_t>(std::istream& input)
 }
 
 template <>
-float load_text<float>(std::istream& input)
+f32 load_text<f32>(std::istream& input)
 {
-    return load_text_floating<float>(input, 'f', &std::strtof);
+    return load_text_floating<f32>(input, 'f', &std::strtof);
 }
 
 template <>
-double load_text<double>(std::istream& input)
+f64 load_text<f64>(std::istream& input)
 {
-    return load_text_floating<double>(input, 'd', &std::strtod);
+    return load_text_floating<f64>(input, 'd', &std::strtod);
 }
 
 template <>
@@ -374,7 +374,7 @@ void dump<std::int64_t>(std::ostream& output, std::int64_t number, const Context
 template <>
 void dump_text<std::int8_t>(std::ostream& output, std::int8_t number)
 {
-    output << int(number) << 'b';
+    output << i32(number) << 'b';
 }
 
 template <>
@@ -396,13 +396,13 @@ void dump_text<std::int64_t>(std::ostream& output, std::int64_t number)
 }
 
 template <>
-void dump_text<float>(std::ostream& output, float number)
+void dump_text<f32>(std::ostream& output, f32 number)
 {
     output << number << 'f';
 }
 
 template <>
-void dump_text<double>(std::ostream& output, double number)
+void dump_text<f64>(std::ostream& output, f64 number)
 {
     // TODO: 文本格式的双精度标签没有输出类型后缀 'd'，取值为整数时（如 3.0）会被打印成
     //   "3"，重新解析时退化为 IntTag；需要补上后缀以保证文本往返不丢失类型。
@@ -560,7 +560,7 @@ std::string read_string_text(std::istream& input)
         char quote = first;
         std::string result;
         for (;;) {
-            int c = cheof(input);
+            i32 c = cheof(input);
             switch (c) {
                 case '\'':
                     if (quote == '\'') {
@@ -575,7 +575,7 @@ std::string read_string_text(std::istream& input)
                     result.push_back(c);
                     break;
                 case '\\': {
-                    int s = cheof(input);
+                    i32 s = cheof(input);
                     switch (s) {
                         case '"':
                             result.push_back('"');
@@ -621,7 +621,7 @@ std::string read_string_text(std::istream& input)
     } else {
         std::string result(&first, 1);
         for (;;) {
-            int c = cheof(input);
+            i32 c = cheof(input);
             if (is_valid_char(c)) {
                 result.push_back(c);
             } else {
@@ -751,7 +751,7 @@ std::unique_ptr<list_tag> read_list_content_bridge<TagId::End>(TagId id, std::is
     // 该字节来自不可信输入，绝不能用断言处理：MC_ASSERT_RELEASE 直接终止进程，使畸形
     // 报文成为远程拒绝服务。改为抛错——本库的错误模型就是异常，且网络侧调用点
     // （nbt_io::readCompound / IdDispatchCodec::decode）已统一把异常转成 Result 错误。
-    throw std::runtime_error("invalid list element tag id: " + std::to_string(static_cast<int>(id)));
+    throw std::runtime_error("invalid list element tag id: " + std::to_string(static_cast<i32>(id)));
 }
 
 std::unique_ptr<list_tag> read_list_content(TagId tid, std::istream& input)

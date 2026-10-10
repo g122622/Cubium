@@ -197,10 +197,10 @@ Result<void> EntityTextureAtlas::addTextureFromFile(
         return Error(ErrorCode::FileReadFailed, "Skin file is empty: " + filePath.string());
     }
 
-    int width = 0;
-    int height = 0;
-    int channels = 0;
-    u8* pixels = stbi_load_from_memory(encoded.data(), static_cast<int>(encoded.size()), &width, &height, &channels, 4);
+    i32 width = 0;
+    i32 height = 0;
+    i32 channels = 0;
+    u8* pixels = stbi_load_from_memory(encoded.data(), static_cast<i32>(encoded.size()), &width, &height, &channels, 4);
 
     if (pixels == nullptr) {
         return Error(ErrorCode::InvalidData, "Failed to decode skin PNG: " + filePath.string());
@@ -216,14 +216,14 @@ Result<void> EntityTextureAtlas::addTextureFromFile(
         texData.pixels.assign(static_cast<size_t>(64 * 64 * 4), 0);
 
         // 顶部 32 行直接复制
-        for (int y = 0; y < 32; ++y) {
+        for (i32 y = 0; y < 32; ++y) {
             const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
             const size_t dstOffset = static_cast<size_t>(y * 64 * 4);
             std::memcpy(texData.pixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
         }
 
         // 旧皮肤没有第二层与独立左肢，复制一份到下半区作为兼容兜底。
-        for (int y = 0; y < 32; ++y) {
+        for (i32 y = 0; y < 32; ++y) {
             const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
             const size_t dstOffset = static_cast<size_t>((y + 32) * 64 * 4);
             std::memcpy(texData.pixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
@@ -519,8 +519,8 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
     auto result = pack.readResource(mc::resource::PackType::ClientResources, filePath);
     if (result.success()) {
         auto& data = result.value();
-        int width, height, channels;
-        u8* pixels = stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4);
+        i32 width, height, channels;
+        u8* pixels = stbi_load_from_memory(data.data(), static_cast<i32>(data.size()), &width, &height, &channels, 4);
         if (pixels) {
             outWidth = static_cast<u32>(width);
             outHeight = static_cast<u32>(height);
@@ -544,9 +544,9 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
         result = pack.readResource(mc::resource::PackType::ClientResources, altFilePath);
         if (result.success()) {
             auto& data = result.value();
-            int width, height, channels;
+            i32 width, height, channels;
             u8* pixels =
-                stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4);
+                stbi_load_from_memory(data.data(), static_cast<i32>(data.size()), &width, &height, &channels, 4);
             if (pixels) {
                 outWidth = static_cast<u32>(width);
                 outHeight = static_cast<u32>(height);
@@ -565,9 +565,9 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
         result = pack.readResource(mc::resource::PackType::ClientResources, directPath);
         if (result.success()) {
             auto& data = result.value();
-            int width, height, channels;
+            i32 width, height, channels;
             u8* pixels =
-                stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4);
+                stbi_load_from_memory(data.data(), static_cast<i32>(data.size()), &width, &height, &channels, 4);
             if (pixels) {
                 outWidth = static_cast<u32>(width);
                 outHeight = static_cast<u32>(height);

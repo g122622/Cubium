@@ -557,7 +557,7 @@ Result<void> TridentContext::_createLogicalDevice()
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<u32> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
-    float queuePriority = 1.0f;
+    f32 queuePriority = 1.0f;
     for (u32 queueFamily : uniqueQueueFamilies) {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;

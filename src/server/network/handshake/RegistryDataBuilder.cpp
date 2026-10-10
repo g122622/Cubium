@@ -68,7 +68,7 @@ const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
 /// 与 mc::nbt::jsonToNbt 的关键差异：后者按数值范围窄化——[-128,127] → byte_tag、
 /// [-32768,32767] → short_tag、其余 → int_tag。Java 侧注册表 codec 的整数字段用
 /// Codec.INT 解码，byte_tag/short_tag 会被拒（EnchantmentNbtBuilder.cpp:462 记录了
-/// enchantment 的同类问题：「jsonToNbt 会把 5 推断为 byte_tag，Java int CODEC 要求
+/// enchantment 的同类问题：「jsonToNbt 会把 5 推断为 byte_tag，Java i32 CODEC 要求
 /// int_tag，拒绝 byte_tag/short_tag」）。本函数专供注册表 NBT 构造，规避该窄化。
 ///
 /// 浮点沿用 jsonToNbt 的推断（能精确表示为 f32 则 float_tag，否则 double_tag）——
@@ -656,7 +656,7 @@ std::vector<mc::network::ir::configuration::TagRegistry> buildConfigurationUpdat
     // 为空（values:[]），但 HolderSetCodec.lookupTag 在解码时经 getOrCreateTagForRegistration
     // 创建未绑定 Named，freeze() 校验未绑定 tag 抛 "Unbound tags"。UpdateTags 即使发空 id
     // 列表也会触发 bindTag(空列表) → bound（HolderSet.Named.bind 空列表即 bound），故发空 tag。
-    // dialog int id（发送顺序 0-2）对空 tag 无关（无元素 id 可编码）。
+    // dialog i32 id（发送顺序 0-2）对空 tag 无关（无元素 id 可编码）。
     std::vector<mc::network::ir::configuration::TagRegistry> registries;
     registries.reserve(2);
 

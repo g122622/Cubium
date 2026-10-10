@@ -23,6 +23,7 @@
 
 #include "MemoryProfiler.hpp"
 #include "PerfettoProfilerAdapter.hpp"
+#include "common/core/Types.hpp"
 
 #include <chrono>
 #include <ctime>
@@ -117,7 +118,7 @@ namespace {
 
 } // namespace
 
-int main(int argc, char** argv)
+mc::i32 main(mc::i32 argc, char** argv)
 {
     // 时间戳归档目录必须在 CreateProcess 前确定（结果 JSON 路径要注入 argv），
     // 但 Initialize 须在 argv 注入前完成解析顺序问题——把目录计算提前即可：
@@ -130,7 +131,7 @@ int main(int argc, char** argv)
     // 且它不认识的参数会被原样忽略（因此自有开关必须在它之前消费掉）。
     std::vector<std::string> args;
     args.reserve(static_cast<size_t>(argc) + 1);
-    for (int i = 0; i < argc; ++i) {
+    for (mc::i32 i = 0; i < argc; ++i) {
         args.emplace_back(argv[i]);
     }
     const bool traceEnabled = extractTraceFlag(args);
@@ -143,7 +144,7 @@ int main(int argc, char** argv)
     for (auto& arg : args) {
         argPointers.push_back(arg.data());
     }
-    int parsedArgc = static_cast<int>(argPointers.size());
+    mc::i32 parsedArgc = static_cast<mc::i32>(argPointers.size());
 
     // 命令行其余部分完全交给 google/benchmark 的 flags 解析（--benchmark_filter 等）。
     ::benchmark::Initialize(&parsedArgc, argPointers.data());

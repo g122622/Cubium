@@ -79,7 +79,7 @@ public:
      *
      * 只在需要复刻原版**按位宽抽取**的路径上使用（当前唯一消费者是 WorldgenRandom）。
      * 默认实现取 nextU64() 的高 bits 位，对应原版对"非 Legacy 内层"的处理
-     * （`(int)(randomSource.nextLong() >>> 64 - bits)`）。
+     * （`(i32)(randomSource.nextLong() >>> 64 - bits)`）。
      * JavaLegacyRandom 覆写为自身的 next(bits)，对应原版 `instanceof LegacyRandomSource` 分支。
      *
      * 【为什么必须单独一个方法而不是让调用方自己写 nextU64()>>(64-bits)】
@@ -120,7 +120,7 @@ public:
      *
      * 使用 MC 风格的无偏差算法，避免模偏差。
      *
-     * @note 参考 MC Random.nextInt(int bound)
+     * @note 参考 MC Random.nextInt(i32 bound)
      */
     [[nodiscard]] virtual i32 nextInt(i32 bound);
 
@@ -330,7 +330,7 @@ public:
      * 使用 Fisher-Yates 洗牌算法，确保每个排列概率相等。
      *
      * @code
-     * std::vector<int> items = {1, 2, 3, 4, 5};
+     * std::vector<i32> items = {1, 2, 3, 4, 5};
      * rng.shuffle(items);  // 随机打乱
      * @endcode
      */

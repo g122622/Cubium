@@ -59,11 +59,11 @@ std::vector<u8> decodeSkinPng(const std::vector<u8>& pngData)
         return {};
     }
 
-    int width = 0;
-    int height = 0;
-    int channels = 0;
+    i32 width = 0;
+    i32 height = 0;
+    i32 channels = 0;
     u8* pixels = stbi_load_from_memory(pngData.data(),
-        static_cast<int>(pngData.size()),
+        static_cast<i32>(pngData.size()),
         &width,
         &height,
         &channels,
@@ -78,13 +78,13 @@ std::vector<u8> decodeSkinPng(const std::vector<u8>& pngData)
     if (width == 64 && height == 32) {
         // 旧版 Java 皮肤格式，扩展到 64x64
         processedPixels.assign(static_cast<size_t>(64 * 64 * 4), 0);
-        for (int y = 0; y < 32; ++y) {
+        for (i32 y = 0; y < 32; ++y) {
             const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
             const size_t dstOffset = static_cast<size_t>(y * 64 * 4);
             std::memcpy(processedPixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));
         }
         // 复制上半部分作为兼容外层
-        for (int y = 0; y < 32; ++y) {
+        for (i32 y = 0; y < 32; ++y) {
             const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
             const size_t dstOffset = static_cast<size_t>((y + 32) * 64 * 4);
             std::memcpy(processedPixels.data() + dstOffset, pixels + srcOffset, static_cast<size_t>(64 * 4));

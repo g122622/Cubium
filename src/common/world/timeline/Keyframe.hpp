@@ -34,7 +34,7 @@ namespace timeline {
 /**
  * @brief 关键帧
  *
- * MC 1.21.11 record Keyframe<T>(int ticks, T value)。
+ * MC 1.21.11 record Keyframe<T>(i32 ticks, T value)。
  * 表示在某个 tick 时间点的值。
  */
 template <typename T>

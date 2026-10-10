@@ -85,7 +85,7 @@ void Xoshiro256ppRandom::skip(u64 /* count */)
     u64 s3 = 0;
 
     for (size_t i = 0; i < sizeof(JUMP) / sizeof(JUMP[0]); ++i) {
-        for (int b = 0; b < 64; ++b) {
+        for (i32 b = 0; b < 64; ++b) {
             if (JUMP[i] & (1ULL << b)) {
                 s0 ^= m_state[0];
                 s1 ^= m_state[1];

@@ -170,9 +170,9 @@ void BaseGameTestInstance::fail(GameTestError error)
     _notifyFailed();
 }
 
-double BaseGameTestInstance::wallTimeSeconds() const noexcept
+f64 BaseGameTestInstance::wallTimeSeconds() const noexcept
 {
-    return std::chrono::duration<double>(m_finishedAt.value_or(std::chrono::steady_clock::now()) - m_createdAt).count();
+    return std::chrono::duration<f64>(m_finishedAt.value_or(std::chrono::steady_clock::now()) - m_createdAt).count();
 }
 
 GameTestSequence& BaseGameTestInstance::createSequence()

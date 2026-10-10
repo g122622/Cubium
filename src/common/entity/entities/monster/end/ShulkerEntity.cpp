@@ -369,8 +369,8 @@ void ShulkerEntity::_hitByShulkerBullet(const Vector3& originalPos)
     // 对齐 vanilla 1.21.11 Shulker.hitByShulkerBullet（Shulker.java:440-455）：
     //   Vec3 vec3 = this.position(); AABB aabb = this.getBoundingBox();
     //   if (!isClosed() && teleportSomewhere()) {
-    //       int i = level.getEntities(SHULKER, aabb.inflate(8.0), isAlive).size();
-    //       float f = (i - 1) / 5.0F;
+    //       i32 i = level.getEntities(SHULKER, aabb.inflate(8.0), isAlive).size();
+    //       f32 f = (i - 1) / 5.0F;
     //       if (!(random.nextFloat() < f)) {
     //           Shulker shulker = EntityType.SHULKER.create(level, BREEDING);
     //           shulker.setVariant(this.getVariant());

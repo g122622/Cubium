@@ -90,11 +90,11 @@ enum class AmbientOcclusionMode : u8 {
  * settings.load("options.json");
  *
  * // 访问设置
- * int distance = settings.renderDistance.get();
+ * i32 distance = settings.renderDistance.get();
  * settings.fullscreen.set(true);
  *
  * // 设置变更回调
- * settings.renderDistance.onChange([](int value) {
+ * settings.renderDistance.onChange([](i32 value) {
  *     spdlog::info("Render distance: {}", value);
  * });
  *

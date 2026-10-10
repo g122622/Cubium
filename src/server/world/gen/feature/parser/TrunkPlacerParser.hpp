@@ -43,7 +43,7 @@ namespace parser {
  * 弯曲/樱花/向上分支有额外字段：
  *   bending_trunk_placer：min_height_for_leaves + bend_length(IntProvider)
  *   cherry_trunk_placer：8 个分支参数(branch_count/horizontal_length/start_offset/end_offset 各 min/max)
- *   upwards_branching_trunk_placer：extra_branch_steps(IntProvider) + place_branch_per_log_probability(float)
+ *   upwards_branching_trunk_placer：extra_branch_steps(IntProvider) + place_branch_per_log_probability(f32)
  *                                   + extra_branch_length(IntProvider) + can_grow_through("#tag")
  */
 namespace TrunkPlacerParser {

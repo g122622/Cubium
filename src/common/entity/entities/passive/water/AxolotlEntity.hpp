@@ -257,7 +257,7 @@ public:
      * @brief 检查是否应消失
      * 来自桶或自定义名称的美西螈不会消失
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override;
+    [[nodiscard]] bool canDespawn(f64 distanceToClosestPlayer) const override;
 
     /**
      * @brief 检查是否需要持久化

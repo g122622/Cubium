@@ -424,7 +424,7 @@ private:
      */
     struct SyncSchedulingContext {
         /// 当前线程的同步调度深度（>0 表示处于在线执行模式）
-        int depth = 0;
+        i32 depth = 0;
         /// 延迟重调度队列（复用 PendingReschedule）
         std::vector<PendingReschedule> pending;
     };

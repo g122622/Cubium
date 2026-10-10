@@ -106,7 +106,7 @@ public:
      * @param zSize Z轴方向总尺寸
      * @return 以 center 为中心、各轴尺寸为指定值的 AABB
      *
-     * 对应 MC 1.21.11 AABB.ofSize(Vec3, double, double, double)。
+     * 对应 MC 1.21.11 AABB.ofSize(Vec3, f64, f64, f64)。
      * min = center - size/2，max = center + size/2。
      */
     [[nodiscard]] static AxisAlignedBB ofSize(const Vector3& center, f32 xSize, f32 ySize, f32 zSize) noexcept
@@ -195,7 +195,7 @@ public:
     /**
      * @brief 均匀收缩AABB（MC 命名，等价于 shrink）
      *
-     * 对应 MC 1.21 的 AABB.deflate(double)。Jigsaw 空间追踪中用于将新拼图块的 AABB
+     * 对应 MC 1.21 的 AABB.deflate(f64)。Jigsaw 空间追踪中用于将新拼图块的 AABB
      * 收缩 0.25 格后与 freeShape 做交集检测，避免相邻块被误判为重叠。
      *
      * @param amount 各方向收缩量
@@ -212,8 +212,8 @@ public:
      * deltaMovement) 构造移动 AABB）。
      *
      * 对应 vanilla:
-     *   AABB.expandTowards(double x, double y, double z) {
-     *     double d0 = x < 0 ? x : 0, d1 = x > 0 ? x : 0; // 同理 y/z
+     *   AABB.expandTowards(f64 x, f64 y, f64 z) {
+     *     f64 d0 = x < 0 ? x : 0, d1 = x > 0 ? x : 0; // 同理 y/z
      *     return new AABB(minX+d0, minY+d2, minZ+d4, maxX+d1, maxY+d3, maxZ+d5);
      *   }
      *
@@ -242,7 +242,7 @@ public:
     }
 
     /**
-     * @brief 均匀向外膨胀 AABB（对应 MC 1.21 AABB.inflate(double)）
+     * @brief 均匀向外膨胀 AABB（对应 MC 1.21 AABB.inflate(f64)）
      *
      * 与 grow 等价，使用 vanilla 命名以便对齐源码时直译。grow 保留为项目既有命名。
      *

@@ -38,11 +38,11 @@ namespace mc::world::biome::climate {
  *
  * 每个气候参数（temperature/humidity/continentalness/erosion/depth/weirdness）的 JSON
  * 形态由 Climate.Parameter.CODEC（= ExtraCodecs.intervalCodec）决定，三种合法形态：
- * - 裸数字 float    → point(value)        // min == max
+ * - 裸数字 f32    → point(value)        // min == max
  * - [min, max] 数组 → span(min, max)
  * - {min,max} 对象  → span(min, max)
  *
- * offset 是裸 float（0.0~1.0），量化为 i64。
+ * offset 是裸 f32（0.0~1.0），量化为 i64。
  *
  * 全部 6 气候参数 + offset 必填（原版 RecordCodecBuilder，无默认）。
  */

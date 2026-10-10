@@ -77,7 +77,7 @@ namespace {
  * 5. ServerMainThread (独立服务器)
  * 其他线程使用默认值 100，显示在固定线程之后
  */
-[[nodiscard]] constexpr int getThreadSortIndex(std::string_view name) noexcept
+[[nodiscard]] constexpr i32 getThreadSortIndex(std::string_view name) noexcept
 {
     if (name == "MemoryTrace") return 1;
     if (name == "ClientMainThread") return 2;
@@ -301,7 +301,7 @@ void PerfettoBackend::setThreadName(const std::string& name)
     setThreadName(name, getThreadSortIndex(name));
 }
 
-void PerfettoBackend::setThreadName(const std::string& name, int siblingOrderRank)
+void PerfettoBackend::setThreadName(const std::string& name, i32 siblingOrderRank)
 {
     if (!m_initialized) {
         return;

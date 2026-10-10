@@ -62,17 +62,17 @@ namespace {
 
 /// vanilla 1.21.11 全局调色板位数(=ceillog2(全局注册表大小),固定值)。
 /// block state 全局注册表 ~29671 → ceillog2=15;biome 全局注册表 66 → ceillog2=7。
-constexpr int kBlockGlobalPaletteBits = 15;
-constexpr int kBiomeGlobalPaletteBits = 7;
+constexpr i32 kBlockGlobalPaletteBits = 15;
+constexpr i32 kBiomeGlobalPaletteBits = 7;
 
 /// 等价 Java Mth.ceillog2:n<=1 返回 0;n>=2 返回 ceil(log2(n))。
-int ceillog2(int n)
+i32 ceillog2(i32 n)
 {
     if (n <= 1) {
         return 0;
     }
-    int k = 0;
-    int p = 1;
+    i32 k = 0;
+    i32 p = 1;
     while (p < n) {
         p <<= 1;
         ++k;
@@ -81,16 +81,16 @@ int ceillog2(int n)
 }
 
 /// 主世界 heightmap 的 bits(=ceillog2(chunkHeight+1)=ceillog2(385)=9)。
-constexpr int kHeightmapBits = 9;
+constexpr i32 kHeightmapBits = 9;
 
 /// 计算给定 bits 下 storage 的 long 数(vanilla SimpleBitStorage 公式)。
 /// longCount = ceil(entryCount / floor(64/bits))。
-int storageLongCount(int bits, int entryCount)
+i32 storageLongCount(i32 bits, i32 entryCount)
 {
     if (bits <= 0) {
         return 0;
     }
-    const int valuesPerLong = 64 / bits;
+    const i32 valuesPerLong = 64 / bits;
     return (entryCount + valuesPerLong - 1) / valuesPerLong;
 }
 
@@ -101,29 +101,29 @@ int storageLongCount(int bits, int entryCount)
  * @param entryCount 4096(blocks) 或 64(biomes)
  * @param isBlock true=blocks 阈值,false=biomes 阈值
  */
-mc::network::ir::play::PalettedContainerWire packPalettedContainer(const u32* globalIds, int entryCount, bool isBlock)
+mc::network::ir::play::PalettedContainerWire packPalettedContainer(const u32* globalIds, i32 entryCount, bool isBlock)
 {
     using PCW = mc::network::ir::play::PalettedContainerWire;
 
     // 收集去重 palette(storage 里存 palette 下标,故需稳定映射)。
     std::vector<u32> palette;
     std::unordered_map<u32, u32> globalIdToPaletteIndex;
-    for (int i = 0; i < entryCount; ++i) {
+    for (i32 i = 0; i < entryCount; ++i) {
         const u32 gid = globalIds[i];
         if (globalIdToPaletteIndex.find(gid) == globalIdToPaletteIndex.end()) {
             globalIdToPaletteIndex[gid] = static_cast<u32>(palette.size());
             palette.push_back(gid);
         }
     }
-    const int size = static_cast<int>(palette.size());
+    const i32 size = static_cast<i32>(palette.size());
 
     // 决定 bits 与 paletteKind(对齐 vanilla Strategy.getConfigurationForBitCount)。
-    int bits;
+    i32 bits;
     bool isGlobal = false;
     if (size == 1) {
         bits = 0; // SingleValue
     } else {
-        const int needed = ceillog2(size);
+        const i32 needed = ceillog2(size);
         if (isBlock) {
             // blocks: 2-16→4(Linear);17-32→5;33-64→6;65-128→7;129-256→8(HashMap);≥257→Global(15)
             if (needed <= 4) {
@@ -160,14 +160,14 @@ mc::network::ir::play::PalettedContainerWire packPalettedContainer(const u32* gl
 
     // storage(LSB-first long[])
     if (bits > 0) {
-        const int longCount = storageLongCount(bits, entryCount);
+        const i32 longCount = storageLongCount(bits, entryCount);
         wire.storage.assign(static_cast<size_t>(longCount), 0);
         const u64 mask = (bits >= 64) ? ~0ULL : ((1ULL << bits) - 1);
-        const int valuesPerLong = 64 / bits;
-        for (int i = 0; i < entryCount; ++i) {
+        const i32 valuesPerLong = 64 / bits;
+        for (i32 i = 0; i < entryCount; ++i) {
             const u32 palId = isGlobal ? globalIds[i] : globalIdToPaletteIndex[globalIds[i]];
-            const int cell = i / valuesPerLong;
-            const int offset = (i - cell * valuesPerLong) * bits;
+            const i32 cell = i / valuesPerLong;
+            const i32 offset = (i - cell * valuesPerLong) * bits;
             wire.storage[static_cast<size_t>(cell)] |= (static_cast<u64>(palId) & mask) << offset;
         }
     }
@@ -177,10 +177,10 @@ mc::network::ir::play::PalettedContainerWire packPalettedContainer(const u32* gl
 /**
  * @brief 反向:从 PalettedContainerWire 还原 entryCount 个全局 id
  */
-std::vector<u32> unpackPalettedContainer(const mc::network::ir::play::PalettedContainerWire& wire, int entryCount)
+std::vector<u32> unpackPalettedContainer(const mc::network::ir::play::PalettedContainerWire& wire, i32 entryCount)
 {
     std::vector<u32> globalIds(static_cast<size_t>(entryCount), 0);
-    const int bits = wire.bits;
+    const i32 bits = wire.bits;
 
     if (bits == 0) {
         // SingleValue:paletteGlobalIds[0] 填满
@@ -189,15 +189,15 @@ std::vector<u32> unpackPalettedContainer(const mc::network::ir::play::PalettedCo
         return globalIds;
     }
 
-    const int valuesPerLong = 64 / bits;
+    const i32 valuesPerLong = 64 / bits;
     const u64 mask = (bits >= 64) ? ~0ULL : ((1ULL << bits) - 1);
     // Global 判定:palette 空。Global 时 storage 存的就是全局 id 本身。
     const bool globalByEmptyPalette = wire.paletteGlobalIds.empty();
 
-    for (int i = 0; i < entryCount; ++i) {
-        const int cell = i / valuesPerLong;
-        const int offset = (i - cell * valuesPerLong) * bits;
-        const u64 raw = (cell < static_cast<int>(wire.storage.size()))
+    for (i32 i = 0; i < entryCount; ++i) {
+        const i32 cell = i / valuesPerLong;
+        const i32 offset = (i - cell * valuesPerLong) * bits;
+        const u64 raw = (cell < static_cast<i32>(wire.storage.size()))
             ? ((wire.storage[static_cast<size_t>(cell)] >> offset) & mask)
             : 0;
         const u32 palId = static_cast<u32>(raw);
@@ -219,23 +219,23 @@ std::vector<u32> unpackPalettedContainer(const mc::network::ir::play::PalettedCo
  * @param chunkMinY 主世界 -64
  * @return 37 个 u64(vanilla wire 由 codec 加 VarInt 前缀)
  */
-std::vector<u64> packHeightmap(const std::array<BlockCoord, Heightmap::SIZE>& heights, int chunkMinY)
+std::vector<u64> packHeightmap(const std::array<BlockCoord, Heightmap::SIZE>& heights, i32 chunkMinY)
 {
-    constexpr int entryCount = Heightmap::SIZE;                         // 256
-    const int longCount = storageLongCount(kHeightmapBits, entryCount); // =37
+    constexpr i32 entryCount = Heightmap::SIZE;                         // 256
+    const i32 longCount = storageLongCount(kHeightmapBits, entryCount); // =37
     std::vector<u64> data(static_cast<size_t>(longCount), 0);
-    constexpr int valuesPerLong = 64 / kHeightmapBits; // =7
+    constexpr i32 valuesPerLong = 64 / kHeightmapBits; // =7
     constexpr u64 mask = (1ULL << kHeightmapBits) - 1;
-    for (int i = 0; i < entryCount; ++i) {
+    for (i32 i = 0; i < entryCount; ++i) {
         // vanilla 值 = (highestBlockY+1) - chunkMinY;空列(sentinel 或 <=minY) → 0。
-        int v = heights[static_cast<size_t>(i)];
+        i32 v = heights[static_cast<size_t>(i)];
         if (v <= chunkMinY) {
             v = 0; // 空列 / sentinel(NO_BLOCK_SENTINEL=-65 < minY)
         } else {
             v = v - chunkMinY;
         }
-        const int cell = i / valuesPerLong;
-        const int offset = (i - cell * valuesPerLong) * kHeightmapBits;
+        const i32 cell = i / valuesPerLong;
+        const i32 offset = (i - cell * valuesPerLong) * kHeightmapBits;
         data[static_cast<size_t>(cell)] |= (static_cast<u64>(v) & mask) << offset;
     }
     return data;
@@ -244,16 +244,16 @@ std::vector<u64> packHeightmap(const std::array<BlockCoord, Heightmap::SIZE>& he
 /**
  * @brief 反向:从 9-bit long[] 还原 256 个 (Y+1) 值(转回绝对 Y+1 语义)
  */
-std::array<BlockCoord, Heightmap::SIZE> unpackHeightmap(const std::vector<u64>& data, int chunkMinY)
+std::array<BlockCoord, Heightmap::SIZE> unpackHeightmap(const std::vector<u64>& data, i32 chunkMinY)
 {
     std::array<BlockCoord, Heightmap::SIZE> heights{};
-    constexpr int valuesPerLong = 64 / kHeightmapBits; // =7
+    constexpr i32 valuesPerLong = 64 / kHeightmapBits; // =7
     constexpr u64 mask = (1ULL << kHeightmapBits) - 1;
-    for (int i = 0; i < Heightmap::SIZE; ++i) {
-        const int cell = i / valuesPerLong;
-        const int offset = (i - cell * valuesPerLong) * kHeightmapBits;
+    for (i32 i = 0; i < Heightmap::SIZE; ++i) {
+        const i32 cell = i / valuesPerLong;
+        const i32 offset = (i - cell * valuesPerLong) * kHeightmapBits;
         const u64 raw =
-            (cell < static_cast<int>(data.size())) ? ((data[static_cast<size_t>(cell)] >> offset) & mask) : 0;
+            (cell < static_cast<i32>(data.size())) ? ((data[static_cast<size_t>(cell)] >> offset) & mask) : 0;
         // 还原绝对 Y+1:vanilla 值 0 表示空列 → 用 chunkMinY(项目 sentinel 语义)
         heights[static_cast<size_t>(i)] = static_cast<BlockCoord>(raw) + chunkMinY;
     }
@@ -276,7 +276,7 @@ u8 heightmapTypeId(HeightmapType type)
 }
 
 /// 在 vector<u64> 表示的 BitSet 里置 bit i(按需扩容)。
-void bitSetSet(std::vector<u64>& bitset, int bitIndex)
+void bitSetSet(std::vector<u64>& bitset, i32 bitIndex)
 {
     const size_t wordIndex = static_cast<size_t>(bitIndex) / 64;
     if (wordIndex >= bitset.size()) {
@@ -305,7 +305,7 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
     ir.x = chunk.x();
     ir.z = chunk.z();
 
-    const int chunkMinY = mc::world::MIN_BUILD_HEIGHT;
+    const i32 chunkMinY = mc::world::MIN_BUILD_HEIGHT;
 
     // 1. heightmaps:3 个 CLIENT 类型(仅发 isHeightmapInitialized 的)
     {
@@ -329,7 +329,7 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
     auto& blockStateMap = mc::network::backend::java::JavaBlockStateIdMap::instance();
     auto& biomeMap = mc::world::biome::JavaBiomeRegistryIdMap::instance();
     ir.sections.reserve(static_cast<size_t>(mc::world::CHUNK_SECTIONS));
-    for (int sec = 0; sec < mc::world::CHUNK_SECTIONS; ++sec) {
+    for (i32 sec = 0; sec < mc::world::CHUNK_SECTIONS; ++sec) {
         mc::network::ir::play::ChunkSectionWire sw;
         const ChunkSection* section = chunk.getSection(sec);
         if (section == nullptr) {
@@ -354,7 +354,7 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
         {
             const std::vector<u32> flat = section->blockStates().toFlat();
             std::vector<u32> globalIds(static_cast<size_t>(ChunkSection::VOLUME), 0);
-            for (int i = 0; i < ChunkSection::VOLUME; ++i) {
+            for (i32 i = 0; i < ChunkSection::VOLUME; ++i) {
                 globalIds[static_cast<size_t>(i)] = blockStateMap.toJavaGlobalId(flat[static_cast<size_t>(i)]);
             }
             sw.states = packPalettedContainer(globalIds.data(), ChunkSection::VOLUME, true);
@@ -364,11 +364,11 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
         {
             std::vector<u32> globalIds(static_cast<size_t>(BiomeContainer::SECTION_BIOME_SIZE), 0);
             const BiomeContainer& biomes = chunk.getBiomes();
-            for (int y = 0; y < 4; ++y) {
-                for (int z = 0; z < 4; ++z) {
-                    for (int x = 0; x < 4; ++x) {
+            for (i32 y = 0; y < 4; ++y) {
+                for (i32 z = 0; z < 4; ++z) {
+                    for (i32 x = 0; x < 4; ++x) {
                         const mc::BiomeId bid = biomes.getBiome(sec, x, y, z);
-                        const int idx = y * 16 + z * 4 + x;
+                        const i32 idx = y * 16 + z * 4 + x;
                         globalIds[static_cast<size_t>(idx)] = biomeMap.toJavaRegistryId(bid);
                     }
                 }
@@ -400,7 +400,7 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
 
     // 4. lightData:26 段 sky/block nibbles
     {
-        constexpr int lightSections = mc::world::CHUNK_SECTIONS + 2; // 26
+        constexpr i32 lightSections = mc::world::CHUNK_SECTIONS + 2; // 26
         const auto& skyNibbles = chunk.skyNibbles();
         const auto& blockNibbles = chunk.blockNibbles();
 
@@ -411,7 +411,7 @@ Result<mc::network::ir::play::LevelChunkWithLight> VanillaChunkWire::buildLevelC
             yMask.clear();
             emptyMask.clear();
             updates.clear();
-            for (int i = 0; i < lightSections; ++i) {
+            for (i32 i = 0; i < lightSections; ++i) {
                 const auto& nibble = nibbles[static_cast<size_t>(i)];
                 if (nibble.isNullVisible() || nibble.isUninitializedVisible()) {
                     continue; // 无数据,跳过(两 mask 都不 set)
@@ -455,7 +455,7 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
     }
 
     auto chunk = std::make_unique<ChunkData>(ir.x, ir.z);
-    const int chunkMinY = mc::world::MIN_BUILD_HEIGHT;
+    const i32 chunkMinY = mc::world::MIN_BUILD_HEIGHT;
 
     auto& blockStateMap = mc::network::backend::java::JavaBlockStateIdMap::instance();
     auto& biomeMap = mc::world::biome::JavaBiomeRegistryIdMap::instance();
@@ -482,15 +482,15 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
     }
 
     // sections
-    const int sectionCount = static_cast<int>(ir.sections.size());
-    for (int sec = 0; sec < sectionCount && sec < mc::world::CHUNK_SECTIONS; ++sec) {
+    const i32 sectionCount = static_cast<i32>(ir.sections.size());
+    for (i32 sec = 0; sec < sectionCount && sec < mc::world::CHUNK_SECTIONS; ++sec) {
         const auto& sw = ir.sections[static_cast<size_t>(sec)];
         ChunkSection* section = chunk->createSection(sec);
 
         // states
         {
             std::vector<u32> globalIds = unpackPalettedContainer(sw.states, ChunkSection::VOLUME);
-            for (int i = 0; i < ChunkSection::VOLUME; ++i) {
+            for (i32 i = 0; i < ChunkSection::VOLUME; ++i) {
                 const u32 stateId = blockStateMap.fromJavaGlobalId(globalIds[static_cast<size_t>(i)]);
                 section->setBlockStateIdFast(i, stateId);
             }
@@ -505,10 +505,10 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
         {
             std::vector<u32> globalIds = unpackPalettedContainer(sw.biomes, BiomeContainer::SECTION_BIOME_SIZE);
             BiomeContainer& biomes = chunk->getBiomes();
-            for (int y = 0; y < 4; ++y) {
-                for (int z = 0; z < 4; ++z) {
-                    for (int x = 0; x < 4; ++x) {
-                        const int idx = y * 16 + z * 4 + x;
+            for (i32 y = 0; y < 4; ++y) {
+                for (i32 z = 0; z < 4; ++z) {
+                    for (i32 x = 0; x < 4; ++x) {
+                        const i32 idx = y * 16 + z * 4 + x;
                         const u32 regId = globalIds[static_cast<size_t>(idx)];
                         biomes.setBiome(sec, x, y, z, biomeMap.fromJavaRegistryId(regId));
                     }
@@ -519,8 +519,8 @@ Result<std::unique_ptr<ChunkData>> VanillaChunkWire::readLevelChunkWithLightIR(
 
     // blockEntities
     for (const auto& bew : ir.blockEntities) {
-        const int relX = (bew.packedXZ >> 4) & 0xF;
-        const int relZ = bew.packedXZ & 0xF;
+        const i32 relX = (bew.packedXZ >> 4) & 0xF;
+        const i32 relZ = bew.packedXZ & 0xF;
         const BlockPos pos(ir.x * 16 + relX, bew.y, ir.z * 16 + relZ);
         const BlockEntityType type = beTypeMap.fromJavaRegistryId(bew.typeRegistryId);
         auto entity = mc::blockentity::BlockEntityRegistry::instance().create(type, pos);

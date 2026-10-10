@@ -77,7 +77,7 @@ void ByteBuf::writeU16(u16 value)
 void ByteBuf::writeU32(u32 value)
 {
     const u32 net = Endian::hostToNetwork32(value);
-    for (int shift = 0; shift < 32; shift += 8) {
+    for (i32 shift = 0; shift < 32; shift += 8) {
         m_data.push_back(static_cast<u8>((net >> shift) & 0xFFu));
     }
 }
@@ -85,7 +85,7 @@ void ByteBuf::writeU32(u32 value)
 void ByteBuf::writeU64(u64 value)
 {
     const u64 net = Endian::hostToNetwork64(value);
-    for (int shift = 0; shift < 64; shift += 8) {
+    for (i32 shift = 0; shift < 64; shift += 8) {
         m_data.push_back(static_cast<u8>((net >> shift) & 0xFFu));
     }
 }
@@ -186,7 +186,7 @@ Result<u32> ByteBuf::readU32()
 {
     MC_TRY(ensureReadable(4));
     u32 net = 0;
-    for (int shift = 0; shift < 32; shift += 8) {
+    for (i32 shift = 0; shift < 32; shift += 8) {
         net |= static_cast<u32>(m_data[m_readPos++]) << shift;
     }
     return Endian::networkToHost32(net);
@@ -202,7 +202,7 @@ Result<u64> ByteBuf::readU64()
 {
     MC_TRY(ensureReadable(8));
     u64 net = 0;
-    for (int shift = 0; shift < 64; shift += 8) {
+    for (i32 shift = 0; shift < 64; shift += 8) {
         net |= static_cast<u64>(m_data[m_readPos++]) << shift;
     }
     return Endian::networkToHost64(net);

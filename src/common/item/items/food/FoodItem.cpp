@@ -167,7 +167,7 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
     }
 
     // 应用迷之炖菜效果（从物品 NBT 标签读取）
-    // NBT 格式: {Effects: [{EffectId: byte, EffectDuration: int}, ...]}
+    // NBT 格式: {Effects: [{EffectId: byte, EffectDuration: i32}, ...]}
     if (stack.hasTag()) {
         const nlohmann::json* tag = stack.getTag();
         if (tag != nullptr && tag->contains("Effects") && (*tag)["Effects"].is_array()) {

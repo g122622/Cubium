@@ -234,8 +234,8 @@ private:
  * @code
  * RangeOption renderDistance{"renderDistance", 2, 32, 12};  // 2-32，默认12
  * renderDistance.set(16);
- * int distance = renderDistance.get();
- * renderDistance.onChange([](int value) {
+ * i32 distance = renderDistance.get();
+ * renderDistance.onChange([](i32 value) {
  *     spdlog::info("Render distance changed to: {}", value);
  * });
  * @endcode
@@ -369,7 +369,7 @@ private:
  * @code
  * FloatOption sensitivity{"mouseSensitivity", 0.0f, 1.0f, 0.5f};
  * sensitivity.set(0.7f);
- * float sens = sensitivity.get();
+ * f32 sens = sensitivity.get();
  * @endcode
  */
 class FloatOption : public IOption {

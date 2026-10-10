@@ -336,7 +336,7 @@ void ReentrantAreaLock::unlock(ReentrantAreaLockNode& node)
 }
 
 // ============================================================================
-// 单 section 快速路径（对齐 Moonrise lock(int,int)）
+// 单 section 快速路径（对齐 Moonrise lock(i32,i32)）
 // ============================================================================
 
 ReentrantAreaLock::LockHandle ReentrantAreaLock::lockSingle(ChunkCoord x, ChunkCoord z)
@@ -391,7 +391,7 @@ ReentrantAreaLock::LockHandle ReentrantAreaLock::lockSingle(ChunkCoord x, ChunkC
 // 退避调度（对齐 Moonrise 的 failures 分级退避）
 //
 // failures 按引用传入：自旋分支将 failures 翻倍（指数退避），park 分支线性递增。
-// 对齐 Moonrise lock(int,int) / lock(int,int,int,int) 的 failures 更新逻辑。
+// 对齐 Moonrise lock(i32,i32) / lock(i32,i32,i32,i32) 的 failures 更新逻辑。
 // ============================================================================
 
 void ReentrantAreaLock::backoff(long& failures)

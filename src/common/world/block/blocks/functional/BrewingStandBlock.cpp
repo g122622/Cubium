@@ -105,7 +105,7 @@ const CollisionShape& BrewingStandBlock::getCollisionShape(const BlockState& sta
     return m_shape;
 }
 
-int BrewingStandBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 BrewingStandBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
 

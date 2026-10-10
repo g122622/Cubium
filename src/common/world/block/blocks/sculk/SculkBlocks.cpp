@@ -239,7 +239,7 @@ bool SculkBlock::canPlaceGrowth(IWorld& world, const BlockPos& pos)
 i32 SculkBlock::getDecayPenalty(const SculkSpreader& spreader, const BlockPos& pos, const BlockPos& origin, i32 charge)
 {
     // MC: f = (sqrt(distSqr) - noGrowthRadius)²; j = (24 - noGrowthRadius)²;
-    //     f1 = min(1, f/j); penalty = max(1, (int)(charge * f1 * 0.5))
+    //     f1 = min(1, f/j); penalty = max(1, (i32)(charge * f1 * 0.5))
     const i32 noGrowth = spreader.noGrowthRadius();
     const f32 dist = std::sqrt(static_cast<f64>(pos.distanceSq(origin)));
     const f32 f = math::square(dist - static_cast<f32>(noGrowth));
@@ -620,12 +620,12 @@ SculkVeinBlock::SculkVeinBlock(const BlockProperties& properties)
     const CollisionShape upShape = CollisionShape::fromPixelBox(0, 15, 0, 16, 16, 16);
     const CollisionShape downShape = CollisionShape::fromPixelBox(0, 0, 0, 16, 1, 16);
 
-    for (int down = 0; down <= 1; ++down) {
-        for (int up = 0; up <= 1; ++up) {
-            for (int north = 0; north <= 1; ++north) {
-                for (int south = 0; south <= 1; ++south) {
-                    for (int east = 0; east <= 1; ++east) {
-                        for (int west = 0; west <= 1; ++west) {
+    for (i32 down = 0; down <= 1; ++down) {
+        for (i32 up = 0; up <= 1; ++up) {
+            for (i32 north = 0; north <= 1; ++north) {
+                for (i32 south = 0; south <= 1; ++south) {
+                    for (i32 east = 0; east <= 1; ++east) {
+                        for (i32 west = 0; west <= 1; ++west) {
                             const size_t idx = static_cast<size_t>(
                                 (down) | (up << 1) | (north << 2) | (south << 3) | (east << 4) | (west << 5));
                             CollisionShape shape = CollisionShape::empty();

@@ -40,7 +40,7 @@ ComponentSerializerRegistry& ComponentSerializerRegistry::instance()
     return registry;
 }
 
-void ComponentSerializerRegistry::registerSerializerRaw(entt::id_type typeId, SaveFn save, LoadFn load, int priority)
+void ComponentSerializerRegistry::registerSerializerRaw(entt::id_type typeId, SaveFn save, LoadFn load, i32 priority)
 {
     // 同 typeId 覆盖而非追加（幂等重注册场景）
     for (auto& entry : m_entries) {

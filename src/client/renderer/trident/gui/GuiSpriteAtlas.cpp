@@ -499,7 +499,7 @@ Result<void> GuiSpriteAtlas::loadTextureAtlas(const std::string& filePath, i32 a
     }
 
     // 使用stb_image加载PNG文件
-    int width, height, channels;
+    i32 width, height, channels;
     u8* pixels = stbi_load(filePath.c_str(), &width, &height, &channels, 4);
 
     if (!pixels) {

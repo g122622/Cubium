@@ -99,11 +99,11 @@ struct DecodedImage {
         return readResult.error();
     }
 
-    int width = 0;
-    int height = 0;
-    int channels = 0;
+    i32 width = 0;
+    i32 height = 0;
+    i32 channels = 0;
     stbi_uc* pixels = stbi_load_from_memory(
-        readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
+        readResult.value().data(), static_cast<i32>(readResult.value().size()), &width, &height, &channels, 4);
 
     if (pixels == nullptr || width <= 0 || height <= 0) {
         if (pixels != nullptr) {
@@ -232,8 +232,8 @@ Result<void> UnstitcherSource::run(IResourcePack& pack, SpriteSourceOutput& outp
 
     for (const auto& region : m_regions) {
         // 实际像素 = floor(region.x * imgW / divisorX)
-        const double unitX = (m_divisorX > 0.0) ? (static_cast<double>(img.width) / m_divisorX) : 1.0;
-        const double unitY = (m_divisorY > 0.0) ? (static_cast<double>(img.height) / m_divisorY) : 1.0;
+        const f64 unitX = (m_divisorX > 0.0) ? (static_cast<f64>(img.width) / m_divisorX) : 1.0;
+        const f64 unitY = (m_divisorY > 0.0) ? (static_cast<f64>(img.height) / m_divisorY) : 1.0;
 
         const u32 px = static_cast<u32>(std::floor(region.x * unitX));
         const u32 py = static_cast<u32>(std::floor(region.y * unitY));

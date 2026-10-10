@@ -47,7 +47,7 @@
 namespace mc {
 namespace blocks {
 
-static constexpr int MAX_AGE = 4;
+static constexpr i32 MAX_AGE = 4;
 
 MangrovePropaguleBlock::MangrovePropaguleBlock(const BlockProperties& properties)
     : Block(properties)
@@ -55,8 +55,8 @@ MangrovePropaguleBlock::MangrovePropaguleBlock(const BlockProperties& properties
     m_ticksRandomly = true;
     // 非悬挂状态的碰撞形状（根据AGE变化高度）
     // AGE 0: 4像素高, AGE 1: 6像素, AGE 2: 8像素, AGE 3: 10像素, AGE 4: 12像素
-    for (int age = 0; age <= MAX_AGE; age++) {
-        int height = 4 + age * 2;
+    for (i32 age = 0; age <= MAX_AGE; age++) {
+        i32 height = 4 + age * 2;
         m_shapes.push_back(CollisionShape::fromPixelBox(2, 0, 2, 14, height, 14));
     }
     // 悬挂状态的碰撞形状
@@ -126,8 +126,8 @@ const CollisionShape& MangrovePropaguleBlock::getShape(const BlockState& state) 
         return m_hangingShape;
     }
 
-    int age = state.get(BlockStateProperties::AGE_0_4());
-    if (age >= 0 && age < static_cast<int>(m_shapes.size())) {
+    i32 age = state.get(BlockStateProperties::AGE_0_4());
+    if (age >= 0 && age < static_cast<i32>(m_shapes.size())) {
         return m_shapes[age];
     }
     return m_shapes[0];
@@ -143,7 +143,7 @@ void MangrovePropaguleBlock::randomTick(IWorld& world, const BlockPos& pos, Bloc
     MC_UNUSED(random);
 
     if (state.get(BlockStateProperties::HANGING())) {
-        int age = state.get(BlockStateProperties::AGE_0_4());
+        i32 age = state.get(BlockStateProperties::AGE_0_4());
         if (age < MAX_AGE) {
             auto newState = state.with(BlockStateProperties::AGE_0_4(), age + 1);
             world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);

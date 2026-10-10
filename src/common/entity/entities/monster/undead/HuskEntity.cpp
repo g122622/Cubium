@@ -91,7 +91,7 @@ bool HuskEntity::attackEntityAsMob(LivingEntity& target)
                 BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
             f32 effectiveDifficulty = difficultyInstance.getEffectiveDifficulty();
 
-            // 饥饿持续时间 = 140 * (int)effectiveDifficulty ticks（对齐 Java 140 * (int)f）。
+            // 饥饿持续时间 = 140 * (i32)effectiveDifficulty ticks（对齐 Java 140 * (i32)f）。
             // Normal 难度 effectiveDifficulty≈2.0 → 280 ticks ≈ 14 秒。等级 0 = 饥饿 I。
             i32 hungerDuration = 140 * static_cast<i32>(effectiveDifficulty);
             if (hungerDuration > 0) {

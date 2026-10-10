@@ -58,7 +58,7 @@ BlockPattern::BlockPattern(std::vector<std::vector<std::vector<Predicate>>> patt
 
 BlockInWorld BlockPatternMatch::getBlock(i32 widthIdx, i32 heightIdx, i32 depthIdx) const
 {
-    // 对应 MC Java: BlockPatternMatch.getBlock(int, int, int)
+    // 对应 MC Java: BlockPatternMatch.getBlock(i32, i32, i32)
     return BlockInWorld(m_world,
         BlockPattern::translateAndRotate(m_frontTopLeft, m_forwards, m_up, widthIdx, heightIdx, depthIdx),
         false);

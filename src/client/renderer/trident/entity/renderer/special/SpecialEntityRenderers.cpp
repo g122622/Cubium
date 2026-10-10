@@ -722,7 +722,7 @@ f64 TNTRenderer::calculateTntFlashScale(f32 fuseRemaining) noexcept
 bool TNTRenderer::isTntFlashFrame(f32 fuseRemaining) noexcept
 {
     // 对齐 MC 1.21.11 TntRenderer.submit() / TntMinecartRenderer:
-    //   fuseRemaining > -1 && (int)fuseRemaining / 5 % 2 == 0
+    //   fuseRemaining > -1 && (i32)fuseRemaining / 5 % 2 == 0
     if (fuseRemaining <= -1.0f) {
         return false;
     }

@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+
 namespace mc {
 namespace world {
 namespace timeline {
@@ -36,7 +38,7 @@ namespace timeline {
  */
 class EasingType {
 public:
-    using ApplyFn = float (*)(float);
+    using ApplyFn = f32 (*)(f32);
 
     constexpr EasingType() noexcept = default;
 
@@ -44,7 +46,7 @@ public:
         : m_fn(fn)
     {}
 
-    float apply(float f) const noexcept { return m_fn(f); }
+    f32 apply(f32 f) const noexcept { return m_fn(f); }
 
     /// 常量缓动：始终返回 0.0
     static const EasingType CONSTANT;
@@ -56,8 +58,8 @@ public:
 private:
     ApplyFn m_fn = nullptr;
 
-    static float _constant(float) { return 0.0f; }
-    static float _linear(float f) { return f; }
+    static f32 _constant(f32) { return 0.0f; }
+    static f32 _linear(f32 f) { return f; }
 };
 
 inline const EasingType EasingType::CONSTANT{EasingType::_constant};

@@ -193,7 +193,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /execute if block <pos> <block> run <command> - 如果指定位置是指定方块则执行
     // 命令树结构（对齐 Java ExecuteCommand）：if -> block(字面量) -> pos(参数) -> block(字符串) -> run -> command。
     // 注意："block" 字面量必须在 pos 之前，否则 "execute if block <pos> ..." 的 "block" 字面词会被
-    // BlockPosArgumentType 当作坐标首分量解析，readDouble() 读到 "block" 无数字抛 "Expected float"。
+    // BlockPosArgumentType 当作坐标首分量解析，readDouble() 读到 "block" 无数字抛 "Expected f32"。
     auto ifNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("if");
     auto ifBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
     auto ifBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(

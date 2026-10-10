@@ -140,7 +140,7 @@ public:
     /**
      * @brief 广播全局世界事件给全服所有玩家（跨维度）
      *
-     * 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+     * 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
      * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
      * 遍历全服所有玩家，对每个玩家计算事件位置：
      *   - 同维度且距离<32格：使用真实事件位置

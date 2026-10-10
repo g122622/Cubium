@@ -174,7 +174,7 @@ struct HumanoidArmValue {
  * Optional<EntityReference<LivingEntity>>，但 wire 仍是 UUID：EntityReference.streamCodec()
  * = UUIDUtil.STREAM_CODEC）。
  * wire = 1 byte present + 若 present 则 16 字节大端连续 UUID（MSB 8 字节 BE + LSB 8 字节 BE，
- * 对齐 FriendlyByteBuf.readUUID/writeUUID）。注意 NBT 存档格式不同（vanilla 用 int[4]），
+ * 对齐 FriendlyByteBuf.readUUID/writeUUID）。注意 NBT 存档格式不同（vanilla 用 i32[4]），
  * 此 struct 仅承载 wire 同步语义，NBT 由实体侧自行处理。
  */
 struct OptionalUuidValue {

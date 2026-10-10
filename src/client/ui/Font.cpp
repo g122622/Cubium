@@ -289,8 +289,8 @@ Result<void> BitmapGlyphProvider::load(IResourcePack& pack,
     }
 
     // 使用stb_image加载PNG
-    int texWidth, texHeight, channels;
-    u8* pixels = stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &texWidth, &texHeight, &channels, 4);
+    i32 texWidth, texHeight, channels;
+    u8* pixels = stbi_load_from_memory(data.data(), static_cast<i32>(data.size()), &texWidth, &texHeight, &channels, 4);
     if (pixels == nullptr) {
         return Error(ErrorCode::TextureLoadFailed, "Failed to decode font texture");
     }

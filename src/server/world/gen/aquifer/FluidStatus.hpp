@@ -40,7 +40,7 @@ namespace world::gen::aquifer {
  * @brief 流体状态（MC 1.21 Aquifer.FluidStatus）
  *
  * 记录流体液面高度和流体方块类型。
- * 对应 MC 的 record FluidStatus(int fluidLevel, BlockState fluidType)。
+ * 对应 MC 的 record FluidStatus(i32 fluidLevel, BlockState fluidType)。
  */
 struct FluidStatus {
     i32 fluidLevel;

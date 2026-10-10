@@ -323,7 +323,7 @@ private:
     }
 
     /**
-     * @brief 单区块快速路径（对齐 Moonrise lock(int,int)）
+     * @brief 单区块快速路径（对齐 Moonrise lock(i32,i32)）
      *
      * 单 section，无 areaAffected 数组分配（用固定 1 元素）。
      */

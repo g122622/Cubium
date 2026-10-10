@@ -261,7 +261,7 @@ public:
      * @param name 线程名称
      * @param siblingOrderRank 排序 rank（值越小越靠前，未设默认 0）
      */
-    void setThreadName(const std::string& name, int siblingOrderRank);
+    void setThreadName(const std::string& name, i32 siblingOrderRank);
 
 private:
     ProfilerManager();
@@ -326,7 +326,7 @@ public:
     [[nodiscard]] TraceConfig config() const noexcept { return {}; }
     void setProcessName(const std::string&) noexcept {}
     void setThreadName(const std::string&) noexcept {}
-    void setThreadName(const std::string&, int) noexcept {}
+    void setThreadName(const std::string&, i32) noexcept {}
     void setMemorySampler(std::function<std::pair<i64, i64>()>) noexcept {}
 
 private:

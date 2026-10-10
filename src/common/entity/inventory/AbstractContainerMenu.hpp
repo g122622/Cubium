@@ -348,7 +348,7 @@ public:
 
     /**
      * @brief 注册整型数据变化监听器
-     * @param listener 回调（index, value），在 detectAndSendChanges 检测到 tracked int 变化时触发
+     * @param listener 回调（index, value），在 detectAndSendChanges 检测到 tracked i32 变化时触发
      * @return 监听器ID
      *
      * 用于服务端把熔炉燃烧/熔炼进度等数据经 WindowPropertyPacket 下推客户端。

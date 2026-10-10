@@ -586,7 +586,7 @@ void applyFeatures(Biome& biome, const nlohmann::json& jsonObj)
         if (stageIdx >= static_cast<size_t>(DecorationStage::Count)) {
             spdlog::warn("features stage index {} out of range (max {}), ignoring",
                 stageIdx,
-                static_cast<int>(DecorationStage::Count) - 1);
+                static_cast<i32>(DecorationStage::Count) - 1);
             break;
         }
         const auto& stageArr = featuresJson[stageIdx];
@@ -797,7 +797,7 @@ Result<void> BiomeLoader::loadFromJson(const nlohmann::json& jsonObj, const Reso
     if (!registry.hasBiome(biomeId)) {
         // BiomeId 存在但 BiomeRegistry 未注册该 biome → warn + skip
         spdlog::warn(
-            "biome '{}' (id={}) not registered in BiomeRegistry, skipping", id.toString(), static_cast<int>(biomeId));
+            "biome '{}' (id={}) not registered in BiomeRegistry, skipping", id.toString(), static_cast<i32>(biomeId));
         return Result<void>::ok();
     }
 

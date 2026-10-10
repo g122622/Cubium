@@ -67,7 +67,7 @@ public:
     /**
      * @brief 采样 2D 噪声值
      *
-     * 参考 MC 1.21.11: PerlinSimplexNoise.getValue(double, double, boolean)
+     * 参考 MC 1.21.11: PerlinSimplexNoise.getValue(f64, f64, boolean)
      *
      * @param x X 坐标
      * @param y Y 坐标（MC 中通常传入 z 坐标）

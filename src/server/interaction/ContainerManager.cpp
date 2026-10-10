@@ -128,7 +128,7 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
     //
     // 必要性：本项目的容器同步是全量重发模型，触发点只有「打开容器」与「客户端点击」两处。
     // 但有些槽位变化完全由服务端驱动、不经过点击——最典型的是熔炉烧出产物、燃料被消耗。
-    // 没有这条通路时，服务端照常烧炼（进度经 tracked int 下推，看起来一切正常），产物却永远
+    // 没有这条通路时，服务端照常烧炼（进度经 tracked i32 下推，看起来一切正常），产物却永远
     // 到不了客户端：玩家盯着熔炉，产物槽始终是空的。
     {
         const mc::ContainerId openedId = containerId;
@@ -142,8 +142,8 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
         });
     }
 
-    // 进度型容器（熔炉类）的火焰与箭头进度经 tracked int 同步。每 tick 由 tickMenus() 把状态
-    // 从方块实体刷进这些 int 并比对变化，变化时经此监听器下推。不注册的话，服务端照常烧炼，
+    // 进度型容器（熔炉类）的火焰与箭头进度经 tracked i32 同步。每 tick 由 tickMenus() 把状态
+    // 从方块实体刷进这些 i32 并比对变化，变化时经此监听器下推。不注册的话，服务端照常烧炼，
     // 但客户端那边进度永远是 0。
     if (auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(m_openContainers[playerId].menu.get());
         furnaceMenu != nullptr) {
@@ -313,7 +313,7 @@ void ContainerManager::tickMenus()
             continue;
         }
 
-        // 进度型容器先从方块实体取最新状态写进 tracked int，再统一比对变化。
+        // 进度型容器先从方块实体取最新状态写进 tracked i32，再统一比对变化。
         if (auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(menu); furnaceMenu != nullptr) {
             furnaceMenu->syncProgressFromEntity();
         }

@@ -173,10 +173,10 @@ inline glm::mat4 buildElementRotationMatrix(const ModelRotation& rotation, f64 s
  * @param u0, v0, u1, v1 UV坐标范围
  * @return 该顶点的 (u, v) 坐标
  */
-inline std::pair<f32, f32> getRotatedUV(int vertexIndex, i32 uvRotation, f32 u0, f32 v0, f32 u1, f32 v1)
+inline std::pair<f32, f32> getRotatedUV(i32 vertexIndex, i32 uvRotation, f32 u0, f32 v0, f32 u1, f32 v1)
 {
-    int shift = uvRotation / 90; // 0, 1, 2, 3
-    int uvCorner = (vertexIndex + shift) % 4;
+    i32 shift = uvRotation / 90; // 0, 1, 2, 3
+    i32 uvCorner = (vertexIndex + shift) % 4;
 
     switch (uvCorner) {
         case 0:

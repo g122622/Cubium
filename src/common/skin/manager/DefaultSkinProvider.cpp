@@ -140,11 +140,11 @@ std::vector<u8> DefaultSkinProvider::_loadSkinFromResourcePack(const DefaultSkin
     const auto& textureLocation = variant.textureLocation();
 
     // 使用 stbi_load_from_memory 解码 PNG，强制 RGBA 4 通道输出
-    int width = 0;
-    int height = 0;
-    int channels = 0;
+    i32 width = 0;
+    i32 height = 0;
+    i32 channels = 0;
     u8* pixels = stbi_load_from_memory(
-        pngData.data(), static_cast<int>(pngData.size()), &width, &height, &channels, static_cast<int>(SKIN_CHANNELS));
+        pngData.data(), static_cast<i32>(pngData.size()), &width, &height, &channels, static_cast<i32>(SKIN_CHANNELS));
 
     if (!pixels) {
         spdlog::warn("DefaultSkinProvider: stb_image failed to decode skin '{}'", textureLocation.toString());
@@ -152,7 +152,7 @@ std::vector<u8> DefaultSkinProvider::_loadSkinFromResourcePack(const DefaultSkin
     }
 
     // 验证皮肤尺寸：MC 1.21.1 默认皮肤均为 64x64，旧版 64x32 也允许（转换为 64x64）
-    if (width != static_cast<int>(SKIN_WIDTH)) {
+    if (width != static_cast<i32>(SKIN_WIDTH)) {
         spdlog::warn("DefaultSkinProvider: Invalid skin width for '{}' (expected {}, got {})",
             textureLocation.toString(),
             SKIN_WIDTH,
@@ -161,7 +161,7 @@ std::vector<u8> DefaultSkinProvider::_loadSkinFromResourcePack(const DefaultSkin
         return {};
     }
 
-    if (height != static_cast<int>(SKIN_HEIGHT) && height != 32) {
+    if (height != static_cast<i32>(SKIN_HEIGHT) && height != 32) {
         spdlog::warn("DefaultSkinProvider: Invalid skin height for '{}' (expected {} or 32, got {})",
             textureLocation.toString(),
             SKIN_HEIGHT,

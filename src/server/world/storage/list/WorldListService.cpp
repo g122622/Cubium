@@ -252,7 +252,7 @@ Result<BackupWorldResult> WorldListService::backupWorld(const BackupWorldRequest
     archive_write_set_format_zip(a);
     archive_write_zip_set_compression_deflate(a);
 
-    int r = archive_write_open_filename(a, backupPath.string().c_str());
+    i32 r = archive_write_open_filename(a, backupPath.string().c_str());
     if (r != ARCHIVE_OK) {
         std::string err = archive_error_string(a) ? archive_error_string(a) : "Unknown error";
         archive_write_free(a);

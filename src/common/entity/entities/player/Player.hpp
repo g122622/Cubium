@@ -1786,7 +1786,7 @@ public:
     /**
      * @brief 检查玩家是否在方块交互范围内
      *
-     * 对应 MC 1.21.11 Player.isWithinBlockInteractionRange(BlockPos, double)。
+     * 对应 MC 1.21.11 Player.isWithinBlockInteractionRange(BlockPos, f64)。
      * 计算玩家眼睛到方块 AABB 的距离平方，与 (blockInteractionRange + padding)² 比较。
      *
      * @param pos 方块位置
@@ -1798,7 +1798,7 @@ public:
     /**
      * @brief 检查玩家是否在实体交互范围内
      *
-     * 对应 MC 1.21.11 Player.isWithinEntityInteractionRange(Entity, double)。
+     * 对应 MC 1.21.11 Player.isWithinEntityInteractionRange(Entity, f64)。
      * 若实体已移除返回 false，否则委托到 AABB 重载。
      *
      * @param entity 目标实体
@@ -1810,7 +1810,7 @@ public:
     /**
      * @brief 检查玩家是否在指定 AABB 交互范围内
      *
-     * 对应 MC 1.21.11 Player.isWithinEntityInteractionRange(AABB, double)。
+     * 对应 MC 1.21.11 Player.isWithinEntityInteractionRange(AABB, f64)。
      * 计算玩家眼睛到 AABB 的距离平方，与 (entityInteractionRange + padding)² 比较。
      *
      * @param aabb 目标 AABB
@@ -1822,7 +1822,7 @@ public:
     /**
      * @brief 检查目标 AABB 是否在玩家的攻击范围内
      *
-     * 对应 MC 1.21.11 Player.isWithinAttackRange(AABB, double)：委托
+     * 对应 MC 1.21.11 Player.isWithinAttackRange(AABB, f64)：委托
      * entityAttackRange().isInRange(this, aabb, padding)，玩家创造/旁观模式按
      * attack_range 组件的 creative 分支取值。
      *

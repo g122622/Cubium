@@ -68,7 +68,7 @@ public:
     /**
      * @brief 获取模式内指定位置的方块引用
      *
-     * 对应 MC Java: BlockPatternMatch.getBlock(int, int, int)
+     * 对应 MC Java: BlockPatternMatch.getBlock(i32, i32, i32)
      *
      * @param widthIdx 宽度方向索引 [0, width)
      * @param heightIdx 高度方向索引 [0, height)

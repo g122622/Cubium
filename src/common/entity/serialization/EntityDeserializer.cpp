@@ -177,7 +177,7 @@ Result<std::unique_ptr<Entity>> EntityDeserializer::deserializeFromBinary(
     decompressed.reserve(data.size() * 4);
 
     u8 buffer[8192];
-    int ret = Z_OK;
+    i32 ret = Z_OK;
     do {
         stream.next_out = buffer;
         stream.avail_out = sizeof(buffer);
@@ -239,7 +239,7 @@ Result<std::vector<u8>> EntityDeserializer::serializeToBinary(const Entity& enti
     result.reserve(nbtData.size());
 
     u8 buffer[8192];
-    int ret = Z_OK;
+    i32 ret = Z_OK;
     do {
         stream.next_out = buffer;
         stream.avail_out = sizeof(buffer);

@@ -923,8 +923,8 @@ bool HoglinEntity::attackEntityAsMob(LivingEntity& target)
     }
 
     // 2. 计算伤害：成年随机化，幼年固定。对齐 HoglinBase.hurtAndThrowTarget:
-    //   float f1 = ATTACK_DAMAGE;
-    //   if (!isBaby() && (int)f1 > 0) f = f1 / 2.0F + random.nextInt((int)f1);
+    //   f32 f1 = ATTACK_DAMAGE;
+    //   if (!isBaby() && (i32)f1 > 0) f = f1 / 2.0F + random.nextInt((i32)f1);
     //   else f = f1;
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
     if (!m_isBaby && static_cast<i32>(damage) > 0) {

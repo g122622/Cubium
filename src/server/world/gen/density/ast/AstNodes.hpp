@@ -434,7 +434,7 @@ private:
 
 /// 样条节点。locationFunction 是输入轴子 AST；每个控制点的 value 若是嵌套子样条，
 /// 递归转为子 SplineNode（作为额外 children）。locations/derivatives 是标量数组（比值）。
-/// returnType=F32（MC 样条走 float 算术）。
+/// returnType=F32（MC 样条走 f32 算术）。
 class SplineNode final : public AstNode {
 public:
     /// 控制点：标量 location/derivative + value（f64 常量或嵌套子样条 AST 索引）。

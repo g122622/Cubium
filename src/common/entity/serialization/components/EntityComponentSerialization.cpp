@@ -44,7 +44,7 @@
 namespace mc::entity::serialization::components {
 
 // ============================================================================
-// StateVectorComponent — Pos（位置 double list）
+// StateVectorComponent — Pos（位置 f64 list）
 // ============================================================================
 
 static void saveStateVector(const Entity& entity, nbt::tags::compound_tag& tag)
@@ -73,7 +73,7 @@ static Result<void> loadStateVector(Entity& entity, const nbt::tags::compound_ta
 }
 
 // ============================================================================
-// VelocityComponent — Motion（运动 double list，分量限 ±10.0）
+// VelocityComponent — Motion（运动 f64 list，分量限 ±10.0）
 // ============================================================================
 
 static void saveVelocity(const Entity& entity, nbt::tags::compound_tag& tag)
@@ -97,7 +97,7 @@ static Result<void> loadVelocity(Entity& entity, const nbt::tags::compound_tag& 
 }
 
 // ============================================================================
-// EntityRotationComponent — Rotation（旋转 float list: yaw, pitch）
+// EntityRotationComponent — Rotation（旋转 f32 list: yaw, pitch）
 // ============================================================================
 
 static void saveRotation(const Entity& entity, nbt::tags::compound_tag& tag)

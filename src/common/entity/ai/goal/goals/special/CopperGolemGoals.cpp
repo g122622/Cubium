@@ -734,10 +734,10 @@ void TransportItemsBetweenContainersGoal::_tickInteracting()
 void TransportItemsBetweenContainersGoal::_pickupItemFromContainer(IInventory& container)
 {
     // 对应 MC TransportItemsBetweenContainers.pickupItemFromContainer:
-    //   int i = 0;
+    //   i32 i = 0;
     //   for (ItemStack itemstack : p_434826_) {
     //       if (!itemstack.isEmpty()) {
-    //           int j = Math.min(itemstack.getCount(), 16);
+    //           i32 j = Math.min(itemstack.getCount(), 16);
     //           return p_434826_.removeItem(i, j);
     //       }
     //       i++;

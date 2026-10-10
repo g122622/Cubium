@@ -35,7 +35,7 @@ namespace mc::client::renderer::entity::model {
  * ```java
  * speedValue = 1.0F;
  * if (isFallFlying) {
- *     speedValue = (float)deltaMovement.lengthSqr();
+ *     speedValue = (f32)deltaMovement.lengthSqr();
  *     speedValue /= 0.2F;
  *     speedValue = speedValue * (speedValue * speedValue);  // 立方
  * }

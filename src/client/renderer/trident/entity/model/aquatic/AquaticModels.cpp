@@ -277,7 +277,7 @@ void DolphinModel::setAngles(
 
     // 对应 MC 1.21.11 DolphinModel.setupAnim：
     //   if (renderState.isMoving) {
-    //       float wave = Mth.cos(ageInTicks * 0.3F);
+    //       f32 wave = Mth.cos(ageInTicks * 0.3F);
     //       body.xRot += -0.05F - 0.05F * wave;
     //       tail.xRot = -0.1F * wave;
     //       tailFin.xRot = -0.2F * wave;

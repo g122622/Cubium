@@ -279,7 +279,7 @@ public:
     /**
      * @brief 安全插入物品（指定数量上限）
      *
-     * 对应 MC 1.21.11 的 Slot#safeInsert(ItemStack, int)。
+     * 对应 MC 1.21.11 的 Slot#safeInsert(ItemStack, i32)。
      *
      * @param stack 要插入的物品堆（会被修改，返回剩余部分）
      * @param amount 最大插入数量

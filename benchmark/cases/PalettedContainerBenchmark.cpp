@@ -101,13 +101,13 @@ void buildContainer(PalettedContainer& container, i32 k)
 /// 追加公共计数器：元素种类数、位数、调色板大小、估算内存占用、预热规模。
 void _addCommonCounters(::benchmark::State& state, i32 k, const PalettedContainer& container)
 {
-    state.counters["distinct_values"] = ::benchmark::Counter(static_cast<double>(k));
-    state.counters["bits_per_entry"] = ::benchmark::Counter(static_cast<double>(container.bitsPerEntry()));
-    state.counters["palette_size"] = ::benchmark::Counter(static_cast<double>(container.paletteSize()));
-    state.counters["memory_bytes"] = ::benchmark::Counter(static_cast<double>(container.estimatedMemoryUsage()));
+    state.counters["distinct_values"] = ::benchmark::Counter(static_cast<f64>(k));
+    state.counters["bits_per_entry"] = ::benchmark::Counter(static_cast<f64>(container.bitsPerEntry()));
+    state.counters["palette_size"] = ::benchmark::Counter(static_cast<f64>(container.paletteSize()));
+    state.counters["memory_bytes"] = ::benchmark::Counter(static_cast<f64>(container.estimatedMemoryUsage()));
     // 预热规模（不计入结果，仅作口径记录）。
     state.counters["warmup_accesses"] =
-        ::benchmark::Counter(static_cast<double>(ACCESS_COUNT) * static_cast<double>(WARMUP_ROUNDS));
+        ::benchmark::Counter(static_cast<f64>(ACCESS_COUNT) * static_cast<f64>(WARMUP_ROUNDS));
 }
 
 /**
@@ -168,7 +168,7 @@ void PalettedContainerRandomRead(::benchmark::State& state)
     }
 
     state.counters["reads_per_second"] =
-        ::benchmark::Counter(static_cast<double>(ACCESS_COUNT), ::benchmark::Counter::kIsIterationInvariantRate);
+        ::benchmark::Counter(static_cast<f64>(ACCESS_COUNT), ::benchmark::Counter::kIsIterationInvariantRate);
     _addCommonCounters(state, k, container);
 }
 
@@ -202,7 +202,7 @@ void PalettedContainerRandomWrite(::benchmark::State& state)
     }
 
     state.counters["writes_per_second"] =
-        ::benchmark::Counter(static_cast<double>(ACCESS_COUNT), ::benchmark::Counter::kIsIterationInvariantRate);
+        ::benchmark::Counter(static_cast<f64>(ACCESS_COUNT), ::benchmark::Counter::kIsIterationInvariantRate);
     _addCommonCounters(state, k, container);
 }
 

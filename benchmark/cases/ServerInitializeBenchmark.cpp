@@ -74,7 +74,7 @@ constexpr const char* SERVER_EXECUTABLE_WITH_EXT = "build/bin/RelWithDebInfo/min
 constexpr i32 LAUNCH_TIMEOUT_MS = 300000;
 
 // 被测进程返回码约定：124 = 超时被杀（与 GNU timeout 一致）。
-constexpr int EXIT_CODE_TIMEOUT = 124;
+constexpr i32 EXIT_CODE_TIMEOUT = 124;
 
 // 被测进程控制台日志文件名（落在本次启动专用的临时世界目录内，随目录一起清理）。
 constexpr const char* SERVER_CONSOLE_LOG_NAME = "server_console.log";
@@ -87,7 +87,7 @@ constexpr std::size_t LOG_ECHO_TAIL_LINES = 120;
 /// 回显被测进程的控制台日志（仅在启动失败或非零退出时调用）。
 /// \param logPath 日志文件路径
 /// \param exitCode 被测进程退出码
-void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
+void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
 {
     std::ifstream input(logPath, std::ios::binary);
     if (!input.is_open()) {
@@ -138,10 +138,10 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
 ///                 --benchmark-exit-after-world-init）
 /// \param worldDir 本次启动专用的新临时世界目录（配置与控制台日志都落在其中）
 /// \return 进程退出码；启动失败返回 -1
-[[nodiscard]] int launchServerOnce(const std::string& modeFlag, const std::filesystem::path& worldDir)
+[[nodiscard]] i32 launchServerOnce(const std::string& modeFlag, const std::filesystem::path& worldDir)
 {
     const std::filesystem::path logPath = worldDir / SERVER_CONSOLE_LOG_NAME;
-    int exitCode = -1;
+    i32 exitCode = -1;
 
 #ifdef _WIN32
     // 与 POSIX 分支参数完全对齐：--config 指向本次启动专用的临时配置，服务端由配置路径
@@ -215,7 +215,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
     GetExitCodeProcess(processInfo.hProcess, &processExitCode);
     CloseHandle(processInfo.hThread);
     CloseHandle(processInfo.hProcess);
-    exitCode = static_cast<int>(processExitCode);
+    exitCode = static_cast<i32>(processExitCode);
 #else
     // 临时存档隔离：每次启动用全新游戏目录（--config 指向临时目录内的空配置，
     // 服务端从配置路径推导游戏目录与 saves/），保证每次启动都是全新世界冷启动。
@@ -223,7 +223,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
 
     // 控制台输出重定向到日志文件（与 Windows 分支行为一致）。
     const std::string logPathString = logPath.string();
-    const int logFd = ::open(logPathString.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    const i32 logFd = ::open(logPathString.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (logFd < 0) {
         spdlog::warn("benchmark: failed to create server console log {} (errno={})", logPathString, errno);
         return -1;
@@ -244,7 +244,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
             ::close(logFd);
         }
 
-        std::signal(SIGALRM, [](int) { _exit(EXIT_CODE_TIMEOUT); });
+        std::signal(SIGALRM, [](i32) { _exit(EXIT_CODE_TIMEOUT); });
         alarm(static_cast<unsigned>(LAUNCH_TIMEOUT_MS / 1000));
 
         execl(SERVER_EXECUTABLE,
@@ -258,7 +258,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, int exitCode)
     }
     ::close(logFd); // 父进程不再持有日志文件描述符
 
-    int status = 0;
+    i32 status = 0;
     const pid_t waited = waitpid(pid, &status, 0);
     if (waited != pid) {
         return -1;
@@ -342,7 +342,7 @@ void serverInitializeShell(::benchmark::State& state)
         mc::benchmark::PerfettoProfilerAdapter::setCaseName("server_initialize_shell");
 
         const std::filesystem::path worldDir = prepareTempWorldDir("shell", static_cast<i32>(state.iterations()));
-        const int exitCode = launchServerOnce(modeFlag, worldDir);
+        const i32 exitCode = launchServerOnce(modeFlag, worldDir);
 
         if (exitCode != 0) {
             // 失败时保留临时世界目录（内含 server_console.log，launchServerOnce 已回显头尾），
@@ -366,7 +366,7 @@ void serverInitializeWorld(::benchmark::State& state)
         mc::benchmark::PerfettoProfilerAdapter::setCaseName("server_initialize_world");
 
         const std::filesystem::path worldDir = prepareTempWorldDir("world", static_cast<i32>(state.iterations()));
-        const int exitCode = launchServerOnce(modeFlag, worldDir);
+        const i32 exitCode = launchServerOnce(modeFlag, worldDir);
 
         if (exitCode != 0) {
             // 失败时保留临时世界目录（内含 server_console.log，launchServerOnce 已回显头尾），

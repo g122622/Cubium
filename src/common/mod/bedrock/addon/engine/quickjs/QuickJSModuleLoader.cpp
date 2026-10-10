@@ -117,7 +117,7 @@ JSModuleDef* QuickJSModuleLoader::moduleLoader(JSContext* ctx, const char* modul
 }
 
 bool QuickJSModuleLoader::registerNativeModule(
-    const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc)
+    const std::string& name, std::function<i32(JSContext*, JSModuleDef*)> initFunc)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_nativeModules[name] = std::move(initFunc);
@@ -146,7 +146,7 @@ JSModuleDef* QuickJSModuleLoader::_loadModule(JSContext* ctx, const std::string&
     ModuleSourceProvider provider;
     std::string resolvedName = moduleName;
     bool isNative = false;
-    std::function<int(JSContext*, JSModuleDef*)> nativeInit;
+    std::function<i32(JSContext*, JSModuleDef*)> nativeInit;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -168,7 +168,7 @@ JSModuleDef* QuickJSModuleLoader::_loadModule(JSContext* ctx, const std::string&
 
     if (isNative) {
         JSModuleDef* m =
-            JS_NewCModule(ctx, moduleName.c_str(), [](JSContext* ctx, JSModuleDef* m) -> int { return 0; });
+            JS_NewCModule(ctx, moduleName.c_str(), [](JSContext* ctx, JSModuleDef* m) -> i32 { return 0; });
         if (!m) {
             spdlog::error("[BedrockAddon] Failed to create native module: {}", moduleName);
             return nullptr;

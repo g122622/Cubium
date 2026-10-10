@@ -152,11 +152,11 @@ SingleFireTexture loadSingleFireTexture(const std::vector<IResourcePack*>& resou
             continue;
         }
 
-        int width = 0;
-        int height = 0;
-        int channels = 0;
+        i32 width = 0;
+        i32 height = 0;
+        i32 channels = 0;
         u8* pixels = stbi_load_from_memory(
-            readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
+            readResult.value().data(), static_cast<i32>(readResult.value().size()), &width, &height, &channels, 4);
         if (pixels == nullptr) {
             spdlog::warn("FireTextureLoader: Failed to decode {}", path);
             continue;

@@ -61,7 +61,7 @@ std::string stripNamespace(std::string_view s)
     return std::string(s);
 }
 
-/// 读取必填 double 字段
+/// 读取必填 f64 字段
 Result<f64> readDouble(const json& j, std::string_view field)
 {
     if (!j.contains(field) || !j[field].is_number()) {

@@ -522,7 +522,7 @@ std::vector<u8> ChunkData::serialize() const
     }
 
     // 居住时间（8字节，大端序）
-    for (int i = 56; i >= 0; i -= 8) {
+    for (i32 i = 56; i >= 0; i -= 8) {
         data.push_back(static_cast<u8>(m_inhabitedTime >> i));
     }
 

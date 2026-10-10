@@ -64,7 +64,7 @@ UniversalWorkerPool::~UniversalWorkerPool()
 i32 UniversalWorkerPool::getOptimalThreadCount()
 {
     // 使用硬件并发数 - 1，至少 1 个，最多 114514 个
-    const unsigned int hardwareConcurrency = std::thread::hardware_concurrency();
+    const u32 hardwareConcurrency = std::thread::hardware_concurrency();
     return static_cast<i32>(std::clamp(hardwareConcurrency - 1, 1u, 114514u));
 }
 
@@ -480,7 +480,7 @@ void UniversalWorkerPool::workerThread(i32 workerId)
     // sibling_order_rank = rankBase + workerId，让 worker-0 排最前（根 track thread_ordering=EXPLICIT 生效）。
     // rankBase 由构造方显式传入（ServerCompute=100、ServerIO=200、ClientCompute=300 等），
     // 使 UI 中各组 worker 分块排列、组内按 workerId 升序；每组间隔 100，避免线程数 >10 时跨组相交。
-    const int rankBase = m_rankBase;
+    const i32 rankBase = m_rankBase;
     mc::profiler::ProfilerManager::instance().setThreadName(threadName, rankBase + workerId);
 
     while (true) {

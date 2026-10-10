@@ -226,7 +226,7 @@ public:
      * MC 1.16.5 效果格式：
      * - Id (byte): 效果类型ID
      * - Amplifier (byte): 效果等级（0 = I, 1 = II, 等）
-     * - Duration (int): 持续时间（tick），-1表示永久
+     * - Duration (i32): 持续时间（tick），-1表示永久
      * - Ambient (byte): 是否为环境效果
      * - ShowParticles (byte): 是否显示粒子
      * - ShowIcon (byte): 是否显示图标

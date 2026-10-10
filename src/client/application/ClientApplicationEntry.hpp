@@ -59,7 +59,7 @@ protected:
     [[nodiscard]] std::string profilerThreadName() const override { return "ClientMainThread"; }
 
     void onFlagsParsed() override;
-    [[nodiscard]] int runApplication() override;
+    [[nodiscard]] i32 runApplication() override;
 
 private:
     /// 启动参数（由 onFlagsParsed 从 gflags 填充）。

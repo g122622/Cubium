@@ -61,7 +61,7 @@ bool ShulkerAttackGoal::shouldExecute()
     }
 
     // 检查目标是否在攻击范围内
-    double distSq = m_shulker->position().distanceSquared(target->position());
+    f64 distSq = m_shulker->position().distanceSquared(target->position());
     if (distSq > ATTACK_RANGE_SQ) {
         return false;
     }
@@ -77,7 +77,7 @@ bool ShulkerAttackGoal::shouldContinueExecuting()
     }
 
     // 目标仍在范围内
-    double distSq = m_shulker->position().distanceSquared(m_target->position());
+    f64 distSq = m_shulker->position().distanceSquared(m_target->position());
     return distSq <= ATTACK_RANGE_SQ;
 }
 

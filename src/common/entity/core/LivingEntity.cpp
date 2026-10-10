@@ -2006,7 +2006,7 @@ void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const Dam
     // - FALL_DAMAGE_MULTIPLIER 默认 1.0，马类覆盖为 0.5。
     // - damageMultiplier 由调用方传入（普通方块 1.0、干草块/蜂蜜块 0.2、石笋 2.0、史莱姆块 0）。
     // - 1e-6 偏移消除浮点边界：恰好等于安全距离时不产生伤害。
-    // - floor 整体取整：伤害按整数格结算（vanilla calculateFallDamage 返回 int）。
+    // - floor 整体取整：伤害按整数格结算（vanilla calculateFallDamage 返回 i32）。
     // 注意：摔落保护附魔的减伤在 actuallyHurt 管线的 applyPotionDamageCalculations
     //   统一处理（对 isFall() 伤害），此处不再重复减伤（此前此处重复减伤为 bug）。
     const f32 safeFallDistance =
@@ -2292,7 +2292,7 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 飘浮效果：每 tick 向上加速 0.05 * (amplifier + 1)，抵消重力。
         // 对应 MC 1.21.11 LivingEntity.travel() 中 Levitation 分支：
         //   if (this.hasEffect(MobEffects.LEVITATION)) {
-        //       d4 += (0.05 * (double)(this.getEffect(...).getAmplifier() + 1) - vec3.y) * ...;
+        //       d4 += (0.05 * (f64)(this.getEffect(...).getAmplifier() + 1) - vec3.y) * ...;
         //   }
         // vec3.y 为本帧重力位移，这里等价为"加成替代重力"：飘浮时不应用重力，
         // 仅施加向上加成，并重置摔落距离。
@@ -2608,7 +2608,7 @@ Vector3 LivingEntity::updateFallFlyingMovement(const Vector3& currentVelocity) c
 
 void LivingEntity::handleFallFlyingCollisions(f64 prevHorizontalSpeed, f64 currHorizontalSpeed)
 {
-    // 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(double, double)
+    // 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(f64, f64)
     if (!m_builtIn.physicsState->m_collidedHorizontally) {
         return;
     }
@@ -3085,7 +3085,7 @@ i32 LivingEntity::decreaseAirSupply(i32 currentAir)
 {
     // 对齐 vanilla 1.21.11 LivingEntity.decreaseAirSupply（LivingEntity.java:571-582）：
     //   AttributeInstance ai = getAttribute(OXYGEN_BONUS);
-    //   double d0 = (ai != null) ? ai.getValue() : 0.0;
+    //   f64 d0 = (ai != null) ? ai.getValue() : 0.0;
     //   return d0 > 0.0 && random.nextDouble() >= 1.0 / (d0 + 1.0) ? currentAir : currentAir - 1;
     // oxygen_bonus 默认 0.0（每 tick 必消耗 1 点），水下呼吸魔咒经 enchantment.respiration
     // 修饰符（每级 +1.0 ADD_VALUE）注入，使 d0=level，仅 1/(level+1) 概率消耗：

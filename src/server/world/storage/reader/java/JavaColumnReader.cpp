@@ -456,7 +456,7 @@ void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData&
         return;
     }
 
-    // 旧版 HeightMap int 数组语义：每列最高方块 Y+1（绝对世界坐标），0 表示无方块。
+    // 旧版 HeightMap i32 数组语义：每列最高方块 Y+1（绝对世界坐标），0 表示无方块。
     // 直接整列写回 Heightmap，避免 updateHeightmap + nullptr state 的 no-op 问题。
     // 0 转换为 NO_BLOCK_SENTINEL 以匹配内部存储语义。
     std::array<BlockCoord, Heightmap::SIZE> heights{};

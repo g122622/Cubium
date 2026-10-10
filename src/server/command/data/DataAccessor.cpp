@@ -118,7 +118,7 @@ std::string BlockDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
     return ss.str();
 }
 
-std::string BlockDataAccessor::getGetMessage(const NbtPath& path, double scale, i32 value) const
+std::string BlockDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson;
@@ -214,7 +214,7 @@ std::string EntityDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
     return ss.str();
 }
 
-std::string EntityDataAccessor::getGetMessage(const NbtPath& path, double scale, i32 value) const
+std::string EntityDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson;
@@ -279,7 +279,7 @@ std::string StorageDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) cons
     return ss.str();
 }
 
-std::string StorageDataAccessor::getGetMessage(const NbtPath& path, double scale, i32 value) const
+std::string StorageDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson;

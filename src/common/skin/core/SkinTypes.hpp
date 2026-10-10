@@ -153,8 +153,8 @@ constexpr size_t DEFAULT_SKIN_COUNT = 18;
  * @brief 计算UUID的哈希码
  *
  * 使用与 Java UUID.hashCode() 相同的算法：
- * int hashCode = (int)(mostSigBits >> 32) ^ (int)mostSigBits ^
- *                (int)(leastSigBits >> 32) ^ (int)leastSigBits;
+ * i32 hashCode = (i32)(mostSigBits >> 32) ^ (i32)mostSigBits ^
+ *                (i32)(leastSigBits >> 32) ^ (i32)leastSigBits;
  *
  * @param uuid UUID 字节数组
  * @return 32位哈希码

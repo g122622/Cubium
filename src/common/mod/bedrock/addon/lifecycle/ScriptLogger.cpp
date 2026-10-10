@@ -33,7 +33,7 @@ namespace mc::mod::bedrock::addon {
 void ScriptLogger::onInfo(const std::string& message)
 {
     // 仅当日志级别 <= info 时输出
-    if (m_logLevel <= static_cast<int>(spdlog::level::info)) {
+    if (m_logLevel <= static_cast<i32>(spdlog::level::info)) {
         spdlog::info("[Script] {}", message);
     }
 }
@@ -41,7 +41,7 @@ void ScriptLogger::onInfo(const std::string& message)
 void ScriptLogger::onWarn(const std::string& message)
 {
     // 仅当日志级别 <= warn 时输出
-    if (m_logLevel <= static_cast<int>(spdlog::level::warn)) {
+    if (m_logLevel <= static_cast<i32>(spdlog::level::warn)) {
         spdlog::warn("[Script] {}", message);
     }
 }
@@ -49,7 +49,7 @@ void ScriptLogger::onWarn(const std::string& message)
 void ScriptLogger::onError(const std::string& message)
 {
     // 仅当日志级别 <= error 时输出
-    if (m_logLevel <= static_cast<int>(spdlog::level::err)) {
+    if (m_logLevel <= static_cast<i32>(spdlog::level::err)) {
         spdlog::error("[Script] {}", message);
     }
 }
@@ -57,7 +57,7 @@ void ScriptLogger::onError(const std::string& message)
 void ScriptLogger::onException(const ScriptException& exception)
 {
     // 异常日志始终使用error级别
-    if (m_logLevel <= static_cast<int>(spdlog::level::err)) {
+    if (m_logLevel <= static_cast<i32>(spdlog::level::err)) {
         spdlog::error("[Script] {} at {}:{}: {}",
             ScriptException::errorTypeName(exception.type()),
             exception.filename(),
@@ -66,12 +66,12 @@ void ScriptLogger::onException(const ScriptException& exception)
     }
 }
 
-void ScriptLogger::setLogLevel(int level)
+void ScriptLogger::setLogLevel(i32 level)
 {
     m_logLevel = level;
 }
 
-int ScriptLogger::logLevel() const
+i32 ScriptLogger::logLevel() const
 {
     return m_logLevel;
 }

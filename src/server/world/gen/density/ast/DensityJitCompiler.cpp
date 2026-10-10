@@ -621,7 +621,7 @@ DensityJitFn compileDensityJit(const std::vector<Op>& ops, u32 regCount) noexcep
         asmjit::CodeHolder code;
         asmjit::Error err = code.init(rt.environment(), rt.cpuFeatures());
         if (err != asmjit::kErrorOk) {
-            spdlog::warn("density JIT: CodeHolder init failed (asmjit error {})", static_cast<int>(err));
+            spdlog::warn("density JIT: CodeHolder init failed (asmjit error {})", static_cast<i32>(err));
             return nullptr;
         }
         asmjit::x86::Compiler cc(&code);
@@ -640,25 +640,25 @@ DensityJitFn compileDensityJit(const std::vector<Op>& ops, u32 regCount) noexcep
         OpTranslator translator(cc, ops, regCount, ctxGp, xGp, yGp, zGp);
         err = translator.translate();
         if (err != asmjit::kErrorOk) {
-            spdlog::warn("density JIT: translation failed (asmjit error {})", static_cast<int>(err));
+            spdlog::warn("density JIT: translation failed (asmjit error {})", static_cast<i32>(err));
             return nullptr;
         }
 
         err = cc.endFunc();
         if (err != asmjit::kErrorOk) {
-            spdlog::warn("density JIT: endFunc failed (asmjit error {})", static_cast<int>(err));
+            spdlog::warn("density JIT: endFunc failed (asmjit error {})", static_cast<i32>(err));
             return nullptr;
         }
         err = cc.finalize();
         if (err != asmjit::kErrorOk) {
-            spdlog::warn("density JIT: finalize failed (asmjit error {})", static_cast<int>(err));
+            spdlog::warn("density JIT: finalize failed (asmjit error {})", static_cast<i32>(err));
             return nullptr;
         }
 
         DensityJitFn fn = nullptr;
         err = rt.add(&fn, &code);
         if (err != asmjit::kErrorOk || fn == nullptr) {
-            spdlog::warn("density JIT: rt.add failed (asmjit error {})", static_cast<int>(err));
+            spdlog::warn("density JIT: rt.add failed (asmjit error {})", static_cast<i32>(err));
             return nullptr;
         }
         return fn;

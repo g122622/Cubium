@@ -780,7 +780,7 @@ void EntityMetadataSerializer::_writeBigEndianF32(f32 value, std::vector<u8>& ou
 void EntityMetadataSerializer::_writeBigEndianI64(i64 value, std::vector<u8>& output) noexcept
 {
     u64 bits = static_cast<u64>(value);
-    for (int shift = 56; shift >= 0; shift -= 8) {
+    for (i32 shift = 56; shift >= 0; shift -= 8) {
         output.push_back(static_cast<u8>((bits >> shift) & 0xFF));
     }
 }
@@ -799,7 +799,7 @@ bool EntityMetadataSerializer::_readBigEndianI64(const u8* data, size_t size, si
 {
     if (offset + sizeof(i64) > size) return false;
     u64 bits = 0;
-    for (int i = 0; i < 8; ++i) {
+    for (i32 i = 0; i < 8; ++i) {
         bits = (bits << 8) | static_cast<u64>(data[offset + i]);
     }
     out = static_cast<i64>(bits);

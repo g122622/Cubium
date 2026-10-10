@@ -84,7 +84,7 @@ private:
         i32 dx,
         i32 dz,
         f32 wetness,
-        double chance,
+        f64 chance,
         i32 maxHeight,
         f32 density,
         const DripstoneClusterConfig& config);

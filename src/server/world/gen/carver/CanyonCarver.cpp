@@ -67,7 +67,7 @@ bool CanyonCarver::carve(ChunkPrimer& chunk,
     const i32 range = getRange() * 2 - 1;
     const i32 tunnelLength = range * world::CHUNK_WIDTH;
 
-    // MC 1.21.11: 位置追踪使用 double 精度，避免长峡谷路径精度漂移
+    // MC 1.21.11: 位置追踪使用 f64 精度，避免长峡谷路径精度漂移
     const f64 startX =
         static_cast<f64>(world::toWorldCoord(originChunkX)) + static_cast<f64>(rng.nextInt(world::CHUNK_WIDTH));
     const i32 startY = config.y->sample(rng, context);
@@ -157,7 +157,7 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     f32 pitchModifier = 0.0f;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        // 原版：Mth.sin(i * (float) Math.PI / endIndex) —— 角度按 f32 运算，且用查表版 Mth.sin
+        // 原版：Mth.sin(i * (f32) Math.PI / endIndex) —— 角度按 f32 运算，且用查表版 Mth.sin
         // （不是精确 std::sin）。
         const f32 envelopeAngle = static_cast<f32>(i) * static_cast<f32>(math::PI) / static_cast<f32>(endIndex);
         const f64 horizontalRadius =
@@ -170,8 +170,8 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
         verticalRadius = _updateVerticalRadius(
             config, rng, static_cast<f32>(verticalRadius), static_cast<f32>(endIndex), static_cast<f32>(i));
 
-        // 原版：float f2 = Mth.cos(pitch); float f3 = Mth.sin(pitch);
-        //       p += Mth.cos(yaw) * f2;   —— 全部是 **f32** 乘法后累加到 double 位置。
+        // 原版：f32 f2 = Mth.cos(pitch); f32 f3 = Mth.sin(pitch);
+        //       p += Mth.cos(yaw) * f2;   —— 全部是 **f32** 乘法后累加到 f64 位置。
         const f32 cosPitch = math::mthCos(static_cast<f64>(pitch));
         const f32 sinPitch = math::mthSin(static_cast<f64>(pitch));
         startX += static_cast<f64>(math::mthCos(static_cast<f64>(yaw)) * cosPitch);

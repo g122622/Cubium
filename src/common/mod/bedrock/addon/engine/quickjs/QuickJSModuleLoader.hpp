@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+
 #include <functional>
 #include <mutex>
 #include <string>
@@ -92,7 +94,7 @@ public:
      *                 返回0表示成功，-1表示失败
      * @return 是否注册成功
      */
-    bool registerNativeModule(const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc);
+    bool registerNativeModule(const std::string& name, std::function<i32(JSContext*, JSModuleDef*)> initFunc);
 
     /**
      * @brief 注册模块源码提供者
@@ -119,7 +121,7 @@ private:
      */
     JSModuleDef* _loadModule(JSContext* ctx, const std::string& moduleName);
 
-    std::unordered_map<std::string, std::function<int(JSContext*, JSModuleDef*)>> m_nativeModules;
+    std::unordered_map<std::string, std::function<i32(JSContext*, JSModuleDef*)>> m_nativeModules;
     ModuleSourceProvider m_sourceProvider;
     std::unordered_map<std::string, std::string> m_aliases;
     std::mutex m_mutex;

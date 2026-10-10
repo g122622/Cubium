@@ -48,7 +48,7 @@ i32 IRandom::nextInt(i32 bound)
     MC_ASSERT_RELEASE(bound > 0);
 
     // MC 风格的无偏差随机数生成
-    // 参考 MC Random.nextInt(int)
+    // 参考 MC Random.nextInt(i32)
     u32 r = nextU32();
     u32 m = static_cast<u32>(bound);
     u32 u = r % m;
@@ -80,7 +80,7 @@ bool IRandom::nextBoolean()
 f32 IRandom::nextFloat()
 {
     // 返回 [0.0, 1.0) 范围的浮点数
-    // 使用 24 位精度（float 的尾数位）
+    // 使用 24 位精度（f32 的尾数位）
     return static_cast<f32>(nextU64() >> 40) / static_cast<f32>(1ULL << 24);
 }
 
@@ -92,7 +92,7 @@ f32 IRandom::nextFloat(f32 min, f32 max)
 f64 IRandom::nextDouble()
 {
     // 返回 [0.0, 1.0) 范围的双精度浮点数
-    // 使用 53 位精度（double 的尾数位）
+    // 使用 53 位精度（f64 的尾数位）
     return static_cast<f64>((nextU64() >> 11)) / static_cast<f64>(1ULL << 53);
 }
 

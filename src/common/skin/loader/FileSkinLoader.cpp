@@ -332,12 +332,12 @@ Result<SkinLoadResult> FileSkinLoader::_loadFromResourcePack(const ResourceLocat
 Result<std::vector<u8>> FileSkinLoader::_validateAndConvertSkin(const std::vector<u8>& pngData)
 {
     // 使用 stb_image 解析 PNG
-    int width = 0;
-    int height = 0;
-    int channels = 0;
+    i32 width = 0;
+    i32 height = 0;
+    i32 channels = 0;
 
     u8* pixels = stbi_load_from_memory(pngData.data(),
-        static_cast<int>(pngData.size()),
+        static_cast<i32>(pngData.size()),
         &width,
         &height,
         &channels,
@@ -366,7 +366,7 @@ Result<std::vector<u8>> FileSkinLoader::_validateAndConvertSkin(const std::vecto
         result.resize(64 * 64 * 4, 0);
 
         // 复制上半部分（0-31 行）
-        for (int y = 0; y < 32; ++y) {
+        for (i32 y = 0; y < 32; ++y) {
             const size_t srcOffset = static_cast<size_t>(y * 64 * 4);
             const size_t dstOffset = static_cast<size_t>(y * 64 * 4);
             std::memcpy(result.data() + dstOffset, pixels + srcOffset, 64 * 4);
@@ -389,7 +389,7 @@ Result<std::vector<u8>> FileSkinLoader::_validateAndConvertSkin(const std::vecto
 
     PngWriteContext ctx;
     stbi_write_png_to_func(
-        [](void* userdata, void* data, int size) {
+        [](void* userdata, void* data, i32 size) {
             auto* context = static_cast<PngWriteContext*>(userdata);
             auto* bytes = static_cast<u8*>(data);
             context->buffer.insert(context->buffer.end(), bytes, bytes + size);

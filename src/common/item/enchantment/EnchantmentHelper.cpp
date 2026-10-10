@@ -677,7 +677,7 @@ std::vector<EnchantmentHelper::EnchantmentData> EnchantmentHelper::buildEnchantm
     level = level + 1 + random.nextInt(enchantability / 4 + 1) + random.nextInt(enchantability / 4 + 1);
 
     // 随机波动 -15% 到 +15%
-    float f = (random.nextFloat() + random.nextFloat() - 1.0f) * 0.15f;
+    f32 f = (random.nextFloat() + random.nextFloat() - 1.0f) * 0.15f;
     level = std::max(1, static_cast<i32>(level + level * f));
 
     // 获取可用附魔列表

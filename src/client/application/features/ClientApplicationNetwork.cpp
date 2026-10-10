@@ -331,7 +331,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             // 计算堆肥桶填充高度处的粒子位置
             // 由于客户端可能还没有最新方块状态，使用方块中心偏上作为近似位置
             const f32 particleBaseY = static_cast<f32>(y) + 0.53125f;
-            for (int i = 0; i < 10; ++i) {
+            for (i32 i = 0; i < 10; ++i) {
                 f32 ppx = static_cast<f32>(x) + 0.1875f + 0.625f * random.nextFloat();
                 f32 ppy = particleBaseY + random.nextFloat() * 0.46875f;
                 f32 ppz = static_cast<f32>(z) + 0.1875f + 0.625f * random.nextFloat();
@@ -357,7 +357,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                         2.6f + (random.nextFloat() - random.nextFloat()) * 0.8f)));
             }
 
-            for (int i = 0; i < 8; ++i) {
+            for (i32 i = 0; i < 8; ++i) {
                 f32 lpx = static_cast<f32>(x) + random.nextFloat();
                 f32 lpy = static_cast<f32>(y) + 1.2f;
                 f32 lpz = static_cast<f32>(z) + random.nextFloat();
@@ -453,7 +453,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                 i32 stepX = Directions::xOffset(dir);
                 i32 stepY = Directions::yOffset(dir);
                 i32 stepZ = Directions::zOffset(dir);
-                for (int i = 0; i < 10; ++i) {
+                for (i32 i = 0; i < 10; ++i) {
                     f32 speed = static_cast<f32>(random.nextDouble() * 0.2 + 0.01);
                     f32 spx = static_cast<f32>(x) + static_cast<f32>(stepX) * 0.6f + 0.5f +
                         static_cast<f32>(stepX) * 0.01f +
@@ -510,7 +510,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                         2.6f + (random.nextFloat() - random.nextFloat()) * 0.8f)));
             }
 
-            for (int i = 0; i < 8; ++i) {
+            for (i32 i = 0; i < 8; ++i) {
                 f32 lpx = static_cast<f32>(x) + random.nextFloat();
                 f32 lpy = static_cast<f32>(y) + 1.2f;
                 f32 lpz = static_cast<f32>(z) + random.nextFloat();
@@ -710,7 +710,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                     SoundEvents::BLOCK_REDSTONE_TORCH_BURNOUT, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
 
-            for (int i = 0; i < 3; ++i) {
+            for (i32 i = 0; i < 3; ++i) {
                 f32 rspx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.3f;
                 f32 rspy = static_cast<f32>(y) + 0.7f;
                 f32 rspz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.3f;
@@ -778,7 +778,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                 i32 stepX = Directions::xOffset(dir);
                 i32 stepY = Directions::yOffset(dir);
                 i32 stepZ = Directions::zOffset(dir);
-                for (int i = 0; i < 10; ++i) {
+                for (i32 i = 0; i < 10; ++i) {
                     f32 speed = static_cast<f32>(random.nextDouble() * 0.2 + 0.01);
                     f32 spx = static_cast<f32>(x) + static_cast<f32>(stepX) * 0.6f + 0.5f +
                         static_cast<f32>(stepX) * 0.01f +

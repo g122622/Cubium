@@ -84,8 +84,8 @@ bool GameModeManager::setGameMode(PlayerId playerId, GameMode mode)
 
     spdlog::info("GameModeManager: Player {} changed game mode from {} to {}",
         playerId,
-        static_cast<int>(oldMode),
-        static_cast<int>(mode));
+        static_cast<i32>(oldMode),
+        static_cast<i32>(mode));
 
     return true;
 }

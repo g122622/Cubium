@@ -225,7 +225,7 @@ noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
         }
     }
 
-    // miss 路径：unique_lock 写入（double-check，避免重复构造）
+    // miss 路径：unique_lock 写入（f64-check，避免重复构造）
     std::unique_lock lock(m_noiseMutex);
     auto it = m_noiseCache.find(name);
     if (it != m_noiseCache.end()) {
@@ -259,7 +259,7 @@ std::shared_ptr<const noise::NormalNoise> RandomState::getOrCreateNoiseShared(co
         }
     }
 
-    // miss 路径：unique_lock 写入（double-check）
+    // miss 路径：unique_lock 写入（f64-check）
     std::unique_lock lock(m_noiseMutex);
     auto it = m_noiseCache.find(name);
     if (it != m_noiseCache.end()) {
@@ -284,7 +284,7 @@ std::shared_ptr<const noise::NormalNoise> RandomState::getOrCreateNoiseShared(co
         }
     }
 
-    // miss 路径：unique_lock 写入（double-check）
+    // miss 路径：unique_lock 写入（f64-check）
     std::unique_lock lock(m_randomFactoryMutex);
     auto it = m_randomFactoryCache.find(name);
     if (it != m_randomFactoryCache.end()) {

@@ -185,7 +185,7 @@ public:
      */
     E pollOrBlockAdds()
     {
-        int failures = 0;
+        i32 failures = 0;
         for (LinkedNode *head = m_head.load(std::memory_order::acquire), *curr = head;;) {
             E currentVal = curr->m_element.load(std::memory_order::relaxed);
             LinkedNode* next = curr->m_next.load(std::memory_order::acquire);
@@ -194,7 +194,7 @@ public:
                 return nullptr; // 队列已 add-blocked
             }
 
-            for (int i = 0; i < failures; ++i) {
+            for (i32 i = 0; i < failures; ++i) {
                 backoff();
             }
 
@@ -320,7 +320,7 @@ private:
      */
     bool appendListInternal(LinkedNode* headNode, LinkedNode* tailNode)
     {
-        int failures = 0;
+        i32 failures = 0;
         LinkedNode* currTail = m_tail.load(std::memory_order::acquire);
         LinkedNode* curr = currTail;
         for (;;) {
@@ -331,7 +331,7 @@ private:
                 return false;
             }
 
-            for (int i = 0; i < failures; ++i) {
+            for (i32 i = 0; i < failures; ++i) {
                 backoff();
             }
 
@@ -376,13 +376,13 @@ private:
      */
     bool forceAppendList(LinkedNode* headNode, LinkedNode* tailNode)
     {
-        int failures = 0;
+        i32 failures = 0;
         LinkedNode* currTail = m_tail.load(std::memory_order::acquire);
         LinkedNode* curr = currTail;
         for (;;) {
             LinkedNode* next = curr->m_next.load(std::memory_order::acquire);
 
-            for (int i = 0; i < failures; ++i) {
+            for (i32 i = 0; i < failures; ++i) {
                 backoff();
             }
 

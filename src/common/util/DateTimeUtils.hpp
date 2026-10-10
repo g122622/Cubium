@@ -226,8 +226,8 @@ inline constexpr char MC_DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
         // remaining 应为 "+HHMM" 或 "-HHMM"
         if (remaining.size() >= 5 && (remaining[0] == '+' || remaining[0] == '-')) {
             try {
-                int tzHours = std::stoi(remaining.substr(1, 2));
-                int tzMinutes = std::stoi(remaining.substr(3, 2));
+                i32 tzHours = std::stoi(remaining.substr(1, 2));
+                i32 tzMinutes = std::stoi(remaining.substr(3, 2));
                 tzOffsetSeconds = static_cast<i64>(tzHours) * 3600 + static_cast<i64>(tzMinutes) * 60;
                 if (remaining[0] == '-') {
                     tzOffsetSeconds = -tzOffsetSeconds;

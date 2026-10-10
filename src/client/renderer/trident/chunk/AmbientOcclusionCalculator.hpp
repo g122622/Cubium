@@ -57,7 +57,7 @@ public:
      * 包含4个顶点的光照和颜色乘数。
      */
     struct Result {
-        std::array<float, 4> vertexColorMultiplier{}; ///< 顶点颜色乘数 (0.0-1.0)
+        std::array<f32, 4> vertexColorMultiplier{}; ///< 顶点颜色乘数 (0.0-1.0)
         std::array<u8, 4> vertexSkyLight{};           ///< 顶点天空光 (0-15)
         std::array<u8, 4> vertexBlockLight{};         ///< 顶点方块光 (0-15)
     };
@@ -80,7 +80,7 @@ public:
         i32 blockZ,
         Face face,
         const ChunkData* neighborChunks[6],
-        const float* nonCubicWeights = nullptr);
+        const f32* nonCubicWeights = nullptr);
 
 private:
     /**
@@ -89,7 +89,7 @@ private:
     struct CornerSample {
         u8 skyLight = 0;           ///< 天空光照 (0-15)
         u8 blockLight = 0;         ///< 方块光照 (0-15)
-        float aoBrightness = 1.0f; ///< AO亮度 (0.2 或 1.0)
+        f32 aoBrightness = 1.0f; ///< AO亮度 (0.2 或 1.0)
     };
 
     /**
@@ -126,7 +126,7 @@ private:
      * @param state 方块状态（可为nullptr表示空气）
      * @return AO亮度值
      */
-    [[nodiscard]] static float getAoBrightness(const BlockState* state);
+    [[nodiscard]] static f32 getAoBrightness(const BlockState* state);
 
     /**
      * @brief 检查方块是否不透明（用于AO计算）
@@ -176,7 +176,7 @@ private:
      * @return 插值后的打包亮度
      */
     [[nodiscard]] static u32 getVertexBrightness(
-        u32 b1, u32 b2, u32 b3, u32 b4, float w1, float w2, float w3, float w4);
+        u32 b1, u32 b2, u32 b3, u32 b4, f32 w1, f32 w2, f32 w3, f32 w4);
 
     /**
      * @brief 获取指定位置的光照值（天空光和方块光的打包值）

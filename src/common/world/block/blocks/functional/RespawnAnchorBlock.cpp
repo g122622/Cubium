@@ -109,7 +109,7 @@ const CollisionShape& RespawnAnchorBlock::getShape(const BlockState& state) cons
     return m_shape;
 }
 
-int RespawnAnchorBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 RespawnAnchorBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
 
     MC_UNUSED(world);
@@ -127,13 +127,13 @@ u8 RespawnAnchorBlock::getLightLevel(const BlockState& state, IWorld* world, con
 
     // 光照等级 = charges * 3.75，向下取整
     // 0 -> 0, 1 -> 3, 2 -> 7, 3 -> 11, 4 -> 15
-    int charges = getCharges(state);
+    i32 charges = getCharges(state);
     return static_cast<u8>(std::floor(charges * 3.75f));
 }
 
 BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockState& state)
 {
-    int charges = getCharges(state);
+    i32 charges = getCharges(state);
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
@@ -145,7 +145,7 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
 
 void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockState& state)
 {
-    int charges = getCharges(state);
+    i32 charges = getCharges(state);
     if (charges > 0) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges - 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);

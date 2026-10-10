@@ -216,17 +216,17 @@ Direction PistonBlockEntity::getMotionDirection() const noexcept
 
 f32 PistonBlockEntity::getOffsetX(f32 partialTick) const
 {
-    return static_cast<float>(Directions::xOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
+    return static_cast<f32>(Directions::xOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
 f32 PistonBlockEntity::getOffsetY(f32 partialTick) const
 {
-    return static_cast<float>(Directions::yOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
+    return static_cast<f32>(Directions::yOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
 f32 PistonBlockEntity::getOffsetZ(f32 partialTick) const
 {
-    return static_cast<float>(Directions::zOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
+    return static_cast<f32>(Directions::zOffset(m_facing)) * getExtendedProgress(getProgress(partialTick));
 }
 
 void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)

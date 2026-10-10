@@ -223,10 +223,10 @@ std::string Value::toString() const
         case ValueType::Bool:
             return m_boolValue ? "true" : "false";
         case ValueType::Integer:
-            // m_intValue 内部以 i64 存储，使用 std::to_string(long long) 重载
+            // m_intValue 内部以 i64 存储，使用 std::to_string(i64) 重载
             return std::to_string(m_intValue);
         case ValueType::Float:
-            // m_floatValue 内部以 f64 存储，使用 std::to_string(double) 重载
+            // m_floatValue 内部以 f64 存储，使用 std::to_string(f64) 重载
             return std::to_string(m_floatValue);
         case ValueType::String:
             return m_stringValue;

@@ -171,7 +171,7 @@ public:
      *
      * @param eventId 事件 ID
      */
-    void onEventTriggered(int eventId);
+    void onEventTriggered(i32 eventId);
 
     // ========== 配置接口 ==========
 

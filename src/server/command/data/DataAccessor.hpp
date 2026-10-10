@@ -96,7 +96,7 @@ public:
      * @param value 缩放后的值
      * @return 消息文本
      */
-    [[nodiscard]] virtual std::string getGetMessage(const NbtPath& path, double scale, i32 value) const = 0;
+    [[nodiscard]] virtual std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const = 0;
 };
 
 /**
@@ -118,7 +118,7 @@ public:
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::string getModifiedMessage() const override;
     [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
-    [[nodiscard]] std::string getGetMessage(const NbtPath& path, double scale, i32 value) const override;
+    [[nodiscard]] std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const override;
 
     /**
      * @brief 检查位置是否有方块实体
@@ -155,7 +155,7 @@ public:
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::string getModifiedMessage() const override;
     [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
-    [[nodiscard]] std::string getGetMessage(const NbtPath& path, double scale, i32 value) const override;
+    [[nodiscard]] std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const override;
 
     /**
      * @brief 检查实体是否有效
@@ -192,7 +192,7 @@ public:
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::string getModifiedMessage() const override;
     [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
-    [[nodiscard]] std::string getGetMessage(const NbtPath& path, double scale, i32 value) const override;
+    [[nodiscard]] std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const override;
 
 private:
     CommandStorage* m_storage;

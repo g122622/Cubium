@@ -286,7 +286,7 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
 
         // 【为何必须循环重抽】原版对多条目结构集是
         //     while (!arraylist.isEmpty()) {
-        //         int j = worldgenrandom.nextInt(i);   // i = 当前剩余条目权重之和
+        //         i32 j = worldgenrandom.nextInt(i);   // i = 当前剩余条目权重之和
         //         for (entry : arraylist) { j -= entry.weight(); if (j < 0) break; k++; }
         //         if (tryGenerateStructure(arraylist.get(k), ...)) return;   // 成功即止
         //         arraylist.remove(k);
@@ -884,7 +884,7 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
             }
 
             // 按拓扑索引排序放置特征
-            // 对应 Java: int[] aint = intset.toIntArray(); Arrays.sort(aint);
+            // 对应 Java: i32[] aint = intset.toIntArray(); Arrays.sort(aint);
             for (i32 topoIndex : featureIndices) {
                 if (topoIndex < static_cast<i32>(stepData.features.size()) && stepData.features[topoIndex] != nullptr) {
                     worldgenRandom.setFeatureSeed(decorSeed, topoIndex, stageOrdinal);

@@ -659,7 +659,7 @@ void WitherEntity::_updateHeadTargets()
 
 f32 WitherEntity::_getHeadX(i32 head) const
 {
-    // 对应 MC 1.21.11 WitherBoss.getHeadX(int)：
+    // 对应 MC 1.21.11 WitherBoss.getHeadX(i32)：
     //   head <= 0: return this.getX()
     //   else: f = (yBodyRot + 180*(head-1)) * PI/180; return getX + cos(f) * 1.3 * getScale()
     // 此处 getScale() 对凋灵恒为 1.0（无幼体凋灵）。
@@ -673,7 +673,7 @@ f32 WitherEntity::_getHeadX(i32 head) const
 
 f32 WitherEntity::_getHeadY(i32 head) const
 {
-    // 对应 MC 1.21.11 WitherBoss.getHeadY(int)：
+    // 对应 MC 1.21.11 WitherBoss.getHeadY(i32)：
     //   head <= 0: return getY + 3.0 * getScale()
     //   else:      return getY + 2.2 * getScale()
     // 此处 getScale() 对凋灵恒为 1.0。
@@ -683,7 +683,7 @@ f32 WitherEntity::_getHeadY(i32 head) const
 
 f32 WitherEntity::_getHeadZ(i32 head) const
 {
-    // 对应 MC 1.21.11 WitherBoss.getHeadZ(int)：
+    // 对应 MC 1.21.11 WitherBoss.getHeadZ(i32)：
     //   head <= 0: return this.getZ()
     //   else: f = (yBodyRot + 180*(head-1)) * PI/180; return getZ + sin(f) * 1.3 * getScale()
     // 此处 getScale() 对凋灵恒为 1.0。
@@ -708,16 +708,16 @@ f32 WitherEntity::_rotLerp(f32 current, f32 target, f32 maxStep)
 void WitherEntity::_updateSideHeadRotations()
 {
     // 对应 MC 1.21.11 WitherBoss.aiStep() 中 j=0..1 循环：
-    //   int k = getAlternativeTarget(j + 1);
+    //   i32 k = getAlternativeTarget(j + 1);
     //   Entity entity1 = (k > 0) ? level.getEntity(k) : null;
     //   if (entity1 != null) {
-    //       double d9 = getHeadX(j+1), d1 = getHeadY(j+1), d3 = getHeadZ(j+1);
-    //       double d4 = entity1.getX() - d9;     // 目标相对头部的 X 偏移
-    //       double d5 = entity1.getEyeY() - d1;  // 目标眼睛 Y 偏移
-    //       double d6 = entity1.getZ() - d3;     // 目标相对头部的 Z 偏移
-    //       double d7 = sqrt(d4*d4 + d6*d6);     // 水平距离
-    //       float f1 = atan2(d6, d4) * 180/PI - 90;  // 目标偏航角
-    //       float f2 = -(atan2(d5, d7) * 180/PI);    // 目标俯仰角
+    //       f64 d9 = getHeadX(j+1), d1 = getHeadY(j+1), d3 = getHeadZ(j+1);
+    //       f64 d4 = entity1.getX() - d9;     // 目标相对头部的 X 偏移
+    //       f64 d5 = entity1.getEyeY() - d1;  // 目标眼睛 Y 偏移
+    //       f64 d6 = entity1.getZ() - d3;     // 目标相对头部的 Z 偏移
+    //       f64 d7 = sqrt(d4*d4 + d6*d6);     // 水平距离
+    //       f32 f1 = atan2(d6, d4) * 180/PI - 90;  // 目标偏航角
+    //       f32 f2 = -(atan2(d5, d7) * 180/PI);    // 目标俯仰角
     //       xRotHeads[j] = rotlerp(xRotHeads[j], f2, 40);  // pitch 最大 40°/tick
     //       yRotHeads[j] = rotlerp(yRotHeads[j], f1, 10);  // yaw 最大 10°/tick
     //   } else {

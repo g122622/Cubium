@@ -159,7 +159,7 @@ public:
      * @param distanceToClosestPlayer 到最近玩家的距离
      * @return 如果可以消失返回 true
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const override
+    [[nodiscard]] bool canDespawn(f64 distanceToClosestPlayer) const override
     {
         (void)distanceToClosestPlayer;
         return !m_fromBucket && !hasCustomName();

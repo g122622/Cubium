@@ -508,7 +508,7 @@ public:
     /**
      * @brief 计算指定 partialTicks 下的插值游泳动画量
      *
-     * 对应 MC 1.21.11 LivingEntity.getSwimAmount(float partialTick)。
+     * 对应 MC 1.21.11 LivingEntity.getSwimAmount(f32 partialTick)。
      * 渲染器（EntityRendererManager）在构建 AnimationContext 时调用此方法，
      * 将结果写入 context.swimAmount，驱动 DrownedModel::setAngles 中的
      * 手臂/腿部游泳覆盖动画。
@@ -1452,7 +1452,7 @@ public:
     /**
      * @brief 获取兔子跳跃动画完成度（0.0 ~ 1.0+）
      *
-     * 对应 MC 1.21.11 Rabbit.getJumpCompletion(float partialTick)：
+     * 对应 MC 1.21.11 Rabbit.getJumpCompletion(f32 partialTick)：
      *   jumpDuration == 0 ? 0.0F : (jumpTicks + partialTick) / jumpDuration
      *
      * 用于渲染线程计算 jumpRotation = sin(completion * PI)。

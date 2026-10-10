@@ -579,7 +579,7 @@ std::string CrashHandler::captureStackTrace(i32 skipFrames, i32 maxFrames)
 
     constexpr i32 MAX_FRAMES = 128;
     void* buffer[MAX_FRAMES];
-    int frames = backtrace(buffer, MAX_FRAMES);
+    i32 frames = backtrace(buffer, MAX_FRAMES);
 
     i32 start = skipFrames + 1;
     if (start >= frames) {
@@ -592,7 +592,7 @@ std::string CrashHandler::captureStackTrace(i32 skipFrames, i32 maxFrames)
     }
 
     i32 displayedIndex = 0;
-    for (int i = start; i < frames && displayedIndex < maxFrames; ++i) {
+    for (i32 i = start; i < frames && displayedIndex < maxFrames; ++i) {
         oss << "  [" << std::setw(2) << displayedIndex << "] ";
 
         std::string sym(symbols[i]);
@@ -604,7 +604,7 @@ std::string CrashHandler::captureStackTrace(i32 skipFrames, i32 maxFrames)
         if (startParen != std::string::npos && endParen != std::string::npos) {
             std::string mangled = sym.substr(startParen + 1, endParen - startParen - 1);
             if (!mangled.empty()) {
-                int status = 0;
+                i32 status = 0;
                 char* demangled = abi::__cxa_demangle(mangled.c_str(), nullptr, nullptr, &status);
                 if (status == 0 && demangled) {
                     oss << demangled;
@@ -831,7 +831,7 @@ void __cdecl pureCallHandler()
 
 // 无效参数处理器
 void __cdecl invalidParameterHandler(
-    const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t reserved)
+    const wchar_t* expression, const wchar_t* function, const wchar_t* file, u32 line, uintptr_t reserved)
 {
     (void)reserved;
 
@@ -872,7 +872,7 @@ static struct sigaction s_oldSigBus{};
 static struct sigaction s_oldSigIll{};
 static struct sigaction s_oldSigTerm{};
 
-void crashSignalHandler(int signal, siginfo_t* info, void* context)
+void crashSignalHandler(i32 signal, siginfo_t* info, void* context)
 {
     (void)context;
 

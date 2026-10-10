@@ -94,7 +94,7 @@ bool OreFeature::place(WorldGenRegion& region,
 {
     (void)chunk; // 方块读写统一走 region（对齐原版 WorldGenLevel 接口）
     // 生成椭圆体状矿脉（对齐 MC OreFeature.place）。
-    // 轴线方向：原版用 java.lang.Math.sin/cos（精确 double 三角函数），不是 Mth 查表版；
+    // 轴线方向：原版用 java.lang.Math.sin/cos（精确 f64 三角函数），不是 Mth 查表版；
     // 只有半径包络那处才用 Mth.sin。两者混用会整体偏移，须按原版区分。
     const f32 angle = random.nextFloat() * static_cast<f32>(math::PI);
     const f32 sizeFactor = static_cast<f32>(config.size) / 8.0F;

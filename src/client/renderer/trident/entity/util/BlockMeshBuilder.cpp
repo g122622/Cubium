@@ -165,7 +165,7 @@ void BlockMeshBuilder::buildBlockMesh(
 
             // 添加顶点，使用 UV 旋转排列
             const u32 faceBase = static_cast<u32>(vertices.size());
-            for (int i = 0; i < 4; ++i) {
+            for (i32 i = 0; i < 4; ++i) {
                 auto [u, v] = item::getRotatedUV(i, face.uv.rotation, u0, v0, u1, v1);
                 vertices.push_back(
                     model::ModelVertex(corners[i].x, corners[i].y, corners[i].z, u, v, normal.x, normal.y, normal.z));

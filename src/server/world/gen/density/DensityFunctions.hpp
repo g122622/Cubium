@@ -1399,7 +1399,7 @@ public:
     DENSITY_FUNCTION_MAP_ALL_LEAF(EndIslands, m_seed)
 
 private:
-    /// MC 1.21.11: 检测岛屿高度值（Java 返回 float）
+    /// MC 1.21.11: 检测岛屿高度值（Java 返回 f32）
     [[nodiscard]] f32 getHeightValue(i32 x, i32 z) const;
 
     u64 m_seed;

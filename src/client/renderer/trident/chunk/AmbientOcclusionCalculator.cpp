@@ -140,7 +140,7 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     i32 blockZ,
     Face face,
     const ChunkData* neighborChunks[6],
-    const float* nonCubicWeights)
+    const f32* nonCubicWeights)
 {
     Result result{};
 
@@ -210,7 +210,7 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     // 步骤4: 采样对角线位置（当需要时）
     // ================================================================
     std::array<u32, 4> diagonalPackedLight{};
-    std::array<float, 4> diagonalAoBrightness{};
+    std::array<f32, 4> diagonalAoBrightness{};
 
     // 对角线采样逻辑:
     // i1: 如果 !flag2 && !flag，使用 corner[0]；否则采样 corner[0] + corner[2]
@@ -300,31 +300,31 @@ AmbientOcclusionCalculator::Result AmbientOcclusionCalculator::calculate(const C
     u32 centerPackedLight = (!useOuterFaceSamples && faceOuterOpaque) ? selfPackedLight : faceOuterPackedLight;
 
     // 中心AO亮度（与中心光照位置保持一致）
-    float f8 = (!useOuterFaceSamples && faceOuterOpaque) ? selfSample.aoBrightness : faceOuterSample.aoBrightness;
+    f32 f8 = (!useOuterFaceSamples && faceOuterOpaque) ? selfSample.aoBrightness : faceOuterSample.aoBrightness;
 
     // ================================================================
     // 步骤6: 计算每个顶点的AO颜色乘数
     // ================================================================
 
-    float f0 = cornerSamples[0].aoBrightness;
-    float f1 = cornerSamples[1].aoBrightness;
-    float f2 = cornerSamples[2].aoBrightness;
-    float f3 = cornerSamples[3].aoBrightness;
-    float f4 = diagonalAoBrightness[0];
-    float f5 = diagonalAoBrightness[1];
-    float f6 = diagonalAoBrightness[2];
-    float f7 = diagonalAoBrightness[3];
+    f32 f0 = cornerSamples[0].aoBrightness;
+    f32 f1 = cornerSamples[1].aoBrightness;
+    f32 f2 = cornerSamples[2].aoBrightness;
+    f32 f3 = cornerSamples[3].aoBrightness;
+    f32 f4 = diagonalAoBrightness[0];
+    f32 f5 = diagonalAoBrightness[1];
+    f32 f6 = diagonalAoBrightness[2];
+    f32 f7 = diagonalAoBrightness[3];
 
     // 顶点AO颜色乘数计算
 
-    std::array<float, 4> vertexAoColorMultiplier = {{
+    std::array<f32, 4> vertexAoColorMultiplier = {{
         (f3 + f0 + f5 + f8) * 0.25f, // 顶点0
         (f2 + f0 + f4 + f8) * 0.25f, // 顶点1
         (f2 + f1 + f6 + f8) * 0.25f, // 顶点2
         (f3 + f1 + f7 + f8) * 0.25f  // 顶点3
     }};
 
-    for (float& value : vertexAoColorMultiplier) {
+    for (f32& value : vertexAoColorMultiplier) {
         value = std::clamp(value, 0.0f, 1.0f);
     }
 
@@ -478,7 +478,7 @@ bool AmbientOcclusionCalculator::isTransparent(
     return state->getOpacity() == 0;
 }
 
-float AmbientOcclusionCalculator::getAoBrightness(const BlockState* state)
+f32 AmbientOcclusionCalculator::getAoBrightness(const BlockState* state)
 {
     if (state == nullptr || state->isAir()) {
         // 空气或null，不产生阴影
@@ -525,7 +525,7 @@ u8 AmbientOcclusionCalculator::unpackBlockLight(u32 packed)
 }
 
 u32 AmbientOcclusionCalculator::getVertexBrightness(
-    u32 b1, u32 b2, u32 b3, u32 b4, float w1, float w2, float w3, float w4)
+    u32 b1, u32 b2, u32 b3, u32 b4, f32 w1, f32 w2, f32 w3, f32 w4)
 {
     // 根据权重插值亮度
     u32 sky = static_cast<u32>(((b1 >> 20) & 0xF) * w1 + ((b2 >> 20) & 0xF) * w2 + ((b3 >> 20) & 0xF) * w3 +

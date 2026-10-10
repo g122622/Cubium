@@ -1275,7 +1275,7 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 
     // DropChances（compound，仅包含非默认值）
     // 新格式：drop_chances compound，与 MC Java DropChances.filterDefaultValues 一致。
-    // 旧格式 HandDropChances/ArmorDropChances（float list）已废弃，不再写入，
+    // 旧格式 HandDropChances/ArmorDropChances（f32 list）已废弃，不再写入，
     // 但加载时仍兼容旧格式以保证存档兼容性。
     {
         nbt::tags::compound_tag dropChancesTag;
@@ -1308,7 +1308,7 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 
     // Leash (compound) - 拴绳数据
     // 格式：Leash = {UUIDMost: long, UUIDLeast: long}（拴在实体上）
-    //   或  Leash = {X: int, Y: int, Z: int}（拴在栅栏柱上）
+    //   或  Leash = {X: i32, Y: i32, Z: i32}（拴在栅栏柱上）
     if (m_isLeashed) {
         nbt::tags::compound_tag leashTag;
         if (m_leashHolderUuid.has_value()) {
@@ -1392,7 +1392,7 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
             }
         }
 
-        // 旧格式：HandDropChances（float list，长度 2）
+        // 旧格式：HandDropChances（f32 list，长度 2）
         if (auto* handList = nbt_helper::tryGetList(tag, nbt_keys::HAND_DROP_CHANCES)) {
             if (handList->element_id() == nbt::TagId::Float) {
                 auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*handList);
@@ -1414,7 +1414,7 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
             }
         }
 
-        // 旧格式：ArmorDropChances（float list，长度 4）
+        // 旧格式：ArmorDropChances（f32 list，长度 4）
         if (auto* armorList = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_DROP_CHANCES)) {
             if (armorList->element_id() == nbt::TagId::Float) {
                 auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*armorList);

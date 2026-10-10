@@ -106,7 +106,7 @@ struct AttackRange {
     /**
      * @brief 目标 AABB 是否落在攻击范围内
      *
-     * 对应 vanilla AttackRange.isInRange(LivingEntity, AABB, double)：以攻击者眼睛到
+     * 对应 vanilla AttackRange.isInRange(LivingEntity, AABB, f64)：以攻击者眼睛到
      * 目标 AABB 的最近距离与有效区间（含 hitboxMargin 与额外 padding）比较。
      *
      * @param attacker 攻击者（用于取眼睛位置与有效范围）

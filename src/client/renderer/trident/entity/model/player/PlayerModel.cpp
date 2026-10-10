@@ -314,7 +314,7 @@ void PlayerModel::translateHand(HandSide handSide, std::array<f64, 16>& outMatri
     // 参考 MC 1.21.11 PlayerModel.translateToHand：
     //   super.translateToHand(state, arm, poseStack);
     //   if (this.slim) {
-    //       float f = 0.5F * (arm == HumanoidArm.RIGHT ? 1 : -1);
+    //       f32 f = 0.5F * (arm == HumanoidArm.RIGHT ? 1 : -1);
     //       modelpart.x += f;
     //       modelpart.translateAndRotate(poseStack);
     //       modelpart.x -= f;

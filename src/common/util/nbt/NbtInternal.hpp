@@ -76,7 +76,7 @@ number_t load_varnum(std::istream& input)
 {
     std::size_t numRead = 0;
     number_t value = 0;
-    int read;
+    i32 read;
     do {
         read = cheof(input);
         number_t tmp = static_cast<number_t>(read & 0b01111111);

@@ -119,7 +119,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
 
 #else
     // Unix: 使用 flock 实现跨进程锁
-    int fd = open(lockPath.c_str(), O_RDWR | O_CREAT, 0644);
+    i32 fd = open(lockPath.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
         spdlog::error("WorldSessionLock: Failed to create lock file at {} (errno: {})", lockPath.string(), errno);
         return Error(ErrorCode::PermissionDenied, "Failed to create session lock");
@@ -127,7 +127,7 @@ Result<WorldSessionLock> WorldSessionLock::acquire(const std::filesystem::path& 
 
     // 尝试获取独占锁（非阻塞）
     if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
-        int err = errno;
+        i32 err = errno;
         close(fd);
         if (err == EWOULDBLOCK || err == EAGAIN) {
             spdlog::warn("WorldSessionLock: {} is already locked by another process", worldDir.string());
@@ -207,7 +207,7 @@ bool WorldSessionLock::isLocked(const std::filesystem::path& worldDir)
     return !locked; // 如果无法获取锁，则已锁定
 #else
     // Unix: 尝试获取锁
-    int fd = open(lockPath.c_str(), O_RDWR);
+    i32 fd = open(lockPath.c_str(), O_RDWR);
     if (fd < 0) {
         return true; // 无法打开，可能被锁定
     }

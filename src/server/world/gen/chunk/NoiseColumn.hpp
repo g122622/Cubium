@@ -36,7 +36,7 @@ namespace mc {
  * 表示一条垂直列的方块状态，从 minY 到 minY + height - 1。
  * 用于 getBaseColumn() 方法返回指定 X/Z 位置的完整地形列。
  *
- * MC 1.21: NoiseColumn(int minY, BlockState[] column)
+ * MC 1.21: NoiseColumn(i32 minY, BlockState[] column)
  *   - minY: 列的最低 Y 坐标
  *   - column: 方块状态数组，索引 0 对应 minY
  */

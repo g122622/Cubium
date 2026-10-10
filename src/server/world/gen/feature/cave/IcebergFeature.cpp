@@ -95,7 +95,7 @@ bool IcebergFeature::place(IWorld& world,
     BlockPos blockpos(origin.x, generator.seaLevel(), origin.z);
     const bool flag = random.nextDouble() > 0.7; // 偶尔的开凿/雪块开关
     const BlockState* blockstate = config.state;
-    const double d0 = random.nextDouble() * 2.0 * math::PI_DOUBLE;
+    const f64 d0 = random.nextDouble() * 2.0 * math::PI_DOUBLE;
     const i32 i = 11 - random.nextInt(5);
     const i32 j = 3 + random.nextInt(3);
     const bool flag1 = random.nextDouble() > 0.7;
@@ -154,7 +154,7 @@ bool IcebergFeature::place(IWorld& world,
 // ============================================================================
 
 void IcebergFeature::generateCutOut(
-    math::IRandom& random, IWorld& world, i32 j1, i32 l, const BlockPos& blockpos, bool flag1, i32 i, double d0, i32 j)
+    math::IRandom& random, IWorld& world, i32 j1, i32 l, const BlockPos& blockpos, bool flag1, i32 i, f64 d0, i32 j)
 {
     i32 signX = random.nextBoolean() ? -1 : 1;
     i32 signZ = random.nextBoolean() ? -1 : 1;
@@ -173,7 +173,7 @@ void IcebergFeature::generateCutOut(
     }
 
     const BlockPos offset(signX * k, 0, signZ * lvar);
-    const double angle = flag1 ? d0 + (math::PI_DOUBLE / 2.0) : random.nextDouble() * 2.0 * math::PI_DOUBLE;
+    const f64 angle = flag1 ? d0 + (math::PI_DOUBLE / 2.0) : random.nextDouble() * 2.0 * math::PI_DOUBLE;
 
     for (i32 i1 = 0; i1 < l - 3; ++i1) {
         const i32 radius = heightDependentRadiusRound(random, i1, l, j1);
@@ -195,7 +195,7 @@ void IcebergFeature::carve(i32 radius,
     const BlockPos& blockpos,
     IWorld& world,
     bool water,
-    double angle,
+    f64 angle,
     const BlockPos& offset,
     i32 i,
     i32 j)
@@ -205,7 +205,7 @@ void IcebergFeature::carve(i32 radius,
 
     for (i32 k = -a; k < a; ++k) {
         for (i32 lvar = -a; lvar < a; ++lvar) {
-            const double d0 = signedDistanceEllipse(k, lvar, offset, a, b, angle);
+            const f64 d0 = signedDistanceEllipse(k, lvar, offset, a, b, angle);
             if (d0 < 0.0) {
                 const BlockPos pos(blockpos.x + k, blockpos.y + y, blockpos.z + lvar);
                 const BlockState* state = world.getBlockState(pos);
@@ -248,15 +248,15 @@ void IcebergFeature::generateIcebergBlock(IWorld& world,
     i32 k1,
     bool flag1,
     i32 j,
-    double d0,
+    f64 d0,
     bool flag,
     const BlockState* blockstate)
 {
-    const double d0dist = flag1 ? signedDistanceEllipse(l1, i2, BlockPos(0, 0, 0), k1, getEllipseC(j2, l, j), d0)
+    const f64 d0dist = flag1 ? signedDistanceEllipse(l1, i2, BlockPos(0, 0, 0), k1, getEllipseC(j2, l, j), d0)
                                 : signedDistanceCircle(l1, i2, BlockPos(0, 0, 0), k2, random);
     if (d0dist < 0.0) {
         const BlockPos pos(blockpos.x + l1, blockpos.y + j2, blockpos.z + i2);
-        const double d1 = flag1 ? -0.5 : -6 - random.nextInt(3);
+        const f64 d1 = flag1 ? -0.5 : -6 - random.nextInt(3);
         if (d0dist > d1 && random.nextDouble() > 0.9) {
             return;
         }
@@ -297,34 +297,34 @@ void IcebergFeature::setIcebergBlock(const BlockPos& pos,
 // 椭圆/圆形有符号距离与高度依赖半径
 // ============================================================================
 
-int IcebergFeature::getEllipseC(int p_66019_, int p_66020_, int p_66021_) const
+i32 IcebergFeature::getEllipseC(i32 p_66019_, i32 p_66020_, i32 p_66021_) const
 {
-    int i = p_66021_;
+    i32 i = p_66021_;
     if (p_66019_ > 0 && p_66020_ - p_66019_ <= 3) {
         i = p_66021_ - (4 - (p_66020_ - p_66019_));
     }
     return i;
 }
 
-double IcebergFeature::signedDistanceCircle(
-    int x, int z, const BlockPos& center, int radius, math::IRandom& random) const
+f64 IcebergFeature::signedDistanceCircle(
+    i32 x, i32 z, const BlockPos& center, i32 radius, math::IRandom& random) const
 {
     const f32 f = 10.0F * math::clamp(random.nextFloat(), 0.2F, 0.8F) / static_cast<f32>(radius);
-    return static_cast<double>(f) + std::pow(static_cast<double>(x - center.x), 2.0) +
-        std::pow(static_cast<double>(z - center.z), 2.0) - std::pow(static_cast<double>(radius), 2.0);
+    return static_cast<f64>(f) + std::pow(static_cast<f64>(x - center.x), 2.0) +
+        std::pow(static_cast<f64>(z - center.z), 2.0) - std::pow(static_cast<f64>(radius), 2.0);
 }
 
-double IcebergFeature::signedDistanceEllipse(int x, int z, const BlockPos& center, int a, int b, double angle) const
+f64 IcebergFeature::signedDistanceEllipse(i32 x, i32 z, const BlockPos& center, i32 a, i32 b, f64 angle) const
 {
-    const double dx = static_cast<double>(x - center.x);
-    const double dz = static_cast<double>(z - center.z);
-    const double cosA = std::cos(angle);
-    const double sinA = std::sin(angle);
-    return std::pow((dx * cosA - dz * sinA) / static_cast<double>(a), 2.0) +
-        std::pow((dx * sinA + dz * cosA) / static_cast<double>(b), 2.0) - 1.0;
+    const f64 dx = static_cast<f64>(x - center.x);
+    const f64 dz = static_cast<f64>(z - center.z);
+    const f64 cosA = std::cos(angle);
+    const f64 sinA = std::sin(angle);
+    return std::pow((dx * cosA - dz * sinA) / static_cast<f64>(a), 2.0) +
+        std::pow((dx * sinA + dz * cosA) / static_cast<f64>(b), 2.0) - 1.0;
 }
 
-int IcebergFeature::heightDependentRadiusRound(math::IRandom& random, int y, int height, int radius) const
+i32 IcebergFeature::heightDependentRadiusRound(math::IRandom& random, i32 y, i32 height, i32 radius) const
 {
     const f32 f = 3.5F - random.nextFloat();
     f32 f1 = (1.0F - static_cast<f32>(y * y) / (static_cast<f32>(height) * f)) * static_cast<f32>(radius);
@@ -335,13 +335,13 @@ int IcebergFeature::heightDependentRadiusRound(math::IRandom& random, int y, int
     return math::ceilTo<i32>(f1 / 2.0F);
 }
 
-int IcebergFeature::heightDependentRadiusEllipse(int y, int height, int radius) const
+i32 IcebergFeature::heightDependentRadiusEllipse(i32 y, i32 height, i32 radius) const
 {
     const f32 f1 = (1.0F - static_cast<f32>(y * y) / static_cast<f32>(height)) * static_cast<f32>(radius);
     return math::ceilTo<i32>(f1 / 2.0F);
 }
 
-int IcebergFeature::heightDependentRadiusSteep(math::IRandom& random, int y, int height, int radius) const
+i32 IcebergFeature::heightDependentRadiusSteep(math::IRandom& random, i32 y, i32 height, i32 radius) const
 {
     const f32 f = 1.0F + random.nextFloat() / 2.0F;
     const f32 f1 = (1.0F - static_cast<f32>(y) / (static_cast<f32>(height) * f)) * static_cast<f32>(radius);

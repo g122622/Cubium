@@ -377,7 +377,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
         // 哨兵指针：Manager 无状态，opaque 仅作占位（owned=false 不销毁）。每次访问 world.bossbar 返新
         // JS 对象，但均无状态，等价单例。
-        static int s_sentinel = 0;
+        static i32 s_sentinel = 0;
         return ScriptObjectRegistry::wrap(ctx, mgrClassId, mgrProto, &s_sentinel, false, "BossBarManager");
     });
 
@@ -1492,9 +1492,9 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 return wrapComponent("IsChargedComponent");
             }
             if (normalized == "minecraft:mark_variant") {
-                // 借用基岩 mark_variant（int 标记变种组件）承载哞菇红/棕变种。基岩原版哞菇无此组件，
+                // 借用基岩 mark_variant（i32 标记变种组件）承载哞菇红/棕变种。基岩原版哞菇无此组件，
                 // 此处为集成测试可读变种而设：dynamic_cast 到 MooshroomEntity，读 getMooshroomType()
-                // 映射为 int（Red=0/Brown=1，与 MooshroomType 枚举值及 NBT "Type" 字段一致）。
+                // 映射为 i32（Red=0/Brown=1，与 MooshroomType 枚举值及 NBT "Type" 字段一致）。
                 // 非哞菇返 undefined（对齐基岩"组件不存在则 getComponent 返 undefined"）。
                 auto* mooshroom = dynamic_cast<mc::MooshroomEntity*>(ent);
                 if (mooshroom == nullptr) {
@@ -1813,7 +1813,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
 
     // --- ColorComponent类（minecraft:color，承载实体颜色）---
     // opaque 持 mc::Entity*。对齐基岩 EntityColorComponent：value 为 PaletteColor 0-15（与 DyeColor 数值
-    // 一致）。getComponent 已按 SheepEntity 过滤，此处 dynamic_cast 现取羊毛颜色。readonly value：int
+    // 一致）。getComponent 已按 SheepEntity 过滤，此处 dynamic_cast 现取羊毛颜色。readonly value：i32
     // 0-15（DyeColor 枚举底层数值，White=0..Black=15）。供集成测试断言唤魔者 Wololo 变色（蓝11→红14）、
     // 染料染色等链路。羊驼/潜影贝颜色枚举不统一留 TODO。
     u64 colorClassId = ScriptObjectRegistry::allocateClassId(ctx);

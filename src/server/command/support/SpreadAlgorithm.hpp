@@ -87,7 +87,7 @@ std::vector<SpreadPosition> createInitialPositions(
 /// 迭代分散算法：将位置推开到满足最小距离要求
 /// 返回 true 表示分散成功，false 表示超过最大迭代次数仍未收敛
 /// 通过 outMinDist 输出所有位置对之间的最小距离
-///   - 哨兵值使用 float 最大值
+///   - 哨兵值使用 f32 最大值
 ///   - 输出最小距离以便命令层报告实际分散结果
 bool spreadPositions(f64 spreadDistance,
     IWorld& world,

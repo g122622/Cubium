@@ -175,7 +175,7 @@ Result<NoiseParameters> NoiseLoader::loadFromJson(const nlohmann::json& jsonObj,
     }
     i32 firstOctave = jsonObj["firstOctave"].get<i32>();
 
-    // amplitudes：MC 允许数组（标准）或单 double（简写，等价于 [value]）。
+    // amplitudes：MC 允许数组（标准）或单 f64（简写，等价于 [value]）。
     std::vector<f64> amplitudes;
     if (!jsonObj.contains("amplitudes")) {
         return Error(ErrorCode::InvalidData, "noise '" + location.toString() + "' missing 'amplitudes'");

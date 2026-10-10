@@ -188,7 +188,7 @@ public:
      *
      * JSON 顶层为 { "display": ..., "settings": { biome/layers/features/lakes/structure_overrides } }。
      * 仅解析 settings 子对象：biome(RL→BiomeId 经 BiomeLoader::biomeIdByName)、
-     * layers（每层 {block:RL, height:int}，block 经 BlockRegistry::get 取默认 BlockState）、
+     * layers（每层 {block:RL, height:i32}，block 经 BlockRegistry::get 取默认 BlockState）、
      * features/lakes(bool)、structure_overrides(string|array，兼容单字符串/数组/空数组三态）。
      *
      * @param root 顶层 JSON 对象

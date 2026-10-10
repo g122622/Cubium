@@ -924,7 +924,7 @@ std::vector<u8> CloudRenderer::_generateCloudTexture(u32 width, u32 height)
             f64 amplitude = 1.0f;
             f64 frequency = 4.0f;
 
-            for (int octave = 0; octave < 4; ++octave) {
+            for (i32 octave = 0; octave < 4; ++octave) {
                 // 简单的伪随机噪声
                 f64 sampleX = fx * frequency;
                 f64 sampleY = fy * frequency;

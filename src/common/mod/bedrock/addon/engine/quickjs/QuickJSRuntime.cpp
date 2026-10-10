@@ -118,7 +118,7 @@ void QuickJSRuntime::executePendingJobs()
     // 执行QuickJS事件循环中的待处理任务
     // JS_ExecutePendingJob 返回0表示没有待处理任务，1表示执行了任务，-1表示异常
     JSContext* pendingJobContext = nullptr;
-    int ret;
+    i32 ret;
     do {
         // QuickJS会无条件写入pctx，因此这里必须传入有效指针。
         ret = JS_ExecutePendingJob(m_runtime, &pendingJobContext);

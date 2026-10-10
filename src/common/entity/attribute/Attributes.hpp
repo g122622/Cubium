@@ -195,7 +195,7 @@ inline std::unique_ptr<Attribute> maxAbsorption()
  */
 inline std::unique_ptr<Attribute> breathMax()
 {
-    // 注意：使用整数属性，这里用 double 表示
+    // 注意：使用整数属性，这里用 f64 表示
     return std::make_unique<Attribute>("generic.breath_max", 300.0, 0.0, 6000.0);
 }
 

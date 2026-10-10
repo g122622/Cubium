@@ -92,9 +92,9 @@ Result<void> ZipResourcePack::initialize()
     archive_read_support_filter_all(a);
 
 #ifdef _WIN32
-    int r = archive_read_open_filename_w(a, m_zipPath.wstring().c_str(), 10240);
+    i32 r = archive_read_open_filename_w(a, m_zipPath.wstring().c_str(), 10240);
 #else
-    int r = archive_read_open_filename(a, m_zipPath.string().c_str(), 10240);
+    i32 r = archive_read_open_filename(a, m_zipPath.string().c_str(), 10240);
 #endif
 
     if (r != ARCHIVE_OK) {
@@ -179,9 +179,9 @@ Result<std::vector<u8>> ZipResourcePack::readResource(PackType type, std::string
     archive_read_support_filter_all(a);
 
 #ifdef _WIN32
-    int r = archive_read_open_filename_w(a, m_zipPath.wstring().c_str(), 10240);
+    i32 r = archive_read_open_filename_w(a, m_zipPath.wstring().c_str(), 10240);
 #else
-    int r = archive_read_open_filename(a, m_zipPath.string().c_str(), 10240);
+    i32 r = archive_read_open_filename(a, m_zipPath.string().c_str(), 10240);
 #endif
 
     if (r != ARCHIVE_OK) {

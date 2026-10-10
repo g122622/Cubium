@@ -52,7 +52,7 @@ public:
     /**
      * @brief 采样 2D Simplex 噪声值
      *
-     * 参考 MC 1.21.11: SimplexNoise.getValue(double, double)
+     * 参考 MC 1.21.11: SimplexNoise.getValue(f64, f64)
      * 输出范围大约为 [-1, 1]。
      */
     [[nodiscard]] f64 getValue(f64 x, f64 y) const;
@@ -60,7 +60,7 @@ public:
     /**
      * @brief 采样 3D Simplex 噪声值
      *
-     * 参考 MC 1.21.11: SimplexNoise.getValue(double, double, double)
+     * 参考 MC 1.21.11: SimplexNoise.getValue(f64, f64, f64)
      */
     [[nodiscard]] f64 getValue(f64 x, f64 y, f64 z) const;
 
@@ -73,7 +73,7 @@ private:
     [[nodiscard]] static f64 dot(const i32 grad[3], f64 x, f64 y, f64 z);
     [[nodiscard]] f64 getCornerNoise3D(i32 hash, f64 x, f64 y, f64 z, f64 radius) const;
 
-    static constexpr int GRADIENT[16][3] = {{1, 1, 0},
+    static constexpr i32 GRADIENT[16][3] = {{1, 1, 0},
         {-1, 1, 0},
         {1, -1, 0},
         {-1, -1, 0},

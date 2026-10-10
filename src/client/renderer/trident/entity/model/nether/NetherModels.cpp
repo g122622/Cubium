@@ -561,7 +561,7 @@ void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f6
 
     // 头部 X 旋转：攻击动画插值
     // 对应 MC 原版 HoglinModel.setupAnim():
-    //   float f2 = 1.0F - Mth.abs(10 - 2 * attackAnimationRemainingTicks) / 10.0F;
+    //   f32 f2 = 1.0F - Mth.abs(10 - 2 * attackAnimationRemainingTicks) / 10.0F;
     //   this.head.xRot = Mth.lerp(f2, DEFAULT_HEAD_X_ROT, ATTACK_HEAD_X_ROT_END);
     // f2 形成三角形曲线：0->1->0，攻击动画中间(tick=5)时 f2=1.0（完全低头）
     f32 f2 = 1.0f -

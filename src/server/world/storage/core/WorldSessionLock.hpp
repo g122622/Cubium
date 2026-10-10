@@ -111,7 +111,7 @@ private:
 #ifdef _WIN32
     void* m_fileHandle; // HANDLE
 #else
-    int m_fd; // file descriptor
+    i32 m_fd; // file descriptor
 #endif
 
     std::filesystem::path m_worldDir;

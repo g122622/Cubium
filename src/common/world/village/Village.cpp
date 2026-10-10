@@ -368,7 +368,7 @@ void Village::serialize(nbt::tags::compound_tag& tag) const
     tag.put("CenterX", static_cast<std::int32_t>(m_center.x));
     tag.put("CenterY", static_cast<std::int32_t>(m_center.y));
     tag.put("CenterZ", static_cast<std::int32_t>(m_center.z));
-    tag.put("Radius", static_cast<float>(m_radius));
+    tag.put("Radius", static_cast<f32>(m_radius));
     tag.put("BedCount", static_cast<std::int32_t>(m_bedCount));
     tag.put("WorkstationCount", static_cast<std::int32_t>(m_workstationCount));
     tag.put("UnderRaid", m_underRaid ? static_cast<std::int8_t>(1) : static_cast<std::int8_t>(0));

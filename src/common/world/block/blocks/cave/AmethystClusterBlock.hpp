@@ -54,7 +54,7 @@ public:
      * @param height 碰撞箱高度（像素）
      * @param width 碰撞箱宽度（像素）
      */
-    AmethystClusterBlock(const BlockProperties& properties, float height, float width);
+    AmethystClusterBlock(const BlockProperties& properties, f32 height, f32 width);
 
     ~AmethystClusterBlock() override = default;
 
@@ -88,8 +88,8 @@ protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
 private:
-    float m_height;
-    float m_width;
+    f32 m_height;
+    f32 m_width;
     std::unordered_map<Direction, CollisionShape> m_shapes;
 };
 

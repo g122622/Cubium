@@ -57,7 +57,7 @@ f64 EndIslands::compute(i32 blockX, i32 blockY, i32 blockZ) const
     const i32 sx = blockX / 8;
     const i32 sz = blockZ / 8;
 
-    // MC 1.21.11: getHeightValue 返回 float，然后 (float - 8.0) / 128.0 在 double 下计算
+    // MC 1.21.11: getHeightValue 返回 f32，然后 (f32 - 8.0) / 128.0 在 f64 下计算
     const f32 height = getHeightValue(sx, sz);
     return (static_cast<f64>(height) - 8.0) / 128.0;
 }
@@ -71,7 +71,7 @@ f32 EndIslands::getHeightValue(i32 x, i32 z) const
     const i32 k = x % 2; // Java % 可能返回负数（-1），& 1 总是返回 0 或 1
     const i32 l = z % 2;
 
-    // MC 1.21.11: 所有算术使用 float 精度（与 Java Mth.sqrt / Mth.abs 一致）
+    // MC 1.21.11: 所有算术使用 f32 精度（与 Java Mth.sqrt / Mth.abs 一致）
     f32 f = 100.0f - std::sqrt(static_cast<f32>(x * x + z * z)) * 8.0f;
     f = std::clamp(f, -100.0f, 80.0f);
 
@@ -82,10 +82,10 @@ f32 EndIslands::getHeightValue(i32 x, i32 z) const
             const i64 l1 = static_cast<i64>(j) + j1;
 
             // MC 1.21.11: 只在外岛区域（距中心 > 64 区块半径）且噪声 < -0.9F 时处理
-            // 阈值使用 float 字面量 -0.9F（约 -0.89999998）而非 double -0.9
+            // 阈值使用 f32 字面量 -0.9F（约 -0.89999998）而非 f64 -0.9
             if (k1 * k1 + l1 * l1 > 4096L &&
                 m_islandNoise->getValue(static_cast<f64>(k1), static_cast<f64>(l1)) < -0.9f) {
-                // MC 1.21.11: 先转为 float 再乘，与 Java 的 Mth.abs((float)k1) * 3439.0F 一致
+                // MC 1.21.11: 先转为 f32 再乘，与 Java 的 Mth.abs((f32)k1) * 3439.0F 一致
                 const f32 f1 = std::fabs(static_cast<f32>(k1)) * 3439.0f + std::fabs(static_cast<f32>(l1)) * 147.0f;
                 const f32 f1mod = std::fmod(f1, 13.0f) + 9.0f;
                 const f32 f2 = static_cast<f32>(k) - static_cast<f32>(i1) * 2.0f;

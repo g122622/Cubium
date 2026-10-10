@@ -1496,7 +1496,7 @@ void ServerChunkManager::_processChunkUnloads()
     // 该值是下限而非上限（Moonrise 语义）：小队列一次清空，大队列按保底量平滑推进，
     // 不会因队列长期轻微超额而永不收敛。
     const size_t batch = std::max<size_t>(MIN_CHUNK_UNLOAD_COUNT,
-        static_cast<size_t>(std::ceil(static_cast<double>(pending) * MIN_CHUNK_UNLOAD_FRACTION)));
+        static_cast<size_t>(std::ceil(static_cast<f64>(pending) * MIN_CHUNK_UNLOAD_FRACTION)));
 
     size_t unloaded = 0;
     while (unloaded < batch) {
@@ -1970,7 +1970,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
                 isWaiting,
                 neighboursUsing,
                 lifecycleManager->hasFailedGeneration(),
-                static_cast<int>(source),
+                static_cast<i32>(source),
                 lifecycleManager->shouldLoad(),
                 lifecycleManager->level());
         }
@@ -2030,7 +2030,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
                     lifecycleManager->requestedGenStatus().name(),
                     lifecycleManager->hasGenerationTask(),
                     lifecycleManager->isSafeToUnload(),
-                    static_cast<int>(src),
+                    static_cast<i32>(src),
                     lifecycleManager->shouldLoad(),
                     lifecycleManager->level());
             }
@@ -2048,7 +2048,7 @@ void ServerChunkManager::_debugDumpStuckHolders()
                 lifecycleManager->isWaitingForNeighbors(),
                 lifecycleManager->neighboursUsingThisChunkCount(),
                 lifecycleManager->hasFailedGeneration(),
-                static_cast<int>(src),
+                static_cast<i32>(src),
                 lifecycleManager->shouldLoad(),
                 lifecycleManager->level());
         }

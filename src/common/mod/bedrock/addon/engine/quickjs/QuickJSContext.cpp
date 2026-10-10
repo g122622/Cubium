@@ -201,7 +201,7 @@ ScriptResult QuickJSContext::evaluate(const std::string& source, const std::stri
         JSRuntime* rt = JS_GetRuntime(m_context);
         while (state == JS_PROMISE_PENDING && JS_IsJobPending(rt)) {
             JSContext* pctx = nullptr;
-            int jobRet = JS_ExecutePendingJob(rt, &pctx);
+            i32 jobRet = JS_ExecutePendingJob(rt, &pctx);
             if (jobRet <= 0) {
                 break; // 无更多 job 或 job 自身抛错
             }
@@ -458,13 +458,13 @@ bool QuickJSContext::registerNativeGlobalFunction(const std::string& name, void*
 }
 
 bool QuickJSContext::registerNativeModule(
-    const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc)
+    const std::string& name, std::function<i32(JSContext*, JSModuleDef*)> initFunc)
 {
     if (!m_valid || !m_context) {
         return false;
     }
 
-    JSModuleDef* m = JS_NewCModule(m_context, name.c_str(), [](JSContext* ctx, JSModuleDef*) -> int { return 0; });
+    JSModuleDef* m = JS_NewCModule(m_context, name.c_str(), [](JSContext* ctx, JSModuleDef*) -> i32 { return 0; });
     if (!m) {
         spdlog::error("[BedrockAddon] Failed to create native module in context: {}", name);
         return false;

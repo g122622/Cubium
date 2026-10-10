@@ -107,7 +107,7 @@ std::unique_ptr<mc::test::BehaviorPackStructureSource> _structureSource;
 
 } // namespace
 
-void ServerApplicationEntry::_signalHandler(int signal)
+void ServerApplicationEntry::_signalHandler(i32 signal)
 {
     if (signal == SIGINT || signal == SIGTERM) {
         spdlog::info("Received shutdown signal");
@@ -206,7 +206,7 @@ void ServerApplicationEntry::prepareRun()
     std::signal(SIGTERM, _signalHandler);
 }
 
-int ServerApplicationEntry::runApplication()
+i32 ServerApplicationEntry::runApplication()
 {
     // --gametest 模式：走 GameTestServer 无头批量自动跑门面（对齐 Java GameTestMainUtil）。
     // GameTestServer 是 MinecraftServer 子类，不起线程/不联网，在调用线程内同步 tick 推进世界 +
@@ -264,7 +264,7 @@ int ServerApplicationEntry::runApplication()
             spdlog::error("Failed to initialize GameTestServer: {}", gtInit.error().toString());
             return 1;
         }
-        const int gtExit = gtServer.run();
+        const i32 gtExit = gtServer.run();
         gtServer.shutdown();
         spdlog::info("GameTestServer exited with code {}", gtExit);
         return gtExit;

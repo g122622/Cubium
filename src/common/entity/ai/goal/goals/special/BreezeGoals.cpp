@@ -715,7 +715,7 @@ Vector3 BreezeSlideGoal::_randomPointInMiddleCircle() const
 
     // 对齐 MC 1.21.11 BreezeAi.randomPointInMiddleCircle（Slide.java:60-64）：
     //   Vec3 vec3 = target.position().subtract(breeze.position());   // target - breeze
-    //   double d0 = vec3.length() - Mth.lerp(rand, 8.0, 4.0);          // 距离减去 lerp[4,8]
+    //   f64 d0 = vec3.length() - Mth.lerp(rand, 8.0, 4.0);          // 距离减去 lerp[4,8]
     //   Vec3 vec31 = vec3.normalize().multiply(d0);                    // 单位向量 * d0
     //   return breeze.position().add(vec31);                           // breeze + vec31
     // 即落点 = breeze + normalize(target - breeze) * (dist - lerp(4,8))。

@@ -233,7 +233,7 @@ f64 Beardifier::getBuryContribution(f64 dx, f64 dy, f64 dz)
 f64 Beardifier::computeBeardContribution(i32 dx, i32 dy, i32 dz)
 {
     // MC 1.21: Beardifier.computeBeardContribution(dx, dy, dz)
-    // computeBeardContribution(int, int, int) 调用 computeBeardContribution(int, double, int)
+    // computeBeardContribution(i32, i32, i32) 调用 computeBeardContribution(i32, f64, i32)
     // 对第二个参数（Y 轴）加 0.5
     // 注意：此方法现在仅作为备用，BEARD_KERNEL 已直接在初始化时计算。
     const f64 adjustedY = static_cast<f64>(dy) + 0.5;

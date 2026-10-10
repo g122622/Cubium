@@ -249,7 +249,7 @@ ActionResultType StriderEntity::interactMob(Player& player, Hand hand)
             if (!player.isCreative()) {
                 heldItem.shrink(1);
             }
-            // MC: ageUp((int)(-age / 20.0F), true)
+            // MC: ageUp((i32)(-age / 20.0F), true)
             // 加速剩余成长时间的 10%（以秒为单位）
             i32 speedUpSeconds = static_cast<i32>(-age / 20.0f);
             ageUp(speedUpSeconds);

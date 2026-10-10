@@ -45,7 +45,7 @@ class BlockTag;
  *
  * 字段：
  * - extraBranchSteps(IntProvider)：每条分支额外的步数采样
- * - placeBranchPerLogProbability(float)：每段原木生成分支的概率
+ * - placeBranchPerLogProbability(f32)：每段原木生成分支的概率
  * - extraBranchLength(IntProvider)：分支长度采样
  * - canGrowThrough(BlockTag)：可穿透方块标签（validTreePos 额外放行）
  */

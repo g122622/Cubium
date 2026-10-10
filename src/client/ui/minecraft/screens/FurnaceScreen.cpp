@@ -87,14 +87,14 @@ void FurnaceScreen::renderContainerBackground(kagero::widget::PaintContext& ctx)
     if (m_textureManager != nullptr && m_textureManager->hasFurnaceTexture() && m_gui != nullptr) {
         m_textureManager->drawFurnaceBackground(*m_gui, static_cast<f64>(m_leftPos), static_cast<f64>(m_topPos));
 
-        // 燃烧火焰指示器（litProgress 由 FurnaceContainer 经 tracked int 同步）
+        // 燃烧火焰指示器（litProgress 由 FurnaceContainer 经 tracked i32 同步）
         const f32 litProgress = (m_menu != nullptr) ? m_menu->getLitProgress() : 0.0f;
         if (litProgress > 0.0f) {
             m_textureManager->drawFurnaceLitProgress(
                 *m_gui, static_cast<f64>(m_leftPos), static_cast<f64>(m_topPos), litProgress);
         }
 
-        // 熔炼进度箭头（burnProgress 由 FurnaceContainer 经 tracked int 同步）
+        // 熔炼进度箭头（burnProgress 由 FurnaceContainer 经 tracked i32 同步）
         const f32 burnProgress = (m_menu != nullptr) ? m_menu->getBurnProgress() : 0.0f;
         if (burnProgress > 0.0f) {
             m_textureManager->drawFurnaceBurnProgress(

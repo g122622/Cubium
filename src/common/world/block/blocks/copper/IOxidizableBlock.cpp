@@ -49,7 +49,7 @@ bool IOxidizableBlock::tryOxidize(IWorld& world, const BlockPos& pos, BlockState
     }
 
     // 外层门限概率：约 5.69% (MC原版 0.05688889)
-    constexpr float OXIDATION_GATE_CHANCE = 0.05688889f;
+    constexpr f32 OXIDATION_GATE_CHANCE = 0.05688889f;
     if (random.nextFloat() >= OXIDATION_GATE_CHANCE) {
         return false;
     }
@@ -121,8 +121,8 @@ bool IOxidizableBlock::tryOxidize(IWorld& world, const BlockPos& pos, BlockState
 
     // 计算最终氧化概率
     // f = (k+1) / (k+j+1)，然后 f1 = f^2 * chanceModifier
-    float f = static_cast<float>(higherAgeCount + 1) / static_cast<float>(higherAgeCount + sameAgeCount + 1);
-    float f1 = f * f * getOxidationChanceModifier();
+    f32 f = static_cast<f32>(higherAgeCount + 1) / static_cast<f32>(higherAgeCount + sameAgeCount + 1);
+    f32 f1 = f * f * getOxidationChanceModifier();
 
     if (random.nextFloat() < f1) {
         // 使用 withPropertiesOf 保留共有属性（如楼梯朝向、台阶类型、含水等）

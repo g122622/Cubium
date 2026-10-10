@@ -45,7 +45,7 @@
 namespace mc {
 namespace blocks {
 
-AmethystClusterBlock::AmethystClusterBlock(const BlockProperties& properties, float height, float width)
+AmethystClusterBlock::AmethystClusterBlock(const BlockProperties& properties, f32 height, f32 width)
     : AmethystBlock(properties)
     , m_height(height)
     , m_width(width)
@@ -55,7 +55,7 @@ AmethystClusterBlock::AmethystClusterBlock(const BlockProperties& properties, fl
     // 碰撞箱居中于方块，沿FACING方向延伸
 
     // UP方向：底部居中柱状
-    float halfWidth = (16.0f - width) / 2.0f;
+    f32 halfWidth = (16.0f - width) / 2.0f;
     m_shapes[Direction::Up] =
         CollisionShape::fromPixelBox(halfWidth, 0, halfWidth, 16.0f - halfWidth, height, 16.0f - halfWidth);
     // DOWN方向：顶部居中柱状

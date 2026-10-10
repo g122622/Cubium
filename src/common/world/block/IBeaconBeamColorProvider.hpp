@@ -51,16 +51,16 @@ public:
 /**
  * @brief 信标光束颜色工具类
  *
- * 提供染料颜色到 RGB float 数组的转换。
+ * 提供染料颜色到 RGB f32 数组的转换。
  */
 struct BeaconColors {
     /**
-     * @brief 获取染料颜色对应的 RGB float 数组
+     * @brief 获取染料颜色对应的 RGB f32 数组
      *
      * 返回值范围 [0.0, 1.0]，用于信标光束渲染。
      *
      * @param color 染料颜色
-     * @return RGB float 数组 {r, g, b}
+     * @return RGB f32 数组 {r, g, b}
      */
     [[nodiscard]] static std::array<f32, 3> getColorComponents(DyeColor color)
     {

@@ -815,12 +815,12 @@ void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)
             if (jumpPowerFactor > 0.0f && !jump->m_isJumping && onGround()) {
                 // 计算跳跃力度
                 // MC 1.16.5 AbstractHorseEntity.travel():
-                // double d0 = this.getHorseJumpStrength() * (double)this.jumpPower * (double)this.getJumpFactor();
+                // f64 d0 = this.getHorseJumpStrength() * (f64)this.jumpPower * (f64)this.getJumpFactor();
                 f64 jumpForce = static_cast<f64>(getJumpStrength() * jumpPowerFactor);
 
                 // MC 1.16.5: 跳跃提升药水效果加成
                 // if (this.isPotionActive(Effects.JUMP_BOOST)) {
-                //     d1 = d0 + (double)((float)(this.getActivePotionEffect(Effects.JUMP_BOOST).getAmplifier() + 1) *
+                //     d1 = d0 + (f64)((f32)(this.getActivePotionEffect(Effects.JUMP_BOOST).getAmplifier() + 1) *
                 //     0.1F);
                 // }
                 const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
@@ -1023,10 +1023,10 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
     // MC 1.16.5: if (this.prevRearingAmount > 0.0F) { ... }
     if (anim->m_prevRearingAmount > 0.0f) {
         // 计算基于朝向的偏移
-        // MC 1.16.5: float f3 = MathHelper.sin(this.renderYawOffset * ((float)Math.PI / 180F));
-        //            float f = MathHelper.cos(this.renderYawOffset * ((float)Math.PI / 180F));
-        //            float f1 = 0.7F * this.prevRearingAmount;  // X方向偏移
-        //            float f2 = 0.15F * this.prevRearingAmount; // Y方向额外高度
+        // MC 1.16.5: f32 f3 = MathHelper.sin(this.renderYawOffset * ((f32)Math.PI / 180F));
+        //            f32 f = MathHelper.cos(this.renderYawOffset * ((f32)Math.PI / 180F));
+        //            f32 f1 = 0.7F * this.prevRearingAmount;  // X方向偏移
+        //            f32 f2 = 0.15F * this.prevRearingAmount; // Y方向额外高度
         f32 yawRad = math::toRadians(yaw());
         f32 sinYaw = std::sin(yawRad);
         f32 cosYaw = std::cos(yawRad);
@@ -1036,9 +1036,9 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
 
         // 计算新的乘客位置
         // MC 1.16.5: passenger.setPosition(
-        //     this.getPosX() + (double)(f1 * f3),
-        //     this.getPosY() + this.getMountedYOffset() + passenger.getYOffset() + (double)f2,
-        //     this.getPosZ() - (double)(f1 * f)
+        //     this.getPosX() + (f64)(f1 * f3),
+        //     this.getPosY() + this.getMountedYOffset() + passenger.getYOffset() + (f64)f2,
+        //     this.getPosZ() - (f64)(f1 * f)
         // );
         f64 passengerX = static_cast<f64>(x() + offsetX * sinYaw);
         f64 passengerY =
@@ -1056,7 +1056,7 @@ void AbstractHorseEntity::updatePassengerPosition(Entity& passenger)
 
 f32 AbstractHorseEntity::getRearingAmount(f32 partialTicks) const
 {
-    // MC 1.16.5: getRearingAmount(float partialTicks)
+    // MC 1.16.5: getRearingAmount(f32 partialTicks)
     // MathHelper.lerp(partialTicks, prevRearingAmount, rearingAmount)
     const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
     MC_ASSERT_RELEASE(anim);
@@ -1065,7 +1065,7 @@ f32 AbstractHorseEntity::getRearingAmount(f32 partialTicks) const
 
 f32 AbstractHorseEntity::getHeadLeanAmount(f32 partialTicks) const
 {
-    // MC 1.16.5: getHeadLean(float partialTicks)
+    // MC 1.16.5: getHeadLean(f32 partialTicks)
     const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
     MC_ASSERT_RELEASE(anim);
     return math::lerp(anim->m_prevHeadLean, anim->m_headLean, partialTicks);
@@ -1073,7 +1073,7 @@ f32 AbstractHorseEntity::getHeadLeanAmount(f32 partialTicks) const
 
 f32 AbstractHorseEntity::getMouthOpennessAmount(f32 partialTicks) const
 {
-    // MC 1.16.5: getMouthOpennessAngle(float partialTicks)
+    // MC 1.16.5: getMouthOpennessAngle(f32 partialTicks)
     const auto* anim = tryGetComponent<ecs::HorseAnimationComponent>();
     MC_ASSERT_RELEASE(anim);
     return math::lerp(anim->m_prevMouthOpenness, anim->m_mouthOpenness, partialTicks);

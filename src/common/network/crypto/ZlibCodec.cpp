@@ -94,7 +94,7 @@ Result<std::vector<u8>> ZlibCodec::deflateBytes(const u8* data, usize size)
     std::vector<u8> out;
     constexpr usize bufSize = 8192;
     std::vector<u8> buf(bufSize);
-    int result = Z_OK;
+    i32 result = Z_OK;
     while (result == Z_OK) {
         stream.next_out = buf.data();
         stream.avail_out = static_cast<uInt>(buf.size());
@@ -122,7 +122,7 @@ Result<std::vector<u8>> ZlibCodec::inflateBytes(const u8* data, usize size, u32 
     std::vector<u8> out;
     constexpr usize bufSize = 8192;
     std::vector<u8> buf(bufSize);
-    int result = Z_OK;
+    i32 result = Z_OK;
     while (result == Z_OK) {
         stream.next_out = buf.data();
         stream.avail_out = static_cast<uInt>(buf.size());

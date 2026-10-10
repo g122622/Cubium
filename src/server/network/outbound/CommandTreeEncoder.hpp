@@ -158,7 +158,7 @@ enum : i32 {
             // max != Float.MAX_VALUE（即非默认无界），而非 JSON 是否含字段。项目 FloatArgumentType::
             // serializeMetadata 无条件写 min/max（即使 -FLT_MAX/FLT_MAX），故此处须按 vanilla 默认
             // 哨兵 gating：min==(-FLT_MAX) 视为无下界，max==FLT_MAX 视为无上界，不写对应字节。
-            // 否则每个无界 float 多写 4~8 字节，致客户端游标错位 → IndexOutOfBoundsException。
+            // 否则每个无界 f32 多写 4~8 字节，致客户端游标错位 → IndexOutOfBoundsException。
             const f32 kDefaultMin = -std::numeric_limits<f32>::max();
             const f32 kDefaultMax = std::numeric_limits<f32>::max();
             const f32 minVal = jsonFloat(props, "min", kDefaultMin);

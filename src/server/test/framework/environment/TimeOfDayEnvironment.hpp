@@ -9,7 +9,7 @@ namespace mc::test {
 /**
  * @brief 环境定义：设置世界时间。
  *
- * 对齐 Java `TestEnvironmentDefinition.TimeOfDay`（record，持 `int time`）：setup 调
+ * 对齐 Java `TestEnvironmentDefinition.TimeOfDay`（record，持 `i32 time`）：setup 调
  * `level.setDayTime(time)`，无 teardown。Java 用 `NON_NEGATIVE_INT` 约束。
  *
  * 此处 framework 层仅持意图；实际应用到 `ServerWorld` 由 1C 阶段 `MinecraftEnvironmentApplier` 完成。

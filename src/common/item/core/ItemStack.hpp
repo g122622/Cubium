@@ -577,7 +577,7 @@ public:
     /**
      * @brief 转化物品堆类型（保留 NBT/组件）
      *
-     * 对应 MC 1.21.11 ItemStack#transmuteCopy(Item, int)。
+     * 对应 MC 1.21.11 ItemStack#transmuteCopy(Item, i32)。
      * 创建新的物品堆，使用指定的物品类型和数量，但保留原物品堆的所有
      * 额外数据（自定义名称、Lore、附魔、自定义 NBT 数据、冒险模式谓词等）。
      *
@@ -1006,7 +1006,7 @@ public:
      *
      * NBT 格式（对齐 MC Java 1.21.11）：
      * - id (string): 物品资源位置
-     * - count (int): 数量（1..99，0=空）
+     * - count (i32): 数量（1..99，0=空）
      * - components (compound, 可选): 数据组件补丁
      *   键为组件资源位置名（如 "minecraft:damage"），值为该组件的 NBT；
      *   以 '!' 前缀的键表示移除该组件。

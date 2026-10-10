@@ -48,7 +48,7 @@ namespace mc::world::storage::reader::java {
  * 解析 Java 1.16.5 区块 NBT 结构，转换为项目的 ChunkData。
  * 支持：
  * - 区块 Sections（palette + long array 方块状态）
- * - Biomes（1.16.5 格式：int[1024]）
+ * - Biomes（1.16.5 格式：i32[1024]）
  * - BlockEntities
  * - 光照数据
  *

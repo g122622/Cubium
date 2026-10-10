@@ -54,12 +54,12 @@ namespace blocks {
 // 底座: 4x0x4 到 12x2x12
 static CollisionShape makeRodShape(Direction facing)
 {
-    constexpr float rodMin = 6.0f / 16.0f;
-    constexpr float rodMax = 10.0f / 16.0f;
-    constexpr float baseMin = 4.0f / 16.0f;
-    constexpr float baseMax = 12.0f / 16.0f;
-    constexpr float baseH = 2.0f / 16.0f;
-    constexpr float full = 1.0f;
+    constexpr f32 rodMin = 6.0f / 16.0f;
+    constexpr f32 rodMax = 10.0f / 16.0f;
+    constexpr f32 baseMin = 4.0f / 16.0f;
+    constexpr f32 baseMax = 12.0f / 16.0f;
+    constexpr f32 baseH = 2.0f / 16.0f;
+    constexpr f32 full = 1.0f;
 
     CollisionShape rod;
     CollisionShape base;
@@ -124,7 +124,7 @@ LightningRodBlock::LightningRodBlock(const BlockProperties& properties)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 预计算6个方向的形状（充能状态不影响形状）
-    for (int i = 0; i < 6; ++i) {
+    for (i32 i = 0; i < 6; ++i) {
         Direction dir = static_cast<Direction>(i);
         m_shapes[i] = makeRodShape(dir);
         m_shapes[i + 6] = m_shapes[i]; // powered状态使用相同形状

@@ -83,7 +83,7 @@ void PandaEntity::randomizePersonality()
 
     // 熊猫性格概率分布
     // 普通: 32%, 懒惰: 32%, 忧愁: 16%, 顽皮: 16%, 好斗: 1.6%, 虚弱: 0.08%, 棕色: 2.4%
-    int value = rng.nextInt(0, 1249);
+    i32 value = rng.nextInt(0, 1249);
 
     if (value == 0) {
         // 虚弱（极稀有）

@@ -558,7 +558,7 @@ void TNTEntity::setFuse(i32 fuse)
 {
     m_fuse = fuse;
     // 同步到 DataParameter，供客户端渲染闪烁动画
-    // 对应 MC 1.21.11 PrimedTnt.setFuse(int) 写入 entityData
+    // 对应 MC 1.21.11 PrimedTnt.setFuse(i32) 写入 entityData
     m_dataManager.set(DATA_FUSE_PARAM, fuse);
 }
 

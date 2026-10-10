@@ -601,12 +601,12 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     // struct PushConstants {
     //     mat4 model;           // 64 bytes (16 floats)
     //     vec3 entityPos;       // 12 bytes (3 floats)
-    //     float scale;          // 4 bytes (1 float)
+    //     f32 scale;          // 4 bytes (1 f32)
     //     vec4 overlayColor;    // 16 bytes (4 floats)
-    //     float hurtTime;       // 4 bytes (1 float)
-    //     float deathTime;      // 4 bytes (1 float)
-    //     float fullbright;     // 4 bytes (1 float) - 全亮光照因子
-    //     float _padding1;      // 4 bytes (1 float)
+    //     f32 hurtTime;       // 4 bytes (1 f32)
+    //     f32 deathTime;      // 4 bytes (1 f32)
+    //     f32 fullbright;     // 4 bytes (1 f32) - 全亮光照因子
+    //     f32 _padding1;      // 4 bytes (1 f32)
     // };                        // Total: 112 bytes (28 floats)
     struct PushConstants {
         std::array<f32, 16> model;
@@ -944,7 +944,7 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
     pushConstantRange.size =
-        sizeof(f32) * 28; // mat4(16) + vec3(3) + float(1) + vec4(4) + float(4) = 28 floats = 112 bytes
+        sizeof(f32) * 28; // mat4(16) + vec3(3) + f32(1) + vec4(4) + f32(4) = 28 floats = 112 bytes
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

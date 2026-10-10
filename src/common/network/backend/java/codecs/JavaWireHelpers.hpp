@@ -62,20 +62,20 @@ inline void writeUuid(B& buf, const std::array<u8, 16>& uuid)
 }
 
 // ============================================================================
-// packed degrees（float → byte）
+// packed degrees（f32 → byte）
 // 对应 Java Mth.packDegrees：把 0..360 度压成 0..255 的 byte。
 // ============================================================================
 
 [[nodiscard]] inline u8 packDegrees(f32 degrees) noexcept
 {
-    // Java: (byte)(int)(degrees * 256.0F / 360.0F)
+    // Java: (byte)(i32)(degrees * 256.0F / 360.0F)
     i32 v = static_cast<i32>(degrees * 256.0F / 360.0F);
     return static_cast<u8>(v);
 }
 
 [[nodiscard]] inline f32 unpackDegrees(u8 packed) noexcept
 {
-    // Java: (float)(packed * 360) / 256.0F
+    // Java: (f32)(packed * 360) / 256.0F
     return static_cast<f32>(packed) * 360.0F / 256.0F;
 }
 
@@ -86,12 +86,12 @@ inline void writeUuid(B& buf, const std::array<u8, 16>& uuid)
 
 namespace lpvec_detail {
 
-inline constexpr double kAbsMaxValue = 1.7179869183E10;
-inline constexpr double kAbsMinValue = 3.051944088384301E-5;
+inline constexpr f64 kAbsMaxValue = 1.7179869183E10;
+inline constexpr f64 kAbsMinValue = 3.051944088384301E-5;
 inline constexpr i64 kDataBitsMask = 32767;
-inline constexpr double kMaxQuantizedValue = 32766.0;
+inline constexpr f64 kMaxQuantizedValue = 32766.0;
 
-[[nodiscard]] inline double sanitize(double v) noexcept
+[[nodiscard]] inline f64 sanitize(f64 v) noexcept
 {
     if (v != v) { // NaN
         return 0.0;
@@ -105,49 +105,49 @@ inline constexpr double kMaxQuantizedValue = 32766.0;
     return v;
 }
 
-[[nodiscard]] inline i64 pack(double v) noexcept
+[[nodiscard]] inline i64 pack(f64 v) noexcept
 {
     // round((v * 0.5 + 0.5) * 32766.0)
     return static_cast<i64>(std::llround((v * 0.5 + 0.5) * kMaxQuantizedValue));
 }
 
-[[nodiscard]] inline double unpack(i64 v) noexcept
+[[nodiscard]] inline f64 unpack(i64 v) noexcept
 {
-    double q = static_cast<double>(v & kDataBitsMask);
+    f64 q = static_cast<f64>(v & kDataBitsMask);
     if (q > kMaxQuantizedValue) {
         q = kMaxQuantizedValue;
     }
     return q * 2.0 / kMaxQuantizedValue - 1.0;
 }
 
-[[nodiscard]] inline i64 ceilLong(double v) noexcept
+[[nodiscard]] inline i64 ceilLong(f64 v) noexcept
 {
     i64 i = static_cast<i64>(v);
-    return (v > static_cast<double>(i)) ? i + 1 : i;
+    return (v > static_cast<f64>(i)) ? i + 1 : i;
 }
 
-[[nodiscard]] inline double absMax(double a, double b) noexcept
+[[nodiscard]] inline f64 absMax(f64 a, f64 b) noexcept
 {
-    double aa = a < 0 ? -a : a;
-    double bb = b < 0 ? -b : b;
+    f64 aa = a < 0 ? -a : a;
+    f64 bb = b < 0 ? -b : b;
     return aa > bb ? aa : bb;
 }
 
 } // namespace lpvec_detail
 
 /**
- * @brief 写 LpVec3（三个 double 分量）
+ * @brief 写 LpVec3（三个 f64 分量）
  *
  * 零向量特例：max(|x|,|y|,|z|) < ABS_MIN_VALUE 时只写 1 字节 0x00。
- * 否则 6 字节起步（2× byte + 1× int 大端），scale 超 2 bit 时追加 VarInt。
+ * 否则 6 字节起步（2× byte + 1× i32 大端），scale 超 2 bit 时追加 VarInt。
  */
-inline void writeLpVec3(B& buf, double x, double y, double z)
+inline void writeLpVec3(B& buf, f64 x, f64 y, f64 z)
 {
     using namespace lpvec_detail;
-    const double d0 = sanitize(x);
-    const double d1 = sanitize(y);
-    const double d2 = sanitize(z);
-    const double d3 = absMax(d0, absMax(d1, d2));
+    const f64 d0 = sanitize(x);
+    const f64 d1 = sanitize(y);
+    const f64 d2 = sanitize(z);
+    const f64 d3 = absMax(d0, absMax(d1, d2));
     if (d3 < kAbsMinValue) {
         buf.writeU8(0);
         return;
@@ -156,9 +156,9 @@ inline void writeLpVec3(B& buf, double x, double y, double z)
     const bool flag = (static_cast<u64>(i) & 0x03ULL) != static_cast<u64>(i);
     // scale 段：续传时低 2 bit + 置 continuation(4)；否则直接 i
     const i64 j = flag ? (i & 0x03LL) | 0x04LL : i;
-    const i64 k = pack(d0 / static_cast<double>(i)) << 3;
-    const i64 l = pack(d1 / static_cast<double>(i)) << 18;
-    const i64 m = pack(d2 / static_cast<double>(i)) << 33;
+    const i64 k = pack(d0 / static_cast<f64>(i)) << 3;
+    const i64 l = pack(d1 / static_cast<f64>(i)) << 18;
+    const i64 m = pack(d2 / static_cast<f64>(i)) << 33;
     const u64 combined = static_cast<u64>(j | k | l | m);
     buf.writeU8(static_cast<u8>(combined));
     buf.writeU8(static_cast<u8>(combined >> 8));
@@ -169,9 +169,9 @@ inline void writeLpVec3(B& buf, double x, double y, double z)
 }
 
 /**
- * @brief 读 LpVec3，返回三个 double 分量（经引用）
+ * @brief 读 LpVec3，返回三个 f64 分量（经引用）
  */
-[[nodiscard]] inline Result<void> readLpVec3(B& buf, double& outX, double& outY, double& outZ)
+[[nodiscard]] inline Result<void> readLpVec3(B& buf, f64& outX, f64& outY, f64& outZ)
 {
     using namespace lpvec_detail;
     u8 b0 = 0;
@@ -193,7 +193,7 @@ inline void writeLpVec3(B& buf, double x, double y, double z)
         MC_TRY_ASSIGN(cont, buf.readVarUInt());
         scale |= (static_cast<u64>(cont) & 0xFFFFFFFFULL) << 2;
     }
-    const double s = static_cast<double>(scale);
+    const f64 s = static_cast<f64>(scale);
     outX = unpack(static_cast<i64>(l >> 3)) * s;
     outY = unpack(static_cast<i64>(l >> 18)) * s;
     outZ = unpack(static_cast<i64>(l >> 33)) * s;

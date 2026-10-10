@@ -88,7 +88,7 @@ class AttackTask : public Task<E> {
 public:
     /**
      * @brief 构造近战攻击任务
-     * @param cooldownTicks 攻击冷却时间（tick），对应 MC MeleeAttack.create(int)
+     * @param cooldownTicks 攻击冷却时间（tick），对应 MC MeleeAttack.create(i32)
      */
     explicit AttackTask(i32 cooldownTicks = 20)
         : Task<E>({{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT},

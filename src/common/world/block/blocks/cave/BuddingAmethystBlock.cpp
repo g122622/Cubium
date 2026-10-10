@@ -37,7 +37,7 @@
 namespace mc {
 namespace blocks {
 
-static constexpr int GROWTH_CHANCE = 5; // 1/5 概率
+static constexpr i32 GROWTH_CHANCE = 5; // 1/5 概率
 
 BuddingAmethystBlock::BuddingAmethystBlock(const BlockProperties& properties)
     : AmethystBlock(properties)

@@ -321,7 +321,7 @@ public:
      * @brief 检查桨是否在划动
      * @param side 0=左桨, 1=右桨
      *
-     * 对应 MC AbstractBoat.getPaddleState(int)，
+     * 对应 MC AbstractBoat.getPaddleState(i32)，
      * 返回对应桨是否正在划动（由玩家输入驱动）。
      * 渲染器据此判断是否应用划桨动画。
      */
@@ -337,7 +337,7 @@ public:
      * @param side 0=左桨, 1=右桨
      * @param partialTicks 部分 tick（用于插值）
      *
-     * 对应 MC AbstractBoat.getRowingTime(int, float)。
+     * 对应 MC AbstractBoat.getRowingTime(i32, f32)。
      * 当桨在划动时返回 [paddlePositions[side] - PI/8, paddlePositions[side]] 之间的插值，
      * 否则返回 0。
      */
@@ -355,7 +355,7 @@ public:
      * @brief 获取气泡柱倾斜角度（插值）
      * @param partialTicks 部分 tick（用于插值）
      *
-     * 对应 MC AbstractBoat.getBubbleAngle(float)。
+     * 对应 MC AbstractBoat.getBubbleAngle(f32)。
      * 返回 prevRockingAngle 到 rockingAngle 的插值，
      * 渲染器据此应用绕 (1,0,1) 轴的倾斜旋转。
      */

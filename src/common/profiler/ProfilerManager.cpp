@@ -236,7 +236,7 @@ void ProfilerManager::setThreadName(const std::string& name)
 #endif
 }
 
-void ProfilerManager::setThreadName(const std::string& name, int siblingOrderRank)
+void ProfilerManager::setThreadName(const std::string& name, i32 siblingOrderRank)
 {
 #if MC_ENABLE_TRACING
     if (m_perfetto) {

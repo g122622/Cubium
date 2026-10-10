@@ -474,7 +474,7 @@ struct Login {
 /**
  * @brief PlayerPosition（S→C，id=70，传送玩家）
  *
- * 1.21.11 结构：teleportId + PositionMoveRotation(position,delta,yRot,xRot) + relatives(int 9 位)。
+ * 1.21.11 结构：teleportId + PositionMoveRotation(position,delta,yRot,xRot) + relatives(i32 9 位)。
  * relatives 位：0=X 1=Y 2=Z 3=Y_ROT 4=X_ROT 5=DELTA_X 6=DELTA_Y 7=DELTA_Z 8=ROTATE_DELTA。
  */
 struct PlayerPosition {
@@ -692,7 +692,7 @@ struct MoveEntityRot {
 /**
  * @brief SetEntityMotion（S→C，id=99）
  *
- * 1.21.11 用 LpVec3。当前承载 3 个 double（codec 实现 LpVec3 编码）。
+ * 1.21.11 用 LpVec3。当前承载 3 个 f64（codec 实现 LpVec3 编码）。
  */
 struct SetEntityMotion {
     i32 entityId;

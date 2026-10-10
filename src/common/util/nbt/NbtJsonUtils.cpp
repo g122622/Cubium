@@ -66,7 +66,7 @@ nlohmann::json nbtToJsonImpl(const tags::tag& tag)
         }
         case TagId::Float: {
             const auto& t = static_cast<const float_tag&>(tag);
-            return static_cast<double>(t.value);
+            return static_cast<f64>(t.value);
         }
         case TagId::Double: {
             const auto& t = static_cast<const double_tag&>(tag);
@@ -153,7 +153,7 @@ namespace {
  * - [-128, 127] -> byte_tag
  * - [-32768, 32767] -> short_tag
  * - [-2147483648, 2147483647] -> int_tag
- * - 超出 int 范围 -> long_tag
+ * - 超出 i32 范围 -> long_tag
  */
 std::unique_ptr<tags::tag> jsonNumberToNbtTag(const nlohmann::json& json)
 {
@@ -178,14 +178,14 @@ std::unique_ptr<tags::tag> jsonNumberToNbtTag(const nlohmann::json& json)
     // 浮点数
     if (json.is_number_float()) {
         auto val = json.get<f64>();
-        // 检查是否可以用 float 精确表示
+        // 检查是否可以用 f32 精确表示
         if (static_cast<f64>(static_cast<f32>(val)) == val) {
             return std::make_unique<float_tag>(static_cast<f32>(val));
         }
         return std::make_unique<double_tag>(val);
     }
 
-    // 兜底：作为 int 处理
+    // 兜底：作为 i32 处理
     return std::make_unique<int_tag>(json.get<i32>());
 }
 

@@ -172,7 +172,7 @@ public:
     /**
      * @brief 获取跳跃动画完成度（0.0 ~ 1.0+）
      *
-     * 对应 MC 1.21.11 Rabbit.getJumpCompletion(float partialTick)：
+     * 对应 MC 1.21.11 Rabbit.getJumpCompletion(f32 partialTick)：
      *   jumpDuration == 0 ? 0.0F : (jumpTicks + partialTick) / jumpDuration
      *
      * 用于客户端模型计算 jumpRotation = sin(completion * PI)。

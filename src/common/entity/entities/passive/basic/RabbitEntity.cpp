@@ -347,7 +347,7 @@ void RabbitEntity::startJumping()
 
 f32 RabbitEntity::getJumpCompletion(f32 partialTick) const
 {
-    // 对应 MC 1.21.11 Rabbit.getJumpCompletion(float)：
+    // 对应 MC 1.21.11 Rabbit.getJumpCompletion(f32)：
     //   jumpDuration == 0 ? 0.0F : (jumpTicks + partialTick) / jumpDuration
     if (m_rabbitJumpDuration == 0) {
         return 0.0f;
@@ -538,8 +538,8 @@ void RabbitEntity::checkLandingDelay()
 
 void RabbitEntity::facePoint(f64 targetX, f64 targetZ)
 {
-    // 对应 MC Rabbit.facePoint(double, double)：
-    //   setYRot((float)(Mth.atan2(targetZ - getZ(), targetX - getX()) * 180.0 / PI) - 90.0F);
+    // 对应 MC Rabbit.facePoint(f64, f64)：
+    //   setYRot((f32)(Mth.atan2(targetZ - getZ(), targetX - getX()) * 180.0 / PI) - 90.0F);
     f32 targetYaw = static_cast<f32>(std::atan2(targetZ - z(), targetX - x()) * math::RAD_TO_DEG - 90.0);
     setYaw(math::wrapDegrees(targetYaw));
 }

@@ -206,7 +206,7 @@ public:
      * - Open：淡黄色 0xFFFCBE22（RGB 252, 190, 34）
      * - Closed：深紫色 0xFF5F498F（RGB 95, 73, 143）
      *
-     * MC 1.21.11 中 Type.particleColor 是 int（RGB），ARGB 透明度由调用方控制。
+     * MC 1.21.11 中 Type.particleColor 是 i32（RGB），ARGB 透明度由调用方控制。
      * 此处返回 ARGB 0xFFRRGGBB 形式（不透明）。
      */
     [[nodiscard]] static constexpr u32 particleColorOf(Type type) noexcept

@@ -80,7 +80,7 @@ void applyInstantEffect(
     effect::EffectType type, Entity& source, LivingEntity* caster, LivingEntity& target, i32 amplifier, f32 multiplier)
 {
     // HealOrHarmMobEffect.applyInstantenousEffect（喷溅药水/药水云路径，带距离因子 multiplier）：
-    //   isHarm==isInvertedHealAndHarm 时治疗 (int)(mult*(4<<level)+0.5)，否则伤害 (int)(mult*(6<<level)+0.5)。
+    //   isHarm==isInvertedHealAndHarm 时治疗 (i32)(mult*(4<<level)+0.5)，否则伤害 (i32)(mult*(6<<level)+0.5)。
     // 即治疗基数 4、伤害基数 6（不同！），公式指数 4<<level=4*2^level（非旧线性 4+2*level）。
     // 反转判定用 isInvertedHealAndHarm()（INVERTED_HEALING_AND_HARM 标签）。
     // base 为治疗基数（4）或伤害基数（6），按效果类型与反转分支取定后统一乘 multiplier 四舍五入。

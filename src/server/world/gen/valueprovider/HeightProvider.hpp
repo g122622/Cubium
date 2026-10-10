@@ -361,7 +361,7 @@ public:
             return randomBetweenInclusive(rng, minY, maxY);
         }
         // 对齐 MC TrapezoidHeight.sample：
-        //   int l = (k - plateau) / 2;  int i1 = k - l;
+        //   i32 l = (k - plateau) / 2;  i32 i1 = k - l;
         //   return i + randomBetweenInclusive(rng, 0, i1) + randomBetweenInclusive(rng, 0, l);
         // 即两个**独立**的均匀量之和（三角形分布），不是一次采样后做 sqrt 变换。
         const i32 l = (range - m_plateau) / 2;

@@ -691,7 +691,7 @@ Result<std::vector<ResourceLocation>> parseResourceLocationArray(const nlohmann:
 
 /**
  * @brief fossil 工厂：fossil_structures/overlay_structures（RL 数组）、
- * fossil_processors/overlay_processors（RL 引用）、max_empty_corners_allowed（int）。
+ * fossil_processors/overlay_processors（RL 引用）、max_empty_corners_allowed（i32）。
  *
  * 忠实复刻 MC 1.21.11 FossilFeature（FossilFeatureConfiguration）。模板与处理器列表
  * 在放置时按 id 从 TemplateManager / ProcessorListRegistry 查询，故 config 仅存引用。
@@ -1529,9 +1529,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createPointedDripstone(const nloh
 }
 
 /**
- * @brief large_dripstone 工厂：floor_to_ceiling_search_range(int) + column_radius(IntProvider)
+ * @brief large_dripstone 工厂：floor_to_ceiling_search_range(i32) + column_radius(IntProvider)
  *        + height_scale/stalactite_bluntness/stalagmite_bluntness/wind_speed(FloatProvider)
- *        + max_column_radius_to_cave_height_ratio(f32) + min_radius_for_wind(int)
+ *        + max_column_radius_to_cave_height_ratio(f32) + min_radius_for_wind(i32)
  *        + min_bluntness_for_wind(f32)。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createLargeDripstone(const nlohmann::json& configJson)
@@ -1583,11 +1583,11 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createLargeDripstone(const nlohma
 }
 
 /**
- * @brief dripstone_cluster 工厂：floor_to_ceiling_search_range(int) + height/radius/dripstone_block_layer_thickness
- *        (IntProvider) + max_stalagmite_stalactite_height_diff/height_deviation(int)
+ * @brief dripstone_cluster 工厂：floor_to_ceiling_search_range(i32) + height/radius/dripstone_block_layer_thickness
+ *        (IntProvider) + max_stalagmite_stalactite_height_diff/height_deviation(i32)
  *        + density/wetness(FloatProvider) + chance_of_dripstone_column_at_max_distance_from_center(f32)
  *        + max_distance_from_edge_affecting_chance_of_dripstone_column/max_distance_from_center_affecting_height_bias
- *        (int)。
+ *        (i32)。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createDripstoneCluster(const nlohmann::json& configJson)
 {
@@ -1703,8 +1703,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDelta(const nlohmann::json&
 }
 
 /**
- * @brief underwater_magma 工厂：floor_search_range(int) +
- *        placement_radius_around_floor(int) + placement_probability_per_valid_position(float)。
+ * @brief underwater_magma 工厂：floor_search_range(i32) +
+ *        placement_radius_around_floor(i32) + placement_probability_per_valid_position(f32)。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createUnderwaterMagma(const nlohmann::json& configJson)
 {

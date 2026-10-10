@@ -63,12 +63,12 @@ GlowLichenBlock::GlowLichenBlock(const BlockProperties& properties)
     const CollisionShape downShape = CollisionShape::fromPixelBox(0, 0, 0, 16, 1, 16);
 
     // 遍历所有64种面激活组合，预计算形状
-    for (int down = 0; down <= 1; ++down) {
-        for (int up = 0; up <= 1; ++up) {
-            for (int north = 0; north <= 1; ++north) {
-                for (int south = 0; south <= 1; ++south) {
-                    for (int east = 0; east <= 1; ++east) {
-                        for (int west = 0; west <= 1; ++west) {
+    for (i32 down = 0; down <= 1; ++down) {
+        for (i32 up = 0; up <= 1; ++up) {
+            for (i32 north = 0; north <= 1; ++north) {
+                for (i32 south = 0; south <= 1; ++south) {
+                    for (i32 east = 0; east <= 1; ++east) {
+                        for (i32 west = 0; west <= 1; ++west) {
                             size_t idx =
                                 _getShapeIndex(down != 0, up != 0, north != 0, south != 0, east != 0, west != 0);
 

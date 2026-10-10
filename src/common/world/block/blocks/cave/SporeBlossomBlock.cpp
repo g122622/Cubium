@@ -89,10 +89,10 @@ void SporeBlossomBlock::animateTick(
 
     // MC 1.21.11 对齐：spore_blossom_air 粒子在花周围尝试14次
     // 在 xz[-10,10] y[-10,0] 范围内随机选点，只在非完整碰撞箱的位置生成
-    for (int i = 0; i < 14; ++i) {
-        const int px = pos.x + random.nextInt(21) - 10;
-        const int py = pos.y - random.nextInt(10);
-        const int pz = pos.z + random.nextInt(21) - 10;
+    for (i32 i = 0; i < 14; ++i) {
+        const i32 px = pos.x + random.nextInt(21) - 10;
+        const i32 py = pos.y - random.nextInt(10);
+        const i32 pz = pos.z + random.nextInt(21) - 10;
         const BlockState* blockState = context.getBlockState(px, py, pz);
         if (blockState && !blockState->isSolid()) {
             const f32 ppx = static_cast<f32>(px) + random.nextFloat();

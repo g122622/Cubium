@@ -135,7 +135,7 @@ void CombatTracker::reset()
 void CombatTracker::recheckStatus()
 {
     // 对齐 MC Java 1.21.11 CombatTracker.recheckStatus（CombatTracker.java:145-158）：
-    //   int i = this.inCombat ? 300 : 100;
+    //   i32 i = this.inCombat ? 300 : 100;
     //   if (this.takingDamage && (!this.mob.isAlive() || this.mob.tickCount - this.lastDamageTime > i)) {
     //       boolean flag = this.inCombat;
     //       this.takingDamage = false;

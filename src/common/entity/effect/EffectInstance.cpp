@@ -125,7 +125,7 @@ bool EffectInstance::tick(LivingEntity& entity)
     }
 
     // 先用递减前的 m_duration 执行效果逻辑，再递减持续时间：
-    //   int i = this.duration;  // 递减前
+    //   i32 i = this.duration;  // 递减前
     //   if (effect.shouldApplyEffectTickThisTick(i, amplifier) && !effect.applyEffectTick(...)) return false;
     //   this.tickDownDuration();  // 递减在作用之后
     // 间隔型效果（凋零/中毒/再生）的 shouldApplyEffectTickThisTick 判定用 duration % interval == 0，

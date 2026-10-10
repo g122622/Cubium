@@ -89,7 +89,7 @@ ItemStack SetStewEffectFunction::apply(ItemStack stack, LootContext& context) co
     }
 
     // 写入物品的 NBT 数据
-    // 格式: {Effects: [{EffectId: byte, EffectDuration: int}, ...]}
+    // 格式: {Effects: [{EffectId: byte, EffectDuration: i32}, ...]}
     nlohmann::json& tag = stack.getOrCreateTag();
 
     // 获取或创建 Effects 数组（使用引用）

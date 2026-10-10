@@ -149,8 +149,8 @@ ArmorDyeRecipe::ArmorDyeRecipe(const ResourceLocation& id)
 
 bool ArmorDyeRecipe::matches(const CraftingInventory& inventory) const
 {
-    int armorCount = 0;
-    int dyeCount = 0;
+    i32 armorCount = 0;
+    i32 dyeCount = 0;
 
     for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
         ItemStack stack = inventory.getItem(i);

@@ -81,7 +81,7 @@ StemBlock::StemBlock(const StemGrownBlock* crop, const BlockProperties& properti
     constexpr f32 P = 1.0f / 16.0f;
     constexpr f32 heights[] = {2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f};
 
-    for (int i = 0; i < 8; ++i) {
+    for (i32 i = 0; i < 8; ++i) {
         // 茎是居中的 2x2 像素柱子
         m_shapesByAge[i] = CollisionShape::box(7.0f * P, 0.0f, 7.0f * P, 9.0f * P, heights[i] * P, 9.0f * P);
     }
@@ -243,14 +243,14 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
     Direction directions[] = {Direction::North, Direction::South, Direction::East, Direction::West};
 
     // Fisher-Yates 洗牌
-    for (int i = 3; i > 0; --i) {
-        int j = random.nextInt(i + 1);
+    for (i32 i = 3; i > 0; --i) {
+        i32 j = random.nextInt(i + 1);
         Direction temp = directions[i];
         directions[i] = directions[j];
         directions[j] = temp;
     }
 
-    for (int i = 0; i < 4; ++i) {
+    for (i32 i = 0; i < 4; ++i) {
         Direction dir = directions[i];
         BlockPos fruitPos(pos.x + Directions::xOffset(dir), pos.y, pos.z + Directions::zOffset(dir));
 

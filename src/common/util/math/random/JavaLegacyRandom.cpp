@@ -43,7 +43,7 @@ void JavaLegacyRandom::setSeed(u64 seed)
 i32 JavaLegacyRandom::next(i32 bits)
 {
     // Java: seed = (seed * MULTIPLIER + INCREMENT) & MASK;
-    //       return (int)(seed >>> (48 - bits));
+    //       return (i32)(seed >>> (48 - bits));
     m_state = (m_state * MULTIPLIER + INCREMENT) & MASK;
     return static_cast<i32>(m_state >> (48 - bits));
 }
@@ -77,7 +77,7 @@ i32 JavaLegacyRandom::nextInt(i32 bound)
     do {
         bits = next(31);
         val = bits % bound;
-        // Java 的 `bits - val + (bound - 1) < 0` 依赖 int 回绕判定溢出，
+        // Java 的 `bits - val + (bound - 1) < 0` 依赖 i32 回绕判定溢出，
         // 而 C++ 的有符号溢出是 UB，故用 u32 显式回绕后按有符号解释，逐位复刻 Java 语义。
         rejected = static_cast<u32>(bits) - static_cast<u32>(val) + static_cast<u32>(bound - 1);
     } while (static_cast<i32>(rejected) < 0);
@@ -99,14 +99,14 @@ f32 JavaLegacyRandom::nextFloat()
 f64 JavaLegacyRandom::nextDouble()
 {
     // Java: RandomSource.nextDouble()（BitRandomSource 的默认实现）
-    //   int i = this.next(26);
-    //   int j = this.next(27);
+    //   i32 i = this.next(26);
+    //   i32 j = this.next(27);
     //   long k = ((long)i << 27) + j;
     //   return k * 1.110223E-16F;
-    // 【字面量是 float 后缀】1.110223E-16F 的值恰好等于 2^-53（2 的整数次幂在 float
-    // 里可精确表示），但 Java 的 `long * float` 会做二元数值提升——k 先被拓宽为
-    // **float**（丢 29 位有效位）再做 float 乘法，结果只有 24 位精度，最后才拓宽为
-    // double 返回。写成 double 除法会得到 53 位精度的不同值，进而让 PerlinNoise 的
+    // 【字面量是 f32 后缀】1.110223E-16F 的值恰好等于 2^-53（2 的整数次幂在 f32
+    // 里可精确表示），但 Java 的 `long * f32` 会做二元数值提升——k 先被拓宽为
+    // **f32**（丢 29 位有效位）再做 f32 乘法，结果只有 24 位精度，最后才拓宽为
+    // f64 返回。写成 f64 除法会得到 53 位精度的不同值，进而让 PerlinNoise 的
     // 原点偏移（nextDouble() * 256.0）在 1e-5 量级上偏离原版，整片地形随之分叉。
     const i64 k = (static_cast<i64>(next(26)) << 27) + static_cast<i64>(next(27));
     return static_cast<f64>(static_cast<f32>(k) * 1.1102230246251565E-16f);

@@ -37,7 +37,7 @@ i32 WorldgenRandom::nextInt(i32 bound)
         return static_cast<i32>((static_cast<i64>(bound) * nextBits(31)) >> 31);
     }
 
-    // 非 2 的幂：拒绝采样。Java 的 `i - j + (bound - 1) < 0` 依赖 int 回绕判定溢出，
+    // 非 2 的幂：拒绝采样。Java 的 `i - j + (bound - 1) < 0` 依赖 i32 回绕判定溢出，
     // 而 C++ 的有符号溢出是 UB，故用 u32 显式回绕后按有符号解释，逐位复刻 Java 语义。
     i32 bits = 0;
     i32 val = 0;
@@ -54,19 +54,19 @@ i32 WorldgenRandom::nextInt(i32 bound)
 f32 WorldgenRandom::nextFloat()
 {
     // BitRandomSource.nextFloat(): next(24) * 5.9604645E-8F
-    // 常量是 float 字面量 = 2^-24（float 可精确表示），乘法的中间精度是 float。
+    // 常量是 f32 字面量 = 2^-24（f32 可精确表示），乘法的中间精度是 f32。
     return static_cast<f32>(nextBits(24)) * 5.9604645E-8f;
 }
 
 f64 WorldgenRandom::nextDouble()
 {
     // BitRandomSource.nextDouble():
-    //   int i = this.next(26);
-    //   int j = this.next(27);
+    //   i32 i = this.next(26);
+    //   i32 j = this.next(27);
     //   long k = ((long)i << 27) + j;
     //   return k * 1.110223E-16F;
-    // 【字面量是 float 后缀】Java 的 `long * float` 会做二元数值提升——k 先被拓宽为
-    // **float**（丢 29 位有效位）再做 float 乘法，结果只有 24 位精度（见
+    // 【字面量是 f32 后缀】Java 的 `long * f32` 会做二元数值提升——k 先被拓宽为
+    // **f32**（丢 29 位有效位）再做 f32 乘法，结果只有 24 位精度（见
     // JavaLegacyRandom::nextDouble 的同类说明）。必须复刻该中间精度。
     const i32 i = nextBits(26);
     const i32 j = nextBits(27);

@@ -94,15 +94,15 @@ private:
 // ============================================================================
 struct UnstitchRegion {
     ResourceLocation sprite;
-    double x = 0.0;
-    double y = 0.0;
-    double width = 0.0;
-    double height = 0.0;
+    f64 x = 0.0;
+    f64 y = 0.0;
+    f64 width = 0.0;
+    f64 height = 0.0;
 };
 
 class UnstitcherSource final : public AtlasSource {
 public:
-    UnstitcherSource(ResourceLocation resource, std::vector<UnstitchRegion> regions, double divisorX, double divisorY)
+    UnstitcherSource(ResourceLocation resource, std::vector<UnstitchRegion> regions, f64 divisorX, f64 divisorY)
         : m_resource(std::move(resource))
         , m_regions(std::move(regions))
         , m_divisorX(divisorX)
@@ -115,8 +115,8 @@ public:
 private:
     ResourceLocation m_resource;
     std::vector<UnstitchRegion> m_regions;
-    double m_divisorX = 1.0;
-    double m_divisorY = 1.0;
+    f64 m_divisorX = 1.0;
+    f64 m_divisorY = 1.0;
 };
 
 // ============================================================================

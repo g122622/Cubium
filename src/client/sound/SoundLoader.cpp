@@ -63,11 +63,11 @@ extern "C" {
 struct stb_vorbis;
 typedef struct stb_vorbis stb_vorbis;
 
-stb_vorbis* mc_stb_vorbis_open_memory(const unsigned char* data, int len, int* error);
+stb_vorbis* mc_stb_vorbis_open_memory(const unsigned char* data, mc::i32 len, mc::i32* error);
 void mc_stb_vorbis_close(stb_vorbis* v);
-int mc_stb_vorbis_get_info(stb_vorbis* v, unsigned int* sampleRate, int* channels);
-int mc_stb_vorbis_stream_length_in_samples(stb_vorbis* v);
-int mc_stb_vorbis_get_samples_short_interleaved(stb_vorbis* v, int channels, short* output, int numSamples);
+mc::i32 mc_stb_vorbis_get_info(stb_vorbis* v, mc::u32* sampleRate, mc::i32* channels);
+mc::i32 mc_stb_vorbis_stream_length_in_samples(stb_vorbis* v);
+mc::i32 mc_stb_vorbis_get_samples_short_interleaved(stb_vorbis* v, mc::i32 channels, short* output, mc::i32 numSamples);
 }
 
 namespace mc::client::sound {
@@ -99,21 +99,21 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
         return Error(ErrorCode::InvalidData, "Empty audio data");
     }
 
-    if (size > static_cast<size_t>(std::numeric_limits<int>::max())) {
+    if (size > static_cast<size_t>(std::numeric_limits<i32>::max())) {
         return Error(ErrorCode::InvalidData, fmt::format("Audio data too large for stb_vorbis: {} bytes", size));
     }
 
     // 使用 stb_vorbis 解码（变量类型需匹配 C ABI）
-    int error = kVorbisNoError;
-    stb_vorbis* vorbis = mc_stb_vorbis_open_memory(data, static_cast<int>(size), &error);
+    i32 error = kVorbisNoError;
+    stb_vorbis* vorbis = mc_stb_vorbis_open_memory(data, static_cast<i32>(size), &error);
 
     if (!vorbis) {
         return Error(ErrorCode::InvalidData, fmt::format("Failed to decode OGG Vorbis, error code: {}", error));
     }
 
     // 获取音频信息（变量类型需匹配 C ABI）
-    unsigned int sampleRateRaw = 0;
-    int channelsRaw = 0;
+    u32 sampleRateRaw = 0;
+    i32 channelsRaw = 0;
     if (mc_stb_vorbis_get_info(vorbis, &sampleRateRaw, &channelsRaw) == 0) {
         mc_stb_vorbis_close(vorbis);
         return Error(ErrorCode::InvalidData, "Failed to read OGG metadata");
@@ -128,7 +128,7 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
     u16 channels = static_cast<u16>(channelsRaw);
 
     // 计算样本总数
-    int totalSamples = mc_stb_vorbis_stream_length_in_samples(vorbis);
+    i32 totalSamples = mc_stb_vorbis_stream_length_in_samples(vorbis);
     if (totalSamples <= 0) {
         mc_stb_vorbis_close(vorbis);
         return Error(ErrorCode::InvalidData, "Audio has no samples");
@@ -141,8 +141,8 @@ Result<AudioData> SoundLoader::decode(const u8* data, size_t size)
 
     // 解码所有样本
     i16* output = reinterpret_cast<i16*>(samples.data());
-    int framesDecoded =
-        mc_stb_vorbis_get_samples_short_interleaved(vorbis, channels, output, static_cast<int>(totalFrames * channels));
+    i32 framesDecoded =
+        mc_stb_vorbis_get_samples_short_interleaved(vorbis, channels, output, static_cast<i32>(totalFrames * channels));
 
     mc_stb_vorbis_close(vorbis);
 

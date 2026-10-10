@@ -410,7 +410,7 @@ public:
      * @return true 表示本帧应渲染白色闪烁叠加
      *
      * 对齐 MC TntMinecartRenderer：
-     *   fuse > -1 && (int)fuse / 5 % 2 == 0
+     *   fuse > -1 && (i32)fuse / 5 % 2 == 0
      */
     [[nodiscard]] static bool isTntFlashFrame(i32 fuse) noexcept;
 

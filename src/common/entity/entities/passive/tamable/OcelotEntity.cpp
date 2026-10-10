@@ -188,7 +188,7 @@ void OcelotEntity::updateAITasks()
     }
 }
 
-bool OcelotEntity::canDespawn(double distanceToClosestPlayer) const noexcept
+bool OcelotEntity::canDespawn(f64 distanceToClosestPlayer) const noexcept
 {
     // 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
     MC_UNUSED(distanceToClosestPlayer);
@@ -224,7 +224,7 @@ ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)
     // 4. 玩家距离 < 9.0D (3格)
     bool isTempting = (m_temptGoal == nullptr || m_temptGoal->isRunning());
     bool isBreedingFood = item != nullptr && (item == Items::COD || item == Items::SALMON);
-    double distSq = player.distanceSqTo(*this);
+    f64 distSq = player.distanceSqTo(*this);
 
     if (isTempting && !isTrusting() && isBreedingFood && distSq < 9.0) {
         // 消耗物品

@@ -74,7 +74,7 @@ public:
      * 控制生物在失去视线后继续追踪目标的持续时间。
      * 仅在 checkSight 为 true 时生效。
      *
-     * 对应 MC Java: TargetGoal.setUnseenMemoryTicks(int)
+     * 对应 MC Java: TargetGoal.setUnseenMemoryTicks(i32)
      *
      * @param ticks 记忆时间（游戏刻），默认60
      * @return *this 以支持链式调用

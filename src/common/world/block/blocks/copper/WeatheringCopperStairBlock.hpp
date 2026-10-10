@@ -56,7 +56,7 @@ public:
 
     [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
 
-    [[nodiscard]] float getOxidationChanceModifier() const override
+    [[nodiscard]] f32 getOxidationChanceModifier() const override
     {
         return m_oxidationLevel == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
     }

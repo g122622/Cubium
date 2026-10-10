@@ -43,7 +43,7 @@ namespace entity {
  *
  * 对应 MC 1.21.11: net.minecraft.world.entity.ContainerUser
  *   boolean hasContainerOpen(BlockPos pos);
- *   double getContainerInteractionRange();
+ *   f64 getContainerInteractionRange();
  *   default LivingEntity getLivingEntity() { return (LivingEntity) this; }
  */
 class ContainerUser {

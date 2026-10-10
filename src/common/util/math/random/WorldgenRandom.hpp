@@ -37,7 +37,7 @@ namespace mc::math {
  * 原版 WorldgenRandom 本身是一个 RandomSource 实现，内部**委托**另一个 RandomSource，
  * 并把所有位宽抽取都折算成"反复调用内层 nextLong() 取高位"：
  *
- *   next(bits)  = (int)(inner.nextLong() >>> (64 - bits))
+ *   next(bits)  = (i32)(inner.nextLong() >>> (64 - bits))
  *   nextInt()   = next(32)                                          // 消耗 1 次内层 nextLong
  *   nextLong()  = ((long)next(32) << 32) + next(32)                 // 消耗 2 次内层 nextLong
  *   nextBoolean() = next(1) != 0
@@ -59,8 +59,8 @@ namespace mc::math {
  * 【为什么重写 nextInt 而非 next(bits)】
  * 内层可能是 Xoroshiro（无 next(bits) 方法，只有 nextLong）也可能是 Legacy（有 next(bits)）。
  * 本类统一把 nextInt() 作为唯一原语：每次消耗一个内层 nextLong 的高 32 位。这对两种内层
- * 都恰好等价于原版 WorldgenRandom.next(32)——Xoroshiro 直接 `(int)(nextLong() >>> 32)`，
- * Legacy 的 `(int)(next(32))` 也等于其 nextLong 的高 32 位。
+ * 都恰好等价于原版 WorldgenRandom.next(32)——Xoroshiro 直接 `(i32)(nextLong() >>> 32)`，
+ * Legacy 的 `(i32)(next(32))` 也等于其 nextLong 的高 32 位。
  *
  * 【nextGaussian 不在此类中派生】
  * 原版 WorldgenRandom 继承 LegacyRandomSource，其 MarsagliaPolarGaussian 会回调

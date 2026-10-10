@@ -88,8 +88,8 @@ struct VibrationInfo {
      *
      * NBT 结构（对齐 MC 原版 VibrationInfo.CODEC）：
      * - "game_event": string  - 事件 ID（如 "minecraft:step"）
-     * - "distance": float     - 振动传播距离
-     * - "pos": list<double>   - 振动源位置 [x, y, z]
+     * - "distance": f32     - 振动传播距离
+     * - "pos": list<f64>   - 振动源位置 [x, y, z]
      * - "source": long        - 源实体 ID（可选）
      * - "projectile_owner": long - 弹射物拥有者实体 ID（可选）
      *
@@ -354,7 +354,7 @@ public:
          * NBT 结构（对齐 MC 原版 VibrationSystem.Data.CODEC，键名为 "listener"）：
          * - "event": compound (可选) - 当前正在传播的振动信息
          * - "selector": compound     - 振动选择器
-         * - "event_delay": int       - 传播剩余时间（tick），默认 0
+         * - "event_delay": i32       - 传播剩余时间（tick），默认 0
          *
          * 注意：reloadVibrationParticle 不序列化到 NBT，反序列化时始终设为 true。
          *

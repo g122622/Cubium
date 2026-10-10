@@ -78,7 +78,7 @@ void GuiSpriteRegistry::registerWidgetsSprites(GuiSpriteManager& manager, i32 at
     //    GuiSpriteAtlas::createTextureImage("slider"/"slider_highlighted") 绘制轨道背景，
     //    createTextureImage("slider_handle"/"slider_handle_highlighted") 绘制手柄；
     // 2. 根据 isHovered/isFocused/isActive 选择 normal/highlighted 变体（参考 MC getSprite/
-    //    getHandleSprite）；3. 手柄 X = getX() + (int)(value * (width - 8))。在消费者实现
+    //    getHandleSprite）；3. 手柄 X = getX() + (i32)(value * (width - 8))。在消费者实现
     //    之前，这些精灵注册仅保证图集布局就绪，不构成功能闭环。
     manager.registerSprite("slider", 0, 66, 200, 20, atlasWidth, atlasHeight);
     manager.registerSprite("slider_highlighted", 0, 86, 200, 20, atlasWidth, atlasHeight);
@@ -180,8 +180,8 @@ void GuiSpriteRegistry::registerIconsSprites(GuiSpriteManager& manager, i32 atla
     // 模式，同文件:594）根据 options.attackIndicator() 的值（CROSSHAIR/HOTBAR）消费：
     // - 准星模式：f = player.getAttackStrengthScale(0.0F)；f>=1.0F 且当前目标是 LivingEntity
     //   且 currentItemAttackStrengthDelay>5 时绘制 full（暴击指示）；f<1.0F 时绘制 background
-    //   + 裁剪宽度为 (int)(f*17) 的 progress。
-    // - 快捷栏模式：f<1.0F 时在副手槽对面绘制 background + 裁剪高度为 (int)(f*19) 的 progress
+    //   + 裁剪宽度为 (i32)(f*17) 的 progress。
+    // - 快捷栏模式：f<1.0F 时在副手槽对面绘制 background + 裁剪高度为 (i32)(f*19) 的 progress
     //   （从底部向上填充）。
     // Cubium 现状：CrosshairWidget（src/client/ui/minecraft/widgets/CrosshairWidget.cpp）使用
     //   纯色十字线绘制准星，未渲染攻击指示器；HudWidget（同目录）未渲染攻击指示器；

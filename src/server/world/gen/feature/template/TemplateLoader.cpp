@@ -56,11 +56,11 @@ namespace template_ {
 
 namespace {
 
-// 从 NBT 整型序列字段读取 int 数组，兼容基岩版 .mcstructure 两种存储形式：
+// 从 NBT 整型序列字段读取 i32 数组，兼容基岩版 .mcstructure 两种存储形式：
 //   - List<Int>（TagId::List，元素为 IntTag）：旧工具链/部分导出器产出
 //   - IntArray（TagId::IntArray）：新工具链产出（如 Blockography/部分结构导出器把 size、
 //     block_indices 内层存为 TAG_Int_Array 而非 List<Int>）。
-// 两者在 NBT 二进制层不同（List 有 elementType 前缀，IntArray 无），但语义都是 int 数组。
+// 两者在 NBT 二进制层不同（List 有 elementType 前缀，IntArray 无），但语义都是 i32 数组。
 // 此前 _loadFromBedrockNbt 仅接受 List<Int>，遇 IntArray 在 size 字段就 return 空模板，
 // 致整个结构放置静默失败（placeInWorld 因 palette 空返回 true 不报错），结构体全是 worldgen
 // 方块——表现为 GameTest 实体 spawn 在 deepslate/tuff 中而非结构地板上。
@@ -90,12 +90,12 @@ std::vector<i32> readIntSequence(const nbt::Tag& tag)
 
 // 基岩版整型属性 → Java 属性 (key, value) 字符串。
 // 已覆盖：
-// - facing_direction (int 0-5: 0=down,1=up,2=north,3=south,4=east,5=west)：基岩通用 6 向 → Java facing
-// - weirdo_direction (int 0-3: 0=east,1=west,2=south,3=north)：基岩 stairs 朝向 → Java stairs facing
-// - rail_direction (int 0-9)：基岩 rail_direction → Java rail "shape"（一一对应）
+// - facing_direction (i32 0-5: 0=down,1=up,2=north,3=south,4=east,5=west)：基岩通用 6 向 → Java facing
+// - weirdo_direction (i32 0-3: 0=east,1=west,2=south,3=north)：基岩 stairs 朝向 → Java stairs facing
+// - rail_direction (i32 0-9)：基岩 rail_direction → Java rail "shape"（一一对应）
 //   0=north_south,1=east_west,2=ascending_east,3=ascending_west,4=ascending_north,5=ascending_south,
 //   6=south_east,7=south_west,8=north_west,9=north_east
-// - direction (int 0-3: 0=north,1=east,2=south,3=west,基岩 CommonDirection)：门/楼梯/按钮等通用朝向
+// - direction (i32 0-3: 0=north,1=east,2=south,3=west,基岩 CommonDirection)：门/楼梯/按钮等通用朝向
 //   → Java facing（vanilla HORIZONTAL_FACING 4 向，north/south/east/west）
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认数字字符串转换。
 // TODO: 部分复合方块（如 lever 的门控/朝向组合属性）仍待补全。
@@ -544,7 +544,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     }
                 }
 
-                // 读取状态索引: state: int
+                // 读取状态索引: state: i32
                 if (blockEntry.value.count("state") != 0) {
                     rawInfo.stateIndex =
                         static_cast<u32>(dynamic_cast<const nbt::IntTag&>(*blockEntry.value.at("state")).value);
@@ -639,7 +639,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     entityInfo.typeId = dynamic_cast<const nbt::StringTag&>(*entityEntry.value.at("id")).value;
                 }
 
-                // 读取精确位置 pos: [double, double, double]
+                // 读取精确位置 pos: [f64, f64, f64]
                 if (entityEntry.value.count("pos") != 0) {
                     auto& posTag = *entityEntry.value.at("pos");
                     if (posTag.id() == nbt::TagId::List) {
@@ -653,7 +653,7 @@ std::unique_ptr<Template> TemplateLoader::loadFromNbt(const nbt::CompoundTag& nb
                     }
                 }
 
-                // 读取方块坐标 blockPos: [int, int, int]
+                // 读取方块坐标 blockPos: [i32, i32, i32]
                 if (entityEntry.value.count("blockPos") != 0) {
                     auto& blockPosTag = *entityEntry.value.at("blockPos");
                     if (blockPosTag.id() == nbt::TagId::List) {
@@ -1049,7 +1049,7 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
                         break;
                     case nbt::TagId::Int: {
                         const i32 iv = dynamic_cast<const nbt::IntTag&>(*valueTag).value;
-                        // 基岩方向属性（facing_direction/weirdo_direction 等）是 int，Java facing 取字符串值，
+                        // 基岩方向属性（facing_direction/weirdo_direction 等）是 i32，Java facing 取字符串值，
                         // 需先做属性名+值的映射；未命中映射则按原逻辑转数字字符串（适用于 axis 等少数属性）。
                         if (auto mapped = bedrockIntStateToJava(key, iv)) {
                             javaKey = mapped->first;

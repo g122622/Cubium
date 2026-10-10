@@ -788,7 +788,7 @@ void StandaloneServer::_setupContainerCallbacks()
             PlayerId playerId, const AbstractContainerMenu& menu) { sendContainerContent(playerId, menu); });
 
     // 容器进度数据（container_set_data，cb 19）：熔炉的火焰燃烧与箭头熔炼进度。
-    // 菜单的 tracked int 每 tick 由 ContainerManager::tickMenus() 刷新，变化时经这里下发。
+    // 菜单的 tracked i32 每 tick 由 ContainerManager::tickMenus() 刷新，变化时经这里下发。
     containerManager().setOnContainerData([this](PlayerId playerId, ContainerId containerId, i32 property, i32 value) {
         mc::network::ir::play::ContainerSetData pkt;
         pkt.containerId = static_cast<i32>(containerId);

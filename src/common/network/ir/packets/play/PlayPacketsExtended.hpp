@@ -79,7 +79,7 @@ struct SoundEventHolder {
  * @brief PlaySound（S→C，id=115）
  *
  * Holder<SoundEvent> 结构化字段（内联/引用，对齐 vanilla wire），见 SoundEventHolder。
- * 坐标为 ×8 取整后的 int（Java writeInt）。
+ * 坐标为 ×8 取整后的 i32（Java writeInt）。
  */
 struct PlaySound {
     SoundEventHolder soundHolder; // Holder<SoundEvent>
@@ -192,7 +192,7 @@ struct ParticleOptions {
  * @brief LevelParticles（S→C，id=46）
  *
  * 线格式对齐 ClientboundLevelParticlesPacket：overrideLimiter/alwaysShow(bool×2) +
- * x/y/z(double×3) + xDist/yDist/zDist(float×3) + maxSpeed(float) + count(int) + particle(ParticleOptions)。
+ * x/y/z(f64×3) + xDist/yDist/zDist(f32×3) + maxSpeed(f32) + count(i32) + particle(ParticleOptions)。
  */
 struct LevelParticles {
     bool overrideLimiter;
@@ -795,7 +795,7 @@ struct ExplosionParticleInfo {
  * ParticleOptions explosionParticle + Holder<SoundEvent> explosionSound +
  * WeightedList<ExplosionParticleInfo> blockParticles。
  *
- * 1.21.11 已无 affectedBlocks 列表（改为 blockCount:int + blockParticles 粒子表）；
+ * 1.21.11 已无 affectedBlocks 列表（改为 blockCount:i32 + blockParticles 粒子表）；
  * 客户端击退由 playerKnockback(Optional<Vec3>) 承载。
  */
 struct Explosion {
@@ -1037,7 +1037,7 @@ struct SetSimulationDistance {
  * @brief SetHealth（S→C，id=102）
  *
  * 对齐 Java 1.21.11 ClientboundSetHealthPacket：Float(health)+VarInt(food)+Float(saturation)。
- * saturation 是 float（非 VarInt），apply 时直接 setSaturationLevel 不除 2。
+ * saturation 是 f32（非 VarInt），apply 时直接 setSaturationLevel 不除 2。
  */
 struct SetHealth {
     f32 health;

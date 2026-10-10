@@ -204,7 +204,7 @@ Result<void> ChunkRenderer::_updateChunkLayer(const ChunkId& chunkId, const Mesh
     MC_TRACE_SCOPED_EVENT(TraceEvents.Rendering.Frame,
         "UpdateChunkLayer",
         "layer",
-        static_cast<int>(layer),
+        static_cast<i32>(layer),
         [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(chunkId.x, chunkId.z).toId())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 

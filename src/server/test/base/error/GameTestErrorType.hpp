@@ -7,8 +7,8 @@ namespace mc::test {
 /**
  * @brief GameTest 错误类型枚举。
  *
- * 对齐基岩版 `GameTestErrorType`（int 枚举，数值 0-9）。JS 侧 `@minecraft/server-gametest`
- * 暴露为字符串枚举名，由脚本绑定层负责 int↔字符串名映射。
+ * 对齐基岩版 `GameTestErrorType`（i32 枚举，数值 0-9）。JS 侧 `@minecraft/server-gametest`
+ * 暴露为字符串枚举名，由脚本绑定层负责 i32↔字符串名映射。
  *
  * `GameTestResult = std::optional<GameTestError>`，nullopt 表示测试通过；任何非 nullopt
  * 值表示测试失败，`GameTestError::type()` 描述失败的具体语义类别。

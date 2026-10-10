@@ -268,7 +268,7 @@ public:
     /**
      * @brief 增加怒气值
      *
-     * 对应 MC 1.21.11 Warden.increaseAngerAt(Entity, int, boolean) 的简化版。
+     * 对应 MC 1.21.11 Warden.increaseAngerAt(Entity, i32, boolean) 的简化版。
      * 服务端调用：受到伤害、被触碰、感知到振动时累加怒气。
      * 怒气值上限为 ANGER_LIMIT（150），超过后保持不变。
      *

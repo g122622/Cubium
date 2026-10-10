@@ -168,7 +168,7 @@ public:
      * @brief 受击处理：免疫门控后立即停止授粉，再走基类 hurt
      *
      * 对齐 MC Java 1.21.11 Bee.hurtServer（Bee.java:645-652）：
-     *   public boolean hurtServer(ServerLevel p_482054_, DamageSource p_481056_, float p_479083_) {
+     *   public boolean hurtServer(ServerLevel p_482054_, DamageSource p_481056_, f32 p_479083_) {
      *       if (this.isInvulnerableTo(p_482054_, p_481056_)) { return false; }
      *       else { this.beePollinateGoal.stopPollinating(); return super.hurtServer(...); }
      *   }

@@ -134,20 +134,20 @@ constexpr std::string_view TYPE_PALETTED = "minecraft:paletted_permutations";
         }
         UnstitchRegion region;
         region.sprite = sprite.value();
-        region.x = rj["x"].get<double>();
-        region.y = rj["y"].get<double>();
-        region.width = rj["width"].get<double>();
-        region.height = rj["height"].get<double>();
+        region.x = rj["x"].get<f64>();
+        region.y = rj["y"].get<f64>();
+        region.width = rj["width"].get<f64>();
+        region.height = rj["height"].get<f64>();
         regions.push_back(std::move(region));
     }
 
-    double divisorX = 1.0;
-    double divisorY = 1.0;
+    f64 divisorX = 1.0;
+    f64 divisorY = 1.0;
     if (j.contains("divisor_x")) {
-        divisorX = j["divisor_x"].get<double>();
+        divisorX = j["divisor_x"].get<f64>();
     }
     if (j.contains("divisor_y")) {
-        divisorY = j["divisor_y"].get<double>();
+        divisorY = j["divisor_y"].get<f64>();
     }
     return std::unique_ptr<AtlasSource>(
         std::make_unique<UnstitcherSource>(resource.value(), std::move(regions), divisorX, divisorY));

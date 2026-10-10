@@ -74,7 +74,7 @@ std::string MacroFunction::stringify(const nbt::tags::tag& tag)
             const auto& f = static_cast<const tags::float_tag&>(tag);
             // 使用 %.15g 格式化（与 MC DecimalFormat("#", maxFractionDigits=15) 一致）
             char buf[64];
-            std::snprintf(buf, sizeof(buf), "%.15g", static_cast<double>(f.value));
+            std::snprintf(buf, sizeof(buf), "%.15g", static_cast<f64>(f.value));
             return std::string(buf);
         }
         case TagId::Double: {
@@ -85,13 +85,13 @@ std::string MacroFunction::stringify(const nbt::tags::tag& tag)
         }
         case TagId::Byte: {
             const auto& b = static_cast<const tags::byte_tag&>(tag);
-            // MC: String.valueOf((int)b0)
-            return std::to_string(static_cast<int>(b.value));
+            // MC: String.valueOf((i32)b0)
+            return std::to_string(static_cast<i32>(b.value));
         }
         case TagId::Short: {
             const auto& s = static_cast<const tags::short_tag&>(tag);
-            // MC: String.valueOf((int)short1)
-            return std::to_string(static_cast<int>(s.value));
+            // MC: String.valueOf((i32)short1)
+            return std::to_string(static_cast<i32>(s.value));
         }
         case TagId::Long: {
             const auto& l = static_cast<const tags::long_tag&>(tag);

@@ -290,7 +290,7 @@ void TameableEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::SITTING, static_cast<i8>(m_sitting ? 1 : 0));
 
     // Owner (string) - 主人 UUID（对齐 vanilla TamableAnimal NBT key "Owner"）
-    // 值用 32 字符纯十六进制 UUID 字符串（项目自洽存档，非 vanilla int[4]，不与 vanilla 存档互通）。
+    // 值用 32 字符纯十六进制 UUID 字符串（项目自洽存档，非 vanilla i32[4]，不与 vanilla 存档互通）。
     if (m_ownerId.has_value()) {
         tag.put(nbt_keys::OWNER, util::uuidToString(m_ownerId.value()));
     }

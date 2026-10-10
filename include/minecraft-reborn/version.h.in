@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/core/Types.hpp"
+
 // 自动生成的版本和构建信息文件 - 不要手动编辑
 
 // ==================== 版本信息 ====================
@@ -30,9 +32,9 @@
 namespace mc {
 
 // 版本常量
-constexpr int VERSION_MAJOR = MC_VERSION_MAJOR;
-constexpr int VERSION_MINOR = MC_VERSION_MINOR;
-constexpr int VERSION_PATCH = MC_VERSION_PATCH;
+constexpr i32 VERSION_MAJOR = MC_VERSION_MAJOR;
+constexpr i32 VERSION_MINOR = MC_VERSION_MINOR;
+constexpr i32 VERSION_PATCH = MC_VERSION_PATCH;
 
 // 构建信息常量
 constexpr const char* GIT_COMMIT_HASH = MC_GIT_COMMIT_HASH;

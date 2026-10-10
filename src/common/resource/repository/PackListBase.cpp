@@ -406,7 +406,7 @@ std::vector<PackListBase::PackInfo> PackListBase::getEnabledPackInfos() const
         }
     }
 
-    // 缓存 miss：unique_lock 构建+排序+写缓存。double-check 避免并发重复构建。
+    // 缓存 miss：unique_lock 构建+排序+写缓存。f64-check 避免并发重复构建。
     // 模式对齐 ZipResourcePack::readResource（shared_lock 读 / unique_lock 写）。
     std::unique_lock lock(m_mutex);
     if (m_enabledPackInfosCache) {

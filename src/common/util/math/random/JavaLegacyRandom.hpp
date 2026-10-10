@@ -40,7 +40,7 @@ namespace mc::math {
  * - 增量 C = 11 (0xB)
  * - 掩码 = (1 << 48) - 1
  * - setSeed: state = (seed ^ A) & mask
- * - next(bits): state = (state * A + C) & mask; return (int)(state >>> (48 - bits))
+ * - next(bits): state = (state * A + C) & mask; return (i32)(state >>> (48 - bits))
  */
 class JavaLegacyRandom : public IRandom {
 public:
@@ -90,7 +90,7 @@ public:
     /**
      * @brief 抽取最高的 bits 位（等价于 Java BitRandomSource.next(bits)）
      *
-     * LegacyRandomSource 的 next(int) 只推进**一次** LCG，与取 nextU64()（推进两次）不同，
+     * LegacyRandomSource 的 next(i32) 只推进**一次** LCG，与取 nextU64()（推进两次）不同，
      * 故必须覆写——否则作为 WorldgenRandom 的内层时，后续整个随机序列会错位。
      * @param bits 位数 (1-32)
      * @return 抽取结果

@@ -263,7 +263,7 @@ void MerchantOffer::serialize(nbt::tags::compound_tag& tag) const
     tag.put("uses", static_cast<std::int32_t>(m_uses));
     tag.put("maxUses", static_cast<std::int32_t>(m_maxUses));
     tag.put("xp", static_cast<std::int32_t>(m_xp));
-    tag.put("priceMultiplier", static_cast<float>(m_priceMultiplier));
+    tag.put("priceMultiplier", static_cast<f32>(m_priceMultiplier));
     tag.put("specialPrice", static_cast<std::int32_t>(m_specialPrice));
     tag.put("demand", static_cast<std::int32_t>(m_demand));
     tag.put("restocksToday", static_cast<std::int32_t>(m_restocksToday));

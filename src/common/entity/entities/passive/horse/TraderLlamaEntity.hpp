@@ -115,7 +115,7 @@ public:
      * 流浪商人自身的消失机制通过 maybeDespawn() 管理，
      * 不应被 DespawnManager 的距离判断干扰。
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override;
+    [[nodiscard]] bool canDespawn(f64 distanceToClosestPlayer) const noexcept override;
 
     // ========== 交互 ==========
 
@@ -191,7 +191,7 @@ private:
      *
      * 内部消失判定（对应 MC 1.21.11 TraderLlama 的私有 canDespawn()）：
      *   !isTame() && !isLeashedToSomethingOtherThanTheWanderingTrader() && !hasExactlyOnePlayerPassenger()
-     * 与 MobEntity::canDespawn(double) 不同：后者供 DespawnManager 距离判断使用，
+     * 与 MobEntity::canDespawn(f64) 不同：后者供 DespawnManager 距离判断使用，
      * 对任何拴绳状态均返回 false；本方法允许"拴在流浪商人身上"的羊驼继续消失，
      * 以便与流浪商人的消失倒计时同步。
      *

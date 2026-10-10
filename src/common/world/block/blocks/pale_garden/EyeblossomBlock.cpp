@@ -240,10 +240,10 @@ void EyeblossomBlock::spawnTransformParticle(IWorld& world, const BlockPos& pos,
     }
 
     // 中心点 + 随机偏移目标点，匹配 MC 1.21.11 EyeblossomBlock.Type#spawnTransformParticle
-    // double d0 = 0.5 + random.nextDouble();
+    // f64 d0 = 0.5 + random.nextDouble();
     // Vec3 offset = (random.nextDouble() - 0.5, random.nextDouble() + 1.0, random.nextDouble() - 0.5);
     // Vec3 target = center.add(offset.scale(d0));
-    // TrailParticleOption option = new TrailParticleOption(target, particleColor, (int)(20.0 * d0));
+    // TrailParticleOption option = new TrailParticleOption(target, particleColor, (i32)(20.0 * d0));
     const Vector3 center = pos.center();
     const f64 d0 = 0.5 + random.nextDouble();
     const f64 offsetX = random.nextDouble() - 0.5;
@@ -290,7 +290,7 @@ bool EyeblossomBlock::tryChangingState(IWorld& world, const BlockPos& pos, Block
     spawnTransformParticle(world, pos, random, newBlock->m_type);
 
     // 6. 连锁触发周围 3×2×3 范围内同种眼眸花方块
-    //    延迟 = random.nextIntBetweenInclusive((int)(dist*5), (int)(dist*10))
+    //    延迟 = random.nextIntBetweenInclusive((i32)(dist*5), (i32)(dist*10))
     //    匹配 MC 1.21.11: BlockPos.betweenClosed(pos.offset(-3,-2,-3), pos.offset(3,2,3))
     const BlockPos startPos(pos.x - 3, pos.y - 2, pos.z - 3);
     const BlockPos endPos(pos.x + 3, pos.y + 2, pos.z + 3);

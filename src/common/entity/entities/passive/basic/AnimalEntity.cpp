@@ -119,7 +119,7 @@ ActionResultType AnimalEntity::interactMob(Player& player, Hand hand)
         }
 
         if (isChild()) {
-            // 幼体喂食 → 加速成长（与 MC 1.16.5 ageUp((int)((-i/20)*0.1F)) 一致）
+            // 幼体喂食 → 加速成长（与 MC 1.16.5 ageUp((i32)((-i/20)*0.1F)) 一致）
             if (!player.abilities().creativeMode) {
                 itemStack.shrink(1);
             }

@@ -59,7 +59,7 @@ public:
      * @brief 设置血量百分比
      * @param percent 新的百分比 (0.0 ~ 1.0)，会被 clamp
      *
-     * 对应 MC Java: ServerBossEvent.setProgress(float)
+     * 对应 MC Java: ServerBossEvent.setProgress(f32)
      */
     virtual void setPercent(f32 percent) = 0;
 

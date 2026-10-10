@@ -443,7 +443,7 @@ void ClientEntity::syncMetadataFromDataManager()
     }
 
     // 实体 flags 同步（slot 0，i8）：游泳、鞘翅飞行、潜行、疾跑、发光、着火等共用一个字节。
-    // 对应 MC 1.21.11 Entity.getSharedFlag(int) / DATA_FLAGS_ID。
+    // 对应 MC 1.21.11 Entity.getSharedFlag(i32) / DATA_FLAGS_ID。
     // 此处只同步 Swimming 位（bit 4）到 ClientEntity::setSwimming，驱动：
     //   1) refreshEyeHeight（游泳时眼睛高度降低到爬行尺寸）
     //   2) isVisuallySwimming / swimAmount 渐入渐出（驱动 DrownedModel 游泳手臂/腿部覆盖动画）

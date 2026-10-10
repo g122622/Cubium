@@ -196,7 +196,7 @@ public:
      *
      * @return JSPromiseStateEnum：-1 非 Promise / 0 Pending / 1 Fulfilled / 2 Rejected。
      */
-    [[nodiscard]] int promiseState(void* promise) const override;
+    [[nodiscard]] i32 promiseState(void* promise) const override;
 
     /**
      * @brief 取 Promise settle 后的结果值（fulfilled 的值或 rejected 的 reason）。
@@ -251,16 +251,16 @@ private:
      * 此时 js_create_module_function 已为每个 AddModuleExport 声明的导出建好 var_ref，
      * 故在此遍历 m_pendingExports 调 JS_SetModuleExport 填值安全。
      */
-    static int _moduleInit(JSContext* ctx, JSModuleDef* m);
+    static i32 _moduleInit(JSContext* ctx, JSModuleDef* m);
 
     // ===== 回调trampoline存储 =====
     std::vector<ScriptMethodCallback> m_methodCallbacks;
     std::vector<ScriptGetterCallback> m_getterCallbacks;
     std::vector<ScriptSetterCallback> m_setterCallbacks;
 
-    static JSValue methodTrampoline(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic);
-    static JSValue getterTrampoline(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic);
-    static JSValue setterTrampoline(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic);
+    static JSValue methodTrampoline(JSContext* ctx, JSValueConst this_val, i32 argc, JSValueConst* argv, i32 magic);
+    static JSValue getterTrampoline(JSContext* ctx, JSValueConst this_val, i32 argc, JSValueConst* argv, i32 magic);
+    static JSValue setterTrampoline(JSContext* ctx, JSValueConst this_val, i32 argc, JSValueConst* argv, i32 magic);
 
     /**
      * @brief 从JSContext opaque中获取QuickJSBindingContext指针

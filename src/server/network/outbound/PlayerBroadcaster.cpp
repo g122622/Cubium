@@ -468,7 +468,7 @@ void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i3
 void PlayerBroadcaster::broadcastGlobalLevelEvent(
     DimensionId sourceDimensionId, i32 eventId, i32 x, i32 y, i32 z, i32 data)
 {
-    // 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+    // 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
     // 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
     //   - 同维度且距离<32格：使用真实事件位置
     //   - 同维度且距离>=32格：钳制到距玩家32格方向

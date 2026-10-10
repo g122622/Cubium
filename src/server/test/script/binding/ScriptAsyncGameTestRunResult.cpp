@@ -35,9 +35,9 @@ namespace mc::test {
 namespace {
 
 // JSPromiseStateEnum 数值（对齐 IScriptBindingContext::promiseState 返回值）：0=Pending / 1=Fulfilled / 2=Rejected。
-constexpr int kPromisePending = 0;
-constexpr int kPromiseFulfilled = 1;
-constexpr int kPromiseRejected = 2;
+constexpr i32 kPromisePending = 0;
+constexpr i32 kPromiseFulfilled = 1;
+constexpr i32 kPromiseRejected = 2;
 
 } // namespace
 
@@ -66,7 +66,7 @@ bool ScriptAsyncGameTestRunResult::isComplete() const
 
 GameTestResult ScriptAsyncGameTestRunResult::getError()
 {
-    const int state = m_bindingCtx->promiseState(m_promise);
+    const i32 state = m_bindingCtx->promiseState(m_promise);
     if (state == kPromiseFulfilled) {
         // fulfilled：JS 体执行流结束，不直接判通过——由 instance 的 succeed/超时路径接管。
         return pass();

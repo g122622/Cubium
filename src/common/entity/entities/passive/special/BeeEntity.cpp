@@ -629,7 +629,7 @@ bool BeeEntity::pathfindDirectlyTowards(const BlockPos& targetPos)
 {
     // 对应 MC 1.21.11 BeeGoToHiveGoal.pathfindDirectlyTowards()
     // 近距离（16格内）使用精确导航
-    // MC: int i = closerThan(pos, 3) ? 1 : 2; navigation.setMaxVisitedNodesMultiplier(10.0F);
+    // MC: i32 i = closerThan(pos, 3) ? 1 : 2; navigation.setMaxVisitedNodesMultiplier(10.0F);
     // 使用距离决定速度倍率：3格内用1.0，否则用2.0
     math::Vector3f beePos = position();
     f64 dx = beePos.x - (static_cast<f64>(targetPos.x) + 0.5);

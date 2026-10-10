@@ -41,7 +41,7 @@ static i64 getSeed(i32 x, i32 y, i32 z)
     //   l = l * l * 42317861L + l * 11L;
     //   return l >> 16;
     // 两处整型回绕都必须逐位复刻，而 C++ 的有符号溢出是 UB，故全程用无符号运算显式回绕：
-    // - `x * 3129871` 是 Java 的 **int** 乘法，先在 int32 内回绕，再符号扩展为 long。
+    // - `x * 3129871` 是 Java 的 **i32** 乘法，先在 int32 内回绕，再符号扩展为 long。
     //   若按 64 位乘法计算，|x| >= 687 时结果即与原版发散（正常世界坐标几乎全部越界）。
     // - `l * l * 42317861L + l * 11L` 是 Java 的 long 回绕运算。
     // - 末尾 `>> 16` 是 Java 的算术右移。
@@ -70,14 +70,14 @@ PositionalRandomFactory::PositionalRandomFactory(u64 seed)
 
 std::unique_ptr<IRandom> PositionalRandomFactory::fromHashOf(const std::string& key) const
 {
-    // Java String.hashCode()： s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]，int 回绕
+    // Java String.hashCode()： s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]，i32 回绕
     // Legacy flavor 需要它，Xoroshiro flavor 不需要（走 MD5）。
     if (m_flavor == Flavor::Legacy) {
         i32 hash = 0;
         for (const char ch : key) {
             hash = static_cast<i32>(static_cast<u32>(hash) * 31u + static_cast<u32>(static_cast<i8>(ch)));
         }
-        // Java: new LegacyRandomSource(i ^ this.seed)，i 是 int 并按符号扩展参与 long 异或
+        // Java: new LegacyRandomSource(i ^ this.seed)，i 是 i32 并按符号扩展参与 long 异或
         return std::make_unique<JavaLegacyRandom>(
             static_cast<u64>(static_cast<i64>(hash) ^ static_cast<i64>(m_seedLo)));
     }

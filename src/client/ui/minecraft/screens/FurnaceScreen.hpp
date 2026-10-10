@@ -42,7 +42,7 @@ namespace mc::client::ui::minecraft {
  * 继承 ContainerScreenBase<mc::blockentity::FurnaceContainer>，交互统一走 ContainerInteraction。
  *
  * 燃烧火焰指示器与熔炼进度箭头由 FurnaceContainer::getLitProgress/getBurnProgress 驱动，
- * 其值经 tracked int + WindowPropertyPacket 在服务端/客户端间同步（服务端每 tick 从实体刷新，
+ * 其值经 tracked i32 + WindowPropertyPacket 在服务端/客户端间同步（服务端每 tick 从实体刷新，
  * 客户端经 setTrackedInt 写入），客户端侧无需熔炉方块实体。
  */
 class FurnaceScreen : public ContainerScreenBase<mc::blockentity::FurnaceContainer> {

@@ -84,10 +84,10 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::JavaLegacyRandom& rng, std::vector<
         MC_ASSERT_RELEASE(firstNoisePtr != nullptr);
 
         // MC: WorldgenRandom(new LegacyRandomSource(seed))
-        // Java 使用 float 精度乘法: (long)(simplexnoise.getValue(...) * 9.223372E18F)
-        // 注意：Java 中 getValue() 返回 double，9.223372E18F 是 float 字面量
-        // Java 二元数值提升：float 自动拓宽为 double，乘法在 double 精度下进行
-        // 因此 C++ 必须先拓宽 float 常量为 double，再在 double 精度下做乘法
+        // Java 使用 f32 精度乘法: (long)(simplexnoise.getValue(...) * 9.223372E18F)
+        // 注意：Java 中 getValue() 返回 f64，9.223372E18F 是 f32 字面量
+        // Java 二元数值提升：f32 自动拓宽为 f64，乘法在 f64 精度下进行
+        // 因此 C++ 必须先拓宽 f32 常量为 f64，再在 f64 精度下做乘法
         const f64 derivedSeed =
             firstNoisePtr->getValue(firstNoisePtr->xOffset(), firstNoisePtr->yOffset(), firstNoisePtr->zOffset());
         const i64 seed = static_cast<i64>(derivedSeed * static_cast<f64>(9.223372E18f));

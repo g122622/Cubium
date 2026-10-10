@@ -62,7 +62,7 @@ void ClientApplicationEntry::onFlagsParsed()
     m_params.quickPlayNew = true;
 }
 
-int ClientApplicationEntry::runApplication()
+i32 ClientApplicationEntry::runApplication()
 {
     // 创建客户端实例
     ClientApplication client;

@@ -59,9 +59,9 @@ class SurfaceRule;
  * - minecraft:steep        → SteepCondition（无参）
  *
  * 锚点对象（anchor，单键）：
- * - {"absolute": <int>}
- * - {"above_bottom": <int>}
- * - {"below_top": <int>}
+ * - {"absolute": <i32>}
+ * - {"above_bottom": <i32>}
+ * - {"below_top": <i32>}
  *
  * 方块状态对象（result_state / default_block / default_fluid）：{Name: RL, Properties?: {str:str}}
  * 复用 BlockStateParser::parse。

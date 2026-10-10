@@ -166,7 +166,7 @@ public:
      * 动物不会消失
      * @param distanceToClosestPlayer 到最近玩家的距离（未使用）
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override
+    [[nodiscard]] bool canDespawn(f64 distanceToClosestPlayer) const noexcept override
     {
         (void)distanceToClosestPlayer;
         return false;

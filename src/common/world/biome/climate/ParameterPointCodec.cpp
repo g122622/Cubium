@@ -82,7 +82,7 @@ Result<Parameter> readParam(const json& obj, std::string_view field)
     return parseParameter(obj[field], field);
 }
 
-/// 读取必填 offset（裸 float，量化为 i64）
+/// 读取必填 offset（裸 f32，量化为 i64）
 Result<i64> readOffset(const json& obj)
 {
     if (!obj.contains("offset") || !obj["offset"].is_number()) {

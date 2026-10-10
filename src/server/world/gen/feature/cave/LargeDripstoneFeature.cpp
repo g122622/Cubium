@@ -79,8 +79,8 @@ public:
             return pos;
         }
         const i32 dy = m_originY - pos.y;
-        const double dx = *m_windX * dy;
-        const double dz = *m_windZ * dy;
+        const f64 dx = *m_windX * dy;
+        const f64 dz = *m_windZ * dy;
         return BlockPos(pos.x + static_cast<i32>(std::floor(dx)), pos.y, pos.z + static_cast<i32>(std::floor(dz)));
     }
 
@@ -91,8 +91,8 @@ private:
 
     i32 m_originY;
     // nullopt 表示无风（noWind）。MC 用 Vec3 windSpeed=null 表示无风。
-    std::optional<double> m_windX;
-    std::optional<double> m_windZ;
+    std::optional<f64> m_windX;
+    std::optional<f64> m_windZ;
 };
 
 // ============================================================================
@@ -101,7 +101,7 @@ private:
 
 class LargeDripstone {
 public:
-    LargeDripstone(const BlockPos& root, bool pointingUp, i32 radius, double bluntness, double scale)
+    LargeDripstone(const BlockPos& root, bool pointingUp, i32 radius, f64 bluntness, f64 scale)
         : m_root(root)
         , m_pointingUp(pointingUp)
         , m_radius(radius)
@@ -111,7 +111,7 @@ public:
 
     [[nodiscard]] bool isSuitableForWind(const LargeDripstoneConfig& config) const
     {
-        return m_radius >= config.minRadiusForWind && m_bluntness >= static_cast<double>(config.minBluntnessForWind);
+        return m_radius >= config.minRadiusForWind && m_bluntness >= static_cast<f64>(config.minBluntnessForWind);
     }
 
     [[nodiscard]] bool moveBackUntilBaseIsInsideStoneAndShrinkRadiusIfNecessary(
@@ -142,7 +142,7 @@ public:
     {
         for (i32 i = -m_radius; i <= m_radius; ++i) {
             for (i32 j = -m_radius; j <= m_radius; ++j) {
-                const f32 dist = static_cast<f32>(std::sqrt(static_cast<double>(i * i + j * j)));
+                const f32 dist = static_cast<f32>(std::sqrt(static_cast<f64>(i * i + j * j)));
                 if (!(dist > static_cast<f32>(m_radius))) {
                     i32 k = getHeightAtRadius(dist);
                     if (k > 0) {
@@ -187,8 +187,8 @@ private:
     BlockPos m_root;
     bool m_pointingUp;
     i32 m_radius;
-    double m_bluntness;
-    double m_scale;
+    f64 m_bluntness;
+    f64 m_scale;
 };
 
 // ============================================================================
@@ -278,7 +278,7 @@ bool LargeDripstoneFeature::place(
     }
 
     const i32 maxRadius =
-        static_cast<i32>(static_cast<double>(range->height()) * config.maxColumnRadiusToCaveHeightRatio);
+        static_cast<i32>(static_cast<f64>(range->height()) * config.maxColumnRadiusToCaveHeightRatio);
     const i32 clampedMax =
         math::clamp(maxRadius, config.columnRadius->getMinValue(), config.columnRadius->getMaxValue());
     const i32 radius = random.nextInt(config.columnRadius->getMinValue(), clampedMax);

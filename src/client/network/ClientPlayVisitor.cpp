@@ -137,7 +137,7 @@ namespace {
 using namespace mc::trace;
 namespace irplay = mc::network::ir::play;
 
-/// packed degrees(byte) → float 角度，对齐 1.21.11 ClientboundMoveEntity 旋转编码
+/// packed degrees(byte) → f32 角度，对齐 1.21.11 ClientboundMoveEntity 旋转编码
 constexpr f32 unpackDegrees(i8 packed) noexcept
 {
     return static_cast<f32>(packed) * (360.0f / 256.0f);

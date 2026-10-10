@@ -155,10 +155,10 @@ void* QuickJSBindingContext::createObjectWithProto(void* proto, u64 classId)
 
 void* QuickJSBindingContext::createFunction(ScriptMethodCallback callback, const char* name, i32 length)
 {
-    int magic = static_cast<int>(m_methodCallbacks.size());
+    i32 magic = static_cast<i32>(m_methodCallbacks.size());
     m_methodCallbacks.push_back(std::move(callback));
     JSValue fn =
-        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<int>(length), JS_CFUNC_generic_magic, magic);
+        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<i32>(length), JS_CFUNC_generic_magic, magic);
     return wrapValue(fn);
 }
 
@@ -578,7 +578,7 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
         };
     }
 
-    int ncRet = JS_NewClass(rt, jsClassId, &classDef);
+    i32 ncRet = JS_NewClass(rt, jsClassId, &classDef);
     return ncRet >= 0;
 }
 
@@ -596,7 +596,7 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
 
 void QuickJSBindingContext::registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length)
 {
-    JSValue fn = JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name, static_cast<int>(length));
+    JSValue fn = JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name, static_cast<i32>(length));
     JS_SetPropertyStr(m_ctx, unwrapValue(proto), name, fn);
 }
 
@@ -643,7 +643,7 @@ bool QuickJSBindingContext::exportNativeFunction(const std::string& name, void* 
     auto* module = static_cast<JSModuleDef*>(m_module);
     JS_AddModuleExport(m_ctx, module, name.c_str());
     JSValue fn =
-        JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), static_cast<int>(length));
+        JS_NewCFunction(m_ctx, reinterpret_cast<JSCFunction*>(nativeFunc), name.c_str(), static_cast<i32>(length));
     // 值暂存：SetModuleExport 推迟到 _moduleInit（import 时 var_ref 建好后再设）。
     m_pendingExports[module].emplace_back(name, fn);
     return true;
@@ -687,7 +687,7 @@ bool QuickJSBindingContext::exportNativeValue(const std::string& name, void* val
     return true;
 }
 
-int QuickJSBindingContext::_moduleInit(JSContext* ctx, JSModuleDef* m)
+i32 QuickJSBindingContext::_moduleInit(JSContext* ctx, JSModuleDef* m)
 {
     auto* bindingCtx = fromJsContext(ctx);
     if (bindingCtx == nullptr) {
@@ -753,12 +753,12 @@ void* QuickJSBindingContext::createPromise(void** resolvingFuncsOut)
     return wrapValue(promise);
 }
 
-int QuickJSBindingContext::promiseState(void* promise) const
+i32 QuickJSBindingContext::promiseState(void* promise) const
 {
     if (promise == nullptr) {
         return -1; // JSPromiseStateEnum::JS_PROMISE_INVALID（非 Promise）
     }
-    return static_cast<int>(JS_PromiseState(m_ctx, unwrapValue(promise)));
+    return static_cast<i32>(JS_PromiseState(m_ctx, unwrapValue(promise)));
 }
 
 void* QuickJSBindingContext::promiseResult(void* promise) const
@@ -797,7 +797,7 @@ QuickJSBindingContext* QuickJSBindingContext::fromJsContext(JSContext* ctx)
 }
 
 JSValue QuickJSBindingContext::methodTrampoline(
-    JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic)
+    JSContext* ctx, JSValueConst this_val, i32 argc, JSValueConst* argv, i32 magic)
 {
     auto* bindingCtx = fromJsContext(ctx);
     if (!bindingCtx) {
@@ -814,7 +814,7 @@ JSValue QuickJSBindingContext::methodTrampoline(
     void* thisHandle = new JSValue(JS_DupValue(ctx, this_val));
     std::vector<void*> argHandles;
     argHandles.reserve(argc);
-    for (int i = 0; i < argc; ++i) {
+    for (i32 i = 0; i < argc; ++i) {
         argHandles.push_back(new JSValue(JS_DupValue(ctx, argv[i])));
     }
 
@@ -839,7 +839,7 @@ JSValue QuickJSBindingContext::methodTrampoline(
 }
 
 JSValue QuickJSBindingContext::getterTrampoline(
-    JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic)
+    JSContext* ctx, JSValueConst this_val, i32 argc, JSValueConst* argv, i32 magic)
 {
     auto* bindingCtx = fromJsContext(ctx);
     if (!bindingCtx) {
@@ -866,7 +866,7 @@ JSValue QuickJSBindingContext::getterTrampoline(
 }
 
 JSValue QuickJSBindingContext::setterTrampoline(
-    JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic)
+    JSContext* ctx, JSValueConst this_val, i32 argc, JSValueConst* argv, i32 magic)
 {
     auto* bindingCtx = fromJsContext(ctx);
     if (!bindingCtx) {
@@ -895,17 +895,17 @@ JSValue QuickJSBindingContext::setterTrampoline(
 
 void QuickJSBindingContext::registerMethod(void* proto, const char* name, ScriptMethodCallback callback, i32 length)
 {
-    int magic = static_cast<int>(m_methodCallbacks.size());
+    i32 magic = static_cast<i32>(m_methodCallbacks.size());
     m_methodCallbacks.push_back(std::move(callback));
 
     JSValue fn =
-        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<int>(length), JS_CFUNC_generic_magic, magic);
+        JS_NewCFunctionMagic(m_ctx, methodTrampoline, name, static_cast<i32>(length), JS_CFUNC_generic_magic, magic);
     JS_SetPropertyStr(m_ctx, unwrapValue(proto), name, fn);
 }
 
 void QuickJSBindingContext::registerReadonlyProperty(void* proto, const char* name, ScriptGetterCallback getter)
 {
-    int magic = static_cast<int>(m_getterCallbacks.size());
+    i32 magic = static_cast<i32>(m_getterCallbacks.size());
     m_getterCallbacks.push_back(std::move(getter));
 
     JSAtom atom = JS_NewAtomLen(m_ctx, name, strlen(name));
@@ -917,10 +917,10 @@ void QuickJSBindingContext::registerReadonlyProperty(void* proto, const char* na
 void QuickJSBindingContext::registerProperty(
     void* proto, const char* name, ScriptGetterCallback getter, ScriptSetterCallback setter)
 {
-    int getterMagic = static_cast<int>(m_getterCallbacks.size());
+    i32 getterMagic = static_cast<i32>(m_getterCallbacks.size());
     m_getterCallbacks.push_back(std::move(getter));
 
-    int setterMagic = static_cast<int>(m_setterCallbacks.size());
+    i32 setterMagic = static_cast<i32>(m_setterCallbacks.size());
     m_setterCallbacks.push_back(std::move(setter));
 
     JSAtom atom = JS_NewAtomLen(m_ctx, name, strlen(name));

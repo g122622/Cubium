@@ -167,11 +167,11 @@ public:
     void setScrollCallback(ScrollCallback callback, void* userData = nullptr);
 
 private:
-    static void _framebufferSizeCallback(GLFWwindow* window, int width, int height);
-    static void _keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void _cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
-    static void _mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-    static void _scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+    static void _framebufferSizeCallback(GLFWwindow* window, i32 width, i32 height);
+    static void _keyCallback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods);
+    static void _cursorPosCallback(GLFWwindow* window, f64 xpos, f64 ypos);
+    static void _mouseButtonCallback(GLFWwindow* window, i32 button, i32 action, i32 mods);
+    static void _scrollCallback(GLFWwindow* window, f64 xoffset, f64 yoffset);
 
     GLFWwindow* m_window = nullptr;
     i32 m_width = 0;

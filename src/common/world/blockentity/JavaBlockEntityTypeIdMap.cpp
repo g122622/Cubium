@@ -125,7 +125,7 @@ Result<void> JavaBlockEntityTypeIdMap::initialize()
     // 正向（BlockEntityType → id）在 toJavaRegistryId 里即时查 m_nameToId，无需缓存。
     size_t matched = 0;
     size_t missing = 0;
-    for (int raw = static_cast<int>(BlockEntityType::Unknown) + 1; raw < static_cast<int>(BlockEntityType::Count);
+    for (i32 raw = static_cast<i32>(BlockEntityType::Unknown) + 1; raw < static_cast<i32>(BlockEntityType::Count);
         ++raw) {
         const auto type = static_cast<BlockEntityType>(raw);
         const ResourceLocation rl = blockEntityTypeToId(type);
@@ -136,7 +136,7 @@ Result<void> JavaBlockEntityTypeIdMap::initialize()
         } else {
             ++missing;
             spdlog::warn("JavaBlockEntityTypeIdMap: no vanilla registry id for block entity type {} ({})",
-                static_cast<int>(type),
+                static_cast<i32>(type),
                 key);
         }
     }
@@ -159,7 +159,7 @@ u32 JavaBlockEntityTypeIdMap::toJavaRegistryId(BlockEntityType type) const
         return it->second;
     }
     spdlog::warn(
-        "JavaBlockEntityTypeIdMap: toJavaRegistryId miss for block entity type {} ({})", static_cast<int>(type), key);
+        "JavaBlockEntityTypeIdMap: toJavaRegistryId miss for block entity type {} ({})", static_cast<i32>(type), key);
     return 0; // furnace 兜底
 }
 

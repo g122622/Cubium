@@ -547,7 +547,7 @@ f64 MinecartRenderer::calculateTntFlashScale(i32 fuse) noexcept
 bool MinecartRenderer::isTntFlashFrame(i32 fuse) noexcept
 {
     // 对齐 MC TntMinecartRenderer：
-    //   fuse > -1 && (int)fuse / 5 % 2 == 0
+    //   fuse > -1 && (i32)fuse / 5 % 2 == 0
     if (fuse <= -1) {
         return false;
     }

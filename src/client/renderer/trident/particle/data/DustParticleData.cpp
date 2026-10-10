@@ -67,7 +67,7 @@ std::unique_ptr<ParticleData> DustParticleData::clone() const
 
 glm::vec4 DustParticleData::toRGBAVector() const
 {
-    // ARGB -> RGBA float: A = (color >> 24) / 255, R = ((color >> 16) & 0xFF) / 255, etc.
+    // ARGB -> RGBA f32: A = (color >> 24) / 255, R = ((color >> 16) & 0xFF) / 255, etc.
     f32 a = static_cast<f32>((m_color >> 24) & 0xFF) / 255.0f;
     f32 r = static_cast<f32>((m_color >> 16) & 0xFF) / 255.0f;
     f32 g = static_cast<f32>((m_color >> 8) & 0xFF) / 255.0f;

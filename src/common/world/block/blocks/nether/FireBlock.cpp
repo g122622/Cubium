@@ -593,7 +593,7 @@ void FireBlock::tryCatchFire(
     }
 
     // 对齐 vanilla FireBlock.checkBurnOut（FireBlock.java:240-256）：
-    //   int i = getBurnOdds(state);                       // 烧毁概率
+    //   i32 i = getBurnOdds(state);                       // 烧毁概率
     //   if (nextInt(chance) < i) {                        // 通过烧毁判定
     //       BlockState blockstate = getBlockState(pos);   // 改方块前缓存原 state
     //       if (nextInt(age+10) < 5 && !isRainingAt) setBlock(fire);

@@ -34,7 +34,7 @@ void AnimationContext::computeHash()
     // 参考 boost::hash_combine 的实现
     auto hashCombine = [](u32 seed, f64 value) {
         // std::hash<f64> 返回 64 位，而累加器是 32 位。必须先把高 32 位折叠进来，
-        // 否则 double 位模式的高半部分被静默丢弃：0.0/0.5/1.0 这类"整齐"数值
+        // 否则 f64 位模式的高半部分被静默丢弃：0.0/0.5/1.0 这类"整齐"数值
         // （以及布尔量转换出的 0.0/1.0）其低 32 位恰好全为 0，
         // 会导致完全不同的动画状态算出同一个哈希。
         const u64 hash = static_cast<u64>(std::hash<f64>{}(value));

@@ -184,7 +184,7 @@ void BlazeEntity::updateAITasks()
     --m_nextHeightOffsetChangeTick;
     if (m_nextHeightOffsetChangeTick <= 0) {
         m_nextHeightOffsetChangeTick = HEIGHT_OFFSET_CHANGE_INTERVAL;
-        // MC 原版: this.allowedHeightOffset = (float)this.random.triangle(0.5, 6.891);
+        // MC 原版: this.allowedHeightOffset = (f32)this.random.triangle(0.5, 6.891);
         // triangle(mode, deviation) = mode + (nextFloat() - nextFloat()) * deviation
         math::IRandom& rng = getRandom();
         m_allowedHeightOffset = HEIGHT_OFFSET_MODE + (rng.nextFloat() - rng.nextFloat()) * HEIGHT_OFFSET_DEVIATION;

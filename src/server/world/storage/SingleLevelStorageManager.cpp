@@ -774,7 +774,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     }
 
     struct AsyncLoadState {
-        std::atomic<int> pending;
+        std::atomic<i32> pending;
         std::mutex mutex;
         Result<std::vector<std::shared_ptr<const SectionData>>> sectionResult{
             Error(ErrorCode::Unknown, "uninitialized")};
@@ -791,7 +791,7 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     };
 
     // pending 初始值：路径 A 必有，路径 B 仅在有 blockEntityStorage 时 +1
-    int initialPending = m_blockEntityStorage ? 2 : 1;
+    i32 initialPending = m_blockEntityStorage ? 2 : 1;
     auto state = std::make_shared<AsyncLoadState>();
     state->pending.store(initialPending, std::memory_order::relaxed);
     state->completion = std::move(completion);

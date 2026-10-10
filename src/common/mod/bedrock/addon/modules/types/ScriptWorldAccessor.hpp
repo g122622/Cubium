@@ -45,10 +45,10 @@ struct BossBarView {
  */
 struct WorldSpawnView {
     bool exists = false; // 回调是否已注册（server 层注入）。未注册时 false，脚本侧返 undefined。
-    double x = 0.0;
-    double y = 0.0;
-    double z = 0.0;
-    float angle = 0.0f; // 出生点朝向（度）
+    f64 x = 0.0;
+    f64 y = 0.0;
+    f64 z = 0.0;
+    f32 angle = 0.0f; // 出生点朝向（度）
 };
 
 /**

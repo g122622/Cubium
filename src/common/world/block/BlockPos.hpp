@@ -251,7 +251,7 @@ public:
      * @brief 将方块位置打包为 64 位整数
      *
      * 位布局：X(高26位) | Z(中26位) | Y(低12位)
-     * 对应 MC Java: BlockPos.asLong(int, int, int)
+     * 对应 MC Java: BlockPos.asLong(i32, i32, i32)
      *
      * @return 打包后的 64 位整数
      */
@@ -260,7 +260,7 @@ public:
     /**
      * @brief 将三个整数坐标打包为 64 位整数
      *
-     * 对应 MC Java: BlockPos.asLong(int x, int y, int z)
+     * 对应 MC Java: BlockPos.asLong(i32 x, i32 y, i32 z)
      */
     [[nodiscard]] static constexpr i64 asLong(i32 px, i32 py, i32 pz) noexcept
     {
@@ -452,11 +452,11 @@ public:
  * 用法示例:
  * @code
  * BlockPos::Mutable mutable;
- * for (int y = minY; y <= maxY; ++y) {
+ * for (i32 y = minY; y <= maxY; ++y) {
  *     mutable.setY(y);
- *     for (int z = minZ; z <= maxZ; ++z) {
+ *     for (i32 z = minZ; z <= maxZ; ++z) {
  *         mutable.setZ(z);
- *         for (int x = minX; x <= maxX; ++x) {
+ *         for (i32 x = minX; x <= maxX; ++x) {
  *             mutable.setX(x);
  *             // 使用 mutable 作为 BlockPos
  *         }

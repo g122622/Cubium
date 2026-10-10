@@ -172,7 +172,7 @@ ResourceLocation getResourceLocation(DamageType type)
             return ResourceLocation(entry.name);
         }
     }
-    spdlog::warn("DamageTypeNames: unknown DamageType enum value: {}", static_cast<int>(type));
+    spdlog::warn("DamageTypeNames: unknown DamageType enum value: {}", static_cast<i32>(type));
     return ResourceLocation();
 }
 

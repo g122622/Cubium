@@ -151,7 +151,7 @@ template <typename T>
 /**
  * @brief f64 版本的三线性插值，用于 NoiseInterpolator.fillingCell 模式
  *
- * MC 的 Mth.lerp3 使用 double 参数。
+ * MC 的 Mth.lerp3 使用 f64 参数。
  * 参数顺序: d0=(0,0,0), d1=(1,0,0), d2=(0,1,0), d3=(1,1,0),
  *           d4=(0,0,1), d5=(1,0,1), d6=(0,1,1), d7=(1,1,1)
  */
@@ -299,10 +299,10 @@ template <typename T>
  * @brief 正弦（复刻 MC 的 Mth.sin 查表实现）
  *
  * 原版 Mth 不是直接调 Math.sin，而是预计算一张 65536 项的表再按量化索引取用：
- *   SIN[i] = (float)Math.sin(i / 10430.378350470453)
- *   sin(v) = SIN[(int)((long)(v * 10430.378350470453) & 65535L)]
+ *   SIN[i] = (f32)Math.sin(i / 10430.378350470453)
+ *   sin(v) = SIN[(i32)((long)(v * 10430.378350470453) & 65535L)]
  *
- * 两者差异约为 float 精度量级（约 1e-7），单独看可忽略；但世界生成中它参与
+ * 两者差异约为 f32 精度量级（约 1e-7），单独看可忽略；但世界生成中它参与
  * 半径、位置等几何量的计算并被反复放大，与 std::sin 混用会让生成结果逐位分叉。
  * 凡是原版写 `Mth.sin` 的地方都必须用本函数，原版写 `Math.sin` 的地方才用 std::sin。
  *
@@ -314,7 +314,7 @@ template <typename T>
 /**
  * @brief 余弦（复刻 MC 的 Mth.cos 查表实现）
  *
- * 原版实现为 `SIN[(int)((long)(v * SCALE + 16384.0) & 65535L)]`，
+ * 原版实现为 `SIN[(i32)((long)(v * SCALE + 16384.0) & 65535L)]`，
  * 即在同一张表上偏移四分之一周期（65536 / 4 = 16384）。
  *
  * @param value 弧度值
@@ -523,7 +523,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  * 将角度从当前值向目标值接近，限制最大变化量。
  * 与 clampedRotate 不同，此函数的结果更接近目标值。
  *
- * 参考 MC 1.16.5: float approachTargetAngle(float from, float to, float max)
+ * 参考 MC 1.16.5: f32 approachTargetAngle(f32 from, f32 to, f32 max)
  * 用于 LookController 在有导航路径时限制头部角度。
  *
  * 注意：MC 原版不包装结果到 [0, 360)，结果可能为负值或大于 360。
@@ -586,7 +586,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  * 与 C++ 的 / 运算符不同，结果总是向负无穷方向取整。
  * 例如: floorDiv(-1, 40) = -1 (而 -1 / 40 = 0 在 C++ 中向零取整)
  *
- * 参考 MC 1.16.5: MathHelper.floorDiv(int, int)
+ * 参考 MC 1.16.5: MathHelper.floorDiv(i32, i32)
  *
  * @param value 被除数
  * @param divisor 除数（必须非零）
@@ -594,7 +594,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  */
 [[nodiscard]] inline constexpr i32 floorDiv(i32 value, i32 divisor) noexcept
 {
-    // MC 1.16.5: Math.floorDiv(int, int) 实现
+    // MC 1.16.5: Math.floorDiv(i32, i32) 实现
     // 向负无穷方向取整
     i32 q = value / divisor;
     i32 r = value % divisor;
@@ -621,7 +621,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  * 与 C++ 的 % 运算符不同，结果总是与除数同号。
  * 例如: floorMod(-1, 40) = 39 (而 -1 % 40 = -1)
  *
- * 参考 MC 1.16.5: MathHelper.floorMod(int, int)
+ * 参考 MC 1.16.5: MathHelper.floorMod(i32, i32)
  *
  * @param value 被除数
  * @param divisor 除数（必须为正数）
@@ -629,7 +629,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
  */
 [[nodiscard]] inline i64 floorMod(i64 value, i64 divisor) noexcept
 {
-    // MC 1.16.5: Math.floorMod(int, int) 实现
+    // MC 1.16.5: Math.floorMod(i32, i32) 实现
     // 结果与 divisor 同号
     const i64 result = value % divisor;
     return (result < 0) ? (result + divisor) : result;
@@ -651,7 +651,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 /**
  * @brief 地板模运算 (浮点版本)
  *
- * 参考 MC 1.16.5: MathHelper.func_226168_f_(double, double)
+ * 参考 MC 1.16.5: MathHelper.func_226168_f_(f64, f64)
  * 用于计算周期性动画时间
  *
  * @param value 被除数
@@ -693,7 +693,7 @@ inline void idToChunkPos(u64 id, ChunkCoord& x, ChunkCoord& z) noexcept
 // ============================================================================
 
 /**
- * @brief 坐标 → 位置种子（`Mth.getSeed(int,int,int)` 的逐位复刻）
+ * @brief 坐标 → 位置种子（`Mth.getSeed(i32,i32,i32)` 的逐位复刻）
  *
  * 原算法（1.8 起的历代版本一致）：
  * @code

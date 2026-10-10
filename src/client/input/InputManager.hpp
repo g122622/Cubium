@@ -179,11 +179,11 @@ public:
     void bindActionCallback(const std::string& action, ActionCallback callback);
 
 private:
-    static void _keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void _mouseCallback(GLFWwindow* window, double xpos, double ypos);
-    static void _mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-    static void _scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-    static void _charCallback(GLFWwindow* window, unsigned int codepoint);
+    static void _keyCallback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods);
+    static void _mouseCallback(GLFWwindow* window, f64 xpos, f64 ypos);
+    static void _mouseButtonCallback(GLFWwindow* window, i32 button, i32 action, i32 mods);
+    static void _scrollCallback(GLFWwindow* window, f64 xoffset, f64 yoffset);
+    static void _charCallback(GLFWwindow* window, u32 codepoint);
 
     void _handleKey(i32 key, i32 action, i32 mods);
     void _handleMouseButton(i32 button, i32 action, i32 mods);

@@ -112,7 +112,7 @@ Result<std::vector<u8>> gzipDecompress(const std::vector<u8>& compressed)
     result.reserve(compressed.size() * 4);
 
     u8 buffer[8192];
-    int ret = Z_OK;
+    i32 ret = Z_OK;
     do {
         stream.next_out = buffer;
         stream.avail_out = sizeof(buffer);
@@ -152,7 +152,7 @@ Result<std::vector<u8>> gzipCompress(const std::vector<u8>& data)
     result.reserve(data.size());
 
     u8 buffer[8192];
-    int ret = Z_OK;
+    i32 ret = Z_OK;
     do {
         stream.next_out = buffer;
         stream.avail_out = sizeof(buffer);

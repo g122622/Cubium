@@ -286,7 +286,7 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
             // 失败原因聚合统计：原版数据包配方量大，逐条打印会污染日志，按错误信息归并计数，
             // 仅打印 Top-N 摘要 + 总数，便于定位批量失败根因（如某类型未实现、某物品未注册等）。
             if (result.failedCount > 0 && !result.errors.empty()) {
-                std::map<std::string, int> errorCounts;
+                std::map<std::string, i32> errorCounts;
                 for (const auto& err : result.errors) {
                     // 错误格式为 "<resource_path>: <message>"。去掉资源路径前缀（无诊断价值），
                     // 保留完整 message（含具体物品 ID 等），使每类失败可精确定位。
@@ -297,8 +297,8 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
 
                 spdlog::warn(
                     "Recipe load failures by reason ({} unique, {} total):", errorCounts.size(), result.failedCount);
-                int shown = 0;
-                constexpr int TOP_N = 20;
+                i32 shown = 0;
+                constexpr i32 TOP_N = 20;
                 for (const auto& [reason, count] : errorCounts) {
                     if (shown >= TOP_N) {
                         spdlog::warn("  ... and {} more unique reasons", errorCounts.size() - shown);

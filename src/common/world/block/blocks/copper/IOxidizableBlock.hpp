@@ -74,7 +74,7 @@ public:
      * 未氧化（Unaffected）返回 0.75，其余等级返回 1.0。
      * 这影响氧化速度——未氧化的铜氧化得更慢。
      */
-    [[nodiscard]] virtual float getOxidationChanceModifier() const
+    [[nodiscard]] virtual f32 getOxidationChanceModifier() const
     {
         return getOxidationLevel() == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
     }

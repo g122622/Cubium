@@ -110,9 +110,9 @@ Result<void> TextureAtlasBuilder::addTexture(IResourcePack& resourcePack, const 
     auto& data = readResult.value();
 
     // 解析PNG
-    int width, height, channels;
+    i32 width, height, channels;
     stbi_uc* pixels = stbi_load_from_memory(data.data(),
-        static_cast<int>(data.size()),
+        static_cast<i32>(data.size()),
         &width,
         &height,
         &channels,

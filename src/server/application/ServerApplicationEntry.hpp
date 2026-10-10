@@ -64,7 +64,7 @@ protected:
 
     void onFlagsParsed() override;
     void prepareRun() override;
-    [[nodiscard]] int runApplication() override;
+    [[nodiscard]] i32 runApplication() override;
     void onErrorCleanup() override;
 
 private:
@@ -91,7 +91,7 @@ private:
     static std::atomic<bool> s_shouldExit;
 
     /// 信号处理函数（SIGINT/SIGTERM）。
-    static void _signalHandler(int signal);
+    static void _signalHandler(i32 signal);
 
     /// 接入 GameTest 框架到生产服务器（/gametest 命令 + GameTestTicker 驱动 + JS gametest 模块）。
     /// 仅 minecraft-server exe 调用，须在 server.initialize 成功后调用。

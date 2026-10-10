@@ -37,7 +37,7 @@ Path PathFinder::findPath(i32 startX,
     i32 targetY,
     i32 targetZ,
     i32 maxDistance,
-    float visitedNodesMultiplier)
+    f32 visitedNodesMultiplier)
 {
     // 清除上次搜索的缓存
     if (m_nodeProcessor) {
@@ -77,8 +77,8 @@ Path PathFinder::findPath(i32 startX,
     m_openSet.insert(startNode);
 
     // 计算实际最大搜索节点数：基础值 * 倍率
-    // 对应 MC Java 的 int j = (int)(this.maxVisitedNodes * maxVisitedNodesMultiplier)
-    i32 effectiveMaxNodes = static_cast<i32>(static_cast<float>(m_maxNodes) * visitedNodesMultiplier);
+    // 对应 MC Java 的 i32 j = (i32)(this.maxVisitedNodes * maxVisitedNodesMultiplier)
+    i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
     if (effectiveMaxNodes < 1) {
         effectiveMaxNodes = 1;
     }
@@ -171,7 +171,7 @@ Path PathFinder::findPath(i32 startX,
 }
 
 Path PathFinder::findPathToRange(
-    i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range, float visitedNodesMultiplier)
+    i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range, f32 visitedNodesMultiplier)
 {
     // 与基本寻路相同，但到达范围内任意点即成功
     if (m_nodeProcessor) {
@@ -206,7 +206,7 @@ Path PathFinder::findPathToRange(
     m_openSet.insert(startNode);
 
     // 计算实际最大搜索节点数：基础值 * 倍率
-    i32 effectiveMaxNodes = static_cast<i32>(static_cast<float>(m_maxNodes) * visitedNodesMultiplier);
+    i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
     if (effectiveMaxNodes < 1) {
         effectiveMaxNodes = 1;
     }
@@ -277,7 +277,7 @@ Path PathFinder::findPathToClosest(i32 startX,
     i32 startZ,
     const std::vector<TargetPoint>& targets,
     i32 maxDistance,
-    float visitedNodesMultiplier)
+    f32 visitedNodesMultiplier)
 {
     // 多目标寻路 - 对每个目标点设置标志，搜索时只需到达任意一个目标
 
@@ -328,7 +328,7 @@ Path PathFinder::findPathToClosest(i32 startX,
     m_openSet.insert(startNode);
 
     // 计算实际最大搜索节点数：基础值 * 倍率
-    i32 effectiveMaxNodes = static_cast<i32>(static_cast<float>(m_maxNodes) * visitedNodesMultiplier);
+    i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
     if (effectiveMaxNodes < 1) {
         effectiveMaxNodes = 1;
     }

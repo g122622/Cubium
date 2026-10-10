@@ -39,13 +39,13 @@
  * }
  *
  * // 带键值对参数
- * void processChunk(int x, int z) {
+ * void processChunk(i32 x, i32 z) {
  *     MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "ProcessChunk",
  *                           "x", x, "z", z);
  * }
  *
  * // 计数器
- * void updateFPS(double fps) {
+ * void updateFPS(f64 fps) {
  *     MC_TRACE_COUNTER(TraceEvents.Rendering.Frame, "FPS", static_cast<int64_t>(fps));
  * }
  *
@@ -69,7 +69,7 @@
  *   TraceCategories.hpp 的 PERFETTO_DEFINE_CATEGORIES 中注册，否则编译错误
  *   （此约束仅在 Perfetto 后端启用时生效）
  * - Tracy 侧 BEGIN/END 降级为 message 边界标记（tracy 无独立 begin/end 概念），
- *   计数器用 TracyPlot（double，>2^53 大值会丢精度）
+ *   计数器用 TracyPlot（f64，>2^53 大值会丢精度）
  * - 双轨宏无变量名冲突：perfetto RAII 变量是 scoped_event<N>/ScopedEvent<N>
  *   （__LINE__ 后缀）；tracy 侧的 MC_TRACY_SCOPED_ZONE 也用 __LINE__ 后缀变量名
  *   （绕开 ZoneScopedN 的固定名 ___tracy_scoped_zone），故同一作用域多个
@@ -177,7 +177,7 @@
 
 #define MC_TRACE_COUNTER(category, name, value) \
     TRACE_COUNTER(category, name, value);       \
-    TracyPlot(name, static_cast<double>(value))
+    TracyPlot(name, static_cast<::mc::f64>(value))
 
 // BEGIN/END 用得极少（仅 WeatherRenderer 5 处），Tracy 侧降级为 message 边界标记
 #define MC_TRACE_EVENT_BEGIN(category, name, ...)                 \
@@ -202,13 +202,13 @@
 
 // === 仅 Tracy ===
 // Tracy 的 zone 用 name 字面量做标题；Perfetto 专有的 category/键值对参数被忽略。
-// 计数器走 TracyPlot（double）；BEGIN/END 降级为 message 边界标记。
+// 计数器走 TracyPlot（f64）；BEGIN/END 降级为 message 边界标记。
 
 #define MC_TRACE_SCOPED_EVENT(category, name, ...) MC_TRACY_SCOPED_ZONE(name)
 
 #define MC_TRACE_INSTANT_EVENT(category, name, ...) TracyMessageL(name)
 
-#define MC_TRACE_COUNTER(category, name, value) TracyPlot(name, static_cast<double>(value))
+#define MC_TRACE_COUNTER(category, name, value) TracyPlot(name, static_cast<::mc::f64>(value))
 
 #define MC_TRACE_EVENT_BEGIN(category, name, ...) TracyMessageL(name)
 

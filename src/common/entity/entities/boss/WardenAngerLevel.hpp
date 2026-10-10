@@ -82,7 +82,7 @@ enum class WardenAngerLevel : u8 {
  * @param anger 当前怒气值（≥ 0）
  * @return 对应的怒气等级（anger < 40 → Calmed, < 80 → Agitated, 否则 Angry）
  *
- * 与 MC 1.21.11 AngerLevel.byAnger(int) 行为一致：从高到低匹配，
+ * 与 MC 1.21.11 AngerLevel.byAnger(i32) 行为一致：从高到低匹配，
  * 优先返回满足 anger ≥ minimumAnger 的最高等级。
  */
 [[nodiscard]] inline constexpr WardenAngerLevel wardenAngerLevelByAnger(i32 anger) noexcept

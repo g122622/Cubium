@@ -83,11 +83,11 @@ WallBlock::WallBlock(const BlockProperties& properties)
         m_shapes[i] = CollisionShape::empty();
     }
 
-    for (int up = 0; up <= 1; ++up) {
-        for (int north = 0; north <= 2; ++north) {
-            for (int east = 0; east <= 2; ++east) {
-                for (int south = 0; south <= 2; ++south) {
-                    for (int west = 0; west <= 2; ++west) {
+    for (i32 up = 0; up <= 1; ++up) {
+        for (i32 north = 0; north <= 2; ++north) {
+            for (i32 east = 0; east <= 2; ++east) {
+                for (i32 south = 0; south <= 2; ++south) {
+                    for (i32 west = 0; west <= 2; ++west) {
                         size_t idx = _getShapeIndex(up != 0,
                             static_cast<BlockStateProperties::WallHeight>(north),
                             static_cast<BlockStateProperties::WallHeight>(east),

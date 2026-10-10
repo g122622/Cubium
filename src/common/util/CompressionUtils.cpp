@@ -45,7 +45,7 @@ std::vector<u8> decompressGzip(const std::vector<u8>& compressed)
         return decompressed;
     }
 
-    int result = Z_OK;
+    i32 result = Z_OK;
     while (result == Z_OK) {
         stream.next_out = buffer.data();
         stream.avail_out = static_cast<uInt>(buffer.size());
@@ -75,7 +75,7 @@ std::vector<u8> compressGzip(const std::vector<u8>& data)
         return compressed;
     }
 
-    int result = Z_OK;
+    i32 result = Z_OK;
     while (result == Z_OK) {
         stream.next_out = buffer.data();
         stream.avail_out = static_cast<uInt>(buffer.size());
@@ -105,7 +105,7 @@ std::vector<u8> decompressZlib(const std::vector<u8>& compressed)
         return decompressed;
     }
 
-    int result = Z_OK;
+    i32 result = Z_OK;
     while (result == Z_OK) {
         stream.next_out = buffer.data();
         stream.avail_out = static_cast<uInt>(buffer.size());
@@ -135,7 +135,7 @@ std::vector<u8> compressZlib(const std::vector<u8>& data)
         return compressed;
     }
 
-    int result = Z_OK;
+    i32 result = Z_OK;
     while (result == Z_OK) {
         stream.next_out = buffer.data();
         stream.avail_out = static_cast<uInt>(buffer.size());

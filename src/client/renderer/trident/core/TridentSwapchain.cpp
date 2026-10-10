@@ -120,7 +120,7 @@ Result<void> TridentSwapchain::initialize(TridentContext* context, const SwapCha
         m_extent.width,
         m_extent.height,
         m_images.size(),
-        static_cast<int>(m_imageFormat));
+        static_cast<i32>(m_imageFormat));
 
     return {};
 }

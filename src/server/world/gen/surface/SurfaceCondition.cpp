@@ -84,7 +84,7 @@ bool YCondition::compute(const SurfaceRuleContext& ctx) const
 
 bool WaterCondition::compute(const SurfaceRuleContext& ctx) const
 {
-    if (ctx.waterHeight() == std::numeric_limits<int>::min()) {
+    if (ctx.waterHeight() == std::numeric_limits<i32>::min()) {
         return true;
     }
     const i32 y = ctx.blockY() + (m_addStoneDepth ? ctx.stoneDepthAbove() : 0);

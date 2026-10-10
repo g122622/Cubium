@@ -193,7 +193,7 @@ constexpr const char* CLOUD_EFFECTS = "CustomPotionEffects";
 // ========== EvokerFangsEntity 键 ==========
 // 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Warmup" 和 "Owner"
 // Owner UUID 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储
-// 注意：MC 1.21.11 原版使用 int[4] 格式存储 "Owner" 键，
+// 注意：MC 1.21.11 原版使用 i32[4] 格式存储 "Owner" 键，
 // 但为与项目现有模式（AreaEffectCloudEntity）保持一致，采用 OwnerUUIDMost/OwnerUUIDLeast 格式
 
 constexpr const char* WARMUP = "Warmup";
@@ -211,7 +211,7 @@ constexpr const char* SHOT_AT_ANGLE = "ShotAtAngle";    ///< 是否从弩射出�
 
 // ========== Projectile 族通用键 ==========
 // 参考 MC 1.21.11 Projectile.addAdditionalSaveData()/readAdditionalSaveData()。
-// owner UUID 格式说明：vanilla 1.21.11 已改用 EntityReference 单一 "Owner" 键（int[4] 或 UUID）。
+// owner UUID 格式说明：vanilla 1.21.11 已改用 EntityReference 单一 "Owner" 键（i32[4] 或 UUID）。
 // 项目沿用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式（与既有 EvokerFangs/AreaEffectCloud 一致，
 // 零迁移成本），此为项目既有存档约定，非 vanilla 原版格式。
 
@@ -228,7 +228,7 @@ constexpr const char* ARROW_LIFE = "life";                ///< 在地里存活 t
 constexpr const char* ARROW_SHAKE = "shake";              ///< 抖动时间（byte）
 constexpr const char* ARROW_IN_GROUND = "inGround";       ///< 是否插在方块中（bool）
 constexpr const char* ARROW_PICKUP = "pickup";            ///< 拾取状态（byte：0/1/2）
-constexpr const char* ARROW_DAMAGE = "damage";            ///< 基础伤害（float）
+constexpr const char* ARROW_DAMAGE = "damage";            ///< 基础伤害（f32）
 constexpr const char* ARROW_CRIT = "crit";                ///< 是否暴击（bool）
 constexpr const char* ARROW_PIERCE_LEVEL = "PierceLevel"; ///< 穿透等级（byte）
 constexpr const char* ARROW_ITEM = "item";                ///< 拾取物品堆（compound，ItemStack::toNbt）
@@ -253,17 +253,17 @@ constexpr const char* WITHER_SKULL_DANGEROUS = "dangerous";        ///< 凋灵�
 // ========== DamagingProjectile 键 ==========
 // 参考 MC 1.21.11 AbstractHurtingProjectile.addAdditionalSaveData()(acceleration_power)。
 
-constexpr const char* ACCELERATION_POWER = "acceleration_power"; ///< 加速力（double，vanilla 默认 0.1）
+constexpr const char* ACCELERATION_POWER = "acceleration_power"; ///< 加速力（f64，vanilla 默认 0.1）
 
 // ========== ShulkerBullet 键 ==========
 // 参考 MC 1.21.11 ShulkerBullet.addAdditionalSaveData()/readAdditionalSaveData()。
 
 constexpr const char* SHULKER_BULLET_TARGET = "Target"; ///< 目标实体 UUID
 constexpr const char* SHULKER_BULLET_DIR = "Dir";       ///< 当前移动方向（byte，Direction legacy id）
-constexpr const char* SHULKER_BULLET_STEPS = "Steps";   ///< 飞行步数（int）
-constexpr const char* SHULKER_BULLET_TXD = "TXD";       ///< 目标增量 X（double）
-constexpr const char* SHULKER_BULLET_TYD = "TYD";       ///< 目标增量 Y（double）
-constexpr const char* SHULKER_BULLET_TZD = "TZD";       ///< 目标增量 Z（double）
+constexpr const char* SHULKER_BULLET_STEPS = "Steps";   ///< 飞行步数（i32）
+constexpr const char* SHULKER_BULLET_TXD = "TXD";       ///< 目标增量 X（f64）
+constexpr const char* SHULKER_BULLET_TYD = "TYD";       ///< 目标增量 Y（f64）
+constexpr const char* SHULKER_BULLET_TZD = "TZD";       ///< 目标增量 Z（f64）
 
 // ========== EyeOfEnder 键 ==========
 // 参考 MC 1.21.11 EyeOfEnder.addAdditionalSaveData()(Item，不调 super 故不存 Owner)。
@@ -306,7 +306,7 @@ constexpr const char* CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME = "current_impuls
 constexpr const char* ENDER_ITEMS = "EnderItems";
 constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
 constexpr const char* LAST_DEATH_LOCATION_DIMENSION = "dimension"; ///< LastDeathLocation 子键：维度名称
-constexpr const char* LAST_DEATH_LOCATION_POS = "pos"; ///< LastDeathLocation 子键：方块位置（int 列表 [x, y, z]）
+constexpr const char* LAST_DEATH_LOCATION_POS = "pos"; ///< LastDeathLocation 子键：方块位置（i32 列表 [x, y, z]）
 constexpr const char* SLEEP_TIMER = "SleepTimer";
 
 // ========== SkeletonEntity 键 ==========

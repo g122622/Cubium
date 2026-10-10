@@ -130,9 +130,9 @@ namespace nbt {
  * @return 读取的字符
  * @throws std::runtime_error 如果到达EOF
  */
-inline int cheof(std::istream& input)
+inline i32 cheof(std::istream& input)
 {
-    int value = input.get();
+    i32 value = input.get();
     if (value == EOF) throw std::runtime_error("Unexpected EOF while reading NBT data");
     return value;
 }
@@ -373,10 +373,10 @@ template <>
 std::int64_t load_text<std::int64_t>(std::istream& input);
 
 template <>
-float load_text<float>(std::istream& input);
+f32 load_text<f32>(std::istream& input);
 
 template <>
-double load_text<double>(std::istream& input);
+f64 load_text<f64>(std::istream& input);
 
 /**
  * @brief 根据上下文格式从输入流加载数值
@@ -431,7 +431,7 @@ void scan_sequence_text(std::istream& input, F element_action)
 {
     for (;;) {
         skip_space(input);
-        int nextChar = cheof(input);
+        i32 nextChar = cheof(input);
         char c = static_cast<char>(nextChar);
         if (c == ']') {
             break;
@@ -439,7 +439,7 @@ void scan_sequence_text(std::istream& input, F element_action)
         input.putback(c);
         element_action();
         skip_space(input);
-        int next = cheof(input);
+        i32 next = cheof(input);
         switch (next) {
             case ',':
                 continue;
@@ -594,10 +594,10 @@ template <>
 void dump_text<std::int64_t>(std::ostream& output, std::int64_t number);
 
 template <>
-void dump_text<float>(std::ostream& output, float number);
+void dump_text<f32>(std::ostream& output, f32 number);
 
 template <>
-void dump_text<double>(std::ostream& output, double number);
+void dump_text<f64>(std::ostream& output, f64 number);
 
 /**
  * @brief 根据上下文格式写入数值
@@ -832,8 +832,8 @@ NUMERIC_TAG(byte_tag, TagId::Byte, std::int8_t)
 NUMERIC_TAG(short_tag, TagId::Short, std::int16_t)
 NUMERIC_TAG(int_tag, TagId::Int, std::int32_t)
 NUMERIC_TAG(long_tag, TagId::Long, std::int64_t)
-NUMERIC_TAG(float_tag, TagId::Float, float)
-NUMERIC_TAG(double_tag, TagId::Double, double)
+NUMERIC_TAG(float_tag, TagId::Float, f32)
+NUMERIC_TAG(double_tag, TagId::Double, f64)
 
 #undef NUMERIC_TAG
 

@@ -95,7 +95,7 @@ i32 ApplyBonusFunction::calculateOreDrops(i32 baseCount, i32 fortuneLevel, math:
 {
     // MC 1.16.5 OreDropsFormula:
     // if (fortune > 0) {
-    //     int i = random.nextInt(fortune + 2) - 1;
+    //     i32 i = random.nextInt(fortune + 2) - 1;
     //     if (i < 0) i = 0;
     //     return baseCount * (i + 1);
     // } else {
@@ -134,7 +134,7 @@ i32 ApplyBonusFunction::calculateBinomialBonus(
     i32 baseCount, i32 fortuneLevel, i32 extra, f32 probability, math::IRandom& random)
 {
     // MC 1.16.5 BinomialWithBonusCountFormula:
-    // for (int i = 0; i < fortune + extra; ++i) {
+    // for (i32 i = 0; i < fortune + extra; ++i) {
     //     if (random.nextFloat() < probability) {
     //         ++count;
     //     }

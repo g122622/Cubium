@@ -122,7 +122,7 @@ void BrushItem::onUseTick(ItemStack& stack, IWorld& world, LivingEntity& entity,
 
     // 计算当前是否为刷扫触发tick
     // 对齐 MC 1.21.11 BrushItem.onUseTick：
-    //   int i = getUseDuration - count + 1;  // count 即剩余时间，从 useDuration 递减
+    //   i32 i = getUseDuration - count + 1;  // count 即剩余时间，从 useDuration 递减
     //   boolean flag = i % 10 == 5;
     // 其中 i 即为本项目的 elapsedTicks（1-based）。
     // 当 (elapsedTicks % ANIMATION_DURATION == BRUSH_TICK_IN_CYCLE + 1) 时触发刷扫
@@ -217,7 +217,7 @@ void BrushItem::spawnDustParticles(IWorld& world,
     constexpr f64 ALONG_SIDE_DELTA = 3.0; // MC 源码中 d0 = 3.0
     const i32 directionSign = (arm == HandSide::Right) ? 1 : -1;
 
-    // MC: int j = random.nextInt(7, 12);  // [7, 12)
+    // MC: i32 j = random.nextInt(7, 12);  // [7, 12)
     // Cubium nextInt(min, max) 是 [min, max] 闭区间，因此用 nextInt(7, 11) 等价 [7, 11] = [7, 12)
     math::IRandom& rng = world.getRandom();
     const i32 particleCount = rng.nextInt(7, 11);

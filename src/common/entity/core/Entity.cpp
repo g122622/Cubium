@@ -1007,7 +1007,7 @@ void Entity::updateEnvironmentState()
                 }
 
                 // 计算流体高度
-                // MC: (float)y + fluidState.getActualHeight()
+                // MC: (f32)y + fluidState.getActualHeight()
                 f32 fluidTopY = static_cast<f32>(y) + fluidState->getHeight();
 
                 // 检查流体是否在碰撞箱内
@@ -1084,8 +1084,8 @@ f32 Entity::getBrightness() const
 {
     // 对齐 vanilla 1.21.11 Entity.getLightLevelDependentMagicValue()（Entity.java:1643）。
     // vanilla 公式（LevelReader.java:118）：
-    //   float f  = getMaxLocalRawBrightness(pos) / 15.0F;   // getMaxLocalRawBrightness 含 getSkyDarken() 时间衰减
-    //   float f1 = f / (4.0F - 3.0F * f);                   // 非线性 gamma 曲线
+    //   f32 f  = getMaxLocalRawBrightness(pos) / 15.0F;   // getMaxLocalRawBrightness 含 getSkyDarken() 时间衰减
+    //   f32 f1 = f / (4.0F - 3.0F * f);                   // 非线性 gamma 曲线
     //   return Mth.lerp(dimensionType.ambientLight(), f1, 1.0F);
     // 此前实现走 IWorld::getBrightness(pos) = getLightSubtracted(pos,0)/15——skyDarkening 硬传 0 无时间衰减，
     // 夜晚露天（skyLight=15）仍返回 1.0，导致 SpiderTargetGoal(brightness<0.5F) 永不触发、蜘蛛夜晚不攻击。
@@ -1156,9 +1156,9 @@ void Entity::_checkFallDamageResettingBlocks(const Vector3& actualMovement)
 {
     // 对齐 vanilla Entity.move（Entity.java:718-725）的 FALLDAMAGE_RESETTING 射线检测。
     // vanilla 逻辑：
-    //   double d0 = vec3.lengthSqr();  // vec3 = collide() 碰撞后实际位移
+    //   f64 d0 = vec3.lengthSqr();  // vec3 = collide() 碰撞后实际位移
     //   if ((d0 > 1.0E-7 || p_19974_.lengthSqr() - d0 < 1.0E-7) && this.fallDistance != 0.0 && d0 >= 1.0) {
-    //       double d1 = Math.min(vec3.length(), 8.0);
+    //       f64 d1 = Math.min(vec3.length(), 8.0);
     //       Vec3 vec32 = this.position().add(vec3.normalize().scale(d1));
     //       BlockHitResult blockhitresult = this.level().clip(new ClipContext(
     //           this.position(), vec32, ClipContext.Block.FALLDAMAGE_RESETTING, ClipContext.Fluid.WATER, this));

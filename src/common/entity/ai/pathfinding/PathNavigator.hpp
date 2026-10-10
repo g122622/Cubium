@@ -173,7 +173,7 @@ public:
      *
      * @param multiplier 倍率，必须为正数
      */
-    void setMaxVisitedNodesMultiplier(float multiplier) noexcept { m_maxVisitedNodesMultiplier = multiplier; }
+    void setMaxVisitedNodesMultiplier(f32 multiplier) noexcept { m_maxVisitedNodesMultiplier = multiplier; }
 
     /**
      * @brief 重置已访问节点数倍率为默认值（1.0F）
@@ -187,7 +187,7 @@ public:
     /**
      * @brief 获取已访问节点数倍率
      */
-    [[nodiscard]] float getMaxVisitedNodesMultiplier() const noexcept { return m_maxVisitedNodesMultiplier; }
+    [[nodiscard]] f32 getMaxVisitedNodesMultiplier() const noexcept { return m_maxVisitedNodesMultiplier; }
 
     /**
      * @brief 设置重试间隔
@@ -276,7 +276,7 @@ protected:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
     i32 m_maxDistance = 100;
-    float m_maxVisitedNodesMultiplier = 1.0f; ///< 已访问节点数倍率，对应 MC Java 的 maxVisitedNodesMultiplier
+    f32 m_maxVisitedNodesMultiplier = 1.0f; ///< 已访问节点数倍率，对应 MC Java 的 maxVisitedNodesMultiplier
     i32 m_retryInterval = 20;
     i32 m_retryTimer = 0;
     i32 m_ticksSinceLastPath = 0;

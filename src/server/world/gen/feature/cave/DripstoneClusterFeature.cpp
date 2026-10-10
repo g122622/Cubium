@@ -159,7 +159,7 @@ void replaceBlocksWithDripstoneBlocks(IWorld& world, const BlockPos& pos, i32 la
     }
 }
 
-[[nodiscard]] double getChanceOfStalagmiteOrStalactite(
+[[nodiscard]] f64 getChanceOfStalagmiteOrStalactite(
     i32 radiusX, i32 radiusZ, i32 dx, i32 dz, const DripstoneClusterConfig& config)
 {
     const i32 i = radiusX - std::abs(dx);
@@ -208,7 +208,7 @@ bool DripstoneClusterFeature::place(
 
     for (i32 dx = -radiusX; dx <= radiusX; ++dx) {
         for (i32 dz = -radiusZ; dz <= radiusZ; ++dz) {
-            const double chance = getChanceOfStalagmiteOrStalactite(radiusX, radiusZ, dx, dz, config);
+            const f64 chance = getChanceOfStalagmiteOrStalactite(radiusX, radiusZ, dx, dz, config);
             const BlockPos colPos = BlockPos(pos.x + dx, pos.y, pos.z + dz);
             placeColumn(world, random, colPos, dx, dz, wetness, chance, height, density, config);
         }
@@ -222,7 +222,7 @@ void DripstoneClusterFeature::placeColumn(IWorld& world,
     i32 dx,
     i32 dz,
     f32 wetness,
-    double chance,
+    f64 chance,
     i32 maxHeight,
     f32 density,
     const DripstoneClusterConfig& config)

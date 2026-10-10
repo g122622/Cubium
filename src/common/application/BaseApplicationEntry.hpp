@@ -77,7 +77,7 @@ public:
      * @brief 进程入口模板方法。
      * @return 进程退出码（0 正常，非 0 失败）。main 直接 return 此值。
      */
-    int run(int argc, char* argv[]);
+    i32 run(i32 argc, char* argv[]);
 
 protected:
     // —— profiler 生命周期 hook（子类覆盖以提供差异）——
@@ -142,7 +142,7 @@ protected:
      * @brief 核心业务运行：子类创建并驱动自己的 application 对象，返回退出码。
      *        失败返回非 0，正常返回 0。
      */
-    [[nodiscard]] virtual int runApplication() = 0;
+    [[nodiscard]] virtual i32 runApplication() = 0;
 
     /**
      * @brief 异常/错误路径的额外清理。默认空实现。

@@ -116,12 +116,12 @@ f64 Xoroshiro128ppRandom::nextDouble()
     // nextBits(53) = nextLong() >>> (64 - 53) = nextLong() >>> 11，结果落在 [0, 2^53)。
     // Java 的 >>> 是无符号右移，C++ 需要先转 u64 再右移。
     //
-    // 【字面量是 float 后缀，不是 double】原版常量写作 `1.110223E-16F`（float），其值恰好
-    // 等于 2^-53（2 的整数次幂在 float 里可精确表示），但 Java 的 `long * float` 会先做
-    // 二元数值提升——long 拓宽为 **float**（丢 29 位有效位）再乘，结果只有 24 位精度，
-    // 最后才拓宽为 double 返回。例：k = 2^53-1 时 `k * (float)2^-53` 得 1.0，而
-    // `(double)k * 2^-53` 得 0.9999999999999999——差 1 个 double ULP，足以让依赖严格
-    // 不等号的密度函数分叉。故必须复刻 float 中间精度：先 (f32)val，再乘 f32 常量。
+    // 【字面量是 f32 后缀，不是 f64】原版常量写作 `1.110223E-16F`（f32），其值恰好
+    // 等于 2^-53（2 的整数次幂在 f32 里可精确表示），但 Java 的 `long * f32` 会先做
+    // 二元数值提升——long 拓宽为 **f32**（丢 29 位有效位）再乘，结果只有 24 位精度，
+    // 最后才拓宽为 f64 返回。例：k = 2^53-1 时 `k * (f32)2^-53` 得 1.0，而
+    // `(f64)k * 2^-53` 得 0.9999999999999999——差 1 个 f64 ULP，足以让依赖严格
+    // 不等号的密度函数分叉。故必须复刻 f32 中间精度：先 (f32)val，再乘 f32 常量。
     const u64 val = static_cast<u64>(nextLong()) >> 11;
     return static_cast<f64>(static_cast<f32>(val) * 1.1102230246251565E-16f);
 }
@@ -129,8 +129,8 @@ f64 Xoroshiro128ppRandom::nextDouble()
 f32 Xoroshiro128ppRandom::nextFloat()
 {
     // MC XoroshiroRandomSource.nextFloat():
-    //   return (float)this.next(24) * 5.9604645E-8F;
-    // next(24) = (int)(nextLong() >>> 40)，取高24位
+    //   return (f32)this.next(24) * 5.9604645E-8F;
+    // next(24) = (i32)(nextLong() >>> 40)，取高24位
     // Java 的 >>> 是无符号右移
     const i32 bits = static_cast<i32>(static_cast<u64>(nextLong()) >> 40);
     return static_cast<f32>(bits) * 5.9604645E-8f;
@@ -138,29 +138,29 @@ f32 Xoroshiro128ppRandom::nextFloat()
 
 i32 Xoroshiro128ppRandom::nextInt()
 {
-    // MC XoroshiroRandomSource.nextInt(): return (int) this.randomNumberGenerator.nextLong();
+    // MC XoroshiroRandomSource.nextInt(): return (i32) this.randomNumberGenerator.nextLong();
     // 取 nextLong() 的低 32 位（nextLong 即 nextU64 的位模式）。
     return static_cast<i32>(static_cast<u32>(nextU64()));
 }
 
 i32 Xoroshiro128ppRandom::nextInt(i32 bound)
 {
-    // MC XoroshiroRandomSource.nextInt(int) — Lemire nearly-divisionless algorithm
+    // MC XoroshiroRandomSource.nextInt(i32) — Lemire nearly-divisionless algorithm
     // Java 源码 (XoroshiroRandomSource.java):
     //   long i = Integer.toUnsignedLong(this.nextInt());
     //   long j = i * p_190118_;
     //   long k = j & 4294967295L;
     //   if (k < p_190118_) {
-    //       for (int l = Integer.remainderUnsigned(~p_190118_ + 1, p_190118_); k < l; k = j & 4294967295L) {
+    //       for (i32 l = Integer.remainderUnsigned(~p_190118_ + 1, p_190118_); k < l; k = j & 4294967295L) {
     //           i = Integer.toUnsignedLong(this.nextInt());
     //           j = i * p_190118_;
     //       }
     //   }
-    //   return (int)(j >> 32);
+    //   return (i32)(j >> 32);
     MC_ASSERT_RELEASE(bound > 0);
 
-    // this.nextInt() = (int)nextLong() — 低32位作为有符号int
-    // Integer.toUnsignedLong: 将 int 视为无符号 32 位转为 long
+    // this.nextInt() = (i32)nextLong() — 低32位作为有符号int
+    // Integer.toUnsignedLong: 将 i32 视为无符号 32 位转为 long
     const u64 i = static_cast<u64>(static_cast<u32>(nextLong())); // nextInt() as unsigned
     u64 j = i * static_cast<u64>(bound);
     u64 k = j & 0xFFFFFFFFULL; // 低 32 位
@@ -192,7 +192,7 @@ void Xoroshiro128ppRandom::skip(u64 /* count */)
     u64 s1 = 0;
 
     for (size_t i = 0; i < sizeof(JUMP) / sizeof(JUMP[0]); ++i) {
-        for (int b = 0; b < 64; ++b) {
+        for (i32 b = 0; b < 64; ++b) {
             if (JUMP[i] & (1ULL << b)) {
                 s0 ^= m_state[0];
                 s1 ^= m_state[1];

@@ -77,7 +77,7 @@ enum class AstNodeKind : u8 {
     Delegate, // 包原版 DensityFunction 运行时回调 compute
 };
 
-/// 求值返回类型。MC 样条路径用 F32（float 算术），其余 F64。
+/// 求值返回类型。MC 样条路径用 F32（f32 算术），其余 F64。
 enum class ReturnType : u8 {
     F64,
     F32,

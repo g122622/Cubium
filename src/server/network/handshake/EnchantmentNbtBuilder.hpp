@@ -50,8 +50,8 @@ void setEnchantmentDatapackSource(const mc::resource::DataPackRepository& repo);
  * （非 nullopt），原因见下方根因说明。结果 process 级缓存（std::call_once 首次构建），
  * 后续连接直接复用，避免重复 IO/解析。
  *
- * 条目 id 顺序与原硬编码列表严格一致——enchantment 名字虽按 name 解码（不依赖 int id），
- * 但保留顺序以兼容未来 UpdateTags 的 int id 映射。
+ * 条目 id 顺序与原硬编码列表严格一致——enchantment 名字虽按 name 解码（不依赖 i32 id），
+ * 但保留顺序以兼容未来 UpdateTags 的 i32 id 映射。
  *
  * **根因（为何必须内联 NBT 而非 data=nullopt）：** enchantment JSON 的
  * supported_items/primary_items 引用 **ITEM 标签**（形如 #minecraft:enchantable/sharp_weapon）。ITEM 是

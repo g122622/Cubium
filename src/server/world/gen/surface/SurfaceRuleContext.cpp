@@ -80,8 +80,8 @@ void SurfaceRuleContext::updateXZ(i32 blockX, i32 blockZ)
     ++m_updateCounterXZ;
     ++m_updateCounterY;
 
-    // MC 1.21: SurfaceSystem.getSurfaceDepth(int, int)
-    // (int)(noise * 2.75 + 3.0 + noiseRandom.at(x, 0, z).nextDouble() * 0.25)
+    // MC 1.21: SurfaceSystem.getSurfaceDepth(i32, i32)
+    // (i32)(noise * 2.75 + 3.0 + noiseRandom.at(x, 0, z).nextDouble() * 0.25)
     if (m_surfaceDepthNoise) {
         const f64 noiseVal = m_surfaceDepthNoise->getValue(static_cast<f64>(blockX), 0.0, static_cast<f64>(blockZ));
         auto rng = m_positionalRandom.at(blockX, 0, blockZ);

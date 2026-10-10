@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+
 #include <algorithm>
 #include <functional>
 
@@ -53,10 +55,10 @@ public:
         return AttributeRange<Value>([](Value) { return true; }, [](Value v) { return v; });
     }
 
-    static AttributeRange<float> ofFloat(float min, float max)
+    static AttributeRange<f32> ofFloat(f32 min, f32 max)
     {
-        return AttributeRange<float>([min, max](float v) { return v >= min && v <= max; },
-            [min, max](float v) { return std::clamp(v, min, max); });
+        return AttributeRange<f32>(
+            [min, max](f32 v) { return v >= min && v <= max; }, [min, max](f32 v) { return std::clamp(v, min, max); });
     }
 
 private:

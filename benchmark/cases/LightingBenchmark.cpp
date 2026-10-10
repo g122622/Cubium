@@ -182,7 +182,7 @@ void Lighting(::benchmark::State& state)
         placeLights = !placeLights;
     }
 
-    const double blocksPerIteration = static_cast<double>(CHUNK_WIDTH_I64 * CHUNK_WIDTH);
+    const f64 blocksPerIteration = static_cast<f64>(CHUNK_WIDTH_I64 * CHUNK_WIDTH);
     state.counters["blocks_per_second"] =
         ::benchmark::Counter(blocksPerIteration, ::benchmark::Counter::kIsIterationInvariantRate);
     state.counters["blocks_per_iteration"] = ::benchmark::Counter(blocksPerIteration);

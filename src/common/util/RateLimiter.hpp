@@ -167,23 +167,23 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 // #include <iostream>
 // #include <thread>
 
-// void test_function(int id) {
+// void test_function(i32 id) {
 //     std::cout << "Function called with id: " << id
 //               << " at " << std::chrono::system_clock::now().time_since_epoch().count()
 //               << std::endl;
 // }
 
-// int add(int a, int b) {
+// i32 add(i32 a, i32 b) {
 //     return a + b;
 // }
 
-// int main() {
+// i32 main() {
 //     using namespace mc::util::log;
 
 //     // 示例1：直接使用限流器
 //     RateLimiter limiter(5); // 每秒最多5次调用
 
-//     for (int i = 0; i < 10; ++i) {
+//     for (i32 i = 0; i < 10; ++i) {
 //         if (limiter.tryAcquire()) {
 //             std::cout << "Call " << i << " allowed" << std::endl;
 //         } else {
@@ -198,7 +198,7 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 //     // 示例2：使用包装器限流函数
 //     auto limited_test = make_rate_limited(test_function, 3);
 
-//     for (int i = 0; i < 10; ++i) {
+//     for (i32 i = 0; i < 10; ++i) {
 //         try {
 //             limited_test(i);
 //         } catch (const std::runtime_error& e) {
@@ -211,9 +211,9 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 
 //     auto limited_add = make_rate_limited(add, 2);
 
-//     for (int i = 0; i < 5; ++i) {
+//     for (i32 i = 0; i < 5; ++i) {
 //         try {
-//             int result = limited_add(i, i * 2);
+//             i32 result = limited_add(i, i * 2);
 //             std::cout << "add(" << i << ", " << i * 2 << ") = " << result << std::endl;
 //         } catch (const std::runtime_error& e) {
 //             std::cout << "Call " << i << ": " << e.what() << std::endl;
@@ -229,7 +229,7 @@ auto make_rate_limited_with_callback(Func&& func, size_t max_calls_per_sec, OnLi
 //         }
 //     );
 
-//     for (int i = 0; i < 10; ++i) {
+//     for (i32 i = 0; i < 10; ++i) {
 //         limited_with_callback(i);
 //         std::this_thread::sleep_for(std::chrono::milliseconds(150));
 //     }

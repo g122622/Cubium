@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Types.hpp"
+
 #include <filesystem>
 #include <string_view>
 #include <vector>
@@ -58,7 +60,7 @@ inline std::filesystem::path resolveShaderPath(std::string_view shaderFileName)
     };
 
     fs::path currentPath = fs::current_path();
-    for (int depth = 0; depth < 6; ++depth) {
+    for (i32 depth = 0; depth < 6; ++depth) {
         addCandidatesFromBase(currentPath);
 
         if (!currentPath.has_parent_path()) {

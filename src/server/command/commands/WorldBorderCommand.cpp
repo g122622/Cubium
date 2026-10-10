@@ -141,14 +141,14 @@ i32 WorldBorderCommand::_setBorder(CommandContext<ServerCommandSource>& context)
     if (context.hasArgument("time")) {
         const i32 timeSeconds = context.getArgument<i32>("time");
         const u64 timeMs = static_cast<u64>(timeSeconds) * 1000;
-        border.setSizeLerp(border.getSize(), static_cast<double>(size), timeMs);
+        border.setSizeLerp(border.getSize(), static_cast<f64>(size), timeMs);
 
         std::ostringstream ss;
         ss << "World border size will change to " << static_cast<i64>(size) << " blocks over " << timeSeconds
            << " seconds";
         source.sendMessage(ss.str());
     } else {
-        border.setSize(static_cast<double>(size));
+        border.setSize(static_cast<f64>(size));
 
         std::ostringstream ss;
         ss << "World border size set to " << static_cast<i64>(size) << " blocks";
@@ -169,7 +169,7 @@ i32 WorldBorderCommand::_getBorder(CommandContext<ServerCommandSource>& context)
     }
 
     auto& border = world->worldBorder();
-    double currentSize = border.getSize();
+    f64 currentSize = border.getSize();
 
     std::ostringstream ss;
     ss << "World border is currently " << static_cast<i64>(currentSize) << " blocks wide";
@@ -192,7 +192,7 @@ i32 WorldBorderCommand::_setCenter(CommandContext<ServerCommandSource>& context)
     const f32 x = context.getArgument<f32>("x");
     const f32 z = context.getArgument<f32>("z");
 
-    border.setCenter(static_cast<double>(x), static_cast<double>(z));
+    border.setCenter(static_cast<f64>(x), static_cast<f64>(z));
 
     std::ostringstream ss;
     ss << "World border center set to " << x << ", " << z;
@@ -214,7 +214,7 @@ i32 WorldBorderCommand::_setDamageAmount(CommandContext<ServerCommandSource>& co
     auto& border = world->worldBorder();
     const f32 damage = context.getArgument<f32>("damagePerBlock");
 
-    border.setDamagePerBlock(static_cast<double>(damage));
+    border.setDamagePerBlock(static_cast<f64>(damage));
 
     std::ostringstream ss;
     ss << "World border damage per block set to " << damage;
@@ -236,7 +236,7 @@ i32 WorldBorderCommand::_setDamageBuffer(CommandContext<ServerCommandSource>& co
     auto& border = world->worldBorder();
     const f32 distance = context.getArgument<f32>("distance");
 
-    border.setDamageBuffer(static_cast<double>(distance));
+    border.setDamageBuffer(static_cast<f64>(distance));
 
     std::ostringstream ss;
     ss << "World border damage buffer set to " << distance << " blocks";
@@ -302,7 +302,7 @@ i32 WorldBorderCommand::_addBorder(CommandContext<ServerCommandSource>& context)
     auto& border = world->worldBorder();
     const f32 distance = context.getArgument<f32>("distance");
 
-    double newSize = border.getSize() + static_cast<double>(distance);
+    f64 newSize = border.getSize() + static_cast<f64>(distance);
     // 限制最大值
     newSize = std::min(newSize, world::border::WorldBorder::MAX_SIZE);
     newSize = std::max(newSize, 1.0);

@@ -9,7 +9,7 @@ namespace mc::test {
 /**
  * @brief 测试已完成的原因（Done=正常完成，CleanUp=清理阶段）。
  *
- * 对齐基岩版 `GameTestCompletedErrorReason`（int 枚举）。用于 `GameTestCompletedError` 标识
+ * 对齐基岩版 `GameTestCompletedErrorReason`（i32 枚举）。用于 `GameTestCompletedError` 标识
  * "测试已结束"信号发生在哪个阶段，供脚本绑定层在 JS 侧抛出对应类型的 Error。
  */
 enum class GameTestCompletedErrorReason : i32 {

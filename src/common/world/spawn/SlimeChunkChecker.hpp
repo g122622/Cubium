@@ -115,7 +115,7 @@ private:
      *
      * Java版 Random.next(bits):
      * internalSeed = (internalSeed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1)
-     * return (int)(internalSeed >>> (48 - bits))
+     * return (i32)(internalSeed >>> (48 - bits))
      *
      * @param state 当前内部状态（引用，会被修改）
      * @param bits 要返回的位数 (1-32)

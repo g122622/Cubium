@@ -46,27 +46,27 @@ namespace border {
  */
 class StationaryBorderState : public IBorderState {
 public:
-    explicit StationaryBorderState(double size, double centerX, double centerZ);
+    explicit StationaryBorderState(f64 size, f64 centerX, f64 centerZ);
 
-    [[nodiscard]] double getMinX() const override { return m_minX; }
-    [[nodiscard]] double getMaxX() const override { return m_maxX; }
-    [[nodiscard]] double getMinZ() const override { return m_minZ; }
-    [[nodiscard]] double getMaxZ() const override { return m_maxZ; }
-    [[nodiscard]] double getSize() const override { return m_size; }
-    [[nodiscard]] double getResizeSpeed() const override { return 0.0; }
+    [[nodiscard]] f64 getMinX() const override { return m_minX; }
+    [[nodiscard]] f64 getMaxX() const override { return m_maxX; }
+    [[nodiscard]] f64 getMinZ() const override { return m_minZ; }
+    [[nodiscard]] f64 getMaxZ() const override { return m_maxZ; }
+    [[nodiscard]] f64 getSize() const override { return m_size; }
+    [[nodiscard]] f64 getResizeSpeed() const override { return 0.0; }
     [[nodiscard]] u64 getTimeUntilTarget() const override { return 0; }
-    [[nodiscard]] double getTargetSize() const override { return m_size; }
+    [[nodiscard]] f64 getTargetSize() const override { return m_size; }
     [[nodiscard]] BorderStatus getStatus() const override { return BorderStatus::Stationary; }
     [[nodiscard]] std::unique_ptr<IBorderState> tick() override { return nullptr; }
-    void onCenterChanged(double centerX, double centerZ) override;
+    void onCenterChanged(f64 centerX, f64 centerZ) override;
 
 private:
     void _updateBounds();
 
-    double m_size;
-    double m_centerX;
-    double m_centerZ;
-    double m_minX, m_maxX, m_minZ, m_maxZ;
+    f64 m_size;
+    f64 m_centerX;
+    f64 m_centerZ;
+    f64 m_minX, m_maxX, m_minZ, m_maxZ;
 };
 
 // ============================================================================
@@ -80,32 +80,32 @@ private:
  */
 class MovingBorderState : public IBorderState {
 public:
-    MovingBorderState(double oldSize, double newSize, u64 timeMs, double centerX, double centerZ);
+    MovingBorderState(f64 oldSize, f64 newSize, u64 timeMs, f64 centerX, f64 centerZ);
 
-    [[nodiscard]] double getMinX() const override;
-    [[nodiscard]] double getMaxX() const override;
-    [[nodiscard]] double getMinZ() const override;
-    [[nodiscard]] double getMaxZ() const override;
-    [[nodiscard]] double getSize() const override;
-    [[nodiscard]] double getResizeSpeed() const override;
+    [[nodiscard]] f64 getMinX() const override;
+    [[nodiscard]] f64 getMaxX() const override;
+    [[nodiscard]] f64 getMinZ() const override;
+    [[nodiscard]] f64 getMaxZ() const override;
+    [[nodiscard]] f64 getSize() const override;
+    [[nodiscard]] f64 getResizeSpeed() const override;
     [[nodiscard]] u64 getTimeUntilTarget() const override;
-    [[nodiscard]] double getTargetSize() const override { return m_newSize; }
+    [[nodiscard]] f64 getTargetSize() const override { return m_newSize; }
     [[nodiscard]] BorderStatus getStatus() const override;
     [[nodiscard]] std::unique_ptr<IBorderState> tick() override;
-    void onCenterChanged(double centerX, double centerZ) override;
+    void onCenterChanged(f64 centerX, f64 centerZ) override;
 
 private:
     void _updateBounds() const;
 
-    double m_oldSize;     // 起始大小
-    double m_newSize;     // 目标大小
+    f64 m_oldSize;     // 起始大小
+    f64 m_newSize;     // 目标大小
     u64 m_startTime;      // 开始时间（毫秒）
     u64 m_endTime;        // 结束时间（毫秒）
     u64 m_transitionTime; // 过渡总时长（毫秒）
-    double m_centerX;
-    double m_centerZ;
-    mutable double m_cachedMinX, m_cachedMaxX, m_cachedMinZ, m_cachedMaxZ;
-    mutable double m_cachedSize;
+    f64 m_centerX;
+    f64 m_centerZ;
+    mutable f64 m_cachedMinX, m_cachedMaxX, m_cachedMinZ, m_cachedMaxZ;
+    mutable f64 m_cachedSize;
     mutable bool m_dirty = true;
 };
 
@@ -131,7 +131,7 @@ u64 getCurrentTimeMs()
 // StationaryBorderState 实现
 // ============================================================================
 
-StationaryBorderState::StationaryBorderState(double size, double centerX, double centerZ)
+StationaryBorderState::StationaryBorderState(f64 size, f64 centerX, f64 centerZ)
     : m_size(size)
     , m_centerX(centerX)
     , m_centerZ(centerZ)
@@ -147,7 +147,7 @@ void StationaryBorderState::_updateBounds()
     m_maxZ = m_centerZ + m_size / 2.0;
 }
 
-void StationaryBorderState::onCenterChanged(double centerX, double centerZ)
+void StationaryBorderState::onCenterChanged(f64 centerX, f64 centerZ)
 {
     m_centerX = centerX;
     m_centerZ = centerZ;
@@ -158,7 +158,7 @@ void StationaryBorderState::onCenterChanged(double centerX, double centerZ)
 // MovingBorderState 实现
 // ============================================================================
 
-MovingBorderState::MovingBorderState(double oldSize, double newSize, u64 timeMs, double centerX, double centerZ)
+MovingBorderState::MovingBorderState(f64 oldSize, f64 newSize, u64 timeMs, f64 centerX, f64 centerZ)
     : m_oldSize(oldSize)
     , m_newSize(newSize)
     , m_centerX(centerX)
@@ -171,7 +171,7 @@ MovingBorderState::MovingBorderState(double oldSize, double newSize, u64 timeMs,
     _updateBounds();
 }
 
-double MovingBorderState::getMinX() const
+f64 MovingBorderState::getMinX() const
 {
     if (m_dirty) {
         _updateBounds();
@@ -179,7 +179,7 @@ double MovingBorderState::getMinX() const
     return m_cachedMinX;
 }
 
-double MovingBorderState::getMaxX() const
+f64 MovingBorderState::getMaxX() const
 {
     if (m_dirty) {
         _updateBounds();
@@ -187,7 +187,7 @@ double MovingBorderState::getMaxX() const
     return m_cachedMaxX;
 }
 
-double MovingBorderState::getMinZ() const
+f64 MovingBorderState::getMinZ() const
 {
     if (m_dirty) {
         _updateBounds();
@@ -195,7 +195,7 @@ double MovingBorderState::getMinZ() const
     return m_cachedMinZ;
 }
 
-double MovingBorderState::getMaxZ() const
+f64 MovingBorderState::getMaxZ() const
 {
     if (m_dirty) {
         _updateBounds();
@@ -203,7 +203,7 @@ double MovingBorderState::getMaxZ() const
     return m_cachedMaxZ;
 }
 
-double MovingBorderState::getSize() const
+f64 MovingBorderState::getSize() const
 {
     if (m_dirty) {
         _updateBounds();
@@ -211,12 +211,12 @@ double MovingBorderState::getSize() const
     return m_cachedSize;
 }
 
-double MovingBorderState::getResizeSpeed() const
+f64 MovingBorderState::getResizeSpeed() const
 {
     if (m_transitionTime == 0) {
         return 0.0;
     }
-    return std::abs(m_newSize - m_oldSize) / static_cast<double>(m_transitionTime);
+    return std::abs(m_newSize - m_oldSize) / static_cast<f64>(m_transitionTime);
 }
 
 u64 MovingBorderState::getTimeUntilTarget() const
@@ -244,7 +244,7 @@ std::unique_ptr<IBorderState> MovingBorderState::tick()
     return nullptr;
 }
 
-void MovingBorderState::onCenterChanged(double centerX, double centerZ)
+void MovingBorderState::onCenterChanged(f64 centerX, f64 centerZ)
 {
     m_centerX = centerX;
     m_centerZ = centerZ;
@@ -255,9 +255,9 @@ void MovingBorderState::_updateBounds() const
 {
     // 计算当前大小（线性插值）
     u64 now = getCurrentTimeMs();
-    double progress = 0.0;
+    f64 progress = 0.0;
     if (m_transitionTime > 0) {
-        progress = static_cast<double>(now - m_startTime) / static_cast<double>(m_transitionTime);
+        progress = static_cast<f64>(now - m_startTime) / static_cast<f64>(m_transitionTime);
         progress = std::clamp(progress, 0.0, 1.0);
     }
     m_cachedSize = m_oldSize + (m_newSize - m_oldSize) * progress;
@@ -289,32 +289,32 @@ WorldBorder& WorldBorder::operator=(WorldBorder&&) noexcept = default;
 // 边界状态查询
 // ============================================================================
 
-double WorldBorder::getSize() const
+f64 WorldBorder::getSize() const
 {
     return m_state->getSize();
 }
 
-double WorldBorder::getTargetSize() const
+f64 WorldBorder::getTargetSize() const
 {
     return m_state->getTargetSize();
 }
 
-double WorldBorder::getMinX() const
+f64 WorldBorder::getMinX() const
 {
     return m_state->getMinX();
 }
 
-double WorldBorder::getMaxX() const
+f64 WorldBorder::getMaxX() const
 {
     return m_state->getMaxX();
 }
 
-double WorldBorder::getMinZ() const
+f64 WorldBorder::getMinZ() const
 {
     return m_state->getMinZ();
 }
 
-double WorldBorder::getMaxZ() const
+f64 WorldBorder::getMaxZ() const
 {
     return m_state->getMaxZ();
 }
@@ -324,7 +324,7 @@ BorderStatus WorldBorder::getStatus() const
     return m_state->getStatus();
 }
 
-double WorldBorder::getResizeSpeed() const
+f64 WorldBorder::getResizeSpeed() const
 {
     return m_state->getResizeSpeed();
 }
@@ -338,7 +338,7 @@ u64 WorldBorder::getTimeUntilTarget() const
 // 伤害参数
 // ============================================================================
 
-void WorldBorder::setDamagePerBlock(double damagePerBlock)
+void WorldBorder::setDamagePerBlock(f64 damagePerBlock)
 {
     m_damagePerBlock = damagePerBlock;
     for (auto& weakListener : m_listeners) {
@@ -348,7 +348,7 @@ void WorldBorder::setDamagePerBlock(double damagePerBlock)
     }
 }
 
-void WorldBorder::setDamageBuffer(double damageBuffer)
+void WorldBorder::setDamageBuffer(f64 damageBuffer)
 {
     m_damageBuffer = damageBuffer;
     for (auto& weakListener : m_listeners) {
@@ -386,14 +386,14 @@ void WorldBorder::setWarningDistance(i32 warningDistance)
 // 边界设置
 // ============================================================================
 
-void WorldBorder::setSize(double size)
+void WorldBorder::setSize(f64 size)
 {
     size = std::clamp(size, 1.0, MAX_SIZE);
     m_state = std::make_unique<StationaryBorderState>(size, m_centerX, m_centerZ);
     _notifySizeChanged(size);
 }
 
-void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs)
+void WorldBorder::setSizeLerp(f64 oldSize, f64 newSize, u64 timeMs)
 {
     oldSize = std::clamp(oldSize, 1.0, MAX_SIZE);
     newSize = std::clamp(newSize, 1.0, MAX_SIZE);
@@ -407,7 +407,7 @@ void WorldBorder::setSizeLerp(double oldSize, double newSize, u64 timeMs)
     _notifyTransitionStarted(oldSize, newSize, timeMs);
 }
 
-void WorldBorder::setCenter(double x, double z)
+void WorldBorder::setCenter(f64 x, f64 z)
 {
     m_centerX = x;
     m_centerZ = z;
@@ -419,7 +419,7 @@ void WorldBorder::setCenter(double x, double z)
 // 边界检测
 // ============================================================================
 
-bool WorldBorder::contains(double x, double z) const
+bool WorldBorder::contains(f64 x, f64 z) const
 {
     return x > getMinX() && x < getMaxX() && z > getMinZ() && z < getMaxZ();
 }
@@ -427,8 +427,8 @@ bool WorldBorder::contains(double x, double z) const
 bool WorldBorder::contains(const BlockPos& pos) const
 {
     // 方块位置检测：方块必须在边界内（方块边界需要完全在内）
-    return (static_cast<double>(pos.x) + 1.0) > getMinX() && static_cast<double>(pos.x) < getMaxX() &&
-        (static_cast<double>(pos.z) + 1.0) > getMinZ() && static_cast<double>(pos.z) < getMaxZ();
+    return (static_cast<f64>(pos.x) + 1.0) > getMinX() && static_cast<f64>(pos.x) < getMaxX() &&
+        (static_cast<f64>(pos.z) + 1.0) > getMinZ() && static_cast<f64>(pos.z) < getMaxZ();
 }
 
 bool WorldBorder::intersects(const AxisAlignedBB& box) const
@@ -438,37 +438,37 @@ bool WorldBorder::intersects(const AxisAlignedBB& box) const
 
 bool WorldBorder::intersectsChunk(i32 chunkX, i32 chunkZ) const
 {
-    constexpr double CHUNK_SIZE = static_cast<double>(world::CHUNK_WIDTH);
-    double chunkMinX = static_cast<double>(chunkX) * CHUNK_SIZE;
-    double chunkMinZ = static_cast<double>(chunkZ) * CHUNK_SIZE;
-    double chunkMaxX = chunkMinX + CHUNK_SIZE;
-    double chunkMaxZ = chunkMinZ + CHUNK_SIZE;
+    constexpr f64 CHUNK_SIZE = static_cast<f64>(world::CHUNK_WIDTH);
+    f64 chunkMinX = static_cast<f64>(chunkX) * CHUNK_SIZE;
+    f64 chunkMinZ = static_cast<f64>(chunkZ) * CHUNK_SIZE;
+    f64 chunkMaxX = chunkMinX + CHUNK_SIZE;
+    f64 chunkMaxZ = chunkMinZ + CHUNK_SIZE;
 
     return chunkMaxX > getMinX() && chunkMinX < getMaxX() && chunkMaxZ > getMinZ() && chunkMinZ < getMaxZ();
 }
 
-double WorldBorder::getClosestDistance(double x, double z) const
+f64 WorldBorder::getClosestDistance(f64 x, f64 z) const
 {
-    double distToMinX = x - getMinX(); // 到西边界的距离
-    double distToMaxX = getMaxX() - x; // 到东边界的距离
-    double distToMinZ = z - getMinZ(); // 到北边界的距离
-    double distToMaxZ = getMaxZ() - z; // 到南边界的距离
+    f64 distToMinX = x - getMinX(); // 到西边界的距离
+    f64 distToMaxX = getMaxX() - x; // 到东边界的距离
+    f64 distToMinZ = z - getMinZ(); // 到北边界的距离
+    f64 distToMaxZ = getMaxZ() - z; // 到南边界的距离
 
     // 返回最小距离（如果点在边界内则为正，否则为负）
     return std::min({distToMinX, distToMaxX, distToMinZ, distToMaxZ});
 }
 
-double WorldBorder::getClosestDistance(const AxisAlignedBB& box) const
+f64 WorldBorder::getClosestDistance(const AxisAlignedBB& box) const
 {
     // 计算 AABB 中心到边界的距离
-    double centerX = (box.minX + box.maxX) / 2.0;
-    double centerZ = (box.minZ + box.maxZ) / 2.0;
+    f64 centerX = (box.minX + box.maxX) / 2.0;
+    f64 centerZ = (box.minZ + box.maxZ) / 2.0;
 
     // 使用 AABB 的最近边计算距离
-    double distToMinX = box.minX - getMinX(); // 负值表示超出边界
-    double distToMaxX = getMaxX() - box.maxX;
-    double distToMinZ = box.minZ - getMinZ();
-    double distToMaxZ = getMaxZ() - box.maxZ;
+    f64 distToMinX = box.minX - getMinX(); // 负值表示超出边界
+    f64 distToMaxX = getMaxX() - box.maxX;
+    f64 distToMinZ = box.minZ - getMinZ();
+    f64 distToMaxZ = getMaxZ() - box.maxZ;
 
     // 返回最小距离
     return std::min({distToMinX, distToMaxX, distToMinZ, distToMaxZ});
@@ -546,7 +546,7 @@ void WorldBorder::deserialize(const SerializedData& data)
 // 私有方法
 // ============================================================================
 
-void WorldBorder::_notifySizeChanged(double newSize)
+void WorldBorder::_notifySizeChanged(f64 newSize)
 {
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -555,7 +555,7 @@ void WorldBorder::_notifySizeChanged(double newSize)
     }
 }
 
-void WorldBorder::_notifyTransitionStarted(double oldSize, double newSize, u64 timeMs)
+void WorldBorder::_notifyTransitionStarted(f64 oldSize, f64 newSize, u64 timeMs)
 {
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {
@@ -564,7 +564,7 @@ void WorldBorder::_notifyTransitionStarted(double oldSize, double newSize, u64 t
     }
 }
 
-void WorldBorder::_notifyCenterChanged(double x, double z)
+void WorldBorder::_notifyCenterChanged(f64 x, f64 z)
 {
     for (auto& weakListener : m_listeners) {
         if (auto listener = weakListener.lock()) {

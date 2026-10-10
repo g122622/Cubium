@@ -136,8 +136,8 @@ protected:
     /**
      * @brief 主循环 tick：先驱动基类世界/实体/网络 tick，再同步打开容器的动态数据。
      *
-     * 熔炉菜单的燃烧/熔炼进度每 tick 从方块实体刷新到 tracked int，经
-     * detectAndSendChanges 检测变化后由 int 监听器发 WindowPropertyPacket 下推客户端。
+     * 熔炉菜单的燃烧/熔炼进度每 tick 从方块实体刷新到 tracked i32，经
+     * detectAndSendChanges 检测变化后由 i32 监听器发 WindowPropertyPacket 下推客户端。
      */
     void tick() override;
 
@@ -216,7 +216,7 @@ private:
     void _sendToClientIr(mc::network::ir::IrPacket packet);
     void _sendBlockBreakAnim(EntityInstanceId breakerId, i32 x, i32 y, i32 z, i8 stage);
     /**
-     * @brief 发送 WindowPropertyPacket（熔炉燃烧/熔炼进度等 tracked int 下推客户端）
+     * @brief 发送 WindowPropertyPacket（熔炉燃烧/熔炼进度等 tracked i32 下推客户端）
      */
     void _sendWindowProperty(ContainerId containerId, i16 property, i16 value);
     [[nodiscard]] bool _openContainerMenu(ContainerType type, const BlockPos& pos);
@@ -226,7 +226,7 @@ private:
     void _openItemPickerMenu();
 
     /**
-     * @brief 为熔炉菜单注册 tracked int 监听器（变化时发 WindowPropertyPacket）
+     * @brief 为熔炉菜单注册 tracked i32 监听器（变化时发 WindowPropertyPacket）
      * @return 监听器ID（用于关闭时移除），非熔炉菜单返回 -1
      */
     i32 _registerFurnaceIntListener(AbstractContainerMenu& menu);
@@ -307,7 +307,7 @@ private:
     mc::ContainerType m_openContainerType = mc::ContainerType::Player;
     BlockPos m_openContainerPos;
     ContainerId m_nextContainerId = 1;
-    /// 熔炉菜单 tracked int 监听器ID（-1 表示未注册），关闭时移除
+    /// 熔炉菜单 tracked i32 监听器ID（-1 表示未注册），关闭时移除
     i32 m_furnaceIntListenerId = -1;
     mutable std::mutex m_clientDataMutex;
 

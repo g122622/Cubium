@@ -429,7 +429,7 @@ public:
      * @brief 判断 TNT 是否处于白色闪烁帧
      *
      * 对齐 MC 1.21.11 TntRenderer.submit() / TntMinecartRenderer：
-     *   fuseRemaining > -1 && (int)fuseRemaining / 5 % 2 == 0
+     *   fuseRemaining > -1 && (i32)fuseRemaining / 5 % 2 == 0
      *
      * @param fuseRemaining 引信剩余 tick（已插值）
      * @return true 表示本帧应渲染白色闪烁叠加

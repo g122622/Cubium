@@ -40,8 +40,8 @@ namespace mc {
  * @brief 水下岩浆特征配置
  *
  * 对应 MC 1.21.11: UnderwaterMagmaConfiguration。
- * floorSearchRange: int[0,512]；placementRadiusAroundFloor: int[0,64]；
- * placementProbabilityPerValidPosition: float[0,1]。
+ * floorSearchRange: i32[0,512]；placementRadiusAroundFloor: i32[0,64]；
+ * placementProbabilityPerValidPosition: f32[0,1]。
  */
 struct UnderwaterMagmaConfig : public IFeatureConfig {
     i32 floorSearchRange = 0;

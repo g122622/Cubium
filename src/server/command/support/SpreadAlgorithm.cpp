@@ -181,7 +181,7 @@ bool spreadPositions(f64 spreadDistance,
     std::vector<SpreadPosition>& positions,
     f64& outMinDist)
 {
-    // 使用 float 最大值作为哨兵值
+    // 使用 f32 最大值作为哨兵值
     constexpr f64 sentinelDist = static_cast<f64>(std::numeric_limits<f32>::max());
     bool moved = true;
     f64 minDist = sentinelDist;

@@ -53,7 +53,7 @@ public:
     void succeed();
     void fail(GameTestError error);
     /** @brief 已完成实例的实际耗时固定为结束时刻，运行中实例返回当前耗时。 */
-    [[nodiscard]] double wallTimeSeconds() const noexcept;
+    [[nodiscard]] f64 wallTimeSeconds() const noexcept;
     [[nodiscard]] GameTestSequence& createSequence();
     void addListener(std::shared_ptr<IGameTestListener> listener);
     void removeListener(const std::shared_ptr<IGameTestListener>& listener);

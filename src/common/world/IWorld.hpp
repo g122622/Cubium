@@ -426,7 +426,7 @@ public:
     /**
      * @brief 全局世界事件广播
      *
-     * 对应 MC Java: ServerLevel.globalLevelEvent(int, BlockPos, int)
+     * 对应 MC Java: ServerLevel.globalLevelEvent(i32, BlockPos, i32)
      * 受 GameRules.GLOBAL_SOUND_EVENTS 门控（默认 true）。
      * 遍历全服所有玩家（跨维度），对每个玩家计算事件位置：
      *   - 同维度且距离<32格：使用真实事件位置
@@ -526,7 +526,7 @@ public:
      * 客户端收到 BlockEventPacket 后，调用 Block::triggerEvent() 处理事件，
      * 默认实现委托给 BlockEntity::triggerEvent()。
      *
-     * 参考 MC Java: Level.blockEvent(BlockPos, Block, int, int)
+     * 参考 MC Java: Level.blockEvent(BlockPos, Block, i32, i32)
      *
      * 典型用途：
      * - 箱子开合动画：blockEvent(pos, block, 1, openerCount)
@@ -2082,7 +2082,7 @@ public:
     /**
      * @brief 按结构标签查找最近的结构
      *
-     * 对应 MC 1.21.11 ServerLevel.findNearestMapStructure(TagKey<Structure>, BlockPos, int, boolean)。
+     * 对应 MC 1.21.11 ServerLevel.findNearestMapStructure(TagKey<Structure>, BlockPos, i32, boolean)。
      *
      * 与 findNearestStructure 不同，此方法接受结构标签（如 minecraft:dolphin_located），
      * 遍历标签中的所有结构 ID，对每个结构调用 findNearestStructure，返回最近的位置。

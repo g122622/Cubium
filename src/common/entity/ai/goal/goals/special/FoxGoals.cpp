@@ -259,7 +259,7 @@ bool FoxFollowTargetGoal::isPathClear(FoxEntity* fox, LivingEntity* target)
     f64 dz = target->z() - fox->z();
     f64 ratio = (dx != 0.0) ? (dz / dx) : 0.0;
 
-    for (int i = 0; i < 6; ++i) {
+    for (i32 i = 0; i < 6; ++i) {
         f64 progress = static_cast<f64>(i) / 6.0;
 
         f64 checkX;
@@ -273,7 +273,7 @@ bool FoxFollowTargetGoal::isPathClear(FoxEntity* fox, LivingEntity* target)
             checkX = checkZ / ratio;
         }
 
-        for (int k = 1; k < 4; ++k) {
+        for (i32 k = 1; k < 4; ++k) {
             BlockPos pos(static_cast<i32>(fox->x() + checkX),
                 static_cast<i32>(fox->y() + k),
                 static_cast<i32>(fox->z() + checkZ));

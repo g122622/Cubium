@@ -95,7 +95,7 @@ public:
      * 否则 GameTest 中村民距 SimulatedPlayer 超过消失距离会 despawn，
      * 无法被僵尸杀死触发感染转化转化。
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override
+    [[nodiscard]] bool canDespawn(f64 distanceToClosestPlayer) const noexcept override
     {
         (void)distanceToClosestPlayer;
         return false;

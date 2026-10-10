@@ -232,7 +232,7 @@ void RaidGardenGoal::_raidCarrot(const BlockPos& carrotPos, const BlockState* ca
         return;
     }
 
-    // 对应 MC：int i = blockstate.getValue(CarrotBlock.AGE);
+    // 对应 MC：i32 i = blockstate.getValue(CarrotBlock.AGE);
     auto* carrotBlock = dynamic_cast<const blocks::CropBlock*>(VanillaBlocks::CARROTS);
     if (carrotBlock == nullptr) {
         return;

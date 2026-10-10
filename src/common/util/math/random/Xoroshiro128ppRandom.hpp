@@ -88,9 +88,9 @@ public:
      *
      * MC XoroshiroRandomSource.nextDouble()：
      *   return this.nextBits(53) * 1.110223E-16F;
-     * 常量字面量是 **float** 后缀，Java 的 `long * float` 会把 long 拓宽为 float
-     * （丢失约 29 位精度），结果为 float 精度后再拓宽为 double 返回。
-     * 即中间精度是 float 而非 double——写成 double 运算会在 1 ULP 级别与原版分叉。
+     * 常量字面量是 **f32** 后缀，Java 的 `long * f32` 会把 long 拓宽为 f32
+     * （丢失约 29 位精度），结果为 f32 精度后再拓宽为 f64 返回。
+     * 即中间精度是 f32 而非 f64——写成 f64 运算会在 1 ULP 级别与原版分叉。
      */
     [[nodiscard]] f64 nextDouble() override;
 
@@ -98,25 +98,25 @@ public:
      * @brief 返回 [0.0, 1.0) 范围的随机浮点数
      *
      * MC XoroshiroRandomSource.nextFloat() 使用 24 位精度：
-     *   (float)next(24) * 5.9604645E-8F
+     *   (f32)next(24) * 5.9604645E-8F
      */
     [[nodiscard]] f32 nextFloat() override;
 
     /**
      * @brief 返回 [0, bound) 范围的随机整数
      *
-     * MC XoroshiroRandomSource.nextInt(int) 使用 Lemire 无除法算法：
+     * MC XoroshiroRandomSource.nextInt(i32) 使用 Lemire 无除法算法：
      *   long i = Integer.toUnsignedLong(nextInt());
      *   long j = i * bound;
      *   long k = j & 0xFFFFFFFFL;
-     *   if (k < bound) { rejection loop } return (int)(j >> 32);
+     *   if (k < bound) { rejection loop } return (i32)(j >> 32);
      */
     [[nodiscard]] i32 nextInt(i32 bound) override;
 
     /**
      * @brief 返回 32 位范围内的随机整数
      *
-     * MC XoroshiroRandomSource.nextInt() 的实现是 `(int) this.randomNumberGenerator.nextLong()`，
+     * MC XoroshiroRandomSource.nextInt() 的实现是 `(i32) this.randomNumberGenerator.nextLong()`，
      * 即取 nextLong() 结果的**低 32 位**。
      *
      * 必须覆写：基类 IRandom::nextInt() 取的是 nextU64() 的**高 32 位**，取位不同会使
@@ -164,7 +164,7 @@ private:
     /**
      * @brief 左旋转
      */
-    [[nodiscard]] static u64 rotl(u64 x, int k) { return (x << k) | (x >> (64 - k)); }
+    [[nodiscard]] static u64 rotl(u64 x, i32 k) { return (x << k) | (x >> (64 - k)); }
 };
 
 } // namespace mc::math

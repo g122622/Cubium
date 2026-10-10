@@ -83,7 +83,7 @@ public:
      * @param priority load 顺序优先级（升序遍历，本批全 0；未来 Attributes=100/ActiveEffects=200）
      */
     template <class ComponentT>
-    void registerSerializer(SaveFn save, LoadFn load, int priority = 0)
+    void registerSerializer(SaveFn save, LoadFn load, i32 priority = 0)
     {
         registerSerializerRaw(entt::type_id<ComponentT>().hash(), save, load, priority);
     }
@@ -110,10 +110,10 @@ private:
         entt::id_type typeId{0};
         SaveFn save{nullptr};
         LoadFn load{nullptr};
-        int priority{0};
+        i32 priority{0};
     };
 
-    void registerSerializerRaw(entt::id_type typeId, SaveFn save, LoadFn load, int priority);
+    void registerSerializerRaw(entt::id_type typeId, SaveFn save, LoadFn load, i32 priority);
 
     std::vector<Entry> m_entries;
     bool m_registered{false};

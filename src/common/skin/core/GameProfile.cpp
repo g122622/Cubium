@@ -106,31 +106,31 @@ std::string GameProfile::uuidToString() const
 
     // 第1段: 8字节 (0-7)
     for (size_t i = 0; i < 4; ++i) {
-        oss << std::setw(2) << static_cast<int>(m_uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(m_uuid[i]);
     }
     oss << '-';
 
     // 第2段: 4字节 (4-5)
     for (size_t i = 4; i < 6; ++i) {
-        oss << std::setw(2) << static_cast<int>(m_uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(m_uuid[i]);
     }
     oss << '-';
 
     // 第3段: 4字节 (6-7)
     for (size_t i = 6; i < 8; ++i) {
-        oss << std::setw(2) << static_cast<int>(m_uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(m_uuid[i]);
     }
     oss << '-';
 
     // 第4段: 4字节 (8-9)
     for (size_t i = 8; i < 10; ++i) {
-        oss << std::setw(2) << static_cast<int>(m_uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(m_uuid[i]);
     }
     oss << '-';
 
     // 第5段: 12字节 (10-15)
     for (size_t i = 10; i < 16; ++i) {
-        oss << std::setw(2) << static_cast<int>(m_uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(m_uuid[i]);
     }
 
     return oss.str();
@@ -142,7 +142,7 @@ std::string GameProfile::uuidToStringNoDashes() const
     oss << std::hex << std::setfill('0');
 
     for (size_t i = 0; i < 16; ++i) {
-        oss << std::setw(2) << static_cast<int>(m_uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(m_uuid[i]);
     }
 
     return oss.str();
@@ -172,7 +172,7 @@ std::array<u8, 16> GameProfile::parseUUID(const std::string& str)
         std::string byteStr = cleanStr.substr(i * 2, 2);
 
         try {
-            unsigned int byte = std::stoul(byteStr, nullptr, 16);
+            u32 byte = std::stoul(byteStr, nullptr, 16);
             uuid[i] = static_cast<u8>(byte);
         }
         catch (const std::exception& e) {
@@ -255,10 +255,10 @@ Result<GameProfile> GameProfile::fromJson(const nlohmann::json& json)
             std::string uuidStr = json["Id"].get<std::string>();
             profile.m_uuid = parseUUID(uuidStr);
         } else if (json["Id"].is_array()) {
-            // IntArray 格式 UUID（MC NBT 格式：4 个 int）
+            // IntArray 格式 UUID（MC NBT 格式：4 个 i32）
             auto arr = json["Id"];
             if (arr.size() == 4) {
-                // 将 4 个 int 转换为 16 字节 UUID（大端序）
+                // 将 4 个 i32 转换为 16 字节 UUID（大端序）
                 for (size_t i = 0; i < 4; ++i) {
                     i32 val = arr[i].get<i32>();
                     // 大端序：高位在前

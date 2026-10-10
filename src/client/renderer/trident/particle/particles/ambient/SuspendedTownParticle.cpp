@@ -49,7 +49,7 @@ SuspendedTownParticle::SuspendedTownParticle(const glm::vec3& pos, const glm::ve
     setFriction(FRICTION);
     setHasPhysics(false);
 
-    // lifetime = (int)(20.0 / (random * 0.8 + 0.2))
+    // lifetime = (i32)(20.0 / (random * 0.8 + 0.2))
     // 范围: 20 / 1.0 = 20 tick 到 20 / 0.2 = 100 tick
     setMaxAge(DEFAULT_LIFETIME / (m_random.nextFloat() * 0.8 + 0.2));
 }

@@ -63,11 +63,11 @@ bool StructurePlacement::applyAdditionalChunkRestrictions(i32 chunkX, i32 chunkZ
         }
         case FrequencyReductionMethod::LegacyType1: {
             // 掠夺者前哨站风格。逐字对齐原版 StructurePlacement.legacyPillagerOutpostReducer：
-            //   int i = chunkX >> 4;
-            //   int j = chunkZ >> 4;
+            //   i32 i = chunkX >> 4;
+            //   i32 j = chunkZ >> 4;
             //   worldgenrandom.setSeed((long)(i ^ j << 4) ^ levelSeed);
             //   worldgenrandom.nextInt();                              // ← 必须先丢弃一次
-            //   return worldgenrandom.nextInt((int)(1.0F / frequency)) == 0;
+            //   return worldgenrandom.nextInt((i32)(1.0F / frequency)) == 0;
             // Java 中 << 优先级高于 ^，故种子等价于 i ^ (j << 4) ^ levelSeed。
             // 【曾经的错误】写成 (chunkX*16 >> 4) ^ (chunkZ*16 << 4) ^ worldSeed
             //   = chunkX ^ (chunkZ << 8)，与 i ^ (j << 4) 完全不同（chunkZ=-10 时原版

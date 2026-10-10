@@ -52,7 +52,7 @@ class IBiomeSource;
  * 用于 CarveSkipChecker 回调，提供类型安全的参数传递。
  */
 struct CarverEllipsePos {
-    // 原版 WorldCarver.CarveSkipChecker.shouldSkip 的参数是 double，精度会影响椭球边界取舍。
+    // 原版 WorldCarver.CarveSkipChecker.shouldSkip 的参数是 f64，精度会影响椭球边界取舍。
     f64 dx;
     f64 dy;
     f64 dz;

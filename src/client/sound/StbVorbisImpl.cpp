@@ -21,6 +21,8 @@
  *
  */
 
+#include "common/core/Types.hpp"
+
 // stb_vorbis implementation file
 // This file provides the stb_vorbis implementation to avoid conflicts with fmt library
 
@@ -36,7 +38,7 @@
 
 extern "C" {
 
-stb_vorbis* mc_stb_vorbis_open_memory(const unsigned char* data, int len, int* error)
+stb_vorbis* mc_stb_vorbis_open_memory(const unsigned char* data, mc::i32 len, mc::i32* error)
 {
     return stb_vorbis_open_memory(data, len, error, nullptr);
 }
@@ -46,7 +48,7 @@ void mc_stb_vorbis_close(stb_vorbis* v)
     stb_vorbis_close(v);
 }
 
-int mc_stb_vorbis_get_info(stb_vorbis* v, unsigned int* sampleRate, int* channels)
+mc::i32 mc_stb_vorbis_get_info(stb_vorbis* v, mc::u32* sampleRate, mc::i32* channels)
 {
     if (v == nullptr || sampleRate == nullptr || channels == nullptr) {
         return 0;
@@ -58,12 +60,12 @@ int mc_stb_vorbis_get_info(stb_vorbis* v, unsigned int* sampleRate, int* channel
     return 1;
 }
 
-int mc_stb_vorbis_stream_length_in_samples(stb_vorbis* v)
+mc::i32 mc_stb_vorbis_stream_length_in_samples(stb_vorbis* v)
 {
     return stb_vorbis_stream_length_in_samples(v);
 }
 
-int mc_stb_vorbis_get_samples_short_interleaved(stb_vorbis* v, int channels, short* output, int numSamples)
+mc::i32 mc_stb_vorbis_get_samples_short_interleaved(stb_vorbis* v, mc::i32 channels, short* output, mc::i32 numSamples)
 {
     return stb_vorbis_get_samples_short_interleaved(v, channels, output, numSamples);
 }

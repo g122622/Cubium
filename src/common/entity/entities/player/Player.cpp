@@ -791,7 +791,7 @@ void Player::tick()
         if (!border.intersects(boundingBox())) {
             // 玩家在边界外，计算伤害
             // MC: distance = getClosestDistance(entity) + damageBuffer
-            double distance = border.getClosestDistance(boundingBox()) + border.getDamageBuffer();
+            f64 distance = border.getClosestDistance(boundingBox()) + border.getDamageBuffer();
 
             // 距离为负表示超出缓冲区
             if (distance < 0.0 && border.getDamagePerBlock() > 0.0) {
@@ -1661,7 +1661,7 @@ void Player::damageShield(f32 amount)
     // 对齐 MC Java 1.21.11 BlocksAttacks.hurtBlockingItem：格挡成功后消耗盾牌耐久度。
     // 活跃盾牌在装备槽中（setActiveHand 把活跃物品设为装备槽物品的副本），故对装备槽实际盾牌
     // 调 hurtAndBreak 消耗耐久（m_activeItem 是副本，消耗需作用于装备槽原件）。
-    // amount 向上取整为耐久消耗点数（对齐 vanilla damageItem((int)amount)）。
+    // amount 向上取整为耐久消耗点数（对齐 vanilla damageItem((i32)amount)）。
     if (!isUsingItem()) {
         return;
     }
@@ -1712,7 +1712,7 @@ void Player::onShieldDisabled(LivingEntity& attacker)
     // 对齐 MC Java 1.21.11 Player.blockUsingItem（Player.java:722-731）破盾分支：
     //   ItemStack shield = getItemBlockingWith();
     //   BlocksAttacks ba = shield != null ? shield.get(BLOCKS_ATTACKS) : null;
-    //   float f = attacker.getSecondsToDisableBlocking();
+    //   f32 f = attacker.getSecondsToDisableBlocking();
     //   if (f > 0.0F && ba != null) {
     //       ba.disable(level, this, f, shield);  // setCooldown + stopUsingItem + disableSound
     //   }

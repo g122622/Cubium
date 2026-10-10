@@ -94,7 +94,7 @@ bool TreeFeature::place(WorldGenRegion& world,
     // forcePlacement=true 时跳过空间约束，用于部分特例树木配置。
     // 对应 MC 1.21.11 TreeFeature.doPlace：
     //   OptionalInt optionalint = minimumSize.minClippedHeight();
-    //   int k1 = getMaxFreeTreeHeight(...);
+    //   i32 k1 = getMaxFreeTreeHeight(...);
     //   if (k1 >= i || (!optionalint.isEmpty() && k1 >= optionalint.getAsInt())) { ... }
     //   else return false;
     if (!config.forcePlacement) {
@@ -266,8 +266,8 @@ i32 TreeFeature::_calculateAvailableHeight(
     WorldGenRegion& world, i32 maxHeight, const BlockPos& startPos, const TreeFeatureConfig& config) const
 {
     // 对应 MC 1.21.11 TreeFeature.getMaxFreeTreeHeight：
-    //   for (int i = 0; i <= trunkHeight + 1; i++) {
-    //       int j = minimumSize.getSizeAtHeight(trunkHeight, i);
+    //   for (i32 i = 0; i <= trunkHeight + 1; i++) {
+    //       i32 j = minimumSize.getSizeAtHeight(trunkHeight, i);
     //       for (k=-j..j) for (l=-j..j) if (!isFree || (!ignoreVines && isVine)) return i - 2;
     //   }
     //   return trunkHeight;

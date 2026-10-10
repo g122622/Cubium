@@ -125,7 +125,7 @@ BiomeId BiomeManager::getNoiseBiomeAtQuart(i32 quartX, i32 quartY, i32 quartZ) c
 
 BiomeId BiomeManager::getNoiseBiomeAtPosition(i32 blockX, i32 blockY, i32 blockZ) const
 {
-    // MC 1.21.11: BiomeManager.getNoiseBiomeAtPosition(double, double, double)
+    // MC 1.21.11: BiomeManager.getNoiseBiomeAtPosition(f64, f64, f64)
     // floor to block, then convert to quart
     const i32 quartX = blockX >> 2;
     const i32 quartY = blockY >> 2;

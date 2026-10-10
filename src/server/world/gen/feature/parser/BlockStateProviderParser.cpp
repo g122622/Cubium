@@ -149,7 +149,7 @@ Result<std::vector<const BlockState*>> parseStateList(const nlohmann::json& json
     return states;
 }
 
-/// 读取 seed（u64）与 scale（正 float）通用字段。
+/// 读取 seed（u64）与 scale（正 f32）通用字段。
 Result<u64> readSeed(const nlohmann::json& obj)
 {
     if (!obj.contains("seed") || !obj["seed"].is_number_integer()) {

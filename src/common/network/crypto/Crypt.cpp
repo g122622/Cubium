@@ -34,7 +34,7 @@ namespace mc::network::crypto {
 Result<std::array<u8, kSharedSecretBytes>> generateSharedSecret()
 {
     std::array<u8, kSharedSecretBytes> secret{};
-    if (RAND_bytes(secret.data(), static_cast<int>(secret.size())) != 1) {
+    if (RAND_bytes(secret.data(), static_cast<i32>(secret.size())) != 1) {
         return Error(ErrorCode::Unknown, "RAND_bytes failed to generate shared secret", "crypto::generateSharedSecret");
     }
     return secret;
@@ -43,7 +43,7 @@ Result<std::array<u8, kSharedSecretBytes>> generateSharedSecret()
 Result<std::vector<u8>> generateRandomBytes(usize n)
 {
     std::vector<u8> bytes(n);
-    if (n > 0 && RAND_bytes(bytes.data(), static_cast<int>(n)) != 1) {
+    if (n > 0 && RAND_bytes(bytes.data(), static_cast<i32>(n)) != 1) {
         return Error(ErrorCode::Unknown, "RAND_bytes failed to generate random bytes", "crypto::generateRandomBytes");
     }
     return bytes;

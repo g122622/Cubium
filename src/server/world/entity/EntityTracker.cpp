@@ -901,7 +901,7 @@ void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Enti
     if (!player || !player->hasConnection()) return;
 
     // 1.21.11 SetEntityMotion：entityId + LpVec3 速度（m/tick）。
-    // 旧路径用 1/8000 i16；1.21.11 codec 用 LpVec3 直接承载 double。
+    // 旧路径用 1/8000 i16；1.21.11 codec 用 LpVec3 直接承载 f64。
     const auto velocity = entity->velocity();
     mc::network::ir::play::SetEntityMotion pkt;
     pkt.entityId = static_cast<i32>(entity->id());

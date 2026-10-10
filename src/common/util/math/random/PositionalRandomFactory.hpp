@@ -80,7 +80,7 @@ public:
      * @brief 从字符串哈希创建随机数生成器
      *
      * Xoroshiro flavor：MD5(key) 的 128 位摘要与工厂种子逐位异或。
-     * Legacy flavor：Java `key.hashCode() ^ seed`，注意 hashCode 是 32 位有符号 int，
+     * Legacy flavor：Java `key.hashCode() ^ seed`，注意 hashCode 是 32 位有符号 i32，
      *                与 64 位 seed 异或时按符号扩展（负数高位全 1）。
      *
      * @param key 字符串键（如 "octave_0"、"minecraft:terrain" 等）

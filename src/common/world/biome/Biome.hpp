@@ -88,7 +88,7 @@ public:
      *    降温公式: temperature - (noiseValue * 8.0 + y - seaLevel - 17) * 0.00125
      *    其中 noiseValue = TEMPERATURE_NOISE.getValue(x / 8.0, z / 8.0, false)
      *
-     * MC 1.21.11: Biome.getTemperature(BlockPos, int seaLevel)
+     * MC 1.21.11: Biome.getTemperature(BlockPos, i32 seaLevel)
      * 使用 ThreadLocal<Long2FloatLinkedOpenHashMap> 缓存（容量 1024，不 rehash）
      *
      * @param x 方块 X 坐标（世界坐标）
@@ -218,7 +218,7 @@ public:
      * 如果生物群系没有降水（hasPrecipitation == false），返回 None。
      * 如果高度调整后的温度 < 0.15，返回 Snow；否则返回 Rain。
      *
-     * MC 1.21.11: Biome.getPrecipitationAt(BlockPos, int seaLevel)
+     * MC 1.21.11: Biome.getPrecipitationAt(BlockPos, i32 seaLevel)
      *
      * @param x 方块 X 坐标
      * @param y 方块 Y 坐标

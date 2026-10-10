@@ -111,8 +111,8 @@ std::string skinTypeToString(SkinType type)
 i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid)
 {
     // UUID 格式: mostSigBits(8字节) + leastSigBits(8字节)
-    // Java UUID.hashCode(): (int)(mostSigBits >> 32) ^ (int)mostSigBits ^
-    //                       (int)(leastSigBits >> 32) ^ (int)leastSigBits
+    // Java UUID.hashCode(): (i32)(mostSigBits >> 32) ^ (i32)mostSigBits ^
+    //                       (i32)(leastSigBits >> 32) ^ (i32)leastSigBits
 
     // 读取 mostSigBits (big-endian)
     u64 mostSigBits = 0;
@@ -127,9 +127,9 @@ i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid)
     }
 
     // 计算 hashCode
-    // Java: int 是 32 位有符号整数，long 是 64 位有符号整数
-    // (int)(mostSigBits >> 32) 取高 32 位
-    // (int)mostSigBits 取低 32 位
+    // Java: i32 是 32 位有符号整数，long 是 64 位有符号整数
+    // (i32)(mostSigBits >> 32) 取高 32 位
+    // (i32)mostSigBits 取低 32 位
 
     i32 mostHigh = static_cast<i32>(mostSigBits >> 32);
     i32 mostLow = static_cast<i32>(mostSigBits & 0xFFFFFFFF);

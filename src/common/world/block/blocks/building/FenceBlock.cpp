@@ -97,10 +97,10 @@ FenceBlock::FenceBlock(const BlockProperties& properties)
         m_shapes[i] = CollisionShape::empty();
     }
 
-    for (int north = 0; north <= 1; ++north) {
-        for (int east = 0; east <= 1; ++east) {
-            for (int south = 0; south <= 1; ++south) {
-                for (int west = 0; west <= 1; ++west) {
+    for (i32 north = 0; north <= 1; ++north) {
+        for (i32 east = 0; east <= 1; ++east) {
+            for (i32 south = 0; south <= 1; ++south) {
+                for (i32 west = 0; west <= 1; ++west) {
                     size_t idx = _getShapeIndex(north != 0, east != 0, south != 0, west != 0);
 
                     CollisionShape shape = pillar;

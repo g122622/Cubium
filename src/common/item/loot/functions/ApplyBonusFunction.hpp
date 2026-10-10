@@ -83,7 +83,7 @@ public:
      *
      * MC 1.16.5 OreDropsFormula:
      * if (fortune > 0) {
-     *     int i = random.nextInt(fortune + 2) - 1;
+     *     i32 i = random.nextInt(fortune + 2) - 1;
      *     if (i < 0) i = 0;
      *     return baseCount * (i + 1);
      * } else {
@@ -116,7 +116,7 @@ public:
      * @brief Calculate binomial distribution bonus
      *
      * MC 1.16.5 BinomialWithBonusCountFormula:
-     * for (int i = 0; i < fortune + extra; ++i) {
+     * for (i32 i = 0; i < fortune + extra; ++i) {
      *     if (random.nextFloat() < probability) ++count;
      * }
      *

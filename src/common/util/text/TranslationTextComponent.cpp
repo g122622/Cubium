@@ -124,7 +124,7 @@ std::string TranslationTextComponent::replacePlaceholdersLocal(
                 // 检查是否是 $s 格式
                 if (digitEnd + 1 < text.size() && text[digitEnd] == '$' && text[digitEnd + 1] == 's') {
                     // 解析位置索引
-                    int position = 0;
+                    i32 position = 0;
                     try {
                         position = std::stoi(text.substr(digitStart, digitEnd - digitStart));
                     }
@@ -136,7 +136,7 @@ std::string TranslationTextComponent::replacePlaceholdersLocal(
                     }
 
                     // 替换参数（位置从1开始）
-                    if (position >= 1 && position <= static_cast<int>(params.size())) {
+                    if (position >= 1 && position <= static_cast<i32>(params.size())) {
                         result += params[position - 1];
                     } else {
                         // 参数不存在，保留原占位符

@@ -87,7 +87,7 @@ inline std::string uuidToString(const Uuid& uuid)
 {
     std::ostringstream oss;
     for (const auto& byte : uuid) {
-        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<i32>(byte);
     }
     return oss.str();
 }
@@ -105,31 +105,31 @@ inline std::string uuidToStringWithDashes(const Uuid& uuid)
 
     // 时间戳低 32 位 (time_low)
     for (size_t i = 0; i < 4; ++i) {
-        oss << std::setw(2) << static_cast<int>(uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(uuid[i]);
     }
     oss << '-';
 
     // 时间戳中间 16 位 (time_mid)
     for (size_t i = 4; i < 6; ++i) {
-        oss << std::setw(2) << static_cast<int>(uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(uuid[i]);
     }
     oss << '-';
 
     // 时间戳高 16 位 + 版本 (time_hi_and_version)
     for (size_t i = 6; i < 8; ++i) {
-        oss << std::setw(2) << static_cast<int>(uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(uuid[i]);
     }
     oss << '-';
 
     // 时钟序列 + 变体 (clock_seq_hi_and_reserved, clock_seq_low)
     for (size_t i = 8; i < 10; ++i) {
-        oss << std::setw(2) << static_cast<int>(uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(uuid[i]);
     }
     oss << '-';
 
     // 节点 ID (node)
     for (size_t i = 10; i < 16; ++i) {
-        oss << std::setw(2) << static_cast<int>(uuid[i]);
+        oss << std::setw(2) << static_cast<i32>(uuid[i]);
     }
 
     return oss.str();

@@ -589,9 +589,9 @@ i32 ShelfBlock::getHitSlot(const BlockRaycastResult& hit, Direction facing)
     const BlockPos& blockPos = hit.blockPos();
 
     // 转换为方块内的相对坐标 [0, 1)
-    f32 relX = static_cast<f32>(hitPos.x - static_cast<double>(blockPos.x));
-    f32 relY = static_cast<f32>(hitPos.y - static_cast<double>(blockPos.y));
-    f32 relZ = static_cast<f32>(hitPos.z - static_cast<double>(blockPos.z));
+    f32 relX = static_cast<f32>(hitPos.x - static_cast<f64>(blockPos.x));
+    f32 relY = static_cast<f32>(hitPos.y - static_cast<f64>(blockPos.y));
+    f32 relZ = static_cast<f32>(hitPos.z - static_cast<f64>(blockPos.z));
 
     // 将坐标限制在 [0, 1) 范围
     if (relX < 0.0f) relX = 0.0f;

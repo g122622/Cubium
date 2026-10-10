@@ -311,7 +311,7 @@ public:
      * getBoolean/getInt 需编译期 GameRuleKey（BooleanGameRuleKey/IntegerGameRuleKey），
      * 仅适用已知规则。脚本侧（@minecraft/server）与命令侧仅持规则名字符串，
      * 无法构造编译期 key，故提供此按名查询入口：先查当前值 map（m_booleanRules/
-     * m_integerRules），命中返回字符串表示（bool→"true"/"false"，int→十进制串）；
+     * m_integerRules），命中返回字符串表示（bool→"true"/"false"，i32→十进制串）；
      * 未命中则回退注册表默认值；规则不存在返回空串。
      *
      * @param ruleName 规则名（如 "mobGriefing"、"randomTickSpeed"）

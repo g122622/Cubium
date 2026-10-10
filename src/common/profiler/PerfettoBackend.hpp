@@ -113,7 +113,7 @@ public:
      * @param name 线程名称
      * @param siblingOrderRank 排序 rank（值越小越靠前）
      */
-    void setThreadName(const std::string& name, int siblingOrderRank);
+    void setThreadName(const std::string& name, i32 siblingOrderRank);
 
 private:
     bool m_initialized = false;

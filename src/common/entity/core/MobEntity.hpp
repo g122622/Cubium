@@ -324,7 +324,7 @@ public:
     /**
      * @brief 设置指定路径节点类型的寻路惩罚值
      *
-     * 对应 Minecraft 原版的 Mob.setPathfindingMalus(PathType, float)。
+     * 对应 Minecraft 原版的 Mob.setPathfindingMalus(PathType, f32)。
      * 用于在实体构造函数中声明实体对特定地形（水、岩浆、火焰等）的
      * 寻路代价偏好。WalkNodeProcessor 在创建节点时会读取此值覆盖默认代价。
      *
@@ -929,7 +929,7 @@ public:
      * @param distanceToClosestPlayer 到最近玩家的距离
      * @return 如果实体可以消失返回 true
      */
-    [[nodiscard]] virtual bool canDespawn(double distanceToClosestPlayer) const
+    [[nodiscard]] virtual bool canDespawn(f64 distanceToClosestPlayer) const
     {
         (void)distanceToClosestPlayer;
         return true;

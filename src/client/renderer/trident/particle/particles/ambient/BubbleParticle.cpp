@@ -53,7 +53,7 @@ BubbleParticle::BubbleParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setFriction(0.85f);
     setHasPhysics(false);
 
-    // 生命周期 = (int)(8.0 / (rand.nextDouble() * 0.8 + 0.2))
+    // 生命周期 = (i32)(8.0 / (rand.nextDouble() * 0.8 + 0.2))
     setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (m_random.nextFloat() * 0.8f + 0.2f))));
 }
 
@@ -136,7 +136,7 @@ CurrentDownParticle::CurrentDownParticle(const glm::vec3& pos, const glm::vec3& 
     setFriction(0.85f);
     setHasPhysics(false);
 
-    // 生命周期 = (int)(8.0 / (rand * 0.8 + 0.2))，与 BubbleParticle 相同
+    // 生命周期 = (i32)(8.0 / (rand * 0.8 + 0.2))，与 BubbleParticle 相同
     setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (m_random.nextFloat() * 0.8f + 0.2f))));
 }
 
@@ -213,7 +213,7 @@ BubbleColumnUpParticle::BubbleColumnUpParticle(const glm::vec3& pos, const glm::
     setFriction(0.85f);
     setHasPhysics(false);
 
-    // 生命周期 = (int)(8.0 / (rand * 0.8 + 0.2))，与 BubbleParticle 相同
+    // 生命周期 = (i32)(8.0 / (rand * 0.8 + 0.2))，与 BubbleParticle 相同
     setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (m_random.nextFloat() * 0.8f + 0.2f))));
 }
 

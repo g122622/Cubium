@@ -190,7 +190,7 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
     f64 currentZ = startZ;
 
     for (i32 i = startIndex; i < endIndex; ++i) {
-        // 原版：Mth.sin((float) Math.PI * j / endIndex) —— 角度按 **f32** 运算后交给
+        // 原版：Mth.sin((f32) Math.PI * j / endIndex) —— 角度按 **f32** 运算后交给
         // 查表版 Mth.sin（不是精确 std::sin）。两者数值不同，直接决定隧道半径与走向。
         const f32 envelopeAngle = static_cast<f32>(math::PI) * static_cast<f32>(i) / static_cast<f32>(endIndex);
         const f64 horizontalRadius = 1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle))) * thickness;

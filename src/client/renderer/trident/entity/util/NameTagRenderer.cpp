@@ -147,7 +147,7 @@ void NameTagRenderer::renderNameTag(VkCommandBuffer cmd,
         return;
     }
 
-    // 转换为 float 类型位置
+    // 转换为 f32 类型位置
     Vector3f entityPos(static_cast<f32>(entity.prevX() + (entity.x() - entity.prevX()) * partialTicks),
         static_cast<f32>(entity.prevY() + (entity.y() - entity.prevY()) * partialTicks),
         static_cast<f32>(entity.prevZ() + (entity.z() - entity.prevZ()) * partialTicks));

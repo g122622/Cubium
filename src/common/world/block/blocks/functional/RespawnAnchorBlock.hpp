@@ -90,7 +90,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] int getComparatorInputOverride(
+    [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 渲染属性 ==========
@@ -106,7 +106,7 @@ public:
     /**
      * @brief 获取充能等级
      */
-    [[nodiscard]] static int getCharges(const BlockState& state)
+    [[nodiscard]] static i32 getCharges(const BlockState& state)
     {
         return state.get(BlockStateProperties::CHARGES_0_4());
     }

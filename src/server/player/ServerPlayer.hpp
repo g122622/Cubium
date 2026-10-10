@@ -592,7 +592,7 @@ public:
     /**
      * @brief 累积方块变更 ACK 序列号
      *
-     * 对齐 Java ServerGamePacketListenerImpl.ackBlockChangesUpTo(int)（:1418-1424）：
+     * 对齐 Java ServerGamePacketListenerImpl.ackBlockChangesUpTo(i32)（:1418-1424）：
      * 取 max 累积，而非直接赋值。use_item_on / use_item / PlayerAction(Start/Abort/
      * StopDestroy) 收包后调用此方法记录 sequence，由 tick() 末统一发送一个
      * ClientboundBlockChangedAckPacket(maxSequence)。

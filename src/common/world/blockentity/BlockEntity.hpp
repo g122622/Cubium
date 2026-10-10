@@ -250,7 +250,7 @@ public:
      * 子类应重写此方法以处理特定的事件ID和参数。
      * 默认实现返回 false（未处理）。
      *
-     * 参考 MC Java: BlockEntity.triggerEvent(int, int)
+     * 参考 MC Java: BlockEntity.triggerEvent(i32, i32)
      *
      * @param id 事件ID（含义因方块实体类型而异）
      * @param type 事件类型/数据（含义因方块实体类型而异）

@@ -167,7 +167,7 @@ i32 WardenEntity::getClientAngerLevel() const noexcept
 i32 WardenEntity::increaseAnger(i32 amount) noexcept
 {
     // 对应 MC 1.21.11 Warden.increaseAngerAt() 简化版：
-    //   int i = angerManagement.increaseAnger(entity, amount);
+    //   i32 i = angerManagement.increaseAnger(entity, amount);
     //   ...
     //   this.syncClientAngerLevel();
     //

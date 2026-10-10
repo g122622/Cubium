@@ -215,7 +215,7 @@ private:
  *
  * 使用示例:
  * @code
- * Result<int> divide(int a, int b) {
+ * Result<i32> divide(i32 a, i32 b) {
  *     if (b == 0) {
  *         return Error(ErrorCode::InvalidArgument, "Division by zero");
  *     }
@@ -478,7 +478,7 @@ private:
  *
  * 使用示例:
  * @code
- * Result<int> foo() { ... }
+ * Result<i32> foo() { ... }
  *
  * Result<void> bar() {
  *     TRY(auto value, foo());

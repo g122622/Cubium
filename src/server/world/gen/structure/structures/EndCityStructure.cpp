@@ -241,9 +241,9 @@ void CityTemplate::generate(IWorldWriter& world,
         // 模板未找到，使用占位方块
         const BlockState* endStoneBricks = VanillaBlocks::getState(VanillaBlocks::END_STONE_BRICKS);
         if (endStoneBricks) {
-            for (int y = 0; y < 4; ++y) {
-                for (int x = 0; x < 4; ++x) {
-                    for (int z = 0; z < 4; ++z) {
+            for (i32 y = 0; y < 4; ++y) {
+                for (i32 x = 0; x < 4; ++x) {
+                    for (i32 z = 0; z < 4; ++z) {
                         BlockPos worldPos =
                             BlockPos(m_templatePosition.x + x, m_templatePosition.y + y, m_templatePosition.z + z);
                         if (chunkBounds.contains(worldPos.x, worldPos.y, worldPos.z)) {

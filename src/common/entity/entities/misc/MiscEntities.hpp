@@ -305,7 +305,7 @@ public:
      * @brief 设置引信时间
      *
      * 同时写入 DataParameter DATA_FUSE_PARAM 以同步到客户端，
-     * 对应 MC 1.21.11 PrimedTnt.setFuse(int)。
+     * 对应 MC 1.21.11 PrimedTnt.setFuse(i32)。
      */
     void setFuse(i32 fuse);
 

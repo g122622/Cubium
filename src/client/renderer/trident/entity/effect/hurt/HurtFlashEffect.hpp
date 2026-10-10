@@ -38,7 +38,7 @@ namespace mc::client::renderer::entity::effect::hurt {
  * 用于渲染实体受伤时的红色闪烁效果。
  *
  * OverlayTexture 格式:
- * - U = getU(uIn) = (int)(uIn * 15.0F) - hurtTime/10.0 决定 U 值
+ * - U = getU(uIn) = (i32)(uIn * 15.0F) - hurtTime/10.0 决定 U 值
  * - V = getV(hurtIn) = hurtIn ? 3 : 10 - 受伤时 V=3，正常时 V=10
  * - packedUV = u | (v << 16) - U 在低 16 位，V 在高 16 位
  */
@@ -61,7 +61,7 @@ public:
      * @param whiteFlash 是否为白色闪烁（道德影响）
      * @return 打包的UV值
      *
-     * U = (int)(uIn * 15.0F) 范围 0-15
+     * U = (i32)(uIn * 15.0F) 范围 0-15
      * V = hurtTime > 0 || deathTime > 0 ? 3 : 10
      */
     [[nodiscard]] static i32 getPackedOverlay(::mc::LivingEntity& entity, bool whiteFlash);
@@ -93,7 +93,7 @@ private:
     ~HurtFlashEffect() = delete;
 
     // OverlayTexture 使用 15 作为打包因子
-    // getU(uIn) = (int)(uIn * 15.0F)
+    // getU(uIn) = (i32)(uIn * 15.0F)
     static constexpr i32 OVERLAY_PACKING = 15;
 
     // V 值常量

@@ -520,7 +520,7 @@ public:
      * 将方块事件加入队列，每tick处理时验证方块是否仍匹配，
      * 匹配则执行事件并广播给附近客户端。
      *
-     * 参考 MC Java: ServerLevel.blockEvent(BlockPos, Block, int, int)
+     * 参考 MC Java: ServerLevel.blockEvent(BlockPos, Block, i32, i32)
      *
      * @param pos 方块位置
      * @param block 方块类型（用于验证方块是否仍存在）
@@ -766,7 +766,7 @@ public:
      * 方块实体数据变化后调用，触发将最新 NBT 快照发送给追踪该区块的客户端。
      * 实际的玩家筛选与包发送由上层（MinecraftServer）通过回调完成。
      *
-     * 参考 MC Java: ServerLevel.sendBlockUpdated(BlockPos, BlockState, BlockState, int)
+     * 参考 MC Java: ServerLevel.sendBlockUpdated(BlockPos, BlockState, BlockState, i32)
      *
      * @param pos 方块位置
      */
@@ -1523,7 +1523,7 @@ public:
     /**
      * @brief 按结构标签查找最近的结构
      *
-     * 对应 MC 1.21.11 ServerLevel.findNearestMapStructure(TagKey<Structure>, BlockPos, int, boolean)。
+     * 对应 MC 1.21.11 ServerLevel.findNearestMapStructure(TagKey<Structure>, BlockPos, i32, boolean)。
      *
      * 遍历标签中的所有结构 ID，对每个结构调用 findNearestStructure，
      * 返回所有候选中距离最近的位置。

@@ -114,8 +114,8 @@ struct MacroFunctionEntry {
  * stringify 规则（对应 MacroFunction#stringify）：
  * - FloatTag → "%.15g" 格式化（去尾零）
  * - DoubleTag → "%.15g" 格式化（去尾零）
- * - ByteTag → (int)value 的十进制字符串
- * - ShortTag → (int)value 的十进制字符串
+ * - ByteTag → (i32)value 的十进制字符串
+ * - ShortTag → (i32)value 的十进制字符串
  * - LongTag → value 的十进制字符串
  * - StringTag → 原始字符串值
  * - 其他（Int/Compound/List/ByteArray/IntArray/LongArray）→ SNBT 文本（std::to_string(tag)）

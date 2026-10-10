@@ -74,7 +74,7 @@ struct DimensionPadding {
  *
  * 限制结构片段距中心的最大水平/垂直距离，用于初始化 Jigsaw 组装的可放置空间 VoxelShape。
  * 对应 MC 1.21 的 JigsawStructure.MaxDistance(horizontal, vertical)。
- * 单参数构造将 horizontal 与 vertical 设为相同值（对应 MC 的 MaxDistance(int) 构造器）。
+ * 单参数构造将 horizontal 与 vertical 设为相同值（对应 MC 的 MaxDistance(i32) 构造器）。
  */
 struct MaxDistance {
     i32 horizontal = 80; ///< 水平最大距离（格）
@@ -83,7 +83,7 @@ struct MaxDistance {
     constexpr MaxDistance() = default;
 
     /**
-     * @brief 单值构造（horizontal = vertical = dist），对应 MC 的 MaxDistance(int)
+     * @brief 单值构造（horizontal = vertical = dist），对应 MC 的 MaxDistance(i32)
      */
     constexpr MaxDistance(i32 dist)
         : horizontal(dist)
@@ -91,7 +91,7 @@ struct MaxDistance {
     {}
 
     /**
-     * @brief 双值构造，对应 MC 的 MaxDistance(int horizontal, int vertical)
+     * @brief 双值构造，对应 MC 的 MaxDistance(i32 horizontal, i32 vertical)
      */
     constexpr MaxDistance(i32 horiz, i32 vert)
         : horizontal(horiz)

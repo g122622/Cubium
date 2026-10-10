@@ -121,7 +121,7 @@ void UnderwaterAmbientHandler::tick(SoundEngine& engine)
         return;
     }
 
-    // 使用 float 随机数 [0.0, 1.0)
+    // 使用 f32 随机数 [0.0, 1.0)
     f32 f = m_rng.nextFloat();
 
     // 概率阈值（累积概率）

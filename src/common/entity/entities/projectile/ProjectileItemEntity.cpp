@@ -215,7 +215,7 @@ void EggEntity::onImpact(const RayTraceResult& result)
     //   super.onHit(p);  // 基类 dispatch（→ onHitEntity/onHitBlock）
     //   if (!level.isClientSide) {
     //     if (random.nextInt(8) == 0) {  // 1/8 孵化
-    //       int i = 1; if (random.nextInt(32) == 0) i = 4;  // 1/32 子概率孵 4 只
+    //       i32 i = 1; if (random.nextInt(32) == 0) i = 4;  // 1/32 子概率孵 4 只
     //       for (j<i) { 生成幼年鸡 setAge(-24000) snapTo(位置) addFreshEntity }
     //     }
     //     broadcastEntityEvent(3);  // 破裂粒子

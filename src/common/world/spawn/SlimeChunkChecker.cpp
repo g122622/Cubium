@@ -37,7 +37,7 @@ i32 SlimeChunkChecker::javaNext(u64& state, i32 bits)
 {
     // Java: state = (state * multiplier + increment) & mask
     state = (state * JAVA_LCG_MULTIPLIER + JAVA_LCG_INCREMENT) & JAVA_LCG_MASK;
-    // Java: return (int)(state >>> (48 - bits))
+    // Java: return (i32)(state >>> (48 - bits))
     return static_cast<i32>(state >> (48 - bits));
 }
 

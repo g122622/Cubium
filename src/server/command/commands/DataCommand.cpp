@@ -863,9 +863,9 @@ i32 DataCommand::_getSingleResult(const nbt::tags::tag& tag)
     }
 }
 
-i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, double scale)
+i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, f64 scale)
 {
-    double value = 0.0;
+    f64 value = 0.0;
 
     switch (tag.id()) {
         case nbt::TagId::Byte:
@@ -878,7 +878,7 @@ i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, double scale)
             value = dynamic_cast<const nbt::tags::int_tag&>(tag).value;
             break;
         case nbt::TagId::Long:
-            value = static_cast<double>(dynamic_cast<const nbt::tags::long_tag&>(tag).value);
+            value = static_cast<f64>(dynamic_cast<const nbt::tags::long_tag&>(tag).value);
             break;
         case nbt::TagId::Float:
             value = dynamic_cast<const nbt::tags::float_tag&>(tag).value;

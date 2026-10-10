@@ -68,10 +68,10 @@ struct RocksDBConfig {
     size_t writeBufferSize = 8 * 1024 * 1024;
 
     /// 最大MemTable数量（1 个活跃 + maxWriteBufferNumber-1 个不可变）
-    int maxWriteBufferNumber = 2;
+    i32 maxWriteBufferNumber = 2;
 
     /// 合并前最小不可变MemTable数量
-    int minWriteBufferNumberToMerge = 2;
+    i32 minWriteBufferNumberToMerge = 2;
 
     /// 全部列族的 MemTable 内存上限（字节）
     ///
@@ -83,14 +83,14 @@ struct RocksDBConfig {
     ///
     /// RocksDB 默认 -1（不限制），其官方注释即提示该默认会显著占用内存。改为有界值以约束
     /// TableCache / BlobFileCache 的规模，代价是冷读需重新打开文件。
-    int maxOpenFiles = 512;
+    i32 maxOpenFiles = 512;
 
     // ========================================================================
     // LSM树配置
     // ========================================================================
 
     /// LSM树层数
-    int numLevels = 7;
+    i32 numLevels = 7;
 
     /// 目标文件大小基数（字节）
     /// 默认64MB
@@ -101,7 +101,7 @@ struct RocksDBConfig {
     size_t maxBytesForLevelBase = 256 * 1024 * 1024;
 
     /// 每层大小倍数
-    double maxBytesForLevelMultiplier = 10.0;
+    f64 maxBytesForLevelMultiplier = 10.0;
 
     // ========================================================================
     // 压缩配置
@@ -143,7 +143,7 @@ struct RocksDBConfig {
     // ========================================================================
 
     /// 最大后台任务数（RocksDB 据此自行切分压缩/刷盘线程，无需分别配置）
-    int maxBackgroundJobs = 4;
+    i32 maxBackgroundJobs = 4;
 
     // ========================================================================
     // 统计与监控
@@ -161,7 +161,7 @@ struct RocksDBConfig {
 
     /// Bloom过滤器位数
     /// 每个key平均使用的bit数，越大误判率越低
-    double bloomFilterBitsPerKey = 10.0;
+    f64 bloomFilterBitsPerKey = 10.0;
 
     /// 是否为整体过滤器（减少内存占用）
     bool useWholeKeyBloomFilter = false;
@@ -194,7 +194,7 @@ struct RocksDBConfig {
         // 统计
         if (enableStatistics) {
             options.statistics = rocksdb::CreateDBStatistics();
-            options.stats_dump_period_sec = static_cast<unsigned int>(statisticsDumpPeriodMs / 1000);
+            options.stats_dump_period_sec = static_cast<u32>(statisticsDumpPeriodMs / 1000);
         }
 
         return options;

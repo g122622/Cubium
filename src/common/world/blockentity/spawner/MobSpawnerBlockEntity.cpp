@@ -175,7 +175,7 @@ bool MobSpawnerBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
 
     using namespace mc::entity::serialization::nbt_helper;
 
-    // 读取生成参数（MC Java 使用 short 标签，兼容 int）
+    // 读取生成参数（MC Java 使用 short 标签，兼容 i32）
     if (auto val = tryGetShort(tag, "Delay")) {
         m_spawnDelay = static_cast<i32>(*val);
     } else if (auto val = tryGetInt(tag, "Delay")) {

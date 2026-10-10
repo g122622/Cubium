@@ -112,7 +112,7 @@ public:
         }
 
         std::thread::id m_threadId;
-        std::atomic<int> m_permit{0};
+        std::atomic<i32> m_permit{0};
         std::mutex m_mutex;
         std::condition_variable m_cv;
     };

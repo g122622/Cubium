@@ -69,7 +69,7 @@ void Biome::clearTemperatureCache()
 
 f32 Biome::getTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
 {
-    // MC 1.21.11: Biome.getTemperature(BlockPos, int seaLevel)
+    // MC 1.21.11: Biome.getTemperature(BlockPos, i32 seaLevel)
     // 使用 Long2FloatLinkedOpenHashMap 缓存，key = BlockPos.asLong()
     const i64 key = Long2FloatLRUCache::packBlockPos(x, y, z);
     auto& cache = getTemperatureCache();

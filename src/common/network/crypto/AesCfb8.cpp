@@ -123,8 +123,8 @@ Result<std::vector<u8>> AesCfb8::process(const u8* data, usize size)
 
     std::vector<u8> out(size);
     // CFB8 流式：输入 n 字节产出 n 字节。EVP_CipherUpdate 输出长度 ≤ inl + block，CFB8 无膨胀。
-    int outLen = 0;
-    if (EVP_CipherUpdate(static_cast<EVP_CIPHER_CTX*>(m_ctx), out.data(), &outLen, data, static_cast<int>(size)) != 1) {
+    i32 outLen = 0;
+    if (EVP_CipherUpdate(static_cast<EVP_CIPHER_CTX*>(m_ctx), out.data(), &outLen, data, static_cast<i32>(size)) != 1) {
         return Error(ErrorCode::Unknown, "EVP_CipherUpdate failed", "AesCfb8::process");
     }
     // CFB8 不调 EVP_CipherFinal（无 padding）。outLen 应等于 size。

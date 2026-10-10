@@ -177,7 +177,7 @@ public:
      * @brief 设置数组元素为任意 JS 值句柄。
      *
      * 不消耗 value 所有权（内部 DupValue），调用方仍须在用完后 releaseValue(value)。
-     * 供需要把 JS 对象（非 int/string）塞入数组的场景（如 Dimension.getEntities 返回 Entity[]）。
+     * 供需要把 JS 对象（非 i32/string）塞入数组的场景（如 Dimension.getEntities 返回 Entity[]）。
      */
     virtual void setArrayElement(void* arr, u32 index, void* value) = 0;
 
@@ -339,7 +339,7 @@ public:
      * @brief 查询 Promise 状态。
      * @return 0=Pending / 1=Fulfilled / 2=Rejected / -1=非 Promise 或 null（语义对齐 JSPromiseStateEnum）。
      */
-    [[nodiscard]] virtual int promiseState(void* promise) const = 0;
+    [[nodiscard]] virtual i32 promiseState(void* promise) const = 0;
 
     /**
      * @brief 取 Promise 的 settle 值（fulfilled 的值 / rejected 的 reason；pending 返回 undefined）。

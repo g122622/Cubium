@@ -963,8 +963,8 @@ void IntegratedServer::_tickOpenContainer()
     if (furnaceMenu == nullptr) {
         return;
     }
-    // 从熔炉方块实体刷新燃烧/熔炼进度到菜单 tracked int 的独立存储，
-    // detectAndSendChanges 检测变化经 int 监听器发 WindowPropertyPacket 下推客户端。
+    // 从熔炉方块实体刷新燃烧/熔炼进度到菜单 tracked i32 的独立存储，
+    // detectAndSendChanges 检测变化经 i32 监听器发 WindowPropertyPacket 下推客户端。
     furnaceMenu->syncProgressFromEntity();
     furnaceMenu->detectAndSendChanges();
 }
@@ -1136,7 +1136,7 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
     m_openMenu = std::move(menu);
     _getMenuPlayer().setOpenContainerMenu(m_openMenu.get());
 
-    // 熔炉菜单注册 tracked int 监听器：进度变化时发 WindowPropertyPacket 下推客户端
+    // 熔炉菜单注册 tracked i32 监听器：进度变化时发 WindowPropertyPacket 下推客户端
     if (m_openMenu) {
         m_furnaceIntListenerId = _registerFurnaceIntListener(*m_openMenu);
         // 立即同步一次，使打开首帧火焰/箭头进度正确（不等首个 tick）
@@ -1181,7 +1181,7 @@ void IntegratedServer::_closeCurrentContainer(bool sendClosePacket)
     }
     menuPlayer.clearOpenContainerMenu();
 
-    // 移除熔炉 tracked int 监听器（若已注册）
+    // 移除熔炉 tracked i32 监听器（若已注册）
     if (m_furnaceIntListenerId >= 0 && m_openMenu) {
         m_openMenu->removeIntListener(m_furnaceIntListenerId);
         m_furnaceIntListenerId = -1;

@@ -112,7 +112,7 @@ public:
      * 直接将QuickJS C函数注册为全局函数，适用于高性能绑定。
      *
      * @param name 函数名
-     * @param func C函数指针（签名：JSValue func(JSContext*, JSValue, int, JSValue*)）
+     * @param func C函数指针（签名：JSValue func(JSContext*, JSValue, i32, JSValue*)）
      * @param length 参数个数
      * @return 是否注册成功
      */
@@ -125,7 +125,7 @@ public:
      * @param initFunc 模块初始化函数
      * @return 是否注册成功
      */
-    bool registerNativeModule(const std::string& name, std::function<int(JSContext*, JSModuleDef*)> initFunc);
+    bool registerNativeModule(const std::string& name, std::function<i32(JSContext*, JSModuleDef*)> initFunc);
 
     /**
      * @brief 设置模块源码提供者

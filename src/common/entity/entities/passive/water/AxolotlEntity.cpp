@@ -104,7 +104,7 @@ bool AxolotlEntity::canBeSeenAsEnemy() const
     return !m_playingDead;
 }
 
-bool AxolotlEntity::canDespawn(double distanceToClosestPlayer) const
+bool AxolotlEntity::canDespawn(f64 distanceToClosestPlayer) const
 {
     MC_UNUSED(distanceToClosestPlayer);
     // 来自桶或有自定义名称的美西螈不会消失

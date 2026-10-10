@@ -98,7 +98,7 @@ static const CollisionShape SEU_CORNER = CollisionShape::box(0.5f, 0.5f, 0.5f, 1
  * @param seCorner 东南角形状
  * @return 组合后的形状
  */
-static CollisionShape combineShapes(int bitfield,
+static CollisionShape combineShapes(i32 bitfield,
     const CollisionShape& slabShape,
     const CollisionShape& nwCorner,
     const CollisionShape& neCorner,
@@ -143,7 +143,7 @@ static std::array<CollisionShape, 16> makeShapes(const CollisionShape& slabShape
     const CollisionShape& seCorner)
 {
     std::array<CollisionShape, 16> shapes;
-    for (int i = 0; i < 16; ++i) {
+    for (i32 i = 0; i < 16; ++i) {
         shapes[i] = combineShapes(i, slabShape, nwCorner, neCorner, swCorner, seCorner);
     }
     return shapes;
@@ -165,7 +165,7 @@ static const std::array<CollisionShape, 16> SLAB_TOP_SHAPES =
  * 顺序: STRAIGHT(4) + INNER_LEFT(4) + INNER_RIGHT(4) + OUTER_LEFT(4) + OUTER_RIGHT(4)
  * 每组按 NORTH(0), SOUTH(1), WEST(2), EAST(3) 排列
  */
-static constexpr std::array<int, 20> SHAPE_INDEX_MAP = {
+static constexpr std::array<i32, 20> SHAPE_INDEX_MAP = {
     12, 5, 3, 10, 14, 13, 7, 11, 13, 7, 11, 14, 8, 4, 1, 2, 4, 1, 2, 8};
 
 // ========== 构造函数 ==========

@@ -39,18 +39,18 @@
 
 namespace mc {
 
-double DripstoneUtils::getDripstoneHeight(double radius, double scale, double heightScale, double bluntness)
+f64 DripstoneUtils::getDripstoneHeight(f64 radius, f64 scale, f64 heightScale, f64 bluntness)
 {
     if (radius < bluntness) {
         radius = bluntness;
     }
 
-    constexpr double d0 = 0.384;
-    const double d1 = radius / scale * 0.384;
-    const double d2 = 0.75 * std::pow(d1, 1.3333333333333333);
-    const double d3 = std::pow(d1, 0.6666666666666666);
-    const double d4 = 0.3333333333333333 * std::log(d1);
-    double d5 = heightScale * (d2 - d3 - d4);
+    constexpr f64 d0 = 0.384;
+    const f64 d1 = radius / scale * 0.384;
+    const f64 d2 = 0.75 * std::pow(d1, 1.3333333333333333);
+    const f64 d3 = std::pow(d1, 0.6666666666666666);
+    const f64 d4 = 0.3333333333333333 * std::log(d1);
+    f64 d5 = heightScale * (d2 - d3 - d4);
     d5 = std::max(d5, 0.0);
     return d5 / 0.384 * scale;
 }
@@ -61,8 +61,8 @@ bool DripstoneUtils::isCircleMostlyEmbeddedInStone(IWorld& world, const BlockPos
         return false;
     }
 
-    const float step = 6.0F / static_cast<float>(radius);
-    for (float angle = 0.0F; angle < math::TWO_PI; angle += step) {
+    const f32 step = 6.0F / static_cast<f32>(radius);
+    for (f32 angle = 0.0F; angle < math::TWO_PI; angle += step) {
         const i32 dx = static_cast<i32>(std::cos(angle) * radius);
         const i32 dz = static_cast<i32>(std::sin(angle) * radius);
         if (isEmptyOrWaterOrLava(world, BlockPos(pos.x + dx, pos.y, pos.z + dz))) {

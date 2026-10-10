@@ -180,7 +180,7 @@ void InputManager::bindActionCallback(const std::string& action, ActionCallback 
     m_actionCallbacks[action] = std::move(callback);
 }
 
-void InputManager::_keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int mods)
+void InputManager::_keyCallback(GLFWwindow* window, i32 key, i32 /*scancode*/, i32 action, i32 mods)
 {
     auto* input = getInputManager(window);
     if (input && key >= 0) {
@@ -188,7 +188,7 @@ void InputManager::_keyCallback(GLFWwindow* window, int key, int /*scancode*/, i
     }
 }
 
-void InputManager::_mouseCallback(GLFWwindow* window, double xpos, double ypos)
+void InputManager::_mouseCallback(GLFWwindow* window, f64 xpos, f64 ypos)
 {
     auto* input = getInputManager(window);
     if (input) {
@@ -196,7 +196,7 @@ void InputManager::_mouseCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
-void InputManager::_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+void InputManager::_mouseButtonCallback(GLFWwindow* window, i32 button, i32 action, i32 mods)
 {
     auto* input = getInputManager(window);
     if (input && button >= 0) {
@@ -204,7 +204,7 @@ void InputManager::_mouseButtonCallback(GLFWwindow* window, int button, int acti
     }
 }
 
-void InputManager::_scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void InputManager::_scrollCallback(GLFWwindow* window, f64 xoffset, f64 yoffset)
 {
     auto* input = getInputManager(window);
     if (input) {
@@ -270,7 +270,7 @@ void InputManager::_handleScroll(f64 x, f64 y)
     m_scrollDeltaY = y;
 }
 
-void InputManager::_charCallback(GLFWwindow* window, unsigned int codepoint)
+void InputManager::_charCallback(GLFWwindow* window, u32 codepoint)
 {
     auto* input = getInputManager(window);
     if (input) {

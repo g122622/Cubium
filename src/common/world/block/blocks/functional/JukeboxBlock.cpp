@@ -92,7 +92,7 @@ std::unique_ptr<BlockEntity> JukeboxBlock::createBlockEntity(const BlockPos& pos
     return std::make_unique<blockentity::JukeboxEntity>(pos);
 }
 
-int JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
 

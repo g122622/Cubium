@@ -226,7 +226,7 @@ void EntityRendererManager::setCameraInfo(
     // 更新 ShadowRenderer 的相机位置（用于阴影距离衰减）
     util::ShadowRenderer::setCameraPosition(Vector3d(position.x, position.y, position.z));
 
-    // 转换视图矩阵为 double 数组
+    // 转换视图矩阵为 f64 数组
     std::array<f64, 16> viewMatrixArray;
     for (i32 i = 0; i < 4; ++i) {
         for (i32 j = 0; j < 4; ++j) {

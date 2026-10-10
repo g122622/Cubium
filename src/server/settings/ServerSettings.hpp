@@ -47,7 +47,7 @@ namespace mc::server {
  * settings.maxPlayers.set(50);
  *
  * // 设置变更回调
- * settings.maxPlayers.onChange([](int value) {
+ * settings.maxPlayers.onChange([](i32 value) {
  *     spdlog::info("Max players: {}", value);
  * });
  * @endcode

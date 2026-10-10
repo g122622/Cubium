@@ -192,7 +192,7 @@ Result<FlatLevelGeneratorSettings> FlatLevelGeneratorSettings::fromSettingsObjec
         settings.setLakes(lakes.value());
     }
 
-    // layers（每层 {block:RL, height:int}；block 经 BlockRegistry 取默认 BlockState）
+    // layers（每层 {block:RL, height:i32}；block 经 BlockRegistry 取默认 BlockState）
     if (!settingsObj.contains("layers") || !settingsObj["layers"].is_array()) {
         return Error(ErrorCode::InvalidData, "flat preset '" + id.toString() + "' missing 'layers' array");
     }

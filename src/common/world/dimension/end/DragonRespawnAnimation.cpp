@@ -119,12 +119,12 @@ void dragon_respawn::tickSummoningPillars(IWorld& world,
     i32 time,
     const BlockPos& /*portalLocation*/)
 {
-    // MC: int i = 40;
+    // MC: i32 i = 40;
     //     boolean flag = p_64038_ % 40 == 0;
     //     boolean flag1 = p_64038_ % 40 == 39;
     //     if (flag || flag1) {
     //         List<EndSpike> list = SpikeFeature.getSpikesForLevel(p_64035_);
-    //         int j = p_64038_ / 40;
+    //         i32 j = p_64038_ / 40;
     //         if (j < list.size()) {
     //             EndSpike spike = list.get(j);
     //             if (flag) {
@@ -133,7 +133,7 @@ void dragon_respawn::tickSummoningPillars(IWorld& world,
     //                 }
     //             } else {
     //                 // flag1 分支：移除柱区方块 + 爆炸 + 重新生成柱子
-    //                 int k = 10;
+    //                 i32 k = 10;
     //                 for (BlockPos blockpos : BlockPos.betweenClosed(
     //                     new BlockPos(spike.centerX - 10, spike.height - 10, spike.centerZ - 10),
     //                     new BlockPos(spike.centerX + 10, spike.height + 10, spike.centerZ + 10)

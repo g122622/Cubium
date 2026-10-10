@@ -111,7 +111,7 @@ Result<RsaHandshake::KeyPair> RsaHandshake::generateKeyPair()
 
     // 编码公钥为 X509 SubjectPublicKeyInfo DER。
     u8* pubDer = nullptr;
-    int pubLen = i2d_PUBKEY(pkey.get(), &pubDer);
+    i32 pubLen = i2d_PUBKEY(pkey.get(), &pubDer);
     if (pubLen <= 0) {
         return Error(ErrorCode::Unknown, "i2d_PUBKEY failed", "RsaHandshake::generateKeyPair");
     }
@@ -121,7 +121,7 @@ Result<RsaHandshake::KeyPair> RsaHandshake::generateKeyPair()
 
     // 编码私钥为 PKCS8 DER。
     u8* privDer = nullptr;
-    int privLen = i2d_PrivateKey(pkey.get(), &privDer);
+    i32 privLen = i2d_PrivateKey(pkey.get(), &privDer);
     if (privLen <= 0) {
         OPENSSL_free(privDer);
         return Error(ErrorCode::Unknown, "i2d_PrivateKey failed", "RsaHandshake::generateKeyPair");

@@ -1249,7 +1249,7 @@ private:
     static constexpr size_t MIN_CHUNK_UNLOAD_COUNT = 50;
 
     /// 每 tick 卸载保底比例（对齐 Moonrise minChunkUnloadFraction 默认值）
-    static constexpr double MIN_CHUNK_UNLOAD_FRACTION = 0.05;
+    static constexpr f64 MIN_CHUNK_UNLOAD_FRACTION = 0.05;
 
     /// 生成空闲判据：最近一次区块生成步骤（_executeStepTask）距今至少该毫秒数才视为空闲。
     /// 【必须】基于"生成步骤"而非"worker 池空闲"：实测静置期 RuntimeLightTask 持续占用池线程

@@ -95,7 +95,7 @@ std::vector<u8> Sha1::padMessage(std::span<const u8> message)
 
     // 追加原始长度（64 位大端序）
     const u64 bitLength = static_cast<u64>(message.size()) * 8;
-    for (int i = 7; i >= 0; --i) {
+    for (i32 i = 7; i >= 0; --i) {
         padded.push_back(static_cast<u8>((bitLength >> (i * 8)) & 0xFF));
     }
 

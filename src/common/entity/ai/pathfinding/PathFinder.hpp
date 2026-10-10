@@ -137,7 +137,7 @@ public:
         i32 targetY,
         i32 targetZ,
         i32 maxDistance,
-        float visitedNodesMultiplier = 1.0f);
+        f32 visitedNodesMultiplier = 1.0f);
 
     /**
      * @brief 寻找到目标范围的路径
@@ -158,7 +158,7 @@ public:
         i32 targetY,
         i32 targetZ,
         i32 range,
-        float visitedNodesMultiplier = 1.0f);
+        f32 visitedNodesMultiplier = 1.0f);
 
     // ========== 多目标寻路 ==========
 
@@ -190,7 +190,7 @@ public:
         i32 startZ,
         const std::vector<TargetPoint>& targets,
         i32 maxDistance,
-        float visitedNodesMultiplier = 1.0f);
+        f32 visitedNodesMultiplier = 1.0f);
 
     // ========== 调试 ==========
 

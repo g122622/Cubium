@@ -99,8 +99,8 @@ ActionResultType EnderEyeItem::onItemUse(ItemUseContext& context)
     //   BlockPattern.BlockPatternMatch match = EndPortalFrameBlock.getOrCreatePortalShape().find(level, blockpos);
     //   if (match != null) {
     //       BlockPos blockpos1 = match.getFrontTopLeft().offset(-3, 0, -3);
-    //       for (int i = 0; i < 3; i++) {
-    //           for (int j = 0; j < 3; j++) {
+    //       for (i32 i = 0; i < 3; i++) {
+    //           for (i32 j = 0; j < 3; j++) {
     //               BlockPos blockpos2 = blockpos1.offset(i, 0, j);
     //               level.destroyBlock(blockpos2, true, null);
     //               level.setBlock(blockpos2, Blocks.END_PORTAL.defaultBlockState(), 2);

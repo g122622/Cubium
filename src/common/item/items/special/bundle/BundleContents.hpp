@@ -176,7 +176,7 @@ public:
 
     /**
      * @brief 序列化为 JSON（用于 ItemStack NBT）
-     * @return JSON 对象，结构为 {"items": [...], "weight": int, "selected": int}
+     * @return JSON 对象，结构为 {"items": [...], "weight": i32, "selected": i32}
      */
     [[nodiscard]] nlohmann::json toJson() const;
 

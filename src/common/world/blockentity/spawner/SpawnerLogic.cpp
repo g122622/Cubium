@@ -133,7 +133,7 @@ void SpawnerLogic::clientTick(IWorld& world, f64 centerX, f64 centerY, f64 cente
     (void)centerZ;
 }
 
-void SpawnerLogic::onEventTriggered(int eventId)
+void SpawnerLogic::onEventTriggered(i32 eventId)
 {
     // 对应 MC Java BaseSpawner.onEventTriggered()
     // 当收到事件 id == 1 时，重置 spawnDelay 为 minSpawnDelay
@@ -448,7 +448,7 @@ void SpawnerLogic::loadFromNBT(const nbt::CompoundTag& tag)
 {
     using namespace mc::entity::serialization::nbt_helper;
 
-    // 读取生成参数（MC Java 使用 short 标签，兼容 int）
+    // 读取生成参数（MC Java 使用 short 标签，兼容 i32）
     if (auto val = tryGetShort(tag, "Delay")) {
         m_spawnDelay = static_cast<i32>(*val);
     } else if (auto val = tryGetInt(tag, "Delay")) {

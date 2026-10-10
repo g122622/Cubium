@@ -22,8 +22,9 @@
  */
 
 #include "application/ClientApplicationEntry.hpp"
+#include "common/core/Types.hpp"
 
-int main(int argc, char* argv[])
+mc::i32 main(mc::i32 argc, char* argv[])
 {
     mc::client::ClientApplicationEntry entry;
     return entry.run(argc, argv);

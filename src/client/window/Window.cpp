@@ -36,7 +36,7 @@ using namespace mc::trace;
 namespace mc::client {
 
 // 静态计数器，跟踪GLFW初始化
-static int s_glfwInitCount = 0;
+static i32 s_glfwInitCount = 0;
 
 Window::Window() = default;
 
@@ -283,7 +283,7 @@ void Window::setScrollCallback(ScrollCallback callback, void* userData)
     m_scrollUserData = userData;
 }
 
-void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height)
+void Window::_framebufferSizeCallback(GLFWwindow* window, i32 width, i32 height)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win) {
@@ -297,7 +297,7 @@ void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height)
     }
 }
 
-void Window::_keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void Window::_keyCallback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_keyCallback) {
@@ -305,7 +305,7 @@ void Window::_keyCallback(GLFWwindow* window, int key, int scancode, int action,
     }
 }
 
-void Window::_cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+void Window::_cursorPosCallback(GLFWwindow* window, f64 xpos, f64 ypos)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_mouseCallback) {
@@ -313,7 +313,7 @@ void Window::_cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
-void Window::_mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+void Window::_mouseButtonCallback(GLFWwindow* window, i32 button, i32 action, i32 mods)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_mouseButtonCallback) {
@@ -321,7 +321,7 @@ void Window::_mouseButtonCallback(GLFWwindow* window, int button, int action, in
     }
 }
 
-void Window::_scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void Window::_scrollCallback(GLFWwindow* window, f64 xoffset, f64 yoffset)
 {
     auto* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (win && win->m_scrollCallback) {

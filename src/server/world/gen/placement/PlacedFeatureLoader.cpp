@@ -340,7 +340,7 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         }
         config = std::make_unique<CountOnEveryLayerConfig>(providerResult.value());
     } else if (type == "noise_threshold_count") {
-        // noise_threshold_count: {noise_level: double, below_noise: int, above_noise: int}。
+        // noise_threshold_count: {noise_level: f64, below_noise: i32, above_noise: i32}。
         if (!node.contains("noise_level") || !node["noise_level"].is_number()) {
             return Error(ErrorCode::InvalidData, "noise_threshold_count placement missing 'noise_level' number");
         }
@@ -353,7 +353,7 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         config = std::make_unique<NoiseThresholdCountConfig>(
             node["noise_level"].get<f64>(), node["below_noise"].get<i32>(), node["above_noise"].get<i32>());
     } else if (type == "noise_based_count") {
-        // noise_based_count: {noise_to_count_ratio: int, noise_factor: double, noise_offset: double (缺省 0)}。
+        // noise_based_count: {noise_to_count_ratio: i32, noise_factor: f64, noise_offset: f64 (缺省 0)}。
         if (!node.contains("noise_to_count_ratio") || !node["noise_to_count_ratio"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "noise_based_count placement missing 'noise_to_count_ratio' integer");
         }
@@ -364,7 +364,7 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         config = std::make_unique<NoiseBasedCountConfig>(
             node["noise_to_count_ratio"].get<i32>(), node["noise_factor"].get<f64>(), noiseOffset);
     } else if (type == "surface_relative_threshold_filter") {
-        // surface_relative_threshold_filter: {heightmap, min_inclusive? int, max_inclusive? int}。
+        // surface_relative_threshold_filter: {heightmap, min_inclusive? i32, max_inclusive? i32}。
         if (!node.contains("heightmap") || !node["heightmap"].is_string()) {
             return Error(
                 ErrorCode::InvalidData, "surface_relative_threshold_filter placement missing 'heightmap' string");

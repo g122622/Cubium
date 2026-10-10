@@ -365,7 +365,7 @@ public:
      *   super.blockUsingItem(level, attacker);          // 回调 attacker.blockedByItem(this)
      *   ItemStack shield = getItemBlockingWith();
      *   BlocksAttacks ba = shield != null ? shield.get(BLOCKS_ATTACKS) : null;
-     *   float f = attacker.getSecondsToDisableBlocking();
+     *   f32 f = attacker.getSecondsToDisableBlocking();
      *   if (f > 0.0F && ba != null) {
      *       ba.disable(level, this, f, shield);         // 设冷却 + stopUsingItem + 破盾音效
      *   }
@@ -735,7 +735,7 @@ public:
     /**
      * @brief 对物品施加耐久损耗，若物品损坏则触发 onEquippedItemBroken 回调
      *
-     * 对应 MC 原版 ItemStack.hurtAndBreak(int, LivingEntity, EquipmentSlot)。
+     * 对应 MC 原版 ItemStack.hurtAndBreak(i32, LivingEntity, EquipmentSlot)。
      * 在调用 attemptDamageItem 之前保存物品指针（因为损坏后 ItemStack 会被清空），
      * 若物品损坏则调用 onEquippedItemBroken 广播破损动画、播放音效、更新统计。
      *
@@ -1459,7 +1459,7 @@ public:
     /**
      * @brief 计算指定 partialTicks 下的插值游泳动画量
      *
-     * 对应 MC 1.21.11 LivingEntity.getSwimAmount(float partialTick)。
+     * 对应 MC 1.21.11 LivingEntity.getSwimAmount(f32 partialTick)。
      * 渲染器在构建渲染状态时调用此方法，将结果写入 HumanoidRenderState.swimAmount，
      * 驱动 DrownedModel.setupAnim 中的手臂/腿部游泳覆盖动画。
      *
@@ -1743,7 +1743,7 @@ public:
     /**
      * @brief 设置插在身上的蜂针数量
      *
-     * 对齐 MC Java LivingEntity.setStingerCount(int)。当蜜蜂蛰中实体时调用以增加计数。
+     * 对齐 MC Java LivingEntity.setStingerCount(i32)。当蜜蜂蛰中实体时调用以增加计数。
      *
      * @param count 蜂针数量
      */
@@ -1931,7 +1931,7 @@ protected:
     /**
      * @brief 处理鞘翅飞行撞墙伤害
      *
-     * 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(double, double)。
+     * 对应 MC 1.21.11 LivingEntity.handleFallFlyingCollisions(f64, f64)。
      * 当横向碰撞发生时，根据飞行前后水平速度差计算伤害：
      * damage = (prevHorizontal - currHorizontal) * 10 - 3
      * 若 damage > 0，播放摔落音效并施加 FlyIntoWall 伤害。
@@ -2179,13 +2179,13 @@ protected:
     i32 m_spinAttackDuration = 0; // 激流攻击剩余持续时间（ticks）
 
     // 鞘翅飞行计时器
-    // 对应 MC 1.21.11 LivingEntity.fallFlyTicks（protected int）
+    // 对应 MC 1.21.11 LivingEntity.fallFlyTicks（protected i32）
     // 在 tick() 末尾根据 isFallFlying() 递增或归零；
     // updateFallFlying() 中以 fallFlyTicks+1 周期性触发游戏事件与装备损坏。
     i32 m_fallFlyTicks = 0;
 
     // 游泳动画渐变量
-    // 对应 MC 1.21.11 LivingEntity.swimAmount / swimAmountO（private float）
+    // 对应 MC 1.21.11 LivingEntity.swimAmount / swimAmountO（private f32）
     // 在 tick() 中由 updateSwimAmount() 推进：视觉游泳时按 0.09 速率趋近 1.0，
     // 否则按 0.09 速率趋近 0.0。客户端渲染器通过 getSwimAmount(partialTicks) 插值读取，
     // 驱动 DrownedModel.setupAnim 中的手臂/腿部游泳覆盖动画。

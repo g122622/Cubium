@@ -43,7 +43,7 @@ private:
     struct _CaseRecord {
         std::string name;
         std::string classname;
-        double timeSeconds = 0.0;
+        f64 timeSeconds = 0.0;
         bool passed = true;
         bool required = true;
         bool incomplete = false;

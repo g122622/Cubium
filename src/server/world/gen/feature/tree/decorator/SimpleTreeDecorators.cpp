@@ -133,8 +133,8 @@ void BeehiveDecorator::place(const TreeDecoratorContext& context) const
             context.setBlock(pos, nest);
         }
         // MC: level.getBlockEntity(pos, BEEHIVE).ifPresent(h -> {
-        //         int j = 2 + random.nextInt(2);
-        //         for (int k = 0; k < j; k++) h.storeBee(Occupant.create(random.nextInt(599)));
+        //         i32 j = 2 + random.nextInt(2);
+        //         for (i32 k = 0; k < j; k++) h.storeBee(Occupant.create(random.nextInt(599)));
         //     });
         // 【必须照数消耗】写入蜜蜂会推进随机流；不消耗的话，同一棵树上后续装饰器
         // （例如 *_leaf_litter 树型的 place_on_ground）取点会整体错开。

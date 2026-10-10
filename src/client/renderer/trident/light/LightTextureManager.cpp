@@ -225,8 +225,8 @@ void LightTextureManager::_transitionLayout(VkCommandBuffer cmd, VkImageLayout o
         dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     } else {
         spdlog::warn("LightTextureManager: unsupported layout transition {} -> {}",
-            static_cast<int>(oldLayout),
-            static_cast<int>(newLayout));
+            static_cast<i32>(oldLayout),
+            static_cast<i32>(newLayout));
         return;
     }
 

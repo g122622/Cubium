@@ -190,9 +190,9 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
 
     // 计算伤害：随机化伤害值
     // 对应 MC 原版 IronGolem.doHurtTarget:
-    //   float f = this.getAttackDamage();
-    //   float f1 = (int)f > 0 ? f / 2.0F + this.random.nextInt((int)f) : f;
-    // 注意：(int)f 是截断取整而非向上取整，但对于整数 ATTACK_DAMAGE=7.0 无差异
+    //   f32 f = this.getAttackDamage();
+    //   f32 f1 = (i32)f > 0 ? f / 2.0F + this.random.nextInt((i32)f) : f;
+    // 注意：(i32)f 是截断取整而非向上取整，但对于整数 ATTACK_DAMAGE=7.0 无差异
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE));
 
     math::IRandom& rng = getRandom();
@@ -252,10 +252,10 @@ ActionResultType IronGolemEntity::interactMob(Player& player, Hand hand)
     // 对齐 Java 1.21.11 IronGolem.mobInteract(Player, InteractionHand)：
     //   ItemStack itemstack = player.getItemInHand(hand);
     //   if (!itemstack.is(Items.IRON_INGOT)) return PASS;
-    //   float f = this.getHealth();
+    //   f32 f = this.getHealth();
     //   this.heal(25.0F);
     //   if (this.getHealth() == f) return PASS;            // 已满血，治疗无效
-    //   float f1 = 1.0F + (random.nextFloat() - random.nextFloat()) * 0.2F;
+    //   f32 f1 = 1.0F + (random.nextFloat() - random.nextFloat()) * 0.2F;
     //   this.playSound(IRON_GOLEM_REPAIR, 1.0F, f1);
     //   itemstack.consume(1, player);
     //   return SUCCESS;

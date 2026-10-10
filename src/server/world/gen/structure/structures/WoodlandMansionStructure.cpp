@@ -201,9 +201,9 @@ void WoodlandMansionPiece::generate(IWorldWriter& world,
         // 模板未找到，使用占位方块
         const BlockState* darkOakPlanks = VanillaBlocks::getState(VanillaBlocks::DARK_OAK_PLANKS);
         if (darkOakPlanks) {
-            for (int y = 0; y < 8; ++y) {
-                for (int x = 0; x < 8; ++x) {
-                    for (int z = 0; z < 8; ++z) {
+            for (i32 y = 0; y < 8; ++y) {
+                for (i32 x = 0; x < 8; ++x) {
+                    for (i32 z = 0; z < 8; ++z) {
                         BlockPos worldPos(m_templatePosition.x + x, m_templatePosition.y + y, m_templatePosition.z + z);
                         if (chunkBounds.contains(worldPos.x, worldPos.y, worldPos.z)) {
                             world.setBlockState(worldPos.x,

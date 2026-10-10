@@ -74,14 +74,14 @@ private:
         const BlockPos& blockpos,
         bool flag1,
         i32 i,
-        double d0,
+        f64 d0,
         i32 j);
     void carve(i32 radius,
         i32 y,
         const BlockPos& blockpos,
         IWorld& world,
         bool water,
-        double angle,
+        f64 angle,
         const BlockPos& offset,
         i32 i,
         i32 j);
@@ -97,7 +97,7 @@ private:
         i32 k1,
         bool flag1,
         i32 j,
-        double d0,
+        f64 d0,
         bool flag,
         const BlockState* blockstate);
     void setIcebergBlock(const BlockPos& pos,
@@ -108,14 +108,14 @@ private:
         bool flag1,
         bool flag,
         const BlockState* blockstate);
-    [[nodiscard]] int getEllipseC(int p_66019_, int p_66020_, int p_66021_) const;
-    [[nodiscard]] double signedDistanceCircle(
-        int x, int z, const BlockPos& center, int radius, math::IRandom& random) const;
-    [[nodiscard]] double signedDistanceEllipse(int x, int z, const BlockPos& center, int a, int b, double angle) const;
-    [[nodiscard]] int heightDependentRadiusRound(math::IRandom& random, int y, int height, int radius) const;
-    [[nodiscard]] int heightDependentRadiusEllipse(int y, int height, int radius) const;
-    [[nodiscard]] int heightDependentRadiusSteep(math::IRandom& random, int y, int height, int radius) const;
-    void smooth(IWorld& world, const BlockPos& blockpos, int j1, int l, bool flag1, int i);
+    [[nodiscard]] i32 getEllipseC(i32 p_66019_, i32 p_66020_, i32 p_66021_) const;
+    [[nodiscard]] f64 signedDistanceCircle(
+        i32 x, i32 z, const BlockPos& center, i32 radius, math::IRandom& random) const;
+    [[nodiscard]] f64 signedDistanceEllipse(i32 x, i32 z, const BlockPos& center, i32 a, i32 b, f64 angle) const;
+    [[nodiscard]] i32 heightDependentRadiusRound(math::IRandom& random, i32 y, i32 height, i32 radius) const;
+    [[nodiscard]] i32 heightDependentRadiusEllipse(i32 y, i32 height, i32 radius) const;
+    [[nodiscard]] i32 heightDependentRadiusSteep(math::IRandom& random, i32 y, i32 height, i32 radius) const;
+    void smooth(IWorld& world, const BlockPos& blockpos, i32 j1, i32 l, bool flag1, i32 i);
     [[nodiscard]] static bool isIcebergState(const BlockState& state);
     [[nodiscard]] bool belowIsAir(IWorld& world, const BlockPos& pos) const;
 };

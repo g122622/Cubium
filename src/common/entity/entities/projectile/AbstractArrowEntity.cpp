@@ -288,7 +288,7 @@ void AbstractArrowEntity::tick()
         clearFire();
         // 水中生成气泡粒子尾迹
         if (m_world) {
-            for (int j = 0; j < 4; ++j) {
+            for (i32 j = 0; j < 4; ++j) {
                 f32 offset = 0.25f;
                 Vector3 pos(x() - m_builtIn.velocity->m_velocity.x * offset,
                     y() - m_builtIn.velocity->m_velocity.y * offset,
@@ -879,7 +879,7 @@ void ArrowEntity::tick()
 
         // 飞行中每 tick 生成 2 个粒子
         math::Random rng = createRandomFromEntity(*this);
-        for (int i = 0; i < 2; ++i) {
+        for (i32 i = 0; i < 2; ++i) {
             // 粒子位置在箭矢周围随机偏移
             f32 ox = (rng.nextFloat() - 0.5f) * width();
             f32 oy = rng.nextFloat() * height();

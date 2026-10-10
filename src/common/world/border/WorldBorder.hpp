@@ -61,7 +61,7 @@ public:
      * @brief 边界大小变化时调用
      * @param newSize 新的边界大小
      */
-    virtual void onSizeChanged(double newSize) = 0;
+    virtual void onSizeChanged(f64 newSize) = 0;
 
     /**
      * @brief 边界过渡开始时调用
@@ -69,14 +69,14 @@ public:
      * @param newSize 目标大小
      * @param timeMs 过渡时间（毫秒）
      */
-    virtual void onTransitionStarted(double oldSize, double newSize, u64 timeMs) = 0;
+    virtual void onTransitionStarted(f64 oldSize, f64 newSize, u64 timeMs) = 0;
 
     /**
      * @brief 边界中心变化时调用
      * @param x 新中心 X 坐标
      * @param z 新中心 Z 坐标
      */
-    virtual void onCenterChanged(double x, double z) = 0;
+    virtual void onCenterChanged(f64 x, f64 z) = 0;
 
     /**
      * @brief 警告时间变化时调用
@@ -94,13 +94,13 @@ public:
      * @brief 伤害缓冲变化时调用
      * @param damageBuffer 新伤害缓冲距离
      */
-    virtual void onDamageBufferChanged(double damageBuffer) = 0;
+    virtual void onDamageBufferChanged(f64 damageBuffer) = 0;
 
     /**
      * @brief 每格伤害变化时调用
      * @param damagePerBlock 新每格伤害量
      */
-    virtual void onDamagePerBlockChanged(double damagePerBlock) = 0;
+    virtual void onDamagePerBlockChanged(f64 damagePerBlock) = 0;
 };
 
 /**
@@ -117,34 +117,34 @@ public:
     /**
      * @brief 获取当前边界最小 X 坐标
      */
-    [[nodiscard]] virtual double getMinX() const = 0;
+    [[nodiscard]] virtual f64 getMinX() const = 0;
 
     /**
      * @brief 获取当前边界最大 X 坐标
      */
-    [[nodiscard]] virtual double getMaxX() const = 0;
+    [[nodiscard]] virtual f64 getMaxX() const = 0;
 
     /**
      * @brief 获取当前边界最小 Z 坐标
      */
-    [[nodiscard]] virtual double getMinZ() const = 0;
+    [[nodiscard]] virtual f64 getMinZ() const = 0;
 
     /**
      * @brief 获取当前边界最大 Z 坐标
      */
-    [[nodiscard]] virtual double getMaxZ() const = 0;
+    [[nodiscard]] virtual f64 getMaxZ() const = 0;
 
     /**
      * @brief 获取当前边界大小（直径）
      */
-    [[nodiscard]] virtual double getSize() const = 0;
+    [[nodiscard]] virtual f64 getSize() const = 0;
 
     /**
      * @brief 获取边界变化速度（格/毫秒）
      *
      * 仅在 MovingBorderState 中有效，静止边界返回 0。
      */
-    [[nodiscard]] virtual double getResizeSpeed() const = 0;
+    [[nodiscard]] virtual f64 getResizeSpeed() const = 0;
 
     /**
      * @brief 获取到达目标大小的剩余时间（毫秒）
@@ -158,7 +158,7 @@ public:
      *
      * 静止边界返回当前大小，移动边界返回目标大小。
      */
-    [[nodiscard]] virtual double getTargetSize() const = 0;
+    [[nodiscard]] virtual f64 getTargetSize() const = 0;
 
     /**
      * @brief 获取边界状态
@@ -175,7 +175,7 @@ public:
     /**
      * @brief 边界中心变化时调用
      */
-    virtual void onCenterChanged(double centerX, double centerZ) = 0;
+    virtual void onCenterChanged(f64 centerX, f64 centerZ) = 0;
 };
 
 /**
@@ -193,7 +193,7 @@ public:
     /**
      * @brief 世界最大边界大小（3000万格）
      */
-    static constexpr double MAX_SIZE = 2.9999872E7;
+    static constexpr f64 MAX_SIZE = 2.9999872E7;
 
     /**
      * @brief 默认构造函数
@@ -222,42 +222,42 @@ public:
     /**
      * @brief 获取当前边界大小（直径）
      */
-    [[nodiscard]] double getSize() const;
+    [[nodiscard]] f64 getSize() const;
 
     /**
      * @brief 获取目标边界大小
      */
-    [[nodiscard]] double getTargetSize() const;
+    [[nodiscard]] f64 getTargetSize() const;
 
     /**
      * @brief 获取边界中心 X 坐标
      */
-    [[nodiscard]] double getCenterX() const { return m_centerX; }
+    [[nodiscard]] f64 getCenterX() const { return m_centerX; }
 
     /**
      * @brief 获取边界中心 Z 坐标
      */
-    [[nodiscard]] double getCenterZ() const { return m_centerZ; }
+    [[nodiscard]] f64 getCenterZ() const { return m_centerZ; }
 
     /**
      * @brief 获取边界最小 X 坐标
      */
-    [[nodiscard]] double getMinX() const;
+    [[nodiscard]] f64 getMinX() const;
 
     /**
      * @brief 获取边界最大 X 坐标
      */
-    [[nodiscard]] double getMaxX() const;
+    [[nodiscard]] f64 getMaxX() const;
 
     /**
      * @brief 获取边界最小 Z 坐标
      */
-    [[nodiscard]] double getMinZ() const;
+    [[nodiscard]] f64 getMinZ() const;
 
     /**
      * @brief 获取边界最大 Z 坐标
      */
-    [[nodiscard]] double getMaxZ() const;
+    [[nodiscard]] f64 getMaxZ() const;
 
     /**
      * @brief 获取边界状态
@@ -267,7 +267,7 @@ public:
     /**
      * @brief 获取边界变化速度（格/毫秒）
      */
-    [[nodiscard]] double getResizeSpeed() const;
+    [[nodiscard]] f64 getResizeSpeed() const;
 
     /**
      * @brief 获取到达目标大小的剩余时间（毫秒）
@@ -283,24 +283,24 @@ public:
      *
      * 默认值: 0.2
      */
-    [[nodiscard]] double getDamagePerBlock() const { return m_damagePerBlock; }
+    [[nodiscard]] f64 getDamagePerBlock() const { return m_damagePerBlock; }
 
     /**
      * @brief 获取伤害缓冲距离
      *
      * 默认值: 5.0
      */
-    [[nodiscard]] double getDamageBuffer() const { return m_damageBuffer; }
+    [[nodiscard]] f64 getDamageBuffer() const { return m_damageBuffer; }
 
     /**
      * @brief 设置每格伤害量
      */
-    void setDamagePerBlock(double damagePerBlock);
+    void setDamagePerBlock(f64 damagePerBlock);
 
     /**
      * @brief 设置伤害缓冲距离
      */
-    void setDamageBuffer(double damageBuffer);
+    void setDamageBuffer(f64 damageBuffer);
 
     // ========================================================================
     // 警告参数
@@ -338,7 +338,7 @@ public:
      * @brief 立即设置边界大小
      * @param size 新的边界大小
      */
-    void setSize(double size);
+    void setSize(f64 size);
 
     /**
      * @brief 渐变设置边界大小
@@ -346,14 +346,14 @@ public:
      * @param newSize 目标大小
      * @param timeMs 过渡时间（毫秒）
      */
-    void setSizeLerp(double oldSize, double newSize, u64 timeMs);
+    void setSizeLerp(f64 oldSize, f64 newSize, u64 timeMs);
 
     /**
      * @brief 设置边界中心
      * @param x 中心 X 坐标
      * @param z 中心 Z 坐标
      */
-    void setCenter(double x, double z);
+    void setCenter(f64 x, f64 z);
 
     // ========================================================================
     // 边界检测
@@ -365,7 +365,7 @@ public:
      * @param z Z 坐标
      * @return 如果点在边界内返回 true
      */
-    [[nodiscard]] bool contains(double x, double z) const;
+    [[nodiscard]] bool contains(f64 x, f64 z) const;
 
     /**
      * @brief 检测方块位置是否在边界内
@@ -399,14 +399,14 @@ public:
      * @param z Z 坐标
      * @return 到边界的最近距离
      */
-    [[nodiscard]] double getClosestDistance(double x, double z) const;
+    [[nodiscard]] f64 getClosestDistance(f64 x, f64 z) const;
 
     /**
      * @brief 获取 AABB 到边界的最近距离
      * @param box 轴对齐包围盒
      * @return 到边界的最近距离
      */
-    [[nodiscard]] double getClosestDistance(const AxisAlignedBB& box) const;
+    [[nodiscard]] f64 getClosestDistance(const AxisAlignedBB& box) const;
 
     // ========================================================================
     // 更新与监听
@@ -439,13 +439,13 @@ public:
      * @brief 边界设置序列化数据
      */
     struct SerializedData {
-        double centerX = 0.0;
-        double centerZ = 0.0;
-        double size = 6.0E7;
-        double targetSize = 6.0E7;
+        f64 centerX = 0.0;
+        f64 centerZ = 0.0;
+        f64 size = 6.0E7;
+        f64 targetSize = 6.0E7;
         u64 timeUntilTarget = 0; // 过渡剩余时间（毫秒）
-        double damagePerBlock = 0.2;
-        double damageBuffer = 5.0;
+        f64 damagePerBlock = 0.2;
+        f64 damageBuffer = 5.0;
         i32 warningTime = 15;
         i32 warningDistance = 5;
     };
@@ -465,23 +465,23 @@ private:
     /**
      * @brief 通知所有监听器边界大小变化
      */
-    void _notifySizeChanged(double newSize);
+    void _notifySizeChanged(f64 newSize);
 
     /**
      * @brief 通知所有监听器过渡开始
      */
-    void _notifyTransitionStarted(double oldSize, double newSize, u64 timeMs);
+    void _notifyTransitionStarted(f64 oldSize, f64 newSize, u64 timeMs);
 
     /**
      * @brief 通知所有监听器中心变化
      */
-    void _notifyCenterChanged(double x, double z);
+    void _notifyCenterChanged(f64 x, f64 z);
 
 private:
-    double m_centerX = 0.0;        // 边界中心 X
-    double m_centerZ = 0.0;        // 边界中心 Z
-    double m_damagePerBlock = 0.2; // 每格伤害量
-    double m_damageBuffer = 5.0;   // 伤害缓冲距离
+    f64 m_centerX = 0.0;        // 边界中心 X
+    f64 m_centerZ = 0.0;        // 边界中心 Z
+    f64 m_damagePerBlock = 0.2; // 每格伤害量
+    f64 m_damageBuffer = 5.0;   // 伤害缓冲距离
     i32 m_warningTime = 15;        // 警告时间（秒）
     i32 m_warningDistance = 5;     // 警告距离（格）
 

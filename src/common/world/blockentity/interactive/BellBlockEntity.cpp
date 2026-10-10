@@ -326,13 +326,13 @@ void BellBlockEntity::_showBellParticles(IWorld& world)
 {
     // 对应 MC Java 原版 BellBlockEntity.showBellParticles：
     //   MutableInt mutableint = new MutableInt(16700985);
-    //   int i = nearbyEntities.filter(closerThan 48).count();
+    //   i32 i = nearbyEntities.filter(closerThan 48).count();
     //   for each raider within range:
-    //       int j = Mth.clamp((i - 21) / -2, 3, 15);
-    //       double d1 = pos.x + 0.5 + (1/dist) * (entity.x - pos.x);
-    //       double d2 = pos.z + 0.5 + (1/dist) * (entity.z - pos.z);
-    //       for (int k = 0; k < j; k++) {
-    //           int l = mutableint.addAndGet(5);
+    //       i32 j = Mth.clamp((i - 21) / -2, 3, 15);
+    //       f64 d1 = pos.x + 0.5 + (1/dist) * (entity.x - pos.x);
+    //       f64 d2 = pos.z + 0.5 + (1/dist) * (entity.z - pos.z);
+    //       for (i32 k = 0; k < j; k++) {
+    //           i32 l = mutableint.addAndGet(5);
     //           world.addParticle(ColorParticleOption.create(ENTITY_EFFECT, l),
     //                             d1, pos.y + 0.5, d2, 0, 0, 0);
     //       }

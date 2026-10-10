@@ -415,9 +415,9 @@ BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentSh
     return newState;
 }
 
-int RailState::countPotentialConnections() const
+i32 RailState::countPotentialConnections() const
 {
-    int count = 0;
+    i32 count = 0;
     // 检查四个水平方向
     if (hasNeighborRail(m_pos.north())) {
         ++count;

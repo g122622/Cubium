@@ -58,7 +58,7 @@ namespace entity::player {
  * }
  *
  * // 获取冷却进度（用于渲染）
- * float progress = cooldownTracker.getCooldownProgress(item, partialTicks);
+ * f32 progress = cooldownTracker.getCooldownProgress(item, partialTicks);
  * // progress = 0 表示冷却结束
  * // progress = 1 表示冷却刚开始
  * @endcode

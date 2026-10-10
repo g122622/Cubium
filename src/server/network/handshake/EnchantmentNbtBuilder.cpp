@@ -62,7 +62,7 @@ namespace {
 const mc::resource::DataPackRepository* g_datapackRepo = nullptr;
 
 /// enchantment 发送顺序（与原 RegistryDataBuilder 硬编码列表严格一致）。
-/// 顺序固定勿乱：enchantment 名字虽按 name 解码，但保留顺序以兼容未来 UpdateTags int id 映射。
+/// 顺序固定勿乱：enchantment 名字虽按 name 解码，但保留顺序以兼容未来 UpdateTags i32 id 映射。
 const std::vector<std::string_view> kEnchantmentIds = {
     "minecraft:aqua_affinity",
     "minecraft:bane_of_arthropods",
@@ -352,7 +352,7 @@ std::vector<std::string> _flattenTagToNames(
     spdlog::error("EnchantmentNbtBuilder: effects #tag '{}' (hint={}) unresolved in ALL candidate registries; "
                   "the raw '#' string will be sent to the client and cause a disconnect",
         tagRef,
-        static_cast<int>(registryHint));
+        static_cast<i32>(registryHint));
     if (entityLookupAttempted) {
         spdlog::error("  - ENTITY_TYPE registry queried: EntityTypeTags::isInitialized()={}",
             mc::EntityTypeTags::isInitialized());
@@ -527,7 +527,7 @@ std::optional<std::vector<u8>> _buildEnchantmentEntryData(
     auto root = std::make_unique<mc::nbt::tags::compound_tag>();
 
     // 顶层整数字段：显式 i32 → int_tag 推断（关键）。jsonToNbt 会把 5 推断为 byte_tag，
-    // Java Enchantment.intRange/int CODEC 要求 int_tag，拒绝 byte_tag/short_tag。
+    // Java Enchantment.intRange/i32 CODEC 要求 int_tag，拒绝 byte_tag/short_tag。
     // 用 put(name, i32) 走 tag_of<int32_t>=int_tag 推断（勿用 put<int_tag>，见 test_nbt_io 注释）。
     if (j.contains("anvil_cost")) {
         root->put("anvil_cost", static_cast<i32>(j["anvil_cost"].get<std::int32_t>()));

@@ -123,7 +123,7 @@ std::unique_ptr<BlockEntity> BarrelBlock::createBlockEntity(const BlockPos& pos)
     return std::make_unique<blockentity::BarrelEntity>(pos);
 }
 
-int BarrelBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+i32 BarrelBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
 
     MC_UNUSED(state);

@@ -53,7 +53,7 @@ public:
      *
      * radius<=bluntness 时钳到 bluntness，避免 log(<=0)。
      */
-    [[nodiscard]] static double getDripstoneHeight(double radius, double scale, double heightScale, double bluntness);
+    [[nodiscard]] static f64 getDripstoneHeight(f64 radius, f64 scale, f64 heightScale, f64 bluntness);
 
     /**
      * @brief 圆周采样判定圆周是否大多嵌入石头（非空/水/岩浆）

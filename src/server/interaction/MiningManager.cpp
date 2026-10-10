@@ -245,7 +245,7 @@ void MiningManager::tick(ServerWorld& world)
         f32 speed = _calculateMiningSpeed(world, state.position, playerId);
         state.progress = speed * static_cast<f32>(m_gameTicks - state.startTick + 1);
 
-        // 计算动画阶段 (0-9)，对齐原版 j = (int)(f * 10.0F)
+        // 计算动画阶段 (0-9)，对齐原版 j = (i32)(f * 10.0F)
         u8 stage = static_cast<u8>(std::min(state.progress * 10.0f, 9.0f));
 
         // 广播动画（阶段变化时），对齐原版 :137-139

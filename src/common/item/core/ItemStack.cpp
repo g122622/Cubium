@@ -66,7 +66,7 @@ namespace {
 namespace nbt_keys {
 // 1.21.11 数据组件格式键
 constexpr const char* ID = "id";
-constexpr const char* COUNT = "count";           // 1.21.11：int（旧 1.16.5 为 "Count" byte）
+constexpr const char* COUNT = "count";           // 1.21.11：i32（旧 1.16.5 为 "Count" byte）
 constexpr const char* COMPONENTS = "components"; // 1.21.11 数据组件补丁 compound
 
 // 旧 1.16.5 格式键（仅 fromNbt 旧存档回退读取用）
@@ -412,7 +412,7 @@ bool ItemStack::attemptDamageItem(i32 amount, LivingEntity* entity)
         if (random != nullptr) {
             // 使用世界关联的随机源
             // 对齐 vanilla 1.21.11 RemoveBinomial.process（RemoveBinomial.java:21-23 小 amount 路径）：
-            //   for (int j = 0; j < amount; j++) { if (random.nextFloat() < chance) removed++; }
+            //   for (i32 j = 0; j < amount; j++) { if (random.nextFloat() < chance) removed++; }
             //   return amount - removed;
             // 即对【原始 amount】做固定次数独立伯努利试验，累加被忽略（移除）的点数，循环上界不自减。
             // 此前实现 `for (i < amount) { if (ignore) --amount; }` 每次忽略后减小循环上界，致 amount>1
@@ -614,7 +614,7 @@ ItemStack ItemStack::copy() const
 
 ItemStack ItemStack::transmuteCopy(const Item& newItem, i32 newCount) const
 {
-    // 对应 MC 1.21.11 ItemStack#transmuteCopy(Item, int)
+    // 对应 MC 1.21.11 ItemStack#transmuteCopy(Item, i32)
     // 创建新物品堆，保留原物品堆的所有额外数据
     if (newCount <= 0) {
         return EMPTY;
@@ -1239,7 +1239,7 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
 }
 
 // ============================================================================
-// NBT 序列化（1.21.11 数据组件格式：{id, count:int, components}）
+// NBT 序列化（1.21.11 数据组件格式：{id, count:i32, components}）
 // ============================================================================
 
 void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
@@ -1253,7 +1253,7 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
     // 物品ID
     tag.put(nbt_keys::ID, m_item->itemLocation().toString());
 
-    // 数量（1.21.11：int）
+    // 数量（1.21.11：i32）
     tag.put(nbt_keys::COUNT, static_cast<i32>(m_count));
 
     // 组件补丁：仅当有非默认组件时写出 components 段
@@ -1280,7 +1280,7 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
 
-    // 数量：1.21.11 用 "count"(int/byte)，旧格式用 "Count"(byte)
+    // 数量：1.21.11 用 "count"(i32/byte)，旧格式用 "Count"(byte)
     i32 count = 1;
     auto countIt = tag.value.find(nbt_keys::COUNT);
     if (countIt == tag.value.end()) {

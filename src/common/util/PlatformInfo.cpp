@@ -124,14 +124,14 @@ CpuInfo PlatformInfo::getCpuInfoWindows()
     info.threadCount = sysInfo.dwNumberOfProcessors;
 
     // 使用 __cpuid 获取CPU信息
-    int cpuinfo[4] = {};
+    i32 cpuinfo[4] = {};
 
     // 获取厂商 (EAX=0)
     __cpuid(cpuinfo, 0);
     char vendor[13] = {};
-    *reinterpret_cast<int*>(vendor) = cpuinfo[1];
-    *reinterpret_cast<int*>(vendor + 4) = cpuinfo[3];
-    *reinterpret_cast<int*>(vendor + 8) = cpuinfo[2];
+    *reinterpret_cast<i32*>(vendor) = cpuinfo[1];
+    *reinterpret_cast<i32*>(vendor + 4) = cpuinfo[3];
+    *reinterpret_cast<i32*>(vendor + 8) = cpuinfo[2];
     vendor[12] = '\0';
     info.vendor = vendor;
 
@@ -139,9 +139,9 @@ CpuInfo PlatformInfo::getCpuInfoWindows()
     __cpuid(cpuinfo, 0x80000000);
     if (static_cast<u32>(cpuinfo[0]) >= 0x80000004U) {
         char brand[49] = {};
-        __cpuid(reinterpret_cast<int*>(brand), 0x80000002);
-        __cpuid(reinterpret_cast<int*>(brand + 16), 0x80000003);
-        __cpuid(reinterpret_cast<int*>(brand + 32), 0x80000004);
+        __cpuid(reinterpret_cast<i32*>(brand), 0x80000002);
+        __cpuid(reinterpret_cast<i32*>(brand + 16), 0x80000003);
+        __cpuid(reinterpret_cast<i32*>(brand + 32), 0x80000004);
         brand[48] = '\0';
 
         // 去除前后空格
@@ -234,7 +234,7 @@ std::string PlatformInfo::getPlatformNameWindows()
 // 定时器分辨率引用计数：request/release 共享同一计数器。timeBeginPeriod 非幂等，
 // Windows 维护按 period 值的内部计数，须配对相等次数的 timeEndPeriod 才真正归还分辨率。
 namespace {
-std::atomic<int> g_highResTimerRefCount{0};
+std::atomic<i32> g_highResTimerRefCount{0};
 }
 
 void PlatformInfo::requestHighResTimer()
@@ -253,7 +253,7 @@ void PlatformInfo::requestHighResTimer()
 void PlatformInfo::releaseHighResTimer()
 {
     // 下溢保护：release 次数 > request 次数时不再调 timeEndPeriod 并告警，还原计数避免持续负漂。
-    const int prev = g_highResTimerRefCount.fetch_sub(1, std::memory_order::acq_rel);
+    const i32 prev = g_highResTimerRefCount.fetch_sub(1, std::memory_order::acq_rel);
     if (prev <= 0) {
         g_highResTimerRefCount.fetch_add(1, std::memory_order::acq_rel);
         spdlog::warn("releaseHighResTimer called without matching request (refcount underflow)");
@@ -551,14 +551,14 @@ CpuInfo PlatformInfo::getCpuInfoMacOS()
     }
 
     // 获取核心数
-    int coreCount = 0;
+    i32 coreCount = 0;
     size_t coreSize = sizeof(coreCount);
     if (sysctlbyname("hw.physicalcpu", &coreCount, &coreSize, nullptr, 0) == 0) {
         info.coreCount = static_cast<u32>(coreCount);
     }
 
     // 获取线程数
-    int threadCount = 0;
+    i32 threadCount = 0;
     size_t threadSize = sizeof(threadCount);
     if (sysctlbyname("hw.logicalcpu", &threadCount, &threadSize, nullptr, 0) == 0) {
         info.threadCount = static_cast<u32>(threadCount);
@@ -577,7 +577,7 @@ CpuInfo PlatformInfo::getCpuInfoMacOS()
         char cpuType[64] = {};
         size_t cpuTypeSize = sizeof(cpuType);
         if (sysctlbyname("hw.cputype", cpuType, &cpuTypeSize, nullptr, 0) == 0) {
-            int type = *reinterpret_cast<int*>(cpuType);
+            i32 type = *reinterpret_cast<i32*>(cpuType);
             if (type == 0x0100000C) { // CPU_TYPE_ARM64
                 info.brand = "Apple Silicon";
                 info.vendor = "Apple";

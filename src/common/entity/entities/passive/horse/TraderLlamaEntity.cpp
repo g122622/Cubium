@@ -78,7 +78,7 @@ std::unique_ptr<Entity> TraderLlamaEntity::create(IWorld* /*world*/, ecs::Entity
     return std::make_unique<TraderLlamaEntity>(EntityInstanceId(0), registry);
 }
 
-bool TraderLlamaEntity::canDespawn(double /*distanceToClosestPlayer*/) const noexcept
+bool TraderLlamaEntity::canDespawn(f64 /*distanceToClosestPlayer*/) const noexcept
 {
     // 商队羊驼在以下情况下不会消失：
     // 1. 已被驯服
@@ -169,7 +169,7 @@ Result<void> TraderLlamaEntity::readAdditionalSaveData(const nbt::tags::compound
 void TraderLlamaEntity::maybeDespawn()
 {
     // 对应 MC 1.21.11 TraderLlama.maybeDespawn() 中的私有 canDespawn() 判定
-    // （注意：此处不是 MobEntity::canDespawn(double)，后者供 DespawnManager 距离判断使用，
+    // （注意：此处不是 MobEntity::canDespawn(f64)，后者供 DespawnManager 距离判断使用，
     //  对任何拴绳状态均返回 false 以避免被距离判断误删）。
     // MC 私有 canDespawn() 语义：
     //   !isTamed && !isLeashedToSomethingOtherThanTheWanderingTrader && !hasExactlyOnePlayerPassenger

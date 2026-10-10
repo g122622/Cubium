@@ -62,7 +62,7 @@ std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const
     if (blockTok.find("stairs") == std::string::npos) {
         return "";
     }
-    int data = 0;
+    i32 data = 0;
     try {
         data = std::stoi(dataTok);
     }
@@ -72,7 +72,7 @@ std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const
     if (data < 0 || data > 7) {
         return "";
     }
-    int weirdo = data % 4;
+    i32 weirdo = data % 4;
     bool upsideDown = (data / 4) != 0;
     const char* facing = nullptr;
     switch (weirdo) {

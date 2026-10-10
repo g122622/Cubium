@@ -42,7 +42,7 @@ CarrotBlock::CarrotBlock(const BlockProperties& properties)
     constexpr f32 P = 1.0f / 16.0f;
     constexpr f32 heights[] = {2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
 
-    for (int i = 0; i < 8; ++i) {
+    for (i32 i = 0; i < 8; ++i) {
         m_carrotShapesByAge[i] = CollisionShape::box(0.0f, 0.0f, 0.0f, 16.0f * P, heights[i] * P, 16.0f * P);
     }
 }

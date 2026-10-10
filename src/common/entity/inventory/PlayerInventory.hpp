@@ -419,7 +419,7 @@ public:
      * @param damage 伤害值
      *
      * 护甲会根据伤害值损耗耐久度。
-     * 参考 MC 1.16.5 PlayerInventory.damageArmor(DamageSource, float)
+     * 参考 MC 1.16.5 PlayerInventory.damageArmor(DamageSource, f32)
      */
     void damageArmor(DamageSource& source, f32 damage);
 
@@ -490,7 +490,7 @@ public:
      *
      * 写入格式（MC 1.21.11 新格式）：
      * - "Inventory": compound_list_tag，仅包含快捷栏和主背包 (Slot 0-35)
-     * - "SelectedItemSlot": int，当前选中的快捷栏槽位
+     * - "SelectedItemSlot": i32，当前选中的快捷栏槽位
      *
      * 护甲和副手装备通过 LivingEntity 的 "equipment" 复合标签独立存储，
      * 不再出现在 Inventory 列表中。

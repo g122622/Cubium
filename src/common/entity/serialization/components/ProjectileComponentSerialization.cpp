@@ -290,7 +290,7 @@ static Result<void> loadProjectileItem(Entity& entity, const nbt::tags::compound
 // ============================================================================
 // DamagingProjectileComponent — acceleration_power
 // 对齐 vanilla 1.21.11 AbstractHurtingProjectile.addAdditionalSaveData()。
-// vanilla 存单一 acceleration_power(double)，项目分 XYZ 三分量（运行时加速度向量）。
+// vanilla 存单一 acceleration_power(f64)，项目分 XYZ 三分量（运行时加速度向量）。
 // 存盘取三分量模长写 acceleration_power；读盘按模长无法还原分量方向，故读盘时均分到三分量
 // （TODO: 项目与 vanilla 字段结构差异，方向信息存盘后丢失，待统一字段结构后修正）。
 // ============================================================================

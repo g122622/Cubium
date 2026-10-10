@@ -221,7 +221,7 @@ private:
     }
 };
 
-/// 扁平梯度表:16 个梯度 × 4 个 double 槽(前 3 分量有效,第 4 槽填充对齐)。
+/// 扁平梯度表:16 个梯度 × 4 个 f64 槽(前 3 分量有效,第 4 槽填充对齐)。
 /// 索引方式:hash & 0xF 得 0..15,(hash<<2) 定位梯度首槽。内容与 PerlinLayer::GRADIENTS
 /// 逐项一致(含末 4 项的重复梯度布局,非前 12 项简单重复)。
 alignas(64) inline constexpr std::array<f64, 64> kFlatSimplexGrad = {
@@ -395,8 +395,8 @@ alignas(64) inline constexpr std::array<f64, 64> kFlatSimplexGrad = {
 
     // Y 涂抹:yScale!=0 时把 fracY 吸附到 yScale 间隔网格线(用 yMax 或 fracY 作基准)。
     // smoothstep 用原始 fracY,梯度点乘用吸附后的 (fracY - smearOffset)。
-    // epsilon 必须用 static_cast<f64>(1.0e-7f)(float 字面量转 double),与 PerlinLayer::noiseWithSmear
-    // 逐位一致——1.0e-7(double)与 1.0e-7f→double 值不同,边界附近 floor 会跨越整数致 smearOffset
+    // epsilon 必须用 static_cast<f64>(1.0e-7f)(f32 字面量转 f64),与 PerlinLayer::noiseWithSmear
+    // 逐位一致——1.0e-7(f64)与 1.0e-7f→f64 值不同,边界附近 floor 会跨越整数致 smearOffset
     // 差一个 yScale 量级,远超 1e-9(NormalNoise 路径 yScale=0 不触发,BlendedNoise 路径必须严格一致)。
     f64 smearOffset = 0.0;
     if (yScale != 0.0) {

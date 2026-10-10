@@ -144,7 +144,7 @@ constexpr const char* SNEAKING = "Sneaking";
 namespace {
 
 /**
- * @brief 安全获取 compound_tag 中的 int 值
+ * @brief 安全获取 compound_tag 中的 i32 值
  */
 std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::string& key)
 {
@@ -156,7 +156,7 @@ std::optional<i32> tryGetInt(const nbt::tags::compound_tag& tag, const std::stri
 }
 
 /**
- * @brief 安全获取 compound_tag 中的 float 值
+ * @brief 安全获取 compound_tag 中的 f32 值
  */
 std::optional<f32> tryGetFloat(const nbt::tags::compound_tag& tag, const std::string& key)
 {
@@ -168,7 +168,7 @@ std::optional<f32> tryGetFloat(const nbt::tags::compound_tag& tag, const std::st
 }
 
 /**
- * @brief 安全获取 compound_tag 中的 double 值
+ * @brief 安全获取 compound_tag 中的 f64 值
  */
 std::optional<f64> tryGetDouble(const nbt::tags::compound_tag& tag, const std::string& key)
 {
@@ -728,7 +728,7 @@ Result<std::vector<u8>> PlayerSaveData::serialize() const
     compressed.resize(nbtData.size() + 1024); // 预留压缩空间
 
     uLongf destLen = static_cast<uLongf>(compressed.size());
-    int result =
+    i32 result =
         compress2(compressed.data(), &destLen, nbtData.data(), static_cast<uLong>(nbtData.size()), Z_BEST_COMPRESSION);
 
     if (result != Z_OK) {
@@ -747,7 +747,7 @@ Result<PlayerSaveData> PlayerSaveData::deserialize(const std::vector<u8>& data)
     decompressed.resize(data.size() * 10); // 预估解压大小
 
     uLongf destLen = static_cast<uLongf>(decompressed.size());
-    int result = uncompress(decompressed.data(), &destLen, data.data(), static_cast<uLong>(data.size()));
+    i32 result = uncompress(decompressed.data(), &destLen, data.data(), static_cast<uLong>(data.size()));
 
     if (result != Z_OK) {
         // 尝试不解压直接解析（可能是未压缩的数据）

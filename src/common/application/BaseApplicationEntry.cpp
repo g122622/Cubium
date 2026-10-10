@@ -175,7 +175,7 @@ void BaseApplicationEntry::printBuildInfo() const
     std::cout << "\n";
 }
 
-int BaseApplicationEntry::run(int argc, char* argv[])
+i32 BaseApplicationEntry::run(i32 argc, char* argv[])
 {
     // 1. 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用等，输出调用栈和局部变量。
     mc::assert::CrashHandler::install();
@@ -222,7 +222,7 @@ int BaseApplicationEntry::run(int argc, char* argv[])
 
     // 8. 核心业务运行（异常路径统一清理）。
     try {
-        const int code = runApplication();
+        const i32 code = runApplication();
 
         // 先 stop profiler（若已启动），再 shutdown LogManager。
         // 顺序原因：ProfilerManager 的 stopTracing/shutdown 路径内部调用 spdlog::info/warn/error，

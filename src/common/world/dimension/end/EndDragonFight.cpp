@@ -947,9 +947,9 @@ void EndDragonFight::_respawnDragon(IWorld& world, std::vector<entity::EnderCrys
     // 1. 清除出口传送门区域的基岩/末地传送门方块（替换为末地石）
     // 对应 MC Java:
     //   for (BlockPatternMatch match = findExitPortal(); match != null; match = findExitPortal()) {
-    //       for (int i = 0; i < exitPortalPattern.getWidth(); i++) {
-    //           for (int j = 0; j < exitPortalPattern.getHeight(); j++) {
-    //               for (int k = 0; k < exitPortalPattern.getDepth(); k++) {
+    //       for (i32 i = 0; i < exitPortalPattern.getWidth(); i++) {
+    //           for (i32 j = 0; j < exitPortalPattern.getHeight(); j++) {
+    //               for (i32 k = 0; k < exitPortalPattern.getDepth(); k++) {
     //                   BlockInWorld b = match.getBlock(i, j, k);
     //                   if (b.getState().is(BEDROCK) || b.getState().is(END_PORTAL)) {
     //                       setBlockAndUpdate(b.getPos(), END_STONE);

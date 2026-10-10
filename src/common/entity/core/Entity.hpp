@@ -330,7 +330,7 @@ public:
     /**
      * @brief 获取实体高度按比例偏移后的 Y 坐标
      *
-     * 对应 MC 1.21.11 Entity.getY(double partialY)。
+     * 对应 MC 1.21.11 Entity.getY(f64 partialY)。
      * 计算公式：position.y + height * partialY。
      *
      * 常用 partialY 值（参考 MC 原版调用约定）：
@@ -1272,7 +1272,7 @@ public:
     /**
      * @brief 跨维度传送到指定维度的指定坐标（带朝向）。
      *
-     * 对齐 vanilla `Entity.teleportTo(ServerLevel, double, double, double, Set<Relative>, float, float, boolean)`
+     * 对齐 vanilla `Entity.teleportTo(ServerLevel, f64, f64, f64, Set<Relative>, f32, f32, boolean)`
      * （Entity.java:3212-3228）→ `Entity.teleport(TeleportTransition)` → 当目标维度与当前维度不同时走
      * `teleportCrossDimension`（在目标 Level 创建实体 + restoreFrom + 移除旧实体 + 加到目标 Level）。
      *
@@ -1681,7 +1681,7 @@ public:
      *
      * 直接设置火焰计时器值，不做任何检查。
      * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
-     * 对应 MC Java 的 setRemainingFireTicks(int)。
+     * 对应 MC Java 的 setRemainingFireTicks(i32)。
      *
      * @param ticks 火焰计时器值
      */

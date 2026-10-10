@@ -642,7 +642,7 @@ Vector3 AbstractMinecartEntity::_getPosOnRail(f64 x, f64 y, f64 z) const
     auto [vector3i, vector3i1] = _getRailDirectionVectors(railshape);
 
     // 关键的 Y 坐标计算
-    // 注意: d1 = (double)j + RAIL_HEIGHT_OFFSET + (double)vector3i.getY() * 0.5
+    // 注意: d1 = (f64)j + RAIL_HEIGHT_OFFSET + (f64)vector3i.getY() * 0.5
     // 这里有一个 1/16 方块的基础偏移
     f64 d0 = static_cast<f64>(i) + 0.5 + static_cast<f64>(vector3i.x) * 0.5;
     f64 d1 = static_cast<f64>(j) + RAIL_HEIGHT_OFFSET + static_cast<f64>(vector3i.y) * 0.5;

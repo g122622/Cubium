@@ -680,7 +680,7 @@ bool PlayerInventory::placeItemBackInInventory(
 
 void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
 {
-    // MC 1.16.5: PlayerInventory.damageArmor(DamageSource, float)
+    // MC 1.16.5: PlayerInventory.damageArmor(DamageSource, f32)
     if (damage <= 0.0f) {
         return;
     }

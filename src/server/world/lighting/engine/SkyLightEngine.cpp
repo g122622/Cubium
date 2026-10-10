@@ -79,7 +79,7 @@ SkyStarLightEngine::SkyStarLightEngine()
     m_decreaseQueue.resize(sectionVolume);
 
     // 初始化高度图
-    m_heightMapBlockChange.fill(std::numeric_limits<int>::min());
+    m_heightMapBlockChange.fill(std::numeric_limits<i32>::min());
 }
 
 // ============================================================================
@@ -559,10 +559,10 @@ void SkyStarLightEngine::propagateBlockChanges(
     constexpr i32 heightMapSize = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
     for (i32 index = 0; index < heightMapSize; ++index) {
         i32 maxY = m_heightMapBlockChange[static_cast<size_t>(index)];
-        if (maxY == std::numeric_limits<int>::min()) {
+        if (maxY == std::numeric_limits<i32>::min()) {
             continue; // 未变化
         }
-        m_heightMapBlockChange[static_cast<size_t>(index)] = std::numeric_limits<int>::min(); // 恢复默认
+        m_heightMapBlockChange[static_cast<size_t>(index)] = std::numeric_limits<i32>::min(); // 恢复默认
 
         i32 columnX = (index & world::CHUNK_MASK) | (chunkX << world::CHUNK_SHIFT);
         i32 columnZ = (index >> world::CHUNK_SHIFT) | (chunkZ << world::CHUNK_SHIFT);

@@ -271,7 +271,7 @@ void dumpSectionPaletteBits(const mc::server::ServerChunkManager& manager, i32 t
     spdlog::info("chunk_palette_bits: {} chunks / {} sections, container_bytes={:.2f}MB -> {}",
         chunkCount,
         presentSectionCount,
-        static_cast<double>(containerBytesTotal) / 1048576.0,
+        static_cast<f64>(containerBytesTotal) / 1048576.0,
         outputPath.string());
 }
 
@@ -366,7 +366,7 @@ void dumpNibbleStats(const mc::server::ServerChunkManager& manager, i32 threadCo
     spdlog::info("nibble_stats: slots={} materialized={} bytes={:.2f}MB allFull={} allZero={} -> {}",
         slotCount,
         materializedCount,
-        static_cast<double>(totalBytes) / 1048576.0,
+        static_cast<f64>(totalBytes) / 1048576.0,
         totalFull,
         totalZero,
         outputPath.string());
@@ -636,16 +636,16 @@ void ChunkGeneration(::benchmark::State& state)
                 g_fixture.manager->unloadChunkSync(CENTER_CHUNK_X + dx, CENTER_CHUNK_Z + dz);
             }
         }
-        for (int drainTick = 0; drainTick < 1000 && g_fixture.manager->loadedChunkCount() > 0; ++drainTick) {
+        for (i32 drainTick = 0; drainTick < 1000 && g_fixture.manager->loadedChunkCount() > 0; ++drainTick) {
             g_fixture.manager->tick();
         }
         state.ResumeTiming();
     }
 
     state.counters["chunks_per_second"] =
-        ::benchmark::Counter(static_cast<double>(totalChunks), ::benchmark::Counter::kIsIterationInvariantRate);
-    state.counters["chunks"] = ::benchmark::Counter(static_cast<double>(totalChunks));
-    state.counters["threads"] = ::benchmark::Counter(static_cast<double>(state.range(0)));
+        ::benchmark::Counter(static_cast<f64>(totalChunks), ::benchmark::Counter::kIsIterationInvariantRate);
+    state.counters["chunks"] = ::benchmark::Counter(static_cast<f64>(totalChunks));
+    state.counters["threads"] = ::benchmark::Counter(static_cast<f64>(state.range(0)));
 }
 
 } // namespace

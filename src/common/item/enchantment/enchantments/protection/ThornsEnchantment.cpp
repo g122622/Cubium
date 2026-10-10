@@ -77,8 +77,8 @@ void ThornsEnchantment::onUserHurt(
     }
 
     // 2. ChangeItemDamage(constant 2.0)：触发荆棘的护甲扣 2 耐久
-    //    （对齐 ChangeItemDamage.java:25-26 itemstack.hurtAndBreak((int)amount.calculate(level), ...)，
-    //    amount=constant 2.0 故 (int)2.0=2）。作用于 enchantedItem（触发荆棘的那件护甲，对齐 vanilla
+    //    （对齐 ChangeItemDamage.java:25-26 itemstack.hurtAndBreak((i32)amount.calculate(level), ...)，
+    //    amount=constant 2.0 故 (i32)2.0=2）。作用于 enchantedItem（触发荆棘的那件护甲，对齐 vanilla
     //    EnchantedItemInUse.itemStack），由本方法处理而非调用方（见 README.md:152）。
     //    hurtAndBreak 内部处理 Unbreaking 附魔减耗与耐久耗尽破坏回调（对齐 vanilla hurtAndBreak 语义）。
     LivingEntity::hurtAndBreak(enchantedItem, 2, &user, slot);

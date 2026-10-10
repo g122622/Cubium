@@ -158,7 +158,7 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
             buf.writeString(v.username);
             // UUID：当前 IR Hello 无独立 UUID 字段（离线模式由服务端按用户名生成），
             // 写一个零 UUID 占位以对齐 Java 帧格式（在线模式由 profileId 填充）。
-            for (int i = 0; i < 16; ++i) {
+            for (i32 i = 0; i < 16; ++i) {
                 buf.writeU8(0);
             }
         },

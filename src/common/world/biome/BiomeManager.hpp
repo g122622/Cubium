@@ -108,7 +108,7 @@ public:
     /**
      * @brief 从方块坐标转 quart 后查询噪声生物群系（无缩放）
      *
-     * 等价于 MC Java 版 BiomeManager.getNoiseBiomeAtPosition(double, double, double)。
+     * 等价于 MC Java 版 BiomeManager.getNoiseBiomeAtPosition(f64, f64, f64)。
      *
      * @param blockX 方块 X 坐标
      * @param blockY 方块 Y 坐标

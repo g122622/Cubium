@@ -52,9 +52,9 @@ namespace component {
  */
 enum class DataComponentType : i32 {
     CustomData = 0,      // minecraft:custom_data —— 嵌套 NBT（本项目承载 m_customData）
-    MaxStackSize = 1,    // minecraft:max_stack_size —— int（覆盖最大堆叠数）
-    MaxDamage = 2,       // minecraft:max_damage —— int（覆盖最大耐久）
-    Damage = 3,          // minecraft:damage —— int（已承受伤害）
+    MaxStackSize = 1,    // minecraft:max_stack_size —— i32（覆盖最大堆叠数）
+    MaxDamage = 2,       // minecraft:max_damage —— i32（覆盖最大耐久）
+    Damage = 3,          // minecraft:damage —— i32（已承受伤害）
     Unbreakable = 4,     // minecraft:unbreakable —— Unit（不可损坏）
     CustomName = 6,      // minecraft:custom_name —— Component（文本）
     ItemName = 8,        // minecraft:item_name —— Component（默认显示名覆盖）
@@ -64,9 +64,9 @@ enum class DataComponentType : i32 {
     Enchantments = 12,   // minecraft:enchantments —— ItemEnchantments
     CanPlaceOn = 13,     // minecraft:can_place_on —— BlockPredicates
     CanBreak = 14,       // minecraft:can_break —— BlockPredicates
-    RepairCost = 18,     // minecraft:repair_cost —— int
+    RepairCost = 18,     // minecraft:repair_cost —— i32
     AttackRange = 29,    // minecraft:attack_range —— record（攻击范围）
-    Enchantable = 30,    // minecraft:enchantable —— int（附魔能力覆盖）
+    Enchantable = 30,    // minecraft:enchantable —— i32（附魔能力覆盖）
     PotionContents = 48, // minecraft:potion_contents —— record{potion,color,effects,name}
 };
 

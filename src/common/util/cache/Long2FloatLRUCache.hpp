@@ -42,7 +42,7 @@ namespace mc {
  * 用法示例：
  * @code
  * Long2FloatLRUCache cache(1024);
- * float value = cache.get(key);
+ * f32 value = cache.get(key);
  * if (std::isnan(value)) {
  *     value = computeTemperature(x, y, z);
  *     cache.put(key, value);

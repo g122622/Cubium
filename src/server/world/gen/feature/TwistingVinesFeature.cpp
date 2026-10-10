@@ -92,7 +92,7 @@ bool findFirstAirBlockAboveGround(WorldGenRegion& world, BlockPosMutable& pos)
 void placeTwistingVinesColumn(
     WorldGenRegion& world, math::IRandom& random, BlockPosMutable pos, i32 length, i32 minAge, i32 maxAge)
 {
-    // MC: for (int i = 1; i <= length; i++) —— 注意从 1 开始。
+    // MC: for (i32 i = 1; i <= length; i++) —— 注意从 1 开始。
     for (i32 i = 1; i <= length; ++i) {
         if (isEmptyBlock(world, pos)) {
             if (i == length || !isEmptyBlock(world, pos.up())) {
@@ -129,7 +129,7 @@ bool ConfiguredTwistingVinesFeature::place(WorldGenRegion& region,
     const i32 spreadHeight = m_config->spreadHeight;
     const i32 maxHeight = m_config->maxHeight;
 
-    // MC: for (int l = 0; l < i*i; l++) ...
+    // MC: for (i32 l = 0; l < i*i; l++) ...
     BlockPosMutable probe;
     for (i32 l = 0; l < spreadWidth * spreadWidth; ++l) {
         // MC: set(blockpos).move(nextInt(-i,i), nextInt(-j,j), nextInt(-i,i))

@@ -90,7 +90,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] int getComparatorInputOverride(
+    [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     // ========== 交互 ==========

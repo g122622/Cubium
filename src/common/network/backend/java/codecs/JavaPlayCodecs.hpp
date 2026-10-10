@@ -1074,7 +1074,7 @@ inline void writePalettedContainerWire(B& buf, const ir::play::PalettedContainer
 
 /// 解码 vanilla wire PalettedContainer 为 IR。entryCount 仅用于 bits==0 时不参与（仅校验），
 /// storage 长度由 bits 与 entryCount 隐含（longCount = ceil(entryCount / floor(64/bits))）。
-[[nodiscard]] inline Result<ir::play::PalettedContainerWire> readPalettedContainerWire(B& buf, int entryCount)
+[[nodiscard]] inline Result<ir::play::PalettedContainerWire> readPalettedContainerWire(B& buf, i32 entryCount)
 {
     ir::play::PalettedContainerWire pc;
     u8 bits = 0;
@@ -1115,10 +1115,10 @@ inline void writePalettedContainerWire(B& buf, const ir::play::PalettedContainer
     }
     // Global（bits >= 9）：palette 空。
     // storage：longCount = ceil(entryCount / floor(64/bits))，与 VanillaChunkWire 打包侧一致。
-    const int valuesPerLong = 64 / bits;
-    const int longCount = (entryCount + valuesPerLong - 1) / valuesPerLong;
+    const i32 valuesPerLong = 64 / bits;
+    const i32 longCount = (entryCount + valuesPerLong - 1) / valuesPerLong;
     pc.storage.reserve(static_cast<usize>(longCount));
-    for (int i = 0; i < longCount; ++i) {
+    for (i32 i = 0; i < longCount; ++i) {
         i64 word = 0;
         MC_TRY_ASSIGN(word, buf.readI64());
         pc.storage.push_back(static_cast<u64>(word));

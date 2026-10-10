@@ -47,7 +47,7 @@ enum class FogType : u8 {
  * 使用示例:
  * @code
  * auto settings = DimensionRenderSettings::overworld();
- * float cloudHeight = settings.cloudHeight;
+ * f32 cloudHeight = settings.cloudHeight;
  * if (settings.hasClouds) {
  *     // 渲染云
  * }

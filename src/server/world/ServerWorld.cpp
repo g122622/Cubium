@@ -530,14 +530,14 @@ void ServerWorld::notifyBlockUpdate(const BlockPos& pos)
 void ServerWorld::blockEvent(const BlockPos& pos, const Block& block, i32 paramA, i32 paramB)
 {
     // 将方块事件加入队列，每tick处理时验证方块是否仍匹配并执行
-    // 参考 MC Java: ServerLevel.blockEvent(BlockPos, Block, int, int)
+    // 参考 MC Java: ServerLevel.blockEvent(BlockPos, Block, i32, i32)
     m_blockEvents.push_back(BlockEventData{pos, &block, paramA, paramB});
 }
 
 void ServerWorld::broadcastBlockEntity(const BlockPos& pos)
 {
     // 方块实体数据变化后，触发回调将最新 NBT 快照发送给追踪该区块的客户端
-    // 参考 MC Java: ServerLevel.sendBlockUpdated(BlockPos, BlockState, BlockState, int)
+    // 参考 MC Java: ServerLevel.sendBlockUpdated(BlockPos, BlockState, BlockState, i32)
     if (m_onBroadcastBlockEntity) {
         m_onBroadcastBlockEntity(pos);
     }

@@ -92,7 +92,7 @@ public:
      * - requiresUpdateEveryTick() 为 true 时返回 N（该 goal 每 tick 评估，无需补偿）；
      * - 否则返回 reducedTickDelay(N)（GoalSelector 每 2 tick 评估一次，故门槛减半）。
      *
-     * 对齐 vanilla Goal.adjustedTickDelay(int)。
+     * 对齐 vanilla Goal.adjustedTickDelay(i32)。
      *
      * @param serverTicks vanilla 原始 tick 数
      * @return 补偿后的门槛值
@@ -111,7 +111,7 @@ public:
      *
      * 等价于 vanilla Mth.positiveCeilDiv(n, 2) = (n + 1) / 2（n 为正数时向上取整）。
      *
-     * 对齐 vanilla Goal.reducedTickDelay(int)。
+     * 对齐 vanilla Goal.reducedTickDelay(i32)。
      *
      * @param serverTicks vanilla 原始 tick 数
      * @return ceil(serverTicks / 2)

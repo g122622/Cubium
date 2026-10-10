@@ -260,7 +260,7 @@ private:
             case AstNodeKind::MappedNoise:
                 // 阶段2 TODO：暂走 Delegate 退化（McToAst 已把它们包 DelegateNode，此处不应到达）。
                 spdlog::warn(
-                    "BytecodeGen: unhandled node kind {}, falling back to delegate", static_cast<int>(node->kind()));
+                    "BytecodeGen: unhandled node kind {}, falling back to delegate", static_cast<i32>(node->kind()));
                 return RegOrConst::ofConst(0.0);
         }
         MC_ASSERT_RELEASE_MSG(false, "BytecodeGen: unhandled AstNodeKind");

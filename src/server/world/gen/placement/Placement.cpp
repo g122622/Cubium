@@ -302,7 +302,7 @@ std::vector<BlockPos> HeightmapPlacement::getPositions(
     const auto& heightmapConfig = static_cast<const HeightmapPlacementConfig&>(config);
 
     // MC 1.21.11: HeightmapPlacement.getPositions
-    //   int k = ctx.getHeight(this.heightmap, x, z);
+    //   i32 k = ctx.getHeight(this.heightmap, x, z);
     //   return k > ctx.getMinY() ? Stream.of(new BlockPos(x, k, z)) : Stream.of();
     //
     // 生成期间 ctx.getHeight 走 WorldGenRegion.getHeight，其实现为

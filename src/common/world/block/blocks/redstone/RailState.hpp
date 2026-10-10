@@ -77,7 +77,7 @@ public:
      * @brief 计算水平方向上的潜在连接数
      * @return 四个水平方向上有铁轨的方向数量（0-4）
      */
-    [[nodiscard]] int countPotentialConnections() const;
+    [[nodiscard]] i32 countPotentialConnections() const;
 
 private:
     /**

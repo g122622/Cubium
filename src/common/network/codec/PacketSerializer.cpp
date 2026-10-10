@@ -408,7 +408,7 @@ Result<std::vector<u8>> PacketSerializer::readBytes(size_t size)
 Result<i32> PacketSerializer::readVarInt()
 {
     i32 result = 0;
-    int shift = 0;
+    i32 shift = 0;
 
     while (true) {
         if (m_readPos >= m_buffer.size()) {
@@ -434,7 +434,7 @@ Result<i32> PacketSerializer::readVarInt()
 Result<i64> PacketSerializer::readVarLong()
 {
     i64 result = 0;
-    int shift = 0;
+    i32 shift = 0;
 
     while (true) {
         if (m_readPos >= m_buffer.size()) {

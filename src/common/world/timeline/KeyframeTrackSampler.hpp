@@ -75,9 +75,9 @@ public:
         } else if (j >= static_cast<i64>(segment.toTicks)) {
             return segment.toValue;
         } else {
-            const float f =
-                static_cast<float>(j - segment.fromTicks) / static_cast<float>(segment.toTicks - segment.fromTicks);
-            const float f1 = segment.easing.apply(f);
+            const f32 f =
+                static_cast<f32>(j - segment.fromTicks) / static_cast<f32>(segment.toTicks - segment.fromTicks);
+            const f32 f1 = segment.easing.apply(f);
             return m_lerp.apply(f1, segment.fromValue, segment.toValue);
         }
     }

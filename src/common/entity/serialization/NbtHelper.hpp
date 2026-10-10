@@ -83,43 +83,43 @@ namespace nbt_helper {
 // ========== MC 格式列表读写 ==========
 
 /**
- * @brief 写入 double 列表（MC 格式：Pos、Motion 等）
+ * @brief 写入 f64 列表（MC 格式：Pos、Motion 等）
  *
  * @param tag 目标 compound_tag
  * @param key 键名
- * @param values double 值数组
+ * @param values f64 值数组
  */
 void putDoubleList(nbt::tags::compound_tag& tag, const std::string& key, const std::vector<f64>& values);
 
 /**
- * @brief 写入 float 列表（MC 格式：Rotation 等）
+ * @brief 写入 f32 列表（MC 格式：Rotation 等）
  *
  * @param tag 目标 compound_tag
  * @param key 键名
- * @param values float 值数组
+ * @param values f32 值数组
  */
 void putFloatList(nbt::tags::compound_tag& tag, const std::string& key, const std::vector<f32>& values);
 
 /**
- * @brief 读取 double 列表
+ * @brief 读取 f64 列表
  *
  * @param tag 源 compound_tag
  * @param key 键名
- * @return double 列表，键不存在或类型不匹配返回空
+ * @return f64 列表，键不存在或类型不匹配返回空
  */
 [[nodiscard]] std::vector<f64> getDoubleList(const nbt::tags::compound_tag& tag, const std::string& key);
 
 /**
- * @brief 读取 float 列表
+ * @brief 读取 f32 列表
  *
  * @param tag 源 compound_tag
  * @param key 键名
- * @return float 列表，键不存在或类型不匹配返回空
+ * @return f32 列表，键不存在或类型不匹配返回空
  */
 [[nodiscard]] std::vector<f32> getFloatList(const nbt::tags::compound_tag& tag, const std::string& key);
 
 /**
- * @brief 写入 int 列表（MC 格式：LastDeathLocation.pos 等）
+ * @brief 写入 i32 列表（MC 格式：LastDeathLocation.pos 等）
  *
  * @param tag 目标 compound_tag
  * @param key 键名
@@ -128,7 +128,7 @@ void putFloatList(nbt::tags::compound_tag& tag, const std::string& key, const st
 void putIntList(nbt::tags::compound_tag& tag, const std::string& key, const std::vector<i32>& values);
 
 /**
- * @brief 读取 int 列表
+ * @brief 读取 i32 列表
  *
  * @param tag 源 compound_tag
  * @param key 键名
