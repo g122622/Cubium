@@ -195,7 +195,7 @@ def performance_report(directory, run_id):
                      f"{upload:.3f} / {download:.3f} GiB | {receive:.1f} s |")
     configured_workers = sum(record["workers"] for record in records if record["kind"] == "coordinator")
     lines += ["", f"- 本次配置 {configured_workers} 个 worker，分为 test / release / fuzz 三个独立池；禁用 PCH，严格模式禁止通信失败后本地回退。",
-              "- CPU 时间来自进程树资源计量：协调节点含预处理、本地编译、链接、ccache 和 pococc；远端只计实际项目编译，排除 doctor 探针。",
+              "- CPU 时间来自进程树资源计量：协调节点含预处理、本地编译、链接、ccache 和 pococc；远端只计实际项目编译，排除 doctor 探针。背景 SSH/cloudflared 服务的 CPU 不在这两个计量范围内。",
               "- 上下行是 distcc 经 LZO 压缩后的文件载荷（包含对象文件和诊断），不含 SSH/TLS/WebSocket 头、重传或 GitHub artifact 上传。",
               "- 收取及解压时间是两端接收文件的累计计时，包含等待和解压，多个任务可以重叠；不能与构建墙钟时间直接相减，也不等于纯网络延迟。",
               "- 峰值由各 runner 的 UTC 编译区间合并计算，跨机器时钟误差会影响边界；累计任务时间含排队和通信，不作为 CPU 开销。",
