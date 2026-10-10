@@ -1,5 +1,25 @@
 ## CI 与 nightly 构建
 
+### 独立 pococc 测试构建实验
+
+新增 nightly-pococc.yml 暂时只支持手动触发。原 nightly.yml 与构建 preset 保持原配置；
+实验使用 linux-clang-ci-tests，构建 minecraft-server 和 mc_tests，保留 RelWithDebInfo、
+ASan 与 UBSan，显式关闭 PCH 和 modules 扫描，输出至独立 build-pococc 目录。
+
+准备 job 在现有 Nightly CI 活跃时跳过本次实验。实际编译使用一个协调 runner 和两个
+Clang 22 worker，通过经过 SSH 认证的临时隧道连接。pococc 源码固定到不可变提交，
+长时间 worker 每分钟查询完成状态，协调构建最多 300 分钟，worker 最多 330 分钟。
+
+ccache 仅位于临时 runner；vcpkg cache 只读恢复，无保存或删除动作，不增加 Actions cache
+容量。workflow 使用独立 concurrency 和 pococc- 前缀的 artifacts，不运行测试、fuzz、
+benchmark、发布或 issue 汇总。构建产物仍核验 sanitizer 和调试信息，并记录分发统计、
+各 worker 的真实远程编译、CTest 元数据和 runner 配置。
+
+所有 job 仍共享账号的并发额度。启动时检查可以避开已经活跃的 nightly，但不能为实验预留额度，
+也无法阻止之后启动的现有 nightly 与实验重叠。
+
+### 现有 nightly 流程
+
 Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:00（北京时间）自动运行一次**，
 不随每次提交触发。目标有三：
 

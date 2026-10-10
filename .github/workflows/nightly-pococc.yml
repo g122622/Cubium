@@ -1,0 +1,267 @@
+name: Nightly pococc Test Build
+
+# 独立实验暂时仅手动触发，避免与现有定时 nightly 自动重叠。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nightly-pococc-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  POCOCC_REF: 5b9d4311ef103ff54584591dd15e23132657fd92
+  CI_COMPILER: /usr/lib/llvm-22/bin/clang++
+  VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
+  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
+  CCACHE_DIR: /tmp/pococc-ccache
+  CCACHE_MAXSIZE: 2G
+  CCACHE_NAMESPACE: pococc-no-pch-asan-ubsan
+  CCACHE_SLOPPINESS: include_file_mtime,include_file_ctime
+  POCOCC_CI_BINARY_DIR: /tmp/pococc-tools
+  POCOCC_CI_ARTIFACT_PREFIX: pococc-
+  POCOCC_CI_HOLD_TIMEOUT: '19200'
+  POCOCC_CI_RENDEZVOUS_TIMEOUT: '900'
+  POCOCC_CI_POLL_INTERVAL: '60'
+  POCOCC_CI_WORKER_SLOTS: '2'
+  DISTCC_IO_TIMEOUT: '3600'
+
+jobs:
+  prepare:
+    name: Prepare pococc tools
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+    steps:
+      - name: Skip while existing Nightly CI is active
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          active=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/nightly.yml/runs?per_page=100" \
+            --jq '[.workflow_runs[] | select(.status != "completed")] | length')
+          if [ "$active" -gt 0 ]; then
+            echo enabled=false >> "$GITHUB_OUTPUT"
+            echo 'Existing Nightly CI is active; skipping the pococc experiment.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo enabled=true >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+      - uses: ./.github/actions/setup-pococc-toolchain
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          cubium-dependencies: 'false'
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          repository: g122622/pococc
+          ref: ${{ env.POCOCC_REF }}
+          path: .pococc-source
+      - name: Build pinned pococc
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          cmake -S .pococc-source -B "$RUNNER_TEMP/pococc-seed-build" -G Ninja \
+            -DCMAKE_CXX_COMPILER="$CI_COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+          cmake --build "$RUNNER_TEMP/pococc-seed-build" -j4
+          mkdir -p pococc-tools
+          cp "$RUNNER_TEMP/pococc-seed-build/pococc" "$RUNNER_TEMP/pococc-seed-build/pococc-cc" pococc-tools/
+          cp .pococc-source/src/ci/Bootstrap.py pococc-tools/
+          curl -fL --retry 3 --max-time 180 \
+            https://github.com/cloudflare/cloudflared/releases/download/2026.10.0/cloudflared-linux-amd64 \
+            -o pococc-tools/cloudflared
+          printf '%s  %s\n' d33ff2d14475178d2012c2c56beba87389ac5ded27649519f198a7d3134a99db \
+            pococc-tools/cloudflared | sha256sum --check
+      - uses: actions/upload-artifact@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          name: pococc-tools-${{ github.run_attempt }}
+          path: pococc-tools/
+          retention-days: 1
+
+  build:
+    name: Test Build (Linux / RelWithDebInfo / ASan + UBSan)
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      BIN_DIR: build-pococc/bin/RelWithDebInfo
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-tools-${{ github.run_attempt }}
+          path: ${{ env.POCOCC_CI_BINARY_DIR }}
+      - name: Publish coordinator public key
+        run: |
+          chmod +x "$POCOCC_CI_BINARY_DIR/pococc" "$POCOCC_CI_BINARY_DIR/pococc-cc" \
+            "$POCOCC_CI_BINARY_DIR/cloudflared"
+          mkdir -p "$RUNNER_TEMP/pococc-auth" "$RUNNER_TEMP/pococc-rendezvous"
+          ssh-keygen -q -t ed25519 -N '' -f "$RUNNER_TEMP/pococc-auth/id"
+          cp "$RUNNER_TEMP/pococc-auth/id.pub" "$RUNNER_TEMP/pococc-rendezvous/coordinator.pub"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pococc-coordinator-key-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pococc-rendezvous/coordinator.pub
+          retention-days: 1
+      - uses: ./.github/actions/setup-pococc-toolchain
+        with:
+          cubium-dependencies: 'true'
+      # 只读取已有依赖缓存；不保存 ccache/vcpkg，也不调用旧缓存清理脚本。
+      - name: Restore existing vcpkg cache read only
+        uses: actions/cache/restore@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
+      - name: Bootstrap temporary vcpkg
+        run: |
+          git init "$RUNNER_TEMP/pococc-vcpkg"
+          git -C "$RUNNER_TEMP/pococc-vcpkg" remote add origin https://github.com/microsoft/vcpkg.git
+          git -C "$RUNNER_TEMP/pococc-vcpkg" fetch --depth=1 origin "$VCPKG_COMMIT"
+          git -C "$RUNNER_TEMP/pococc-vcpkg" checkout --detach FETCH_HEAD
+          "$RUNNER_TEMP/pococc-vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+          echo "VCPKG_ROOT=$RUNNER_TEMP/pococc-vcpkg" >> "$GITHUB_ENV"
+      - name: Configure without PCH
+        run: |
+          cmake --preset linux-clang-ci-tests -B build-pococc \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
+            -DCMAKE_JOB_POOLS=link=1 -DCMAKE_JOB_POOL_LINK=link
+          python3 scripts/ci/verify_pococc_build.py --build-dir build-pococc --configuration-only
+      - name: Connect two independent compile workers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" connect --workers 2 \
+            --state "$RUNNER_TEMP/pococc-coordinator"
+          "$POCOCC_CI_BINARY_DIR/pococc" doctor --hosts "$POCOCC_CI_HOSTS" --compiler "$CI_COMPILER"
+      - name: Build through ccache and pococc
+        env:
+          CCACHE_PREFIX: ${{ env.POCOCC_CI_BINARY_DIR }}/pococc-cc
+        run: |
+          "$POCOCC_CI_BINARY_DIR/pococc" run --hosts "$POCOCC_CI_HOSTS" --strict \
+            --local-jobs 2 --preprocess-jobs 2 --journal "$GITHUB_WORKSPACE/build-pococc/pococc.tsv" \
+            -- cmake --build build-pococc --config RelWithDebInfo \
+              --target minecraft-server mc_tests --parallel 6
+          python3 scripts/ci/verify_pococc_build.py --build-dir build-pococc
+      - name: Verify test binaries and collect runtime libraries
+        run: |
+          python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build-pococc \
+            --binary "$BIN_DIR/minecraft-server" --binary "$BIN_DIR/mc_tests" \
+            --library-dir pococc-vcpkg-libs --report pococc-build-artifact-check.txt
+      - name: Record ccache and pococc statistics
+        if: always()
+        run: |
+          ccache --show-stats --verbose | tee pococc-ccache-stats.txt
+          if [ -f build-pococc/pococc.tsv ]; then
+            "$POCOCC_CI_BINARY_DIR/pococc" stats build-pococc/pococc.tsv
+          fi
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build-pococc --out pococc-runner-info.json
+      - name: Package CTest metadata
+        if: always()
+        run: |
+          if [ -d build-pococc ]; then
+            find build-pococc \( -name 'CTestTestfile.cmake' -o -name 'cmake_test_discovery_*.json' \
+              -o -name '*_tests*.cmake' -o -name '*_include*.cmake' \) \
+              -print0 > "$RUNNER_TEMP/pococc-ctest-meta.list"
+            if [ -s "$RUNNER_TEMP/pococc-ctest-meta.list" ]; then
+              tar -czf pococc-ctest-meta.tar.gz --null -T "$RUNNER_TEMP/pococc-ctest-meta.list"
+            fi
+          fi
+      - name: Publish coordinator completion
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/pococc-completion"
+          printf '%s\n' '${{ job.status }}' > "$RUNNER_TEMP/pococc-completion/status.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pococc-coordinator-finished-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pococc-completion/status.txt
+          retention-days: 1
+      - name: Close compile tunnels
+        if: always()
+        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-coordinator"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pococc-test-build-artifacts-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ env.BIN_DIR }}/minecraft-server
+            ${{ env.BIN_DIR }}/mc_tests
+            pococc-vcpkg-libs/
+            pococc-build-artifact-check.txt
+            pococc-ccache-stats.txt
+            pococc-runner-info.json
+            pococc-ctest-meta.tar.gz
+            build-pococc/pococc.tsv
+            build-pococc/pococc-build.json
+            ${{ runner.temp }}/pococc-coordinator/*.log
+
+  workers:
+    name: pococc compile worker ${{ matrix.worker }}
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions/setup-pococc-toolchain
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-tools-${{ github.run_attempt }}
+          path: ${{ env.POCOCC_CI_BINARY_DIR }}
+      - uses: ./.github/actions/setup-pococc-toolchain
+        with:
+          cubium-dependencies: 'false'
+      - name: Start authenticated compile worker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x "$POCOCC_CI_BINARY_DIR/pococc" "$POCOCC_CI_BINARY_DIR/pococc-cc" \
+            "$POCOCC_CI_BINARY_DIR/cloudflared"
+          python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" worker --worker '${{ matrix.worker }}' \
+            --state "$RUNNER_TEMP/pococc-worker"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pococc-worker-endpoint-${{ matrix.worker }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pococc-worker/endpoint.json
+          retention-days: 1
+      - name: Keep worker available
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" hold --state "$RUNNER_TEMP/pococc-worker"
+      - name: Stop worker services
+        if: always()
+        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-worker"
+      - name: Verify actual Cubium compilation
+        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" verify-worker --state "$RUNNER_TEMP/pococc-worker"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pococc-worker-report-${{ matrix.worker }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pococc-worker/report.json
+            ${{ runner.temp }}/pococc-worker/*.log
+          retention-days: 7

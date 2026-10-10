@@ -5,6 +5,7 @@
 ```text
 workflows/
 ├── nightly.yml       # Linux 全量测试、服务端构建、归档和失败汇总
+├── nightly-pococc.yml # 独立、无 PCH 的 pococc sanitizer 测试构建实验
 └── code-stats.yml    # 代码行数统计及徽章更新
 ```
 
@@ -25,3 +26,5 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 - 配置采集不阻塞测试；配置文件随各结果 artifact 上传，完整合集为 `nightly-runners.json`。
 - 测试 artifact 不得公开发布；Release artifact 必须通过无调试信息/profiler/sanitizer 的核验。
 - 测试、发布、fuzz 缓存独立；benchmark 必须使用相同配置的服务端，切换配置后重新建立基线。
+- nightly-pococc 只手动触发；现有 nightly 活跃时跳过，使用独立 concurrency、构建目录和 artifacts。
+- pococc 实验只读恢复 vcpkg cache，不保存或清理 Actions cache；ccache 仅保存在临时 runner。

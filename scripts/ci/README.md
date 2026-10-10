@@ -6,6 +6,7 @@
 ci/
 ├── summarize_failures.py       # 汇总失败、跳过和报告错误，生成简要及完整报告
 ├── collect_runner_info.py      # 采集各 job 的硬件、系统镜像和实际工具版本
+├── verify_pococc_build.py       # 核验无 PCH sanitizer 配置与严格编译分发记录
 ├── prepare_build_artifacts.py  # 核验 ELF 与构建配置，归档实际动态库依赖
 ├── compare_benchmark.py        # 比较两轮 CPU 和内存指标
 ├── symbolize_crash.py          # 用调试二进制还原崩溃栈
@@ -21,6 +22,8 @@ GitHub CLI，符号化依赖 LLVM 工具和带调试信息的二进制。
 机器配置随各 job 的结果归档；汇总器按 job 展示紧凑表格，并输出完整的 `nightly-runners.json`。
 
 ## 容易踩的坑
+
+- pococc 实验同时核验真实 PCH 开关和编译命令；缓存命中不要求出现在 pococc journal。
 
 - JUnit 和日志不能截断输入，否则后段失败会被判为不存在。
 - 跳过与失败分别列出，跳过不能算作通过；报告缺失或损坏必须公开上报。

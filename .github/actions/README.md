@@ -5,6 +5,7 @@
 ```text
 actions/
 ├── setup-linux-build-env/action.yml # 安装 clang 工具链与系统依赖，恢复构建缓存
+├── setup-pococc-toolchain/action.yml # 安装独立实验工具链，不操作构建缓存
 └── setup-datapack/action.yml        # 安装测试与基准所需的原版数据包
 ```
 
