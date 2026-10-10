@@ -214,7 +214,9 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::TeleportToEntity,           // 125
     play::TabList,                    // 126
     play::Cooldown,                   // 127
-    play::DamageEvent                 // 128
+    play::DamageEvent,                // 128
+    play::AwardStats,                 // 129
+    play::ClientCommand               // 130
     >;
 
 /**

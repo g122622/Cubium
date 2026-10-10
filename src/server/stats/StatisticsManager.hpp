@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "server/stats/Stat.hpp"
@@ -33,6 +34,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 namespace server {
@@ -276,9 +278,16 @@ public:
      */
     [[nodiscard]] bool isDirty() const { return m_dirty; }
 
+    /** @brief 构建完整或增量统计包，重置过的条目以零值同步。 */
+    [[nodiscard]] mc::network::ir::play::AwardStats createNetworkUpdate(bool all) const;
+
+    /** @brief 发送成功后清除网络脏标记，保留独立的存档脏标记。 */
+    void clearNetworkDirty() { m_networkDirty.clear(); }
+
 private:
     // 使用完整统计ID作为键
     std::unordered_map<ResourceLocation, ValueType> m_stats;
+    std::unordered_set<ResourceLocation> m_networkDirty;
     bool m_dirty = false;
 };
 

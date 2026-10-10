@@ -1,6 +1,7 @@
 #include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
+#include "common/network/backend/java/mappings/JavaCustomStatIds.hpp"
 #include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -8,7 +9,9 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/stats/StatisticsManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <limits>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -222,4 +225,90 @@ TEST_F(NetworkTestBase, DamageEventReachesPlayerWithoutTrackingEntry)
     const auto& explicitPosition = std::get<DamageEvent>(std::get<PlayPacket>(connection.packets.back().packet));
     ASSERT_TRUE(explicitPosition.sourcePosition.has_value());
     EXPECT_EQ(*explicitPosition.sourcePosition, (std::array<f64, 3>{1.0, 2.0, 3.0}));
+}
+
+TEST_F(NetworkTestBase, PlayAwardStatsUsesRegistryTriplesAndBoundsCounts)
+{
+    const AwardStats packet{{StatValue{8, 1, 300}, StatValue{0, 1, 7}}};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{3, 2, 8, 1, 0xac, 2, 0, 1, 7}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<AwardStats>(decoded.value()), packet);
+    for (std::size_t size = 1; size < buf.size(); ++size) {
+        buffer::RegistryByteBuf truncated(buf.data(), size, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(truncated).success());
+    }
+    auto invalid = makeBoundBuf();
+    invalid.writeVarInt(3);
+    invalid.writeVarInt(std::numeric_limits<i32>::max());
+    EXPECT_FALSE(tables()->playCb->decode(invalid).success());
+}
+
+TEST_F(NetworkTestBase, StatisticsNetworkDirtyIsIndependentAndResetsSendZero)
+{
+    using server::stats::StatType;
+    server::stats::StatisticsManager stats;
+    const ResourceLocation playTime("minecraft:play_time");
+    stats.setValue(StatType::Custom, playTime, 300);
+    auto packet = stats.createNetworkUpdate(false);
+    ASSERT_EQ(packet.stats.size(), 1u);
+    EXPECT_EQ(packet.stats.front(), (StatValue{8, 1, 300}));
+    EXPECT_TRUE(stats.isDirty());
+    stats.clearNetworkDirty();
+    EXPECT_TRUE(stats.createNetworkUpdate(false).stats.empty());
+    EXPECT_TRUE(stats.isDirty());
+    EXPECT_EQ(stats.createNetworkUpdate(true).stats, packet.stats);
+    stats.reset(StatType::Custom, playTime);
+    packet = stats.createNetworkUpdate(false);
+    ASSERT_EQ(packet.stats.size(), 1u);
+    EXPECT_EQ(packet.stats.front(), (StatValue{8, 1, 0}));
+    stats.setValue(StatType::Custom, playTime, std::numeric_limits<i64>::max());
+    EXPECT_EQ(stats.createNetworkUpdate(false).stats.front().value, std::numeric_limits<i32>::max());
+    stats.clearNetworkDirty();
+    stats.resetAll();
+    EXPECT_EQ(stats.createNetworkUpdate(false).stats.front().value, 0);
+}
+
+TEST_F(NetworkTestBase, StatisticsUseAllNineVanillaTypesAndIgnoreUnrepresentableNames)
+{
+    using server::stats::StatType;
+    server::stats::StatisticsManager stats;
+    stats.setValue(StatType::Mined, ResourceLocation("minecraft:stone"), 1);
+    stats.setValue(StatType::Crafted, ResourceLocation("minecraft:stone"), 2);
+    stats.setValue(StatType::Used, ResourceLocation("minecraft:stone"), 3);
+    stats.setValue(StatType::Broken, ResourceLocation("minecraft:stone"), 4);
+    stats.setValue(StatType::PickedUp, ResourceLocation("minecraft:stone"), 5);
+    stats.setValue(StatType::Dropped, ResourceLocation("minecraft:stone"), 6);
+    stats.setValue(StatType::Killed, ResourceLocation("minecraft:pig"), 7);
+    stats.setValue(StatType::KilledBy, ResourceLocation("minecraft:pig"), 8);
+    stats.setValue(StatType::Custom, ResourceLocation("minecraft:play_time"), 9);
+    stats.setValue(StatType::Custom, ResourceLocation("test:unknown"), 20);
+    const auto packet = stats.createNetworkUpdate(true);
+    ASSERT_EQ(packet.stats.size(), 9u);
+    for (i32 type = 0; type < 9; ++type) {
+        EXPECT_EQ(packet.stats[static_cast<std::size_t>(type)].type, type);
+        EXPECT_EQ(packet.stats[static_cast<std::size_t>(type)].value, type + 1);
+    }
+    EXPECT_EQ(packet.stats.front().stat, 1);
+    EXPECT_EQ(backend::java::JavaCustomStatIds::toWireId("minecraft:jump"), 23);
+}
+
+TEST_F(LocalServerFixture, StatsSendAcknowledgesOnlySuccessfulNetworkDelivery)
+{
+    ServerPlayer player(1, "Player", mc::test::testEcsRegistry());
+    player.getStats().setValue(server::stats::StatType::Custom, ResourceLocation("minecraft:play_time"), 10);
+    EXPECT_FALSE(player.sendStats(false));
+    EXPECT_EQ(player.getStats().createNetworkUpdate(false).stats.size(), 1u);
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    player.setConnection(serverConn());
+    ASSERT_TRUE(player.sendStats(false));
+    auto received = pumpClient();
+    ASSERT_TRUE(received.has_value());
+    const auto& packet = std::get<AwardStats>(std::get<PlayPacket>(received->packet));
+    ASSERT_EQ(packet.stats.size(), 1u);
+    EXPECT_EQ(packet.stats.front(), (StatValue{8, 1, 10}));
+    EXPECT_TRUE(player.getStats().createNetworkUpdate(false).stats.empty());
+    EXPECT_TRUE(player.getStats().isDirty());
 }

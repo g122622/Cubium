@@ -1,6 +1,6 @@
 # 统计系统
 
-本目录实现 Minecraft 1.16.5 风格的玩家统计系统。
+本目录实现 Minecraft 1.21.11的玩家统计系统。
 
 ## 目录结构
 
@@ -48,3 +48,5 @@ StatType ──→ Stat ──→ StatisticsManager
 - **线程安全**：`StatisticsManager` 非线程安全，多线程访问需外部同步。`StatRegistry` 是单例，初始化时需确保单线程。
 - **常量与注册名对应**：`common/stats/Stats.hpp` 中的常量字符串必须与 `StatRegistry._registerAllCustomStats()` 中注册的完全一致，否则统计不会生效。
 - **awardCustomStat 客户端安全**：`Player::awardCustomStat()` 基类为空实现，客户端调用不会崩溃也不会更新统计；仅 `ServerPlayer` 重写版本实际更新 `StatisticsManager`。
+
+网络同步使用独立的脏条目集合，不能清除存档脏标记。重置条目需要发送零值；增量发送成功后再确认网络脏条目。类型与条目分别映射到 Java 注册表 ID，custom_stat 使用 JavaCustomStatIds 的固定注册序，不能按资源名字典序编号。

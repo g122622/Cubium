@@ -1835,4 +1835,53 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 统计列表为数量后跟类型 ID、条目 ID、值三元组。 */
+[[nodiscard]] inline auto awardStatsCodec()
+{
+    return makeCodec<ir::play::AwardStats>(
+        [](B& buf, const ir::play::AwardStats& v) {
+            buf.writeVarInt(static_cast<i32>(v.stats.size()));
+            for (const auto& stat : v.stats) {
+                buf.writeVarInt(stat.type);
+                buf.writeVarInt(stat.stat);
+                buf.writeVarInt(stat.value);
+            }
+        },
+        [](B& buf) -> Result<ir::play::AwardStats> {
+            ir::play::AwardStats v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<std::size_t>(count) > buf.readableBytes() / 3) {
+                return Error(ErrorCode::InvalidArgument, "Invalid statistics count");
+            }
+            v.stats.reserve(static_cast<std::size_t>(count));
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::StatValue stat{};
+                MC_TRY_ASSIGN(stat.type, buf.readVarInt());
+                MC_TRY_ASSIGN(stat.stat, buf.readVarInt());
+                MC_TRY_ASSIGN(stat.value, buf.readVarInt());
+                if (stat.type < 0 || stat.type > 8 || stat.stat < 0) {
+                    return Error(ErrorCode::InvalidArgument, "Invalid statistics registry id");
+                }
+                v.stats.push_back(stat);
+            }
+            return v;
+        });
+}
+
+/** @brief 客户端命令为重生或请求统计的 VarInt 枚举。 */
+[[nodiscard]] inline auto clientCommandCodec()
+{
+    return makeCodec<ir::play::ClientCommand>(
+        [](B& buf, const ir::play::ClientCommand& v) { buf.writeVarInt(v.action); },
+        [](B& buf) -> Result<ir::play::ClientCommand> {
+            ir::play::ClientCommand v{};
+            MC_TRY_ASSIGN(v.action, buf.readVarInt());
+            if (v.action < 0 || v.action > 1) {
+                return Error(ErrorCode::InvalidArgument, "Invalid client command");
+            }
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

@@ -173,6 +173,9 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         case _playPacketIndex<irplay::TeleportToEntity>():
             m_playerState.handleTeleportToEntityPacket(playerId, packet);
             break;
+        case _playPacketIndex<irplay::ClientCommand>():
+            m_playerState.handleClientCommandPacket(playerId, packet);
+            break;
         case _playPacketIndex<irplay::ClientInformation>():
             m_playerState.handleClientInformationPacket(playerId, packet);
             break;

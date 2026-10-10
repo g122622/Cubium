@@ -175,6 +175,17 @@ bool ServerPlayer::sendTabList(const text::ITextComponent& header, const text::I
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}});
 }
 
+bool ServerPlayer::sendStats(bool all)
+{
+    auto update = m_statistics.createNetworkUpdate(all);
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}})) {
+        return false;
+    }
+    m_statistics.clearNetworkDirty();
+    return true;
+}
+
 void ServerPlayer::sendSystemMessage(const text::ITextComponent& component)
 {
     // 与字符串重载同走 SystemChat(overlay=false)，但序列化完整 Component（保留 translate/with

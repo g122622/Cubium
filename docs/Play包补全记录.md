@@ -14,7 +14,7 @@
 | tab_list（cb:120） | 完整 Component NBT codec 与 ServerPlayer 富文本发送/清空接口 | 已补黄金字节、截断输入和连接发送测试；随下行簇集中构建 |
 | cooldown（cb:22） | 按资源标识符追踪冷却组，设置/到期/移除自动通知客户端；原生客户端消费已接 | 已补黄金字节、连接发送、组共享、到期和最大持续时间溢出回归；随下行簇集中构建 |
 | damage_event（cb:25） | 接入有效新伤害广播；追踪者与受害玩家本人收到类型、责任/直接来源和显式位置；类型 ID 与配置注册序共用 | 已补黄金字节、截断、注册序、无敌帧及本人未被追踪时的发送回归；随下行簇集中构建 |
-| award_stats | 待处理 | |
+| award_stats（cb:3） | 九类统计 ID 映射及 77 项自定义统计；完整/增量发送、重置零值与请求回复 | 已补黄金字节、计数边界、注册表类型、脏标记独立性、发送失败与真实请求路由测试；随下行簇集中构建 |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
@@ -24,3 +24,5 @@
 2026-10-11：按请求将 ServerPlayHandler::route 改为 switch。case 标签从包类型编译期推导，禁止硬编码变体下标；类型缺失或重复触发编译错误。Windows 构建成功，10 项玩家状态协议与路由测试全部通过。
 
 2026-10-11：玩家状态簇及 UUID 修复重新构建成功；237 项 Play 协议、配置设置、玩家状态路由、区块视距和 UUID 测试全部通过。六个请求的玩家状态上行包均完成；后续仍按包独立提交。
+
+统计窗口前置链路：额外登记 client_command（sb:11）并实现 REQUEST_STATS。PERFORM_RESPAWN 的完整重生链路不在本次列出的 24 项中，仍明确标为 TODO，不计入完整实现。

@@ -1446,4 +1446,24 @@ struct DamageEvent {
     [[nodiscard]] friend bool operator==(const DamageEvent&, const DamageEvent&) noexcept = default;
 };
 
+/** @brief 单个统计的类型、所属注册表 ID 和绝对值。 */
+struct StatValue {
+    i32 type;
+    i32 stat;
+    i32 value;
+    [[nodiscard]] friend bool operator==(const StatValue&, const StatValue&) noexcept = default;
+};
+
+/** @brief 玩家统计更新（S→C，id=3）。 */
+struct AwardStats {
+    std::vector<StatValue> stats;
+    [[nodiscard]] friend bool operator==(const AwardStats&, const AwardStats&) noexcept = default;
+};
+
+/** @brief 客户端请求重生或统计信息（C→S，id=11）。 */
+struct ClientCommand {
+    i32 action;
+    [[nodiscard]] friend bool operator==(const ClientCommand&, const ClientCommand&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

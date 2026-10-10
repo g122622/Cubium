@@ -11,6 +11,7 @@ mappings/
 ├── JavaEnchantmentIdMap.hpp/cpp  # 附魔注册序映射
 ├── JavaMobEffectIdMap.hpp/cpp    # 状态效果注册序映射
 ├── JavaPotionIdMap.hpp/cpp       # 药水注册序映射
+├── JavaCustomStatIds.hpp        # 原版自定义统计注册序
 └── JavaDamageTypeIds.hpp        # 同步伤害类型注册序与业务类型映射
 ```
 

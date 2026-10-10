@@ -158,6 +158,9 @@ public:
     /** @brief 发送玩家列表页眉和页脚，空组件用于清除；返回是否发送成功。 */
     [[nodiscard]] bool sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer);
 
+    /** @brief 发送完整或增量统计，仅在发送成功后确认网络脏条目。 */
+    [[nodiscard]] bool sendStats(bool all);
+
     // ========== 重写经验方法 ==========
 
     /**

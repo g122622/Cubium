@@ -11,6 +11,7 @@
 #include "server/core/TeleportManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <gtest/gtest.h>
@@ -60,6 +61,21 @@ public:
         auto player = std::make_unique<Player>(EntityInstanceId(100 + playerId), "Player", *m_world->entityRegistry());
         auto* result = player.get();
         result->setWorld(m_world.get());
+        const auto entityId = m_world->entityManager().addEntity(std::move(player));
+        EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(playerId, entityId, *m_world));
+        return *result;
+    }
+
+    ServerPlayer& addServerPlayerEntity(PlayerId playerId, server::net::ServerClientConnection* connection)
+    {
+        if (!m_world) {
+            m_world = std::make_unique<_PlayerStateRequestWorld>();
+        }
+        auto player =
+            std::make_unique<ServerPlayer>(EntityInstanceId(100 + playerId), "Player", *m_world->entityRegistry());
+        auto* result = player.get();
+        result->setWorld(m_world.get());
+        result->setConnection(connection);
         const auto entityId = m_world->entityManager().addEntity(std::move(player));
         EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(playerId, entityId, *m_world));
         return *result;
@@ -356,4 +372,35 @@ TEST(PlayerStateRequestTest, TeleportToEntityRequiresSpectatorAndStartsPositionC
     const auto previousTeleport = data->pendingTeleportId;
     handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{TeleportToEntity{}}});
     EXPECT_EQ(data->pendingTeleportId, previousTeleport);
+}
+
+TEST_F(NetworkTestBase, PlayClientCommandRequestStatsWire)
+{
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{ClientCommand{1}}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{11, 1}));
+    auto decoded = tables()->playSb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<ClientCommand>(decoded.value()).action, 1);
+}
+
+TEST_F(LocalServerFixture, RequestStatsRoutesToThePlayerAndRepliesEvenWhenUnchanged)
+{
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    _PlayerStateRequestServer server;
+    ASSERT_NE(server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Player", serverConn()), nullptr);
+    auto& player = server.addServerPlayerEntity(1, serverConn());
+    player.getStats().setValue(server::stats::StatType::Custom, ResourceLocation("minecraft:play_time"), 20);
+    server::net::ServerPlayHandler handler(server);
+    const IrPacket request{protocol::ConnectionProtocol::Play, PlayPacket{ClientCommand{1}}};
+    handler.route(1, request);
+    auto received = pumpClient();
+    ASSERT_TRUE(received.has_value());
+    const auto& packet = std::get<AwardStats>(std::get<PlayPacket>(received->packet));
+    ASSERT_EQ(packet.stats.size(), 1u);
+    EXPECT_EQ(packet.stats.front(), (StatValue{8, 1, 20}));
+    handler.route(1, request);
+    received = pumpClient();
+    ASSERT_TRUE(received.has_value());
+    EXPECT_TRUE(std::get<AwardStats>(std::get<PlayPacket>(received->packet)).stats.empty());
 }

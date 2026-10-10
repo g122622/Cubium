@@ -23,16 +23,24 @@
 
 #include "server/stats/StatisticsManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
+#include "common/network/backend/java/mappings/JavaCustomStatIds.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "server/stats/StatType.hpp"
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <functional>
 #include <limits>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace server {
@@ -175,6 +183,7 @@ void StatisticsManager::setValue(StatType type, const ResourceLocation& id, Valu
 {
     ResourceLocation fullId = buildStatLocation(type, id);
     m_stats[fullId] = value;
+    m_networkDirty.insert(fullId);
     m_dirty = true;
 }
 
@@ -197,6 +206,7 @@ void StatisticsManager::increment(StatType type, const ResourceLocation& id, Val
         m_stats[fullId] = current + delta;
     }
 
+    m_networkDirty.insert(fullId);
     m_dirty = true;
 }
 
@@ -204,11 +214,16 @@ void StatisticsManager::reset(StatType type, const ResourceLocation& id)
 {
     ResourceLocation fullId = buildStatLocation(type, id);
     m_stats.erase(fullId);
+    m_networkDirty.insert(fullId);
     m_dirty = true;
 }
 
 void StatisticsManager::resetAll()
 {
+    for (const auto& [id, value] : m_stats) {
+        (void)value;
+        m_networkDirty.insert(id);
+    }
     m_stats.clear();
     m_dirty = true;
 }
@@ -244,6 +259,78 @@ std::unordered_map<ResourceLocation, StatisticsManager::ValueType> StatisticsMan
     }
 
     return result;
+}
+
+mc::network::ir::play::AwardStats StatisticsManager::createNetworkUpdate(bool all) const
+{
+    using namespace mc::network::backend::java;
+    constexpr std::array<StatType, 9> types{StatType::Mined,
+        StatType::Crafted,
+        StatType::Used,
+        StatType::Broken,
+        StatType::PickedUp,
+        StatType::Dropped,
+        StatType::Killed,
+        StatType::KilledBy,
+        StatType::Custom};
+    auto keys = m_networkDirty;
+    if (all) {
+        for (const auto& [id, value] : m_stats) {
+            (void)value;
+            keys.insert(id);
+        }
+    }
+    mc::network::ir::play::AwardStats packet{};
+    packet.stats.reserve(keys.size());
+    for (const auto& key : keys) {
+        const auto& prefix = key.namespace_();
+        const auto type = prefix.starts_with("minecraft.") ? parseStatType(prefix.substr(10)) : std::nullopt;
+        if (!type.has_value()) {
+            spdlog::warn("Cannot synchronize unknown statistic {}", key.toString());
+            continue;
+        }
+        const auto typeIndex = std::find(types.begin(), types.end(), *type);
+        const i32 typeId = static_cast<i32>(std::distance(types.begin(), typeIndex));
+        const std::string& id = key.path();
+        i32 statId = 0;
+        bool known = true;
+        switch (*type) {
+            case StatType::Mined:
+                statId = static_cast<i32>(JavaBlockIdMap::instance().toJavaRegistryId(id));
+                known = statId != 0 || id == "minecraft:air";
+                break;
+            case StatType::Crafted:
+            case StatType::Used:
+            case StatType::Broken:
+            case StatType::PickedUp:
+            case StatType::Dropped:
+                statId = static_cast<i32>(JavaItemIdMap::instance().toJavaRegistryId(id));
+                known = statId != 0 || id == "minecraft:air";
+                break;
+            case StatType::Killed:
+            case StatType::KilledBy:
+                statId = static_cast<i32>(JavaEntityTypeIdMap::instance().toJavaRegistryId(id));
+                known = JavaEntityTypeIdMap::instance().fromJavaRegistryId(static_cast<u32>(statId)) == id;
+                break;
+            case StatType::Custom: {
+                const auto custom = JavaCustomStatIds::toWireId(id);
+                known = custom.has_value();
+                statId = custom.value_or(0);
+                break;
+            }
+        }
+        if (!known) {
+            spdlog::warn("Statistic {} is not present in the Java registry", key.toString());
+            continue;
+        }
+        const ValueType value = getValue(key);
+        packet.stats.push_back(
+            {typeId, statId, static_cast<i32>(std::clamp<ValueType>(value, 0, std::numeric_limits<i32>::max()))});
+    }
+    std::sort(packet.stats.begin(), packet.stats.end(), [](const auto& left, const auto& right) {
+        return std::tie(left.type, left.stat) < std::tie(right.type, right.stat);
+    });
+    return packet;
 }
 
 void StatisticsManager::forEach(const std::function<bool(const ResourceLocation&, ValueType)>& callback) const

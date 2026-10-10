@@ -257,6 +257,8 @@ using B = buffer::RegistryByteBuf;
         13, PacketType{PacketFlow::Serverbound, "client_information"}, 124, codecs::playClientInformationCodec());
     b.addPacket<ir::play::TeleportToEntity>(
         61, PacketType{PacketFlow::Serverbound, "teleport_to_entity"}, 125, codecs::teleportToEntityCodec());
+    b.addPacket<ir::play::ClientCommand>(
+        11, PacketType{PacketFlow::Serverbound, "client_command"}, 130, codecs::clientCommandCodec());
     return b.build();
 }
 
@@ -485,6 +487,8 @@ using B = buffer::RegistryByteBuf;
     b.addPacket<ir::play::Cooldown>(22, PacketType{PacketFlow::Clientbound, "cooldown"}, 127, codecs::cooldownCodec());
     b.addPacket<ir::play::DamageEvent>(
         25, PacketType{PacketFlow::Clientbound, "damage_event"}, 128, codecs::damageEventCodec());
+    b.addPacket<ir::play::AwardStats>(
+        3, PacketType{PacketFlow::Clientbound, "award_stats"}, 129, codecs::awardStatsCodec());
     return b.build();
 }
 

@@ -50,6 +50,31 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
+void PlayerStateHandler::handleClientCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* data = m_server.playerManager().getPlayer(playerId);
+    if (data == nullptr || !data->loggedIn) {
+        return;
+    }
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+    auto* player = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    auto* serverPlayer = player != nullptr ? player->asServerPlayer() : nullptr;
+    if (serverPlayer == nullptr) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::ClientCommand>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (request.action == 1) {
+        static_cast<void>(serverPlayer->sendStats(false));
+    } else if (request.action == 0 && player->isDead()) {
+        // TODO: 接入 PERFORM_RESPAWN 的完整死亡重生流程（出生点、实体状态与同维度 Respawn 包）。
+        spdlog::warn("ClientCommand: respawn request for player {} is not implemented", playerId);
+    }
+}
+
 void PlayerStateHandler::handleTeleportToEntityPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     const auto* data = m_server.playerManager().getPlayer(playerId);
