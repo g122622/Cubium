@@ -26,7 +26,8 @@
 | entity_position_sync（cb:35） | 绝对实体同步改发位置/真实速度/浮点旋转/落地快照，落地变化和定期重同步接入追踪器；原生客户端同步状态 | 已补黄金字节、精度/速度往返、截断、实际追踪和落地变化回归；随新特性簇构建 |
 | server_links（cb:135） | 内置/自定义富文本标签、服务器全局替换与在线广播、登录/重配置重发；ServerPlayer 发送及清空接口 | 已补协议、截断和真实连接替换/清空回归；随新特性簇构建。原生客户端保存列表，停维护的链接界面保留 TODO |
 | show_dialog（cb:138） | 注册 holder 与直接 NBT codec、严格整数转换；ServerPlayer API 与 /dialog show（权限 2、目标选择器、命名资源或 JSON 定义）；自定义数据包对话框内联 | 已补 holder 黄金字节、直接定义截断、整数标签和真实连接回归；随新特性簇构建。原生客户端记录状态，停维护的渲染/交互界面保留 TODO |
-| clear_dialog、waypoint | 待处理 | |
+| clear_dialog（cb:137） | 空负载 codec、ServerPlayer 清除接口、/dialog clear 权限与玩家选择器；原生客户端清除对话框状态 | 已补黄金字节与真实连接回归；随新特性簇构建 |
+| waypoint | 待处理 | |
 
 统计采用 `assets/data/packet_ids.json` 与 `JavaProtocolTables.cpp` 逐项比对；完整实现要求实际收发与业务逻辑，单纯补登记或 TODO 不视为完成。
 

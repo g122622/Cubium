@@ -790,7 +790,10 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 实体传送 ----
-            else if constexpr (std::is_same_v<T, irplay::ShowDialog>) {
+            else if constexpr (std::is_same_v<T, irplay::ClearDialog>) {
+                m_dialog.reset();
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ShowDialog>) {
                 m_dialog = pkt;
                 // TODO: 停止维护的原生客户端尚未提供数据驱动的对话框渲染和交互界面。
                 return Result<void>::ok();

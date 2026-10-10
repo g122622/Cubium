@@ -2216,4 +2216,10 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return ir::play::ShowDialog{std::vector<u8>(buf.data() + start, buf.data() + buf.readPosition())};
         });
 }
+/** @brief 清除对话框为空负载。 */
+[[nodiscard]] inline auto clearDialogCodec()
+{
+    return makeCodec<ir::play::ClearDialog>([](B&, const ir::play::ClearDialog&) {},
+        [](B&) -> Result<ir::play::ClearDialog> { return ir::play::ClearDialog{}; });
+}
 } // namespace mc::network::backend::java::codecs

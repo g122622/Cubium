@@ -165,6 +165,9 @@ public:
     [[nodiscard]] Result<void> showDialog(const nlohmann::json& definition);
     [[nodiscard]] Result<void> showDialog(const ResourceLocation& name);
 
+    /** @brief 清除客户端当前对话框。 */
+    [[nodiscard]] bool clearDialog();
+
     /** @brief 发送完整或增量统计，仅在发送成功后确认网络脏条目。 */
     [[nodiscard]] bool sendStats(bool all);
 

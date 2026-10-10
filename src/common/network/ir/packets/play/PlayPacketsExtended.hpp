@@ -1585,4 +1585,8 @@ struct ShowDialog {
     std::variant<i32, std::vector<u8>> dialog;
     friend bool operator==(const ShowDialog&, const ShowDialog&) = default;
 };
+/** @brief 清除客户端当前对话框，无负载。 */
+struct ClearDialog {
+    friend bool operator==(const ClearDialog&, const ClearDialog&) = default;
+};
 } // namespace mc::network::ir::play

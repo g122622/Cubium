@@ -32,14 +32,26 @@ i32 _show(CommandContext<ServerCommandSource>& context)
         if (source.server()->connectionManager().sendToPlayer(playerId, packet.value())) ++sent;
     return sent;
 }
+i32 _clear(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const auto targets = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("targets"));
+    const mc::network::ir::IrPacket packet{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{mc::network::ir::play::ClearDialog{}}};
+    i32 sent = 0;
+    for (const auto playerId : targets)
+        if (source.server()->connectionManager().sendToPlayer(playerId, packet)) ++sent;
+    return sent;
+}
 } // namespace
 
 void DialogCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto root = std::make_shared<LiteralCommandNode<ServerCommandSource>>("dialog");
     root->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
-    support::applyMetadata(
-        root, support::makeMetadata("Shows data driven dialogs.", "/dialog show <targets> <id|JSON>", 2, {}, true));
+    support::applyMetadata(root,
+        support::makeMetadata(
+            "Shows or clears data driven dialogs.", "/dialog (show <targets> <id|JSON>|clear <targets>)", 2, {}, true));
     auto show = std::make_shared<LiteralCommandNode<ServerCommandSource>>("show");
     auto targets = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::players());
@@ -49,6 +61,12 @@ void DialogCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     targets->addChild(dialog);
     show->addChild(targets);
     root->addChild(show);
+    auto clear = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
+    auto clearTargets = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets", EntityArgumentType::players());
+    clearTargets->setCommand(_clear);
+    clear->addChild(clearTargets);
+    root->addChild(clear);
     dispatcher.registerCommand(root);
 }
 } // namespace mc::command

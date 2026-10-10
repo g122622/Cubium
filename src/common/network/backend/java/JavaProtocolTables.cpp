@@ -283,6 +283,8 @@ using B = buffer::RegistryByteBuf;
         135, PacketType{PacketFlow::Clientbound, "server_links"}, 140, codecs::serverLinksCodec());
     b.addPacket<ir::play::ShowDialog>(
         138, PacketType{PacketFlow::Clientbound, "show_dialog"}, 141, codecs::showDialogCodec());
+    b.addPacket<ir::play::ClearDialog>(
+        137, PacketType{PacketFlow::Clientbound, "clear_dialog"}, 142, codecs::clearDialogCodec());
     // clientbound 权威表：bundle_delimiter 占 id 0，故 add_entity=1，其余整体后移一位。
     // PlayPacket variant altIndex 注释见 IrPacket.hpp。各包 Java Cb id（1.21.11 权威）：
     //   add_entity=1, animate=2, block_destruction=5, block_entity_data=6, block_event=7, block_update=8,

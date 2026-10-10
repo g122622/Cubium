@@ -192,6 +192,12 @@ Result<void> ServerPlayer::showDialog(const ResourceLocation& name)
     return {};
 }
 
+bool ServerPlayer::clearDialog()
+{
+    return _sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{mc::network::ir::play::ClearDialog{}}});
+}
+
 bool ServerPlayer::sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer)
 {
     mc::network::ir::play::TabList packet{text::componentToNbtBytes(&header), text::componentToNbtBytes(&footer)};

@@ -569,3 +569,23 @@ TEST_F(LocalServerFixture, ServerPlayerShowsNamedAndInlineDialogs)
     EXPECT_TRUE(
         std::holds_alternative<std::vector<u8>>(std::get<ShowDialog>(std::get<PlayPacket>(packet->packet)).dialog));
 }
+
+TEST_F(NetworkTestBase, PlayClearDialogHasEmptyPayload)
+{
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{ClearDialog{}}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{0x89, 1}));
+    EXPECT_TRUE(std::holds_alternative<ClearDialog>(roundTripGeneric(*tables()->playCb, PlayPacket{ClearDialog{}})));
+}
+TEST_F(LocalServerFixture, ServerPlayerClearsDialogThroughConnection)
+{
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    ServerPlayer player(1, "Player", mc::test::testEcsRegistry());
+    player.setConnection(serverConn());
+    ASSERT_TRUE(player.clearDialog());
+    auto packet = pumpClient();
+    ASSERT_TRUE(packet);
+    EXPECT_TRUE(std::holds_alternative<ClearDialog>(std::get<PlayPacket>(packet->packet)));
+    player.setConnection(nullptr);
+    EXPECT_FALSE(player.clearDialog());
+}
