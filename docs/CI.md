@@ -106,6 +106,18 @@ https://github.com/misode/mcmeta/archive/refs/tags/1.21.11-data.zip
 
 ### 失败归档与 issue
 
+报告在 job 结论之后用一张表汇总全部 7 个任务的机器配置：CPU 型号和可用逻辑核数、
+物理内存总量、采集时工作区磁盘空闲/总容量、发行版、架构、内核、GitHub runner 镜像版本，
+以及各任务相关的编译器、链接器、CMake/Ninja/ccache、CTest、Node/npm、Python、gh 和 libc 版本。
+build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，并附 native、全局 sanitizer 与 fuzz-ASAN 开关；
+其他测试任务复用 build 产物，表格中的工具版本对应其运行环境。
+
+配置采集在各任务上传结果前执行，使用 `if: always()` 和 `continue-on-error: true`，
+因此构建或测试失败时仍能记录，采集失败不会覆盖原任务结论。每个 artifact 中有
+`runner-info.json`，汇总后的完整配置为 `nightly-report` artifact 中的 `nightly-runners.json`；
+简要报告、完整报告、Actions summary 和失败 issue 均包含相同的配置表。
+跳过的任务显示“未运行”，其他没有配置的任务显示“未采集”，损坏的配置单独列出读取错误。
+
 - 各 job 的结果（日志、JUnit XML、benchmark 报告、fuzz 崩溃产物）都作为 artifact 上传，
   benchmark 结果保留 90 天，其余 30 天。
 - `report` job 用 `scripts/ci/summarize_failures.py` 汇总为一个 Markdown 报告，

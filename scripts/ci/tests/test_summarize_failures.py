@@ -1,6 +1,7 @@
 """验证 nightly 完整读取报告，且失败和跳过不会被误报为全部通过。"""
 
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,6 +23,75 @@ class SummarizeFailuresTest(unittest.TestCase):
         path = self.artifacts / filename
         path.write_text(f"<testsuite>{cases}</testsuite>", encoding="utf-8")
         return path
+
+    def write_runner(self, job):
+        folder = self.artifacts / job
+        folder.mkdir(parents=True, exist_ok=True)
+        info = {"schema_version": 1, "job": job,
+                "cpu": {"model": "Intel(R) Xeon | Test <CPU>", "logical_cpus": 4},
+                "memory_bytes": 16 * 2**30,
+                "disk": {"total_bytes": 80 * 2**30, "free_bytes": 50 * 2**30},
+                "system": {"os": "Ubuntu 24.04.3 LTS", "kernel": "6.14.0-azure", "architecture": "x86_64", "libc": "glibc 2.39"},
+                "runner": {"image_os": "ubuntu24", "image_version": "20261009.1.0"},
+                "tools": {"compiler": {"name": "clang++", "status": "ok", "version": "22.1.8"},
+                          "python": {"status": "ok", "version": "3.12.3"}},
+                "build": {"MC_ENABLE_NATIVE_ARCH": "OFF", "MC_ENABLE_SANITIZERS": "OFF"}}
+        path = folder / "runner-info.json"
+        path.write_text(json.dumps(info), encoding="utf-8")
+        return path
+
+    def test_runner_table_includes_all_jobs_and_escapes_values(self):
+        for job in summary._JOB_LABELS:
+            self.write_runner(job)
+        table = "\n".join(summary.runner_info_table({}, self.artifacts))
+        self.assertEqual(sum(line.startswith("| `") for line in table.splitlines()), 7)
+        self.assertIn("Intel Xeon &#124; Test &lt;CPU&gt; / 4 核", table)
+        self.assertIn("RAM 16.0 GiB", table)
+        self.assertIn("50.0 GiB / 80.0 GiB", table)
+        self.assertIn("Ubuntu 24.04.3 LTS", table)
+        self.assertIn("20261009.1.0", table)
+        self.assertIn("clang++ 22.1.8", table)
+        self.assertIn("native=OFF, sanitizers=OFF", table)
+        for limited in (True, False):
+            body = summary.build_body({}, self.artifacts, "https://example/run/1", "main", "abc", limited)
+            self.assertIn(table, body)
+
+    def test_missing_runner_info_distinguishes_skipped_and_not_collected(self):
+        self.write_runner("build")
+        table = "\n".join(summary.runner_info_table({"unit-tests": "skipped", "fuzz": "failure"}, self.artifacts))
+        self.assertIn("| `unit-tests` | 未运行 |", table)
+        self.assertIn("| `fuzz` | 未采集 |", table)
+
+    def test_fuzz_sanitizer_is_separate_from_global_sanitizer_flag(self):
+        path = self.write_runner("fuzz")
+        info = json.loads(path.read_text(encoding="utf-8"))
+        info["build"]["MC_FUZZ_ASAN"] = "ON"
+        path.write_text(json.dumps(info), encoding="utf-8")
+        table = "\n".join(summary.runner_info_table({}, self.artifacts))
+        self.assertIn("sanitizers=OFF", table)
+        self.assertIn("fuzz-ASAN=ON", table)
+
+    def test_invalid_runner_info_is_visible_without_changing_test_status(self):
+        self.write_report("ctest-results.xml", '<testcase name="Passed"/>')
+        for text in ("{broken", "[]", '{"schema_version":1,"job":[]}', '{"schema_version":1,"job":"build"}'):
+            with self.subTest(text=text):
+                (self.artifacts / "runner-info.json").write_text(text, encoding="utf-8")
+                runners, errors = summary.collect_runner_info(self.artifacts)
+                self.assertFalse(runners)
+                self.assertTrue(errors)
+                table = "\n".join(summary.runner_info_table({}, self.artifacts))
+                self.assertIn("机器配置读取错误", table)
+                self.assertFalse(summary.has_failures({"unit-tests": "success"}, self.artifacts))
+
+    def test_complete_runner_json_is_archived_by_cli(self):
+        self.write_runner("build")
+        output = self.artifacts / "nightly-runners.json"
+        self.assertEqual(summary.main(["--artifacts-dir", str(self.artifacts), "--runner-info-out", str(output),
+                                       "--out", str(self.artifacts / "body.md"),
+                                       "--status-out", str(self.artifacts / "status.txt")]), 0)
+        info = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(info["jobs"]["build"]["cpu"]["logical_cpus"], 4)
+        self.assertEqual(info["errors"], [])
 
     def test_failure_and_skip_after_four_million_characters(self):
         self.write_report(

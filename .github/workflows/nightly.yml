@@ -168,6 +168,11 @@ jobs:
             echo "::warning::未找到任何 CTest 元数据文件，unit-tests job 可能无法用 ctest 运行。"
           fi
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build --out runner-info.json
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -182,6 +187,7 @@ jobs:
             vcpkg-libs/
             ldd-server.txt
             ctest-meta.tar.gz
+            runner-info.json
 
       # nightly build：服务端二进制作为每日 Release 交付。
       - name: Publish nightly release
@@ -265,6 +271,11 @@ jobs:
           # 单元测试按既定口径不阻塞 CI：此处恒以 0 退出，失败清单由 report job 汇总。
           exit 0
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job unit-tests --out runner-info.json
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -276,6 +287,7 @@ jobs:
             ctest-output.log
             ctest-results.xml
             build/Testing/
+            runner-info.json
 
   # ==========================================================================
   # 集成测试（GameTest）—— 全量跑，不阻塞
@@ -352,6 +364,11 @@ jobs:
             --binary build/bin/RelWithDebInfo/minecraft-server \
             --in-place
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job integrated-tests --out runner-info.json
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -362,6 +379,7 @@ jobs:
           path: |
             integrated-tests.log
             build/gametest-reports/
+            runner-info.json
 
   # ==========================================================================
   # 端到端 bot 测试（Cubium 自身回归）
@@ -407,6 +425,11 @@ jobs:
           # set -o pipefail 使 tee 不会掩盖 node 的退出码。
           node run.ts 2>&1 | tee e2e-tests.log
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job e2e-tests --out runner-info.json
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -417,6 +440,7 @@ jobs:
           path: |
             tests/e2e/bot/e2e-tests.log
             build/e2e/artifacts/
+            runner-info.json
 
   # ==========================================================================
   # 模糊测试（libFuzzer）—— 独立 job，自行构建
@@ -548,6 +572,11 @@ jobs:
 
           exit "${FAILED}"
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job fuzz --build-dir build-fuzz --out fuzz-artifacts/runner-info.json
+
       - name: Upload fuzz results
         if: always()
         uses: actions/upload-artifact@v4
@@ -629,6 +658,11 @@ jobs:
           fi
           cat benchmark-out/benchmark-compare.md || true
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job benchmark --out benchmark-out/runner-info.json
+
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v4
@@ -656,7 +690,13 @@ jobs:
         with:
           path: artifacts
 
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job report --out artifacts/report/runner-info.json
+
       - name: Generate summary
+        if: always()
         id: summary
         env:
           # 注意：不能引用 needs.report（job 不能依赖自身）。report 的结论对本 job 无意义。
@@ -677,6 +717,7 @@ jobs:
             --commit "${GITHUB_SHA}" \
             --out nightly-report.md \
             --full-out nightly-report-full.md \
+            --runner-info-out nightly-runners.json \
             --status-out nightly-status.txt
 
           STATUS="$(cat nightly-status.txt 2>/dev/null || echo failures)"
@@ -697,6 +738,7 @@ jobs:
             nightly-report.md
             nightly-report-full.md
             nightly-status.txt
+            nightly-runners.json
 
       # 建 issue 的触发条件：任一 job 失败，或非阻塞 job（unit/integrated）的产物中存在
       # 失败用例。判定逻辑集中在 summarize_failures.py 的 has_failures()，此处只读结果。

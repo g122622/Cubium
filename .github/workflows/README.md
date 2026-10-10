@@ -19,3 +19,5 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 - cron 使用 UTC；北京时间 21:00 对应 `0 13 * * *`。
 - 汇总必须使用 `if: always()`，确保前置 job 失败后仍上报。
 - `nightly-report-full.md` 必须随简要报告上传，保留全部失败和跳过用例。
+- 每个 job 在结果上传前用 `if: always()` 记录机器配置；report 同样采集自身配置，再生成表格。
+- 配置采集不阻塞测试；配置文件随各结果 artifact 上传，完整合集为 `nightly-runners.json`。
