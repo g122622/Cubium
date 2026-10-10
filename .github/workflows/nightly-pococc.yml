@@ -39,12 +39,12 @@ jobs:
     steps:
       - name: Skip while existing Nightly CI is active
         id: gate
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           active=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/nightly.yml/runs?per_page=100" \
-            --paginate --slurp \
-            --jq '[.[] | .workflow_runs[] | select(.status != "completed")] | length')
+            --paginate | jq -s '[.[] | .workflow_runs[] | select(.status != "completed")] | length')
           if [ "$active" -gt 0 ]; then
             echo enabled=false >> "$GITHUB_OUTPUT"
             echo 'Existing Nightly CI is active; skipping the pococc experiment.' >> "$GITHUB_STEP_SUMMARY"
