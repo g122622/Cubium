@@ -171,7 +171,13 @@ runs:
         if [ -d "$RUNNER_TEMP/pococc-coordinator" ]; then
           find "$RUNNER_TEMP/pococc-coordinator" -name '*.log' -exec cp {} pococc-diagnostics/ \;
         fi
-        python3 scripts/ci/collect_runner_info.py --job "$POOL-build" --build-dir "$BUILD_DIR" --out pococc-diagnostics/runner-info.json
+        case "$POOL" in
+          test) INFO_JOB=build ;;
+          release) INFO_JOB=release-build ;;
+          fuzz) INFO_JOB=fuzz ;;
+          *) echo "Unsupported compilation pool: $POOL" >&2; exit 1 ;;
+        esac
+        python3 scripts/ci/collect_runner_info.py --job "$INFO_JOB" --build-dir "$BUILD_DIR" --out pococc-diagnostics/runner-info.json
       if: ${{ always() }}
     - uses: actions/upload-artifact@v4
       if: ${{ always() }}

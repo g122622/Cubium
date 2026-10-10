@@ -17,6 +17,24 @@ if sys.platform.startswith("linux"):
 
 @unittest.skipUnless(sys.platform.startswith("linux"), "Requires Linux resource accounting")
 class PococcPerformanceTests(unittest.TestCase):
+    def test_composite_diagnostics_call_actual_runner_collector_for_each_pool(self):
+        repository = Path(__file__).resolve().parents[3]
+        action = (repository / ".github/actions/build-pococc/action.yml").read_text()
+        # 执行真正的 action shell 与 collector 的 CLI，捕获两层接口不一致。
+        body = action[action.index('        case "$POOL" in'):].splitlines()
+        body = "\n".join(line[8:] for line in body if line.startswith("        "))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "scripts").symlink_to(repository / "scripts", target_is_directory=True)
+            (root / "pococc-diagnostics").mkdir()
+            for pool, expected in (("test", "build"), ("release", "release-build"), ("fuzz", "fuzz")):
+                result = subprocess.run(["bash", "-e", "-c", body], cwd=root,
+                                        env=dict(os.environ, POOL=pool, BUILD_DIR=str(root / "not-built")),
+                                        capture_output=True, text=True, check=False, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                record = json.loads((root / "pococc-diagnostics/runner-info.json").read_text())
+                self.assertEqual(record["job"], expected)
+
     def test_interleaved_worker_logs_exclude_probe_and_count_compressed_payload(self):
         log = "\n".join([
             "distccd[10] (dcc_r_token_int) got DOTI000000ff",

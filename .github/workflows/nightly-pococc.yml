@@ -221,7 +221,7 @@ jobs:
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" "${ARCHIVE}" --clobber
           else
-            gh release create "${TAG}" "${ARCHIVE}" --title "Nightly pococc ${TAG}" --notes-file release-notes.md
+            gh release create "${TAG}" "${ARCHIVE}" --target "$GITHUB_SHA" --title "Nightly pococc ${TAG}" --notes-file release-notes.md
           fi
     needs: prepare
     if: needs.prepare.outputs.enabled == 'true'
