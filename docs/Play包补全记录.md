@@ -13,7 +13,8 @@
 | teleport_to_entity（sb:61） | 旁观者按 UUID 查找目标；同维度移动与跨维度迁移复用已有链路，并启动传送确认 | Windows 构建成功；UUID 黄金字节、全部截断长度、旁观者权限及传送确认测试通过 |
 | tab_list（cb:120） | 完整 Component NBT codec 与 ServerPlayer 富文本发送/清空接口 | 已补黄金字节、截断输入和连接发送测试；随下行簇集中构建 |
 | cooldown（cb:22） | 按资源标识符追踪冷却组，设置/到期/移除自动通知客户端；原生客户端消费已接 | 已补黄金字节、连接发送、组共享、到期和最大持续时间溢出回归；随下行簇集中构建 |
-| award_stats、damage_event | 待处理 | |
+| damage_event（cb:25） | 接入有效新伤害广播；追踪者与受害玩家本人收到类型、责任/直接来源和显式位置；类型 ID 与配置注册序共用 | 已补黄金字节、截断、注册序、无敌帧及本人未被追踪时的发送回归；随下行簇集中构建 |
+| award_stats | 待处理 | |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |

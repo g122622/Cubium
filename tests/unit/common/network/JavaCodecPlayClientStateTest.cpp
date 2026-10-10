@@ -1,8 +1,14 @@
+#include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
+#include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/world/entity/EntityManager.hpp"
+#include "server/core/ServerPlayerData.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -89,4 +95,131 @@ TEST_F(LocalServerFixture, ServerPlayerNotifiesCooldownStartExpiryAndRemoval)
     received = pumpClient();
     ASSERT_TRUE(received.has_value());
     EXPECT_EQ(std::get<Cooldown>(std::get<PlayPacket>(received->packet)), (Cooldown{"test:shared", 0}));
+}
+
+namespace {
+
+class _DamageRecordingWorld : public mc::test::BaseTestWorld {
+public:
+    void broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source) override
+    {
+        events.emplace_back(entityId, source.type());
+    }
+    std::vector<std::pair<EntityInstanceId, DamageType>> events;
+};
+
+class _PacketRecordingConnection : public mc::test::FakeServerConnection {
+public:
+    Result<void> send(IrPacket packet) override
+    {
+        packets.push_back(std::move(packet));
+        return Result<void>::ok();
+    }
+    std::vector<IrPacket> packets;
+};
+
+class _PositionedDamageSource : public EnvironmentalDamage {
+public:
+    _PositionedDamageSource()
+        : EnvironmentalDamage(DamageType::Fall)
+    {}
+    std::optional<math::Vector3f> sourcePositionRaw() const override { return Vector3(1.0f, 2.0f, 3.0f); }
+};
+
+} // namespace
+
+TEST_F(NetworkTestBase, PlayDamageEventUsesOptionalEntityOffsetsAndPosition)
+{
+    const DamageEvent empty{1, 10, -1, -1, std::nullopt};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{empty}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{25, 1, 10, 0, 0, 0}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<DamageEvent>(decoded.value()), empty);
+    const DamageEvent positioned{300, 21, 0, 300, std::array<f64, 3>{1.0, -2.0, 3.5}};
+    EXPECT_EQ(std::get<DamageEvent>(roundTripGeneric(*tables()->playCb, PlayPacket{positioned})), positioned);
+    auto encoded = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(encoded, PlayPacket{positioned}).success());
+    EXPECT_EQ(encoded.bytes()[4], 1);
+    EXPECT_EQ(encoded.bytes()[5], 0xad);
+    for (std::size_t size = 1; size < encoded.size(); ++size) {
+        buffer::RegistryByteBuf truncated(encoded.data(), size, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(truncated).success());
+    }
+}
+
+TEST_F(NetworkTestBase, DamageRegistryIdsMatchConfigurationOrder)
+{
+    const auto registries = server::net::buildConfigurationRegistryData();
+    const auto registry = std::find_if(registries.begin(), registries.end(), [](const auto& value) {
+        return value.registryKey == "minecraft:damage_type";
+    });
+    ASSERT_NE(registry, registries.end());
+    ASSERT_EQ(registry->entries.size(), 50u);
+    for (i32 value = 0; value <= static_cast<i32>(DamageType::GenericKill); ++value) {
+        const auto type = static_cast<DamageType>(value);
+        auto wire = backend::java::JavaDamageTypeIds::toWireId(type);
+        ASSERT_TRUE(wire.success());
+        EXPECT_EQ(registry->entries[static_cast<std::size_t>(wire.value())].id,
+            DamageTypeNames::getResourceLocation(type).toString());
+    }
+    EXPECT_EQ(backend::java::JavaDamageTypeIds::toWireId(DamageType::Campfire).value(), 40);
+    EXPECT_EQ(backend::java::JavaDamageTypeIds::toWireId(DamageType::Fall).value(), 10);
+}
+
+TEST_F(NetworkTestBase, FreshAcceptedDamageBroadcastsButInvulnerabilityFramesDoNot)
+{
+    _DamageRecordingWorld world;
+    Player player(1, "Player", mc::test::testEcsRegistry());
+    player.setWorld(&world);
+    auto source = DamageSources::fall();
+    ASSERT_TRUE(player.hurt(source, 1.0f));
+    ASSERT_EQ(world.events.size(), 1u);
+    EXPECT_EQ(world.events.front().second, DamageType::Fall);
+    EXPECT_FALSE(player.hurt(source, 0.5f));
+    EXPECT_EQ(world.events.size(), 1u);
+    EXPECT_TRUE(player.hurt(source, 2.0f));
+    EXPECT_EQ(world.events.size(), 1u);
+    player.setHurtResistantTime(0);
+    EXPECT_TRUE(player.hurt(source, 1.0f));
+    EXPECT_EQ(world.events.size(), 2u);
+}
+
+TEST_F(NetworkTestBase, DamageEventReachesPlayerWithoutTrackingEntry)
+{
+    _PacketRecordingConnection connection;
+    mc::test::BaseTestServer server;
+    server::ServerWorld world(server::ServerWorldConfig{2, 2, 0, 1, "damage-packet-test"});
+    world.setServer(&server);
+    ASSERT_NE(server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Player", &connection), nullptr);
+    auto player = std::make_unique<Player>(101, "Player", *world.entityRegistry());
+    player->setWorld(&world);
+    const auto entityId = world.entityManager().addEntity(std::move(player));
+    ASSERT_TRUE(server.playerEntityManager().registerExistingPlayerEntity(1, entityId, world));
+    world.entityTracker().untrackEntity(entityId);
+    auto source = DamageSources::fall();
+    world.broadcastDamageEvent(entityId, source);
+    ASSERT_EQ(connection.packets.size(), 1u);
+    const auto& event = std::get<DamageEvent>(std::get<PlayPacket>(connection.packets.back().packet));
+    EXPECT_EQ(event.entityId, 101);
+    EXPECT_EQ(event.sourceType, 10);
+    EXPECT_EQ(event.sourceCauseId, -1);
+    EXPECT_EQ(event.sourceDirectId, -1);
+    EXPECT_FALSE(event.sourcePosition.has_value());
+    Player attacker(201, "Attacker", mc::test::testEcsRegistry());
+    Player projectile(202, "Projectile", mc::test::testEcsRegistry());
+    IndirectEntityDamageSource arrow(DamageType::Arrow, &attacker, &projectile, true);
+    world.broadcastDamageEvent(entityId, arrow);
+    ASSERT_EQ(connection.packets.size(), 2u);
+    const auto& indirect = std::get<DamageEvent>(std::get<PlayPacket>(connection.packets.back().packet));
+    EXPECT_EQ(indirect.sourceCauseId, 201);
+    EXPECT_EQ(indirect.sourceDirectId, 202);
+    EXPECT_FALSE(indirect.sourcePosition.has_value());
+    _PositionedDamageSource positioned;
+    world.broadcastDamageEvent(entityId, positioned);
+    ASSERT_EQ(connection.packets.size(), 3u);
+    const auto& explicitPosition = std::get<DamageEvent>(std::get<PlayPacket>(connection.packets.back().packet));
+    ASSERT_TRUE(explicitPosition.sourcePosition.has_value());
+    EXPECT_EQ(*explicitPosition.sourcePosition, (std::array<f64, 3>{1.0, 2.0, 3.0}));
 }

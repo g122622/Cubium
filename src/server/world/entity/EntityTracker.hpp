@@ -39,6 +39,10 @@ namespace mc::server {
 class ServerWorld;
 }
 
+namespace mc::network::ir {
+struct IrPacket;
+}
+
 namespace mc::server {
 
 // 前向声明
@@ -71,6 +75,9 @@ struct TrackedEntity {
  */
 class EntityTracker {
 public:
+    /** @brief 将事件发给追踪者与玩家本人，目标尚未被追踪时仍通知本人。 */
+    void broadcastPacketAndSelf(IServer& server, EntityInstanceId entityId, const mc::network::ir::IrPacket& packet);
+
     EntityTracker();
     ~EntityTracker() = default;
 

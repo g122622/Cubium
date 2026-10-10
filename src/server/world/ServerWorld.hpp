@@ -928,6 +928,9 @@ public:
     /// 装备变更广播（委托 EntityTracker，向追踪者下发 SetEquipment cb 100）。
     void broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots) override;
 
+    /** @brief 向追踪者与受害玩家本人同步伤害类型及来源。 */
+    void broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source) override;
+
     /// 状态效果新增/更新广播（委托 EntityTracker，下发 UpdateMobEffect cb 130）。
     void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect) override;
 

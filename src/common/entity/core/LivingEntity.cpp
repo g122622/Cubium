@@ -286,6 +286,10 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         if (auto* c = m_entityContext->tryGetComponent<ecs::HurtStateComponent>()) {
             c->m_hurtTime = c->m_maxHurtTime;
         }
+        // 完整格挡不产生伤害事件，无敌帧内的差额伤害也不重复启动受伤表现。
+        if (m_world != nullptr && !canBlockDamageSource(source)) {
+            m_world->broadcastDamageEvent(m_id, source);
+        }
         actuallyHurt(source, amount);
     }
 

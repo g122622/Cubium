@@ -1436,4 +1436,14 @@ struct Cooldown {
     [[nodiscard]] friend bool operator==(const Cooldown&, const Cooldown&) noexcept = default;
 };
 
+/** @brief 伤害事件（S→C，id=25），责任实体与直接来源分别编码。 */
+struct DamageEvent {
+    i32 entityId;
+    i32 sourceType;
+    i32 sourceCauseId;
+    i32 sourceDirectId;
+    std::optional<std::array<f64, 3>> sourcePosition;
+    [[nodiscard]] friend bool operator==(const DamageEvent&, const DamageEvent&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

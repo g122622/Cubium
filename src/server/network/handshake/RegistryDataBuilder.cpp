@@ -22,6 +22,7 @@
  */
 
 #include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
 
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
@@ -463,57 +464,12 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
             "minecraft:wither"}));
 
     // 15. damage_type（50）。1.21.11 无 avoid/merging/thistle（旧版残留已删）；新增多个。
-    registries.push_back(makeKnownRegistry("minecraft:damage_type",
-        {"minecraft:in_fire",
-            "minecraft:lightning_bolt",
-            "minecraft:on_fire",
-            "minecraft:lava",
-            "minecraft:hot_floor",
-            "minecraft:in_wall",
-            "minecraft:cramming",
-            "minecraft:drown",
-            "minecraft:starve",
-            "minecraft:cactus",
-            "minecraft:fall",
-            "minecraft:out_of_world",
-            "minecraft:generic",
-            "minecraft:magic",
-            "minecraft:wither",
-            "minecraft:dragon_breath",
-            "minecraft:dry_out",
-            "minecraft:sweet_berry_bush",
-            "minecraft:freeze",
-            "minecraft:stalagmite",
-            "minecraft:falling_stalactite",
-            "minecraft:arrow",
-            "minecraft:trident",
-            "minecraft:fireball",
-            "minecraft:wither_skull",
-            "minecraft:thrown",
-            "minecraft:indirect_magic",
-            "minecraft:thorns",
-            "minecraft:explosion",
-            "minecraft:player_attack",
-            "minecraft:mob_attack",
-            "minecraft:mob_attack_no_aggro",
-            "minecraft:mob_projectile",
-            "minecraft:sonic_boom",
-            "minecraft:generic_kill",
-            "minecraft:outside_border",
-            "minecraft:bad_respawn_point",
-            "minecraft:falling_anvil",
-            "minecraft:falling_block",
-            "minecraft:sting",
-            "minecraft:campfire",
-            "minecraft:fireworks",
-            "minecraft:fly_into_wall",
-            "minecraft:player_explosion",
-            "minecraft:spear",
-            "minecraft:spit",
-            "minecraft:wind_charge",
-            "minecraft:mace_smash",
-            "minecraft:ender_pearl",
-            "minecraft:unattributed_fireball"}));
+    mc::network::ir::configuration::RegistryData damageTypes{};
+    damageTypes.registryKey = "minecraft:damage_type";
+    for (const auto name : mc::network::backend::java::JavaDamageTypeIds::ENTRIES) {
+        damageTypes.entries.push_back({std::string(name), std::nullopt});
+    }
+    registries.push_back(std::move(damageTypes));
 
     // 16. banner_pattern（43）。
     registries.push_back(makeKnownRegistry("minecraft:banner_pattern",

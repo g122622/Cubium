@@ -1598,6 +1598,13 @@ public:
         (void)hurtDir;
     }
 
+    /** @brief 广播伤害来源；客户端世界无需执行出站操作。 */
+    virtual void broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source)
+    {
+        (void)entityId;
+        (void)source;
+    }
+
     // ========== 实体拴绳链接广播 ==========
 
     /**

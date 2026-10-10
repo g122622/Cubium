@@ -1333,7 +1333,17 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 受伤动画 ----
-            else if constexpr (std::is_same_v<T, irplay::HurtAnimation>) {
+            else if constexpr (std::is_same_v<T, irplay::DamageEvent>) {
+                auto* entity = m_app.m_world.entityManager().getEntity(static_cast<EntityInstanceId>(pkt.entityId));
+                if (entity != nullptr) {
+                    entity->triggerHurtAnimation();
+                }
+                if (m_app.m_player != nullptr &&
+                    m_app.m_localIdentity.isLocalPlayerEntity(static_cast<EntityInstanceId>(pkt.entityId))) {
+                    m_app.m_player->animateHurt(m_app.m_player->getHurtDir());
+                }
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::HurtAnimation>) {
                 const auto& p = pkt;
                 // 1.21.11 HurtAnimation 携带 yaw（damage tilt 方向），对应旧 onHurtAnimation 的 hurtDir
                 const f32 hurtDir = p.yaw;

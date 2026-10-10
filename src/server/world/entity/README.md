@@ -65,3 +65,5 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 - EntityTracker::tick() 在 hurtMarked 为 true 时，除了向追踪玩家发送速度包，还会通过 `Player::sendVelocityPacket()` 虚方法向自身发送
 - ServerPlayer 不会出现在自己的追踪列表中，因此需要单独发送
 - `Player::causeExtraKnockback()` 在疾跑击退时，会先为 ServerPlayer 目标立即发送速度包并清除 hurtMarked，此分支不会执行，从而避免速度重复应用
+
+伤害与状态事件应使用 broadcastPacketAndSelf，先快照追踪者再在锁外发送，并补充玩家本人。玩家实体尚未登记到追踪表时仍须发给本人；不能在查不到追踪条目时提前返回。

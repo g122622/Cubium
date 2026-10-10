@@ -1796,4 +1796,43 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 可选来源实体以 id+1 编码，零值表示无实体。 */
+[[nodiscard]] inline auto damageEventCodec()
+{
+    return makeCodec<ir::play::DamageEvent>(
+        [](B& buf, const ir::play::DamageEvent& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeVarInt(v.sourceType);
+            buf.writeVarInt(static_cast<i32>(static_cast<u32>(v.sourceCauseId) + 1u));
+            buf.writeVarInt(static_cast<i32>(static_cast<u32>(v.sourceDirectId) + 1u));
+            buf.writeBool(v.sourcePosition.has_value());
+            if (v.sourcePosition.has_value()) {
+                for (const auto coordinate : *v.sourcePosition) {
+                    buf.writeF64(coordinate);
+                }
+            }
+        },
+        [](B& buf) -> Result<ir::play::DamageEvent> {
+            ir::play::DamageEvent v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.sourceType, buf.readVarInt());
+            i32 cause = 0;
+            i32 direct = 0;
+            MC_TRY_ASSIGN(cause, buf.readVarInt());
+            MC_TRY_ASSIGN(direct, buf.readVarInt());
+            v.sourceCauseId = static_cast<i32>(static_cast<u32>(cause) - 1u);
+            v.sourceDirectId = static_cast<i32>(static_cast<u32>(direct) - 1u);
+            bool hasPosition = false;
+            MC_TRY_ASSIGN(hasPosition, buf.readBool());
+            if (hasPosition) {
+                std::array<f64, 3> position{};
+                for (auto& coordinate : position) {
+                    MC_TRY_ASSIGN(coordinate, buf.readF64());
+                }
+                v.sourcePosition = position;
+            }
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

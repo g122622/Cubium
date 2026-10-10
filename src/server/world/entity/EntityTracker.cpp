@@ -328,6 +328,28 @@ bool EntityTracker::isTracking(EntityInstanceId entityId) const
     return m_trackedEntities.find(entityId) != m_trackedEntities.end();
 }
 
+void EntityTracker::broadcastPacketAndSelf(
+    IServer& server, EntityInstanceId entityId, const mc::network::ir::IrPacket& packet)
+{
+    std::vector<PlayerId> players;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (auto it = m_trackedEntities.find(entityId); it != m_trackedEntities.end()) {
+            players.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
+        }
+    }
+    const PlayerId owner = server.playerEntityManager().getPlayerIdByEntityId(entityId);
+    if (owner != 0 && std::find(players.begin(), players.end(), owner) == players.end()) {
+        players.push_back(owner);
+    }
+    for (const PlayerId playerId : players) {
+        auto* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->loggedIn && player->hasConnection()) {
+            player->send(mc::network::ir::IrPacket{packet});
+        }
+    }
+}
+
 void EntityTracker::broadcastEquipment(IServer& server, ServerWorld& world, EntityInstanceId entityId)
 {
     std::vector<PlayerId> trackingPlayers;
