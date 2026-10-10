@@ -336,6 +336,7 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Player, "LoginFlow::sendInitialGameState", "playerId", playerId, "x", x, "y", y, "z", z);
 
+    if (auto* world = m_server.getPlayerWorld(playerId)) world->waypointManager().clearReceiver(m_server, playerId);
     // TeleportManager::requestTeleport() 内部已经发送过 TeleportPacket。
     // 这里不能重复发送，否则客户端会在登录阶段收到两个相同 teleportId 的传送包，
     // 紧接着回两次 TeleportConfirm，第二次会因为服务端已清除 waitingTeleportConfirm

@@ -228,7 +228,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::EntityPositionSync,         // 139
     play::ServerLinks,                // 140
     play::ShowDialog,                 // 141
-    play::ClearDialog                 // 142
+    play::ClearDialog,                // 142
+    play::Waypoint                    // 143
     >;
 
 /**

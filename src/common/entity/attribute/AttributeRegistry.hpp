@@ -230,6 +230,8 @@ private:
         registerAttribute(*Attributes::entityGravity());
 
         // MC 1.21+ 新增属性
+        registerAttribute(*Attributes::waypointTransmitRange());
+        registerAttribute(*Attributes::waypointReceiveRange());
         registerAttribute(*Attributes::movementEfficiency());
         registerAttribute(*Attributes::blockInteractionRange());
         registerAttribute(*Attributes::entityInteractionRange());

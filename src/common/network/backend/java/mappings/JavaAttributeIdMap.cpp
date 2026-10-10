@@ -85,8 +85,8 @@ constexpr VanillaAttributeEntry kVanillaAttributes[] = {
     {30, "sweeping_damage_ratio", nullptr, true},
     {31, "tempt_range", nullptr, false},
     {32, "water_movement_efficiency", nullptr, true},
-    {33, "waypoint_transmit_range", nullptr, false},
-    {34, "waypoint_receive_range", nullptr, false},
+    {33, "waypoint_transmit_range", ::mc::entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, false},
+    {34, "waypoint_receive_range", ::mc::entity::attribute::Attributes::WAYPOINT_RECEIVE_RANGE, false},
 };
 
 inline constexpr size_t kVanillaAttributeCount = std::size(kVanillaAttributes);

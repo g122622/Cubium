@@ -78,6 +78,8 @@ namespace GameRuleKeys {
 
 /// 玩家死亡后是否保留物品栏
 extern const BooleanGameRuleKey KEEP_INVENTORY;
+/** @brief 是否启用玩家导航条。 */
+extern const BooleanGameRuleKey LOCATOR_BAR;
 
 /// 玩家是否自然恢复生命值
 extern const BooleanGameRuleKey NATURAL_REGENERATION;

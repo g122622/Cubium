@@ -351,6 +351,7 @@ add_executable(minecraft-server
     world/spawn/DespawnManager.cpp
     world/spawn/VillageSiege.cpp
     world/entity/EntityTracker.cpp
+    world/entity/waypoint/WaypointManager.cpp
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp

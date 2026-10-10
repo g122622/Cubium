@@ -2222,4 +2222,94 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
     return makeCodec<ir::play::ClearDialog>([](B&, const ir::play::ClearDialog&) {},
         [](B&) -> Result<ir::play::ClearDialog> { return ir::play::ClearDialog{}; });
 }
+/** @brief 导航点的标识 Either、RGB 三字节和类型专属负载。 */
+[[nodiscard]] inline auto waypointCodec()
+{
+    return makeCodec<ir::play::Waypoint>(
+        [](B& buf, const ir::play::Waypoint& v) {
+            buf.writeVarInt(static_cast<i32>(v.operation));
+            const auto* uuid = std::get_if<std::array<u8, 16>>(&v.identifier);
+            buf.writeBool(uuid != nullptr);
+            if (uuid)
+                buf.writeBytes(uuid->data(), uuid->size());
+            else
+                buf.writeString(std::get<std::string>(v.identifier));
+            buf.writeString(v.style);
+            buf.writeBool(v.color.has_value());
+            if (v.color) {
+                buf.writeU8(static_cast<u8>(*v.color >> 16));
+                buf.writeU8(static_cast<u8>(*v.color >> 8));
+                buf.writeU8(static_cast<u8>(*v.color));
+            }
+            buf.writeVarInt(static_cast<i32>(v.position.index()));
+            if (const auto* pos = std::get_if<ir::play::WaypointPosition>(&v.position)) {
+                buf.writeVarInt(pos->x);
+                buf.writeVarInt(pos->y);
+                buf.writeVarInt(pos->z);
+            } else if (const auto* chunk = std::get_if<ir::play::WaypointChunk>(&v.position)) {
+                buf.writeVarInt(chunk->x);
+                buf.writeVarInt(chunk->z);
+            } else if (const auto* angle = std::get_if<f32>(&v.position))
+                buf.writeF32(*angle);
+        },
+        [](B& buf) -> Result<ir::play::Waypoint> {
+            ir::play::Waypoint v{};
+            i32 operation = 0;
+            MC_TRY_ASSIGN(operation, buf.readVarInt());
+            if (operation < 0 || operation > 2) return Error(ErrorCode::InvalidData, "Invalid waypoint operation");
+            v.operation = static_cast<ir::play::WaypointOperation>(operation);
+            bool uuid = false;
+            MC_TRY_ASSIGN(uuid, buf.readBool());
+            if (uuid) {
+                std::array<u8, 16> id{};
+                for (auto& byte : id)
+                    MC_TRY_ASSIGN(byte, buf.readU8());
+                v.identifier = id;
+            } else {
+                std::string id;
+                MC_TRY_ASSIGN(id, buf.readString());
+                v.identifier = std::move(id);
+            }
+            MC_TRY_ASSIGN(v.style, buf.readString());
+            bool color = false;
+            MC_TRY_ASSIGN(color, buf.readBool());
+            if (color) {
+                u8 r = 0, g = 0, b = 0;
+                MC_TRY_ASSIGN(r, buf.readU8());
+                MC_TRY_ASSIGN(g, buf.readU8());
+                MC_TRY_ASSIGN(b, buf.readU8());
+                v.color = (static_cast<u32>(r) << 16) | (static_cast<u32>(g) << 8) | b;
+            }
+            i32 type = 0;
+            MC_TRY_ASSIGN(type, buf.readVarInt());
+            switch (type) {
+                case 0:
+                    break;
+                case 1: {
+                    ir::play::WaypointPosition pos{};
+                    MC_TRY_ASSIGN(pos.x, buf.readVarInt());
+                    MC_TRY_ASSIGN(pos.y, buf.readVarInt());
+                    MC_TRY_ASSIGN(pos.z, buf.readVarInt());
+                    v.position = pos;
+                    break;
+                }
+                case 2: {
+                    ir::play::WaypointChunk pos{};
+                    MC_TRY_ASSIGN(pos.x, buf.readVarInt());
+                    MC_TRY_ASSIGN(pos.z, buf.readVarInt());
+                    v.position = pos;
+                    break;
+                }
+                case 3: {
+                    f32 angle = 0;
+                    MC_TRY_ASSIGN(angle, buf.readF32());
+                    v.position = angle;
+                    break;
+                }
+                default:
+                    return Error(ErrorCode::InvalidData, "Invalid waypoint location type");
+            }
+            return v;
+        });
+}
 } // namespace mc::network::backend::java::codecs

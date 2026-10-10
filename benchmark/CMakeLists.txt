@@ -36,6 +36,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp
         # ServerWorld 传递依赖（构造/回调链引用）：
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp

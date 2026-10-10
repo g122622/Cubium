@@ -1121,6 +1121,7 @@ void LivingEntity::onRemoval(RemovalReason reason)
 
 void LivingEntity::registerAttributes()
 {
+    attributes().registerAttribute(*entity::attribute::Attributes::waypointTransmitRange());
     // 基础属性：所有生物实体都有
     attributes().registerAttribute(*entity::attribute::Attributes::maxHealth());
     attributes().registerAttribute(*entity::attribute::Attributes::knockbackResistance());
@@ -3326,6 +3327,12 @@ void LivingEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // 先调用基类实现
     Entity::addAdditionalSaveData(tag);
 
+    if (m_waypointStyle != "minecraft:default" || m_waypointColor) {
+        auto icon = std::make_unique<nbt::tags::compound_tag>();
+        icon->put("style", m_waypointStyle);
+        if (m_waypointColor) icon->put("color", static_cast<i32>(*m_waypointColor));
+        tag.value.emplace("locator_bar_icon", std::move(icon));
+    }
     // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
     // 经 Entity::writeToNBT 的 saveAll 写出（批次6 子目标1 Step4），此处不再重复写。
 
@@ -3360,6 +3367,14 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // 先调用基类实现
     MC_TRY(Entity::readAdditionalSaveData(tag));
 
+    m_waypointStyle = "minecraft:default";
+    m_waypointColor.reset();
+    if (const auto icon = tag.value.find("locator_bar_icon");
+        icon != tag.value.end() && icon->second->id() == nbt::TagId::Compound) {
+        const auto& value = dynamic_cast<const nbt::tags::compound_tag&>(*icon->second);
+        if (auto name = nbt_helper::tryGetString(value, "style")) m_waypointStyle = *name;
+        if (auto color = nbt_helper::tryGetInt(value, "color")) m_waypointColor = static_cast<u32>(*color) & 0xffffffu;
+    }
     // Health / AbsorptionAmount / HurtTime / DeathTime / Equipment 已迁入组件序列化器注册表，
     // 经 Entity::readFromNBT 的 loadAll 读回（批次6 子目标1 Step4），此处不再重复读。
 

@@ -1589,4 +1589,23 @@ struct ShowDialog {
 struct ClearDialog {
     friend bool operator==(const ClearDialog&, const ClearDialog&) = default;
 };
+/** @brief 导航点增删改操作。 */
+enum class WaypointOperation : i32 { Track, Untrack, Update };
+struct WaypointPosition {
+    i32 x, y, z;
+    friend bool operator==(const WaypointPosition&, const WaypointPosition&) = default;
+};
+struct WaypointChunk {
+    i32 x, z;
+    friend bool operator==(const WaypointChunk&, const WaypointChunk&) = default;
+};
+/** @brief 导航点支持 UUID/字符串标识、样式、RGB 颜色和四种位置表达。 */
+struct Waypoint {
+    WaypointOperation operation;
+    std::variant<std::array<u8, 16>, std::string> identifier;
+    std::string style;
+    std::optional<u32> color;
+    std::variant<std::monostate, WaypointPosition, WaypointChunk, f32> position;
+    friend bool operator==(const Waypoint&, const Waypoint&) = default;
+};
 } // namespace mc::network::ir::play

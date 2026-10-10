@@ -790,7 +790,14 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 实体传送 ----
-            else if constexpr (std::is_same_v<T, irplay::ClearDialog>) {
+            else if constexpr (std::is_same_v<T, irplay::Waypoint>) {
+                if (pkt.operation == irplay::WaypointOperation::Untrack)
+                    m_waypoints.erase(pkt.identifier);
+                else
+                    m_waypoints[pkt.identifier] = pkt;
+                // TODO: 停止维护的原生客户端尚未提供导航条绘制。
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ClearDialog>) {
                 m_dialog.reset();
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::ShowDialog>) {

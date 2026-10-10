@@ -61,15 +61,9 @@ ServerPlayer 继承自 `Player` 基类，是服务端玩家实体的核心实现
 
 **注意**：当前两个类都在使用，职责不同，不要混淆。
 
-### 2. 世界指针可能为空
+### 2. 世界引用
 
-`getWorld()` 可能返回 `nullptr`，使用前必须检查：
-
-```cpp
-if (ServerWorld* world = player->getWorld()) {
-    // 使用世界
-}
-```
+实体使用 world() 获取 IWorld；服务端专用上下文通过 asServerWorld() 获取。实体未绑定世界时指针可为空。
 
 ### 3. 网络连接检查
 
@@ -166,3 +160,5 @@ PvP 保护机制的单元测试位于：
 **用途**：横扫攻击的"几乎静止"判定（`Player::isSweepStationary()`）。该判定必须用客户端上报位移而非服务端自身
 速度——玩家位置由客户端权威申报，服务端速度不含其行走。无客户端连接的实体（`SimulatedPlayer`）覆写
 `getKnownMovement()` 回退到自身速度。
+
+服务器链接和对话框通过 ServerPlayer 的 sendServerLinks/showDialog/clearDialog 发送；对话框可用命名资源或直接定义，整数 NBT 标签须保持 Int/Long。

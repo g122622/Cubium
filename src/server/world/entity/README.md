@@ -9,7 +9,8 @@ src/server/world/entity/
 ├── EntityTracker.hpp       # 实体追踪器（管理实体客户端可见性，同步位置/旋转/元数据）
 ├── EntityTracker.cpp       # 实体追踪器实现
 ├── ItemPickupManager.hpp   # 物品拾取管理器（检测拾取、物品合并、背包更新）
-└── ItemPickupManager.cpp   # 物品拾取管理器实现
+├── ItemPickupManager.cpp   # 物品拾取管理器实现
+└── waypoint/               # 每维度导航点同步门面
 ```
 
 ## 内部模块关系

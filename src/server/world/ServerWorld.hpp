@@ -62,6 +62,7 @@
 #include "server/world/blockevent/BlockEventData.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/entity/waypoint/WaypointManager.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
@@ -1055,6 +1056,9 @@ public:
     [[nodiscard]] EntityManager& entityManager() noexcept { return m_entityManager; }
     [[nodiscard]] const EntityManager& entityManager() const noexcept { return m_entityManager; }
 
+    /** @brief 本维度导航点同步门面。 */
+    [[nodiscard]] WaypointManager& waypointManager() noexcept { return m_waypointManager; }
+
     [[nodiscard]] EntityTracker& entityTracker() noexcept { return m_entityTracker; }
     [[nodiscard]] const EntityTracker& entityTracker() const noexcept { return m_entityTracker; }
 
@@ -1581,6 +1585,7 @@ private:
     ecs::EntityRegistry m_entityRegistry;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;
+    WaypointManager m_waypointManager;
     std::unique_ptr<PhysicsEngine> m_physicsEngine;
     std::unique_ptr<physics::CollisionCache> m_collisionCache;
     std::unique_ptr<world::tick::TickManager> m_tickManager;

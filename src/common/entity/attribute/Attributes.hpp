@@ -397,6 +397,17 @@ inline std::unique_ptr<Attribute> entityInteractionRange()
     return std::make_unique<Attribute>("generic.entity_interaction_range", 3.0, 0.0, 64.0);
 }
 
+/** @brief 导航点发送范围，所有生物默认不发送。 */
+inline std::unique_ptr<Attribute> waypointTransmitRange()
+{
+    return std::make_unique<Attribute>("generic.waypoint_transmit_range", 0.0, 0.0, 60000000.0);
+}
+/** @brief 导航点接收范围。 */
+inline std::unique_ptr<Attribute> waypointReceiveRange()
+{
+    return std::make_unique<Attribute>("generic.waypoint_receive_range", 0.0, 0.0, 60000000.0);
+}
+
 // ============================================================================
 // 属性名称常量
 // ============================================================================
@@ -417,6 +428,8 @@ constexpr const char* ZOMBIE_SPAWN_REINFORCEMENTS = "zombie.spawn_reinforcements
 constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
 
 // MC 1.21+ 新增属性
+constexpr const char* WAYPOINT_TRANSMIT_RANGE = "generic.waypoint_transmit_range";
+constexpr const char* WAYPOINT_RECEIVE_RANGE = "generic.waypoint_receive_range";
 constexpr const char* MOVEMENT_EFFICIENCY = "generic.movement_efficiency";
 constexpr const char* BLOCK_INTERACTION_RANGE = "generic.block_interaction_range";
 constexpr const char* ENTITY_INTERACTION_RANGE = "generic.entity_interaction_range";

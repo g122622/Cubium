@@ -1,5 +1,6 @@
 #include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/item/Items.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/mappings/JavaCustomStatIds.hpp"
@@ -8,12 +9,15 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
+#include "server/network/sync/chunk/PlayerChunkTracker.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <limits>
 #include <gtest/gtest.h>
 
@@ -588,4 +592,161 @@ TEST_F(LocalServerFixture, ServerPlayerClearsDialogThroughConnection)
     EXPECT_TRUE(std::holds_alternative<ClearDialog>(std::get<PlayPacket>(packet->packet)));
     player.setConnection(nullptr);
     EXPECT_FALSE(player.clearDialog());
+}
+
+TEST_F(NetworkTestBase, PlayWaypointEncodesIdentifierIconRgbAndAllLocationKinds)
+{
+    Waypoint packet{
+        WaypointOperation::Track, std::string("test"), "minecraft:default", 0x123456u, WaypointPosition{1, 64, -1}};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    const std::vector<u8> golden{0x88,
+        1,
+        0,
+        0,
+        4,
+        't',
+        'e',
+        's',
+        't',
+        17,
+        'm',
+        'i',
+        'n',
+        'e',
+        'c',
+        'r',
+        'a',
+        'f',
+        't',
+        ':',
+        'd',
+        'e',
+        'f',
+        'a',
+        'u',
+        'l',
+        't',
+        1,
+        0x12,
+        0x34,
+        0x56,
+        1,
+        1,
+        64,
+        255,
+        255,
+        255,
+        255,
+        15};
+    EXPECT_EQ(buf.bytes(), golden);
+    EXPECT_EQ(std::get<Waypoint>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+    for (usize n = 1; n < buf.size(); ++n) {
+        buffer::RegistryByteBuf cut(buf.data(), n, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(cut).success());
+    }
+    packet.identifier = std::array<u8, 16>{};
+    packet.operation = WaypointOperation::Update;
+    packet.color.reset();
+    packet.position = WaypointChunk{-20, 40};
+    EXPECT_EQ(std::get<Waypoint>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+    packet.position = -1.25f;
+    EXPECT_EQ(std::get<Waypoint>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+    packet.operation = WaypointOperation::Untrack;
+    packet.position = std::monostate{};
+    EXPECT_EQ(std::get<Waypoint>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+}
+
+TEST_F(NetworkTestBase, WaypointsTrackMoveHideChangeRepresentationAndRespectRules)
+{
+    _PacketRecordingConnection connection;
+    mc::test::BaseTestServer server;
+    server::ServerWorld world(server::ServerWorldConfig{2, 2, 0, 1, "waypoint-test"});
+    auto* data = server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Watcher", &connection);
+    ASSERT_NE(data, nullptr);
+    data->markClientLoaded();
+    data->chunkTracker = std::make_shared<server::sync::PlayerChunkTracker>(1);
+    data->chunkTracker->setViewDistance(2);
+    auto watcherOwned = std::make_unique<Player>(101, "Watcher", *world.entityRegistry());
+    auto* watcher = watcherOwned.get();
+    watcher->setWorld(&world);
+    watcher->setPosition(0, 0, 0);
+    const auto watcherId = world.entityManager().addEntity(std::move(watcherOwned));
+    ASSERT_TRUE(server.playerEntityManager().registerExistingPlayerEntity(1, watcherId, world));
+    auto sourceOwned = std::make_unique<Player>(102, "Source", *world.entityRegistry());
+    auto* source = sourceOwned.get();
+    source->setWorld(&world);
+    source->setPosition(1, 0, 1);
+    world.entityManager().addEntity(std::move(sourceOwned));
+    auto& manager = world.waypointManager();
+    manager.tick(server, world);
+    ASSERT_EQ(connection.packets.size(), 1u);
+    EXPECT_EQ(
+        std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation, WaypointOperation::Track);
+    EXPECT_TRUE(std::holds_alternative<WaypointPosition>(
+        std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).position));
+    connection.packets.clear();
+    manager.tick(server, world);
+    EXPECT_TRUE(connection.packets.empty());
+    source->setPosition(2, 0, 1);
+    manager.tick(server, world);
+    ASSERT_EQ(connection.packets.size(), 1u);
+    EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
+        WaypointOperation::Update);
+    connection.packets.clear();
+    source->setSneaking(true);
+    manager.tick(server, world);
+    ASSERT_EQ(connection.packets.size(), 1u);
+    EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
+        WaypointOperation::Untrack);
+    source->setSneaking(false);
+    source->setPosition(100, 0, 0);
+    manager.tick(server, world);
+    EXPECT_TRUE(std::holds_alternative<WaypointChunk>(
+        std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).position));
+    source->setPosition(400, 0, 0);
+    manager.tick(server, world);
+    EXPECT_NEAR(std::get<f32>(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).position),
+        -math::PI / 2.0,
+        0.00001);
+    source->attributes().setBaseValue(entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 10.0);
+    manager.tick(server, world);
+    EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
+        WaypointOperation::Untrack);
+    source->attributes().setBaseValue(entity::attribute::Attributes::WAYPOINT_TRANSMIT_RANGE, 60000000.0);
+    manager.tick(server, world);
+    world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::LOCATOR_BAR, false, nullptr);
+    manager.tick(server, world);
+    EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
+        WaypointOperation::Untrack);
+    connection.packets.clear();
+    manager.tick(server, world);
+    EXPECT_TRUE(connection.packets.empty());
+    world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::LOCATOR_BAR, true, nullptr);
+    source->setWaypointIcon(ResourceLocation("minecraft:bowtie"), 0x123456u);
+    manager.tick(server, world);
+    ASSERT_FALSE(connection.packets.empty());
+    const auto& icon = std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet));
+    EXPECT_EQ(icon.style, "minecraft:bowtie");
+    EXPECT_EQ(icon.color, 0x123456u);
+    manager.clearReceiver(server, 1);
+    manager.tick(server, world);
+    EXPECT_EQ(
+        std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation, WaypointOperation::Track);
+    source->setEquipment(EquipmentSlot::Head, ItemStack(Items::CARVED_PUMPKIN, 1));
+    manager.tick(server, world);
+    EXPECT_EQ(std::get<Waypoint>(std::get<PlayPacket>(connection.packets.back().packet)).operation,
+        WaypointOperation::Untrack);
+}
+
+TEST_F(NetworkTestBase, WaypointIconPersistsAcrossEntitySave)
+{
+    Player source(200, "Source", mc::test::testEcsRegistry());
+    source.setWaypointIcon(ResourceLocation("minecraft:bowtie"), 0xabcdefu);
+    mc::nbt::tags::compound_tag tag;
+    source.addAdditionalSaveData(tag);
+    Player restored(201, "Restored", mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(tag).success());
+    EXPECT_EQ(restored.waypointStyle(), "minecraft:bowtie");
+    EXPECT_EQ(restored.waypointColor(), 0xabcdefu);
 }

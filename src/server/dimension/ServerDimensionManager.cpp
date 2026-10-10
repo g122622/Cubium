@@ -250,6 +250,8 @@ void ServerDimensionManager::playerLeaveDimension(PlayerId playerId)
     DimensionId oldDimId = it->second;
     auto* dim = getDimension(oldDimId);
     if (dim) {
+        if (dim->world() != nullptr && m_server != nullptr)
+            dim->world()->waypointManager().removePlayer(*m_server, playerId);
         dim->removePlayer(playerId);
     }
 

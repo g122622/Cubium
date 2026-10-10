@@ -1786,6 +1786,7 @@ void MinecraftServer::tickEntities()
 
         // 实体追踪更新
         world->entityTracker().tick(*this, *world);
+        world->waypointManager().tick(*this, *world);
     });
 }
 

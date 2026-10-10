@@ -81,6 +81,7 @@ struct RuleRegistry {
     {
         // 玩家相关
         registerBoolean("keepInventory", GameRuleCategory::Player, false);
+        registerBoolean("locator_bar", GameRuleCategory::Player, true);
         registerBoolean("naturalRegeneration", GameRuleCategory::Player, true);
         registerBoolean("spectatorsGenerateChunks", GameRuleCategory::Player, true);
         registerBoolean("disableElytraMovementCheck", GameRuleCategory::Player, false);
@@ -179,6 +180,7 @@ namespace GameRuleKeys {
 
 // 玩家相关
 const BooleanGameRuleKey KEEP_INVENTORY("keepInventory", GameRuleCategory::Player);
+const BooleanGameRuleKey LOCATOR_BAR("locator_bar", GameRuleCategory::Player);
 const BooleanGameRuleKey NATURAL_REGENERATION("naturalRegeneration", GameRuleCategory::Player);
 const IntegerGameRuleKey SPAWN_RADIUS("spawnRadius", GameRuleCategory::Player);
 const BooleanGameRuleKey SPECTATORS_GENERATE_CHUNKS("spectatorsGenerateChunks", GameRuleCategory::Player);
