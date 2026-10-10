@@ -77,7 +77,7 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 
 ### 分支规范
 
-如果不是特别大的feature/refactor等，不要新开分支，直接提交并推送到origin/main。
+禁止直接推送到 `origin/main`。所有修改必须在独立分支提交、推送，并通过 Pull Request 合入 `main`；分支默认使用 `codex/` 前缀。
 
 ## 子代理使用规范
 

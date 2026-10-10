@@ -10,6 +10,8 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 
 ## git 规范
 
+禁止直接推送到 `origin/main`。所有修改必须通过独立分支和 Pull Request 合入 `main`；分支默认使用 `codex/` 前缀。
+
 ### 提交信息格式
 ```
 <type>(<scope>): <subject>
