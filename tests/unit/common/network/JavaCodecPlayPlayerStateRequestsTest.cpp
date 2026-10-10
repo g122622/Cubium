@@ -20,10 +20,10 @@ using namespace mc::network::test;
 
 namespace {
 
-class _PlayerStateRequestWorld : public ServerWorld {
+class _PlayerStateRequestWorld : public server::ServerWorld {
 public:
     _PlayerStateRequestWorld()
-        : ServerWorld(ServerWorldConfig{2, 2, 0, 1, "packet-test"})
+        : ServerWorld(server::ServerWorldConfig{2, 2, 0, 1, "packet-test"})
     {}
 
     void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation) override
@@ -45,14 +45,14 @@ public:
         m_opListManager = std::make_unique<server::core::OpListManager>();
     }
 
-    ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
+    server::ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
 
     Player& addPlayerEntity(PlayerId playerId)
     {
         if (!m_world) {
             m_world = std::make_unique<_PlayerStateRequestWorld>();
         }
-        auto player = std::make_unique<Player>(EntityInstanceId(100 + playerId), "Player", m_world->entityRegistry());
+        auto player = std::make_unique<Player>(EntityInstanceId(100 + playerId), "Player", *m_world->entityRegistry());
         auto* result = player.get();
         result->setWorld(m_world.get());
         const auto entityId = m_world->entityManager().addEntity(std::move(player));
@@ -107,7 +107,7 @@ TEST(PlayerStateRequestTest, SwingRoutesToRealEntityAndBroadcastsSelectedHand)
         handler.route(playerId, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{Swing{hand}}});
         EXPECT_TRUE(player.isSwingInProgress());
         EXPECT_EQ(player.swingingHand(), static_cast<Hand>(hand));
-        EXPECT_EQ(server.m_world->animations.back().first, player.getId());
+        EXPECT_EQ(server.m_world->animations.back().first, player.id());
         EXPECT_EQ(server.m_world->animations.back().second, hand == 0 ? 0 : 3);
     }
     EXPECT_EQ(server.m_world->animations.size(), 2u);
@@ -226,4 +226,24 @@ TEST(PlayerStateRequestTest, AbilitiesCannotGrantFlightOrOtherPrivileges)
     data->loggedIn = false;
     handler.route(1, fly);
     EXPECT_FALSE(player.abilities().flying);
+}
+
+TEST(PlayerStateRequestTest, SwitchKeepsLoadSignalsSeparateFromGameModeRequests)
+{
+    _PlayerStateRequestServer server;
+    auto* data = server.playerManager().addPlayer(1, "player-uuid", "Player", nullptr);
+    ASSERT_NE(data, nullptr);
+    server.opListManager().setEntry(
+        server::core::OpEntry("player-uuid", "Player", server::core::OpLevel::GameMaster, false));
+    server::net::ServerPlayHandler handler(server);
+    data->restartClientLoadTimerAfterRespawn();
+    handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{ChangeGameMode{1}}});
+    EXPECT_EQ(data->gameMode, GameMode::Creative);
+    EXPECT_EQ(data->clientLoadedTimeoutTimer, 60);
+    handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{PlayerLoaded{}}});
+    EXPECT_TRUE(data->hasClientLoaded());
+    EXPECT_EQ(data->gameMode, GameMode::Creative);
+    handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{SetTime{}}});
+    EXPECT_TRUE(data->hasClientLoaded());
+    EXPECT_EQ(data->gameMode, GameMode::Creative);
 }

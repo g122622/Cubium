@@ -22,7 +22,7 @@ src/server/network/play/
 ├── base/
 │   ├── README.md
 │   └── PlayHandlerBase.hpp        # 处理器基座：只提供 MinecraftServer&
-├── ServerPlayHandler.hpp/cpp      # 聚合门面：按类型的 holds_alternative 分发表 + 对外 updateEntityTrackingForPlayer
+├── ServerPlayHandler.hpp/cpp      # 聚合门面：按类型的 switch 分发表 + 对外 updateEntityTrackingForPlayer
 ├── MovementHandler.hpp/cpp        # 移动 / 载具移动 / 客户端输入 / 传送确认 / 客户端 tick 结束
 ├── BlockActionHandler.hpp/cpp     # 挖掘 / 物品动作 / 使用物品 / 放置 / 告示牌
 ├── EntityActionHandler.hpp/cpp    # 实体交互（INTERACT / ATTACK / INTERACT_AT）
@@ -37,7 +37,7 @@ src/server/network/play/
 ClientSession::handleInbound（session/）
         │ 握手已消费则返回；否则 phase / playerId 守卫
         ▼
-ServerPlayHandler::route          ← 唯一的 std::holds_alternative 分发表
+ServerPlayHandler::route          ← 唯一的 std::switch 分发表
         ├─ 23 个分支 ──▶ 对应包族处理器（m_movement / m_blockAction / …）
         └─  4 个分支 ──▶ MinecraftServer 纯虚（handleHotbarSelect / handleContainerClick
                           / handleCloseContainer / SetCreativeModeSlot）
@@ -76,10 +76,12 @@ ServerPlayHandler::route          ← 唯一的 std::holds_alternative 分发表
 告警会被静默化）。漏加分支不会编译报错，只在运行期打一条日志并丢弃。新增 C→S 包时务必同步：
 ①在 `route()` 加分支；②在对应处理器加实现体。
 
-### 2. 分发表不能改用 `packet.index()`
+### 2. switch 分支标签必须由包类型推导
 
-`std::variant` 的 index 会随 `PlayPackets.hpp` 增删变体而整体错位，用 index 建静态分发表会导致
-静默串包。`holds_alternative` 链虽然啰嗦但是类型安全的。
+route 使用 PlayPacket.index() 作为 switch 判别值；每个 case 均通过
+_playPacketIndex<包类型>() 在编译期取得下标，禁止手写数字。
+新增或调整变体顺序后标签自动跟随类型；类型缺失或重复会触发编译错误。
+同族移动包共用一个处理分支，其他包各自显式 break，避免落入下一分支。
 
 ### 3. 纯虚分发不能下沉
 

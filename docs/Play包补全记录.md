@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | container_close（cb:17） | 已补下行登记、客户端消费、死亡前关闭；远程关闭核对菜单 ID | Windows 构建成功；11 项容器协议测试通过，含下行黄金字节测试 |
 | change_game_mode（sb:4） | 已补协议、权限校验及路由；所有模式切换均更新真实实体 | Windows 构建成功；3 项协议与业务测试通过 |
-| player_loaded（sb:43） | 已接加载计时器，保留等待重生守卫 | 已补黄金字节及状态转换测试；随玩家状态簇集中构建 |
-| swing（sb:60） | 已接真实实体挥手与既有动画广播，重置主动操作时间 | 已补双手黄金字节、非法枚举和实体广播回归；随状态簇集中构建 |
-| player_abilities（sb:39） | 独立的单字节上行 codec，仅更新服务端授权的飞行状态 | 已补线格式、截断输入及飞行越权测试；随状态簇集中构建 |
+| player_loaded（sb:43） | 已接加载计时器，保留等待重生守卫 | Windows 构建成功；加载状态与路由测试通过 |
+| swing（sb:60） | 已接真实实体挥手与既有动画广播，重置主动操作时间 | Windows 构建成功；双手、非法枚举及实体广播测试通过 |
+| player_abilities（sb:39） | 独立的单字节上行 codec，仅更新服务端授权的飞行状态 | Windows 构建成功；线格式、截断输入及飞行越权测试通过 |
 | teleport_to_entity、client_information | 待处理 | |
 | award_stats、tab_list、damage_event、cooldown | 待处理 | |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
@@ -16,3 +16,5 @@
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
 
 统计采用 `assets/data/packet_ids.json` 与 `JavaProtocolTables.cpp` 逐项比对；完整实现要求实际收发与业务逻辑，单纯补登记或 TODO 不视为完成。
+
+2026-10-11：按请求将 ServerPlayHandler::route 改为 switch。case 标签从包类型编译期推导，禁止硬编码变体下标；类型缺失或重复触发编译错误。Windows 构建成功，10 项玩家状态协议与路由测试全部通过。
