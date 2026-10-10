@@ -1,0 +1,36 @@
+name: Setup pococc Clang 22
+description: 为独立 pococc 实验安装工具链，可选安装 Cubium 系统依赖；不读写 Actions cache。
+inputs:
+  cubium-dependencies:
+    description: 是否安装 Cubium configure 所需的 X11、Vulkan 和 Wayland 开发包
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install system tools
+      shell: bash
+      env:
+        CUBIUM_DEPENDENCIES: ${{ inputs.cubium-dependencies }}
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y ninja-build ccache distcc pkg-config openssh-client openssh-server \
+          lsb-release wget software-properties-common gnupg
+        if [ "$CUBIUM_DEPENDENCIES" = true ]; then
+          sudo apt-get install -y libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
+            libxrandr-dev libxi-dev libvulkan-dev wayland-protocols libwayland-dev
+        fi
+        sudo mkdir -p /run/sshd
+    - name: Install Clang 22
+      shell: bash
+      env:
+        LLVM_INSTALLER_SHA256: da89c676166fd38eebc669b6355c7da27eb3971437059580e86161256d603dc5
+      run: |
+        # 安装脚本来自 LLVM 官方站点声明的上游，固定提交和内容后才允许提权执行。
+        curl --proto '=https' --tlsv1.2 -fsSL --retry 3 --max-time 120 \
+          -o "$RUNNER_TEMP/pococc-llvm.sh" \
+          https://raw.githubusercontent.com/opencollab/llvm-jenkins.debian.net/076c86e05ebae0ab66edeecd2f0f438ae15de0bb/llvm.sh
+        printf '%s  %s\n' "$LLVM_INSTALLER_SHA256" "$RUNNER_TEMP/pococc-llvm.sh" | sha256sum --check
+        sudo bash "$RUNNER_TEMP/pococc-llvm.sh" 22
+        echo /usr/lib/llvm-22/bin >> "$GITHUB_PATH"
+        /usr/lib/llvm-22/bin/clang++ --version
+        /usr/lib/llvm-22/bin/ld.lld --version
