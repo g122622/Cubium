@@ -565,7 +565,8 @@ TEST_F(NetworkTestBase, BannerLayersUseHolderOffsetAndDyeVarInt)
     nbt::tags::compound_tag saved;
     banner.toNbt(saved);
     const auto loaded = ItemStack::fromNbt(saved);
-    EXPECT_EQ(toItemStackView(loaded).componentsPatch, view.componentsPatch);
+    ASSERT_TRUE(loaded.success());
+    EXPECT_EQ(toItemStackView(loaded.value()).componentsPatch, view.componentsPatch);
 }
 
 TEST_F(ContainerRequestTest, EnchantmentButtonRejectsInsufficientLevelAndCreativeDoesNotConsumeLapis)

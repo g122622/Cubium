@@ -339,8 +339,10 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
         case DataComponentType::BundleContents: {
             std::vector<ItemStack> items;
             if (const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(&tag))
-                for (const auto& value : list->value)
-                    items.push_back(ItemStack::fromNbt(value));
+                for (const auto& value : list->value) {
+                    auto stack = ItemStack::fromNbt(value);
+                    if (stack.success()) items.push_back(std::move(stack).value());
+                }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
                 item::items::BundleContents(std::move(items)).toJson()};
         }
