@@ -2817,11 +2817,10 @@ void ServerWorld::broadcastDamageEvent(EntityInstanceId entityId, const DamageSo
     m_entityTracker.broadcastPacketAndSelf(*m_server, entityId, packet);
 }
 
-void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>&)
+void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots)
 {
-    // 忽略 changedSlots：按全量非空快照下发（见 EntityTracker::broadcastEquipment 的说明）。
     if (m_server != nullptr) {
-        m_entityTracker.broadcastEquipment(*m_server, *this, entityId);
+        m_entityTracker.broadcastEquipment(*m_server, *this, entityId, changedSlots);
     }
 }
 

@@ -1,5 +1,6 @@
 #include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/mappings/JavaCustomStatIds.hpp"
 #include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
@@ -311,4 +312,53 @@ TEST_F(LocalServerFixture, StatsSendAcknowledgesOnlySuccessfulNetworkDelivery)
     EXPECT_EQ(packet.stats.front(), (StatValue{8, 1, 10}));
     EXPECT_TRUE(player.getStats().createNetworkUpdate(false).stats.empty());
     EXPECT_TRUE(player.getStats().isDirty());
+}
+
+TEST_F(NetworkTestBase, PlayEquipmentIncludesEmptySlotsAndSaddleContinuation)
+{
+    const SetEquipment packet{1, {{WireEquipmentSlot::MainHand, {}}, {WireEquipmentSlot::Saddle, {}}}};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{100, 1, 0x80, 0, 7, 0}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<SetEquipment>(decoded.value()), packet);
+    auto invalid = makeBoundBuf();
+    invalid.writeVarInt(100);
+    invalid.writeVarInt(1);
+    invalid.writeU8(8);
+    invalid.writeVarInt(0);
+    EXPECT_FALSE(tables()->playCb->decode(invalid).success());
+}
+
+TEST_F(NetworkTestBase, NewTrackingPlayerGetsEquipmentAndRemovalClearsTheSlot)
+{
+    _PacketRecordingConnection connection;
+    mc::test::BaseTestServer server;
+    server::ServerWorld world(server::ServerWorldConfig{2, 2, 0, 1, "equipment-packet-test"});
+    world.setServer(&server);
+    ASSERT_NE(server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Watcher", &connection), nullptr);
+    auto player = std::make_unique<Player>(101, "Equipped", *world.entityRegistry());
+    auto* entity = player.get();
+    entity->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::DIAMOND_SWORD, 1));
+    entity->setWorld(&world);
+    const auto entityId = world.entityManager().addEntity(std::move(player));
+    world.entityTracker().trackEntity(entity);
+    world.entityTracker().notifyEntityTracked(server, world, entity);
+    const auto equipment = std::find_if(connection.packets.begin(), connection.packets.end(), [](const auto& packet) {
+        return std::holds_alternative<SetEquipment>(std::get<PlayPacket>(packet.packet));
+    });
+    ASSERT_NE(equipment, connection.packets.end());
+    const auto& snapshot = std::get<SetEquipment>(std::get<PlayPacket>(equipment->packet));
+    ASSERT_EQ(snapshot.entries.size(), 1u);
+    EXPECT_EQ(snapshot.entries.front().slot, WireEquipmentSlot::MainHand);
+    EXPECT_EQ(snapshot.entries.front().item.count, 1);
+    connection.packets.clear();
+    entity->setEquipment(EquipmentSlot::MainHand, ItemStack::EMPTY);
+    world.broadcastEquipmentChanged(entityId, {EquipmentSlot::MainHand});
+    ASSERT_EQ(connection.packets.size(), 1u);
+    const auto& removal = std::get<SetEquipment>(std::get<PlayPacket>(connection.packets.front().packet));
+    ASSERT_EQ(removal.entries.size(), 1u);
+    EXPECT_EQ(removal.entries.front().slot, WireEquipmentSlot::MainHand);
+    EXPECT_EQ(removal.entries.front().item.count, 0);
 }

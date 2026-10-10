@@ -33,6 +33,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <optional>
@@ -1624,6 +1625,7 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 {
     return makeCodec<ir::play::SetEquipment>(
         [](B& buf, const ir::play::SetEquipment& v) {
+            MC_ASSERT_RELEASE(!v.entries.empty() && v.entries.size() <= 8);
             buf.writeVarInt(v.entityId);
             for (std::size_t i = 0; i < v.entries.size(); ++i) {
                 const bool more = (i + 1 < v.entries.size());
@@ -1637,10 +1639,16 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
             ir::play::SetEquipment v{};
             MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
             u8 slotByte = 0;
+            std::array<bool, 8> seen{};
             do {
                 MC_TRY_ASSIGN(slotByte, buf.readU8());
+                const u8 slot = slotByte & 0x7f;
+                if (slot >= seen.size() || seen[slot]) {
+                    return Error(ErrorCode::InvalidArgument, "Invalid or duplicate equipment slot");
+                }
+                seen[slot] = true;
                 ir::play::EquipmentEntry entry{};
-                entry.slot = static_cast<ir::play::WireEquipmentSlot>(slotByte & 0x7F);
+                entry.slot = static_cast<ir::play::WireEquipmentSlot>(slot);
                 MC_TRY_ASSIGN(entry.item, play_detail::readItemStack(buf));
                 v.entries.push_back(std::move(entry));
             } while ((slotByte & 0x80u) != 0);

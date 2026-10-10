@@ -292,14 +292,14 @@ public:
      * @brief 向当前追踪该实体的所有玩家广播装备变更（cb SetEquipment）。
      *
      * 在 `LivingEntity::detectEquipmentUpdates` 检测到装备槽变化后调用（经
-     * `ServerWorld::broadcastEquipmentChanged`）。发送内容为该实体的**全部非空装备槽**全量快照，
-     * 对齐 vanilla `ServerEntity.sendPairingData` 与 `LivingEntity.handleEquipmentChanges`。
+     * `ServerWorld::broadcastEquipmentChanged`）。变更包含空槽，以清除客户端旧装备。
      *
      * @param server 服务器接口
      * @param world 世界引用（用于按 id 取实体读装备）
      * @param entityId 装备发生变化的实体
      */
-    void broadcastEquipment(IServer& server, ServerWorld& world, EntityInstanceId entityId);
+    void broadcastEquipment(
+        IServer& server, ServerWorld& world, EntityInstanceId entityId, const std::vector<EquipmentSlot>& slots);
 
     /**
      * @brief 向当前追踪该实体的所有玩家广播状态效果新增/更新（cb UpdateMobEffect）。

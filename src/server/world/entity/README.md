@@ -67,3 +67,5 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 - `Player::causeExtraKnockback()` 在疾跑击退时，会先为 ServerPlayer 目标立即发送速度包并清除 hurtMarked，此分支不会执行，从而避免速度重复应用
 
 伤害与状态事件应使用 broadcastPacketAndSelf，先快照追踪者再在锁外发送，并补充玩家本人。玩家实体尚未登记到追踪表时仍须发给本人；不能在查不到追踪条目时提前返回。
+
+装备增量必须包含变为空的槽位，初次进入视野则下发已有非空装备快照；只广播非空槽位会使客户端保留已卸下的装备。鞍槽 wire ordinal 为 7。

@@ -1329,6 +1329,7 @@ enum class WireEquipmentSlot : i32 {
     Chest = 4,
     Head = 5,
     Body = 6,
+    Saddle = 7,
 };
 
 /** 一条装备槽条目。 */

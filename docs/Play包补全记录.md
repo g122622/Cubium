@@ -15,7 +15,8 @@
 | cooldown（cb:22） | 按资源标识符追踪冷却组，设置/到期/移除自动通知客户端；原生客户端消费已接 | 已补黄金字节、连接发送、组共享、到期和最大持续时间溢出回归；随下行簇集中构建 |
 | damage_event（cb:25） | 接入有效新伤害广播；追踪者与受害玩家本人收到类型、责任/直接来源和显式位置；类型 ID 与配置注册序共用 | 已补黄金字节、截断、注册序、无敌帧及本人未被追踪时的发送回归；随下行簇集中构建 |
 | award_stats（cb:3） | 九类统计 ID 映射及 77 项自定义统计；完整/增量发送、重置零值与请求回复 | 已补黄金字节、计数边界、注册表类型、脏标记独立性、发送失败与真实请求路由测试；随下行簇集中构建 |
-| set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
+| set_equipment（cb:100） | 修复卸装空槽未同步与新追踪者缺初始快照；补鞍槽及输入校验 | 已补黄金字节、新追踪装备与卸装清槽回归；随下行簇集中构建 |
+| update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
 
