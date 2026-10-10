@@ -164,7 +164,7 @@ def performance_report(directory, run_id):
     if any(record["run_id"] != run_id for record in records):
         raise RuntimeError("Performance evidence belongs to a different run")
     lines = ["## pococc 分布式编译性能", "",
-             "| 编译池 | Worker / 远端槽位 | Ninja / 预处理上限 | 实测远端峰值 | 构建耗时 | 远端完成 / 本地编译 | 协调节点 CPU | 远端编译 CPU | 上行 / 下行 | 收取及解压累计时间 |",
+             "| 编译池 | Worker / 远端槽位 | Ninja / distcc 预处理上限 | 实测远端峰值 | 构建耗时 | 远端完成 / 本地编译 | 协调节点 CPU | 远端编译 CPU | 上行 / 下行 | 收取及解压累计时间 |",
              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     errors = []
     for pool in ("test", "release", "fuzz"):
@@ -195,6 +195,7 @@ def performance_report(directory, run_id):
                      f"{upload:.3f} / {download:.3f} GiB | {receive:.1f} s |")
     configured_workers = sum(record["workers"] for record in records if record["kind"] == "coordinator")
     lines += ["", f"- 本次配置 {configured_workers} 个 worker，分为 test / release / fuzz 三个独立池；禁用 PCH，严格模式禁止通信失败后本地回退。",
+              "- 构建耗时与 CPU 计量覆盖编译、链接阶段，不包含依赖配置安装、节点会合及 artifact 传输。预处理上限是 distcc 的设置，不限制 ccache 自身的哈希预处理。",
               "- CPU 时间来自进程树资源计量：协调节点含预处理、本地编译、链接、ccache 和 pococc；远端只计实际项目编译，排除 doctor 探针。背景 SSH/cloudflared 服务的 CPU 不在这两个计量范围内。",
               "- 上下行是 distcc 经 LZO 压缩后的文件载荷（包含对象文件和诊断），不含 SSH/TLS/WebSocket 头、重传或 GitHub artifact 上传。",
               "- 收取及解压时间是两端接收文件的累计计时，包含等待和解压，多个任务可以重叠；不能与构建墙钟时间直接相减，也不等于纯网络延迟。",

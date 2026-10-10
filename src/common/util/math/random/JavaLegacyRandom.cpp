@@ -115,7 +115,10 @@ f64 JavaLegacyRandom::nextDouble()
 i64 JavaLegacyRandom::nextLong()
 {
     // Java: return ((i64)next(32) << 32) + (i64)next(32);
-    return (static_cast<i64>(next(32)) << 32) + static_cast<i64>(next(32));
+    // 按调用顺序抽取两个半部，低半部仍需符号扩展；最终加法按 64 位回绕。
+    const u64 hi = static_cast<u64>(next(32));
+    const u64 lo = static_cast<u64>(next(32));
+    return static_cast<i64>((hi << 32) + lo);
 }
 
 void JavaLegacyRandom::skip(u64 count)

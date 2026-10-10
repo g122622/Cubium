@@ -445,6 +445,11 @@ jobs:
             echo "::error::缺少 ctest-meta.tar.gz，无法用 ctest 运行单元测试。"
             exit 1
           fi
+      - name: Select available sanitizer symbolizer
+        shell: bash
+        run: |
+          symbolizer=$(command -v llvm-symbolizer || command -v addr2line)
+          printf 'ASAN_SYMBOLIZER_PATH=%s\n' "$symbolizer" >> "$GITHUB_ENV"
       - name: Run unit tests
         run: |
           set +e
@@ -501,6 +506,11 @@ jobs:
           if [ -d vcpkg-libs ]; then
             echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
+      - name: Select available sanitizer symbolizer
+        shell: bash
+        run: |
+          symbolizer=$(command -v llvm-symbolizer || command -v addr2line)
+          printf 'ASAN_SYMBOLIZER_PATH=%s\n' "$symbolizer" >> "$GITHUB_ENV"
       - name: Compile integrated behavior packs
         working-directory: tests/integrated
         run: node build.mjs
@@ -565,6 +575,11 @@ jobs:
           if [ -d vcpkg-libs ]; then
             echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
+      - name: Select available sanitizer symbolizer
+        shell: bash
+        run: |
+          symbolizer=$(command -v llvm-symbolizer || command -v addr2line)
+          printf 'ASAN_SYMBOLIZER_PATH=%s\n' "$symbolizer" >> "$GITHUB_ENV"
       - name: Install e2e dependencies
         working-directory: tests/e2e/bot
         run: npm ci --no-audit --no-fund

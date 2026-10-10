@@ -78,7 +78,7 @@ public:
         u64 s = static_cast<u64>(seed);
         s *= s * static_cast<u64>(MULTIPLIER) + static_cast<u64>(INCREMENT);
         // seed + value 也要做 signed wrap
-        return static_cast<i64>(s) + value;
+        return static_cast<i64>(s + static_cast<u64>(value));
     }
 };
 
