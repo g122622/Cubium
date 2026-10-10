@@ -207,7 +207,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::UpdateMobEffect, // 118
     play::RemoveMobEffect, // 119
     play::ChangeGameMode,  // 120
-    play::PlayerLoaded     // 121
+    play::PlayerLoaded,    // 121
+    play::Swing            // 122
     >;
 
 /**

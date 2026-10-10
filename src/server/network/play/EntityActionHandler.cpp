@@ -50,6 +50,26 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
+void EntityActionHandler::handleSwingPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    const auto& request = std::get<mc::network::ir::play::Swing>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (request.hand < 0 || request.hand > 1) {
+        spdlog::warn("Swing: player {} sent invalid hand {}", playerId, request.hand);
+        return;
+    }
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+    if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
+        entity->swing(static_cast<Hand>(request.hand));
+    }
+}
+
 void EntityActionHandler::handleInteractPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // Interact action：0=INTERACT 1=ATTACK 2=INTERACT_AT。

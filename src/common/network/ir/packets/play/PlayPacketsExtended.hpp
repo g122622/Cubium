@@ -1396,4 +1396,10 @@ struct PlayerLoaded {
     [[nodiscard]] friend bool operator==(const PlayerLoaded&, const PlayerLoaded&) noexcept = default;
 };
 
+/** @brief 玩家挥动主手或副手（C→S，id=60）。 */
+struct Swing {
+    i32 hand;
+    [[nodiscard]] friend bool operator==(const Swing&, const Swing&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

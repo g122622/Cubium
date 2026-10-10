@@ -1,4 +1,6 @@
+#include "common/entity/entities/player/Player.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/GameModeManager.hpp"
@@ -6,6 +8,8 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -15,6 +19,20 @@ using namespace mc::network::ir::play;
 using namespace mc::network::test;
 
 namespace {
+
+class _PlayerStateRequestWorld : public ServerWorld {
+public:
+    _PlayerStateRequestWorld()
+        : ServerWorld(ServerWorldConfig{2, 2, 0, 1, "packet-test"})
+    {}
+
+    void broadcastEntityAnimation(EntityInstanceId entityId, u8 animation) override
+    {
+        animations.emplace_back(entityId, animation);
+    }
+
+    std::vector<std::pair<EntityInstanceId, u8>> animations;
+};
 
 // 只创建包处理所需的管理器，不启动网络、线程池或生成世界。
 class _PlayerStateRequestServer : public server::IntegratedServer {
@@ -26,6 +44,23 @@ public:
         m_gameModeManager = std::make_unique<server::core::GameModeManager>(*m_playerManager, *m_connectionManager);
         m_opListManager = std::make_unique<server::core::OpListManager>();
     }
+
+    ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
+
+    Player& addPlayerEntity(PlayerId playerId)
+    {
+        if (!m_world) {
+            m_world = std::make_unique<_PlayerStateRequestWorld>();
+        }
+        auto player = std::make_unique<Player>(EntityInstanceId(100 + playerId), "Player", m_world->entityRegistry());
+        auto* result = player.get();
+        result->setWorld(m_world.get());
+        const auto entityId = m_world->entityManager().addEntity(std::move(player));
+        EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(playerId, entityId, *m_world));
+        return *result;
+    }
+
+    std::unique_ptr<_PlayerStateRequestWorld> m_world;
 };
 
 } // namespace
@@ -40,6 +75,42 @@ TEST_F(NetworkTestBase, PlayChangeGameModeWireAndRoundTrip)
         ASSERT_TRUE(decoded.success());
         EXPECT_EQ(std::get<ChangeGameMode>(decoded.value()).mode, mode);
     }
+}
+
+TEST_F(NetworkTestBase, PlaySwingWireValidatesBothHands)
+{
+    for (i32 hand : {0, 1}) {
+        auto buf = makeBoundBuf();
+        ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{Swing{hand}}).success());
+        EXPECT_EQ(buf.bytes(), (std::vector<u8>{60, static_cast<u8>(hand)}));
+        auto decoded = tables()->playSb->decode(buf);
+        ASSERT_TRUE(decoded.success());
+        EXPECT_EQ(std::get<Swing>(decoded.value()).hand, hand);
+    }
+    for (i32 hand : {-1, 2}) {
+        auto buf = makeBoundBuf();
+        buf.writeVarInt(60);
+        buf.writeVarInt(hand);
+        EXPECT_FALSE(tables()->playSb->decode(buf).success());
+    }
+}
+
+TEST(PlayerStateRequestTest, SwingRoutesToRealEntityAndBroadcastsSelectedHand)
+{
+    _PlayerStateRequestServer server;
+    server::net::ServerPlayHandler handler(server);
+    for (i32 hand : {0, 1}) {
+        const PlayerId playerId = static_cast<PlayerId>(hand + 1);
+        ASSERT_NE(
+            server.playerManager().addPlayer(playerId, "uuid" + std::to_string(hand), "Player", nullptr), nullptr);
+        auto& player = server.addPlayerEntity(playerId);
+        handler.route(playerId, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{Swing{hand}}});
+        EXPECT_TRUE(player.isSwingInProgress());
+        EXPECT_EQ(player.swingingHand(), static_cast<Hand>(hand));
+        EXPECT_EQ(server.m_world->animations.back().first, player.getId());
+        EXPECT_EQ(server.m_world->animations.back().second, hand == 0 ? 0 : 3);
+    }
+    EXPECT_EQ(server.m_world->animations.size(), 2u);
 }
 
 TEST_F(NetworkTestBase, PlayPlayerLoadedWireAndRoundTrip)

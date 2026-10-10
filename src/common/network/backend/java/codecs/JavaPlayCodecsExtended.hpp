@@ -1710,4 +1710,18 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         [](B&) -> Result<ir::play::PlayerLoaded> { return ir::play::PlayerLoaded{}; });
 }
 
+/** @brief 挥手请求：VarInt 主手/副手枚举。 */
+[[nodiscard]] inline auto swingCodec()
+{
+    return makeCodec<ir::play::Swing>([](B& buf, const ir::play::Swing& v) { buf.writeVarInt(v.hand); },
+        [](B& buf) -> Result<ir::play::Swing> {
+            ir::play::Swing v{};
+            MC_TRY_ASSIGN(v.hand, buf.readVarInt());
+            if (v.hand < 0 || v.hand > 1) {
+                return Error(ErrorCode::InvalidArgument, "Invalid swing hand");
+            }
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

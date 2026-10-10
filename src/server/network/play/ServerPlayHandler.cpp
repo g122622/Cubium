@@ -53,7 +53,8 @@ bool isPlayerActionPacket(const mc::network::ir::PlayPacket& play)
         std::holds_alternative<irplay::SetCarriedItem>(play) || std::holds_alternative<irplay::Chat>(play) ||
         std::holds_alternative<irplay::ChatCommand>(play) || std::holds_alternative<irplay::PlayerCommand>(play) ||
         std::holds_alternative<irplay::Interact>(play) || std::holds_alternative<irplay::ContainerClick>(play) ||
-        std::holds_alternative<irplay::PlaceRecipe>(play) || std::holds_alternative<irplay::SignUpdate>(play);
+        std::holds_alternative<irplay::PlaceRecipe>(play) || std::holds_alternative<irplay::SignUpdate>(play) ||
+        std::holds_alternative<irplay::Swing>(play);
 }
 
 } // namespace
@@ -118,6 +119,8 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         m_movement.handlePaddleBoatPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::Interact>(play)) {
         m_entityAction.handleInteractPacket(playerId, packet);
+    } else if (std::holds_alternative<irplay::Swing>(play)) {
+        m_entityAction.handleSwingPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::UseItem>(play)) {
         m_blockAction.handleUseItemPacket(playerId, packet);
     } else if (std::holds_alternative<irplay::ServerboundPingRequest>(play)) {

@@ -250,6 +250,7 @@ using B = buffer::RegistryByteBuf;
         4, PacketType{PacketFlow::Serverbound, "change_game_mode"}, 120, codecs::changeGameModeCodec());
     b.addPacket<ir::play::PlayerLoaded>(
         43, PacketType{PacketFlow::Serverbound, "player_loaded"}, 121, codecs::playerLoadedCodec());
+    b.addPacket<ir::play::Swing>(60, PacketType{PacketFlow::Serverbound, "swing"}, 122, codecs::swingCodec());
     return b.build();
 }
 
