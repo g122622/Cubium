@@ -550,7 +550,7 @@ TEST_F(NetworkTestBase, PlayShowDialogSupportsRegisteredAndDirectHolders)
     ASSERT_TRUE(parsed.success());
     const auto tag = parsed.value();
     const auto& action = tag->get<mc::nbt::tags::compound_tag>("action");
-    EXPECT_EQ(action.value.at("width")->id(), mc::nbt::TagId::Int);
+    EXPECT_EQ(action.at("width")->id(), mc::nbt::TagId::Int);
     EXPECT_EQ(std::get<ShowDialog>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
     buf = makeBoundBuf();
     ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
