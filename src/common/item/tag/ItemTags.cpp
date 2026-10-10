@@ -396,11 +396,19 @@ ItemTag& ItemTags::WOODEN_SHELVES()
     return *tag;
 }
 
+ItemTag& ItemTags::BEACON_PAYMENT_ITEMS()
+{
+    return registerTag(ResourceLocation("minecraft:beacon_payment_items"));
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
         return;
     }
+
+    for (const auto name : {"iron_ingot", "gold_ingot", "emerald", "diamond", "netherite_ingot"})
+        BEACON_PAYMENT_ITEMS().add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", name)));
 
     // 物品标签的成员列表从数据包动态加载（ItemTagLoader），此处注册内置标签的默认值。
     // 当数据包可用时，ItemTagLoader 会追加或替换（replace=true）这些默认值；

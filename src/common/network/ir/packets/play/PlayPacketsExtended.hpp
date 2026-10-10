@@ -1539,4 +1539,10 @@ struct BundleItemSelected {
     i32 selectedItemIndex;
     friend bool operator==(const BundleItemSelected&, const BundleItemSelected&) = default;
 };
+/** @brief 信标的可选效果使用纯注册 ID，由 Java 后端映射至业务类型。 */
+struct SetBeacon {
+    std::optional<i32> primary;
+    std::optional<i32> secondary;
+    friend bool operator==(const SetBeacon&, const SetBeacon&) = default;
+};
 } // namespace mc::network::ir::play

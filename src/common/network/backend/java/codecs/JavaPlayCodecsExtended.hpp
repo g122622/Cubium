@@ -2095,4 +2095,29 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return v;
         });
 }
+/** @brief 两个 Optional<MobEffect>，每个为存在标志与纯 VarInt 注册 ID。 */
+[[nodiscard]] inline auto setBeaconCodec()
+{
+    return makeCodec<ir::play::SetBeacon>(
+        [](B& buf, const ir::play::SetBeacon& v) {
+            for (const auto effect : {v.primary, v.secondary}) {
+                buf.writeBool(effect.has_value());
+                if (effect) buf.writeVarInt(*effect);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SetBeacon> {
+            ir::play::SetBeacon v{};
+            for (auto* effect : {&v.primary, &v.secondary}) {
+                bool present = false;
+                MC_TRY_ASSIGN(present, buf.readBool());
+                if (present) {
+                    i32 id = 0;
+                    MC_TRY_ASSIGN(id, buf.readVarInt());
+                    if (id < 0 || id >= 40) return Error(ErrorCode::InvalidData, "Invalid beacon effect holder");
+                    *effect = id;
+                }
+            }
+            return v;
+        });
+}
 } // namespace mc::network::backend::java::codecs

@@ -223,7 +223,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ContainerButtonClick,       // 134
     play::EditBook,                   // 135
     play::OpenBook,                   // 136
-    play::BundleItemSelected          // 137
+    play::BundleItemSelected,         // 137
+    play::SetBeacon                   // 138
     >;
 
 /**

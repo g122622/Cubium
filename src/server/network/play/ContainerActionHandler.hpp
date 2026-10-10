@@ -32,6 +32,9 @@ public:
     /** @brief 选择菜单槽位中的收纳袋内容项，保留客户端瞬态选择。 */
     void handleBundleItemSelectedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
+    /** @brief 验证当前信标菜单后消耗支付并更新效果。 */
+    void handleSetBeaconPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
 private:
     /** @brief 获取已登录、已完成加载的真实玩家实体。 */
     [[nodiscard]] Player* _player(PlayerId playerId) const;

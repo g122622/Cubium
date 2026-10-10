@@ -1,9 +1,11 @@
 #include "server/network/play/ContainerActionHandler.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/BeaconContainer.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/special/bundle/BundleItem.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/util/text/Utf8.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -144,6 +146,21 @@ void ContainerActionHandler::handleBundleItemSelectedPacket(PlayerId playerId, c
     if (!item::items::BundleItem::isBundleItem(stack)) return;
     item::items::BundleItem::toggleSelectedItem(stack, request.selectedItemIndex);
     slot->set(stack);
+}
+
+void ContainerActionHandler::handleSetBeaconPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = _player(playerId);
+    if (player == nullptr || player->isSpectator()) return;
+    auto* menu = dynamic_cast<BeaconContainer*>(_menu(playerId, *player));
+    if (menu == nullptr) return;
+    const auto& request =
+        std::get<mc::network::ir::play::SetBeacon>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    auto translate = [](std::optional<i32> id) -> std::optional<entity::effect::EffectType> {
+        if (!id || *id < 0 || *id >= 40) return std::nullopt;
+        return mc::network::backend::java::JavaMobEffectIdMap::instance().fromJavaRegistryId(static_cast<u32>(*id));
+    };
+    menu->updateEffects(translate(request.primary), translate(request.secondary));
 }
 
 } // namespace mc::server::net

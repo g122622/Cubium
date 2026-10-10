@@ -267,6 +267,8 @@ using B = buffer::RegistryByteBuf;
         16, PacketType{PacketFlow::Serverbound, "container_button_click"}, 134, codecs::containerButtonClickCodec());
     b.addPacket<ir::play::BundleItemSelected>(
         2, PacketType{PacketFlow::Serverbound, "bundle_item_selected"}, 137, codecs::bundleItemSelectedCodec());
+    b.addPacket<ir::play::SetBeacon>(
+        51, PacketType{PacketFlow::Serverbound, "set_beacon"}, 138, codecs::setBeaconCodec());
     b.addPacket<ir::play::EditBook>(23, PacketType{PacketFlow::Serverbound, "edit_book"}, 135, codecs::editBookCodec());
     return b.build();
 }

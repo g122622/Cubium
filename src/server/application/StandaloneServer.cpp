@@ -33,6 +33,7 @@
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/BeaconContainer.hpp"
 #include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
@@ -570,6 +571,12 @@ void StandaloneServer::_setupContainerCallbacks()
         }
 
         switch (type) {
+            case mc::ContainerType::Beacon: {
+                auto* beacon = dynamic_cast<blockentity::BeaconEntity*>(world->getBlockEntity(pos));
+                if (beacon != nullptr)
+                    result.menu = std::make_unique<BeaconContainer>(containerId, playerInventory, *world, *beacon);
+                return result;
+            }
             case mc::ContainerType::Crafting: {
                 auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory);
                 menu->updateResult();

@@ -1,11 +1,13 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/BeaconContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/LoomContainer.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/item/items/special/bundle/BundleItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
@@ -137,6 +139,8 @@ public:
         return true;
     }
     void playEvent(i32, const BlockPos&, i32) override {}
+    BlockEntity* getBlockEntity(const BlockPos&) override { return m_beacon.get(); }
+    std::unique_ptr<blockentity::BeaconEntity> m_beacon;
     const BlockState* m_blockState;
 };
 
@@ -162,6 +166,11 @@ public:
                 server::ContainerMenuCreateResult result;
                 if (type == ContainerType::Anvil) {
                     result.menu = std::make_unique<AnvilContainer>(id, &m_player->inventory(), position, m_world.get());
+                } else if (type == ContainerType::Beacon) {
+                    m_world->m_blockState = &VanillaBlocks::BEACON->defaultState();
+                    m_world->m_beacon = std::make_unique<blockentity::BeaconEntity>(position);
+                    result.menu =
+                        std::make_unique<BeaconContainer>(id, &m_player->inventory(), *m_world, *m_world->m_beacon);
                 } else if (type == ContainerType::Enchantment) {
                     m_world->m_blockState = &VanillaBlocks::ENCHANTING_TABLE->defaultState();
                     result.menu =
@@ -663,4 +672,49 @@ TEST_F(ContainerRequestTest, BundleSelectionUsesMenuSlotAndDoesNotPublishTransie
     menu->clicked(36, 1, ClickType::Pick, *m_server->m_player);
     EXPECT_EQ(menu->getCarriedItem().getItem(), Items::DIRT);
     route(PlayPacket{BundleItemSelected{-1, 0}});
+}
+
+TEST_F(NetworkTestBase, PlaySetBeaconUsesOptionalPureRegistryIds)
+{
+    SetBeacon input{0, 18};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{51, 1, 0, 1, 18}));
+    EXPECT_EQ(std::get<SetBeacon>(roundTripGeneric(*tables()->playSb, PlayPacket{input})), input);
+    for (usize n = 1; n < buf.size(); ++n) {
+        buffer::RegistryByteBuf cut(buf.data(), n, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playSb->decode(cut).success());
+    }
+}
+
+TEST_F(ContainerRequestTest, BeaconRequiresPaymentFiltersEffectsAndSynchronizesProperties)
+{
+    item::tag::ItemTags::initialize();
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Beacon, BlockPos(0, 0, 0)).success());
+    auto* menu = dynamic_cast<BeaconContainer*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(menu, nullptr);
+    ASSERT_EQ(menu->getSlotCount(), 37);
+    auto& beacon = *m_server->m_world->m_beacon;
+    beacon.setLevel(4);
+    route(PlayPacket{SetBeacon{0, 9}});
+    EXPECT_EQ(beacon.getPrimaryEffect(), nullptr);
+    EXPECT_FALSE(menu->getSlot(0)->mayPlace(ItemStack(Items::STONE, 1)));
+    EXPECT_TRUE(menu->getSlot(0)->mayPlace(ItemStack(Items::EMERALD, 1)));
+    EXPECT_EQ(menu->getSlot(0)->getMaxStackSize(), 1);
+    menu->getSlot(0)->set(ItemStack(Items::EMERALD, 1));
+    route(PlayPacket{SetBeacon{0, 9}});
+    ASSERT_NE(beacon.getPrimaryEffect(), nullptr);
+    EXPECT_EQ(*beacon.getPrimaryEffect(), entity::effect::EffectType::Speed);
+    EXPECT_EQ(beacon.getSecondaryEffect(), nullptr);
+    EXPECT_FALSE(menu->getSlot(0)->hasItem());
+    EXPECT_EQ(menu->getTrackedInt(0)->get(), 4);
+    EXPECT_EQ(menu->getTrackedInt(1)->get(), 1);
+    m_server->m_player->setGameMode(GameMode::Spectator);
+    menu->getSlot(0)->set(ItemStack(Items::DIAMOND, 1));
+    route(PlayPacket{SetBeacon{2, 18}});
+    EXPECT_TRUE(menu->getSlot(0)->hasItem());
+    i32 dropped = 0;
+    menu->setItemDropCallback([&](const ItemStack& stack, Player&, bool) { dropped += stack.getCount(); });
+    m_server->containerManager().closeContainer(1);
+    EXPECT_EQ(dropped, 1);
 }
