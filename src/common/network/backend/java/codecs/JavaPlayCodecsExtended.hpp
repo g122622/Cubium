@@ -2120,4 +2120,35 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return v;
         });
 }
+/** @brief 绝对位置快照不含传送相对标志，速度为三个 Double。 */
+[[nodiscard]] inline auto entityPositionSyncCodec()
+{
+    return makeCodec<ir::play::EntityPositionSync>(
+        [](B& buf, const ir::play::EntityPositionSync& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeF64(v.x);
+            buf.writeF64(v.y);
+            buf.writeF64(v.z);
+            buf.writeF64(v.deltaX);
+            buf.writeF64(v.deltaY);
+            buf.writeF64(v.deltaZ);
+            buf.writeF32(v.yRot);
+            buf.writeF32(v.xRot);
+            buf.writeBool(v.onGround);
+        },
+        [](B& buf) -> Result<ir::play::EntityPositionSync> {
+            ir::play::EntityPositionSync v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.x, buf.readF64());
+            MC_TRY_ASSIGN(v.y, buf.readF64());
+            MC_TRY_ASSIGN(v.z, buf.readF64());
+            MC_TRY_ASSIGN(v.deltaX, buf.readF64());
+            MC_TRY_ASSIGN(v.deltaY, buf.readF64());
+            MC_TRY_ASSIGN(v.deltaZ, buf.readF64());
+            MC_TRY_ASSIGN(v.yRot, buf.readF32());
+            MC_TRY_ASSIGN(v.xRot, buf.readF32());
+            MC_TRY_ASSIGN(v.onGround, buf.readBool());
+            return v;
+        });
+}
 } // namespace mc::network::backend::java::codecs

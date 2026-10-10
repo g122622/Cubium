@@ -790,7 +790,8 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 实体传送 ----
-            else if constexpr (std::is_same_v<T, irplay::TeleportEntity>) {
+            else if constexpr (std::is_same_v<T, irplay::TeleportEntity> ||
+                std::is_same_v<T, irplay::EntityPositionSync>) {
                 const auto& p = pkt;
                 const u32 entityId = static_cast<u32>(p.entityId);
                 MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity, "onEntityTeleport", "entityId", entityId);
@@ -804,6 +805,11 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 }
                 entity->setPosition(static_cast<f32>(p.x), static_cast<f32>(p.y), static_cast<f32>(p.z));
                 entity->setRotation(p.yRot, p.xRot);
+                if constexpr (std::is_same_v<T, irplay::EntityPositionSync>) {
+                    entity->setVelocity(
+                        static_cast<f32>(p.deltaX), static_cast<f32>(p.deltaY), static_cast<f32>(p.deltaZ));
+                    entity->setOnGround(p.onGround);
+                }
                 return Result<void>::ok();
             }
             // ---- 实体相对位移 ----

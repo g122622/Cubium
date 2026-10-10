@@ -440,3 +440,57 @@ TEST_F(NetworkTestBase, MobEffectsReachUntrackedOwnerAndCanBeReplayed)
     EXPECT_EQ(snapshot.amplifier, 2);
     EXPECT_EQ(snapshot.flags, 5);
 }
+
+TEST_F(NetworkTestBase, PlayEntityPositionSyncHasNoRelativeFlagsAndPreservesVelocity)
+{
+    EntityPositionSync packet{1, 0, 0, 0, 0, 0, 0, 0, 0, true};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    std::vector<u8> golden(59, 0);
+    golden[0] = 35;
+    golden[1] = 1;
+    golden[58] = 1;
+    EXPECT_EQ(buf.bytes(), golden);
+    for (usize n = 1; n < buf.size(); ++n) {
+        buffer::RegistryByteBuf cut(buf.data(), n, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(cut).success());
+    }
+    packet = {300, 1.25, 64.5, -30000000.25, 0.125, -0.25, 4.5, 90.25f, -45.5f, false};
+    EXPECT_EQ(std::get<EntityPositionSync>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+}
+
+TEST_F(NetworkTestBase, AbsoluteTrackingSyncIncludesVelocityAndGroundTransitions)
+{
+    _PacketRecordingConnection connection;
+    mc::test::BaseTestServer server;
+    server::ServerWorld world(server::ServerWorldConfig{2, 2, 0, 1, "position-sync-test"});
+    world.setServer(&server);
+    ASSERT_NE(server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Watcher", &connection), nullptr);
+    auto owned = std::make_unique<Player>(101, "Moving", *world.entityRegistry());
+    auto* entity = owned.get();
+    entity->setWorld(&world);
+    world.entityManager().addEntity(std::move(owned));
+    world.entityTracker().trackEntity(entity);
+    world.entityTracker().notifyEntityTracked(server, world, entity);
+    world.entityTracker().tick(server, world);
+    connection.packets.clear();
+    entity->setPosition(20.0f, 1.0f, 0.0f);
+    entity->setVelocity(0.5f, -0.25f, 0.0f);
+    entity->setOnGround(true);
+    world.entityTracker().tick(server, world);
+    const auto found = std::find_if(connection.packets.begin(), connection.packets.end(), [](const auto& packet) {
+        return std::holds_alternative<EntityPositionSync>(std::get<PlayPacket>(packet.packet));
+    });
+    ASSERT_NE(found, connection.packets.end());
+    const auto& snapshot = std::get<EntityPositionSync>(std::get<PlayPacket>(found->packet));
+    EXPECT_DOUBLE_EQ(snapshot.x, 20.0);
+    EXPECT_DOUBLE_EQ(snapshot.deltaX, 0.5);
+    EXPECT_DOUBLE_EQ(snapshot.deltaY, -0.25);
+    EXPECT_TRUE(snapshot.onGround);
+    connection.packets.clear();
+    entity->setOnGround(false);
+    world.entityTracker().tick(server, world);
+    EXPECT_TRUE(std::any_of(connection.packets.begin(), connection.packets.end(), [](const auto& packet) {
+        return std::holds_alternative<EntityPositionSync>(std::get<PlayPacket>(packet.packet));
+    }));
+}

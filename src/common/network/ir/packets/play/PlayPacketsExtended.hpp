@@ -1545,4 +1545,13 @@ struct SetBeacon {
     std::optional<i32> secondary;
     friend bool operator==(const SetBeacon&, const SetBeacon&) = default;
 };
+/** @brief 实体绝对位置、当前速度、旋转和落地状态的同步快照。 */
+struct EntityPositionSync {
+    i32 entityId;
+    f64 x, y, z;
+    f64 deltaX, deltaY, deltaZ;
+    f32 yRot, xRot;
+    bool onGround;
+    friend bool operator==(const EntityPositionSync&, const EntityPositionSync&) = default;
+};
 } // namespace mc::network::ir::play

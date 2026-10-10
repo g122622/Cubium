@@ -65,6 +65,8 @@ struct TrackedEntity {
     f32 lastPitch = 0.0f;                         // 上次同步的俯仰角
     f32 lastHeadYaw = 0.0f;                       // 上次同步的头部偏航角（LivingEntity）
     bool lastHeadYawValid = false;                // 上次同步的 headYaw 是否已初始化
+    u32 absoluteSyncTicks = 0;                    // 自上次绝对同步起经过的 tick
+    bool lastOnGround = false;                    // 上次同步的落地状态
     u32 updateCounter = 0;                        // 更新计数器
     bool needsFullUpdate = true;                  // 是否需要完整更新
 };

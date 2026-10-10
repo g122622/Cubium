@@ -580,6 +580,9 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
             }
 
             tracked.updateCounter++;
+            tracked.absoluteSyncTicks++;
+            if (tracked.absoluteSyncTicks > 400 || tracked.lastOnGround != entity->onGround())
+                tracked.needsFullUpdate = true;
 
             Vector3 currentPos = entity->position();
             f32 currentYaw = entity->yaw();
@@ -599,9 +602,13 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                     _sendMovePacket(server, playerId, entity, tracked, positionChanged, rotationChanged);
                 }
 
+                const bool resetAbsoluteTicks =
+                    tracked.needsFullUpdate || (currentPos - tracked.lastPosition).lengthSquared() >= 64.0f;
                 tracked.lastPosition = currentPos;
                 tracked.lastYaw = currentYaw;
                 tracked.lastPitch = currentPitch;
+                if (resetAbsoluteTicks) tracked.absoluteSyncTicks = 0;
+                tracked.lastOnGround = entity->onGround();
                 tracked.needsFullUpdate = false;
             }
 
@@ -795,8 +802,7 @@ void EntityTracker::_sendMovePacket(IServer& server,
     if (!player || !player->hasConnection()) return;
 
     // 计算 1/4096 定点 delta（对齐 vanilla 1.21.11 MoveEntity*.deltaX/Y/Z: Short）。
-    // 超出 i16 范围（±32767，即 ±8 格）则回退 TeleportEntity 绝对位置包——
-    // vanilla ServerEntity 同样在 delta 超 Short 范围时改发 ClientboundTeleportEntityPacket。
+    // 超出 i16 范围时发送绝对位置和当前速度的完整快照。
     const f32 kFixedPoint = 4096.0f;
     auto toDeltaI16 = [kFixedPoint](f32 current, f32 last) -> bool {
         const f32 scaled = (current - last) * kFixedPoint;
@@ -806,20 +812,18 @@ void EntityTracker::_sendMovePacket(IServer& server,
     const bool deltaInRange = toDeltaI16(entity->x(), tracked.lastPosition.x) &&
         toDeltaI16(entity->y(), tracked.lastPosition.y) && toDeltaI16(entity->z(), tracked.lastPosition.z);
 
-    // needsFullUpdate（首次/重同步）或 delta 超 i16 范围：发绝对 TeleportEntity。
-    // delta 置 0、relatives 置 0 表示纯绝对传送。
+    // 首次、定期重同步、落地状态变化或超范围位移发送绝对快照。
     if (tracked.needsFullUpdate || (positionChanged && !deltaInRange)) {
-        mc::network::ir::play::TeleportEntity pkt;
+        mc::network::ir::play::EntityPositionSync pkt;
         pkt.entityId = static_cast<i32>(entity->id());
         pkt.x = static_cast<f64>(entity->x());
         pkt.y = static_cast<f64>(entity->y());
         pkt.z = static_cast<f64>(entity->z());
-        pkt.deltaX = 0.0;
-        pkt.deltaY = 0.0;
-        pkt.deltaZ = 0.0;
+        pkt.deltaX = entity->velocity().x;
+        pkt.deltaY = entity->velocity().y;
+        pkt.deltaZ = entity->velocity().z;
         pkt.yRot = entity->yaw();
         pkt.xRot = entity->pitch();
-        pkt.relatives = 0;
         pkt.onGround = entity->onGround();
         player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
         return;

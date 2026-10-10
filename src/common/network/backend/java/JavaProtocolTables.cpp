@@ -277,6 +277,8 @@ using B = buffer::RegistryByteBuf;
 {
     ProtocolInfoBuilder<B, ir::PlayPacket> b(ConnectionProtocol::Play, PacketFlow::Clientbound);
     b.addPacket<ir::play::OpenBook>(56, PacketType{PacketFlow::Clientbound, "open_book"}, 136, codecs::openBookCodec());
+    b.addPacket<ir::play::EntityPositionSync>(
+        35, PacketType{PacketFlow::Clientbound, "entity_position_sync"}, 139, codecs::entityPositionSyncCodec());
     // clientbound 权威表：bundle_delimiter 占 id 0，故 add_entity=1，其余整体后移一位。
     // PlayPacket variant altIndex 注释见 IrPacket.hpp。各包 Java Cb id（1.21.11 权威）：
     //   add_entity=1, animate=2, block_destruction=5, block_entity_data=6, block_event=7, block_update=8,
