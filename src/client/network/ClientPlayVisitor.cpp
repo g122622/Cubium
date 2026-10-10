@@ -790,7 +790,11 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 实体传送 ----
-            else if constexpr (std::is_same_v<T, irplay::TeleportEntity> ||
+            else if constexpr (std::is_same_v<T, irplay::ServerLinks>) {
+                m_serverLinks = pkt.links;
+                // TODO: 停止维护的原生客户端尚未提供服务器链接界面。
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::TeleportEntity> ||
                 std::is_same_v<T, irplay::EntityPositionSync>) {
                 const auto& p = pkt;
                 const u32 entityId = static_cast<u32>(p.entityId);

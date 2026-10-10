@@ -397,6 +397,9 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
     m_server.weatherSyncService().sendInitialWeatherStateToPlayer(playerId);
 
     // 发送初始难度状态
+    m_server.sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{m_server.serverLinks()}}});
     sendInitialDifficultyToPlayer(playerId);
 
     // 通知客户端开始接收区块加载包序列（event=13 LEVEL_CHUNKS_LOAD_START，value=0）。

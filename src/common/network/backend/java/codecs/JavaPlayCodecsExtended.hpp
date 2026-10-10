@@ -2151,4 +2151,46 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
             return v;
         });
 }
+/** @brief Either 标签的 true 分支为内置枚举，false 分支为 Component NBT。 */
+[[nodiscard]] inline auto serverLinksCodec()
+{
+    return makeCodec<ir::play::ServerLinks>(
+        [](B& buf, const ir::play::ServerLinks& v) {
+            buf.writeVarInt(static_cast<i32>(v.links.size()));
+            for (const auto& entry : v.links) {
+                const auto* known = std::get_if<ir::play::KnownServerLink>(&entry.label);
+                buf.writeBool(known != nullptr);
+                if (known)
+                    buf.writeVarInt(static_cast<i32>(*known));
+                else
+                    writeComponentNbt(buf, std::get<std::vector<u8>>(entry.label));
+                buf.writeString(entry.url);
+            }
+        },
+        [](B& buf) -> Result<ir::play::ServerLinks> {
+            ir::play::ServerLinks v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 3)
+                return Error(ErrorCode::InvalidData, "Invalid server link count");
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::ServerLink entry{};
+                bool known = false;
+                MC_TRY_ASSIGN(known, buf.readBool());
+                if (known) {
+                    i32 id = 0;
+                    MC_TRY_ASSIGN(id, buf.readVarInt());
+                    if (id < 0 || id > 9) return Error(ErrorCode::InvalidData, "Invalid server link label");
+                    entry.label = static_cast<ir::play::KnownServerLink>(id);
+                } else {
+                    std::vector<u8> label;
+                    MC_TRY_ASSIGN(label, readComponentNbt(buf));
+                    entry.label = std::move(label);
+                }
+                MC_TRY_ASSIGN(entry.url, buf.readString());
+                v.links.push_back(std::move(entry));
+            }
+            return v;
+        });
+}
 } // namespace mc::network::backend::java::codecs

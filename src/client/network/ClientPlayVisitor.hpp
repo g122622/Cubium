@@ -75,6 +75,7 @@ public:
 
 private:
     ClientApplication& m_app;
+    std::vector<mc::network::ir::play::ServerLink> m_serverLinks;
 
     /// 取屏幕栈（friend 访问 ClientApplication 私有 m_kageroEngine/m_screenStackLayerId）
     [[nodiscard]] ui::minecraft::widgets::ScreenStackWidget* getScreenStack();

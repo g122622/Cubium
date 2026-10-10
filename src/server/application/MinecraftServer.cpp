@@ -2209,6 +2209,18 @@ PlayerId MinecraftServer::getPlayerIdForSession(u32 sessionId) const
     return m_playerManager->getPlayerIdBySession(sessionId);
 }
 
+void MinecraftServer::setServerLinks(std::vector<mc::network::ir::play::ServerLink> links)
+{
+    m_serverLinks = std::move(links);
+    for (const auto playerId : playerManager().getPlayerIds()) {
+        const auto* player = playerManager().getPlayer(playerId);
+        if (player->loggedIn)
+            sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{m_serverLinks}}});
+    }
+}
+
 void MinecraftServer::sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "MinecraftServer::sendPacketToPlayer", "playerId", playerId);

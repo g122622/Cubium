@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <variant>
+
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
@@ -1553,5 +1555,29 @@ struct EntityPositionSync {
     f32 yRot, xRot;
     bool onGround;
     friend bool operator==(const EntityPositionSync&, const EntityPositionSync&) = default;
+};
+/** @brief Java 已知服务器链接标签。 */
+enum class KnownServerLink : i32 {
+    BugReport,
+    CommunityGuidelines,
+    Support,
+    Status,
+    Feedback,
+    Community,
+    Website,
+    Forums,
+    News,
+    Announcements
+};
+/** @brief 链接标签使用内置类型或完整文本组件 NBT。 */
+struct ServerLink {
+    std::variant<KnownServerLink, std::vector<u8>> label;
+    std::string url;
+    friend bool operator==(const ServerLink&, const ServerLink&) = default;
+};
+/** @brief 服务器链接列表，空列表清除。 */
+struct ServerLinks {
+    std::vector<ServerLink> links;
+    friend bool operator==(const ServerLinks&, const ServerLinks&) = default;
 };
 } // namespace mc::network::ir::play

@@ -168,6 +168,12 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
 }
 
+bool ServerPlayer::sendServerLinks(const std::vector<mc::network::ir::play::ServerLink>& links)
+{
+    return _sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{links}}});
+}
+
 bool ServerPlayer::sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer)
 {
     mc::network::ir::play::TabList packet{text::componentToNbtBytes(&header), text::componentToNbtBytes(&footer)};

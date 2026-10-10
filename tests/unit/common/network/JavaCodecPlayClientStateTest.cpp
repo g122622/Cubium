@@ -494,3 +494,36 @@ TEST_F(NetworkTestBase, AbsoluteTrackingSyncIncludesVelocityAndGroundTransitions
         return std::holds_alternative<EntityPositionSync>(std::get<PlayPacket>(packet.packet));
     }));
 }
+
+TEST_F(NetworkTestBase, PlayServerLinksSupportsKnownAndCustomLabels)
+{
+    ServerLinks packet{{{KnownServerLink::Website, "https://example.org"},
+        {text::plainTextToNbtBytes("Help"), "https://example.org/help"}}};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    EXPECT_EQ(buf.bytes().at(0), 0x87);
+    EXPECT_EQ(buf.bytes().at(1), 1);
+    EXPECT_EQ(buf.bytes().at(2), 2);
+    EXPECT_EQ(buf.bytes().at(3), 1);
+    EXPECT_EQ(buf.bytes().at(4), 6);
+    EXPECT_EQ(std::get<ServerLinks>(roundTripGeneric(*tables()->playCb, PlayPacket{packet})), packet);
+    for (usize n = 1; n < buf.size(); ++n) {
+        buffer::RegistryByteBuf cut(buf.data(), n, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(cut).success());
+    }
+}
+TEST_F(LocalServerFixture, ServerPlayerReplacesAndClearsServerLinks)
+{
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    ServerPlayer player(1, "Player", mc::test::testEcsRegistry());
+    player.setConnection(serverConn());
+    const std::vector<ServerLink> links{{KnownServerLink::Support, "https://example.org"}};
+    ASSERT_TRUE(player.sendServerLinks(links));
+    auto received = pumpClient();
+    ASSERT_TRUE(received);
+    EXPECT_EQ(std::get<ServerLinks>(std::get<PlayPacket>(received->packet)).links, links);
+    ASSERT_TRUE(player.sendServerLinks({}));
+    received = pumpClient();
+    ASSERT_TRUE(received);
+    EXPECT_TRUE(std::get<ServerLinks>(std::get<PlayPacket>(received->packet)).links.empty());
+}
