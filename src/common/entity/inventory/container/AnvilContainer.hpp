@@ -142,6 +142,14 @@ public:
      */
     [[nodiscard]] bool isPlayerCreative() const;
 
+    /** @brief 仅允许有足够等级或处于创造模式的玩家领取有效结果。 */
+    [[nodiscard]] bool canTakeResult(const Player& player) const;
+
+    /** @brief 领取结果后扣除经验、消耗输入并处理铁砧损耗。 */
+    void onResultTaken(Player& player);
+
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_OUTPUT; }
+
     // ========== 槽位访问 ==========
 
     /**
@@ -180,6 +188,9 @@ protected:
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
 private:
+    /** @brief 检查玩家背包能否完整容纳结果，防止部分移动后丢失剩余结果。 */
+    [[nodiscard]] bool _canFitResultInInventory(const ItemStack& result) const;
+
     /**
      * @brief 初始化槽位布局
      */
@@ -215,6 +226,7 @@ private:
     i32 m_repairCost = 0;                         ///< 修复成本（经验等级）
     i32 m_materialCost = 0;                       ///< 材料消耗数量
     std::string m_itemName;                       ///< 重命名名称
+    bool m_onlyRenaming = false;
 };
 
 } // namespace mc

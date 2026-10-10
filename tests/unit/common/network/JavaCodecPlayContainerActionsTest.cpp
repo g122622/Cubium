@@ -11,10 +11,12 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
+#include "server/menu/CraftingMenu.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <limits>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -105,6 +107,12 @@ public:
     {}
 
     const BlockState* getBlockState(i32, i32, i32) const override { return blockState; }
+    bool setBlockState(i32, i32, i32, const BlockState* state, i32) override
+    {
+        blockState = state;
+        return true;
+    }
+    void playEvent(i32, const BlockPos&, i32) override {}
     const BlockState* blockState;
 };
 
@@ -346,4 +354,60 @@ TEST_F(ContainerRequestTest, SelectTradeFillsPaymentAndBuilderPreservesOfferStat
     route(PlayPacket{SelectTrade{-1}});
     route(PlayPacket{SelectTrade{5}});
     EXPECT_EQ(menu->getSlot(0)->getItem().getCount(), 5);
+}
+
+TEST_F(ContainerRequestTest, InputSlotMutationsRecomputeOutputAndBindMenuIndices)
+{
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0)).success());
+    auto* anvil = dynamic_cast<AnvilContainer*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(anvil, nullptr);
+    route(PlayPacket{RenameItem{"Named"}});
+    anvil->getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    EXPECT_EQ(anvil->getOutputSlot().getCustomName(), "Named");
+    EXPECT_EQ(anvil->getSlot(10)->getSlotNumber(), 10);
+    anvil->getSlot(0)->set(ItemStack::EMPTY);
+    EXPECT_TRUE(anvil->getOutputSlot().isEmpty());
+    EXPECT_EQ(anvil->getRepairCost(), 0);
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->player->inventory()));
+    auto* crafting = dynamic_cast<InventoryCraftingMenu*>(m_server->containerManager().getPlayerInventoryMenu(1));
+    ASSERT_NE(crafting, nullptr);
+    crafting->getResultInventory().setResultItem(ItemStack(Items::DIAMOND, 1));
+    crafting->getSlot(1)->set(ItemStack::EMPTY);
+    EXPECT_TRUE(crafting->getSlot(0)->getItem().isEmpty());
+}
+
+TEST_F(ContainerRequestTest, AnvilResultRequiresExperienceAndConsumesInputOnce)
+{
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0)).success());
+    auto* anvil = dynamic_cast<AnvilContainer*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(anvil, nullptr);
+    anvil->getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    route(PlayPacket{RenameItem{"Paid"}});
+    anvil->clicked(2, 0, ClickType::Pick, *m_server->player);
+    EXPECT_TRUE(anvil->getCarriedItem().isEmpty());
+    EXPECT_FALSE(anvil->getInputSlot1().isEmpty());
+    m_server->player->addExperienceLevels(3);
+    anvil->clicked(2, 0, ClickType::Pick, *m_server->player);
+    EXPECT_EQ(anvil->getCarriedItem().getCustomName(), "Paid");
+    EXPECT_EQ(m_server->player->experienceLevel(), 2);
+    EXPECT_TRUE(anvil->getInputSlot1().isEmpty());
+    EXPECT_TRUE(anvil->getOutputSlot().isEmpty());
+    anvil->clicked(2, 0, ClickType::Pick, *m_server->player);
+    EXPECT_EQ(m_server->player->experienceLevel(), 2);
+}
+
+TEST_F(ContainerRequestTest, AnvilRenameCostSaturatesAndBulkResultIsAtomic)
+{
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0)).success());
+    auto* anvil = dynamic_cast<AnvilContainer*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(anvil, nullptr);
+    auto item = ItemStack(Items::STONE, 64);
+    item.setRepairCost(std::numeric_limits<i32>::max());
+    anvil->getSlot(0)->set(item);
+    route(PlayPacket{RenameItem{"Bulk"}});
+    EXPECT_EQ(anvil->getRepairCost(), 39);
+    m_server->player->setGameMode(GameMode::Creative);
+    anvil->clicked(2, 1, ClickType::Pick, *m_server->player);
+    EXPECT_EQ(anvil->getCarriedItem().getCount(), 64);
+    EXPECT_TRUE(anvil->getInputSlot1().isEmpty());
 }

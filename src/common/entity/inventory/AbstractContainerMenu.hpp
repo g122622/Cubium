@@ -497,8 +497,8 @@ protected:
     [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const
     {
         (void)stack;
-        (void)slot;
-        return true;
+        const i32 result = getResultSlotIndex();
+        return result < 0 || slot.getSlotNumber() != result;
     }
 
     /**

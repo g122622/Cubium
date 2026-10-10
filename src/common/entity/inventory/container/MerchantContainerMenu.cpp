@@ -173,7 +173,7 @@ ItemStack MerchantContainerMenu::quickMoveStack(i32 slotIndex, Player& player)
         return ItemStack();
     }
 
-    slot->onTake(player, slotStack);
+    // 取出回调由 AbstractContainerMenu 的 QuickMove 路径统一执行一次。
     return result;
 }
 

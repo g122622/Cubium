@@ -35,6 +35,7 @@ namespace mc {
 // Forward declarations
 class IInventory;
 class Player;
+class AbstractContainerMenu;
 
 namespace blockentity {
 class AbstractFurnaceEntity;
@@ -208,6 +209,9 @@ public:
      * @param number 槽位编号
      */
     void setSlotNumber(i32 number) noexcept { m_slotNumber = number; }
+
+    /** @brief 绑定拥有此槽位的菜单，槽位变更同步通知菜单重新计算。 */
+    void setMenu(AbstractContainerMenu& menu) noexcept { m_menu = &menu; }
 
     /**
      * @brief 获取所属背包
@@ -427,6 +431,7 @@ protected:
 
 private:
     IInventory* m_inventory;
+    AbstractContainerMenu* m_menu = nullptr;
     i32 m_slotIndex;
     i32 m_x;
     i32 m_y;

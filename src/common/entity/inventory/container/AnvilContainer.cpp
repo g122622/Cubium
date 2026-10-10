@@ -42,6 +42,7 @@
 #include "world/block/blocks/functional/AnvilBlock.hpp"
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -106,12 +107,15 @@ public:
 
     [[nodiscard]] bool mayPickup(Player& player) const override
     {
-        // 创造模式玩家可以无视经验等级要求取出物品
-        if (player.isCreative()) {
-            return m_container && !m_container->getOutputSlot().isEmpty();
-        }
-        // 生存模式检查经验等级是否足够
-        return m_container && !m_container->isTooExpensive();
+        return m_container != nullptr && m_container->canTakeResult(player);
+    }
+
+    ItemStack remove(i32 amount) override { return amount > 0 ? Slot::remove(getItem().getCount()) : ItemStack::EMPTY; }
+
+    ItemStack onTake(Player& player, ItemStack stack) override
+    {
+        m_container->onResultTaken(player);
+        return Slot::onTake(player, std::move(stack));
     }
 
 private:
@@ -213,25 +217,7 @@ bool AnvilContainer::setItemName(const std::string& name)
 
 bool AnvilContainer::isRenameOnly() const
 {
-    if (m_repairCost <= 0) {
-        return false;
-    }
-
-    ItemStack input1 = getInputSlot1();
-    ItemStack input2 = getInputSlot2();
-
-    // 如果没有输入物品，返回false
-    if (input1.isEmpty()) {
-        return false;
-    }
-
-    // 如果有第二个输入物品，则不是仅重命名
-    if (!input2.isEmpty()) {
-        return false;
-    }
-
-    // 只有重命名操作（有自定义名称或名称改变）
-    return m_repairCost == 1 && !m_itemName.empty();
+    return m_onlyRenaming && m_repairCost > 0;
 }
 
 // ========== 槽位访问 ==========
@@ -278,6 +264,48 @@ void AnvilContainer::removed(Player& player)
     clearContainer(player, m_anvilInventory.get());
 }
 
+bool AnvilContainer::canTakeResult(const Player& player) const
+{
+    return !getOutputSlot().isEmpty() && m_repairCost > 0 &&
+        (player.isCreative() || (!isTooExpensive() && player.experienceLevel() >= m_repairCost));
+}
+
+void AnvilContainer::onResultTaken(Player& player)
+{
+    MC_ASSERT_RELEASE(m_repairCost > 0);
+    MC_ASSERT_RELEASE(player.isCreative() || player.experienceLevel() >= m_repairCost);
+    if (!player.isCreative()) {
+        player.addExperienceLevels(-m_repairCost);
+    }
+    m_anvilInventory->setItem(SLOT_INPUT_1, ItemStack::EMPTY);
+    auto material = getInputSlot2();
+    if (m_materialCost > 0 && !material.isEmpty()) {
+        material.shrink(m_materialCost);
+        m_anvilInventory->setItem(SLOT_INPUT_2, material);
+    } else if (!m_onlyRenaming) {
+        m_anvilInventory->setItem(SLOT_INPUT_2, ItemStack::EMPTY);
+    }
+    m_repairCost = 0;
+    _damageAnvilIfNecessary(player);
+    _updateRepairOutput();
+}
+
+bool AnvilContainer::_canFitResultInInventory(const ItemStack& result) const
+{
+    i32 remaining = result.getCount();
+    for (i32 index = ANVIL_SLOTS; index < getSlotCount(); ++index) {
+        const auto* slot = getSlot(index);
+        const auto& current = slot->getItem();
+        if (slot->mayPlace(result) && (current.isEmpty() || current.canMergeWith(result))) {
+            remaining -= std::max(0, slot->getMaxStackSize(result) - current.getCount());
+            if (remaining <= 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
 {
 
@@ -290,16 +318,17 @@ ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
     ItemStack result = slotStack.copy();
 
     if (slotIndex == SLOT_OUTPUT) {
-        // 从输出槽移动到玩家背包
-        if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount() - 1, true)) {
+        if (!canTakeResult(player) || !_canFitResultInInventory(slotStack)) {
+            return ItemStack::EMPTY;
+        }
+        if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount(), true)) {
             return ItemStack();
         }
 
-        // 铁砧损坏机制：非创造模式下，从输出槽取出结果时有 12% 概率使铁砧降级
-        _damageAnvilIfNecessary(player);
+        // 输入和经验由结果槽 onTake 统一结算。
     } else if (slotIndex == SLOT_INPUT_1 || slotIndex == SLOT_INPUT_2) {
         // 从输入槽移动到玩家背包
-        if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount() - 1, false)) {
+        if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount(), false)) {
             return ItemStack();
         }
     } else {
@@ -365,7 +394,8 @@ void AnvilContainer::_updateRepairOutput()
 {
     ItemStack input1 = getInputSlot1();
     m_repairCost = 1; // 基础成本
-    i32 totalCost = 0;
+    i64 totalCost = 0;
+    m_onlyRenaming = false;
     i32 renameCost = 0;
     m_materialCost = 0;
 
@@ -382,7 +412,7 @@ void AnvilContainer::_updateRepairOutput()
     auto enchantments1 = item::enchant::EnchantmentHelper::getEnchantments(result);
 
     // 计算基础修复成本（两个输入物品的修复成本之和）
-    i32 baseRepairCost = input1.getRepairCost();
+    i64 baseRepairCost = input1.getRepairCost();
     if (!input2.isEmpty()) {
         baseRepairCost += input2.getRepairCost();
     }
@@ -555,7 +585,10 @@ void AnvilContainer::_updateRepairOutput()
     }
 
     // 计算最终修复成本
-    m_repairCost = baseRepairCost + totalCost;
+    m_onlyRenaming = renameCost == totalCost && renameCost > 0;
+    m_repairCost = totalCost <= 0
+        ? 0
+        : static_cast<i32>(std::clamp<i64>(baseRepairCost + totalCost, 0, std::numeric_limits<i32>::max()));
 
     if (totalCost <= 0) {
         result = ItemStack();
@@ -570,7 +603,6 @@ void AnvilContainer::_updateRepairOutput()
     // 创造模式可以绕过 40 级费用上限
     if (m_repairCost >= MAX_REPAIR_COST && !isPlayerCreative()) {
         result = ItemStack();
-        m_repairCost = 0;
     }
 
     if (!result.isEmpty()) {
@@ -599,7 +631,7 @@ void AnvilContainer::_updateRepairOutput()
 
 i32 AnvilContainer::_getNewRepairCost(i32 oldRepairCost)
 {
-    return oldRepairCost * 2 + 1;
+    return static_cast<i32>(std::min<i64>(static_cast<i64>(oldRepairCost) * 2 + 1, std::numeric_limits<i32>::max()));
 }
 
 bool AnvilContainer::isPlayerCreative() const
