@@ -21,8 +21,13 @@ class PococcPerformanceTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[3]
         action = (repository / ".github/actions/build-pococc/action.yml").read_text()
         # 执行真正的 action shell 与 collector 的 CLI，捕获两层接口不一致。
-        body = action[action.index('        case "$POOL" in'):].splitlines()
-        body = "\n".join(line[8:] for line in body if line.startswith("        "))
+        lines = action[action.index('        case "$POOL" in'):].splitlines()
+        body = []
+        for line in lines:
+            if not line.startswith("        "):
+                break
+            body.append(line[8:])
+        body = "\n".join(body)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "scripts").symlink_to(repository / "scripts", target_is_directory=True)
