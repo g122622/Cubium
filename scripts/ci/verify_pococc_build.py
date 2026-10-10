@@ -14,14 +14,20 @@ from pathlib import Path
 from prepare_build_artifacts import verify_configuration
 
 
-def verify_configuration_without_pch(build_dir: Path) -> int:
+def verify_configuration_without_pch(build_dir: Path, variant: str) -> int:
     """检查真实 cache 和编译命令，不能仅相信 configure 的命令行。"""
     config = {}
     for line in (build_dir / "CMakeCache.txt").read_text(encoding="utf-8").splitlines():
         match = re.match(r"([^:#]+):[^=]+=(.*)", line)
         if match:
             config[match.group(1)] = match.group(2)
-    verify_configuration(config, "test")
+    if variant == "fuzz":
+        for key, expected in {"MC_BUILD_FUZZERS": "ON", "MC_FUZZ_ASAN": "ON",
+                              "MC_ENABLE_NATIVE_ARCH": "OFF"}.items():
+            if config.get(key) != expected:
+                raise RuntimeError(f"Incorrect fuzz configuration: {key}={config.get(key)!r}")
+    else:
+        verify_configuration(config, variant)
     for key, expected in {
         "CMAKE_DISABLE_PRECOMPILE_HEADERS": "ON",
         "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
@@ -66,12 +72,13 @@ def main(argv: list[str]) -> int:
     """输出独立构建报告，配置预检阶段不要求对象编译已经发生。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-dir", type=Path, required=True)
+    parser.add_argument("--variant", choices=("test", "release", "fuzz"), required=True)
     parser.add_argument("--configuration-only", action="store_true")
     args = parser.parse_args(argv)
     try:
-        count = verify_configuration_without_pch(args.build_dir)
+        count = verify_configuration_without_pch(args.build_dir, args.variant)
         if args.configuration_only:
-            print(f"Verified no-PCH sanitizer configuration: {count} compile commands across all configurations")
+            print(f"Verified no-PCH {args.variant} configuration: {count} compile commands across all configurations")
             return 0
         report = verify_journal(args.build_dir / "pococc.tsv")
         report["compile_database_entries_all_configurations"] = count

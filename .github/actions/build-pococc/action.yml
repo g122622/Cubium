@@ -1,0 +1,181 @@
+name: Distributed pococc build
+description: 独立编译池，无 PCH、严格分发、临时缓存及性能证据。
+inputs:
+  pool:
+    description: 独立编译池名称
+    required: true
+  workers:
+    description: 编译池 worker 数
+    required: true
+  preset:
+    description: 配置与构建 preset
+    required: true
+  build-dir:
+    description: preset 的产物路径
+    required: true
+  variant:
+    description: test / release / fuzz
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: pococc-tools-${{ github.run_attempt }}
+        path: ${{ env.POCOCC_CI_BINARY_DIR }}
+    - name: Publish coordinator public key
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        chmod +x "$POCOCC_CI_BINARY_DIR/pococc" "$POCOCC_CI_BINARY_DIR/pococc-cc" "$POCOCC_CI_BINARY_DIR/cloudflared"
+        mkdir -p "$RUNNER_TEMP/pococc-auth" "$RUNNER_TEMP/pococc-rendezvous"
+        ssh-keygen -q -t ed25519 -N '' -f "$RUNNER_TEMP/pococc-auth/id"
+        cp "$RUNNER_TEMP/pococc-auth/id.pub" "$RUNNER_TEMP/pococc-rendezvous/coordinator.pub"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.POCOCC_CI_ARTIFACT_PREFIX }}coordinator-key-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/pococc-rendezvous/coordinator.pub
+        retention-days: 1
+    - uses: ./.github/actions/setup-pococc-toolchain
+      with:
+        cubium-dependencies: 'true'
+    - name: Restore existing vcpkg cache read only
+      uses: actions/cache/restore@v4
+      with:
+        path: vcpkg-cache
+        key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-linux-${{ env.VCPKG_COMMIT }}-
+    - name: Bootstrap temporary vcpkg
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        git init "$RUNNER_TEMP/pococc-vcpkg"
+        git -C "$RUNNER_TEMP/pococc-vcpkg" remote add origin https://github.com/microsoft/vcpkg.git
+        git -C "$RUNNER_TEMP/pococc-vcpkg" fetch --depth=1 origin "$VCPKG_COMMIT"
+        git -C "$RUNNER_TEMP/pococc-vcpkg" checkout --detach FETCH_HEAD
+        "$RUNNER_TEMP/pococc-vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+        echo "VCPKG_ROOT=$RUNNER_TEMP/pococc-vcpkg" >> "$GITHUB_ENV"
+    - name: Configure without PCH
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        cmake --preset "$PRESET" -B "$BUILD_DIR" -DMC_ENABLE_NATIVE_ARCH=OFF \
+          -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
+          -DCMAKE_CXX_COMPILER="$CI_COMPILER" -DCMAKE_C_COMPILER=/usr/lib/llvm-22/bin/clang \
+          -DCMAKE_JOB_POOLS=link=1 -DCMAKE_JOB_POOL_LINK=link
+        python3 scripts/ci/verify_pococc_build.py --build-dir "$BUILD_DIR" --variant "$VARIANT" --configuration-only
+    - name: Connect independent compile workers
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" connect --workers "$WORKERS" --state "$RUNNER_TEMP/pococc-coordinator"
+    - name: Probe remote compiler execution
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        "$POCOCC_CI_BINARY_DIR/pococc" doctor --hosts "$POCOCC_CI_HOSTS" --compiler "$CI_COMPILER"
+    - name: Build through ccache and pococc
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+        CCACHE_PREFIX: ${{ env.POCOCC_CI_BINARY_DIR }}/pococc-cc
+        DISTCC_VERBOSE: '1'
+        DISTCC_LOG: ${{ github.workspace }}/pococc-diagnostics/distcc-client.log
+      run: |
+        JOBS=$((WORKERS * POCOCC_CI_WORKER_SLOTS + 2))
+        mkdir -p pococc-diagnostics
+        python3 scripts/ci/pococc_performance.py build --pool "$POOL" --workers "$WORKERS" \
+          --slots "$POCOCC_CI_WORKER_SLOTS" --jobs "$JOBS" --preprocess-jobs 4 \
+          --out pococc-diagnostics/pococc-performance.json --journal "$BUILD_DIR/pococc.tsv" \
+          --client-log pococc-diagnostics/distcc-client.log -- \
+          "$POCOCC_CI_BINARY_DIR/pococc" run --hosts "$POCOCC_CI_HOSTS" --strict \
+          --local-jobs 2 --preprocess-jobs 4 --journal "$GITHUB_WORKSPACE/$BUILD_DIR/pococc.tsv" \
+          -- cmake --build --preset "$PRESET" --parallel "$JOBS" -- -k 0
+        python3 scripts/ci/verify_pococc_build.py --build-dir "$BUILD_DIR" --variant "$VARIANT"
+    - name: Publish coordinator completion
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/pococc-completion"
+        printf '%s\n' '${{ job.status }}' > "$RUNNER_TEMP/pococc-completion/status.txt"
+      if: ${{ always() }}
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: ${{ env.POCOCC_CI_ARTIFACT_PREFIX }}coordinator-finished-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/pococc-completion/status.txt
+        retention-days: 1
+    - name: Close compile tunnels
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-coordinator"
+      if: ${{ always() }}
+    - name: Collect build performance evidence
+      shell: bash
+      env:
+        POOL: ${{ inputs.pool }}
+        WORKERS: ${{ inputs.workers }}
+        PRESET: ${{ inputs.preset }}
+        BUILD_DIR: ${{ inputs.build-dir }}
+        VARIANT: ${{ inputs.variant }}
+      run: |
+        mkdir -p pococc-diagnostics
+        ccache --show-stats --verbose > pococc-diagnostics/ccache-stats.txt
+        if [ -f "$BUILD_DIR/pococc.tsv" ]; then
+          "$POCOCC_CI_BINARY_DIR/pococc" stats "$BUILD_DIR/pococc.tsv" > pococc-diagnostics/pococc-stats.txt
+          cp "$BUILD_DIR/pococc.tsv" pococc-diagnostics/
+        fi
+        if [ -f "$BUILD_DIR/pococc-build.json" ]; then cp "$BUILD_DIR/pococc-build.json" pococc-diagnostics/; fi
+        if [ -d "$RUNNER_TEMP/pococc-coordinator" ]; then
+          find "$RUNNER_TEMP/pococc-coordinator" -name '*.log' -exec cp {} pococc-diagnostics/ \;
+        fi
+        python3 scripts/ci/collect_runner_info.py --job "$POOL-build" --build-dir "$BUILD_DIR" --out pococc-diagnostics/runner-info.json
+      if: ${{ always() }}
+    - uses: actions/upload-artifact@v4
+      if: ${{ always() }}
+      with:
+        name: pococc-${{ inputs.pool }}-diagnostics-${{ github.run_attempt }}
+        path: pococc-diagnostics/
+        retention-days: 7

@@ -1,7 +1,5 @@
-name: Nightly pococc Test Build
-
-# 独立实验暂时仅手动触发，避免与现有定时 nightly 自动重叠。
-on:
+name: Nightly pococc CI
+'on':
   workflow_dispatch:
     inputs:
       allow_concurrent_nightly:
@@ -9,15 +7,12 @@ on:
         type: boolean
         required: true
         default: false
-
 permissions:
   contents: read
   actions: read
-
 concurrency:
   group: nightly-pococc-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   POCOCC_REF: 70955224a6cb37fe52c48ef845c0ea5d83650d7d
   CI_COMPILER: /usr/lib/llvm-22/bin/clang++
@@ -25,16 +20,15 @@ env:
   VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
   CCACHE_DIR: /tmp/pococc-ccache
   CCACHE_MAXSIZE: 2G
-  CCACHE_NAMESPACE: pococc-no-pch-asan-ubsan
+  CCACHE_NAMESPACE: pococc-no-pch
   CCACHE_SLOPPINESS: include_file_mtime,include_file_ctime
   POCOCC_CI_BINARY_DIR: /tmp/pococc-tools
-  POCOCC_CI_ARTIFACT_PREFIX: pococc-
   POCOCC_CI_HOLD_TIMEOUT: '21600'
   POCOCC_CI_RENDEZVOUS_TIMEOUT: '900'
-  POCOCC_CI_POLL_INTERVAL: '60'
+  POCOCC_CI_POLL_INTERVAL: '120'
   POCOCC_CI_WORKER_SLOTS: '2'
   DISTCC_IO_TIMEOUT: '3600'
-
+  BIN_DIR: build/bin/RelWithDebInfo
 jobs:
   prepare:
     name: Prepare pococc tools
@@ -96,156 +90,283 @@ jobs:
           name: pococc-tools-${{ github.run_attempt }}
           path: pococc-tools/
           retention-days: 1
-
   build:
     name: Test Build (Linux / RelWithDebInfo / ASan + UBSan)
-    needs: prepare
-    if: needs.prepare.outputs.enabled == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     env:
-      BIN_DIR: build-pococc/bin/RelWithDebInfo
       ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-test-
+      CCACHE_NAMESPACE: pococc-no-pch-test
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: actions/download-artifact@v4
+      - uses: ./.github/actions/build-pococc
         with:
-          name: pococc-tools-${{ github.run_attempt }}
-          path: ${{ env.POCOCC_CI_BINARY_DIR }}
-      - name: Publish coordinator public key
-        run: |
-          chmod +x "$POCOCC_CI_BINARY_DIR/pococc" "$POCOCC_CI_BINARY_DIR/pococc-cc" \
-            "$POCOCC_CI_BINARY_DIR/cloudflared"
-          mkdir -p "$RUNNER_TEMP/pococc-auth" "$RUNNER_TEMP/pococc-rendezvous"
-          ssh-keygen -q -t ed25519 -N '' -f "$RUNNER_TEMP/pococc-auth/id"
-          cp "$RUNNER_TEMP/pococc-auth/id.pub" "$RUNNER_TEMP/pococc-rendezvous/coordinator.pub"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pococc-coordinator-key-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/pococc-rendezvous/coordinator.pub
-          retention-days: 1
-      - uses: ./.github/actions/setup-pococc-toolchain
-        with:
-          cubium-dependencies: 'true'
-      # 只读取已有依赖缓存；不保存 ccache/vcpkg，也不调用旧缓存清理脚本。
-      - name: Restore existing vcpkg cache read only
-        uses: actions/cache/restore@v4
-        with:
-          path: vcpkg-cache
-          key: vcpkg-linux-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-linux-${{ env.VCPKG_COMMIT }}-
-      - name: Bootstrap temporary vcpkg
-        run: |
-          git init "$RUNNER_TEMP/pococc-vcpkg"
-          git -C "$RUNNER_TEMP/pococc-vcpkg" remote add origin https://github.com/microsoft/vcpkg.git
-          git -C "$RUNNER_TEMP/pococc-vcpkg" fetch --depth=1 origin "$VCPKG_COMMIT"
-          git -C "$RUNNER_TEMP/pococc-vcpkg" checkout --detach FETCH_HEAD
-          "$RUNNER_TEMP/pococc-vcpkg/bootstrap-vcpkg.sh" -disableMetrics
-          echo "VCPKG_ROOT=$RUNNER_TEMP/pococc-vcpkg" >> "$GITHUB_ENV"
-      - name: Configure without PCH
-        run: |
-          cmake --preset linux-clang-ci-tests -B build-pococc \
-            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
-            -DCMAKE_JOB_POOLS=link=1 -DCMAKE_JOB_POOL_LINK=link
-          python3 scripts/ci/verify_pococc_build.py --build-dir build-pococc --configuration-only
-      - name: Connect two independent compile workers
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" connect --workers 2 \
-            --state "$RUNNER_TEMP/pococc-coordinator"
-      # GITHUB_ENV 写入的节点列表从下一个 step 才会进入 shell 环境。
-      - name: Probe remote compiler execution
-        run: |
-          "$POCOCC_CI_BINARY_DIR/pococc" doctor --hosts "$POCOCC_CI_HOSTS" --compiler "$CI_COMPILER"
-      - name: Build through ccache and pococc
-        env:
-          CCACHE_PREFIX: ${{ env.POCOCC_CI_BINARY_DIR }}/pococc-cc
-        run: |
-          "$POCOCC_CI_BINARY_DIR/pococc" run --hosts "$POCOCC_CI_HOSTS" --strict \
-            --local-jobs 2 --preprocess-jobs 2 --journal "$GITHUB_WORKSPACE/build-pococc/pococc.tsv" \
-            -- cmake --build build-pococc --config RelWithDebInfo \
-              --target minecraft-server mc_tests --parallel 6 -- -k 0
-          python3 scripts/ci/verify_pococc_build.py --build-dir build-pococc
+          pool: test
+          workers: '8'
+          preset: linux-clang-ci-tests
+          build-dir: build
+          variant: test
       - name: Verify test binaries and collect runtime libraries
         run: |
-          python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build-pococc \
-            --binary "$BIN_DIR/minecraft-server" --binary "$BIN_DIR/mc_tests" \
-            --library-dir pococc-vcpkg-libs --report pococc-build-artifact-check.txt
-      - name: Record ccache and pococc statistics
+          python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build \
+            --binary "${BIN_DIR}/minecraft-server" --binary "${BIN_DIR}/mc_tests" \
+            --library-dir vcpkg-libs --report build-artifact-check.txt
+      - name: Package CTest metadata
         if: always()
         run: |
-          ccache --show-stats --verbose | tee pococc-ccache-stats.txt
-          if [ -f build-pococc/pococc.tsv ]; then
-            "$POCOCC_CI_BINARY_DIR/pococc" stats build-pococc/pococc.tsv
+          set +e
+          find build \
+            \( -name 'CTestTestfile.cmake' \
+               -o -name 'cmake_test_discovery_*.json' \
+               -o -name '*_tests*.cmake' \
+               -o -name '*_include*.cmake' \) \
+            -print0 > /tmp/ctest-meta.list
+          count=$(tr -cd '\0' < /tmp/ctest-meta.list | wc -c)
+          if [ "${count}" -gt 0 ]; then
+            tar -czf ctest-meta.tar.gz --null -T /tmp/ctest-meta.list
+            echo "Packaged ${count} CTest metadata files."
+            # 用例清单文件（含数千行 add_test）是 ctest 能否列出用例的关键，单独确认一下。
+            find build -name '*_tests*.cmake' | head -5
+          else
+            echo "::warning::未找到任何 CTest 元数据文件，unit-tests job 可能无法用 ctest 运行。"
           fi
       - name: Record runner configuration
         if: always()
         continue-on-error: true
-        run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build-pococc --out pococc-runner-info.json
-      - name: Package CTest metadata
+        run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build --out runner-info.json
+      - name: Upload build artifacts
         if: always()
-        run: |
-          if [ -d build-pococc ]; then
-            find build-pococc \( -name 'CTestTestfile.cmake' -o -name 'cmake_test_discovery_*.json' \
-              -o -name '*_tests*.cmake' -o -name '*_include*.cmake' \) \
-              -print0 > "$RUNNER_TEMP/pococc-ctest-meta.list"
-            if [ -s "$RUNNER_TEMP/pococc-ctest-meta.list" ]; then
-              tar -czf pococc-ctest-meta.tar.gz --null -T "$RUNNER_TEMP/pococc-ctest-meta.list"
-            fi
-          fi
-      - name: Publish coordinator completion
-        if: always()
-        run: |
-          mkdir -p "$RUNNER_TEMP/pococc-completion"
-          printf '%s\n' '${{ job.status }}' > "$RUNNER_TEMP/pococc-completion/status.txt"
-      - uses: actions/upload-artifact@v4
-        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: pococc-coordinator-finished-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/pococc-completion/status.txt
-          retention-days: 1
-      - name: Close compile tunnels
-        if: always()
-        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-coordinator"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pococc-test-build-artifacts-${{ github.run_attempt }}
-          retention-days: 7
+          name: pococc-test-build-artifacts
+          retention-days: 30
           if-no-files-found: warn
           path: |
             ${{ env.BIN_DIR }}/minecraft-server
             ${{ env.BIN_DIR }}/mc_tests
-            pococc-vcpkg-libs/
-            pococc-build-artifact-check.txt
-            pococc-ccache-stats.txt
-            pococc-runner-info.json
-            pococc-ctest-meta.tar.gz
-            build-pococc/pococc.tsv
-            build-pococc/pococc-build.json
-            ${{ runner.temp }}/pococc-coordinator/*.log
+            vcpkg-libs/
+            build-artifact-check.txt
+            ctest-meta.tar.gz
+            runner-info.json
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true'
+  release-build:
+    name: Release Build (Linux / Release / no profiler)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      RELEASE_BIN_DIR: build-release-noprof/bin/Release
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-release-
+      CCACHE_NAMESPACE: pococc-no-pch-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/build-pococc
+        with:
+          pool: release
+          workers: '5'
+          preset: linux-clang-ci-release
+          build-dir: build-release-noprof
+          variant: release
+      - name: Verify and package release binaries
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/prepare_build_artifacts.py --variant release --build-dir build-release-noprof \
+            --binary "${RELEASE_BIN_DIR}/minecraft-server" --binary "${RELEASE_BIN_DIR}/mc_benchmark" \
+            --library-dir release-package/lib --report release-artifact-check.txt
+          cp "${RELEASE_BIN_DIR}/minecraft-server" release-package/minecraft-server
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job release-build --build-dir build-release-noprof --out runner-info.json
+      - name: Upload release build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-release-build-artifacts
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            ${{ env.RELEASE_BIN_DIR }}/minecraft-server
+            ${{ env.RELEASE_BIN_DIR }}/mc_benchmark
+            release-package/lib/
+            release-artifact-check.txt
+      - name: Upload release build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-release-build-diagnostics
+          retention-days: 30
+          path: |
+            runner-info.json
+            release-artifact-check.txt
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="nightly-pococc-$(date -u +%Y%m%d)"
+          ARCHIVE="minecraft-server-linux-x64-${TAG}-${GITHUB_RUN_NUMBER}.tar.gz"
+          tar -czf "${ARCHIVE}" -C release-package .
+          cat > release-notes.md <<'NOTES_EOF'
+          自动生成的 Linux x64 服务端发布构建。
 
+          - Release 构建，不含调试信息、profiler 或 sanitizer。
+          - 归档含服务端及实际依赖的非系统动态库；benchmark 使用同一 Release 构建。
+          NOTES_EOF
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ARCHIVE}" --clobber
+          else
+            gh release create "${TAG}" "${ARCHIVE}" --title "Nightly pococc ${TAG}" --notes-file release-notes.md
+          fi
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true'
+    permissions:
+      contents: write
+      actions: read
+  fuzz:
+    name: Fuzz (libFuzzer / Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: ./.github/actions/build-pococc
+        with:
+          pool: fuzz
+          workers: '3'
+          preset: linux-clang-fuzz
+          build-dir: build-fuzz
+          variant: fuzz
+      - name: Locate fuzz binaries
+        run: |
+          set -euo pipefail
+          FUZZ_BIN="$(dirname "$(find build-fuzz -name fuzz_java_codec_sb -type f -print -quit)")"
+          if [ -z "${FUZZ_BIN}" ] || [ ! -d "${FUZZ_BIN}" ]; then
+            echo "::error::未找到 fuzz 目标产物，请检查 tests/fuzz/CMakeLists.txt 的 RUNTIME_OUTPUT_DIRECTORY。"
+            exit 1
+          fi
+          echo "FUZZ_BIN=${FUZZ_BIN}" >> "$GITHUB_ENV"
+          ls "${FUZZ_BIN}"
+      - name: Generate seed corpus
+        run: |
+          set -euo pipefail
+          mkdir -p fuzz-artifacts
+          # 用项目自身的编码器遍历全部已登记包，产出结构化起始语料（详见 docs/test/FUZZING.md §4.1）。
+          # 参数是**输出根目录**，其下生成 java_codec/{sb,cb}、connection_wire、handshake_session 三组。
+          # 输出到临时目录而非 tests/fuzz/corpus：避免污染工作区（libFuzzer 还会往语料目录写新条目）。
+          "${FUZZ_BIN}/fuzz_gen_seeds" fuzz-artifacts/seeds 2>&1 | tee fuzz-artifacts/gen-seeds.log
+          find fuzz-artifacts/seeds -type d | sort
+      - name: Run fuzz targets
+        run: |
+          set +e
+          SEEDS="fuzz-artifacts/seeds"
+          mkdir -p fuzz-artifacts
+          FAILED=0
+
+          run_target() {
+            target="$1"; shift
+            writable="fuzz-artifacts/corpus/${target}"
+            mkdir -p "${writable}"
+            echo "=== ${target} ===" | tee -a fuzz-artifacts/fuzz.log
+            "${FUZZ_BIN}/${target}" \
+              -max_total_time=300 \
+              -artifact_prefix="fuzz-artifacts/" \
+              -print_final_stats=1 \
+              "${writable}" "$@" 2>&1 | tee -a "fuzz-artifacts/${target}.log"
+            status=${PIPESTATUS[0]}
+            echo "${target} exit code: ${status}" | tee -a fuzz-artifacts/fuzz.log
+            if [ "${status}" -ne 0 ]; then
+              FAILED=1
+            fi
+          }
+
+          # 分层解码器：仓库内无专属语料，用生成种子中的对应目录（没有则空跑探索）。
+          run_target fuzz_varint_framing
+          run_target fuzz_compression
+          run_target fuzz_cipher
+          run_target fuzz_chunk_wire
+
+          # 整条入站流水线：生成种子 + 仓库内回归种子。
+          run_target fuzz_connection_wire "${SEEDS}/connection_wire" tests/fuzz/corpus/connection_wire
+
+          # 握手状态机：生成的全量 Serverbound 序列 + 仓库内回归种子。
+          run_target fuzz_handshake_session "${SEEDS}/handshake_session" tests/fuzz/corpus/handshake_session
+
+          # Java codec 三向：生成种子按流向分目录（sb/cb），仓库内另有已修缺陷的回归种子。
+          run_target fuzz_java_codec    "${SEEDS}/java_codec/sb" "${SEEDS}/java_codec/cb"
+          run_target fuzz_java_codec_sb "${SEEDS}/java_codec/sb" tests/fuzz/corpus/fuzz_java_codec_sb
+          run_target fuzz_java_codec_cb "${SEEDS}/java_codec/cb" tests/fuzz/corpus/fuzz_java_codec_cb
+
+          exit "${FAILED}"
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job fuzz --build-dir build-fuzz --out fuzz-artifacts/runner-info.json
+      - name: Upload fuzz results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-fuzz-results
+          retention-days: 30
+          if-no-files-found: warn
+          path: fuzz-artifacts/
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true'
+    env:
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-fuzz-
+      CCACHE_NAMESPACE: pococc-no-pch-fuzz
   workers:
-    name: pococc compile worker ${{ matrix.worker }}
+    name: pococc ${{ matrix.pool }} worker ${{ matrix.worker }}
     needs: prepare
     if: needs.prepare.outputs.enabled == 'true'
     runs-on: ubuntu-24.04
-    # 协调节点启动前的准备与公钥会合最多 55 分钟，完整构建后仍预留 5 分钟清理预算。
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
-        worker: [1, 2]
+        include:
+          - pool: test
+            worker: 1
+          - pool: test
+            worker: 2
+          - pool: test
+            worker: 3
+          - pool: test
+            worker: 4
+          - pool: test
+            worker: 5
+          - pool: test
+            worker: 6
+          - pool: test
+            worker: 7
+          - pool: test
+            worker: 8
+          - pool: release
+            worker: 1
+          - pool: release
+            worker: 2
+          - pool: release
+            worker: 3
+          - pool: release
+            worker: 4
+          - pool: release
+            worker: 5
+          - pool: fuzz
+            worker: 1
+          - pool: fuzz
+            worker: 2
+          - pool: fuzz
+            worker: 3
+      max-parallel: 16
     steps:
       - uses: actions/checkout@v4
         timeout-minutes: 5
-        with:
-          sparse-checkout: .github/actions/setup-pococc-toolchain
       - uses: actions/download-artifact@v4
         timeout-minutes: 5
         with:
@@ -262,15 +383,14 @@ jobs:
         run: |
           chmod +x "$POCOCC_CI_BINARY_DIR/pococc" "$POCOCC_CI_BINARY_DIR/pococc-cc" \
             "$POCOCC_CI_BINARY_DIR/cloudflared"
-          python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" worker --worker '${{ matrix.worker }}' \
+          python3 scripts/ci/pococc_performance.py start-worker --bootstrap "$POCOCC_CI_BINARY_DIR/Bootstrap.py" --worker '${{ matrix.worker }}' \
             --state "$RUNNER_TEMP/pococc-worker"
       - uses: actions/upload-artifact@v4
         with:
-          name: pococc-worker-endpoint-${{ matrix.worker }}-${{ github.run_attempt }}
+          name: ${{ env.POCOCC_CI_ARTIFACT_PREFIX }}worker-endpoint-${{ matrix.worker }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/pococc-worker/endpoint.json
           retention-days: 1
       - name: Keep worker available
-        # worker 只有取得协调节点的公钥才会进入 hold，此时协调节点已经开始运行。
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" hold --state "$RUNNER_TEMP/pococc-worker"
@@ -278,12 +398,406 @@ jobs:
         if: always()
         run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-worker"
       - name: Verify actual Cubium compilation
-        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" verify-worker --state "$RUNNER_TEMP/pococc-worker"
+        run: |
+          python3 scripts/ci/pococc_performance.py worker-report --pool "$POOL" --state "$RUNNER_TEMP/pococc-worker"
+        env:
+          POOL: ${{ matrix.pool }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pococc-worker-report-${{ matrix.worker }}-${{ github.run_attempt }}
+          name: pococc-worker-report-${{ matrix.pool }}-${{ matrix.worker }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/pococc-worker/report.json
+            ${{ runner.temp }}/pococc-worker/pococc-performance.json
+            ${{ runner.temp }}/pococc-worker/compiler-times.jsonl
             ${{ runner.temp }}/pococc-worker/*.log
           retention-days: 7
+    env:
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
+  unit-tests:
+    name: Unit Tests (ctest)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          # 若 artifact 带了 vcpkg 动态库，加入库搜索路径。
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+
+          # 还原构建期生成的 CTest 元数据（用例清单与发现文件），使本 job 无需重新构建
+          # 即可用 ctest 跑用例。这些文件内的路径是绝对路径，两个 job 的 workspace 路径
+          # 相同（/home/runner/work/<repo>/<repo>），故解压到仓库根即可对上。
+          if [ -f ctest-meta.tar.gz ]; then
+            tar -xzf ctest-meta.tar.gz
+          else
+            echo "::error::缺少 ctest-meta.tar.gz，无法用 ctest 运行单元测试。"
+            exit 1
+          fi
+      - name: Run unit tests
+        run: |
+          set +e
+          cd build
+          # --output-junit 产出机器可读的失败清单（report job 的汇总脚本依赖它）。
+          ctest --build-config RelWithDebInfo \
+                --output-on-failure \
+                --output-junit ../ctest-results.xml \
+                --timeout 300 \
+                -j"$(nproc)" 2>&1 | tee ../ctest-output.log
+          echo "ctest exit code: ${PIPESTATUS[0]}"
+          # 单元测试按既定口径不阻塞 CI：此处恒以 0 退出，失败清单由 report job 汇总。
+          exit 0
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job unit-tests --out runner-info.json
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-unit-test-results
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            ctest-output.log
+            ctest-results.xml
+            build/Testing/
+            runner-info.json
+  integrated-tests:
+    name: Integrated Tests (GameTest)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+      - name: Compile integrated behavior packs
+        working-directory: tests/integrated
+        run: node build.mjs
+      - name: Run integrated tests
+        timeout-minutes: 32
+        run: |
+          set +e
+          node scripts/test/run-gametests.ts 2>&1 | tee integrated-tests.log
+          code=${PIPESTATUS[0]}
+          echo "run-gametests exit code: ${code}"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 1 ]; then
+            echo "::error::集成测试流水线错误（退出码 ${code}）：超时、服务端崩溃或报告不完整，详见 integrated-tests.log"
+            exit 1
+          fi
+          # 用例失败（退出码 1）按既定口径不阻塞，失败清单由 report job 汇总。
+          exit 0
+      - name: Symbolize crash stack (if any)
+        if: always()
+        run: |
+          set +e
+          python3 scripts/ci/symbolize_crash.py \
+            --log integrated-tests.log \
+            --binary build/bin/RelWithDebInfo/minecraft-server \
+            --in-place
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job integrated-tests --out runner-info.json
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-integrated-test-results
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            integrated-tests.log
+            build/gametest-reports/
+            runner-info.json
+  e2e-tests:
+    name: E2E Bot Tests (Cubium regress)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+      - name: Install e2e dependencies
+        working-directory: tests/e2e/bot
+        run: npm ci --no-audit --no-fund
+      - name: Run e2e tests
+        working-directory: tests/e2e/bot
+        run: |
+          set -o pipefail
+          # e2e 是真实行为回归，失败即 job 失败（与非阻塞的单元/集成测试不同）。
+          # set -o pipefail 使 tee 不会掩盖 node 的退出码。
+          node run.ts 2>&1 | tee e2e-tests.log
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job e2e-tests --out runner-info.json
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-e2e-test-results
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            tests/e2e/bot/e2e-tests.log
+            build/e2e/artifacts/
+            runner-info.json
+  benchmark:
+    name: Benchmark (Release / record + warn only)
+    needs: release-build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-release-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build-release-noprof/bin/Release/*
+          if [ -d release-package/lib ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/release-package/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+      - name: Run benchmarks
+        run: |
+          set -euo pipefail
+          mkdir -p benchmark-out
+          ./build-release-noprof/bin/Release/mc_benchmark \
+            --benchmark_context=ci_build_profile=pococc-release-noprof-nosan-v1 \
+            --benchmark_out=benchmark-out/results.json \
+            --benchmark_out_format=json \
+            --benchmark_repetitions=3 \
+            --benchmark_report_aggregates_only=true 2>&1 | tee benchmark-out/benchmark.log
+      - name: Fetch previous nightly benchmark results
+        id: fetch-previous
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          mkdir -p previous
+          # 找最近一次**成功**的 nightly 运行（排除本次），下载其 benchmark artifact。
+          PREV_RUN=$(gh run list --workflow=nightly-pococc.yml --status=success \
+            --limit=10 --json databaseId,headSha \
+            --jq "[.[] | select(.headSha != \"${GITHUB_SHA}\")][0].databaseId")
+          if [ -z "${PREV_RUN}" ] || [ "${PREV_RUN}" = "null" ]; then
+            echo "未找到上一次成功的 nightly 运行，本次不做对比。"
+            exit 0
+          fi
+          echo "上一次成功运行：${PREV_RUN}"
+          gh run download "${PREV_RUN}" -n pococc-benchmark-results -D previous/ 2>/dev/null
+          ls -R previous/ || true
+      - name: Compare with previous run
+        run: |
+          set +e
+          # 上一次的 results.json 可能位于 previous/ 下的任意子目录（artifact 保留原路径）。
+          PREV_JSON=$(find previous -name results.json -print -quit 2>/dev/null)
+          ARGS=(--current benchmark-out/results.json --out benchmark-out/benchmark-compare.md)
+          if [ -n "${PREV_JSON}" ]; then
+            ARGS+=(--previous "${PREV_JSON}")
+          fi
+          python3 scripts/ci/compare_benchmark.py "${ARGS[@]}"
+          # 超阈值项以 workflow warning 的形式提示，但不阻塞（托管 runner 机器实例每次不同）。
+          if grep -q '⚠️ 超过阈值的项' benchmark-out/benchmark-compare.md 2>/dev/null; then
+            echo "::warning::benchmark 存在超过阈值的项，详见 artifact benchmark-results 中的 benchmark-compare.md"
+          fi
+          cat benchmark-out/benchmark-compare.md || true
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job benchmark --out benchmark-out/runner-info.json
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-benchmark-results
+          retention-days: 90
+          if-no-files-found: warn
+          path: benchmark-out/
+  report:
+    name: Summarize & Report
+    needs:
+      - build
+      - release-build
+      - unit-tests
+      - integrated-tests
+      - e2e-tests
+      - fuzz
+      - benchmark
+      - prepare
+      - workers
+    if: always() && needs.prepare.outputs.enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all result artifacts
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: pococc-*-results
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job report --out artifacts/report/runner-info.json
+      - name: Download compilation diagnostics
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pococc-*-diagnostics-*
+          path: artifacts
+      - name: Download worker performance evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pococc-worker-report-*
+          path: artifacts
+      - name: Generate summary
+        if: always()
+        id: summary
+        env:
+          JOB_STATUS: |-
+            {"prepare":"${{ needs.prepare.result }}", "workers":"${{ needs.workers.result }}", "build":"${{ needs.build.result }}",
+             "release-build":"${{ needs.release-build.result }}",
+             "unit-tests":"${{ needs.unit-tests.result }}",
+             "integrated-tests":"${{ needs.integrated-tests.result }}",
+             "e2e-tests":"${{ needs.e2e-tests.result }}",
+             "fuzz":"${{ needs.fuzz.result }}",
+             "benchmark":"${{ needs.benchmark.result }}"}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/summarize_failures.py \
+            --artifacts-dir artifacts \
+            --job-status "${JOB_STATUS}" \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --branch "${GITHUB_REF_NAME}" \
+            --commit "${GITHUB_SHA}" \
+            --out nightly-report.md \
+            --full-out nightly-report-full.md \
+            --runner-info-out nightly-runners.json \
+            --status-out nightly-status.txt
+
+          STATUS="$(cat nightly-status.txt 2>/dev/null || echo failures)"
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+          echo "判定结果：${STATUS}"
+
+          # 写入 job summary，便于直接在运行页查看。
+          set +e
+          python3 scripts/ci/pococc_performance.py report --directory artifacts \
+            --out pococc-performance.md --json-out pococc-performance.json
+          performance_status=$?
+          set -e
+          if [ "$performance_status" -ne 0 ]; then
+            echo failures > nightly-status.txt
+            echo status=failures >> "$GITHUB_OUTPUT"
+          fi
+          if [ ! -s pococc-performance.md ]; then
+            echo '## pococc 性能证据采集失败' > pococc-performance.md
+          fi
+          cat pococc-performance.md nightly-report.md > combined-report.md
+          mv combined-report.md nightly-report.md
+          cat pococc-performance.md nightly-report-full.md > combined-full-report.md
+          mv combined-full-report.md nightly-report-full.md
+          cat nightly-report.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$performance_status"
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-nightly-report
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            nightly-report.md
+            nightly-report-full.md
+            nightly-status.txt
+            nightly-runners.json
+            pococc-performance.md
+            pococc-performance.json
+      - name: Create nightly issue
+        if: always() && steps.summary.outputs.status != 'clean'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # 去重：同一 run 只建一个 issue。
+          EXISTING=$(gh issue list --label nightly-pococc-ci --state open \
+            --search "pococc nightly run ${GITHUB_RUN_ID}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "${EXISTING}" ]; then
+            echo "本次运行已有 issue #${EXISTING}，跳过。"
+            exit 0
+          fi
+
+          # 汇总步骤失败时正文文件可能不存在，用最小正文兜底，避免连 issue 都建不出来。
+          if [ ! -s nightly-report.md ]; then
+            {
+              echo "## Nightly pococc CI 失败"
+              echo ""
+              echo "汇总报告生成失败，请直接查看运行日志："
+              echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            } > nightly-report.md
+          fi
+
+          gh label create nightly-pococc-ci \
+            --color "1d76db" \
+            --description "Created automatically by the Nightly pococc CI workflow" \
+            --force 2>/dev/null || true
+
+          TITLE="Nightly pococc CI 失败 ($(date -u +%Y-%m-%d))"
+          gh issue create \
+            --title "${TITLE}" \
+            --body-file nightly-report.md \
+            --label nightly-pococc-ci
+    permissions:
+      contents: read
+      actions: read
+      issues: write
