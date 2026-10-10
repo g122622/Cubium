@@ -596,7 +596,13 @@ void MinecraftServer::initializeCoreManagers()
     // 把区块资源释放挂到玩家移除入口上。玩家离场路径有 5 条以上（客户端断线、被踢/封禁/白名单拒绝、
     // KeepAlive 超时、登录阶段失败、关服批量断开），逐点补调用一定会漏；挂在入口才能保证
     // "先释放区块票据、后移除玩家" 这一顺序对所有路径成立。
-    m_playerManager->setPlayerRemovalHook([this](PlayerId playerId) { this->releasePlayerChunkResources(playerId); });
+    m_playerManager->setPlayerRemovalHook([this](PlayerId playerId) {
+        if (m_containerManager != nullptr) {
+            m_containerManager->closeContainer(playerId);
+            m_containerManager->closePlayerInventoryMenu(playerId);
+        }
+        this->releasePlayerChunkResources(playerId);
+    });
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
     // MC 1.16.5: 新世界初始 dayTime = 0（日出时刻）
     m_timeManager = std::make_unique<core::TimeManager>(0, 0);
@@ -2527,12 +2533,26 @@ void MinecraftServer::_handleHotbarSelectRemote(PlayerId playerId, i32 slot)
 
 void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId, i32 containerId)
 {
-    // 旧界面的迟到关闭请求不能关闭后来打开的菜单。
-    const auto* menu = containerManager().getOpenMenu(playerId);
-    if (menu == nullptr || menu->getId() != containerId) {
-        return;
+    auto* menu = containerManager().getOpenMenu(playerId);
+    if (menu == nullptr) {
+        if (containerId != mc::inventory::PLAYER_CONTAINER_ID) {
+            return;
+        }
+        auto* inventoryMenu = containerManager().getPlayerInventoryMenu(playerId);
+        if (inventoryMenu == nullptr) {
+            return;
+        }
+        auto* inventory = inventoryMenu->getPlayerInventory();
+        MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+        inventoryMenu->removed(*inventory->getPlayer());
+        inventoryMenu->detectAndSendChanges();
+    } else {
+        // 旧界面的迟到关闭请求不能关闭新菜单。
+        if (menu->getId() != containerId) {
+            return;
+        }
+        containerManager().closeContainer(playerId);
     }
-    containerManager().closeContainer(playerId);
     inventoryManager().syncToClient(playerId);
 }
 

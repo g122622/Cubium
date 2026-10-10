@@ -32,6 +32,7 @@
 #include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
@@ -42,6 +43,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc::server::interaction {
 
@@ -240,14 +242,9 @@ void ContainerManager::closeContainer(PlayerId playerId)
         containerType = it->second.type;
         position = it->second.position;
 
-        auto* playerData = m_playerManager.getPlayer(playerId);
-        const std::string username = (playerData != nullptr) ? playerData->username : std::string("ContainerPlayer");
-        // ECS 迁移：占位 Player 构造需要 registry 句柄。此处 menuPlayer 仅作 removed 回调形参，
-        // 无 world 上下文，故复用 handleClick 同款静态 registry。
-        // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
-        static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
-        Player menuPlayer(playerId, username, s_menuPlayerRegistry);
-        it->second.menu->removed(menuPlayer);
+        auto* inventory = it->second.menu->getPlayerInventory();
+        MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+        it->second.menu->removed(*inventory->getPlayer());
     }
 
     if (m_onContainerClose) {
@@ -255,6 +252,27 @@ void ContainerManager::closeContainer(PlayerId playerId)
     }
 
     m_openContainers.erase(it);
+}
+
+void ContainerManager::closeAll()
+{
+    std::vector<PlayerId> players;
+    players.reserve(m_openContainers.size());
+    for (const auto& [playerId, container] : m_openContainers) {
+        (void)container;
+        players.push_back(playerId);
+    }
+    for (const auto playerId : players) {
+        closeContainer(playerId);
+    }
+    players.clear();
+    for (const auto& [playerId, menu] : m_playerInventoryMenus) {
+        (void)menu;
+        players.push_back(playerId);
+    }
+    for (const auto playerId : players) {
+        closePlayerInventoryMenu(playerId);
+    }
 }
 
 bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventory* playerInventory)
@@ -301,9 +319,18 @@ void ContainerManager::tickMenus()
 {
     // 注意：常驻的玩家背包菜单（containerId=0）不在此列。它的同步靠点击与改槽后的全量下发
     // （见 MinecraftServer::setOnInventoryUpdate 以菜单为权威构造内容）。
+    std::vector<PlayerId> invalidMenus;
     for (auto& [playerId, openContainer] : m_openContainers) {
         auto* menu = openContainer.menu.get();
         if (menu == nullptr) {
+            continue;
+        }
+
+        auto* inventory = menu->getPlayerInventory();
+        MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+        auto& player = *inventory->getPlayer();
+        if (!player.isAlive() || !menu->stillValid(player)) {
+            invalidMenus.push_back(playerId);
             continue;
         }
 
@@ -322,6 +349,9 @@ void ContainerManager::tickMenus()
             }
         }
     }
+    for (const auto playerId : invalidMenus) {
+        closeContainer(playerId);
+    }
 }
 
 void ContainerManager::setOnContainerData(std::function<void(PlayerId, mc::ContainerId, i32, i32)> callback)
@@ -336,13 +366,11 @@ void ContainerManager::closePlayerInventoryMenu(PlayerId playerId)
         return;
     }
 
-    // 与关闭普通容器一致：先让菜单把光标上的物品归还玩家背包，再丢弃菜单本身。
-    if (it->second != nullptr) {
-        if (auto* playerData = m_playerManager.getPlayer(playerId); playerData != nullptr) {
-            static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
-            Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
-            it->second->removed(menuPlayer);
-        }
+    auto* inventory = it->second->getPlayerInventory();
+    MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+    it->second->removed(*inventory->getPlayer());
+    if (m_onContainerClose) {
+        m_onContainerClose(playerId, mc::inventory::PLAYER_CONTAINER_ID, ContainerType::Player, BlockPos(0, 0, 0));
     }
     m_playerInventoryMenus.erase(it);
 }

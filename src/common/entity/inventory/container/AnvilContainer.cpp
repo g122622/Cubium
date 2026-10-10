@@ -272,21 +272,10 @@ void AnvilContainer::slotsChanged(IInventory* inventory)
 
 void AnvilContainer::removed(Player& player)
 {
-    // 返回输入槽的物品给玩家
-    ItemStack input1 = getInputSlot1();
-    if (!input1.isEmpty()) {
-        player.inventory().add(input1);
-    }
-
-    ItemStack input2 = getInputSlot2();
-    if (!input2.isEmpty()) {
-        player.inventory().add(input2);
-    }
-
-    // 清空所有槽位
-    m_anvilInventory->clear();
-
     AbstractContainerMenu::removed(player);
+    // 结果只是输入的预览，不得作为额外物品返还。
+    static_cast<void>(m_anvilInventory->removeItemNoUpdate(SLOT_OUTPUT));
+    clearContainer(player, m_anvilInventory.get());
 }
 
 ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)

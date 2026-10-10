@@ -417,6 +417,9 @@ void StandaloneServer::stop()
     // 回写在线玩家运行时状态到 PlayerDataManager 缓存
     // 此时主循环已退出，玩家实体不再被 tick() 修改，可安全遍历。
     // 必须在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
+    if (m_containerManager != nullptr) {
+        m_containerManager->closeAll();
+    }
     savePlayerRuntimeState();
 
     // 停止核心组件
@@ -774,6 +777,10 @@ void StandaloneServer::_setupContainerCallbacks()
                 }
             }
 
+            const auto* player = playerManager().getPlayer(playerId);
+            if (player == nullptr || !player->hasConnection()) {
+                return;
+            }
             mc::network::ir::play::ContainerClose pkt;
             pkt.containerId = static_cast<i32>(containerId);
             sendPacketToPlayer(playerId,

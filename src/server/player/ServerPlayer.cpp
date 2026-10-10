@@ -908,6 +908,10 @@ bool ServerPlayer::teleportToDimension(DimensionId targetDim, const Vector3d& po
 
 bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector3d& targetPos)
 {
+    if (m_server->dimensionManager().getDimension(targetDim) == nullptr) {
+        return false;
+    }
+    m_server->containerManager().closeContainer(playerId());
     // 通过 ServerDimensionManager 执行实际的维度切换
     // 缺陷C修复：用 playerId()（Player.hpp:146，返回 m_playerId；SimulatedPlayer 占位 0）
     // 而非 id()（EntityInstanceId，由 EntityManager 分配，值很大）。transferPlayerToDimension
@@ -1057,6 +1061,7 @@ void ServerPlayer::die(DamageSource& cause)
     // 先归还菜单内的物品，再处理死亡掉落；关闭回调同时通知客户端退出旧菜单。
     if (m_server != nullptr) {
         m_server->containerManager().closeContainer(playerId());
+        m_server->containerManager().closePlayerInventoryMenu(playerId());
     }
     // 对齐 MC Java 1.21.11 ServerPlayer.die（ServerPlayer.java:879-939）。
     // 玩家死亡需在 LivingEntity::die 通用逻辑之上，补充玩家特有处理：

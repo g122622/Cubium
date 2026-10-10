@@ -175,3 +175,5 @@ MC 1.16.5 的水下挖掘惩罚检测玩家**眼睛位置**是否在水中，不
 另：真 Java 客户端的 `use_item_on`/`use_item`/挖掘包带递增 sequence，服务端必须回 `BlockChangedAck`（在 `ServerPlayHandler` 三处 handler 内）否则客户端方块预测状态机卡死、右键静默失效。
 
 菜单的整型数据监听统一安装在 _installMenuCallbacks，铁砧费用、熔炉进度与其他属性使用同一条 container_set_data 通路；不能只给熔炉安装监听。
+
+菜单清理必须使用 getPlayerInventory()->getPlayer() 的真实所有者，禁止构造占位玩家。死亡、跨维度、断线及关服保存前关闭菜单；逐 tick 关闭失效菜单。closeAll 在实体保存与销毁前执行，避免输入、光标和合成格物品丢失；预览结果不能当作额外物品返还。

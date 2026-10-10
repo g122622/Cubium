@@ -9,6 +9,7 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/ContainerManager.hpp"
+#include "server/interaction/InventoryManager.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -46,6 +47,9 @@ public:
         const auto entityId = world->entityManager().addEntity(std::move(entity));
         EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(1, entityId, *world));
         m_playerManager->addPlayer(1, "00000000000000000000000000000001", "Player", nullptr);
+        m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
+        m_inventoryManager->setInventoryResolver([this](PlayerId) { return &player->inventory(); });
+        containerManager().setInventoryManager(m_inventoryManager.get());
         containerManager().setMenuFactory(
             [this](ContainerId id, ContainerType type, const BlockPos& position, PlayerInventory*, PlayerId) {
                 server::ContainerMenuCreateResult result;
@@ -129,4 +133,62 @@ TEST_F(ContainerRequestTest, RenameFiltersCharactersAndCountsUtf16Units)
     m_server->player->setGameMode(GameMode::Spectator);
     route(PlayPacket{RenameItem{"Blocked"}});
     EXPECT_EQ(anvil->getItemName(), emoji);
+}
+
+TEST_F(ContainerRequestTest, ClosingMenusReturnsInputToTheRealPlayerWithoutCopyingPreview)
+{
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0)).success());
+    auto* menu = m_server->containerManager().getOpenMenu(1);
+    ASSERT_NE(menu, nullptr);
+    menu->getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    menu->setCarriedItem(ItemStack(Items::DIAMOND, 2));
+    route(PlayPacket{RenameItem{"Preview"}});
+    m_server->containerManager().closeContainer(1);
+    EXPECT_EQ(m_server->containerManager().getOpenMenu(1), nullptr);
+    i32 swords = 0;
+    i32 diamonds = 0;
+    for (i32 slot = 0; slot < m_server->player->inventory().getContainerSize(); ++slot) {
+        const auto item = m_server->player->inventory().getItem(slot);
+        if (item.getItem() == Items::DIAMOND_SWORD) swords += item.getCount();
+        if (item.getItem() == Items::DIAMOND) diamonds += item.getCount();
+    }
+    EXPECT_EQ(swords, 1);
+    EXPECT_EQ(diamonds, 2);
+}
+
+TEST_F(ContainerRequestTest, PlayerInventoryCloseReturnsCraftingCellsAndKeepsMenuReusable)
+{
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->player->inventory()));
+    auto* menu = m_server->containerManager().getPlayerInventoryMenu(1);
+    ASSERT_NE(menu, nullptr);
+    menu->getSlot(1)->set(ItemStack(Items::STONE, 3));
+    route(PlayPacket{ContainerClose{0}});
+    EXPECT_EQ(m_server->containerManager().getPlayerInventoryMenu(1), menu);
+    EXPECT_TRUE(menu->getSlot(1)->getItem().isEmpty());
+    EXPECT_TRUE(menu->getSlot(0)->getItem().isEmpty());
+    i32 stones = 0;
+    for (i32 slot = 0; slot < m_server->player->inventory().getContainerSize(); ++slot) {
+        const auto item = m_server->player->inventory().getItem(slot);
+        if (item.getItem() == Items::STONE) stones += item.getCount();
+    }
+    EXPECT_EQ(stones, 3);
+}
+
+TEST_F(ContainerRequestTest, InvalidMenuClosesOnTickAndCloseAllClearsInventoryMenu)
+{
+    std::vector<ContainerId> closed;
+    m_server->containerManager().setOnContainerClose(
+        [&](PlayerId, ContainerId id, ContainerType, const BlockPos&) { closed.push_back(id); });
+    const auto opened = m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0));
+    ASSERT_TRUE(opened.success());
+    m_server->world->blockState = &VanillaBlocks::AIR->defaultState();
+    m_server->containerManager().tickMenus();
+    EXPECT_EQ(m_server->containerManager().getOpenMenu(1), nullptr);
+    ASSERT_EQ(closed.size(), 1u);
+    EXPECT_EQ(closed.front(), opened.value());
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->player->inventory()));
+    m_server->containerManager().closeAll();
+    EXPECT_EQ(m_server->containerManager().getPlayerInventoryMenu(1), nullptr);
+    ASSERT_EQ(closed.size(), 2u);
+    EXPECT_EQ(closed.back(), 0);
 }

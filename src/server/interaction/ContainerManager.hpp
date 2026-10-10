@@ -119,6 +119,9 @@ public:
      */
     void closeContainer(PlayerId playerId);
 
+    /** @brief 关闭所有菜单并归还临时物品，须在玩家实体保存和销毁之前调用。 */
+    void closeAll();
+
     /**
      * @brief 为玩家建立常驻的「玩家背包菜单」（containerId 固定为 0）
      *

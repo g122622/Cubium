@@ -307,10 +307,10 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
     for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
         ItemStack stack = inventory->removeItemNoUpdate(i);
         if (!stack.isEmpty()) {
-            if (playerIsAlive && m_playerInventory != nullptr) {
+            if (playerIsAlive) {
                 // 玩家存活且有背包，尝试放回玩家背包
                 // add() 返回剩余未添加的数量，会修改 stack 的数量
-                i32 remaining = m_playerInventory->add(stack);
+                i32 remaining = player.inventory().add(stack);
                 if (remaining > 0) {
                     // 放不下的物品掉落到世界
                     stack.setCount(remaining);
@@ -1053,9 +1053,9 @@ void AbstractContainerMenu::removed(Player& player)
     // 关闭容器时，如果玩家光标上有物品，丢弃到世界中
     if (!m_carried.isEmpty()) {
         // 尝试放回玩家背包
-        if (m_playerInventory != nullptr) {
+        if (player.isAlive()) {
             // add() 返回剩余未添加的数量，会修改 m_carried 的数量
-            i32 remaining = m_playerInventory->add(m_carried);
+            i32 remaining = player.inventory().add(m_carried);
             if (remaining > 0) {
                 // 放不下的物品掉落
                 m_carried.setCount(remaining);

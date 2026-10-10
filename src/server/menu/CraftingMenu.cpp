@@ -238,23 +238,20 @@ ItemStack CraftingMenu::quickMoveStack(i32 slotIndex, Player& player)
 
 void CraftingMenu::removed(Player& player)
 {
-    (void)player;
-
-    // 将持有物品返回玩家背包
-    if (!m_carried.isEmpty()) {
-        m_playerInventory->add(m_carried);
-        m_carried = ItemStack();
-    }
-
-    // 将合成网格中的物品返回玩家
-    for (i32 i = 0; i < m_craftingGrid.getContainerSize(); ++i) {
-        ItemStack stack = m_craftingGrid.removeItemNoUpdate(i);
-        if (!stack.isEmpty()) {
-            m_playerInventory->add(stack);
-        }
-    }
-
     AbstractContainerMenu::removed(player);
+    clearContainer(player, &m_craftingGrid);
+    m_result.clear();
+    m_result.setCraftingRecipeUsed(nullptr);
+    m_currentRecipe = nullptr;
+}
+
+void InventoryCraftingMenu::removed(Player& player)
+{
+    AbstractContainerMenu::removed(player);
+    clearContainer(player, &m_craftingGrid);
+    m_result.clear();
+    m_result.setCraftingRecipeUsed(nullptr);
+    m_currentRecipe = nullptr;
 }
 
 void CraftingMenu::updateResult()

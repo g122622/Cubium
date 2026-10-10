@@ -222,6 +222,9 @@ private:
  */
 class InventoryCraftingMenu : public AbstractContainerMenu {
 public:
+    /** @brief 关闭背包时归还合成格与光标物品，并清除预览结果。 */
+    void removed(Player& player) override;
+
     /**
      * @brief 构造函数
      * @param id 容器ID
