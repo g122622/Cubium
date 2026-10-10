@@ -12,6 +12,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -208,6 +209,7 @@ protected:
     {
         NetworkTestBase::SetUp();
         item::enchant::EnchantmentRegistry::initialize();
+        ASSERT_TRUE(backend::java::JavaMobEffectIdMap::instance().initialize().success());
         BlockTags::initialize();
         m_server = std::make_unique<_ContainerRequestServer>();
         m_handler = std::make_unique<server::net::ServerPlayHandler>(*m_server);

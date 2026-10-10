@@ -188,7 +188,12 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
                              : nlohmann::json("minecraft:" + blockentity::BannerPatterns::getFileName(type))},
                         {"color", _colorNames.at(static_cast<usize>(layer.at("Color").get<i32>()))}});
             }
-            return nbt::jsonToNbt(layers);
+            auto list = std::make_unique<nbt::tags::compound_list_tag>();
+            for (const auto& layer : layers) {
+                auto compound = nbt::jsonToNbt(layer);
+                list->value.push_back(std::move(*compound));
+            }
+            return list;
         }
         case DataComponentType::CustomData: {
             const auto& j = std::get<nlohmann::json>(payload);
