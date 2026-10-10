@@ -39,12 +39,7 @@ namespace component {
  * 每个组件类型有一个整数 typeId（网络 wire 中的 VarInt，= Java
  * DATA_COMPONENT_TYPE 注册表 id）和一个资源位置名（NBT patch 的键，如
  * "minecraft:damage"）。typeId 严格对齐 Java 1.21.11 DataComponents.register
- * 声明顺序（见 vanilla DataComponents.java）：
- *   custom_data(0) max_stack_size(1) max_damage(2) damage(3) unbreakable(4)
- *   use_effects(5) custom_name(6) minimum_attack_charge(7) item_name(8)
- *   item_model(9) lore(10) rarity(11) enchantments(12) can_place_on(13)
- *   can_break(14) ... repair_cost(18) ... attack_range(29) enchantable(30)
- *   ... potion_contents(48)
+ * 注册顺序由 assets/data/protocol-1.21.11.json 的 SlotComponentType 校验。
  *
  * 本项目仅落地部分组件；未落地的类型占位与 Java 一致，将来扩展零冲击。
  * 未落地的 typeId 在 wire 读入时会因"无长度前缀无法安全跳过"而报错，故不得
@@ -57,17 +52,17 @@ enum class DataComponentType : i32 {
     Damage = 3,          // minecraft:damage —— i32（已承受伤害）
     Unbreakable = 4,     // minecraft:unbreakable —— Unit（不可损坏）
     CustomName = 6,      // minecraft:custom_name —— Component（文本）
-    ItemName = 8,        // minecraft:item_name —— Component（默认显示名覆盖）
-    ItemModel = 9,       // minecraft:item_model —— Identifier（模型覆盖，仅序列化）
-    Lore = 10,           // minecraft:lore —— list<Component>
-    Rarity = 11,         // minecraft:rarity —— Rarity（稀有度覆盖）
-    Enchantments = 12,   // minecraft:enchantments —— ItemEnchantments
-    CanPlaceOn = 13,     // minecraft:can_place_on —— BlockPredicates
-    CanBreak = 14,       // minecraft:can_break —— BlockPredicates
-    RepairCost = 18,     // minecraft:repair_cost —— i32
-    AttackRange = 29,    // minecraft:attack_range —— record（攻击范围）
-    Enchantable = 30,    // minecraft:enchantable —— i32（附魔能力覆盖）
-    PotionContents = 48, // minecraft:potion_contents —— record{potion,color,effects,name}
+    ItemName = 9,        // minecraft:item_name —— Component（默认显示名覆盖）
+    ItemModel = 10,      // minecraft:item_model —— Identifier（模型覆盖，仅序列化）
+    Lore = 11,           // minecraft:lore —— list<Component>
+    Rarity = 12,         // minecraft:rarity —— Rarity（稀有度覆盖）
+    Enchantments = 13,   // minecraft:enchantments —— ItemEnchantments
+    CanPlaceOn = 14,     // minecraft:can_place_on —— BlockPredicates
+    CanBreak = 15,       // minecraft:can_break —— BlockPredicates
+    RepairCost = 19,     // minecraft:repair_cost —— i32
+    AttackRange = 30,    // minecraft:attack_range —— record（攻击范围）
+    Enchantable = 31,    // minecraft:enchantable —— i32（附魔能力覆盖）
+    PotionContents = 49, // minecraft:potion_contents —— record{potion,color,effects,name}
 };
 
 /**
