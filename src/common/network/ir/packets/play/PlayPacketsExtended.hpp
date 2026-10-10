@@ -1513,4 +1513,11 @@ struct MerchantOffersUpdate {
     [[nodiscard]] friend bool operator==(const MerchantOffersUpdate&, const MerchantOffersUpdate&) noexcept = default;
 };
 
+/** @brief 菜单按钮点击（C→S，id=16），容器 ID 与按钮 ID 均为 VarInt。 */
+struct ContainerButtonClick {
+    i32 containerId;
+    i32 buttonId;
+    [[nodiscard]] friend bool operator==(const ContainerButtonClick&, const ContainerButtonClick&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

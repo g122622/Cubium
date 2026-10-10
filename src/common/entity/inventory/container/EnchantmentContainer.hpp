@@ -165,6 +165,9 @@ public:
      */
     bool enchantItem(Player& player, i32 optionIndex);
 
+    /** @brief 将按钮选择交给附魔选项的费用与物品校验流程。 */
+    bool clickMenuButton(Player& player, i32 optionIndex) override { return enchantItem(player, optionIndex); }
+
     // ========== 容器接口 ==========
 
     /**

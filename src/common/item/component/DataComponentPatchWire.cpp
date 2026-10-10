@@ -33,6 +33,7 @@
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/network/backend/java/codecs/ItemEnchantmentsCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
+#include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/crypto/Crc32c.hpp"
@@ -41,6 +42,7 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
 
 #include <memory>
 #include <span>
@@ -149,6 +151,7 @@ using nbt::tags::compound_tag;
             }
             return {};
         }
+        case DataComponentType::StoredEnchantments:
         case DataComponentType::Enchantments: {
             const auto& ench = std::get<item::enchant::EnchantmentContainer>(payload);
             writeItemEnchantments(buf, ench);
@@ -163,9 +166,30 @@ using nbt::tags::compound_tag;
         case DataComponentType::CanBreak: {
             // AdventureModePredicate wire = VarInt(count) + [BlockPredicate]*。
             // 项目以 vector<string> 承载谓词，与 vanilla 结构化 BlockPredicate 不兼容；
-            // 此处降级为空 list（VarInt(0)，单字节 0x00）保证 vanilla 客户端可接受，
+            // TODO: 此处降级为空 list（VarInt(0)，单字节 0x00）保证 vanilla 客户端可接受，
             // 实际谓词由 CustomData 侧承载。完整 BlockPredicate 体系待后续落地。
             buf.writeVarInt(0);
+            return {};
+        }
+        case DataComponentType::BannerPatterns: {
+            const auto& layers = std::get<nlohmann::json>(payload);
+            buf.writeVarInt(static_cast<i32>(layers.size()));
+            for (const auto& layer : layers) {
+                if (layer.contains("DirectPattern")) {
+                    buf.writeVarInt(0);
+                    buf.writeString(layer["DirectPattern"].at("asset_id").get<std::string>());
+                    buf.writeString(layer["DirectPattern"].at("translation_key").get<std::string>());
+                } else {
+                    const auto type = blockentity::BannerPatterns::byHash(layer.at("Pattern").get<std::string>());
+                    const auto id = network::backend::java::JavaBannerPatternIds::toWireId(
+                        "minecraft:" + blockentity::BannerPatterns::getFileName(type));
+                    if (!id) return Error(ErrorCode::InvalidData, "Unknown banner pattern");
+                    buf.writeVarInt(*id + 1);
+                }
+                const auto color = layer.at("Color").get<i32>();
+                if (color < 0 || color >= 16) return Error(ErrorCode::InvalidData, "Invalid banner color");
+                buf.writeVarInt(color);
+            }
             return {};
         }
         case DataComponentType::CustomData: {
@@ -229,7 +253,7 @@ using nbt::tags::compound_tag;
             std::vector<u8> nbtBytes;
             MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
             // 把 NBT wire 字节还原为 ITextComponent：解析为纯文本后构造 StringTextComponent。
-            // 完整 Component 还原（style/extra）待后续；此处取纯文本保业务可用。
+            // TODO: 完整 Component 还原（style/extra）待后续；此处取纯文本保业务可用。
             const auto plain = text::componentNbtBytesToPlainText(nbtBytes);
             std::unique_ptr<text::ITextComponent> comp = std::make_unique<text::StringTextComponent>(plain);
             return DataComponentPayload{std::in_place_index<2>, std::move(comp)};
@@ -249,6 +273,7 @@ using nbt::tags::compound_tag;
             }
             return DataComponentPayload{std::in_place_index<3>, std::move(lines)};
         }
+        case DataComponentType::StoredEnchantments:
         case DataComponentType::Enchantments: {
             auto enchResult = readItemEnchantments(buf);
             if (enchResult.failed()) {
@@ -266,7 +291,7 @@ using nbt::tags::compound_tag;
         case DataComponentType::CanPlaceOn:
         case DataComponentType::CanBreak: {
             // 降级：读空 list（VarInt(0)）；vanilla 发来的非空谓词按 count 跳过每个 BlockPredicate
-            // 需完整体系，此处仅支持空 list，非空返回空谓词（丢失语义，保互通不崩）。
+            // TODO: 需完整体系，此处仅支持空 list，非空返回空谓词（丢失语义，保互通不崩）。
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             AdventureModePredicate pred{};
@@ -274,6 +299,42 @@ using nbt::tags::compound_tag;
             // 发送非空谓词，真 Java 对端发来的非空谓词场景待完整 BlockPredicate 体系落地。
             (void)count;
             return DataComponentPayload{std::in_place_index<6>, std::move(pred)};
+        }
+        case DataComponentType::BannerPatterns: {
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 2)
+                return Error(ErrorCode::InvalidData, "Invalid banner layer count");
+            auto layers = nlohmann::json::array();
+            for (i32 i = 0; i < count; ++i) {
+                i32 id = 0;
+                MC_TRY_ASSIGN(id, buf.readVarInt());
+                auto layer = nlohmann::json::object();
+                if (id == 0) {
+                    std::string asset, key;
+                    MC_TRY_ASSIGN(asset, buf.readString());
+                    MC_TRY_ASSIGN(key, buf.readString());
+                    layer["DirectPattern"] = {{"asset_id", asset}, {"translation_key", key}};
+                    layer["Pattern"] = "b";
+                } else {
+                    const auto& entries = network::backend::java::JavaBannerPatternIds::ENTRIES;
+                    if (id < 1 || id > static_cast<i32>(entries.size()))
+                        return Error(ErrorCode::InvalidData, "Invalid banner pattern holder");
+                    for (i32 type = 0; type < static_cast<i32>(blockentity::BannerPatternType::Count); ++type) {
+                        const auto pattern = static_cast<blockentity::BannerPatternType>(type);
+                        if ("minecraft:" + blockentity::BannerPatterns::getFileName(pattern) == entries[id - 1]) {
+                            layer["Pattern"] = blockentity::BannerPatterns::getHashName(pattern);
+                            break;
+                        }
+                    }
+                }
+                i32 color = 0;
+                MC_TRY_ASSIGN(color, buf.readVarInt());
+                if (color < 0 || color >= 16) return Error(ErrorCode::InvalidData, "Invalid banner color");
+                layer["Color"] = color;
+                layers.push_back(std::move(layer));
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(layers)};
         }
         case DataComponentType::CustomData: {
             auto tagResult = network::buffer::nbt_io::readRootCompound(buf);

@@ -23,6 +23,9 @@ public:
     /** @brief 选择有效报价并从玩家背包填充支付槽。 */
     void handleSelectTradePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 
+    /** @brief 校验容器 ID、有效性及旁观者权限后分发菜单按钮。 */
+    void handleContainerButtonClickPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
 private:
     /** @brief 获取已登录、已完成加载的真实玩家实体。 */
     [[nodiscard]] Player* _player(PlayerId playerId) const;

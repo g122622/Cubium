@@ -2014,4 +2014,20 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         });
 }
 
+/** @brief 菜单按钮采用两个 VarInt，不能使用旧版字节字段。 */
+[[nodiscard]] inline auto containerButtonClickCodec()
+{
+    return makeCodec<ir::play::ContainerButtonClick>(
+        [](B& buf, const ir::play::ContainerButtonClick& v) {
+            buf.writeVarInt(v.containerId);
+            buf.writeVarInt(v.buttonId);
+        },
+        [](B& buf) -> Result<ir::play::ContainerButtonClick> {
+            ir::play::ContainerButtonClick v{};
+            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.buttonId, buf.readVarInt());
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

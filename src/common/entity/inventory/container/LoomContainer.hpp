@@ -31,12 +31,14 @@
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
+#include <vector>
 
 namespace mc {
 
 class Player;
 class PlayerInventory;
 class IInventory;
+class IWorld;
 
 namespace entity {
 namespace inventory {
@@ -80,12 +82,12 @@ public:
 
     // ========== 图案常量 ==========
 
-    /// 基础图案数量（不含Base，不需要图案物品的图案）
+    /// 图案总数，不含底色。
     static constexpr i32 PATTERN_COUNT = static_cast<i32>(blockentity::BannerPatternType::Count) - 1;
     /// 需要图案物品的图案数量
-    static constexpr i32 PATTERNS_WITH_ITEMS = 6;
-    /// 第一个需要图案物品的图案索引-1
-    static constexpr i32 PATTERN_ITEM_INDEX = PATTERN_COUNT - PATTERNS_WITH_ITEMS - 1;
+    static constexpr i32 PATTERNS_WITH_ITEMS = 10;
+    /// 无需图案卷的可选图案数量。
+    static constexpr i32 BASIC_PATTERN_COUNT = 32;
 
     // ========== 构造函数 ==========
 
@@ -107,6 +109,9 @@ public:
      */
     LoomContainer(ContainerId id, PlayerInventory* playerInventory, const BlockPos& pos);
 
+    /** @brief 服务端构造函数，保存方块世界以验证菜单有效性。 */
+    LoomContainer(ContainerId id, PlayerInventory* playerInventory, const BlockPos& pos, IWorld* world);
+
     ~LoomContainer() override = default;
 
     // ========== AbstractContainerMenu接口 ==========
@@ -121,10 +126,15 @@ public:
      * 客户端发送选中的图案ID，服务端验证并更新输出。
      *
      * @param player 玩家
-     * @param id 选中的图案ID（1-based索引）
+     * @param id 可选图案列表中的索引（0-based）
      * @return 如果选择有效返回true
      */
-    bool clickMenuButton(Player& player, i32 id);
+    bool clickMenuButton(Player& player, i32 id) override;
+
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_RESULT; }
+
+    /** @brief 当前可选列表中的索引，无选择时为 -1。 */
+    [[nodiscard]] i32 getSelectedPatternIndex() const noexcept;
 
     /**
      * @brief Shift+点击快速移动
@@ -132,12 +142,6 @@ public:
     [[nodiscard]] ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
     // ========== 访问器 ==========
-
-    /**
-     * @brief 获取选中的图案索引
-     * @return 图案索引（0=无选择）
-     */
-    [[nodiscard]] i32 getSelectedPattern() const noexcept { return m_selectedPattern; }
 
     /**
      * @brief 获取输入库存
@@ -150,6 +154,9 @@ public:
     [[nodiscard]] IInventory& getOutputInventory() { return *m_outputInventory; }
 
 private:
+    /** @brief 依据输入和图案卷重建可选列表。 */
+    void _updateSelectablePatterns();
+
     /**
      * @brief 初始化槽位
      */
@@ -175,6 +182,8 @@ private:
     std::unique_ptr<IInventory> m_outputInventory;
     /// 选中的图案索引（0=无选择）
     i32 m_selectedPattern = 0;
+    std::vector<blockentity::BannerPatternType> m_selectablePatterns;
+    IWorld* m_world = nullptr;
     /// 织布机方块位置
     BlockPos m_pos;
 };

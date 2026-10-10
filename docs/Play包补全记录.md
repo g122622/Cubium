@@ -19,7 +19,8 @@
 | update_mob_effect（cb:130） | 修复本人未被追踪时的丢包；登录、重配置、跨维度和新追踪时补效果快照；区分新增/刷新 blend 标志；移除同步共用收口 | 已补黄金字节、无限持续时间、输入范围、队列合并与本人快照回归；Windows 构建及关联测试通过。原生客户端本地效果状态已消费，视觉渐变仍按停维护范围保留 TODO |
 | rename_item（sb:47） | 接铁砧菜单，过滤控制/格式字符与 50 个 UTF-16 单元上限；验证方块及距离；同步输出与费用 | 已补黄金字节、真实菜单路由、费用、Unicode 边界、失效菜单及旁观者回归；随物品/容器簇集中构建 |
 | select_trade（sb:50） | 有效商人菜单内选择报价并填充支付槽；补 merchant_offers（cb:50）前置下行，打开与内容更新时发送完整报价和价格/经验状态 | 已补黄金字节、ItemCost/ItemStack 字段差异、组件谓词、截断、报价边界及自动填充回归；随容器簇构建 |
-| edit_book、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
+| container_button_click（sb:16） | 双 VarInt、菜单 ID/距离/方块校验；附魔等级与资源验证、种子更新、十项属性同步；织布机零基索引、现代旗帜组件、图案标签与图案卷复用；附魔书储存附魔组件 | 已补协议、权限、等级、图层黄金字节和存档回归；随容器簇构建 |
+| edit_book、set_beacon、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
 
 统计采用 `assets/data/packet_ids.json` 与 `JavaProtocolTables.cpp` 逐项比对；完整实现要求实际收发与业务逻辑，单纯补登记或 TODO 不视为完成。

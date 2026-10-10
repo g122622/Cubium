@@ -21,8 +21,13 @@
  *
  */
 
-#include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
+#include <array>
+
 #include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
@@ -472,50 +477,12 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     registries.push_back(std::move(damageTypes));
 
     // 16. banner_pattern（43）。
-    registries.push_back(makeKnownRegistry("minecraft:banner_pattern",
-        {"minecraft:base",
-            "minecraft:border",
-            "minecraft:bricks",
-            "minecraft:circle",
-            "minecraft:creeper",
-            "minecraft:cross",
-            "minecraft:curly_border",
-            "minecraft:diagonal_left",
-            "minecraft:diagonal_right",
-            "minecraft:diagonal_up_left",
-            "minecraft:diagonal_up_right",
-            "minecraft:flow",
-            "minecraft:flower",
-            "minecraft:globe",
-            "minecraft:gradient",
-            "minecraft:gradient_up",
-            "minecraft:guster",
-            "minecraft:half_horizontal",
-            "minecraft:half_horizontal_bottom",
-            "minecraft:half_vertical",
-            "minecraft:half_vertical_right",
-            "minecraft:mojang",
-            "minecraft:piglin",
-            "minecraft:rhombus",
-            "minecraft:skull",
-            "minecraft:small_stripes",
-            "minecraft:square_bottom_left",
-            "minecraft:square_bottom_right",
-            "minecraft:square_top_left",
-            "minecraft:square_top_right",
-            "minecraft:straight_cross",
-            "minecraft:stripe_bottom",
-            "minecraft:stripe_center",
-            "minecraft:stripe_downleft",
-            "minecraft:stripe_downright",
-            "minecraft:stripe_left",
-            "minecraft:stripe_middle",
-            "minecraft:stripe_right",
-            "minecraft:stripe_top",
-            "minecraft:triangle_bottom",
-            "minecraft:triangle_top",
-            "minecraft:triangles_bottom",
-            "minecraft:triangles_top"}));
+    mc::network::ir::configuration::RegistryData bannerPatterns{};
+    bannerPatterns.registryKey = "minecraft:banner_pattern";
+    for (const auto name : mc::network::backend::java::JavaBannerPatternIds::ENTRIES) {
+        bannerPatterns.entries.push_back({std::string(name), std::nullopt});
+    }
+    registries.push_back(std::move(bannerPatterns));
 
     // 17. enchantment（43）。发【内联 NBT】而非 data=nullopt。
     // 根因：enchantment JSON 的 supported_items/primary_items 引用 ITEM 标签（静态注册表），
@@ -633,6 +600,34 @@ std::vector<mc::network::ir::configuration::TagRegistry> buildConfigurationUpdat
         {"minecraft:quick_actions", {}},          // 空 id 列表
     };
     registries.push_back(std::move(dialog));
+
+    mc::network::ir::configuration::TagRegistry bannerTags{};
+    bannerTags.registryKey = "minecraft:banner_pattern";
+    mc::network::ir::configuration::TagListEntry basic{"minecraft:no_item_required", {}};
+    for (const auto type : mc::blockentity::BannerPatterns::getLoomPatterns()) {
+        const auto id = mc::network::backend::java::JavaBannerPatternIds::toWireId(
+            "minecraft:" + mc::blockentity::BannerPatterns::getFileName(type));
+        MC_ASSERT_RELEASE(id.has_value());
+        basic.elementIds.push_back(*id);
+    }
+    bannerTags.tags.push_back(std::move(basic));
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 10> patternTags{
+        {{"minecraft:pattern_item/bordure_indented", "minecraft:curly_border"},
+            {"minecraft:pattern_item/creeper", "minecraft:creeper"},
+            {"minecraft:pattern_item/field_masoned", "minecraft:bricks"},
+            {"minecraft:pattern_item/flow", "minecraft:flow"},
+            {"minecraft:pattern_item/flower", "minecraft:flower"},
+            {"minecraft:pattern_item/globe", "minecraft:globe"},
+            {"minecraft:pattern_item/guster", "minecraft:guster"},
+            {"minecraft:pattern_item/mojang", "minecraft:mojang"},
+            {"minecraft:pattern_item/piglin", "minecraft:piglin"},
+            {"minecraft:pattern_item/skull", "minecraft:skull"}}};
+    for (const auto& [tag, pattern] : patternTags) {
+        const auto id = mc::network::backend::java::JavaBannerPatternIds::toWireId(pattern);
+        MC_ASSERT_RELEASE(id.has_value());
+        bannerTags.tags.push_back({std::string(tag), {*id}});
+    }
+    registries.push_back(std::move(bannerTags));
 
     return registries;
 }

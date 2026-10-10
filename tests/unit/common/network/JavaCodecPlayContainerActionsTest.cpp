@@ -1,8 +1,13 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/EnchantmentContainer.hpp"
+#include "common/entity/inventory/container/LoomContainer.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
+#include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
@@ -12,6 +17,7 @@
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -99,21 +105,38 @@ private:
     ItemStack m_lastResultStack;
 };
 
+class _ButtonRequestMenu : public AbstractContainerMenu {
+public:
+    _ButtonRequestMenu(ContainerId id, PlayerInventory* inventory)
+        : AbstractContainerMenu(id, inventory)
+    {}
+    bool stillValid(const Player&) const override { return m_valid; }
+    bool clickMenuButton(Player&, i32 button) override
+    {
+        ++m_calls;
+        m_button = button;
+        return true;
+    }
+    i32 m_calls = 0;
+    i32 m_button = -1;
+    bool m_valid = true;
+};
+
 class _ContainerRequestWorld : public server::ServerWorld {
 public:
     explicit _ContainerRequestWorld(const BlockState* state)
         : ServerWorld(server::ServerWorldConfig{2, 2, 0, 1, "container-request-test"})
-        , blockState(state)
+        , m_blockState(state)
     {}
 
-    const BlockState* getBlockState(i32, i32, i32) const override { return blockState; }
+    const BlockState* getBlockState(i32, i32, i32) const override { return m_blockState; }
     bool setBlockState(i32, i32, i32, const BlockState* state, i32) override
     {
-        blockState = state;
+        m_blockState = state;
         return true;
     }
     void playEvent(i32, const BlockPos&, i32) override {}
-    const BlockState* blockState;
+    const BlockState* m_blockState;
 };
 
 class _ContainerRequestServer : public server::IntegratedServer {
@@ -121,33 +144,50 @@ public:
     _ContainerRequestServer()
     {
         m_playerManager = std::make_unique<server::core::PlayerManager>(10);
-        merchant = std::make_unique<_ContainerTestMerchant>();
+        m_merchant = std::make_unique<_ContainerTestMerchant>();
         m_containerManager = std::make_unique<server::interaction::ContainerManager>(*m_playerManager);
-        world = std::make_unique<_ContainerRequestWorld>(&VanillaBlocks::ANVIL->defaultState());
-        auto entity = std::make_unique<Player>(101, "Player", *world->entityRegistry());
-        player = entity.get();
-        player->setWorld(world.get());
-        const auto entityId = world->entityManager().addEntity(std::move(entity));
-        EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(1, entityId, *world));
+        m_world = std::make_unique<_ContainerRequestWorld>(&VanillaBlocks::ANVIL->defaultState());
+        auto entity = std::make_unique<Player>(101, "Player", *m_world->entityRegistry());
+        m_player = entity.get();
+        m_player->setWorld(m_world.get());
+        const auto entityId = m_world->entityManager().addEntity(std::move(entity));
+        EXPECT_TRUE(m_playerEntityManager.registerExistingPlayerEntity(1, entityId, *m_world));
         m_playerManager->addPlayer(1, "00000000000000000000000000000001", "Player", nullptr);
         m_inventoryManager = std::make_unique<server::interaction::InventoryManager>(*m_playerManager);
-        m_inventoryManager->setInventoryResolver([this](PlayerId) { return &player->inventory(); });
+        m_inventoryManager->setInventoryResolver([this](PlayerId) { return &m_player->inventory(); });
         containerManager().setInventoryManager(m_inventoryManager.get());
         containerManager().setMenuFactory(
             [this](ContainerId id, ContainerType type, const BlockPos& position, PlayerInventory*, PlayerId) {
                 server::ContainerMenuCreateResult result;
                 if (type == ContainerType::Anvil) {
-                    result.menu = std::make_unique<AnvilContainer>(id, &player->inventory(), position, world.get());
+                    result.menu = std::make_unique<AnvilContainer>(id, &m_player->inventory(), position, m_world.get());
+                } else if (type == ContainerType::Enchantment) {
+                    m_world->m_blockState = &VanillaBlocks::ENCHANTING_TABLE->defaultState();
+                    result.menu =
+                        std::make_unique<EnchantmentContainer>(id, &m_player->inventory(), position, m_world.get());
+                } else if (type == ContainerType::Loom) {
+                    m_world->m_blockState = &VanillaBlocks::LOOM->defaultState();
+                    result.menu = std::make_unique<entity::inventory::container::LoomContainer>(
+                        id, &m_player->inventory(), position, m_world.get());
+                } else if (type == ContainerType::Generic9x1) {
+                    result.menu = std::make_unique<_ButtonRequestMenu>(id, &m_player->inventory());
+                } else if (type == ContainerType::Merchant) {
+                    m_merchant->startTrading(m_player);
+                    auto menu = std::make_unique<MerchantContainerMenu>(id, &m_player->inventory(), *m_merchant);
+                    menu->setMerchantLevel(2);
+                    menu->setShowProgressBar(m_merchant->showProgressBar());
+                    menu->setCanRestock(m_merchant->canRestock());
+                    result.menu = std::move(menu);
                 }
                 return result;
             });
     }
 
-    server::ServerWorld* getPlayerWorld(PlayerId) override { return world.get(); }
+    server::ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
 
-    std::unique_ptr<_ContainerTestMerchant> merchant;
-    Player* player = nullptr;
-    std::unique_ptr<_ContainerRequestWorld> world;
+    std::unique_ptr<_ContainerTestMerchant> m_merchant;
+    Player* m_player = nullptr;
+    std::unique_ptr<_ContainerRequestWorld> m_world;
 };
 
 class ContainerRequestTest : public NetworkTestBase {
@@ -158,6 +198,16 @@ protected:
         BlockTags::initialize();
         m_server = std::make_unique<_ContainerRequestServer>();
         m_handler = std::make_unique<server::net::ServerPlayHandler>(*m_server);
+    }
+
+    void TearDown() override
+    {
+        m_handler.reset();
+        m_server->containerManager().setOnContainerClose({});
+        m_server->containerManager().setOnContainerData({});
+        m_server->containerManager().setOnContainerUpdate({});
+        m_server->containerManager().closeAll();
+        m_server.reset();
     }
 
     void route(const PlayPacket& packet) { m_handler->route(1, IrPacket{protocol::ConnectionProtocol::Play, packet}); }
@@ -193,7 +243,7 @@ TEST_F(ContainerRequestTest, RenameUpdatesAnvilOutputAndSendsCostData)
     EXPECT_EQ(anvil->getOutputSlot().getCustomName(), "Renamed");
     EXPECT_EQ(anvil->getRepairCost(), 1);
     EXPECT_NE(std::find(properties.begin(), properties.end(), std::pair<i32, i32>{0, 1}), properties.end());
-    m_server->world->blockState = &VanillaBlocks::AIR->defaultState();
+    m_server->m_world->m_blockState = &VanillaBlocks::AIR->defaultState();
     route(PlayPacket{RenameItem{"Stale"}});
     EXPECT_EQ(anvil->getItemName(), "Renamed");
 }
@@ -214,7 +264,7 @@ TEST_F(ContainerRequestTest, RenameFiltersCharactersAndCountsUtf16Units)
     EXPECT_EQ(anvil->getItemName(), emoji);
     route(PlayPacket{RenameItem{emoji + "\xf0\x9f\x98\x80"}});
     EXPECT_EQ(anvil->getItemName(), emoji);
-    m_server->player->setGameMode(GameMode::Spectator);
+    m_server->m_player->setGameMode(GameMode::Spectator);
     route(PlayPacket{RenameItem{"Blocked"}});
     EXPECT_EQ(anvil->getItemName(), emoji);
 }
@@ -231,8 +281,8 @@ TEST_F(ContainerRequestTest, ClosingMenusReturnsInputToTheRealPlayerWithoutCopyi
     EXPECT_EQ(m_server->containerManager().getOpenMenu(1), nullptr);
     i32 swords = 0;
     i32 diamonds = 0;
-    for (i32 slot = 0; slot < m_server->player->inventory().getContainerSize(); ++slot) {
-        const auto item = m_server->player->inventory().getItem(slot);
+    for (i32 slot = 0; slot < m_server->m_player->inventory().getContainerSize(); ++slot) {
+        const auto item = m_server->m_player->inventory().getItem(slot);
         if (item.getItem() == Items::DIAMOND_SWORD) swords += item.getCount();
         if (item.getItem() == Items::DIAMOND) diamonds += item.getCount();
     }
@@ -242,7 +292,7 @@ TEST_F(ContainerRequestTest, ClosingMenusReturnsInputToTheRealPlayerWithoutCopyi
 
 TEST_F(ContainerRequestTest, PlayerInventoryCloseReturnsCraftingCellsAndKeepsMenuReusable)
 {
-    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->player->inventory()));
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->m_player->inventory()));
     auto* menu = m_server->containerManager().getPlayerInventoryMenu(1);
     ASSERT_NE(menu, nullptr);
     menu->getSlot(1)->set(ItemStack(Items::STONE, 3));
@@ -251,8 +301,8 @@ TEST_F(ContainerRequestTest, PlayerInventoryCloseReturnsCraftingCellsAndKeepsMen
     EXPECT_TRUE(menu->getSlot(1)->getItem().isEmpty());
     EXPECT_TRUE(menu->getSlot(0)->getItem().isEmpty());
     i32 stones = 0;
-    for (i32 slot = 0; slot < m_server->player->inventory().getContainerSize(); ++slot) {
-        const auto item = m_server->player->inventory().getItem(slot);
+    for (i32 slot = 0; slot < m_server->m_player->inventory().getContainerSize(); ++slot) {
+        const auto item = m_server->m_player->inventory().getItem(slot);
         if (item.getItem() == Items::STONE) stones += item.getCount();
     }
     EXPECT_EQ(stones, 3);
@@ -265,12 +315,12 @@ TEST_F(ContainerRequestTest, InvalidMenuClosesOnTickAndCloseAllClearsInventoryMe
         [&](PlayerId, ContainerId id, ContainerType, const BlockPos&) { closed.push_back(id); });
     const auto opened = m_server->containerManager().openContainer(1, ContainerType::Anvil, BlockPos(0, 0, 0));
     ASSERT_TRUE(opened.success());
-    m_server->world->blockState = &VanillaBlocks::AIR->defaultState();
+    m_server->m_world->m_blockState = &VanillaBlocks::AIR->defaultState();
     m_server->containerManager().tickMenus();
     EXPECT_EQ(m_server->containerManager().getOpenMenu(1), nullptr);
     ASSERT_EQ(closed.size(), 1u);
     EXPECT_EQ(closed.front(), opened.value());
-    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->player->inventory()));
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->m_player->inventory()));
     m_server->containerManager().closeAll();
     EXPECT_EQ(m_server->containerManager().getPlayerInventoryMenu(1), nullptr);
     ASSERT_EQ(closed.size(), 2u);
@@ -330,9 +380,9 @@ TEST_F(NetworkTestBase, PlayMerchantOffersCostOrderAndComponentPredicate)
 
 TEST_F(ContainerRequestTest, SelectTradeFillsPaymentAndBuilderPreservesOfferState)
 {
-    m_server->merchant->addTestOffer(std::make_unique<world::village::trade::MerchantOffer>(
+    m_server->m_merchant->addTestOffer(std::make_unique<world::village::trade::MerchantOffer>(
         ItemStack(Items::EMERALD, 2), ItemStack(Items::BREAD, 1), 12, 5, 0.05f));
-    m_server->player->inventory().setItem(0, ItemStack(Items::EMERALD, 5));
+    m_server->m_player->inventory().setItem(0, ItemStack(Items::EMERALD, 5));
     ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Merchant, BlockPos(0, 0, 0)).success());
     auto* menu = dynamic_cast<MerchantContainerMenu*>(m_server->containerManager().getOpenMenu(1));
     ASSERT_NE(menu, nullptr);
@@ -340,7 +390,7 @@ TEST_F(ContainerRequestTest, SelectTradeFillsPaymentAndBuilderPreservesOfferStat
     EXPECT_EQ(menu->getSlot(0)->getItem().getItem(), Items::EMERALD);
     EXPECT_EQ(menu->getSlot(0)->getItem().getCount(), 5);
     EXPECT_EQ(menu->getSlot(2)->getItem().getItem(), Items::BREAD);
-    EXPECT_EQ(m_server->merchant->getNotifyTradeCount(), 0);
+    EXPECT_EQ(m_server->m_merchant->getNotifyTradeCount(), 0);
     auto built = server::net::buildMerchantOffersIr(*menu);
     ASSERT_TRUE(built.success());
     const auto& packet = std::get<MerchantOffersUpdate>(std::get<PlayPacket>(built.value().packet));
@@ -368,7 +418,7 @@ TEST_F(ContainerRequestTest, InputSlotMutationsRecomputeOutputAndBindMenuIndices
     anvil->getSlot(0)->set(ItemStack::EMPTY);
     EXPECT_TRUE(anvil->getOutputSlot().isEmpty());
     EXPECT_EQ(anvil->getRepairCost(), 0);
-    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->player->inventory()));
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &m_server->m_player->inventory()));
     auto* crafting = dynamic_cast<InventoryCraftingMenu*>(m_server->containerManager().getPlayerInventoryMenu(1));
     ASSERT_NE(crafting, nullptr);
     crafting->getResultInventory().setResultItem(ItemStack(Items::DIAMOND, 1));
@@ -383,17 +433,17 @@ TEST_F(ContainerRequestTest, AnvilResultRequiresExperienceAndConsumesInputOnce)
     ASSERT_NE(anvil, nullptr);
     anvil->getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
     route(PlayPacket{RenameItem{"Paid"}});
-    anvil->clicked(2, 0, ClickType::Pick, *m_server->player);
+    anvil->clicked(2, 0, ClickType::Pick, *m_server->m_player);
     EXPECT_TRUE(anvil->getCarriedItem().isEmpty());
     EXPECT_FALSE(anvil->getInputSlot1().isEmpty());
-    m_server->player->addExperienceLevels(3);
-    anvil->clicked(2, 0, ClickType::Pick, *m_server->player);
+    m_server->m_player->addExperienceLevels(3);
+    anvil->clicked(2, 0, ClickType::Pick, *m_server->m_player);
     EXPECT_EQ(anvil->getCarriedItem().getCustomName(), "Paid");
-    EXPECT_EQ(m_server->player->experienceLevel(), 2);
+    EXPECT_EQ(m_server->m_player->experienceLevel(), 2);
     EXPECT_TRUE(anvil->getInputSlot1().isEmpty());
     EXPECT_TRUE(anvil->getOutputSlot().isEmpty());
-    anvil->clicked(2, 0, ClickType::Pick, *m_server->player);
-    EXPECT_EQ(m_server->player->experienceLevel(), 2);
+    anvil->clicked(2, 0, ClickType::Pick, *m_server->m_player);
+    EXPECT_EQ(m_server->m_player->experienceLevel(), 2);
 }
 
 TEST_F(ContainerRequestTest, AnvilRenameCostSaturatesAndBulkResultIsAtomic)
@@ -406,8 +456,119 @@ TEST_F(ContainerRequestTest, AnvilRenameCostSaturatesAndBulkResultIsAtomic)
     anvil->getSlot(0)->set(item);
     route(PlayPacket{RenameItem{"Bulk"}});
     EXPECT_EQ(anvil->getRepairCost(), 39);
-    m_server->player->setGameMode(GameMode::Creative);
-    anvil->clicked(2, 1, ClickType::Pick, *m_server->player);
+    m_server->m_player->setGameMode(GameMode::Creative);
+    anvil->clicked(2, 1, ClickType::Pick, *m_server->m_player);
     EXPECT_EQ(anvil->getCarriedItem().getCount(), 64);
     EXPECT_TRUE(anvil->getInputSlot1().isEmpty());
+}
+
+TEST_F(NetworkTestBase, PlayContainerButtonClickUsesTwoVarInts)
+{
+    const ContainerButtonClick input{300, 301};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{16, 0xac, 2, 0xad, 2}));
+    auto decoded = tables()->playSb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<ContainerButtonClick>(decoded.value()), input);
+}
+
+TEST_F(ContainerRequestTest, ButtonsValidateMenuIdentitySpectatorAndValidity)
+{
+    const auto opened = m_server->containerManager().openContainer(1, ContainerType::Generic9x1, BlockPos(0, 0, 0));
+    ASSERT_TRUE(opened.success());
+    auto* menu = dynamic_cast<_ButtonRequestMenu*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(menu, nullptr);
+    const i32 id = static_cast<i32>(opened.value());
+    route(PlayPacket{ContainerButtonClick{id, 301}});
+    EXPECT_EQ(menu->m_calls, 1);
+    EXPECT_EQ(menu->m_button, 301);
+    route(PlayPacket{ContainerButtonClick{id + 1, 1}});
+    EXPECT_EQ(menu->m_calls, 1);
+    m_server->m_player->setGameMode(GameMode::Spectator);
+    route(PlayPacket{ContainerButtonClick{id, 1}});
+    EXPECT_EQ(menu->m_calls, 1);
+    m_server->m_player->setGameMode(GameMode::Survival);
+    menu->m_valid = false;
+    route(PlayPacket{ContainerButtonClick{id, 1}});
+    EXPECT_EQ(menu->m_calls, 1);
+}
+
+TEST_F(ContainerRequestTest, EnchantmentMenuPublishesAllTenDataProperties)
+{
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Enchantment, BlockPos(0, 0, 0)).success());
+    auto* menu = dynamic_cast<EnchantmentContainer*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(menu, nullptr);
+    EXPECT_EQ(menu->getTrackedIntCount(), 10);
+    EXPECT_EQ(menu->getTrackedInt(3)->get(), m_server->m_player->xpSeed());
+    menu->getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    EXPECT_GT(menu->getEnchantmentLevel(0), 0);
+    EXPECT_FALSE(menu->clickMenuButton(*m_server->m_player, -1));
+    EXPECT_FALSE(menu->clickMenuButton(*m_server->m_player, 3));
+}
+
+TEST_F(ContainerRequestTest, LoomButtonsUseZeroBasedListAndPatternItemsAreReusable)
+{
+    using Loom = entity::inventory::container::LoomContainer;
+    const auto opened = m_server->containerManager().openContainer(1, ContainerType::Loom, BlockPos(0, 0, 0));
+    ASSERT_TRUE(opened.success());
+    auto* menu = dynamic_cast<Loom*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(menu, nullptr);
+    menu->getSlot(Loom::SLOT_BANNER)->set(ItemStack(Items::WHITE_BANNER, 1));
+    menu->getSlot(Loom::SLOT_DYE)->set(ItemStack(Items::RED_DYE, 1));
+    route(PlayPacket{ContainerButtonClick{static_cast<i32>(opened.value()), 0}});
+    EXPECT_EQ(menu->getSelectedPatternIndex(), 0);
+    EXPECT_FALSE(menu->getSlot(Loom::SLOT_RESULT)->getItem().isEmpty());
+    EXPECT_FALSE(menu->clickMenuButton(*m_server->m_player, 32));
+    menu->getSlot(Loom::SLOT_PATTERN)->set(ItemStack(Items::BORDURE_INDENTED_BANNER_PATTERN, 1));
+    EXPECT_EQ(menu->getSelectedPatternIndex(), 0);
+    EXPECT_FALSE(menu->clickMenuButton(*m_server->m_player, 1));
+    menu->clicked(Loom::SLOT_RESULT, 0, ClickType::Pick, *m_server->m_player);
+    EXPECT_EQ(menu->getSlot(Loom::SLOT_PATTERN)->getItem().getCount(), 1);
+}
+
+TEST_F(NetworkTestBase, LoomPatternTagsUseTheSameRegistryOrderAsButtons)
+{
+    const auto tags = server::net::buildConfigurationUpdateTags();
+    const auto banner = std::find_if(
+        tags.begin(), tags.end(), [](const auto& entry) { return entry.registryKey == "minecraft:banner_pattern"; });
+    ASSERT_NE(banner, tags.end());
+    ASSERT_EQ(banner->tags.size(), 11u);
+    const auto& basic = banner->tags.front();
+    ASSERT_EQ(basic.elementIds.size(), 32u);
+    EXPECT_EQ(basic.elementIds.front(), backend::java::JavaBannerPatternIds::toWireId("minecraft:square_bottom_left"));
+    EXPECT_EQ(basic.elementIds.back(), backend::java::JavaBannerPatternIds::toWireId("minecraft:gradient_up"));
+    EXPECT_TRUE(blockentity::BannerPatterns::hasPatternItem(blockentity::BannerPatternType::CurlyBorder));
+    EXPECT_TRUE(blockentity::BannerPatterns::hasPatternItem(blockentity::BannerPatternType::Bricks));
+}
+
+TEST_F(NetworkTestBase, BannerLayersUseHolderOffsetAndDyeVarInt)
+{
+    ItemStack banner(Items::WHITE_BANNER, 1);
+    banner.getOrCreateTag()["BlockEntityTag"]["Patterns"] = nlohmann::json::array({{{"Pattern", "bl"}, {"Color", 14}}});
+    auto view = toItemStackView(banner);
+    EXPECT_EQ(view.componentsPatch, (std::vector<u8>{1, 0, 70, 1, 27, 14}));
+    auto restored = fromItemStackView(view);
+    ASSERT_TRUE(restored.success());
+    EXPECT_EQ(restored.value().getTag()->at("BlockEntityTag").at("Patterns"),
+        banner.getTag()->at("BlockEntityTag").at("Patterns"));
+    nbt::tags::compound_tag saved;
+    banner.toNbt(saved);
+    const auto loaded = ItemStack::fromNbt(saved);
+    EXPECT_EQ(toItemStackView(loaded).componentsPatch, view.componentsPatch);
+}
+
+TEST_F(ContainerRequestTest, EnchantmentButtonRejectsInsufficientLevelAndCreativeDoesNotConsumeLapis)
+{
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Enchantment, BlockPos(0, 0, 0)).success());
+    auto* menu = dynamic_cast<EnchantmentContainer*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(menu, nullptr);
+    menu->getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    menu->getSlot(1)->set(ItemStack(Items::LAPIS_LAZULI, 3));
+    EXPECT_FALSE(menu->clickMenuButton(*m_server->m_player, 0));
+    EXPECT_EQ(menu->getSlot(1)->getItem().getCount(), 3);
+    m_server->m_player->setGameMode(GameMode::Creative);
+    ASSERT_TRUE(menu->clickMenuButton(*m_server->m_player, 0));
+    EXPECT_EQ(menu->getSlot(1)->getItem().getCount(), 3);
+    EXPECT_TRUE(menu->getSlot(0)->getItem().hasEnchantments());
 }

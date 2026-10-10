@@ -24,8 +24,10 @@
 #include "EnchantmentContainer.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/network/backend/java/mappings/JavaEnchantmentIdMap.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
@@ -169,6 +171,32 @@ EnchantmentContainer::EnchantmentContainer(
 {
     _initSlots(playerInventory);
     m_enchantPower = _calculateEnchantPower();
+    if (auto* player = playerInventory->getPlayer()) {
+        _updateEnchantmentSeed(*player);
+    }
+    for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
+        trackInt(
+            [this, i] { return m_enchantmentLevels[i]; }, [this, i](i32 value) { m_enchantmentLevels[i] = value; });
+    }
+    trackInt([this] { return static_cast<i32>(m_enchantmentSeed); }, [this](i32 value) { m_enchantmentSeed = value; });
+    for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
+        trackInt(
+            [this, i] {
+                if (m_enchantmentClues[i].empty()) return -1;
+                return static_cast<i32>(
+                    network::backend::java::JavaEnchantmentIdMap::instance().toJavaRegistryId(m_enchantmentClues[i]));
+            },
+            [this, i](i32 value) {
+                m_enchantmentClues[i] = value < 0
+                    ? std::string{}
+                    : network::backend::java::JavaEnchantmentIdMap::instance().fromJavaRegistryId(
+                          static_cast<u32>(value));
+            });
+    }
+    for (i32 i = 0; i < ENCHANTMENT_OPTIONS; ++i) {
+        trackInt([this, i] { return m_enchantmentWorldClues[i]; },
+            [this, i](i32 value) { m_enchantmentWorldClues[i] = value; });
+    }
 }
 
 void EnchantmentContainer::_initSlots(PlayerInventory* playerInventory)
@@ -240,7 +268,7 @@ bool EnchantmentContainer::isEnchantmentOptionAvailable(i32 index) const
     // 检查青金石是否足够
     ItemStack lapis = getLapisSlot();
     i32 lapisNeeded = index + 1; // 槽位0需要1个，槽位1需要2个，槽位2需要3个
-    if (lapis.getCount() < lapisNeeded) {
+    if (!isPlayerCreative() && (lapis.getItem() != Items::LAPIS_LAZULI || lapis.getCount() < lapisNeeded)) {
         return false;
     }
 
@@ -270,15 +298,7 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
     // 消耗的经验等级为选项索引+1，消耗青金石数量也为选项索引+1
     i32 cost = optionIndex + 1;
 
-    // 消耗青金石
-    ItemStack lapis = m_enchantmentInventory->getItem(SLOT_LAPIS);
-    lapis.shrink(cost);
-    m_enchantmentInventory->setItem(SLOT_LAPIS, lapis);
-
-    // 创造模式不消耗经验
-    if (!player.isCreative()) {
-        player.addExperienceLevels(-cost);
-    }
+    if (!player.isCreative() && (player.experienceLevel() < level || player.experienceLevel() < cost)) return false;
 
     // 获取物品
     ItemStack item = m_enchantmentInventory->getItem(SLOT_ITEM);
@@ -292,12 +312,14 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
     // 构建附魔列表
     auto enchantments = item::enchant::EnchantmentHelper::buildEnchantmentList(enchantRandom, item, level, false);
 
-    if (enchantments.empty()) {
-        // 如果没有可用附魔，仍然更新种子
-        _updateEnchantmentSeed(player);
-        _updateEnchantmentOptions();
-        return true;
+    if (enchantments.empty()) return false;
+    if (!player.isCreative()) {
+        ItemStack lapis = m_enchantmentInventory->getItem(SLOT_LAPIS);
+        lapis.shrink(cost);
+        m_enchantmentInventory->setItem(SLOT_LAPIS, lapis);
+        player.addExperienceLevels(-cost);
     }
+    player.experienceManager().resetXpSeed(player.getRandom());
 
     // 检查是否是书 -> 附魔书转换
     bool isBook = item.getItem() != nullptr && item.getItem() == Items::BOOK;
@@ -356,8 +378,10 @@ bool EnchantmentContainer::enchantItem(Player& player, i32 optionIndex)
 
 bool EnchantmentContainer::stillValid(const Player& player) const
 {
-    // 检查玩家是否在附魔台附近（64格范围内）
-    return isWithinDistance(player, m_position);
+    if (!isWithinDistance(player, m_position)) return false;
+    if (m_world == nullptr) return true;
+    const auto* state = m_world->getBlockState(m_position);
+    return player.getWorld() == m_world && state != nullptr && state->getBlock() == VanillaBlocks::ENCHANTING_TABLE;
 }
 
 void EnchantmentContainer::slotsChanged(IInventory* inventory)

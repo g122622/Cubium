@@ -72,4 +72,19 @@ void ContainerActionHandler::handleSelectTradePacket(PlayerId playerId, const mc
     menu->detectAndSendChanges();
 }
 
+void ContainerActionHandler::handleContainerButtonClickPacket(
+    PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = _player(playerId);
+    if (player == nullptr || player->isSpectator()) {
+        return;
+    }
+    auto* menu = _menu(playerId, *player);
+    const auto& request =
+        std::get<mc::network::ir::play::ContainerButtonClick>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (menu != nullptr && menu->getId() == request.containerId && menu->clickMenuButton(*player, request.buttonId)) {
+        menu->detectAndSendChanges();
+    }
+}
+
 } // namespace mc::server::net

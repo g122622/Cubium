@@ -93,7 +93,7 @@ bool MerchantContainerMenu::canMergeSlot(const ItemStack& stack, const Slot& slo
 {
     (void)stack;
     // 结果槽不允许Shift+点击合并
-    return slot.getIndex() != SLOT_RESULT;
+    return slot.getSlotNumber() != SLOT_RESULT;
 }
 
 void MerchantContainerMenu::setSelectionHint(i32 hint)

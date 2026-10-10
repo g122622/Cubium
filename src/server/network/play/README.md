@@ -38,7 +38,7 @@ src/server/network/play/
 ClientSession::handleInbound（session/）
         │ 握手已消费则返回；否则 phase / playerId 守卫
         ▼
-ServerPlayHandler::route          ← 唯一的 std::switch 分发表
+ServerPlayHandler::route          ← 唯一的 switch 分发表
         ├─ 23 个分支 ──▶ 对应包族处理器（m_movement / m_blockAction / …）
         └─  4 个分支 ──▶ MinecraftServer 纯虚（handleHotbarSelect / handleContainerClick
                           / handleCloseContainer / SetCreativeModeSlot）
@@ -53,7 +53,7 @@ ServerPlayHandler::route          ← 唯一的 std::switch 分发表
 
 | 依赖 | 用途 |
 |---|---|
-| `common/network/ir/packets/play/*` | C→S 包定义（`holds_alternative` 分发表的变体） |
+| `common/network/ir/packets/play/*` | C→S 包定义（类型驱动 switch 分发） |
 | `common/entity/*`、`common/item/*`、`common/world/*` | 各处理体的实体/物品/世界操作 |
 | `common/advancement/*` | `ChatHandler` 之外的成就触发（方块使用 / 实体交互） |
 | `server/application/MinecraftServer.hpp` | 各处理体的业务入口与 4 个纯虚 |
@@ -73,7 +73,7 @@ ServerPlayHandler::route          ← 唯一的 std::switch 分发表
 ### 1. 新增 C→S 包必须同时改两处
 
 `ServerPlayHandler::route()` 是**唯一**的分发表，刻意不下沉到各处理器（否则每个包要依次问遍
-6 个处理器，"某变体无人认领" 也无法集中发现——现有 else 分支的 `unhandled C->S play variant`
+各个处理器，"某变体无人认领" 也无法集中发现——现有 else 分支的 `unhandled C->S play variant`
 告警会被静默化）。漏加分支不会编译报错，只在运行期打一条日志并丢弃。新增 C→S 包时务必同步：
 ①在 `route()` 加分支；②在对应处理器加实现体。
 

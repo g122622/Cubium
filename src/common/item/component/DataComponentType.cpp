@@ -56,6 +56,8 @@ constexpr std::array _entries{
     _Entry{DataComponentType::RepairCost, "minecraft:repair_cost"},
     _Entry{DataComponentType::AttackRange, "minecraft:attack_range"},
     _Entry{DataComponentType::Enchantable, "minecraft:enchantable"},
+    _Entry{DataComponentType::StoredEnchantments, "minecraft:stored_enchantments"},
+    _Entry{DataComponentType::BannerPatterns, "minecraft:banner_patterns"},
     _Entry{DataComponentType::PotionContents, "minecraft:potion_contents"},
 };
 

@@ -1011,7 +1011,25 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         patch.add(DataComponentType::CanBreak, DataComponentPayload{std::in_place_index<6>, getCanDestroy()});
     }
     if (hasTag()) {
-        patch.add(DataComponentType::CustomData, DataComponentPayload{std::in_place_index<7>, _dataRef()});
+        auto custom = _dataRef();
+        if (custom.contains("BlockEntityTag") && custom["BlockEntityTag"].contains("Patterns")) {
+            patch.add(DataComponentType::BannerPatterns,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::Json>, custom["BlockEntityTag"]["Patterns"]});
+            custom["BlockEntityTag"].erase("Patterns");
+            if (custom["BlockEntityTag"].empty()) custom.erase("BlockEntityTag");
+        }
+        if (custom.contains("StoredEnchantments")) {
+            item::enchant::EnchantmentContainer stored;
+            for (const auto& entry : custom["StoredEnchantments"])
+                stored.set(entry.at("id").get<std::string>(), entry.at("lvl").get<i32>());
+            patch.add(DataComponentType::StoredEnchantments,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Enchantments>, std::move(stored)});
+            custom.erase("StoredEnchantments");
+        }
+        if (!custom.empty())
+            patch.add(DataComponentType::CustomData,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(custom)});
     }
     // 数据组件覆盖（仅非空时写出）
     if (m_extras) {
@@ -1053,6 +1071,12 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
 void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& patch)
 {
     using namespace item::component;
+    // custom_data 可位于任意注册序位置，先应用以免覆盖随后还原的结构化组件。
+    for (const auto& entry : patch.added()) {
+        if (entry.typeId == componentTypeId(DataComponentType::CustomData)) {
+            _ensureExtras().customData = std::get<nlohmann::json>(entry.value);
+        }
+    }
     for (const auto& entry : patch.added()) {
         auto type = componentTypeById(entry.typeId);
         if (!type.has_value()) {
@@ -1115,16 +1139,18 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setCanDestroy(std::get<AdventureModePredicate>(entry.value));
                 break;
             }
-            case DataComponentType::CustomData: {
-                const auto& data = std::get<nlohmann::json>(entry.value);
-                // 只有能令 hasTag() 为真的载荷才值得分配 extras
-                if (data.is_object() && !data.empty()) {
-                    _ensureExtras().customData = data;
-                } else if (m_extras) {
-                    m_extras->customData = data;
-                }
+            case DataComponentType::BannerPatterns:
+                getOrCreateTag()["BlockEntityTag"]["Patterns"] = std::get<nlohmann::json>(entry.value);
+                break;
+            case DataComponentType::StoredEnchantments: {
+                auto stored = nlohmann::json::array();
+                for (const auto& value : std::get<item::enchant::EnchantmentContainer>(entry.value).getAll())
+                    stored.push_back({{"id", value.enchantmentId}, {"lvl", value.level}});
+                getOrCreateTag()["StoredEnchantments"] = std::move(stored);
                 break;
             }
+            case DataComponentType::CustomData:
+                break;
             case DataComponentType::MaxStackSize: {
                 if (const auto* p = std::get_if<i32>(&entry.value)) {
                     _ensureExtras().maxStackSizeOverride = *p;
@@ -1195,6 +1221,13 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             case DataComponentType::CanBreak:
                 setCanDestroy(AdventureModePredicate{});
+                break;
+            case DataComponentType::BannerPatterns:
+                if (m_extras && m_extras->customData.contains("BlockEntityTag"))
+                    m_extras->customData["BlockEntityTag"].erase("Patterns");
+                break;
+            case DataComponentType::StoredEnchantments:
+                if (m_extras) m_extras->customData.erase("StoredEnchantments");
                 break;
             case DataComponentType::CustomData:
                 // 清除不该反向分配 extras

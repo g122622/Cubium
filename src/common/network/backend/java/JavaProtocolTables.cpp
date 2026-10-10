@@ -263,6 +263,8 @@ using B = buffer::RegistryByteBuf;
         47, PacketType{PacketFlow::Serverbound, "rename_item"}, 131, codecs::renameItemCodec());
     b.addPacket<ir::play::SelectTrade>(
         50, PacketType{PacketFlow::Serverbound, "select_trade"}, 132, codecs::selectTradeCodec());
+    b.addPacket<ir::play::ContainerButtonClick>(
+        16, PacketType{PacketFlow::Serverbound, "container_button_click"}, 134, codecs::containerButtonClickCodec());
     return b.build();
 }
 

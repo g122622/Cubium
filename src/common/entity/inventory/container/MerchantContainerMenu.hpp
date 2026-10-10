@@ -181,6 +181,8 @@ public:
      */
     void tryMoveItems(i32 offerIndex);
 
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_RESULT; }
+
 protected:
     /**
      * @brief Shift+点击快速移动

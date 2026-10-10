@@ -38,6 +38,7 @@
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/entity/inventory/container/LoomContainer.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
@@ -664,6 +665,11 @@ void StandaloneServer::_setupContainerCallbacks()
             }
             case mc::ContainerType::Enchantment: {
                 result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
+                return result;
+            }
+            case mc::ContainerType::Loom: {
+                result.menu = std::make_unique<mc::entity::inventory::container::LoomContainer>(
+                    containerId, playerInventory, pos, world);
                 return result;
             }
             case mc::ContainerType::Anvil: {
