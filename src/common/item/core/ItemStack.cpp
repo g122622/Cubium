@@ -148,6 +148,7 @@ ItemStack::ItemStack(const ItemStack& other)
     : m_item(other.m_item)
     , m_count(other.m_count)
     , m_damage(other.m_damage)
+    , m_repairCost(other.m_repairCost)
     , m_customName(other.m_customName ? other.m_customName->deepCopy() : nullptr)
     , m_enchantments(other.m_enchantments)
     // 空 extras 原样传 nullptr（不得无条件 make_unique——容器每 tick 逐槽拷贝，
@@ -161,6 +162,7 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
         m_item = other.m_item;
         m_count = other.m_count;
         m_damage = other.m_damage;
+        m_repairCost = other.m_repairCost;
         m_customName = other.m_customName ? other.m_customName->deepCopy() : nullptr;
         m_enchantments = other.m_enchantments;
         m_extras = other.m_extras ? std::make_unique<ItemExtras>(*other.m_extras) : nullptr;
@@ -587,6 +589,7 @@ ItemStack ItemStack::split(i32 amount)
     i32 splitCount = std::min(amount, m_count);
     ItemStack result(*m_item, splitCount);
     result.m_damage = m_damage;
+    result.m_repairCost = m_repairCost;
     result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
     result.m_enchantments = m_enchantments;
     result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;

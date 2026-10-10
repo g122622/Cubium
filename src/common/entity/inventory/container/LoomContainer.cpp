@@ -150,7 +150,7 @@ void LoomContainer::_initSlots(PlayerInventory* playerInventory)
     addSlot(std::make_unique<LoomPatternSlot>(m_inputInventory.get(), SLOT_PATTERN, PATTERN_SLOT_X, PATTERN_SLOT_Y));
 
     // 织布机输出槽位
-    addSlot(std::make_unique<LoomResultSlot>(m_outputInventory.get(), SLOT_RESULT, RESULT_SLOT_X, RESULT_SLOT_Y, this));
+    addSlot(std::make_unique<LoomResultSlot>(m_outputInventory.get(), 0, RESULT_SLOT_X, RESULT_SLOT_Y, this));
 
     // 玩家主背包（3行9列）
     for (i32 row = 0; row < 3; ++row) {
@@ -241,7 +241,7 @@ void LoomContainer::_updateResult()
     if (selectedPattern > 0 && !bannerStack.isEmpty() && !dyeStack.isEmpty()) {
         // 验证选中图案的合法性
         if (!_isValidPattern(selectedPattern)) {
-            m_outputInventory->setItem(SLOT_RESULT, ItemStack());
+            m_outputInventory->setItem(0, ItemStack());
             return;
         }
 
@@ -276,12 +276,12 @@ void LoomContainer::_updateResult()
         blockEntityTag["Patterns"] = patternsArray;
 
         // 检查输出是否与当前输出不同
-        const ItemStack& currentOutput = m_outputInventory->getItem(SLOT_RESULT);
+        const ItemStack& currentOutput = m_outputInventory->getItem(0);
         if (result != currentOutput) {
-            m_outputInventory->setItem(SLOT_RESULT, std::move(result));
+            m_outputInventory->setItem(0, std::move(result));
         }
     } else {
-        m_outputInventory->setItem(SLOT_RESULT, ItemStack());
+        m_outputInventory->setItem(0, ItemStack());
     }
 }
 

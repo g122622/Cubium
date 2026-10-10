@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/backend/java/JavaProtocolTables.hpp"
 #include "common/network/buffer/RegistryByteBuf.hpp"
 #include "common/network/codec/StreamCodec.hpp"
@@ -58,6 +59,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
         if (m_tables == nullptr) {
             m_tables = backend::java::JavaProtocolTables::build();
         }

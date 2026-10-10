@@ -6,6 +6,8 @@
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
@@ -205,6 +207,7 @@ protected:
     void SetUp() override
     {
         NetworkTestBase::SetUp();
+        item::enchant::EnchantmentRegistry::initialize();
         BlockTags::initialize();
         m_server = std::make_unique<_ContainerRequestServer>();
         m_handler = std::make_unique<server::net::ServerPlayHandler>(*m_server);
@@ -554,6 +557,8 @@ TEST_F(NetworkTestBase, LoomPatternTagsUseTheSameRegistryOrderAsButtons)
 
 TEST_F(NetworkTestBase, BannerLayersUseHolderOffsetAndDyeVarInt)
 {
+    BlockItemRegistry::instance().initializeVanillaBlockItems();
+    ASSERT_NE(Items::WHITE_BANNER, nullptr);
     ItemStack banner(Items::WHITE_BANNER, 1);
     banner.getOrCreateTag()["BlockEntityTag"]["Patterns"] = nlohmann::json::array({{{"Pattern", "bl"}, {"Color", 14}}});
     auto view = toItemStackView(banner);
@@ -697,13 +702,13 @@ TEST_F(ContainerRequestTest, BeaconRequiresPaymentFiltersEffectsAndSynchronizesP
     ASSERT_EQ(menu->getSlotCount(), 37);
     auto& beacon = *m_server->m_world->m_beacon;
     beacon.setLevel(4);
-    route(PlayPacket{SetBeacon{0, 9}});
+    route(PlayPacket{SetBeacon{0, 18}});
     EXPECT_EQ(beacon.getPrimaryEffect(), nullptr);
     EXPECT_FALSE(menu->getSlot(0)->mayPlace(ItemStack(Items::STONE, 1)));
     EXPECT_TRUE(menu->getSlot(0)->mayPlace(ItemStack(Items::EMERALD, 1)));
     EXPECT_EQ(menu->getSlot(0)->getMaxStackSize(), 1);
     menu->getSlot(0)->set(ItemStack(Items::EMERALD, 1));
-    route(PlayPacket{SetBeacon{0, 9}});
+    route(PlayPacket{SetBeacon{0, 18}});
     ASSERT_NE(beacon.getPrimaryEffect(), nullptr);
     EXPECT_EQ(*beacon.getPrimaryEffect(), entity::effect::EffectType::Speed);
     EXPECT_EQ(beacon.getSecondaryEffect(), nullptr);
