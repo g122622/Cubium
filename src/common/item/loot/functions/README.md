@@ -44,6 +44,8 @@ world/map/MapDecoration.hpp  # DecorationType 枚举（ExplorationMapFunction）
 world/gen/structure/Structure.hpp # ResourceLocation（ExplorationMapFunction 结构定位）
 ```
 
+`SetAttributesFunction` 使用项目已有的 fmt 库，以类型安全方式格式化自动生成的 UUID。
+
 ### 外部对本模块的依赖
 
 ```
@@ -52,6 +54,12 @@ loot/LootFunctionBuilder      # 通过工厂方法创建函数实例
 ```
 
 ## 容易踩的坑
+
+### UUID 的跨平台整数格式化
+
+`u64` 在 Linux 通常是 `unsigned long`，在 Windows 是 `unsigned long long`；直接用 `%llx`
+格式化会使 Linux 的 `-Werror=format` 编译失败。UUID 用 fmt 的十六进制宽度格式，保留
+8-4-4-4-12 位、前导零、版本 4 和 RFC 4122 变体位，避免依赖底层整数类型。
 
 ### ExplorationMapFunction 的 destination 与 decoration 关系
 
