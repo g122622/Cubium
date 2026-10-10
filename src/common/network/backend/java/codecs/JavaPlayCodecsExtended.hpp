@@ -1761,4 +1761,20 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 玩家列表文本由两个连续的 Component NBT 构成，没有额外长度前缀。 */
+[[nodiscard]] inline auto tabListCodec()
+{
+    return makeCodec<ir::play::TabList>(
+        [](B& buf, const ir::play::TabList& v) {
+            writeComponentNbt(buf, v.header);
+            writeComponentNbt(buf, v.footer);
+        },
+        [](B& buf) -> Result<ir::play::TabList> {
+            ir::play::TabList v{};
+            MC_TRY_ASSIGN(v.header, readComponentNbt(buf));
+            MC_TRY_ASSIGN(v.footer, readComponentNbt(buf));
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

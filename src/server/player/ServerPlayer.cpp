@@ -163,6 +163,13 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
 }
 
+bool ServerPlayer::sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer)
+{
+    mc::network::ir::play::TabList packet{text::componentToNbtBytes(&header), text::componentToNbtBytes(&footer)};
+    return _sendIrPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}});
+}
+
 void ServerPlayer::sendSystemMessage(const text::ITextComponent& component)
 {
     // 与字符串重载同走 SystemChat(overlay=false)，但序列化完整 Component（保留 translate/with

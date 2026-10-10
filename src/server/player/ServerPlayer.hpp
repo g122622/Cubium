@@ -155,6 +155,9 @@ public:
      */
     void syncExperience();
 
+    /** @brief 发送玩家列表页眉和页脚，空组件用于清除；返回是否发送成功。 */
+    [[nodiscard]] bool sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer);
+
     // ========== 重写经验方法 ==========
 
     /**

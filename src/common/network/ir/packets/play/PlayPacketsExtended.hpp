@@ -1422,4 +1422,11 @@ struct TeleportToEntity {
     [[nodiscard]] friend bool operator==(const TeleportToEntity&, const TeleportToEntity&) noexcept = default;
 };
 
+/** @brief 玩家列表页眉和页脚（S→C，id=120），保留完整 Component NBT。 */
+struct TabList {
+    std::vector<u8> header;
+    std::vector<u8> footer;
+    [[nodiscard]] friend bool operator==(const TabList&, const TabList&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

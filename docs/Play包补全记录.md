@@ -11,7 +11,8 @@
 | player_abilities（sb:39） | 独立的单字节上行 codec，仅更新服务端授权的飞行状态 | Windows 构建成功；线格式、截断输入及飞行越权测试通过 |
 | client_information（sb:13） | 复用配置负载校验；应用惯用手、皮肤、聊天及玩家列表偏好；每玩家区块追踪视距；初次配置、重配置和跨维度保留 | Windows 构建成功；协议、元数据、列表及视距独立性测试通过 |
 | teleport_to_entity（sb:61） | 旁观者按 UUID 查找目标；同维度移动与跨维度迁移复用已有链路，并启动传送确认 | Windows 构建成功；UUID 黄金字节、全部截断长度、旁观者权限及传送确认测试通过 |
-| award_stats、tab_list、damage_event、cooldown | 待处理 | |
+| tab_list（cb:120） | 完整 Component NBT codec 与 ServerPlayer 富文本发送/清空接口 | 已补黄金字节、截断输入和连接发送测试；随下行簇集中构建 |
+| award_stats、damage_event、cooldown | 待处理 | |
 | set_equipment、update_mob_effect | 基线已有 IR、codec、登记与广播，待核查链路 | |
 | rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |

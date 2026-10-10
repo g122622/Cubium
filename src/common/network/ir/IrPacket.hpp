@@ -211,7 +211,8 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::Swing,                      // 122
     play::ServerboundPlayerAbilities, // 123
     play::ClientInformation,          // 124
-    play::TeleportToEntity            // 125
+    play::TeleportToEntity,           // 125
+    play::TabList                     // 126
     >;
 
 /**
