@@ -28,10 +28,10 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include <cstdio>
 #include <memory>
 #include <string>
 #include <utility>
+#include <fmt/format.h>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
@@ -123,17 +123,13 @@ std::string SetAttributesFunction::_generateUUID(math::IRandom& random)
     const u64 part1 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());
     const u64 part2 = (static_cast<u64>(static_cast<u32>(random.nextInt())) << 32) | static_cast<u32>(random.nextInt());
 
-    // 格式化为 UUID v4 格式
-    char buf[64];
-    std::snprintf(buf,
-        sizeof(buf),
-        "%08x-%04x-%04x-%04x-%012llx",
-        static_cast<u32>(part1 >> 32),                            // 8 hex digits
-        static_cast<u16>((part1 >> 16) & 0xFFFF),                 // 4 hex digits
-        static_cast<u16>((part1 & 0x0FFF) | 0x4000),              // 4 hex digits (version 4 UUID)
-        static_cast<u16>(((part2 >> 48) & 0x3FFF) | 0x8000),      // 4 hex digits (variant 1)
-        static_cast<u64>(part2 & 0xFFFFFFFFFFFF)); // 12 hex digits
-    return std::string(buf);
+    // 类型安全的格式化避免依赖 u64 在不同平台上的底层整数类型。
+    return fmt::format("{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
+        static_cast<u32>(part1 >> 32),
+        static_cast<u16>((part1 >> 16) & 0xFFFF),
+        static_cast<u16>((part1 & 0x0FFF) | 0x4000),         // UUID 版本 4
+        static_cast<u16>(((part2 >> 48) & 0x3FFF) | 0x8000), // RFC 4122 变体
+        static_cast<u64>(part2 & 0xFFFFFFFFFFFF));
 }
 
 } // namespace loot
