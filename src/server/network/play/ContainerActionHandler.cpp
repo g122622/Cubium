@@ -1,6 +1,7 @@
 #include "server/network/play/ContainerActionHandler.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
@@ -48,6 +49,27 @@ void ContainerActionHandler::handleRenameItemPacket(PlayerId playerId, const mc:
     const auto& request =
         std::get<mc::network::ir::play::RenameItem>(std::get<mc::network::ir::PlayPacket>(packet.packet));
     anvil->setItemName(request.name);
+}
+
+void ContainerActionHandler::handleSelectTradePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = _player(playerId);
+    if (player == nullptr || player->isSpectator()) {
+        return;
+    }
+    auto* menu = dynamic_cast<MerchantContainerMenu*>(_menu(playerId, *player));
+    if (menu == nullptr) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::SelectTrade>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (request.index < 0 || request.index >= static_cast<i32>(menu->getOffers().size())) {
+        spdlog::warn("SelectTrade: player {} selected invalid offer {}", playerId, request.index);
+        return;
+    }
+    menu->setSelectionHint(request.index);
+    menu->tryMoveItems(request.index);
+    menu->detectAndSendChanges();
 }
 
 } // namespace mc::server::net

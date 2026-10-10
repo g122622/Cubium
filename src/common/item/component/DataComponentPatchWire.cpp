@@ -91,7 +91,7 @@ using nbt::tags::compound_tag;
 }
 
 /// 写单个组件 value 到 wire（按 type 分派到专属 codec）。
-[[nodiscard]] Result<void> writeComponentValue(
+[[nodiscard]] Result<void> _writeComponentValue(
     network::buffer::ByteBuf& buf, DataComponentType type, const DataComponentPayload& payload)
 {
     using network::backend::java::writeItemEnchantments;
@@ -186,7 +186,7 @@ using nbt::tags::compound_tag;
 }
 
 /// 从 wire 读单个组件 value（按 type 分派到专属 codec）。
-[[nodiscard]] Result<DataComponentPayload> readComponentValue(network::buffer::ByteBuf& buf, DataComponentType type)
+[[nodiscard]] Result<DataComponentPayload> _readComponentValue(network::buffer::ByteBuf& buf, DataComponentType type)
 {
     using network::backend::java::readItemEnchantments;
     using network::backend::java::readPotionContentsPayload;
@@ -303,7 +303,7 @@ Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponent
             continue; // 未落地：跳过（不写 typeId，读端也不期望）
         }
         buf.writeVarInt(entry.typeId);
-        MC_TRY(writeComponentValue(buf, *type, entry.value));
+        MC_TRY(_writeComponentValue(buf, *type, entry.value));
     }
     for (i32 typeId : patch.removed()) {
         buf.writeVarInt(typeId);
@@ -332,7 +332,7 @@ Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
             // 未知组件：vanilla 标准_patch 无长度前缀，无法安全跳过，报错。
             return Error(ErrorCode::InvalidData, "Unknown data component typeId in wire", "readPatchFromWire");
         }
-        auto payloadResult = readComponentValue(buf, *type);
+        auto payloadResult = _readComponentValue(buf, *type);
         if (payloadResult.failed()) {
             return payloadResult.error();
         }
@@ -372,7 +372,7 @@ Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
             return Error(ErrorCode::InvalidData, "Unknown data component typeId in wire", "readPatchBytesFromWire");
         }
         // 按专属 codec 推进游标（丢弃解析结果）。
-        auto payloadResult = readComponentValue(buf, *type);
+        auto payloadResult = _readComponentValue(buf, *type);
         if (payloadResult.failed()) {
             return payloadResult.error();
         }
@@ -386,6 +386,26 @@ Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
     return std::vector<u8>(base, base + (end - start));
 }
 
+Result<std::vector<u8>> readExactPredicateBytesFromWire(network::buffer::ByteBuf& buf)
+{
+    const usize start = buf.readPosition();
+    i32 count = 0;
+    MC_TRY_ASSIGN(count, buf.readVarInt());
+    if (count < 0 || static_cast<usize>(count) > buf.readableBytes()) {
+        return Error(ErrorCode::InvalidData, "Invalid component predicate count");
+    }
+    for (i32 i = 0; i < count; ++i) {
+        i32 typeId = 0;
+        MC_TRY_ASSIGN(typeId, buf.readVarInt());
+        const auto type = componentTypeById(typeId);
+        if (!type.has_value()) {
+            return Error(ErrorCode::InvalidData, "Unknown component in trade predicate");
+        }
+        MC_TRY(_readComponentValue(buf, *type));
+    }
+    return std::vector<u8>(buf.data() + start, buf.data() + buf.readPosition());
+}
+
 std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHashes(const DataComponentPatch& patch)
 {
     std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> result;
@@ -396,7 +416,7 @@ std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHa
         }
         // 用专属 codec 把组件值编码到临时 ByteBuf，对 wire 字节算 CRC-32C。
         network::buffer::ByteBuf tmp;
-        if (writeComponentValue(tmp, *type, entry.value).failed()) {
+        if (_writeComponentValue(tmp, *type, entry.value).failed()) {
             continue; // 编码失败跳过该组件（不中断整体哈希计算）
         }
         const u32 h = util::crypto::Crc32c::hash(std::span<const u8>(tmp.data(), tmp.size()));

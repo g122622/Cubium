@@ -12,7 +12,7 @@
 ```
 src/server/network/outbound/
 ├── README.md
-├── PacketBuilders.hpp/cpp         # 4 个纯自由函数：buildPlaySoundIr / buildPermissionLevelChangeIr
+├── PacketBuilders.hpp/cpp         # 纯自由函数：buildPlaySoundIr / buildPermissionLevelChangeIr
 │                                  #   / buildCommandsIr / buildLevelParticlesIr
 ├── CommandTreeEncoder.hpp         # 命令树快照 → ClientboundCommandsPacket 包体字节（header-only）
 ├── PlayerBroadcaster.hpp/cpp      # 距离过滤 + 多态广播（声音/粒子/实体事件/世界事件/爆炸/光照）
@@ -81,3 +81,5 @@ src/server/network/outbound/
 
 `PacketBuilders` 保持零 `MinecraftServer` 依赖，才能被命令系统等上游安全复用。距离过滤、订阅关系、
 在线判定一律留在 `PlayerBroadcaster` / `MapPacketBuilder` / `ConnectionManager`。
+
+商人报价由 buildMerchantOffersIr 构造，容器打开和内容变化时发送。交易成本是 ItemCost（物品 ID、数量、精确组件谓词），结果是 ItemStack；两者字段顺序及组件格式不同。使用次数、需求、特殊价格和经验均来自当前报价状态，不得重复计算价格后再作为基础成本发送。

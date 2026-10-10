@@ -1,5 +1,6 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -10,6 +11,7 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -22,6 +24,78 @@ using namespace mc::network::ir::play;
 using namespace mc::network::test;
 
 namespace {
+
+class _ContainerTestMerchant : public world::village::trade::IMerchant {
+public:
+    _ContainerTestMerchant() { m_offers = std::make_unique<world::village::trade::MerchantOffers>(); }
+
+    // IMerchant 接口实现
+    [[nodiscard]] world::village::trade::MerchantOffers& getOffers() override { return *m_offers; }
+    [[nodiscard]] const world::village::trade::MerchantOffers& getOffers() const override { return *m_offers; }
+    void setOffers(world::village::trade::MerchantOffers offers) override
+    {
+        m_offers = std::make_unique<world::village::trade::MerchantOffers>(std::move(offers));
+    }
+    void overrideOffers(world::village::trade::MerchantOffers offers) override
+    {
+        m_offers = std::make_unique<world::village::trade::MerchantOffers>(std::move(offers));
+    }
+    [[nodiscard]] bool hasOffers() const override { return m_offers != nullptr && !m_offers->empty(); }
+    [[nodiscard]] Player* getTradingPlayer() const override { return m_tradingPlayer; }
+    void startTrading(Player* player) override { m_tradingPlayer = player; }
+    void stopTrading() override { m_tradingPlayer = nullptr; }
+    [[nodiscard]] bool isTrading() const override { return m_tradingPlayer != nullptr; }
+    [[nodiscard]] i32 getExperience() const override { return m_experience; }
+    void setExperience(i32 exp) override { m_experience = exp; }
+    void addExperience(i32 amount) override { m_experience += amount; }
+    void restock() override
+    {
+        if (m_offers) {
+            m_offers->restockAll();
+        }
+    }
+    void notifyTrade(world::village::trade::MerchantOffer& offer) override
+    {
+        offer.increaseUses();
+        m_lastTradeXp = offer.getXp();
+        m_notifyTradeCount++;
+    }
+    void notifyTradeUpdated(const ItemStack& resultStack) override
+    {
+        m_lastResultStack = resultStack;
+        m_notifyTradeUpdatedCount++;
+    }
+    [[nodiscard]] i32 getVillagerXp() const override { return m_experience; }
+    void overrideXp(i32 xp) override { m_experience = xp; }
+    [[nodiscard]] bool showProgressBar() const override { return true; }
+    [[nodiscard]] bool canRestock() const override { return true; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
+    [[nodiscard]] bool stillValid(const Player& player) const override
+    {
+        (void)player;
+        return true;
+    }
+    [[nodiscard]] Entity* asEntity() override { return nullptr; }
+    [[nodiscard]] const Entity* asEntity() const override { return nullptr; }
+
+    // 测试辅助
+    void addTestOffer(std::unique_ptr<world::village::trade::MerchantOffer> offer)
+    {
+        m_offers->addOffer(std::move(offer));
+    }
+    i32 getNotifyTradeCount() const { return m_notifyTradeCount; }
+    i32 getNotifyTradeUpdatedCount() const { return m_notifyTradeUpdatedCount; }
+    i32 getLastTradeXp() const { return m_lastTradeXp; }
+
+private:
+    std::unique_ptr<world::village::trade::MerchantOffers> m_offers;
+    Player* m_tradingPlayer = nullptr;
+    i32 m_experience = 0;
+    i32 m_notifyTradeCount = 0;
+    i32 m_notifyTradeUpdatedCount = 0;
+    i32 m_lastTradeXp = 0;
+    ItemStack m_lastResultStack;
+};
 
 class _ContainerRequestWorld : public server::ServerWorld {
 public:
@@ -39,6 +113,7 @@ public:
     _ContainerRequestServer()
     {
         m_playerManager = std::make_unique<server::core::PlayerManager>(10);
+        merchant = std::make_unique<_ContainerTestMerchant>();
         m_containerManager = std::make_unique<server::interaction::ContainerManager>(*m_playerManager);
         world = std::make_unique<_ContainerRequestWorld>(&VanillaBlocks::ANVIL->defaultState());
         auto entity = std::make_unique<Player>(101, "Player", *world->entityRegistry());
@@ -62,6 +137,7 @@ public:
 
     server::ServerWorld* getPlayerWorld(PlayerId) override { return world.get(); }
 
+    std::unique_ptr<_ContainerTestMerchant> merchant;
     Player* player = nullptr;
     std::unique_ptr<_ContainerRequestWorld> world;
 };
@@ -191,4 +267,83 @@ TEST_F(ContainerRequestTest, InvalidMenuClosesOnTickAndCloseAllClearsInventoryMe
     EXPECT_EQ(m_server->containerManager().getPlayerInventoryMenu(1), nullptr);
     ASSERT_EQ(closed.size(), 2u);
     EXPECT_EQ(closed.back(), 0);
+}
+
+TEST_F(NetworkTestBase, PlaySelectTradeAndEmptyMerchantOffersWire)
+{
+    auto selected = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(selected, PlayPacket{SelectTrade{2}}).success());
+    EXPECT_EQ(selected.bytes(), (std::vector<u8>{50, 2}));
+    auto decoded = tables()->playSb->decode(selected);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<SelectTrade>(decoded.value()).index, 2);
+    const MerchantOffersUpdate empty{1, {}, 1, 0, true, false};
+    auto offers = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(offers, PlayPacket{empty}).success());
+    EXPECT_EQ(offers.bytes(), (std::vector<u8>{50, 1, 0, 1, 0, 1, 0}));
+    auto packet = tables()->playCb->decode(offers);
+    ASSERT_TRUE(packet.success());
+    EXPECT_EQ(std::get<MerchantOffersUpdate>(packet.value()), empty);
+}
+
+TEST_F(NetworkTestBase, PlayMerchantOffersCostOrderAndComponentPredicate)
+{
+    TradeOfferView offer{};
+    offer.costA = TradeItemCost{1, 2, {0}};
+    offer.result = ItemStackView{3, 1, {0, 0}};
+    offer.outOfStock = false;
+    offer.uses = 0;
+    offer.maxUses = 12;
+    offer.xp = 2;
+    offer.specialPrice = -1;
+    offer.priceMultiplier = 0.5f;
+    offer.demand = 3;
+    const MerchantOffersUpdate input{1, {offer}, 2, 10, true, true};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{input}).success());
+    ASSERT_EQ(buf.size(), 40u);
+    ASSERT_GE(buf.size(), 11u);
+    EXPECT_EQ((std::vector<u8>(buf.bytes().begin(), buf.bytes().begin() + 11)),
+        (std::vector<u8>{50, 1, 1, 1, 2, 0, 1, 3, 0, 0, 0}));
+    EXPECT_EQ((std::vector<u8>(buf.bytes().begin() + 16, buf.bytes().begin() + 36)),
+        (std::vector<u8>{0, 0, 0, 12, 0, 0, 0, 2, 0xff, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0, 0, 0, 3}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<MerchantOffersUpdate>(decoded.value()), input);
+    offer.costB = TradeItemCost{2, 1, {1, 3, 7}};
+    const MerchantOffersUpdate withPredicate{1, {offer}, 3, 20, false, true};
+    EXPECT_EQ(
+        std::get<MerchantOffersUpdate>(roundTripGeneric(*tables()->playCb, PlayPacket{withPredicate})), withPredicate);
+    for (std::size_t size = 1; size < buf.size(); ++size) {
+        buffer::RegistryByteBuf truncated(buf.data(), size, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playCb->decode(truncated).success());
+    }
+}
+
+TEST_F(ContainerRequestTest, SelectTradeFillsPaymentAndBuilderPreservesOfferState)
+{
+    m_server->merchant->addTestOffer(std::make_unique<world::village::trade::MerchantOffer>(
+        ItemStack(Items::EMERALD, 2), ItemStack(Items::BREAD, 1), 12, 5, 0.05f));
+    m_server->player->inventory().setItem(0, ItemStack(Items::EMERALD, 5));
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Merchant, BlockPos(0, 0, 0)).success());
+    auto* menu = dynamic_cast<MerchantContainerMenu*>(m_server->containerManager().getOpenMenu(1));
+    ASSERT_NE(menu, nullptr);
+    route(PlayPacket{SelectTrade{0}});
+    EXPECT_EQ(menu->getSlot(0)->getItem().getItem(), Items::EMERALD);
+    EXPECT_EQ(menu->getSlot(0)->getItem().getCount(), 5);
+    EXPECT_EQ(menu->getSlot(2)->getItem().getItem(), Items::BREAD);
+    EXPECT_EQ(m_server->merchant->getNotifyTradeCount(), 0);
+    auto built = server::net::buildMerchantOffersIr(*menu);
+    ASSERT_TRUE(built.success());
+    const auto& packet = std::get<MerchantOffersUpdate>(std::get<PlayPacket>(built.value().packet));
+    ASSERT_EQ(packet.offers.size(), 1u);
+    EXPECT_EQ(packet.offers.front().costA.count, 2);
+    EXPECT_EQ(packet.offers.front().costA.components, (std::vector<u8>{0}));
+    EXPECT_EQ(packet.offers.front().maxUses, 12);
+    EXPECT_EQ(packet.offers.front().xp, 5);
+    EXPECT_EQ(packet.level, 2);
+    EXPECT_TRUE(packet.canRestock);
+    route(PlayPacket{SelectTrade{-1}});
+    route(PlayPacket{SelectTrade{5}});
+    EXPECT_EQ(menu->getSlot(0)->getItem().getCount(), 5);
 }

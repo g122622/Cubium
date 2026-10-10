@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -36,7 +37,14 @@ namespace mc::command {
 class CommandRegistry;
 }
 
+namespace mc {
+class MerchantContainerMenu;
+}
+
 namespace mc::server::net {
+
+/** @brief 构造当前商人菜单的完整报价包，保留物品组件与价格、经验信息。 */
+[[nodiscard]] Result<mc::network::ir::IrPacket> buildMerchantOffersIr(const MerchantContainerMenu& menu);
 
 /**
  * @brief Play / Configuration 阶段单包 IR 构造器（无状态自由函数）

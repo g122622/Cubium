@@ -177,6 +177,9 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         case _playPacketIndex<irplay::ClientCommand>():
             m_playerState.handleClientCommandPacket(playerId, packet);
             break;
+        case _playPacketIndex<irplay::SelectTrade>():
+            m_containerAction.handleSelectTradePacket(playerId, packet);
+            break;
         case _playPacketIndex<irplay::RenameItem>():
             m_containerAction.handleRenameItemPacket(playerId, packet);
             break;

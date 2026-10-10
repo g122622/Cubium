@@ -38,6 +38,7 @@
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
@@ -65,6 +66,7 @@
 #include "server/dimension/ServerDimension.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/session/ClientSessionManager.hpp"
 #include "server/network/session/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -712,6 +714,14 @@ void StandaloneServer::_setupContainerCallbacks()
                 mc::network::protocol::ConnectionProtocol::Play,
                 mc::network::ir::PlayPacket{std::move(pkt)},
             });
+        if (const auto* merchant = dynamic_cast<const MerchantContainerMenu*>(&menu)) {
+            auto offers = net::buildMerchantOffersIr(*merchant);
+            if (offers.success()) {
+                sendPacketToPlayer(playerId, offers.value());
+            } else {
+                spdlog::warn("Cannot send merchant offers to player {}: {}", playerId, offers.error().toString());
+            }
+        }
     };
 
     // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。

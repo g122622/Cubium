@@ -261,6 +261,8 @@ using B = buffer::RegistryByteBuf;
         11, PacketType{PacketFlow::Serverbound, "client_command"}, 130, codecs::clientCommandCodec());
     b.addPacket<ir::play::RenameItem>(
         47, PacketType{PacketFlow::Serverbound, "rename_item"}, 131, codecs::renameItemCodec());
+    b.addPacket<ir::play::SelectTrade>(
+        50, PacketType{PacketFlow::Serverbound, "select_trade"}, 132, codecs::selectTradeCodec());
     return b.build();
 }
 
@@ -491,6 +493,8 @@ using B = buffer::RegistryByteBuf;
         25, PacketType{PacketFlow::Clientbound, "damage_event"}, 128, codecs::damageEventCodec());
     b.addPacket<ir::play::AwardStats>(
         3, PacketType{PacketFlow::Clientbound, "award_stats"}, 129, codecs::awardStatsCodec());
+    b.addPacket<ir::play::MerchantOffersUpdate>(
+        50, PacketType{PacketFlow::Clientbound, "merchant_offers"}, 133, codecs::merchantOffersCodec());
     return b.build();
 }
 

@@ -1906,4 +1906,112 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 报价选择为一个 VarInt 索引，范围由当前报价列表验证。 */
+[[nodiscard]] inline auto selectTradeCodec()
+{
+    return makeCodec<ir::play::SelectTrade>([](B& buf, const ir::play::SelectTrade& v) { buf.writeVarInt(v.index); },
+        [](B& buf) -> Result<ir::play::SelectTrade> {
+            ir::play::SelectTrade v{};
+            MC_TRY_ASSIGN(v.index, buf.readVarInt());
+            return v;
+        });
+}
+
+namespace play_ext_detail {
+
+inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
+{
+    buf.writeVarInt(static_cast<i32>(cost.itemId));
+    buf.writeVarInt(cost.count);
+    if (cost.components.empty()) {
+        buf.writeVarInt(0);
+    } else {
+        buf.writeBytes(cost.components.data(), cost.components.size());
+    }
+}
+
+[[nodiscard]] inline Result<ir::play::TradeItemCost> readTradeCost(B& buf)
+{
+    ir::play::TradeItemCost cost{};
+    i32 itemId = 0;
+    MC_TRY_ASSIGN(itemId, buf.readVarInt());
+    MC_TRY_ASSIGN(cost.count, buf.readVarInt());
+    if (itemId < 0 || cost.count <= 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid trade cost");
+    }
+    cost.itemId = static_cast<u32>(itemId);
+    MC_TRY_ASSIGN(cost.components, ::mc::item::component::readExactPredicateBytesFromWire(buf));
+    return cost;
+}
+
+} // namespace play_ext_detail
+
+/** @brief 商人报价包含 ItemCost、严格物品堆与固定宽度价格字段。 */
+[[nodiscard]] inline auto merchantOffersCodec()
+{
+    return makeCodec<ir::play::MerchantOffersUpdate>(
+        [](B& buf, const ir::play::MerchantOffersUpdate& v) {
+            buf.writeVarInt(v.containerId);
+            buf.writeVarInt(static_cast<i32>(v.offers.size()));
+            for (const auto& offer : v.offers) {
+                play_ext_detail::writeTradeCost(buf, offer.costA);
+                play_detail::writeItemStack(buf, offer.result);
+                buf.writeBool(offer.costB.has_value());
+                if (offer.costB.has_value()) {
+                    play_ext_detail::writeTradeCost(buf, *offer.costB);
+                }
+                buf.writeBool(offer.outOfStock);
+                buf.writeI32(offer.uses);
+                buf.writeI32(offer.maxUses);
+                buf.writeI32(offer.xp);
+                buf.writeI32(offer.specialPrice);
+                buf.writeF32(offer.priceMultiplier);
+                buf.writeI32(offer.demand);
+            }
+            buf.writeVarInt(v.level);
+            buf.writeVarInt(v.xp);
+            buf.writeBool(v.showProgress);
+            buf.writeBool(v.canRestock);
+        },
+        [](B& buf) -> Result<ir::play::MerchantOffersUpdate> {
+            ir::play::MerchantOffersUpdate v{};
+            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            constexpr usize MIN_OFFER_BYTES = 33;
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / MIN_OFFER_BYTES) {
+                return Error(ErrorCode::InvalidArgument, "Invalid merchant offer count");
+            }
+            v.offers.reserve(static_cast<usize>(count));
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::TradeOfferView offer{};
+                MC_TRY_ASSIGN(offer.costA, play_ext_detail::readTradeCost(buf));
+                MC_TRY_ASSIGN(offer.result, play_detail::readItemStack(buf));
+                if (offer.result.count <= 0) {
+                    return Error(ErrorCode::InvalidArgument, "Merchant offer has empty result");
+                }
+                bool hasCostB = false;
+                MC_TRY_ASSIGN(hasCostB, buf.readBool());
+                if (hasCostB) {
+                    ir::play::TradeItemCost cost{};
+                    MC_TRY_ASSIGN(cost, play_ext_detail::readTradeCost(buf));
+                    offer.costB = std::move(cost);
+                }
+                MC_TRY_ASSIGN(offer.outOfStock, buf.readBool());
+                MC_TRY_ASSIGN(offer.uses, buf.readI32());
+                MC_TRY_ASSIGN(offer.maxUses, buf.readI32());
+                MC_TRY_ASSIGN(offer.xp, buf.readI32());
+                MC_TRY_ASSIGN(offer.specialPrice, buf.readI32());
+                MC_TRY_ASSIGN(offer.priceMultiplier, buf.readF32());
+                MC_TRY_ASSIGN(offer.demand, buf.readI32());
+                v.offers.push_back(std::move(offer));
+            }
+            MC_TRY_ASSIGN(v.level, buf.readVarInt());
+            MC_TRY_ASSIGN(v.xp, buf.readVarInt());
+            MC_TRY_ASSIGN(v.showProgress, buf.readBool());
+            MC_TRY_ASSIGN(v.canRestock, buf.readBool());
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

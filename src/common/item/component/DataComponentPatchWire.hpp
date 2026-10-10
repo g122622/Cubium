@@ -87,6 +87,9 @@ namespace component {
  */
 [[nodiscard]] Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf);
 
+/** @brief 读取交易物品的精确组件谓词：数量及逐项组件，没有移除数量字段。 */
+[[nodiscard]] Result<std::vector<u8>> readExactPredicateBytesFromWire(network::buffer::ByteBuf& buf);
+
 /**
  * @brief 计算 DataComponentPatch 各组件的 CRC-32C 哈希（HashedStack 用）
  *

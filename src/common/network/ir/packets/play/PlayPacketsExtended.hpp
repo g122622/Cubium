@@ -1473,4 +1473,44 @@ struct RenameItem {
     [[nodiscard]] friend bool operator==(const RenameItem&, const RenameItem&) noexcept = default;
 };
 
+/** @brief 选择商人报价（C→S，id=50）。 */
+struct SelectTrade {
+    i32 index;
+    [[nodiscard]] friend bool operator==(const SelectTrade&, const SelectTrade&) noexcept = default;
+};
+
+/** @brief 交易成本，与 ItemStack 不同，组件为精确谓词列表。 */
+struct TradeItemCost {
+    u32 itemId;
+    i32 count;
+    std::vector<u8> components;
+    [[nodiscard]] friend bool operator==(const TradeItemCost&, const TradeItemCost&) noexcept = default;
+};
+
+/** @brief 一条报价的成本、结果、使用次数与价格调整数据。 */
+struct TradeOfferView {
+    TradeItemCost costA;
+    ItemStackView result;
+    std::optional<TradeItemCost> costB;
+    bool outOfStock;
+    i32 uses;
+    i32 maxUses;
+    i32 xp;
+    i32 specialPrice;
+    f32 priceMultiplier;
+    i32 demand;
+    [[nodiscard]] friend bool operator==(const TradeOfferView&, const TradeOfferView&) noexcept = default;
+};
+
+/** @brief 商人报价与界面状态（S→C，id=50）。 */
+struct MerchantOffersUpdate {
+    i32 containerId;
+    std::vector<TradeOfferView> offers;
+    i32 level;
+    i32 xp;
+    bool showProgress;
+    bool canRestock;
+    [[nodiscard]] friend bool operator==(const MerchantOffersUpdate&, const MerchantOffersUpdate&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play
