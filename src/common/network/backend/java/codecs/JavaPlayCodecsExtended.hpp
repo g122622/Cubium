@@ -1777,4 +1777,23 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 冷却负载为资源标识符字符串和 VarInt 时间，不是旧版物品数字 ID。 */
+[[nodiscard]] inline auto cooldownCodec()
+{
+    return makeCodec<ir::play::Cooldown>(
+        [](B& buf, const ir::play::Cooldown& v) {
+            buf.writeString(v.group);
+            buf.writeVarInt(v.duration);
+        },
+        [](B& buf) -> Result<ir::play::Cooldown> {
+            ir::play::Cooldown v{};
+            MC_TRY_ASSIGN(v.group, buf.readString());
+            MC_TRY_ASSIGN(v.duration, buf.readVarInt());
+            if (v.group.empty() || v.duration < 0) {
+                return Error(ErrorCode::InvalidArgument, "Invalid cooldown group or duration");
+            }
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

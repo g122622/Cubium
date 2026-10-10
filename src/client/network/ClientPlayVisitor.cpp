@@ -1080,6 +1080,11 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     }
                 }
                 return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::Cooldown>) {
+                if (m_app.m_player) {
+                    m_app.m_player->cooldownTracker().setCooldown(ResourceLocation(pkt.group), pkt.duration);
+                }
+                return Result<void>::ok();
             }
             // ---- 打开容器屏 ----
             else if constexpr (std::is_same_v<T, irplay::ContainerClose>) {

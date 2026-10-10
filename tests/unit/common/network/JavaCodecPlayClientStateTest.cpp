@@ -50,3 +50,43 @@ TEST_F(LocalServerFixture, ServerPlayerSendsAndClearsTabList)
     EXPECT_EQ(cleared.header, text::plainTextToNbtBytes(""));
     EXPECT_EQ(cleared.footer, text::plainTextToNbtBytes(""));
 }
+
+TEST_F(NetworkTestBase, PlayCooldownUsesGroupIdentifierAndVarIntDuration)
+{
+    const Cooldown packet{"test:shared", 300};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{packet}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{22, 11, 't', 'e', 's', 't', ':', 's', 'h', 'a', 'r', 'e', 'd', 0xac, 2}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<Cooldown>(decoded.value()), packet);
+    for (const Cooldown invalid : {Cooldown{"", 1}, Cooldown{"test:shared", -1}}) {
+        auto malformed = makeBoundBuf();
+        ASSERT_TRUE(tables()->playCb->encode(malformed, PlayPacket{invalid}).success());
+        EXPECT_FALSE(tables()->playCb->decode(malformed).success());
+    }
+}
+
+TEST_F(LocalServerFixture, ServerPlayerNotifiesCooldownStartExpiryAndRemoval)
+{
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    ServerPlayer player(1, "Player", mc::test::testEcsRegistry());
+    player.setConnection(serverConn());
+    const ResourceLocation group("test:shared");
+    player.cooldownTracker().setCooldown(group, 2);
+    auto received = pumpClient();
+    ASSERT_TRUE(received.has_value());
+    EXPECT_EQ(std::get<Cooldown>(std::get<PlayPacket>(received->packet)), (Cooldown{"test:shared", 2}));
+    player.cooldownTracker().tick();
+    EXPECT_FALSE(pumpClient().has_value());
+    player.cooldownTracker().tick();
+    received = pumpClient();
+    ASSERT_TRUE(received.has_value());
+    EXPECT_EQ(std::get<Cooldown>(std::get<PlayPacket>(received->packet)), (Cooldown{"test:shared", 0}));
+    player.cooldownTracker().setCooldown(group, 20);
+    ASSERT_TRUE(pumpClient().has_value());
+    player.cooldownTracker().removeCooldown(group);
+    received = pumpClient();
+    ASSERT_TRUE(received.has_value());
+    EXPECT_EQ(std::get<Cooldown>(std::get<PlayPacket>(received->packet)), (Cooldown{"test:shared", 0}));
+}

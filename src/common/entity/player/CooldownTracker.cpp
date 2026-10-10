@@ -25,25 +25,27 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include <algorithm>
+#include <limits>
+#include <utility>
 
-namespace mc {
-namespace entity::player {
+namespace mc::entity::player {
+
+void CooldownTracker::setListener(std::function<void(const ResourceLocation&, i32)> listener)
+{
+    m_listener = std::move(listener);
+}
 
 void CooldownTracker::tick()
 {
     ++m_ticks;
-
-    if (m_cooldowns.empty()) {
-        return;
-    }
-
-    // 移除已过期的冷却
     auto it = m_cooldowns.begin();
     while (it != m_cooldowns.end()) {
         if (it->second.expireTicks <= m_ticks) {
-            const Item* item = it->first;
+            const ResourceLocation group = it->first;
             it = m_cooldowns.erase(it);
-            notifyOnRemove(item);
+            if (m_listener) {
+                m_listener(group, 0);
+            }
         } else {
             ++it;
         }
@@ -52,106 +54,76 @@ void CooldownTracker::tick()
 
 void CooldownTracker::setCooldown(const Item* item, i32 ticks)
 {
-    if (item == nullptr || ticks <= 0) {
+    if (item != nullptr) {
+        setCooldown(item->itemLocation(), ticks);
+    }
+}
+
+void CooldownTracker::setCooldown(const ResourceLocation& group, i32 ticks)
+{
+    if (ticks <= 0) {
+        removeCooldown(group);
         return;
     }
-
-    i32 createTicks = m_ticks;
-    i32 expireTicks = m_ticks + ticks;
-
-    // 如果已有冷却，先移除
-    auto existing = m_cooldowns.find(item);
-    if (existing != m_cooldowns.end()) {
-        m_cooldowns.erase(existing);
+    m_cooldowns.insert_or_assign(group, Cooldown(m_ticks, m_ticks + ticks));
+    if (m_listener) {
+        m_listener(group, ticks);
     }
-
-    m_cooldowns.emplace(item, Cooldown(createTicks, expireTicks));
-    notifyOnSet(item, ticks);
 }
 
 void CooldownTracker::removeCooldown(const Item* item)
 {
-    if (item == nullptr) {
-        return;
+    if (item != nullptr) {
+        removeCooldown(item->itemLocation());
     }
+}
 
-    auto it = m_cooldowns.find(item);
-    if (it != m_cooldowns.end()) {
-        m_cooldowns.erase(it);
-        notifyOnRemove(item);
+void CooldownTracker::removeCooldown(const ResourceLocation& group)
+{
+    m_cooldowns.erase(group);
+    if (m_listener) {
+        m_listener(group, 0);
     }
 }
 
 f32 CooldownTracker::getCooldownProgress(const Item* item, f32 partialTicks) const
 {
-    if (item == nullptr) {
-        return 0.0f;
-    }
+    return item != nullptr ? getCooldownProgress(item->itemLocation(), partialTicks) : 0.0f;
+}
 
-    auto it = m_cooldowns.find(item);
+f32 CooldownTracker::getCooldownProgress(const ResourceLocation& group, f32 partialTicks) const
+{
+    const auto it = m_cooldowns.find(group);
     if (it == m_cooldowns.end()) {
         return 0.0f;
     }
-
-    const Cooldown& cooldown = it->second;
-    i32 totalDuration = cooldown.expireTicks - cooldown.createTicks;
-
-    if (totalDuration <= 0) {
-        return 0.0f;
-    }
-
-    // 剩余时间 = 过期时间 - (当前时间 + 插值)
-    f32 remaining = static_cast<f32>(cooldown.expireTicks) - (static_cast<f32>(m_ticks) + partialTicks);
-
-    // 进度 = 剩余时间 / 总时长
-    f32 progress = remaining / static_cast<f32>(totalDuration);
-
-    // Clamp 到 [0, 1]
-    return std::clamp(progress, 0.0f, 1.0f);
+    const auto& cooldown = it->second;
+    const i64 duration = cooldown.expireTicks - cooldown.createTicks;
+    const f32 remaining = static_cast<f32>(cooldown.expireTicks - m_ticks) - partialTicks;
+    return duration > 0 ? std::clamp(remaining / static_cast<f32>(duration), 0.0f, 1.0f) : 0.0f;
 }
 
 bool CooldownTracker::hasCooldown(const Item* item) const
 {
-    if (item == nullptr) {
-        return false;
-    }
+    return item != nullptr && hasCooldown(item->itemLocation());
+}
 
-    auto it = m_cooldowns.find(item);
-    if (it == m_cooldowns.end()) {
-        return false;
-    }
-
-    // 检查是否已过期
-    return it->second.expireTicks > m_ticks;
+bool CooldownTracker::hasCooldown(const ResourceLocation& group) const
+{
+    return getCooldownTicks(group) > 0;
 }
 
 i32 CooldownTracker::getCooldownTicks(const Item* item) const
 {
-    if (item == nullptr) {
-        return 0;
-    }
-
-    auto it = m_cooldowns.find(item);
-    if (it == m_cooldowns.end()) {
-        return 0;
-    }
-
-    i32 remaining = it->second.expireTicks - m_ticks;
-    return remaining > 0 ? remaining : 0;
+    return item != nullptr ? getCooldownTicks(item->itemLocation()) : 0;
 }
 
-void CooldownTracker::notifyOnSet(const Item* item, i32 ticks)
+i32 CooldownTracker::getCooldownTicks(const ResourceLocation& group) const
 {
-    // 基类空实现，子类可重写以实现网络同步等
-    (void)item;
-    (void)ticks;
+    const auto it = m_cooldowns.find(group);
+    return it != m_cooldowns.end()
+        ? static_cast<i32>(std::clamp<i64>(it->second.expireTicks - m_ticks, 0, std::numeric_limits<i32>::max()))
+        : 0;
 }
 
-void CooldownTracker::notifyOnRemove(const Item* item)
-{
-    // 基类空实现，子类可重写以实现网络同步等
-    (void)item;
-}
-
-} // namespace entity::player
-} // namespace mc
+} // namespace mc::entity::player

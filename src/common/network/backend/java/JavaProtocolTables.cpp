@@ -482,6 +482,7 @@ using B = buffer::RegistryByteBuf;
     b.addPacket<ir::play::RemoveMobEffect>(
         76, PacketType{PacketFlow::Clientbound, "remove_mob_effect"}, 119, codecs::removeMobEffectCodec());
     b.addPacket<ir::play::TabList>(120, PacketType{PacketFlow::Clientbound, "tab_list"}, 126, codecs::tabListCodec());
+    b.addPacket<ir::play::Cooldown>(22, PacketType{PacketFlow::Clientbound, "cooldown"}, 127, codecs::cooldownCodec());
     return b.build();
 }
 

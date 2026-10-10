@@ -1429,4 +1429,11 @@ struct TabList {
     [[nodiscard]] friend bool operator==(const TabList&, const TabList&) noexcept = default;
 };
 
+/** @brief 设置或清除冷却组（S→C，id=22），duration=0 表示清除。 */
+struct Cooldown {
+    std::string group;
+    i32 duration;
+    [[nodiscard]] friend bool operator==(const Cooldown&, const Cooldown&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

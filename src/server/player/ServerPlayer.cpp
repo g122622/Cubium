@@ -97,6 +97,11 @@ ServerPlayer::ServerPlayer(EntityInstanceId id, const std::string& name, ecs::En
 {
     initAdvancements();
     setupInventoryCallback();
+    cooldownTracker().setListener([this](const ResourceLocation& group, i32 duration) {
+        mc::network::ir::play::Cooldown packet{group.toString(), duration};
+        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}}));
+    });
 }
 
 void ServerPlayer::initAdvancements()
