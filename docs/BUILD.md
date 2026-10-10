@@ -355,6 +355,8 @@ nightly 使用两个独立的 Linux preset：`linux-clang-ci-tests` 保留 RelWi
 ASan/UBSan，产出服务端与单测；`linux-clang-ci-release` 在独立目录产出无调试信息、无 profiler、
 无 sanitizer 的 Release 服务端与 benchmark。两者均关闭 native-arch，原开发和 fuzz preset 保持原有配置。
 CI 发布前还检查 ELF，并移除静态依赖库可能带入的调试节；仅设置 Release 不足以保证最终包没有调试信息。
+仅在 `MC_ENABLE_SANITIZERS=ON` 时添加 `-Wno-pass-failed`，避免插桩阻止显式向量化时被 `-Werror` 中断；
+非 sanitizer 构建继续把优化转换失败作为编译错误报告。
 
 ```bash
 # ASan + UBSan
