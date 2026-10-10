@@ -32,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -111,9 +112,8 @@ bool SlimeBlock::isStickyBlock(const BlockState& state) const noexcept
 bool SlimeBlock::canStickTo(const BlockState& state, const BlockState& other) const noexcept
 {
     MC_UNUSED(state);
-    // 史莱姆块可以粘住史莱姆块和蜂蜜块
-    const Block& otherBlock = other.getBlock();
-    return otherBlock.isStickyBlock(other);
+    // 黏液可黏住普通方块，蜂蜜是唯一的黏性互斥对象。
+    return !other.is(VanillaBlocks::HONEY_BLOCK);
 }
 
 } // namespace blocks

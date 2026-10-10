@@ -329,3 +329,7 @@ const BlockPos exit = gateway->getExitPortal().value(); // ✅
 
 同一陷阱适用于本目录所有返回 `std::optional` / `Result` 的 getter。
 
+
+### 活塞动画完成
+
+伸出动画的源代理在底座前一格，完成后恢复为活塞头。移除方块实体可能立即销毁自身，必须先保存位置、目标状态和运动模式，再移除并写回方块，之后不得访问成员。

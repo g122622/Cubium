@@ -58,7 +58,7 @@ bool PistonStructureHelper::canMove()
     // 检查起始方块是否可以被推动
     if (!PistonBlock::canPush(*blockState, m_world, m_blockToMove, m_moveDirection, false, m_facing)) {
         // 如果是伸出且方块会被破坏，则可以推动
-        if (m_extending && blockState->getMaterial().getPushReaction() == Material::PushReaction::Destroy) {
+        if (m_extending && blockState->getBlock().getPushReaction(*blockState) == Material::PushReaction::Destroy) {
             m_toDestroy.push_back(m_blockToMove);
             return true;
         }
@@ -72,7 +72,7 @@ bool PistonStructureHelper::canMove()
 
     // 检查粘性方块的分支
     for (size_t i = 0; i < m_toMove.size(); ++i) {
-        const BlockPos& blockPos = m_toMove[i];
+        const BlockPos blockPos = m_toMove[i];
         const BlockState* state = m_world.getBlockState(blockPos);
         if (state && state->isStickyBlock()) {
             if (!_addBranchingBlocks(blockPos)) {
@@ -176,7 +176,7 @@ bool PistonStructureHelper::_addBlockLine(const BlockPos& origin, Direction faci
 
             // 检查所有涉及的粘性方块
             for (i32 i = 0; i <= existingIndex + movedBlocks; ++i) {
-                const BlockPos& blockPos = m_toMove[i];
+                const BlockPos blockPos = m_toMove[i];
                 const BlockState* state = m_world.getBlockState(blockPos);
                 if (state && state->isStickyBlock()) {
                     if (!_addBranchingBlocks(blockPos)) {
@@ -206,7 +206,7 @@ bool PistonStructureHelper::_addBlockLine(const BlockPos& origin, Direction faci
         }
 
         // 会被破坏的方块
-        if (blockState->getMaterial().getPushReaction() == Material::PushReaction::Destroy) {
+        if (blockState->getBlock().getPushReaction(*blockState) == Material::PushReaction::Destroy) {
             m_toDestroy.push_back(forwardPos);
             return true;
         }
@@ -270,7 +270,7 @@ bool PistonStructureHelper::_addBranchingBlocks(const BlockPos& fromPos)
         BlockPos neighborPos = fromPos.offset(dir);
         const BlockState* neighborState = m_world.getBlockState(neighborPos);
 
-        if (neighborState && neighborState->canStickTo(*blockState)) {
+        if (neighborState && blockState->canStickTo(*neighborState)) {
             if (!_addBlockLine(neighborPos, dir)) {
                 return false;
             }

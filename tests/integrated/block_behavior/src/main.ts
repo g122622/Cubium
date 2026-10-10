@@ -1,3 +1,10 @@
+import { registerRepeaterCircuitTests } from "./tests/redstone/RepeaterCircuitTests.js";
+import { registerComparatorCircuitTests } from "./tests/redstone/ComparatorCircuitTests.js";
+import { registerRailCircuitTests } from "./tests/redstone/RailCircuitTests.js";
+import { registerLampCircuitTests } from "./tests/redstone/LampCircuitTests.js";
+import { registerTorchCircuitTests } from "./tests/redstone/TorchCircuitTests.js";
+import { registerPistonCircuitTests } from "./tests/redstone/PistonCircuitTests.js";
+import { registerWireCircuitTests } from "./tests/redstone/WireCircuitTests.js";
 // block_behavior 行为包入口：注册方块行为类 GameTest。
 // 测试按主角方块的 Cubium 实现分类（src/common/world/block/blocks 的目录结构）拆分到 src/tests/ 子目录，
 // 镜像 C++ blocks/ 功能分类（liquid/special/agricultural/building/vegetation 等）。
@@ -302,3 +309,11 @@ registerBeaconTests();
 registerPodzolTests();
 registerMyceliumTests();
 registerDirtPathTests();
+
+registerRepeaterCircuitTests();
+registerComparatorCircuitTests();
+registerRailCircuitTests();
+registerLampCircuitTests();
+registerTorchCircuitTests();
+registerPistonCircuitTests();
+registerWireCircuitTests();

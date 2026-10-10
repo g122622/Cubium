@@ -190,7 +190,7 @@ public:
      * @brief 获取朝向
      *
      * @param state 方块状态
-     * @return Direction 朝向（输出方向）
+     * @return Direction 朝向（主输入方向，输出在相反方向）
      */
     [[nodiscard]] static Direction getFacing(const BlockState& state);
 
@@ -212,7 +212,10 @@ protected:
      * @param pos 方块位置
      * @param state 当前方块状态
      */
-    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+    virtual void updateState(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /// 是否只接受二极管的侧面输入；中继器锁存使用此限制。
+    [[nodiscard]] virtual bool sideInputDiodesOnly() const { return false; }
 
     /**
      * @brief 通知邻居方块更新

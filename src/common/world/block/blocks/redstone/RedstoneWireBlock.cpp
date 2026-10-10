@@ -40,6 +40,7 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -153,10 +154,10 @@ bool RedstoneWireBlock::canConnectTo(const BlockState& state, Direction side)
     }
 
     // 检查中继器 - 只有朝向正确时才连接
-    if (state.is(VanillaBlocks::REDSTONE_REPEATER) || state.is(VanillaBlocks::REDSTONE_COMPARATOR)) {
+    if (state.is(VanillaBlocks::REDSTONE_REPEATER)) {
         Direction facing = RedstoneDiodeBlock::getFacing(state);
-        // 中继器/比较器的输出端朝向我们时才连接
-        return side == facing;
+        // 前后两端传输主信号，侧面不会连接普通红石线。
+        return side == facing || side == Directions::opposite(facing);
     }
 
     // 检查观察者 - 只有观察者的输出端朝向我们时才连接
@@ -309,7 +310,7 @@ i32 RedstoneWireBlock::getWeakPower(
 
     // 水平方向：需要检查连接
     BlockStateProperties::RedstoneSide connection = BlockStateProperties::RedstoneSide::None;
-    switch (side) {
+    switch (Directions::opposite(side)) {
         case Direction::North:
             connection = state.get(BlockStateProperties::REDSTONE_NORTH());
             break;
@@ -451,27 +452,8 @@ i32 RedstoneWireBlock::_calculateInputPower(IWorld& world, const BlockPos& pos, 
     bool prevCanProvidePower = m_canProvidePower;
     m_canProvidePower = false;
 
-    // 1. 从相邻方块获取强信号
-    for (Direction dir : Directions::all()) {
-        BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos);
-
-        if (!neighborState || neighborState->isAir()) {
-            continue;
-        }
-
-        const Block& neighborBlock = neighborState->getBlock();
-
-        // 获取强信号
-        if (neighborBlock.canProvidePower(*neighborState)) {
-            Direction oppositeDir = Directions::opposite(dir);
-            i32 strongPower = neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir);
-            if (strongPower > maxPower) {
-                maxPower = strongPower;
-            }
-        }
-    }
-
+    // 禁止红石线自身输出后，查询相邻信号源及强充能导体。
+    maxPower = world::redstone::RedstonePower::getRedstonePowerFromNeighbors(world, pos);
     // 2. 从相邻红石线获取信号（衰减1）
     if (maxPower < 15) {
         for (Direction dir : Directions::horizontal()) {
@@ -492,6 +474,8 @@ i32 RedstoneWireBlock::_calculateInputPower(IWorld& world, const BlockPos& pos, 
 
             // 检查向上连接
             if (isNormalCube(*neighborState)) {
+                const BlockState* above = world.getBlockState(pos.up());
+                if (above != nullptr && isNormalCube(*above)) continue;
                 BlockPos upPos = neighborPos.up();
                 const BlockState* upState = world.getBlockState(upPos);
                 if (upState && upState->is(this)) {
@@ -529,21 +513,12 @@ i32 RedstoneWireBlock::_getWirePower(IWorld& world, const BlockPos& pos) const
 
 void RedstoneWireBlock::_notifyWireNeighbors(IWorld& world, const BlockPos& pos)
 {
-    // 通知六个方向的相邻方块
+    world.updateNeighbors(pos, *this);
+    // 台阶红石与被充能导体另一侧的消费者都可能相隔两格。
     for (Direction dir : Directions::all()) {
-        BlockPos neighborPos = pos.offset(dir);
-        const BlockState* neighborState = world.getBlockState(neighborPos);
-
-        if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = neighborState->getBlockMutable();
-            neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
-        }
+        world.updateNeighbors(pos.offset(dir), *this);
     }
-
-    // 更新相邻红石线的信号
-    updatePower(world, pos);
 }
-
 BlockActionResult RedstoneWireBlock::onBlockActivated(const BlockState& state,
     IWorld& world,
     const BlockPos& pos,

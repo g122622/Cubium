@@ -95,6 +95,7 @@
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDataManager.hpp"
+#include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -1013,6 +1014,24 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
             if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
                 Block& neighborBlock = neighborState->getBlockMutable();
                 neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
+            }
+        }
+    }
+
+    const bool analogOutputChanged = (!newIsAir && newState->getBlock().hasComparatorInputOverride(*newState)) ||
+        (!oldIsAir && oldState->getBlock().hasComparatorInputOverride(*oldState));
+    if (updateNeighbors && analogOutputChanged) {
+        // 模拟信号变化还要通知隔一块导体的比较器，普通六向通知到不了该位置。
+        for (Direction direction : Directions::horizontal()) {
+            BlockPos checkPos = changedPos.offset(direction);
+            const BlockState* checkState = getBlockState(checkPos);
+            if (checkState != nullptr &&
+                world::redstone::RedstoneHelper::isRedstoneConductor(*this, checkPos, *checkState)) {
+                checkPos = checkPos.offset(direction);
+                checkState = getBlockState(checkPos);
+            }
+            if (checkState != nullptr && checkState->is(VanillaBlocks::REDSTONE_COMPARATOR)) {
+                checkState->getBlockMutable().neighborChanged(*this, checkPos, *sourceBlock, changedPos, false);
             }
         }
     }

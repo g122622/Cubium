@@ -201,17 +201,6 @@ bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTic
 
     TorchBurnoutRecord& record = it->second;
 
-    // 检查是否仍在烧毁冷却中
-    if (record.isBurnedOut) {
-        if (currentTick - record.burnoutTime < static_cast<u64>(BURNOUT_COOLDOWN)) {
-            // 仍在冷却中
-            return true;
-        }
-        // 冷却结束，重置状态
-        record.isBurnedOut = false;
-        record.flipTimes.clear();
-    }
-
     // 移除过期的翻转记录
     while (!record.flipTimes.empty() && currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
         record.flipTimes.pop_front();
@@ -220,15 +209,7 @@ bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTic
     // 记录本次翻转
     record.flipTimes.push_back(currentTick);
 
-    // 检查是否达到烧毁阈值
-    if (static_cast<i32>(record.flipTimes.size()) >= BURNOUT_FLIPS) {
-        // 烧毁！
-        record.isBurnedOut = true;
-        record.burnoutTime = currentTick;
-        return true;
-    }
-
-    return false;
+    return static_cast<i32>(record.flipTimes.size()) >= BURNOUT_FLIPS;
 }
 
 bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) const
@@ -238,15 +219,13 @@ bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) cons
         return false;
     }
 
-    const TorchBurnoutRecord& record = it->second;
-    if (!record.isBurnedOut) {
-        return false;
+    // 被动复查的时间不限制邻居更新；只有窗口内熄灭次数达到阈值才阻止复燃。
+    i32 recentOffEvents = 0;
+    for (u64 tick : it->second.flipTimes) {
+        if (currentTick - tick <= static_cast<u64>(BURNOUT_WINDOW)) ++recentOffEvents;
     }
-
-    // 检查是否仍在冷却中
-    return currentTick - record.burnoutTime < static_cast<u64>(BURNOUT_COOLDOWN);
+    return recentOffEvents >= BURNOUT_FLIPS;
 }
-
 void RedstoneSystem::clearTorchRecord(const BlockPos& pos)
 {
     m_torchRecords.erase(pos);
@@ -254,29 +233,17 @@ void RedstoneSystem::clearTorchRecord(const BlockPos& pos)
 
 void RedstoneSystem::cleanupBurnoutRecords(u64 currentTick)
 {
-    // 清理已过冷却期的记录
+    // 保留检测窗口内的事件，计划刻复查时间由方块调度独立管理。
     auto it = m_torchRecords.begin();
     while (it != m_torchRecords.end()) {
         TorchBurnoutRecord& record = it->second;
 
-        if (record.isBurnedOut) {
-            // 烧毁记录：检查是否已过冷却期
-            if (currentTick - record.burnoutTime >= static_cast<u64>(BURNOUT_COOLDOWN)) {
-                it = m_torchRecords.erase(it);
-                continue;
-            }
-        } else {
-            // 正常记录：清理过期的翻转时间
-            while (!record.flipTimes.empty() &&
-                currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
-                record.flipTimes.pop_front();
-            }
-
-            // 如果没有翻转记录，删除整个记录
-            if (record.flipTimes.empty()) {
-                it = m_torchRecords.erase(it);
-                continue;
-            }
+        while (!record.flipTimes.empty() && currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
+            record.flipTimes.pop_front();
+        }
+        if (record.flipTimes.empty()) {
+            it = m_torchRecords.erase(it);
+            continue;
         }
 
         ++it;

@@ -86,7 +86,7 @@ bool RedstoneWallTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, con
     Direction facing = getFacing(state);
     Direction attachDir = Directions::opposite(facing);
     BlockPos attachPos = pos.offset(attachDir);
-    return world::redstone::RedstonePower::isSidePowered(world, attachPos, attachDir);
+    return world::redstone::RedstonePower::getSignal(world, attachPos, attachDir) > 0;
 }
 
 bool RedstoneWallTorchBlock::_canPlaceAt(IWorld& world, const BlockPos& pos, Direction facing) const
@@ -222,11 +222,6 @@ i32 RedstoneWallTorchBlock::getWeakPower(
     // 不向附着面方向输出信号
     Direction facing = getFacing(state);
     if (side == facing) {
-        return 0;
-    }
-
-    // 检查是否已烧毁
-    if (world::redstone::RedstoneSystem::instance().isTorchBurnedOut(pos, world.currentTick())) {
         return 0;
     }
 

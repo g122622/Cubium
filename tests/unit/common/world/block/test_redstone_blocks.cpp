@@ -37,6 +37,7 @@
 #include "common/world/block/blocks/FenceGateBlock.hpp"
 #include "common/world/block/blocks/HopperBlock.hpp"
 #include "common/world/block/blocks/building/TrapDoorBlock.hpp"
+#include "common/world/block/blocks/redstone/RedstoneTorchBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -79,6 +80,12 @@ public:
         MC_UNUSED(pos);
         MC_UNUSED(side);
         return 15;
+    }
+
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override
+    {
+        return getStrongPower(state, world, pos, side);
     }
 
 private:
@@ -187,6 +194,31 @@ class RedstoneBlockTest : public ::testing::Test {
 protected:
     void SetUp() override { VanillaBlocks::initialize(); }
 };
+
+TEST_F(RedstoneBlockTest, TorchNeighborChangedIgnoresRemovedPosition)
+{
+    RedstoneBlockTestWorld world;
+    const BlockPos pos(10, 64, 10);
+    world.setBlockAt(pos.down(), VanillaBlocks::STONE->defaultState());
+
+    VanillaBlocks::REDSTONE_TORCH->neighborChanged(world, pos, *VanillaBlocks::STONE, pos.east(), false);
+
+    EXPECT_EQ(world.getBlockState(pos), nullptr);
+    EXPECT_EQ(world.setBlockCalls(), 0);
+}
+
+TEST_F(RedstoneBlockTest, TorchNeighborChangedIgnoresReplacementBlock)
+{
+    RedstoneBlockTestWorld world;
+    const BlockPos pos(10, 64, 10);
+    world.setBlockAt(pos, VanillaBlocks::STONE->defaultState());
+
+    VanillaBlocks::REDSTONE_TORCH->neighborChanged(world, pos, *VanillaBlocks::STONE, pos.east(), false);
+
+    ASSERT_NE(world.getBlockState(pos), nullptr);
+    EXPECT_TRUE(world.getBlockState(pos)->is(VanillaBlocks::STONE));
+    EXPECT_EQ(world.setBlockCalls(), 0);
+}
 
 TEST_F(RedstoneBlockTest, DoorBlockPlacement_UsesRedstonePower)
 {

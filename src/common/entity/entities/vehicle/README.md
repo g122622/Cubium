@@ -221,3 +221,7 @@ Entity (基类)
 - **`isInventoryEmpty()`**：有未解包战利品表时返回 `false`（容器可能有物品，但尚未填充），`m_lootFilled` 标志追踪解包状态
 - **`unpackLootTable(Player*)`**：从 `LootTableManager` 获取战利品表，使用 `LootParameterSets::chest()` 构建 `LootContext`，支持玩家幸运值和 `THIS_ENTITY` 参数，生成物品后按堆叠优先填充空槽位
 - **掉落**：`dropInventoryContents()` 和 `remove()` 在掉落前调用 `unpackLootTable(nullptr)` 确保物品已生成
+
+### 矿车方块接触
+
+轨道移动会直接校正矿车位置，不能依赖普通移动路径触发方块接触。每刻在基础状态更新后执行方块接触，即使矿车速度为零，也须触发探测轨和传送门等方块行为。

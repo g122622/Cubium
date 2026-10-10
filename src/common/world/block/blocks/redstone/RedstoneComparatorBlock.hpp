@@ -113,6 +113,9 @@ public:
      */
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
+    /// 计划刻到期后更新模拟输出，而非仅更新通断状态。
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
     // ========== 红石二极管接口实现 ==========
 
     [[nodiscard]] i32 getDelay(const BlockState& state) const override;
@@ -199,16 +202,15 @@ public:
         const BlockRaycastResult& hit) override;
 
 protected:
-    /**
-     * @brief 状态更新时触发
-     *
-     * 重写以在状态变化时更新 BlockEntity 中的输出信号。
-     */
-    void onStateChanged(IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState);
+    /// 输入强度或通断状态变化时安排固定两刻后的采样。
+    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
 private:
     /// 比较器延迟（固定2 tick）
     static constexpr i32 COMPARATOR_DELAY = 2;
+
+    /// 采样输入，写入方块实体，并在输出改变时通知下游。
+    void _refreshOutputState(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 计算输入信号强度（包括容器信号检测）

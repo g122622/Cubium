@@ -66,13 +66,22 @@ public:
     /**
      * @brief 是否响应随机刻
      */
-    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return false; }
+
+    /// 放置时及实体接触时检查矿车，避免依赖随机刻。
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     /**
      * @brief 执行刻
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
+private:
+    /// 检查检测区域内的矿车，并在激活后安排二十刻复查。
+    void _checkPressed(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+
+public:
     // ========== 红石 ==========
 
     /**

@@ -279,9 +279,14 @@ TEST_F(PistonBlockTest, CanPush_HeightLimit)
     BlockPos posInHeight(0, 64, 0);
     EXPECT_TRUE(PistonBlock::canPush(stoneState, m_world, posInHeight, Direction::Up, true, Direction::Up));
 
-    // 超出高度范围的位置（负高度）
-    BlockPos posBelowHeight(0, -1, 0);
+    // 负高度仍属于建筑范围，地形高度不应影响推动。
+    EXPECT_TRUE(PistonBlock::canPush(stoneState, m_world, BlockPos(0, -1, 0), Direction::Up, true, Direction::Up));
+
+    // 实际建筑下界之外不可推动。
+    BlockPos posBelowHeight(0, m_world.getMinBuildHeight() - 1, 0);
     EXPECT_FALSE(PistonBlock::canPush(stoneState, m_world, posBelowHeight, Direction::Up, true, Direction::Up));
+    EXPECT_FALSE(PistonBlock::canPush(
+        stoneState, m_world, BlockPos(0, m_world.getMaxBuildHeight(), 0), Direction::Down, true, Direction::Down));
 }
 
 /**

@@ -44,6 +44,8 @@
 #include "common/world/blockentity/redstone/ComparatorEntity.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>
@@ -195,36 +197,42 @@ bool RedstoneComparatorBlock::shouldBePowered(IWorld& world, const BlockPos& pos
 
 i32 RedstoneComparatorBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // 从 BlockEntity 读取输出信号，实现"前端信号保持"特性
-    if (!isPowered(state)) {
-        return 0;
-    }
-
-    // 尝试从 BlockEntity 读取存储的信号
-    i32 storedSignal = getStoredOutputSignal(world, pos);
-    if (storedSignal > 0) {
-        return storedSignal;
-    }
-
-    // 如果 BlockEntity 中没有存储信号，重新计算
-    return _calculateOutput(world, pos, state);
+    return getStoredOutputSignal(world, pos);
 }
 
-void RedstoneComparatorBlock::onStateChanged(
-    IWorld& world, const BlockPos& pos, const BlockState& oldState, const BlockState& newState)
+void RedstoneComparatorBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 当状态变化时，更新 BlockEntity 中的输出信号
-    if (isPowered(newState)) {
-        i32 outputSignal = _calculateOutput(world, pos, newState);
-        storeOutputSignal(world, pos, outputSignal);
-    } else {
-        storeOutputSignal(world, pos, 0);
+    i32 output = _calculateOutput(world, pos, state);
+    if (output != getStoredOutputSignal(world, pos) || isPowered(state) != shouldBePowered(world, pos, state)) {
+        auto priority = isFacingTowardsRepeater(world, pos, state) ? world::tick::TickPriority::High
+                                                                   : world::tick::TickPriority::Normal;
+        world.tickManager().scheduleBlockTick(pos, *this, COMPARATOR_DELAY, priority);
     }
 }
 
+void RedstoneComparatorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+    _refreshOutputState(world, pos, state);
+}
+
+void RedstoneComparatorBlock::_refreshOutputState(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    i32 output = _calculateOutput(world, pos, state);
+    i32 previous = getStoredOutputSignal(world, pos);
+    storeOutputSignal(world, pos, output);
+    if (previous != output || getMode(state) == ComparatorMode::Compare) {
+        bool powered = shouldBePowered(world, pos, state);
+        BlockState newState = state.with(BlockStateProperties::POWERED(), powered);
+        if (powered != isPowered(state)) {
+            world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        }
+        notifyNeighbors(world, pos, newState);
+    }
+}
 i32 RedstoneComparatorBlock::_calculateOutput(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // 获取主输入信号（背面），包含容器信号检测
+    // 获取主输入端信号，包含容器信号检测
     i32 mainInput = _calculateInputStrength(world, pos, state);
 
     // 获取侧面输入信号
@@ -248,7 +256,7 @@ i32 RedstoneComparatorBlock::_calculateInputStrength(IWorld& world, const BlockP
     i32 input = getInputSignal(world, pos, state);
 
     Direction facing = getFacing(state);
-    BlockPos inputPos = pos.offset(Directions::opposite(facing));
+    BlockPos inputPos = pos.offset(facing);
     const BlockState* inputState = world.getBlockState(inputPos);
 
     if (!inputState || inputState->isAir()) {
@@ -266,40 +274,19 @@ i32 RedstoneComparatorBlock::_calculateInputStrength(IWorld& world, const BlockP
     // 如果输入信号 < 15 且输入端是实体方块
     // 检查实体方块后面是否有容器或物品展示框
     if (input < 15 && world::redstone::RedstoneHelper::isNormalCube(*inputState)) {
-        BlockPos behindPos = inputPos.offset(Directions::opposite(facing));
+        BlockPos behindPos = inputPos.offset(facing);
         const BlockState* behindState = world.getBlockState(behindPos);
 
-        if (behindState && !behindState->isAir()) {
-            const Block& behindBlock = behindState->getBlock();
-
-            // 检查后面的容器信号
-            i32 maxSignal = input;
-            if (behindBlock.hasComparatorInputOverride(*behindState)) {
-                i32 behindSignal = behindBlock.getComparatorInputOverride(*behindState, world, behindPos);
-                maxSignal = std::max(maxSignal, behindSignal);
-            }
-
-            // 检查物品展示框的模拟信号
-            // 物品展示框附着在 behindPos 方块的表面上
-            // 物品展示框的朝向必须与比较器的朝向相同
-            entity::ItemFrameEntity* itemFrame = _findItemFrame(world, facing, behindPos);
-            if (itemFrame != nullptr) {
-                i32 frameSignal = itemFrame->getAnalogOutput();
-                maxSignal = std::max(maxSignal, frameSignal);
-            }
-
-            return maxSignal;
+        std::optional<i32> analog;
+        if (behindState != nullptr && behindState->getBlock().hasComparatorInputOverride(*behindState)) {
+            analog = behindState->getBlock().getComparatorInputOverride(*behindState, world, behindPos);
         }
-
-        // 即使 behindPos 没有方块，也要检查物品展示框
-        // 物品展示框可能附着在 inputPos 方块的背面
-        entity::ItemFrameEntity* itemFrame = _findItemFrame(world, facing, behindPos);
-        if (itemFrame != nullptr) {
-            i32 frameSignal = itemFrame->getAnalogOutput();
-            input = std::max(input, frameSignal);
+        if (entity::ItemFrameEntity* frame = _findItemFrame(world, facing, behindPos)) {
+            analog = std::max(analog.value_or(0), frame->getAnalogOutput());
         }
+        // 找到容器或展示框时，其模拟值覆盖低于满强度的导体输入，即使模拟值更小。
+        if (analog.has_value()) return *analog;
     }
-
     return input;
 }
 
@@ -334,7 +321,7 @@ BlockActionResult RedstoneComparatorBlock::onBlockActivated(const BlockState& st
 
     // 比较器模式改变后需要更新输出
     // 立即触发状态检查
-    updateState(world, pos, newState);
+    _refreshOutputState(world, pos, newState);
 
     return ActionResultType::Success;
 }

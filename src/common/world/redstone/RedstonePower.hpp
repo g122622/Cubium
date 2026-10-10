@@ -115,6 +115,12 @@ public:
     // ========== 充能检测 ==========
 
     /**
+     * @brief 查询信号源向接收者提供的信号，包含导体传递的强信号。
+     * @param side 从接收者指向信号源的方向。
+     */
+    [[nodiscard]] static i32 getSignal(IWorld& world, const BlockPos& pos, Direction side);
+
+    /**
      * @brief 检查方块是否被红石信号充能
      *
      * 当任意方向的强信号或弱信号 > 0 时返回 true。

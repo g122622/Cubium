@@ -112,14 +112,12 @@ TEST_F(RedstoneSystemTest, TorchBurnoutCooldown)
         RedstoneSystem::instance().checkAndRecordTorchFlip(pos, i);
     }
 
-    // 烧毁后仍在冷却中 (tick 50 < 160)
+    // 六十刻窗口包含边界；首个熄灭事件过期后只有七次，不再阻止复燃。
     EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 50));
-
-    // 160 tick后冷却结束 (烧毁发生在tick 7，所以冷却到 tick 167)
-    EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 166));
+    EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 60));
+    EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 61));
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 167));
 }
-
 TEST_F(RedstoneSystemTest, TorchMultiplePositions)
 {
     BlockPos pos1(0, 0, 0);
@@ -169,6 +167,23 @@ TEST_F(RedstoneSystemTest, TorchCleanupExpiredRecords)
     // 冷却结束后清理
     RedstoneSystem::instance().cleanupBurnoutRecords(200);
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 200));
+}
+
+TEST_F(RedstoneSystemTest, TorchCleanupRetainsRecentEventsAfterEarlierBurnout)
+{
+    const BlockPos pos(0, 0, 0);
+    auto& system = RedstoneSystem::instance();
+    for (u64 tick = 0; tick < 8; ++tick)
+        system.checkAndRecordTorchFlip(pos, tick);
+
+    // 旧烧毁已过期，但位置上又发生了七次仍在窗口内的熄灭。
+    for (u64 tick = 110; tick < 117; ++tick)
+        EXPECT_FALSE(system.checkAndRecordTorchFlip(pos, tick));
+    system.cleanupBurnoutRecords(167);
+
+    // 清理只能删除过期事件，不能按旧烧毁时间删除整条位置记录。
+    EXPECT_TRUE(system.checkAndRecordTorchFlip(pos, 168));
+    EXPECT_TRUE(system.isTorchBurnedOut(pos, 168));
 }
 
 // ========== 递归保护测试 ==========

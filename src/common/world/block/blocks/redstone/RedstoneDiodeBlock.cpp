@@ -35,6 +35,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/redstone/RedstoneWireBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -116,13 +118,13 @@ void RedstoneDiodeBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 更新状态
     const BlockState* state = world.getBlockState(pos);
-    if (state) {
-        updateState(world, pos, *state);
+    if (!Block::canSupportRigidBlock(world, pos.down())) {
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
+        return;
     }
+    updateState(world, pos, *state);
 }
-
 BlockState RedstoneDiodeBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -132,48 +134,27 @@ BlockState RedstoneDiodeBlock::updatePostPlacement(const BlockState& state,
 {
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
-
-    // 检查是否需要更新
-    if (!isLocked(world, currentPos, state)) {
-        bool shouldPower = shouldBePowered(world, currentPos, state);
-        bool isCurrentlyPowered = isPowered(state);
-
-        if (shouldPower != isCurrentlyPowered) {
-            // 调度更新
-            world.tickManager().scheduleBlockTick(currentPos, *this, getDelay(state), world::tick::TickPriority::High);
-        }
+    if (facing == Direction::Down && !Block::canSupportRigidBlock(world, currentPos.down())) {
+        return VanillaBlocks::AIR->defaultState();
     }
-
     return state;
 }
 
 void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    // 如果被锁定，不更新
-    if (isLocked(world, pos, state)) {
-        return;
-    }
-
-    bool shouldPower = shouldBePowered(world, pos, state);
-    bool isCurrentlyPowered = isPowered(state);
-
-    if (shouldPower != isCurrentlyPowered) {
-        // 改变状态
-        BlockState newState = state.with(BlockStateProperties::POWERED(), shouldPower);
-        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-
-        // 通知输出端相邻方块更新
-        Direction facing = getFacing(state);
-        BlockPos outputPos = pos.offset(facing);
-        const BlockState* outputState = world.getBlockState(outputPos);
-        if (outputState && !outputState->isAir()) {
-            Block& outputBlock = outputState->getBlockMutable();
-            outputBlock.neighborChanged(world, outputPos, *this, pos, false);
-        }
+    if (isLocked(world, pos, state)) return;
+    bool powered = isPowered(state);
+    bool input = shouldBePowered(world, pos, state);
+    if (powered && input) return;
+    // 熄灭状态收到已安排的上升沿时必须亮起，即使短脉冲已经结束。
+    BlockState newState = state.with(BlockStateProperties::POWERED(), !powered);
+    world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    notifyNeighbors(world, pos, newState);
+    if (!powered && !input) {
+        world.tickManager().scheduleBlockTick(pos, *this, getDelay(state), world::tick::TickPriority::VeryHigh);
     }
 }
-
 i32 RedstoneDiodeBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
@@ -210,69 +191,37 @@ const CollisionShape& RedstoneDiodeBlock::getShape(const BlockState& state) cons
 i32 RedstoneDiodeBlock::getInputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     Direction facing = getFacing(state);
-    Direction inputDir = Directions::opposite(facing);
-    BlockPos inputPos = pos.offset(inputDir);
-
+    BlockPos inputPos = pos.offset(facing);
+    i32 power = world::redstone::RedstonePower::getSignal(world, inputPos, facing);
     const BlockState* inputState = world.getBlockState(inputPos);
-    if (!inputState || inputState->isAir()) {
-        return 0;
+    if (inputState != nullptr && inputState->is(VanillaBlocks::REDSTONE_WIRE)) {
+        power = std::max(power, RedstoneWireBlock::getPower(*inputState));
     }
-
-    const Block& inputBlock = inputState->getBlock();
-
-    // 获取强信号
-    i32 power = inputBlock.getStrongPower(*inputState, world, inputPos, facing);
-
-    // 如果强信号为0，检查红石线
-    if (power < 15 && inputBlock.canProvidePower(*inputState)) {
-        // 可能是红石线
-        i32 weakPower = inputBlock.getWeakPower(*inputState, world, inputPos, facing);
-        power = std::max(power, weakPower);
-    }
-
     return power;
 }
 
 i32 RedstoneDiodeBlock::getPowerOnSides(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     Direction facing = getFacing(state);
-    i32 maxPower = 0;
-
-    // 检查两个侧面（不包括前后）
+    i32 power = 0;
     for (Direction side : Directions::horizontal()) {
-        if (side == facing || side == Directions::opposite(facing)) {
-            continue;
-        }
-
+        if (Directions::getAxis(side) == Directions::getAxis(facing)) continue;
         BlockPos sidePos = pos.offset(side);
         const BlockState* sideState = world.getBlockState(sidePos);
-
-        if (sideState && !sideState->isAir()) {
-            const Block& sideBlock = sideState->getBlock();
-            Direction oppositeSide = Directions::opposite(side);
-
-            // 中继器只能被其他二极管的侧面输出锁定
-            // 关键：侧面二极管的输出端必须朝向当前中继器
-            i32 power = 0;
-
-            // 检查是否是二极管（中继器或比较器）
-            if (isDiode(*sideState)) {
-                // 对于二极管，只有当其输出端朝向当前中继器时才计入锁定信号
-                // 即：侧面二极管的朝向必须与side相同（朝向我们）
-                Direction sideFacing = getFacing(*sideState);
-                if (sideFacing == oppositeSide && isPowered(*sideState)) {
-                    power = sideBlock.getWeakPower(*sideState, world, sidePos, oppositeSide);
-                }
-            }
-            // 注意：红石线和其他信号源不能锁定中继器
-
-            maxPower = std::max(maxPower, power);
+        if (sideState == nullptr) continue;
+        const Block& block = sideState->getBlock();
+        if (sideInputDiodesOnly()) {
+            if (isDiode(*sideState)) power = std::max(power, block.getStrongPower(*sideState, world, sidePos, side));
+        } else if (sideState->is(VanillaBlocks::REDSTONE_BLOCK)) {
+            power = 15;
+        } else if (sideState->is(VanillaBlocks::REDSTONE_WIRE)) {
+            power = std::max(power, RedstoneWireBlock::getPower(*sideState));
+        } else if (block.canProvidePower(*sideState)) {
+            power = std::max(power, block.getStrongPower(*sideState, world, sidePos, side));
         }
     }
-
-    return maxPower;
+    return power;
 }
-
 bool RedstoneDiodeBlock::isDiode(const BlockState& state) const
 {
     const Block& block = state.getBlock();
@@ -282,7 +231,7 @@ bool RedstoneDiodeBlock::isDiode(const BlockState& state) const
 
 bool RedstoneDiodeBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    return getPowerOnSides(world, pos, state) > 0;
+    return false;
 }
 
 i32 RedstoneDiodeBlock::calculateOutputSignal(IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -321,7 +270,7 @@ void RedstoneDiodeBlock::updateState(IWorld& world, const BlockPos& pos, const B
 bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     Direction facing = getFacing(state);
-    BlockPos outputPos = pos.offset(facing);
+    BlockPos outputPos = pos.offset(Directions::opposite(facing));
 
     const BlockState* outputState = world.getBlockState(outputPos);
     if (!outputState) {
@@ -333,38 +282,28 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
         return false;
     }
 
-    // 检查二极管是否不是背向自己
-    // 即：输出端的二极管朝向不能是自己的反方向
+    // 优先更新输出方向相邻、且朝向不同于该输出方向的二极管。
     Direction outputFacing = getFacing(*outputState);
     return outputFacing != Directions::opposite(facing);
 }
 
 void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 通知输入端周围的方块更新
     Direction facing = getFacing(state);
-    Direction inputDir = Directions::opposite(facing);
-    BlockPos inputPos = pos.offset(inputDir);
-
-    // 先通知输入端的方块
-    const BlockState* inputState = world.getBlockState(inputPos);
-    if (inputState && !inputState->isAir()) {
-        Block& inputBlock = inputState->getBlockMutable();
-        inputBlock.neighborChanged(world, inputPos, *this, pos, false);
+    BlockPos outputPos = pos.offset(Directions::opposite(facing));
+    const BlockState* outputState = world.getBlockState(outputPos);
+    if (outputState != nullptr) {
+        outputState->getBlockMutable().neighborChanged(world, outputPos, *this, pos, false);
     }
-
-    // 然后通知输入端周围的其他邻居（除了二极管本身）
+    // 强充能输出方块后，它周围的消费者也要重新读取信号。
     for (Direction dir : Directions::all()) {
-        if (dir == facing) continue; // 跳过输出方向
-
-        BlockPos neighborPos = inputPos.offset(dir);
+        if (dir == facing) continue;
+        BlockPos neighborPos = outputPos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
-        if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = neighborState->getBlockMutable();
-            neighborBlock.neighborChanged(world, neighborPos, *this, inputPos, false);
+        if (neighborState != nullptr) {
+            neighborState->getBlockMutable().neighborChanged(world, neighborPos, *this, outputPos, false);
         }
     }
 }
-
 } // namespace blocks
 } // namespace mc

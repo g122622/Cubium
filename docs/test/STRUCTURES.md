@@ -2,7 +2,7 @@
 
 Cubium 集成测试（GameTest）通过 `.structureName("gametests:xxx")` 指定一个 `.mcstructure` 结构文件作为测试场景。每个结构定义了一组方块的三维排布，测试在此场景内 spawn 实体、放置方块、触发行为并断言结果。
 
-本文档逐一解析 `tests/integrated` 下全部 18 个唯一结构文件，给出：
+本文档逐一解析 `tests/integrated` 下全部 19 个唯一结构文件，给出：
 
 - **尺寸**（X × Y × Z）与 palette（方块调色板）。
 - **每层二维图**（俯视：列=X，行=Z；Y=0 为最底层）。
@@ -25,18 +25,75 @@ Cubium 集成测试（GameTest）通过 `.structureName("gametests:xxx")` 指定
 
 ## 共享结构库
 
-5 个跨包共享结构统一存放于 `tests/integrated/structures/gametests/`，由 `build.mjs` 在构建期复制到每个需要它的包的 `structures/gametests/` 下（与 `utils/` 复用同策略）。这 5 个结构是：
+6 个跨包共享结构统一存放于 `tests/integrated/structures/gametests/`，由 `build.mjs` 在构建期复制到每个需要它的包的 `structures/gametests/` 下（与 `utils/` 复用同策略）。这 6 个结构是：
 
 | 结构 | 尺寸 | 主要用途 |
 |---|---|---|
 | `glass_pit` | 7×5×7 | 通用方块交互测试坑（最常用，397 处引用） |
 | `grass_pen` | 9×5×9 | 草地围栏，生物 AI 与植被测试（113 处） |
 | `fall_tower` | 7×16×7 | 16 层坠落塔，掉落/坠落伤害测试（29 处） |
+| `redstone_lab` | 24×8×16 | 红石长线、活塞推动链及斜坡铁轨；玻璃底板、其余空气 |
 | `mediumglass` | 12×9×11 | 中型玻璃房，生物跳跃/碰撞测试（28 处） |
 | `light_box` | 7×7×7 | 石盒黑箱，光照/融化/氧化测试（65 处） |
 
-> 共享结构在各包的副本由 `.gitignore` 精确忽略（仅忽略这 5 个共享结构名），各包独有结构仍是追踪的源文件。
+> 共享结构在各包的副本由 `.gitignore` 精确忽略（仅忽略这 6 个共享结构名），各包独有结构仍是追踪的源文件。
 
+
+### redstone_lab
+
+**尺寸**：24 × 8 × 16（X × Y × Z），共 3,072 个位置。
+
+**palette**（2 项）：索引 0 为 `minecraft:glass`，索引 1 为 `minecraft:air`。第一方块层包含 384 格玻璃与 2,688 格空气；第二方块层全部为 -1，不预置液体。结构没有实体或方块实体，`structure_world_origin` 为 `[0,0,0]`。
+
+**特征**：Y=0 是完整玻璃底板，Y=1～7 均为空气，没有围墙、顶板或预设电源。玻璃可支撑红石线和轨道，同时避免底板作为红石导体形成意外信号路径。测试自行放置实心支撑、斜坡和电路元件。
+
+**逐层俯视图**：列为 X、行为 Z，`G` 表示玻璃，`·` 表示空气。Y=1～7 的七层具有相同布局。
+
+```text
+── Y=0 ──
+       012345678901234567890123
+Z=0    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=1    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=2    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=3    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=4    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=5    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=6    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=7    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=8    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=9    GGGGGGGGGGGGGGGGGGGGGGGG
+Z=10   GGGGGGGGGGGGGGGGGGGGGGGG
+Z=11   GGGGGGGGGGGGGGGGGGGGGGGG
+Z=12   GGGGGGGGGGGGGGGGGGGGGGGG
+Z=13   GGGGGGGGGGGGGGGGGGGGGGGG
+Z=14   GGGGGGGGGGGGGGGGGGGGGGGG
+Z=15   GGGGGGGGGGGGGGGGGGGGGGGG
+
+── Y=1、2、3、4、5、6、7 ──（每层相同）
+       012345678901234567890123
+Z=0    ························
+Z=1    ························
+Z=2    ························
+Z=3    ························
+Z=4    ························
+Z=5    ························
+Z=6    ························
+Z=7    ························
+Z=8    ························
+Z=9    ························
+Z=10   ························
+Z=11   ························
+Z=12   ························
+Z=13   ························
+Z=14   ························
+Z=15   ························
+```
+
+**坐标约束**：结构局部坐标范围为 X=0～23、Y=0～7、Z=0～15。Cubium 的 GameTest 内容原点比结构方块高一格，因此底板对应 helper 相对 y=1，首层电路位对应 y=2；测试须把所有信号源、运动终点和检测位置保留在结构范围内。
+
+**适用情况**：`block_behavior/src/tests/redstone/` 下七组 `*CircuitTests.ts` 共用本结构，覆盖长距离衰减、活塞推动上限和黏性分支、二极管电路、火把与灯的时序、平面和斜坡铁轨。组件分批注册，减少同时运行的结构与玩家互相影响；运行指引见 [红石电路测试](./REDSTONE_TESTS.md)。
+
+---
 
 ### glass_pit
 **尺寸**：7 × 5 × 7（X × Y × Z）
