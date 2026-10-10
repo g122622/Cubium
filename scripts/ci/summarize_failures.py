@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -317,6 +318,88 @@ def read_benchmark_report(artifacts_dir: Path) -> str:
     return ""
 
 
+def collect_runner_info(artifacts_dir: Path) -> tuple[dict[str, dict], list[str]]:
+    """按 job 读取配置，缺失或损坏只影响配置展示，不改变测试结论。"""
+    runners = {}
+    errors = []
+    for path in sorted(artifacts_dir.rglob("runner-info.json")):
+        try:
+            info = json.loads(path.read_text(encoding="utf-8"))
+            if (not isinstance(info, dict) or info.get("schema_version") != 1
+                    or not isinstance(info.get("job"), str) or info["job"] not in _JOB_LABELS):
+                raise ValueError("unsupported runner configuration schema or job")
+            if any(not isinstance(info.get(key), dict) for key in ("cpu", "system", "disk", "tools", "runner", "build")):
+                raise ValueError("invalid runner configuration fields")
+            job = info["job"]
+            if job in runners:
+                raise ValueError(f"duplicate runner configuration for {job}")
+            runners[job] = info
+        except (OSError, ValueError) as exc:
+            errors.append(f"Cannot read runner configuration {path.relative_to(artifacts_dir)}: {exc}")
+    return runners, errors
+
+
+def _table_text(value: object) -> str:
+    """转义表格数据，避免机器型号或版本文字破坏 Markdown 列与 HTML。"""
+    return html.escape(" ".join(str(value or "—").split())).replace("|", "&#124;")
+
+
+def _gib(value: object) -> str:
+    if isinstance(value, (int, float)) and value > 0:
+        return f"{value / 2**30:.1f} GiB"
+    return "—"
+
+
+def runner_info_table(job_status: dict[str, str], artifacts_dir: Path) -> list[str]:
+    """一行一个任务，紧凑展示机器配置；未执行任务不推测硬件。"""
+    runners, errors = collect_runner_info(artifacts_dir)
+    lines = ["### 各任务机器配置", "",
+             "| Job | CPU / 逻辑核 | 内存 / 磁盘 | 系统 / runner 镜像 | 工具链 |",
+             "|---|---|---|---|---|"]
+    labels = {"compiler": "C++", "linker": "Linker", "cmake": "CMake", "ctest": "CTest",
+              "ninja": "Ninja", "ccache": "ccache", "node": "Node", "npm": "npm",
+              "python": "Python", "gh": "gh"}
+    for job in _JOB_LABELS:
+        info = runners.get(job)
+        if info is None:
+            state = "未运行" if job_status.get(job) == "skipped" else "未采集"
+            lines.append(f"| `{job}` | {state} | — | — | — |")
+            continue
+        cpu = info["cpu"]
+        model = str(cpu.get("model", "")).replace("(R)", "").replace("(TM)", "")
+        cpu_text = f"{_table_text(model)} / {_table_text(cpu.get('logical_cpus'))} 核"
+        disk = info["disk"]
+        memory = (f"RAM {_gib(info.get('memory_bytes'))}<br>"
+                  f"磁盘 {_gib(disk.get('free_bytes'))} / {_gib(disk.get('total_bytes'))} 空闲")
+        system = info["system"]
+        image = info["runner"]
+        system_text = (f"{_table_text(system.get('os'))} · {_table_text(system.get('architecture'))}<br>"
+                       f"{_table_text(system.get('kernel'))}")
+        if image.get("image_version"):
+            system_text += f"<br>{_table_text(image.get('image_os'))} / {_table_text(image['image_version'])}"
+        tools = []
+        for key, tool in info["tools"].items():
+            if not isinstance(tool, dict):
+                continue
+            version = tool.get("version") if tool.get("status") == "ok" else "未安装/不可读取"
+            label = tool.get("name", labels[key]) if key in ("compiler", "linker") else labels.get(key, key)
+            tools.append(f"{_table_text(label)} {_table_text(version)}")
+        if system.get("libc"):
+            tools.append(_table_text(system["libc"]))
+        build = info["build"]
+        if build:
+            tools.append(f"native={_table_text(build.get('MC_ENABLE_NATIVE_ARCH'))}, "
+                         f"sanitizers={_table_text(build.get('MC_ENABLE_SANITIZERS'))}")
+            if "MC_FUZZ_ASAN" in build:
+                tools.append(f"fuzz-ASAN={_table_text(build['MC_FUZZ_ASAN'])}")
+        lines.append(f"| `{job}` | {cpu_text} | {memory} | {system_text} | {'; '.join(tools) or '—'} |")
+    lines.extend(["", "> 内存为总容量；磁盘为空闲 / 总容量（采集时）。工具链为本 job 实际工具版本，"
+                  "测试使用的 C++ 二进制由 build job 提供。完整配置随 nightly-report artifact 归档。", ""])
+    if errors:
+        lines.extend([_details_block("机器配置读取错误", errors, True)])
+    return lines
+
+
 def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
     """判定本次 nightly 是否存在失败项。
 
@@ -391,6 +474,8 @@ def build_body(
             outcome = f"失败 {len(e2e_failures)}；跳过 {len(e2e_skipped)}"
         lines.append(f"| {label} | {_STATUS_ICON.get(status, status)} | {outcome} |")
     lines.append("")
+
+    lines.extend(runner_info_table(job_status, artifacts_dir))
 
     if ctest_failures:
         lines.append("### 单元测试失败用例")
@@ -484,6 +569,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--commit", default="")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--full-out", type=Path, help="写出不截断失败和跳过清单的完整报告")
+    parser.add_argument("--runner-info-out", type=Path, help="归档各 job 的完整机器配置 JSON")
     parser.add_argument(
         "--status-out",
         type=Path,
@@ -498,6 +584,12 @@ def main(argv: list[str]) -> int:
         job_status = {}
 
     body = build_body(job_status, args.artifacts_dir, args.run_url, args.branch, args.commit, True)
+
+    if args.runner_info_out:
+        runners, errors = collect_runner_info(args.artifacts_dir)
+        args.runner_info_out.parent.mkdir(parents=True, exist_ok=True)
+        args.runner_info_out.write_text(json.dumps({"jobs": runners, "errors": errors},
+                                                   ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     if args.full_out:
         args.full_out.parent.mkdir(parents=True, exist_ok=True)
