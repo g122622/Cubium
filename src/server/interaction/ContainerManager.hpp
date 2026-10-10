@@ -226,6 +226,10 @@ public:
     /**
      * @brief 设置容器内容更新回调
      */
+    /** @brief 自动槽位变化的增量回调，避免全量菜单同步清除其他槽位的瞬态状态。 */
+    void setOnContainerSlotUpdate(
+        std::function<void(PlayerId, const AbstractContainerMenu&, i32, const ItemStack&)> callback);
+
     void setOnContainerUpdate(std::function<void(PlayerId, const AbstractContainerMenu&)> callback);
 
 private:
@@ -266,7 +270,7 @@ private:
         BlockPos position;
         /// 自上次下发全量内容以来，菜单槽位是否被服务端自己改动过（熔炉烧出产物、
         /// 燃料被消耗等）。由 tickMenus 消费：置位则重发一次全量并清零。
-        bool slotChangePending = false;
+        std::vector<i32> changedSlots;
     };
 
     std::unordered_map<PlayerId, OpenContainer> m_openContainers;
@@ -281,6 +285,7 @@ private:
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> m_onContainerOpen;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> m_onContainerClose;
     std::function<void(PlayerId, const AbstractContainerMenu&)> m_onContainerUpdate;
+    std::function<void(PlayerId, const AbstractContainerMenu&, i32, const ItemStack&)> m_onContainerSlotUpdate;
     std::function<void(PlayerId, mc::ContainerId, i32, i32)> m_onContainerData;
 };
 

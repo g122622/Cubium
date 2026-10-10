@@ -30,10 +30,14 @@
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/network/backend/java/codecs/ItemEnchantmentsCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/crypto/Crc32c.hpp"
@@ -57,6 +61,12 @@ namespace item {
 namespace component {
 
 namespace {
+
+thread_local usize _patchDepth = 0;
+struct _PatchDepthGuard {
+    _PatchDepthGuard() { ++_patchDepth; }
+    ~_PatchDepthGuard() { --_patchDepth; }
+};
 
 using nbt::tags::compound_tag;
 
@@ -230,6 +240,17 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
             buf.writeVarInt(0);
             return {};
         }
+        case DataComponentType::BundleContents: {
+            const auto contents = items::BundleContents::fromJson(std::get<nlohmann::json>(payload));
+            buf.writeVarInt(static_cast<i32>(contents.size()));
+            for (const auto& stack : contents.items()) {
+                buf.writeVarInt(stack.getCount());
+                buf.writeVarInt(static_cast<i32>(
+                    network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*stack.getItem())));
+                MC_TRY(writePatchToWire(buf, stack.toComponentPatch()));
+            }
+            return {};
+        }
         case DataComponentType::WritableBookContent:
         case DataComponentType::WrittenBookContent: {
             const auto& book = std::get<nlohmann::json>(payload);
@@ -376,6 +397,29 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
             (void)count;
             return DataComponentPayload{std::in_place_index<6>, std::move(pred)};
         }
+        case DataComponentType::BundleContents: {
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 4)
+                return Error(ErrorCode::InvalidData, "Invalid bundle item count");
+            std::vector<ItemStack> contents;
+            for (i32 i = 0; i < count; ++i) {
+                i32 amount = 0, id = 0;
+                MC_TRY_ASSIGN(amount, buf.readVarInt());
+                if (amount <= 0) return Error(ErrorCode::InvalidData, "Empty bundle item");
+                MC_TRY_ASSIGN(id, buf.readVarInt());
+                auto* item = ItemRegistry::instance().getItem(
+                    network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(static_cast<u32>(id)));
+                if (item == nullptr) return Error(ErrorCode::InvalidData, "Unknown bundle item");
+                ItemStack stack(item, amount);
+                auto patch = readPatchFromWire(buf);
+                if (patch.failed()) return patch.error();
+                stack.applyComponentPatch(patch.value());
+                contents.push_back(std::move(stack));
+            }
+            return DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::Json>, items::BundleContents(std::move(contents)).toJson()};
+        }
         case DataComponentType::WritableBookContent:
         case DataComponentType::WrittenBookContent: {
             auto book = nlohmann::json::object();
@@ -482,6 +526,8 @@ Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponent
 
 Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
 {
+    if (_patchDepth >= 64) return Error(ErrorCode::InvalidData, "Item component nesting exceeds limit");
+    _PatchDepthGuard guard;
     DataComponentPatch patch;
     i32 addedCount = 0;
     MC_TRY_ASSIGN(addedCount, buf.readVarInt());

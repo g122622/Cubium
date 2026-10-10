@@ -31,6 +31,7 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
@@ -160,6 +161,16 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             auto list = std::make_unique<nbt::tags::string_list_tag>();
             for (const auto& s : pred.getPredicates()) {
                 list->value.push_back(s);
+            }
+            return list;
+        }
+        case DataComponentType::BundleContents: {
+            auto list = std::make_unique<nbt::tags::compound_list_tag>();
+            const auto contents = items::BundleContents::fromJson(std::get<nlohmann::json>(payload));
+            for (const auto& stack : contents.items()) {
+                compound_tag value;
+                stack.toNbt(value);
+                list->value.push_back(std::move(value));
             }
             return list;
         }
@@ -324,6 +335,14 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 }
             }
             return DataComponentPayload{std::in_place_index<6>, AdventureModePredicate(std::move(preds))};
+        }
+        case DataComponentType::BundleContents: {
+            std::vector<ItemStack> items;
+            if (const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(&tag))
+                for (const auto& value : list->value)
+                    items.push_back(ItemStack::fromNbt(value));
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
+                item::items::BundleContents(std::move(items)).toJson()};
         }
         case DataComponentType::WritableBookContent:
         case DataComponentType::WrittenBookContent:

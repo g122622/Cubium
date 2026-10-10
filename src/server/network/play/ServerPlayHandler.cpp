@@ -183,6 +183,9 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
         case _playPacketIndex<irplay::ContainerButtonClick>():
             m_containerAction.handleContainerButtonClickPacket(playerId, packet);
             break;
+        case _playPacketIndex<irplay::BundleItemSelected>():
+            m_containerAction.handleBundleItemSelectedPacket(playerId, packet);
+            break;
         case _playPacketIndex<irplay::EditBook>():
             m_containerAction.handleEditBookPacket(playerId, packet);
             break;

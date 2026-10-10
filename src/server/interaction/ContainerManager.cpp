@@ -139,7 +139,9 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
             (void)stack;
             auto it = m_openContainers.find(playerId);
             if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
-                it->second.slotChangePending = true;
+                if (std::find(it->second.changedSlots.begin(), it->second.changedSlots.end(), slot) ==
+                    it->second.changedSlots.end())
+                    it->second.changedSlots.push_back(slot);
             }
         });
     }
@@ -200,7 +202,9 @@ bool ContainerManager::openEntityContainer(PlayerId playerId, INamedContainerPro
             (void)stack;
             auto it = m_openContainers.find(playerId);
             if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
-                it->second.slotChangePending = true;
+                if (std::find(it->second.changedSlots.begin(), it->second.changedSlots.end(), slot) ==
+                    it->second.changedSlots.end())
+                    it->second.changedSlots.push_back(slot);
             }
         });
     }
@@ -342,11 +346,14 @@ void ContainerManager::tickMenus()
 
         // 服务端自己改动了槽位（熔炉产出等）→ 重发全量。放在 detectAndSendChanges 之后，
         // 因为槽位变化正是它比对出来的。合并到一个 tick 发一次，避免一 tick 内多槽变化时重发多次。
-        if (openContainer.slotChangePending) {
-            openContainer.slotChangePending = false;
-            if (m_onContainerUpdate) {
+        if (!openContainer.changedSlots.empty()) {
+            if (m_onContainerSlotUpdate) {
+                for (const auto slot : openContainer.changedSlots)
+                    m_onContainerSlotUpdate(playerId, *menu, slot, menu->getSlot(slot)->getItem());
+            } else if (m_onContainerUpdate) {
                 m_onContainerUpdate(playerId, *menu);
             }
+            openContainer.changedSlots.clear();
         }
     }
     for (const auto playerId : invalidMenus) {
@@ -447,7 +454,7 @@ Result<ContainerClickResult> ContainerManager::handleClick(
         // 本次点击已经把全量内容发出去了，清掉 tick 侧的待发标志，避免同一 tick 内重发一次。
         auto it = m_openContainers.find(playerId);
         if (it != m_openContainers.end() && it->second.menu.get() == menu) {
-            it->second.slotChangePending = false;
+            it->second.changedSlots.clear();
         }
     }
 
@@ -496,6 +503,12 @@ void ContainerManager::setOnContainerClose(
     std::function<void(PlayerId, ContainerId, ContainerType, const BlockPos&)> callback)
 {
     m_onContainerClose = std::move(callback);
+}
+
+void ContainerManager::setOnContainerSlotUpdate(
+    std::function<void(PlayerId, const AbstractContainerMenu&, i32, const ItemStack&)> callback)
+{
+    m_onContainerSlotUpdate = std::move(callback);
 }
 
 void ContainerManager::setOnContainerUpdate(std::function<void(PlayerId, const AbstractContainerMenu&)> callback)

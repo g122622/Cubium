@@ -62,6 +62,7 @@ enum class DataComponentType : i32 {
     RepairCost = 19,          // minecraft:repair_cost —— i32
     AttackRange = 30,         // minecraft:attack_range —— record（攻击范围）
     Enchantable = 31,         // minecraft:enchantable —— i32（附魔能力覆盖）
+    BundleContents = 48,      // minecraft:bundle_contents —— 收纳袋物品列表
     WritableBookContent = 52, // minecraft:writable_book_content —— 可编辑书页
     WrittenBookContent = 53,  // minecraft:written_book_content —— 签名书籍
     StoredEnchantments = 41,  // minecraft:stored_enchantments —— 储存附魔

@@ -5,6 +5,7 @@
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
+#include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
@@ -620,4 +621,46 @@ TEST_F(ContainerRequestTest, EditBookValidatesSlotsAndSigningUsesLiteralPagesAnd
     EXPECT_EQ(toItemStackView(restored.value()).componentsPatch, view.componentsPatch);
     route(PlayPacket{EditBook{0, {"overwrite"}, std::string("bad")}});
     EXPECT_EQ(inventory.getItem(0), signedBook);
+}
+
+TEST_F(NetworkTestBase, PlayBundleSelectionAllowsOnlyMinusOneAsNegativeIndex)
+{
+    BundleItemSelected input{36, -1};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{2, 36, 255, 255, 255, 255, 15}));
+    EXPECT_EQ(std::get<BundleItemSelected>(roundTripGeneric(*tables()->playSb, PlayPacket{input})), input);
+    input.selectedItemIndex = -2;
+    buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{input}).success());
+    EXPECT_FALSE(tables()->playSb->decode(buf).success());
+}
+
+TEST_F(ContainerRequestTest, BundleSelectionUsesMenuSlotAndDoesNotPublishTransientState)
+{
+    using item::items::BundleContents;
+    using item::items::BundleItem;
+    auto& inventory = m_server->m_player->inventory();
+    ItemStack bundle(Items::BUNDLE, 1);
+    BundleContents contents(std::vector<ItemStack>{ItemStack(Items::STONE, 1), ItemStack(Items::DIRT, 1)});
+    bundle.getOrCreateTag()["BundleContents"] = contents.toJson();
+    inventory.setItem(0, bundle);
+    ASSERT_TRUE(m_server->containerManager().openPlayerInventoryMenu(1, &inventory));
+    auto* menu = m_server->containerManager().getPlayerInventoryMenu(1);
+    menu->detectAndSendChanges();
+    i32 notifications = 0;
+    menu->addListener([&](i32, ItemStack) { ++notifications; });
+    const auto before = toItemStackView(inventory.getItem(0));
+    route(PlayPacket{BundleItemSelected{36, 1}});
+    EXPECT_EQ(BundleItem::getSelectedItem(inventory.getItem(0)), 1);
+    EXPECT_EQ(toItemStackView(inventory.getItem(0)).componentsPatch, before.componentsPatch);
+    menu->detectAndSendChanges();
+    EXPECT_EQ(notifications, 0);
+    auto restored = fromItemStackView(before);
+    ASSERT_TRUE(restored.success());
+    EXPECT_EQ(BundleContents::fromItemStack(restored.value()).size(), 2);
+    EXPECT_EQ(BundleItem::getSelectedItem(restored.value()), -1);
+    menu->clicked(36, 1, ClickType::Pick, *m_server->m_player);
+    EXPECT_EQ(menu->getCarriedItem().getItem(), Items::DIRT);
+    route(PlayPacket{BundleItemSelected{-1, 0}});
 }

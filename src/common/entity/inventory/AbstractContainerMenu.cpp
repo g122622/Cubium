@@ -169,14 +169,14 @@ void AbstractContainerMenu::detectAndSendChanges()
             changed = !currentStack.isEmpty();
         } else {
             const ItemStack& lastStack = m_lastSlotStates[i];
-            // 物品变化检测：检查物品类型、数量、NBT
-            if (currentStack.isEmpty() != lastStack.isEmpty()) {
-                changed = true;
-            } else if (!currentStack.isEmpty() && !lastStack.isEmpty()) {
-                if (currentStack.getItem() != lastStack.getItem() || currentStack.getCount() != lastStack.getCount() ||
-                    !currentStack.isSameItem(lastStack)) {
-                    changed = true;
-                }
+            changed = currentStack != lastStack;
+            if (changed && currentStack.getTag() != nullptr && lastStack.getTag() != nullptr &&
+                currentStack.getTag()->contains("BundleContents") && lastStack.getTag()->contains("BundleContents")) {
+                auto previous = lastStack.copy();
+                previous.getOrCreateTag()["BundleContents"]["selected"] =
+                    currentStack.getTag()->at("BundleContents").value("selected", -1);
+                changed = previous != currentStack;
+                if (!changed) m_lastSlotStates[i] = currentStack.copy();
             }
         }
 

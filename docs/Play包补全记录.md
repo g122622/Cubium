@@ -21,7 +21,8 @@
 | select_trade（sb:50） | 有效商人菜单内选择报价并填充支付槽；补 merchant_offers（cb:50）前置下行，打开与内容更新时发送完整报价和价格/经验状态 | 已补黄金字节、ItemCost/ItemStack 字段差异、组件谓词、截断、报价边界及自动填充回归；随容器簇构建 |
 | container_button_click（sb:16） | 双 VarInt、菜单 ID/距离/方块校验；附魔等级与资源验证、种子更新、十项属性同步；织布机零基索引、现代旗帜组件、图案标签与图案卷复用；附魔书储存附魔组件 | 已补协议、权限、等级、图层黄金字节和存档回归；随容器簇构建 |
 | edit_book（sb:23） | 限 100 页、UTF-16 页/标题上限、快捷栏/副手验证；签名使用服务器作者和字面组件；现代两类书籍组件存档及网络编码；补 open_book（cb:56）读取成书 | 已补黄金字节、截断、越界、槽位和签名/往返回归；随容器簇构建。外部文本审核服务仍为 TODO，采用本地无过滤策略 |
-| set_beacon、bundle_item_selected | 待处理 | |
+| bundle_item_selected（sb:2） | 当前菜单槽号验证、切换选择与越界清空；现代嵌套物品列表组件；网络/存档不传瞬态索引，自动更新按槽发送 | 已补黄金字节、负数拒绝、真实菜单选中取出、组件往返和无通知回归；随容器簇构建 |
+| set_beacon | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
 
 统计采用 `assets/data/packet_ids.json` 与 `JavaProtocolTables.cpp` 逐项比对；完整实现要求实际收发与业务逻辑，单纯补登记或 TODO 不视为完成。

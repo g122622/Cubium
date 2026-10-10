@@ -3,6 +3,7 @@
 #include "common/entity/inventory/container/AnvilContainer.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/items/special/bundle/BundleItem.hpp"
 #include "common/util/text/Utf8.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -126,6 +127,23 @@ void ContainerActionHandler::handleEditBookPacket(PlayerId playerId, const mc::n
     }
     // TODO: 外部聊天审核服务接入后，保存 Filterable 的审核后文本；当前采用本地无过滤策略。
     player->inventory().setItem(request.slot, stack);
+}
+
+void ContainerActionHandler::handleBundleItemSelectedPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    auto* player = _player(playerId);
+    if (player == nullptr || player->isSpectator()) return;
+    auto* menu = _menu(playerId, *player);
+    const auto& request =
+        std::get<mc::network::ir::play::BundleItemSelected>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (menu == nullptr || request.slotId < 0 || request.slotId >= menu->getSlotCount() ||
+        request.selectedItemIndex < -1)
+        return;
+    auto* slot = menu->getSlot(request.slotId);
+    auto stack = slot->getItem();
+    if (!item::items::BundleItem::isBundleItem(stack)) return;
+    item::items::BundleItem::toggleSelectedItem(stack, request.selectedItemIndex);
+    slot->set(stack);
 }
 
 } // namespace mc::server::net

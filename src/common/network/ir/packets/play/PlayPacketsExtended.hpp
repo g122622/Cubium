@@ -1533,4 +1533,10 @@ struct OpenBook {
     friend bool operator==(const OpenBook&, const OpenBook&) = default;
 };
 
+/** @brief 选择当前菜单某槽位收纳袋的内容项，-1 清空选择。 */
+struct BundleItemSelected {
+    i32 slotId;
+    i32 selectedItemIndex;
+    friend bool operator==(const BundleItemSelected&, const BundleItemSelected&) = default;
+};
 } // namespace mc::network::ir::play

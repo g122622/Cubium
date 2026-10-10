@@ -806,6 +806,16 @@ void StandaloneServer::_setupContainerCallbacks()
                 });
         });
 
+    containerManager().setOnContainerSlotUpdate(
+        [this](PlayerId playerId, const AbstractContainerMenu& menu, i32 slot, const ItemStack& stack) {
+            mc::network::ir::play::ContainerSetSlot update{static_cast<i32>(menu.getId()),
+                menu.incrementStateId(),
+                static_cast<i16>(slot),
+                mc::network::ir::toItemStackView(stack)};
+            sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}});
+        });
     containerManager().setOnContainerUpdate(
         [this, sendContainerContent](
             PlayerId playerId, const AbstractContainerMenu& menu) { sendContainerContent(playerId, menu); });

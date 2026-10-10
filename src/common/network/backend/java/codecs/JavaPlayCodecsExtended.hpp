@@ -2079,4 +2079,20 @@ inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
         });
 }
 
+/** @brief 收纳袋槽位与选中索引均使用 VarInt。 */
+[[nodiscard]] inline auto bundleItemSelectedCodec()
+{
+    return makeCodec<ir::play::BundleItemSelected>(
+        [](B& buf, const ir::play::BundleItemSelected& v) {
+            buf.writeVarInt(v.slotId);
+            buf.writeVarInt(v.selectedItemIndex);
+        },
+        [](B& buf) -> Result<ir::play::BundleItemSelected> {
+            ir::play::BundleItemSelected v{};
+            MC_TRY_ASSIGN(v.slotId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.selectedItemIndex, buf.readVarInt());
+            if (v.selectedItemIndex < -1) return Error(ErrorCode::InvalidData, "Invalid selected bundle index");
+            return v;
+        });
+}
 } // namespace mc::network::backend::java::codecs
