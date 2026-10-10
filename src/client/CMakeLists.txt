@@ -460,6 +460,7 @@ add_executable(minecraft-client
     # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
     ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/ContainerActionHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp

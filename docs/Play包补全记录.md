@@ -17,7 +17,8 @@
 | award_stats（cb:3） | 九类统计 ID 映射及 77 项自定义统计；完整/增量发送、重置零值与请求回复 | 已补黄金字节、计数边界、注册表类型、脏标记独立性、发送失败与真实请求路由测试；Windows 构建及关联测试通过 |
 | set_equipment（cb:100） | 修复卸装空槽未同步与新追踪者缺初始快照；补鞍槽及输入校验 | 已补黄金字节、新追踪装备与卸装清槽回归；Windows 构建及关联测试通过 |
 | update_mob_effect（cb:130） | 修复本人未被追踪时的丢包；登录、重配置、跨维度和新追踪时补效果快照；区分新增/刷新 blend 标志；移除同步共用收口 | 已补黄金字节、无限持续时间、输入范围、队列合并与本人快照回归；Windows 构建及关联测试通过。原生客户端本地效果状态已消费，视觉渐变仍按停维护范围保留 TODO |
-| rename_item、edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
+| rename_item（sb:47） | 接铁砧菜单，过滤控制/格式字符与 50 个 UTF-16 单元上限；验证方块及距离；同步输出与费用 | 已补黄金字节、真实菜单路由、费用、Unicode 边界、失效菜单及旁观者回归；随物品/容器簇集中构建 |
+| edit_book、select_trade、set_beacon、container_button_click、bundle_item_selected | 待处理 | |
 | show_dialog、clear_dialog、waypoint、server_links、entity_position_sync | 待处理 | |
 
 统计采用 `assets/data/packet_ids.json` 与 `JavaProtocolTables.cpp` 逐项比对；完整实现要求实际收发与业务逻辑，单纯补登记或 TODO 不视为完成。

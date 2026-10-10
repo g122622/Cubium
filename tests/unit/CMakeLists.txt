@@ -37,6 +37,7 @@ add_executable(mc_tests
     common/network/JavaCodecPlayContainerTest.cpp
     common/network/JavaCodecPlayPlayerStateRequestsTest.cpp
     common/network/JavaCodecPlayClientStateTest.cpp
+    common/network/JavaCodecPlayContainerActionsTest.cpp
     common/network/JavaCodecPlayLoginStateTest.cpp
     common/network/JavaCodecPlayEntityChunkTest.cpp
     common/network/JavaCodecPlayPlayerSoundTest.cpp
@@ -1999,6 +2000,7 @@ target_sources(mc_tests
         # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
         ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/ContainerActionHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp

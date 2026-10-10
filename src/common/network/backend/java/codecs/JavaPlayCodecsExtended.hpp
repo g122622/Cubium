@@ -1895,4 +1895,15 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 重命名请求为一个 UTF-8 字符串；菜单负责过滤字符和名称长度。 */
+[[nodiscard]] inline auto renameItemCodec()
+{
+    return makeCodec<ir::play::RenameItem>([](B& buf, const ir::play::RenameItem& v) { buf.writeString(v.name); },
+        [](B& buf) -> Result<ir::play::RenameItem> {
+            ir::play::RenameItem v{};
+            MC_TRY_ASSIGN(v.name, buf.readString());
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs

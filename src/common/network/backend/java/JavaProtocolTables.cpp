@@ -259,6 +259,8 @@ using B = buffer::RegistryByteBuf;
         61, PacketType{PacketFlow::Serverbound, "teleport_to_entity"}, 125, codecs::teleportToEntityCodec());
     b.addPacket<ir::play::ClientCommand>(
         11, PacketType{PacketFlow::Serverbound, "client_command"}, 130, codecs::clientCommandCodec());
+    b.addPacket<ir::play::RenameItem>(
+        47, PacketType{PacketFlow::Serverbound, "rename_item"}, 131, codecs::renameItemCodec());
     return b.build();
 }
 

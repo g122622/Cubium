@@ -28,6 +28,7 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "world/block/BlockPos.hpp"
+#include <array>
 #include <memory>
 #include <string>
 
@@ -66,7 +67,7 @@ public:
     static constexpr i32 ANVIL_SLOTS = 3;
 
     /// 输入槽位置
-    static constexpr i32 INPUT_SLOT_X[] = {27, 76}; // 左右两个输入槽
+    static constexpr std::array<i32, 2> INPUT_SLOT_X{27, 76}; // 左右两个输入槽
     static constexpr i32 INPUT_SLOT_Y = 47;
     /// 输出槽位置
     static constexpr i32 OUTPUT_SLOT_X = 134;
@@ -121,7 +122,7 @@ public:
      * @brief 设置重命名名称
      * @param name 新名称（空字符串表示清除）
      */
-    void setItemName(const std::string& name);
+    bool setItemName(const std::string& name);
 
     /**
      * @brief 获取重命名名称

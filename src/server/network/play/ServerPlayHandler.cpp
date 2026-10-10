@@ -79,6 +79,7 @@ ServerPlayHandler::ServerPlayHandler(MinecraftServer& server)
     , m_movement(server)
     , m_blockAction(server)
     , m_entityAction(server)
+    , m_containerAction(server)
     , m_chat(server)
     , m_playerState(server)
     , m_sessionSignal(server)
@@ -175,6 +176,9 @@ void ServerPlayHandler::route(PlayerId playerId, const mc::network::ir::IrPacket
             break;
         case _playPacketIndex<irplay::ClientCommand>():
             m_playerState.handleClientCommandPacket(playerId, packet);
+            break;
+        case _playPacketIndex<irplay::RenameItem>():
+            m_containerAction.handleRenameItemPacket(playerId, packet);
             break;
         case _playPacketIndex<irplay::ClientInformation>():
             m_playerState.handleClientInformationPacket(playerId, packet);

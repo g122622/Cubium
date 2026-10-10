@@ -301,6 +301,7 @@ add_executable(minecraft-server
     # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
     network/play/MovementHandler.cpp
     network/play/BlockActionHandler.cpp
+    network/play/ContainerActionHandler.cpp
     network/play/EntityActionHandler.cpp
     network/play/ChatHandler.cpp
     network/play/PlayerStateHandler.cpp

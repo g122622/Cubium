@@ -1467,4 +1467,10 @@ struct ClientCommand {
     [[nodiscard]] friend bool operator==(const ClientCommand&, const ClientCommand&) noexcept = default;
 };
 
+/** @brief 铁砧重命名请求（C→S，id=47）。 */
+struct RenameItem {
+    std::string name;
+    [[nodiscard]] friend bool operator==(const RenameItem&, const RenameItem&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

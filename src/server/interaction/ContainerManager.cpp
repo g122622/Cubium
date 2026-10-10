@@ -142,19 +142,6 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
         });
     }
 
-    // 进度型容器（熔炉类）的火焰与箭头进度经 tracked i32 同步。每 tick 由 tickMenus() 把状态
-    // 从方块实体刷进这些 i32 并比对变化，变化时经此监听器下推。不注册的话，服务端照常烧炼，
-    // 但客户端那边进度永远是 0。
-    if (auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(m_openContainers[playerId].menu.get());
-        furnaceMenu != nullptr) {
-        const mc::ContainerId openedId = containerId;
-        furnaceMenu->addIntListener([this, playerId, openedId](i32 property, i32 value) {
-            if (m_onContainerData) {
-                m_onContainerData(playerId, openedId, property, value);
-            }
-        });
-    }
-
     _announceContainerOpened(playerId, containerId, type);
 
     return containerId;
@@ -291,6 +278,13 @@ bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventor
 
 void ContainerManager::_installMenuCallbacks(AbstractContainerMenu& menu, PlayerId playerId)
 {
+    const ContainerId containerId = menu.getId();
+    menu.addIntListener([this, playerId, containerId](i32 property, i32 value) {
+        if (m_onContainerData) {
+            m_onContainerData(playerId, containerId, property, value);
+        }
+    });
+
     // 丢弃物品：菜单只负责把「要丢的堆」交给回调，真正生成掉落物实体要由带 world 的玩家实体完成。
     // 本项目管理器此前从未设置该回调，AbstractContainerMenu::dropItem 因此是空操作——
     // 所有第三方客户端（mineflayer 的 toss/tossStack）丢物品都会「客户端以为丢了、服务端没有」。
