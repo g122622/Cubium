@@ -184,6 +184,9 @@ void AbstractMinecartEntity::tick()
     // 调用父类tick
     Entity::tick();
 
+    // 轨道移动会直接校正位置；即使速度为零，也要触发探测轨等方块的实体接触回调。
+    doBlockCollisions();
+
     // 同步乘客位置：矿车自身已在本 tick 移动到新位置（_moveAlongTrack/_moveDerailedMinecart），
     // 须把骑乘实体的 m_builtIn.stateVector->m_pos 更新到矿车当前位置，否则乘客位置永远停在出生点
     // （GameTest minibiomes 矿车载猪超时根因）。对齐 AbstractHorseEntity::tick 的 updatePassengers 模式。

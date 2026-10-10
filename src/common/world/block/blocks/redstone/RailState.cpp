@@ -260,13 +260,7 @@ void RailState::connectTo(RailState& other)
 
 BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentShape)
 {
-    // 参考 MC Java: RailState.place
-    // updateBlock 参数对应 MC Java 中的 movedByPiston 参数：
-    //   true = 活塞移动铁轨时使用，强制更新世界
-    //   false = 放置/邻居更新时使用，仅在形状变化时更新
-    // 注意：MC Java 中还有一个额外的逻辑——当 railshape 计算结果为 null 时
-    // （所有分支均未命中），会回退到 currentShape。当前 C++ 实现已通过
-    // 初始化 shape = currentShape 覆盖了此情况。
+    // 强制模式始终传播连接，普通模式在形状变化时写入并传播。
 
     // 第一步：检查四个水平方向是否有铁轨邻居
     bool north = hasNeighborRail(m_pos.north());
@@ -389,10 +383,8 @@ BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentSh
     const BlockState* oldState = m_world.getBlockState(m_pos);
     bool shapeChanged = oldState == nullptr || *oldState != newState;
 
-    // 第六步：根据模式决定是否直接写入世界和传播连接
-    // updateBlock=true 时（放置或neighborChanged），直接设置方块状态并传播连接
-    // updateBlock=false 时（updatePostPlacement），仅返回计算后的状态，由调用方设置
-    if (shapeChanged && updateBlock) {
+    // 强制放置即使形状未变也须传播连接，否则相邻的低处铁轨无法形成斜坡。
+    if (shapeChanged || updateBlock) {
         m_world.setBlockState(m_pos.x, m_pos.y, m_pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 传播连接到相邻铁轨
@@ -407,7 +399,7 @@ BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentSh
         }
     }
 
-    // 返回结果：updateBlock模式下从世界读取最终状态，否则返回计算值
+    // 强制模式可能通过邻轨通知改变本体状态，返回世界中最终的状态。
     if (updateBlock) {
         const BlockState* resultState = m_world.getBlockState(m_pos);
         return resultState != nullptr ? *resultState : newState;

@@ -64,6 +64,10 @@ public:
      */
     explicit RedstoneRepeaterBlock(const BlockProperties& properties);
 
+    /// 邻居信号变化时同步锁存状态，再按当前输入安排计划刻。
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
+
     // ========== Block 接口重写 ==========
 
     /**
@@ -86,6 +90,10 @@ public:
 
     [[nodiscard]] bool isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
+protected:
+    [[nodiscard]] bool sideInputDiodesOnly() const override { return true; }
+
+public:
     // ========== 中继器特有方法 ==========
 
     /**

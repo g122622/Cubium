@@ -77,6 +77,18 @@ RedstoneRepeaterBlock::RedstoneRepeaterBlock(const BlockProperties& properties)
             .with(BlockStateProperties::LOCKED(), false));
 }
 
+void RedstoneRepeaterBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
+    const BlockState* state = world.getBlockState(pos);
+    bool locked = isLocked(world, pos, *state);
+    if (isLockedState(*state) != locked) {
+        BlockState newState = withLocked(*state, locked);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    }
+    RedstoneDiodeBlock::neighborChanged(world, pos, neighborBlock, neighborPos, isMoving);
+}
+
 BlockState RedstoneRepeaterBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -84,24 +96,11 @@ BlockState RedstoneRepeaterBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
-
-    // 如果更新方向不是中继器的朝向方向，更新 LOCKED 状态
-    Direction blockFacing = getFacing(state);
-    if (Directions::getAxis(facing) != Directions::getAxis(blockFacing)) {
-        // 检查是否被锁定
-        bool locked = isLocked(world, currentPos, state);
-        if (isLockedState(state) != locked) {
-            return withLocked(state, locked);
-        }
-    }
-
-    // 调用基类实现
-    return RedstoneDiodeBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+    BlockState result =
+        RedstoneDiodeBlock::updatePostPlacement(state, facing, facingState, world, currentPos, facingPos);
+    if (!result.is(this)) return result;
+    return withLocked(result, isLocked(world, currentPos, result));
 }
-
 i32 RedstoneRepeaterBlock::getDelay(const BlockState& state) const
 {
     return getDelaySetting(state) * DELAY_MULTIPLIER;
@@ -129,14 +128,8 @@ BlockState RedstoneRepeaterBlock::withLocked(BlockState state, bool locked)
 
 bool RedstoneRepeaterBlock::shouldBePowered(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // 如果被锁定，保持当前状态
-    if (isLockedState(state)) {
-        return isPowered(state);
-    }
-    // 获取输入信号
     return getInputSignal(world, pos, state) > 0;
 }
-
 bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     // 检查侧面是否有来自其他二极管的信号
@@ -155,12 +148,6 @@ BlockActionResult RedstoneRepeaterBlock::onBlockActivated(const BlockState& stat
 
     // 冒险/旁观模式下无建造权限时，禁止切换中继器延迟
     if (!player.mayBuild()) {
-        return ActionResultType::Pass;
-    }
-
-    // 右键点击中继器可以在 1-4 档延迟之间循环切换
-    // 只有未被锁定的中继器才能调整延迟
-    if (isLockedState(state)) {
         return ActionResultType::Pass;
     }
 

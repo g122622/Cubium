@@ -57,8 +57,8 @@ i32 RedstonePower::getStrongPower(IWorld& world, const BlockPos& pos)
     // 遍历六个方向
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        Direction oppositeDir = Directions::opposite(dir);
-        i32 power = getStrongPower(world, neighborPos, oppositeDir);
+        Direction queryDirection = dir;
+        i32 power = getStrongPower(world, neighborPos, queryDirection);
         maxPower = std::max(maxPower, power);
 
         if (maxPower >= MAX_POWER) {
@@ -89,8 +89,8 @@ i32 RedstonePower::getWeakPower(IWorld& world, const BlockPos& pos)
     // 遍历六个方向
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        Direction oppositeDir = Directions::opposite(dir);
-        i32 power = getWeakPower(world, neighborPos, oppositeDir);
+        Direction queryDirection = dir;
+        i32 power = getWeakPower(world, neighborPos, queryDirection);
         maxPower = std::max(maxPower, power);
 
         if (maxPower >= MAX_POWER) {
@@ -109,59 +109,29 @@ bool RedstonePower::isPowered(IWorld& world, const BlockPos& pos)
     return isIndirectlyPowered(world, pos);
 }
 
+i32 RedstonePower::getSignal(IWorld& world, const BlockPos& pos, Direction side)
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir()) return MIN_POWER;
+    i32 power = state->getBlock().getWeakPower(*state, world, pos, side);
+    if (RedstoneHelper::isRedstoneConductor(world, pos, *state)) {
+        power = std::max(power, getStrongPower(world, pos));
+    }
+    return power;
+}
+
 bool RedstonePower::isIndirectlyPowered(IWorld& world, const BlockPos& pos)
 {
-    // 遍历六个方向检查是否有强信号或弱信号输出。
-    // 必须同时检查强信号(getStrongPower)与弱信号(getWeakPower)：
-    //   - 强信号：红石火把的 Down 方向、中继器输出端等，直接充能相邻实体方块。
-    //   - 弱信号：朝上立红石火把对其水平相邻方块输出 15、红石块全方向 15、被充能的实体方块等。
-    // 此前仅查 getStrongPower，导致"朝上立火把水平相邻充能铁轨"这一基岩 vanilla 可观察行为无法复现
-    // （torch 的 getStrongPower 仅 Down 返回 15，水平方向返回 0；但其 getWeakPower 水平方向返回 15），
-    // 进而 PoweredRailBlock::neighborChanged 重算 shouldBePowered 恒为 false，把结构预置的 powered=true
-    // 覆盖成 false，矿车读 powered=false 永不启动（GameTest minibiomes 根因）。
-    // 普通方块 getWeakPower/getStrongPower 默认返回 0（见 Block.hpp 基类默认实现），故遍历无副作用。
     for (Direction dir : Directions::all()) {
-        BlockPos neighborPos = pos.offset(dir);
-        Direction oppositeDir = Directions::opposite(dir);
-
-        const BlockState* neighborState = world.getBlockState(neighborPos);
-        if (!neighborState || neighborState->isAir()) {
-            continue;
-        }
-
-        const Block& neighborBlock = neighborState->getBlock();
-        if (neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
-            return true;
-        }
-        if (neighborBlock.getWeakPower(*neighborState, world, neighborPos, oppositeDir) > 0) {
-            return true;
-        }
+        if (getSignal(world, pos.offset(dir), dir) > 0) return true;
     }
-
     return false;
 }
 
 bool RedstonePower::isSidePowered(IWorld& world, const BlockPos& pos, Direction side)
 {
-    BlockPos neighborPos = pos.offset(side);
-
-    const BlockState* neighborState = world.getBlockState(neighborPos);
-    if (!neighborState || neighborState->isAir()) {
-        return false;
-    }
-
-    const Block& neighborBlock = neighborState->getBlock();
-
-    // 如果相邻方块是红石线，直接获取其信号强度
-    if (neighborState->is(VanillaBlocks::REDSTONE_WIRE)) {
-        return blocks::RedstoneWireBlock::getPower(*neighborState) > 0;
-    }
-
-    // 其他方块：检查强信号
-    Direction oppositeDir = Directions::opposite(side);
-    return neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir) > 0;
+    return getSignal(world, pos.offset(side), side) > 0;
 }
-
 // ========== 特殊信号计算 ==========
 
 i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos)
@@ -171,7 +141,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos)
     // 1. 从相邻信号源获取强信号
     for (Direction dir : Directions::all()) {
         BlockPos neighborPos = pos.offset(dir);
-        Direction oppositeDir = Directions::opposite(dir);
+        Direction queryDirection = dir;
 
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (!neighborState || neighborState->isAir()) {
@@ -182,7 +152,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos)
 
         // 检查强信号
         if (neighborBlock.canProvidePower(*neighborState)) {
-            i32 strongPower = neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir);
+            i32 strongPower = neighborBlock.getStrongPower(*neighborState, world, neighborPos, queryDirection);
             if (strongPower > maxPower) {
                 maxPower = strongPower;
             }
@@ -238,7 +208,7 @@ i32 RedstonePower::getWireInputPower(IWorld& world, const BlockPos& pos)
 i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direction facing)
 {
     // 输入端在比较器的背面（朝向的反方向）
-    BlockPos inputPos = pos.offset(Directions::opposite(facing));
+    BlockPos inputPos = pos.offset(facing);
 
     const BlockState* inputState = world.getBlockState(inputPos);
     if (!inputState || inputState->isAir()) {
@@ -274,43 +244,12 @@ i32 RedstonePower::getComparatorInput(IWorld& world, const BlockPos& pos, Direct
 i32 RedstonePower::getRedstonePowerFromNeighbors(IWorld& world, const BlockPos& pos)
 {
     i32 maxPower = MIN_POWER;
-
     for (Direction dir : Directions::all()) {
-        BlockPos neighborPos = pos.offset(dir);
-        Direction oppositeDir = Directions::opposite(dir);
-
-        const BlockState* neighborState = world.getBlockState(neighborPos);
-        if (!neighborState || neighborState->isAir()) {
-            continue;
-        }
-
-        const Block& neighborBlock = neighborState->getBlock();
-
-        // 只检测能输出红石信号的方块
-        if (!neighborBlock.canProvidePower(*neighborState)) {
-            continue;
-        }
-
-        // 获取强信号
-        i32 strongPower = neighborBlock.getStrongPower(*neighborState, world, neighborPos, oppositeDir);
-        if (strongPower > maxPower) {
-            maxPower = strongPower;
-        }
-
-        // 获取弱信号
-        i32 weakPower = neighborBlock.getWeakPower(*neighborState, world, neighborPos, oppositeDir);
-        if (weakPower > maxPower) {
-            maxPower = weakPower;
-        }
-
-        if (maxPower >= MAX_POWER) {
-            break;
-        }
+        maxPower = std::max(maxPower, getSignal(world, pos.offset(dir), dir));
+        if (maxPower >= MAX_POWER) break;
     }
-
     return maxPower;
 }
-
 // ========== 私有方法 ==========
 
 bool RedstonePower::_canConnectRedstone(const BlockState& state)

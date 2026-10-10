@@ -257,26 +257,25 @@ public:
     /**
      * @brief 烧毁检测窗口（tick）
      *
-     * 在此时间窗口内翻转达到 BURNOUT_FLIPS 次会触发烧毁。
+     * 在此时间窗口内熄灭达到 BURNOUT_FLIPS 次会触发烧毁。
      */
     static constexpr i32 BURNOUT_WINDOW = 60;
 
     /**
-     * @brief 触发烧毁的翻转次数
+     * @brief 触发烧毁的熄灭次数
      */
     static constexpr i32 BURNOUT_FLIPS = 8;
 
     /**
-     * @brief 烧毁后冷却时间（tick）
+     * @brief 烧毁后无外部更新时的被动复查时间（tick）
      */
     static constexpr i32 BURNOUT_COOLDOWN = 160;
 
     /**
      * @brief 记录红石火把翻转并检查是否应烧毁
      *
-     * 此方法实现 MC 1.16.5 的红石火把烧毁机制：
-     * - 在 BURNOUT_WINDOW (60) tick 内翻转 BURNOUT_FLIPS (8) 次会烧毁
-     * - 烧毁后需要等待 BURNOUT_COOLDOWN (160) tick 冷却
+     * 在六十刻内熄灭八次时烧毁。最近事件决定复燃阈值，
+     * 已安排的计划刻决定后续采样时间。
      *
      * @param pos 火把位置
      * @param currentTick 当前游戏 tick
@@ -289,14 +288,14 @@ public:
      *
      * @param pos 火把位置
      * @param currentTick 当前游戏 tick
-     * @return true 如果火把已烧毁且仍在冷却中
+     * @return true 如果窗口内的熄灭次数仍达到烧毁阈值
      */
     [[nodiscard]] bool isTorchBurnedOut(const BlockPos& pos, u64 currentTick) const;
 
     /**
      * @brief 清除火把的烧毁记录
      *
-     * 当火把被移除时调用。
+     * 仅显式清理时调用；普通拆除应保留最近的熄灭历史。
      *
      * @param pos 火把位置
      */

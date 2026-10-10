@@ -106,10 +106,8 @@ bool HoneyBlock::isStickyBlock(const BlockState& state) const noexcept
 bool HoneyBlock::canStickTo(const BlockState& state, const BlockState& other) const noexcept
 {
     MC_UNUSED(state);
-    // 蜂蜜块只能粘住蜂蜜块（不能粘住史莱姆块）
-    // 如果两个都是蜂蜜块，则可以粘连
-    // 检查 other 方块是否是蜂蜜块
-    return other.is(VanillaBlocks::HONEY_BLOCK);
+    // 蜂蜜可黏住普通方块，但与黏液块互不黏连。
+    return !other.is(VanillaBlocks::SLIME_BLOCK);
 }
 
 const CollisionShape& HoneyBlock::getCollisionShape(const BlockState& state) const

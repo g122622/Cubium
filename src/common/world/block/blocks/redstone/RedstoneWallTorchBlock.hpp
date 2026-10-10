@@ -113,7 +113,7 @@ public:
      * @param state 当前方块状态
      * @return true 如果应该熄灭
      */
-    [[nodiscard]] bool shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+    [[nodiscard]] bool shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
 
 private:
     /**

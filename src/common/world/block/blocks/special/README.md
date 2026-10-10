@@ -112,3 +112,7 @@ Block (基类)
 
 ### 三个 GameMasterBlock 的"打开界面"TODO
 - `StructureBlock`、`JigsawBlock`、`CommandBlock` 的 `onBlockActivated` 在权限检查通过后均留有 `// TODO: 打开 XXX 界面`，需配合 StructureBlockEntity/JigsawBlockEntity（尚未实现）、客户端 Screen、专用网络包与 Player 上的 openXxx 方法实现，非简单调用现有 `OpenContainerPacket` 链路。
+
+### 黏性方块推动
+
+黏液和蜂蜜均可黏住普通可移动方块，彼此互不黏连。分支搜索从黏性方块判断黏连；不能用普通邻居的默认接口判断，否则会漏掉普通方块。

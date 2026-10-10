@@ -85,135 +85,87 @@ i32 PoweredRailBlock::getWeakPower(
     return 0;
 }
 
-void PoweredRailBlock::neighborChanged(
-    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+void PoweredRailBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock)
 {
     MC_UNUSED(neighborBlock);
-    MC_UNUSED(neighborPos);
-    MC_UNUSED(isMoving);
-
-    const BlockState* currentState = world.getBlockState(pos);
-    if (!currentState) return;
-
-    // 检查当前位置是否被红石信号充能
-    // 动力铁轨可以接收直接信号或通过其他动力铁轨传导的信号
-    bool shouldBePowered = world::redstone::RedstonePower::isPowered(world, pos);
-
-    // 如果没有直接充能，尝试从相邻的动力铁轨获取信号
-    if (!shouldBePowered) {
-        shouldBePowered = _findPoweredRailSignal(world, pos, *currentState, true) ||
-            _findPoweredRailSignal(world, pos, *currentState, false);
-    }
-
-    bool isCurrentlyPowered = isPowered(*currentState);
-    if (shouldBePowered != isCurrentlyPowered) {
-        BlockState newState = currentState->with(POWERED(), shouldBePowered);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
-
-        // 通知相邻方块更新
-        world.updateNeighbors(pos, *this);
+    bool powered = world::redstone::RedstonePower::isPowered(world, pos) ||
+        _findPoweredRailSignal(world, pos, state, true, 0) || _findPoweredRailSignal(world, pos, state, false, 0);
+    if (powered != isPowered(state)) {
+        BlockState newState = state.with(POWERED(), powered);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
+        // 台阶两端可能相差一格，除本体邻居外还需更新上下位置。
+        world.updateNeighbors(pos.down(), *this);
+        if (getRailShape(state) != RailShape::NorthSouth && getRailShape(state) != RailShape::EastWest) {
+            world.updateNeighbors(pos.up(), *this);
+        }
     }
 }
 
 bool PoweredRailBlock::_findPoweredRailSignal(
-    IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward) const
+    IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward, i32 distance) const
 {
-    // 迭代搜索相连的动力铁轨，最大距离8格
-    // 使用 visited 集合防止重复访问
-    std::unordered_set<BlockPos> visited;
-
-    BlockPos currentPos = startPos;
-    RailShape currentShape = getRailShape(startState);
-
-    for (i32 distance = 0; distance < 8; ++distance) {
-        i32 x = currentPos.x;
-        i32 y = currentPos.y;
-        i32 z = currentPos.z;
-
-        // 根据铁轨形状确定搜索方向
-        switch (currentShape) {
-            case RailShape::NorthSouth:
-                z += checkForward ? 1 : -1;
-                break;
-            case RailShape::EastWest:
-                x += checkForward ? -1 : 1;
-                break;
-            case RailShape::AscendingEast:
-                if (checkForward) {
-                    x -= 1;
-                } else {
-                    x += 1;
-                    y += 1;
-                }
-                break;
-            case RailShape::AscendingWest:
-                if (checkForward) {
-                    x -= 1;
-                    y += 1;
-                } else {
-                    x += 1;
-                }
-                break;
-            case RailShape::AscendingNorth:
-                if (checkForward) {
-                    z += 1;
-                } else {
-                    z -= 1;
-                    y += 1;
-                }
-                break;
-            case RailShape::AscendingSouth:
-                if (checkForward) {
-                    z += 1;
-                    y += 1;
-                } else {
-                    z -= 1;
-                }
-                break;
-            default:
-                // 弯轨不支持动力铁轨的信号传导
-                return false;
-        }
-
-        // 检查当前位置是否为动力铁轨
-        BlockPos checkPos(x, y, z);
-
-        // 检查是否已访问过此位置
-        if (visited.count(checkPos) > 0) {
-            return false; // 防止循环
-        }
-        visited.insert(checkPos);
-
-        const BlockState* checkState = world.getBlockState(checkPos);
-        if (!checkState || !checkState->is(this)) {
-            // 检查下方一格（针对斜坡向下）
-            BlockPos belowPos(x, y - 1, z);
-            if (visited.count(belowPos) > 0) {
-                return false;
+    if (distance >= 8) return false;
+    BlockPos next = startPos;
+    bool checkBelow = true;
+    bool eastWest = false;
+    switch (getRailShape(startState)) {
+        case RailShape::NorthSouth:
+            next.z += checkForward ? 1 : -1;
+            break;
+        case RailShape::EastWest:
+            next.x += checkForward ? -1 : 1;
+            eastWest = true;
+            break;
+        case RailShape::AscendingEast:
+            next.x += checkForward ? -1 : 1;
+            if (!checkForward) {
+                ++next.y;
+                checkBelow = false;
             }
-            visited.insert(belowPos);
-
-            const BlockState* belowState = world.getBlockState(belowPos);
-            if (!belowState || !belowState->is(this)) {
-                return false;
+            eastWest = true;
+            break;
+        case RailShape::AscendingWest:
+            next.x += checkForward ? -1 : 1;
+            if (checkForward) {
+                ++next.y;
+                checkBelow = false;
             }
-            checkPos = belowPos;
-            checkState = belowState;
-        }
-
-        // 检查该动力铁轨是否充能
-        if (isPowered(*checkState)) {
-            return true;
-        }
-
-        // 继续沿同一方向搜索
-        currentPos = checkPos;
-        currentShape = getRailShape(*checkState);
+            eastWest = true;
+            break;
+        case RailShape::AscendingNorth:
+            next.z += checkForward ? 1 : -1;
+            if (!checkForward) {
+                ++next.y;
+                checkBelow = false;
+            }
+            break;
+        case RailShape::AscendingSouth:
+            next.z += checkForward ? 1 : -1;
+            if (checkForward) {
+                ++next.y;
+                checkBelow = false;
+            }
+            break;
+        default:
+            return false;
     }
-
-    return false;
+    return _isSameRailWithPower(world, next, checkForward, distance, eastWest) ||
+        (checkBelow && _isSameRailWithPower(world, next.down(), checkForward, distance, eastWest));
 }
 
+bool PoweredRailBlock::_isSameRailWithPower(
+    IWorld& world, const BlockPos& pos, bool checkForward, i32 distance, bool eastWest) const
+{
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || !state->is(this)) return false;
+    RailShape shape = getRailShape(*state);
+    bool otherEastWest =
+        shape == RailShape::EastWest || shape == RailShape::AscendingEast || shape == RailShape::AscendingWest;
+    if (eastWest != otherEastWest || !isPowered(*state)) return false;
+    // 带电状态只允许继续追踪，不能当成独立电源，否则会无限传电并在断电后自锁。
+    return world::redstone::RedstonePower::isPowered(world, pos) ||
+        _findPoweredRailSignal(world, pos, *state, checkForward, distance + 1);
+}
 RailShape PoweredRailBlock::getRailShape(const BlockState& state) const
 {
     return state.get(SHAPE());

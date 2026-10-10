@@ -69,14 +69,11 @@ RedstoneTorchBlock::RedstoneTorchBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::LIT(), true));
 }
 
-bool RedstoneTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos) const
+bool RedstoneTorchBlock::shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // 检查火把附着方块（下方）是否从下方方向接收到强信号
-    // 即：检查附着方块是否有来自其下方的强信号输入
-    BlockPos belowPos = pos.down();
-    return world::redstone::RedstonePower::isSidePowered(world, belowPos, Direction::Down);
+    MC_UNUSED(state);
+    return world::redstone::RedstonePower::getSignal(world, pos.down(), Direction::Down) > 0;
 }
-
 bool RedstoneTorchBlock::isLit(const BlockState& state)
 {
     return state.get(BlockStateProperties::LIT());
@@ -95,7 +92,7 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
     }
 
     // 检查初始状态是否正确
-    bool shouldBeLit = !shouldBeOff(world, pos);
+    bool shouldBeLit = !shouldBeOff(world, pos, state);
     if (isLit(state) != shouldBeLit) {
         // 需要更新状态
         world.tickManager().scheduleBlockTick(
@@ -105,8 +102,7 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
 
 void RedstoneTorchBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    // 移除时清理烧毁记录
-    world::redstone::RedstoneSystem::instance().clearTorchRecord(pos);
+    // 最近的熄灭事件属于位置历史，拆除重放不能清空该历史。
 
     // 通知相邻方块更新
     for (Direction dir : Directions::all()) {
@@ -126,40 +122,33 @@ void RedstoneTorchBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 更新火把状态
-    const BlockState* state = world.getBlockState(pos);
-    if (state) {
-        updateState(world, pos, *state);
+    if (!Block::canSupportCenter(world, pos.down(), Direction::Up)) {
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
+        return;
     }
+    const BlockState* state = world.getBlockState(pos);
+    updateState(world, pos, *state);
 }
-
 void RedstoneTorchBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
-    // 检查当前应该的状态
-    bool shouldBeLit = !shouldBeOff(world, pos);
-    bool isCurrentlyLit = isLit(state);
-
-    if (isCurrentlyLit != shouldBeLit) {
-        // 记录翻转并检查烧毁
-        if (world::redstone::RedstoneSystem::instance().checkAndRecordTorchFlip(pos, world.currentTick())) {
-            // 烧毁！保持当前状态，调度下一次检查
+    bool off = shouldBeOff(world, pos, state);
+    auto& system = world::redstone::RedstoneSystem::instance();
+    if (isLit(state) && off) {
+        // 先熄灭，再累计熄灭事件；复亮不计入八次烧毁阈值。
+        BlockState newState = state.with(BlockStateProperties::LIT(), false);
+        world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
+        if (system.checkAndRecordTorchFlip(pos, world.currentTick())) {
             world.tickManager().scheduleBlockTick(pos,
                 *this,
                 world::redstone::RedstoneSystem::BURNOUT_COOLDOWN,
                 world::tick::TickPriority::ExtremelyHigh);
-            return;
         }
-
-        // 改变状态
-        BlockState newState = state.with(BlockStateProperties::LIT(), shouldBeLit);
+    } else if (!isLit(state) && !off && !system.isTorchBurnedOut(pos, world.currentTick())) {
+        BlockState newState = state.with(BlockStateProperties::LIT(), true);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
-
-        // 更新相邻方块
-        world::redstone::RedstoneSystem::instance().updateNeighborsExcept(world, pos, *this, Direction::Down);
     }
 }
-
 i32 RedstoneTorchBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
@@ -171,13 +160,8 @@ i32 RedstoneTorchBlock::getWeakPower(
         return 0;
     }
 
-    // 不向下输出信号
-    if (side == Direction::Down) {
-        return 0;
-    }
-
-    // 检查是否已烧毁
-    if (world::redstone::RedstoneSystem::instance().isTorchBurnedOut(pos, world.currentTick())) {
+    // 查询方向向上时，接收者在附着面，不能向其输出。
+    if (side == Direction::Up) {
         return 0;
     }
 
@@ -188,7 +172,7 @@ i32 RedstoneTorchBlock::getWeakPower(
 i32 RedstoneTorchBlock::getStrongPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
-    // 只在向下方向输出强信号（充能下方方块）
+    // 查询方向向下时，接收者位于火把上方，向其提供强信号。
     return side == Direction::Down ? getWeakPower(state, world, pos, side) : 0;
 }
 
@@ -202,7 +186,7 @@ const CollisionShape& RedstoneTorchBlock::getShape(const BlockState& state) cons
 void RedstoneTorchBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 检查是否应该改变状态
-    bool shouldBeLit = !shouldBeOff(world, pos);
+    bool shouldBeLit = !shouldBeOff(world, pos, state);
     bool isCurrentlyLit = isLit(state);
 
     if (isCurrentlyLit != shouldBeLit) {

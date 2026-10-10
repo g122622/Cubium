@@ -153,12 +153,12 @@ Material makeLeavesMaterial()
 
 Material makeGlassMaterial()
 {
-    return MaterialBuilder().solid().opaque(false).pushReaction(Material::PushReaction::Destroy).build();
+    return MaterialBuilder().solid().opaque(false).pushReaction(Material::PushReaction::Normal).build();
 }
 
 Material makeIceMaterial()
 {
-    return MaterialBuilder().solid().opaque(false).pushReaction(Material::PushReaction::Destroy).build();
+    return MaterialBuilder().solid().opaque(false).pushReaction(Material::PushReaction::Normal).build();
 }
 
 Material makeWoolMaterial()
@@ -173,7 +173,7 @@ Material makeSandMaterial()
 
 Material makeIronMaterial()
 {
-    return MaterialBuilder().solid().opaque().pushReaction(Material::PushReaction::Block).build();
+    return MaterialBuilder().solid().opaque().pushReaction(Material::PushReaction::Normal).build();
 }
 
 Material makeSnowMaterial()

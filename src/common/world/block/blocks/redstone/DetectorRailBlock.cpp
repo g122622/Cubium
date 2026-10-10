@@ -37,6 +37,7 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -80,12 +81,32 @@ void DetectorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& co
 void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
+    if (isPowered(state)) _checkPressed(world, pos, state);
+}
+
+void DetectorRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
+{
+    AbstractRailBlock::onBlockAdded(world, pos, state, movedByPiston);
+    const BlockState* current = world.getBlockState(pos);
+    if (current != nullptr && current->is(this)) _checkPressed(world, pos, *current);
+}
+
+void DetectorRailBlock::onEntityCollision(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    MC_UNUSED(entity);
+    if (!world.isClientSide() && !isPowered(state)) _checkPressed(world, pos, state);
+}
+
+void DetectorRailBlock::_checkPressed(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) return;
 
     // 检测矿车并更新状态
     bool shouldBePowered = false;
 
     // 创建检测区域（铁轨上方一格高度）
-    AxisAlignedBB searchBox = AxisAlignedBB::fromBlock(pos.x, pos.y, pos.z);
+    AxisAlignedBB searchBox(pos.x + 0.2, pos.y, pos.z + 0.2, pos.x + 0.8, pos.y + 0.8, pos.z + 0.8);
 
     // 获取区域内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox, nullptr);
@@ -106,13 +127,14 @@ void DetectorRailBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
 
     bool isCurrentlyPowered = isPowered(state);
     if (shouldBePowered != isCurrentlyPowered) {
-        // 更新状态 - 修改传入的state引用
-        state = state.with(POWERED(), shouldBePowered);
-        world.setBlockState(pos.x, pos.y, pos.z, &state, world::BlockUpdateFlags::UPDATE_ALL);
+        BlockState newState = state.with(POWERED(), shouldBePowered);
+        world.setBlockState(pos.x, pos.y, pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
 
         // 通知相邻方块更新
-        world.updateNeighbors(pos, *this);
+        world.updateNeighbors(pos, state.getBlockMutable());
+        world.updateNeighbors(pos.down(), state.getBlockMutable());
     }
+    if (shouldBePowered) world.tickManager().scheduleBlockTick(pos, *this, 20);
 }
 
 i32 DetectorRailBlock::getWeakPower(

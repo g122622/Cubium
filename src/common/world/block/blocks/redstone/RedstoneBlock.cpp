@@ -56,8 +56,8 @@ i32 RedstoneBlock::getStrongPower(
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(side);
-    // 红石块输出强信号强度15到所有方向
-    return world::redstone::RedstonePower::MAX_POWER;
+    // 红石块仅提供弱信号，不会强充能相邻导体。
+    return 0;
 }
 
 } // namespace blocks

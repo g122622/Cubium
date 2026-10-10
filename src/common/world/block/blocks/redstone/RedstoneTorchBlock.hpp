@@ -124,7 +124,7 @@ public:
      * @param pos 火把位置
      * @return true 如果应该熄灭
      */
-    [[nodiscard]] bool shouldBeOff(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] virtual bool shouldBeOff(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 检查火把是否点亮

@@ -75,8 +75,7 @@ public:
     /**
      * @brief 邻居更新
      */
-    void neighborChanged(
-        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
+    void updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock) override;
 
     // ========== 属性访问 ==========
 
@@ -120,6 +119,10 @@ public:
     static const BooleanProperty& POWERED() { return BlockStateProperties::POWERED(); }
 
 private:
+    /// 检查同轴、同类型的带电轨道，并追踪到真正的外部电源。
+    [[nodiscard]] bool _isSameRailWithPower(
+        IWorld& world, const BlockPos& pos, bool checkForward, i32 distance, bool eastWest) const;
+
     /**
      * @brief 沿铁轨方向查找动力信号
      *
@@ -129,10 +132,11 @@ private:
      * @param startPos 起始铁轨位置
      * @param startState 起始铁轨状态
      * @param checkForward 是否向前检查（true为正向，false为反向）
-     * @return 如果找到充能的动力铁轨则返回true
+     * @param distance 已搜索的轨道数量
+     * @return 是否找到未超过距离限制的真实外部电源
      */
     [[nodiscard]] bool _findPoweredRailSignal(
-        IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward) const;
+        IWorld& world, const BlockPos& startPos, const BlockState& startState, bool checkForward, i32 distance) const;
 };
 
 } // namespace blocks

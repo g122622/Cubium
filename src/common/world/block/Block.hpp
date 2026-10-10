@@ -1723,7 +1723,7 @@ public:
      * @param state 方块状态
      * @param world 世界
      * @param pos 方块位置
-     * @param side 信号输出方向
+     * @param side 从信号接收者指向本方块的查询方向
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getWeakPower(
@@ -1742,7 +1742,7 @@ public:
      * @param state 方块状态
      * @param world 世界
      * @param pos 方块位置
-     * @param side 信号输出方向
+     * @param side 从信号接收者指向本方块的查询方向
      * @return 信号强度 (0-15)
      */
     [[nodiscard]] virtual i32 getStrongPower(

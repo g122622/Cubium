@@ -139,6 +139,9 @@ void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const B
     // 注意：MC Java 中此处使用 updateDir(world, pos, state, true)，
     // 第二个参数 true 表示初始放置，会强制更新世界并传播连接到相邻铁轨。
     (void)updateDir(world, pos, state, true);
+    if (m_isStraight) {
+        neighborChanged(world, pos, *this, pos, movedByPiston);
+    }
 }
 
 BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
@@ -168,12 +171,9 @@ BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
         return state;
     }
 
-    // 通过 RailState 重新计算铁轨形状
-    bool hasPower = world::redstone::RedstonePower::isPowered(world, currentPos);
-    RailState railState(world, currentPos, *this, state);
-    return railState.place(hasPower, false, getRailShape(state));
+    // 轨道连接由放置和邻居连接传播管理，普通形状通知不能重算并覆盖斜坡。
+    return state;
 }
-
 void AbstractRailBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {

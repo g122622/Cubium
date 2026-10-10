@@ -112,14 +112,12 @@ TEST_F(RedstoneSystemTest, TorchBurnoutCooldown)
         RedstoneSystem::instance().checkAndRecordTorchFlip(pos, i);
     }
 
-    // 烧毁后仍在冷却中 (tick 50 < 160)
+    // 六十刻窗口包含边界；首个熄灭事件过期后只有七次，不再阻止复燃。
     EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 50));
-
-    // 160 tick后冷却结束 (烧毁发生在tick 7，所以冷却到 tick 167)
-    EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 166));
+    EXPECT_TRUE(RedstoneSystem::instance().isTorchBurnedOut(pos, 60));
+    EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 61));
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 167));
 }
-
 TEST_F(RedstoneSystemTest, TorchMultiplePositions)
 {
     BlockPos pos1(0, 0, 0);

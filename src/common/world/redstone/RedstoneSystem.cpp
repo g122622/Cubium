@@ -201,17 +201,6 @@ bool RedstoneSystem::checkAndRecordTorchFlip(const BlockPos& pos, u64 currentTic
 
     TorchBurnoutRecord& record = it->second;
 
-    // 检查是否仍在烧毁冷却中
-    if (record.isBurnedOut) {
-        if (currentTick - record.burnoutTime < static_cast<u64>(BURNOUT_COOLDOWN)) {
-            // 仍在冷却中
-            return true;
-        }
-        // 冷却结束，重置状态
-        record.isBurnedOut = false;
-        record.flipTimes.clear();
-    }
-
     // 移除过期的翻转记录
     while (!record.flipTimes.empty() && currentTick - record.flipTimes.front() > static_cast<u64>(BURNOUT_WINDOW)) {
         record.flipTimes.pop_front();
@@ -238,15 +227,13 @@ bool RedstoneSystem::isTorchBurnedOut(const BlockPos& pos, u64 currentTick) cons
         return false;
     }
 
-    const TorchBurnoutRecord& record = it->second;
-    if (!record.isBurnedOut) {
-        return false;
+    // 被动复查的时间不限制邻居更新；只有窗口内熄灭次数达到阈值才阻止复燃。
+    i32 recentOffEvents = 0;
+    for (u64 tick : it->second.flipTimes) {
+        if (currentTick - tick <= static_cast<u64>(BURNOUT_WINDOW)) ++recentOffEvents;
     }
-
-    // 检查是否仍在冷却中
-    return currentTick - record.burnoutTime < static_cast<u64>(BURNOUT_COOLDOWN);
+    return recentOffEvents >= BURNOUT_FLIPS;
 }
-
 void RedstoneSystem::clearTorchRecord(const BlockPos& pos)
 {
     m_torchRecords.erase(pos);

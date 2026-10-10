@@ -24,6 +24,7 @@
 #include "LeverBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
@@ -194,6 +195,20 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
     return newState;
 }
 
+BlockActionResult LeverBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+    if (!world.isClientSide()) toggle(world, pos, state);
+    return ActionResultType::Success;
+}
+
 i32 LeverBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
@@ -254,47 +269,16 @@ void LeverBlock::_playClickSound(IWorld& world, const BlockPos& pos, bool powere
 
 void LeverBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 获取拉杆输出方向
-    Direction facing = getFacing(state);
-    AttachFace attachFace = state.get(BlockStateProperties::ATTACH_FACE());
-
-    Direction outputDir = Direction::North; // 默认值
-    BlockPos supportPos = pos;
-    switch (attachFace) {
-        case AttachFace::Floor:
-            outputDir = Direction::Up;
-            supportPos = pos.down();
-            break;
-        case AttachFace::Ceiling:
-            outputDir = Direction::Down;
-            supportPos = pos.up();
-            break;
-        case AttachFace::Wall:
-            outputDir = facing;
-            supportPos = pos.offset(Directions::opposite(facing));
-            break;
-        default:
-            break;
-    }
-
-    // 获取方块引用
-    Block& thisBlock = state.getBlockMutable();
-
-    // 通知输出方向的方块
-    BlockPos outputPos = pos.offset(outputDir);
-    const BlockState* outputState = world.getBlockState(outputPos);
-    if (outputState && !outputState->isAir()) {
-        Block& outputBlock = outputState->getBlockMutable();
-        outputBlock.neighborChanged(world, outputPos, thisBlock, pos, false);
-    }
-
-    // 通过支撑方块传递信号
-    const BlockState* supportState = world.getBlockState(supportPos);
-    if (supportState && !supportState->isAir()) {
-        Block& supportBlock = supportState->getBlockMutable();
-        supportBlock.neighborChanged(world, supportPos, thisBlock, pos, false);
-    }
+    AttachFace face = state.get(BlockStateProperties::ATTACH_FACE());
+    BlockPos supportPos = pos.offset(Directions::opposite(getFacing(state)));
+    if (face == AttachFace::Floor)
+        supportPos = pos.down();
+    else if (face == AttachFace::Ceiling)
+        supportPos = pos.up();
+    Block& block = state.getBlockMutable();
+    world.updateNeighbors(pos, block);
+    // 强充能附着后，附着另一侧的消费者也必须收到更新。
+    world.updateNeighbors(supportPos, block);
 }
-
 } // namespace blocks
 } // namespace mc

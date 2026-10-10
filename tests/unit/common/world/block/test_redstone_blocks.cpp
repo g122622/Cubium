@@ -81,6 +81,12 @@ public:
         return 15;
     }
 
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override
+    {
+        return getStrongPower(state, world, pos, side);
+    }
+
 private:
     /**
      * @brief 创建测试用红石方块属性

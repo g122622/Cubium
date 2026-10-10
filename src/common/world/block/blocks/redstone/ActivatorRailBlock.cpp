@@ -22,91 +22,9 @@
  */
 
 #include "ActivatorRailBlock.hpp"
-#include "common/core/Types.hpp"
-#include "common/util/assert/AssertMacros.hpp"
-#include "common/util/property/Properties.hpp"
-#include "common/util/property/StateContainer.hpp"
-#include "common/util/property/StateHolder.hpp"
-#include "common/world/IWorld.hpp"
-#include "common/world/block/Block.hpp"
-#include "common/world/block/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
-#include "common/world/redstone/RedstonePower.hpp"
-#include <cstddef>
-#include <memory>
-#include <utility>
-#include <vector>
 
-namespace mc {
-namespace blocks {
-
+namespace mc::blocks {
 ActivatorRailBlock::ActivatorRailBlock(const BlockProperties& properties)
-    : AbstractRailBlock(properties, true, false) // isStraight=true: 激活铁轨不支持弯轨, isPowered=false: 不提供红石信号
-{
-    // 创建状态容器（含 SHAPE、POWERED 和 WATERLOGGED 属性）
-    auto container =
-        StateContainer<Block, BlockState>::Builder(*this)
-            .add(SHAPE())
-            .add(POWERED())
-            .add(BlockStateProperties::WATERLOGGED())
-            .create([this](const Block& block,
-                        StateValueIndices valueIndices,
-                        size_t propertyCount,
-                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-                        const std::vector<BlockState*>* allStates,
-                        u32 id) {
-                return std::make_unique<BlockState>(block, valueIndices, propertyCount, propertyLayouts, allStates, id);
-            });
-    createBlockState(std::move(container));
-
-    // 设置默认状态
-    setDefaultState(defaultState()
-            .with(SHAPE(), RailShape::NorthSouth)
-            .with(POWERED(), false)
-            .with(BlockStateProperties::WATERLOGGED(), false));
-}
-
-void ActivatorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
-{
-    // 状态容器在构造函数中创建，此方法留空
-    MC_UNUSED(container);
-}
-
-void ActivatorRailBlock::neighborChanged(
-    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
-{
-    MC_UNUSED(neighborBlock);
-    MC_UNUSED(neighborPos);
-    MC_UNUSED(isMoving);
-
-    // 检查红石信号并更新状态
-    const BlockState* currentState = world.getBlockState(pos);
-    if (!currentState) return;
-
-    // 激活铁轨只需要检查直接红石信号
-    bool shouldBePowered = world::redstone::RedstonePower::isPowered(world, pos);
-
-    bool isCurrentlyPowered = isPowered(*currentState);
-    if (shouldBePowered != isCurrentlyPowered) {
-        BlockState newState = currentState->with(POWERED(), shouldBePowered);
-        world.setBlockState(pos.x, pos.y, pos.z, &newState, world::BlockUpdateFlags::UPDATE_ALL);
-    }
-}
-
-RailShape ActivatorRailBlock::getRailShape(const BlockState& state) const
-{
-    return state.get(SHAPE());
-}
-
-BlockState ActivatorRailBlock::withRailShape(const BlockState& state, RailShape shape) const
-{
-    return state.with(SHAPE(), shape);
-}
-
-bool ActivatorRailBlock::isPowered(const BlockState& state)
-{
-    return state.get(POWERED());
-}
-
-} // namespace blocks
-} // namespace mc
+    : PoweredRailBlock(properties)
+{}
+} // namespace mc::blocks

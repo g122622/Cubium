@@ -164,9 +164,8 @@ bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const Blo
             continue;
         }
 
-        BlockPos neighborPos = pos.offset(dir);
         // 检查相邻方块在该方向是否被充能（从该方向接收强信号）
-        if (world::redstone::RedstonePower::isSidePowered(world, neighborPos, dir)) {
+        if (world::redstone::RedstonePower::isSidePowered(world, pos, dir)) {
             return true;
         }
     }
@@ -179,8 +178,7 @@ bool PistonBlock::shouldBeExtended(IWorld& world, const BlockPos& pos, const Blo
     BlockPos abovePos = pos.up();
     for (Direction dir : Directions::all()) {
         if (dir != Direction::Down) {
-            BlockPos checkPos = abovePos.offset(dir);
-            if (world::redstone::RedstonePower::isSidePowered(world, checkPos, dir)) {
+            if (world::redstone::RedstonePower::isSidePowered(world, abovePos, dir)) {
                 return true;
             }
         }
@@ -197,7 +195,7 @@ bool PistonBlock::canPush(const BlockState& blockState,
     Direction direction)
 {
     // 检查高度限制
-    if (pos.y < 0 || pos.y >= world.getHeight(pos.x, pos.z)) {
+    if (pos.y < world.getMinBuildHeight() || pos.y >= world.getMaxBuildHeight()) {
         return false;
     }
 
@@ -218,10 +216,10 @@ bool PistonBlock::canPush(const BlockState& blockState,
     }
 
     // 检查高度边界（向下推时检查底部，向上推时检查顶部）
-    if (facing == Direction::Down && pos.y == 0) {
+    if (facing == Direction::Down && pos.y == world.getMinBuildHeight()) {
         return false;
     }
-    if (facing == Direction::Up && pos.y >= world.getHeight(pos.x, pos.z) - 1) {
+    if (facing == Direction::Up && pos.y >= world.getMaxBuildHeight() - 1) {
         return false;
     }
 
@@ -238,7 +236,7 @@ bool PistonBlock::canPush(const BlockState& blockState,
             return false;
         }
 
-        Material::PushReaction reaction = blockState.getMaterial().getPushReaction();
+        Material::PushReaction reaction = blockState.getBlock().getPushReaction(blockState);
         switch (reaction) {
             case Material::PushReaction::Block:
                 return false;
@@ -322,7 +320,7 @@ bool PistonBlock::retract(IWorld& world, const BlockPos& pos, const BlockState& 
         if (pullState && !pullState->isAir()) {
             // 检查方块是否可以被拉回
             if (canPush(*pullState, world, pullPos, Directions::opposite(facing), false, facing)) {
-                Material::PushReaction reaction = pullState->getMaterial().getPushReaction();
+                Material::PushReaction reaction = pullState->getBlock().getPushReaction(*pullState);
                 if (reaction == Material::PushReaction::Normal || pullState->is(VanillaBlocks::PISTON) ||
                     pullState->is(VanillaBlocks::STICKY_PISTON)) {
                     // 执行拉回
@@ -421,7 +419,7 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
             world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
     }
 
-    // 如果是伸出，在活塞位置创建移动活塞（用于活塞头动画）
+    // 伸出时在底座前一格创建活塞头动画代理，底座仍保留在原位置。
     if (extending) {
         // 创建活塞头状态（使用引用类型获取持久化的 BlockState）
         // StateHolder::with() 返回 const BlockState&，指向 StateContainer 中预分配的状态
@@ -438,15 +436,15 @@ bool PistonBlock::_doMove(IWorld& world, const BlockPos& pos, Direction facing, 
                 .with(PistonHeadBlock::getTypeProperty(),
                     m_sticky ? PistonHeadBlock::Type::Sticky : PistonHeadBlock::Type::Normal);
 
-        world.setBlockState(pos,
+        world.setBlockState(frontPos,
             &movingState,
             world::BlockUpdateFlags::UPDATE_INVISIBLE | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
 
         // 创建 PistonBlockEntity 用于活塞头
         // pistonHeadState 是持久化引用，可以安全获取其指针
         // 参数：pos, pistonState（活塞头状态）, facing, extending, shouldRenderHead
-        auto entity = std::make_unique<blockentity::PistonBlockEntity>(pos, &pistonHeadState, facing, true, true);
-        world.setBlockEntity(pos, std::move(entity));
+        auto entity = std::make_unique<blockentity::PistonBlockEntity>(frontPos, &pistonHeadState, facing, true, true);
+        world.setBlockEntity(frontPos, std::move(entity));
     }
 
     return true;

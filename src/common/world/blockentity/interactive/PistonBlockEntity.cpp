@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -236,31 +236,22 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
         m_lastProgress = m_progress;
     }
 
-    world.removeBlockEntity(m_pos);
-
-    if (m_shouldRenderHead) {
-        world.setBlockState(m_pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
+    // 移除方块实体可能立即销毁自身，先保存完成写回所需的值。
+    const BlockPos pos = m_pos;
+    const BlockState* pistonState = m_pistonState;
+    const bool retractingSource = m_shouldRenderHead && !m_extending;
+    world.removeBlockEntity(pos);
+    if (retractingSource) {
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL);
         return;
     }
-
-    if (m_pistonState != nullptr) {
-        // 先根据邻居状态更新被移动方块的形状（如栅栏连接、楼梯朝向等）
-        BlockState updatedState = Block::updateFromNeighbourShapes(*m_pistonState, world, m_pos);
+    if (pistonState != nullptr) {
+        // 伸出的源方块最终是活塞头，普通被移动方块则恢复其原始状态。
+        BlockState updatedState = Block::updateFromNeighbourShapes(*pistonState, world, pos);
         world.setBlockState(
-            m_pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
-
-        Block& block = updatedState.getBlockMutable();
-        for (Direction dir : Directions::all()) {
-            const BlockPos neighborPos = m_pos.offset(dir);
-            const BlockState* neighborState = world.getBlockState(neighborPos);
-            if (neighborState != nullptr && !neighborState->isAir()) {
-                Block& neighborBlock = neighborState->getBlockMutable();
-                neighborBlock.neighborChanged(world, neighborPos, block, m_pos, false);
-            }
-        }
+            pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
     }
 }
-
 void PistonBlockEntity::tick(IWorld& world)
 {
     // 记录游戏时间用于漏斗链优化

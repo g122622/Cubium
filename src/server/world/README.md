@@ -381,3 +381,7 @@ data/end_dragon_fight.json
 - 未注册 `m_onBroadcastBlockEntity` 回调时调用 `broadcastBlockEntity()` 不会崩溃（空回调检查）。
 - 回调注册通过 `setOnBroadcastBlockEntity()` 完成，由 `MinecraftServer::attachWorldBindings()` 在世界加载时统一注册。
 - 对应的客户端接收路径：`ClientPlayVisitor` 处理 `ir::play::BlockEntityData` → `ClientWorld::onBlockEntityData()` → `BlockEntity::loadFromNBT()`。
+
+### 隔导体的比较器通知
+
+模拟输出方块发生状态变化、放置或移除时，除普通邻居通知外，还须通知隔一块红石导体的比较器。只通知紧邻方块会使容器输出变化后比较器保留旧值。
