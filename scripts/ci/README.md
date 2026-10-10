@@ -6,6 +6,7 @@
 ci/
 ├── summarize_failures.py       # 汇总失败、跳过和报告错误，生成简要及完整报告
 ├── collect_runner_info.py      # 采集各 job 的硬件、系统镜像和实际工具版本
+├── prepare_build_artifacts.py  # 核验 ELF 与构建配置，归档实际动态库依赖
 ├── compare_benchmark.py        # 比较两轮 CPU 和内存指标
 ├── symbolize_crash.py          # 用调试二进制还原崩溃栈
 ├── prune_caches.py             # 清理指定前缀的旧缓存
@@ -27,3 +28,5 @@ GitHub CLI，符号化依赖 LLVM 工具和带调试信息的二进制。
 - 构建工具版本优先读取 CMakeCache 选中的路径；测试机器预装的编译器不是产物编译器。
 - 未运行与未采集的机器配置要明确区分；采集/解析错误只影响配置展示，不改变测试结论。
 - 回归验证入口为 `python -m unittest discover -s scripts/ci/tests`。
+- 发布二进制不能含调试节或 sanitizer 符号；测试二进制必须有两种 sanitizer 和调试信息。
+- benchmark 只比较相同 `ci_build_profile` 的结果，避免跨优化配置产生错误告警。

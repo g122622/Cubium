@@ -91,9 +91,17 @@ def build_report(current: dict, previous: dict | None, cpu_threshold: float, mem
     lines.append("# Benchmark 跨日对比")
     lines.append("")
 
+    # 切换发布配置后重新建立基线，不把优化、profiler 或 sanitizer 差异误报为代码性能变化。
+    if previous is not None:
+        current_profile = current.get("context", {}).get("ci_build_profile")
+        previous_profile = previous.get("context", {}).get("ci_build_profile")
+        if current_profile != previous_profile:
+            lines.extend(["> 两轮 benchmark 的构建配置不同，本次重新建立基线，不做跨配置性能比较。", ""])
+            previous = None
+
     current_entries = index_entries(current)
     if previous is None:
-        lines.append("> 未找到上一次 nightly 的 benchmark 结果，本次仅列出概览，不做对比。")
+        lines.append("> 没有可比较的同配置 benchmark 基线，本次仅列出概览，不做对比。")
         lines.append("")
         lines.append("| 用例 | 条目 | 时间 (ns) | 变化 |")
         lines.append("|---|---|---|---|")

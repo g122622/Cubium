@@ -44,7 +44,7 @@ class SummarizeFailuresTest(unittest.TestCase):
         for job in summary._JOB_LABELS:
             self.write_runner(job)
         table = "\n".join(summary.runner_info_table({}, self.artifacts))
-        self.assertEqual(sum(line.startswith("| `") for line in table.splitlines()), 7)
+        self.assertEqual(sum(line.startswith("| `") for line in table.splitlines()), 8)
         self.assertIn("Intel Xeon &#124; Test &lt;CPU&gt; / 4 核", table)
         self.assertIn("RAM 16.0 GiB", table)
         self.assertIn("50.0 GiB / 80.0 GiB", table)
@@ -203,6 +203,23 @@ class SummarizeFailuresTest(unittest.TestCase):
         )
         results = summary.collect_ctest_results(self.artifacts)
         self.assertEqual(results["skipped"], ["MissingItem — Stone item not registered"])
+
+    def test_sanitizer_error_in_skipped_case_still_fails_report(self):
+        self.write_report("ctest-results.xml", '<testcase name="Skipped"><skipped/>'
+                          '<system-out>==42==ERROR: LeakSanitizer: detected memory leaks</system-out></testcase>')
+        results = summary.collect_ctest_results(self.artifacts)
+        self.assertEqual(len(results["skipped"]), 1)
+        self.assertIn("Sanitizer failure", results["errors"][0])
+        self.assertTrue(summary.has_failures({"unit-tests": "success"}, self.artifacts))
+
+    def test_sanitizer_log_cannot_be_clean_even_when_junit_passes(self):
+        self.write_report("ctest-results.xml", '<testcase name="Passed"/>')
+        (self.artifacts / "ctest-output.log").write_text(
+            "==42==ERROR: AddressSanitizer: heap-use-after-free\n", encoding="utf-8")
+        self.assertTrue(summary.has_failures({"unit-tests": "success"}, self.artifacts))
+        body = summary.build_body({}, self.artifacts, "https://example/run/1", "main", "abc", True)
+        self.assertIn("ASan / UBSan 检测结果", body)
+        self.assertIn("heap-use-after-free", body)
 
 
 if __name__ == "__main__":

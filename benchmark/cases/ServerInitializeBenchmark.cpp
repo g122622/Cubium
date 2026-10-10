@@ -57,11 +57,9 @@ using namespace mc::trace;
 
 namespace {
 
-// 被测服务端可执行文件路径（相对当前工作目录，通常在仓库根目录运行 mc_benchmark）。
-// 与 mc_benchmark 二进制的相对位置关系由构建布局决定（build/bin/RelWithDebInfo/）。
-constexpr const char* SERVER_EXECUTABLE = "build/bin/RelWithDebInfo/minecraft-server";
+// CMake 注入与当前基准相同配置的服务端目标路径，支持独立的 Release 构建目录。
+constexpr const char* _SERVER_EXECUTABLE = MC_BENCHMARK_SERVER_EXECUTABLE;
 #ifdef _WIN32
-constexpr const char* SERVER_EXECUTABLE_WITH_EXT = "build/bin/RelWithDebInfo/minecraft-server.exe";
 
 /// ASCII 字面量（被测可执行文件路径、benchmark flag 名）→ 宽字符。
 [[nodiscard]] std::wstring widenAscii(std::string_view ascii)
@@ -155,7 +153,7 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
     // 当前 ANSI 代码页转回窄 argv，因此临时目录路径中超出该代码页的字符仍无法传递；如需
     // 完全 Unicode 支持，须服务端改用 wmain / UTF-8 argv（app manifest activeCodePage）。
     const std::filesystem::path configPath = worldDir / "server_options.json";
-    const std::wstring wideExecutable = widenAscii(SERVER_EXECUTABLE_WITH_EXT);
+    const std::wstring wideExecutable = widenAscii(_SERVER_EXECUTABLE);
     std::wstring wideCommandLine = L"\"" + wideExecutable + L"\" " + widenAscii(modeFlag) + L" --config \"" +
         configPath.wstring() + L"\" --profiler_enabled=false";
 
@@ -247,8 +245,8 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
         std::signal(SIGALRM, [](i32) { _exit(EXIT_CODE_TIMEOUT); });
         alarm(static_cast<unsigned>(LAUNCH_TIMEOUT_MS / 1000));
 
-        execl(SERVER_EXECUTABLE,
-            SERVER_EXECUTABLE,
+        execl(_SERVER_EXECUTABLE,
+            _SERVER_EXECUTABLE,
             modeFlag.c_str(),
             "--config",
             configPath.c_str(),

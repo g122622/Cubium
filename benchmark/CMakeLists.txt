@@ -219,3 +219,11 @@ endif()
 
 mc_set_compiler_warnings(mc_benchmark)
 target_compile_features(mc_benchmark PRIVATE cxx_std_20)
+
+# 启动基准必须测同一配置的服务端，不能硬编码为 RelWithDebInfo。
+if(NOT TARGET minecraft-server)
+    message(FATAL_ERROR "mc_benchmark requires MC_BUILD_SERVER=ON")
+endif()
+target_compile_definitions(mc_benchmark PRIVATE
+    MC_BENCHMARK_SERVER_EXECUTABLE="$<TARGET_FILE:minecraft-server>")
+add_dependencies(mc_benchmark minecraft-server)

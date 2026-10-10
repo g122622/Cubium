@@ -21,16 +21,17 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 ### 为什么拆成多个 job
 
 GitHub Actions 单个 job 有 **6 小时硬上限**。本项目百万行 C++ 的构建耗时长、单元测试用例数以万计、
-fuzz 约 45 分钟，串行放在一个 job 里必然超时。因此拆为「1 个构建 job + 5 个测试 job + 1 个汇总 job」，
+fuzz 约 45 分钟，串行放在一个 job 里必然超时。因此拆为「2 个构建 job + 5 个测试 job + 1 个汇总 job」，
 测试 job 从构建 job 的 artifact 取二进制，不各自重复构建。
 
 ### Job 拓扑
 
 ```
-build ─┬─> unit-tests
-       ├─> integrated-tests
-       ├─> e2e-tests
-       └─> benchmark
+build（ASan/UBSan）─┬─> unit-tests
+                   ├─> integrated-tests
+                   └─> e2e-tests
+release-build ──> benchmark（独立 runner）
+       └───────> 公开 nightly Release
 fuzz ──（独立，自行构建）
 
 以上全部 ──> report（if: always()，汇总 + 建 issue）
@@ -38,12 +39,13 @@ fuzz ──（独立，自行构建）
 
 | Job | 内容 | 是否阻塞 |
 |---|---|---|
-| `build` | `linux-relwithdebinfo` 构建，上传 artifact，建 nightly Release | 是 |
+| `build` | `linux-clang-ci-tests`，RelWithDebInfo + ASan/UBSan，仅供测试 | 是 |
+| `release-build` | `linux-clang-ci-release`，Release、无调试信息/profiler/sanitizer，公开发布 | 是 |
 | `unit-tests` | `ctest` 全量单元测试 | **否**（仅归档） |
 | `integrated-tests` | `scripts/test/run-gametests.ts`（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
 | `e2e-tests` | `tests/e2e/bot` 的 `regress` 模式（仅 Cubium，不与 vanilla 双跑） | 是 |
 | `fuzz` | 9 个 libFuzzer 目标各 `-max_total_time=300` | 是（崩溃/OOM 即失败） |
-| `benchmark` | `mc_benchmark`，与上一次 nightly 对比 | **否**（仅记录 + 告警） |
+| `benchmark` | 独立机器执行 release-build 的 `mc_benchmark` 与服务端，与相同构建配置的上次结果对比 | **否**（仅记录 + 告警） |
 | `report` | 汇总各 job 结果，有失败则建 issue | — |
 
 **为什么单元/集成测试不阻塞**：项目存在大量历史遗留失败（`CLAUDE.md` 亦明确指出「很多测试错误是
@@ -71,6 +73,25 @@ gh workflow run nightly.yml
 ```
 
 cron 为 `0 13 * * *`（UTC）—— GitHub 的 cron 一律按 UTC 解释，13:00 UTC 即北京时间 21:00。
+
+### 两条构建链与发布边界
+
+- 测试构建保留 `build/bin/RelWithDebInfo` 布局与调试符号，C/C++ 都加入
+  `-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer`，链接器同样启用 ASan/UBSan。
+  `MC_ENABLE_SANITIZERS=ON` 负责使用适合 sanitizer 的优化选项，不能替代上述插桩参数。
+  `test-build-artifacts` 只供单元、集成与 e2e 下载，不公开发布，也不生成 benchmark。
+- 发布构建使用 `build-release-noprof/bin/Release`，编译明确设 `-g0`，关闭 Perfetto、Tracy、
+  memory tracing 和 sanitizer；发布前 strip 并检查 ELF 无调试节、无 ASan/UBSan 运行库符号。
+  `release-build-artifacts` 含 Release 服务端和 benchmark；公开 tar.gz 仅含服务端及所需的非系统动态库。
+- 两条构建均关闭 `native-arch`，允许跨 runner 运行；fuzz 的 preset、局部插桩和执行流程保持原状。
+- benchmark 使用独立 runner，只下载 Release artifact。启动服务端用例由 CMake 注入同配置的
+  `minecraft-server` 目标路径，不会误用 sanitizer 服务端。Google Benchmark 的内存计数保留在基准工具内，
+  不会被链接进公开服务端。
+- 发布构建使用独立 `ccache-linux-release-*` 缓存，与测试及 fuzz 缓存分开，保存后各保留最新一份。
+
+`prepare_build_artifacts.py` 同时核验配置与 ELF 二进制，收集 `ldd` 中实际使用的 vcpkg/Clang 动态库；
+系统 libc 和加载器由运行系统提供。测试构建必须含调试信息和两种 sanitizer 符号，否则 job 失败。
+sanitizer 错误立即终止进程，日志与现有 JUnit/崩溃产物一起归档；原测试时间限制继续生效。
 
 ### 数据包依赖
 
@@ -103,14 +124,16 @@ https://github.com/misode/mcmeta/archive/refs/tags/1.21.11-data.zip
 
 超阈值的项在报告中列出并触发 `::warning::`，但**不 fail**。判定真实回归应结合连续多晚的趋势，
 而非单晚的单点差异——托管 runner 的实例差异本身就足以造成超过阈值的抖动。
+结果 context 记录 `ci_build_profile=release-noprof-nosan-v1`；与历史不同配置的结果不做性能比较，
+首次切换 Release 时重新建立基线，后续相同配置才按原阈值比较。
 
 ### 失败归档与 issue
 
-报告在 job 结论之后用一张表汇总全部 7 个任务的机器配置：CPU 型号和可用逻辑核数、
+报告在 job 结论之后用一张表汇总全部 8 个任务的机器配置：CPU 型号和可用逻辑核数、
 物理内存总量、采集时工作区磁盘空闲/总容量、发行版、架构、内核、GitHub runner 镜像版本，
 以及各任务相关的编译器、链接器、CMake/Ninja/ccache、CTest、Node/npm、Python、gh 和 libc 版本。
 build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，并附 native、全局 sanitizer 与 fuzz-ASAN 开关；
-其他测试任务复用 build 产物，表格中的工具版本对应其运行环境。
+单元/集成/e2e 复用 build 产物，benchmark 复用 release-build 产物；表格中的工具版本对应其运行环境。
 
 配置采集在各任务上传结果前执行，使用 `if: always()` 和 `continue-on-error: true`，
 因此构建或测试失败时仍能记录，采集失败不会覆盖原任务结论。每个 artifact 中有

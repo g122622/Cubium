@@ -42,6 +42,9 @@ _E2E_SKIP_LINE = re.compile(r"^\s*\[跳过\]\s+(\S+)\s*$")
 # e2e 的汇总行：  "合计：48 条，通过 45，失败 3，跳过 0（见上方原因）"
 _E2E_SUMMARY = re.compile(r"^\s*合计：.*失败\s*(\d+)")
 
+_SANITIZER_MARKERS = ("ERROR: AddressSanitizer:", "ERROR: LeakSanitizer:",
+                      "AddressSanitizer:DEADLYSIGNAL", "UndefinedBehaviorSanitizer:", ": runtime error:")
+
 # 集成测试的崩溃/流水线错误标记。
 #
 # 【为什么必须单独检测】`run-gametests.ts` 在服务端崩溃时以退出码 2（流水线错误）结束，
@@ -55,6 +58,11 @@ _INTEGRATED_CRASH_MARKERS = (
     "SIGILL",
     "SIGABRT",
     "Stack trace:",
+    "ERROR: AddressSanitizer:",
+    "ERROR: LeakSanitizer:",
+    "AddressSanitizer:DEADLYSIGNAL",
+    "UndefinedBehaviorSanitizer:",
+    ": runtime error:",
 )
 # `run-gametests exit code: 2` / `Round 1 exit code: -1`（崩溃导致非零退出）
 _INTEGRATED_EXIT_LINE = re.compile(r"(?:run-gametests|Round \d+) exit code:\s*(-?\d+)")
@@ -63,7 +71,8 @@ _INTEGRATED_EXIT_LINE = re.compile(r"(?:run-gametests|Round \d+) exit code:\s*(-
 _GH_LOG_PREFIX = re.compile(r"^.*?\d{4}-\d{2}-\d{2}T[\d:.]+Z\s?")
 
 _JOB_LABELS = {
-    "build": "构建（linux-relwithdebinfo）",
+    "build": "测试构建（RelWithDebInfo + ASan/UBSan）",
+    "release-build": "发布构建（Release，无 profiler/sanitizer）",
     "unit-tests": "单元测试（ctest）",
     "integrated-tests": "集成测试（GameTest）",
     "e2e-tests": "端到端 bot 测试",
@@ -147,6 +156,9 @@ def _read_junit_results(xml_paths: list[Path], include_classname: bool) -> dict[
                     if reason:
                         name += f" — {' '.join(reason.split())}"
                 results[key].append(name)
+                # CTest 的 skip 正则可能优先于非零退出码；跳过信息不能掩盖进程收尾时的泄漏报告。
+                if key == "skipped" and any(marker in case.findtext("system-out", "") for marker in _SANITIZER_MARKERS):
+                    results["errors"].append(f"Sanitizer failure in skipped testcase: {name}")
                 # 释放每个用例的大段 system-out，避免整份数十 MB 报告常驻内存。
                 case.clear()
         except (OSError, ET.ParseError) as exc:
@@ -312,6 +324,17 @@ def collect_fuzz_artifacts(artifacts_dir: Path) -> list[str]:
                 found.append(f"{artifact.name}（{artifact.stat().st_size} 字节）")
     return sorted(set(found))
 
+
+def collect_sanitizer_failures(artifacts_dir: Path) -> list[str]:
+    """直接保留 sanitizer 的错误摘要，避免非阻塞或跳过结果吞掉真实错误。"""
+    findings = []
+    for filename in ("ctest-output.log", "integrated-tests.log", "e2e-tests.log"):
+        for log in artifacts_dir.rglob(filename):
+            for line in _read_text(log).splitlines():
+                if any(marker in line for marker in _SANITIZER_MARKERS):
+                    findings.append(f"{filename}: {line.strip()}")
+    return _dedupe(findings)
+
 def read_benchmark_report(artifacts_dir: Path) -> str:
     for report in artifacts_dir.rglob("benchmark-compare.md"):
         return _read_text(report)[:20_000]
@@ -394,7 +417,8 @@ def runner_info_table(job_status: dict[str, str], artifacts_dir: Path) -> list[s
                 tools.append(f"fuzz-ASAN={_table_text(build['MC_FUZZ_ASAN'])}")
         lines.append(f"| `{job}` | {cpu_text} | {memory} | {system_text} | {'; '.join(tools) or '—'} |")
     lines.extend(["", "> 内存为总容量；磁盘为空闲 / 总容量（采集时）。工具链为本 job 实际工具版本，"
-                  "测试使用的 C++ 二进制由 build job 提供。完整配置随 nightly-report artifact 归档。", ""])
+                  "单元/集成/e2e 的 C++ 产物来自 build，benchmark 的产物来自 release-build。"
+                  "完整配置随 nightly-report artifact 归档。", ""])
     if errors:
         lines.extend([_details_block("机器配置读取错误", errors, True)])
     return lines
@@ -419,6 +443,8 @@ def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
     if collect_e2e_failures(artifacts_dir):
         return True
     if collect_fuzz_artifacts(artifacts_dir):
+        return True
+    if collect_sanitizer_failures(artifacts_dir):
         return True
     return False
 
@@ -476,6 +502,11 @@ def build_body(
     lines.append("")
 
     lines.extend(runner_info_table(job_status, artifacts_dir))
+
+    sanitizer_failures = collect_sanitizer_failures(artifacts_dir)
+    if sanitizer_failures:
+        lines.extend(["### ASan / UBSan 检测结果", "",
+                      _details_block("Sanitizer 错误摘要（完整栈见对应日志）", sanitizer_failures, limit_output)])
 
     if ctest_failures:
         lines.append("### 单元测试失败用例")
