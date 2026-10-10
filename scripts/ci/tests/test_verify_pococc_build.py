@@ -24,18 +24,18 @@ class VerifyPococcBuildTests(unittest.TestCase):
             (root / "CMakeCache.txt").write_text(cache)
             commands = root / "compile_commands.json"
             commands.write_text(json.dumps([{"file": "test.cpp", "command": "clang++ -c test.cpp -o test.o"}]))
-            self.assertEqual(verifier.verify_configuration_without_pch(root), 1)
+            self.assertEqual(verifier.verify_configuration_without_pch(root, "test"), 1)
             commands.write_text(json.dumps([{
                 "file": "test.cpp", "arguments": ["clang++", "-Xclang", "-include-pch", "-c", "test.cpp"],
             }]))
             with self.assertRaises(RuntimeError):
-                verifier.verify_configuration_without_pch(root)
+                verifier.verify_configuration_without_pch(root, "test")
             commands.write_text(json.dumps([{"file": "test.cpp", "command": "clang++ -c test.cpp"}]))
             for broken in (cache.replace("PRECOMPILE_HEADERS:BOOL=ON", "PRECOMPILE_HEADERS:BOOL=OFF"),
                            cache.replace("-fsanitize=address,undefined ", "")):
                 (root / "CMakeCache.txt").write_text(broken)
                 with self.assertRaises(RuntimeError):
-                    verifier.verify_configuration_without_pch(root)
+                    verifier.verify_configuration_without_pch(root, "test")
 
     def test_cache_and_local_routes_do_not_hide_remote_failures(self):
         with tempfile.TemporaryDirectory() as temporary:
