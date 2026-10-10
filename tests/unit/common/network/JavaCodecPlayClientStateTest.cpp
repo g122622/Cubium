@@ -10,6 +10,7 @@
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "server/command/commands/DialogCommand.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
@@ -749,4 +750,18 @@ TEST_F(NetworkTestBase, WaypointIconPersistsAcrossEntitySave)
     ASSERT_TRUE(restored.readAdditionalSaveData(tag).success());
     EXPECT_EQ(restored.waypointStyle(), "minecraft:bowtie");
     EXPECT_EQ(restored.waypointColor(), 0xabcdefu);
+}
+
+TEST_F(NetworkTestBase, DialogCommandExposesShowAndClearAndRequiresPermission)
+{
+    command::CommandDispatcher<command::ServerCommandSource> dispatcher;
+    command::DialogCommand::registerTo(dispatcher);
+    const auto root = dispatcher.getRoot()->getChild("dialog");
+    ASSERT_NE(root, nullptr);
+    EXPECT_NE(root->getChild("show"), nullptr);
+    EXPECT_NE(root->getChild("clear"), nullptr);
+    command::ServerCommandSource low(nullptr, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "", nullptr);
+    EXPECT_FALSE(dispatcher.execute("dialog clear @a", low).success());
+    EXPECT_FALSE(dispatcher.execute("dialog show @a minecraft:server_links", low).success());
+    EXPECT_FALSE(server::net::buildShowDialogIr(nlohmann::json{{"title", "Missing type"}}).success());
 }

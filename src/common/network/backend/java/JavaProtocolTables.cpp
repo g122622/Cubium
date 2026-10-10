@@ -394,7 +394,7 @@ using B = buffer::RegistryByteBuf;
         77, PacketType{PacketFlow::Clientbound, "reset_score"}, 53, codecs::resetScoreCodec());
     b.addPacket<ir::play::Respawn>(80, PacketType{PacketFlow::Clientbound, "respawn"}, 80, codecs::respawnCodec());
     b.addPacket<ir::play::SelectAdvancementTab>(
-        83, PacketType{PacketFlow::Clientbound, "select_advancement_tab"}, 49, codecs::selectAdvancementTabCodec());
+        83, PacketType{PacketFlow::Clientbound, "select_advancements_tab"}, 49, codecs::selectAdvancementTabCodec());
     b.addPacket<ir::play::SetActionBarText>(
         85, PacketType{PacketFlow::Clientbound, "set_action_bar_text"}, 58, codecs::setActionBarTextCodec());
     b.addPacket<ir::play::SetBorderCenter>(

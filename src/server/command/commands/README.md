@@ -9,6 +9,7 @@
         AttributeCommand.cpp #查询和修改活体实体属性（支持所有 LivingEntity，使用 EntityResolver）
 ├── ClearCommand.hpp / ClearCommand.cpp #清空玩家背包命令
 ├── DefaultGameModeCommand.hpp / DefaultGameModeCommand.cpp #设置服务器默认游戏模式
+├── DialogCommand.hpp / DialogCommand.cpp #数据驱动对话框显示与清除
 ├── DifficultyCommand.hpp / DifficultyCommand.cpp #修改世界难度
 ├── SpreadPlayersCommand.hpp /
         SpreadPlayersCommand.cpp #随机分散玩家到区域内（支持 under<maxHeight> 子命令，维度感知高度）

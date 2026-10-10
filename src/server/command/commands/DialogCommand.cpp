@@ -7,6 +7,7 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include <nlohmann/json.hpp>
 
@@ -21,7 +22,7 @@ i32 _show(CommandContext<ServerCommandSource>& context)
         ? (definition.is_discarded()
                   ? Result<mc::network::ir::IrPacket>(Error(ErrorCode::InvalidData, "Invalid dialog JSON"))
                   : server::net::buildShowDialogIr(definition))
-        : server::net::buildShowDialogIr(ResourceLocation(input));
+        : server::net::resolveDialogIr(ResourceLocation(input));
     if (packet.failed()) {
         source.sendError(packet.error().message());
         return 0;

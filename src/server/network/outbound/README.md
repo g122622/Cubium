@@ -13,7 +13,7 @@
 src/server/network/outbound/
 ├── README.md
 ├── PacketBuilders.hpp/cpp         # 纯自由函数：buildPlaySoundIr / buildPermissionLevelChangeIr
-│                                  #   / buildCommandsIr / buildLevelParticlesIr
+│                                  #   / buildCommandsIr / buildLevelParticlesIr / buildShowDialogIr
 ├── CommandTreeEncoder.hpp         # 命令树快照 → ClientboundCommandsPacket 包体字节（header-only）
 ├── PlayerBroadcaster.hpp/cpp      # 距离过滤 + 多态广播（声音/粒子/实体事件/世界事件/爆炸/光照）
 └── MapPacketBuilder.hpp/cpp       # 脏地图周期推送（pushDirtyMaps）
@@ -83,3 +83,5 @@ src/server/network/outbound/
 在线判定一律留在 `PlayerBroadcaster` / `MapPacketBuilder` / `ConnectionManager`。
 
 商人报价由 buildMerchantOffersIr 构造，容器打开和内容变化时发送。交易成本是 ItemCost（物品 ID、数量、精确组件谓词），结果是 ItemStack；两者字段顺序及组件格式不同。使用次数、需求、特殊价格和经验均来自当前报价状态，不得重复计算价格后再作为基础成本发送。
+
+对话框直接定义使用严格整数 NBT 转换；命名资源解析在 handshake/RegistryDataBuilder 完成，PacketBuilders 仅接收已解析的 JSON 构造直接 holder。

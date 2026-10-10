@@ -26,7 +26,6 @@
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
-#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include <array>
 
 #include "server/network/outbound/PacketBuilders.hpp"
@@ -204,19 +203,6 @@ Result<mc::network::ir::IrPacket> buildShowDialogIr(const nlohmann::json& defini
     return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{
             mc::network::ir::play::ShowDialog{mc::network::buffer::nbt_io::serializeRootCompoundToBytes(compound)}}};
-}
-
-Result<mc::network::ir::IrPacket> buildShowDialogIr(const ResourceLocation& name)
-{
-    constexpr std::array<std::string_view, 3> names{
-        "minecraft:server_links", "minecraft:custom_options", "minecraft:quick_actions"};
-    for (i32 i = 0; i < static_cast<i32>(names.size()); ++i)
-        if (name.toString() == names[i])
-            return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{mc::network::ir::play::ShowDialog{i}}};
-    auto definition = loadDialogDefinition(name.toString());
-    if (definition.failed()) return definition.error();
-    return buildShowDialogIr(definition.value());
 }
 
 } // namespace mc::server::net

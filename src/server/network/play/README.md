@@ -3,7 +3,7 @@
 处理客户端进入 Play 阶段后发来的所有 C→S 包。上游是 `session/ClientSession::handleInbound`，
 它做完握手消费与 phase / playerId 双重守卫后，把未被消费的 Play 包交给本层。
 
-按**包族**拆分为 7 个处理器，由 `ServerPlayHandler` 聚合门面统一分发。每个处理器是
+按**包族**拆分为 8 个处理器，由 `ServerPlayHandler` 聚合门面统一分发。每个处理器是
 `play/` 子树内的独立对象，持 `MinecraftServer&`（见 `base/PlayHandlerBase`），只认领自己那族包。
 
 `ConfigurationAcknowledged` 是例外：它是重配置请求的响应，需访问该连接的握手状态机，故在

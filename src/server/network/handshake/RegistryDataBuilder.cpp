@@ -28,6 +28,7 @@
 
 #include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
@@ -52,6 +53,9 @@
 namespace mc::server::net {
 
 namespace {
+
+constexpr std::array<std::string_view, 3> _dialogIds{
+    "minecraft:server_links", "minecraft:custom_options", "minecraft:quick_actions"};
 
 /// 给定一组资源位置 id，构造 data=nullopt 的 RegistryData（声明客户端已知）
 mc::network::ir::configuration::RegistryData makeKnownRegistry(
@@ -446,8 +450,11 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     registries.push_back(makeKnownRegistry("minecraft:test_instance", {"minecraft:always_pass"}));
 
     // 22. dialog（3）。
-    registries.push_back(makeKnownRegistry(
-        "minecraft:dialog", {"minecraft:server_links", "minecraft:custom_options", "minecraft:quick_actions"}));
+    mc::network::ir::configuration::RegistryData dialogs{};
+    dialogs.registryKey = "minecraft:dialog";
+    for (const auto name : _dialogIds)
+        dialogs.entries.push_back({std::string(name), std::nullopt});
+    registries.push_back(std::move(dialogs));
 
     // 23. timeline（4）。顺序固定对齐 Timelines.bootstrap：DAY, MOON, VILLAGER_SCHEDULE,
     // EARLY_GAME（id 0/1/2/3）。buildConfigurationUpdateTags() 的 timeline tag 索引据此计算。
@@ -618,6 +625,17 @@ Result<nlohmann::json> loadDialogDefinition(std::string_view id)
     auto definition = nlohmann::json::parse(text.value(), nullptr, false);
     if (definition.is_discarded()) return Error(ErrorCode::InvalidData, "Invalid dialog JSON");
     return definition;
+}
+
+Result<mc::network::ir::IrPacket> resolveDialogIr(const ResourceLocation& name)
+{
+    for (i32 i = 0; i < static_cast<i32>(_dialogIds.size()); ++i)
+        if (name.toString() == _dialogIds[i])
+            return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{mc::network::ir::play::ShowDialog{i}}};
+    auto definition = loadDialogDefinition(name.toString());
+    if (definition.failed()) return definition.error();
+    return buildShowDialogIr(definition.value());
 }
 
 } // namespace mc::server::net

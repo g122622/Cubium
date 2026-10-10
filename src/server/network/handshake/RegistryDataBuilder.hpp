@@ -24,6 +24,8 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/network/ir/IrPacket.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <string_view>
 #include <nlohmann/json.hpp>
 
@@ -133,5 +135,8 @@ buildConfigurationRegistryDataForUnknownClient();
 
 /** @brief 从当前数据包资源读取对话框定义，用于直接 holder 下发。 */
 [[nodiscard]] Result<nlohmann::json> loadDialogDefinition(std::string_view id);
+
+/** @brief 解析命名对话框：内置资源返回注册 holder，其他数据包资源直接内联。 */
+[[nodiscard]] Result<mc::network::ir::IrPacket> resolveDialogIr(const ResourceLocation& name);
 
 } // namespace mc::server::net

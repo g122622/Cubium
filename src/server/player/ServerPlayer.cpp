@@ -22,6 +22,7 @@
  */
 
 #include "ServerPlayer.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
@@ -185,7 +186,7 @@ Result<void> ServerPlayer::showDialog(const nlohmann::json& definition)
 }
 Result<void> ServerPlayer::showDialog(const ResourceLocation& name)
 {
-    auto packet = server::net::buildShowDialogIr(name);
+    auto packet = server::net::resolveDialogIr(name);
     if (packet.failed()) return packet.error();
     if (!_sendIrPacket(packet.value()))
         return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
