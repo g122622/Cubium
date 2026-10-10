@@ -241,6 +241,9 @@ struct ServerPlayerData {
      */
     void markClientUnloadedAfterDeath() noexcept { waitingForRespawn = true; }
 
+    /** @brief 客户端主动确认加载完成，不解除等待重生状态。 */
+    void markClientLoaded() noexcept { clientLoadedTimeoutTimer = 0; }
+
     /**
      * @brief 重生后重启客户端加载超时计时器
      *

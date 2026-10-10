@@ -248,6 +248,8 @@ using B = buffer::RegistryByteBuf;
         12, PacketType{PacketFlow::Serverbound, "client_tick_end"}, 115, codecs::clientTickEndCodec());
     b.addPacket<ir::play::ChangeGameMode>(
         4, PacketType{PacketFlow::Serverbound, "change_game_mode"}, 120, codecs::changeGameModeCodec());
+    b.addPacket<ir::play::PlayerLoaded>(
+        43, PacketType{PacketFlow::Serverbound, "player_loaded"}, 121, codecs::playerLoadedCodec());
     return b.build();
 }
 

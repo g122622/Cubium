@@ -1703,4 +1703,11 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 玩家加载完成通知没有负载。 */
+[[nodiscard]] inline auto playerLoadedCodec()
+{
+    return makeCodec<ir::play::PlayerLoaded>([](B&, const ir::play::PlayerLoaded&) {},
+        [](B&) -> Result<ir::play::PlayerLoaded> { return ir::play::PlayerLoaded{}; });
+}
+
 } // namespace mc::network::backend::java::codecs

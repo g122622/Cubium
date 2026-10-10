@@ -1391,4 +1391,9 @@ struct ChangeGameMode {
     [[nodiscard]] friend bool operator==(const ChangeGameMode&, const ChangeGameMode&) noexcept = default;
 };
 
+/** @brief 客户端确认玩家加载完成（C→S，id=43，空负载）。 */
+struct PlayerLoaded {
+    [[nodiscard]] friend bool operator==(const PlayerLoaded&, const PlayerLoaded&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

@@ -42,6 +42,38 @@ TEST_F(NetworkTestBase, PlayChangeGameModeWireAndRoundTrip)
     }
 }
 
+TEST_F(NetworkTestBase, PlayPlayerLoadedWireAndRoundTrip)
+{
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{PlayerLoaded{}}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{43}));
+    auto decoded = tables()->playSb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_TRUE(std::holds_alternative<PlayerLoaded>(decoded.value()));
+}
+
+TEST(PlayerStateRequestTest, PlayerLoadedClearsTimerWithoutBypassingRespawn)
+{
+    _PlayerStateRequestServer server;
+    auto* player = server.playerManager().addPlayer(1, "player-uuid", "Player", nullptr);
+    ASSERT_NE(player, nullptr);
+    server::net::ServerPlayHandler handler(server);
+    const IrPacket request{protocol::ConnectionProtocol::Play, PlayPacket{PlayerLoaded{}}};
+    player->restartClientLoadTimerAfterRespawn();
+    EXPECT_FALSE(player->hasClientLoaded());
+    handler.route(1, request);
+    EXPECT_TRUE(player->hasClientLoaded());
+    player->markClientUnloadedAfterDeath();
+    handler.route(1, request);
+    EXPECT_TRUE(player->waitingForRespawn);
+    EXPECT_FALSE(player->hasClientLoaded());
+    player->restartClientLoadTimerAfterRespawn();
+    player->loggedIn = false;
+    handler.route(1, request);
+    EXPECT_EQ(player->clientLoadedTimeoutTimer, 60);
+    handler.route(99, request);
+}
+
 TEST_F(NetworkTestBase, PlayChangeGameModeRejectsMalformedModes)
 {
     for (i32 mode : {-1, 4, 255}) {
