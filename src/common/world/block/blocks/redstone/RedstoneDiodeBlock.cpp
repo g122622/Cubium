@@ -282,7 +282,7 @@ bool RedstoneDiodeBlock::isFacingTowardsRepeater(IWorld& world, const BlockPos& 
         return false;
     }
 
-    // 输出端二极管的主输入若不朝向当前方块，应优先处理当前计划刻。
+    // 优先更新输出方向相邻、且朝向不同于该输出方向的二极管。
     Direction outputFacing = getFacing(*outputState);
     return outputFacing != Directions::opposite(facing);
 }

@@ -169,6 +169,23 @@ TEST_F(RedstoneSystemTest, TorchCleanupExpiredRecords)
     EXPECT_FALSE(RedstoneSystem::instance().isTorchBurnedOut(pos, 200));
 }
 
+TEST_F(RedstoneSystemTest, TorchCleanupRetainsRecentEventsAfterEarlierBurnout)
+{
+    const BlockPos pos(0, 0, 0);
+    auto& system = RedstoneSystem::instance();
+    for (u64 tick = 0; tick < 8; ++tick)
+        system.checkAndRecordTorchFlip(pos, tick);
+
+    // 旧烧毁已过期，但位置上又发生了七次仍在窗口内的熄灭。
+    for (u64 tick = 110; tick < 117; ++tick)
+        EXPECT_FALSE(system.checkAndRecordTorchFlip(pos, tick));
+    system.cleanupBurnoutRecords(167);
+
+    // 清理只能删除过期事件，不能按旧烧毁时间删除整条位置记录。
+    EXPECT_TRUE(system.checkAndRecordTorchFlip(pos, 168));
+    EXPECT_TRUE(system.isTorchBurnedOut(pos, 168));
+}
+
 // ========== 递归保护测试 ==========
 
 TEST_F(RedstoneSystemTest, IsUpdatingInitiallyFalse)

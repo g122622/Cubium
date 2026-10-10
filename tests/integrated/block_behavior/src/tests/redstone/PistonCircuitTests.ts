@@ -8,7 +8,7 @@ const EAST = { x: 1, y: 0, z: 0 };
 export function registerPistonCircuitTests(): void {
     // 可推动材质不能因材质表中的旧分类而变成障碍或被破坏。
     for (const material of ["gold_block", "iron_block", "glass", "ice", "packed_ice"]) {
-        registerCircuitTest(`piston_pushes_${material}`, test => {
+        registerCircuitTest("piston", `piston_pushes_${material}`, test => {
             setCircuitBlock(test, "piston", PISTON, "facing=east");
             test.setBlockType(`minecraft:${material}`, offset(PISTON, EAST, 1));
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", SOURCE));
@@ -22,7 +22,7 @@ export function registerPistonCircuitTests(): void {
     }
 
     // 多侧枝会扩展移动列表；扩展期间不能保留指向旧列表存储的引用。
-    registerCircuitTest("piston_slime_multiple_branches", test => {
+    registerCircuitTest("piston", "piston_slime_multiple_branches", test => {
         setCircuitBlock(test, "piston", PISTON, "facing=east");
         test.setBlockType("minecraft:slime_block", offset(PISTON, EAST, 1));
         const branches = [{ x: 6, y: 4, z: 6 }, { x: 6, y: 3, z: 5 }, { x: 6, y: 3, z: 7 }];
@@ -38,7 +38,7 @@ export function registerPistonCircuitTests(): void {
     }, 35);
 
     // 障碍移除后，已通电的活塞须响应邻居更新，恢复伸出。
-    registerCircuitTest("piston_extends_after_obstacle_removed", test => {
+    registerCircuitTest("piston", "piston_extends_after_obstacle_removed", test => {
         setCircuitBlock(test, "piston", PISTON, "facing=east");
         test.setBlockType("minecraft:obsidian", offset(PISTON, EAST, 1));
         test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", SOURCE));
@@ -50,7 +50,7 @@ export function registerPistonCircuitTests(): void {
     }, 40);
 
     // 一个黏性活塞反复推动、拉回后不能遗失或复制方块。
-    registerCircuitTest("sticky_piston_repeated_cycles", test => {
+    registerCircuitTest("piston", "sticky_piston_repeated_cycles", test => {
         setCircuitBlock(test, "sticky_piston", PISTON, "facing=east");
         test.setBlockType("minecraft:iron_block", offset(PISTON, EAST, 1));
         for (let i = 0; i < 3; i++) {
@@ -69,7 +69,7 @@ export function registerPistonCircuitTests(): void {
 
     // 六向直接供电与收回，不使用预设 extended 来替代真正活塞动作。
     for (const direction of [...HORIZONTAL_INPUTS, { name: "up", x: 0, y: 1, z: 0 }, { name: "down", x: 0, y: -1, z: 0 }]) {
-        registerCircuitTest(`piston_cycle_${direction.name}`, test => {
+        registerCircuitTest("piston", `piston_cycle_${direction.name}`, test => {
             const pos = { x: 7, y: 4, z: 7 };
             setCircuitBlock(test, "piston", pos, `facing=${direction.name}`);
             const source = direction.name === "north" ? { x: 7, y: 4, z: 8 } : { x: 7, y: 4, z: 6 };
@@ -89,7 +89,7 @@ export function registerPistonCircuitTests(): void {
 
     for (const sticky of [false, true]) {
         // 普通活塞推出后留下方块；黏性活塞收回时把方块拉到原位置。
-        registerCircuitTest(`${sticky ? "sticky_piston" : "piston"}_moves_and_retracts_block`, test => {
+        registerCircuitTest("piston", `${sticky ? "sticky_piston" : "piston"}_moves_and_retracts_block`, test => {
             setCircuitBlock(test, sticky ? "sticky_piston" : "piston", PISTON, "facing=east");
             setCircuitBlock(test, "oak_log", offset(PISTON, EAST, 1), "axis=z");
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", SOURCE));
@@ -110,7 +110,7 @@ export function registerPistonCircuitTests(): void {
 
     // 推动上限恰为 12；13 个方块时整条链不得发生部分位移。
     for (const count of [12, 13]) {
-        registerCircuitTest(`piston_push_limit_${count}`, test => {
+        registerCircuitTest("piston", `piston_push_limit_${count}`, test => {
             setCircuitBlock(test, "piston", PISTON, "facing=east");
             for (let i = 1; i <= count; i++) test.setBlockType("minecraft:stone", offset(PISTON, EAST, i));
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", SOURCE));
@@ -125,7 +125,7 @@ export function registerPistonCircuitTests(): void {
 
     for (const obstacle of ["obsidian", "chest"]) {
         // 不可移动方块和有方块实体的容器会阻止整次推动。
-        registerCircuitTest(`piston_blocked_by_${obstacle}`, test => {
+        registerCircuitTest("piston", `piston_blocked_by_${obstacle}`, test => {
             setCircuitBlock(test, "piston", PISTON, "facing=east");
             test.setBlockType("minecraft:stone", offset(PISTON, EAST, 1));
             test.setBlockType(`minecraft:${obstacle}`, offset(PISTON, EAST, 2));
@@ -135,14 +135,14 @@ export function registerPistonCircuitTests(): void {
     }
 
     // 活塞面前的电源不激活活塞。
-    registerCircuitTest("piston_ignores_front_power", test => {
+    registerCircuitTest("piston", "piston_ignores_front_power", test => {
         setCircuitBlock(test, "piston", PISTON, "facing=east");
         test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", offset(PISTON, EAST, 1)));
         test.runAtTickTime(15, () => { assertState(test, PISTON, "extended", false); test.succeed(); });
     }, 30);
 
     // 准连接：上方一格的相邻电源经活塞邻居更新触发动作，撤销后也须更新才能收回。
-    registerCircuitTest("piston_quasi_connection", test => {
+    registerCircuitTest("piston", "piston_quasi_connection", test => {
         setCircuitBlock(test, "piston", PISTON, "facing=east");
         const quasi = { x: 5, y: 4, z: 5 };
         test.runAtTickTime(5, () => {
@@ -159,7 +159,7 @@ export function registerPistonCircuitTests(): void {
 
     // 黏性分支应带动侧面方块；黏液与蜂蜜之间不黏连。
     for (const adhesive of ["slime_block", "honey_block"]) {
-        registerCircuitTest(`piston_${adhesive}_side_branch`, test => {
+        registerCircuitTest("piston", `piston_${adhesive}_side_branch`, test => {
             setCircuitBlock(test, "piston", PISTON, "facing=east");
             test.setBlockType(`minecraft:${adhesive}`, offset(PISTON, EAST, 1));
             test.setBlockType("minecraft:gold_block", { x: 6, y: 3, z: 7 });
@@ -175,7 +175,7 @@ export function registerPistonCircuitTests(): void {
             });
         }, 35);
     }
-    registerCircuitTest("piston_slime_honey_do_not_stick", test => {
+    registerCircuitTest("piston", "piston_slime_honey_do_not_stick", test => {
         setCircuitBlock(test, "piston", PISTON, "facing=east");
         test.setBlockType("minecraft:slime_block", offset(PISTON, EAST, 1));
         test.setBlockType("minecraft:honey_block", { x: 6, y: 3, z: 7 });

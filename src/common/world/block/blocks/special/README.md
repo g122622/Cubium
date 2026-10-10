@@ -83,9 +83,9 @@ Block (基类)
 3. 触发时机：`onBlockAdded()` 和 `neighborChanged()` 都会尝试吸水。
 
 ### 粘液块与蜂蜜块粘连
-1. 粘液块可以粘住粘液块和蜂蜜块：`canStickTo` 返回 `other.isStickyBlock(other)`。
-2. 蜂蜜块只能粘住蜂蜜块：使用 `other.is(VanillaBlocks::HONEY_BLOCK)` 检测，不能与粘液块粘连。
-3. 活塞推动时需检查粘连关系：调用 `isStickyBlock()` 和 `canStickTo()` 判断。
+1. 黏液块可以黏住除蜂蜜块外的普通方块；蜂蜜块可以黏住除黏液块外的普通方块，两者互不黏连。
+2. 从黏性方块调用 `canStickTo()` 判断侧枝；普通邻居的默认接口不代表黏性方块是否能黏住它。
+3. 黏连关系和推动反应分别检查：只有可移动的侧枝才能加入推动集合。
 
 ### 命令方块
 1. 三种模式通过 BlockEntity 区分：`CommandBlockEntity` 使用 `CommandBlockMode` 枚举（Redstone/Auto/Sequence），由子类的 `createBlockEntity()` 注入。
@@ -112,7 +112,3 @@ Block (基类)
 
 ### 三个 GameMasterBlock 的"打开界面"TODO
 - `StructureBlock`、`JigsawBlock`、`CommandBlock` 的 `onBlockActivated` 在权限检查通过后均留有 `// TODO: 打开 XXX 界面`，需配合 StructureBlockEntity/JigsawBlockEntity（尚未实现）、客户端 Screen、专用网络包与 Player 上的 openXxx 方法实现，非简单调用现有 `OpenContainerPacket` 链路。
-
-### 黏性方块推动
-
-黏液和蜂蜜均可黏住普通可移动方块，彼此互不黏连。分支搜索从黏性方块判断黏连；不能用普通邻居的默认接口判断，否则会漏掉普通方块。

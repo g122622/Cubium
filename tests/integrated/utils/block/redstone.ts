@@ -35,10 +35,10 @@ export function wireLine(test: Test, start: Vector3, direction: Vector3, length:
     for (let i = 0; i < length; i++) test.setBlockType("minecraft:redstone_wire", offset(start, direction, i));
 }
 
-export function registerCircuitTest(name: string, callback: (test: Test) => void, maxTicks: number): void {
+export function registerCircuitTest(component: string, name: string, callback: (test: Test) => void, maxTicks: number): void {
     GameTest.register("BlockBehaviorTests", `redstone_deep_${name}`, callback)
         .structureName("gametests:redstone_lab")
-        .batch(`redstone_deep_${name.split("_")[0]}`)
+        .batch(`redstone_deep_${component}`)
         .maxTicks(maxTicks);
 }
 

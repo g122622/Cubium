@@ -9,10 +9,33 @@ function track(test: Test, type: string, count: number): void {
 }
 
 export function registerRailCircuitTests(): void {
+    // Ref: docs/minecraft-wiki-source/minecraft_wiki/tech_铁轨.txt#放置
+    // 高处邻轨移除后支撑仍在，探测轨保持已有斜坡，普通邻居更新不重算方向。
+    registerCircuitTest("rail", "detector_rail_keeps_slope_after_upper_rail_removed", test => {
+        const lower = { x: 5, y: 2, z: 5 };
+        const upper = { x: 6, y: 3, z: 5 };
+        test.setBlockType("minecraft:stone", { x: 6, y: 2, z: 5 });
+        setCircuitBlock(test, "rail", { x: 4, y: 2, z: 5 }, "shape=east_west");
+        setCircuitBlock(test, "detector_rail", lower, "shape=east_west");
+        setCircuitBlock(test, "rail", upper, "shape=east_west");
+        test.runAtTickTime(5, () => {
+            assertState(test, lower, "shape", "ascending_east");
+            test.setBlockType("minecraft:air", upper);
+        });
+        test.runAtTickTime(10, () => {
+            assertState(test, lower, "shape", "ascending_east");
+            test.setBlockType("minecraft:stone", { x: 5, y: 2, z: 4 });
+        });
+        test.runAtTickTime(20, () => {
+            assertState(test, lower, "shape", "ascending_east");
+            test.succeed();
+        });
+    }, 35);
+
     for (const type of ["powered_rail", "activator_rail"]) {
         // 斜坡两端都能传电；撤销电源后的传播也要跨越高度差。
         for (const sourceEnd of ["low", "high"]) {
-            registerCircuitTest(`${type}_slope_${sourceEnd}_source`, test => {
+            registerCircuitTest("rail", `${type}_slope_${sourceEnd}_source`, test => {
                 for (let x = 4; x <= 6; x++) setCircuitBlock(test, type, { x, y: 2, z: 5 }, "shape=east_west");
                 for (let x = 7; x <= 10; x++) {
                     test.setBlockType("minecraft:stone", { x, y: 2, z: 5 });
@@ -34,7 +57,7 @@ export function registerRailCircuitTests(): void {
             }, 50);
         }
         // 直接充能轨本体之外最多再传 8 格；第 10 节轨道必须保持断电。
-        registerCircuitTest(`${type}_eight_block_limit`, test => {
+        registerCircuitTest("rail", `${type}_eight_block_limit`, test => {
             track(test, type, 11);
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
             test.runAtTickTime(15, () => {
@@ -45,7 +68,7 @@ export function registerRailCircuitTests(): void {
         }, 30);
 
         // 已激活的轨道不是新的无限电源，移除真正电源后整段必须断电。
-        registerCircuitTest(`${type}_source_removal`, test => {
+        registerCircuitTest("rail", `${type}_source_removal`, test => {
             track(test, type, 7);
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
             test.runAtTickTime(15, () => { assertState(test, { x: 8, y: 2, z: 5 }, "powered", true); test.setBlockType("minecraft:air", { x: 2, y: 2, z: 4 }); });
@@ -56,7 +79,7 @@ export function registerRailCircuitTests(): void {
         }, 40);
 
         // 断轨撤销下游信号；重新接上后恢复。
-        registerCircuitTest(`${type}_cut_and_reconnect`, test => {
+        registerCircuitTest("rail", `${type}_cut_and_reconnect`, test => {
             track(test, type, 7);
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
             test.runAtTickTime(15, () => { assertState(test, { x: 8, y: 2, z: 5 }, "powered", true); test.setBlockType("minecraft:air", { x: 5, y: 2, z: 5 }); });
@@ -69,7 +92,7 @@ export function registerRailCircuitTests(): void {
         }, 50);
 
         // 普通铁轨不作为动力/激活轨之间的信号桥。
-        registerCircuitTest(`${type}_ordinary_rail_isolates`, test => {
+        registerCircuitTest("rail", `${type}_ordinary_rail_isolates`, test => {
             track(test, type, 5);
             setCircuitBlock(test, "rail", { x: 4, y: 2, z: 5 }, "shape=east_west");
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
@@ -77,7 +100,7 @@ export function registerRailCircuitTests(): void {
         }, 30);
 
         // 信号不能横穿不连接的平行轨道。
-        registerCircuitTest(`${type}_parallel_track_isolates`, test => {
+        registerCircuitTest("rail", `${type}_parallel_track_isolates`, test => {
             track(test, type, 4);
             for (let x = 2; x <= 5; x++) setCircuitBlock(test, type, { x, y: 2, z: 6 }, "shape=east_west");
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
@@ -85,7 +108,7 @@ export function registerRailCircuitTests(): void {
         }, 30);
 
         // 两种带电轨不能互相延续轨道内信号。
-        registerCircuitTest(`${type}_other_powered_type_isolates`, test => {
+        registerCircuitTest("rail", `${type}_other_powered_type_isolates`, test => {
             track(test, type, 5);
             setCircuitBlock(test, type === "powered_rail" ? "activator_rail" : "powered_rail", { x: 4, y: 2, z: 5 }, "shape=east_west");
             test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
@@ -95,7 +118,7 @@ export function registerRailCircuitTests(): void {
 
     for (const type of ["rail", "powered_rail", "activator_rail", "detector_rail"]) {
         // 每种轨道均须响应支撑丢失，包括重写邻居更新的子类。
-        registerCircuitTest(`${type}_loses_support`, test => {
+        registerCircuitTest("rail", `${type}_loses_support`, test => {
             setCircuitBlock(test, type, { x: 5, y: 2, z: 5 }, "shape=east_west");
             test.runAtTickTime(5, () => test.setBlockType("minecraft:air", { x: 5, y: 1, z: 5 }));
             test.runAtTickTime(10, () => { assertType(test, { x: 5, y: 2, z: 5 }, "air"); test.succeed(); });
@@ -103,7 +126,7 @@ export function registerRailCircuitTests(): void {
     }
 
     // 动力轨是消费者，不能把内部充能状态输出给灯。
-    registerCircuitTest("powered_rail_does_not_power_lamp", test => {
+    registerCircuitTest("rail", "powered_rail_does_not_power_lamp", test => {
         track(test, "powered_rail", 3);
         test.setBlockType("minecraft:redstone_lamp", { x: 4, y: 2, z: 6 });
         test.runAtTickTime(5, () => test.setBlockType("minecraft:redstone_block", { x: 2, y: 2, z: 4 }));
@@ -112,7 +135,7 @@ export function registerRailCircuitTests(): void {
 
     // Ref: docs/minecraft-wiki-source/minecraft_wiki/tech_探测铁轨.txt#红石元件
     // 探测轨须立即识别矿车，并在矿车移除后按 20 刻周期撤销输出。
-    registerCircuitTest("detector_rail_detects_and_releases_cart", test => {
+    registerCircuitTest("rail", "detector_rail_detects_and_releases_cart", test => {
         const rail = { x: 5, y: 2, z: 5 };
         setCircuitBlock(test, "detector_rail", rail, "shape=north_south");
         test.setBlockType("minecraft:redstone_lamp", { x: 6, y: 2, z: 5 });
@@ -130,7 +153,7 @@ export function registerRailCircuitTests(): void {
     }, 55);
 
     // 探测轨强充能下方导体，导体旁的灯是间接消费者。
-    registerCircuitTest("detector_rail_powers_support", test => {
+    registerCircuitTest("rail", "detector_rail_powers_support", test => {
         test.setBlockType("minecraft:stone", { x: 5, y: 2, z: 5 });
         setCircuitBlock(test, "detector_rail", { x: 5, y: 3, z: 5 }, "shape=north_south");
         test.setBlockType("minecraft:redstone_lamp", { x: 6, y: 2, z: 5 });

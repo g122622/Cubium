@@ -47,17 +47,11 @@ namespace redstone {
 /**
  * @brief 红石火把烧毁记录
  *
- * 记录单个红石火把的翻转历史和烧毁状态。
+ * 记录单个位置最近的熄灭事件，烧毁阈值由这些事件计算。
  */
 struct TorchBurnoutRecord {
-    /// 翻转时间戳队列（存储最近的翻转时间）
+    /// 熄灭时间戳队列（仅保留检测窗口内的事件）
     std::deque<u64> flipTimes;
-
-    /// 是否已烧毁
-    bool isBurnedOut = false;
-
-    /// 烧毁时间（用于冷却检测）
-    u64 burnoutTime = 0;
 };
 
 /**

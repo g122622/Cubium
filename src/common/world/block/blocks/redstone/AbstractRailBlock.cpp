@@ -245,9 +245,9 @@ BlockState AbstractRailBlock::updateDir(IWorld& world, const BlockPos& pos, cons
 void AbstractRailBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock)
 {
     MC_UNUSED(neighborBlock);
+    MC_UNUSED(state);
 
-    // 基类实现：重新计算铁轨方向
-    (void)updateDir(world, pos, state, false);
+    // 邻居通知不重算已有方向；普通铁轨的道岔重算由子类处理。
 
     // 如果是动力铁轨类型，还需要传播更新
     if (m_isPowered) {
