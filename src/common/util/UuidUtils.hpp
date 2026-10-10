@@ -55,24 +55,41 @@ namespace util {
  * Entity 使用字符串 UUID（十六进制），而 Raid 使用数组格式。
  * 此函数将十六进制字符串转换为 16 字节数组。
  *
- * @param uuidStr 十六进制格式的 UUID 字符串（32 个字符）
+ * @param uuidStr 32 位十六进制或 36 位标准连字符格式的 UUID 字符串
  * @return 16 字节的 UUID 数组，如果解析失败则返回全零数组
  */
 inline Uuid uuidFromString(const std::string& uuidStr)
 {
     Uuid result{};
-    if (uuidStr.length() < 32) {
+    const bool withDashes = uuidStr.size() == 36;
+    if (!withDashes && uuidStr.size() != 32) {
         return result;
     }
-
-    for (size_t i = 0; i < 16; ++i) {
-        std::string byteStr = uuidStr.substr(i * 2, 2);
-        try {
-            result[i] = static_cast<u8>(std::stoul(byteStr, nullptr, 16));
+    const auto hexDigitValue = [](char digit) -> i32 {
+        if (digit >= '0' && digit <= '9') {
+            return digit - '0';
         }
-        catch (...) {
+        if (digit >= 'a' && digit <= 'f') {
+            return digit - 'a' + 10;
+        }
+        if (digit >= 'A' && digit <= 'F') {
+            return digit - 'A' + 10;
+        }
+        return -1;
+    };
+    std::size_t offset = 0;
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        if (withDashes && (i == 4 || i == 6 || i == 8 || i == 10)) {
+            if (uuidStr[offset++] != '-') {
+                return Uuid{};
+            }
+        }
+        const i32 high = hexDigitValue(uuidStr[offset++]);
+        const i32 low = hexDigitValue(uuidStr[offset++]);
+        if (high < 0 || low < 0) {
             return Uuid{};
         }
+        result[i] = static_cast<u8>((high << 4) | low);
     }
     return result;
 }

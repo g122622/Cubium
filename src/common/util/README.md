@@ -276,3 +276,7 @@ MD5 已被证明不安全，**仅用于兼容性需求**（如 Minecraft 离线 
 ### 18. Base64 与 PngInfo 是纯工具，不做业务校验
 
 `Base64.hpp` 只做 RFC 4648 §4 编解码（`base64Encode` 输出带 `=` 填充、无换行；`base64Decode` 忽略 ASCII 空白、遇非法字符或长度非法时整体返回空 vector）。`PngInfo.hpp` 只解析 PNG 签名 + IHDR 宽高（24 字节），**不解码像素**。业务侧校验（如服务端图标必须 64×64、皮肤签名验证）由调用方完成，不要把这些规则塞进工具本身。皮肤元数据解析（`SkinMetadataParser`）与服务端 favicon 共用 `util::base64Decode`，勿再各自维护一份。
+
+### UUID 字符串边界
+
+uuidFromString 接受严格的 32 位十六进制或 36 位连字符格式，失败返回零 UUID。不能按两字符片段直接解析连字符格式；网络 UUID 始终为 16 字节，实体内部字符串保持 32 位紧凑格式。
