@@ -38,7 +38,7 @@ _Waypoint _removal(const _Waypoint& snapshot)
 bool _hidden(const LivingEntity& source)
 {
     if (source.hasEffect(entity::effect::EffectType::Invisibility)) return true;
-    if (dynamic_cast<const Player*>(&source) != nullptr && source.isSneaking()) return true;
+    if (dynamic_cast<const Player*>(&source) != nullptr && source.pose() == EntityPose::Crouching) return true;
     const auto head = source.getEquipment(EquipmentSlot::Head).getItem();
     return head != nullptr &&
         (head == Items::CARVED_PUMPKIN || head == Items::PLAYER_HEAD || head == Items::ZOMBIE_HEAD ||
