@@ -190,6 +190,8 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BaseLightEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp
