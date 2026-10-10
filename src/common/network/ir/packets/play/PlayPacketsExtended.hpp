@@ -1416,4 +1416,10 @@ struct ClientInformation {
     [[nodiscard]] friend bool operator==(const ClientInformation&, const ClientInformation&) noexcept = default;
 };
 
+/** @brief 旁观者按 UUID 请求传送到实体（C→S，id=61）。 */
+struct TeleportToEntity {
+    std::array<u8, 16> uuid;
+    [[nodiscard]] friend bool operator==(const TeleportToEntity&, const TeleportToEntity&) noexcept = default;
+};
+
 } // namespace mc::network::ir::play

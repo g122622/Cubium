@@ -1,5 +1,6 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -7,6 +8,8 @@
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/network/play/ServerPlayHandler.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -43,6 +46,8 @@ public:
         m_connectionManager = std::make_unique<server::core::ConnectionManager>(*m_playerManager);
         m_gameModeManager = std::make_unique<server::core::GameModeManager>(*m_playerManager, *m_connectionManager);
         m_opListManager = std::make_unique<server::core::OpListManager>();
+        m_teleportManager = std::make_unique<server::core::TeleportManager>(*m_playerManager);
+        m_dimensionManager = std::make_unique<ServerDimensionManager>(this);
     }
 
     server::ServerWorld* getPlayerWorld(PlayerId) override { return m_world.get(); }
@@ -307,4 +312,48 @@ TEST(PlayerStateRequestTest, ClientInformationUpdatesEntityAndRetainsAllPreferen
             PlayPacket{
                 ClientInformation{configuration::ClientInformation{"en_us", 8, 0, true, 0x7f, 1, false, true, 0}}}});
     EXPECT_EQ(*data->clientInformation, information);
+}
+
+TEST_F(NetworkTestBase, PlayTeleportToEntityUuidWireAndTruncation)
+{
+    const TeleportToEntity request{util::uuidFromString("00112233-4455-6677-8899-aabbccddeeff")};
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playSb->encode(buf, PlayPacket{request}).success());
+    EXPECT_EQ(buf.bytes(),
+        (std::vector<u8>{
+            61, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff}));
+    auto decoded = tables()->playSb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<TeleportToEntity>(decoded.value()), request);
+    for (std::size_t size = 1; size < 17; ++size) {
+        buffer::RegistryByteBuf truncated(buf.data(), size, RegistryAccess::instance());
+        EXPECT_FALSE(tables()->playSb->decode(truncated).success());
+    }
+}
+
+TEST(PlayerStateRequestTest, TeleportToEntityRequiresSpectatorAndStartsPositionConfirmation)
+{
+    _PlayerStateRequestServer server;
+    auto* data = server.playerManager().addPlayer(1, "00000000-0000-0000-0000-000000000001", "Player", nullptr);
+    ASSERT_NE(data, nullptr);
+    auto& player = server.addPlayerEntity(1);
+    auto& target = server.addPlayerEntity(2);
+    target.setPosition(12.5f, 70.0f, -8.0f);
+    target.setRotation(90.0f, 30.0f);
+    const IrPacket request{
+        protocol::ConnectionProtocol::Play, PlayPacket{TeleportToEntity{util::uuidFromString(target.uuid())}}};
+    server::net::ServerPlayHandler handler(server);
+    handler.route(1, request);
+    EXPECT_FALSE(data->waitingTeleportConfirm);
+    player.setGameMode(GameMode::Spectator);
+    handler.route(1, request);
+    EXPECT_EQ(player.position(), target.position());
+    EXPECT_EQ(player.yaw(), target.yaw());
+    EXPECT_EQ(player.pitch(), target.pitch());
+    EXPECT_TRUE(data->waitingTeleportConfirm);
+    EXPECT_EQ(data->x, target.position().x);
+    EXPECT_EQ(data->yaw, target.yaw());
+    const auto previousTeleport = data->pendingTeleportId;
+    handler.route(1, IrPacket{protocol::ConnectionProtocol::Play, PlayPacket{TeleportToEntity{}}});
+    EXPECT_EQ(data->pendingTeleportId, previousTeleport);
 }

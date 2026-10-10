@@ -37,6 +37,9 @@ namespace mc::server::net {
  */
 class PlayerStateHandler : public PlayHandlerBase {
 public:
+    /** @brief 仅允许旁观者按 UUID 查找任意维度的目标并请求绝对传送。 */
+    void handleTeleportToEntityPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
     /** @brief 更新客户端设置，复用配置阶段的应用入口。 */
     void handleClientInformationPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
 

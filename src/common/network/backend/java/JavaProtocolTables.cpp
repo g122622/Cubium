@@ -255,6 +255,8 @@ using B = buffer::RegistryByteBuf;
         39, PacketType{PacketFlow::Serverbound, "player_abilities"}, 123, codecs::serverboundPlayerAbilitiesCodec());
     b.addPacket<ir::play::ClientInformation>(
         13, PacketType{PacketFlow::Serverbound, "client_information"}, 124, codecs::playClientInformationCodec());
+    b.addPacket<ir::play::TeleportToEntity>(
+        61, PacketType{PacketFlow::Serverbound, "teleport_to_entity"}, 125, codecs::teleportToEntityCodec());
     return b.build();
 }
 

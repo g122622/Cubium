@@ -31,11 +31,15 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -45,6 +49,53 @@
 using namespace mc::trace;
 
 namespace mc::server::net {
+
+void PlayerStateHandler::handleTeleportToEntityPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* data = m_server.playerManager().getPlayer(playerId);
+    if (data == nullptr || !data->loggedIn) {
+        return;
+    }
+    auto* sourceWorld = m_server.getPlayerWorld(playerId);
+    if (sourceWorld == nullptr) {
+        return;
+    }
+    auto* player = m_server.playerEntityManager().getPlayerEntity(playerId, *sourceWorld);
+    if (player == nullptr || !player->isSpectator()) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::TeleportToEntity>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    const auto uuid = util::uuidToString(request.uuid);
+    Entity* target = sourceWorld->entityManager().getEntityByUuid(uuid);
+    if (target == nullptr) {
+        for (const auto dimensionId : m_server.dimensionManager().getDimensionIds()) {
+            auto* dimension = m_server.dimensionManager().getDimension(dimensionId);
+            target = dimension->world()->entityManager().getEntityByUuid(uuid);
+            if (target != nullptr) {
+                break;
+            }
+        }
+    }
+    if (target == nullptr) {
+        return;
+    }
+    const auto position = target->position();
+    const Vector2f rotation(target->yaw(), target->pitch());
+    if (target->dimension() != player->dimension()) {
+        if (!player->teleportToDimension(target->dimension(), Vector3d(position.x, position.y, position.z), rotation)) {
+            spdlog::warn(
+                "TeleportToEntity: failed to transfer player {} to dimension {}", playerId, target->dimension());
+            return;
+        }
+    } else {
+        player->stopRiding();
+        player->setPosition(position);
+        player->setRotation(rotation.x, rotation.y);
+    }
+    // 位置确认沿用移动处理器的收口，确认后刷新实体追踪和区块票据。
+    m_server.teleportManager().requestTeleport(playerId, position.x, position.y, position.z, rotation.x, rotation.y);
+}
 
 void PlayerStateHandler::handleClientInformationPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {

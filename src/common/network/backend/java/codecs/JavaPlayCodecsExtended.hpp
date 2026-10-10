@@ -1749,4 +1749,16 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 旁观者传送请求仅含一个 16 字节 UUID。 */
+[[nodiscard]] inline auto teleportToEntityCodec()
+{
+    return makeCodec<ir::play::TeleportToEntity>(
+        [](B& buf, const ir::play::TeleportToEntity& v) { wire::writeUuid(buf, v.uuid); },
+        [](B& buf) -> Result<ir::play::TeleportToEntity> {
+            ir::play::TeleportToEntity v{};
+            MC_TRY_ASSIGN(v.uuid, wire::readUuid(buf));
+            return v;
+        });
+}
+
 } // namespace mc::network::backend::java::codecs
