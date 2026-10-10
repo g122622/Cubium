@@ -274,6 +274,8 @@ if(MC_ENABLE_SANITIZERS)
     # CMAKE_CXX_FLAGS 中由调用者注入具体的 -fsanitize= 选项
     add_compile_options(-O1 -fno-omit-frame-pointer -fno-common)
     add_compile_options(-fno-fast-math) # sanitizer 需要精确浮点语义
+    # Sanitizer 插桩可能阻止显式请求的向量化；非 sanitizer 构建仍保留优化失败诊断。
+    add_compile_options(-Wno-pass-failed)
     message(STATUS "Sanitizer build: optimizations reduced, stack protection enabled")
 else()
     add_compile_options(-O2) # 不开o3，o3对缓存不友好、增加编译时间且可能存在bug
