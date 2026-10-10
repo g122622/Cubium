@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/util/TriState.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/DimensionType.hpp"
