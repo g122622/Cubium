@@ -106,7 +106,7 @@ jobs:
       - uses: ./.github/actions/build-pococc
         with:
           pool: test
-          workers: '8'
+          workers: '16'
           preset: linux-clang-ci-tests
           build-dir: build
           variant: test
@@ -169,7 +169,7 @@ jobs:
       - uses: ./.github/actions/build-pococc
         with:
           pool: release
-          workers: '5'
+          workers: '10'
           preset: linux-clang-ci-release
           build-dir: build-release-noprof
           variant: release
@@ -239,7 +239,7 @@ jobs:
       - uses: ./.github/actions/build-pococc
         with:
           pool: fuzz
-          workers: '3'
+          workers: '6'
           preset: linux-clang-fuzz
           build-dir: build-fuzz
           variant: fuzz
@@ -347,6 +347,22 @@ jobs:
             worker: 7
           - pool: test
             worker: 8
+          - pool: test
+            worker: 9
+          - pool: test
+            worker: 10
+          - pool: test
+            worker: 11
+          - pool: test
+            worker: 12
+          - pool: test
+            worker: 13
+          - pool: test
+            worker: 14
+          - pool: test
+            worker: 15
+          - pool: test
+            worker: 16
           - pool: release
             worker: 1
           - pool: release
@@ -357,13 +373,29 @@ jobs:
             worker: 4
           - pool: release
             worker: 5
+          - pool: release
+            worker: 6
+          - pool: release
+            worker: 7
+          - pool: release
+            worker: 8
+          - pool: release
+            worker: 9
+          - pool: release
+            worker: 10
           - pool: fuzz
             worker: 1
           - pool: fuzz
             worker: 2
           - pool: fuzz
             worker: 3
-      max-parallel: 16
+          - pool: fuzz
+            worker: 4
+          - pool: fuzz
+            worker: 5
+          - pool: fuzz
+            worker: 6
+      max-parallel: 32
     steps:
       - uses: actions/checkout@v4
         timeout-minutes: 5
