@@ -6,6 +6,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "server/application/MinecraftServer.hpp" // mc::server::MinecraftServer
 #include "server/settings/ServerSettings.hpp"
+#include "server/test/base/execution/GameTestExecutionPlan.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -57,6 +58,8 @@ struct GameTestServerParams {
     // === GameTest CLI 字段 ===
     /// `--tests`：测试名通配符（如 `"ExampleTests.*"`），空表示跑全部。
     std::string testsFilter;
+    /// 可选的均衡分片；未指定时保留全量选择。
+    std::optional<GameTestShard> shard;
     /// `--report`：JUnit XML 输出路径（相对 gameDirectoryRoot 或绝对）。空表示不写文件。
     std::string reportPath;
     /// `--gametest-packs`：额外行为包扫描目录（仓库内 tests/integrated 等）。

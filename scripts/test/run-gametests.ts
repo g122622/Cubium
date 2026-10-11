@@ -243,10 +243,9 @@ export function generateJunitXml(
  * @param opts 启动选项
  * @returns 进程退出码
  */
-function runServer(
-    serverPath: string,
-    opts: { filter: string; reportPath: string; worldName: string; deadline: number },
-): Promise<ProcessResult> {
+export function buildServerArguments(
+    opts: { filter: string; reportPath: string; worldName: string; partition?: string },
+): string[] {
         const args: string[] = ["--gametest"];
         if (opts.filter !== undefined && opts.filter !== "") {
             args.push(`--gametest-tests=${opts.filter}`);
@@ -254,7 +253,17 @@ function runServer(
         args.push(`--gametest-report=${opts.reportPath}`);
         // 每进程独立世界名，避免并行进程并发写同一世界目录
         args.push(`--gametest-world=${opts.worldName}`);
+        if (opts.partition !== undefined) {
+            args.push(`--gametest-shard=${opts.partition}`);
+        }
+        return args;
+}
 
+function runServer(
+    serverPath: string,
+    opts: { filter: string; reportPath: string; worldName: string; deadline: number; partition?: string },
+): Promise<ProcessResult> {
+        const args = buildServerArguments(opts);
         console.log(`[gametest-runner] spawning: ${serverPath} ${args.join(" ")}`);
         return runProcess(serverPath, args, opts.deadline);
 }
@@ -268,6 +277,7 @@ async function main(): Promise<void> {
     const deadline = performance.now() + 30 * 60 * 1000;
     const args = parseArgs();
     const shards = Number.parseInt(args["shards"] ?? "1", 10);
+    const partition = args["partition"];
     const filter = args["filter"] ?? "";
     const serverPath = args["server"]
         ?? path.join(
@@ -279,8 +289,13 @@ async function main(): Promise<void> {
         );
     const outDir = path.resolve(args["out-dir"] ?? path.join(REPO_ROOT, "build", "gametest-reports"));
     const dryRun = args["dry-run"] === "true";
-    if (!Number.isSafeInteger(shards) || shards < 1) {
-        console.error("[gametest-runner] shards must be a positive integer");
+    if (!Number.isSafeInteger(shards) || shards < 1 || shards > 64) {
+        console.error("[gametest-runner] shards must be an integer in 1..64");
+        process.exitCode = 2;
+        return;
+    }
+    if (partition !== undefined && (!/^\d+\/[1-9]\d*$/.test(partition) || shards !== 1)) {
+        console.error("[gametest-runner] partition must be index/count and cannot be combined with --shards");
         process.exitCode = 2;
         return;
     }
@@ -316,7 +331,7 @@ async function main(): Promise<void> {
     }
 
     if (dryRun) {
-        console.log(`[gametest-runner] dry run: server=${serverPath}, shards=${shards}, filter='${filter}', overall limit=1800 seconds`);
+        console.log(`[gametest-runner] dry run: server=${serverPath}, shards=${shards}, partition=${partition ?? "none"}, filter='${filter}', overall limit=1800 seconds`);
         return;
     }
 
@@ -331,12 +346,12 @@ async function main(): Promise<void> {
             reportPath: round1Report,
             worldName: `gametest-${timestamp}`,
             deadline,
+            partition,
         });
         console.log(`[gametest-runner] Round 1 exit code: ${result.code}`);
         allResults.push(...collectReport(round1Report, result));
     } else {
-        // TODO: 按不重叠的测试集合分片；当前各进程仍执行相同 filter。
-        console.warn("[gametest-runner] shards currently repeat the same filter in independent worlds");
+        // 各进程选择互不重叠的均衡分片，隔离重跑使用精确测试名而不再次分片。
         const promises: Promise<ProcessResult>[] = [];
         for (let i = 0; i < shards; ++i) {
             const reportPath = path.join(outDir, `gametest-round1-${timestamp}-shard${i}.xml`);
@@ -345,6 +360,7 @@ async function main(): Promise<void> {
                 reportPath: reportPath,
                 worldName: `gametest-${timestamp}-shard-${i}`,
                 deadline,
+                partition: `${i}/${shards}`,
             });
             promises.push(p);
         }

@@ -85,6 +85,7 @@ DEFINE_string(gametest_world,
     "Used by the outer coordinator script (scripts/test/run-gametests.ts) to give each "
     "parallel shard/rerun process an isolated world directory (saves/<name>), avoiding "
     "concurrent world write conflicts across processes.");
+DEFINE_string(gametest_shard, "", "Optional zero-based GameTest partition index/count (e.g. 0/24).");
 DEFINE_bool(benchmark_exit_after_shell_init,
     false,
     "Benchmark mode: exit right after server shell initialization "
@@ -217,6 +218,14 @@ i32 ServerApplicationEntry::runApplication()
     if (m_gametestMode) {
         mc::test::GameTestServer gtServer;
         mc::test::GameTestServerParams gtParams;
+        if (!FLAGS_gametest_shard.empty()) {
+            gtParams.shard = mc::test::GameTestExecutionPlan::parseShard(FLAGS_gametest_shard);
+            if (!gtParams.shard) {
+                spdlog::error(
+                    "Invalid GameTest shard: {}; expected index/count with count in 1..64", FLAGS_gametest_shard);
+                return 1;
+            }
+        }
 
         // 解析额外行为包扫描目录：--gametest-packs 显式指定优先；否则用编译期注入的源码根拼
         // tests/integrated（无论运行时 CWD 如何，默认指向仓库内集成测试目录）。
