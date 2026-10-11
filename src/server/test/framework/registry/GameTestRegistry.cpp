@@ -181,7 +181,8 @@ void GameTestRegistry::releaseAllScriptResources()
         if (it == m_byName.end()) {
             continue;
         }
-        const std::shared_ptr<BaseGameTestFunction>& dead = it->second;
+        // 擦除名称索引后仍需按对象清理类索引，必须持有独立的 shared_ptr 值。
+        const std::shared_ptr<BaseGameTestFunction> dead = it->second;
         m_byName.erase(it);
         for (auto& [className, functions] : m_byClass) {
             std::erase(functions, dead);

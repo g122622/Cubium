@@ -19,6 +19,7 @@ add_executable(mc_tests
     common/test_math.cpp
     common/test_network.cpp
     common/network/test_bytebuf.cpp
+    common/network/TcpTransportReceiveTest.cpp
     common/network/test_registry_bytebuf.cpp
     common/network/test_nbt_io.cpp
     common/network/test_stream_codecs.cpp
@@ -1210,6 +1211,7 @@ add_executable(mc_tests
     common/world/gen/DensityFunctionLoaderDatadrivenTest.cpp
     # JavaLegacyRandom 单元测试
     common/world/gen/JavaLegacyRandomTest.cpp
+    common/world/gen/BlockPositionRandomTest.cpp
     # Xoroshiro128ppRandom 单元测试
     common/world/gen/Xoroshiro128ppRandomTest.cpp
     # PositionalRandomFactory 单元测试
@@ -1706,6 +1708,8 @@ add_executable(mc_tests
     server/function/StringTemplateTest.cpp
     server/function/TimerQueueTest.cpp
     # GameTest 集成测试框架（对齐 plan 1I）
+    server/test/GameTestCallbackLifetimeTest.cpp
+    server/test/GameTestExecutionPlanTest.cpp
     server/test/test_gametest_framework.cpp
     server/test/test_gametest_helper.cpp
     server/test/test_gametest_registration.cpp
