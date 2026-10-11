@@ -1113,7 +1113,7 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             }
             // ---- 打开容器屏 ----
             else if constexpr (std::is_same_v<T, irplay::ContainerClose>) {
-                ScreenManager::instance().closeAll();
+                ScreenManager::instance().closeContainer(pkt.containerId);
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<T, irplay::OpenScreen>) {
                 const auto& p = pkt;

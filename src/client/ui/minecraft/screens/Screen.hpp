@@ -26,6 +26,7 @@
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/ContainerWidget.hpp"
 #include "common/core/Types.hpp"
+#include <optional>
 #include <string>
 
 namespace mc::client::ui::minecraft {
@@ -45,6 +46,9 @@ public:
 
     /** @brief 屏幕被关闭时调用，子类可重写以清理资源 */
     virtual void onClose();
+
+    /** @brief 关联的容器 ID；普通界面不关联容器。 */
+    [[nodiscard]] virtual std::optional<i32> getContainerId() const noexcept { return std::nullopt; }
 
     /** @brief 绘制屏幕内容，同时绘制所有子组件 */
     void paint(kagero::widget::PaintContext& ctx) override;

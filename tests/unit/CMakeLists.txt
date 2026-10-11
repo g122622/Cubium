@@ -2476,6 +2476,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/TextureImage.cpp
         # ScreenStackWidget 及 Screen 依赖
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/Screen.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/screen/ScreenManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/widgets/ScreenStackWidget.cpp
         # CreateWorldScreen 测试依赖：模板屏幕基类 + 模板运行时实例 + 创建世界屏幕
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/TemplateScreen.cpp

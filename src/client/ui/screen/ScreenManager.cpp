@@ -65,6 +65,14 @@ void ScreenManager::closeAll()
     }
 }
 
+bool ScreenManager::closeContainer(i32 containerId)
+{
+    const auto* screen = getCurrentKageroScreen();
+    if (screen == nullptr || screen->getContainerId() != containerId) return false;
+    closeScreen();
+    return true;
+}
+
 void ScreenManager::tick(f32 dt)
 {
     // 由 ScreenStackWidget 在 KageroEngine 中处理

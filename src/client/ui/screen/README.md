@@ -54,3 +54,5 @@ src/client/ui/screen/
 
 - **屏幕统一走 kagero 体系**：新屏幕一律放在 `ui/minecraft/screens/` 并继承 `Screen`，经 `ScreenManager::instance().openScreen(std::make_unique<...>())` 推入栈。旧的 IScreen 接口已删除，不再支持。
 - **容器交互在 kagero 体系**：容器交互系统（拾取/快速移动/拖拽分发/丢弃/中键克隆等）位于 `ui/minecraft/screens/ContainerScreenBase.hpp` + `ui/kagero/widget/ContainerInteraction.hpp`。
+
+- 容器屏通过 getContainerId 暴露菜单身份，普通屏返回空值。远程关闭仅关闭当前 ID 匹配的容器屏，不能清空非容器屏或误关新菜单。

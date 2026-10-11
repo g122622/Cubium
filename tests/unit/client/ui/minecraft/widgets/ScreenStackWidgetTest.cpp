@@ -39,6 +39,7 @@
 
 #include "client/ui/minecraft/widgets/ScreenStackWidget.hpp"
 #include "client/ui/minecraft/screens/Screen.hpp"
+#include "client/ui/screen/ScreenManager.hpp"
 #include <string>
 #include <vector>
 #include <gtest/gtest.h>
@@ -484,4 +485,63 @@ TEST(ScreenStackWidgetTest, ScreenOnCloseCalledOnPop)
     // Screen::onClose() 默认为空操作，不崩溃即通过
     stack.push(std::make_unique<Screen>("test"));
     stack.pop();
+}
+
+namespace {
+class _ContainerIdentityScreen final : public Screen {
+public:
+    _ContainerIdentityScreen(i32 containerId, i32& closes)
+        : Screen("container")
+        , m_containerId(containerId)
+        , m_closes(closes)
+    {}
+    std::optional<i32> getContainerId() const noexcept override { return m_containerId; }
+    void onClose() override { ++m_closes; }
+
+private:
+    i32 m_containerId;
+    i32& m_closes;
+};
+class _ContainerCloseScreenTest : public ::testing::Test {
+protected:
+    void SetUp() override { mc::client::ScreenManager::instance().setScreenStackWidget(&m_stack); }
+    void TearDown() override { mc::client::ScreenManager::instance().setScreenStackWidget(nullptr); }
+    ScreenStackWidget m_stack;
+};
+} // namespace
+
+TEST_F(_ContainerCloseScreenTest, StaleCloseKeepsNewContainerAndMatchingCloseRestoresUnderlyingScreen)
+{
+    auto& manager = mc::client::ScreenManager::instance();
+    i32 closed = 0;
+    manager.openScreen(std::make_unique<Screen>("underlying"));
+    manager.openScreen(std::make_unique<_ContainerIdentityScreen>(10, closed));
+    manager.closeScreen();
+    ASSERT_EQ(closed, 1);
+    manager.openScreen(std::make_unique<_ContainerIdentityScreen>(11, closed));
+    EXPECT_FALSE(manager.closeContainer(10));
+    ASSERT_NE(manager.getCurrentKageroScreen(), nullptr);
+    EXPECT_EQ(manager.getCurrentKageroScreen()->getContainerId(), 11);
+    EXPECT_EQ(manager.getScreenCount(), 2u);
+    EXPECT_EQ(closed, 1);
+    EXPECT_TRUE(manager.closeContainer(11));
+    EXPECT_EQ(closed, 2);
+    EXPECT_EQ(manager.getScreenCount(), 1u);
+    EXPECT_FALSE(manager.getCurrentKageroScreen()->getContainerId().has_value());
+    EXPECT_FALSE(manager.closeContainer(0));
+    manager.closeAll();
+    EXPECT_FALSE(manager.closeContainer(11));
+}
+
+TEST_F(_ContainerCloseScreenTest, InventoryContainerZeroClosesAndNonContainerScreenStaysOpen)
+{
+    auto& manager = mc::client::ScreenManager::instance();
+    i32 closed = 0;
+    manager.openScreen(std::make_unique<_ContainerIdentityScreen>(0, closed));
+    EXPECT_TRUE(manager.closeContainer(0));
+    EXPECT_EQ(closed, 1);
+    manager.openScreen(std::make_unique<Screen>("settings"));
+    EXPECT_FALSE(manager.closeContainer(0));
+    EXPECT_TRUE(manager.hasScreen());
+    manager.closeAll();
 }
