@@ -100,10 +100,14 @@ TEST(RegistryDataBuilder, DialogRegistryHasThreeEntries)
     }
 }
 
-TEST(RegistryDataBuilder, UpdateTagsSendsTimelineAndDialog)
+TEST(RegistryDataBuilder, UpdateTagsSendsTimelineDialogAndBannerPattern)
 {
     auto tags = buildConfigurationUpdateTags();
-    ASSERT_EQ(tags.size(), 2u);
+    // 三个 tag registry：timeline / dialog / banner_pattern。
+    // banner_pattern 由 loom 图案支持引入（buildConfigurationUpdateTags 末尾构造），
+    // 其 11 个 tag 必须随 UpdateTags 下发，否则客户端 banner_pattern registry 的
+    // no_item_required / pattern_item/* 标签在 freeze() 时未绑定而抛 "Unbound tags"。
+    ASSERT_EQ(tags.size(), 3u);
     // timeline: 4 tag（universal/in_overworld/in_nether/in_end）
     auto timelineIt = std::find_if(
         tags.begin(), tags.end(), [](const TagRegistry& t) { return t.registryKey == "minecraft:timeline"; });
@@ -116,6 +120,23 @@ TEST(RegistryDataBuilder, UpdateTagsSendsTimelineAndDialog)
     EXPECT_EQ(dialogIt->tags.size(), 2u);
     for (const auto& tag : dialogIt->tags) {
         EXPECT_TRUE(tag.elementIds.empty()) << "dialog tag " << tag.tagName << " 应为空 id 列表";
+    }
+    // banner_pattern: no_item_required + 10 个 pattern_item/*。
+    auto bannerIt = std::find_if(
+        tags.begin(), tags.end(), [](const TagRegistry& t) { return t.registryKey == "minecraft:banner_pattern"; });
+    ASSERT_NE(bannerIt, tags.end());
+    EXPECT_EQ(bannerIt->tags.size(), 11u);
+    // no_item_required 收录全部 loom 图案；pattern_item/* 各含 1 个图案线格式 id。
+    auto noItemIt = std::find_if(bannerIt->tags.begin(), bannerIt->tags.end(), [](const TagListEntry& t) {
+        return t.tagName == "minecraft:no_item_required";
+    });
+    ASSERT_NE(noItemIt, bannerIt->tags.end());
+    EXPECT_FALSE(noItemIt->elementIds.empty()) << "no_item_required 应收录 loom 图案";
+    for (const auto& tag : bannerIt->tags) {
+        if (tag.tagName == "minecraft:no_item_required") {
+            continue;
+        }
+        EXPECT_EQ(tag.elementIds.size(), 1u) << "banner_pattern tag " << tag.tagName << " 应恰含 1 个元素";
     }
 }
 

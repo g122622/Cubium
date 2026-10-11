@@ -187,19 +187,41 @@ public:
      */
     void setWorkerPool(util::UniversalWorkerPool* workerPool)
     {
-        m_workerPool = workerPool;
+        std::lock_guard<std::mutex> lock(m_taskSchedulerMutex);
+        m_workerPool.store(workerPool, std::memory_order::release);
         // 调度器持有 worker 池指针。同一池既用于 parallelCapable 状态（无区域互斥 submit），
         // 也用于写方块状态（带 writeRadius 的区域互斥 submit）。
+        if (m_taskScheduler == nullptr) {
+            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, workerPool, workerPool);
+        } else {
+            // 已存在则**就地更新执行器**，绝不重建。重建会销毁旧对象，而 ensureTaskScheduler()
+            // 的调用方可能正持有其裸指针（_scheduleGeneration 在释放本锁后继续使用该指针）。
+            m_taskScheduler->setExecutors(workerPool, workerPool);
+        }
+    }
+
+    /**
+     * @brief 取得已存在的调度器，不存在则返回 nullptr（不创建）
+     *
+     * 供只读/取消路径使用：这些路径不应因一次查询就创建调度器（否则在无 worker 池的测试环境
+     * 里会平白构造一个 196KB 的对象），但必须与 setWorkerPool 的写入同步，避免数据竞争。
+     * 返回裸指针——所有权仍归本管理器，调用方不得保存该指针跨越可能触发析构的操作。
+     */
+    [[nodiscard]] ChunkTaskScheduler* getTaskScheduler()
+    {
         std::lock_guard<std::mutex> lock(m_taskSchedulerMutex);
-        m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, workerPool, workerPool);
+        return m_taskScheduler.get();
     }
 
     /**
      * @brief 取得调度器，不存在时创建（线程安全）
      *
      * 惰性创建必须加锁：requestChunkSync 可被多线程并发调用，两个线程同时读到 nullptr
-     * 会各建一个调度器并泄漏其中一个。返回裸指针——所有权仍归本管理器，调用方不得保存
-     * 该指针跨越可能触发 setWorkerPool/析构的操作。
+     * 会各建一个调度器并泄漏其中一个。返回裸指针——所有权仍归本管理器。
+     *
+     * 返回的指针在 ServerChunkManager 生命周期内**地址稳定**：setWorkerPool 对已存在的调度器
+     * 只调用 setExecutors() 就地更新执行器，不再重建对象，因此调用方可以安全地在释放
+     * m_taskSchedulerMutex 之后继续使用该指针（见 _scheduleGeneration）。
      *
      * @return 调度器指针（恒非空）
      */
@@ -208,7 +230,8 @@ public:
         std::lock_guard<std::mutex> lock(m_taskSchedulerMutex);
         if (m_taskScheduler == nullptr) {
             // worker 池可能为 nullptr，ChunkTaskScheduler 会在线执行任务（submitTask 降级）。
-            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, m_workerPool, m_workerPool);
+            auto* pool = m_workerPool.load(std::memory_order::acquire);
+            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, pool, pool);
         }
         return m_taskScheduler.get();
     }
@@ -220,8 +243,14 @@ public:
      * worker 任务提交（RuntimeLightTask 经 submit(writeRadius=2) 串行化重叠区域
      * nibble 写）。启动早期或测试环境未注入时返回 nullptr，调用方应 fallback 同步路径。
      */
-    [[nodiscard]] util::UniversalWorkerPool* radiusAwareExecutor() noexcept { return m_workerPool; }
-    [[nodiscard]] const util::UniversalWorkerPool* radiusAwareExecutor() const noexcept { return m_workerPool; }
+    [[nodiscard]] util::UniversalWorkerPool* radiusAwareExecutor() noexcept
+    {
+        return m_workerPool.load(std::memory_order::acquire);
+    }
+    [[nodiscard]] const util::UniversalWorkerPool* radiusAwareExecutor() const noexcept
+    {
+        return m_workerPool.load(std::memory_order::acquire);
+    }
 
     /**
      * @brief 获取当前已缓存的区块
@@ -1260,7 +1289,9 @@ private:
 
     mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
-    util::UniversalWorkerPool* m_workerPool = nullptr;
+    /// 注入的计算线程池。为原子：setWorkerPool 在装配期写入，而 radiusAwareExecutor() 会在
+    /// 运行期被光照队列/区块发送/区块管理器从多个线程读取（如 ServerLightQueue::submit）。
+    std::atomic<util::UniversalWorkerPool*> m_workerPool{nullptr};
 
     /// 关闭标志。shutdown() 置位后，异步存档加载完成回调（ServerCompute 线程）不再入队
     /// m_pendingLoadCompletes，避免 ServerChunkManager 析构后回调访问悬空 this。

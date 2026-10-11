@@ -180,8 +180,8 @@ void ServerChunkManager::shutdown()
     // 关闭时所有 holder 的 abortSignal 已失效，重调度的任务无法被取消，waitForCompletion 会无限等待。
     // 正在执行的 ChunkProgressionTask 会在取消检查点检测到取消并返回 false，onCancel→cancelGeneration
     // 清理依赖图（不重调度）。holder 仍在 m_lifecycleManagers 中（未移除），回调中的 findHolder 仍能找到。
-    if (m_taskScheduler != nullptr) {
-        m_taskScheduler->setShuttingDown();
+    if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
+        scheduler->setShuttingDown();
     }
 
     // 收集所有 holder 的 shared_ptr（保持存活），在 m_lifecycleManagersMutex 锁外执行 cancelGeneration。
@@ -209,8 +209,8 @@ void ServerChunkManager::shutdown()
         if (lifecycleManager == nullptr) {
             continue;
         }
-        if (m_taskScheduler != nullptr) {
-            m_taskScheduler->cancelGeneration(*lifecycleManager);
+        if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
+            scheduler->cancelGeneration(*lifecycleManager);
         }
         lifecycleManager->cancelActiveWork();
     }
@@ -222,10 +222,10 @@ void ServerChunkManager::shutdown()
     // 任务在回调中走失败路径。waitForCompletion 可能因 onChunkGenComplete 的自重调度短暂波动，
     // 但取消已使所有 holder 的 abortSignal 失效，新调度产生的任务也会立刻检测到取消
     // （holder 已 cancelActiveWork），最终队列收敛为空。
-    if (m_workerPool != nullptr && m_workerPool->isRunning()) {
+    if (util::UniversalWorkerPool* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "ServerChunkManager::shutdown::WaitForWorkerCompletion");
-        m_workerPool->waitForCompletion();
+        pool->waitForCompletion();
     }
 
     // 第三步：所有生成任务已结束，安全移除 holder。移到本地 vector 在锁外完成等待者失败通知。
@@ -614,8 +614,8 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             if (decision.shouldWakeReadyWaiters) {
                 _completeReadyWaiters(lifecycleManager);
             }
-            if (m_taskScheduler != nullptr) {
-                m_taskScheduler->onLoadedFromStorageReady(lifecycleManager);
+            if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
+                scheduler->onLoadedFromStorageReady(lifecycleManager);
             }
         } else {
             // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）。
@@ -657,8 +657,8 @@ void ServerChunkManager::_fanOutAttachedWaiters(
             _completeReadyWaiters(waiterSclm);
             // 与 owner 命中路径对称：通知经 checkNeighbour 注册到本等待者 m_waitingNeighbours
             // 的依赖邻居解除阻塞并重新调度，否则它们永久等待一个已就绪的 holder（死锁）。
-            if (m_taskScheduler != nullptr) {
-                m_taskScheduler->onLoadedFromStorageReady(waiterSclm);
+            if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
+                scheduler->onLoadedFromStorageReady(waiterSclm);
             }
         } else {
             // 缺失/失败：走生成链路。
@@ -894,8 +894,8 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     // 注意：isSafeToUnload 在此处的检查不持调度锁（_onTicketLevelChanged 由 tick 主线程调用，
     // 非 worker 线程的 onChunkGenComplete/schedule 持锁路径）。最终一致性由卸载收尾
     // （_finalizeUnloadAfterSave）持调度锁重新检查 isSafeToUnload 保证。
-    if (m_taskScheduler != nullptr && lifecycleManager.isSafeToUnload()) {
-        m_taskScheduler->cancelGeneration(lifecycleManager);
+    if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr && lifecycleManager.isSafeToUnload()) {
+        scheduler->cancelGeneration(lifecycleManager);
         lifecycleManager.cancelActiveWork();
         _failWaiters(lifecycleManager.takeAllWaiters());
     }
@@ -1353,11 +1353,11 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
         return;
     }
 
-    if (m_taskScheduler != nullptr) {
+    if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
         const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
-        auto schedLock = m_taskScheduler->schedulingLockArea().lock(x, z, lockRadius);
+        auto schedLock = scheduler->schedulingLockArea().lock(x, z, lockRadius);
 
-        m_taskScheduler->cancelGeneration(*lifecycleManager);
+        scheduler->cancelGeneration(*lifecycleManager);
         lifecycleManager->cancelActiveWork();
 
         if (!lifecycleManager->isSafeToUnload()) {
@@ -1895,7 +1895,8 @@ size_t ServerChunkManager::lifecycleManagerCount() const
 
 size_t ServerChunkManager::pendingTaskCount() const
 {
-    return m_workerPool ? m_workerPool->pendingTaskCount() : 0;
+    const util::UniversalWorkerPool* pool = radiusAwareExecutor();
+    return pool != nullptr ? pool->pendingTaskCount() : 0;
 }
 
 void ServerChunkManager::_debugDumpStuckHolders()

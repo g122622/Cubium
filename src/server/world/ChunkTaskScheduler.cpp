@@ -96,9 +96,9 @@ util::UniversalWorkerPool* ChunkTaskScheduler::selectExecutor(const ChunkStatus&
     // writeRadius > 0 的状态（FEATURES=1, LIGHT=2）走区域互斥池。
     const i32 writeRadius = step.blockStateWriteRadius();
     if (writeRadius <= 0) {
-        return m_parallelGenExecutor;
+        return m_parallelGenExecutor.load(std::memory_order::acquire);
     }
-    return m_radiusAwareExecutor;
+    return m_radiusAwareExecutor.load(std::memory_order::acquire);
 }
 
 SingleChunkLifecycleManager& ChunkTaskScheduler::getOrCreateHolder(ChunkCoord x, ChunkCoord z)

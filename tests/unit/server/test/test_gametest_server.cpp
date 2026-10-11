@@ -42,6 +42,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
+#include "common/core/GameDirectory.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
@@ -236,7 +237,19 @@ namespace {
 // 真实 gameRoot：含 behavior_packs（JsGameTests + starterTestsTutorial）+ ops.json +
 // server_options.json。worldName 用唯一名避免污染 saves/ 已有世界；TearDown 只删
 // saves/<worldName>，不删 gameRoot 本身。
-constexpr const char* kRealGameRoot = R"(C:\Users\Administrator\minecraft_reborn)";
+//
+// 【为什么不能硬编码】曾硬编码为 Windows 的 R"(C:\Users\Administrator\minecraft_reborn)"。
+// 该字面量在 Linux 上不是绝对路径，被 std::filesystem 当作相对路径拼到 CWD 之下，得到形如
+// build/tests/unit/C:\Users\Administrator\minecraft_reborn 的目录；vanilla 数据包扫描
+// （behavior_packs 与 datapacks）随之落空，脚本入口全部 "Script file not found"，
+// simpleMobTest 因 0 个测试注册而 exitCode=1。改用 GameDirectory::defaultDirectory()：
+// 它在 Windows 展开为 %USERPROFILE%\minecraft_reborn，在 Linux/macOS 展开为
+// $HOME/minecraft_reborn，与 CI 的 setup-datapack 动作（安装到 ~/minecraft_reborn/datapacks/Vanilla）
+// 及生产默认目录完全一致。
+std::filesystem::path _realGameRoot()
+{
+    return mc::GameDirectory::defaultDirectory().root();
+}
 
 // 仓库内集成行为包父目录（tests/integrated）：含 7 个子包，每个含 manifest.json。
 // GameTestServer::initialize 经 extraBehaviorPackDirs → BehaviorPackList::scanDirectory
@@ -252,6 +265,19 @@ std::filesystem::path _integratedBehaviorPacksDir()
     return std::filesystem::path("tests") / "integrated";
 #endif
 }
+
+// 集成行为包的 JS 入口是**构建产物**（.ts 经 tests/integrated/build.mjs 编译成 scripts/*.js），
+// 且 tests/integrated/*/scripts/ 被 .gitignore 忽略。因此只有"构建过该目标"的工作目录才有入口脚本：
+//   - 本地/构建 job：CMake 的 stamp 依赖会先跑 build.mjs，产物齐全；
+//   - unit-tests job：只 checkout 源码 + 下载二进制 artifact，从不编译行为包，入口脚本缺失。
+// 缺入口脚本时 GameTestRegistry 注册 0 个测试 → run() 返回 1，这属于环境缺产物而非产品缺陷
+// （该端到端链路由 integrated-tests job 完整覆盖）。故此处显式检测并 GTEST_SKIP，
+// 与本文件既有的"缺 worldgen 数据则跳过"降级策略一致，避免产出无法反映真实缺陷的红灯。
+bool _integratedPackScriptsCompiled()
+{
+    // starter 包的入口在 manifest.json 中为 scripts/StarterTests.js（simpleMobTest 所属包）。
+    return std::filesystem::exists(_integratedBehaviorPacksDir() / "starter" / "scripts" / "StarterTests.js");
+}
 } // namespace
 
 class RealPackGameTestServerFixture : public ::testing::Test {
@@ -264,7 +290,7 @@ protected:
         // 唯一世界名（steady_ns + pid + tid + counter），避免与真实 saves/ 已有世界冲突，
         // 亦避免 CTest 并行多进程同秒启动撞名。复用 TempDirHelper 的 token 生成逻辑。
         m_worldName = "gt_real_" + mc::test::uniqueTempDirToken();
-        m_worldDir = std::filesystem::path(kRealGameRoot) / "saves" / m_worldName;
+        m_worldDir = _realGameRoot() / "saves" / m_worldName;
         // GameTestServer::initialize 写 level.dat 前不会自建世界目录，须预先创建
         // saves/<worldName>/，否则 "Cannot open level.dat for writing"。
         std::filesystem::create_directories(m_worldDir);
@@ -285,7 +311,7 @@ protected:
     {
         mc::test::GameTestServerParams p;
         p.worldName = m_worldName;
-        p.gameDirectoryRoot = kRealGameRoot;
+        p.gameDirectoryRoot = _realGameRoot().string();
         // 加载仓库内 tests/integrated 的 7 个行为包：每个含 manifest 的子目录作为独立包。
         // 须是父目录（scanDirectory 扫直接子目录），指向单包子目录会因 scripts/src/structures
         // 无 manifest 而加载不到任何包。对齐 minecraft-server --gametest 门面默认值。
@@ -311,6 +337,11 @@ protected:
 // （exitCode=0），fox AI follow/crouch/pounce 链路已闭环。故本用例收紧为严格断言 EXPECT_EQ(0)。
 TEST_F(RealPackGameTestServerFixture, SimpleMobTestEndToEnd)
 {
+    if (!_integratedPackScriptsCompiled()) {
+        GTEST_SKIP() << "integrated behavior pack JS not compiled (tests/integrated/*/scripts/ 缺失)；"
+                        "本用例需要先构建（CMake stamp 会跑 build.mjs），"
+                        "端到端覆盖由 integrated-tests job 提供";
+    }
     mc::test::GameTestServer server;
     auto params = makeParams();
     params.testsFilter = "simpleMobTest";

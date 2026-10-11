@@ -414,7 +414,9 @@ private:
     /**
      * @brief 可见侧缓冲的发布指针（无锁读取入口，不拥有）
      *
-     * 读取方经此指针访问数组；其生命周期由 m_ownedVisible 或 m_ownedUpdating 保证。
+     * 读取方经此指针访问数组；其生命周期由 m_ownedVisible（当前已发布）、m_ownedUpdating
+     * （未 dirty 时与可见侧别名）或 m_retiredVisible（刚被取消发布的上一代）保证——
+     * 三者合一构成"曾被发布的数组在对象存活期间绝不被归还"的硬保证。
      */
     std::atomic<std::array<u8, ARRAY_SIZE>*> m_storageVisible{nullptr};
 
@@ -441,25 +443,32 @@ private:
      *   - 未 dirty：m_storageUpdating 与 m_storageVisible 指向同一数组，该数组由 m_ownedVisible
      *     拥有（此时 m_ownedUpdating 必为空）；
      *   - 已 dirty：更新侧私有缓冲归 m_ownedUpdating，已发布的可见侧数组仍归 m_ownedVisible；
-     *   - 取消发布（Null/Uninit）后：可见侧数组移入 m_retiredVisible 延迟一代回收。
+     *   - 取消发布（Null/Uninit）后：可见侧数组移入 m_retiredVisible，直到对象析构或下次发布时
+     *     被复用为止，绝不归还对象池。
      *
      * 由此可得一条便于推理的结论：**m_ownedUpdating 永远不会拥有已发布的可见侧数组**，
      * 因此"归还 m_ownedUpdating"在任何时刻都是安全的；而 m_ownedVisible 只在
-     * updateVisible() 取消发布时才经由 m_retiredVisible 延迟归还。
+     * updateVisible() 取消发布时才经 m_retiredVisible 转移，同样不会被释放。
      */
     std::unique_ptr<std::array<u8, ARRAY_SIZE>> m_ownedVisible;
 
     /**
-     * @brief 上一代"曾作为可见侧"的缓冲（退役槽）
+     * @brief 上一代"曾作为可见侧"的缓冲（退役槽，不归还）
      *
-     * 可见侧是无锁读的：替换或取消发布可见侧数组的瞬间，可能有读者刚经 m_storageVisible
-     * 载入旧指针、尚未读完。因此旧数组不能立即归还对象池，否则该读者会命中
-     * heap-use-after-free。本槽保存上一代被替换下来的可见数组，直到下一次替换或对象析构时
-     * 才真正归还，从而提供"一代"的宽限期，并把每 nibble 的额外驻留限制为一块（2 KB）。
+     * 可见侧是无锁读的：取消发布可见侧数组的瞬间，可能有读者刚经 m_storageVisible 载入旧指针、
+     * 尚未读完。因此旧数组不能归还对象池，否则该读者会命中 heap-use-after-free。本槽接收该数组，
+     * 直到对象析构或下次发布可见侧时被复用，从而给出**硬性生命周期保证**：
+     * 只要本对象存活，任何曾被发布的数组就始终由本对象持有（m_ownedVisible 或本槽），
+     * 读者绝不会读到已释放内存。
      *
-     * TODO: 这是"一代延迟"的实用方案，尚未给出硬性保证：若某读者被抢占并跨越整整一轮光照
-     * 发布周期才恢复执行，仍可能读到已归还的缓冲。要做到无条件的硬保证，需引入引用计数或
-     * hazard pointer/epoch 回收，代价是在 getVisible 热路径上增加原子操作，需另行评估。
+     * 不变式：本槽非空 ⟺ m_storageVisible == nullptr（发布分支会先取走本槽再发布），
+     * 故本槽至多驻留一块，每 nibble 额外驻留上限为 2 KB。
+     *
+     * TODO: 复用本槽（以及 updateVisible() 向已发布数组原地 memcpy）时，可能与仍持有旧指针的
+     *  读者并发访问同一块内存，构成 C++ 数据竞争（读者读到的是**同一 nibble** 的上一代或当前代
+     *  光照值，语义良性，但形式上仍是 UB）。Moonrise 依赖 JMM 对 byte 数组"良性竞争"的定义，
+     *  C++ 无此保证。要彻底消除需引入引用计数或 hazard pointer/epoch 回收，代价是在 getVisible
+     *  热路径上增加原子操作，需另行评估性能预算。
      */
     std::unique_ptr<std::array<u8, ARRAY_SIZE>> m_retiredVisible;
 

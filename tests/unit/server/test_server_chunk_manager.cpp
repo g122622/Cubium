@@ -335,6 +335,13 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
     m_workerPool->start();
     m_manager->initialize();
 
+    // 持 FORCED 票据保活 (5,5)：生产契约要求调用方为"需要继续使用的区块"持票。
+    // 卸载自 acedfd505e 起改为事件驱动（票级越阈 + 安全即入队，每 tick 按保底批量回收），
+    // 不再有 30 秒延迟观察期；无票据、无玩家来源的区块在请求完成后会被回收。
+    // 同一提交已据此更新了本文件中的 GetChunkAsync_AfterInit（该用例此前同样不持票）。
+    // 本用例与之共用同一请求/完成路径，故按同一契约持票。
+    m_manager->forceChunk(5, 5, true);
+
     std::atomic<bool> completed{false};
     ChunkData* resultChunk = nullptr;
 
@@ -354,6 +361,7 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
     EXPECT_TRUE(completed);
     EXPECT_NE(resultChunk, nullptr);
 
+    m_manager->forceChunk(5, 5, false);
     m_manager->shutdown();
     m_workerPool->shutdown();
 }

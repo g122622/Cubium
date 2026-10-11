@@ -322,11 +322,11 @@ bool SWMRNibbleArray::updateVisible()
         auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
 
         if (currentVisible == nullptr) {
-            // 可见侧尚未发布：克隆更新侧数据作为新的可见数组（对应 Moonrise 的 clone()）。
-            // 此时 m_ownedVisible 必为空（可见指针为空 ⟺ 可见数组无属主），断言以防不变式被破坏
-            // 后静默释放一块仍被读者持有的数组。
+            // 可见侧尚未发布：复用退役槽（若存在）或新分配一块，再把更新侧内容拷入。
+            // 复用退役槽既省一次分配，又维持"退役槽非空 ⟹ 可见侧未发布"这一不变式（见
+            // _retireBytes()），从而保证本对象生命周期内**绝不归还任何曾被发布的数组**。
             MC_ASSERT_RELEASE(m_ownedVisible == nullptr);
-            auto newStorage = _allocateBytes();
+            auto newStorage = (m_retiredVisible != nullptr) ? std::move(m_retiredVisible) : _allocateBytes();
             if (m_storageUpdating != nullptr) {
                 *newStorage = *m_storageUpdating;
             } else {
@@ -336,7 +336,12 @@ bool SWMRNibbleArray::updateVisible()
             currentVisible = m_ownedVisible.get();
             m_storageVisible.store(currentVisible, std::memory_order::release);
         } else if (m_storageUpdating != nullptr && m_storageUpdating != currentVisible) {
-            // 可见侧已有独立存储：把更新侧数据拷入可见侧
+            // 可见侧已有独立存储：把更新侧数据拷入可见侧（与 Moonrise 的 arraycopy 等价）。
+            // TODO: 此处写入的是**已发布**数组，与无锁读者（getVisible/toByteArray）并发时构成
+            //  C++ 数据竞争（Java 版依赖 JMM 对 byte 数组"良性竞争"的定义，C++ 无此保证）。
+            //  彻底消除需改为"按指针换出"（每次发布写新数组）并配合引用计数或冒险指针回收，
+            //  代价是每次发布多一次 2KB 分配、且读路径需原子操作。当前保留原地拷贝以维持与
+            //  Moonrise 一致的性能特征，待有明确性能预算时再改造。
             std::memcpy(currentVisible->data(), m_storageUpdating->data(), ARRAY_SIZE);
         }
 
@@ -510,8 +515,13 @@ void SWMRNibbleArray::_retireBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> b
     if (bytes == nullptr) {
         return;
     }
-    // 归还上一代退役缓冲，让当前这块顶替它，从而保证"曾被发布的数组"至少再存活一代。
-    _freeBytes(std::move(m_retiredVisible));
+    // 【硬性保活保证】绝不归还旧数组：一旦归还对象池，它可能立刻被 _allocateBytes() 交给
+    // 另一个 nibble 复用，而仍持有旧指针的无锁读者就会读到他人的数据（跨对象释放后使用）。
+    // 本槽至多驻留一块，且 updateVisible() 的发布分支优先复用本槽而非新分配，故可见侧从
+    // "已发布"迁到"未发布"时本槽必为空——下面的断言即刻画该不变式。
+    // 由此可证：只要本对象存活，任何曾被发布的数组就始终由本对象持有（要么在 m_ownedVisible，
+    // 要么在本槽），读者绝不可能读到已释放内存。这是无需在 getVisible 热路径上加原子的硬保证。
+    MC_ASSERT_RELEASE(m_retiredVisible == nullptr);
     m_retiredVisible = std::move(bytes);
 }
 
