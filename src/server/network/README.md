@@ -37,6 +37,7 @@ src/server/network/
 │   └── SessionSignalHandler.hpp/cpp   # 心跳 / ping / 配置确认 / 区块批次反馈
 ├── outbound/                          # 出站：IR 构造、广播、复合下发序列
 │   ├── PacketBuilders.hpp/cpp         # 纯自由函数 IR 构造（零 MinecraftServer 依赖）
+│   ├── DialogPacketBuilder.cpp        # 对话框纯构造实现，供握手 fuzz 独立链接
 │   ├── CommandTreeEncoder.hpp         # 命令树 → ClientboundCommandsPacket 包体
 │   ├── PlayerBroadcaster.hpp/cpp      # 距离过滤 + 多态广播
 │   └── MapPacketBuilder.hpp/cpp       # 脏地图周期推送

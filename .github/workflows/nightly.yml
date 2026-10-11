@@ -1,144 +1,92 @@
-# ============================================================================
-# Nightly CI —— 每晚 21:00（北京时间）跑一次完整 CI + 产出服务端 nightly build
-# ============================================================================
-#
-# 设计背景：
-#   - 只跑 Linux。本项目客户端已停止维护，Windows/macOS 构建无必要。
-#   - **不在每次提交时触发**（无 push / pull_request）。日常提交不跑 CI，只有每晚一次。
-#   - 拆成「2 个构建 job + 5 个测试 job + 1 个汇总 job」，而非单 job 串行：GitHub 单个
-#     job 有 6 小时硬上限，而本项目构建耗时长、单元测试用例数以万计、fuzz 约 45 分钟，
-#     串行必然超时。
-#   - 单元/集成/e2e 使用 sanitizer 构建，benchmark 与公开 Release 使用独立发布构建。
-#
-# 判定口径（重要）：
-#   - 单元测试 / 集成测试：全量跑，**永不 fail**，仅归档结果。项目存在大量历史遗留失败，
-#     把它们设成门禁会让 nightly 长期红灯、失去信号价值。失败清单经 report job 汇总进 issue。
-#   - e2e：跑 Cubium 自身回归（regress 模式，不跑 vanilla 双跑），失败即 job 失败。
-#   - fuzz：崩溃/OOM 即 job 失败，产物作为 artifact 保留（可复现的最小输入）。
-#   - benchmark：**仅记录 + 告警，不阻塞**。托管 runner 每次是全新实例，单晚差异含机器噪声，
-#     不适合作为硬门禁。
-# ============================================================================
-
 name: Nightly CI
-
-on:
+'on':
   schedule:
-    # 21:00 北京时间 = 13:00 UTC。cron 一律按 UTC 解释。
+    # 21:00 北京时间 = 13:00 UTC。
     - cron: '0 13 * * *'
-  # 手动触发：便于首次调试与按需重跑，不影响定时行为。
   workflow_dispatch:
-
-# 同一分支的旧运行让位给新运行（定时任务与手动触发共用一组）。
+permissions:
+  contents: read
+  actions: read
 concurrency:
   group: nightly-${{ github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: write # 建 nightly Release 需要
-  issues: write # 失败时建汇总 issue 需要
-  # 读取上一次 nightly 的 artifact（benchmark 跨日对比）+ 删除旧缓存（prune_caches.py）需要。
-  # 注意是 write 而非 read：删除缓存走 DELETE /repos/{owner}/{repo}/actions/caches/{id}。
-  actions: write
-
 env:
+  POCOCC_REF: 70955224a6cb37fe52c48ef845c0ea5d83650d7d
+  CI_COMPILER: /usr/lib/llvm-22/bin/clang++
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
-  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_MAXSIZE: 2G
-  # ccache 与 PCH 并存所必需的宽松策略（见 ccache 手册「Precompiled headers」）：
-  #   - pch_defines,time_macros：ccache 在使用 PCH 时无法探测 #define 变化与 __DATE__/__TIME__，
-  #     必须显式放行，否则会直接判定「不可缓存」（ccache 日志：could_not_use_precompiled_header）。
-  #   - include_file_mtime,include_file_ctime：CI 每次 checkout 都会刷新源文件 mtime/ctime，
-  #     不放行会令 direct mode 失效。实测缺这两项时命中率从 ~83% 掉到 ~25%。
-  # 与之配套的编译期选项 -Xclang -fno-pch-timestamp 在 src/common/CMakeLists.txt 中设置，
-  # 二者缺一不可。
   CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
-  # 构建产物的统一路径（Linux 下无 .exe 后缀）。
+  POCOCC_CI_BINARY_DIR: /tmp/pococc-tools
+  POCOCC_CI_HOLD_TIMEOUT: '21600'
+  POCOCC_CI_RENDEZVOUS_TIMEOUT: '900'
+  POCOCC_CI_POLL_INTERVAL: '120'
+  POCOCC_CI_WORKER_SLOTS: '2'
+  DISTCC_IO_TIMEOUT: '3600'
   BIN_DIR: build/bin/RelWithDebInfo
-
 jobs:
-  # ==========================================================================
-  # 测试构建（服务端 + 单元测试，ASan + UBSan，保留调试符号）
-  # ==========================================================================
+  prepare:
+    name: Prepare pococc tools
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pococc-toolchain
+        with:
+          cubium-dependencies: 'false'
+      - uses: actions/checkout@v4
+        with:
+          repository: g122622/pococc
+          ref: ${{ env.POCOCC_REF }}
+          path: .pococc-source
+      - name: Build pinned pococc
+        run: |
+          cmake -S .pococc-source -B "$RUNNER_TEMP/pococc-seed-build" -G Ninja \
+            -DCMAKE_CXX_COMPILER="$CI_COMPILER" -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+          cmake --build "$RUNNER_TEMP/pococc-seed-build" -j4
+          mkdir -p pococc-tools
+          cp "$RUNNER_TEMP/pococc-seed-build/pococc" "$RUNNER_TEMP/pococc-seed-build/pococc-cc" pococc-tools/
+          cp .pococc-source/src/ci/Bootstrap.py pococc-tools/
+          curl -fL --retry 3 --max-time 180 \
+            https://github.com/cloudflare/cloudflared/releases/download/2026.10.0/cloudflared-linux-amd64 \
+            -o pococc-tools/cloudflared
+          printf '%s  %s\n' d33ff2d14475178d2012c2c56beba87389ac5ded27649519f198a7d3134a99db \
+            pococc-tools/cloudflared | sha256sum --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pococc-tools-${{ github.run_attempt }}
+          path: pococc-tools/
+          retention-days: 1
   build:
+    permissions:
+      contents: read
+      actions: write
     name: Test Build (Linux / RelWithDebInfo / ASan + UBSan)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 300
     env:
       ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-test-
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - uses: ./.github/actions/setup-linux-build-env
-        id: env-setup
+      - uses: ./.github/actions/build-pococc
         with:
+          pool: test
           cache-scope: nightly
-          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
-
-      # 专用 preset 在 C/C++ 编译和链接阶段开启 ASan/UBSan，并关闭 native 架构优化。
-      # 保留 RelWithDebInfo 的调试信息；不改变开发 preset 或独立 fuzz preset。
-      - name: Configure
-        run: cmake --preset linux-clang-ci-tests
-
-      # Configure 阶段 vcpkg 已完成安装，此处立即保存缓存：即使后续 Build 失败，
-      # 依赖也已被缓存，下次运行无需重编。
-      - name: Save vcpkg binary cache
-        if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: vcpkg-cache
-          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
-
-      - name: Build
-        id: build-step
-        run: cmake --build --preset linux-clang-ci-tests -j"$(nproc)"
-
+          workers: '16'
+          preset: linux-clang-ci-tests
+          build-dir: build
+          variant: test
       - name: Verify test binaries and collect runtime libraries
         run: |
           python3 scripts/ci/prepare_build_artifacts.py --variant test --build-dir build \
             --binary "${BIN_DIR}/minecraft-server" --binary "${BIN_DIR}/mc_tests" \
             --library-dir vcpkg-libs --report build-artifact-check.txt
-
-      # 把 ccache 的命中统计打进日志：命中率是判断缓存是否真正生效的唯一直接证据。
-      # 一旦 PCH 相关配置（-Xclang -fno-pch-timestamp / CCACHE_SLOPPINESS）被误删，
-      # 命中率会从 ~80% 掉到个位数，此处立刻可见，无需再靠对比构建耗时反推。
-      - name: ccache statistics
-        if: always()
-        run: ccache --show-stats --verbose || true
-
-      - name: Save ccache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: .ccache
-          key: ccache-linux-nightly-${{ github.run_id }}
-
-      # 每轮保存一份 ~2 GB 的新缓存且从不删旧的，几轮下来就会撞上 GitHub 的
-      # **10 GB 仓库缓存上限**。触顶后按 LRU 自动驱逐，后果不是「缓存变小」而是
-      # **命中率归零**：新一轮只能回退到更旧的缓存，而那份缓存的编译选项往往已经变了
-      # （ccache 视编译选项为命令的一部分），于是全量 miss，构建从 20 分钟劣化到 55 分钟。
-      # 这里在保存之后立即清掉旧份，只保留最新 1 份。
-      # 必须放在 Save ccache **之后**——刚保存的那份才是最新的，才会被保留。
-      - name: Prune old ccache entries
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 scripts/ci/prune_caches.py \
-            --repo "${{ github.repository }}" \
-            --prefix ccache-linux-nightly- \
-            --keep 1 || true
-
-      # CTest 的用例清单是**构建期**产物，不在 bin/ 下。Linux 走 gtest_discover_tests 的
-      # POST_BUILD 模式（Windows 才是 PRE_TEST），故清单落在 `*_tests-<Config>.cmake`，
-      # 由 `CTestTestfile.cmake` 直接 include。这里把这些文件全部打包，unit-tests job
-      # 才能在不重新构建的前提下用 ctest 跑用例。
-      #
-      # 这些文件内含**绝对路径**（如 /home/runner/work/<repo>/<repo>/build/bin/...），
-      # 而两个 job 的 workspace 路径完全一致，故解压到仓库根即可直接复用。
       - name: Package CTest metadata
         if: always()
         run: |
@@ -158,17 +106,15 @@ jobs:
           else
             echo "::warning::未找到任何 CTest 元数据文件，unit-tests job 可能无法用 ctest 运行。"
           fi
-
       - name: Record runner configuration
         if: always()
         continue-on-error: true
         run: python3 scripts/ci/collect_runner_info.py --job build --build-dir build --out runner-info.json
-
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-build-artifacts
+          name: pococc-test-build-artifacts
           retention-days: 30
           if-no-files-found: warn
           path: |
@@ -178,40 +124,26 @@ jobs:
             build-artifact-check.txt
             ctest-meta.tar.gz
             runner-info.json
-
-  # ==========================================================================
-  # 独立发布构建（Release，无调试信息、profiler 或 sanitizer；供发布及 benchmark）
-  # ==========================================================================
+    needs: prepare
   release-build:
     name: Release Build (Linux / Release / no profiler)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 300
     env:
       RELEASE_BIN_DIR: build-release-noprof/bin/Release
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-release-
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - uses: ./.github/actions/setup-linux-build-env
-        id: env-setup
+      - uses: ./.github/actions/build-pococc
         with:
+          pool: release
           cache-scope: release
-          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
-
-      - name: Configure release
-        run: cmake --preset linux-clang-ci-release
-
-      - name: Save vcpkg binary cache
-        if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: vcpkg-cache
-          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
-
-      - name: Build release server and benchmark
-        run: cmake --build --preset linux-clang-ci-release -j"$(nproc)"
-
+          workers: '10'
+          preset: linux-clang-ci-release
+          build-dir: build-release-noprof
+          variant: release
       - name: Verify and package release binaries
         run: |
           set -euo pipefail
@@ -219,35 +151,14 @@ jobs:
             --binary "${RELEASE_BIN_DIR}/minecraft-server" --binary "${RELEASE_BIN_DIR}/mc_benchmark" \
             --library-dir release-package/lib --report release-artifact-check.txt
           cp "${RELEASE_BIN_DIR}/minecraft-server" release-package/minecraft-server
-
-      - name: ccache statistics
-        if: always()
-        run: ccache --show-stats --verbose || true
-
-      - name: Save ccache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: .ccache
-          key: ccache-linux-release-${{ github.run_id }}
-
-      - name: Prune old release ccache entries
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 scripts/ci/prune_caches.py --repo "${{ github.repository }}" \
-            --prefix ccache-linux-release- --keep 1 || true
-
       - name: Record runner configuration
         if: always()
         continue-on-error: true
         run: python3 scripts/ci/collect_runner_info.py --job release-build --build-dir build-release-noprof --out runner-info.json
-
       - name: Upload release build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-build-artifacts
+          name: pococc-release-build-artifacts
           retention-days: 30
           if-no-files-found: error
           path: |
@@ -255,18 +166,15 @@ jobs:
             ${{ env.RELEASE_BIN_DIR }}/mc_benchmark
             release-package/lib/
             release-artifact-check.txt
-
-      # 失败时仍单独归档配置；未经核验的二进制不能流入 benchmark 或公开发布。
       - name: Upload release build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-build-diagnostics
+          name: pococc-release-build-diagnostics
           retention-days: 30
           path: |
             runner-info.json
             release-artifact-check.txt
-
       - name: Publish nightly release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -284,300 +192,31 @@ jobs:
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" "${ARCHIVE}" --clobber
           else
-            gh release create "${TAG}" "${ARCHIVE}" --title "Nightly ${TAG}" --notes-file release-notes.md
+            gh release create "${TAG}" "${ARCHIVE}" --target "$GITHUB_SHA" --title "Nightly ${TAG}" --notes-file release-notes.md
           fi
-
-  # ==========================================================================
-  # 单元测试（ctest）—— 全量跑，不阻塞
-  # ==========================================================================
-  unit-tests:
-    name: Unit Tests (ctest)
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 300
-    env:
-      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/setup-datapack
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: test-build-artifacts
-
-      - name: Prepare environment
-        run: |
-          set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
-          # 若 artifact 带了 vcpkg 动态库，加入库搜索路径。
-          if [ -d vcpkg-libs ]; then
-            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
-          fi
-
-          # 还原构建期生成的 CTest 元数据（用例清单与发现文件），使本 job 无需重新构建
-          # 即可用 ctest 跑用例。这些文件内的路径是绝对路径，两个 job 的 workspace 路径
-          # 相同（/home/runner/work/<repo>/<repo>），故解压到仓库根即可对上。
-          if [ -f ctest-meta.tar.gz ]; then
-            tar -xzf ctest-meta.tar.gz
-          else
-            echo "::error::缺少 ctest-meta.tar.gz，无法用 ctest 运行单元测试。"
-            exit 1
-          fi
-
-      - name: Run unit tests
-        run: |
-          set +e
-          cd build
-          # --output-junit 产出机器可读的失败清单（report job 的汇总脚本依赖它）。
-          ctest --build-config RelWithDebInfo \
-                --output-on-failure \
-                --output-junit ../ctest-results.xml \
-                --timeout 300 \
-                -j"$(nproc)" 2>&1 | tee ../ctest-output.log
-          echo "ctest exit code: ${PIPESTATUS[0]}"
-          # 单元测试按既定口径不阻塞 CI：此处恒以 0 退出，失败清单由 report job 汇总。
-          exit 0
-
-      - name: Record runner configuration
-        if: always()
-        continue-on-error: true
-        run: python3 scripts/ci/collect_runner_info.py --job unit-tests --out runner-info.json
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-results
-          retention-days: 30
-          if-no-files-found: warn
-          path: |
-            ctest-output.log
-            ctest-results.xml
-            build/Testing/
-            runner-info.json
-
-  # ==========================================================================
-  # 集成测试（GameTest）—— 全量跑，不阻塞
-  # ==========================================================================
-  integrated-tests:
-    name: Integrated Tests (GameTest)
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
-      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - uses: ./.github/actions/setup-datapack
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: test-build-artifacts
-
-      - name: Prepare environment
-        run: |
-          set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
-          if [ -d vcpkg-libs ]; then
-            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
-          fi
-
-      # 行为包的 TS→JS 产物（tests/integrated/*/scripts/）不入 git，由 build.mjs 在构建期生成。
-      # 本 job 不构建，故须自行编译一次（build.mjs 会在 node_modules 缺失时自动 npm install）。
-      - name: Compile integrated behavior packs
-        working-directory: tests/integrated
-        run: node build.mjs
-
-      # run-gametests.ts 自带「失败用例隔离重跑」与 JUnit XML 聚合。
-      #
-      # 退出码语义（见 docs/test/INTEGRATED_TEST.md §7）：
-      #   0 = 全部通过；1 = 有失败用例（含重跑后仍失败）；2 = **流水线错误**
-      #   （服务端崩溃 / Round 1 报告缺失，通常是进程崩在写 JUnit XML 之前）。
-      #
-      # 两类失败必须区别对待：用例失败（1）属既定口径「不阻塞」（项目有大量历史遗留
-      # 失败，设成门禁会让 nightly 长期红灯）；而流水线错误（2）意味着**服务端崩了**，
-      # 是真实缺陷而非历史包袱，且此时没有 JUnit XML、失败在报告里天然不可见。
-      # 故 2 直接判 job 失败，保证它在 job 层面可见。
-      - name: Run integrated tests
-        timeout-minutes: 32
-        run: |
-          set +e
-          node scripts/test/run-gametests.ts 2>&1 | tee integrated-tests.log
-          code=${PIPESTATUS[0]}
-          echo "run-gametests exit code: ${code}"
-          if [ "${code}" -ne 0 ] && [ "${code}" -ne 1 ]; then
-            echo "::error::集成测试流水线错误（退出码 ${code}）：超时、服务端崩溃或报告不完整，详见 integrated-tests.log"
-            exit 1
-          fi
-          # 用例失败（退出码 1）按既定口径不阻塞，失败清单由 report job 汇总。
-          exit 0
-
-      # 崩溃栈默认只有裸偏移（如 `minecraft-server(+0xdcb55c)`），排查成本极高。
-      # 这里用带调试信息的二进制把偏移还原成「函数名 + 源文件:行号」——CMakeLists 的
-      # -rdynamic 已能让多数帧直接带名字，本步再补上匿名 namespace/static 函数与内联帧。
-      # 失败不影响 job 结论（崩溃信息本就已在日志里，符号化只是增强）。
-      - name: Symbolize crash stack (if any)
-        if: always()
-        run: |
-          set +e
-          python3 scripts/ci/symbolize_crash.py \
-            --log integrated-tests.log \
-            --binary build/bin/RelWithDebInfo/minecraft-server \
-            --in-place
-
-      - name: Record runner configuration
-        if: always()
-        continue-on-error: true
-        run: python3 scripts/ci/collect_runner_info.py --job integrated-tests --out runner-info.json
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integrated-test-results
-          retention-days: 30
-          if-no-files-found: warn
-          path: |
-            integrated-tests.log
-            build/gametest-reports/
-            runner-info.json
-
-  # ==========================================================================
-  # 端到端 bot 测试（Cubium 自身回归）
-  # ==========================================================================
-  e2e-tests:
-    name: E2E Bot Tests (Cubium regress)
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    env:
-      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - uses: ./.github/actions/setup-datapack
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: test-build-artifacts
-
-      - name: Prepare environment
-        run: |
-          set -euo pipefail
-          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
-          if [ -d vcpkg-libs ]; then
-            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
-          fi
-
-      - name: Install e2e dependencies
-        working-directory: tests/e2e/bot
-        run: npm ci --no-audit --no-fund
-
-      # regress 模式：只起 Cubium 服务端，与冻结基线逐字段比对（不跑 vanilla 双跑，
-      # 故无需 JDK 与 vanilla jar）。
-      - name: Run e2e tests
-        working-directory: tests/e2e/bot
-        run: |
-          set -o pipefail
-          # e2e 是真实行为回归，失败即 job 失败（与非阻塞的单元/集成测试不同）。
-          # set -o pipefail 使 tee 不会掩盖 node 的退出码。
-          node run.ts 2>&1 | tee e2e-tests.log
-
-      - name: Record runner configuration
-        if: always()
-        continue-on-error: true
-        run: python3 scripts/ci/collect_runner_info.py --job e2e-tests --out runner-info.json
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-test-results
-          retention-days: 30
-          if-no-files-found: warn
-          path: |
-            tests/e2e/bot/e2e-tests.log
-            build/e2e/artifacts/
-            runner-info.json
-
-  # ==========================================================================
-  # 模糊测试（libFuzzer）—— 独立 job，自行构建
-  # ==========================================================================
+    needs: prepare
+    permissions:
+      contents: write
+      actions: write
   fuzz:
+    permissions:
+      contents: read
+      actions: write
     name: Fuzz (libFuzzer / Linux)
-    runs-on: ubuntu-latest
-    timeout-minutes: 240
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - uses: ./.github/actions/setup-linux-build-env
-        id: env-setup
+      - uses: ./.github/actions/build-pococc
         with:
+          pool: fuzz
           cache-scope: fuzz
-          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
-
-      # Linux 上无需源码自建 libFuzzer 运行时（Windows 的 /MT CRT 冲突在 Linux 上不存在），
-      # 直接用 clang 预编译运行时；故不设 MC_FUZZ_LIBFUZZER_SOURCE_DIR。
-      #
-      # 同样必须关掉 MC_ENABLE_NATIVE_ARCH：fuzz 的 ccache 是跨运行共享的，若某次编译
-      # 落在带 AVX-512 的实例上、下次运行落在不支持的实例上，恢复出的 .o 会直接 SIGILL。
-      # 实测未关时 fuzz_gen_seeds 以「Illegal instruction (core dumped)」崩溃（退出码 132）。
-      - name: Configure (fuzz)
-        run: cmake --preset linux-clang-fuzz -DMC_ENABLE_NATIVE_ARCH=OFF
-
-      - name: Save vcpkg binary cache
-        if: steps.env-setup.outputs.vcpkg-cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: vcpkg-cache
-          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
-
-      - name: Build fuzz targets
-        run: cmake --build --preset linux-clang-fuzz -j"$(nproc)"
-
-      - name: ccache statistics
-        if: always()
-        run: ccache --show-stats --verbose || true
-
-      - name: Save ccache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: .ccache
-          key: ccache-linux-fuzz-${{ github.run_id }}
-
-      # 同 build job：只保留最新一份 fuzz ccache，避免撞 10 GB 仓库缓存上限。
-      - name: Prune old ccache entries
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 scripts/ci/prune_caches.py \
-            --repo "${{ github.repository }}" \
-            --prefix ccache-linux-fuzz- \
-            --keep 1 || true
-
-      # 目标产物的实际布局是 <binaryDir>/bin/fuzz/<config>/（RUNTIME_OUTPUT_DIRECTORY
-      # 由 tests/fuzz/CMakeLists.txt 设定，Ninja Multi-Config 再追加配置名子目录）。
+          workers: '6'
+          preset: linux-clang-fuzz
+          build-dir: build-fuzz
+          variant: fuzz
       - name: Locate fuzz binaries
         run: |
           set -euo pipefail
@@ -588,7 +227,6 @@ jobs:
           fi
           echo "FUZZ_BIN=${FUZZ_BIN}" >> "$GITHUB_ENV"
           ls "${FUZZ_BIN}"
-
       - name: Generate seed corpus
         run: |
           set -euo pipefail
@@ -598,12 +236,6 @@ jobs:
           # 输出到临时目录而非 tests/fuzz/corpus：避免污染工作区（libFuzzer 还会往语料目录写新条目）。
           "${FUZZ_BIN}/fuzz_gen_seeds" fuzz-artifacts/seeds 2>&1 | tee fuzz-artifacts/gen-seeds.log
           find fuzz-artifacts/seeds -type d | sort
-
-      # 每个目标跑 5 分钟（-max_total_time=300），9 个目标共约 45 分钟。
-      #
-      # 语料参数：第一个目录可写（libFuzzer 会把新发现的条目写进去），后续目录只读。
-      # 这样既用上了生成种子与仓库内的回归种子，又不改动工作区。
-      # -artifact_prefix 把崩溃/OOM 产物集中落盘，作为可复现的最小输入上传。
       - name: Run fuzz targets
         run: |
           set +e
@@ -646,38 +278,393 @@ jobs:
           run_target fuzz_java_codec_cb "${SEEDS}/java_codec/cb" tests/fuzz/corpus/fuzz_java_codec_cb
 
           exit "${FAILED}"
-
       - name: Record runner configuration
         if: always()
         continue-on-error: true
         run: python3 scripts/ci/collect_runner_info.py --job fuzz --build-dir build-fuzz --out fuzz-artifacts/runner-info.json
-
       - name: Upload fuzz results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: fuzz-results
+          name: pococc-fuzz-results
           retention-days: 30
           if-no-files-found: warn
           path: fuzz-artifacts/
+    needs: prepare
+    env:
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-fuzz-
+  workers:
+    name: pococc ${{ matrix.pool }} worker ${{ matrix.worker }}
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pool: test
+            worker: 1
+          - pool: test
+            worker: 2
+          - pool: test
+            worker: 3
+          - pool: test
+            worker: 4
+          - pool: test
+            worker: 5
+          - pool: test
+            worker: 6
+          - pool: test
+            worker: 7
+          - pool: test
+            worker: 8
+          - pool: test
+            worker: 9
+          - pool: test
+            worker: 10
+          - pool: test
+            worker: 11
+          - pool: test
+            worker: 12
+          - pool: test
+            worker: 13
+          - pool: test
+            worker: 14
+          - pool: test
+            worker: 15
+          - pool: test
+            worker: 16
+          - pool: release
+            worker: 1
+          - pool: release
+            worker: 2
+          - pool: release
+            worker: 3
+          - pool: release
+            worker: 4
+          - pool: release
+            worker: 5
+          - pool: release
+            worker: 6
+          - pool: release
+            worker: 7
+          - pool: release
+            worker: 8
+          - pool: release
+            worker: 9
+          - pool: release
+            worker: 10
+          - pool: fuzz
+            worker: 1
+          - pool: fuzz
+            worker: 2
+          - pool: fuzz
+            worker: 3
+          - pool: fuzz
+            worker: 4
+          - pool: fuzz
+            worker: 5
+          - pool: fuzz
+            worker: 6
+      max-parallel: 32
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 5
+      - uses: actions/download-artifact@v4
+        timeout-minutes: 5
+        with:
+          name: pococc-tools-${{ github.run_attempt }}
+          path: ${{ env.POCOCC_CI_BINARY_DIR }}
+      - uses: ./.github/actions/setup-pococc-toolchain
+        timeout-minutes: 20
+        with:
+          cubium-dependencies: 'false'
+      - name: Start authenticated compile worker
+        timeout-minutes: 25
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x "$POCOCC_CI_BINARY_DIR/pococc" "$POCOCC_CI_BINARY_DIR/pococc-cc" \
+            "$POCOCC_CI_BINARY_DIR/cloudflared"
+          python3 scripts/ci/pococc_performance.py start-worker --bootstrap "$POCOCC_CI_BINARY_DIR/Bootstrap.py" --worker '${{ matrix.worker }}' \
+            --state "$RUNNER_TEMP/pococc-worker"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.POCOCC_CI_ARTIFACT_PREFIX }}worker-endpoint-${{ matrix.worker }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pococc-worker/endpoint.json
+          retention-days: 1
+      - name: Keep worker available
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" hold --state "$RUNNER_TEMP/pococc-worker"
+      - name: Stop worker services
+        if: always()
+        run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-worker"
+      - name: Record worker compilation and compiler probes
+        run: |
+          python3 scripts/ci/pococc_performance.py worker-report --pool "$POOL" --state "$RUNNER_TEMP/pococc-worker"
+        env:
+          POOL: ${{ matrix.pool }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pococc-worker-report-${{ matrix.pool }}-${{ matrix.worker }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pococc-worker/pococc-performance.json
+            ${{ runner.temp }}/pococc-worker/compiler-times.jsonl
+            ${{ runner.temp }}/pococc-worker/*.log
+          retention-days: 7
+    env:
+      POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
+  unit-tests:
+    name: Unit Tests (CTest shard ${{ matrix.shard }}/8)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          # 若 artifact 带了 vcpkg 动态库，加入库搜索路径。
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
 
-  # ==========================================================================
-  # 性能基准（独立 runner，使用无 sanitizer 的发布产物）
-  # ==========================================================================
+          # 还原构建期生成的 CTest 元数据（用例清单与发现文件），使本 job 无需重新构建
+          # 即可用 ctest 跑用例。这些文件内的路径是绝对路径，两个 job 的 workspace 路径
+          # 相同（/home/runner/work/<repo>/<repo>），故解压到仓库根即可对上。
+          if [ -f ctest-meta.tar.gz ]; then
+            tar -xzf ctest-meta.tar.gz
+          else
+            echo "::error::缺少 ctest-meta.tar.gz，无法用 ctest 运行单元测试。"
+            exit 1
+          fi
+      - uses: ./.github/actions/setup-sanitizer-symbolizer
+      - name: Record complete CTest selection
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          first=$((SHARD + 1))
+          ctest --test-dir build --build-config RelWithDebInfo --show-only=json-v1 > ctest-inventory.json
+          ctest --test-dir build --build-config RelWithDebInfo -I "$first,,8" --show-only=json-v1 > ctest-selected.json
+          python3 scripts/ci/record_ctest_partition.py --all ctest-inventory.json --selected ctest-selected.json \
+            --index "$SHARD" --count 8 --out ctest-partition.json
+      - name: Run unit tests
+        run: |
+          set +e
+          first=$((SHARD + 1))
+          cd build
+          # --output-junit 产出机器可读的失败清单（report job 的汇总脚本依赖它）。
+          ctest --build-config RelWithDebInfo -I "$first,,8" \
+                --output-on-failure \
+                --output-junit ../ctest-results.xml \
+                --timeout 300 \
+                -j2 2>&1 | tee ../ctest-output.log
+          echo "ctest exit code: ${PIPESTATUS[0]}"
+          # 单元测试按既定口径不阻塞 CI：此处恒以 0 退出，失败清单由 report job 汇总。
+          exit 0
+        env:
+          SHARD: ${{ matrix.shard }}
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job unit-tests --out runner-info.json
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-unit-test-results-${{ matrix.shard }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            ctest-output.log
+            ctest-results.xml
+            build/Testing/
+            runner-info.json
+            ctest-partition.json
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+  integrated-tests:
+    name: Integrated Tests (GameTest shard ${{ matrix.shard }}/24)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+      - uses: ./.github/actions/setup-sanitizer-symbolizer
+      - name: Compile integrated behavior packs
+        working-directory: tests/integrated
+        run: node build.mjs
+      - name: Run integrated tests
+        timeout-minutes: 32
+        run: |
+          set +e
+          node scripts/test/run-gametests.ts --partition="$SHARD/24" 2>&1 | tee integrated-tests.log
+          code=${PIPESTATUS[0]}
+          echo "run-gametests exit code: ${code}"
+          if [ "${code}" -ne 0 ] && [ "${code}" -ne 1 ]; then
+            echo "::error::集成测试流水线错误（退出码 ${code}）：超时、服务端崩溃或报告不完整，详见 integrated-tests.log"
+            exit 1
+          fi
+          # 用例失败（退出码 1）按既定口径不阻塞，失败清单由 report job 汇总。
+          exit 0
+        env:
+          SHARD: ${{ matrix.shard }}
+      - name: Symbolize crash stack (if any)
+        if: always()
+        run: |
+          set +e
+          python3 scripts/ci/symbolize_crash.py \
+            --log integrated-tests.log \
+            --binary build/bin/RelWithDebInfo/minecraft-server \
+            --in-place
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job integrated-tests --out runner-info.json
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-integrated-test-results-${{ matrix.shard }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            integrated-tests.log
+            build/gametest-reports/
+            runner-info.json
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+          - 16
+          - 17
+          - 18
+          - 19
+          - 20
+          - 21
+          - 22
+          - 23
+  e2e-tests:
+    name: E2E Bot Tests (Cubium regress)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/setup-datapack
+      - uses: actions/download-artifact@v4
+        with:
+          name: pococc-test-build-artifacts
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          chmod +x build/bin/RelWithDebInfo/* 2>/dev/null || true
+          if [ -d vcpkg-libs ]; then
+            echo "LD_LIBRARY_PATH=${PWD}/vcpkg-libs:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          fi
+      - uses: ./.github/actions/setup-sanitizer-symbolizer
+      - name: Install e2e dependencies
+        working-directory: tests/e2e/bot
+        run: npm ci --no-audit --no-fund
+      - name: Run e2e tests
+        working-directory: tests/e2e/bot
+        run: |
+          set -o pipefail
+          # e2e 是真实行为回归，失败即 job 失败（与非阻塞的单元/集成测试不同）。
+          # set -o pipefail 使 tee 不会掩盖 node 的退出码。
+          node run.ts 2>&1 | tee e2e-tests.log
+      - name: Record runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job e2e-tests --out runner-info.json
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-e2e-test-results
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            tests/e2e/bot/e2e-tests.log
+            build/e2e/artifacts/
+            runner-info.json
   benchmark:
     name: Benchmark (Release / record + warn only)
     needs: release-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-
       - uses: ./.github/actions/setup-datapack
-
       - uses: actions/download-artifact@v4
         with:
-          name: release-build-artifacts
-
+          name: pococc-release-build-artifacts
       - name: Prepare environment
         run: |
           set -euo pipefail
@@ -685,19 +672,16 @@ jobs:
           if [ -d release-package/lib ]; then
             echo "LD_LIBRARY_PATH=${PWD}/release-package/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           fi
-
-      # 启动用例在 benchmark 同目录定位同配置服务端，不依赖构建 runner 的绝对路径。
       - name: Run benchmarks
         run: |
           set -euo pipefail
           mkdir -p benchmark-out
           ./build-release-noprof/bin/Release/mc_benchmark \
-            --benchmark_context=ci_build_profile=release-noprof-nosan-v1 \
+            --benchmark_context=ci_build_profile=pococc-release-noprof-nosan-v1 \
             --benchmark_out=benchmark-out/results.json \
             --benchmark_out_format=json \
             --benchmark_repetitions=3 \
             --benchmark_report_aggregates_only=true 2>&1 | tee benchmark-out/benchmark.log
-
       - name: Fetch previous nightly benchmark results
         id: fetch-previous
         env:
@@ -714,9 +698,8 @@ jobs:
             exit 0
           fi
           echo "上一次成功运行：${PREV_RUN}"
-          gh run download "${PREV_RUN}" -n benchmark-results -D previous/ 2>/dev/null
+          gh run download "${PREV_RUN}" -n pococc-benchmark-results -D previous/ 2>/dev/null
           ls -R previous/ || true
-
       - name: Compare with previous run
         run: |
           set +e
@@ -732,57 +715,75 @@ jobs:
             echo "::warning::benchmark 存在超过阈值的项，详见 artifact benchmark-results 中的 benchmark-compare.md"
           fi
           cat benchmark-out/benchmark-compare.md || true
-
       - name: Record runner configuration
         if: always()
         continue-on-error: true
         run: python3 scripts/ci/collect_runner_info.py --job benchmark --out benchmark-out/runner-info.json
-
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results
+          name: pococc-benchmark-results
           retention-days: 90
           if-no-files-found: warn
           path: benchmark-out/
-
-  # ==========================================================================
-  # 汇总：下载全部结果 artifact，生成报告；有任何失败则建一个 issue
-  # ==========================================================================
   report:
     name: Summarize & Report
-    needs: [build, release-build, unit-tests, integrated-tests, e2e-tests, fuzz, benchmark]
+    needs:
+      - build
+      - release-build
+      - unit-tests
+      - integrated-tests
+      - e2e-tests
+      - fuzz
+      - benchmark
+      - prepare
+      - workers
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - name: Download all result artifacts
         if: always()
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
+          pattern: pococc-*-results*
       - name: Record runner configuration
         if: always()
         continue-on-error: true
         run: python3 scripts/ci/collect_runner_info.py --job report --out artifacts/report/runner-info.json
-
+      - name: Download compilation diagnostics
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pococc-*-diagnostics-*
+          path: artifacts
+      - name: Download worker performance evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pococc-worker-report-*
+          path: artifacts
+      - name: Verify complete GameTest partition coverage
+        if: always()
+        run: |
+          python3 scripts/ci/verify_test_coverage.py --kind gametest --directory artifacts --shards 24 --out pococc-gametest-coverage.json
+      - name: Verify complete CTest partition coverage
+        if: always()
+        run: |
+          python3 scripts/ci/verify_test_coverage.py --kind ctest --directory artifacts --shards 8 --out pococc-ctest-coverage.json
       - name: Generate summary
         if: always()
         id: summary
         env:
-          # 注意：不能引用 needs.report（job 不能依赖自身）。report 的结论对本 job 无意义。
-          JOB_STATUS: >-
-            {"build":"${{ needs.build.result }}",
+          JOB_STATUS: |-
+            {"prepare":"${{ needs.prepare.result }}", "workers":"${{ needs.workers.result }}", "build":"${{ needs.build.result }}",
              "release-build":"${{ needs.release-build.result }}",
              "unit-tests":"${{ needs.unit-tests.result }}",
              "integrated-tests":"${{ needs.integrated-tests.result }}",
              "e2e-tests":"${{ needs.e2e-tests.result }}",
              "fuzz":"${{ needs.fuzz.result }}",
-             "benchmark":"${{ needs.benchmark.result }}"}
+             "benchmark":"${{ needs.benchmark.result }}", "report":"in_progress"}
         run: |
           set -euo pipefail
           python3 scripts/ci/summarize_failures.py \
@@ -801,13 +802,37 @@ jobs:
           echo "判定结果：${STATUS}"
 
           # 写入 job summary，便于直接在运行页查看。
+          set +e
+          python3 scripts/ci/pococc_performance.py report --directory artifacts \
+            --out pococc-performance.md --json-out pococc-performance.json
+          performance_status=$?
+          set -e
+          if [ "$performance_status" -ne 0 ]; then
+            echo failures > nightly-status.txt
+            echo status=failures >> "$GITHUB_OUTPUT"
+          fi
+          if [ ! -s pococc-performance.md ]; then
+            echo '## pococc 性能证据采集失败' > pococc-performance.md
+          fi
+          cat pococc-performance.md nightly-report.md > combined-report.md
+          mv combined-report.md nightly-report.md
+          cat pococc-performance.md nightly-report-full.md > combined-full-report.md
+          mv combined-full-report.md nightly-report-full.md
+          if [ -s pococc-gametest-coverage.json ]; then
+            count=$(jq -r '.registered_tests' pococc-gametest-coverage.json)
+            printf '\nGameTest coverage: %s registered tests partitioned exactly once across 24 shards (at most 8 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
+          fi
+          if [ -s pococc-ctest-coverage.json ]; then
+            count=$(jq -r '.registered_tests' pococc-ctest-coverage.json)
+            printf '\nCTest coverage: %s registered tests partitioned exactly once across 8 shards (at most 4 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
+          fi
           cat nightly-report.md >> "$GITHUB_STEP_SUMMARY"
-
+          exit "$performance_status"
       - name: Upload summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-report
+          name: pococc-nightly-report
           retention-days: 90
           if-no-files-found: warn
           path: |
@@ -815,13 +840,10 @@ jobs:
             nightly-report-full.md
             nightly-status.txt
             nightly-runners.json
-
-      # 建 issue 的触发条件：任一 job 失败，或非阻塞 job（unit/integrated）的产物中存在
-      # 失败用例。判定逻辑集中在 summarize_failures.py 的 has_failures()，此处只读结果。
-      #
-      # `always()` 是必需的：若 Generate summary 步骤自身失败，默认的隐式 success() 会让本步骤
-      # 被跳过，从而在「最该建 issue 的时候」反而不建。此时 status 为空，判定为空 != 'clean'
-      # → 仍然建 issue（宁可多建，不可漏报）。
+            pococc-performance.md
+            pococc-performance.json
+            pococc-gametest-coverage.json
+            pococc-ctest-coverage.json
       - name: Create nightly issue
         if: always() && steps.summary.outputs.status != 'clean'
         env:
@@ -857,3 +879,7 @@ jobs:
             --title "${TITLE}" \
             --body-file nightly-report.md \
             --label nightly-ci
+    permissions:
+      contents: read
+      actions: read
+      issues: write

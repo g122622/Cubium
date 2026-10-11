@@ -1,27 +1,22 @@
 ## CI 与 nightly 构建
 
-### 独立 pococc 测试构建实验
+### 正式 pococc 分布式构建
 
-新增 nightly-pococc.yml 暂时只支持手动触发。原 nightly.yml 与构建 preset 保持原配置；
-实验使用 linux-clang-ci-tests，构建 minecraft-server 和 mc_tests，保留 RelWithDebInfo、
-ASan 与 UBSan，显式关闭 PCH 和 modules 扫描，输出至独立 build-pococc 目录。
+nightly.yml 使用固定提交的 pococc 和 Clang 22，保留完整测试、发布和汇总流程。
+32 个 worker 分为 test/release/fuzz 三个池，分别为 16/10/6 个节点，每节点两个槽位。
+三个协调节点与 worker 同时运行，编译阶段共需 35 个并发 job。
+ccache 命中直接返回对象文件，未命中经 pococc/distcc 分发；协调节点预处理和链接，
+worker 通过经过 SSH 认证的临时隧道编译。PCH、modules 扫描和 native CPU 均关闭。
 
-准备 job 默认在现有 Nightly CI 活跃时跳过本次实验；手动输入 allow_concurrent_nightly
-可仅对当前 run 放行并行验证，默认关闭。实际编译使用一个协调 runner 和两个
-Clang 22 worker，通过经过 SSH 认证的临时隧道连接。pococc 源码固定到不可变提交，
-长时间 worker 每分钟查询完成状态，协调构建最多 300 分钟，worker 最多 360 分钟。
-worker 在协调节点启动前的准备与公钥会合有合计 55 分钟的 step 上限，取得公钥后才进入 hold；
-hold 设置为 360 分钟，覆盖完整协调构建，worker job 还保留至少 5 分钟清理预算。
+CTest 分为 8 片（最多 4 片并行），GameTest 分为 24 片（最多 8 片并行）。
+汇总校验每个登记项恰好分配一次，并记录远端执行、并行峰值、CPU、压缩载荷和本轮缓存命中率。
+ccache/vcpkg 使用持久缓存，各 ccache 范围保存后保留最新一份，容量紧张时清理旧 Nightly 缓存。
 
-ccache 仅位于临时 runner；vcpkg cache 只读恢复，无保存或删除动作，不增加 Actions cache
-容量。workflow 使用独立 concurrency 和 pococc- 前缀的 artifacts，不运行测试、fuzz、
-benchmark、发布或 issue 汇总。构建产物仍核验 sanitizer 和调试信息，并记录分发统计、
-各 worker 的真实远程编译、CTest 元数据和 runner 配置。
+旧流程保留为 nightly-legacy.yml，名称为 Nightly CI Legacy，只允许手动触发，
+不参与每日 CI；其 concurrency、Release 标签和 issue 标签使用独立 legacy 范围。
+正式流程不再查询旧 Nightly 是否活跃，也没有 allow_concurrent_nightly 实验输入。
 
-所有 job 仍共享账号的并发额度。启动时检查可以避开已经活跃的 nightly，但不能为实验预留额度，
-也无法阻止之后启动的现有 nightly 与实验重叠。
-
-### 现有 nightly 流程
+### Nightly 流程
 
 Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:00（北京时间）自动运行一次**，
 不随每次提交触发。目标有三：
@@ -44,7 +39,7 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 ### 为什么拆成多个 job
 
 GitHub Actions 单个 job 有 **6 小时硬上限**。本项目百万行 C++ 的构建耗时长、单元测试用例数以万计、
-fuzz 约 45 分钟，串行放在一个 job 里必然超时。因此拆为「2 个构建 job + 5 个测试 job + 1 个汇总 job」，
+fuzz 约 45 分钟，串行放在一个 job 里必然超时。因此拆成工具准备、分布式构建池、测试分片和汇总 job，
 测试 job 从构建 job 的 artifact 取二进制，不各自重复构建。
 
 ### Job 拓扑
@@ -62,10 +57,12 @@ fuzz ──（独立，自行构建）
 
 | Job | 内容 | 是否阻塞 |
 |---|---|---|
+| `prepare` | 构建固定版本 pococc，供协调节点和 worker 复用 | 是 |
+| `workers` | 32 个临时编译节点，真实编译探针和性能采集 | 是 |
 | `build` | `linux-clang-ci-tests`，RelWithDebInfo + ASan/UBSan，仅供测试 | 是 |
 | `release-build` | `linux-clang-ci-release`，Release、无调试信息/profiler/sanitizer，公开发布 | 是 |
-| `unit-tests` | `ctest` 全量单元测试 | **否**（仅归档） |
-| `integrated-tests` | `scripts/test/run-gametests.ts`（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
+| `unit-tests` | `ctest` 全量单元测试，8 片、最多 4 片并行 | **否**（仅归档） |
+| `integrated-tests` | `scripts/test/run-gametests.ts`，24 片、最多 8 片并行（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
 | `e2e-tests` | `tests/e2e/bot` 的 `regress` 模式（仅 Cubium，不与 vanilla 双跑） | 是 |
 | `fuzz` | 9 个 libFuzzer 目标各 `-max_total_time=300` | 是（崩溃/OOM 即失败） |
 | `benchmark` | 独立机器执行 release-build 的 `mc_benchmark` 与服务端，与相同构建配置的上次结果对比 | **否**（仅记录 + 告警） |
@@ -102,10 +99,10 @@ cron 为 `0 13 * * *`（UTC）—— GitHub 的 cron 一律按 UTC 解释，13:0
 - 测试构建保留 `build/bin/RelWithDebInfo` 布局与调试符号，C/C++ 都加入
   `-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer`，链接器同样启用 ASan/UBSan。
   `MC_ENABLE_SANITIZERS=ON` 负责使用适合 sanitizer 的优化选项，不能替代上述插桩参数。
-  `test-build-artifacts` 只供单元、集成与 e2e 下载，不公开发布，也不生成 benchmark。
+  `pococc-test-build-artifacts` 只供单元、集成与 e2e 下载，不公开发布，也不生成 benchmark。
 - 发布构建使用 `build-release-noprof/bin/Release`，编译明确设 `-g0`，关闭 Perfetto、Tracy、
   memory tracing 和 sanitizer；发布前 strip 并检查 ELF 无调试节、无 ASan/UBSan 运行库符号。
-  `release-build-artifacts` 含 Release 服务端和 benchmark；公开 tar.gz 仅含服务端及所需的非系统动态库。
+  `pococc-release-build-artifacts` 含 Release 服务端和 benchmark；公开 tar.gz 仅含服务端及所需的非系统动态库。
 - 两条构建均关闭 `native-arch`，允许跨 runner 运行；fuzz 的 preset、局部插桩和执行流程保持原状。
 - benchmark 使用独立 runner，只下载 Release artifact。CMake 注入同配置的服务端文件名，
   运行时在 benchmark 同目录定位，不依赖构建机器的绝对路径，也不会误用 sanitizer 服务端。Google Benchmark 的内存计数保留在基准工具内，
@@ -141,19 +138,19 @@ https://github.com/misode/mcmeta/archive/refs/tags/1.21.11-data.zip
 ### 性能基准的对比口径
 
 `benchmark` job 用 `gh run list` 找到最近一次**成功**的 nightly 运行（排除本次），下载其
-`benchmark-results` artifact，再由 `scripts/ci/compare_benchmark.py` 逐用例比对：
+`pococc-benchmark-results` artifact，再由 `scripts/ci/compare_benchmark.py` 逐用例比对：
 
 - **CPU**：`real_time` 归一化到纳秒后比较，阈值默认 10%；
 - **内存**：`MemoryProfiler` 注入的计数器（`num_allocs` / `max_bytes_used` 等），阈值默认 20%。
 
 超阈值的项在报告中列出并触发 `::warning::`，但**不 fail**。判定真实回归应结合连续多晚的趋势，
 而非单晚的单点差异——托管 runner 的实例差异本身就足以造成超过阈值的抖动。
-结果 context 记录 `ci_build_profile=release-noprof-nosan-v1`；与历史不同配置的结果不做性能比较，
+结果 context 记录 `ci_build_profile=pococc-release-noprof-nosan-v1`；与历史不同配置的结果不做性能比较，
 首次切换 Release 时重新建立基线，后续相同配置才按原阈值比较。
 
 ### 失败归档与 issue
 
-报告在 job 结论之后用一张表汇总全部 8 个任务的机器配置：CPU 型号和可用逻辑核数、
+报告在 job 结论之后用一张表汇总各任务及测试分片的机器配置：CPU 型号和可用逻辑核数、
 物理内存总量、采集时工作区磁盘空闲/总容量、发行版、架构、内核、GitHub runner 镜像版本，
 以及各任务相关的编译器、链接器、CMake/Ninja/ccache、CTest、Node/npm、Python、gh 和 libc 版本。
 build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，并附 native、全局 sanitizer 与 fuzz-ASAN 开关；
@@ -161,7 +158,7 @@ build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，
 
 配置采集在各任务上传结果前执行，使用 `if: always()` 和 `continue-on-error: true`，
 因此构建或测试失败时仍能记录，采集失败不会覆盖原任务结论。每个 artifact 中有
-`runner-info.json`，汇总后的完整配置为 `nightly-report` artifact 中的 `nightly-runners.json`；
+`runner-info.json`，汇总后的完整配置为 `pococc-nightly-report` artifact 中的 `nightly-runners.json`；
 简要报告、完整报告、Actions summary 和失败 issue 均包含相同的配置表。
 跳过的任务显示“未运行”，其他没有配置的任务显示“未采集”，损坏的配置单独列出读取错误。
 
@@ -172,7 +169,7 @@ build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，
 - 报告分别列出**失败和跳过**的单元、集成、e2e 用例，并保留原因。单元测试同时显示通过、
   失败、跳过数量；job 的执行成功不能解释为所有用例通过。集成测试清单含各轮重跑记录。
 - `nightly-report.md` 用于 issue 正文，限制条数和长度；`nightly-report-full.md` 随
-  `nightly-report` artifact 归档，**失败和跳过清单不截断**。跳过不计为通过或失败。
+  `pococc-nightly-report` artifact 归档，**失败和跳过清单不截断**。跳过不计为通过或失败。
 - JUnit 采用流式 XML 解析，日志完整读取，不限制输入长度。报告缺失、损坏或没有单测用例时
   按报告错误上报，不能判为 `clean`；日志兜底也识别段错误、超时和未运行用例。
 - **是否需要建 issue 的判定集中在 `summarize_failures.py` 的 `has_failures()`**，它综合两类来源：
@@ -217,7 +214,9 @@ python3 scripts/ci/compare_benchmark.py \
 |---|---|
 | `scripts/ci/compare_benchmark.py` | benchmark 跨日对比，生成 Markdown 报告（仅记录 + 告警） |
 | `scripts/ci/summarize_failures.py` | 汇总各测试结果，生成 issue 正文（永不抛异常、输出限长） |
-| `.github/actions/setup-linux-build-env/action.yml` | 装系统依赖 + 恢复 ccache/vcpkg 缓存 + 安装 vcpkg（build / fuzz 共用） |
+| `.github/actions/setup-pococc-toolchain/action.yml` | 协调节点和 worker 使用的一致 Clang/distcc/SSH 工具链 |
+| `.github/actions/build-pococc/action.yml` | 无 PCH 分布式构建、持久缓存、节点生命周期和性能采集 |
+| `.github/actions/setup-linux-build-env/action.yml` | legacy 流程的系统依赖和缓存安装 |
 | `.github/actions/setup-datapack/action.yml` | 安装原版数据包到 `~/minecraft_reborn/datapacks/Vanilla` |
 
 ### 平台适配注意

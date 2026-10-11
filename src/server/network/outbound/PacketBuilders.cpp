@@ -23,9 +23,7 @@
 
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
-#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
-#include "common/util/nbt/NbtJsonUtils.hpp"
 #include <array>
 
 #include "server/network/outbound/PacketBuilders.hpp"
@@ -191,18 +189,6 @@ Result<mc::network::ir::IrPacket> buildMerchantOffersIr(const MerchantContainerM
     }
     return mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}};
-}
-
-Result<mc::network::ir::IrPacket> buildShowDialogIr(const nlohmann::json& definition)
-{
-    if (!definition.is_object() || !definition.contains("title") || !definition.contains("type") ||
-        !definition["type"].is_string())
-        return Error(ErrorCode::InvalidData, "Dialog requires type and title");
-    auto tag = mc::nbt::jsonToNbtStrictInt(definition);
-    const auto& compound = dynamic_cast<const mc::nbt::tags::compound_tag&>(*tag);
-    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{
-            mc::network::ir::play::ShowDialog{mc::network::buffer::nbt_io::serializeRootCompoundToBytes(compound)}}};
 }
 
 } // namespace mc::server::net
