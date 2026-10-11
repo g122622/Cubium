@@ -63,6 +63,24 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertIn("| `unit-tests` | 未运行 |", table)
         self.assertIn("| `fuzz` | 未采集 |", table)
 
+    def test_matrix_and_build_runtime_configurations_are_all_preserved(self):
+        for job, sources in (("unit-tests", ("unit-0", "unit-1")),
+                             ("fuzz", ("fuzz-build", "fuzz-runtime"))):
+            for source in sources:
+                path = self.write_runner(job)
+                directory = self.artifacts / source
+                directory.mkdir()
+                path.rename(directory / path.name)
+        runners, errors = summary.collect_runner_info(self.artifacts)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(runners), 4)
+        self.assertEqual({r["artifact"] for r in runners.values()},
+                         {"unit-0", "unit-1", "fuzz-build", "fuzz-runtime"})
+        table = "\n".join(summary.runner_info_table({}, self.artifacts))
+        for source in ("unit-0", "unit-1", "fuzz-build", "fuzz-runtime"):
+            self.assertIn(source, table)
+        self.assertNotIn("机器配置读取错误", table)
+
     def test_fuzz_sanitizer_is_separate_from_global_sanitizer_flag(self):
         path = self.write_runner("fuzz")
         info = json.loads(path.read_text(encoding="utf-8"))

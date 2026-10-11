@@ -5,24 +5,41 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
+import re
 import sys
 from xml.sax.saxutils import escape
 
 
 def verify(directory, count, pattern):
-    records = [json.loads(path.read_text()) for path in directory.rglob(pattern)]
+    paths = list(directory.rglob(pattern))
+    records = [json.loads(path.read_text()) for path in paths]
     if len(records) != count or sorted(r["shard_index"] for r in records) != list(range(count)):
         raise RuntimeError("Missing or duplicated test shard manifests")
     inventory = records[0]["all_test_ids"]
-    if not inventory or len(inventory) != len(set(inventory)):
+    is_ctest = pattern == "ctest-partition.json"
+    if not inventory or (not is_ctest and len(inventory) != len(set(inventory))):
         raise RuntimeError("Test inventory is empty or contains duplicate identifiers")
     if any(r["shard_count"] != count or r["all_test_ids"] != inventory for r in records):
         raise RuntimeError("Test shards disagree on the complete inventory")
     selected = Counter(identifier for r in records for identifier in r["selected_test_ids"])
-    if set(selected) != set(inventory) or any(value != 1 for value in selected.values()):
+    if selected != Counter(inventory):
         raise RuntimeError("Test partition coverage is incomplete or duplicated")
-    return {"shards": count, "registered_tests": len(inventory), "exactly_once": True,
-            "tests_per_shard": [len(r["selected_test_ids"]) for r in sorted(records, key=lambda r: r["shard_index"])]}
+    report = {"shards": count, "registered_tests": len(inventory), "exactly_once": True,
+              "tests_per_shard": [len(r["selected_test_ids"]) for r in sorted(records, key=lambda r: r["shard_index"])]}
+    if is_ctest:
+        # CTest 名称可以重复；实际全局编号才标识独立的登记项。核对每个 stride 的执行日志，
+        # 避免只比较名称计数而漏掉“同名项重复执行、另一项未执行”的错误。
+        for path, record in zip(paths, records):
+            starts = re.findall(r"^\s*Start\s+(\d+):\s+(.*?)\s*$",
+                                (path.parent / "ctest-output.log").read_text(), re.MULTILINE)
+            expected = list(range(record["shard_index"] + 1, len(inventory) + 1, count))
+            if sorted(int(number) for number, _ in starts) != expected:
+                raise RuntimeError(f"CTest shard {record['shard_index']}: execution indices are missing or duplicated")
+            if Counter(name for _, name in starts) != Counter(record["selected_test_ids"]):
+                raise RuntimeError(f"CTest shard {record['shard_index']}: execution names disagree with selection")
+        report["execution_indices_verified"] = True
+        report["duplicate_names"] = len(inventory) - len(set(inventory))
+    return report
 
 
 def main():
@@ -40,7 +57,8 @@ def main():
     except (OSError, ValueError, RuntimeError, KeyError) as error:
         diagnostic = options.directory / (options.kind + "-coverage-error.xml")
         diagnostic.parent.mkdir(parents=True, exist_ok=True)
-        diagnostic.write_text('<testsuites><testsuite name="GameTestCoverage"><testcase name="partition-coverage">'
+        suite = "CTestCoverage" if options.kind == "ctest" else "GameTestCoverage"
+        diagnostic.write_text(f'<testsuites><testsuite name="{suite}"><testcase name="partition-coverage">'
                               '<error message="' + escape(str(error), {'"': '&quot;'}) + '"/>'
                               '</testcase></testsuite></testsuites>')
         print(f"Test coverage verification failed: {error}", file=sys.stderr)
