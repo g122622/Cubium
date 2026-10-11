@@ -310,7 +310,8 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
 
     // 如果玩家死亡或断线，物品掉落到世界；否则尝试放回玩家背包
     // 检查玩家是否存活（死亡时物品直接掉落，不尝试放回背包）
-    bool playerIsAlive = player.isAlive();
+    const bool playerIsAlive = player.isAlive();
+    auto& targetInventory = m_playerInventory != nullptr ? *m_playerInventory : player.inventory();
 
     for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
         ItemStack stack = inventory->removeItemNoUpdate(i);
@@ -318,7 +319,7 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
             if (playerIsAlive) {
                 // 玩家存活且有背包，尝试放回玩家背包
                 // add() 返回剩余未添加的数量，会修改 stack 的数量
-                i32 remaining = player.inventory().add(stack);
+                i32 remaining = targetInventory.add(stack);
                 if (remaining > 0) {
                     // 放不下的物品掉落到世界
                     stack.setCount(remaining);
@@ -1069,7 +1070,8 @@ void AbstractContainerMenu::removed(Player& player)
         // 尝试放回玩家背包
         if (player.isAlive()) {
             // add() 返回剩余未添加的数量，会修改 m_carried 的数量
-            i32 remaining = player.inventory().add(m_carried);
+            auto& targetInventory = m_playerInventory != nullptr ? *m_playerInventory : player.inventory();
+            i32 remaining = targetInventory.add(m_carried);
             if (remaining > 0) {
                 // 放不下的物品掉落
                 m_carried.setCount(remaining);

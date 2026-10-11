@@ -726,3 +726,56 @@ TEST_F(ContainerRequestTest, BeaconRequiresPaymentFiltersEffectsAndSynchronizesP
     m_server->containerManager().closeContainer(1);
     EXPECT_EQ(dropped, 1);
 }
+
+TEST_F(ContainerRequestTest, DetachedMenuReturnsCarriedAndInputToItsBoundInventory)
+{
+    auto& owner = *m_server->m_player;
+    PlayerInventory boundInventory(&owner);
+    AnvilContainer menu(700, &boundInventory, BlockPos(0, 0, 0), m_server->m_world.get());
+    menu.getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    menu.setItemName("Preview");
+    ASSERT_FALSE(menu.getOutputSlot().isEmpty());
+    menu.setCarriedItem(ItemStack(Items::EMERALD, 3));
+    menu.removed(owner);
+    EXPECT_TRUE(owner.inventory().isEmpty());
+    EXPECT_TRUE(menu.getCarriedItem().isEmpty());
+    EXPECT_TRUE(menu.getInputSlot1().isEmpty());
+    i32 swords = 0, emeralds = 0;
+    for (i32 i = 0; i < boundInventory.getContainerSize(); ++i) {
+        const auto stack = boundInventory.getItem(i);
+        if (stack.getItem() == Items::DIAMOND_SWORD) {
+            swords += stack.getCount();
+            EXPECT_FALSE(stack.hasCustomName());
+        }
+        if (stack.getItem() == Items::EMERALD) emeralds += stack.getCount();
+    }
+    EXPECT_EQ(swords, 1);
+    EXPECT_EQ(emeralds, 3);
+}
+
+TEST_F(ContainerRequestTest, DetachedMenuDropsOverflowAndDeathItemsWithTheSuppliedOwner)
+{
+    auto& owner = *m_server->m_player;
+    PlayerInventory boundInventory(&owner);
+    for (i32 i = 0; i < boundInventory.getContainerSize(); ++i)
+        boundInventory.setItem(i, ItemStack(Items::STONE, 64));
+    AnvilContainer menu(700, &boundInventory, BlockPos(0, 0, 0), m_server->m_world.get());
+    menu.setCarriedItem(ItemStack(Items::EMERALD, 3));
+    menu.getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    i32 dropped = 0;
+    menu.setItemDropCallback([&](const ItemStack& stack, Player& player, bool) {
+        EXPECT_EQ(&player, &owner);
+        dropped += stack.getCount();
+    });
+    menu.removed(owner);
+    EXPECT_EQ(dropped, 4);
+    EXPECT_TRUE(owner.inventory().isEmpty());
+    boundInventory.clear();
+    dropped = 0;
+    owner.setHealth(0.0f);
+    menu.setCarriedItem(ItemStack(Items::EMERALD, 2));
+    menu.getSlot(0)->set(ItemStack(Items::DIAMOND_SWORD, 1));
+    menu.removed(owner);
+    EXPECT_EQ(dropped, 3);
+    EXPECT_TRUE(boundInventory.isEmpty());
+}
