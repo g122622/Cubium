@@ -468,6 +468,7 @@ add_executable(minecraft-client
     # 出站构造与广播：命令/登录流程经 builder + connectionManager 投递，
     # 客户端内置服编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
     ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
     # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，

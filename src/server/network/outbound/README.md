@@ -86,4 +86,4 @@ src/server/network/outbound/
 商人报价由 buildMerchantOffersIr 构造，容器打开和内容变化时发送。交易成本是 ItemCost（物品 ID、数量、精确组件谓词），结果是 ItemStack；两者字段顺序及组件格式不同。使用次数、需求、特殊价格和经验均来自当前报价状态，不得重复计算价格后再作为基础成本发送。
 
 对话框直接定义使用严格整数 NBT 转换；命名资源解析在 handshake/RegistryDataBuilder 完成，PacketBuilders 仅接收已解析的 JSON 构造直接 holder。
-对话框实现单独编译进服务端、单元测试和 mc_fuzz_net；不要让握手 fuzz 引入含命令系统依赖的整个 PacketBuilders.cpp。
+对话框实现单独编译进服务端、客户端内置服务端、单元测试、benchmark 和 mc_fuzz_net；拆分构造器时必须同步各目标的源码清单，不要让握手 fuzz 引入含命令系统依赖的整个 PacketBuilders.cpp。
