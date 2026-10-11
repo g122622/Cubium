@@ -45,6 +45,7 @@
 #include <variant>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item {
@@ -356,13 +357,28 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, nbt::nbtToJson(tag)};
         case DataComponentType::BannerPatterns: {
             auto layers = nlohmann::json::array();
-            for (const auto& layer : nbt::nbtToJson(tag)) {
+            const auto saved = nbt::nbtToJson(tag);
+            if (!saved.is_array()) {
+                spdlog::warn("Ignoring banner patterns that are not an NBT list");
+                return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(layers)};
+            }
+            for (const auto& layer : saved) {
+                if (!layer.is_object() || !layer.contains("pattern") || !layer.contains("color") ||
+                    !layer["color"].is_string()) {
+                    spdlog::warn("Ignoring malformed saved banner layer");
+                    continue;
+                }
                 auto value = nlohmann::json::object();
                 const auto& pattern = layer.at("pattern");
                 if (pattern.is_object()) {
+                    if (!pattern.contains("asset_id") || !pattern["asset_id"].is_string() ||
+                        !pattern.contains("translation_key") || !pattern["translation_key"].is_string()) {
+                        spdlog::warn("Ignoring malformed direct banner pattern");
+                        continue;
+                    }
                     value["DirectPattern"] = pattern;
                     value["Pattern"] = "b";
-                } else {
+                } else if (pattern.is_string()) {
                     for (i32 type = 0; type < static_cast<i32>(blockentity::BannerPatternType::Count); ++type) {
                         const auto entry = static_cast<blockentity::BannerPatternType>(type);
                         if ("minecraft:" + blockentity::BannerPatterns::getFileName(entry) ==
@@ -372,6 +388,10 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 }
                 const auto color = layer.at("color").get<std::string>();
                 const auto it = std::find(_colorNames.begin(), _colorNames.end(), color);
+                if (!value.contains("Pattern") || it == _colorNames.end()) {
+                    spdlog::warn("Ignoring saved banner layer with an unknown pattern or color");
+                    continue;
+                }
                 value["Color"] = static_cast<i32>(std::distance(_colorNames.begin(), it));
                 layers.push_back(std::move(value));
             }

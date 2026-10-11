@@ -5,6 +5,7 @@
 #include "common/entity/inventory/container/LoomContainer.hpp"
 #include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/component/DataComponentPatchNbt.hpp"
 #include "common/item/component/DataComponentPatchWire.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -14,6 +15,7 @@
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
 #include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/entity/EntityManager.hpp"
@@ -813,4 +815,38 @@ TEST_F(ContainerRequestTest, BeaconQuickMovePreservesCountsAtMainAndHotbarBounda
             total += menu->getSlot(slot)->getItem().getCount();
         EXPECT_EQ(total, 3) << source;
     }
+}
+
+TEST_F(NetworkTestBase, SavedBannerLayersDiscardInvalidEntriesBeforeSaveAndWireSend)
+{
+    const auto layerJson = nlohmann::json::array({{{"pattern", "minecraft:square_bottom_left"}, {"color", "red"}},
+        {{"pattern", "test:unknown"}, {"color", "red"}},
+        {{"pattern", "minecraft:base"}, {"color", "unknown"}},
+        {{"pattern", 12}, {"color", "white"}},
+        {{"color", "white"}},
+        {{"pattern", {{"asset_id", "test:bad"}}}, {"color", "white"}},
+        {{"pattern", "minecraft:base"}, {"color", 2}},
+        {{"pattern", {{"asset_id", "test:valid"}, {"translation_key", "test.pattern"}}}, {"color", "blue"}}});
+    const auto root = nbt::jsonToNbt(nlohmann::json{{"minecraft:banner_patterns", layerJson}});
+    ASSERT_NE(root, nullptr);
+    const auto patch = item::component::readPatchFromNbt(*root);
+    ASSERT_EQ(patch.added().size(), 1u);
+    ItemStack banner(Items::WHITE_BANNER, 1);
+    banner.applyComponentPatch(patch);
+    const auto& layers = banner.getTag()->at("BlockEntityTag").at("Patterns");
+    ASSERT_EQ(layers.size(), 2u);
+    EXPECT_EQ(layers[0].at("Color"), 14);
+    EXPECT_EQ(layers[1].at("Color"), 11);
+    nbt::tags::compound_tag saved;
+    EXPECT_NO_THROW(banner.toNbt(saved));
+    auto restored = ItemStack::fromNbt(saved);
+    ASSERT_TRUE(restored.success());
+    const auto view = toItemStackView(restored.value());
+    auto wire = fromItemStackView(view);
+    ASSERT_TRUE(wire.success());
+    EXPECT_EQ(wire.value().getTag()->at("BlockEntityTag").at("Patterns"), layers);
+    const auto malformed = nbt::jsonToNbt(nlohmann::json{{"minecraft:banner_patterns", "invalid"}});
+    const auto emptyPatch = item::component::readPatchFromNbt(*malformed);
+    banner.applyComponentPatch(emptyPatch);
+    EXPECT_TRUE(banner.getTag()->at("BlockEntityTag").at("Patterns").empty());
 }
