@@ -23,7 +23,7 @@
 
 // 种子生成器：为 fuzz_java_codec / _sb / _cb 产出结构化起始语料。
 //
-// 做法：遍历 5 阶段 × 2 流向共 10 张包表的**每个已登记包**，用默认构造的字段值经
+// 做法：遍历 5 阶段 × 2 流向共 10 张包表的**每个已登记包**，用满足编码前置条件的字段值经
 // 项目自身的 codec 编码成合法 wire 字节，再前置 2 字节选择子（阶段、流向）写成种子文件。
 //
 // 为什么不采用「由 tests/e2e/bot 的 bot-trace-*.jsonl 反编码」：
@@ -184,6 +184,10 @@ void _tryEncode(const Info& info, std::size_t phase, std::size_t flow)
     using Alt = std::variant_alternative_t<I, Variant>;
     if constexpr (std::is_default_constructible_v<Alt>) {
         Variant value{std::in_place_index<I>};
+        if constexpr (std::is_same_v<Alt, ir::play::SetEquipment>) {
+            // 装备更新没有条目数量字段，至少需要一个条目来终止续位链；空物品表示清空主手。
+            std::get<I>(value).entries.push_back({ir::play::WireEquipmentSlot::MainHand, {}});
+        }
         FuzzBuf buf;
         buf.bindRegistry(RegistryAccess::instance());
         if (info.encode(buf, value).success() && !buf.bytes().empty()) {
@@ -217,7 +221,7 @@ void _genTable(const protocol::ProtocolInfo<FuzzBuf, Variant>* info, std::size_t
 int main(int argc, char** argv)
 {
     if (argc < 2) {
-        std::fprintf(stderr, "用法: %s <输出目录>\n", argv[0]);
+        std::fprintf(stderr, "Usage: %s <output-directory>\n", argv[0]);
         return 2;
     }
     g_outDir = argv[1];
@@ -238,7 +242,7 @@ int main(int argc, char** argv)
     _genTable<ir::PlayPacket>(t->playSb.get(), 4, kFlowServerbound);
     _genTable<ir::PlayPacket>(t->playCb.get(), 4, kFlowClientbound);
 
-    std::printf("生成 java_codec 种子 %zu 个、connection_wire 种子 %zu 个 -> %s\n",
+    std::printf("Generated %zu java_codec seeds and %zu connection_wire seeds -> %s\n",
         g_written,
         g_connWritten,
         g_outDir.string().c_str());
@@ -257,7 +261,7 @@ int main(int argc, char** argv)
         std::ofstream out(dir / "sb-sequence.bin", std::ios::binary);
         if (out) {
             out.write(reinterpret_cast<const char*>(seed.data()), static_cast<std::streamsize>(seed.size()));
-            std::printf("生成 handshake_session 序列种子 %zu 字节\n", seed.size());
+            std::printf("Generated handshake_session sequence seed: %zu bytes\n", seed.size());
         }
     }
 
