@@ -17,6 +17,25 @@ if sys.platform.startswith("linux"):
 
 @unittest.skipUnless(sys.platform.startswith("linux"), "Requires Linux resource accounting")
 class PococcPerformanceTests(unittest.TestCase):
+    def test_remote_retry_preserves_both_attempts_and_one_delivered_result(self):
+        log = '\n'.join([
+            'distcc[10] (dcc_scan_args) found input file "/workspace/a.cpp"',
+            'distcc[11] (dcc_scan_args) found input file "/workspace/b.cpp"',
+            'distcc[10] exec on host-a/2,lzo: clang++ -c a.cpp',
+            'distcc[11] exec on host-b/2,lzo: clang++ -c b.cpp',
+            'distcc[10] (dcc_readx) ERROR: unexpected eof on fd8',
+            'distcc[10] exec on host-c/2,lzo: clang++ -c a.cpp',
+            'distcc[11] compile /workspace/b.cpp on host-b/2,lzo completed ok',
+            'distcc[10] compile /workspace/a.cpp on host-c/2,lzo completed ok',
+        ])
+        result = performance.client_metrics(log)
+        self.assertEqual(result['remote_attempts'], 3)
+        self.assertEqual(result['remote_retries'], 1)
+        self.assertEqual(result['attempted_by_source'], {'/workspace/a.cpp': 2, '/workspace/b.cpp': 1})
+        self.assertEqual(result['delivered_by_source'], {'/workspace/a.cpp': 1, '/workspace/b.cpp': 1})
+        with self.assertRaisesRegex(RuntimeError, 'no input source'):
+            performance.client_metrics('distcc[12] exec on host/2,lzo: clang++ -c c.cpp')
+
     def test_composite_diagnostics_call_actual_runner_collector_for_each_pool(self):
         repository = Path(__file__).resolve().parents[3]
         action = (repository / ".github/actions/build-pococc/action.yml").read_text()
@@ -102,15 +121,28 @@ def worker(options):
                 coordinator = dict(kind="coordinator", pool=pool, run_id="123", workers=1,
                                    slots_per_worker=2, ninja_jobs=4, preprocess_jobs=4, exit_code=0,
                                    failures=0, distcc_submissions=1, local_invocations=0, wall_seconds=60,
-                                   user_seconds=10, system_seconds=2)
+                                   user_seconds=10, system_seconds=2, remote_attempts=1, remote_retries=0,
+                                   submitted_by_source={"/a.cpp": 1}, attempted_by_source={"/a.cpp": 1},
+                                   delivered_by_source={"/a.cpp": 1})
                 worker = dict(kind="worker", pool=pool, run_id="123", worker=1, remote_compiles=1,
                               failed_compiles=0, compiler_cpu_seconds=30, intervals=[[1, 2]],
-                              input_bytes=100, output_bytes=200, input_receive_seconds=0.1)
+                              input_bytes=100, output_bytes=200, input_receive_seconds=0.1,
+                              completed_by_source={"/a.cpp": 1})
                 performance.write_json(root / pool / "coordinator" / "pococc-performance.json", coordinator)
                 performance.write_json(root / pool / "worker" / "pococc-performance.json", worker)
             markdown, _, errors = performance.performance_report(root, "123")
             self.assertEqual(errors, [])
             self.assertIn("CPU-min", markdown)
+            # 首个响应丢失后成功重试：两次 worker 完成都计费，但客户端只交付一个对象文件。
+            coordinator.update(remote_attempts=2, remote_retries=1, attempted_by_source={"/a.cpp": 2})
+            worker.update(remote_compiles=2, completed_by_source={"/a.cpp": 2})
+            performance.write_json(root / "test/coordinator/pococc-performance.json", dict(coordinator, pool="test"))
+            performance.write_json(root / "test/worker/pococc-performance.json", dict(worker, pool="test"))
+            self.assertEqual(performance.performance_report(root, "123")[2], [])
+            # 无对应尝试的额外完成、错误源码或未交付的输出仍必须阻塞报告。
+            worker.update(completed_by_source={"/wrong.cpp": 2})
+            performance.write_json(root / "test/worker/pococc-performance.json", dict(worker, pool="test"))
+            self.assertTrue(performance.performance_report(root, "123")[2])
             (root / "test/worker/pococc-performance.json").unlink()
             self.assertTrue(performance.performance_report(root, "123")[2])
             with self.assertRaisesRegex(RuntimeError, "different run"):

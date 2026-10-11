@@ -328,7 +328,7 @@ GameTestHelper::GameTestHelper(
     mc::server::ServerWorld& world, BlockPos origin, const StructureBounds* bounds, BaseGameTestInstance& instance)
     : m_world(world)
     , m_instance(instance)
-    , m_bounds(bounds)
+    , m_bounds(bounds == nullptr ? std::nullopt : std::optional{bounds->bounds()})
 {
     // 由 TestData.rotation 与 bounds 尺寸构建坐标变换；bounds 为空（结构未就绪）时用零尺寸退化变换
     const Rotation rotation = instance.function().data().rotation();
@@ -363,8 +363,8 @@ GameTestHelper::~GameTestHelper()
     // 注：killAllEntities() 公有 API 复用相同 AABB+discard 逻辑（注释误称"非玩家"，实际清含玩家，见
     // EntityManager::getEntitiesInAABB 不排除 Player）。此处不调用 killAllEntities（它返回 GameTestResult，
     // 析构无需结果），直接内联清场。
-    if (m_bounds != nullptr) {
-        const StructureBoundingBox bb = m_bounds->bounds();
+    if (m_bounds.has_value()) {
+        const StructureBoundingBox bb = *m_bounds;
         // inflate 1.0 对齐 Java（aabb.inflate(1.0)）：清结构边界外扩 1 格内的实体（防实体卡在边界）。
         const AxisAlignedBB box(static_cast<f32>(bb.minX() - 1),
             static_cast<f32>(bb.minY() - 1),
@@ -796,10 +796,10 @@ GameTestResult GameTestHelper::assertEntityPresent(
 GameTestResult GameTestHelper::assertEntityPresentInArea(const std::string& entityType, bool isPresent)
 {
     const auto fullType = normalizeEntityType(entityType);
-    if (m_bounds == nullptr) {
+    if (!m_bounds.has_value()) {
         return GameTestError{GameTestErrorType::MethodNotImplemented, "Structure bounds unavailable for area query"};
     }
-    const StructureBoundingBox bb = m_bounds->bounds();
+    const StructureBoundingBox bb = *m_bounds;
     const AxisAlignedBB box(static_cast<f32>(bb.minX()),
         static_cast<f32>(bb.minY()),
         static_cast<f32>(bb.minZ()),
@@ -841,10 +841,10 @@ GameTestResult GameTestHelper::assertEntityInstancePresent(
 
 GameTestResult GameTestHelper::assertEntityInstancePresentInArea(const mc::Entity& entity, bool isPresent)
 {
-    if (m_bounds == nullptr) {
+    if (!m_bounds.has_value()) {
         return GameTestError{GameTestErrorType::MethodNotImplemented, "Structure bounds unavailable for area query"};
     }
-    const StructureBoundingBox bb = m_bounds->bounds();
+    const StructureBoundingBox bb = *m_bounds;
     const AxisAlignedBB box(static_cast<f32>(bb.minX()),
         static_cast<f32>(bb.minY()),
         static_cast<f32>(bb.minZ()),
@@ -907,11 +907,11 @@ GameTestResult GameTestHelper::assertItemEntityCountIs(
 GameTestResult GameTestHelper::killAllEntities()
 {
     // 清除结构范围内所有非玩家实体（对齐基岩 killAllEntities）
-    if (m_bounds == nullptr) {
+    if (!m_bounds.has_value()) {
         return GameTestError{
             GameTestErrorType::MethodNotImplemented, "Structure bounds unavailable for killAllEntities"};
     }
-    const StructureBoundingBox bb = m_bounds->bounds();
+    const StructureBoundingBox bb = *m_bounds;
     const AxisAlignedBB box(static_cast<f32>(bb.minX()),
         static_cast<f32>(bb.minY()),
         static_cast<f32>(bb.minZ()),
