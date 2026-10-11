@@ -1512,9 +1512,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
 
 BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
 {
-    // 使用 LCG (Linear Congruential Generator) 确保分布均匀
-    m_updateLCG = m_updateLCG * 3 + 1013904223;
-    i32 i = static_cast<i32>(m_updateLCG >> 2);
+    const i32 i = m_blockPositionRandom.nextPositionBits();
 
     // 计算 x, y, z 偏移
     // x = chunkX + (i & 15)          -> 范围 [0, 15]

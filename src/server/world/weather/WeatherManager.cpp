@@ -401,13 +401,7 @@ BlockPos WeatherManager::_findLightningTargetAround(const BlockPos& pos) const
 
 BlockPos WeatherManager::_getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
 {
-    // 使用 LCG (Linear Congruential Generator) 确保分布均匀
-    // LCG 参数：乘数 3，增量 1013904223（与 MC 一致）
-    constexpr i64 LCG_MULTIPLIER = 3;
-    constexpr i64 LCG_INCREMENT = 1013904223;
-
-    m_updateLCG = m_updateLCG * LCG_MULTIPLIER + LCG_INCREMENT;
-    i32 i = static_cast<i32>(m_updateLCG >> 2);
+    const i32 i = m_blockPositionRandom.nextPositionBits();
 
     // 计算 x, y, z 偏移
     // x = chunkX + (i & 15)          -> 范围 [0, 15]
