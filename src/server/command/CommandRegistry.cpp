@@ -35,7 +35,6 @@
 #include "commands/DeOpCommand.hpp"
 #include "commands/DebugConfigCommand.hpp"
 #include "commands/DefaultGameModeCommand.hpp"
-#include "commands/DialogCommand.hpp"
 #include "commands/DifficultyCommand.hpp"
 #include "commands/EffectCommand.hpp"
 #include "commands/EnchantCommand.hpp"
@@ -99,6 +98,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/commands/DialogCommand.hpp"
 #include <algorithm>
 #include <future>
 #include <string>
