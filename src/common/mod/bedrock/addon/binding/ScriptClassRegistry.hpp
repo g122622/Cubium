@@ -64,6 +64,20 @@ public:
     void registerClass(u64 classId, void* proto, std::string_view name) noexcept;
 
     /**
+     * @brief 注销 classId 的登记（原型句柄所有权方销毁句柄前调）。
+     *
+     * 本注册表只存裸指针不持有所有权，故持有句柄的绑定上下文在释放句柄**之前**必须调用本方法，
+     * 否则表中残留指向已释放句柄的条目，运行期 `proto`/`protoByName` 会把悬垂句柄交给
+     * `ScriptObjectRegistry::wrap` / `setPrototypeOf`。由上下文在析构时逐条注销（见
+     * `QuickJSBindingContext::~QuickJSBindingContext`），可覆盖 shutdown / reload / 单插件卸载 /
+     * 上下文移动赋值等全部销毁路径，无需各调用点自行 `clear()`。
+     *
+     * 幂等：未登记时直接返回。同名类被后来的上下文重新登记时，只在该名仍指向本 classId 时才删除
+     * 名索引，避免误删新一代上下文的映射。
+     */
+    void unregisterClass(u64 classId) noexcept;
+
+    /**
      * @brief 按 classId 取原型句柄（运行期 wrap 调）；未登记返回 nullptr。
      */
     [[nodiscard]] void* proto(u64 classId) const noexcept;

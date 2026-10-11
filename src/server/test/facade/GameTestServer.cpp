@@ -542,6 +542,8 @@ bool GameTestServer::_selectAndBuildRunner()
     m_runner->addBatchListener(std::make_shared<_DeadlineBatchListener>(
         [this](const GameTestBatch& batch) {
             m_batchName = batch.name();
+            // 批次启动 tick 例外：批内实例首次进入状态机的工作量与批大小成正比（见 m_batchStartupPending）。
+            m_batchStartupPending = true;
             u64 declaredTicks = 0;
             for (const auto& function : batch.testFunctions()) {
                 const auto& data = function->data();
@@ -635,12 +637,22 @@ i32 GameTestServer::exitCode() const noexcept
 
 void GameTestServer::tickOnce()
 {
+    // 批次启动 tick 例外：批内实例在本 tick 内首次进入状态机，每个实例的启动会执行 JS 测试体
+    // （spawn 实体、放置方块、同步请求区块），总工作量与批内测试数成正比——CI 实测 37 个实例的
+    // 启动 tick 超过 2 秒，被每 tick 2 秒的卡死看门狗误判为卡死，进程 _Exit(124)，整片 54 个用例
+    // 作废。故本 tick 只用批次/整轮期限约束（工作有界、与批大小相关）；批次期限本身仍是硬约束，
+    // 真正的卡死依旧会被它终止。其余 tick 保持 2 秒卡死检测。
+    const bool batchStartupTick = m_batchStartupPending;
     const auto phaseDeadline = std::min(m_suiteDeadline, m_batchDeadline);
-    const auto tickDeadline = std::chrono::steady_clock::now() + _TICK_LIMIT;
-    if (tickDeadline < phaseDeadline) {
-        m_watchdog->arm(tickDeadline, "tick (2 seconds), batch=" + m_batchName);
-    } else {
+    if (batchStartupTick) {
         _armBatchWatchdog();
+    } else {
+        const auto tickDeadline = std::chrono::steady_clock::now() + _TICK_LIMIT;
+        if (tickDeadline < phaseDeadline) {
+            m_watchdog->arm(tickDeadline, "tick (2 seconds), batch=" + m_batchName);
+        } else {
+            _armBatchWatchdog();
+        }
     }
     // 基类世界 tick（维度/实体/时间/区块）
     MinecraftServer::tick();
@@ -651,6 +663,10 @@ void GameTestServer::tickOnce()
     // runner 推进批次调度
     if (m_runner != nullptr) {
         m_runner->tick();
+    }
+    // 本 tick 已消化批内实例的启动工作（ticker 在同一次 tick 内启动整批实例）。
+    if (batchStartupTick) {
+        m_batchStartupPending = false;
     }
 }
 

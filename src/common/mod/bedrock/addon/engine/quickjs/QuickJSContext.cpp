@@ -69,6 +69,13 @@ QuickJSContext::~QuickJSContext()
         s_globalCallbackRegistry.erase(this);
     }
 
+    // 先销毁绑定上下文，再销毁 JSContext：绑定上下文持有的类原型句柄自带一份原型对象引用，
+    // 必须在 JS_FreeContext（释放 ctx->class_proto 根）之前归还，否则 JS_FreeRuntime 末尾的
+    // JS_RunGC 回收不掉这些原型及其引用图，整图以泄漏形式留在堆上（详因见
+    // QuickJSBindingContext::createClassProto 与 ~QuickJSBindingContext）。
+    // 此时 runtime 尚在（由所属 QuickJSRuntime 持有，晚于本上下文销毁），m_ctx 仍有效。
+    m_bindingContext.reset();
+
     if (m_context) {
         JS_FreeContext(m_context);
         m_context = nullptr;
@@ -109,6 +116,8 @@ QuickJSContext& QuickJSContext::operator=(QuickJSContext&& other) noexcept
             std::lock_guard<std::mutex> lock(s_callbackMutex);
             s_globalCallbackRegistry.erase(this);
         }
+        // 同析构：必须在 JS_FreeContext 之前释放绑定上下文（类原型句柄需在位时归还原型引用）。
+        m_bindingContext.reset();
         if (m_context) {
             JS_FreeContext(m_context);
         }

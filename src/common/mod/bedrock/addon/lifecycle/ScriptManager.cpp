@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
@@ -89,6 +90,13 @@ void ScriptManager::shutdown()
 
     // 停止所有插件
     m_pluginManager->stopAllPlugins();
+
+    // 丢弃跨模块类原型注册表条目：其中存的 proto 是各绑定上下文借出的句柄（所有权归上下文，
+    // 见 IScriptBindingContext::createClassProto）。上下文析构时会逐条 unregisterClass，故本行
+    // 并非正确性的唯一依赖，而是引擎关闭期的显式收尾：同时清掉 ScriptHandleRegistry 中指向
+    // ObjectData* 的条目，避免同进程内下次重建引擎前被 invalidateAll 解引用到已 delete 的对象。
+    ScriptClassRegistry::instance().clear();
+
     m_pluginManager->unloadAllPlugins();
 
     // 关闭事件总线

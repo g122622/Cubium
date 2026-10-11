@@ -52,7 +52,7 @@ QuickJSEngine
 
 1. **【重要】外部禁止直接引用**：`quickjs/`目录外的代码禁止直接引用QuickJS类或包含`<quickjs.h>`，必须通过`IScriptEngine`/`IScriptRuntime`/`IScriptContext`/`IScriptBindingContext`抽象接口访问。唯一的对外暴露点是`QuickJSEngine.cpp`中的`createScriptEngine()`工厂函数。
 
-2. **void*句柄语义**：`QuickJSBindingContext`通过接口传递的`void*`句柄都是`JSValue*`（堆分配，引用计数为1），使用`retainValue()`/`releaseValue()`管理生命周期。
+2. **void*句柄语义**：`QuickJSBindingContext`通过接口传递的`void*`句柄都是`JSValue*`（堆分配，引用计数为1），使用`retainValue()`/`releaseValue()`管理生命周期。**唯一例外是 `createClassProto()` 返回的类原型句柄**——它是**借用**句柄（归绑定上下文所有，上下文析构时统一释放），调用方**不得** `releaseValue`，否则 double free；反之若像早期实现那样把所有权交给调用方而调用方不释放，句柄持有的原型引用永不复位，`JS_FreeRuntime` 末尾的 `JS_RunGC` 就回收不掉类原型对象及其引用图（方法闭包/字符串/属性表，实测 5.7 MB），同时句柄自身也泄漏。`~QuickJSContext` 必须先 `m_bindingContext.reset()` 再 `JS_FreeContext`，保证句柄在 `ctx->class_proto` 根被释放前归还引用。回归测试见 `tests/unit/common/mod/bedrock/addon/test_binding_handle_lifetime.cpp`。
 
 3. **单线程限制**：QuickJS是单线程引擎，所有JS调用必须在同一线程执行，跨线程调用会导致未定义行为。
 

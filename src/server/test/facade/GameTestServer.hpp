@@ -96,7 +96,8 @@ struct GameTestServerParams {
  * 生命周期：
  * 1. `initialize(params)`：建世界 → 注册 `/gametest` 命令 → 选测试 → 构造 `GameTestRunner`。
  * 2. `run()`：循环 `tick()`（基类世界 tick + `GameTestTicker::instance().tick()` + `runner->tick()`），
- *    直到完成或超时；实际时间限制为整轮 30 分钟、每批 1 分钟、每 tick 2 秒。
+ *    直到完成或超时；实际时间限制为整轮 30 分钟、每批按声明 tick 数换算的期限、每 tick 2 秒
+ *    （批次启动 tick 例外，见 `m_batchStartupPending`）。
  * 3. `exitCode()`：`runner->failedRequiredCount()`（CI 契约：0=全必需通过）。
  * 4. `stop()`：`requestStop()` + `stopCore()` 落盘 + 关闭 reporter。
  *
@@ -190,6 +191,15 @@ private:
     std::chrono::steady_clock::time_point m_suiteDeadline;
     std::chrono::steady_clock::time_point m_batchDeadline;
     std::string m_batchName;
+    /**
+     * @brief 当前批次尚未跑过"启动 tick"（批内实例首次进入状态机的那个 tick）
+     *
+     * 批次启动 tick 的工作量与批内测试数成正比（每个实例启动时执行 JS 测试体：spawn 实体、
+     * 放置方块、同步请求区块），50 个测试的批次实测可达 2 秒以上，不能用每 tick 2 秒的
+     * 卡死看门狗约束，故该 tick 只用批次/整轮期限（见 tickOnce）。批次开始（onBatchStarting）
+     * 置位，启动 tick 结束时清除。
+     */
+    bool m_batchStartupPending = true;
     std::unique_ptr<GameTestWatchdog> m_watchdog;
 };
 

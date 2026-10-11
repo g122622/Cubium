@@ -5,6 +5,7 @@
 
 #include "common/core/Types.hpp"
 
+#include <cstddef>
 #include <functional>
 #include <optional>
 #include <string>
@@ -267,7 +268,32 @@ public:
      */
     virtual bool registerClass(u64 classId, const char* className, bool hasFinalizer = true) = 0;
 
+    /**
+     * @brief 创建类原型对象并返回其句柄。
+     *
+     * 【句柄所有权】返回句柄归绑定上下文所有（**借用语义**）：调用方可用于 registerMethod /
+     * setPrototypeOf / createObjectWithProto 等，但**不得调 releaseValue**——句柄由上下文在
+     * 析构时统一释放。原因：类原型句柄会被调用方长期寄存（`ScriptClassRegistry` 按 classId
+     * 存裸指针供运行期跨模块 wrap），其生命周期天然等于上下文生命周期；早期按"owned 句柄"
+     * 约定交给调用方释放，结果 40 余处调用点均未释放，句柄持有的原型引用永不复位，导致原型
+     * 对象及其引用图在引擎销毁后整图泄漏（数 MB 级）。
+     *
+     * @param classId 已 registerClass 的类ID
+     * @return 原型对象句柄（借用，勿释放）；失败返回 nullptr
+     */
     [[nodiscard]] virtual void* createClassProto(u64 classId) = 0;
+
+    /**
+     * @brief 当前存活的类原型句柄数（诊断与测试用；全进程累计，不区分上下文）
+     *
+     * 类原型句柄是各绑定上下文持有、供跨模块注册表长期引用的堆资源，只在上下文析构时统一释放。
+     * 该计数让单元测试断言「上下文析构后句柄数回到基线」，防止句柄及其持有的 JS 类原型引用图
+     * 在引擎销毁后泄漏。
+     *
+     * 默认返回 0：不跟踪类原型句柄的后端（或测试替身）无需实现本方法，只有确实按借用语义持有
+     * 句柄的引擎才覆写它。故意不做成纯虚——本方法仅用于诊断，不应成为每个实现的编译负担。
+     */
+    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept { return 0; }
 
     /** 注册原生方法（nativeFunc为引擎特定的C函数指针） */
     virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length = 0) = 0;
