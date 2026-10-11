@@ -26,7 +26,7 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 - 配置采集不阻塞测试；配置文件随各结果 artifact 上传，完整合集为 `nightly-runners.json`。
 - 测试 artifact 不得公开发布；Release artifact 必须通过无调试信息/profiler/sanitizer 的核验。
 - 测试、发布、fuzz 缓存独立；benchmark 必须使用相同配置的服务端，切换配置后重新建立基线。
-- nightly 使用 32 个 worker（test/release/fuzz 为 16/10/6），每节点两个槽位；三个协调节点关闭 PCH 并严格分发。
+- nightly 使用 32 个 worker（test/release/fuzz 为 16/10/6），每节点四个槽位，三个池共 128 个远端槽位；三个协调节点关闭 PCH 并严格分发。
 - nightly-legacy 没有自动触发器；concurrency、Release 标签和 issue 标签与正式流程分开。
 - 正式 nightly 没有旧实验的活跃检查，避免查询自身运行后跳过；report 始终执行。
 - ccache/vcpkg 使用持久缓存；按构建范围保留最新 ccache，容量紧张时清理旧 Nightly 缓存。
