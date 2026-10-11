@@ -308,6 +308,7 @@ add_executable(minecraft-server
     network/play/SessionSignalHandler.cpp
     # 出站构造与广播（Play/Configuration 单包 IR 构造 + 距离过滤广播 + 地图周期推送）
     network/outbound/PacketBuilders.cpp
+    network/outbound/DialogPacketBuilder.cpp
     network/outbound/PlayerBroadcaster.cpp
     network/outbound/MapPacketBuilder.cpp
     # 注册表装配门面（vanilla 注册表初始化下沉自 MinecraftServer::initializeRegistries）

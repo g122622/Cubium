@@ -2014,6 +2014,7 @@ target_sources(mc_tests
         # 出站构造与广播：命令经 builder + connectionManager 投递，
         # mc_tests 编译 MinecraftServer.cpp/ServerWorld.cpp/命令实现故须登记。
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
         # 注册表装配门面：MinecraftServer::initializeRegistries 转调 RegistryBootstrap，

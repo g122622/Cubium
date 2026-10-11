@@ -4,8 +4,8 @@
 
 ```text
 workflows/
-├── nightly.yml       # Linux 全量测试、服务端构建、归档和失败汇总
-├── nightly-pococc.yml # 独立、无 PCH 的 pococc sanitizer 测试构建实验
+├── nightly.yml       # pococc 分布式构建、Linux 全量测试、发布和性能汇总
+├── nightly-legacy.yml # 旧构建流程，仅允许手动触发
 └── code-stats.yml    # 代码行数统计及徽章更新
 ```
 
@@ -26,7 +26,7 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 - 配置采集不阻塞测试；配置文件随各结果 artifact 上传，完整合集为 `nightly-runners.json`。
 - 测试 artifact 不得公开发布；Release artifact 必须通过无调试信息/profiler/sanitizer 的核验。
 - 测试、发布、fuzz 缓存独立；benchmark 必须使用相同配置的服务端，切换配置后重新建立基线。
-- nightly-pococc 只手动触发；现有 nightly 活跃时跳过，使用独立 concurrency、构建目录和 artifacts。
-- 仅显式开启 allow_concurrent_nightly 才允许本次与 nightly 并行，默认关闭，不改变原 workflow。
-- pococc 实验只读恢复 vcpkg cache，不保存或清理 Actions cache；ccache 仅保存在临时 runner。
-- gh 分页输出交给独立 jq 汇总，不能组合 --slurp 与 --jq；gate 显式使用 bash 的 pipefail。
+- nightly 使用 32 个 worker（test/release/fuzz 为 16/10/6），每节点两个槽位；三个协调节点关闭 PCH 并严格分发。
+- nightly-legacy 没有自动触发器；concurrency、Release 标签和 issue 标签与正式流程分开。
+- 正式 nightly 没有旧实验的活跃检查，避免查询自身运行后跳过；report 始终执行。
+- ccache/vcpkg 使用持久缓存；按构建范围保留最新 ccache，容量紧张时清理旧 Nightly 缓存。

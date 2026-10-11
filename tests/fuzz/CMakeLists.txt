@@ -122,6 +122,8 @@ set(MC_FUZZ_INSTRUMENTED_SOURCES
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/ServerHandshake.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
+    # 注册表对话框解析只需要纯 JSON/NBT 构造，避免带入 PacketBuilders 的命令系统依赖。
+    ${CMAKE_SOURCE_DIR}/src/server/network/outbound/DialogPacketBuilder.cpp
 )
 
 # ---------------------------------------------------------------------------
