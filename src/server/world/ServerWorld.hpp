@@ -32,6 +32,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/BlockPositionRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -1632,8 +1633,8 @@ private:
     CommandExecuteCallback m_onExecuteCommand; ///< 命令执行回调
 
     // 随机刻系统
-    math::Random m_random; ///< 世界随机数生成器
-    i64 m_updateLCG = 0;   ///< 用于随机刻位置的 LCG 状态
+    math::Random m_random;                              ///< 世界随机数生成器
+    math::BlockPositionRandom m_blockPositionRandom{0}; ///< 用于随机刻位置的 32 位状态
 
     // 游戏规则
     world::gamerule::GameRules m_gameRules; ///< 游戏规则管理器

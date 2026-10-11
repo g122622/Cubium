@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/BlockPositionRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/weather/WeatherState.hpp"
@@ -345,7 +346,7 @@ private:
     bool m_lastRaining = false; ///< 上一帧的降雨状态
 
     // LCG 状态（用于随机位置生成）
-    i64 m_updateLCG = 0; ///< 线性同余生成器状态
+    math::BlockPositionRandom m_blockPositionRandom{0}; ///< 位置采样的 32 位状态
 };
 
 } // namespace mc::server
