@@ -1,8 +1,21 @@
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import test from "node:test";
-import { parseJunitXml, generateJunitXml } from "../run-gametests.ts";
+import { parseJunitXml, generateJunitXml, buildServerArguments } from "../run-gametests.ts";
 import { runProcess } from "../gametest-process.ts";
+
+test("explicit partition reaches the server without splitting paths containing spaces", () => {
+    const args = buildServerArguments({ filter: "", reportPath: "out dir/report.xml", worldName: "shard world", partition: "3/24" });
+    assert.ok(args.includes("--gametest-shard=3/24"));
+    assert.ok(args.includes("--gametest-report=out dir/report.xml"));
+    assert.ok(args.includes("--gametest-world=shard world"));
+});
+
+test("isolated rerun uses its exact name without applying the original partition again", () => {
+    const args = buildServerArguments({ filter: "bee_dies_after_sting", reportPath: "retry.xml", worldName: "retry" });
+    assert.ok(args.includes("--gametest-tests=bee_dies_after_sting"));
+    assert.ok(args.every(arg => !arg.startsWith("--gametest-shard=")));
+});
 
 test("mixed self-closing and paired cases retain failures, errors and skips", () => {
     const records = parseJunitXml(`<testsuites><testsuite>

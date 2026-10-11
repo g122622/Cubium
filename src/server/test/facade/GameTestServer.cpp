@@ -48,12 +48,12 @@
 #include <functional>
 #include <unordered_map>
 #include <utility>
+#include <nlohmann/json.hpp>
 
 namespace mc::test {
 
 namespace {
 constexpr auto _SUITE_LIMIT = std::chrono::minutes(30);
-constexpr auto _BATCH_LIMIT = std::chrono::minutes(1);
 constexpr auto _TICK_LIMIT = std::chrono::seconds(2);
 
 class _DeadlineBatchListener final : public GameTestBatchListener {
@@ -88,6 +88,10 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
     if (m_initialized) {
         return mc::Error(mc::ErrorCode::AlreadyExists, "GameTestServer already initialized");
     }
+    if (params.shard &&
+        (params.shard->count == 0 || params.shard->count > 64 || params.shard->index >= params.shard->count)) {
+        return mc::Error(mc::ErrorCode::InvalidArgument, "Invalid GameTest shard boundaries");
+    }
 
     m_params = params;
     m_suiteDeadline = std::chrono::steady_clock::now() + _SUITE_LIMIT;
@@ -113,7 +117,7 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
                        "<testsuites><testsuite name=\"GameTestFramework\" tests=\"1\" errors=\"1\">"
                        "<testcase name=\"wall-clock-timeout\" classname=\"framework\" time=\"0\">"
                        "<error message=\"GameTest wall-clock deadline exceeded; see stderr for phase. "
-                       "Limits: suite=1800s, batch=60s, tick=2s\"/>"
+                       "Limits: suite=1800s, batch follows declared test duration, tick=2s\"/>"
                        "</testcase></testsuite></testsuites>\n";
                 out.flush();
             }
@@ -351,6 +355,52 @@ bool GameTestServer::_selectAndBuildRunner()
         selected = GameTestRegistry::instance().getTestsByPattern(m_params.testsFilter);
     }
 
+    if (m_params.shard) {
+        std::vector<GameTestWorkItem> work;
+        for (const auto& function : selected) {
+            const auto& data = function->data();
+            MC_ASSERT_RELEASE(data.maxTicks() >= 0 && data.setupTicks() >= 0 && data.maxAttempts() >= 1);
+            const u64 ticks = (static_cast<u64>(data.maxTicks()) + static_cast<u64>(data.setupTicks())) *
+                static_cast<u64>(data.maxAttempts());
+            work.push_back({function->batchName() + "." + function->testName(), ticks});
+        }
+        const auto indices = GameTestExecutionPlan::select(work, *m_params.shard);
+        std::vector<std::shared_ptr<BaseGameTestFunction>> partition;
+        std::vector<std::string> allIds;
+        std::vector<std::string> selectedIds;
+        for (const auto& item : work)
+            allIds.push_back(item.id);
+        std::sort(allIds.begin(), allIds.end());
+        for (const auto index : indices) {
+            partition.push_back(selected[index]);
+            selectedIds.push_back(work[index].id);
+        }
+        if (!m_params.reportPath.empty()) {
+            auto manifestPath = std::filesystem::path(m_params.reportPath);
+            if (manifestPath.is_relative()) manifestPath = m_gameDirectory.root() / manifestPath;
+            manifestPath += ".partition.json";
+            std::error_code error;
+            std::filesystem::create_directories(manifestPath.parent_path(), error);
+            std::ofstream manifest(manifestPath);
+            manifest << nlohmann::json{{"shard_index", m_params.shard->index},
+                {"shard_count", m_params.shard->count},
+                {"all_test_ids", allIds},
+                {"selected_test_ids", selectedIds}}
+                            .dump(2);
+            manifest.flush();
+            if (error || !manifest) {
+                spdlog::error("Cannot save GameTest partition coverage: {}", manifestPath.string());
+                return false;
+            }
+        }
+        spdlog::info("[GameTest] partition {}/{} selected {} of {} tests",
+            m_params.shard->index,
+            m_params.shard->count,
+            partition.size(),
+            selected.size());
+        selected = std::move(partition);
+    }
+
     // 过滤 manualOnly 测试（不在自动 runall 中跑，对齐 Java）
     // 同时过滤 suite:broken 标签的测试：基岩 /gametest runset 默认集合不含 broken 标签，
     // suite:broken 是社区约定标记"vanilla 已知失败"的测试（如 phantoms_should_fly_from_cats
@@ -492,7 +542,19 @@ bool GameTestServer::_selectAndBuildRunner()
     m_runner->addBatchListener(std::make_shared<_DeadlineBatchListener>(
         [this](const GameTestBatch& batch) {
             m_batchName = batch.name();
-            m_batchDeadline = std::chrono::steady_clock::now() + _BATCH_LIMIT;
+            u64 declaredTicks = 0;
+            for (const auto& function : batch.testFunctions()) {
+                const auto& data = function->data();
+                const u64 ticks = (static_cast<u64>(data.maxTicks()) + static_cast<u64>(data.setupTicks())) *
+                    static_cast<u64>(data.maxAttempts());
+                declaredTicks = std::max(declaredTicks, ticks);
+            }
+            const auto budget = GameTestExecutionPlan::batchBudget(declaredTicks);
+            m_batchDeadline = std::chrono::steady_clock::now() + budget;
+            spdlog::info("[GameTest] batch '{}' wall-clock budget={}ms, declared_ticks={}",
+                batch.name(),
+                budget.count(),
+                declaredTicks);
             _armBatchWatchdog();
         },
         [this](const GameTestBatch&) { GlobalTestReporter::instance().onBatchFinished(m_runner->tracker()); }));
@@ -597,7 +659,7 @@ void GameTestServer::_armBatchWatchdog()
     if (m_suiteDeadline <= m_batchDeadline) {
         m_watchdog->arm(m_suiteDeadline, "suite (1800 seconds)");
     } else {
-        m_watchdog->arm(m_batchDeadline, "batch (60 seconds): " + m_batchName);
+        m_watchdog->arm(m_batchDeadline, "batch (declared test duration): " + m_batchName);
     }
 }
 
