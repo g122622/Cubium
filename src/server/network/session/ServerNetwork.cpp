@@ -119,6 +119,7 @@ void ServerNetwork::_doAsyncAccept()
         // 接收线程检测到对端断开时仅把 sessionId 入延迟队列，主线程 tick() 再回调清理。
         // 在 transport move 进 Connection 前安装（move 后无法再触及 transport）。
         transport->onDisconnect([this, sessionId] { _notifyDisconnect(sessionId); });
+        auto* tcpTransport = transport.get();
 
         auto conn = std::make_unique<ServerClientConnection>(std::move(transport), m_tables, sessionId);
         ServerClientConnection* raw = conn.get();
@@ -126,8 +127,15 @@ void ServerNetwork::_doAsyncAccept()
             std::lock_guard<std::mutex> lock(m_connectionsMutex);
             m_connections.push_back(std::move(conn));
         }
+        // 在启动接收线程前装配完整会话；提前到达的握手字节仍保留在 socket 中。
         if (m_onConnect) {
             m_onConnect(*raw);
+        }
+        auto receiving = tcpTransport->startReceiving();
+        if (!receiving.success()) {
+            spdlog::warn("Cannot start accepted TCP receive loop: {}", receiving.error().message());
+            _doAsyncAccept();
+            return;
         }
 
         // 继续接受下一个连接

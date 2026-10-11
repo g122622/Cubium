@@ -75,6 +75,9 @@ public:
      */
     void attachConnectedSocket(asio::ip::tcp::socket socket);
 
+    /** @brief 字节回调与上层协议监听器装配完成后，显式启动接收线程。 */
+    [[nodiscard]] Result<void> startReceiving();
+
     /**
      * @brief 取对端地址（"host:port" 形式）。Wire 模式从 socket remote_endpoint 取；
      *        未连接/已关闭/取 endpoint 抛异常时返回空串。供服务端玩家 IP 记录（BanIp）用。
