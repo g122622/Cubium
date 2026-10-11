@@ -57,7 +57,6 @@ Result<void> TcpTransport::connect(const Endpoint& endpoint)
 
         m_running = true;
         m_connected = true;
-        m_receiveThread = std::make_unique<std::thread>([this]() { _receiveLoop(); });
         return Result<void>::ok();
     }
     catch (const std::exception& e) {
@@ -72,7 +71,25 @@ void TcpTransport::attachConnectedSocket(asio::ip::tcp::socket socket)
     m_socket = std::make_unique<asio::ip::tcp::socket>(std::move(socket));
     m_running = true;
     m_connected = true;
+}
+
+Result<void> TcpTransport::startReceiving()
+{
+    if (!m_connected || !m_running || m_socket == nullptr || m_receiveThread != nullptr) {
+        return Error(ErrorCode::InvalidState,
+            "TCP receive startup requires a new connected socket",
+            "TcpTransport::startReceiving");
+    }
+    {
+        std::lock_guard<std::mutex> lock(m_callbackMutex);
+        if (!m_byteCallback) {
+            return Error(ErrorCode::InvalidState,
+                "TCP byte callback must be installed before receiving",
+                "TcpTransport::startReceiving");
+        }
+    }
     m_receiveThread = std::make_unique<std::thread>([this]() { _receiveLoop(); });
+    return Result<void>::ok();
 }
 
 std::string TcpTransport::remoteAddress() const

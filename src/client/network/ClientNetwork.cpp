@@ -86,11 +86,19 @@ Result<void> ClientNetwork::connectTcp(const std::string& host, u16 port, const 
     if (!r.success()) {
         return r;
     }
+    auto* tcpTransport = transport.get();
     m_conn =
         std::make_unique<ClientConn>(std::move(transport), m_tables, mc::network::protocol::PacketFlow::Serverbound);
     m_conn->onPacket([this](const mc::network::ir::IrPacket& packet) { _handleInbound(packet); });
 
     _setState(ClientConnState::Connecting);
+    auto receiving = tcpTransport->startReceiving();
+    if (!receiving.success()) {
+        m_conn.reset();
+        _setState(ClientConnState::Disconnected);
+        return receiving;
+    }
+
     return _sendHandshakeHello();
 }
 
