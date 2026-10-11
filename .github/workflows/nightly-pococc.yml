@@ -18,10 +18,9 @@ env:
   CI_COMPILER: /usr/lib/llvm-22/bin/clang++
   VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
   VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
-  CCACHE_DIR: /tmp/pococc-ccache
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_MAXSIZE: 2G
-  CCACHE_NAMESPACE: pococc-no-pch
-  CCACHE_SLOPPINESS: include_file_mtime,include_file_ctime
+  CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
   POCOCC_CI_BINARY_DIR: /tmp/pococc-tools
   POCOCC_CI_HOLD_TIMEOUT: '21600'
   POCOCC_CI_RENDEZVOUS_TIMEOUT: '900'
@@ -91,6 +90,9 @@ jobs:
           path: pococc-tools/
           retention-days: 1
   build:
+    permissions:
+      contents: read
+      actions: write
     name: Test Build (Linux / RelWithDebInfo / ASan + UBSan)
     runs-on: ubuntu-24.04
     timeout-minutes: 300
@@ -98,7 +100,6 @@ jobs:
       ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1:symbolize=1:allow_addr2line=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       POCOCC_CI_ARTIFACT_PREFIX: pococc-test-
-      CCACHE_NAMESPACE: pococc-no-pch-test
     steps:
       - uses: actions/checkout@v4
         with:
@@ -106,6 +107,7 @@ jobs:
       - uses: ./.github/actions/build-pococc
         with:
           pool: test
+          cache-scope: nightly
           workers: '16'
           preset: linux-clang-ci-tests
           build-dir: build
@@ -161,7 +163,6 @@ jobs:
     env:
       RELEASE_BIN_DIR: build-release-noprof/bin/Release
       POCOCC_CI_ARTIFACT_PREFIX: pococc-release-
-      CCACHE_NAMESPACE: pococc-no-pch-release
     steps:
       - uses: actions/checkout@v4
         with:
@@ -169,6 +170,7 @@ jobs:
       - uses: ./.github/actions/build-pococc
         with:
           pool: release
+          cache-scope: release
           workers: '10'
           preset: linux-clang-ci-release
           build-dir: build-release-noprof
@@ -227,8 +229,11 @@ jobs:
     if: needs.prepare.outputs.enabled == 'true'
     permissions:
       contents: write
-      actions: read
+      actions: write
   fuzz:
+    permissions:
+      contents: read
+      actions: write
     name: Fuzz (libFuzzer / Linux)
     runs-on: ubuntu-24.04
     timeout-minutes: 300
@@ -239,6 +244,7 @@ jobs:
       - uses: ./.github/actions/build-pococc
         with:
           pool: fuzz
+          cache-scope: fuzz
           workers: '6'
           preset: linux-clang-fuzz
           build-dir: build-fuzz
@@ -320,7 +326,6 @@ jobs:
     if: needs.prepare.outputs.enabled == 'true'
     env:
       POCOCC_CI_ARTIFACT_PREFIX: pococc-fuzz-
-      CCACHE_NAMESPACE: pococc-no-pch-fuzz
   workers:
     name: pococc ${{ matrix.pool }} worker ${{ matrix.worker }}
     needs: prepare
@@ -429,7 +434,7 @@ jobs:
       - name: Stop worker services
         if: always()
         run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-worker"
-      - name: Verify actual Cubium compilation
+      - name: Record worker compilation and compiler probes
         run: |
           python3 scripts/ci/pococc_performance.py worker-report --pool "$POOL" --state "$RUNNER_TEMP/pococc-worker"
         env:

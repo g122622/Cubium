@@ -73,11 +73,20 @@ def start_worker(options):
 
 
 def build(options):
+    before = ccache_counters()
     record = measured_command(options.command)
+    after = ccache_counters()
+    record["ccache"] = {name: after[name] - before[name] for name in before}
+    if any(value < 0 for value in record["ccache"].values()):
+        raise RuntimeError("ccache counters were reset during the build")
+    record["ccache_restore_key"] = os.environ.get("POCOCC_CCACHE_RESTORE_KEY", "")
     record.update(kind="coordinator", pool=options.pool, workers=options.workers,
                   slots_per_worker=options.slots, ninja_jobs=options.jobs,
                   preprocess_jobs=options.preprocess_jobs,
-                  run_id=os.environ.get("GITHUB_RUN_ID", "local"))
+                  run_id=os.environ.get("GITHUB_RUN_ID", "local"), distcc_submissions=0,
+                  submitted_by_source={}, local_invocations=0, failures=0, summed_task_seconds=0,
+                  remote_attempts=0, remote_retries=0, attempted_by_source={}, delivered_by_source={},
+                  output_receive_seconds=0)
     if options.journal.exists():
         rows = [line.split("\t") for line in options.journal.read_text().splitlines()]
         if any(len(row) != 7 for row in rows):
@@ -93,6 +102,23 @@ def build(options):
             float(value) for value in re.findall(r"\d+ bytes received in ([\d.]+)s", options.client_log.read_text()))
     write_json(options.out, record)
     return record["exit_code"]
+
+
+def ccache_counters():
+    result = subprocess.run(["ccache", "--print-stats"], check=True, capture_output=True, text=True)
+    values = dict(line.split() for line in result.stdout.splitlines())
+    uncacheable = ("autoconf_test", "bad_compiler_arguments", "bad_input_file", "bad_output_file",
+                  "called_for_link", "called_for_preprocessing", "compile_failed", "compiler_check_failed",
+                  "compiler_produced_empty_output", "compiler_produced_no_output", "compiler_produced_stdout",
+                  "could_not_find_compiler", "could_not_use_modules", "could_not_use_precompiled_header",
+                  "disabled", "error_hashing_extra_file", "internal_error", "missing_cache_file",
+                  "modified_input_file", "multiple_source_files", "no_input_file", "output_to_stdout",
+                  "preprocessor_error", "unsupported_code_directive", "unsupported_compiler_option",
+                  "unsupported_environment_variable", "unsupported_source_language")
+    return {"direct_hits": int(values["direct_cache_hit"]),
+            "preprocessed_hits": int(values["preprocessed_cache_hit"]),
+            "misses": int(values["cache_miss"]),
+            "uncacheable": sum(int(values.get(name, 0)) for name in uncacheable)}
 
 
 def client_metrics(log):
@@ -126,6 +152,7 @@ def worker_metrics(log, times):
     """按 distccd 请求进程归组，排除 doctor，传输长度使用压缩后的协议 token。"""
     tasks = defaultdict(dict)
     completed = []
+    probes = 0
     for line in log.splitlines():
         match = re.match(r"distccd\[(\d+)\]", line)
         if not match:
@@ -143,6 +170,8 @@ def worker_metrics(log, times):
             task["input_receive_seconds"] = float(received[1])
         if "(dcc_job_summary)" in line:
             summary = re.search(r"(COMPILE_OK|COMPILE_ERROR).*time:(\d+)ms .*? (\S+)\s*$", line)
+            if summary and "/pococc-probe-" in summary[3] and summary[1] == "COMPILE_OK":
+                probes += 1
             if summary and "/pococc-probe-" not in summary[3]:
                 task.update(success=summary[1] == "COMPILE_OK", wall_seconds=int(summary[2]) / 1000,
                             source=summary[3])
@@ -158,6 +187,7 @@ def worker_metrics(log, times):
         task["compiler_wall_seconds"] = timing["wall_seconds"]
         intervals.append([timing["start_ns"], timing["end_ns"]])
     return {"remote_compiles": sum(task["success"] for task in completed),
+            "probe_compiles": probes,
             "completed_by_source": dict(Counter(task["source"] for task in completed if task["success"])),
             "failed_compiles": sum(not task["success"] for task in completed),
             "compiler_cpu_seconds": sum(task["cpu_seconds"] for task in completed),
@@ -175,8 +205,8 @@ def worker_report(options):
     endpoint = json.loads((state / "endpoint.json").read_text())
     record.update(kind="worker", pool=options.pool, worker=endpoint["worker"], run_id=endpoint["run_id"])
     write_json(state / "pococc-performance.json", record)
-    if record["remote_compiles"] == 0 or record["failed_compiles"]:
-        raise RuntimeError("Worker did not complete actual project compilation successfully")
+    if record["failed_compiles"] or not record["probe_compiles"]:
+        raise RuntimeError("Worker compilation or compiler probe failed")
     return 0
 
 
@@ -194,8 +224,8 @@ def performance_report(directory, run_id):
     if any(record["run_id"] != run_id for record in records):
         raise RuntimeError("Performance evidence belongs to a different run")
     lines = ["## pococc 分布式编译性能", "",
-             "| 编译池 | Worker / 远端槽位 | Ninja / distcc 预处理上限 | 实测远端峰值 | 构建耗时 | 远端调用 / 尝试 / 完成 / 本地编译 | 协调节点 CPU | 远端编译 CPU | 上行 / 下行 | 收取及解压累计时间 |",
-             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+             "| 编译池 | Worker / 远端槽位 | Ninja / distcc 预处理上限 | 实测远端峰值 | 构建耗时 | 缓存命中 / 未命中（命中率） | 远端调用 / 尝试 / 完成 / 本地编译 | 协调节点 CPU | 远端编译 CPU | 上行 / 下行 | 收取及解压累计时间 |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     errors = []
     for pool in ("test", "release", "fuzz"):
         coordinators = [record for record in records if record["pool"] == pool and record["kind"] == "coordinator"]
@@ -204,6 +234,10 @@ def performance_report(directory, run_id):
             errors.append(f"{pool}: missing unique coordinator evidence")
             continue
         coordinator = coordinators[0]
+        cache = coordinator["ccache"]
+        hits = cache["direct_hits"] + cache["preprocessed_hits"]
+        misses = cache["misses"]
+        calls = hits + misses
         count = coordinator["workers"]
         completed = sum(worker["remote_compiles"] for worker in workers)
         if sorted(worker["worker"] for worker in workers) != list(range(1, count + 1)):
@@ -222,6 +256,12 @@ def performance_report(directory, run_id):
             errors.append(f"{pool}: remote attempt count does not match source evidence")
         if coordinator["exit_code"] or coordinator.get("failures") or any(w["failed_compiles"] for w in workers):
             errors.append(f"{pool}: build or compilation failed")
+        if any(not worker["probe_compiles"] for worker in workers):
+            errors.append(f"{pool}: worker compiler probe is missing")
+        if not coordinator["distcc_submissions"] and not hits:
+            errors.append(f"{pool}: no compilation or cache hit evidence")
+        if misses + cache["uncacheable"] != coordinator["distcc_submissions"] + coordinator["local_invocations"]:
+            errors.append(f"{pool}: uncached compiler calls do not match strict routing evidence")
         cpu = sum(worker["compiler_cpu_seconds"] for worker in workers)
         intervals = [interval for worker in workers for interval in worker["intervals"]]
         upload = sum(worker["input_bytes"] for worker in workers) / 2**30
@@ -230,7 +270,8 @@ def performance_report(directory, run_id):
         coordinator_cpu = coordinator["user_seconds"] + coordinator["system_seconds"]
         lines.append(f"| {pool} | {count} / {count * coordinator['slots_per_worker']} | "
                      f"{coordinator['ninja_jobs']} / {coordinator['preprocess_jobs']} | {peak_parallelism(intervals)} | "
-                     f"{coordinator['wall_seconds'] / 60:.1f} min | {coordinator['distcc_submissions']} / "
+                     f"{coordinator['wall_seconds'] / 60:.1f} min | {hits} / {misses} ({hits / calls * 100 if calls else 0:.1f}%) | "
+                     f"{coordinator['distcc_submissions']} / "
                      f"{coordinator['remote_attempts']} / {completed} / {coordinator.get('local_invocations', 0)} | "
                      f"{coordinator_cpu / 60:.1f} CPU-min | {cpu / 60:.1f} CPU-min | "
                      f"{upload:.3f} / {download:.3f} GiB | {receive:.1f} s |")
@@ -243,7 +284,11 @@ def performance_report(directory, run_id):
               "- 上下行是 distcc 经 LZO 压缩后的文件载荷（包含对象文件和诊断），不含 SSH/TLS/WebSocket 头、重传或 GitHub artifact 上传。",
               "- 收取及解压时间是两端接收文件的累计计时，包含等待和解压，多个任务可以重叠；不能与构建墙钟时间直接相减，也不等于纯网络延迟。",
               "- 峰值由各 runner 的 UTC 编译区间合并计算，跨机器时钟误差会影响边界；累计任务时间含排队和通信，不作为 CPU 开销。",
-              "- 使用临时 ccache，不保存或清理仓库缓存；没有同配置单机基线，因此不推算加速比。", ""]
+              "- ccache 使用 Nightly 相同的持久缓存策略；命中率按本轮构建前后计数差计算，排除恢复的历史统计。暖缓存允许 worker 空闲，逐节点 doctor 探针仍必须通过。",
+              "- 没有同配置单机基线，不推算加速比。", ""]
+    for record in records:
+        if record["kind"] == "coordinator":
+            lines.append(f"- {record['pool']} ccache 恢复来源：`{record['ccache_restore_key'] or '未恢复'}`")
     if errors:
         lines += ["### 性能证据错误", ""] + ["- " + error for error in errors] + [""]
     return "\n".join(lines), records, errors
@@ -286,7 +331,7 @@ def main():
     try:
         return {"compiler": compiler, "start-worker": start_worker, "build": build,
                 "worker-report": worker_report, "report": report}[options.mode](options)
-    except (OSError, RuntimeError, ValueError, KeyError) as error:
+    except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
         print(f"pococc performance error: {error}", file=sys.stderr)
         return 1
 
