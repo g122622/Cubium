@@ -779,3 +779,38 @@ TEST_F(ContainerRequestTest, DetachedMenuDropsOverflowAndDeathItemsWithTheSuppli
     EXPECT_EQ(dropped, 3);
     EXPECT_TRUE(boundInventory.isEmpty());
 }
+
+TEST_F(ContainerRequestTest, BeaconQuickMovePaysAndReturnsWithoutIncludingItsSourceSlot)
+{
+    item::tag::ItemTags::initialize();
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Beacon, BlockPos(0, 0, 0)).success());
+    auto* menu = m_server->containerManager().getOpenMenu(1);
+    menu->getSlot(1)->set(ItemStack(Items::EMERALD, 1));
+    menu->clicked(1, 0, ClickType::QuickMove, *m_server->m_player);
+    EXPECT_TRUE(menu->getSlot(1)->getItem().isEmpty());
+    EXPECT_EQ(menu->getSlot(0)->getItem().getItem(), Items::EMERALD);
+    EXPECT_EQ(menu->getSlot(0)->getItem().getCount(), 1);
+    menu->clicked(0, 0, ClickType::QuickMove, *m_server->m_player);
+    EXPECT_TRUE(menu->getSlot(0)->getItem().isEmpty());
+    EXPECT_EQ(menu->getSlot(36)->getItem().getItem(), Items::EMERALD);
+    EXPECT_EQ(menu->getSlot(36)->getItem().getCount(), 1);
+}
+
+TEST_F(ContainerRequestTest, BeaconQuickMovePreservesCountsAtMainAndHotbarBoundaries)
+{
+    item::tag::ItemTags::initialize();
+    ASSERT_TRUE(m_server->containerManager().openContainer(1, ContainerType::Beacon, BlockPos(0, 0, 0)).success());
+    auto* menu = m_server->containerManager().getOpenMenu(1);
+    for (const i32 source : {1, 27, 28, 36}) {
+        m_server->m_player->inventory().clear();
+        menu->getSlot(source)->set(ItemStack(Items::STONE, 3));
+        menu->clicked(source, 0, ClickType::QuickMove, *m_server->m_player);
+        EXPECT_TRUE(menu->getSlot(source)->getItem().isEmpty()) << source;
+        const i32 target = source < 28 ? 28 : 1;
+        EXPECT_EQ(menu->getSlot(target)->getItem().getCount(), 3) << source;
+        i32 total = 0;
+        for (i32 slot = 0; slot < menu->getSlotCount(); ++slot)
+            total += menu->getSlot(slot)->getItem().getCount();
+        EXPECT_EQ(total, 3) << source;
+    }
+}

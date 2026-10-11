@@ -82,12 +82,12 @@ ItemStack BeaconContainer::quickMoveStack(i32 slotIndex, Player& player)
     auto stack = slot->getItem();
     const auto original = stack.copy();
     if (slotIndex == 0) {
-        if (!moveItemToRange(stack, 1, 37, true)) return ItemStack::EMPTY;
+        if (!moveItemToRange(stack, 1, 36, true)) return ItemStack::EMPTY;
     } else if (!getSlot(0)->hasItem() && getSlot(0)->mayPlace(stack) && stack.getCount() == 1) {
-        if (!moveItemToRange(stack, 0, 1, false)) return ItemStack::EMPTY;
+        if (!moveItemToRange(stack, 0, 0, false)) return ItemStack::EMPTY;
     } else if (slotIndex < 28) {
-        if (!moveItemToRange(stack, 28, 37, false)) return ItemStack::EMPTY;
-    } else if (!moveItemToRange(stack, 1, 28, false))
+        if (!moveItemToRange(stack, 28, 36, false)) return ItemStack::EMPTY;
+    } else if (!moveItemToRange(stack, 1, 27, false))
         return ItemStack::EMPTY;
     slot->set(stack);
     return original;
