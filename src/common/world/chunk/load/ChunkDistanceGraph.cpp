@@ -84,6 +84,18 @@ i32 ChunkDistanceGraph::processUpdates(i32 maxToProcess)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ChunkDistanceGraph::processUpdates");
 
+    // 重入守卫（防御性）：循环内的 onLevelChanged 回调会回到票据/调度逻辑，可能再次触发
+    // 本图更新乃至递归 processUpdates，使内层 pop 与外层循环交错改写 deque 内部结构。
+    // 嵌套调用直接返回，由最外层循环继续消费队列。详见头文件 m_processing 的说明。
+    if (m_processing) {
+        return 0;
+    }
+    m_processing = true;
+    struct ProcessingGuard {
+        bool& flag;
+        ~ProcessingGuard() { flag = false; }
+    } guard{m_processing};
+
     i32 processed = 0;
 
     while (!m_updateQueue.empty() && processed < maxToProcess) {

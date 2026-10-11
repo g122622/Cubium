@@ -77,7 +77,10 @@ using ScriptSetterCallback = std::function<void(IScriptBindingContext&, void*, v
  * - retainValue增加引用计数（调用后调用者拥有自己的引用）
  * - releaseValue释放引用所有权
  * - getProperty返回的句柄拥有引用所有权（调用者负责release）
- * - setProperty消耗传入value的引用所有权（调用者不再需要release value）
+ * - setProperty**不消耗**传入value的引用所有权（实现内部会再取一次引用）；
+ *   因此若 value 是调用者自己创建/retain 的句柄，挂载后仍须 releaseValue(value)，
+ *   否则该引用永不释放（实测表现为 QuickJS 句柄泄漏）。
+ *   参见 QuickJSBindingContext::setProperty 中的 JS_DupValue。
  *
  * 生命周期：
  * - 由IScriptContext创建，每个插件上下文一个实例
@@ -141,7 +144,7 @@ public:
 
     // ===== 对象属性操作 =====
 
-    /** 设置属性（消耗value的引用所有权） */
+    /** 设置属性（不消耗 value 所有权；调用者须自行 releaseValue） */
     virtual void setProperty(void* obj, const char* key, void* value) = 0;
     virtual void setPropertyInt(void* obj, const char* key, i32 value) = 0;
     virtual void setPropertyFloat(void* obj, const char* key, f64 value) = 0;
@@ -185,7 +188,8 @@ public:
     /**
      * @brief 在对象上设置一个原生函数属性。
      *
-     * 用 createFunction 创建函数值后 setProperty 挂到 obj 的 key 上（消耗函数值所有权）。
+     * 用 createFunction 创建函数值后 setProperty 挂到 obj 的 key 上（setProperty 不消耗
+     * 函数值所有权，故挂载后仍须 releaseValue 该函数值）。
      * 供需要把引擎无关回调函数挂到**非原型对象**的场景——典型是类的静态方法：JS 中静态方法挂在
      * 构造函数对象上（`Class.staticMethod`），而 `registerMethod` 只能挂到原型（实例方法）。
      * 故静态方法注册流程为：从原型取 `constructor`（构造函数对象）→ setPropertyFunction 挂函数。

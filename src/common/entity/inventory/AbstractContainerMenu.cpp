@@ -405,15 +405,15 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
         case ClickType::Pick:
         case ClickType::PickSome:
             // 左键/右键拾取或放置
-            return _handleClickPick(*slot, slotIndex, slotStack, button);
+            return _handleClickPick(*slot, slotIndex, slotStack, button, player);
 
         case ClickType::QuickMove:
             // Shift+点击快速移动
-            return _handleQuickMove(*slot, slotIndex, slotStack);
+            return _handleQuickMove(*slot, slotIndex, slotStack, player);
 
         case ClickType::Swap:
             // 数字键交换 (button = 0-8 对应快捷栏1-9, button = 40 对应副手)
-            return _handleSwap(*slot, slotIndex, slotStack, button);
+            return _handleSwap(*slot, slotIndex, slotStack, button, player);
 
         case ClickType::Clone:
             // 创造模式中键复制
@@ -421,7 +421,7 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 
         case ClickType::Throw:
             // Q键丢弃
-            return _handleThrow(*slot, slotIndex, slotStack, button);
+            return _handleThrow(*slot, slotIndex, slotStack, button, player);
 
         case ClickType::QuickCraft:
             // 拖拽分发
@@ -429,23 +429,22 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
 
         case ClickType::PickAll:
             // 双击拾取全部
-            return _handlePickupAll(*slot, slotIndex, slotStack);
+            return _handlePickupAll(*slot, slotIndex, slotStack, player);
 
         default:
             return m_carried;
     }
 }
 
-ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+ItemStack AbstractContainerMenu::_handleClickPick(
+    Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player)
 {
-    Player* player = m_playerInventory->getPlayer();
-
     // 槽位覆写协议（对应 MC 1.21.11 AbstractContainerMenu#tryItemClickBehaviourOverride）
     // 在常规拾取/放置逻辑之前调用，给物品机会自定义交互行为（如收纳袋）
     // - 左键（button == 0）→ SlotClickAction::Primary
     // - 右键（button == 1）→ SlotClickAction::Secondary
     SlotClickAction clickAction = (button == 0) ? SlotClickAction::Primary : SlotClickAction::Secondary;
-    if (_tryItemClickBehaviourOverride(slot, clickAction, *player)) {
+    if (_tryItemClickBehaviourOverride(slot, clickAction, player)) {
         // 物品已处理此次点击，跳过默认逻辑
         notifySlotChanged(slotIndex, slot.getItem());
         return m_carried;
@@ -455,10 +454,10 @@ ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, con
     if (button == 0) {
         if (m_carried.isEmpty()) {
             // 拾取整个槽位
-            if (!slotStack.isEmpty() && slot.mayPickup(*player)) {
+            if (!slotStack.isEmpty() && slot.mayPickup(player)) {
                 m_carried = slot.remove(slotStack.getCount());
                 // 取走物品时触发 onTake 回调
-                m_carried = slot.onTake(*player, m_carried);
+                m_carried = slot.onTake(player, m_carried);
                 slot.setChanged();
                 notifySlotChanged(slotIndex, slot.getItem());
             }
@@ -487,7 +486,7 @@ ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, con
             slot.set(m_carried);
             m_carried = slotStack;
             // 交换时触发 onTake（取走原槽位物品）
-            m_carried = slot.onTake(*player, m_carried);
+            m_carried = slot.onTake(player, m_carried);
             slot.setChanged();
             notifySlotChanged(slotIndex, slot.getItem());
         }
@@ -496,11 +495,11 @@ ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, con
     else if (button == 1) {
         if (m_carried.isEmpty()) {
             // 拾取一半
-            if (!slotStack.isEmpty() && slot.mayPickup(*player)) {
+            if (!slotStack.isEmpty() && slot.mayPickup(player)) {
                 i32 toTake = (slotStack.getCount() + 1) / 2;
                 m_carried = slot.remove(toTake);
                 // 取走物品时触发 onTake 回调
-                m_carried = slot.onTake(*player, m_carried);
+                m_carried = slot.onTake(player, m_carried);
                 slot.setChanged();
                 notifySlotChanged(slotIndex, slot.getItem());
             }
@@ -528,7 +527,7 @@ ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, con
             slot.set(m_carried);
             m_carried = slotStack;
             // 交换时触发 onTake（取走原槽位物品）
-            m_carried = slot.onTake(*player, m_carried);
+            m_carried = slot.onTake(player, m_carried);
             slot.setChanged();
             notifySlotChanged(slotIndex, slot.getItem());
         }
@@ -537,25 +536,26 @@ ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, con
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::_handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
+ItemStack AbstractContainerMenu::_handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player)
 {
-    if (slotStack.isEmpty() || !slot.mayPickup(*m_playerInventory->getPlayer())) {
+    if (slotStack.isEmpty() || !slot.mayPickup(player)) {
         return m_carried;
     }
 
-    ItemStack result = quickMoveStack(slotIndex, *m_playerInventory->getPlayer());
+    ItemStack result = quickMoveStack(slotIndex, player);
     if (!result.isEmpty()) {
         // 快速移动后触发 onTake 回调
         // 计算实际取出的数量
         ItemStack taken = result;
-        slot.onTake(*m_playerInventory->getPlayer(), taken);
+        slot.onTake(player, taken);
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
     }
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::_handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+ItemStack AbstractContainerMenu::_handleSwap(
+    Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player)
 {
     // button = 0-8 对应快捷栏槽位，button = 40 对应副手
     PlayerInventory* inv = m_playerInventory;
@@ -578,7 +578,7 @@ ItemStack AbstractContainerMenu::_handleSwap(Slot& slot, i32 slotIndex, const It
 
     // 检查是否可以交换
     if (slot.mayPlace(swapStack) && (swapStack.isEmpty() || slot.getMaxStackSize(swapStack) >= swapStack.getCount())) {
-        if (swapStack.isEmpty() || slot.mayPickup(*m_playerInventory->getPlayer())) {
+        if (swapStack.isEmpty() || slot.mayPickup(player)) {
             // 执行交换
             slot.set(swapStack);
             inv->setItem(swapSlot, slotStack);
@@ -607,17 +607,18 @@ ItemStack AbstractContainerMenu::_handleClone(Slot& slot, i32 slotIndex, const I
     return m_carried;
 }
 
-ItemStack AbstractContainerMenu::_handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
+ItemStack AbstractContainerMenu::_handleThrow(
+    Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player)
 {
     // Ctrl+点击丢弃全部 (button=1)，普通点击丢弃一个 (button=0)
-    if (!slotStack.isEmpty() && slot.mayPickup(*m_playerInventory->getPlayer())) {
+    if (!slotStack.isEmpty() && slot.mayPickup(player)) {
         i32 toDrop = (button == 1) ? slotStack.getCount() : 1;
         ItemStack dropped = slot.remove(toDrop);
-        dropped = slot.onTake(*m_playerInventory->getPlayer(), std::move(dropped));
+        dropped = slot.onTake(player, std::move(dropped));
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
         // 丢弃物品到世界
-        dropItem(dropped, *m_playerInventory->getPlayer(), false);
+        dropItem(dropped, player, false);
     }
 
     return m_carried;
@@ -909,12 +910,11 @@ i32 AbstractContainerMenu::_distributeToDragSlot(ItemStack& toDistribute, i32 sl
     return amount;
 }
 
-ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
+ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player)
 {
     // TODO: 补齐以已有光标物品为基准的双击路径；当前支持空光标起始。
     // 双击拾取全部相同物品
-    if (m_carried.isEmpty() && !slotStack.isEmpty() && canMergeSlot(slotStack, slot) &&
-        slot.mayPickup(*m_playerInventory->getPlayer())) {
+    if (m_carried.isEmpty() && !slotStack.isEmpty() && canMergeSlot(slotStack, slot) && slot.mayPickup(player)) {
         ItemStack toPickup = slotStack.copy();
 
         // 遍历所有槽位，合并相同物品
@@ -926,13 +926,13 @@ ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, con
 
             ItemStack otherStack = otherSlot->getItem();
             if (toPickup.canMergeWith(otherStack) && canMergeSlot(toPickup, *otherSlot) &&
-                otherSlot->mayPickup(*m_playerInventory->getPlayer())) {
+                otherSlot->mayPickup(player)) {
                 i32 space = toPickup.getMaxStackSize() - toPickup.getCount();
                 if (space > 0) {
                     i32 toAdd = std::min(space, otherStack.getCount());
                     toPickup.grow(toAdd);
                     auto taken = otherSlot->remove(toAdd);
-                    otherSlot->onTake(*m_playerInventory->getPlayer(), std::move(taken));
+                    otherSlot->onTake(player, std::move(taken));
                     otherSlot->setChanged();
                     notifySlotChanged(i, otherSlot->getItem());
 
@@ -945,7 +945,7 @@ ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, con
 
         m_carried = toPickup;
         auto taken = slot.remove(slotStack.getCount());
-        slot.onTake(*m_playerInventory->getPlayer(), std::move(taken));
+        slot.onTake(player, std::move(taken));
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
     }

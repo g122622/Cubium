@@ -247,7 +247,7 @@ bool VibrationSystem::Listener::handleGameEvent(
     }
 
     // 获取监听器位置
-    auto listenerPos = user.getPositionSource().getPosition(world);
+    auto listenerPos = user.getPositionSource().getPosition(&world);
     if (!listenerPos.has_value()) {
         return false;
     }
@@ -275,7 +275,7 @@ void VibrationSystem::Listener::forceScheduleVibration(
     server::ServerWorld& world, const GameEvent& event, const GameEvent::Context& context, const Vector3d& pos)
 {
     User& user = m_system.getVibrationUser();
-    auto listenerPos = user.getPositionSource().getPosition(world);
+    auto listenerPos = user.getPositionSource().getPosition(&world);
     if (listenerPos.has_value()) {
         scheduleVibration(world, event, context, pos, listenerPos.value());
     }
@@ -346,7 +346,7 @@ void VibrationSystem::Ticker::trySelectAndScheduleVibration(server::ServerWorld&
         // 发送振动粒子效果，从振动源位置飞向监听器位置
         // 粒子类型为 Vibration，携带目标位置来源和到达时间
         Vector3 particlePos(static_cast<f32>(info.pos.x), static_cast<f32>(info.pos.y), static_cast<f32>(info.pos.z));
-        auto listenerPosOpt = user.getPositionSource().getPosition(world);
+        auto listenerPosOpt = user.getPositionSource().getPosition(&world);
         if (listenerPosOpt.has_value()) {
             world.addVibrationParticle(particlePos, user.getPositionSource(), travelTime);
         } else {
@@ -376,7 +376,7 @@ bool VibrationSystem::Ticker::receiveVibration(
         static_cast<i32>(std::floor(info.pos.z)));
 
     // 获取监听器位置
-    auto listenerPos = user.getPositionSource().getPosition(world);
+    auto listenerPos = user.getPositionSource().getPosition(&world);
     BlockPos listenerBlockPos = listenerPos.has_value() ? BlockPos(static_cast<i32>(std::floor(listenerPos->x)),
                                                               static_cast<i32>(std::floor(listenerPos->y)),
                                                               static_cast<i32>(std::floor(listenerPos->z)))
@@ -419,7 +419,7 @@ void VibrationSystem::Ticker::tryReloadVibrationParticle(server::ServerWorld& wo
     const VibrationInfo& info = *data.currentVibration();
 
     // 获取监听器位置
-    auto listenerPos = user.getPositionSource().getPosition(world);
+    auto listenerPos = user.getPositionSource().getPosition(&world);
     if (!listenerPos.has_value()) {
         return;
     }

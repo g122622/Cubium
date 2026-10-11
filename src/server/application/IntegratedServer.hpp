@@ -61,19 +61,26 @@ struct IntegratedServerParams {
     std::string worldName;
     std::string gameDirectoryRoot;
     std::string displayName;
-    i64 seed;
-    GameMode defaultGameMode;
-    i32 viewDistance;
-    i32 simulationDistance;
-    i32 tickRate;
-    WorldType worldType;
+    i64 seed = 0;
+    GameMode defaultGameMode = GameMode::Survival;
+    i32 viewDistance = 0;
+    i32 simulationDistance = 0;
+    i32 tickRate = 0;
+    WorldType worldType = WorldType::Default;
     /// 世界预设资源位置（数据驱动装配查 WorldPresetRegistry，如 "minecraft:normal"）
     resource::ResourceLocation worldPresetId{"minecraft", "normal"};
-    Difficulty difficulty;
-    bool hardcore;
-    bool allowCommands; ///< 单机作弊开关，对应原版 WorldData.isAllowCommands()
+    Difficulty difficulty = Difficulty::Normal;
+    bool hardcore = false;
+    bool allowCommands = false; ///< 单机作弊开关，对应原版 WorldData.isAllowCommands()
     /// 是否为新创建的世界（首次打开存档前需写入初始 level.dat）
-    bool isNewWorld;
+    bool isNewWorld = false;
+
+    // 说明：以上默认成员初始化器是必需的，不是装饰。IntegratedServer 的 m_params 是
+    // 普通成员（非 unique_ptr），若允许 IntegratedServerParams 处于未初始化的裸状态，
+    // 任何在 initialize(params) 之前读取 m_params 的路径都会读到栈/堆垃圾——实测 UBSan
+    // 报 "load of value 121, which is not a valid value for type 'bool'"
+    // （121 == 'y'，即恰好落在结构体区间内的字符串残留字节），发生在
+    // IntegratedServer::resolveOpLevel → core::applyOwnerCheatsBoost 读取 allowCommands 处。
 };
 
 /**

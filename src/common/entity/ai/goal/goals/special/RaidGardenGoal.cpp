@@ -238,6 +238,10 @@ void RaidGardenGoal::_raidCarrot(const BlockPos& carrotPos, const BlockState* ca
         return;
     }
     const i32 age = carrotBlock->getAge(*carrotState);
+    // carrotState 通常来自 IWorld::getBlockState()，即区块调色板容器的内部指针；
+    // 下面的 setBlockState() 会使其悬空，故先把 stateId 取成值（见 ASAN heap-use-after-free）。
+    const i32 carrotStateId = static_cast<i32>(carrotState->stateId());
+    carrotState = nullptr;
 
     if (age == 0) {
         // 对应 MC：level.setBlock(blockpos, Blocks.AIR.defaultBlockState(), 2);
@@ -256,7 +260,7 @@ void RaidGardenGoal::_raidCarrot(const BlockPos& carrotPos, const BlockState* ca
 
         // 对应 MC：level.levelEvent(2001, blockpos, Block.getId(blockstate));
         // levelEvent(2001) 的 data 参数为方块状态 ID（Block.getId(blockstate)）
-        world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, carrotPos, static_cast<i32>(carrotState->stateId()));
+        world->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, carrotPos, carrotStateId);
     }
 
     // 对应 MC：this.rabbit.moreCarrotTicks = 40;

@@ -2985,11 +2985,17 @@ void LivingEntity::stopActiveHand()
         // 再由下方 setEquipment 回写权威装备槽。此前传 stackCopy 拷贝不回写，致弓/十字弓/三叉戟耐久损耗
         // 与三叉戟投掷消耗不回写权威手持（对齐缺陷，同 itemInteractionForEntity 拷贝不回写范式）。
         // 回写对齐 onItemUseFinish（line 2204 setEquipment(result)）范式。
-        const_cast<Item*>(item)->onPlayerStoppedUsing(m_activeItem, *m_world, *this, m_activeItemUseCount);
-        // 回写权威装备槽：onPlayerStoppedUsing 可能改 m_activeItem（耐久损耗/数量消耗/NBT），须回写。
-        // 创造模式 onPlayerStoppedUsing 内部跳过 hurtAndBreak/shrink（各物品 isCreative 守卫），m_activeItem
-        // 不变，回写无害（覆盖为相同值）。
-        setEquipment(m_activeHand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand, m_activeItem);
+        // m_world 可为空：单测中构造的裸实体常未 setWorld（如 EvaluateWhichHandsToRenderTest）。
+        // 此时跳过 onPlayerStoppedUsing，避免解引用空 IWorld（UBSan: reference binding to
+        // null pointer of type 'IWorld'）。
+        if (m_world != nullptr) {
+            const_cast<Item*>(item)->onPlayerStoppedUsing(m_activeItem, *m_world, *this, m_activeItemUseCount);
+            // 回写权威装备槽：onPlayerStoppedUsing 可能改 m_activeItem（耐久损耗/数量消耗/NBT），须回写。
+            // 创造模式 onPlayerStoppedUsing 内部跳过 hurtAndBreak/shrink（各物品 isCreative 守卫），m_activeItem
+            // 不变，回写无害（覆盖为相同值）。
+            setEquipment(
+                m_activeHand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand, m_activeItem);
+        }
     }
 
     // 重置状态

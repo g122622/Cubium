@@ -59,7 +59,7 @@ void DynamicGameEventListener::remove(server::ServerWorld& world)
 void DynamicGameEventListener::move(server::ServerWorld& world)
 {
     // 获取监听器的当前位置
-    auto position = m_listener.getListenerSource().getPosition(world);
+    auto position = m_listener.getListenerSource().getPosition(&world);
     if (!position.has_value()) {
         return;
     }

@@ -223,7 +223,9 @@ void ChorusFlowerBlock::growTreeRecursive(IWorld& world,
         }
 
         for (i32 k = 0; k < branchCount; ++k) {
-            Direction direction = Directions::horizontal()[random.nextInt(0, 4)];
+            // nextInt(0, 4) 是闭区间 [0, 4]，而 horizontal() 只有 4 个元素，
+            // 取到 4 会越界读取（ASAN stack-buffer-overflow）。此处必须用半开区间的 nextInt(4)。
+            Direction direction = Directions::horizontal()[random.nextInt(4)];
             BlockPos branchPos(
                 pos.x + Directions::xOffset(direction), pos.y + stemHeight, pos.z + Directions::zOffset(direction));
 

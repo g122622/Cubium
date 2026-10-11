@@ -241,6 +241,15 @@ i32 ExperienceManager::getExperienceForLevel(i32 level) noexcept
         return 0;
     }
 
+    // 先把 level 夹取到受支持的等级上限。这是必需的前置防御，不只是"数据校验"：
+    // 调用方可以传入任意 i32（如 setLevel 的入参未夹取，或存档里被改坏的等级），
+    // 而 30+ 档公式为 9*n*(n-1)/2，n = level - 30。level = INT32_MAX 时
+    // 9*n*(n-1) ≈ 4.15e19 已超出 i64（上限约 9.22e18），是真实的有符号溢出 UB。
+    // 夹取后 n <= 21832，中间量约 4.29e9，i64 内安全；结果 2147211343 也在 i32 内。
+    if (level > constants::MAX_EXPERIENCE_LEVEL) {
+        level = constants::MAX_EXPERIENCE_LEVEL;
+    }
+
     // 使用公式计算累计经验
     // 等级 0-14: 每级需要 7 + level * 2
     // 等级 15-29: 每级需要 37 + (level - 15) * 5
@@ -259,14 +268,19 @@ i32 ExperienceManager::getExperienceForLevel(i32 level) noexcept
         // = sum(37 + 5*j) = 37*(level-15) + 5*sum(j) for j in 0..level-16
         // = 37*(level-15) + 5*(level-15)*(level-16)/2
         i32 levelsAfter15 = level - 15;
-        return 315 + 37 * levelsAfter15 + 5 * levelsAfter15 * (levelsAfter15 - 1) / 2;
+        // 用 i64 中间量：等级上限很高（constants::MAX_EXPERIENCE_LEVEL）时 i32 会溢出。
+        const i64 n15 = levelsAfter15;
+        return static_cast<i32>(315 + 37 * n15 + 5 * n15 * (n15 - 1) / 2);
     } else {
         // 前15级: 315
         // 等级 15-30: 37 + 5*(30-15) = 112, 累加 = 315 + sum(37+5*j) for j in 0..14
         // = 315 + 37*15 + 5*14*15/2 = 315 + 555 + 525 = 1395
         // 等级 30+: sum(112 + 9*(i-30)) for i in 30..level-1
         i32 levelsAfter30 = level - 30;
-        return 1395 + 112 * levelsAfter30 + 9 * levelsAfter30 * (levelsAfter30 - 1) / 2;
+        // 用 i64 中间量：9 * levelsAfter30 * (levelsAfter30 - 1) 在最大等级附近会超出 i32
+        // （如 196488 * 21831），UBSan 报 signed integer overflow。
+        const i64 n30 = levelsAfter30;
+        return static_cast<i32>(1395 + 112 * n30 + 9 * n30 * (n30 - 1) / 2);
     }
 }
 
