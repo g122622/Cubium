@@ -54,3 +54,7 @@
 范围限制：本轮以真 Java 1.21.11 客户端的服务端链路为交付对象。停止维护的原生客户端保存链接、对话框和导航点状态，其界面渲染/交互仍有明确 TODO；书籍外部文本审核服务仍采用本地无过滤策略。未据此宣称原生界面或全部 205 包完成。
 
 验证日志：`build/play-final-build.log`、`build/play-final-test.log`；容器簇记录为 `build/play-container-test.log`。NBT 截断回归同时修复了底层读取器把 EOF 误判为有效完整 compound 的问题。
+
+2026-10-11 PR #45 机器人审查修复：当前 7 条有效意见均已处理并分别提交。修复了迟到的容器关闭误关新屏、集成菜单归还到占位玩家背包、信标 QuickMove 包含源槽而吞物品、非法旗帜图层在保存/发送时抛异常、SYSTEM 聊天可见性错误阻止发送，以及 ItemStack::copy 丢修复费用；统一 DialogCommand 跨目录 include。新增 9 项回归另发现并修复死亡动画期间菜单归还物品的问题。
+
+审查后的 Windows 全目标构建成功，720 项筛选回归全部通过；日志为 `build/pr45-review-build.log`、`build/pr45-review-test.log`。
