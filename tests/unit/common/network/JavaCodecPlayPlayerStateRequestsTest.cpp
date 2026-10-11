@@ -1,6 +1,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IntegratedServer.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -403,4 +404,35 @@ TEST_F(LocalServerFixture, RequestStatsRoutesToThePlayerAndRepliesEvenWhenUnchan
     received = pumpClient();
     ASSERT_TRUE(received.has_value());
     EXPECT_TRUE(std::get<AwardStats>(std::get<PlayPacket>(received->packet)).stats.empty());
+}
+
+TEST_F(LocalServerFixture, SystemVisibilityCanSendChatWhileOnlyFullRecipientsReceive)
+{
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    _PlayerStateRequestServer server;
+    auto* sender = server.playerManager().addPlayer(1, "sender", "Sender", nullptr);
+    ASSERT_NE(sender, nullptr);
+    sender->clientInformation.emplace();
+    for (i32 visibility = 0; visibility <= 2; ++visibility) {
+        auto* receiver = server.playerManager().addPlayer(
+            static_cast<PlayerId>(visibility + 2), "receiver" + std::to_string(visibility), "Receiver", serverConn());
+        ASSERT_NE(receiver, nullptr);
+        receiver->clientInformation.emplace();
+        receiver->clientInformation->chatVisibility = visibility;
+    }
+    server::net::ServerPlayHandler handler(server);
+    const IrPacket request{protocol::ConnectionProtocol::Play, PlayPacket{Chat{"hello", 0, 0, std::nullopt, 0, {}, 0}}};
+    for (i32 visibility : {0, 1}) {
+        sender->clientInformation->chatVisibility = visibility;
+        handler.route(1, request);
+        auto received = pumpClient();
+        ASSERT_TRUE(received.has_value()) << visibility;
+        EXPECT_EQ(
+            text::componentNbtBytesToPlainText(std::get<SystemChat>(std::get<PlayPacket>(received->packet)).content),
+            "<Sender> hello");
+        EXPECT_FALSE(pumpClient().has_value());
+    }
+    sender->clientInformation->chatVisibility = 2;
+    handler.route(1, request);
+    EXPECT_FALSE(pumpClient().has_value());
 }

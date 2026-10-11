@@ -24,6 +24,7 @@
 #include "server/network/play/ChatHandler.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/entities/player/ChatVisibility.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
@@ -67,7 +68,8 @@ void ChatHandler::handleChatMessagePacket(PlayerId playerId, const mc::network::
         return;
     }
 
-    if (player->clientInformation.has_value() && player->clientInformation->chatVisibility != 0) {
+    if (player->clientInformation.has_value() &&
+        player->clientInformation->chatVisibility == static_cast<i32>(ChatVisibility::Hidden)) {
         spdlog::warn("Chat: player {} has disabled player chat", playerId);
         return;
     }
