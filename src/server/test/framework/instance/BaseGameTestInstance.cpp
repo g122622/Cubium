@@ -56,11 +56,17 @@ void BaseGameTestInstance::tick()
     }
 
     // 执行 runAtTickTime 到期回调（tickCount 匹配的）
-    for (auto& [tick, fn] : m_runAtTickTime) {
-        if (tick == m_tickCount && fn) {
+    // 回调可以追加未来任务并触发 vector 扩容；本 tick 只遍历开始时的任务，调用前复制闭包保活。
+    const std::size_t scheduledCount = m_runAtTickTime.size();
+    for (std::size_t index = 0; index < scheduledCount; ++index) {
+        if (m_runAtTickTime[index].first == m_tickCount && m_runAtTickTime[index].second) {
+            const auto fn = m_runAtTickTime[index].second;
             const GameTestResult result = fn();
             if (result.has_value()) {
                 fail(result.value());
+                return;
+            }
+            if (isDone(m_state)) {
                 return;
             }
         }
