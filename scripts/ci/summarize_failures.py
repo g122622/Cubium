@@ -87,6 +87,7 @@ _STATUS_ICON = {
     "cancelled": "⚪ 取消",
     "skipped": "⏭️ 跳过",
     "neutral": "⚪ 中性",
+    "in_progress": "⏳ 生成中",
 }
 
 
@@ -342,9 +343,10 @@ def read_benchmark_report(artifacts_dir: Path) -> str:
 
 
 def collect_runner_info(artifacts_dir: Path) -> tuple[dict[str, dict], list[str]]:
-    """按 job 读取配置，缺失或损坏只影响配置展示，不改变测试结论。"""
+    """按任务及产物来源保留各 runner 配置，支持 matrix 和同任务的多个采集阶段。"""
     runners = {}
     errors = []
+    entries = {}
     for path in sorted(artifacts_dir.rglob("runner-info.json")):
         try:
             info = json.loads(path.read_text(encoding="utf-8"))
@@ -353,12 +355,14 @@ def collect_runner_info(artifacts_dir: Path) -> tuple[dict[str, dict], list[str]
                 raise ValueError("unsupported runner configuration schema or job")
             if any(not isinstance(info.get(key), dict) for key in ("cpu", "system", "disk", "tools", "runner", "build")):
                 raise ValueError("invalid runner configuration fields")
-            job = info["job"]
-            if job in runners:
-                raise ValueError(f"duplicate runner configuration for {job}")
-            runners[job] = info
+            entries.setdefault(info["job"], []).append((path, info))
         except (OSError, ValueError) as exc:
             errors.append(f"Cannot read runner configuration {path.relative_to(artifacts_dir)}: {exc}")
+    for job, configurations in entries.items():
+        for path, info in configurations:
+            source = path.relative_to(artifacts_dir).parent.as_posix()
+            key = job if len(configurations) == 1 else f"{job}/{source}"
+            runners[key] = dict(info, artifact=source)
     return runners, errors
 
 
@@ -382,8 +386,11 @@ def runner_info_table(job_status: dict[str, str], artifacts_dir: Path) -> list[s
     labels = {"compiler": "C++", "linker": "Linker", "cmake": "CMake", "ctest": "CTest",
               "ninja": "Ninja", "ccache": "ccache", "node": "Node", "npm": "npm",
               "python": "Python", "gh": "gh"}
+    rows = []
     for job in _JOB_LABELS:
-        info = runners.get(job)
+        instances = [(key, info) for key, info in runners.items() if info["job"] == job]
+        rows.extend(instances or [(job, None)])
+    for job, info in rows:
         if info is None:
             state = "未运行" if job_status.get(job) == "skipped" else "未采集"
             lines.append(f"| `{job}` | {state} | — | — | — |")
@@ -415,7 +422,7 @@ def runner_info_table(job_status: dict[str, str], artifacts_dir: Path) -> list[s
                          f"sanitizers={_table_text(build.get('MC_ENABLE_SANITIZERS'))}")
             if "MC_FUZZ_ASAN" in build:
                 tools.append(f"fuzz-ASAN={_table_text(build['MC_FUZZ_ASAN'])}")
-        lines.append(f"| `{job}` | {cpu_text} | {memory} | {system_text} | {'; '.join(tools) or '—'} |")
+        lines.append(f"| `{_table_text(job)}` | {cpu_text} | {memory} | {system_text} | {'; '.join(tools) or '—'} |")
     lines.extend(["", "> 内存为总容量；磁盘为空闲 / 总容量（采集时）。工具链为本 job 实际工具版本，"
                   "单元/集成/e2e 的 C++ 产物来自 build，benchmark 的产物来自 release-build。"
                   "完整配置随 nightly-report artifact 归档。", ""])

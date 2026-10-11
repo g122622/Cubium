@@ -812,7 +812,7 @@ jobs:
              "integrated-tests":"${{ needs.integrated-tests.result }}",
              "e2e-tests":"${{ needs.e2e-tests.result }}",
              "fuzz":"${{ needs.fuzz.result }}",
-             "benchmark":"${{ needs.benchmark.result }}"}
+             "benchmark":"${{ needs.benchmark.result }}", "report":"in_progress"}
         run: |
           set -euo pipefail
           python3 scripts/ci/summarize_failures.py \
