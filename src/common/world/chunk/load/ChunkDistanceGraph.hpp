@@ -195,6 +195,13 @@ private:
     /// 销毁了本图/其宿主）。本守卫消除其中"嵌套消费"这一类成因，成本极低且不影响单层
     /// 语义；剩余成因待进一步定位。
     ///
+    /// 【线程契约】本类型不是线程安全的：m_levels / m_sourceLevels / m_updateQueue 均无锁。
+    /// 实测报告中的 free 与 use 都发生在同一线程（ASAN "freed by thread T0" + "thread T0"），
+    /// 故该缺陷不是数据竞争。调用方必须保证同一图实例的访问集中在服务端主线程
+    /// （ServerChunkManager 的 worker 线程已在 _resolveStorageForScheduling 处显式回避读取
+    /// m_levels，见 ServerChunkManager.cpp 的相关注释）。本守卫不能替代该约定，它只防同线程
+    /// 重入；若未来需要跨线程访问，必须补真正的互斥量。
+    ///
     /// TODO: 若该 ASAN 报告复现，需在 onLevelChanged 前后加宿主生命周期断言，确认回调
     /// 是否可能在 processUpdates 未返回时销毁 ChunkLoadTicketManager/本图。
     bool m_processing = false;

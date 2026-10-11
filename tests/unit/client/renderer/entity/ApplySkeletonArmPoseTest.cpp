@@ -38,6 +38,12 @@
  * SkeletonModel::setRightArmPose + SkeletonModel::setAngles）复制方法逻辑，验证
  * _applySkeletonArmPose 声称履行的契约。
  *
+ * TODO: 本测试复制而非调用生产方法，因此 EntityRendererManager::_applySkeletonArmPose
+ * 自身回归时这些断言仍会通过（生产逻辑与这里的副本各改各的即失同步）。彻底做法是给
+ * EntityRendererManager 抽出一个不依赖 Vulkan 的测试接缝（例如把"据 isAggressive +
+ * 持弓决定 ArmPose"抽成静态纯函数，生产方法调用它，测试直接测该函数）。当前未做是因为
+ * EntityRendererManager 的构造与渲染器注册强耦合，拆分需要先解耦 Vulkan 依赖。
+ *
  * 数据流验证：
  *   ClientEntity::isAggressive() + getMainHandItem() → setRightArmPose(BowAndArrow/Empty)
  *   → setAngles → handleRightArmPose → 右臂 Y/X 旋转角度

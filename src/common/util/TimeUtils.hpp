@@ -73,7 +73,10 @@ template <typename Clock>
 [[nodiscard]] std::pair<i64, i64> secondsAndFractionOfNow()
 {
     const auto sinceEpoch = Clock::now().time_since_epoch();
-    const auto wholeSeconds = std::chrono::duration_cast<std::chrono::seconds>(sinceEpoch);
+    // 用 floor 而非 duration_cast：duration_cast 向零截断，对负 duration（libstdc++ 的
+    // file_clock epoch 在 2174 年，当今读数即为负）会让余数落到 (-1s, 0]，使下面
+    // "余数差四舍五入"在边界 ±1s 处需要额外处理。floor 保证余数恒在 [0, 1s)。
+    const auto wholeSeconds = std::chrono::floor<std::chrono::seconds>(sinceEpoch);
     const auto remainder = sinceEpoch - wholeSeconds;
     const auto remainderNanos = std::chrono::duration_cast<std::chrono::nanoseconds>(remainder).count();
     return {static_cast<i64>(wholeSeconds.count()), static_cast<i64>(remainderNanos)};
@@ -130,7 +133,12 @@ template <typename Clock>
     return static_cast<i64>(std::chrono::duration_cast<std::chrono::seconds>(sysTp.time_since_epoch()).count());
 #else
     // 回退路径：在秒级做 offset 补偿。file_clock 秒值（2026 年约 1.34e10）在 i64 范围内安全。
-    const auto fileSecs = std::chrono::duration_cast<std::chrono::seconds>(ft.time_since_epoch()).count();
+    //
+    // 必须用 floor 而非 duration_cast：libstdc++ 的 file_clock epoch 在 2174 年，当今文件
+    // 时间戳的 duration 为负值，而 duration_cast 对负值向零截断（-0.5s → 0s）。若用
+    // duration_cast，位于 Unix 秒 N + 0.5 的文件时间戳会得到 N+1 而非 N，与
+    // unixSecondsToFileTime 的往返结果不一致。floor 向负无穷取整，保证结果稳定。
+    const auto fileSecs = std::chrono::floor<std::chrono::seconds>(ft.time_since_epoch()).count();
     return fileSecs - detail::fileClockToSystemOffsetSeconds();
 #endif
 }
@@ -140,12 +148,10 @@ template <typename Clock>
  *
  * fileTimeToUnixSeconds 的逆操作，用于从 JSON 等序列化格式恢复时间戳。
  *
- * 回退路径（无 clock_cast）须在"目标时钟自己的 duration 刻度"上做补偿，不能在
- * 秒刻度上加上 11644473600 再 duration_cast：libstdc++ 的 file_clock duration 是
- * 纳秒，11644473600 秒 → 1.164e19 ns 已超出 i64（上限约 9.22e18），
- * duration_cast 内部先乘 1e9 即触发有符号溢出
+ * 回退路径（无 clock_cast）在整数域内完成换算：秒→刻度的乘法会把中间量推到 1.16e19，
+ * 超出 i64（上限约 9.22e18），故不能先加偏移再 duration_cast
  * （UBSan: signed integer overflow: 11644473600 * 1000000000 cannot be represented in type 'long'）。
- * 正确做法是把 epoch 差值表示成目标时钟的 duration 再相加，其刻度值本身就在 i64 内。
+ * 实现改为先把可表示的秒数区间换算出来做边界比较，确认不溢出后才相乘。
  *
  * @param unixSeconds 自 1970-01-01 00:00:00 UTC 以来的秒数
  * @return 对应的文件时间戳
@@ -157,30 +163,41 @@ template <typename Clock>
     const auto sysTp = std::chrono::system_clock::time_point{std::chrono::seconds{unixSeconds}};
     return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(sysTp);
 #else
-    // 回退路径：在"file_clock 的 duration 刻度"上做补偿，避免秒→纳秒的中间量溢出。
+    // 回退路径：全程整数运算，且不产生任何越界的中间量。
     using FileDuration = std::filesystem::file_time_type::duration;
     using FileRep = FileDuration::rep;
     using FilePeriod = FileDuration::period;
 
     // 换算因子：1 秒 = FilePeriod::den / FilePeriod::num 个 file_clock 刻度
     // （libstdc++ 为纳秒 → 1e9；MSVC 为 100ns → 1e7）。
-    constexpr long double kTicksPerSecond =
-        static_cast<long double>(FilePeriod::den) / static_cast<long double>(FilePeriod::num);
+    constexpr i64 kTicksPerSecond = static_cast<i64>(FilePeriod::den) / static_cast<i64>(FilePeriod::num);
 
-    // epoch 差与秒数各自先算刻度值，再加总。用 long double 承载中间量：
-    // 1.164e10 秒 × 1e9 = 1.164e19 已超出 i64（约 9.22e18），整数域里算必然溢出。
-    const long double offsetTicks =
-        static_cast<long double>(detail::fileClockToSystemOffsetSeconds()) * kTicksPerSecond;
-    const long double secondsTicks = static_cast<long double>(unixSeconds) * kTicksPerSecond;
+    // 为什么不能先算 totalSeconds 再判越界：unixSeconds 可达 i64 上限，
+    // `unixSeconds + offsetSeconds` 本身就会溢出（UB）。
+    // 为什么不能借用浮点承载中间量：秒→刻度要乘 1e9，中间量可达 1.16e19，超出 i64；
+    // 且 MSVC 上 long double 就是 double，把 FileRep::max() 转成浮点会向上舍入到 2^63，
+    // 使"钳制到 max"之后的 static_cast<FileRep> 依然是 UB。
+    //
+    // 正确做法是把边界换算到"Unix 秒"这个共同尺度上先做比较，只在确认不溢出之后才相乘。
+    // FileRep 为 i64、kTicksPerSecond 为正，可表示的秒数区间为 [min/k, max/k]。
+    const i64 offsetSeconds = detail::fileClockToSystemOffsetSeconds();
+    constexpr i64 kMaxSeconds = std::numeric_limits<FileRep>::max() / kTicksPerSecond;
+    constexpr i64 kMinSeconds = std::numeric_limits<FileRep>::min() / kTicksPerSecond;
 
-    const long double totalTicks = secondsTicks + offsetTicks;
-    // 越界时钳制到该 duration 的可表示范围，避免窄化转换本身成为 UB。
-    constexpr long double kMinTicks = static_cast<long double>(std::numeric_limits<FileRep>::min());
-    constexpr long double kMaxTicks = static_cast<long double>(std::numeric_limits<FileRep>::max());
-    const long double clampedTicks =
-        totalTicks < kMinTicks ? kMinTicks : (totalTicks > kMaxTicks ? kMaxTicks : totalTicks);
+    // 边界与 offsetSeconds 同为 1e9~1e10 量级，相减安全。
+    const i64 maxUnixSeconds = kMaxSeconds - offsetSeconds;
+    const i64 minUnixSeconds = kMinSeconds - offsetSeconds;
+    if (unixSeconds >= maxUnixSeconds) {
+        return std::filesystem::file_time_type{FileDuration::max()};
+    }
+    if (unixSeconds <= minUnixSeconds) {
+        return std::filesystem::file_time_type{FileDuration::min()};
+    }
 
-    return std::filesystem::file_time_type{FileDuration{static_cast<FileRep>(clampedTicks)}};
+    // 此处 unixSeconds + offsetSeconds 必落在 (kMinSeconds, kMaxSeconds) 内，
+    // 故乘 kTicksPerSecond 后仍在 FileRep 可表示范围内，无溢出。
+    const i64 totalSeconds = unixSeconds + offsetSeconds;
+    return std::filesystem::file_time_type{FileDuration{totalSeconds * kTicksPerSecond}};
 #endif
 }
 

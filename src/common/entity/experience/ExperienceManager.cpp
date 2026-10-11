@@ -241,6 +241,15 @@ i32 ExperienceManager::getExperienceForLevel(i32 level) noexcept
         return 0;
     }
 
+    // 先把 level 夹取到受支持的等级上限。这是必需的前置防御，不只是"数据校验"：
+    // 调用方可以传入任意 i32（如 setLevel 的入参未夹取，或存档里被改坏的等级），
+    // 而 30+ 档公式为 9*n*(n-1)/2，n = level - 30。level = INT32_MAX 时
+    // 9*n*(n-1) ≈ 4.15e19 已超出 i64（上限约 9.22e18），是真实的有符号溢出 UB。
+    // 夹取后 n <= 21832，中间量约 4.29e9，i64 内安全；结果 2147211343 也在 i32 内。
+    if (level > constants::MAX_EXPERIENCE_LEVEL) {
+        level = constants::MAX_EXPERIENCE_LEVEL;
+    }
+
     // 使用公式计算累计经验
     // 等级 0-14: 每级需要 7 + level * 2
     // 等级 15-29: 每级需要 37 + (level - 15) * 5

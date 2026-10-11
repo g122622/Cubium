@@ -1045,7 +1045,10 @@ void ChunkTaskScheduler::runInlineAndDrain(std::function<void()>&& callable)
         // 临时提升 depth。
         ++ctx.depth;
         for (const auto& item : batch) {
-            SingleChunkLifecycleManager* holder = findHolder(item.x, item.z);
+            // 与上方 rescheduleChunk 同理：必须持 shared_ptr 跨越"查找 → 加锁"这段窗口。
+            // 若用裸指针，其它线程的 unloadChunkSync 可能在此期间把 holder 从
+            // m_lifecycleManagers 移除并析构，随后 schedule(..., *holder) 即 use-after-free。
+            std::shared_ptr<SingleChunkLifecycleManager> holder = m_manager._findLifecycleManagerShared(item.x, item.z);
             if (holder == nullptr) {
                 continue;
             }

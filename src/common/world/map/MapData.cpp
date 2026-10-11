@@ -91,6 +91,12 @@ namespace {
  */
 [[nodiscard]] i8 clampMapCoordinate(f32 value)
 {
+    // NaN 必须单独处理：NaN 与任何值比较都为 false，会穿过下面两个分支落入
+    // static_cast<i8>(NaN)，而浮点转整数在值不可表示时是 UB（UBSan 会直接中止）。
+    // Java 的窄化转换 (byte)NaN 有定义结果为 0，此处对齐该语义。
+    if (std::isnan(value)) {
+        return 0;
+    }
     if (value <= -63.0F) {
         return -128;
     }
@@ -183,13 +189,19 @@ void MapData::updateDecoration(DecorationType type,
 u8 MapData::calculateRotation(const IWorld* world, f64 rotation) const
 {
     if (world != nullptr && m_dimension == MapDimensionId::Nether) {
-        // 下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果
-        i64 gameTime = static_cast<i64>(world->getGameTime());
-        i32 t = static_cast<i32>(gameTime / 10L);
-        // 用 i64 中间量：t 可达 2^31/10 量级，t * t * 34187121 在 i32 下必然溢出
-        // （UBSan: signed integer overflow: 100 * 34187121 cannot be represented in type 'int'）。
-        const i64 t64 = t;
-        return static_cast<u8>((t64 * t64 * 34187121 + t64 * 121) >> 15 & 15);
+        // 下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果。
+        //
+        // 对齐 MC 1.21.11 MapItemSavedData#calculateRotation：
+        //   int i = (int)(level.getGameTime() / 10L);
+        //   return (byte)(i * i * 34187121 + i * 121 >> 15 & 15);
+        // Java 的 int 运算在溢出时按 32 位回绕（有定义），因此这里必须用 u32 复现
+        // 同样的回绕，而不能用更宽的整数类型"避免溢出"——那会改变结果。i64 也不行：
+        // t 接近 2^31/10 时 t*t*34187121 约 1.6e24，仍超出 i64（上限约 9.2e18）。
+        // u32 乘法回绕有定义，无 UB。用 u64 做除法再窄化到 u32，与 Java 的
+        // (int)(gameTime / 10L) 取低 32 位完全一致（此处 gameTime 非负，无符号化安全）。
+        const u32 t = static_cast<u32>(world->getGameTime() / 10ULL);
+        const u32 mixed = t * t * 34187121U + t * 121U;
+        return static_cast<u8>((mixed >> 15) & 15U);
     } else {
         // 其他维度使用实际朝向角度
         f64 adjustedRotation = rotation + (rotation < 0.0 ? -8.0 : 8.0);
