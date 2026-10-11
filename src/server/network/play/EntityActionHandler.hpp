@@ -44,6 +44,9 @@ namespace mc::server::net {
  */
 class EntityActionHandler : public PlayHandlerBase {
 public:
+    /** @brief 将合法挥手请求交给玩家实体，沿世界广播链路同步动画。 */
+    void handleSwingPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
     explicit EntityActionHandler(MinecraftServer& server)
         : PlayHandlerBase(server)
     {}

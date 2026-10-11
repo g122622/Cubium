@@ -1598,6 +1598,13 @@ public:
         (void)hurtDir;
     }
 
+    /** @brief 广播伤害来源；客户端世界无需执行出站操作。 */
+    virtual void broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source)
+    {
+        (void)entityId;
+        (void)source;
+    }
+
     // ========== 实体拴绳链接广播 ==========
 
     /**
@@ -1656,10 +1663,12 @@ public:
      * @param entityId 效果发生变化的实体
      * @param effect 当前生效的效果实例
      */
-    virtual void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+    virtual void broadcastMobEffectAdded(
+        EntityInstanceId entityId, const entity::effect::EffectInstance& effect, bool blend)
     {
         (void)entityId;
         (void)effect;
+        (void)blend;
     }
 
     /**

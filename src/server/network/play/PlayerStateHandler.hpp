@@ -37,6 +37,21 @@ namespace mc::server::net {
  */
 class PlayerStateHandler : public PlayHandlerBase {
 public:
+    /** @brief 处理统计请求；重生请求的死亡流程接入单独标记待办。 */
+    void handleClientCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /** @brief 仅允许旁观者按 UUID 查找任意维度的目标并请求绝对传送。 */
+    void handleTeleportToEntityPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /** @brief 更新客户端设置，复用配置阶段的应用入口。 */
+    void handleClientInformationPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /** @brief 仅允许具有服务端飞行能力的玩家启用飞行。 */
+    void handlePlayerAbilitiesPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
+    /** @brief 校验权限并通过游戏模式管理器切换玩家模式。 */
+    void handleChangeGameModePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+
     explicit PlayerStateHandler(MinecraftServer& server)
         : PlayHandlerBase(server)
     {}

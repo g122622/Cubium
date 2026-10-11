@@ -194,8 +194,8 @@ void LoomScreen::_initPatternButtons()
         return;
     }
 
-    // 35个基础图案（不需要图案物品的），4列布局 = 9行
-    const i32 totalPatterns = mc::entity::inventory::container::LoomContainer::PATTERN_ITEM_INDEX;
+    // 32个基础图案（不需要图案物品的），4列布局 = 9行
+    const i32 totalPatterns = mc::entity::inventory::container::LoomContainer::BASIC_PATTERN_COUNT;
     const i32 rows = (totalPatterns + PATTERN_GRID_COLS - 1) / PATTERN_GRID_COLS;
     patternList->setContentHeight(rows * PATTERN_BUTTON_SPACING);
 
@@ -212,8 +212,8 @@ void LoomScreen::_initPatternButtons()
 
         auto button = std::make_unique<ButtonWidget>(buttonId, x, y, PATTERN_BUTTON_SIZE, PATTERN_BUTTON_SIZE, "");
 
-        // 图案索引（1-based，与clickMenuButton一致）
-        i32 patternIndex = i + 1;
+        // 可选图案列表索引（0-based）
+        i32 patternIndex = i;
         button->setOnPress([this, patternIndex](ButtonWidget&) { _onPatternSelect(patternIndex); });
 
         patternList->addWidget(std::move(button));
@@ -300,14 +300,14 @@ void LoomScreen::_refreshPatterns()
         return;
     }
 
-    i32 selectedPattern = m_menu->getSelectedPattern();
+    i32 selectedPattern = m_menu->getSelectedPatternIndex();
 
     // 更新图案按钮的选中状态
     for (i32 i = 0; i < static_cast<i32>(m_patternButtonIds.size()); ++i) {
         const std::string& buttonId = m_patternButtonIds[i];
         auto* button = dynamic_cast<ButtonWidget*>(findWidget(buttonId));
         if (button) {
-            bool isSelected = (i + 1) == selectedPattern;
+            bool isSelected = i == selectedPattern;
             // 选中状态通过视觉反馈区分
             if (isSelected) {
                 button->setStyle(ButtonWidget::Style{

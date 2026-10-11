@@ -36,6 +36,9 @@ add_executable(mc_tests
     common/network/JavaCodecNonPlayTest.cpp
     common/network/JavaCodecPlayMovementTest.cpp
     common/network/JavaCodecPlayContainerTest.cpp
+    common/network/JavaCodecPlayPlayerStateRequestsTest.cpp
+    common/network/JavaCodecPlayClientStateTest.cpp
+    common/network/JavaCodecPlayContainerActionsTest.cpp
     common/network/JavaCodecPlayLoginStateTest.cpp
     common/network/JavaCodecPlayEntityChunkTest.cpp
     common/network/JavaCodecPlayPlayerSoundTest.cpp
@@ -1752,6 +1755,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/manager/WorldLightManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/NaturalSpawner.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
@@ -1923,6 +1927,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DialogCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
@@ -2001,6 +2006,7 @@ target_sources(mc_tests
         # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
         ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/play/ContainerActionHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
@@ -2474,6 +2480,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/TextureImage.cpp
         # ScreenStackWidget 及 Screen 依赖
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/Screen.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/screen/ScreenManager.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/widgets/ScreenStackWidget.cpp
         # CreateWorldScreen 测试依赖：模板屏幕基类 + 模板运行时实例 + 创建世界屏幕
         ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/screens/TemplateScreen.cpp
@@ -2761,5 +2768,3 @@ if(MC_BUILD_CLIENT)
     #         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/gui/GuiTextureLoader.cpp
     # )
 endif()
-
-

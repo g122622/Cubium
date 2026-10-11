@@ -24,6 +24,7 @@
 #pragma once
 
 #include "core/Types.hpp"
+#include <span>
 #include <string>
 
 namespace mc {
@@ -32,7 +33,7 @@ namespace blockentity {
 /**
  * @brief 旗帜图案枚举
  *
- * MC 1.16.5 共有 37 种旗帜图案，其中：
+ * 旗帜图案共 43 种，包含底色、32 种基础图案和 10 种图案卷专用图案：
  * - BASE: 底色图案（特殊，不消耗图案卷）
  * - 基础图案（SQUARE_*, STRIPE_*, 等）：可通过织布机制作
  * - 特殊图案（GLOBE, CREEPER, SKULL, FLOWER, MOJANG, PIGLIN）：需要特殊图案卷
@@ -117,6 +118,9 @@ enum class BannerPatternType : u8 {
  */
 class BannerPatterns {
 public:
+    /** @brief 织布机无需图案卷的图案，顺序对应客户端可选列表。 */
+    [[nodiscard]] static std::span<const BannerPatternType> getLoomPatterns();
+
     /**
      * @brief 根据哈希名获取图案类型
      *
@@ -148,7 +152,7 @@ public:
     /**
      * @brief 检查图案是否需要特殊图案卷
      *
-     * GLOBE, CREEPER, SKULL, FLOWER, MOJANG, PIGLIN 需要特殊图案卷。
+     * 卷专用图案包括波纹边框、砖纹、地球、苦力怕、骷髅、花朵、Mojang、猪灵、涡流和旋风。
      *
      * @param type 图案类型
      * @return 如果需要特殊图案卷返回 true

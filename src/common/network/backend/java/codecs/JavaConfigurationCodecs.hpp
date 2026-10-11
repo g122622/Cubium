@@ -29,6 +29,7 @@
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
+#include "common/util/text/Utf8.hpp"
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -69,7 +70,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
     return makeCodec<ir::configuration::ClientInformation>(
         [](B& buf, const ir::configuration::ClientInformation& v) {
             buf.writeString(v.language);
-            buf.writeU8(v.viewDistance);
+            buf.writeI8(v.viewDistance);
             buf.writeVarInt(v.chatVisibility);
             buf.writeBool(v.chatColors);
             buf.writeU8(v.modelCustomisation);
@@ -81,7 +82,7 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
         [](B& buf) -> Result<ir::configuration::ClientInformation> {
             ir::configuration::ClientInformation v{};
             MC_TRY_ASSIGN(v.language, buf.readString());
-            MC_TRY_ASSIGN(v.viewDistance, buf.readU8());
+            MC_TRY_ASSIGN(v.viewDistance, buf.readI8());
             MC_TRY_ASSIGN(v.chatVisibility, buf.readVarInt());
             MC_TRY_ASSIGN(v.chatColors, buf.readBool());
             MC_TRY_ASSIGN(v.modelCustomisation, buf.readU8());
@@ -89,6 +90,16 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
             MC_TRY_ASSIGN(v.textFilteringEnabled, buf.readBool());
             MC_TRY_ASSIGN(v.allowsListing, buf.readBool());
             MC_TRY_ASSIGN(v.particleStatus, buf.readVarInt());
+            // Java 字符串上限按 UTF-16 代码单元计算，补充平面字符占两个单元。
+            std::size_t offset = 0;
+            std::size_t languageLength = 0;
+            while (offset < v.language.size() && languageLength <= 16) {
+                languageLength += util::text::utf8Decode(v.language, offset) > 0xffff ? 2 : 1;
+            }
+            if (languageLength > 16 || v.chatVisibility < 0 || v.chatVisibility > 2 || v.mainHand < 0 ||
+                v.mainHand > 1 || v.particleStatus < 0 || v.particleStatus > 2) {
+                return Error(ErrorCode::InvalidArgument, "Invalid client information");
+            }
             return v;
         });
 }

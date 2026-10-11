@@ -301,6 +301,7 @@ add_executable(minecraft-server
     # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
     network/play/MovementHandler.cpp
     network/play/BlockActionHandler.cpp
+    network/play/ContainerActionHandler.cpp
     network/play/EntityActionHandler.cpp
     network/play/ChatHandler.cpp
     network/play/PlayerStateHandler.cpp
@@ -350,6 +351,7 @@ add_executable(minecraft-server
     world/spawn/DespawnManager.cpp
     world/spawn/VillageSiege.cpp
     world/entity/EntityTracker.cpp
+    world/entity/waypoint/WaypointManager.cpp
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
@@ -441,6 +443,7 @@ add_executable(minecraft-server
     command/commands/MessageCommand.cpp
     command/commands/TellRawCommand.cpp
     command/commands/TitleCommand.cpp
+    command/commands/DialogCommand.cpp
     command/commands/PlaySoundCommand.cpp
     command/commands/StopSoundCommand.cpp
     command/commands/EffectCommand.cpp

@@ -460,6 +460,7 @@ add_executable(minecraft-client
     # Play 阶段各包族处理器（按包族拆分自 ServerPlayHandler.cpp）
     ${CMAKE_SOURCE_DIR}/src/server/network/play/MovementHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/BlockActionHandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/network/play/ContainerActionHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/EntityActionHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/ChatHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/network/play/PlayerStateHandler.cpp
@@ -509,6 +510,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/DespawnManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/VillageSiege.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
@@ -581,6 +583,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/commands/DialogCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp

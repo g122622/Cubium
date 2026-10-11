@@ -148,6 +148,7 @@ ItemStack::ItemStack(const ItemStack& other)
     : m_item(other.m_item)
     , m_count(other.m_count)
     , m_damage(other.m_damage)
+    , m_repairCost(other.m_repairCost)
     , m_customName(other.m_customName ? other.m_customName->deepCopy() : nullptr)
     , m_enchantments(other.m_enchantments)
     // 空 extras 原样传 nullptr（不得无条件 make_unique——容器每 tick 逐槽拷贝，
@@ -161,6 +162,7 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
         m_item = other.m_item;
         m_count = other.m_count;
         m_damage = other.m_damage;
+        m_repairCost = other.m_repairCost;
         m_customName = other.m_customName ? other.m_customName->deepCopy() : nullptr;
         m_enchantments = other.m_enchantments;
         m_extras = other.m_extras ? std::make_unique<ItemExtras>(*other.m_extras) : nullptr;
@@ -587,6 +589,7 @@ ItemStack ItemStack::split(i32 amount)
     i32 splitCount = std::min(amount, m_count);
     ItemStack result(*m_item, splitCount);
     result.m_damage = m_damage;
+    result.m_repairCost = m_repairCost;
     result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
     result.m_enchantments = m_enchantments;
     result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;
@@ -602,14 +605,8 @@ ItemStack ItemStack::copy() const
     if (isEmpty()) {
         return EMPTY;
     }
-    ItemStack result(*m_item, m_count);
-    result.m_damage = m_damage;
-    result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
-    result.m_enchantments = m_enchantments;
-    // 整体深拷贝 extras。注：这同时修正了先前 copy()/split() 会丢掉
-    // can_place_on / can_destroy 的问题（与 vanilla ItemStack#copy 一致）。
-    result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;
-    return result;
+    // 统一使用深拷贝构造，避免新增组件字段时遗漏独立复制路径。
+    return ItemStack(*this);
 }
 
 ItemStack ItemStack::transmuteCopy(const Item& newItem, i32 newCount) const
@@ -1011,7 +1008,39 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         patch.add(DataComponentType::CanBreak, DataComponentPayload{std::in_place_index<6>, getCanDestroy()});
     }
     if (hasTag()) {
-        patch.add(DataComponentType::CustomData, DataComponentPayload{std::in_place_index<7>, _dataRef()});
+        auto custom = _dataRef();
+        if (custom.contains("BundleContents")) {
+            auto contents = custom["BundleContents"];
+            contents.erase("selected");
+            patch.add(DataComponentType::BundleContents,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(contents)});
+            custom.erase("BundleContents");
+        }
+        for (const auto& [key, type] : {std::pair{"writable_book_content", DataComponentType::WritableBookContent},
+                 std::pair{"written_book_content", DataComponentType::WrittenBookContent}}) {
+            if (custom.contains(key)) {
+                patch.add(type, DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, custom[key]});
+                custom.erase(key);
+            }
+        }
+        if (custom.contains("BlockEntityTag") && custom["BlockEntityTag"].contains("Patterns")) {
+            patch.add(DataComponentType::BannerPatterns,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::Json>, custom["BlockEntityTag"]["Patterns"]});
+            custom["BlockEntityTag"].erase("Patterns");
+            if (custom["BlockEntityTag"].empty()) custom.erase("BlockEntityTag");
+        }
+        if (custom.contains("StoredEnchantments")) {
+            item::enchant::EnchantmentContainer stored;
+            for (const auto& entry : custom["StoredEnchantments"])
+                stored.set(entry.at("id").get<std::string>(), entry.at("lvl").get<i32>());
+            patch.add(DataComponentType::StoredEnchantments,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Enchantments>, std::move(stored)});
+            custom.erase("StoredEnchantments");
+        }
+        if (!custom.empty())
+            patch.add(DataComponentType::CustomData,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(custom)});
     }
     // 数据组件覆盖（仅非空时写出）
     if (m_extras) {
@@ -1053,6 +1082,12 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
 void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& patch)
 {
     using namespace item::component;
+    // custom_data 可位于任意注册序位置，先应用以免覆盖随后还原的结构化组件。
+    for (const auto& entry : patch.added()) {
+        if (entry.typeId == componentTypeId(DataComponentType::CustomData)) {
+            _ensureExtras().customData = std::get<nlohmann::json>(entry.value);
+        }
+    }
     for (const auto& entry : patch.added()) {
         auto type = componentTypeById(entry.typeId);
         if (!type.has_value()) {
@@ -1115,16 +1150,27 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setCanDestroy(std::get<AdventureModePredicate>(entry.value));
                 break;
             }
-            case DataComponentType::CustomData: {
-                const auto& data = std::get<nlohmann::json>(entry.value);
-                // 只有能令 hasTag() 为真的载荷才值得分配 extras
-                if (data.is_object() && !data.empty()) {
-                    _ensureExtras().customData = data;
-                } else if (m_extras) {
-                    m_extras->customData = data;
-                }
+            case DataComponentType::BundleContents:
+                getOrCreateTag()["BundleContents"] = std::get<nlohmann::json>(entry.value);
+                break;
+            case DataComponentType::WritableBookContent:
+                getOrCreateTag()["writable_book_content"] = std::get<nlohmann::json>(entry.value);
+                break;
+            case DataComponentType::WrittenBookContent:
+                getOrCreateTag()["written_book_content"] = std::get<nlohmann::json>(entry.value);
+                break;
+            case DataComponentType::BannerPatterns:
+                getOrCreateTag()["BlockEntityTag"]["Patterns"] = std::get<nlohmann::json>(entry.value);
+                break;
+            case DataComponentType::StoredEnchantments: {
+                auto stored = nlohmann::json::array();
+                for (const auto& value : std::get<item::enchant::EnchantmentContainer>(entry.value).getAll())
+                    stored.push_back({{"id", value.enchantmentId}, {"lvl", value.level}});
+                getOrCreateTag()["StoredEnchantments"] = std::move(stored);
                 break;
             }
+            case DataComponentType::CustomData:
+                break;
             case DataComponentType::MaxStackSize: {
                 if (const auto* p = std::get_if<i32>(&entry.value)) {
                     _ensureExtras().maxStackSizeOverride = *p;
@@ -1195,6 +1241,22 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 break;
             case DataComponentType::CanBreak:
                 setCanDestroy(AdventureModePredicate{});
+                break;
+            case DataComponentType::BundleContents:
+                if (m_extras) m_extras->customData.erase("BundleContents");
+                break;
+            case DataComponentType::WritableBookContent:
+                if (m_extras) m_extras->customData.erase("writable_book_content");
+                break;
+            case DataComponentType::WrittenBookContent:
+                if (m_extras) m_extras->customData.erase("written_book_content");
+                break;
+            case DataComponentType::BannerPatterns:
+                if (m_extras && m_extras->customData.contains("BlockEntityTag"))
+                    m_extras->customData["BlockEntityTag"].erase("Patterns");
+                break;
+            case DataComponentType::StoredEnchantments:
+                if (m_extras) m_extras->customData.erase("StoredEnchantments");
                 break;
             case DataComponentType::CustomData:
                 // 清除不该反向分配 extras
@@ -1454,10 +1516,10 @@ bool ItemStack::operator==(const ItemStack& other) const
     // 数据组件覆盖：两个物品堆的覆盖集合须一致（无覆盖时退化为全部 nullopt/false）
     const bool overridesEqual = _componentOverridesEqual(other);
 
-    return m_item == other.m_item && m_count == other.m_count && m_damage == other.m_damage && customNameEqual &&
-        loreEqual && getPotionId() == other.getPotionId() && _dataRef() == other._dataRef() &&
-        m_enchantments.getAll() == other.m_enchantments.getAll() && getCanPlaceOn() == other.getCanPlaceOn() &&
-        getCanDestroy() == other.getCanDestroy() && overridesEqual;
+    return m_item == other.m_item && m_count == other.m_count && m_repairCost == other.m_repairCost &&
+        m_damage == other.m_damage && customNameEqual && loreEqual && getPotionId() == other.getPotionId() &&
+        _dataRef() == other._dataRef() && m_enchantments.getAll() == other.m_enchantments.getAll() &&
+        getCanPlaceOn() == other.getCanPlaceOn() && getCanDestroy() == other.getCanDestroy() && overridesEqual;
 }
 
 bool ItemStack::_componentOverridesEqual(const ItemStack& other) const

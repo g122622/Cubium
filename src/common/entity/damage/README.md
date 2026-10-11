@@ -202,3 +202,5 @@ if (DamageTypeTags::BYPASSES_ARMOR().contains(DamageType::Fall)) {
 3. 在 `EnvironmentalDamage::deathMessageKey()` 或 `EntityDamageSource::deathMessageKey()` 中添加对应翻译键
 4. 确认 `bypassesArmor()`、`isFire()`、`isMagic()`、`isExplosion()` 等方法是否需要更新
 5. 在 `DamageTypeTags::initialize()` 中将新类型添加到相关标签
+
+伤害事件的 sourcePositionRaw 只表示显式位置，不能用会回退到直接实体位置的 sourcePosition 替代，否则客户端会忽略责任实体与投射物。伤害类型 wire ID 由 JavaDamageTypeIds 与配置注册表共用。

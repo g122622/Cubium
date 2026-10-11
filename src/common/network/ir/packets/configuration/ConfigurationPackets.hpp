@@ -130,14 +130,14 @@ struct SelectKnownPacks {
  */
 struct ClientInformation {
     std::string language; // 如 "en_us"
-    u8 viewDistance;      // 渲染距离（chunk）
+    i8 viewDistance;      // 客户端上报的有符号渲染距离（chunk）
     i32 chatVisibility;   // 0=FULL 1=SYSTEM 2=HIDDEN
     bool chatColors;
     u8 modelCustomisation; // 位掩码
     i32 mainHand;          // 0=LEFT 1=RIGHT
     bool textFilteringEnabled;
     bool allowsListing;
-    i32 particleStatus; // 0=ALL 1=MINIMAL 2=DECREASED
+    i32 particleStatus; // 0=ALL 1=DECREASED 2=MINIMAL
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const ClientInformation&, const ClientInformation&) noexcept = default;
 };

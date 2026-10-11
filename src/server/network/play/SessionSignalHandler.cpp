@@ -39,6 +39,14 @@ using namespace mc::trace;
 
 namespace mc::server::net {
 
+void SessionSignalHandler::handlePlayerLoadedPacket(PlayerId playerId)
+{
+    auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player != nullptr && player->loggedIn) {
+        player->markClientLoaded();
+    }
+}
+
 void SessionSignalHandler::handlePingRequestPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     // 客户端主动 ping(ping 协议通道)，回 PongResponse(cb:60) 同 time。

@@ -21,12 +21,20 @@
  *
  */
 
+#include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/util/assert/AssertAll.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
+#include <array>
+
+#include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "server/network/handshake/EnchantmentNbtBuilder.hpp"
 
 #include <nlohmann/json.hpp>
@@ -46,6 +54,9 @@ namespace mc::server::net {
 
 namespace {
 
+constexpr std::array<std::string_view, 3> _dialogIds{
+    "minecraft:server_links", "minecraft:custom_options", "minecraft:quick_actions"};
+
 /// 给定一组资源位置 id，构造 data=nullopt 的 RegistryData（声明客户端已知）
 mc::network::ir::configuration::RegistryData makeKnownRegistry(
     const char* registryKey, std::initializer_list<const char*> ids)
@@ -62,102 +73,6 @@ mc::network::ir::configuration::RegistryData makeKnownRegistry(
 /// 进程级 datapack 源（服务器启动期由 setRegistryDatapackSource 注册）。
 /// 与 MinecraftServer::m_dataPackList 同生命周期，握手阶段读取安全。
 const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
-
-/// 把 JSON 递归转 NBT，**整数一律落 int_tag**（超出 i32 范围才用 long_tag）。
-///
-/// 与 mc::nbt::jsonToNbt 的关键差异：后者按数值范围窄化——[-128,127] → byte_tag、
-/// [-32768,32767] → short_tag、其余 → int_tag。Java 侧注册表 codec 的整数字段用
-/// Codec.INT 解码，byte_tag/short_tag 会被拒（EnchantmentNbtBuilder.cpp:462 记录了
-/// enchantment 的同类问题：「jsonToNbt 会把 5 推断为 byte_tag，Java i32 CODEC 要求
-/// int_tag，拒绝 byte_tag/short_tag」）。本函数专供注册表 NBT 构造，规避该窄化。
-///
-/// 浮点沿用 jsonToNbt 的推断（能精确表示为 f32 则 float_tag，否则 double_tag）——
-/// Java 的 FloatCodec/DoubleCodec 接受任意数值 tag，无需精确匹配。
-std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json);
-
-/// 同构性未知或元素类型混杂的数组 → 通用 tag_list_tag（元素类型由首个元素决定）。
-std::unique_ptr<mc::nbt::tags::tag_list_tag> makeGenericTagList(const nlohmann::json& json)
-{
-    using namespace mc::nbt::tags;
-    auto list = std::make_unique<tag_list_tag>(mc::nbt::TagId::End);
-    for (const auto& element : json) {
-        list->value.push_back(jsonToNbtStrictInt(element));
-    }
-    return list;
-}
-
-std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json)
-{
-    using namespace mc::nbt::tags;
-
-    if (json.is_null()) {
-        return std::make_unique<compound_tag>();
-    }
-    if (json.is_string()) {
-        return std::make_unique<string_tag>(json.get<std::string>());
-    }
-    if (json.is_boolean()) {
-        return std::make_unique<byte_tag>(json.get<bool>() ? static_cast<i8>(1) : static_cast<i8>(0));
-    }
-    if (json.is_number_integer()) {
-        const i64 val = json.get<i64>();
-        if (val >= static_cast<i64>(std::numeric_limits<i32>::min()) &&
-            val <= static_cast<i64>(std::numeric_limits<i32>::max())) {
-            return std::make_unique<int_tag>(static_cast<i32>(val));
-        }
-        return std::make_unique<long_tag>(val);
-    }
-    if (json.is_number_float()) {
-        const f64 val = json.get<f64>();
-        if (static_cast<f64>(static_cast<f32>(val)) == val) {
-            return std::make_unique<float_tag>(static_cast<f32>(val));
-        }
-        return std::make_unique<double_tag>(val);
-    }
-    if (json.is_object()) {
-        auto result = std::make_unique<compound_tag>();
-        for (const auto& [key, value] : json.items()) {
-            result->value.emplace(key, jsonToNbtStrictInt(value));
-        }
-        return result;
-    }
-    if (json.is_array()) {
-        // 列表类型推断与 mc::nbt::jsonToNbt 对齐（同构列表用对应特化类型），
-        // 但元素一律走本函数以保证整数不窄化。
-        if (json.empty()) {
-            return std::make_unique<end_list_tag>();
-        }
-        const auto& first = json[0];
-        if (first.is_object()) {
-            auto list = std::make_unique<compound_list_tag>();
-            for (const auto& element : json) {
-                if (!element.is_object()) {
-                    return makeGenericTagList(json);
-                }
-                auto child = jsonToNbtStrictInt(element);
-                auto* asCompound = dynamic_cast<compound_tag*>(child.get());
-                if (asCompound == nullptr) {
-                    return makeGenericTagList(json);
-                }
-                // 移动内容到列表；child 析构时释放已被移空的壳。
-                list->value.push_back(std::move(*asCompound));
-            }
-            return list;
-        }
-        if (first.is_string()) {
-            auto list = std::make_unique<string_list_tag>();
-            for (const auto& element : json) {
-                if (!element.is_string()) {
-                    return makeGenericTagList(json);
-                }
-                list->value.push_back(element.get<std::string>());
-            }
-            return list;
-        }
-        return makeGenericTagList(json);
-    }
-    return std::make_unique<compound_tag>();
-}
 
 /// 把 "namespace:path" 转成数据包资源路径 "<ns>/<registryDir>/<path>.json"。
 /// 不含 "data/" 前缀（与 EnchantmentNbtBuilder::enchantmentIdToResourcePath 同一约定，
@@ -196,7 +111,7 @@ std::optional<std::vector<u8>> buildRegistryEntryData(
         return std::nullopt;
     }
 
-    auto root = jsonToNbtStrictInt(j);
+    auto root = mc::nbt::jsonToNbtStrictInt(j);
     auto* asCompound = dynamic_cast<mc::nbt::tags::compound_tag*>(root.get());
     if (asCompound == nullptr) {
         spdlog::warn("RegistryDataBuilder: {} did not convert to a compound tag", resourcePath);
@@ -463,103 +378,20 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
             "minecraft:wither"}));
 
     // 15. damage_type（50）。1.21.11 无 avoid/merging/thistle（旧版残留已删）；新增多个。
-    registries.push_back(makeKnownRegistry("minecraft:damage_type",
-        {"minecraft:in_fire",
-            "minecraft:lightning_bolt",
-            "minecraft:on_fire",
-            "minecraft:lava",
-            "minecraft:hot_floor",
-            "minecraft:in_wall",
-            "minecraft:cramming",
-            "minecraft:drown",
-            "minecraft:starve",
-            "minecraft:cactus",
-            "minecraft:fall",
-            "minecraft:out_of_world",
-            "minecraft:generic",
-            "minecraft:magic",
-            "minecraft:wither",
-            "minecraft:dragon_breath",
-            "minecraft:dry_out",
-            "minecraft:sweet_berry_bush",
-            "minecraft:freeze",
-            "minecraft:stalagmite",
-            "minecraft:falling_stalactite",
-            "minecraft:arrow",
-            "minecraft:trident",
-            "minecraft:fireball",
-            "minecraft:wither_skull",
-            "minecraft:thrown",
-            "minecraft:indirect_magic",
-            "minecraft:thorns",
-            "minecraft:explosion",
-            "minecraft:player_attack",
-            "minecraft:mob_attack",
-            "minecraft:mob_attack_no_aggro",
-            "minecraft:mob_projectile",
-            "minecraft:sonic_boom",
-            "minecraft:generic_kill",
-            "minecraft:outside_border",
-            "minecraft:bad_respawn_point",
-            "minecraft:falling_anvil",
-            "minecraft:falling_block",
-            "minecraft:sting",
-            "minecraft:campfire",
-            "minecraft:fireworks",
-            "minecraft:fly_into_wall",
-            "minecraft:player_explosion",
-            "minecraft:spear",
-            "minecraft:spit",
-            "minecraft:wind_charge",
-            "minecraft:mace_smash",
-            "minecraft:ender_pearl",
-            "minecraft:unattributed_fireball"}));
+    mc::network::ir::configuration::RegistryData damageTypes{};
+    damageTypes.registryKey = "minecraft:damage_type";
+    for (const auto name : mc::network::backend::java::JavaDamageTypeIds::ENTRIES) {
+        damageTypes.entries.push_back({std::string(name), std::nullopt});
+    }
+    registries.push_back(std::move(damageTypes));
 
     // 16. banner_pattern（43）。
-    registries.push_back(makeKnownRegistry("minecraft:banner_pattern",
-        {"minecraft:base",
-            "minecraft:border",
-            "minecraft:bricks",
-            "minecraft:circle",
-            "minecraft:creeper",
-            "minecraft:cross",
-            "minecraft:curly_border",
-            "minecraft:diagonal_left",
-            "minecraft:diagonal_right",
-            "minecraft:diagonal_up_left",
-            "minecraft:diagonal_up_right",
-            "minecraft:flow",
-            "minecraft:flower",
-            "minecraft:globe",
-            "minecraft:gradient",
-            "minecraft:gradient_up",
-            "minecraft:guster",
-            "minecraft:half_horizontal",
-            "minecraft:half_horizontal_bottom",
-            "minecraft:half_vertical",
-            "minecraft:half_vertical_right",
-            "minecraft:mojang",
-            "minecraft:piglin",
-            "minecraft:rhombus",
-            "minecraft:skull",
-            "minecraft:small_stripes",
-            "minecraft:square_bottom_left",
-            "minecraft:square_bottom_right",
-            "minecraft:square_top_left",
-            "minecraft:square_top_right",
-            "minecraft:straight_cross",
-            "minecraft:stripe_bottom",
-            "minecraft:stripe_center",
-            "minecraft:stripe_downleft",
-            "minecraft:stripe_downright",
-            "minecraft:stripe_left",
-            "minecraft:stripe_middle",
-            "minecraft:stripe_right",
-            "minecraft:stripe_top",
-            "minecraft:triangle_bottom",
-            "minecraft:triangle_top",
-            "minecraft:triangles_bottom",
-            "minecraft:triangles_top"}));
+    mc::network::ir::configuration::RegistryData bannerPatterns{};
+    bannerPatterns.registryKey = "minecraft:banner_pattern";
+    for (const auto name : mc::network::backend::java::JavaBannerPatternIds::ENTRIES) {
+        bannerPatterns.entries.push_back({std::string(name), std::nullopt});
+    }
+    registries.push_back(std::move(bannerPatterns));
 
     // 17. enchantment（43）。发【内联 NBT】而非 data=nullopt。
     // 根因：enchantment JSON 的 supported_items/primary_items 引用 ITEM 标签（静态注册表），
@@ -618,8 +450,11 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     registries.push_back(makeKnownRegistry("minecraft:test_instance", {"minecraft:always_pass"}));
 
     // 22. dialog（3）。
-    registries.push_back(makeKnownRegistry(
-        "minecraft:dialog", {"minecraft:server_links", "minecraft:custom_options", "minecraft:quick_actions"}));
+    mc::network::ir::configuration::RegistryData dialogs{};
+    dialogs.registryKey = "minecraft:dialog";
+    for (const auto name : _dialogIds)
+        dialogs.entries.push_back({std::string(name), std::nullopt});
+    registries.push_back(std::move(dialogs));
 
     // 23. timeline（4）。顺序固定对齐 Timelines.bootstrap：DAY, MOON, VILLAGER_SCHEDULE,
     // EARLY_GAME（id 0/1/2/3）。buildConfigurationUpdateTags() 的 timeline tag 索引据此计算。
@@ -677,6 +512,34 @@ std::vector<mc::network::ir::configuration::TagRegistry> buildConfigurationUpdat
         {"minecraft:quick_actions", {}},          // 空 id 列表
     };
     registries.push_back(std::move(dialog));
+
+    mc::network::ir::configuration::TagRegistry bannerTags{};
+    bannerTags.registryKey = "minecraft:banner_pattern";
+    mc::network::ir::configuration::TagListEntry basic{"minecraft:no_item_required", {}};
+    for (const auto type : mc::blockentity::BannerPatterns::getLoomPatterns()) {
+        const auto id = mc::network::backend::java::JavaBannerPatternIds::toWireId(
+            "minecraft:" + mc::blockentity::BannerPatterns::getFileName(type));
+        MC_ASSERT_RELEASE(id.has_value());
+        basic.elementIds.push_back(*id);
+    }
+    bannerTags.tags.push_back(std::move(basic));
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 10> patternTags{
+        {{"minecraft:pattern_item/bordure_indented", "minecraft:curly_border"},
+            {"minecraft:pattern_item/creeper", "minecraft:creeper"},
+            {"minecraft:pattern_item/field_masoned", "minecraft:bricks"},
+            {"minecraft:pattern_item/flow", "minecraft:flow"},
+            {"minecraft:pattern_item/flower", "minecraft:flower"},
+            {"minecraft:pattern_item/globe", "minecraft:globe"},
+            {"minecraft:pattern_item/guster", "minecraft:guster"},
+            {"minecraft:pattern_item/mojang", "minecraft:mojang"},
+            {"minecraft:pattern_item/piglin", "minecraft:piglin"},
+            {"minecraft:pattern_item/skull", "minecraft:skull"}}};
+    for (const auto& [tag, pattern] : patternTags) {
+        const auto id = mc::network::backend::java::JavaBannerPatternIds::toWireId(pattern);
+        MC_ASSERT_RELEASE(id.has_value());
+        bannerTags.tags.push_back({std::string(tag), {*id}});
+    }
+    registries.push_back(std::move(bannerTags));
 
     return registries;
 }
@@ -751,6 +614,28 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
     }
 
     return registries;
+}
+
+Result<nlohmann::json> loadDialogDefinition(std::string_view id)
+{
+    if (g_registryDatapackRepo == nullptr)
+        return Error(ErrorCode::InvalidState, "Dialog datapack source is not configured");
+    auto text = g_registryDatapackRepo->readTextResource(registryEntryResourcePath(id, "dialog"));
+    if (text.failed()) return text.error();
+    auto definition = nlohmann::json::parse(text.value(), nullptr, false);
+    if (definition.is_discarded()) return Error(ErrorCode::InvalidData, "Invalid dialog JSON");
+    return definition;
+}
+
+Result<mc::network::ir::IrPacket> resolveDialogIr(const ResourceLocation& name)
+{
+    for (i32 i = 0; i < static_cast<i32>(_dialogIds.size()); ++i)
+        if (name.toString() == _dialogIds[i])
+            return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                mc::network::ir::PlayPacket{mc::network::ir::play::ShowDialog{i}}};
+    auto definition = loadDialogDefinition(name.toString());
+    if (definition.failed()) return definition.error();
+    return buildShowDialogIr(definition.value());
 }
 
 } // namespace mc::server::net

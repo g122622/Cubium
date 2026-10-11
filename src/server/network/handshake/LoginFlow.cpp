@@ -66,7 +66,7 @@ namespace {
 /// | UPDATE_LATENCY(4) | UPDATE_DISPLAY_NAME(5)。条目负载按 action 位升序写入，与 codec 写序一致。
 [[nodiscard]] constexpr u16 _playerInfoEntryActions()
 {
-    return static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5));
+    return static_cast<u16>((1u << 0) | (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5) | (1u << 7));
 }
 
 /// 由在线玩家数据构造一条玩家列表条目。
@@ -76,7 +76,8 @@ namespace {
     entry.uuid = util::uuidFromString(player.uuid);
     entry.name = player.username;
     entry.gameMode = static_cast<i32>(player.gameMode);
-    entry.listed = true;
+    entry.listed = !player.clientInformation.has_value() || player.clientInformation->allowsListing;
+    entry.showHat = !player.clientInformation.has_value() || (player.clientInformation->modelCustomisation & 0x40) != 0;
     entry.latency = static_cast<i32>(player.ping);
     // 显示名取用户名（当前无自定义昵称体系）。下发 NBT 字节而非留空，与 vanilla 的包内容
     // 形态一致——留空时对端会回退到 profile 名，渲染结果相同但包内容不同。
@@ -335,6 +336,7 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Player, "LoginFlow::sendInitialGameState", "playerId", playerId, "x", x, "y", y, "z", z);
 
+    if (auto* world = m_server.getPlayerWorld(playerId)) world->waypointManager().clearReceiver(m_server, playerId);
     // TeleportManager::requestTeleport() 内部已经发送过 TeleportPacket。
     // 这里不能重复发送，否则客户端会在登录阶段收到两个相同 teleportId 的传送包，
     // 紧接着回两次 TeleportConfirm，第二次会因为服务端已清除 waitingTeleportConfirm
@@ -385,10 +387,20 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
             mc::network::ir::PlayPacket{std::move(spawnPkt)},
         });
 
+    if (playerDim != nullptr && playerDim->world() != nullptr) {
+        auto* world = playerDim->world();
+        if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
+            world->entityTracker().sendActiveEffects(m_server, playerId, *entity);
+        }
+    }
+
     // 发送初始天气状态
     m_server.weatherSyncService().sendInitialWeatherStateToPlayer(playerId);
 
     // 发送初始难度状态
+    m_server.sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{m_server.serverLinks()}}});
     sendInitialDifficultyToPlayer(playerId);
 
     // 通知客户端开始接收区块加载包序列（event=13 LEVEL_CHUNKS_LOAD_START，value=0）。

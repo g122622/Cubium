@@ -1189,3 +1189,5 @@ void LivingEntity::swing(Hand hand)
   - 节流状态验证（swingInProgress、swingProgressInt）
   - swingArm() 便捷方法等价于 swing(MainHand)
 
+
+导航点图标样式和显式颜色由 LivingEntity 持久化为 locator_bar_icon；队伍颜色由服务端发送时解析，不能写回显式图标覆盖。

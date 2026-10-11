@@ -596,7 +596,13 @@ void MinecraftServer::initializeCoreManagers()
     // 把区块资源释放挂到玩家移除入口上。玩家离场路径有 5 条以上（客户端断线、被踢/封禁/白名单拒绝、
     // KeepAlive 超时、登录阶段失败、关服批量断开），逐点补调用一定会漏；挂在入口才能保证
     // "先释放区块票据、后移除玩家" 这一顺序对所有路径成立。
-    m_playerManager->setPlayerRemovalHook([this](PlayerId playerId) { this->releasePlayerChunkResources(playerId); });
+    m_playerManager->setPlayerRemovalHook([this](PlayerId playerId) {
+        if (m_containerManager != nullptr) {
+            m_containerManager->closeContainer(playerId);
+            m_containerManager->closePlayerInventoryMenu(playerId);
+        }
+        this->releasePlayerChunkResources(playerId);
+    });
     m_connectionManager = std::make_unique<core::ConnectionManager>(*m_playerManager);
     // MC 1.16.5: 新世界初始 dayTime = 0（日出时刻）
     m_timeManager = std::make_unique<core::TimeManager>(0, 0);
@@ -606,35 +612,22 @@ void MinecraftServer::initializeCoreManagers()
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
 
     // 注册游戏模式变化回调：当玩家切入/切出旁观者模式时，更新 ServerPlayer 实体的
-    // 游戏模式（能力/noclip）。切出旁观者额外 resetCamera() 发送 SetCameraPacket。
-    // 原实现两分支各写一遍“遍历维度寻找 ServerPlayer 实体”循环，此处合并为单循环，
-    // 仅在切出旁观者时多调一次 resetCamera()。
+    // 每次模式变化均更新真实实体；玩家 ID 必须经过实体管理器解析。
     m_gameModeManager->setOnGameModeChange([this](PlayerId playerId, GameMode oldMode, GameMode newMode) {
-        const bool leavingSpectator = (oldMode == GameMode::Spectator && newMode != GameMode::Spectator);
-        const bool enteringSpectator = (newMode == GameMode::Spectator);
-        if (!leavingSpectator && !enteringSpectator) {
+        auto* world = getPlayerWorld(playerId);
+        if (world == nullptr) {
             return;
         }
-
-        // 遍历所有维度世界寻找玩家实体（ServerPlayer）
-        for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
-            auto* dimension = m_dimensionManager->getDimension(dimId);
-            if (dimension == nullptr || dimension->world() == nullptr) {
-                continue;
-            }
-            Entity* entity = dimension->world()->getEntity(static_cast<EntityInstanceId>(playerId));
-            if (entity == nullptr) {
-                continue;
-            }
-            auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
-            if (serverPlayer != nullptr) {
-                if (leavingSpectator) {
-                    serverPlayer->resetCamera();
-                }
-                serverPlayer->setGameMode(newMode);
-                break;
+        auto* player = m_playerEntityManager.getPlayerEntity(playerId, *world);
+        if (player == nullptr) {
+            return;
+        }
+        if (oldMode == GameMode::Spectator && newMode != GameMode::Spectator) {
+            if (auto* serverPlayer = player->asServerPlayer()) {
+                serverPlayer->resetCamera();
             }
         }
+        player->setGameMode(newMode);
     });
     m_whitelistManager = std::make_unique<core::WhitelistManager>();
     m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();
@@ -1612,6 +1605,52 @@ bool MinecraftServer::openEntityContainerRequest(INamedContainerProvider& provid
     return containerManager().openEntityContainer(player.playerId(), provider, player);
 }
 
+void MinecraftServer::updateClientInformation(
+    PlayerId playerId, const mc::network::ir::configuration::ClientInformation& information)
+{
+    auto* data = m_playerManager->getPlayer(playerId);
+    if (data == nullptr || !data->loggedIn) {
+        return;
+    }
+    const bool previousHat =
+        !data->clientInformation.has_value() || (data->clientInformation->modelCustomisation & 0x40) != 0;
+    const bool previousListing = !data->clientInformation.has_value() || data->clientInformation->allowsListing;
+    data->clientInformation = information;
+    const i32 viewDistance = std::clamp(static_cast<i32>(information.viewDistance), 2, m_settings.viewDistance.get());
+    data->chunkTracker->setViewDistance(viewDistance);
+    if (auto* world = getPlayerWorld(playerId)) {
+        if (auto* entity = m_playerEntityManager.getPlayerEntity(playerId, *world)) {
+            entity->setChatVisibility(static_cast<ChatVisibility>(information.chatVisibility));
+            entity->setPlayerModelParts(information.modelCustomisation);
+            entity->setPrimaryHand(static_cast<HandSide>(information.mainHand));
+        }
+        if (auto* chunks = world->chunkManager()) {
+            chunks->ticketManager().setPlayerViewDistance(playerId, information.viewDistance);
+        }
+    }
+    mc::network::ir::play::PlayerInfoUpdate update{};
+    mc::network::ir::play::PlayerInfoEntry entry{};
+    entry.uuid = util::uuidFromString(data->uuid);
+    if (previousHat != ((information.modelCustomisation & 0x40) != 0)) {
+        update.actions |= 1u << 7;
+        entry.showHat = (information.modelCustomisation & 0x40) != 0;
+    }
+    if (previousListing != information.allowsListing) {
+        update.actions |= 1u << 3;
+        entry.listed = information.allowsListing;
+    }
+    if (update.actions != 0) {
+        update.entries.push_back(std::move(entry));
+        const mc::network::ir::IrPacket packet{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}};
+        m_playerManager->forEachPlayer([this, &packet](ServerPlayerData& target) {
+            if (target.loggedIn) {
+                sendPacketToPlayer(target.playerId, packet);
+            }
+        });
+    }
+}
+
 void MinecraftServer::recordPlayerAction(PlayerId playerId)
 {
     // 对齐 vanilla ServerPlayer#resetLastActionTime：在移动/交互/使用物品/容器点击等
@@ -1747,6 +1786,7 @@ void MinecraftServer::tickEntities()
 
         // 实体追踪更新
         world->entityTracker().tick(*this, *world);
+        world->waypointManager().tick(*this, *world);
     });
 }
 
@@ -2170,6 +2210,18 @@ PlayerId MinecraftServer::getPlayerIdForSession(u32 sessionId) const
     return m_playerManager->getPlayerIdBySession(sessionId);
 }
 
+void MinecraftServer::setServerLinks(std::vector<mc::network::ir::play::ServerLink> links)
+{
+    m_serverLinks = std::move(links);
+    for (const auto playerId : playerManager().getPlayerIds()) {
+        const auto* player = playerManager().getPlayer(playerId);
+        if (player->loggedIn)
+            sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+                    mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{m_serverLinks}}});
+    }
+}
+
 void MinecraftServer::sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "MinecraftServer::sendPacketToPlayer", "playerId", playerId);
@@ -2492,9 +2544,28 @@ void MinecraftServer::_handleHotbarSelectRemote(PlayerId playerId, i32 slot)
         });
 }
 
-void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId)
+void MinecraftServer::_handleCloseContainerRemote(PlayerId playerId, i32 containerId)
 {
-    containerManager().closeContainer(playerId);
+    auto* menu = containerManager().getOpenMenu(playerId);
+    if (menu == nullptr) {
+        if (containerId != mc::inventory::PLAYER_CONTAINER_ID) {
+            return;
+        }
+        auto* inventoryMenu = containerManager().getPlayerInventoryMenu(playerId);
+        if (inventoryMenu == nullptr) {
+            return;
+        }
+        auto* inventory = inventoryMenu->getPlayerInventory();
+        MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+        inventoryMenu->removed(*inventory->getPlayer());
+        inventoryMenu->detectAndSendChanges();
+    } else {
+        // 旧界面的迟到关闭请求不能关闭新菜单。
+        if (menu->getId() != containerId) {
+            return;
+        }
+        containerManager().closeContainer(playerId);
+    }
     inventoryManager().syncToClient(playerId);
 }
 
@@ -2615,7 +2686,7 @@ void MinecraftServer::handleCloseContainerPacket(PlayerId playerId, const mc::ne
         return;
     }
 
-    _handleCloseContainerRemote(playerId);
+    _handleCloseContainerRemote(playerId, evt->containerId);
 }
 
 void MinecraftServer::handleSetCreativeModeSlotPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)

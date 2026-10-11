@@ -243,6 +243,9 @@ public:
      */
     void setViewDistance(i32 distance);
 
+    /** @brief 设置玩家请求视距，实际追踪范围同时受服务器视距上限约束。 */
+    void setPlayerViewDistance(PlayerId playerId, i32 distance);
+
     /** @brief 获取当前视距 */
     [[nodiscard]] i32 viewDistance() const { return m_viewDistance; }
 
@@ -420,7 +423,8 @@ private:
     void _updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos);
 
     /// 计算某个玩家在给定中心和视距下覆盖的区块集合
-    [[nodiscard]] std::unordered_set<u64> _buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const;
+    [[nodiscard]] std::unordered_set<u64> _buildTrackedChunkSet(
+        PlayerId playerId, ChunkCoord centerX, ChunkCoord centerZ) const;
 
     /// 应用玩家追踪覆盖变化并派发 enter/leave 回调
     void _applyTrackingDelta(
@@ -437,6 +441,9 @@ private:
 
     /// 玩家位置映射
     std::unordered_map<PlayerId, ChunkPos> m_playerPositions;
+
+    /// 客户端请求的视距，与服务器上限分开存储，以便上限变化时重新计算。
+    std::unordered_map<PlayerId, i32> m_playerViewDistances;
 
     /// 玩家来源和追踪状态
     std::unordered_map<PlayerId, PlayerSourceState> m_playerStates;

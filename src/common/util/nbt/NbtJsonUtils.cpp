@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include <cstddef>
 #include <exception>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -344,6 +345,92 @@ std::unique_ptr<tags::tag> jsonValueToNbtTag(const nlohmann::json& json)
 }
 
 } // anonymous namespace
+
+namespace {
+std::unique_ptr<mc::nbt::tags::tag_list_tag> _makeGenericTagList(const nlohmann::json& json)
+{
+    using namespace mc::nbt::tags;
+    auto list = std::make_unique<tag_list_tag>(mc::nbt::TagId::End);
+    for (const auto& element : json) {
+        list->value.push_back(jsonToNbtStrictInt(element));
+    }
+    return list;
+}
+
+} // namespace
+
+std::unique_ptr<mc::nbt::tags::tag> jsonToNbtStrictInt(const nlohmann::json& json)
+{
+    using namespace mc::nbt::tags;
+
+    if (json.is_null()) {
+        return std::make_unique<compound_tag>();
+    }
+    if (json.is_string()) {
+        return std::make_unique<string_tag>(json.get<std::string>());
+    }
+    if (json.is_boolean()) {
+        return std::make_unique<byte_tag>(json.get<bool>() ? static_cast<i8>(1) : static_cast<i8>(0));
+    }
+    if (json.is_number_integer()) {
+        const i64 val = json.get<i64>();
+        if (val >= static_cast<i64>(std::numeric_limits<i32>::min()) &&
+            val <= static_cast<i64>(std::numeric_limits<i32>::max())) {
+            return std::make_unique<int_tag>(static_cast<i32>(val));
+        }
+        return std::make_unique<long_tag>(val);
+    }
+    if (json.is_number_float()) {
+        const f64 val = json.get<f64>();
+        if (static_cast<f64>(static_cast<f32>(val)) == val) {
+            return std::make_unique<float_tag>(static_cast<f32>(val));
+        }
+        return std::make_unique<double_tag>(val);
+    }
+    if (json.is_object()) {
+        auto result = std::make_unique<compound_tag>();
+        for (const auto& [key, value] : json.items()) {
+            result->value.emplace(key, jsonToNbtStrictInt(value));
+        }
+        return result;
+    }
+    if (json.is_array()) {
+        // 列表类型推断与 mc::nbt::jsonToNbt 对齐（同构列表用对应特化类型），
+        // 但元素一律走本函数以保证整数不窄化。
+        if (json.empty()) {
+            return std::make_unique<end_list_tag>();
+        }
+        const auto& first = json[0];
+        if (first.is_object()) {
+            auto list = std::make_unique<compound_list_tag>();
+            for (const auto& element : json) {
+                if (!element.is_object()) {
+                    return _makeGenericTagList(json);
+                }
+                auto child = jsonToNbtStrictInt(element);
+                auto* asCompound = dynamic_cast<compound_tag*>(child.get());
+                if (asCompound == nullptr) {
+                    return _makeGenericTagList(json);
+                }
+                // 移动内容到列表；child 析构时释放已被移空的壳。
+                list->value.push_back(std::move(*asCompound));
+            }
+            return list;
+        }
+        if (first.is_string()) {
+            auto list = std::make_unique<string_list_tag>();
+            for (const auto& element : json) {
+                if (!element.is_string()) {
+                    return _makeGenericTagList(json);
+                }
+                list->value.push_back(element.get<std::string>());
+            }
+            return list;
+        }
+        return _makeGenericTagList(json);
+    }
+    return std::make_unique<compound_tag>();
+}
 
 std::unique_ptr<tags::compound_tag> jsonToNbt(const nlohmann::json& json)
 {

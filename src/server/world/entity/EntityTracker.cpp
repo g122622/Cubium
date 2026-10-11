@@ -51,10 +51,12 @@
 #include "server/network/outbound/AttributeSnapshotBuilder.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <mutex>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -65,12 +67,36 @@ namespace mc::server {
 namespace {
 
 // 构造 Play 阶段 IR 包的统一包装（所有实体同步 S→C 包均为 Play 阶段）。
-mc::network::ir::IrPacket makePlayPacket(mc::network::ir::PlayPacket play)
+mc::network::ir::IrPacket _makePlayPacket(mc::network::ir::PlayPacket play)
 {
     return mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play,
         std::move(play),
     };
+}
+
+constexpr std::array<EquipmentSlot, 8> _ALL_EQUIPMENT_SLOTS{EquipmentSlot::MainHand,
+    EquipmentSlot::OffHand,
+    EquipmentSlot::Feet,
+    EquipmentSlot::Legs,
+    EquipmentSlot::Chest,
+    EquipmentSlot::Head,
+    EquipmentSlot::Body,
+    EquipmentSlot::Saddle};
+
+mc::network::ir::play::SetEquipment _equipmentPacket(
+    const LivingEntity& entity, std::span<const EquipmentSlot> slots, bool includeEmpty)
+{
+    mc::network::ir::play::SetEquipment packet{};
+    packet.entityId = static_cast<i32>(entity.id());
+    for (const auto slot : slots) {
+        const auto& stack = entity.getEquipment(slot);
+        if (includeEmpty || !stack.isEmpty()) {
+            packet.entries.push_back({static_cast<mc::network::ir::play::WireEquipmentSlot>(static_cast<i32>(slot)),
+                network::ir::toItemStackView(stack)});
+        }
+    }
+    return packet;
 }
 
 } // namespace
@@ -312,7 +338,7 @@ void EntityTracker::broadcastPassengers(IServer& server, ServerWorld& world, Ent
     for (EntityInstanceId passengerId : vehicle->getPassengers()) {
         pkt.passengers.push_back(static_cast<i32>(passengerId));
     }
-    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
+    auto packet = _makePlayPacket(mc::network::ir::PlayPacket{pkt});
 
     for (PlayerId playerId : trackingPlayers) {
         ServerPlayerData* player = server.playerManager().getPlayer(playerId);
@@ -328,145 +354,104 @@ bool EntityTracker::isTracking(EntityInstanceId entityId) const
     return m_trackedEntities.find(entityId) != m_trackedEntities.end();
 }
 
-void EntityTracker::broadcastEquipment(IServer& server, ServerWorld& world, EntityInstanceId entityId)
+void EntityTracker::broadcastPacketAndSelf(
+    IServer& server, EntityInstanceId entityId, const mc::network::ir::IrPacket& packet)
 {
-    std::vector<PlayerId> trackingPlayers;
+    std::vector<PlayerId> players;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_trackedEntities.find(entityId);
-        if (it == m_trackedEntities.end()) {
-            return;
+        if (auto it = m_trackedEntities.find(entityId); it != m_trackedEntities.end()) {
+            players.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
         }
-        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
     }
-
-    if (trackingPlayers.empty()) {
-        return;
+    const PlayerId owner = server.playerEntityManager().getPlayerIdByEntityId(entityId);
+    if (owner != 0 && std::find(players.begin(), players.end(), owner) == players.end()) {
+        players.push_back(owner);
     }
-
-    Entity* entity = world.entityManager().getEntity(entityId);
-    auto* living = (entity != nullptr) ? dynamic_cast<LivingEntity*>(entity) : nullptr;
-    if (living == nullptr) {
-        return;
-    }
-
-    // 全量快照：把该实体的全部非空装备槽打包成一条 SetEquipment（对齐 vanilla
-    // ServerEntity.sendPairingData；客户端语义是逐槽置换，全量非空快照与之等价且更简单，
-    // 无需维护 lastEquipment 镜像）。
-    mc::network::ir::play::SetEquipment pkt;
-    pkt.entityId = static_cast<i32>(entityId);
-    for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
-        const auto slot = static_cast<EquipmentSlot>(i);
-        const ItemStack& stack = living->getEquipment(slot);
-        if (stack.isEmpty()) {
-            continue;
-        }
-        // 内部 EquipmentSlot 序与 vanilla EquipmentSlot 序一致（见 WireEquipmentSlot 注释）。
-        mc::network::ir::play::EquipmentEntry entry{};
-        entry.slot = static_cast<mc::network::ir::play::WireEquipmentSlot>(static_cast<i32>(slot));
-        entry.item = network::ir::toItemStackView(stack);
-        pkt.entries.push_back(std::move(entry));
-    }
-
-    if (pkt.entries.empty()) {
-        return;
-    }
-
-    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
-    for (PlayerId playerId : trackingPlayers) {
-        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-        if (player != nullptr && player->hasConnection()) {
-            player->send(packet);
+    for (const PlayerId playerId : players) {
+        auto* player = server.playerManager().getPlayer(playerId);
+        if (player != nullptr && player->loggedIn && player->hasConnection()) {
+            player->send(mc::network::ir::IrPacket{packet});
         }
     }
 }
 
-void EntityTracker::broadcastMobEffectAdded(
-    IServer& server, ServerWorld& world, EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+void EntityTracker::broadcastEquipment(
+    IServer& server, ServerWorld& world, EntityInstanceId entityId, const std::vector<EquipmentSlot>& slots)
 {
-    (void)world;
+    if (slots.empty()) {
+        return;
+    }
     std::vector<PlayerId> trackingPlayers;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_trackedEntities.find(entityId);
-        if (it == m_trackedEntities.end()) {
-            return;
-        }
-        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
-    }
-
-    // 1.21.11 UpdateMobEffect：entityId + effectHolderId + amplifier + duration + Byte(flags)。
-    mc::network::ir::play::UpdateMobEffect pkt;
-    pkt.entityId = static_cast<i32>(entityId);
-    pkt.effectId =
-        static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(effect.type()));
-    pkt.amplifier = effect.amplifier();
-    pkt.duration = effect.duration();
-    pkt.flags = _mobEffectFlags(effect);
-
-    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
-
-    // 实体自身若为玩家，效果也要发给**他本人**——vanilla ServerPlayer.onEffectAdded 直接
-    // `this.connection.send(...)`，本地玩家不依赖追踪关系。追踪表里的集合只含「旁观者」，
-    // 且玩家自己的实体通常无人追踪（trackingPlayers 为空），故这一步必须在空集合早返回之前。
-    const PlayerId ownerPlayerId = server.playerEntityManager().getPlayerIdByEntityId(entityId);
-    if (ownerPlayerId != 0) {
-        ServerPlayerData* owner = server.playerManager().getPlayer(ownerPlayerId);
-        if (owner != nullptr && owner->hasConnection()) {
-            owner->send(mc::network::ir::IrPacket{packet});
+        if (auto it = m_trackedEntities.find(entityId); it != m_trackedEntities.end()) {
+            trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
         }
     }
-
-    for (PlayerId playerId : trackingPlayers) {
-        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+    auto* entity = world.entityManager().getEntity(entityId);
+    auto* living = entity != nullptr ? dynamic_cast<LivingEntity*>(entity) : nullptr;
+    if (living == nullptr) {
+        return;
+    }
+    auto packet = _makePlayPacket(mc::network::ir::PlayPacket{_equipmentPacket(*living, slots, true)});
+    for (const auto playerId : trackingPlayers) {
+        auto* player = server.playerManager().getPlayer(playerId);
         if (player != nullptr && player->hasConnection()) {
-            player->send(packet);
+            player->send(mc::network::ir::IrPacket{packet});
         }
     }
+}
+
+void EntityTracker::sendActiveEffects(IServer& server, PlayerId playerId, const LivingEntity& entity)
+{
+    auto* player = server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->hasConnection()) {
+        return;
+    }
+    for (const auto& effect : entity.effectManager().getAllEffects()) {
+        mc::network::ir::play::UpdateMobEffect packet{};
+        packet.entityId = static_cast<i32>(entity.id());
+        packet.effectId =
+            static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(effect.type()));
+        packet.amplifier = effect.amplifier();
+        packet.duration = effect.duration();
+        packet.flags = _mobEffectFlags(effect, false);
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{packet}));
+    }
+}
+
+void EntityTracker::broadcastMobEffectAdded(IServer& server,
+    ServerWorld& world,
+    EntityInstanceId entityId,
+    const entity::effect::EffectInstance& effect,
+    bool blend)
+{
+    (void)world;
+    mc::network::ir::play::UpdateMobEffect packet{};
+    packet.entityId = static_cast<i32>(entityId);
+    packet.effectId =
+        static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(effect.type()));
+    packet.amplifier = effect.amplifier();
+    packet.duration = effect.duration();
+    packet.flags = _mobEffectFlags(effect, blend);
+    broadcastPacketAndSelf(server, entityId, _makePlayPacket(mc::network::ir::PlayPacket{packet}));
 }
 
 void EntityTracker::broadcastMobEffectRemoved(
     IServer& server, ServerWorld& world, EntityInstanceId entityId, entity::effect::EffectType type)
 {
-    std::vector<PlayerId> trackingPlayers;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        auto it = m_trackedEntities.find(entityId);
-        if (it == m_trackedEntities.end()) {
-            return;
-        }
-        trackingPlayers.assign(it->second.trackingPlayers.begin(), it->second.trackingPlayers.end());
-    }
-
-    // 1.21.11 RemoveMobEffect：entityId + effectHolderId。
-    mc::network::ir::play::RemoveMobEffect pkt;
-    pkt.entityId = static_cast<i32>(entityId);
-    pkt.effectId = static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(type));
-
-    auto packet = makePlayPacket(mc::network::ir::PlayPacket{pkt});
-
-    // 同 broadcastMobEffectAdded：玩家自身的移除包也要发给他本人（在空集合早返回之前）。
-    const PlayerId ownerPlayerId = server.playerEntityManager().getPlayerIdByEntityId(entityId);
-    if (ownerPlayerId != 0) {
-        ServerPlayerData* owner = server.playerManager().getPlayer(ownerPlayerId);
-        if (owner != nullptr && owner->hasConnection()) {
-            owner->send(mc::network::ir::IrPacket{packet});
-        }
-    }
-
-    for (PlayerId playerId : trackingPlayers) {
-        ServerPlayerData* player = server.playerManager().getPlayer(playerId);
-        if (player != nullptr && player->hasConnection()) {
-            player->send(packet);
-        }
-    }
+    (void)world;
+    const mc::network::ir::play::RemoveMobEffect packet{static_cast<i32>(entityId),
+        static_cast<i32>(network::backend::java::JavaMobEffectIdMap::instance().toJavaRegistryId(type))};
+    broadcastPacketAndSelf(server, entityId, _makePlayPacket(mc::network::ir::PlayPacket{packet}));
 }
 
-u8 EntityTracker::_mobEffectFlags(const entity::effect::EffectInstance& effect)
+u8 EntityTracker::_mobEffectFlags(const entity::effect::EffectInstance& effect, bool blend)
 {
     // 1.21.11 ClientboundUpdateMobEffectPacket 位：AMBIENT=1、VISIBLE=2、SHOW_ICON=4、BLEND=8。
-    // 本项目 EffectInstance 无 blend 字段（1.21.11 的 BlendState 属独立子项），恒按 0 处理。
-    u8 flags = 0;
+    // blend 取决于本次同步是首次新增还是刷新已有实例。
+    u8 flags = blend ? 0x08 : 0;
     if (effect.isAmbient()) {
         flags |= 0x01;
     }
@@ -595,6 +580,9 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
             }
 
             tracked.updateCounter++;
+            tracked.absoluteSyncTicks++;
+            if (tracked.absoluteSyncTicks > 400 || tracked.lastOnGround != entity->onGround())
+                tracked.needsFullUpdate = true;
 
             Vector3 currentPos = entity->position();
             f32 currentYaw = entity->yaw();
@@ -614,9 +602,13 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                     _sendMovePacket(server, playerId, entity, tracked, positionChanged, rotationChanged);
                 }
 
+                const bool resetAbsoluteTicks =
+                    tracked.needsFullUpdate || (currentPos - tracked.lastPosition).lengthSquared() >= 64.0f;
                 tracked.lastPosition = currentPos;
                 tracked.lastYaw = currentYaw;
                 tracked.lastPitch = currentPitch;
+                if (resetAbsoluteTicks) tracked.absoluteSyncTicks = 0;
+                tracked.lastOnGround = entity->onGround();
                 tracked.needsFullUpdate = false;
             }
 
@@ -733,7 +725,7 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     // FallingBlockEntity 据此下发 BlockState 的 stateId（vanilla 同路径），其余实体默认 0。
     spawn.data = entity->getSpawnData();
 
-    player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
+    player->send(_makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
     // 紧随其后发送元数据（spawn 时刻的完整快照，dirtyOnly=false）。
     // ItemEntity 的 ItemStack 等关键状态都走元数据，客户端收到 AddEntity 后必须再收一次
@@ -743,7 +735,7 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
         mc::network::ir::play::SetEntityData meta;
         meta.entityId = static_cast<i32>(entity->id());
         meta.packedItems = std::move(metadata);
-        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
     }
     entity->dataManager().clearDirty();
 
@@ -751,9 +743,14 @@ void EntityTracker::_sendSpawnPacket(IServer& server, PlayerId playerId, Entity*
     // 客户端对该包的语义是「整条属性全量替换」（先设基础值，再清空该属性的全部修饰符并
     // 逐个加入本次下发的那些），故这里必须带全部修饰符，不能只发基础值。
     if (livingEntity != nullptr) {
+        auto equipment = _equipmentPacket(*livingEntity, _ALL_EQUIPMENT_SLOTS, false);
+        if (!equipment.entries.empty()) {
+            player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(equipment)}));
+        }
+        sendActiveEffects(server, playerId, *livingEntity);
         auto attributes = net::buildAttributeSnapshot(*livingEntity);
         if (!attributes.attributes.empty()) {
-            player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(attributes)}));
+            player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(attributes)}));
         }
     }
 }
@@ -770,7 +767,7 @@ void EntityTracker::_sendMetadataPacket(
     mc::network::ir::play::SetEntityData pkt;
     pkt.entityId = static_cast<i32>(entity->id());
     pkt.packedItems = metadata;
-    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, EntityInstanceId entityId)
@@ -781,7 +778,7 @@ void EntityTracker::_sendDestroyPacket(IServer& server, PlayerId playerId, Entit
     // 1.21.11 RemoveEntities：VarInt(count) + count×VarInt(entityId)。
     mc::network::ir::play::RemoveEntities pkt;
     pkt.entityIds.push_back(static_cast<i32>(entityId));
-    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendDestroyPacket(
@@ -805,8 +802,7 @@ void EntityTracker::_sendMovePacket(IServer& server,
     if (!player || !player->hasConnection()) return;
 
     // 计算 1/4096 定点 delta（对齐 vanilla 1.21.11 MoveEntity*.deltaX/Y/Z: Short）。
-    // 超出 i16 范围（±32767，即 ±8 格）则回退 TeleportEntity 绝对位置包——
-    // vanilla ServerEntity 同样在 delta 超 Short 范围时改发 ClientboundTeleportEntityPacket。
+    // 超出 i16 范围时发送绝对位置和当前速度的完整快照。
     const f32 kFixedPoint = 4096.0f;
     auto toDeltaI16 = [kFixedPoint](f32 current, f32 last) -> bool {
         const f32 scaled = (current - last) * kFixedPoint;
@@ -816,22 +812,20 @@ void EntityTracker::_sendMovePacket(IServer& server,
     const bool deltaInRange = toDeltaI16(entity->x(), tracked.lastPosition.x) &&
         toDeltaI16(entity->y(), tracked.lastPosition.y) && toDeltaI16(entity->z(), tracked.lastPosition.z);
 
-    // needsFullUpdate（首次/重同步）或 delta 超 i16 范围：发绝对 TeleportEntity。
-    // delta 置 0、relatives 置 0 表示纯绝对传送。
+    // 首次、定期重同步、落地状态变化或超范围位移发送绝对快照。
     if (tracked.needsFullUpdate || (positionChanged && !deltaInRange)) {
-        mc::network::ir::play::TeleportEntity pkt;
+        mc::network::ir::play::EntityPositionSync pkt;
         pkt.entityId = static_cast<i32>(entity->id());
         pkt.x = static_cast<f64>(entity->x());
         pkt.y = static_cast<f64>(entity->y());
         pkt.z = static_cast<f64>(entity->z());
-        pkt.deltaX = 0.0;
-        pkt.deltaY = 0.0;
-        pkt.deltaZ = 0.0;
+        pkt.deltaX = entity->velocity().x;
+        pkt.deltaY = entity->velocity().y;
+        pkt.deltaZ = entity->velocity().z;
         pkt.yRot = entity->yaw();
         pkt.xRot = entity->pitch();
-        pkt.relatives = 0;
         pkt.onGround = entity->onGround();
-        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
         return;
     }
 
@@ -851,7 +845,7 @@ void EntityTracker::_sendMovePacket(IServer& server,
         pkt.yRot = yRotPacked;
         pkt.xRot = xRotPacked;
         pkt.onGround = entity->onGround();
-        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
     } else if (positionChanged) {
         mc::network::ir::play::MoveEntityPos pkt;
         pkt.entityId = static_cast<i32>(entity->id());
@@ -859,14 +853,14 @@ void EntityTracker::_sendMovePacket(IServer& server,
         pkt.deltaY = packDelta(entity->y(), tracked.lastPosition.y);
         pkt.deltaZ = packDelta(entity->z(), tracked.lastPosition.z);
         pkt.onGround = entity->onGround();
-        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
     } else if (rotationChanged) {
         mc::network::ir::play::MoveEntityRot pkt;
         pkt.entityId = static_cast<i32>(entity->id());
         pkt.yRot = yRotPacked;
         pkt.xRot = xRotPacked;
         pkt.onGround = entity->onGround();
-        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
     }
 }
 
@@ -890,7 +884,7 @@ void EntityTracker::_sendHeadRotatePacket(IServer& server, PlayerId playerId, En
     mc::network::ir::play::RotateHead pkt;
     pkt.entityId = static_cast<i32>(entity->id());
     pkt.yHeadRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(living->rotationYawHead()));
-    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Entity* entity)
@@ -908,7 +902,7 @@ void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Enti
     pkt.x = static_cast<f64>(velocity.x);
     pkt.y = static_cast<f64>(velocity.y);
     pkt.z = static_cast<f64>(velocity.z);
-    player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
+    player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(pkt)}));
 }
 
 void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity)
@@ -943,14 +937,14 @@ void EntityTracker::_sendItemEntityResyncPacket(IServer& server, PlayerId player
     spawn.xRot = static_cast<i8>(mc::network::backend::java::wire::packDegrees(itemEntity->pitch()));
     spawn.yHeadRot = spawn.yRot;
     spawn.data = itemEntity->getSpawnData();
-    player->send(makePlayPacket(mc::network::ir::PlayPacket{spawn}));
+    player->send(_makePlayPacket(mc::network::ir::PlayPacket{spawn}));
 
     std::vector<u8> metadata = network::EntityMetadataSerializer::serialize(itemEntity->dataManager(), false);
     if (metadata.size() > 1) {
         mc::network::ir::play::SetEntityData meta;
         meta.entityId = static_cast<i32>(itemEntity->id());
         meta.packedItems = std::move(metadata);
-        player->send(makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
+        player->send(_makePlayPacket(mc::network::ir::PlayPacket{std::move(meta)}));
     }
 }
 

@@ -31,11 +31,15 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/core/OpListManager.hpp"
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
+#include "server/core/TeleportManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -45,6 +49,118 @@
 using namespace mc::trace;
 
 namespace mc::server::net {
+
+void PlayerStateHandler::handleClientCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* data = m_server.playerManager().getPlayer(playerId);
+    if (data == nullptr || !data->loggedIn) {
+        return;
+    }
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+    auto* player = m_server.playerEntityManager().getPlayerEntity(playerId, *world);
+    auto* serverPlayer = player != nullptr ? player->asServerPlayer() : nullptr;
+    if (serverPlayer == nullptr) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::ClientCommand>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (request.action == 1) {
+        static_cast<void>(serverPlayer->sendStats(false));
+    } else if (request.action == 0 && player->isDead()) {
+        // TODO: 接入 PERFORM_RESPAWN 的完整死亡重生流程（出生点、实体状态与同维度 Respawn 包）。
+        spdlog::warn("ClientCommand: respawn request for player {} is not implemented", playerId);
+    }
+}
+
+void PlayerStateHandler::handleTeleportToEntityPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* data = m_server.playerManager().getPlayer(playerId);
+    if (data == nullptr || !data->loggedIn) {
+        return;
+    }
+    auto* sourceWorld = m_server.getPlayerWorld(playerId);
+    if (sourceWorld == nullptr) {
+        return;
+    }
+    auto* player = m_server.playerEntityManager().getPlayerEntity(playerId, *sourceWorld);
+    if (player == nullptr || !player->isSpectator()) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::TeleportToEntity>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    const auto uuid = util::uuidToString(request.uuid);
+    Entity* target = sourceWorld->entityManager().getEntityByUuid(uuid);
+    if (target == nullptr) {
+        for (const auto dimensionId : m_server.dimensionManager().getDimensionIds()) {
+            auto* dimension = m_server.dimensionManager().getDimension(dimensionId);
+            target = dimension->world()->entityManager().getEntityByUuid(uuid);
+            if (target != nullptr) {
+                break;
+            }
+        }
+    }
+    if (target == nullptr) {
+        return;
+    }
+    const auto position = target->position();
+    const Vector2f rotation(target->yaw(), target->pitch());
+    if (target->dimension() != player->dimension()) {
+        if (!player->teleportToDimension(target->dimension(), Vector3d(position.x, position.y, position.z), rotation)) {
+            spdlog::warn(
+                "TeleportToEntity: failed to transfer player {} to dimension {}", playerId, target->dimension());
+            return;
+        }
+    } else {
+        player->stopRiding();
+        player->setPosition(position);
+        player->setRotation(rotation.x, rotation.y);
+    }
+    // 位置确认沿用移动处理器的收口，确认后刷新实体追踪和区块票据。
+    m_server.teleportManager().requestTeleport(playerId, position.x, position.y, position.z, rotation.x, rotation.y);
+}
+
+void PlayerStateHandler::handleClientInformationPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto& request =
+        std::get<mc::network::ir::play::ClientInformation>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    m_server.updateClientInformation(playerId, request.information);
+}
+
+void PlayerStateHandler::handlePlayerAbilitiesPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    const auto& request = std::get<mc::network::ir::play::ServerboundPlayerAbilities>(
+        std::get<mc::network::ir::PlayPacket>(packet.packet));
+    auto* world = m_server.getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return;
+    }
+    if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
+        auto& abilities = entity->abilities();
+        abilities.flying = request.flying && abilities.canFly;
+    }
+}
+
+void PlayerStateHandler::handleChangeGameModePacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
+{
+    const auto* player = m_server.playerManager().getPlayer(playerId);
+    if (player == nullptr || !player->loggedIn) {
+        return;
+    }
+    const auto& request =
+        std::get<mc::network::ir::play::ChangeGameMode>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+    if (request.mode < 0 || request.mode > 3 || m_server.resolveOpLevel(player->uuid) < 2) {
+        spdlog::warn("ChangeGameMode: player {} sent an invalid or unauthorized request", playerId);
+        return;
+    }
+    m_server.gameModeManager().setGameMode(playerId, static_cast<GameMode>(request.mode));
+}
 
 void PlayerStateHandler::handlePlayerCommandPacket(PlayerId playerId, const mc::network::ir::IrPacket& packet)
 {

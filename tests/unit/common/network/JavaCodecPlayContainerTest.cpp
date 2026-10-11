@@ -151,6 +151,19 @@ TEST_F(NetworkTestBase, PlayContainerClose)
     EXPECT_EQ(std::get<ContainerClose>(out), in);
 }
 
+TEST_F(NetworkTestBase, PlayContainerCloseClientboundWire)
+{
+    ContainerClose in{};
+    in.containerId = 300;
+    auto buf = makeBoundBuf();
+    ASSERT_TRUE(tables()->playCb->encode(buf, PlayPacket{in}).success());
+    EXPECT_EQ(buf.bytes(), (std::vector<u8>{17, 0xac, 0x02}));
+    auto decoded = tables()->playCb->decode(buf);
+    ASSERT_TRUE(decoded.success());
+    ASSERT_TRUE(std::holds_alternative<ContainerClose>(decoded.value()));
+    EXPECT_EQ(std::get<ContainerClose>(decoded.value()), in);
+}
+
 // ============================================================================
 // 批 7：容器同步 S→C（ContainerSetContent/ContainerSetSlot/OpenScreen/ContainerSetData）
 // ============================================================================

@@ -611,6 +611,10 @@ public:
      */
     void recordPlayerAction(PlayerId playerId);
 
+    /** @brief 应用连接的客户端设置，同步玩家元数据、视距和玩家列表偏好。 */
+    void updateClientInformation(
+        PlayerId playerId, const mc::network::ir::configuration::ClientInformation& information);
+
 protected:
     /**
      * @brief 处理世界层的开容器请求
@@ -758,6 +762,10 @@ public:
      * 否则走 ServerPlayerData::send → ServerClientConnection::send。
      */
     virtual void sendPacketToPlayer(PlayerId playerId, const mc::network::ir::IrPacket& packet);
+    /** @brief 替换服务器全局链接并通知在线玩家，登录和重配置时重发。 */
+    void setServerLinks(std::vector<mc::network::ir::play::ServerLink> links);
+    /** @brief 获取当前服务器链接。 */
+    [[nodiscard]] const std::vector<mc::network::ir::play::ServerLink>& serverLinks() const { return m_serverLinks; }
 
 protected:
     /**
@@ -1311,7 +1319,7 @@ protected:
      *
      * 契约：调用方已校验 player.loggedIn。供基类默认实现与 IntegratedServer 远程分支复用。
      */
-    void _handleCloseContainerRemote(PlayerId playerId);
+    void _handleCloseContainerRemote(PlayerId playerId, i32 containerId);
 
     /**
      * @brief handleContainerClickPacket 远程分支：handleClick + syncToClient
@@ -1474,6 +1482,7 @@ protected:
     //
     // 对齐 vanilla `MinecraftServer.statusIcon`：世界打开时加载一次（server-icon.png，
     // 必须 64×64），存为 Data URL 字符串，Status 响应直接复用。未提供或加载失败时为空串。
+    std::vector<mc::network::ir::play::ServerLink> m_serverLinks;
     std::string m_serverIconDataUrl;
 
     // ========== 服务器列表状态（Status 响应） ==========

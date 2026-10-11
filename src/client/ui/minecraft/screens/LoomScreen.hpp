@@ -88,6 +88,11 @@ public:
      */
     [[nodiscard]] std::string getTitle() const { return "Loom"; }
 
+    [[nodiscard]] std::optional<i32> getContainerId() const noexcept override
+    {
+        return m_menu != nullptr ? std::optional<i32>(m_menu->getId()) : std::nullopt;
+    }
+
     /**
      * @brief 键盘事件处理（ESC/E关闭）
      */

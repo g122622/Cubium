@@ -246,12 +246,46 @@ using B = buffer::RegistryByteBuf;
     // 之前未登记，导致服务端每 50 ms 丢弃一包并打出 Unknown packet id 12 的 warn。
     b.addPacket<ir::play::ClientTickEnd>(
         12, PacketType{PacketFlow::Serverbound, "client_tick_end"}, 115, codecs::clientTickEndCodec());
+    b.addPacket<ir::play::ChangeGameMode>(
+        4, PacketType{PacketFlow::Serverbound, "change_game_mode"}, 120, codecs::changeGameModeCodec());
+    b.addPacket<ir::play::PlayerLoaded>(
+        43, PacketType{PacketFlow::Serverbound, "player_loaded"}, 121, codecs::playerLoadedCodec());
+    b.addPacket<ir::play::Swing>(60, PacketType{PacketFlow::Serverbound, "swing"}, 122, codecs::swingCodec());
+    b.addPacket<ir::play::ServerboundPlayerAbilities>(
+        39, PacketType{PacketFlow::Serverbound, "player_abilities"}, 123, codecs::serverboundPlayerAbilitiesCodec());
+    b.addPacket<ir::play::ClientInformation>(
+        13, PacketType{PacketFlow::Serverbound, "client_information"}, 124, codecs::playClientInformationCodec());
+    b.addPacket<ir::play::TeleportToEntity>(
+        61, PacketType{PacketFlow::Serverbound, "teleport_to_entity"}, 125, codecs::teleportToEntityCodec());
+    b.addPacket<ir::play::ClientCommand>(
+        11, PacketType{PacketFlow::Serverbound, "client_command"}, 130, codecs::clientCommandCodec());
+    b.addPacket<ir::play::RenameItem>(
+        47, PacketType{PacketFlow::Serverbound, "rename_item"}, 131, codecs::renameItemCodec());
+    b.addPacket<ir::play::SelectTrade>(
+        50, PacketType{PacketFlow::Serverbound, "select_trade"}, 132, codecs::selectTradeCodec());
+    b.addPacket<ir::play::ContainerButtonClick>(
+        16, PacketType{PacketFlow::Serverbound, "container_button_click"}, 134, codecs::containerButtonClickCodec());
+    b.addPacket<ir::play::BundleItemSelected>(
+        2, PacketType{PacketFlow::Serverbound, "bundle_item_selected"}, 137, codecs::bundleItemSelectedCodec());
+    b.addPacket<ir::play::SetBeacon>(
+        51, PacketType{PacketFlow::Serverbound, "set_beacon"}, 138, codecs::setBeaconCodec());
+    b.addPacket<ir::play::EditBook>(23, PacketType{PacketFlow::Serverbound, "edit_book"}, 135, codecs::editBookCodec());
     return b.build();
 }
 
 [[nodiscard]] std::unique_ptr<protocol::ProtocolInfo<B, ir::PlayPacket>> buildPlayCb()
 {
     ProtocolInfoBuilder<B, ir::PlayPacket> b(ConnectionProtocol::Play, PacketFlow::Clientbound);
+    b.addPacket<ir::play::OpenBook>(56, PacketType{PacketFlow::Clientbound, "open_book"}, 136, codecs::openBookCodec());
+    b.addPacket<ir::play::EntityPositionSync>(
+        35, PacketType{PacketFlow::Clientbound, "entity_position_sync"}, 139, codecs::entityPositionSyncCodec());
+    b.addPacket<ir::play::ServerLinks>(
+        135, PacketType{PacketFlow::Clientbound, "server_links"}, 140, codecs::serverLinksCodec());
+    b.addPacket<ir::play::ShowDialog>(
+        138, PacketType{PacketFlow::Clientbound, "show_dialog"}, 141, codecs::showDialogCodec());
+    b.addPacket<ir::play::ClearDialog>(
+        137, PacketType{PacketFlow::Clientbound, "clear_dialog"}, 142, codecs::clearDialogCodec());
+    b.addPacket<ir::play::Waypoint>(136, PacketType{PacketFlow::Clientbound, "waypoint"}, 143, codecs::waypointCodec());
     // clientbound 权威表：bundle_delimiter 占 id 0，故 add_entity=1，其余整体后移一位。
     // PlayPacket variant altIndex 注释见 IrPacket.hpp。各包 Java Cb id（1.21.11 权威）：
     //   add_entity=1, animate=2, block_destruction=5, block_entity_data=6, block_event=7, block_update=8,
@@ -278,6 +312,8 @@ using B = buffer::RegistryByteBuf;
         10, PacketType{PacketFlow::Clientbound, "change_difficulty"}, 23, codecs::changeDifficultyCodec());
     b.addPacket<ir::play::ContainerSetContent>(
         18, PacketType{PacketFlow::Clientbound, "container_set_content"}, 39, codecs::containerSetContentCodec());
+    b.addPacket<ir::play::ContainerClose>(
+        17, PacketType{PacketFlow::Clientbound, "container_close"}, 3, codecs::containerCloseCodec());
     b.addPacket<ir::play::ContainerSetData>(
         19, PacketType{PacketFlow::Clientbound, "container_set_data"}, 42, codecs::containerSetDataCodec());
     b.addPacket<ir::play::ContainerSetSlot>(
@@ -358,7 +394,7 @@ using B = buffer::RegistryByteBuf;
         77, PacketType{PacketFlow::Clientbound, "reset_score"}, 53, codecs::resetScoreCodec());
     b.addPacket<ir::play::Respawn>(80, PacketType{PacketFlow::Clientbound, "respawn"}, 80, codecs::respawnCodec());
     b.addPacket<ir::play::SelectAdvancementTab>(
-        83, PacketType{PacketFlow::Clientbound, "select_advancement_tab"}, 49, codecs::selectAdvancementTabCodec());
+        83, PacketType{PacketFlow::Clientbound, "select_advancements_tab"}, 49, codecs::selectAdvancementTabCodec());
     b.addPacket<ir::play::SetActionBarText>(
         85, PacketType{PacketFlow::Clientbound, "set_action_bar_text"}, 58, codecs::setActionBarTextCodec());
     b.addPacket<ir::play::SetBorderCenter>(
@@ -468,6 +504,14 @@ using B = buffer::RegistryByteBuf;
         130, PacketType{PacketFlow::Clientbound, "update_mob_effect"}, 118, codecs::updateMobEffectCodec());
     b.addPacket<ir::play::RemoveMobEffect>(
         76, PacketType{PacketFlow::Clientbound, "remove_mob_effect"}, 119, codecs::removeMobEffectCodec());
+    b.addPacket<ir::play::TabList>(120, PacketType{PacketFlow::Clientbound, "tab_list"}, 126, codecs::tabListCodec());
+    b.addPacket<ir::play::Cooldown>(22, PacketType{PacketFlow::Clientbound, "cooldown"}, 127, codecs::cooldownCodec());
+    b.addPacket<ir::play::DamageEvent>(
+        25, PacketType{PacketFlow::Clientbound, "damage_event"}, 128, codecs::damageEventCodec());
+    b.addPacket<ir::play::AwardStats>(
+        3, PacketType{PacketFlow::Clientbound, "award_stats"}, 129, codecs::awardStatsCodec());
+    b.addPacket<ir::play::MerchantOffersUpdate>(
+        50, PacketType{PacketFlow::Clientbound, "merchant_offers"}, 133, codecs::merchantOffersCodec());
     return b.build();
 }
 

@@ -22,6 +22,7 @@
  */
 
 #include "client/network/ClientPlayVisitor.hpp"
+#include "common/network/backend/java/mappings/JavaMobEffectIdMap.hpp"
 
 #include "client/application/ClientAppStateMachine.hpp"
 #include "client/application/ClientApplication.hpp"
@@ -789,7 +790,26 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 实体传送 ----
-            else if constexpr (std::is_same_v<T, irplay::TeleportEntity>) {
+            else if constexpr (std::is_same_v<T, irplay::Waypoint>) {
+                if (pkt.operation == irplay::WaypointOperation::Untrack)
+                    m_waypoints.erase(pkt.identifier);
+                else
+                    m_waypoints[pkt.identifier] = pkt;
+                // TODO: 停止维护的原生客户端尚未提供导航条绘制。
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ClearDialog>) {
+                m_dialog.reset();
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ShowDialog>) {
+                m_dialog = pkt;
+                // TODO: 停止维护的原生客户端尚未提供数据驱动的对话框渲染和交互界面。
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::ServerLinks>) {
+                m_serverLinks = pkt.links;
+                // TODO: 停止维护的原生客户端尚未提供服务器链接界面。
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::TeleportEntity> ||
+                std::is_same_v<T, irplay::EntityPositionSync>) {
                 const auto& p = pkt;
                 const u32 entityId = static_cast<u32>(p.entityId);
                 MC_TRACE_INSTANT_EVENT(TraceEvents.Client.Entity, "onEntityTeleport", "entityId", entityId);
@@ -803,6 +823,11 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 }
                 entity->setPosition(static_cast<f32>(p.x), static_cast<f32>(p.y), static_cast<f32>(p.z));
                 entity->setRotation(p.yRot, p.xRot);
+                if constexpr (std::is_same_v<T, irplay::EntityPositionSync>) {
+                    entity->setVelocity(
+                        static_cast<f32>(p.deltaX), static_cast<f32>(p.deltaY), static_cast<f32>(p.deltaZ));
+                    entity->setOnGround(p.onGround);
+                }
                 return Result<void>::ok();
             }
             // ---- 实体相对位移 ----
@@ -1080,9 +1105,17 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                     }
                 }
                 return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::Cooldown>) {
+                if (m_app.m_player) {
+                    m_app.m_player->cooldownTracker().setCooldown(ResourceLocation(pkt.group), pkt.duration);
+                }
+                return Result<void>::ok();
             }
             // ---- 打开容器屏 ----
-            else if constexpr (std::is_same_v<T, irplay::OpenScreen>) {
+            else if constexpr (std::is_same_v<T, irplay::ContainerClose>) {
+                ScreenManager::instance().closeContainer(pkt.containerId);
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::OpenScreen>) {
                 const auto& p = pkt;
                 if (!m_app.m_player) {
                     return Result<void>::ok();
@@ -1325,7 +1358,17 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
                 return Result<void>::ok();
             }
             // ---- 受伤动画 ----
-            else if constexpr (std::is_same_v<T, irplay::HurtAnimation>) {
+            else if constexpr (std::is_same_v<T, irplay::DamageEvent>) {
+                auto* entity = m_app.m_world.entityManager().getEntity(static_cast<EntityInstanceId>(pkt.entityId));
+                if (entity != nullptr) {
+                    entity->triggerHurtAnimation();
+                }
+                if (m_app.m_player != nullptr &&
+                    m_app.m_localIdentity.isLocalPlayerEntity(static_cast<EntityInstanceId>(pkt.entityId))) {
+                    m_app.m_player->animateHurt(m_app.m_player->getHurtDir());
+                }
+                return Result<void>::ok();
+            } else if constexpr (std::is_same_v<T, irplay::HurtAnimation>) {
                 const auto& p = pkt;
                 // 1.21.11 HurtAnimation 携带 yaw（damage tilt 方向），对应旧 onHurtAnimation 的 hurtDir
                 const f32 hurtDir = p.yaw;

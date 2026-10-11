@@ -22,6 +22,7 @@
  */
 
 #include "Slot.hpp"
+#include "AbstractContainerMenu.hpp"
 #include "IInventory.hpp"
 #include "IRecipeHolder.hpp"
 #include "common/core/Constants.hpp"
@@ -155,6 +156,9 @@ void Slot::setChanged()
 {
     if (m_inventory != nullptr) {
         m_inventory->setChanged();
+    }
+    if (m_menu != nullptr && m_menu->getResultSlotIndex() != m_slotNumber) {
+        m_menu->slotsChanged(m_inventory);
     }
 }
 

@@ -75,6 +75,8 @@ const Slot* AbstractContainerMenu::getSlot(i32 index) const
 i32 AbstractContainerMenu::addSlot(std::unique_ptr<Slot> slot)
 {
     i32 index = static_cast<i32>(m_slots.size());
+    slot->setSlotNumber(index);
+    slot->setMenu(*this);
     m_slots.push_back(std::move(slot));
     // 同步扩展缓存
     m_lastSlotStates.push_back(ItemStack());
@@ -150,6 +152,12 @@ void AbstractContainerMenu::broadcastChanges()
     detectAndSendChanges();
 }
 
+bool AbstractContainerMenu::canMergeSlot(const ItemStack& stack, const Slot& slot) const
+{
+    (void)stack;
+    return getResultSlotIndex() < 0 || slot.getSlotNumber() != getResultSlotIndex();
+}
+
 void AbstractContainerMenu::detectAndSendChanges()
 {
     // 检查槽位变化
@@ -167,14 +175,14 @@ void AbstractContainerMenu::detectAndSendChanges()
             changed = !currentStack.isEmpty();
         } else {
             const ItemStack& lastStack = m_lastSlotStates[i];
-            // 物品变化检测：检查物品类型、数量、NBT
-            if (currentStack.isEmpty() != lastStack.isEmpty()) {
-                changed = true;
-            } else if (!currentStack.isEmpty() && !lastStack.isEmpty()) {
-                if (currentStack.getItem() != lastStack.getItem() || currentStack.getCount() != lastStack.getCount() ||
-                    !currentStack.isSameItem(lastStack)) {
-                    changed = true;
-                }
+            changed = currentStack != lastStack;
+            if (changed && currentStack.getTag() != nullptr && lastStack.getTag() != nullptr &&
+                currentStack.getTag()->contains("BundleContents") && lastStack.getTag()->contains("BundleContents")) {
+                auto previous = lastStack.copy();
+                previous.getOrCreateTag()["BundleContents"]["selected"] =
+                    currentStack.getTag()->at("BundleContents").value("selected", -1);
+                changed = previous != currentStack;
+                if (!changed) m_lastSlotStates[i] = currentStack.copy();
             }
         }
 
@@ -302,15 +310,16 @@ void AbstractContainerMenu::clearContainer(Player& player, IInventory* inventory
 
     // 如果玩家死亡或断线，物品掉落到世界；否则尝试放回玩家背包
     // 检查玩家是否存活（死亡时物品直接掉落，不尝试放回背包）
-    bool playerIsAlive = player.isAlive();
+    const bool playerIsAlive = player.isAlive() && !player.isDead();
+    auto& targetInventory = m_playerInventory != nullptr ? *m_playerInventory : player.inventory();
 
     for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
         ItemStack stack = inventory->removeItemNoUpdate(i);
         if (!stack.isEmpty()) {
-            if (playerIsAlive && m_playerInventory != nullptr) {
+            if (playerIsAlive) {
                 // 玩家存活且有背包，尝试放回玩家背包
                 // add() 返回剩余未添加的数量，会修改 stack 的数量
-                i32 remaining = m_playerInventory->add(stack);
+                i32 remaining = targetInventory.add(stack);
                 if (remaining > 0) {
                     // 放不下的物品掉落到世界
                     stack.setCount(remaining);
@@ -530,7 +539,7 @@ ItemStack AbstractContainerMenu::_handleClickPick(Slot& slot, i32 slotIndex, con
 
 ItemStack AbstractContainerMenu::_handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
 {
-    if (slotStack.isEmpty()) {
+    if (slotStack.isEmpty() || !slot.mayPickup(*m_playerInventory->getPlayer())) {
         return m_carried;
     }
 
@@ -601,9 +610,10 @@ ItemStack AbstractContainerMenu::_handleClone(Slot& slot, i32 slotIndex, const I
 ItemStack AbstractContainerMenu::_handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button)
 {
     // Ctrl+点击丢弃全部 (button=1)，普通点击丢弃一个 (button=0)
-    if (!slotStack.isEmpty()) {
+    if (!slotStack.isEmpty() && slot.mayPickup(*m_playerInventory->getPlayer())) {
         i32 toDrop = (button == 1) ? slotStack.getCount() : 1;
         ItemStack dropped = slot.remove(toDrop);
+        dropped = slot.onTake(*m_playerInventory->getPlayer(), std::move(dropped));
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
         // 丢弃物品到世界
@@ -901,8 +911,10 @@ i32 AbstractContainerMenu::_distributeToDragSlot(ItemStack& toDistribute, i32 sl
 
 ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack)
 {
+    // TODO: 补齐以已有光标物品为基准的双击路径；当前支持空光标起始。
     // 双击拾取全部相同物品
-    if (m_carried.isEmpty() && !slotStack.isEmpty()) {
+    if (m_carried.isEmpty() && !slotStack.isEmpty() && canMergeSlot(slotStack, slot) &&
+        slot.mayPickup(*m_playerInventory->getPlayer())) {
         ItemStack toPickup = slotStack.copy();
 
         // 遍历所有槽位，合并相同物品
@@ -913,12 +925,14 @@ ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, con
             if (!otherSlot || otherSlot->isEmpty()) continue;
 
             ItemStack otherStack = otherSlot->getItem();
-            if (toPickup.canMergeWith(otherStack) && otherSlot->mayPickup(*m_playerInventory->getPlayer())) {
+            if (toPickup.canMergeWith(otherStack) && canMergeSlot(toPickup, *otherSlot) &&
+                otherSlot->mayPickup(*m_playerInventory->getPlayer())) {
                 i32 space = toPickup.getMaxStackSize() - toPickup.getCount();
                 if (space > 0) {
                     i32 toAdd = std::min(space, otherStack.getCount());
                     toPickup.grow(toAdd);
-                    otherSlot->remove(toAdd);
+                    auto taken = otherSlot->remove(toAdd);
+                    otherSlot->onTake(*m_playerInventory->getPlayer(), std::move(taken));
                     otherSlot->setChanged();
                     notifySlotChanged(i, otherSlot->getItem());
 
@@ -930,7 +944,8 @@ ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, con
         }
 
         m_carried = toPickup;
-        slot.remove(slotStack.getCount());
+        auto taken = slot.remove(slotStack.getCount());
+        slot.onTake(*m_playerInventory->getPlayer(), std::move(taken));
         slot.setChanged();
         notifySlotChanged(slotIndex, slot.getItem());
     }
@@ -1053,9 +1068,10 @@ void AbstractContainerMenu::removed(Player& player)
     // 关闭容器时，如果玩家光标上有物品，丢弃到世界中
     if (!m_carried.isEmpty()) {
         // 尝试放回玩家背包
-        if (m_playerInventory != nullptr) {
+        if (player.isAlive() && !player.isDead()) {
             // add() 返回剩余未添加的数量，会修改 m_carried 的数量
-            i32 remaining = m_playerInventory->add(m_carried);
+            auto& targetInventory = m_playerInventory != nullptr ? *m_playerInventory : player.inventory();
+            i32 remaining = targetInventory.add(m_carried);
             if (remaining > 0) {
                 // 放不下的物品掉落
                 m_carried.setCount(remaining);

@@ -160,6 +160,13 @@ public:
     [[nodiscard]] ChatVisibility chatVisibility() const { return m_chatVisibility; }
     void setChatVisibility(ChatVisibility visibility) { m_chatVisibility = visibility; }
 
+    /** @brief 更新惯用手并同步玩家实体元数据。 */
+    void setPrimaryHand(HandSide hand)
+    {
+        LivingEntity::setPrimaryHand(hand);
+        m_dataManager.set(DATA_PLAYER_MAIN_HAND_PARAM, entity::HumanoidArmValue{static_cast<i32>(hand)});
+    }
+
     [[nodiscard]] u8 playerModelParts() const { return m_playerModelParts; }
     void setPlayerModelParts(u8 modelPartsMask)
     {

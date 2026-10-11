@@ -23,6 +23,7 @@
 
 #include "common/entity/player/CooldownTracker.hpp"
 #include "common/item/core/Item.hpp"
+#include <limits>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -41,9 +42,11 @@ using namespace mc::entity::player;
 // 测试用物品类
 class TestCooldownItem final : public Item {
 public:
-    explicit TestCooldownItem()
+    explicit TestCooldownItem(const ResourceLocation& id)
         : Item(ItemProperties().maxStackSize(64))
-    {}
+    {
+        m_itemLocation = id;
+    }
 };
 
 class CooldownTrackerTest : public ::testing::Test {
@@ -62,7 +65,8 @@ protected:
     // 创建一个简单的测试物品
     const Item* createTestItem()
     {
-        auto item = std::make_unique<TestCooldownItem>();
+        auto item =
+            std::make_unique<TestCooldownItem>(ResourceLocation("test:cooldown_" + std::to_string(testItems.size())));
         const Item* ptr = item.get();
         testItems.push_back(std::move(item));
         return ptr;
@@ -399,4 +403,32 @@ TEST_F(CooldownTrackerTest, Scenario_ShieldCooldown)
 
     // 冷却结束
     EXPECT_FALSE(tracker->hasCooldown(shield));
+}
+
+TEST_F(CooldownTrackerTest, GroupCooldownsShareStateAndEmitChanges)
+{
+    const ResourceLocation group("test:shared");
+    std::vector<std::pair<ResourceLocation, i32>> changes;
+    tracker->setListener(
+        [&](const ResourceLocation& changed, i32 duration) { changes.emplace_back(changed, duration); });
+    tracker->setCooldown(group, 2);
+    EXPECT_TRUE(tracker->hasCooldown(ResourceLocation("test:shared")));
+    EXPECT_FALSE(tracker->hasCooldown(ResourceLocation("test:other")));
+    tracker->tick();
+    EXPECT_EQ(tracker->getCooldownTicks(group), 1);
+    tracker->tick();
+    EXPECT_FALSE(tracker->hasCooldown(group));
+    ASSERT_EQ(changes.size(), 2u);
+    EXPECT_EQ(changes.front(), (std::pair<ResourceLocation, i32>{group, 2}));
+    EXPECT_EQ(changes.back(), (std::pair<ResourceLocation, i32>{group, 0}));
+}
+
+TEST_F(CooldownTrackerTest, MaximumWireDurationDoesNotOverflowAfterTick)
+{
+    const ResourceLocation group("test:long");
+    tracker->tick();
+    tracker->setCooldown(group, std::numeric_limits<i32>::max());
+    EXPECT_EQ(tracker->getCooldownTicks(group), std::numeric_limits<i32>::max());
+    tracker->tick();
+    EXPECT_EQ(tracker->getCooldownTicks(group), std::numeric_limits<i32>::max() - 1);
 }

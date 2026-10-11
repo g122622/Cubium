@@ -203,9 +203,33 @@ using PlayPacket = std::variant<play::AcceptTeleportation, // 0
     play::ClientTickEnd,      // 115
     play::StartConfiguration, // 116
     // ---- 实体装备与状态效果（altIndex 117..119，PlayPacketsExtended.hpp）----
-    play::SetEquipment,    // 117
-    play::UpdateMobEffect, // 118
-    play::RemoveMobEffect  // 119
+    play::SetEquipment,               // 117
+    play::UpdateMobEffect,            // 118
+    play::RemoveMobEffect,            // 119
+    play::ChangeGameMode,             // 120
+    play::PlayerLoaded,               // 121
+    play::Swing,                      // 122
+    play::ServerboundPlayerAbilities, // 123
+    play::ClientInformation,          // 124
+    play::TeleportToEntity,           // 125
+    play::TabList,                    // 126
+    play::Cooldown,                   // 127
+    play::DamageEvent,                // 128
+    play::AwardStats,                 // 129
+    play::ClientCommand,              // 130
+    play::RenameItem,                 // 131
+    play::SelectTrade,                // 132
+    play::MerchantOffersUpdate,       // 133
+    play::ContainerButtonClick,       // 134
+    play::EditBook,                   // 135
+    play::OpenBook,                   // 136
+    play::BundleItemSelected,         // 137
+    play::SetBeacon,                  // 138
+    play::EntityPositionSync,         // 139
+    play::ServerLinks,                // 140
+    play::ShowDialog,                 // 141
+    play::ClearDialog,                // 142
+    play::Waypoint                    // 143
     >;
 
 /**

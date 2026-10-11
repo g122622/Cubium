@@ -155,6 +155,22 @@ public:
      */
     void syncExperience();
 
+    /** @brief 发送玩家列表页眉和页脚，空组件用于清除；返回是否发送成功。 */
+    [[nodiscard]] bool sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer);
+
+    /** @brief 替换客户端服务器链接列表，空列表清除。 */
+    [[nodiscard]] bool sendServerLinks(const std::vector<mc::network::ir::play::ServerLink>& links);
+
+    /** @brief 显示直接定义或命名资源对话框，返回构造或投递结果。 */
+    [[nodiscard]] Result<void> showDialog(const nlohmann::json& definition);
+    [[nodiscard]] Result<void> showDialog(const ResourceLocation& name);
+
+    /** @brief 清除客户端当前对话框。 */
+    [[nodiscard]] bool clearDialog();
+
+    /** @brief 发送完整或增量统计，仅在发送成功后确认网络脏条目。 */
+    [[nodiscard]] bool sendStats(bool all);
+
     // ========== 重写经验方法 ==========
 
     /**

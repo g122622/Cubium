@@ -63,6 +63,7 @@
 #include "server/world/blockevent/BlockEventData.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
+#include "server/world/entity/waypoint/WaypointManager.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
@@ -929,8 +930,12 @@ public:
     /// 装备变更广播（委托 EntityTracker，向追踪者下发 SetEquipment cb 100）。
     void broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots) override;
 
+    /** @brief 向追踪者与受害玩家本人同步伤害类型及来源。 */
+    void broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source) override;
+
     /// 状态效果新增/更新广播（委托 EntityTracker，下发 UpdateMobEffect cb 130）。
-    void broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect) override;
+    void broadcastMobEffectAdded(
+        EntityInstanceId entityId, const entity::effect::EffectInstance& effect, bool blend) override;
 
     /// 状态效果移除广播（委托 EntityTracker，下发 RemoveMobEffect cb 76）。
     void broadcastMobEffectRemoved(EntityInstanceId entityId, entity::effect::EffectType type) override;
@@ -1051,6 +1056,9 @@ public:
 
     [[nodiscard]] EntityManager& entityManager() noexcept { return m_entityManager; }
     [[nodiscard]] const EntityManager& entityManager() const noexcept { return m_entityManager; }
+
+    /** @brief 本维度导航点同步门面。 */
+    [[nodiscard]] WaypointManager& waypointManager() noexcept { return m_waypointManager; }
 
     [[nodiscard]] EntityTracker& entityTracker() noexcept { return m_entityTracker; }
     [[nodiscard]] const EntityTracker& entityTracker() const noexcept { return m_entityTracker; }
@@ -1578,6 +1586,7 @@ private:
     ecs::EntityRegistry m_entityRegistry;
     EntityManager m_entityManager;
     EntityTracker m_entityTracker;
+    WaypointManager m_waypointManager;
     std::unique_ptr<PhysicsEngine> m_physicsEngine;
     std::unique_ptr<physics::CollisionCache> m_collisionCache;
     std::unique_ptr<world::tick::TickManager> m_tickManager;

@@ -248,7 +248,7 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
 
     state.center = newPos;
     state.hasPosition = true;
-    state.trackedChunks = _buildTrackedChunkSet(x, z);
+    state.trackedChunks = _buildTrackedChunkSet(playerId, x, z);
     m_playerPositions[playerId] = newPos;
 
     // 中心变化（含首次设置）：通知上层发送 SetChunkCacheCenter。须先于 _applyTrackingDelta
@@ -264,6 +264,7 @@ void ChunkLoadTicketManager::updatePlayerPosition(PlayerId playerId, ChunkCoord 
 
 void ChunkLoadTicketManager::removePlayer(PlayerId playerId)
 {
+    m_playerViewDistances.erase(playerId);
     auto stateIt = m_playerStates.find(playerId);
     if (stateIt == m_playerStates.end()) {
         m_playerPositions.erase(playerId);
@@ -424,13 +425,33 @@ void ChunkLoadTicketManager::_updatePlayerSourceCenter(const ChunkPos* oldPos, c
     }
 }
 
-std::unordered_set<u64> ChunkLoadTicketManager::_buildTrackedChunkSet(ChunkCoord centerX, ChunkCoord centerZ) const
+void ChunkLoadTicketManager::setPlayerViewDistance(PlayerId playerId, i32 distance)
 {
+    const i32 requestedDistance = std::clamp(distance, 2, 32);
+    const auto previous = m_playerViewDistances.find(playerId);
+    if (previous != m_playerViewDistances.end() && previous->second == requestedDistance) {
+        return;
+    }
+    m_playerViewDistances[playerId] = requestedDistance;
+    if (auto it = m_playerStates.find(playerId); it != m_playerStates.end() && it->second.hasPosition) {
+        auto& state = it->second;
+        auto trackedChunks = _buildTrackedChunkSet(playerId, state.center.x, state.center.z);
+        _applyTrackingDelta(playerId, state.trackedChunks, trackedChunks);
+        state.trackedChunks = std::move(trackedChunks);
+    }
+}
+
+std::unordered_set<u64> ChunkLoadTicketManager::_buildTrackedChunkSet(
+    PlayerId playerId, ChunkCoord centerX, ChunkCoord centerZ) const
+{
+    const auto request = m_playerViewDistances.find(playerId);
+    const i32 distanceLimit =
+        request == m_playerViewDistances.end() ? m_viewDistance : std::min(m_viewDistance, request->second);
     std::unordered_set<u64> chunks;
-    for (i32 dx = -m_viewDistance; dx <= m_viewDistance; ++dx) {
-        for (i32 dz = -m_viewDistance; dz <= m_viewDistance; ++dz) {
+    for (i32 dx = -distanceLimit; dx <= distanceLimit; ++dx) {
+        for (i32 dz = -distanceLimit; dz <= distanceLimit; ++dz) {
             const i32 distance = std::max(std::abs(dx), std::abs(dz));
-            if (distance <= m_viewDistance) {
+            if (distance <= distanceLimit) {
                 chunks.insert(_posToKey(centerX + dx, centerZ + dz));
             }
         }
@@ -496,7 +517,7 @@ void ChunkLoadTicketManager::_rebuildAllPlayerSources()
         }
 
         const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
-        state.trackedChunks = _buildTrackedChunkSet(state.center.x, state.center.z);
+        state.trackedChunks = _buildTrackedChunkSet(playerId, state.center.x, state.center.z);
         _applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
 
         const u64 key = _posToKey(state.center.x, state.center.z);

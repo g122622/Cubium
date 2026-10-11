@@ -30,9 +30,14 @@
 #include "common/item/component/DataComponentType.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/network/backend/java/codecs/ItemEnchantmentsCodec.hpp"
 #include "common/network/backend/java/codecs/PotionContentsCodec.hpp"
+#include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
+#include "common/network/backend/java/mappings/JavaItemIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/crypto/Crc32c.hpp"
@@ -41,6 +46,8 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/Utf8.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
 
 #include <memory>
 #include <span>
@@ -54,6 +61,12 @@ namespace item {
 namespace component {
 
 namespace {
+
+thread_local usize _patchDepth = 0;
+struct _PatchDepthGuard {
+    _PatchDepthGuard() { ++_patchDepth; }
+    ~_PatchDepthGuard() { --_patchDepth; }
+};
 
 using nbt::tags::compound_tag;
 
@@ -90,8 +103,66 @@ using nbt::tags::compound_tag;
     return std::vector<u8>(base, base + (end - start));
 }
 
+// Filterable 的未过滤形式是裸值，带过滤形式为 {raw, filtered}。
+const nlohmann::json& _rawBookValue(const nlohmann::json& value)
+{
+    return value.is_object() && value.contains("raw") ? value.at("raw") : value;
+}
+
+Result<void> _writeBookValue(
+    network::buffer::ByteBuf& buf, const nlohmann::json& value, bool component, usize maxLength)
+{
+    auto write = [&](const nlohmann::json& raw) -> Result<void> {
+        if (component) {
+            const auto parsed = text::ITextComponent::fromJson(raw);
+            const auto bytes = text::componentToNbtBytes(parsed.get());
+            buf.writeBytes(bytes.data(), bytes.size());
+        } else {
+            const auto& string = raw.get_ref<const std::string&>();
+            const auto length = util::text::utf16Length(string);
+            if (!length || *length > maxLength) return Error(ErrorCode::InvalidData, "Invalid book string");
+            buf.writeString(string);
+        }
+        return {};
+    };
+    MC_TRY(write(_rawBookValue(value)));
+    const bool filtered = value.is_object() && value.contains("filtered");
+    buf.writeBool(filtered);
+    if (filtered) MC_TRY(write(value.at("filtered")));
+    return {};
+}
+
+Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool component, usize maxLength)
+{
+    auto read = [&]() -> Result<nlohmann::json> {
+        if (component) {
+            std::vector<u8> bytes;
+            MC_TRY_ASSIGN(bytes, readComponentNbtBytes(buf));
+            if (bytes.front() == 8) return nlohmann::json(text::componentNbtBytesToPlainText(bytes));
+            network::buffer::ByteBuf nbtBuf(bytes.data(), bytes.size());
+            auto tagResult = network::buffer::nbt_io::readRootCompound(nbtBuf);
+            if (tagResult.failed()) return tagResult.error();
+            const auto tag = tagResult.value();
+            return nbt::nbtToJson(*tag);
+        }
+        std::string value;
+        MC_TRY_ASSIGN(value, buf.readString());
+        const auto length = util::text::utf16Length(value);
+        if (!length || *length > maxLength) return Error(ErrorCode::InvalidData, "Invalid book string");
+        return nlohmann::json(value);
+    };
+    nlohmann::json raw;
+    MC_TRY_ASSIGN(raw, read());
+    bool filtered = false;
+    MC_TRY_ASSIGN(filtered, buf.readBool());
+    if (!filtered) return raw;
+    nlohmann::json replacement;
+    MC_TRY_ASSIGN(replacement, read());
+    return nlohmann::json{{"raw", std::move(raw)}, {"filtered", std::move(replacement)}};
+}
+
 /// 写单个组件 value 到 wire（按 type 分派到专属 codec）。
-[[nodiscard]] Result<void> writeComponentValue(
+[[nodiscard]] Result<void> _writeComponentValue(
     network::buffer::ByteBuf& buf, DataComponentType type, const DataComponentPayload& payload)
 {
     using network::backend::java::writeItemEnchantments;
@@ -149,6 +220,7 @@ using nbt::tags::compound_tag;
             }
             return {};
         }
+        case DataComponentType::StoredEnchantments:
         case DataComponentType::Enchantments: {
             const auto& ench = std::get<item::enchant::EnchantmentContainer>(payload);
             writeItemEnchantments(buf, ench);
@@ -163,9 +235,58 @@ using nbt::tags::compound_tag;
         case DataComponentType::CanBreak: {
             // AdventureModePredicate wire = VarInt(count) + [BlockPredicate]*。
             // 项目以 vector<string> 承载谓词，与 vanilla 结构化 BlockPredicate 不兼容；
-            // 此处降级为空 list（VarInt(0)，单字节 0x00）保证 vanilla 客户端可接受，
+            // TODO: 此处降级为空 list（VarInt(0)，单字节 0x00）保证 vanilla 客户端可接受，
             // 实际谓词由 CustomData 侧承载。完整 BlockPredicate 体系待后续落地。
             buf.writeVarInt(0);
+            return {};
+        }
+        case DataComponentType::BundleContents: {
+            const auto contents = items::BundleContents::fromJson(std::get<nlohmann::json>(payload));
+            buf.writeVarInt(static_cast<i32>(contents.size()));
+            for (const auto& stack : contents.items()) {
+                buf.writeVarInt(stack.getCount());
+                buf.writeVarInt(static_cast<i32>(
+                    network::backend::java::JavaItemIdMap::instance().toJavaRegistryId(*stack.getItem())));
+                MC_TRY(writePatchToWire(buf, stack.toComponentPatch()));
+            }
+            return {};
+        }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent: {
+            const auto& book = std::get<nlohmann::json>(payload);
+            const bool written = type == DataComponentType::WrittenBookContent;
+            if (written) {
+                MC_TRY(_writeBookValue(buf, book.at("title"), false, 32));
+                buf.writeString(book.at("author").get<std::string>());
+                buf.writeVarInt(book.value("generation", 0));
+            }
+            const auto pages = book.value("pages", nlohmann::json::array());
+            if (!written && pages.size() > 100) return Error(ErrorCode::InvalidData, "Too many book pages");
+            buf.writeVarInt(static_cast<i32>(pages.size()));
+            for (const auto& page : pages)
+                MC_TRY(_writeBookValue(buf, page, written, 1024));
+            if (written) buf.writeBool(book.value("resolved", false));
+            return {};
+        }
+        case DataComponentType::BannerPatterns: {
+            const auto& layers = std::get<nlohmann::json>(payload);
+            buf.writeVarInt(static_cast<i32>(layers.size()));
+            for (const auto& layer : layers) {
+                if (layer.contains("DirectPattern")) {
+                    buf.writeVarInt(0);
+                    buf.writeString(layer["DirectPattern"].at("asset_id").get<std::string>());
+                    buf.writeString(layer["DirectPattern"].at("translation_key").get<std::string>());
+                } else {
+                    const auto type = blockentity::BannerPatterns::byHash(layer.at("Pattern").get<std::string>());
+                    const auto id = network::backend::java::JavaBannerPatternIds::toWireId(
+                        "minecraft:" + blockentity::BannerPatterns::getFileName(type));
+                    if (!id) return Error(ErrorCode::InvalidData, "Unknown banner pattern");
+                    buf.writeVarInt(*id + 1);
+                }
+                const auto color = layer.at("Color").get<i32>();
+                if (color < 0 || color >= 16) return Error(ErrorCode::InvalidData, "Invalid banner color");
+                buf.writeVarInt(color);
+            }
             return {};
         }
         case DataComponentType::CustomData: {
@@ -186,7 +307,7 @@ using nbt::tags::compound_tag;
 }
 
 /// 从 wire 读单个组件 value（按 type 分派到专属 codec）。
-[[nodiscard]] Result<DataComponentPayload> readComponentValue(network::buffer::ByteBuf& buf, DataComponentType type)
+[[nodiscard]] Result<DataComponentPayload> _readComponentValue(network::buffer::ByteBuf& buf, DataComponentType type)
 {
     using network::backend::java::readItemEnchantments;
     using network::backend::java::readPotionContentsPayload;
@@ -229,7 +350,7 @@ using nbt::tags::compound_tag;
             std::vector<u8> nbtBytes;
             MC_TRY_ASSIGN(nbtBytes, readComponentNbtBytes(buf));
             // 把 NBT wire 字节还原为 ITextComponent：解析为纯文本后构造 StringTextComponent。
-            // 完整 Component 还原（style/extra）待后续；此处取纯文本保业务可用。
+            // TODO: 完整 Component 还原（style/extra）待后续；此处取纯文本保业务可用。
             const auto plain = text::componentNbtBytesToPlainText(nbtBytes);
             std::unique_ptr<text::ITextComponent> comp = std::make_unique<text::StringTextComponent>(plain);
             return DataComponentPayload{std::in_place_index<2>, std::move(comp)};
@@ -249,6 +370,7 @@ using nbt::tags::compound_tag;
             }
             return DataComponentPayload{std::in_place_index<3>, std::move(lines)};
         }
+        case DataComponentType::StoredEnchantments:
         case DataComponentType::Enchantments: {
             auto enchResult = readItemEnchantments(buf);
             if (enchResult.failed()) {
@@ -266,7 +388,7 @@ using nbt::tags::compound_tag;
         case DataComponentType::CanPlaceOn:
         case DataComponentType::CanBreak: {
             // 降级：读空 list（VarInt(0)）；vanilla 发来的非空谓词按 count 跳过每个 BlockPredicate
-            // 需完整体系，此处仅支持空 list，非空返回空谓词（丢失语义，保互通不崩）。
+            // TODO: 需完整体系，此处仅支持空 list，非空返回空谓词（丢失语义，保互通不崩）。
             i32 count = 0;
             MC_TRY_ASSIGN(count, buf.readVarInt());
             AdventureModePredicate pred{};
@@ -274,6 +396,97 @@ using nbt::tags::compound_tag;
             // 发送非空谓词，真 Java 对端发来的非空谓词场景待完整 BlockPredicate 体系落地。
             (void)count;
             return DataComponentPayload{std::in_place_index<6>, std::move(pred)};
+        }
+        case DataComponentType::BundleContents: {
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 4)
+                return Error(ErrorCode::InvalidData, "Invalid bundle item count");
+            std::vector<ItemStack> contents;
+            for (i32 i = 0; i < count; ++i) {
+                i32 amount = 0, id = 0;
+                MC_TRY_ASSIGN(amount, buf.readVarInt());
+                if (amount <= 0) return Error(ErrorCode::InvalidData, "Empty bundle item");
+                MC_TRY_ASSIGN(id, buf.readVarInt());
+                auto* item = ItemRegistry::instance().getItem(
+                    network::backend::java::JavaItemIdMap::instance().fromJavaRegistryId(static_cast<u32>(id)));
+                if (item == nullptr) return Error(ErrorCode::InvalidData, "Unknown bundle item");
+                ItemStack stack(item, amount);
+                auto patch = readPatchFromWire(buf);
+                if (patch.failed()) return patch.error();
+                stack.applyComponentPatch(patch.value());
+                contents.push_back(std::move(stack));
+            }
+            return DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::Json>, items::BundleContents(std::move(contents)).toJson()};
+        }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent: {
+            auto book = nlohmann::json::object();
+            const bool written = type == DataComponentType::WrittenBookContent;
+            if (written) {
+                nlohmann::json title;
+                MC_TRY_ASSIGN(title, _readBookValue(buf, false, 32));
+                std::string author;
+                MC_TRY_ASSIGN(author, buf.readString());
+                i32 generation = 0;
+                MC_TRY_ASSIGN(generation, buf.readVarInt());
+                if (generation < 0 || generation > 3) return Error(ErrorCode::InvalidData, "Invalid book generation");
+                book = {{"title", std::move(title)}, {"author", std::move(author)}, {"generation", generation}};
+            }
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || (!written && count > 100) || static_cast<usize>(count) > buf.readableBytes())
+                return Error(ErrorCode::InvalidData, "Invalid book page count");
+            auto pages = nlohmann::json::array();
+            for (i32 i = 0; i < count; ++i) {
+                nlohmann::json page;
+                MC_TRY_ASSIGN(page, _readBookValue(buf, written, 1024));
+                pages.push_back(std::move(page));
+            }
+            book["pages"] = std::move(pages);
+            if (written) {
+                bool resolved = false;
+                MC_TRY_ASSIGN(resolved, buf.readBool());
+                book["resolved"] = resolved;
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(book)};
+        }
+        case DataComponentType::BannerPatterns: {
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 2)
+                return Error(ErrorCode::InvalidData, "Invalid banner layer count");
+            auto layers = nlohmann::json::array();
+            for (i32 i = 0; i < count; ++i) {
+                i32 id = 0;
+                MC_TRY_ASSIGN(id, buf.readVarInt());
+                auto layer = nlohmann::json::object();
+                if (id == 0) {
+                    std::string asset, key;
+                    MC_TRY_ASSIGN(asset, buf.readString());
+                    MC_TRY_ASSIGN(key, buf.readString());
+                    layer["DirectPattern"] = {{"asset_id", asset}, {"translation_key", key}};
+                    layer["Pattern"] = "b";
+                } else {
+                    const auto& entries = network::backend::java::JavaBannerPatternIds::ENTRIES;
+                    if (id < 1 || id > static_cast<i32>(entries.size()))
+                        return Error(ErrorCode::InvalidData, "Invalid banner pattern holder");
+                    for (i32 type = 0; type < static_cast<i32>(blockentity::BannerPatternType::Count); ++type) {
+                        const auto pattern = static_cast<blockentity::BannerPatternType>(type);
+                        if ("minecraft:" + blockentity::BannerPatterns::getFileName(pattern) == entries[id - 1]) {
+                            layer["Pattern"] = blockentity::BannerPatterns::getHashName(pattern);
+                            break;
+                        }
+                    }
+                }
+                i32 color = 0;
+                MC_TRY_ASSIGN(color, buf.readVarInt());
+                if (color < 0 || color >= 16) return Error(ErrorCode::InvalidData, "Invalid banner color");
+                layer["Color"] = color;
+                layers.push_back(std::move(layer));
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(layers)};
         }
         case DataComponentType::CustomData: {
             auto tagResult = network::buffer::nbt_io::readRootCompound(buf);
@@ -303,7 +516,7 @@ Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponent
             continue; // 未落地：跳过（不写 typeId，读端也不期望）
         }
         buf.writeVarInt(entry.typeId);
-        MC_TRY(writeComponentValue(buf, *type, entry.value));
+        MC_TRY(_writeComponentValue(buf, *type, entry.value));
     }
     for (i32 typeId : patch.removed()) {
         buf.writeVarInt(typeId);
@@ -313,6 +526,8 @@ Result<void> writePatchToWire(network::buffer::ByteBuf& buf, const DataComponent
 
 Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
 {
+    if (_patchDepth >= 64) return Error(ErrorCode::InvalidData, "Item component nesting exceeds limit");
+    _PatchDepthGuard guard;
     DataComponentPatch patch;
     i32 addedCount = 0;
     MC_TRY_ASSIGN(addedCount, buf.readVarInt());
@@ -332,7 +547,7 @@ Result<DataComponentPatch> readPatchFromWire(network::buffer::ByteBuf& buf)
             // 未知组件：vanilla 标准_patch 无长度前缀，无法安全跳过，报错。
             return Error(ErrorCode::InvalidData, "Unknown data component typeId in wire", "readPatchFromWire");
         }
-        auto payloadResult = readComponentValue(buf, *type);
+        auto payloadResult = _readComponentValue(buf, *type);
         if (payloadResult.failed()) {
             return payloadResult.error();
         }
@@ -372,7 +587,7 @@ Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
             return Error(ErrorCode::InvalidData, "Unknown data component typeId in wire", "readPatchBytesFromWire");
         }
         // 按专属 codec 推进游标（丢弃解析结果）。
-        auto payloadResult = readComponentValue(buf, *type);
+        auto payloadResult = _readComponentValue(buf, *type);
         if (payloadResult.failed()) {
             return payloadResult.error();
         }
@@ -386,6 +601,26 @@ Result<std::vector<u8>> readPatchBytesFromWire(network::buffer::ByteBuf& buf)
     return std::vector<u8>(base, base + (end - start));
 }
 
+Result<std::vector<u8>> readExactPredicateBytesFromWire(network::buffer::ByteBuf& buf)
+{
+    const usize start = buf.readPosition();
+    i32 count = 0;
+    MC_TRY_ASSIGN(count, buf.readVarInt());
+    if (count < 0 || static_cast<usize>(count) > buf.readableBytes()) {
+        return Error(ErrorCode::InvalidData, "Invalid component predicate count");
+    }
+    for (i32 i = 0; i < count; ++i) {
+        i32 typeId = 0;
+        MC_TRY_ASSIGN(typeId, buf.readVarInt());
+        const auto type = componentTypeById(typeId);
+        if (!type.has_value()) {
+            return Error(ErrorCode::InvalidData, "Unknown component in trade predicate");
+        }
+        MC_TRY(_readComponentValue(buf, *type));
+    }
+    return std::vector<u8>(buf.data() + start, buf.data() + buf.readPosition());
+}
+
 std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHashes(const DataComponentPatch& patch)
 {
     std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> result;
@@ -396,7 +631,7 @@ std::pair<std::vector<std::pair<i32, i32>>, std::vector<i32>> computeComponentHa
         }
         // 用专属 codec 把组件值编码到临时 ByteBuf，对 wire 字节算 CRC-32C。
         network::buffer::ByteBuf tmp;
-        if (writeComponentValue(tmp, *type, entry.value).failed()) {
+        if (_writeComponentValue(tmp, *type, entry.value).failed()) {
             continue; // 编码失败跳过该组件（不中断整体哈希计算）
         }
         const u32 h = util::crypto::Crc32c::hash(std::span<const u8>(tmp.data(), tmp.size()));

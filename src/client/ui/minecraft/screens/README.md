@@ -64,3 +64,5 @@ src/client/ui/minecraft/screens/
 - **制图台结果槽由服务端计算**：客户端 `CartographyContainer` 构造时 `world=nullptr`，`updateResult()` 空操作，不计算地图缩放/锁定/复制结果。结果槽内容由服务端 `CartographyContainer::updateResult()` 计算后经 `ContainerSlotPacket` 下推到客户端，客户端 `onContainerSlot` 写入并 `syncSlots()`。制图台网络回调（`onOpenContainer`/`onContainerContent`/`onContainerSlot`/`onCloseContainer`）均走 kagero `CartographyScreen` 分支。
 - **制图台地图预览未注入**：`CartographyScreen` 结果槽为已填充地图时绘制 64×64 地图预览（`MapRenderer::renderMap`），但 `MapRenderer` 当前无所有者、`setMapRenderer` 未被调用，预览暂不渲染（待地图渲染器统一接入后修复）。`m_mapRenderer` 为 nullptr 时安全跳过。
 - **地图查看屏待 Phase6 重建**：原 `MapScreen`（玩家使用已填充地图时的全屏地图查看屏）为死代码（零构造、无开屏入口）已删；`MapRenderer`/地图数据缓存在客户端无 owner 注入点，地图内容暂不渲染。地图数据网络同步走 IR `ir::play::MapItemData`（当前 Phase6 TODO，opaque no-op），待该链路重建后恢复地图查看屏。
+
+- 容器屏通过 getContainerId 暴露菜单身份，普通屏返回空值。远程关闭仅关闭当前 ID 匹配的容器屏，不能清空非容器屏或误关新菜单。

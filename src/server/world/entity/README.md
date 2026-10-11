@@ -9,7 +9,8 @@ src/server/world/entity/
 ├── EntityTracker.hpp       # 实体追踪器（管理实体客户端可见性，同步位置/旋转/元数据）
 ├── EntityTracker.cpp       # 实体追踪器实现
 ├── ItemPickupManager.hpp   # 物品拾取管理器（检测拾取、物品合并、背包更新）
-└── ItemPickupManager.cpp   # 物品拾取管理器实现
+├── ItemPickupManager.cpp   # 物品拾取管理器实现
+└── waypoint/               # 每维度导航点同步门面
 ```
 
 ## 内部模块关系
@@ -65,3 +66,9 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 - EntityTracker::tick() 在 hurtMarked 为 true 时，除了向追踪玩家发送速度包，还会通过 `Player::sendVelocityPacket()` 虚方法向自身发送
 - ServerPlayer 不会出现在自己的追踪列表中，因此需要单独发送
 - `Player::causeExtraKnockback()` 在疾跑击退时，会先为 ServerPlayer 目标立即发送速度包并清除 hurtMarked，此分支不会执行，从而避免速度重复应用
+
+伤害与状态事件应使用 broadcastPacketAndSelf，先快照追踪者再在锁外发送，并补充玩家本人。玩家实体尚未登记到追踪表时仍须发给本人；不能在查不到追踪条目时提前返回。
+
+装备增量必须包含变为空的槽位，初次进入视野则下发已有非空装备快照；只广播非空槽位会使客户端保留已卸下的装备。鞍槽 wire ordinal 为 7。
+
+状态效果的新增、刷新和移除共用追踪者与本人的发送收口。初次配对、登录、重配置及跨维度重发当前效果快照；首次新增启用 blend，已有实例刷新不重置渐变。

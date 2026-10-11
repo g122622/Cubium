@@ -22,6 +22,8 @@
  */
 
 #include "ServerPlayer.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/EffectTriggers.hpp"
@@ -75,6 +77,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
+#include "server/interaction/ContainerManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/stats/StatType.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -96,6 +99,11 @@ ServerPlayer::ServerPlayer(EntityInstanceId id, const std::string& name, ecs::En
 {
     initAdvancements();
     setupInventoryCallback();
+    cooldownTracker().setListener([this](const ResourceLocation& group, i32 duration) {
+        mc::network::ir::play::Cooldown packet{group.toString(), duration};
+        static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}}));
+    });
 }
 
 void ServerPlayer::initAdvancements()
@@ -160,6 +168,53 @@ void ServerPlayer::sendSystemMessage(const std::string& message)
     pkt.overlay = false; // 聊天窗口
     static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
+}
+
+bool ServerPlayer::sendServerLinks(const std::vector<mc::network::ir::play::ServerLink>& links)
+{
+    return _sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{mc::network::ir::play::ServerLinks{links}}});
+}
+
+Result<void> ServerPlayer::showDialog(const nlohmann::json& definition)
+{
+    auto packet = server::net::buildShowDialogIr(definition);
+    if (packet.failed()) return packet.error();
+    if (!_sendIrPacket(packet.value()))
+        return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
+    return {};
+}
+Result<void> ServerPlayer::showDialog(const ResourceLocation& name)
+{
+    auto packet = server::net::resolveDialogIr(name);
+    if (packet.failed()) return packet.error();
+    if (!_sendIrPacket(packet.value()))
+        return Error(ErrorCode::InvalidState, "Cannot send dialog without an active Play connection");
+    return {};
+}
+
+bool ServerPlayer::clearDialog()
+{
+    return _sendIrPacket(mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{mc::network::ir::play::ClearDialog{}}});
+}
+
+bool ServerPlayer::sendTabList(const text::ITextComponent& header, const text::ITextComponent& footer)
+{
+    mc::network::ir::play::TabList packet{text::componentToNbtBytes(&header), text::componentToNbtBytes(&footer)};
+    return _sendIrPacket(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}});
+}
+
+bool ServerPlayer::sendStats(bool all)
+{
+    auto update = m_statistics.createNetworkUpdate(all);
+    if (!_sendIrPacket(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}})) {
+        return false;
+    }
+    m_statistics.clearNetworkDirty();
+    return true;
 }
 
 void ServerPlayer::sendSystemMessage(const text::ITextComponent& component)
@@ -884,6 +939,10 @@ bool ServerPlayer::teleportToDimension(DimensionId targetDim, const Vector3d& po
 
 bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector3d& targetPos)
 {
+    if (m_server->dimensionManager().getDimension(targetDim) == nullptr) {
+        return false;
+    }
+    m_server->containerManager().closeContainer(playerId());
     // 通过 ServerDimensionManager 执行实际的维度切换
     // 缺陷C修复：用 playerId()（Player.hpp:146，返回 m_playerId；SimulatedPlayer 占位 0）
     // 而非 id()（EntityInstanceId，由 EntityManager 分配，值很大）。transferPlayerToDimension
@@ -940,6 +999,9 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
                         entityId);
                 }
             });
+        }
+        if (targetWorld != nullptr) {
+            targetWorld->entityTracker().sendActiveEffects(*m_server, playerId(), *this);
         }
     }
 
@@ -1027,6 +1089,11 @@ void ServerPlayer::indicateDamage(f64 d0, f64 d1)
 
 void ServerPlayer::die(DamageSource& cause)
 {
+    // 先归还菜单内的物品，再处理死亡掉落；关闭回调同时通知客户端退出旧菜单。
+    if (m_server != nullptr) {
+        m_server->containerManager().closeContainer(playerId());
+        m_server->containerManager().closePlayerInventoryMenu(playerId());
+    }
     // 对齐 MC Java 1.21.11 ServerPlayer.die（ServerPlayer.java:879-939）。
     // 玩家死亡需在 LivingEntity::die 通用逻辑之上，补充玩家特有处理：
     // 死亡消息广播、统计更新、状态清除、最后死亡位置记录。

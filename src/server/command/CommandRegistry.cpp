@@ -98,6 +98,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/commands/DialogCommand.hpp"
 #include <algorithm>
 #include <future>
 #include <string>
@@ -188,6 +189,7 @@ void CommandRegistry::registerDefaults()
     MessageCommand::registerTo(m_dispatcher);
     TellRawCommand::registerTo(m_dispatcher);
     TitleCommand::registerTo(m_dispatcher);
+    DialogCommand::registerTo(m_dispatcher);
     PlaySoundCommand::registerTo(m_dispatcher);
     StopSoundCommand::registerTo(m_dispatcher);
     EffectCommand::registerTo(m_dispatcher);

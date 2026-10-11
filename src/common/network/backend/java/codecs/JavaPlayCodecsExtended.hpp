@@ -26,12 +26,14 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/backend/java/codecs/JavaCodecBase.hpp"
+#include "common/network/backend/java/codecs/JavaConfigurationCodecs.hpp"
 #include "common/network/backend/java/codecs/JavaPlayCodecs.hpp"
 #include "common/network/backend/java/mappings/JavaBlockIdMap.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <optional>
@@ -1623,6 +1625,7 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
 {
     return makeCodec<ir::play::SetEquipment>(
         [](B& buf, const ir::play::SetEquipment& v) {
+            MC_ASSERT_RELEASE(!v.entries.empty() && v.entries.size() <= 8);
             buf.writeVarInt(v.entityId);
             for (std::size_t i = 0; i < v.entries.size(); ++i) {
                 const bool more = (i + 1 < v.entries.size());
@@ -1636,10 +1639,16 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
             ir::play::SetEquipment v{};
             MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
             u8 slotByte = 0;
+            std::array<bool, 8> seen{};
             do {
                 MC_TRY_ASSIGN(slotByte, buf.readU8());
+                const u8 slot = slotByte & 0x7f;
+                if (slot >= seen.size() || seen[slot]) {
+                    return Error(ErrorCode::InvalidArgument, "Invalid or duplicate equipment slot");
+                }
+                seen[slot] = true;
                 ir::play::EquipmentEntry entry{};
-                entry.slot = static_cast<ir::play::WireEquipmentSlot>(slotByte & 0x7F);
+                entry.slot = static_cast<ir::play::WireEquipmentSlot>(slot);
                 MC_TRY_ASSIGN(entry.item, play_detail::readItemStack(buf));
                 v.entries.push_back(std::move(entry));
             } while ((slotByte & 0x80u) != 0);
@@ -1667,6 +1676,9 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
             MC_TRY_ASSIGN(v.amplifier, buf.readVarInt());
             MC_TRY_ASSIGN(v.duration, buf.readVarInt());
             MC_TRY_ASSIGN(v.flags, buf.readU8());
+            if (v.effectId < 0 || v.effectId >= 40 || v.amplifier < 0 || v.amplifier > 255 || v.duration < -1) {
+                return Error(ErrorCode::InvalidArgument, "Invalid mob effect update");
+            }
             return v;
         });
 }
@@ -1688,4 +1700,616 @@ inline void writeExplosionParticleList(B& buf, const std::vector<ir::play::Explo
         });
 }
 
+/** @brief 游戏模式请求：VarInt 枚举，禁止网络输入进入 NotSet 状态。 */
+[[nodiscard]] inline auto changeGameModeCodec()
+{
+    return makeCodec<ir::play::ChangeGameMode>(
+        [](B& buf, const ir::play::ChangeGameMode& v) { buf.writeVarInt(v.mode); },
+        [](B& buf) -> Result<ir::play::ChangeGameMode> {
+            ir::play::ChangeGameMode v{};
+            MC_TRY_ASSIGN(v.mode, buf.readVarInt());
+            if (v.mode < 0 || v.mode > 3) {
+                return Error(ErrorCode::InvalidArgument, "Invalid game mode");
+            }
+            return v;
+        });
+}
+
+/** @brief 玩家加载完成通知没有负载。 */
+[[nodiscard]] inline auto playerLoadedCodec()
+{
+    return makeCodec<ir::play::PlayerLoaded>([](B&, const ir::play::PlayerLoaded&) {},
+        [](B&) -> Result<ir::play::PlayerLoaded> { return ir::play::PlayerLoaded{}; });
+}
+
+/** @brief 挥手请求：VarInt 主手/副手枚举。 */
+[[nodiscard]] inline auto swingCodec()
+{
+    return makeCodec<ir::play::Swing>([](B& buf, const ir::play::Swing& v) { buf.writeVarInt(v.hand); },
+        [](B& buf) -> Result<ir::play::Swing> {
+            ir::play::Swing v{};
+            MC_TRY_ASSIGN(v.hand, buf.readVarInt());
+            if (v.hand < 0 || v.hand > 1) {
+                return Error(ErrorCode::InvalidArgument, "Invalid swing hand");
+            }
+            return v;
+        });
+}
+
+/** @brief 上行能力包仅含飞行位，不能复用带速度字段的下行能力包。 */
+[[nodiscard]] inline auto serverboundPlayerAbilitiesCodec()
+{
+    return makeCodec<ir::play::ServerboundPlayerAbilities>(
+        [](B& buf, const ir::play::ServerboundPlayerAbilities& v) { buf.writeU8(v.flying ? 2 : 0); },
+        [](B& buf) -> Result<ir::play::ServerboundPlayerAbilities> {
+            u8 flags = 0;
+            MC_TRY_ASSIGN(flags, buf.readU8());
+            return ir::play::ServerboundPlayerAbilities{(flags & 2) != 0};
+        });
+}
+
+/** @brief Play 与 Configuration 阶段使用相同的客户端设置负载。 */
+[[nodiscard]] inline auto playClientInformationCodec()
+{
+    return makeCodec<ir::play::ClientInformation>(
+        [](B& buf, const ir::play::ClientInformation& v) { clientInformationCodec().encode(buf, v.information); },
+        [](B& buf) -> Result<ir::play::ClientInformation> {
+            ir::play::ClientInformation v{};
+            MC_TRY_ASSIGN(v.information, clientInformationCodec().decode(buf));
+            return v;
+        });
+}
+
+/** @brief 旁观者传送请求仅含一个 16 字节 UUID。 */
+[[nodiscard]] inline auto teleportToEntityCodec()
+{
+    return makeCodec<ir::play::TeleportToEntity>(
+        [](B& buf, const ir::play::TeleportToEntity& v) { wire::writeUuid(buf, v.uuid); },
+        [](B& buf) -> Result<ir::play::TeleportToEntity> {
+            ir::play::TeleportToEntity v{};
+            MC_TRY_ASSIGN(v.uuid, wire::readUuid(buf));
+            return v;
+        });
+}
+
+/** @brief 玩家列表文本由两个连续的 Component NBT 构成，没有额外长度前缀。 */
+[[nodiscard]] inline auto tabListCodec()
+{
+    return makeCodec<ir::play::TabList>(
+        [](B& buf, const ir::play::TabList& v) {
+            writeComponentNbt(buf, v.header);
+            writeComponentNbt(buf, v.footer);
+        },
+        [](B& buf) -> Result<ir::play::TabList> {
+            ir::play::TabList v{};
+            MC_TRY_ASSIGN(v.header, readComponentNbt(buf));
+            MC_TRY_ASSIGN(v.footer, readComponentNbt(buf));
+            return v;
+        });
+}
+
+/** @brief 冷却负载为资源标识符字符串和 VarInt 时间，不是旧版物品数字 ID。 */
+[[nodiscard]] inline auto cooldownCodec()
+{
+    return makeCodec<ir::play::Cooldown>(
+        [](B& buf, const ir::play::Cooldown& v) {
+            buf.writeString(v.group);
+            buf.writeVarInt(v.duration);
+        },
+        [](B& buf) -> Result<ir::play::Cooldown> {
+            ir::play::Cooldown v{};
+            MC_TRY_ASSIGN(v.group, buf.readString());
+            MC_TRY_ASSIGN(v.duration, buf.readVarInt());
+            if (v.group.empty() || v.duration < 0) {
+                return Error(ErrorCode::InvalidArgument, "Invalid cooldown group or duration");
+            }
+            return v;
+        });
+}
+
+/** @brief 可选来源实体以 id+1 编码，零值表示无实体。 */
+[[nodiscard]] inline auto damageEventCodec()
+{
+    return makeCodec<ir::play::DamageEvent>(
+        [](B& buf, const ir::play::DamageEvent& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeVarInt(v.sourceType);
+            buf.writeVarInt(static_cast<i32>(static_cast<u32>(v.sourceCauseId) + 1u));
+            buf.writeVarInt(static_cast<i32>(static_cast<u32>(v.sourceDirectId) + 1u));
+            buf.writeBool(v.sourcePosition.has_value());
+            if (v.sourcePosition.has_value()) {
+                for (const auto coordinate : *v.sourcePosition) {
+                    buf.writeF64(coordinate);
+                }
+            }
+        },
+        [](B& buf) -> Result<ir::play::DamageEvent> {
+            ir::play::DamageEvent v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.sourceType, buf.readVarInt());
+            i32 cause = 0;
+            i32 direct = 0;
+            MC_TRY_ASSIGN(cause, buf.readVarInt());
+            MC_TRY_ASSIGN(direct, buf.readVarInt());
+            v.sourceCauseId = static_cast<i32>(static_cast<u32>(cause) - 1u);
+            v.sourceDirectId = static_cast<i32>(static_cast<u32>(direct) - 1u);
+            bool hasPosition = false;
+            MC_TRY_ASSIGN(hasPosition, buf.readBool());
+            if (hasPosition) {
+                std::array<f64, 3> position{};
+                for (auto& coordinate : position) {
+                    MC_TRY_ASSIGN(coordinate, buf.readF64());
+                }
+                v.sourcePosition = position;
+            }
+            return v;
+        });
+}
+
+/** @brief 统计列表为数量后跟类型 ID、条目 ID、值三元组。 */
+[[nodiscard]] inline auto awardStatsCodec()
+{
+    return makeCodec<ir::play::AwardStats>(
+        [](B& buf, const ir::play::AwardStats& v) {
+            buf.writeVarInt(static_cast<i32>(v.stats.size()));
+            for (const auto& stat : v.stats) {
+                buf.writeVarInt(stat.type);
+                buf.writeVarInt(stat.stat);
+                buf.writeVarInt(stat.value);
+            }
+        },
+        [](B& buf) -> Result<ir::play::AwardStats> {
+            ir::play::AwardStats v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<std::size_t>(count) > buf.readableBytes() / 3) {
+                return Error(ErrorCode::InvalidArgument, "Invalid statistics count");
+            }
+            v.stats.reserve(static_cast<std::size_t>(count));
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::StatValue stat{};
+                MC_TRY_ASSIGN(stat.type, buf.readVarInt());
+                MC_TRY_ASSIGN(stat.stat, buf.readVarInt());
+                MC_TRY_ASSIGN(stat.value, buf.readVarInt());
+                if (stat.type < 0 || stat.type > 8 || stat.stat < 0) {
+                    return Error(ErrorCode::InvalidArgument, "Invalid statistics registry id");
+                }
+                v.stats.push_back(stat);
+            }
+            return v;
+        });
+}
+
+/** @brief 客户端命令为重生或请求统计的 VarInt 枚举。 */
+[[nodiscard]] inline auto clientCommandCodec()
+{
+    return makeCodec<ir::play::ClientCommand>(
+        [](B& buf, const ir::play::ClientCommand& v) { buf.writeVarInt(v.action); },
+        [](B& buf) -> Result<ir::play::ClientCommand> {
+            ir::play::ClientCommand v{};
+            MC_TRY_ASSIGN(v.action, buf.readVarInt());
+            if (v.action < 0 || v.action > 1) {
+                return Error(ErrorCode::InvalidArgument, "Invalid client command");
+            }
+            return v;
+        });
+}
+
+/** @brief 重命名请求为一个 UTF-8 字符串；菜单负责过滤字符和名称长度。 */
+[[nodiscard]] inline auto renameItemCodec()
+{
+    return makeCodec<ir::play::RenameItem>([](B& buf, const ir::play::RenameItem& v) { buf.writeString(v.name); },
+        [](B& buf) -> Result<ir::play::RenameItem> {
+            ir::play::RenameItem v{};
+            MC_TRY_ASSIGN(v.name, buf.readString());
+            return v;
+        });
+}
+
+/** @brief 报价选择为一个 VarInt 索引，范围由当前报价列表验证。 */
+[[nodiscard]] inline auto selectTradeCodec()
+{
+    return makeCodec<ir::play::SelectTrade>([](B& buf, const ir::play::SelectTrade& v) { buf.writeVarInt(v.index); },
+        [](B& buf) -> Result<ir::play::SelectTrade> {
+            ir::play::SelectTrade v{};
+            MC_TRY_ASSIGN(v.index, buf.readVarInt());
+            return v;
+        });
+}
+
+namespace play_ext_detail {
+
+inline void writeTradeCost(B& buf, const ir::play::TradeItemCost& cost)
+{
+    buf.writeVarInt(static_cast<i32>(cost.itemId));
+    buf.writeVarInt(cost.count);
+    if (cost.components.empty()) {
+        buf.writeVarInt(0);
+    } else {
+        buf.writeBytes(cost.components.data(), cost.components.size());
+    }
+}
+
+[[nodiscard]] inline Result<ir::play::TradeItemCost> readTradeCost(B& buf)
+{
+    ir::play::TradeItemCost cost{};
+    i32 itemId = 0;
+    MC_TRY_ASSIGN(itemId, buf.readVarInt());
+    MC_TRY_ASSIGN(cost.count, buf.readVarInt());
+    if (itemId < 0 || cost.count <= 0) {
+        return Error(ErrorCode::InvalidArgument, "Invalid trade cost");
+    }
+    cost.itemId = static_cast<u32>(itemId);
+    MC_TRY_ASSIGN(cost.components, ::mc::item::component::readExactPredicateBytesFromWire(buf));
+    return cost;
+}
+
+} // namespace play_ext_detail
+
+/** @brief 商人报价包含 ItemCost、严格物品堆与固定宽度价格字段。 */
+[[nodiscard]] inline auto merchantOffersCodec()
+{
+    return makeCodec<ir::play::MerchantOffersUpdate>(
+        [](B& buf, const ir::play::MerchantOffersUpdate& v) {
+            buf.writeVarInt(v.containerId);
+            buf.writeVarInt(static_cast<i32>(v.offers.size()));
+            for (const auto& offer : v.offers) {
+                play_ext_detail::writeTradeCost(buf, offer.costA);
+                play_detail::writeItemStack(buf, offer.result);
+                buf.writeBool(offer.costB.has_value());
+                if (offer.costB.has_value()) {
+                    play_ext_detail::writeTradeCost(buf, *offer.costB);
+                }
+                buf.writeBool(offer.outOfStock);
+                buf.writeI32(offer.uses);
+                buf.writeI32(offer.maxUses);
+                buf.writeI32(offer.xp);
+                buf.writeI32(offer.specialPrice);
+                buf.writeF32(offer.priceMultiplier);
+                buf.writeI32(offer.demand);
+            }
+            buf.writeVarInt(v.level);
+            buf.writeVarInt(v.xp);
+            buf.writeBool(v.showProgress);
+            buf.writeBool(v.canRestock);
+        },
+        [](B& buf) -> Result<ir::play::MerchantOffersUpdate> {
+            ir::play::MerchantOffersUpdate v{};
+            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            constexpr usize MIN_OFFER_BYTES = 33;
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / MIN_OFFER_BYTES) {
+                return Error(ErrorCode::InvalidArgument, "Invalid merchant offer count");
+            }
+            v.offers.reserve(static_cast<usize>(count));
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::TradeOfferView offer{};
+                MC_TRY_ASSIGN(offer.costA, play_ext_detail::readTradeCost(buf));
+                MC_TRY_ASSIGN(offer.result, play_detail::readItemStack(buf));
+                if (offer.result.count <= 0) {
+                    return Error(ErrorCode::InvalidArgument, "Merchant offer has empty result");
+                }
+                bool hasCostB = false;
+                MC_TRY_ASSIGN(hasCostB, buf.readBool());
+                if (hasCostB) {
+                    ir::play::TradeItemCost cost{};
+                    MC_TRY_ASSIGN(cost, play_ext_detail::readTradeCost(buf));
+                    offer.costB = std::move(cost);
+                }
+                MC_TRY_ASSIGN(offer.outOfStock, buf.readBool());
+                MC_TRY_ASSIGN(offer.uses, buf.readI32());
+                MC_TRY_ASSIGN(offer.maxUses, buf.readI32());
+                MC_TRY_ASSIGN(offer.xp, buf.readI32());
+                MC_TRY_ASSIGN(offer.specialPrice, buf.readI32());
+                MC_TRY_ASSIGN(offer.priceMultiplier, buf.readF32());
+                MC_TRY_ASSIGN(offer.demand, buf.readI32());
+                v.offers.push_back(std::move(offer));
+            }
+            MC_TRY_ASSIGN(v.level, buf.readVarInt());
+            MC_TRY_ASSIGN(v.xp, buf.readVarInt());
+            MC_TRY_ASSIGN(v.showProgress, buf.readBool());
+            MC_TRY_ASSIGN(v.canRestock, buf.readBool());
+            return v;
+        });
+}
+
+/** @brief 菜单按钮采用两个 VarInt，不能使用旧版字节字段。 */
+[[nodiscard]] inline auto containerButtonClickCodec()
+{
+    return makeCodec<ir::play::ContainerButtonClick>(
+        [](B& buf, const ir::play::ContainerButtonClick& v) {
+            buf.writeVarInt(v.containerId);
+            buf.writeVarInt(v.buttonId);
+        },
+        [](B& buf) -> Result<ir::play::ContainerButtonClick> {
+            ir::play::ContainerButtonClick v{};
+            MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.buttonId, buf.readVarInt());
+            return v;
+        });
+}
+
+/** @brief 书籍编辑限制按 UTF-16 单元计算，列表最多 100 页。 */
+[[nodiscard]] inline auto editBookCodec()
+{
+    return makeCodec<ir::play::EditBook>(
+        [](B& buf, const ir::play::EditBook& v) {
+            buf.writeVarInt(v.slot);
+            buf.writeVarInt(static_cast<i32>(v.pages.size()));
+            for (const auto& page : v.pages)
+                buf.writeString(page);
+            buf.writeBool(v.title.has_value());
+            if (v.title) buf.writeString(*v.title);
+        },
+        [](B& buf) -> Result<ir::play::EditBook> {
+            ir::play::EditBook v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(v.slot, buf.readVarInt());
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || count > 100) return Error(ErrorCode::InvalidData, "Invalid book page count");
+            for (i32 i = 0; i < count; ++i) {
+                std::string page;
+                MC_TRY_ASSIGN(page, buf.readString());
+                const auto length = util::text::utf16Length(page);
+                if (!length || *length > 1024) return Error(ErrorCode::InvalidData, "Invalid book page length");
+                v.pages.push_back(std::move(page));
+            }
+            bool hasTitle = false;
+            MC_TRY_ASSIGN(hasTitle, buf.readBool());
+            if (hasTitle) {
+                std::string title;
+                MC_TRY_ASSIGN(title, buf.readString());
+                const auto length = util::text::utf16Length(title);
+                if (!length || *length > 32) return Error(ErrorCode::InvalidData, "Invalid book title length");
+                v.title = std::move(title);
+            }
+            return v;
+        });
+}
+/** @brief 成书打开只携带手枚举。 */
+[[nodiscard]] inline auto openBookCodec()
+{
+    return makeCodec<ir::play::OpenBook>([](B& buf, const ir::play::OpenBook& v) { buf.writeVarInt(v.hand); },
+        [](B& buf) -> Result<ir::play::OpenBook> {
+            ir::play::OpenBook v{};
+            MC_TRY_ASSIGN(v.hand, buf.readVarInt());
+            if (v.hand < 0 || v.hand > 1) return Error(ErrorCode::InvalidData, "Invalid book hand");
+            return v;
+        });
+}
+
+/** @brief 收纳袋槽位与选中索引均使用 VarInt。 */
+[[nodiscard]] inline auto bundleItemSelectedCodec()
+{
+    return makeCodec<ir::play::BundleItemSelected>(
+        [](B& buf, const ir::play::BundleItemSelected& v) {
+            buf.writeVarInt(v.slotId);
+            buf.writeVarInt(v.selectedItemIndex);
+        },
+        [](B& buf) -> Result<ir::play::BundleItemSelected> {
+            ir::play::BundleItemSelected v{};
+            MC_TRY_ASSIGN(v.slotId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.selectedItemIndex, buf.readVarInt());
+            if (v.selectedItemIndex < -1) return Error(ErrorCode::InvalidData, "Invalid selected bundle index");
+            return v;
+        });
+}
+/** @brief 两个 Optional<MobEffect>，每个为存在标志与纯 VarInt 注册 ID。 */
+[[nodiscard]] inline auto setBeaconCodec()
+{
+    return makeCodec<ir::play::SetBeacon>(
+        [](B& buf, const ir::play::SetBeacon& v) {
+            for (const auto effect : {v.primary, v.secondary}) {
+                buf.writeBool(effect.has_value());
+                if (effect) buf.writeVarInt(*effect);
+            }
+        },
+        [](B& buf) -> Result<ir::play::SetBeacon> {
+            ir::play::SetBeacon v{};
+            for (auto* effect : {&v.primary, &v.secondary}) {
+                bool present = false;
+                MC_TRY_ASSIGN(present, buf.readBool());
+                if (present) {
+                    i32 id = 0;
+                    MC_TRY_ASSIGN(id, buf.readVarInt());
+                    if (id < 0 || id >= 40) return Error(ErrorCode::InvalidData, "Invalid beacon effect holder");
+                    *effect = id;
+                }
+            }
+            return v;
+        });
+}
+/** @brief 绝对位置快照不含传送相对标志，速度为三个 Double。 */
+[[nodiscard]] inline auto entityPositionSyncCodec()
+{
+    return makeCodec<ir::play::EntityPositionSync>(
+        [](B& buf, const ir::play::EntityPositionSync& v) {
+            buf.writeVarInt(v.entityId);
+            buf.writeF64(v.x);
+            buf.writeF64(v.y);
+            buf.writeF64(v.z);
+            buf.writeF64(v.deltaX);
+            buf.writeF64(v.deltaY);
+            buf.writeF64(v.deltaZ);
+            buf.writeF32(v.yRot);
+            buf.writeF32(v.xRot);
+            buf.writeBool(v.onGround);
+        },
+        [](B& buf) -> Result<ir::play::EntityPositionSync> {
+            ir::play::EntityPositionSync v{};
+            MC_TRY_ASSIGN(v.entityId, buf.readVarInt());
+            MC_TRY_ASSIGN(v.x, buf.readF64());
+            MC_TRY_ASSIGN(v.y, buf.readF64());
+            MC_TRY_ASSIGN(v.z, buf.readF64());
+            MC_TRY_ASSIGN(v.deltaX, buf.readF64());
+            MC_TRY_ASSIGN(v.deltaY, buf.readF64());
+            MC_TRY_ASSIGN(v.deltaZ, buf.readF64());
+            MC_TRY_ASSIGN(v.yRot, buf.readF32());
+            MC_TRY_ASSIGN(v.xRot, buf.readF32());
+            MC_TRY_ASSIGN(v.onGround, buf.readBool());
+            return v;
+        });
+}
+/** @brief Either 标签的 true 分支为内置枚举，false 分支为 Component NBT。 */
+[[nodiscard]] inline auto serverLinksCodec()
+{
+    return makeCodec<ir::play::ServerLinks>(
+        [](B& buf, const ir::play::ServerLinks& v) {
+            buf.writeVarInt(static_cast<i32>(v.links.size()));
+            for (const auto& entry : v.links) {
+                const auto* known = std::get_if<ir::play::KnownServerLink>(&entry.label);
+                buf.writeBool(known != nullptr);
+                if (known)
+                    buf.writeVarInt(static_cast<i32>(*known));
+                else
+                    writeComponentNbt(buf, std::get<std::vector<u8>>(entry.label));
+                buf.writeString(entry.url);
+            }
+        },
+        [](B& buf) -> Result<ir::play::ServerLinks> {
+            ir::play::ServerLinks v{};
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 3)
+                return Error(ErrorCode::InvalidData, "Invalid server link count");
+            for (i32 i = 0; i < count; ++i) {
+                ir::play::ServerLink entry{};
+                bool known = false;
+                MC_TRY_ASSIGN(known, buf.readBool());
+                if (known) {
+                    i32 id = 0;
+                    MC_TRY_ASSIGN(id, buf.readVarInt());
+                    if (id < 0 || id > 9) return Error(ErrorCode::InvalidData, "Invalid server link label");
+                    entry.label = static_cast<ir::play::KnownServerLink>(id);
+                } else {
+                    std::vector<u8> label;
+                    MC_TRY_ASSIGN(label, readComponentNbt(buf));
+                    entry.label = std::move(label);
+                }
+                MC_TRY_ASSIGN(entry.url, buf.readString());
+                v.links.push_back(std::move(entry));
+            }
+            return v;
+        });
+}
+/** @brief Holder 的零表示直接定义，其余为注册 ID 加一。 */
+[[nodiscard]] inline auto showDialogCodec()
+{
+    return makeCodec<ir::play::ShowDialog>(
+        [](B& buf, const ir::play::ShowDialog& v) {
+            if (const auto* id = std::get_if<i32>(&v.dialog))
+                buf.writeVarInt(*id + 1);
+            else {
+                buf.writeVarInt(0);
+                const auto& nbt = std::get<std::vector<u8>>(v.dialog);
+                buf.writeBytes(nbt.data(), nbt.size());
+            }
+        },
+        [](B& buf) -> Result<ir::play::ShowDialog> {
+            i32 id = 0;
+            MC_TRY_ASSIGN(id, buf.readVarInt());
+            if (id < 0) return Error(ErrorCode::InvalidData, "Invalid dialog holder");
+            if (id > 0) return ir::play::ShowDialog{id - 1};
+            const usize start = buf.readPosition();
+            MC_TRY(buffer::nbt_io::readRootCompound(buf));
+            return ir::play::ShowDialog{std::vector<u8>(buf.data() + start, buf.data() + buf.readPosition())};
+        });
+}
+/** @brief 清除对话框为空负载。 */
+[[nodiscard]] inline auto clearDialogCodec()
+{
+    return makeCodec<ir::play::ClearDialog>([](B&, const ir::play::ClearDialog&) {},
+        [](B&) -> Result<ir::play::ClearDialog> { return ir::play::ClearDialog{}; });
+}
+/** @brief 导航点的标识 Either、RGB 三字节和类型专属负载。 */
+[[nodiscard]] inline auto waypointCodec()
+{
+    return makeCodec<ir::play::Waypoint>(
+        [](B& buf, const ir::play::Waypoint& v) {
+            buf.writeVarInt(static_cast<i32>(v.operation));
+            const auto* uuid = std::get_if<std::array<u8, 16>>(&v.identifier);
+            buf.writeBool(uuid != nullptr);
+            if (uuid)
+                buf.writeBytes(uuid->data(), uuid->size());
+            else
+                buf.writeString(std::get<std::string>(v.identifier));
+            buf.writeString(v.style);
+            buf.writeBool(v.color.has_value());
+            if (v.color) {
+                buf.writeU8(static_cast<u8>(*v.color >> 16));
+                buf.writeU8(static_cast<u8>(*v.color >> 8));
+                buf.writeU8(static_cast<u8>(*v.color));
+            }
+            buf.writeVarInt(static_cast<i32>(v.position.index()));
+            if (const auto* pos = std::get_if<ir::play::WaypointPosition>(&v.position)) {
+                buf.writeVarInt(pos->x);
+                buf.writeVarInt(pos->y);
+                buf.writeVarInt(pos->z);
+            } else if (const auto* chunk = std::get_if<ir::play::WaypointChunk>(&v.position)) {
+                buf.writeVarInt(chunk->x);
+                buf.writeVarInt(chunk->z);
+            } else if (const auto* angle = std::get_if<f32>(&v.position))
+                buf.writeF32(*angle);
+        },
+        [](B& buf) -> Result<ir::play::Waypoint> {
+            ir::play::Waypoint v{};
+            i32 operation = 0;
+            MC_TRY_ASSIGN(operation, buf.readVarInt());
+            if (operation < 0 || operation > 2) return Error(ErrorCode::InvalidData, "Invalid waypoint operation");
+            v.operation = static_cast<ir::play::WaypointOperation>(operation);
+            bool uuid = false;
+            MC_TRY_ASSIGN(uuid, buf.readBool());
+            if (uuid) {
+                std::array<u8, 16> id{};
+                for (auto& byte : id)
+                    MC_TRY_ASSIGN(byte, buf.readU8());
+                v.identifier = id;
+            } else {
+                std::string id;
+                MC_TRY_ASSIGN(id, buf.readString());
+                v.identifier = std::move(id);
+            }
+            MC_TRY_ASSIGN(v.style, buf.readString());
+            bool color = false;
+            MC_TRY_ASSIGN(color, buf.readBool());
+            if (color) {
+                u8 r = 0, g = 0, b = 0;
+                MC_TRY_ASSIGN(r, buf.readU8());
+                MC_TRY_ASSIGN(g, buf.readU8());
+                MC_TRY_ASSIGN(b, buf.readU8());
+                v.color = (static_cast<u32>(r) << 16) | (static_cast<u32>(g) << 8) | b;
+            }
+            i32 type = 0;
+            MC_TRY_ASSIGN(type, buf.readVarInt());
+            switch (type) {
+                case 0:
+                    break;
+                case 1: {
+                    ir::play::WaypointPosition pos{};
+                    MC_TRY_ASSIGN(pos.x, buf.readVarInt());
+                    MC_TRY_ASSIGN(pos.y, buf.readVarInt());
+                    MC_TRY_ASSIGN(pos.z, buf.readVarInt());
+                    v.position = pos;
+                    break;
+                }
+                case 2: {
+                    ir::play::WaypointChunk pos{};
+                    MC_TRY_ASSIGN(pos.x, buf.readVarInt());
+                    MC_TRY_ASSIGN(pos.z, buf.readVarInt());
+                    v.position = pos;
+                    break;
+                }
+                case 3: {
+                    f32 angle = 0;
+                    MC_TRY_ASSIGN(angle, buf.readF32());
+                    v.position = angle;
+                    break;
+                }
+                default:
+                    return Error(ErrorCode::InvalidData, "Invalid waypoint location type");
+            }
+            return v;
+        });
+}
 } // namespace mc::network::backend::java::codecs

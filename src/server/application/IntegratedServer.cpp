@@ -403,6 +403,9 @@ void IntegratedServer::stop()
     // 回写在线玩家运行时状态到 PlayerDataManager 缓存
     // 必须在 clearAll() 之前调用，否则玩家实体已被从 EntityManager 移除
     // saveAllWorldData() 后续会通过 PlayerDataManager::saveAll() 把缓存落盘
+    if (m_containerManager != nullptr) {
+        m_containerManager->closeAll();
+    }
     savePlayerRuntimeState();
 
     // 清理玩家实体（遍历所有维度）
@@ -714,7 +717,7 @@ void IntegratedServer::handleCloseContainerPacket(PlayerId playerId, const mc::n
         if (!player || !player->loggedIn) {
             return;
         }
-        _handleCloseContainerRemote(playerId);
+        _handleCloseContainerRemote(playerId, evt->containerId);
         return;
     }
 

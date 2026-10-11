@@ -33,11 +33,14 @@
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/container/AnvilContainer.hpp"
+#include "common/entity/inventory/container/BeaconContainer.hpp"
 #include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/entity/inventory/container/LoomContainer.hpp"
+#include "common/entity/inventory/container/MerchantContainerMenu.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
@@ -65,6 +68,7 @@
 #include "server/dimension/ServerDimension.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/menu/CraftingMenu.hpp"
+#include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/session/ClientSessionManager.hpp"
 #include "server/network/session/ServerNetwork.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -417,6 +421,9 @@ void StandaloneServer::stop()
     // 回写在线玩家运行时状态到 PlayerDataManager 缓存
     // 此时主循环已退出，玩家实体不再被 tick() 修改，可安全遍历。
     // 必须在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
+    if (m_containerManager != nullptr) {
+        m_containerManager->closeAll();
+    }
     savePlayerRuntimeState();
 
     // 停止核心组件
@@ -564,6 +571,12 @@ void StandaloneServer::_setupContainerCallbacks()
         }
 
         switch (type) {
+            case mc::ContainerType::Beacon: {
+                auto* beacon = dynamic_cast<blockentity::BeaconEntity*>(world->getBlockEntity(pos));
+                if (beacon != nullptr)
+                    result.menu = std::make_unique<BeaconContainer>(containerId, playerInventory, *world, *beacon);
+                return result;
+            }
             case mc::ContainerType::Crafting: {
                 auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory);
                 menu->updateResult();
@@ -661,6 +674,11 @@ void StandaloneServer::_setupContainerCallbacks()
                 result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
                 return result;
             }
+            case mc::ContainerType::Loom: {
+                result.menu = std::make_unique<mc::entity::inventory::container::LoomContainer>(
+                    containerId, playerInventory, pos, world);
+                return result;
+            }
             case mc::ContainerType::Anvil: {
                 result.menu = std::make_unique<mc::AnvilContainer>(containerId, playerInventory, pos, world);
                 return result;
@@ -709,6 +727,14 @@ void StandaloneServer::_setupContainerCallbacks()
                 mc::network::protocol::ConnectionProtocol::Play,
                 mc::network::ir::PlayPacket{std::move(pkt)},
             });
+        if (const auto* merchant = dynamic_cast<const MerchantContainerMenu*>(&menu)) {
+            auto offers = net::buildMerchantOffersIr(*merchant);
+            if (offers.success()) {
+                sendPacketToPlayer(playerId, offers.value());
+            } else {
+                spdlog::warn("Cannot send merchant offers to player {}: {}", playerId, offers.error().toString());
+            }
+        }
     };
 
     // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。
@@ -774,6 +800,10 @@ void StandaloneServer::_setupContainerCallbacks()
                 }
             }
 
+            const auto* player = playerManager().getPlayer(playerId);
+            if (player == nullptr || !player->hasConnection()) {
+                return;
+            }
             mc::network::ir::play::ContainerClose pkt;
             pkt.containerId = static_cast<i32>(containerId);
             sendPacketToPlayer(playerId,
@@ -783,6 +813,16 @@ void StandaloneServer::_setupContainerCallbacks()
                 });
         });
 
+    containerManager().setOnContainerSlotUpdate(
+        [this](PlayerId playerId, const AbstractContainerMenu& menu, i32 slot, const ItemStack& stack) {
+            mc::network::ir::play::ContainerSetSlot update{static_cast<i32>(menu.getId()),
+                menu.incrementStateId(),
+                static_cast<i16>(slot),
+                mc::network::ir::toItemStackView(stack)};
+            sendPacketToPlayer(playerId,
+                mc::network::ir::IrPacket{
+                    mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(update)}});
+        });
     containerManager().setOnContainerUpdate(
         [this, sendContainerContent](
             PlayerId playerId, const AbstractContainerMenu& menu) { sendContainerContent(playerId, menu); });

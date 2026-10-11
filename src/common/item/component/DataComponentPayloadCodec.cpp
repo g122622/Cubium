@@ -31,9 +31,13 @@
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
+#include "common/item/items/special/bundle/BundleContents.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
+#include <algorithm>
+#include <array>
 
 #include <memory>
 #include <string>
@@ -41,11 +45,31 @@
 #include <variant>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item {
 namespace component {
 namespace detail {
+
+namespace {
+constexpr std::array<std::string_view, 16> _colorNames{"white",
+    "orange",
+    "magenta",
+    "light_blue",
+    "yellow",
+    "lime",
+    "pink",
+    "gray",
+    "light_gray",
+    "cyan",
+    "purple",
+    "blue",
+    "brown",
+    "green",
+    "red",
+    "black"};
+}
 
 using nbt::TagId;
 using nbt::tags::compound_tag;
@@ -93,6 +117,7 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             }
             return list;
         }
+        case DataComponentType::StoredEnchantments:
         case DataComponentType::Enchantments: {
             const auto& ench = std::get<item::enchant::EnchantmentContainer>(payload);
             return ench.toNbt();
@@ -137,6 +162,37 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
             auto list = std::make_unique<nbt::tags::string_list_tag>();
             for (const auto& s : pred.getPredicates()) {
                 list->value.push_back(s);
+            }
+            return list;
+        }
+        case DataComponentType::BundleContents: {
+            auto list = std::make_unique<nbt::tags::compound_list_tag>();
+            const auto contents = items::BundleContents::fromJson(std::get<nlohmann::json>(payload));
+            for (const auto& stack : contents.items()) {
+                compound_tag value;
+                stack.toNbt(value);
+                list->value.push_back(std::move(value));
+            }
+            return list;
+        }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent:
+            return nbt::jsonToNbt(std::get<nlohmann::json>(payload));
+        case DataComponentType::BannerPatterns: {
+            auto layers = nlohmann::json::array();
+            for (const auto& layer : std::get<nlohmann::json>(payload)) {
+                const auto type = blockentity::BannerPatterns::byHash(layer.at("Pattern").get<std::string>());
+                layers.push_back(
+                    {{"pattern",
+                         layer.contains("DirectPattern")
+                             ? layer.at("DirectPattern")
+                             : nlohmann::json("minecraft:" + blockentity::BannerPatterns::getFileName(type))},
+                        {"color", _colorNames.at(static_cast<usize>(layer.at("Color").get<i32>()))}});
+            }
+            auto list = std::make_unique<nbt::tags::compound_list_tag>();
+            for (const auto& layer : layers) {
+                auto compound = nbt::jsonToNbt(layer);
+                list->value.push_back(std::move(*compound));
             }
             return list;
         }
@@ -237,6 +293,7 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
             }
             return DataComponentPayload{std::in_place_index<3>, std::move(lines)};
         }
+        case DataComponentType::StoredEnchantments:
         case DataComponentType::Enchantments: {
             if (tag.id() == TagId::List) {
                 return DataComponentPayload{std::in_place_index<4>,
@@ -284,6 +341,61 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 }
             }
             return DataComponentPayload{std::in_place_index<6>, AdventureModePredicate(std::move(preds))};
+        }
+        case DataComponentType::BundleContents: {
+            std::vector<ItemStack> items;
+            if (const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(&tag))
+                for (const auto& value : list->value) {
+                    auto stack = ItemStack::fromNbt(value);
+                    if (stack.success()) items.push_back(std::move(stack).value());
+                }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>,
+                item::items::BundleContents(std::move(items)).toJson()};
+        }
+        case DataComponentType::WritableBookContent:
+        case DataComponentType::WrittenBookContent:
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, nbt::nbtToJson(tag)};
+        case DataComponentType::BannerPatterns: {
+            auto layers = nlohmann::json::array();
+            const auto saved = nbt::nbtToJson(tag);
+            if (!saved.is_array()) {
+                spdlog::warn("Ignoring banner patterns that are not an NBT list");
+                return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(layers)};
+            }
+            for (const auto& layer : saved) {
+                if (!layer.is_object() || !layer.contains("pattern") || !layer.contains("color") ||
+                    !layer["color"].is_string()) {
+                    spdlog::warn("Ignoring malformed saved banner layer");
+                    continue;
+                }
+                auto value = nlohmann::json::object();
+                const auto& pattern = layer.at("pattern");
+                if (pattern.is_object()) {
+                    if (!pattern.contains("asset_id") || !pattern["asset_id"].is_string() ||
+                        !pattern.contains("translation_key") || !pattern["translation_key"].is_string()) {
+                        spdlog::warn("Ignoring malformed direct banner pattern");
+                        continue;
+                    }
+                    value["DirectPattern"] = pattern;
+                    value["Pattern"] = "b";
+                } else if (pattern.is_string()) {
+                    for (i32 type = 0; type < static_cast<i32>(blockentity::BannerPatternType::Count); ++type) {
+                        const auto entry = static_cast<blockentity::BannerPatternType>(type);
+                        if ("minecraft:" + blockentity::BannerPatterns::getFileName(entry) ==
+                            pattern.get<std::string>())
+                            value["Pattern"] = blockentity::BannerPatterns::getHashName(entry);
+                    }
+                }
+                const auto color = layer.at("color").get<std::string>();
+                const auto it = std::find(_colorNames.begin(), _colorNames.end(), color);
+                if (!value.contains("Pattern") || it == _colorNames.end()) {
+                    spdlog::warn("Ignoring saved banner layer with an unknown pattern or color");
+                    continue;
+                }
+                value["Color"] = static_cast<i32>(std::distance(_colorNames.begin(), it));
+                layers.push_back(std::move(value));
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(layers)};
         }
         case DataComponentType::CustomData: {
             if (tag.id() == TagId::Compound) {

@@ -95,6 +95,10 @@ public:
     // ==================== 访问器 ====================
 
     [[nodiscard]] Menu* getMenu() const { return m_menu.get(); }
+    [[nodiscard]] std::optional<i32> getContainerId() const noexcept override
+    {
+        return m_menu != nullptr ? std::optional<i32>(m_menu->getId()) : std::nullopt;
+    }
     [[nodiscard]] renderer::trident::gui::GuiRenderer* guiRenderer() const { return m_gui; }
     [[nodiscard]] renderer::trident::gui::GuiTextureManager* textureManager() const { return m_textureManager; }
     [[nodiscard]] renderer::trident::item::ItemRenderer* itemRenderer() const { return m_itemRenderer; }

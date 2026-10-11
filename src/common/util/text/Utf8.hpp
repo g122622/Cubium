@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "common/core/Types.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -150,6 +152,19 @@ inline void utf8Append(std::string& output, u32 codePoint)
  * @return 解码得到的 Unicode 码点；遇到无效序列时返回 '?' 并跳过 1 字节
  */
 [[nodiscard]] u32 utf8Decode(const std::string& text, size_t& index);
+
+/** @brief 严格校验 UTF-8 并计算 Java 字符串所用的 UTF-16 单元长度。 */
+[[nodiscard]] inline std::optional<size_t> utf16Length(const std::string& text)
+{
+    size_t offset = 0, length = 0;
+    while (offset < text.size()) {
+        const auto start = offset;
+        const auto cp = utf8Decode(text, offset);
+        if (text.substr(start, offset - start) != utf8Encode(cp)) return std::nullopt;
+        length += cp > 0xffff ? 2 : 1;
+    }
+    return length;
+}
 
 /**
  * @brief 获取指定字节位置处码点的字节长度（不跨越码点边界）

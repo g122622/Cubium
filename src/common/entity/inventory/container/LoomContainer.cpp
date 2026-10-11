@@ -27,6 +27,8 @@
 #include "common/entity/inventory/Slot.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/IInventory.hpp"
@@ -37,6 +39,7 @@
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include <algorithm>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -51,38 +54,40 @@ namespace container {
 // ========== 染料物品工具函数 ==========
 
 /// 获取所有染料物品的集合（共16种）
-static const std::unordered_set<const Item*>& getDyeItems()
+namespace {
+
+const std::unordered_set<const Item*>& _dyeItems()
 {
     static std::unordered_set<const Item*> dyeItems = {
-        Items::INK_SAC,          // 墨囊（黑色染料）
-        Items::RED_DYE,          // 红色染料
-        Items::GREEN_DYE,        // 绿色染料
-        Items::COCOA_BEANS,      // 可可豆（棕色染料）
-        Items::LAPIS_LAZULI_DYE, // 青金石（蓝色染料）
-        Items::PURPLE_DYE,       // 紫色染料
-        Items::CYAN_DYE,         // 青色染料
-        Items::LIGHT_GRAY_DYE,   // 淡灰色染料
-        Items::GRAY_DYE,         // 灰色染料
-        Items::PINK_DYE,         // 粉红色染料
-        Items::LIME_DYE,         // 黄绿色染料
-        Items::YELLOW_DYE,       // 黄色染料
-        Items::LIGHT_BLUE_DYE,   // 淡蓝色染料
-        Items::MAGENTA_DYE,      // 品红色染料
-        Items::ORANGE_DYE,       // 橙色染料
-        Items::WHITE_DYE,        // 白色染料
+        Items::BLACK_DYE,      // 黑色染料
+        Items::RED_DYE,        // 红色染料
+        Items::GREEN_DYE,      // 绿色染料
+        Items::BROWN_DYE,      // 棕色染料
+        Items::BLUE_DYE,       // 蓝色染料
+        Items::PURPLE_DYE,     // 紫色染料
+        Items::CYAN_DYE,       // 青色染料
+        Items::LIGHT_GRAY_DYE, // 淡灰色染料
+        Items::GRAY_DYE,       // 灰色染料
+        Items::PINK_DYE,       // 粉红色染料
+        Items::LIME_DYE,       // 黄绿色染料
+        Items::YELLOW_DYE,     // 黄色染料
+        Items::LIGHT_BLUE_DYE, // 淡蓝色染料
+        Items::MAGENTA_DYE,    // 品红色染料
+        Items::ORANGE_DYE,     // 橙色染料
+        Items::WHITE_DYE,      // 白色染料
     };
     return dyeItems;
 }
 
 /// 获取染料物品对应的颜色
-static DyeColor getDyeColorFromItem(const Item* item)
+DyeColor _dyeColorFromItem(const Item* item)
 {
     static const std::unordered_map<const Item*, DyeColor> dyeColorMap = {
-        {Items::INK_SAC, DyeColor::Black},
+        {Items::BLACK_DYE, DyeColor::Black},
         {Items::RED_DYE, DyeColor::Red},
         {Items::GREEN_DYE, DyeColor::Green},
-        {Items::COCOA_BEANS, DyeColor::Brown},
-        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
+        {Items::BROWN_DYE, DyeColor::Brown},
+        {Items::BLUE_DYE, DyeColor::Blue},
         {Items::PURPLE_DYE, DyeColor::Purple},
         {Items::CYAN_DYE, DyeColor::Cyan},
         {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
@@ -96,20 +101,20 @@ static DyeColor getDyeColorFromItem(const Item* item)
         {Items::WHITE_DYE, DyeColor::White},
     };
 
-    auto it = dyeColorMap.find(item);
-    if (it != dyeColorMap.end()) {
-        return it->second;
-    }
-    return DyeColor::White;
+    const auto it = dyeColorMap.find(item);
+    MC_ASSERT_RELEASE(it != dyeColorMap.end());
+    return it->second;
 }
 
 /// 检查物品是否为染料
-static bool isDyeItem(const Item* item)
+bool _isDyeItem(const Item* item)
 {
-    return item != nullptr && getDyeItems().count(item) > 0;
+    return item != nullptr && _dyeItems().count(item) > 0;
 }
 
 // ========== LoomContainer 实现 ==========
+
+} // namespace
 
 LoomContainer::LoomContainer(
     ContainerId id, PlayerInventory* playerInventory, std::unique_ptr<IInventory> inventory, const BlockPos& pos)
@@ -130,6 +135,13 @@ LoomContainer::LoomContainer(ContainerId id, PlayerInventory* playerInventory, c
     _initSlots(playerInventory);
 }
 
+LoomContainer::LoomContainer(ContainerId id, PlayerInventory* playerInventory, const BlockPos& pos, IWorld* world)
+    : LoomContainer(id, playerInventory, pos)
+{
+    MC_ASSERT_RELEASE(world != nullptr);
+    m_world = world;
+}
+
 void LoomContainer::_initSlots(PlayerInventory* playerInventory)
 {
     // 织布机输入槽位
@@ -138,7 +150,7 @@ void LoomContainer::_initSlots(PlayerInventory* playerInventory)
     addSlot(std::make_unique<LoomPatternSlot>(m_inputInventory.get(), SLOT_PATTERN, PATTERN_SLOT_X, PATTERN_SLOT_Y));
 
     // 织布机输出槽位
-    addSlot(std::make_unique<LoomResultSlot>(m_outputInventory.get(), SLOT_RESULT, RESULT_SLOT_X, RESULT_SLOT_Y, this));
+    addSlot(std::make_unique<LoomResultSlot>(m_outputInventory.get(), 0, RESULT_SLOT_X, RESULT_SLOT_Y, this));
 
     // 玩家主背包（3行9列）
     for (i32 row = 0; row < 3; ++row) {
@@ -151,65 +163,71 @@ void LoomContainer::_initSlots(PlayerInventory* playerInventory)
     for (i32 col = 0; col < 9; ++col) {
         addSlot(std::make_unique<Slot>(playerInventory, col, 8 + col * 18, 142));
     }
+    trackInt([this] { return getSelectedPatternIndex(); },
+        [this](i32 index) {
+            m_selectedPattern = index >= 0 && index < static_cast<i32>(m_selectablePatterns.size())
+                ? static_cast<i32>(m_selectablePatterns[static_cast<std::size_t>(index)])
+                : 0;
+        });
 }
 
 bool LoomContainer::stillValid(const Player& player) const
 {
-    return isWithinDistance(player, m_pos);
+    if (!isWithinDistance(player, m_pos)) return false;
+    if (m_world == nullptr) return true;
+    const auto* state = m_world->getBlockState(m_pos);
+    return player.world() == m_world && state != nullptr && &state->getBlock() == VanillaBlocks::LOOM;
+}
+
+void LoomContainer::_updateSelectablePatterns()
+{
+    m_selectablePatterns.clear();
+    const auto banner = m_inputInventory->getItem(SLOT_BANNER);
+    const auto dye = m_inputInventory->getItem(SLOT_DYE);
+    const auto pattern = m_inputInventory->getItem(SLOT_PATTERN);
+    if (banner.isEmpty() || dye.isEmpty() || dynamic_cast<const item::BannerItem*>(banner.getItem()) == nullptr ||
+        !_dyeItems().contains(dye.getItem()) ||
+        blockentity::BannerEntity::getPatternCount(banner) >= blockentity::BannerEntity::MAX_PATTERNS) {
+        return;
+    }
+    if (pattern.isEmpty()) {
+        const auto basic = blockentity::BannerPatterns::getLoomPatterns();
+        m_selectablePatterns.assign(basic.begin(), basic.end());
+    } else if (const auto* item = dynamic_cast<const item::BannerPatternItem*>(pattern.getItem())) {
+        const auto type = item->getBannerPattern();
+        if (blockentity::BannerPatterns::hasPatternItem(type)) {
+            m_selectablePatterns.push_back(type);
+        }
+    }
 }
 
 void LoomContainer::slotsChanged(IInventory* inventory)
 {
     MC_UNUSED(inventory);
-
-    const ItemStack& bannerStack = m_inputInventory->getItem(SLOT_BANNER);
-    const ItemStack& dyeStack = m_inputInventory->getItem(SLOT_DYE);
-    const ItemStack& patternStack = m_inputInventory->getItem(SLOT_PATTERN);
-
-    // 检查旗帜上的图案数量是否已达上限
-    bool maxPatterns = false;
-    if (!bannerStack.isEmpty() && bannerStack.getItem() != nullptr) {
-        const auto* bannerItem = dynamic_cast<const item::BannerItem*>(bannerStack.getItem());
-        if (bannerItem != nullptr) {
-            i32 patternCount = blockentity::BannerEntity::getPatternCount(bannerStack);
-            maxPatterns = patternCount >= blockentity::BannerEntity::MAX_PATTERNS;
-        }
+    _updateSelectablePatterns();
+    if (!_isValidPattern(m_selectedPattern)) {
+        m_selectedPattern = m_selectablePatterns.size() == 1 ? static_cast<i32>(m_selectablePatterns.front()) : 0;
     }
-
-    // 如果放入了图案物品，自动设置对应的图案ID
-    if (!patternStack.isEmpty() && patternStack.getItem() != nullptr) {
-        const auto* patternItem = dynamic_cast<const item::BannerPatternItem*>(patternStack.getItem());
-        if (patternItem != nullptr) {
-            if (maxPatterns) {
-                m_selectedPattern = 0;
-            } else {
-                m_selectedPattern = static_cast<i32>(patternItem->getBannerPattern());
-            }
-        }
-    }
-
-    // 如果旗帜或染料槽为空，重置图案选择
-    if (bannerStack.isEmpty() || dyeStack.isEmpty()) {
-        m_selectedPattern = 0;
-    }
-
     _updateResult();
 }
 
-bool LoomContainer::clickMenuButton(Player& player, i32 id)
+i32 LoomContainer::getSelectedPatternIndex() const noexcept
+{
+    const auto it = std::find(m_selectablePatterns.begin(),
+        m_selectablePatterns.end(),
+        static_cast<blockentity::BannerPatternType>(m_selectedPattern));
+    return it == m_selectablePatterns.end() ? -1 : static_cast<i32>(std::distance(m_selectablePatterns.begin(), it));
+}
+
+bool LoomContainer::clickMenuButton(Player& player, i32 index)
 {
     MC_UNUSED(player);
-
-    if (id > 0 && id <= PATTERN_COUNT) {
-        // 验证图案选择是否有效
-        if (_isValidPattern(id)) {
-            m_selectedPattern = id;
-            _updateResult();
-            return true;
-        }
+    if (index < 0 || index >= static_cast<i32>(m_selectablePatterns.size())) {
+        return false;
     }
-
-    return false;
+    m_selectedPattern = static_cast<i32>(m_selectablePatterns[static_cast<std::size_t>(index)]);
+    _updateResult();
+    return true;
 }
 
 void LoomContainer::_updateResult()
@@ -223,7 +241,7 @@ void LoomContainer::_updateResult()
     if (selectedPattern > 0 && !bannerStack.isEmpty() && !dyeStack.isEmpty()) {
         // 验证选中图案的合法性
         if (!_isValidPattern(selectedPattern)) {
-            m_outputInventory->setItem(SLOT_RESULT, ItemStack());
+            m_outputInventory->setItem(0, ItemStack());
             return;
         }
 
@@ -237,7 +255,7 @@ void LoomContainer::_updateResult()
 
         // 从染料物品获取颜色
         if (dyeStack.getItem() != nullptr) {
-            dyeColor = getDyeColorFromItem(dyeStack.getItem());
+            dyeColor = _dyeColorFromItem(dyeStack.getItem());
         }
 
         // 添加新图案到BlockEntityTag.Patterns
@@ -258,36 +276,21 @@ void LoomContainer::_updateResult()
         blockEntityTag["Patterns"] = patternsArray;
 
         // 检查输出是否与当前输出不同
-        const ItemStack& currentOutput = m_outputInventory->getItem(SLOT_RESULT);
+        const ItemStack& currentOutput = m_outputInventory->getItem(0);
         if (result != currentOutput) {
-            m_outputInventory->setItem(SLOT_RESULT, std::move(result));
+            m_outputInventory->setItem(0, std::move(result));
         }
     } else {
-        m_outputInventory->setItem(SLOT_RESULT, ItemStack());
+        m_outputInventory->setItem(0, ItemStack());
     }
 }
 
 bool LoomContainer::_isValidPattern(i32 patternIndex) const
 {
-    const ItemStack& patternStack = m_inputInventory->getItem(SLOT_PATTERN);
-
-    // 不需要图案物品的图案（索引1到PATTERN_ITEM_INDEX）
-    if (patternIndex > 0 && patternIndex <= PATTERN_ITEM_INDEX) {
-        return true;
-    }
-
-    // 需要图案物品的图案
-    if (patternIndex > PATTERN_ITEM_INDEX && patternIndex <= PATTERN_COUNT) {
-        if (!patternStack.isEmpty() && patternStack.getItem() != nullptr) {
-            const auto* patternItem = dynamic_cast<const item::BannerPatternItem*>(patternStack.getItem());
-            if (patternItem != nullptr) {
-                return static_cast<i32>(patternItem->getBannerPattern()) == patternIndex;
-            }
-        }
-        return false;
-    }
-
-    return false;
+    if (patternIndex <= 0 || patternIndex >= static_cast<i32>(blockentity::BannerPatternType::Count)) return false;
+    return std::find(m_selectablePatterns.begin(),
+               m_selectablePatterns.end(),
+               static_cast<blockentity::BannerPatternType>(patternIndex)) != m_selectablePatterns.end();
 }
 
 ItemStack LoomContainer::quickMoveStack(i32 slotIndex, Player& player)
@@ -321,7 +324,7 @@ ItemStack LoomContainer::quickMoveStack(i32 slotIndex, Player& player)
                 if (!moveItemToRange(stack, SLOT_BANNER, SLOT_BANNER + 1, false)) {
                     return ItemStack();
                 }
-            } else if (isDyeItem(item)) {
+            } else if (_isDyeItem(item)) {
                 // 染料 → 染料槽
                 if (!moveItemToRange(stack, SLOT_DYE, SLOT_DYE + 1, false)) {
                     return ItemStack();
@@ -376,7 +379,7 @@ bool LoomDyeSlot::mayPlace(const ItemStack& stack) const
     if (stack.isEmpty() || stack.getItem() == nullptr) {
         return false;
     }
-    return isDyeItem(stack.getItem());
+    return _isDyeItem(stack.getItem());
 }
 
 // ========== LoomPatternSlot 实现 ==========
@@ -422,18 +425,7 @@ ItemStack LoomResultSlot::onTake(Player& player, ItemStack stack)
         input->setItem(LoomContainer::SLOT_DYE, std::move(dyeStack));
     }
 
-    // 图案物品只在需要时消耗（索引 > PATTERN_ITEM_INDEX 时）
-    ItemStack patternStack = input->getItem(LoomContainer::SLOT_PATTERN);
-    if (!patternStack.isEmpty() && patternStack.getItem() != nullptr) {
-        const auto* patternItem = dynamic_cast<const item::BannerPatternItem*>(patternStack.getItem());
-        if (patternItem != nullptr) {
-            i32 patternIndex = static_cast<i32>(patternItem->getBannerPattern());
-            if (patternIndex > LoomContainer::PATTERN_ITEM_INDEX) {
-                patternStack.shrink(1);
-                input->setItem(LoomContainer::SLOT_PATTERN, std::move(patternStack));
-            }
-        }
-    }
+    // 图案卷可重复使用，只消耗旗帜和染料。
 
     // 更新输出
     m_container->slotsChanged(input);

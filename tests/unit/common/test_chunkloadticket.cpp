@@ -31,6 +31,8 @@
 #include <cmath>
 #include <future>
 #include <thread>
+#include <tuple>
+#include <vector>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -1732,4 +1734,47 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkDoesNotAffectTickets)
 
     // 仍然只有一个强制加载区块
     EXPECT_EQ(manager.getForcedChunks().size(), 1u);
+}
+
+TEST_F(ChunkLoadTicketManagerExtendedTest, ClientViewDistanceIsIndependentAndRebuildsTracking)
+{
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(4);
+    manager.setPlayerViewDistance(1, 2);
+    manager.updatePlayerPosition(1, 0, 0);
+    manager.updatePlayerPosition(2, 0, 0);
+    EXPECT_TRUE(manager.isPlayerTracking(1, 2, 0));
+    EXPECT_FALSE(manager.isPlayerTracking(1, 3, 0));
+    EXPECT_TRUE(manager.isPlayerTracking(2, 4, 0));
+    manager.setPlayerViewDistance(1, 4);
+    EXPECT_TRUE(manager.isPlayerTracking(1, 4, 0));
+    std::vector<std::tuple<PlayerId, ChunkCoord, ChunkCoord, bool>> changes;
+    manager.setTrackingChangeCallback([&](PlayerId playerId, ChunkCoord x, ChunkCoord z, bool tracking) {
+        changes.emplace_back(playerId, x, z, tracking);
+    });
+    manager.setPlayerViewDistance(1, 2);
+    EXPECT_FALSE(manager.isPlayerTracking(1, 4, 0));
+    EXPECT_TRUE(manager.isPlayerTracking(2, 4, 0));
+    ASSERT_FALSE(changes.empty());
+    for (const auto& [playerId, x, z, tracking] : changes) {
+        EXPECT_EQ(playerId, 1u);
+        EXPECT_FALSE(tracking);
+        EXPECT_GT(std::max(std::abs(x), std::abs(z)), 2);
+    }
+}
+
+TEST_F(ChunkLoadTicketManagerExtendedTest, ClientViewDistanceSurvivesServerLimitChangesAndClearsOnLeave)
+{
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(4);
+    manager.setPlayerViewDistance(1, 6);
+    manager.updatePlayerPosition(1, 0, 0);
+    EXPECT_FALSE(manager.isPlayerTracking(1, 5, 0));
+    manager.setViewDistance(6);
+    EXPECT_TRUE(manager.isPlayerTracking(1, 6, 0));
+    manager.setViewDistance(8);
+    EXPECT_FALSE(manager.isPlayerTracking(1, 7, 0));
+    manager.removePlayer(1);
+    manager.updatePlayerPosition(1, 0, 0);
+    EXPECT_TRUE(manager.isPlayerTracking(1, 8, 0));
 }

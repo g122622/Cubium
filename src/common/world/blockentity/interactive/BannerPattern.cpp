@@ -23,6 +23,7 @@
 
 #include "world/blockentity/interactive/BannerPattern.hpp"
 #include "util/assert/AssertAll.hpp"
+#include <array>
 #include <cstddef>
 #include <string>
 
@@ -31,13 +32,15 @@ namespace blockentity {
 
 namespace {
 
+constexpr size_t _PATTERN_COUNT = static_cast<size_t>(BannerPatternType::Count);
+
 /**
  * @brief 图案哈希名表
  *
  * 索引与 BannerPatternType 枚举值对应
  * MC 1.16.5 使用 2-3 字符的短名作为哈希名
  */
-const char* const HASH_NAMES[] = {
+constexpr std::array<const char*, _PATTERN_COUNT> _HASH_NAMES = {
     "b",   // Base
     "bl",  // SquareBottomLeft
     "br",  // SquareBottomRight
@@ -88,7 +91,7 @@ const char* const HASH_NAMES[] = {
  *
  * 索引与 BannerPatternType 枚举值对应
  */
-const char* const FILE_NAMES[] = {
+constexpr std::array<const char*, _PATTERN_COUNT> _FILE_NAMES = {
     "base",                   // Base
     "square_bottom_left",     // SquareBottomLeft
     "square_bottom_right",    // SquareBottomRight
@@ -137,7 +140,7 @@ const char* const FILE_NAMES[] = {
 /**
  * @brief 图案是否需要特殊物品表
  */
-constexpr bool HAS_PATTERN_ITEM[] = {
+constexpr std::array<bool, _PATTERN_COUNT> _HAS_PATTERN_ITEM = {
     false, // Base
     false, // SquareBottomLeft
     false, // SquareBottomRight
@@ -169,10 +172,10 @@ constexpr bool HAS_PATTERN_ITEM[] = {
     false, // HalfVerticalMirror
     false, // HalfHorizontalMirror
     false, // Border
-    false, // CurlyBorder
+    true,  // CurlyBorder
     false, // Gradient
     false, // GradientUp
-    false, // Bricks
+    true,  // Bricks
     true,  // Globe
     true,  // Creeper
     true,  // Skull
@@ -183,14 +186,12 @@ constexpr bool HAS_PATTERN_ITEM[] = {
     true   // Guster
 };
 
-constexpr size_t PATTERN_COUNT = static_cast<size_t>(BannerPatternType::Count);
-
 } // namespace
 
 BannerPatternType BannerPatterns::byHash(const std::string& hashName)
 {
-    for (size_t i = 0; i < PATTERN_COUNT; ++i) {
-        if (hashName == HASH_NAMES[i]) {
+    for (size_t i = 0; i < _PATTERN_COUNT; ++i) {
+        if (hashName == _HASH_NAMES[i]) {
             return static_cast<BannerPatternType>(i);
         }
     }
@@ -201,22 +202,59 @@ BannerPatternType BannerPatterns::byHash(const std::string& hashName)
 std::string BannerPatterns::getHashName(BannerPatternType type)
 {
     const size_t index = static_cast<size_t>(type);
-    MC_ASSERT_RELEASE(index < PATTERN_COUNT);
-    return HASH_NAMES[index];
+    MC_ASSERT_RELEASE(index < _PATTERN_COUNT);
+    return _HASH_NAMES[index];
 }
 
 std::string BannerPatterns::getFileName(BannerPatternType type)
 {
     const size_t index = static_cast<size_t>(type);
-    MC_ASSERT_RELEASE(index < PATTERN_COUNT);
-    return FILE_NAMES[index];
+    MC_ASSERT_RELEASE(index < _PATTERN_COUNT);
+    return _FILE_NAMES[index];
 }
 
 bool BannerPatterns::hasPatternItem(BannerPatternType type)
 {
     const size_t index = static_cast<size_t>(type);
-    MC_ASSERT_RELEASE(index < PATTERN_COUNT);
-    return HAS_PATTERN_ITEM[index];
+    MC_ASSERT_RELEASE(index < _PATTERN_COUNT);
+    return _HAS_PATTERN_ITEM[index];
+}
+
+std::span<const BannerPatternType> BannerPatterns::getLoomPatterns()
+{
+    static constexpr std::array<BannerPatternType, 32> patterns{BannerPatternType::SquareBottomLeft,
+        BannerPatternType::SquareBottomRight,
+        BannerPatternType::SquareTopLeft,
+        BannerPatternType::SquareTopRight,
+        BannerPatternType::StripeBottom,
+        BannerPatternType::StripeTop,
+        BannerPatternType::StripeLeft,
+        BannerPatternType::StripeRight,
+        BannerPatternType::StripeCenter,
+        BannerPatternType::StripeMiddle,
+        BannerPatternType::StripeDownright,
+        BannerPatternType::StripeDownleft,
+        BannerPatternType::StripeSmall,
+        BannerPatternType::Cross,
+        BannerPatternType::StraightCross,
+        BannerPatternType::TriangleBottom,
+        BannerPatternType::TriangleTop,
+        BannerPatternType::TrianglesBottom,
+        BannerPatternType::TrianglesTop,
+        BannerPatternType::DiagonalLeft,
+        BannerPatternType::DiagonalRight,
+        BannerPatternType::DiagonalLeftMirror,
+        BannerPatternType::DiagonalRightMirror,
+        BannerPatternType::CircleMiddle,
+        BannerPatternType::RhombusMiddle,
+        BannerPatternType::HalfVertical,
+        BannerPatternType::HalfHorizontal,
+        BannerPatternType::HalfVerticalMirror,
+        BannerPatternType::HalfHorizontalMirror,
+        BannerPatternType::Border,
+        BannerPatternType::Gradient,
+        BannerPatternType::GradientUp};
+    return patterns;
 }
 
 } // namespace blockentity

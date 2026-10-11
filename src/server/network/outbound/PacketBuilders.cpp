@@ -21,6 +21,13 @@
  *
  */
 
+#include "common/entity/inventory/container/MerchantContainerMenu.hpp"
+#include "common/network/buffer/ByteBuf.hpp"
+#include "common/network/buffer/NbtIo.hpp"
+#include "common/network/ir/ItemStackBridge.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
+#include <array>
+
 #include "server/network/outbound/PacketBuilders.hpp"
 
 #include "common/core/Types.hpp"
@@ -120,6 +127,82 @@ mc::network::ir::IrPacket buildLevelParticlesIr(particle::ParticleTypeId type, c
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
     return buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), count);
+}
+
+namespace {
+
+Result<mc::network::ir::play::TradeItemCost> _tradeCost(const ItemStack& stack)
+{
+    if (stack.isEmpty()) {
+        return Error(ErrorCode::InvalidArgument, "Merchant offer has an empty cost");
+    }
+    const auto view = mc::network::ir::toItemStackView(stack);
+    mc::network::buffer::ByteBuf predicate;
+    if (view.componentsPatch.empty()) {
+        predicate.writeVarInt(0);
+    } else {
+        mc::network::buffer::ByteBuf patch(view.componentsPatch.data(), view.componentsPatch.size());
+        i32 added = 0;
+        i32 removed = 0;
+        MC_TRY_ASSIGN(added, patch.readVarInt());
+        MC_TRY_ASSIGN(removed, patch.readVarInt());
+        if (removed != 0) {
+            return Error(ErrorCode::InvalidArgument, "Trade costs cannot require absent components");
+        }
+        predicate.writeVarInt(added);
+        predicate.writeBytes(patch.data() + patch.readPosition(), patch.readableBytes());
+    }
+    return mc::network::ir::play::TradeItemCost{view.itemId, view.count, predicate.bytes()};
+}
+
+} // namespace
+
+Result<mc::network::ir::IrPacket> buildMerchantOffersIr(const MerchantContainerMenu& menu)
+{
+    mc::network::ir::play::MerchantOffersUpdate packet{};
+    packet.containerId = static_cast<i32>(menu.getId());
+    packet.level = menu.getTraderLevel();
+    packet.xp = menu.getTraderXp();
+    packet.showProgress = menu.showProgressBar();
+    packet.canRestock = menu.canRestock();
+    const auto& offers = menu.getOffers();
+    packet.offers.reserve(offers.size());
+    for (std::size_t i = 0; i < offers.size(); ++i) {
+        const auto& offer = *offers.getOffer(static_cast<i32>(i));
+        mc::network::ir::play::TradeOfferView view{};
+        MC_TRY_ASSIGN(view.costA, _tradeCost(offer.getBuyA()));
+        if (offer.getBuyB().has_value()) {
+            mc::network::ir::play::TradeItemCost cost{};
+            MC_TRY_ASSIGN(cost, _tradeCost(*offer.getBuyB()));
+            view.costB = std::move(cost);
+        }
+        view.result = mc::network::ir::toItemStackView(offer.getSell());
+        if (view.result.count <= 0) {
+            return Error(ErrorCode::InvalidArgument, "Merchant offer has an empty result");
+        }
+        view.outOfStock = offer.isOutOfStock();
+        view.uses = offer.getUses();
+        view.maxUses = offer.getMaxUses();
+        view.xp = offer.getXp();
+        view.specialPrice = offer.getSpecialPrice();
+        view.priceMultiplier = offer.getPriceMultiplier();
+        view.demand = offer.getDemand();
+        packet.offers.push_back(std::move(view));
+    }
+    return mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}};
+}
+
+Result<mc::network::ir::IrPacket> buildShowDialogIr(const nlohmann::json& definition)
+{
+    if (!definition.is_object() || !definition.contains("title") || !definition.contains("type") ||
+        !definition["type"].is_string())
+        return Error(ErrorCode::InvalidData, "Dialog requires type and title");
+    auto tag = mc::nbt::jsonToNbtStrictInt(definition);
+    const auto& compound = dynamic_cast<const mc::nbt::tags::compound_tag&>(*tag);
+    return mc::network::ir::IrPacket{mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{
+            mc::network::ir::play::ShowDialog{mc::network::buffer::nbt_io::serializeRootCompoundToBytes(compound)}}};
 }
 
 } // namespace mc::server::net

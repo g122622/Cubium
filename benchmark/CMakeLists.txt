@@ -36,6 +36,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/scoreboard/storage/ScoreboardSaveData.cpp
         # ServerWorld 传递依赖（构造/回调链引用）：
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
@@ -106,6 +107,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/MessageCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TellRawCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TitleCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/DialogCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/PlaySoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/StopSoundCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/EffectCommand.cpp
@@ -188,6 +190,8 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/MapPacketBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PlayerBroadcaster.cpp
         ${CMAKE_SOURCE_DIR}/src/server/network/outbound/PacketBuilders.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/RegistryDataBuilder.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/network/handshake/EnchantmentNbtBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BaseLightEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/SkyLightEngine.cpp

@@ -116,6 +116,7 @@ public:
     struct EffectChange {
         EffectType type;
         bool added; // true=新增或更新（需下发完整效果），false=移除
+        bool blend; // 首次新增时启用客户端视觉渐变，刷新已有实例时保留原渐变进度。
     };
 
     /**
@@ -152,7 +153,7 @@ private:
     [[nodiscard]] i32 _findEffectIndex(EffectType type) const;
 
     /// 记录一条待广播的效果变更（同类型合并为最后一条）。
-    void _recordChange(EffectType type, bool added);
+    void _recordChange(EffectType type, bool added, bool blend);
 
 private:
     std::vector<EffectInstance> m_effects;

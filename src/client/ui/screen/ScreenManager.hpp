@@ -83,6 +83,9 @@ public:
      */
     void closeAll();
 
+    /** @brief 仅关闭 ID 匹配的当前容器屏，忽略旧菜单迟到的关闭请求。 */
+    bool closeContainer(i32 containerId);
+
     /**
      * @brief 获取当前 kagero Screen（Widget 体系）
      * @return 栈顶 kagero Screen，若栈空返回 nullptr

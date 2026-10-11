@@ -24,7 +24,9 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <unordered_map>
 
@@ -69,10 +71,10 @@ public:
      * @brief 单个物品的冷却信息
      */
     struct Cooldown {
-        i32 createTicks; ///< 冷却开始时的游戏 tick
-        i32 expireTicks; ///< 冷却结束时的游戏 tick
+        i64 createTicks; ///< 冷却开始时的游戏 tick
+        i64 expireTicks; ///< 冷却结束时的游戏 tick
 
-        Cooldown(i32 create, i32 expire)
+        Cooldown(i64 create, i64 expire)
             : createTicks(create)
             , expireTicks(expire)
         {}
@@ -149,7 +151,7 @@ public:
      * @brief 获取当前游戏 tick
      * @return 当前 tick
      */
-    [[nodiscard]] i32 currentTick() const { return m_ticks; }
+    [[nodiscard]] i64 currentTick() const { return m_ticks; }
 
     /**
      * @brief 检查冷却追踪器是否为空
@@ -163,33 +165,31 @@ public:
      */
     [[nodiscard]] size_t cooldownCount() const { return m_cooldowns.size(); }
 
-protected:
-    /**
-     * @brief 冷却设置时的回调
-     *
-     * 子类可重写此方法以实现自定义行为，
-     * 如客户端通知、网络同步等。
-     *
-     * @param item 物品指针
-     * @param ticks 冷却时间
-     */
-    virtual void notifyOnSet(const Item* item, i32 ticks);
+    /** @brief 设置冷却组变更监听器，duration=0 表示移除或到期。 */
+    void setListener(std::function<void(const ResourceLocation&, i32)> listener);
 
-    /**
-     * @brief 冷却移除时的回调
-     *
-     * 子类可重写此方法以实现自定义行为。
-     *
-     * @param item 物品指针
-     */
-    virtual void notifyOnRemove(const Item* item);
+    /** @brief 设置指定冷却组的持续时间，零或负值清除该组。 */
+    void setCooldown(const ResourceLocation& group, i32 ticks);
+
+    /** @brief 立即移除冷却组并通知监听器。 */
+    void removeCooldown(const ResourceLocation& group);
+
+    /** @brief 查询冷却组的剩余时间比例。 */
+    [[nodiscard]] f32 getCooldownProgress(const ResourceLocation& group, f32 partialTicks) const;
+
+    /** @brief 查询冷却组是否仍有效。 */
+    [[nodiscard]] bool hasCooldown(const ResourceLocation& group) const;
+
+    /** @brief 查询冷却组剩余 tick 数。 */
+    [[nodiscard]] i32 getCooldownTicks(const ResourceLocation& group) const;
 
 private:
-    /// 物品到冷却的映射
-    std::unordered_map<const Item*, Cooldown> m_cooldowns;
+    /// 冷却组到计时状态的映射，物品默认以其注册标识符作为组名。
+    std::unordered_map<ResourceLocation, Cooldown> m_cooldowns;
+    std::function<void(const ResourceLocation&, i32)> m_listener;
 
     /// 当前游戏 tick
-    i32 m_ticks = 0;
+    i64 m_ticks = 0;
 };
 
 } // namespace entity::player

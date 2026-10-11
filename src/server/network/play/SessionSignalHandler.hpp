@@ -38,6 +38,9 @@ namespace mc::server::net {
  */
 class SessionSignalHandler : public PlayHandlerBase {
 public:
+    /** @brief 收到加载确认后清除加载计时器，保留死亡后的等待重生标志。 */
+    void handlePlayerLoadedPacket(PlayerId playerId);
+
     explicit SessionSignalHandler(MinecraftServer& server)
         : PlayHandlerBase(server)
     {}

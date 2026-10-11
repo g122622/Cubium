@@ -114,3 +114,5 @@ Local 连接不走 `enqueueInbound`/`drainInbound`（`pumpLocal()` 已在主线�
 
 `_notifyDisconnect` 在**接收线程**被调用，只允许 push `sessionId`，不得触碰连接或 session map。
 `tick()` 在主线程 swap 出来后回调 `m_onDisconnect`，连接从 `m_connections` 的移除也在此完成。
+
+客户端偏好必须在建号和重配置完成后应用到已有玩家，调用 MinecraftServer::updateClientInformation；只保存在握手状态机会使 Play 阶段实体与区块追踪继续使用旧设置。

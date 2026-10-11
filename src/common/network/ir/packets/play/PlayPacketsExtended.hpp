@@ -23,8 +23,11 @@
 
 #pragma once
 
+#include <variant>
+
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacketBase.hpp"
+#include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -1328,6 +1331,7 @@ enum class WireEquipmentSlot : i32 {
     Chest = 4,
     Head = 5,
     Body = 6,
+    Saddle = 7,
 };
 
 /** 一条装备槽条目。 */
@@ -1385,4 +1389,223 @@ struct RemoveMobEffect {
     [[nodiscard]] friend bool operator==(const RemoveMobEffect&, const RemoveMobEffect&) noexcept = default;
 };
 
+/** @brief 请求切换游戏模式（C→S，id=4）。 */
+struct ChangeGameMode {
+    i32 mode;
+    [[nodiscard]] friend bool operator==(const ChangeGameMode&, const ChangeGameMode&) noexcept = default;
+};
+
+/** @brief 客户端确认玩家加载完成（C→S，id=43，空负载）。 */
+struct PlayerLoaded {
+    [[nodiscard]] friend bool operator==(const PlayerLoaded&, const PlayerLoaded&) noexcept = default;
+};
+
+/** @brief 玩家挥动主手或副手（C→S，id=60）。 */
+struct Swing {
+    i32 hand;
+    [[nodiscard]] friend bool operator==(const Swing&, const Swing&) noexcept = default;
+};
+
+/** @brief 客户端请求切换飞行状态（C→S，id=39）。 */
+struct ServerboundPlayerAbilities {
+    bool flying;
+    [[nodiscard]] friend bool operator==(
+        const ServerboundPlayerAbilities&, const ServerboundPlayerAbilities&) noexcept = default;
+};
+
+/** @brief Play 阶段客户端偏好设置（C→S，id=13）。 */
+struct ClientInformation {
+    configuration::ClientInformation information;
+    [[nodiscard]] friend bool operator==(const ClientInformation&, const ClientInformation&) noexcept = default;
+};
+
+/** @brief 旁观者按 UUID 请求传送到实体（C→S，id=61）。 */
+struct TeleportToEntity {
+    std::array<u8, 16> uuid;
+    [[nodiscard]] friend bool operator==(const TeleportToEntity&, const TeleportToEntity&) noexcept = default;
+};
+
+/** @brief 玩家列表页眉和页脚（S→C，id=120），保留完整 Component NBT。 */
+struct TabList {
+    std::vector<u8> header;
+    std::vector<u8> footer;
+    [[nodiscard]] friend bool operator==(const TabList&, const TabList&) noexcept = default;
+};
+
+/** @brief 设置或清除冷却组（S→C，id=22），duration=0 表示清除。 */
+struct Cooldown {
+    std::string group;
+    i32 duration;
+    [[nodiscard]] friend bool operator==(const Cooldown&, const Cooldown&) noexcept = default;
+};
+
+/** @brief 伤害事件（S→C，id=25），责任实体与直接来源分别编码。 */
+struct DamageEvent {
+    i32 entityId;
+    i32 sourceType;
+    i32 sourceCauseId;
+    i32 sourceDirectId;
+    std::optional<std::array<f64, 3>> sourcePosition;
+    [[nodiscard]] friend bool operator==(const DamageEvent&, const DamageEvent&) noexcept = default;
+};
+
+/** @brief 单个统计的类型、所属注册表 ID 和绝对值。 */
+struct StatValue {
+    i32 type;
+    i32 stat;
+    i32 value;
+    [[nodiscard]] friend bool operator==(const StatValue&, const StatValue&) noexcept = default;
+};
+
+/** @brief 玩家统计更新（S→C，id=3）。 */
+struct AwardStats {
+    std::vector<StatValue> stats;
+    [[nodiscard]] friend bool operator==(const AwardStats&, const AwardStats&) noexcept = default;
+};
+
+/** @brief 客户端请求重生或统计信息（C→S，id=11）。 */
+struct ClientCommand {
+    i32 action;
+    [[nodiscard]] friend bool operator==(const ClientCommand&, const ClientCommand&) noexcept = default;
+};
+
+/** @brief 铁砧重命名请求（C→S，id=47）。 */
+struct RenameItem {
+    std::string name;
+    [[nodiscard]] friend bool operator==(const RenameItem&, const RenameItem&) noexcept = default;
+};
+
+/** @brief 选择商人报价（C→S，id=50）。 */
+struct SelectTrade {
+    i32 index;
+    [[nodiscard]] friend bool operator==(const SelectTrade&, const SelectTrade&) noexcept = default;
+};
+
+/** @brief 交易成本，与 ItemStack 不同，组件为精确谓词列表。 */
+struct TradeItemCost {
+    u32 itemId;
+    i32 count;
+    std::vector<u8> components;
+    [[nodiscard]] friend bool operator==(const TradeItemCost&, const TradeItemCost&) noexcept = default;
+};
+
+/** @brief 一条报价的成本、结果、使用次数与价格调整数据。 */
+struct TradeOfferView {
+    TradeItemCost costA;
+    ItemStackView result;
+    std::optional<TradeItemCost> costB;
+    bool outOfStock;
+    i32 uses;
+    i32 maxUses;
+    i32 xp;
+    i32 specialPrice;
+    f32 priceMultiplier;
+    i32 demand;
+    [[nodiscard]] friend bool operator==(const TradeOfferView&, const TradeOfferView&) noexcept = default;
+};
+
+/** @brief 商人报价与界面状态（S→C，id=50）。 */
+struct MerchantOffersUpdate {
+    i32 containerId;
+    std::vector<TradeOfferView> offers;
+    i32 level;
+    i32 xp;
+    bool showProgress;
+    bool canRestock;
+    [[nodiscard]] friend bool operator==(const MerchantOffersUpdate&, const MerchantOffersUpdate&) noexcept = default;
+};
+
+/** @brief 菜单按钮点击（C→S，id=16），容器 ID 与按钮 ID 均为 VarInt。 */
+struct ContainerButtonClick {
+    i32 containerId;
+    i32 buttonId;
+    [[nodiscard]] friend bool operator==(const ContainerButtonClick&, const ContainerButtonClick&) noexcept = default;
+};
+
+/** @brief 编辑书与笔；title 存在时签名。 */
+struct EditBook {
+    i32 slot;
+    std::vector<std::string> pages;
+    std::optional<std::string> title;
+    friend bool operator==(const EditBook&, const EditBook&) = default;
+};
+/** @brief 打开指定手中的成书。 */
+struct OpenBook {
+    i32 hand;
+    friend bool operator==(const OpenBook&, const OpenBook&) = default;
+};
+
+/** @brief 选择当前菜单某槽位收纳袋的内容项，-1 清空选择。 */
+struct BundleItemSelected {
+    i32 slotId;
+    i32 selectedItemIndex;
+    friend bool operator==(const BundleItemSelected&, const BundleItemSelected&) = default;
+};
+/** @brief 信标的可选效果使用纯注册 ID，由 Java 后端映射至业务类型。 */
+struct SetBeacon {
+    std::optional<i32> primary;
+    std::optional<i32> secondary;
+    friend bool operator==(const SetBeacon&, const SetBeacon&) = default;
+};
+/** @brief 实体绝对位置、当前速度、旋转和落地状态的同步快照。 */
+struct EntityPositionSync {
+    i32 entityId;
+    f64 x, y, z;
+    f64 deltaX, deltaY, deltaZ;
+    f32 yRot, xRot;
+    bool onGround;
+    friend bool operator==(const EntityPositionSync&, const EntityPositionSync&) = default;
+};
+/** @brief Java 已知服务器链接标签。 */
+enum class KnownServerLink : i32 {
+    BugReport,
+    CommunityGuidelines,
+    Support,
+    Status,
+    Feedback,
+    Community,
+    Website,
+    Forums,
+    News,
+    Announcements
+};
+/** @brief 链接标签使用内置类型或完整文本组件 NBT。 */
+struct ServerLink {
+    std::variant<KnownServerLink, std::vector<u8>> label;
+    std::string url;
+    friend bool operator==(const ServerLink&, const ServerLink&) = default;
+};
+/** @brief 服务器链接列表，空列表清除。 */
+struct ServerLinks {
+    std::vector<ServerLink> links;
+    friend bool operator==(const ServerLinks&, const ServerLinks&) = default;
+};
+/** @brief 对话框 holder，整数为零基注册 ID，字节为直接定义的根 Compound NBT。 */
+struct ShowDialog {
+    std::variant<i32, std::vector<u8>> dialog;
+    friend bool operator==(const ShowDialog&, const ShowDialog&) = default;
+};
+/** @brief 清除客户端当前对话框，无负载。 */
+struct ClearDialog {
+    friend bool operator==(const ClearDialog&, const ClearDialog&) = default;
+};
+/** @brief 导航点增删改操作。 */
+enum class WaypointOperation : i32 { Track, Untrack, Update };
+struct WaypointPosition {
+    i32 x, y, z;
+    friend bool operator==(const WaypointPosition&, const WaypointPosition&) = default;
+};
+struct WaypointChunk {
+    i32 x, z;
+    friend bool operator==(const WaypointChunk&, const WaypointChunk&) = default;
+};
+/** @brief 导航点支持 UUID/字符串标识、样式、RGB 颜色和四种位置表达。 */
+struct Waypoint {
+    WaypointOperation operation;
+    std::variant<std::array<u8, 16>, std::string> identifier;
+    std::string style;
+    std::optional<u32> color;
+    std::variant<std::monostate, WaypointPosition, WaypointChunk, f32> position;
+    friend bool operator==(const Waypoint&, const Waypoint&) = default;
+};
 } // namespace mc::network::ir::play

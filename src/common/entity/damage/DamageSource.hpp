@@ -195,6 +195,9 @@ public:
      */
     [[nodiscard]] virtual std::optional<math::Vector3f> sourcePosition() const { return std::nullopt; }
 
+    /** @brief 显式指定的伤害位置，不回退到来源实体位置，用于网络来源重建。 */
+    [[nodiscard]] virtual std::optional<math::Vector3f> sourcePositionRaw() const { return std::nullopt; }
+
     /**
      * @brief 是否可以绕过护甲
      */

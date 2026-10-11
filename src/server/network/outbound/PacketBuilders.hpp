@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
+#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -36,7 +39,14 @@ namespace mc::command {
 class CommandRegistry;
 }
 
+namespace mc {
+class MerchantContainerMenu;
+}
+
 namespace mc::server::net {
+
+/** @brief 构造当前商人菜单的完整报价包，保留物品组件与价格、经验信息。 */
+[[nodiscard]] Result<mc::network::ir::IrPacket> buildMerchantOffersIr(const MerchantContainerMenu& menu);
 
 /**
  * @brief Play / Configuration 阶段单包 IR 构造器（无状态自由函数）
@@ -130,5 +140,8 @@ namespace mc::server::net {
  */
 [[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
     particle::ParticleTypeId type, const Vector3& pos, u32 count);
+
+/** @brief 构造严格整数 NBT 的直接对话框，保留所有交互和富文本字段。 */
+[[nodiscard]] Result<mc::network::ir::IrPacket> buildShowDialogIr(const nlohmann::json& definition);
 
 } // namespace mc::server::net

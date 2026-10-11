@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -134,6 +135,9 @@ struct ServerPlayerData {
     bool waitingForRespawn = false;
     /// 客户端加载超时计时器（对齐 clientLoadedTimeoutTimer），每 tick 递减。
     i32 clientLoadedTimeoutTimer = 0;
+
+    /// 当前连接的客户端偏好，配置阶段与 Play 阶段更新共用此状态。
+    std::optional<mc::network::ir::configuration::ClientInformation> clientInformation;
 
     // 已加载的区块
     std::unordered_set<ChunkId> loadedChunks;
@@ -240,6 +244,9 @@ struct ServerPlayerData {
      * 直到玩家执行 PERFORM_RESPAWN 触发 restartClientLoadTimerAfterRespawn() 才被清除。
      */
     void markClientUnloadedAfterDeath() noexcept { waitingForRespawn = true; }
+
+    /** @brief 客户端主动确认加载完成，不解除等待重生状态。 */
+    void markClientLoaded() noexcept { clientLoadedTimeoutTimer = 0; }
 
     /**
      * @brief 重生后重启客户端加载超时计时器

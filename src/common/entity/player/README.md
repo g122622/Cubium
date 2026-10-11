@@ -48,7 +48,7 @@ CooldownTracker.hpp      ← 独立冷却追踪
 - `server/player/ServerPlayer.hpp` - 服务端玩家（重生点验证）
 - `server/world/ServerWorld.hpp` - 服务端世界（全员睡眠检测）
 - `world/block/blocks/functional/BedBlock.cpp` - 床方块（睡眠检测）
-- `network/codec/Packet.hpp` - 睡眠状态网络同步（Sleep 包 ID 231，S→C）
+- `network/ir/packets/play/` - 状态与冷却组同步
 
 ## 容易踩的坑
 
@@ -93,3 +93,7 @@ CooldownTracker.hpp      ← 独立冷却追踪
 - 最终回退到床头正上方
 
 `SleepManager::findWakeUpPosition()` 内部委托给 `BedBlock::findStandUpPosition()`，保持向后兼容。
+
+### 冷却组与通知
+
+冷却按 ResourceLocation 组名共享，物品默认使用其注册名。ServerPlayer 通过监听器发送 cooldown；到期与主动移除发送 duration=0。计时采用 64 位，避免最大 VarInt 持续时间在累加时溢出。测试物品也必须有独立注册名，不能依赖未注册对象的地址区分冷却。

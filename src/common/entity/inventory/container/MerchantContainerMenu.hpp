@@ -181,16 +181,13 @@ public:
      */
     void tryMoveItems(i32 offerIndex);
 
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_RESULT; }
+
 protected:
     /**
      * @brief Shift+点击快速移动
      */
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
-
-    /**
-     * @brief 获取结果槽索引
-     */
-    [[nodiscard]] i32 getResultSlotIndex() const override { return SLOT_RESULT; }
 
 private:
     /**

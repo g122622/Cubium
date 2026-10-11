@@ -169,3 +169,9 @@ inventory/
 2. 容器菜单创建：`ContainerManager` 菜单工厂检测 `BlockEntityType::EnderChest`，创建 `ChestContainer` 以 `PlayerEnderChestInventory` 为背板
 3. 容器关闭：`ChestContainer::removed()` → `closeInventory()` → `stopOpen()`（关盖动画、音效、清除 `activeChest` 引用）
 4. **不要在 `StandaloneServer` 的容器关闭回调中再次调用 `stopOpen()`**，否则会导致 `EnderChestEntity::closeContainer()` 被调用两次，打开计数错误
+
+槽位通过 addSlot 绑定所属菜单及菜单编号；输入 setChanged 通知 slotsChanged，结果槽不反向重建输入。取出结果必须经过 onTake，校验费用并消耗输入，不能仅移动预览物品。QuickMove 的取出回调由基类统一执行一次。
+
+菜单关闭归还物品应使用菜单绑定的 PlayerInventory；集成服的菜单玩家与背包可分别持有，真实玩家参数只提供存活状态和掉落上下文。
+
+归还前同时检查逻辑移除和生命值；死亡动画期间实体尚未移除，但生命值已归零，菜单残留必须掉落。

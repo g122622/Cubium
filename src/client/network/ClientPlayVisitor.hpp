@@ -29,6 +29,7 @@
 #include "common/network/protocol/ConnectionProtocol.hpp"
 
 #include <functional>
+#include <map>
 
 namespace mc {
 class ItemStack;
@@ -75,6 +76,9 @@ public:
 
 private:
     ClientApplication& m_app;
+    std::vector<mc::network::ir::play::ServerLink> m_serverLinks;
+    std::optional<mc::network::ir::play::ShowDialog> m_dialog;
+    std::map<std::variant<std::array<u8, 16>, std::string>, mc::network::ir::play::Waypoint> m_waypoints;
 
     /// 取屏幕栈（friend 访问 ClientApplication 私有 m_kageroEngine/m_screenStackLayerId）
     [[nodiscard]] ui::minecraft::widgets::ScreenStackWidget* getScreenStack();

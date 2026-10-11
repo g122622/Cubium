@@ -39,6 +39,14 @@ namespace mc::server {
 class ServerWorld;
 }
 
+namespace mc::network::ir {
+struct IrPacket;
+}
+
+namespace mc {
+class LivingEntity;
+}
+
 namespace mc::server {
 
 // 前向声明
@@ -57,6 +65,8 @@ struct TrackedEntity {
     f32 lastPitch = 0.0f;                         // 上次同步的俯仰角
     f32 lastHeadYaw = 0.0f;                       // 上次同步的头部偏航角（LivingEntity）
     bool lastHeadYawValid = false;                // 上次同步的 headYaw 是否已初始化
+    u32 absoluteSyncTicks = 0;                    // 自上次绝对同步起经过的 tick
+    bool lastOnGround = false;                    // 上次同步的落地状态
     u32 updateCounter = 0;                        // 更新计数器
     bool needsFullUpdate = true;                  // 是否需要完整更新
 };
@@ -71,6 +81,12 @@ struct TrackedEntity {
  */
 class EntityTracker {
 public:
+    /** @brief 向指定玩家重发实体的全部当前效果，用于初次追踪或重建客户端世界。 */
+    void sendActiveEffects(IServer& server, PlayerId playerId, const LivingEntity& entity);
+
+    /** @brief 将事件发给追踪者与玩家本人，目标尚未被追踪时仍通知本人。 */
+    void broadcastPacketAndSelf(IServer& server, EntityInstanceId entityId, const mc::network::ir::IrPacket& packet);
+
     EntityTracker();
     ~EntityTracker() = default;
 
@@ -285,14 +301,14 @@ public:
      * @brief 向当前追踪该实体的所有玩家广播装备变更（cb SetEquipment）。
      *
      * 在 `LivingEntity::detectEquipmentUpdates` 检测到装备槽变化后调用（经
-     * `ServerWorld::broadcastEquipmentChanged`）。发送内容为该实体的**全部非空装备槽**全量快照，
-     * 对齐 vanilla `ServerEntity.sendPairingData` 与 `LivingEntity.handleEquipmentChanges`。
+     * `ServerWorld::broadcastEquipmentChanged`）。变更包含空槽，以清除客户端旧装备。
      *
      * @param server 服务器接口
      * @param world 世界引用（用于按 id 取实体读装备）
      * @param entityId 装备发生变化的实体
      */
-    void broadcastEquipment(IServer& server, ServerWorld& world, EntityInstanceId entityId);
+    void broadcastEquipment(
+        IServer& server, ServerWorld& world, EntityInstanceId entityId, const std::vector<EquipmentSlot>& slots);
 
     /**
      * @brief 向当前追踪该实体的所有玩家广播状态效果新增/更新（cb UpdateMobEffect）。
@@ -302,8 +318,11 @@ public:
      * @param entityId 效果发生变化的实体
      * @param effect 当前生效的效果实例
      */
-    void broadcastMobEffectAdded(
-        IServer& server, ServerWorld& world, EntityInstanceId entityId, const entity::effect::EffectInstance& effect);
+    void broadcastMobEffectAdded(IServer& server,
+        ServerWorld& world,
+        EntityInstanceId entityId,
+        const entity::effect::EffectInstance& effect,
+        bool blend);
 
     /**
      * @brief 向当前追踪该实体的所有玩家广播状态效果移除（cb RemoveMobEffect）。
@@ -318,7 +337,7 @@ public:
 
 private:
     /// 组装 UpdateMobEffect 的 flags 字节（AMBIENT=1 / VISIBLE=2 / SHOW_ICON=4 / BLEND=8）。
-    [[nodiscard]] static u8 _mobEffectFlags(const entity::effect::EffectInstance& effect);
+    [[nodiscard]] static u8 _mobEffectFlags(const entity::effect::EffectInstance& effect, bool blend);
 
     mutable std::mutex m_mutex;
 

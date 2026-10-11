@@ -27,6 +27,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "server/network/play/BlockActionHandler.hpp"
 #include "server/network/play/ChatHandler.hpp"
+#include "server/network/play/ContainerActionHandler.hpp"
 #include "server/network/play/EntityActionHandler.hpp"
 #include "server/network/play/MovementHandler.hpp"
 #include "server/network/play/PlayerStateHandler.hpp"
@@ -68,6 +69,7 @@ private:
     MovementHandler m_movement;
     BlockActionHandler m_blockAction;
     EntityActionHandler m_entityAction;
+    ContainerActionHandler m_containerAction;
     ChatHandler m_chat;
     PlayerStateHandler m_playerState;
     SessionSignalHandler m_sessionSignal;

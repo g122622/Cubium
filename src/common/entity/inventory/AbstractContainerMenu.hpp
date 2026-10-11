@@ -182,6 +182,14 @@ public:
      */
     virtual ItemStack clicked(i32 slotIndex, i32 button, ClickType clickType, Player& player);
 
+    /** @brief 执行菜单专用按钮；不含按钮的菜单返回 false。 */
+    virtual bool clickMenuButton(Player& player, i32 button)
+    {
+        (void)player;
+        (void)button;
+        return false;
+    }
+
     /**
      * @brief 快速移动（Shift+点击）
      * @param slotIndex 槽位索引
@@ -494,12 +502,7 @@ protected:
      *
      * 子类可重写此方法以实现特殊合并逻辑。
      */
-    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const
-    {
-        (void)stack;
-        (void)slot;
-        return true;
-    }
+    [[nodiscard]] virtual bool canMergeSlot(const ItemStack& stack, const Slot& slot) const;
 
     /**
      * @brief 检查玩家是否可以进行合成操作

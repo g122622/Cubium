@@ -49,6 +49,8 @@ public:
      * 包含所有可用于蜜蜂繁殖和授粉的花朵物品。
      */
     static ItemTag& FLOWERS();
+    /** @brief 信标支付物品标签，支持数据包覆写。 */
+    static ItemTag& BEACON_PAYMENT_ITEMS();
 
     /**
      * @brief 地毯标签

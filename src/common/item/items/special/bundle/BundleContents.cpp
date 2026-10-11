@@ -187,7 +187,7 @@ BundleContents BundleContents::fromJson(const nlohmann::json& json)
     i64 weight = 0;
     auto weightIt = json.find("weight");
     if (weightIt != json.end() && weightIt->is_number_integer()) {
-        weight = weightIt->get<i64>();
+        weight = computeContentWeight(items);
     } else {
         // 权重缺失时重新计算
         weight = computeContentWeight(items);

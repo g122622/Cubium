@@ -324,4 +324,25 @@ TEST(UuidUtilsTest, GenerateRandomUuid_Unique)
     EXPECT_EQ(uuids.size(), 100u);
 }
 
+TEST(UuidUtilsTest, ParsesDashedAndCompactUuidWithoutChangingBytes)
+{
+    const Uuid expected{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    EXPECT_EQ(uuidFromString("00112233-4455-6677-8899-aabbccddeeff"), expected);
+    EXPECT_EQ(uuidFromString("00112233445566778899AABBCCDDEEFF"), expected);
+    EXPECT_EQ(uuidFromString(uuidToStringWithDashes(expected)), expected);
+}
+
+TEST(UuidUtilsTest, RejectsInvalidDigitsSeparatorsAndTrailingCharacters)
+{
+    for (const std::string invalid : {"00112233-4455-6677-8899-aabbccddeefg",
+             "00112233_4455-6677-8899-aabbccddeeff",
+             "00112233445566778899aabbccddeeff00",
+             "00112233445566778899aabbccddeeffextra",
+             " 0112233445566778899aabbccddeeff",
+             "-0112233445566778899aabbccddeeff",
+             "00112233445566778899aabbccddeefg"}) {
+        EXPECT_EQ(uuidFromString(invalid), Uuid{}) << invalid;
+    }
+}
+
 } // namespace mc::util::test

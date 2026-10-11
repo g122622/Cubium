@@ -32,6 +32,7 @@
 #include "common/entity/inventory/INamedContainerProvider.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
@@ -42,6 +43,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace mc::server::interaction {
 
@@ -137,20 +139,9 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
             (void)stack;
             auto it = m_openContainers.find(playerId);
             if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
-                it->second.slotChangePending = true;
-            }
-        });
-    }
-
-    // 进度型容器（熔炉类）的火焰与箭头进度经 tracked i32 同步。每 tick 由 tickMenus() 把状态
-    // 从方块实体刷进这些 i32 并比对变化，变化时经此监听器下推。不注册的话，服务端照常烧炼，
-    // 但客户端那边进度永远是 0。
-    if (auto* furnaceMenu = dynamic_cast<blockentity::FurnaceContainer*>(m_openContainers[playerId].menu.get());
-        furnaceMenu != nullptr) {
-        const mc::ContainerId openedId = containerId;
-        furnaceMenu->addIntListener([this, playerId, openedId](i32 property, i32 value) {
-            if (m_onContainerData) {
-                m_onContainerData(playerId, openedId, property, value);
+                if (std::find(it->second.changedSlots.begin(), it->second.changedSlots.end(), slot) ==
+                    it->second.changedSlots.end())
+                    it->second.changedSlots.push_back(slot);
             }
         });
     }
@@ -211,7 +202,9 @@ bool ContainerManager::openEntityContainer(PlayerId playerId, INamedContainerPro
             (void)stack;
             auto it = m_openContainers.find(playerId);
             if (it != m_openContainers.end() && it->second.menu != nullptr && it->second.menu->getId() == openedId) {
-                it->second.slotChangePending = true;
+                if (std::find(it->second.changedSlots.begin(), it->second.changedSlots.end(), slot) ==
+                    it->second.changedSlots.end())
+                    it->second.changedSlots.push_back(slot);
             }
         });
     }
@@ -253,14 +246,9 @@ void ContainerManager::closeContainer(PlayerId playerId)
         containerType = it->second.type;
         position = it->second.position;
 
-        auto* playerData = m_playerManager.getPlayer(playerId);
-        const std::string username = (playerData != nullptr) ? playerData->username : std::string("ContainerPlayer");
-        // ECS 迁移：占位 Player 构造需要 registry 句柄。此处 menuPlayer 仅作 removed 回调形参，
-        // 无 world 上下文，故复用 handleClick 同款静态 registry。
-        // TODO: 占位 Player 是临时方案，后续应重构容器系统避免构造完整 Player 仅为传参。
-        static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
-        Player menuPlayer(playerId, username, s_menuPlayerRegistry);
-        it->second.menu->removed(menuPlayer);
+        auto* inventory = it->second.menu->getPlayerInventory();
+        MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+        it->second.menu->removed(*inventory->getPlayer());
     }
 
     if (m_onContainerClose) {
@@ -268,6 +256,27 @@ void ContainerManager::closeContainer(PlayerId playerId)
     }
 
     m_openContainers.erase(it);
+}
+
+void ContainerManager::closeAll()
+{
+    std::vector<PlayerId> players;
+    players.reserve(m_openContainers.size());
+    for (const auto& [playerId, container] : m_openContainers) {
+        (void)container;
+        players.push_back(playerId);
+    }
+    for (const auto playerId : players) {
+        closeContainer(playerId);
+    }
+    players.clear();
+    for (const auto& [playerId, menu] : m_playerInventoryMenus) {
+        (void)menu;
+        players.push_back(playerId);
+    }
+    for (const auto playerId : players) {
+        closePlayerInventoryMenu(playerId);
+    }
 }
 
 bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventory* playerInventory)
@@ -291,6 +300,13 @@ bool ContainerManager::openPlayerInventoryMenu(PlayerId playerId, PlayerInventor
 
 void ContainerManager::_installMenuCallbacks(AbstractContainerMenu& menu, PlayerId playerId)
 {
+    const ContainerId containerId = menu.getId();
+    menu.addIntListener([this, playerId, containerId](i32 property, i32 value) {
+        if (m_onContainerData) {
+            m_onContainerData(playerId, containerId, property, value);
+        }
+    });
+
     // 丢弃物品：菜单只负责把「要丢的堆」交给回调，真正生成掉落物实体要由带 world 的玩家实体完成。
     // 本项目管理器此前从未设置该回调，AbstractContainerMenu::dropItem 因此是空操作——
     // 所有第三方客户端（mineflayer 的 toss/tossStack）丢物品都会「客户端以为丢了、服务端没有」。
@@ -307,9 +323,18 @@ void ContainerManager::tickMenus()
 {
     // 注意：常驻的玩家背包菜单（containerId=0）不在此列。它的同步靠点击与改槽后的全量下发
     // （见 MinecraftServer::setOnInventoryUpdate 以菜单为权威构造内容）。
+    std::vector<PlayerId> invalidMenus;
     for (auto& [playerId, openContainer] : m_openContainers) {
         auto* menu = openContainer.menu.get();
         if (menu == nullptr) {
+            continue;
+        }
+
+        auto* inventory = menu->getPlayerInventory();
+        MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+        auto& player = *inventory->getPlayer();
+        if (!player.isAlive() || !menu->stillValid(player)) {
+            invalidMenus.push_back(playerId);
             continue;
         }
 
@@ -321,12 +346,18 @@ void ContainerManager::tickMenus()
 
         // 服务端自己改动了槽位（熔炉产出等）→ 重发全量。放在 detectAndSendChanges 之后，
         // 因为槽位变化正是它比对出来的。合并到一个 tick 发一次，避免一 tick 内多槽变化时重发多次。
-        if (openContainer.slotChangePending) {
-            openContainer.slotChangePending = false;
-            if (m_onContainerUpdate) {
+        if (!openContainer.changedSlots.empty()) {
+            if (m_onContainerSlotUpdate) {
+                for (const auto slot : openContainer.changedSlots)
+                    m_onContainerSlotUpdate(playerId, *menu, slot, menu->getSlot(slot)->getItem());
+            } else if (m_onContainerUpdate) {
                 m_onContainerUpdate(playerId, *menu);
             }
+            openContainer.changedSlots.clear();
         }
+    }
+    for (const auto playerId : invalidMenus) {
+        closeContainer(playerId);
     }
 }
 
@@ -342,13 +373,11 @@ void ContainerManager::closePlayerInventoryMenu(PlayerId playerId)
         return;
     }
 
-    // 与关闭普通容器一致：先让菜单把光标上的物品归还玩家背包，再丢弃菜单本身。
-    if (it->second != nullptr) {
-        if (auto* playerData = m_playerManager.getPlayer(playerId); playerData != nullptr) {
-            static ecs::EntityRegistry s_menuPlayerRegistry{"container-menu"};
-            Player menuPlayer(playerId, playerData->username, s_menuPlayerRegistry);
-            it->second->removed(menuPlayer);
-        }
+    auto* inventory = it->second->getPlayerInventory();
+    MC_ASSERT_RELEASE(inventory != nullptr && inventory->getPlayer() != nullptr);
+    it->second->removed(*inventory->getPlayer());
+    if (m_onContainerClose) {
+        m_onContainerClose(playerId, mc::inventory::PLAYER_CONTAINER_ID, ContainerType::Player, BlockPos(0, 0, 0));
     }
     m_playerInventoryMenus.erase(it);
 }
@@ -425,7 +454,7 @@ Result<ContainerClickResult> ContainerManager::handleClick(
         // 本次点击已经把全量内容发出去了，清掉 tick 侧的待发标志，避免同一 tick 内重发一次。
         auto it = m_openContainers.find(playerId);
         if (it != m_openContainers.end() && it->second.menu.get() == menu) {
-            it->second.slotChangePending = false;
+            it->second.changedSlots.clear();
         }
     }
 
@@ -474,6 +503,12 @@ void ContainerManager::setOnContainerClose(
     std::function<void(PlayerId, ContainerId, ContainerType, const BlockPos&)> callback)
 {
     m_onContainerClose = std::move(callback);
+}
+
+void ContainerManager::setOnContainerSlotUpdate(
+    std::function<void(PlayerId, const AbstractContainerMenu&, i32, const ItemStack&)> callback)
+{
+    m_onContainerSlotUpdate = std::move(callback);
 }
 
 void ContainerManager::setOnContainerUpdate(std::function<void(PlayerId, const AbstractContainerMenu&)> callback)

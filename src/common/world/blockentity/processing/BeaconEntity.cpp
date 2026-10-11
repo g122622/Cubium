@@ -204,8 +204,8 @@ bool BeaconEntity::canUseEffect(const EffectType* effect) const
         return true;
     }
 
-    const i32 effectValue = static_cast<i32>(*effect);
-    return effectValue > 0 && effectValue < static_cast<i32>(entity::effect::EffectType::Count);
+    return *effect == EffectType::Speed || *effect == EffectType::Haste || *effect == EffectType::Resistance ||
+        *effect == EffectType::JumpBoost || *effect == EffectType::Strength || *effect == EffectType::Regeneration;
 }
 
 i32 BeaconEntity::getEffectRange() const

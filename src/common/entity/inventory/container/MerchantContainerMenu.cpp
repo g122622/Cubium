@@ -83,17 +83,9 @@ void MerchantContainerMenu::removed(Player& player)
     // 关闭交易
     m_merchant.stopTrading();
 
-    // 将支付槽中的物品返回给玩家
     if (!m_merchant.isClientSide()) {
-        ItemStack itemA = m_tradeContainer->removeItemNoUpdate(MerchantContainer::SLOT_BUY_A);
-        if (!itemA.isEmpty()) {
-            player.inventory().addItem(itemA);
-        }
-
-        ItemStack itemB = m_tradeContainer->removeItemNoUpdate(MerchantContainer::SLOT_BUY_B);
-        if (!itemB.isEmpty()) {
-            player.inventory().addItem(itemB);
-        }
+        static_cast<void>(m_tradeContainer->removeItemNoUpdate(MerchantContainer::SLOT_RESULT));
+        clearContainer(player, m_tradeContainer.get());
     }
 }
 
@@ -101,7 +93,7 @@ bool MerchantContainerMenu::canMergeSlot(const ItemStack& stack, const Slot& slo
 {
     (void)stack;
     // 结果槽不允许Shift+点击合并
-    return slot.getIndex() != SLOT_RESULT;
+    return slot.getSlotNumber() != SLOT_RESULT;
 }
 
 void MerchantContainerMenu::setSelectionHint(i32 hint)
@@ -181,7 +173,7 @@ ItemStack MerchantContainerMenu::quickMoveStack(i32 slotIndex, Player& player)
         return ItemStack();
     }
 
-    slot->onTake(player, slotStack);
+    // 取出回调由 AbstractContainerMenu 的 QuickMove 路径统一执行一次。
     return result;
 }
 

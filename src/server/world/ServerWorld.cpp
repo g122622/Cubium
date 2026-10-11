@@ -46,6 +46,7 @@
 #include "common/item/items/map/FilledMapItem.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/network/backend/java/mappings/JavaDamageTypeIds.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/physics/CollisionCache.hpp"
 #include "common/profiler/TraceCategories.hpp"
@@ -2791,18 +2792,41 @@ void ServerWorld::broadcastPassengersChanged(EntityInstanceId vehicleId)
     }
 }
 
-void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>&)
+void ServerWorld::broadcastDamageEvent(EntityInstanceId entityId, const DamageSource& source)
 {
-    // 忽略 changedSlots：按全量非空快照下发（见 EntityTracker::broadcastEquipment 的说明）。
+    if (m_server == nullptr) {
+        return;
+    }
+    auto typeId = mc::network::backend::java::JavaDamageTypeIds::toWireId(source.type());
+    if (!typeId.success()) {
+        spdlog::error("Cannot broadcast damage event: {}", typeId.error().toString());
+        return;
+    }
+    mc::network::ir::play::DamageEvent event{};
+    event.entityId = static_cast<i32>(entityId);
+    event.sourceType = typeId.value();
+    event.sourceCauseId = source.getEntity() != nullptr ? static_cast<i32>(source.getEntity()->id()) : -1;
+    event.sourceDirectId = source.directSource() != nullptr ? static_cast<i32>(source.directSource()->id()) : -1;
+    if (const auto position = source.sourcePositionRaw(); position.has_value()) {
+        event.sourcePosition = std::array<f64, 3>{position->x, position->y, position->z};
+    }
+    const mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(event)}};
+    m_entityTracker.broadcastPacketAndSelf(*m_server, entityId, packet);
+}
+
+void ServerWorld::broadcastEquipmentChanged(EntityInstanceId entityId, const std::vector<EquipmentSlot>& changedSlots)
+{
     if (m_server != nullptr) {
-        m_entityTracker.broadcastEquipment(*m_server, *this, entityId);
+        m_entityTracker.broadcastEquipment(*m_server, *this, entityId, changedSlots);
     }
 }
 
-void ServerWorld::broadcastMobEffectAdded(EntityInstanceId entityId, const entity::effect::EffectInstance& effect)
+void ServerWorld::broadcastMobEffectAdded(
+    EntityInstanceId entityId, const entity::effect::EffectInstance& effect, bool blend)
 {
     if (m_server != nullptr) {
-        m_entityTracker.broadcastMobEffectAdded(*m_server, *this, entityId, effect);
+        m_entityTracker.broadcastMobEffectAdded(*m_server, *this, entityId, effect, blend);
     }
 }
 

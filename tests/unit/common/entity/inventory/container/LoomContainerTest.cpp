@@ -82,14 +82,14 @@ TEST_F(LoomContainerTest, StillValid)
 TEST_F(LoomContainerTest, GetSelectedPatternDefault)
 {
     LoomContainer container(0, playerInventory_.get(), BlockPos(0, 0, 0));
-    // 默认选中图案为0
-    EXPECT_EQ(container.getSelectedPattern(), 0);
+    // 默认无图案选择
+    EXPECT_EQ(container.getSelectedPatternIndex(), -1);
 }
 
 TEST_F(LoomContainerTest, ClickMenuButtonInvalidPattern)
 {
     LoomContainer container(0, playerInventory_.get(), BlockPos(0, 0, 0));
-    // 索引0无效
+    // 空输入没有可选图案
     EXPECT_FALSE(container.clickMenuButton(*player_, 0));
     // 超出范围无效
     EXPECT_FALSE(container.clickMenuButton(*player_, 100));
@@ -97,10 +97,10 @@ TEST_F(LoomContainerTest, ClickMenuButtonInvalidPattern)
 
 TEST_F(LoomContainerTest, PatternItemIndexConstant)
 {
-    // PATTERN_ITEM_INDEX应该小于PATTERN_COUNT
-    EXPECT_LT(LoomContainer::PATTERN_ITEM_INDEX, LoomContainer::PATTERN_COUNT);
-    // 应该有6种需要图案物品的特殊图案
-    EXPECT_EQ(LoomContainer::PATTERNS_WITH_ITEMS, 6);
+    // 基础可选图案数量应小于总图案数
+    EXPECT_LT(LoomContainer::BASIC_PATTERN_COUNT, LoomContainer::PATTERN_COUNT);
+    // 应该有10种需要图案物品的特殊图案
+    EXPECT_EQ(LoomContainer::PATTERNS_WITH_ITEMS, 10);
 }
 
 // ========== LoomBannerSlot 测试 ==========

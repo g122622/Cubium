@@ -89,6 +89,16 @@ class World;
  */
 class LivingEntity : public Entity {
 public:
+    /** @brief 导航点图标样式及显式 RGB 颜色。 */
+    [[nodiscard]] const std::string& waypointStyle() const { return m_waypointStyle; }
+    [[nodiscard]] std::optional<u32> waypointColor() const { return m_waypointColor; }
+    /** @brief 替换图标样式和颜色；颜色只保存低 24 位。 */
+    void setWaypointIcon(const ResourceLocation& style, std::optional<u32> color)
+    {
+        m_waypointStyle = style.toString();
+        m_waypointColor = color ? std::optional<u32>(*color & 0xffffffu) : std::nullopt;
+    }
+
     /**
      * @brief 构造函数
      * @param id 实体ID
@@ -2209,6 +2219,10 @@ protected:
 
     /// 本类继承链标识（parent = Entity::classInfo()）。见 Entity::classInfo()。
     static const entity::EntityClassInfo& classInfo();
+
+private:
+    std::string m_waypointStyle = "minecraft:default";
+    std::optional<u32> m_waypointColor;
 };
 
 } // namespace mc

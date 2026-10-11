@@ -322,15 +322,15 @@ TEST_F(ItemComponentOverridesTest, ComponentIdsMatchVanillaRegistryOrder)
     EXPECT_EQ(componentTypeId(DataComponentType::Damage), 3);
     EXPECT_EQ(componentTypeId(DataComponentType::Unbreakable), 4);
     EXPECT_EQ(componentTypeId(DataComponentType::CustomName), 6);
-    EXPECT_EQ(componentTypeId(DataComponentType::ItemName), 8);
-    EXPECT_EQ(componentTypeId(DataComponentType::ItemModel), 9);
-    EXPECT_EQ(componentTypeId(DataComponentType::Lore), 10);
-    EXPECT_EQ(componentTypeId(DataComponentType::Rarity), 11);
-    EXPECT_EQ(componentTypeId(DataComponentType::Enchantments), 12);
-    EXPECT_EQ(componentTypeId(DataComponentType::CanPlaceOn), 13);
-    EXPECT_EQ(componentTypeId(DataComponentType::CanBreak), 14);
-    EXPECT_EQ(componentTypeId(DataComponentType::RepairCost), 18);
-    EXPECT_EQ(componentTypeId(DataComponentType::AttackRange), 29);
-    EXPECT_EQ(componentTypeId(DataComponentType::Enchantable), 30);
-    EXPECT_EQ(componentTypeId(DataComponentType::PotionContents), 48);
+    EXPECT_EQ(componentTypeId(DataComponentType::ItemName), 9);
+    EXPECT_EQ(componentTypeId(DataComponentType::ItemModel), 10);
+    EXPECT_EQ(componentTypeId(DataComponentType::Lore), 11);
+    EXPECT_EQ(componentTypeId(DataComponentType::Rarity), 12);
+    EXPECT_EQ(componentTypeId(DataComponentType::Enchantments), 13);
+    EXPECT_EQ(componentTypeId(DataComponentType::CanPlaceOn), 14);
+    EXPECT_EQ(componentTypeId(DataComponentType::CanBreak), 15);
+    EXPECT_EQ(componentTypeId(DataComponentType::RepairCost), 19);
+    EXPECT_EQ(componentTypeId(DataComponentType::AttackRange), 30);
+    EXPECT_EQ(componentTypeId(DataComponentType::Enchantable), 31);
+    EXPECT_EQ(componentTypeId(DataComponentType::PotionContents), 49);
 }

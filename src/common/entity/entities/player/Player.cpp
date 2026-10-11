@@ -2246,6 +2246,10 @@ void Player::registerAttributes()
     attributes().registerAttribute(*Attributes::blockInteractionRange());
     attributes().registerAttribute(*Attributes::entityInteractionRange());
 
+    attributes().registerAttribute(*Attributes::waypointReceiveRange());
+    attributes().setBaseValue(Attributes::WAYPOINT_TRANSMIT_RANGE, 60000000.0);
+    attributes().setBaseValue(Attributes::WAYPOINT_RECEIVE_RANGE, 60000000.0);
+
     // 设置玩家特有属性值
     attributes().setBaseValue(Attributes::MOVEMENT_SPEED, defaults::player::MOVEMENT_SPEED);
     attributes().setBaseValue(Attributes::ATTACK_DAMAGE, defaults::player::ATTACK_DAMAGE);

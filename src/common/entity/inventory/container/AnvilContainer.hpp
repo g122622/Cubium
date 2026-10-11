@@ -28,6 +28,7 @@
 #include "entity/inventory/AbstractContainerMenu.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "world/block/BlockPos.hpp"
+#include <array>
 #include <memory>
 #include <string>
 
@@ -66,7 +67,7 @@ public:
     static constexpr i32 ANVIL_SLOTS = 3;
 
     /// 输入槽位置
-    static constexpr i32 INPUT_SLOT_X[] = {27, 76}; // 左右两个输入槽
+    static constexpr std::array<i32, 2> INPUT_SLOT_X{27, 76}; // 左右两个输入槽
     static constexpr i32 INPUT_SLOT_Y = 47;
     /// 输出槽位置
     static constexpr i32 OUTPUT_SLOT_X = 134;
@@ -121,7 +122,7 @@ public:
      * @brief 设置重命名名称
      * @param name 新名称（空字符串表示清除）
      */
-    void setItemName(const std::string& name);
+    bool setItemName(const std::string& name);
 
     /**
      * @brief 获取重命名名称
@@ -140,6 +141,14 @@ public:
      * @return 如果关联的玩家是创造模式返回true
      */
     [[nodiscard]] bool isPlayerCreative() const;
+
+    /** @brief 仅允许有足够等级或处于创造模式的玩家领取有效结果。 */
+    [[nodiscard]] bool canTakeResult(const Player& player) const;
+
+    /** @brief 领取结果后扣除经验、消耗输入并处理铁砧损耗。 */
+    void onResultTaken(Player& player);
+
+    [[nodiscard]] i32 getResultSlotIndex() const noexcept override { return SLOT_OUTPUT; }
 
     // ========== 槽位访问 ==========
 
@@ -179,6 +188,9 @@ protected:
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
 private:
+    /** @brief 检查玩家背包能否完整容纳结果，防止部分移动后丢失剩余结果。 */
+    [[nodiscard]] bool _canFitResultInInventory(const ItemStack& result) const;
+
     /**
      * @brief 初始化槽位布局
      */
@@ -214,6 +226,7 @@ private:
     i32 m_repairCost = 0;                         ///< 修复成本（经验等级）
     i32 m_materialCost = 0;                       ///< 材料消耗数量
     std::string m_itemName;                       ///< 重命名名称
+    bool m_onlyRenaming = false;
 };
 
 } // namespace mc
