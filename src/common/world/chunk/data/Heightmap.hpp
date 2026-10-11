@@ -210,7 +210,11 @@ private:
         // 一个位存储能存、语义却非法的值，后续读出来继续污染地形。
         constexpr i32 MAX_ENCODED = mc::world::MAX_BUILD_HEIGHT - NO_BLOCK_SENTINEL;
         static_assert(static_cast<u64>(MAX_ENCODED) <= VALUE_MASK, "位宽不足以表示最高方块");
-        const i32 encoded = raw - NO_BLOCK_SENTINEL;
+        // 先夹取再相减：raw 可达 i32 上限，raw - NO_BLOCK_SENTINEL（= MIN_BUILD_HEIGHT - 1，
+        // 主世界为 -65）会先溢出（UBSan: 2147483647 - -65 cannot be represented in type 'BlockCoord'）。
+        constexpr BlockCoord MAX_RAW = mc::world::MAX_BUILD_HEIGHT;
+        const BlockCoord clamped = raw > MAX_RAW ? MAX_RAW : raw;
+        const i32 encoded = clamped - NO_BLOCK_SENTINEL;
         return encoded > MAX_ENCODED ? MAX_ENCODED : encoded;
     }
 

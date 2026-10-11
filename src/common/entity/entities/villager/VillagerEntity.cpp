@@ -1546,9 +1546,13 @@ void WanderingTraderEntity::registerGoals()
             }));
 
     // UseItemGoal - 白天喝牛奶恢复可见
+    // 必须用 ItemStack(const Item*, i32) 重载：ItemStack(const Item&, i32) 会在构造前先解引用
+    // Items::MILK_BUCKET。WanderingTraderEntity 的构造函数即调用 registerGoals()，若此时
+    // Items::initialize() 尚未执行（单测直接构造实体即是此情形），指针重载会安全地退化为
+    // 空 ItemStack，而引用重载则是空引用 UB（UBSan: reference binding to null pointer）。
     m_goalSelector.addGoal(0,
         std::make_unique<UseItemGoal>(this,
-            ItemStack(*Items::MILK_BUCKET),
+            ItemStack(Items::MILK_BUCKET, 1),
             SoundEvents::ENTITY_WANDERING_TRADER_REAPPEARED,
             [this](MobEntity* mob) -> bool {
                 auto* world = mob->world();

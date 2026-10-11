@@ -365,21 +365,29 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
     world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, headPos, 0);
 
     // 移除第一个雪块
+    // 注意：world.getBlockState() 返回的是区块调色板容器的内部指针，随后的 setBlockState()
+    // 可能重分配/改写该容器而使指针悬空，因此必须在写方块之前把 stateId 取成值。
     const BlockState* snowBlock1 = world.getBlockState(below1);
+    const std::optional<i32> snowBlock1Id =
+        snowBlock1 != nullptr ? std::optional<i32>(static_cast<i32>(snowBlock1->stateId())) : std::nullopt;
+    snowBlock1 = nullptr;
     if (airState != nullptr) {
         world.setBlockState(below1, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
-    if (snowBlock1 != nullptr) {
-        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below1, static_cast<i32>(snowBlock1->stateId()));
+    if (snowBlock1Id.has_value()) {
+        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below1, *snowBlock1Id);
     }
 
     // 移除第二个雪块
     const BlockState* snowBlock2 = world.getBlockState(below2);
+    const std::optional<i32> snowBlock2Id =
+        snowBlock2 != nullptr ? std::optional<i32>(static_cast<i32>(snowBlock2->stateId())) : std::nullopt;
+    snowBlock2 = nullptr;
     if (airState != nullptr) {
         world.setBlockState(below2, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
-    if (snowBlock2 != nullptr) {
-        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below2, static_cast<i32>(snowBlock2->stateId()));
+    if (snowBlock2Id.has_value()) {
+        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, below2, *snowBlock2Id);
     }
 
     // 生成雪傀儡实体
@@ -444,13 +452,18 @@ void CarvedPumpkinBlock::spawnIronGolem(
     }
 
     // 移除所有方块
+    // 注意：world.getBlockState() 返回区块调色板容器的内部指针，随后的 setBlockState()
+    // 可能使该指针悬空，因此必须在写方块之前把 stateId 取成值（见 ASAN heap-use-after-free）。
     for (const BlockPos& blockPos : blocksToRemove) {
         const BlockState* blockState = world.getBlockState(blockPos);
+        const std::optional<i32> blockStateId =
+            blockState != nullptr ? std::optional<i32>(static_cast<i32>(blockState->stateId())) : std::nullopt;
+        blockState = nullptr;
         if (airState != nullptr) {
             world.setBlockState(blockPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
         }
-        if (blockState != nullptr) {
-            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, static_cast<i32>(blockState->stateId()));
+        if (blockStateId.has_value()) {
+            world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, blockPos, *blockStateId);
         }
     }
 
@@ -589,10 +602,15 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
     const BlockState* copperStatePtr = world.getBlockState(copperPos);
     std::optional<BlockState> copperStateCopy;
     const Block* copperBlockPtr = nullptr;
+    // stateId 必须提前取成值：copperStatePtr 指向区块调色板容器内部，随后的 setBlockState()
+    // 可能使其悬空（见 ASAN heap-use-after-free）。
+    std::optional<i32> copperStateId;
     if (copperStatePtr != nullptr) {
         copperStateCopy.emplace(*copperStatePtr);
         copperBlockPtr = &copperStatePtr->getBlock();
+        copperStateId = static_cast<i32>(copperStatePtr->stateId());
     }
+    copperStatePtr = nullptr;
 
     // 缓存南瓜方块的 FACING（铜箱子朝向继承自南瓜）
     Direction facing = Direction::North;
@@ -600,6 +618,8 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
     if (pumpkinStatePtr != nullptr && pumpkinStatePtr->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
         facing = pumpkinStatePtr->get(BlockStateProperties::HORIZONTAL_FACING());
     }
+    // 同上：该指针在下面的 setBlockState 之后即失效，不可再使用。
+    pumpkinStatePtr = nullptr;
 
     const BlockState* airState = BlockRegistry::instance().airState();
 
@@ -613,9 +633,8 @@ void CarvedPumpkinBlock::spawnCopperGolem(IWorld& world, const BlockPos& headPos
     if (airState != nullptr) {
         world.setBlockState(copperPos, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
-    if (copperStatePtr != nullptr) {
-        world.playEvent(
-            world::WorldEvents::BREAK_BLOCK_EFFECTS, copperPos, static_cast<i32>(copperStatePtr->stateId()));
+    if (copperStateId.has_value()) {
+        world.playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, copperPos, *copperStateId);
     }
 
     // 步骤 3: 在南瓜头部位置生成铜傀儡

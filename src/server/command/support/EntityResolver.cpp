@@ -470,7 +470,9 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
 {
     auto* server = source.server();
     auto* world = source.world();
-    if (server == nullptr) {
+    if (server == nullptr || world == nullptr) {
+        // getPlayerEntity 需要 ServerWorld&，world 为空时不能解引用
+        // （UBSan: reference binding to null pointer of type 'server::ServerWorld'）。
         return {};
     }
 

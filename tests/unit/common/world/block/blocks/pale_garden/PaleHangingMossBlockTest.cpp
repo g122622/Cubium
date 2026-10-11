@@ -438,10 +438,12 @@ TEST_F(PaleHangingMossBlockTest, UpdatePostPlacement_NoSupport_SchedulesTick)
     world_.ensureTickManager();
     const BlockPos pos(5, 10, 5);
 
-    // 不设置上方方块（无支撑）
+    // 不设置上方方块（无支撑）。该位置未登记，getBlockState 返回 nullptr，
+    // 不能对其解引用（UBSan: reference binding to null pointer of type 'const BlockState'）；
+    // 语义上"未设置"即空气，显式传入 AIR 状态。
     auto state = moss_->defaultState().with(BlockStateProperties::TIP(), true);
-    BlockState updatedState =
-        moss_->updatePostPlacement(state, Direction::Up, *world_.getBlockState(pos), world_, pos, BlockPos(5, 11, 5));
+    BlockState updatedState = moss_->updatePostPlacement(
+        state, Direction::Up, VanillaBlocks::AIR->defaultState(), world_, pos, BlockPos(5, 11, 5));
 
     // TIP 属性应该更新（下方没有苍白垂苔 → TIP=true）
     EXPECT_TRUE(updatedState.get(BlockStateProperties::TIP()));
@@ -485,8 +487,12 @@ TEST_F(PaleHangingMossBlockTest, UpdatePostPlacement_NoMossBelow_TipIsTrue)
     world_.setBlockStateCopy(abovePos, solidBlock.defaultState());
 
     auto state = moss_->defaultState().with(BlockStateProperties::TIP(), false);
-    BlockState updatedState =
-        moss_->updatePostPlacement(state, Direction::Down, *world_.getBlockState(pos), world_, pos, BlockPos(5, 9, 5));
+    // facingState 语义上是"相邻位置（下方 (5,9,5)）的方块状态"。该位置未登记，
+    // getBlockState 返回 nullptr，不能对其解引用
+    // （UBSan: reference binding to null pointer of type 'const BlockState'）；
+    // 语义上"未设置"即空气，显式传入 AIR 状态。
+    BlockState updatedState = moss_->updatePostPlacement(
+        state, Direction::Down, VanillaBlocks::AIR->defaultState(), world_, pos, BlockPos(5, 9, 5));
 
     // 下方没有苍白垂苔 → 是末端
     EXPECT_TRUE(updatedState.get(BlockStateProperties::TIP()));

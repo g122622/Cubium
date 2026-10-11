@@ -126,6 +126,12 @@ i32 SpawnPointCommand::_setPlayerSpawnPoint(CommandContext<ServerCommandSource>&
     DimensionId dimensionId = DimensionManager::OVERWORLD;
     if (world != nullptr) {
         dimensionId = world->dimension();
+    } else {
+        // getPlayerEntity 需要 ServerWorld&，world 为空时无法解析玩家实体；
+        // 此前直接解引用 *world 是空引用 UB（UBSan: reference binding to null pointer
+        // of type 'server::ServerWorld'）。
+        source.sendError("No world available");
+        return 0;
     }
 
     i32 successCount = 0;

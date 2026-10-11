@@ -58,6 +58,7 @@
 #include "world/border/WorldBorder.hpp"
 #include "world/chunk/data/ChunkData.hpp"
 
+#include <memory>
 #include <unordered_map>
 
 using namespace mc;
@@ -126,7 +127,13 @@ public:
 
     void setBlockEntity(const BlockPos& pos, std::unique_ptr<mc::BlockEntity> entity) override
     {
-        m_entities[pos] = entity.release();
+        // 必须保留 unique_ptr 的所有权：此前 entity.release() 把裸指针塞进 m_entities，
+        // 世界析构时无人 delete，每次调用即泄漏一个方块实体
+        // （LeakSanitizer: 240 byte(s) leaked in 2 allocation(s)，
+        //  即 LecternEntity 的 176B + 其 SimpleInventory 的 64B）。
+        mc::BlockEntity* raw = entity.get();
+        m_ownedEntities[pos] = std::move(entity);
+        m_entities[pos] = raw;
     }
 
     // 测试辅助：记录一个非拥有（生命周期由测试自身管理）的方块实体指针，
@@ -183,6 +190,10 @@ private:
     i32 m_lastSetFlags = -1;
     i32 m_notifyBlockUpdateCalls = 0;
     std::unordered_map<BlockPos, BlockEntity*> m_entities;
+    /// setBlockEntity 传入的 unique_ptr 在此保留所有权；m_entities 只是非拥有视图。
+    /// 声明在 m_entities 之后，析构顺序为 m_ownedEntities 先于 m_entities——两者都只是
+    /// 指针/容器清理，顺序无副作用。
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_ownedEntities;
     std::unordered_map<BlockPos, const BlockState*> m_statesByPos;
     std::vector<Entity*> m_entitiesInAabb;
     std::vector<Entity*> m_entitiesInRange;

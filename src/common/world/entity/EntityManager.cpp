@@ -561,6 +561,16 @@ EntityInstanceId EntityManager::allocateId()
 {
     // 内部方法，假设已持有锁
     // ID 单调递增、永不复用（见头文件说明）。
+    //
+    // 必须跳过 m_entities 中已被占用的 ID：调用方可以直接构造带显式 ID 的实体
+    // （如 make_unique<ServerPlayer>(EntityInstanceId(1), ...)），此类实体入册时
+    // 不会推进 m_nextId。若 m_nextId 恰好等于该 ID，allocateId() 就会返回一个已被
+    // 占用的 ID，随后 m_entities[id] = std::move(entity) 会静默析构并覆盖原有实体，
+    // 使调用方持有的原实体指针立即悬垂（实测 ASAN heap-use-after-free：
+    // Player::playerId ← ServerCommandSource::withPlayer ← 测试持有的 playerPtr）。
+    while (m_entities.find(m_nextId) != m_entities.end()) {
+        ++m_nextId;
+    }
     return m_nextId++;
 }
 

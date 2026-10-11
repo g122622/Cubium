@@ -1003,8 +1003,13 @@ void ChunkTaskScheduler::rescheduleChunk(ChunkCoord x, ChunkCoord z, const Chunk
         ctx.pending.push_back({x, z, &target});
         return;
     }
-    // 异步模式（worker 池运行）或最外层调用：立即调度
-    SingleChunkLifecycleManager* holder = findHolder(x, z);
+    // 异步模式（worker 池运行）或最外层调用：立即调度。
+    // 必须取 shared_ptr 而非裸指针：findHolder 返回的裸指针在取到之后、加锁之前，
+    // 主线程的 unloadChunkSync 可能已把该 holder 从 m_lifecycleManagers 移除并析构，
+    // 随后 schedule(x, z, target, *holder) 解引用即 use-after-free（实测报错栈：
+    // generationSnapshot ← schedule ← rescheduleChunk ← onChunkGenComplete ← worker 线程）。
+    // shared_ptr 保证 holder 在本次调度期间存活。
+    std::shared_ptr<SingleChunkLifecycleManager> holder = m_manager._findLifecycleManagerShared(x, z);
     if (holder == nullptr) {
         return;
     }

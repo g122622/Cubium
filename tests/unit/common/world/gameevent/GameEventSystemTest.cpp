@@ -41,12 +41,13 @@ TEST(PositionSourceTest, BlockPositionSource_ReturnsBlockCenter)
     BlockPos pos(10, 20, 30);
     BlockPositionSource source(pos);
 
-    // BlockPositionSource 不需要 world 参数
-    auto result =
-        source.getPosition(static_cast<const server::ServerWorld&>(*static_cast<const server::ServerWorld*>(nullptr)));
-    // 注意：这里传入 nullptr 是不安全的，但对于 BlockPositionSource，
-    // getPosition 不使用 world 参数，所以返回值仍然有效
-    // 由于 BlockPositionSource::getPosition 忽略 world，这里需要验证逻辑
+    // BlockPositionSource 不需要 world 参数，传 nullptr 即可（不再构造空引用）。
+    auto result = source.getPosition(nullptr);
+    // BlockPositionSource::getPosition 忽略 world，位置应为方块中心
+    EXPECT_TRUE(result.has_value());
+    EXPECT_DOUBLE_EQ(result->x, 10.5);
+    EXPECT_DOUBLE_EQ(result->y, 20.5);
+    EXPECT_DOUBLE_EQ(result->z, 30.5);
     EXPECT_EQ(pos.x, 10);
     EXPECT_EQ(pos.y, 20);
     EXPECT_EQ(pos.z, 30);

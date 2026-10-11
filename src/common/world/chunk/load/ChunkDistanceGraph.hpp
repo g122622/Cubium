@@ -182,6 +182,23 @@ private:
     /// 去重集合，避免同一 key 重复入队导致批处理配额被无效消耗
     std::unordered_set<u64> m_pendingKeys;
 
+    /// processUpdates 重入守卫（防御性）。
+    ///
+    /// processUpdates 在循环内调用 onLevelChanged 回调，该回调经 ChunkLoadTicketManager/
+    /// ServerChunkManager 回到票据与调度逻辑，可能再次触发本图的 updateSourceLevel/
+    /// _enqueueUpdate，甚至再次进入 processUpdates。嵌套消费同一队列会让内层消费与外层
+    /// 循环交错改写 m_updateQueue。
+    ///
+    /// 实测症状：ASAN heap-use-after-free（deque::_M_push_back_aux ← _enqueueUpdate），
+    /// 即一次 push_back 向一个已被 _M_reallocate_map 释放的旧 map 写入。该栈只能说明
+    /// "队列容器在两次 push 之间被外部改动过"，尚不能唯一归因于重入（也可能是回调路径
+    /// 销毁了本图/其宿主）。本守卫消除其中"嵌套消费"这一类成因，成本极低且不影响单层
+    /// 语义；剩余成因待进一步定位。
+    ///
+    /// TODO: 若该 ASAN 报告复现，需在 onLevelChanged 前后加宿主生命周期断言，确认回调
+    /// 是否可能在 processUpdates 未返回时销毁 ChunkLoadTicketManager/本图。
+    bool m_processing = false;
+
     /// 级别改变回调
     ChunkCallback m_levelChangeCallback;
 };

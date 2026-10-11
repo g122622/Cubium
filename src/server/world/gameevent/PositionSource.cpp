@@ -36,10 +36,15 @@
 
 namespace mc::gameevent {
 
-std::optional<Vector3d> EntityPositionSource::getPosition(const server::ServerWorld& world) const
+std::optional<Vector3d> EntityPositionSource::getPosition(const server::ServerWorld* world) const
 {
+    // 无世界无法解析实体位置
+    if (world == nullptr) {
+        return std::nullopt;
+    }
+
     // 通过实体ID查找实体
-    const Entity* entity = world.entityManager().getEntity(m_entityId);
+    const Entity* entity = world->entityManager().getEntity(m_entityId);
     if (entity == nullptr || entity->isRemoved()) {
         return std::nullopt;
     }

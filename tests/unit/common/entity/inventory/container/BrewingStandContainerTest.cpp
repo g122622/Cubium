@@ -22,6 +22,8 @@
  */
 
 #include "entity/inventory/container/BrewingStandContainer.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include <gtest/gtest.h>
@@ -117,6 +119,13 @@ TEST_F(BrewingStandContainerTest, SetFuel_UpdatesValue)
 
 TEST_F(BrewingStandContainerTest, StillValid_ReturnsTrue)
 {
+    // 夹具中的 PlayerInventory 未绑定 Player（m_player == nullptr），
+    // 直接 `*playerInventory_->getPlayer()` 会构成空引用
+    // （UBSan: reference binding to null pointer of type 'const Player'）。
+    // stillValid 的契约是"无关联方块实体时恒为 true"，与 player 无关，
+    // 故此处直接构造一个栈上 Player 传入。
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+
     BrewingStandContainer container(ContainerId(1), playerInventory_.get(), brewingInventory_.get());
-    EXPECT_TRUE(container.stillValid(*playerInventory_->getPlayer()));
+    EXPECT_TRUE(container.stillValid(player));
 }

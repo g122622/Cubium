@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"
@@ -34,6 +35,22 @@
 using namespace mc;
 using namespace mc::blocks;
 using namespace mc::gameevent;
+
+namespace {
+
+/// getWeakPower 的契约是"读取 state 属性、忽略 world/pos/side"，但签名要求一个
+/// IWorld&。此前测试用 `*static_cast<IWorld*>(nullptr)` 构造空引用传参，属未定义行为
+/// （UBSan: reference binding to null pointer of type 'IWorld'）。此处提供一个最小
+/// 桩世界替代空引用；它不参与被测逻辑，仅满足签名。
+class SculkTestWorld final : public mc::test::BaseTestWorld {};
+
+SculkTestWorld& sculkTestWorld()
+{
+    static SculkTestWorld world;
+    return world;
+}
+
+} // namespace
 
 // ============================================================================
 // SculkSensorBlock 状态属性测试
@@ -104,15 +121,15 @@ TEST_F(SculkSensorBlockTest, GetWeakPower_ReturnsPowerPropertyValue)
 
     // POWER = 0 时，弱信号为 0
     const BlockState& state0 = block.defaultState();
-    EXPECT_EQ(block.getWeakPower(state0, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::Up), 0);
+    EXPECT_EQ(block.getWeakPower(state0, sculkTestWorld(), BlockPos(0, 0, 0), Direction::Up), 0);
 
     // POWER = 8 时，弱信号为 8
     const BlockState& state8 = block.defaultState().with(BlockStateProperties::POWER_0_15(), 8);
-    EXPECT_EQ(block.getWeakPower(state8, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::Up), 8);
+    EXPECT_EQ(block.getWeakPower(state8, sculkTestWorld(), BlockPos(0, 0, 0), Direction::Up), 8);
 
     // POWER = 15 时，弱信号为 15
     const BlockState& state15 = block.defaultState().with(BlockStateProperties::POWER_0_15(), 15);
-    EXPECT_EQ(block.getWeakPower(state15, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::Up), 15);
+    EXPECT_EQ(block.getWeakPower(state15, sculkTestWorld(), BlockPos(0, 0, 0), Direction::Up), 15);
 }
 
 TEST_F(SculkSensorBlockTest, CanProvidePower_ReturnsTrue)
@@ -169,7 +186,7 @@ TEST_F(CalibratedSculkSensorBlockTest, GetWeakPower_FacingDirectionReturnsZero)
                                   .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
 
     // FACING 方向（输入面）应该返回 0
-    EXPECT_EQ(block.getWeakPower(state, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::North), 0);
+    EXPECT_EQ(block.getWeakPower(state, sculkTestWorld(), BlockPos(0, 0, 0), Direction::North), 0);
 }
 
 TEST_F(CalibratedSculkSensorBlockTest, GetWeakPower_NonFacingDirectionReturnsPower)
@@ -180,11 +197,11 @@ TEST_F(CalibratedSculkSensorBlockTest, GetWeakPower_NonFacingDirectionReturnsPow
                                   .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
 
     // 非 FACING 方向应该返回 POWER 值
-    EXPECT_EQ(block.getWeakPower(state, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::South), 10);
-    EXPECT_EQ(block.getWeakPower(state, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::East), 10);
-    EXPECT_EQ(block.getWeakPower(state, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::West), 10);
-    EXPECT_EQ(block.getWeakPower(state, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::Up), 10);
-    EXPECT_EQ(block.getWeakPower(state, *static_cast<IWorld*>(nullptr), BlockPos(0, 0, 0), Direction::Down), 10);
+    EXPECT_EQ(block.getWeakPower(state, sculkTestWorld(), BlockPos(0, 0, 0), Direction::South), 10);
+    EXPECT_EQ(block.getWeakPower(state, sculkTestWorld(), BlockPos(0, 0, 0), Direction::East), 10);
+    EXPECT_EQ(block.getWeakPower(state, sculkTestWorld(), BlockPos(0, 0, 0), Direction::West), 10);
+    EXPECT_EQ(block.getWeakPower(state, sculkTestWorld(), BlockPos(0, 0, 0), Direction::Up), 10);
+    EXPECT_EQ(block.getWeakPower(state, sculkTestWorld(), BlockPos(0, 0, 0), Direction::Down), 10);
 }
 
 // ============================================================================

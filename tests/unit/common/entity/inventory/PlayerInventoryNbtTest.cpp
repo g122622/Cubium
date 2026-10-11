@@ -544,6 +544,10 @@ TEST_F(PlayerEnderChestInventoryNbtTest, ClearBeforeDeserialization)
 
 TEST_F(PlayerEnderChestInventoryNbtTest, NoEnderItemsKey_EmptyInventory)
 {
+    if (!stone) {
+        GTEST_SKIP() << "Stone item not registered";
+    }
+
     // 没有 EnderItems 键的 NBT 应该产生空的末影箱
     nbt::tags::compound_tag tag;
 

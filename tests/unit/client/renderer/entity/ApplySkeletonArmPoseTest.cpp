@@ -112,6 +112,11 @@ class ApplySkeletonArmPoseTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // Items::BOW 由 Items::initialize() 注册；未初始化时该指针为 nullptr，
+        // equipBow() 中的 ItemStack(*Items::BOW, 1) 会形成空引用
+        // （UBSan: reference binding to null pointer of type 'const Item'）。
+        // 本测试需要真实的弓物品以验证 isAggressive + 持弓 → BowAndArrow 契约。
+        mc::Items::initialize();
         m_model = std::make_unique<monster::SkeletonModel>();
         m_model->setSneaking(false);
         m_model->setSwimAnimation(0.0f);
@@ -137,8 +142,10 @@ protected:
         m_context.reset();
     }
 
-    /// 给实体主手装备弓（对齐 vanilla 骷髅拉弓前置条件）
-    void equipBow() { m_entity->setMainHandItem(mc::ItemStack(*mc::Items::BOW, 1)); }
+    /// 给实体主手装备弓（对齐 vanilla 骷髅拉弓前置条件）。
+    /// 使用指针重载：即使 Items::BOW 意外为 nullptr 也只是得到空栈（测试断言失败），
+    /// 不会像 `*Items::BOW` 那样构成空引用 UB。
+    void equipBow() { m_entity->setMainHandItem(mc::ItemStack(mc::Items::BOW, 1)); }
 
     std::unique_ptr<monster::SkeletonModel> m_model;
     std::unique_ptr<mc::client::ClientEntity> m_entity;

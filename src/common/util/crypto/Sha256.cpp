@@ -197,7 +197,11 @@ std::vector<u8> Sha256::padMessage(std::span<const u8> message)
     std::vector<u8> padded(paddedLen, 0);
 
     // 复制原始消息
-    std::memcpy(padded.data(), message.data(), messageLen);
+    // 必须判空：空 span 的 data() 可为 nullptr，memcpy(dst, nullptr, 0) 属 UB
+    // （UBSan: null pointer passed as argument 2, which is declared to never be null）。
+    if (messageLen > 0) {
+        std::memcpy(padded.data(), message.data(), messageLen);
+    }
 
     // 添加 1 bit (0x80)
     padded[messageLen] = 0x80;

@@ -191,13 +191,19 @@ void registerEventBindings(
 
     for (const auto& info : signals) {
         void* signal = createSignalObject(ctx, signalClassId, eventBus, info.typeIdx, info.isBefore);
-        ctx.retainValue(signal); // 保留信号对象引用
 
         if (info.isBefore) {
             ctx.setProperty(beforeEventsObj, info.name.c_str(), signal);
         } else {
             ctx.setProperty(afterEventsObj, info.name.c_str(), signal);
         }
+
+        // 释放 createSignalObject 返回的 owned 句柄：setProperty 已 Dup 一份引用挂到容器对象上，
+        // 容器随后又经 setProperty 挂到 world 对象，故信号对象由 JS 引用图保活。
+        // 此前这里用 retainValue 多持一份引用且从不释放句柄——既泄漏句柄自身（实测 189 个
+        // 16 字节句柄），又因引用计数多 1 使 JS_FreeRuntime 末尾的 JS_RunGC 回收不掉这些
+        // 信号对象（连同其类原型/方法闭包引用图），是 nightly 分片 SIGABRT 的最后一个直接泄漏根。
+        ctx.releaseValue(signal);
     }
 
     // 将beforeEvents和afterEvents添加到world对象

@@ -545,18 +545,26 @@ protected:
 private:
     /**
      * @brief 处理拾取/放置点击
+     *
+     * @param player 执行点击的玩家。必须由 clicked() 透传，不可改用
+     * m_playerInventory->getPlayer()——该回指在集成服务端的 m_clientInventory 等
+     * 场景下可能为空，解引用即为空引用 UB。
      */
-    ItemStack _handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+    ItemStack _handleClickPick(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player);
 
     /**
      * @brief 处理Shift+点击快速移动
+     *
+     * @param player 执行点击的玩家（见 _handleClickPick 的说明）
      */
-    ItemStack _handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+    ItemStack _handleQuickMove(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player);
 
     /**
      * @brief 处理数字键交换
+     *
+     * @param player 执行点击的玩家（见 _handleClickPick 的说明）
      */
-    ItemStack _handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+    ItemStack _handleSwap(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player);
 
     /**
      * @brief 处理创造模式中键复制
@@ -565,8 +573,10 @@ private:
 
     /**
      * @brief 处理丢弃
+     *
+     * @param player 执行点击的玩家（见 _handleClickPick 的说明）
      */
-    ItemStack _handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button);
+    ItemStack _handleThrow(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player);
 
     /**
      * @brief 处理拖拽分发
@@ -609,8 +619,10 @@ private:
 
     /**
      * @brief 处理双击拾取全部
+     *
+     * @param player 执行点击的玩家（见 _handleClickPick 的说明）
      */
-    ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack);
+    ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player);
 
     /**
      * @brief 尝试槽位覆写协议（收纳袋等特殊物品）

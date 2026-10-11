@@ -52,10 +52,13 @@ public:
 
     /**
      * @brief 获取监听器的当前位置
-     * @param world 世界引用（用于解析实体位置）
+     * @param world 世界指针（用于解析实体位置）。可为 nullptr——方块位置源等不需要世界的
+     *              实现会忽略它；需要世界的实现（如实体位置源）遇到 nullptr 应返回 nullopt。
+     *              此前该参数是引用类型，导致"不需要世界"的调用方只能构造空引用
+     *              （UBSan: reference binding to null pointer of type 'server::ServerWorld'）。
      * @return 监听器当前位置，如果无法确定则返回空
      */
-    [[nodiscard]] virtual std::optional<Vector3d> getPosition(const server::ServerWorld& world) const = 0;
+    [[nodiscard]] virtual std::optional<Vector3d> getPosition(const server::ServerWorld* world) const = 0;
 
     /**
      * @brief 获取位置源类型标识
@@ -77,7 +80,7 @@ public:
         : m_pos(pos)
     {}
 
-    [[nodiscard]] std::optional<Vector3d> getPosition(const server::ServerWorld& /*world*/) const override
+    [[nodiscard]] std::optional<Vector3d> getPosition(const server::ServerWorld* /*world*/) const override
     {
         return Vector3d(m_pos.x + 0.5, m_pos.y + 0.5, m_pos.z + 0.5);
     }
@@ -109,7 +112,7 @@ public:
         , m_yOffset(yOffset)
     {}
 
-    [[nodiscard]] std::optional<Vector3d> getPosition(const server::ServerWorld& world) const override;
+    [[nodiscard]] std::optional<Vector3d> getPosition(const server::ServerWorld* world) const override;
 
     [[nodiscard]] const char* type() const noexcept override { return "entity"; }
 

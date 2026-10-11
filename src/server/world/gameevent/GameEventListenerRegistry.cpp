@@ -158,7 +158,7 @@ std::optional<Vector3d> EuclideanGameEventListenerRegistry::getPostableListenerP
     const Vector3d& eventPos, GameEventListener& listener) const
 {
     // 通过 PositionSource 获取监听器位置
-    auto listenerPos = listener.getListenerSource().getPosition(m_world);
+    auto listenerPos = listener.getListenerSource().getPosition(&m_world);
     if (!listenerPos.has_value()) {
         return std::nullopt;
     }

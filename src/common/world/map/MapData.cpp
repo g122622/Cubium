@@ -81,6 +81,26 @@ void MapData::MapInfo::resetDirty()
 // MapData
 // ============================================================================
 
+namespace {
+/**
+ * @brief 把地图坐标夹到 i8 可表示范围后取整
+ *
+ * 对应 MC 1.21.11 MapItemSavedData#clampMapCoordinate。必须夹取：直接把超出
+ * [-128, 127] 的浮点值 static_cast 到 i8 是 UB（UBSan: 10000.5 is outside the
+ * range of representable values of type 'signed char'）。
+ */
+[[nodiscard]] i8 clampMapCoordinate(f32 value)
+{
+    if (value <= -63.0F) {
+        return -128;
+    }
+    if (value >= 63.0F) {
+        return 127;
+    }
+    return static_cast<i8>(value * 2.0F + 0.5F);
+}
+} // namespace
+
 MapData::MapData(i32 mapId)
     : m_mapId(mapId)
 {}
@@ -121,8 +141,8 @@ void MapData::updateDecoration(DecorationType type,
     f32 f = static_cast<f32>((worldX - static_cast<f64>(m_xCenter)) / static_cast<f64>(i));
     f32 f1 = static_cast<f32>((worldZ - static_cast<f64>(m_zCenter)) / static_cast<f64>(i));
 
-    i8 b0 = static_cast<i8>(static_cast<f64>(f * 2.0F) + 0.5);
-    i8 b1 = static_cast<i8>(static_cast<f64>(f1 * 2.0F) + 0.5);
+    i8 b0 = clampMapCoordinate(f);
+    i8 b1 = clampMapCoordinate(f1);
 
     u8 b2 = calculateRotation(world, rotation);
 
@@ -166,7 +186,10 @@ u8 MapData::calculateRotation(const IWorld* world, f64 rotation) const
         // 下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果
         i64 gameTime = static_cast<i64>(world->getGameTime());
         i32 t = static_cast<i32>(gameTime / 10L);
-        return static_cast<u8>((t * t * 34187121 + t * 121) >> 15 & 15);
+        // 用 i64 中间量：t 可达 2^31/10 量级，t * t * 34187121 在 i32 下必然溢出
+        // （UBSan: signed integer overflow: 100 * 34187121 cannot be represented in type 'int'）。
+        const i64 t64 = t;
+        return static_cast<u8>((t64 * t64 * 34187121 + t64 * 121) >> 15 & 15);
     } else {
         // 其他维度使用实际朝向角度
         f64 adjustedRotation = rotation + (rotation < 0.0 ? -8.0 : 8.0);

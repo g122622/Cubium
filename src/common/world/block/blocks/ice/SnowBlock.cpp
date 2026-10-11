@@ -114,7 +114,10 @@ void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state
         // 雪层掉落雪球数量等于层数
         i32 layers = state.get(LAYERS());
         if (layers > 0) {
-            ItemStack dropStack(*Items::SNOWBALL, layers);
+            // Items::SNOWBALL 在 Items::initialize() 之前为 nullptr；直接解引用是空引用 UB
+            // （UBSan: reference binding to null pointer of type 'const Item'）。用指针重载
+            // 安全退化为空 ItemStack（此时掉落为空，由下方的移除方块逻辑保证方块仍被清除）。
+            ItemStack dropStack(Items::SNOWBALL, layers);
             math::Random rng;
             ItemDropHelper::spawnItemEntity(&world,
                 dropStack,

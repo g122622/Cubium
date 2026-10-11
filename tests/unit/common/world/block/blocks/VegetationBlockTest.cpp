@@ -71,7 +71,7 @@ public:
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
-            return it->second;
+            return it->second.get();
         }
 
         return nullptr;
@@ -83,7 +83,10 @@ public:
         if (state == nullptr || state->isAir()) {
             m_blocks.erase(pos);
         } else {
-            m_blocks[pos] = state;
+            // 必须持有副本：调用方（如 BambooBlock::_growBamboo）常传入指向其栈上局部
+            // BlockState 的指针，函数返回后该指针即悬空，直接保存会触发
+            // ASAN stack-use-after-return。
+            m_blocks[pos] = std::make_unique<BlockState>(*state);
         }
         return true;
     }
@@ -169,7 +172,7 @@ private:
         return 0;
     }
 
-    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::map<BlockPos, u8> m_blockLight;
     std::map<BlockPos, u8> m_skyLight;
     world::border::WorldBorder m_worldBorder;
