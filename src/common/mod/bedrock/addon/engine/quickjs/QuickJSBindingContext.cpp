@@ -97,6 +97,26 @@ QuickJSBindingContext::~QuickJSBindingContext()
             JS_FreeValue(m_ctx, value);
         }
     }
+
+    // 释放本上下文持有的类原型句柄（createClassProto 产出，调用方按借用语义不得 release）。
+    // 必须在 JS_FreeContext 之前执行（本析构由 ~QuickJSContext 显式 reset 触发，见其注释）：
+    // 每个句柄持有一份原型对象的引用，不归还则 JS_FreeRuntime 末尾的 JS_RunGC 无法回收原型
+    // 及其引用图（方法闭包/字符串/属性表，实测数 MB），并留下句柄自身的 C++ 堆内存泄漏。
+    for (void* handle : m_classProtoHandles) {
+        if (handle == nullptr) {
+            continue;
+        }
+        auto* value = static_cast<JSValue*>(handle);
+        JS_FreeValue(m_ctx, *value);
+        delete value;
+        s_liveClassProtoHandles.fetch_sub(1, std::memory_order::relaxed);
+    }
+    m_classProtoHandles.clear();
+}
+
+std::size_t QuickJSBindingContext::liveClassProtoHandleCount() const noexcept
+{
+    return s_liveClassProtoHandles.load(std::memory_order::relaxed);
 }
 
 // ===== 值创建 =====
@@ -404,12 +424,14 @@ void QuickJSBindingContext::setArrayElement(void* arr, u32 index, void* value)
 
 void QuickJSBindingContext::setPropertyFunction(void* obj, const char* key, ScriptMethodCallback callback, i32 length)
 {
-    // createFunction 返回 owned 函数句柄；setProperty 内部 DupValue 后挂到 obj，本句柄仍需释放。
+    // createFunction 返回 owned 函数句柄；setProperty 内部 DupValue 后挂到 obj（不消耗入参所有权），
+    // 故本函数必须自行释放该句柄，否则句柄与其持有的函数对象引用一并泄漏。
     // 走 createFunction + setProperty 而非直接 JS_SetPropertyStr(JS_NewCFunctionMagic(...))，是为了
     // 复用 methodTrampoline（引擎无关回调 → QuickJS C 函数 trampoline），与 registerMethod 同机制，
     // 保证回调内的 this/args 句柄包装与释放语义一致。
     void* fn = createFunction(std::move(callback), key, length);
-    setProperty(obj, key, fn); // setProperty 消耗 fn 所有权（Dup 一份给 obj），fn 由 setProperty 释放
+    setProperty(obj, key, fn);
+    releaseValue(fn);
 }
 
 // ===== 引用管理 =====
@@ -591,7 +613,18 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
     // 致 class_proto[classId] 悬垂——后续 GC 遍历 gc_obj_list 访问该悬垂对象即崩。
     // 故此处 Dup 出一份独立引用供句柄持有：根 1 份 + 句柄 1 份，调用方 release 句柄时根仍保活。
     JS_SetClassProto(m_ctx, static_cast<JSClassID>(classId), proto);
-    return wrapValue(JS_DupValue(m_ctx, proto));
+    void* handle = wrapValue(JS_DupValue(m_ctx, proto));
+
+    // 句柄所有权归本上下文（借用语义，调用方不得 releaseValue）：
+    // 类原型句柄会被调用方长期寄存（ScriptClassRegistry 按 classId 存裸指针，供运行期跨模块
+    // wrap 使用），其生命周期天然等于上下文生命周期。早期实现让调用方各自 release，但 40 余处
+    // exportClass / createSignalObject 调用点均未 release——句柄泄漏之外，更严重的是句柄持有的
+    // 那份原型引用永不复位，JS_FreeRuntime 末尾的 JS_RunGC 因 refcount 非 0 无法回收原型对象，
+    // 连带整个类原型引用图（方法闭包、字符串原子、属性表）以"间接泄漏"形式留在堆上
+    // （nightly 集成测试实测 5.7 MB / 55013 次分配，LeakSanitizer 判为泄漏并使 20/24 分片 SIGABRT）。
+    m_classProtoHandles.push_back(handle);
+    s_liveClassProtoHandles.fetch_add(1, std::memory_order::relaxed);
+    return handle;
 }
 
 void QuickJSBindingContext::registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length)

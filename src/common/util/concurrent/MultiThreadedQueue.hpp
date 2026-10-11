@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 
 #include <atomic>
+#include <cstddef>
 
 namespace mc::util {
 
@@ -80,14 +81,26 @@ template <typename E>
 class MultiThreadedQueue {
 public:
     MultiThreadedQueue()
-        : m_head(new LinkedNode(E{}, nullptr))
-        , m_tail(m_head.load(std::memory_order::relaxed))
-    {}
+        : m_first(new LinkedNode(E{}, nullptr))
+    {
+        // m_head/m_tail 声明在 m_first 之前，但两者都只在构造函数体内写入，
+        // 与 m_first 的成员初始化顺序无关（顺序依赖会用到未初始化的 m_first）。
+        m_head.store(m_first, std::memory_order::relaxed);
+        m_tail.store(m_first, std::memory_order::relaxed);
+    }
 
     ~MultiThreadedQueue()
     {
-        // 析构：从头遍历释放所有 LinkedNode（含死结节点）
-        LinkedNode* curr = m_head.load(std::memory_order::acquire);
+        // 析构必须从"物理链表头" m_first 出发，不能用 m_head：
+        // m_head 是"逻辑队首"，pollOrBlockAdds 取走元素后会把它前移到后继节点，但被前移越过的
+        // 节点仍留在链表上（元素被 exchange 置空，节点本身从不摘链）。若从 m_head 遍历，被越过
+        // 的前缀（含构造函数分配的初始哨兵）将永远不被释放——LSan 实测每个被 poll 过的队列都会
+        // 泄漏其前缀节点（CI 中区块调度锁的 3696 个等待队列节点即由此泄漏）。
+        // m_first 在构造后不可变，从它出发可覆盖全部已入链节点；死结（自环）终止遍历。
+        LinkedNode* curr = m_first;
+        m_first = nullptr;
+        m_head.store(nullptr, std::memory_order::relaxed);
+        m_tail.store(nullptr, std::memory_order::relaxed);
         while (curr != nullptr) {
             LinkedNode* nextRaw = curr->m_next.load(std::memory_order::acquire);
             LinkedNode* next = (nextRaw == curr) ? nullptr : nextRaw; // 死结（自环）→ 停止
@@ -100,6 +113,15 @@ public:
     MultiThreadedQueue& operator=(const MultiThreadedQueue&) = delete;
     MultiThreadedQueue(MultiThreadedQueue&&) = delete;
     MultiThreadedQueue& operator=(MultiThreadedQueue&&) = delete;
+
+    /**
+     * @brief 当前存活的链表节点数（诊断与测试用）
+     *
+     * 队列节点是本模板所有实例共享的堆资源，其泄漏只有 LSan 在进程退出时才能发现。计数器让单元
+     * 测试能直接断言「队列析构后节点数回到基线」，覆盖 pollOrBlockAdds 前移逻辑队首导致的链路
+     * 前缀泄漏（该缺陷曾使 nightly 集成测试 20/24 分片以 SIGABRT 退出）。
+     */
+    [[nodiscard]] static std::size_t liveNodeCount() noexcept { return s_liveNodes.load(std::memory_order::relaxed); }
 
     /**
      * @brief 向队尾添加元素
@@ -276,7 +298,11 @@ private:
         LinkedNode(E element, LinkedNode* next)
             : m_element(element)
             , m_next(next)
-        {}
+        {
+            s_liveNodes.fetch_add(1, std::memory_order::relaxed);
+        }
+
+        ~LinkedNode() { s_liveNodes.fetch_sub(1, std::memory_order::relaxed); }
 
         LinkedNode(const LinkedNode&) = delete;
         LinkedNode& operator=(const LinkedNode&) = delete;
@@ -285,6 +311,17 @@ private:
     // head/tail 用 atomic 指针，对齐 Moonrise 的 volatile LinkedNode head/tail
     std::atomic<LinkedNode*> m_head;
     std::atomic<LinkedNode*> m_tail;
+
+    /**
+     * @brief 物理链表头（构造时分配的初始哨兵），构造后不再修改
+     *
+     * m_head 只在"逻辑队首"意义上推进（pollOrBlockAdds），节点从不摘链；析构必须从本指针出发
+     * 才能覆盖全部已入链节点。见 ~MultiThreadedQueue 的说明。
+     */
+    LinkedNode* m_first;
+
+    // 存活节点计数（见 liveNodeCount）。跨实例共享，relaxed 即可：仅用于诊断与测试断言。
+    inline static std::atomic<std::size_t> s_liveNodes{0};
 
     /**
      * @brief 退避（对齐 Moonrise ConcurrentUtil.backoff = Thread.onSpinWait）

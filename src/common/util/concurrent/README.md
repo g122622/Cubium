@@ -77,6 +77,7 @@ ReentrantAreaLock
 6. **`MultiThreadedQueue` 元素生命周期**：队列存 `ThreadHandle*` 裸指针。被 park 的线程在队列成员身份期间不会退出（park 阻塞），与 Java GC 保持 Thread 存活语义等价。`unpark` 在 `pollOrBlockAdds` 取出后立即调用，被唤醒线程在 unpark 完成前不会退出。
 7. **负坐标**：`sectionKey` 用算术右移（`i32 >> shift`），负坐标向负无穷取整，与 Java `>>` 一致，分区边界正确。
 8. **`ConcurrentLong2ObjectHashTable` 不 resize**：固定 4096 桶 + 链表。区块 section 数量有上界（活跃区块范围），无需 resize。每桶 `std::mutex` 分段锁，物理摘除在锁内完成（无逻辑删除节点堆积、无 ABA），对齐 Moonrise `synchronized(node)`。
+9. **`~MultiThreadedQueue` 必须从 `m_first`（物理链表头）遍历，不能用 `m_head`**：`m_head` 只是"逻辑队首"，`pollOrBlockAdds` 取走元素时把它前移到后继节点，但节点从不摘链（元素被 `exchange` 置空）。若从 `m_head` 出发，被前移越过的前缀（含构造期哨兵）永远不释放——nightly 集成测试实测泄漏 3696 个此类节点（区块调度锁的等待队列），并因 LeakSanitizer 报错使 20/24 分片 SIGABRT 退出。`m_first` 构造后不可变；死结（自环）终止遍历。回归测试见 `MultiThreadedQueueTest.DestructorReleasesConsumedPrefixNodes`（依赖 `liveNodeCount()` 计数器）。
 
 ## 性能要点（重构动机）
 

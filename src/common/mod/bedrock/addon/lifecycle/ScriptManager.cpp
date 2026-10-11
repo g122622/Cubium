@@ -23,6 +23,7 @@
 
 #include "common/mod/bedrock/addon/lifecycle/ScriptManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptLogger.hpp"
 #include "common/mod/bedrock/addon/lifecycle/ScriptTickListener.hpp"
@@ -89,6 +90,13 @@ void ScriptManager::shutdown()
 
     // 停止所有插件
     m_pluginManager->stopAllPlugins();
+
+    // 丢弃跨模块类原型注册表条目：其中存的 proto 是各绑定上下文借出的句柄（所有权归上下文，
+    // 见 IScriptBindingContext::createClassProto），上下文销毁后即悬垂。必须在卸载插件之前清空，
+    // 否则同进程内下次重建引擎（如 GameTestServer 二次运行）会按类名命中上一代上下文的
+    // 失效 classId/proto，拿到指向已死 JSContext 的句柄。
+    ScriptClassRegistry::instance().clear();
+
     m_pluginManager->unloadAllPlugins();
 
     // 关闭事件总线

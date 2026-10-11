@@ -79,18 +79,25 @@ void* contextToJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, const std
     }
     const u64 classId = ScriptClassRegistry::instance().classIdByName(kGameTestErrorContextClassName);
     void* proto = ScriptClassRegistry::instance().proto(classId);
+    // setProperty 不消耗 value 所有权（内部 Dup 一份给对象），故每个临时句柄都必须显式释放，
+    // 否则句柄与其持有的 JS 引用一并泄漏（LSan 在 nightly 报出此处 4 处直接泄漏）。
+    auto setBlockPos = [&ctx](void* obj, const char* key, const BlockPos& pos) {
+        void* handle = blockPosToJs(ctx, pos);
+        ctx.setProperty(obj, key, handle);
+        ctx.releaseValue(handle);
+    };
     if (proto == nullptr) {
         // 类未注册（不应发生）：退化为普通对象，保字段不丢。
         void* obj = ctx.createObject();
-        ctx.setProperty(obj, "absolutePosition", blockPosToJs(ctx, c->absolutePosition()));
-        ctx.setProperty(obj, "relativePosition", blockPosToJs(ctx, c->relativePosition()));
+        setBlockPos(obj, "absolutePosition", c->absolutePosition());
+        setBlockPos(obj, "relativePosition", c->relativePosition());
         ctx.setPropertyInt(obj, "tickCount", c->tickCount());
         return obj;
     }
     void* obj = ctx.createObject();
     ctx.setPrototypeOf(obj, proto);
-    ctx.setProperty(obj, "absolutePosition", blockPosToJs(ctx, c->absolutePosition()));
-    ctx.setProperty(obj, "relativePosition", blockPosToJs(ctx, c->relativePosition()));
+    setBlockPos(obj, "absolutePosition", c->absolutePosition());
+    setBlockPos(obj, "relativePosition", c->relativePosition());
     ctx.setPropertyInt(obj, "tickCount", c->tickCount());
     return obj;
 }
@@ -118,8 +125,14 @@ void* buildGameTestErrorJs(mc::mod::bedrock::addon::IScriptBindingContext& ctx, 
     // message 用 formattedMessage（替换占位符后的可读串），对齐基岩 Error.message 可读性。
     ctx.setPropertyString(obj, "message", err.formattedMessage());
     ctx.setPropertyString(obj, "type", gameTestErrorTypeName(err.type()));
-    ctx.setProperty(obj, "context", contextToJs(ctx, err.context()));
-    ctx.setProperty(obj, "params", stringVectorToJs(ctx, err.params()));
+    // setProperty 不消耗 value 所有权（内部 Dup 一份给对象），临时句柄须显式释放。
+    void* contextHandle = contextToJs(ctx, err.context());
+    ctx.setProperty(obj, "context", contextHandle);
+    ctx.releaseValue(contextHandle);
+
+    void* paramsHandle = stringVectorToJs(ctx, err.params());
+    ctx.setProperty(obj, "params", paramsHandle);
+    ctx.releaseValue(paramsHandle);
     return obj;
 }
 

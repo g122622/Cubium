@@ -207,7 +207,8 @@ void registerEventBindings(
     // 释放临时对象
     ctx.releaseValue(beforeEventsObj);
     ctx.releaseValue(afterEventsObj);
-    ctx.releaseValue(signalProto);
+    // signalProto 不释放：createClassProto 返回的类原型句柄归绑定上下文所有（借用语义，
+    // 由 QuickJSBindingContext 析构时统一释放），此处 release 会造成 double free。
 
     spdlog::info("[BedrockAddon] Event bindings registered ({} signals)", signals.size());
 }

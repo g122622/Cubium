@@ -26,6 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 
+#include <atomic>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -47,11 +49,24 @@ namespace mc::mod::bedrock::addon {
  * - retainValue()增加引用计数（JS_DupValue）
  * - releaseValue()减少引用计数并释放（JS_FreeValue + delete）
  * - 创建方法返回的句柄初始引用计数为1
+ * - **例外**：createClassProto() 返回的句柄归本上下文所有（借用语义），调用方不得 releaseValue；
+ *   句柄在本上下文析构时统一释放。理由见 createClassProto 的实现注释——类原型的 JS 引用由
+ *   `ctx->class_proto[classId]` 根持有，句柄只需活到上下文销毁即可，而调用方（模块工厂/绑定层）
+ *   会把句柄长期存放在进程级注册表中供运行期跨模块 wrap 使用。
  */
 class QuickJSBindingContext : public IScriptBindingContext {
 public:
     explicit QuickJSBindingContext(JSContext* ctx);
     ~QuickJSBindingContext();
+
+    /**
+     * @brief 当前存活的类原型句柄数（诊断与测试用）
+     *
+     * 类原型句柄是本上下文持有、供跨模块注册表长期引用的堆资源，只在上下文析构时统一释放。
+     * 计数器（全进程累计）让单元测试断言「上下文析构后句柄数回到基线」，防止句柄及其持有的
+     * JS 类原型引用图（实测数 MB）在引擎销毁后泄漏。
+     */
+    [[nodiscard]] std::size_t liveClassProtoHandleCount() const noexcept override;
 
     // ===== 值创建 =====
 
@@ -244,6 +259,18 @@ private:
     /// createNativeModule 会 clear 掉先注册模块尚未被 _moduleInit 消费的 pending 值，导致先注册模块
     /// 的所有命名导出变为 undefined（_moduleInit 在 import 时才触发，远晚于注册期）。
     std::unordered_map<JSModuleDef*, std::vector<std::pair<std::string, JSValue>>> m_pendingExports;
+
+    /**
+     * @brief 本上下文创建的全部类原型句柄（createClassProto 产出）
+     *
+     * 句柄为 JSValue*（每个持有一份原型对象的引用）。调用方不得 releaseValue：句柄须活到
+     * 上下文销毁（运行期跨模块 wrap 按 class_id 从 ScriptClassRegistry 取 proto），故所有权
+     * 归上下文，析构时统一 JS_FreeValue + delete。
+     */
+    std::vector<void*> m_classProtoHandles;
+
+    /// 存活类原型句柄计数（跨实例共享，relaxed：仅用于诊断与测试断言）。
+    inline static std::atomic<std::size_t> s_liveClassProtoHandles{0};
 
     /**
      * @brief C 模块 init 回调：模块被 import 时由 QuickJS 调用。

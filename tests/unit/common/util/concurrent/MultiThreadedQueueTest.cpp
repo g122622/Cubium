@@ -175,6 +175,56 @@ TEST(MultiThreadedQueueTest, PollThenAddAfterBlockRequiresAllowAdds)
 }
 
 // ============================================================================
+// 析构回收全部链表节点（含被 pollOrBlockAdds 前移越过的前缀）
+// ============================================================================
+
+TEST(MultiThreadedQueueTest, DestructorReleasesConsumedPrefixNodes)
+{
+    // 回归：pollOrBlockAdds 取走元素时只前移"逻辑队首" m_head（节点从不摘链），早期析构从
+    // m_head 出发遍历，被越过的前缀（含构造期哨兵）永远不被释放。LSan 在 nightly 集成测试中
+    // 报出 3696 个此类泄漏节点（区块调度锁的等待队列），并使 20/24 分片以 SIGABRT 退出。
+    const std::size_t before = MultiThreadedQueue<int*>::liveNodeCount();
+
+    {
+        MultiThreadedQueue<int*> q;
+        int a = 1, b = 2, c = 3;
+        ASSERT_TRUE(q.add(&a));
+        ASSERT_TRUE(q.add(&b));
+        ASSERT_TRUE(q.add(&c));
+
+        // 排空全部元素：逻辑队首依次前移越过哨兵与 a/b/c 节点
+        EXPECT_EQ(q.pollOrBlockAdds(), &a);
+        EXPECT_EQ(q.pollOrBlockAdds(), &b);
+        EXPECT_EQ(q.pollOrBlockAdds(), &c);
+        // 空队列 poll 会把尾的 next 置自环（add-blocked），随后 allowAdds 解环再入队
+        EXPECT_EQ(q.pollOrBlockAdds(), nullptr);
+        q.allowAdds();
+        EXPECT_TRUE(q.add(&a));
+
+        EXPECT_GT(MultiThreadedQueue<int*>::liveNodeCount(), before);
+    }
+
+    EXPECT_EQ(MultiThreadedQueue<int*>::liveNodeCount(), before)
+        << "队列析构后仍有链表节点未释放（逻辑队首前移导致的链路前缀泄漏）";
+}
+
+TEST(MultiThreadedQueueTest, DestructorReleasesPreventAddsDeadEndNode)
+{
+    // 回归：preventAdds 入队的死结节点（自环保留到析构）也必须释放——析构遍历以自环终止，
+    // 死结节点本身在自环之前已访问到，故必须计入释放。
+    const std::size_t before = MultiThreadedQueue<int*>::liveNodeCount();
+
+    {
+        MultiThreadedQueue<int*> q;
+        EXPECT_TRUE(q.preventAdds());
+        EXPECT_TRUE(q.isAddBlocked());
+        EXPECT_GT(MultiThreadedQueue<int*>::liveNodeCount(), before);
+    }
+
+    EXPECT_EQ(MultiThreadedQueue<int*>::liveNodeCount(), before);
+}
+
+// ============================================================================
 // 并发 add + poll：不丢元素
 // ============================================================================
 
