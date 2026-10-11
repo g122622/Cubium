@@ -293,7 +293,15 @@ TEST(MultiThreadedQueueTest, ConcurrentAddPollNoLostElements)
 
 TEST(MultiThreadedQueueTest, ConcurrentPreventAllowAddsRobust)
 {
-    // 多线程并发 add + 一个线程反复 preventAdds/allowAdds，验证不死锁、不崩溃
+    // 多线程并发 add + 一个线程反复 preventAdds/allowAdds，验证不死锁、不崩溃、不泄漏节点。
+    //
+    // 【为什么 allowAdds 只能由单一线程调用】allowAdds 的契约是"非 MT-Safe，调用方保证
+    // 单线程调用"（见 MultiThreadedQueue.hpp 的声明处）。它的实现是"找到链尾后
+    // tail->m_next.store(nullptr)"：若多个线程并发调用，A 线程刚把新节点 Y 链到 X 之后，
+    // B 线程就可能把 X.m_next 置回 nullptr，把 Y 及其后继整段摘出链外——析构时从 m_first
+    // 遍历再也到不了它们，即泄漏（实测 LeakSanitizer: 960 bytes in 60 objects from
+    // appendList + 864 bytes in 54 objects from preventAdds）。
+    // 故本测试让 preventAdds/allowAdds 只由 preventer 线程调用，adders 只 add/poll。
     constexpr int kAdders = 4;
     constexpr int kIterations = 1000;
 
@@ -310,20 +318,20 @@ TEST(MultiThreadedQueueTest, ConcurrentPreventAllowAddsRobust)
                     ++added;
                     // 立即 poll 掉，避免队列无限增长
                     q.pollOrBlockAdds();
-                    q.allowAdds();
-                } else {
-                    q.allowAdds();
                 }
+                // add 失败表示当前被 preventAdds 阻止；等待 preventer 解除即可，不自行 allowAdds。
             }
         });
     }
 
-    // preventAdds / allowAdds 抖动线程
+    // preventAdds / allowAdds 抖动线程：本线程独占这对调用的调用权（契约要求）。
     std::thread preventer([&] {
         while (!stop.load()) {
             q.preventAdds();
             q.allowAdds();
         }
+        // 退出前保证队列处于"允许添加"状态，避免析构时残留自环死结。
+        q.allowAdds();
     });
 
     for (auto& t : threads) {

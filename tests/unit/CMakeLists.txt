@@ -1663,6 +1663,8 @@ add_executable(mc_tests
     common/world/chunk/data/PalettedContainerTest.cpp
     # 高度图位压缩存储单元测试
     common/world/chunk/data/HeightmapTest.cpp
+    # SWMRNibbleArray 单写多读生命周期回归测试（可见侧无锁读的缓冲区所有权）
+    common/world/chunk/data/light/SWMRNibbleArrayTest.cpp
     common/world/storage/SingleLevelStorageManagerTest.cpp
     common/world/storage/GlobalStorageManagerTest.cpp
     common/world/storage/SaveFormatDetectorTest.cpp

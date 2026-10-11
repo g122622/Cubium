@@ -240,14 +240,17 @@ TEST(VibrationSystemResonanceTest, Frequency1_ReturnsResonate1)
 {
     const GameEvent* event = VibrationSystem::getResonanceEventByFrequency(1);
     ASSERT_NE(event, nullptr);
-    EXPECT_EQ(event->id(), "resonate_1");
+    // 必须用 EXPECT_STREQ：event->id() 返回 const char*，而 EXPECT_EQ 对两个指针
+    // 比较的是地址而非内容，即使字符串相同也会失败（实测两条 const char* 的地址不同）。
+    EXPECT_STREQ(event->id(), "resonate_1");
 }
 
 TEST(VibrationSystemResonanceTest, Frequency15_ReturnsResonate15)
 {
     const GameEvent* event = VibrationSystem::getResonanceEventByFrequency(15);
     ASSERT_NE(event, nullptr);
-    EXPECT_EQ(event->id(), "resonate_15");
+    // 同上：EXPECT_EQ 比较指针地址，须用 EXPECT_STREQ。
+    EXPECT_STREQ(event->id(), "resonate_15");
 }
 
 TEST(VibrationSystemResonanceTest, Frequency0_ReturnsNullptr)

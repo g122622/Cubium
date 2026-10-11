@@ -234,6 +234,23 @@ public:
     [[nodiscard]] bool isShuttingDown() const { return m_shuttingDown.load(std::memory_order::acquire); }
 
     /**
+     * @brief 就地更新两个执行器（运行期注入线程池）
+     *
+     * ServerChunkManager::setWorkerPool 在调度器**已存在**时调用本方法就地替换执行器指针，而不是
+     * 重建整个 ChunkTaskScheduler。这样调度器对象的地址自创建起稳定到 ServerChunkManager 析构，
+     * 使 ensureTaskScheduler() 的调用方（_scheduleGeneration）可以在释放 m_taskSchedulerMutex 之后
+     * 继续安全使用其返回的裸指针——否则再次注入线程池会销毁该对象，裸指针立即悬垂。
+     *
+     * 两个指针是原子的：selectExecutor 由提交任务的线程调用，可能与主线程的注入并发，
+     * 普通指针会构成数据竞争。每次提交只读取一次，代价可忽略。
+     */
+    void setExecutors(util::UniversalWorkerPool* parallelGenExecutor, util::UniversalWorkerPool* radiusAwareExecutor)
+    {
+        m_parallelGenExecutor.store(parallelGenExecutor, std::memory_order::release);
+        m_radiusAwareExecutor.store(radiusAwareExecutor, std::memory_order::release);
+    }
+
+    /**
      * @brief 访问半径（= step.accumulatedRadius()），用于区域锁范围
      */
     [[nodiscard]] static i32 getAccessRadius(const mc::world::chunk::ChunkStatus& status);
@@ -446,8 +463,9 @@ private:
 
     ServerChunkManager& m_manager;
     ServerWorld* m_world;
-    util::UniversalWorkerPool* m_parallelGenExecutor;
-    util::UniversalWorkerPool* m_radiusAwareExecutor;
+    /// 执行器指针为原子：见 setExecutors() 的说明（注入线程池与提交任务可能并发）。
+    std::atomic<util::UniversalWorkerPool*> m_parallelGenExecutor;
+    std::atomic<util::UniversalWorkerPool*> m_radiusAwareExecutor;
     util::ReentrantAreaLock m_schedulingLockArea;
     std::atomic<bool> m_shuttingDown{false};
 };

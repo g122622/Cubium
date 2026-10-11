@@ -3040,9 +3040,11 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // type：字符串，无命名空间时补 minecraft:。
             void* typeVal = ctx.getProperty(enchObj, "type");
             if (!ctx.isString(typeVal)) {
+                ctx.releaseValue(typeVal);
                 return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.type must be a string");
             }
             auto typeOpt = ctx.toString(typeVal);
+            ctx.releaseValue(typeVal);
             if (!typeOpt.has_value()) {
                 return ctx.throwTypeError("ItemStack.addEnchantment: enchantment.type must be a string");
             }

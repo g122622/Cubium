@@ -117,6 +117,11 @@ jobs:
           name: pococc-test-build-artifacts
           retention-days: 30
           if-no-files-found: warn
+          # tests/integrated/*/scripts/ 是集成行为包的 JS 编译产物（.ts → .js，由 build.mjs 在本
+          # job 构建期产出，被 .gitignore 忽略故不在源码里）。unit-tests job 只下载 artifact 而不
+          # 编译行为包，缺这些产物会让 RealPackGameTestServerFixture.SimpleMobTestEndToEnd 注册
+          # 0 个测试而失败。多路径上传时 artifact 以仓库根为公共前缀，故解压到 unit-tests job 的
+          # workspace 根后与编译期注入的 MC_SOURCE_ROOT（同为 /home/runner/work/<repo>/<repo>）对齐。
           path: |
             ${{ env.BIN_DIR }}/minecraft-server
             ${{ env.BIN_DIR }}/mc_tests
@@ -124,6 +129,7 @@ jobs:
             build-artifact-check.txt
             ctest-meta.tar.gz
             runner-info.json
+            tests/integrated/*/scripts/
     needs: prepare
   release-build:
     name: Release Build (Linux / Release / no profiler)
