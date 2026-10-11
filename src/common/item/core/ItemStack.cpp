@@ -605,14 +605,8 @@ ItemStack ItemStack::copy() const
     if (isEmpty()) {
         return EMPTY;
     }
-    ItemStack result(*m_item, m_count);
-    result.m_damage = m_damage;
-    result.m_customName = m_customName ? m_customName->deepCopy() : nullptr;
-    result.m_enchantments = m_enchantments;
-    // 整体深拷贝 extras。注：这同时修正了先前 copy()/split() 会丢掉
-    // can_place_on / can_destroy 的问题（与 vanilla ItemStack#copy 一致）。
-    result.m_extras = m_extras ? std::make_unique<ItemExtras>(*m_extras) : nullptr;
-    return result;
+    // 统一使用深拷贝构造，避免新增组件字段时遗漏独立复制路径。
+    return ItemStack(*this);
 }
 
 ItemStack ItemStack::transmuteCopy(const Item& newItem, i32 newCount) const

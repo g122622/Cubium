@@ -235,3 +235,20 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_EmptyStack_ProducesEmptyVi
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().isEmpty());
 }
+
+TEST_F(ItemStackComponentRoundTripTest, CopyPreservesRepairCostAndAllComponentStateIndependently)
+{
+    const auto original = makeFullyComponentedStack(m_sword);
+    auto copied = original.copy();
+    EXPECT_EQ(copied, original);
+    EXPECT_EQ(copied.getRepairCost(), 3);
+    EXPECT_EQ(
+        network::ir::toItemStackView(copied).componentsPatch, network::ir::toItemStackView(original).componentsPatch);
+    copied.setRepairCost(7);
+    copied.setCustomName("Changed");
+    copied.getOrCreateTag()["custom"]["n"] = 99;
+    EXPECT_EQ(original.getRepairCost(), 3);
+    EXPECT_EQ(original.getCustomName(), "Hero Blade");
+    EXPECT_EQ(original.getTag()->at("custom").at("n"), 42);
+    EXPECT_NE(copied, original);
+}
