@@ -2,6 +2,7 @@
 
 #include "common/util/Direction.hpp" // Rotation / Direction
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "server/test/base/coords/TestTransform.hpp"
 #include "server/test/base/error/GameTestError.hpp"
 #include "server/test/base/error/GameTestResult.hpp"
@@ -10,6 +11,7 @@
 #include "server/world/ServerWorld.hpp" // ServerWorld 公有继承 IWorld；world() 内联返回 IWorld& 需二者完整类型
 
 #include <memory>
+#include <optional>
 #include <utility> // std::move（wrapNativeBody）
 
 namespace mc::test {
@@ -187,7 +189,8 @@ private:
     mc::server::ServerWorld& m_world;
     BaseGameTestInstance& m_instance;
     TestTransform m_transform;
-    const StructureBounds* m_bounds;              // 非拥有，供 area 实体查询算包围盒（nullable：结构未就绪）
+    // 实例的派生成员先于基类 helper 析构；保存包围盒值，确保清场不依赖结构对象的寿命。
+    std::optional<mc::world::gen::structure::StructureBoundingBox> m_bounds;
     std::unique_ptr<GameTestSequence> m_sequence; // 懒构造，startSequence 首次调用时建
 };
 

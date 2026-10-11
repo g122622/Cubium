@@ -1,0 +1,15 @@
+name: Setup sanitizer symbolizer
+description: 为大型 sanitizer 二进制选择 LLVM 符号化工具，避免运行时 addr2line 的内存开销。
+runs:
+  using: composite
+  steps:
+    - name: Select LLVM sanitizer symbolizer
+      shell: bash
+      run: |
+        symbolizer=$(command -v llvm-symbolizer-22 || command -v llvm-symbolizer-18 || command -v llvm-symbolizer || true)
+        if [ -z "$symbolizer" ]; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends llvm-18
+          symbolizer=$(command -v llvm-symbolizer-18)
+        fi
+        printf 'ASAN_SYMBOLIZER_PATH=%s\n' "$symbolizer" >> "$GITHUB_ENV"

@@ -43,8 +43,14 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
+#include "server/test/facade/GameTestHelper.hpp"
 #include "server/test/facade/GameTestServer.hpp"
 #include "server/test/framework/ticker/GameTestTicker.hpp"
+#include "server/test/minecraft/helper/MinecraftGameTestHelperProvider.hpp"
+#include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"
+#include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 
@@ -120,6 +126,38 @@ TEST_F(GameTestServerFixture, InitializeAndStopLifecycle)
     EXPECT_TRUE(server.isRunning() || true); // initialize 成功即视为通过
     server.stop();
     SUCCEED();
+}
+
+TEST_F(GameTestServerFixture, HelperQueriesAndCleanupSurviveStructureBoundsDestruction)
+{
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "NoSuchSuite.*";
+    auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto* dimension = server.dimensionManager().getOverworld();
+    ASSERT_NE(dimension, nullptr);
+    auto* world = dimension->world();
+    ASSERT_NE(world, nullptr);
+
+    mc::test::TestData data;
+    data.setStructure("gametest:empty_3x3").setMaxTicks(20);
+    mc::test::NativeGameTestFunction function(
+        "bounds-lifetime", "bounds-lifetime", "gametest:empty_3x3", data, [](mc::test::IGameTestHelper&) {
+            return mc::test::pass();
+        });
+    const mc::BlockPos origin{0, 4, 0};
+    mc::test::MinecraftGameTestInstance instance(
+        function, std::make_unique<mc::test::MinecraftGameTestHelperProvider>(*world), *world, origin);
+    auto bounds = std::make_unique<mc::test::StructureBounds>(origin, mc::BlockPos{3, 3, 3}, mc::Rotation::None);
+    {
+        mc::test::GameTestHelper helper(*world, origin, bounds.get(), instance);
+        // 派生实例的结构成员可以先销毁；查询和析构清场必须只使用 helper 自有的包围盒。
+        bounds.reset();
+        EXPECT_FALSE(helper.assertEntityPresentInArea("minecraft:pig", false).has_value());
+        EXPECT_FALSE(helper.killAllEntities().has_value());
+    }
+    server.stop();
 }
 
 // ============================================================================

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 import fcntl
 import importlib.util
 import json
@@ -83,14 +83,43 @@ def build(options):
         if any(len(row) != 7 for row in rows):
             raise RuntimeError("Malformed compilation journal")
         record["distcc_submissions"] = sum(row[1] == "distcc" for row in rows)
+        record["submitted_by_source"] = dict(Counter(row[4] for row in rows if row[1] == "distcc"))
         record["local_invocations"] = sum(row[1] == "local" for row in rows)
         record["failures"] = sum(row[2] != "0" for row in rows)
         record["summed_task_seconds"] = sum(int(row[3]) for row in rows) / 1e6
     if options.client_log.exists():
+        record.update(client_metrics(options.client_log.read_text()))
         record["output_receive_seconds"] = sum(
             float(value) for value in re.findall(r"\d+ bytes received in ([\d.]+)s", options.client_log.read_text()))
     write_json(options.out, record)
     return record["exit_code"]
+
+
+def client_metrics(log):
+    """一次调用可因隧道中断发往多台 worker；按客户端进程统计尝试和已收到的结果。"""
+    sources = {}
+    attempts = Counter()
+    deliveries = Counter()
+    calls = Counter()
+    for line in log.splitlines():
+        match = re.match(r"distcc\[(\d+)\] (.*)", line)
+        if not match:
+            continue
+        pid, message = int(match[1]), match[2]
+        source = re.fullmatch(r'\(dcc_scan_args\) found input file "(.*)"', message)
+        if source:
+            sources[pid] = source[1]
+        if message.startswith("exec on "):
+            if pid not in sources:
+                raise RuntimeError("Remote attempt has no input source evidence")
+            attempts[sources[pid]] += 1
+            calls[pid] += 1
+        if message.startswith("compile ") and message.endswith(" completed ok"):
+            if pid not in calls:
+                raise RuntimeError("Remote result has no attempt evidence")
+            deliveries[sources[pid]] += 1
+    return {"remote_attempts": sum(attempts.values()), "remote_retries": sum(calls.values()) - len(calls),
+            "attempted_by_source": dict(attempts), "delivered_by_source": dict(deliveries)}
 
 
 def worker_metrics(log, times):
@@ -129,6 +158,7 @@ def worker_metrics(log, times):
         task["compiler_wall_seconds"] = timing["wall_seconds"]
         intervals.append([timing["start_ns"], timing["end_ns"]])
     return {"remote_compiles": sum(task["success"] for task in completed),
+            "completed_by_source": dict(Counter(task["source"] for task in completed if task["success"])),
             "failed_compiles": sum(not task["success"] for task in completed),
             "compiler_cpu_seconds": sum(task["cpu_seconds"] for task in completed),
             "compiler_wall_seconds": sum(task["compiler_wall_seconds"] for task in completed),
@@ -164,7 +194,7 @@ def performance_report(directory, run_id):
     if any(record["run_id"] != run_id for record in records):
         raise RuntimeError("Performance evidence belongs to a different run")
     lines = ["## pococc 分布式编译性能", "",
-             "| 编译池 | Worker / 远端槽位 | Ninja / distcc 预处理上限 | 实测远端峰值 | 构建耗时 | 远端完成 / 本地编译 | 协调节点 CPU | 远端编译 CPU | 上行 / 下行 | 收取及解压累计时间 |",
+             "| 编译池 | Worker / 远端槽位 | Ninja / distcc 预处理上限 | 实测远端峰值 | 构建耗时 | 远端调用 / 尝试 / 完成 / 本地编译 | 协调节点 CPU | 远端编译 CPU | 上行 / 下行 | 收取及解压累计时间 |",
              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     errors = []
     for pool in ("test", "release", "fuzz"):
@@ -178,8 +208,18 @@ def performance_report(directory, run_id):
         completed = sum(worker["remote_compiles"] for worker in workers)
         if sorted(worker["worker"] for worker in workers) != list(range(1, count + 1)):
             errors.append(f"{pool}: missing or duplicated worker evidence")
-        if completed != coordinator.get("distcc_submissions"):
-            errors.append(f"{pool}: completed {completed}, submitted {coordinator.get('distcc_submissions')}")
+        submitted = Counter(coordinator["submitted_by_source"])
+        attempted = Counter(coordinator["attempted_by_source"])
+        delivered = Counter(coordinator["delivered_by_source"])
+        actual = Counter()
+        for worker in workers:
+            actual.update(worker["completed_by_source"])
+        if delivered != submitted or sum(submitted.values()) != coordinator["distcc_submissions"]:
+            errors.append(f"{pool}: delivered results do not match compilation invocations")
+        if submitted - actual or actual - attempted or sum(actual.values()) != completed:
+            errors.append(f"{pool}: worker completions do not match submitted sources and remote attempts")
+        if sum(attempted.values()) != coordinator["remote_attempts"]:
+            errors.append(f"{pool}: remote attempt count does not match source evidence")
         if coordinator["exit_code"] or coordinator.get("failures") or any(w["failed_compiles"] for w in workers):
             errors.append(f"{pool}: build or compilation failed")
         cpu = sum(worker["compiler_cpu_seconds"] for worker in workers)
@@ -190,11 +230,14 @@ def performance_report(directory, run_id):
         coordinator_cpu = coordinator["user_seconds"] + coordinator["system_seconds"]
         lines.append(f"| {pool} | {count} / {count * coordinator['slots_per_worker']} | "
                      f"{coordinator['ninja_jobs']} / {coordinator['preprocess_jobs']} | {peak_parallelism(intervals)} | "
-                     f"{coordinator['wall_seconds'] / 60:.1f} min | {completed} / {coordinator.get('local_invocations', 0)} | "
+                     f"{coordinator['wall_seconds'] / 60:.1f} min | {coordinator['distcc_submissions']} / "
+                     f"{coordinator['remote_attempts']} / {completed} / {coordinator.get('local_invocations', 0)} | "
                      f"{coordinator_cpu / 60:.1f} CPU-min | {cpu / 60:.1f} CPU-min | "
                      f"{upload:.3f} / {download:.3f} GiB | {receive:.1f} s |")
     configured_workers = sum(record["workers"] for record in records if record["kind"] == "coordinator")
+    retries = sum(record["remote_retries"] for record in records if record["kind"] == "coordinator")
     lines += ["", f"- 本次配置 {configured_workers} 个 worker，分为 test / release / fuzz 三个独立池；禁用 PCH，严格模式禁止通信失败后本地回退。",
+              f"- 本次发生 {retries} 次远端重试。一次调用可以产生多个远端尝试；响应丢失后重复完成的编译也计入 CPU 与传输开销。报告逐源码核对调用、已收取结果、worker 完成数及尝试上限。",
               "- 构建耗时与 CPU 计量覆盖编译、链接阶段，不包含依赖配置安装、节点会合及 artifact 传输。预处理上限是 distcc 的设置，不限制 ccache 自身的哈希预处理。",
               "- CPU 时间来自进程树资源计量：协调节点含预处理、本地编译、链接、ccache 和 pococc；远端只计实际项目编译，排除 doctor 探针。背景 SSH/cloudflared 服务的 CPU 不在这两个计量范围内。",
               "- 上下行是 distcc 经 LZO 压缩后的文件载荷（包含对象文件和诊断），不含 SSH/TLS/WebSocket 头、重传或 GitHub artifact 上传。",
