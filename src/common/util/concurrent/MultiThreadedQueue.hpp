@@ -175,8 +175,18 @@ public:
     /**
      * @brief 解除 add-blocked 状态
      *
-     * 找到死结节点（next 指向自身），将其 next 置为 null，恢复入队能力。
-     * 非 MT-Safe（对齐 Moonrise：调用方保证单线程调用，ReentrantAreaLock 在 lock 重试路径单线程调用）。
+     * 找到死结节点（next 指向自身），用 CAS 解除自环，恢复入队能力。
+     *
+     * 【为什么不能无条件 store(nullptr)】旧实现走到链尾后直接 `tail->m_next.store(nullptr)`。
+     * 若该处 next 本已为 nullptr（未处于阻止状态），这次写入看似无害，实则存在摘链窗口：
+     * allowAdds 读到 next==nullptr 之后、写入之前，并发 add 可能刚把新节点 Y 链到 tail 之后；
+     * 随后的 store(nullptr) 会把 Y（及其整段后继）摘出链外。析构时从 m_first 遍历再也到不了
+     * 它们，即节点泄漏（实测 LeakSanitizer: 960 bytes in 60 objects from appendList +
+     * 864 bytes in 54 objects from preventAdds）。
+     * 现在只在确认"确实处于自环阻止态"时才 CAS 解除，未阻止则直接返回，不做任何写入。
+     *
+     * 调用方约定：与 Moonrise 一致，本方法由持锁的单一线程调用（ReentrantAreaLock 的 lock
+     * 重试路径）。上述加固使其在并发 add 下不再摘链，但仍不建议多线程同时调用本方法。
      */
     void allowAdds()
     {
@@ -184,15 +194,21 @@ public:
         // 沿 next 链找到真正的尾（tail 可能 stale）
         // 对齐 Moonrise: while (tail != (tail = tail.getNextPlain())) {}
         while (true) {
-            LinkedNode* next = tail->m_next.load(std::memory_order::relaxed);
-            if (next == tail || next == nullptr) {
-                break;
+            LinkedNode* next = tail->m_next.load(std::memory_order::acquire);
+            if (next == nullptr) {
+                // 未处于阻止状态：无需改动。此处绝不能写 nullptr——并发 add 可能已把新节点
+                // 链在 tail 之后，无条件写回会把它摘出链外造成泄漏。
+                return;
+            }
+            if (next == tail) {
+                // 死结节点：仅当自环仍成立时才解除（CAS 失败说明已被他人解除，同样无需处理）。
+                LinkedNode* expected = tail;
+                tail->m_next.compare_exchange_strong(
+                    expected, nullptr, std::memory_order::seq_cst, std::memory_order::relaxed);
+                return;
             }
             tail = next;
         }
-        // tail 此时指向死结节点（next 自环）或正常尾（next==null，未阻止）
-        // 置 null 解除阻止（若已是 null 无害）
-        tail->m_next.store(nullptr, std::memory_order::seq_cst);
     }
 
     /**

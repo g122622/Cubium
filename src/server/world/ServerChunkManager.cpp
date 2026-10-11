@@ -729,11 +729,10 @@ void ServerChunkManager::_resolveStorageForScheduling(
 void ServerChunkManager::_scheduleGeneration(
     SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
 {
-    if (m_taskScheduler == nullptr) {
-        // 无调度器（独立/测试模式未调用 setWorkerPool）：创建一个共享同一 worker 池的调度器。
-        // worker 池可能为 nullptr，ChunkTaskScheduler 会在线执行任务（submitTask 降级）。
-        m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, m_workerPool, m_workerPool);
-    }
+    // 经加锁的惰性创建取得调度器。不能在此处直接写 `if (m_taskScheduler == nullptr) { ... }`：
+    // requestChunkSync 可被多线程并发调用，无锁的双重检查会让两个线程各建一个调度器，
+    // 后者覆盖前者并泄漏（LeakSanitizer: Direct leak of 196656 byte(s)，见头文件说明）。
+    ChunkTaskScheduler* scheduler = ensureTaskScheduler();
 
     const ChunkCoord x = lifecycleManager.x();
     const ChunkCoord z = lifecycleManager.z();
@@ -742,8 +741,8 @@ void ServerChunkManager::_scheduleGeneration(
     // 邻居的 schedule 断言要求 [邻居 ± maxAccessRadius] 被持有，邻居可达 maxAccessRadius 远，
     // 故外层锁需 2 * maxAccessRadius 才能覆盖（与 onChunkGenComplete 的锁范围一致）。
     const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
-    auto lock = m_taskScheduler->schedulingLockArea().lock(x, z, lockRadius);
-    m_taskScheduler->schedule(x, z, targetStatus, lifecycleManager);
+    auto lock = scheduler->schedulingLockArea().lock(x, z, lockRadius);
+    scheduler->schedule(x, z, targetStatus, lifecycleManager);
     // lock 释放时释放区域锁
 }
 
@@ -1495,8 +1494,8 @@ void ServerChunkManager::_processChunkUnloads()
     // 保底批量：至少 MIN_CHUNK_UNLOAD_COUNT 个，或候选总数的 MIN_CHUNK_UNLOAD_FRACTION。
     // 该值是下限而非上限（Moonrise 语义）：小队列一次清空，大队列按保底量平滑推进，
     // 不会因队列长期轻微超额而永不收敛。
-    const size_t batch = std::max<size_t>(MIN_CHUNK_UNLOAD_COUNT,
-        static_cast<size_t>(std::ceil(static_cast<f64>(pending) * MIN_CHUNK_UNLOAD_FRACTION)));
+    const size_t batch = std::max<size_t>(
+        MIN_CHUNK_UNLOAD_COUNT, static_cast<size_t>(std::ceil(static_cast<f64>(pending) * MIN_CHUNK_UNLOAD_FRACTION)));
 
     size_t unloaded = 0;
     while (unloaded < batch) {

@@ -190,7 +190,27 @@ public:
         m_workerPool = workerPool;
         // 调度器持有 worker 池指针。同一池既用于 parallelCapable 状态（无区域互斥 submit），
         // 也用于写方块状态（带 writeRadius 的区域互斥 submit）。
+        std::lock_guard<std::mutex> lock(m_taskSchedulerMutex);
         m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, workerPool, workerPool);
+    }
+
+    /**
+     * @brief 取得调度器，不存在时创建（线程安全）
+     *
+     * 惰性创建必须加锁：requestChunkSync 可被多线程并发调用，两个线程同时读到 nullptr
+     * 会各建一个调度器并泄漏其中一个。返回裸指针——所有权仍归本管理器，调用方不得保存
+     * 该指针跨越可能触发 setWorkerPool/析构的操作。
+     *
+     * @return 调度器指针（恒非空）
+     */
+    [[nodiscard]] ChunkTaskScheduler* ensureTaskScheduler()
+    {
+        std::lock_guard<std::mutex> lock(m_taskSchedulerMutex);
+        if (m_taskScheduler == nullptr) {
+            // worker 池可能为 nullptr，ChunkTaskScheduler 会在线执行任务（submitTask 降级）。
+            m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, m_workerPool, m_workerPool);
+        }
+        return m_taskScheduler.get();
     }
 
     /**
@@ -1225,8 +1245,18 @@ private:
      *
      * 持有 ReentrantAreaLock 保证 schedule/checkNeighbour/onChunkGenComplete 的原子性。
      * nullptr 表示无 worker 池（独立/测试模式），ChunkTaskScheduler 内部在线执行任务。
+     *
+     * 惰性创建必须持 m_taskSchedulerMutex：requestChunkSync 可被多线程并发调用
+     * （实测 ServerWorldTest.ConcurrentChunkAccess 用 10 线程），两个线程同时读到
+     * nullptr 就会各建一个调度器，后写入者覆盖先写入者，被覆盖的那个（196KB）永不释放
+     * （LeakSanitizer: Direct leak of 196656 byte(s) in 1 object(s)，
+     *  ChunkTaskScheduler ← _scheduleGeneration ← _onChunkLoadComplete）。
      */
     std::unique_ptr<ChunkTaskScheduler> m_taskScheduler;
+
+    /// 保护 m_taskScheduler 的惰性创建。仅覆盖"检查并创建"这一小段，不覆盖 schedule 调用，
+    /// 故不会与调度锁形成嵌套。
+    mutable std::mutex m_taskSchedulerMutex;
 
     mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;

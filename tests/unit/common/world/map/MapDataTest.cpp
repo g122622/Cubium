@@ -746,7 +746,14 @@ TEST_F(MapDataNetherRotationTest, NetherRotationUsesGameTime)
     // gameTime=100: t=10, rotation = ((10*10*34187121 + 10*121) >> 15) & 15
     // = (3418712100 + 1210) >> 15 = 3418713310 >> 15 = 104213
     // 104213 & 15 = 104213 % 16 = 5
-    u8 expectedRotation = static_cast<u8>(((10 * 10 * 34187121 + 10 * 121) >> 15) & 15);
+    //
+    // 期望值必须用 u32 计算：对齐 MC 1.21.11 MapItemSavedData#calculateRotation，
+    // Java 的 int 运算在溢出时按 32 位回绕（有定义）。此处用 signed int 直接算
+    // 10*10*34187121 就会溢出（UBSan: signed integer overflow: 100 * 34187121），
+    // 即测试自身的期望值表达式就含 UB。
+    const u32 t = 10U;
+    const u32 expectedMixed = t * t * 34187121U + t * 121U;
+    u8 expectedRotation = static_cast<u8>((expectedMixed >> 15) & 15U);
     EXPECT_EQ(decos.at("player-1").rotation(), expectedRotation);
 }
 
