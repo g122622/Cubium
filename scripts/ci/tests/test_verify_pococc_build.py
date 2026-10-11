@@ -52,6 +52,21 @@ class VerifyPococcBuildTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     verifier.verify_journal(journal)
 
+    def test_fully_cached_build_allows_no_remote_tasks_but_requires_routing_for_misses(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            journal = Path(temporary) / "pococc.tsv"
+            cache = {"direct_hits": 100, "preprocessed_hits": 0, "misses": 0, "uncacheable": 0}
+            report = verifier.verify_journal(journal, cache)
+            self.assertEqual(report["cache_hits"], 100)
+            self.assertEqual(report["distcc_submissions"], 0)
+            with self.assertRaisesRegex(RuntimeError, "routing"):
+                verifier.verify_journal(journal, dict(cache, misses=1))
+            with self.assertRaises(RuntimeError):
+                verifier.verify_journal(journal, dict(cache, direct_hits=0))
+            journal.write_text("1\tlocal\t1\t100\tfile.cpp\tunrecognized-option\tstrict\n")
+            with self.assertRaises(RuntimeError):
+                verifier.verify_journal(journal, dict(cache, uncacheable=1))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -45,11 +45,12 @@ def verify_configuration_without_pch(build_dir: Path, variant: str) -> int:
     return len(commands)
 
 
-def verify_journal(path: Path) -> dict[str, object]:
+def verify_journal(path: Path, cache: dict[str, int] | None = None) -> dict[str, object]:
     """允许已记录的本地路由和缓存命中，但不允许失败或通信错误回退。"""
     routes: Counter[str] = Counter()
     reasons: Counter[str] = Counter()
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    for number, line in enumerate(text.splitlines(), 1):
         fields = line.split("\t")
         if len(fields) != 7 or fields[1] not in ("local", "distcc"):
             raise RuntimeError(f"Malformed pococc journal record at line {number}")
@@ -57,14 +58,21 @@ def verify_journal(path: Path) -> dict[str, object]:
             raise RuntimeError(f"Failed or non-strict pococc compilation at line {number}")
         routes[fields[1]] += 1
         reasons[fields[5]] += 1
-    if routes["distcc"] == 0:
+    hits = cache["direct_hits"] + cache["preprocessed_hits"] if cache is not None else 0
+    if routes["distcc"] == 0 and not hits:
         raise RuntimeError("Cubium did not submit any actual compilation to distcc")
+    if cache is not None:
+        if any(value < 0 for value in cache.values()):
+            raise RuntimeError("Invalid ccache counters")
+        if cache["misses"] + cache["uncacheable"] != routes["distcc"] + routes["local"]:
+            raise RuntimeError("Uncached compiler calls do not match strict pococc routing")
     return {
         "distcc_submissions": routes["distcc"],
         "local_invocations": routes["local"],
         "local_or_remote_reasons": dict(reasons),
         "strict": True,
         "pch": False,
+        "cache_hits": hits,
     }
 
 
@@ -74,13 +82,19 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--build-dir", type=Path, required=True)
     parser.add_argument("--variant", choices=("test", "release", "fuzz"), required=True)
     parser.add_argument("--configuration-only", action="store_true")
+    parser.add_argument("--performance", type=Path)
     args = parser.parse_args(argv)
     try:
         count = verify_configuration_without_pch(args.build_dir, args.variant)
         if args.configuration_only:
             print(f"Verified no-PCH {args.variant} configuration: {count} compile commands across all configurations")
             return 0
-        report = verify_journal(args.build_dir / "pococc.tsv")
+        if args.performance is None:
+            raise RuntimeError("Build verification requires ccache performance evidence")
+        performance = json.loads(args.performance.read_text())
+        if performance["exit_code"] != 0:
+            raise RuntimeError("Measured build did not complete successfully")
+        report = verify_journal(args.build_dir / "pococc.tsv", performance["ccache"])
         report["compile_database_entries_all_configurations"] = count
         report["cache_hits_bypass_pococc"] = True
         (args.build_dir / "pococc-build.json").write_text(

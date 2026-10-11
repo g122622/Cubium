@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -17,6 +18,28 @@ if sys.platform.startswith("linux"):
 
 @unittest.skipUnless(sys.platform.startswith("linux"), "Requires Linux resource accounting")
 class PococcPerformanceTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("ccache") and shutil.which("clang++-22"), "Requires ccache and Clang 22")
+    def test_actual_warm_ccache_ignores_restored_counters_and_creates_zero_remote_evidence(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "sample.cpp"
+            source.write_text("int value() { return 42; }\n")
+            command = ["ccache", "clang++-22", "-c", str(source), "-o", str(root / "sample.o")]
+            with patch.dict(os.environ, CCACHE_DIR=str(root / "ccache"), CCACHE_PREFIX=""):
+                subprocess.run(command, check=True)
+                before = performance.ccache_counters()
+                self.assertEqual(before["misses"], 1)
+                options = argparse.Namespace(command=command, out=root / "performance.json",
+                    pool="test", workers=1, slots=2, jobs=4, preprocess_jobs=4,
+                    journal=root / "missing.tsv", client_log=root / "missing.log")
+                self.assertEqual(performance.build(options), 0)
+            record = json.loads(options.out.read_text())
+            self.assertEqual(record["ccache"]["direct_hits"], 1)
+            self.assertEqual(record["ccache"]["misses"], 0)
+            self.assertEqual(record["distcc_submissions"], 0)
+            self.assertEqual(record["remote_attempts"], 0)
+            self.assertEqual(record["submitted_by_source"], {})
+
     def test_remote_retry_preserves_both_attempts_and_one_delivered_result(self):
         log = '\n'.join([
             'distcc[10] (dcc_scan_args) found input file "/workspace/a.cpp"',
@@ -123,11 +146,12 @@ def worker(options):
                                    failures=0, distcc_submissions=1, local_invocations=0, wall_seconds=60,
                                    user_seconds=10, system_seconds=2, remote_attempts=1, remote_retries=0,
                                    submitted_by_source={"/a.cpp": 1}, attempted_by_source={"/a.cpp": 1},
-                                   delivered_by_source={"/a.cpp": 1})
+                                   delivered_by_source={"/a.cpp": 1}, ccache_restore_key="",
+                                   ccache={"direct_hits": 0, "preprocessed_hits": 0, "misses": 1, "uncacheable": 0})
                 worker = dict(kind="worker", pool=pool, run_id="123", worker=1, remote_compiles=1,
                               failed_compiles=0, compiler_cpu_seconds=30, intervals=[[1, 2]],
                               input_bytes=100, output_bytes=200, input_receive_seconds=0.1,
-                              completed_by_source={"/a.cpp": 1})
+                              completed_by_source={"/a.cpp": 1}, probe_compiles=1)
                 performance.write_json(root / pool / "coordinator" / "pococc-performance.json", coordinator)
                 performance.write_json(root / pool / "worker" / "pococc-performance.json", worker)
             markdown, _, errors = performance.performance_report(root, "123")
@@ -147,6 +171,28 @@ def worker(options):
             self.assertTrue(performance.performance_report(root, "123")[2])
             with self.assertRaisesRegex(RuntimeError, "different run"):
                 performance.performance_report(root, "999")
+
+    def test_fully_cached_pool_keeps_idle_worker_and_reports_current_build_hits(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for pool in ("test", "release", "fuzz"):
+                coordinator = dict(kind="coordinator", pool=pool, run_id="123", workers=1,
+                    slots_per_worker=2, ninja_jobs=4, preprocess_jobs=4, exit_code=0, failures=0,
+                    distcc_submissions=0, local_invocations=0, wall_seconds=1, user_seconds=0.1,
+                    system_seconds=0.1, remote_attempts=0, remote_retries=0, submitted_by_source={},
+                    attempted_by_source={}, delivered_by_source={}, ccache_restore_key="ccache-linux-nightly-122",
+                    ccache={"direct_hits": 100, "preprocessed_hits": 0, "misses": 0, "uncacheable": 0})
+                worker = dict(kind="worker", pool=pool, run_id="123", worker=1, remote_compiles=0,
+                    failed_compiles=0, compiler_cpu_seconds=0, intervals=[], input_bytes=0, output_bytes=0,
+                    input_receive_seconds=0, completed_by_source={}, probe_compiles=1)
+                performance.write_json(root/pool/"coordinator/pococc-performance.json", coordinator)
+                performance.write_json(root/pool/"worker/pococc-performance.json", worker)
+            markdown, _, errors = performance.performance_report(root, "123")
+            self.assertEqual(errors, [])
+            self.assertIn("100 / 0 (100.0%)", markdown)
+            coordinator["ccache"]["misses"] = 1
+            performance.write_json(root/"fuzz/coordinator/pococc-performance.json", coordinator)
+            self.assertTrue(performance.performance_report(root, "123")[2])
 
 
 if __name__ == "__main__":
