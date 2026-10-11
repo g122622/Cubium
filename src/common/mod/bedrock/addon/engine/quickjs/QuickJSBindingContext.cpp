@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 
 #include <cstddef>
@@ -101,8 +102,12 @@ QuickJSBindingContext::~QuickJSBindingContext()
     // 释放本上下文持有的类原型句柄（createClassProto 产出，调用方按借用语义不得 release）。
     // 必须在 JS_FreeContext 之前执行（本析构由 ~QuickJSContext 显式 reset 触发，见其注释）：
     // 每个句柄持有一份原型对象的引用，不归还则 JS_FreeRuntime 末尾的 JS_RunGC 无法回收原型
-    // 及其引用图（方法闭包/字符串/属性表，实测数 MB），并留下句柄自身的 C++ 堆内存泄漏。
-    for (void* handle : m_classProtoHandles) {
+    // 及其引用图（方法闭包/字符串/表，实测数 MB），并留下句柄自身的 C++ 堆内存泄漏。
+    for (auto& [classId, handle] : m_classProtoHandles) {
+        // 先注销注册表条目再释放句柄：ScriptClassRegistry 只存裸指针，条目留到句柄释放之后
+        // 就会变成悬垂指针，后续按 classId/类名查找会把已释放句柄交给 wrap/setPrototypeOf。
+        // 在此逐条注销可覆盖 shutdown / reload / 单插件卸载 / 上下文移动赋值等全部销毁路径。
+        ScriptClassRegistry::instance().unregisterClass(classId);
         if (handle == nullptr) {
             continue;
         }
@@ -622,7 +627,7 @@ void* QuickJSBindingContext::createClassProto(u64 classId)
     // 那份原型引用永不复位，JS_FreeRuntime 末尾的 JS_RunGC 因 refcount 非 0 无法回收原型对象，
     // 连带整个类原型引用图（方法闭包、字符串原子、属性表）以"间接泄漏"形式留在堆上
     // （nightly 集成测试实测 5.7 MB / 55013 次分配，LeakSanitizer 判为泄漏并使 20/24 分片 SIGABRT）。
-    m_classProtoHandles.push_back(handle);
+    m_classProtoHandles.emplace_back(classId, handle);
     s_liveClassProtoHandles.fetch_add(1, std::memory_order::relaxed);
     return handle;
 }

@@ -27,6 +27,7 @@
 // 而以 SIGABRT 退出（句柄未释放 → 原型引用计数非 0 → JS_FreeRuntime 回收不掉原型对象）。
 
 #include "common/mod/bedrock/addon/binding/IScriptBindingContext.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp"
 #include "common/mod/bedrock/addon/core/IScriptContext.hpp"
 #include "common/mod/bedrock/addon/core/IScriptEngine.hpp"
 #include "common/mod/bedrock/addon/core/IScriptRuntime.hpp"
@@ -96,6 +97,44 @@ TEST(ScriptBindingHandleLifetimeTest, ContextDestructionReleasesClassProtoHandle
     // 上下文析构后：句柄所有权归上下文，必须已全部释放（否则句柄与原型引用图双双泄漏）。
     EXPECT_EQ(_probeHandleCount(*engine), baseline)
         << "绑定上下文析构后仍有类原型句柄未释放（createClassProto 的句柄所有权未归还）";
+
+    engine->shutdown();
+}
+
+TEST(ScriptBindingHandleLifetimeTest, ContextDestructionUnregistersClassRegistryEntries)
+{
+    // 回归：ScriptClassRegistry 只存裸指针（不持有句柄所有权），若上下文释放句柄前不注销条目，
+    // 表中就会残留悬垂句柄——运行期 proto/protoByName 命中后交给 ScriptObjectRegistry::wrap
+    // 或 setPrototypeOf 即 use-after-free。该路径覆盖 reload()/单插件卸载/上下文移动赋值，
+    // 故注销必须由句柄所有权方（上下文析构）完成，而不是只在 shutdown() 里 clear()。
+    auto engine = createScriptEngine();
+    ASSERT_NE(engine, nullptr);
+    ASSERT_TRUE(engine->initialize());
+
+    constexpr char kProbeName[] = "RegistryUnregisterProbeClass";
+    const mc::u64 staleClassId = ScriptClassRegistry::instance().classIdByName(kProbeName);
+    ASSERT_EQ(staleClassId, 0u) << "前置条件：该探针类名不应残留自其他用例";
+
+    mc::u64 classId = 0;
+    {
+        auto context = engine->runtime().createContext(_makeConfig());
+        ASSERT_NE(context, nullptr);
+        auto& bindings = context->bindingContext();
+        classId = bindings.allocateClassId();
+        ASSERT_TRUE(bindings.registerClass(classId, kProbeName, true));
+        void* proto = bindings.createClassProto(classId);
+        ASSERT_NE(proto, nullptr);
+        // 注册期：按名可查到本上下文的 proto 句柄。
+        ScriptClassRegistry::instance().registerClass(classId, proto, kProbeName);
+        EXPECT_EQ(ScriptClassRegistry::instance().classIdByName(kProbeName), classId);
+        EXPECT_EQ(ScriptClassRegistry::instance().protoByName(kProbeName), proto);
+    }
+
+    // 上下文析构后：注册表条目必须已注销，不能留下悬垂句柄。
+    EXPECT_EQ(ScriptClassRegistry::instance().classIdByName(kProbeName), 0u)
+        << "上下文析构后类注册表仍保留该类名映射（悬垂 proto 句柄）";
+    EXPECT_EQ(ScriptClassRegistry::instance().proto(classId), nullptr)
+        << "上下文析构后类注册表仍保留该 classId 的原型句柄（悬垂）";
 
     engine->shutdown();
 }

@@ -67,6 +67,21 @@ u64 ScriptClassRegistry::classIdByName(std::string_view name) const noexcept
     return it->second;
 }
 
+void ScriptClassRegistry::unregisterClass(u64 classId) noexcept
+{
+    auto it = m_byId.find(classId);
+    if (it == m_byId.end()) {
+        return;
+    }
+    // 名索引只在仍指向本 classId 时删除：同名类可能已被后续上下文的 registerClass 覆盖为
+    // 新的 classId，此时删名会误伤新一代映射（classId 由 JS_NewClassID 分配，跨上下文递增不重复）。
+    auto nameIt = m_idByName.find(it->second.name);
+    if (nameIt != m_idByName.end() && nameIt->second == classId) {
+        m_idByName.erase(nameIt);
+    }
+    m_byId.erase(it);
+}
+
 void ScriptClassRegistry::clear() noexcept
 {
     m_byId.clear();

@@ -265,9 +265,10 @@ private:
      *
      * 句柄为 JSValue*（每个持有一份原型对象的引用）。调用方不得 releaseValue：句柄须活到
      * 上下文销毁（运行期跨模块 wrap 按 class_id 从 ScriptClassRegistry 取 proto），故所有权
-     * 归上下文，析构时统一 JS_FreeValue + delete。
+     * 归上下文，析构时统一 JS_FreeValue + delete。析构释放句柄前会按 classId 从
+     * ScriptClassRegistry 注销对应条目（见 unregisterClass），避免表中残留悬垂句柄。
      */
-    std::vector<void*> m_classProtoHandles;
+    std::vector<std::pair<u64, void*>> m_classProtoHandles;
 
     /// 存活类原型句柄计数（跨实例共享，relaxed：仅用于诊断与测试断言）。
     inline static std::atomic<std::size_t> s_liveClassProtoHandles{0};

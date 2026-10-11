@@ -289,8 +289,11 @@ public:
      * 类原型句柄是各绑定上下文持有、供跨模块注册表长期引用的堆资源，只在上下文析构时统一释放。
      * 该计数让单元测试断言「上下文析构后句柄数回到基线」，防止句柄及其持有的 JS 类原型引用图
      * 在引擎销毁后泄漏。
+     *
+     * 默认返回 0：不跟踪类原型句柄的后端（或测试替身）无需实现本方法，只有确实按借用语义持有
+     * 句柄的引擎才覆写它。故意不做成纯虚——本方法仅用于诊断，不应成为每个实现的编译负担。
      */
-    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept = 0;
+    [[nodiscard]] virtual std::size_t liveClassProtoHandleCount() const noexcept { return 0; }
 
     /** 注册原生方法（nativeFunc为引擎特定的C函数指针） */
     virtual void registerNativeMethod(void* proto, const char* name, void* nativeFunc, i32 length = 0) = 0;
