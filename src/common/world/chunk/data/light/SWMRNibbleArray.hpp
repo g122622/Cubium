@@ -116,12 +116,16 @@ public:
     SWMRNibbleArray(SWMRNibbleArray&& other) noexcept
         : m_stateUpdating(other.m_stateUpdating)
         , m_stateVisible(other.m_stateVisible.load())
-        , m_storageUpdating(std::move(other.m_storageUpdating))
+        , m_storageUpdating(other.m_storageUpdating)
         , m_storageVisible(other.m_storageVisible.load())
         , m_updatingDirty(other.m_updatingDirty)
+        , m_ownedUpdating(std::move(other.m_ownedUpdating))
+        , m_ownedVisible(std::move(other.m_ownedVisible))
+        , m_retiredVisible(std::move(other.m_retiredVisible))
     {
         other.m_stateUpdating = State::Null;
         other.m_stateVisible.store(State::Null);
+        other.m_storageUpdating = nullptr;
         other.m_storageVisible.store(nullptr);
         other.m_updatingDirty = false;
     }
@@ -132,20 +136,26 @@ public:
     SWMRNibbleArray& operator=(SWMRNibbleArray&& other) noexcept
     {
         if (this != &other) {
-            // 释放当前的可见存储
-            auto* oldVisible = m_storageVisible.load();
-            if (oldVisible != nullptr && oldVisible != m_storageUpdating.get()) {
-                _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
-            }
+            // 先摘除可见指针、断开更新侧观察，再释放各属主：可见侧是无锁读的，
+            // 指针必须先失效，否则残留的可见指针会指向已释放的数组。
+            m_storageVisible.store(nullptr, std::memory_order::relaxed);
+            m_storageUpdating = nullptr;
+            _freeBytes(std::move(m_retiredVisible));
+            _freeBytes(std::move(m_ownedVisible));
+            _freeBytes(std::move(m_ownedUpdating));
 
             m_stateUpdating = other.m_stateUpdating;
             m_stateVisible.store(other.m_stateVisible.load());
-            m_storageUpdating = std::move(other.m_storageUpdating);
+            m_storageUpdating = other.m_storageUpdating;
             m_storageVisible.store(other.m_storageVisible.load());
             m_updatingDirty = other.m_updatingDirty;
+            m_ownedUpdating = std::move(other.m_ownedUpdating);
+            m_ownedVisible = std::move(other.m_ownedVisible);
+            m_retiredVisible = std::move(other.m_retiredVisible);
 
             other.m_stateUpdating = State::Null;
             other.m_stateVisible.store(State::Null);
+            other.m_storageUpdating = nullptr;
             other.m_storageVisible.store(nullptr);
             other.m_updatingDirty = false;
         }
@@ -360,14 +370,98 @@ private:
      */
     void _ensureWritable();
 
+    /**
+     * @brief 为"整块覆写"准备更新侧私有缓冲（对应 Moonrise setFull/setZero/extrudeLower 的分配分支）
+     *
+     * 若当前更新侧已是 dirty 的私有缓冲，则复用它；否则分配一块新的私有缓冲。
+     * 【关键】绝不释放旧缓冲：未 dirty 时 m_storageUpdating 观察的正是已发布的可见侧数组，
+     * 它由 m_ownedVisible 持有、仍被无锁读者使用。
+     *
+     * 与 Moonrise 一致，本方法不修改 m_storageVisible——可见侧要到 updateVisible() 才发布。
+     * 调用后 m_storageUpdating == m_ownedUpdating.get() 且非空。
+     */
+    void _prepareUpdatingForOverwrite();
+
+    /**
+     * @brief 把一块"曾作为可见侧"的缓冲放入退役槽，并归还上一代退役缓冲
+     *
+     * 可见侧是无锁读的：替换或取消发布可见侧数组的瞬间，可能有读者刚载入旧指针、尚未读完，
+     * 因此不能立即归还对象池。本方法让该数组多存活一代，再于下一次调用（或析构）时归还。
+     * 每 nibble 至多多驻留一块（2 KB）。
+     */
+    void _retireBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes);
+
     // 状态
     State m_stateUpdating = State::Uninit;
     std::atomic<State> m_stateVisible{State::Uninit};
 
-    // 存储缓冲区
-    std::unique_ptr<std::array<u8, ARRAY_SIZE>> m_storageUpdating;
+    /**
+     * @brief 更新侧缓冲的裸观察指针（不拥有）
+     *
+     * 【为什么改成裸指针】可见侧是无锁读的：其他线程直接经 m_storageVisible 载入裸指针后读取，
+     * 不参与引用计数。当 nibble 未 dirty 时，更新侧与可见侧指向**同一块**数组（单一缓冲，
+     * 与 Moonrise 一致，用于省内存）。此时若用 unique_ptr 表达"更新侧"，任何对它的重新赋值
+     * 或置空都会立即 delete 掉这块仍被读者持有的数组，造成 heap-use-after-free。ASAN 实测两处
+     * （均为 2048 字节区）：
+     *   - it11：setNull() 释放 → 同线程稍后 setFull() 写入（SkyLightEngine::initNibble）；
+     *   - it14：_ensureWritable() 释放 → 主线程 getVisible() 读取（SpreadableSnowyDirtBlock::randomTick）。
+     *
+     * 因此本类把"指针"与"所有权"彻底分离：本成员只观察，所有权一律由下面的 unique_ptr 表达。
+     * 写者/读者语义与 Moonrise 一致（单写者 + 无锁多读者）。
+     */
+    std::array<u8, ARRAY_SIZE>* m_storageUpdating = nullptr;
+
+    /**
+     * @brief 可见侧缓冲的发布指针（无锁读取入口，不拥有）
+     *
+     * 读取方经此指针访问数组；其生命周期由 m_ownedVisible 或 m_ownedUpdating 保证。
+     */
     std::atomic<std::array<u8, ARRAY_SIZE>*> m_storageVisible{nullptr};
+
     bool m_updatingDirty = false;
+
+    /**
+     * @brief 更新侧私有缓冲的所有者（仅 dirty 期间存在）
+     *
+     * 不变式：m_ownedUpdating 非空 ⟺ m_updatingDirty，且此时 m_storageUpdating 指向它。
+     * 它是**未发布**的私有缓冲，因此归还它在任何时刻都是安全的；已发布的可见侧数组
+     * 一律归 m_ownedVisible，绝不由本成员持有（否则写时复制会顺带释放读者仍在用的内存）。
+     */
+    std::unique_ptr<std::array<u8, ARRAY_SIZE>> m_ownedUpdating;
+
+    /**
+     * @brief 已发布可见侧缓冲的所有者（当它与更新侧不别名时）
+     *
+     * 【为什么需要它】Java 版（Moonrise SWMRNibbleArray）依赖 GC 保证已发布数组不被回收：
+     * 例如 swapUpdatingAndMarkDirty 中 `arraycopy(storageUpdating, 0,
+     * storageUpdating = allocateBytes(), ...)` 之后，旧数组仅由 storageVisible 引用，靠 GC 存活。
+     * C++ 必须显式持有所有权，否则旧数组会在替换时被立即释放，而并发读者仍持有其裸指针。
+     *
+     * 所有权不变式（任一数组至多出现在一个 unique_ptr 中）：
+     *   - 未 dirty：m_storageUpdating 与 m_storageVisible 指向同一数组，该数组由 m_ownedVisible
+     *     拥有（此时 m_ownedUpdating 必为空）；
+     *   - 已 dirty：更新侧私有缓冲归 m_ownedUpdating，已发布的可见侧数组仍归 m_ownedVisible；
+     *   - 取消发布（Null/Uninit）后：可见侧数组移入 m_retiredVisible 延迟一代回收。
+     *
+     * 由此可得一条便于推理的结论：**m_ownedUpdating 永远不会拥有已发布的可见侧数组**，
+     * 因此"归还 m_ownedUpdating"在任何时刻都是安全的；而 m_ownedVisible 只在
+     * updateVisible() 取消发布时才经由 m_retiredVisible 延迟归还。
+     */
+    std::unique_ptr<std::array<u8, ARRAY_SIZE>> m_ownedVisible;
+
+    /**
+     * @brief 上一代"曾作为可见侧"的缓冲（退役槽）
+     *
+     * 可见侧是无锁读的：替换或取消发布可见侧数组的瞬间，可能有读者刚经 m_storageVisible
+     * 载入旧指针、尚未读完。因此旧数组不能立即归还对象池，否则该读者会命中
+     * heap-use-after-free。本槽保存上一代被替换下来的可见数组，直到下一次替换或对象析构时
+     * 才真正归还，从而提供"一代"的宽限期，并把每 nibble 的额外驻留限制为一块（2 KB）。
+     *
+     * TODO: 这是"一代延迟"的实用方案，尚未给出硬性保证：若某读者被抢占并跨越整整一轮光照
+     * 发布周期才恢复执行，仍可能读到已归还的缓冲。要做到无条件的硬保证，需引入引用计数或
+     * hazard pointer/epoch 回收，代价是在 getVisible 热路径上增加原子操作，需另行评估。
+     */
+    std::unique_ptr<std::array<u8, ARRAY_SIZE>> m_retiredVisible;
 
     // 对象池（线程本地）
     static thread_local std::vector<std::unique_ptr<std::array<u8, ARRAY_SIZE>>> s_bytePool;

@@ -51,28 +51,31 @@ SWMRNibbleArray::SWMRNibbleArray()
 
 SWMRNibbleArray::~SWMRNibbleArray()
 {
-    // 释放可见侧存储（只有当它与更新侧不同时）
-    auto* visible = m_storageVisible.load();
-    if (visible != nullptr && visible != m_storageUpdating.get()) {
-        _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(visible));
-    }
-    // 更新侧存储由 unique_ptr 自动释放
+    // 先摘除可见指针、断开更新侧观察，再释放各所有者（可见侧是无锁读的，指针必须先失效）。
+    // 归还对象池而非直接 delete：与既有 _allocateBytes/_freeBytes 的池化约定一致。
+    m_storageVisible.store(nullptr, std::memory_order::relaxed);
+    m_storageUpdating = nullptr;
+    _freeBytes(std::move(m_retiredVisible));
+    _freeBytes(std::move(m_ownedVisible));
+    _freeBytes(std::move(m_ownedUpdating));
 }
 
 SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> data, bool isNull)
     : m_stateUpdating(data ? State::Init : (isNull ? State::Null : State::Uninit))
     , m_stateVisible(m_stateUpdating)
-    , m_storageUpdating(std::move(data))
-    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr) // 与 Moonrise 一致：初始时指向同一数组
+    , m_storageUpdating(data.get())
+    , m_storageVisible(data.get()) // 与 Moonrise 一致：初始时更新侧与可见侧指向同一数组
     , m_updatingDirty(false)
+    , m_ownedVisible(std::move(data))
 {}
 
 SWMRNibbleArray::SWMRNibbleArray(std::unique_ptr<std::array<u8, ARRAY_SIZE>> data, State state)
     : m_stateUpdating(state)
     , m_stateVisible(state)
-    , m_storageUpdating(std::move(data))
-    , m_storageVisible(m_storageUpdating ? m_storageUpdating.get() : nullptr) // 与 Moonrise 一致：初始时指向同一数组
+    , m_storageUpdating(data.get())
+    , m_storageVisible(data.get()) // 与 Moonrise 一致：初始时更新侧与可见侧指向同一数组
     , m_updatingDirty(false)
+    , m_ownedVisible(std::move(data))
 {
     // 与 Moonrise 一致：data 为空时不允许 Init/Hidden 状态
     MC_ASSERT_RELEASE(!(m_storageUpdating == nullptr && (state == State::Init || state == State::Hidden)));
@@ -168,23 +171,8 @@ void SWMRNibbleArray::setFull()
         m_stateUpdating = State::Init;
     }
 
-    // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
-    if (m_storageUpdating == nullptr || !m_updatingDirty) {
-        // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
-        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
-
-        if (sharedWithVisible && m_storageUpdating != nullptr) {
-            // 如果与可见侧共享内存，需要先创建新存储
-            auto newStorage = _allocateBytes();
-            m_storageUpdating = std::move(newStorage);
-            // 更新可见侧指向新存储
-            m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
-        } else {
-            m_storageUpdating = _allocateBytes();
-        }
-    }
-
+    // 与 Moonrise 一致：只准备更新侧缓冲，可见侧要等 updateVisible() 才发布。
+    _prepareUpdatingForOverwrite();
     std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), static_cast<u8>(0xFF)); // 每字节两个15
     m_updatingDirty = true;
 }
@@ -195,23 +183,8 @@ void SWMRNibbleArray::setZero()
         m_stateUpdating = State::Init;
     }
 
-    // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
-    if (m_storageUpdating == nullptr || !m_updatingDirty) {
-        // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
-        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
-
-        if (sharedWithVisible && m_storageUpdating != nullptr) {
-            // 如果与可见侧共享内存，需要先创建新存储
-            auto newStorage = _allocateBytes();
-            m_storageUpdating = std::move(newStorage);
-            // 更新可见侧指向新存储
-            m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
-        } else {
-            m_storageUpdating = _allocateBytes();
-        }
-    }
-
+    // 与 Moonrise 一致：只准备更新侧缓冲，可见侧要等 updateVisible() 才发布。
+    _prepareUpdatingForOverwrite();
     std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), static_cast<u8>(0));
     m_updatingDirty = true;
 }
@@ -231,9 +204,11 @@ void SWMRNibbleArray::setNonNull()
 void SWMRNibbleArray::setNull()
 {
     m_stateUpdating = State::Null;
-    if (m_updatingDirty && m_storageUpdating != nullptr) {
-        _freeBytes(std::move(m_storageUpdating));
-    }
+    // 与 Moonrise 一致：只把"更新侧"字段置空，不动可见侧。
+    // dirty 时 m_ownedUpdating 是未发布的私有缓冲，可安全归还；未 dirty 时它为 null，
+    // 更新侧观察的正是可见侧数组，仍由 m_ownedVisible 持有并被读者使用，故绝不能在此释放。
+    _freeBytes(std::move(m_ownedUpdating));
+    m_ownedUpdating = nullptr;
     m_storageUpdating = nullptr;
     m_updatingDirty = false;
 }
@@ -241,9 +216,9 @@ void SWMRNibbleArray::setNull()
 void SWMRNibbleArray::setUninitialized()
 {
     m_stateUpdating = State::Uninit;
-    if (m_storageUpdating != nullptr && m_updatingDirty) {
-        _freeBytes(std::move(m_storageUpdating));
-    }
+    // 同 setNull()：只归还未发布的私有缓冲，已发布的可见侧数组必须保活。
+    _freeBytes(std::move(m_ownedUpdating));
+    m_ownedUpdating = nullptr;
     m_storageUpdating = nullptr;
     m_updatingDirty = false;
 }
@@ -326,37 +301,49 @@ bool SWMRNibbleArray::updateVisible()
         return false;
     }
 
-    // 同步更新 - SWMR 模式：与 Moonrise 一致
+    // 同步更新 - SWMR 模式：与 Moonrise updateVisible() 一致
     if (m_stateUpdating == State::Null || m_stateUpdating == State::Uninit) {
-        // 对于 Null/Uninit 状态，可见侧也应该没有存储
-        auto* oldVisible = m_storageVisible.load(std::memory_order::acquire);
-        m_storageVisible.store(nullptr, std::memory_order::release);
-        if (oldVisible != nullptr && oldVisible != m_storageUpdating.get()) {
-            _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
+        // 可见侧不再发布任何存储。注意：可见侧是无锁读的，刚载入旧指针的读者可能尚未读完，
+        // 故旧数组不能立即归还，而是移入退役槽延迟一代回收。
+        auto* oldVisible = m_storageVisible.exchange(nullptr, std::memory_order::release);
+
+        // 已发布的数组必由 m_ownedVisible 持有（见所有权不变式）；此处绝不释放它。
+        if (oldVisible != nullptr) {
+            MC_ASSERT_RELEASE(m_ownedVisible != nullptr && m_ownedVisible.get() == oldVisible);
+            _retireBytes(std::move(m_ownedVisible));
         }
-        if (m_storageUpdating != nullptr) {
-            _freeBytes(std::move(m_storageUpdating));
-            m_storageUpdating = nullptr;
-        }
+
+        // 归还未发布的私有缓冲（若上一步未动它则在此归还；_freeBytes 对空指针安全）。
+        _freeBytes(std::move(m_ownedUpdating));
+        m_ownedUpdating = nullptr;
+        m_storageUpdating = nullptr;
     } else {
-        // Init 或 Hidden 状态：需要同步数据到可见侧
+        // Init 或 Hidden 状态：把更新侧数据同步到可见侧
         auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
 
         if (currentVisible == nullptr) {
-            // 可见侧为空，复制更新侧数据
-            auto newStorage = std::make_unique<std::array<u8, ARRAY_SIZE>>();
-            *newStorage = *m_storageUpdating;
-            m_storageVisible.store(newStorage.get(), std::memory_order::release);
-            m_storageUpdating = std::move(newStorage);
-        } else {
-            // 可见侧已有存储，如果更新侧和可见侧不同则复制数据
-            if (m_storageUpdating.get() != currentVisible) {
-                std::memcpy(currentVisible->data(), m_storageUpdating->data(), ARRAY_SIZE);
-                // 释放旧的更新侧存储
-                _freeBytes(std::move(m_storageUpdating));
-                m_storageUpdating = std::unique_ptr<std::array<u8, ARRAY_SIZE>>(currentVisible);
+            // 可见侧尚未发布：克隆更新侧数据作为新的可见数组（对应 Moonrise 的 clone()）。
+            // 此时 m_ownedVisible 必为空（可见指针为空 ⟺ 可见数组无属主），断言以防不变式被破坏
+            // 后静默释放一块仍被读者持有的数组。
+            MC_ASSERT_RELEASE(m_ownedVisible == nullptr);
+            auto newStorage = _allocateBytes();
+            if (m_storageUpdating != nullptr) {
+                *newStorage = *m_storageUpdating;
+            } else {
+                std::fill(newStorage->begin(), newStorage->end(), 0);
             }
+            m_ownedVisible = std::move(newStorage);
+            currentVisible = m_ownedVisible.get();
+            m_storageVisible.store(currentVisible, std::memory_order::release);
+        } else if (m_storageUpdating != nullptr && m_storageUpdating != currentVisible) {
+            // 可见侧已有独立存储：把更新侧数据拷入可见侧
+            std::memcpy(currentVisible->data(), m_storageUpdating->data(), ARRAY_SIZE);
         }
+
+        // 更新侧私有缓冲已完成使命：归还，并让更新侧重新观察可见侧（未 dirty：两者别名）
+        _freeBytes(std::move(m_ownedUpdating));
+        m_ownedUpdating = nullptr;
+        m_storageUpdating = currentVisible;
     }
 
     m_updatingDirty = false;
@@ -381,23 +368,13 @@ void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other)
     }
 
     if (!m_updatingDirty) {
-        // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
-        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
-
-        if (m_storageUpdating != nullptr) {
-            if (sharedWithVisible) {
-                // 如果与可见侧共享内存，需要先创建新存储
-                auto newStorage = _allocateBytes();
-                m_storageUpdating = std::move(newStorage);
-                m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
-            } else {
-                m_storageUpdating = _allocateBytes();
-            }
-        } else {
-            m_storageUpdating = _allocateBytes();
+        // 与 Moonrise 一致：分配一块新的私有缓冲用于写入（对应
+        // `into = storageUpdating = allocateBytes()`）。旧数组若已发布，则由 m_ownedVisible
+        // 继续持有并被无锁读者使用，这里只是让更新侧改看新缓冲，绝不动它。
+        if (m_storageUpdating == nullptr) {
             m_stateUpdating = State::Init;
         }
+        _prepareUpdatingForOverwrite();
         m_updatingDirty = true;
     }
 
@@ -513,6 +490,31 @@ bool SWMRNibbleArray::_isAllZero(const std::array<u8, ARRAY_SIZE>& data)
     return true;
 }
 
+void SWMRNibbleArray::_prepareUpdatingForOverwrite()
+{
+    // 已是 dirty 的私有缓冲 → 直接复用（对应 Moonrise 三元表达式的 else 分支）。
+    if (m_storageUpdating != nullptr && m_updatingDirty) {
+        return;
+    }
+
+    // 未 dirty：m_storageUpdating 观察的是已发布的可见侧数组（由 m_ownedVisible 持有），
+    // 或为 nullptr。两者都不能释放，直接换上一块新的私有缓冲即可。
+    // 注意：此时 m_ownedUpdating 必为空（私有缓冲只在 dirty 期间存在）。
+    MC_ASSERT_RELEASE(m_ownedUpdating == nullptr);
+    m_ownedUpdating = _allocateBytes();
+    m_storageUpdating = m_ownedUpdating.get();
+}
+
+void SWMRNibbleArray::_retireBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes)
+{
+    if (bytes == nullptr) {
+        return;
+    }
+    // 归还上一代退役缓冲，让当前这块顶替它，从而保证"曾被发布的数组"至少再存活一代。
+    _freeBytes(std::move(m_retiredVisible));
+    m_retiredVisible = std::move(bytes);
+}
+
 void SWMRNibbleArray::_ensureWritable()
 {
     if (m_updatingDirty) {
@@ -520,36 +522,19 @@ void SWMRNibbleArray::_ensureWritable()
     }
 
     if (m_storageUpdating == nullptr) {
-        m_storageUpdating = _allocateBytes();
-        std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), 0);
+        // 无任何数据：分配一块清零的私有缓冲。
+        m_ownedUpdating = _allocateBytes();
+        std::fill(m_ownedUpdating->begin(), m_ownedUpdating->end(), 0);
     } else {
-        // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
-        bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
-
-        // 写时复制：创建新数组并复制数据
-        auto newStorage = _allocateBytes();
-        *newStorage = *m_storageUpdating;
-
-        if (sharedWithVisible) {
-            // 如果与可见侧共享内存，先更新可见侧指向新存储
-            // 这样旧内存就不会被释放（因为 unique_ptr 的 move 会释放旧内存）
-            // 但由于可见侧仍持有指针，我们需要让可见侧也指向新存储
-            // 注意：这里不释放旧内存，因为可见侧仍在使用它
-            // 但 unique_ptr 的 move 会自动释放旧内存...
-            //
-            // 正确做法：先让更新侧指向新存储，同时让可见侧也指向新存储
-            // 然后旧内存由析构函数处理（只在可见侧 != 更新侧 时释放）
-            m_storageUpdating = std::move(newStorage);
-            m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
-            // 此时 m_stateUpdating == m_stateVisible，所以 isDirty() == false
-            // 但我们需要标记为 dirty 以便后续 updateVisible() 能正确工作
-        } else {
-            // 不与可见侧共享，可以安全释放旧内存
-            m_storageUpdating = std::move(newStorage);
-        }
+        // 写时复制：分配新缓冲并复制当前（可见侧）数据。
+        // 【关键】旧缓冲是已发布的可见侧数组，仍由 m_ownedVisible 持有并被无锁读者使用，
+        // 因此这里既不移动也不释放它，只是让更新侧改为观察新的私有缓冲。
+        // 这正是 ASAN it14 的崩溃点（旧代码在此释放，主线程 getVisible 随后读取）。
+        m_ownedUpdating = _allocateBytes();
+        *m_ownedUpdating = *m_storageUpdating;
     }
 
+    m_storageUpdating = m_ownedUpdating.get();
     if (m_stateUpdating != State::Hidden) {
         m_stateUpdating = State::Init;
     }
