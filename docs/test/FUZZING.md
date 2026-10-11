@@ -150,8 +150,9 @@ cd build/bin/fuzz/RelWithDebInfo
 
 ### 4.1 种子生成
 
-`fuzz_gen_seeds` 遍历 5 阶段 × 2 流向共 10 张包表的**每个已登记包**，用默认字段值经项目
-自身的 codec 编码成合法 wire 字节，按流向分目录输出：
+`fuzz_gen_seeds` 遍历 5 阶段 × 2 流向共 10 张包表的**每个已登记包**，用满足编码前置条件的字段值经项目
+自身的 codec 编码成合法 wire 字节，按流向分目录输出。`SetEquipment` 使用一个清空主手的条目，
+因为该包依赖最后一条装备的续位终止，空条目列表不是合法消息：
 
 ```bash
 ./fuzz_gen_seeds.exe ../corpus/java_codec          # 生成 corpus/java_codec/{sb,cb}/*.bin
