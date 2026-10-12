@@ -105,6 +105,8 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 调高 randomTickSpeed 后轮询 (3,3,1) 出现 twisting_vines（生长延伸到上方）。
 function twistingVinesGrowsUpwardViaRandomTick(test: Test): void {
     test.setBlockType("minecraft:stone", TWISTING_SUPPORT);
+    // 限定只向上生长一格，避免目标格继续变为藤蔓身体后错过头部状态。
+    test.setBlockType("minecraft:stone", { ...TWISTING_GROW_TARGET, y: TWISTING_GROW_TARGET.y + 1 });
     test.setBlockType("minecraft:twisting_vines", TWISTING_VINE);
     test.assert(
         getTypeId(test, TWISTING_VINE) === "minecraft:twisting_vines",

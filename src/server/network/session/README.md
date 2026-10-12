@@ -62,6 +62,8 @@ ClientSessionManager ──owns──▶ ClientSession
 
 ## 容易踩的坑
 
+- `startAccept(0, ...)` 由系统分配空闲端口，监听日志必须记录绑定后的实际端口。
+
 ### 1. 销毁顺序：会话必须先于连接
 
 `ClientSession` 持非拥有 `ServerClientConnection*`，连接所有权在 `ServerNetwork::m_connections`。

@@ -196,8 +196,8 @@ Entity::~Entity()
     // 句柄悬垂 UAF（见 ScriptHandleRegistry.hpp 问题背景）。与 EntityManager::takeEntity 的
     // invalidateAll（跨维度迁移时若调用者丢弃 unique_ptr 立即 free）形成双保险：销毁路径经
     // graveyard 延迟，由此处兜底；takeEntity 路径可能先于析构就 invalidate（此时幂等 no-op）。
-    // 重复调用安全：已 invalidate 的 id 在注册表中已 erase，再次调为 no-op。
-    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(m_id);
+    // 重复调用安全：已失效对象的地址记录已从注册表移除，再次调为 no-op。
+    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(this);
 }
 
 void Entity::remove(RemovalReason reason)

@@ -17,6 +17,8 @@ from pathlib import Path
 
 # 仅列出每个任务使用的工具，避免把测试机器预装的编译器误当作产物编译器。
 _JOB_TOOLS = {
+    "prepare": ("compiler", "cmake", "ninja"),
+    "workers": ("compiler",),
     "build": ("compiler", "cmake", "ninja", "linker", "ccache", "node", "npm"),
     "release-build": ("compiler", "cmake", "ninja", "linker", "ccache", "node", "npm"),
     "fuzz": ("compiler", "cmake", "ninja", "linker", "ccache"),
@@ -94,7 +96,7 @@ def collect(job: str, build_dir: Path | None) -> dict:
     for tool in _JOB_TOOLS[job]:
         command = _COMMANDS[tool]
         if tool == "compiler":
-            command = build_config.get("CMAKE_CXX_COMPILER", command)
+            command = build_config.get("CMAKE_CXX_COMPILER", os.environ.get("CI_COMPILER", command))
         elif tool == "linker":
             command = build_config.get("CMAKE_LINKER", command)
         tools[tool] = tool_version(command)
@@ -122,8 +124,14 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--job", required=True, choices=_JOB_TOOLS)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--build-dir", type=Path, help="Read the configured compiler and options from CMakeCache.txt")
+    parser.add_argument("--pool", choices=("test", "release", "fuzz"), help="Worker compilation pool")
+    parser.add_argument("--worker", type=int, help="Worker index within its compilation pool")
     args = parser.parse_args(argv)
     info = collect(args.job, args.build_dir)
+    if args.job == "workers":
+        if args.pool is None or args.worker is None or args.worker < 1:
+            parser.error("workers requires --pool and a positive --worker index")
+        info["runner"].update(pool=args.pool, worker=args.worker)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(info, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Runner configuration recorded: {args.job} -> {args.out}")

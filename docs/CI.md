@@ -3,9 +3,9 @@
 ### 正式 pococc 分布式构建
 
 nightly.yml 使用固定提交的 pococc 和 Clang 22，保留完整测试、发布和汇总流程。
-32 个 worker 分为 test/release/fuzz 三个池，分别为 16/10/6 个节点，每节点四个槽位，
-分别提供 64/40/24 个远端槽位。Ninja 并行度由槽位数加两个本地任务动态计算，为 66/42/26。
-三个协调节点与 worker 同时运行，编译阶段共需 35 个并发 job。
+34 个 worker 分为 test/release/fuzz 三个池，分别为 24/4/6 个节点，每节点四个槽位，
+分别提供 96/16/24 个远端槽位。Ninja 并行度由槽位数加两个本地任务动态计算，为 98/18/26。
+三个协调节点与 worker 同时运行，编译阶段共需 37 个并发 job。
 ccache 命中直接返回对象文件，未命中经 pococc/distcc 分发；协调节点预处理和链接，
 worker 通过经过 SSH 认证的临时隧道编译。PCH、modules 扫描和 native CPU 均关闭。
 
@@ -59,7 +59,7 @@ fuzz ──（独立，自行构建）
 | Job | 内容 | 是否阻塞 |
 |---|---|---|
 | `prepare` | 构建固定版本 pococc，供协调节点和 worker 复用 | 是 |
-| `workers` | 32 个临时编译节点，真实编译探针和性能采集 | 是 |
+| `workers` | 34 个临时编译节点，真实编译探针和性能采集 | 是 |
 | `build` | `linux-clang-ci-tests`，RelWithDebInfo + ASan/UBSan，仅供测试 | 是 |
 | `release-build` | `linux-clang-ci-release`，Release、无调试信息/profiler/sanitizer，公开发布 | 是 |
 | `unit-tests` | `ctest` 全量单元测试，8 片、最多 4 片并行 | **否**（仅归档） |
@@ -144,26 +144,33 @@ https://github.com/misode/mcmeta/archive/refs/tags/1.21.11-data.zip
 `benchmark` job 用 `gh run list` 找到最近一次**成功**的 nightly 运行（排除本次），下载其
 `pococc-benchmark-results` artifact，再由 `scripts/ci/compare_benchmark.py` 逐用例比对：
 
-- **CPU**：`real_time` 归一化到纳秒后比较，阈值默认 10%；
+- **实际耗时**：`real_time` 归一化到纳秒后比较，阈值默认 10%；
 - **内存**：`MemoryProfiler` 注入的计数器（`num_allocs` / `max_bytes_used` 等），阈值默认 20%。
 
-超阈值的项在报告中列出并触发 `::warning::`，但**不 fail**。判定真实回归应结合连续多晚的趋势，
+比较采用 Matplotlib 生成等速散点图、变化分布、内存变化箱线图与分页的逐用例耗时柱状图。
+同一用例优先取聚合中位数，不把 stddev 或 CV 作为耗时；先统一单位，再计算迭代记录中位数。
+零基线或不同统计口径不计算变化百分比。测量/解析错误用图表显示并进入失败判定。
+超阈值的项在图表中标记并触发 `::warning::`，但**不 fail**。判定真实回归应结合连续多晚的趋势，
 而非单晚的单点差异——托管 runner 的实例差异本身就足以造成超过阈值的抖动。
 结果 context 记录 `ci_build_profile=pococc-release-noprof-nosan-v1`；与历史不同配置的结果不做性能比较，
 首次切换 Release 时重新建立基线，后续相同配置才按原阈值比较。
 
 ### 失败归档与 issue
 
-报告在 job 结论之后用一张表汇总各任务及测试分片的机器配置：CPU 型号和可用逻辑核数、
+报告在 job 结论之后用 Matplotlib 图表汇总各任务、编译 worker 及测试分片的机器配置：CPU 型号和可用逻辑核数、
 物理内存总量、采集时工作区磁盘空闲/总容量、发行版、架构、内核、GitHub runner 镜像版本，
 以及各任务相关的编译器、链接器、CMake/Ninja/ccache、CTest、Node/npm、Python、gh 和 libc 版本。
 build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，并附 native、全局 sanitizer 与 fuzz-ASAN 开关；
-单元/集成/e2e 复用 build 产物，benchmark 复用 release-build 产物；表格中的工具版本对应其运行环境。
+单元/集成/e2e 复用 build 产物，benchmark 复用 release-build 产物；图表中的工具版本对应其运行环境。
+配置展示采用 CPU 型号环形图、核心数柱状图、磁盘余量分布图和逐任务容量条形图，软件版本按任务类型分组。
+同一非矩阵任务的重复快照选最新一次，所有原始快照仍归档。
 
 配置采集在各任务上传结果前执行，使用 `if: always()` 和 `continue-on-error: true`，
 因此构建或测试失败时仍能记录，采集失败不会覆盖原任务结论。每个 artifact 中有
 `runner-info.json`，汇总后的完整配置为 `pococc-nightly-report` artifact 中的 `nightly-runners.json`；
-简要报告、完整报告、Actions summary 和失败 issue 均包含相同的配置表。
+简要报告、完整报告、Actions summary 和失败 issue 均引用相同的图表。
+benchmark/report 通过 `setup-report-plots` 安装 Matplotlib 与 Noto CJK 字体；图表生成 PNG 和 SVG，
+随报告 artifact 归档，并发布到 `image-data/ci-reports/<run-id>`，使 GitHub 报告可直接渲染图片。
 跳过的任务显示“未运行”，其他没有配置的任务显示“未采集”，损坏的配置单独列出读取错误。
 
 - 各 job 的结果（日志、JUnit XML、benchmark 报告、fuzz 崩溃产物）都作为 artifact 上传，
@@ -209,14 +216,16 @@ build-fuzz/bin/fuzz/RelWithDebInfo/fuzz_java_codec_sb \
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_repetitions=3
 python3 scripts/ci/compare_benchmark.py \
   --current benchmark_results/<本次时间戳>/results.json \
-  --previous <上次的 results.json>
+  --previous <上次的 results.json> \
+  --out benchmark-report/benchmark-compare.md
 ```
 
 ### 相关脚本
 
 | 文件 | 职责 |
 |---|---|
-| `scripts/ci/compare_benchmark.py` | benchmark 跨日对比，生成 Markdown 报告（仅记录 + 告警） |
+| `scripts/ci/compare_benchmark.py` | benchmark 跨日对比，生成 PNG/SVG 与机器可读 JSON（性能变化仅告警） |
+| `scripts/ci/report_plots.py` | Matplotlib 性能比较、机器配置分布与任务容量图表 |
 | `scripts/ci/summarize_failures.py` | 汇总各测试结果，生成 issue 正文（永不抛异常、输出限长） |
 | `.github/actions/setup-pococc-toolchain/action.yml` | 协调节点和 worker 使用的一致 Clang/distcc/SSH 工具链 |
 | `.github/actions/build-pococc/action.yml` | 无 PCH 分布式构建、持久缓存、节点生命周期和性能采集 |

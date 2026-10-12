@@ -8,7 +8,8 @@ ci/
 ├── collect_runner_info.py      # 采集各 job 的硬件、系统镜像和实际工具版本
 ├── verify_pococc_build.py       # 核验无 PCH sanitizer 配置与严格编译分发记录
 ├── prepare_build_artifacts.py  # 核验 ELF 与构建配置，归档实际动态库依赖
-├── compare_benchmark.py        # 比较两轮 CPU 和内存指标
+├── compare_benchmark.py        # 归一化两轮实际耗时与内存指标，输出图表及 JSON
+├── report_plots.py             # 渲染性能、硬件容量、型号分布与工具版本图表
 ├── symbolize_crash.py          # 用调试二进制还原崩溃栈
 ├── prune_caches.py             # 清理指定前缀的旧缓存
 └── tests/                     # 汇总脚本回归验证
@@ -17,9 +18,10 @@ ci/
 ## 内部关系与外部依赖
 
 `.github/workflows/nightly.yml` 调用这些独立脚本。性能对比和符号化先处理各 job 的结果，
-汇总脚本再读取 artifacts 并决定是否建 issue。Python 侧依赖标准库；缓存操作依赖
+汇总脚本再读取 artifacts 并决定是否建 issue。绘图依赖 Matplotlib、NumPy 与中文字体，其余 Python 侧依赖标准库；缓存操作依赖
 GitHub CLI，符号化依赖 LLVM 工具和带调试信息的二进制。
-机器配置随各 job 的结果归档；汇总器按 job 展示紧凑表格，并输出完整的 `nightly-runners.json`。
+机器配置随各 job 的结果归档；汇总器按任务展示图表，并输出完整的 `nightly-runners.json`。
+PNG/SVG 汇总到 `_report_charts`，由工作流发布到 `image-data/ci-reports/<run-id>` 后供 summary 与 issue 引用。
 
 ## 容易踩的坑
 
@@ -34,3 +36,5 @@ GitHub CLI，符号化依赖 LLVM 工具和带调试信息的二进制。
 - 发布二进制不能含调试节或 sanitizer 符号；测试二进制必须有两种 sanitizer 和调试信息。
 - Release 的通用与配置专用编译/链接参数都须在 strip 前检查；归档保留 Release 链接参数。
 - benchmark 只比较相同 `ci_build_profile` 的结果，避免跨优化配置产生错误告警。
+- 时间先统一为纳秒再取代表值，优先使用 median 聚合；stddev/CV 不参与耗时比较。测量错误必须进入失败判定。
+- 同一非矩阵任务的重复配置快照只取最新，矩阵分片与编译 worker 全部展示；原始快照完整归档。

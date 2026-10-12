@@ -100,7 +100,8 @@ TEST_F(PiglinEntityAngerTest, SetAttackTarget_MobEntityAndIAngerableConsistent)
     // 和IAngerable::getAttackTarget()返回一致的结果
     // 这是核心测试：确保 MobEntity::m_attackTarget 统一存储，
     // 不存在双状态不一致问题
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234); // 仅用于指针值测试
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
 
     piglin->setAttackTarget(target);
     EXPECT_EQ(piglin->getAttackTarget(), target);
@@ -116,7 +117,8 @@ TEST_F(PiglinEntityAngerTest, SetAttackTarget_ThroughMobEntityPointer_Synced)
     // 通过MobEntity指针调用setAttackTarget时，IAngerable::getAttackTarget()
     // 应该返回相同的结果
     // 这验证了MobEntity::setAttackTarget是虚函数后的一致性
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x5678);
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
 
     MobEntity* mob = piglin.get();
     mob->setAttackTarget(target);
@@ -134,7 +136,8 @@ TEST_F(PiglinEntityAngerTest, SetAttackTarget_ThroughIAngerablePointer_Synced)
 {
     // 通过IAngerable接口指针调用setAttackTarget时，MobEntity::attackTarget()
     // 也应该返回相同的结果
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x9ABC);
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
 
     entity::IAngerable* angerable = piglin.get();
     angerable->setAttackTarget(target);
@@ -161,7 +164,8 @@ TEST_F(PiglinEntityAngerTest, SetAngry_True_SetsAngerTime)
 TEST_F(PiglinEntityAngerTest, SetAngry_False_ClearsAngerTimeAndTarget)
 {
     // setAngry(false) 应该清除愤怒时间并清除攻击目标
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234);
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
     piglin->setAttackTarget(target);
     piglin->setAngry(true);
 
@@ -175,7 +179,8 @@ TEST_F(PiglinEntityAngerTest, SetAngry_False_ClearsAngerTimeAndTarget)
 TEST_F(PiglinEntityAngerTest, SetAngry_False_ClearsMobEntityTarget)
 {
     // setAngry(false) 应该同时清除MobEntity的攻击目标
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x5678);
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
     piglin->setAttackTarget(target);
     piglin->setAngry(true);
 
@@ -245,7 +250,8 @@ TEST_F(PiglinEntityAngerTest, AngerExpiry_ClearsTargetAndAngry)
     // 模拟tick()中愤怒到期后的行为：
     // tick()中 angerTime > 0 时递减，到0时 setAngry(false) + setAttackTarget(nullptr)
     // 直接测试 setAngry(false) 后的状态
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234);
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
     piglin->setAttackTarget(target);
     piglin->setAngry(true);
     EXPECT_EQ(piglin->getAngerTime(), 600);
@@ -291,7 +297,8 @@ TEST_F(PiglinEntityAngerTest, Scenario_FullAngerCycle)
 {
     // 完整的愤怒周期测试：被激怒 → 愤怒 → 时间到期 → 恢复平静
     // 不依赖tick()，手动模拟时间递减
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234);
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
 
     // 1. 初始状态：不愤怒，没有攻击目标
     EXPECT_FALSE(piglin->isAngry());

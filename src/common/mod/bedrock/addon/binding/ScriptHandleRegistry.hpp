@@ -49,16 +49,18 @@ namespace mc::mod::bedrock::addon {
  *   内主动 invalidate 作为该路径的止血点。
  *
  * 本注册表彻底根治两条路径：实体销毁/移交时（`EntityManager::takeEntity` + `Entity::~Entity` 兜底）
- * 调 `invalidateAll(id)`，把所有指向该实体的 `ObjectData::ptr` 置 nullptr。之后 `unwrap` 返 nullptr，
+ * 调 `invalidateAll(entity)`，把所有指向该实体的 `ObjectData::ptr` 置 nullptr。之后 `unwrap` 返 nullptr，
  * 各绑定调用点已有的 `if (ent == nullptr) return undefined;` 守卫拦截，JS 侧得到 undefined 而非 UAF。
  *
  * 机制：
- * - `wrap` 对 Entity 系（`entityId != 0`）调 `registerHandle(entityId, data)` 登记该 `ObjectData*`。
+ * - `wrap` 对 Entity 系（`entityId != 0`）调 `registerHandle(data)` 登记该 `ObjectData*`。
  * - QuickJS finalizer（`delete data` 前）对 `entityId != 0` 的 data 调 `unregisterHandle(data)`，
  *   防止注册表持有已 delete 的 `ObjectData*`（否则后续 `invalidateAll` 解引用悬垂 data* UAF）。
- * - 实体销毁调 `invalidateAll(id)`：遍历该 id 下所有 data*，置 `ptr=nullptr`，再清空该 id 的列表。
+ * - 实体销毁调 `invalidateAll(entity)`：按实际对象地址遍历 data*，置 `ptr=nullptr`
+ * 后移除记录；实体编号可在不同世界重复。
  *
- * 线程安全：JS 回调（finalizer）与游戏侧 remove/析构可能并发访问注册表，内部 `std::mutex` 串行化。
+ * 线程约束：包装、解包与实体访问必须在所属游戏线程执行；该线程依次驱动实体和脚本 tick。
+ * 内部 `std::mutex` 保护注册表容器，不能延长实体寿命，也不允许跨线程包装正在销毁的裸指针。
  *
  * 与 `ScriptClassRegistry` 同层（addon/binding，仅依赖 core），可被 core 层
  * （`EntityManager`/`Entity`）引用——与既有 core→addon/component（`BlockComponentEvents`）跨层
@@ -71,33 +73,33 @@ public:
     /**
      * @brief 登记一个实体 JS 句柄的 ObjectData（wrap 时调，entityId != 0）。
      *
-     * @param entityId 实体实例 ID（EntityInstanceId）。
      * @param data 该 JS 对象的 ObjectData 指针（opaque 存储，finalizer 前 persistent）。
      *
-     * 同一实体可有多个 data（Entity 本身 + 各组件对象），均登记在同一 entityId 下，
+     * 同一实体可有多个 data（Entity 本身 + 各组件对象），均按实际对象地址登记，
      * `invalidateAll` 一次清空全部。
      */
-    void registerHandle(EntityInstanceId entityId, ScriptObjectRegistry::ObjectData* data) noexcept;
+    void registerHandle(ScriptObjectRegistry::ObjectData* data) noexcept;
 
     /**
      * @brief 注销一个 ObjectData（QuickJS finalizer 在 delete data 前调）。
      *
      * 防止注册表持有已 delete 的 data*——否则后续 invalidateAll 解引用悬垂 data* UAF。
-     * 按 data* 值在所有 entityId 列表中移除（finalizer 不知道 entityId，但 data* 全局唯一）。
+     * 按 data* 值移除记录，即使该句柄的 ptr 已单独失效也能正确注销。
      */
     void unregisterHandle(ScriptObjectRegistry::ObjectData* data) noexcept;
 
     /**
      * @brief 使某实体所有 JS 句柄失效（实体销毁时调）。
      *
-     * 遍历该 entityId 下所有 data*，置 `data->ptr = nullptr`（owned 标志不变——owned=false 的
+     * 遍历该对象地址下所有 data*，置 `data->ptr = nullptr`（owned 标志不变——owned=false 的
      * Entity 句柄本就不由 JS GC delete，置 ptr=nullptr 后 finalizer 仅 delete ObjectData 结构）。
-     * 之后清空该 entityId 的列表。重复调用安全（已清空则 no-op）。
+     * 之后清空该对象的列表。不同维度和临时实体可同号，必须按地址区分。重复调用安全。
+     * @param entity 实体实际对象地址
      */
-    void invalidateAll(EntityInstanceId entityId) noexcept;
+    void invalidateAll(const void* entity) noexcept;
 
     /**
-     * @brief 清空所有条目（脚本引擎重建/进程退出用，对齐 ScriptClassRegistry::clear 时机）。
+     * @brief 清空所有条目（脚本引擎重建/进程退出用，与 ScriptClassRegistry::clear 同时执行）。
      */
     void clear() noexcept;
 
@@ -105,9 +107,9 @@ private:
     ScriptHandleRegistry() noexcept = default;
 
     std::mutex m_mutex;
-    // EntityInstanceId → 该实体所有 JS 句柄的 ObjectData* 列表。
+    // 实体对象地址 → 该实体所有 JS 句柄的 ObjectData* 列表，实体编号不具进程级唯一性。
     // 一个实体可有多个句柄（Entity 本身 + OnFire/Health/... 组件对象），均 opaque 持同一 Entity*。
-    std::unordered_map<EntityInstanceId, std::vector<ScriptObjectRegistry::ObjectData*>> m_handles;
+    std::unordered_map<const void*, std::vector<ScriptObjectRegistry::ObjectData*>> m_handles;
 };
 
 } // namespace mc::mod::bedrock::addon

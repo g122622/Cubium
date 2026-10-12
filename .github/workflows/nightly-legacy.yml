@@ -668,6 +668,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-report-plots
 
       - uses: ./.github/actions/setup-datapack
 
@@ -716,18 +717,14 @@ jobs:
 
       - name: Compare with previous run
         run: |
-          set +e
+          set -euo pipefail
           # 上一次的 results.json 可能位于 previous/ 下的任意子目录（artifact 保留原路径）。
-          PREV_JSON=$(find previous -name results.json -print -quit 2>/dev/null)
+          PREV_JSON=$(find previous -name results.json -print -quit 2>/dev/null || true)
           ARGS=(--current benchmark-out/results.json --out benchmark-out/benchmark-compare.md)
           if [ -n "${PREV_JSON}" ]; then
             ARGS+=(--previous "${PREV_JSON}")
           fi
           python3 scripts/ci/compare_benchmark.py "${ARGS[@]}"
-          # 超阈值项以 workflow warning 的形式提示，但不阻塞（托管 runner 机器实例每次不同）。
-          if grep -q '⚠️ 超过阈值的项' benchmark-out/benchmark-compare.md 2>/dev/null; then
-            echo "::warning::benchmark 存在超过阈值的项，详见 artifact benchmark-results 中的 benchmark-compare.md"
-          fi
           cat benchmark-out/benchmark-compare.md || true
 
       - name: Record runner configuration
@@ -755,6 +752,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-report-plots
 
       - name: Download all result artifacts
         if: always()
@@ -773,7 +771,7 @@ jobs:
         env:
           # 注意：不能引用 needs.report（job 不能依赖自身）。report 的结论对本 job 无意义。
           JOB_STATUS: >-
-            {"build":"${{ needs.build.result }}",
+            {"prepare":"skipped", "workers":"skipped", "build":"${{ needs.build.result }}",
              "release-build":"${{ needs.release-build.result }}",
              "unit-tests":"${{ needs.unit-tests.result }}",
              "integrated-tests":"${{ needs.integrated-tests.result }}",
@@ -797,9 +795,20 @@ jobs:
           echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
           echo "判定结果：${STATUS}"
 
-          # 写入 job summary，便于直接在运行页查看。
-          cat nightly-report.md >> "$GITHUB_STEP_SUMMARY"
-
+      - name: Publish report chart assets
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          publish_dir: ./artifacts/_report_charts
+          destination_dir: ci-reports/${{ github.run_id }}
+          publish_branch: image-data
+          keep_files: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+      - name: Show report with rendered figures
+        if: always()
+        run: cat nightly-report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload summary
         if: always()
         uses: actions/upload-artifact@v4
@@ -812,6 +821,7 @@ jobs:
             nightly-report-full.md
             nightly-status.txt
             nightly-runners.json
+            artifacts/_report_charts/
 
       # 建 issue 的触发条件：任一 job 失败，或非阻塞 job（unit/integrated）的产物中存在
       # 失败用例。判定逻辑集中在 summarize_failures.py 的 has_failures()，此处只读结果。

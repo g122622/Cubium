@@ -74,7 +74,6 @@ ServerNetwork::~ServerNetwork()
 
 Result<void> ServerNetwork::startAccept(u16 port, u32 maxConnections)
 {
-    m_listenPort = port;
     m_maxConnections = maxConnections;
 
     m_ioContext = std::make_unique<asio::io_context>();
@@ -82,10 +81,12 @@ Result<void> ServerNetwork::startAccept(u16 port, u32 maxConnections)
     auto endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port);
     m_acceptor = std::make_unique<asio::ip::tcp::acceptor>(*m_ioContext, endpoint);
     m_acceptor->set_option(asio::ip::tcp::acceptor::reuse_address(true), ec);
+    // 端口零由操作系统分配；对外查询和日志必须使用实际绑定的端口。
+    m_listenPort = m_acceptor->local_endpoint().port();
 
     m_accepting.store(true);
     m_acceptThread = std::make_unique<std::thread>([this] { _beginAccept(); });
-    spdlog::info("ServerNetwork listening on port {} (max {})", port, maxConnections);
+    spdlog::info("ServerNetwork listening on port {} (max {})", m_listenPort, maxConnections);
     return Result<void>::ok();
 }
 

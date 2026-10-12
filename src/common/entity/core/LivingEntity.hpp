@@ -178,6 +178,13 @@ public:
     void heal(f32 amount);
 
     /**
+     * @brief 实体尚未移除且生命值大于零时存活
+     *
+     * 死亡消散期间对象仍可存在，但不能再被选作存活目标。
+     */
+    [[nodiscard]] bool isAlive() const override { return Entity::isAlive() && health() > 0.0f; }
+
+    /**
      * @brief 获取声音音量
      */
     [[nodiscard]] virtual f32 getSoundVolume() const { return 1.0f; }

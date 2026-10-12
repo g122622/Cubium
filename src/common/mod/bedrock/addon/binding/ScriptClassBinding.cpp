@@ -47,7 +47,7 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
     // Entity 系（entityId != 0）登记到 ScriptHandleRegistry：实体销毁时 invalidateAll 置本句柄
     // ptr=nullptr，防 owned=false 裸 Entity* 跨 tick 悬垂 UAF（见 ScriptHandleRegistry.hpp 背景）。
     if (entityId != 0) {
-        ScriptHandleRegistry::instance().registerHandle(entityId, data);
+        ScriptHandleRegistry::instance().registerHandle(data);
     }
 
     return obj;

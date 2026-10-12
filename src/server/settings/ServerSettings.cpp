@@ -36,7 +36,7 @@ namespace mc::server {
 
 ServerSettings::ServerSettings()
     // 网络设置
-    : serverPort("serverPort", 1, 65535, defaults::server::serverPort)
+    : serverPort("serverPort", 0, 65535, defaults::server::serverPort)
     , bindAddress("bindAddress", defaults::server::bindAddress)
     , maxPlayers("maxPlayers", 1, 1000, defaults::server::maxPlayers)
     , onlineMode("onlineMode", defaults::server::onlineMode)

@@ -227,7 +227,8 @@ TEST_F(PolarBearEntityTest, Anger_SetAttackTarget)
     PolarBearEntity bear(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 直接设置攻击目标
-    LivingEntity* target = reinterpret_cast<LivingEntity*>(0x1234); // 仅用于指针测试
+    LivingEntity targetEntity(EntityInstanceId(900), nullptr, mc::test::testEcsRegistry());
+    LivingEntity* target = &targetEntity;
     bear.setAttackTarget(target);
     EXPECT_EQ(bear.getAttackTarget(), target);
 

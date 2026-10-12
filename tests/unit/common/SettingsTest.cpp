@@ -661,6 +661,19 @@ TEST_F(ServerSettingsTest, SaveAndLoadSettings)
     }
 }
 
+TEST_F(ServerSettingsTest, EphemeralPortSurvivesSaveAndLoad)
+{
+    const auto configPath = testDir / "ephemeral-port.json";
+    ServerSettings settings;
+    settings.serverPort.set(0);
+    ASSERT_EQ(settings.serverPort.get(), 0);
+    ASSERT_TRUE(settings.saveSettings(configPath).success());
+
+    ServerSettings loaded;
+    ASSERT_TRUE(loaded.loadSettings(configPath).success());
+    EXPECT_EQ(loaded.serverPort.get(), 0);
+}
+
 TEST_F(ServerSettingsTest, EnumOptionSerialize)
 {
     ServerSettings settings;

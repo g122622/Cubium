@@ -18,7 +18,7 @@ class GameTestCoverageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "CTestTestfile.cmake").write_text(
-                "\n".join(f'add_test(case_{index} "{sys.executable}" "-c" "pass")' for index in range(19)))
+                "\n".join(f'add_test(case_{index} "{Path(sys.executable).as_posix()}" "-c" "pass")' for index in range(19)))
             def inventory(arguments):
                 result = subprocess.run(["ctest", "--test-dir", str(root), "--show-only=json-v1", *arguments],
                                         check=True, capture_output=True, text=True, timeout=10)
@@ -43,7 +43,7 @@ class GameTestCoverageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "CTestTestfile.cmake").write_text(
-                '\n'.join(f'add_test(shared "{sys.executable}" "-c" "print({index})")' for index in range(4)))
+                '\n'.join(f'add_test(shared "{Path(sys.executable).as_posix()}" "-c" "print({index})")' for index in range(4)))
             raw = subprocess.run(["ctest", "--test-dir", str(root), "--show-only=json-v1"],
                                  check=True, capture_output=True, text=True, timeout=10)
             inventory = [record["name"] for record in json.loads(raw.stdout)["tests"]]

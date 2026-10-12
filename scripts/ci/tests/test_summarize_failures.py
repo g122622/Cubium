@@ -1,16 +1,14 @@
 """验证 nightly 完整读取报告，且失败和跳过不会被误报为全部通过。"""
 
-import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
-SCRIPT_PATH = Path(__file__).resolve().parents[1] / "summarize_failures.py"
-SPEC = importlib.util.spec_from_file_location("summarize_failures", SCRIPT_PATH)
-summary = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(summary)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import summarize_failures as summary
 
 
 class SummarizeFailuresTest(unittest.TestCase):
@@ -40,28 +38,33 @@ class SummarizeFailuresTest(unittest.TestCase):
         path.write_text(json.dumps(info), encoding="utf-8")
         return path
 
-    def test_runner_table_includes_all_jobs_and_escapes_values(self):
-        """全部任务配置进入两种报告，表格中的元字符正确转义。"""
+    def chart_data(self, statuses):
+        """生成机器配置图表，并读取其机器可读数据。"""
+        links = "\n".join(summary.runner_info_section(statuses, self.artifacts, "https://example/run/1"))
+        data = json.loads((self.artifacts / "_report_charts/runner-chart-data.json").read_text(encoding="utf-8"))
+        return links, data
+
+    def test_runner_charts_preserve_all_jobs_without_text_tables(self):
         for job in summary._JOB_LABELS:
             self.write_runner(job)
-        table = "\n".join(summary.runner_info_table({}, self.artifacts))
-        self.assertEqual(sum(line.startswith("| `") for line in table.splitlines()), 8)
-        self.assertIn("Intel Xeon &#124; Test &lt;CPU&gt; / 4 核", table)
-        self.assertIn("RAM 16.0 GiB", table)
-        self.assertIn("50.0 GiB / 80.0 GiB", table)
-        self.assertIn("Ubuntu 24.04.3 LTS", table)
-        self.assertIn("20261009.1.0", table)
-        self.assertIn("clang++ 22.1.8", table)
-        self.assertIn("native=OFF, sanitizers=OFF", table)
+        links, data = self.chart_data({})
+        self.assertEqual(len(data["rows"]), len(summary._JOB_LABELS))
+        info = data["rows"][0]["info"]
+        self.assertEqual(info["memory_bytes"], 16 * 2**30)
+        self.assertEqual(info["disk"]["free_bytes"], 50 * 2**30)
+        self.assertEqual(info["cpu"]["model"], "Intel(R) Xeon | Test <CPU>")
+        self.assertNotIn("|---", links)
+        self.assertNotIn("<CPU>", links)
+        self.assertIn("![", links)
         for limited in (True, False):
             body = summary.build_body({}, self.artifacts, "https://example/run/1", "main", "abc", limited)
-            self.assertIn(table, body)
+            self.assertIn(links, body)
 
     def test_missing_runner_info_distinguishes_skipped_and_not_collected(self):
         self.write_runner("build")
-        table = "\n".join(summary.runner_info_table({"unit-tests": "skipped", "fuzz": "failure"}, self.artifacts))
-        self.assertIn("| `unit-tests` | 未运行 |", table)
-        self.assertIn("| `fuzz` | 未采集 |", table)
+        _, data = self.chart_data({"unit-tests": "skipped", "fuzz": "failure"})
+        self.assertEqual(data["missing"]["unit-tests"], "未运行")
+        self.assertEqual(data["missing"]["fuzz"], "未采集")
 
     def test_matrix_and_build_runtime_configurations_are_all_preserved(self):
         for job, sources in (("unit-tests", ("unit-0", "unit-1")),
@@ -76,19 +79,19 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertEqual(len(runners), 4)
         self.assertEqual({r["artifact"] for r in runners.values()},
                          {"unit-0", "unit-1", "fuzz-build", "fuzz-runtime"})
-        table = "\n".join(summary.runner_info_table({}, self.artifacts))
-        for source in ("unit-0", "unit-1", "fuzz-build", "fuzz-runtime"):
-            self.assertIn(source, table)
-        self.assertNotIn("机器配置读取错误", table)
+        _, data = self.chart_data({})
+        self.assertEqual(data["snapshots"], 4)
+        self.assertEqual(len(data["rows"]), 3)
+        self.assertEqual(data["errors"], [])
 
     def test_fuzz_sanitizer_is_separate_from_global_sanitizer_flag(self):
         path = self.write_runner("fuzz")
         info = json.loads(path.read_text(encoding="utf-8"))
         info["build"]["MC_FUZZ_ASAN"] = "ON"
         path.write_text(json.dumps(info), encoding="utf-8")
-        table = "\n".join(summary.runner_info_table({}, self.artifacts))
-        self.assertIn("sanitizers=OFF", table)
-        self.assertIn("fuzz-ASAN=ON", table)
+        _, data = self.chart_data({})
+        self.assertEqual(data["rows"][0]["info"]["build"]["MC_ENABLE_SANITIZERS"], "OFF")
+        self.assertEqual(data["rows"][0]["info"]["build"]["MC_FUZZ_ASAN"], "ON")
 
     def test_invalid_runner_info_is_visible_without_changing_test_status(self):
         self.write_report("ctest-results.xml", '<testcase name="Passed"/>')
@@ -98,8 +101,8 @@ class SummarizeFailuresTest(unittest.TestCase):
                 runners, errors = summary.collect_runner_info(self.artifacts)
                 self.assertFalse(runners)
                 self.assertTrue(errors)
-                table = "\n".join(summary.runner_info_table({}, self.artifacts))
-                self.assertIn("机器配置读取错误", table)
+                _, data = self.chart_data({})
+                self.assertTrue(data["errors"])
                 self.assertFalse(summary.has_failures({"unit-tests": "success"}, self.artifacts))
 
     def test_complete_runner_json_is_archived_by_cli(self):
@@ -208,10 +211,14 @@ class SummarizeFailuresTest(unittest.TestCase):
 
     def test_repeated_ctest_names_keep_correct_total_and_benchmark_renders(self):
         self.write_report("ctest-results.xml", '<testcase name="Same"/><testcase name="Same"/>')
-        (self.artifacts / "benchmark-compare.md").write_text("Benchmark comparison", encoding="utf-8")
+        (self.artifacts / "benchmark-overview.png").write_bytes(b"png")
+        (self.artifacts / "benchmark-overview.svg").write_text("<svg/>", encoding="utf-8")
+        (self.artifacts / "benchmark-compare.json").write_text(
+            json.dumps({"status": "ok", "images": ["benchmark-overview.png"]}), encoding="utf-8")
         body = summary.build_body({}, self.artifacts, "https://example/run/1", "main", "abc", True)
         self.assertIn("通过 2；失败 0；跳过 0", body)
-        self.assertIn("Benchmark comparison", body)
+        self.assertIn("benchmark-overview.png", body)
+        self.assertNotIn("Benchmark comparison", body)
 
     def test_ctest_skip_reason_is_taken_from_gtest_output(self):
         self.write_report(
@@ -222,6 +229,20 @@ class SummarizeFailuresTest(unittest.TestCase):
         )
         results = summary.collect_ctest_results(self.artifacts)
         self.assertEqual(results["skipped"], ["MissingItem — Stone item not registered"])
+
+    def test_benchmark_error_cannot_be_clean_even_when_junit_passes(self):
+        self.write_report("ctest-results.xml", '<testcase name="Passed"/>')
+        (self.artifacts / "benchmark-compare.json").write_text(
+            json.dumps({"status": "error", "errors": ["bind failed"]}), encoding="utf-8")
+        self.assertTrue(summary.has_failures({"benchmark": "success"}, self.artifacts))
+
+    def test_corrupt_benchmark_manifest_keeps_the_full_failure_report(self):
+        self.write_report("ctest-results.xml", '<testcase name="ActualFailure"><failure/></testcase>')
+        (self.artifacts / "benchmark-compare.json").write_text("{broken", encoding="utf-8")
+        body = summary.build_body({}, self.artifacts, "https://github.com/g122622/Cubium/actions/runs/1", "main", "abc", False)
+        self.assertIn("ActualFailure", body)
+        self.assertIn("/image-data/ci-reports/1/benchmark-error.png", body)
+        self.assertTrue(summary.has_failures({}, self.artifacts))
 
     def test_sanitizer_error_in_skipped_case_still_fails_report(self):
         """用例跳过不能掩盖进程结束时的 sanitizer 错误。"""

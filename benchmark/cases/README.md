@@ -19,5 +19,6 @@ cases/
 ## 容易踩的坑
 
 - 启动基准必须使用同一配置的服务端；Release benchmark 不得启动 sanitizer 版本。
+- 临时配置的 `serverPort=0` 必须完整传到网络层，才能由系统分配空闲端口；钳制为 1 会导致权限错误。
 - benchmark 与同配置服务端须放在同一目录；可整体移动到其他 runner，不依赖构建机器绝对路径或 CWD。
 - 异步区块生成需要主线程泵送 tick，不能只等待 future。

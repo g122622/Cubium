@@ -814,6 +814,8 @@
 
 `EntityReference.hpp` 提供跨 tick 的非拥有引用，使用 `Entity` 按需分配的生命周期标记，在逻辑移除和析构后返回空值。标记不依赖世界或 ECS registry 的生命周期，也不延长实体存活时间。引用只能在实体所属游戏线程使用；生命值归零但尚未逻辑移除时，仍须检查 `isAlive()`。`MobEntity` 的攻击目标和 `LivingEntity` 的最近攻击者均使用该引用。
 
+`LivingEntity::isAlive()` 同时检查生命值和移除状态。生命值归零后立即返回 false，死亡消散中的对象仍可由世界保留到逻辑移除；目标选择和击杀回调不能仅以对象尚未移除判断存活。
+
 - `remove()` — 便捷重载，等价 `remove(RemovalReason::Killed)`（死亡流程 `tickDeath` 收尾用）。
 - `remove(RemovalReason)` — 首次移除才生效（重复调用不覆盖原因、不重复 `onRemoval`），内部：置 `m_removalReason` → `shouldDestroy(reason)` 时 `stopRiding()` → 所有乘客 `stopRiding()` → `onRemoval(reason)`。
 - `discard()` — 等价 `remove(RemovalReason::Discarded)`（静默移除，无掉落/经验）。

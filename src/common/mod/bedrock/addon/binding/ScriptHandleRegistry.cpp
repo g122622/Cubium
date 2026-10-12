@@ -34,13 +34,13 @@ ScriptHandleRegistry& ScriptHandleRegistry::instance() noexcept
     return s_instance;
 }
 
-void ScriptHandleRegistry::registerHandle(EntityInstanceId entityId, ScriptObjectRegistry::ObjectData* data) noexcept
+void ScriptHandleRegistry::registerHandle(ScriptObjectRegistry::ObjectData* data) noexcept
 {
-    if (entityId == 0 || data == nullptr) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (data == nullptr || data->ptr == nullptr) {
         return;
     }
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_handles[entityId].push_back(data);
+    m_handles[data->ptr].push_back(data);
 }
 
 void ScriptHandleRegistry::unregisterHandle(ScriptObjectRegistry::ObjectData* data) noexcept
@@ -49,25 +49,24 @@ void ScriptHandleRegistry::unregisterHandle(ScriptObjectRegistry::ObjectData* da
         return;
     }
     std::lock_guard<std::mutex> lock(m_mutex);
-    // finalizer 不知道 entityId，按 data* 值在所有列表中移除。data* 全局唯一（堆分配），
-    // 不会误删其他实体的句柄。线性扫描所有 entityId 列表——实体数有限，可接受。
-    for (auto& [id, list] : m_handles) {
-        auto it = std::find(list.begin(), list.end(), data);
-        if (it != list.end()) {
-            list.erase(it);
-            // 不 erase 空 list：invalidateAll 会处理；避免遍历中改 map 结构。
+    // 单独失效一个 JS 对象时 ptr 可能已置空，不能再用它定位所属实体。
+    for (auto it = m_handles.begin(); it != m_handles.end(); ++it) {
+        if (std::erase(it->second, data) != 0) {
+            if (it->second.empty()) {
+                m_handles.erase(it);
+            }
             return;
         }
     }
 }
 
-void ScriptHandleRegistry::invalidateAll(EntityInstanceId entityId) noexcept
+void ScriptHandleRegistry::invalidateAll(const void* entity) noexcept
 {
-    if (entityId == 0) {
+    if (entity == nullptr) {
         return;
     }
     std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_handles.find(entityId);
+    auto it = m_handles.find(entity);
     if (it == m_handles.end()) {
         return;
     }
