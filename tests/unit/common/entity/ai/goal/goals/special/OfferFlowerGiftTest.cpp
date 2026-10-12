@@ -96,7 +96,7 @@ public:
     static void setTick(entity::ai::goal::OfferFlowerGoal& goal, i32 tick) { goal.m_tick = tick; }
 
     /// 读取 m_target
-    static LivingEntity* getTarget(const entity::ai::goal::OfferFlowerGoal& goal) { return goal.m_target; }
+    static LivingEntity* getTarget(const entity::ai::goal::OfferFlowerGoal& goal) { return goal.m_target.get(); }
 
     /// 设置 m_target
     static void setTarget(entity::ai::goal::OfferFlowerGoal& goal, LivingEntity* target) { goal.m_target = target; }
