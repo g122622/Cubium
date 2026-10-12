@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include <string>
@@ -74,7 +76,7 @@ private:
     [[nodiscard]] bool _isTargetValid(LivingEntity* target) const;
 
     GuardianEntity* m_guardian;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     i32 m_tickCounter = 0;
     bool m_isElder = false; // 是否为远古守卫者
 

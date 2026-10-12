@@ -96,6 +96,12 @@ void FollowParentGoal::tick()
 {
     if (!m_childAnimal || !m_parentAnimal) return;
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_parentAnimal->isAlive()) {
+        m_parentAnimal = nullptr;
+        return;
+    }
+
     // tick 方法只有路径更新逻辑，没有 lookAt
     // 等待延迟计数器。对齐 vanilla FollowParentGoal.tick：
     // timeToRecalcPath = adjustedTickDelay(10)，减半补偿半 tick 评估。

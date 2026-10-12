@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include <string>
@@ -65,7 +67,7 @@ protected:
 
     AnimalEntity* m_childAnimal;
     f64 m_speed;
-    AnimalEntity* m_parentAnimal = nullptr;
+    EntityReference<AnimalEntity> m_parentAnimal;
     i32 m_delayCounter = 0;
 };
 

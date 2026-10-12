@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
@@ -31,6 +33,10 @@
 #include <string>
 
 namespace mc {
+
+namespace test {
+class EndermanFindPlayerGoalTestAccessor;
+}
 
 // Forward declarations
 class EndermanEntity;
@@ -74,7 +80,7 @@ public:
 
 private:
     EndermanEntity* m_enderman;
-    LivingEntity* m_targetPlayer = nullptr;
+    EntityReference<LivingEntity> m_targetPlayer;
 
     // 注视距离阈值（16格的平方）
     static constexpr f64 STARE_RANGE_SQ = 256.0;
@@ -120,8 +126,10 @@ private:
      */
     [[nodiscard]] bool shouldAttackPlayer(Player* player) const;
 
+    friend class test::EndermanFindPlayerGoalTestAccessor;
+
     EndermanEntity* m_enderman;
-    Player* m_targetPlayer = nullptr;
+    EntityReference<Player> m_targetPlayer;
     i32 m_aggroTime = 0;    // 激怒计时器
     i32 m_teleportTime = 0; // 瞬移计时器
 

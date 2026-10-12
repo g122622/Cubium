@@ -202,6 +202,12 @@ void CatRelaxOnOwnerGoal::tick()
         return;
     }
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_owner->isAlive()) {
+        m_owner = nullptr;
+        return;
+    }
+
     // 导航到目标位置
     if (m_cat->navigator() != nullptr && m_cat->navigator()->noPath()) {
         (void)m_cat->navigator()->moveTo(static_cast<f64>(m_goalPos.x) + 0.5,

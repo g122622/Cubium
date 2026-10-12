@@ -87,6 +87,11 @@ bool AvoidEntityGoal::shouldContinueExecuting()
 {
     if (!m_creature) return false;
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (m_avoidTarget == nullptr || !m_avoidTarget->isAlive()) {
+        return false;
+    }
+
     // 继续执行直到路径完成
     auto* nav = m_creature->navigator();
     if (nav && nav->noPath()) {
@@ -116,6 +121,12 @@ void AvoidEntityGoal::resetTask()
 void AvoidEntityGoal::tick()
 {
     if (!m_creature || !m_avoidTarget) return;
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_avoidTarget->isAlive()) {
+        m_avoidTarget = nullptr;
+        return;
+    }
 
     // 根据距离调整速度，阈值是 49.0D (7*7)
     f64 distSq = m_creature->distanceSqTo(*m_avoidTarget);

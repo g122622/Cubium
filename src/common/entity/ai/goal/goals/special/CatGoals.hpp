@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "MoveToBlockGoal.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
@@ -158,7 +160,7 @@ private:
 
     CatEntity* m_cat;
     f64 m_speed;
-    Player* m_owner = nullptr;
+    EntityReference<Player> m_owner;
     BlockPos m_goalPos;
     i32 m_onBedTicks = 0;
 };

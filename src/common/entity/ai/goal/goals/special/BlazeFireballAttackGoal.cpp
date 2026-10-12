@@ -83,7 +83,7 @@ bool BlazeFireballAttackGoal::shouldContinueExecuting()
     }
 
     // 检查目标是否仍然有效
-    if (!_isTargetValid(m_target)) {
+    if (!_isTargetValid(m_target.get())) {
         return false;
     }
 
@@ -114,6 +114,12 @@ void BlazeFireballAttackGoal::resetTask()
 void BlazeFireballAttackGoal::tick()
 {
     if (m_blaze == nullptr || m_target == nullptr) {
+        return;
+    }
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
         return;
     }
 
@@ -154,7 +160,7 @@ void BlazeFireballAttackGoal::tick()
         }
     } else if (distSq < _getFollowDistance() * _getFollowDistance() && canSee) {
         // 在火球攻击范围内且能看到目标
-        _performFireballAttack(m_target, distSq);
+        _performFireballAttack(m_target.get(), distSq);
     } else if (m_unseenTime < 5) {
         // 看不到目标但时间不长，继续追踪
         auto* moveCtrl = m_blaze->moveController();

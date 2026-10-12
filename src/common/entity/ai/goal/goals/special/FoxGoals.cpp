@@ -204,7 +204,7 @@ void FoxFollowTargetGoal::startExecuting()
 
 void FoxFollowTargetGoal::resetTask()
 {
-    if (m_target != nullptr && isPathClear(m_fox, m_target)) {
+    if (m_target != nullptr && isPathClear(m_fox, m_target.get())) {
         m_fox->setInterested(true);
         m_fox->setCrouching(true);
         m_fox->clearNavigation();
@@ -226,6 +226,12 @@ void FoxFollowTargetGoal::resetTask()
 void FoxFollowTargetGoal::tick()
 {
     if (m_target == nullptr || !m_fox->isAlive()) {
+        return;
+    }
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
         return;
     }
 

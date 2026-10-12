@@ -164,17 +164,9 @@ class MyGoal : public Goal {
 
 ### 4. 空指针检查缺失
 
-**问题**: 实体指针在目标执行期间可能失效。
+**问题**: 目标所属实体可能因模拟距离暂停 tick，缓存目标则可能在此期间移除或析构；对悬垂裸指针调用 `isAlive()` 本身就会访问已释放内存。
 
-**解决**: 在每个方法开始检查空指针。
-
-```cpp
-void tick() override {
-    if (!m_mob) return;  // 防御性检查
-    if (!m_target || !m_target->isAlive()) return;
-    // 正常逻辑...
-}
-```
+**解决**: 跨 tick 目标缓存使用 `EntityReference`，先检查引用有效性，再检查尚未移除的目标是否存活。拥有者指针由目标所属实体保证生命周期。目标失效后，`shouldContinueExecuting()` 必须返回 false，由选择器调用 `resetTask()` 清理导航和姿态。
 
 ### 5. 目标状态未清理
 

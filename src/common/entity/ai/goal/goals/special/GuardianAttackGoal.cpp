@@ -84,7 +84,7 @@ bool GuardianAttackGoal::shouldContinueExecuting()
     }
 
     // 检查目标是否仍然有效
-    if (!_isTargetValid(m_target)) {
+    if (!_isTargetValid(m_target.get())) {
         return false;
     }
 
@@ -136,6 +136,12 @@ void GuardianAttackGoal::resetTask()
 void GuardianAttackGoal::tick()
 {
     if (m_target == nullptr) {
+        return;
+    }
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
         return;
     }
 

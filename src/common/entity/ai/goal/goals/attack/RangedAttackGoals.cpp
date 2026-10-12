@@ -79,7 +79,17 @@ bool RangedAttackGoal::shouldExecute()
 
 bool RangedAttackGoal::shouldContinueExecuting()
 {
-    return shouldExecute() || (m_mob && !m_mob->navigator()->noPath());
+    // 可重新锁定存活目标，或在缓存目标存活且导航仍有路径时继续追踪。
+    if (shouldExecute()) {
+        return true;
+    }
+
+    if (m_target == nullptr || !m_target->isAlive()) {
+        return false;
+    }
+
+    const auto* nav = m_mob != nullptr ? m_mob->navigator() : nullptr;
+    return nav != nullptr && !nav->noPath();
 }
 
 void RangedAttackGoal::startExecuting()
@@ -100,6 +110,12 @@ void RangedAttackGoal::resetTask()
 void RangedAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
+        return;
+    }
 
     // 计算到目标的距离平方
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
@@ -141,7 +157,7 @@ void RangedAttackGoal::tick()
         f32 charge = dist / m_attackRadius;
         charge = std::clamp(charge, 0.1f, 1.0f);
 
-        performAttack(m_target, charge);
+        performAttack(m_target.get(), charge);
 
         // 计算下一次攻击时间
         // floor(charge * (max - min) + min)
@@ -216,6 +232,12 @@ void RangedBowAttackGoal::resetTask()
 void RangedBowAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
+        return;
+    }
 
     // 计算到目标的距离平方
     f64 distSq = m_mob->distanceSqTo(m_target->x(), m_target->y(), m_target->z());
@@ -300,7 +322,7 @@ void RangedBowAttackGoal::tick()
             if (timeUsed >= 20) {
                 // 蓄力完成，发射
                 m_mob->stopActiveHand();
-                performAttack(m_target, item::BowItem::getArrowVelocity(timeUsed));
+                performAttack(m_target.get(), item::BowItem::getArrowVelocity(timeUsed));
                 m_attackTime = m_attackIntervalMin;
             }
         }
@@ -407,6 +429,12 @@ void RangedCrossbowAttackGoal::resetTask()
 void RangedCrossbowAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
+        return;
+    }
 
     // 更新视线时间
     _updateSeenTime();
@@ -576,7 +604,7 @@ void RangedCrossbowAttackGoal::_handleReadyToAttackState()
 
     if (crossbowUser && _isHoldingCrossbow()) {
         // 发射（shootCrossbow 内部会根据弹药类型决定速度）
-        crossbowUser->shootCrossbow(m_target, mainHand, 1.0f);
+        crossbowUser->shootCrossbow(m_target.get(), mainHand, 1.0f);
 
         // 清除装填状态
         const item::CrossbowItem* crossbowItem = dynamic_cast<const item::CrossbowItem*>(mainHand.getItem());

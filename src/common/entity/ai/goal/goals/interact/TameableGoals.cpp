@@ -97,6 +97,11 @@ bool FollowOwnerGoal::shouldContinueExecuting()
         return false;
     }
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_owner->isAlive()) {
+        return false;
+    }
+
     // 如果距离太近，暂停跟随
     if (m_entity->distanceTo(*m_owner) < m_minDistance) {
         return false;
@@ -119,6 +124,12 @@ void FollowOwnerGoal::resetTask()
 void FollowOwnerGoal::tick()
 {
     if (!m_owner) {
+        return;
+    }
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_owner->isAlive()) {
+        m_owner = nullptr;
         return;
     }
 
@@ -304,12 +315,17 @@ bool BegGoal::shouldContinueExecuting()
         return false;
     }
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_targetPlayer->isAlive()) {
+        return false;
+    }
+
     // 检查玩家是否仍然在范围内且手持食物
     if (m_entity->distanceTo(*m_targetPlayer) > m_maxDistance) {
         return false;
     }
 
-    return _isPlayerHoldingFood(m_targetPlayer);
+    return _isPlayerHoldingFood(m_targetPlayer.get());
 }
 
 void BegGoal::startExecuting()
@@ -341,6 +357,12 @@ void BegGoal::resetTask()
 void BegGoal::tick()
 {
     if (!m_targetPlayer) {
+        return;
+    }
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_targetPlayer->isAlive()) {
+        m_targetPlayer = nullptr;
         return;
     }
 

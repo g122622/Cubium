@@ -1057,7 +1057,7 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     // 击杀玩家（KILLER_PLAYER）：仅当最近被玩家伤害时设，并应用该玩家的 luck。
     // 对应 vanilla `if (flag && player != null) withParameter(LAST_DAMAGE_PLAYER, player).withLuck(player.getLuck())`。
     if (recentlyHitByPlayer) {
-        Player* player = dynamic_cast<Player*>(m_lastHurtBy);
+        Player* player = dynamic_cast<Player*>(m_lastHurtBy.get());
         if (player != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
             // TODO: luck 属性未接入属性系统时暂用 0。对齐 vanilla player.getLuck()。

@@ -94,7 +94,7 @@ bool EndermanStareGoal::shouldExecute()
     }
 
     // 检查玩家是否正在注视末影人
-    Player* player = dynamic_cast<Player*>(m_targetPlayer);
+    Player* player = dynamic_cast<Player*>(m_targetPlayer.get());
     if (player == nullptr) {
         return false;
     }
@@ -116,6 +116,12 @@ void EndermanStareGoal::tick()
 {
     // 注视目标玩家的眼睛位置
     if (m_targetPlayer != nullptr) {
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+        if (!m_targetPlayer->isAlive()) {
+            m_targetPlayer = nullptr;
+            return;
+        }
+
         m_enderman->lookController()->setLookPosition(
             m_targetPlayer->x(), m_targetPlayer->y() + m_targetPlayer->eyeHeight(), m_targetPlayer->z());
     }
@@ -199,6 +205,11 @@ void EndermanFindPlayerGoal::resetTask()
 bool EndermanFindPlayerGoal::shouldContinueExecuting()
 {
     if (m_targetPlayer != nullptr) {
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+        if (!m_targetPlayer->isAlive()) {
+            return false;
+        }
+
         // 如果玩家不再注视末影人，停止
         if (!m_enderman->shouldAttackPlayer(*m_targetPlayer)) {
             return false;
@@ -230,16 +241,26 @@ void EndermanFindPlayerGoal::tick()
 
     if (m_targetPlayer != nullptr) {
         // 倒计时激怒时间
+        if (!m_targetPlayer->isAlive()) {
+            m_targetPlayer = nullptr;
+            m_target = nullptr;
+            return;
+        }
         if (--m_aggroTime <= 0) {
             // 激怒末影人，设置攻击目标
-            m_target = m_targetPlayer;
+            m_target = m_targetPlayer.get();
             m_targetPlayer = nullptr;
             TargetGoal::startExecuting();
         }
     } else {
         // 已经被激怒，处理攻击逻辑
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+        if (m_target != nullptr && !m_target->isAlive()) {
+            m_target = nullptr;
+        }
+
         if (m_target != nullptr && !m_enderman->isRiding()) {
-            Player* playerTarget = dynamic_cast<Player*>(m_target);
+            Player* playerTarget = dynamic_cast<Player*>(m_target.get());
 
             if (playerTarget != nullptr && m_enderman->shouldAttackPlayer(*playerTarget)) {
                 // 玩家仍在注视末影人

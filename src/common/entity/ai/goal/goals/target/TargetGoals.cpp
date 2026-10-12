@@ -95,8 +95,8 @@ bool TargetGoal::shouldContinueExecuting()
 
 void TargetGoal::startExecuting()
 {
-    if (m_mob && m_target) {
-        m_mob->setAttackTarget(m_target);
+    if (m_mob && m_target.get()) {
+        m_mob->setAttackTarget(m_target.get());
     }
     m_unseenTicks = 0;
 }
@@ -328,7 +328,7 @@ void HurtByTargetGoal::startExecuting()
     // 当前实现的限制是：entityType 只能匹配单一类型，而 MC Java 的 getClass() 在子类场景下
     // 有细微差异（例如 Drowned 是 Zombie 的子类，getEntitiesOfClass(Zombie.class) 不返回 Drowned）。
     // 如果未来需要更精确的类匹配（如区分子类），可引入 getClassId() 方法替代 entityType 比较。
-    if (m_alertAllies && m_mob && m_target) {
+    if (m_alertAllies && m_mob && m_target.get()) {
         IWorld* world = m_mob->world();
         if (!world) return;
 
@@ -343,7 +343,7 @@ void HurtByTargetGoal::startExecuting()
             if (!ally) continue;
 
             // 不能警醒目标本身
-            if (ally == m_target) continue;
+            if (ally == m_target.get()) continue;
 
             // 不警醒与攻击者同盟的实体
             if (ally->isAlliedTo(*m_target)) continue;
@@ -362,7 +362,7 @@ void HurtByTargetGoal::startExecuting()
                 continue;
             }
 
-            ally->setAttackTarget(m_target);
+            ally->setAttackTarget(m_target.get());
         }
     }
 }

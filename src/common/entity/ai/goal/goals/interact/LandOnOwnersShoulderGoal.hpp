@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -106,7 +108,7 @@ public:
 
 private:
     ShoulderRidingEntity* m_entity;
-    Player* m_owner = nullptr;
+    EntityReference<Player> m_owner;
     bool m_isSittingOnShoulder = false;
 };
 

@@ -6,6 +6,7 @@
 
 ``` src / common / entity / core /
 ├── Entity.hpp / cpp #所有实体的基类（位置、运动、碰撞、火焰、队伍联盟判断、持久化随机数生成器等）
+├── EntityReference.hpp #在实体移除或析构后自动失效的非拥有引用
 ├── LivingEntity.hpp / cpp #有生命值的生物实体基类（生命值、吸收值、装备、药水效果）
 ├── MobEntity.hpp / cpp #有AI的生物实体基类（AI系统、目标选择）
 ├── CreatureEntity.hpp / cpp #陆地生物基类（寻路、生成条件判断）
@@ -809,7 +810,9 @@
 
 ## #实体移除语义（RemovalReason / remove / discard / onRemoval）
 
-对齐 vanilla 1.21.11 `Entity.RemovalReason` 的两阶段移除：**逻辑移除**（`Entity::remove(reason)` 标记 + 断骑乘 + `onRemoval` 回调）与**物理销毁**（`EntityManager` 经 graveyard 延迟队列在 tick 安全点析构）分离。
+实体采用两阶段移除：**逻辑移除**（`Entity::remove(reason)` 标记、失效非拥有引用、断骑乘、`onRemoval` 回调）与**物理销毁**（`EntityManager` 经 graveyard 延迟队列在 tick 安全点析构）分离。
+
+`EntityReference.hpp` 提供跨 tick 的非拥有引用，使用 `Entity` 按需分配的生命周期标记，在逻辑移除和析构后返回空值。标记不依赖世界或 ECS registry 的生命周期，也不延长实体存活时间。引用只能在实体所属游戏线程使用；生命值归零但尚未逻辑移除时，仍须检查 `isAlive()`。`MobEntity` 的攻击目标和 `LivingEntity` 的最近攻击者均使用该引用。
 
 - `remove()` — 便捷重载，等价 `remove(RemovalReason::Killed)`（死亡流程 `tickDeath` 收尾用）。
 - `remove(RemovalReason)` — 首次移除才生效（重复调用不覆盖原因、不重复 `onRemoval`），内部：置 `m_removalReason` → `shouldDestroy(reason)` 时 `stopRiding()` → 所有乘客 `stopRiding()` → `onRemoval(reason)`。

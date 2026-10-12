@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -73,7 +75,7 @@ public:
 
 private:
     ShulkerEntity* m_shulker;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
 
     static constexpr f32 ATTACK_RANGE_SQ = 400.0f; // 20.0 * 20.0
 };

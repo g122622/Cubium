@@ -119,6 +119,12 @@ void LookAtGoal::tick()
 {
     if (!m_mob || !m_lookTarget) return;
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_lookTarget->isAlive()) {
+        m_lookTarget = nullptr;
+        return;
+    }
+
     // 使用 LookController 看向目标眼睛位置
     if (auto* lookCtrl = m_mob->lookController()) {
         f64 eyeY = m_lookTarget->y() + m_lookTarget->eyeHeight();

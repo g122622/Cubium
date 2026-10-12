@@ -154,6 +154,12 @@ void TemptGoal::tick()
 {
     if (!m_creature || !m_temptingPlayer) return;
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_temptingPlayer->isAlive()) {
+        m_temptingPlayer = nullptr;
+        return;
+    }
+
     // 计算头部旋转速度
     f32 deltaYaw = static_cast<f32>(m_creature->getHorizontalFaceSpeed() + 20.0);
     f32 deltaPitch = static_cast<f32>(m_creature->getVerticalFaceSpeed());

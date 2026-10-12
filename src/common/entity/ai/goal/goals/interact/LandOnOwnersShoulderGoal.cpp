@@ -97,7 +97,15 @@ bool LandOnOwnersShoulderGoal::shouldContinueExecuting()
         return false;
     }
 
-    if (m_owner == nullptr || m_owner->isSpectator() || m_owner->abilities().flying || m_owner->isInWater()) {
+    // 【UAF 防护】主人已被 discard/移除时立即放手。
+    // vanilla LandOnOwnersShoulderGoal.canContinueToUse() 重新调用 getOwner() 取主人，
+    // 在 Java 中 GC 保证引用有效；Cubium 的 m_owner 是跨 tick 缓存的裸指针，且
+    // graveyard 延迟析构（EntityManager.cpp:345）使其可能指向"已移除但未析构"的对象，
+    // 而 tick() 会解引用 m_owner->boundingBox()/playerId()。故须显式检查。
+    // 该 isAlive() 检查必须排在 isSpectator()/abilities() 之前——后者本身就是解引用。
+    // 契约见 EntityManager.cpp:380-381。
+    if (m_owner == nullptr || !m_owner->isAlive() || m_owner->isSpectator() || m_owner->abilities().flying ||
+        m_owner->isInWater()) {
         return false;
     }
 
@@ -126,6 +134,14 @@ void LandOnOwnersShoulderGoal::tick()
     // 没有主人时无法落肩。正常情况下 shouldExecute() 会先填充 m_owner，
     // 但 Goal 系统或测试可能在异常状态下直接调用 tick()，此处需判空避免空指针解引用。
     if (m_owner == nullptr) {
+        return;
+    }
+
+    // 【UAF 防护】主人已被 discard/移除时立即清空裸指针，避免后续
+    // m_owner->boundingBox()/playerId() 解引用已移除对象。
+    // 详见 shouldContinueExecuting() 中的说明与 EntityManager.cpp:380-381。
+    if (!m_owner->isAlive()) {
+        m_owner = nullptr;
         return;
     }
 

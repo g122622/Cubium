@@ -166,6 +166,12 @@ void BreezeShootGoal::tick()
         return;
     }
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
+        return;
+    }
+
     // 看向目标
     auto* lookCtrl = m_breeze->lookController();
     if (lookCtrl != nullptr) {

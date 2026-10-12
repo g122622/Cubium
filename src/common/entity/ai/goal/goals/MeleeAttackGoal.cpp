@@ -101,7 +101,7 @@ bool MeleeAttackGoal::shouldContinueExecuting()
     }
 
     // 玩家模式检查
-    Player* player = dynamic_cast<Player*>(m_attackTarget);
+    Player* player = dynamic_cast<Player*>(m_attackTarget.get());
     if (player && (player->isSpectator() || player->isCreative())) {
         return false;
     }
@@ -141,7 +141,7 @@ void MeleeAttackGoal::startExecuting()
         m_creature->setAggroed(true);
 
         if (auto* nav = m_creature->navigator()) {
-            if (m_attackTarget) {
+            if (m_attackTarget.get()) {
                 static_cast<void>(nav->moveTo(*m_attackTarget, m_speed));
             }
         }
@@ -166,6 +166,12 @@ void MeleeAttackGoal::resetTask()
 void MeleeAttackGoal::tick()
 {
     if (!m_creature || !m_attackTarget) return;
+
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_attackTarget->isAlive()) {
+        m_attackTarget = nullptr;
+        return;
+    }
 
     // 使用 LookController 看向目标
     if (auto* lookCtrl = m_creature->lookController()) {
@@ -227,7 +233,7 @@ void MeleeAttackGoal::tick()
     m_attackCooldown = std::max(m_attackCooldown - 1, 0);
 
     // 检查是否可以攻击
-    checkAndPerformAttack(m_attackTarget, distSq);
+    checkAndPerformAttack(m_attackTarget.get(), distSq);
 }
 
 bool MeleeAttackGoal::_canAttack(LivingEntity* target) const

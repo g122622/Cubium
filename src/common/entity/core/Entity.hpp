@@ -196,6 +196,22 @@ public:
 
     [[nodiscard]] EntityInstanceId id() const { return m_id; }
     /**
+     * @brief 获取非拥有引用的生命周期标记
+     *
+     * 标记按需分配，在逻辑移除或析构时失效；已移除实体返回空标记。
+     * 仅在所属游戏线程调用，由 EntityReference 封装使用。
+     */
+    [[nodiscard]] std::weak_ptr<const void> referenceLifetime() const
+    {
+        if (isRemoved()) {
+            return {};
+        }
+        if (!m_referenceLifetime) {
+            m_referenceLifetime = std::make_shared<u8>(0);
+        }
+        return m_referenceLifetime;
+    }
+    /**
      * @brief 设置实体ID
      *
      * 仅由EntityManager在分配ID时调用。
@@ -3071,6 +3087,7 @@ protected:
     // 五种语义可区分（对齐 vanilla Entity.removalReason）。物理销毁由 EntityManager
     // 经 graveyard 延迟队列在 tick 安全点执行。
     std::optional<RemovalReason> m_removalReason;
+    mutable std::shared_ptr<const void> m_referenceLifetime;
     bool m_noClip = false;  // 是否无视碰撞（用于三叉戟返回等）
     bool m_glowing = false; // 发光状态（服务端使用）
     // m_pose / m_flags 已迁入 ecs::EntityStateComponent / EntityFlagsComponent（真相源），

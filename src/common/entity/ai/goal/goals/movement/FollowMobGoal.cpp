@@ -88,6 +88,12 @@ void FollowMobGoal::tick()
         return;
     }
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_targetMob->isAlive()) {
+        m_targetMob = nullptr;
+        return;
+    }
+
     // 看向目标生物
     m_mob->lookAt(*m_targetMob);
 

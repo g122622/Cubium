@@ -102,6 +102,12 @@ void ShulkerAttackGoal::tick()
         return;
     }
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
+        return;
+    }
+
     // 看向目标
     m_shulker->lookAt(*m_target);
 

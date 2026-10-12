@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalConstants.hpp"
@@ -93,7 +95,7 @@ protected:
     CreatureEntity* m_creature;
     f64 m_speed;
     bool m_useLongMemory;
-    LivingEntity* m_attackTarget = nullptr;
+    EntityReference<LivingEntity> m_attackTarget;
     i32 m_attackCooldown = 0;
     i32 m_pathRecalculateTimer = 0;
     f64 m_targetX = 0.0;

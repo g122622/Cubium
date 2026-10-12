@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
@@ -107,7 +109,7 @@ protected:
 private:
     IronGolemEntity* m_golem;
     f64 m_speed;
-    LivingEntity* m_attackTarget = nullptr;
+    EntityReference<LivingEntity> m_attackTarget;
     i32 m_attackCooldown = 0;
     i32 m_pathRecalculateTimer = 0;
     f64 m_targetX = 0.0;
@@ -189,7 +191,7 @@ private:
     void _tryGiftFlowerToCopperGolem();
 
     IronGolemEntity* m_ironGolem;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     i32 m_tick = 0;
 
     // 赠花持续时间（ticks，对应 MC 1.21.11 OfferFlowerGoal.OFFER_TICKS = 400）
@@ -227,7 +229,7 @@ public:
 
 private:
     IronGolemEntity* m_golem;
-    LivingEntity* m_villageAggressor = nullptr;
+    EntityReference<LivingEntity> m_villageAggressor;
 };
 
 /**
@@ -255,7 +257,7 @@ public:
 private:
     IronGolemEntity* m_golem;
     i32 m_chance;
-    LivingEntity* m_targetEntity = nullptr;
+    EntityReference<LivingEntity> m_targetEntity;
 
     // 搜索范围
     static constexpr f32 SEARCH_RANGE = 16.0f;

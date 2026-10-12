@@ -102,6 +102,12 @@ void BreedGoal::tick()
 {
     if (!m_animal || !m_targetMate) return;
 
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
+    if (!m_targetMate->isAlive()) {
+        m_targetMate = nullptr;
+        return;
+    }
+
     // 使用 LookController 看向配偶
     if (auto* lookCtrl = m_animal->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_targetMate, 10.0f, m_animal->getVerticalFaceSpeed());
@@ -188,7 +194,7 @@ void BreedGoal::spawnBaby()
 
             // 触发繁殖事件（用于成就触发）
             if (loveCause != 0) {
-                world->onBredAnimals(static_cast<PlayerId>(loveCause), babyPtr, m_animal, m_targetMate);
+                world->onBredAnimals(static_cast<PlayerId>(loveCause), babyPtr, m_animal, m_targetMate.get());
             }
 
             // 生成爱心粒子效果

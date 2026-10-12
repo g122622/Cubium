@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "entity/ai/goal/Goal.hpp"
 #include <functional>
@@ -95,7 +97,7 @@ protected:
     f64 m_speed;
     ItemPredicate m_itemPredicate;
     bool m_scaredByMovement;
-    Player* m_temptingPlayer = nullptr;
+    EntityReference<Player> m_temptingPlayer;
     f64 m_targetX = 0.0;
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;

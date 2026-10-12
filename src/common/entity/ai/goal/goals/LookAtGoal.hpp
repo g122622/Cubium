@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/EnumSet.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
@@ -138,7 +140,7 @@ protected:
     [[nodiscard]] virtual LivingEntity* findTarget();
 
     MobEntity* m_mob;
-    LivingEntity* m_lookTarget = nullptr;
+    EntityReference<LivingEntity> m_lookTarget;
     EntityFilter m_filter; // 实体过滤函数
     f32 m_maxDistance;
     f32 m_chance;
