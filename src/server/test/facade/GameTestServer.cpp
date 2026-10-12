@@ -40,21 +40,57 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <nlohmann/json.hpp>
+
+namespace {
+/// ASAN 是否正在生成错误报告（由 __asan_on_error 置位，见下）。
+std::atomic<bool> s_sanitizerReportInProgress{false};
+} // namespace
+
+#if defined(__SANITIZE_ADDRESS__)
+#define MC_GAMETEST_HAS_ASAN 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define MC_GAMETEST_HAS_ASAN 1
+#endif
+#endif
+
+#if defined(MC_GAMETEST_HAS_ASAN)
+/// ASAN 用户钩子：ASAN 在 `ScopedInErrorReport::Report()` 的最开头调用本函数，
+/// **早于**报告的符号化与打印。
+///
+/// 存在的唯一目的是让看门狗知道"此刻绝不能 _Exit"：ASAN 打印报告时逐帧符号化一个
+/// 约 1.3 GB 的二进制，耗时可能远超看门狗的 2 秒 tick 期限；而 _Exit 会立刻终止进程，
+/// 报告只留下 `ERROR: ...` 与 `READ of size N` 两行，调用栈、释放点（freed by）与
+/// SUMMARY 全部丢失——nightly 的 GameTest shard 4 heap-use-after-free 即因此残缺，
+/// 使根因无法从 CI 日志直接定位。
+///
+/// 以 C 链接定义：ASAN 运行时对该符号的引用是弱引用，本定义（强符号）会在链接期覆盖它。
+extern "C" void __asan_on_error()
+{
+    s_sanitizerReportInProgress.store(true, std::memory_order::release);
+}
+#undef MC_GAMETEST_HAS_ASAN
+#endif
 
 namespace mc::test {
 
 namespace {
 constexpr auto _SUITE_LIMIT = std::chrono::minutes(30);
 constexpr auto _TICK_LIMIT = std::chrono::seconds(2);
+} // namespace
+
+namespace {
 
 class _DeadlineBatchListener final : public GameTestBatchListener {
 public:
@@ -122,6 +158,22 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
                 out.flush();
             }
             // 阻塞 tick 无法安全取消；快速终止让 CI 保留快照并把流水线判为错误。
+            //
+            // 【ASAN 报告优先】若此刻 ASAN 正在打印错误报告（__asan_on_error 已置位），
+            // 立即 _Exit 会截断报告——只剩 `ERROR:` 与 `READ of size N` 两行，调用栈与
+            // 释放点全部丢失，CI 日志无法定位根因（nightly GameTest shard 4 的
+            // heap-use-after-free 即因此残缺）。
+            //
+            // 这里**不设宽限期限**：符号化耗时随二进制大小与机器负载变化，任何固定上限都
+            // 可能再次截断报告，只是把截断点推后。ASAN 配 halt_on_error=1 会在报告打印完毕
+            // 后自行 abort 终止进程，故本循环正常不会永久驻留；真正的兜底是 CI 该步骤的
+            // timeout-minutes（nightly.yml 中 "Run integrated tests" 为 32 分钟），超时由
+            // Actions 强杀，不会让流水线永久挂起。循环内 sleep 以让出 CPU，避免与 ASAN 的
+            // 符号化线程争抢。
+            // 非 ASAN 构建下该标志恒为 false，循环体一次都不执行，行为与原先完全一致。
+            while (s_sanitizerReportInProgress.load(std::memory_order::acquire)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
             std::_Exit(124);
         });
 

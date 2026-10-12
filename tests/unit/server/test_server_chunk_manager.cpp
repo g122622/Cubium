@@ -926,7 +926,12 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_NotSetBeforeTick)
     EXPECT_FALSE(chunk->isPostProcessingDone()) << "tick 之前 postProcess 不应执行";
 
     m_manager->tick();
-    EXPECT_TRUE(chunk->isPostProcessingDone()) << "tick 之后 postProcess 应完成";
+    // 单次 tick() 不足以保证后处理已完成：完成请求的 promise 在 _storeChunkInMemorySync 内
+    // fulfill，而承载主线程后处理入队的 _enqueuePostProcess 紧随其后执行（见 pumpUntil 注释），
+    // 故 requestFullChunkSync 返回时该条目可能尚未入队，此刻 tick() 会空转。CI 上实测偶发
+    // 失败（本用例断言 Actual: false / Expected: true，而同一提交的 PostProcessDoneFlag_
+    // AfterGeneration 用 pumpUntil 从不失败）。按条件等待，与同文件既有范式一致。
+    EXPECT_TRUE(pumpUntil([chunk] { return chunk->isPostProcessingDone(); })) << "tick 之后 postProcess 应完成";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
