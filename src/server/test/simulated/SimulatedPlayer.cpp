@@ -5,6 +5,7 @@
 
 #include "common/core/BlockRaycastResult.hpp" // BlockRaycastResult::hit（onBlockActivated 入参）
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp" // Player::inventory().add/setItem
 #include "common/item/context/ItemUseContext.hpp"      // useItemOnBlock 构造 ItemUseContext 调 onItemUse
 #include "common/item/core/ActionResult.hpp"           // ActionResultType / ItemActionResult
@@ -25,12 +26,31 @@
 
 #include <cmath>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace mc::test {
 
 SimulatedPlayer::SimulatedPlayer(mc::EntityInstanceId id, const std::string& name, ecs::EntityRegistry& registry)
     : mc::ServerPlayer(id, name, registry)
 {}
+
+void SimulatedPlayer::onRemoval(RemovalReason reason)
+{
+    const auto* damage = lastDamageSource();
+    const auto level = reason == RemovalReason::Killed ? spdlog::level::warn : spdlog::level::info;
+    spdlog::log(level,
+        "[GameTest] SimulatedPlayer removed: entity={} reason={} health={} position=({}, {}, {}) damage_type={} "
+        "attacker={}",
+        id(),
+        static_cast<i32>(reason),
+        health(),
+        x(),
+        y(),
+        z(),
+        damage != nullptr ? static_cast<i32>(damage->type()) : -1,
+        lastDamageSourceTrueId());
+    mc::ServerPlayer::onRemoval(reason);
+}
 
 // === 静态工厂 ===
 

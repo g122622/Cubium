@@ -26,6 +26,7 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <latch>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -193,11 +194,13 @@ TEST_F(SWMRNibbleArrayTest, ConcurrentReadDuringRepeatedPublishIsSafe)
     // 在读者线程内只做原子累加，不用 gtest 断言（多线程下断言宏并非线程安全）；
     // 读到非法 nibble 值时记录下来，回到主线程再断言。
     std::atomic<bool> sawOutOfRange{false};
+    std::latch readersStarted{4};
 
     // 读者：模拟主线程随机刻读取可见光照值。
     std::vector<std::thread> readers;
     for (i32 t = 0; t < 4; ++t) {
-        readers.emplace_back([&nibble, &stop, &reads, &sawOutOfRange]() {
+        readers.emplace_back([&nibble, &stop, &reads, &sawOutOfRange, &readersStarted]() {
+            bool firstRead = true;
             while (!stop.load(std::memory_order::relaxed)) {
                 // 每次读取都必须返回合法 nibble 值（0-15）；读已释放内存会被 ASAN 直接捕获。
                 const u8 v = nibble.getVisible(0);
@@ -205,10 +208,16 @@ TEST_F(SWMRNibbleArrayTest, ConcurrentReadDuringRepeatedPublishIsSafe)
                     sawOutOfRange.store(true, std::memory_order::relaxed);
                 }
                 reads.fetch_add(1, std::memory_order::relaxed);
+                if (firstRead) {
+                    readersStarted.count_down();
+                    firstRead = false;
+                }
             }
         });
     }
 
+    // 所有读者完成首次读取后再开始发布，避免主线程先结束短循环导致零次读取。
+    readersStarted.wait();
     // 写者：模拟光照引擎反复"写入 + 发布"（it14 / it4 的路径）。
     // 该路径下已发布的可见数组只会被分配一次，此后更新侧反复走写时复制并回拷，
     // 可见侧指针始终不变——这正是 SWMR 双缓冲的预期行为，读者因此绝不会读到已释放内存。

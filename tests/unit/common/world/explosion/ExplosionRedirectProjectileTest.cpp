@@ -253,7 +253,8 @@ TEST_F(ExplosionRedirectProjectileTest, NonRedirectableEntity_OwnerNotChanged)
     // 另一个 LivingEntity 作为被波及的非投射物实体（typeId 非 REDIRECTABLE_PROJECTILE）
     TestLivingEntity bystander(EntityInstanceId(4), mc::test::testEcsRegistry());
     bystander.setTypeId("minecraft:zombie"); // 非 REDIRECTABLE_PROJECTILE 成员
-    bystander.setPosition(0.5f, 64.0f, 0.0f);
+    // 位于八格影响半径的边缘，仍受爆炸伤害但不会被炸死，便于观察非投射物行为。
+    bystander.setPosition(7.5f, 64.0f, 0.0f);
     bystander.setWorld(&m_world);
     m_world.registerEntity(&bystander);
     m_world.setEntities({&source, &bystander});
@@ -264,6 +265,7 @@ TEST_F(ExplosionRedirectProjectileTest, NonRedirectableEntity_OwnerNotChanged)
     // 非投射物实体不受归属改写影响（无 shooter 概念，仅验证不崩溃、标签门控正确）
     // bystander 仍存活且未受 setShooter 影响（LivingEntity 无该方法）
     EXPECT_TRUE(bystander.isAlive());
+    EXPECT_LT(bystander.health(), bystander.maxHealth());
 }
 
 // ============================================================================
