@@ -42,6 +42,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -582,6 +583,52 @@ TEST(AiGoalRegressionTest, LastHurtBy_ExpiresAfterAttackerDestruction)
     ASSERT_EQ(creature.getLastHurtBy(), attacker.get());
     attacker.reset();
     EXPECT_EQ(creature.getLastHurtBy(), nullptr);
+}
+
+TEST(AiGoalRegressionTest, ScriptHandles_SharedEntityIdDoesNotInvalidateOtherObject)
+{
+    auto first = std::make_unique<_TestCreatureEntity>();
+    auto second = std::make_unique<_TestCreatureEntity>();
+    ASSERT_EQ(first->id(), second->id());
+
+    using namespace mc::mod::bedrock::addon;
+    ScriptObjectRegistry::ObjectData firstHandle{first.get(), false, "Entity", nullptr, first->id()};
+    ScriptObjectRegistry::ObjectData secondHandle{second.get(), false, "Entity", nullptr, second->id()};
+    ScriptObjectRegistry::ObjectData secondComponent{second.get(), false, "Health", nullptr, second->id()};
+    auto& handles = ScriptHandleRegistry::instance();
+    handles.registerHandle(&firstHandle);
+    handles.registerHandle(&secondHandle);
+    handles.registerHandle(&secondComponent);
+
+    // 不同维度和未入册的临时实体可以同号，销毁其中一个不能清空另一个的句柄。
+    first.reset();
+    EXPECT_EQ(firstHandle.ptr, nullptr);
+    EXPECT_EQ(secondHandle.ptr, second.get());
+    EXPECT_EQ(secondComponent.ptr, second.get());
+
+    second.reset();
+    EXPECT_EQ(secondHandle.ptr, nullptr);
+    EXPECT_EQ(secondComponent.ptr, nullptr);
+}
+
+TEST(AiGoalRegressionTest, ScriptHandles_FinalizedHandleIsNotVisitedDuringDestruction)
+{
+    auto entity = std::make_unique<_TestCreatureEntity>();
+    using namespace mc::mod::bedrock::addon;
+    auto finalized = std::make_unique<ScriptObjectRegistry::ObjectData>(
+        ScriptObjectRegistry::ObjectData{entity.get(), false, "Entity", nullptr, entity->id()});
+    ScriptObjectRegistry::ObjectData surviving{entity.get(), false, "Health", nullptr, entity->id()};
+    auto& handles = ScriptHandleRegistry::instance();
+    handles.registerHandle(finalized.get());
+    handles.registerHandle(&surviving);
+    // 单对象失效会先清空 opaque 指针，随后 GC 仍必须注销这个记录。
+    finalized->ptr = nullptr;
+    handles.unregisterHandle(finalized.get());
+    finalized.reset();
+
+    entity.reset();
+    EXPECT_EQ(surviving.ptr, nullptr);
+    handles.unregisterHandle(&surviving);
 }
 
 TEST(AiGoalRegressionTest, EndermanFindPlayerGoal_DoesNotPromoteInvalidPlayer)

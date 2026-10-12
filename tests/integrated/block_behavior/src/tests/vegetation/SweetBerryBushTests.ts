@@ -169,6 +169,11 @@ function sweetBerryBushDamagesMovingEntity(test: Test): void {
 // 伤害”的假阴性，也排除“任意阶段都伤害”的假阳性）。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\other_甜浆果.txt#生物（仅 age≥1 灌木伤害移动实体）
 function sweetBerryBushSpareAge0(test: Test): void {
+  // 隔离随机生长，保证整个碰撞观察窗口内灌木始终保持幼苗状态。
+  const dimension = test.getDimension() as any;
+  const previousSpeed = dimension.getGameRule("randomTickSpeed");
+  const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "observer");
+  player.chat("/gamerule randomTickSpeed 0");
   // 主角同 damages_moving_entity 用鸡。AGE=0 灌木仅减速不伤血，全程应保持满血 4。
   const chickenType = "chicken";
 
@@ -188,6 +193,7 @@ function sweetBerryBushSpareAge0(test: Test): void {
   // 用 runAtTickTime 而非 succeedWhen：succeedWhen 每 tick 检查 hp==4 在 AGE=0 未伤害时全程为真会立即
   // succeed（spawn 第 1 tick 就过），无法验证“持续 10 秒未受伤”。runAtTickTime(200) 强制等到 200 tick。
   test.runAtTickTime(200, () => {
+    player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
     const chickens = test.getDimension().getEntities({
       type: chickenType,
       location: test.worldLocation(PEN_FROM),
@@ -334,6 +340,7 @@ export function registerSweetBerryBushTests(): void {
     .structureName("gametests:grass_pen")
     .maxTicks(1200);
   GameTest.register("BlockBehaviorTests", "sweet_berry_bush_spare_age0", sweetBerryBushSpareAge0)
+    .batch("berry_age_zero")
     .structureName("gametests:grass_pen")
     .maxTicks(400);
   // 甜浆果灌木摔落免疫测试用 fall_tower（垂直自由落体场景），非 grass_pen（寻路场景）。

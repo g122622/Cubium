@@ -164,7 +164,7 @@ std::unique_ptr<Entity> EntityManager::takeEntity(EntityInstanceId id)
     // 仍持裸 Entity*，必须立即 invalidate（置 ptr=nullptr），否则后续
     // getComponent("minecraft:onfire").isOnFire() 等回调解引用悬垂指针 UAF 段错误。
     // 销毁路径（destroyEntity）不经此方法，由 ~Entity 兜底 invalidate。
-    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(id);
+    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(entity.get());
 
     return entity;
 }

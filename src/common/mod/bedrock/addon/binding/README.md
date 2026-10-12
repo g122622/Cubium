@@ -11,6 +11,7 @@ binding/
 ├── ScriptCallbackHolder.hpp       # JS函数引用的生命周期管理包装
 ├── ScriptClassBinding.hpp         # 类绑定工具（ScriptObjectRegistry/NativeModuleBuilder/ClassRegistrar）
 ├── ScriptClassBinding.cpp         # 类绑定工具实现
+├── ScriptHandleRegistry.hpp/cpp  # 按实际对象身份管理非拥有实体句柄的失效
 └── README.md
 ```
 
@@ -52,3 +53,5 @@ IScriptBindingContext (抽象接口)
 3. **owned对象的生命周期**：通过`ScriptObjectRegistry::wrap`包装的owned对象会由JS GC自动delete。如果C++对象由游戏管理（非owned），务必在C++对象销毁时调用`invalidate`防止悬空指针。
 
 4. **ClassRegistrar模板参数**：`ClassRegistrar<T>`的`wrap`方法使用`typeid(T).name()`作为类型名，确保T是多态类型或具有正确的type_info。
+
+5. **实体编号不是进程级身份**：不同维度独立分配 `EntityInstanceId`，未入册的临时实体也可能同号。脚本句柄必须按实际实体对象地址登记和失效；按编号分组会错误清空其他仍存活实体的句柄。单对象 `invalidate` 可能先清空 `ptr`，GC 注销须通过 `ObjectData` 本身定位记录。

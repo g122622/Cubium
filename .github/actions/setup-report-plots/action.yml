@@ -1,0 +1,11 @@
+name: Setup report plots
+description: 安装 Matplotlib 与中文字体，用于 CI 报告图表。
+runs:
+  using: composite
+  steps:
+    - name: Install plotting dependencies and fonts
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y python3-matplotlib fonts-noto-cjk
+        python3 -c 'import matplotlib; print("Matplotlib", matplotlib.__version__)'

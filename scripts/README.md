@@ -20,7 +20,7 @@ scripts/
 
 构建脚本产出测试二进制，测试脚本执行测试，CI 脚本读取归档结果生成报告。
 本地开发和 `.github/workflows` 调用这些工具；依赖按脚本分别为 Python 标准库、Node.js、
-CMake 或 GitHub CLI。CI 使用说明见 `docs/CI.md`。
+CMake 或 GitHub CLI；报告图表依赖 Matplotlib、NumPy 和中文字体。CI 使用说明见 `docs/CI.md`。
 
 ## 容易踩的坑
 

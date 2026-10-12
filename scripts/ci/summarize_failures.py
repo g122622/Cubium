@@ -7,7 +7,7 @@
 - **输出限长**：单元测试有数万用例，失败清单可能极长。所有清单都放进 `<details>` 折叠块，
   并对条数设上限（超出部分注明「另有 N 条未列出」），避免 issue 正文超出 GitHub 的
   65536 字符上限而被拒绝创建。
-- 只读 artifacts 目录，不依赖任何第三方库。
+- 读取完整 artifacts，并用 Matplotlib 生成机器配置和性能图表。
 
 用法：
     python3 scripts/ci/summarize_failures.py \
@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import shutil
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -71,6 +72,8 @@ _INTEGRATED_EXIT_LINE = re.compile(r"(?:run-gametests|Round \d+) exit code:\s*(-
 _GH_LOG_PREFIX = re.compile(r"^.*?\d{4}-\d{2}-\d{2}T[\d:.]+Z\s?")
 
 _JOB_LABELS = {
+    "prepare": "工具准备",
+    "workers": "编译 Worker",
     "build": "测试构建（RelWithDebInfo + ASan/UBSan）",
     "release-build": "发布构建（Release，无 profiler/sanitizer）",
     "unit-tests": "单元测试（ctest）",
@@ -336,9 +339,36 @@ def collect_sanitizer_failures(artifacts_dir: Path) -> list[str]:
                     findings.append(f"{filename}: {line.strip()}")
     return _dedupe(findings)
 
-def read_benchmark_report(artifacts_dir: Path) -> str:
-    for report in artifacts_dir.rglob("benchmark-compare.md"):
-        return _read_text(report)[:20_000]
+def _report_assets(artifacts_dir: Path, run_url: str) -> tuple[Path, str]:
+    """图表集中归档，并使用既有 image-data 分支提供报告中的图片地址。"""
+    directory = artifacts_dir / "_report_charts"
+    match = re.fullmatch(r"https://github\.com/([^/]+/[^/]+)/actions/runs/(\d+)", run_url)
+    base = (f"https://raw.githubusercontent.com/{match.group(1)}/image-data/ci-reports/{match.group(2)}"
+            if match else directory.as_posix())
+    return directory, base
+
+
+def read_benchmark_report(artifacts_dir: Path, run_url: str) -> str:
+    """把基准产物中的图表复制到报告资产目录，生成图片引用。"""
+    if __package__:
+        from .report_plots import image_links
+    else:
+        from report_plots import image_links
+    directory, base = _report_assets(artifacts_dir, run_url)
+    for path in artifacts_dir.rglob("benchmark-compare.json"):
+        if directory in path.parents:
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        names = data.get("images", [])
+        directory.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            if not isinstance(name, str) or not re.fullmatch(r"benchmark-[a-z0-9-]+\.png", name):
+                raise ValueError("Invalid benchmark chart filename")
+            shutil.copy2(path.parent / name, directory / name)
+            svg = Path(name).with_suffix(".svg")
+            shutil.copy2(path.parent / svg, directory / svg)
+        shutil.copy2(path, directory / "benchmark-compare.json")
+        return "\n\n".join(image_links(names, base))
     return ""
 
 
@@ -366,69 +396,26 @@ def collect_runner_info(artifacts_dir: Path) -> tuple[dict[str, dict], list[str]
     return runners, errors
 
 
-def _table_text(value: object) -> str:
-    """转义表格数据，避免机器型号或版本文字破坏 Markdown 列与 HTML。"""
-    return html.escape(" ".join(str(value or "—").split())).replace("|", "&#124;")
-
-
-def _gib(value: object) -> str:
-    if isinstance(value, (int, float)) and value > 0:
-        return f"{value / 2**30:.1f} GiB"
-    return "—"
-
-
-def runner_info_table(job_status: dict[str, str], artifacts_dir: Path) -> list[str]:
-    """一行一个任务，紧凑展示机器配置；未执行任务不推测硬件。"""
+def runner_info_section(job_status: dict[str, str], artifacts_dir: Path, run_url: str) -> list[str]:
+    """使用图表展示机器配置；完整配置与读取错误仍保留为 JSON。"""
+    if __package__:
+        from .report_plots import runner_plot_data, plot_runners, image_links
+    else:
+        from report_plots import runner_plot_data, plot_runners, image_links
     runners, errors = collect_runner_info(artifacts_dir)
-    lines = ["### 各任务机器配置", "",
-             "| Job | CPU / 逻辑核 | 内存 / 磁盘 | 系统 / runner 镜像 | 工具链 |",
-             "|---|---|---|---|---|"]
-    labels = {"compiler": "C++", "linker": "Linker", "cmake": "CMake", "ctest": "CTest",
-              "ninja": "Ninja", "ccache": "ccache", "node": "Node", "npm": "npm",
-              "python": "Python", "gh": "gh"}
-    rows = []
-    for job in _JOB_LABELS:
-        instances = [(key, info) for key, info in runners.items() if info["job"] == job]
-        rows.extend(instances or [(job, None)])
-    for job, info in rows:
-        if info is None:
-            state = "未运行" if job_status.get(job) == "skipped" else "未采集"
-            lines.append(f"| `{job}` | {state} | — | — | — |")
-            continue
-        cpu = info["cpu"]
-        model = str(cpu.get("model", "")).replace("(R)", "").replace("(TM)", "")
-        cpu_text = f"{_table_text(model)} / {_table_text(cpu.get('logical_cpus'))} 核"
-        disk = info["disk"]
-        memory = (f"RAM {_gib(info.get('memory_bytes'))}<br>"
-                  f"磁盘 {_gib(disk.get('free_bytes'))} / {_gib(disk.get('total_bytes'))} 空闲")
-        system = info["system"]
-        image = info["runner"]
-        system_text = (f"{_table_text(system.get('os'))} · {_table_text(system.get('architecture'))}<br>"
-                       f"{_table_text(system.get('kernel'))}")
-        if image.get("image_version"):
-            system_text += f"<br>{_table_text(image.get('image_os'))} / {_table_text(image['image_version'])}"
-        tools = []
-        for key, tool in info["tools"].items():
-            if not isinstance(tool, dict):
-                continue
-            version = tool.get("version") if tool.get("status") == "ok" else "未安装/不可读取"
-            label = tool.get("name", labels[key]) if key in ("compiler", "linker") else labels.get(key, key)
-            tools.append(f"{_table_text(label)} {_table_text(version)}")
-        if system.get("libc"):
-            tools.append(_table_text(system["libc"]))
-        build = info["build"]
-        if build:
-            tools.append(f"native={_table_text(build.get('MC_ENABLE_NATIVE_ARCH'))}, "
-                         f"sanitizers={_table_text(build.get('MC_ENABLE_SANITIZERS'))}")
-            if "MC_FUZZ_ASAN" in build:
-                tools.append(f"fuzz-ASAN={_table_text(build['MC_FUZZ_ASAN'])}")
-        lines.append(f"| `{_table_text(job)}` | {cpu_text} | {memory} | {system_text} | {'; '.join(tools) or '—'} |")
-    lines.extend(["", "> 内存为总容量；磁盘为空闲 / 总容量（采集时）。工具链为本 job 实际工具版本，"
-                  "单元/集成/e2e 的 C++ 产物来自 build，benchmark 的产物来自 release-build。"
-                  "完整配置随 nightly-report artifact 归档。", ""])
-    if errors:
-        lines.extend([_details_block("机器配置读取错误", errors, True)])
-    return lines
+    directory, base = _report_assets(artifacts_dir, run_url)
+    directory.mkdir(parents=True, exist_ok=True)
+    data = runner_plot_data(runners, job_status, errors)
+    serialized = json.dumps(data, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False)
+    cache = directory / "runner-chart-data.json"
+    manifest = directory / "runner-chart-images.json"
+    images = json.loads(manifest.read_text()) if manifest.is_file() else []
+    if not cache.is_file() or cache.read_text(encoding="utf-8") != serialized or not images or any(
+            not (directory / name).is_file() for name in images):
+        images = plot_runners(data, directory)
+        cache.write_text(serialized, encoding="utf-8")
+        manifest.write_text(json.dumps(images) + "\n", encoding="utf-8")
+    return image_links(images, base) + [""]
 
 
 def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
@@ -453,6 +440,9 @@ def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
         return True
     if collect_sanitizer_failures(artifacts_dir):
         return True
+    for path in artifacts_dir.rglob("benchmark-compare.json"):
+        if json.loads(path.read_text(encoding="utf-8")).get("status") != "ok":
+            return True
     return False
 
 
@@ -474,7 +464,7 @@ def build_body(
     e2e_failures = collect_e2e_failures(artifacts_dir)
     e2e_skipped = collect_e2e_skipped(artifacts_dir)
     fuzz_artifacts = collect_fuzz_artifacts(artifacts_dir)
-    benchmark_report = read_benchmark_report(artifacts_dir)
+    benchmark_report = read_benchmark_report(artifacts_dir, run_url)
 
     lines: list[str] = []
     lines.append("## Nightly CI 结果")
@@ -509,7 +499,7 @@ def build_body(
         lines.append(f"| {label} | {_STATUS_ICON.get(status, status)} | {outcome} |")
     lines.append("")
 
-    lines.extend(runner_info_table(job_status, artifacts_dir))
+    lines.extend(runner_info_section(job_status, artifacts_dir, run_url))
 
     sanitizer_failures = collect_sanitizer_failures(artifacts_dir)
     if sanitizer_failures:
@@ -579,8 +569,6 @@ def build_body(
         lines.append(_details_block("崩溃 / 超限产物", fuzz_artifacts, limit_output))
 
     if benchmark_report:
-        lines.append("### 性能基准")
-        lines.append("")
         lines.append(benchmark_report)
         lines.append("")
 

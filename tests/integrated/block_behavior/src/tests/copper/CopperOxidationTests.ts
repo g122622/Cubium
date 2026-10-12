@@ -122,33 +122,35 @@ function raiseRandomTickSpeed(test: Test): void {
     player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
-// 孤立 exposed_copper 在随机刻下氧化进阶为 weathered_copper（wiki 氧化：铜块受氧化机制影响，基于随机刻）。
-// (3,1,3) 孤立 exposed_copper（周围4格内无其他铜方块），调高 randomTickSpeed 后等待，断言变 weathered_copper。
-//
-// 轮询密度选 interval=1（每 tick 查）而非默认 20，原因：speed=1000 下 exposed→weathered 与 weathered→oxidized
-// 两级氧化都很快（每次期望约 82 tick）。weathered 中间态窗口约 82 tick，但若用 interval=20 的稀疏检查点
-// [40,60,80,...]，全量并行环境下服务器 tick 调度抖动偶发使 exposed→weathered 与 weathered→oxidized 都落在
-// 同一检查点间隔内（两个检查点之间），导致检查点恰好跳过 weathered 中间态直接看到 oxidized_copper 假失败。
-// randomTick 机制保证 weathered 状态至少持续 1 个完整 tick（每格每 tick 至多一次 randomTick：tick N 做
-// exposed→weathered 后，weathered→oxidized 最早在 tick N+1 的下一个 randomTick），故每 tick 查必能抓到
-// weathered 中间态，彻底消除 timing 依赖。预注册 [40..360] 每 tick 一个 runAtTickTime 检查点（约 321 个），
-// 开销可接受。
+// 较低氧化等级的邻居阻止后续进阶，让被测铜块稳定停在 weathered，避免跳过中间态。
+// 独立 batch 内提高随机刻速度，并在成功或超时时恢复原规则。
 function exposedCopperOxidizesToWeathered(test: Test): void {
-    test.setBlockType("minecraft:exposed_copper", COPPER);
-    raiseRandomTickSpeed(test);
+    // 未氧化铜距被测方块五格、距邻居四格：邻居保持 exposed，被测方块到达 weathered 后停止。
+    const copper = { x: 1, y: 1, z: 3 };
+    test.setBlockType("minecraft:exposed_copper", copper);
+    test.setBlockType("minecraft:exposed_copper", { x: 2, y: 1, z: 3 });
+    test.setBlockType("minecraft:copper_block", { x: 6, y: 1, z: 3 });
+    const dimension = test.getDimension() as any;
+    const previousSpeed = dimension.getGameRule("randomTickSpeed");
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    player.chat("/gamerule randomTickSpeed 10000");
+    const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
 
     pollUntilSucceed(
         test,
         () => {
             // 氧化进阶：exposed_copper → weathered_copper。每 tick 查以抓 weathered 中间态。
-            return getTypeId(test, COPPER) === "minecraft:weathered_copper";
+            if (getTypeId(test, copper) !== "minecraft:weathered_copper") return false;
+            restoreRandomTicks();
+            return true;
         },
         {
-            startTick: 40,
+            startTick: 1,
             interval: 1,
             maxTick: 360,
             onTimeout: () => {
-                const type = getTypeId(test, COPPER);
+                restoreRandomTicks();
+                const type = getTypeId(test, copper);
                 test.assert(
                     false,
                     `exposed_copper oxidation: expected weathered_copper, got ${type} ` +
@@ -228,6 +230,7 @@ function oxidizedCopperDoesNotOxidize(test: Test): void {
 
 export function registerCopperOxidationTests(): void {
     GameTest.register("BlockBehaviorTests", "exposed_copper_oxidizes_to_weathered", exposedCopperOxidizesToWeathered)
+        .batch("copper_oxidation_stage")
         .structureName("gametests:light_box")
         .maxTicks(420);
     GameTest.register(

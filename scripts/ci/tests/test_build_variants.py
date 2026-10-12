@@ -107,12 +107,13 @@ class BuildVariantsTest(unittest.TestCase):
                 {"name": "Test", "real_time": time, "time_unit": "ns", "run_type": "iteration"}]}
         current = data("release-noprof-nosan-v1", 100)
         previous = data("legacy", 50)
-        reset = comparison.build_report(current, previous, 10, 20)
-        self.assertIn("重新建立基线", reset)
-        self.assertNotIn("⚠️ 超过阈值", reset)
+        reset = comparison.build_comparison(current, previous, 10, 20)
+        self.assertEqual(reset["baseline_reason"], "profile_mismatch")
+        self.assertEqual(reset["warnings"], [])
         previous["context"]["ci_build_profile"] = "release-noprof-nosan-v1"
-        same = comparison.build_report(current, previous, 10, 20)
-        self.assertIn("CPU 劣化", same)
+        same = comparison.build_comparison(current, previous, 10, 20)
+        self.assertEqual(same["warnings"][0]["kind"], "real_time")
+        self.assertEqual(same["warnings"][0]["change_pct"], 100)
 
     def test_release_rejects_sanitizer_compile_and_link_flags(self):
         """即使总开关关闭，也必须在 strip 前拒绝各层的显式插桩参数。"""

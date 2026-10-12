@@ -143,11 +143,29 @@ function countSpreadMushrooms(test: Test): number {
 }
 
 // 黑暗中蘑菇向周围蔓延（wiki 传播：4%概率尝试，亮度≤12可传播）。
-// 铺支撑层 + 放蘑菇，调高 randomTickSpeed 后等待，断言4个蔓延目标中至少1个变 brown_mushroom。
-// 守卫：蘑菇处 blockLight===0 && skyLight===0 确认黑暗（仅 Cubium 侧判定）。
+// 铺支撑层 + 放蘑菇，调高随机刻后观察整个内部邻域中的新增蘑菇。
+// 守卫允许棕色蘑菇自身的一级方块光，并要求天空光为零。
 function mushroomSpreadsInDark(test: Test): void {
     placeMushroomAndSupports(test);
-    raiseRandomTickSpeed(test);
+    const dimension = test.getDimension() as any;
+    const previousSpeed = dimension.getGameRule("randomTickSpeed");
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    player.chat("/gamerule randomTickSpeed 10000");
+    const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+
+    // 随机游走可以落在下层地板或斜邻位置，观察整个合法邻域，排除原始蘑菇。
+    const countNewMushrooms = () => {
+        let count = 0;
+        for (let y = 2; y <= 4; y++) {
+            for (let x = 1; x <= 5; x++) {
+                for (let z = 1; z <= 5; z++) {
+                    if (x === MUSHROOM.x && y === MUSHROOM.y && z === MUSHROOM.z) continue;
+                    if (getTypeId(test, { x, y, z }) === "minecraft:brown_mushroom") count++;
+                }
+            }
+        }
+        return count;
+    };
 
     pollUntilSucceed(
         test,
@@ -164,20 +182,23 @@ function mushroomSpreadsInDark(test: Test): void {
                 }
             }
             // 蔓延成功：至少1个目标变 brown_mushroom。
-            return countSpreadMushrooms(test) >= 1;
+            if (countNewMushrooms() === 0) return false;
+            restoreRandomTicks();
+            return true;
         },
         {
             startTick: 40,
             interval: 20,
             maxTick: 400,
             onTimeout: () => {
-                const count = countSpreadMushrooms(test);
+                restoreRandomTicks();
+                const count = countNewMushrooms();
                 const block = test.getBlock(MUSHROOM);
                 const blockLight = (block as unknown as { blockLight?: number })?.blockLight ?? -1;
                 const skyLight = (block as unknown as { skyLight?: number })?.skyLight ?? -1;
                 test.assert(
                     false,
-                    `mushroom spread in dark: expected >=1 brown_mushroom, got ${count}/4 ` +
+                    `mushroom spread in dark: expected >=1 new brown_mushroom, got ${count} ` +
                         `(mushroom=${getTypeId(test, MUSHROOM)} blockLight=${blockLight}(<=1 ok, brown_mushroom自发光1) ` +
                         `skyLight=${skyLight}(should be 0); if 0, randomTickSpeed may not be raised or ` +
                         `1/25 gate + air-target+support spread logic issue)`,
@@ -232,6 +253,7 @@ function mushroomDoesNotSpreadInLight(test: Test): void {
 
 export function registerMushroomSpreadTests(): void {
     GameTest.register("BlockBehaviorTests", "mushroom_spreads_in_dark", mushroomSpreadsInDark)
+        .batch("mushroom_spread_dark")
         .structureName("gametests:light_box")
         .maxTicks(480);
     GameTest.register("BlockBehaviorTests", "mushroom_does_not_spread_in_light", mushroomDoesNotSpreadInLight)

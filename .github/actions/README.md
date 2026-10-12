@@ -7,6 +7,7 @@ actions/
 ├── setup-linux-build-env/action.yml # 安装 clang 工具链与系统依赖，恢复构建缓存
 ├── setup-pococc-toolchain/action.yml # 安装正式 nightly 的分布式工具链，不操作构建缓存
 ├── build-pococc/action.yml          # 无 PCH 分布式构建、持久缓存和性能采集
+├── setup-report-plots/action.yml    # 安装 Matplotlib、NumPy 与中文字体
 └── setup-datapack/action.yml        # 安装测试与基准所需的原版数据包
 ```
 
@@ -14,6 +15,7 @@ actions/
 
 nightly 的测试、发布和 fuzz 构建复用 pococc 构建步骤；legacy 使用旧 Linux 环境安装步骤。
 测试及 benchmark 复用数据包安装。
+benchmark 与 report 使用绘图依赖步骤，生成 PNG/SVG。
 依赖 apt.llvm.org、vcpkg、GitHub Actions cache 和数据包标签归档。
 
 ## 容易踩的坑

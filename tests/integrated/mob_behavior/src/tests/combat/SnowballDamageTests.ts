@@ -69,7 +69,8 @@ const VILLAGER_TYPE = "villager_v2";
 
 // creeper_pit 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。y=2 → 结构 y=1 air 腔，脚下 y=0 grass_block。
 // 雪球 (3,2,3) 朝 +Z setVelocity({0,0,3.0})，1 tick 跨 3 格，射线 z∈[3,6] 覆盖靶 z∈[4,5]。
-const SNOWBALL_POS = { x: 3, y: 2, z: 3 };
+// 从躯干高度发射，避免贴着地面擦过刚起飞的烈焰人。
+const SNOWBALL_POS = { x: 3, y: 3, z: 3 };
 const BLAZE_POS = { x: 3, y: 2, z: 5 };
 const VILLAGER_TARGET_POS = { x: 3, y: 2, z: 5 };
 

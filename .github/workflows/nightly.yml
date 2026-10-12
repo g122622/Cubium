@@ -59,6 +59,16 @@ jobs:
           name: pococc-tools-${{ github.run_attempt }}
           path: pococc-tools/
           retention-days: 1
+      - name: Record prepare runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job prepare --build-dir "$RUNNER_TEMP/pococc-seed-build" --out prepare-results/runner-info.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pococc-prepare-results
+          path: prepare-results/
+          retention-days: 30
   build:
     permissions:
       contents: read
@@ -78,7 +88,7 @@ jobs:
         with:
           pool: test
           cache-scope: nightly
-          workers: '16'
+          workers: '24'
           preset: linux-clang-ci-tests
           build-dir: build
           variant: test
@@ -146,7 +156,7 @@ jobs:
         with:
           pool: release
           cache-scope: release
-          workers: '10'
+          workers: '4'
           preset: linux-clang-ci-release
           build-dir: build-release-noprof
           variant: release
@@ -340,6 +350,22 @@ jobs:
             worker: 15
           - pool: test
             worker: 16
+          - pool: test
+            worker: 17
+          - pool: test
+            worker: 18
+          - pool: test
+            worker: 19
+          - pool: test
+            worker: 20
+          - pool: test
+            worker: 21
+          - pool: test
+            worker: 22
+          - pool: test
+            worker: 23
+          - pool: test
+            worker: 24
           - pool: release
             worker: 1
           - pool: release
@@ -348,18 +374,6 @@ jobs:
             worker: 3
           - pool: release
             worker: 4
-          - pool: release
-            worker: 5
-          - pool: release
-            worker: 6
-          - pool: release
-            worker: 7
-          - pool: release
-            worker: 8
-          - pool: release
-            worker: 9
-          - pool: release
-            worker: 10
           - pool: fuzz
             worker: 1
           - pool: fuzz
@@ -406,6 +420,10 @@ jobs:
       - name: Stop worker services
         if: always()
         run: python3 "$POCOCC_CI_BINARY_DIR/Bootstrap.py" stop --state "$RUNNER_TEMP/pococc-worker"
+      - name: Record worker runner configuration
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/ci/collect_runner_info.py --job workers --pool "${{ matrix.pool }}" --worker "${{ matrix.worker }}" --out "$RUNNER_TEMP/pococc-worker/runner-info.json"
       - name: Record worker compilation and compiler probes
         run: |
           python3 scripts/ci/pococc_performance.py worker-report --pool "$POOL" --state "$RUNNER_TEMP/pococc-worker"
@@ -417,6 +435,7 @@ jobs:
           name: pococc-worker-report-${{ matrix.pool }}-${{ matrix.worker }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/pococc-worker/pococc-performance.json
+            ${{ runner.temp }}/pococc-worker/runner-info.json
             ${{ runner.temp }}/pococc-worker/compiler-times.jsonl
             ${{ runner.temp }}/pococc-worker/*.log
           retention-days: 7
@@ -667,6 +686,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-report-plots
       - uses: ./.github/actions/setup-datapack
       - uses: actions/download-artifact@v4
         with:
@@ -708,18 +728,14 @@ jobs:
           ls -R previous/ || true
       - name: Compare with previous run
         run: |
-          set +e
+          set -euo pipefail
           # 上一次的 results.json 可能位于 previous/ 下的任意子目录（artifact 保留原路径）。
-          PREV_JSON=$(find previous -name results.json -print -quit 2>/dev/null)
+          PREV_JSON=$(find previous -name results.json -print -quit 2>/dev/null || true)
           ARGS=(--current benchmark-out/results.json --out benchmark-out/benchmark-compare.md)
           if [ -n "${PREV_JSON}" ]; then
             ARGS+=(--previous "${PREV_JSON}")
           fi
           python3 scripts/ci/compare_benchmark.py "${ARGS[@]}"
-          # 超阈值项以 workflow warning 的形式提示，但不阻塞（托管 runner 机器实例每次不同）。
-          if grep -q '⚠️ 超过阈值的项' benchmark-out/benchmark-compare.md 2>/dev/null; then
-            echo "::warning::benchmark 存在超过阈值的项，详见 artifact benchmark-results 中的 benchmark-compare.md"
-          fi
           cat benchmark-out/benchmark-compare.md || true
       - name: Record runner configuration
         if: always()
@@ -750,6 +766,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-report-plots
       - name: Download all result artifacts
         if: always()
         uses: actions/download-artifact@v4
@@ -832,8 +849,21 @@ jobs:
             count=$(jq -r '.registered_tests' pococc-ctest-coverage.json)
             printf '\nCTest coverage: %s registered tests partitioned exactly once across 8 shards (at most 4 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
           fi
-          cat nightly-report.md >> "$GITHUB_STEP_SUMMARY"
           exit "$performance_status"
+      - name: Publish report chart assets
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_dir: ./artifacts/_report_charts
+          destination_dir: ci-reports/${{ github.run_id }}
+          publish_branch: image-data
+          keep_files: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+      - name: Show report with rendered figures
+        if: always()
+        run: cat nightly-report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload summary
         if: always()
         uses: actions/upload-artifact@v4
@@ -846,6 +876,7 @@ jobs:
             nightly-report-full.md
             nightly-status.txt
             nightly-runners.json
+            artifacts/_report_charts/
             pococc-performance.md
             pococc-performance.json
             pococc-gametest-coverage.json
@@ -886,6 +917,6 @@ jobs:
             --body-file nightly-report.md \
             --label nightly-ci
     permissions:
-      contents: read
+      contents: write
       actions: read
       issues: write

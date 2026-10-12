@@ -1,225 +1,145 @@
 #!/usr/bin/env python3
-"""跨日 benchmark 对比：把本次结果与上一次 nightly 的结果逐用例比对。
-
-背景：nightly CI 跑在 GitHub 托管的 ubuntu-latest 上，**每次都是全新的机器实例**，
-性能绝对值本身带有实例间噪声。因此本脚本的定位是「仅记录 + 告警，不阻塞」——
-输出 Markdown 报告，把变化幅度超过阈值的用例标出来，由人（或 AI 助手）判断是真回归
-还是噪声。判定性能回归前，应结合连续多晚的趋势，而不是单晚的单点差异。
-
-用法：
-    python3 scripts/ci/compare_benchmark.py \
-        --current  benchmark_results/<ts>/results.json \
-        --previous previous/results.json \
-        --out      benchmark-compare.md \
-        --cpu-threshold 10 --mem-threshold 20
-
-退出码恒为 0（不阻塞 CI）。找不到 previous 时只输出本次结果概览。
-"""
+"""归一化跨日 benchmark 数据，生成 Matplotlib 图表和机器可读告警。"""
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
+import statistics
 import sys
 from pathlib import Path
 
-# google/benchmark 的 time_unit 到纳秒的换算系数。
-_TIME_UNIT_TO_NS = {
-    "ns": 1.0,
-    "us": 1_000.0,
-    "ms": 1_000_000.0,
-    "s": 1_000_000_000.0,
-}
-
-# 内存指标（由 benchmark/MemoryProfiler.cpp 注入的 User Counters）。
+_TIME_UNIT_TO_NS = {"ns": 1.0, "us": 1_000.0, "ms": 1_000_000.0, "s": 1_000_000_000.0}
 _MEMORY_COUNTERS = ("num_allocs", "max_bytes_used", "total_allocated_bytes", "net_heap_growth")
 
 
 def _to_ns(value: float, unit: str) -> float:
-    factor = _TIME_UNIT_TO_NS.get(unit)
-    if factor is None:
-        raise ValueError(f"unknown time_unit: {unit!r}")
-    return value * factor
+    """在排序和比较之前统一时间单位，拒绝非法测量。"""
+    if unit not in _TIME_UNIT_TO_NS:
+        raise ValueError(f"Unknown time unit: {unit!r}")
+    if isinstance(value, bool):
+        raise ValueError("Benchmark time cannot be a boolean")
+    value = float(value)
+    if not math.isfinite(value) or value < 0:
+        raise ValueError("Benchmark time must be finite and nonnegative")
+    normalized = value * _TIME_UNIT_TO_NS[unit]
+    if not math.isfinite(normalized):
+        raise ValueError("Normalized benchmark time must be finite")
+    return normalized
 
 
 def load_results(path: Path) -> dict:
-    with path.open("r", encoding="utf-8") as handle:
-        data = json.load(handle)
-    if "benchmarks" not in data:
-        raise ValueError(f"{path}: 缺少 'benchmarks' 字段，不是 google/benchmark 的 JSON 输出")
+    """读取 google/benchmark 的原始结果。"""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data.get("benchmarks"), list):
+        raise ValueError("Benchmark JSON must contain a benchmarks array")
     return data
 
 
-def index_entries(data: dict) -> dict[tuple[str, str], dict]:
-    """把 benchmarks 数组索引成 {(用例名, 条目类型): 条目}。
-
-    同一个用例会有多条记录：逐次重复（run_type=iteration/repetition）与聚合行
-    （aggregate_name=mean/median/stddev/cv）。这里**优先取聚合行**——它是对多次重复
-    的统计，比单次重复更能代表该用例的表现。若只有逐次重复，则对它们取中位数。
-    """
-    grouped: dict[str, dict[str, list[dict]]] = {}
+def index_entries(data: dict) -> dict[str, dict]:
+    """每个用例优先取聚合中位数；不把标准差和变异系数当成耗时。"""
+    grouped = {}
     for entry in data["benchmarks"]:
-        name = entry["name"]
-        kind = entry.get("aggregate_name") or entry.get("run_type") or "unknown"
+        kind = entry.get("aggregate_name") or "iteration"
+        if kind in ("stddev", "cv") or entry.get("aggregate_unit") == "percentage":
+            continue
+        if entry.get("error_occurred"):
+            continue
+        name = entry.get("run_name") or entry["name"]
+        if kind in ("mean", "median") and not entry.get("run_name"):
+            name = name.removesuffix("_" + kind)
         grouped.setdefault(name, {}).setdefault(kind, []).append(entry)
-
-    indexed: dict[tuple[str, str], dict] = {}
+    result = {}
     for name, kinds in grouped.items():
-        for kind, entries in kinds.items():
-            indexed[(name, kind)] = entries[0] if len(entries) == 1 else _median_entry(entries)
-    return indexed
-
-
-def _median_entry(entries: list[dict]) -> dict:
-    """对多条同类条目按 real_time 取中位数，返回一个合成的条目。"""
-    ordered = sorted(entries, key=lambda item: item.get("real_time", 0.0))
-    return ordered[len(ordered) // 2]
+        kind = "median" if "median" in kinds else "iteration" if "iteration" in kinds else "mean"
+        entries = kinds[kind]
+        times = [_to_ns(entry["real_time"], entry.get("time_unit", "ns")) for entry in entries]
+        memory = {}
+        for counter in _MEMORY_COUNTERS:
+            values = [float(entry[counter]) for entry in entries if counter in entry]
+            if values and all(math.isfinite(value) for value in values):
+                memory[counter] = statistics.median(values)
+        result[name] = {"time_ns": statistics.median(times), "memory": memory,
+                        "statistic": "mean" if kind == "mean" else "median"}
+    return result
 
 
 def _percent_change(current: float, previous: float) -> float | None:
-    if previous == 0:
-        return None
-    return (current - previous) / previous * 100.0
+    """零基线不生成无穷大或虚假的百分比。"""
+    return None if previous == 0 else (current - previous) / abs(previous) * 100.0
 
 
-def _fmt_pct(value: float | None) -> str:
-    return "n/a" if value is None else f"{value:+.1f}%"
-
-
-def build_report(current: dict, previous: dict | None, cpu_threshold: float, mem_threshold: float) -> str:
-    """比较同构建配置的 CPU/内存指标；配置变化时输出重建基线的概览。"""
-    lines: list[str] = []
-    lines.append("# Benchmark 跨日对比")
-    lines.append("")
-
-    # 切换发布配置后重新建立基线，不把优化、profiler 或 sanitizer 差异误报为代码性能变化。
-    if previous is not None:
-        current_profile = current.get("context", {}).get("ci_build_profile")
-        previous_profile = previous.get("context", {}).get("ci_build_profile")
-        if current_profile != previous_profile:
-            lines.extend(["> 两轮 benchmark 的构建配置不同，本次重新建立基线，不做跨配置性能比较。", ""])
-            previous = None
-
+def build_comparison(current: dict, previous: dict | None, time_threshold: float, memory_threshold: float) -> dict:
+    """只比较同构建配置、同统计类型的代表值。"""
+    reason = "matched" if previous is not None else "missing"
+    if previous is not None and current.get("context", {}).get("ci_build_profile") != previous.get("context", {}).get("ci_build_profile"):
+        previous = None
+        reason = "profile_mismatch"
     current_entries = index_entries(current)
-    if previous is None:
-        lines.append("> 没有可比较的同配置 benchmark 基线，本次仅列出概览，不做对比。")
-        lines.append("")
-        lines.append("| 用例 | 条目 | 时间 (ns) | 变化 |")
-        lines.append("|---|---|---|---|")
-        for (name, kind), entry in sorted(current_entries.items()):
-            ns = _to_ns(entry.get("real_time", 0.0), entry.get("time_unit", "ns"))
-            lines.append(f"| `{name}` | {kind} | {ns:,.0f} | — |")
-        lines.append("")
-        return "\n".join(lines)
-
-    previous_entries = index_entries(previous)
-    rows: list[tuple[str, str, float, float, float | None, str]] = []
-    memory_rows: list[tuple[str, str, float, float, float | None, str]] = []
-    warnings: list[str] = []
-
-    for key, cur in sorted(current_entries.items()):
-        prev = previous_entries.get(key)
-        if prev is None:
-            continue
-        name, kind = key
-        cur_ns = _to_ns(cur.get("real_time", 0.0), cur.get("time_unit", "ns"))
-        prev_ns = _to_ns(prev.get("real_time", 0.0), prev.get("time_unit", "ns"))
-        pct = _percent_change(cur_ns, prev_ns)
-        rows.append((name, kind, cur_ns, prev_ns, pct, ""))
-
-        if pct is not None and abs(pct) >= cpu_threshold:
-            direction = "劣化" if pct > 0 else "改善"
-            warnings.append(f"CPU {direction}: `{name}` ({kind}) {_fmt_pct(pct)}（阈值 {cpu_threshold:g}%）")
-
-        # 内存指标：逐项比对（只在两端都有该计数器时比较）。
+    previous_entries = index_entries(previous) if previous is not None else {}
+    rows, warnings = [], []
+    for name in sorted(set(current_entries) | set(previous_entries)):
+        cur, prev = current_entries.get(name), previous_entries.get(name)
+        compatible = cur is not None and prev is not None and cur["statistic"] == prev["statistic"]
+        current_ns = cur["time_ns"] if cur else None
+        previous_ns = prev["time_ns"] if prev else None
+        pct = _percent_change(current_ns, previous_ns) if compatible else None
+        row = {"name": name, "current_ns": current_ns, "previous_ns": previous_ns,
+               "comparable": compatible,
+               "current_statistic": cur["statistic"] if cur else None,
+               "previous_statistic": prev["statistic"] if prev else None,
+               "change_pct": pct, "memory": []}
+        if pct is not None and abs(pct) >= time_threshold:
+            warnings.append({"kind": "real_time", "name": name, "change_pct": pct})
         for counter in _MEMORY_COUNTERS:
-            if counter not in cur or counter not in prev:
+            if not compatible or counter not in cur["memory"] or counter not in prev["memory"]:
                 continue
-            cur_mem = float(cur[counter])
-            prev_mem = float(prev[counter])
-            mem_pct = _percent_change(cur_mem, prev_mem)
-            memory_rows.append((f"{name} :: {counter}", kind, cur_mem, prev_mem, mem_pct, ""))
-            if mem_pct is not None and abs(mem_pct) >= mem_threshold:
-                direction = "劣化" if mem_pct > 0 else "改善"
-                warnings.append(
-                    f"内存 {direction}: `{name}` 的 `{counter}` ({kind}) {_fmt_pct(mem_pct)}"
-                    f"（阈值 {mem_threshold:g}%）"
-                )
-
-    if warnings:
-        lines.append(f"## ⚠️ 超过阈值的项（{len(warnings)}）")
-        lines.append("")
-        lines.append("以下项的变化幅度超过阈值。**这不代表一定是性能回归**——托管 runner 每次是"
-                     "全新实例，单晚差异可能来自机器噪声。判定回归请结合连续多晚趋势。")
-        lines.append("")
-        for warning in warnings:
-            lines.append(f"- {warning}")
-        lines.append("")
-    else:
-        lines.append("## ✅ 无超过阈值的项")
-        lines.append("")
-        lines.append(f"所有用例的变化幅度均在 CPU {cpu_threshold:g}% / 内存 {mem_threshold:g}% 以内。")
-        lines.append("")
-
-    lines.append("## CPU 时间对比（real_time，已归一化到纳秒）")
-    lines.append("")
-    lines.append("| 用例 | 条目 | 上次 (ns) | 本次 (ns) | 变化 |")
-    lines.append("|---|---|---|---|---|")
-    for name, kind, cur_ns, prev_ns, pct, _ in rows:
-        lines.append(f"| `{name}` | {kind} | {prev_ns:,.0f} | {cur_ns:,.0f} | {_fmt_pct(pct)} |")
-    lines.append("")
-
-    if memory_rows:
-        lines.append("## 内存指标对比")
-        lines.append("")
-        lines.append("| 用例 :: 指标 | 条目 | 上次 | 本次 | 变化 |")
-        lines.append("|---|---|---|---|---|")
-        for name, kind, cur_mem, prev_mem, pct, _ in memory_rows:
-            lines.append(f"| `{name}` | {kind} | {prev_mem:,.0f} | {cur_mem:,.0f} | {_fmt_pct(pct)} |")
-        lines.append("")
-
-    only_current = sorted(set(current_entries) - set(previous_entries))
-    only_previous = sorted(set(previous_entries) - set(current_entries))
-    if only_current or only_previous:
-        lines.append("## 用例增减")
-        lines.append("")
-        for key in only_current:
-            lines.append(f"- 新增：`{key[0]}` ({key[1]})")
-        for key in only_previous:
-            lines.append(f"- 消失：`{key[0]}` ({key[1]})")
-        lines.append("")
-
-    return "\n".join(lines)
+            change = _percent_change(cur["memory"][counter], prev["memory"][counter])
+            row["memory"].append({"counter": counter, "current": cur["memory"][counter],
+                                  "previous": prev["memory"][counter], "change_pct": change})
+            if change is not None and abs(change) >= memory_threshold:
+                warnings.append({"kind": counter, "name": name, "change_pct": change})
+        rows.append(row)
+    errors = [f"{entry.get('name', 'Unknown')}: {entry.get('error_message', 'Benchmark failed')}"
+              for entry in current["benchmarks"] if entry.get("error_occurred")]
+    errors = list(dict.fromkeys(errors))
+    if not current_entries:
+        errors.append("No valid benchmark measurements")
+    return {"schema_version": 1, "status": "error" if errors else "ok", "errors": errors, "baseline_reason": reason,
+            "current_context": current.get("context", {}), "previous_context": previous.get("context", {}) if previous else None,
+            "time_threshold_pct": time_threshold, "memory_threshold_pct": memory_threshold,
+            "rows": rows, "warnings": warnings}
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="跨日 benchmark 对比（仅记录 + 告警，不阻塞）")
-    parser.add_argument("--current", required=True, type=Path, help="本次 results.json")
-    parser.add_argument("--previous", type=Path, default=None, help="上次 results.json（可缺省）")
-    parser.add_argument("--out", type=Path, default=None, help="报告输出路径（缺省写 stdout）")
-    parser.add_argument("--cpu-threshold", type=float, default=10.0, help="CPU 告警阈值（百分比）")
-    parser.add_argument("--mem-threshold", type=float, default=20.0, help="内存告警阈值（百分比）")
+    parser = argparse.ArgumentParser(description="生成跨日 benchmark 图表（仅记录和告警）")
+    parser.add_argument("--current", required=True, type=Path)
+    parser.add_argument("--previous", type=Path)
+    parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--time-threshold", type=float, default=10.0)
+    parser.add_argument("--mem-threshold", type=float, default=20.0)
     args = parser.parse_args(argv)
-
+    if __package__:
+        from .report_plots import plot_benchmark, image_links
+    else:
+        from report_plots import plot_benchmark, image_links
+    if any(not math.isfinite(value) or value < 0 for value in (args.time_threshold, args.mem_threshold)):
+        parser.error("Thresholds must be finite and nonnegative")
     try:
         current = load_results(args.current)
         previous = load_results(args.previous) if args.previous and args.previous.is_file() else None
-        report = build_report(current, previous, args.cpu_threshold, args.mem_threshold)
-    except (OSError, ValueError, KeyError) as exc:
-        # 对比脚本自身的失败不应阻塞 nightly：输出一行说明并正常退出。
-        message = f"# Benchmark 跨日对比\n\n> 对比失败：{exc}\n"
-        if args.out:
-            args.out.write_text(message, encoding="utf-8")
-        else:
-            print(message)
-        return 0
-
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(report, encoding="utf-8")
-    else:
-        print(report)
-    return 0
+        data = build_comparison(current, previous, args.time_threshold, args.mem_threshold)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        data = build_comparison({"benchmarks": []}, None, args.time_threshold, args.mem_threshold)
+        data.update(status="error", errors=[str(exc)])
+        print(f"Benchmark comparison failed: {exc}", file=sys.stderr)
+    data["images"] = plot_benchmark(data, args.out.parent)
+    args.out.write_text("\n\n".join(image_links(data["images"], "")) + "\n", encoding="utf-8")
+    args.out.with_suffix(".json").write_text(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    if data["warnings"]:
+        print(f"::warning::{len(data['warnings'])} benchmark changes exceed the configured thresholds")
+    return 1 if data["status"] == "error" else 0
 
 
 if __name__ == "__main__":

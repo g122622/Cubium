@@ -85,7 +85,7 @@ settings.difficulty.setByName("hard");
 
 超出范围的值会被自动 clamp：
 - `settings.viewDistance.set(100)` → 实际值：32（最大值）
-- `settings.serverPort.set(0)` → 实际值：1（最小值）
+- `serverPort=0` 请求操作系统分配空闲端口；不能钳制为 1，否则普通用户启动会因权限不足失败。
 
 ### 3. 设置文件不存在
 
