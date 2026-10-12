@@ -37,6 +37,7 @@
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gen/SurfaceTestFixture.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -479,25 +480,14 @@ TEST_F(SurfaceRuleParityTest, Overworld_GrassBlockMultiSeed)
 // 恶地生物群系测试
 // ============================================================================
 
-/**
- * @brief 恶地表面应有陶土/红沙
- *
- * 验证恶地家族生物群系（Badlands, ErodedBadlands, WoodedBadlands）
- * 的表面方块包含恶地特有的方块类型。
- *
- * 种子/区块定位：经预扫描确认 seed=100 在 chunk(-6,-6) 整块为 WoodedBadlands（256 列全部命中恶地，
- * 215 列表面为陶土）。直接在此生成即可确定性命中恶地，无需大范围暴力扫描。
- * 原 r=5 暴力扫描（seed=12345）在该种子出生点附近不生成任何恶地，必然 GTEST_SKIP，
- * 从未真正校验过恶地表面规则；同时 121 个 3x3 生成严重超时。改为定向单次生成既快又必定命中。
- */
+// 固定恶地生物群系和石质平台，验证地表规则，避免依赖历史预扫描坐标。
 TEST_F(SurfaceRuleParityTest, Overworld_BadlandsHasTerracotta)
 {
     bool foundBadlandsSurface = false;
-    // 定向生成 seed=100 chunk(-6,-6)（已确认整块为恶地）。
-    auto result = generateOverworld(100, -6, -6);
-    ASSERT_NE(result->centerChunk, nullptr);
+    auto result = mc::test::makeSurfaceTestFixture(100, Biomes::Badlands);
+    ASSERT_NE(result->center, nullptr);
 
-    const auto& chunk = *result->centerChunk;
+    const auto& chunk = *result->center;
 
     for (i32 x = 0; x < 16 && !foundBadlandsSurface; ++x) {
         for (i32 z = 0; z < 16 && !foundBadlandsSurface; ++z) {
@@ -523,33 +513,23 @@ TEST_F(SurfaceRuleParityTest, Overworld_BadlandsHasTerracotta)
         }
     }
 
-    // 定向生成必定命中恶地；若未命中说明恶地生物群系生成或表面规则出现回归。
-    EXPECT_TRUE(foundBadlandsSurface) << "seed=100 chunk(-6,-6) 应为恶地，但未找到恶地表面方块";
+    EXPECT_TRUE(foundBadlandsSurface) << "Badlands surface rule did not produce a badlands surface block";
 }
 
 // ============================================================================
 // 沙漠生物群系测试
 // ============================================================================
 
-/**
- * @brief 沙漠表面应为沙子
- *
- * 种子/区块定位：经预扫描确认 seed=8 在 chunk(2,-6) 含 48 列 Desert 生物群系，表面全部为 SAND
- * （y=64 平坦沙层）。直接在此生成即可确定性命中沙漠，无需大范围暴力扫描。
- * 原 r=8 暴力扫描（seed=98765）在该种子出生点 r=8 内不生成任何沙漠，必然 GTEST_SKIP，
- * 从未真正校验过沙漠表面规则；同时 289 个 3x3 生成（2601 次区块生成）严重超时（>300s CTest 上限）。
- * 改为定向单次生成既快又必定命中，让沙漠表面规则被真正断言而非静默跳过。
- */
+// 固定沙漠输入，要求沙子/砂岩地表契约实际被执行。
 TEST_F(SurfaceRuleParityTest, Overworld_DesertHasSand)
 {
     bool foundDesert = false;
     bool desertHasSand = false;
 
-    // 定向生成 seed=8 chunk(2,-6)（已确认含 48 列沙漠，表面全为沙子）。
-    auto result = generateOverworld(8, 2, -6);
-    ASSERT_NE(result->centerChunk, nullptr);
+    auto result = mc::test::makeSurfaceTestFixture(8, Biomes::Desert);
+    ASSERT_NE(result->center, nullptr);
 
-    const auto& chunk = *result->centerChunk;
+    const auto& chunk = *result->center;
 
     for (i32 x = 0; x < 16 && !foundDesert; ++x) {
         for (i32 z = 0; z < 16 && !foundDesert; ++z) {
@@ -570,8 +550,7 @@ TEST_F(SurfaceRuleParityTest, Overworld_DesertHasSand)
         }
     }
 
-    // 定向生成必定命中沙漠；若未命中说明沙漠生物群系生成或表面规则出现回归。
-    ASSERT_TRUE(foundDesert) << "seed=8 chunk(2,-6) 应含沙漠列，但未找到 Desert 生物群系";
+    ASSERT_TRUE(foundDesert) << "Fixed Desert fixture must contain a desert column";
     EXPECT_TRUE(desertHasSand) << "沙漠表面应为沙子或砂岩";
 }
 
