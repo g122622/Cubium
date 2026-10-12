@@ -171,6 +171,7 @@ build/fuzz 优先按 CMakeCache 中的路径查询实际编译器与链接器，
 因此构建或测试失败时仍能记录，采集失败不会覆盖原任务结论。每个 artifact 中有
 `runner-info.json`，汇总后的完整配置为 `pococc-nightly-report` artifact 中的 `nightly-runners.json`；
 简要报告、完整报告、Actions summary 和失败 issue 均引用相同的图表。
+机器配置与 Benchmark 图表章节默认折叠，展开后查看全部图片。
 benchmark/report 通过 `setup-report-plots` 安装 Matplotlib 与 Noto CJK 字体；图表生成 PNG 和 SVG，
 随报告 artifact 归档，并发布到 `image-data/ci-reports/<run-id>`，使 GitHub 报告可直接渲染图片。
 跳过的任务显示“未运行”，其他没有配置的任务显示“未采集”，损坏的配置单独列出读取错误。

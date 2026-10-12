@@ -21,6 +21,7 @@ ci/
 汇总脚本再读取 artifacts 并决定是否建 issue。绘图依赖 Matplotlib、NumPy 与中文字体，其余 Python 侧依赖标准库；缓存操作依赖
 GitHub CLI，符号化依赖 LLVM 工具和带调试信息的二进制。
 机器配置随各 job 的结果归档；汇总器按任务展示图表，并输出完整的 `nightly-runners.json`。
+机器配置与 Benchmark 图片分别放在默认折叠的章节内，展开后查看。
 PNG/SVG 汇总到 `_report_charts`，由工作流发布到 `image-data/ci-reports/<run-id>` 后供 summary 与 issue 引用。
 
 ## 容易踩的坑

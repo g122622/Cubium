@@ -64,6 +64,11 @@ public:
 
     ~SimulatedPlayer() override = default;
 
+    /**
+     * @brief 记录模拟玩家移除时的生命值、位置及最近伤害来源，便于定位失效脚本句柄
+     */
+    void onRemoval(RemovalReason reason) override;
+
     // 禁拷贝（Player 链已 delete 拷贝）；移动默认
     SimulatedPlayer(const SimulatedPlayer&) = delete;
     SimulatedPlayer& operator=(const SimulatedPlayer&) = delete;

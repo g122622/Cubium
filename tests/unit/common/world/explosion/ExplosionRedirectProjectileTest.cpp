@@ -37,6 +37,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -238,7 +239,7 @@ TEST_F(ExplosionRedirectProjectileTest, Fireball_OwnerPreservedWhenNoExplosionSo
     EXPECT_EQ(fireball.getShooter(), nullptr);
 }
 
-TEST_F(ExplosionRedirectProjectileTest, NonRedirectableEntity_OwnerNotChanged)
+TEST_F(ExplosionRedirectProjectileTest, NonProjectileEntity_SurvivesBlast)
 {
     // 对照测试：非 REDIRECTABLE_PROJECTILE 成员的实体（LivingEntity）被爆炸波及时，
     // 其本身无 shooter 概念，且 _redirectProjectilesInBlast 因 typeId 不在标签内提前返回，
@@ -253,7 +254,8 @@ TEST_F(ExplosionRedirectProjectileTest, NonRedirectableEntity_OwnerNotChanged)
     // 另一个 LivingEntity 作为被波及的非投射物实体（typeId 非 REDIRECTABLE_PROJECTILE）
     TestLivingEntity bystander(EntityInstanceId(4), mc::test::testEcsRegistry());
     bystander.setTypeId("minecraft:zombie"); // 非 REDIRECTABLE_PROJECTILE 成员
-    bystander.setPosition(0.5f, 64.0f, 0.0f);
+    // 位于八格影响半径的边缘，仍受爆炸伤害但不会被炸死，便于观察非投射物行为。
+    bystander.setPosition(7.5f, 64.0f, 0.0f);
     bystander.setWorld(&m_world);
     m_world.registerEntity(&bystander);
     m_world.setEntities({&source, &bystander});
@@ -264,6 +266,36 @@ TEST_F(ExplosionRedirectProjectileTest, NonRedirectableEntity_OwnerNotChanged)
     // 非投射物实体不受归属改写影响（无 shooter 概念，仅验证不崩溃、标签门控正确）
     // bystander 仍存活且未受 setShooter 影响（LivingEntity 无该方法）
     EXPECT_TRUE(bystander.isAlive());
+    EXPECT_LT(bystander.health(), bystander.maxHealth());
+}
+
+TEST_F(ExplosionRedirectProjectileTest, NonRedirectableProjectile_OwnerNotChanged)
+{
+    TestLivingEntity originalOwner(EntityInstanceId(1), mc::test::testEcsRegistry());
+    originalOwner.setWorld(&m_world);
+    m_world.registerEntity(&originalOwner);
+
+    TestLivingEntity explosionSource(EntityInstanceId(2), mc::test::testEcsRegistry());
+    explosionSource.setPosition(0.0f, 64.0f, 0.0f);
+    explosionSource.setWorld(&m_world);
+    m_world.registerEntity(&explosionSource);
+
+    entity::ArrowEntity arrow(EntityInstanceId(3), mc::test::testEcsRegistry());
+    arrow.setTypeId(entity::EntityTypeKeys::ARROW);
+    arrow.setPosition(0.5f, 64.0f, 0.0f);
+    arrow.setWorld(&m_world);
+    m_world.registerEntity(&arrow);
+    arrow.setShooter(&originalOwner);
+    ASSERT_EQ(arrow.getShooter(), &originalOwner);
+    ASSERT_FALSE(EntityTypeTags::REDIRECTABLE_PROJECTILE().contains(arrow.getTypeId()));
+    m_world.setEntities({&explosionSource, &arrow});
+
+    Explosion explosion(m_world, m_explosionPos, 4.0f, ExplosionMode::None, false, &explosionSource);
+    explosion.explode();
+
+    // 箭实际受到爆炸击退，但不在归属改写标签内，必须保留原发射者。
+    EXPECT_GT(arrow.velocityX(), 0.0f);
+    EXPECT_EQ(arrow.getShooter(), &originalOwner);
 }
 
 // ============================================================================

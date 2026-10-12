@@ -348,6 +348,11 @@ def _report_assets(artifacts_dir: Path, run_url: str) -> tuple[Path, str]:
     return directory, base
 
 
+def _chart_section(title: str, links: list[str]) -> str:
+    """图表章节默认折叠；保留空行使 GitHub 正确渲染内部图片。"""
+    return "\n\n".join([f"<details><summary>{title}</summary>", *links, "</details>"])
+
+
 def read_benchmark_report(artifacts_dir: Path, run_url: str) -> str:
     """把基准产物中的图表复制到报告资产目录，生成图片引用。"""
     if __package__:
@@ -378,7 +383,7 @@ def read_benchmark_report(artifacts_dir: Path, run_url: str) -> str:
                 from report_plots import plot_benchmark
             names = plot_benchmark({"status": "error", "rows": [],
                                     "errors": [f"Cannot read benchmark report: {exc}"]}, directory)
-        return "\n\n".join(image_links(names, base))
+        return _chart_section("Benchmark 跨日对比与实际耗时（纳秒）", image_links(names, base))
     return ""
 
 
@@ -425,7 +430,7 @@ def runner_info_section(job_status: dict[str, str], artifacts_dir: Path, run_url
         images = plot_runners(data, directory)
         cache.write_text(serialized, encoding="utf-8")
         manifest.write_text(json.dumps(images) + "\n", encoding="utf-8")
-    return image_links(images, base) + [""]
+    return [_chart_section("各任务机器配置", image_links(images, base)), ""]
 
 
 def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
