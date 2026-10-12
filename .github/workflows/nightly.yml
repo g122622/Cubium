@@ -442,7 +442,7 @@ jobs:
     env:
       POCOCC_CI_ARTIFACT_PREFIX: pococc-${{ matrix.pool }}-
   unit-tests:
-    name: Unit Tests (CTest shard ${{ matrix.shard }}/8)
+    name: Unit Tests (CTest shard ${{ matrix.shard }}/20)
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 300
@@ -481,16 +481,16 @@ jobs:
         run: |
           first=$((SHARD + 1))
           ctest --test-dir build --build-config RelWithDebInfo --show-only=json-v1 > ctest-inventory.json
-          ctest --test-dir build --build-config RelWithDebInfo -I "$first,,8" --show-only=json-v1 > ctest-selected.json
+          ctest --test-dir build --build-config RelWithDebInfo -I "$first,,20" --show-only=json-v1 > ctest-selected.json
           python3 scripts/ci/record_ctest_partition.py --all ctest-inventory.json --selected ctest-selected.json \
-            --index "$SHARD" --count 8 --out ctest-partition.json
+            --index "$SHARD" --count 20 --out ctest-partition.json
       - name: Run unit tests
         run: |
           set +e
           first=$((SHARD + 1))
           cd build
           # --output-junit 产出机器可读的失败清单（report job 的汇总脚本依赖它）。
-          ctest --build-config RelWithDebInfo -I "$first,,8" \
+          ctest --build-config RelWithDebInfo -I "$first,,20" \
                 --output-on-failure \
                 --output-junit ../ctest-results.xml \
                 --timeout 300 \
@@ -519,19 +519,11 @@ jobs:
             ctest-partition.json
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 20
       matrix:
-        shard:
-          - 0
-          - 1
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
   integrated-tests:
-    name: Integrated Tests (GameTest shard ${{ matrix.shard }}/24)
+    name: Integrated Tests (GameTest shard ${{ matrix.shard }}/10)
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -565,7 +557,7 @@ jobs:
         timeout-minutes: 32
         run: |
           set +e
-          node scripts/test/run-gametests.ts --partition="$SHARD/24" 2>&1 | tee integrated-tests.log
+          node scripts/test/run-gametests.ts --partition="$SHARD/10" 2>&1 | tee integrated-tests.log
           code=${PIPESTATUS[0]}
           echo "run-gametests exit code: ${code}"
           if [ "${code}" -ne 0 ] && [ "${code}" -ne 1 ]; then
@@ -601,33 +593,9 @@ jobs:
             runner-info.json
     strategy:
       fail-fast: false
-      max-parallel: 8
+      max-parallel: 10
       matrix:
-        shard:
-          - 0
-          - 1
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          - 11
-          - 12
-          - 13
-          - 14
-          - 15
-          - 16
-          - 17
-          - 18
-          - 19
-          - 20
-          - 21
-          - 22
-          - 23
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   e2e-tests:
     name: E2E Bot Tests (Cubium regress)
     needs: build
@@ -790,11 +758,11 @@ jobs:
       - name: Verify complete GameTest partition coverage
         if: always()
         run: |
-          python3 scripts/ci/verify_test_coverage.py --kind gametest --directory artifacts --shards 24 --out pococc-gametest-coverage.json
+          python3 scripts/ci/verify_test_coverage.py --kind gametest --directory artifacts --shards 10 --out pococc-gametest-coverage.json
       - name: Verify complete CTest partition coverage
         if: always()
         run: |
-          python3 scripts/ci/verify_test_coverage.py --kind ctest --directory artifacts --shards 8 --out pococc-ctest-coverage.json
+          python3 scripts/ci/verify_test_coverage.py --kind ctest --directory artifacts --shards 20 --out pococc-ctest-coverage.json
       - name: Generate summary
         if: always()
         id: summary
@@ -843,11 +811,11 @@ jobs:
           mv combined-full-report.md nightly-report-full.md
           if [ -s pococc-gametest-coverage.json ]; then
             count=$(jq -r '.registered_tests' pococc-gametest-coverage.json)
-            printf '\nGameTest coverage: %s registered tests partitioned exactly once across 24 shards (at most 8 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
+            printf '\nGameTest coverage: %s registered tests partitioned exactly once across 10 shards (at most 10 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
           fi
           if [ -s pococc-ctest-coverage.json ]; then
             count=$(jq -r '.registered_tests' pococc-ctest-coverage.json)
-            printf '\nCTest coverage: %s registered tests partitioned exactly once across 8 shards (at most 4 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
+            printf '\nCTest coverage: %s registered tests partitioned exactly once across 20 shards (at most 20 in parallel).\n' "$count" | tee -a nightly-report.md nightly-report-full.md
           fi
           exit "$performance_status"
       - name: Publish report chart assets

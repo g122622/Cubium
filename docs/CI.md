@@ -6,12 +6,14 @@ nightly.yml 使用固定提交的 pococc 和 Clang 22，保留完整测试、发
 34 个 worker 分为 test/release/fuzz 三个池，分别为 24/4/6 个节点，每节点四个槽位，
 分别提供 96/16/24 个远端槽位。Ninja 并行度由槽位数加两个本地任务动态计算，为 98/18/26。
 三个协调节点与 worker 同时运行，编译阶段共需 37 个并发 job。
+测试执行阶段单元测试分为 20 片、最多 20 台并行，每台 CTest 并发两个用例；
+GameTest 分为 10 片、最多 10 台并行。报告分别核验 20/10 片无遗漏、无重复。
 worker 矩阵的 `max-parallel=34` 允许全部编译节点同时启动；不能沿用旧值 32，
 否则前排节点等待协调节点结束、后排节点排队，协调节点等待缺失连接信息直至超时。
 ccache 命中直接返回对象文件，未命中经 pococc/distcc 分发；协调节点预处理和链接，
 worker 通过经过 SSH 认证的临时隧道编译。PCH、modules 扫描和 native CPU 均关闭。
 
-CTest 分为 8 片（最多 4 片并行），GameTest 分为 24 片（最多 8 片并行）。
+CTest 分为 20 片（最多 20 片并行），GameTest 分为 10 片（最多 10 片并行）。
 汇总校验每个登记项恰好分配一次，并记录远端执行、并行峰值、CPU、压缩载荷和本轮缓存命中率。
 ccache/vcpkg 使用持久缓存，各 ccache 范围保存后保留最新一份，容量紧张时清理旧 Nightly 缓存。
 
@@ -64,8 +66,8 @@ fuzz ──（独立，自行构建）
 | `workers` | 34 个临时编译节点，真实编译探针和性能采集 | 是 |
 | `build` | `linux-clang-ci-tests`，RelWithDebInfo + ASan/UBSan，仅供测试 | 是 |
 | `release-build` | `linux-clang-ci-release`，Release、无调试信息/profiler/sanitizer，公开发布 | 是 |
-| `unit-tests` | `ctest` 全量单元测试，8 片、最多 4 片并行 | **否**（仅归档） |
-| `integrated-tests` | `scripts/test/run-gametests.ts`，24 片、最多 8 片并行（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
+| `unit-tests` | `ctest` 全量单元测试，20 片、最多 20 片并行 | **否**（仅归档） |
+| `integrated-tests` | `scripts/test/run-gametests.ts`，10 片、最多 10 片并行（含失败隔离重跑） | 用例失败不阻塞；超时、崩溃、报告错误阻塞 |
 | `e2e-tests` | `tests/e2e/bot` 的 `regress` 模式（仅 Cubium，不与 vanilla 双跑） | 是 |
 | `fuzz` | 9 个 libFuzzer 目标各 `-max_total_time=300` | 是（崩溃/OOM 即失败） |
 | `benchmark` | 独立机器执行 release-build 的 `mc_benchmark` 与服务端，与相同构建配置的上次结果对比 | **否**（仅记录 + 告警） |
