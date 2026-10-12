@@ -55,3 +55,5 @@ IScriptBindingContext (抽象接口)
 4. **ClassRegistrar模板参数**：`ClassRegistrar<T>`的`wrap`方法使用`typeid(T).name()`作为类型名，确保T是多态类型或具有正确的type_info。
 
 5. **实体编号不是进程级身份**：不同维度独立分配 `EntityInstanceId`，未入册的临时实体也可能同号。脚本句柄必须按实际实体对象地址登记和失效；按编号分组会错误清空其他仍存活实体的句柄。单对象 `invalidate` 可能先清空 `ptr`，GC 注销须通过 `ObjectData` 本身定位记录。
+
+6. **实体访问线程**：包装、解包和实体生命周期操作在所属游戏线程执行，脚本 tick 与世界 tick 顺序调用。注册表互斥锁仅保护容器，不赋予裸实体指针跨线程寿命保证。

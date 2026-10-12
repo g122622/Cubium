@@ -216,7 +216,8 @@ build-fuzz/bin/fuzz/RelWithDebInfo/fuzz_java_codec_sb \
 ./build/bin/RelWithDebInfo/mc_benchmark --benchmark_repetitions=3
 python3 scripts/ci/compare_benchmark.py \
   --current benchmark_results/<本次时间戳>/results.json \
-  --previous <上次的 results.json>
+  --previous <上次的 results.json> \
+  --out benchmark-report/benchmark-compare.md
 ```
 
 ### 相关脚本

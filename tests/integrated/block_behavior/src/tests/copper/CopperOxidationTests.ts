@@ -98,6 +98,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { asDim } from "../../utils/script/cubiumExtensions.js";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // 测试铜方块位置（light_box 内部）。
@@ -130,11 +131,12 @@ function exposedCopperOxidizesToWeathered(test: Test): void {
     test.setBlockType("minecraft:exposed_copper", copper);
     test.setBlockType("minecraft:exposed_copper", { x: 2, y: 1, z: 3 });
     test.setBlockType("minecraft:copper_block", { x: 6, y: 1, z: 3 });
-    const dimension = test.getDimension() as any;
+    const dimension = asDim(test.getDimension());
     const previousSpeed = dimension.getGameRule("randomTickSpeed");
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat("/gamerule randomTickSpeed 10000");
     const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+    (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(restoreRandomTicks);
+    player.chat("/gamerule randomTickSpeed 10000");
 
     pollUntilSucceed(
         test,

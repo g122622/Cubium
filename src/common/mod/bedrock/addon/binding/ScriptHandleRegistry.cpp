@@ -36,10 +36,10 @@ ScriptHandleRegistry& ScriptHandleRegistry::instance() noexcept
 
 void ScriptHandleRegistry::registerHandle(ScriptObjectRegistry::ObjectData* data) noexcept
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (data == nullptr || data->ptr == nullptr) {
         return;
     }
-    std::lock_guard<std::mutex> lock(m_mutex);
     m_handles[data->ptr].push_back(data);
 }
 

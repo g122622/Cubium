@@ -57,8 +57,9 @@ def index_entries(data: dict) -> dict[str, dict]:
         times = [_to_ns(entry["real_time"], entry.get("time_unit", "ns")) for entry in entries]
         memory = {}
         for counter in _MEMORY_COUNTERS:
-            values = [float(entry[counter]) for entry in entries if counter in entry]
-            if values and all(math.isfinite(value) for value in values):
+            values = [float(value) for entry in entries if isinstance(value := entry.get(counter), (int, float))
+                      and not isinstance(value, bool) and math.isfinite(value)]
+            if values:
                 memory[counter] = statistics.median(values)
         result[name] = {"time_ns": statistics.median(times), "memory": memory,
                         "statistic": "mean" if kind == "mean" else "median"}

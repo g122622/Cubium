@@ -84,6 +84,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { asDim } from "../../utils/script/cubiumExtensions.js";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // 蘑菇位置（light_box 运行时 air 区域 y=3 中心）。
@@ -147,11 +148,12 @@ function countSpreadMushrooms(test: Test): number {
 // 守卫允许棕色蘑菇自身的一级方块光，并要求天空光为零。
 function mushroomSpreadsInDark(test: Test): void {
     placeMushroomAndSupports(test);
-    const dimension = test.getDimension() as any;
+    const dimension = asDim(test.getDimension());
     const previousSpeed = dimension.getGameRule("randomTickSpeed");
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    player.chat("/gamerule randomTickSpeed 10000");
     const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+    (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(restoreRandomTicks);
+    player.chat("/gamerule randomTickSpeed 10000");
 
     // 随机游走可以落在下层地板或斜邻位置，观察整个合法邻域，排除原始蘑菇。
     const countNewMushrooms = () => {

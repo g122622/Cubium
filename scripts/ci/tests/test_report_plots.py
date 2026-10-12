@@ -24,6 +24,9 @@ class ReportPlotTest(unittest.TestCase):
                                                          ("stddev", 50, "time"), ("cv", .25, "percentage")]]}
         self.assertEqual(list(comparison.index_entries(data)), ["Case"])
         self.assertEqual(comparison.index_entries(data)["Case"]["time_ns"], 200)
+        excluded = {"benchmarks": [entry for entry in data["benchmarks"]
+                                    if entry["aggregate_name"] in ("stddev", "cv")]}
+        self.assertEqual(comparison.index_entries(excluded), {})
 
     def test_zero_baseline_and_different_statistics_have_no_false_percentage(self):
         current = {"context": {"ci_build_profile": "same"}, "benchmarks": [
@@ -48,11 +51,21 @@ class ReportPlotTest(unittest.TestCase):
             images = plots.plot_benchmark(data, Path(temporary))
             self.assertIn("benchmark-error.png", images)
             self.assertIn("benchmark-times-01.png", images)
+            svg = (Path(temporary) / "benchmark-error.svg").read_text(encoding="utf-8")
+            self.assertIn("Startup: bind failed", svg)
 
     def test_invalid_time_cannot_be_reported_as_a_valid_measurement(self):
         for value in (True, -1, float("inf"), float("nan")):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 comparison.index_entries({"benchmarks": [{"name": "Case", "real_time": value}]})
+
+    def test_invalid_optional_counters_do_not_discard_valid_timings(self):
+        for value in (None, True, "invalid", float("inf"), float("nan")):
+            with self.subTest(value=value):
+                entry = comparison.index_entries({"benchmarks": [
+                    {"name": "Case", "real_time": 20, "max_bytes_used": value, "num_allocs": 5}]})["Case"]
+                self.assertEqual(entry["time_ns"], 20)
+                self.assertEqual(entry["memory"], {"num_allocs": 5})
 
     def test_worker_matrix_is_preserved_and_runtime_snapshots_are_not_double_counted(self):
         def info(job, captured, artifact):

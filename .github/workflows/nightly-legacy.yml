@@ -797,7 +797,7 @@ jobs:
 
       - name: Publish report chart assets
         if: always()
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           publish_dir: ./artifacts/_report_charts
           destination_dir: ci-reports/${{ github.run_id }}

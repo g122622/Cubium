@@ -236,6 +236,14 @@ class SummarizeFailuresTest(unittest.TestCase):
             json.dumps({"status": "error", "errors": ["bind failed"]}), encoding="utf-8")
         self.assertTrue(summary.has_failures({"benchmark": "success"}, self.artifacts))
 
+    def test_corrupt_benchmark_manifest_keeps_the_full_failure_report(self):
+        self.write_report("ctest-results.xml", '<testcase name="ActualFailure"><failure/></testcase>')
+        (self.artifacts / "benchmark-compare.json").write_text("{broken", encoding="utf-8")
+        body = summary.build_body({}, self.artifacts, "https://github.com/g122622/Cubium/actions/runs/1", "main", "abc", False)
+        self.assertIn("ActualFailure", body)
+        self.assertIn("/image-data/ci-reports/1/benchmark-error.png", body)
+        self.assertTrue(summary.has_failures({}, self.artifacts))
+
     def test_sanitizer_error_in_skipped_case_still_fails_report(self):
         """用例跳过不能掩盖进程结束时的 sanitizer 错误。"""
         self.write_report("ctest-results.xml", '<testcase name="Skipped"><skipped/>'

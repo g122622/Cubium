@@ -358,16 +358,26 @@ def read_benchmark_report(artifacts_dir: Path, run_url: str) -> str:
     for path in artifacts_dir.rglob("benchmark-compare.json"):
         if directory in path.parents:
             continue
-        data = json.loads(path.read_text(encoding="utf-8"))
-        names = data.get("images", [])
-        directory.mkdir(parents=True, exist_ok=True)
-        for name in names:
-            if not isinstance(name, str) or not re.fullmatch(r"benchmark-[a-z0-9-]+\.png", name):
-                raise ValueError("Invalid benchmark chart filename")
-            shutil.copy2(path.parent / name, directory / name)
-            svg = Path(name).with_suffix(".svg")
-            shutil.copy2(path.parent / svg, directory / svg)
-        shutil.copy2(path, directory / "benchmark-compare.json")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            names = data["images"]
+            if not isinstance(names, list) or not names:
+                raise ValueError("Benchmark chart manifest is empty or invalid")
+            directory.mkdir(parents=True, exist_ok=True)
+            for name in names:
+                if not isinstance(name, str) or not re.fullmatch(r"benchmark-[a-z0-9-]+\.png", name):
+                    raise ValueError("Invalid benchmark chart filename")
+                shutil.copy2(path.parent / name, directory / name)
+                svg = Path(name).with_suffix(".svg")
+                shutil.copy2(path.parent / svg, directory / svg)
+            shutil.copy2(path, directory / "benchmark-compare.json")
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            if __package__:
+                from .report_plots import plot_benchmark
+            else:
+                from report_plots import plot_benchmark
+            names = plot_benchmark({"status": "error", "rows": [],
+                                    "errors": [f"Cannot read benchmark report: {exc}"]}, directory)
         return "\n\n".join(image_links(names, base))
     return ""
 
@@ -441,7 +451,15 @@ def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
     if collect_sanitizer_failures(artifacts_dir):
         return True
     for path in artifacts_dir.rglob("benchmark-compare.json"):
-        if json.loads(path.read_text(encoding="utf-8")).get("status") != "ok":
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if data.get("status") != "ok":
+                return True
+            directory = path.parent
+            if not data.get("images") or any(not (directory / name).is_file() or
+                    not (directory / Path(name).with_suffix(".svg")).is_file() for name in data["images"]):
+                return True
+        except (OSError, ValueError, TypeError, AttributeError):
             return True
     return False
 

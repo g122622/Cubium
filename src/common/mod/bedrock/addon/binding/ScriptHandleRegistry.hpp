@@ -59,7 +59,8 @@ namespace mc::mod::bedrock::addon {
  * - 实体销毁调 `invalidateAll(entity)`：按实际对象地址遍历 data*，置 `ptr=nullptr`
  * 后移除记录；实体编号可在不同世界重复。
  *
- * 线程安全：JS 回调（finalizer）与游戏侧 remove/析构可能并发访问注册表，内部 `std::mutex` 串行化。
+ * 线程约束：包装、解包与实体访问必须在所属游戏线程执行；该线程依次驱动实体和脚本 tick。
+ * 内部 `std::mutex` 保护注册表容器，不能延长实体寿命，也不允许跨线程包装正在销毁的裸指针。
  *
  * 与 `ScriptClassRegistry` 同层（addon/binding，仅依赖 core），可被 core 层
  * （`EntityManager`/`Entity`）引用——与既有 core→addon/component（`BlockComponentEvents`）跨层
@@ -98,7 +99,7 @@ public:
     void invalidateAll(const void* entity) noexcept;
 
     /**
-     * @brief 清空所有条目（脚本引擎重建/进程退出用，对齐 ScriptClassRegistry::clear 时机）。
+     * @brief 清空所有条目（脚本引擎重建/进程退出用，与 ScriptClassRegistry::clear 同时执行）。
      */
     void clear() noexcept;
 
