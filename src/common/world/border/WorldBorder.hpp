@@ -191,14 +191,14 @@ public:
 class WorldBorder {
 public:
     /**
-     * @brief 世界最大边界大小（3000万格）
+     * @brief 世界边界最大直径
      */
-    static constexpr f64 MAX_SIZE = 2.9999872E7;
+    static constexpr f64 MAX_SIZE = 59'999'968.0;
 
     /**
      * @brief 默认构造函数
      *
-     * 初始化边界为中心 (0, 0)，大小 6000 万格。
+     * 初始化边界为中心 (0, 0)，直径为 MAX_SIZE。
      */
     WorldBorder();
 
@@ -441,8 +441,8 @@ public:
     struct SerializedData {
         f64 centerX = 0.0;
         f64 centerZ = 0.0;
-        f64 size = 6.0E7;
-        f64 targetSize = 6.0E7;
+        f64 size = MAX_SIZE;
+        f64 targetSize = MAX_SIZE;
         u64 timeUntilTarget = 0; // 过渡剩余时间（毫秒）
         f64 damagePerBlock = 0.2;
         f64 damageBuffer = 5.0;
@@ -482,8 +482,8 @@ private:
     f64 m_centerZ = 0.0;        // 边界中心 Z
     f64 m_damagePerBlock = 0.2; // 每格伤害量
     f64 m_damageBuffer = 5.0;   // 伤害缓冲距离
-    i32 m_warningTime = 15;        // 警告时间（秒）
-    i32 m_warningDistance = 5;     // 警告距离（格）
+    i32 m_warningTime = 15;     // 警告时间（秒）
+    i32 m_warningDistance = 5;  // 警告距离（格）
 
     std::unique_ptr<IBorderState> m_state;                   // 边界状态（静止/移动）
     std::vector<std::weak_ptr<IBorderListener>> m_listeners; // 监听器列表

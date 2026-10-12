@@ -91,6 +91,11 @@ function worldborderSetSize(test: Test): void {
     const b = getBorder();
     test.assert(b.size === 100, `size should be 100, got ${b.size}`);
 
+    // 恢复默认直径也必须能经命令生效，不能只验证缩小命令成功。
+    restoreBorder(player, initial);
+    test.assert(getBorder().size === initial.size,
+      `border restore failed: expected ${initial.size}, got ${getBorder().size}`);
+
     test.succeed();
 }
 

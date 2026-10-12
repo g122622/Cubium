@@ -43,7 +43,7 @@ protected:
 TEST_F(WorldBorderTest, DefaultValues)
 {
     // 默认边界大小为 6000 万格
-    EXPECT_DOUBLE_EQ(border->getSize(), 6.0E7);
+    EXPECT_DOUBLE_EQ(border->getSize(), WorldBorder::MAX_SIZE);
     EXPECT_DOUBLE_EQ(border->getCenterX(), 0.0);
     EXPECT_DOUBLE_EQ(border->getCenterZ(), 0.0);
     EXPECT_DOUBLE_EQ(border->getDamagePerBlock(), 0.2);
@@ -62,6 +62,20 @@ TEST_F(WorldBorderTest, SetSize)
     // 设置大小应该被限制在最大值
     border->setSize(1.0E10);
     EXPECT_DOUBLE_EQ(border->getSize(), WorldBorder::MAX_SIZE);
+}
+
+TEST_F(WorldBorderTest, DefaultSizeSurvivesSetterAndSerialization)
+{
+    const auto initial = border->serialize();
+    EXPECT_DOUBLE_EQ(initial.size, 59'999'968.0);
+    border->setSize(100.0);
+    border->setSize(initial.size);
+    EXPECT_DOUBLE_EQ(border->getSize(), initial.size);
+
+    WorldBorder restored;
+    restored.deserialize(initial);
+    EXPECT_DOUBLE_EQ(restored.getSize(), initial.size);
+    EXPECT_DOUBLE_EQ(WorldBorder::SerializedData{}.size, initial.size);
 }
 
 TEST_F(WorldBorderTest, SetCenter)
