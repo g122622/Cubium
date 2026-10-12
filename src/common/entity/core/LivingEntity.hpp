@@ -153,6 +153,11 @@ public:
     void setHealth(f32 health);
 
     /**
+     * @brief 派生类构造完成后按最大生命值完成一次初始化，保留已显式设置或加载的生命值
+     */
+    void initializeHealth();
+
+    /**
      * @brief 获取吸收伤害值（金苹果效果）
      */
     [[nodiscard]] f32 absorptionAmount() const

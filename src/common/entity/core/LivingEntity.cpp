@@ -163,9 +163,8 @@ LivingEntity::LivingEntity(EntityInstanceId id, IWorld* world, ecs::EntityRegist
     // 注意：此处 registerAttributes() 因 C++ 基类构造期虚函数不派发到派生类（vtable
     // 此时仍是 LivingEntity 的），仅注册基类默认属性（MAX_HEALTH 默认 20.0）。派生类
     // 构造体须显式再次调用 registerAttributes() 设实体专属值（如 chicken=4.0/fox=10.0）。
-    // 初始生命值同步至 maxHealth 在 tick() 首帧兜底执行（见 tick 开头 HealthComponent.m_healthSynced），
-    // 因派生类 registerAttributes 时序晚于 LivingEntity 构造，此处 setHealth 无法拿到
-    // 派生类 MAX_HEALTH。
+    // 派生类 registerAttributes 时序晚于基类构造，此处尚不能取得最终 MAX_HEALTH。
+    // EntityType 工厂在构造完成后初始化生命值；直接构造的对象由受伤或首次 tick 入口初始化。
     registerAttributes();
 }
 
@@ -201,6 +200,14 @@ f32 LivingEntity::maxHealth() const
     return static_cast<f32>(attributes().getValue(entity::attribute::Attributes::MAX_HEALTH, 20.0));
 }
 
+void LivingEntity::initializeHealth()
+{
+    auto& healthState = m_entityContext->getComponent<ecs::HealthComponent>();
+    if (!healthState.m_healthSynced) {
+        setHealth(maxHealth());
+    }
+}
+
 void LivingEntity::setHealth(f32 health)
 {
     f32 max = maxHealth();
@@ -234,6 +241,8 @@ void LivingEntity::heal(f32 amount)
 
 bool LivingEntity::hurt(DamageSource& source, f32 amount)
 {
+    // 直接构造的实体也可能在首次 tick 前受伤，必须先确定派生类的满血基线。
+    initializeHealth();
     // 1. 检查是否对伤害类型免疫
     if (isInvulnerableTo(source)) {
         return false;
@@ -1546,15 +1555,8 @@ void LivingEntity::tick()
 {
     Entity::tick();
 
-    // 首帧生命值同步：构造期 registerAttributes 因虚函数时序拿不到派生类 MAX_HEALTH
-    // （如 chicken=4.0），m_health 停在默认 20.0 违反 health<=maxHealth 不变式，致
-    // hurt 的扣血在超 max 基线上扣除，实体"打不死"。此处兜底同步。
-    // 对齐 vanilla LivingEntity 构造末尾 setHealth(getMaxHealth())。
-    auto* healthState = m_entityContext->tryGetComponent<ecs::HealthComponent>();
-    if (healthState != nullptr && !healthState->m_healthSynced) {
-        healthState->m_healthSynced = true;
-        setHealth(maxHealth());
-    }
+    // 工厂与受伤入口已提前初始化；保留直接构造后首次 tick 的入口。
+    initializeHealth();
 
     // 更新使用中的物品
     // 对应 MC 1.21.11 LivingEntity.tick() 中的 this.updatingUsingItem()

@@ -23,6 +23,7 @@
 
 #include "EntityType.hpp"
 #include "Entity.hpp"
+#include "LivingEntity.hpp"
 #include "common/entity/tag/EntityTypeTag.hpp"
 #include <memory>
 
@@ -44,6 +45,10 @@ std::unique_ptr<Entity> EntityType::create(IWorld* world, ecs::EntityRegistry& r
     auto entity = m_factory(world, registry);
     if (entity) {
         entity->setTypeId(m_name);
+        // 派生类属性已完整注册，实体交给世界或脚本前就必须处于正确的满血状态。
+        if (auto* living = dynamic_cast<LivingEntity*>(entity.get())) {
+            living->initializeHealth();
+        }
     }
     return entity;
 }

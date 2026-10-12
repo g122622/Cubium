@@ -76,10 +76,10 @@ function villagerBreedsAfterPickingUpBread(test: Test): void {
     test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 4 }); // A 侧墙
     test.setBlockType("minecraft:glass", { x: 5, y: 2, z: 2 }); // B 侧墙
     test.setBlockType("minecraft:glass", { x: 5, y: 2, z: 4 }); // B 侧墙
-    // 封顶遮光双保险（防 daylight cycle 光照变化干扰，非必需）。
-    test.setBlockType("minecraft:stone", { x: 3, y: 3, z: 3 });
-    test.setBlockType("minecraft:stone", { x: 4, y: 3, z: 3 });
-    test.setBlockType("minecraft:stone", { x: 5, y: 3, z: 3 });
+    // 留出两格净高，避免屋顶穿过成年村民头部并阻止寻路。
+    test.setBlockType("minecraft:stone", { x: 3, y: 4, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 4, y: 4, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 5, y: 4, z: 3 });
 
     // 两村民相距 2 格（distSq=4 <= BREED_DISTANCE_SQ=4 在繁殖距离内，<8 格检测范围）。
     // 脚下 y=1 grass_block 支撑防下落。

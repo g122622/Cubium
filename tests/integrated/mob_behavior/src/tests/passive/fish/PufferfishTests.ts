@@ -60,55 +60,14 @@ function pufferfishPuffsWhenPlayerNear(test: Test): void {
   });
 }
 
-// 河豚膨胀状态下接触 Mob 会造成伤害并施加中毒（wiki other_河豚.txt#防御：膨胀河豚对所有非水生生物
-// 无差别杀伤，半膨胀造成 3 秒 Poison I，完全膨胀造成 6 秒 Poison I）。
-//
-// C++ 链路：PufferfishEntity::tick（:139-142）在 m_puffState != Deflated 时每 tick 调
-// _attackNearbyEnemies（:158-197）。_attackNearbyEnemies 取 boundingBox().grow(0.3) 范围内实体，
-// dynamic_cast<MobEntity*> 过滤（对齐 Java Pufferfish.aiStep 的 getEntitiesOfClass(Mob.class, ...)，
-// 玩家不在此列——玩家中毒走 Java playerTouch 路径，GameTest 无法驱动玩家主动碰撞故不测玩家）。
-// 命中 Mob 后 hurt(mobAttack, 1+puffState)（SemiPuffed=2，FullyPuffed=3）成功则
-// addEffect(Poison, 60*puffState ticks, amplifier=0)（SemiPuffed=60tick=3秒，FullyPuffed=120tick=6秒）。
-// 蜘蛛是 MobEntity 子类（SpiderEntity : MonsterEntity : MobEntity），_isEnemy 中非水生返 true
-// 触发膨胀，且被 _attackNearbyEnemies 命中中毒。
-//
-// 环境选择：creeper_pit 陆地无水（同膨胀测试约束：480 tick 窒息线 >> 测试窗口）。河豚 (3,2,3)、
-// 蜘蛛 (4,2,3) 紧邻 1 格。蜘蛛 width=1.4（半宽 0.7），河豚 SemiPuffed getPuffSize=0.7（碰撞箱
-// 0.7*0.7=0.49，半宽 0.245）。相邻 1 格时蜘蛛 AABB 边到河豚 AABB 边距离 = 1 - 0.7 - 0.245 = 0.055
-// < grow(0.3) 的 0.3 扩展，确定命中。蜘蛛是 MobEntity，_attackNearbyEnemies 的 dynamic_cast<MobEntity*>
-// 成功，命中后施加 Poison。
-//
-// 判定手段：读蜘蛛 getEffect("poison") 非 undefined。getEffect 对 LivingEntity 已绑定
-// （MinecraftModuleFactory.cpp buildEffectObject，ElderGuardian/Illusioner 测试已用 (entity as any)
-// .getEffect("...") 模式）。中毒一旦施加持续 60 tick（SemiPuffed），即便蜘蛛随后游荡离开命中范围，
-// poison 效果仍在，getEffect 仍读到——降低对蜘蛛持续贴近的稳定性要求。区域限定 getEntities 取蜘蛛
-// 读 effect，排除并行测试污染。用 batch("night")：蜘蛛白天不燃烧（非亡灵，但夜行更稳定），且河豚
-// 无关昼夜。maxTicks=150：2 tick 升级 SemiPuffed + _attackNearbyEnemies 每 tick 命中 + 余量。
-// Ref: docs\minecraft-wiki-source\minecraft_wiki\other_河豚.txt#防御（膨胀杀伤+中毒）
+// 河豚膨胀后接触非水生生物应施加中毒。牛不免疫中毒，蜘蛛免疫，不能作为正向靶。
+// 两者中心相隔 0.4 格，使膨胀后的接触范围确定覆盖靶；使用实体句柄读取效果。
 function pufferfishPoisonsMobWhenPuffed(test: Test): void {
-  const pufferfishType = "pufferfish";
-  const spiderType = "spider";
-
-  // 河豚 (3,2,3)、蜘蛛 (4,2,3) 紧邻 1 格。helper-y=2 → 结构内 y=1 空气，脚踩 y=0 grass_block。
-  // 蜘蛛半宽 0.7 + 河豚 SemiPuffed 半宽 0.245，相邻 1 格边距 0.055 < grow(0.3)，膨胀后确定命中。
-  // 蜘蛛是 MobEntity 子类触发 _isEnemy（非水生）→ PuffGoal 膨胀 + _attackNearbyEnemies 命中中毒。
-  test.spawn(pufferfishType, { x: 3, y: 2, z: 3 });
-  test.spawn(spiderType, { x: 4, y: 2, z: 3 });
-
-  // 断言蜘蛛被河豚膨胀中毒：succeedWhen 每 tick 检查区域内蜘蛛 getEffect("poison") 非 undefined。
-  // 时序：PuffGoal 检测蜘蛛(2格内) → startPuffTimer → 下 tick SemiPuffed → _attackNearbyEnemies
-  // 命中蜘蛛 hurt(2) + addEffect(Poison,60tick)。poison 持续 60 tick，即便蜘蛛游荡离开仍可读到。
-  // 区域限定用 PIT（creeper_pit 7×5×7）排除并行测试污染。(spider as any).getEffect 绕过 TS 类型。
+  test.spawn("minecraft:pufferfish", { x: 3, y: 2, z: 3 });
+  const target = test.spawnAtLocation("minecraft:cow", test.worldLocation({ x: 3.9, y: 2, z: 3.5 }));
   test.succeedWhen(() => {
-    const spiders = test.getDimension().getEntities({
-      type: spiderType,
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
-    });
-    test.assert(spiders.length > 0, "spider disappeared before being poisoned");
-    const poison = (spiders[0] as any).getEffect("poison");
-    test.assert(poison !== undefined,
-      "spider was not poisoned by puffed pufferfish");
+    test.assert((target as any).getEffect("poison") !== undefined,
+      "cow was not poisoned by puffed pufferfish");
   });
 }
 

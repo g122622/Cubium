@@ -56,7 +56,16 @@ function getBorder(): WorldBorderSnap {
 
 // 保存当前边界全部属性（用于 runOnFinish 恢复）。
 function snapshotBorder(): WorldBorderSnap {
-    return getBorder();
+    // 绑定对象的 getter 每次读取实时边界，必须复制数值而非保存该对象引用。
+    const border = getBorder();
+    return {
+        size: border.size,
+        center: { x: border.center.x, z: border.center.z },
+        damagePerBlock: border.damagePerBlock,
+        damageSafeZone: border.damageSafeZone,
+        warningBlocks: border.warningBlocks,
+        warningTime: border.warningTime,
+    };
 }
 
 // 用 chat 命令恢复边界到快照值（runOnFinish 调用）。
@@ -75,13 +84,13 @@ function restoreBorder(player: { chat: (s: string) => void }, snap: WorldBorderS
 function worldborderSetSize(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder set 100");
 
     const b = getBorder();
     test.assert(b.size === 100, `size should be 100, got ${b.size}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
@@ -91,6 +100,7 @@ function worldborderSetSize(test: Test): void {
 function worldborderAddSize(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder set 100");
     player.chat("/worldborder add 50");
@@ -98,7 +108,6 @@ function worldborderAddSize(test: Test): void {
     const b = getBorder();
     test.assert(b.size === 150, `size should be 150 after add 50, got ${b.size}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
@@ -108,6 +117,7 @@ function worldborderAddSize(test: Test): void {
 function worldborderSetCenter(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder center 10 20");
 
@@ -115,7 +125,6 @@ function worldborderSetCenter(test: Test): void {
     test.assert(b.center.x === 10, `center.x should be 10, got ${b.center.x}`);
     test.assert(b.center.z === 20, `center.z should be 20, got ${b.center.z}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
@@ -125,13 +134,13 @@ function worldborderSetCenter(test: Test): void {
 function worldborderDamageAmount(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder damage amount 3");
 
     const b = getBorder();
     test.assert(b.damagePerBlock === 3, `damagePerBlock should be 3, got ${b.damagePerBlock}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
@@ -141,13 +150,13 @@ function worldborderDamageAmount(test: Test): void {
 function worldborderDamageBuffer(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder damage buffer 10");
 
     const b = getBorder();
     test.assert(b.damageSafeZone === 10, `damageSafeZone should be 10, got ${b.damageSafeZone}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
@@ -157,13 +166,13 @@ function worldborderDamageBuffer(test: Test): void {
 function worldborderWarningTime(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder warning time 30");
 
     const b = getBorder();
     test.assert(b.warningTime === 30, `warningTime should be 30, got ${b.warningTime}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
@@ -173,13 +182,13 @@ function worldborderWarningTime(test: Test): void {
 function worldborderWarningDistance(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const initial = snapshotBorder();
+    test.runOnFinish(() => restoreBorder(player, initial));
 
     player.chat("/worldborder warning distance 20");
 
     const b = getBorder();
     test.assert(b.warningBlocks === 20, `warningBlocks should be 20, got ${b.warningBlocks}`);
 
-    test.runOnFinish(() => restoreBorder(player, initial));
     test.succeed();
 }
 
