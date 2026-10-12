@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -74,7 +76,7 @@ private:
     f64 m_speed;
     f32 m_minDistance;
     f32 m_maxDistance;
-    LivingEntity* m_targetMob = nullptr;
+    EntityReference<LivingEntity> m_targetMob;
     i32 m_delayCounter = 0;
 
     // 路径重新计算间隔

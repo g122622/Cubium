@@ -492,7 +492,7 @@ void PolarBearHurtByTargetGoal::startExecuting()
             for (Entity* entity : nearbyEntities) {
                 PolarBearEntity* nearbyBear = dynamic_cast<PolarBearEntity*>(entity);
                 if (nearbyBear != nullptr && !nearbyBear->isChild()) {
-                    nearbyBear->setAttackTarget(m_target);
+                    nearbyBear->setAttackTarget(m_target.get());
                     nearbyBear->setAngry(true);
                 }
             }

@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -124,7 +126,7 @@ public:
 
 private:
     FoxEntity* m_fox;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
 
     // 常量
     static constexpr f64 START_FOLLOW_DISTANCE_SQ = 36.0; // 6^2 = 开始跟踪距离
@@ -162,7 +164,7 @@ public:
 
 private:
     FoxEntity* m_fox;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
 
     // 常量
     static constexpr f64 POUNCE_HORIZONTAL_FACTOR = 0.8; // 水平方向扑击因子
@@ -449,8 +451,8 @@ public:
 
 private:
     FoxEntity* m_foxEntity;
-    LivingEntity* m_attackerOfTrusted = nullptr;
-    LivingEntity* m_trustedEntity = nullptr;
+    EntityReference<LivingEntity> m_attackerOfTrusted;
+    EntityReference<LivingEntity> m_trustedEntity;
     i32 m_revengeTimestamp = 0;
 };
 

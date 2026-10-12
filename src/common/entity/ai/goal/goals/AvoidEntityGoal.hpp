@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -114,7 +116,7 @@ private:
     f64 m_farSpeed;
     f64 m_nearSpeed;
     EntityPredicate m_predicate;
-    LivingEntity* m_avoidTarget = nullptr;
+    EntityReference<LivingEntity> m_avoidTarget;
     f64 m_escapeX = 0.0;
     f64 m_escapeY = 0.0;
     f64 m_escapeZ = 0.0;

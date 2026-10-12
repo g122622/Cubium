@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "core/Types.hpp"
 #include "entity/ai/goal/Goal.hpp"
 #include "entity/interfaces/IAngerable.hpp"
@@ -112,7 +114,7 @@ protected:
     [[nodiscard]] virtual bool checkSight() const;
 
     MobEntity* m_mob;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     bool m_checkSight;
     i32 m_unseenTicks = 0;
 
@@ -156,7 +158,7 @@ public:
 
 private:
     i32 m_chance;
-    T* m_targetEntity = nullptr;
+    EntityReference<T> m_targetEntity;
     TargetPredicate m_predicate; // 目标筛选谓词（可选）
 };
 
@@ -297,7 +299,7 @@ public:
     void startExecuting() override;
 
 private:
-    T* m_targetEntity = nullptr;
+    EntityReference<T> m_targetEntity;
     TargetPredicate m_predicate; // 目标筛选谓词（可选）
 };
 

@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeMap.hpp"
@@ -1038,8 +1040,8 @@ public:
      *
      * @return 最近攻击者，无则返回nullptr
      */
-    [[nodiscard]] LivingEntity* getLastHurtBy() { return m_lastHurtBy; }
-    [[nodiscard]] const LivingEntity* getLastHurtBy() const { return m_lastHurtBy; }
+    [[nodiscard]] LivingEntity* getLastHurtBy() { return m_lastHurtBy.get(); }
+    [[nodiscard]] const LivingEntity* getLastHurtBy() const { return m_lastHurtBy.get(); }
 
     /**
      * @brief 获取最近被攻击的时间戳（tick）
@@ -2160,10 +2162,10 @@ protected:
     f32 m_attackedAtYaw = 0.0f; // 受伤时的偏航角
 
     // 最近攻击追踪（Target Goals 使用）
-    LivingEntity* m_lastHurtBy = nullptr;     // 最近攻击该实体的实体
-    i32 m_lastHurtByTimestamp = 0;            // 被攻击时间戳
-    LivingEntity* m_lastHurtTarget = nullptr; // 该实体最近攻击的目标
-    i32 m_lastHurtTargetTimestamp = 0;        // 攻击目标时间戳
+    EntityReference<LivingEntity> m_lastHurtBy; // 最近攻击该实体的实体
+    i32 m_lastHurtByTimestamp = 0;              // 被攻击时间戳
+    LivingEntity* m_lastHurtTarget = nullptr;   // 该实体最近攻击的目标
+    i32 m_lastHurtTargetTimestamp = 0;          // 攻击目标时间戳
 
     // 最近被玩家伤害的记忆时间（对齐 vanilla lastHurtByPlayerMemoryTime，LivingEntity.java:231）。
     // 受玩家伤害时设为 100，每 tick 递减；普通生物死亡需此值>0 才掉经验（dropExperience 守卫）。

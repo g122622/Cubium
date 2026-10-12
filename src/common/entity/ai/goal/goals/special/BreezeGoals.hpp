@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -75,7 +77,7 @@ public:
 
 private:
     BreezeEntity* m_breeze;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     i32 m_shootCooldown = 0;   // 射击冷却计时器
     bool m_isCharging = false; // 是否正在充能
     bool m_hasFired = false;   // 是否已经发射
@@ -155,7 +157,7 @@ private:
     [[nodiscard]] std::optional<Vector3> _calculateOptimalJumpVector() const;
 
     BreezeEntity* m_breeze;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     bool m_isInhaling = false; // 是否正在吸气
     bool m_isJumping = false;  // 是否正在跳跃中
     i32 m_inhaleTime = 0;      // 吸气计时器
@@ -237,7 +239,7 @@ private:
     [[nodiscard]] Vector3 _randomPointInMiddleCircle() const;
 
     BreezeEntity* m_breeze;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
 
     // MC 原版常量
     static constexpr f64 INNER_CIRCLE_HORIZONTAL = 4.0; // 内圈水平距离

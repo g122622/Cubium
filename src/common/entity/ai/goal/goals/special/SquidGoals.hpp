@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
@@ -133,7 +135,7 @@ public:
 
 private:
     SquidEntity* m_squid;
-    LivingEntity* m_fleeTarget = nullptr;
+    EntityReference<LivingEntity> m_fleeTarget;
     i32 m_tickCounter = 0;
 
     // 行为常量

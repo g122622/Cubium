@@ -340,8 +340,8 @@ void EntityManager::tick()
     //    破坏遍历）。须在 m_graveyard.clear() 之前——此时实体尚未析构，裸指针有效。
     _flushRemovalNotifications();
 
-    // 3. 释放上一 tick 入 graveyard 的实体。此时引用者已在步骤 1 通过 isAlive()==false 放手，可安全析构。
-    //    必须在 entity tick 之后：若放开头，graveyard 实体在 goal 跑 shouldContinueExecuting 前就析构了。
+    // 3. 释放上一 tick 入 graveyard 的实体。延迟队列保护当前调用栈内的临时裸指针；
+    //    跨 tick 引用必须使用 EntityReference，不能假定所有引用者都已 tick。
     m_graveyard.clear();
 
     // 4. 移除本帧死亡实体（入 graveyard，延迟到下一 tick 末尾析构）。
@@ -377,8 +377,7 @@ void EntityManager::_tickEntities()
         }
     }
 
-    // 1. 更新所有实体。期间 goal 通过 isAlive() 检测上一 tick 入 graveyard 的目标
-    //    （对象仍存活、m_removed=true）并 resetTask 清空裸指针，避免悬垂解引用。
+    // 1. 更新模拟范围内的实体；范围外实体可能长期暂停，目标引用须独立于 tick 失效。
     for (auto& [id, entity] : m_entities) {
         // spdlog::info("Ticking entity: id={}, detail={}", id, entity->toString());
         if (entity->isRemoved()) {

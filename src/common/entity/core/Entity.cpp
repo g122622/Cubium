@@ -181,6 +181,8 @@ Entity::Entity(EntityInstanceId id, IWorld* world, ecs::EntityRegistry& registry
 
 Entity::~Entity()
 {
+    // 在释放组件和其他清理回调之前，使跨 tick 的实体引用失效。
+    m_referenceLifetime.reset();
     // 销毁 ECS 实体及其全部组件（含 EntityOwnerComponent，消除悬垂反查指针）。
     // m_entityContext 此刻仍存活（成员在 ~Entity body 之后析构），可安全取 registry 与 entity id。
     // valid() 校验防御：极少数路径（如 move-into-graveyard 后实体被显式 destroy）下
@@ -206,6 +208,7 @@ void Entity::remove(RemovalReason reason)
         return;
     }
     m_removalReason = reason;
+    m_referenceLifetime.reset();
 
     // 摧毁类原因（Killed/Discarded）才让自己下骑（对齐 vanilla
     // `if (removalReason.shouldDestroy()) this.stopRiding()`）。区块卸载/玩家退出/切维度时

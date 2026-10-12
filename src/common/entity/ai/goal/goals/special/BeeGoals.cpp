@@ -1119,7 +1119,7 @@ void BeeAngerGoal::startExecuting()
     // BeeStingGoal::shouldExecute 的 isAngry() 检查恒为 false，蜜蜂有目标却不蜇人。
     // m_target 由 HurtByTargetGoal::shouldExecute 设为 getLastHurtBy()（攻击者），此处非空。
     if (m_target != nullptr) {
-        m_beeEntity->setRevengeTarget(m_target);
+        m_beeEntity->setRevengeTarget(m_target.get());
     }
 }
 
@@ -1189,7 +1189,7 @@ void BeeAttackPlayerGoal::startExecuting()
     TargetGoal::startExecuting();
 
     if (m_target != nullptr) {
-        m_beeEntity->setAttackTarget(dynamic_cast<LivingEntity*>(m_target));
+        m_beeEntity->setAttackTarget(m_target.get());
     }
 }
 

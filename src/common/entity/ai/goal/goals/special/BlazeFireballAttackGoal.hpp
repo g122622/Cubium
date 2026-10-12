@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include <string>
@@ -81,7 +83,7 @@ private:
     void _performFireballAttack(LivingEntity* target, f64 distanceToTargetSq);
 
     BlazeEntity* m_blaze;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     i32 m_attackStep = 0; // 攻击阶段（0=未开始，1=充能，2-4=连发火球）
     i32 m_attackTime = 0; // 攻击计时器
     i32 m_unseenTime = 0; // 看不到目标的时间

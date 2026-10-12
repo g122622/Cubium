@@ -97,11 +97,7 @@ bool FollowOwnerGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 【UAF 防护】主人已被 discard/移除时立即放手。vanilla FollowOwnerGoal.canContinueToUse()
-    // 通过 getOwner() 重新取主人，Java GC 保证引用有效；Cubium 的 m_owner 是跨 tick
-    // 缓存的裸指针，graveyard 延迟析构（EntityManager.cpp:345）使其可能指向"已移除但
-    // 未析构"的对象，而 tick() 会解引用 m_owner（distanceTo/lookAt/x/y/z）。故须显式检查。
-    // 该检查必须排在 distanceTo(*m_owner) 之前。契约见 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_owner->isAlive()) {
         return false;
     }
@@ -131,11 +127,7 @@ void FollowOwnerGoal::tick()
         return;
     }
 
-    // 【UAF 防护】主人已被 discard/移除时立即清空裸指针。
-    // 与 shouldContinueExecuting() 中的守卫构成双保险：Phase 1 通常已在 Phase 3 之前
-    // 调用 resetTask() 清空 m_owner，但同一 Phase 3 循环中先执行的兄弟 goal 可能在本次
-    // tick 内移除该目标，此时本 goal 的 Phase 1 已经跑过，只有此处再检查一次才安全。
-    // 详见 shouldContinueExecuting() 中的说明与 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_owner->isAlive()) {
         m_owner = nullptr;
         return;
@@ -323,12 +315,7 @@ bool BegGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 【UAF 防护】目标玩家已被 discard/移除时立即放手。vanilla BegGoal.canContinueToUse()
-    // 直接解引用 this.player，Java GC 保证引用有效；Cubium 的 m_targetPlayer 是跨 tick
-    // 缓存的裸指针，graveyard 延迟析构（EntityManager.cpp:345）使其可能指向"已移除但
-    // 未析构"的对象，而 tick() 会调用 m_entity->lookAt(*m_targetPlayer)。
-    // 该检查必须排在 distanceTo/_isPlayerHoldingFood 之前（二者均解引用）。
-    // 契约见 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_targetPlayer->isAlive()) {
         return false;
     }
@@ -338,7 +325,7 @@ bool BegGoal::shouldContinueExecuting()
         return false;
     }
 
-    return _isPlayerHoldingFood(m_targetPlayer);
+    return _isPlayerHoldingFood(m_targetPlayer.get());
 }
 
 void BegGoal::startExecuting()
@@ -373,8 +360,7 @@ void BegGoal::tick()
         return;
     }
 
-    // 【UAF 防护】目标玩家已被 discard/移除时立即清空裸指针。
-    // 与 shouldContinueExecuting() 中的守卫构成双保险（详见该处说明）。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_targetPlayer->isAlive()) {
         m_targetPlayer = nullptr;
         return;

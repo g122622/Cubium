@@ -96,10 +96,7 @@ void FollowParentGoal::tick()
 {
     if (!m_childAnimal || !m_parentAnimal) return;
 
-    // 【UAF 防护】父母已被 discard/移除时立即清空裸指针。
-    // 本 goal 的 shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3
-    // 循环内兄弟 goal 移除目标后的兜底（此时本 goal 的 Phase 1 已经跑过）。
-    // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_parentAnimal->isAlive()) {
         m_parentAnimal = nullptr;
         return;

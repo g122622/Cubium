@@ -94,7 +94,7 @@ bool EndermanStareGoal::shouldExecute()
     }
 
     // 检查玩家是否正在注视末影人
-    Player* player = dynamic_cast<Player*>(m_targetPlayer);
+    Player* player = dynamic_cast<Player*>(m_targetPlayer.get());
     if (player == nullptr) {
         return false;
     }
@@ -116,12 +116,7 @@ void EndermanStareGoal::tick()
 {
     // 注视目标玩家的眼睛位置
     if (m_targetPlayer != nullptr) {
-        // 【UAF 防护】目标玩家已被 discard/移除时立即清空裸指针。
-        // 本 goal 未重写 shouldContinueExecuting()，继承 Goal 的默认实现
-        // （返回 shouldExecute()），而 shouldExecute() 每次都重新从
-        // getAttackTarget() 取目标——若 Phase 2 未重跑（tickRate 未到），
-        // Phase 1 不会调用 resetTask()，Phase 3 的 tick() 就会解引用旧指针。
-        // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
         if (!m_targetPlayer->isAlive()) {
             m_targetPlayer = nullptr;
             return;
@@ -210,9 +205,7 @@ void EndermanFindPlayerGoal::resetTask()
 bool EndermanFindPlayerGoal::shouldContinueExecuting()
 {
     if (m_targetPlayer != nullptr) {
-        // 【UAF 防护】目标玩家已被 discard/移除时立即放手，避免下方
-        // shouldAttackPlayer(*m_targetPlayer) 解引用已移除对象。
-        // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
         if (!m_targetPlayer->isAlive()) {
             return false;
         }
@@ -248,24 +241,26 @@ void EndermanFindPlayerGoal::tick()
 
     if (m_targetPlayer != nullptr) {
         // 倒计时激怒时间
+        if (!m_targetPlayer->isAlive()) {
+            m_targetPlayer = nullptr;
+            m_target = nullptr;
+            return;
+        }
         if (--m_aggroTime <= 0) {
             // 激怒末影人，设置攻击目标
-            m_target = m_targetPlayer;
+            m_target = m_targetPlayer.get();
             m_targetPlayer = nullptr;
             TargetGoal::startExecuting();
         }
     } else {
         // 已经被激怒，处理攻击逻辑
-        // 【UAF 防护】m_target 已被 discard/移除（isAlive()==false）时不再解引用。
-        // 本分支下方会调用 m_target->distanceSqTo(*m_enderman)，而 m_target 是跨 tick
-        // 缓存的裸指针；graveyard 延迟析构（EntityManager.cpp:345）使其可能指向
-        // "已移除但未析构"的对象。契约见 EntityManager.cpp:380-381。
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
         if (m_target != nullptr && !m_target->isAlive()) {
             m_target = nullptr;
         }
 
         if (m_target != nullptr && !m_enderman->isRiding()) {
-            Player* playerTarget = dynamic_cast<Player*>(m_target);
+            Player* playerTarget = dynamic_cast<Player*>(m_target.get());
 
             if (playerTarget != nullptr && m_enderman->shouldAttackPlayer(*playerTarget)) {
                 // 玩家仍在注视末影人

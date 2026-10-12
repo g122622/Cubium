@@ -101,7 +101,7 @@ bool IronGolemAttackGoal::shouldContinueExecuting()
     }
 
     // 玩家模式检查
-    Player* player = dynamic_cast<Player*>(m_attackTarget);
+    Player* player = dynamic_cast<Player*>(m_attackTarget.get());
     if (player && (player->isSpectator() || player->isCreative())) {
         return false;
     }
@@ -127,7 +127,7 @@ void IronGolemAttackGoal::startExecuting()
     m_golem->setAggroed(true);
 
     if (auto* nav = m_golem->navigator()) {
-        if (m_attackTarget) {
+        if (m_attackTarget.get()) {
             static_cast<void>(nav->moveTo(*m_attackTarget, m_speed));
         }
     }
@@ -145,10 +145,7 @@ void IronGolemAttackGoal::tick()
 {
     if (!m_attackTarget) return;
 
-    // 【UAF 防护】攻击目标已被 discard/移除时立即清空裸指针。
-    // 本 goal 的 shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3
-    // 循环内兄弟 goal 移除目标后的兜底（此时本 goal 的 Phase 1 已经跑过）。
-    // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_attackTarget->isAlive()) {
         m_attackTarget = nullptr;
         return;
@@ -202,7 +199,7 @@ void IronGolemAttackGoal::tick()
     m_attackCooldown = std::max(m_attackCooldown - 1, 0);
 
     // 检查是否可以攻击
-    checkAndPerformAttack(m_attackTarget, distSq);
+    checkAndPerformAttack(m_attackTarget.get(), distSq);
 }
 
 bool IronGolemAttackGoal::canAttack(LivingEntity* target) const
@@ -309,12 +306,8 @@ void OfferFlowerGoal::resetTask()
 
 void OfferFlowerGoal::tick()
 {
-    if (m_target) {
-        // 【UAF 防护】赠花目标已被 discard/移除时立即清空裸指针。
-        // 本 goal 的 shouldContinueExecuting() 只检查 `m_tick > 0`（对齐 vanilla
-        // canContinueToUse()），完全不涉及 m_target，因此 Phase 1 永远不会因目标死亡
-        // 而调用 resetTask()；若此处不检查，m_tick 倒计时期间会持续解引用已析构对象。
-        // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    if (m_target.get()) {
+        // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
         if (!m_target->isAlive()) {
             m_target = nullptr;
         } else {
@@ -398,7 +391,7 @@ void OfferFlowerGoal::_tryGiftFlowerToCopperGolem()
     }
 
     // 目标必须是 MobEntity（铜傀儡是 MobEntity 子类，可访问装备槽 API）
-    MobEntity* mob = dynamic_cast<MobEntity*>(m_target);
+    MobEntity* mob = dynamic_cast<MobEntity*>(m_target.get());
     if (!mob) {
         return;
     }
@@ -474,8 +467,8 @@ bool DefendVillageTargetGoal::shouldExecute()
 void DefendVillageTargetGoal::startExecuting()
 {
     TargetGoal::startExecuting();
-    if (m_villageAggressor) {
-        m_golem->setAttackTarget(m_villageAggressor);
+    if (m_villageAggressor.get()) {
+        m_golem->setAttackTarget(m_villageAggressor.get());
     }
 }
 
@@ -548,8 +541,8 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
 void IronGolemNearestAttackableTargetGoal::startExecuting()
 {
     TargetGoal::startExecuting();
-    if (m_targetEntity) {
-        m_golem->setAttackTarget(m_targetEntity);
+    if (m_targetEntity.get()) {
+        m_golem->setAttackTarget(m_targetEntity.get());
     }
 }
 

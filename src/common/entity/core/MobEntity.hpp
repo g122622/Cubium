@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "LivingEntity.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -233,8 +235,8 @@ public:
     /**
      * @brief 获取攻击目标
      */
-    [[nodiscard]] virtual LivingEntity* attackTarget() { return m_attackTarget; }
-    [[nodiscard]] virtual const LivingEntity* attackTarget() const { return m_attackTarget; }
+    [[nodiscard]] virtual LivingEntity* attackTarget() { return m_attackTarget.get(); }
+    [[nodiscard]] virtual const LivingEntity* attackTarget() const { return m_attackTarget.get(); }
 
     /**
      * @brief 设置攻击目标
@@ -1185,7 +1187,7 @@ protected:
     std::unique_ptr<entity::ai::pathfinding::PathNavigator> m_navigator;
 
     // 攻击目标
-    LivingEntity* m_attackTarget = nullptr;
+    EntityReference<LivingEntity> m_attackTarget;
 
     // AI 状态
     bool m_aiEnabled = true;

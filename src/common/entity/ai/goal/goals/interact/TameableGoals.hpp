@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 
@@ -75,7 +77,7 @@ private:
     bool _teleportToOwner();
 
     TameableEntity* m_entity;
-    Player* m_owner = nullptr;
+    EntityReference<Player> m_owner;
     f64 m_speed;
     f32 m_minDistance;
     f32 m_maxDistance;
@@ -152,7 +154,7 @@ private:
     [[nodiscard]] bool _isPlayerHoldingFood(const Player* player) const;
 
     TameableEntity* m_entity;
-    Player* m_targetPlayer = nullptr;
+    EntityReference<Player> m_targetPlayer;
     f32 m_maxDistance;
     f32 m_begAngle = 0.0f;
 

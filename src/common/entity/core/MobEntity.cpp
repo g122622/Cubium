@@ -286,21 +286,6 @@ void MobEntity::tick()
     // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
     LivingEntity::tick();
 
-    // UAF 修复：若攻击目标已被标记移除（死亡/卸载/discard），立即清空 m_attackTarget，
-    // 避免后续 targetSelector/goalSelector 中持裸指针的 goal 解引用悬垂内存。
-    // 必须在 m_targetSelector.tick()/m_goalSelector.tick() 之前执行。
-    if (m_attackTarget != nullptr && m_attackTarget->isRemoved()) {
-        setAttackTarget(nullptr);
-    }
-
-    // 同类 UAF 防护：m_lastHurtBy 也是裸指针，HurtByTargetGoal::shouldExecute 会解引用
-    // attacker->isAlive()。寻路修复后实体能主动攻击，被攻击者反击链路激活，若 lastHurtBy
-    // 实体已移除（EntityManager 同步 erase+析构无"先标记后析构"窗口）则悬垂解引用段错误。
-    // 详见 memory: goal-entity-ptr-uaf（同模式裸指针 UAF 架构问题）。
-    if (m_lastHurtBy != nullptr && m_lastHurtBy->isRemoved()) {
-        setLastHurtBy(nullptr);
-    }
-
     // 空闲时间在 tick 开头递增
     ++m_idleTime;
 

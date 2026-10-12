@@ -101,7 +101,7 @@ bool MeleeAttackGoal::shouldContinueExecuting()
     }
 
     // 玩家模式检查
-    Player* player = dynamic_cast<Player*>(m_attackTarget);
+    Player* player = dynamic_cast<Player*>(m_attackTarget.get());
     if (player && (player->isSpectator() || player->isCreative())) {
         return false;
     }
@@ -141,7 +141,7 @@ void MeleeAttackGoal::startExecuting()
         m_creature->setAggroed(true);
 
         if (auto* nav = m_creature->navigator()) {
-            if (m_attackTarget) {
+            if (m_attackTarget.get()) {
                 static_cast<void>(nav->moveTo(*m_attackTarget, m_speed));
             }
         }
@@ -167,10 +167,7 @@ void MeleeAttackGoal::tick()
 {
     if (!m_creature || !m_attackTarget) return;
 
-    // 【UAF 防护】攻击目标已被 discard/移除时立即清空裸指针。
-    // 本 goal 的 shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3
-    // 循环内兄弟 goal 移除目标后的兜底（此时本 goal 的 Phase 1 已经跑过）。
-    // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_attackTarget->isAlive()) {
         m_attackTarget = nullptr;
         return;
@@ -236,7 +233,7 @@ void MeleeAttackGoal::tick()
     m_attackCooldown = std::max(m_attackCooldown - 1, 0);
 
     // 检查是否可以攻击
-    checkAndPerformAttack(m_attackTarget, distSq);
+    checkAndPerformAttack(m_attackTarget.get(), distSq);
 }
 
 bool MeleeAttackGoal::_canAttack(LivingEntity* target) const

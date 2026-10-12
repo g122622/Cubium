@@ -79,18 +79,7 @@ bool RangedAttackGoal::shouldExecute()
 
 bool RangedAttackGoal::shouldContinueExecuting()
 {
-    // 对齐 vanilla RangedAttackGoal.canContinueToUse()：
-    //   return this.canUse() || this.target.isAlive() && !this.mob.getNavigation().isDone();
-    //
-    // 【UAF 防护】原实现写作 `shouldExecute() || (m_mob && !m_mob->navigator()->noPath())`，
-    // 丢失了 vanilla 第二个析取项前的 `this.target.isAlive()` 前置条件。后果：目标被
-    // discard/移除后（isAlive()==false，但对象仍存活、等待 graveyard 延迟析构），只要
-    // m_mob 仍在寻路，`||` 短路就会继续返回 true，于是 GoalSelector Phase 1 不会调用
-    // resetTask() 清空 m_target，Phase 3 的 tick() 随即解引用已释放对象。
-    // CI 实测：heap-use-after-free @ Entity.hpp:326 mc::Entity::x() const
-    //   <- RangedBowAttackGoal::tick() <- GoalSelector::tick()。
-    // EntityManager 的 graveyard 契约（见 EntityManager.cpp:380-381）要求引用者在
-    // isAlive()==false 时放手，此处即该契约的落点。
+    // 可重新锁定存活目标，或在缓存目标存活且导航仍有路径时继续追踪。
     if (shouldExecute()) {
         return true;
     }
@@ -122,15 +111,7 @@ void RangedAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
 
-    // 【UAF 防护】目标已被 discard/移除（isAlive()==false）时立即放手并清空裸指针。
-    // 与 shouldContinueExecuting() 中的守卫构成双保险：Phase 1 的
-    // shouldContinueExecuting()->resetTask() 通常在 Phase 3 之前已清空 m_target，
-    // 但同一 Phase 3 循环中先执行的兄弟 goal 可能在本次 tick 内移除该目标，
-    // 此时本 goal 的 Phase 1 已经跑过，只有此处再检查一次才安全。
-    // 此处只清空指针、不调用 resetTask()：完整清理由下一 tick Phase 1 完成
-    // （m_target==nullptr 使 shouldContinueExecuting() 返回 false），
-    // 避免在 tick 中途触发派生的 resetTask() 产生重入式的导航/姿态副作用。
-    // EntityManager 的 graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_target->isAlive()) {
         m_target = nullptr;
         return;
@@ -176,7 +157,7 @@ void RangedAttackGoal::tick()
         f32 charge = dist / m_attackRadius;
         charge = std::clamp(charge, 0.1f, 1.0f);
 
-        performAttack(m_target, charge);
+        performAttack(m_target.get(), charge);
 
         // 计算下一次攻击时间
         // floor(charge * (max - min) + min)
@@ -252,11 +233,7 @@ void RangedBowAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
 
-    // 【UAF 防护】目标已被 discard/移除时立即清空裸指针。本 goal 复用基类的
-    // shouldContinueExecuting()（其中已含 isAlive() 守卫），此处是同一 Phase 3
-    // 循环内兄弟 goal 移除目标后的兜底。详见 RangedAttackGoal::tick 注释。
-    // CI 实测崩溃点：heap-use-after-free @ Entity.hpp:326 mc::Entity::x() const
-    //   <- RangedBowAttackGoal::tick() RangedAttackGoals.cpp:221。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_target->isAlive()) {
         m_target = nullptr;
         return;
@@ -345,7 +322,7 @@ void RangedBowAttackGoal::tick()
             if (timeUsed >= 20) {
                 // 蓄力完成，发射
                 m_mob->stopActiveHand();
-                performAttack(m_target, item::BowItem::getArrowVelocity(timeUsed));
+                performAttack(m_target.get(), item::BowItem::getArrowVelocity(timeUsed));
                 m_attackTime = m_attackIntervalMin;
             }
         }
@@ -453,9 +430,7 @@ void RangedCrossbowAttackGoal::tick()
 {
     if (!m_mob || !m_target) return;
 
-    // 【UAF 防护】目标已被 discard/移除时立即清空裸指针。本 goal 的
-    // shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3 循环内
-    // 兄弟 goal 移除目标后的兜底。详见 RangedAttackGoal::tick 注释。
+    // 移除或析构的引用会自动失效；此处同时处理尚未移除的死亡目标。
     if (!m_target->isAlive()) {
         m_target = nullptr;
         return;
@@ -629,7 +604,7 @@ void RangedCrossbowAttackGoal::_handleReadyToAttackState()
 
     if (crossbowUser && _isHoldingCrossbow()) {
         // 发射（shootCrossbow 内部会根据弹药类型决定速度）
-        crossbowUser->shootCrossbow(m_target, mainHand, 1.0f);
+        crossbowUser->shootCrossbow(m_target.get(), mainHand, 1.0f);
 
         // 清除装填状态
         const item::CrossbowItem* crossbowItem = dynamic_cast<const item::CrossbowItem*>(mainHand.getItem());

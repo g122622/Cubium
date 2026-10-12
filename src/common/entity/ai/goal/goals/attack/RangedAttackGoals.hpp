@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/entity/core/EntityReference.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
 #include <string>
@@ -72,7 +74,7 @@ protected:
     virtual void performAttack(LivingEntity* target, f32 charge);
 
     MobEntity* m_mob;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     f64 m_speed;
     i32 m_attackIntervalMin;
     i32 m_attackIntervalMax;
@@ -217,7 +219,7 @@ private:
     void _handleReadyToAttackState();
 
     MobEntity* m_mob;
-    LivingEntity* m_target = nullptr;
+    EntityReference<LivingEntity> m_target;
     f64 m_speed;
     f32 m_attackRadius;
     f32 m_attackRadiusSq;

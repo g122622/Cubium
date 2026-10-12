@@ -72,7 +72,7 @@ Entity* entity = manager.getEntity(id);
 销毁与移交是**两个语义正交的方法**，勿混用：
 
 - `destroyEntity(id, reason)` — 真正销毁（标记 + 断引用 + 入 graveyard 延迟析构）。区块卸载、玩家退出、生成回滚走此路。
-- `takeEntity(id)` — 所有权移交（摘除并把 `unique_ptr` 交出来）。**仅跨维度迁移使用**——调用者拿到的 `unique_ptr` 若直接丢弃，实体当场析构、绕过延迟队列，持裸指针的 goal 悬垂 UAF。
+- `takeEntity(id)` — 所有权移交（摘除并把 `unique_ptr` 交出来），仅跨维度迁移使用。移交后的实体可能立即析构，跨 tick 目标缓存必须使用 `EntityReference`。
 
 ### 2. ID 永不复用
 
@@ -120,6 +120,8 @@ if (Entity* entity = manager.getEntityByUuid(someUuid)) {
 ```
 
 ### 6. 实体销毁时机（两阶段：逻辑移除 → 物理销毁）
+
+延迟队列保护当前调用栈中的临时裸指针，无法保证暂停 tick 的引用者及时放手。跨 tick 引用使用 `EntityReference`，在逻辑移除或实际析构时自动失效；不得对可能悬垂的裸指针调用 `isAlive()`。
 
 销毁经统一入口 `destroyEntity(id, reason)`，分两阶段：
 
