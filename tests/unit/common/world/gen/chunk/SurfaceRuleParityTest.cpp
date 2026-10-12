@@ -35,6 +35,7 @@
 #include "common/core/Constants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/gen/SurfaceTestFixture.hpp"
@@ -503,11 +504,8 @@ TEST_F(SurfaceRuleParityTest, Overworld_BadlandsHasTerracotta)
 
             const BlockState* surfaceBlock = chunk.getBlockState(x, surfaceY, z);
             // 恶地表面应有这些方块之一
-            if (isBlock(surfaceBlock, VanillaBlocks::ORANGE_TERRACOTTA) ||
-                isBlock(surfaceBlock, VanillaBlocks::TERRACOTTA) || isBlock(surfaceBlock, VanillaBlocks::RED_SAND) ||
-                isBlock(surfaceBlock, VanillaBlocks::WHITE_TERRACOTTA) ||
-                isBlock(surfaceBlock, VanillaBlocks::COARSE_DIRT) ||
-                isBlock(surfaceBlock, VanillaBlocks::GRASS_BLOCK) || isBlock(surfaceBlock, VanillaBlocks::DIRT)) {
+            if (surfaceBlock != nullptr &&
+                (BlockTags::TERRACOTTA().contains(*surfaceBlock) || isBlock(surfaceBlock, VanillaBlocks::RED_SAND))) {
                 foundBadlandsSurface = true;
             }
         }
