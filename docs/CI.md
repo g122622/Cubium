@@ -6,6 +6,8 @@ nightly.yml 使用固定提交的 pococc 和 Clang 22，保留完整测试、发
 34 个 worker 分为 test/release/fuzz 三个池，分别为 24/4/6 个节点，每节点四个槽位，
 分别提供 96/16/24 个远端槽位。Ninja 并行度由槽位数加两个本地任务动态计算，为 98/18/26。
 三个协调节点与 worker 同时运行，编译阶段共需 37 个并发 job。
+worker 矩阵的 `max-parallel=34` 允许全部编译节点同时启动；不能沿用旧值 32，
+否则前排节点等待协调节点结束、后排节点排队，协调节点等待缺失连接信息直至超时。
 ccache 命中直接返回对象文件，未命中经 pococc/distcc 分发；协调节点预处理和链接，
 worker 通过经过 SSH 认证的临时隧道编译。PCH、modules 扫描和 native CPU 均关闭。
 
