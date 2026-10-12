@@ -87,8 +87,9 @@ protected:
 
         ServerWorldConfig config;
         config.seed = 12345;
-        // 大视距：更多区块同时生成，更多邻居 m_structureStarts 并发读
-        config.viewDistance = 16;
+        // 玩家票据只需维持小范围 FULL 区块；结构引用的十七格邻域由显式请求保证。
+        // 避免视距十六额外驱动上千区块的噪声、装饰及光照，淹没目标并发窗口。
+        config.viewDistance = 4;
 
         // 把区块管理器挂到世界（与 ServerWorldTest 一致），使 world->initialize() 完整初始化
         // m_tickManager 等。此前固件直接构造独立的 ServerChunkManager 且不调用 world->initialize()，
@@ -136,15 +137,15 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
     m_workerPool->start();
     ASSERT_TRUE(m_manager->initialize().success());
 
-    // 生成 12x12 区块网格（视距 16 范围内），全部到 FULL。
-    // 网格中心区域会有大量结构（村庄/神殿等），触发 m_structureStarts 填充与跨区块引用。
+    // 十三乘十三网格推进到结构引用阶段，保留结构起点填充及跨区块读取的并发。
+    // 本用例不验证噪声、装饰和光照，无需把所有中心区块继续推进到 FULL。
     constexpr int HALF = 6;
     std::vector<std::future<ChunkData*>> futures;
     futures.reserve(static_cast<size_t>(HALF * 2 + 1) * static_cast<size_t>(HALF * 2 + 1));
 
     for (int x = -HALF; x <= HALF; ++x) {
         for (int z = -HALF; z <= HALF; ++z) {
-            futures.push_back(m_manager->requestChunkAsync(x, z, ChunkStatuses::FULL));
+            futures.push_back(m_manager->requestChunkAsync(x, z, ChunkStatuses::STRUCTURE_REFERENCES));
         }
     }
 
