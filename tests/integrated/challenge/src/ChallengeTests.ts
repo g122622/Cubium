@@ -12,7 +12,19 @@ function minibiomes(test: Test): void {
   const minecart = test.spawn(minecartEntityType, { x: 9, y: 7, z: 7 });
   const pig = test.spawn(pigEntityType, { x: 9, y: 7, z: 7 });
 
-  test.setBlockType("minecraft:cobblestone", { x: 10, y: 7, z: 7 });
+  // 用实际电源驱动起点的动力铁轨，右侧实体方块同时提供向西启动的靠背。
+  test.setBlockType("minecraft:redstone_block", { x: 10, y: 7, z: 7 });
+  // 结构中间缺少这一段上坡轨；补齐连续线路，测试载具移动及骑乘位置同步。
+  test.setBlockType("minecraft:stone", { x: 6, y: 3, z: 7 });
+  (test as Test & { setBlockWithStates(type: string, pos: { x: number; y: number; z: number }, states: string): void })
+    .setBlockWithStates("minecraft:rail", { x: 6, y: 4, z: 7 }, "shape=ascending_east");
+  // 结构携带的 powered 状态会被邻居更新重算，沿途动力铁轨需要真实电源。
+  for (const pos of [
+    { x: 3, y: 2, z: 5 }, { x: 4, y: 2, z: 5 }, { x: 5, y: 2, z: 5 },
+    { x: 5, y: 2, z: 3 }, { x: 5, y: 2, z: 1 },
+  ]) {
+    test.setBlockType("minecraft:redstone_block", pos);
+  }
 
   const minecartRideableComp = minecart.getComponent("minecraft:rideable");
   if (!minecartRideableComp) {

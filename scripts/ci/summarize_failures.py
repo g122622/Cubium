@@ -65,8 +65,8 @@ _INTEGRATED_CRASH_MARKERS = (
     "UndefinedBehaviorSanitizer:",
     ": runtime error:",
 )
-# `run-gametests exit code: 2` / `Round 1 exit code: -1`（崩溃导致非零退出）
-_INTEGRATED_EXIT_LINE = re.compile(r"(?:run-gametests|Round \d+) exit code:\s*(-?\d+)")
+# 服务端单轮退出码是失败用例数；协调脚本最终退出码 1 表示用例失败，2 表示流水线错误。
+_INTEGRATED_EXIT_LINE = re.compile(r"run-gametests exit code:\s*(-?\d+)")
 # GitHub Actions 下载的日志每行带 `2026-10-09T05:03:28.4838952Z ` 前缀；
 # 若日志来自网页复制则还带 `Build (Linux...)	UNKNOWN STEP	` 之类前缀。
 _GH_LOG_PREFIX = re.compile(r"^.*?\d{4}-\d{2}-\d{2}T[\d:.]+Z\s?")
@@ -258,9 +258,9 @@ def collect_integrated_failures(artifacts_dir: Path) -> list[str]:
                 findings.append(line.strip())
         for match in _INTEGRATED_EXIT_LINE.finditer(text):
             code = int(match.group(1))
-            if code != 0:
+            if code not in (0, 1):
                 findings.append(f"run-gametests 以非零退出码结束：{code}"
-                                "（2 = 流水线错误，通常是服务端崩溃导致 JUnit XML 未产出）")
+                                "（流水线错误，详见日志中的实际错误原因）")
     return _dedupe(findings)
 
 
@@ -558,9 +558,8 @@ def build_body(
     if integrated_failures:
         lines.append("### 集成测试崩溃 / 流水线错误")
         lines.append("")
-        lines.append("> 这类失败**没有 JUnit XML**（服务端在写出报告前就崩了），"
-                     "因此不会出现在上面的失败用例清单里。下方直接给出完整调用栈"
-                     "与崩溃前若干行日志；原始日志见 artifact `integrated-test-results`。")
+        lines.append("> 这类错误可能发生在写出 JUnit XML 之前，不能只依赖用例报告排查。"
+                     "下方保留日志错误标记，以及可用的调用栈和崩溃前日志；原始日志见本次集成测试 artifacts。")
         lines.append("")
         lines.append(_details_block("崩溃标记", integrated_failures, limit_output))
         for i, report in enumerate(crash_reports, start=1):

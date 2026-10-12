@@ -194,6 +194,14 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertTrue(summary.collect_integrated_failures(self.artifacts))
         self.assertIn("SIGSEGV", summary.extract_crash_reports(self.artifacts)[0])
 
+    def test_case_failures_are_not_misreported_as_pipeline_crashes(self):
+        self.write_report("ctest-results.xml", '<testcase name="Passed"/>')
+        self.write_report("gametest-round1.xml", '<testcase name="ActualFailure"><failure/></testcase>')
+        (self.artifacts / "integrated-tests.log").write_text(
+            "[gametest-runner] Round 1 exit code: 3\nrun-gametests exit code: 1\n", encoding="utf-8")
+        self.assertEqual(summary.collect_integrated_failures(self.artifacts), [])
+        self.assertTrue(summary.has_failures({}, self.artifacts))
+
     def test_timeout_snapshot_reports_errors_failures_and_unstarted_tests(self):
         self.write_report("gametest-round1.xml",
             '<testcase name="Failed"><failure message="assertion"/></testcase>'

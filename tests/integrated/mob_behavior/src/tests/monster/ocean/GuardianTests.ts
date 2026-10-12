@@ -203,54 +203,17 @@ function guardianLaserDamagesGlowSquid(test: Test): void {
   });
 }
 
-// 守卫者激光攻击美西螈（wiki tech_守卫者.txt#攻击：守卫者攻击玩家、鱿鱼、发光鱿鱼和美西螈）。
-//
-// 本测试验证谓词的 AXOLOTL 分支。Cubium 谓词此前完全缺 AXOLOTL（对齐缺陷，vanilla instanceof Axolotl）。
-// 本次修复显式放行 AXOLOTL（GuardianEntity.cpp:150）。
-//
-// 链路同 guardian_laser_damages_squid：谓词 isAxolotl 选目标 + GuardianAttackGoal 激光双段 1+6=7 伤害。
-// 美西螈满血 14，激光 7 命中后 14→7；两击致死（7→0 消失）。
-//
-// 关键设计——垂直+水平偏移布局规避两类失败（前期水平布局失败：美西螈与守卫者 RandomWalking
-//   碰近 distSq<9 触发谓词"距离太近不攻击"全程不掉血；正上方垂直布局偶发失败：美西螈脚下支撑
-//   玻璃挡垂直射线致 canSee 失败锁不到目标）：
-//   - 美西螈与守卫者垂直分层 + 水平偏移：垂距 4 格（distSq=16>9 满足谓词）+ 水平偏 4 格，3D 距 √32≈5.66>3。
-//     美西螈水平 RandomWalking 改变 x/z 不改变 y，垂距恒定，距离恒满足谓词。
-//   - 守卫者 (20,2,4) 站玻璃顶（下方 (20,1,4) 玻璃支撑防重力下落），美西螈 (24,6,4) 站玻璃顶
-//     （下方 (24,5,4) 玻璃支撑）。垂距 4 格，水平偏 4 格。射线 (20,2.6,4)→(24,6.8,4) 斜向上
-//     穿 (21,3,4)(22,4,4)(23,5,4) 全 air，视线无阻挡（canSee raycastBlocks 命中 air 不挡）。
-//     **水平偏移避免美西螈支撑玻璃挡视线**——正上方时垂直射线穿 (20,5,4) 玻璃致 canSee false。
-//   - 守卫者 GuardianAttackGoal flag={Move,Look}，shouldExecute 锁定目标后占 Move flag，RandomWalking
-//     被抢占不移动，激光连续充能 90 tick 命中（解决水平布局守卫者游走充能中断问题）。
-//   - open_grass_hall（41×7×9，y=0..6）提供足够 y 范围（creeper_pit y=0..4 不够 4 格垂距）。
-//     x=20/24 在 41 长度中部，美西螈水平游走不撞墙（墙在 x=0/40）。
-//
-// 环境约束：
-//   - 美西螈陆地 maxAir=6000，560 tick 远不窒息（3000 tick 才窒息），无窒息干扰。
-//   - 守卫者陆地不窒息（GuardianTests 同款验证）。
-//   - 美西螈水平游走可能在 x 方向移动，但垂距不变，攻击持续；若美西螈游走出查询区域则 length==0，
-//     但 open_grass_hall 玻璃墙在 x=0/40 限制美西螈在 41 长度内，HALL_VOLUME 41×7×9 覆盖全结构，
-//     美西螈不会出查询区域。
-//
-// 判定手段：pollUntilSucceed 每 tick 检查美西螈 HP<14（受击 14→6）或 length==0（被打死消失）。
-//   激光周期 ~90 tick，首击 ~100-120，两击致死 ~200 tick。maxTick=560 留余量。
-//   区域限定 HALL_VOLUME 查美西螈排除并行污染。
-// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_守卫者.txt#攻击（激光攻击美西螈）
+// 守卫者激光攻击美西螈。垂直相隔四格，保持超过三格的攻击距离；水平相隔十二格，
+// 让斜向视线越过美西螈脚下的支撑柱。距离约 12.65 格，仍在 16 格搜索范围内。
+// 两者均不燃烧；美西螈的陆地空气时限远大于观察窗口，掉血应来自激光。
 function guardianLaserDamagesAxolotl(test: Test): void {
   const guardianType = "guardian";
   const axolotlType = "axolotl";
 
-  // 垂直+水平偏移布局：守卫者 (20,2,4) 站 (20,1,4) 玻璃顶；美西螈 (24,6,4) 站 (24,5,4) 玻璃顶。
-  // 垂距 4 格（y=2 到 y=6）+ 水平偏 4 格（x=20 到 x=24），3D 距 √32≈5.66>3 满足谓词。
-  // **关键：水平偏移避免美西螈支撑玻璃挡视线**——若美西螈正上方（同 x,z）于守卫者，垂直射线穿过
-  //   美西螈脚下玻璃 (20,5,4) 致 canSee raycast 命中玻璃返回 false，守卫者锁不到目标全程不掉血
-  //   （早期正上方布局 8 次 1 失败，诊断 hp=14 视线被挡）。水平偏移后射线 (20,2.6,4)→(24,6.8,4)
-  //   斜向上穿 (21,3,4)(22,4,4)(23,5,4) 全 air，视线通畅。
-  // 守卫者 GuardianAttackGoal flag={Move,Look}，锁定目标后占 Move flag 不移动（RandomWalking 被抢占），
-  //   激光连续充能 90 tick 命中。
-  test.setBlockType("minecraft:glass", { x: 20, y: 1, z: 4 });
+  // 守卫者站在低支撑块上，美西螈站在高支撑柱上；低斜率的视线避开柱体。
+  test.setBlockType("minecraft:glass", { x: 12, y: 1, z: 4 });
   test.setBlockType("minecraft:glass", { x: 24, y: 5, z: 4 });
-  test.spawn(guardianType, { x: 20, y: 2, z: 4 });
+  test.spawn(guardianType, { x: 12, y: 2, z: 4 });
   test.spawn(axolotlType, { x: 24, y: 6, z: 4 });
 
   // 断言美西螈掉血或被打死：HP<14（受击 14→6）或 length==0（被打死消失）。
