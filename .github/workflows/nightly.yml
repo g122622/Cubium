@@ -386,7 +386,7 @@ jobs:
             worker: 5
           - pool: fuzz
             worker: 6
-      max-parallel: 32
+      max-parallel: 34
     steps:
       - uses: actions/checkout@v4
         timeout-minutes: 5
