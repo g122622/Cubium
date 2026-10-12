@@ -31,6 +31,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
+import { asDim } from "../../utils/script/cubiumExtensions.js";
 import { pollUntilSucceed } from "../../utils/test/poll.js";
 import { getBlockLight } from "../utils/lightAssert.js";
 
@@ -89,6 +90,13 @@ function furnaceLitEmitsThirteen(test: Test): void {
 // 红石矿石 lit=true 发光9：redstone_ore 默认 lit=false，setBlockWithStates 设 lit=true 点亮，发光9。
 // RedstoneOreBlock::getLightLevel 返回 LIT?9:0。
 function redstoneOreLitEmitsNine(test: Test): void {
+    // 点亮状态的发光测试独占批次，观察期间禁用会熄灭矿石的随机刻。
+    const previousSpeed = asDim(test.getDimension()).getGameRule("randomTickSpeed");
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "observer");
+    (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(() => {
+        player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+    });
+    player.chat("/gamerule randomTickSpeed 0");
     assertEmission(
         test,
         () => test.setBlockWithStates("minecraft:redstone_ore", PLACE, "lit=true"),
@@ -136,6 +144,7 @@ export function registerDynamicEmissionTests(): void {
         .structureName("gametests:light_box")
         .maxTicks(120);
     GameTest.register("LightingTests", "light_redstone_ore_lit_emits_9", redstoneOreLitEmitsNine)
+        .batch("redstone_ore_emission")
         .structureName("gametests:light_box")
         .maxTicks(120);
     GameTest.register("LightingTests", "light_respawn_anchor_charges_4_emits_15", respawnAnchorChargesFourEmitsFifteen)

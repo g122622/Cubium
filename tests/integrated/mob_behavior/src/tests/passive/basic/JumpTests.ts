@@ -70,6 +70,7 @@ const CROSS_THRESHOLD = OBSTACLE_X - 0.5;
 // 牛会卡在障碍墙前(x≈7.5)无法翻越，pollUntilSucceed 超时失败。正常情况下牛应跳过 1 格高墙到达玩家侧。
 function cowJumpsOverOneBlockWall(test: Test): void {
   const cowType = "cow";
+  const worldThreshold = test.worldLocation({ x: CROSS_THRESHOLD, y: 2, z: 5 }).x;
 
   // 1) 障碍墙：helper-y=2 的 (7,2,5) 放 stone，1 格高（占据牛脚部行走层，顶面比地板顶面高 1 格）。
   //    牛 stepHeight=0.6 < 1.0 无法步进，须跳跃翻越。stone 实心方块碰撞箱 0..1。
@@ -97,7 +98,7 @@ function cowJumpsOverOneBlockWall(test: Test): void {
       volume: PIT_VOLUME,
     });
     if (cows.length === 0) return false;
-    return cows[0].location.x < CROSS_THRESHOLD;
+    return cows[0].location.x < worldThreshold;
   }, {
     startTick: 40,
     interval: 10,
@@ -110,7 +111,7 @@ function cowJumpsOverOneBlockWall(test: Test): void {
       });
       const x = cows.length > 0 ? cows[0].location.x.toFixed(2) : "n/a";
       test.assert(false,
-        `cow did not jump over 1-block wall: cowX=${x} (obstacle=${OBSTACLE_X}, threshold=${CROSS_THRESHOLD}, player=2)`);
+        `cow did not jump over 1-block wall: cowX=${x} (worldThreshold=${worldThreshold}, relativeObstacle=${OBSTACLE_X})`);
     },
   });
 }

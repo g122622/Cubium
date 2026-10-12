@@ -816,6 +816,8 @@
 
 `LivingEntity::isAlive()` 同时检查生命值和移除状态。生命值归零后立即返回 false，死亡消散中的对象仍可由世界保留到逻辑移除；目标选择和击杀回调不能仅以对象尚未移除判断存活。
 
+`EntityType::create` 在派生类属性注册完成后调用 `initializeHealth()`，让新实体立即以正确满血值对外可见；受伤和直接构造后的首次 tick 共用一次初始化入口，已设置或加载的生命值不会被重置。只在首次 tick 初始化会覆盖更早发生的投射物伤害。
+
 - `remove()` — 便捷重载，等价 `remove(RemovalReason::Killed)`（死亡流程 `tickDeath` 收尾用）。
 - `remove(RemovalReason)` — 首次移除才生效（重复调用不覆盖原因、不重复 `onRemoval`），内部：置 `m_removalReason` → `shouldDestroy(reason)` 时 `stopRiding()` → 所有乘客 `stopRiding()` → `onRemoval(reason)`。
 - `discard()` — 等价 `remove(RemovalReason::Discarded)`（静默移除，无掉落/经验）。

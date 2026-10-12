@@ -28,6 +28,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/AttackContext.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -162,6 +163,46 @@ TEST(LivingEntityTest, Construction)
     EXPECT_FLOAT_EQ(entity.health(), 20.0f);
     EXPECT_FLOAT_EQ(entity.maxHealth(), 20.0f);
     EXPECT_FALSE(entity.isDead());
+}
+
+TEST(LivingEntityTest, DamageBeforeFirstTickUsesFinalMaximumHealth)
+{
+    LivingEntity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    entity.attributes().setBaseValue(Attributes::MAX_HEALTH, 30.0);
+    EnvironmentalDamage damage(DamageType::Generic);
+
+    ASSERT_TRUE(entity.hurt(damage, 3.0f));
+    EXPECT_FLOAT_EQ(entity.health(), 27.0f);
+    entity.tick();
+    EXPECT_FLOAT_EQ(entity.health(), 27.0f);
+}
+
+TEST(LivingEntityTest, EntityFactoryInitializesHealthBeforePublishing)
+{
+    const auto type = entity::EntityType::Builder(
+        [](IWorld* world, ecs::EntityRegistry& registry) {
+            auto entity = std::make_unique<LivingEntity>(EntityInstanceId(1), world, registry);
+            entity->attributes().setBaseValue(Attributes::MAX_HEALTH, 30.0);
+            return entity;
+        },
+        entity::EntityClassification::Misc)
+                          .build();
+    auto entity = type.create(nullptr, mc::test::testEcsRegistry());
+    const auto* living = dynamic_cast<LivingEntity*>(entity.get());
+    ASSERT_NE(living, nullptr);
+    EXPECT_FLOAT_EQ(living->health(), 30.0f);
+}
+
+TEST(LivingEntityTest, HealthInitializationPreservesExplicitHealth)
+{
+    LivingEntity entity(EntityInstanceId(1), nullptr, mc::test::testEcsRegistry());
+    entity.attributes().setBaseValue(Attributes::MAX_HEALTH, 30.0);
+    entity.setHealth(5.0f);
+    entity.initializeHealth();
+    EXPECT_FLOAT_EQ(entity.health(), 5.0f);
+    entity.setHealth(0.0f);
+    entity.initializeHealth();
+    EXPECT_FALSE(entity.isAlive());
 }
 
 TEST(LivingEntityTest, SetHealth)
