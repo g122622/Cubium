@@ -21,8 +21,7 @@
 //   1. 世界边界是世界级单例（ServerWorld::m_worldBorder 全局唯一），跨测试持久化不自动重置。故每个
 //      测试独占 batch 串行 + runOnFinish 恢复初始边界（测试开始时读 getWorldBorder() 各属性保存，结束
 //      时 chat 设回），防污染后续测试。
-//   2. 默认 size=6.0E7（6000万），不测精确默认值（vanilla 默认 59999968 与 Cubium 6.0E7 有微差，
-//      属已知偏差不在此测），只测"set 后读回等于设置值"。
+//   2. 默认直径为 59999968，设置后须读回相同值，默认直径也必须能经命令恢复。
 //   3. /worldborder set <size> 无 time 参数立即生效，getSize 返回 targetSize（无渐变）。
 //   4. /worldborder add <distance> 在当前 size 基础上加，可为负。测试先 set 100 再 add 50 断言 150。
 //   5. size/center/damage 是浮点，用 === 比较（set 100 存 100.0，读回 100，JS number === 100 成立）。
@@ -90,6 +89,11 @@ function worldborderSetSize(test: Test): void {
 
     const b = getBorder();
     test.assert(b.size === 100, `size should be 100, got ${b.size}`);
+
+    // 恢复默认直径也必须能经命令生效，不能只验证缩小命令成功。
+    restoreBorder(player, initial);
+    test.assert(getBorder().size === initial.size,
+      `border restore failed: expected ${initial.size}, got ${getBorder().size}`);
 
     test.succeed();
 }

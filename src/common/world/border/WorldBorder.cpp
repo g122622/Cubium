@@ -97,8 +97,8 @@ public:
 private:
     void _updateBounds() const;
 
-    f64 m_oldSize;     // 起始大小
-    f64 m_newSize;     // 目标大小
+    f64 m_oldSize;        // 起始大小
+    f64 m_newSize;        // 目标大小
     u64 m_startTime;      // 开始时间（毫秒）
     u64 m_endTime;        // 结束时间（毫秒）
     u64 m_transitionTime; // 过渡总时长（毫秒）
@@ -276,7 +276,7 @@ void MovingBorderState::_updateBounds() const
 // ============================================================================
 
 WorldBorder::WorldBorder()
-    : m_state(std::make_unique<StationaryBorderState>(6.0E7, 0.0, 0.0))
+    : m_state(std::make_unique<StationaryBorderState>(MAX_SIZE, 0.0, 0.0))
 {}
 
 WorldBorder::~WorldBorder() = default;
