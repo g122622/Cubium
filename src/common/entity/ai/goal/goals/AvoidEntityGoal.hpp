@@ -38,6 +38,10 @@
 
 namespace mc {
 
+namespace test {
+class AvoidEntityGoalTestAccessor; // 测试访问器，声明为 friend 以访问 private 成员
+} // namespace test
+
 namespace entity::ai::goal {
 
 /**
@@ -81,6 +85,8 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "AvoidEntityGoal"; }
 
 private:
+    friend class test::AvoidEntityGoalTestAccessor; // 测试访问器，用于验证 UAF 防护
+
     /**
      * @brief 寻找要避开的实体
      * @return 要避开的实体，如果没有则返回 nullptr

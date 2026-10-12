@@ -102,6 +102,15 @@ void BreedGoal::tick()
 {
     if (!m_animal || !m_targetMate) return;
 
+    // 【UAF 防护】配偶已被 discard/移除时立即清空裸指针。
+    // 本 goal 的 shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3
+    // 循环内兄弟 goal 移除目标后的兜底（此时本 goal 的 Phase 1 已经跑过）。
+    // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    if (!m_targetMate->isAlive()) {
+        m_targetMate = nullptr;
+        return;
+    }
+
     // 使用 LookController 看向配偶
     if (auto* lookCtrl = m_animal->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_targetMate, 10.0f, m_animal->getVerticalFaceSpeed());

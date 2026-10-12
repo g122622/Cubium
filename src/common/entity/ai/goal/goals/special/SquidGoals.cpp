@@ -124,6 +124,15 @@ bool SquidFleeGoal::shouldExecute()
         return false;
     }
 
+    // 【UAF 防护】复仇目标已被 discard/移除时立即放手。
+    // 注意：本 goal 未重写 shouldContinueExecuting()/resetTask()，继承的
+    // Goal::shouldContinueExecuting() 即 shouldExecute()，而默认 resetTask() 是空操作
+    // ——因此即使这里返回 false，Phase 1 也不会清空 m_fleeTarget，必须依靠 tick() 内的
+    // 守卫兜底。graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    if (!revengeTarget->isAlive()) {
+        return false;
+    }
+
     // 检查距离
     f64 distSq = m_squid->distanceSqTo(*revengeTarget);
     if (distSq >= FLEE_DISTANCE_SQ) {
@@ -142,6 +151,15 @@ void SquidFleeGoal::startExecuting()
 void SquidFleeGoal::tick()
 {
     if (m_squid == nullptr || m_fleeTarget == nullptr) {
+        return;
+    }
+
+    // 【UAF 防护】复仇目标已被 discard/移除时立即清空裸指针。
+    // 本 goal 未重写 shouldContinueExecuting()/resetTask()（后者为基类空实现），
+    // 因此 Phase 1 不会替我们清空 m_fleeTarget，此处的检查是唯一防线。
+    // 详见 shouldExecute() 中的说明与 EntityManager.cpp:380-381。
+    if (!m_fleeTarget->isAlive()) {
+        m_fleeTarget = nullptr;
         return;
     }
 

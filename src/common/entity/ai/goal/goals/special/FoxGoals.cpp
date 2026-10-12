@@ -229,6 +229,16 @@ void FoxFollowTargetGoal::tick()
         return;
     }
 
+    // 【UAF 防护】目标已被 discard/移除时立即清空裸指针。
+    // 本 goal 的 shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3
+    // 循环内兄弟 goal 移除目标后的兜底（此时本 goal 的 Phase 1 已经跑过）。
+    // 提前清空指针还可避免下一 tick 的 resetTask() 再对该对象调用 isPathClear()。
+    // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    if (!m_target->isAlive()) {
+        m_target = nullptr;
+        return;
+    }
+
     auto* lookController = m_fox->lookController();
     if (lookController != nullptr) {
         lookController->setLookPositionWithEntity(*m_target,

@@ -145,6 +145,15 @@ void IronGolemAttackGoal::tick()
 {
     if (!m_attackTarget) return;
 
+    // 【UAF 防护】攻击目标已被 discard/移除时立即清空裸指针。
+    // 本 goal 的 shouldContinueExecuting() 已含 isAlive() 守卫，此处是同一 Phase 3
+    // 循环内兄弟 goal 移除目标后的兜底（此时本 goal 的 Phase 1 已经跑过）。
+    // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+    if (!m_attackTarget->isAlive()) {
+        m_attackTarget = nullptr;
+        return;
+    }
+
     // 使用 LookController 看向目标
     if (auto* lookCtrl = m_golem->lookController()) {
         lookCtrl->setLookPositionWithEntity(*m_attackTarget, 30.0f, 30.0f);
@@ -301,9 +310,18 @@ void OfferFlowerGoal::resetTask()
 void OfferFlowerGoal::tick()
 {
     if (m_target) {
-        auto* lookController = m_ironGolem->lookController();
-        if (lookController) {
-            lookController->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+        // 【UAF 防护】赠花目标已被 discard/移除时立即清空裸指针。
+        // 本 goal 的 shouldContinueExecuting() 只检查 `m_tick > 0`（对齐 vanilla
+        // canContinueToUse()），完全不涉及 m_target，因此 Phase 1 永远不会因目标死亡
+        // 而调用 resetTask()；若此处不检查，m_tick 倒计时期间会持续解引用已析构对象。
+        // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+        if (!m_target->isAlive()) {
+            m_target = nullptr;
+        } else {
+            auto* lookController = m_ironGolem->lookController();
+            if (lookController) {
+                lookController->setLookPositionWithEntity(*m_target, 30.0f, 30.0f);
+            }
         }
     }
 

@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
@@ -46,6 +47,26 @@
 
 using namespace mc;
 using namespace mc::entity::ai::goal;
+
+namespace mc::test {
+
+// ============================================================================
+// 测试访问器：访问 AvoidEntityGoal 的 private 成员 m_avoidTarget
+// ============================================================================
+// AvoidEntityGoal 已在 AvoidEntityGoal.hpp 中声明
+// friend class test::AvoidEntityGoalTestAccessor。
+
+class AvoidEntityGoalTestAccessor {
+public:
+    static LivingEntity* getAvoidTarget(const entity::ai::goal::AvoidEntityGoal& goal) { return goal.m_avoidTarget; }
+
+    static void setAvoidTarget(entity::ai::goal::AvoidEntityGoal& goal, LivingEntity* target)
+    {
+        goal.m_avoidTarget = target;
+    }
+};
+
+} // namespace mc::test
 
 namespace {
 
@@ -176,6 +197,23 @@ public:
     using PanicGoal::PanicGoal;
 };
 
+// 暴露 protected 成员 m_target 以验证 UAF 守卫是否清空了缓存的裸指针。
+// RangedAttackGoal 中 m_target 为 protected（RangedAttackGoals.hpp:75），
+// 故可在派生类中直接读取。
+class ExposedRangedAttackGoal final : public RangedAttackGoal {
+public:
+    using RangedAttackGoal::RangedAttackGoal;
+
+    [[nodiscard]] LivingEntity* cachedTarget() const { return m_target; }
+};
+
+class ExposedRangedBowAttackGoal final : public RangedBowAttackGoal {
+public:
+    using RangedBowAttackGoal::RangedBowAttackGoal;
+
+    [[nodiscard]] LivingEntity* cachedTarget() const { return m_target; }
+};
+
 class ExposedWaterAvoidingRandomWalkingGoal final : public WaterAvoidingRandomWalkingGoal {
 public:
     using WaterAvoidingRandomWalkingGoal::isInWaterOrLava;
@@ -291,4 +329,114 @@ TEST(AiGoalRegressionTest, RangedBowAttackGoal_RequiresBowUseAction)
 
     creature.setMainHandItem(ItemStack(&bowItem, 1));
     EXPECT_TRUE(goal.shouldExecute());
+}
+
+// ============================================================================
+// 目标实体裸指针 UAF 回归测试
+// ============================================================================
+//
+// 背景：EntityManager::tick() 采用 graveyard 延迟析构——实体被 remove() 标记后，
+// 对象要到下一 tick 的 `m_graveyard.clear()`（EntityManager.cpp:345）才真正析构。
+// 因此存在整整一个 _tickEntities() 遍历周期，其间 isAlive()==false 但对象仍已分配。
+// GoalSelector::tick() 的 Phase 1 先跑 shouldContinueExecuting()->resetTask()，
+// Phase 3 再跑 tick()；但同一 Phase 3 循环内先执行的兄弟 goal 可能在本次 tick 内
+// 移除目标，此时本 goal 的 Phase 1 已经跑过。故 tick() 内部必须再检查一次 isAlive()。
+// 契约见 EntityManager.cpp:380-381。
+//
+// 下列用例直接复现 CI 崩溃路径（nightly run 38193815032 shard 18/23）：
+//   shard 18: heap-use-after-free @ Entity.hpp:326 Entity::x()
+//             <- RangedBowAttackGoal::tick() RangedAttackGoals.cpp:221
+//   shard 23: heap-use-after-free @ Entity.hpp:409 Entity::distanceSqTo()
+//             <- AvoidEntityGoal::tick() AvoidEntityGoal.cpp:121
+
+TEST(AiGoalRegressionTest, RangedAttackGoal_ClearsRemovedTarget)
+{
+    TestGoalWorld world;
+    TestCreatureEntity creature;
+    creature.setWorld(&world);
+    creature.setPosition(0.0f, 64.0f, 0.0f);
+
+    TestCreatureEntity target;
+    target.setWorld(&world);
+    target.setPosition(5.0f, 64.0f, 0.0f);
+
+    creature.setAttackTarget(&target);
+
+    ExposedRangedAttackGoal goal(&creature, 1.0, 20, 40, 15.0f);
+    ASSERT_TRUE(goal.shouldExecute());
+    ASSERT_EQ(goal.cachedTarget(), &target);
+
+    // 目标被移除（isAlive()==false）但对象仍存活（graveyard 延迟析构窗口）。
+    target.discard();
+    ASSERT_FALSE(target.isAlive());
+
+    // shouldContinueExecuting() 必须放手。修复前此处置为 true：shouldExecute() 返回
+    // false（目标不存活）后，`|| (m_mob && !m_mob->navigator()->noPath())` 的第二个
+    // 析取项在测试世界中因 noPath()==true 而恰好为 false，故本断言在测试环境不具区分度；
+    // 真正的区分度由下方 tick() 清空指针的断言提供。
+    EXPECT_FALSE(goal.shouldContinueExecuting());
+
+    // 关键断言：tick() 必须自行检测目标已移除并清空缓存指针，绝不解引用它。
+    // 修复前 tick() 会走到 m_target->x()（shard 18 崩溃点），
+    // 修复后 m_target 被置空。
+    goal.tick();
+    EXPECT_EQ(goal.cachedTarget(), nullptr);
+}
+
+TEST(AiGoalRegressionTest, RangedBowAttackGoal_ClearsRemovedTarget)
+{
+    TestGoalWorld world;
+    TestCreatureEntity creature;
+    creature.setWorld(&world);
+    creature.setPosition(0.0f, 64.0f, 0.0f);
+
+    TestCreatureEntity target;
+    target.setWorld(&world);
+    target.setPosition(10.0f, 64.0f, 0.0f);
+
+    TestBowItem bowItem;
+    creature.setMainHandItem(ItemStack(&bowItem, 1));
+    creature.setAttackTarget(&target);
+
+    ExposedRangedBowAttackGoal goal(&creature, 1.0, 20, 40);
+    ASSERT_TRUE(goal.shouldExecute());
+    ASSERT_EQ(goal.cachedTarget(), &target);
+
+    // 复现 shard 18 崩溃前提：目标已被移除，对象仍在 graveyard 中未析构。
+    target.discard();
+    ASSERT_FALSE(target.isAlive());
+
+    // 崩溃点原为 RangedAttackGoals.cpp:221 的 m_target->x()。
+    // tick() 内的 isAlive() 守卫必须拦截并清空指针。
+    goal.tick();
+    EXPECT_EQ(goal.cachedTarget(), nullptr);
+}
+
+TEST(AiGoalRegressionTest, AvoidEntityGoal_ClearsRemovedAvoidTarget)
+{
+    TestGoalWorld world;
+    TestCreatureEntity creature;
+    creature.setWorld(&world);
+    creature.setPosition(0.0f, 64.0f, 0.0f);
+
+    TestCreatureEntity avoidTarget;
+    avoidTarget.setWorld(&world);
+    avoidTarget.setPosition(3.0f, 64.0f, 0.0f);
+
+    AvoidEntityGoal goal(&creature, 6.0f, 1.0, 1.3);
+    mc::test::AvoidEntityGoalTestAccessor::setAvoidTarget(goal, &avoidTarget);
+    ASSERT_EQ(mc::test::AvoidEntityGoalTestAccessor::getAvoidTarget(goal), &avoidTarget);
+
+    // 复现 shard 23 崩溃前提：被躲避目标已被移除，对象仍在 graveyard 中未析构。
+    avoidTarget.discard();
+    ASSERT_FALSE(avoidTarget.isAlive());
+
+    // shouldContinueExecuting() 必须放手。修复前本 goal 只看 nav->noPath()，
+    // 目标死亡完全不影响其返回值。
+    EXPECT_FALSE(goal.shouldContinueExecuting());
+
+    // 崩溃点原为 AvoidEntityGoal.cpp:121 的 m_creature->distanceSqTo(*m_avoidTarget)。
+    // tick() 内的 isAlive() 守卫必须拦截，并清空裸指针。
+    goal.tick();
+    EXPECT_EQ(mc::test::AvoidEntityGoalTestAccessor::getAvoidTarget(goal), nullptr);
 }

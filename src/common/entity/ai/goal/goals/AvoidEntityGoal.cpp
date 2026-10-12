@@ -87,6 +87,17 @@ bool AvoidEntityGoal::shouldContinueExecuting()
 {
     if (!m_creature) return false;
 
+    // 【UAF 防护】被躲避的目标已被 discard/移除（isAlive()==false）时立即放手。
+    // vanilla AvoidEntityGoal.canContinueToUse() 仅检查 `!this.pathNav.isDone()`，
+    // 在 Java 中安全（GC 保证引用有效性）；但 Cubium 采用 graveyard 延迟析构
+    // （EntityManager.cpp:345 才真正释放），本 goal 缓存的 m_avoidTarget 裸指针
+    // 会指向"已标记移除但尚未析构"的对象，而 tick() 会解引用它。
+    // 因此此处必须显式检查，这是 C++ 移植相对 vanilla 的额外要求，
+    // 而非与 vanilla 的行为分歧。契约见 EntityManager.cpp:380-381。
+    if (m_avoidTarget != nullptr && !m_avoidTarget->isAlive()) {
+        return false;
+    }
+
     // 继续执行直到路径完成
     auto* nav = m_creature->navigator();
     if (nav && nav->noPath()) {
@@ -116,6 +127,18 @@ void AvoidEntityGoal::resetTask()
 void AvoidEntityGoal::tick()
 {
     if (!m_creature || !m_avoidTarget) return;
+
+    // 【UAF 防护】被躲避的目标已被 discard/移除时立即清空裸指针。
+    // 与 shouldContinueExecuting() 中的守卫构成双保险：Phase 1 通常已在
+    // Phase 3 之前调用 resetTask() 清空 m_avoidTarget，但同一 Phase 3 循环中
+    // 先执行的兄弟 goal 可能在本次 tick 内移除该目标，此时本 goal 的 Phase 1
+    // 已经跑过，只有此处再检查一次才安全。
+    // CI 实测崩溃点：heap-use-after-free @ Entity.hpp:409 mc::Entity::distanceSqTo(...)
+    //   <- AvoidEntityGoal::tick() AvoidEntityGoal.cpp:121。
+    if (!m_avoidTarget->isAlive()) {
+        m_avoidTarget = nullptr;
+        return;
+    }
 
     // 根据距离调整速度，阈值是 49.0D (7*7)
     f64 distSq = m_creature->distanceSqTo(*m_avoidTarget);

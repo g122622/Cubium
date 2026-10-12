@@ -116,6 +116,17 @@ void EndermanStareGoal::tick()
 {
     // 注视目标玩家的眼睛位置
     if (m_targetPlayer != nullptr) {
+        // 【UAF 防护】目标玩家已被 discard/移除时立即清空裸指针。
+        // 本 goal 未重写 shouldContinueExecuting()，继承 Goal 的默认实现
+        // （返回 shouldExecute()），而 shouldExecute() 每次都重新从
+        // getAttackTarget() 取目标——若 Phase 2 未重跑（tickRate 未到），
+        // Phase 1 不会调用 resetTask()，Phase 3 的 tick() 就会解引用旧指针。
+        // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+        if (!m_targetPlayer->isAlive()) {
+            m_targetPlayer = nullptr;
+            return;
+        }
+
         m_enderman->lookController()->setLookPosition(
             m_targetPlayer->x(), m_targetPlayer->y() + m_targetPlayer->eyeHeight(), m_targetPlayer->z());
     }
@@ -199,6 +210,13 @@ void EndermanFindPlayerGoal::resetTask()
 bool EndermanFindPlayerGoal::shouldContinueExecuting()
 {
     if (m_targetPlayer != nullptr) {
+        // 【UAF 防护】目标玩家已被 discard/移除时立即放手，避免下方
+        // shouldAttackPlayer(*m_targetPlayer) 解引用已移除对象。
+        // graveyard 延迟析构契约见 EntityManager.cpp:380-381。
+        if (!m_targetPlayer->isAlive()) {
+            return false;
+        }
+
         // 如果玩家不再注视末影人，停止
         if (!m_enderman->shouldAttackPlayer(*m_targetPlayer)) {
             return false;
@@ -238,6 +256,14 @@ void EndermanFindPlayerGoal::tick()
         }
     } else {
         // 已经被激怒，处理攻击逻辑
+        // 【UAF 防护】m_target 已被 discard/移除（isAlive()==false）时不再解引用。
+        // 本分支下方会调用 m_target->distanceSqTo(*m_enderman)，而 m_target 是跨 tick
+        // 缓存的裸指针；graveyard 延迟析构（EntityManager.cpp:345）使其可能指向
+        // "已移除但未析构"的对象。契约见 EntityManager.cpp:380-381。
+        if (m_target != nullptr && !m_target->isAlive()) {
+            m_target = nullptr;
+        }
+
         if (m_target != nullptr && !m_enderman->isRiding()) {
             Player* playerTarget = dynamic_cast<Player*>(m_target);
 
