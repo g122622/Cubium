@@ -44,6 +44,7 @@
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -239,9 +240,10 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     //
     // 进展判定用 60s 滑动窗口趋势,而非"严格不下降"计数:全量 -j16 下 worker 被 CPU 抢占,pending
     // 高位抖动(偶发下降几十即重置 noProgress)会让"严格不下降"判据永远不触发 livelock 分支,反而
-    // 干跑到 STALL_THRESHOLD 硬超时 abort——而此时测试只是慢并非真死锁。趋势判据记录 60s 前的
-    // pending,只有 60s 窗口内 pending 净未下降(running>0 满载但无吞吐)才判 livelock,容忍 -j16
-    // 抢占导致的慢速排空。deadlock/stall 分支(running==0)保留——它们抓的是真死锁。
+    // 干跑到 STALL_THRESHOLD 硬超时 abort——而此时测试只是慢并非真死锁。活锁判据因此改为
+    // "60s 窗口内 pending 的最小值从未明显低于最大值"（窗口内完全无排空），容忍 -j16 抢占
+    // 与生产者持续注入导致的慢速/高位抖动排空。deadlock/stall 分支(running==0)保留——它们
+    // 抓的是真死锁。
     constexpr int STALL_THRESHOLD_SECONDS = 280;
     constexpr int PROGRESS_WINDOW_SAMPLES = 12; // 60s 窗口(每 5s 采样一次)
     std::thread watchdog([&]() {
@@ -249,6 +251,8 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
         pendingHistory.reserve(PROGRESS_WINDOW_SAMPLES + 1);
         int lastPending = -1;
         int noProgressSamples = 0;
+        // 退出原因：用于在 abort 时给出准确诊断，而不是无条件报"stall > Ns"。
+        const char* abortReason = "test did not finish within the stall threshold";
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             if (sec % 10 == 0) {
@@ -272,6 +276,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                     noProgressSamples);
                 if (noProgressSamples >= 6 && pending > 0 && running == 0) {
                     spdlog::info("[watchdog] deadlock: workers idle but pending={}", pending);
+                    abortReason = "deadlock: workers idle but pending tasks remain";
                     break;
                 }
                 // worker 池完全空闲（pending=0, running=0）但持续无进展：
@@ -279,25 +284,36 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                 if (noProgressSamples >= 6 && pending == 0 && running == 0) {
                     spdlog::info("[watchdog] stall: workers idle, no in-flight tasks — dumping stuck holders");
                     m_manager->_debugDumpStuckHolders();
+                    abortReason = "stall: workers idle with no in-flight tasks (promise leak)";
                     break;
                 }
-                // 活锁：workers 满载运行（running>0）但 pending 在 60s 窗口内净未下降。
-                // 用趋势判据(窗口首采样 vs 当前)而非严格不下降计数:容忍 -j16 抢占导致的偶发抖动下降,
-                // 只在 60s 内确实零净吞吐时才判活锁。pending 阈值 2000 排除正常生成积压(视距16稳态约数百)。
+                // 活锁：workers 满载运行（running>0）但 pending 在 60s 窗口内**从未**出现有效排空。
+                // 判据取窗口内 pending 的最小值与最大值比较，而非"窗口首采样 vs 当前采样"：
+                // 生产者在窗口内持续注入时 pending 会在高位反复抖动（实测 1951→670→2445），
+                // 首采样对比会把"确实有吞吐、只是注入更快"误判为零吞吐并提前 abort。
+                // 最小值显著低于最大值即证明 worker 完成了大量任务；只有整个窗口内 min 与 max
+                // 几乎相等（队列从未排空过任何量）才判活锁。pending 阈值 2000 排除正常生成积压
+                // （视距16稳态约数百）。真正的持续过载由 STALL_THRESHOLD 硬超时兜底。
                 if (static_cast<int>(pendingHistory.size()) > PROGRESS_WINDOW_SAMPLES && pending > 2000 &&
-                    running > 0 && pendingInt >= pendingHistory.front() * 9 / 10) {
-                    spdlog::info("[watchdog] livelock: workers busy (running={}) but pending={} not draining over 60s "
-                                 "(was {}) — dumping stuck holders",
-                        running,
-                        pending,
-                        pendingHistory.front());
-                    m_manager->_debugDumpStuckHolders();
-                    break;
+                    running > 0) {
+                    const int windowMin = *std::min_element(pendingHistory.begin(), pendingHistory.end());
+                    const int windowMax = *std::max_element(pendingHistory.begin(), pendingHistory.end());
+                    if (windowMin >= windowMax * 9 / 10) {
+                        spdlog::info("[watchdog] livelock: workers busy (running={}) but pending={} never drained "
+                                     "over 60s (window min={} max={}) — dumping stuck holders",
+                            running,
+                            pending,
+                            windowMin,
+                            windowMax);
+                        m_manager->_debugDumpStuckHolders();
+                        abortReason = "livelock: workers busy but queue never drained over 60s";
+                        break;
+                    }
                 }
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
-            spdlog::info("[watchdog] stall > {}s, abort", STALL_THRESHOLD_SECONDS);
+            spdlog::info("[watchdog] abort after >{}s: {}", STALL_THRESHOLD_SECONDS, abortReason);
             std::abort();
         }
     });
@@ -468,6 +484,8 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
         pendingHistory.reserve(PROGRESS_WINDOW_SAMPLES + 1);
         int lastPending = -1;
         int noProgressSamples = 0;
+        // 退出原因：用于在 abort 时给出准确诊断，而不是无条件报"stall > Ns"。
+        const char* abortReason = "test did not finish within the stall threshold";
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             if (sec % 10 == 0) {
@@ -491,6 +509,7 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                     noProgressSamples);
                 if (noProgressSamples >= 6 && pending > 0 && running == 0) {
                     spdlog::info("[watchdog] deadlock: workers idle but pending={}", pending);
+                    abortReason = "deadlock: workers idle but pending tasks remain";
                     break;
                 }
                 // worker 池完全空闲（pending=0, running=0）但持续无进展：
@@ -498,23 +517,31 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 if (noProgressSamples >= 6 && pending == 0 && running == 0) {
                     spdlog::info("[watchdog] stall: workers idle, no in-flight tasks — dumping stuck holders");
                     m_manager->_debugDumpStuckHolders();
+                    abortReason = "stall: workers idle with no in-flight tasks (promise leak)";
                     break;
                 }
-                // 活锁：workers 满载运行（running>0）但 pending 在 60s 窗口内净未下降（同 0x50Repro 测试说明）。
+                // 活锁：workers 满载运行（running>0）但 pending 在 60s 窗口内从未出现有效排空
+                // （同 0x50Repro 测试说明：取窗口 min/max 比较，避免把高位抖动误判为零吞吐）。
                 if (static_cast<int>(pendingHistory.size()) > PROGRESS_WINDOW_SAMPLES && pending > 2000 &&
-                    running > 0 && pendingInt >= pendingHistory.front() * 9 / 10) {
-                    spdlog::info("[watchdog] livelock: workers busy (running={}) but pending={} not draining over 60s "
-                                 "(was {}) — dumping stuck holders",
-                        running,
-                        pending,
-                        pendingHistory.front());
-                    m_manager->_debugDumpStuckHolders();
-                    break;
+                    running > 0) {
+                    const int windowMin = *std::min_element(pendingHistory.begin(), pendingHistory.end());
+                    const int windowMax = *std::max_element(pendingHistory.begin(), pendingHistory.end());
+                    if (windowMin >= windowMax * 9 / 10) {
+                        spdlog::info("[watchdog] livelock: workers busy (running={}) but pending={} never drained "
+                                     "over 60s (window min={} max={}) — dumping stuck holders",
+                            running,
+                            pending,
+                            windowMin,
+                            windowMax);
+                        m_manager->_debugDumpStuckHolders();
+                        abortReason = "livelock: workers busy but queue never drained over 60s";
+                        break;
+                    }
                 }
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
-            spdlog::info("[watchdog] stall > {}s, abort", STALL_THRESHOLD_SECONDS);
+            spdlog::info("[watchdog] abort after >{}s: {}", STALL_THRESHOLD_SECONDS, abortReason);
             std::abort();
         }
     });
@@ -545,6 +572,17 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 const double wz = std::sin(angle) * radius;
                 m_manager->updatePlayerPosition(1, wx, wz);
                 m_manager->tick();
+                // 同步请求覆盖：requestChunkSync 仅可在拥有 tick 与票据状态的线程调用
+                // （见 test_server_chunk_manager.cpp 的 ConcurrentChunkAccess 契约说明）。
+                // 本测试中该线程是 mover，故同步请求必须在此发起；先前在 generator 线程调用会与
+                // mover 的 tick() 并发进入 _drainPendingLoadCompletes，两者竞争非原子的
+                // m_drainingLoadCompletes：一方析构守卫复位标志时另一方仍在排空循环内，
+                // 使 _onChunkLoadComplete 的 MC_ASSERT_RELEASE(m_drainingLoadCompletes) 中止。
+                if (i % 8 == 0) {
+                    const int syncX = (i * 7) % 32 - 16;
+                    const int syncZ = (i * 13) % 32 - 16;
+                    (void)m_manager->requestFullChunkSync(syncX, syncZ);
+                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
             // 移动循环结束后继续驱动 tick() 直到 generator 完成（stop 置位），避免 generator 的
@@ -586,9 +624,6 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 if (static_cast<int>(inflight.size()) > MAX_INFLIGHT) {
                     inflight.front().get();
                     inflight.erase(inflight.begin());
-                }
-                if (i % 8 == 0) {
-                    (void)m_manager->requestFullChunkSync(x, z);
                 }
                 // 高水位加大 sleep,低水位保持原速
                 std::this_thread::sleep_for(
