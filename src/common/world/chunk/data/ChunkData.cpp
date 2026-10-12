@@ -97,9 +97,18 @@ ChunkData::ChunkData(ChunkData&& other) noexcept
     , m_hasSkyEmptinessMap(other.m_hasSkyEmptinessMap)
     , m_blockEmptinessMap(std::move(other.m_blockEmptinessMap))
     , m_hasBlockEmptinessMap(other.m_hasBlockEmptinessMap)
-    , m_skyNibblePtrs(std::move(other.m_skyNibblePtrs))
-    , m_blockNibblePtrs(std::move(other.m_blockNibblePtrs))
-    , m_nibblePtrsInitialized(other.m_nibblePtrsInitialized)
+    // 【禁止搬运 nibble 指针缓存】m_skyNibblePtrs/m_blockNibblePtrs 缓存的是**源对象内**的
+    // &m_skyNibbles[i] / &m_blockNibbles[i]。上面的 std::move(m_skyNibbles) 是逐元素移动
+    // （SWMRNibbleArray 有用户提供的移动构造，非平凡可移动），目标对象的 nibble 数组落在
+    // 全新地址，故任何被搬运过来的指针都指向源对象内部。源对象一旦析构，
+    // getSkyNibbles()/getBlockNibbles() 交出的数组即指向已释放内存，调用方（如
+    // WorldLightManager::_getNibble → nibbles[index]，或 toByteArray()）读到的就是
+    // 悬垂 SWMRNibbleArray*，属释放后使用。
+    // 故此处既不搬运指针、也不继承"已初始化"标志，交由 _ensureNibblePtrs() 按本对象
+    // 自身地址惰性重建。回归用例见 tests/unit/common/world/chunk/data/ChunkDataMoveTest.cpp。
+    , m_skyNibblePtrs{}
+    , m_blockNibblePtrs{}
+    , m_nibblePtrsInitialized(false)
     , m_blockEntities(std::move(other.m_blockEntities))
     , m_loadedEntities(std::move(other.m_loadedEntities))
     , m_loadedEntityNbt(std::move(other.m_loadedEntityNbt))
@@ -110,6 +119,13 @@ ChunkData::ChunkData(ChunkData&& other) noexcept
     other.m_x = 0;
     other.m_z = 0;
     other.m_lightCorrect.store(false);
+    // 源对象的 nibble 数组已被逐元素搬空（各 SWMRNibbleArray 处于有效的空状态），
+    // 但其指针缓存仍记录着本对象内的地址。搬空后这些地址不再有意义，且若调用方误用
+    // 移动后的源对象，getSkyNibbles() 会交出指向已搬空数组的指针。清掉标志与缓存，
+    // 使其被重新查询时按自身地址重建（重建结果同样有效，只是数组内容为空）。
+    other.m_skyNibblePtrs = {};
+    other.m_blockNibblePtrs = {};
+    other.m_nibblePtrsInitialized = false;
     // 对象级追踪重绑定：释放源地址、分配目标地址（守卫不可移动，故在 body 处理，
     // 初始化列表中默认构造为非活跃）。若不重绑定，move 后源地址仍留在 Tracy 活跃集，
     // 堆复用该地址时触发 MemAllocTwice 硬失败。
@@ -139,9 +155,11 @@ ChunkData& ChunkData::operator=(ChunkData&& other) noexcept
         m_hasSkyEmptinessMap = other.m_hasSkyEmptinessMap;
         m_blockEmptinessMap = std::move(other.m_blockEmptinessMap);
         m_hasBlockEmptinessMap = other.m_hasBlockEmptinessMap;
-        m_skyNibblePtrs = std::move(other.m_skyNibblePtrs);
-        m_blockNibblePtrs = std::move(other.m_blockNibblePtrs);
-        m_nibblePtrsInitialized = other.m_nibblePtrsInitialized;
+        // 同移动构造：绝不搬运 nibble 指针缓存（它缓存的是源对象内部地址），
+        // 也不继承已初始化标志，改为按本对象自身地址惰性重建。
+        m_skyNibblePtrs = {};
+        m_blockNibblePtrs = {};
+        m_nibblePtrsInitialized = false;
         m_blockEntities = std::move(other.m_blockEntities);
         m_loadedEntities = std::move(other.m_loadedEntities);
         m_loadedEntityNbt = std::move(other.m_loadedEntityNbt);
@@ -152,6 +170,10 @@ ChunkData& ChunkData::operator=(ChunkData&& other) noexcept
         other.m_x = 0;
         other.m_z = 0;
         other.m_lightCorrect.store(false);
+        // 同移动构造：清掉源对象的 nibble 指针缓存与已初始化标志。
+        other.m_skyNibblePtrs = {};
+        other.m_blockNibblePtrs = {};
+        other.m_nibblePtrsInitialized = false;
         // 对象级追踪重绑定（同 move ctor 语义）：释放双方旧地址、目标重新绑定新地址
         m_memTrack.unbind();
         other.m_memTrack.unbind();

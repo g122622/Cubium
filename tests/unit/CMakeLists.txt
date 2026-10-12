@@ -1665,6 +1665,8 @@ add_executable(mc_tests
     common/world/chunk/data/HeightmapTest.cpp
     # SWMRNibbleArray 单写多读生命周期回归测试（可见侧无锁读的缓冲区所有权）
     common/world/chunk/data/light/SWMRNibbleArrayTest.cpp
+    # ChunkData 移动语义与 nibble 指针缓存一致性回归测试（移动后缓存必须指向自身数组）
+    common/world/chunk/data/ChunkDataMoveTest.cpp
     common/world/storage/SingleLevelStorageManagerTest.cpp
     common/world/storage/GlobalStorageManagerTest.cpp
     common/world/storage/SaveFormatDetectorTest.cpp
