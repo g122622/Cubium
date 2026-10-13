@@ -200,9 +200,12 @@ private:
      */
     void _initDensityFunctionPipeline();
 
+    /** @brief 为噪声生成、高度查询和方块列查询配置一致的含水层与矿脉规则。 */
+    void _configureNoiseChunkMaterials(
+        world::gen::density::NoiseChunk& noiseChunk, ChunkCoord chunkX, ChunkCoord chunkZ) const;
+
     /**
-     * @brief 使用 MC 1.21 NoiseChunk 生成噪声地形
-     * 基于 cell 的三线性插值管线，替代旧的 _fillNoiseColumn 方法。
+     * @brief 使用基于单元的三线性插值生成噪声地形。
      */
     void _generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk);
 };

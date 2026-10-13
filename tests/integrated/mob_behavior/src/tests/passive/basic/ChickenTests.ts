@@ -18,7 +18,7 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 const MED_FROM = { x: 0, y: 0, z: 0 };
 const MED_VOLUME = { x: 12, y: 9, z: 11 };
 
-// 通过存档字段设置临近产蛋的成年鸡，验证真实倒计时与掉落数量；物品类型由配套单测检查。
+// 通过存档字段设置临近产蛋的成年鸡，验证真实倒计时与掉落数量；验证掉落鸡蛋的物品类型。
 // 不等待随机的 5～10 分钟，也不直接生成鸡蛋替代产蛋行为。
 function chickenLayEgg(test: Test): void {
   test.spawn("minecraft:chicken", { x: 4, y: 2, z: 4 });
@@ -35,7 +35,9 @@ function chickenLayEgg(test: Test): void {
     const items = test.getDimension().getEntities({
       type: "minecraft:item", location: test.worldLocation(PEN_FROM), volume: PEN_VOLUME,
     });
-    return items.length === 1;
+    if (items.length !== 1) return false;
+    test.assertItemEntityCountIs("minecraft:egg", { x: 4, y: 2, z: 4 }, 6, 1);
+    return true;
   }, {
     startTick: 35, interval: 1, maxTick: 80,
     onTimeout: () => test.assert(false, "adult chicken should drop one egg after its saved timer expires"),

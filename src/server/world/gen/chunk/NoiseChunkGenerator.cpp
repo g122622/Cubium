@@ -947,14 +947,9 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         std::make_unique<world::gen::density::BeardifierMarker>(),
         1); // cellCountXZ = 1 for single-column query
 
-    // 设置 DisabledAquiferFiller（高度查询不需要实际含水层计算，
-    // 但需要正确判断海平面以下的流体方块）
-    {
-        std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
-        fillers.push_back(
-            std::make_unique<world::gen::density::DisabledAquiferFiller>(m_settings.defaultFluid, m_settings.seaLevel));
-        noiseChunk->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
-    }
+    // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
+    _configureNoiseChunkMaterials(
+        *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
 
     noiseChunk->initializeForFirstCellX();
     noiseChunk->advanceCellX(0);
@@ -992,6 +987,7 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
             }
 
             if (matchesHeightmap(blockState)) {
+                noiseChunk->stopInterpolation();
                 return blockY + 1;
             }
         }
@@ -1039,13 +1035,9 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
         std::make_unique<world::gen::density::BeardifierMarker>(),
         1); // cellCountXZ = 1 for single-column query
 
-    // 设置 DisabledAquiferFiller（与 getHeight 一致）
-    {
-        std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
-        fillers.push_back(
-            std::make_unique<world::gen::density::DisabledAquiferFiller>(m_settings.defaultFluid, m_settings.seaLevel));
-        noiseChunk->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
-    }
+    // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
+    _configureNoiseChunkMaterials(
+        *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
 
     noiseChunk->initializeForFirstCellX();
     noiseChunk->advanceCellX(0);
@@ -1066,7 +1058,7 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
             const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
 
             const BlockState* blockState = noiseChunk->getInterpolatedState(density);
-            if (blockState == nullptr && density > 0.0) {
+            if (blockState == nullptr) {
                 blockState = m_settings.defaultBlock;
             }
 
@@ -1115,6 +1107,33 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
     const u64 decorSeed = rng.setDecorationSeed(m_seed, chunk.x() << 4, chunk.z() << 4);
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
+}
+
+void NoiseChunkGenerator::_configureNoiseChunkMaterials(
+    world::gen::density::NoiseChunk& noiseChunk, ChunkCoord chunkX, ChunkCoord chunkZ) const
+{
+    MC_ASSERT_RELEASE(noiseChunk.aquifer() == nullptr);
+    // 填充器引用的随机工厂由维度级 RandomState 持有，必须覆盖整个采样期。
+    auto aquifer = m_settings.noise.aquifersEnabled ? world::gen::aquifer::Aquifer::createNoiseBased(noiseChunk,
+                                                          chunkX,
+                                                          chunkZ,
+                                                          noiseChunk.router(),
+                                                          m_randomState->aquiferRandom(),
+                                                          m_settings.noise.minY,
+                                                          m_settings.noise.height,
+                                                          m_globalFluidPicker)
+                                                    : world::gen::aquifer::Aquifer::createDisabled(m_globalFluidPicker);
+    auto* aquiferPtr = aquifer.get();
+    noiseChunk.setAquifer(std::move(aquifer));
+    std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+    fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
+    // 矿脉是否启用与含水层独立。
+    if (m_settings.oreVeinsEnabled) {
+        auto& router = noiseChunk.router();
+        fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
+            router.veinToggle(), router.veinRidged(), router.veinGap(), m_randomState->oreRandom()));
+    }
+    noiseChunk.setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
 }
 
 void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk)
@@ -1167,59 +1186,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     // 传入的 factory lambda 不会执行，含水层/方块状态规则链永远不会被设置。
     // 这里在获取 NoiseChunk 之后设置，并用 aquifer()==nullptr 守卫确保只设置一次。
     if (noiseChunk.aquifer() == nullptr) {
-        // subpart: 设置含水层采样器与方块状态材质规则链（仅在首次设置时执行）
-        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
-            "GenerateNoise_DF::SetupAquiferAndMaterialRule",
-            "x",
-            chunk.x(),
-            "z",
-            chunk.z());
-
-        // 随机工厂直接取 RandomState 上持有者（生命周期与维度相同，跨全部区块存活）。
-        // 【重要】不要把工厂复制到本作用域的局部对象、再取引用传给含水层/矿脉：本 if 块
-        // 在逐方块填充主循环开始前就结束，而含水层与矿脉填充器的存活期远长于本块，
-        // 传入局部对象的引用会在主循环里悬垂。RandomState 持有的工厂不存在此问题。
-        // 含水层用 aquiferRandom、矿脉用 oreRandom，二者是相互独立的随机流。
-
-        // 使用缓存的全局流体选择器
-        auto fluidPickerCopy = m_globalFluidPicker;
-
-        if (m_settings.noise.aquifersEnabled) {
-            auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(noiseChunk,
-                chunkX,
-                chunkZ,
-                noiseChunk.router(),
-                m_randomState->aquiferRandom(),
-                m_settings.noise.minY,
-                m_settings.noise.height,
-                std::move(fluidPickerCopy));
-
-            // MC 1.21: 构建 BlockStateFiller 链
-            // AquiferFiller: 传入密度值，aquifer 确定流体/空气
-            auto* aquiferPtr = aquifer.get();
-            noiseChunk.setAquifer(std::move(aquifer));
-
-            std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
-            fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
-
-            // MC 1.21: 仅启用矿脉的维度添加 OreVeinifier
-            // oreVeinsEnabled 控制是否生成矿脉（主世界=true，下界/末地=false）
-            if (m_settings.oreVeinsEnabled) {
-                auto& router = noiseChunk.router();
-                fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
-                    router.veinToggle(), router.veinRidged(), router.veinGap(), m_randomState->oreRandom()));
-            }
-
-            noiseChunk.setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
-        } else {
-            noiseChunk.setAquifer(world::gen::aquifer::Aquifer::createDisabled(m_globalFluidPicker));
-
-            // 禁用含水层时: density > 0 → nullptr(density > 0 → defaultBlock outside), density <= 0 → check fluid
-            std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
-            fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
-                m_settings.defaultFluid, m_settings.seaLevel));
-            noiseChunk.setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
-        }
+        _configureNoiseChunkMaterials(noiseChunk, chunkX, chunkZ);
     }
 
     // MC 1.21: Beardifier 已集成到 NoiseChunk 密度函数树中，

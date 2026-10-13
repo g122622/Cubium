@@ -80,6 +80,38 @@ TEST_F(NoiseChunkGeneratorTest, OverworldConstruction)
     EXPECT_NE(gen.getBiomeSource(), nullptr);
 }
 
+TEST_F(NoiseChunkGeneratorTest, BaseColumnMatchesActualNoiseBlocksWithAndWithoutAquifers)
+{
+    for (const bool aquifersEnabled : {false, true}) {
+        auto settings = DimensionSettings::overworld();
+        settings.noise.aquifersEnabled = aquifersEnabled;
+        auto randomState = world::gen::RandomState::create(settings, 42ULL);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+        NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
+        ChunkPrimer chunk(1, -1);
+        WorldGenRegion region(1, -1, 0, std::vector<IChunk*>{&chunk}, 0);
+        gen.generateBiomes(region, chunk);
+        gen.generateNoise(region, chunk);
+        for (const i32 localX : {0, 6, world::CHUNK_WIDTH - 1}) {
+            for (const i32 localZ : {0, 14}) {
+                const i32 x = world::CHUNK_WIDTH + localX;
+                const i32 z = -world::CHUNK_WIDTH + localZ;
+                EXPECT_EQ(gen.getHeight(x, z, HeightmapType::WorldSurfaceWG),
+                    chunk.getTopBlockY(HeightmapType::WorldSurfaceWG, localX, localZ) + 1);
+                const auto column = gen.getBaseColumn(x, z);
+                for (i32 y = gen.getMinY(); y < gen.getMinY() + gen.getGenDepth(); ++y) {
+                    const auto* actual = chunk.getBlockState(localX, y, localZ);
+                    const auto* queried = column.getBlock(y);
+                    ASSERT_NE(actual, nullptr);
+                    ASSERT_NE(queried, nullptr);
+                    ASSERT_EQ(queried->stateId(), actual->stateId())
+                        << "aquifers=" << aquifersEnabled << " at " << x << ',' << y << ',' << z;
+                }
+            }
+        }
+    }
+}
+
 TEST_F(NoiseChunkGeneratorTest, NetherConstruction)
 {
     auto settings = DimensionSettings::nether();
