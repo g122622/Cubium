@@ -35,6 +35,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/teleport/PortalSize.hpp"
 #include <cstddef>
 #include <memory>
 #include <utility>
@@ -84,68 +85,7 @@ BlockState NetherPortalBlock::getStateForPlacement(BlockItemUseContext& context)
 
 bool NetherPortalBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    MC_UNUSED(state);
-
-    // 当邻居方块更新时，会调用 PortalSize 验证传送门是否仍然有效。
-    // isValidPosition 用于检查当前位置是否可以作为传送门的一部分。
-
-    // 获取传送门轴向
-    Axis axis = getAxis(state);
-
-    // 根据轴向确定检查方向
-    // X 轴传送门：检查东西方向（宽度方向）和上下方向
-    // Z 轴传送门：检查南北方向（宽度方向）和上下方向
-    Direction widthDir = (axis == Axis::X) ? Direction::East : Direction::South;
-    Direction depthDir = (axis == Axis::X) ? Direction::South : Direction::East;
-
-    // 检查六个方向：上、下、宽度方向两侧、深度方向两侧
-    // 传送门方块需要与传送门方块或框架方块相邻才能存在
-
-    // 检查上下方向
-    const BlockState* upState = world.getBlockState(pos.up());
-    const BlockState* downState = world.getBlockState(pos.down());
-    if ((upState != nullptr && _isConnectedToPortal(*upState)) ||
-        (downState != nullptr && _isConnectedToPortal(*downState))) {
-        return true;
-    }
-
-    // 检查宽度方向（X轴传送门检查东西，Z轴传送门检查南北）
-    const BlockState* widthPosState = world.getBlockState(pos.offset(widthDir));
-    const BlockState* widthNegState = world.getBlockState(pos.offset(Directions::opposite(widthDir)));
-    if ((widthPosState != nullptr && _isConnectedToPortal(*widthPosState)) ||
-        (widthNegState != nullptr && _isConnectedToPortal(*widthNegState))) {
-        return true;
-    }
-
-    // 检查深度方向（X轴传送门检查南北，Z轴传送门检查东西）
-    // 深度方向应该是框架方块
-    const BlockState* depthPosState = world.getBlockState(pos.offset(depthDir));
-    const BlockState* depthNegState = world.getBlockState(pos.offset(Directions::opposite(depthDir)));
-    if ((depthPosState != nullptr && _isConnectedToPortal(*depthPosState)) ||
-        (depthNegState != nullptr && _isConnectedToPortal(*depthNegState))) {
-        return true;
-    }
-
-    return false;
-}
-
-bool NetherPortalBlock::_isConnectedToPortal(const BlockState& state) const
-{
-    if (state.isAir()) {
-        return false;
-    }
-
-    // 检查是否是传送门方块
-    if (state.is(this)) {
-        return true;
-    }
-
-    // 检查是否是框架方块（黑曜石）
-    if (VanillaBlocks::OBSIDIAN != nullptr && state.is(VanillaBlocks::OBSIDIAN)) {
-        return true;
-    }
-
-    return false;
+    return PortalSize::isCompletePortal(world, pos, getAxis(state));
 }
 
 BlockState NetherPortalBlock::updatePostPlacement(const BlockState& state,
@@ -156,18 +96,14 @@ BlockState NetherPortalBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& facingPos)
 {
 
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
 
-    // 检查传送门是否仍然有效
-    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-    if (!isValidPosition(state, blockReader, currentPos)) {
-        if (auto* airState = BlockRegistry::instance().airState()) {
-            return *airState;
-        }
+    // 门平面外的更新不影响框架；逐格填充门时不校验尚未放完的内部区域。
+    const Axis changedAxis = Directions::getAxis(facing);
+    const bool outsidePlane = changedAxis != getAxis(state) && changedAxis != Axis::Y;
+    if (!outsidePlane && !facingState.is(this) && !PortalSize::isCompletePortal(world, currentPos, getAxis(state))) {
+        return *BlockRegistry::instance().airState();
     }
-
     return state;
 }
 

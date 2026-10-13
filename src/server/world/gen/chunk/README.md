@@ -326,3 +326,7 @@ if (noiseChunk.aquifer() == nullptr) {
 - **`getHeightmap(HeightmapType)` 的非 const 重载在存档路径上同样会断言**：该路径的高度图只在构造期写入 `ChunkData`，此后没有可变访问需求。需要修改时改走 `ChunkData`。
 
 **回归测试**：`tests/unit/common/test_chunk_generation.cpp` 的 `ChunkPrimerTest.ToChunkData_ReleasesHeightmapsAndDelegatesReads` 与 `..._ReleasesBiomesAndDelegatesReads`——通过"直接改 `ChunkData` 后 primer 应立即看到新值"同时锁定释放与委托两件事。
+
+### 15. 单列查询也必须配置完整材质规则
+
+`getHeight`、`getBaseColumn` 与 NOISE 阶段共用含水层和矿脉初始化。单列仅缩小插值网格，不能禁用含水层或省略矿脉；规则返回空指针始终代表默认固体方块。含水层与矿脉使用维度级随机工厂，不能引用临时副本。

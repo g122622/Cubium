@@ -107,6 +107,12 @@ public:
 
     void tick() override;
 
+    /** @brief 保存产蛋倒计时与鸡骑士状态。 */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /** @brief 恢复产蛋倒计时与鸡骑士状态。 */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
     // ========== 翅膀动画 ==========
 
     /**

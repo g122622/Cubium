@@ -103,7 +103,7 @@ EndTeleporter 提供以下功能：
 
 ### 8. portalBlockCount 检查
 
-`PortalSizeResult::portalBlockCount` 记录已存在的传送门方块数量。点燃前检查是否为 0，避免重复点燃。
+`PortalSizeResult::portalBlockCount` 记录已存在的传送门方块数量。点燃前检查是否为 0，避免重复点燃。`isCompletePortal` 在指定轴向验证框架并要求数量等于宽×高，供传送门邻居更新判断部分破坏；不能复用仅接受空框架的点燃入口。
 
 ### 9. 末地出生点
 

@@ -89,6 +89,13 @@ std::optional<PortalSizeResult> PortalSize::findNetherPortal(IWorld& world, cons
     return std::nullopt;
 }
 
+bool PortalSize::isCompletePortal(IWorld& world, const BlockPos& pos, Axis axis)
+{
+    MC_ASSERT_RELEASE(axis == Axis::X || axis == Axis::Z);
+    const auto portal = _tryFindPortalOnAxis(world, pos, axis == Axis::X ? Direction::West : Direction::South);
+    return portal.has_value() && portal->portalBlockCount == portal->width * portal->height;
+}
+
 bool PortalSize::lightNetherPortal(IWorld& world, const PortalSizeResult& portal)
 {
     if (!portal.valid) {

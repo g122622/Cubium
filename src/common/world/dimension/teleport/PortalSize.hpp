@@ -79,6 +79,9 @@ public:
     [[nodiscard]] static std::optional<PortalSizeResult> findNetherPortal(
         IWorld& world, const BlockPos& pos, bool preferXAxis = true);
 
+    /** @brief 检查指定轴向的框架及内部传送门方块是否完整。 */
+    [[nodiscard]] static bool isCompletePortal(IWorld& world, const BlockPos& pos, Axis axis);
+
     /**
      * @brief 点燃下界传送门
      * @param world 世界引用
