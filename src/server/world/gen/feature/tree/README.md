@@ -59,7 +59,7 @@ TreeFeature（主入口）
                     └── ThreeLayersFeatureSize（limit/upperLimit/lowerSize/middleSize/upperSize）
 ```
 
-**生成流程**：`TreeFeature::place()` → `TrunkPlacer::placeTrunk()` 返回 `FoliagePosition` 列表 → `FoliagePlacer::placeFoliage()` 生成树叶
+**生成流程**：`TreeFeature::place()` 先采样树高和树冠尺寸，再检查空间 → `TrunkPlacer::placeTrunk()` 返回 `FoliagePosition` 列表 → `FoliagePlacer::placeFoliage()` 按已采样尺寸生成树叶
 
 ## 上下游外部依赖关系
 

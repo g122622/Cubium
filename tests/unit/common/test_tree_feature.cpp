@@ -21,15 +21,18 @@
  *
  */
 
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "server/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "server/world/gen/feature/tree/foliage/FancyFoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "server/world/gen/valueprovider/IntProvider.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include <array>
@@ -376,4 +379,69 @@ TEST_F(TreeFeaturePlacementWorldTest, ForcePlacementIgnoresVolumeCheck)
     setWorldBlock(9, 4, 8, &VanillaBlocks::STONE->defaultState());
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, BlobRowsMatchJavaCornersAndRandomConsumption)
+{
+    using world::gen::valueprovider::ConstantInt;
+    BlobFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 3);
+    math::JavaLegacyRandom rng(42);
+    const auto shape = placer.sampleShape(rng, 5);
+    std::set<BlockPos> leaves;
+    placer.placeFoliage(*m_region,
+        rng,
+        5,
+        {FoliagePosition(BlockPos(8, 5, 8), 0, false)},
+        shape,
+        &VanillaBlocks::OAK_LEAVES->defaultState(),
+        nullptr,
+        leaves);
+    // 独立 Java Random(42) 按从上至下、X/Z 升序生成得到的角落与总量。
+    EXPECT_EQ(leaves.size(), 57u);
+    EXPECT_FALSE(leaves.contains(BlockPos(7, 5, 7)));
+    EXPECT_TRUE(leaves.contains(BlockPos(7, 4, 9)));
+    EXPECT_TRUE(leaves.contains(BlockPos(10, 3, 6)));
+    EXPECT_EQ(rng.nextInt(), 1991376913);
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, FancyRowsUseFixedHeightAndSquaredCircularBounds)
+{
+    using world::gen::valueprovider::ConstantInt;
+    FancyFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 4);
+    math::JavaLegacyRandom rng(42);
+    math::JavaLegacyRandom expected(42);
+    const auto shape = placer.sampleShape(rng, 8);
+    EXPECT_EQ(shape.height, 4);
+    std::set<BlockPos> leaves;
+    placer.placeFoliage(*m_region,
+        rng,
+        8,
+        {FoliagePosition(BlockPos(8, 6, 8), 0, false)},
+        shape,
+        &VanillaBlocks::OAK_LEAVES->defaultState(),
+        nullptr,
+        leaves);
+    EXPECT_EQ(leaves.size(), 73u);
+    EXPECT_FALSE(leaves.contains(BlockPos(10, 6, 8)));
+    EXPECT_TRUE(leaves.contains(BlockPos(10, 5, 9)));
+    EXPECT_FALSE(leaves.contains(BlockPos(10, 5, 10)));
+    EXPECT_EQ(rng.nextInt(), expected.nextInt());
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, RejectedTreeStillSamplesFoliageRadius)
+{
+    using world::gen::valueprovider::ConstantInt;
+    using world::gen::valueprovider::UniformInt;
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
+        FeatureSpread::of(UniformInt::create(2, 3)), FeatureSpread::of(ConstantInt::create(0)), 3);
+    setWorldBlock(9, 4, 8, &VanillaBlocks::STONE->defaultState());
+    math::JavaLegacyRandom rng(42);
+    math::JavaLegacyRandom expected(42);
+    static_cast<void>(expected.nextInt(1));
+    static_cast<void>(expected.nextInt(1));
+    static_cast<void>(expected.nextInt(2));
+    EXPECT_FALSE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    EXPECT_EQ(rng.nextInt(), expected.nextInt());
 }

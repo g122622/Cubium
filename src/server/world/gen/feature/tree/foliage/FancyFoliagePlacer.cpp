@@ -41,9 +41,9 @@ FancyFoliagePlacer::FancyFoliagePlacer(const FeatureSpread& radius, const Featur
     , m_height(height)
 {}
 
-i32 FancyFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 /*trunkHeight*/) const
+i32 FancyFoliagePlacer::getFoliageHeight(math::IRandom& /*random*/, i32 /*trunkHeight*/) const
 {
-    return m_height + random.nextInt(3);
+    return m_height;
 }
 
 void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
@@ -52,39 +52,31 @@ void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     const FoliagePosition& foliagePos,
     i32 foliageHeight,
     i32 radius,
-    i32 /*offset*/,
+    i32 offset,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock)
 {
-    // 精美树叶：更大更密集的球形
-    for (i32 y = -1; y <= foliageHeight; ++y) {
-        // 中间最大，上下略小
-        i32 layerRadius = radius;
-        if (y < 0 || y >= foliageHeight - 1) {
-            layerRadius = std::max(1, radius - 1);
-        }
-
-        for (i32 dx = -layerRadius; dx <= layerRadius; ++dx) {
-            for (i32 dz = -layerRadius; dz <= layerRadius; ++dz) {
-                if (shouldSkip(random, dx, y, dz, layerRadius, foliagePos.trunkTop)) {
-                    continue;
-                }
-
-                BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + y, foliagePos.pos.z + dz);
-                foliageBlocks.insert(pos);
-            }
-        }
+    for (i32 y = offset; y >= offset - foliageHeight; --y) {
+        const i32 layerRadius = radius + (y != offset && y != offset - foliageHeight ? 1 : 0);
+        placeFoliageLayer(world,
+            random,
+            foliagePos.pos,
+            layerRadius,
+            foliageBlocks,
+            foliagePos.pos.y + y,
+            foliagePos.trunkTop,
+            foliageBlock);
     }
 }
 
 bool FancyFoliagePlacer::shouldSkip(
-    math::IRandom& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool /*trunkTop*/) const
+    math::IRandom& /*random*/, i32 dx, i32 /*dy*/, i32 dz, i32 radius, bool trunkTop) const
 {
-    // 使用半径的平方作为阈值，创建更圆形的树叶
-    f32 absDx = std::abs(static_cast<f32>(dx) + 0.5f);
-    f32 absDz = std::abs(static_cast<f32>(dz) + 0.5f);
-
-    return absDx + absDz > static_cast<f32>(radius * radius);
+    const i32 absDx = trunkTop ? std::min(std::abs(dx), std::abs(dx - 1)) : std::abs(dx);
+    const i32 absDz = trunkTop ? std::min(std::abs(dz), std::abs(dz - 1)) : std::abs(dz);
+    const f32 x = static_cast<f32>(absDx) + 0.5f;
+    const f32 z = static_cast<f32>(absDz) + 0.5f;
+    return x * x + z * z > static_cast<f32>(radius * radius);
 }
 
 std::unique_ptr<FoliagePlacer> FancyFoliagePlacer::clone() const
