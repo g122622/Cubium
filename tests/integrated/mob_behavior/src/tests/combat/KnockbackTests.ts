@@ -209,13 +209,14 @@ function knockbackIiKnocksBackBothVictimsFar(test: Test): void {
     const atkPos = { x: 4, y: 2, z: 5 };
     const victimPos = { x: 7, y: 2, z: 5 };
     const victim = test.spawn("minecraft:villager", victimPos);
+    (victim.getComponent("minecraft:movement") as any).setCurrentValue(0);
     const attacker = test.spawnSimulatedPlayer(atkPos, "attacker", 0 as any); // 0=Survival
 
     // 装备 Knockback II 钻石剑（/enchant 施加，max_level=2）。
     attacker.setItem(makeItem("minecraft:diamond_sword"), 0, true);
     (attacker as any).chat("/enchant @s knockback 2");
     // attacker 朝 victim 看（+x），使 causeExtraKnockback 的 yaw 方向 = 几何方向，两路击退同向。
-    (attacker as any).chat(`/tp @s ~ ~ ~ facing ${victimPos.x} ${victimPos.y} ${victimPos.z}`);
+    (attacker as any).lookAtEntity(victim);
 
     // 记录攻击瞬间 victim 的 x 基准。
     let initX = victim.location.x;
@@ -223,6 +224,7 @@ function knockbackIiKnocksBackBothVictimsFar(test: Test): void {
     // tick 30 满冷却攻击 victim。Knockback II 强击退使 victim 朝 +x（远离 attacker）大幅位移。
     test.runAtTickTime(30, () => {
         initX = victim.location.x;
+        (attacker as any).lookAtEntity(victim);
         (attacker as any).attackEntity(victim);
     });
 

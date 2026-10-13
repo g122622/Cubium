@@ -138,6 +138,8 @@ function axolotlPlaysDeadWithRegenerationTest(test: Test): void {
   fillBlock(test, "minecraft:water", 3, 1, 3, 3, 3, 3);
   // 最下层水替换了结构地板，补实体支撑，防止水柱流失及美西螈从底部掉出。
   test.setBlockType("minecraft:stone", { x: 3, y: 0, z: 3 });
+  // 上盖阻止受击/游动时离开水柱，保持装死触发所需的水下前提。
+  test.setBlockType("minecraft:glass", { x: 3, y: 4, z: 3 });
 
   // 美西螈 spawn (3,2,3) 水中。玩家 (1,2,3) 围栏外，隔玻璃墙攻击水中美西螈。
   // gameMode 传 0：ScriptTestHelper.cpp:543-548 `auto gm = ctx.toInt32(args[idx])` 返回 std::optional<i32>，

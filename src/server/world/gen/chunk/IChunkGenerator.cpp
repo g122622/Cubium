@@ -408,17 +408,16 @@ void WorldGenRegion::removeBlockEntity(const BlockPos& pos)
 
 BiomeId WorldGenRegion::getBiome(i32 x, i32 y, i32 z) const
 {
-    const ChunkCoord chunkX = world::toChunkCoord(x);
-    const ChunkCoord chunkZ = world::toChunkCoord(z);
-
-    const IChunk* chunk = getIChunk(chunkX, chunkZ, ChunkStatuses::EMPTY);
+    // 放置过滤使用方块分辨率的抖动群系边界，不能直接取包含该方块的原始 quart。
+    const BlockPos quart = world::biome::BiomeManager::selectQuartPosition(m_biomeZoomSeed, x, y, z);
+    const i32 biomeX = quart.x * 4;
+    const i32 biomeZ = quart.z * 4;
+    const i32 biomeY = std::clamp(quart.y * 4, getMinBuildHeight(), getMaxBuildHeight() - 1);
+    const IChunk* chunk = getIChunk(world::toChunkCoord(biomeX), world::toChunkCoord(biomeZ), ChunkStatuses::EMPTY);
     if (!chunk) {
         return Biomes::Plains;
     }
-
-    const i32 localX = world::toLocalCoord(x);
-    const i32 localZ = world::toLocalCoord(z);
-    return chunk->getBiomeAtBlock(localX, y, localZ);
+    return chunk->getBiomeAtBlock(world::toLocalCoord(biomeX), biomeY, world::toLocalCoord(biomeZ));
 }
 
 i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const

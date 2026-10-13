@@ -22,7 +22,7 @@
  */
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
-#include "common/util/property/Properties.hpp"
+#include "common/world/block/blocks/RotatedPillarBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -498,7 +498,7 @@ TEST_F(TreeFeaturePlacementWorldTest, FancyTrunkMatchesJavaOnBothSidesOfWorldOri
         }
         const auto* branch = m_region->getBlockState(horizontalOrigin + 1, 5, horizontalOrigin + 2);
         ASSERT_NE(branch, nullptr);
-        EXPECT_EQ(branch->get(BlockStateProperties::AXIS()), Axis::Z);
+        EXPECT_EQ(branch->get(RotatedPillarBlock::AXIS()), Axis::Z);
         EXPECT_EQ(rng.nextInt(), 1190043011);
     }
 }
