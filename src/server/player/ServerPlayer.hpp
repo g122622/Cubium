@@ -244,7 +244,13 @@ public:
      * @brief 获取所在世界。
      * @return 当前所在世界指针。
      */
-    [[nodiscard]] server::ServerWorld* getWorld() const;
+    [[nodiscard]] server::ServerWorld* getWorld();
+
+    /**
+     * @brief 获取所在世界的只读视图。
+     * @return 当前所在世界的只读指针。
+     */
+    [[nodiscard]] const server::ServerWorld* getWorld() const;
 
     /**
      * @brief 设置服务器引用。

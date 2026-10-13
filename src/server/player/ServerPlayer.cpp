@@ -943,9 +943,14 @@ void ServerPlayer::setWorld(server::ServerWorld* world)
     setPhysicsEngine(world != nullptr ? world->physicsEngine() : nullptr);
 }
 
-server::ServerWorld* ServerPlayer::getWorld() const
+server::ServerWorld* ServerPlayer::getWorld()
 {
     return static_cast<server::ServerWorld*>(Entity::world());
+}
+
+const server::ServerWorld* ServerPlayer::getWorld() const
+{
+    return static_cast<const server::ServerWorld*>(Entity::world());
 }
 
 bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector3d& targetPos)

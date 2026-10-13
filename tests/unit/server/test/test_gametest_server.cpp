@@ -54,12 +54,15 @@
 #include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"
 #include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 using mc::i32; // i32 属 mc::（非 mc::test），测试内简写
 
@@ -203,6 +206,9 @@ TEST_F(GameTestServerFixture, TestOwnedPlayerOutsideStructureIsRemovedAfterUserF
 
 TEST_F(GameTestServerFixture, ServerPlayerWorldViewsShareTheEntityWorldPointer)
 {
+    static_assert(std::is_same_v<decltype(std::declval<mc::ServerPlayer&>().getWorld()), mc::server::ServerWorld*>);
+    static_assert(
+        std::is_same_v<decltype(std::declval<const mc::ServerPlayer&>().getWorld()), const mc::server::ServerWorld*>);
     mc::test::GameTestServer server;
     auto params = makeParams();
     params.testsFilter = "NoSuchSuite.*";
@@ -211,13 +217,18 @@ TEST_F(GameTestServerFixture, ServerPlayerWorldViewsShareTheEntityWorldPointer)
     auto* world = server.dimensionManager().getOverworld()->world();
     {
         mc::ServerPlayer player(mc::EntityInstanceId(1), "world-views", *world->entityRegistry());
+        const mc::ServerPlayer& constPlayer = player;
         player.setWorld(world);
         EXPECT_EQ(player.getWorld(), world);
         EXPECT_EQ(player.world(), world);
+        EXPECT_EQ(constPlayer.getWorld(), world);
+        EXPECT_EQ(constPlayer.world(), world);
         static_cast<mc::Entity&>(player).setWorld(nullptr);
         EXPECT_EQ(player.getWorld(), nullptr);
+        EXPECT_EQ(constPlayer.getWorld(), nullptr);
         player.setWorld(world);
         EXPECT_EQ(player.world(), world);
+        EXPECT_EQ(constPlayer.getWorld(), world);
         player.setWorld(nullptr);
     }
     server.stop();
