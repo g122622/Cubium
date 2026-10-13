@@ -27,6 +27,7 @@
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
+#include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "server/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/foliage/FancyFoliagePlacer.hpp"
@@ -429,6 +430,22 @@ TEST_F(TreeFeaturePlacementWorldTest, FancyRowsUseFixedHeightAndSquaredCircularB
     EXPECT_TRUE(leaves.contains(BlockPos(10, 5, 9)));
     EXPECT_FALSE(leaves.contains(BlockPos(10, 5, 10)));
     EXPECT_EQ(rng.nextInt(), expected.nextInt());
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, FancyCanopySupportsProviderWithoutFallbackBlock)
+{
+    using world::gen::valueprovider::ConstantInt;
+    FancyFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 4);
+    world::gen::feature::state::SimpleBlockStateProvider provider(&VanillaBlocks::BIRCH_LEAVES->defaultState());
+    math::JavaLegacyRandom rng(42);
+    const auto shape = placer.sampleShape(rng, 8);
+    std::set<BlockPos> leaves;
+    placer.placeFoliage(
+        *m_region, rng, 8, {FoliagePosition(BlockPos(8, 6, 8), 0, false)}, shape, nullptr, &provider, leaves);
+    ASSERT_EQ(leaves.size(), 73u);
+    for (const auto& pos : leaves) {
+        EXPECT_TRUE(m_region->getBlockState(pos)->is(VanillaBlocks::BIRCH_LEAVES));
+    }
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, RejectedTreeStillSamplesFoliageRadius)

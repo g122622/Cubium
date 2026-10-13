@@ -151,8 +151,9 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
             // 放置树叶
             if (foliageBlock != nullptr) {
                 world.setBlockState(pos, foliageBlock);
-                foliageBlocks.insert(pos);
             }
+            // 提供者可以独立决定叶片状态，坐标收集不能依赖兜底方块。
+            foliageBlocks.insert(pos);
         }
     }
 }
