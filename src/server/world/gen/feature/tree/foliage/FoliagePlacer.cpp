@@ -57,43 +57,26 @@ bool FoliagePlacer::shouldSkip(math::IRandom& /*random*/, i32 dx, i32 /*dy*/, i3
     return std::abs(dx) == radius && std::abs(dz) == radius;
 }
 
-void FoliagePlacer::placeFoliage(WorldGenRegion& world,
-    math::IRandom& random,
-    i32 trunkHeight,
-    const std::vector<FoliagePosition>& foliagePositions,
-    const std::set<BlockPos>& trunkBlocks,
-    i32 trunkOffset,
-    const BlockState* foliageBlock,
-    std::set<BlockPos>& outFoliageBlocks)
+FoliageShape FoliagePlacer::sampleShape(math::IRandom& random, i32 trunkHeight) const
 {
-    placeFoliage(world,
-        random,
-        trunkHeight,
-        foliagePositions,
-        trunkBlocks,
-        trunkOffset,
-        foliageBlock,
-        nullptr,
-        outFoliageBlocks);
+    const i32 height = getFoliageHeight(random, trunkHeight);
+    const i32 radius = m_radius.get(random);
+    return {height, radius};
 }
 
 void FoliagePlacer::placeFoliage(WorldGenRegion& world,
     math::IRandom& random,
     i32 trunkHeight,
     const std::vector<FoliagePosition>& foliagePositions,
-    const std::set<BlockPos>& /*trunkBlocks*/,
-    i32 /*trunkOffset*/,
+    const FoliageShape& shape,
     const BlockState* foliageBlock,
     const world::gen::feature::state::BlockStateProvider* foliageProvider,
     std::set<BlockPos>& outFoliageBlocks)
 {
     for (const auto& foliagePos : foliagePositions) {
-        i32 radius = m_radius.get(random);
-        i32 offset = m_offset.get(random);
-        i32 foliageHeight = getFoliageHeight(random, trunkHeight);
-
+        const i32 offset = m_offset.get(random);
         placeFoliageInternal(
-            world, random, trunkHeight, foliagePos, foliageHeight, radius, offset, outFoliageBlocks, foliageBlock);
+            world, random, trunkHeight, foliagePos, shape.height, shape.radius, offset, outFoliageBlocks, foliageBlock);
     }
 
     // 子类只负责计算并收集树叶坐标，这里统一执行实际放置。
@@ -139,7 +122,7 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
     for (i32 dx = -radius; dx <= radius + radiusOffset; ++dx) {
         for (i32 dz = -radius; dz <= radius + radiusOffset; ++dz) {
             // 检查是否跳过该位置
-            if (shouldSkip(random, dx, 0, dz, radius, trunkTop)) {
+            if (shouldSkip(random, dx, y - centerPos.y, dz, radius, trunkTop)) {
                 continue;
             }
 
@@ -168,8 +151,9 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
             // 放置树叶
             if (foliageBlock != nullptr) {
                 world.setBlockState(pos, foliageBlock);
-                foliageBlocks.insert(pos);
             }
+            // 提供者可以独立决定叶片状态，坐标收集不能依赖兜底方块。
+            foliageBlocks.insert(pos);
         }
     }
 }

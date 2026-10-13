@@ -109,24 +109,18 @@ function equipEnchantedSword(player: any, enchant: string, level: number): void 
 function smiteVDevastatesUndead(test: Test): void {
     (test as any).killAllEntities();
     const zombie = test.spawn("minecraft:zombie", TARGET_POS);
+    // 固定目标，避免它接近并击退玩家后触发额外的空中暴击。
+    (zombie.getComponent("minecraft:movement") as any).setCurrentValue(0);
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "attacker", 0 as any); // 0=Survival
 
     equipEnchantedSword(player, "smite", 5);
 
     test.runAtTickTime(30, () => {
+        test.assert(Math.abs(readHp(zombie) - 20) < 0.01, "target should have full health before the single attack");
         (player as any).attackEntity(zombie);
-    });
-
-    // 亡灵杀手 V 加成 12.5 + 钻石剑 baseDamage 7.0 = 19.5（满冷却），zombie HP 20→0.5（≤1）。
-    // 修复 detectEquipmentUpdates 首帧漏应用 modifier 后，钻石剑 ATTACK_DAMAGE +6 正确生效（baseDamage 7.0）。
-    pollUntilSucceed(test, () => readHp(zombie) >= 0 && readHp(zombie) <= 1, {
-        startTick: 35,
-        interval: 5,
-        maxTick: 120,
-        onTimeout: () => test.assert(false,
-            `smite V should devastate undead zombie (7+12.5=19.5 dmg, HP 20→0.5), `
-            + `but zombie HP=${readHp(zombie)} (melee enchant not wired or SENSITIVE_TO_SMITE tag broken — `
-            + `expected HP<=1, if HP~13 base damage 7 but no 12.5 smite bonus, if HP~19 sword modifier not applied)`),
+        const hp = readHp(zombie);
+        test.assert(hp >= 0 && hp <= 1, `smite V should leave an armored zombie at no more than one HP; actual HP=${hp}`);
+        test.succeed();
     });
 }
 
@@ -217,24 +211,18 @@ function baneVDevastatesArthropod(test: Test): void {
 function sharpnessVBonus(test: Test): void {
     (test as any).killAllEntities();
     const zombie = test.spawn("minecraft:zombie", TARGET_POS);
+    // 固定目标，避免它接近并击退玩家后触发额外的空中暴击。
+    (zombie.getComponent("minecraft:movement") as any).setCurrentValue(0);
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "attacker", 0 as any);
 
     equipEnchantedSword(player, "sharpness", 5);
 
     test.runAtTickTime(30, () => {
+        test.assert(Math.abs(readHp(zombie) - 20) < 0.01, "target should have full health before the single attack");
         (player as any).attackEntity(zombie);
-    });
-
-    pollUntilSucceed(test, () => {
         const hp = readHp(zombie);
-        return hp >= 8 && hp <= 12;
-    }, {
-        startTick: 35,
-        interval: 5,
-        maxTick: 120,
-        onTimeout: () => test.assert(false,
-            `sharpness V should add 3.0 bonus to all mobs (7+3=10 dmg, zombie HP 20→10), `
-            + `but zombie HP=${readHp(zombie)} (sharpness not wired — expected HP~10, if HP~13 sharpness missing)`),
+        test.assert(hp >= 8 && hp <= 12, `sharpness V should deal about ten damage to an armored zombie; actual HP=${hp}`);
+        test.succeed();
     });
 }
 

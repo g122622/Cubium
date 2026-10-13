@@ -40,13 +40,19 @@ namespace mc {
 class WorldGenRegion;
 class BlockState;
 
+/** @brief 每棵树在空间检查前采样一次的树冠尺寸。 */
+struct FoliageShape {
+    i32 height;
+    i32 radius;
+};
+
 /**
  * @brief 树叶放置器基类
  *
  * 负责生成树叶。接收树干放置器返回的树叶位置列表。
  *
  * placeFoliage 主流程：
- * 1. 对每个 FoliagePosition 采样 radius/offset/foliageHeight 并调用 placeFoliageInternal（子类实现，仅收集坐标）
+ * 1. 树高确定后先采样树冠高度与半径，空间检查及树干生成后，各附着点仅采样 offset
  * 2. 末尾统一执行实际放置：遍历 outFoliageBlocks，根据 foliageProvider 或 foliageBlock 决定放置哪个状态
  *
  * 当 foliageProvider 非空时，每个叶片独立采样（用于杜鹃树混合杜鹃叶/开花杜鹃叶等场景）；
@@ -63,40 +69,15 @@ public:
 
     virtual ~FoliagePlacer() = default;
 
-    /**
-     * @brief 放置树叶（使用单一树叶方块状态）
-     *
-     * 等价于 placeFoliage(..., foliageBlock, nullptr, outFoliageBlocks)。
-     * 保留此重载以兼容现有调用方。
-     */
-    void placeFoliage(WorldGenRegion& world,
-        math::IRandom& random,
-        i32 trunkHeight,
-        const std::vector<FoliagePosition>& foliagePositions,
-        const std::set<BlockPos>& trunkBlocks,
-        i32 trunkOffset,
-        const BlockState* foliageBlock,
-        std::set<BlockPos>& outFoliageBlocks);
+    /** @brief 按高度、半径顺序采样树冠尺寸。 */
+    [[nodiscard]] FoliageShape sampleShape(math::IRandom& random, i32 trunkHeight) const;
 
-    /**
-     * @brief 放置树叶（支持树叶状态提供者）
-     *
-     * @param world 世界区域
-     * @param random 随机数生成器
-     * @param trunkHeight 树干高度
-     * @param foliagePositions 树叶位置列表
-     * @param trunkBlocks 树干方块集合
-     * @param trunkOffset 树干顶部的偏移（从树干顶部到树叶底部的距离）
-     * @param foliageBlock 默认树叶方块状态（放置器第一遍逐层放置使用；foliageProvider 为空时为唯一来源）
-     * @param foliageProvider 树叶状态提供者（多态，非空时第二遍按叶片独立采样，优先于 foliageBlock）
-     * @param outFoliageBlocks 输出参数，放置的树叶方块位置集合
-     */
+    /** @brief 使用已采样的树冠尺寸逐附着点生成树叶，附着点分别采样偏移。 */
     void placeFoliage(WorldGenRegion& world,
         math::IRandom& random,
         i32 trunkHeight,
         const std::vector<FoliagePosition>& foliagePositions,
-        const std::set<BlockPos>& trunkBlocks,
-        i32 trunkOffset,
+        const FoliageShape& shape,
         const BlockState* foliageBlock,
         const world::gen::feature::state::BlockStateProvider* foliageProvider,
         std::set<BlockPos>& outFoliageBlocks);

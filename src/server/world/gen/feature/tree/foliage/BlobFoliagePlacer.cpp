@@ -85,7 +85,7 @@ bool BlobFoliagePlacer::shouldSkip(math::IRandom& random, i32 dx, i32 dy, i32 dz
     // 角落位置且（50%概率或dy==0）时跳过
     // 注意：当 dy == 0 时总是跳过（意味着底部角落不放置树叶）
     if (absDx == radius && absDz == radius) {
-        return random.nextInt(0, 2) == 0 || dy == 0;
+        return random.nextInt(2) == 0 || dy == 0;
     }
 
     return false;

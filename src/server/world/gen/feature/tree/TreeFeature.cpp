@@ -74,6 +74,7 @@ bool TreeFeature::place(WorldGenRegion& world,
 
     // 获取树干高度
     i32 trunkHeight = config.trunkPlacer->getHeight(random);
+    const FoliageShape foliageShape = config.foliagePlacer->sampleShape(random, trunkHeight);
 
     // 检查高度是否有效
     if (trunkHeight < config.minHeight) {
@@ -137,8 +138,7 @@ bool TreeFeature::place(WorldGenRegion& world,
         random,
         trunkHeight,
         foliagePositions,
-        trunkBlocks,
-        trunkHeight - 1,
+        foliageShape,
         config.foliageBlock,
         config.foliageProvider.get(),
         foliageBlocks);

@@ -24,8 +24,11 @@
 #include "FancyTrunkPlacer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <algorithm>
 #include <cmath>
@@ -75,7 +78,7 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
         bool trunkTop;
     };
     std::vector<BranchFoliage> branchFoliages;
-    branchFoliages.push_back({startPos.up(topOffset), baseY, true});
+    branchFoliages.push_back({startPos.up(topOffset), baseY, false});
 
     // 自顶向下扫描分支
     for (i32 relY = topOffset; relY >= 0; --relY) {
@@ -86,13 +89,13 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
 
         for (i32 b = 0; b < branchCount; ++b) {
             // 计算分支方向和长度
-            f32 actualLength = branchLength * (random.nextFloat() + 0.328f);
-            f32 angle = random.nextFloat() * 2.0f * math::PI;
-            f32 dx = actualLength * std::sin(angle) + 0.5f;
-            f32 dz = actualLength * std::cos(angle) + 0.5f;
+            const f64 actualLength = static_cast<f64>(branchLength) * (random.nextFloat() + 0.328);
+            const f64 angle = static_cast<f64>(random.nextFloat() * 2.0f) * math::PI_DOUBLE;
+            const f64 dx = actualLength * std::sin(angle) + 0.5;
+            const f64 dz = actualLength * std::cos(angle) + 0.5;
 
             BlockPos branchEnd(
-                startPos.x + static_cast<i32>(dx), startPos.y + relY - 1, startPos.z + static_cast<i32>(dz));
+                startPos.x + math::floorTo<i32>(dx), startPos.y + relY - 1, startPos.z + math::floorTo<i32>(dz));
             BlockPos branchTop = branchEnd.up(5);
 
             // 先检查分支末端向上 5 格的空间是否通畅（只探测，不放置）
@@ -177,12 +180,18 @@ bool FancyTrunkPlacer::_makeLimb(WorldGenRegion& world,
     f32 stepZ = static_cast<f32>(delta.z) / static_cast<f32>(steps);
 
     for (i32 i = 0; i <= steps; ++i) {
-        BlockPos pos(static_cast<i32>(0.5f + static_cast<f32>(i) * stepX + static_cast<f32>(start.x)),
-            static_cast<i32>(0.5f + static_cast<f32>(i) * stepY + static_cast<f32>(start.y)),
-            static_cast<i32>(0.5f + static_cast<f32>(i) * stepZ + static_cast<f32>(start.z)));
+        const BlockPos pos(start.x + math::floorTo<i32>(0.5f + static_cast<f32>(i) * stepX),
+            start.y + math::floorTo<i32>(0.5f + static_cast<f32>(i) * stepY),
+            start.z + math::floorTo<i32>(0.5f + static_cast<f32>(i) * stepZ));
 
         if (place) {
-            placeBlock(world, pos, trunkBlocks, trunkBlock);
+            const i32 horizontalX = std::abs(pos.x - start.x);
+            const i32 horizontalZ = std::abs(pos.z - start.z);
+            const Axis axis = horizontalX == 0 && horizontalZ == 0 ? Axis::Y
+                : horizontalX >= horizontalZ                       ? Axis::X
+                                                                   : Axis::Z;
+            const auto& state = trunkBlock->with(BlockStateProperties::AXIS(), axis);
+            placeBlock(world, pos, trunkBlocks, &state);
         } else {
             if (!canPlaceAt(world, pos)) {
                 return false;

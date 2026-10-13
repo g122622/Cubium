@@ -21,15 +21,21 @@
  *
  */
 
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
+#include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "server/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
+#include "server/world/gen/feature/tree/foliage/FancyFoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
+#include "server/world/gen/feature/tree/trunk/FancyTrunkPlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
+#include "server/world/gen/valueprovider/IntProvider.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include <array>
@@ -340,6 +346,7 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear)
     math::Random rng(12345);
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    EXPECT_TRUE(m_region->getBlockState(8, 0, 8)->is(VanillaBlocks::DIRT));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland)
@@ -376,4 +383,122 @@ TEST_F(TreeFeaturePlacementWorldTest, ForcePlacementIgnoresVolumeCheck)
     setWorldBlock(9, 4, 8, &VanillaBlocks::STONE->defaultState());
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, BlobRowsMatchJavaCornersAndRandomConsumption)
+{
+    using world::gen::valueprovider::ConstantInt;
+    BlobFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 3);
+    math::JavaLegacyRandom rng(42);
+    const auto shape = placer.sampleShape(rng, 5);
+    std::set<BlockPos> leaves;
+    placer.placeFoliage(*m_region,
+        rng,
+        5,
+        {FoliagePosition(BlockPos(8, 5, 8), 0, false)},
+        shape,
+        &VanillaBlocks::OAK_LEAVES->defaultState(),
+        nullptr,
+        leaves);
+    // 独立 Java Random(42) 按从上至下、X/Z 升序生成得到的角落与总量。
+    EXPECT_EQ(leaves.size(), 57u);
+    EXPECT_FALSE(leaves.contains(BlockPos(7, 5, 7)));
+    EXPECT_TRUE(leaves.contains(BlockPos(7, 4, 9)));
+    EXPECT_TRUE(leaves.contains(BlockPos(10, 3, 6)));
+    EXPECT_EQ(rng.nextInt(), 1991376913);
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, FancyRowsUseFixedHeightAndSquaredCircularBounds)
+{
+    using world::gen::valueprovider::ConstantInt;
+    FancyFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 4);
+    math::JavaLegacyRandom rng(42);
+    math::JavaLegacyRandom expected(42);
+    const auto shape = placer.sampleShape(rng, 8);
+    EXPECT_EQ(shape.height, 4);
+    std::set<BlockPos> leaves;
+    placer.placeFoliage(*m_region,
+        rng,
+        8,
+        {FoliagePosition(BlockPos(8, 6, 8), 0, false)},
+        shape,
+        &VanillaBlocks::OAK_LEAVES->defaultState(),
+        nullptr,
+        leaves);
+    EXPECT_EQ(leaves.size(), 73u);
+    EXPECT_FALSE(leaves.contains(BlockPos(10, 6, 8)));
+    EXPECT_TRUE(leaves.contains(BlockPos(10, 5, 9)));
+    EXPECT_FALSE(leaves.contains(BlockPos(10, 5, 10)));
+    EXPECT_EQ(rng.nextInt(), expected.nextInt());
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, FancyCanopySupportsProviderWithoutFallbackBlock)
+{
+    using world::gen::valueprovider::ConstantInt;
+    FancyFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 4);
+    world::gen::feature::state::SimpleBlockStateProvider provider(&VanillaBlocks::BIRCH_LEAVES->defaultState());
+    math::JavaLegacyRandom rng(42);
+    const auto shape = placer.sampleShape(rng, 8);
+    std::set<BlockPos> leaves;
+    placer.placeFoliage(
+        *m_region, rng, 8, {FoliagePosition(BlockPos(8, 6, 8), 0, false)}, shape, nullptr, &provider, leaves);
+    ASSERT_EQ(leaves.size(), 73u);
+    for (const auto& pos : leaves) {
+        EXPECT_TRUE(m_region->getBlockState(pos)->is(VanillaBlocks::BIRCH_LEAVES));
+    }
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, RejectedTreeStillSamplesFoliageRadius)
+{
+    using world::gen::valueprovider::ConstantInt;
+    using world::gen::valueprovider::UniformInt;
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    config.foliagePlacer = std::make_unique<BlobFoliagePlacer>(
+        FeatureSpread::of(UniformInt::create(2, 3)), FeatureSpread::of(ConstantInt::create(0)), 3);
+    setWorldBlock(9, 4, 8, &VanillaBlocks::STONE->defaultState());
+    math::JavaLegacyRandom rng(42);
+    math::JavaLegacyRandom expected(42);
+    static_cast<void>(expected.nextInt(1));
+    static_cast<void>(expected.nextInt(1));
+    static_cast<void>(expected.nextInt(2));
+    EXPECT_FALSE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    EXPECT_EQ(rng.nextInt(), expected.nextInt());
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, FancyTrunkMatchesJavaOnBothSidesOfWorldOrigin)
+{
+    // 真值由 testdata/worldgen/tree/FancyTrunkOracle.java 独立生成。
+    for (const i32 horizontalOrigin : {8, -8}) {
+        FancyTrunkPlacer placer(3, 11, 0);
+        math::JavaLegacyRandom rng(42);
+        std::set<BlockPos> logs;
+        const auto attachments = placer.placeTrunk(*m_region,
+            rng,
+            8,
+            BlockPos(horizontalOrigin, 1, horizontalOrigin),
+            logs,
+            &VanillaBlocks::OAK_LOG->defaultState());
+        std::set<BlockPos> expectedLogs;
+        for (i32 y = 1; y <= 7; ++y) {
+            expectedLogs.emplace(horizontalOrigin, y, horizontalOrigin);
+        }
+        for (const i32 y : {4, 5}) {
+            for (const i32 z : {1, 2}) {
+                expectedLogs.emplace(horizontalOrigin + 1, y, horizontalOrigin + z);
+            }
+        }
+        EXPECT_EQ(logs, expectedLogs);
+        ASSERT_EQ(attachments.size(), 3u);
+        EXPECT_EQ(attachments[0].pos, BlockPos(horizontalOrigin, 6, horizontalOrigin));
+        EXPECT_EQ(attachments[1].pos, BlockPos(horizontalOrigin + 1, 5, horizontalOrigin + 2));
+        EXPECT_EQ(attachments[2].pos, BlockPos(horizontalOrigin + 1, 4, horizontalOrigin + 2));
+        for (const auto& attachment : attachments) {
+            EXPECT_FALSE(attachment.trunkTop);
+        }
+        const auto* branch = m_region->getBlockState(horizontalOrigin + 1, 5, horizontalOrigin + 2);
+        ASSERT_NE(branch, nullptr);
+        EXPECT_EQ(branch->get(BlockStateProperties::AXIS()), Axis::Z);
+        EXPECT_EQ(rng.nextInt(), 1190043011);
+    }
 }
