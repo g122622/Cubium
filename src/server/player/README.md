@@ -63,7 +63,7 @@ ServerPlayer 继承自 `Player` 基类，是服务端玩家实体的核心实现
 
 ### 2. 世界引用
 
-实体使用 world() 获取 IWorld；服务端专用上下文通过 asServerWorld() 获取。实体未绑定世界时指针可为空。
+实体通过 `world()` 获取 IWorld，服务端玩家通过 `getWorld()` 获取 ServerWorld；两者的 const 重载均返回只读世界指针。实体未绑定世界时指针可为空。
 
 ### 3. 网络连接检查
 
@@ -98,7 +98,7 @@ if (player->canReceiveMessages()) {
 
 ### 8. CHUNK_HEIGHT vs MAX_BUILD_HEIGHT
 
-根据 PROJECT_CONVENTIONS.md，这两个常量目前值相同但语义不同。未来 MIN_BUILD_HEIGHT 可能从 0 改为 -64，届时 CHUNK_HEIGHT 将不等于 MAX_BUILD_HEIGHT。
+`CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`，当前分别为 384、320、-64。区块总高度与世界顶部坐标语义不同，不能互换。
 
 ### 9. PvP 保护调用链
 
