@@ -24,13 +24,13 @@
 #include "FoliagePlacer.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/CherryBlocks.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
+#include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <algorithm>
 #include <cmath>
@@ -38,6 +38,18 @@
 #include <vector>
 
 namespace mc {
+
+namespace {
+
+bool _canReplaceFoliage(WorldGenRegion& world, const BlockPos& pos)
+{
+    const BlockState* state = world.getBlockState(pos);
+    const bool persistent = state != nullptr && state->hasProperty(BlockStateProperties::PERSISTENT()) &&
+        state->get(BlockStateProperties::PERSISTENT());
+    return !persistent && TreeFeature::isReplaceableAt(world, pos);
+}
+
+} // namespace
 
 FoliagePlacer::FoliagePlacer(const FeatureSpread& radius, const FeatureSpread& offset)
     : m_radius(radius)
@@ -80,8 +92,10 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
     }
 
     // 子类只负责计算并收集树叶坐标，这里统一执行实际放置。
-    // 允许覆盖空气或已有树叶，避免覆盖实心方块。
+    // 允许覆盖标签中的植被，保留持久树叶与实心方块。
     // 当 foliageProvider 非空时，每个叶片独立采样；否则使用 foliageBlock。
+    // TODO: 状态提供者须在每个叶片落位时采样，以保持加权提供者与形状采样的随机数顺序。
+    // TODO: 放置树叶时须保留源水对应的含水状态。
     const bool useProvider = foliageProvider != nullptr;
     if (!useProvider && foliageBlock == nullptr) {
         return;
@@ -92,11 +106,7 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
             continue;
         }
 
-        const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
-        if (state == nullptr || state->isAir() || state->is(VanillaBlocks::OAK_LEAVES) ||
-            state->is(VanillaBlocks::SPRUCE_LEAVES) || state->is(VanillaBlocks::BIRCH_LEAVES) ||
-            state->is(VanillaBlocks::JUNGLE_LEAVES) || state->is(VanillaBlocks::ACACIA_LEAVES) ||
-            state->is(VanillaBlocks::DARK_OAK_LEAVES) || state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
+        if (_canReplaceFoliage(world, pos)) {
             const BlockState* stateToPlace =
                 useProvider ? foliageProvider->getState(world, random, pos.x, pos.y, pos.z) : foliageBlock;
             if (stateToPlace != nullptr) {
@@ -136,15 +146,7 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
             }
 
             // 检查是否可以放置树叶
-            const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
-            if (state == nullptr || state->isAir()) {
-                // 空气可以放置
-            } else if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-                state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-                state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-                state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
-                // 树叶可以替换
-            } else {
+            if (!_canReplaceFoliage(world, pos)) {
                 continue;
             }
 

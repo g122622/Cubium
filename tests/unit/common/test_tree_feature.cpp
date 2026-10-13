@@ -22,6 +22,7 @@
  */
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/blocks/RotatedPillarBlock.hpp"
 #include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -377,6 +378,20 @@ TEST_F(TreeFeaturePlacementWorldTest, ExistingLogsAllowSpaceProbeButRemainUnchan
     ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
     EXPECT_TRUE(m_region->getBlockState(8, 3, 8)->is(VanillaBlocks::SPRUCE_LOG));
     EXPECT_TRUE(m_region->getBlockState(8, 4, 8)->is(VanillaBlocks::OAK_LOG));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, CanopyReplacesTaggedVegetationAndPreservesPersistentLeaves)
+{
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    setWorldBlock(9, 5, 8, &block_registry::GardenBlocks::BUSH->defaultState());
+    const auto& persistent = VanillaBlocks::OAK_LEAVES->defaultState().with(BlockStateProperties::PERSISTENT(), true);
+    setWorldBlock(7, 5, 8, &persistent);
+    math::JavaLegacyRandom rng(12345);
+
+    ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    EXPECT_TRUE(m_region->getBlockState(9, 5, 8)->is(VanillaBlocks::OAK_LEAVES));
+    EXPECT_TRUE(m_region->getBlockState(7, 5, 8)->get(BlockStateProperties::PERSISTENT()));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, IgnoreVinesControlsSpaceProbe)
