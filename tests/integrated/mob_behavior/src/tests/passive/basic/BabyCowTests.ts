@@ -12,21 +12,26 @@ function babyCowFollowsMother(test: Test): void {
     const distance = () => Math.hypot(baby.location.x - mother.location.x, baby.location.z - mother.location.z);
     test.assert(distance() >= 3.5, "baby should start outside the follow stopping distance");
     let followedFirstPosition = false;
-    let secondStartDistance = 0;
+    let secondPhaseValid = false;
+    let secondStart = { x: 0, z: 0 };
     pollUntilSucceed(test, () => {
-        if (distance() >= 3.5) return false;
+        if (!followedFirstPosition && distance() >= 3.5) return false;
         if (!followedFirstPosition) {
             followedFirstPosition = true;
-            mother.teleport(test.worldLocation({ x: 7, y: 2, z: 6 }));
-            secondStartDistance = distance();
-            test.assert(secondStartDistance > 3.5, "moving the mother should require a second follow response");
+            secondStart = { x: baby.location.x, z: baby.location.z };
+            const target = test.worldLocation({ x: 1, y: 2, z: 1 });
+            mother.teleport({ x: target.x + 0.5, y: target.y, z: target.z + 0.5 });
+            // 轮询会捕获异常，保留前提状态，失败后禁止任何后续成功。
+            secondPhaseValid = distance() > 3.0;
             return false;
         }
-        return distance() < secondStartDistance - 1;
+        // 第一条路径向 +X；第二次必须向 -X、-Z，继续原路径无法通过。
+        return secondPhaseValid && distance() < 3.5 &&
+            baby.location.x < secondStart.x - 0.1 && baby.location.z < secondStart.z - 0.2;
     }, {
         startTick: 4, interval: 1, maxTick: 100,
         onTimeout: () => test.assert(false,
-            `baby did not follow both mother positions: phase=${followedFirstPosition}, distance=${distance().toFixed(2)}, ` +
+            `baby did not follow both mother positions: phase=${followedFirstPosition}, valid=${secondPhaseValid}, distance=${distance().toFixed(2)}, ` +
             `baby=${JSON.stringify(baby.location)}, ` +
             `mother=${JSON.stringify(mother.location)}`),
     });
