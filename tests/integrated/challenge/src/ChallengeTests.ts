@@ -47,13 +47,12 @@ function minibiomes(test: Test): void {
 // 坍缩空间：zoglin 被 shulker 击中后浮空上升。3 只 zoglin 与 3 只 shulker 在低处（y=2）生成，
 // shulker 受伤反击射出 shulker bullet，命中 zoglin 施加 200t Levitation I，zoglin 浮空上升到
 // y=6-13 高处。succeedWhen 断言该高处体积内存在 zoglin（assertEntityInVolume 断言"存在"非"清除"）。
-// 按钮触发红石是结构装饰（非成功必要条件）。
+// 独立批次隔离相邻测试的生物、弹射物和世界规则。
 //
 // 时序裕度：maxTicks=600（原 400 偏紧）。多 RNG 延迟链路叠加——zoglin 目标选择 chance=10（每 tick
 // 1/10 概率检查）、shulker 攻击冷却 20-69t、贝壳开启动画 20t、bullet 飞行随机步数、Levitation 上升
 // ~100t（y=2→8 升 6 格，每 tick +0.05 加速）——最坏 ~260t 触上限偶发超时。3v3 多实体干扰（目标分散、
-// zoglin 游走、shulker 受伤瞬移）进一步拉长。600t 留足裕度覆盖最坏 RNG 种子。底层 C++ 链路（zoglin AI、
-// shulker 反击、bullet、Levitation 物理）已正确实现，失败纯为时序裕度不足的非确定性。
+// zoglin 游走、shulker 受伤瞬移）进一步拉长。600t 为目标选择、反击、命中与上升保留观察时间。
 // 断言体积（0,6,0）→（13,13,13）：结构为 13x14x11，zoglin 被 bullet 命中后 Levitation 上升至 y≥6
 // 即满足。体积上界须达 x=13/y=13——实测失败 run 中贴东墙 zoglin 浮至 x=12.7，撞 y=13 天花板后停留，
 // 原体积（0,8,0）→（12,12,12）既够不到墙边也够不到天花板下沿，是该 ~37% 失败率的直接根因。
@@ -86,6 +85,7 @@ function collapsing(test: Test): void {
 export function registerChallengeTests(): void {
   GameTest.register("ChallengeTests", "minibiomes", minibiomes).structureName("gametests:minibiomes").maxTicks(260);
   GameTest.register("ChallengeTests", "collapsing", collapsing)
+    .batch("collapsing")
     .structureName("gametests:collapsing_space")
     .maxTicks(600);
 }

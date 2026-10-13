@@ -300,9 +300,6 @@ function tridentChannelingSummonsLightningTest(test: Test): void {
     trident.addEnchantment({ type: "minecraft:channeling", level: 1 });
     player.setItem(trident, 0, true);
 
-    const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
-    (player as any).lookAtEntity(victim);
-
     // tick 0 设雷暴天气（世界级，独占 batch 串行 + runOnFinish 恢复晴天）。
     // 强度从 0 渐变到 >0.9 约需 91 tick，故延迟到 tick 110 投掷确保 isThundering()=true。
     player.chat("/weather thunder 100000");
@@ -310,8 +307,12 @@ function tridentChannelingSummonsLightningTest(test: Test): void {
         player.chat("/weather clear");
     });
 
-    // tick 105 useItem(三叉戟) 拉弓，tick 120 释放（蓄力 15 tick 投掷）。此时雷暴强度已达 0.9+，isThundering()=true。
+    // 雷暴就绪后再生成靶，固定行走速度，避免村民在天气渐变期间走出开放坑。
+    let victim: any;
     test.runAtTickTime(105, () => {
+        victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+        (victim.getComponent("minecraft:movement") as any).setCurrentValue(0);
+        (player as any).lookAtEntity(victim);
         (player as any).useItem(trident as unknown as Parameters<typeof player.useItem>[0]);
     });
     // tick 119 释放前重新 lookAtEntity 校准（补偿 villager 雷暴/下雨躲避 AI 移动）。
@@ -331,8 +332,8 @@ function tridentChannelingSummonsLightningTest(test: Test): void {
         });
         return lightnings.length >= 1;
     }, {
-        startTick: 123,
-        interval: 2,
+        startTick: 120,
+        interval: 1,
         maxTick: 180,
         onTimeout: () => {
             const lightnings = test.getDimension().getEntities({

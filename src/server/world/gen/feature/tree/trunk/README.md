@@ -50,6 +50,8 @@ TrunkPlacer（基类）
 
 ## 容易踩的坑
 
+- 空间探测允许空气、`REPLACEABLE_BY_TREES` 标签成员和已有原木；实际写入只允许前两类，必须保留已有原木和实心方块。不要用旧的树叶名单替代数据包标签。
+
 ### 1. IntProvider 与 FeatureSpread 的区别
 
 `IntProvider` 是多态的整数值提供器（堆分配、虚函数分派），而 `FeatureSpread` 是值类型（栈分配、无虚函数）。BendingTrunkPlacer 是唯一使用 `IntProvider` 的树干放置器，`placeTrunk()` 接收 `math::Random&` 可隐式转为 `math::IRandom&` 传入 `IntProvider::sample()`。

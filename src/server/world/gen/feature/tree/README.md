@@ -81,6 +81,8 @@ TreeFeature（主入口）
 
 ## 容易踩的坑
 
+- 空间检查须使用 `REPLACEABLE_BY_TREES` 与 `LOGS` 标签，并单独应用 `ignoreVines`。遗漏落叶等新植被会让后续树木提前失败，改变装饰器随机数消耗及后续树木位置。
+
 ### 1. 配置深拷贝问题
 
 `TreeFeatureConfig` 包含 `unique_ptr` 成员，已实现深拷贝构造函数和赋值运算符，复制配置时正确调用即可。

@@ -32,6 +32,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/horse/ZombieHorseEntity.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
@@ -50,6 +51,15 @@ using namespace mc::entity;
 using namespace mc::entity::effect;
 
 namespace {
+
+/**
+ * @brief 暴露僵尸疣兽的日光处理入口，独立验证燃烧逻辑。
+ */
+class _ZoglinDaylightProbe final : public ZoglinEntity {
+public:
+    using MonsterEntity::handleDaylightBurning;
+    using ZoglinEntity::ZoglinEntity;
+};
 
 /**
  * @brief 可损坏的测试用 Item 子类
@@ -706,6 +716,27 @@ protected:
 
     std::unique_ptr<EntityTestWorld> m_world;
 };
+
+TEST_F(BurnUndeadTest, ZoglinDoesNotBurnInSunlightWhileZombieDoes)
+{
+    m_world->setDayTime(6000);
+    m_world->setCanSeeSky(true);
+    m_world->setRawBrightness(15);
+    m_world->setRaining(false);
+    _ZoglinDaylightProbe zoglin(EntityInstanceId(1), mc::test::testEcsRegistry());
+    zoglin.setWorld(m_world.get());
+    zoglin.setPosition(0.0f, 64.0f, 0.0f);
+    ZombieEntity zombie(EntityInstanceId(2), mc::test::testEcsRegistry());
+    zombie.setWorld(m_world.get());
+    zombie.setPosition(0.0f, 64.0f, 0.0f);
+
+    for (i32 attempt = 0; attempt < 500; ++attempt) {
+        zoglin.handleDaylightBurning();
+        zombie.burnUndead();
+        ASSERT_FALSE(zoglin.isOnFire());
+    }
+    EXPECT_TRUE(zombie.isOnFire()) << "The sunlight control must actually ignite a zombie";
+}
 
 TEST_F(BurnUndeadTest, BurnsWhenNoHelmetInDaylight)
 {
