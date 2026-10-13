@@ -68,8 +68,8 @@ function ghastShootsFireballAtPlayer(test: Test): void {
 
   // 恶魂 (3,2,3) 悬浮（setNoGravity）于圆石地板上方，与 Survival 玩家 (11,2,3) 同层。
   // 水平距 8 格 << 64 ATTACK_RANGE，canSee 水平射线穿空气腔不触地板/玻璃墙。
-  test.spawn(ghastType, { x: 3, y: 2, z: 3 });
-  test.spawnSimulatedPlayer({ x: 11, y: 2, z: 3 }, "bait", 0 as any);
+  const ghast = test.spawn(ghastType, { x: 3, y: 2, z: 3 });
+  const bait = test.spawnSimulatedPlayer({ x: 11, y: 2, z: 3 }, "bait", 0 as any);
 
   // 断言恶魂向玩家发射了大火球：succeedWhen 每 tick 检查区域内是否存在 minecraft:fireball 实体。
   // 时序：NearestAttackableTarget 选目标(每10tick) + 恶魂漂浮稳定 + GhastFireballAttackGoal 充能 20 tick + 发射。
@@ -83,12 +83,16 @@ function ghastShootsFireballAtPlayer(test: Test): void {
       location: test.worldLocation(ARENA_FROM),
       volume: ARENA_VOLUME,
     });
-    test.assert(fireballs.length > 0, "ghast did not shoot fireball at player");
+    test.assert(fireballs.length > 0,
+      `ghast did not shoot fireball at player: ghast=${JSON.stringify(ghast.location)}, ` +
+      `bait=${JSON.stringify(bait.location)}, hp=${(bait.getComponent("minecraft:health") as any)?.currentValue}`);
   });
 }
 
 export function registerGhastTests(): void {
   GameTest.register("MobBehaviorTests", "ghast_shoots_fireball_at_player", ghastShootsFireballAtPlayer)
+    // 100 格目标搜索不能越过测试边界选中邻近用例的生存玩家。
+    .batch("ghast_fireball")
     .structureName("gametests:ghast_arena")
     .maxTicks(600);
 }
