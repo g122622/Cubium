@@ -11,10 +11,23 @@ function babyCowFollowsMother(test: Test): void {
     const baby = test.spawn("cow<minecraft:spawn_baby>", { x: 2, y: 2, z: 4 });
     const distance = () => Math.hypot(baby.location.x - mother.location.x, baby.location.z - mother.location.z);
     test.assert(distance() >= 3.5, "baby should start outside the follow stopping distance");
-    pollUntilSucceed(test, () => distance() < 3.5, {
-        startTick: 4, interval: 2, maxTick: 400,
+    let followedFirstPosition = false;
+    let secondStartDistance = 0;
+    pollUntilSucceed(test, () => {
+        if (distance() >= 3.5) return false;
+        if (!followedFirstPosition) {
+            followedFirstPosition = true;
+            mother.teleport(test.worldLocation({ x: 7, y: 2, z: 6 }));
+            secondStartDistance = distance();
+            test.assert(secondStartDistance > 3.5, "moving the mother should require a second follow response");
+            return false;
+        }
+        return distance() < secondStartDistance - 1;
+    }, {
+        startTick: 4, interval: 1, maxTick: 100,
         onTimeout: () => test.assert(false,
-            `baby did not follow mother: distance=${distance().toFixed(2)}, baby=${JSON.stringify(baby.location)}, ` +
+            `baby did not follow both mother positions: phase=${followedFirstPosition}, distance=${distance().toFixed(2)}, ` +
+            `baby=${JSON.stringify(baby.location)}, ` +
             `mother=${JSON.stringify(mother.location)}`),
     });
 }
@@ -22,5 +35,5 @@ function babyCowFollowsMother(test: Test): void {
 export function registerBabyCowTests(): void {
     GameTest.register("MobBehaviorTests", "baby_cow_follows_mother", babyCowFollowsMother)
         .structureName("gametests:grass_pen")
-        .maxTicks(500);
+        .maxTicks(120);
 }
