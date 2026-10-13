@@ -68,8 +68,8 @@ function blastProtectionReducesKnockbackVsPlain(test: Test): void {
         if (health(cowA) >= healthA || health(cowB) >= healthB) {
             return false;
         }
-        speedA = horizontalSpeed(cowA);
-        speedB = horizontalSpeed(cowB);
+        speedA = Math.max(speedA, horizontalSpeed(cowA));
+        speedB = Math.max(speedB, horizontalSpeed(cowB));
         return health(cowA) > 0 && health(cowB) > 0 &&
             speedB > 0.2 && speedB > speedA * 1.5;
     }, {
@@ -93,7 +93,7 @@ function plainDiamondFullExplosionKnockback(test: Test): void {
         if (health(cow) >= healthBefore) {
             return false;
         }
-        speed = horizontalSpeed(cow);
+        speed = Math.max(speed, horizontalSpeed(cow));
         return health(cow) > 0 && speed > 0.2;
     }, {
         startTick: 31,

@@ -540,7 +540,7 @@ void AbstractMinecartEntity::_moveDerailedMinecart()
 
     setVelocity(static_cast<f32>(vx), static_cast<f32>(vy), static_cast<f32>(vz));
 
-    move(static_cast<f32>(vx), static_cast<f32>(vy), static_cast<f32>(vz));
+    moveWithCollision(static_cast<f32>(vx), static_cast<f32>(vy), static_cast<f32>(vz));
 
     // 空气阻力
     if (!onGround()) {

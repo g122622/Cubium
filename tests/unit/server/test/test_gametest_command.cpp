@@ -23,16 +23,12 @@
 
 // /gametest 命令集成测试。
 //
-// 架构说明：GameTestCommand::registerTo 未在 CommandRegistry::registerDefaults 中登记
-// （registerDefaults 经 IntegratedServer 被 client 共享编译，不能拉 server/test/ 依赖，
-// 遵循 ServerScriptManager 同款分层约束）。生产路径由 GameTestServer::initialize 手动调
-// GameTestCommand::registerTo(commandRegistry().dispatcher()) 注入。本测试镜像该模式：
-// 用 IntegratedServer + 手动注册 + 手动 pump GameTestTicker（IntegratedServer::tick 不含
-// GameTestTicker 推进，对齐 GameTestServer::tickOnce 的三段顺序）。
+// 使用同步 GameTestServer 门面初始化世界与命令注册表，由测试线程串行推进世界和 ticker。
+// IntegratedServer 会自行启动 tick 线程，不能同时由测试线程手动调用 tick()。
 //
 // 覆盖：
 //   - /gametest clear 在空 ticker 上不崩
-//   - /gametest runall（无匹配测试）不崩
+//   - /gametest runall 调度入口和同步 tick 不崩
 //   - 命令解析失败（未知子命令）返回错误
 //
 // 注：完整 /gametest runall 跑通内置样例需 worldgen 数据 + 程序化模板，已在
@@ -41,27 +37,25 @@
 #include <gtest/gtest.h>
 
 #include "common/TempDirHelper.hpp"
-#include "server/application/IntegratedServer.hpp"
-#include "server/application/MinecraftServer.hpp" // tick() 经基类公有调用（IntegratedServer::tick protected）
-#include "server/command/CommandRegistry.hpp"     // commandRegistry() 返回完整类型
+#include "server/application/MinecraftServer.hpp"
+#include "server/command/CommandRegistry.hpp" // commandRegistry() 返回完整类型
 #include "server/command/ServerCommandSource.hpp"
 #include "server/test/facade/GameTestCommand.hpp"
+#include "server/test/facade/GameTestServer.hpp"
 #include "server/test/framework/ticker/GameTestTicker.hpp"
 
-#include <chrono>
 #include <filesystem>
-#include <thread>
 
 using namespace mc::server;
 using mc::command::ServerCommandSource; // ServerCommandSource 在 mc::command 非 mc::server
 
 namespace {
-// IntegratedServer + GameTestCommand 注入夹具。
+// 同步 GameTestServer 命令夹具。
 class GameTestCommandFixture : public ::testing::Test {
 protected:
     std::filesystem::path m_gameRoot;
     std::string m_worldName = "gt_cmd_world";
-    std::unique_ptr<IntegratedServer> m_server;
+    std::unique_ptr<mc::test::GameTestServer> m_server;
     ServerCommandSource m_console{nullptr};
 
     void SetUp() override
@@ -70,34 +64,33 @@ protected:
         std::filesystem::create_directories(m_gameRoot / "saves" / m_worldName);
         mc::test::GameTestTicker::instance().forceStop();
 
-        m_server = std::make_unique<IntegratedServer>();
-        IntegratedServerParams config{
-            .worldName = m_worldName,
-            .gameDirectoryRoot = m_gameRoot.string(),
-            .displayName = m_worldName,
-            .seed = 0,
-            .defaultGameMode = mc::GameMode::Creative,
-            .viewDistance = 4,
-            .simulationDistance = 4,
-            .tickRate = 20,
-            .worldType = mc::WorldType::Default,
-            .difficulty = mc::Difficulty::Normal,
-            .hardcore = false,
-            .allowCommands = true,
-            .isNewWorld = false,
-        };
+        m_server = std::make_unique<mc::test::GameTestServer>();
+        mc::test::GameTestServerParams config;
+        config.worldName = m_worldName;
+        config.gameDirectoryRoot = m_gameRoot.string();
+        config.seed = 0;
+        config.defaultGameMode = mc::GameMode::Creative;
+        config.viewDistance = 4;
+        config.simulationDistance = 4;
+        config.tickRate = 20;
+        config.worldType = mc::WorldType::Flat;
+        config.difficulty = mc::Difficulty::Normal;
+        config.hardcore = false;
+        config.allowCommands = true;
+        config.isNewWorld = false;
+        config.testsFilter = "__NoSuchGameTestCommandSetup__";
+        config.maxTicks = 200;
         auto result = m_server->initialize(config);
         if (!result.success()) {
-            GTEST_SKIP() << "IntegratedServer initialize failed (likely missing worldgen data): "
+            GTEST_SKIP() << "GameTestServer initialize failed (likely missing worldgen data): "
                          << result.error().message();
         }
-        // 镜像 GameTestServer::initialize:181 的手动注册（registerDefaults 不含 GameTestCommand）。
-        mc::test::GameTestCommand::registerTo(m_server->commandRegistry().dispatcher());
         m_console = ServerCommandSource::forConsole(m_server.get());
     }
 
     void TearDown() override
     {
+        mc::test::GameTestCommand::cleanupCompletedInstances();
         if (m_server) {
             m_server->stop();
             m_server.reset();
@@ -120,22 +113,21 @@ TEST_F(GameTestCommandFixture, ClearOnEmptyTickerDoesNotCrash)
 }
 
 // ============================================================================
-// /gametest runall：无匹配测试不崩（ticker 保持空）
+// /gametest runall：注册的内置测试可被调度，缺少结构资源也不能导致进程中止
 // ============================================================================
 
-TEST_F(GameTestCommandFixture, RunAllWithNoMatchingTestsDoesNotCrash)
+TEST_F(GameTestCommandFixture, RunAllDoesNotCrash)
 {
     auto result = m_server->commandRegistry().execute("gametest runall", m_console);
     EXPECT_TRUE(result.success()) << result.error().message();
-    // 手动 pump 几 tick（IntegratedServer::tick 不含 GameTestTicker 推进）。
-    // tick() 在 IntegratedServer 中 protected，经基类 MinecraftServer 公有调用。
+    // 世界与测试状态机由当前线程串行推进，服务端没有后台 tick 线程。
     auto& serverBase = static_cast<mc::server::MinecraftServer&>(*m_server);
     for (int i = 0; i < 5; ++i) {
         serverBase.tick();
         mc::test::GameTestTicker::instance().tick();
+        mc::test::GameTestCommand::cleanupCompletedInstances();
     }
-    // 无匹配测试 → ticker 应仍为空（或快速完成清理）。
-    // 不强制 isEmpty（runall 可能加入 0 实例后立即空），仅验证不崩。
+    // 此处验证命令调度和状态机推进不崩；完整测试成功与退出码由运行门面测试覆盖。
     SUCCEED();
 }
 
