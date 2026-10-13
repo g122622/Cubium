@@ -70,6 +70,7 @@ function noThornsNoReflection(test: Test): void {
     const attacker = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "attacker", 0 as any);
     equipPlainChest(victim);
     test.runAtTickTime(30, () => {
+        (victim.getComponent("minecraft:health") as any).setCurrentValue(20);
         attacker.lookAtEntity(victim);
         attacker.attackEntity(victim);
         test.assert(readHp(victim) < 20, "plain armor victim must receive actual melee damage");
