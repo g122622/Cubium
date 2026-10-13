@@ -157,7 +157,7 @@ protected:
      * @brief 检查椭球是否在雕刻范围内
      */
     [[nodiscard]] static bool isInCarvingRange(
-        ChunkCoord targetChunkX, ChunkCoord targetChunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius);
+        ChunkCoord targetChunkX, ChunkCoord targetChunkZ, f64 x, f64 z, i32 step, i32 maxSteps, f32 radius);
 
     /**
      * @brief 检查椭球范围内是否有流体

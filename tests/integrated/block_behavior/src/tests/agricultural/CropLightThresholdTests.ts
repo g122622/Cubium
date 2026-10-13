@@ -127,15 +127,14 @@ const FARMLAND = { x: 3, y: 2, z: 3 };
 const CROP = { x: 3, y: 3, z: 3 };
 const GLOWSTONE = { x: 4, y: 3, z: 3 };
 
-// 调高 randomTickSpeed 使作物格在数 tick 内被随机刻确定性命中。
-// 1000 使单格每 tick 命中概率≈24.4%，120 tick 内至少命中一次概率≈100%。light_box 石墙隔离 +
-// 内部仅 farmland/wheat/glowstone/stone/air，farmland 有作物时不退化，randomTick 副作用可控。
-const HIGH_RANDOM_TICK_SPEED = "1000";
+// 独占批次内提高随机刻速率，并用水维持湿润耕地，减少有限窗口内未生长的随机失败。
+const HIGH_RANDOM_TICK_SPEED = "4096";
 
 // 放置 farmland 支撑 + age=0 指定作物，返回放置是否成功（getBlock 非空且为该作物）。
 // setBlockPermutation flags=3 强制放置存活（不调 isValidPosition，绕过光照<8 检查）。
 function placeCrop(test: Test, cropType: string): boolean {
-    test.setBlockType("minecraft:farmland", FARMLAND);
+    test.setBlockWithStates("minecraft:farmland", FARMLAND, "moisture=7");
+    test.setBlockType("minecraft:water", { x: 2, y: 2, z: 3 });
     const perm = BlockPermutation.resolve(cropType, { age: 0 }) as any;
     (test as unknown as {
         setBlockPermutation: (blockData: unknown, blockLocation: { x: number; y: number; z: number }) => void;
@@ -163,7 +162,12 @@ function cropDoesNotGrowInDark(test: Test): void {
     // 调高 randomTickSpeed 使作物格被随机刻确定性命中（SimulatedPlayer 创造模式权限2 执行 /gamerule）。
     // 不 assert chat 返回值：Cubium chat 返回 int，基岩 chat 返回 void 语义不同，基岩侧 one-sided。
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
+    const dimension = test.getDimension() as any;
+    const previousSpeed = dimension.getGameRule("randomTickSpeed");
+    (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`));
     player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
+    test.assert(dimension.getGameRule("randomTickSpeed") === HIGH_RANDOM_TICK_SPEED,
+        "randomTickSpeed should be raised for the isolated crop test");
 
     pollUntilSucceed(
         test,
@@ -210,7 +214,12 @@ function cropGrowsInLight(test: Test): void {
     test.setBlockType("minecraft:glowstone", GLOWSTONE);
 
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
+    const dimension = test.getDimension() as any;
+    const previousSpeed = dimension.getGameRule("randomTickSpeed");
+    (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`));
     player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
+    test.assert(dimension.getGameRule("randomTickSpeed") === HIGH_RANDOM_TICK_SPEED,
+        "randomTickSpeed should be raised for the isolated crop test");
 
     pollUntilSucceed(
         test,
@@ -240,9 +249,11 @@ function cropGrowsInLight(test: Test): void {
 
 export function registerCropLightThresholdTests(): void {
     GameTest.register("BlockBehaviorTests", "crop_does_not_grow_in_dark", cropDoesNotGrowInDark)
+        .batch("crop_dark_ticks_solo")
         .structureName("gametests:light_box")
         .maxTicks(250);
     GameTest.register("BlockBehaviorTests", "crop_grows_in_light", cropGrowsInLight)
+        .batch("crop_light_ticks_solo")
         .structureName("gametests:light_box")
         .maxTicks(250);
 }

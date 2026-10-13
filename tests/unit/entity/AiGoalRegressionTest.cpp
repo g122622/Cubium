@@ -575,6 +575,22 @@ TEST(AiGoalRegressionTest, MeleeAttackGoal_ResumesAfterTargetDestruction)
     EXPECT_FALSE(goal.shouldContinueExecuting());
 }
 
+TEST(AiGoalRegressionTest, MeleeAttackGoal_ContinuesActivePathDuringStartupCooldown)
+{
+    _TestCreatureEntity creature;
+    _TestCreatureEntity target;
+    creature.setPosition(0.5f, 64.0f, 0.5f);
+    target.setPosition(5.5f, 64.0f, 0.5f);
+    creature.setAttackTarget(&target);
+    creature.setActivePath();
+    _ExposedMeleeAttackGoal goal(&creature, 1.0, false);
+    goal.setCachedTarget(&target);
+    EXPECT_TRUE(goal.shouldContinueExecuting());
+    EXPECT_TRUE(goal.shouldContinueExecuting());
+    creature.navigator()->clearPath();
+    EXPECT_FALSE(goal.shouldContinueExecuting());
+}
+
 TEST(AiGoalRegressionTest, LastHurtBy_ExpiresAfterAttackerDestruction)
 {
     _TestCreatureEntity creature;

@@ -143,16 +143,18 @@ function beeDiesAfterSting(test: Test): void {
   });
 }
 
-// 玩家攻击蜜蜂后，必须观察到实际反击造成的中毒效果。
-// 整片同高地板避免两个孤立支撑柱把追击变成额外的高低差寻路测试。
+// 在近战距离验证受击、反击和真实中毒，限制击退后的位移避免夹具变成寻路测试。
 function beeStingAppliesPoison(test: Test): void {
-  for (let x = 1; x <= 7; x++) {
-    for (let z = 1; z <= 7; z++) {
+  for (let x = 2; x <= 5; x++) {
+    for (let z = 2; z <= 4; z++) {
       test.setBlockType("minecraft:glass", { x, y: 1, z });
+      for (let y = 2; y <= 4; y++) {
+        test.setBlockType(x === 2 || x === 5 || z === 2 || z === 4 ? "minecraft:glass" : "minecraft:air", { x, y, z });
+      }
     }
   }
-  const bee = test.spawn("minecraft:bee", { x: 2, y: 2, z: 3 });
-  const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "stingVictim", 0 as any);
+  const bee = test.spawn("minecraft:bee", { x: 3, y: 2, z: 3 });
+  const player = test.spawnSimulatedPlayer({ x: 4, y: 2, z: 3 }, "stingVictim", 0 as any);
   test.runAtTickTime(8, () => {
     const hpBefore = (bee.getComponent("minecraft:health") as any).currentValue;
     player.attackEntity(bee);
@@ -160,13 +162,10 @@ function beeStingAppliesPoison(test: Test): void {
       "player attack should damage the bee and trigger retaliation");
   });
   pollUntilSucceed(test, () => (player as any).getEffect("poison") !== undefined, {
-    startTick: 10,
-    interval: 2,
-    maxTick: 1500,
+    startTick: 10, interval: 1, maxTick: 150,
     onTimeout: () => test.assert(false,
       `bee sting did not apply poison: playerHp=${(player.getComponent("minecraft:health") as any)?.currentValue}, ` +
-      `beeHp=${(bee.getComponent("minecraft:health") as any)?.currentValue}, ` +
-      `beePos=${JSON.stringify(bee.location)}, playerPos=${JSON.stringify(player.location)}`),
+      `beeHp=${(bee.getComponent("minecraft:health") as any)?.currentValue}, beePos=${JSON.stringify(bee.location)}`),
   });
 }
 

@@ -109,7 +109,7 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     const i32 chunkStartZ = targetChunkZ * world::CHUNK_WIDTH;
 
     // 检查椭球是否在目标区块范围外
-    const f64 distLimit = horizontalRadius + CARVE_DISTANCE_PADDING + static_cast<f64>(world::CHUNK_WIDTH);
+    const f64 distLimit = horizontalRadius * 2.0 + static_cast<f64>(world::CHUNK_WIDTH);
     const f64 dxC = centerX - static_cast<f64>(chunkStartX + world::CHUNK_WIDTH / 2);
     const f64 dzC = centerZ - static_cast<f64>(chunkStartZ + world::CHUNK_WIDTH / 2);
     if (std::abs(dxC) > distLimit || std::abs(dzC) > distLimit) {
@@ -219,16 +219,16 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
 
 template <typename Config>
 bool WorldCarver<Config>::isInCarvingRange(
-    ChunkCoord targetChunkX, ChunkCoord targetChunkZ, f32 x, f32 z, i32 step, i32 maxSteps, f32 radius)
+    ChunkCoord targetChunkX, ChunkCoord targetChunkZ, f64 x, f64 z, i32 step, i32 maxSteps, f32 radius)
 {
-    const f32 chunkCenterX = static_cast<f32>(targetChunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
-    const f32 chunkCenterZ = static_cast<f32>(targetChunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
+    const f64 chunkCenterX = static_cast<f64>(targetChunkX * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
+    const f64 chunkCenterZ = static_cast<f64>(targetChunkZ * world::CHUNK_WIDTH + world::CHUNK_WIDTH / 2);
 
-    const f32 dx = x - chunkCenterX;
-    const f32 dz = z - chunkCenterZ;
+    const f64 dx = x - chunkCenterX;
+    const f64 dz = z - chunkCenterZ;
 
-    const f32 remainingSteps = static_cast<f32>(maxSteps - step);
-    const f32 maxDist = radius + CARVE_DISTANCE_PADDING + static_cast<f32>(world::CHUNK_WIDTH);
+    const f64 remainingSteps = static_cast<f64>(maxSteps - step);
+    const f64 maxDist = static_cast<f64>(radius + CARVE_DISTANCE_PADDING + static_cast<f32>(world::CHUNK_WIDTH));
 
     return dx * dx + dz * dz - remainingSteps * remainingSteps <= maxDist * maxDist;
 }

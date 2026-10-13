@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
@@ -199,6 +200,77 @@ TEST_F(CaveCarverTest, GetRange)
 {
     // 默认范围应该是 4
     EXPECT_EQ(carver->getRange(), 4);
+}
+
+TEST_F(CaveCarverTest, MatchesJavaCaveAndCanyonMasksIncludingBranchesAndNeighborChunks)
+{
+    // 真值由 testdata/worldgen/carver/CarverOracle.java 独立执行原版算法得到。
+    struct Sample {
+        u64 seed;
+        i32 chunkX;
+        i32 count;
+        u64 hash;
+        bool canyon;
+    };
+    for (const auto& sample : {Sample{2, 0, 241, 0x53703c8d30f9f8e2ULL, false},
+             Sample{4, 0, 700, 0x5f1be55c68bbdf99ULL, false},
+             Sample{42, 0, 95, 0x51223dce1f6cb7f0ULL, false},
+             Sample{42, -1, 981, 0x072d96f87a99ef36ULL, false},
+             Sample{12345, 0, 222, 0x23ee6babf793ddd3ULL, false},
+             Sample{2, 0, 44, 0xa5dd182e607422adULL, true},
+             Sample{4, 0, 21, 0x6a34c1867ec1e71cULL, true},
+             Sample{42, 0, 1, 0xfb6678d7c33f43aaULL, true},
+             Sample{12345, 0, 161, 0xd7418eaa5db2f576ULL, true}}) {
+        ChunkPrimer target(sample.chunkX, 0);
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                    target.setBlockState(x, y, z, &VanillaBlocks::STONE->defaultState());
+                }
+            }
+        }
+        CarvingMask targetMask(sample.chunkX, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
+        CaveCarverConfiguration fixedConfig(1.0f,
+            ConstantHeight::create(VerticalAnchor::absolute(64)),
+            ConstantFloat::create(1.0f),
+            VerticalAnchor::aboveBottom(8),
+            &BlockTags::OVERWORLD_CARVER_REPLACEABLES(),
+            ConstantFloat::create(1.0f),
+            ConstantFloat::create(1.0f),
+            ConstantFloat::create(-1.0f));
+        math::JavaLegacyRandom rng(sample.seed);
+        if (sample.canyon) {
+            CanyonCarver canyon(world::MAX_BUILD_HEIGHT);
+            CanyonCarverConfiguration canyonConfig(1.0f,
+                ConstantHeight::create(VerticalAnchor::absolute(64)),
+                ConstantFloat::create(1.0f),
+                VerticalAnchor::aboveBottom(8),
+                &BlockTags::OVERWORLD_CARVER_REPLACEABLES(),
+                ConstantFloat::create(0.0f),
+                CanyonShapeConfiguration(ConstantFloat::create(1.0f),
+                    ConstantFloat::create(2.0f),
+                    3,
+                    ConstantFloat::create(1.0f),
+                    1.0f,
+                    0.0f));
+            canyon.carve(target, *context, *biomeSource, sample.chunkX, 0, 0, 0, targetMask, rng, canyonConfig);
+        } else {
+            carver->carve(target, *context, *biomeSource, sample.chunkX, 0, 0, 0, targetMask, rng, fixedConfig);
+        }
+        u64 hash = 0xcbf29ce484222325ULL;
+        i32 count = 0;
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                    const bool carved = targetMask.isCarved(x, y, z);
+                    count += carved ? 1 : 0;
+                    hash = (hash ^ static_cast<u64>(carved)) * 0x100000001b3ULL;
+                }
+            }
+        }
+        EXPECT_EQ(count, sample.count) << "seed=" << sample.seed << " chunkX=" << sample.chunkX;
+        EXPECT_EQ(hash, sample.hash) << "seed=" << sample.seed << " chunkX=" << sample.chunkX;
+    }
 }
 
 // ============================================================================
