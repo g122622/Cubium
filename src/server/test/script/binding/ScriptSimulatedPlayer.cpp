@@ -1067,6 +1067,7 @@ u64 registerSimulatedPlayerClassBinding(
                 return ctx.throwTypeError("attackEntity: first arg must be an Entity");
             }
             player->attack(*target);
+            // TODO: 原生攻击入口需提供成功标志，才能实现脚本 API 的布尔返回值。
             return ctx.createUndefined();
         },
         1);

@@ -52,7 +52,7 @@ function thornsIiiReflectsDamageToAttacker(test: Test): void {
             (victim.getComponent("minecraft:health") as any).setCurrentValue(20);
             const before = readHp(attacker);
             attacker.lookAtEntity(victim);
-            test.assert(attacker.attackEntity(victim), "controlled melee attack should succeed");
+            attacker.attackEntity(victim);
             test.assert(readHp(victim) < 20, "thorns victim must receive actual melee damage");
             if (readHp(attacker) < before) {
                 test.succeed();
@@ -71,7 +71,7 @@ function noThornsNoReflection(test: Test): void {
     equipPlainChest(victim);
     test.runAtTickTime(30, () => {
         attacker.lookAtEntity(victim);
-        test.assert(attacker.attackEntity(victim), "controlled melee attack should succeed");
+        attacker.attackEntity(victim);
         test.assert(readHp(victim) < 20, "plain armor victim must receive actual melee damage");
         test.assert(readHp(attacker) === 20, "unenchanted armor must not reflect melee damage");
         test.succeed();

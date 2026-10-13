@@ -180,6 +180,9 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
         }
     }
 
+    test.assert(test.getBlock({ x: 35, y: 1, z: 4 })?.isAir === false,
+        "glowstone support must not be reported as air");
+
     // 关停 tick 路径，隔离单点入口的光照门槛判定（见上方注释）。
     const previousSpawning = (test.getDimension() as any).getGameRule("doMobSpawning");
     player.chat("/gamerule doMobSpawning false");

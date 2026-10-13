@@ -108,7 +108,7 @@ private:
 
     std::mutex m_mutex;
     // 实体对象地址 → 该实体所有 JS 句柄的 ObjectData* 列表，实体编号不具进程级唯一性。
-    // 一个实体可有多个句柄（Entity 本身 + OnFire/Health/... 组件对象），均 opaque 持同一 Entity*。
+    // 一个实体可有多个句柄，opaque 可指向实体或其背包等子对象，按 entityOwner 统一管理。
     std::unordered_map<const void*, std::vector<ScriptObjectRegistry::ObjectData*>> m_handles;
 };
 
