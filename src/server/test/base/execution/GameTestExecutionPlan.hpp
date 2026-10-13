@@ -78,11 +78,19 @@ public:
         return selected;
     }
 
-    /** @brief 按最低 10 TPS 加 60 秒准备预算计算；仍受整轮 30 分钟和单 tick 2 秒期限约束。 */
+    /** @brief 按最低 10 TPS 加 60 秒准备预算计算；仍受整轮 30 分钟期限约束。 */
     [[nodiscard]] static std::chrono::milliseconds batchBudget(u64 declaredTicks)
     {
         // 先限幅再乘法，防止来自测试元数据的大数使 chrono 时长溢出。
         return std::chrono::milliseconds(60000 + std::min<u64>(declaredTicks, 17400) * 100);
+    }
+
+    /** @brief 普通 tick 最多两秒；启动或声明同步生成的批次仍不得越过批次/整轮期限。 */
+    [[nodiscard]] static std::chrono::steady_clock::time_point tickDeadline(std::chrono::steady_clock::time_point now,
+        std::chrono::steady_clock::time_point phaseDeadline,
+        bool synchronousWork)
+    {
+        return synchronousWork ? phaseDeadline : std::min(phaseDeadline, now + std::chrono::seconds(2));
     }
 };
 

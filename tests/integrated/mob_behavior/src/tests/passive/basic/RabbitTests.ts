@@ -19,53 +19,20 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 const HALL_FROM = { x: 0, y: 0, z: 0 };
 const HALL_VOLUME = { x: 41, y: 7, z: 9 };
 
-// 兔子逃离玩家（wiki tech_兔子.txt#行为：除杀手兔外，所有兔子都会躲避 8 格内的生存或冒险模式玩家）。
-//
-// C++ 链路：RabbitEntity::registerGoals 优先级2 注册 AvoidEntityGoal(this, 8.0, 2.2, 2.2, predicate)
-// （RabbitEntity.cpp:583-593），谓词过滤 Player（杀手兔 isKillerRabbit() 短路 return false 不逃离）。
-// AvoidEntityGoal 无视线检查（仅按距离+谓词球状搜索，AvoidEntityGoal.cpp:141-142），故 grass_pen
-// 玻璃墙不影响兔子检测玩家。shouldExecute 找到 8 格内玩家 → _findEscapePosition 朝远离方向寻路 →
-// 兔子位移拉开与玩家距离。
-//
-// 环境选择：grass_pen（9×5×9，玻璃墙围栏）。关键：不用 creeper_pit（开放坑无墙）——兔子 AvoidEntityGoal
-// 朝远离玩家方向逃离，开放坑无墙约束兔子可能游荡出查询区致 getEntities 查不到被误判。grass_pen 玻璃墙
-// 把兔子限制在内部空气腔，逃离位移在查询区内可观测。AvoidEntityGoal 不需视线，玻璃墙不影响检测。
-//
-// 判定手段：兔子从玩家旁(4,2,4)逃离，断言兔子距玩家水平距离 > 4 格（初始 0 格同位 → 逃离后 >4 格）。
-// 用 getEntities 区域限定取兔子世界坐标，与玩家世界坐标算水平距离。逃离方向随机（朝远离玩家任意方向），
-// 但只要距玩家 >4 格即证明 AvoidEntityGoal 驱动了位移。grass_pen 9×9 对角 ~11 格，兔子逃离到 >4 格
-// 容易满足。判定距离阈值（而非固定区域）规避逃离方向随机导致的 flaky。
-// 玩家用 Survival（gameMode=0）：wiki 语义"生存/冒险模式玩家"触发逃离，Survival 符合。
-// 时序：AvoidEntityGoal tickRate 评估（每 2 tick）+ 寻路 + 逃离位移。2.2 速度拉开 4 格约需 20-40 tick，
-// maxTicks=1000 留充裕余量吸收非确定性。
-// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_兔子.txt#行为（躲避8格内玩家）
+// 生存玩家靠近时，兔子必须沿长廊逃离超过四格。独立批次隔离其他 AI 目标，
+// 长廊为十六格逃跑候选点提供空间；使用本测试实体句柄检查真实位移。
 function rabbitFleesPlayer(test: Test): void {
-  const rabbitType = "rabbit";
-
-  // 兔子与 Survival 玩家同位于中心 (4,2,4)：兔子 spawn 即在玩家旁（距 0），AvoidEntityGoal 首次
-  // 扫描即可检测到 8 格内玩家并逃离。玩家不动（SimulatedPlayer 默认静止），兔子朝远离方向位移。
-  // grass_pen 中心 (4,2,4) 为空气腔，helper-y=2→结构内 y=1 空气，脚踩 y=0 grass_block。
-  test.spawn(rabbitType, { x: 4, y: 2, z: 4 });
-  test.spawnSimulatedPlayer({ x: 4, y: 2, z: 4 }, "scary", 0 as any);
-
-  // 玩家世界坐标（helper (4,2,4) 经 worldLocation 转换）。
-  const playerWorld = test.worldLocation({ x: 4, y: 2, z: 4 });
-
-  // 断言兔子逃离：距玩家水平距离 > 4 格（初始 0 格，逃离后应 >4 格）。
-  // 区域限定用 PEN（grass_pen 9×5×9）排除并行测试污染。
-  // 逃离速度 2.2，拉开 4 格约需 20-40 tick，maxTicks=1000 留充裕余量吸收非确定性。
-  test.succeedWhen(() => {
-    const rabbits = test.getDimension().getEntities({
-      type: rabbitType,
-      location: test.worldLocation(PEN_FROM),
-      volume: PEN_VOLUME,
-    });
-    test.assert(rabbits.length > 0, "rabbit disappeared");
-    const r = rabbits[0];
-    const dx = r.location.x - playerWorld.x;
-    const dz = r.location.z - playerWorld.z;
-    test.assert(dx * dx + dz * dz > 4 * 4,
-      `rabbit did not flee from player, distSq=${dx * dx + dz * dz}`);
+  const rabbit = test.spawn("minecraft:rabbit", { x: 20, y: 2, z: 4 });
+  const player = test.spawnSimulatedPlayer({ x: 18, y: 2, z: 4 }, "scary", 0 as any);
+  pollUntilSucceed(test, () => {
+    const dx = rabbit.location.x - player.location.x;
+    const dz = rabbit.location.z - player.location.z;
+    return dx * dx + dz * dz > 4 * 4;
+  }, {
+    startTick: 10,
+    interval: 5,
+    maxTick: 900,
+    onTimeout: () => test.assert(false, `rabbit did not flee from player: rabbit=${JSON.stringify(rabbit.location)}, player=${JSON.stringify(player.location)}`),
   });
 }
 
@@ -214,7 +181,8 @@ function rabbitBreedsWhenFedCarrot(test: Test): void {
 
 export function registerRabbitTests(): void {
   GameTest.register("MobBehaviorTests", "rabbit_flees_player", rabbitFleesPlayer)
-    .structureName("gametests:grass_pen")
+    .batch("rabbit_avoidance")
+    .structureName("gametests:open_grass_hall")
     .maxTicks(1000);
 
   GameTest.register("MobBehaviorTests", "killer_rabbit_attacks_player", killerRabbitAttacksPlayer)

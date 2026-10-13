@@ -553,6 +553,45 @@ TEST_F(BellBlockEntityTickTest, Tick_DoesNotResonateWithDeadRaider)
     EXPECT_FALSE(bell_->isResonating());
 }
 
+TEST_F(BellBlockEntityTickTest, Tick_IgnoresDestroyedEntityInCachedSearch)
+{
+    auto raider = std::make_unique<MockLivingEntity>();
+    raider->setTypeId("minecraft:pillager");
+    raider->setPos(pos_.center());
+    world_->setEntities({raider.get()});
+    bell_->setWorld(world_.get());
+    bell_->triggerEvent(1, static_cast<i32>(Direction::North));
+    world_->setEntities({});
+    raider.reset();
+    // 缓存尚未到 60 tick 重查期，检测不能再读取已释放的灾厄村民。
+    for (i32 i = 1; i <= BellBlockEntity::TICKS_BEFORE_RESONATION; ++i) {
+        world_->setCurrentTick(100 + i);
+        bell_->tick(*world_);
+    }
+    EXPECT_FALSE(bell_->isResonating());
+}
+
+TEST_F(BellBlockEntityTickTest, Tick_IgnoresDestroyedRaiderWhenResonanceFinishes)
+{
+    auto raider = std::make_unique<MockLivingEntity>();
+    raider->setTypeId("minecraft:pillager");
+    raider->setPos(pos_.center());
+    world_->setEntities({raider.get()});
+    bell_->setWorld(world_.get());
+    bell_->triggerEvent(1, static_cast<i32>(Direction::North));
+    for (i32 i = 1; i <= BellBlockEntity::TICKS_BEFORE_RESONATION; ++i) {
+        world_->setCurrentTick(100 + i);
+        bell_->tick(*world_);
+    }
+    ASSERT_TRUE(bell_->isResonating());
+    world_->setEntities({});
+    raider.reset();
+    for (i32 i = 0; i <= BellBlockEntity::MAX_RESONATION_TICKS; ++i) {
+        bell_->tick(*world_);
+    }
+    EXPECT_FALSE(bell_->isResonating());
+}
+
 // ========== 共振计时与到期测试 ==========
 
 TEST_F(BellBlockEntityTickTest, Tick_IncrementsResonationTicks)

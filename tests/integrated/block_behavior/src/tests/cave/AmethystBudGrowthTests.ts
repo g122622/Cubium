@@ -105,6 +105,8 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 玩家放 air 区域 (1,2,1)（运行时 air 区域 y∈[2,4]），避免卡在 stone 地板层。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
+    const previousSpeed = (test.getDimension() as any).getGameRule("randomTickSpeed");
+    (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`));
     player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
@@ -132,8 +134,8 @@ function buddingAmethystGrowsSmallBud(test: Test): void {
             return countSmallBuds(test) >= 1;
         },
         {
-            startTick: 40,
-            interval: 20,
+            startTick: 1,
+            interval: 1,
             maxTick: 160,
             onTimeout: () => {
                 const count = countSmallBuds(test);
@@ -164,12 +166,12 @@ function amethystBudGrowsToNextStage(test: Test): void {
     pollUntilSucceed(
         test,
         () => {
-            // 升级成功：small_amethyst_bud → medium_amethyst_bud。
+            // 每 tick 观察中间阶段，避免隔二十 tick 检查时已长成大芽。
             return getTypeId(test, BUD_POS) === "minecraft:medium_amethyst_bud";
         },
         {
-            startTick: 40,
-            interval: 20,
+            startTick: 1,
+            interval: 1,
             maxTick: 320,
             onTimeout: () => {
                 const type = getTypeId(test, BUD_POS);
@@ -187,9 +189,11 @@ function amethystBudGrowsToNextStage(test: Test): void {
 
 export function registerAmethystBudGrowthTests(): void {
     GameTest.register("BlockBehaviorTests", "budding_amethyst_grows_small_bud", buddingAmethystGrowsSmallBud)
+        .batch("amethyst_small_bud")
         .structureName("gametests:light_box")
         .maxTicks(260);
     GameTest.register("BlockBehaviorTests", "amethyst_bud_grows_to_next_stage", amethystBudGrowsToNextStage)
+        .batch("amethyst_next_stage")
         .structureName("gametests:light_box")
         .maxTicks(420);
 }

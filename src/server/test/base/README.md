@@ -21,8 +21,10 @@ base/
 ├── coords/                        # 坐标变换工具
 │   ├── TestTransform.hpp          # 结构相对 ↔ 世界绝对（含旋转，整型 BlockPos + 浮点 Vector3d）
 │   └── TestTransform.cpp
+├── execution/                     # 稳定分片和实际时间预算
+│   └── GameTestExecutionPlan.hpp   # 分片选择、批次预算、tick 期限
 └── tags/
-    └── GameTestTags.hpp           # 预定义标签常量（SuiteAll/SuiteDefault/SuiteDisabled）
+    └── GameTestTags.hpp           # 套件筛选与同步区块生成声明
 ```
 
 ## 内部模块关系

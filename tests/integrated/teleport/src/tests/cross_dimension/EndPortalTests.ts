@@ -31,10 +31,12 @@ function endPortalTransfersPlayerToEnd(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
 
     // spawn SimulatedPlayer 于门方块内，onEntityCollision 立即触发 changeDimension(THE_END)。
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     // 主断言：主世界 chamber 无玩家。辅助断言：末地有玩家且在 (100,49,0) 附近。
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:the_end", "traveler has not reached minecraft:the_end");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -46,7 +48,7 @@ function endPortalTransfersPlayerToEnd(test: Test): void {
         const end = world.getDimension("minecraft:the_end");
         const endPlayers = end.getEntities({ type: "minecraft:player" });
         test.assert(endPlayers.length > 0, "player not found in the_end after end portal teleport");
-        const p = endPlayers[0];
+        const p = traveler;
         test.assert(
             Math.abs(p.location.x - END_SPAWN_X) < END_SPAWN_TOLERANCE &&
                 Math.abs(p.location.z - END_SPAWN_Z) < END_SPAWN_TOLERANCE,
@@ -57,6 +59,8 @@ function endPortalTransfersPlayerToEnd(test: Test): void {
 
 export function registerEndPortalTests(): void {
     GameTest.register("TeleportTests", "end_portal_transfers_player_to_end", endPortalTransfersPlayerToEnd)
+        .batch("dimension_transfer_end_portal_transfers_player_to_end")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 }

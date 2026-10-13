@@ -50,9 +50,11 @@ const SCALE_TOLERANCE = 8;
 // 断言：下界玩家坐标 X/Z ≈ 主世界世界坐标 / 8。
 function netherPortalScalesCoordinates1To8(test: Test): void {
     test.setBlockWithStates("minecraft:nether_portal", PORTAL_POS, "axis=x");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:nether", "traveler has not reached minecraft:nether");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -70,7 +72,7 @@ function netherPortalScalesCoordinates1To8(test: Test): void {
         const worldOrigin = test.worldLocation({ x: 0, y: 0, z: 0 });
         const expectedX = (worldOrigin.x + PORTAL_POS.x) / 8;
         const expectedZ = (worldOrigin.z + PORTAL_POS.z) / 8;
-        const p = netherPlayers[0];
+        const p = traveler;
         test.assert(
             Math.abs(p.location.x - expectedX) < SCALE_TOLERANCE,
             `nether X ${p.location.x} not near scaled ${expectedX} (tol ${SCALE_TOLERANCE})`,
@@ -92,9 +94,11 @@ function netherPortalScalesCoordinates1To8(test: Test): void {
 // 若 Y 被错误地除以 8，则 expectedY 与 actualY 差距远超 SCALE_TOLERANCE，测试会正确失败。
 function netherPortalYAxisNotScaled(test: Test): void {
     test.setBlockWithStates("minecraft:nether_portal", PORTAL_POS, "axis=x");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:nether", "traveler has not reached minecraft:nether");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -110,7 +114,7 @@ function netherPortalYAxisNotScaled(test: Test): void {
         // Y 不缩放：下界 Y ≈ 主世界世界坐标 Y（不应被除以 8）。
         const worldOrigin = test.worldLocation({ x: 0, y: 0, z: 0 });
         const expectedY = worldOrigin.y + PORTAL_POS.y;
-        const p = netherPlayers[0];
+        const p = traveler;
         test.assert(
             Math.abs(p.location.y - expectedY) < SCALE_TOLERANCE,
             `nether Y ${p.location.y} not near unscaled ${expectedY} (tol ${SCALE_TOLERANCE})`,
@@ -120,10 +124,14 @@ function netherPortalYAxisNotScaled(test: Test): void {
 
 export function registerNetherPortalCoordinateScaleTests(): void {
     GameTest.register("TeleportTests", "nether_portal_scales_coordinates_1_to_8", netherPortalScalesCoordinates1To8)
+        .batch("dimension_transfer_nether_portal_scales_coordinates_1_to_8")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(200);
 
     GameTest.register("TeleportTests", "nether_portal_y_axis_not_scaled", netherPortalYAxisNotScaled)
+        .batch("dimension_transfer_nether_portal_y_axis_not_scaled")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(200);
 }

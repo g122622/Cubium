@@ -53,5 +53,20 @@ TEST(GameTestExecutionPlanTest, BatchBudgetHonorsLongDeclarationsAndRetainsSuite
     EXPECT_EQ(GameTestExecutionPlan::batchBudget(std::numeric_limits<u64>::max()), 1800s);
 }
 
+TEST(GameTestExecutionPlanTest, TickDeadlineKeepsOrdinaryTickLimitAndCapsSynchronousGeneration)
+{
+    using namespace std::chrono_literals;
+    const auto now = std::chrono::steady_clock::time_point{};
+    const auto batchDeadline = now + GameTestExecutionPlan::batchBudget(200);
+    const auto suiteDeadline = now + 30min;
+    EXPECT_EQ(GameTestExecutionPlan::tickDeadline(now, std::min(batchDeadline, suiteDeadline), false), now + 2s);
+    EXPECT_EQ(GameTestExecutionPlan::tickDeadline(now, std::min(batchDeadline, suiteDeadline), true), batchDeadline);
+    // 批次或整轮只剩半秒时，普通与同步生成 tick 都不能获得额外宽限。
+    for (const bool synchronousWork : {false, true}) {
+        EXPECT_EQ(GameTestExecutionPlan::tickDeadline(now, now + 500ms, synchronousWork), now + 500ms);
+        EXPECT_EQ(GameTestExecutionPlan::tickDeadline(suiteDeadline, suiteDeadline, synchronousWork), suiteDeadline);
+    }
+}
+
 } // namespace
 } // namespace mc::test

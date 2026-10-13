@@ -9,7 +9,8 @@
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp" // scriptManager()->engine().addModuleFactory
-#include "server/test/facade/GameTestCommand.hpp"           // GameTestCommand::registerTo
+#include "server/test/base/tags/GameTestTags.hpp"
+#include "server/test/facade/GameTestCommand.hpp" // GameTestCommand::registerTo
 #include "server/test/framework/batch/GameTestBatch.hpp"
 #include "server/test/framework/batch/GameTestBatchListener.hpp"
 #include "server/test/framework/environment/AllOfEnvironment.hpp"
@@ -87,7 +88,6 @@ namespace mc::test {
 
 namespace {
 constexpr auto _SUITE_LIMIT = std::chrono::minutes(30);
-constexpr auto _TICK_LIMIT = std::chrono::seconds(2);
 } // namespace
 
 namespace {
@@ -153,7 +153,8 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
                        "<testsuites><testsuite name=\"GameTestFramework\" tests=\"1\" errors=\"1\">"
                        "<testcase name=\"wall-clock-timeout\" classname=\"framework\" time=\"0\">"
                        "<error message=\"GameTest wall-clock deadline exceeded; see stderr for phase. "
-                       "Limits: suite=1800s, batch follows declared test duration, tick=2s\"/>"
+                       "Limits: suite=1800s, batch follows declared test duration, ordinary tick=2s; "
+                       "startup and declared synchronous worldgen use batch/suite deadlines\"/>"
                        "</testcase></testsuite></testsuites>\n";
                 out.flush();
             }
@@ -596,6 +597,18 @@ bool GameTestServer::_selectAndBuildRunner()
             m_batchName = batch.name();
             // 批次启动 tick 例外：批内实例首次进入状态机的工作量与批大小成正比（见 m_batchStartupPending）。
             m_batchStartupPending = true;
+            const auto generatesChunksSynchronously = [](const auto& function) {
+                const auto& functionTags = function->tags();
+                return std::find(functionTags.begin(), functionTags.end(), tags::SynchronousWorldGeneration) !=
+                    functionTags.end();
+            };
+            m_batchGeneratesChunksSynchronously =
+                std::any_of(batch.testFunctions().begin(), batch.testFunctions().end(), generatesChunksSynchronously);
+            // 同步生成不能使共享批次中的普通测试失去单 tick 卡死检测。
+            MC_ASSERT_RELEASE_MSG(!m_batchGeneratesChunksSynchronously ||
+                    std::all_of(
+                        batch.testFunctions().begin(), batch.testFunctions().end(), generatesChunksSynchronously),
+                "Synchronous worldgen tests must use a dedicated batch");
             u64 declaredTicks = 0;
             for (const auto& function : batch.testFunctions()) {
                 const auto& data = function->data();
@@ -689,22 +702,16 @@ i32 GameTestServer::exitCode() const noexcept
 
 void GameTestServer::tickOnce()
 {
-    // 批次启动 tick 例外：批内实例在本 tick 内首次进入状态机，每个实例的启动会执行 JS 测试体
-    // （spawn 实体、放置方块、同步请求区块），总工作量与批内测试数成正比——CI 实测 37 个实例的
-    // 启动 tick 超过 2 秒，被每 tick 2 秒的卡死看门狗误判为卡死，进程 _Exit(124)，整片 54 个用例
-    // 作废。故本 tick 只用批次/整轮期限约束（工作有界、与批大小相关）；批次期限本身仍是硬约束，
-    // 真正的卡死依旧会被它终止。其余 tick 保持 2 秒卡死检测。
+    // 启动测试体和跨维度传送会同步生成区块，工作量不能按普通世界 tick 的两秒上限衡量。
+    // 后者必须显式声明且使用独立批次；两种有界工作均保留批次/整轮硬期限。
     const bool batchStartupTick = m_batchStartupPending;
     const auto phaseDeadline = std::min(m_suiteDeadline, m_batchDeadline);
-    if (batchStartupTick) {
-        _armBatchWatchdog();
+    const auto tickDeadline = GameTestExecutionPlan::tickDeadline(
+        std::chrono::steady_clock::now(), phaseDeadline, batchStartupTick || m_batchGeneratesChunksSynchronously);
+    if (tickDeadline < phaseDeadline) {
+        m_watchdog->arm(tickDeadline, "tick (2 seconds), batch=" + m_batchName);
     } else {
-        const auto tickDeadline = std::chrono::steady_clock::now() + _TICK_LIMIT;
-        if (tickDeadline < phaseDeadline) {
-            m_watchdog->arm(tickDeadline, "tick (2 seconds), batch=" + m_batchName);
-        } else {
-            _armBatchWatchdog();
-        }
+        _armBatchWatchdog();
     }
     // 基类世界 tick（维度/实体/时间/区块）
     MinecraftServer::tick();

@@ -24,4 +24,7 @@ inline constexpr std::string_view SuiteDisabled = "suite:disabled";
 inline constexpr std::string_view SuiteDebug = "suite:debug";
 inline constexpr std::string_view SuiteNextUpdate = "suite:nextupdate";
 
+/** @brief 测试会同步生成目标维度区块；须使用独立批次，受批次及整轮硬期限约束。 */
+inline constexpr std::string_view SynchronousWorldGeneration = "execution:sync-worldgen";
+
 } // namespace mc::test::tags

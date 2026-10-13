@@ -32,11 +32,13 @@ function netherPortalTransfersPlayerToNether(test: Test): void {
 
     // spawn SimulatedPlayer 于门方块内（脚部 y=1 站 grass 上方），默认创造模式。
     // 实体 AABB 覆盖门格 → onEntityCollision 触发 setInPortal → PortalTickSystem 计时 → changeDimension。
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     // 主断言：主世界 chamber 内无玩家（玩家已迁移到下界 EntityManager）。
     // 辅助断言：下界有玩家（查整个下界，GameTest 场景下界通常无其他玩家）。
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:nether", "traveler has not reached minecraft:nether");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -53,6 +55,8 @@ function netherPortalTransfersPlayerToNether(test: Test): void {
 
 export function registerNetherPortalTests(): void {
     GameTest.register("TeleportTests", "nether_portal_transfers_player_to_nether", netherPortalTransfersPlayerToNether)
+        .batch("dimension_transfer_nether_portal_transfers_player_to_nether")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(200);
 }

@@ -111,11 +111,19 @@ protected:
     }
 
     /**
-     * @brief 设置指定区块的生物群系为指定 ID
+     * @brief 将整个测试区域填充为同一生物群系
      *
-     * 填充整个 BiomeContainer 为同一生物群系。
+     * 群系缩放会读取邻区块，气候夹具需要覆盖所有角点。
      */
-    void setChunkBiome(ChunkPrimer& chunk, BiomeId biomeId)
+    void setRegionBiome(BiomeId biomeId)
+    {
+        // 群系缩放可能读取邻区块角点；同一气候夹具必须填充整个生成区域。
+        for (auto& owned : m_ownedChunks) {
+            _fillChunkBiome(*owned, biomeId);
+        }
+    }
+
+    void _fillChunkBiome(ChunkPrimer& chunk, BiomeId biomeId)
     {
         auto& biomes = chunk.getBiomes();
         for (i32 sectionIndex = 0; sectionIndex < world::CHUNK_SECTIONS; ++sectionIndex) {
@@ -195,7 +203,7 @@ TEST_F(SnowAndFreezeFeatureTest, FeatureInitialization)
 TEST_F(SnowAndFreezeFeatureTest, FeaturePlaceReturnsTrue)
 {
     // 设置简单地形：中心区块铺一层石头
-    setChunkBiome(centerChunk(), Biomes::Plains);
+    setRegionBiome(Biomes::Plains);
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
             setCenterBlock(x, 63, z, &VanillaBlocks::STONE->defaultState());
@@ -213,7 +221,7 @@ TEST_F(SnowAndFreezeFeatureTest, FeaturePlaceReturnsTrue)
 TEST_F(SnowAndFreezeFeatureTest, FreezesWaterInColdBiome)
 {
     // 寒冷生物群系：水面应冻结为冰
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     // 地形：y=62 石头，y=63 水
     for (i32 x = 0; x < 16; ++x) {
@@ -240,7 +248,7 @@ TEST_F(SnowAndFreezeFeatureTest, FreezesWaterInColdBiome)
 TEST_F(SnowAndFreezeFeatureTest, DoesNotFreezeWaterInWarmBiome)
 {
     // 温暖生物群系：水面不应冻结
-    setChunkBiome(centerChunk(), Biomes::Plains);
+    setRegionBiome(Biomes::Plains);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -265,7 +273,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotFreezeWaterInWarmBiome)
 TEST_F(SnowAndFreezeFeatureTest, DoesNotFreezeStoneInColdBiome)
 {
     // 寒冷生物群系但水面不是水：不应产生冰
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -293,7 +301,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotFreezeStoneInColdBiome)
 TEST_F(SnowAndFreezeFeatureTest, PlacesSnowInColdBiome)
 {
     // 寒冷生物群系：地面应放置雪层
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -316,7 +324,7 @@ TEST_F(SnowAndFreezeFeatureTest, PlacesSnowInColdBiome)
 TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowInWarmBiome)
 {
     // 温暖生物群系：不应降雪
-    setChunkBiome(centerChunk(), Biomes::Plains);
+    setRegionBiome(Biomes::Plains);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -338,7 +346,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowInWarmBiome)
 TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowInDesertBiome)
 {
     // 沙漠生物群系：降水类型为 None，不应降雪
-    setChunkBiome(centerChunk(), Biomes::Desert);
+    setRegionBiome(Biomes::Desert);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -361,7 +369,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowInDesertBiome)
 TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowOnNonSolidSurface)
 {
     // 寒冷生物群系但地面是空气：雪不应放置（canSurviveAt 会失败）
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     // 不设置任何方块（全部为空气），高度图将返回 MIN_BUILD_HEIGHT 以下
     // 或者设置高处的单个方块让高度图有值但下方是空气
@@ -378,7 +386,7 @@ TEST_F(SnowAndFreezeFeatureTest, DoesNotPlaceSnowOnNonSolidSurface)
 TEST_F(SnowAndFreezeFeatureTest, FreezesWaterAndPlacesSnowOnAdjacentLand)
 {
     // 在同一区块中，水面应冻结，陆地上应有雪
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     // x=0..7 是陆地（石头），x=8..15 是水面
     for (i32 x = 0; x < 16; ++x) {
@@ -427,7 +435,7 @@ TEST_F(SnowAndFreezeFeatureTest, FreezesWaterAndPlacesSnowOnAdjacentLand)
 TEST_F(SnowAndFreezeFeatureTest, SetsSnowyPropertyOnGrassBlock)
 {
     // 寒冷生物群系，草方块上方应有雪，草方块应设置 SNOWY=true
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -460,7 +468,7 @@ TEST_F(SnowAndFreezeFeatureTest, SetsSnowyPropertyOnGrassBlock)
 TEST_F(SnowAndFreezeFeatureTest, DoesNotSetSnowyPropertyOnStoneBlock)
 {
     // 石头没有 SNOWY 属性，雪放置后石头不应被修改
-    setChunkBiome(centerChunk(), Biomes::SnowyPlains);
+    setRegionBiome(Biomes::SnowyPlains);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -492,7 +500,7 @@ TEST_F(SnowAndFreezeFeatureTest, MultipleChunksGetSnowAndIce)
         for (i32 relX = -1; relX <= 1; ++relX) {
             const i32 index = (relZ + 1) * 3 + (relX + 1);
             auto& chunk = *m_ownedChunks[static_cast<size_t>(index)];
-            setChunkBiome(static_cast<ChunkPrimer&>(chunk), Biomes::SnowyPlains);
+            _fillChunkBiome(chunk, Biomes::SnowyPlains);
             for (i32 x = 0; x < 16; ++x) {
                 for (i32 z = 0; z < 16; ++z) {
                     static_cast<ChunkPrimer&>(chunk).setBlockState(x, 62, z, &VanillaBlocks::STONE->defaultState());
@@ -525,7 +533,7 @@ TEST_F(SnowAndFreezeFeatureTest, MultipleChunksGetSnowAndIce)
 TEST_F(SnowAndFreezeFeatureTest, IceSpikesBiomeFreezesAndSnows)
 {
     // 冰刺生物群系：寒冷，应有冰和雪
-    setChunkBiome(centerChunk(), Biomes::IceSpikes);
+    setRegionBiome(Biomes::IceSpikes);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
@@ -558,7 +566,7 @@ TEST_F(SnowAndFreezeFeatureTest, IceSpikesBiomeFreezesAndSnows)
 TEST_F(SnowAndFreezeFeatureTest, FrozenOceanFreezesWater)
 {
     // 冻结海洋生物群系：水面应冻结
-    setChunkBiome(centerChunk(), Biomes::FrozenOcean);
+    setRegionBiome(Biomes::FrozenOcean);
 
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {

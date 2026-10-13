@@ -167,6 +167,7 @@ function naturalSpawnRequiresPlayer(test: Test): void {
 // Ref: NaturalSpawner _checkLightLevel（怪物 getMaxLocalRawBrightness<=7）
 // Ref: vanilla ServerChunkCache.tickChunks:376（doMobSpawning 门控自然生成）
 function naturalSpawnNoMonsterWhenLit(test: Test): void {
+    (test as any).killAllEntities();
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "observer");
 
     // 生成腔地板层 helper y=1（=文件 y=0）满铺 glowstone（x∈[30,40] z∈[0,8] 全 z 范围），提 blockLight=15
@@ -178,12 +179,24 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
     }
 
     // 关停 tick 路径，隔离单点入口的光照门槛判定（见上方注释）。
+    const previousSpawning = (test.getDimension() as any).getGameRule("doMobSpawning");
     player.chat("/gamerule doMobSpawning false");
     test.runOnFinish(() => {
-        player.chat("/gamerule doMobSpawning true");
+        player.chat(`/gamerule doMobSpawning ${previousSpawning}`);
     });
 
+    let checkedSpawnAttempts = 0;
     pollUntilSucceed(test, () => {
+        // 光照异步传播完成后才检查生成门控，覆盖全部 ±5 抖动候选位置。
+        for (let x = 30; x <= 40; x++) {
+            for (let z = 0; z <= 8; z++) {
+                const block = test.getBlock({ x, y: 2, z });
+                if (block === undefined || (block.isAir && !((block as unknown as { blockLight: number }).blockLight >= 9))) {
+                    return false;
+                }
+            }
+        }
+        ++checkedSpawnAttempts;
         // 生成位 SPAWN_POS（x=35,y=2,z=4）已被 glowstone 照亮（blockLight=15），怪物光照门槛拒绝。
         test.spawnNaturalAt("monster", test.worldLocation(SPAWN_POS));
         // 负向测试：条件恒 false，靠 onTimeout 断言无怪物。
@@ -191,6 +204,7 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
     }, {
         maxTick: 200,
         onTimeout: () => {
+            test.assert(checkedSpawnAttempts > 0, "glowstone lighting did not settle before spawn checks");
             const monsters = countAny(test, MONSTER_TYPES);
             test.assert(monsters === 0,
                 `monster spawned when lit (monsters=${monsters})`);
