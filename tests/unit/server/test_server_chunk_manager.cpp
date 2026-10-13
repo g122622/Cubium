@@ -430,6 +430,45 @@ TEST_F(ServerChunkManagerTest, UpdatePlayerPosition)
     m_workerPool->shutdown();
 }
 
+TEST_F(ServerChunkManagerTest, UnloadCooldownDoesNotCreateGenerationWork)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    const auto initialHolders = m_manager->singleChunkLifecycleManagerCount();
+    auto& tickets = m_manager->ticketManager();
+    tickets.registerTicket(world::chunk::TicketTypes::UNLOAD_COOLDOWN,
+        1000,
+        1000,
+        world::chunk::ChunkPyramid::maxLevel(),
+        world::chunk::Unit{});
+    for (u32 tick = 0; tick <= world::chunk::TicketTypes::UNLOAD_COOLDOWN.lifespan(); ++tick) {
+        m_manager->tick();
+        EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), initialHolders);
+        EXPECT_EQ(m_workerPool->pendingTaskCount(), 0);
+        EXPECT_EQ(m_workerPool->runningTaskCount(), 0);
+    }
+}
+
+TEST_F(ServerChunkManagerTest, UnloadCooldownRetainsExistingChunkUntilExpiry)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    ASSERT_NE(m_manager->requestFullChunkSync(0, 0), nullptr);
+    auto& tickets = m_manager->ticketManager();
+    const auto& cooldown = world::chunk::TicketTypes::UNLOAD_COOLDOWN;
+    const auto level = world::chunk::ChunkPyramid::maxLevel();
+    tickets.registerTicket(cooldown, 0, 0, level, world::chunk::Unit{});
+    tickets.processUpdates();
+    for (u32 tick = 1; tick < cooldown.lifespan(); ++tick) {
+        m_manager->tick();
+        EXPECT_TRUE(tickets.hasTicket(cooldown, 0, 0, level, world::chunk::Unit{}));
+        EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
+    }
+    m_manager->tick();
+    EXPECT_FALSE(tickets.hasTicket(cooldown, 0, 0, level, world::chunk::Unit{}));
+    EXPECT_TRUE(pumpUntil([&]() { return !m_manager->hasChunkInMem(0, 0); }, 5000));
+}
+
 TEST_F(ServerChunkManagerTest, RemovePlayer)
 {
     m_workerPool->start();

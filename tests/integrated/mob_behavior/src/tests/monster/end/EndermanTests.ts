@@ -19,12 +19,7 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 // hurt(DamageSources::drown(), WATER_DAMAGE=1.0) + teleportAwayFromWater()。
 // 即每 tick 在水中受 1.0 伤害并尝试瞬移到附近干燥位置。
 //
-// 判定手段：末影人浸水后水敏感机制生效有两种可观测表现——
-//   ①HP 下降（hurt 生效，末影人初始满血 40，掉血后 <40）；
-//   ②瞬移逃离水面（teleportAwayFromWater 生效，末影人离开 spawn 原位）。
-// 两者满足其一即证明 isInWaterOrRain + hurt/teleport 链路完整。单断言 HP<40 不可靠——
-// 末影人可能首 tick 就 teleportAwayFromWater 瞬移出水面停止受伤，HP 不降；单断言位置变也不可靠——
-// 末影人 AI 游荡也会移动。故用"HP<40 或 距 spawn 中心 >2 格"复合断言。
+// 保留实体对象引用并检查生命值下降；瞬移出结构后仍可观测，普通游走不能满足伤害断言。
 //
 // 水深：铺两层 water（y=0..1），末影人 spawn 于 y=3 下落浸入水层。两层水保证末影人碰撞箱
 // （高 2.9，脚 y=1 时头顶 y=3.9）与水方块重叠触发 isInWater。单层 y=0 时末影人站在水面
@@ -37,30 +32,15 @@ function endermanTakesWaterDamage(test: Test): void {
   // 铺两层水（y=0..1 全 7×7），末影人 spawn 后下落浸入水层触发 isInWaterOrRain。
   fillBlock(test, "water", 0, 0, 0, 6, 1, 6);
 
-  // 末影人 spawn 于 (3,3,3)（水面上方一格），下落入水。spawn 中心用于断言瞬移距离。
-  test.spawn(endermanType, { x: 3, y: 3, z: 3 });
+  // 末影人从水面上方下落入水。
+  const enderman = test.spawn(endermanType, { x: 3, y: 3, z: 3 });
+  const initialHealth = (enderman.getComponent("minecraft:health") as any).currentValue;
 
-  // 复合断言：HP<40（掉血）或 距 spawn 中心 (3,3) 水平 >2 格（瞬移逃离）。
-  // 末影人 HP=40，浸水每 tick 1.0 伤害，约 1 tick 即 HP<40；teleportAwayFromWater 每 tick
-  // 尝试瞬移，可能瞬移到干燥处。maxTicks=200 留瞬移 + 伤害窗口余量。
-  // 用 getEntities 区域限定查询取末影人坐标 + HP（排除并行测试污染）。
-  const spawnWorld = test.worldLocation({ x: 3, y: 3, z: 3 });
+  // 保留生成时的对象引用，允许遇水后瞬移离开结构，继续检查实际生命值下降。
   test.succeedWhen(() => {
-    const endermen = test.getDimension().getEntities({
-      type: endermanType,
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
-    });
-    test.assert(endermen.length > 0, "enderman disappeared (teleported out of structure)");
-    const e = endermen[0];
-    const dx = e.location.x - spawnWorld.x;
-    const dz = e.location.z - spawnWorld.z;
-    const distSq = dx * dx + dz * dz;
-    const health = e.getComponent("minecraft:health");
-    const hp = health ? (health as any).currentValue : 40;
-    // HP<40 证明 hurt 生效；distSq>4（>2格）证明 teleportAwayFromWater 生效。二者满足其一即通过。
-    test.assert(hp < 40 || distSq > 4,
-      `enderman not affected by water, hp=${hp}, distSq=${distSq.toFixed(2)}`);
+    // 遇水后实体可瞬移出结构，必须按原对象追踪；只接受掉血作为水伤害的证据。
+    const hp = (enderman.getComponent("minecraft:health") as any).currentValue;
+    test.assert(hp < initialHealth, `enderman did not take water damage, hp=${hp}`);
   });
 }
 

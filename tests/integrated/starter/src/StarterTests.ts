@@ -19,5 +19,6 @@ function simpleMobTest(test: Test): void {
 }
 
 GameTest.register("StarterTests", "simpleMobTest", simpleMobTest)
+  .batch("night")
   .maxTicks(410)
   .structureName("startertests:mediumglass"); /* use the mediumglass.mcstructure file */

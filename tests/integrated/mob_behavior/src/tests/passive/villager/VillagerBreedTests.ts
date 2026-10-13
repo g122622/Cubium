@@ -61,13 +61,13 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 function villagerBreedsAfterPickingUpBread(test: Test): void {
     const villagerType = "villager";
 
-    // 床（角落，foot+head 配对注册床 POI 满足 _hasEnoughBeds）。foot 放支撑下方 stone。
-    // facing=North 时 head 在 foot 的 z-1 方向。setBlockType 放 foot 默认 part=Foot，
-    // setBlockWithStates 放 head part=head 配对（对齐 BedTests placeBedSetup 范式）。
-    test.setBlockType("minecraft:stone", { x: 1, y: 1, z: 1 }); // head 支撑
-    test.setBlockType("minecraft:stone", { x: 1, y: 1, z: 2 }); // foot 支撑
-    test.setBlockType("minecraft:red_bed", { x: 1, y: 2, z: 2 }); // foot 半
-    test.setBlockWithStates("minecraft:red_bed", { x: 1, y: 2, z: 1 }, "part=head,facing=north"); // head 半
+    // 两个成年村民与一个幼体各有床位；空闲床的头部上方保留两格空气。
+    for (const x of [1, 4, 7]) {
+        test.setBlockType("minecraft:stone", { x, y: 1, z: 1 });
+        test.setBlockType("minecraft:stone", { x, y: 1, z: 2 });
+        test.setBlockType("minecraft:red_bed", { x, y: 2, z: 2 });
+        test.setBlockWithStates("minecraft:red_bed", { x, y: 2, z: 1 }, "part=head,facing=north");
+    }
 
     // 玻璃围栏：限制两村民在 (3,2,3)-(5,2,3) 走廊。
     test.setBlockType("minecraft:glass", { x: 2, y: 2, z: 3 }); // A 左端墙
@@ -81,6 +81,9 @@ function villagerBreedsAfterPickingUpBread(test: Test): void {
     test.setBlockType("minecraft:stone", { x: 4, y: 4, z: 3 });
     test.setBlockType("minecraft:stone", { x: 5, y: 4, z: 3 });
 
+    test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 3 });
+    test.setBlockType("minecraft:glass", { x: 4, y: 3, z: 3 });
+
     // 两村民相距 2 格（distSq=4 <= BREED_DISTANCE_SQ=4 在繁殖距离内，<8 格检测范围）。
     // 脚下 y=1 grass_block 支撑防下落。
     test.spawn(villagerType, { x: 3, y: 2, z: 3 });
@@ -92,6 +95,11 @@ function villagerBreedsAfterPickingUpBread(test: Test): void {
         (test.spawnItem as any)("minecraft:bread", { x: 3, y: 2, z: 3 });
         (test.spawnItem as any)("minecraft:bread", { x: 5, y: 2, z: 3 });
     }
+
+    test.runAtTickTime(60, () => {
+        test.setBlockType("minecraft:air", { x: 4, y: 2, z: 3 });
+        test.setBlockType("minecraft:air", { x: 4, y: 3, z: 3 });
+    });
 
     // 轮询：繁殖完成后区域内 villager 数 >=3（原 2 成年 + 1 幼年）。
     pollUntilSucceed(test, () => {

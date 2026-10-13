@@ -962,6 +962,9 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
         mc::server::ServerWorld* targetWorld = (targetDimension != nullptr) ? targetDimension->world() : nullptr;
         if (targetWorld != nullptr) {
             setWorld(targetWorld);
+            // 实体已经处于目标坐标，此时同步加载来源。无连接模拟玩家不在 PlayerManager 中，
+            // 维度管理器的网络加载路径不会替它登记票据；缺少此来源会让目的地区块卸载玩家。
+            targetWorld->chunkManager()->updatePlayerPosition(playerId(), targetPos.x, targetPos.z);
         }
 
         // 缺陷B修复：迁移 EntityManager 归属。否则实体 m_world 指向目标世界但对象仍留源

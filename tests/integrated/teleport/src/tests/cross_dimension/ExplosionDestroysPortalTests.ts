@@ -146,7 +146,11 @@ function tntExplosionDestroysNetherPortal(test: Test): void {
 
     // 在框架内部点燃火焰激活传送门。
     // 火方块放置在内部 (3,1,3)（底框上方相邻空气）。
-    test.setBlockType("minecraft:fire", { x: 3, y: 1, z: 3 });
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "igniter");
+    const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
+    test.assert(player.useItemOnBlock(
+        flintAndSteel as unknown as Parameters<typeof player.useItemOnBlock>[0],
+        { x: 3, y: 0, z: 3 }, Direction.Up), "flint and steel must ignite portal frame");
 
     // 验证传送门已形成（内部 2×3 区域全部为 nether_portal，axis=x）。
     test.assert(
@@ -159,8 +163,6 @@ function tntExplosionDestroysNetherPortal(test: Test): void {
     test.setBlockType("minecraft:tnt", { x: 3, y: 1, z: 2 });
 
     // spawn SimulatedPlayer（生存模式），手持打火石点燃 TNT。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
-    const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
 
     // 对 TNT useItemOnBlock 打火石 → onBlockActivated prime+setBlockState(null)+Success。
     const used = player.useItemOnBlock(
@@ -184,9 +186,8 @@ function tntExplosionDestroysNetherPortal(test: Test): void {
                 );
             }
         }
+        test.succeed();
     });
-
-    test.succeed();
 }
 
 // 场景 2：TNT 爆炸无法摧毁黑曜石框架（爆炸抗性 1200）。
@@ -208,7 +209,11 @@ function tntExplosionPreservesObsidianFrame(test: Test): void {
     buildMinXAxisPortalFrame(test);
 
     // 在框架内部点燃火焰激活传送门。
-    test.setBlockType("minecraft:fire", { x: 3, y: 1, z: 3 });
+    const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "igniter");
+    const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
+    test.assert(player.useItemOnBlock(
+        flintAndSteel as unknown as Parameters<typeof player.useItemOnBlock>[0],
+        { x: 3, y: 0, z: 3 }, Direction.Up), "flint and steel must ignite portal frame");
 
     // 验证传送门已形成。
     test.assert(
@@ -220,8 +225,6 @@ function tntExplosionPreservesObsidianFrame(test: Test): void {
     test.setBlockType("minecraft:tnt", { x: 3, y: 1, z: 2 });
 
     // spawn SimulatedPlayer（生存模式），手持打火石点燃 TNT。
-    const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "igniter", GameMode.survival);
-    const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
 
     const used = player.useItemOnBlock(
         flintAndSteel as unknown as Parameters<typeof player.useItemOnBlock>[0],
@@ -266,9 +269,8 @@ function tntExplosionPreservesObsidianFrame(test: Test): void {
                 `obsidian frame at (5,${1 + dy},3) should survive TNT explosion, got ${typeId}`,
             );
         }
+        test.succeed();
     });
-
-    test.succeed();
 }
 
 // 场景 3：黑曜石直接承受 TNT 爆炸后仍存在。
@@ -312,9 +314,8 @@ function obsidianResistsTntExplosion(test: Test): void {
             typeId === "minecraft:obsidian",
             `obsidian at (3,1,3) should survive TNT explosion, got ${typeId}`,
         );
+        test.succeed();
     });
-
-    test.succeed();
 }
 
 export function registerExplosionDestroysPortalTests(): void {

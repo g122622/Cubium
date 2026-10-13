@@ -16,7 +16,7 @@
 // /weather rain 100000 → WeatherManager::setRain(100000) → raining=true 持续100k tick（远超测试寿命，稳定）。
 // /weather thunder 100000 → setThunder → raining=true,thundering=true 持续100k tick。
 //
-// 设计：默认 batch（day，dayTime=6000 正午晴天，baseDarkening=0）+ grass_pen 露天 + skyAccess(true)。
+// 两种天气分别在独占批次执行，显式设正午并在结束后恢复晴天，避免全局天气相互覆盖。
 // 正午晴天 baseDarkening=0，天气贡献易隔离：
 //   - 雨天：skyDarkening=min(0+3,11)=3，露天 brightness=max(0,15-3)=12。
 //   - 雷暴：skyDarkening=min(0+10,11)=10，露天 brightness=max(0,15-10)=5。
@@ -47,7 +47,9 @@ import { getSkyLight, getBrightness } from "../utils/lightAssert.js";
 function rainOpenSkyBrightnessIsTwelve(test: Test): void {
     // 创造模式 SimulatedPlayer（权限级别2）执行 /weather rain 100000 持续雨天。
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "weather_rain");
+    player.chat("/time set noon");
     player.chat("/weather rain 100000");
+    (test as any).runOnFinish(() => player.chat("/weather clear"));
     pollUntilSucceed(
         test,
         () => {
@@ -80,7 +82,9 @@ function rainOpenSkyBrightnessIsTwelve(test: Test): void {
 // 因 min(0+10,11)=10 与夜间 baseDarkening=10 衰减量一致。
 function thunderOpenSkyBrightnessIsFive(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "weather_thunder");
+    player.chat("/time set noon");
     player.chat("/weather thunder 100000");
+    (test as any).runOnFinish(() => player.chat("/weather clear"));
     pollUntilSucceed(
         test,
         () => {
@@ -109,11 +113,13 @@ function thunderOpenSkyBrightnessIsFive(test: Test): void {
 
 export function registerWeatherSkyDarkeningTests(): void {
     GameTest.register("LightingTests", "light_rain_open_sky_brightness_is_12", rainOpenSkyBrightnessIsTwelve)
+        .batch("light_weather_rain_solo")
         .structureName("gametests:grass_pen")
         .skyAccess(true)
         .setupTicks(20)
         .maxTicks(200);
     GameTest.register("LightingTests", "light_thunder_open_sky_brightness_is_5", thunderOpenSkyBrightnessIsFive)
+        .batch("light_weather_thunder_solo")
         .structureName("gametests:grass_pen")
         .skyAccess(true)
         .setupTicks(20)

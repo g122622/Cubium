@@ -41,6 +41,7 @@ function assertTimeNear(test: Test, actual: number, target: number, label: strin
 // Ref: wiki commands/time.txt（time set <值>）
 function timeSetInteger(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    (test as any).runOnFinish(() => player.chat("/time set noon"));
     const dim = asDim(player.dimension);
 
     player.chat("/time set 1000");
@@ -53,6 +54,7 @@ function timeSetInteger(test: Test): void {
 // Ref: wiki commands/time.txt（time set day/noon/night/midnight）
 function timeSetDay(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    (test as any).runOnFinish(() => player.chat("/time set noon"));
     const dim = asDim(player.dimension);
 
     player.chat("/time set day");
@@ -64,6 +66,7 @@ function timeSetDay(test: Test): void {
 // /time set noon（=6000）正午。
 function timeSetNoon(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    (test as any).runOnFinish(() => player.chat("/time set noon"));
     const dim = asDim(player.dimension);
 
     player.chat("/time set noon");
@@ -75,6 +78,7 @@ function timeSetNoon(test: Test): void {
 // /time set night（=13000）日落后。
 function timeSetNight(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    (test as any).runOnFinish(() => player.chat("/time set noon"));
     const dim = asDim(player.dimension);
 
     player.chat("/time set night");
@@ -86,6 +90,7 @@ function timeSetNight(test: Test): void {
 // /time set midnight（=18000）午夜。
 function timeSetMidnight(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    (test as any).runOnFinish(() => player.chat("/time set noon"));
     const dim = asDim(player.dimension);
 
     player.chat("/time set midnight");
@@ -98,6 +103,7 @@ function timeSetMidnight(test: Test): void {
 // Ref: wiki commands/time.txt（time add <值>）
 function timeAddAdvances(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    (test as any).runOnFinish(() => player.chat("/time set noon"));
     const dim = asDim(player.dimension);
 
     player.chat("/time set 1000");
@@ -109,26 +115,32 @@ function timeAddAdvances(test: Test): void {
 
 export function registerTimeTests(): void {
     GameTest.register("CommandTests", "time_set_integer", timeSetInteger)
+        .batch("time_set_integer_solo")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "time_set_day", timeSetDay)
+        .batch("time_set_day_solo")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "time_set_noon", timeSetNoon)
+        .batch("time_set_noon_solo")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "time_set_night", timeSetNight)
+        .batch("time_set_night_solo")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "time_set_midnight", timeSetMidnight)
+        .batch("time_set_midnight_solo")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 
     GameTest.register("CommandTests", "time_add_advances", timeAddAdvances)
+        .batch("time_add_advances_solo")
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 }

@@ -94,6 +94,8 @@ if (player->canReceiveMessages()) {
 
 `changeDimension()` 会自动让玩家下骑乘并清除乘客，传送前需确保这是预期行为。
 
+迁移后按目标坐标同步区块加载来源，包含未注册网络会话的模拟玩家；仅发送维度切换包不能保证目的地区块持续加载。
+
 ### 8. CHUNK_HEIGHT vs MAX_BUILD_HEIGHT
 
 根据 PROJECT_CONVENTIONS.md，这两个常量目前值相同但语义不同。未来 MIN_BUILD_HEIGHT 可能从 0 改为 -64，届时 CHUNK_HEIGHT 将不等于 MAX_BUILD_HEIGHT。

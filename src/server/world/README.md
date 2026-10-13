@@ -168,6 +168,10 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 ## 容易踩的坑
 
+### 卸载冷却与距离图回调
+
+卸载收尾发现持有者仍被引用时，以最弱生成级别注册冷却票据。冷却存在期间保留持有者，到期后恢复回收。生成邻域和退场回调只更新已有持有者，邻居依赖由调度器按需创建，避免冷却传播重新引发生成与卸载循环。
+
 ### 区块异步生成架构（Moonrise 对齐）
 区块生成系统已对齐 Moonrise mod 架构，彻底消除跑图时的 "missing chunk in access window" / "chunk status below request" 错误。核心设计：
 

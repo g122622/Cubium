@@ -92,33 +92,14 @@ function villagerInfectedToZombieVillagerByZombie(test: Test): void {
     test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 4 });
     // 封顶：stone（不透明）遮 canSeeSky，防 daylight cycle 跨入白天时僵尸燃烧致死（燃烧致死不触发感染）。
     // night batch 初始夜晚，但跑数百 tick 后跨白天，封顶双保险。
-    test.setBlockType("minecraft:stone", { x: 3, y: 3, z: 3 });
-    test.setBlockType("minecraft:stone", { x: 4, y: 3, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 3, y: 4, z: 3 });
+    test.setBlockType("minecraft:stone", { x: 4, y: 4, z: 3 });
 
     // 村民 (3,2,3) + 僵尸 (4,2,3) 紧邻 1 格，脚下 y=1 grass_block 支撑防下落。
     const zombie = test.spawn(zombieType, { x: 4, y: 2, z: 3 });
     const villager = test.spawn(villagerType, { x: 3, y: 2, z: 3 });
-    // 村民钉点：每 tick 把村民 teleport 回 (3,2,3) 世界坐标 + 清零速度。
-    // 必要性：村民 MOVEMENT_SPEED=0.5 远快于僵尸 0.23，AvoidHostileGoal 触发后村民会逃离僵尸，
-    // 且村民能穿越/翻越 glass 围栏（碰撞检测在高速逃逸下不阻止穿墙），僵尸永远追不上村民 → 村民
-    // 不死 → 不触发 die → 不感染转化。每 tick teleport 钉住村民在攻击范围内，僵尸 MeleeAttackGoal
-    // 持续命中（每 20 tick 攻击 3 伤害），约 7 次（140 tick）杀死村民，die 触发感染转化。
-    // teleport(checkForBlocks=false 默认) 强制设位置不经碰撞检测，确保钉点可靠。
-    // TODO(C++ 碰撞检测): 村民 AvoidHostileGoal 高速逃逸时穿 glass 墙是碰撞检测缺陷，修复后可移除
-    // 钉点逻辑改回纯物理围栏。钉点 tick 范围 [1, 600] 覆盖整个攻击+转化窗口（villager 转化后 remove
-    // 失效，teleport 对已 remove 实体 no-op）。
-    const villagerPinPos = test.worldLocation({ x: 3, y: 2, z: 3 });
-    for (let t = 1; t <= 600; t += 1) {
-        test.runAtTickTime(t, () => {
-            if ((villager as any).isValid === false || (villager as any).__removed) return;
-            try {
-                (villager as any).teleport(villagerPinPos);
-                (villager as any).setVelocity({ x: 0, y: 0, z: 0 });
-            } catch {
-                // 村民已 remove（感染转化/死亡），teleport 抛异常忽略。
-            }
-        });
-    }
+    // 感染验证需要持续近战，停止村民逃跑加速度，保留正常伤害、死亡和转化链路。
+    (villager.getComponent("minecraft:movement") as any).setCurrentValue(0);
 
     // 创造玩家执行管理命令（permLevel=2）：切 Hard 难度（infectionChance=1.0 确定性转化）。
     const player = test.spawnSimulatedPlayer({ x: 7, y: 2, z: 7 }, "operator");
@@ -173,7 +154,7 @@ export function registerVillagerTests(): void {
     GameTest.register("MobBehaviorTests", "villager_infected_to_zombie_villager_by_zombie", villagerInfectedToZombieVillagerByZombie)
         // 独占 batch（night 前缀）串行执行：/difficulty hard 是世界级命令，避免与同批依赖 Normal
         // 难度的测试并行竞态。night batch 同时保证夜晚亡灵不燃。
-        .batch("night")
+        .batch("night_villager_infection_solo")
         .structureName("gametests:grass_pen")
         // skyAccess(true)：隔离 NaturalSpawner 自然生成污染（露天 skyLight=15 拒绝怪物生成）。
         .skyAccess(true)

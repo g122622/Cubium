@@ -421,15 +421,10 @@ public:
     void setViewDistance(i32 distance);
 
     /**
-     * @brief 基准模式下抑制自动卸载路径（打破生成 halo 卸载正反馈环）
+     * @brief 基准模式下抑制自动卸载路径
      *
-     * 基准用例（ChunkGeneration）直接 requestChunkAsync 请求区块、不注册任何持久票据，
-     * 整个距离图无合法源。生成 halo 中的按需 holder（level 46）在生成完成后立即成为卸载
-     * 候选；卸载收尾若发现仍不安全则注册 UNLOAD_COOLDOWN（Border 级）票据——该票据作为
-     * 距离图源向外传播，经 _onTicketLevelChanged 为传播范围内每个区块创建新 holder，形成
-     * "卸载→冷却票据→源→扩散创建→再卸载"的正反馈环（实测 created≈35 万、unloads≈35 万、
-     * levelChanges≈211 万，吞吐被淹没）。抑制自动卸载候选判定即可切断该环，使吞吐测量
-     * 只反映生成链路。
+     * 基准用例直接请求区块且不注册持久票据，生成完成后便可能成为卸载候选。
+     * 在吞吐测量区间保留区块，避免自动保存与回收混入生成耗时。
      *
      * 仅影响自动卸载候选判定（_isUnloadCandidate）；基准在 PauseTiming 区间手动调用
      * unloadChunkSync 清理不受影响。生产路径不调用本方法，标志恒为 false。
@@ -1081,7 +1076,7 @@ private:
      *   （实体保存+移除/卸载发送/callback，仅触发一次）→ 移除 holder 与 m_chunks 条目、
      *   清理后处理去重标记。
      * - isSafeToUnload 为 false（保存期间邻居开始引用本 holder）：注册 UNLOAD_COOLDOWN
-     *   冷却票据把该区块按 Border 级钉住一段时间后退避重试（对齐 Moonrise UNLOAD_COOLDOWN），
+     *   冷却票据以 ChunkPyramid::maxLevel() 保留现有持有者，到期后退避重试，
      *   不再于后续每个 tick 立即重试。
      *
      * @param x 区块 X 坐标
@@ -1101,6 +1096,9 @@ private:
      * m_pendingUnloadFinishes 逐个交给 _finalizeUnloadAfterSave。
      */
     void _drainPendingUnloadFinishes();
+
+    /** @brief 在主线程移除到期的卸载冷却，并重新评估候选资格。 */
+    void _expireUnloadCooldowns();
 
     /**
      * @brief 增加有玩家附近的区块的居住时间
@@ -1254,7 +1252,7 @@ private:
         mc::DimensionId dimension{};
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
     };
-    std::mutex m_pendingUnloadFinishesMutex;
+    mutable std::mutex m_pendingUnloadFinishesMutex;
     std::vector<PendingUnloadFinish> m_pendingUnloadFinishes;
 
     /**
@@ -1268,6 +1266,9 @@ private:
      * _isUnloadCandidate / unloadChunkSync / _drainPendingUnloadFinishes 均持锁访问）。
      */
     std::unordered_set<u64> m_unloadSaveInProgress;
+
+    /// 冷却中的区块；与卸载保存共用互斥锁，供 worker 观察者查询而不读取主线程票据容器。
+    std::unordered_set<u64> m_unloadCooldownChunks;
 
     /**
      * @brief 区块生成调度核心

@@ -144,6 +144,24 @@ public:
         _removeTicket(pos, ticket);
     }
 
+    /** @brief 在票据所属主线程查询指定坐标的类型、级别和关联值是否仍存在。 */
+    template <typename T>
+    [[nodiscard]] bool hasTicket(
+        const ChunkLoadTicketType<T>& type, ChunkCoord x, ChunkCoord z, i32 level, const T& value) const
+    {
+        const auto it = m_chunkTickets.find(_posToKey(x, z));
+        if (it == m_chunkTickets.end()) {
+            return false;
+        }
+        const ChunkLoadTicket ticket(type, level, value);
+        for (const auto& existing : it->second.tickets()) {
+            if (existing == ticket) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * @brief 更新玩家位置
      *

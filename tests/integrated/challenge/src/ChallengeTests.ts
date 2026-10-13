@@ -35,6 +35,13 @@ function minibiomes(test: Test): void {
   minecartRideableComp.addRider(pig);
 
   test.succeedWhenEntityPresent(pigEntityType, { x: 5, y: 3, z: 1 }, true);
+  test.runAtTickTime(259, () => {
+    const cartPos = minecart.location;
+    const pigPos = pig.location;
+    const velocity = (minecart as any).getVelocity();
+    test.assert(false, `minecart did not reach endpoint: cart=${JSON.stringify(cartPos)}, ` +
+      `pig=${JSON.stringify(pigPos)}, velocity=${JSON.stringify(velocity)}`);
+  });
 }
 
 // 坍缩空间：zoglin 被 shulker 击中后浮空上升。3 只 zoglin 与 3 只 shulker 在低处（y=2）生成，
@@ -64,6 +71,15 @@ function collapsing(test: Test): void {
 
   test.succeedWhen(() => {
     assertEntityInVolume(test, zoglinEntityType, 0, 6, 0, 13, 13, 13);
+  });
+  test.runAtTickTime(599, () => {
+    const entities = test.getDimension().getEntities({
+      location: test.worldLocation({ x: 0, y: 0, z: 0 }),
+      volume: { x: 13, y: 14, z: 13 },
+    });
+    const state = entities.map((entity) => ({ type: entity.typeId, pos: entity.location,
+      health: (entity.getComponent("minecraft:health") as any)?.currentValue }));
+    test.assert(false, `no zoglin levitated into upper volume: ${JSON.stringify(state)}`);
   });
 }
 
