@@ -194,6 +194,8 @@ function wanderingTraderFleesFromRavager(test: Test): void {
     }
   }
   const trader = test.spawn("minecraft:wandering_trader", { x: 16, y: 2, z: 4 });
+  const control = test.spawn("minecraft:wandering_trader", { x: 3, y: 2, z: 4 });
+  const controlStart = { ...control.location };
   const ravager = test.spawn("minecraft:ravager", { x: 22, y: 2, z: 4 });
   (ravager.getComponent("minecraft:movement") as any).setCurrentValue(0);
   const initialDistance = Math.hypot(trader.location.x - ravager.location.x,
@@ -202,12 +204,16 @@ function wanderingTraderFleesFromRavager(test: Test): void {
     const hp = (trader.getComponent("minecraft:health") as any)?.currentValue;
     const t = trader.location;
     const r = ravager.location;
-    return hp > 0 && Math.hypot(t.x - r.x, t.z - r.z) > initialDistance + 2;
+    const escaped = Math.hypot(t.x - r.x, t.z - r.z) - initialDistance;
+    const controlMoved = Math.hypot(control.location.x - controlStart.x, control.location.z - controlStart.z);
+    // 短窗口中受威胁者必须明显快于无威胁对照，避免普通游走被当作逃避。
+    return hp > 0 && escaped > 2 && escaped > controlMoved + 1.5;
   }, {
-    startTick: 10, interval: 2, maxTick: 400,
+    startTick: 4, interval: 1, maxTick: 60,
     onTimeout: () => test.assert(false,
       `trader did not flee: health=${(trader.getComponent("minecraft:health") as any)?.currentValue}, ` +
-      `trader=${JSON.stringify(trader.location)}, ravager=${JSON.stringify(ravager.location)}, initial=${initialDistance}`),
+      `trader=${JSON.stringify(trader.location)}, control=${JSON.stringify(control.location)}, ` +
+      `ravager=${JSON.stringify(ravager.location)}, initial=${initialDistance}`),
   });
 }
 
@@ -232,5 +238,5 @@ export function registerWanderingTraderTests(): void {
     .structureName("gametests:open_grass_hall")
     .skyAccess(true)
     .setupTicks(20)
-    .maxTicks(420);
+    .maxTicks(80);
 }

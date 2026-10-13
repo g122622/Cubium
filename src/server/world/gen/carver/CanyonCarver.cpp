@@ -110,7 +110,9 @@ std::vector<f32> CanyonCarver::_initWidthFactors(
     f32 currentFactor = 1.0f;
     for (i32 j = 0; j < genDepth; ++j) {
         if (j == 0 || rng.nextInt(config.shape.widthSmoothness) == 0) {
-            currentFactor = 1.0f + rng.nextFloat() * rng.nextFloat();
+            const f32 first = rng.nextFloat();
+            const f32 second = rng.nextFloat();
+            currentFactor = 1.0f + first * second;
         }
         factors[static_cast<size_t>(j)] = currentFactor * currentFactor;
     }

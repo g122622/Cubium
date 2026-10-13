@@ -153,7 +153,9 @@ f32 CaveCarver::getThickness(math::IRandom& rng) const
     f32 thickness = first * 2.0f + second;
 
     if (rng.nextInt(10) == 0) {
-        thickness *= rng.nextFloat() * rng.nextFloat() * 3.0f + 1.0f;
+        const f32 thickFirst = rng.nextFloat();
+        const f32 thickSecond = rng.nextFloat();
+        thickness *= thickFirst * thickSecond * 3.0f + 1.0f;
     }
 
     return thickness;

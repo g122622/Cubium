@@ -166,7 +166,7 @@ function cropDoesNotGrowInDark(test: Test): void {
     const previousSpeed = dimension.getGameRule("randomTickSpeed");
     (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`));
     player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
-    test.assert(dimension.getGameRule("randomTickSpeed") === HIGH_RANDOM_TICK_SPEED,
+    test.assert(String(dimension.getGameRule("randomTickSpeed")) === HIGH_RANDOM_TICK_SPEED,
         "randomTickSpeed should be raised for the isolated crop test");
 
     pollUntilSucceed(
@@ -218,7 +218,7 @@ function cropGrowsInLight(test: Test): void {
     const previousSpeed = dimension.getGameRule("randomTickSpeed");
     (test as any).runOnFinish(() => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`));
     player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
-    test.assert(dimension.getGameRule("randomTickSpeed") === HIGH_RANDOM_TICK_SPEED,
+    test.assert(String(dimension.getGameRule("randomTickSpeed")) === HIGH_RANDOM_TICK_SPEED,
         "randomTickSpeed should be raised for the isolated crop test");
 
     pollUntilSucceed(
