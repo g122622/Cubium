@@ -2748,6 +2748,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ScriptClassRegistry::instance().registerClass(blockClassId, blockProto, "Block");
 
     ClassRegistrar<void> blockReg(ctx, blockClassId, blockProto);
+    blockReg.readonlyProperty("isAir", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->state == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createBoolean(ref->state->isAir());
+    });
     blockReg.readonlyProperty("typeId", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
         if (ref == nullptr || ref->state == nullptr) {

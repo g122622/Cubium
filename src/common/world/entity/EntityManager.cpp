@@ -33,7 +33,6 @@
 #include "common/entity/ecs/systems/PortalTickSystem.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
-#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -159,13 +158,8 @@ std::unique_ptr<Entity> EntityManager::takeEntity(EntityInstanceId id)
 
     m_entities.erase(it);
 
-    // 所有权移交路径：实体从 EntityManager 摘除但所有权交给调用者（跨维度迁移），
-    // 若调用者丢弃 unique_ptr 实体立即 free。此时 JS 侧 owned=false 的 Entity/组件句柄
-    // 仍持裸 Entity*，必须立即 invalidate（置 ptr=nullptr），否则后续
-    // getComponent("minecraft:onfire").isOnFire() 等回调解引用悬垂指针 UAF 段错误。
-    // 销毁路径（destroyEntity）不经此方法，由 ~Entity 兜底 invalidate。
-    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(entity.get());
-
+    // 取出只移交所有权，实体仍存活，跨维度脚本句柄必须保持有效。
+    // 调用者若丢弃返回值，实体析构入口会先使句柄失效，再释放组件。
     return entity;
 }
 

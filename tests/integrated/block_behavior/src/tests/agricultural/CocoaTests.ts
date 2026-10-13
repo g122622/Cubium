@@ -86,22 +86,10 @@ function bonemealGrowsCocoa(test: Test): void {
     );
     test.assert(used, "cocoa bonemeal: useItemOnBlock should return true");
 
-    // 判定：骨粉 grow 同步 setBlockState，立即可读 age===1。
-    pollUntilSucceed(
-        test,
-        () => getCocoaAge(test, 3, 1, 1) === 1,
-        {
-            startTick: 5,
-            interval: 4,
-            maxTick: 40,
-            onTimeout: () => {
-                test.assert(
-                    false,
-                    `cocoa bonemeal: age should be 1, got ${getCocoaAge(test, 3, 1, 1)}`,
-                );
-            },
-        },
-    );
+    // 骨粉同步改变年龄，须在下一次随机刻之前验证精确的单阶段升级。
+    test.assert(getCocoaAge(test, 3, 1, 1) === 1,
+        `cocoa bonemeal: age should be 1 immediately after use, got ${getCocoaAge(test, 3, 1, 1)}`);
+    test.succeed();
 }
 
 // 骨粉催熟可可豆到成熟：age=1 → age=2（maxAge=2，验证第二阶段催熟）。

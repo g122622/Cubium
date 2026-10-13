@@ -56,6 +56,8 @@ src/common/world/entity/
 
 ## 容易踩的坑
 
+- `takeEntity` 只移交所有权，实体及脚本句柄保持有效；调用者丢弃返回值时由实体析构入口使句柄失效。跨维度迁移不能提前清空引用。
+
 ### 1. 实体所有权问题
 
 `EntityManager::addEntity()` 接受 `std::unique_ptr<Entity>`，调用后原指针不再有效：

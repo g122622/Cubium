@@ -355,6 +355,32 @@ TEST_F(RealPackGameTestServerFixture, SimpleMobTestEndToEnd)
     EXPECT_EQ(exitCode, 0) << "simpleMobTest should pass (fox AI chain is complete)";
 }
 
+TEST_F(RealPackGameTestServerFixture, SimulatedPlayerPropertiesAndCleanupSurviveEndPortalTransfer)
+{
+    ASSERT_TRUE(_integratedPackScriptsCompiled());
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "end_portal_transfers_player_to_end";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    const i32 exitCode = server.run();
+    server.stop();
+    EXPECT_EQ(exitCode, 0) << "script player location, dimension and cleanup must remain valid after transfer";
+}
+
+TEST_F(RealPackGameTestServerFixture, LitSpawnFixtureReadsAirAndLightBindings)
+{
+    ASSERT_TRUE(_integratedPackScriptsCompiled());
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "natural_spawn_no_monster_when_lit";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    const i32 exitCode = server.run();
+    server.stop();
+    EXPECT_EQ(exitCode, 0) << "lit spawning checks must exercise bound air and block light properties";
+}
+
 // 跑全部真实行为包测试的回归用例已移除：空 testsFilter 会跑 tests/integrated 全部几十个测试，
 // 其中 leaves_distance_increases_away_from_log / light_sky_light_leaves_attenuate_by_one /
 // amethyst_bud_grows_to_next_stage / exposed_copper_oxidizes_to_weathered 等因真实子系统
