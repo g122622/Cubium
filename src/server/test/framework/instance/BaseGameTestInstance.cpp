@@ -99,6 +99,7 @@ void BaseGameTestInstance::tick()
             if (fn) {
                 const GameTestResult result = fn();
                 if (result.has_value()) {
+                    m_lastSucceedConditionError = result;
                     allPass = false;
                     break;
                 }
@@ -112,9 +113,12 @@ void BaseGameTestInstance::tick()
 
     // 超时检测
     if (m_tickCount > m_function.data().maxTicks()) {
+        const auto suffix = m_lastSucceedConditionError
+            ? "; last unmet condition: " + m_lastSucceedConditionError->formattedMessage()
+            : std::string{};
         fail(GameTestError{GameTestErrorType::ExecutionTimeout,
-            "Test timed out after {0} ticks (test={1})",
-            {std::to_string(m_function.data().maxTicks()), m_function.testName()}});
+            "Test timed out after {0} ticks (test={1}){2}",
+            {std::to_string(m_function.data().maxTicks()), m_function.testName(), suffix}});
         return;
     }
 

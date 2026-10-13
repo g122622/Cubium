@@ -26,12 +26,14 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/FeatureTypeRegistry.hpp"
+#include "server/world/gen/feature/SimpleBlockFeature.hpp"
 #include "server/world/gen/placement/PlacementRegistry.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 
@@ -214,4 +216,40 @@ TEST_F(SimpleBlockFeatureTest, WeightedProviderBlocksPlacementWhenNonReplaceable
     const BlockState* s = m_region->getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(s, nullptr);
     EXPECT_TRUE(s->is(VanillaBlocks::STONE)) << "原石头不应被覆盖";
+}
+
+TEST_F(SimpleBlockFeatureTest, PlacesBothHalvesOfTallFlower)
+{
+    using namespace mc;
+    world::gen::feature::cave::SimpleBlockConfig config(&VanillaBlocks::ROSE_BUSH->defaultState(), false);
+    math::JavaLegacyRandom random(42);
+    const BlockPos pos(8, 1, 8);
+    m_region->setBlockState(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    ASSERT_TRUE(world::gen::feature::cave::SimpleBlockFeature::place(*m_region, random, pos, config));
+    const BlockState* lower = m_region->getBlockState(pos);
+    const BlockState* upper = m_region->getBlockState(pos.up());
+    ASSERT_NE(lower, nullptr);
+    ASSERT_NE(upper, nullptr);
+    EXPECT_TRUE(lower->is(VanillaBlocks::ROSE_BUSH));
+    EXPECT_TRUE(upper->is(VanillaBlocks::ROSE_BUSH));
+    EXPECT_EQ(lower->get(blocks::DoublePlantBlock::halfProperty()), BlockStateProperties::DoubleBlockHalf::Lower);
+    EXPECT_EQ(upper->get(blocks::DoublePlantBlock::halfProperty()), BlockStateProperties::DoubleBlockHalf::Upper);
+}
+
+TEST_F(SimpleBlockFeatureTest, RejectsTallFlowerWithoutChangingLowerBlockWhenUpperSpaceIsOccupied)
+{
+    using namespace mc;
+    world::gen::feature::cave::SimpleBlockConfig config(&VanillaBlocks::ROSE_BUSH->defaultState(), false);
+    const BlockPos pos(8, 1, 8);
+    m_region->setBlockState(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    // 即使上方植物可替换，也不满足双层植物要求的空格。
+    for (const BlockState* obstacle :
+        {&VanillaBlocks::STONE->defaultState(), &VanillaBlocks::SHORT_GRASS->defaultState()}) {
+        m_region->setBlockState(pos.up(), obstacle);
+        math::JavaLegacyRandom random(42);
+        EXPECT_FALSE(world::gen::feature::cave::SimpleBlockFeature::place(*m_region, random, pos, config));
+        const BlockState* lower = m_region->getBlockState(pos);
+        EXPECT_TRUE(lower == nullptr || lower->isAir());
+        EXPECT_EQ(m_region->getBlockState(pos.up()), obstacle);
+    }
 }

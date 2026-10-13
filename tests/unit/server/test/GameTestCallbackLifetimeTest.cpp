@@ -185,3 +185,23 @@ TEST(GameTestCallbackLifetime, CleanupFailureKeepsOriginalTestFailure)
     EXPECT_NE(instance.error()->formattedMessage().find("original error"), std::string::npos);
     EXPECT_NE(instance.error()->formattedMessage().find("cleanup error"), std::string::npos);
 }
+
+TEST(GameTestCallbackLifetime, WaitingConditionStaysPendingAndTimeoutRetainsSpecificReason)
+{
+    int releases = 0;
+    _Function function("waiting-condition", false, releases);
+    _Instance instance(function);
+    instance.registerSucceedCondition([]() -> mc::test::GameTestResult {
+        return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "destination dimension is still overworld"};
+    });
+    instance.startExecution();
+    instance.tick();
+    EXPECT_EQ(instance.state(), mc::test::GameTestState::Running);
+    EXPECT_FALSE(instance.error());
+    for (int tick = 0; tick <= function.data().maxTicks() + 1; ++tick)
+        instance.tick();
+    EXPECT_EQ(instance.state(), mc::test::GameTestState::Failed);
+    ASSERT_TRUE(instance.error());
+    EXPECT_EQ(instance.error()->type(), mc::test::GameTestErrorType::ExecutionTimeout);
+    EXPECT_NE(instance.error()->formattedMessage().find("destination dimension is still overworld"), std::string::npos);
+}

@@ -26,6 +26,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include <memory>
@@ -40,8 +41,6 @@ namespace mc::world::gen::feature::cave {
 bool SimpleBlockFeature::place(
     WorldGenRegion& region, math::IRandom& random, const BlockPos& pos, const SimpleBlockConfig& config)
 {
-    MC_UNUSED(random);
-
     // 取本次放置的目标状态：由提供者按其 kind 采样（simple 直接返回、weighted 按权重等）。
     if (config.provider == nullptr) {
         return false;
@@ -72,7 +71,16 @@ bool SimpleBlockFeature::place(
         return false;
     }
 
-    region.setBlockState(pos, toPlace, world::BlockUpdateFlags::UPDATE_ALL);
+    // TODO: 将 scheduleTick 请求保存到生成区块的待执行方块刻。
+    // 双层植物必须先验证上方为空气，再同时写入两部分，不能留下单独的下半部分。
+    if (dynamic_cast<const blocks::DoublePlantBlock*>(&block) != nullptr) {
+        const BlockState* above = region.getBlockState(pos.up());
+        if (above != nullptr && !above->isAir()) {
+            return false;
+        }
+        return blocks::DoublePlantBlock::placeAt(region, pos, *toPlace, world::BlockUpdateFlags::UPDATE_CLIENTS);
+    }
+    region.setBlockState(pos, toPlace, world::BlockUpdateFlags::UPDATE_CLIENTS);
     return true;
 }
 

@@ -125,20 +125,20 @@ function naturalSpawnMonsterInDarkCavern(test: Test): void {
 // 负向断言：若玩家门控失效，夜晚露天会生成怪物，monster>0 暴露 bug。
 // Ref: NaturalSpawner.cpp spawnCategoryForPosition players.empty() 早退
 function naturalSpawnRequiresPlayer(test: Test): void {
-    // 不 spawn 玩家。多次触发单点生成判定，断言始终无怪物。
-    pollUntilSucceed(test, () => {
-        test.spawnNaturalAt("monster", test.worldLocation(SPAWN_POS));
-        // 负向测试：条件恒为 false（不 succeed），靠 onTimeout 断言无怪物。
-        return false;
-    }, {
-        maxTick: 200,
-        onTimeout: () => {
-            const monsters = countAny(test, MONSTER_TYPES);
-            test.assert(monsters === 0,
-                `monster spawned without player (monsters=${monsters})`);
-            test.succeed();
-        },
-    });
+    // 独立批次中清理先前离开各自结构的玩家，门控检查针对整个维度。
+    for (const player of test.getDimension().getEntities({ type: "minecraft:player" })) {
+        test.kill(player as any);
+    }
+    (test as any).killAllEntities();
+    for (let tick = 40; tick <= 200; tick += 20) {
+        test.runAtTickTime(tick, () => {
+            const players = test.getDimension().getEntities({ type: "minecraft:player" });
+            test.assert(players.length === 0, `no-player spawn fixture still has ${players.length} players`);
+            const spawned = test.spawnNaturalAt("monster", test.worldLocation(SPAWN_POS));
+            test.assert(spawned === 0, `natural spawn request created ${spawned} monsters without a player`);
+            if (tick === 200) test.succeed();
+        });
+    }
 }
 
 // 亮处（glowstone 提 blockLight=15）不自然生成怪物（光照门槛 getMaxLocalRawBrightness<=7 拒绝）。

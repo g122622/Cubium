@@ -11,6 +11,7 @@ function simpleMobTest(test: Test): void {
   // 初始猎物就在近战范围内，避免首次寻路前的随机游走改变捕食前提。
   const fox = test.spawn(foxId, { x: 3, y: 2, z: 2 });
   const chicken = test.spawn(chickenId, { x: 2, y: 2, z: 2 });
+  (chicken.getComponent("minecraft:movement") as any).setCurrentValue(0);
 
   test.assertEntityPresentInArea(chickenId, true);
 
@@ -39,4 +40,4 @@ function simpleMobTest(test: Test): void {
 GameTest.register("StarterTests", "simpleMobTest", simpleMobTest)
   .batch("night")
   .maxTicks(410)
-  .structureName("startertests:mediumglass"); /* use the mediumglass.mcstructure file */
+  .structureName("gametests:creeper_pit");
