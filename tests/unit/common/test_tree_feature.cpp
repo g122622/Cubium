@@ -357,7 +357,7 @@ TEST_F(TreeFeaturePlacementWorldTest, TreeAndTrunkReplaceTaggedGroundDecorations
     TreeFeature feature;
     auto config = makeFixedOakConfig();
     setWorldBlock(8, 1, 8, &block_registry::GardenBlocks::LEAF_LITTER->defaultState());
-    setWorldBlock(9, 2, 8, &block_registry::GardenBlocks::BUSH->defaultState());
+    setWorldBlock(8, 2, 8, &block_registry::GardenBlocks::BUSH->defaultState());
     math::JavaLegacyRandom rng(12345);
 
     ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
