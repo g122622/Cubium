@@ -251,10 +251,12 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
         pendingHistory.reserve(PROGRESS_WINDOW_SAMPLES + 1);
         int lastPending = -1;
         int noProgressSamples = 0;
-        // 退出原因：用于在 abort 时给出准确诊断，而不是无条件报"stall > Ns"。
-        const char* abortReason = "test did not finish within the stall threshold";
+        // 退出原因与实际已耗时：提前命中死锁/活锁分支时不得声称跑满了 STALL_THRESHOLD。
+        const char* abortReason = "stall threshold reached";
+        int elapsedSeconds = 0;
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            elapsedSeconds = sec / 2;
             if (sec % 10 == 0) {
                 const size_t pending = m_workerPool->pendingTaskCount();
                 const size_t running = m_workerPool->runningTaskCount();
@@ -313,7 +315,8 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
-            spdlog::info("[watchdog] abort after >{}s: {}", STALL_THRESHOLD_SECONDS, abortReason);
+            spdlog::info(
+                "[watchdog] abort after {}s (threshold {}s): {}", elapsedSeconds, STALL_THRESHOLD_SECONDS, abortReason);
             std::abort();
         }
     });
@@ -484,10 +487,12 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
         pendingHistory.reserve(PROGRESS_WINDOW_SAMPLES + 1);
         int lastPending = -1;
         int noProgressSamples = 0;
-        // 退出原因：用于在 abort 时给出准确诊断，而不是无条件报"stall > Ns"。
-        const char* abortReason = "test did not finish within the stall threshold";
+        // 退出原因与实际已耗时：提前命中死锁/活锁分支时不得声称跑满了 STALL_THRESHOLD。
+        const char* abortReason = "stall threshold reached";
+        int elapsedSeconds = 0;
         for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            elapsedSeconds = sec / 2;
             if (sec % 10 == 0) {
                 const size_t pending = m_workerPool->pendingTaskCount();
                 const size_t running = m_workerPool->runningTaskCount();
@@ -541,7 +546,8 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
             }
         }
         if (!stop.load(std::memory_order::acquire)) {
-            spdlog::info("[watchdog] abort after >{}s: {}", STALL_THRESHOLD_SECONDS, abortReason);
+            spdlog::info(
+                "[watchdog] abort after {}s (threshold {}s): {}", elapsedSeconds, STALL_THRESHOLD_SECONDS, abortReason);
             std::abort();
         }
     });
@@ -578,7 +584,9 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 // mover 的 tick() 并发进入 _drainPendingLoadCompletes，两者竞争非原子的
                 // m_drainingLoadCompletes：一方析构守卫复位标志时另一方仍在排空循环内，
                 // 使 _onChunkLoadComplete 的 MC_ASSERT_RELEASE(m_drainingLoadCompletes) 中止。
-                if (i % 8 == 0) {
+                // 取模 5 而非 8：mover 只有 MOVE_ITERATIONS=40 次迭代，%8 仅 5 次同步请求，
+                // 少于原 generator 循环（GEN_ITERATIONS=60）的 8 次；%5 恢复原有的 8 次覆盖。
+                if (i % 5 == 0) {
                     const int syncX = (i * 7) % 32 - 16;
                     const int syncZ = (i * 13) % 32 - 16;
                     (void)m_manager->requestFullChunkSync(syncX, syncZ);
