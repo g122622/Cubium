@@ -73,3 +73,7 @@ BendingTrunkPlacer 的所有树叶附着点均使用 `trunkTop = false`，因为
 ### 6. 零长度 limb 除零会得到越界坐标
 
 `_makeLimb` 以 `max(|dx|,|dy|,|dz|)` 作除数。若 `start == end` 且 `place == true` 走到除法处，步数 0 会得到 `0.0f / 0.0f = NaN`；`NaN` 转整型在 arm64 上饱和为 0、在 x86 上为 `INT_MIN`，前者会写入 `(0,0,0)` 并触发 `WorldGenRegion` 的访问窗口断言。故 `if (!place && start == end) return true;` 是承重判断：所有**探测**必须传 `place = false`，真正的放置留到扫描结束，并由 `!(basePos == branchEnd)` 守卫。
+
+### 5. 精美橡树的分支坐标
+
+分支长度和角度使用双精度，偏移先向下取整再加到原点，避免负坐标向零截断。所有树冠附着点为单树干；枝干逐格设置轴向，不能用树冠顶部标记模拟双树干。

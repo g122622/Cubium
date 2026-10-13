@@ -26,6 +26,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -41,7 +42,9 @@ TrunkPlacer::TrunkPlacer(i32 baseHeight, i32 heightRandA, i32 heightRandB)
 
 i32 TrunkPlacer::getHeight(math::IRandom& random) const
 {
-    return m_baseHeight + random.nextInt(m_heightRandA + 1) + random.nextInt(m_heightRandB + 1);
+    const i32 first = random.nextInt(m_heightRandA + 1);
+    const i32 second = random.nextInt(m_heightRandB + 1);
+    return m_baseHeight + first + second;
 }
 
 void TrunkPlacer::placeBlock(
@@ -101,8 +104,9 @@ void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos)
         return;
     }
 
-    // 如果不是草方块或泥土，放置泥土
-    if (!state->is(VanillaBlocks::GRASS_BLOCK) && !state->is(VanillaBlocks::DIRT)) {
+    // 草方块和菌丝要转为树根泥土，其余泥土标签成员保留。
+    if (!BlockTags::DIRT().contains(*state) || state->is(VanillaBlocks::GRASS_BLOCK) ||
+        state->is(VanillaBlocks::MYCELIUM)) {
         if (VanillaBlocks::DIRT) {
             world.setBlockState(belowPos.x, belowPos.y, belowPos.z, &VanillaBlocks::DIRT->defaultState());
         }
