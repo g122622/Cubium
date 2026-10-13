@@ -27,6 +27,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
@@ -47,6 +48,16 @@ bool _canReplaceFoliage(WorldGenRegion& world, const BlockPos& pos)
     const bool persistent = state != nullptr && state->hasProperty(BlockStateProperties::PERSISTENT()) &&
         state->get(BlockStateProperties::PERSISTENT());
     return !persistent && TreeFeature::isReplaceableAt(world, pos);
+}
+
+void _placeLeaf(WorldGenRegion& world, const BlockPos& pos, const BlockState& state)
+{
+    const BlockState* placedState = &state;
+    if (state.hasProperty(BlockStateProperties::WATERLOGGED())) {
+        const bool sourceWater = waterloggable::isWaterSourceFluidState(world.getFluidState(pos.x, pos.y, pos.z));
+        placedState = &state.with(BlockStateProperties::WATERLOGGED(), sourceWater);
+    }
+    world.setBlockState(pos, placedState);
 }
 
 } // namespace
@@ -95,7 +106,6 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
     // 允许覆盖标签中的植被，保留持久树叶与实心方块。
     // 当 foliageProvider 非空时，每个叶片独立采样；否则使用 foliageBlock。
     // TODO: 状态提供者须在每个叶片落位时采样，以保持加权提供者与形状采样的随机数顺序。
-    // TODO: 放置树叶时须保留源水对应的含水状态。
     const bool useProvider = foliageProvider != nullptr;
     if (!useProvider && foliageBlock == nullptr) {
         return;
@@ -110,7 +120,7 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
             const BlockState* stateToPlace =
                 useProvider ? foliageProvider->getState(world, random, pos.x, pos.y, pos.z) : foliageBlock;
             if (stateToPlace != nullptr) {
-                world.setBlockState(pos, stateToPlace);
+                _placeLeaf(world, pos, *stateToPlace);
             }
         }
     }
@@ -152,7 +162,7 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
 
             // 放置树叶
             if (foliageBlock != nullptr) {
-                world.setBlockState(pos, foliageBlock);
+                _placeLeaf(world, pos, *foliageBlock);
             }
             // 提供者可以独立决定叶片状态，坐标收集不能依赖兜底方块。
             foliageBlocks.insert(pos);

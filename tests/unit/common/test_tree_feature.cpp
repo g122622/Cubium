@@ -394,6 +394,24 @@ TEST_F(TreeFeaturePlacementWorldTest, CanopyReplacesTaggedVegetationAndPreserves
     EXPECT_TRUE(m_region->getBlockState(7, 5, 8)->get(BlockStateProperties::PERSISTENT()));
 }
 
+TEST_F(TreeFeaturePlacementWorldTest, CanopyPreservesSourceWaterWhenReplacingWater)
+{
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    setWorldBlock(9, 5, 8, &VanillaBlocks::WATER->defaultState());
+    math::JavaLegacyRandom rng(12345);
+
+    ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    const BlockState* submerged = m_region->getBlockState(9, 5, 8);
+    ASSERT_NE(submerged, nullptr);
+    ASSERT_TRUE(submerged->is(VanillaBlocks::OAK_LEAVES));
+    EXPECT_TRUE(submerged->get(BlockStateProperties::WATERLOGGED()));
+    const BlockState* dry = m_region->getBlockState(10, 5, 8);
+    ASSERT_NE(dry, nullptr);
+    ASSERT_TRUE(dry->is(VanillaBlocks::OAK_LEAVES));
+    EXPECT_FALSE(dry->get(BlockStateProperties::WATERLOGGED()));
+}
+
 TEST_F(TreeFeaturePlacementWorldTest, IgnoreVinesControlsSpaceProbe)
 {
     TreeFeature feature;
