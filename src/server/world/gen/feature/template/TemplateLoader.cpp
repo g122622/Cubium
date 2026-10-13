@@ -365,7 +365,7 @@ BedrockBlockMapping bedrockBlockNameToJava(const std::string& bedrockName, const
         {"minecraft:wooden_door", "minecraft:oak_door"},
         {"minecraft:golden_rail", "minecraft:powered_rail"},
         {"minecraft:lit_pumpkin", "minecraft:jack_o_lantern"},
-        {"minecraft:grass", "minecraft:short_grass"},    // 1.21 改名
+        {"minecraft:grass", "minecraft:grass_block"},    // 基岩旧名表示实体草方块
         {"minecraft:grass_path", "minecraft:dirt_path"}, // 1.17 改名
     };
     auto it = kRenames.find(bedrockName);

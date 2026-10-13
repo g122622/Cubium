@@ -102,6 +102,8 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
 
 使用未注册的方块状态 ID 会导致崩溃或放置失败。确保 `BlockRegistry` 已初始化。
 
+基岩结构中的旧名 `minecraft:grass` 指草方块，必须映射为 `minecraft:grass_block`；按 Java 旧名映射为矮草会使轨道失去支撑。
+
 ### 2. 处理器忘记复制 NBT 数据
 
 处理器返回 `ProcessedBlockInfo` 时必须检查并复制 NBT：

@@ -49,7 +49,7 @@ public:
      *
      * 生产服务器关闭时调用：在脚本引擎销毁前清空持 `m_runResult`（Promise 句柄）/`IScriptBindingContext*`
      * 的实例，避免静态容器进程退出析构时访问已死 JS 上下文。配合 `GameTestTicker::forceStop()` 使用。
-     * `GameTestServer` 路径自有 `stop()` 顺序保护，不经此方法。
+     * `GameTestServer::stop()` 同样调用此方法，清理通过命令额外启动的实例。
      */
     static void forceClearAllInstances();
 

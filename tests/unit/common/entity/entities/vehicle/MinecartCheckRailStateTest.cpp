@@ -35,6 +35,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
+#include "common/physics/PhysicsEngine.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "common/world/block/blocks/redstone/ActivatorRailBlock.hpp"
 #include "common/world/block/blocks/redstone/DetectorRailBlock.hpp"
@@ -59,9 +60,16 @@ namespace {
  * 提供 getBlockState、setBlockState 的最小化实现，
  * 使用 std::map<BlockPos, unique_ptr<BlockState>> 确保方块状态指针的生命周期。
  */
-class MinecartCheckRailStateTestWorld final : public BaseTestWorld {
+class MinecartCheckRailStateTestWorld final : public BaseTestWorld, public ICollisionWorld {
 public:
     using IWorld::getBlockState;
+
+    [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override
+    {
+        return BaseTestWorld::isWithinWorldBounds(x, y, z);
+    }
+
+    [[nodiscard]] const ChunkData* getChunkAt(ChunkCoord, ChunkCoord) const override { return nullptr; }
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -125,6 +133,24 @@ public:
 };
 
 } // anonymous namespace
+
+TEST(MinecartCollisionTest, DerailedCartLandsOnSolidFloor)
+{
+    VanillaBlocks::initialize();
+    MinecartCheckRailStateTestWorld world;
+    world.setBlockState(5, 63, 10, &VanillaBlocks::STONE->defaultState());
+    PhysicsEngine physics(world);
+    TestMinecartEntity minecart;
+    minecart.setWorld(&world);
+    minecart.setPhysicsEngine(&physics);
+    minecart.setPosition(5.5f, 66.0f, 10.5f);
+    for (int tick = 0; tick < 100; ++tick) {
+        minecart.tick();
+        EXPECT_GE(minecart.y(), 64.0f);
+    }
+    EXPECT_NEAR(minecart.y(), 64.0f, 0.001f);
+    EXPECT_FLOAT_EQ(minecart.velocityY(), 0.0f);
+}
 
 // ============================================================================
 // 测试 1: currentPos 为铁轨时，RailShape 正确提取

@@ -750,6 +750,8 @@ void GameTestServer::stop()
     // 之后无 tick 推进 HALTING 清空，故紧接 forceStop() 立即清空实例，避免 JS 回调访问死上下文。
     GameTestTicker::instance().clear();
     GameTestTicker::instance().forceStop();
+    // 同步宿主也可以经命令启动实例，必须在世界和脚本上下文仍存活时释放静态所有权。
+    GameTestCommand::forceClearAllInstances();
 
     // 释放 GameTestRegistry 中脚本测试函数的 JS 回调句柄，并移除这些条目。registry 是进程级单例，
     // 跨 GameTestServer 实例常驻；ScriptGameTestFunction 持的 JS 句柄绑当前引擎 runtime。须在

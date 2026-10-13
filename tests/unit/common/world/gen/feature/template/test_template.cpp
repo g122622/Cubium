@@ -21,13 +21,19 @@
  *
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include <gtest/gtest.h>
 
+#include "common/TestDataDir.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -58,6 +64,25 @@ class RuleTestTest : public ::testing::Test {
 protected:
     void SetUp() override { VanillaBlocks::initialize(); }
 };
+
+TEST_F(TemplateTest, BedrockGrassRemainsSolidRailSupport)
+{
+    const auto path = std::filesystem::path(MC_SOURCE_DIR) / "tests" / "integrated" / "challenge" / "structures" /
+        "gametests" / "minibiomes.mcstructure";
+    std::ifstream input(path, std::ios::binary);
+    ASSERT_TRUE(input.is_open()) << path;
+    const std::vector<u8> data(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{});
+    const auto structure = TemplateLoader::loadFromBedrockMcStructure(data);
+    ASSERT_NE(structure, nullptr);
+    ASSERT_NE(structure->getPalette(0), nullptr);
+    const auto& blocks = structure->getPalette(0)->blocks();
+    const auto support = std::find_if(
+        blocks.begin(), blocks.end(), [](const PaletteBlock& block) { return block.pos() == BlockPos(9, 5, 7); });
+    ASSERT_NE(support, blocks.end());
+    const auto* state = BlockRegistry::instance().getBlockState(support->blockStateId);
+    ASSERT_NE(state, nullptr);
+    EXPECT_TRUE(state->is(VanillaBlocks::GRASS_BLOCK));
+}
 
 // ============================================================================
 // BlockInfo 测试

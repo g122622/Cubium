@@ -130,6 +130,8 @@ Entity (基类)
 - 斜坡调整值：`SLOPE_ADJUSTMENT = 0.0078125` (1/128)
 - 斜坡上升：Y + 0.0625 或 Y + 0.5625
 
+脱轨运动必须使用 `moveWithCollision`，否则重力会让矿车穿透支撑方块并不断坠落。
+
 ### 7. 伤害源参数传递
 
 **问题**：`dropItem()` 方法现在需要 `DamageSource*` 参数。

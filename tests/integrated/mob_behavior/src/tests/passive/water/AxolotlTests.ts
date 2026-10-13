@@ -136,6 +136,8 @@ function axolotlPlaysDeadWithRegenerationTest(test: Test): void {
   // 围栏内 (3,1..3,3) 单水柱（美西螈所在格 + 上下水），让美西螈 isInWater=true。
   // 单水柱封闭于玻璃围栏中，水源稳定不流动。y=1..3 三层水，y=4 顶部空气（美西螈不会跳出 3 格水柱）。
   fillBlock(test, "minecraft:water", 3, 1, 3, 3, 3, 3);
+  // 最下层水替换了结构地板，补实体支撑，防止水柱流失及美西螈从底部掉出。
+  test.setBlockType("minecraft:stone", { x: 3, y: 0, z: 3 });
 
   // 美西螈 spawn (3,2,3) 水中。玩家 (1,2,3) 围栏外，隔玻璃墙攻击水中美西螈。
   // gameMode 传 0：ScriptTestHelper.cpp:543-548 `auto gm = ctx.toInt32(args[idx])` 返回 std::optional<i32>，
@@ -150,6 +152,12 @@ function axolotlPlaysDeadWithRegenerationTest(test: Test): void {
   // 空手玩家伤害 1.0 < 美西螈满血 14，满足 hurt 装死分支 amount<health() 守卫。
   for (let t = 5; t <= 540; t += 12) {
     test.runAtTickTime(t, () => {
+      // 装死触发带概率；维持非致死攻击前提，不通过施加再生效果改变被测行为。
+      const health = axolotl.getComponent("minecraft:health") as any;
+      test.assert(health.currentValue > 0, "axolotl died before playing dead");
+      if (health.currentValue <= 4) {
+        health.resetToMaxValue();
+      }
       (player as any).attackEntity(axolotl);
     });
   }
