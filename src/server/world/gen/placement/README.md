@@ -178,6 +178,8 @@ graph LR
 
 ## 容易踩的坑
 
+- `surface_water_depth_filter` 按 `WORLD_SURFACE - OCEAN_FLOOR` 判断整列水深，不依赖输入位置的 Y。该过滤器常在 heightmap 放置器之前执行，按起点 Y 扫描会把水下列误判为干地。
+
 ### 1. 配置类型不匹配
 
 **问题**：使用错误的配置类型导致 `dynamic_cast` 返回 `nullptr`。
