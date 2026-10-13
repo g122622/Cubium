@@ -666,6 +666,11 @@ void TNTEntity::explode()
     remove();
 }
 
+void TNTEntity::setOwner(LivingEntity* igniter)
+{
+    m_owner = igniter;
+}
+
 // ==================== WardenWarningEffect ====================
 
 void WardenWarningEffect::tick()

@@ -34,6 +34,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -41,6 +42,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -266,6 +268,34 @@ TEST_F(TNTEntityTest, DefaultConstruction)
     EXPECT_EQ(tnt->getFuse(), 0);
     EXPECT_FALSE(tnt->isPrimed());
     EXPECT_FLOAT_EQ(tnt->getExplosionRadius(), 4.0f);
+}
+
+TEST_F(TNTEntityTest, DestroyedIgniterDoesNotLeaveDanglingIndirectExplosionSource)
+{
+    TNTEntity tnt(mc::test::testEcsRegistry());
+    tnt.setWorld(&m_world);
+    auto igniter = std::make_unique<Player>(EntityInstanceId(1), "igniter", mc::test::testEcsRegistry());
+    tnt.setOwner(igniter.get());
+    world::explosion::Explosion explosion(
+        m_world, Vector3(0, 5, 0), 4.0f, world::explosion::ExplosionMode::Break, false, &tnt, nullptr, nullptr);
+    ASSERT_EQ(explosion.getIndirectSourceEntity(), igniter.get());
+    igniter.reset();
+    EXPECT_EQ(tnt.getOwner(), nullptr);
+    EXPECT_EQ(explosion.getIndirectSourceEntity(), nullptr);
+    tnt.explode();
+    EXPECT_EQ(m_world.explosionCount(), 1);
+}
+
+TEST_F(TNTEntityTest, LogicallyRemovedIgniterIsNotAnIndirectExplosionSource)
+{
+    TNTEntity tnt(mc::test::testEcsRegistry());
+    Player igniter(EntityInstanceId(1), "igniter", mc::test::testEcsRegistry());
+    tnt.setOwner(&igniter);
+    igniter.discard();
+    EXPECT_EQ(tnt.getOwner(), nullptr);
+    world::explosion::Explosion explosion(
+        m_world, Vector3(0, 5, 0), 4.0f, world::explosion::ExplosionMode::Break, false, &tnt, nullptr, nullptr);
+    EXPECT_EQ(explosion.getIndirectSourceEntity(), nullptr);
 }
 
 /**

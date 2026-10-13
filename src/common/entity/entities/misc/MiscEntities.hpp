@@ -28,6 +28,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityReference.hpp"
 #include "common/entity/core/EntitySize.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -335,8 +336,8 @@ public:
      *
      * 用于追踪爆炸责任的归属。
      */
-    void setOwner(LivingEntity* igniter) { m_owner = igniter; }
-    [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
+    void setOwner(LivingEntity* igniter);
+    [[nodiscard]] LivingEntity* getOwner() const { return m_owner.get(); }
 
     /**
      * @brief 爆炸
@@ -376,7 +377,7 @@ private:
     i32 m_fuse = 0;
     f32 m_explosionRadius = 4.0f;
     bool m_exploded = false;
-    LivingEntity* m_owner = nullptr;
+    EntityReference<LivingEntity> m_owner;
     static constexpr i32 DEFAULT_FUSE = 80; // 4秒（80 ticks）
 
     /**

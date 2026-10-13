@@ -74,3 +74,7 @@ ExperienceOrbEntity
 ### 8. 伤害处理
 
 经验球有 5 点生命值（`m_health = 5`），覆写了 `Entity::hurt()`。受伤时减少生命值并标记 `hurtMarked` 以同步速度到客户端，生命值归零时调用 `discard()` 销毁。对应 MC Java 的 `ExperienceOrb.hurtServer()`。
+
+### 追踪玩家的生命周期
+
+经验球缓存的玩家使用 `EntityReference`，玩家逻辑移除或析构后立即失效。tick 必须检查引用，不能依赖下一次搜索来清理裸指针。
