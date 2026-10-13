@@ -19,21 +19,32 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 const HALL_FROM = { x: 0, y: 0, z: 0 };
 const HALL_VOLUME = { x: 41, y: 7, z: 9 };
 
-// 生存玩家靠近时，兔子必须沿长廊逃离超过四格。独立批次隔离其他 AI 目标，
-// 长廊为十六格逃跑候选点提供空间；使用本测试实体句柄检查真实位移。
+// 生存玩家先从左侧接近，再移到右侧。兔子必须两次沿相反方向逃离超过四格，
+// 同时相对自身起点移动超过两格，避免仅凭玩家换位或长时间随机游走通过。
 function rabbitFleesPlayer(test: Test): void {
   const rabbit = test.spawn("minecraft:rabbit", { x: 20, y: 2, z: 4 });
   const player = test.spawnSimulatedPlayer({ x: 18, y: 2, z: 4 }, "scary", 0 as any);
-  pollUntilSucceed(test, () => {
-    const dx = rabbit.location.x - player.location.x;
-    const dz = rabbit.location.z - player.location.z;
-    return dx * dx + dz * dz > 4 * 4;
-  }, {
-    startTick: 10,
-    interval: 5,
-    maxTick: 900,
-    onTimeout: () => test.assert(false, `rabbit did not flee from player: rabbit=${JSON.stringify(rabbit.location)}, player=${JSON.stringify(player.location)}`),
-  });
+  let phase = 0;
+  let rabbitStartX = rabbit.location.x;
+  for (let tick = 10; tick <= 450; tick += 5) {
+    test.runAtTickTime(tick, () => {
+      const dx = rabbit.location.x - player.location.x;
+      const dz = rabbit.location.z - player.location.z;
+      if (dx * dx + dz * dz > 4 * 4) {
+        if (phase === 0 && rabbit.location.x - rabbitStartX > 2) {
+          phase = 1;
+          rabbitStartX = rabbit.location.x;
+          player.teleport({ x: rabbit.location.x + 2, y: rabbit.location.y, z: rabbit.location.z });
+        } else if (phase === 1 && rabbitStartX - rabbit.location.x > 2) {
+          test.succeed();
+          return;
+        }
+      }
+      if (tick === 450) {
+        test.assert(false, `rabbit did not flee in both directions: phase=${phase}, rabbit=${JSON.stringify(rabbit.location)}, player=${JSON.stringify(player.location)}`);
+      }
+    });
+  }
 }
 
 // 杀手兔主动攻击玩家（wiki tech_兔子.txt#杀手兔：非和平难度下迅速跳向 16 格半径内的玩家，

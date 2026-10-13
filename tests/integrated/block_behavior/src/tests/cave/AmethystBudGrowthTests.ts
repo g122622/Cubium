@@ -166,8 +166,10 @@ function amethystBudGrowsToNextStage(test: Test): void {
     pollUntilSucceed(
         test,
         () => {
-            // 每 tick 观察中间阶段，避免隔二十 tick 检查时已长成大芽。
-            return getTypeId(test, BUD_POS) === "minecraft:medium_amethyst_bud";
+            // 随机刻在一次世界 tick 内可多次命中，后续阶段同样证明已发生升级。
+            const type = getTypeId(test, BUD_POS);
+            return type === "minecraft:medium_amethyst_bud" ||
+                type === "minecraft:large_amethyst_bud" || type === "minecraft:amethyst_cluster";
         },
         {
             startTick: 1,
@@ -177,7 +179,7 @@ function amethystBudGrowsToNextStage(test: Test): void {
                 const type = getTypeId(test, BUD_POS);
                 test.assert(
                     false,
-                    `amethyst bud upgrade: expected medium_amethyst_bud, got ${type} ` +
+                    `amethyst bud upgrade: expected medium_amethyst_bud or a later growth stage, got ${type} ` +
                         `(if still small_amethyst_bud, randomTickSpeed may not be raised or ` +
                         `upgrade logic (neighbor small_bud → medium) may be missing; ` +
                         `upgrade needs hit budding + 1/5 gate + select bud direction)`,

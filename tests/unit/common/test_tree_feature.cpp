@@ -29,6 +29,8 @@
 #include "server/world/gen/feature/FeatureSpread.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
+#include "server/world/gen/feature/tree/decorator/PlaceOnGroundDecorator.hpp"
+#include "server/world/gen/feature/tree/decorator/TreeDecorator.hpp"
 #include "server/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/foliage/FancyFoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/foliage/FoliagePlacer.hpp"
@@ -347,6 +349,36 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear)
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
     EXPECT_TRUE(m_region->getBlockState(8, 0, 8)->is(VanillaBlocks::DIRT));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsCannotStackOnPreviouslyPlacedPlants)
+{
+    using namespace world::gen::feature::tree::decorator;
+    const BlockPos plantPos(8, 1, 8);
+    math::JavaLegacyRandom random(42);
+    TreeDecoratorContext context(*m_region,
+        nullptr,
+        nullptr,
+        [this](const BlockPos& pos, const BlockState* state) { m_region->setBlockState(pos, state); },
+        random,
+        {plantPos},
+        {},
+        {});
+    context.setBlock(plantPos, &VanillaBlocks::SHORT_GRASS->defaultState());
+    ASSERT_FALSE(m_region->getBlockState(plantPos)->isSolid());
+    PlaceOnGroundDecorator decorator(128,
+        0,
+        1,
+        std::make_unique<world::gen::feature::state::SimpleBlockStateProvider>(
+            &VanillaBlocks::SHORT_GRASS->defaultState()));
+    decorator.place(context);
+    EXPECT_TRUE(m_region->getBlockState(plantPos.up())->isAir());
+    EXPECT_TRUE(m_region->getBlockState(plantPos.up(2))->isAir());
+    // 写入后再被替换为空气或石头时，条件同样须反映实际状态。
+    context.setBlock(plantPos, &VanillaBlocks::AIR->defaultState());
+    EXPECT_FALSE(context.checkBlock(plantPos, [](const BlockState& state) { return state.isSolid(); }));
+    context.setBlock(plantPos, &VanillaBlocks::STONE->defaultState());
+    EXPECT_TRUE(context.checkBlock(plantPos, [](const BlockState& state) { return state.isSolid(); }));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland)

@@ -150,13 +150,13 @@ void BaseGameTestInstance::succeed()
     m_finishedAt = std::chrono::steady_clock::now();
     m_state = GameTestState::Succeeded;
     m_runResult.reset(); // 测试结束：释放异步 runResult 持有的 Promise 句柄
-    // 执行 runOnFinish 回调
-    for (auto& fn : m_onFinish) {
-        if (fn) {
-            fn();
-        }
+    if (auto cleanupError = _runFinishCallbacks()) {
+        m_error = std::move(cleanupError);
+        m_state = GameTestState::Failed;
+        _notifyFailed();
+    } else {
+        _notifyPassed();
     }
-    _notifyPassed();
 }
 
 void BaseGameTestInstance::fail(GameTestError error)
@@ -168,12 +168,32 @@ void BaseGameTestInstance::fail(GameTestError error)
     m_error = std::move(error);
     m_state = GameTestState::Failed;
     m_runResult.reset(); // 测试结束：释放异步 runResult 持有的 Promise 句柄
-    for (auto& fn : m_onFinish) {
-        if (fn) {
-            fn();
-        }
+    if (const auto cleanupError = _runFinishCallbacks()) {
+        m_error = GameTestError{m_error->type(),
+            "{0}; {1}",
+            {m_error->formattedMessage(), cleanupError->formattedMessage()},
+            m_error->context()};
     }
     _notifyFailed();
+}
+
+GameTestResult BaseGameTestInstance::_runFinishCallbacks()
+{
+    // 回调中允许登记任务；移出容器保持本次清理遍历和闭包生命周期稳定。
+    auto callbacks = std::move(m_onFinish);
+    std::string errors;
+    bool failed = false;
+    for (const auto& fn : callbacks) {
+        if (fn) {
+            if (const auto result = fn()) {
+                if (failed) errors += "; ";
+                failed = true;
+                errors += result->formattedMessage();
+            }
+        }
+    }
+    if (!failed) return pass();
+    return GameTestError{GameTestErrorType::LevelStateModificationFailed, "Cleanup failed: {0}", {std::move(errors)}};
 }
 
 f64 BaseGameTestInstance::wallTimeSeconds() const noexcept

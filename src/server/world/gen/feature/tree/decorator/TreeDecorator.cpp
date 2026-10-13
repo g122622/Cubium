@@ -109,16 +109,7 @@ bool TreeDecoratorContext::isAir(const BlockPos& pos) const
 bool TreeDecoratorContext::checkBlock(
     const BlockPos& pos, const std::function<bool(const BlockState&)>& predicate) const
 {
-    // MC TreeDecorator.Context.checkBlock：
-    //   BlockState s = level.getBlockState(pos);
-    //   return predicate.test(s) || decorationPositions.contains(pos);
-    // 已放置集合必须参与判定：装饰器之间按顺序执行，后执行的装饰器需要"看见"前者
-    // 刚放下的方块（它在 region 里可能尚未可见）。
-    if (m_decorationPositions.count(BlockPos::asLong(pos.x, pos.y, pos.z)) != 0) {
-        return true;
-    }
     const BlockState* state = m_region.getBlockState(pos);
-    // nullptr（未加载/越界）不满足任何谓词，与原版对 null 状态抛异常之外的语义保持保守一致。
     return state != nullptr && predicate(*state);
 }
 

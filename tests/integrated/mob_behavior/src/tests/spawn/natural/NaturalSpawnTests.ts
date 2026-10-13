@@ -175,6 +175,8 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
     for (let x = 30; x <= 40; x++) {
         for (let z = 0; z <= 8; z++) {
             test.setBlockType("minecraft:glowstone", { x, y: 1, z });
+            test.setBlockType("minecraft:air", { x, y: 2, z });
+            test.setBlockType("minecraft:air", { x, y: 3, z });
         }
     }
 
@@ -191,7 +193,7 @@ function naturalSpawnNoMonsterWhenLit(test: Test): void {
         for (let x = 30; x <= 40; x++) {
             for (let z = 0; z <= 8; z++) {
                 const block = test.getBlock({ x, y: 2, z });
-                if (block === undefined || (block.isAir && !((block as unknown as { blockLight: number }).blockLight >= 9))) {
+                if (block === undefined || !block.isAir || !((block as unknown as { blockLight: number }).blockLight >= 9)) {
                     return false;
                 }
             }

@@ -55,20 +55,18 @@ function netherPortalReturnsPlayerToOverworld(test: Test): void {
     const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
     test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
-    // 等待玩家传送到下界后，验证玩家最终回到主世界（传送门双向性）。
-    // 注：Cubium 中 SimulatedPlayer 默认创造模式，进门后 getMaxInPortalTime() 返回 1，约 1-2 tick 传送。
+    let enteredNether = false;
+    let netherEntrance: { x: number; y: number; z: number } | undefined;
     test.succeedWhen(() => {
-        test.assert(traveler.dimension.id === "minecraft:nether", "traveler has not reached minecraft:nether");
-        const overworldPlayers = test.getDimension().getEntities({
-            type: "minecraft:player",
-            location: test.worldLocation(PIT_FROM),
-            volume: PIT_VOLUME,
-        });
-        // 玩家应已传送到下界（主世界无玩家）。
-        test.assert(overworldPlayers.length === 0, "player still in overworld, expected nether teleport");
-        const nether = world.getDimension("minecraft:nether");
-        const netherPlayers = nether.getEntities({ type: "minecraft:player" });
-        test.assert(netherPlayers.length > 0, "player not found in nether after portal teleport");
+        if (traveler.dimension.id === "minecraft:nether") {
+            enteredNether = true;
+            netherEntrance ??= { ...traveler.location };
+            // 保持玩家接触已生成的出口门，等待冷却结束后触发真实返回传送。
+            traveler.teleport(netherEntrance);
+            test.assert(false, "traveler reached nether; waiting for return portal transfer");
+        }
+        test.assert(enteredNether, "traveler must enter nether before returning");
+        test.assert(traveler.dimension.id === "minecraft:overworld", "traveler has not returned to overworld");
     });
 }
 
