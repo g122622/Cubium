@@ -141,3 +141,47 @@ TEST(GameTestCallbackLifetime, ScriptCleanupRemovesAllIndicesAndKeepsNativeRegis
     EXPECT_EQ(releases, 2);
     registry.clearAllTestMethods();
 }
+
+TEST(GameTestCallbackLifetime, CleanupFailureRejectsSuccessAndRunsRemainingCallbacks)
+{
+    int releases = 0;
+    _Function function("cleanup", false, releases);
+    _Instance instance(function);
+    int callbacksRun = 0;
+    instance.registerOnFinish([&]() -> mc::test::GameTestResult {
+        ++callbacksRun;
+        return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "first cleanup error"};
+    });
+    instance.registerOnFinish([&]() -> mc::test::GameTestResult {
+        ++callbacksRun;
+        return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "second cleanup error"};
+    });
+    instance.registerOnFinish([&] {
+        ++callbacksRun;
+        return mc::test::pass();
+    });
+    instance.succeed();
+    EXPECT_EQ(callbacksRun, 3);
+    EXPECT_EQ(instance.state(), mc::test::GameTestState::Failed);
+    ASSERT_TRUE(instance.error());
+    EXPECT_NE(instance.error()->formattedMessage().find("first cleanup error"), std::string::npos);
+    EXPECT_NE(instance.error()->formattedMessage().find("second cleanup error"), std::string::npos);
+    instance.succeed();
+    EXPECT_EQ(callbacksRun, 3);
+}
+
+TEST(GameTestCallbackLifetime, CleanupFailureKeepsOriginalTestFailure)
+{
+    int releases = 0;
+    _Function function("failed-cleanup", false, releases);
+    _Instance instance(function);
+    instance.registerOnFinish([]() -> mc::test::GameTestResult {
+        return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "cleanup error"};
+    });
+    instance.fail(mc::test::GameTestError{mc::test::GameTestErrorType::ExecutionTimeout, "original error"});
+    EXPECT_EQ(instance.state(), mc::test::GameTestState::Failed);
+    ASSERT_TRUE(instance.error());
+    EXPECT_EQ(instance.error()->type(), mc::test::GameTestErrorType::ExecutionTimeout);
+    EXPECT_NE(instance.error()->formattedMessage().find("original error"), std::string::npos);
+    EXPECT_NE(instance.error()->formattedMessage().find("cleanup error"), std::string::npos);
+}

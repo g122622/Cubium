@@ -29,6 +29,9 @@ declare module "@minecraft/server-gametest" {
     }
 
     interface Test {
+        /** 测试成功、失败或超时时执行清理，包含已迁往其他维度的玩家。 */
+        runOnFinish(callback: () => void): void;
+
         /**
          * 按 typeId + 属性字符串设带 block state 的方块。Cubium 专有方法（官方基岩 BDS Test 无）。
          *

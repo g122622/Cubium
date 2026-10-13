@@ -491,7 +491,7 @@ void CreakingHeartDecorator::place(const TreeDecoratorContext& context) const
     for (const BlockPos& candidate : shuffled) {
         bool enclosed = true;
         for (Direction dir : kAllDirs) {
-            // 原版用 checkBlock（含本轮已放置集合）判定六个邻居是否为原木标签。
+            // 六个邻居的当前状态均须属于原木标签。
             if (!context.checkBlock(
                     candidate.offset(dir), [](const BlockState& st) { return BlockTags::LOGS().contains(st); })) {
                 enclosed = false;

@@ -97,7 +97,7 @@ struct GameTestServerParams {
  * 1. `initialize(params)`：建世界 → 注册 `/gametest` 命令 → 选测试 → 构造 `GameTestRunner`。
  * 2. `run()`：循环 `tick()`（基类世界 tick + `GameTestTicker::instance().tick()` + `runner->tick()`），
  *    直到完成或超时；实际时间限制为整轮 30 分钟、每批按声明 tick 数换算的期限、每 tick 2 秒
- *    （批次启动 tick 例外，见 `m_batchStartupPending`）。
+ *    （批次启动和声明同步区块生成的独立批次使用批次/整轮期限）。
  * 3. `exitCode()`：`runner->failedRequiredCount()`（CI 契约：0=全必需通过）。
  * 4. `stop()`：`requestStop()` + `stopCore()` 落盘 + 关闭 reporter。
  *
@@ -200,6 +200,8 @@ private:
      * 置位，启动 tick 结束时清除。
      */
     bool m_batchStartupPending = true;
+    /// 当前独立批次声明会在 tick 中同步生成区块。
+    bool m_batchGeneratesChunksSynchronously = false;
     std::unique_ptr<GameTestWatchdog> m_watchdog;
 };
 

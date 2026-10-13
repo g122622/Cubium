@@ -135,6 +135,13 @@ function thornsIiiReflectsDamageToAttacker(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "victim", 0 as any); // 0=Survival
 
     equipThornsChest(player);
+    for (let tick = 20; tick <= 580; tick += 20) {
+        test.runAtTickTime(tick, () => {
+            const health = player.getComponent("minecraft:health") as any;
+            test.assert(health !== undefined, "thorns victim should remain alive during attack sampling");
+            health.setCurrentValue(20);
+        });
+    }
 
     // 留 20 tick 让装备同步 + 僵尸选目标稳定，然后轮询僵尸 HP。
     // 僵尸需先接近玩家（~5.7 格，速度 ~0.25，约 tick 40 接近），首击约 tick 60+，反伤累积需时间。
@@ -200,12 +207,12 @@ function noThornsNoReflection(test: Test): void {
 
 export function registerThornsEnchantTests(): void {
     GameTest.register("MobBehaviorTests", "thorns_iii_reflects_damage_to_attacker", thornsIiiReflectsDamageToAttacker)
-        .batch("night")
+        .batch("night_thorns_reflection")
         .structureName("gametests:creeper_pit")
         .maxTicks(700);
 
     GameTest.register("MobBehaviorTests", "no_thorns_no_reflection", noThornsNoReflection)
-        .batch("night")
+        .batch("night_without_thorns")
         .structureName("gametests:creeper_pit")
         .maxTicks(500);
 }

@@ -24,6 +24,7 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 // 用例3：脚本 Entity.teleport 跨维度（主世界→下界）。
 function scriptTeleportCrossDimension(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 2, y: 1, z: 2 }, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(player));
 
     // 延迟 5 tick 后跨维度传送（给 spawn/物理稳定时间）。
     // location 跨维度时被忽略（位置由 changeDimension 内 Teleporter 算），传 {0,64,0} 占位。
@@ -59,6 +60,7 @@ function scriptTeleportCrossDimension(test: Test): void {
 // 满足），adjustedY 落到 y=1。断言用世界坐标体积查询 + 容差。
 function sameDimensionTeleportBaseline(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(player));
 
     // 目标结构相对坐标 (4.5,1,4.5) → 世界绝对坐标后传 teleport。
     // 基岩 Entity.teleport(location) 的 location 是世界绝对坐标（非结构相对坐标），必须经
@@ -89,6 +91,8 @@ function sameDimensionTeleportBaseline(test: Test): void {
 
 export function registerScriptTeleportTests(): void {
     GameTest.register("TeleportTests", "script_teleport_cross_dimension", scriptTeleportCrossDimension)
+        .batch("dimension_transfer_script_teleport_cross_dimension")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(80);
 

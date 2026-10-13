@@ -61,6 +61,7 @@ const END_PORTAL_SPAWN_X = 100;
 function executeInTeleportsPlayerToEnd(test: Test): void {
     // Creative 模式 SimulatedPlayer（permLevel 恒=4 可执行管理命令，与游戏模式解耦，Creative 防意外坠落死亡干扰）。
     const player = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(player));
 
     // tick 5 等 spawn 注册稳定后执行跨维度 tp 命令（chat 命令队列有 tick 延迟，tick5 执行 tick6~7 生效）。
     test.runAtTickTime(5, () => {
@@ -115,6 +116,7 @@ function executeInTeleportsPlayerToEnd(test: Test): void {
 // （源位置），不影响 tp 显式坐标。故下界落点 x≈0、z≈0。
 function executeInTeleportsPlayerToNether(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(player));
 
     test.runAtTickTime(5, () => {
         player.chat("/execute in minecraft:the_nether run tp @s 0 64 0");
@@ -161,6 +163,7 @@ function executeInTeleportsPlayerToNether(test: Test): void {
 // 即用 test.worldLocation 把结构相对 (3,2,3) 转世界坐标作为 tp 目标，断言玩家在该世界坐标附近。
 function executeInSameDimensionTeleport(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(player));
 
     // 目标：结构相对 (5,2,5) → 世界绝对坐标。execute in overworld（同维度）+ tp @s 到该坐标。
     const targetWorld = test.worldLocation({ x: 5, y: 2, z: 5 });
@@ -201,10 +204,14 @@ function executeInSameDimensionTeleport(test: Test): void {
 
 export function registerExecuteInTeleportTests(): void {
     GameTest.register("TeleportTests", "execute_in_teleports_player_to_end", executeInTeleportsPlayerToEnd)
+        .batch("dimension_transfer_execute_in_teleports_player_to_end")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 
     GameTest.register("TeleportTests", "execute_in_teleports_player_to_nether", executeInTeleportsPlayerToNether)
+        .batch("dimension_transfer_execute_in_teleports_player_to_nether")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 

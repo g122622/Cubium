@@ -104,6 +104,8 @@ protected:
 
 private:
     void _runTestFunction();
+    /** @brief 执行全部清理回调并收集错误，不因某个回调失败而跳过剩余清理。 */
+    [[nodiscard]] GameTestResult _runFinishCallbacks();
 
     const BaseGameTestFunction& m_function;
     std::unique_ptr<IGameTestHelperProvider> m_helperProvider;

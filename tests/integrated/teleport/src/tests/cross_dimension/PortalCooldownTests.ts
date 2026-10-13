@@ -45,7 +45,8 @@ const PORTAL_POS = { x: 3, y: 1, z: 3 };
 // 由于 Cubium 中末地传送门 setPortalCooldown(300)，玩家传送后 300 tick 冷却。
 function endPortalCooldownPreventsImmediateRetransit(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     // 轮询断言：玩家传送到末地后，验证冷却存在（玩家不能立即再次传送回主世界）。
     // 冷却期内玩家即便接触传送门也不会触发传送。
@@ -83,7 +84,8 @@ function endPortalCooldownPreventsImmediateRetransit(test: Test): void {
 // 验证下界传送门传送后存在冷却：玩家传送后短时间内不能立即再次传送。
 function netherPortalCooldownPreventsImmediateRetransit(test: Test): void {
     test.setBlockWithStates("minecraft:nether_portal", PORTAL_POS, "axis=x");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     pollUntilSucceed(test, () => {
         const overworldPlayers = test.getDimension().getEntities({
@@ -117,10 +119,14 @@ function netherPortalCooldownPreventsImmediateRetransit(test: Test): void {
 
 export function registerPortalCooldownTests(): void {
     GameTest.register("TeleportTests", "end_portal_cooldown_prevents_retransit", endPortalCooldownPreventsImmediateRetransit)
+        .batch("dimension_transfer_end_portal_cooldown_prevents_retransit")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 
     GameTest.register("TeleportTests", "nether_portal_cooldown_prevents_retransit", netherPortalCooldownPreventsImmediateRetransit)
+        .batch("dimension_transfer_nether_portal_cooldown_prevents_retransit")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 }

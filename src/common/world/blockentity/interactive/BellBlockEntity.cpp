@@ -249,7 +249,8 @@ void BellBlockEntity::_updateEntities(IWorld& world)
         const Vector3 center = m_pos.center();
         const f32 hearRadiusSq = HEAR_BELL_RADIUS * HEAR_BELL_RADIUS;
 
-        for (LivingEntity* living : m_nearbyEntities) {
+        for (const auto& reference : m_nearbyEntities) {
+            LivingEntity* living = reference.get();
             if (living == nullptr || !living->isAlive()) {
                 continue;
             }
@@ -281,7 +282,8 @@ bool BellBlockEntity::_areRaidersNearby() const
     const Vector3 center = m_pos.center();
     const f32 hearRadiusSq = HEAR_BELL_RADIUS * HEAR_BELL_RADIUS;
 
-    for (LivingEntity* living : m_nearbyEntities) {
+    for (const auto& reference : m_nearbyEntities) {
+        LivingEntity* living = reference.get();
         if (living == nullptr || !living->isAlive()) {
             continue;
         }
@@ -312,7 +314,8 @@ void BellBlockEntity::_makeRaidersGlow(IWorld& world)
 {
     MC_UNUSED(world);
 
-    for (LivingEntity* living : m_nearbyEntities) {
+    for (const auto& reference : m_nearbyEntities) {
+        LivingEntity* living = reference.get();
         if (living == nullptr) {
             continue;
         }
@@ -341,7 +344,8 @@ void BellBlockEntity::_showBellParticles(IWorld& world)
 
     // 统计 48 格内的实体数量（参考 MC 原版 i = nearbyEntities.filter(closerThan 48).count）
     i32 nearbyCount = 0;
-    for (LivingEntity* living : m_nearbyEntities) {
+    for (const auto& reference : m_nearbyEntities) {
+        LivingEntity* living = reference.get();
         if (living == nullptr) {
             continue;
         }
@@ -357,7 +361,8 @@ void BellBlockEntity::_showBellParticles(IWorld& world)
 
     // 统计范围内的灾厄村民数量，若无则直接返回
     bool hasRaider = false;
-    for (LivingEntity* living : m_nearbyEntities) {
+    for (const auto& reference : m_nearbyEntities) {
+        LivingEntity* living = reference.get();
         if (living != nullptr && _isRaiderWithinRange(*living)) {
             hasRaider = true;
             break;
@@ -373,7 +378,8 @@ void BellBlockEntity::_showBellParticles(IWorld& world)
     // 颜色计数器：初始 16700985，每个粒子发射前递增 5（对应 MC 原版 MutableInt.addAndGet(5)）
     i32 colorCounter = 16700985;
 
-    for (LivingEntity* living : m_nearbyEntities) {
+    for (const auto& reference : m_nearbyEntities) {
+        LivingEntity* living = reference.get();
         if (living == nullptr || !_isRaiderWithinRange(*living)) {
             continue;
         }

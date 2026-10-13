@@ -35,7 +35,8 @@ const END_SPAWN_TOLERANCE = 5;
 // Ref: tech_末地传送门（方块）.txt#用途（立即传送，无等待）
 function endPortalBlockImmediateTeleport(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     // 轮询断言：玩家在 10 tick 内传送到末地（立即传送特性）。
     // 末地传送门 onEntityCollision 直接调 changeDimension，无需 PortalTickSystem 计时。
@@ -77,7 +78,8 @@ function endPortalBlockImmediateTeleport(test: Test): void {
 // Ref: tech_末地传送门（方块）.txt#用途（主世界→末地）
 function endPortalBlockTargetsEndDimension(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     pollUntilSucceed(test, () => {
         const overworldPlayers = test.getDimension().getEntities({
@@ -94,7 +96,7 @@ function endPortalBlockTargetsEndDimension(test: Test): void {
             return false;
         }
         // 验证玩家在末地出生点附近（证明传送到末地，而非下界）。
-        const p = endPlayers[0];
+        const p = traveler;
         return (
             Math.abs(p.location.x - END_SPAWN_X) < END_SPAWN_TOLERANCE &&
             Math.abs(p.location.z - END_SPAWN_Z) < END_SPAWN_TOLERANCE
@@ -119,7 +121,8 @@ function endPortalBlockTargetsEndDimension(test: Test): void {
 // Ref: tech_末地传送门（方块）.txt#用途（传送冷却）
 function endPortalBlockCooldownPreventsRetransit(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     pollUntilSucceed(test, () => {
         const overworldPlayers = test.getDimension().getEntities({
@@ -172,6 +175,8 @@ export function registerEndPortalBlockBehaviorTests(): void {
         "end_portal_block_immediate_teleport",
         endPortalBlockImmediateTeleport,
     )
+        .batch("dimension_transfer_end_portal_block_immediate_teleport")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 
@@ -180,6 +185,8 @@ export function registerEndPortalBlockBehaviorTests(): void {
         "end_portal_block_targets_end_dimension",
         endPortalBlockTargetsEndDimension,
     )
+        .batch("dimension_transfer_end_portal_block_targets_end_dimension")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 
@@ -188,6 +195,8 @@ export function registerEndPortalBlockBehaviorTests(): void {
         "end_portal_block_cooldown_prevents_retransit",
         endPortalBlockCooldownPreventsRetransit,
     )
+        .batch("dimension_transfer_end_portal_block_cooldown_prevents_retransit")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(60);
 

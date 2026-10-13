@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityReference.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <memory>
@@ -288,7 +289,7 @@ private:
     Direction m_clickDirection;
 
     /// 附近实体缓存（搜索结果）
-    std::vector<LivingEntity*> m_nearbyEntities;
+    std::vector<EntityReference<LivingEntity>> m_nearbyEntities;
 
     /// 是否正在共振
     bool m_resonating = false;

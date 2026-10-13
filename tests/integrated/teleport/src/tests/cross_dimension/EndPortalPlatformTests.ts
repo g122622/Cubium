@@ -44,9 +44,11 @@ const PLATFORM_RADIUS = 2; // 5×5 平台，半径 2
 // 验证末地传送门的立即传送特性（无 80tick 等待）。
 function endPortalTransfersPlayerToEndSpawn(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:the_end", "traveler has not reached minecraft:the_end");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -58,7 +60,7 @@ function endPortalTransfersPlayerToEndSpawn(test: Test): void {
         const end = world.getDimension("minecraft:the_end");
         const endPlayers = end.getEntities({ type: "minecraft:player" });
         test.assert(endPlayers.length > 0, "player not found in the_end after end portal teleport");
-        const p = endPlayers[0];
+        const p = traveler;
         test.assert(
             Math.abs(p.location.x - END_SPAWN_X) < END_SPAWN_TOLERANCE &&
                 Math.abs(p.location.z - END_SPAWN_Z) < END_SPAWN_TOLERANCE,
@@ -70,11 +72,13 @@ function endPortalTransfersPlayerToEndSpawn(test: Test): void {
 // 验证末地黑曜石平台存在：传送后平台 5×5 范围应为黑曜石。
 function endPortalCreatesObsidianPlatform(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     // 轮询断言：玩家传送到末地后，验证黑曜石平台 5×5 全覆盖。
     // 平台中心 (100, 48, 0)，半径 2 → x∈[98,102], z∈[-2,2]。
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:the_end", "traveler has not reached minecraft:the_end");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -107,9 +111,11 @@ function endPortalCreatesObsidianPlatform(test: Test): void {
 // 对齐 C++ EndTeleporter::createEndSpawnPlatform：清空整个 5×5 列上方 4 层。
 function endPortalClearsSpaceAbovePlatform(test: Test): void {
     test.setBlockWithStates("minecraft:end_portal", PORTAL_POS, "");
-    test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    const traveler = test.spawnSimulatedPlayer(PORTAL_POS, "traveler");
+    test.runOnFinish(() => test.removeSimulatedPlayer(traveler));
 
     test.succeedWhen(() => {
+        test.assert(traveler.dimension.id === "minecraft:the_end", "traveler has not reached minecraft:the_end");
         const overworldPlayers = test.getDimension().getEntities({
             type: "minecraft:player",
             location: test.worldLocation(PIT_FROM),
@@ -142,14 +148,20 @@ function endPortalClearsSpaceAbovePlatform(test: Test): void {
 
 export function registerEndPortalPlatformTests(): void {
     GameTest.register("TeleportTests", "end_portal_transfers_to_spawn_point", endPortalTransfersPlayerToEndSpawn)
+        .batch("dimension_transfer_end_portal_transfers_to_spawn_point")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 
     GameTest.register("TeleportTests", "end_portal_creates_obsidian_platform", endPortalCreatesObsidianPlatform)
+        .batch("dimension_transfer_end_portal_creates_obsidian_platform")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 
     GameTest.register("TeleportTests", "end_portal_clears_space_above_platform", endPortalClearsSpaceAbovePlatform)
+        .batch("dimension_transfer_end_portal_clears_space_above_platform")
+        .tag("execution:sync-worldgen")
         .structureName("gametests:glass_pit")
         .maxTicks(100);
 }
