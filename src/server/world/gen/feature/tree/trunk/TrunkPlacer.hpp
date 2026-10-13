@@ -130,12 +130,13 @@ protected:
     [[nodiscard]] static bool canPlaceAt(WorldGenRegion& world, const BlockPos& pos);
 
     /**
-     * @brief 在位置下方放置泥土（如果不是泥土则替换）
+     * @brief 在指定地面位置放置泥土，并记录实际写入的位置。
      *
      * @param world 世界区域
-     * @param pos 位置
+     * @param groundPos 地面位置，不再向下偏移。
+     * @param trunkBlocks 树干生成器写入的位置，供树木装饰器使用。
      */
-    static void placeDirtUnder(WorldGenRegion& world, const BlockPos& pos);
+    static void placeDirtAt(WorldGenRegion& world, const BlockPos& groundPos, std::set<BlockPos>& trunkBlocks);
 
     /**
      * @brief 放置 2x2 树干层（用于巨型树木）

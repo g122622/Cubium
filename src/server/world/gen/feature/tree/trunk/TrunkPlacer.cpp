@@ -85,16 +85,14 @@ bool TrunkPlacer::canPlaceAt(WorldGenRegion& world, const BlockPos& pos)
     return state != nullptr && BlockTags::LOGS().contains(*state);
 }
 
-void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos)
+void TrunkPlacer::placeDirtAt(WorldGenRegion& world, const BlockPos& groundPos, std::set<BlockPos>& trunkBlocks)
 {
-    // 检查下方位置
-    BlockPos belowPos = pos.down();
-    if (belowPos.y < world::MIN_BUILD_HEIGHT) {
+    if (groundPos.y < world::MIN_BUILD_HEIGHT) {
         return;
     }
 
     // 获取下方方块
-    const BlockState* state = world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
+    const BlockState* state = world.getBlockState(groundPos);
     if (state == nullptr) {
         return;
     }
@@ -103,7 +101,9 @@ void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos)
     if (!BlockTags::DIRT().contains(*state) || state->is(VanillaBlocks::GRASS_BLOCK) ||
         state->is(VanillaBlocks::MYCELIUM)) {
         if (VanillaBlocks::DIRT) {
-            world.setBlockState(belowPos.x, belowPos.y, belowPos.z, &VanillaBlocks::DIRT->defaultState());
+            world.setBlockState(groundPos, &VanillaBlocks::DIRT->defaultState());
+            // 装饰器的最低位置包括底部泥土写入，遗漏它会使落叶取点的高度偏移一格。
+            trunkBlocks.insert(groundPos);
         }
     }
 }

@@ -67,7 +67,7 @@ std::vector<FoliagePosition> CherryTrunkPlacer::placeTrunk(WorldGenRegion& world
     const BlockState* trunkBlock)
 {
     // 在起始位置下方放置泥土
-    placeDirtUnder(world, startPos);
+    placeDirtAt(world, startPos.down(), trunkBlocks);
 
     // 计算两个分支的起始高度（从树顶偏移）
     i32 branchStartI =

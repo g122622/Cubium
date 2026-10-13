@@ -60,7 +60,7 @@ std::vector<FoliagePosition> ForkyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     const BlockState* trunkBlock)
 {
     // MC: setDirtAt(startPos.below())
-    placeDirtUnder(world, startPos.down());
+    placeDirtAt(world, startPos.down(), trunkBlocks);
 
     std::vector<FoliagePosition> foliagePositions;
 

@@ -991,7 +991,7 @@ TEST_F(BendingTrunkPlacerTest, PlaceTrunkFoliagePositionRadiusBonusZero)
 TEST_F(BendingTrunkPlacerTest, PlaceTrunkDirtUnderBase)
 {
     // 验证placeTrunk在草方块地面上正常工作，不会崩溃
-    // 并且正确放置了树干方块（placeDirtUnder在基类中已测试）
+    // 并且正确放置了树干方块。
     BendingTrunkPlacer placer(4, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
     const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
     std::set<BlockPos> trunkBlocks;

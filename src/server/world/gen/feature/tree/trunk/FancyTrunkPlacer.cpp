@@ -56,7 +56,7 @@ std::vector<FoliagePosition> FancyTrunkPlacer::placeTrunk(WorldGenRegion& world,
     i32 foliageHeight = static_cast<i32>(std::floor(static_cast<f64>(trunkHeight) * 0.618));
 
     // 放置底部泥土
-    placeDirtUnder(world, startPos);
+    placeDirtAt(world, startPos.down(), trunkBlocks);
 
     // 计算分支数量
     i32 branchCount =

@@ -457,6 +457,38 @@ TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsCannotStackOnPreviouslyPl
     EXPECT_TRUE(context.checkBlock(plantPos, [](const BlockState& state) { return state.isSolid(); }));
 }
 
+TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsUseRecordedDirtHeight)
+{
+    using namespace world::gen::feature::tree::decorator;
+    StraightTrunkPlacer trunk(5, 0, 0);
+    math::JavaLegacyRandom random(12345);
+    std::set<BlockPos> written;
+    trunk.placeTrunk(*m_region, random, 5, BlockPos(8, 1, 8), written, &VanillaBlocks::OAK_LOG->defaultState());
+    ASSERT_TRUE(written.contains(BlockPos(8, 0, 8)));
+    ASSERT_TRUE(m_region->getBlockState(8, 0, 8)->is(VanillaBlocks::DIRT));
+    TreeDecoratorContext context(*m_region,
+        nullptr,
+        nullptr,
+        [this](const BlockPos& pos, const BlockState* state) { m_region->setBlockState(pos, state); },
+        random,
+        std::vector<BlockPos>(written.begin(), written.end()),
+        {},
+        {});
+    PlaceOnGroundDecorator decorator(128,
+        1,
+        0,
+        std::make_unique<world::gen::feature::state::SimpleBlockStateProvider>(
+            &block_registry::GardenBlocks::LEAF_LITTER->defaultState()));
+    decorator.place(context);
+    i32 litterCount = 0;
+    for (i32 x = 7; x <= 9; ++x) {
+        for (i32 z = 7; z <= 9; ++z) {
+            litterCount += m_region->getBlockState(x, 1, z)->is(block_registry::GardenBlocks::LEAF_LITTER) ? 1 : 0;
+        }
+    }
+    EXPECT_GT(litterCount, 0) << "Ground decoration must sample the recorded dirt height rather than the trunk base";
+}
+
 TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnFarmland)
 {
     TreeFeature feature;
@@ -596,7 +628,17 @@ TEST_F(TreeFeaturePlacementWorldTest, FancyTrunkMatchesJavaOnBothSidesOfWorldOri
                 expectedLogs.emplace(horizontalOrigin + 1, y, horizontalOrigin + z);
             }
         }
-        EXPECT_EQ(logs, expectedLogs);
+        std::set<BlockPos> actualLogs;
+        for (const auto& pos : logs) {
+            if (m_region->getBlockState(pos)->is(VanillaBlocks::OAK_LOG)) {
+                actualLogs.insert(pos);
+            }
+        }
+        EXPECT_EQ(actualLogs, expectedLogs);
+        auto expectedWritten = expectedLogs;
+        expectedWritten.emplace(horizontalOrigin, 0, horizontalOrigin);
+        EXPECT_EQ(logs, expectedWritten);
+        EXPECT_TRUE(m_region->getBlockState(horizontalOrigin, 0, horizontalOrigin)->is(VanillaBlocks::DIRT));
         ASSERT_EQ(attachments.size(), 3u);
         EXPECT_EQ(attachments[0].pos, BlockPos(horizontalOrigin, 6, horizontalOrigin));
         EXPECT_EQ(attachments[1].pos, BlockPos(horizontalOrigin + 1, 5, horizontalOrigin + 2));
