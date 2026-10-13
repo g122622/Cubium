@@ -119,6 +119,8 @@ private:
     GameTestState m_state = GameTestState::NotStarted;
     i32 m_tickCount = 0;
     std::optional<GameTestError> m_error;
+    /// 最近一次未满足的完成条件，超时时保留具体原因。
+    std::optional<GameTestError> m_lastSucceedConditionError;
     RetryOptions m_retryOptions = RetryOptions::noRetries();
     bool m_testFunctionStarted = false;
     const std::chrono::steady_clock::time_point m_createdAt = std::chrono::steady_clock::now();

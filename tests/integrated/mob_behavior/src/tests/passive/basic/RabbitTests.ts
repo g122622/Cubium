@@ -26,15 +26,24 @@ function rabbitFleesPlayer(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 18, y: 2, z: 4 }, "scary", 0 as any);
   let phase = 0;
   let rabbitStartX = rabbit.location.x;
+  let previousRabbit = { x: rabbit.location.x, z: rabbit.location.z };
+  let settledSamples = 0;
   for (let tick = 10; tick <= 450; tick += 5) {
     test.runAtTickTime(tick, () => {
       const dx = rabbit.location.x - player.location.x;
       const dz = rabbit.location.z - player.location.z;
+      if (phase === 0) {
+        const moved = Math.hypot(rabbit.location.x - previousRabbit.x, rabbit.location.z - previousRabbit.z);
+        settledSamples = moved < 0.05 ? settledSamples + 1 : 0;
+        previousRabbit = { x: rabbit.location.x, z: rabbit.location.z };
+      }
       if (dx * dx + dz * dz > 4 * 4) {
-        if (phase === 0 && rabbit.location.x - rabbitStartX > 2) {
+        if (phase === 0 && rabbit.location.x - rabbitStartX > 2 && settledSamples >= 3) {
+          // 逃跑目标在本段路径结束前不会重算；停稳后再从右侧接近，避免旧路径越过玩家。
           phase = 1;
           rabbitStartX = rabbit.location.x;
-          player.teleport({ x: rabbit.location.x + 2, y: rabbit.location.y, z: rabbit.location.z });
+          const rightBoundary = test.worldLocation({ x: 39, y: 2, z: 4 }).x + 0.5;
+          player.teleport({ x: Math.min(rabbit.location.x + 2, rightBoundary), y: rabbit.location.y, z: rabbit.location.z });
         } else if (phase === 1 && rabbitStartX - rabbit.location.x > 2) {
           test.succeed();
           return;

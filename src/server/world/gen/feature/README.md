@@ -118,6 +118,8 @@ graph TB
 
 ## 容易踩的坑
 
+- 通用方块特征放置双层植物时必须验证上方为空气并生成上下两部分；只写下半部分会留下错误空位，影响后续植被放置。
+
 ### 1. 特征 ID 使用 ResourceLocation
 
 特征不再使用 u32 整型 ID，统一以 `ResourceLocation`（如 `minecraft:monster_room`）标识。`ConfiguredFeatureBase::id()` 返回其 ResourceLocation，由 `ConfiguredFeatureRegistry` 按 `ResourceLocation` 索引。biome 的 `features` 数组、`placed_feature` JSON 的 `feature` 字段、`FeatureSorter` 的拓扑 key 全部是 `ResourceLocation`，不要混入整型 ID。

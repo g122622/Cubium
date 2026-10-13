@@ -1,10 +1,12 @@
 #include "server/test/facade/GameTestHelper.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 
+#include "common/entity/core/EntityReference.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/test/base/error/GameTestErrorContext.hpp"
 #include "server/test/framework/instance/BaseGameTestInstance.hpp"
+#include "server/test/framework/listener/IGameTestListener.hpp"
 #include "server/test/framework/sequence/GameTestSequence.hpp"
 #include "server/test/minecraft/structure/StructureBounds.hpp"
 #include "server/test/simulated/SimulatedPlayer.hpp" // spawnSimulatedPlayer / removeSimulatedPlayer
@@ -53,6 +55,27 @@ namespace mc::test {
 using StructureBoundingBox = mc::world::gen::structure::StructureBoundingBox;
 
 namespace {
+
+// 用户完成回调先执行，状态通知时再移除本测试创建的模拟玩家，覆盖迁出结构和跨维度的情况。
+class _SimulatedPlayerCleanupListener final : public mc::test::IGameTestListener {
+public:
+    explicit _SimulatedPlayerCleanupListener(mc::test::SimulatedPlayer& player)
+        : m_player(&player)
+    {}
+    void onTestStructureLoaded(mc::test::BaseGameTestInstance&) override {}
+    void onTestStarted(mc::test::BaseGameTestInstance&) override {}
+    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override {}
+    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override {}
+    void onTestPassed(mc::test::BaseGameTestInstance&) override { _removePlayer(); }
+    void onTestFailed(mc::test::BaseGameTestInstance&) override { _removePlayer(); }
+
+private:
+    void _removePlayer()
+    {
+        if (auto* player = m_player.get()) player->discard();
+    }
+    mc::EntityReference<mc::test::SimulatedPlayer> m_player;
+};
 
 // 判断 worldPos 当前方块是否已与目标 desired 一致（含 air 匹配：当前为 air 且目标也为 air）。
 // 用于 setBlock 等写入操作的兜底判定：ServerWorld::setBlockState 在“格子已是目标状态”时返回
@@ -1267,6 +1290,7 @@ GameTestResult GameTestHelper::spawnSimulatedPlayer(
             "Failed to spawn SimulatedPlayer '{0}' at {1}",
             {name, relativePos.toString()}};
     }
+    m_instance.addListener(std::make_shared<_SimulatedPlayerCleanupListener>(*outPlayer));
     return std::nullopt;
 }
 

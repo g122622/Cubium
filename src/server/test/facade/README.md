@@ -42,6 +42,8 @@ facade/
 
 ## 容易踩的坑
 
+- 测试创建的模拟玩家在完成通知时自动移除，覆盖离开结构和跨维度的情况；用户完成回调先执行，仍可使用该玩家恢复规则。生命周期引用避免访问提前移除或析构的玩家，真实玩家不参与此清理。
+
 1. **`GameTestServer` 必须直接继承 `MinecraftServer`**——不继承 `IntegratedServer`（其 `initialize` 末尾起 `m_serverThread` 线程）或 `StandaloneServer`（其 `run()` 起线程）。`run()` 在调用线程内同步循环 `tick()`，CI 单线程驱动。`m_settings` 须为本类自有成员（基类 `m_settings` 是 `ServerSettings&` 引用，绑定到此）。
 2. **`GameTestServer::initialize` 须注入 vanilla builtin 数据包**——worldgen 100% 数据驱动，空数据包致 `RandomState::create` 断言失败（见内存 `integratedserver-empty-datapack-crash`）。镜像 `IntegratedServer::initialize` 的 `ensureVanillaBuiltinPack` 调用。
 3. **`GameTestServer::run()` 循环顺序**：`MinecraftServer::tick()`（世界/实体/时间）→ `GameTestTicker::instance().tick()`（测试实例状态机）→ `runner->tick()`（批次调度）。顺序错则实例 tick 与批次推进不同步。`GameTestRunner::tick()` 内部**不**再调 ticker（避免双重推进，见 `runner/README` 坑 1）。

@@ -140,6 +140,7 @@ jobs:
             ctest-meta.tar.gz
             runner-info.json
             tests/integrated/*/scripts/
+            tests/integrated/*/structures/
     needs: prepare
   release-build:
     name: Release Build (Linux / Release / no profiler)
