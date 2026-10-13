@@ -631,11 +631,8 @@ void NoiseChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chun
 
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
-    // MC 1.21: 对齐原版 SurfaceSystem.buildSurface 的 biome 查询路径。
-    // 原版传入的 BiomeManager 底层走 LevelReader.getNoiseBiome → ChunkAccess.getNoiseBiome
-    // → 查已生成的 BiomeContainer（O(1) 数组索引，无 Voronoi），因为 buildSurface 时区块
-    // 已过 BIOMES 阶段。Cubium 的 region.getBiome 等价（getIChunk + getBiomeAtBlock），
-    // 而 m_biomeManager->getBiome 走全精度 MultiNoise 采样 + Voronoi，与原版不符且昂贵。
+    // 地表规则使用区域内已生成的区块群系，并由区域进行方块分辨率的抖动缩放。
+    // 不能直接取原始 quart，也不能重新计算噪声源覆盖存档中的群系数据。
     const auto getBiomeAt = [&region](i32 x, i32 y, i32 z) -> BiomeId { return region.getBiome(x, y, z); };
     // SurfaceRules.Context 直接持有 NoiseChunk 引用，
     // 通过 NoiseChunk.samplePreliminarySurfaceLevel() 查询预备表面高度
