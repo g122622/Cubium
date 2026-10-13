@@ -238,13 +238,13 @@ public:
      * @brief 设置所在世界。
      * @param world 世界指针。
      */
-    void setWorld(server::ServerWorld* world) { m_world = world; }
+    void setWorld(server::ServerWorld* world);
 
     /**
      * @brief 获取所在世界。
      * @return 当前所在世界指针。
      */
-    [[nodiscard]] server::ServerWorld* getWorld() const { return m_world; }
+    [[nodiscard]] server::ServerWorld* getWorld() const;
 
     /**
      * @brief 设置服务器引用。
@@ -901,7 +901,6 @@ private:
 
 private:
     mc::server::net::ServerClientConnection* m_connection = nullptr;
-    server::ServerWorld* m_world = nullptr;
     server::IServer* m_server = nullptr;
     std::shared_ptr<server::PlayerAdvancements> m_advancements;
     server::stats::StatisticsManager m_statistics;

@@ -236,8 +236,8 @@ void ServerPlayer::openSignEditor(const BlockPos& pos, bool isFrontSide)
 {
     // 先发送告示牌当前的 BlockEntity 数据给客户端，确保编辑器打开时能显示已有文本
     // 对应 MC Java: SignBlock.openTextEdit() 前，客户端通过区块数据已持有 BlockEntity
-    if (m_world != nullptr) {
-        const BlockEntity* entity = m_world->getBlockEntity(pos);
+    if (getWorld() != nullptr) {
+        const BlockEntity* entity = getWorld()->getBlockEntity(pos);
         if (entity != nullptr) {
             // 1.21.11 BlockEntityData：blockPosPacked + blockEntityType + CompoundTag（无长度前缀）。
             auto tag = std::make_shared<nbt::CompoundTag>(entity->getUpdateTag());
@@ -460,10 +460,10 @@ entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
     }
 
     // 获取世界引用（server::ServerWorld* 可隐式转换为 IWorld*）
-    if (m_world == nullptr) {
+    if (getWorld() == nullptr) {
         return entity::SleepResult::OTHER_PROBLEM;
     }
-    IWorld* world = m_world;
+    IWorld* world = getWorld();
 
     // 2. 检查维度是否允许睡眠
     DimensionType dimType = DimensionType::fromId(world->dimension());
@@ -546,8 +546,8 @@ void ServerPlayer::stopSleepInBed(bool resetTimer)
     _sendWakeUpPacket();
 
     // 清除床的占用状态，并计算起床位置
-    if (bedPos.has_value() && m_world != nullptr) {
-        const BlockState* bedState = m_world->getBlockState(bedPos.value());
+    if (bedPos.has_value() && getWorld() != nullptr) {
+        const BlockState* bedState = getWorld()->getBlockState(bedPos.value());
 
         // 在 setBlockState 之前提取所需属性值，避免悬挂指针
         bool hasOccupied = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED()));
@@ -557,12 +557,12 @@ void ServerPlayer::stopSleepInBed(bool resetTimer)
         // 清除床的占用状态
         if (hasOccupied) {
             BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
-            m_world->setBlockState(bedPos.value(), &newBedState, world::BlockUpdateFlags::UPDATE_ALL);
+            getWorld()->setBlockState(bedPos.value(), &newBedState, world::BlockUpdateFlags::UPDATE_ALL);
         }
 
         // 使用 BedBlock::findStandUpPosition 计算起床位置
         if (hasFacing) {
-            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos.value(), bedFacing, yaw());
+            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*getWorld(), bedPos.value(), bedFacing, yaw());
 
             // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
             Vector3d bedCenter(bedPos.value().x + 0.5, bedPos.value().y, bedPos.value().z + 0.5);
@@ -641,8 +641,8 @@ Vector3d ServerPlayer::determineRespawnPosition() const
     }
 
     // 2. 使用世界出生点
-    if (m_world != nullptr) {
-        return m_world->worldSpawnPoint();
+    if (getWorld() != nullptr) {
+        return getWorld()->worldSpawnPoint();
     }
 
     // 3. 默认位置
@@ -766,7 +766,7 @@ bool ServerPlayer::onPortalTriggered()
 void ServerPlayer::onInsideBlock(const BlockState& blockState)
 {
     // 触发 EnterBlockTrigger 成就
-    if (m_world == nullptr) {
+    if (getWorld() == nullptr) {
         return;
     }
 
@@ -781,7 +781,7 @@ void ServerPlayer::onInsideBlock(const BlockState& blockState)
         static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
 
     // 发布 EnterBlockEvent
-    m_world->onEnterBlock(static_cast<PlayerId>(id()), pos, &blockState);
+    getWorld()->onEnterBlock(static_cast<PlayerId>(id()), pos, &blockState);
 }
 
 bool ServerPlayer::changeDimension(DimensionId targetDim)
@@ -799,8 +799,8 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     if (hasPassengers()) {
         auto passengers = getPassengers(); // 复制
         for (EntityInstanceId passengerId : passengers) {
-            if (m_world != nullptr) {
-                if (Entity* passenger = m_world->getEntity(passengerId)) {
+            if (getWorld() != nullptr) {
+                if (Entity* passenger = getWorld()->getEntity(passengerId)) {
                     passenger->stopRiding();
                 }
             }
@@ -895,8 +895,8 @@ bool ServerPlayer::teleportToDimension(DimensionId targetDim, const Vector3d& po
     if (hasPassengers()) {
         auto passengers = getPassengers();
         for (EntityInstanceId passengerId : passengers) {
-            if (m_world != nullptr) {
-                if (Entity* passenger = m_world->getEntity(passengerId)) {
+            if (getWorld() != nullptr) {
+                if (Entity* passenger = getWorld()->getEntity(passengerId)) {
                     passenger->stopRiding();
                 }
             }
@@ -937,6 +937,17 @@ bool ServerPlayer::teleportToDimension(DimensionId targetDim, const Vector3d& po
     return true;
 }
 
+void ServerPlayer::setWorld(server::ServerWorld* world)
+{
+    Entity::setWorld(world);
+    setPhysicsEngine(world != nullptr ? world->physicsEngine() : nullptr);
+}
+
+server::ServerWorld* ServerPlayer::getWorld() const
+{
+    return static_cast<server::ServerWorld*>(Entity::world());
+}
+
 bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector3d& targetPos)
 {
     if (m_server->dimensionManager().getDimension(targetDim) == nullptr) {
@@ -950,14 +961,14 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
     bool success = m_server->dimensionManager().transferPlayerToDimension(playerId(), targetDim, targetPos);
 
     if (success) {
-        // 迁移前 m_world 仍指向源世界（transferPlayerToDimension 不改 m_world）
-        mc::server::ServerWorld* sourceWorld = m_world;
+        // 迁移前 getWorld() 仍指向源世界（transferPlayerToDimension 不改 getWorld()）
+        mc::server::ServerWorld* sourceWorld = getWorld();
 
         // 更新实体的维度属性
         setDimension(targetDim);
         setPosition(static_cast<f32>(targetPos.x), static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z));
 
-        // 更新 m_world 指针到目标维度的 ServerWorld
+        // 更新 getWorld() 指针到目标维度的 ServerWorld
         ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
         mc::server::ServerWorld* targetWorld = (targetDimension != nullptr) ? targetDimension->world() : nullptr;
         if (targetWorld != nullptr) {
@@ -967,7 +978,7 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
             targetWorld->chunkManager()->updatePlayerPosition(playerId(), targetPos.x, targetPos.z);
         }
 
-        // 缺陷B修复：迁移 EntityManager 归属。否则实体 m_world 指向目标世界但对象仍留源
+        // 缺陷B修复：迁移 EntityManager 归属。否则实体 getWorld() 指向目标世界但对象仍留源
         // ServerWorld.EntityManager，源世界 tick 仍 tick 它并读目标世界方块 -> 数据不一致。
         //
         // unique_ptr move 不移动 Entity 对象（仅转移所有权），故 JS 侧 / 其他裸指针持有者仍有效。
@@ -994,7 +1005,7 @@ bool ServerPlayer::_performDimensionTransfer(DimensionId targetDim, const Vector
                     // 跨维度迁移保留原 ID 是常态（各 EntityManager 的 ID 空间独立，碰撞罕见）。
                     [[maybe_unused]] EntityInstanceId newId = targetEntityManager.addEntity(std::move(entityPtr));
                 } else {
-                    // takeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 m_world 指向源世界）。
+                    // takeEntity 失败：实体不在源 EntityManager（理论上不该发生，因 getWorld() 指向源世界）。
                     // 记日志但不回滚——transferPlayerToDimension 已更新 m_playerDimensions，回滚会引入
                     // 更严重的不一致。
                     spdlog::warn("ServerPlayer::_performDimensionTransfer: takeEntity returned null for "
@@ -1057,7 +1068,7 @@ const scoreboard::Scoreboard* ServerPlayer::getScoreboard() const
 bool ServerPlayer::canHarmPlayer(const Player& target) const
 {
     // 检查 PvP 游戏规则
-    if (m_world != nullptr && !m_world->isPvpAllowed()) {
+    if (getWorld() != nullptr && !getWorld()->isPvpAllowed()) {
         return false;
     }
     // 委托给基类检查队伍友伤规则
@@ -1085,8 +1096,8 @@ void ServerPlayer::indicateDamage(f64 d0, f64 d1)
 {
     // 基类设置 m_hurtDir；服务端额外广播受伤动画包（携带 hurtDir）给追踪者与受害者自己。
     Player::indicateDamage(d0, d1);
-    if (m_world != nullptr) {
-        m_world->broadcastHurtAnimation(m_id, m_hurtDir);
+    if (getWorld() != nullptr) {
+        getWorld()->broadcastHurtAnimation(m_id, m_hurtDir);
     }
 }
 
@@ -1108,9 +1119,9 @@ void ServerPlayer::die(DamageSource& cause)
     Player::die(cause);
 
     // 2. SHOW_DEATH_MESSAGES 游戏规则检查（ServerPlayer.java:881-910）
-    if (m_world != nullptr) {
+    if (getWorld() != nullptr) {
         const bool showDeathMessages =
-            m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::SHOW_DEATH_MESSAGES);
+            getWorld()->getGameRules().getBoolean(world::gamerule::GameRuleKeys::SHOW_DEATH_MESSAGES);
 
         // 死亡消息：从 CombatTracker 取 getDeathMessage()。
         std::string deathMessage = combatTracker().getDeathMessage();
@@ -1188,7 +1199,8 @@ void ServerPlayer::die(DamageSource& cause)
     removeEntitiesOnShoulder();
 
     // 4. FORGIVE_DEAD_PLAYERS → tellNeutralMobsThatIDied()（ServerPlayer.java:913-915）
-    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FORGIVE_DEAD_PLAYERS)) {
+    if (getWorld() != nullptr &&
+        getWorld()->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FORGIVE_DEAD_PLAYERS)) {
         tellNeutralMobsThatIDied();
     }
 
@@ -1251,10 +1263,10 @@ void ServerPlayer::die(DamageSource& cause)
 void ServerPlayer::removeEntitiesOnShoulder()
 {
     // 守卫避免玩家刚让鹦鹉落肩（timeEntitySatOnShoulder 近期）就被立即生成回世界。
-    if (m_world == nullptr) {
+    if (getWorld() == nullptr) {
         return;
     }
-    const u64 gameTime = m_world->getGameTime();
+    const u64 gameTime = getWorld()->getGameTime();
     if (static_cast<u64>(m_timeEntitySatOnShoulder) + 20ULL < gameTime) {
         respawnEntityOnShoulder(m_shoulderEntityLeft);
         m_shoulderEntityLeft = nbt::tags::compound_tag{};
@@ -1268,14 +1280,14 @@ void ServerPlayer::respawnEntityOnShoulder(const nbt::tags::compound_tag& should
     if (shoulderNbt.value.empty()) {
         return;
     }
-    if (m_world == nullptr) {
+    if (getWorld() == nullptr) {
         return;
     }
 
     // 从 NBT 反序列化实体（对齐 EntityType.create(TagValueInput.create(...))）。
     // EntityDeserializer::deserialize 接受 const compound_tag& 和 ecs::EntityRegistry&，
-    // 返回 Result<unique_ptr<Entity>>。ServerPlayer 无 entityRegistry()，通过 m_world->entityRegistry() 获取。
-    auto* registry = m_world->entityRegistry();
+    // 返回 Result<unique_ptr<Entity>>。ServerPlayer 无 entityRegistry()，通过 getWorld()->entityRegistry() 获取。
+    auto* registry = getWorld()->entityRegistry();
     if (registry == nullptr) {
         return;
     }
@@ -1301,7 +1313,7 @@ void ServerPlayer::respawnEntityOnShoulder(const nbt::tags::compound_tag& should
 
     // 生成到世界（对齐 serverlevel.addWithUUID(p_445299_)）。
     // spawnEntity 接受 unique_ptr<Entity>（所有权转移），返回服务端分配的 EntityInstanceId。
-    static_cast<void>(m_world->spawnEntity(std::move(spawnedEntity)));
+    static_cast<void>(getWorld()->spawnEntity(std::move(spawnedEntity)));
 }
 
 void ServerPlayer::tellNeutralMobsThatIDied()
@@ -1334,7 +1346,7 @@ void ServerPlayer::tellNeutralMobsThatIDied()
     // 注意：原版仅对持久愤怒目标 == 死亡玩家的中立生物调 stopBeingAngry()。
     // Cubium 的 IAngerable 无持久愤怒目标概念（getPersistentAngerTarget/stopBeingAngry 不存在），
     // 此处对范围内所有愤怒中立生物统一清除愤怒——这是与原版的已知偏差。
-    if (m_world == nullptr) {
+    if (getWorld() == nullptr) {
         return;
     }
 
@@ -1345,7 +1357,7 @@ void ServerPlayer::tellNeutralMobsThatIDied()
 
     // 获取范围内所有实体，过滤非旁观者 + 实现 IAngerable 的中立生物。
     // 注意：getEntitiesInAABB 返回碰撞箱与 searchBox 相交的所有实体，无类型过滤。
-    const auto nearbyEntities = m_world->getEntitiesInAABB(searchBox);
+    const auto nearbyEntities = getWorld()->getEntitiesInAABB(searchBox);
     for (Entity* entity : nearbyEntities) {
         if (entity == nullptr) {
             continue;
@@ -1589,7 +1601,7 @@ void ServerPlayer::tick()
         //
         // 此处补一次 doBlockCollisions()：位置已由移动包处理完毕，此时遍历碰撞箱覆盖的方块、触发
         // onEntityCollision 回调是正确时机，等价于 vanilla Entity.move 末尾的方块碰撞处理。
-        // doBlockCollisions() 内部已守卫 m_world==nullptr；SimulatedPlayer 已在上方 updatePhysics()
+        // doBlockCollisions() 内部已守卫 getWorld()==nullptr；SimulatedPlayer 已在上方 updatePhysics()
         // 末尾（Player.cpp:1357）调用过，故仅在真实玩家分支补此调用，避免重复触发回调。
         doBlockCollisions();
     }
@@ -1619,8 +1631,8 @@ void ServerPlayer::onCameraEntityChanged(
 
     if (newCameraId.has_value()) {
         // 传送到新的旁观目标实体位置
-        if (m_world != nullptr) {
-            Entity* target = m_world->getEntity(newCameraId.value());
+        if (getWorld() != nullptr) {
+            Entity* target = getWorld()->getEntity(newCameraId.value());
             if (target != nullptr) {
                 setPosition(target->position());
                 setRotation(target->yaw(), target->pitch());
@@ -1656,12 +1668,12 @@ void ServerPlayer::tickSpectator()
     EntityInstanceId cameraEntityId = getCameraEntityId().value();
 
     // 获取目标实体
-    if (m_world == nullptr) {
+    if (getWorld() == nullptr) {
         resetCamera();
         return;
     }
 
-    Entity* target = m_world->getEntity(cameraEntityId);
+    Entity* target = getWorld()->getEntity(cameraEntityId);
     if (target == nullptr || target->isRemoved()) {
         // 目标实体已消失或死亡，停止旁观
         resetCamera();
