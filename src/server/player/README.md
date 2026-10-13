@@ -164,3 +164,7 @@ PvP 保护机制的单元测试位于：
 `getKnownMovement()` 回退到自身速度。
 
 服务器链接和对话框通过 ServerPlayer 的 sendServerLinks/showDialog/clearDialog 发送；对话框可用命名资源或直接定义，整数 NBT 标签须保持 Int/Long。
+
+### 玩家世界引用
+
+ServerPlayer 的 typed 世界视图与 Entity::world 共用同一指针，跨维度更新必须立即体现在脚本、实体行为及服务端访问中。禁止额外缓存同名世界成员造成状态分裂。

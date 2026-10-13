@@ -265,6 +265,54 @@ TEST_F(ExperienceOrbEntityTest, TrackingPlayer)
     EXPECT_EQ(orb->getTrackingPlayer(), nullptr);
 }
 
+namespace {
+class _OrbTrackingWorld final : public mc::test::BaseTestWorld {
+public:
+    std::vector<Entity*> players;
+    std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override { return players; }
+};
+} // namespace
+
+TEST_F(ExperienceOrbEntityTest, CachedPlayerReferenceExpiresAfterPlayerDestruction)
+{
+    _OrbTrackingWorld world;
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "tracked", mc::test::testEcsRegistry());
+    player->setPosition(1.0f, 10.0f, 0.0f);
+    world.players = {player.get()};
+    orb->setWorld(&world);
+    orb->setPosition(0.0f, 10.0f, 0.0f);
+    orb->setId(EntityInstanceId(99));
+    orb->setPickupDelay(100);
+    orb->tick();
+    ASSERT_EQ(orb->getTrackingPlayer(), player.get());
+    world.players.clear();
+    player.reset();
+    EXPECT_EQ(orb->getTrackingPlayer(), nullptr);
+    orb->tick();
+    EXPECT_FALSE(orb->isBeingTracked());
+    orb->setWorld(nullptr);
+}
+
+TEST_F(ExperienceOrbEntityTest, CachedPlayerReferenceExpiresOnLogicalRemoval)
+{
+    _OrbTrackingWorld world;
+    Player player(EntityInstanceId(1), "tracked", mc::test::testEcsRegistry());
+    player.setPosition(1.0f, 10.0f, 0.0f);
+    world.players = {&player};
+    orb->setWorld(&world);
+    orb->setPosition(0.0f, 10.0f, 0.0f);
+    orb->setId(EntityInstanceId(99));
+    orb->setPickupDelay(100);
+    orb->tick();
+    ASSERT_EQ(orb->getTrackingPlayer(), &player);
+    world.players.clear();
+    player.discard();
+    EXPECT_EQ(orb->getTrackingPlayer(), nullptr);
+    orb->tick();
+    EXPECT_FALSE(orb->isBeingTracked());
+    orb->setWorld(nullptr);
+}
+
 // ========== 实体类型测试 ==========
 
 TEST_F(ExperienceOrbEntityTest, EntityType)

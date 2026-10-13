@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityReference.hpp"
 #include "common/entity/experience/ExperienceConstants.hpp"
 #include <memory>
 #include <string>
@@ -192,7 +193,7 @@ public:
     /**
      * @brief 获取追踪的玩家
      */
-    [[nodiscard]] Player* getTrackingPlayer() const { return m_trackingPlayer; }
+    [[nodiscard]] Player* getTrackingPlayer() const { return m_trackingPlayer.get(); }
 
     // ========== 合并 ==========
 
@@ -274,11 +275,11 @@ private:
      */
     void _initData();
 
-    i32 m_xpValue = 1;                  // 经验值
-    i32 m_age = 0;                      // 存活时间 (ticks)
-    i32 m_pickupDelay = 0;              // 拾取延迟 (MC原版默认为0)
-    i32 m_health = 5;                   // 生命值（可被攻击摧毁）
-    Player* m_trackingPlayer = nullptr; // 追踪的玩家
+    i32 m_xpValue = 1;                        // 经验值
+    i32 m_age = 0;                            // 存活时间 (ticks)
+    i32 m_pickupDelay = 0;                    // 拾取延迟 (MC原版默认为0)
+    i32 m_health = 5;                         // 生命值（可被攻击摧毁）
+    EntityReference<Player> m_trackingPlayer; // 追踪玩家的非拥有生命周期引用
 
     // 玩家搜索缓存：每 20 + entityId % 100 ticks 搜索一次
     i32 m_tickCounter = 0;    // 每tick递增的计数器

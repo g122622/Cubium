@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <utility>
 
 namespace mc {
 
@@ -26,8 +27,9 @@ public:
     /** @brief 绑定当前有效的实体指针，空指针表示清除引用 */
     EntityReference& operator=(T* entity)
     {
+        auto lifetime = entity != nullptr ? entity->referenceLifetime() : std::weak_ptr<const void>{};
+        m_lifetime = std::move(lifetime);
         m_entity = entity;
-        m_lifetime = entity != nullptr ? entity->referenceLifetime() : std::weak_ptr<const void>{};
         return *this;
     }
 

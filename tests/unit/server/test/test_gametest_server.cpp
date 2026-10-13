@@ -46,6 +46,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
 #include "server/test/facade/GameTestServer.hpp"
 #include "server/test/framework/ticker/GameTestTicker.hpp"
@@ -196,6 +197,28 @@ TEST_F(GameTestServerFixture, TestOwnedPlayerOutsideStructureIsRemovedAfterUserF
         instance.succeed();
         EXPECT_TRUE(callbackRan);
         EXPECT_TRUE(player->isRemoved());
+    }
+    server.stop();
+}
+
+TEST_F(GameTestServerFixture, ServerPlayerWorldViewsShareTheEntityWorldPointer)
+{
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "NoSuchSuite.*";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto* world = server.dimensionManager().getOverworld()->world();
+    {
+        mc::ServerPlayer player(mc::EntityInstanceId(1), "world-views", *world->entityRegistry());
+        player.setWorld(world);
+        EXPECT_EQ(player.getWorld(), world);
+        EXPECT_EQ(player.world(), world);
+        static_cast<mc::Entity&>(player).setWorld(nullptr);
+        EXPECT_EQ(player.getWorld(), nullptr);
+        player.setWorld(world);
+        EXPECT_EQ(player.world(), world);
+        player.setWorld(nullptr);
     }
     server.stop();
 }

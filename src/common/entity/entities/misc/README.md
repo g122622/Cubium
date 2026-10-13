@@ -133,3 +133,7 @@
     14. **OminousItemSpawnerEntity 虚方法覆写已完成**：MC Java 的 `isIgnoringBlockTriggers()=true`、`canAddPassenger()=false`、`couldAcceptPassenger()=false` 已全部实现。对应本项目：`doesEntityNotTriggerPressurePlate()=true`、`canAddPassenger()=false`、`couldAcceptPassenger()=false`。详见 `Entity` 基类的乘客系统和压力板触发文档。
 
     15. **OminousItemSpawnerEntity 粒子类型已迁移至 common 层**：`addParticles()` 使用 `particle::ParticleTypeId::OminousSpawning`，`ParticleTypeId` 枚举已从 `client::renderer::trident::particle` 命名空间迁移至 `mc::particle` 命名空间（`common/particle/ParticleTypes.hpp`），客户端层通过 using 别名保持向后兼容。
+
+## 点燃者生命周期
+
+TNT 缓存点燃者的生命周期引用。点燃者先移除或析构时，TNT 仍可爆炸，但间接伤害来源为空，禁止读取过期裸指针。
