@@ -273,8 +273,20 @@ TEST_F(ServerChunkManagerPostProcessTest, UnloadClearsDedup_AllowsReprocess)
     m_workerPool->start();
     m_manager->initialize();
 
-    m_manager->requestFullChunkSync(0, 0);
-    m_manager->tick();
+    // 区块数据先发布，worker 随后才入队后处理；同步请求返回不保证下一次 tick 已取得该条目。
+    // 有限等待加载回调，仍要求每个生命周期恰好执行一次。
+    const auto waitForLoadCallbacks = [this](int expectedCount) {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        do {
+            m_manager->tick();
+            if (m_chunkLoadedCallCount >= expectedCount) {
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        } while (std::chrono::steady_clock::now() < deadline);
+    };
+    ASSERT_NE(m_manager->requestFullChunkSync(0, 0), nullptr);
+    waitForLoadCallbacks(1);
     ASSERT_EQ(m_chunkLoadedCallCount, 1);
 
     // 卸载：unloadChunkSync 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
@@ -285,14 +297,19 @@ TEST_F(ServerChunkManagerPostProcessTest, UnloadClearsDedup_AllowsReprocess)
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
-    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0)) << "异步卸载完成后区块应移出内存";
+    ASSERT_FALSE(m_manager->hasChunkInMem(0, 0)) << "异步卸载完成后区块应移出内存";
 
-    // 直接入队一个存档加载风格的 PendingPostProcess（needsPostProcess=false），
-    // 模拟卸载后重载的 onChunkLoaded/callback。tick 后应执行（key 已清除）。
+    // 真实重载应恢复加载回调；卸载若未清除去重 key，回调计数会一直停留在 1。
+    ASSERT_NE(m_manager->requestFullChunkSync(0, 0), nullptr);
+    waitForLoadCallbacks(2);
+    ASSERT_EQ(m_chunkLoadedCallCount, 2) << "卸载清除 key 后，重载区块应再次执行加载回调";
+
+    // 重载完成后再次入队同一生命周期的条目，验证去重仍有效。
     enqueuePostProcessForTest(0, 0, {}, /*needsPostProcess=*/false);
     m_manager->tick();
+    m_manager->tick();
 
-    EXPECT_EQ(m_chunkLoadedCallCount, 2) << "卸载清除 key 后，重新入队的后处理应执行（callback 计数 +1）";
+    EXPECT_EQ(m_chunkLoadedCallCount, 2) << "同一生命周期的重复后处理不应再次触发加载回调";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
