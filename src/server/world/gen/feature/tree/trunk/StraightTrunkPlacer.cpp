@@ -43,7 +43,7 @@ std::vector<FoliagePosition> StraightTrunkPlacer::placeTrunk(WorldGenRegion& wor
     const BlockState* trunkBlock)
 {
     // 在起始位置下方放置泥土
-    placeDirtUnder(world, startPos);
+    placeDirtAt(world, startPos.down(), trunkBlocks);
 
     // 生成垂直树干
     for (i32 i = 0; i < height; ++i) {

@@ -48,10 +48,10 @@ std::vector<FoliagePosition> DarkOakTrunkPlacer::placeTrunk(WorldGenRegion& worl
 
     // 在树干底部放置泥土
     BlockPos below = startPos.down();
-    placeDirtUnder(world, below);
-    placeDirtUnder(world, BlockPos(below.x + 1, below.y, below.z));
-    placeDirtUnder(world, BlockPos(below.x, below.y, below.z + 1));
-    placeDirtUnder(world, BlockPos(below.x + 1, below.y, below.z + 1));
+    placeDirtAt(world, below, trunkBlocks);
+    placeDirtAt(world, BlockPos(below.x + 1, below.y, below.z), trunkBlocks);
+    placeDirtAt(world, BlockPos(below.x, below.y, below.z + 1), trunkBlocks);
+    placeDirtAt(world, BlockPos(below.x + 1, below.y, below.z + 1), trunkBlocks);
 
     // 随机方向和弯曲参数
     i32 bendStart = height - random.nextInt(4); // 开始弯曲的高度

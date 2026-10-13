@@ -68,7 +68,7 @@ std::vector<FoliagePosition> BendingTrunkPlacer::placeTrunk(WorldGenRegion& worl
     i32 curY = startPos.y;
 
     // 在树干底部放置泥土
-    placeDirtUnder(world, startPos.down());
+    placeDirtAt(world, startPos.down(), trunkBlocks);
 
     // 垂直阶段：逐层向上放置树干
     for (i32 j = 0; j <= i; ++j) {
