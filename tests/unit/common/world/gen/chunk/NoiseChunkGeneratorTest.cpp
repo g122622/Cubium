@@ -101,6 +101,10 @@ TEST_F(NoiseChunkGeneratorTest, BaseColumnMatchesActualNoiseBlocksWithAndWithout
                 const auto column = gen.getBaseColumn(x, z);
                 for (i32 y = gen.getMinY(); y < gen.getMinY() + gen.getGenDepth(); ++y) {
                     const auto* actual = chunk.getBlockState(localX, y, localZ);
+                    // 未分配的区段以空指针表示空气，查询列则持有注册表空气状态。
+                    if (actual == nullptr) {
+                        actual = BlockRegistry::instance().airState();
+                    }
                     const auto* queried = column.getBlock(y);
                     ASSERT_NE(actual, nullptr);
                     ASSERT_NE(queried, nullptr);

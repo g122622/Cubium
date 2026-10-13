@@ -106,7 +106,7 @@ bool MeleeAttackGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 如果不使用长期记忆且没有路径，停止
+    // 持续追击只取决于当前路径，不能重新调用带启动冷却的 shouldExecute。
     auto* nav = m_creature->navigator();
     if (!m_useLongMemory && nav && nav->noPath()) {
         return false;
@@ -124,7 +124,7 @@ bool MeleeAttackGoal::shouldContinueExecuting()
         return true;
     }
 
-    return shouldExecute();
+    return nav != nullptr && !nav->noPath();
 }
 
 void MeleeAttackGoal::startExecuting()

@@ -27,7 +27,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "server/world/gen/carver/CarverConfiguration.hpp"
 #include "server/world/gen/carver/CarvingMask.hpp"
@@ -110,7 +110,9 @@ std::vector<f32> CanyonCarver::_initWidthFactors(
     f32 currentFactor = 1.0f;
     for (i32 j = 0; j < genDepth; ++j) {
         if (j == 0 || rng.nextInt(config.shape.widthSmoothness) == 0) {
-            currentFactor = 1.0f + rng.nextFloat() * rng.nextFloat();
+            const f32 first = rng.nextFloat();
+            const f32 second = rng.nextFloat();
+            currentFactor = 1.0f + first * second;
         }
         factors[static_cast<size_t>(j)] = currentFactor * currentFactor;
     }
@@ -118,8 +120,8 @@ std::vector<f32> CanyonCarver::_initWidthFactors(
     return factors;
 }
 
-f32 CanyonCarver::_updateVerticalRadius(
-    const CanyonCarverConfiguration& config, math::IRandom& rng, f32 baseRadius, f32 totalSteps, f32 currentStep) const
+f64 CanyonCarver::_updateVerticalRadius(
+    const CanyonCarverConfiguration& config, math::IRandom& rng, f64 baseRadius, f32 totalSteps, f32 currentStep) const
 {
     const f32 progress = currentStep / totalSteps;
     const f32 f = 1.0f - std::abs(0.5f - progress) * 2.0f;
@@ -147,7 +149,7 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
     CarvingMask& carvingMask,
     const CanyonCarverConfiguration& config)
 {
-    math::Random rng(static_cast<u64>(seed));
+    math::JavaLegacyRandom rng(static_cast<u64>(seed));
 
     const std::vector<f32> heightThresholds = _initWidthFactors(context, config, rng);
 
@@ -160,15 +162,14 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
         // 原版：Mth.sin(i * (f32) Math.PI / endIndex) —— 角度按 f32 运算，且用查表版 Mth.sin
         // （不是精确 std::sin）。
         const f32 envelopeAngle = static_cast<f32>(i) * static_cast<f32>(math::PI) / static_cast<f32>(endIndex);
-        const f64 horizontalRadius =
-            1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle))) * static_cast<f64>(thickness);
+        const f64 horizontalRadius = 1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle)) * thickness);
         f64 verticalRadius = horizontalRadius * yScale;
 
         const f32 horizontalRadiusFactor = config.shape.horizontalRadiusFactor->sample(rng);
         const f64 scaledHorizontalRadius = horizontalRadius * static_cast<f64>(horizontalRadiusFactor);
 
-        verticalRadius = _updateVerticalRadius(
-            config, rng, static_cast<f32>(verticalRadius), static_cast<f32>(endIndex), static_cast<f32>(i));
+        verticalRadius =
+            _updateVerticalRadius(config, rng, verticalRadius, static_cast<f32>(endIndex), static_cast<f32>(i));
 
         // 原版：f32 f2 = Mth.cos(pitch); f32 f3 = Mth.sin(pitch);
         //       p += Mth.cos(yaw) * f2;   —— 全部是 **f32** 乘法后累加到 f64 位置。
@@ -184,17 +185,18 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
 
         pitchModifier *= 0.8f;
         yawModifier *= 0.5f;
-        pitchModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 2.0f;
-        yawModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 4.0f;
+        // 显式顺序保证随机抽取与 Java 的从左到右求值一致。
+        const f32 pitchFirst = rng.nextFloat();
+        const f32 pitchSecond = rng.nextFloat();
+        const f32 pitchScale = rng.nextFloat();
+        pitchModifier += (pitchFirst - pitchSecond) * pitchScale * 2.0f;
+        const f32 yawFirst = rng.nextFloat();
+        const f32 yawSecond = rng.nextFloat();
+        const f32 yawScale = rng.nextFloat();
+        yawModifier += (yawFirst - yawSecond) * yawScale * 4.0f;
 
         if (rng.nextInt(4) != 0) {
-            if (!isInCarvingRange(targetChunkX,
-                    targetChunkZ,
-                    static_cast<f32>(startX),
-                    static_cast<f32>(startZ),
-                    i,
-                    endIndex,
-                    thickness)) {
+            if (!isInCarvingRange(targetChunkX, targetChunkZ, startX, startZ, i, endIndex, thickness)) {
                 return;
             }
 
@@ -203,11 +205,11 @@ void CanyonCarver::_generateCanyon(ChunkPrimer& chunk,
                 biomeSource,
                 targetChunkX,
                 targetChunkZ,
-                static_cast<f32>(startX),
-                static_cast<f32>(startY),
-                static_cast<f32>(startZ),
-                static_cast<f32>(scaledHorizontalRadius),
-                static_cast<f32>(verticalRadius),
+                startX,
+                startY,
+                startZ,
+                scaledHorizontalRadius,
+                verticalRadius,
                 carvingMask,
                 skipChecker,
                 config);

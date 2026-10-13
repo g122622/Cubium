@@ -29,7 +29,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/IRandom.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "server/world/gen/carver/CarvingMask.hpp"
 #include "server/world/gen/structure/Structure.hpp"
@@ -123,7 +123,7 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
                 biomeSource,
                 targetChunkX,
                 targetChunkZ,
-                static_cast<i64>(rng.nextU64()),
+                rng.nextLong(),
                 startX,
                 startY,
                 startZ,
@@ -148,10 +148,14 @@ bool CaveCarver::carve(ChunkPrimer& chunk,
 
 f32 CaveCarver::getThickness(math::IRandom& rng) const
 {
-    f32 thickness = rng.nextFloat() * 2.0f + rng.nextFloat();
+    const f32 first = rng.nextFloat();
+    const f32 second = rng.nextFloat();
+    f32 thickness = first * 2.0f + second;
 
     if (rng.nextInt(10) == 0) {
-        thickness *= rng.nextFloat() * rng.nextFloat() * 3.0f + 1.0f;
+        const f32 thickFirst = rng.nextFloat();
+        const f32 thickSecond = rng.nextFloat();
+        thickness *= thickFirst * thickSecond * 3.0f + 1.0f;
     }
 
     return thickness;
@@ -178,7 +182,7 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
     const CarveSkipChecker& skipChecker,
     const CaveCarverConfiguration& config)
 {
-    math::Random rng(static_cast<u64>(seed));
+    math::JavaLegacyRandom rng(static_cast<u64>(seed));
 
     const i32 branchPoint = endIndex / 4 + rng.nextInt(endIndex / 2);
     const bool canBranch = rng.nextInt(6) == 0;
@@ -193,15 +197,15 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
         // 原版：Mth.sin((f32) Math.PI * j / endIndex) —— 角度按 **f32** 运算后交给
         // 查表版 Mth.sin（不是精确 std::sin）。两者数值不同，直接决定隧道半径与走向。
         const f32 envelopeAngle = static_cast<f32>(math::PI) * static_cast<f32>(i) / static_cast<f32>(endIndex);
-        const f64 horizontalRadius = 1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle))) * thickness;
+        const f64 horizontalRadius = 1.5 + static_cast<f64>(math::mthSin(static_cast<f64>(envelopeAngle)) * thickness);
         const f64 verticalRadius = horizontalRadius * yScale;
 
         const f32 cosPitch = math::mthCos(static_cast<f64>(pitch));
 
         // 原版这四个三角函数全部是 Mth 查表版（不是 std::sin/std::cos 的精确值）。
-        currentX += static_cast<f64>(math::mthCos(static_cast<f64>(yaw))) * static_cast<f64>(cosPitch);
+        currentX += static_cast<f64>(math::mthCos(static_cast<f64>(yaw)) * cosPitch);
         currentY += static_cast<f64>(math::mthSin(static_cast<f64>(pitch)));
-        currentZ += static_cast<f64>(math::mthSin(static_cast<f64>(yaw))) * static_cast<f64>(cosPitch);
+        currentZ += static_cast<f64>(math::mthSin(static_cast<f64>(yaw)) * cosPitch);
 
         pitch *= (canBranch ? 0.92f : 0.7f);
         pitch += pitchModifier * 0.1f;
@@ -209,25 +213,34 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
 
         pitchModifier *= 0.9f;
         yawModifier *= 0.75f;
-        pitchModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 2.0f;
-        yawModifier += (rng.nextFloat() - rng.nextFloat()) * rng.nextFloat() * 4.0f;
+        // 显式顺序保证随机抽取与 Java 的从左到右求值一致。
+        const f32 pitchFirst = rng.nextFloat();
+        const f32 pitchSecond = rng.nextFloat();
+        const f32 pitchScale = rng.nextFloat();
+        pitchModifier += (pitchFirst - pitchSecond) * pitchScale * 2.0f;
+        const f32 yawFirst = rng.nextFloat();
+        const f32 yawSecond = rng.nextFloat();
+        const f32 yawScale = rng.nextFloat();
+        yawModifier += (yawFirst - yawSecond) * yawScale * 4.0f;
 
         if (i == branchPoint && thickness > 1.0f) {
             // 分支递归调用
-            const f32 branchThickness = rng.nextFloat() * 0.5f + 0.5f;
+            // 分叉参数按调用顺序抽取，左右支各有独立种子和厚度。
+            const i64 leftSeed = rng.nextLong();
+            const f32 leftThickness = rng.nextFloat() * 0.5f + 0.5f;
 
             _createTunnel(chunk,
                 context,
                 biomeSource,
                 targetChunkX,
                 targetChunkZ,
-                static_cast<i64>(rng.nextU64()),
+                leftSeed,
                 currentX,
                 currentY,
                 currentZ,
                 horizontalRadiusMultiplier,
                 verticalRadiusMultiplier,
-                branchThickness,
+                leftThickness,
                 yaw - math::HALF_PI,
                 pitch / 3.0f,
                 i,
@@ -237,18 +250,21 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
                 skipChecker,
                 config);
 
+            const i64 rightSeed = rng.nextLong();
+            const f32 rightThickness = rng.nextFloat() * 0.5f + 0.5f;
+
             _createTunnel(chunk,
                 context,
                 biomeSource,
                 targetChunkX,
                 targetChunkZ,
-                static_cast<i64>(rng.nextU64()),
+                rightSeed,
                 currentX,
                 currentY,
                 currentZ,
                 horizontalRadiusMultiplier,
                 verticalRadiusMultiplier,
-                branchThickness,
+                rightThickness,
                 yaw + math::HALF_PI,
                 pitch / 3.0f,
                 i,
@@ -262,13 +278,7 @@ void CaveCarver::_createTunnel(ChunkPrimer& chunk,
         }
 
         if (rng.nextInt(4) != 0) {
-            if (!isInCarvingRange(targetChunkX,
-                    targetChunkZ,
-                    static_cast<f32>(currentX),
-                    static_cast<f32>(currentZ),
-                    i,
-                    endIndex,
-                    thickness)) {
+            if (!isInCarvingRange(targetChunkX, targetChunkZ, currentX, currentZ, i, endIndex, thickness)) {
                 return;
             }
 
@@ -303,7 +313,7 @@ void CaveCarver::_createRoom(ChunkPrimer& chunk,
     const CarveSkipChecker& skipChecker,
     const CaveCarverConfiguration& config)
 {
-    const f64 horizontalRadius = 1.5 + std::sin(math::HALF_PI) * radius;
+    const f64 horizontalRadius = 1.5 + static_cast<f64>(math::mthSin(math::HALF_PI) * radius);
     const f64 verticalRadius = horizontalRadius * yScale;
 
     carveEllipsoid(chunk,
@@ -311,11 +321,11 @@ void CaveCarver::_createRoom(ChunkPrimer& chunk,
         biomeSource,
         targetChunkX,
         targetChunkZ,
-        static_cast<f32>(centerX + 1.0),
-        static_cast<f32>(centerY),
-        static_cast<f32>(centerZ),
-        static_cast<f32>(horizontalRadius),
-        static_cast<f32>(verticalRadius),
+        centerX + 1.0,
+        centerY,
+        centerZ,
+        horizontalRadius,
+        verticalRadius,
         carvingMask,
         skipChecker,
         config);

@@ -73,9 +73,9 @@ private:
     [[nodiscard]] std::vector<f32> _initWidthFactors(
         CarvingContext& context, const CanyonCarverConfiguration& config, math::IRandom& rng) const;
 
-    [[nodiscard]] f32 _updateVerticalRadius(const CanyonCarverConfiguration& config,
+    [[nodiscard]] f64 _updateVerticalRadius(const CanyonCarverConfiguration& config,
         math::IRandom& rng,
-        f32 baseRadius,
+        f64 baseRadius,
         f32 totalSteps,
         f32 currentStep) const;
 
