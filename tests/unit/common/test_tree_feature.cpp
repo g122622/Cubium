@@ -29,6 +29,7 @@
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
+#include "server/world/gen/feature/FeatureTypeRegistry.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "server/world/gen/feature/tree/decorator/PlaceOnGroundDecorator.hpp"
@@ -44,6 +45,7 @@
 #include "world/block/BlockRegistry.hpp"
 #include <array>
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 using namespace mc;
 
@@ -351,6 +353,28 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear)
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
     EXPECT_TRUE(m_region->getBlockState(8, 0, 8)->is(VanillaBlocks::DIRT));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, DataDrivenFancyTreeAllowsThreeBlockHeight)
+{
+    world::gen::feature::initializeBuiltinFeatureTypes();
+    const auto json = nlohmann::json::parse(R"json({
+        "trunk_provider": {"type": "minecraft:simple_state_provider", "state": {"Name": "minecraft:oak_log"}},
+        "foliage_provider": {"type": "minecraft:simple_state_provider", "state": {"Name": "minecraft:oak_leaves"}},
+        "trunk_placer": {"type": "minecraft:fancy_trunk_placer", "base_height": 3, "height_rand_a": 0, "height_rand_b": 0},
+        "foliage_placer": {"type": "minecraft:fancy_foliage_placer", "radius": 2, "offset": 0, "height": 4},
+        "minimum_size": {"type": "minecraft:two_layers_feature_size", "limit": 0, "lower_size": 0, "upper_size": 0, "min_clipped_height": 4},
+        "ignore_vines": true,
+        "force_dirt": false
+    })json");
+    auto created = world::gen::feature::FeatureTypeRegistry::instance().create("tree", json);
+    ASSERT_TRUE(created.success()) << created.error().message();
+    const auto* configured = dynamic_cast<const ConfiguredTreeFeature*>(created.value().get());
+    ASSERT_NE(configured, nullptr);
+    TreeFeature feature;
+    math::JavaLegacyRandom random(12345);
+    ASSERT_TRUE(feature.place(*m_region, random, BlockPos(8, 1, 8), configured->getConfig()));
+    EXPECT_TRUE(m_region->getBlockState(8, 1, 8)->is(VanillaBlocks::OAK_LOG));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, TreeAndTrunkReplaceTaggedGroundDecorations)

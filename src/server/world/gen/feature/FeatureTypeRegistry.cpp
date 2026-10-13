@@ -22,6 +22,7 @@
  */
 
 #include "FeatureTypeRegistry.hpp"
+#include <algorithm>
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -1218,6 +1219,17 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
             return sizeResult.error();
         }
         config->minimumSize = std::move(sizeResult).value();
+    }
+    if (config->trunkPlacer == nullptr || config->foliagePlacer == nullptr) {
+        return Error(ErrorCode::InvalidData, "Tree feature requires trunk and foliage placers");
+    }
+    // 数据包已提供基础高度和裁剪下限，不能再用旧配置的固定最小高度拒绝合法树木。
+    config->minHeight = config->trunkPlacer->baseHeight();
+    if (config->minimumSize != nullptr) {
+        const auto clippedHeight = config->minimumSize->minClippedHeight();
+        if (clippedHeight.has_value()) {
+            config->minHeight = std::min(config->minHeight, clippedHeight.value());
+        }
     }
     return toBase(std::make_unique<ConfiguredTreeFeature>(std::move(config), "tree"));
 }

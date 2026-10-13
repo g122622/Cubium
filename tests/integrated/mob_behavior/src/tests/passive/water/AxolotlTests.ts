@@ -107,7 +107,7 @@ function axolotlAttacksSquid(test: Test): void {
 // 判定手段：succeedWhen 每 tick 检查美西螈 getEffect("regeneration") 非空。装死触发后下一 tick
 //   PlayDeadGoal::startExecuting addEffect(Regeneration,200)，duration 200 tick 窗口内 succeedWhen 必抓到。
 //   getEffect 返回 { typeId, amplifier, duration } 或 undefined（对齐 PufferfishTests.ts:109 对 getEntities
-//   返回实体调 getEffect 的范式）。区域限定查美西螈排除并行测试污染。
+//   返回实体调 getEffect 的范式）。独立批次中直接观察本次创建的美西螈，排除其他实体干扰。
 //   非确定性：33% 概率触发，但 50 次攻击内触发概率 ~100%，maxTicks=600 留充裕余量。
 //
 // 对照排除：陆地无水时 hurt 装死分支 isInWater()=false 跳过（axolotlAttacksSquid 即陆地不装死）。
@@ -164,16 +164,12 @@ function axolotlPlaysDeadWithRegenerationTest(test: Test): void {
     });
   }
 
-  // 断言美西螈获得再生效果：succeedWhen 每 tick 检查 getEffect("regeneration") 非空。
+  // 断言本次创建的美西螈获得再生效果：每 tick 检查其 getEffect("regeneration") 非空。
   // 装死触发后 PlayDeadGoal startExecuting addEffect(Regeneration,200)，duration 200 tick 窗口内必抓到。
   test.succeedWhen(() => {
-    const axolotls = test.getDimension().getEntities({
-      type: axolotlType,
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
-    });
-    test.assert(axolotls.length > 0, "axolotl disappeared before playing dead");
-    const regen = (axolotls[0] as any).getEffect("regeneration");
+    const health = axolotl.getComponent("minecraft:health") as any;
+    test.assert(health !== undefined && health.currentValue > 0, "axolotl died before playing dead");
+    const regen = (axolotl as any).getEffect("regeneration");
     test.assert(regen !== undefined,
       `axolotl did not gain regeneration from playing dead, regen=${regen}`);
   });
@@ -231,6 +227,7 @@ export function registerAxolotlTests(): void {
     .maxTicks(300);
 
   GameTest.register("MobBehaviorTests", "axolotl_plays_dead_with_regeneration", axolotlPlaysDeadWithRegenerationTest)
+    .batch("axolotl_play_dead")
     .structureName("gametests:creeper_pit")
     .maxTicks(600);
 }
