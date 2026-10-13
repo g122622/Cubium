@@ -851,7 +851,8 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
 
     // 传播到生成邻域或离开传播范围只更新已有持有者。真正的生成依赖由调度器按需创建，
     // 不为每一次退场回调重新创建已经卸载的持有者，也不让冷却票据扩散出新的卸载工作。
-    if (newLevel > world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL && _doFindLifecycleManager(x, z) == nullptr) {
+    const bool hasLoadingDemand = newLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL;
+    if (!hasLoadingDemand && _doFindLifecycleManager(x, z) == nullptr) {
         return;
     }
     SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);

@@ -63,12 +63,14 @@ function blastProtectionReducesKnockbackVsPlain(test: Test): void {
     let speedA = 0;
     let speedB = 0;
 
-    // 每 tick 采样峰值，不累计游走位移，也不在牛离开结构后丢失其身份。
+    // 只在两头牛都受到爆炸伤害后比较当前速度，排除点燃前的碰撞或其他历史运动。
     pollUntilSucceed(test, () => {
-        speedA = Math.max(speedA, horizontalSpeed(cowA));
-        speedB = Math.max(speedB, horizontalSpeed(cowB));
-        return health(cowA) < healthA && health(cowB) < healthB &&
-            health(cowA) > 0 && health(cowB) > 0 &&
+        if (health(cowA) >= healthA || health(cowB) >= healthB) {
+            return false;
+        }
+        speedA = horizontalSpeed(cowA);
+        speedB = horizontalSpeed(cowB);
+        return health(cowA) > 0 && health(cowB) > 0 &&
             speedB > 0.2 && speedB > speedA * 1.5;
     }, {
         startTick: 31,
@@ -86,16 +88,19 @@ function plainDiamondFullExplosionKnockback(test: Test): void {
     equipDiamond(cow, false);
     prepareExplosion(test);
     const healthBefore = health(cow);
-    let peakSpeed = 0;
+    let speed = 0;
     pollUntilSucceed(test, () => {
-        peakSpeed = Math.max(peakSpeed, horizontalSpeed(cow));
-        return health(cow) > 0 && health(cow) < healthBefore && peakSpeed > 0.2;
+        if (health(cow) >= healthBefore) {
+            return false;
+        }
+        speed = horizontalSpeed(cow);
+        return health(cow) > 0 && speed > 0.2;
     }, {
         startTick: 31,
         interval: 1,
         maxTick: 100,
         onTimeout: () => test.assert(false,
-            `plain diamond cow: peak speed=${peakSpeed.toFixed(3)}, health=${health(cow).toFixed(2)}; ` +
+            `plain diamond cow: speed=${speed.toFixed(3)}, health=${health(cow).toFixed(2)}; ` +
             `expected explosion damage, survival and horizontal speed>0.2`),
     });
 }

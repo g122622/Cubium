@@ -77,7 +77,7 @@ function mobDropsXpWhenKilledByPlayer(test: Test): void {
   // 记录初始经验（玩家刚 spawn，getTotalXp=0）。
   const xpBefore = (player as any).getTotalXp() as number;
 
-  // tick 10 玩家攻击 zombie 1 次（留 spawn 注册稳定时间）。设 lastHurtByPlayerMemoryTime=100。
+  // 夜间生成后等十 tick，验证玩家攻击确实造成伤害并在同一回调内致死。
   test.runAtTickTime(10, () => {
     const health = zombie.getComponent("minecraft:health") as any;
     const before = health.currentValue;
@@ -88,7 +88,7 @@ function mobDropsXpWhenKilledByPlayer(test: Test): void {
   });
 
   // 轮询断言玩家 getTotalXp 增加（经验球生成→被玩家吸收→totalExperience 增 5）。
-  // startTick=30 给 test.kill(tick12) + die 链路 + 经验球生成 + _followNearestPlayer 追踪 +
+  // startTick=30 给 test.kill(tick10) + die 链路 + 经验球生成 + _followNearestPlayer 追踪 +
   // onCollideWithPlayer 吸收留充足时序余量（经验球飞向玩家需若干 tick）。
   pollUntilSucceed(test, () => (player as any).getTotalXp() as number > xpBefore, {
     startTick: 30,

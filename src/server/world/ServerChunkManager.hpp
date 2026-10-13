@@ -1076,7 +1076,7 @@ private:
      *   （实体保存+移除/卸载发送/callback，仅触发一次）→ 移除 holder 与 m_chunks 条目、
      *   清理后处理去重标记。
      * - isSafeToUnload 为 false（保存期间邻居开始引用本 holder）：注册 UNLOAD_COOLDOWN
-     *   冷却票据把该区块按 Border 级钉住一段时间后退避重试（对齐 Moonrise UNLOAD_COOLDOWN），
+     *   冷却票据以 ChunkPyramid::maxLevel() 保留现有持有者，到期后退避重试，
      *   不再于后续每个 tick 立即重试。
      *
      * @param x 区块 X 坐标
