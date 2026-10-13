@@ -1046,6 +1046,35 @@ TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
         EXPECT_EQ(diff.cubiumOnlyBlocks, 0) << "区块 (" << cx << "," << cz << ") 生成了原版在该区块没有的方块";
         if (diff.cubiumOnlyBlocks != 0) {
             printBlockDiffReport(diff);
+            // 为多生成的方块记录有限位置样本，区分支撑条件、树冠跨区块与随机落点差异。
+            constexpr i32 MAX_POSITION_SAMPLES_PER_BLOCK = 12;
+            std::map<std::string, i32> sampleCounts;
+            for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                        const std::string name = blockName(cubiumChunk->getBlockStateId(x, y, z));
+                        if (!std::binary_search(diff.extraBlockNames.begin(), diff.extraBlockNames.end(), name)) {
+                            continue;
+                        }
+                        i32& samples = sampleCounts[name];
+                        if (samples >= MAX_POSITION_SAMPLES_PER_BLOCK) {
+                            continue;
+                        }
+                        ++samples;
+                        const std::string javaName = blockName(javaChunk->getBlockStateId(x, y, z));
+                        const std::string belowName = y > world::MIN_BUILD_HEIGHT
+                            ? blockName(cubiumChunk->getBlockStateId(x, y - 1, z))
+                            : "<below-world>";
+                        std::printf("[PARITY] extra block=%s pos=(%d,%d,%d) java=%s below=%s\n",
+                            name.c_str(),
+                            cx * world::CHUNK_WIDTH + x,
+                            y,
+                            cz * world::CHUNK_WIDTH + z,
+                            javaName.c_str(),
+                            belowName.c_str());
+                    }
+                }
+            }
         }
     }
 }
