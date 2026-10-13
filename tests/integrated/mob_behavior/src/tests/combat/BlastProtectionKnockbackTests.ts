@@ -9,6 +9,10 @@ const CREEPER_POS = { x: 3, y: 2, z: 1 };
 const PLAYER_POS = { x: 3, y: 2, z: 6 };
 const COW_A_POS = { x: 5, y: 2, z: 3 };
 const COW_B_POS = { x: 1, y: 2, z: 3 };
+// 爆炸视线密度影响绝对速度；两侧同几何，爆炸保护 IV 的速度比应为 1-0.6=0.4。
+const EXPECTED_SPEED_RATIO = 0.4;
+const SPEED_RATIO_TOLERANCE = 0.05;
+const MIN_OBSERVED_SPEED = 0.01;
 const ARMOR = [
     ["Head", "minecraft:diamond_helmet"],
     ["Chest", "minecraft:diamond_chestplate"],
@@ -70,8 +74,8 @@ function blastProtectionReducesKnockbackVsPlain(test: Test): void {
         }
         speedA = Math.max(speedA, horizontalSpeed(cowA));
         speedB = Math.max(speedB, horizontalSpeed(cowB));
-        return health(cowA) > 0 && health(cowB) > 0 &&
-            speedB > 0.2 && speedB > speedA * 1.5;
+        return health(cowA) > 0 && health(cowB) > 0 && speedB > MIN_OBSERVED_SPEED &&
+            Math.abs(speedA / speedB - EXPECTED_SPEED_RATIO) <= SPEED_RATIO_TOLERANCE;
     }, {
         startTick: 31,
         interval: 1,
@@ -79,7 +83,7 @@ function blastProtectionReducesKnockbackVsPlain(test: Test): void {
         onTimeout: () => test.assert(false,
             `explosion knockback: protected speed=${speedA.toFixed(3)}, plain speed=${speedB.toFixed(3)}, ` +
             `health=${health(cowA).toFixed(2)}/${health(cowB).toFixed(2)}; expected two surviving victims ` +
-            `with plain speed>0.2 and plain speed>protected speed*1.5`),
+            `with plain speed>${MIN_OBSERVED_SPEED} and protected/plain=${EXPECTED_SPEED_RATIO}`),
     });
 }
 
@@ -94,14 +98,14 @@ function plainDiamondFullExplosionKnockback(test: Test): void {
             return false;
         }
         speed = Math.max(speed, horizontalSpeed(cow));
-        return health(cow) > 0 && speed > 0.2;
+        return health(cow) > 0 && speed > MIN_OBSERVED_SPEED;
     }, {
         startTick: 31,
         interval: 1,
         maxTick: 100,
         onTimeout: () => test.assert(false,
             `plain diamond cow: speed=${speed.toFixed(3)}, health=${health(cow).toFixed(2)}; ` +
-            `expected explosion damage, survival and horizontal speed>0.2`),
+            `expected explosion damage, survival and horizontal speed>${MIN_OBSERVED_SPEED}`),
     });
 }
 

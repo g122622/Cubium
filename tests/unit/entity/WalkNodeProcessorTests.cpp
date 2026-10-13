@@ -22,6 +22,7 @@
  */
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "entity/ai/pathfinding/PathFinder.hpp"
 #include "entity/ai/pathfinding/Region.hpp"
 #include "entity/ai/pathfinding/WalkNodeProcessor.hpp"
 #include "world/block/Block.hpp"
@@ -605,4 +606,27 @@ TEST_F(DoorTypeConversionTest, BlockedTypeStaysBlocked)
 
     PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
     EXPECT_EQ(result, PathNodeType::Blocked);
+}
+
+TEST(DoorPathNodeTypeTest, PathSearchPassesClosedWoodenDoorOnlyWithDoorAbility)
+{
+    for (const bool canOpen : {false, true}) {
+        MockRegion region;
+        auto processor = std::make_unique<TestableWalkNodeProcessor>();
+        processor->setRegion(&region);
+        processor->setCanOpenDoors(canOpen);
+        processor->setCanEnterDoors(true);
+        for (i32 x = -1; x <= 1; ++x) {
+            for (i32 z = -1; z <= 5; ++z) {
+                processor->setPresetNodeType(
+                    x, 64, z, x == 0 && z >= 0 && z <= 4 ? PathNodeType::Walkable : PathNodeType::Blocked);
+            }
+        }
+        processor->setPresetNodeType(0, 64, 2, PathNodeType::DoorWoodClosed);
+        processor->setPresetNodeType(0, 65, 2, PathNodeType::DoorWoodClosed);
+        PathFinder finder(std::move(processor));
+        const auto path = finder.findPath(0, 64, 0, 0, 64, 4, 10, 1.0f);
+        ASSERT_FALSE(path.empty());
+        EXPECT_EQ(path.getEnd()->z(), canOpen ? 4 : 1);
+    }
 }

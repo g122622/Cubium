@@ -36,6 +36,8 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -70,9 +72,26 @@ ChickenEntity::ChickenEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
 
 void ChickenEntity::resetEggTimer()
 {
-    math::Random rng(ticksExisted());
     // 下蛋时间：6000-12000 ticks = 5-10 分钟
-    m_eggTimer = EGG_TIME_MIN + rng.nextInt(EGG_TIME_MAX - EGG_TIME_MIN);
+    m_eggTimer = EGG_TIME_MIN + getRandom().nextInt(EGG_TIME_MAX - EGG_TIME_MIN);
+}
+
+void ChickenEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AnimalEntity::addAdditionalSaveData(tag);
+    tag.put(entity::serialization::nbt_keys::EGG_LAY_TIME, m_eggTimer);
+    tag.put(entity::serialization::nbt_keys::IS_CHICKEN_JOCKEY, static_cast<i8>(m_chickenJockey));
+}
+
+Result<void> ChickenEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace entity::serialization;
+    MC_TRY(AnimalEntity::readAdditionalSaveData(tag));
+    m_chickenJockey = nbt_helper::tryGetBool(tag, nbt_keys::IS_CHICKEN_JOCKEY).value_or(false);
+    if (const auto timer = nbt_helper::tryGetInt(tag, nbt_keys::EGG_LAY_TIME)) {
+        m_eggTimer = *timer;
+    }
+    return Result<void>::ok();
 }
 
 std::optional<ResourceLocation> ChickenEntity::getAmbientSound() const
@@ -205,15 +224,12 @@ void ChickenEntity::tick()
     m_wingRotDelta *= WING_DAMPING;
 
     // 下蛋逻辑（仅服务端、仅成体、非鸡骑士）
-    if (!isChild() && !m_chickenJockey && m_eggTimer > 0) {
+    if (world() != nullptr && !world()->isClientSide() && !isChild() && !m_chickenJockey) {
         --m_eggTimer;
 
-        if (m_eggTimer <= 0 && world() != nullptr) {
+        if (m_eggTimer <= 0) {
             // ECS 迁移：ItemEntity 构造需要 registry 句柄
             auto* registry = &ecsRegistry();
-            if (registry == nullptr) {
-                return;
-            }
 
             // 通过 EntityType 工厂创建 ItemEntity（而非直接 make_unique）：工厂在创建后会调
             // setTypeId("minecraft:item")，使 getTypeId()/entityType() 返回正确类型标识。

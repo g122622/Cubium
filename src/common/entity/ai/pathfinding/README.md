@@ -128,7 +128,9 @@ PathPoint 的 `m_distanceToNext` 字段存储的是 `启发式值 * 1.5`（MC 1.
 
 **默认值**：`m_canOpenDoors` 默认为 `false`，`m_canEnterDoors` 默认为 `true`（对齐 MC 的 `canPassDoors = true`）。
 
-**对角线移动**：禁止对角线穿过 `WalkableDoor` 节点，对应 MC 的 `isDiagonalValid()` 逻辑。
+**路径展开**：门能力转换必须同时用于类型检测和邻居展开，否则具备开门能力的实体仍找不到跨关闭木门的路径。
+
+**对角线移动**：禁止对角线穿过 `WalkableDoor` 节点。
 
 **使用方**：`ZombieEntity` 通过 `nav->setCanOpenDoors(canBreak)` 设置僵尸开门能力，`VindicatorEntity`（卫道士）通过 `nav->setCanOpenDoors(true)` 设置破门能力，`DoorInteractGoal` 通过 `navigator->canOpenDoors()` 检查实体是否具备开门能力。
 

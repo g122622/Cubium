@@ -143,87 +143,30 @@ function beeDiesAfterSting(test: Test): void {
   });
 }
 
-// 蜜蜂蛰击玩家后对其施加中毒效果（wiki tech_蜜蜂.txt#攻击：蜜蜂蜇人后，玩家会中毒，
-// 蜇刺留在皮肤上持续造成伤害）。
-//
-// C++ 链路（本次新增，对齐 Java 1.21.11 Bee.doHurtTarget，Bee.java:227-252）：
-//   BeeStingGoal(extends MeleeAttackGoal) 接近玩家后 checkAndPerformAttack→_attackTarget
-//   → m_creature->attackEntityAsMob(*target)（MeleeAttackGoal.cpp:278，虚派发）。
-//   BeeEntity::attackEntityAsMob override（本次新增）：
-//     1. 调父类 AnimalEntity::attackEntityAsMob（解析到 MobEntity 基类）执行 sting 伤害(2.0)；
-//     2. 命中后 setHasStung(true) + setAngry(false) + setAttackTarget(nullptr)（stopBeingAngry）；
-//     3. 按难度施加中毒：Normal 10s / Hard 18s（Easy/Peaceful 不中毒），EffectType::Poison 等级0；
-//     4. playSound(BEE_STING)。
-//   此前 BeeEntity 无 attackEntityAsMob override，蛰击仅造成 2.0 纯伤害——不施加中毒（对齐缺陷）。
-//   注：MeleeAttackGoal 已委托 attackEntityAsMob（记忆 [[meleeattackgoal-delegates-attackentityasmob]]），
-//   故 BeeEntity override 自动生效，无需改 BeeStingGoal。BeeStingGoal.checkAndPerformAttack 的
-//   setHasStung 兜底与 attackEntityAsMob 内 setHasStung 去重（后者先执行置 true，前者 !hasStung() 为 false 跳过）。
-//
-// 环境选择：grass_pen（9×5×9 玻璃墙封闭围栏）。蜜蜂(2,2,3)+Survival 玩家(5,2,3)，水平距 3 格。
-// **距离 3 格**（非 1 格）：bee_dies_after_sting 已验证 3 格距离下蜜蜂能稳定接近蛰击玩家。
-// 1 格距离下蜜蜂受击后易触发 PanicGoal/飞行振荡飞出 7×7 区域被卸载（bees=0）且未进入稳定
-// 攻击距离，蛰击不触发。3 格给蜜蜂飞行寻路稳定接近的空间，与 dies_after_sting 同范式。
-//
-// **必须用 grass_pen 封闭围栏而非 creeper_pit 开放坑**（修正前期 40% flaky 根因）：
-// MeleeAttackGoal::shouldExecute 有 20-tick 节流（TARGET_CHECK_COOLDOWN，MeleeAttackGoal.cpp:57-61），
-// 蜜蜂受击后前 20 tick BeeStingGoal::shouldExecute 恒被节流返回 false，蜜蜂由 BeeWanderGoal
-// 接管随机飞行（FLYING_SPEED=0.6，20 tick 可飞 12 格）。creeper_pit 7×7 开放坑无围墙，蜜蜂能在
-// 节流窗口飞出查询区被卸载（bees=0），节流后路径失败 shouldExecute 持续 false，BeeStingGoal 永不
-// 启动——约 40% 失败（poison=undefined playerHp=20 bees=0）。grass_pen 外圈玻璃墙物理限制蜜蜂在
-// 9×5×9 内腔，节流窗口后 BeeStingGoal 寻路回玩家必然蛰击，消除飞走出区域的概率性失败。
-// 蜜蜂脚下 (2,1,3) 放玻璃支撑；玩家脚下 (5,1,3) 放玻璃。
-// GameTestServer 默认 Normal 难度，故中毒持续 10s=200 tick。
-//
-// 判定手段：玩家攻击蜜蜂→蜜蜂反击蛰击→玩家获得 Poison 效果。pollUntilSucceed 轮询
-// player.getEffect("poison") !== undefined。getEffect 已在 Entity + SimulatedPlayer 两处绑定
-// （SimulatedPlayer 不继承 Entity 原型，记忆 [[simulated-player-js-class-no-entity-inheritance]]，
-// getEffect 在 ScriptSimulatedPlayer.cpp 重绑）。
-// 时序：玩家攻击(8) + 20-tick BeeStingGoal 节流窗口 + BeeStingGoal 飞行接近 3 格 + 蛰击(attackEntityAsMob 施毒)。
-//   3 格接近约需 20-40 tick，中毒从蛰击起持续 200 tick（至 ~268 tick）。
-//   startTick=10 起轮询，maxTick=1500 留足节流(20)+蛰击(40)+中毒窗口(200)+Wander振荡余量。
-//   蜜蜂蛰击后 hasStung=true 停止攻击，但中毒已在玩家身上，判定不依赖蜜蜂后续行为。
-// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_蜜蜂.txt#攻击（蜇人后玩家中毒）
+// 玩家攻击蜜蜂后，必须观察到实际反击造成的中毒效果。
+// 整片同高地板避免两个孤立支撑柱把追击变成额外的高低差寻路测试。
 function beeStingAppliesPoison(test: Test): void {
-  const beeType = "bee";
-
-  // 蜜蜂 (2,2,3)、Survival 玩家 (5,2,3)，水平距 3 格（与 bee_dies_after_sting 同范式）。
-  // 3 格距离给蜜蜂飞行寻路稳定接近的空间，避免 1 格距离下受击振荡飞出区域。
-  // grass_pen 外圈玻璃墙封闭防蜜蜂飞出查询区（见上方环境选择说明）。
-  // 脚下放 glass 支撑（grass_pen y=1 是内空气腔，需脚下方块防下落）。
-  test.setBlockType("minecraft:glass", { x: 2, y: 1, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 5, y: 1, z: 3 });
-  const bee = test.spawn(beeType, { x: 2, y: 2, z: 3 });
+  for (let x = 1; x <= 7; x++) {
+    for (let z = 1; z <= 7; z++) {
+      test.setBlockType("minecraft:glass", { x, y: 1, z });
+    }
+  }
+  const bee = test.spawn("minecraft:bee", { x: 2, y: 2, z: 3 });
   const player = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 3 }, "stingVictim", 0 as any);
-
-  // tick 8 玩家攻击蜜蜂触发 BeeAngerGoal → setRevengeTarget(玩家) + setAngry(true)。
   test.runAtTickTime(8, () => {
+    const hpBefore = (bee.getComponent("minecraft:health") as any).currentValue;
     player.attackEntity(bee);
+    test.assert((bee.getComponent("minecraft:health") as any).currentValue < hpBefore,
+      "player attack should damage the bee and trigger retaliation");
   });
-
-  // 轮询：玩家获得 Poison 效果（蜜蜂蛰击后 attackEntityAsMob 施加）。
-  // getEffect("poison") 返回 Effect 对象（{ typeId, amplifier, duration }）或 undefined。
-  // Normal 难度中毒 200 tick。蜜蜂受击后反击蛰击受 20-tick BeeStingGoal 节流窗口 + Wander 振荡
-  // 影响，是概率性时序，maxTick=1500 给足蜜蜂最终蛰击的窗口（与 bee_dies_after_sting 同范式验证稳定）。
-  // 中毒一旦施加持续 200 tick，pollUntilSucceed 立即捕获。
-  pollUntilSucceed(test, () => {
-    const poison = (player as any).getEffect("poison");
-    return poison !== undefined;
-  }, {
+  pollUntilSucceed(test, () => (player as any).getEffect("poison") !== undefined, {
     startTick: 10,
     interval: 2,
     maxTick: 1500,
-    onTimeout: () => {
-      const poison = (player as any).getEffect("poison");
-      const health = player.getComponent("minecraft:health") as any;
-      const hp = health?.currentValue;
-      const bees = test.getDimension().getEntities({
-        type: "minecraft:bee",
-        location: test.worldLocation(PEN_FROM),
-        volume: PEN_VOLUME,
-      });
-      test.assert(false,
-        `bee sting did not apply poison: poison=${JSON.stringify(poison)} playerHp=${hp} bees=${bees.length}`);
-    },
+    onTimeout: () => test.assert(false,
+      `bee sting did not apply poison: playerHp=${(player.getComponent("minecraft:health") as any)?.currentValue}, ` +
+      `beeHp=${(bee.getComponent("minecraft:health") as any)?.currentValue}, ` +
+      `beePos=${JSON.stringify(bee.location)}, playerPos=${JSON.stringify(player.location)}`),
   });
 }
 

@@ -84,7 +84,7 @@ AgeableEntity (父类)
 
 7. **哞菇 NBT 序列化**：Type 字段为 i8（0=红, 1=棕），StewEffect 为复合标签（EffectId: i8, EffectDuration: i32）。
 
-6. **鸡骑士标记**：`m_chickenJockey = true` 时不下蛋。
+6. **产蛋存档状态**：`EggLayTime` 保存剩余 tick，恢复时保留字段缺失情况下的随机倒计时；`IsChickenJockey=true` 时不下蛋。只有服务端成年非骑士鸡递减倒计时，归零后生成鸡蛋并用实体随机源重新计时。
 
 7. **兔子类型值**：`RabbitType::Killer = 99`，不是按顺序排列的枚举值。MC 1.21.11 中杀手兔不再自然生成，只能通过命令或刷怪蛋指定 ID 99 生成。
 

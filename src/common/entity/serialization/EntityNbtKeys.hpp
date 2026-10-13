@@ -313,6 +313,11 @@ constexpr const char* SLEEP_TIMER = "SleepTimer";
 
 constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
 
+// ========== ChickenEntity 键 ==========
+
+constexpr const char* EGG_LAY_TIME = "EggLayTime";
+constexpr const char* IS_CHICKEN_JOCKEY = "IsChickenJockey";
+
 // ========== TurtleEntity 键 ==========
 
 constexpr const char* HOME_X = "HomePosX";

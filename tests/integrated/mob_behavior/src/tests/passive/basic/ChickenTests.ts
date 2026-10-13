@@ -18,25 +18,27 @@ const PEN_VOLUME = { x: 9, y: 5, z: 9 };
 const MED_FROM = { x: 0, y: 0, z: 0 };
 const MED_VOLUME = { x: 12, y: 9, z: 11 };
 
-// 鸡下蛋：成年鸡每隔 6000-12000 tick（5-10 分钟）下 1 个鸡蛋，鸡蛋以掉落物实体（minecraft:item，
-// 持 EGG 物品）形式 spawn 在鸡身旁。ChickenEntity::tick 内 eggTimer 每 tick 递减，到 0 时
-// spawn ItemEntity(EGG) + 播放音效 + 重置计时器（仅成年、非鸡骑士）。
-// 本测试 spawn 成年鸡，断言结构内出现 item 掉落物实体即通过。
-// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_鸡.txt#下蛋
+// 通过存档字段设置临近产蛋的成年鸡，验证真实倒计时与掉落数量；物品类型由配套单测检查。
+// 不等待随机的 5～10 分钟，也不直接生成鸡蛋替代产蛋行为。
 function chickenLayEgg(test: Test): void {
-  const chickenType = "chicken";
-
-  // 结构 grass_pen（9×5×9 开放玻璃围栏 + 满铺草地，y=0 草地 helper-y=1，y=1 空气腔 helper-y=2）。
-  // spawn 2 只成年鸡分散站位，任一只下蛋即通过（提高触发概率，缩短期望等待时间）。
-  test.spawn(chickenType, { x: 3, y: 2, z: 3 });
-  test.spawn(chickenType, { x: 5, y: 2, z: 5 });
-
-  // eggTimer 初值 6000-12000 随机。2 只鸡取最小值期望约 3000-6000 tick 首次下蛋，最坏 12000 tick。
-  // maxTicks=13000 留余量。下蛋 spawn 的 item 掉落物实体类型="item"（minecraft:item）。
-  // 用 assertEntityInVolume（基于 getEntities，指定 worldLocation 体积）覆盖整个 grass_pen 内腔，
-  // 断言 item 实体出现。item 掉落在草地（helper y=1）上，鸡在 y=2，体积覆盖 y=1..4 全内腔。
-  test.succeedWhen(() => {
-    assertEntityInVolume(test, "item", 1, 1, 1, 7, 4, 7);
+  test.spawn("minecraft:chicken", { x: 4, y: 2, z: 4 });
+  const operator = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "eggTimerOperator");
+  test.runAtTickTime(5, () => {
+    operator.chat('/data merge entity @e[type=chicken,limit=1,sort=nearest] {EggLayTime:30,IsChickenJockey:0b}');
+  });
+  test.runAtTickTime(15, () => {
+    test.assert(test.getDimension().getEntities({
+      type: "minecraft:item", location: test.worldLocation(PEN_FROM), volume: PEN_VOLUME,
+    }).length === 0, "chicken should not lay an egg before its timer expires");
+  });
+  pollUntilSucceed(test, () => {
+    const items = test.getDimension().getEntities({
+      type: "minecraft:item", location: test.worldLocation(PEN_FROM), volume: PEN_VOLUME,
+    });
+    return items.length === 1;
+  }, {
+    startTick: 35, interval: 1, maxTick: 80,
+    onTimeout: () => test.assert(false, "adult chicken should drop one egg after its saved timer expires"),
   });
 }
 
@@ -240,7 +242,8 @@ function pigTakesFallDamage(test: Test): void {
 export function registerChickenTests(): void {
   GameTest.register("MobBehaviorTests", "chicken_lay_egg", chickenLayEgg)
     .structureName("gametests:grass_pen")
-    .maxTicks(13000);
+    .batch("chicken_egg_timer_solo")
+    .maxTicks(100);
 
   GameTest.register("MobBehaviorTests", "chicken_breeds_when_fed_seeds", chickenBreedsWhenFedSeeds)
     .structureName("gametests:grass_pen")

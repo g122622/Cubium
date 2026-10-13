@@ -136,6 +136,9 @@ protected:
     [[nodiscard]] std::unique_ptr<PathPoint> createNode(i32 x, i32 y, i32 z) override;
 
 private:
+    /** @brief 根据开门和穿门能力转换节点类型，供节点检测和邻居展开共用。 */
+    [[nodiscard]] PathNodeType _applyDoorCapabilities(PathNodeType type) const;
+
     LivingEntity* m_entity = nullptr;
     bool m_canSwim = false;
     bool m_canOpenDoors = false;

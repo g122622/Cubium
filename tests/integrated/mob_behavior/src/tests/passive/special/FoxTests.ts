@@ -418,56 +418,26 @@ function foxFleesFromWolf(test: Test): void {
 //      此 looting 段是本次新增的通用 Mob 拾取机制（此前 Cubium 仅 ItemPickupManager 处理玩家拾取，
 //      Mob 拾取链路完全断开，FoxEntity::pickUpItem 写了但从未被调用）。
 //
-// 环境选择：creeper_pit（7×5×7 开放坑）+ batch("night") + skyAccess(true)。
-//   1. night batch 夜晚 isDaytime()=false 规避 FoxSleepGoal(白天睡眠占 Move flag 阻塞 FoxFindItemsGoal)
-//      与 FoxFindShelterGoal(白天躲阳光)。canAct 要求 !isSleeping()，夜晚不睡→FindItemsGoal 可执行。
-//   2. 开放坑无墙寻路通畅：FoxFindItemsGoal tryMoveTo 导航向物品，玻璃墙会挡寻路致导航失败。
-//   3. skyAccess 双保险露天（canSeeSky=true → hasShelter=false，白天也不睡；虽 night 已规避）。
-//   4. 无玩家避免 AvoidEntityGoal(玩家) 干扰狐狸走向物品。
-//
-// 物品选择：emerald（绿宝石）。狐狸 canHoldItem 主手空时可拾取任何物品（FoxEntity.cpp:296-314），
-//   emerald 非食物不影响进食逻辑，纯验证拾取链路。spawnItem 落在狐狸附近 (3,2,3)，距狐狸 (2,2,3) 1 格。
-//   狐狸随机走动或 FoxFindItemsGoal 导航靠近后，AABB.inflate(1,0,1) 覆盖物品格即拾取。
-//
-// 判定手段：区域内 item 实体数降为 0（被狐狸拾取，ItemEntity.remove()）。狐狸拾取后主手持物，
-//   但狐狸本身非 item 实体不影响计数。pollUntilSucceed 轮询区域内 minecraft:item 实体数==0。
-// 时序：spawnItem 落地(pickupDelay 默认 10 tick 后可拾取) + FoxFindItemsGoal 1/10 概率触发 +
-//   导航靠近 + looting 扫描拾取。maxTick=1200 留充裕余量吸收 1/10 概率随机性。
-//   区域限定排除并行测试污染；type 用 "minecraft:item"（掉落物实体类型）。
-// Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#行为（拾取地上物品叼在嘴里）
+// 使用 grass_pen 围墙保留狐狸与掉落物，夜晚避免睡眠行为，无玩家避免逃避行为干扰。
+// 绿宝石不可食用；期限 1200 tick 小于掉落物 6000 tick 的自然消失时间。
+// 区域内物品消失且原狐狸仍在场才可通过。
 function foxPicksUpItem(test: Test): void {
-  const foxType = "fox";
+  const fox = test.spawn("minecraft:fox", { x: 3, y: 2, z: 4 });
+  (test.spawnItem as any)("minecraft:emerald", { x: 4, y: 2, z: 4 });
 
-  // 狐狸 (2,2,3) spawn 在 creeper_pit y=2 落到 y=1 同层。emerald 掉落物 (3,2,3)，
-  // 距狐狸 1 格。狐狸随机走动或 FoxFindItemsGoal 导航靠近后拾取。
-  test.spawn(foxType, { x: 2, y: 2, z: 3 });
-  (test.spawnItem as any)("minecraft:emerald", { x: 3, y: 2, z: 3 });
-
-  // 轮询：区域内 item 实体数==0（emerald 被狐狸拾取，ItemEntity.remove）。
+  // 围墙保留狐狸和掉落物；绿宝石不可食用，且测试期限小于物品自然消失时间。
   pollUntilSucceed(test, () => {
     const items = test.getDimension().getEntities({
-      type: "minecraft:item",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
+      type: "minecraft:item", location: test.worldLocation(PEN_FROM), volume: PEN_VOLUME,
     });
-    // 掉落物被狐狸拾取后移除——拾取链路生效。
-    return items.length === 0;
+    const foxes = test.getDimension().getEntities({
+      type: "minecraft:fox", location: test.worldLocation(PEN_FROM), volume: PEN_VOLUME,
+    });
+    return items.length === 0 && foxes.some(entity => entity.id === fox.id);
   }, {
     maxTick: 1200,
-    onTimeout: () => {
-      const items = test.getDimension().getEntities({
-        type: "minecraft:item",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
-      });
-      const foxes = test.getDimension().getEntities({
-        type: "minecraft:fox",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
-      });
-      test.assert(false,
-        `fox did not pick up item (items=${items.length}, foxes=${foxes.length})`);
-    },
+    onTimeout: () => test.assert(false,
+      `fox did not pick up emerald: pos=${JSON.stringify(fox.location)}`),
   });
 }
 
@@ -781,7 +751,7 @@ export function registerFoxTests(): void {
     // batch("night")：夜晚规避 FoxSleepGoal(白天睡眠占 Move flag 阻塞 FoxFindItemsGoal)。
     // skyAccess 双保险露天。详见测试函数注释。
     .batch("night")
-    .structureName("gametests:creeper_pit")
+    .structureName("gametests:grass_pen")
     .skyAccess(true)
     .maxTicks(1300);
 

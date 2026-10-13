@@ -150,12 +150,9 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
 
     // 门类型转换逻辑 — 对应 MC WalkNodeEvaluator.getPathTypeWithinMobBB()
     // 关闭的木门 + 能开门 + 能穿门 => 可行走的门（WalkableDoor）
-    if (type == PathNodeType::DoorWoodClosed && m_canOpenDoors && m_canEnterDoors) {
-        type = PathNodeType::WalkableDoor;
-    }
-    // 打开的门 + 不能穿门 => 阻塞
-    if (type == PathNodeType::DoorOpen && !m_canEnterDoors) {
-        return PathNodeType::Blocked;
+    type = _applyDoorCapabilities(type);
+    if (type == PathNodeType::Blocked) {
+        return type;
     }
     // 关闭的铁门始终不可通过（铁门无法手动打开，costMalus=-1.0 已阻止通行）
 
@@ -301,14 +298,15 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current)
         bool isDiagonal = (i >= 4);
 
         // 检查水平移动
-        PathNodeType type = getNodeType(nx, y, nz);
+        // 展开路径时必须包含开门/穿门能力，不能使用未转换的关闭木门类型。
+        PathNodeType type = _applyDoorCapabilities(getNodeType(nx, y, nz));
 
         if (type == PathNodeType::Walkable || type == PathNodeType::Water || type == PathNodeType::Climbable ||
             type == PathNodeType::WalkableDoor || type == PathNodeType::DoorOpen || type == PathNodeType::FenceGate) {
             // 检查对角线移动时是否被阻挡
             if (isDiagonal) {
-                PathNodeType type1 = getNodeType(x + dx[i], y, z);
-                PathNodeType type2 = getNodeType(x, y, z + dz[i]);
+                PathNodeType type1 = _applyDoorCapabilities(getNodeType(x + dx[i], y, z));
+                PathNodeType type2 = _applyDoorCapabilities(getNodeType(x, y, z + dz[i]));
 
                 if (type1 == PathNodeType::Blocked || type2 == PathNodeType::Blocked) {
                     continue;
@@ -405,6 +403,17 @@ std::unique_ptr<PathPoint> WalkNodeProcessor::createNode(i32 x, i32 y, i32 z)
     node->setCostMalus(costMalus);
 
     return node;
+}
+
+PathNodeType WalkNodeProcessor::_applyDoorCapabilities(PathNodeType type) const
+{
+    if (type == PathNodeType::DoorWoodClosed && m_canOpenDoors && m_canEnterDoors) {
+        return PathNodeType::WalkableDoor;
+    }
+    if (type == PathNodeType::DoorOpen && !m_canEnterDoors) {
+        return PathNodeType::Blocked;
+    }
+    return type;
 }
 
 bool WalkNodeProcessor::_isWalkableAt(i32 x, i32 y, i32 z) const

@@ -125,5 +125,48 @@ TEST_F(ChickenEntityTest, Tick_EmitsEggItemAfterTimerExpires)
     EXPECT_GT(chicken.getEggTimer(), 0);
 }
 
+TEST_F(ChickenEntityTest, SavedEggTimerControlsActualEggDropAndResets)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    chicken.setWorld(&m_world);
+    nbt::tags::compound_tag tag;
+    tag.put("EggLayTime", i32{3});
+    tag.put("IsChickenJockey", i8{0});
+    ASSERT_TRUE(chicken.readAdditionalSaveData(tag).success());
+    chicken.tick();
+    chicken.tick();
+    EXPECT_TRUE(m_world.spawnedStacks().empty());
+    chicken.tick();
+    ASSERT_EQ(m_world.spawnedStacks().size(), 1u);
+    EXPECT_EQ(m_world.spawnedStacks().front().getItem(), Items::EGG);
+    EXPECT_GE(chicken.getEggTimer(), 6000);
+    EXPECT_LT(chicken.getEggTimer(), 12000);
+    nbt::tags::compound_tag saved;
+    chicken.addAdditionalSaveData(saved);
+    ChickenEntity restored(EntityInstanceId(2), mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(saved).success());
+    EXPECT_EQ(restored.getEggTimer(), chicken.getEggTimer());
+    EXPECT_FALSE(restored.isChickenJockey());
+}
+
+TEST_F(ChickenEntityTest, ChickenJockeyRestoresAndSuppressesEggDrop)
+{
+    ChickenEntity chicken(EntityInstanceId(1), mc::test::testEcsRegistry());
+    chicken.setWorld(&m_world);
+    nbt::tags::compound_tag tag;
+    tag.put("EggLayTime", i32{1});
+    tag.put("IsChickenJockey", i8{1});
+    ASSERT_TRUE(chicken.readAdditionalSaveData(tag).success());
+    chicken.tick();
+    EXPECT_TRUE(chicken.isChickenJockey());
+    EXPECT_EQ(chicken.getEggTimer(), 1);
+    EXPECT_TRUE(m_world.spawnedStacks().empty());
+    nbt::tags::compound_tag saved;
+    chicken.addAdditionalSaveData(saved);
+    ChickenEntity restored(EntityInstanceId(2), mc::test::testEcsRegistry());
+    ASSERT_TRUE(restored.readAdditionalSaveData(saved).success());
+    EXPECT_TRUE(restored.isChickenJockey());
+}
+
 } // namespace
 } // namespace mc

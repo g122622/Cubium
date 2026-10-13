@@ -53,7 +53,7 @@ public:
         if (it != m_blocks.end()) {
             return it->second;
         }
-        return nullptr;
+        return BlockRegistry::instance().airState();
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
@@ -166,131 +166,83 @@ TEST_F(NetherPortalBlockTest, GetAxisReturnsCorrectValue)
     EXPECT_EQ(portal->getAxis(zState), Axis::Z);
 }
 
-TEST_F(NetherPortalBlockTest, IsValidPositionWithObsidianAbove)
+// 最小的 2×3 门，框架不要求四角；两种轴向共用同一夹具。
+void _buildCompletePortal(NetherPortalTestWorld& world, Axis axis)
 {
-    NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-    ASSERT_NE(VanillaBlocks::OBSIDIAN, nullptr);
-
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos obsidianPos(5, 65, 5);
-
-    world.setBlockAt(obsidianPos, &VanillaBlocks::OBSIDIAN->defaultState());
-
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
+    const Direction widthDir = axis == Axis::X ? Direction::East : Direction::South;
+    const BlockPos corner(5, 64, 5);
+    const auto& portal =
+        VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
+    for (i32 width = 0; width < 2; ++width) {
+        world.setBlockAt(corner.offset(widthDir, width).down(), &VanillaBlocks::OBSIDIAN->defaultState());
+        world.setBlockAt(corner.offset(widthDir, width).up(3), &VanillaBlocks::OBSIDIAN->defaultState());
+        for (i32 height = 0; height < 3; ++height) {
+            world.setBlockAt(corner.offset(widthDir, width).up(height), &portal);
+        }
+    }
+    for (i32 height = 0; height < 3; ++height) {
+        world.setBlockAt(
+            corner.offset(Directions::opposite(widthDir)).up(height), &VanillaBlocks::OBSIDIAN->defaultState());
+        world.setBlockAt(corner.offset(widthDir, 2).up(height), &VanillaBlocks::OBSIDIAN->defaultState());
+    }
 }
 
-TEST_F(NetherPortalBlockTest, IsValidPositionWithObsidianBelow)
+TEST_F(NetherPortalBlockTest, CompleteFrameAndInteriorAreValidOnBothAxes)
 {
-    NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-    ASSERT_NE(VanillaBlocks::OBSIDIAN, nullptr);
-
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos obsidianPos(5, 63, 5);
-
-    world.setBlockAt(obsidianPos, &VanillaBlocks::OBSIDIAN->defaultState());
-
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
+    for (const Axis axis : {Axis::X, Axis::Z}) {
+        NetherPortalTestWorld world;
+        _buildCompletePortal(world, axis);
+        const auto& state =
+            VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
+        EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 65, 5)));
+    }
 }
 
-TEST_F(NetherPortalBlockTest, IsValidPositionWithPortalAbove)
+TEST_F(NetherPortalBlockTest, MissingInteriorInvalidatesRemainingPortalOnBothAxes)
 {
-    NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos otherPortalPos(5, 65, 5);
-
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-    world.setBlockAt(otherPortalPos, &portalState);
-
-    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
+    for (const Axis axis : {Axis::X, Axis::Z}) {
+        NetherPortalTestWorld world;
+        _buildCompletePortal(world, axis);
+        const auto& state =
+            VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), axis);
+        world.clearBlockAt(BlockPos(5, 64, 5));
+        EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 65, 5)));
+        const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(state,
+            Direction::Down,
+            *BlockRegistry::instance().airState(),
+            world,
+            BlockPos(5, 65, 5),
+            BlockPos(5, 64, 5));
+        EXPECT_TRUE(result.isAir());
+    }
 }
 
-TEST_F(NetherPortalBlockTest, IsValidPositionWithObsidianOnSide)
+TEST_F(NetherPortalBlockTest, MissingFrameInvalidatesRemainingPortal)
 {
     NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-    ASSERT_NE(VanillaBlocks::OBSIDIAN, nullptr);
-
-    // X轴传送门：宽度方向是东西，深度方向是南北
-    // 测试深度方向的框架
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos obsidianPos(5, 64, 6); // 南方
-
-    world.setBlockAt(obsidianPos, &VanillaBlocks::OBSIDIAN->defaultState());
-
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
+    _buildCompletePortal(world, Axis::X);
+    world.clearBlockAt(BlockPos(4, 65, 5));
+    const auto& state = VanillaBlocks::NETHER_PORTAL->defaultState();
+    const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(
+        state, Direction::West, *BlockRegistry::instance().airState(), world, BlockPos(5, 65, 5), BlockPos(4, 65, 5));
+    EXPECT_TRUE(result.isAir());
 }
 
-TEST_F(NetherPortalBlockTest, IsValidPositionWithPortalOnSide)
+TEST_F(NetherPortalBlockTest, SingleObsidianNeighborDoesNotValidatePortal)
 {
     NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-
-    // 测试宽度方向有其他传送门方块
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos otherPortalPos(6, 64, 5); // 东方
-
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-    world.setBlockAt(otherPortalPos, &portalState);
-
-    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
+    world.setBlockAt(BlockPos(5, 63, 5), &VanillaBlocks::OBSIDIAN->defaultState());
+    const auto& state = VanillaBlocks::NETHER_PORTAL->defaultState();
+    EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(state, world, BlockPos(5, 64, 5)));
 }
 
-TEST_F(NetherPortalBlockTest, IsNotValidPositionWithNoConnection)
+TEST_F(NetherPortalBlockTest, UpdateOutsidePortalPlaneDoesNotRemovePortal)
 {
     NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-
-    // 没有任何相邻的传送门或黑曜石
-    const BlockPos portalPos(5, 64, 5);
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-
-    EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
-}
-
-TEST_F(NetherPortalBlockTest, IsNotValidPositionWithStoneAround)
-{
-    NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-    ASSERT_NE(VanillaBlocks::STONE, nullptr);
-
-    // 四周都是石头，没有传送门或黑曜石
-    const BlockPos portalPos(5, 64, 5);
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-
-    // 放置石头在六个方向
-    world.setBlockAt(BlockPos(5, 65, 5), &VanillaBlocks::STONE->defaultState()); // 上
-    world.setBlockAt(BlockPos(5, 63, 5), &VanillaBlocks::STONE->defaultState()); // 下
-    world.setBlockAt(BlockPos(6, 64, 5), &VanillaBlocks::STONE->defaultState()); // 东
-    world.setBlockAt(BlockPos(4, 64, 5), &VanillaBlocks::STONE->defaultState()); // 西
-    world.setBlockAt(BlockPos(5, 64, 6), &VanillaBlocks::STONE->defaultState()); // 南
-    world.setBlockAt(BlockPos(5, 64, 4), &VanillaBlocks::STONE->defaultState()); // 北
-
-    EXPECT_FALSE(VanillaBlocks::NETHER_PORTAL->isValidPosition(portalState, world, portalPos));
-}
-
-TEST_F(NetherPortalBlockTest, ZAxisPortalValidWithObsidianOnEastWest)
-{
-    NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-    ASSERT_NE(VanillaBlocks::OBSIDIAN, nullptr);
-
-    // Z轴传送门：宽度方向是南北，深度方向是东西
-    // 测试深度方向（东西）的框架
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos obsidianPos(6, 64, 5); // 东方
-
-    world.setBlockAt(obsidianPos, &VanillaBlocks::OBSIDIAN->defaultState());
-
-    const BlockState& zPortalState =
-        VanillaBlocks::NETHER_PORTAL->defaultState().with(BlockStateProperties::HORIZONTAL_AXIS(), Axis::Z);
-    EXPECT_TRUE(VanillaBlocks::NETHER_PORTAL->isValidPosition(zPortalState, world, portalPos));
+    const auto& state = VanillaBlocks::NETHER_PORTAL->defaultState();
+    const auto result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(
+        state, Direction::North, *BlockRegistry::instance().airState(), world, BlockPos(5, 64, 5), BlockPos(5, 64, 4));
+    EXPECT_TRUE(result.is(VanillaBlocks::NETHER_PORTAL));
 }
 
 TEST_F(NetherPortalBlockTest, PortalShapeIsCorrect)
@@ -321,36 +273,6 @@ TEST_F(NetherPortalBlockTest, PortalIsNotOpaque)
     const BlockState& state = portal->defaultState();
 
     EXPECT_FALSE(portal->isOpaque(state));
-}
-
-TEST_F(NetherPortalBlockTest, UpdatePostPlacementRemovesInvalidPortal)
-{
-    NetherPortalTestWorld world;
-    ASSERT_NE(VanillaBlocks::NETHER_PORTAL, nullptr);
-    ASSERT_NE(VanillaBlocks::OBSIDIAN, nullptr);
-
-    const BlockPos portalPos(5, 64, 5);
-    const BlockPos obsidianPos(5, 63, 5);
-
-    // 放置黑曜石作为支撑
-    world.setBlockAt(obsidianPos, &VanillaBlocks::OBSIDIAN->defaultState());
-
-    const BlockState& portalState = VanillaBlocks::NETHER_PORTAL->defaultState();
-
-    // 有支撑时应该有效
-    BlockState result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(
-        portalState, Direction::Down, portalState, world, portalPos, obsidianPos);
-    EXPECT_TRUE(result.is(VanillaBlocks::NETHER_PORTAL));
-
-    // 移除支撑
-    world.clearBlockAt(obsidianPos);
-
-    // 无支撑时应该返回空气
-    result = VanillaBlocks::NETHER_PORTAL->updatePostPlacement(
-        portalState, Direction::Down, portalState, world, portalPos, obsidianPos);
-
-    // 应该返回空气状态
-    EXPECT_TRUE(result.isAir());
 }
 
 } // namespace

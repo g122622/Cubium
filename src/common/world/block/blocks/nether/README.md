@@ -120,7 +120,7 @@ BushBlock (来自 agricultural/ 模块)
 
 所有需要放置火焰的场景（爆炸、岩浆点火、火球、打火石等）必须使用 `FireBlock::getFireState(world, pos)` 而非直接使用 `VanillaBlocks::FIRE->defaultState()`。该方法根据下方方块是否为灵魂沙/灵魂土自动返回普通火或灵魂火，对应 MC 原版 `BaseFireBlock.getState()`。
 
-`NetherPortalBlock::isValidPosition()` 检查六个方向是否有传送门方块或黑曜石，如果检测逻辑不完整，传送门方块可能意外消失或残留。
+`NetherPortalBlock::isValidPosition()` 复用 `PortalSize` 检查完整黑曜石框架及内部传送门数量。仅检查邻接黑曜石会留下部分破坏的传送门。邻居更新忽略门平面外的方向；平面内非传送门邻居变化时重新验证整门。
 
 ### 9. setBlockState 入参指针的所有权陷阱（测试桩世界必读）
 
