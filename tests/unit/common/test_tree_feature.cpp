@@ -23,6 +23,7 @@
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/block/blocks/RotatedPillarBlock.hpp"
+#include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -349,6 +350,48 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear)
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
     EXPECT_TRUE(m_region->getBlockState(8, 0, 8)->is(VanillaBlocks::DIRT));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, TreeAndTrunkReplaceTaggedGroundDecorations)
+{
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    setWorldBlock(8, 1, 8, &block_registry::GardenBlocks::LEAF_LITTER->defaultState());
+    setWorldBlock(9, 2, 8, &block_registry::GardenBlocks::BUSH->defaultState());
+    math::JavaLegacyRandom rng(12345);
+
+    ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    for (i32 y = 1; y <= 5; ++y) {
+        ASSERT_NE(m_region->getBlockState(8, y, 8), nullptr);
+        EXPECT_TRUE(m_region->getBlockState(8, y, 8)->is(VanillaBlocks::OAK_LOG));
+    }
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, ExistingLogsAllowSpaceProbeButRemainUnchanged)
+{
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    setWorldBlock(8, 3, 8, &VanillaBlocks::SPRUCE_LOG->defaultState());
+    math::JavaLegacyRandom rng(12345);
+
+    ASSERT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
+    EXPECT_TRUE(m_region->getBlockState(8, 3, 8)->is(VanillaBlocks::SPRUCE_LOG));
+    EXPECT_TRUE(m_region->getBlockState(8, 4, 8)->is(VanillaBlocks::OAK_LOG));
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, IgnoreVinesControlsSpaceProbe)
+{
+    TreeFeature feature;
+    auto config = makeFixedOakConfig();
+    setWorldBlock(8, 2, 8, &VanillaBlocks::VINE->defaultState());
+    math::JavaLegacyRandom blockedRng(12345);
+    EXPECT_FALSE(feature.place(*m_region, blockedRng, BlockPos(8, 1, 8), config));
+    EXPECT_TRUE(m_region->getBlockState(8, 2, 8)->is(VanillaBlocks::VINE));
+
+    config.ignoreVines = true;
+    math::JavaLegacyRandom allowedRng(12345);
+    ASSERT_TRUE(feature.place(*m_region, allowedRng, BlockPos(8, 1, 8), config));
+    EXPECT_TRUE(m_region->getBlockState(8, 2, 8)->is(VanillaBlocks::OAK_LOG));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, GroundDecorationsCannotStackOnPreviouslyPlacedPlants)

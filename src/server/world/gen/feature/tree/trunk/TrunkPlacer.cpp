@@ -27,9 +27,9 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/CherryBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
+#include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include <set>
 
 namespace mc {
@@ -59,6 +59,11 @@ void TrunkPlacer::placeBlock(
         return;
     }
 
+    // 空间探测允许已有原木，但实际放置只能替换植被，不能覆盖已有树干或实心方块。
+    if (!TreeFeature::isReplaceableAt(world, pos)) {
+        return;
+    }
+
     // 设置方块
     world.setBlockState(pos, trunkBlock);
 
@@ -73,21 +78,11 @@ bool TrunkPlacer::canPlaceAt(WorldGenRegion& world, const BlockPos& pos)
         return false;
     }
 
-    // 获取当前位置的方块
-    const BlockState* state = world.getBlockState(pos.x, pos.y, pos.z);
-    if (state == nullptr || state->isAir()) {
-        return true; // 空气或其他可替换方块
-    }
-
-    // 检查是否是树叶
-    if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-        state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-        state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
+    if (TreeFeature::isReplaceableAt(world, pos)) {
         return true;
     }
-
-    return false;
+    const BlockState* state = world.getBlockState(pos);
+    return state != nullptr && BlockTags::LOGS().contains(*state);
 }
 
 void TrunkPlacer::placeDirtUnder(WorldGenRegion& world, const BlockPos& pos)

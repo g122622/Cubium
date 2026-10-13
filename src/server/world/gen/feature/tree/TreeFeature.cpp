@@ -27,6 +27,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/CherryBlocks.hpp"
@@ -184,30 +185,8 @@ bool TreeFeature::isReplaceableAt(WorldGenRegion& world, const BlockPos& pos)
         return true;
     }
 
-    // 检查是否是树叶
-    if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-        state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-        state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
-        return true;
-    }
-
-    // 检查是否是植被
-    if (state->is(VanillaBlocks::SHORT_GRASS) || state->is(VanillaBlocks::TALL_GRASS) ||
-        state->is(VanillaBlocks::FERN) || state->is(VanillaBlocks::DANDELION) || state->is(VanillaBlocks::POPPY) ||
-        state->is(VanillaBlocks::OAK_SAPLING) || state->is(VanillaBlocks::SPRUCE_SAPLING) ||
-        state->is(VanillaBlocks::BIRCH_SAPLING) || state->is(VanillaBlocks::JUNGLE_SAPLING) ||
-        state->is(VanillaBlocks::ACACIA_SAPLING) || state->is(VanillaBlocks::DARK_OAK_SAPLING) ||
-        state->is(block_registry::CherryBlocks::CHERRY_SAPLING)) {
-        return true;
-    }
-
-    // 检查是否是水
-    if (state->is(VanillaBlocks::WATER)) {
-        return true;
-    }
-
-    return false;
+    // 可替换植被由数据包标签维护，包含落叶、新植被和含水植物。
+    return BlockTags::REPLACEABLE_BY_TREES().contains(*state);
 }
 
 bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos)
@@ -221,15 +200,7 @@ bool TreeFeature::isAirOrLeavesAt(WorldGenRegion& world, const BlockPos& pos)
         return true;
     }
 
-    // 检查是否是树叶
-    if (state->is(VanillaBlocks::OAK_LEAVES) || state->is(VanillaBlocks::SPRUCE_LEAVES) ||
-        state->is(VanillaBlocks::BIRCH_LEAVES) || state->is(VanillaBlocks::JUNGLE_LEAVES) ||
-        state->is(VanillaBlocks::ACACIA_LEAVES) || state->is(VanillaBlocks::DARK_OAK_LEAVES) ||
-        state->is(block_registry::CherryBlocks::CHERRY_LEAVES)) {
-        return true;
-    }
-
-    return false;
+    return BlockTags::LEAVES().contains(*state);
 }
 
 bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
@@ -294,7 +265,10 @@ i32 TreeFeature::_calculateAvailableHeight(
                 pos.y = startPos.y + y;
                 pos.z = startPos.z + dz;
 
-                if (!isReplaceableAt(world, pos)) {
+                const BlockState* state = world.getBlockState(pos);
+                const bool existingLog = state != nullptr && BlockTags::LOGS().contains(*state);
+                const bool blockedByVine = !config.ignoreVines && state != nullptr && state->is(VanillaBlocks::VINE);
+                if ((!isReplaceableAt(world, pos) && !existingLog) || blockedByVine) {
                     // 找到不可替换的方块，返回当前可用高度
                     return y - 2;
                 }
