@@ -253,3 +253,14 @@ TEST_F(SimpleBlockFeatureTest, RejectsTallFlowerWithoutChangingLowerBlockWhenUpp
         EXPECT_EQ(m_region->getBlockState(pos.up()), obstacle);
     }
 }
+
+TEST_F(SimpleBlockFeatureTest, RejectsTallFlowerAtTopBoundaryWithoutWritingLowerHalf)
+{
+    cave::SimpleBlockConfig config(&VanillaBlocks::ROSE_BUSH->defaultState(), false);
+    math::JavaLegacyRandom random(42);
+    const BlockPos pos(8, world::MAX_BUILD_HEIGHT - 1, 8);
+    m_region->setBlockState(pos.down(), &VanillaBlocks::GRASS_BLOCK->defaultState());
+    EXPECT_FALSE(cave::SimpleBlockFeature::place(*m_region, random, pos, config));
+    const BlockState* state = m_region->getBlockState(pos);
+    EXPECT_TRUE(state == nullptr || state->isAir());
+}

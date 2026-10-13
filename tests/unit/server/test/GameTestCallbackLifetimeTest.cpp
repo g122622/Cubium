@@ -191,8 +191,11 @@ TEST(GameTestCallbackLifetime, WaitingConditionStaysPendingAndTimeoutRetainsSpec
     int releases = 0;
     _Function function("waiting-condition", false, releases);
     _Instance instance(function);
-    instance.registerSucceedCondition([]() -> mc::test::GameTestResult {
-        return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "destination dimension is still overworld"};
+    int checks = 0;
+    instance.registerSucceedCondition([&]() -> mc::test::GameTestResult {
+        ++checks;
+        return mc::test::GameTestError{mc::test::GameTestErrorType::Assert,
+            checks == 1 ? "initial condition error" : "latest condition error " + std::to_string(checks)};
     });
     instance.startExecution();
     instance.tick();
@@ -203,5 +206,7 @@ TEST(GameTestCallbackLifetime, WaitingConditionStaysPendingAndTimeoutRetainsSpec
     EXPECT_EQ(instance.state(), mc::test::GameTestState::Failed);
     ASSERT_TRUE(instance.error());
     EXPECT_EQ(instance.error()->type(), mc::test::GameTestErrorType::ExecutionTimeout);
-    EXPECT_NE(instance.error()->formattedMessage().find("destination dimension is still overworld"), std::string::npos);
+    EXPECT_NE(instance.error()->formattedMessage().find("latest condition error " + std::to_string(checks)),
+        std::string::npos);
+    EXPECT_EQ(instance.error()->formattedMessage().find("initial condition error"), std::string::npos);
 }

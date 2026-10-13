@@ -45,8 +45,6 @@ declare module "@minecraft/server-gametest" {
     }
 
     interface Test {
-        /** 通过真实致死伤害清理指定实体，支持实体及玩家句柄。 */
-        kill(entity: import("@minecraft/server").Entity): void;
         /**
          * 对单个精确坐标执行一次 NaturalSpawner 自然生成判定（项目独有，非基岩/Java GameTest API）。
          *

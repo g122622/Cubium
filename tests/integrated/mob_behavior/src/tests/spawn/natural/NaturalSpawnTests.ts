@@ -125,10 +125,7 @@ function naturalSpawnMonsterInDarkCavern(test: Test): void {
 // 负向断言：若玩家门控失效，夜晚露天会生成怪物，monster>0 暴露 bug。
 // Ref: NaturalSpawner.cpp spawnCategoryForPosition players.empty() 早退
 function naturalSpawnRequiresPlayer(test: Test): void {
-    // 独立批次中清理先前离开各自结构的玩家，门控检查针对整个维度。
-    for (const player of test.getDimension().getEntities({ type: "minecraft:player" })) {
-        test.kill(player as any);
-    }
+    // 只清本结构；测试宿主负责在各测试完成后移除其模拟玩家。
     (test as any).killAllEntities();
     for (let tick = 40; tick <= 200; tick += 20) {
         test.runAtTickTime(tick, () => {

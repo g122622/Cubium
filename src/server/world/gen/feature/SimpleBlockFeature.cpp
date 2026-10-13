@@ -74,6 +74,9 @@ bool SimpleBlockFeature::place(
     // TODO: 将 scheduleTick 请求保存到生成区块的待执行方块刻。
     // 双层植物必须先验证上方为空气，再同时写入两部分，不能留下单独的下半部分。
     if (dynamic_cast<const blocks::DoublePlantBlock*>(&block) != nullptr) {
+        if (pos.y >= world::MAX_BUILD_HEIGHT - 1) {
+            return false;
+        }
         const BlockState* above = region.getBlockState(pos.up());
         if (above != nullptr && !above->isAir()) {
             return false;

@@ -26,15 +26,16 @@ function rabbitFleesPlayer(test: Test): void {
   const player = test.spawnSimulatedPlayer({ x: 18, y: 2, z: 4 }, "scary", 0 as any);
   let phase = 0;
   let rabbitStartX = rabbit.location.x;
-  let previousRabbitX = rabbit.location.x;
+  let previousRabbit = { x: rabbit.location.x, z: rabbit.location.z };
   let settledSamples = 0;
   for (let tick = 10; tick <= 450; tick += 5) {
     test.runAtTickTime(tick, () => {
       const dx = rabbit.location.x - player.location.x;
       const dz = rabbit.location.z - player.location.z;
       if (phase === 0) {
-        settledSamples = Math.abs(rabbit.location.x - previousRabbitX) < 0.05 ? settledSamples + 1 : 0;
-        previousRabbitX = rabbit.location.x;
+        const moved = Math.hypot(rabbit.location.x - previousRabbit.x, rabbit.location.z - previousRabbit.z);
+        settledSamples = moved < 0.05 ? settledSamples + 1 : 0;
+        previousRabbit = { x: rabbit.location.x, z: rabbit.location.z };
       }
       if (dx * dx + dz * dz > 4 * 4) {
         if (phase === 0 && rabbit.location.x - rabbitStartX > 2 && settledSamples >= 3) {

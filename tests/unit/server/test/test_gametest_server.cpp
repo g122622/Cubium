@@ -52,6 +52,7 @@
 #include "server/test/minecraft/helper/MinecraftGameTestHelperProvider.hpp"
 #include "server/test/minecraft/instance/MinecraftGameTestInstance.hpp"
 #include "server/test/minecraft/structure/StructureBounds.hpp"
+#include "server/test/simulated/SimulatedPlayer.hpp"
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 
@@ -157,6 +158,44 @@ TEST_F(GameTestServerFixture, HelperQueriesAndCleanupSurviveStructureBoundsDestr
         bounds.reset();
         EXPECT_FALSE(helper.assertEntityPresentInArea("minecraft:pig", false).has_value());
         EXPECT_FALSE(helper.killAllEntities().has_value());
+    }
+    server.stop();
+}
+
+TEST_F(GameTestServerFixture, TestOwnedPlayerOutsideStructureIsRemovedAfterUserFinishCallbacks)
+{
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "NoSuchSuite.*";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto& world = *server.dimensionManager().getOverworld()->world();
+    {
+        mc::test::TestData data;
+        data.setStructure("gametest:empty_3x3").setMaxTicks(20);
+        mc::test::NativeGameTestFunction function(
+            "player-cleanup", "player-cleanup", "gametest:empty_3x3", data, [](mc::test::IGameTestHelper&) {
+                return mc::test::pass();
+            });
+        const mc::BlockPos origin{0, 4, 0};
+        mc::test::MinecraftGameTestInstance instance(
+            function, std::make_unique<mc::test::MinecraftGameTestHelperProvider>(world), world, origin);
+        instance.spawnStructureIfNeeded();
+        mc::test::StructureBounds bounds(origin, mc::BlockPos{3, 3, 3}, mc::Rotation::None);
+        mc::test::GameTestHelper helper(world, origin, &bounds, instance);
+        mc::test::SimulatedPlayer* player = nullptr;
+        ASSERT_FALSE(helper.spawnSimulatedPlayer("owned", {1, 1, 1}, mc::GameMode::Creative, player));
+        ASSERT_NE(player, nullptr);
+        player->setPosition(100.0f, 10.0f, 100.0f);
+        bool callbackRan = false;
+        helper.runOnFinish([&] {
+            EXPECT_FALSE(player->isRemoved());
+            callbackRan = true;
+            return mc::test::pass();
+        });
+        instance.succeed();
+        EXPECT_TRUE(callbackRan);
+        EXPECT_TRUE(player->isRemoved());
     }
     server.stop();
 }
