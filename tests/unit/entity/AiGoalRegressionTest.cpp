@@ -608,9 +608,10 @@ TEST(AiGoalRegressionTest, ScriptHandles_SharedEntityIdDoesNotInvalidateOtherObj
     ASSERT_EQ(first->id(), second->id());
 
     using namespace mc::mod::bedrock::addon;
-    ScriptObjectRegistry::ObjectData firstHandle{first.get(), false, "Entity", nullptr, first->id()};
-    ScriptObjectRegistry::ObjectData secondHandle{second.get(), false, "Entity", nullptr, second->id()};
-    ScriptObjectRegistry::ObjectData secondComponent{second.get(), false, "Health", nullptr, second->id()};
+    ScriptObjectRegistry::ObjectData firstHandle{first.get(), false, "Entity", nullptr, first->id(), first.get()};
+    ScriptObjectRegistry::ObjectData secondHandle{second.get(), false, "Entity", nullptr, second->id(), second.get()};
+    ScriptObjectRegistry::ObjectData secondComponent{
+        second.get(), false, "Health", nullptr, second->id(), second.get()};
     auto& handles = ScriptHandleRegistry::instance();
     handles.registerHandle(&firstHandle);
     handles.registerHandle(&secondHandle);
@@ -632,8 +633,8 @@ TEST(AiGoalRegressionTest, ScriptHandles_FinalizedHandleIsNotVisitedDuringDestru
     auto entity = std::make_unique<_TestCreatureEntity>();
     using namespace mc::mod::bedrock::addon;
     auto finalized = std::make_unique<ScriptObjectRegistry::ObjectData>(
-        ScriptObjectRegistry::ObjectData{entity.get(), false, "Entity", nullptr, entity->id()});
-    ScriptObjectRegistry::ObjectData surviving{entity.get(), false, "Health", nullptr, entity->id()};
+        ScriptObjectRegistry::ObjectData{entity.get(), false, "Entity", nullptr, entity->id(), entity.get()});
+    ScriptObjectRegistry::ObjectData surviving{entity.get(), false, "Health", nullptr, entity->id(), entity.get()};
     auto& handles = ScriptHandleRegistry::instance();
     handles.registerHandle(finalized.get());
     handles.registerHandle(&surviving);

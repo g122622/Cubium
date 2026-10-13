@@ -195,45 +195,24 @@ function foxImmuneToSweetBerryBush(test: Test): void {
 // 区域限定排除并行测试污染；type 用 "minecraft:chicken"。
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_狐狸.txt#攻击（主动攻击鸡兔鱼幼海龟）
 function foxAttacksChicken(test: Test): void {
-  const foxType = "fox";
-  const chickenType = "chicken";
-
-  // 狐狸 (2,2,3)、鸡 (4,2,3)，水平距 2 格。creeper_pit 开放坑，实体 spawn y=2 落到 y=1 同层。
-  // 距离 2 格 < targetSelector 搜索范围，狐狸迅速选定鸡为 attackTarget。
-  test.spawn(foxType, { x: 2, y: 2, z: 3 });
-  test.spawn(chickenType, { x: 4, y: 2, z: 3 });
-
-  // 轮询：鸡 HP<4（受击）或鸡死亡消失（length==0）。
+  (test as any).killAllEntities();
+  const observer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "observer", 3 as any);
+  const previousSpawning = (test.getDimension() as any).getGameRule("doMobSpawning");
+  observer.chat("/gamerule doMobSpawning false");
+  (test as any).runOnFinish(() => observer.chat(`/gamerule doMobSpawning ${previousSpawning}`));
+  test.spawn("minecraft:fox", { x: 2, y: 2, z: 3 });
+  const chicken = test.spawn("minecraft:chicken", { x: 4, y: 2, z: 3 });
+  // 固定猎物，验证狐狸的选目标与攻击链；按句柄观察掉血，移出查询区域不能算击杀。
+  (chicken.getComponent("minecraft:movement") as any).setCurrentValue(0);
   pollUntilSucceed(test, () => {
-    const chickens = test.getDimension().getEntities({
-      type: "minecraft:chicken",
-      location: test.worldLocation(PIT_FROM),
-      volume: PIT_VOLUME,
-    });
-    // 鸡已被狐狸咬死消失——攻击行为生效。
-    if (chickens.length === 0) {
-      return true;
-    }
-    const health = chickens[0].getComponent("minecraft:health");
-    if (health === undefined) {
-      return false;
-    }
-    // 鸡受击掉血（<4 满血）——狐狸近战 2 伤害生效。
-    return (health as any).currentValue < 4;
+    const health = chicken.getComponent("minecraft:health") as any;
+    return health !== undefined && health.currentValue < 4;
   }, {
+    startTick: 10,
+    interval: 1,
     maxTick: 1200,
-    onTimeout: () => {
-      const chickens = test.getDimension().getEntities({
-        type: "minecraft:chicken",
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
-      });
-      const hp = chickens.length > 0
-        ? (chickens[0].getComponent("minecraft:health") as any)?.currentValue
-        : "gone";
-      test.assert(false,
-        `fox did not attack chicken (chicken=${chickens.length}, hp=${hp})`);
-    },
+    onTimeout: () => test.assert(false,
+      `fox did not damage chicken: hp=${(chicken.getComponent("minecraft:health") as any)?.currentValue}`),
   });
 }
 
@@ -726,7 +705,7 @@ export function registerFoxTests(): void {
   GameTest.register("MobBehaviorTests", "fox_attacks_chicken", foxAttacksChicken)
     // batch("night")：夜晚 isDaytime()=false 规避 FoxSleepGoal(白天睡眠) 与 FoxFindShelterGoal(白天躲阳光)
     // 占 Move flag 阻塞攻击链路。skyAccess 双保险露天。详见测试函数注释。
-    .batch("night")
+    .batch("night_fox_hunts_chicken")
     .structureName("gametests:creeper_pit")
     .skyAccess(true)
     .maxTicks(1300);

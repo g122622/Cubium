@@ -591,10 +591,10 @@ bool QuickJSBindingContext::registerClass(u64 classId, const char* className, bo
             JSClassID cid = 0;
             auto* data = static_cast<ScriptObjectRegistry::ObjectData*>(JS_GetAnyOpaque(val, &cid));
             if (data) {
-                // Entity 系句柄（entityId != 0）须在 delete data 前从 ScriptHandleRegistry 注销，
+                // 有实体所有者的句柄须在 delete data 前从 ScriptHandleRegistry 注销，
                 // 防注册表持有已 delete 的 ObjectData*——否则后续实体销毁 invalidateAll 解引用
                 // 悬垂 data* UAF（见 ScriptHandleRegistry.hpp）。
-                if (data->entityId != 0) {
+                if (data->entityOwner != nullptr) {
                     ScriptHandleRegistry::instance().unregisterHandle(data);
                 }
                 if (data->owned && data->ptr && data->destroy) {

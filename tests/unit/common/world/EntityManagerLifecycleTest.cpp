@@ -24,6 +24,8 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/RemovalReason.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"
+#include "common/mod/bedrock/addon/binding/ScriptHandleRegistry.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include <memory>
 #include <gtest/gtest.h>
@@ -177,6 +179,41 @@ TEST_F(EntityManagerLifecycleTest, TakeEntity_TransfersOwnershipWithoutDestructi
 TEST_F(EntityManagerLifecycleTest, TakeEntity_NonExistent_ReturnsNullptr)
 {
     EXPECT_EQ(m_manager.takeEntity(EntityInstanceId(99999)), nullptr);
+}
+
+TEST_F(EntityManagerLifecycleTest, OwnershipTransferPreservesScriptEntityAndComponentHandlesUntilDestruction)
+{
+    using mc::mod::bedrock::addon::ScriptHandleRegistry;
+    using mc::mod::bedrock::addon::ScriptObjectRegistry;
+    const auto id = addProbe();
+    Entity* original = m_manager.getEntity(id);
+    ScriptObjectRegistry::ObjectData entityHandle{original, false, "Entity", nullptr, id, original};
+    ScriptObjectRegistry::ObjectData healthHandle{original, false, "HealthComponent", nullptr, id, original};
+    i32 inventoryStorage = 42;
+    ScriptObjectRegistry::ObjectData containerHandle{&inventoryStorage, false, "Container", nullptr, id, original};
+    auto& handles = ScriptHandleRegistry::instance();
+    handles.registerHandle(&entityHandle);
+    handles.registerHandle(&healthHandle);
+    handles.registerHandle(&containerHandle);
+    auto transferred = m_manager.takeEntity(id);
+    ASSERT_NE(transferred, nullptr);
+    EXPECT_EQ(entityHandle.ptr, original);
+    EXPECT_EQ(healthHandle.ptr, original);
+    EXPECT_EQ(containerHandle.ptr, &inventoryStorage);
+    EntityManager destination(mc::test::testEcsRegistry());
+    const auto destinationId = destination.addEntity(std::move(transferred));
+    EXPECT_EQ(destination.getEntity(destinationId), original);
+    EXPECT_EQ(entityHandle.ptr, original);
+    EXPECT_EQ(healthHandle.ptr, original);
+    auto removed = destination.takeEntity(destinationId);
+    EXPECT_EQ(entityHandle.ptr, original);
+    removed.reset();
+    EXPECT_EQ(entityHandle.ptr, nullptr);
+    EXPECT_EQ(healthHandle.ptr, nullptr);
+    EXPECT_EQ(containerHandle.ptr, nullptr);
+    handles.unregisterHandle(&entityHandle);
+    handles.unregisterHandle(&healthHandle);
+    handles.unregisterHandle(&containerHandle);
 }
 
 // ============================================================================

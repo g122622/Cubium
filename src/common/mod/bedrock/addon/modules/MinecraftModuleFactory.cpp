@@ -2748,6 +2748,13 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
     ScriptClassRegistry::instance().registerClass(blockClassId, blockProto, "Block");
 
     ClassRegistrar<void> blockReg(ctx, blockClassId, blockProto);
+    blockReg.readonlyProperty("isAir", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
+        auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
+        if (ref == nullptr || ref->state == nullptr) {
+            return ctx.createUndefined();
+        }
+        return ctx.createBoolean(ref->state->isAir());
+    });
     blockReg.readonlyProperty("typeId", [blockClassId](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ref = static_cast<ScriptBlockRef*>(ScriptObjectRegistry::unwrap(ctx, thisVal, blockClassId));
         if (ref == nullptr || ref->state == nullptr) {
@@ -3298,7 +3305,7 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
             // m_inventory 成员地址），实体销毁时 invalidateAll 经同一 entityId 清空组件+Container 句柄防 UAF
             // （对齐 onfire 等组件 owned=false 句柄登记范式，见 ScriptHandleRegistry）。
             return ScriptObjectRegistry::wrap(
-                ctx, containerClassIdResolved, containerProto, inv, false, "Container", nullptr, player->id());
+                ctx, containerClassIdResolved, containerProto, inv, false, "Container", nullptr, player->id(), player);
         });
 
     // ====== 注册常量 ======

@@ -12,10 +12,18 @@ function babyCowFollowsMother(test: Test): void {
     const distance = () => Math.hypot(baby.location.x - mother.location.x, baby.location.z - mother.location.z);
     test.assert(distance() >= 3.5, "baby should start outside the follow stopping distance");
     let followedFirstPosition = false;
+    let settledChecks = 0;
     let secondPhaseValid = false;
     let secondStart = { x: 0, z: 0 };
     pollUntilSucceed(test, () => {
-        if (!followedFirstPosition && distance() >= 3.5) return false;
+        if (!followedFirstPosition) {
+            // 先停稳十 tick，让第一条路径自然结束，避免旧路径惯性污染反向位移判定。
+            if (distance() >= 3.0) {
+                settledChecks = 0;
+                return false;
+            }
+            if (++settledChecks < 10) return false;
+        }
         if (!followedFirstPosition) {
             followedFirstPosition = true;
             secondStart = { x: baby.location.x, z: baby.location.z };
@@ -39,6 +47,7 @@ function babyCowFollowsMother(test: Test): void {
 
 export function registerBabyCowTests(): void {
     GameTest.register("MobBehaviorTests", "baby_cow_follows_mother", babyCowFollowsMother)
+        .batch("baby_follow_parent")
         .structureName("gametests:grass_pen")
         .maxTicks(120);
 }

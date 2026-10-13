@@ -183,6 +183,8 @@ Entity::~Entity()
 {
     // 在释放组件和其他清理回调之前，使跨 tick 的实体引用失效。
     m_referenceLifetime.reset();
+    // 脚本引用也必须在组件析构和清理回调之前失效；所有权移交不经过此边界。
+    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(this);
     // 销毁 ECS 实体及其全部组件（含 EntityOwnerComponent，消除悬垂反查指针）。
     // m_entityContext 此刻仍存活（成员在 ~Entity body 之后析构），可安全取 registry 与 entity id。
     // valid() 校验防御：极少数路径（如 move-into-graveyard 后实体被显式 destroy）下
@@ -190,14 +192,6 @@ Entity::~Entity()
     if (m_entityContext != nullptr && m_entityContext->valid()) {
         m_entityContext->registry().destroy(m_entityContext->entity());
     }
-
-    // 兜底：实体析构（EntityManager::destroyEntity → graveyard 延迟析构，或其它直接析构路径）。
-    // invalidateAll 把所有指向本实体的 JS 句柄 ObjectData::ptr 置 nullptr，防 owned=false 裸 Entity*
-    // 句柄悬垂 UAF（见 ScriptHandleRegistry.hpp 问题背景）。与 EntityManager::takeEntity 的
-    // invalidateAll（跨维度迁移时若调用者丢弃 unique_ptr 立即 free）形成双保险：销毁路径经
-    // graveyard 延迟，由此处兜底；takeEntity 路径可能先于析构就 invalidate（此时幂等 no-op）。
-    // 重复调用安全：已失效对象的地址记录已从注册表移除，再次调为 no-op。
-    mc::mod::bedrock::addon::ScriptHandleRegistry::instance().invalidateAll(this);
 }
 
 void Entity::remove(RemovalReason reason)

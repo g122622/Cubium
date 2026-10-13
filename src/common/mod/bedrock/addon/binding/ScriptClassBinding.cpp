@@ -26,6 +26,19 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
     void (*destroy)(void*),
     EntityInstanceId entityId)
 {
+    return wrap(ctx, classId, proto, ptr, owned, typeName, destroy, entityId, entityId != 0 ? ptr : nullptr);
+}
+
+void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
+    u64 classId,
+    void* proto,
+    void* ptr,
+    bool owned,
+    const char* typeName,
+    void (*destroy)(void*),
+    EntityInstanceId entityId,
+    const void* entityOwner)
+{
     // owned=true 时 nullptr 无意义（JS 将 GC delete nullptr，且语义上 owned 对象必须有实体），
     // 返回 null 表示无对象。owned=false 时 ptr 可为 nullptr：用于无实体指针的全局单例对象
     // （如 world/system，方法回调 MC_UNUSED thisVal 不解引用 ptr），此时仍创建有效 JS 对象，
@@ -41,12 +54,11 @@ void* ScriptObjectRegistry::wrap(IScriptBindingContext& ctx,
     }
 
     // 构造即交出所有权：opaque 由 JS finalizer 事后释放，不参与本函数作用域。
-    auto* data = std::make_unique<ObjectData>(ptr, owned, typeName, destroy, entityId).release();
+    auto* data = std::make_unique<ObjectData>(ptr, owned, typeName, destroy, entityId, entityOwner).release();
     ctx.setOpaque(obj, data, classId);
 
-    // Entity 系（entityId != 0）登记到 ScriptHandleRegistry：实体销毁时 invalidateAll 置本句柄
-    // ptr=nullptr，防 owned=false 裸 Entity* 跨 tick 悬垂 UAF（见 ScriptHandleRegistry.hpp 背景）。
-    if (entityId != 0) {
+    // 按所属实体登记，opaque 指向背包等子对象时仍在实体析构前统一失效。
+    if (entityOwner != nullptr) {
         ScriptHandleRegistry::instance().registerHandle(data);
     }
 

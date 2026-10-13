@@ -45,10 +45,8 @@ public:
      * @param owned 是否由JS管理生命周期（GC时delete）
      * @param typeName 类型名（调试用）
      * @param destroy 自定义销毁回调（可选，owned=true时默认delete）
-     * @param entityId 实体实例ID（可选，仅 Entity 系传非0值）：非0时登记到 ScriptHandleRegistry，
-     *        实体销毁时 ScriptHandleRegistry::invalidateAll 置本句柄 ptr=nullptr，防 UAF。
-     *        见 ScriptHandleRegistry.hpp 问题背景（owned=false Entity 句柄跨 tick 持裸 Entity*，
-     *        实体路径B立即free后悬垂，isOnFire 等回调 UAF 段错误）。
+     * @param entityId 非零表示 opaque 直接指向实体；按其地址登记生命周期。
+     *        子对象（如背包容器）须调用显式 entityOwner 的重载。
      * @return JS对象句柄（调用者拥有所有权）
      */
     [[nodiscard]] static void* wrap(IScriptBindingContext& ctx,
@@ -59,6 +57,17 @@ public:
         const char* typeName,
         void (*destroy)(void*) = nullptr,
         EntityInstanceId entityId = 0);
+
+    /** @brief 包装实体拥有的子对象，显式指定生命周期所属实体而非子对象地址。 */
+    [[nodiscard]] static void* wrap(IScriptBindingContext& ctx,
+        u64 classId,
+        void* proto,
+        void* ptr,
+        bool owned,
+        const char* typeName,
+        void (*destroy)(void*),
+        EntityInstanceId entityId,
+        const void* entityOwner);
 
     /**
      * @brief 从JS对象获取C++指针
@@ -85,9 +94,8 @@ public:
     /**
      * @brief 存储在JS对象opaque中的数据
      *
-     * entityId 字段：仅 Entity 系 JS 对象（Entity 本身 + OnFire/Health/Movement/Equippable 等组件
-     * 对象，均 opaque 持同一 mc::Entity*）非0。wrap 时登记到 ScriptHandleRegistry，实体销毁时
-     * invalidateAll 置 ptr=nullptr；QuickJS finalizer 在 delete data 前据此调 unregisterHandle。
+     * entityOwner 记录所属实体，ptr 可以指向该实体或其背包等子对象。
+     * 实体析构按 entityOwner 使全部句柄失效，GC 注销不依赖 ptr 继续有效。
      */
     struct ObjectData {
         void* ptr;
@@ -95,6 +103,7 @@ public:
         const char* typeName;
         void (*destroy)(void*);
         EntityInstanceId entityId = 0;
+        const void* entityOwner;
     };
 };
 

@@ -30,11 +30,12 @@
 #include "common/item/core/ItemStack.hpp"          // giveItem/setItem 按值拷贝需完整类型
 #include "common/mod/bedrock/addon/binding/ScriptClassBinding.hpp"  // ScriptObjectRegistry/ClassRegistrar
 #include "common/mod/bedrock/addon/binding/ScriptClassRegistry.hpp" // 跨模块 unwrap Entity/ItemStack/Dimension
-#include "common/resource/ResourceLocation.hpp"                     // ResourceLocation（getEffect typeId 资源位置）
-#include "common/util/Direction.hpp"    // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
-#include "common/util/math/Vector3.hpp" // Vector3（faceLocation 参数）
-#include "common/world/GlobalPos.hpp"   // GlobalPos（getSpawnPoint 返 optional<GlobalPos>）
-#include "common/world/IWorld.hpp"      // IWorld::dimension()（options.dimension 跨维度判定)
+#include "common/mod/bedrock/addon/modules/types/ScriptVec3.hpp"
+#include "common/resource/ResourceLocation.hpp" // ResourceLocation（getEffect typeId 资源位置）
+#include "common/util/Direction.hpp"            // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
+#include "common/util/math/Vector3.hpp"         // Vector3（faceLocation 参数）
+#include "common/world/GlobalPos.hpp"           // GlobalPos（getSpawnPoint 返 optional<GlobalPos>）
+#include "common/world/IWorld.hpp"              // IWorld::dimension()（options.dimension 跨维度判定)
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"        // DimensionId（teleport 目标维度类型）
 #include "server/test/base/error/GameTestErrorType.hpp"       // GameTestErrorType::MethodNotImplemented
@@ -54,6 +55,15 @@ using mc::mod::bedrock::addon::ClassRegistrar;
 using mc::mod::bedrock::addon::ScriptObjectRegistry;
 
 namespace {
+
+void* _playerLocation(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal)
+{
+    auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
+    if (player == nullptr || player->isRemoved()) {
+        return ctx.throwTypeError("Invalid SimulatedPlayer");
+    }
+    return mc::mod::bedrock::addon::ScriptVec3(player->position()).toJs(ctx);
+}
 
 bool _parseBlockPos(mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* arg, BlockPos& out)
 {
@@ -287,6 +297,15 @@ u64 registerSimulatedPlayerClassBinding(
     mc::mod::bedrock::addon::ScriptClassRegistry::instance().registerClass(classId, proto, "SimulatedPlayer");
 
     ClassRegistrar<void> reg(ctx, classId, proto);
+
+    // 玩家类使用独立原型，须显式提供实体的世界坐标接口。
+    reg.readonlyProperty("location", _playerLocation);
+    reg.method(
+        "getLocation",
+        [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal, i32, void**) -> void* {
+            return _playerLocation(ctx, thisVal);
+        },
+        0);
 
     // --- name (readonly property) ---
     reg.readonlyProperty("name", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
@@ -1048,6 +1067,7 @@ u64 registerSimulatedPlayerClassBinding(
                 return ctx.throwTypeError("attackEntity: first arg must be an Entity");
             }
             player->attack(*target);
+            // TODO: 原生攻击入口需提供成功标志，才能实现脚本 API 的布尔返回值。
             return ctx.createUndefined();
         },
         1);
