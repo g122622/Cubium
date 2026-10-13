@@ -406,7 +406,7 @@ TEST_F(TreeFeaturePlacementWorldTest, CanopyPreservesSourceWaterWhenReplacingWat
     ASSERT_NE(submerged, nullptr);
     ASSERT_TRUE(submerged->is(VanillaBlocks::OAK_LEAVES));
     EXPECT_TRUE(submerged->get(BlockStateProperties::WATERLOGGED()));
-    const BlockState* dry = m_region->getBlockState(10, 5, 8);
+    const BlockState* dry = m_region->getBlockState(8, 5, 9);
     ASSERT_NE(dry, nullptr);
     ASSERT_TRUE(dry->is(VanillaBlocks::OAK_LEAVES));
     EXPECT_FALSE(dry->get(BlockStateProperties::WATERLOGGED()));

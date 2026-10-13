@@ -34,6 +34,7 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/placement/Placement.hpp"
 #include "server/world/gen/placement/PlacementRegistry.hpp"
+#include "server/world/gen/placement/Placements.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 
@@ -108,6 +109,47 @@ protected:
     std::unique_ptr<WorldGenRegion> m_region;
     StubGenerator m_stub;
 };
+
+TEST_F(CountOnEveryLayerAndNoisePlacementTest, SurfaceWaterDepthUsesHeightmapsBeforeHeightPlacement)
+{
+    placeBlock(8, 3, 8, &VanillaBlocks::STONE->defaultState());
+    placeBlock(8, 4, 8, &VanillaBlocks::WATER->defaultState());
+    placeBlock(8, 5, 8, &VanillaBlocks::WATER->defaultState());
+    centerChunk().primeHeightmaps(HeightmapFlag::POST_FEATURES);
+    ASSERT_EQ(m_region->getHeightmapFirstAvailable(8, 8, HeightmapType::OceanFloor), 4);
+    ASSERT_EQ(m_region->getHeightmapFirstAvailable(8, 8, HeightmapType::WorldSurface), 6);
+    WaterDepthThresholdPlacement placement;
+    WaterDepthThresholdConfig dryOnly(0);
+    WaterDepthThresholdConfig allowTwoBlocks(2);
+    math::Random random(12345);
+
+    for (const i32 inputY : {world::MIN_BUILD_HEIGHT, 0, 100}) {
+        const BlockPos origin(8, inputY, 8);
+        EXPECT_TRUE(placement.getPositions(*m_region, random, dryOnly, origin).empty());
+        const auto allowed = placement.getPositions(*m_region, random, allowTwoBlocks, origin);
+        ASSERT_EQ(allowed.size(), 1u);
+        EXPECT_EQ(allowed.front(), origin);
+    }
+}
+
+TEST_F(CountOnEveryLayerAndNoisePlacementTest, SurfaceWaterDepthPreservesDryColumnsAndRejectsOverLimit)
+{
+    placeBlock(8, 3, 8, &VanillaBlocks::STONE->defaultState());
+    placeBlock(8, 4, 8, &VanillaBlocks::WATER->defaultState());
+    placeBlock(8, 5, 8, &VanillaBlocks::WATER->defaultState());
+    placeBlock(9, 3, 8, &VanillaBlocks::STONE->defaultState());
+    centerChunk().primeHeightmaps(HeightmapFlag::POST_FEATURES);
+    WaterDepthThresholdPlacement placement;
+    WaterDepthThresholdConfig maxOne(1);
+    WaterDepthThresholdConfig dryOnly(0);
+    math::Random random(12345);
+
+    EXPECT_TRUE(placement.getPositions(*m_region, random, maxOne, BlockPos(8, 0, 8)).empty());
+    const BlockPos dryOrigin(9, 0, 8);
+    const auto dry = placement.getPositions(*m_region, random, dryOnly, dryOrigin);
+    ASSERT_EQ(dry.size(), 1u);
+    EXPECT_EQ(dry.front(), dryOrigin);
+}
 
 // ============================================================================
 // fixed_placement

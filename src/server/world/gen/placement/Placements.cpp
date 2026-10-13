@@ -229,17 +229,10 @@ std::vector<BlockPos> WaterDepthThresholdPlacement::getPositions(
 
     (void)random;
 
-    // 检查水深
-    i32 waterDepth = 0;
-    for (i32 y = basePos.y; y > world::MIN_BUILD_HEIGHT; --y) {
-        const BlockState* state = region.getBlockState(basePos.x, y, basePos.z);
-        if (state && state->isLiquid()) {
-            ++waterDepth;
-        } else if (state && state->isSolid()) {
-            break;
-        }
-    }
-
+    // 过滤器通常先于高度放置器执行，输入 Y 仍为区块原点，不能从该高度扫描水柱。
+    const i32 floorY = region.getHeightmapFirstAvailable(basePos.x, basePos.z, HeightmapType::OceanFloor);
+    const i32 surfaceY = region.getHeightmapFirstAvailable(basePos.x, basePos.z, HeightmapType::WorldSurface);
+    const i32 waterDepth = surfaceY - floorY;
     if (waterDepth > depthConfig->maxWaterDepth) {
         return {};
     }
