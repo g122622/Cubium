@@ -90,7 +90,8 @@ protected:
 
     void TearDown() override
     {
-        mc::test::GameTestCommand::cleanupCompletedInstances();
+        mc::test::GameTestTicker::instance().forceStop();
+        mc::test::GameTestCommand::forceClearAllInstances();
         if (m_server) {
             m_server->stop();
             m_server.reset();
