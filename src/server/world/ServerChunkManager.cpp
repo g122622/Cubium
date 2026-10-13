@@ -275,6 +275,10 @@ void ServerChunkManager::shutdown()
         std::lock_guard<std::mutex> ltLock(m_pendingLoadTasksMutex);
         m_pendingLoadTasks.clear();
     }
+    {
+        std::lock_guard<std::mutex> unloadLock(m_pendingUnloadFinishesMutex);
+        m_unloadCooldownChunks.clear();
+    }
 }
 
 // ============================================================================
@@ -845,8 +849,19 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
         "newLevel",
         newLevel);
 
+    // 传播到生成邻域或离开传播范围只更新已有持有者。真正的生成依赖由调度器按需创建，
+    // 不为每一次退场回调重新创建已经卸载的持有者，也不让冷却票据扩散出新的卸载工作。
+    if (newLevel > world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL && _doFindLifecycleManager(x, z) == nullptr) {
+        return;
+    }
     SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
     lifecycleManager.setLevel(newLevel);
+    // 显式冷却票据只在主线程查询，将存活状态同步到带锁集合供 worker 观察者读取。
+    if (m_ticketManager.hasTicket(
+            world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{})) {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        m_unloadCooldownChunks.insert(posToKey(x, z));
+    }
 
     if (newLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
         // 根据票据级别推导目标生成状态
@@ -1361,21 +1376,17 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
         lifecycleManager->cancelActiveWork();
 
         if (!lifecycleManager->isSafeToUnload()) {
-            // 仍有邻居引用（其他 holder 的任务正在使用本 holder）：注册卸载冷却票据把该区块
-            // 按 Border 级钉住 UNLOAD_COOLDOWN 时长，使后续检查不再每 tick 立即重试同一区块
-            // （对齐 Moonrise 的 UNLOAD_COOLDOWN 退避）。票据到期后票级升过加载阈值，
-            // _onTicketLevelChanged 会重新评估候选资格并入队。
+            // 仍有邻居引用时，只用最弱生成级别保留持有者，避免 Border 级冷却重新触发生成。
+            // 冷却票据存在期间禁止再次卸载，到期后票级变化重新评估候选资格。
             // 区块已保存（落盘）且 holder 与 m_chunks 保留，冷却期内不会被重复保存
             // （m_unloadSaveInProgress 清除后，isDirty 已为 false，重新卸载走无保存路径）。
             {
                 std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
                 m_unloadSaveInProgress.erase(key);
+                m_unloadCooldownChunks.insert(key);
             }
-            m_ticketManager.registerTicket(world::chunk::TicketTypes::UNLOAD_COOLDOWN,
-                x,
-                z,
-                static_cast<i32>(world::chunk::ChunkLoadLevel::Border),
-                world::chunk::Unit{});
+            m_ticketManager.registerTicket(
+                world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{});
             return;
         }
 
@@ -1394,12 +1405,10 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
             {
                 std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
                 m_unloadSaveInProgress.erase(key);
+                m_unloadCooldownChunks.insert(key);
             }
-            m_ticketManager.registerTicket(world::chunk::TicketTypes::UNLOAD_COOLDOWN,
-                x,
-                z,
-                static_cast<i32>(world::chunk::ChunkLoadLevel::Border),
-                world::chunk::Unit{});
+            m_ticketManager.registerTicket(
+                world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{});
             return;
         }
         {
@@ -1596,6 +1605,12 @@ void ServerChunkManager::_updateUnloadCandidate(SingleChunkLifecycleManager& hol
 
 bool ServerChunkManager::_isUnloadSuppressed(const SingleChunkLifecycleManager& holder) const
 {
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        if (m_unloadCooldownChunks.contains(posToKey(holder.x(), holder.z()))) {
+            return true;
+        }
+    }
     const i32 level = holder.level();
     if (level <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
         return true; // 加载环内：必须保留
@@ -1608,10 +1623,34 @@ bool ServerChunkManager::_isUnloadSuppressed(const SingleChunkLifecycleManager& 
     return false;
 }
 
+void ServerChunkManager::_expireUnloadCooldowns()
+{
+    std::vector<u64> cooldownKeys;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+        cooldownKeys.assign(m_unloadCooldownChunks.begin(), m_unloadCooldownChunks.end());
+    }
+    for (const u64 key : cooldownKeys) {
+        const auto chunkId = ChunkId::fromId(key);
+        const ChunkCoord x = chunkId.x;
+        const ChunkCoord z = chunkId.z;
+        if (m_ticketManager.hasTicket(
+                world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{})) {
+            continue;
+        }
+        {
+            std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
+            m_unloadCooldownChunks.erase(key);
+        }
+        if (auto holder = _findLifecycleManagerShared(x, z)) {
+            _updateUnloadCandidate(*holder);
+        }
+    }
+}
+
 bool ServerChunkManager::_isUnloadCandidate(const SingleChunkLifecycleManager& holder)
 {
-    // 基准模式抑制自动卸载（见 setSuppressAutoUnloadForBenchmark）：切断"卸载→冷却票据→
-    // 距离图源→扩散创建→再卸载"正反馈环，使吞吐测量只反映生成链路。
+    // 基准测量区间保留生成结果，避免保存与回收工作混入生成吞吐。
     if (m_suppressAutoUnload) {
         return false;
     }
@@ -1700,6 +1739,7 @@ void ServerChunkManager::tick()
     // 票据过期（带生命周期票据倒计时）与距离图传播。必须在卸载处理之前：本 tick 的票级
     // 变化要先转化为卸载候选的入队/撤出，_processChunkUnloads 才能取到当 tick 的候选。
     m_ticketManager.tick();
+    _expireUnloadCooldowns();
     // processTicketUpdatesSync 内部已出队异步存档加载完成回调（_drainPendingLoadCompletes），
     // 对齐 MC Java runDistanceManagerUpdates 把票据更新与完成交接合到同一步。
     processTicketUpdatesSync();

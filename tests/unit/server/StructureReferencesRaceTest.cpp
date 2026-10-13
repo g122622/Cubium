@@ -75,6 +75,14 @@ protected:
 
         // 8 个 worker 线程，最大化 STRUCTURE_REFERENCES 等无区域互斥任务的并发度
         m_workerPool = std::make_unique<mc::util::UniversalWorkerPool>(8, "StructRaceWorker", 900);
+        // 与服务端相同地异步执行存档保存，避免远距卸载的压缩与写盘阻塞唯一 tick 线程。
+        // 生成池保持独立，存档完成回调不会与正在等待邻居的生成任务争用执行器。
+        m_storageIoPool = std::make_unique<mc::util::UniversalWorkerPool>(3, "StructRaceIO", 4096);
+        m_storageComputePool = std::make_unique<mc::util::UniversalWorkerPool>(2, "StructRaceStorage", 4096);
+        m_storageIoPool->start();
+        m_storageComputePool->start();
+        m_storage.setIoWorkerPool(m_storageIoPool.get());
+        m_storage.setComputeWorkerPool(m_storageComputePool.get());
 
         // 打开存档：ServerWorld::initialize 要求 m_storage 已设置且 isOpen()。
         // 复用 ServerWorldTest 的模式，在临时目录中打开一个 RocksDB 存档。
@@ -114,14 +122,23 @@ protected:
 
     void TearDown() override
     {
+        m_manager->shutdown();
+        m_workerPool->shutdown();
+        // 完成存档回调后再销毁其访问的世界与区块管理器。
+        m_storageIoPool->shutdown();
+        m_storageComputePool->shutdown();
         m_world.reset();
         m_workerPool.reset();
         m_storage.close();
+        m_storageIoPool.reset();
+        m_storageComputePool.reset();
         // TempDirHelper 内置 10 次重试，覆盖 Windows 上 RocksDB 后台线程延迟释放句柄的窗口。
         mc::test::removeTestDir(m_testDir);
     }
 
     std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_storageIoPool;
+    std::unique_ptr<mc::util::UniversalWorkerPool> m_storageComputePool;
     std::unique_ptr<ServerWorld> m_world;
     // m_manager 由 m_world 持有（setChunkManager 转移所有权），这里仅持有裸指针供测试访问。
     ServerChunkManager* m_manager = nullptr;

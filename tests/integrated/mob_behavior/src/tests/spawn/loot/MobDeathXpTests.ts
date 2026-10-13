@@ -79,11 +79,11 @@ function mobDropsXpWhenKilledByPlayer(test: Test): void {
 
   // tick 10 玩家攻击 zombie 1 次（留 spawn 注册稳定时间）。设 lastHurtByPlayerMemoryTime=100。
   test.runAtTickTime(10, () => {
+    const health = zombie.getComponent("minecraft:health") as any;
+    const before = health.currentValue;
     player.attackEntity(zombie);
-  });
-
-  // tick 12 立即 test.kill zombie（记忆窗口 100tick 内，反击 goal 未及评估）。
-  test.runAtTickTime(12, () => {
+    test.assert(health.currentValue < before, "player attack must damage zombie before death");
+    // 同一回调内致死，避免反击和击退在两次操作之间改变玩家位置。
     (test as any).kill(zombie);
   });
 
@@ -176,10 +176,12 @@ function mobDropsNoXpWhenDoMobLootFalse(test: Test): void {
 
 export function registerMobDeathXpTests(): void {
   GameTest.register("MobBehaviorTests", "mob_drops_xp_when_killed_by_player", mobDropsXpWhenKilledByPlayer)
+    .batch("night")
     .structureName("gametests:glass_pit")
     .maxTicks(90);
 
   GameTest.register("MobBehaviorTests", "mob_drops_no_xp_when_killed_without_player", mobDropsNoXpWhenKilledWithoutPlayer)
+    .batch("night")
     .structureName("gametests:glass_pit")
     .maxTicks(80);
 

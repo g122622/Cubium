@@ -1044,6 +1044,9 @@ TEST_F(JavaAnvilWorldGenParityTest, BlockPalettesAndMappingAreIntact)
         EXPECT_EQ(diff.javaUnregisteredStates, 0)
             << "区块 (" << cx << "," << cz << ") 从原版存档解出的 stateId 在注册表中不存在";
         EXPECT_EQ(diff.cubiumOnlyBlocks, 0) << "区块 (" << cx << "," << cz << ") 生成了原版在该区块没有的方块";
+        if (diff.cubiumOnlyBlocks != 0) {
+            printBlockDiffReport(diff);
+        }
     }
 }
 
