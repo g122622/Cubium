@@ -64,6 +64,12 @@ BiomeManager BiomeManager::withDifferentSource(const IBiomeSource& source) const
 
 BiomeId BiomeManager::getBiome(i32 blockX, i32 blockY, i32 blockZ) const
 {
+    const BlockPos pos = selectQuartPosition(m_biomeZoomSeed, blockX, blockY, blockZ);
+    return m_source->getNoiseBiome(pos.x, pos.y, pos.z);
+}
+
+BlockPos BiomeManager::selectQuartPosition(u64 biomeZoomSeed, i32 blockX, i32 blockY, i32 blockZ)
+{
     // MC 1.21.11: BiomeManager.getBiome(BlockPos)
     // 偏移 -2 以避免边界问题
     const i32 i = blockX - 2;
@@ -102,7 +108,7 @@ BiomeId BiomeManager::getBiome(i32 blockX, i32 blockY, i32 blockZ) const
         const f64 adjY = d1 - static_cast<f64>(flag1);
         const f64 adjZ = d2 - static_cast<f64>(flag2);
 
-        const f64 dist = getFiddledDistance(static_cast<i64>(m_biomeZoomSeed), x, y, z, adjX, adjY, adjZ);
+        const f64 dist = getFiddledDistance(biomeZoomSeed, x, y, z, adjX, adjY, adjZ);
 
         if (dist < minDist) {
             minDist = dist;
@@ -115,7 +121,7 @@ BiomeId BiomeManager::getBiome(i32 blockX, i32 blockY, i32 blockZ) const
     const i32 bestY = i1 + ((bestCorner >> 1) & 1);
     const i32 bestZ = j1 + (bestCorner & 1);
 
-    return m_source->getNoiseBiome(bestX, bestY, bestZ);
+    return BlockPos(bestX, bestY, bestZ);
 }
 
 BiomeId BiomeManager::getNoiseBiomeAtQuart(i32 quartX, i32 quartY, i32 quartZ) const

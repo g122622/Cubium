@@ -30,6 +30,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeManager.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
@@ -636,7 +637,11 @@ public:
     /**
      * @brief 设置种子（用于生成）
      */
-    void setSeed(u64 seed) { m_seed = seed; }
+    void setSeed(u64 seed)
+    {
+        m_seed = seed;
+        m_biomeZoomSeed = world::biome::BiomeManager::obfuscateSeed(seed);
+    }
 
     /**
      * @brief 设置当前 tick
@@ -738,6 +743,7 @@ private:
 
     // IWorld 所需的状态
     u64 m_seed = 0;
+    u64 m_biomeZoomSeed = world::biome::BiomeManager::obfuscateSeed(0);
     u64 m_currentTick = 0;
     i64 m_dayTime = 0;
     bool m_hardcore = false;

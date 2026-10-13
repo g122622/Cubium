@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/world/biome/BiomeManager.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -30,6 +31,20 @@
 
 namespace mc {
 namespace {
+
+class _CheckerBiomeSource final : public world::biome::IBiomeSource {
+public:
+    _CheckerBiomeSource()
+        : IBiomeSource(0)
+    {
+        m_possibleBiomes = {Biomes::Plains, Biomes::Forest};
+    }
+    [[nodiscard]] BiomeId getNoiseBiome(i32 x, i32 y, i32 z) const override
+    {
+        return ((x + y + z) & 1) == 0 ? Biomes::Plains : Biomes::Forest;
+    }
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_possibleBiomes; }
+};
 
 class WorldGenRegionAlignmentTest : public ::testing::Test {
 protected:
@@ -89,6 +104,52 @@ TEST_F(WorldGenRegionAlignmentTest, SetSeed_WorksCorrectly)
 {
     m_region->setSeed(12345);
     EXPECT_EQ(m_region->seed(), 12345);
+}
+
+TEST_F(WorldGenRegionAlignmentTest, StoredBiomesUseSeededZoomAcrossQuartAndChunkBoundaries)
+{
+    _CheckerBiomeSource source;
+    for (const i32 center : {5, -5}) {
+        std::vector<std::unique_ptr<ChunkPrimer>> owned;
+        std::vector<IChunk*> chunks;
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            for (i32 dx = -1; dx <= 1; ++dx) {
+                auto chunk = std::make_unique<ChunkPrimer>(center + dx, center + dz);
+                for (i32 section = 0; section < world::CHUNK_SECTIONS; ++section) {
+                    for (i32 y = 0; y < 4; ++y) {
+                        for (i32 z = 0; z < 4; ++z) {
+                            for (i32 x = 0; x < 4; ++x) {
+                                const i32 quartY = world::MIN_BUILD_HEIGHT / 4 + section * 4 + y;
+                                chunk->getBiomes().setBiome(section,
+                                    x,
+                                    y,
+                                    z,
+                                    source.getNoiseBiome((center + dx) * 4 + x, quartY, (center + dz) * 4 + z));
+                            }
+                        }
+                    }
+                }
+                chunks.push_back(chunk.get());
+                owned.push_back(std::move(chunk));
+            }
+        }
+        WorldGenRegion region(center, center, 1, std::move(chunks), 0);
+        for (const u64 seed : {42ULL, 1337ULL}) {
+            region.setSeed(seed);
+            world::biome::BiomeManager expected(source, world::biome::BiomeManager::obfuscateSeed(seed));
+            i32 differsFromRaw = 0;
+            for (i32 x = center * world::CHUNK_WIDTH; x < (center + 1) * world::CHUNK_WIDTH; ++x) {
+                for (i32 z = center * world::CHUNK_WIDTH; z < (center + 1) * world::CHUNK_WIDTH; ++z) {
+                    for (const i32 y : {-33, 64}) {
+                        const auto biome = region.getBiome(x, y, z);
+                        EXPECT_EQ(biome, expected.getBiome(x, y, z)) << x << ',' << y << ',' << z;
+                        differsFromRaw += biome != source.getNoiseBiome(x >> 2, y >> 2, z >> 2);
+                    }
+                }
+            }
+            EXPECT_GT(differsFromRaw, 0);
+        }
+    }
 }
 
 TEST_F(WorldGenRegionAlignmentTest, SetCurrentTick_WorksCorrectly)

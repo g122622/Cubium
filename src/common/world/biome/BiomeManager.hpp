@@ -27,6 +27,7 @@
 #include "common/util/crypto/Sha256.hpp"
 #include "common/util/math/random/LinearCongruentialGenerator.hpp"
 #include "common/world/biome/BiomeSource.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc::world::biome {
 
@@ -78,6 +79,9 @@ public:
      * @return 使用新源的 BiomeManager 副本
      */
     [[nodiscard]] BiomeManager withDifferentSource(const IBiomeSource& source) const;
+
+    /** @brief 从方块坐标选择抖动距离最近的 quart 采样点，供噪声源与区块存储共用。 */
+    [[nodiscard]] static BlockPos selectQuartPosition(u64 biomeZoomSeed, i32 blockX, i32 blockY, i32 blockZ);
 
     /**
      * @brief 获取方块坐标处的生物群系（带 Voronoi 缩放）

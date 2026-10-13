@@ -20,8 +20,7 @@
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
-import { ItemStack } from "@minecraft/server";
-import { pollUntilSucceed } from "../../../utils/test/poll.js";
+import { ItemStack, Direction } from "@minecraft/server";
 
 const WOODEN_HOE = "minecraft:wooden_hoe";
 const FARMLAND_BLOCK = "minecraft:farmland";
@@ -39,39 +38,28 @@ function hoeTillDurabilityTest(test: Test): void {
   const hoe = new ItemStack(WOODEN_HOE, 1);
   player.setItem(hoe as unknown as Parameters<typeof player.setItem>[0], 0, true);
 
-  // tick 5 玩家持木锄右键 grass_block (3,1,3) → HoeItem::onItemUse → grass_block→farmland
-  // + hurtAndBreak 权威手持损耗 1 耐久。
+  test.setBlockType("minecraft:grass_block", TILL_POS);
+  test.setBlockType("minecraft:air", { x: 3, y: 2, z: 3 });
+  test.setBlockType("minecraft:water", { x: 4, y: 1, z: 3 });
+  // 同步检查实际耕地与耐久变化，避免后续随机刻改变耕地后污染测量。
   test.runAtTickTime(5, () => {
-    player.useItemOnBlock(
-      hoe as unknown as Parameters<typeof player.useItemOnBlock>[0],
-      TILL_POS,
-    );
-  });
-
-  // 轮询双重断言：(3,1,3) 变 farmland + 主手木锄数量仍 1。
-  pollUntilSucceed(test, () => {
-    const block = test.getBlock(TILL_POS) as unknown as { typeId?: string } | undefined;
-    if (block?.typeId !== FARMLAND_BLOCK) return false;
-    const mainHand = getMainHand(player);
-    if (mainHand?.typeId !== WOODEN_HOE) return false;
-    return mainHand.amount === 1;
-  }, {
-    startTick: 6,
-    interval: 2,
-    maxTick: 40,
-    onTimeout: () => {
-      const block = test.getBlock(TILL_POS) as unknown as { typeId?: string } | undefined;
-      const mainHand = getMainHand(player);
-      test.assert(false,
-        `hoe_till_durability: failed: tillPos={typeId:${block?.typeId}} `
-        + `mainHand={typeId:${mainHand?.typeId}, amount:${mainHand?.amount}} `
-        + `(expected tillPos=${FARMLAND_BLOCK} and mainHand amount=1)`);
-    },
+    const used = player.useItemOnBlock(
+      hoe as unknown as Parameters<typeof player.useItemOnBlock>[0], TILL_POS, Direction.Up);
+    test.assert(used, "wooden hoe should successfully till the grass block");
+    const block = test.getBlock(TILL_POS);
+    const mainHand = getMainHand(player) as any;
+    test.assert(block?.typeId === FARMLAND_BLOCK, `expected farmland immediately after tilling, got ${block?.typeId}`);
+    test.assert(mainHand?.typeId === WOODEN_HOE && mainHand.amount === 1,
+      "tilling should preserve the hoe item count");
+    const damage = mainHand.getComponent("minecraft:durability")?.damage;
+    test.assert(damage === 1, `tilling should consume one durability, actual damage=${damage}`);
+    test.succeed();
   });
 }
 
 export function registerHoeDurabilityTests(): void {
   GameTest.register("MobBehaviorTests", "hoe_till_durability_no_count_consumption", hoeTillDurabilityTest)
+    .batch("hoe_durability_solo")
     .structureName("gametests:creeper_pit")
     .maxTicks(80);
 }

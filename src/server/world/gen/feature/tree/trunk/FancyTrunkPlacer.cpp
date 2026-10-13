@@ -26,9 +26,9 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/RotatedPillarBlock.hpp"
 #include "server/world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include <algorithm>
 #include <cmath>
@@ -190,7 +190,9 @@ bool FancyTrunkPlacer::_makeLimb(WorldGenRegion& world,
             const Axis axis = horizontalX == 0 && horizontalZ == 0 ? Axis::Y
                 : horizontalX >= horizontalZ                       ? Axis::X
                                                                    : Axis::Z;
-            const auto& state = trunkBlock->with(BlockStateProperties::AXIS(), axis);
+            const auto& state = trunkBlock->hasProperty(RotatedPillarBlock::AXIS())
+                ? trunkBlock->with(RotatedPillarBlock::AXIS(), axis)
+                : *trunkBlock;
             placeBlock(world, pos, trunkBlocks, &state);
         } else {
             if (!canPlaceAt(world, pos)) {
