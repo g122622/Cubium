@@ -234,11 +234,12 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
 
     const DimensionId dimId = m_manager.hasWorld() ? m_manager.world()->dimension() : 0;
     WorldGenRegion region(m_x, m_z, step, std::move(chunks), dimId);
+    // 生成上下文始终使用生成器种子，独立区块管理器也需要正确的抖动群系边界。
+    region.setSeed(m_manager.generator()->seed());
 
     // 设置 WorldGenRegion 的世界信息（种子、tick、难度等）
     if (m_manager.hasWorld()) {
         ServerWorld* world = m_manager.world();
-        region.setSeed(world->seed());
         region.setCurrentTick(world->currentTick());
         region.setDayTime(world->dayTime());
         region.setHardcore(world->isHardcore());

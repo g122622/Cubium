@@ -43,6 +43,11 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/core/GameDirectory.hpp"
+#include "common/entity/core/EntityReference.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
@@ -59,6 +64,7 @@
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <memory>
@@ -277,8 +283,16 @@ TEST_F(GameTestServerFixture, TestOwnedEntityOutsideStructureIsRemovedAfterUserF
 TEST_F(GameTestServerFixture, HeadlessCasesSharingBatchWaitForPreviousCaseToFinish)
 {
     auto observed = std::make_shared<std::array<bool, 2>>(std::array<bool, 2>{false, false});
-    auto first = mc::test::GameTestRegistrar::create(
-        "HeadlessIsolation", "HeadlessIsolation_first", [observed](mc::test::IGameTestHelper& helper) {
+    auto leftover = std::make_shared<mc::EntityReference<mc::Entity>>();
+    auto first = mc::test::GameTestRegistrar::create("HeadlessIsolation",
+        "HeadlessIsolation_first",
+        [observed, leftover](mc::test::IGameTestHelper& helper) -> mc::test::GameTestResult {
+            auto entity = std::make_unique<mc::PigEntity>(mc::EntityInstanceId(0), *helper.world().entityRegistry());
+            entity->setPosition(100.0f, 64.0f, 100.0f);
+            *leftover = entity.get();
+            if (helper.world().spawnEntity(std::move(entity)) == 0) {
+                return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "Failed to spawn untracked actor"};
+            }
             helper.runAtTickTime(3, [observed, &helper] {
                 (*observed)[0] = true;
                 helper.succeed();
@@ -289,9 +303,12 @@ TEST_F(GameTestServerFixture, HeadlessCasesSharingBatchWaitForPreviousCaseToFini
     ASSERT_TRUE(first.batch("HeadlessIsolation").structureName("gametest:empty_3x3").maxTicks(20).registerTest());
     auto second = mc::test::GameTestRegistrar::create("HeadlessIsolation",
         "HeadlessIsolation_second",
-        [observed](mc::test::IGameTestHelper& helper) -> mc::test::GameTestResult {
+        [observed, leftover](mc::test::IGameTestHelper& helper) -> mc::test::GameTestResult {
             if (!(*observed)[0]) {
                 return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "Previous case has not finished"};
+            }
+            if (leftover->get() != nullptr) {
+                return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "Actor leaked between cases"};
             }
             (*observed)[1] = true;
             helper.succeed();
@@ -306,6 +323,28 @@ TEST_F(GameTestServerFixture, HeadlessCasesSharingBatchWaitForPreviousCaseToFini
     EXPECT_EQ(server.run(), 0);
     EXPECT_TRUE((*observed)[0]);
     EXPECT_TRUE((*observed)[1]);
+    server.stop();
+}
+
+TEST_F(GameTestServerFixture, MovingShulkerBulletUpdatesProductionSpatialIndex)
+{
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "NoSuchSuite.*";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto& world = *server.dimensionManager().getOverworld()->world();
+    auto bullet = std::make_unique<mc::entity::ShulkerBulletEntity>(mc::EntityInstanceId(0), *world.entityRegistry());
+    bullet->setPosition(0.0f, 64.0f, 0.0f);
+    bullet->setNoGravity(true);
+    bullet->setVelocity(static_cast<float>(mc::world::CHUNK_WIDTH * 2), 0.0f, 0.0f);
+    auto* moving = bullet.get();
+    ASSERT_NE(world.spawnEntity(std::move(bullet)), 0);
+    moving->tick();
+    const float movedX = static_cast<float>(mc::world::CHUNK_WIDTH * 2);
+    const auto found =
+        world.getEntitiesInAABB(mc::AxisAlignedBB(movedX - 1.0f, 63.0f, -1.0f, movedX + 1.0f, 66.0f, 1.0f));
+    EXPECT_NE(std::find(found.begin(), found.end(), moving), found.end());
     server.stop();
 }
 

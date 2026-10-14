@@ -43,6 +43,7 @@ facade/
 ## 容易踩的坑
 
 - 测试通过 helper 创建的实体、物品和模拟玩家在完成通知时自动移除，覆盖离开结构和跨维度的情况；用户完成回调先执行，仍可使用这些实体。生命周期引用避免访问提前销毁的对象，外部创建的实体不参与此清理。
+- 无头 runner 在子批次之间清理所有维度中新产生的实体，包括命令和游戏机制的产物；初始化时已有实体通过生命周期引用保留。失败重试通知也清理 helper 跟踪的旧实体。
 
 1. **`GameTestServer` 必须直接继承 `MinecraftServer`**——不继承 `IntegratedServer`（其 `initialize` 末尾起 `m_serverThread` 线程）或 `StandaloneServer`（其 `run()` 起线程）。`run()` 在调用线程内同步循环 `tick()`，CI 单线程驱动。`m_settings` 须为本类自有成员（基类 `m_settings` 是 `ServerSettings&` 引用，绑定到此）。
 2. **`GameTestServer::initialize` 须注入 vanilla builtin 数据包**——worldgen 100% 数据驱动，空数据包致 `RandomState::create` 断言失败（见内存 `integratedserver-empty-datapack-crash`）。镜像 `IntegratedServer::initialize` 的 `ensureVanillaBuiltinPack` 调用。

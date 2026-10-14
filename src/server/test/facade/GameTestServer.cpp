@@ -1,7 +1,10 @@
 #include "server/test/facade/GameTestServer.hpp"
 
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityReference.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/OpListManager.hpp"
@@ -50,6 +53,7 @@
 #include <functional>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <nlohmann/json.hpp>
 
@@ -92,9 +96,9 @@ constexpr auto _SUITE_LIMIT = std::chrono::minutes(30);
 
 namespace {
 
-class _DeadlineBatchListener final : public GameTestBatchListener {
+class _CallbackBatchListener final : public GameTestBatchListener {
 public:
-    _DeadlineBatchListener(
+    _CallbackBatchListener(
         std::function<void(const GameTestBatch&)> starting, std::function<void(const GameTestBatch&)> finished)
         : m_starting(std::move(starting))
         , m_finished(std::move(finished))
@@ -588,7 +592,7 @@ bool GameTestServer::_selectAndBuildRunner()
                    .gridStart(gridStart)
                    .testsPerRow(static_cast<std::size_t>(m_params.testsPerRow))
                    .build();
-    m_runner->addBatchListener(std::make_shared<_DeadlineBatchListener>(
+    m_runner->addBatchListener(std::make_shared<_CallbackBatchListener>(
         [this](const GameTestBatch& batch) {
             m_batchName = batch.name();
             // 批次启动 tick 例外：批内实例首次进入状态机的工作量与批大小成正比（见 m_batchStartupPending）。
@@ -621,6 +625,29 @@ bool GameTestServer::_selectAndBuildRunner()
             _armBatchWatchdog();
         },
         [this](const GameTestBatch&) { GlobalTestReporter::instance().onBatchFinished(m_runner->tracker()); }));
+    auto baseline = std::make_shared<std::vector<EntityReference<Entity>>>();
+    m_dimensionManager->forEachDimension([&](Dimension& dimension) {
+        auto& world = *static_cast<ServerDimension&>(dimension).world();
+        world.entityManager().forEachEntity([&](Entity* entity) {
+            baseline->emplace_back(entity);
+            return true;
+        });
+    });
+    const auto cleanCaseEntities = [this, baseline](const GameTestBatch&) {
+        std::unordered_set<const Entity*> retained;
+        for (const auto& reference : *baseline) {
+            if (const auto* entity = reference.get()) retained.insert(entity);
+        }
+        m_dimensionManager->forEachDimension([&](Dimension& dimension) {
+            auto& world = *static_cast<ServerDimension&>(dimension).world();
+            world.entityManager().forEachEntity([&](Entity* entity) {
+                if (!retained.contains(entity)) entity->discard();
+                return true;
+            });
+        });
+    };
+    // 包括命令、投掷物、繁殖和正常游戏机制生成的实体，不能只清理 helper 返回的句柄。
+    m_runner->addBatchListener(std::make_shared<_CallbackBatchListener>(cleanCaseEntities, cleanCaseEntities));
 
     // 挂 reporter（LogTestReporter 始终挂；JUnit 仅当 reportPath 非空）
     m_logReporter = std::make_shared<LogTestReporter>();

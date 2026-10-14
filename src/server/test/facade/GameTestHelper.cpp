@@ -64,8 +64,8 @@ public:
     {}
     void onTestStructureLoaded(mc::test::BaseGameTestInstance&) override {}
     void onTestStarted(mc::test::BaseGameTestInstance&) override {}
-    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override {}
-    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override {}
+    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
+    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
     void onTestPassed(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
     void onTestFailed(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
 
