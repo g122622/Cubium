@@ -38,6 +38,25 @@
 using namespace mc;
 using namespace mc::server;
 
+namespace {
+
+class _RegionSeedProbeGenerator final : public NoiseChunkGenerator {
+public:
+    using NoiseChunkGenerator::NoiseChunkGenerator;
+
+    void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override
+    {
+        m_regionSeed.store(region.seed(), std::memory_order_relaxed);
+        NoiseChunkGenerator::placeFeatures(region, chunk);
+    }
+    [[nodiscard]] u64 observedSeed() const { return m_regionSeed.load(std::memory_order_relaxed); }
+
+private:
+    std::atomic<u64> m_regionSeed{0};
+};
+
+} // namespace
+
 // 噪声区块生成器所在的命名空间
 namespace mc::gen {
 class NoiseChunkGenerator;
@@ -63,8 +82,9 @@ protected:
         auto settings = mc::DimensionSettings::overworld();
         auto randomState = mc::world::gen::RandomState::create(settings, 12345);
         auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
-        auto generator = std::make_unique<mc::NoiseChunkGenerator>(
+        auto generator = std::make_unique<_RegionSeedProbeGenerator>(
             std::move(settings), std::move(biomeSource), std::move(randomState));
+        m_seedProbe = generator.get();
 
         // 创建区块管理器（不关联 ServerWorld）
         m_manager = std::make_unique<ServerChunkManager>(std::move(generator));
@@ -86,7 +106,14 @@ protected:
 
     std::unique_ptr<mc::util::UniversalWorkerPool> m_workerPool;
     std::unique_ptr<ServerChunkManager> m_manager;
+    _RegionSeedProbeGenerator* m_seedProbe = nullptr;
 };
+
+TEST_F(ServerChunkManagerCallbackTest, WorldlessFeatureRegionUsesGeneratorSeed)
+{
+    ASSERT_NE(m_manager->requestFullChunkSync(0, 0), nullptr);
+    EXPECT_EQ(m_seedProbe->observedSeed(), 12345u);
+}
 
 // ============================================================================
 // 回调设置测试

@@ -1,7 +1,10 @@
 #include "server/test/facade/GameTestServer.hpp"
 
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityReference.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/entity/EntityManager.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/OpListManager.hpp"
@@ -50,6 +53,7 @@
 #include <functional>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <nlohmann/json.hpp>
 
@@ -92,9 +96,9 @@ constexpr auto _SUITE_LIMIT = std::chrono::minutes(30);
 
 namespace {
 
-class _DeadlineBatchListener final : public GameTestBatchListener {
+class _CallbackBatchListener final : public GameTestBatchListener {
 public:
-    _DeadlineBatchListener(
+    _CallbackBatchListener(
         std::function<void(const GameTestBatch&)> starting, std::function<void(const GameTestBatch&)> finished)
         : m_starting(std::move(starting))
         , m_finished(std::move(finished))
@@ -543,13 +547,9 @@ bool GameTestServer::_selectAndBuildRunner()
         byBatch[bn].push_back(fn);
     }
 
-    // 批内切片（对齐基岩 GameTestBatchFactory 的 MAX_TESTS_PER_BATCH=50）：
-    // 超过 maxTestsPerBatch 的批次切为多个子批次（night → night_1/night_2/...），每个子批次
-    // 独立执行 before/after 回调与环境 setup/teardown。切片名保留原批次名前缀（night_2 仍以
-    // "night" 开头），getEnvForBatch 的前缀匹配（night→18000 / 其他→6000）语义自动保持。
-    // 切片动机：单批 ~810 测试全部同时平铺执行，结构网格无限扩张 + 实体全量 tick 互相干扰。
-    // TODO: beforeBatch/afterBatch 回调在每个切片上各执行一次（对齐基岩切片=独立批次的语义）。
-    constexpr std::size_t kMaxTestsPerBatch = 50;
+    // 无头测试共用世界规则、命令选择器和实体目标搜索，场地边界不能隔离这些状态。
+    // 每个子批次只执行一个用例，独立应用原批次的回调与环境；并行由独立进程分片提供。
+    constexpr std::size_t kMaxTestsPerBatch = 1;
     std::vector<GameTestBatch> batches;
     for (const auto& bn : batchOrder) {
         auto& fns = byBatch[bn];
@@ -592,7 +592,7 @@ bool GameTestServer::_selectAndBuildRunner()
                    .gridStart(gridStart)
                    .testsPerRow(static_cast<std::size_t>(m_params.testsPerRow))
                    .build();
-    m_runner->addBatchListener(std::make_shared<_DeadlineBatchListener>(
+    m_runner->addBatchListener(std::make_shared<_CallbackBatchListener>(
         [this](const GameTestBatch& batch) {
             m_batchName = batch.name();
             // 批次启动 tick 例外：批内实例首次进入状态机的工作量与批大小成正比（见 m_batchStartupPending）。
@@ -625,6 +625,29 @@ bool GameTestServer::_selectAndBuildRunner()
             _armBatchWatchdog();
         },
         [this](const GameTestBatch&) { GlobalTestReporter::instance().onBatchFinished(m_runner->tracker()); }));
+    auto baseline = std::make_shared<std::vector<EntityReference<Entity>>>();
+    m_dimensionManager->forEachDimension([&](Dimension& dimension) {
+        auto& world = *static_cast<ServerDimension&>(dimension).world();
+        world.entityManager().forEachEntity([&](Entity* entity) {
+            baseline->emplace_back(entity);
+            return true;
+        });
+    });
+    const auto cleanCaseEntities = [this, baseline](const GameTestBatch&) {
+        std::unordered_set<const Entity*> retained;
+        for (const auto& reference : *baseline) {
+            if (const auto* entity = reference.get()) retained.insert(entity);
+        }
+        m_dimensionManager->forEachDimension([&](Dimension& dimension) {
+            auto& world = *static_cast<ServerDimension&>(dimension).world();
+            world.entityManager().forEachEntity([&](Entity* entity) {
+                if (!retained.contains(entity)) entity->discard();
+                return true;
+            });
+        });
+    };
+    // 包括命令、投掷物、繁殖和正常游戏机制生成的实体，不能只清理 helper 返回的句柄。
+    m_runner->addBatchListener(std::make_shared<_CallbackBatchListener>(cleanCaseEntities, cleanCaseEntities));
 
     // 挂 reporter（LogTestReporter 始终挂；JUnit 仅当 reportPath 非空）
     m_logReporter = std::make_shared<LogTestReporter>();

@@ -42,7 +42,8 @@ facade/
 
 ## 容易踩的坑
 
-- 测试创建的模拟玩家在完成通知时自动移除，覆盖离开结构和跨维度的情况；用户完成回调先执行，仍可使用该玩家恢复规则。生命周期引用避免访问提前移除或析构的玩家，真实玩家不参与此清理。
+- 测试通过 helper 创建的实体、物品和模拟玩家在完成通知时自动移除，覆盖离开结构和跨维度的情况；用户完成回调先执行，仍可使用这些实体。生命周期引用避免访问提前销毁的对象，外部创建的实体不参与此清理。
+- 无头 runner 在子批次之间清理所有维度中新产生的实体，包括命令和游戏机制的产物；初始化时已有实体通过生命周期引用保留。失败重试通知也清理 helper 跟踪的旧实体。
 
 1. **`GameTestServer` 必须直接继承 `MinecraftServer`**——不继承 `IntegratedServer`（其 `initialize` 末尾起 `m_serverThread` 线程）或 `StandaloneServer`（其 `run()` 起线程）。`run()` 在调用线程内同步循环 `tick()`，CI 单线程驱动。`m_settings` 须为本类自有成员（基类 `m_settings` 是 `ServerSettings&` 引用，绑定到此）。
 2. **`GameTestServer::initialize` 须注入 vanilla builtin 数据包**——worldgen 100% 数据驱动，空数据包致 `RandomState::create` 断言失败（见内存 `integratedserver-empty-datapack-crash`）。镜像 `IntegratedServer::initialize` 的 `ensureVanillaBuiltinPack` 调用。
@@ -55,4 +56,4 @@ facade/
 9. **`GameTestHelper` 命名空间遮蔽**——`mc::test` 内非限定名 `world::gen::...` 不回退 `mc::world`（见内存 BossBarState 坑）。本目录 cpp 用全限定 `mc::world::gen::structure::StructureBoundingBox` 或 `using` 别名规避。
 10. **门面纪律**：`framework/`/`minecraft/`/`runner/`/`native/`/`simulated/` 的内部头**仅**在 `mc_test`/server exe 内部使用；外部代码只 include `facade/` 与 `base/` 对外头。`GameTestSequence`/`SimulatedPlayer`/`TestData`/`GameTestError` 作为门面返回值/参数对外可见，但其头由 facade 重新导出。
 11. **`extraBehaviorPackDirs` 易漏致"空跑"**——`GameTestServerParams` 不设该字段时，`initialize` 只扫 `gameDirectory().behaviorPacksDir()`（默认 `~/minecraft_reborn/behavior_packs`，通常为空），仓库内 `tests/integrated` 行为包不会被加载，`GameTestRegistry` 里没有对应 JS 测试。此时 `testsFilter` 匹配 0 个测试→`_selectAndBuildRunner` 返回 false→`run()` 立即返回 1，**且全程无任何报错**。要跑仓库内行为包，须显式 `extraBehaviorPackDirs = { 源码根/tests/integrated }`（父目录，`BehaviorPackList::scanDirectory` 扫直接子目录），对齐 `minecraft-server --gametest` 门面（`ServerApplicationEntry.cpp` 用 `MC_SOURCE_ROOT` 宏拼）。用例 `RealPackGameTestServerFixture` 即此范式。.ts→.js 由构建期 `build.mjs` 编译，`tests/CMakeLists.txt` 把同一 stamp 拉入 `mc_tests` 源确保跑测试前 .js 最新。
-12. **批内切片（MAX_TESTS_PER_BATCH=50）**——`_selectAndBuildRunner` 对超过 50 个测试的批次切为 `原名_1`/`原名_2`/... 多个子批次，每片独立执行 before/after 与环境 setup（对齐基岩 `GameTestBatchFactory` 切片语义）。切片名保留原批次名前缀，`getEnvForBatch` 前缀匹配（`night`→18000 / 其他→6000）自动保持切片前后环境语义一致。此前单批 ~810 测试全部同时平铺，结构网格无限扩张 + 实体全量 tick 互相干扰，是当前最大的规模隐患，现已修复。
+12. **无头运行按用例切片**——`_selectAndBuildRunner` 每个子批次只放一个测试，独立执行原批次的 before/after 与环境 setup。场地边界不能隔离全局命令选择器、规则和远距离实体目标搜索；并行由独立进程分片提供。子批次名保留原前缀，因此夜间环境保持有效。

@@ -61,15 +61,23 @@ function collapsing(test: Test): void {
   const zoglinEntityType = "minecraft:zoglin";
   const shulkerEntityType = "minecraft:shulker";
 
+  // 每对相距两格，组间相距三格，避免宽体僵尸疣兽互相重叠或与潜影贝同格。
   for (let i = 0; i < 3; i++) {
-    test.spawn(zoglinEntityType, { x: i + 2, y: 2, z: 3 });
-    test.spawn(shulkerEntityType, { x: 4, y: 2, z: i + 2 });
+    test.spawn(zoglinEntityType, { x: 2 + i * 3, y: 2, z: 3 });
+    test.spawn(shulkerEntityType, { x: 2 + i * 3, y: 2, z: 5 });
   }
 
   test.pressButton({ x: 6, y: 8, z: 5 });
 
   test.succeedWhen(() => {
     assertEntityInVolume(test, zoglinEntityType, 0, 6, 0, 13, 13, 13);
+    const raised = test.getDimension().getEntities({
+      type: zoglinEntityType,
+      location: test.worldLocation({ x: 0, y: 6, z: 0 }),
+      volume: { x: 13, y: 7, z: 13 },
+    });
+    test.assert(raised.some((entity) => (entity as any).getEffect("levitation") !== undefined),
+      "raised zoglin must have levitation from a shulker bullet");
   });
   test.runAtTickTime(599, () => {
     const entities = test.getDimension().getEntities({

@@ -56,25 +56,25 @@ using StructureBoundingBox = mc::world::gen::structure::StructureBoundingBox;
 
 namespace {
 
-// 用户完成回调先执行，状态通知时再移除本测试创建的模拟玩家，覆盖迁出结构和跨维度的情况。
-class _SimulatedPlayerCleanupListener final : public mc::test::IGameTestListener {
+// 用户完成回调先执行，状态通知时再移除本测试创建的实体，覆盖迁出结构和跨维度的情况。
+class _TestOwnedEntityCleanupListener final : public mc::test::IGameTestListener {
 public:
-    explicit _SimulatedPlayerCleanupListener(mc::test::SimulatedPlayer& player)
-        : m_player(&player)
+    explicit _TestOwnedEntityCleanupListener(mc::Entity& entity)
+        : m_entity(&entity)
     {}
     void onTestStructureLoaded(mc::test::BaseGameTestInstance&) override {}
     void onTestStarted(mc::test::BaseGameTestInstance&) override {}
-    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override {}
-    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override {}
-    void onTestPassed(mc::test::BaseGameTestInstance&) override { _removePlayer(); }
-    void onTestFailed(mc::test::BaseGameTestInstance&) override { _removePlayer(); }
+    void onTestRetryStarted(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
+    void onTestRetryFinished(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
+    void onTestPassed(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
+    void onTestFailed(mc::test::BaseGameTestInstance&) override { _removeEntity(); }
 
 private:
-    void _removePlayer()
+    void _removeEntity()
     {
-        if (auto* player = m_player.get()) player->discard();
+        if (auto* entity = m_entity.get()) entity->discard();
     }
-    mc::EntityReference<mc::test::SimulatedPlayer> m_player;
+    mc::EntityReference<mc::Entity> m_entity;
 };
 
 // 判断 worldPos 当前方块是否已与目标 desired 一致（含 air 匹配：当前为 air 且目标也为 air）。
@@ -1006,6 +1006,7 @@ GameTestResult GameTestHelper::spawnEntity(const std::string& entityType, BlockP
             {entityType, worldPos.toString()}};
     }
     outEntity = raw;
+    m_instance.addListener(std::make_shared<_TestOwnedEntityCleanupListener>(*outEntity));
     return std::nullopt;
 }
 
@@ -1046,6 +1047,7 @@ GameTestResult GameTestHelper::spawnItemAt(
     }
 
     outEntity = itemEntity;
+    m_instance.addListener(std::make_shared<_TestOwnedEntityCleanupListener>(*outEntity));
     return std::nullopt;
 }
 
@@ -1083,6 +1085,7 @@ GameTestResult GameTestHelper::spawnAtLocation(
             {entityType, std::to_string(position.x), std::to_string(position.y), std::to_string(position.z)}};
     }
     outEntity = raw;
+    m_instance.addListener(std::make_shared<_TestOwnedEntityCleanupListener>(*outEntity));
     return std::nullopt;
 }
 
@@ -1290,7 +1293,7 @@ GameTestResult GameTestHelper::spawnSimulatedPlayer(
             "Failed to spawn SimulatedPlayer '{0}' at {1}",
             {name, relativePos.toString()}};
     }
-    m_instance.addListener(std::make_shared<_SimulatedPlayerCleanupListener>(*outPlayer));
+    m_instance.addListener(std::make_shared<_TestOwnedEntityCleanupListener>(*outPlayer));
     return std::nullopt;
 }
 

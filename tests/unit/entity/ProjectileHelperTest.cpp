@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -117,8 +118,16 @@ public:
 
     [[nodiscard]] bool canBeCollidedWith() const override { return m_collidable; }
 
+    bool hurt(DamageSource&, f32) override
+    {
+        m_hit = true;
+        return true;
+    }
+    [[nodiscard]] bool wasHit() const { return m_hit; }
+
 private:
     bool m_collidable;
+    bool m_hit = false;
 };
 
 class RotationProbeEntity : public Entity {
@@ -153,6 +162,35 @@ TEST(ProjectileHelperTest, RotateTowardsMovementMatchesVanillaYawPitch)
 
     EXPECT_NEAR(probe.yaw(), 180.0f, 1.0e-3f);
     EXPECT_NEAR(probe.pitch(), 0.0f, 1.0e-3f);
+}
+
+TEST(ProjectileHelperTest, MovingShulkerBulletHitsTargetAwayFromSpawnBox)
+{
+    ProjectileHelperTestWorld world;
+    auto& target = world.addEntity<TestTargetEntity>(EntityInstanceId(2), true);
+    target.setPosition(10.0f, 64.0f, 0.0f);
+    entity::ShulkerBulletEntity bullet(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bullet.setWorld(&world);
+    bullet.setPosition(0.0f, 64.0f, 0.0f);
+    bullet.setNoGravity(true);
+    bullet.setVelocity(1.0f, 0.0f, 0.0f);
+
+    for (i32 tick = 0; tick < 15 && !bullet.isRemoved(); ++tick) {
+        bullet.tick();
+    }
+    EXPECT_TRUE(target.wasHit()) << "Moving projectile queries must follow the current collision box";
+    EXPECT_TRUE(bullet.isRemoved());
+}
+
+TEST(ProjectileHelperTest, ShulkerBulletTargetReferenceExpiresWhenTargetIsDestroyed)
+{
+    entity::ShulkerBulletEntity bullet(EntityInstanceId(1), mc::test::testEcsRegistry());
+    auto target = std::make_unique<TestTargetEntity>(EntityInstanceId(2), true);
+    bullet.setTarget(target.get());
+    ASSERT_EQ(bullet.target(), target.get());
+    target.reset();
+    EXPECT_EQ(bullet.target(), nullptr);
+    EXPECT_NO_THROW(bullet.tick());
 }
 
 TEST(ProjectileHelperTest, RayTraceEntitiesReturnsNearestCollidableTarget)

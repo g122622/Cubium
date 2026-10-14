@@ -43,11 +43,17 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/core/GameDirectory.hpp"
+#include "common/entity/core/EntityReference.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
+#include "server/test/facade/GameTestRegistrar.hpp"
 #include "server/test/facade/GameTestServer.hpp"
 #include "server/test/framework/ticker/GameTestTicker.hpp"
 #include "server/test/minecraft/helper/MinecraftGameTestHelperProvider.hpp"
@@ -58,6 +64,8 @@
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 
+#include <algorithm>
+#include <array>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -231,6 +239,112 @@ TEST_F(GameTestServerFixture, ServerPlayerWorldViewsShareTheEntityWorldPointer)
         EXPECT_EQ(constPlayer.getWorld(), world);
         player.setWorld(nullptr);
     }
+    server.stop();
+}
+
+TEST_F(GameTestServerFixture, TestOwnedEntityOutsideStructureIsRemovedAfterUserFinishCallbacks)
+{
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "NoSuchSuite.*";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto& world = *server.dimensionManager().getOverworld()->world();
+    {
+        mc::test::TestData data;
+        data.setStructure("gametest:empty_3x3").setMaxTicks(20);
+        mc::test::NativeGameTestFunction function(
+            "entity-cleanup", "entity-cleanup", "gametest:empty_3x3", data, [](mc::test::IGameTestHelper&) {
+                return mc::test::pass();
+            });
+        const mc::BlockPos origin{0, 4, 0};
+        mc::test::MinecraftGameTestInstance instance(
+            function, std::make_unique<mc::test::MinecraftGameTestHelperProvider>(world), world, origin);
+        instance.spawnStructureIfNeeded();
+        mc::test::StructureBounds bounds(origin, mc::BlockPos{3, 3, 3}, mc::Rotation::None);
+        mc::test::GameTestHelper helper(world, origin, &bounds, instance);
+        mc::Entity* entity = nullptr;
+        ASSERT_FALSE(helper.spawnEntity("minecraft:pig", {1, 1, 1}, entity));
+        ASSERT_NE(entity, nullptr);
+        entity->setPosition(100.0f, 10.0f, 100.0f);
+        bool callbackRan = false;
+        helper.runOnFinish([&] {
+            EXPECT_FALSE(entity->isRemoved());
+            callbackRan = true;
+            return mc::test::pass();
+        });
+        instance.succeed();
+        EXPECT_TRUE(callbackRan);
+        EXPECT_TRUE(entity->isRemoved());
+    }
+    server.stop();
+}
+
+TEST_F(GameTestServerFixture, HeadlessCasesSharingBatchWaitForPreviousCaseToFinish)
+{
+    auto observed = std::make_shared<std::array<bool, 2>>(std::array<bool, 2>{false, false});
+    auto leftover = std::make_shared<mc::EntityReference<mc::Entity>>();
+    auto first = mc::test::GameTestRegistrar::create("HeadlessIsolation",
+        "HeadlessIsolation_first",
+        [observed, leftover](mc::test::IGameTestHelper& helper) -> mc::test::GameTestResult {
+            auto entity = std::make_unique<mc::PigEntity>(mc::EntityInstanceId(0), *helper.world().entityRegistry());
+            entity->setPosition(100.0f, 64.0f, 100.0f);
+            *leftover = entity.get();
+            if (helper.world().spawnEntity(std::move(entity)) == 0) {
+                return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "Failed to spawn untracked actor"};
+            }
+            helper.runAtTickTime(3, [observed, &helper] {
+                (*observed)[0] = true;
+                helper.succeed();
+                return mc::test::pass();
+            });
+            return mc::test::pass();
+        });
+    ASSERT_TRUE(first.batch("HeadlessIsolation").structureName("gametest:empty_3x3").maxTicks(20).registerTest());
+    auto second = mc::test::GameTestRegistrar::create("HeadlessIsolation",
+        "HeadlessIsolation_second",
+        [observed, leftover](mc::test::IGameTestHelper& helper) -> mc::test::GameTestResult {
+            if (!(*observed)[0]) {
+                return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "Previous case has not finished"};
+            }
+            if (leftover->get() != nullptr) {
+                return mc::test::GameTestError{mc::test::GameTestErrorType::Assert, "Actor leaked between cases"};
+            }
+            (*observed)[1] = true;
+            helper.succeed();
+            return mc::test::pass();
+        });
+    ASSERT_TRUE(second.batch("HeadlessIsolation").structureName("gametest:empty_3x3").maxTicks(20).registerTest());
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "HeadlessIsolation_*";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    EXPECT_EQ(server.run(), 0);
+    EXPECT_TRUE((*observed)[0]);
+    EXPECT_TRUE((*observed)[1]);
+    server.stop();
+}
+
+TEST_F(GameTestServerFixture, MovingShulkerBulletUpdatesProductionSpatialIndex)
+{
+    mc::test::GameTestServer server;
+    auto params = makeParams();
+    params.testsFilter = "NoSuchSuite.*";
+    const auto result = server.initialize(params);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto& world = *server.dimensionManager().getOverworld()->world();
+    auto bullet = std::make_unique<mc::entity::ShulkerBulletEntity>(mc::EntityInstanceId(0), *world.entityRegistry());
+    bullet->setPosition(0.0f, 64.0f, 0.0f);
+    bullet->setNoGravity(true);
+    bullet->setVelocity(static_cast<float>(mc::world::CHUNK_WIDTH * 2), 0.0f, 0.0f);
+    auto* moving = bullet.get();
+    ASSERT_NE(world.spawnEntity(std::move(bullet)), 0);
+    moving->tick();
+    const float movedX = static_cast<float>(mc::world::CHUNK_WIDTH * 2);
+    const auto found =
+        world.getEntitiesInAABB(mc::AxisAlignedBB(movedX - 1.0f, 63.0f, -1.0f, movedX + 1.0f, 66.0f, 1.0f));
+    EXPECT_NE(std::find(found.begin(), found.end(), moving), found.end());
     server.stop();
 }
 
