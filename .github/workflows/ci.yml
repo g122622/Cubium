@@ -101,7 +101,7 @@ jobs:
           status=0
           mapfile -d '' -t changed_sources < "$CHANGED_SOURCE_LIST"
           if [ "${#changed_sources[@]}" -gt 0 ]; then
-            TIDY_JOBS="$(nproc)" scripts/tidy/tidy.sh \
+            TIDY_JOBS="$(nproc)" bash scripts/tidy/tidy.sh \
               --warnings-as-errors='*' "${changed_sources[@]}" || status=$?
           fi
 
@@ -113,7 +113,7 @@ jobs:
               --headers-list "$CHANGED_HEADER_LIST" \
               --output "$header_compdb_dir/compile_commands.json"; then
               TIDY_COMPILE_DB_DIR="$header_compdb_dir" TIDY_JOBS="$(nproc)" \
-                scripts/tidy/tidy.sh --warnings-as-errors='*' "${changed_headers[@]}" || status=$?
+                bash scripts/tidy/tidy.sh --warnings-as-errors='*' "${changed_headers[@]}" || status=$?
             else
               status=1
             fi
