@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "deny": [
-      "mcp__chrome-devtools__*",
-      "mcp__drawio__*"
-    ]
-  }
-}
