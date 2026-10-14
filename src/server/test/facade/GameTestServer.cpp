@@ -543,13 +543,9 @@ bool GameTestServer::_selectAndBuildRunner()
         byBatch[bn].push_back(fn);
     }
 
-    // 批内切片（对齐基岩 GameTestBatchFactory 的 MAX_TESTS_PER_BATCH=50）：
-    // 超过 maxTestsPerBatch 的批次切为多个子批次（night → night_1/night_2/...），每个子批次
-    // 独立执行 before/after 回调与环境 setup/teardown。切片名保留原批次名前缀（night_2 仍以
-    // "night" 开头），getEnvForBatch 的前缀匹配（night→18000 / 其他→6000）语义自动保持。
-    // 切片动机：单批 ~810 测试全部同时平铺执行，结构网格无限扩张 + 实体全量 tick 互相干扰。
-    // TODO: beforeBatch/afterBatch 回调在每个切片上各执行一次（对齐基岩切片=独立批次的语义）。
-    constexpr std::size_t kMaxTestsPerBatch = 50;
+    // 无头测试共用世界规则、命令选择器和实体目标搜索，场地边界不能隔离这些状态。
+    // 每个子批次只执行一个用例，独立应用原批次的回调与环境；并行由独立进程分片提供。
+    constexpr std::size_t kMaxTestsPerBatch = 1;
     std::vector<GameTestBatch> batches;
     for (const auto& bn : batchOrder) {
         auto& fns = byBatch[bn];

@@ -1013,7 +1013,7 @@ void ShulkerBulletEntity::setTarget(Entity* target)
 Entity* ShulkerBulletEntity::target() const
 {
     const auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
-    return (bullet != nullptr) ? bullet->m_target : nullptr;
+    return (bullet != nullptr) ? bullet->m_target.get() : nullptr;
 }
 
 Direction ShulkerBulletEntity::direction() const
@@ -1034,14 +1034,12 @@ void ShulkerBulletEntity::tick()
 {
     auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
 
-    // 校验目标缓存：m_target 是裸 Entity* 指针，目标实体销毁后会成为悬垂指针。
-    // 每次 tick 通过 m_targetUuid 重新查找目标实体并刷新缓存，避免后续 dynamic_cast
-    // 对悬垂指针操作导致 SIGSEGV。参照 EvokerFangsEntity::getOwner() 的双重追踪模式。
+    // 生命周期引用在目标移除或析构后自动失效，UUID 用于恢复仍在世界中的目标。
     Entity* target = nullptr;
     if (bullet != nullptr) {
         // 缓存指针仍有效（非空且存活）则直接复用，跳过 UUID 查找开销
         if (bullet->m_target != nullptr && bullet->m_target->isAlive()) {
-            target = bullet->m_target;
+            target = bullet->m_target.get();
         } else {
             // 缓存失效，清空并通过 UUID 重新查找
             bullet->m_target = nullptr;
@@ -1084,10 +1082,8 @@ void ShulkerBulletEntity::tick()
         }
     }
 
-    // 更新位置
-    m_builtIn.stateVector->m_pos.x += m_builtIn.velocity->m_velocity.x;
-    m_builtIn.stateVector->m_pos.y += m_builtIn.velocity->m_velocity.y;
-    m_builtIn.stateVector->m_pos.z += m_builtIn.velocity->m_velocity.z;
+    // 同步位置、碰撞箱和空间索引，使下一 tick 的实体射线查询使用当前飞行位置。
+    setPosition(m_builtIn.stateVector->m_pos + m_builtIn.velocity->m_velocity);
 
     // 更新旋转朝向运动方向
     ProjectileEntity::updateRotation();
@@ -1150,7 +1146,7 @@ void ShulkerBulletEntity::tick()
 void ShulkerBulletEntity::_selectNextMoveDirection(Axis excludedAxis)
 {
     auto* bullet = tryGetComponent<ecs::ShulkerBulletComponent>();
-    const Entity* target = (bullet != nullptr) ? bullet->m_target : nullptr;
+    const Entity* target = (bullet != nullptr) ? bullet->m_target.get() : nullptr;
 
     f64 targetOffsetY = 0.5;
     BlockPos targetPos;

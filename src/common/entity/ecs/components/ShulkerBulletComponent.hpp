@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityReference.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <string>
@@ -21,17 +22,16 @@ namespace mc::ecs {
  * 方向朝向目标。vanilla ShulkerBullet 无同步字段（行为全服务端算）。
  *
  * 字段语义：
- * - m_target：目标实体缓存指针（运行时查找用，非持久；每次 tick 校验有效性）。
+ * - m_target：目标实体生命周期引用（运行时查找用，不拥有实体）。
  * - m_targetUuid：目标 UUID（持久化/跨 tick 重新查找用）。
  * - m_direction：当前移动方向（默认 Up）。
  * - m_flightSteps：剩余飞行步数（耗尽后重新选向）。
  * - m_targetDelta：目标速度增量（朝目标的移动向量）。
  *
- * 注意：m_target 是裸 Entity 指针，生命周期由目标实体的销毁控制；tick 中读取前须
- * 校验（参照 goal 持裸指针 UAF 历史教训，本组件不持有目标所有权，仅缓存引用）。
+ * 目标逻辑移除或析构后引用自动失效，不能解引用裸指针来判断其是否仍存活。
  */
 struct ShulkerBulletComponent {
-    Entity* m_target{nullptr};
+    EntityReference<Entity> m_target;
     std::string m_targetUuid;
     Direction m_direction{Direction::Up};
     i32 m_flightSteps{0};

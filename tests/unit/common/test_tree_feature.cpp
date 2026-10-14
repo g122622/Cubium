@@ -369,7 +369,8 @@ TEST_F(TreeFeaturePlacementWorldTest, DataDrivenFancyTreeAllowsThreeBlockHeight)
     })json");
     auto created = world::gen::feature::FeatureTypeRegistry::instance().create("tree", json);
     ASSERT_TRUE(created.success()) << created.error().message();
-    const auto* configured = dynamic_cast<const ConfiguredTreeFeature*>(created.value().get());
+    auto ownedFeature = created.value();
+    const auto* configured = dynamic_cast<const ConfiguredTreeFeature*>(ownedFeature.get());
     ASSERT_NE(configured, nullptr);
     TreeFeature feature;
     math::JavaLegacyRandom random(12345);
