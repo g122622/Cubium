@@ -11,7 +11,8 @@
 ## 内部关系与外部依赖
 
 工作流调用 composite actions 和 `scripts/ci`，通过 GitHub Actions 缓存、artifact、
-Release 和 issue 服务归档结果。详细规则见 `docs/CI.md`。
+Release 和 issue 服务归档结果。PR 的变更 C++ 文件由 `ci.yml` 执行 clang-tidy 门禁；nightly
+仍负责完整测试、发布及报告。详细规则见 `docs/CI.md`。
 
 ## 容易踩的坑
 

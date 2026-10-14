@@ -2,7 +2,7 @@
 
 项目配置了 `.clang-tidy` 文件，启用 `bugprone-*`、`clang-analyzer-*`、`concurrency-*`、`performance-*` 等检查规则。
 
-由于项目使用 clang-cl 编译，`compile_commands.json` 会导致 clang-tidy segfault，因此需要使用项目提供的脚本，自动注入 MSVC / Windows SDK / vcpkg 头文件路径。
+Windows 上项目使用 clang-cl 编译，`compile_commands.json` 会导致 clang-tidy segfault，脚本会注入 MSVC / Windows SDK / vcpkg 头文件路径。Linux 上则使用 CMake 的 `build/compile_commands.json`，无需手工注入头文件路径。
 
 ### 用法
 
@@ -14,7 +14,12 @@
 
 # PowerShell
 .\scripts\tidy\tidy.ps1 src\server\world\ServerChunkManager.cpp
+.\scripts\tidy\tidy.ps1 src\server\world                       # 递归扫描 C++ 源文件和头文件
+.\scripts\tidy\tidy.ps1 --jobs 8 src\server\world                # 指定并发数
 .\scripts\tidy\tidy.ps1                                            # 扫描全部 src/
+
+# Linux（先配置项目以生成 build/compile_commands.json）
+./scripts/tidy/tidy.sh --warnings-as-errors='*' src/server/world/Foo.cpp
 ```
 
 ### 常用选项
@@ -30,6 +35,8 @@
 ./scripts/tidy/tidy.sh --warnings-as-errors='' src/server/world/Foo.cpp
 ```
 
+扫描器默认按逻辑处理器数量并发启动 clang-tidy；可通过 `--jobs N` 或 `TIDY_JOBS=N` 调整并发数。扫描目录时递归包含 `.cpp`、`.cc`、`.cxx`、`.hpp` 和 `.h` 文件。完成后会打印总耗时、逐文件运行时间均值及按检查项归类的诊断数量。
+
 ### 环境变量
 
 | 变量 | 说明 | 默认值 |
@@ -38,6 +45,8 @@
 | `MSVC_ROOT` | MSVC 工具链根目录 | 自动检测最新版本 |
 | `WIN_SDK_ROOT` | Windows Kits 根目录 | `D:/Windows Kits` |
 | `WIN_SDK_VERSION` | SDK 版本号 | 自动检测最新版本 |
+| `TIDY_JOBS` | clang-tidy 最大并发进程数 | 逻辑处理器数量 |
+| `TIDY_COMPILE_DB_DIR` | Linux compile database 所在目录 | `build/` |
 
 ### 输出示例
 

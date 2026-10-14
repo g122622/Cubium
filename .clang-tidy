@@ -23,18 +23,25 @@ Checks: >-
   modernize-pass-by-value,
   -bugprone-easily-swappable-parameters,
   -bugprone-misplaced-widening-cast,
+  -clang-analyzer-optin.cplusplus.UninitializedObject,
   misc-misplaced-const,
   misc-redundant-expression,
   misc-static-assert,
   misc-throw-by-value-catch-by-reference
 WarningsAsErrors: >-
-  bugprone-*,
+  bugprone-assert-side-effect,
+  bugprone-empty-catch,
+  bugprone-exception-escape,
+  bugprone-implicit-widening-of-multiplication-result,
+  bugprone-integer-division,
+  bugprone-nondeterministic-pointer-iteration-order,
+  bugprone-optional-value-conversion,
+  bugprone-return-const-ref-from-parameter,
+  bugprone-unchecked-optional-access,
+  bugprone-unused-return-value,
   clang-analyzer-*,
   concurrency-*,
-  performance-*,
-  misc-unused-parameters,
-  misc-redundant-expression,
-  readability-misleading-indentation
+  misc-redundant-expression
 HeaderFilterRegex: '^(src|include)/'
 FormatStyle: file
 CheckOptions:

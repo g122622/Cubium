@@ -4,6 +4,7 @@
 
 ```text
 workflows/
+├── ci.yml            # PR 与合并队列的变更 C++ 文件 clang-tidy 门禁
 ├── nightly.yml       # pococc 分布式构建、Linux 全量测试、发布和性能汇总
 ├── nightly-legacy.yml # 旧构建流程，仅允许手动触发
 └── code-stats.yml    # 代码行数统计及徽章更新
@@ -16,6 +17,8 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 依赖 GitHub Actions 服务及 GitHub CLI。
 测试链使用带 ASan/UBSan 的 RelWithDebInfo；独立 Release 构建负责公开发布，并把无 sanitizer 的产物供
 独立 benchmark runner 使用。
+
+`ci.yml` 只在 PR 和 merge queue 运行，只检查本次变更的 C++ 源文件与头文件；头文件使用临时编译数据库条目，clang-tidy 任一告警或错误都会令 job 失败。
 
 ## 容易踩的坑
 
