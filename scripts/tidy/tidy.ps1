@@ -9,6 +9,7 @@
 # Usage:
 #   .\scripts\tidy\tidy.ps1                              # Scan all src/ files
 #   .\scripts\tidy\tidy.ps1 src\server\world\Foo.cpp      # Scan specific files
+#   .\scripts\tidy\tidy.ps1 --jobs 8 src\server\world      # Scan a directory with 8 workers
 #   .\scripts\tidy\tidy.ps1 --fix src\server\world\Foo.cpp # Auto-fix issues
 #   .\scripts\tidy\tidy.ps1 -Checks 'bugprone-*' ...       # Override checks
 #
@@ -110,6 +111,15 @@ if (Test-Path $VcpkgInc) {
 # ---- Parse arguments ----
 $TidyArgs = [System.Collections.ArrayList]::new()
 $Files = [System.Collections.ArrayList]::new()
+$MaxJobs = [Environment]::ProcessorCount
+if ($env:TIDY_JOBS) {
+    $parsedJobs = 0
+    if (-not [int]::TryParse($env:TIDY_JOBS, [ref]$parsedJobs) -or $parsedJobs -lt 1) {
+        Write-Host "ERROR: TIDY_JOBS must be a positive integer." -ForegroundColor Red
+        exit 1
+    }
+    $MaxJobs = $parsedJobs
+}
 
 $i = 0
 while ($i -lt $Arguments.Count) {
@@ -117,6 +127,7 @@ while ($i -lt $Arguments.Count) {
     switch -Regex ($arg) {
         '^(--fix|--fix-errors|--quiet)$' {
             [void]$TidyArgs.Add($arg)
+            break
         }
         '^(--checks|--header-filter|--format-style|--line-filter|--warnings-as-errors)$' {
             [void]$TidyArgs.Add($arg)
@@ -124,25 +135,54 @@ while ($i -lt $Arguments.Count) {
             if ($i -lt $Arguments.Count) {
                 [void]$TidyArgs.Add($Arguments[$i])
             }
+            break
+        }
+        '^--jobs$' {
+            $i++
+            if ($i -ge $Arguments.Count -or -not [int]::TryParse($Arguments[$i], [ref]$MaxJobs) -or $MaxJobs -lt 1) {
+                Write-Host "ERROR: --jobs requires a positive integer." -ForegroundColor Red
+                exit 1
+            }
+            break
+        }
+        '^--jobs=(.*)$' {
+            $parsedJobs = 0
+            if (-not [int]::TryParse($Matches[1], [ref]$parsedJobs) -or $parsedJobs -lt 1) {
+                Write-Host "ERROR: --jobs requires a positive integer." -ForegroundColor Red
+                exit 1
+            }
+            $MaxJobs = $parsedJobs
+            break
         }
         '^--(checks|header-filter|format-style|line-filter|warnings-as-errors)=' {
             [void]$TidyArgs.Add($arg)
+            break
         }
         '^(-h|--help)$' {
             Write-Host "Usage: .\scripts\tidy\tidy.ps1 [clang-tidy-options] <file(s)>..."
             Write-Host ""
             Write-Host "If no files are specified, scans all .cpp files under src\."
-            Write-Host "Supports all standard clang-tidy options (--fix, --checks, etc.)."
+            Write-Host "Directories are scanned recursively for C++ source and header files."
+            Write-Host "Parallel workers default to the logical processor count; override with --jobs N or TIDY_JOBS."
+            Write-Host "Supports clang-tidy options such as --fix, --checks, and --warnings-as-errors."
             exit 0
+            break
         }
         '^-' {
             [void]$TidyArgs.Add($arg)
+            break
         }
         default {
             [void]$Files.Add($arg)
+            break
         }
     }
     $i++
+}
+
+if ($TidyArgs -contains '--fix' -or $TidyArgs -contains '--fix-errors') {
+    $MaxJobs = 1
+    Write-Host "Auto-fix mode uses one worker to avoid concurrent edits." -ForegroundColor Yellow
 }
 
 # Default: scan all project source files
@@ -151,6 +191,21 @@ if ($Files.Count -eq 0) {
     $Files = @(Get-ChildItem -Path (Join-Path $ProjectRoot "src") -Filter "*.cpp" -Recurse | Sort-Object FullName | ForEach-Object { $_.FullName })
 }
 
+$ExpandedFiles = [System.Collections.ArrayList]::new()
+$SourceExtensions = @('.cpp', '.cc', '.cxx', '.hpp', '.h')
+foreach ($file in $Files) {
+    $candidate = if ([System.IO.Path]::IsPathRooted($file)) { $file } else { Join-Path $ProjectRoot $file }
+    if (Test-Path $candidate -PathType Container) {
+        Get-ChildItem -Path $candidate -File -Recurse |
+            Where-Object { $SourceExtensions -contains $_.Extension.ToLowerInvariant() } |
+            Sort-Object FullName |
+            ForEach-Object { [void]$ExpandedFiles.Add($_.FullName) }
+    } else {
+        [void]$ExpandedFiles.Add($file)
+    }
+}
+$Files = $ExpandedFiles
+
 $Total = $Files.Count
 if ($Total -eq 0) {
     Write-Host "ERROR: No source files found." -ForegroundColor Red
@@ -158,6 +213,7 @@ if ($Total -eq 0) {
 }
 
 Write-Host "Scanning $Total file(s)..." -ForegroundColor Green
+Write-Host "Parallel workers: $([Math]::Min($MaxJobs, $Total)) (logical processors: $([Environment]::ProcessorCount))" -ForegroundColor Green
 Write-Host ""
 
 # ---- Run clang-tidy ----
@@ -165,9 +221,13 @@ $Pass = 0
 $Fail = 0
 $Skip = 0
 $FailedFiles = [System.Collections.ArrayList]::new()
+$DiagnosticCounts = @{}
+$WorkItems = [System.Collections.Queue]::new()
+$Running = [System.Collections.ArrayList]::new()
+$TotalFileSeconds = 0.0
+$WallClock = [System.Diagnostics.Stopwatch]::StartNew()
 
 foreach ($file in $Files) {
-    # Resolve to absolute path
     $absFile = $file
     if (-not (Test-Path $absFile -PathType Leaf)) {
         $candidate = Join-Path $ProjectRoot $file
@@ -183,58 +243,111 @@ foreach ($file in $Files) {
     }
 
     $relPath = $absFile.Substring($ProjectRoot.Length + 1)
-
-    $allArgs = $ExtraArgs + $TidyArgs + @($absFile)
-
-    # Capture output without throwing on stderr — clang-tidy writes diagnostics to stderr
-    $outputLines = [System.Collections.ArrayList]::new()
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $ClangTidy
-    $psi.Arguments = ($allArgs | ForEach-Object { if ($_ -match '\s') { '"{0}"' -f $_ } else { $_ } }) -join ' '
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
-    $psi.WorkingDirectory = $ProjectRoot
-
-    $proc = [System.Diagnostics.Process]::Start($psi)
-    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
-    $stderrTask = $proc.StandardError.ReadToEndAsync()
-    [void]$proc.WaitForExit()
-    $exitCode = $proc.ExitCode
-
-    $stdout = $stdoutTask.Result
-    $stderr = $stderrTask.Result
-    $fullOutput = $stdout + $stderr
-
-    # Filter: only show lines from project source or summary lines
-    $filtered = $fullOutput -split "`n" | Where-Object { $_ -match '^(E:\\dev|src[/\\]|Suppressed|\d+ warning|\d+ error)' }
-
-    if ($exitCode -eq 0) {
-        if ($filtered) {
-            Write-Host "WARN: $relPath" -ForegroundColor Yellow
-            $filtered | ForEach-Object { Write-Host $_ }
-        } else {
-            Write-Host "  OK: $relPath" -ForegroundColor Green
-        }
-        $Pass++
-    } elseif ($exitCode -eq 139 -or $exitCode -lt 0) {
-        Write-Host "CRASH: $relPath (segfault)" -ForegroundColor Red
-        $Skip++
-    } else {
-        Write-Host "FAIL: $relPath" -ForegroundColor Red
-        if ($filtered) { $filtered | ForEach-Object { Write-Host $_ } }
-        $Fail++
-        [void]$FailedFiles.Add($relPath)
-    }
+    $WorkItems.Enqueue([pscustomobject]@{ Path = $absFile; RelativePath = $relPath })
 }
+
+while ($WorkItems.Count -gt 0 -or $Running.Count -gt 0) {
+    while ($WorkItems.Count -gt 0 -and $Running.Count -lt [Math]::Min($MaxJobs, $Total)) {
+        $workItem = $WorkItems.Dequeue()
+        $allArgs = $ExtraArgs + $TidyArgs + @($workItem.Path)
+
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $ClangTidy
+        $psi.Arguments = ($allArgs | ForEach-Object { if ($_ -match '\s') { '"{0}"' -f $_ } else { $_ } }) -join ' '
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.CreateNoWindow = $true
+        $psi.WorkingDirectory = $ProjectRoot
+
+        $timer = [System.Diagnostics.Stopwatch]::StartNew()
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+        $stderrTask = $proc.StandardError.ReadToEndAsync()
+        [void]$Running.Add([pscustomobject]@{
+            Process = $proc
+            StdoutTask = $stdoutTask
+            StderrTask = $stderrTask
+            Timer = $timer
+            WorkItem = $workItem
+        })
+    }
+
+    $completedAny = $false
+    for ($index = $Running.Count - 1; $index -ge 0; $index--) {
+        $job = $Running[$index]
+        if (-not $job.Process.HasExited) {
+            continue
+        }
+
+        [void]$job.Process.WaitForExit()
+        $job.Timer.Stop()
+        $TotalFileSeconds += $job.Timer.Elapsed.TotalSeconds
+        $exitCode = $job.Process.ExitCode
+        $fullOutput = $job.StdoutTask.Result + $job.StderrTask.Result
+        $outputLines = $fullOutput -split "`r?`n"
+        $filtered = $outputLines | Where-Object { $_ -match '^(E:\\dev|src[/\\]|Suppressed|\d+ warning|\d+ error)' }
+        $diagnosticLines = @($outputLines | Where-Object { $_ -match ':(?:\d+):(?:\d+:)?\s+(?:warning|error):' })
+        $diagnosticOutput = $filtered | Where-Object { $_ -notmatch '^(Suppressed|\d+ warnings? generated)' }
+
+        foreach ($line in $outputLines) {
+            if ($line -match ':(?:\d+):(?:\d+:)?\s+(?:warning|error):.*\[(?<check>[A-Za-z0-9_.-]+)') {
+                $check = $Matches.check
+                if (-not $DiagnosticCounts.ContainsKey($check)) { $DiagnosticCounts[$check] = 0 }
+                $DiagnosticCounts[$check]++
+            }
+        }
+
+        if ($exitCode -eq 0) {
+            if ($diagnosticLines.Count -gt 0) {
+                Write-Host "WARN: $($job.WorkItem.RelativePath)" -ForegroundColor Yellow
+                $diagnosticOutput | ForEach-Object { Write-Host $_ }
+            } else {
+                Write-Host "  OK: $($job.WorkItem.RelativePath)" -ForegroundColor Green
+            }
+            $Pass++
+        } elseif ($exitCode -eq 139 -or $exitCode -lt 0) {
+            Write-Host "CRASH: $($job.WorkItem.RelativePath) (segfault)" -ForegroundColor Red
+            $Skip++
+        } else {
+            Write-Host "FAIL: $($job.WorkItem.RelativePath)" -ForegroundColor Red
+            if ($diagnosticLines.Count -gt 0) {
+                $diagnosticOutput | ForEach-Object { Write-Host $_ }
+            } else {
+                $outputLines | ForEach-Object { Write-Host $_ }
+            }
+            $Fail++
+            [void]$FailedFiles.Add($job.WorkItem.RelativePath)
+        }
+
+        Write-Host ("  Time: {0:N2}s" -f $job.Timer.Elapsed.TotalSeconds) -ForegroundColor DarkGray
+        $job.Process.Dispose()
+        $Running.RemoveAt($index)
+        $completedAny = $true
+    }
+
+    if (-not $completedAny -and $Running.Count -gt 0) { Start-Sleep -Milliseconds 100 }
+}
+$WallClock.Stop()
 
 # ---- Summary ----
 Write-Host ""
 Write-Host "=========================================="
 Write-Host "  Total: $Total  Pass: $Pass  Fail: $Fail  Skip: $Skip" -NoNewline
 Write-Host ""
+if ($Pass + $Fail -gt 0) {
+    Write-Host ("  Wall time: {0:N1}s  Mean per-file time: {1:N2}s  Throughput: {2:N2} files/s" -f `
+        $WallClock.Elapsed.TotalSeconds, ($TotalFileSeconds / ($Pass + $Fail)), (($Pass + $Fail) / $WallClock.Elapsed.TotalSeconds))
+}
 Write-Host "=========================================="
+
+if ($DiagnosticCounts.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Diagnostics by check:" -ForegroundColor Yellow
+    foreach ($check in ($DiagnosticCounts.Keys | Sort-Object)) {
+        Write-Host ("  {0}: {1}" -f $check, $DiagnosticCounts[$check])
+    }
+}
 
 if ($FailedFiles.Count -gt 0) {
     Write-Host ""

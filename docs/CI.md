@@ -35,6 +35,18 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 > 构建/测试 job 于 2026-06 起被 `if: false` 静态关闭，只剩格式检查在跑，导致 self-heal 因「CI 永不
 > 失败」而同步休眠。二者均已删除，由本工作流取代。
 
+### PR clang-tidy 门禁
+
+`.github/workflows/ci.yml` 只在 PR 和 merge queue 运行，不进入 nightly。它从 PR 基线与头提交之间
+筛出变更的 `.cpp`、`.cc`、`.cxx`、`.hpp`、`.h` 文件，用 Linux preset 生成 `build/compile_commands.json`，
+不执行完整构建，然后只对这些文件运行 clang-tidy。CI 传入 `--warnings-as-errors='*'`，所以任一诊断
+都会令 `clang-tidy (changed C++)` job 失败。
+
+`.clang-tidy` 排除了 `clang-analyzer-optin.cplusplus.UninitializedObject`，该项在现有全量扫描中只报告
+vcpkg 的 fmt 头文件。其余 analyzer 检查保留；高置信度正确性检查仍升级为错误，性能和可读性建议保留为
+普通告警。main 分支的 `Protect main` ruleset 已将 `clang-tidy (changed C++)` 设为 required status check，
+clang-tidy 失败时不能合并 PR。
+
 ### 为什么只跑 Linux
 
 客户端已停止维护，日常运行以服务端为主；Linux 是项目的 CI 目标平台，Windows/macOS 构建已移除。

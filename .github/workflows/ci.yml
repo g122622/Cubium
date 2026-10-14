@@ -1,0 +1,94 @@
+name: CI
+'on':
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VCPKG_COMMIT: 39a6cc0e44641977a7ccdfdb01a14eaf832aa330
+  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: 2G
+
+jobs:
+  clang-tidy:
+    name: clang-tidy (changed C++)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Find changed C++ files
+        id: changed
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: |
+          set -euo pipefail
+          changed_file_list="$RUNNER_TEMP/changed-cpp-files.nul"
+          : > "$changed_file_list"
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              *.cpp|*.cc|*.cxx|*.hpp|*.h)
+                printf '%s\0' "$path" >> "$changed_file_list"
+                ;;
+            esac
+          done < <(git diff --name-only -z --diff-filter=ACMR "${BASE_SHA}...${HEAD_SHA}")
+
+          count=$(tr -cd '\0' < "$changed_file_list" | wc -c)
+          echo "file_list=$changed_file_list" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "has_cpp=true" >> "$GITHUB_OUTPUT"
+            echo "Found $count changed C++ file(s)."
+          else
+            echo "has_cpp=false" >> "$GITHUB_OUTPUT"
+            echo "No changed C++ files; clang-tidy is not needed."
+          fi
+
+      - name: Setup Linux build environment
+        if: steps.changed.outputs.has_cpp == 'true'
+        id: env-setup
+        uses: ./.github/actions/setup-linux-build-env
+        with:
+          cache-scope: ci
+          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
+
+      - name: Install clang-tidy 22
+        if: steps.changed.outputs.has_cpp == 'true'
+        run: sudo apt-get install -y clang-tidy-22
+
+      - name: Configure compilation database
+        if: steps.changed.outputs.has_cpp == 'true'
+        run: |
+          cmake --preset linux-clang-ci-tests -B build \
+            -DMC_ENABLE_NATIVE_ARCH=OFF \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+
+      - name: Save vcpkg binary cache
+        if: steps.changed.outputs.has_cpp == 'true' && steps.env-setup.outputs.vcpkg-cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: vcpkg-cache
+          key: ${{ steps.env-setup.outputs.vcpkg-cache-key }}
+
+      - name: Run clang-tidy on changed files
+        if: steps.changed.outputs.has_cpp == 'true'
+        env:
+          CHANGED_FILE_LIST: ${{ steps.changed.outputs.file_list }}
+        run: |
+          set -euo pipefail
+          mapfile -d '' -t changed_files < "$CHANGED_FILE_LIST"
+          TIDY_JOBS="$(nproc)" scripts/tidy/tidy.sh \
+            --warnings-as-errors='*' "${changed_files[@]}"
