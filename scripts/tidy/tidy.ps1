@@ -134,6 +134,9 @@ while ($i -lt $Arguments.Count) {
             $i++
             if ($i -lt $Arguments.Count) {
                 [void]$TidyArgs.Add($Arguments[$i])
+            } else {
+                Write-Host "ERROR: $arg requires a value." -ForegroundColor Red
+                exit 1
             }
             break
         }
@@ -308,7 +311,8 @@ while ($WorkItems.Count -gt 0 -or $Running.Count -gt 0) {
             $Pass++
         } elseif ($exitCode -eq 139 -or $exitCode -lt 0) {
             Write-Host "CRASH: $($job.WorkItem.RelativePath) (segfault)" -ForegroundColor Red
-            $Skip++
+            $Fail++
+            [void]$FailedFiles.Add($job.WorkItem.RelativePath)
         } else {
             Write-Host "FAIL: $($job.WorkItem.RelativePath)" -ForegroundColor Red
             if ($diagnosticLines.Count -gt 0) {

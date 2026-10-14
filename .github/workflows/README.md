@@ -18,7 +18,7 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 测试链使用带 ASan/UBSan 的 RelWithDebInfo；独立 Release 构建负责公开发布，并把无 sanitizer 的产物供
 独立 benchmark runner 使用。
 
-`ci.yml` 只在 PR 和 merge queue 运行，只检查本次变更的 C++ 源文件与头文件；clang-tidy 任一告警或错误都会令 job 失败。
+`ci.yml` 只在 PR 和 merge queue 运行，只检查本次变更的 C++ 源文件与头文件；头文件使用临时编译数据库条目，clang-tidy 任一告警或错误都会令 job 失败。
 
 ## 容易踩的坑
 

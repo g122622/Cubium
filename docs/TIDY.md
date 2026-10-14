@@ -46,6 +46,7 @@ Windows 上项目使用 clang-cl 编译，`compile_commands.json` 会导致 clan
 | `WIN_SDK_ROOT` | Windows Kits 根目录 | `D:/Windows Kits` |
 | `WIN_SDK_VERSION` | SDK 版本号 | 自动检测最新版本 |
 | `TIDY_JOBS` | clang-tidy 最大并发进程数 | 逻辑处理器数量 |
+| `TIDY_COMPILE_DB_DIR` | Linux compile database 所在目录 | `build/` |
 
 ### 输出示例
 

@@ -36,21 +36,29 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
         run: |
           set -euo pipefail
-          changed_file_list="$RUNNER_TEMP/changed-cpp-files.nul"
-          : > "$changed_file_list"
+          source_file_list="$RUNNER_TEMP/changed-cpp-files.nul"
+          header_file_list="$RUNNER_TEMP/changed-header-files.nul"
+          : > "$source_file_list"
+          : > "$header_file_list"
           while IFS= read -r -d '' path; do
             case "$path" in
-              *.cpp|*.cc|*.cxx|*.hpp|*.h)
-                printf '%s\0' "$path" >> "$changed_file_list"
+              *.cpp|*.cc|*.cxx)
+                printf '%s\0' "$path" >> "$source_file_list"
+                ;;
+              *.hpp|*.h)
+                printf '%s\0' "$path" >> "$header_file_list"
                 ;;
             esac
           done < <(git diff --name-only -z --diff-filter=ACMR "${BASE_SHA}...${HEAD_SHA}")
 
-          count=$(tr -cd '\0' < "$changed_file_list" | wc -c)
-          echo "file_list=$changed_file_list" >> "$GITHUB_OUTPUT"
+          source_count=$(tr -cd '\0' < "$source_file_list" | wc -c)
+          header_count=$(tr -cd '\0' < "$header_file_list" | wc -c)
+          count=$((source_count + header_count))
+          echo "source_list=$source_file_list" >> "$GITHUB_OUTPUT"
+          echo "header_list=$header_file_list" >> "$GITHUB_OUTPUT"
           if [ "$count" -gt 0 ]; then
             echo "has_cpp=true" >> "$GITHUB_OUTPUT"
-            echo "Found $count changed C++ file(s)."
+            echo "Found $source_count changed translation unit(s) and $header_count changed header(s)."
           else
             echo "has_cpp=false" >> "$GITHUB_OUTPUT"
             echo "No changed C++ files; clang-tidy is not needed."
@@ -86,9 +94,28 @@ jobs:
       - name: Run clang-tidy on changed files
         if: steps.changed.outputs.has_cpp == 'true'
         env:
-          CHANGED_FILE_LIST: ${{ steps.changed.outputs.file_list }}
+          CHANGED_SOURCE_LIST: ${{ steps.changed.outputs.source_list }}
+          CHANGED_HEADER_LIST: ${{ steps.changed.outputs.header_list }}
         run: |
           set -euo pipefail
-          mapfile -d '' -t changed_files < "$CHANGED_FILE_LIST"
-          TIDY_JOBS="$(nproc)" scripts/tidy/tidy.sh \
-            --warnings-as-errors='*' "${changed_files[@]}"
+          status=0
+          mapfile -d '' -t changed_sources < "$CHANGED_SOURCE_LIST"
+          if [ "${#changed_sources[@]}" -gt 0 ]; then
+            TIDY_JOBS="$(nproc)" scripts/tidy/tidy.sh \
+              --warnings-as-errors='*' "${changed_sources[@]}" || status=$?
+          fi
+
+          mapfile -d '' -t changed_headers < "$CHANGED_HEADER_LIST"
+          if [ "${#changed_headers[@]}" -gt 0 ]; then
+            header_compdb_dir="$RUNNER_TEMP/tidy-header-compdb"
+            if python3 scripts/ci/create_header_compile_commands.py \
+              --compile-commands build/compile_commands.json \
+              --headers-list "$CHANGED_HEADER_LIST" \
+              --output "$header_compdb_dir/compile_commands.json"; then
+              TIDY_COMPILE_DB_DIR="$header_compdb_dir" TIDY_JOBS="$(nproc)" \
+                scripts/tidy/tidy.sh --warnings-as-errors='*' "${changed_headers[@]}" || status=$?
+            else
+              status=1
+            fi
+          fi
+          exit "$status"

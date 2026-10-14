@@ -21,6 +21,7 @@
 #   WIN_SDK_ROOT     - Windows Kits/10 root (default: D:/Windows Kits)
 #   WIN_SDK_VERSION  - SDK version (default: latest installed)
 #   TIDY_JOBS        - Maximum parallel clang-tidy processes (default: logical CPU count)
+#   TIDY_COMPILE_DB_DIR - Linux compilation database directory (default: build/)
 # ============================================================
 
 set -euo pipefail
@@ -125,11 +126,12 @@ if (( WINDOWS_TIDY )); then
         EXTRA_ARGS+=(--extra-arg="-I$VCPKG_INC")
     fi
 else
-    if [[ ! -f "$BUILD_DIR/compile_commands.json" ]]; then
-        echo -e "${RED}ERROR: compile_commands.json not found at $BUILD_DIR. Configure the project first.${NC}" >&2
+    TIDY_COMPILE_DB_DIR="${TIDY_COMPILE_DB_DIR:-$BUILD_DIR}"
+    if [[ ! -f "$TIDY_COMPILE_DB_DIR/compile_commands.json" ]]; then
+        echo -e "${RED}ERROR: compile_commands.json not found at $TIDY_COMPILE_DB_DIR. Configure the project first.${NC}" >&2
         exit 1
     fi
-    EXTRA_ARGS=(-p "$BUILD_DIR")
+    EXTRA_ARGS=(-p "$TIDY_COMPILE_DB_DIR")
 fi
 
 # ---- Parse arguments ----
@@ -160,6 +162,10 @@ while [[ $# -gt 0 ]]; do
         --fix|--checks=*|--checks|--header-filter=*|--header-filter)
             TIDY_ARGS+=("$1")
             if [[ "$1" == "--checks" || "$1" == "--header-filter" ]]; then
+                if [[ $# -lt 2 ]]; then
+                    echo -e "${RED}ERROR: $1 requires a value.${NC}" >&2
+                    exit 1
+                fi
                 shift
                 TIDY_ARGS+=("$1")
             fi
@@ -167,6 +173,10 @@ while [[ $# -gt 0 ]]; do
         --fix-errors|--format-style=*|--format-style|--line-filter=*|--line-filter|--quiet|--warnings-as-errors=*|--warnings-as-errors)
             TIDY_ARGS+=("$1")
             if [[ "$1" == "--format-style" || "$1" == "--line-filter" || "$1" == "--warnings-as-errors" ]]; then
+                if [[ $# -lt 2 ]]; then
+                    echo -e "${RED}ERROR: $1 requires a value.${NC}" >&2
+                    exit 1
+                fi
                 shift
                 TIDY_ARGS+=("$1")
             fi
@@ -236,6 +246,7 @@ DIAGNOSTIC_COUNTS=()
 TOTAL_FILE_SECONDS=0
 WALL_START=$SECONDS
 TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
 declare -A RUNNING_FILES=()
 declare -A RUNNING_OUTPUTS=()
 declare -A RUNNING_META=()
@@ -267,7 +278,8 @@ finish_worker() {
         ((PASS++)) || true
     elif [[ $exit_code -eq 139 ]]; then
         echo -e "${RED}CRASH: $rel_path (segfault)${NC}"
-        ((SKIP++)) || true
+        ((FAIL++)) || true
+        FAILED_FILES+=("$rel_path")
     else
         echo -e "${RED}FAIL: $rel_path${NC}"
         if [[ -n "$diagnostics" ]]; then

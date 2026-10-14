@@ -39,8 +39,9 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 
 `.github/workflows/ci.yml` 只在 PR 和 merge queue 运行，不进入 nightly。它从 PR 基线与头提交之间
 筛出变更的 `.cpp`、`.cc`、`.cxx`、`.hpp`、`.h` 文件，用 Linux preset 生成 `build/compile_commands.json`，
-不执行完整构建，然后只对这些文件运行 clang-tidy。CI 传入 `--warnings-as-errors='*'`，所以任一诊断
-都会令 `clang-tidy (changed C++)` job 失败。
+不执行完整构建。变更的源文件使用该编译数据库；变更头文件会生成临时编译数据库条目，继承最近源文件的
+编译参数后再运行 clang-tidy，避免头文件因没有原生编译条目而被跳过。CI 传入
+`--warnings-as-errors='*'`，所以任一诊断都会令 `clang-tidy (changed C++)` job 失败。
 
 `.clang-tidy` 排除了 `clang-analyzer-optin.cplusplus.UninitializedObject`，该项在现有全量扫描中只报告
 vcpkg 的 fmt 头文件。其余 analyzer 检查保留；高置信度正确性检查仍升级为错误，性能和可读性建议保留为
