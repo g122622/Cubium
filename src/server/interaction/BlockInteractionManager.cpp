@@ -674,8 +674,11 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
         hand == Hand::MainHand ? "main" : "off",
         [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
 
-    // 验证前置条件（右键使用不检查 Y 范围与出生点保护）
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, false);
+    // 验证前置条件（不检查 Y 范围；出生点保护对所有玩家生效）。
+    // vanilla `ServerGamePacketListenerImpl.handleUseItemOn` 在调 `gameMode.useItemOn` 之前
+    // 无条件执行 `serverlevel.mayInteract(player, blockpos)`，该门控内含出生点保护，
+    // 且 `isUnderSpawnProtection` 只按 op 身份与半径判定、不区分游戏模式，故旁观者同样受限。
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, true);
     if (preconditionError) {
         return std::move(*preconditionError);
     }
