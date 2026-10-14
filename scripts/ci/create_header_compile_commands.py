@@ -57,7 +57,7 @@ def _header_command(entry: dict, header: Path) -> list[str]:
         arguments.append(argument)
         index += 1
 
-    arguments.extend(("-x", "c++", str(header)))
+    arguments.extend(("-x", "c++", "-Wno-pragma-once-outside-header", str(header)))
     return arguments
 
 
