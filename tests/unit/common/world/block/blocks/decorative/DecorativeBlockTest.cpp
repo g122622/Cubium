@@ -656,9 +656,9 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithEmptyHand_ClientSide_ReturnsSucce
     EXPECT_FALSE(m_world.wasGameEventFired());
 }
 
-// ========== 分支5：空花盆 + 手持非 BlockItem 物品 → Pass ==========
+// ========== 分支5：空花盆 + 手持非 BlockItem 物品 → Consume ==========
 
-TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsPass)
+TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsConsume)
 {
     ASSERT_NE(VanillaBlocks::FLOWER_POT, nullptr);
     // 使用一个非 BlockItem 的物品（如钻石）进行测试
@@ -677,16 +677,17 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsPass)
     BlockRaycastResult hit = makeHitResult(pos);
     auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
-    // 非 BlockItem 物品应返回 Pass（交给其他处理器）
-    EXPECT_EQ(result, ActionResultType::Pass);
+    // 非 BlockItem 物品：useItemOn 返回 TRY_WITH_EMPTY_HAND，服务端回退 useWithoutItem，
+    // 空花盆分支返回 CONSUME（对齐 vanilla：空花盆 + 非盆栽物品 → 消费动作但无操作）。
+    EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
     // 物品不被消耗
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 1);
 }
 
-// ========== 分支6：空花盆 + 手持不可盆栽的 BlockItem → Pass ==========
+// ========== 分支6：空花盆 + 手持不可盆栽的 BlockItem → Consume ==========
 
-TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsPass)
+TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsConsume)
 {
     ASSERT_NE(VanillaBlocks::FLOWER_POT, nullptr);
     // 使用一个不可盆栽的 BlockItem（如石头）进行测试
@@ -706,8 +707,9 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsPass)
     BlockRaycastResult hit = makeHitResult(pos);
     auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
-    // 不可盆栽的 BlockItem 应返回 Pass
-    EXPECT_EQ(result, ActionResultType::Pass);
+    // 不可盆栽的 BlockItem：同上一用例，useItemOn 返回 TRY_WITH_EMPTY_HAND → useWithoutItem
+    // 的空花盆分支 → CONSUME（对齐 vanilla）。
+    EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
 }
 

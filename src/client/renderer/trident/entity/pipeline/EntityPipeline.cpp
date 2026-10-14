@@ -943,8 +943,7 @@ Result<void> EntityPipeline::_createGraphicsPipeline(
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size =
-        sizeof(f32) * 28; // mat4(16) + vec3(3) + f32(1) + vec4(4) + f32(4) = 28 floats = 112 bytes
+    pushConstantRange.size = sizeof(f32) * 28; // mat4(16) + vec3(3) + f32(1) + vec4(4) + f32(4) = 28 floats = 112 bytes
 
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

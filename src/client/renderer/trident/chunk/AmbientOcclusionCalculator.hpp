@@ -58,8 +58,8 @@ public:
      */
     struct Result {
         std::array<f32, 4> vertexColorMultiplier{}; ///< 顶点颜色乘数 (0.0-1.0)
-        std::array<u8, 4> vertexSkyLight{};           ///< 顶点天空光 (0-15)
-        std::array<u8, 4> vertexBlockLight{};         ///< 顶点方块光 (0-15)
+        std::array<u8, 4> vertexSkyLight{};         ///< 顶点天空光 (0-15)
+        std::array<u8, 4> vertexBlockLight{};       ///< 顶点方块光 (0-15)
     };
 
     /**
@@ -87,8 +87,8 @@ private:
      * @brief 角落采样数据
      */
     struct CornerSample {
-        u8 skyLight = 0;           ///< 天空光照 (0-15)
-        u8 blockLight = 0;         ///< 方块光照 (0-15)
+        u8 skyLight = 0;         ///< 天空光照 (0-15)
+        u8 blockLight = 0;       ///< 方块光照 (0-15)
         f32 aoBrightness = 1.0f; ///< AO亮度 (0.2 或 1.0)
     };
 
@@ -175,8 +175,7 @@ private:
      * @param w1-w4 四个权重
      * @return 插值后的打包亮度
      */
-    [[nodiscard]] static u32 getVertexBrightness(
-        u32 b1, u32 b2, u32 b3, u32 b4, f32 w1, f32 w2, f32 w3, f32 w4);
+    [[nodiscard]] static u32 getVertexBrightness(u32 b1, u32 b2, u32 b3, u32 b4, f32 w1, f32 w2, f32 w3, f32 w4);
 
     /**
      * @brief 获取指定位置的光照值（天空光和方块光的打包值）

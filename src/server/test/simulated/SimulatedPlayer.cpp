@@ -355,10 +355,10 @@ bool SimulatedPlayer::useItemOnBlock(
 
     // 与生产路径一致：方块侧交互统一从玩家主手权威槽（getSelectedStackRef）取手持物，方块对其
     // 的修改直接落到该槽。故先把传入 stack 设入选中槽作为权威手持物源。
+    // 传空 stack 表示「空手右键」——必须显式清空选中槽，否则残留物品会参与 useItemOn，
+    // 使本该空手的交互按手持物品派发（与调用方意图相反）。
     const i32 selectedSlot = inventory().getSelectedSlot();
-    if (!stack.isEmpty()) {
-        inventory().setItem(selectedSlot, stack);
-    }
+    inventory().setItem(selectedSlot, stack);
 
     // ① Block::useItemOn / useWithoutItem：取目标方块 state 派发方块侧交互。
     // 空手右键也走 useItemOn（vanilla 空手同样调用 blockstate.useItemOn）。

@@ -129,9 +129,9 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
     // 仅主世界，半径内（切比雪夫 XZ）非 op(< Moderator=1) 且非单机主禁止交互。
     // spawn-protection=0 关闭保护。单机主豁免对齐 IntegratedServer.isSingleplayerOwner。
     //
-    // 注意：vanilla 的 mayInteract 只在放置与破坏路径被调用（ServerPlayerGameMode.handleBlockBreakAction
-    // 的 START_DESTROY / destroyBlock），**不作用于 useItemOn 右键交互**。故右键路径传
-    // checkSpawnProtection=false，避免把"右键使用方块"误判为受保护操作。
+    // vanilla 中 mayInteract 在 handleUseItemOn（含 useItemOn 与 Item::useOn）与
+    // handleBlockBreakAction 的 START_DESTROY 两条路径都被调用，故放置 / 右键使用 / 破坏
+    // 三条路径均应传 checkSpawnProtection=true。
     if (checkSpawnProtection && m_server != nullptr) {
         const i32 radius = m_server->spawnProtectionRadius();
         if (radius > 0) {
@@ -276,8 +276,9 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return std::move(*worldError);
     }
 
-    // 验证前置条件（右键使用路径，不检查 Y 范围与出生点保护）
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, false);
+    // 验证前置条件（放置路径同样受出生点保护约束，对齐 vanilla handleUseItemOn 中的
+    // `serverlevel.mayInteract(this.player, blockpos)` 门控）
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, true);
     if (preconditionError) {
         return std::move(*preconditionError);
     }
@@ -369,7 +370,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
 }
 
 Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
-    PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, const ItemStack& heldItem)
+    PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, ItemStack heldItem)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::handleItemUseOn",
@@ -391,8 +392,9 @@ Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
         return std::move(*worldError);
     }
 
-    // 验证前置条件（右键使用不检查 Y 范围与出生点保护，与 vanilla useItemOn 一致）
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, false);
+    // 验证前置条件（物品在方块上使用同样受出生点保护约束，对齐 vanilla handleUseItemOn 中的
+    // `serverlevel.mayInteract(this.player, blockpos)` 门控）
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, true);
     if (preconditionError) {
         return std::move(*preconditionError);
     }
@@ -567,48 +569,6 @@ std::optional<BlockUseResult> BlockInteractionManager::_dispatchBlockUse(PlayerI
                         : block->useWithoutItem(*state, world, pos, interactionPlayer, hitResult);
     }();
 
-    // 派发自定义方块组件回调 - onPlayerInteract
-    auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
-    std::string blockTypeId = block->blockLocation().toString();
-    if (blockCompReg.hasPlayerInteractCallback(blockTypeId)) {
-        mc::mod::bedrock::addon::BlockComponentPlayerInteractEvent event;
-        event.blockTypeId = blockTypeId;
-        event.blockX = pos.x;
-        event.blockY = pos.y;
-        event.blockZ = pos.z;
-        event.dimensionId = world.dimension();
-        event.playerId = playerId;
-        event.face = static_cast<i32>(face);
-        event.faceX = hitPos.x - static_cast<f32>(pos.x);
-        event.faceY = hitPos.y - static_cast<f32>(pos.y);
-        event.faceZ = hitPos.z - static_cast<f32>(pos.z);
-        blockCompReg.dispatchPlayerInteract(blockTypeId, event);
-    }
-
-    // 派发自定义物品组件回调 - onUseOn（仅携带物品的交互）
-    if (withItem && !heldBeforeUse.isEmpty()) {
-        const Item* heldItemPtr = heldBeforeUse.getItem();
-        if (heldItemPtr != nullptr) {
-            auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
-            std::string itemTypeId = heldItemPtr->itemLocation().toString();
-            if (itemCompReg.hasUseOnCallback(itemTypeId)) {
-                mc::mod::bedrock::addon::ItemComponentUseOnEvent useOnEvent;
-                useOnEvent.itemTypeId = itemTypeId;
-                useOnEvent.sourceId = playerId;
-                useOnEvent.blockX = pos.x;
-                useOnEvent.blockY = pos.y;
-                useOnEvent.blockZ = pos.z;
-                useOnEvent.usedOnBlockTypeId = blockTypeId;
-                useOnEvent.usedOnBlockPermutationTypeId = blockTypeId;
-                useOnEvent.face = static_cast<i32>(face);
-                useOnEvent.faceX = hitPos.x - static_cast<f32>(pos.x);
-                useOnEvent.faceY = hitPos.y - static_cast<f32>(pos.y);
-                useOnEvent.faceZ = hitPos.z - static_cast<f32>(pos.z);
-                itemCompReg.dispatchUseOn(itemTypeId, useOnEvent);
-            }
-        }
-    }
-
     const bool handled = result.consumesAction();
 
     // 交互成功时检查是否为告示牌并执行命令
@@ -622,6 +582,54 @@ std::optional<BlockUseResult> BlockInteractionManager::_dispatchBlockUse(PlayerI
                 if (serverPlayer != nullptr) {
                     _handleSignCommand(world, pos, *serverPlayer);
                 }
+            }
+        }
+    }
+
+    // 派发自定义方块组件回调 - onPlayerInteract。
+    // 必须放在此处而非单个方块虚方法内部：`handleBlockUse` 可能对同一次右键调用
+    // `_dispatchBlockUse` 两次（useItemOn 返回 TRY_WITH_EMPTY_HAND 后回退 useWithoutItem），
+    // 放在虚方法内会让 addon 脚本收到重复事件、副作用执行两遍。本函数是每次右键的唯一入口，
+    // 故按"一次右键派发一次"的语义落在这里。
+    {
+        auto& blockCompReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+        const std::string blockTypeId = block->blockLocation().toString();
+        if (blockCompReg.hasPlayerInteractCallback(blockTypeId)) {
+            mc::mod::bedrock::addon::BlockComponentPlayerInteractEvent event;
+            event.blockTypeId = blockTypeId;
+            event.blockX = pos.x;
+            event.blockY = pos.y;
+            event.blockZ = pos.z;
+            event.dimensionId = world.dimension();
+            event.playerId = playerId;
+            event.face = static_cast<i32>(face);
+            event.faceX = hitPos.x - static_cast<f32>(pos.x);
+            event.faceY = hitPos.y - static_cast<f32>(pos.y);
+            event.faceZ = hitPos.z - static_cast<f32>(pos.z);
+            blockCompReg.dispatchPlayerInteract(blockTypeId, event);
+        }
+    }
+
+    // 派发自定义物品组件回调 - onUseOn（仅携带物品的交互）
+    if (withItem && !heldBeforeUse.isEmpty()) {
+        const Item* heldItemPtr = heldBeforeUse.getItem();
+        if (heldItemPtr != nullptr) {
+            auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
+            const std::string itemTypeId = heldItemPtr->itemLocation().toString();
+            if (itemCompReg.hasUseOnCallback(itemTypeId)) {
+                mc::mod::bedrock::addon::ItemComponentUseOnEvent useOnEvent;
+                useOnEvent.itemTypeId = itemTypeId;
+                useOnEvent.sourceId = playerId;
+                useOnEvent.blockX = pos.x;
+                useOnEvent.blockY = pos.y;
+                useOnEvent.blockZ = pos.z;
+                useOnEvent.usedOnBlockTypeId = block->blockLocation().toString();
+                useOnEvent.usedOnBlockPermutationTypeId = block->blockLocation().toString();
+                useOnEvent.face = static_cast<i32>(face);
+                useOnEvent.faceX = hitPos.x - static_cast<f32>(pos.x);
+                useOnEvent.faceY = hitPos.y - static_cast<f32>(pos.y);
+                useOnEvent.faceZ = hitPos.z - static_cast<f32>(pos.z);
+                itemCompReg.dispatchUseOn(itemTypeId, useOnEvent);
             }
         }
     }
@@ -725,11 +733,26 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
     }
 
     // ===== 潜行门控（isSecondaryUseActive 语义）=====
-    // 玩家按住潜行键且任一只手持物非空时，跳过方块侧交互直接走物品使用（Item::useOn），
-    // 用于「潜行时放置方块而非打开容器 / 触发方块」。flag = 任一只手持物非空，
-    // 对齐 vanilla ServerPlayerGameMode.useItemOn 中 `flag1 = isSecondaryUseActive() && flag`。
+    // 玩家按住潜行键且**交互手**持物非空时，跳过方块侧交互直接走物品使用（Item::useOn），
+    // 用于「潜行时放置方块而非打开容器 / 触发方块」。门控条件对齐 vanilla
+    // ServerPlayerGameMode.useItemOn 的 `flag1 = isSecondaryUseActive() && flag`，其中
+    // `flag = 任一手非空`、`flag1` 只决定是否**跳过方块侧**；真正的物品使用仍以
+    // `!p_9268_.isEmpty()`（p_9268_ = getItemInHand(交互手)）为前置，空手时落到末尾返回 PASS。
     if (player != nullptr && player->isInputSneaking() && _anyHandHasItem(playerId)) {
-        auto itemUse = handleItemUseOn(playerId, pos, hitPos, face, hand, _handStackFor(playerId, hand));
+        const ItemStack& heldStack = _handStackFor(playerId, hand);
+        const Item* heldItem = heldStack.getItem();
+        // 交互手为空或物品在冷却中：vanilla 的 `!p_9268_.isEmpty() && !isOnCooldown(p_9268_)`
+        // 不成立，直接返回 PASS（不派发方块侧，也不使用物品）。
+        if (heldItem == nullptr || heldStack.isEmpty() || player->hasItemCooldown(heldItem)) {
+            return BlockUseResult{false,
+                false,
+                BlockUseResult::Kind::ItemUseOn,
+                ActionResultType::Pass,
+                std::nullopt,
+                "Sneaking but item unusable"};
+        }
+        // 传局部拷贝：避免物品侧 getItemStackMut() 直接改权威槽导致的双重消耗（见 handleItemUseOn 注释）。
+        auto itemUse = handleItemUseOn(playerId, pos, hitPos, face, hand, heldStack);
         return itemUse.success() ? itemUse.value()
                                  : BlockUseResult{false,
                                        false,
@@ -763,6 +786,7 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
     // ⑤ 物品侧交互（对齐 vanilla `itemstack.useOn(new UseOnContext(...))`，需手持非空且不在冷却）。
     //    矿车 / 骨粉 / 桶 / 火把 / 锄头 / 斧头 / 锹 / 刷子等非 block-item 靠此步生效；block-item
     //    的放置也经此步（handleItemUseOn 识别 block-item 后转 handleBlockPlacement）。
+    //    手持物一律从权威槽重新解析（`_handStackFor`），不缓存跨调用的指针。
     if (!heldItemEmpty) {
         const ItemStack& heldStack = _handStackFor(playerId, hand);
         const Item* heldItem = heldStack.getItem();
@@ -774,6 +798,8 @@ Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
                 std::nullopt,
                 "Item on cooldown"};
         }
+        // 传局部拷贝：ItemUseContext 持其指针，物品侧 getItemStackMut() 的自改只作用于拷贝，
+        // 权威槽的消耗仍由 handleItemUseOn 的 itemId/damage 对比统一判定（避免双重消耗）。
         auto itemUse = handleItemUseOn(playerId, pos, hitPos, face, hand, heldStack);
         if (itemUse.success() && itemUse.value().success) {
             return itemUse.value();

@@ -253,7 +253,7 @@ void IcebergFeature::generateIcebergBlock(IWorld& world,
     const BlockState* blockstate)
 {
     const f64 d0dist = flag1 ? signedDistanceEllipse(l1, i2, BlockPos(0, 0, 0), k1, getEllipseC(j2, l, j), d0)
-                                : signedDistanceCircle(l1, i2, BlockPos(0, 0, 0), k2, random);
+                             : signedDistanceCircle(l1, i2, BlockPos(0, 0, 0), k2, random);
     if (d0dist < 0.0) {
         const BlockPos pos(blockpos.x + l1, blockpos.y + j2, blockpos.z + i2);
         const f64 d1 = flag1 ? -0.5 : -6 - random.nextInt(3);
@@ -306,8 +306,7 @@ i32 IcebergFeature::getEllipseC(i32 p_66019_, i32 p_66020_, i32 p_66021_) const
     return i;
 }
 
-f64 IcebergFeature::signedDistanceCircle(
-    i32 x, i32 z, const BlockPos& center, i32 radius, math::IRandom& random) const
+f64 IcebergFeature::signedDistanceCircle(i32 x, i32 z, const BlockPos& center, i32 radius, math::IRandom& random) const
 {
     const f32 f = 10.0F * math::clamp(random.nextFloat(), 0.2F, 0.8F) / static_cast<f32>(radius);
     return static_cast<f64>(f) + std::pow(static_cast<f64>(x - center.x), 2.0) +

@@ -324,8 +324,7 @@ BlockActionResult ShelfBlock::useItemOn(ItemStack& stack,
 
     // 客户端仅返回是否成功
     if (world.isClientSide()) {
-        ItemStack heldItem = stack;
-        return heldItem.isEmpty() ? ActionResultType::Pass : ActionResultType::Success;
+        return stack.isEmpty() ? ActionResultType::Pass : ActionResultType::Success;
     }
 
     ItemStack& heldItem = stack;

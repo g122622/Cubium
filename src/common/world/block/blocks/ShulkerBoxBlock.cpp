@@ -268,7 +268,11 @@ bool ShulkerBoxBlock::isShulkerBox(const Block& block)
 std::optional<ContainerType> ShulkerBoxBlock::getMenuProvider(
     const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
-    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）。
+    // 潜影盒的打开前置检查（朝向外扩空间是否被阻挡、锁定状态）需要 `Player&` 与 `IWorld&`，
+    // 本方法只有 const 世界与位置，无法在此完成；故旁观者路径下这些门控由菜单工厂侧的
+    // 方块实体 `canOpen` / `openContainer` 兜底，与 vanilla `BaseContainerBlockEntity`
+    // 的 `MenuProvider` 语义一致（MenuProvider 自身不做访问检查，检查发生在 createMenu 内）。
     (void)state;
     (void)world;
     (void)pos;

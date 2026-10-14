@@ -202,11 +202,11 @@ public:
 
     /**
      * @brief 是否成功或消耗（表示动作已处理）
+     *
+     * 等价于 `consumesAction()`：`Success` / `Consume` / `SuccessServer` / `SuccessServerWithoutItem`
+     * 均表示动作已被处理，`TryEmptyHandInteraction` / `Fail` / `Pass` 不是。
      */
-    [[nodiscard]] bool isSuccessOrConsume() const noexcept
-    {
-        return m_type == ActionResultType::Success || m_type == ActionResultType::Consume;
-    }
+    [[nodiscard]] bool isSuccessOrConsume() const noexcept { return consumesAction(); }
 
     /// @copydoc ActionResultType::consumesAction
     [[nodiscard]] bool consumesAction() const noexcept
@@ -218,7 +218,7 @@ public:
     /// @copydoc ActionResultType::wasItemInteraction
     [[nodiscard]] bool wasItemInteraction() const noexcept
     {
-        return m_type != ActionResultType::SuccessServerWithoutItem;
+        return m_type == ActionResultType::Success || m_type == ActionResultType::SuccessServer;
     }
 
     /// @copydoc ActionResultType::needsServerSwing
@@ -244,7 +244,7 @@ public:
      * 仅比较 `m_type`，不比较 `heldItemTransformed`。
      * 允许测试代码 `EXPECT_EQ(result, ActionResultType::Success)` 等用法。
      */
-    [[nodiscard]] friend bool operator==(BlockActionResult lhs, ActionResultType rhs) noexcept
+    [[nodiscard]] friend bool operator==(const BlockActionResult& lhs, ActionResultType rhs) noexcept
     {
         return lhs.m_type == rhs;
     }
@@ -252,7 +252,7 @@ public:
     /**
      * @brief 与 `ActionResultType` 相等比较（反向参数顺序）
      */
-    [[nodiscard]] friend bool operator==(ActionResultType lhs, BlockActionResult rhs) noexcept
+    [[nodiscard]] friend bool operator==(ActionResultType lhs, const BlockActionResult& rhs) noexcept
     {
         return lhs == rhs.m_type;
     }
@@ -260,7 +260,7 @@ public:
     /**
      * @brief 与 `ActionResultType` 不等比较
      */
-    [[nodiscard]] friend bool operator!=(BlockActionResult lhs, ActionResultType rhs) noexcept
+    [[nodiscard]] friend bool operator!=(const BlockActionResult& lhs, ActionResultType rhs) noexcept
     {
         return lhs.m_type != rhs;
     }
@@ -268,7 +268,7 @@ public:
     /**
      * @brief 与 `ActionResultType` 不等比较（反向参数顺序）
      */
-    [[nodiscard]] friend bool operator!=(ActionResultType lhs, BlockActionResult rhs) noexcept
+    [[nodiscard]] friend bool operator!=(ActionResultType lhs, const BlockActionResult& rhs) noexcept
     {
         return lhs != rhs.m_type;
     }

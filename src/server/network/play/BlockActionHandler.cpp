@@ -349,10 +349,15 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
     if (useResult.failed() || !useResult.value().success) {
         // 交互被拒时必须留痕：这条链路（前置校验 → BlockInteractionManager → 方块/物品回调）
         // 此前每一层都可以静默 return，真机上表现为「右键毫无反应、日志里什么都没有」。
-        spdlog::warn("Block use not handled for player {} at {}: {}",
-            playerId,
-            pos.toString(),
-            useResult.failed() ? useResult.error().message() : useResult.value().message);
+        // 但「无交互被处理」是常态（空手右键石头、对着无交互方块右键等），若一律 warn
+        // 会淹没生产日志；故按错误级别分流：链路本身报错（failed）才 warn，
+        // 正常走到末尾返回 Pass 的降为 debug。
+        const std::string message = useResult.failed() ? useResult.error().message() : useResult.value().message;
+        if (useResult.failed()) {
+            spdlog::warn("Block use failed for player {} at {}: {}", playerId, pos.toString(), message);
+        } else {
+            spdlog::debug("Block use not handled for player {} at {}: {}", playerId, pos.toString(), message);
+        }
         return;
     }
 

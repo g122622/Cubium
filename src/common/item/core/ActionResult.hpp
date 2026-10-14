@@ -35,16 +35,18 @@ class ItemStack;
  *
  * 定义动作执行后的结果类型。取值语义来自 vanilla `InteractionResult`：
  *
- * | Cubium                | vanilla 等价                              | consumesAction | wasItemInteraction |
- * 服务端挥臂 |
- * |-----------------------|-------------------------------------------|----------------|--------------------|-----------|
- * | `Success`             | `SUCCESS`（swingSource=CLIENT）            | 是             | 是                 |
- * 否（客户端挥）| | `SuccessServer`       | `SUCCESS_SERVER`（swingSource=SERVER）     | 是             | 是 | 是 | |
- * `SuccessServerWithoutItem` | `SUCCESS_SERVER.withoutItem()`        | 是             | 否                 | 是 | |
- * `Consume`             | `CONSUME`（swingSource=NONE）             | 是             | 是                 | 否        |
- * | `TryEmptyHandInteraction` | `TRY_WITH_EMPTY_HAND`                  | 否             | —                  | 否 | |
- * `Fail`                | `FAIL`                                    | 否             | —                  | 否        |
- * | `Pass`                | `PASS`                                    | 否             | —                  | 否 |
+ * clang-format off
+ * | Cubium                     | vanilla 等价                           | consumesAction | wasItemInteraction |
+ * 服务端挥臂     |
+ * |----------------------------|----------------------------------------|----------------|--------------------|----------------|
+ * | `Success`                  | `SUCCESS`（swingSource=CLIENT）         | 是             | 是                 |
+ * 否（客户端挥）  | | `SuccessServer`            | `SUCCESS_SERVER`（swingSource=SERVER）  | 是             | 是 | 是 |
+ * | `SuccessServerWithoutItem` | `SUCCESS_SERVER.withoutItem()`         | 是             | 否                 | 是 | |
+ * `Consume`                  | `CONSUME`（swingSource=NONE）           | 是             | 是                 | 否 | |
+ * `TryEmptyHandInteraction`  | `TRY_WITH_EMPTY_HAND`                  | 否             | 否                 | 否 | |
+ * `Fail`                     | `FAIL`                                 | 否             | 否                 | 否 | |
+ * `Pass`                     | `PASS`                                 | 否             | 否                 | 否 |
+ * clang-format on
  *
  * 关键区分：
  * - `Success` 与 `SuccessServer` 都表示"已消费动作且涉及物品"，但前者由客户端负责播放挥臂
@@ -152,11 +154,11 @@ public:
 
     /**
      * @brief 是否成功或消耗（表示动作已处理）
+     *
+     * 等价于 `consumesAction()`：`Success` / `Consume` / `SuccessServer` / `SuccessServerWithoutItem`
+     * 均表示动作已被处理，`TryEmptyHandInteraction` / `Fail` / `Pass` 不是。
      */
-    [[nodiscard]] bool isSuccessOrConsume() const noexcept
-    {
-        return m_type == ActionResultType::Success || m_type == ActionResultType::Consume;
-    }
+    [[nodiscard]] bool isSuccessOrConsume() const noexcept { return consumesAction(); }
 
     /**
      * @brief 是否消费了动作（对应 vanilla `InteractionResult.consumesAction()`）
@@ -173,12 +175,14 @@ public:
     /**
      * @brief 该结果是否源自物品交互（对应 vanilla `InteractionResult.Success.wasItemInteraction()`）
      *
+     * 仅对三个 `Success` 变体有意义：`Success` / `SuccessServer` 为 true，
      * `SuccessServerWithoutItem`（vanilla `SUCCESS_SERVER.withoutItem()`）为 false，
-     * 用于抑制 `ITEM_USED` 统计。
+     * 用于抑制 `ITEM_USED` 统计。非成功结果（`Consume` / `Fail` / `Pass` /
+     * `TryEmptyHandInteraction`）在 vanilla 中根本没有该方法，一律返回 false。
      */
     [[nodiscard]] bool wasItemInteraction() const noexcept
     {
-        return m_type != ActionResultType::SuccessServerWithoutItem;
+        return m_type == ActionResultType::Success || m_type == ActionResultType::SuccessServer;
     }
 
     /**

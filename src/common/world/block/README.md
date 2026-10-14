@@ -797,14 +797,14 @@ virtual BlockActionResult useWithoutItem(const BlockState& state, IWorld& world,
 
 **返回值语义**（`BlockActionResult`，封装 `ActionResultType + std::optional<ItemStack>`）：
 
-| `ActionResultType` | vanilla 等价 | consumesAction | 服务端挥臂 |
-|---|---|---|---|
-| `Success` | `SUCCESS` | 是 | 否（客户端挥） |
-| `SuccessServer` | `SUCCESS_SERVER` | 是 | 是 |
-| `SuccessServerWithoutItem` | `SUCCESS_SERVER.withoutItem()` | 是 | 是 |
-| `Consume` | `CONSUME` | 是 | 否 |
-| `TryEmptyHandInteraction` | `TRY_WITH_EMPTY_HAND` | 否 | 否 |
-| `Fail` / `Pass` | `FAIL` / `PASS` | 否 | 否 |
+| `ActionResultType` | vanilla 等价 | consumesAction | wasItemInteraction | 服务端挥臂 |
+|---|---|---|---|---|
+| `Success` | `SUCCESS` | 是 | 是 | 否（客户端挥） |
+| `SuccessServer` | `SUCCESS_SERVER` | 是 | 是 | 是 |
+| `SuccessServerWithoutItem` | `SUCCESS_SERVER.withoutItem()` | 是 | 否 | 是 |
+| `Consume` | `CONSUME` | 是 | 是 | 否 |
+| `TryEmptyHandInteraction` | `TRY_WITH_EMPTY_HAND` | 否 | 否 | 否 |
+| `Fail` / `Pass` | `FAIL` / `PASS` | 否 | 否 | 否 |
 
 - 返回 `BlockActionResult::success(stack)` / `success().heldItemTransformedTo(stack)` 表示方块改动了手持物，携带转换后的物品堆（如 `ShelfBlock` 交换结果、花盆取物）；无该字段时服务端按原地修改后的权威槽同步。
 - `getMenuProvider(state, world, pos)` 是新增的虚方法（等价 vanilla `MenuProvider`）：有界面的方块返回自己的 `ContainerType`，服务端在"旁观者右键"路径据此统一打开界面。

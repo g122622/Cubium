@@ -167,10 +167,10 @@ public:
      *
      * 严格按 vanilla 顺序派发：
      * 1. 旁观者：`Block::getMenuProvider` 有菜单则直接打开并返回 Consume，否则 Pass
-     * 2. `isSecondaryUseActive && 任一手非空` → 直接落到第 5 步
-     * 3. `Block::useItemOn`（仅主手，且第 2 步未命中）
-     * 4. 第 3 步返回 `TryEmptyHandInteraction` 且为主手 → `Block::useWithoutItem`
-     * 5. 手持非空且未在冷却 → `Item::onItemUse`（创造模式恢复数量，对齐 `hasInfiniteMaterials`）
+     * 2. `isSecondaryUseActive && 任一手非空` → 跳过方块侧，直接走第 5 步
+     * 3. `Block::useItemOn`（**任意手都调用**，含空手；第 2 步未命中时）
+     * 4. 第 3 步返回 `TryEmptyHandInteraction` 且为**主手** → `Block::useWithoutItem`
+     * 5. 交互手持物非空且未在冷却 → `Item::onItemUse`（创造模式恢复数量，对齐 `hasInfiniteMaterials`）
      *
      * 消耗写回：`Block::useItemOn` / `useWithoutItem` 收到的是玩家权威手持槽引用，
      * 其修改直接落盘；`Item::onItemUse` 收到的是局部拷贝，由本方法按 itemId/damage 变化
@@ -197,15 +197,14 @@ public:
      * @param hitPos 击中点
      * @param face 击中面
      * @param hand 使用的手
-     * @param heldItem 调用方局部拷贝（供 `Item::onItemUse` 读取/修改上下文）
+     * @param heldItem 手持物品**局部拷贝**（供 `Item::onItemUse` 读取/修改上下文）。
+     *        必须传拷贝而非权威槽引用：`ItemUseContext` 持有该 stack 的指针，
+     *        `onItemUse` 内的 `getItemStackMut()` 会直接改它；若指向权威槽，物品侧的自改
+     *        （如骨粉 `shrink(1)`）会绕过下方"自管消耗"判定，导致外层再 shrink 一次 = 双重消耗。
      * @return 交互结果
      */
-    [[nodiscard]] Result<BlockUseResult> handleItemUseOn(PlayerId playerId,
-        const BlockPos& pos,
-        const Vector3& hitPos,
-        Direction face,
-        Hand hand,
-        const ItemStack& heldItem);
+    [[nodiscard]] Result<BlockUseResult> handleItemUseOn(
+        PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, ItemStack heldItem);
 
     /**
      * @brief 处理方块破坏（挖掘完成）

@@ -258,10 +258,10 @@ TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     BlockRaycastResult hit;
     auto result = mc::test::useBlock(*stonecutter_, state, world, pos_, player, Hand::OffHand, hit);
 
-    // 副手交互应与主手行为一致
-    EXPECT_EQ(result, ActionResultType::Consume);
-    EXPECT_TRUE(world.wasOpenContainerCalled());
-    EXPECT_EQ(world.getLastContainerType(), ContainerType::Stonecutter);
+    // 切石机未重写 useItemOn（基类返回 TryEmptyHandInteraction），而空手回退仅对主线生效，
+    // 故副手交互不打开界面（对齐 vanilla `interactionhand == MAIN_HAND` 门控）。
+    EXPECT_EQ(result, ActionResultType::TryEmptyHandInteraction);
+    EXPECT_FALSE(world.wasOpenContainerCalled());
 }
 
 TEST_F(StonecutterBlockInteractionTest, OnBlockActivated_OpenContainerFails_ReturnsPass)

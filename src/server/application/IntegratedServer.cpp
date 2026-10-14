@@ -1046,6 +1046,18 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
                 return false;
             }
 
+            // 末影箱：物品栏存储在玩家身上，而非方块实体中（对齐 StandaloneServer 同分支）。
+            // 末影箱声明 Generic9x3 菜单类型，但方块实体类型不是 Chest，若不在此特判会被
+            // 下方的箱子类型检查拒绝，表现为旁观者/本地玩家右键末影箱不开界面。
+            if (blockEntity->getType() == BlockEntityType::EnderChest) {
+                auto* localPlayer = playerEntityManager().getPlayerEntity(m_clientPlayerId, *playerWorld);
+                if (localPlayer == nullptr) {
+                    return false;
+                }
+                auto& enderChestInv = localPlayer->enderChestInventory();
+                menu = blockentity::ChestContainer::createSingle(containerId, &m_clientInventory, &enderChestInv);
+                break;
+            }
             if (blockEntity->getType() != BlockEntityType::Chest &&
                 blockEntity->getType() != BlockEntityType::TrappedChest) {
                 return false;

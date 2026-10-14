@@ -231,9 +231,12 @@ BlockActionResult ChestBlock::useWithoutItem(
         return ActionResultType::Success;
     }
 
-    // 打开箱子GUI
-    // 单个箱子是27格 (3行)，使用 Generic9x3 类型
-    if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
+    // 打开箱子GUI。单箱 27 格（3 行）= Generic9x3；双箱 54 格（6 行）= Generic9x6。
+    // 菜单类型须与箱子实际格数一致，否则客户端建出的窗口只显示一半槽位并与服务端错位。
+    const auto menuType = (state.get(BlockStateProperties::CHEST_TYPE()) == BlockStateProperties::ChestType::Single)
+        ? ContainerType::Generic9x3
+        : ContainerType::Generic9x6;
+    if (world.openContainer(menuType, pos, player)) {
         chest->openContainer(&player);
         // 陷阱箱子与普通箱子使用不同的统计
         if (getBlockEntityType() == BlockEntityType::TrappedChest) {
@@ -462,11 +465,14 @@ const fluid::FluidState* ChestBlock::getFluidState(const BlockState& state) cons
 std::optional<ContainerType> ChestBlock::getMenuProvider(
     const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
-    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
-    (void)state;
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）。
+    // 双箱（CHEST_TYPE 非 Single 的那一半）为 54 格，须返回 Generic9x6；否则客户端按 27 格
+    // 建窗口，只能看到一半槽位并与服务端菜单错位。
     (void)world;
     (void)pos;
-    return ContainerType::Generic9x3;
+    const auto chestType = state.get(BlockStateProperties::CHEST_TYPE());
+    return (chestType == BlockStateProperties::ChestType::Single) ? ContainerType::Generic9x3
+                                                                  : ContainerType::Generic9x6;
 }
 
 } // namespace blocks

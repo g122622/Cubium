@@ -67,12 +67,8 @@ std::string VibrationParticleData::getParameters() const
             m_targetPosition.z,
             m_arrivalInTicks);
     } else {
-        std::snprintf(buf,
-            sizeof(buf),
-            "entity %llu %.2f %d",
-            static_cast<u64>(m_targetEntityId),
-            m_yOffset,
-            m_arrivalInTicks);
+        std::snprintf(
+            buf, sizeof(buf), "entity %llu %.2f %d", static_cast<u64>(m_targetEntityId), m_yOffset, m_arrivalInTicks);
     }
     return std::string(buf);
 }

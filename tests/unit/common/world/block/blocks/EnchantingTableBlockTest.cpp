@@ -368,8 +368,8 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavio
     BlockRaycastResult hit;
     auto result = mc::test::useBlock(*enchantingTable_, state, world, pos_, player, Hand::OffHand, hit);
 
-    // 副手交互应与服务端行为一致
-    EXPECT_EQ(result, ActionResultType::Consume);
-    EXPECT_TRUE(world.wasOpenContainerCalled());
-    EXPECT_EQ(world.getLastContainerType(), ContainerType::Enchantment);
+    // 附魔台未重写 useItemOn（基类返回 TryEmptyHandInteraction），而空手回退仅对主线生效，
+    // 故副手交互不打开界面（对齐 vanilla `interactionhand == MAIN_HAND` 门控）。
+    EXPECT_EQ(result, ActionResultType::TryEmptyHandInteraction);
+    EXPECT_FALSE(world.wasOpenContainerCalled());
 }

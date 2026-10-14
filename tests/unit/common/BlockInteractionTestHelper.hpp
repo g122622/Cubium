@@ -38,7 +38,7 @@ namespace mc::test {
  * @brief 在单元测试中派发一次方块右键交互（对齐服务端 useItemOn 派发链）
  *
  * 服务端 `BlockInteractionManager::handleBlockUse` 的派发顺序为：
- * `Block::useItemOn` →（返回 `TryEmptyHandInteraction` 时）`Block::useWithoutItem`。
+ * `Block::useItemOn` →（返回 `TryEmptyHandInteraction` **且为交互主手** 时）`Block::useWithoutItem`。
  * 单元测试若直接调 `useWithoutItem`，会绕过 `useItemOn` 分支而测不到真实语义。
  *
  * 本工具按同一顺序派发，并从玩家实体的权威手持槽取 stack（与生产路径一致），
@@ -61,10 +61,12 @@ inline BlockActionResult useBlock(Block& block,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    ItemStack& stack = (hand == Hand::OffHand) ? player.inventory().getOffhandItemRef()
-                                               : player.inventory().getSelectedStackRef();
+    ItemStack& stack =
+        (hand == Hand::OffHand) ? player.inventory().getOffhandItemRef() : player.inventory().getSelectedStackRef();
     BlockActionResult result = block.useItemOn(stack, state, world, pos, player, hand, hit);
-    if (!result.consumesAction() && result.isTryEmptyHandInteraction()) {
+    // 回退条件与生产路径一致：仅主线才转 useWithoutItem（对齐 vanilla
+    // `interactionhand == InteractionHand.MAIN_HAND` 门控）。
+    if (hand == Hand::MainHand && !result.consumesAction() && result.isTryEmptyHandInteraction()) {
         result = block.useWithoutItem(state, world, pos, player, hit);
     }
     return result;
