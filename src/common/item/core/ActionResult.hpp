@@ -33,13 +33,36 @@ class ItemStack;
 /**
  * @brief 动作结果类型
  *
- * 定义动作执行后的结果类型。
+ * 定义动作执行后的结果类型。取值语义来自 vanilla `InteractionResult`：
+ *
+ * | Cubium                | vanilla 等价                              | consumesAction | wasItemInteraction |
+ * 服务端挥臂 |
+ * |-----------------------|-------------------------------------------|----------------|--------------------|-----------|
+ * | `Success`             | `SUCCESS`（swingSource=CLIENT）            | 是             | 是                 |
+ * 否（客户端挥）| | `SuccessServer`       | `SUCCESS_SERVER`（swingSource=SERVER）     | 是             | 是 | 是 | |
+ * `SuccessServerWithoutItem` | `SUCCESS_SERVER.withoutItem()`        | 是             | 否                 | 是 | |
+ * `Consume`             | `CONSUME`（swingSource=NONE）             | 是             | 是                 | 否        |
+ * | `TryEmptyHandInteraction` | `TRY_WITH_EMPTY_HAND`                  | 否             | —                  | 否 | |
+ * `Fail`                | `FAIL`                                    | 否             | —                  | 否        |
+ * | `Pass`                | `PASS`                                    | 否             | —                  | 否 |
+ *
+ * 关键区分：
+ * - `Success` 与 `SuccessServer` 都表示"已消费动作且涉及物品"，但前者由客户端负责播放挥臂
+ *   动画（客户端本地预测命中），后者要求服务端主动广播挥臂（客户端未预测到，如放置失败后
+ *   回退、或纯服务端判定）。错误使用会导致挥臂动画缺失或重复。
+ * - `SuccessServerWithoutItem` 表示"已消费动作但与手持物品无关"（如空手吃蛋糕、空手开箱），
+ *   使 `ITEM_USED` 统计不触发。
+ * - `TryEmptyHandInteraction` 是"携带物品时无法处理，请以空手语义重试"的信号，服务端据此
+ *   转调 `Block::useWithoutItem`。它本身不消费动作。
  */
 enum class ActionResultType : u8 {
-    Success = 0, ///< 成功执行，消耗物品
-    Consume = 1, ///< 消耗物品但不执行动作
-    Fail = 2,    ///< 执行失败，不消耗物品
-    Pass = 3     ///< 传递给下一个处理器
+    Success = 0,                 ///< 成功执行，物品已参与交互，客户端挥臂
+    Consume = 1,                 ///< 执行成功但不需要挥臂（swingSource=NONE）
+    Fail = 2,                    ///< 执行失败，不消耗物品
+    Pass = 3,                    ///< 传递给下一个处理器
+    TryEmptyHandInteraction = 4, ///< 请求以空手语义重试（服务端转调 useWithoutItem）
+    SuccessServer = 5,           ///< 成功执行，物品已参与交互，服务端负责挥臂
+    SuccessServerWithoutItem = 6 ///< 成功执行，与手持物品无关，服务端负责挥臂
 };
 
 /**
@@ -133,6 +156,45 @@ public:
     [[nodiscard]] bool isSuccessOrConsume() const noexcept
     {
         return m_type == ActionResultType::Success || m_type == ActionResultType::Consume;
+    }
+
+    /**
+     * @brief 是否消费了动作（对应 vanilla `InteractionResult.consumesAction()`）
+     *
+     * `Success` / `Consume` / `SuccessServer` / `SuccessServerWithoutItem` 均消费动作；
+     * `TryEmptyHandInteraction` / `Fail` / `Pass` 不消费。
+     */
+    [[nodiscard]] bool consumesAction() const noexcept
+    {
+        return m_type == ActionResultType::Success || m_type == ActionResultType::Consume ||
+            m_type == ActionResultType::SuccessServer || m_type == ActionResultType::SuccessServerWithoutItem;
+    }
+
+    /**
+     * @brief 该结果是否源自物品交互（对应 vanilla `InteractionResult.Success.wasItemInteraction()`）
+     *
+     * `SuccessServerWithoutItem`（vanilla `SUCCESS_SERVER.withoutItem()`）为 false，
+     * 用于抑制 `ITEM_USED` 统计。
+     */
+    [[nodiscard]] bool wasItemInteraction() const noexcept
+    {
+        return m_type != ActionResultType::SuccessServerWithoutItem;
+    }
+
+    /**
+     * @brief 是否需要服务端主动广播挥臂动画（对应 vanilla `swingSource() == SERVER`）
+     */
+    [[nodiscard]] bool needsServerSwing() const noexcept
+    {
+        return m_type == ActionResultType::SuccessServer || m_type == ActionResultType::SuccessServerWithoutItem;
+    }
+
+    /**
+     * @brief 是否请求以空手语义重试（对应 vanilla `TRY_WITH_EMPTY_HAND`）
+     */
+    [[nodiscard]] bool isTryEmptyHandInteraction() const noexcept
+    {
+        return m_type == ActionResultType::TryEmptyHandInteraction;
     }
 
 private:

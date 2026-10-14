@@ -136,14 +136,9 @@ bool RedstoneRepeaterBlock::isLocked(IWorld& world, const BlockPos& pos, const B
     return getPowerOnSides(world, pos, state) > 0;
 }
 
-BlockActionResult RedstoneRepeaterBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult RedstoneRepeaterBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 冒险/旁观模式下无建造权限时，禁止切换中继器延迟

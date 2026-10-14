@@ -7,7 +7,7 @@
 // C++ 链路：SeaPickleBlock（ocean/SeaPickleBlock.cpp）继承 Block + IWaterLoggable，两个 state：
 //   - pickles（IntegerProperty，1-4，默认 1）：海泡菜数量。
 //   - waterlogged（BooleanProperty，默认 true，但放置时由 shouldWaterlogAt 重算）。
-//   - SeaPickleBlock **不 override onBlockActivated**（基类返 Pass），故堆叠不在交互路径，而在放置路径：
+//   - SeaPickleBlock **不 override 方块侧交互**（基类返 Pass），故堆叠不在交互路径，而在放置路径：
 //     getStateForPlacement（:89-111）查 placementPos 已有方块，若 is(this) 则 pickles+1（count<4 时），
 //     否则 pickles=1 + waterlogged=shouldWaterlogAt。用 context.placementPos()（正确，无 EndRodBlock 偏差）。
 //   - 堆叠可达性：海泡菜材质 OCEAN_PLANT，makeOceanPlantMaterial 设 replaceable=true（Material.cpp:240-243），
@@ -19,7 +19,7 @@
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock(stack, blockLocation, face, faceLocation)（SimulatedPlayer.cpp
 //   :265-346）。手持 sea_pickle 物品（BlockItem，Items.cpp:2662 registerBlockBackedItem）。点击已有海泡菜：
-//   onBlockActivated 基类返 Pass → fallback Item.useOn → BlockItem::tryPlace → _canReplace(海泡菜)=true →
+//   方块侧交互 基类返 Pass → fallback Item.useOn → BlockItem::tryPlace → _canReplace(海泡菜)=true →
 //   placementPos=原海泡菜格 → getStateForPlacement 堆叠分支 pickles+1 → setBlockState 同步写入。
 //   useItemOnBlock 返回后即可 getState("pickles") 读到 +1 后的值（同步）。SimulatedPlayer 默认创造模式
 //   （物品不消耗），不影响堆叠逻辑（堆叠靠 existingState 查询，不靠物品数量）。
@@ -98,7 +98,7 @@ function getPickles(test: Test, x: number, y: number, z: number): number | null 
 //
 // 布局：(3,1,1) stone 支撑。手持 sea_pickle useItemOnBlock 点击 (3,1,1) 顶面 Up → 海泡菜落 (3,2,1)
 //   （placementPos=stone 上方格），getStateForPlacement 无已有海泡菜 → pickles=1。
-//   再手持 sea_pickle 点击 (3,2,1) 顶面 Up → onBlockActivated Pass → fallback 放置 →
+//   再手持 sea_pickle 点击 (3,2,1) 顶面 Up → 方块侧交互 Pass → fallback 放置 →
 //   _canReplace((3,2,1) 海泡菜)=true → placementPos=(3,2,1) → getStateForPlacement 已有海泡菜 count=1<4
 //   → pickles=2。重复 +1 到 3、4。
 //

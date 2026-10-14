@@ -412,14 +412,14 @@ if (!state.isAir() && state.isSolid()) {
 
 1. **放置限制**：使用 `GameMasterBlockItem`（继承 BlockItem），重写 `getStateForPlacement()` 检查 `player.canUseGameMasterBlocks()`（创造模式 + OP≥2）
 2. **破坏限制**：`BlockInteractionManager::_canBreakBlock()` 检查 `block.isGameMaster()`，无权限阻止破坏
-3. **交互限制**：各方块 `onBlockActivated()` 中检查 `player.canUseGameMasterBlocks()`
+3. **交互限制**：各方块 `useItemOn` / `useWithoutItem` 中检查 `player.canUseGameMasterBlocks()`
 
 判断是否为管理员方块应使用 `block.isGameMaster()` 虚方法，而非 `dynamic_cast<GameMasterBlock>`（性能更好）。新增管理员方块时需：
 
 1. 继承 `GameMasterBlock` 标记接口
 2. 重写 `isGameMaster()` 返回 `true`
 3. 在 `BlockItemRegistry` 中使用 `GameMasterBlockItem` 注册
-4. 在 `onBlockActivated()` 中添加权限检查
+4. 在 `useItemOn` / `useWithoutItem` 中添加权限检查
 
 ### 25. animateTick 系统与 IBlockAnimateContext
 
@@ -779,35 +779,46 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 
 **注意**：`UNSTABLE_BOTTOM_CENTER` 标签数据包内容为 `#minecraft:fence_gates`（12 种栅栏门）。`BlockTags::initialize()` 中直接内联栅栏门列表；数据包加载器（BlockTagLoader）具备标签引用解析能力，可正确展开 `#fence_gates`。
 
-### 41. Block::onBlockActivated 返回类型与 heldItemTransformedTo 语义
+### 41. Block 右键交互双入口与 BlockActionResult 语义
 
-`Block::onBlockActivated` 的返回类型为 `BlockActionResult`（定义在 `common/item/core/BlockActionResult.hpp`），封装 `ActionResultType + std::optional<ItemStack>`，参考 MC 1.21.11 `InteractionResult.Success.heldItemTransformedTo(ItemStack)`。
-
-**签名**：
+`Block` 的右键交互拆成两个虚方法，对齐 vanilla `BlockBehaviour.useItemOn` / `useWithoutItem`：
 
 ```cpp
-virtual BlockActionResult onBlockActivated(
-    const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit);
+virtual BlockActionResult useItemOn(ItemStack& stack, const BlockState& state, IWorld& world,
+    const BlockPos& pos, Player& player, Hand hand, const BlockRaycastResult& hit);
+virtual BlockActionResult useWithoutItem(const BlockState& state, IWorld& world,
+    const BlockPos& pos, Player& player, const BlockRaycastResult& hit);
 ```
 
-**返回值语义**：
+- `useItemOn`：手持物参与交互时派发（**空手也会派发**，对齐 vanilla——如空手熄灭蜡烛）。默认实现返回 `TryEmptyHandInteraction`。
+- `useWithoutItem`：空手语义，或 `useItemOn` 返回 `TryEmptyHandInteraction` 后的回退。默认实现返回 `Pass`。
 
-- 仅返回 `ActionResultType`（Success/Consume/Fail/Pass）：表示方块交互未修改玩家手持物品，`heldItemTransformedTo` 为 `std::nullopt`
-- 返回 `BlockActionResult::success(ItemStack)` 或 `success().heldItemTransformedTo(stack)`：表示方块交互修改了玩家手持物品，携带转换后的物品堆
+`stack` 是**玩家权威手持槽引用**（主手=选中槽、副手=OFFHAND 槽），方块对其 `shrink`/赋值的修改直接落盘，服务端随后统一同步；创造模式的"无消耗"须由方块自行用 `player.hasInfiniteMaterials()` 表达。
 
-**向后兼容**：`BlockActionResult` 提供从 `ActionResultType` 的隐式转换构造函数，已有的 `onBlockActivated` override 直接返回 `ActionResultType` 无需修改即可工作（自动包装为 `BlockActionResult`，`heldItemTransformedTo` 为 `std::nullopt`）。只有需要传递 `heldItemTransformedTo` 的方块（如 `ShelfBlock`）才使用新的工厂方法。
+**返回值语义**（`BlockActionResult`，封装 `ActionResultType + std::optional<ItemStack>`）：
 
-**使用场景**：
+| `ActionResultType` | vanilla 等价 | consumesAction | 服务端挥臂 |
+|---|---|---|---|
+| `Success` | `SUCCESS` | 是 | 否（客户端挥） |
+| `SuccessServer` | `SUCCESS_SERVER` | 是 | 是 |
+| `SuccessServerWithoutItem` | `SUCCESS_SERVER.withoutItem()` | 是 | 是 |
+| `Consume` | `CONSUME` | 是 | 否 |
+| `TryEmptyHandInteraction` | `TRY_WITH_EMPTY_HAND` | 否 | 否 |
+| `Fail` / `Pass` | `FAIL` / `PASS` | 否 | 否 |
 
-- 方块交互修改了玩家手持物品时（如 `ShelfBlock` 放入/取出/交换物品），应通过 `BlockActionResult::success(ItemStack)` 携带转换后的物品，消费方（`BlockInteractionManager`）据此同步物品栏到客户端
-- `BlockInteractionManager::handleBlockUse` 在调用 `onBlockActivated` 后，会消费 `heldItemTransformedTo`（若存在）或检测 `Player::m_inventory` 变更，回写到 `InventoryManager` 并 `syncToClient`
+- 返回 `BlockActionResult::success(stack)` / `success().heldItemTransformedTo(stack)` 表示方块改动了手持物，携带转换后的物品堆（如 `ShelfBlock` 交换结果、花盆取物）；无该字段时服务端按原地修改后的权威槽同步。
+- `getMenuProvider(state, world, pos)` 是新增的虚方法（等价 vanilla `MenuProvider`）：有界面的方块返回自己的 `ContainerType`，服务端在"旁观者右键"路径据此统一打开界面。
 
-**C++ 引用语义注意**：MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中 `player.getHeldItem(hand)` 返回 `ItemStack&`（引用 `m_items[selectedSlot]`），`inventory.setItem()` 会修改该引用指向的值。因此若需要在 `setItem` 后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::onBlockActivated` 实现）。
+**TODO（本条目遗留，后续补全）**：本次只完成了派发骨架与大部分方块的入口拆分，以下偏差尚未修完：
+
+1. **部分方块的 `useItemOn` / `useWithoutItem` 语义混用未拆分**：多个方块把"手持物分支 + 空手分支"写在同一函数内（如 `FlowerPotBlock::useItemOn` 内含空手取物分支、`CakeBlock::useWithoutItem` 内含进食判断），未按 vanilla 严格拆到两个入口。行为大体等价，但与 vanilla 的 `useItemOn`→`TRY_WITH_EMPTY_HAND`→`useWithoutItem` 链路不完全一致，需逐块核对 vanilla 源后拆分。
+2. **`SpawnerBlock` 的刷怪蛋交互归属错误**：vanilla 1.21.11 中刷怪笼的刷怪蛋交互由 `SpawnEggItem::useOn`（物品侧）负责，`SpawnerBlock` 本身无 `useItemOn`。项目把它实现在 `SpawnerBlock::useItemOn`（方块侧），须迁到 `SpawnEggItem`（`SpawnEggItem.cpp` 已有刷怪笼分支，方块侧属重复实现，应删除）。
+3. **`AbstractFurnaceBlock::getMenuProvider` 返回 `ContainerType::Furnace`**：高炉 / 烟熏炉应分别返回 `BlastFurnace` / `Smoker`，当前共用基类的 `Furnace`，旁观者右键会开出错误界面。
+4. **`TNTBlock` 缺少 `TNT_EXPLODES` gamerule 门控**：vanilla 在 gamerule 关闭时返 `Pass` 并提示 `block.minecraft.tnt.disabled`，项目未实现该分支。
+5. **`ChiseledBookShelfBlock` / `VaultBlock` / `CeilingHangingSignBlock` 等 vanilla 有 `useItemOn` 的方块项目尚未实现**，待实现时须按 vanilla 补双入口。
+6. **`NoteBlock` 缺 `NOTE_BLOCK_TOP_INSTRUMENTS` 标签与顶面朝向守卫**：vanilla 在手持该类物品点击顶面时返 `Pass` 交物品放置，项目统一走升调。
+
+**C++ 引用语义注意**：MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中权威槽引用（`PlayerInventory::getSelectedStackRef()`）在 `setItem` 后即反映新值。因此若需在替换后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::useItemOn` 实现）。
 
 ### 42. BlockState 粒子与渲染类型查询方法
 

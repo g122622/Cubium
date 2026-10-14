@@ -119,11 +119,18 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果类型
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     // ========== 渲染属性 ==========

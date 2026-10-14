@@ -171,16 +171,11 @@ BlockState FenceGateBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-BlockActionResult FenceGateBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult FenceGateBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
 
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     bool wasOpen = state.get(BlockStateProperties::OPEN());

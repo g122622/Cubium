@@ -3,19 +3,19 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "server/test/facade/GameTestHelper.hpp"
 
-#include "common/core/BlockRaycastResult.hpp" // BlockRaycastResult::hit（onBlockActivated 入参）
+#include "common/core/BlockRaycastResult.hpp" // BlockRaycastResult::hit（方块侧交互入参）
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp" // Player::inventory().add/setItem
 #include "common/item/context/ItemUseContext.hpp"      // useItemOnBlock 构造 ItemUseContext 调 onItemUse
 #include "common/item/core/ActionResult.hpp"           // ActionResultType / ItemActionResult
-#include "common/item/core/BlockActionResult.hpp"      // BlockActionResult（onBlockActivated 返回值）
+#include "common/item/core/BlockActionResult.hpp"      // BlockActionResult（useItemOn/useWithoutItem 返回值）
 #include "common/item/core/Item.hpp"                   // Item::onItemUse/onItemRightClick
 #include "common/item/core/ItemRegistry.hpp"           // ItemRegistry::getItem(itemId) 取非 const Item*
 #include "common/item/core/ItemStack.hpp"              // giveItem/setItem 参数 + useItem 系列
 #include "common/util/math/MathUtils.hpp"              // toDegrees / toRadians / clamp
 #include "common/world/IWorld.hpp"                     // onItemRightClick / ItemUseContext 取 IWorld&
-#include "common/world/block/Block.hpp"                // Block::getBlock（onBlockActivated fallback）
+#include "common/world/block/Block.hpp"                // Block::getBlock（方块侧交互解析）
 #include "common/world/block/BlockState.hpp"           // BlockState::blockId/isAir
 #include "common/world/dimension/DimensionManager.hpp" // DimensionManager::OVERWORLD（spawn 维度注册）
 #include "server/application/IServer.hpp"              // IServer::dimensionManager（ServerWorld::server 返回 IServer*）
@@ -344,36 +344,37 @@ bool SimulatedPlayer::useItemOnBlock(
         static_cast<f32>(worldPos.y) + faceLocation.y,
         static_cast<f32>(worldPos.z) + faceLocation.z);
 
-    // 派发优先级对齐项目网络层 ServerPlayHandler::handleBlockPlacementPacket 与 vanilla Java 1.21
-    // MultiPlayerGameMode::useItemOn：先 Block.use（onBlockActivated），返回 Pass 才 fallback
-    // Item.useOn（onItemUse）。此前实现只调 onItemUse，导致 onBlockActivated 类方块（堆肥桶堆肥/
-    // 收获等）在 SimulatedPlayer 路径下无法触发，测试与生产行为分叉。补全 Block.use 前置分支
-    // 使 SimulatedPlayer 与真实玩家网络路径行为一致。
-    // hit 构造对齐 BlockInteractionManager::handleBlockUse:510。
+    // 派发优先级对齐 vanilla Java 1.21.11 MultiPlayerGameMode::useItemOn / 项目网络层
+    // BlockInteractionManager::handleBlockUse：
+    //   Block::useItemOn（手持物参与）→ 返回 TryEmptyHandInteraction 才回退 Block::useWithoutItem
+    //   → 仍未消费则 fallback Item::useOn（onItemUse）。
+    // 此前实现只调 onItemUse，导致方块侧交互类行为（堆肥桶堆肥/蜡烛熄灭等）在 SimulatedPlayer
+    // 路径下无法触发，测试与生产行为分叉。
+    // hit 构造对齐 BlockInteractionManager::_dispatchBlockUse。
     const mc::BlockRaycastResult hitResult = mc::BlockRaycastResult::hit(hitPos, worldPos, face, 0.0f);
 
-    // 把传入 stack 设到主手选中槽作为权威手持物源。理由：onBlockActivated 通过
-    // player.getHeldItem(hand) 读玩家手持物（非 useItemOnBlock 的 stack 形参），若不设入则读到空手
-    // （堆肥桶堆肥 chance 检查失败返 Pass）。对齐 handleBlockUse:515-525 在调 onBlockActivated 前把
-    // InventoryManager 手持物同步到 Player::m_inventory 的做法。设入后两路径消耗统一作用于该选中槽：
-    //   - Block.use 路径：onBlockActivated 内部对 getHeldItem 引用直接 shrink（如堆肥桶堆肥成功 shrink 1）。
-    //   - Item.useOn 路径：onItemUse 对 ItemUseContext 拷贝 shrink 不影响权威槽，由下方单独 shrink 补足。
+    // 与生产路径一致：方块侧交互统一从玩家主手权威槽（getSelectedStackRef）取手持物，方块对其
+    // 的修改直接落到该槽。故先把传入 stack 设入选中槽作为权威手持物源。
     const i32 selectedSlot = inventory().getSelectedSlot();
     if (!stack.isEmpty()) {
         inventory().setItem(selectedSlot, stack);
     }
 
-    // ① Block.use（onBlockActivated）：取目标方块 state 调其 onBlockActivated。空手右键也走此分支
-    // （vanilla 空手不调 Item.useOn，但调 Block.use，如堆肥桶 level=8 空手收获骨粉）。
+    // ① Block::useItemOn / useWithoutItem：取目标方块 state 派发方块侧交互。
+    // 空手右键也走 useItemOn（vanilla 空手同样调用 blockstate.useItemOn）。
     const mc::BlockState* state = world.getBlockState(worldPos);
     if (state != nullptr && !state->isAir()) {
         mc::Block* block = mc::Block::getBlock(state->blockId());
         if (block != nullptr) {
-            const mc::BlockActionResult blockResult =
-                block->onBlockActivated(*state, world, worldPos, *this, mc::Hand::MainHand, hitResult);
-            // Block.use 成功/消耗即短路返回，不再 fallback Item.useOn（避免双重消耗——如 ComposterBlock
-            // 堆肥成功时 onBlockActivated 内部已 shrink 手持物作用于选中槽）。
-            if (blockResult.isSuccess() || blockResult.isConsume()) {
+            mc::ItemStack& handStack = inventory().getSelectedStackRef();
+            mc::BlockActionResult blockResult =
+                block->useItemOn(handStack, *state, world, worldPos, *this, mc::Hand::MainHand, hitResult);
+            if (!blockResult.consumesAction() && blockResult.isTryEmptyHandInteraction()) {
+                blockResult = block->useWithoutItem(*state, world, worldPos, *this, hitResult);
+            }
+            // 方块侧交互消费动作即短路返回，不再 fallback Item.useOn（避免双重消耗——如 ComposterBlock
+            // 堆肥成功时内部已 shrink 手持物作用于选中槽）。
+            if (blockResult.consumesAction()) {
                 return true;
             }
             // Pass/Fail → fallback Item.useOn
@@ -382,7 +383,7 @@ bool SimulatedPlayer::useItemOnBlock(
 
     // ② Item.useOn（onItemUse）：仅手持非空物品时派发（vanilla 空手不调 Item.useOn）。
     // 骨粉催熟（BoneMealItem::onItemUse）等物品侧行为在此分支：CropBlock/CocoaBlock/MossBlock 未
-    // override onBlockActivated（基类返 Pass），Block.use 前置分支放行后到此 fallback。
+    // override 方块交互（基类返 TryEmptyHandInteraction→Pass），方块前置分支放行后到此 fallback。
     if (!stack.isEmpty()) {
         const mc::Item* itemC = stack.getItem();
         if (itemC != nullptr) {

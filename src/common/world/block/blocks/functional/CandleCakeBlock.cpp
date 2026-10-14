@@ -157,14 +157,15 @@ i32 CandleCakeBlock::getComparatorInputOverride(const BlockState& state, IWorld&
 
 // ========== 交互 ==========
 
-BlockActionResult CandleCakeBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CandleCakeBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    const ItemStack& heldItem = player.getHeldItem(hand);
+    const ItemStack& heldItem = stack;
 
     // 对齐 vanilla CandleCakeBlock.useItemOn（CandleCakeBlock.java:75-76）第一分支：
     //   if (p_316571_.is(Items.FLINT_AND_STEEL) || p_316571_.is(Items.FIRE_CHARGE)) {
@@ -198,7 +199,7 @@ BlockActionResult CandleCakeBlock::onBlockActivated(const BlockState& state,
     // 参考 MC Java: CandleCakeBlock.useWithoutItem 调用 CakeBlock.eat 后掉落蜡烛
     // 如果玩家无法进食则返回 Pass
     if (!player.canEat(false)) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     if (world.isClientSide()) {
@@ -230,6 +231,18 @@ BlockActionResult CandleCakeBlock::onBlockActivated(const BlockState& state,
     Block::dropResources(world, pos, state);
 
     return ActionResultType::Success;
+}
+
+BlockActionResult CandleCakeBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 // ========== 静态工具方法 ==========

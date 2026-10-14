@@ -9,7 +9,7 @@
 //   弹射物击中破坏时，饰纹陶罐被破坏后会掉落用于合成自身的四个物品和内容物。
 //
 // C++ 链路：DecoratedPotBlock（TrailsBlocks.cpp）有 FACING/CRACKED/WATERLOGGED state。
-//   - onBlockActivated（TrailsBlocks.cpp:243-343）：
+//   - 方块侧交互（TrailsBlocks.cpp:243-343）：
 //     · 副手（Hand::OffHand）→ return Pass。
 //     · 取方块实体，非 DecoratedPot 类型 → return Pass。
 //     · 客户端：直接返回 Success（播放动画）。
@@ -30,10 +30,10 @@
 //     · 注意：playerWillDestroy 需要通过玩家破坏链路触发，但 SimulatedPlayer.breakBlock 脚本绑定
 //       未实现（_throwNotImplemented），故无法通过脚本模拟玩家手持剑破坏陶罐的场景。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。饰纹陶罐 onBlockActivated 在所有路径（放入成功/失败/空手）都返回 Success，
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。饰纹陶罐 方块侧交互 在所有路径（放入成功/失败/空手）都返回 Success，
 //   故 useItemOnBlock 始终返回 true。这与 JukeboxTests 中"非唱片返 Pass → false"不同。
-//   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onBlockActivated 的
+//   useItemOnBlock 调 方块侧交互 前把 stack 设到主手选中槽，使 方块侧交互 的
 //   player.getHeldItem(hand) 读到手持物品。
 //
 // 测试覆盖（5 个场景，覆盖 wiki 放入成功/叠加/不同物品失败/空手负摇晃/破坏掉落核心行为）：
@@ -47,7 +47,7 @@
 // 1. 饰纹陶罐需放在固体方块上方——(3,1,1) 放 stone 支撑，(3,2,1) 放陶罐。
 // 2. 读 CRACKED state 用 getState("cracked" as any) 绕过 BlockStateSuperset 白名单。
 // 3. 用钻石（minecraft:diamond）测放入物品，对齐 wiki「手持对应物品与饰纹陶罐交互」。
-// 4. SimulatedPlayer 默认创造模式：放入物品 onBlockActivated 内部创造模式 grow(1) 不消耗手持物，
+// 4. SimulatedPlayer 默认创造模式：放入物品 方块侧交互 内部创造模式 grow(1) 不消耗手持物，
 //    但 setItem 翻转由 split(1) 决定，与消耗无关。
 // 5. 场景 5 用 test.setBlockType("minecraft:air", pos) 移除方块 → 触发 onBlockRemoved →
 //    非 CRACKED 状态掉落陶罐内存储的物品（spawnItemEntity）。
@@ -69,7 +69,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_饰纹陶罐.txt#交互机制（放入成功/失败/空手负摇晃）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_饰纹陶罐.txt#容器容量（1格储存空间，至多1组同类物品）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_饰纹陶罐.txt#破坏掉落（非cracked掉内容物）
-// Ref: TrailsBlocks.cpp（onBlockActivated 放入物品/空手负摇晃；onBlockRemoved 掉落内容物）
+// Ref: TrailsBlocks.cpp（方块侧交互 放入物品/空手负摇晃；onBlockRemoved 掉落内容物）
 // Ref: GameTestHelper.cpp:651（assertContainerContains 通过 ContainerBlockEntity 遍历槽位）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
@@ -99,7 +99,7 @@ function getPotCracked(test: Test, x: number, y: number, z: number): boolean | n
 // 场景 1：放入物品成功——空罐 + 钻石 useItemOnBlock → 返 true + assertContainerContains(diamond)。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 空陶罐。
-// onBlockActivated：陶罐为空 → canInsert=true → wobble(Positive) + split(1) + setItem +
+// 方块侧交互：陶罐为空 → canInsert=true → wobble(Positive) + split(1) + setItem +
 //   playSound(BLOCK_DECORATED_POT_INSERT) + gameEvent(BLOCK_CHANGE) + updateComparators → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），陶罐容器含钻石（assertContainerContains）。
@@ -110,7 +110,7 @@ function potInsertsItem(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const diamond = new ItemStack("minecraft:diamond", 1);
 
-    // 对空陶罐 useItemOnBlock 钻石 → onBlockActivated canInsert → split(1) + setItem → Success。
+    // 对空陶罐 useItemOnBlock 钻石 → 方块侧交互 canInsert → split(1) + setItem → Success。
     const used = farmer.useItemOnBlock(
         diamond as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -127,7 +127,7 @@ function potInsertsItem(test: Test): void {
 // 场景 2：同类物品可叠加放入——已放1钻石 + 再 useItemOnBlock 钻石 → 返 true + 仍含钻石。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 陶罐（先放1钻石使罐内含1钻石）。
-// onBlockActivated：罐内物品（钻石）与手持物品（钻石）相同且未达到最大堆叠 → canInsert=true →
+// 方块侧交互：罐内物品（钻石）与手持物品（钻石）相同且未达到最大堆叠 → canInsert=true →
 //   wobble(Positive) + split(1) + grow(1) + setItem → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），陶罐容器仍含钻石（assertContainerContains）。
@@ -163,7 +163,7 @@ function potStacksSameItem(test: Test): void {
 //   仍含钻石 + 不含铁锭。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 陶罐（先放1钻石使罐内含1钻石）。
-// onBlockActivated：罐内物品（钻石）与手持物品（铁锭）不同 → canInsert=false → 走空手交互逻辑
+// 方块侧交互：罐内物品（钻石）与手持物品（铁锭）不同 → canInsert=false → 走空手交互逻辑
 //   （wobble(Negative) + playSound(BLOCK_DECORATED_POT_INSERT_FAIL)）→ Success。
 //
 // 判定：useItemOnBlock 返 true（Success，负摇晃仍是 Success），陶罐容器仍含钻石（assertContainerContains）。
@@ -199,7 +199,7 @@ function potRejectsDifferentItem(test: Test): void {
 // 场景 4：空手右键负摇晃——interactWithBlock → 返 true + 容器内容不变（仍含钻石）。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 陶罐（先放1钻石使罐内含1钻石）。
-// onBlockActivated：heldItem 为空（interactWithBlock 传空 ItemStack）→ 走空手交互逻辑
+// 方块侧交互：heldItem 为空（interactWithBlock 传空 ItemStack）→ 走空手交互逻辑
 //   （wobble(Negative) + playSound(BLOCK_DECORATED_POT_INSERT_FAIL)）→ Success。
 //
 // 判定：interactWithBlock 返 true（Success），陶罐容器仍含钻石（空手不改变内容物）。

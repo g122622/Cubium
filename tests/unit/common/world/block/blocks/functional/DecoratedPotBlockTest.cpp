@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -1094,7 +1095,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_WrongBlockEntityType_DoesNotCrash)
 }
 
 // ============================================================================
-// DecoratedPotBlock onBlockActivated 测试 — 音效和动画
+// DecoratedPotBlock useBlockInteraction 测试 — 音效和动画
 // ============================================================================
 
 TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
@@ -1116,7 +1117,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
     m_world.resetTrackedState();
-    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*pot_, state, m_world, pos, *player, Hand::MainHand, hitResult);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(m_world.wasSoundPlayed());
@@ -1146,7 +1147,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_InsertItem_PositiveWobbleAndSound
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
     m_world.resetTrackedState();
-    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*pot_, state, m_world, pos, *player, Hand::MainHand, hitResult);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(m_world.wasSoundPlayed());
@@ -1180,7 +1181,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_OffHand_Pass)
 
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
-    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::OffHand, hitResult);
+    auto result = mc::test::useBlock(*pot_, state, m_world, pos, *player, Hand::OffHand, hitResult);
     EXPECT_EQ(result, ActionResultType::Pass);
 }
 

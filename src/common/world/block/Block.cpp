@@ -759,21 +759,46 @@ bool Block::canSustainPlant(
     }
 }
 
-BlockActionResult Block::onBlockActivated(const BlockState& state,
+BlockActionResult Block::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    // 默认实现：返回 Pass（未处理）
+    // 默认实现：不处理手持物品交互，请求以空手语义重试
+    // （对齐 vanilla BlockBehaviour.useItemOn 默认返回 TRY_WITH_EMPTY_HAND）
+    (void)stack;
     (void)state;
     (void)world;
     (void)pos;
     (void)player;
     (void)hand;
     (void)hit;
+    return ActionResultType::TryEmptyHandInteraction;
+}
+
+BlockActionResult Block::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 默认实现：返回 Pass（本方块不响应空手交互）
+    // （对齐 vanilla BlockBehaviour.useWithoutItem 默认返回 InteractionResult.PASS）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
+}
+
+std::optional<ContainerType> Block::getMenuProvider(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 默认实现：无界面
+    (void)state;
+    (void)world;
+    (void)pos;
+    return std::nullopt;
 }
 
 std::unique_ptr<BlockEntity> Block::createBlockEntity(const BlockPos& pos)

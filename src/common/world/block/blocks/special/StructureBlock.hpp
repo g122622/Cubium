@@ -85,11 +85,10 @@ public:
 
     // ========== 交互 ==========
 
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 };
 

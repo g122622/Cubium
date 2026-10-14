@@ -146,15 +146,10 @@ void CaveVinesBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& 
     }
 }
 
-BlockActionResult CaveVinesBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult CaveVinesBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 浆果存在时，右键收获

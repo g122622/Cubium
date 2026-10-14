@@ -22,6 +22,7 @@
  */
 
 #include "AbstractFurnaceBlock.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -92,16 +93,11 @@ u8 AbstractFurnaceBlock::getLightLevel(const BlockState& state, IWorld* /*world*
 
 // ========== 交互 ==========
 
-BlockActionResult AbstractFurnaceBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult AbstractFurnaceBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
 
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (interactWith(world, pos, player)) {
@@ -154,6 +150,16 @@ const BlockState& AbstractFurnaceBlock::mirror(const BlockState& state, Mirror m
 bool AbstractFurnaceBlock::isLit(const BlockState& state)
 {
     return state.get(BlockStateProperties::LIT());
+}
+
+std::optional<ContainerType> AbstractFurnaceBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Furnace;
 }
 
 } // namespace blocks

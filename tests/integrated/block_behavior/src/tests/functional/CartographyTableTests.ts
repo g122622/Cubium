@@ -18,7 +18,7 @@
 //   - getStateForPlacement（:66-69）：return defaultState()——对齐 vanilla（vanilla 无 override，用基类
 //     默认 defaultBlockState()）。制图台是朝向无关方块，放置永远用默认状态。
 //   - getShape：返 fullBlock（对齐 vanilla 默认完整方块）。
-//   - onBlockActivated（:77-100）：openContainer(ContainerType::Cartography) + INTERACT_WITH_CARTOGRAPHY_TABLE
+//   - 方块侧交互（:77-100）：openContainer(ContainerType::Cartography) + INTERACT_WITH_CARTOGRAPHY_TABLE
 //     统计（涉 GUI，SimulatedPlayer 不可测交互）。
 //   - 无 canSurvive/updatePostPlacement/hasBlockEntity/rotate/mirror。
 //   - 物品注册：BlockItemRegistry.cpp:344 registerSimpleBlock(VanillaBlocks::CARTOGRAPHY_TABLE,
@@ -27,7 +27,7 @@
 //     useItemOnBlock 放置链路可用。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 cartography_table 物品
-//   点击 stone 顶面 → onBlockActivated（stone 非制图台，targetBlock 走基类 Pass）→ fallback Item.useOn →
+//   点击 stone 顶面 → 方块侧交互（stone 非制图台，targetBlock 走基类 Pass）→ fallback Item.useOn →
 //   BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext → getStateForPlacement defaultState() →
 //   setBlockState 放制图台。创造模式不消耗物品。
 //

@@ -96,15 +96,10 @@ BlockState TestBlock::getStateForPlacement(BlockItemUseContext& context)
     return state;
 }
 
-BlockActionResult TestBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult TestBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 对齐 vanilla TestBlock#useWithoutItem：无管理员权限返回 PASS；

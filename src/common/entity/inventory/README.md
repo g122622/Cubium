@@ -165,7 +165,7 @@ inventory/
 
 ### 末影箱容器打开/关闭流程
 
-1. `EnderChestBlock::onBlockActivated()` → `setActiveChest()` → `openContainer()` → `startOpen()`（开盖动画和音效）
+1. `EnderChestBlock::useWithoutItem()` → `setActiveChest()` → `openContainer()` → `startOpen()`（开盖动画和音效）
 2. 容器菜单创建：`ContainerManager` 菜单工厂检测 `BlockEntityType::EnderChest`，创建 `ChestContainer` 以 `PlayerEnderChestInventory` 为背板
 3. 容器关闭：`ChestContainer::removed()` → `closeInventory()` → `stopOpen()`（关盖动画、音效、清除 `activeChest` 引用）
 4. **不要在 `StandaloneServer` 的容器关闭回调中再次调用 `stopOpen()`**，否则会导致 `EnderChestEntity::closeContainer()` 被调用两次，打开计数错误

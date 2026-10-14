@@ -17,7 +17,7 @@
 //   - placementPos() 返回放置目标格（replaceClicked ? 被点击方块 : 被点击方块朝向那侧的相邻格），
 //     对齐 vanilla BlockPlaceContext.getClickedPos() 的重写语义。曾误用 blockPos()（被点击方块）
 //     导致背靠背判定查错邻居，已修复为 placementPos()（见 EndRodBlock.cpp 修复注释）。
-//   - EndRodBlock 不 override onBlockActivated（基类返 Pass），故 useItemOnBlock 走 Block.use 前置
+//   - EndRodBlock 不 override 方块侧交互（基类返 Pass），故 useItemOnBlock 走 Block.use 前置
 //     分支后 fallback 到 Item.useOn（BlockItem::onItemUse → tryPlace → getStateForPlacement）放置新块。
 //   - EndRodBlock 不 override isValidPosition（基类默认返 true），可在任意位置放置，无需支撑方块。
 //

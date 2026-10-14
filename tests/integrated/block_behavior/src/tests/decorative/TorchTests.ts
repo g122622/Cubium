@@ -31,7 +31,7 @@
 //   用 WallTorchBlock.isValidPosition 正确校验贴墙侧（修复前用 TorchBlock.isValidPosition 查下方误判）。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock(stack, blockLocation, face, faceLocation)（SimulatedPlayer.cpp
-//   :265-346）。手持 torch 物品点击 stone 侧面/顶面 → onBlockActivated(stone) 基类 Pass → fallback
+//   :265-346）。手持 torch 物品点击 stone 侧面/顶面 → 方块侧交互(stone) 基类 Pass → fallback
 //   Item.useOn → BlockItem::tryPlace → WallOrFloorItem::getStateForPlacement（修复后委托对应方块）→
 //   setBlockState(placementPos)。placementPos = 被点击方块.relative(face)。SimulatedPlayer 默认创造模式。
 //
@@ -41,7 +41,7 @@
 //   3. 落地火把下方支撑自毁：放 torch 在 stone 上 → 移除下方 stone → 自毁为 air。
 //
 // 关键约束：
-// 1. 场景 1 被点击方块用 stone（stone onBlockActivated 基类 Pass，不短路放置）。点击 (3,2,1) stone
+// 1. 场景 1 被点击方块用 stone（stone 方块侧交互 基类 Pass，不短路放置）。点击 (3,2,1) stone
 //    南面 South，新墙火把落 (3,2,2)（placementPos=(3,2,1).relative(South)）。WallOrFloorItem 委托
 //    WallTorchBlock.getStateForPlacement：首位 direction=opposite(South)=North（水平），facing=opposite(North)
 //    =South。attachPos=(3,2,2).offset(North)=(3,2,1)=stone，isFaceSturdy(stone, (3,2,1), South, Full) ✓
@@ -124,7 +124,7 @@ function torchWallFacingWhenPlacedOnSouthFace(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 2 }, "farmer");
     const torch = new ItemStack("minecraft:torch", 1);
 
-    // 手持 torch 点击 (3,2,1) 南面 South → 新墙火把落 (3,2,2)。stone onBlockActivated Pass → fallback 放置。
+    // 手持 torch 点击 (3,2,1) 南面 South → 新墙火把落 (3,2,2)。stone 方块侧交互 Pass → fallback 放置。
     // WallOrFloorItem 委托 WallTorchBlock.getStateForPlacement → facing=south。
     const used = farmer.useItemOnBlock(
         torch as unknown as Parameters<typeof farmer.useItemOnBlock>[0],

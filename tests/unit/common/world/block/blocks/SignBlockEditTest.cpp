@@ -25,7 +25,7 @@
  * @file SignBlockEditTest.cpp
  * @brief 告示牌编辑流程核心逻辑测试
  *
- * 测试 handleUpdateSignPacket 和 SignBlock::onBlockActivated 所依赖的
+ * 测试 handleUpdateSignPacket 和 SignBlock::useItemOn/useWithoutItem 所依赖的
  * SignEntity 核心业务逻辑路径：
  * - 编辑者校验：setAllowedPlayerEditor / getPlayerWhoMayEdit / clearAllowedPlayerEditor
  * - 涂蜡校验：isWaxed 阻止文本修改
@@ -255,7 +255,7 @@ TEST_F(SignEditorLogicTest, TextUpdate_OverwritesExistingText)
 }
 
 // ============================================================================
-// hasEditableText 测试（SignBlock::onBlockActivated 中的编辑前置检查）
+// hasEditableText 测试（SignBlock::useItemOn/useWithoutItem 中的编辑前置检查）
 // ============================================================================
 
 TEST_F(SignEditorLogicTest, HasEditableText_NotWaxed_ReturnsTrue)
@@ -335,7 +335,7 @@ TEST_F(SignEditorLogicTest, FullUpdateSignFlow_WrongEditor_Rejected)
 }
 
 // ============================================================================
-// otherPlayerIsEditing 测试（SignBlock::onBlockActivated 中的并发编辑检查）
+// otherPlayerIsEditing 测试（SignBlock::useItemOn/useWithoutItem 中的并发编辑检查）
 // ============================================================================
 
 class SignEditorConcurrencyTest : public ::testing::Test {

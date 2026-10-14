@@ -25,7 +25,7 @@
 //     使 useItemOnBlock 放置链路与破坏掉落可测。方块本身早已注册（ColoredBlocks.cpp:431-467）。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 white_glazed_terracotta
-//   物品点击 stone 顶面 → onBlockActivated 基类 Pass（stone 非带釉陶瓦，targetBlock 走基类 Pass）→
+//   物品点击 stone 顶面 → 方块侧交互 基类 Pass（stone 非带釉陶瓦，targetBlock 走基类 Pass）→
 //   fallback Item.useOn → BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext（playerYaw 来自
 //   SimulatedPlayer yaw()，:325）→ getStateForPlacement facing=opposite(horizontalDirection(yaw)) →
 //   setBlockState 放带釉陶瓦。创造模式不消耗物品。

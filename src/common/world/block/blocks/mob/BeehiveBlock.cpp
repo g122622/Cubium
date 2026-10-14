@@ -148,7 +148,8 @@ const BlockState& BeehiveBlock::mirror(const BlockState& state, Mirror mirror) c
 // 交互
 // ============================================================================
 
-BlockActionResult BeehiveBlock::onBlockActivated(const BlockState& state,
+BlockActionResult BeehiveBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -157,10 +158,10 @@ BlockActionResult BeehiveBlock::onBlockActivated(const BlockState& state,
 {
     i32 honeyLevel = getHoneyLevel(state);
     if (honeyLevel < 5) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     bool success = false;
 
     // 剪刀交互：掉落3个蜜脾
@@ -224,6 +225,18 @@ BlockActionResult BeehiveBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Success;
     }
 
+    return ActionResultType::Pass;
+}
+
+BlockActionResult BeehiveBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

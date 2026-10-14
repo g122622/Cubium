@@ -211,7 +211,7 @@ function doorHalvesSyncOpen(test: Test): void {
 }
 
 // 放支撑 + 双半橡木门：(3,1,1) stone 支撑，(3,2,1) 木门下半（half=Lower 默认），(3,3,1) 木门上半（half=upper）。
-// 木门（minecraft:oak_door）可手动开关（onBlockActivated 非铁门 → toggleDoor），与铁门（仅红石）互补。
+// 木门（minecraft:oak_door）可手动开关（方块侧交互 非铁门 → toggleDoor），与铁门（仅红石）互补。
 function placeWoodenDoorSetup(test: Test): void {
     test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 }); // 支撑
     test.setBlockType("minecraft:oak_door", { x: 3, y: 2, z: 1 }); // 下半（half=Lower 默认）
@@ -221,7 +221,7 @@ function placeWoodenDoorSetup(test: Test): void {
 // 场景 5：木门手动打开——双半橡木门（open=false）+ interactWithBlock（空手右键）→ OPEN 翻 true。
 //
 // 布局：双半橡木门（默认 open=false）。
-// interactWithBlock（空手右键）→ onBlockActivated：m_isIron=false（木门）→ toggleDoor(world, pos, !open=true)
+// interactWithBlock（空手右键）→ 方块侧交互：m_isIron=false（木门）→ toggleDoor(world, pos, !open=true)
 //   → setBlockState(下半 OPEN=true) + setBlockState(上半 OPEN=true) → Success。
 //
 // 判定：interactWithBlock 返 true（Success），下半 (3,2,1) open === true（木门被手动打开）。
@@ -232,7 +232,7 @@ function woodenDoorTogglesOpenOnInteract(test: Test): void {
 
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
 
-    // interactWithBlock 空手右键木门下半 → onBlockActivated 非铁门 → toggleDoor(OPEN=true) → Success。
+    // interactWithBlock 空手右键木门下半 → 方块侧交互 非铁门 → toggleDoor(OPEN=true) → Success。
     // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
     const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
         .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
@@ -247,7 +247,7 @@ function woodenDoorTogglesOpenOnInteract(test: Test): void {
 // 场景 6：木门手动关闭——承接场景 5（open=true）+ 再次 interactWithBlock → OPEN 翻回 false。
 //
 // 布局：双半橡木门 open=true（先 interact 打开）。
-// 再次 interactWithBlock → onBlockActivated → toggleDoor(world, pos, !open=false) → OPEN=false → Success。
+// 再次 interactWithBlock → 方块侧交互 → toggleDoor(world, pos, !open=false) → OPEN=false → Success。
 //
 // 判定：第二次 interactWithBlock 返 true，下半 open === false（木门手动关闭）。
 function woodenDoorTogglesBackOnSecondInteract(test: Test): void {

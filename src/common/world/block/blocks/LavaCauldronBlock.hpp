@@ -83,11 +83,18 @@ public:
      * 仅处理空桶提取岩浆的交互。
      * 使用岩浆桶对岩浆炼药锅右键不做任何操作（岩浆炼药锅始终满，不需要再添加岩浆）。
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     // ========== 形状 ==========

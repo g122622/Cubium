@@ -109,11 +109,18 @@ public:
      * - 如果玩家手持可堆肥物品，尝试堆肥
      * - 否则不执行任何操作
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     // ========== ISidedInventoryProvider 接口 ==========

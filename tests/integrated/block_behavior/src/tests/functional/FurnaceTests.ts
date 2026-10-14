@@ -20,7 +20,7 @@
 //   - getLightLevel（:86-90）：LIT?13:0（发光行为，lighting 包已测）。
 //   - hasBlockEntity()=true（:103），FurnaceBlock::createBlockEntity（FurnaceBlock.cpp:43-46）返
 //     FurnaceEntity。放置熔炉 setBlockState 触发 BlockEntity 创建。
-//   - onBlockActivated（:94-111）：interactWith→openContainer（FurnaceBlock.cpp:48-55 openContainer
+//   - 方块侧交互（:94-111）：interactWith→openContainer（FurnaceBlock.cpp:48-55 openContainer
 //     ContainerType::Furnace）。SimulatedPlayer 无 GUI 放物品 API，无法测烧炼/内容物。
 //   - 未 override onBlockRemoved（走基类 Block::onBlockRemoved 空操作，Block.cpp:516-523）——
 //     即 Cubium 熔炉破坏时不掉落内容物（与 vanilla 偏差，vanilla 经 playerWillDestroy/BlockEntity
@@ -30,7 +30,7 @@
 //     BuildingBlocks.cpp:207 registerBlock<FurnaceBlock>。物品已注册，可 useItemOnBlock 放置。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 furnace 物品点击
-//   stone 顶面 → onBlockActivated 基类 Pass（stone 非熔炉，targetBlock 非 furnace 走基类 Pass）→
+//   stone 顶面 → 方块侧交互 基类 Pass（stone 非熔炉，targetBlock 非 furnace 走基类 Pass）→
 //   fallback Item.useOn → BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext（playerYaw 来自
 //   SimulatedPlayer yaw()，:325）→ getStateForPlacement facing=opposite(horizontalDirection(yaw)),
 //   LIT=false → setBlockState 放熔炉（hasBlockEntity 触发 BlockEntity 创建）。创造模式 furnace 不消耗。
@@ -80,7 +80,7 @@
 //   不重复。
 // 不测「比较器信号」：需比较器贴熔炉 + 读输出信号，链路复杂且 GameTest 读红石信号 API 受限，跳过。
 //   TODO: 待比较器读容器信号测试范式完善后补 furnace_comparator_signal。
-// 不测「内容物破坏掉落」：SimulatedPlayer 无 GUI 放物品 API，无法向熔炉槽位放入物品（onBlockActivated
+// 不测「内容物破坏掉落」：SimulatedPlayer 无 GUI 放物品 API，无法向熔炉槽位放入物品（方块侧交互
 //   openContainer 仅打开 GUI，SimulatedPlayer 无后续放入操作），无法构造有内容物的熔炉。且 Cubium
 //   AbstractFurnaceBlock 未 override onBlockRemoved（基类空操作），破坏不掉落内容物（与 vanilla 偏差）。
 //   场景 4 仅测空熔炉破坏不崩溃。TODO: 待脚本侧 BlockEntity 容器操作 API 补全后补

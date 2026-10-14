@@ -234,7 +234,8 @@ std::vector<Vector3f> CandleBlock::getParticleOffsets(const BlockState& state) c
 
 // ========== 交互 ==========
 
-BlockActionResult CandleBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CandleBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -243,7 +244,7 @@ BlockActionResult CandleBlock::onBlockActivated(const BlockState& state,
 {
     MC_UNUSED(hit);
 
-    const ItemStack& heldItem = player.getHeldItem(hand);
+    const ItemStack& heldItem = stack;
 
     // 空手 + 可以建造 + 蜡烛已点燃 → 熄灭
     if (heldItem.isEmpty() && player.mayBuild() && isLit(state)) {
@@ -257,6 +258,18 @@ BlockActionResult CandleBlock::onBlockActivated(const BlockState& state,
 
     // 其他情况（如打火石/火焰弹点燃）由物品自身的 onItemUse 处理
     // FlintAndSteelItem 和 FireChargeItem 均支持含 LIT 属性方块的点燃，并会检查 WATERLOGGED 属性
+    return ActionResultType::TryEmptyHandInteraction;
+}
+
+BlockActionResult CandleBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

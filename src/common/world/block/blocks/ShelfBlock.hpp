@@ -245,11 +245,18 @@ public:
      * @param hit 射线追踪结果
      * @return 交互结果
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     // ========== 旋转和镜像 ==========

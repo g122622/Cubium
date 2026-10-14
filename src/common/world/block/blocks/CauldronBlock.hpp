@@ -116,11 +116,18 @@ public:
      * - 岩浆桶 → 替换为 LavaCauldronBlock
      * - 水瓶 → 替换为 WaterCauldronBlock（水位1）
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     // ========== 形状 ==========

@@ -164,7 +164,7 @@ function tntExplosionDestroysNetherPortal(test: Test): void {
 
     // spawn SimulatedPlayer（生存模式），手持打火石点燃 TNT。
 
-    // 对 TNT useItemOnBlock 打火石 → onBlockActivated prime+setBlockState(null)+Success。
+    // 对 TNT useItemOnBlock 打火石 → 方块侧交互 prime+setBlockState(null)+Success。
     const used = player.useItemOnBlock(
         flintAndSteel as unknown as Parameters<typeof player.useItemOnBlock>[0],
         { x: 3, y: 1, z: 2 },

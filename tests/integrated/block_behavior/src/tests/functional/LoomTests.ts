@@ -20,7 +20,7 @@
 //   - rotate（:90-95）/mirror（:97-106）用 Directions::rotateDirection/mirrorToRotation（结构旋转/镜像，
 //     非 GameTest 范畴，本组不测）。
 //   - getShape（:108-114）：按 facing 索引 m_shapesByFacing，所有朝向均 fullBlock（对齐 vanilla 默认完整方块）。
-//   - onBlockActivated（:116-139）：openContainer(ContainerType::Loom) + INTERACT_WITH_LOOM 统计
+//   - 方块侧交互（:116-139）：openContainer(ContainerType::Loom) + INTERACT_WITH_LOOM 统计
 //     （涉 GUI，SimulatedPlayer 不可测交互）。
 //   - isOpaque（hpp:95-99）返 false（避免遮光，渲染相关，非放置测试范畴）。
 //   - 无 canSurvive/updatePostPlacement/hasBlockEntity（纯功能方块无支撑要求/无容器）。
@@ -29,7 +29,7 @@
 //     flammable, ignitedByLava)。物品与方块均已注册，useItemOnBlock 放置链路可用。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 loom 物品点击 stone 顶面 →
-//   onBlockActivated（stone 非织布机，targetBlock 走基类 Pass）→ fallback Item.useOn → BlockItem::onItemUse
+//   方块侧交互（stone 非织布机，targetBlock 走基类 Pass）→ fallback Item.useOn → BlockItem::onItemUse
 //   → tryPlace → 构造 BlockItemUseContext（playerYaw 来自 SimulatedPlayer yaw()，:325）→
 //   getStateForPlacement facing=opposite(horizontalDirection(yaw)) → setBlockState 放织布机。创造模式不消耗物品。
 //

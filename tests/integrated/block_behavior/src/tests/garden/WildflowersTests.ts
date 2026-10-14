@@ -33,7 +33,7 @@
 //   dynamic_cast<IGrowable*> → canGrow(true) → canUseBonemeal(true) → grow 同步 setBlockState / spawnItemEntity
 //   → shrink(1) 消耗骨粉。grow 同步，useItemOnBlock 返回后即可读 state。
 // 堆叠派发链路（同 SeaPickleTests）：useItemOnBlock 手持 wildflowers 物品点击已有花瓣床 →
-//   onBlockActivated 基类 Pass → fallback Item.useOn → BlockItem::tryPlace → _canReplace（replaceable=true）
+//   方块侧交互 基类 Pass → fallback Item.useOn → BlockItem::tryPlace → _canReplace（replaceable=true）
 //   → placementPos=原花瓣床格（同格替换）→ getStateForPlacement 堆叠分支 AMOUNT+1 → setBlockState 同步。
 //
 // ============================ 测试设计（glass_pit 7×5×7 玻璃墙空腔）============================

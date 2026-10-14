@@ -22,7 +22,7 @@
 //     方块注册 RedstoneBlocks.cpp:317（sticky=true）。物品与方块均已注册，useItemOnBlock 放置链路可用。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 sticky_piston 物品点击
-//   stone → onBlockActivated（stone 非活塞，targetBlock 走基类 Pass）→ fallback Item.useOn →
+//   stone → 方块侧交互（stone 非活塞，targetBlock 走基类 Pass）→ fallback Item.useOn →
 //   BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext → getStateForPlacement（共用 PistonBlock，
 //   facing=opposite(getNearestLookingDirection)）→ setBlockState 放粘性活塞。创造模式不消耗物品。
 //

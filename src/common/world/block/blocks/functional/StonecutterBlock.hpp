@@ -106,11 +106,13 @@ public:
      * 打开切石机GUI并记录交互统计。
      * 参考: MC Java StonecutterBlock.useWithoutItem()
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] std::optional<ContainerType> getMenuProvider(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
 protected:

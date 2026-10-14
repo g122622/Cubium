@@ -80,15 +80,10 @@ i32 DaylightDetectorBlock::getPower(const BlockState& state)
     return state.get(BlockStateProperties::POWER_0_15());
 }
 
-BlockActionResult DaylightDetectorBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult DaylightDetectorBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 对齐 vanilla DaylightDetectorBlock.use：右键切换昼夜模式（翻转 INVERTED）并重算 power。

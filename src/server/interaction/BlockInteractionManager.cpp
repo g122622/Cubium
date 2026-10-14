@@ -55,6 +55,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"
@@ -91,7 +92,7 @@ ServerPlayerData* BlockInteractionManager::_validatePlayer(PlayerId playerId) co
 }
 
 std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
-    PlayerId playerId, const BlockPos& pos, bool checkYRange) const
+    PlayerId playerId, const BlockPos& pos, bool checkYRange, bool checkSpawnProtection) const
 {
     // 验证玩家
     auto* playerData = _validatePlayer(playerId);
@@ -127,7 +128,11 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
     // 出生点保护（对齐 vanilla ServerLevel.mayInteract / MinecraftServer.getSpawnProtectionRadius）：
     // 仅主世界，半径内（切比雪夫 XZ）非 op(< Moderator=1) 且非单机主禁止交互。
     // spawn-protection=0 关闭保护。单机主豁免对齐 IntegratedServer.isSingleplayerOwner。
-    if (m_server != nullptr) {
+    //
+    // 注意：vanilla 的 mayInteract 只在放置与破坏路径被调用（ServerPlayerGameMode.handleBlockBreakAction
+    // 的 START_DESTROY / destroyBlock），**不作用于 useItemOn 右键交互**。故右键路径传
+    // checkSpawnProtection=false，避免把"右键使用方块"误判为受保护操作。
+    if (checkSpawnProtection && m_server != nullptr) {
         const i32 radius = m_server->spawnProtectionRadius();
         if (radius > 0) {
             ServerWorld* world = _getPlayerWorld(playerId);
@@ -136,12 +141,8 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
                 const i32 spawnX = static_cast<i32>(std::floor(spawn.x));
                 const i32 spawnZ = static_cast<i32>(std::floor(spawn.z));
                 if (std::abs(pos.x - spawnX) <= radius && std::abs(pos.z - spawnZ) <= radius) {
-                    Player* protPlayer = nullptr;
-                    if (world != nullptr) {
-                        protPlayer = _getPlayerEntity(playerId, *world);
-                    }
-                    const bool exempt = (protPlayer != nullptr &&
-                                            protPlayer->hasPermission(static_cast<i32>(core::OpLevel::Moderator))) ||
+                    const bool exempt =
+                        (player != nullptr && player->hasPermission(static_cast<i32>(core::OpLevel::Moderator))) ||
                         m_server->isSingleplayerOwner(playerId);
                     if (!exempt) {
                         return Error(ErrorCode::PermissionDenied, "Spawn protected");
@@ -177,6 +178,25 @@ ItemStack BlockInteractionManager::_getHeldTool(PlayerId playerId) const noexcep
         return ItemStack();
     }
     return m_inventoryManager->getHeldItem(playerId);
+}
+
+const ItemStack& BlockInteractionManager::_handStackFor(PlayerId playerId, Hand hand) const noexcept
+{
+    // 静态空堆兜底：物品栏解析器缺失（测试环境未注入）时返回空栈，保持调用方可比较语义。
+    static const ItemStack s_empty;
+    if (m_inventoryManager == nullptr) {
+        return s_empty;
+    }
+    const PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
+    if (inventory == nullptr) {
+        return s_empty;
+    }
+    return (hand == Hand::OffHand) ? inventory->getOffhandItemRef() : inventory->getSelectedStackRef();
+}
+
+bool BlockInteractionManager::_anyHandHasItem(PlayerId playerId) const noexcept
+{
+    return !_handStackFor(playerId, Hand::MainHand).isEmpty() || !_handStackFor(playerId, Hand::OffHand).isEmpty();
 }
 
 Player* BlockInteractionManager::_getPlayerEntity(PlayerId playerId, ServerWorld& world) const noexcept
@@ -233,7 +253,7 @@ void BlockInteractionManager::setInventoryManager(InventoryManager* inventoryMan
 // ============================================================================
 
 Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
-    PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem)
+    PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, const ItemStack& heldItem)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
         "BlockInteractionManager::handleBlockPlacement",
@@ -256,8 +276,8 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return std::move(*worldError);
     }
 
-    // 验证前置条件（不需要检查 Y 范围，因为放置位置可能在不同高度）
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false);
+    // 验证前置条件（右键使用路径，不检查 Y 范围与出生点保护）
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, false);
     if (preconditionError) {
         return std::move(*preconditionError);
     }
@@ -290,9 +310,22 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return Error(ErrorCode::InvalidArgument, "Item is not a block item");
     }
 
-    // 创建放置上下文（player 为 nullptr，因为我们通过 InventoryManager 管理）
-    // playerData 同时提供 yaw 与 pitch，pitch 用于 getNearestLookingDirections 的方向排序
-    BlockItemUseContext context(*world, nullptr, heldItem, hitPos, pos, face, playerData->yaw, playerData->pitch);
+    // 权威手持槽按 hand 选择：主手=当前选中槽，副手=OFFHAND 槽（对齐 vanilla getItemInHand）。
+    // 传给放置上下文的 stack 即权威引用——对齐 vanilla BlockItem.place 末行
+    // `itemstack.consume(1, player)` 直接消耗手中的那一份（创造模式经 hasInfiniteMaterials 免消耗）。
+    PlayerInventory* inventory = (m_inventoryManager != nullptr) ? m_inventoryManager->getInventory(playerId) : nullptr;
+    ItemStack emptyFallback;
+    ItemStack& authoritative = (inventory != nullptr)
+        ? ((hand == Hand::OffHand) ? inventory->getOffhandItemRef() : inventory->getSelectedStackRef())
+        : emptyFallback;
+
+    const i32 countBefore = authoritative.getCount();
+    const bool infiniteMaterials =
+        playerData->gameMode == GameMode::Creative || (player != nullptr && player->abilities().invulnerable);
+
+    // 创建放置上下文。传真实玩家，使方块实体的 owner/loot 上下文与 mayUseItemAt 语义正确；
+    // playerData 同时提供 yaw 与 pitch，pitch 用于 getNearestLookingDirections 的方向排序。
+    BlockItemUseContext context(*world, player, authoritative, hitPos, pos, face, playerData->yaw, playerData->pitch);
 
     // 先检查是否可以放置（位置有效性检查）
     if (!context.canPlace()) {
@@ -311,30 +344,21 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return BlockPlacementResult{false, false, false, placePos, 0, "Cannot place block inside player"};
     }
 
-    // 执行放置
+    // 执行放置（BlockItem::tryPlace 内部对上下文 stack 的消耗直接作用于权威槽）
     ActionResultType result = blockItem->tryPlace(context);
     if (result != ActionResultType::Success && result != ActionResultType::Consume) {
         return BlockPlacementResult{false, false, false, pos, 0, "Cannot place block here"};
     }
 
-    // 消耗物品（非创造模式）
-    bool itemConsumed = false;
-    if (playerData->gameMode != GameMode::Creative && m_inventoryManager) {
-        // 获取玩家物品栏
-        PlayerInventory* inventory = m_inventoryManager->getInventory(playerId);
-        if (inventory) {
-            // 减少手持物品数量
-            ItemStack selectedStack = inventory->getSelectedStack();
-            if (!selectedStack.isEmpty() && selectedStack.getCount() > 0) {
-                selectedStack.shrink(1);
-                inventory->setItem(inventory->getSelectedSlot(), selectedStack);
-                itemConsumed = true;
-                // 同步到客户端
-                m_inventoryManager->syncToClient(playerId);
-            }
-        }
-    } else if (playerData->gameMode == GameMode::Creative) {
-        itemConsumed = true; // 创造模式不实际消耗
+    // 兜底消耗：BlockItem::tryPlace 已对权威槽 shrink 一次（非创造模式）；若某子类未消耗，
+    // 此处按数量变化判断并补足一次，保持与旧实现的消耗语义一致。创造模式不实际消耗。
+    bool itemConsumed = true;
+    if (!infiniteMaterials && authoritative.getCount() == countBefore && countBefore > 0) {
+        authoritative.shrink(1);
+    }
+
+    if (m_inventoryManager != nullptr && inventory != nullptr) {
+        m_inventoryManager->syncToClient(playerId);
     }
 
     if (m_onBlockPlace) {
@@ -344,7 +368,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     return BlockPlacementResult{true, true, itemConsumed, placePos, newState->stateId(), "Block placed"};
 }
 
-Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
+Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
     PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, const ItemStack& heldItem)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
@@ -367,8 +391,8 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
         return std::move(*worldError);
     }
 
-    // 验证前置条件（不需要检查 Y 范围，与 handleBlockPlacement 一致）
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false);
+    // 验证前置条件（右键使用不检查 Y 范围与出生点保护，与 vanilla useItemOn 一致）
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, false);
     if (preconditionError) {
         return std::move(*preconditionError);
     }
@@ -381,6 +405,20 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     // 旁观模式不派发 Item.useOn（对齐 vanilla ServerPlayerGameMode.useItemOn 旁观分支）
     if (playerData->gameMode == GameMode::Spectator) {
         return Error(ErrorCode::PermissionDenied, "Cannot use item in spectator mode");
+    }
+
+    // block-item：走 BlockItem.place 放置流程（对齐 vanilla BlockItem.useOn → this.place(...)），
+    // 由 handleBlockPlacement 统一处理位置校验与权威槽消耗。
+    if (const Item* itemForPlace = heldItem.getItem(); itemForPlace != nullptr &&
+        BlockItemRegistry::instance().getBlockItemByItemId(itemForPlace->itemId()) != nullptr) {
+        auto placement = handleBlockPlacement(playerId, pos, hitPos, face, hand, heldItem);
+        const bool placed = placement.success() && placement.value().blockPlaced;
+        return BlockUseResult{placed,
+            placement.success() && placement.value().itemConsumed,
+            BlockUseResult::Kind::ItemUseOn,
+            placed ? ActionResultType::Success : ActionResultType::Pass,
+            std::nullopt,
+            placed ? "Block placed" : (placement.success() ? placement.value().message : "Placement rejected")};
     }
 
     Player* player = _getPlayerEntity(playerId, *world);
@@ -398,26 +436,24 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
         return Error(ErrorCode::NotFound, "Item not found in registry");
     }
 
-    // 构造使用上下文。传真实 player（对齐 handleBlockUse:509 的 realPlayer 范式），使 onItemUse 内
-    // 可通过 context.getPlayer()->getHeldItem(hand) 直接操作权威手持物——这对"消耗原物品并返回新物品"
+    // 构造使用上下文。传真实 player（对齐方块交互的 realPlayer 范式），使 onItemUse 内
+    // 可通过 context.getPlayer()->getHeldItem(hand) 直接操作权威手持物——这对「消耗原物品并返回新物品」
     // 的物品（FishBucketItem 鱼桶→空桶）是必需的：此类物品在 onItemUse 内替换手持物，外层无法仅靠
     // shrink 复现。此前传 nullptr 致 FishBucketItem.onItemUse 的 _returnEmptyBucket 不执行（player==nullptr
-    // 守卫跳过），生产路径玩家持鱼桶右键地面失去鱼桶却得不到空桶（对齐缺陷）。
+    // 守卫跳过），生产路径玩家持鱼桶右键地面失去鱼桶却得不到空桶。
     // heldItem 是调用方局部拷贝，onItemUse 内 context.getItemStackMut() 修改的是该拷贝，不回写权威物品栏——
     // 故消耗/替换仍以 player 权威手持物为准，下方同步回 InventoryManager。
-    // 物品栏无需在此搬运：m_inventoryManager->getInventory() 返回的就是 player->inventory()
-    // 本身——物品栏只有实体上这一份。只需把玩家数据里的游戏模式推给实体。
     if (player != nullptr) {
         player->setGameMode(playerData->gameMode);
     }
+
     // 记录 onItemUse 前权威槽的 itemId+damage：部分物品会在 onItemUse 内直接改权威手持物——
     // (1)自管理替换（鱼桶→空桶，itemId 变化）；(2)耐久损耗（打火石/锄/斧/锹 hurtAndBreak，
     // damage 变化，itemId 不变）。两种情况外层都不应再 shrink（否则误消耗返回物或把耐久损耗
-    // 误当数量消耗）。骨粉等"仅 shrink 原物品、不替换也不改耐久"的物品 itemId+damage 均不变，
+    // 误当数量消耗）。骨粉等「仅 shrink 原物品、不替换也不改耐久」的物品 itemId+damage 均不变，
     // 仍走外层 shrink 补足。
     //
     // 权威槽随 hand 选择：主手取当前选中槽，副手取 OFFHAND 槽（对齐 vanilla Player#getItemInHand）。
-    // 此前固定取主手槽，hand==OffHand 时会误消耗主手（矿车/盾牌等副手 useOn 场景）。
     // 经 m_inventoryManager 解析（单源权威栏），与下方消耗写回同一来源，保证 before/after 可比。
     const ItemStack heldBefore = [&]() -> ItemStack {
         if (m_inventoryManager != nullptr) {
@@ -434,14 +470,7 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
     ActionResultType result = item->onItemUse(context);
     const bool success = (result == ActionResultType::Success || result == ActionResultType::Consume);
 
-    // 消耗权威物品栏（仅 success 时，对齐 handleBlockPlacement:350-368 的消耗范式）。
-    // 消耗/损耗的写回目标是 hand 对应的槽：主手=当前选中槽，副手=OFFHAND 槽。
-    //
-    // 物品栏只有实体上这一份（见 InventoryManager 单源改造），故权威手持物一律经
-    // m_inventoryManager 解析，而非经 player 实体的 getHeldItem()——后者在测试环境
-    // （只注入解析器、不构造完整 Player 实体，如 SpawnEggAddEntityE2ETest）拿不到。
-    // 生产环境解析器返回的就是 player->inventory()，两者等价；测试环境解析器返回
-    // 测试持有的 PlayerInventory，消耗语义仍被正确验证。
+    // 消耗权威物品栏（仅 success 时，对齐 handleBlockPlacement 的消耗范式）。
     bool itemConsumed = false;
     if (success && playerData->gameMode == GameMode::Creative) {
         itemConsumed = true; // 创造模式不实际消耗
@@ -467,76 +496,75 @@ Result<ItemUseResult> BlockInteractionManager::handleItemUseOn(
         }
     }
 
-    return ItemUseResult{success, itemConsumed, result, success ? "Item used on block" : "Item use pass"};
+    // ItemUseOn 分支不承载 heldItemTransformedTo（物品自行改写权威槽）。
+    return BlockUseResult{success,
+        itemConsumed,
+        BlockUseResult::Kind::ItemUseOn,
+        result,
+        std::nullopt,
+        success ? "Item used on block" : "Item use pass"};
 }
 
-Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
-    PlayerId playerId, const BlockPos& pos, Hand hand, const Vector3& hitPos, Direction face)
+std::optional<BlockUseResult> BlockInteractionManager::_dispatchBlockUse(PlayerId playerId,
+    ServerWorld& world,
+    const BlockPos& pos,
+    Hand hand,
+    const Vector3& hitPos,
+    Direction face,
+    bool withItem,
+    ItemStack** outHandStack)
 {
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
-        "BlockInteractionManager::handleBlockUse",
-        "pos",
-        pos.toString(),
-        "playerId",
-        playerId,
-        "hand",
-        hand == Hand::MainHand ? "main" : "off",
-        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
-
-    // 验证前置条件（方块使用不需要检查 Y 范围）
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false);
-    if (preconditionError) {
-        return std::move(*preconditionError);
-    }
-
-    ServerWorld* world = _getPlayerWorld(playerId);
-    if (world == nullptr) {
-        return Error(ErrorCode::InvalidWorld, "Player world not available");
-    }
-
-    // 获取方块状态
-    const BlockState* state = _getNonAirBlockState(*world, pos);
+    const BlockState* state = _getNonAirBlockState(world, pos);
     if (!state) {
-        return BlockInteractionResult{false, "No block to use"};
+        return std::nullopt;
     }
 
-    Block* block = Block::getBlock(state->blockId());
+    Block* block = BlockRegistry::instance().getBlock(state->blockId());
     if (!block) {
-        return Error(ErrorCode::NotFound, "Block not found for state");
+        return std::nullopt;
     }
 
-    // 获取玩家数据用于交互
     auto* playerData = _validatePlayer(playerId);
     if (!playerData) {
-        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+        return std::nullopt;
     }
 
-    // 获取真实的玩家实体（携带 m_inventory、m_gameMode 等状态）
-    // 之前的实现使用临时 Player，其 m_inventory 为空且 m_gameMode 为默认值，
-    // 导致 ShelfBlock 等方块的 onBlockActivated 修改无法生效到真实玩家。
-    Player* realPlayer = _getPlayerEntity(playerId, *world);
+    // 获取真实的玩家实体（携带 m_inventory、m_gameMode 等状态）。方块交互直接在
+    // realPlayer->inventory() 上操作——那正是权威物品栏，无需预先搬运。
+    Player* realPlayer = _getPlayerEntity(playerId, world);
     const BlockRaycastResult hitResult = BlockRaycastResult::hit(hitPos, pos, face, 0.0f);
 
-    // onBlockActivated 直接在 realPlayer->inventory() 上操作——那正是权威物品栏，无需预先搬运。
-    // 仅把玩家数据里的游戏模式推给实体。
     if (realPlayer != nullptr) {
         realPlayer->setGameMode(playerData->gameMode);
     }
 
-    // 交互前的手持物快照，供尾部识别「方块自行改过手持物」的情况。取 hand 对应槽
-    // （主手=当前选中槽，副手=OFFHAND 槽），与交互后比较。
-    const ItemStack heldBeforeUse = (realPlayer != nullptr) ? realPlayer->getHeldItem(hand) : ItemStack();
+    // 取 hand 对应的权威手持槽引用：主手=当前选中槽，副手=OFFHAND 槽（对齐 vanilla
+    // Player#getItemInHand）。方块侧对 stack 的修改直接落到权威槽，服务端随后统一同步。
+    ItemStack emptyFallback;
+    ItemStack* stackPtr = &emptyFallback;
+    if (m_inventoryManager != nullptr) {
+        if (PlayerInventory* inventory = m_inventoryManager->getInventory(playerId)) {
+            stackPtr = (hand == Hand::OffHand) ? &inventory->getOffhandItemRef() : &inventory->getSelectedStackRef();
+        }
+    }
+    if (outHandStack != nullptr) {
+        *outHandStack = stackPtr;
+    }
+    ItemStack& authoritative = *stackPtr;
+    const ItemStack heldBeforeUse = authoritative;
 
     BlockActionResult result = [&]() -> BlockActionResult {
         if (realPlayer != nullptr) {
-            return block->onBlockActivated(*state, *world, pos, *realPlayer, hand, hitResult);
+            return withItem ? block->useItemOn(authoritative, *state, world, pos, *realPlayer, hand, hitResult)
+                            : block->useWithoutItem(*state, world, pos, *realPlayer, hitResult);
         }
         // 回退路径：无法获取真实玩家实体时使用临时 Player（保持向后兼容）
         // ECS 迁移：占位 Player 构造需要 registry 句柄，此处无 world 上下文故配静态 registry。
         // TODO: 占位 Player 是临时方案，后续应重构为不构造完整 Player。
         static ecs::EntityRegistry s_interactionPlayerRegistry{"block-interaction"};
         Player interactionPlayer(playerId, playerData->username, s_interactionPlayerRegistry);
-        return block->onBlockActivated(*state, *world, pos, interactionPlayer, hand, hitResult);
+        return withItem ? block->useItemOn(authoritative, *state, world, pos, interactionPlayer, hand, hitResult)
+                        : block->useWithoutItem(*state, world, pos, interactionPlayer, hitResult);
     }();
 
     // 派发自定义方块组件回调 - onPlayerInteract
@@ -548,7 +576,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         event.blockX = pos.x;
         event.blockY = pos.y;
         event.blockZ = pos.z;
-        event.dimensionId = world->dimension();
+        event.dimensionId = world.dimension();
         event.playerId = playerId;
         event.face = static_cast<i32>(face);
         event.faceX = hitPos.x - static_cast<f32>(pos.x);
@@ -557,11 +585,9 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         blockCompReg.dispatchPlayerInteract(blockTypeId, event);
     }
 
-    // 派发自定义物品组件回调 - onUseOn
-    // 当玩家右键点击方块时，手持物品触发 onUseOn 回调
-    ItemStack heldItem = _getHeldTool(playerId);
-    if (!heldItem.isEmpty()) {
-        const Item* heldItemPtr = heldItem.getItem();
+    // 派发自定义物品组件回调 - onUseOn（仅携带物品的交互）
+    if (withItem && !heldBeforeUse.isEmpty()) {
+        const Item* heldItemPtr = heldBeforeUse.getItem();
         if (heldItemPtr != nullptr) {
             auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();
             std::string itemTypeId = heldItemPtr->itemLocation().toString();
@@ -583,45 +609,183 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockUse(
         }
     }
 
-    // 如果方块交互成功，检查是否为告示牌并执行命令
-    bool handled = (result == ActionResultType::Success || result == ActionResultType::Consume);
+    const bool handled = result.consumesAction();
+
+    // 交互成功时检查是否为告示牌并执行命令
     if (handled && m_server != nullptr) {
-        // 检查是否为告示牌方块
-        BlockEntity* blockEntity = world->getBlockEntity(pos);
+        BlockEntity* blockEntity = world.getBlockEntity(pos);
         if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {
-            // 获取实际的 ServerPlayer 实体
             ServerPlayerEntityManager& entityManager = m_server->playerEntityManager();
-            Player* playerEntity = entityManager.getPlayerEntity(playerId, *world);
+            Player* playerEntity = entityManager.getPlayerEntity(playerId, world);
             if (playerEntity != nullptr) {
                 mc::ServerPlayer* serverPlayer = playerEntity->asServerPlayer();
                 if (serverPlayer != nullptr) {
-                    // 执行告示牌命令
-                    _handleSignCommand(*world, pos, *serverPlayer);
+                    _handleSignCommand(world, pos, *serverPlayer);
                 }
             }
         }
     }
 
-    // 方块交互可能改动手持物，需要推给客户端。两个来源：
+    // 交互可能改动手持物，需推给客户端。两个来源：
     //   1. 方块显式返回 heldItemTransformedTo —— 用它更新 hand 对应槽位；
-    //   2. 方块通过 player.getHeldItem(hand) 引用直接改了物品栏 —— 那就是实体背包本身，
-    //      与交互前的快照比较即可发现。
-    // 写回目标经 m_inventoryManager 解析（单源权威栏），而非 realPlayer->getHeldItem()——
-    // 后者在测试环境（只注入解析器、不构造完整 Player 实体）拿不到；生产环境两者等价。
+    //   2. 方块通过 stack 引用直接改了权威槽 —— 与交互前的快照比较即可发现。
+    bool itemConsumed = false;
     if (handled && m_inventoryManager != nullptr) {
         if (PlayerInventory* inventory = m_inventoryManager->getInventory(playerId)) {
-            ItemStack& authoritative =
+            ItemStack& finalSlot =
                 (hand == Hand::OffHand) ? inventory->getOffhandItemRef() : inventory->getSelectedStackRef();
             if (result.heldItemTransformedTo().has_value()) {
-                authoritative = result.heldItemTransformedTo().value();
+                finalSlot = result.heldItemTransformedTo().value();
+                itemConsumed = true;
                 m_inventoryManager->syncToClient(playerId);
-            } else if (!(authoritative == heldBeforeUse)) {
+            } else if (!(finalSlot == heldBeforeUse)) {
+                itemConsumed = true;
                 m_inventoryManager->syncToClient(playerId);
             }
         }
     }
 
-    return BlockInteractionResult{handled, handled ? "Block used" : "Block use pass"};
+    return BlockUseResult{handled,
+        itemConsumed,
+        withItem ? BlockUseResult::Kind::BlockUseItemOn : BlockUseResult::Kind::BlockUseWithoutItem,
+        result.getType(),
+        result.heldItemTransformedTo(),
+        handled ? "Block used" : "Block use pass"};
+}
+
+Result<BlockUseResult> BlockInteractionManager::handleBlockUse(
+    PlayerId playerId, const BlockPos& pos, Hand hand, const Vector3& hitPos, Direction face)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.World,
+        "BlockInteractionManager::handleBlockUse",
+        "pos",
+        pos.toString(),
+        "playerId",
+        playerId,
+        "hand",
+        hand == Hand::MainHand ? "main" : "off",
+        [flow = ::perfetto::Flow::ProcessScoped(pos.toId())](::perfetto::EventContext ctx) { flow(ctx); });
+
+    // 验证前置条件（右键使用不检查 Y 范围与出生点保护）
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, false, false);
+    if (preconditionError) {
+        return std::move(*preconditionError);
+    }
+
+    ServerWorld* world = _getPlayerWorld(playerId);
+    if (world == nullptr) {
+        return Error(ErrorCode::InvalidWorld, "Player world not available");
+    }
+
+    const BlockState* state = _getNonAirBlockState(*world, pos);
+    if (!state) {
+        return BlockUseResult{false,
+            false,
+            BlockUseResult::Kind::BlockUseWithoutItem,
+            ActionResultType::Pass,
+            std::nullopt,
+            "No block to use"};
+    }
+
+    auto* playerData = _validatePlayer(playerId);
+    if (!playerData) {
+        return Error(ErrorCode::InvalidArgument, "Player not found or not logged in");
+    }
+
+    Block* block = BlockRegistry::instance().getBlock(state->blockId());
+    if (!block) {
+        return Error(ErrorCode::NotFound, "Block not found for state");
+    }
+
+    Player* player = _getPlayerEntity(playerId, *world);
+
+    // ===== 旁观者分支（对齐 vanilla ServerPlayerGameMode.useItemOn 旁观分支）=====
+    // 旁观者不执行任何方块/物品业务，只按方块声明的菜单类型打开界面（箱子、熔炉等）；
+    // 打开成功即返回 Consume，否则 Pass。
+    if (playerData->gameMode == GameMode::Spectator) {
+        if (player != nullptr) {
+            if (const auto menuType = block->getMenuProvider(*state, *world, pos)) {
+                // 旁观者开箱按方块声明的类型统一打开（对齐 vanilla ServerPlayer.openMenu）。
+                if (world->openContainer(*menuType, pos, *player)) {
+                    return BlockUseResult{true,
+                        false,
+                        BlockUseResult::Kind::BlockUseWithoutItem,
+                        ActionResultType::Consume,
+                        std::nullopt,
+                        "Spectator opened block menu"};
+                }
+            }
+        }
+        return BlockUseResult{false,
+            false,
+            BlockUseResult::Kind::BlockUseWithoutItem,
+            ActionResultType::Pass,
+            std::nullopt,
+            "Spectator pass"};
+    }
+
+    // ===== 潜行门控（isSecondaryUseActive 语义）=====
+    // 玩家按住潜行键且任一只手持物非空时，跳过方块侧交互直接走物品使用（Item::useOn），
+    // 用于「潜行时放置方块而非打开容器 / 触发方块」。flag = 任一只手持物非空，
+    // 对齐 vanilla ServerPlayerGameMode.useItemOn 中 `flag1 = isSecondaryUseActive() && flag`。
+    if (player != nullptr && player->isInputSneaking() && _anyHandHasItem(playerId)) {
+        auto itemUse = handleItemUseOn(playerId, pos, hitPos, face, hand, _handStackFor(playerId, hand));
+        return itemUse.success() ? itemUse.value()
+                                 : BlockUseResult{false,
+                                       false,
+                                       BlockUseResult::Kind::ItemUseOn,
+                                       ActionResultType::Pass,
+                                       std::nullopt,
+                                       "Sneaking but item use unhandled"};
+    }
+
+    // ===== 常规路径：方块侧 useItemOn → useWithoutItem → 物品侧 Item::useOn =====
+    // ③ 方块侧 useItemOn（对齐 vanilla：**任意手都调用**，空手也调——如 CandleBlock 空手熄灭）。
+    //    返回 consumesAction 时短路；否则（Pass/Fail/TryEmptyHandInteraction）继续向下。
+    const bool heldItemEmpty = _handStackFor(playerId, hand).isEmpty();
+    const std::optional<BlockUseResult> itemOn =
+        _dispatchBlockUse(playerId, *world, pos, hand, hitPos, face, /*withItem=*/true, nullptr);
+    if (itemOn.has_value() && itemOn->success) {
+        return *itemOn;
+    }
+
+    // ④ 空手交互（对齐 vanilla useWithoutItem）。仅当 useItemOn 返回 TRY_WITH_EMPTY_HAND
+    //    且为主线时回退（vanilla `interactionhand == MAIN_HAND`）；返回 Pass/Fail 不回退。
+    if (hand == Hand::MainHand && itemOn.has_value() &&
+        itemOn->actionResult == ActionResultType::TryEmptyHandInteraction) {
+        const auto withoutItem =
+            _dispatchBlockUse(playerId, *world, pos, hand, hitPos, face, /*withItem=*/false, nullptr);
+        if (withoutItem.has_value() && withoutItem->success) {
+            return *withoutItem;
+        }
+    }
+
+    // ⑤ 物品侧交互（对齐 vanilla `itemstack.useOn(new UseOnContext(...))`，需手持非空且不在冷却）。
+    //    矿车 / 骨粉 / 桶 / 火把 / 锄头 / 斧头 / 锹 / 刷子等非 block-item 靠此步生效；block-item
+    //    的放置也经此步（handleItemUseOn 识别 block-item 后转 handleBlockPlacement）。
+    if (!heldItemEmpty) {
+        const ItemStack& heldStack = _handStackFor(playerId, hand);
+        const Item* heldItem = heldStack.getItem();
+        if (heldItem != nullptr && player != nullptr && player->hasItemCooldown(heldItem)) {
+            return BlockUseResult{false,
+                false,
+                BlockUseResult::Kind::ItemUseOn,
+                ActionResultType::Pass,
+                std::nullopt,
+                "Item on cooldown"};
+        }
+        auto itemUse = handleItemUseOn(playerId, pos, hitPos, face, hand, heldStack);
+        if (itemUse.success() && itemUse.value().success) {
+            return itemUse.value();
+        }
+    }
+
+    return BlockUseResult{false,
+        false,
+        BlockUseResult::Kind::BlockUseWithoutItem,
+        ActionResultType::Pass,
+        std::nullopt,
+        "No interaction handled"};
 }
 
 Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId playerId, const BlockPos& pos)
@@ -646,7 +810,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     }
 
     // 验证前置条件
-    auto preconditionError = _validateInteractionPreconditions(playerId, pos, true);
+    auto preconditionError = _validateInteractionPreconditions(playerId, pos, true, true);
     if (preconditionError) {
         return std::move(*preconditionError);
     }

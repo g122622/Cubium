@@ -124,16 +124,11 @@ std::unique_ptr<BlockEntity> HopperBlock::createBlockEntity(const BlockPos& pos)
     return std::make_unique<blockentity::HopperEntity>(pos);
 }
 
-BlockActionResult HopperBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult HopperBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
 
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (world.asServerWorld() == nullptr) {
@@ -281,6 +276,16 @@ void HopperBlock::_initShapes()
         insideBowl, CollisionShape::fromPixelBox(0, 8, 6, 4, 10, 10), CollisionShape::CombineOp::OR);
     m_raytraceShapes[static_cast<size_t>(Direction::East)] = CollisionShape::combine(
         insideBowl, CollisionShape::fromPixelBox(12, 8, 6, 16, 10, 10), CollisionShape::CombineOp::OR);
+}
+
+std::optional<ContainerType> HopperBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Hopper;
 }
 
 } // namespace blocks

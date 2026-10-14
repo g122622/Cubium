@@ -169,7 +169,7 @@ TEST_F(LavaCauldronBlockTest, OnEntityCollision_ApplicableToLivingEntity)
 
 TEST_F(LavaCauldronBlockTest, OnBlockActivated_PassForNonBucketItems)
 {
-    // onBlockActivated 对于非桶物品应返回 Pass
+    // useItemOn/useWithoutItem 对于非桶物品应返回 Pass
     // 详细交互测试需要完整 Player 基建，此处验证方法存在
     EXPECT_NE(lavaCauldron_, nullptr);
 }

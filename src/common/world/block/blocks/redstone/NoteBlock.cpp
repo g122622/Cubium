@@ -213,12 +213,8 @@ void NoteBlock::neighborChanged(
     }
 }
 
-BlockActionResult NoteBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult NoteBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     // 对齐 vanilla NoteBlock.useWithoutItem（1.21.11）：右键升调——cycle(NOTE) 循环升半音（0→1→...→24→0）+
     //   setBlockState 写回 + playNote 播放新音高 → return SUCCESS。不检查手持物（空手/任意物品右键均升调），
@@ -227,7 +223,6 @@ BlockActionResult NoteBlock::onBlockActivated(const BlockState& state,
     //   PASS 交物品放置；Cubium 此处简化为统一升调（TODO: 待 NOTE_BLOCK_TOP_INSTRUMENTS 标签与朝向守卫
     //   完善后对齐 useItemOn 的 PASS 分支）。
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 服务端逻辑（vanilla !isClientSide 守卫）。GameTest 服务端跑，走此分支。

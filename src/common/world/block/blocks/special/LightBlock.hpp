@@ -94,11 +94,10 @@ public:
      * 对齐 vanilla LightBlock#useWithoutItem：服务端且玩家具备管理员权限时
      * cycle(LEVEL) 并更新方块，返回 SUCCESS；否则返回 CONSUME。
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     // ========== 含水 ==========

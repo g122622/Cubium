@@ -86,14 +86,9 @@ const CollisionShape& LightBlock::getShape(const BlockState& state) const
     return emptyShape;
 }
 
-BlockActionResult LightBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult LightBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 对齐 vanilla LightBlock#useWithoutItem：服务端且玩家具备管理员权限时循环亮度

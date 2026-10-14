@@ -37,6 +37,7 @@
  */
 
 #include "common/item/items/special/DebugStickItem.hpp"
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -255,8 +256,13 @@ TEST_F(LightBlockTest, RightClickWithoutPermissionReturnsConsume)
     // 默认生存模式、OP 0：无管理员权限
 
     BlockRaycastResult hit{};
-    auto result = VanillaBlocks::LIGHT->onBlockActivated(
-        VanillaBlocks::LIGHT->defaultState(), world, BlockPos(0, 64, 0), player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::LIGHT,
+        VanillaBlocks::LIGHT->defaultState(),
+        world,
+        BlockPos(0, 64, 0),
+        player,
+        Hand::MainHand,
+        hit);
     // 无权限 → Consume（对齐 vanilla）
     EXPECT_EQ(result.getType(), ActionResultType::Consume);
 }
@@ -271,8 +277,13 @@ TEST_F(LightBlockTest, RightClickWithPermissionCyclesLevel)
     player.setPermissionLevel(2);
 
     BlockRaycastResult hit{};
-    auto result = VanillaBlocks::LIGHT->onBlockActivated(
-        VanillaBlocks::LIGHT->defaultState(), world, BlockPos(0, 64, 0), player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::LIGHT,
+        VanillaBlocks::LIGHT->defaultState(),
+        world,
+        BlockPos(0, 64, 0),
+        player,
+        Hand::MainHand,
+        hit);
     EXPECT_EQ(result.getType(), ActionResultType::Success);
 
     const BlockState* updated = world.getBlockState(0, 64, 0);

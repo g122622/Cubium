@@ -220,16 +220,11 @@ bool DoorBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
         belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
 }
 
-BlockActionResult DoorBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult DoorBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
 
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (m_isIron) {

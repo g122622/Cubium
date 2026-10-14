@@ -4,24 +4,24 @@
 //   - 空炼药锅 + 水桶右键 → 水炼药锅（water_cauldron，水位 level=3，满）。
 //   - 空炼药锅 + 岩浆桶右键 → 岩浆炼药锅（lava_cauldron）。
 //   - 空炼药锅 + 水瓶右键 → 水炼药锅（水位 level=1，一瓶）。
-//   - 非流体容器物品（如石头）右键炼药锅 → 不触发装填（onBlockActivated 返 Pass）。
+//   - 非流体容器物品（如石头）右键炼药锅 → 不触发装填（方块侧交互 返 Pass）。
 //   装填后炼药锅方块类型从 cauldron 变为 water_cauldron/lava_cauldron（不同方块，非同方块 state）。
 //
 // C++ 链路：CauldronBlock（CauldronBlock.cpp）空炼药锅无 level state（方块类型 cauldron）。
-//   - onBlockActivated（CauldronBlock.cpp:143-170）：取手持物，依次 _handleBucketInteraction →
+//   - 方块侧交互（CauldronBlock.cpp:143-170）：取手持物，依次 _handleBucketInteraction →
 //     _handleBottleInteraction，任一非 Pass 即返回；都 Pass 则整体 Pass。
 //   - _handleBucketInteraction（:237-278）：水桶（Items::WATER_BUCKET）→ 替换为 water_cauldron
 //     defaultState.with(LEVEL_1_3, 3)（满水位 3）+ 倒水音效 + FLUID_PLACE 事件；非创造模式水桶变空桶。
 //     岩浆桶（Items::LAVA_BUCKET）→ 替换为 lava_cauldron。
 //   - 装填是方块类型替换（setBlockState 写新方块 state），非同方块 state 变化。
 //   - LavaCauldronBlock（LavaCauldronBlock.cpp:94-148）：岩浆炼药锅（lava_cauldron，满/空二态无 level
-//     state）。onBlockActivated 空桶（Items::BUCKET）→ setBlockState cauldron（空炼药锅）+ 岩浆桶
+//     state）。方块侧交互 空桶（Items::BUCKET）→ setBlockState cauldron（空炼药锅）+ 岩浆桶
 //     （创造模式跳过空桶替换）+ ITEM_BUCKET_FILL_LAVA 音效 + FLUID_PICKUP 事件 → Success。
 //     岩浆炼药锅始终满，岩浆桶/水桶/其他交互返 Pass（不可再装填）。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。炼药锅 onBlockActivated 处理桶/瓶交互返回 Success，短路不 fallback。
-//   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onBlockActivated 的
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。炼药锅 方块侧交互 处理桶/瓶交互返回 Success，短路不 fallback。
+//   useItemOnBlock 调 方块侧交互 前把 stack 设到主手选中槽，使 方块侧交互 的
 //   player.getHeldItem(hand) 读到水桶/岩浆桶。
 //
 // 测试覆盖（5 个场景，覆盖 wiki 水桶/岩浆桶装填+玻璃瓶取水+空桶取岩浆+非容器不误触发核心行为）：
@@ -39,7 +39,7 @@
 // 2. 装填是方块类型替换：判定用 getBlock 检查方块 typeId 是否变为 water_cauldron/lava_cauldron，
 //    water_cauldron 再读 level state===3。
 // 3. SimulatedPlayer 默认创造模式：水桶/岩浆桶不消耗（创造跳过空桶替换），但仍装水/岩浆（Success 返回）。
-// 4. 场景 3 用石头（非桶非瓶）→ onBlockActivated 桶/瓶交互都 Pass → 整体 Pass → fallback Item.useOn
+// 4. 场景 3 用石头（非桶非瓶）→ 方块侧交互 桶/瓶交互都 Pass → 整体 Pass → fallback Item.useOn
 //    （石头无 onItemUse 返 Pass）→ useItemOnBlock 返回 false，炼药锅不变。
 //
 // 不测「水瓶装水（level=1）」：水瓶交互走 _handleBottleInteraction，涉及 PotionItem/玻璃瓶替换链路，
@@ -54,7 +54,7 @@
 //   两端均可放；装填后判定方块类型两端一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_炼药锅.txt#装料（水桶/岩浆桶装填）
-// Ref: CauldronBlock.cpp（onBlockActivated 桶/瓶交互；_handleBucketInteraction 水桶→water_cauldron level=3/岩浆桶→lava_cauldron）
+// Ref: CauldronBlock.cpp（方块侧交互 桶/瓶交互；_handleBucketInteraction 水桶→water_cauldron level=3/岩浆桶→lava_cauldron）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
 import * as GameTest from "@minecraft/server-gametest";
@@ -89,7 +89,7 @@ function placeCauldron(test: Test): void {
 // 场景 1：水桶装水——空炼药锅 + 水桶 useItemOnBlock → water_cauldron level=3。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 空炼药锅。
-// onBlockActivated 取手持水桶 → _handleBucketInteraction WATER_BUCKET → 替换为 water_cauldron
+// 方块侧交互 取手持水桶 → _handleBucketInteraction WATER_BUCKET → 替换为 water_cauldron
 // defaultState.with(LEVEL_1_3, 3) → 返回 Success。
 //
 // 判定：getBlock typeId === "minecraft:water_cauldron" 且 level === 3。
@@ -100,7 +100,7 @@ function cauldronFillsWithWaterBucket(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const waterBucket = new ItemStack("minecraft:water_bucket", 1);
 
-    // 对空炼药锅 useItemOnBlock 水桶 → onBlockActivated 水桶交互 → water_cauldron level=3。
+    // 对空炼药锅 useItemOnBlock 水桶 → 方块侧交互 水桶交互 → water_cauldron level=3。
     const used = farmer.useItemOnBlock(
         waterBucket as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -117,7 +117,7 @@ function cauldronFillsWithWaterBucket(test: Test): void {
 
 // 场景 2：岩浆桶装岩浆——空炼药锅 + 岩浆桶 useItemOnBlock → lava_cauldron。
 //
-// 布局：同场景 1。onBlockActivated 取手持岩浆桶 → _handleBucketInteraction LAVA_BUCKET →
+// 布局：同场景 1。方块侧交互 取手持岩浆桶 → _handleBucketInteraction LAVA_BUCKET →
 // 替换为 lava_cauldron defaultState → 返回 Success。
 //
 // 判定：getBlock typeId === "minecraft:lava_cauldron"。
@@ -143,7 +143,7 @@ function cauldronFillsWithLavaBucket(test: Test): void {
 
 // 场景 3：非容器不误触发——空炼药锅 + 木棍 useItemOnBlock → 仍 cauldron（桶/瓶交互都 Pass）。
 //
-// 布局：同场景 1。onBlockActivated 取手持木棍 → _handleBucketInteraction（木棍非桶 Pass）→
+// 布局：同场景 1。方块侧交互 取手持木棍 → _handleBucketInteraction（木棍非桶 Pass）→
 // _handleBottleInteraction（木棍非瓶 Pass）→ 整体 Pass → fallback Item.useOn（木棍无 onItemUse 行为，
 // 默认返 Pass）→ useItemOnBlock 返回 false，炼药锅不变。
 //
@@ -177,7 +177,7 @@ function cauldronIgnoresNonFluidItem(test: Test): void {
 // 场景 4：玻璃瓶取水——water_cauldron level=3 + 玻璃瓶 useItemOnBlock → level 3→2。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) water_cauldron level=3（setBlockWithStates 直接放满水炼药锅）。
-// water_cauldron 是 LayeredCauldronBlock（非 CauldronBlock 空炼药锅），其 onBlockActivated：
+// water_cauldron 是 LayeredCauldronBlock（非 CauldronBlock 空炼药锅），其 方块侧交互：
 //   玻璃瓶 → _handleBottleInteraction → GLASS_BOTTLE 分支 → lowerFillLevel（level-1）+ 水瓶 → Success。
 // lowerFillLevel：level>1 → with(LEVEL_1_3, level-1)（level 3→2）；level==1 → 替换为空 cauldron。
 //
@@ -195,7 +195,7 @@ function cauldronDrainedByGlassBottle(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const glassBottle = new ItemStack("minecraft:glass_bottle", 1);
 
-    // 对满水炼药锅 useItemOnBlock 玻璃瓶 → LayeredCauldronBlock.onBlockActivated → _handleBottleInteraction
+    // 对满水炼药锅 useItemOnBlock 玻璃瓶 → LayeredCauldronBlock.方块侧交互 → _handleBottleInteraction
     // → GLASS_BOTTLE 分支 lowerFillLevel(level 3→2) + 水瓶 → Success。
     const used = farmer.useItemOnBlock(
         glassBottle as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
@@ -215,7 +215,7 @@ function cauldronDrainedByGlassBottle(test: Test): void {
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) lava_cauldron（setBlockType 放默认 state，满岩浆，无需 level state）。
 // 这是与场景 2（装岩浆走 CauldronBlock._handleBucketInteraction LAVA_BUCKET）不同的代码路径——
-//   取岩浆走 LavaCauldronBlock::onBlockActivated BUCKET 分支（LavaCauldronBlock.cpp:111-142）：
+//   取岩浆走 LavaCauldronBlock::方块侧交互 BUCKET 分支（LavaCauldronBlock.cpp:111-142）：
 //   空桶 → setBlockState cauldron（空炼药锅）+ ITEM_BUCKET_FILL_LAVA 音效 + FLUID_PICKUP 事件 +
 //   非创造模式空桶变岩浆桶 → Success。
 // 与场景 4（玻璃瓶取水，one-sided）互补：本场景两端均可放 lava_cauldron（setBlockType 默认 state，
@@ -230,7 +230,7 @@ function cauldronDrainedToEmptyByBucket(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const bucket = new ItemStack("minecraft:bucket", 1);
 
-    // 对满岩浆炼药锅 useItemOnBlock 空桶 → LavaCauldronBlock.onBlockActivated BUCKET 分支 →
+    // 对满岩浆炼药锅 useItemOnBlock 空桶 → LavaCauldronBlock.方块侧交互 BUCKET 分支 →
     // setBlockState cauldron（空炼药锅）+ 岩浆桶 → Success。
     const used = farmer.useItemOnBlock(
         bucket as unknown as Parameters<typeof farmer.useItemOnBlock>[0],

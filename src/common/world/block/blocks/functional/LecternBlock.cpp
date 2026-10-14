@@ -213,7 +213,8 @@ std::unique_ptr<BlockEntity> LecternBlock::createBlockEntity(const BlockPos& pos
     return std::make_unique<blockentity::LecternEntity>(pos);
 }
 
-BlockActionResult LecternBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LecternBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -239,7 +240,7 @@ BlockActionResult LecternBlock::onBlockActivated(const BlockState& state,
 
     // 讲台上没有书，检查玩家手中是否持有可放入讲台的书籍
     if (!world.isClientSide()) {
-        ItemStack& heldItem = player.getHeldItem(hand);
+        ItemStack& heldItem = stack;
         if (!heldItem.isEmpty()) {
             const Item* item = heldItem.getItem();
             if (item != nullptr && isLecternBookItem(item->itemId())) {
@@ -258,6 +259,18 @@ BlockActionResult LecternBlock::onBlockActivated(const BlockState& state,
         }
     }
 
+    return ActionResultType::TryEmptyHandInteraction;
+}
+
+BlockActionResult LecternBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 
@@ -325,7 +338,7 @@ bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, const ItemSt
         if (!lectern->setBook(bookForLectern)) {
             return false;
         }
-        // 物品消耗由 onBlockActivated 中的 heldItem.shrink(1) 处理
+        // 物品消耗由 useItemOn 中的 heldItem.shrink(1) 处理
     }
 
     setHasBook(world, pos, true);

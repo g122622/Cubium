@@ -48,15 +48,10 @@ std::unique_ptr<BlockEntity> TestInstanceBlock::createBlockEntity(const BlockPos
     return std::make_unique<blockentity::TestInstanceBlockEntity>(pos);
 }
 
-BlockActionResult TestInstanceBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult TestInstanceBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (world.getBlockEntity(pos) == nullptr) {

@@ -4,7 +4,7 @@
 // 光照门控（对齐 Java isDarkEnoughToSpawn）、不受 doMobSpawning gamerule 影响、蠹虫刷怪箱光照豁免。
 //
 // C++ 链路：
-//   - SpawnerBlock::onBlockActivated（SpawnerBlock.cpp:55-101）：检测刷怪蛋 →
+//   - SpawnerBlock::方块侧交互（SpawnerBlock.cpp:55-101）：检测刷怪蛋 →
 //     MobSpawnerBlockEntity::setEntityId 设 m_nextEntityId + 重置 m_spawnDelay∈[200,800)。
 //   - MobSpawnerBlockEntity::_serverTick（MobSpawnerBlockEntity.cpp:420-467）：每 tick 递减 m_spawnDelay，
 //     归零调 _spawnEntities。_isNearPlayer 用 getEntitiesInRange(16) + dynamic_cast<Player*> 判激活。
@@ -28,7 +28,7 @@
 //      故蠹虫刷怪箱在亮处仍生成（对照测试 spawner_silverfish_spawns_in_light）。
 //   4. 刷怪箱不读 doMobSpawning gamerule（_serverTick/_spawnEntities 全程不查），故关闭仍生成。
 //   5. 首次生成延迟 [200,800) tick 随机，无法确定性断言精确 tick，用 pollUntilSucceed 轮询 + 宽 maxTick。
-//   6. 刷怪蛋设置类型：SimulatedPlayer.useItemOnBlock(stack, pos) → SpawnerBlock::onBlockActivated
+//   6. 刷怪蛋设置类型：SimulatedPlayer.useItemOnBlock(stack, pos) → SpawnerBlock::方块侧交互
 //      dynamic_cast<SpawnEggItem*> → setEntityId。创造模式不消耗刷怪蛋（可重复用）。
 //
 // 结构选择：spawner_chamber（11×7×11 封顶遮光石盒，内部 9×5×9 空气腔）。
@@ -61,7 +61,7 @@ const PLAYER_POS = { x: 5, y: 2, z: 7 };
 
 // 放刷怪箱 + 用刷怪蛋设置实体类型 + 生成创造玩家激活。
 // setBlockType spawner 创建 MobSpawnerBlockEntity（默认 nextEntityId 空，不生成），
-// useItemOnBlock 刷怪蛋 → SpawnerBlock::onBlockActivated → setEntityId 设类型 + 重置 delay∈[200,800)。
+// useItemOnBlock 刷怪蛋 → SpawnerBlock::方块侧交互 → setEntityId 设类型 + 重置 delay∈[200,800)。
 // 创造玩家不消耗刷怪蛋。返回玩家引用（后续可能切生存攻击）。
 function setupSpawner(test: Test, eggType: string, playerPos = PLAYER_POS): void {
     test.setBlockType("minecraft:spawner", SPAWNER_POS);

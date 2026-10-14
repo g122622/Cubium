@@ -19,7 +19,7 @@
 //     分歧（vanilla 由视线决定，旧实现由点击面决定）。修复后严格对齐 vanilla BarrelBlock.java:97-99。
 //   - getComparatorInputOverride（:121-134）：从 BarrelEntity::getComparatorSignal 读信号
 //     （空木桶 filledSlots=0→返 0，BarrelEntity.cpp:107-109）。
-//   - onBlockActivated（:136-164）：openContainer + barrel->openContainer（OPEN 翻转在 BarrelEntity
+//   - 方块侧交互（:136-164）：openContainer + barrel->openContainer（OPEN 翻转在 BarrelEntity
 //     _updateBlockState，:133-144）。SimulatedPlayer 无 GUI 放物品 API，OPEN 翻转不可测，但
 //     setBlockWithStates 可写 open=true 验证 state 可读。
 //   - onBlockRemoved（:166-187）：override，遍历 BarrelEntity inventory removeItemNoUpdate 掉落
@@ -28,7 +28,7 @@
 //   - 物品注册：BlockItemRegistry.cpp:341 registerSimpleBlock(BARREL, "barrel")。物品已注册，可放置。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 barrel 物品点击
-//   stone → onBlockActivated 基类 Pass（stone 非木桶，targetBlock 非 barrel 走基类 Pass）→ fallback
+//   stone → 方块侧交互 基类 Pass（stone 非木桶，targetBlock 非 barrel 走基类 Pass）→ fallback
 //   Item.useOn → BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext（playerYaw/playerPitch 来自
 //   SimulatedPlayer yaw()/pitch()，:325）→ getStateForPlacement facing=opposite(getNearestLookingDirection)
 //   → setBlockState 放木桶（hasBlockEntity 触发 BlockEntity 创建）。创造模式 barrel 不消耗。
@@ -79,14 +79,14 @@
 // 8. 放置是 useItemOnBlock 同步触发（BlockItem::tryPlace 同步 setBlockState），useItemOnBlock 返回后
 //    即可读 state。留 maxTicks 余量防时序。
 //
-// 不测「容器打开/OPEN 翻转」：onBlockActivated openContainer + BarrelEntity openContainer 翻 OPEN，
+// 不测「容器打开/OPEN 翻转」：方块侧交互 openContainer + BarrelEntity openContainer 翻 OPEN，
 //   但 SimulatedPlayer 无 GUI 放物品 API，openContainer 链路虽触发但 OPEN 翻转时序不可靠，且无法验证
 //   内容物。OPEN state 用 setBlockWithStates 写 open=true 验证可读（场景 4）。TODO: 待脚本侧 BlockEntity
 //   容器操作 API 补全后补 barrel_open_state_toggles_on_interact。
 // 不测「比较器信号强度」：需比较器贴木桶 + 读输出信号，链路复杂且 GameTest 读红石信号 API 受限。
 //   空木桶信号=0 已由 getComparatorInputOverride 逻辑保证（BarrelEntity.cpp:107-109）。TODO: 待比较器
 //   读容器信号测试范式完善后补 barrel_comparator_signal（含内容物场景）。
-// 不测「内容物破坏掉落」：SimulatedPlayer 无 GUI 放物品 API，无法向木桶槽位放入物品（onBlockActivated
+// 不测「内容物破坏掉落」：SimulatedPlayer 无 GUI 放物品 API，无法向木桶槽位放入物品（方块侧交互
 //   openContainer 仅打开 GUI，SimulatedPlayer 无后续放入操作），无法构造有内容物的木桶。场景 5 仅测
 //   空木桶破坏不崩溃。TODO: 待脚本侧 BlockEntity 容器操作 API 补全后补 barrel_drops_contents_when_broken。
 // 不测「猪灵敌对/村民转职」：涉 AI 寻路/认领链路，非确定，跳过。
@@ -277,7 +277,7 @@ function barrelFacingUsesLookingDirectionNotClickedFace(test: Test): void {
 //
 // 此场景验证 wiki「木桶 FACING（6 向含 Up/Down）/ OPEN 双 state」可读写：setBlockWithStates 预置
 //   facing=down（6 向中非水平方向，验证 6 向 state 类型）,open=false 后 getState 双 state 均可读。
-//   不测「OPEN 翻转」（onBlockActivated openContainer，SimulatedPlayer 无 GUI 放物品，跳过）。
+//   不测「OPEN 翻转」（方块侧交互 openContainer，SimulatedPlayer 无 GUI 放物品，跳过）。
 function barrelStateReadable(test: Test): void {
     placeStoneSupport(test);
     // setBlockWithStates 预置 facing=down,open=false（6 向 facing 含 Up/Down，验证非水平方向 state）。
@@ -298,7 +298,7 @@ function barrelStateReadable(test: Test): void {
 // 判定：getState("facing")==="east" 且 getState("open")===true（验证 open=true 非默认值可读写）。
 //
 // 此场景验证 OPEN state 非默认值（true）可读写：setBlockWithStates 预置 open=true（打开态，非默认 false）
-//   后 getState 可读。open=true 在生产中由 onBlockActivated openContainer 翻转，本测试用 setBlockWithStates
+//   后 getState 可读。open=true 在生产中由 方块侧交互 openContainer 翻转，本测试用 setBlockWithStates
 //   直接写验证 state 可读性（绕过 GUI 链路）。
 function barrelOpenStateReadable(test: Test): void {
     placeStoneSupport(test);

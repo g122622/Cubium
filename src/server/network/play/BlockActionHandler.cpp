@@ -73,11 +73,6 @@ namespace mc::server::net {
 
 namespace {
 
-[[nodiscard]] bool isCraftingTableState(const BlockState* state)
-{
-    return state != nullptr && state->blockLocation() == ResourceLocation("minecraft:crafting_table");
-}
-
 /// 对齐 vanilla ServerGamePacketListenerImpl.java:1339-1340：无论放置成功失败，
 /// 定向给操作玩家发命中方块 + 放置目标位置（blockpos.relative(direction)）的
 /// BlockUpdate，作为客户端预测状态机的硬同步兜底。立即定向发送，不走批量入队。
@@ -345,98 +340,41 @@ void BlockActionHandler::handleBlockPlacementPacket(PlayerId playerId, const mc:
     PlacementBlockUpdateGuard guard{m_server, playerId, placementWorld, pos, face};
     (void)guard;
 
-    const auto tryOpenCrafting = [this, playerId, pos, clickedState]() {
-        return isCraftingTableState(clickedState) && m_server.tryOpenCraftingContainer(playerId, pos);
-    };
-
+    // 统一右键派发（对齐 vanilla ServerPlayerGameMode.useItemOn(:333-386)）：
+    // 旁观者菜单 → isSecondaryUseActive 门控 → Block::useItemOn → Block::useWithoutItem
+    // → Item::useOn。矿车/骨粉/桶/锄头等非 block-item 由最后一步生效；箱子/熔炉等
+    // 容器由 useWithoutItem 打开；潜行时跳过方块侧直接落到 Item::useOn。
     ItemStack heldStack = m_server.getHeldItemForPlacement(playerId);
-    if (heldStack.isEmpty()) {
-        if (!tryOpenCrafting()) {
-            const auto useResult =
-                m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
-            // 交互被拒时必须留痕：这条链路（前置校验 → BlockInteractionManager → 方块
-            // onBlockActivated）此前每一层都可以静默 return，真机上表现为「右键毫无反应、
-            // 日志里什么都没有」，无法定位是哪一层拒的。
-            if (useResult.failed() || !useResult.value().success) {
-                spdlog::warn("Block use not handled for player {} at {}: {}",
-                    playerId,
-                    pos.toString(),
-                    useResult.failed() ? useResult.error().message() : useResult.value().message);
-            }
-            // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
-            if (useResult.success() && useResult.value().success && placementPlayer != nullptr) {
-                _triggerAnyBlockUse(*placementPlayer);
-            }
-        }
+    const auto useResult = m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
+    if (useResult.failed() || !useResult.value().success) {
+        // 交互被拒时必须留痕：这条链路（前置校验 → BlockInteractionManager → 方块/物品回调）
+        // 此前每一层都可以静默 return，真机上表现为「右键毫无反应、日志里什么都没有」。
+        spdlog::warn("Block use not handled for player {} at {}: {}",
+            playerId,
+            pos.toString(),
+            useResult.failed() ? useResult.error().message() : useResult.value().message);
         return;
-    }
-
-    // 冷却门控（对齐 MC Java 1.21.11 ServerPlayerGameMode.useItemOn:366）：
-    // 物品在冷却中时不派发 useOn/useItem，否则破盾等冷却形同虚设。需取 Player 实体
-    // 调 hasItemCooldown（ServerPlayer 是网络会话对象，无冷却接口）。
-    if (playerWorld != nullptr) {
-        Player* playerEntity = m_server.playerEntityManager().getPlayerEntity(playerId, *playerWorld);
-        if (playerEntity != nullptr) {
-            if (const Item* heldItemForCooldown = heldStack.getItem();
-                heldItemForCooldown != nullptr && playerEntity->hasItemCooldown(heldItemForCooldown)) {
-                return;
-            }
-        }
-    }
-
-    const Item* heldItem = heldStack.getItem();
-    const bool holdingBlockItem =
-        heldItem != nullptr && BlockItemRegistry::instance().getBlockItemByItemId(heldItem->itemId()) != nullptr;
-
-    if (!holdingBlockItem) {
-        if (tryOpenCrafting()) {
-            return;
-        }
-        // ② vanilla useWithoutItem（项目 onBlockActivated）。方块交互已处理则短路，不派发 ③。
-        auto useResult = m_server.blockInteractionManager().handleBlockUse(playerId, pos, hand, hitPosition, face);
-        if (useResult.success() && useResult.value().success) {
-            // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
-            if (placementPlayer != nullptr) {
-                _triggerAnyBlockUse(*placementPlayer);
-            }
-            return;
-        }
-        // ③ vanilla Item.useOn（矿车/骨粉/桶/火把/锄头等非 block-item 靠此步生效）。
-        // handleItemUseOn 内部经 InventoryManager.syncToClient 已同步物品栏，外层无需再同步。
-        const auto itemResult =
-            m_server.blockInteractionManager().handleItemUseOn(playerId, pos, hitPosition, face, hand, heldStack);
-        // 对齐 vanilla :1319-1321 consumesAction 时触发 DEFAULT_BLOCK_USE。
-        // ItemUseResult::success 表示 onItemUse 返回 Success/Consume（即 consumesAction）。
-        if (itemResult.success() && itemResult.value().success && placementPlayer != nullptr) {
-            _triggerAnyBlockUse(*placementPlayer);
-        }
-        return;
-    }
-
-    auto interactionResult =
-        m_server.blockInteractionManager().handleBlockPlacement(playerId, pos, hitPosition, face, heldStack);
-
-    if (interactionResult.success() && interactionResult.value().blockPlaced &&
-        interactionResult.value().itemConsumed) {
-        const i32 selectedSlot = m_server.getSelectedHotbarSlot(playerId);
-        ItemStack updatedStack = heldStack;
-        updatedStack.shrink(1);
-        m_server.setInventoryItem(playerId, selectedSlot, updatedStack);
-        m_server.syncPlayerInventory(playerId);
-    }
-
-    // 对齐 vanilla ServerGamePacketListenerImpl.java:1329-1332 swingSource==SERVER 时 swing。
-    // 放置成功后主动挥臂并广播给其他玩家。本项目 BlockPlacementResult 不携带 swingSource，
-    // 当前用放置成功近似。
-    // TODO: 待补齐 ActionResultType/swingSource 字段后精确判断 swing 时机。
-    if (interactionResult.success() && interactionResult.value().blockPlaced && placementPlayer != nullptr) {
-        placementPlayer->swing(hand);
     }
 
     // 对齐 vanilla ServerGamePacketListenerImpl.java:1319-1321 consumesAction 时触发
-    // DEFAULT_BLOCK_USE（任意方块使用成就）。放置成功即视为 consumesAction。
-    if (interactionResult.success() && interactionResult.value().blockPlaced && placementPlayer != nullptr) {
+    // ANY_BLOCK_USE（任意方块使用成就）。
+    if (placementPlayer != nullptr) {
         _triggerAnyBlockUse(*placementPlayer);
+    }
+
+    // 对齐 vanilla :1329-1332 swingSource == SERVER 时服务端主动挥臂并广播。
+    // Success/Consume（客户端已本地预测）不在此重复挥臂。
+    if (useResult.value().actionResult == ActionResultType::SuccessServer ||
+        useResult.value().actionResult == ActionResultType::SuccessServerWithoutItem) {
+        if (placementPlayer != nullptr) {
+            placementPlayer->swing(hand);
+        }
+    }
+
+    // 物品消耗后同步物品栏。Block::useItemOn / useWithoutItem 直接改权威槽，Item::useOn
+    // 由 handleItemUseOn 内部同步；此处只在需要时补一次同步，避免重复下发。
+    if (useResult.value().itemConsumed) {
+        m_server.syncPlayerInventory(playerId);
     }
 }
 

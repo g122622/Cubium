@@ -121,11 +121,10 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     // ========== 形状 ==========

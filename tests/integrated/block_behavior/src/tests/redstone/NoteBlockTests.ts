@@ -6,17 +6,17 @@
 //   仅播放不升调。
 //
 // C++ 链路：NoteBlock（redstone/NoteBlock.cpp）有 NOTE_0_24 + INSTRUMENT + POWERED state。
-//   - onBlockActivated（本次补全）：cycleNote(note+1)%25
+//   - 方块侧交互（本次补全）：cycleNote(note+1)%25
 //     升半音 → setBlockState 写回 + triggerNote 播放新音高 → return Success。不检查手持物（空手/任意
 //     物品右键均升调），不检查 mayBuild（useWithoutItem 无建造权限守卫）。
-//     此前 NoteBlock 缺 onBlockActivated override（基类返 Pass），右键无法升调——生产缺失行为，已补全。
+//     此前 NoteBlock 缺 方块侧交互 override（基类返 Pass），右键无法升调——生产缺失行为，已补全。
 //   - cycleNote（:182）：(getNote+1) % NOTE_RANGE(25) 循环升半音。
 //   - NOTE state 名 "note"（Properties.hpp NOTE_0_24 = IntegerProperty("note",0,24)）。
 //   - triggerNote：根据下方方块材质决定乐器 + 播放音效/粒子（音效不可测，本组只断言 note state）。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。音符盒 onBlockActivated 始终返 Success（不检查手持物/mayBuild），短路不 fallback。
-//   用手持 stick 触发（onBlockActivated 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。音符盒 方块侧交互 始终返 Success（不检查手持物/mayBuild），短路不 fallback。
+//   用手持 stick 触发（方块侧交互 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
 //   ItemStack 形参；useWithoutItem 是空手路径，Cubium useItemOnBlock 强制要 ItemStack，用 stick
 //   等价模拟空手右键升调）。
 //
@@ -28,7 +28,7 @@
 // 1. 音符盒完整方块（Material::ROCK），放 (3,2,1)（minecraft:note_block 默认 note=0, instrument=harp,
 //    powered=false）。下方 (3,1,1) stone 支撑（非必需，音符盒无自毁，但贴近真实放置 + 与惯例一致）。
 // 2. 读 note state 用 getState("note" as any) 绕过 BlockStateSuperset 白名单。
-// 3. onBlockActivated 不检查手持物/mayBuild，用 stick 触发（stick 不被消耗，可重复使用）。
+// 3. 方块侧交互 不检查手持物/mayBuild，用 stick 触发（stick 不被消耗，可重复使用）。
 // 4. 升调 setBlockState(flags=3) 触发 neighborChanged，但无红石信号 isPowered 不变，note state 稳定可断言。
 // 5. 循环场景 25 次 useItemOnBlock：note 0→1→...→24→0。第 25 次 (24+1)%25=0 复位。每次 new ItemStack
 //    重新设入选中槽（防选中槽漂移，与中继器/重生锚范式一致）。
@@ -39,7 +39,7 @@
 // 不测「红石信号触发播放」：涉红石传导 + triggerNote 音效（不可测），跳过。
 // 不测「左键 attack 播放不升调」：SimulatedPlayer.attack 为 stub（MethodNotImplemented），不可测。
 //   TODO: 待 attack API 就绪后补。
-// 不测「上方方块决定乐器（NOTE_BLOCK_TOP_INSTRUMENTS）」：Cubium onBlockActivated 简化统一升调，
+// 不测「上方方块决定乐器（NOTE_BLOCK_TOP_INSTRUMENTS）」：Cubium 方块侧交互 简化统一升调，
 //   未实现 useItemOn 的 TOP_INSTRUMENTS+顶面 PASS 分支，跳过。TODO: 待标签/朝向守卫完善后补。
 //
 // 跨服务端：音符盒 note_block 方块名两端一致，note state 名两端一致，右键升调 0→1→...→24→0 循环
@@ -47,7 +47,7 @@
 //   两端均可放；右键升 note 行为两端可对比。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_音符盒.txt#奏乐（每次使用提高半音，25 音循环复位）
-// Ref: NoteBlock.cpp（onBlockActivated cycleNote+triggerNote→Success；cycleNote (note+1)%25）
+// Ref: NoteBlock.cpp（方块侧交互 cycleNote+triggerNote→Success；cycleNote (note+1)%25）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支）
 
 import * as GameTest from "@minecraft/server-gametest";
@@ -77,7 +77,7 @@ function placeNoteBlock(test: Test): void {
 // 场景 1：右键升调一次——放音符盒（note=0）+ stick useItemOnBlock → note=1，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 音符盒 note=0。
-// onBlockActivated：cycleNote (0+1)%25=1 → setBlockState 写回 + triggerNote 播放 → Success。
+// 方块侧交互：cycleNote (0+1)%25=1 → setBlockState 写回 + triggerNote 播放 → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），note === 1（升调一次）。
 function noteBlockPitchRaisesOnUse(test: Test): void {
@@ -87,7 +87,7 @@ function noteBlockPitchRaisesOnUse(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const stick = new ItemStack("minecraft:stick", 1);
 
-    // 对音符盒 useItemOnBlock stick → onBlockActivated cycleNote (0+1)%25=1 → Success。
+    // 对音符盒 useItemOnBlock stick → 方块侧交互 cycleNote (0+1)%25=1 → Success。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },

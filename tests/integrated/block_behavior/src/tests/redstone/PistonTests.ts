@@ -30,7 +30,7 @@
 //     方块注册 RedstoneBlocks.cpp:310。物品与方块均已注册，useItemOnBlock 放置链路可用。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 piston 物品点击 stone →
-//   onBlockActivated（stone 非活塞，targetBlock 走基类 Pass）→ fallback Item.useOn → BlockItem::onItemUse
+//   方块侧交互（stone 非活塞，targetBlock 走基类 Pass）→ fallback Item.useOn → BlockItem::onItemUse
 //   → tryPlace → 构造 BlockItemUseContext → getStateForPlacement facing=opposite(getNearestLookingDirection),
 //   extended=false → setBlockState 放活塞。创造模式不消耗物品。
 //

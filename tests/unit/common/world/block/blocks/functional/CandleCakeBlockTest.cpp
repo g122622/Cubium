@@ -41,6 +41,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -635,7 +636,7 @@ TEST_F(CandleCakeBlockTest, IsLit_Lit_ReturnsTrue)
 }
 
 // ============================================================================
-// onBlockActivated 食物喂养测试
+// useBlockInteraction 食物喂养测试
 // ============================================================================
 
 namespace {
@@ -792,7 +793,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_IncreasesFoodLevel)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*cakeBlock, state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 应该成功吃蛋糕
     EXPECT_EQ(result, ActionResultType::Success);
@@ -824,7 +825,7 @@ TEST_F(CandleCakeBlockInteractionTest, EatCake_FullHunger_ReturnsPass)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*cakeBlock, state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 满饥饿值 → Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -855,7 +856,7 @@ TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
         BlockRaycastResult::hit(Vector3(5.5f, 10.7f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState().with(BlockStateProperties::LIT(), true);
-    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*cakeBlock, state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 应该成功熄灭
     EXPECT_EQ(result, ActionResultType::Success);
@@ -884,7 +885,7 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CanEatCake)
     //   return this.abilities.invulnerable || ignoreHunger || this.foodData.needsFood();
     // 创造模式 abilities.invulnerable=true，故创造模式可进食蛋糕（与生存模式饱食时不同）。
     // 此前测试误假设创造模式不能吃蛋糕（期望 Pass），与 vanilla 相悖——创造模式 canEat 返回 true，
-    // onBlockActivated 不会在 canEat 门控处返回 Pass，而是执行吃蛋糕逻辑并返回 Success。
+    // useBlockInteraction 不会在 canEat 门控处返回 Pass，而是执行吃蛋糕逻辑并返回 Success。
     Player player(EntityInstanceId(4), "TestPlayer4", mc::test::testEcsRegistry());
     player.setWorld(&m_world);
     player.setGameMode(GameMode::Creative);
@@ -893,7 +894,7 @@ TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CanEatCake)
         BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
 
     const BlockState& state = cakeBlock->defaultState();
-    auto result = cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*cakeBlock, state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
 
     // 创造模式可吃蛋糕 → Success（执行吃蛋糕逻辑：进食 + 替换为已咬蛋糕 + 掉落蜡烛）
     EXPECT_EQ(result, ActionResultType::Success);

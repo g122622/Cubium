@@ -290,14 +290,9 @@ i32 RedstoneComparatorBlock::_calculateInputStrength(IWorld& world, const BlockP
     return input;
 }
 
-BlockActionResult RedstoneComparatorBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult RedstoneComparatorBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 冒险/旁观模式下无建造权限时，禁止切换比较器模式

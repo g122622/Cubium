@@ -104,14 +104,9 @@ std::unique_ptr<BlockEntity> ShulkerBoxBlock::createBlockEntity(const BlockPos& 
 
 // ========== 交互 ==========
 
-BlockActionResult ShulkerBoxBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult ShulkerBoxBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 客户端只返回成功
@@ -268,6 +263,16 @@ AxisAlignedBB ShulkerBoxBlock::getOpenBoundingBox(const BlockPos& pos, Direction
 bool ShulkerBoxBlock::isShulkerBox(const Block& block)
 {
     return dynamic_cast<const ShulkerBoxBlock*>(&block) != nullptr;
+}
+
+std::optional<ContainerType> ShulkerBoxBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::ShulkerBox;
 }
 
 } // namespace blocks

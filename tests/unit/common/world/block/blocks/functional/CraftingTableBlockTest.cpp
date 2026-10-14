@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
@@ -211,7 +212,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsSuc
     // 执行交互
     const auto& state = craftingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = craftingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*craftingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -234,7 +235,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensConta
     // 执行交互
     const auto& state = craftingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = craftingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*craftingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // 服务端应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -260,7 +261,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavior)
     // 使用副手执行交互
     const auto& state = craftingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = craftingTable_->onBlockActivated(state, world, pos_, player, Hand::OffHand, hit);
+    auto result = mc::test::useBlock(*craftingTable_, state, world, pos_, player, Hand::OffHand, hit);
 
     // 副手交互应与主手行为一致
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -296,7 +297,7 @@ TEST_F(CraftingTableBlockInteractionTest, OnBlockActivated_OpenContainerFails_Re
     // 执行交互
     const auto& state = craftingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = craftingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*craftingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // openContainer 返回 false 时应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);

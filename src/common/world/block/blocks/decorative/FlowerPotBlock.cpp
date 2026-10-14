@@ -110,7 +110,8 @@ BlockState FlowerPotBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
+BlockActionResult FlowerPotBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -119,7 +120,7 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
 {
     MC_UNUSED(hit);
 
-    const ItemStack& heldStack = player.getHeldItem(hand);
+    const ItemStack& heldStack = stack;
 
     // 分支1：玩家手持物品右键花盆（对应 MC Java useItemOn）
     if (!heldStack.isEmpty()) {
@@ -132,7 +133,7 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
 
         if (targetPot == nullptr) {
             // 手持物品不是可盆栽植物，交给空手交互处理器
-            return ActionResultType::Pass;
+            return ActionResultType::TryEmptyHandInteraction;
         }
 
         // 已有内容物的花盆：消费物品但不执行动作（与 MC Java 一致）
@@ -151,7 +152,7 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
 
         // 消耗物品（玩家手持物品数量 -1）
-        ItemStack& mutableHeld = player.getHeldItem(hand);
+        ItemStack& mutableHeld = stack;
         mutableHeld.shrink(1);
         return ActionResultType::Success;
     }
@@ -195,6 +196,18 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
         }
     }
     return ActionResultType::Success;
+}
+
+BlockActionResult FlowerPotBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 ItemStack FlowerPotBlock::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const

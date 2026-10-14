@@ -6,7 +6,7 @@
 //
 // C++ 链路：CopperGolemStatueBlock（copper/CopperGolemStatueBlock.cpp）有 HORIZONTAL_FACING +
 //   COPPER_GOLEM_POSE + WATERLOGGED 三个 state。
-//   - onBlockActivated（:153-226）：取手持物，若为斧头走斧头分支（基础变体生成铜傀儡 / 涂蜡变体 Pass
+//   - 方块侧交互（:153-226）：取手持物，若为斧头走斧头分支（基础变体生成铜傀儡 / 涂蜡变体 Pass
 //     让 AxeItem 去蜡）；非斧头（含空手）→ updatePose 循环切换姿态 → Success。
 //   - updatePose（:274-293）：getNextPose(current) 算下一姿态，state.with(COPPER_GOLEM_POSE, nextPose)
 //     setBlockState(flags=3) + 音效 + BLOCK_CHANGE 事件。
@@ -17,7 +17,7 @@
 //   - pose 枚举字符串（EnumProperty.cpp:931-944）：standing/sitting/running/star。
 //
 // 派发链路：interactWithBlock（空手右键）已补全（ScriptSimulatedPlayer.cpp），复用 useItemOnBlock(空
-//   ItemStack)，空堆只走 ① Block.use(onBlockActivated)，不走 ② Item.useOn。铜傀儡像 onBlockActivated
+//   ItemStack)，空堆只走 ① Block.use(方块侧交互)，不走 ② Item.useOn。铜傀儡像 方块侧交互
 //   非斧头分支 updatePose 返 Success，短路不 fallback。需用新 spawn 的 SimulatedPlayer（选中槽为空）
 //   确保空手——若先前 useItemOnBlock 设过选中槽物品会污染空手判定（同 CandleTests 场景3 模式）。
 //
@@ -33,9 +33,9 @@
 //    枚举名字符串（standing/sitting/running/star）。
 // 3. 空手右键用 interactWithBlock（Cubium 补全的 SimulatedPlayer 方法，类型未声明，用 as any 绕过）。
 //    用新 spawn 的 SimulatedPlayer 确保选中槽为空（空手），避免先前操作污染。
-// 4. 创造模式 SimulatedPlayer mayBuild=true，满足 onBlockActivated 无额外前置（铜傀儡像不检查 mayBuild）。
+// 4. 创造模式 SimulatedPlayer mayBuild=true，满足 方块侧交互 无额外前置（铜傀儡像不检查 mayBuild）。
 //
-// 不测「斧头敲击生成铜傀儡」：走 onBlockActivated 斧头分支 → BlockEntity.removeStatue → spawnEntity
+// 不测「斧头敲击生成铜傀儡」：走 方块侧交互 斧头分支 → BlockEntity.removeStatue → spawnEntity
 //   生成铜傀儡 + setBlockState(air)。涉铜傀儡实体完整性 + spawnEntity 链路，复杂度高，跳过。
 //   TODO: 待铜傀儡实体 spawn 链路验证后补 copper_golem_statue_spawns_golem_with_axe。
 // 不测「比较器信号 1-4」：需放置比较器方块 + 红石信号判定，复杂度高，且 pose state 已断言姿势切换。
@@ -47,10 +47,10 @@
 // 跨服务端：铜傀儡像 copper_golem_statue 方块名两端一致（Java 1.21.9/基岩 1.21.111 加入），pose state
 //   行为与 vanilla 一致。空手右键姿势循环两端可对比。
 //   注意：基岩 BDS 无 interactWithBlock（Cubium 补全），场景在基岩侧为 one-sided（仅 Cubium 跑）。
-//   但姿势循环行为本身（onBlockActivated 非斧头 updatePose）两端语义一致，Cubium 验证即可。
+//   但姿势循环行为本身（方块侧交互 非斧头 updatePose）两端语义一致，Cubium 验证即可。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\other_铜傀儡像.txt#姿势（空手使用键切换 4 种姿势）
-// Ref: CopperGolemStatueBlock.cpp（onBlockActivated 非斧头 updatePose；getNextPose Standing→Sitting→Running→Star→Standing）
+// Ref: CopperGolemStatueBlock.cpp（方块侧交互 非斧头 updatePose；getNextPose Standing→Sitting→Running→Star→Standing）
 // Ref: Properties.hpp（CopperGolemPose 枚举 Standing/Sitting/Running/Star）
 // Ref: EnumProperty.cpp（pose 字符串 standing/sitting/running/star）
 // Ref: SimulatedPlayer.cpp（interactWithBlock 空手右键绑定，复用 useItemOnBlock 空堆路径）
@@ -81,7 +81,7 @@ function placeStatue(test: Test): void {
 // 场景 1：单次切换——铜傀儡像（standing）+ interactWithBlock（空手右键）→ pose 翻 sitting，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 铜傀儡像 pose=standing。
-// interactWithBlock（空手右键）→ onBlockActivated：heldItem 空手（非斧头）→ updatePose →
+// interactWithBlock（空手右键）→ 方块侧交互：heldItem 空手（非斧头）→ updatePose →
 //   getNextPose(Standing)=Sitting → with(COPPER_GOLEM_POSE, Sitting) setBlockState → Success。
 //
 // 判定：interactWithBlock 返 true（Success），pose === "sitting"（从 standing 翻到 sitting）。
@@ -92,7 +92,7 @@ function statuePoseChangesOnInteract(test: Test): void {
     // 新 spawn SimulatedPlayer 确保选中槽为空（空手），避免先前操作污染。
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
 
-    // interactWithBlock 空手右键铜傀儡像 → onBlockActivated 非斧头 → updatePose(Standing→Sitting) → Success。
+    // interactWithBlock 空手右键铜傀儡像 → 方块侧交互 非斧头 → updatePose(Standing→Sitting) → Success。
     // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
     const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
         .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);

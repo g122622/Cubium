@@ -444,14 +444,9 @@ std::unique_ptr<BlockEntity> BellBlock::createBlockEntity(const BlockPos& pos)
 // 交互
 // ============================================================================
 
-BlockActionResult BellBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult BellBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
 
     // 参考: net.minecraft.world.level.block.BellBlock#useWithoutItem
     if (world.isClientSide()) {

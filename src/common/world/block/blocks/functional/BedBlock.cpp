@@ -334,15 +334,10 @@ bool BedBlock::_hasStandingSpaceForStandUp(const IWorld& world, const BlockPos& 
     return canStand1 && canStand2;
 }
 
-BlockActionResult BedBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult BedBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
 
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 获取维度信息

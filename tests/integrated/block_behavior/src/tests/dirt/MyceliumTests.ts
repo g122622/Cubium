@@ -194,7 +194,7 @@ function myceliumDecaysWhenCovered(test: Test): void {
 
 // 菌丝体无法被锄犁成耕地（wiki 转变：菌丝体无法被锄犁成耕地，与灰化土相同）。
 // 布局：(3,2,1) 菌丝体，上方 (3,3,1) air。
-// useItemOnBlock ① onBlockActivated（mycelium 基类 Pass）→ ② fallback HoeItem.onItemUse：
+// useItemOnBlock ① 方块侧交互（mycelium 基类 Pass）→ ② fallback HoeItem.onItemUse：
 //   getTilledBlock(mycelium)=nullptr（MYCELIUM 不在 _getTillingMap 中）→ 返 Pass。
 //
 // 判定：useItemOnBlock 返 false（Pass），原位 (3,2,1) 仍为 mycelium（未变 farmland）。

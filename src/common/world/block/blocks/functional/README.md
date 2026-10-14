@@ -79,7 +79,7 @@
 │   ├── 4种附着方式（Floor/Ceiling/SingleWall/DoubleWall）
 │   ├── 状态属性 HORIZONTAL_FACING + BELL_ATTACHMENT + POWERED
 │   ├── 16种状态碰撞箱（4朝向×4附着）
-│   ├── onBlockActivated/onProjectileHit/neighborChanged 敲钟入口
+│   ├── useWithoutItem/onProjectileHit/neighborChanged 敲钟入口
 │   ├── attemptToRing/onHit/_isProperHit 敲击判定
 │   └── 关联 BellBlockEntity（摇晃动画+共振+发光）
 ├── JukeboxBlock
@@ -89,20 +89,20 @@
 ├── TrailsBlocks
 │   ├── ChiseledBookshelfBlock(红石比较器检测)
 │   ├── DecoratedPotBlock(IWaterLoggable, DecoratedPotBlockEntity方块实体)
-│   │   ├── onBlockActivated: 手持物品放入罐中(+1，创造模式不消耗)/空手触发负摇晃动画
+│   │   ├── useItemOn: 手持物品放入罐中(+1，创造模式不消耗)/空手触发负摇晃动画
 │   │   ├── playerWillDestroy: 手持BREAKS_DECORATED_POTS标签物品(工具/武器)时设为CRACKED状态(精准采集附魔可阻止碎裂)
 │   │   ├── onProjectileHit: 投射物命中时总是设为CRACKED状态并破坏(不受精准采集保护)
 │   │   ├── onBlockRemoved: CRACKED状态掉落4个陶片/砖块物品；非CRACKED状态掉落罐内存储物品(陶罐物品由战利品表处理)
 │   │   ├── getCloneItemStack: 中键选取返回带sherds数据的陶罐物品
 │   │   ├── getComparatorInputOverride: 红石比较器信号输出
-│   │   ├── onBlockActivated: 物品插入后通过RedstoneSystem通知比较器更新
+│   │   ├── useItemOn: 物品插入后通过RedstoneSystem通知比较器更新
 │   │   └── 摇晃动画(Positive=放入/Negative=空手)触发
 │   ├── BrushableBlock(FallingBlock子类，构造接收 brushSound/brushCompletedSound 音效绑定)
 │   └── SnifferEggBlock(onBlockAdded+scheduleTick孵化，hatchBoost加速)
 ├── CandleCakeBlock(→ AbstractCandleBlock)
 │   ├── 关联蜡烛方块（m_candleBlock，食用蛋糕后放置对应蜡烛）
 │   ├── LIT 属性（仅点燃状态，无 CANDLES/BUITES）
-│   ├── onBlockActivated: 空手点击上半部熄灭 / 其他情况吃蛋糕→转为 CakeBlock + 掉落蜡烛物品
+│   ├── useItemOn: 空手点击上半部熄灭 / 其他情况吃蛋糕→转为 CakeBlock + 掉落蜡烛物品
 │   ├── 食用蛋糕增加饥饿值（foodStats().addStats(2, 0.1f)），与 MC Java 一致
 │   ├── 比较器输出固定14（hasComparatorInputOverride）
 │   └── 亮度固定3（单根蜡烛）
@@ -171,7 +171,7 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
 
             ## #2. ComposterBlock 堆肥延迟、碰撞形状与漏斗交互
 
-            等级7→8的转换需要20 tick延迟，通过 `TickManager` 调度。不要在 `onBlockActivated` 中直接产出骨粉。
+            等级7→8的转换需要20 tick延迟，通过 `TickManager` 调度。不要在 `useItemOn` / `useWithoutItem` 中直接产出骨粉。
 
             碰撞形状注意事项：
             - `getShape()` 根据等级返回不同的外壁形状（底板 + 四面墙壁），底板高度随等级增加
@@ -276,7 +276,7 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
 
           ## #11. 方块交互统计（awardCustomStat）
 
-          以下方块在 `onBlockActivated` 中调用 `player.awardCustomStat()` 记录交互统计，常量定义在 `common/stats/Stats.hpp`：
+          以下方块在 `useItemOn` / `useWithoutItem` 中调用 `player.awardCustomStat()` 记录交互统计，常量定义在 `common/stats/Stats.hpp`：
 
           | 方块 | 统计常量 | 状态 |
           |------|----------|------|
@@ -302,7 +302,7 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
           | EnderChest (EnderChestBlock) | `OPEN_ENDERCHEST` | ✅ 已集成（容器打开待 PlayerEnderChestInventory 实现） |
 
           添加新的方块统计时，请确保：
-          1. 在 `onBlockActivated` 成功打开容器/交互后调用 `player.awardCustomStat(ResourceLocation(stats::XXX), 1)`
+          1. 在 `useItemOn` / `useWithoutItem` 成功打开容器/交互后调用 `player.awardCustomStat(ResourceLocation(stats::XXX), 1)`
           2. 包含头文件 `#include "common/stats/Stats.hpp"`
           3. 对应的统计常量已在 `common/stats/Stats.hpp` 和 `StatRegistry` 中注册
 
@@ -313,7 +313,7 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
           关键行为：
           - **不继承 CakeBlock**：CandleCakeBlock 没有 BITES 属性，只有 LIT 属性。食用后不是逐步减少咬数，而是直接替换为 CakeBlock（7片完整蛋糕）+ 掉落蜡烛物品
           - **关联蜡烛方块**：构造时传入 `candleBlock` 参数（`m_candleBlock`），食用蛋糕后在该位置放置对应颜色的蜡烛方块
-          - **交互判定**：`onBlockActivated` 通过命中位置 Y 坐标判断点击区域——上半部为蜡烛区域（空手熄灭），下半部为蛋糕区域（食用）
+          - **交互判定**：`useItemOn` / `useWithoutItem` 通过命中位置 Y 坐标判断点击区域——上半部为蜡烛区域（空手熄灭），下半部为蛋糕区域（食用）
           - **比较器信号**：固定输出14（`hasComparatorInputOverride` 返回 true，`getComparatorInputOverride` 返回14）
           - **亮度**：点燃时固定为3（单根蜡烛），与 CandleBlock 的 `3 * CANDLES` 公式不同
           - **标签**：属于 `CANDLE_CAKES` 标签而非 `CANDLES` 标签
@@ -348,7 +348,7 @@ void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockSt
           - Ceiling：任意水平方向 → 有效
 
           **敲钟入口**：
-          - 玩家右键：`onBlockActivated` → `onHit(hit, player, isProjectile=false)`
+          - 玩家右键：`useItemOn` / `useWithoutItem` → `onHit(hit, player, isProjectile=false)`
           - 投射物击中：`onProjectileHit` → 从 `ProjectileEntity::getShooter()` 提取 Player → `onHit(hit, player, isProjectile=true)`
           - 红石上升沿：`neighborChanged` 检测 `RedstonePower::isPowered` 从 false→true → `attemptToRing(world, pos, FACING)`
           - `onHit` 判定 isProperHit 后调用 `attemptToRing`，成功则 `awardCustomStat(BELL_RING, 1)`

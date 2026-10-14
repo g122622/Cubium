@@ -243,7 +243,8 @@ i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorl
     return 0;
 }
 
-BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
+BlockActionResult DecoratedPotBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -255,24 +256,24 @@ BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
 
     // 副手不处理
     if (hand == Hand::OffHand) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 获取方块实体
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::DecoratedPot) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
     auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(blockEntity);
 
     // 客户端：直接返回成功以播放动画
     if (world.isClientSide()) {
-        ItemStack heldItem = player.getHeldItem(hand);
+        ItemStack heldItem = stack;
         return heldItem.isEmpty() ? ActionResultType::Success : ActionResultType::Success;
     }
 
     // === 服务端逻辑 ===
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     ItemStack potItem = potEntity->getItem();
 
     if (!heldItem.isEmpty()) {
@@ -343,6 +344,18 @@ BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
     world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
 
     return ActionResultType::Success;
+}
+
+BlockActionResult DecoratedPotBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)

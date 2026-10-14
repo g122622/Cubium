@@ -168,7 +168,7 @@ function trapdoorReopensWhenRepowered(test: Test): void {
 // 场景 4：木活板门手动打开——活板门（open=false）+ interactWithBlock（空手右键）→ OPEN 翻 true。
 //
 // 布局：(3,1,1) stone + (3,2,1) 橡木活板门（open=false）。
-// interactWithBlock（空手右键）→ onBlockActivated：m_isIron=false（木活板门）→ toggle(OPEN=true) → Success。
+// interactWithBlock（空手右键）→ 方块侧交互：m_isIron=false（木活板门）→ toggle(OPEN=true) → Success。
 //
 // 判定：interactWithBlock 返 true（Success），open === true（木活板门被手动打开）。
 // one-sided：依赖 Cubium 补全的 interactWithBlock 绑定。
@@ -178,7 +178,7 @@ function woodenTrapdoorTogglesOpenOnInteract(test: Test): void {
 
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
 
-    // interactWithBlock 空手右键木活板门 → onBlockActivated 非铁门 → toggle(OPEN=true) → Success。
+    // interactWithBlock 空手右键木活板门 → 方块侧交互 非铁门 → toggle(OPEN=true) → Success。
     // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
     const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
         .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
@@ -193,7 +193,7 @@ function woodenTrapdoorTogglesOpenOnInteract(test: Test): void {
 // 场景 5：木活板门手动关闭——承接场景 4（open=true）+ 再次 interactWithBlock → OPEN 翻回 false。
 //
 // 布局：(3,1,1) stone + (3,2,1) 橡木活板门 open=true（先 interact 打开）。
-// 再次 interactWithBlock → onBlockActivated → toggle(OPEN=false) → Success。
+// 再次 interactWithBlock → 方块侧交互 → toggle(OPEN=false) → Success。
 //
 // 判定：第二次 interactWithBlock 返 true，open === false（木活板门手动关闭）。
 function woodenTrapdoorTogglesBackOnSecondInteract(test: Test): void {

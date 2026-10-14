@@ -192,7 +192,7 @@ ThrowablePotionItem 和 ExperienceBottleItem 覆写 `getDispenseConfig()` 返回
 - 消费方（如 `BlockInteractionManager`）据此决定是否同步物品栏到客户端
 
 **核心 API**：
-- 隐式转换构造：`BlockActionResult(ActionResultType)` —— 向后兼容已有 52 个 `Block::onBlockActivated` override 直接返回 `ActionResultType`
+- 隐式转换构造：`BlockActionResult(ActionResultType)` —— 向后兼容已有 各 `Block::useItemOn` / `useWithoutItem` override 直接返回 `ActionResultType`
 - 工厂方法：`success() / success(ItemStack) / consume() / consume(ItemStack) / fail() / pass()`
 - 链式方法：`heldItemTransformedTo(ItemStack)` —— 返回携带物品的新结果
 - 访问器：`getType() / heldItemTransformedTo() / hasHeldItemTransformed() / isSuccess() / isConsume() / ...`

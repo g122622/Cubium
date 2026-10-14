@@ -6,18 +6,18 @@
 //   吃蛋糕不消耗手持物（空手右键即可）。
 //
 // C++ 链路：CakeBlock（functional/CakeBlock.cpp）有 BITES_0_6 state（默认 0）。
-//   - onBlockActivated（已补全，对齐 vanilla CakeBlock.use）：
+//   - 方块侧交互（已补全，对齐 vanilla CakeBlock.use）：
 //     · canEat(false)（Player.java:1593 = invulnerable || needsFood()）。
 //     · canEat 通过 → eatSlice（bites<6 时 setBlockState bites+1；bites==6 时 setBlockState air）
 //       + player.foodStats().addStats(2, 0.1f)（恢复饥饿）→ return Success。
 //     · canEat 不通过（生存满饥饿）→ return Pass。
 //   - eatSlice（:178-192）：bites<6 → bites+1 写回；bites==6 → 移除方块（air）。
-//   - 此前 CakeBlock 未 override onBlockActivated（基类返 Pass），蛋糕完全无法吃——生产 bug，已修复。
+//   - 此前 CakeBlock 未 override 方块侧交互（基类返 Pass），蛋糕完全无法吃——生产 bug，已修复。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。蛋糕 onBlockActivated canEat 通过返 Success 短路；canEat 不通过返 Pass 后
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。蛋糕 方块侧交互 canEat 通过返 Success 短路；canEat 不通过返 Pass 后
 //   fallback（手持 stick 普通 Item，onItemUse 默认 Pass）→ useItemOnBlock 返 false。
-//   吃蛋糕不消耗手持物，用手持 stick 触发（onBlockActivated 不检查 hand/heldItem，canEat 通过即吃）。
+//   吃蛋糕不消耗手持物，用手持 stick 触发（方块侧交互 不检查 hand/heldItem，canEat 通过即吃）。
 //
 // 饥饿管理：SimulatedPlayer 默认创造模式（canEat=true，invulnerable 短路）。需满饥饿/低饥饿场景时
 //   切生存模式（spawn 第 3 参 gameMode=0）。生存模式初始 foodLevel=20 满饥饿（canEat false 吃不了），
@@ -37,7 +37,7 @@
 // 2. 读 bites state 用 getState("bites" as any) 绕过 BlockStateSuperset 白名单。
 // 3. 切生存模式：spawnSimulatedPlayer 第 3 参 gameMode=0（Survival）。
 // 4. setFoodLevel 用 (player as any).setFoodLevel(n)（Cubium 扩展，无 TS 类型声明）。
-// 5. 吃蛋糕用手持 stick 触发（onBlockActivated 不检查手持物，canEat 通过即吃，stick 不被消耗）。
+// 5. 吃蛋糕用手持 stick 触发（方块侧交互 不检查手持物，canEat 通过即吃，stick 不被消耗）。
 //    不能空手（useItemOnBlock 强制要 ItemStack），stick 是普通 Item 不影响判定。
 // 6. 场景 4 连续吃 7 次：bites 0→1→...→6，第 7 次 bites=6 → eatSlice 移除蛋糕变 air。每次吃恢复
 //    饥饿+2，但 setFoodLevel(0) 后 7 次吃最多恢复到 14，仍 <20，canEat 始终通过。
@@ -50,7 +50,7 @@
 //   吃蛋糕 bites 递增 + 最后一片移除行为两端可对比（基岩端需手动控饥饿）。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_蛋糕.txt#用途（吃蛋糕，bites递增，最后一片移除，每片恢复2饥饿）
-// Ref: CakeBlock.cpp（onBlockActivated canEat→eatSlice+addStats；eatSlice bites<6递增/bites==6移除）
+// Ref: CakeBlock.cpp（方块侧交互 canEat→eatSlice+addStats；eatSlice bites<6递增/bites==6移除）
 // Ref: Player.cpp:2346（canEat 创造/旁观 false，否则 needsFood foodLevel<20）
 // Ref: FoodStats.cpp（addStats(2,0.1f) 恢复饥饿；setFoodLevel clamp [0,20]）
 // Ref: SimulatedPlayer.cpp（setFoodLevel 转发 foodStats().setFoodLevel，测试扩展）
@@ -101,7 +101,7 @@ function cakeEatenWhenHungrySurvival(test: Test): void {
     (farmer as any).setFoodLevel(10);
 
     const stick = new ItemStack("minecraft:stick", 1);
-    // 对蛋糕 useItemOnBlock stick → onBlockActivated canEat(10<20) → eatSlice bites 0→1 → Success。
+    // 对蛋糕 useItemOnBlock stick → 方块侧交互 canEat(10<20) → eatSlice bites 0→1 → Success。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },

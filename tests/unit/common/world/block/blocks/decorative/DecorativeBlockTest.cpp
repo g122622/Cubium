@@ -33,6 +33,7 @@
  * - 花盆交互（放入/取出植物、客户端/服务端分支、getByContent 反查映射表）
  */
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -510,7 +511,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithPottableItem_PlacesPottedBlock_Ser
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 验证方块被替换为 potted_poppy
@@ -543,7 +544,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithPottableItem_ClientSide_ReturnsSuc
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 客户端返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -574,7 +575,7 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithPottableItem_ConsumesWithoutActio
     m_world.resetTrackedState();
     auto* pottedPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::POTTED_POPPY);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = pottedPotBlock->onBlockActivated(pottedState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*pottedPotBlock, pottedState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 匹配 MC Java: 返回 Consume，不修改方块
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -599,7 +600,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithEmptyHand_ReturnsConsume)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
@@ -621,7 +622,7 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithEmptyHand_ExtractsContent_ServerS
     m_world.resetTrackedState();
     auto* pottedPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::POTTED_POPPY);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = pottedPotBlock->onBlockActivated(pottedState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*pottedPotBlock, pottedState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 验证方块被替换为空花盆
@@ -647,7 +648,7 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithEmptyHand_ClientSide_ReturnsSucce
     m_world.resetTrackedState();
     auto* pottedPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::POTTED_POPPY);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = pottedPotBlock->onBlockActivated(pottedState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*pottedPotBlock, pottedState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 客户端不应修改方块
@@ -674,7 +675,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsPass)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 非 BlockItem 物品应返回 Pass（交给其他处理器）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -703,7 +704,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsPass)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 不可盆栽的 BlockItem 应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);

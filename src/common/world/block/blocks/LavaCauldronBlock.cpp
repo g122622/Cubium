@@ -95,7 +95,8 @@ LavaCauldronBlock::LavaCauldronBlock(const BlockProperties& properties)
 
 // ========== 交互 ==========
 
-BlockActionResult LavaCauldronBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LavaCauldronBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -105,10 +106,10 @@ BlockActionResult LavaCauldronBlock::onBlockActivated(const BlockState& state,
     MC_UNUSED(state);
     MC_UNUSED(hit);
 
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 空桶：从岩浆炼药锅提取岩浆，替换为空炼药锅
@@ -148,6 +149,18 @@ BlockActionResult LavaCauldronBlock::onBlockActivated(const BlockState& state,
 
     // 岩浆桶：岩浆炼药锅始终满，不能再添加岩浆
     // 水桶/水瓶/其他交互：返回 Pass 让其他系统处理
+    return ActionResultType::Pass;
+}
+
+BlockActionResult LavaCauldronBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

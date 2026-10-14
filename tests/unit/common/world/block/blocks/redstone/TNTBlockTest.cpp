@@ -29,7 +29,7 @@
  * 覆盖：
  * - prime() 仅生成实体和音效，不移除方块
  * - ignite() = prime() + 移除方块
- * - onBlockActivated（打火石/火焰弹点燃）
+ * - useBlockInteraction（打火石/火焰弹点燃）
  * - playerWillDestroy（不稳定 TNT 自动点燃，无双重移除）
  * - onProjectileHit（燃烧投掷物点燃）
  * - canDropFromExplosion
@@ -38,6 +38,7 @@
  */
 
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
@@ -672,7 +673,7 @@ TEST_F(TNTBlockTest, OnBlockAdded_WithFire_PrimesAndRemovesBlock)
 }
 
 // ============================================================================
-// onBlockActivated 测试 — 玩家交互
+// useBlockInteraction 测试 — 玩家交互
 // ============================================================================
 
 TEST_F(TNTBlockTest, OnBlockActivated_EmptyHand_ReturnsPass)
@@ -689,7 +690,8 @@ TEST_F(TNTBlockTest, OnBlockActivated_EmptyHand_ReturnsPass)
 
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-    auto result = tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+    auto result =
+        mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
     // 空手应该返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -717,7 +719,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_PrimesAndRemovesBlock)
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
         auto result =
-            tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+            mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // 应该返回 Success
         EXPECT_EQ(result, ActionResultType::Success);
@@ -747,7 +749,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_SetsPlayerAsIgniter)
 
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+        mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // 玩家应该是点燃者
         EXPECT_EQ(m_world.spawnedTNTCount(), 1);
@@ -775,7 +777,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FireCharge_PrimesAndRemovesBlock)
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
         auto result =
-            tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+            mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         EXPECT_EQ(result, ActionResultType::Success);
         EXPECT_EQ(m_world.spawnedTNTCount(), 1);
@@ -797,7 +799,8 @@ TEST_F(TNTBlockTest, OnBlockActivated_NonIgnitionItem_ReturnsPass)
     // Player 的 getHeldItem 默认为空物品堆，空手应返回 Pass
     BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-    auto result = tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+    auto result =
+        mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
     EXPECT_EQ(m_world.spawnedTNTCount(), 0);
@@ -824,7 +827,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_TntExplodesFalse_ShowsMessageAndReturnsPas
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
         auto result =
-            tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+            mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // tntExplodes=false 时应该返回 Pass（不消耗物品）
         EXPECT_EQ(result, ActionResultType::Pass);
@@ -1252,7 +1255,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_AwardUsedStat)
 
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+        mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // Player 基类 awardUsedStat 默认空实现，不会崩溃即为通过
         // 验证 TNT 被成功点燃（说明 awardUsedStat 调用不会阻断执行流程）
@@ -1278,7 +1281,7 @@ TEST_F(TNTBlockTest, OnBlockActivated_FireCharge_AwardUsedStat)
 
         BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
 
-        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+        mc::test::useBlock(*tntBlock, tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
 
         // Player 基类 awardUsedStat 默认空实现，不会崩溃即为通过
         // 验证 TNT 被成功点燃

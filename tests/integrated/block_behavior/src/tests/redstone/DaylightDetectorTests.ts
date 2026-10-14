@@ -5,16 +5,16 @@
 //   夜间输出强信号（信号反转）。右键不消耗手持物，仅翻转 INVERTED 并重算 power。
 //
 // C++ 链路：DaylightDetectorBlock（redstone/DaylightDetectorBlock.cpp）有 POWER_0_15 + INVERTED state。
-//   - onBlockActivated（已补全）：调 toggleMode 翻转 INVERTED
+//   - 方块侧交互（已补全）：调 toggleMode 翻转 INVERTED
 //     并重算 power + _notifyNeighbors → return Success。不检查手持物（空手右键即可）。
 //   - toggleMode（:92-105）：newInverted=!isInverted → withInverted + _calculateSignalStrength 重算 power
 //     → setBlockState 写回 + _notifyNeighbors。
-//   - 此前 DaylightDetectorBlock 未 override onBlockActivated（基类返 Pass），右键无法切换昼夜模式
+//   - 此前 DaylightDetectorBlock 未 override 方块侧交互（基类返 Pass），右键无法切换昼夜模式
 //     ——生产 bug，已修复。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。日光探测器 onBlockActivated 始终返 Success（不检查手持物），短路不 fallback。
-//   用手持 stick 触发（onBlockActivated 不检查手持物，stick 不被消耗，仅作 useItemOnBlock 必需的
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。日光探测器 方块侧交互 始终返 Success（不检查手持物），短路不 fallback。
+//   用手持 stick 触发（方块侧交互 不检查手持物，stick 不被消耗，仅作 useItemOnBlock 必需的
 //   ItemStack 形参占位）。
 //
 // 测试覆盖（2 个场景，覆盖 wiki 右键切换昼夜模式核心行为，可跨服务端对比）：
@@ -25,7 +25,7 @@
 // 1. 日光探测器放固体上方（(3,1,1) stone 支撑 + (3,2,1) 日光探测器，minecraft:daylight_detector
 //    默认 inverted=false）。
 // 2. 读 inverted state 用 getState("inverted" as any) 绕过 BlockStateSuperset 白名单。
-// 3. onBlockActivated 不检查手持物，用手持 stick 触发（stick 不被消耗，仅占位 useItemOnBlock 的
+// 3. 方块侧交互 不检查手持物，用手持 stick 触发（stick 不被消耗，仅占位 useItemOnBlock 的
 //    ItemStack 形参）。任何物品右键都切换。
 // 4. toggleMode 会重算 power 并 setBlockState 写回（含 inverted 翻转），判定看 inverted 翻转。
 //
@@ -38,7 +38,7 @@
 //   右键切换 inverted 行为两端可对比。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_阳光探测器.txt#用途（右键切换昼夜模式/反相）
-// Ref: DaylightDetectorBlock.cpp（onBlockActivated toggleMode→Success；toggleMode 翻转 INVERTED+重算 power）
+// Ref: DaylightDetectorBlock.cpp（方块侧交互 toggleMode→Success；toggleMode 翻转 INVERTED+重算 power）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支）
 
 import * as GameTest from "@minecraft/server-gametest";
@@ -67,7 +67,7 @@ function placeDaylightDetector(test: Test): void {
 // 场景 1：右键切到反相模式——放日光探测器（inverted=false）+ stick useItemOnBlock → inverted=true，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 日光探测器 inverted=false。
-// onBlockActivated → toggleMode：newInverted=!false=true → withInverted(true) + 重算 power →
+// 方块侧交互 → toggleMode：newInverted=!false=true → withInverted(true) + 重算 power →
 // setBlockState 写回 → return Success。
 //
 // 判定：useItemOnBlock 返 true（Success），inverted === true（切到反相模式）。
@@ -78,7 +78,7 @@ function daylightDetectorTogglesToInvertedMode(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const stick = new ItemStack("minecraft:stick", 1);
 
-    // 对日光探测器 useItemOnBlock stick → onBlockActivated toggleMode → inverted false→true → Success。
+    // 对日光探测器 useItemOnBlock stick → 方块侧交互 toggleMode → inverted false→true → Success。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -95,7 +95,7 @@ function daylightDetectorTogglesToInvertedMode(test: Test): void {
 // 场景 2：再次右键切回——已 inverted=true + stick useItemOnBlock → inverted=false，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 日光探测器（先切换使 inverted=true）。
-// onBlockActivated → toggleMode：newInverted=!true=false → withInverted(false) + 重算 power →
+// 方块侧交互 → toggleMode：newInverted=!true=false → withInverted(false) + 重算 power →
 // setBlockState 写回 → return Success。
 //
 // 判定：useItemOnBlock 返 true（Success），inverted === false（切回默认模式）。

@@ -29,6 +29,7 @@
  */
 
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -522,7 +523,7 @@ TEST_F(AnvilBlockTest, GetStateForPlacement_ClockwiseRotation)
 /**
  * @brief 测试铁砧客户端交互返回 Success
  *
- * 客户端调用 onBlockActivated 应返回 Success，不打开容器。
+ * 客户端调用 useBlockInteraction 应返回 Success，不打开容器。
  */
 TEST_F(AnvilBlockTest, OnBlockActivated_ClientSide_ReturnsSuccess)
 {
@@ -535,7 +536,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ClientSide_ReturnsSuccess)
 
     const auto& state = anvilBlock->defaultState();
     BlockRaycastResult hit;
-    auto result = anvilBlock->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*anvilBlock, state, world, pos, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -547,7 +548,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ClientSide_ReturnsSuccess)
 /**
  * @brief 测试铁砧服务端交互打开 Anvil 容器
  *
- * 服务端调用 onBlockActivated 应返回 Consume，并打开 Anvil 类型容器。
+ * 服务端调用 useBlockInteraction 应返回 Consume，并打开 Anvil 类型容器。
  */
 TEST_F(AnvilBlockTest, OnBlockActivated_ServerSide_OpensAnvilContainer)
 {
@@ -560,7 +561,7 @@ TEST_F(AnvilBlockTest, OnBlockActivated_ServerSide_OpensAnvilContainer)
 
     const auto& state = anvilBlock->defaultState();
     BlockRaycastResult hit;
-    auto result = anvilBlock->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*anvilBlock, state, world, pos, player, Hand::MainHand, hit);
 
     // 服务端应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);

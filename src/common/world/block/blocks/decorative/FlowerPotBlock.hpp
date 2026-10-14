@@ -121,11 +121,18 @@ public:
      * - 已有内容物的花盆 + 玩家手持可盆栽植物 → 消费物品但不执行动作（与 MC Java 一致）
      * - 空花盆 + 空手 → 消费动作（无操作）
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     // ========== 中键选取 ==========

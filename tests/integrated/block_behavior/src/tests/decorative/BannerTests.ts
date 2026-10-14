@@ -32,7 +32,7 @@
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock(stack, blockLocation, face, faceLocation)（SimulatedPlayer.cpp
 //   :265-346）。手持 white_banner 物品（BannerItem，Items.cpp:3350）点击 stone 侧面 →
-//   onBlockActivated(stone) 基类 Pass → fallback Item.useOn → BlockItem::tryPlace →
+//   方块侧交互(stone) 基类 Pass → fallback Item.useOn → BlockItem::tryPlace →
 //   WallOrFloorItem::getStateForPlacement（修复后委托 WallBannerBlock）→ setBlockState(placementPos)。
 //   placementPos = 被点击方块.relative(face)。SimulatedPlayer 默认创造模式（物品不消耗）。
 //
@@ -44,7 +44,7 @@
 //   5. 站立旗帜放置 rotation=玩家 yaw 映射：点击 stone 顶面 Up（4 朝向）→ rotation=round((180+yaw)*16/360)&15。
 //
 // 关键约束：
-// 1. 场景 1 被点击方块用 stone（stone onBlockActivated 基类 Pass，不短路放置）。点击 (3,2,1) stone
+// 1. 场景 1 被点击方块用 stone（stone 方块侧交互 基类 Pass，不短路放置）。点击 (3,2,1) stone
 //    南面 South，新墙挂旗帜落 (3,2,2)（placementPos=(3,2,1).relative(South)）。WallOrFloorItem 委托
 //    WallBannerBlock.getStateForPlacement：首位 direction=opposite(South)=North，facing=opposite(North)
 //    =South，isValidPosition 查 opposite(South)=North 方向 (3,2,1) stone solid ✓ → 返 facing=south。
@@ -175,7 +175,7 @@ function bannerWallFacingWhenPlacedOnSouthFace(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 2 }, "farmer");
     const banner = new ItemStack("minecraft:white_banner", 1);
 
-    // 手持 white_banner 点击 (3,2,1) 南面 South → 新墙挂旗帜落 (3,2,2)。stone onBlockActivated Pass →
+    // 手持 white_banner 点击 (3,2,1) 南面 South → 新墙挂旗帜落 (3,2,2)。stone 方块侧交互 Pass →
     // fallback 放置。WallOrFloorItem 委托 WallBannerBlock.getStateForPlacement → facing=south。
     const used = farmer.useItemOnBlock(
         banner as unknown as Parameters<typeof farmer.useItemOnBlock>[0],

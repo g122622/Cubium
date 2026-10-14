@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/BlockActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/protocol/GameActions.hpp"
 #include "common/util/Direction.hpp"
@@ -62,14 +63,6 @@ class InventoryManager;
 }
 
 /**
- * @brief 方块交互结果
- */
-struct BlockInteractionResult {
-    bool success = false;
-    std::string message;
-};
-
-/**
  * @brief 方块破坏结果
  */
 struct BlockBreakResult {
@@ -91,16 +84,29 @@ struct BlockPlacementResult {
 };
 
 /**
- * @brief 物品在方块上使用的结果（对应 vanilla ServerPlayerGameMode.useItemOn 第③步 Item.useOn）
+ * @brief 右键对方块的交互结果（对应 vanilla `ServerPlayerGameMode.useItemOn` / 物品 `Item::useOn`）
  *
- * handleItemUseOn 派发 Item::onItemUse 后承载结果。success 表示 onItemUse 返回
- * Success/Consume（已处理，应短路）；itemConsumed 表示是否经 InventoryManager 消耗了
- * 权威物品栏（非创造模式且 success）。
+ * 一次右键（`use_item_on` 或 `use_item`）只会产出一次交互，具体落在三条分支之一：
+ * - `BlockUseItemOn`：方块侧 `Block::useItemOn`（手持物品参与，主手未潜行）
+ * - `BlockUseWithoutItem`：方块侧 `Block::useWithoutItem`（空手，或 `useItemOn` 返回
+ *   `TryEmptyHandInteraction` 后的空手回退）
+ * - `ItemUseOn`：物品侧 `Item::onItemUse`（方块侧返回 Pass 后，矿车/骨粉/桶/锄头等生效）
+ *
+ * 结果字段 `result` 为 `BlockActionResult`，其 `heldItemTransformedTo` 承载"交互后应写回
+ * 手持槽的新物品"（如花盆取物、书架的交换结果）；无该字段时按原地修改后的权威手持槽同步。
  */
-struct ItemUseResult {
-    bool success = false;                                   ///< onItemUse 返回 Success/Consume
-    bool itemConsumed = false;                              ///< 是否消耗了权威物品栏
-    ActionResultType actionResult = ActionResultType::Pass; ///< 原始 ActionResultType
+struct BlockUseResult {
+    enum class Kind : u8 {
+        BlockUseItemOn,      ///< Block::useItemOn
+        BlockUseWithoutItem, ///< Block::useWithoutItem
+        ItemUseOn            ///< Item::onItemUse / BlockItem 放置
+    };
+
+    bool success = false;      ///< 交互被处理（对应 vanilla consumesAction）
+    bool itemConsumed = false; ///< 手持物品是否被消耗/改动（供调用方决定是否再同步）
+    Kind kind = Kind::BlockUseWithoutItem;
+    ActionResultType actionResult = ActionResultType::Pass; ///< 原始结果（含 swingSource / wasItemInteraction 细分）
+    std::optional<ItemStack> heldItemTransformedTo;         ///< 方块侧声明的"交互后应写回的手持物"
     std::string message;
 };
 
@@ -112,7 +118,7 @@ namespace interaction {
  * 处理玩家与方块的交互：
  * - 方块破坏（距离验证、工具检测、掉落物生成）
  * - 方块放置（位置验证、碰撞检测）
- * - 方块使用（工作台、熔炉等）
+ * - 方块/物品右键（对齐 vanilla `ServerPlayerGameMode.useItemOn` 的派发顺序）
  *
  * 网络发送通过回调实现，由 MinecraftServer 设置。
  */
@@ -135,35 +141,21 @@ public:
     void setServer(IServer* server) { m_server = server; }
 
     /**
-     * @brief 处理方块放置数据包
+     * @brief 处理方块放置（对应 vanilla `BlockItem.place`，经 `Item::useOn` 触发）
+     *
+     * 承担 block-item 的放置全流程：位置/支撑/实体碰撞校验 → `BlockItem::tryPlace` →
+     * 按 hand 消耗权威手持槽。由 `handleItemUseOn` 在识别出手持物为 block-item 时调用，
+     * 也保留为独立入口供测试与后续直接放置需求使用。
+     *
      * @param playerId 玩家ID
      * @param pos 点击的方块位置
      * @param hitPos 击中点
      * @param face 点击的面
-     * @param heldItem 手持物品
+     * @param hand 使用的手（决定消耗哪个槽位）
+     * @param heldItem 手持物品（调用方局部拷贝）
      * @return 放置结果
      */
-    [[nodiscard]] Result<BlockPlacementResult> handleBlockPlacement(
-        PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, const ItemStack& heldItem);
-
-    /**
-     * @brief 处理物品在方块上使用（vanilla ServerPlayerGameMode.useItemOn 第③步 Item.useOn）
-     *
-     * 对齐 vanilla 1.21.11：在 useWithoutItem（项目 handleBlockUse）未短路后，派发
-     * Item::onItemUse。矿车/骨粉/桶/火把/锄头/斧头/铲子等非 block-item 靠此步生效。
-     *
-     * 物品消耗由本方法经 InventoryManager 统一处理（onItemUse 内部对 context 局部拷贝
-     * 的 shrink 不回写权威物品栏），对齐 handleBlockPlacement 的消耗范式。
-     *
-     * @param playerId 玩家ID
-     * @param pos 点击的方块位置
-     * @param hitPos 击中点
-     * @param face 击中面
-     * @param hand 使用的手
-     * @param heldItem 手持物品（调用方的局部拷贝，仅供 onItemUse 读取/修改上下文）
-     * @return 使用结果
-     */
-    [[nodiscard]] Result<ItemUseResult> handleItemUseOn(PlayerId playerId,
+    [[nodiscard]] Result<BlockPlacementResult> handleBlockPlacement(PlayerId playerId,
         const BlockPos& pos,
         const Vector3& hitPos,
         Direction face,
@@ -171,16 +163,49 @@ public:
         const ItemStack& heldItem);
 
     /**
-     * @brief 处理方块使用（右键激活）
+     * @brief 处理右键交互（对应 vanilla `ServerPlayerGameMode.useItemOn`）
+     *
+     * 严格按 vanilla 顺序派发：
+     * 1. 旁观者：`Block::getMenuProvider` 有菜单则直接打开并返回 Consume，否则 Pass
+     * 2. `isSecondaryUseActive && 任一手非空` → 直接落到第 5 步
+     * 3. `Block::useItemOn`（仅主手，且第 2 步未命中）
+     * 4. 第 3 步返回 `TryEmptyHandInteraction` 且为主手 → `Block::useWithoutItem`
+     * 5. 手持非空且未在冷却 → `Item::onItemUse`（创造模式恢复数量，对齐 `hasInfiniteMaterials`）
+     *
+     * 消耗写回：`Block::useItemOn` / `useWithoutItem` 收到的是玩家权威手持槽引用，
+     * 其修改直接落盘；`Item::onItemUse` 收到的是局部拷贝，由本方法按 itemId/damage 变化
+     * 判定"物品已自管消耗"后回写权威槽（骨粉等仅 shrink 局部拷贝者由外层补 shrink）。
+     *
      * @param playerId 玩家ID
-     * @param pos 目标方块位置
+     * @param pos 点击的方块位置
      * @param hand 使用的手
      * @param hitPos 击中点
      * @param face 击中面
      * @return 交互结果
      */
-    [[nodiscard]] Result<BlockInteractionResult> handleBlockUse(
+    [[nodiscard]] Result<BlockUseResult> handleBlockUse(
         PlayerId playerId, const BlockPos& pos, Hand hand, const Vector3& hitPos, Direction face);
+
+    /**
+     * @brief 处理物品在方块上使用（对应 vanilla `Item::useOn` 分支）
+     *
+     * 独立入口，供 `handleBlockUse` 第 5 步复用，也便于无方块上下文（如 `use_item` 包的空手路径）
+     * 的单测直接驱动。未配潜行门控与旁观者分支——那两层由 `handleBlockUse` 负责。
+     *
+     * @param playerId 玩家ID
+     * @param pos 点击的方块位置
+     * @param hitPos 击中点
+     * @param face 击中面
+     * @param hand 使用的手
+     * @param heldItem 调用方局部拷贝（供 `Item::onItemUse` 读取/修改上下文）
+     * @return 交互结果
+     */
+    [[nodiscard]] Result<BlockUseResult> handleItemUseOn(PlayerId playerId,
+        const BlockPos& pos,
+        const Vector3& hitPos,
+        Direction face,
+        Hand hand,
+        const ItemStack& heldItem);
 
     /**
      * @brief 处理方块破坏（挖掘完成）
@@ -214,15 +239,18 @@ private:
     /**
      * @brief 执行基础交互前置检查
      *
-     * 包含：玩家验证、距离验证、Y范围验证（可选）
+     * 包含：玩家验证、距离验证、Y范围验证（可选）、出生点保护（可选）
      *
      * @param playerId 玩家ID
      * @param pos 方块位置
      * @param checkYRange 是否检查Y范围
+     * @param checkSpawnProtection 是否检查出生点保护（右键使用不检查，对齐 vanilla
+     *        `ServerGamePacketListenerImpl`：出生点保护只在 `ServerPlayerGameMode.handleBlockBreakAction`
+     *        的 START_DESTROY 中经 `ServerLevel.mayInteract` 检查，不作用于 useItemOn）
      * @return 错误信息，如果检查通过则返回 std::nullopt
      */
     [[nodiscard]] std::optional<Error> _validateInteractionPreconditions(
-        PlayerId playerId, const BlockPos& pos, bool checkYRange = true) const;
+        PlayerId playerId, const BlockPos& pos, bool checkYRange, bool checkSpawnProtection) const;
 
     /**
      * @brief 获取方块状态并检查是否为空气
@@ -248,6 +276,20 @@ private:
      * @return 手持物品堆，如果无法获取则返回空堆
      */
     [[nodiscard]] ItemStack _getHeldTool(PlayerId playerId) const noexcept;
+
+    /**
+     * @brief 按 hand 取玩家权威手持槽（只读）
+     *
+     * @param playerId 玩家ID
+     * @param hand 手
+     * @return 手持物品堆引用；物品栏不可用时返回静态空堆
+     */
+    [[nodiscard]] const ItemStack& _handStackFor(PlayerId playerId, Hand hand) const noexcept;
+
+    /**
+     * @brief 任一只手持物是否非空（用于 isSecondaryUseActive 门控）
+     */
+    [[nodiscard]] bool _anyHandHasItem(PlayerId playerId) const noexcept;
 
     /**
      * @brief 获取真实玩家实体，用于 loot / owner 上下文。
@@ -313,6 +355,32 @@ private:
      * @return 如果执行了命令返回 true
      */
     bool _handleSignCommand(ServerWorld& world, const BlockPos& pos, mc::ServerPlayer& player);
+
+    /**
+     * @brief 派发方块侧 `useItemOn` / `useWithoutItem` 并回写权威手持槽
+     *
+     * 统一承担：取真实玩家实体、推游戏模式、按 hand 解析权威手持槽、调用方块虚方法、
+     * 应用 `heldItemTransformedTo` 或原地变更后的同步。
+     *
+     * @param playerId 玩家ID
+     * @param world 玩家所在世界
+     * @param pos 方块位置
+     * @param hand 手
+     * @param hitPos 击中点
+     * @param face 击中面
+     * @param withItem true 调 `useItemOn`（手持物参与），false 调 `useWithoutItem`
+     * @param outHandStack 非空时回填 hand 对应的权威手持槽指针（供调用方在方块交互未消费后
+     *        继续用同一份 stack 派发 `Item::useOn`）
+     * @return 方块交互结果，未处理时返回 `std::nullopt`
+     */
+    [[nodiscard]] std::optional<BlockUseResult> _dispatchBlockUse(PlayerId playerId,
+        ServerWorld& world,
+        const BlockPos& pos,
+        Hand hand,
+        const Vector3& hitPos,
+        Direction face,
+        bool withItem,
+        ItemStack** outHandStack);
 
 private:
     core::PlayerManager& m_playerManager;

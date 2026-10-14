@@ -28,7 +28,7 @@
 //     facing==Down 时重检下方 canSustain，失败则返回 airState（同步返 air 自毁）。
 //
 // 堆叠派发链路（同 WildflowersTests/SeaPickleTests）：useItemOnBlock 手持 leaf_litter 物品点击已有枯叶 →
-//   onBlockActivated 基类 Pass → fallback Item.useOn → BlockItem::tryPlace → _canReplace（replaceable=true）
+//   方块侧交互 基类 Pass → fallback Item.useOn → BlockItem::tryPlace → _canReplace（replaceable=true）
 //   → placementPos=原枯叶格（同格替换）→ getStateForPlacement 堆叠分支 SEGMENT_AMOUNT+1 → setBlockState 同步。
 //
 // ============================ 测试设计（glass_pit 7×5×7 玻璃墙空腔）============================

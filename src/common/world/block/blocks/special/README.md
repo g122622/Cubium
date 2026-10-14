@@ -111,4 +111,4 @@ Block (基类)
 - 放置时默认 Data 模式：`getStateForPlacement()` 返回 `defaultState()`。
 
 ### 三个 GameMasterBlock 的"打开界面"TODO
-- `StructureBlock`、`JigsawBlock`、`CommandBlock` 的 `onBlockActivated` 在权限检查通过后均留有 `// TODO: 打开 XXX 界面`，需配合 StructureBlockEntity/JigsawBlockEntity（尚未实现）、客户端 Screen、专用网络包与 Player 上的 openXxx 方法实现，非简单调用现有 `OpenContainerPacket` 链路。
+- `StructureBlock`、`JigsawBlock`、`CommandBlock` 的 `useItemOn` / `useWithoutItem` 在权限检查通过后均留有 `// TODO: 打开 XXX 界面`，需配合 StructureBlockEntity/JigsawBlockEntity（尚未实现）、客户端 Screen、专用网络包与 Player 上的 openXxx 方法实现，非简单调用现有 `OpenContainerPacket` 链路。

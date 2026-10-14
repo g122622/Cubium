@@ -22,7 +22,7 @@ component/
 
 **注册方式：** 脚本通过`blockComponentRegistry.registerCustomComponent()`注册。
 
-**派发方式：** Block虚拟方法（如`onEntityWalk`、`onBlockActivated`等）的调用点检查注册表，有回调则执行。
+**派发方式：** Block虚拟方法（如`onEntityWalk`、`useItemOn` / `useWithoutItem`等）的调用点检查注册表，有回调则执行。
 
 **性能优化：** 使用位掩码`CallbackFlags`快速判断某方块类型是否有特定事件回调，避免遍历组件列表。
 

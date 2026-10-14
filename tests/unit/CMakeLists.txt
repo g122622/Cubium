@@ -625,7 +625,7 @@ add_executable(mc_tests
     common/world/block/blocks/ChestBlockTest.cpp
     # ShelfBlock 书架方块测试（侧链连接、红石充能、比较器信号、旋转镜像）
     common/world/block/blocks/ShelfBlockTest.cpp
-    # ShelfBlock 书架方块交互测试（onBlockActivated、heldItemTransformedTo）
+    # ShelfBlock 书架方块交互测试（useItemOn/useWithoutItem、heldItemTransformedTo）
     common/world/block/blocks/ShelfBlockInteractionTest.cpp
     common/world/block/blocks/decorative/PaneBlockTest.cpp
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
@@ -658,7 +658,7 @@ add_executable(mc_tests
     common/world/block/blocks/nether/EnderChestBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
-    # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
+    # SignBlock 告示牌方块测试（useItemOn/useWithoutItem、状态属性）
     common/world/block/blocks/SignBlockTest.cpp
     # SignBlock 告示牌编辑流程核心逻辑测试（编辑者校验/涂蜡校验/文本更新）
     common/world/block/blocks/SignBlockEditTest.cpp

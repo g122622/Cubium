@@ -136,7 +136,8 @@ void TNTBlock::neighborChanged(
     }
 }
 
-BlockActionResult TNTBlock::onBlockActivated(const BlockState& state,
+BlockActionResult TNTBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -145,14 +146,14 @@ BlockActionResult TNTBlock::onBlockActivated(const BlockState& state,
 {
     MC_UNUSED(hit);
 
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (heldItem.isEmpty()) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     bool isFlintAndSteel = (item == Items::FLINT_AND_STEEL);
@@ -189,6 +190,18 @@ BlockActionResult TNTBlock::onBlockActivated(const BlockState& state,
     }
 
     return ActionResultType::Success;
+}
+
+BlockActionResult TNTBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 void TNTBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)

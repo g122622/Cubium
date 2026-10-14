@@ -19,7 +19,7 @@
 //     无相邻同方块衔接判定）。waterlogged = shouldWaterlogAt(placementPos)（放置目标格水状态）。
 //   - ChainBlock 不 override isValidPosition（基类默认返 true），可任意放置，无需支撑（对齐 wiki
 //     「不需要任何支撑方块」）。
-//   - ChainBlock 不 override onBlockActivated（基类返 Pass），故 useItemOnBlock 走 Block.use 前置
+//   - ChainBlock 不 override 方块侧交互（基类返 Pass），故 useItemOnBlock 走 Block.use 前置
 //     分支后 fallback 到 Item.useOn（BlockItem::onItemUse → tryPlace → getStateForPlacement）放置新块。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock(stack, blockLocation, face, faceLocation)（SimulatedPlayer.cpp
@@ -37,7 +37,7 @@
 //
 // 关键约束：
 // 1. 锁链无需支撑（isValidPosition 默认返 true），但需要一个「被点击的现有方块」作为放置参照——
-//    用 stone 作为被点击方块（stone 不 override onBlockActivated 基类返 Pass，不短路放置）。
+//    用 stone 作为被点击方块（stone 不 override 方块侧交互 基类返 Pass，不短路放置）。
 //    点击 stone 的某面，新 iron_chain 落在该面外侧相邻格。
 // 2. useItemOnBlock 第二参数是被点击的现有方块坐标，第三参数 face 是点击的面。新块落在
 //    placementPos = 被点击方块.relative(face)。例如点击 (3,1,1) 顶面 Up → 新块 (3,2,1)。

@@ -194,12 +194,8 @@ std::unique_ptr<BlockEntity> ChestBlock::createBlockEntity(const BlockPos& pos)
 
 // ========== 交互 ==========
 
-BlockActionResult ChestBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult ChestBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     // 检查是否被阻挡
     if (isBlocked(world, pos) || isCatSittingOn(world, pos)) {
@@ -228,7 +224,7 @@ BlockActionResult ChestBlock::onBlockActivated(const BlockState& state,
     }
 
     // 检查是否可以打开
-    if (!chest->canOpen(&player, player.getHeldItem(hand))) {
+    if (!chest->canOpen(&player, player.getHeldItem(Hand::MainHand))) {
         // 播放锁定音效
         world.playSound(
             ResourceLocation("minecraft:block.chest.locked"), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
@@ -461,6 +457,16 @@ const fluid::FluidState* ChestBlock::getFluidState(const BlockState& state) cons
 {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+
+std::optional<ContainerType> ChestBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Generic9x3;
 }
 
 } // namespace blocks

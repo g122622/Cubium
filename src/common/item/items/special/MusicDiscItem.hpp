@@ -37,7 +37,7 @@ namespace item::items {
  * 音乐唱片可以放入唱片机播放音乐，并且产生红石比较器信号。
  * 每种唱片有不同的比较器信号强度 (1-15) 和对应的声音事件。
  *
- * 唱片放入/取出唱片机的逻辑由 JukeboxBlock::onBlockActivated() 处理，
+ * 唱片放入/取出唱片机的逻辑由 JukeboxBlock::useItemOn() 处理，
  * MusicDiscItem 主要提供唱片元数据（信号强度、声音事件ID）和身份识别。
  *
  * 参考: net.minecraft.item.MusicDiscItem

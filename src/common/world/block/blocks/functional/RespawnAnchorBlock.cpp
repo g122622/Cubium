@@ -137,7 +137,7 @@ BlockState RespawnAnchorBlock::charge(IWorld& world, const BlockPos& pos, BlockS
     if (charges < 4) {
         BlockState newState = state.with(BlockStateProperties::CHARGES_0_4(), charges + 1);
         world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_ALL);
-        // 注意：充能音效和粒子效果由调用方处理（onBlockActivated 中播放）
+        // 注意：充能音效和粒子效果由调用方处理（useItemOn 中播放）
         return newState;
     }
     return state;
@@ -152,7 +152,8 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
-BlockActionResult RespawnAnchorBlock::onBlockActivated(const BlockState& state,
+BlockActionResult RespawnAnchorBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -166,7 +167,7 @@ BlockActionResult RespawnAnchorBlock::onBlockActivated(const BlockState& state,
     DimensionType dimType = DimensionType::fromId(world.dimension());
 
     // 获取手持物品
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
 
     // 检查是否用萤石充能
     bool hasGlowstone = false;
@@ -230,6 +231,18 @@ BlockActionResult RespawnAnchorBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Success;
     }
 
+    return ActionResultType::TryEmptyHandInteraction;
+}
+
+BlockActionResult RespawnAnchorBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

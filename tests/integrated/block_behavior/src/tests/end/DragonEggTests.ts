@@ -4,14 +4,14 @@
 //   不传送至虚空/高度限制之上）。传送后原位变 air，新位放龙蛋。传送位置随机，仅能断言原位变化。
 //
 // C++ 链路：DragonEggBlock（end/DragonEggBlock.cpp）。
-//   - onBlockActivated（:58）：不检查手持物，直接 _teleport → return Success（即使传送失败也 Success）。
+//   - 方块侧交互（:58）：不检查手持物，直接 _teleport → return Success（即使传送失败也 Success）。
 //   - _teleport（:84）：随机找 1000 次内 16×16×16 区域空气位，服务端在新位 setBlockState 龙蛋 +
 //     原位 setBlockState air。
 //   - attack（:76）：左键也触发 _teleport，但 SimulatedPlayer.attack 为 stub（MethodNotImplemented），
 //     不可测，故本组只测右键传送。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated）。龙蛋
-//   onBlockActivated 始终返 Success（不检查手持物），短路不 fallback。用手持 stick 触发（onBlockActivated
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互）。龙蛋
+//   方块侧交互 始终返 Success（不检查手持物），短路不 fallback。用手持 stick 触发（方块侧交互
 //   不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的 ItemStack 形参）。
 //
 // 测试覆盖（1 个场景，覆盖 wiki 右键传送核心行为）：
@@ -21,7 +21,7 @@
 // 1. 龙蛋完整方块无需支撑，直接放 (3,2,1)（minecraft:dragon_egg）。
 // 2. 传送目标位置随机，仅断言原位变 air（不能断言新位置，随机性非确定）。
 // 3. glass_pit 内空气充足，_teleport 1000 次尝试必能找到空气位，传送必成功。
-// 4. 用手持 stick 触发（onBlockActivated 不检查手持物，stick 不被消耗）。
+// 4. 用手持 stick 触发（方块侧交互 不检查手持物，stick 不被消耗）。
 // 5. 传送是服务端逻辑（!isClientSide），GameTest 服务端跑，走服务端分支。
 //
 // 不测「攻击触发传送」：SimulatedPlayer.attack 为 stub，不可测。TODO: 待 attack API 就绪后补。
@@ -31,7 +31,7 @@
 // 跨服务端：龙蛋 dragon_egg 方块名两端一致，右键传送原位变 air 行为两端可对比。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_龙蛋.txt（右键/攻击传送，16×16×16 范围）
-// Ref: DragonEggBlock.cpp（onBlockActivated→_teleport→Success；_teleport 服务端新位放蛋+原位 air）
+// Ref: DragonEggBlock.cpp（方块侧交互→_teleport→Success；_teleport 服务端新位放蛋+原位 air）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
 import * as GameTest from "@minecraft/server-gametest";
@@ -50,7 +50,7 @@ function getBlockTypeId(test: Test, x: number, y: number, z: number): string {
 // 场景 1：右键传送原位变 air——放龙蛋 + stick useItemOnBlock → 原位 (3,2,1) 变 air，返 true。
 //
 // 布局：(3,2,1) 龙蛋。
-// onBlockActivated：不检查手持物 → _teleport → 服务端随机找空气位放蛋 + 原位 air → return Success。
+// 方块侧交互：不检查手持物 → _teleport → 服务端随机找空气位放蛋 + 原位 air → return Success。
 //
 // 判定：useItemOnBlock 返 true（Success），原位 (3,2,1) typeId === "minecraft:air"（传送后原位变 air）。
 function dragonEggTeleportsOnUse(test: Test): void {
@@ -60,7 +60,7 @@ function dragonEggTeleportsOnUse(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const stick = new ItemStack("minecraft:stick", 1);
 
-    // 对龙蛋 useItemOnBlock stick → onBlockActivated → _teleport → 原位 air → Success。
+    // 对龙蛋 useItemOnBlock stick → 方块侧交互 → _teleport → 原位 air → Success。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },

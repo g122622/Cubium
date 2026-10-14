@@ -164,11 +164,10 @@ public:
      *
      * 在主世界可以睡眠设置重生点，在下界和末地会爆炸。
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     /**
