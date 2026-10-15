@@ -96,6 +96,7 @@ public:
     struct Waiter {
         std::function<void(bool, ChunkData*)> callback;
         std::shared_ptr<std::promise<ChunkData*>> promise;
+        const ChunkStatus* targetStatus;
     };
 
     /**
@@ -148,13 +149,13 @@ public:
      * primer 随 holder 存活）。
      */
     struct GenerationSnapshot {
-        ChunkPrimer* currentChunk = nullptr;                           ///< 当前可变区块；为空表示尚未加载
-        const ChunkStatus* currentGenStatus = &ChunkStatuses::EMPTY;   ///< 已达到的最高生成状态
-        const ChunkStatus* requestedGenStatus = &ChunkStatuses::EMPTY; ///< 当前请求目标状态
-        const ChunkStatus* scheduledStatus = nullptr;                  ///< 进行中任务的目标状态
-        SourceState sourceState = SourceState::Unknown;                ///< 存档来源解析状态
-        bool hasGenerationTask = false;                                ///< 是否有进行中的生成任务
-        bool hasFailedGeneration = false;                              ///< 是否已永久失败
+        ChunkPrimer* currentChunk = nullptr;                         ///< 当前可变区块；为空表示尚未加载
+        const ChunkStatus* currentGenStatus = &ChunkStatuses::EMPTY; ///< 已达到的最高生成状态
+        const ChunkStatus* requestedGenStatus = nullptr;             ///< 当前请求目标状态；空表示需求已撤销
+        const ChunkStatus* scheduledStatus = nullptr;                ///< 进行中任务的目标状态
+        SourceState sourceState = SourceState::Unknown;              ///< 存档来源解析状态
+        bool hasGenerationTask = false;                              ///< 是否有进行中的生成任务
+        bool hasFailedGeneration = false;                            ///< 是否已永久失败
     };
 
     /**
@@ -359,13 +360,8 @@ public:
      */
     [[nodiscard]] const ChunkStatus& requestedStatus() const { return requestedGenStatus(); }
 
-    /**
-     * @brief 提升目标生成状态（若 newTarget 高于当前目标）
-     *
-     * @param newTarget 新的目标状态
-     * @return true 表示目标被提升（或保持已有目标，已有进行中任务）
-     */
-    bool upgradeGenTarget(const ChunkStatus& newTarget);
+    /** @brief 是否仍有票据、显式请求或共享邻居要求生成。 */
+    [[nodiscard]] bool hasGenerationDemand() const;
 
     /**
      * @brief 判断当前是否有进行中的生成任务
@@ -451,7 +447,8 @@ public:
     // === 票据与玩家追踪 ===
 
     [[nodiscard]] i32 level() const { return m_level.load(std::memory_order::acquire); }
-    void setLevel(i32 level) { m_level.store(level, std::memory_order::release); }
+    /** @brief 更新票据级别并重新汇总生成目标；调用者持有调度区域锁。 */
+    void setLevel(i32 level);
     [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
 
     /**
@@ -494,6 +491,12 @@ public:
         i32 priority,
         std::function<void(bool, ChunkData*)> callback,
         std::shared_ptr<std::promise<ChunkData*>> promise);
+
+    /** @brief 为现有票据和邻居需求准备来源解析，不额外创建永久请求。 */
+    EnqueueDecision prepareGeneration(i32 priority);
+
+    /** @brief 仅发出取消信号；任务身份和邻居引用保留至执行器确认完成。 */
+    void signalGenerationCancellation();
 
     /**
      * @brief 原子发布从存档恢复出的区块数据
@@ -544,17 +547,7 @@ public:
      */
     void markLoadedFromStorageReady(const ChunkStatus& persistedStatus);
 
-    // === 旧生成执行接口（已删除，见 ChunkTaskScheduler） ===
-    // createGeneratingChunk / completeGeneration / markGenerationReady /
-    // noteGenerationQueued / noteGenerationStarted / noteGenerationFinished /
-    // noteNeighborProgress / hasGeneratingChunk / isGenerationCurrent /
-    // requestPriority / abortSignal 已被 NewChunkHolder 模型取代。
-
-    /**
-     * @brief 兼容旧测试接口：获取当前请求的取消令牌
-     *
-     * 新模型下取消令牌仍用于请求聚合与卸载清理，保留该接口。
-     */
+    /** @brief 当前任务批次使用的取消令牌。 */
     [[nodiscard]] std::shared_ptr<std::atomic<bool>> abortSignal() const;
 
     /**
@@ -567,27 +560,12 @@ public:
      */
     [[nodiscard]] i32 requestPriority() const;
 
-    /**
-     * @brief 复活一个已被取消（abortSignal==true）的 holder，使其可被重新调度生成。
-     *
-     * checkNeighbour 遇到邻居 holder 处于取消态（cancelActiveWork 置位 abortSignal 但未移除 holder）
-     * 时调用：分配新的 false 令牌（与 submitRequest 一致），使后续 schedule 能正常提交任务。
-     *
-     * 为什么需要复活：cancelActiveWork 置位 abortSignal 后不清空（保留 true），仅 submitRequest 分配
-     * 新令牌。但 checkNeighbour→schedule 是邻居驱动的重新生成路径，不经 submitRequest，遇到取消态
-     * holder 会因 schedule 的取消守卫返回 nullptr，建立的双向依赖（addBlockingNeighbour/
-     * addWaitingNeighbour）永不解除，导致中心 holder 永久阻塞（依赖图泄漏）。
-     *
-     * 安全性：调用者必须持有调度区域锁（checkNeighbour 持有），cancelActiveWork 也持有同一把锁，
-     * 故复活期间 abortSignal 稳定。cancelActiveWork 已清空 m_generationTask（oldTask 身份不冲突），
-     * 旧运行任务检测到旧令牌（true）后自取消（execute 返回 false，onCancel→cancelGeneration
-     * 因 generationTask!=oldTask 为 no-op），不调用 onChunkGenComplete，不与复活的新任务冲突。
-     *
-     * @return true 表示发生了复活（此前处于取消态），false 表示未处于取消态（无需复活）。
-     */
+    /** @brief 旧任务已完成时为后续需求分配新令牌，不改变在途任务的令牌。 */
     bool reviveForScheduling();
 
 private:
+    /** @brief 汇总票据、显式请求和共享邻居的当前目标，允许目标降低或撤销。 */
+    void _refreshGenerationTargetLocked();
     /**
      * @brief 根据当前内部状态构造调度决策（只读，无副作用）
      */
@@ -618,7 +596,8 @@ private:
     const ChunkStatus* m_currentGenStatus = &ChunkStatuses::EMPTY; ///< 当前已达到的最高生成状态
 
     // === 请求聚合 ===
-    const ChunkStatus* m_requestedGenStatus = &ChunkStatuses::EMPTY;
+    const ChunkStatus* m_requestedGenStatus = nullptr;
+    const ChunkStatus* m_ticketGenStatus = nullptr;
     i32 m_requestPriority = std::numeric_limits<i32>::max();
     u64 m_requestGeneration = 0;
     std::shared_ptr<std::atomic<bool>> m_abortSignal;

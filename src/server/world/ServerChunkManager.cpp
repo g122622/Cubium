@@ -395,7 +395,8 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
 
     if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
         std::vector<SingleChunkLifecycleManager::Waiter> waiters;
-        waiters.emplace_back(SingleChunkLifecycleManager::Waiter{std::move(callback), std::move(promise)});
+        waiters.emplace_back(
+            SingleChunkLifecycleManager::Waiter{std::move(callback), std::move(promise), &targetStatus});
         _fulfillWaiters(std::move(waiters), true, chunk);
         return;
     }
@@ -415,7 +416,6 @@ void ServerChunkManager::_advanceChunkState(
 {
     if (decision.shouldWakeReadyWaiters) {
         _completeReadyWaiters(lifecycleManager);
-        return;
     }
 
     if (decision.shouldResolveStorage) {
@@ -425,7 +425,7 @@ void ServerChunkManager::_advanceChunkState(
 
     if (decision.shouldScheduleGeneration) {
         // 持有调度区域锁后委托给 ChunkTaskScheduler 推进生成
-        _scheduleGeneration(lifecycleManager, *decision.targetStatus);
+        _scheduleGeneration(lifecycleManager);
     }
 }
 
@@ -712,61 +712,30 @@ void ServerChunkManager::_drainPendingLoadCompletes()
     }
 }
 
-void ServerChunkManager::_resolveStorageForScheduling(
-    SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
+void ServerChunkManager::_resolveStorageForScheduling(SingleChunkLifecycleManager& lifecycleManager)
 {
-    // 把 Unknown holder 推进到 ResolvingStorage 并发起异步存档读取，对齐 Moonrise pristine holder
-    // 经 ChunkLoadTask 先试磁盘再回落空 ProtoChunk 的语义。无 callback/promise：纯调度驱动，
-    // 不挂请求等待者（依赖邻居已由 checkNeighbour 注册到 m_waitingNeighbours，存档解析完成后由
-    // onLoadedFromStorageReady/notifyWaitingNeighbours 解除阻塞；FULL 发布由 _storeChunkInMemorySync
-    // 内部 _completeReadyWaiters 处理已挂的请求等待者）。
-    // 优先级用 INT_MAX（不提升）：本路径由 checkNeighbour 在 worker 线程的 schedule 内调用，
-    // 不可读取 m_ticketManager.getChunkLevel（ChunkDistanceGraph.m_levels 无锁 unordered_map，
-    // worker 与主线程 processTicketUpdatesSync 并发读会数据竞争）。Unknown 邻居 holder 无直接请求，
-    // 低优先级读盘可接受；持有者后续若被 _onTicketLevelChanged 直接请求，submitRequest 会收敛到
-    // 更高优先级（数值更小）。submitRequest 见 m_requestPriority==INT_MAX 分支保持 INT_MAX。
-    constexpr i32 kNeighbourResolvePriority = std::numeric_limits<i32>::max();
-    auto decision = lifecycleManager.submitRequest(targetStatus, kNeighbourResolvePriority, {}, {});
-    _advanceChunkState(lifecycleManager, decision);
+    // 邻居依赖已经登记；解析来源不应再创建一份无法撤销的显式请求。
+    const i32 priority = _computeSchedulePriority(
+        lifecycleManager.x(), lifecycleManager.z(), lifecycleManager.requestedGenStatus(), lifecycleManager.level());
+    _advanceChunkState(lifecycleManager, lifecycleManager.prepareGeneration(priority));
 }
 
-void ServerChunkManager::_scheduleGeneration(
-    SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
+void ServerChunkManager::_scheduleGeneration(SingleChunkLifecycleManager& lifecycleManager)
 {
-    // 经加锁的惰性创建取得调度器。不能在此处直接写 `if (m_taskScheduler == nullptr) { ... }`：
-    // requestChunkSync 可被多线程并发调用，无锁的双重检查会让两个线程各建一个调度器，
-    // 后者覆盖前者并泄漏（LeakSanitizer: Direct leak of 196656 byte(s)，见头文件说明）。
     ChunkTaskScheduler* scheduler = ensureTaskScheduler();
-
-    const ChunkCoord x = lifecycleManager.x();
-    const ChunkCoord z = lifecycleManager.z();
-    // 持有 2 * maxAccessRadius 的锁，覆盖递归 schedule/checkNeighbour 的邻居范围。
-    // 同步执行模式（无 worker 池）下，checkNeighbour 递归 schedule 邻居时，
-    // 邻居的 schedule 断言要求 [邻居 ± maxAccessRadius] 被持有，邻居可达 maxAccessRadius 远，
-    // 故外层锁需 2 * maxAccessRadius 才能覆盖（与 onChunkGenComplete 的锁范围一致）。
     const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
-    auto lock = scheduler->schedulingLockArea().lock(x, z, lockRadius);
-    scheduler->schedule(x, z, targetStatus, lifecycleManager);
-    // lock 释放时释放区域锁
+    auto lock = scheduler->schedulingLockArea().lock(lifecycleManager.x(), lifecycleManager.z(), lockRadius);
+    scheduler->schedule(lifecycleManager.x(), lifecycleManager.z(), lifecycleManager);
 }
 
 void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
 {
-    // FULL 区块已发布到 m_chunks：优先用内存缓存中的 ChunkData 完成等待者（Ready 稳态路径）。
     ChunkData* chunk = tryToGetChunkInMem(lifecycleManager.x(), lifecycleManager.z());
-    if (chunk != nullptr) {
-        _fulfillWaiters(lifecycleManager.takeReadyWaiters(), true, chunk);
-        return;
+    if (chunk == nullptr) {
+        ChunkPrimer* primer = lifecycleManager.getCurrentChunk();
+        chunk = primer ? primer->getChunkData() : nullptr;
     }
-
-    // 非 FULL 但已达请求状态（StorageMissing 中间态，如请求 STRUCTURE_REFERENCES 已完成）：
-    // 区块数据在 primer 的 m_currentChunk 中，未发布到 m_chunks（仅 FULL 入 m_chunks）。
-    // takeAllWaiters 取出所有等待者（不要求 sourceState==Ready，_buildDecisionLocked 的非 Ready
-    // 已达请求状态分支已保证仅在数据就绪且无在途任务时触发），从 primer 的 ChunkData 完成它们。
-    // 与 _publishGeneratedChunk 同语义，避免 waiter 在中间态永久悬挂（死锁）。
-    ChunkPrimer* primer = lifecycleManager.getCurrentChunk();
-    ChunkData* primerData = (primer != nullptr) ? primer->getChunkData() : nullptr;
-    _fulfillWaiters(lifecycleManager.takeAllWaiters(), primerData != nullptr, primerData);
+    _fulfillWaiters(lifecycleManager.takeReadyWaiters(), chunk != nullptr, chunk);
 }
 
 void ServerChunkManager::_failWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters)
@@ -838,86 +807,33 @@ SingleChunkLifecycleManager* ServerChunkManager::_doFindLifecycleManager(ChunkCo
 void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel)
 {
     MC_UNUSED(oldLevel);
-    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
-        "ServerChunkManager::onTicketLevelChanged",
-        "x",
-        x,
-        "z",
-        z,
-        "oldLevel",
-        oldLevel,
-        "newLevel",
-        newLevel);
-
-    // 传播到生成邻域或离开传播范围只更新已有持有者。真正的生成依赖由调度器按需创建，
-    // 不为每一次退场回调重新创建已经卸载的持有者，也不让冷却票据扩散出新的卸载工作。
-    const bool hasLoadingDemand = newLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL;
-    if (!hasLoadingDemand && _doFindLifecycleManager(x, z) == nullptr) {
+    auto holder = _findLifecycleManagerShared(x, z);
+    if (holder == nullptr && newLevel > world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
         return;
     }
-    SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
-    lifecycleManager.setLevel(newLevel);
-    // 显式冷却票据只在主线程查询，将存活状态同步到带锁集合供 worker 观察者读取。
+    if (holder == nullptr) {
+        (void)_getOrCreateLifecycleManager(x, z);
+        holder = _findLifecycleManagerShared(x, z);
+    }
+    MC_ASSERT_RELEASE(holder != nullptr);
+    ChunkTaskScheduler* scheduler = ensureTaskScheduler();
+    {
+        const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
+        auto lock = scheduler->schedulingLockArea().lock(x, z, lockRadius);
+        holder->setLevel(newLevel);
+    }
     if (m_ticketManager.hasTicket(
             world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{})) {
         std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
         m_unloadCooldownChunks.insert(posToKey(x, z));
     }
-
+    // 撤销需求不以可卸载为前提；共享邻居及未完成的显式请求仍参与目标汇总。
+    scheduler->reconcileGenerationDemand(x, z);
     if (newLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
-        // 根据票据级别推导目标生成状态
-        const ChunkStatus* levelStatus = ChunkPyramid::generationStatus(newLevel);
-        const ChunkStatus& targetStatus = (levelStatus && levelStatus->ordinal() > ChunkStatuses::EMPTY.ordinal())
-            ? *levelStatus
-            : ChunkStatuses::FULL;
-
-        // 如果已请求更高状态，保持更高状态
-        const ChunkStatus& existingRequested = lifecycleManager.requestedStatus();
-        const ChunkStatus& effectiveTarget =
-            (existingRequested.ordinal() > targetStatus.ordinal()) ? existingRequested : targetStatus;
-        _submitChunkRequest(x, z, effectiveTarget, {}, {});
-
-        // 票级回到加载阈值内：若该区块仍在卸载候选队列中（例如刚刚越过阈值又立刻回转），
-        // 立即撤销候选资格，避免其残留在队列中直到被弹出时才发现已不需要卸载。
-        _updateUnloadCandidate(lifecycleManager);
-        return;
+        const i32 priority = _computeSchedulePriority(x, z, holder->requestedGenStatus(), newLevel);
+        _advanceChunkState(*holder, holder->prepareGeneration(priority));
     }
-
-    // 票据级别越过加载阈值：持有者不再被需要。
-    //
-    // 语义：
-    //   - 候选资格由 _updateUnloadCandidate 重新评估（本函数末尾调用）：票级越阈值 +
-    //     安全可卸载 + 无玩家追踪 + 无在途保存 → 进入卸载候选队列，由 _processChunkUnloads
-    //     按保底批量卸载。这是事件驱动的入队点，取代原先每 20 tick 的全量扫描 + 30 秒延迟。
-    //   - 被其他 holder 当作邻居使用或正在生成中的 holder 不会被立即取消/卸载，其生成由
-    //     邻居的 checkNeighbour 按需驱动；其状态一旦变得安全，生命周期管理器的观察者回调
-    //     会重新评估候选资格并入队。
-    //
-    // Cubium 之前的实现对所有 out-of-range holder 都调用 cancelGeneration + cancelActiveWork，
-    // 即使该 holder 正被邻居使用或正在生成中。这导致 cancel-revive 抖动：
-    //   1. _onTicketLevelChanged 取消 N（cancelGeneration + cancelActiveWork 置 abortSignal）。
-    //   2. cancelGeneration 重新调度等待 N 的活跃邻居 C（rescheduleChunk）。
-    //   3. C 的 schedule→checkNeighbour 遇到已取消的 N，reviveForScheduling 复活 N 并重新生成。
-    //   4. mover 下次移动再次取消 N → 回到步骤 2，产生大量重复生成工作，2 worker 无法消化。
-    //
-    // 修复：仅当 holder 已安全可卸载（isSafeToUnload）时才立即取消生成并清理依赖图。
-    //   - isSafeToUnload 为 false（holder 正被邻居使用/正在生成/有依赖图）：不取消生成，
-    //     不失败等待者。holder 的生成继续由邻居 checkNeighbour 驱动，请求等待者
-    //     （requestChunkAsync）在 holder 完成 FULL 后由 _publishGeneratedChunk/_finalizeGeneratedChunkSync 唤醒。
-    //     holder 的 abortSignal 保持 false，运行中的任务正常完成。
-    //   - isSafeToUnload 为 true（holder 无依赖）：安全取消生成并清理依赖图，随即入队卸载。
-    //
-    // 注意：isSafeToUnload 在此处的检查不持调度锁（_onTicketLevelChanged 由 tick 主线程调用，
-    // 非 worker 线程的 onChunkGenComplete/schedule 持锁路径）。最终一致性由卸载收尾
-    // （_finalizeUnloadAfterSave）持调度锁重新检查 isSafeToUnload 保证。
-    if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr && lifecycleManager.isSafeToUnload()) {
-        scheduler->cancelGeneration(lifecycleManager);
-        lifecycleManager.cancelActiveWork();
-        _failWaiters(lifecycleManager.takeAllWaiters());
-    }
-
-    // 无论是否取消成功，都重评候选资格：可安全卸载者入队，否则保持/撤出队列。
-    _updateUnloadCandidate(lifecycleManager);
+    _updateUnloadCandidate(*holder);
 }
 
 // ============================================================================
@@ -1157,20 +1073,8 @@ void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& hol
         return;
     }
 
-    // 仅当达到请求目标状态时才唤醒等待者（onChunkGenComplete 每步都调用，但中间步骤不应唤醒）。
-    if (!holder.hasCompletedStatus(holder.requestedGenStatus())) {
-        return;
-    }
-
-    // 非 FULL 目标：不设置 sourceState=Ready（Ready 表示 FULL 完成可发布到 m_chunks，
-    // 中间状态不应阻止后续更高状态请求调度）。不存入 m_chunks（m_chunks 仅保留 FULL 区块，
-    // 保证 tryToGetChunkInMem 快速路径不返回中间状态区块）。
-    // 直接用 primer 的 ChunkData 完成等待者（promise/callback），请求者获得 primer 当前状态的 ChunkData。
-    // takeAllWaiters 取出所有等待者（无条件），_fulfillWaiters 完成 promise。
-    ChunkPrimer* primer = holder.getCurrentChunk();
-    ChunkData* chunkData = (primer != nullptr) ? primer->getChunkData() : nullptr;
-
-    _fulfillWaiters(holder.takeAllWaiters(), chunkData != nullptr, chunkData);
+    // 每个请求按自身目标完成，较低目标不再被同时存在的 FULL 请求拖住。
+    _completeReadyWaiters(holder);
 }
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)

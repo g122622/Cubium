@@ -83,8 +83,13 @@ ChunkProgressionTask::ChunkProgressionTask(ChunkTaskScheduler& scheduler,
 
 bool ChunkProgressionTask::execute(const std::atomic<bool>& abortSignal)
 {
-    if (abortSignal.load(std::memory_order::acquire)) {
-        return false;
+    {
+        // 与票据降级串行决定启动或取消，避免检查之后又开始执行已取消的阶段。
+        auto lock = m_scheduler.schedulingLockArea().lock(m_x, m_z, 0);
+        if (abortSignal.load(std::memory_order::acquire)) {
+            return false;
+        }
+        m_started = true;
     }
 
     // EMPTY 走存档加载/新建空 Primer 路径，不调用 IChunkGenerator
