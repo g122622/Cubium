@@ -27,7 +27,6 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
-#include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 
@@ -50,17 +49,6 @@ const CollisionShape& FlowerBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
     return m_shape;
-}
-
-bool FlowerBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
-{
-
-    MC_UNUSED(world);
-    MC_UNUSED(groundPos);
-
-    // 花朵可以放置在草方块、泥土、耕地等上
-    const Material& material = groundState.getMaterial();
-    return material.isSolid();
 }
 
 // ========== LilacBlock ==========

@@ -61,7 +61,7 @@ Block
 
 1. **装饰植物必须继承 BushBlock 或 DryVegetationBlock，不可用 SimpleBlock**：SimpleBlock 不重写 isValidPosition，走 Block 基类默认实现恒返回 true，导致 SimpleBlockFeature 的 canSurvive 终判失效，placed feature 用 MOTION_BLOCKING 高度图（水算阻挡，返回水面 Y+1）时就会把植物放在水面上一格空气处——表现为浮空。firefly_bush/bush 曾因此 bug 浮空于水面，已改为继承 BushBlock；干草类需在沙/陶瓦上生成，故走 DryVegetationBlock。全仓 `registerBlock<SimpleBlock>` 审计另发现 dead_bush（注册于 NaturalBlocks，改用 DryVegetationBlock）和 lily_pad（注册于 NaturalBlocks，新建 WaterlilyBlock 重写 canSustain 复刻 vanilla WaterlilyBlock.mayPlaceOn：下方水/冰 + 上方无流体）两处同类问题，均已收敛。新增同类装饰植物务必照此办理。
 
-2. **CactusFlowerBlock 的 canSustain 逻辑**: 仙人掌花比普通花朵放置条件更广，不仅限于泥土/耕地，还可以放置在仙人掌上方和任何具有实心顶面的方块上。不要使用 FlowerBlock 默认的 `material.isSolid()` 检查。
+2. **CactusFlowerBlock 的 canSustain 逻辑**: 仙人掌花比普通花朵放置条件更广，不仅限于泥土/耕地，还可以放置在仙人掌上方和任何具有实心顶面的方块上。故 CactusFlowerBlock 重写 canSustain（仙人掌/耕地/`isFaceSturdy(Up, Center)`），不走 FlowerBlock 继承的默认土壤委托链。
 
 3. **FlowerBedBlock 的堆叠放置**: 右键已有花瓣床时 AMOUNT+1（最多4）。堆叠逻辑由 `isReplaceable()` 虚方法控制，需同时满足三个条件：玩家未潜行、手持同类型物品、AMOUNT < 4。`getStateForPlacement()` 负责处理具体的堆叠状态计算（保持原朝向、AMOUNT+1）。
 

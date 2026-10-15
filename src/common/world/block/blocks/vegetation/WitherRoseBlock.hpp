@@ -67,8 +67,8 @@ protected:
     /**
      * @brief 检查下方方块是否可支撑
      *
-     * 除普通花朵可用的土壤（#dirt 标签 + 耕地）外，凋灵玫瑰还可放置在下界岩、
-     * 灵魂沙与灵魂土上（这些方块不在 #dirt 标签内）。
+     * 除普通花朵可用的土壤（BushBlock 委托链：#dirt 标签 + 耕地）外，凋灵玫瑰还可放置
+     * 在下界岩、灵魂沙与灵魂土上（这些方块不在 #dirt 标签内）。
      */
     [[nodiscard]] bool canSustain(
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;

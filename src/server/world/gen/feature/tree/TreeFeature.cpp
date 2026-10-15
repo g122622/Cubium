@@ -214,9 +214,11 @@ bool TreeFeature::isDirtOrFarmlandAt(WorldGenRegion& world, const BlockPos& pos)
         return false;
     }
 
-    // 检查是否是泥土类方块或耕地
-    return state->is(VanillaBlocks::DIRT) || state->is(VanillaBlocks::GRASS_BLOCK) ||
-        state->is(VanillaBlocks::COARSE_DIRT) || state->is(VanillaBlocks::PODZOL) || state->is(VanillaBlocks::FARMLAND);
+    // 检查是否是 #dirt 标签方块或耕地。必须查标签而非硬编码方块列表，
+    // 否则树苗在 rooted_dirt / moss_block / mud 等 1.17+ 新增泥土类方块上
+    // 虽可通过 BushBlock::canSustain 存活，却在此处被拒绝生长。
+    return BlockTags::DIRT().contains(*state) ||
+        (VanillaBlocks::FARMLAND != nullptr && state->is(VanillaBlocks::FARMLAND));
 }
 
 bool TreeFeature::isWaterAt(WorldGenRegion& world, const BlockPos& pos)

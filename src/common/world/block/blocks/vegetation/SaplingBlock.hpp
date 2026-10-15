@@ -151,12 +151,6 @@ public:
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
 protected:
-    /**
-     * @brief 检查下方是否可支撑
-     */
-    [[nodiscard]] bool canSustain(
-        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
-
     /// 树木生成器
     TreeGenerator m_treeGenerator;
 };

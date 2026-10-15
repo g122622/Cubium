@@ -36,7 +36,6 @@
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -46,17 +45,6 @@
 #include <spdlog/spdlog.h>
 namespace mc {
 namespace blocks {
-
-namespace {
-
-[[nodiscard]] bool isSaplingGround(const BlockState& groundState)
-{
-    return groundState.is(VanillaBlocks::GRASS_BLOCK) || groundState.is(VanillaBlocks::DIRT) ||
-        groundState.is(VanillaBlocks::COARSE_DIRT) || groundState.is(VanillaBlocks::PODZOL) ||
-        groundState.is(VanillaBlocks::FARMLAND);
-}
-
-} // namespace
 
 // ========== 构造函数 ==========
 
@@ -173,15 +161,6 @@ const CollisionShape& SaplingBlock::getShape(const BlockState& state) const
 }
 
 // ========== 保护方法 ==========
-
-bool SaplingBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
-{
-
-    MC_UNUSED(world);
-    MC_UNUSED(groundPos);
-
-    return isSaplingGround(groundState);
-}
 
 // ========== IGrowable 接口 ==========
 
