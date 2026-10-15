@@ -49,6 +49,17 @@ nightly 的 benchmark 在独立 runner 上执行 `release-build` 的产物，未
 
 ## 现有用例
 
+### EntityRangeSeek（实体范围读取）
+
+用相同数据对比无界迭代器与生产有界读取：先刷盘旧记录，再写入区块范围删除，保留远处可见记录，查询已清空的区块。
+参数为 `bounded`（0/1）、`tombstones_on_disk`（0/1）、`chunks`（1024/4096）。装配与预热不计时；报告查询耗时和每次查询的键比较次数，不包含实体反序列化。
+
+```bash
+./build/bin/RelWithDebInfo/mc_benchmark --benchmark_filter=EntityRangeSeek --benchmark_repetitions=3
+```
+
+该用例验证范围边界能否减少扫描工作，不能直接换算为服务端 tick 的整体加速倍数。
+
 ### ChunkGeneration（区块生成系统吞吐）
 
 测生产级并行生成系统：`ServerChunkManager` → `ChunkTaskScheduler`（区域锁调度）→ `UniversalWorkerPool` → 逐状态推进到 FULL。

@@ -5,6 +5,7 @@ add_executable(mc_benchmark
     PerfettoProfilerAdapter.hpp
     PerfettoProfilerAdapter.cpp
     cases/ChunkGenerationBenchmark.cpp
+    cases/EntityRangeSeekBenchmark.cpp
     cases/LightingBenchmark.cpp
     cases/PalettedContainerBenchmark.cpp
     cases/ServerInitializeBenchmark.cpp

@@ -202,6 +202,20 @@ public:
     [[nodiscard]] std::unique_ptr<rocksdb::Iterator> newIterator(const std::string& cfName);
 
     /**
+     * @brief 读取半开区间内的值，按键排序并返回完整读取结果或错误。
+     *
+     * 边界传给底层迭代器，防止寻找下一条可见记录时越过目标范围；
+     * 边界与迭代器均在本次调用内存活，不向调用方暴露借用的 Slice。
+     *
+     * @param cfName 列族名
+     * @param startKey 起始键（包含）
+     * @param endKey 结束键（不包含，必须不小于起始键）
+     * @return 区间内按键排序的值；空区间返回空列表，读取失败返回错误。
+     */
+    [[nodiscard]] Result<std::vector<std::vector<u8>>> readRange(
+        const std::string& cfName, const std::vector<u8>& startKey, const std::vector<u8>& endKey);
+
+    /**
      * @brief 范围删除
      *
      * @param cfName 列族名

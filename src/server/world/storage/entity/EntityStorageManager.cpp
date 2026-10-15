@@ -177,25 +177,11 @@ Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesI
     auto endKey = _makeChunkEndKey(chunkX, chunkZ);
     const char* cf = _columnFamilyName(dimension);
 
-    auto iter = m_db.newIterator(cf);
-    if (!iter) {
-        return entities;
+    auto records = m_db.readRange(cf, prefix, endKey);
+    if (records.failed()) {
+        return records.error();
     }
-
-    iter->Seek(rocksdb::Slice(reinterpret_cast<const char*>(prefix.data()), prefix.size()));
-
-    while (iter->Valid()) {
-        auto currentKey = iter->key();
-
-        // 检查是否仍在区块范围内
-        if (currentKey.size() >= endKey.size() && std::memcmp(currentKey.data(), endKey.data(), endKey.size()) >= 0) {
-            break;
-        }
-
-        // 读取并反序列化实体
-        auto value = iter->value();
-        std::vector<u8> data(value.data(), value.data() + value.size());
-
+    for (const auto& data : records.value()) {
         auto entityResult = entity::serialization::EntityDeserializer::deserializeFromBinary(data, registry);
         if (!entityResult.success()) {
             spdlog::warn("EntityStorageManager: Failed to deserialize entity in chunk ({}, {})", chunkX, chunkZ);
@@ -211,8 +197,6 @@ Result<std::vector<std::unique_ptr<Entity>>> EntityStorageManager::loadEntitiesI
                 spdlog::warn("EntityStorageManager: Failed to deserialize entity in chunk ({}, {})", chunkX, chunkZ);
             }
         }
-
-        iter->Next();
     }
 
     return entities;

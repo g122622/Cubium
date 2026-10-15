@@ -119,23 +119,11 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityStorageManager::loa
     auto endKey = _makeChunkEndKey(chunkX, chunkZ);
     const char* cf = _columnFamilyName(dimension);
 
-    auto iter = m_db.newIterator(cf);
-    if (!iter) {
-        return blockEntities;
+    auto records = m_db.readRange(cf, prefix, endKey);
+    if (records.failed()) {
+        return records.error();
     }
-
-    iter->Seek(rocksdb::Slice(reinterpret_cast<const char*>(prefix.data()), prefix.size()));
-
-    while (iter->Valid()) {
-        auto currentKey = iter->key();
-
-        if (currentKey.size() >= endKey.size() && std::memcmp(currentKey.data(), endKey.data(), endKey.size()) >= 0) {
-            break;
-        }
-
-        auto value = iter->value();
-        std::vector<u8> data(value.data(), value.data() + value.size());
-
+    for (const auto& data : records.value()) {
         auto listResult = blockentity::BlockEntityDeserializer::deserializeListFromBinary(data);
         if (listResult.success()) {
             for (auto& entity : listResult.value()) {
@@ -147,8 +135,6 @@ Result<std::vector<std::unique_ptr<BlockEntity>>> BlockEntityStorageManager::loa
             spdlog::warn(
                 "BlockEntityStorageManager: Failed to deserialize block entity in chunk ({}, {})", chunkX, chunkZ);
         }
-
-        iter->Next();
     }
 
     return blockEntities;

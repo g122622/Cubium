@@ -412,6 +412,93 @@ TEST_F(RocksDBDatabaseTest, Iterator)
     EXPECT_EQ(count, 5);
 }
 
+TEST_F(RocksDBDatabaseTest, ReadRangeIncludesStartAndExcludesEnd)
+{
+    auto result = RocksDBDatabase::open(getDbPath("bounded_range"));
+    ASSERT_TRUE(result.success());
+    auto db = std::move(result.value());
+    ASSERT_TRUE(db->put(cf::META, {0}, {9}).success());
+    ASSERT_TRUE(db->put(cf::META, {1}, {10}).success());
+    ASSERT_TRUE(db->put(cf::META, {2}, {}).success());
+    ASSERT_TRUE(db->put(cf::META, {3}, {30}).success());
+    auto values = db->readRange(cf::META, {1}, {3});
+    ASSERT_TRUE(values.success()) << values.error().message();
+    EXPECT_EQ(values.value(), (std::vector<std::vector<u8>>{{10}, {}}));
+    auto empty = db->readRange(cf::META, {2}, {2});
+    ASSERT_TRUE(empty.success());
+    EXPECT_TRUE(empty.value().empty());
+    auto missing = db->readRange(cf::META, {4}, {5});
+    ASSERT_TRUE(missing.success());
+    EXPECT_TRUE(missing.value().empty());
+}
+
+TEST_F(RocksDBDatabaseTest, ReadRangeSeparatesNegativeAndSimilarChunkPrefixes)
+{
+    auto result = RocksDBDatabase::open(getDbPath("bounded_prefixes"));
+    ASSERT_TRUE(result.success());
+    auto db = std::move(result.value());
+    const std::vector<std::string> prefixes{"-10:0:", "-1:0:", "1:0:", "10:0:", "1:1:"};
+    for (size_t i = 0; i < prefixes.size(); ++i) {
+        const auto key = prefixes[i] + "uuid";
+        ASSERT_TRUE(
+            db->put(cf::ENTITIES_OVERWORLD, std::vector<u8>(key.begin(), key.end()), {static_cast<u8>(i)}).success());
+    }
+    for (size_t i = 0; i < prefixes.size(); ++i) {
+        const auto& prefix = prefixes[i];
+        std::vector<u8> upper(prefix.begin(), prefix.end());
+        upper.push_back(0xFF);
+        auto values = db->readRange(cf::ENTITIES_OVERWORLD, std::vector<u8>(prefix.begin(), prefix.end()), upper);
+        ASSERT_TRUE(values.success());
+        EXPECT_EQ(values.value(), (std::vector<std::vector<u8>>{{static_cast<u8>(i)}}));
+    }
+}
+
+TEST_F(RocksDBDatabaseTest, ReadRangePreservesDeleteThenPutAcrossReopen)
+{
+    const auto path = getDbPath("bounded_reopen");
+    {
+        auto result = RocksDBDatabase::open(path);
+        ASSERT_TRUE(result.success());
+        auto db = std::move(result.value());
+        ASSERT_TRUE(db->put(cf::ENTITIES_OVERWORLD, {'a', '1'}, {1}).success());
+        ASSERT_TRUE(db->put(cf::ENTITIES_OVERWORLD, {'a', '2'}, {2}).success());
+        ASSERT_TRUE(db->put(cf::ENTITIES_OVERWORLD, {'b', '1'}, {3}).success());
+        ASSERT_TRUE(db->flush(cf::ENTITIES_OVERWORLD).success());
+        auto* handle = db->getCF(cf::ENTITIES_OVERWORLD);
+        ASSERT_NE(handle, nullptr);
+        rocksdb::WriteBatch batch;
+        batch.DeleteRange(handle, "a", "b");
+        batch.Put(handle, "a3", "fresh");
+        ASSERT_TRUE(db->writeBatch(batch, true).success());
+        auto values = db->readRange(cf::ENTITIES_OVERWORLD, {'a'}, {'b'});
+        ASSERT_TRUE(values.success());
+        EXPECT_EQ(values.value(), (std::vector<std::vector<u8>>{{'f', 'r', 'e', 's', 'h'}}));
+    }
+    auto result = RocksDBDatabase::openReadOnly(path);
+    ASSERT_TRUE(result.success());
+    auto db = std::move(result.value());
+    auto values = db->readRange(cf::ENTITIES_OVERWORLD, {'a'}, {'b'});
+    ASSERT_TRUE(values.success());
+    EXPECT_EQ(values.value(), (std::vector<std::vector<u8>>{{'f', 'r', 'e', 's', 'h'}}));
+    auto neighbour = db->readRange(cf::ENTITIES_OVERWORLD, {'b'}, {'c'});
+    ASSERT_TRUE(neighbour.success());
+    EXPECT_EQ(neighbour.value(), (std::vector<std::vector<u8>>{{3}}));
+}
+
+TEST_F(RocksDBDatabaseTest, ReadRangeOwnsValuesAfterCloseAndReportsInvalidDatabase)
+{
+    auto result = RocksDBDatabase::open(getDbPath("bounded_lifetime"));
+    ASSERT_TRUE(result.success());
+    auto db = std::move(result.value());
+    ASSERT_TRUE(db->put(cf::META, {1}, {10, 20}).success());
+    auto values = db->readRange(cf::META, {1}, {2});
+    ASSERT_TRUE(values.success());
+    EXPECT_FALSE(db->readRange("missing_cf", {1}, {2}).success());
+    db->close();
+    EXPECT_EQ(values.value(), (std::vector<std::vector<u8>>{{10, 20}}));
+    EXPECT_FALSE(db->readRange(cf::META, {1}, {2}).success());
+}
+
 // ============================================================================
 // 快照
 // ============================================================================
