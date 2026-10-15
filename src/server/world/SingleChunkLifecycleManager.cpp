@@ -411,7 +411,10 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     std::shared_ptr<std::promise<ChunkData*>> promise)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    m_waiters.push_back(Waiter{std::move(callback), std::move(promise), &targetStatus});
+    // 调用者可能传入局部副本；异步请求只保留具有进程生命周期的状态表元素。
+    const ChunkStatus* stableTarget = ChunkStatus::byOrdinal(targetStatus.ordinal());
+    MC_ASSERT_RELEASE_MSG(stableTarget != nullptr, "submitRequest: invalid chunk generation status");
+    m_waiters.push_back(Waiter{std::move(callback), std::move(promise), stableTarget});
     _refreshGenerationTargetLocked();
     return prepareGeneration(priority);
 }

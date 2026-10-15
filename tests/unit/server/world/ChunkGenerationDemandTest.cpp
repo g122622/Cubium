@@ -35,6 +35,7 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <limits>
 #include <memory>
 #include <gtest/gtest.h>
 
@@ -59,8 +60,17 @@ public:
         }
     }
 
+    void generateBiomes(WorldGenRegion& region, world::chunk::ChunkPrimer& chunk) override
+    {
+        if (chunk.x() == 0 && chunk.z() == 0 && onCentreBiomes) {
+            onCentreBiomes();
+        }
+        FlatChunkGenerator::generateBiomes(region, chunk);
+    }
+
     std::atomic<i32> starts{0};
     std::function<void()> onStart;
+    std::function<void()> onCentreBiomes;
 };
 
 class ChunkGenerationDemandTest : public ::testing::Test {
@@ -151,18 +161,96 @@ TEST_F(ChunkGenerationDemandTest, TicketDowngradeLowersTarget)
 
 TEST_F(ChunkGenerationDemandTest, ExplicitRequestsCompleteAtTheirOwnStatus)
 {
-    SingleChunkLifecycleManager holder(0, 0);
-    holder.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(0, 0));
-    holder.submitRequest(ChunkStatuses::STRUCTURE_STARTS, 0, {}, {});
-    holder.submitRequest(ChunkStatuses::FULL, 0, {}, {});
-    holder.completeStatusTo(ChunkStatuses::STRUCTURE_STARTS);
-    auto ready = holder.takeReadyWaiters();
-    ASSERT_EQ(ready.size(), 1);
-    EXPECT_EQ(ready.front().targetStatus, &ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_EQ(holder.waiterCount(), 1);
-    EXPECT_EQ(holder.requestedGenStatus(), ChunkStatuses::FULL);
-    holder.takeAllWaiters();
-    EXPECT_FALSE(holder.hasGenerationDemand());
+    blockWorker();
+    auto biomesStarted = std::make_shared<std::promise<void>>();
+    auto reachedBiomes = biomesStarted->get_future();
+    // 断言提前返回时 promise 析构会唤醒 wait，避免测试清理被阻塞。
+    std::promise<void> allowBiomes;
+    auto allowed = allowBiomes.get_future().share();
+    m_generator->onCentreBiomes = [biomesStarted, allowed]() {
+        biomesStarted->set_value();
+        allowed.wait();
+    };
+    auto intermediate = m_manager->requestChunkAsync(0, 0, ChunkStatuses::STRUCTURE_STARTS);
+    auto full = m_manager->requestChunkAsync(0, 0, ChunkStatuses::FULL);
+    release();
+    ASSERT_EQ(reachedBiomes.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    ASSERT_EQ(intermediate.wait_for(std::chrono::seconds(0)), std::future_status::ready);
+    EXPECT_NE(intermediate.get(), nullptr);
+    EXPECT_EQ(full.wait_for(std::chrono::seconds(0)), std::future_status::timeout);
+    allowBiomes.set_value();
+    ASSERT_EQ(full.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    EXPECT_NE(full.get(), nullptr);
+    m_pool.waitForCompletion();
+}
+
+TEST_F(ChunkGenerationDemandTest, TemporaryRequestStatusUsesStableStorage)
+{
+    blockWorker();
+    auto requested = m_manager->requestChunkAsync(0, 0, ChunkStatus(ChunkStatuses::STRUCTURE_STARTS));
+    auto& holder = m_scheduler->getOrCreateHolder(0, 0);
+    EXPECT_EQ(holder.generationSnapshot().requestedGenStatus,
+        ChunkStatus::byOrdinal(ChunkStatuses::STRUCTURE_STARTS.ordinal()));
+    release();
+    ASSERT_EQ(requested.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    EXPECT_NE(requested.get(), nullptr);
+    m_pool.waitForCompletion();
+    EXPECT_EQ(holder.getCurrentGenStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(m_generator->starts.load(), 1);
+}
+
+TEST_F(ChunkGenerationDemandTest, NeighbourStorageResolutionUsesCurrentTicketPriority)
+{
+    blockWorker();
+    auto& centre = m_scheduler->getOrCreateHolder(0, 0);
+    auto& neighbour = m_scheduler->getOrCreateHolder(1, 0);
+    {
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        neighbour.setLevel(static_cast<i32>(world::chunk::ChunkLoadLevel::Full));
+        EXPECT_TRUE(m_scheduler->checkNeighbour(1, 0, ChunkStatuses::STRUCTURE_STARTS, centre));
+        EXPECT_NE(neighbour.requestPriority(), std::numeric_limits<i32>::max());
+        EXPECT_EQ(neighbour.requestPriority() / 1024, neighbour.level());
+        EXPECT_EQ(neighbour.waiterCount(), 0);
+    }
+    leave(neighbour);
+    leave(centre);
+    release();
+    m_pool.waitForCompletion();
+}
+
+TEST_F(ChunkGenerationDemandTest, DowngradeCancelsQueuedStageAboveRemainingDemand)
+{
+    blockWorker();
+    const auto& step = world::chunk::ChunkPyramid::generationPyramid().getStepTo(ChunkStatuses::STRUCTURE_REFERENCES);
+    const i32 radius = step.neighbourReadRadius();
+    for (i32 z = -radius; z <= radius; ++z) {
+        for (i32 x = -radius; x <= radius; ++x) {
+            auto& neighbour = m_scheduler->getOrCreateHolder(x, z);
+            neighbour.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(x, z));
+            neighbour.completeStatusTo(x == 0 && z == 0 ? ChunkStatuses::STRUCTURE_STARTS : ChunkStatuses::FULL);
+        }
+    }
+    auto& holder = m_scheduler->getOrCreateHolder(0, 0);
+    {
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        holder.setLevel(static_cast<i32>(world::chunk::ChunkLoadLevel::Full));
+        holder.prepareGeneration(0);
+        holder.noteStorageMissing();
+        m_scheduler->schedule(0, 0, holder);
+        ASSERT_NE(holder.generationTask(), nullptr);
+        ASSERT_EQ(*holder.scheduledStatus(), ChunkStatuses::STRUCTURE_REFERENCES);
+        holder.setLevel(world::chunk::ChunkPyramid::maxLevel());
+        ASSERT_TRUE(holder.hasGenerationDemand());
+        ASSERT_EQ(holder.requestedGenStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    }
+    auto token = holder.abortSignal();
+    m_scheduler->reconcileGenerationDemand(0, 0);
+    EXPECT_TRUE(token->load());
+    release();
+    m_pool.waitForCompletion();
+    EXPECT_EQ(holder.getCurrentGenStatus(), ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(m_generator->starts.load(), 0);
+    EXPECT_FALSE(holder.hasFailedGeneration());
 }
 
 TEST_F(ChunkGenerationDemandTest, QueuedCancellationRetainsTaskUntilAcknowledged)

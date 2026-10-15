@@ -715,7 +715,8 @@ void ServerChunkManager::_drainPendingLoadCompletes()
 void ServerChunkManager::_resolveStorageForScheduling(SingleChunkLifecycleManager& lifecycleManager)
 {
     // 邻居依赖已经登记；解析来源不应再创建一份无法撤销的显式请求。
-    const i32 priority = std::numeric_limits<i32>::max();
+    const i32 priority = _computeSchedulePriority(
+        lifecycleManager.x(), lifecycleManager.z(), lifecycleManager.requestedGenStatus(), lifecycleManager.level());
     _advanceChunkState(lifecycleManager, lifecycleManager.prepareGeneration(priority));
 }
 

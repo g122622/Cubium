@@ -919,14 +919,14 @@ private:
         ChunkCoord x, ChunkCoord z, ChunkPrimer& primer, mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
-     * @brief 达到请求目标状态时唤醒等待者（非 FULL 路径）
+     * @brief 每个生成阶段完成后，交付已达到各自目标的请求（非 FULL 路径）
      *
-     * 由 ChunkTaskScheduler::onChunkGenComplete 在 currentGenStatus >= requestedGenStatus 时调用。
+     * 由 ChunkTaskScheduler::onChunkGenComplete 在每个阶段完成后调用。
+     * 只交付目标不高于 currentGenStatus 的等待者，其余请求保留至各自目标完成；
+     * 较低目标的请求不等待汇总目标，FULL 请求也不会提前取得中间状态的区块。
      * FULL 已由 _finalizeGeneratedChunkSync 处理（存入 m_chunks + markLoadedFromStorageReady +
-     * _completeReadyWaiters），本方法处理非 FULL 目标：用 primer 的 ChunkData 直接完成等待者
-     * （promise/callback），不存入 m_chunks（m_chunks 仅保留 FULL 区块，保证 tryToGetChunkInMem
-     * 快速路径不返回中间状态区块）。markGenerationReady 标记 Ready，使后续相同/更低状态请求走
-     * submitRequest 快速路径。重复调用安全（Ready 后跳过）。
+     * _completeReadyWaiters）。非 FULL 阶段直接用 primer 的 ChunkData 完成请求，不存入
+     * m_chunks，也不标记来源 Ready；重复调用不会重复交付已完成的请求。
      *
      * @param holder 达到目标状态的生命周期管理器
      * @param completedStatus 本次完成的状态
