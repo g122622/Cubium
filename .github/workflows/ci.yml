@@ -137,30 +137,52 @@ jobs:
           set -euo pipefail
           status=0
 
-          # 按索引取模选片：每个分片处理总列表中的第 shard, shard+4, shard+8 ... 个文件。
-          # 该划分与文件内容无关，因此四个分片各自独立计算即可得到同一份互不重叠的划分。
-          mapfile -d '' -t changed_sources < "$CHANGED_SOURCE_LIST"
+          # 分片前先按文件大小降序排序，再按索引取模轮转分配：大文件优先铺到各分片，
+          # 使四个分片的总工作量（而非文件个数）接近。排序与取模都是纯函数，
+          # 各分片独立计算即得到同一份互不重叠的划分（-s 保证同尺寸文件的次序稳定）。
+          _order_by_size() {
+            # 输入：NUL 分隔的路径列表文件；输出：每行 "<字节数>\t<路径>"，按字节数降序。
+            local list_file="$1"
+            local sorted_file="$2"
+            : > "$sorted_file"
+            local entry
+            while IFS= read -r -d '' entry; do
+              printf '%s\t%s\n' "$(stat -c '%s' "$entry" 2>/dev/null || echo 0)" "$entry" >> "$sorted_file"
+            done < "$list_file"
+            sort -s -k1,1nr -o "$sorted_file" "$sorted_file"
+          }
+
+          # 取第 SHARD_INDEX 个分片负责的条目（按排序后的索引取模）。
+          _select_shard() {
+            local sorted_file="$1"
+            local -n out_ref="$2"
+            out_ref=()
+            local i=0
+            local size path
+            while IFS=$'\t' read -r size path; do
+              if (( i % SHARD_COUNT == SHARD_INDEX )); then
+                out_ref+=("$path")
+              fi
+              (( i++ )) || true
+            done < "$sorted_file"
+          }
+
+          _order_by_size "$CHANGED_SOURCE_LIST" "$RUNNER_TEMP/shard-sources-sorted.txt"
+          total_sources=$(wc -l < "$RUNNER_TEMP/shard-sources-sorted.txt")
           shard_sources=()
-          for (( i = 0; i < ${#changed_sources[@]}; i++ )); do
-            if (( i % SHARD_COUNT == SHARD_INDEX )); then
-              shard_sources+=("${changed_sources[$i]}")
-            fi
-          done
-          echo "Shard ${SHARD_INDEX}/${SHARD_COUNT}: ${#shard_sources[@]} of ${#changed_sources[@]} translation unit(s)."
+          _select_shard "$RUNNER_TEMP/shard-sources-sorted.txt" shard_sources
+          echo "Shard ${SHARD_INDEX}/${SHARD_COUNT}: ${#shard_sources[@]} of ${total_sources} translation unit(s)."
           if [ "${#shard_sources[@]}" -gt 0 ]; then
             bash scripts/tidy/tidy.sh \
               --changed-lines="$CHANGED_LINES" \
               --warnings-as-errors='*' "${shard_sources[@]}" || status=$?
           fi
 
-          mapfile -d '' -t changed_headers < "$CHANGED_HEADER_LIST"
+          _order_by_size "$CHANGED_HEADER_LIST" "$RUNNER_TEMP/shard-headers-sorted.txt"
+          total_headers=$(wc -l < "$RUNNER_TEMP/shard-headers-sorted.txt")
           shard_headers=()
-          for (( i = 0; i < ${#changed_headers[@]}; i++ )); do
-            if (( i % SHARD_COUNT == SHARD_INDEX )); then
-              shard_headers+=("${changed_headers[$i]}")
-            fi
-          done
-          echo "Shard ${SHARD_INDEX}/${SHARD_COUNT}: ${#shard_headers[@]} of ${#changed_headers[@]} header(s)."
+          _select_shard "$RUNNER_TEMP/shard-headers-sorted.txt" shard_headers
+          echo "Shard ${SHARD_INDEX}/${SHARD_COUNT}: ${#shard_headers[@]} of ${total_headers} header(s)."
           if [ "${#shard_headers[@]}" -gt 0 ]; then
             # 只为本分片负责的头文件生成编译数据库条目，避免每个分片重复处理全部头文件。
             shard_header_list="$RUNNER_TEMP/shard-${SHARD_INDEX}-headers.nul"

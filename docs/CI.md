@@ -42,7 +42,8 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 `build/compile_commands.json`，不执行完整构建。变更的源文件使用该编译数据库；变更头文件会生成临时编译
 数据库条目，继承最近源文件的编译参数后再运行 clang-tidy，避免头文件因没有原生编译条目而被跳过。
 
-**变更文件均分到 4 个并行分片**。`clang-tidy shard 0..3` 各取总列表中索引模 4 等于自身序号的文件，
+**变更文件按大小排序后均分到 4 个并行分片**。`clang-tidy shard 0..3` 先把变更文件按字节数降序排序，
+再按排序后的索引取模 4 取自己那一份（大文件优先铺到各分片，使各分片的**总工作量**而非文件个数接近）。
 每个分片内部 4 线程（`TIDY_JOBS=4`），合计 16 个并发 clang-tidy 进程，把单 job 约 50 分钟的扫描压到
 四分之一。四个分片之外还有一个汇总 job `clang-tidy (changed C++)`（`needs: [clang-tidy-shard]`、
 `if: always()`），任一失败或取消即令其失败。**ruleset 中登记的 required status check 是这个汇总 job 名**，

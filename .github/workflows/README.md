@@ -19,7 +19,7 @@ nightly 的构建产物供各测试 job 复用，report 在所有 job 结束后�
 独立 benchmark runner 使用。
 
 `ci.yml` 只在 PR 和 merge queue 运行，只检查本次变更的 C++ 源文件与头文件；头文件使用临时编译数据库条目。
-`tests/` 下的文件不参与 clang-tidy。变更文件按索引取模均分到 4 个并行分片 job
+`tests/` 下的文件不参与 clang-tidy。变更文件按字节数降序排序后按索引取模均分到 4 个并行分片 job
 （`clang-tidy shard 0..3`，每个分片内部 4 线程，合计 16 个并发 clang-tidy 进程），
 另有一个同名汇总 job `clang-tidy (changed C++)` 依赖四个分片，全绿才成功；
 ruleset 中登记的 required status check 是该汇总 job 名。
