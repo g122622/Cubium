@@ -1498,8 +1498,8 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
                     // 执行流体随机刻
                     const fluid::FluidState* fluidState = blockState->getFluidState();
                     if (fluidState && !fluidState->isEmpty() && fluidState->getFluid().ticksRandomly()) {
-                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast) — randomTick 是非 const 方法，需要
-                        // const_cast
+                        // randomTick 是非 const 方法，需要 const_cast。
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
                         fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
                         fluid.randomTick(*this, pos, *fluidState, m_random);
                     }

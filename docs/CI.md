@@ -38,9 +38,16 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 ### PR clang-tidy 门禁
 
 `.github/workflows/ci.yml` 只在 PR 和 merge queue 运行，不进入 nightly。它从 PR 基线与头提交之间
-筛出变更的 `.cpp`、`.cc`、`.cxx`、`.hpp`、`.h` 文件，用 Linux preset 生成 `build/compile_commands.json`，
-不执行完整构建。变更的源文件使用该编译数据库；变更头文件会生成临时编译数据库条目，继承最近源文件的
-编译参数后再运行 clang-tidy，避免头文件因没有原生编译条目而被跳过。
+筛出变更的 `.cpp`、`.cc`、`.cxx`、`.hpp`、`.h` 文件（`tests/` 下的文件不参与），用 Linux preset 生成
+`build/compile_commands.json`，不执行完整构建。变更的源文件使用该编译数据库；变更头文件会生成临时编译
+数据库条目，继承最近源文件的编译参数后再运行 clang-tidy，避免头文件因没有原生编译条目而被跳过。
+
+**变更文件均分到 4 个并行分片**。`clang-tidy shard 0..3` 各取总列表中索引模 4 等于自身序号的文件，
+每个分片内部 4 线程（`TIDY_JOBS=4`），合计 16 个并发 clang-tidy 进程，把单 job 约 50 分钟的扫描压到
+四分之一。四个分片之外还有一个汇总 job `clang-tidy (changed C++)`（`needs: [clang-tidy-shard]`、
+`if: always()`），任一失败或取消即令其失败。**ruleset 中登记的 required status check 是这个汇总 job 名**，
+因此分支保护仍只看到一个必需检查项。分片数量在两处必须同步：矩阵的 `shard` 列表与脚本内的 `SHARD_COUNT`。
+vcpkg 二进制缓存只由 shard 0 回写，避免四个分片争抢同一个 cache key。
 
 **门禁只对本次 diff 的新增行失败**。`scripts/ci/changed_lines.py` 先把 `git diff -U0` 的 hunk
 解析成 `<路径>\t<起始行>\t<结束行>` 的 TSV，`scripts/tidy/tidy.sh --changed-lines` 据此过滤诊断：

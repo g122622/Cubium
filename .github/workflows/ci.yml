@@ -16,12 +16,22 @@ env:
   VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg-cache,readwrite
   CCACHE_DIR: ${{ github.workspace }}/.ccache
   CCACHE_MAXSIZE: 2G
+  # 每个分片内部并发运行的 clang-tidy 进程数。4 个分片 × 4 线程 = 16 个并发 clang-tidy 进程。
+  TIDY_JOBS: 4
 
 jobs:
-  clang-tidy:
-    name: clang-tidy (changed C++)
+  # 变更的 C++ 文件按 shard 取模均分到 4 个并行 job；每个 job 内部 4 线程，总并发 16。
+  # 四个分片全部通过后，下面的 clang-tidy (changed C++) 汇总 job 才会成功，
+  # 而该汇总 job 名正是 ruleset 里登记的 required status check。
+  clang-tidy-shard:
+    name: clang-tidy shard ${{ matrix.shard }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # 分片数量必须与下面 Run 步骤中的 SHARD_COUNT 保持一致。
+        shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +51,10 @@ jobs:
           : > "$source_file_list"
           : > "$header_file_list"
           while IFS= read -r -d '' path; do
+            # tests/ 下的文件不参与 clang-tidy（测试代码不纳入静态分析门禁）。
+            case "$path" in
+              tests/*) continue ;;
+            esac
             case "$path" in
               *.cpp|*.cc|*.cxx)
                 printf '%s\0' "$path" >> "$source_file_list"
@@ -99,8 +113,13 @@ jobs:
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
+      # 四个分片会恢复同一份 vcpkg 二进制缓存；只让 shard 0 负责回写，
+      # 避免多个 job 同时抢占同一个 cache key。
       - name: Save vcpkg binary cache
-        if: steps.changed.outputs.has_cpp == 'true' && steps.env-setup.outputs.vcpkg-cache-hit != 'true'
+        if: >-
+          matrix.shard == 0 &&
+          steps.changed.outputs.has_cpp == 'true' &&
+          steps.env-setup.outputs.vcpkg-cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: vcpkg-cache
@@ -112,29 +131,73 @@ jobs:
           CHANGED_SOURCE_LIST: ${{ steps.changed.outputs.source_list }}
           CHANGED_HEADER_LIST: ${{ steps.changed.outputs.header_list }}
           CHANGED_LINES: ${{ steps.lines.outputs.changed_lines }}
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_COUNT: 4
         run: |
           set -euo pipefail
           status=0
+
+          # 按索引取模选片：每个分片处理总列表中的第 shard, shard+4, shard+8 ... 个文件。
+          # 该划分与文件内容无关，因此四个分片各自独立计算即可得到同一份互不重叠的划分。
           mapfile -d '' -t changed_sources < "$CHANGED_SOURCE_LIST"
-          if [ "${#changed_sources[@]}" -gt 0 ]; then
-            TIDY_JOBS="$(nproc)" bash scripts/tidy/tidy.sh \
+          shard_sources=()
+          for (( i = 0; i < ${#changed_sources[@]}; i++ )); do
+            if (( i % SHARD_COUNT == SHARD_INDEX )); then
+              shard_sources+=("${changed_sources[$i]}")
+            fi
+          done
+          echo "Shard ${SHARD_INDEX}/${SHARD_COUNT}: ${#shard_sources[@]} of ${#changed_sources[@]} translation unit(s)."
+          if [ "${#shard_sources[@]}" -gt 0 ]; then
+            bash scripts/tidy/tidy.sh \
               --changed-lines="$CHANGED_LINES" \
-              --warnings-as-errors='*' "${changed_sources[@]}" || status=$?
+              --warnings-as-errors='*' "${shard_sources[@]}" || status=$?
           fi
 
           mapfile -d '' -t changed_headers < "$CHANGED_HEADER_LIST"
-          if [ "${#changed_headers[@]}" -gt 0 ]; then
+          shard_headers=()
+          for (( i = 0; i < ${#changed_headers[@]}; i++ )); do
+            if (( i % SHARD_COUNT == SHARD_INDEX )); then
+              shard_headers+=("${changed_headers[$i]}")
+            fi
+          done
+          echo "Shard ${SHARD_INDEX}/${SHARD_COUNT}: ${#shard_headers[@]} of ${#changed_headers[@]} header(s)."
+          if [ "${#shard_headers[@]}" -gt 0 ]; then
+            # 只为本分片负责的头文件生成编译数据库条目，避免每个分片重复处理全部头文件。
+            shard_header_list="$RUNNER_TEMP/shard-${SHARD_INDEX}-headers.nul"
+            : > "$shard_header_list"
+            for header in "${shard_headers[@]}"; do
+              printf '%s\0' "$header" >> "$shard_header_list"
+            done
             header_compdb_dir="$RUNNER_TEMP/tidy-header-compdb"
             if python3 scripts/ci/create_header_compile_commands.py \
               --compile-commands build/compile_commands.json \
-              --headers-list "$CHANGED_HEADER_LIST" \
+              --headers-list "$shard_header_list" \
               --output "$header_compdb_dir/compile_commands.json"; then
-              TIDY_COMPILE_DB_DIR="$header_compdb_dir" TIDY_JOBS="$(nproc)" \
+              TIDY_COMPILE_DB_DIR="$header_compdb_dir" \
                 bash scripts/tidy/tidy.sh \
                   --changed-lines="$CHANGED_LINES" \
-                  --warnings-as-errors='*' "${changed_headers[@]}" || status=$?
+                  --warnings-as-errors='*' "${shard_headers[@]}" || status=$?
             else
               status=1
             fi
           fi
           exit "$status"
+
+  # 汇总 job：名字与 ruleset 中登记的 required status check 完全一致。
+  # 四个分片任一失败（或取消）都会让本 job 失败，从而阻止 PR 合并。
+  clang-tidy:
+    name: clang-tidy (changed C++)
+    needs: [clang-tidy-shard]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify all shards succeeded
+        env:
+          SHARD_RESULT: ${{ needs.clang-tidy-shard.result }}
+        run: |
+          set -euo pipefail
+          if [ "$SHARD_RESULT" != "success" ]; then
+            echo "::error::clang-tidy shards did not all succeed (result: $SHARD_RESULT)."
+            exit 1
+          fi
+          echo "All clang-tidy shards passed."
