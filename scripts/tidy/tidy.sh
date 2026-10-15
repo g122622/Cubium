@@ -359,19 +359,24 @@ finish_worker() {
     local pid="$1" file="$2" output_file="$3" meta_file="$4"
     local exit_code elapsed rel_path raw normalized diag_path diag_line diag_kind diag_message
     local -a in_scope=()
+    local out_of_scope_count=0
     wait "$pid" || true
     read -r exit_code elapsed < "$meta_file"
     rel_path="${file#"$PROJECT_ROOT"/}"
     TOTAL_FILE_SECONDS=$(awk -v total="$TOTAL_FILE_SECONDS" -v value="$elapsed" 'BEGIN { printf "%.6f", total + value }')
 
     # Collect the diagnostics that survive changed-line filtering. Each entry is the
-    # original clang-tidy line, so the report keeps its native formatting.
+    # original clang-tidy line, so the report keeps its native formatting. Diagnostics
+    # dropped by the filter are counted so a nonzero exit can be told apart from a
+    # genuine invocation failure (see the branch below).
     while IFS= read -r raw; do
         [[ -z "$raw" ]] && continue
         normalized="$(normalize_diagnostic "$raw")" || { in_scope+=("$raw"); continue; }
         IFS=$'\t' read -r diag_path diag_line diag_kind diag_message <<< "$normalized"
         if is_changed_line "$diag_path" "$diag_line"; then
             in_scope+=("$raw")
+        else
+            ((out_of_scope_count++)) || true
         fi
     done < <(grep -E ':[[:space:]]*(warning|error):' "$output_file" || true)
 
@@ -388,16 +393,19 @@ finish_worker() {
         echo -e "${RED}CRASH: $rel_path (segfault)${NC}"
         ((FAIL++)) || true
         FAILED_FILES+=("$rel_path")
-    elif [[ $exit_code -ne 0 && ${#in_scope[@]} -eq 0 ]]; then
-        if [[ $CHANGED_LINES_ACTIVE -eq 1 ]]; then
-            echo -e "${GREEN}  OK: $rel_path${NC} ${YELLOW}(diagnostics outside changed lines)${NC}"
-        else
-            echo -e "${RED}FAIL: $rel_path${NC}"
-            cat "$output_file"
-            ((FAIL++)) || true
-            FAILED_FILES+=("$rel_path")
-        fi
+    elif [[ $exit_code -ne 0 && ${#in_scope[@]} -eq 0 && $out_of_scope_count -gt 0 ]]; then
+        # Nonzero exit, but every diagnostic it emitted sits outside the changed lines:
+        # the only failures are pre-existing backlog, so the file passes the gate.
+        echo -e "${GREEN}  OK: $rel_path${NC} ${YELLOW}(diagnostics outside changed lines)${NC}"
         ((PASS++)) || true
+    elif [[ $exit_code -ne 0 && ${#in_scope[@]} -eq 0 ]]; then
+        # Nonzero exit with no diagnostic at all: clang-tidy itself failed (bad
+        # invocation, missing compile-database entry, unparsable output). Reporting OK
+        # here would let the gate pass without having checked the file, so fail loudly.
+        echo -e "${RED}FAIL: $rel_path${NC} ${YELLOW}(clang-tidy exited $exit_code without diagnostics)${NC}"
+        cat "$output_file"
+        ((FAIL++)) || true
+        FAILED_FILES+=("$rel_path")
     elif [[ $exit_code -ne 0 ]]; then
         echo -e "${RED}FAIL: $rel_path${NC}"
         printf '%s\n' "${in_scope[@]}"
