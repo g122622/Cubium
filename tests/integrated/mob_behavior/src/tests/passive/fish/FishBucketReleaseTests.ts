@@ -5,7 +5,7 @@
 //
 // 对齐 Java 1.21.11 MobBucketItem.use 流程（Cubium 实现为 FishBucketItem::onItemUse）：
 //   1. Survival 玩家主手持 cod_bucket 等 + useItemOnBlock(grass_block, face=Up)
-//      → SimulatedPlayer::useItemOnBlock 先 Block.use（grass_block onBlockActivated 基类返 Pass）
+//      → SimulatedPlayer::useItemOnBlock 先 Block.use（grass_block 方块侧交互 基类返 Pass）
 //      → fallback Item.useOn → FishBucketItem::onItemUse。
 //   2. onItemUse（FishBucketItem.cpp:57-92）：placePos = blockPos.offset(face=Up)（被点击方块上方 air），
 //      setBlockState(placePos, WATER) 放水 + scheduleFluidTick + _spawnFish(placePos) 生成鱼

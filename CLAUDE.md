@@ -64,6 +64,50 @@ cmake --build --preset macos-relwithdebinfo -- -j{当前机器核心数减去2}
 运行 scripts/format/clang_format_all.ts # 这个脚本会自动定位clang-format并自动格式化文件 必须node24版本（可以在同一行命令中先nvm切换到24）
 ```
 
+## clang-tidy 抑制注释（NOLINT）写法
+
+【重要】`// NOLINTNEXTLINE` 只对**紧邻的下一行**生效。若中间夹了任何其他注释行（哪怕是解释该抑制
+原因的说明），抑制就会落到那条注释上，被抑制的诊断照常报出，且**没有任何提示**——表现为"写了 NOLINT
+却依然报错"。
+
+因此必须遵守：
+
+1. **抑制行与它要抑制的代码行之间，不得有任何其他行**。需要解释原因时，把说明写在抑制行**之前**，
+   并用一条空注释行 `//` 与抑制行隔开。
+2. **抑制要精确对准报出诊断的那一行**。`performance-unnecessary-value-param` 的告警位置是**参数本身**，
+   所以抑制必须写在**那个参数所在的参数行**的正上方——写在函数名行上方无效（clang-format 会把参数拆成
+   多行，函数名行与参数行不再是同一行）。
+3. **行尾 NOLINT 不可靠**：写在行尾的 `// NOLINT(...)` 经 clang-format 重排参数后会留在函数名行，
+   而诊断在参数行，抑制失效；同理行尾 `NOLINTNEXTLINE` 抑制的是下一行而非本行。**统一使用参数行上方的
+   独立 `// NOLINTNEXTLINE(检查名)` 行**。
+
+正确写法（抑制写在目标参数行正上方，且中间无其他行）：
+
+```cpp
+// heldItem 必须按值传入：ItemUseContext 构造函数对该 stack 做 const_cast 后持有可写指针，
+// onItemUse 内 getItemStackMut() 会直接改它；若指向权威槽，物品侧的自改会绕过下方
+// itemId/damage 对比，导致外层再 shrink 一次（双重消耗）。
+Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
+    PlayerId playerId,
+    const BlockPos& pos,
+    const Vector3& hitPos,
+    Direction face,
+    Hand hand,
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    ItemStack heldItem)
+```
+
+错误写法（抑制与签名之间夹了注释行 → 抑制落到注释行上，静默失效）：
+
+```cpp
+// NOLINTNEXTLINE(performance-unnecessary-value-param) — heldItem 必须按值传入：
+// ItemUseContext 构造函数对该 stack 做 const_cast 后持有可写指针……
+Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
+    PlayerId playerId, const BlockPos& pos, ...)
+```
+
+改完必须用 `./scripts/tidy/tidy.sh --checks='-*,<检查名>' <文件>` 实测确认抑制生效（输出中不应再出现该诊断）。
+
 ## git 规范
 
 ### 提交信息格式

@@ -8,7 +8,7 @@
 //
 // C++ 链路：RedstoneRepeaterBlock（redstone/RedstoneRepeaterBlock.cpp）继承 RedstoneDiodeBlock，state：
 //   HORIZONTAL_FACING（"facing"，默认 North）+ POWERED + DELAY_1_4（"delay"，默认 1）+ LOCKED。
-//   - onBlockActivated（:144）：!mayBuild → Pass；isLockedState → Pass（锁定时不调档）；否则
+//   - 方块侧交互（:144）：!mayBuild → Pass；isLockedState → Pass（锁定时不调档）；否则
 //     newDelay = (currentDelay % MAX_DELAY) + 1（1→2→3→4→1）→ withDelay setBlockState 写回 +
 //     点击音效 → return Success。不检查手持物（空手/任意物品右键都切档）。
 //   - DELAY state 名 "delay"（Properties.hpp DELAY_1_4 = IntegerProperty("delay",1,4)）。
@@ -18,9 +18,9 @@
 //     按水平视线决定朝向的行为不一致。
 //   - 锁定（LOCKED=true）时右键返 Pass 不切档——本组不构造锁定场景（需侧面二极管信号，复杂）。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。中继器 onBlockActivated 创造模式 mayBuild=true + 未锁定 → 切档返 Success 短路。
-//   用手持 stick 触发（onBlockActivated 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。中继器 方块侧交互 创造模式 mayBuild=true + 未锁定 → 切档返 Success 短路。
+//   用手持 stick 触发（方块侧交互 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
 //   ItemStack 形参）。放置朝向走 useItemOnBlock 手持 repeater 物品点击 stone 顶面 Up → BlockItem::tryPlace
 //   → getStateForPlacement（基类 facing=opposite(horizontalDirection)）→ setBlockState。
 //
@@ -40,9 +40,9 @@
 //    右键切档不依赖 facing，默认 North 即可。朝向测试用 useItemOnBlock 放置（走 getStateForPlacement）。
 // 3. 读 delay state 用 getState("delay" as any) 绕过 BlockStateSuperset 白名单。读 facing 用
 //    getState("facing" as any)（HORIZONTAL_FACING，返小写方向字符串 north/south/east/west）。
-// 4. 创造模式 SimulatedPlayer mayBuild=true，onBlockActivated 走切档分支（非 Pass）。locked=false（
+// 4. 创造模式 SimulatedPlayer mayBuild=true，方块侧交互 走切档分支（非 Pass）。locked=false（
 //    无侧面信号），不触发 isLockedState 守卫。
-// 5. 切档不消耗手持物（onBlockActivated 无 shrink），stick 可重复使用；循环场景每次仍 new ItemStack
+// 5. 切档不消耗手持物（方块侧交互 无 shrink），stick 可重复使用；循环场景每次仍 new ItemStack
 //    重新设入选中槽（与重生锚充能范式一致，避免选中槽状态漂移）。
 // 6. 切档后 setBlockState(flags=3) 触发邻居更新 + 计划刻，但无信号输入 shouldPower=false=isPowered，
 //    不调度亮灭，delay state 稳定可断言。
@@ -65,7 +65,7 @@
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_红石中继器.txt#延迟信号（4 档 2/4/6/8gt，右键 +1，4 档重置 1 档）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_红石中继器.txt#放置（facing=opposite(水平视线)）
-// Ref: RedstoneRepeaterBlock.cpp（onBlockActivated newDelay=(cur%4)+1 切档+音效→Success；DELAY_1_4 state）
+// Ref: RedstoneRepeaterBlock.cpp（方块侧交互 newDelay=(cur%4)+1 切档+音效→Success；DELAY_1_4 state）
 // Ref: RedstoneDiodeBlock.cpp（getStateForPlacement facing=opposite(horizontalDirection) 修复，中继器继承）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支）
 // Ref: BarrelTests.ts（含 pitch lookAtLocation 朝向控制范式 + 水平 4 朝向坐标配方，中继器复用水平部分）
@@ -143,7 +143,7 @@ function placeRepeater(test: Test): void {
 // 场景 1：右键切档递增——放中继器（delay=1）+ stick useItemOnBlock → delay=2，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 中继器 delay=1。
-// onBlockActivated：mayBuild=true + locked=false → newDelay=(1%4)+1=2 → withDelay(2) setBlockState → Success。
+// 方块侧交互：mayBuild=true + locked=false → newDelay=(1%4)+1=2 → withDelay(2) setBlockState → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），delay === 2（切到 2 档）。
 function repeaterDelayCyclesUpOnUse(test: Test): void {
@@ -153,7 +153,7 @@ function repeaterDelayCyclesUpOnUse(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const stick = new ItemStack("minecraft:stick", 1);
 
-    // 对中继器 useItemOnBlock stick → onBlockActivated newDelay=(1%4)+1=2 → Success。
+    // 对中继器 useItemOnBlock stick → 方块侧交互 newDelay=(1%4)+1=2 → Success。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },

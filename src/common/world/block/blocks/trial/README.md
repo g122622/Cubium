@@ -56,7 +56,7 @@ Tick 10: craftingTicksRemaining=0 → CRAFTING=false
 ### 方块破坏行为
 
 - `onBlockRemoved`：方块被移除时，遍历9格物品栏，将所有物品通过ItemDropHelper掉落到世界，并通知比较器更新
-- `onBlockActivated`：玩家右键交互的入口，打开自动合成器GUI（ContainerType::Crafter）
+- `useItemOn` / `useWithoutItem`：玩家右键交互的入口，打开自动合成器GUI（ContainerType::Crafter）
 
 ### setItem自动重新启用
 

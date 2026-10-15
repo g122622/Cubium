@@ -9,7 +9,7 @@
 //
 // C++ 链路：BedBlock（functional/BedBlock.cpp）有 HORIZONTAL_FACING + BED_PART（Foot/Head）+
 //   OCCUPIED 三个 state。默认 state（:83-86）：facing=North, part=Foot, occupied=false。
-//   - onBlockActivated（:334-427）：取维度 bedWorks，false→爆炸分支（移除床+createExplosion）；
+//   - 方块侧交互（:334-427）：取维度 bedWorks，false→爆炸分支（移除床+createExplosion）；
 //     true→算床头位置（脚部 offset(facing)）→ 取 headState，无 OCCUPIED 属性则 Pass → 已占用则
 //     sendStatusMessage + Success → 否则 player.tryStartSleeping(bedHeadPos)：
 //       OK → headState.with(OCCUPIED,true) setBlockState；交互脚部则 foot 也 with(OCCUPIED,true) → Success；
@@ -24,7 +24,7 @@
 //
 // 派发链路：SimulatedPlayer 继承 ServerPlayer，tryStartSleeping 委托 trySleep（前置检查）。
 //   GameTest batch("night") 设 dayTime=18000（Cubium GameTestServer.cpp:329 TimeOfDayEnvironment），
-//   满足 canSleepAtTime 夜间范围。interactWithBlock（空手右键）→ onBlockActivated 睡眠分支。
+//   满足 canSleepAtTime 夜间范围。interactWithBlock（空手右键）→ 方块侧交互 睡眠分支。
 //
 // 测试覆盖（1 个场景，覆盖 wiki 主世界夜晚睡眠占用 OCCUPIED 翻转核心确定行为）：
 //   1. 夜晚睡眠占用：双半红床（foot facing=North + head）+ batch("night") + interactWithBlock（空手右键
@@ -43,7 +43,7 @@
 //
 // 不测「下界/末地爆炸」：涉 createExplosion 方块破坏+火焰，非确定，跳过。
 // 不测「已占用床再右键」：需先成功睡眠占用一张床（本场景），再用第二个玩家右键——但 OCCUPIED 已 true
-//   时 onBlockActivated 走 sendStatusMessage+Success（不改 state），判定仅返回值 true，单薄。跳过。
+//   时 方块侧交互 走 sendStatusMessage+Success（不改 state），判定仅返回值 true，单薄。跳过。
 //   TODO: 待需扩展「占用态再交互」覆盖时补。
 // 不测「设置重生点」：setSpawnPoint 副作用无脚本断言 API，跳过。
 //
@@ -52,7 +52,7 @@
 //   场景在基岩侧为 one-sided。但 OCCUPIED 翻转行为本身两端语义一致。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\block_床.txt#睡觉（夜晚右键床睡眠，标记占用）
-// Ref: BedBlock.cpp（onBlockActivated 睡眠分支 OCCUPIED 翻转；onBlockPlacedBy 自动配对 head；updatePostPlacement 配对缺失自毁）
+// Ref: BedBlock.cpp（方块侧交互 睡眠分支 OCCUPIED 翻转；onBlockPlacedBy 自动配对 head；updatePostPlacement 配对缺失自毁）
 // Ref: ServerPlayer.cpp（trySleep 前置：isPlayerNearBed/isBedObstructed/canSleepAtTime/isBedSurroundedByMonsters）
 // Ref: SleepManager.cpp（canSleepAtTime 晴天[12542,23459]/降雨[12010,23991]/雷暴任意）
 // Ref: GameTestServer.cpp（batch("night") → TimeOfDayEnvironment(18000) 真正设夜晚）
@@ -101,7 +101,7 @@ function placeBedSetup(test: Test): void {
 //
 // 布局：foot (3,2,2) + head (3,2,1)，SimulatedPlayer 站 (3,2,3) 靠近 foot。
 // batch("night") 设 dayTime=18000 满足 canSleepAtTime。interactWithBlock 空手右键 foot →
-//   onBlockActivated：bedWorks(主世界 true) → bedHeadPos=foot.offset(North)=(3,2,1) →
+//   方块侧交互：bedWorks(主世界 true) → bedHeadPos=foot.offset(North)=(3,2,1) →
 //   headState 有 OCCUPIED 且未占用 → tryStartSleeping(headPos) → trySleep 前置全通过 → OK →
 //   head with(OCCUPIED,true) + foot with(OCCUPIED,true) → Success。
 //
@@ -118,7 +118,7 @@ function bedOccupiedWhenSleepingAtNight(test: Test): void {
     // 新 spawn SimulatedPlayer 站 foot 南侧相邻格（靠近床，满足 isPlayerNearBed）。
     const farmer = test.spawnSimulatedPlayer({ x: 3, y: 2, z: 3 }, "farmer");
 
-    // interactWithBlock 空手右键 foot (3,2,2) → onBlockActivated 睡眠分支 → OCCUPIED 翻 true。
+    // interactWithBlock 空手右键 foot (3,2,2) → 方块侧交互 睡眠分支 → OCCUPIED 翻 true。
     // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
     const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
         .interactWithBlock({ x: 3, y: 2, z: 2 }, Direction.Up);

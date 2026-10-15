@@ -56,15 +56,10 @@ BlockState DragonEggBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-BlockActionResult DragonEggBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult DragonEggBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 右键点击触发传送

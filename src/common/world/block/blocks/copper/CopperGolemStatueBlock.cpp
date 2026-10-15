@@ -152,7 +152,8 @@ const CollisionShape& CopperGolemStatueBlock::getShape(const BlockState& state) 
     return m_shape;
 }
 
-BlockActionResult CopperGolemStatueBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CopperGolemStatueBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -162,7 +163,7 @@ BlockActionResult CopperGolemStatueBlock::onBlockActivated(const BlockState& sta
     MC_UNUSED(hit);
 
     // 检查玩家手持物品是否为斧头
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (!heldItem.isEmpty()) {
         const Item* item = heldItem.getItem();
         if (item != nullptr && item->isIn(item::tag::ItemTags::AXES())) {
@@ -225,6 +226,18 @@ BlockActionResult CopperGolemStatueBlock::onBlockActivated(const BlockState& sta
     // 非斧头：循环切换姿态
     updatePose(world, state, pos, player);
     return ActionResultType::Success;
+}
+
+BlockActionResult CopperGolemStatueBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 i32 CopperGolemStatueBlock::getComparatorInputOverride(

@@ -93,14 +93,9 @@ BlockState CakeBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-BlockActionResult CakeBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult CakeBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 对齐 vanilla CakeBlock.eat（CakeBlock.java:86-89）：仅当玩家 canEat(false) 时吃一片。

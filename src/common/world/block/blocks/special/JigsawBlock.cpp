@@ -84,17 +84,12 @@ const BlockState& JigsawBlock::mirror(const BlockState& state, Mirror mirror) co
     return state.with(BlockStateProperties::ORIENTATION(), newOrientation);
 }
 
-BlockActionResult JigsawBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult JigsawBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 游戏管理员方块需要权限才能交互

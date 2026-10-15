@@ -101,13 +101,13 @@
 
         ## #6. SignEntity 的涂蜡状态与编辑者追踪
 
-`SignEntity` 的 `isWaxed` 属性用于保护告示牌文字不被修改。涂蜡后 `setLine`、`setLines`、`clearLines`、`setLineFromLegacy` 均被拒绝。涂蜡交互由 `AbstractSignBlock::onBlockActivated()` 中检测蜜脾手持物品触发，同时 `HoneycombItem::onItemUse()` 也实现了告示牌涂蜡路径。`setWaxed()` 仅在状态变化时返回 true 并标记 dirty。NBT 序列化中布尔值以 `i8` 存储。
+`SignEntity` 的 `isWaxed` 属性用于保护告示牌文字不被修改。涂蜡后 `setLine`、`setLines`、`clearLines`、`setLineFromLegacy` 均被拒绝。涂蜡交互由 `AbstractSignBlock::useItemOn()` 中检测蜜脾手持物品触发，同时 `HoneycombItem::onItemUse()` 也实现了告示牌涂蜡路径。`setWaxed()` 仅在状态变化时返回 true 并标记 dirty。NBT 序列化中布尔值以 `i8` 存储。
 
 `SignEntity` 还实现了编辑者追踪机制（对应 MC Java 的 `SignBlockEntity.playerWhoMayEdit`）：
 - `m_playerWhoMayEdit`：存储当前允许编辑的玩家 UUID，空字符串表示无编辑者
-- `otherPlayerIsEditing()`：检查是否有其他玩家正在编辑，用于 `AbstractSignBlock::onBlockActivated()` 中阻止涂蜡和编辑
+- `otherPlayerIsEditing()`：检查是否有其他玩家正在编辑，用于 `AbstractSignBlock::useItemOn()` 中阻止涂蜡和编辑
 - `setAllowedPlayerEditor()` / `clearAllowedPlayerEditor()`：设置/清除编辑锁
-- `hasEditableText()`：检查告示牌文本是否可编辑（涂蜡返回 false），用于 `AbstractSignBlock::onBlockActivated()` 中决定是否打开编辑器
+- `hasEditableText()`：检查告示牌文本是否可编辑（涂蜡返回 false），用于 `AbstractSignBlock::useItemOn()` 中决定是否打开编辑器
 - `playerIsTooFarAwayToEdit()`：检查编辑者是否距离过远或已离线（MC Java 的 `isWithinBlockInteractionRange(blockPos, 4.0)`）
 - `tick()` / `needsTick()`：当有编辑者时启用 tick，每 tick 检查编辑者是否超出范围，自动清除编辑锁
 - 编辑者状态是运行时瞬态数据，不持久化到存档（与 MC Java 一致）

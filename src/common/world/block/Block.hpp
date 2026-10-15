@@ -43,6 +43,7 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -55,9 +56,10 @@ class BlockItemUseContext;
 class Player;
 class BlockEntity;
 class Entity;
-class IPlantable;  // 前向声明植物接口
-class ItemStack;   // 前向声明物品堆
-class SupportType; // 前向声明支撑类型
+class IPlantable;              // 前向声明植物接口
+class ItemStack;               // 前向声明物品堆
+class SupportType;             // 前向声明支撑类型
+enum class ContainerType : u8; // 前向声明容器类型（定义于 entity/inventory/ContainerTypes.hpp）
 
 namespace world::explosion {
 class Explosion;
@@ -1577,21 +1579,21 @@ public:
     // ========================================================================
 
     /**
-     * @brief 玩家右键点击
+     * @brief 玩家手持物品右键点击方块（对应 vanilla `BlockBehaviour.useItemOn`）
      *
-     * 当玩家右键点击方块时调用。
-     * 默认实现返回 Pass。
+     * 仅当玩家手持物品参与交互时分派；由服务端 `useItemOn` 派发链在主手交互且未潜行时调用。
+     * 默认实现返回 `TryEmptyHandInteraction`，即"本方块不关心手持物品，请以空手语义重试"，
+     * 这会驱动服务端转调 `useWithoutItem`（对齐 vanilla `BlockBehaviour.useItemOn` 默认返回
+     * `InteractionResult.TRY_WITH_EMPTY_HAND`）。
      *
-     * 返回 `BlockActionResult` 而非裸 `ActionResultType`，以支持携带
-     * `heldItemTransformedTo` 信息（参考 MC 1.21.11
-     * `InteractionResult.Success.heldItemTransformedTo(ItemStack)`）。
+     * 返回值若 `consumesAction()` 为真，则服务端短路后续的 `useWithoutItem` 与 `Item::useOn`。
+     * 需要传递物品转换信息的方块应使用 `BlockActionResult::success(stack)` 系列工厂方法。
      *
-     * 为了向后兼容，`BlockActionResult` 可从 `ActionResultType` 隐式构造，
-     * 因此旧 override 直接 `return ActionResultType::Success;` 仍然有效。
-     * 需要传递物品转换信息的方块（如 `ShelfBlock`）应使用
-     * `BlockActionResult::success(stack)` 或
-     * `BlockActionResult::success().heldItemTransformedTo(stack)`。
+     * 消耗纪律：本方法对 `stack` 的修改直接作用于玩家权威手持槽（服务端传入的即权威引用），
+     * 服务端在返回后统一同步物品栏。创造模式下的"无消耗"须自行用
+     * `if (!player.hasInfiniteMaterials()) stack.shrink(1);` 表达。
      *
+     * @param stack 玩家手中该手的物品堆（引用语义：可直接 shrink/替换以消耗或转换物品）
      * @param state 方块状态
      * @param world 世界
      * @param pos 方块位置
@@ -1600,12 +1602,52 @@ public:
      * @param hit 射线检测结果
      * @return 交互结果（可能携带转换后的手持物品）
      */
-    [[nodiscard]] virtual BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] virtual BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
         const BlockRaycastResult& hit);
+
+    /**
+     * @brief 玩家空手右键点击方块（对应 vanilla `BlockBehaviour.useWithoutItem`）
+     *
+     * 在"手持物品时 `useItemOn` 返回 `TryEmptyHandInteraction`"或"主手为空/正在潜行"时调用。
+     * 默认实现返回 `Pass`，对齐 vanilla `BlockBehaviour.useWithoutItem` 默认返回
+     * `InteractionResult.PASS`。
+     *
+     * 返回值语义与 `useItemOn` 一致（`BlockActionResult`，携带可选的 `heldItemTransformedTo`，
+     * 供返回值替换空手槽位的场景使用，如花盆取物）。
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param player 玩家
+     * @param hit 射线检测结果
+     * @return 交互结果（可能携带转换后的手持物品）
+     */
+    [[nodiscard]] virtual BlockActionResult useWithoutItem(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit);
+
+    /**
+     * @brief 获取方块提供的菜单类型（对应 vanilla `BlockState.getMenuProvider` 的返回值）
+     *
+     * 有界面的方块（箱子、熔炉、铁砧、附魔台……）重写此方法返回其 `ContainerType`；
+     * 无界面的方块返回 `std::nullopt`。服务端在"旁观者右键"与"空手右键"两条路径上用它
+     * 统一打开界面，使容器类型只由方块自身声明一处，避免每个方块各写一遍
+     * `world.openContainer(ContainerType::Xxx, pos, player)`。
+     *
+     * 注意：返回 `ContainerType` 表示"具备打开条件"，但方块自身特有的开箱前置条件
+     * （如上锁、被遮挡）仍须由 `useWithoutItem` 检查后再调用 `world.openContainer`。
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @return 菜单类型，无界面时返回 `std::nullopt`
+     */
+    [[nodiscard]] virtual std::optional<ContainerType> getMenuProvider(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const;
 
     // ========================================================================
     // 方块实体

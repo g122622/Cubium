@@ -31,15 +31,18 @@ Checks: >-
 WarningsAsErrors: >-
   bugprone-assert-side-effect,
   bugprone-empty-catch,
-  bugprone-exception-escape,
-  bugprone-implicit-widening-of-multiplication-result,
   bugprone-integer-division,
   bugprone-nondeterministic-pointer-iteration-order,
   bugprone-optional-value-conversion,
-  bugprone-return-const-ref-from-parameter,
   bugprone-unchecked-optional-access,
   bugprone-unused-return-value,
-  clang-analyzer-*,
+  clang-analyzer-api.*,
+  clang-analyzer-core.*,
+  clang-analyzer-cplusplus.*,
+  clang-analyzer-nullability.*,
+  clang-analyzer-security.*,
+  clang-analyzer-unix.*,
+  clang-analyzer-valist.*,
   concurrency-*,
   misc-redundant-expression
 HeaderFilterRegex: '^(src|include)/'

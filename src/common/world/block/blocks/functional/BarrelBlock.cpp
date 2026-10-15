@@ -138,15 +138,10 @@ i32 BarrelBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     return 0;
 }
 
-BlockActionResult BarrelBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult BarrelBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     if (world.isClientSide()) {
@@ -172,6 +167,16 @@ void BarrelBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Block
 {
     // 内容物掉落由 ContainerBlockEntity::preRemoveSideEffects 统一处理
     Block::onBlockRemoved(world, pos, state, movedByPiston);
+}
+
+std::optional<ContainerType> BarrelBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Generic9x3;
 }
 
 } // namespace blocks

@@ -70,11 +70,10 @@ public:
     /// 右键切换昼夜模式：对齐 vanilla DaylightDetectorBlock.use。
     /// 调用 toggleMode 翻转 INVERTED state 并重算 power，返回 Success。
     /// 不检查手持物（空手右键即可切换）。
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston) override;

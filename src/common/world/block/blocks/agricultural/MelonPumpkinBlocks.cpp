@@ -95,7 +95,8 @@ PumpkinBlock::PumpkinBlock(
 // 南瓜雕刻功能
 // ============================================================================
 
-BlockActionResult PumpkinBlock::onBlockActivated(const BlockState& state,
+BlockActionResult PumpkinBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -104,14 +105,14 @@ BlockActionResult PumpkinBlock::onBlockActivated(const BlockState& state,
 {
     MC_UNUSED(state);
 
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     const Item* item = heldItem.getItem();
     if (item == nullptr || item != Items::SHEARS) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     if (m_carvedPumpkin == nullptr) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 计算雕刻南瓜的朝向
@@ -169,6 +170,18 @@ BlockActionResult PumpkinBlock::onBlockActivated(const BlockState& state,
     LivingEntity::hurtAndBreak(heldItem, 1, &player, LivingEntity::handToEquipmentSlot(hand));
 
     return ActionResultType::Success;
+}
+
+BlockActionResult PumpkinBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 // ============================================================================

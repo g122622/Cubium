@@ -190,7 +190,8 @@ void LayeredCauldronBlock::handlePrecipitation(
 
 // ========== 交互 ==========
 
-BlockActionResult LayeredCauldronBlock::onBlockActivated(const BlockState& state,
+BlockActionResult LayeredCauldronBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -199,9 +200,9 @@ BlockActionResult LayeredCauldronBlock::onBlockActivated(const BlockState& state
 {
     MC_UNUSED(hit);
 
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (heldItem.isEmpty()) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     ActionResultType result = ActionResultType::Pass;
@@ -230,6 +231,18 @@ BlockActionResult LayeredCauldronBlock::onBlockActivated(const BlockState& state
         return result;
     }
 
+    return ActionResultType::Pass;
+}
+
+BlockActionResult LayeredCauldronBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

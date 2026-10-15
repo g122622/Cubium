@@ -262,7 +262,8 @@ f32 ComposterBlock::getCompostChance(u32 itemId)
     return CompostableItems::getCompostChance(item);
 }
 
-BlockActionResult ComposterBlock::onBlockActivated(const BlockState& state,
+BlockActionResult ComposterBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -270,7 +271,6 @@ BlockActionResult ComposterBlock::onBlockActivated(const BlockState& state,
     const BlockRaycastResult& hit)
 {
 
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
     i32 level = getLevel(state);
 
@@ -281,14 +281,14 @@ BlockActionResult ComposterBlock::onBlockActivated(const BlockState& state,
     }
 
     // 检查玩家手持物品
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (heldItem.isEmpty()) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 检查物品是否可堆肥
@@ -312,6 +312,18 @@ BlockActionResult ComposterBlock::onBlockActivated(const BlockState& state,
 
     // 堆肥失败但仍播放了音效
     return ActionResultType::Success;
+}
+
+BlockActionResult ComposterBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 // ========== ISidedInventoryProvider 接口 ==========

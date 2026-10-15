@@ -112,7 +112,7 @@ public:
 
     // 信标是方块实体方块：放置时需创建 BeaconEntity，承载金字塔等级、效果应用、比较器输出等状态。
     // 缺少此重写会落到基类 hasBlockEntity() 默认 false，ServerWorld::setBlockState 不会创建方块实体，
-    // 导致 getComparatorInputOverride 读到 nullptr 始终返回 0、tick 不会执行、onBlockActivated 打不开 GUI。
+    // 导致 getComparatorInputOverride 读到 nullptr 始终返回 0、tick 不会执行、右键打不开 GUI。
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
@@ -125,11 +125,13 @@ public:
      * 打开信标GUI并记录交互统计。
      * 参考: MC Java BeaconBlock.useWithoutItem()
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] std::optional<ContainerType> getMenuProvider(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
 protected:

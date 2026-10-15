@@ -18,7 +18,7 @@
 //     yaw∈[315,360)∪[0,45)→South，[45,135)→West，[135,225)→North，[225,315)→East。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 end_portal_frame
-//   物品点击 stone 顶面 → onBlockActivated 基类 Pass（stone 非末地传送门框架，targetBlock 走基类 Pass）→
+//   物品点击 stone 顶面 → 方块侧交互 基类 Pass（stone 非末地传送门框架，targetBlock 走基类 Pass）→
 //   fallback Item.useOn → BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext（playerYaw 来自
 //   SimulatedPlayer yaw()，:325）→ getStateForPlacement facing=opposite(horizontalDirection(yaw)) →
 //   setBlockState 放末地传送门框架。创造模式不消耗物品。

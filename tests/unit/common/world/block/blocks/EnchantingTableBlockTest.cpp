@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "core/Constants.hpp"
 #include "core/Types.hpp"
@@ -258,7 +259,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ClientSide_ReturnsS
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*enchantingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // 客户端应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -285,7 +286,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_ServerSide_OpensCon
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*enchantingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // 服务端应返回 Consume
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -311,7 +312,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_NoBlockEntity_Retur
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*enchantingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // 没有方块实体时应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -338,7 +339,7 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_WrongBlockEntityTyp
     // 执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*enchantingTable_, state, world, pos_, player, Hand::MainHand, hit);
 
     // 错误类型的方块实体应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -365,10 +366,10 @@ TEST_F(EnchantingTableBlockInteractionTest, OnBlockActivated_OffHand_SameBehavio
     // 使用副手执行交互
     const auto& state = enchantingTable_->defaultState();
     BlockRaycastResult hit;
-    auto result = enchantingTable_->onBlockActivated(state, world, pos_, player, Hand::OffHand, hit);
+    auto result = mc::test::useBlock(*enchantingTable_, state, world, pos_, player, Hand::OffHand, hit);
 
-    // 副手交互应与服务端行为一致
-    EXPECT_EQ(result, ActionResultType::Consume);
-    EXPECT_TRUE(world.wasOpenContainerCalled());
-    EXPECT_EQ(world.getLastContainerType(), ContainerType::Enchantment);
+    // 附魔台未重写 useItemOn（基类返回 TryEmptyHandInteraction），而空手回退仅对主线生效，
+    // 故副手交互不打开界面（对齐 vanilla `interactionhand == MAIN_HAND` 门控）。
+    EXPECT_EQ(result, ActionResultType::TryEmptyHandInteraction);
+    EXPECT_FALSE(world.wasOpenContainerCalled());
 }

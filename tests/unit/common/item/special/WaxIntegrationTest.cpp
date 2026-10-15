@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
@@ -969,7 +970,7 @@ TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxedSignPreventsTextModification)
 }
 
 // ============================================================================
-// AbstractSignBlock::onBlockActivated 蜜脾涂蜡集成测试
+// AbstractSignBlock::useBlockInteraction 蜜脾涂蜡集成测试
 // ============================================================================
 
 TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
@@ -987,11 +988,11 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
-    // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
+    // 调用 useBlockInteraction（直接使用方块指针，因为 useBlockInteraction 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::OAK_SIGN, state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 应该成功
     EXPECT_EQ(result, ActionResultType::Success);
@@ -1021,11 +1022,11 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_CreativeModeDoesNotConsume
     player.abilities().creativeMode = true;
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
-    // 调用 onBlockActivated
+    // 调用 useBlockInteraction
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::OAK_SIGN, state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 应该成功
     EXPECT_EQ(result, ActionResultType::Success);
@@ -1047,11 +1048,11 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_AlreadyWaxedReturnsConsume
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
-    // 调用 onBlockActivated
+    // 调用 useBlockInteraction
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::OAK_SIGN, state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 已涂蜡告示牌应返回 Consume（防止蜜脾被放置）
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -1073,11 +1074,11 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NoBlockEntityReturnsPass)
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
 
-    // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
+    // 调用 useBlockInteraction（直接使用方块指针，因为 useBlockInteraction 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::OAK_SIGN, state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 没有 BlockEntity，应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -1097,11 +1098,11 @@ TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NonHoneycombItemExecutesCo
     // 创建玩家但不手持蜜脾（空手）
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
 
-    // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
+    // 调用 useBlockInteraction（直接使用方块指针，因为 useBlockInteraction 不是 const 方法）
     const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::OAK_SIGN, state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
 
     // 空手交互告示牌应返回 Success（执行命令交互）
     EXPECT_EQ(result, ActionResultType::Success);

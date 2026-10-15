@@ -3,14 +3,14 @@
 // wiki tech_斧.txt#去皮：对木头、原木或竹块使用斧可以使其变成去皮变种（stripped）。每次去皮消耗斧
 //   1 点耐久度。去皮保留原木的朝向属性（axis，原木平放/竖放朝向不变）。
 //
-// C++ 链路：AxeItem::onItemUse（item/items/tool/AxeItem.cpp:57）——物品侧 onItemUse（非 onBlockActivated）。
+// C++ 链路：AxeItem::onItemUse（item/items/tool/AxeItem.cpp:57）——物品侧 onItemUse（非 方块侧交互）。
 //   - 交互顺序 1.去皮 → 2.去氧化(刮削铜) → 3.除蜡，每步独立检查，首个匹配执行。
 //   - 1.去皮：getStrippedBlock(original) 查 _getStrippingMap（oak_log→stripped_oak_log 等）→
 //     strippedBlock.getDefaultState().withPropertiesOf(*state)（保留 axis 等共有属性）+ 剥皮音效 +
 //     setBlockState + 消耗耐久 → Success。映射外方块跳过去皮进下一步。
 //   - 去皮原木 minecraft:stripped_oak_log（RotatedPillarBlock，有 AXIS state）。
 //
-// 派发链路：原木无 onBlockActivated override（基类返 Pass），useItemOnBlock ① Block.use 前置分支 Pass →
+// 派发链路：原木无 方块侧交互 override（基类返 Pass），useItemOnBlock ① Block.use 前置分支 Pass →
 //   ② fallback Item.useOn（AxeItem.onItemUse）剥皮。手持斧头（非 BlockItem），fallback 不放方块，走剥皮转换。
 //
 // 测试覆盖（1 个场景，覆盖 wiki 斧去皮核心确定行为）：
@@ -38,7 +38,7 @@
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_斧.txt#去皮（对原木/木头使用斧变去皮变种，消耗1耐久）
 // Ref: AxeItem.cpp（onItemUse 1.去皮 getStrippedBlock+withPropertiesOf+音效+耐久→Success）
-// Ref: SimulatedPlayer.cpp:314-343（useItemOnBlock fallback Item.useOn，原木无 onBlockActivated 故走此分支）
+// Ref: SimulatedPlayer.cpp:314-343（useItemOnBlock fallback Item.useOn，原木无 方块侧交互 故走此分支）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
@@ -56,7 +56,7 @@ function getBlockTypeId(test: Test, x: number, y: number, z: number): string {
 // 场景 1：斧剥橡木原木——放橡木原木 + 钻石斧 useItemOnBlock → 原位 oak_log→stripped_oak_log，返 true。
 //
 // 布局：(3,2,1) 橡木原木（minecraft:oak_log，默认 axis=y）。
-// useItemOnBlock ① onBlockActivated（oak_log 基类 Pass）→ ② fallback AxeItem.onItemUse：
+// useItemOnBlock ① 方块侧交互（oak_log 基类 Pass）→ ② fallback AxeItem.onItemUse：
 //   getStrippedBlock(oak_log)=STRIPPED_OAK_LOG + withPropertiesOf 保留 axis → setBlockState
 //   stripped_oak_log + 剥皮音效 + 耐久 → Success。
 //

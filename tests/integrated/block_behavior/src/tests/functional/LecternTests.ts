@@ -3,11 +3,11 @@
 // wiki tech_讲台.txt#用途：讲台可存放书与笔或成书供玩家阅读。
 //   - 拿着书与笔/成书对空的讲台按下使用键 → 把书放在讲台上（HAS_BOOK=true）。
 //   - 已有书的讲台再按使用键 → 打开并阅读这部书（openContainer），不会重复放书。
-//   - 非书物品（如木棍）对讲台使用 → 不触发放书（onBlockActivated 返 Pass）。
+//   - 非书物品（如木棍）对讲台使用 → 不触发放书（方块侧交互 返 Pass）。
 //   - 讲台被破坏后会掉落自身和内容物（已放的书随破坏掉落为物品实体）。
 //
 // C++ 链路：LecternBlock（LecternBlock.cpp）有 HAS_BOOK/POWERED/HORIZONTAL_FACING state。
-//   - onBlockActivated（LecternBlock.cpp:214-260）：
+//   - 方块侧交互（LecternBlock.cpp:214-260）：
 //     · HAS_BOOK==true → 取 LecternEntity 调 openContainer + 统计 → return Success（打开阅读，不消耗手持物）。
 //     · HAS_BOOK==false → 取手持物，isLecternBookItem 判定 → tryPlaceBook 成功则 shrink(1)+音效 → Success；
 //       非书物品或 tryPlaceBook 失败 → return Pass。
@@ -15,10 +15,10 @@
 //   - onBlockRemoved（:262-275）：HAS_BOOK 时 _dropBook（removeBook + ItemDropHelper 上方掉落）。
 //   - isLecternBookItem 接受 book/written_book/writable_book/enchanted_book（Cubium 扩展，vanilla 仅书与笔/成书）。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。讲台 onBlockActivated 处理放书/阅读返回 Success 短路；非书物品返 Pass 后
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。讲台 方块侧交互 处理放书/阅读返回 Success 短路；非书物品返 Pass 后
 //   fallback（stick 非 BlockItem，onItemUse 默认 Pass）→ useItemOnBlock 返 false。
-//   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onBlockActivated 的
+//   useItemOnBlock 调 方块侧交互 前把 stack 设到主手选中槽，使 方块侧交互 的
 //   player.getHeldItem(hand) 读到书。
 //
 // 测试覆盖（4 个场景，覆盖 wiki 放书/已有书阅读/非书不触发/破坏掉书核心行为，可跨服务端对比）：
@@ -32,7 +32,7 @@
 // 2. 读 HAS_BOOK state 用 getState("has_book" as any) 绕过 BlockStateSuperset 白名单。
 // 3. 用 written_book（vanilla 讲台接受的成书）放书，对齐 wiki「拿着成书对空讲台按使用键」。
 // 4. 判定「非书不触发」用木棍（普通 Item，非 BlockItem）——避免 BlockItem onItemUse 放置方块返 Success 误判。
-// 5. SimulatedPlayer 默认创造模式：放书 onBlockActivated 内部 shrink(1) 作用于选中槽，创造模式是否
+// 5. SimulatedPlayer 默认创造模式：放书 方块侧交互 内部 shrink(1) 作用于选中槽，创造模式是否
 //    消耗不影响 has_book 判定（has_book 翻转由 tryPlaceBook→setHasBook 决定，与消耗无关）。
 // 6. 场景 4 用 test.setBlockType("minecraft:air", pos) 破坏讲台 → 触发 onBlockRemoved → _dropBook
 //    掉落书物品实体，用 assertItemEntityPresent 判定。
@@ -46,7 +46,7 @@
 //   本测试用 setBlockType 放空讲台（默认 has_book=false，无需设 state），两端均可放。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_讲台.txt#用途（放书/已有书阅读/破坏掉落）
-// Ref: LecternBlock.cpp（onBlockActivated 放书/阅读；tryPlaceBook；onBlockRemoved _dropBook）
+// Ref: LecternBlock.cpp（方块侧交互 放书/阅读；tryPlaceBook；onBlockRemoved _dropBook）
 // Ref: LecternEntity.cpp（setBook/hasBook；getTotalPages 回退 100 页；getComparatorSignal）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
@@ -76,7 +76,7 @@ function placeLectern(test: Test): void {
 // 场景 1：成书放讲台——空讲台 + written_book useItemOnBlock → has_book=true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 空讲台。
-// onBlockActivated HAS_BOOK==false → 取手持 written_book → isLecternBookItem true → tryPlaceBook
+// 方块侧交互 HAS_BOOK==false → 取手持 written_book → isLecternBookItem true → tryPlaceBook
 // （LecternEntity.setBook + setHasBook(true)）→ shrink(1) + 音效 → return Success。
 //
 // 判定：useItemOnBlock 返 true（Success），has_book === true（tryPlaceBook setHasBook(true)）。
@@ -87,7 +87,7 @@ function lecternPlacesWrittenBook(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const book = new ItemStack("minecraft:written_book", 1);
 
-    // 对空讲台 useItemOnBlock 成书 → onBlockActivated tryPlaceBook → setHasBook(true) → Success。
+    // 对空讲台 useItemOnBlock 成书 → 方块侧交互 tryPlaceBook → setHasBook(true) → Success。
     const used = farmer.useItemOnBlock(
         book as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -104,7 +104,7 @@ function lecternPlacesWrittenBook(test: Test): void {
 // 场景 2：非书不触发——空讲台 + 木棍 useItemOnBlock → has_book=false，useItemOnBlock 返 false。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 空讲台。
-// onBlockActivated HAS_BOOK==false → 取手持木棍 → isLecternBookItem false → return Pass。
+// 方块侧交互 HAS_BOOK==false → 取手持木棍 → isLecternBookItem false → return Pass。
 // Pass → fallback Item.useOn（木棍普通 Item，onItemUse 默认 Pass）→ useItemOnBlock 返 false。
 //
 // 注意：不能用石头等 BlockItem 测「非书不触发」——BlockItem::onItemUse 会尝试在讲台上方放置该方块
@@ -135,7 +135,7 @@ function lecternIgnoresNonBookItem(test: Test): void {
 // 场景 3：已有书右键阅读——讲台已有书 + 书 useItemOnBlock → openContainer → 返 true，has_book 仍 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 讲台（先放成书使 has_book=true）。
-// onBlockActivated HAS_BOOK==true → 取 LecternEntity openContainer + 统计 → return Success（打开阅读，
+// 方块侧交互 HAS_BOOK==true → 取 LecternEntity openContainer + 统计 → return Success（打开阅读，
 // 不消耗手持物，不重复放书）。tryPlaceBook 不会被调用（HAS_BOOK 分支已 return）。
 //
 // 判定：useItemOnBlock 返 true（openContainer Success），has_book 仍 true（未取书）。
@@ -153,7 +153,7 @@ function lecternOpensBookWhenAlreadyHasBook(test: Test): void {
     test.assert(placeResult, "first book placement should succeed");
     test.assert(getLecternHasBook(test, 3, 2, 1) === true, `lectern should have book after first placement, got ${getLecternHasBook(test, 3, 2, 1)}`);
 
-    // 已有书的讲台再 useItemOnBlock 成书 → onBlockActivated HAS_BOOK 分支 openContainer → Success。
+    // 已有书的讲台再 useItemOnBlock 成书 → 方块侧交互 HAS_BOOK 分支 openContainer → Success。
     const secondBook = new ItemStack("minecraft:written_book", 1);
     const used = placer.useItemOnBlock(
         secondBook as unknown as Parameters<typeof placer.useItemOnBlock>[0],

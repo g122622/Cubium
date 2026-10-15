@@ -106,7 +106,8 @@ i32 JukeboxBlock::getComparatorInputOverride(const BlockState& state, IWorld& wo
     return 0;
 }
 
-BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
+BlockActionResult JukeboxBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -121,7 +122,7 @@ BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
 
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity == nullptr || entity->getType() != BlockEntityType::Jukebox) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     auto* jukebox = static_cast<blockentity::JukeboxEntity*>(entity);
@@ -149,7 +150,7 @@ BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
     }
 
     // 如果没有唱片，检查玩家手中是否有唱片
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (!heldItem.isEmpty() && heldItem.getItem() != nullptr && heldItem.getItem()->isMusicDisc()) {
         // 放入唱片
         ItemStack recordToInsert = heldItem.copy();
@@ -170,6 +171,18 @@ BlockActionResult JukeboxBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Consume;
     }
 
+    return ActionResultType::TryEmptyHandInteraction;
+}
+
+BlockActionResult JukeboxBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

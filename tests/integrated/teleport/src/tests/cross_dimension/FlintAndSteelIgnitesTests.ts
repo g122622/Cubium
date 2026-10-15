@@ -20,7 +20,7 @@
 //     * 消耗：非创造模式 context.getItemStackMut().shrink(1)。
 //   - FireBlock::onBlockAdded → tryLightNetherPortal（FireBlock.cpp:287/314）。
 //   - SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:314）：
-//     * 先 Block.use（onBlockActivated），返回 Pass 才 fallback Item.useOn。
+//     * 先 Block.use（方块侧交互），返回 Pass 才 fallback Item.useOn。
 //     * 把传入 stack 设到主手选中槽作为权威手持物源。
 //     * Item.useOn 成功后对选中栈 shrink(1) 回写（非创造模式）。
 //     * 若 onItemUse 已改变权威槽 itemId（自管理替换）或 damage（耐久损耗），跳过 shrink。

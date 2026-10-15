@@ -110,7 +110,8 @@ BlockState FlowerPotBlock::updatePostPlacement(const BlockState& state,
     return state;
 }
 
-BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
+BlockActionResult FlowerPotBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -119,50 +120,49 @@ BlockActionResult FlowerPotBlock::onBlockActivated(const BlockState& state,
 {
     MC_UNUSED(hit);
 
-    const ItemStack& heldStack = player.getHeldItem(hand);
+    // 手持物分支（对齐 vanilla FlowerPotBlock.useItemOn）：仅当手持可盆栽植物的 BlockItem 时处理，
+    // 否则返回 TRY_WITH_EMPTY_HAND 交由 useWithoutItem（空手取物）。
+    const Item* heldItem = stack.getItem();
+    const auto* blockItem = dynamic_cast<const BlockItem*>(heldItem);
+    const Block* contentBlock = (blockItem != nullptr) ? &blockItem->block() : nullptr;
+    const FlowerPotBlock* targetPot = (contentBlock != nullptr) ? getByContent(*contentBlock) : nullptr;
 
-    // 分支1：玩家手持物品右键花盆（对应 MC Java useItemOn）
-    if (!heldStack.isEmpty()) {
-        const Item* heldItem = heldStack.getItem();
-
-        // 仅当手持的是 BlockItem 时，才查询其关联方块是否可入盆
-        const auto* blockItem = dynamic_cast<const BlockItem*>(heldItem);
-        const Block* contentBlock = (blockItem != nullptr) ? &blockItem->block() : nullptr;
-        const FlowerPotBlock* targetPot = (contentBlock != nullptr) ? getByContent(*contentBlock) : nullptr;
-
-        if (targetPot == nullptr) {
-            // 手持物品不是可盆栽植物，交给空手交互处理器
-            return ActionResultType::Pass;
-        }
-
-        // 已有内容物的花盆：消费物品但不执行动作（与 MC Java 一致）
-        if (!isEmpty()) {
-            return ActionResultType::Consume;
-        }
-
-        // 空花盆：放入植物，花盆变为对应 potted_* 方块
-        if (world.isClientSide()) {
-            return ActionResultType::Success;
-        }
-
-        // 服务端：替换方块为对应 potted_*，并消耗物品
-        const BlockState& pottedState = targetPot->defaultState();
-        world.setBlockState(pos, &pottedState, world::BlockUpdateFlags::UPDATE_ALL);
-        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
-
-        // 消耗物品（玩家手持物品数量 -1）
-        ItemStack& mutableHeld = player.getHeldItem(hand);
-        mutableHeld.shrink(1);
-        return ActionResultType::Success;
+    if (targetPot == nullptr) {
+        // 手持物品不是可盆栽植物（含空手），交给空手交互处理器
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
-    // 分支2：玩家空手右键花盆（对应 MC Java useWithoutItem）
-    if (isEmpty()) {
-        // 空花盆：消费动作（无操作）
+    // 已有内容物的花盆：消费物品但不执行动作（与 MC Java 一致）
+    if (!isEmpty()) {
         return ActionResultType::Consume;
     }
 
-    // 已有内容物的花盆：取出内容物，花盆变回空花盆
+    // 空花盆：放入植物，花盆变为对应 potted_* 方块
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // 服务端：替换方块为对应 potted_*，并消耗物品
+    const BlockState& pottedState = targetPot->defaultState();
+    world.setBlockState(pos, &pottedState, world::BlockUpdateFlags::UPDATE_ALL);
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
+
+    // 消耗物品（玩家手持物品数量 -1）
+    stack.shrink(1);
+    return ActionResultType::Success;
+}
+
+BlockActionResult FlowerPotBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    MC_UNUSED(hit);
+
+    // 空手交互（对齐 vanilla FlowerPotBlock.useWithoutItem）：空花盆消费动作（无操作），
+    // 有内容物则取出。
+    if (isEmpty()) {
+        return ActionResultType::Consume;
+    }
+
     if (world.isClientSide()) {
         return ActionResultType::Success;
     }

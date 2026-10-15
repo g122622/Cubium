@@ -45,7 +45,7 @@ namespace item {
  * - 水下使用时返回 Consume（不允许水下放置，对应 MC Java 涌现行为）
  * - 放置后替换为空桶（非创造模式）
  * - 支持发射器调用 emptyContents() 放置细雪
- * - 与炼药锅的交互由炼药锅自身的 onBlockActivated 处理
+ * - 与炼药锅的交互由炼药锅自身的 useItemOn 处理
  *
  * 与 BucketItem 的区别：
  * - BucketItem 处理流体（水、岩浆），通过 Fluid 系统放置

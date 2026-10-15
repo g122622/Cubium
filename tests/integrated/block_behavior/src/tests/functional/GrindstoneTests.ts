@@ -27,7 +27,7 @@
 //     本提交前砂轮方块/物品均未注册（类已实现但未实例化进方块表），本提交补全注册。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 grindstone 物品点击
-//   stone → stone onBlockActivated 基类 Pass → fallback Item.useOn → BlockItem::tryPlace →
+//   stone → stone 方块侧交互 基类 Pass → fallback Item.useOn → BlockItem::tryPlace →
 //   getStateForPlacement → setBlockState 放砂轮。yaw()/pitch() 来自 SimulatedPlayer（:325）。
 //
 // 朝向控制（复用 BellTests 的 lookAtLocation 范式）：
@@ -330,7 +330,7 @@ function grindstoneWallFacingEqualsClickedFace(test: Test): void {
 //
 // 此场景验证 wiki「砂轮 face（floor/wall/ceiling）/ facing 双 state」可读写：setBlockWithStates 预置
 //   face=floor,facing=east（非默认 wall/north 组合）后 getState 双 state 均可读。不测「GUI 修复祛魔」
-//   （onBlockActivated openContainer，SimulatedPlayer 无 GUI 放物品 API，跳过）。
+//   （方块侧交互 openContainer，SimulatedPlayer 无 GUI 放物品 API，跳过）。
 function grindstoneStateReadable(test: Test): void {
     // (3,1,1) stone 支撑（砂轮 floor 下方支撑，仅贴近真实放置语义，setBlockWithStates 不经 isValidPosition）。
     test.setBlockType("minecraft:stone", { x: 3, y: 1, z: 1 });

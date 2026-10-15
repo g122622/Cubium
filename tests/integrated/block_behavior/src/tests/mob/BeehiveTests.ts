@@ -7,7 +7,7 @@
 //   （此时仅 honey_level→0，不激怒蜜蜂）。空蜂巢（无蜜蜂）收集无激怒副作用。
 //
 // C++ 链路：BeehiveBlock（mob/BeehiveBlock.cpp）有 HONEY_LEVEL_0_5 state（默认 0）。
-//   - onBlockActivated（:150）：honeyLevel<5 → Pass（未满不交互）；honeyLevel==5 时：
+//   - 方块侧交互（:150）：honeyLevel<5 → Pass（未满不交互）；honeyLevel==5 时：
 //     · 剪刀 → dropHoneycomb（掉 3 蜜脾）+ 消耗剪刀耐久 + 音效 → success=true。
 //     · 玻璃瓶 → 非创造 shrink(1) 消耗玻璃瓶 + 给蜂蜜瓶（替换/入背包/掉落）+ 音效 → success=true。
 //     success 后：!isSmokeyPos（下方无营火烟熏）→ hiveContainsBees?则 angerNearbyBees +
@@ -17,8 +17,8 @@
 //     releaseBeesAndResetHoneyLevel 内 emptyAllLivingFromHive 空操作，honey_level→0 无副作用。
 //   - HONEY_LEVEL state 名 "honey_level"（Properties.hpp HONEY_LEVEL_0_5 = IntegerProperty("honey_level",0,5)）。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock Block.use 前置分支（先 onBlockActivated，Pass 才 fallback）。
-//   蜂巢 honey_level=5 + 剪刀/玻璃瓶 → onBlockActivated Success 短路（不走 fallback）。
+// 派发链路：SimulatedPlayer::useItemOnBlock Block.use 前置分支（先 方块侧交互，Pass 才 fallback）。
+//   蜂巢 honey_level=5 + 剪刀/玻璃瓶 → 方块侧交互 Success 短路（不走 fallback）。
 //
 // 测试覆盖（2 个场景，覆盖 wiki 剪刀刮蜜脾 + 玻璃瓶取蜂蜜瓶核心确定行为）：
 //   1. 剪刀刮满蜂蜜：放 honey_level=5 蜂巢 + 剪刀 useItemOnBlock → honey_level=0，返 true。
@@ -41,7 +41,7 @@
 // 不测「无营火激怒蜜蜂」：需蜂巢内有蜜蜂（BeehiveBlockEntity bees 数据），构造复杂且激怒/攻击非确定，
 //   跳过。TODO: 待蜂巢蜜蜂数据可控后补。
 // 不测「营火烟熏避免激怒」：同上需蜜蜂，跳过。
-// 不测「honey_level<5 时右键无反应」：onBlockActivated honeyLevel<5 返 Pass，useItemOnBlock 走 fallback
+// 不测「honey_level<5 时右键无反应」：方块侧交互 honeyLevel<5 返 Pass，useItemOnBlock 走 fallback
 //   （剪刀/玻璃瓶 onItemUse 无放置逻辑返 Pass/Fail），返 false。可测但语义弱（返 false 多因），跳过。
 //
 // 跨服务端：蜂巢 beehive 方块名两端一致，honey_level state 名两端一致，剪刀/玻璃瓶刮满蜂蜜 honey_level→0
@@ -49,7 +49,7 @@
 //   one-sided（仅 Cubium 可跑，基岩因无法放 honey_level=5 蜂巢而跳过/不可对比）。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_蜜蜂.txt#行为（honey_level=5 可收集，剪刀3蜜脾/玻璃瓶蜂蜜瓶，→0）
-// Ref: BeehiveBlock.cpp（onBlockActivated honeyLevel==5 剪刀/玻璃瓶→resetHoneyLevel→Success；HONEY_LEVEL_0_5 state）
+// Ref: BeehiveBlock.cpp（方块侧交互 honeyLevel==5 剪刀/玻璃瓶→resetHoneyLevel→Success；HONEY_LEVEL_0_5 state）
 // Ref: cubium-gametest-augment.d.ts（setBlockWithStates Cubium 专有，放带 state 方块）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
@@ -81,7 +81,7 @@ function placeFullBeehive(test: Test): void {
 // 场景 1：剪刀刮满蜂蜜——放 honey_level=5 蜂巢 + 剪刀 useItemOnBlock → honey_level=0，返 true。
 //
 // 布局：(3,2,1) 蜂巢 honey_level=5（空蜂巢无蜜蜂）。
-// onBlockActivated：honeyLevel==5 + 剪刀 → dropHoneycomb(3蜜脾) + 消耗耐久 + 音效 → success=true →
+// 方块侧交互：honeyLevel==5 + 剪刀 → dropHoneycomb(3蜜脾) + 消耗耐久 + 音效 → success=true →
 //   !isSmokeyPos（无营火）→ hiveContainsBees=false（空蜂巢）→ releaseBeesAndResetHoneyLevel
 //   （Emergency，无蜜蜂空操作）→ honey_level→0 → Success。
 //
@@ -93,7 +93,7 @@ function beehiveShearsHarvestsHoney(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const shears = new ItemStack("minecraft:shears", 1);
 
-    // 对蜂巢 useItemOnBlock 剪刀 → onBlockActivated honeyLevel==5 剪刀 → dropHoneycomb + resetHoneyLevel → Success。
+    // 对蜂巢 useItemOnBlock 剪刀 → 方块侧交互 honeyLevel==5 剪刀 → dropHoneycomb + resetHoneyLevel → Success。
     const used = farmer.useItemOnBlock(
         shears as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -110,7 +110,7 @@ function beehiveShearsHarvestsHoney(test: Test): void {
 // 场景 2：玻璃瓶取蜂蜜——放 honey_level=5 蜂巢 + 玻璃瓶 useItemOnBlock → honey_level=0，返 true。
 //
 // 布局：(3,2,1) 蜂巢 honey_level=5（空蜂巢无蜜蜂）。
-// onBlockActivated：honeyLevel==5 + 玻璃瓶 → 非创造 shrink(1)（创造不消耗）+ 给蜂蜜瓶 + 音效 →
+// 方块侧交互：honeyLevel==5 + 玻璃瓶 → 非创造 shrink(1)（创造不消耗）+ 给蜂蜜瓶 + 音效 →
 //   success=true → !isSmokeyPos → releaseBeesAndResetHoneyLevel（空操作）→ honey_level→0 → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），honey_level === 0（玻璃瓶取蜜后蜂蜜归零）。
@@ -121,7 +121,7 @@ function beehiveBottleHarvestsHoney(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const bottle = new ItemStack("minecraft:glass_bottle", 1);
 
-    // 对蜂巢 useItemOnBlock 玻璃瓶 → onBlockActivated honeyLevel==5 玻璃瓶 → 给蜂蜜瓶 + resetHoneyLevel → Success。
+    // 对蜂巢 useItemOnBlock 玻璃瓶 → 方块侧交互 honeyLevel==5 玻璃瓶 → 给蜂蜜瓶 + resetHoneyLevel → Success。
     const used = farmer.useItemOnBlock(
         bottle as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },

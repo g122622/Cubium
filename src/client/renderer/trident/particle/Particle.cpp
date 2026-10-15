@@ -54,8 +54,8 @@ Particle::Particle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_velocity(velocity)
     , m_bboxWidth(physics::PARTICLE_DEFAULT_BBOX_WIDTH)
     , m_bboxHeight(physics::PARTICLE_DEFAULT_BBOX_HEIGHT)
-    , m_random(static_cast<u64>(
-                   std::hash<f64>{}(pos.x) ^ (std::hash<f64>{}(pos.y) << 1) ^ (std::hash<f64>{}(pos.z) << 2)) ^
+    , m_random(
+          static_cast<u64>(std::hash<f64>{}(pos.x) ^ (std::hash<f64>{}(pos.y) << 1) ^ (std::hash<f64>{}(pos.z) << 2)) ^
           mc::util::TimeUtils::getCurrentTimeUs())
 {}
 

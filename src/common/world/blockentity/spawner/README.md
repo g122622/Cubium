@@ -59,7 +59,7 @@ SpawnerLogic 包含：
 - 注意：旧的实现调用了 `_delay()`，而 `_delay()` 内部会调用 `_selectNextEntity()` 从候选列表中随机选择，导致 `setEntityId` 刚设置的 `m_nextEntityId` 被覆盖。现已修复为直接重置延迟而不调用 `_delay()`，与 MC Java `BaseSpawner.setEntityId()` 行为一致（MC Java 只修改 nextSpawnData 的 entity id，不重选候选）
 
 此方法由以下路径调用：
-- `SpawnerBlock::onBlockActivated()` — 玩家手持刷怪蛋右键刷怪笼
+- `SpawnerBlock::useItemOn()` — 玩家手持刷怪蛋右键刷怪笼
 - `SpawnEggItem::onItemUse()` — 刷怪蛋使用时检测到刷怪笼方块实体
 - 要塞结构生成时配置蠹虫刷怪笼
 

@@ -243,7 +243,8 @@ i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorl
     return 0;
 }
 
-BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
+BlockActionResult DecoratedPotBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -255,7 +256,7 @@ BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
 
     // 副手不处理
     if (hand == Hand::OffHand) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 获取方块实体
@@ -267,72 +268,79 @@ BlockActionResult DecoratedPotBlock::onBlockActivated(const BlockState& state,
 
     // 客户端：直接返回成功以播放动画
     if (world.isClientSide()) {
-        ItemStack heldItem = player.getHeldItem(hand);
-        return heldItem.isEmpty() ? ActionResultType::Success : ActionResultType::Success;
+        return ActionResultType::Success;
     }
 
     // === 服务端逻辑 ===
-    ItemStack& heldItem = player.getHeldItem(hand);
-    ItemStack potItem = potEntity->getItem();
+    ItemStack& heldItem = stack;
 
-    if (!heldItem.isEmpty()) {
-        // 手持物品：尝试向陶罐中放入1个物品
-
-        // 检查是否可以放入：陶罐为空，或罐内物品与手持物品相同且未达到最大堆叠
-        bool canInsert = false;
-        if (potItem.isEmpty()) {
-            // 陶罐为空，可以放入
-            canInsert = true;
-        } else if (potItem.canMergeWith(heldItem) && potItem.getCount() < potItem.getMaxStackSize()) {
-            // 罐内物品与手持物品相同且未满，可以叠加
-            canInsert = true;
-        }
-
-        if (canInsert) {
-            // 触发正摇晃动画
-            potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Positive);
-
-            // 分离1个物品（保留物品元数据如附魔、自定义名称等）
-            ItemStack toInsert = heldItem.split(1);
-
-            if (potItem.isEmpty()) {
-                // 陶罐为空，直接设置
-                potEntity->setItem(toInsert);
-            } else {
-                // 叠加到已有物品
-                potItem.grow(1);
-                potEntity->setItem(potItem);
-            }
-
-            // 创造模式不消耗手持物品
-            if (player.isCreative()) {
-                heldItem.grow(1);
-            }
-
-            // 播放插入音效
-            // 音高随填充程度变化：0.7 + 0.5 * (count / maxStackSize)
-            ItemStack newItem = potEntity->getItem();
-            f32 pitch =
-                0.7f + 0.5f * (static_cast<f32>(newItem.getCount()) / static_cast<f32>(newItem.getMaxStackSize()));
-            world.playSound(
-                SoundEvents::BLOCK_DECORATED_POT_INSERT, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
-
-            // 触发方块变化游戏事件
-            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
-
-            // 标记方块实体已修改
-            potEntity->setChanged();
-
-            // 通知红石比较器更新信号
-            world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
-
-            return ActionResultType::Success;
-        }
-
-        // 物品无法放入，回退到空手交互逻辑
+    // 空手：无物品可放入，交回 useWithoutItem（对齐 vanilla 返回 TRY_WITH_EMPTY_HAND）
+    if (heldItem.isEmpty()) {
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
-    // 空手交互或物品无法放入：触发负摇晃动画
+    ItemStack potItem = potEntity->getItem();
+
+    // 检查是否可以放入：陶罐为空，或罐内物品与手持物品相同且未达到最大堆叠
+    const bool canInsert =
+        potItem.isEmpty() || (potItem.canMergeWith(heldItem) && potItem.getCount() < potItem.getMaxStackSize());
+
+    // 物品无法放入：交回 useWithoutItem 处理负摇晃（对齐 vanilla 返回 TRY_WITH_EMPTY_HAND）
+    if (!canInsert) {
+        return ActionResultType::TryEmptyHandInteraction;
+    }
+
+    // 触发正摇晃动画
+    potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Positive);
+
+    // 分离1个物品（保留物品元数据如附魔、自定义名称等）
+    ItemStack toInsert = heldItem.split(1);
+
+    if (potItem.isEmpty()) {
+        // 陶罐为空，直接设置
+        potEntity->setItem(toInsert);
+    } else {
+        // 叠加到已有物品
+        potItem.grow(1);
+        potEntity->setItem(potItem);
+    }
+
+    // 创造模式不消耗手持物品
+    if (player.isCreative()) {
+        heldItem.grow(1);
+    }
+
+    // 播放插入音效
+    // 音高随填充程度变化：0.7 + 0.5 * (count / maxStackSize)
+    ItemStack newItem = potEntity->getItem();
+    f32 pitch = 0.7f + 0.5f * (static_cast<f32>(newItem.getCount()) / static_cast<f32>(newItem.getMaxStackSize()));
+    world.playSound(SoundEvents::BLOCK_DECORATED_POT_INSERT, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
+
+    // 触发方块变化游戏事件
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
+
+    // 标记方块实体已修改
+    potEntity->setChanged();
+
+    // 通知红石比较器更新信号
+    world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
+
+    return ActionResultType::Success;
+}
+
+BlockActionResult DecoratedPotBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    MC_UNUSED(player);
+    MC_UNUSED(hit);
+
+    // 空手交互（对齐 vanilla DecoratedPotBlock.useWithoutItem）：负摇晃动画 + 插入失败音效。
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::DecoratedPot) {
+        return ActionResultType::Pass;
+    }
+    auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(blockEntity);
+
     potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Negative);
 
     // 播放插入失败音效

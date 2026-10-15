@@ -102,7 +102,7 @@ golem/
 
 13. **铜傀儡 NBT 持久化**：仅持久化 `next_weather_age`（i64）与 `weather_state`（string），`behaviorState` 为运行时动画状态不持久化（与 MC 1.21.11 一致）。NBT 键名常量定义在 `EntityNbtKeys.hpp` 的 `NEXT_WEATHER_AGE` 与 `WEATHER_STATE`。
 
-14. **铜傀儡雕像架构差异**：本项目基础 `copper_golem_statue` 注册为 `CopperGolemStatueBlock`（不实现 `IOxidizableBlock`），与 MC 原版使用 `WeatheringCopperGolemStatueBlock(UNAFFECTED)` 不同。因此斧头生成铜傀儡的逻辑在 `CopperGolemStatueBlock::onBlockActivated` 中实现，并通过 `HoneycombItem::getWaxedOff(state)` 区分涂蜡变体（返回 Pass 交由 AxeItem 除蜡）与基础变体（生成铜傀儡）。
+14. **铜傀儡雕像架构差异**：本项目基础 `copper_golem_statue` 注册为 `CopperGolemStatueBlock`（不实现 `IOxidizableBlock`），与 MC 原版使用 `WeatheringCopperGolemStatueBlock(UNAFFECTED)` 不同。因此斧头生成铜傀儡的逻辑在 `CopperGolemStatueBlock::useItemOn` 中实现，并通过 `HoneycombItem::getWaxedOff(state)` 区分涂蜡变体（返回 Pass 交由 AxeItem 除蜡）与基础变体（生成铜傀儡）。
 
 15. **Direction 转 yaw**：MC 的 `Direction.toYRot()` 在本项目无对应工具函数，`CopperGolemStatueBlockEntity::removeStatue` 与 `CopperGolemEntity::turnToStatue` 中手写转换：South=0, West=90, North=180, East=270。
 

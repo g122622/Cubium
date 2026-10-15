@@ -18,13 +18,13 @@
 //       否则 single_wall。canSurvive 查支撑墙（clickedFace 反方向）有朝向钟的固体面。
 //   - neighborChanged（:482-506，对齐 vanilla）：RedstonePower::isPowered(world, pos) 查 6 向电源。
 //     shouldPower != isPowered 时，shouldPower 则 attemptToRing + POWERED 翻 true，否则翻 false。同步 setBlockState。
-//   - onBlockActivated（:445-464）：服务端调 onHit（敲钟），不改 POWERED，只触发 BlockEntity 摆动 + 声音 +
+//   - 方块侧交互（:445-464）：服务端调 onHit（敲钟），不改 POWERED，只触发 BlockEntity 摆动 + 声音 +
 //     gameEvent。敲钟返回 Success（短路）。本测试放置时被点击方块是 stone 非 bell，不触发敲钟。
 //   - BellBlock 不 override isValidPosition（基类默认 true），放置不被 canPlace 拦截。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock(stack, blockLocation, face, faceLocation)（SimulatedPlayer.cpp
 //   :265-346）。手持 bell 物品（BlockItem，Items.cpp:2434 registerBlockBackedItem）。点击 stone 侧面：
-//   stone onBlockActivated 基类返 Pass → fallback Item.useOn → BlockItem::tryPlace → getStateForPlacement
+//   stone 方块侧交互 基类返 Pass → fallback Item.useOn → BlockItem::tryPlace → getStateForPlacement
 //   → setBlockState(placementPos)。placementPos = 被点击方块.relative(face)。
 //   红石场景用 setBlockWithStates 预置钟（不走放置链路，直接写 state），用 test.pullLever 触发拉杆通知。
 //
@@ -36,8 +36,8 @@
 //   5. Ceiling 放置 facing=玩家朝向：点击 stone 底面 Down → 钟 attachment=ceiling, facing=玩家朝向（同向）。
 //
 // 关键约束：
-// 1. 侧面墙放置被点击方块必须是 stone 等非钟方块（钟的 onBlockActivated 会敲钟短路不放置）。本测试
-//    被点击方块用 stone，BellBlock::onBlockActivated 不被触发（stone 基类返 Pass），fallback 放置。
+// 1. 侧面墙放置被点击方块必须是 stone 等非钟方块（钟的 方块侧交互 会敲钟短路不放置）。本测试
+//    被点击方块用 stone，BellBlock::方块侧交互 不被触发（stone 基类返 Pass），fallback 放置。
 // 2. 场景 1/2 点击 (3,2,1) stone 的 South 面（face=South），新钟落 (3,2,2)（placementPos=(3,2,1).relative(South)）。
 //    getStateForPlacement 侧面分支：clickedFace=South, axis=Z, supportDir=opposite(South)=North,
 //    facing=North。isDoubleWall 查 Z 轴 (3,2,2).North=(3,2,1) 和 (3,2,2).South=(3,2,3)：
@@ -174,7 +174,7 @@ function bellSingleWallWhenPlacedOnOneSidedWall(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 5, y: 2, z: 2 }, "farmer");
     const bell = new ItemStack("minecraft:bell", 1);
 
-    // 手持 bell 点击 (3,2,1) 南面 South → 新钟落 (3,2,2)。stone onBlockActivated Pass → fallback 放置。
+    // 手持 bell 点击 (3,2,1) 南面 South → 新钟落 (3,2,2)。stone 方块侧交互 Pass → fallback 放置。
     // getStateForPlacement 侧面分支：对侧 (3,2,3) air → SingleWall, facing=opposite(South)=North。
     const used = farmer.useItemOnBlock(
         bell as unknown as Parameters<typeof farmer.useItemOnBlock>[0],

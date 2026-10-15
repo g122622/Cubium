@@ -2,8 +2,8 @@
 //
 // wiki block_制箭台.txt#破坏/用途/数据值：
 //   - 破坏（:42）：制箭台被破坏后掉落自身（基线掉落行为）。挖掘工具为斧（涉工具判定，本组不测）。
-//   - 用途（:45）：制箭台目前没有交互功能（村民工作站，无 GUI）。这是制箭台独有特性——无 onBlockActivated
-//     override（基类 Block::onBlockActivated 返 Pass），右键无反应。但「右键无反应」是消极行为，服务端
+//   - 用途（:45）：制箭台目前没有交互功能（村民工作站，无 GUI）。这是制箭台独有特性——无 方块侧交互
+//     override（基类 Block::方块侧交互 返 Pass），右键无反应。但「右键无反应」是消极行为，服务端
 //     不可正向验证（右键后方块 typeId 不变，但制图台/锻造台右键后服务端方块也不变，GUI 是客户端副作用），
 //     故不为「无交互」单独写测试（无法与有 GUI 方块服务端区分）。
 //   - 更改村民职业（:47）：制箭台是制箭师村民工作站（涉村民 AI，非方块放置行为，本组不测）。
@@ -20,7 +20,7 @@
 //   - getStateForPlacement（:60-65）：return defaultState()——对齐 vanilla（vanilla 无 override，用基类
 //     默认 defaultBlockState()）。制箭台是朝向无关方块，放置永远用默认状态。注释正确说明原版无朝向。
 //   - getShape：返 fullBlock（对齐 vanilla 默认完整方块）。
-//   - 无 onBlockActivated override（基类 Block::onBlockActivated 返 Pass，对齐 wiki「没有交互功能」）。
+//   - 无 方块侧交互 override（基类 Block::方块侧交互 返 Pass，对齐 wiki「没有交互功能」）。
 //   - 无 canSurvive/updatePostPlacement/hasBlockEntity/rotate/mirror。
 //   - 物品注册：BlockItemRegistry.cpp:345 registerSimpleBlock(VanillaBlocks::FLETCHING_TABLE,
 //     "fletching_table")，方块注册 BuildingBlocks.cpp:330 registerBlock<FletchingTableBlock>
@@ -28,7 +28,7 @@
 //     useItemOnBlock 放置链路可用。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 fletching_table 物品
-//   点击 stone 顶面 → onBlockActivated（stone 非制箭台，targetBlock 走基类 Pass）→ fallback Item.useOn →
+//   点击 stone 顶面 → 方块侧交互（stone 非制箭台，targetBlock 走基类 Pass）→ fallback Item.useOn →
 //   BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext → getStateForPlacement defaultState() →
 //   setBlockState 放制箭台。创造模式不消耗物品。
 //

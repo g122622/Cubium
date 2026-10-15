@@ -137,7 +137,7 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 
 - **架构**: 空花盆（`minecraft:flower_pot`）和 37 种 `potted_*` 盆栽变体都是独立的 `FlowerPotBlock` 实例，通过构造时传入"内容物方块"指针区分；空花盆的内容物为 `nullptr`（MC Java 中为 `Blocks.AIR`）
 - **反查映射表**: `FlowerPotBlock::s_pottedByContent` 是 `unordered_map<const Block*, const FlowerPotBlock*>` 静态映射表，在每个非空 `FlowerPotBlock` 构造时自动填充，用于交互时由"内容物方块"反查"对应花盆方块"
-- **交互分支**（`onBlockActivated`）:
+- **交互分支**（`useItemOn` / `useWithoutItem`）:
   - 空花盆 + 手持可盆栽植物 BlockItem → 替换为 `potted_*` 方块，消耗 1 个物品（服务端）；客户端返回 Success 不修改世界
   - 已盆栽花盆 + 手持可盆栽植物 → 返回 Consume，不修改方块（匹配 MC Java `useItemOn`）
   - 已盆栽花盆 + 空手 → 取出内容物，方块变回空花盆，内容物物品优先放入背包放不下则丢弃（服务端）；客户端返回 Success

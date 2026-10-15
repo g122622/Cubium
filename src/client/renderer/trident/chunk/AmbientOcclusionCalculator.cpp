@@ -524,8 +524,7 @@ u8 AmbientOcclusionCalculator::unpackBlockLight(u32 packed)
     return static_cast<u8>((packed >> 4) & 0xF);
 }
 
-u32 AmbientOcclusionCalculator::getVertexBrightness(
-    u32 b1, u32 b2, u32 b3, u32 b4, f32 w1, f32 w2, f32 w3, f32 w4)
+u32 AmbientOcclusionCalculator::getVertexBrightness(u32 b1, u32 b2, u32 b3, u32 b4, f32 w1, f32 w2, f32 w3, f32 w4)
 {
     // 根据权重插值亮度
     u32 sky = static_cast<u32>(((b1 >> 20) & 0xF) * w1 + ((b2 >> 20) & 0xF) * w2 + ((b3 >> 20) & 0xF) * w3 +

@@ -33,7 +33,7 @@
 //     方块注册 RedstoneBlocks.cpp:333。物品与方块均已注册，useItemOnBlock 放置链路可用。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 dispenser 物品点击
-//   stone → onBlockActivated（stone 非发射器，targetBlock 走基类 Pass）→ fallback Item.useOn →
+//   stone → 方块侧交互（stone 非发射器，targetBlock 走基类 Pass）→ fallback Item.useOn →
 //   BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext（playerYaw/playerPitch 来自 SimulatedPlayer
 //   yaw()/pitch()）→ getStateForPlacement facing=opposite(getNearestLookingDirection) → setBlockState
 //   放发射器（hasBlockEntity 触发 BlockEntity 创建）。创造模式不消耗物品。
@@ -87,7 +87,7 @@
 // 8. 放置是 useItemOnBlock 同步触发（BlockItem::tryPlace 同步 setBlockState），useItemOnBlock 返回后
 //    即可读 state。留 maxTicks 余量防时序。
 //
-// 不测「GUI 交互（9 槽放物品）」：onBlockActivated 未实现（基类 Pass），SimulatedPlayer 无 GUI 放物品 API，
+// 不测「GUI 交互（9 槽放物品）」：方块侧交互 未实现（基类 Pass），SimulatedPlayer 无 GUI 放物品 API，
 //   不可测。TODO: 待脚本侧 BlockEntity 容器操作 API 补全后补 dispenser_opens_gui。
 // 不测「红石触发实际发射物品实体」：tick→dispense→tryDispense→spawnItemEntity 依赖 world.entityRegistry
 //   与红石 tick 调度时序（scheduleBlockTick(4)），GameTest 红石 tick 调度时序不可靠且发射物实体非确定。

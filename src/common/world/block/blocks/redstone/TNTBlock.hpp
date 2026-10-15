@@ -79,11 +79,18 @@ public:
      * 如果 tntExplodes 游戏规则为 false，则显示 action bar 消息。
      * 对应 MC Java 的 TntBlock.useItemOn()。
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
         Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
         const BlockRaycastResult& hit) override;
 
     /**
@@ -163,7 +170,7 @@ public:
      * 如果 tntExplodes 游戏规则为 false，则不会点燃。
      *
      * 对应 MC Java 中先调用 prime() 再调用 setBlock(AIR) 的组合模式。
-     * 适用于 onBlockAdded、neighborChanged、onBlockActivated、onProjectileHit 等场景。
+     * 适用于 onBlockAdded、neighborChanged、useItemOn、onProjectileHit 等场景。
      * 不适用于 playerWillDestroy（方块移除由破坏流程处理）。
      *
      * @param world 世界引用

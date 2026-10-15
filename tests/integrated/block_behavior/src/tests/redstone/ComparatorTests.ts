@@ -10,7 +10,7 @@
 //
 // C++ 链路：RedstoneComparatorBlock（redstone/RedstoneComparatorBlock.cpp）继承 RedstoneDiodeBlock，state：
 //   HORIZONTAL_FACING（"facing"，默认 North）+ POWERED + MODE（"mode"，ComparatorMode 枚举，默认 Compare）。
-//   - onBlockActivated（:304）：!mayBuild → Pass；否则 newMode = (cur==Compare)?Subtract:Compare
+//   - 方块侧交互（:304）：!mayBuild → Pass；否则 newMode = (cur==Compare)?Subtract:Compare
 //     （compare↔subtract 翻转）→ withMode setBlockState 写回 + 点击音效（subtract 音高 0.55，compare 0.5）
 //     + updateState 立即触发状态检查 → return Success。不检查手持物（空手/任意物品右键都切模式）。
 //   - MODE state 名 "mode"，值 "compare"/"subtract"（EnumProperty<ComparatorMode>，见 :58-84）。
@@ -19,9 +19,9 @@
 //     方法，落回 Block::getStateForPlacement 返回 defaultState()（HORIZONTAL_FACING 恒 North），与预期
 //     按水平视线决定朝向的行为不一致。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。比较器 onBlockActivated 创造模式 mayBuild=true → 切模式返 Success 短路。
-//   用手持 stick 触发（onBlockActivated 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。比较器 方块侧交互 创造模式 mayBuild=true → 切模式返 Success 短路。
+//   用手持 stick 触发（方块侧交互 不检查手持物，stick 不被消耗，仅占位 useItemOnBlock 的
 //   ItemStack 形参）。放置朝向走 useItemOnBlock 手持 comparator 物品点击 stone 顶面 Up → BlockItem::tryPlace
 //   → getStateForPlacement（基类 facing=opposite(horizontalDirection)）→ setBlockState。
 //
@@ -41,9 +41,9 @@
 // 3. 读 mode state 用 getState("mode" as any) 绕过 BlockStateSuperset 白名单。mode 是字符串枚举
 //    （"compare"/"subtract"），非数字。读 facing 用 getState("facing" as any)（HORIZONTAL_FACING，返小写
 //    方向字符串 north/south/east/west）。
-// 4. 创造模式 SimulatedPlayer mayBuild=true，onBlockActivated 走切模式分支（非 Pass）。
-// 5. 切模式后 onBlockActivated 调 updateState（无信号输入时输出稳定为 0，不影响 mode state 断言）。
-// 6. 切模式不消耗手持物（onBlockActivated 无 shrink），stick 可重复使用。
+// 4. 创造模式 SimulatedPlayer mayBuild=true，方块侧交互 走切模式分支（非 Pass）。
+// 5. 切模式后 方块侧交互 调 updateState（无信号输入时输出稳定为 0，不影响 mode state 断言）。
+// 6. 切模式不消耗手持物（方块侧交互 无 shrink），stick 可重复使用。
 // 7. 场景 3/4 朝向控制（复用 RepeaterTests/BarrelTests 含 pitch lookAtLocation 范式，比较器为水平类
 //    facing=opposite(horizontalDirection)，horizontalDirection 仅 yaw 决定，但 lookAt.y=playerPos.y+1 使
 //    pitch≈0 与现有范式一致）。每朝向独立 spawn 玩家避免 yaw 残留；每次清理 (3,2,1) 避免比较器残留
@@ -63,7 +63,7 @@
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\mechanism_红石比较器.txt#（使用键切换前火把：比较↔减法模式）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_红石中继器.txt#放置（facing=opposite(水平视线)，二极管共享）
-// Ref: RedstoneComparatorBlock.cpp（onBlockActivated newMode 翻转+音效+updateState→Success；MODE_PROP state）
+// Ref: RedstoneComparatorBlock.cpp（方块侧交互 newMode 翻转+音效+updateState→Success；MODE_PROP state）
 // Ref: RedstoneDiodeBlock.cpp（getStateForPlacement facing=opposite(horizontalDirection) 修复，比较器继承）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支）
 // Ref: RepeaterTests.ts（同基类 RedstoneDiodeBlock 朝向测试范式 + 水平 4 朝向坐标配方，比较器复用）
@@ -148,7 +148,7 @@ function placeStoneSupportForFacing(test: Test): void {
 // 场景 1：右键切到减法模式——放比较器（mode=compare）+ stick useItemOnBlock → mode=subtract，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 比较器 mode=compare。
-// onBlockActivated：mayBuild=true → newMode=(compare==Compare)?Subtract=Subtract → withMode setBlockState
+// 方块侧交互：mayBuild=true → newMode=(compare==Compare)?Subtract=Subtract → withMode setBlockState
 //   + 音效（0.55）+ updateState → return Success。
 //
 // 判定：useItemOnBlock 返 true（Success），mode === "subtract"（切到减法模式）。
@@ -159,7 +159,7 @@ function comparatorModeTogglesToSubtractOnUse(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const stick = new ItemStack("minecraft:stick", 1);
 
-    // 对比较器 useItemOnBlock stick → onBlockActivated newMode=Subtract → Success。
+    // 对比较器 useItemOnBlock stick → 方块侧交互 newMode=Subtract → Success。
     const used = farmer.useItemOnBlock(
         stick as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -176,7 +176,7 @@ function comparatorModeTogglesToSubtractOnUse(test: Test): void {
 // 场景 2：再次右键切回比较模式——已 mode=subtract + stick useItemOnBlock → mode=compare，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 比较器（先切换使 mode=subtract）。
-// onBlockActivated：newMode=(subtract==Compare)?...:Compare=Compare → withMode setBlockState + 音效（0.5）
+// 方块侧交互：newMode=(subtract==Compare)?...:Compare=Compare → withMode setBlockState + 音效（0.5）
 //   + updateState → return Success。
 //
 // 判定：useItemOnBlock 返 true（Success），mode === "compare"（切回比较模式）。

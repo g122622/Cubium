@@ -228,7 +228,7 @@ function fenceGateInWallWhenAdjacentWall(test: Test): void {
 // 场景 5：手动打开——栅栏门（open=false）+ interactWithBlock（空手右键）→ OPEN 翻 true。
 //
 // 布局：(3,1,1) stone + (3,2,1) 栅栏门（open=false）。
-// interactWithBlock（空手右键）→ onBlockActivated：wasOpen=false → with(OPEN,true) setBlockState → Success。
+// interactWithBlock（空手右键）→ 方块侧交互：wasOpen=false → with(OPEN,true) setBlockState → Success。
 //
 // 判定：interactWithBlock 返 true（Success），open === true（栅栏门被手动打开）。
 // one-sided：依赖 Cubium 补全的 interactWithBlock 绑定。
@@ -238,7 +238,7 @@ function fenceGateTogglesOpenOnInteract(test: Test): void {
 
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
 
-    // interactWithBlock 空手右键栅栏门 → onBlockActivated toggle(OPEN=true) → Success。
+    // interactWithBlock 空手右键栅栏门 → 方块侧交互 toggle(OPEN=true) → Success。
     // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
     const used = (farmer as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })
         .interactWithBlock({ x: 3, y: 2, z: 1 }, Direction.Up);
@@ -253,7 +253,7 @@ function fenceGateTogglesOpenOnInteract(test: Test): void {
 // 场景 6：手动关闭——承接场景 5（open=true）+ 再次 interactWithBlock → OPEN 翻回 false。
 //
 // 布局：(3,1,1) stone + (3,2,1) 栅栏门 open=true（先 interact 打开）。
-// 再次 interactWithBlock → onBlockActivated：wasOpen=true → with(OPEN,false) → Success。
+// 再次 interactWithBlock → 方块侧交互：wasOpen=true → with(OPEN,false) → Success。
 //
 // 判定：第二次 interactWithBlock 返 true，open === false（栅栏门手动关闭）。
 function fenceGateTogglesBackOnSecondInteract(test: Test): void {

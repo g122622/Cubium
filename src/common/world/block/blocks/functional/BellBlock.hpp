@@ -135,11 +135,10 @@ public:
      *
      * 参考: net.minecraft.world.level.block.BellBlock#useWithoutItem, onHit, isProperHit
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     /**

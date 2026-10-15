@@ -52,7 +52,8 @@ SpawnerBlock::SpawnerBlock(const BlockProperties& properties)
     // 刷怪笼没有特殊状态
 }
 
-BlockActionResult SpawnerBlock::onBlockActivated(const BlockState& state,
+BlockActionResult SpawnerBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -68,14 +69,14 @@ BlockActionResult SpawnerBlock::onBlockActivated(const BlockState& state,
     }
 
     // 检查玩家手中是否持有刷怪蛋
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (heldItem.isEmpty() || heldItem.getItem() == nullptr) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     const auto* spawnEgg = dynamic_cast<const item::SpawnEggItem*>(heldItem.getItem());
     if (spawnEgg == nullptr) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 获取刷怪笼方块实体
@@ -98,6 +99,18 @@ BlockActionResult SpawnerBlock::onBlockActivated(const BlockState& state,
     }
 
     return ActionResultType::Consume;
+}
+
+BlockActionResult SpawnerBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 std::unique_ptr<BlockEntity> SpawnerBlock::createBlockEntity(const BlockPos& pos)

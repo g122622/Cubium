@@ -77,15 +77,10 @@ const CollisionShape& CartographyTableBlock::getShape(const BlockState& state) c
     return m_shape;
 }
 
-BlockActionResult CartographyTableBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult CartographyTableBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 客户端只返回Success
@@ -100,6 +95,16 @@ BlockActionResult CartographyTableBlock::onBlockActivated(const BlockState& stat
     }
 
     return ActionResultType::Pass;
+}
+
+std::optional<ContainerType> CartographyTableBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Cartography;
 }
 
 } // namespace blocks

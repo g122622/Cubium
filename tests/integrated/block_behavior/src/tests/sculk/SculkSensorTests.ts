@@ -27,9 +27,9 @@
 // 触发源：空炼药锅 + 水桶 → 水炼药锅，发 FLUID_PLACE 事件（频率 5）。
 //   CauldronBlock::_handleBucketInteraction（CauldronBlock.cpp:240-260）：手持 water_bucket 右键空炼药锅 →
 //   setBlockState(水炼药锅) + gameEvent(FLUID_PLACE)。
-//   onBlockActivated 不依赖 openContainer（不打开 GUI），在 GameTestServer 中可正常工作。
+//   方块侧交互 不依赖 openContainer（不打开 GUI），在 GameTestServer 中可正常工作。
 //   SimulatedPlayer::useItemOnBlock(water_bucket, cauldronPos) → useItemOnBlock 内部把 stack 设到主手
-//   选中槽 → onBlockActivated 通过 player.getHeldItem(hand) 读到 water_bucket → 加水路径。
+//   选中槽 → 方块侧交互 通过 player.getHeldItem(hand) 读到 water_bucket → 加水路径。
 //
 // 测试覆盖（3 个场景，覆盖 wiki 振动检测 + 相位转换 Inactive→Active→Cooldown→Inactive）：
 //   1. sculk_sensor_activates_on_fluid_place：炼药锅加水 → sensor 激活（Phase=active, power>0）。
@@ -47,7 +47,7 @@
 //    读 power 用 getState("power" as any)，值域 0-15。
 // 4. 振动传播有时序不确定性（依赖 tickAll 调度），用 pollUntilSucceed 轮询读 phase。
 // 5. SimulatedPlayer 默认创造模式。useItemOnBlock 把 water_bucket 设到主手选中槽，
-//    onBlockActivated 内部 !creativeMode 分支跳过消耗，加水路径正常执行。
+//    方块侧交互 内部 !creativeMode 分支跳过消耗，加水路径正常执行。
 //
 // 不测「校准感测体频率过滤」：canReceiveVibration 未实现按红石信号过滤频率，行为与 vanilla 不一致。
 //   TODO: 待校准感测体频率过滤实现后补测试。
@@ -110,7 +110,7 @@ function placeSensorAndCauldron(test: Test): void {
 }
 
 // 触发振动：SimulatedPlayer 用水桶右键空炼药锅 → 加水 → FLUID_PLACE 事件 → sensor 激活。
-// useItemOnBlock 把 water_bucket 设到主手选中槽 → onBlockActivated 读到 water_bucket → 加水路径。
+// useItemOnBlock 把 water_bucket 设到主手选中槽 → 方块侧交互 读到 water_bucket → 加水路径。
 function triggerVibration(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "opener");
     const waterBucket = new ItemStack("minecraft:water_bucket", 1);
@@ -124,7 +124,7 @@ function triggerVibration(test: Test): void {
 // 场景 1：炼药锅加水 → sensor 激活（Phase=active, power>0）。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) sculk_sensor + (4,2,1) cauldron。
-// SimulatedPlayer useItemOnBlock(water_bucket, cauldron) → CauldronBlock::onBlockActivated →
+// SimulatedPlayer useItemOnBlock(water_bucket, cauldron) → CauldronBlock::方块侧交互 →
 //   _handleBucketInteraction → setBlockState(水炼药锅) + gameEvent(FLUID_PLACE)。
 // FLUID_PLACE 事件 → sensor listener 接收（distance=1.0, travelTime=1 tick）→
 //   onReceiveVibration → activate（Phase=Active, Power=redstoneStrength>0）。

@@ -11,14 +11,14 @@
 //
 // C++ 链路：
 //   - CandleBlock（decorative/CandleBlock.cpp）有 CANDLES(1-4) + LIT + WATERLOGGED state。
-//   - onBlockActivated：空手 + mayBuild + lit → extinguish（熄灭）→ Success；其他返 Pass。
-//     打火石非空手 → onBlockActivated 返 Pass → fallback Item.useOn（FlintAndSteelItem.onItemUse）。
+//   - 方块侧交互：空手 + mayBuild + lit → extinguish（熄灭）→ Success；其他返 Pass。
+//     打火石非空手 → 方块侧交互 返 Pass → fallback Item.useOn（FlintAndSteelItem.onItemUse）。
 //   - FlintAndSteelItem::onItemUse（special/FlintAndSteelItem.cpp:48）：目标含 LIT 属性且未点燃 +
 //     非 waterlogged → with(LIT,true) setBlockState → Success；waterlogged → Fail；已点燃 → 转 face 相邻放火。
 //   - getStateForPlacement（:94）：已有同类型蜡烛且 CANDLES<4 → CANDLES+1；否则新放 CANDLES=1。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。蜡烛 onBlockActivated 对打火石返 Pass（非空手熄灭条件），fallback 到打火石
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。蜡烛 方块侧交互 对打火石返 Pass（非空手熄灭条件），fallback 到打火石
 //   onItemUse 点燃。创造模式打火石不消耗（useItemOnBlock 第331行 isCreative 守卫），可重复使用。
 //
 // 测试覆盖（3 个场景，覆盖 wiki 打火石点燃 + 同色蜡烛堆叠 + 空手熄灭核心确定行为）：
@@ -45,7 +45,7 @@
 // 跨服务端：蜡烛 candle 方块名两端一致，lit/candles state 行为与 vanilla 一致。打火石 flint_and_steel
 //   两端一致。打火石点燃 + 蜡烛堆叠行为两端可对比。
 //
-// Ref: src/common/world/block/blocks/decorative/CandleBlock.cpp（onBlockActivated 空手熄灭/getStateForPlacement 堆叠）
+// Ref: src/common/world/block/blocks/decorative/CandleBlock.cpp（方块侧交互 空手熄灭/getStateForPlacement 堆叠）
 // Ref: src/common/item/items/special/FlintAndSteelItem.cpp（onItemUse 含 LIT 方块点燃 + waterlogged 拦截）
 // Ref: src/common/world/block/blocks/decorative/AbstractCandleBlock.hpp（isLit/extinguish/setLit）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
@@ -86,7 +86,7 @@ function placeCandle(test: Test): void {
 // 场景 1：打火石点燃蜡烛——放蜡烛（lit=false）+ 打火石 useItemOnBlock → lit=true，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 蜡烛 lit=false。
-// 蜡烛 onBlockActivated 对打火石：heldItem 非空（打火石）→ 不满足「空手熄灭」→ 返 Pass。
+// 蜡烛 方块侧交互 对打火石：heldItem 非空（打火石）→ 不满足「空手熄灭」→ 返 Pass。
 // fallback FlintAndSteelItem.onItemUse：蜡烛含 LIT 属性且 lit=false + 非 waterlogged →
 // with(LIT,true) setBlockState → Success。
 //
@@ -98,7 +98,7 @@ function candleLitByFlintAndSteel(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const flintAndSteel = new ItemStack("minecraft:flint_and_steel", 1);
 
-    // 对蜡烛 useItemOnBlock 打火石 → onBlockActivated Pass → fallback 打火石 onItemUse 点燃 → Success。
+    // 对蜡烛 useItemOnBlock 打火石 → 方块侧交互 Pass → fallback 打火石 onItemUse 点燃 → Success。
     const used = farmer.useItemOnBlock(
         flintAndSteel as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -147,8 +147,8 @@ function candleStacksUpToFour(test: Test): void {
 // 场景 3：空手熄灭——先打火石点燃蜡烛（lit=true）+ interactWithBlock（空手右键）→ lit=false，返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 蜡烛，先打火石点燃（lit=true），再空手右键熄灭。
-// 打火石 useItemOnBlock → onBlockActivated 非空手 Pass → fallback 打火石 onItemUse 点燃 lit=true。
-// interactWithBlock（空手右键）→ onBlockActivated：heldItem 空手 + mayBuild(创造 true) + isLit →
+// 打火石 useItemOnBlock → 方块侧交互 非空手 Pass → fallback 打火石 onItemUse 点燃 lit=true。
+// interactWithBlock（空手右键）→ 方块侧交互：heldItem 空手 + mayBuild(创造 true) + isLit →
 //   extinguish(lit→false) → Success。
 //
 // 判定：先断言 lit===true（打火石点燃），再 interactWithBlock 返 true，lit===false（空手熄灭）。
@@ -169,10 +169,10 @@ function candleExtinguishedByEmptyHand(test: Test): void {
     test.assert(litUsed, "useItemOnBlock should return true when lighting candle with flint and steel");
     test.assert(getCandleLit(test, 3, 2, 1) === true, `candle lit should be true after lighting, got ${getCandleLit(test, 3, 2, 1)}`);
 
-    // 第二步：interactWithBlock 空手右键点燃的蜡烛 → onBlockActivated 空手+mayBuild+isLit → extinguish → Success。
+    // 第二步：interactWithBlock 空手右键点燃的蜡烛 → 方块侧交互 空手+mayBuild+isLit → extinguish → Success。
     // interactWithBlock 为 Cubium 补全的 SimulatedPlayer 方法（类型定义未声明），用 as any 绕过类型检查。
     // 注意：interactWithBlock 内部不 setItem，但打火石点燃已把选中槽设为打火石（useItemOnBlock 设入），
-    //   故空手 interactWithBlock 会读到选中槽的打火石（非空手），onBlockActivated heldItem.isEmpty() 为 false
+    //   故空手 interactWithBlock 会读到选中槽的打火石（非空手），方块侧交互 heldItem.isEmpty() 为 false
     //   不触发熄灭！需用新 spawn 的 SimulatedPlayer（选中槽为空）确保空手。
     const extinguisher = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "extinguisher");
     const used = (extinguisher as unknown as { interactWithBlock: (pos: unknown, dir: unknown) => boolean })

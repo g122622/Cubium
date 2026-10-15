@@ -3013,7 +3013,7 @@ void Items::_registerBuckets()
     // 细雪桶 - 装有细雪的桶
     // 细雪不是流体，因此使用独立的 PowderSnowBucketItem（继承自 Item，非 BucketItem）。
     // 右键方块放置 PowderSnowBlock，使用后返回空桶。
-    // 与炼药锅的交互由炼药锅自身的 onBlockActivated 处理。
+    // 与炼药锅的交互由炼药锅自身的 useItemOn 处理。
     // 空桶从细雪方块舀取细雪由 PowderSnowBlock 实现 IBucketPickupHandler 接口处理。
     POWDER_SNOW_BUCKET = &registry.registerItem<item::PowderSnowBucketItem>(
         ResourceLocation("minecraft:powder_snow_bucket"), ItemProperties().maxStackSize(1).containerItem(BUCKET));

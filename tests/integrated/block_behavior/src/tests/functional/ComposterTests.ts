@@ -8,7 +8,7 @@
 //     消除概率不确定性，确定性验证堆肥升级链路。
 //
 // C++ 链路：ComposterBlock（ComposterBlock.cpp）有 LEVEL_0_8 state（默认 0）。
-//   - onBlockActivated（ComposterBlock.cpp:263-313）：第一步 `if (level == 8) { empty(); return Success; }`
+//   - 方块侧交互（ComposterBlock.cpp:263-313）：第一步 `if (level == 8) { empty(); return Success; }`
 //     ——level 8 直接收获，不检查手持物（任何物品/空手右键 level 8 堆肥桶都触发收获）。
 //     否则取手持物 → 查 CompostableItems::getCompostChance → attemptCompost。
 //   - attemptCompost（:161-210）：level>=7 return（已满/转变中）；否则 random.nextFloat() < chance 时
@@ -18,9 +18,9 @@
 //   - CompostableItems：PUMPKIN_PIE/CAKE 注册 chance=1.0f（CompostableItems.cpp:268/271）。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（对齐项目网络层
-//   ServerPlayHandler 与 vanilla Java 1.21：先 onBlockActivated，Pass 才 fallback onItemUse）。
-//   堆肥桶 onBlockActivated 返回 Success 时短路，不消耗手持物（level 8 收获不消耗；level<8 堆肥
-//   成功时 onBlockActivated 内部已 shrink 手持物）。
+//   ServerPlayHandler 与 vanilla Java 1.21：先 方块侧交互，Pass 才 fallback onItemUse）。
+//   堆肥桶 方块侧交互 返回 Success 时短路，不消耗手持物（level 8 收获不消耗；level<8 堆肥
+//   成功时 方块侧交互 内部已 shrink 手持物）。
 //
 // 测试覆盖（3 个场景，覆盖 wiki 堆肥升级+level7→8转变+level8收获核心行为，可跨服务端对比）：
 //   1. level 8 收获骨粉：放 level=8 堆肥桶 → 持南瓜派 useItemOnBlock → empty 收获，level 重置 0 +
@@ -33,7 +33,7 @@
 // 关键约束：
 // 1. 用 setBlockWithStates 放指定 level 堆肥桶（setBlockType 只放默认 level=0）。
 // 2. 南瓜派 chance=1.0 消除概率不确定性——单次投入必升级，确定性可测。
-// 3. level 8 收获不检查手持物（onBlockActivated 第一步 level==8 直接 empty），持南瓜派即可触发。
+// 3. level 8 收获不检查手持物（方块侧交互 第一步 level==8 直接 empty），持南瓜派即可触发。
 // 4. level 7→8 转变由 tick 调度（attemptCompost 升到 7 时 scheduleBlockTick 20）。setBlockWithStates
 //    直接放 level=7 不会调度 tick，故场景 3 从 level=6 投入升到 7（触发调度）再等转变。
 // 5. 读 level state 用 getState("level" as any) 绕过 BlockStateSuperset 白名单。
@@ -48,7 +48,7 @@
 //   基岩端需通过投入物品逐步升 level（概率性），跨端对比时基岩端本组测试可能需适配。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_堆肥桶.txt#用途（堆肥升级，level7→8转变20tick，level8收获骨粉）
-// Ref: ComposterBlock.cpp（onBlockActivated level8收获/堆肥；attemptCompost 100%升级+调度tick；tick 7→8；empty 掉骨粉+重置）
+// Ref: ComposterBlock.cpp（方块侧交互 level8收获/堆肥；attemptCompost 100%升级+调度tick；tick 7→8；empty 掉骨粉+重置）
 // Ref: CompostableItems.cpp:268/271（PUMPKIN_PIE/CAKE chance=1.0f 100%堆肥）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
@@ -80,7 +80,7 @@ function placeComposter(test: Test, level: number): void {
 // 骨粉物品实体掉落。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) level=8 堆肥桶。
-// onBlockActivated 第一步 level==8 → empty()（掉落骨粉 + level 重置 0）→ return Success 短路（不消耗南瓜派）。
+// 方块侧交互 第一步 level==8 → empty()（掉落骨粉 + level 重置 0）→ return Success 短路（不消耗南瓜派）。
 //
 // 判定：
 //   - 收获后 level === 0（empty 重置）。
@@ -95,7 +95,7 @@ function composterHarvestBonemealAtLevel8(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const pie = new ItemStack("minecraft:pumpkin_pie", 1);
 
-    // 对 level=8 堆肥桶 useItemOnBlock → onBlockActivated level==8 → empty 收获 + return Success。
+    // 对 level=8 堆肥桶 useItemOnBlock → 方块侧交互 level==8 → empty 收获 + return Success。
     const used = farmer.useItemOnBlock(
         pie as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -118,7 +118,7 @@ function composterHarvestBonemealAtLevel8(test: Test): void {
 // level 升至 1。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) level=0 堆肥桶。
-// onBlockActivated level=0(!=8) → 取手持南瓜派 → chance=1.0 → attemptCompost(level 0→1) → return Success。
+// 方块侧交互 level=0(!=8) → 取手持南瓜派 → chance=1.0 → attemptCompost(level 0→1) → return Success。
 //
 // 判定：useItemOnBlock 后 level === 1（南瓜派 100% 升级）。
 function composterCompostsWithPumpkinPie(test: Test): void {
@@ -129,7 +129,7 @@ function composterCompostsWithPumpkinPie(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const pie = new ItemStack("minecraft:pumpkin_pie", 1);
 
-    // 对 level=0 堆肥桶 useItemOnBlock 南瓜派 → onBlockActivated attemptCompost 100% 升级 level 0→1。
+    // 对 level=0 堆肥桶 useItemOnBlock 南瓜派 → 方块侧交互 attemptCompost 100% 升级 level 0→1。
     const used = farmer.useItemOnBlock(
         pie as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -147,7 +147,7 @@ function composterCompostsWithPumpkinPie(test: Test): void {
 // → 等 25tick → tick 转变 level 7→8。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) level=6 堆肥桶。
-// onBlockActivated level=6(!=8) → 南瓜派 chance=1.0 → attemptCompost(level 6→7) → newLevel==7 时
+// 方块侧交互 level=6(!=8) → 南瓜派 chance=1.0 → attemptCompost(level 6→7) → newLevel==7 时
 // scheduleBlockTick(pos, block, 20)。20 tick 后 tick() → level 7→8 + 完成音效。
 //
 // 判定：

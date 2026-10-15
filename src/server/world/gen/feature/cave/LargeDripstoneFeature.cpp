@@ -277,8 +277,7 @@ bool LargeDripstoneFeature::place(
         return false;
     }
 
-    const i32 maxRadius =
-        static_cast<i32>(static_cast<f64>(range->height()) * config.maxColumnRadiusToCaveHeightRatio);
+    const i32 maxRadius = static_cast<i32>(static_cast<f64>(range->height()) * config.maxColumnRadiusToCaveHeightRatio);
     const i32 clampedMax =
         math::clamp(maxRadius, config.columnRadius->getMinValue(), config.columnRadius->getMaxValue());
     const i32 radius = random.nextInt(config.columnRadius->getMinValue(), clampedMax);

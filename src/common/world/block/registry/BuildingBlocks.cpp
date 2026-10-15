@@ -190,7 +190,7 @@ void registerBuildingBlocks()
 
     // 工作台
     // 右键打开3x3合成界面，记录交互统计 INTERACT_WITH_CRAFTING_TABLE。
-    // 参考 MC Java: CraftingTableBlock.onBlockActivated() → player.openMenu() + player.awardStat()
+    // 参考 MC Java: CraftingTableBlock.useWithoutItem() → player.openMenu() + player.awardStat()
     BuildingBlocks::CRAFTING_TABLE =
         &registry.registerBlock<blocks::CraftingTableBlock>(ResourceLocation("minecraft:crafting_table"),
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());

@@ -71,12 +71,11 @@ public:
     /// 右键吃蛋糕：对齐 vanilla CakeBlock.use。
     /// 玩家 canEat(false)（非创造/旁观且饥饿<20）时吃一片（eatSlice bites+1）并恢复饥饿
     /// （foodStats().addStats(2, 0.1f)），返回 Success；否则返回 Pass（创造模式/满饥饿吃不了）。
-    /// 注意：吃蛋糕不消耗手持物（空手右键即可），onBlockActivated 不检查 hand/heldItem。
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    /// 注意：吃蛋糕不消耗手持物（空手右键即可），useWithoutItem 不检查手持物。
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     [[nodiscard]] bool isValidPosition(

@@ -225,12 +225,8 @@ const CollisionShape& AnvilBlock::getCollisionShape(const BlockState& state) con
     return getShape(state);
 }
 
-BlockActionResult AnvilBlock::onBlockActivated(const BlockState& /*state*/,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand /*hand*/,
-    const BlockRaycastResult& /*hit*/)
+BlockActionResult AnvilBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     // 客户端直接返回成功，由服务端处理容器打开
     if (world.asServerWorld() == nullptr) {
@@ -299,6 +295,16 @@ size_t AnvilBlock::_getAxisIndex(Direction facing)
         default:
             return 0;
     }
+}
+
+std::optional<ContainerType> AnvilBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Anvil;
 }
 
 } // namespace blocks

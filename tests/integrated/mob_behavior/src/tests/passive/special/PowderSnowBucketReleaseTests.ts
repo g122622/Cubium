@@ -5,7 +5,7 @@
 //
 // 对齐 Java 1.21.11 SolidBucketItem.use 流程（Cubium 实现为 PowderSnowBucketItem::onItemUse）：
 //   1. Survival 玩家主手持 powder_snow_bucket + useItemOnBlock(grass_block, face=Up)
-//      → SimulatedPlayer::useItemOnBlock 先 Block.use（grass_block onBlockActivated 基类返 Pass）
+//      → SimulatedPlayer::useItemOnBlock 先 Block.use（grass_block 方块侧交互 基类返 Pass）
 //      → fallback Item.useOn → PowderSnowBucketItem::onItemUse。
 //   2. onItemUse（PowderSnowBucketItem.cpp:50-88）：水下使用返 Consume（不允许水下放置）；
 //      否则 targetPos = blockPos.offset(face=Up)（被点击方块上方 air），emptyContents 放置粉雪方块

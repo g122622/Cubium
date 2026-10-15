@@ -519,14 +519,9 @@ void RedstoneWireBlock::_notifyWireNeighbors(IWorld& world, const BlockPos& pos)
         world.updateNeighbors(pos.offset(dir), *this);
     }
 }
-BlockActionResult RedstoneWireBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult RedstoneWireBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 冒险/旁观模式下无建造权限时，禁止切换红石线连接模式

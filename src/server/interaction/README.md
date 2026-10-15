@@ -164,13 +164,21 @@ MC 1.16.5 的水下挖掘惩罚检测玩家**眼睛位置**是否在水中，不
 
 ### 13. handleItemUseOn 与 handleBlockPlacement 的消耗同步路径差异
 
-`handleBlockPlacement`（block-item 放置）内部调 `BlockItem::tryPlace`（不经 InventoryManager），故消耗与同步由 **ServerPlayHandler 外层** 经 `setInventoryItem` + `syncPlayerInventory` 完成。
+`handleBlockPlacement`（block-item 放置）内部调 `BlockItem::tryPlace`，其上下文持有**权威手持槽引用**，消耗直接落盘；`handleBlockUse` 之后按 `itemConsumed` 补一次 `syncPlayerInventory`。
 
-`handleItemUseOn`（非 block-item 的 `Item::onItemUse` 派发，如矿车/骨粉/桶）**内部** 经 InventoryManager 消耗权威物品栏并 `syncToClient`，外层**无需再同步**。原因是 `Item::onItemUse` 内部经 `context.getItemStackMut().shrink(1)` 修改的是构造 context 时传入的局部 ItemStack 拷贝（`ItemUseContext::m_stack` 是指向该拷贝的指针），**不回写**权威 InventoryManager，故必须由 `handleItemUseOn` 单独消耗权威物品栏（否则物品不减少）。无双消风险：局部拷贝与权威物品栏是不同对象。
+`handleItemUseOn`（非 block-item 的 `Item::onItemUse` 派发，如矿车/骨粉/桶）**内部** 经 InventoryManager 消耗权威物品栏并 `syncToClient`。原因是 `Item::onItemUse` 内部经 `context.getItemStackMut().shrink(1)` 修改的是构造 context 时传入的局部 ItemStack 拷贝（`ItemUseContext::m_stack` 是指向该拷贝的指针），**不回写**权威物品栏，故必须由 `handleItemUseOn` 单独消耗（否则物品不减少）。无双消风险：局部拷贝与权威物品栏是不同对象。
 
-派发顺序对齐 vanilla `ServerPlayerGameMode.useItemOn`：项目无 vanilla ①`BlockState.useItemOn`，故为 ②`handleBlockUse`（useWithoutItem）→ 未短路才 ③`handleItemUseOn`（Item.useOn）。空手不调 ③。
+**右键派发顺序严格对齐 vanilla `ServerPlayerGameMode.useItemOn`**（`handleBlockUse` 内）：
 
-消耗/同步的**槽位随 hand 选择**：主手取当前选中槽（`PlayerInventory::getSelectedStackRef`），副手取 `OFFHAND` 槽。`handleItemUseOn` 与 `handleBlockUse` 均经 `Player::getHeldItem(hand)` 取权威槽快照、写回与比较，不再固定主手槽——否则 `hand==OffHand` 的 useOn/useWithoutItem 会误消耗主手物品。
+1. 旁观者 → 按 `Block::getMenuProvider` 打开界面（成功即 `Consume`，否则 `Pass`）
+2. 潜行（`isInputSneaking()`）且任一手持物非空 → **跳过方块侧**，直接 `Item::useOn`（潜行放方块而非开容器）
+3. `Block::useItemOn`（**任意手都调用，含空手**）→ `consumesAction()` 即短路
+4. 仅当上一步返回 `TryEmptyHandInteraction` 且为主线 → `Block::useWithoutItem`
+5. 仍未消费且手持非空、未冷却 → `Item::useOn`（矿车/骨粉/桶/锄头/BlockItem 放置）
+
+消耗/同步的**槽位随 hand 选择**：主手取当前选中槽（`PlayerInventory::getSelectedStackRef`），副手取 `OFFHAND` 槽。经 `_handStackFor(playerId, hand)` 统一解析，不再固定主手槽——否则 `hand==OffHand` 的 useOn/useWithoutItem 会误消耗主手物品。
+
+**TODO（本条目遗留，后续补全）**：`Block::useItemOn` 与 `useWithoutItem` 的拆分尚未逐块核对完成，部分方块仍把两种语义混在同一函数内；`SpawnerBlock` 的刷怪蛋交互应迁到 `SpawnEggItem`（物品侧）；`AbstractFurnaceBlock::getMenuProvider` 未区分高炉/烟熏炉。详见 `src/common/world/block/README.md` 第 41 节。
 
 另：真 Java 客户端的 `use_item_on`/`use_item`/挖掘包带递增 sequence，服务端必须回 `BlockChangedAck`（在 `ServerPlayHandler` 三处 handler 内）否则客户端方块预测状态机卡死、右键静默失效。
 

@@ -294,7 +294,8 @@ const fluid::FluidState* ShelfBlock::getFluidState(const BlockState& state) cons
 // 交互
 // ============================================================================
 
-BlockActionResult ShelfBlock::onBlockActivated(const BlockState& state,
+BlockActionResult ShelfBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -323,11 +324,10 @@ BlockActionResult ShelfBlock::onBlockActivated(const BlockState& state,
 
     // 客户端仅返回是否成功
     if (world.isClientSide()) {
-        ItemStack heldItem = player.getHeldItem(hand);
-        return heldItem.isEmpty() ? ActionResultType::Pass : ActionResultType::Success;
+        return stack.isEmpty() ? ActionResultType::Pass : ActionResultType::Success;
     }
 
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     PlayerInventory& inventory = player.inventory();
 
     if (!state.get(BlockStateProperties::POWERED())) {
@@ -389,6 +389,18 @@ BlockActionResult ShelfBlock::onBlockActivated(const BlockState& state,
         // 选中槽位物品已变化，携带转换后的新物品
         return BlockActionResult::success(ItemStack(newSelectedItem));
     }
+}
+
+BlockActionResult ShelfBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 // ============================================================================

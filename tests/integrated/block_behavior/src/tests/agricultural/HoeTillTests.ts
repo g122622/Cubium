@@ -4,14 +4,14 @@
 //   （缠根泥土用锄变泥土并掉垂根，Cubium 未实现 rooted_dirt 耕地，跳过。）锄耕地需目标上方为空气
 //   （不能从下方耕地，且上方有方块则不耕）。
 //
-// C++ 链路：HoeItem::onItemUse（item/items/tool/HoeItem.cpp:54）——物品侧 onItemUse（非 onBlockActivated）。
+// C++ 链路：HoeItem::onItemUse（item/items/tool/HoeItem.cpp:54）——物品侧 onItemUse（非 方块侧交互）。
 //   - getClickedFace()==Down → Pass（不能从下方耕地）。
 //   - getTilledBlock(original) 查 _getTillingMap：grass_block/grass_path(dirt_path)/dirt → FARMLAND；
 //     coarse_dirt → DIRT。映射外方块 → nullptr → Pass。
 //   - 上方非 air → Pass（上方有方块不耕）。
 //   - setBlockState(pos, tilledBlock.defaultState, 11)（方块类型转换）+ 耕地音效 + 消耗耐久 → Success。
 //
-// 派发链路：泥土/草方块/砂土等无 onBlockActivated override（基类返 Pass），useItemOnBlock ① Block.use
+// 派发链路：泥土/草方块/砂土等无 方块侧交互 override（基类返 Pass），useItemOnBlock ① Block.use
 //   前置分支 Pass → ② fallback Item.useOn（HoeItem.onItemUse）耕地。手持锄头（非 BlockItem），
 //   fallback 不放方块，走耕地转换。
 //
@@ -42,7 +42,7 @@
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_锄.txt#用途（泥土/草方块/土径→耕地，砂土→泥土）
 // Ref: HoeItem.cpp（onItemUse getTilledMap 转换+音效+耐久→Success；_getTillingMap grass/dirt→farmland, coarse_dirt→dirt）
-// Ref: SimulatedPlayer.cpp:314-343（useItemOnBlock fallback Item.useOn，dirt 无 onBlockActivated 故走此分支）
+// Ref: SimulatedPlayer.cpp:314-343（useItemOnBlock fallback Item.useOn，dirt 无 方块侧交互 故走此分支）
 
 import * as GameTest from "@minecraft/server-gametest";
 import type { Test } from "@minecraft/server-gametest";
@@ -60,7 +60,7 @@ function getBlockTypeId(test: Test, x: number, y: number, z: number): string {
 // 场景 1：锄耕泥土——放泥土 + 钻石锄 useItemOnBlock → 原位 dirt→farmland，返 true。
 //
 // 布局：(3,2,1) 泥土（minecraft:dirt），上方 (3,3,1) air。
-// useItemOnBlock ① onBlockActivated（dirt 基类 Pass）→ ② fallback HoeItem.onItemUse：
+// useItemOnBlock ① 方块侧交互（dirt 基类 Pass）→ ② fallback HoeItem.onItemUse：
 //   getTilledBlock(dirt)=FARMLAND + 上方 air → setBlockState farmland + 音效 + 耐久 → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），原位 (3,2,1) typeId === "minecraft:farmland"。

@@ -295,7 +295,7 @@ TEST_F(BlockInteractionManagerPlacementTest, CheckWorldModificationAllowedForNor
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     // 在非调试世界应该能尝试放置（可能成功或失败取决于碰撞检测）
     EXPECT_TRUE(result.success() || !result.success());
@@ -332,7 +332,7 @@ TEST_F(BlockInteractionManagerPlacementTest, RejectsPlacementWhenBlockIntersects
     setHeldBlockItem(*VanillaBlocks::STONE, 16);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
 
@@ -368,7 +368,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlacesBlockWhenNoPlayerCollision)
     m_player->z = 0.5f;
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
 
@@ -419,7 +419,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceCopperTorchOnStoneTop)
     setHeldItem(*m_inventoryManager, m_playerId, *Items::COPPER_TORCH, 8);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().success);
@@ -448,7 +448,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceHoneycombBlock)
     setHeldBlockItem(*VanillaBlocks::HONEYCOMB_BLOCK, 4);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().blockPlaced);
@@ -471,7 +471,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlacePlayerHead_CreatesSkullBlockEn
     setHeldItem(*m_inventoryManager, m_playerId, *Items::PLAYER_HEAD, 2);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().blockPlaced);
@@ -500,7 +500,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceDriedGhastInWater_Waterlogged)
     setHeldBlockItem(*VanillaBlocks::DRIED_GHAST, 2);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().blockPlaced);
@@ -524,7 +524,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceLightBlock_DefaultLevel15)
     setHeldBlockItem(*VanillaBlocks::LIGHT, 4);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().blockPlaced);
@@ -550,7 +550,7 @@ TEST_F(BlockInteractionManagerPlacementTest, PlaceTestBlock_CreatesTestBlockEnti
     setHeldBlockItem(*VanillaBlocks::TEST_BLOCK, 2);
 
     auto result = m_blockInteractionManager->handleBlockPlacement(
-        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, heldItem());
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
 
     ASSERT_TRUE(result.success());
     EXPECT_TRUE(result.value().blockPlaced);

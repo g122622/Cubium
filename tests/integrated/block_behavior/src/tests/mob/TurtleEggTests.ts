@@ -29,7 +29,7 @@
 //     BlockItemRegistry.cpp:1186 registerSimpleBlock(TURTLE_EGG, "turtle_egg")。物品已注册，可放置。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 turtle_egg 物品点击
-//   方块 → onBlockActivated 基类 Pass → fallback Item.useOn → BlockItem::onItemUse → tryPlace →
+//   方块 → 方块侧交互 基类 Pass → fallback Item.useOn → BlockItem::onItemUse → tryPlace →
 //   构造 BlockItemUseContext（placementPos 由 _canReplace 决定：被点击方块可替换→被点击位置，否则
 //   相邻位置）。对已有海龟蛋（eggs<4，手持 turtle_egg，非潜行），isReplaceable=true → placementPos=
 //   已有蛋格 → getStateForPlacement eggs+1 → setBlockState 写回（堆叠）。创造模式海龟蛋不消耗。

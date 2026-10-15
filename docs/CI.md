@@ -38,14 +38,35 @@ Cubium 的持续集成由 `.github/workflows/nightly.yml` 承担，**每晚 21:0
 ### PR clang-tidy 门禁
 
 `.github/workflows/ci.yml` 只在 PR 和 merge queue 运行，不进入 nightly。它从 PR 基线与头提交之间
-筛出变更的 `.cpp`、`.cc`、`.cxx`、`.hpp`、`.h` 文件，用 Linux preset 生成 `build/compile_commands.json`，
-不执行完整构建。变更的源文件使用该编译数据库；变更头文件会生成临时编译数据库条目，继承最近源文件的
-编译参数后再运行 clang-tidy，避免头文件因没有原生编译条目而被跳过。CI 传入
-`--warnings-as-errors='*'`，所以任一诊断都会令 `clang-tidy (changed C++)` job 失败。
+筛出变更的 `.cpp`、`.cc`、`.cxx`、`.hpp`、`.h` 文件（`tests/` 下的文件不参与），用 Linux preset 生成
+`build/compile_commands.json`，不执行完整构建。变更的源文件使用该编译数据库；变更头文件会生成临时编译
+数据库条目，继承最近源文件的编译参数后再运行 clang-tidy，避免头文件因没有原生编译条目而被跳过。
 
-`.clang-tidy` 排除了 `clang-analyzer-optin.cplusplus.UninitializedObject`，该项在现有全量扫描中只报告
-vcpkg 的 fmt 头文件。其余 analyzer 检查保留；高置信度正确性检查仍升级为错误，性能和可读性建议保留为
-普通告警。main 分支的 `Protect main` ruleset 已将 `clang-tidy (changed C++)` 设为 required status check，
+**变更文件按大小排序后均分到 4 个并行分片**。`clang-tidy shard 0..3` 先把变更文件按字节数降序排序，
+再按排序后的索引取模 4 取自己那一份（大文件优先铺到各分片，使各分片的**总工作量**而非文件个数接近）。
+每个分片内部 4 线程（`TIDY_JOBS=4`），合计 16 个并发 clang-tidy 进程，把单 job 约 50 分钟的扫描压到
+四分之一。四个分片之外还有一个汇总 job `clang-tidy (changed C++)`（`needs: [clang-tidy-shard]`、
+`if: always()`），任一失败或取消即令其失败。**ruleset 中登记的 required status check 是这个汇总 job 名**，
+因此分支保护仍只看到一个必需检查项。分片数量在两处必须同步：矩阵的 `shard` 列表与脚本内的 `SHARD_COUNT`。
+vcpkg 二进制缓存只由 shard 0 回写，避免四个分片争抢同一个 cache key。
+
+**门禁只对本次 diff 的新增行失败**。`scripts/ci/changed_lines.py` 先把 `git diff -U0` 的 hunk
+解析成 `<路径>\t<起始行>\t<结束行>` 的 TSV，`scripts/tidy/tidy.sh --changed-lines` 据此过滤诊断：
+落在区间外的存量告警只打印、不改变退出码。这样做是因为门禁语义应当是「不要引入新问题」，而一个
+机械重命名 PR 会触及大量文件，那些文件里的历史告警（如 `Block::rotate`/`mirror` 返回 `const` 引用
+参数、`StateHolder::get<T>()` 的 `noexcept` 逃逸）会在 `--warnings-as-errors='*'` 下把 job 打红。
+判定细节见 [TIDY.md](TIDY.md) §变更行过滤。
+
+`.clang-tidy` 排除了 `clang-analyzer-optin.cplusplus.UninitializedObject`（该项在现有全量扫描中只报告
+vcpkg 的 fmt 头文件）以及 `bugprone-easily-swappable-parameters`、`bugprone-misplaced-widening-cast`。
+`WarningsAsErrors` 保留高置信度的正确性检查：`bugprone-unchecked-optional-access`、
+`bugprone-unused-return-value`、`bugprone-optional-value-conversion`、`bugprone-integer-division`、
+`bugprone-nondeterministic-pointer-iteration-order`、`bugprone-empty-catch`、
+`bugprone-assert-side-effect`、`clang-analyzer` 的 api/core/cplusplus/nullability/security/unix/valist
+各组、`concurrency-*` 与 `misc-redundant-expression`。这些检查之外的建议（性能、可读性，以及
+`clang-analyzer-deadcode`/`clang-analyzer-optin`、`bugprone-branch-clone`、
+`bugprone-throwing-static-initialization` 等存量噪音较大的项）保持为普通告警。
+main 分支的 `Protect main` ruleset 已将 `clang-tidy (changed C++)` 设为 required status check，
 clang-tidy 失败时不能合并 PR。
 
 ### 为什么只跑 Linux

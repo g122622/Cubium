@@ -143,11 +143,13 @@ public:
      * 在服务端打开铁砧修复界面（ContainerType::Anvil），并触发交互统计。
      * 铁砧不需要方块实体，容器通过世界位置直接访问。
      */
-    [[nodiscard]] BlockActionResult onBlockActivated(const BlockState& state,
+    [[nodiscard]] std::optional<ContainerType> getMenuProvider(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
-        Hand hand,
         const BlockRaycastResult& hit) override;
 
     /**

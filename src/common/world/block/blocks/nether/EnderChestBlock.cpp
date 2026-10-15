@@ -121,15 +121,10 @@ std::unique_ptr<BlockEntity> EnderChestBlock::createBlockEntity(const BlockPos& 
     return std::make_unique<blockentity::EnderChestEntity>(pos);
 }
 
-BlockActionResult EnderChestBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult EnderChestBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 客户端只返回Success
@@ -196,6 +191,16 @@ BlockState EnderChestBlock::updatePostPlacement(const BlockState& state,
 const fluid::FluidState* EnderChestBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
+}
+
+std::optional<ContainerType> EnderChestBlock::getMenuProvider(
+    const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    // 有界面方块声明自身菜单类型，服务端旁观者右键据此统一打开（对齐 vanilla MenuProvider）
+    (void)state;
+    (void)world;
+    (void)pos;
+    return ContainerType::Generic9x3;
 }
 
 } // namespace blocks

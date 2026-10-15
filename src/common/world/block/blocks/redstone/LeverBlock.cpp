@@ -195,15 +195,10 @@ BlockState LeverBlock::toggle(IWorld& world, const BlockPos& pos, const BlockSta
     return newState;
 }
 
-BlockActionResult LeverBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult LeverBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(player);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
     if (!world.isClientSide()) toggle(world, pos, state);
     return ActionResultType::Success;

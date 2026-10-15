@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -1094,7 +1095,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_WrongBlockEntityType_DoesNotCrash)
 }
 
 // ============================================================================
-// DecoratedPotBlock onBlockActivated 测试 — 音效和动画
+// DecoratedPotBlock useBlockInteraction 测试 — 音效和动画
 // ============================================================================
 
 TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
@@ -1116,10 +1117,13 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
     m_world.resetTrackedState();
-    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*pot_, state, m_world, pos, *player, Hand::MainHand, hitResult);
 
     EXPECT_EQ(result, ActionResultType::Success);
+    // 必须断言具体音效 ID：仅断言"播放了某个音效"无法区分正/负摇晃分支，
+    // 若误播插入成功音效（BLOCK_DECORATED_POT_INSERT）测试仍会通过。
     EXPECT_TRUE(m_world.wasSoundPlayed());
+    EXPECT_EQ(m_world.lastSoundId(), SoundEvents::BLOCK_DECORATED_POT_INSERT_FAIL);
 }
 
 TEST_F(DecoratedPotBlockTest, OnBlockActivated_InsertItem_PositiveWobbleAndSound)
@@ -1146,7 +1150,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_InsertItem_PositiveWobbleAndSound
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
     m_world.resetTrackedState();
-    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+    auto result = mc::test::useBlock(*pot_, state, m_world, pos, *player, Hand::MainHand, hitResult);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(m_world.wasSoundPlayed());
@@ -1180,8 +1184,10 @@ TEST_F(DecoratedPotBlockTest, OnBlockActivated_OffHand_Pass)
 
     BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
 
-    auto result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::OffHand, hitResult);
-    EXPECT_EQ(result, ActionResultType::Pass);
+    auto result = mc::test::useBlock(*pot_, state, m_world, pos, *player, Hand::OffHand, hitResult);
+    // 陶罐 useItemOn 对副手返回 TryEmptyHandInteraction，而空手回退仅对主线生效，
+    // 故副手交互不触发负摇晃（对齐 vanilla `interactionhand == MAIN_HAND` 门控）。
+    EXPECT_EQ(result, ActionResultType::TryEmptyHandInteraction);
 }
 
 // ============================================================================

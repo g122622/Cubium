@@ -43,7 +43,7 @@ namespace mc {
  * - 当方块交互未修改手持物品时，`heldItemTransformedTo` 为 `std::nullopt`
  * - 消费方（如 `BlockInteractionManager`）据此决定是否同步物品栏到客户端
  *
- * 为了向后兼容已有的 52 个 `Block::onBlockActivated` override（它们直接返回 `ActionResultType`），
+ * 为了向后兼容已有的 `Block::useItemOn` / `useWithoutItem` override（它们直接返回 `ActionResultType`），
  * 本类提供从 `ActionResultType` 的隐式转换构造函数。这样旧代码无需修改即可继续工作，
  * 只有需要传递 `heldItemTransformedTo` 的方块（如 `ShelfBlock`）才使用新的工厂方法。
  *
@@ -111,6 +111,39 @@ public:
      */
     [[nodiscard]] static BlockActionResult pass() { return BlockActionResult(ActionResultType::Pass); }
 
+    /**
+     * @brief 创建"请以空手语义重试"结果（对应 vanilla `InteractionResult.TRY_WITH_EMPTY_HAND`）
+     */
+    [[nodiscard]] static BlockActionResult tryEmptyHandInteraction()
+    {
+        return BlockActionResult(ActionResultType::TryEmptyHandInteraction);
+    }
+
+    /**
+     * @brief 创建服务端挥臂的成功结果（对应 vanilla `InteractionResult.SUCCESS_SERVER`）
+     */
+    [[nodiscard]] static BlockActionResult successServer()
+    {
+        return BlockActionResult(ActionResultType::SuccessServer);
+    }
+
+    /**
+     * @brief 创建服务端挥臂的成功结果，携带转换后的手持物品
+     */
+    [[nodiscard]] static BlockActionResult successServer(ItemStack heldItemTransformed)
+    {
+        return BlockActionResult(ActionResultType::SuccessServer, std::move(heldItemTransformed));
+    }
+
+    /**
+     * @brief 创建"与手持物品无关"的服务端挥臂成功结果
+     *        （对应 vanilla `InteractionResult.SUCCESS_SERVER.withoutItem()`）
+     */
+    [[nodiscard]] static BlockActionResult successServerWithoutItem()
+    {
+        return BlockActionResult(ActionResultType::SuccessServerWithoutItem);
+    }
+
     // ========== 链式方法（参考 MC 1.21.11 InteractionResult.Success.heldItemTransformedTo） ==========
 
     /**
@@ -169,10 +202,35 @@ public:
 
     /**
      * @brief 是否成功或消耗（表示动作已处理）
+     *
+     * 等价于 `consumesAction()`：`Success` / `Consume` / `SuccessServer` / `SuccessServerWithoutItem`
+     * 均表示动作已被处理，`TryEmptyHandInteraction` / `Fail` / `Pass` 不是。
      */
-    [[nodiscard]] bool isSuccessOrConsume() const noexcept
+    [[nodiscard]] bool isSuccessOrConsume() const noexcept { return consumesAction(); }
+
+    /// @copydoc ActionResultType::consumesAction
+    [[nodiscard]] bool consumesAction() const noexcept
     {
-        return m_type == ActionResultType::Success || m_type == ActionResultType::Consume;
+        return m_type == ActionResultType::Success || m_type == ActionResultType::Consume ||
+            m_type == ActionResultType::SuccessServer || m_type == ActionResultType::SuccessServerWithoutItem;
+    }
+
+    /// @copydoc ActionResultType::wasItemInteraction
+    [[nodiscard]] bool wasItemInteraction() const noexcept
+    {
+        return m_type == ActionResultType::Success || m_type == ActionResultType::SuccessServer;
+    }
+
+    /// @copydoc ActionResultType::needsServerSwing
+    [[nodiscard]] bool needsServerSwing() const noexcept
+    {
+        return m_type == ActionResultType::SuccessServer || m_type == ActionResultType::SuccessServerWithoutItem;
+    }
+
+    /// @copydoc ActionResultType::isTryEmptyHandInteraction
+    [[nodiscard]] bool isTryEmptyHandInteraction() const noexcept
+    {
+        return m_type == ActionResultType::TryEmptyHandInteraction;
     }
 
     /**
@@ -186,7 +244,7 @@ public:
      * 仅比较 `m_type`，不比较 `heldItemTransformed`。
      * 允许测试代码 `EXPECT_EQ(result, ActionResultType::Success)` 等用法。
      */
-    [[nodiscard]] friend bool operator==(BlockActionResult lhs, ActionResultType rhs) noexcept
+    [[nodiscard]] friend bool operator==(const BlockActionResult& lhs, ActionResultType rhs) noexcept
     {
         return lhs.m_type == rhs;
     }
@@ -194,7 +252,7 @@ public:
     /**
      * @brief 与 `ActionResultType` 相等比较（反向参数顺序）
      */
-    [[nodiscard]] friend bool operator==(ActionResultType lhs, BlockActionResult rhs) noexcept
+    [[nodiscard]] friend bool operator==(ActionResultType lhs, const BlockActionResult& rhs) noexcept
     {
         return lhs == rhs.m_type;
     }
@@ -202,7 +260,7 @@ public:
     /**
      * @brief 与 `ActionResultType` 不等比较
      */
-    [[nodiscard]] friend bool operator!=(BlockActionResult lhs, ActionResultType rhs) noexcept
+    [[nodiscard]] friend bool operator!=(const BlockActionResult& lhs, ActionResultType rhs) noexcept
     {
         return lhs.m_type != rhs;
     }
@@ -210,7 +268,7 @@ public:
     /**
      * @brief 与 `ActionResultType` 不等比较（反向参数顺序）
      */
-    [[nodiscard]] friend bool operator!=(ActionResultType lhs, BlockActionResult rhs) noexcept
+    [[nodiscard]] friend bool operator!=(ActionResultType lhs, const BlockActionResult& rhs) noexcept
     {
         return lhs != rhs.m_type;
     }

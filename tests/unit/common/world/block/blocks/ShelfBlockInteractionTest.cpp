@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -57,7 +58,7 @@ namespace {
  * @brief 书架交互测试用世界桩
  *
  * 继承自 BaseTestWorld，提供方块状态存储、方块实体存储、音效捕获能力。
- * 用于测试 ShelfBlock::onBlockActivated 的物品交换逻辑和 heldItemTransformedTo 语义。
+ * 用于测试 ShelfBlock::useBlockInteraction 的物品交换逻辑和 heldItemTransformedTo 语义。
  */
 class ShelfTestWorld final : public mc::test::BaseTestWorld {
 public:
@@ -221,7 +222,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_EmptyHandAndEmptySh
     const BlockState& state = *m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 空手 + 空书架 → Pass（MC 1.21.11：wasSwapOrTake=false, heldItem.isEmpty() → PASS）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -250,7 +251,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaceItem_ReturnsSu
 
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 放入物品 → Success（swapSingleItem 交换整组：书架得到 5 个石头，玩家手持变空）
     EXPECT_EQ(result, ActionResultType::Success);
@@ -283,7 +284,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_SwapItem_ReturnsSuc
     const BlockState& state = *m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 交换物品 → Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -315,7 +316,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_TakeItem_ReturnsSuc
     const BlockState& state = *m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 取出物品 → Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -342,7 +343,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_OffHand_ReturnsPass)
     const BlockState& state = *m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::OffHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::OffHand, hit);
 
     // 副手 → Pass
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -359,7 +360,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Unpowered_PlaysPlaceItemSound
     const BlockState& state = *m_world.getBlockState(m_pos.x, m_pos.y, m_pos.z);
     BlockRaycastResult hit = makeHitSlot0();
 
-    VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 放入物品应播放 SHELF_PLACE_ITEM 音效
     EXPECT_TRUE(m_world.wasSoundPlayed());
@@ -395,7 +396,7 @@ TEST_F(ShelfBlockInteractionTest,
     ASSERT_TRUE(state.get(BlockStateProperties::POWERED()));
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 热栏交换成功 → Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -436,7 +437,7 @@ TEST_F(ShelfBlockInteractionTest,
     ASSERT_TRUE(state.get(BlockStateProperties::POWERED()));
     BlockRaycastResult hit = makeHitSlot0();
 
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 热栏交换成功 → Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -468,7 +469,7 @@ TEST_F(ShelfBlockInteractionTest, OnBlockActivated_Powered_NoSwap_ReturnsConsume
     BlockRaycastResult hit = makeHitSlot0();
 
     m_world.clearSounds();
-    auto result = VanillaBlocks::OAK_SHELF->onBlockActivated(state, m_world, m_pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*VanillaBlocks::OAK_SHELF, state, m_world, m_pos, player, Hand::MainHand, hit);
 
     // 未发生交换 → Consume
     EXPECT_EQ(result, ActionResultType::Consume);

@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -864,7 +865,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, BlockEntity_Clone_PreservesCustomName)
     EXPECT_EQ(clone->getType(), BlockEntityType::CopperGolemStatue);
 }
 
-// ---------- onBlockActivated 行为 ----------
+// ---------- useBlockInteraction 行为 ----------
 
 TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
 {
@@ -886,7 +887,8 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    auto result =
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 空手应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -916,7 +918,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHand_CyclesPose)
 // - 氧化变体（exposed/weathered/oxidized）：返回 Pass，交由 AxeItem 处理 scrape_off
 //
 // 本项目架构：基础 copper_golem_statue 是 CopperGolemStatueBlock（不实现 IOxidizableBlock），
-// 涂蜡变体也使用 CopperGolemStatueBlock。因此 onBlockActivated 中通过
+// 涂蜡变体也使用 CopperGolemStatueBlock。因此 useBlockInteraction 中通过
 // HoneycombItem::getWaxedOff(state) 区分涂蜡（Pass）与基础（生成铜傀儡）。
 
 TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnWaxedStatueReturnsPass)
@@ -940,7 +942,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnWaxedStatueRetur
 
     BlockRaycastResult hit;
     auto result =
-        VanillaBlocks::WAXED_COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::WAXED_COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 涂蜡变体：斧头应返回 Pass（委托给 AxeItem 处理 wax_off）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -975,8 +977,8 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnExposedStatueRet
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    auto result =
-        VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(
+        *VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 氧化变体：斧头应返回 Pass（委托给 AxeItem 处理 scrape_off）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -1030,7 +1032,8 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueSpawns
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    auto result =
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -1092,7 +1095,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueDamage
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 斧头耐久应 +1
     const i32 newDamage = player.inventory().getSelectedStackRef().getDamage();
@@ -1123,7 +1126,8 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueNoBloc
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    auto result =
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 没有方块实体时返回 Pass（防御性处理）
     EXPECT_EQ(result, ActionResultType::Pass);
@@ -1169,7 +1173,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeFacingDirectionsCo
         ASSERT_NE(state, nullptr);
 
         BlockRaycastResult hit;
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
         ASSERT_EQ(world.spawnedEntities().size(), 1u);
         auto* golem = dynamic_cast<CopperGolemEntity*>(world.spawnedEntities()[0].get());
@@ -1200,7 +1204,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_AxeOnBaseStatueGolemI
     ASSERT_NE(state, nullptr);
 
     BlockRaycastResult hit;
-    VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     ASSERT_EQ(world.spawnedEntities().size(), 1u);
     auto* golem = dynamic_cast<CopperGolemEntity*>(world.spawnedEntities()[0].get());
@@ -1228,7 +1232,8 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_EmptyHandOnBaseStatue
     ASSERT_EQ(state->get(BlockStateProperties::COPPER_GOLEM_POSE()), BlockStateProperties::CopperGolemPose::Standing);
 
     BlockRaycastResult hit;
-    auto result = VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+    auto result =
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
 
     // 空手应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -1265,7 +1270,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses
         ASSERT_NE(state, nullptr);
         world.clearSounds();
         world.clearGameEvents();
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
         const BlockState* newState = world.getBlockState(pos);
         ASSERT_NE(newState, nullptr);
         EXPECT_EQ(
@@ -1280,7 +1285,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses
         ASSERT_NE(state, nullptr);
         world.clearSounds();
         world.clearGameEvents();
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
         const BlockState* newState = world.getBlockState(pos);
         ASSERT_NE(newState, nullptr);
         EXPECT_EQ(
@@ -1295,7 +1300,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses
         ASSERT_NE(state, nullptr);
         world.clearSounds();
         world.clearGameEvents();
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
         const BlockState* newState = world.getBlockState(pos);
         ASSERT_NE(newState, nullptr);
         EXPECT_EQ(
@@ -1310,7 +1315,7 @@ TEST_F(CopperGolemStatueBlockTestFixture, OnBlockActivated_CyclesThroughAllPoses
         ASSERT_NE(state, nullptr);
         world.clearSounds();
         world.clearGameEvents();
-        VanillaBlocks::COPPER_GOLEM_STATUE->onBlockActivated(*state, world, pos, player, Hand::MainHand, hit);
+        mc::test::useBlock(*VanillaBlocks::COPPER_GOLEM_STATUE, *state, world, pos, player, Hand::MainHand, hit);
         const BlockState* newState = world.getBlockState(pos);
         ASSERT_NE(newState, nullptr);
         EXPECT_EQ(

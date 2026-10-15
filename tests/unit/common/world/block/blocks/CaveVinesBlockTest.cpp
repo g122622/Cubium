@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -256,7 +257,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 }
@@ -271,7 +272,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_SetsBerriesFalse)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     // 方块状态应该变为 BERRIES=false
     const BlockState* currentState = world.getBlockState(0, 64, 0);
@@ -289,7 +290,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_UsesFlag2)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     // MC 1.21.11: setBlockState 使用 flag=2
     EXPECT_EQ(world.lastSetBlockFlags(), 2);
@@ -305,7 +306,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_DropsGlowBerries)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(10.5f, 64.5f, 10.5f), pos, Direction::Up, 1.0f);
-    m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     // 应该生成1个物品实体
     EXPECT_EQ(world.spawnedEntityCount(), 1u);
@@ -332,7 +333,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_PlaysPickSound)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(20.5f, 64.5f, 20.5f), pos, Direction::Up, 1.0f);
-    m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     // 应该播放采摘音效
     EXPECT_TRUE(world.wasSoundPlayed());
@@ -354,7 +355,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithBerries_ClientSide_NoDropNoSound
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(30.5f, 64.5f, 30.5f), pos, Direction::Up, 1.0f);
-    auto result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     // 客户端仍应返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -376,7 +377,7 @@ TEST_F(CaveVinesBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(40.5f, 64.5f, 40.5f), pos, Direction::Up, 1.0f);
-    auto result = m_vines->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*m_vines, state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
 
@@ -447,7 +448,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_ReturnsSuccess)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*m_plant, state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
 }
@@ -462,7 +463,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_SetsBerriesFalse)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_plant, state, world, pos, player, Hand::MainHand, hit);
 
     const BlockState* currentState = world.getBlockState(0, 64, 0);
     ASSERT_NE(currentState, nullptr);
@@ -479,7 +480,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_DropsGlowBerries)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(10.5f, 64.5f, 10.5f), pos, Direction::Up, 1.0f);
-    m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_plant, state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(world.spawnedEntityCount(), 1u);
 
@@ -504,7 +505,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithBerries_PlaysPickSound)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(20.5f, 64.5f, 20.5f), pos, Direction::Up, 1.0f);
-    m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    mc::test::useBlock(*m_plant, state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_TRUE(world.wasSoundPlayed());
     EXPECT_EQ(world.lastSoundId(), SoundEvents::BLOCK_CAVE_VINES_PICK_BERRIES);
@@ -523,7 +524,7 @@ TEST_F(CaveVinesPlantBlockTest, OnBlockActivated_WithoutBerries_ReturnsPass)
     world.setBlockAt(pos, &state);
 
     BlockRaycastResult hit(Vector3(40.5f, 64.5f, 40.5f), pos, Direction::Up, 1.0f);
-    auto result = m_plant->onBlockActivated(state, world, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*m_plant, state, world, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
     EXPECT_EQ(world.spawnedEntityCount(), 0u);

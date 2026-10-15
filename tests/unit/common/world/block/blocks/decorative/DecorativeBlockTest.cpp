@@ -33,6 +33,7 @@
  * - 花盆交互（放入/取出植物、客户端/服务端分支、getByContent 反查映射表）
  */
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -510,7 +511,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithPottableItem_PlacesPottedBlock_Ser
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 验证方块被替换为 potted_poppy
@@ -543,7 +544,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithPottableItem_ClientSide_ReturnsSuc
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 客户端返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
@@ -574,7 +575,7 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithPottableItem_ConsumesWithoutActio
     m_world.resetTrackedState();
     auto* pottedPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::POTTED_POPPY);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = pottedPotBlock->onBlockActivated(pottedState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*pottedPotBlock, pottedState, m_world, pos, *player, Hand::MainHand, hit);
 
     // 匹配 MC Java: 返回 Consume，不修改方块
     EXPECT_EQ(result, ActionResultType::Consume);
@@ -599,7 +600,7 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithEmptyHand_ReturnsConsume)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
@@ -621,7 +622,7 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithEmptyHand_ExtractsContent_ServerS
     m_world.resetTrackedState();
     auto* pottedPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::POTTED_POPPY);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = pottedPotBlock->onBlockActivated(pottedState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*pottedPotBlock, pottedState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 验证方块被替换为空花盆
@@ -647,7 +648,7 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithEmptyHand_ClientSide_ReturnsSucce
     m_world.resetTrackedState();
     auto* pottedPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::POTTED_POPPY);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = pottedPotBlock->onBlockActivated(pottedState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*pottedPotBlock, pottedState, m_world, pos, *player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 客户端不应修改方块
@@ -655,9 +656,9 @@ TEST_F(FlowerPotInteractionTest, PottedPot_WithEmptyHand_ClientSide_ReturnsSucce
     EXPECT_FALSE(m_world.wasGameEventFired());
 }
 
-// ========== 分支5：空花盆 + 手持非 BlockItem 物品 → Pass ==========
+// ========== 分支5：空花盆 + 手持非 BlockItem 物品 → Consume ==========
 
-TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsPass)
+TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsConsume)
 {
     ASSERT_NE(VanillaBlocks::FLOWER_POT, nullptr);
     // 使用一个非 BlockItem 的物品（如钻石）进行测试
@@ -674,18 +675,19 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonBlockItem_ReturnsPass)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
-    // 非 BlockItem 物品应返回 Pass（交给其他处理器）
-    EXPECT_EQ(result, ActionResultType::Pass);
+    // 非 BlockItem 物品：useItemOn 返回 TRY_WITH_EMPTY_HAND，服务端回退 useWithoutItem，
+    // 空花盆分支返回 CONSUME（对齐 vanilla：空花盆 + 非盆栽物品 → 消费动作但无操作）。
+    EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
     // 物品不被消耗
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 1);
 }
 
-// ========== 分支6：空花盆 + 手持不可盆栽的 BlockItem → Pass ==========
+// ========== 分支6：空花盆 + 手持不可盆栽的 BlockItem → Consume ==========
 
-TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsPass)
+TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsConsume)
 {
     ASSERT_NE(VanillaBlocks::FLOWER_POT, nullptr);
     // 使用一个不可盆栽的 BlockItem（如石头）进行测试
@@ -703,10 +705,11 @@ TEST_F(FlowerPotInteractionTest, EmptyPot_WithNonPottableBlockItem_ReturnsPass)
     m_world.resetTrackedState();
     auto* flowerPotBlock = static_cast<FlowerPotBlock*>(VanillaBlocks::FLOWER_POT);
     BlockRaycastResult hit = makeHitResult(pos);
-    auto result = flowerPotBlock->onBlockActivated(emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*flowerPotBlock, emptyPotState, m_world, pos, *player, Hand::MainHand, hit);
 
-    // 不可盆栽的 BlockItem 应返回 Pass
-    EXPECT_EQ(result, ActionResultType::Pass);
+    // 不可盆栽的 BlockItem：同上一用例，useItemOn 返回 TRY_WITH_EMPTY_HAND → useWithoutItem
+    // 的空花盆分支 → CONSUME（对齐 vanilla）。
+    EXPECT_EQ(result, ActionResultType::Consume);
     EXPECT_EQ(m_world.setBlockCallCount(), 0);
 }
 

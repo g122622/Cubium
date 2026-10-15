@@ -78,17 +78,12 @@ BlockState StructureBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-BlockActionResult StructureBlock::onBlockActivated(const BlockState& state,
-    IWorld& world,
-    const BlockPos& pos,
-    Player& player,
-    Hand hand,
-    const BlockRaycastResult& hit)
+BlockActionResult StructureBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 游戏管理员方块需要权限才能交互

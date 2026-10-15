@@ -96,7 +96,7 @@ Block (基类)
 
 ### 6. TrapDoorBlock 铁活板门不能手动操作
 
-`onBlockActivated()` 中必须检查 `m_isIron`，铁活板门只能通过红石控制，玩家右键应返回 `ActionResultType::Pass`。
+`useItemOn` / `useWithoutItem` 中必须检查 `m_isIron`，铁活板门只能通过红石控制，玩家右键应返回 `ActionResultType::Pass`。
 
 ### 7. TrapDoorBlock 攀爬检测
 

@@ -89,7 +89,8 @@ std::unique_ptr<BlockEntity> AbstractSignBlock::createBlockEntity(const BlockPos
     return blockentity::BlockEntityRegistry::instance().create(BlockEntityType::Sign, pos);
 }
 
-BlockActionResult AbstractSignBlock::onBlockActivated(const BlockState& state,
+BlockActionResult AbstractSignBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -108,7 +109,7 @@ BlockActionResult AbstractSignBlock::onBlockActivated(const BlockState& state,
     auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
 
     // 检查玩家手持物品是否为蜜脾（涂蜡交互）
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
     if (!heldItem.isEmpty() && heldItem.getItem() == Items::HONEYCOMB) {
         // 如果另一玩家正在编辑告示牌，阻止涂蜡交互
         // 对应 MC Java SignBlock.useItemOn() 中的 otherPlayerIsEditingSign() 检查
@@ -156,12 +157,12 @@ BlockActionResult AbstractSignBlock::onBlockActivated(const BlockState& state,
     // 对应 MC Java SignBlock.useWithoutItem() 中的 otherPlayerIsEditingSign() 检查
     // 注意：命令执行（click_events）不受编辑锁影响，即使其他玩家正在编辑也应正常执行
     if (signEntity->otherPlayerIsEditing(player)) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 检查玩家是否有建造权限
     if (!player.mayBuild()) {
-        return ActionResultType::Pass;
+        return ActionResultType::TryEmptyHandInteraction;
     }
 
     // 检查告示牌文本是否可编辑（涂蜡的告示牌不可编辑）
@@ -180,6 +181,18 @@ BlockActionResult AbstractSignBlock::onBlockActivated(const BlockState& state,
     player.openSignEditor(pos, true);
 
     return ActionResultType::Success;
+}
+
+BlockActionResult AbstractSignBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
+    return ActionResultType::Pass;
 }
 
 const ResourceLocation& AbstractSignBlock::getWaxedInteractFailSound() const

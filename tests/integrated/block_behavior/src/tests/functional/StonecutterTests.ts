@@ -21,7 +21,7 @@
 //     非 GameTest 范畴，本组不测）。
 //   - getShape（:102-106）：固定 m_shape=box(0,0,0,16,9,16)（高 9 像素底座，对齐 vanilla
 //     column(16,0,9)）。切石机碰撞箱为低底座（非 fullBlock），但 isValidPosition 基类 true 无支撑要求。
-//   - onBlockActivated（:108-129）：openContainer(ContainerType::Stonecutter) + INTERACT_WITH_STONECUTTER
+//   - 方块侧交互（:108-129）：openContainer(ContainerType::Stonecutter) + INTERACT_WITH_STONECUTTER
 //     统计（涉 GUI，SimulatedPlayer 不可测交互）。
 //   - 无 canSurvive/updatePostPlacement/hasBlockEntity（纯功能方块无支撑要求/无容器）。
 //   - 物品注册：BlockItemRegistry.cpp 功能方块段补 registerSimpleBlock(VanillaBlocks::STONECUTTER,
@@ -32,7 +32,7 @@
 //     子注册表），仿 grindstone 范式。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 stonecutter 物品点击
-//   stone 顶面 → onBlockActivated（stone 非切石机，targetBlock 走基类 Pass）→ fallback Item.useOn →
+//   stone 顶面 → 方块侧交互（stone 非切石机，targetBlock 走基类 Pass）→ fallback Item.useOn →
 //   BlockItem::onItemUse → tryPlace → 构造 BlockItemUseContext（playerYaw 来自 SimulatedPlayer yaw(),
 //   :325）→ getStateForPlacement facing=opposite(horizontalDirection(yaw)) → setBlockState 放切石机。
 //   创造模式不消耗物品。

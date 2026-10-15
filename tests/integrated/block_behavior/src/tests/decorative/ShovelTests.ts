@@ -12,9 +12,9 @@
 //     dirt_path + flatten 音效 + 耐久 → Success。
 //
 // 派发链路：
-//   - 营火：营火 onBlockActivated（烹饪，铲子非食物 findMatchingRecipe 无匹配→Pass）→ fallback
+//   - 营火：营火 方块侧交互（烹饪，铲子非食物 findMatchingRecipe 无匹配→Pass）→ fallback
 //     ShovelItem.onItemUse 熄灭营火。手持铲子（非 BlockItem）。
-//   - 草方块/泥土/砂土：方块 onBlockActivated 基类 Pass → fallback ShovelItem.onItemUse 压土径。
+//   - 草方块/泥土/砂土：方块 方块侧交互 基类 Pass → fallback ShovelItem.onItemUse 压土径。
 //
 // 测试覆盖（4 个场景，覆盖 wiki 铲子熄灭营火 + 压草方块/泥土/砂土成土径核心确定行为）：
 //   1. 铲子熄灭营火：放点燃营火 + 钻石铲 useItemOnBlock → lit=false，返 true。
@@ -29,7 +29,7 @@
 // 3. 钻石铲用 new ItemStack("minecraft:diamond_shovel", 1)（耐久 1561，创造 hurtAndBreak 不消耗）。
 // 4. useItemOnBlock 传 Direction.Up（点击顶面），ShovelItem 压土径 getClickedFace==Down 检查通过。
 // 5. 营火场景读 lit state 用 getState("lit" as any)；其余场景读 block.typeId 转换。
-// 6. 营火有 BlockEntity（CampfireBlockEntity），铲子熄灭只改 lit state 不影响实体；营火 onBlockActivated
+// 6. 营火有 BlockEntity（CampfireBlockEntity），铲子熄灭只改 lit state 不影响实体；营火 方块侧交互
 //    对铲子（非食物）返 Pass → fallback 铲子熄灭。
 //
 // 不测「铲子压菌丝体/灰化土/缠根泥土成土径」：三者同走 _getPathMap 且无额外分支，草方块/泥土/砂土
@@ -45,7 +45,7 @@
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_锹.txt#用途（行283 铲熄灭营火；行281 压草方块等→土径）
 // Ref: ShovelItem.cpp（onItemUse 1.熄灭营火 isLit→LIT=false 2.压土径 getPathBlock→dirt_path）
-// Ref: CampfireBlock.cpp（setDefaultState LIT=true；onBlockActivated 非食物→Pass 让 fallback 铲熄灭）
+// Ref: CampfireBlock.cpp（setDefaultState LIT=true；方块侧交互 非食物→Pass 让 fallback 铲熄灭）
 // Ref: SimulatedPlayer.cpp:314-343（useItemOnBlock fallback Item.useOn，营火/草方块经此分支到铲子）
 
 import * as GameTest from "@minecraft/server-gametest";
@@ -74,7 +74,7 @@ function getCampfireLit(test: Test, x: number, y: number, z: number): boolean | 
 // 场景 1：铲子熄灭营火——放点燃营火 + 钻石铲 useItemOnBlock → lit=false，返 true。
 //
 // 布局：(3,2,1) 营火（minecraft:campfire 默认 lit=true）。
-// useItemOnBlock ① onBlockActivated（营火烹饪，铲子非食物 findMatchingRecipe 无匹配→Pass）→ ② fallback
+// useItemOnBlock ① 方块侧交互（营火烹饪，铲子非食物 findMatchingRecipe 无匹配→Pass）→ ② fallback
 //   ShovelItem.onItemUse：营火 + isLit → with(LIT,false) setBlockState + 熄灭音效 + 耐久 → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），lit === false（营火被铲子熄灭）。
@@ -85,7 +85,7 @@ function shovelExtinguishesCampfire(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const shovel = new ItemStack("minecraft:diamond_shovel", 1);
 
-    // 对营火 useItemOnBlock 钻石铲 → onBlockActivated Pass → fallback ShovelItem 熄灭营火 → Success。
+    // 对营火 useItemOnBlock 钻石铲 → 方块侧交互 Pass → fallback ShovelItem 熄灭营火 → Success。
     const used = farmer.useItemOnBlock(
         shovel as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -102,7 +102,7 @@ function shovelExtinguishesCampfire(test: Test): void {
 // 场景 2：铲子压草方块成土径——放草方块 + 钻石铲 useItemOnBlock → 原位 grass_block→dirt_path，返 true。
 //
 // 布局：(3,2,1) 草方块（minecraft:grass_block），上方 (3,3,1) air。
-// useItemOnBlock ① onBlockActivated（草方块基类 Pass）→ ② fallback ShovelItem.onItemUse：
+// useItemOnBlock ① 方块侧交互（草方块基类 Pass）→ ② fallback ShovelItem.onItemUse：
 //   getPathBlock(grass_block)=GRASS_PATH(dirt_path) + 上方 air → setBlockState dirt_path + flatten 音效 +
 //   耐久 → Success。
 //
@@ -114,7 +114,7 @@ function shovelFlattensGrassBlockToPath(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const shovel = new ItemStack("minecraft:diamond_shovel", 1);
 
-    // 对草方块 useItemOnBlock 钻石铲 → onBlockActivated Pass → fallback ShovelItem 压土径 → Success。
+    // 对草方块 useItemOnBlock 钻石铲 → 方块侧交互 Pass → fallback ShovelItem 压土径 → Success。
     const used = farmer.useItemOnBlock(
         shovel as unknown as Parameters<typeof farmer.useItemOnBlock>[0],
         { x: 3, y: 2, z: 1 },
@@ -131,7 +131,7 @@ function shovelFlattensGrassBlockToPath(test: Test): void {
 // 场景 3：铲子压泥土成土径——放泥土 + 钻石铲 useItemOnBlock → 原位 dirt→dirt_path，返 true。
 //
 // 布局：(3,2,1) 泥土（minecraft:dirt），上方 (3,3,1) air。
-// useItemOnBlock ① onBlockActivated（dirt 基类 Pass）→ ② fallback ShovelItem.onItemUse：
+// useItemOnBlock ① 方块侧交互（dirt 基类 Pass）→ ② fallback ShovelItem.onItemUse：
 //   getPathBlock(dirt)=dirt_path + 上方 air → setBlockState dirt_path + 音效 + 耐久 → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），原位 (3,2,1) typeId === "minecraft:dirt_path"。

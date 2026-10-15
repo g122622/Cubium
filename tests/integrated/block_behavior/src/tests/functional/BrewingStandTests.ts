@@ -2,7 +2,7 @@
 //
 // wiki tech_酿造台.txt#破坏/用途/红石比较器/光源：
 //   - 破坏：酿造台被破坏后掉落自身和内容物（容器破坏掉落内容物，wiki :47）。
-//   - 用途：酿造台界面三个药水瓶槽位，对酿造台按下使用可打开界面（onBlockActivated openContainer）。
+//   - 用途：酿造台界面三个药水瓶槽位，对酿造台按下使用可打开界面（方块侧交互 openContainer）。
 //   - has_bottle state：当药水槽位有玻璃瓶或任意药水时，方块模型对应位置显示红色药水纹理
 //     （wiki :73，对应 HAS_BOTTLE_0/1/2 三组独立 bool state，槽位有瓶则该 state=true）。
 //   - 红石比较器：能检测酿造台五个槽位存储物品的数量（getComparatorInputOverride，wiki :76）。
@@ -27,7 +27,7 @@
 //     BlockItemRegistry.cpp:792 registerSimpleBlock(BREWING_STAND, "brewing_stand")。物品已注册，可放置。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock（SimulatedPlayer.cpp:265-346）。手持 brewing_stand 物品点击
-//   stone 顶面 → onBlockActivated 基类 Pass（酿造台 onBlockActivated 仅对已有酿造台 openContainer，
+//   stone 顶面 → 方块侧交互 基类 Pass（酿造台 方块侧交互 仅对已有酿造台 openContainer，
 //   放置时 targetBlock 非 brewing_stand 走基类 Pass）→ fallback Item.useOn → BlockItem::onItemUse →
 //   tryPlace → getStateForPlacement defaultState → setBlockState（hasBlockEntity 触发 BlockEntity 创建）。
 //   SimulatedPlayer 默认创造模式，brewing_stand 不消耗。
@@ -60,7 +60,7 @@
 // 不测「比较器信号」：需比较器贴酿造台 + 读输出信号强度，链路复杂且 GameTest 读红石信号 API 受限，跳过。
 //   TODO: 待比较器读容器信号测试范式完善后补 brewing_stand_comparator_signal。
 // 不测「恒发光 1」：属光照范畴（lighting 包），且光照测试已覆盖发光方块，跳过。
-// 不测「内容物破坏掉落」：SimulatedPlayer 无 GUI 放物品 API，无法向酿造台槽位放入物品（onBlockActivated
+// 不测「内容物破坏掉落」：SimulatedPlayer 无 GUI 放物品 API，无法向酿造台槽位放入物品（方块侧交互
 //   openContainer 仅打开 GUI，SimulatedPlayer 无后续放入操作），无法构造有内容物的酿造台。场景 3 仅测
 //   空酿造台破坏不崩溃。TODO: 待脚本侧 BlockEntity 容器操作 API（getComponent("inventory")）补全后
 //   补 brewing_stand_drops_contents_when_broken（参照 Lectern 场景 4 范式）。
@@ -160,7 +160,7 @@ function brewingStandPlacedWithDefaultState(test: Test): void {
     const farmer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
     const brewingStand = new ItemStack("minecraft:brewing_stand", 1);
 
-    // 手持 brewing_stand 点击 (3,1,1) 顶面 Up → 酿造台落 (3,2,1)。stone onBlockActivated Pass → fallback
+    // 手持 brewing_stand 点击 (3,1,1) 顶面 Up → 酿造台落 (3,2,1)。stone 方块侧交互 Pass → fallback
     // 放置。getStateForPlacement defaultState（三 has_bottle 全 false）→ setBlockState。
     const used = farmer.useItemOnBlock(
         brewingStand as unknown as Parameters<typeof farmer.useItemOnBlock>[0],

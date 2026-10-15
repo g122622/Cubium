@@ -22,6 +22,7 @@
  */
 
 #include "world/block/blocks/LayeredCauldronBlock.hpp"
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
@@ -1363,7 +1364,7 @@ TEST_F(PowderSnowCauldronComparatorTest, ComparatorSignalEqualsLevel)
 }
 
 // ============================================================================
-// 炼药锅交互测试用的 Mock 世界（支持 onBlockActivated 测试）
+// 炼药锅交互测试用的 Mock 世界（支持 useBlockInteraction 测试）
 // ============================================================================
 
 /**
@@ -1371,7 +1372,7 @@ TEST_F(PowderSnowCauldronComparatorTest, ComparatorSignalEqualsLevel)
  *
  * 继承 BaseTestWorld，实现 IWorld 方法，支持 Player 交互测试。
  * 提供 playSound、gameEvent、spawnEntity 等方法的 stub 实现，
- * 确保 onBlockActivated 不会因为缺少世界方法而崩溃。
+ * 确保 useBlockInteraction 不会因为缺少世界方法而崩溃。
  */
 class CauldronInteractionTestWorld : public mc::test::BaseTestWorld {
 public:
@@ -1535,7 +1536,7 @@ private:
 };
 
 // ============================================================================
-// 细雪炼药锅 onBlockActivated 交互测试
+// 细雪炼药锅 useBlockInteraction 交互测试
 // ============================================================================
 
 class PowderSnowCauldronInteractionTest : public ::testing::Test {
@@ -1595,7 +1596,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_ExtractsPowderSnowFromFull
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 满细雪炼药锅 + 空桶 → 空炼药锅
@@ -1621,7 +1622,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_NonFullPowderSnowCauldron_
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     // 空桶交互总是返回 Success（MC Java 行为），但非满水位不改变方块
     EXPECT_EQ(result, ActionResultType::Success);
@@ -1648,7 +1649,7 @@ TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_FillsPowderSnowCauldr
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(world_.isPowderSnowCauldron(pos)) << "Should still be powder snow cauldron after filling";
@@ -1673,7 +1674,7 @@ TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_OnWaterCauldron_NoFil
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*waterCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 水炼药锅上使用细雪桶：交互已处理但不改变方块类型（仅返回 Success）
@@ -1698,7 +1699,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_ConvertsPowderSnowToWaterC
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 细雪炼药锅 + 水桶 → 水炼药锅（水位3）
@@ -1723,7 +1724,7 @@ TEST_F(PowderSnowCauldronInteractionTest, LavaBucket_ConvertsPowderSnowToLavaCau
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(world_.isLavaCauldron(pos)) << "Powder snow cauldron + lava bucket should convert to lava cauldron";
@@ -1745,7 +1746,7 @@ TEST_F(PowderSnowCauldronInteractionTest, GlassBottle_PowderSnowCauldron_Returns
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     // 细雪炼药锅不支持玻璃瓶交互，应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass) << "Glass bottle should not interact with powder snow cauldron";
@@ -1771,7 +1772,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBottle_PowderSnowCauldron_Returns
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass) << "Water bottle should not interact with powder snow cauldron";
     EXPECT_TRUE(world_.isPowderSnowCauldron(pos)) << "Powder snow cauldron should be unchanged";
@@ -1791,7 +1792,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyHand_PowderSnowCauldron_ReturnsPa
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Pass);
     EXPECT_TRUE(world_.isPowderSnowCauldron(pos));
@@ -1815,7 +1816,7 @@ TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_FullPowderSnowCauldro
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*powderSnowCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     // 满的细雪炼药锅不再增加水位
@@ -1841,7 +1842,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_FullWaterCauldron_NoEffect
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*waterCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(world_.isWaterCauldron(pos));
@@ -1866,7 +1867,7 @@ TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_FillsWaterCauldronToLevel3
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*waterCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(world_.isWaterCauldron(pos));
@@ -1891,7 +1892,7 @@ TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_ExtractsWaterFromFullWater
 
     const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
     BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
-    auto result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+    auto result = mc::test::useBlock(*waterCauldron_, *state, world_, pos, player, Hand::MainHand, hit);
 
     EXPECT_EQ(result, ActionResultType::Success);
     EXPECT_TRUE(world_.isEmptyCauldron(pos)) << "Full water cauldron with empty bucket should become empty cauldron";

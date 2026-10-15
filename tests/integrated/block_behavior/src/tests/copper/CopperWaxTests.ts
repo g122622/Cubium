@@ -8,9 +8,9 @@
 //
 // C++ 链路：
 //   - copper_block 是 WeatheringCopperBlock（WeatheringCopperBlock.hpp:48，实现 IOxidizableBlock），
-//     无 onBlockActivated 重写 → 基类返 Pass → fallback Item.useOn。
+//     无 方块侧交互 重写 → 基类返 Pass → fallback Item.useOn。
 //   - waxed_copper_block 是 WaxedCopperBlock（WeatheringCopperBlock.hpp:122，: public Block 不实现
-//     IOxidizableBlock），无 onBlockActivated → fallback Item.useOn。
+//     IOxidizableBlock），无 方块侧交互 → fallback Item.useOn。
 //   - 蜜脾 HoneycombItem::onItemUse（HoneycombItem.cpp:47-103）：告示牌分支（非铜）→ 铜块分支：
 //     getWaxed(state) 查 getWaxablesMap（copper_block→waxed_copper_block，:150-151）→
 //     setBlockState(waxed, 11) + WAX_ON 事件 → Success。
@@ -19,9 +19,9 @@
 //     步骤3 getWaxedOff(waxed_copper_block) → copper_block state → setBlockState(copper, 11) +
 //     WAX_OFF 事件 + hurtAndBreak(斧头耐久-1) → Success。
 //
-// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 onBlockActivated，Pass 才
-//   fallback onItemUse）。铜方块 onBlockActivated（基类）返 Pass → fallback 蜜脾/斧头 onItemUse。
-//   useItemOnBlock 调 onBlockActivated 前把 stack 设到主手选中槽，使 onItemUse 读到蜜脾/斧头。
+// 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
+//   fallback onItemUse）。铜方块 方块侧交互（基类）返 Pass → fallback 蜜脾/斧头 onItemUse。
+//   useItemOnBlock 调 方块侧交互 前把 stack 设到主手选中槽，使 onItemUse 读到蜜脾/斧头。
 //   创造模式蜜脾/斧头不消耗（不 shrink/hurtAndBreak 由 isCreative 守卫或 useItemOnBlock 第331行守卫）。
 //
 // 测试覆盖（2 个场景，覆盖 wiki 涂蜡+去蜡往返核心确定行为）：
@@ -68,7 +68,7 @@ function getBlockTypeId(test: Test, x: number, y: number, z: number): string {
 // 场景 1：蜜脾涂蜡——copper_block + 蜜脾 useItemOnBlock → waxed_copper_block（typeId 变化），返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) copper_block（未涂蜡铜方块）。
-// 蜜脾 useItemOnBlock → 铜块 onBlockActivated（基类 Pass）→ fallback HoneycombItem.onItemUse →
+// 蜜脾 useItemOnBlock → 铜块 方块侧交互（基类 Pass）→ fallback HoneycombItem.onItemUse →
 //   getWaxed(copper_block) 查 map → waxed_copper_block → setBlockState(waxed, 11) + WAX_ON → Success。
 //
 // 判定：useItemOnBlock 返 true（Success），typeId 从 copper_block → waxed_copper_block。
@@ -97,7 +97,7 @@ function copperBlockWaxedByHoneycomb(test: Test): void {
 // 场景 2：斧头去蜡——waxed_copper_block + 斧头 useItemOnBlock → copper_block（typeId 变化），返 true。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) waxed_copper_block（涂蜡铜方块，setBlockType 直接放涂蜡变体）。
-// 斧头 useItemOnBlock → waxed_copper_block onBlockActivated（基类 Pass）→ fallback AxeItem.onItemUse →
+// 斧头 useItemOnBlock → waxed_copper_block 方块侧交互（基类 Pass）→ fallback AxeItem.onItemUse →
 //   步骤1 去皮（非原木跳过）→ 步骤2 去氧化（waxed_copper_block 非 IOxidizableBlock 跳过）→
 //   步骤3 getWaxedOff(waxed_copper_block) → copper_block → setBlockState(copper, 11) + WAX_OFF → Success。
 //

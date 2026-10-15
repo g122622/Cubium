@@ -185,7 +185,8 @@ u8 CampfireBlock::getLightLevel(const BlockState& state, IWorld* world, const Bl
     return 0;
 }
 
-BlockActionResult CampfireBlock::onBlockActivated(const BlockState& state,
+BlockActionResult CampfireBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
     IWorld& world,
     const BlockPos& pos,
     Player& player,
@@ -193,7 +194,6 @@ BlockActionResult CampfireBlock::onBlockActivated(const BlockState& state,
     const BlockRaycastResult& hit)
 {
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
     // 玩家右键点击营火时，尝试添加食物进行烹饪
@@ -211,7 +211,7 @@ BlockActionResult CampfireBlock::onBlockActivated(const BlockState& state,
     auto* campfire = static_cast<blockentity::CampfireBlockEntity*>(blockEntity);
 
     // 获取玩家手中的物品
-    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = stack;
 
     // 查找匹配的营火烹饪配方
     auto recipeResult = campfire->findMatchingRecipe(heldItem);
@@ -228,6 +228,18 @@ BlockActionResult CampfireBlock::onBlockActivated(const BlockState& state,
         }
     }
 
+    return ActionResultType::TryEmptyHandInteraction;
+}
+
+BlockActionResult CampfireBlock::useWithoutItem(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
+{
+    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
+    (void)state;
+    (void)world;
+    (void)pos;
+    (void)player;
+    (void)hit;
     return ActionResultType::Pass;
 }
 

@@ -41,7 +41,7 @@
 //   - grow 是同步 setBlockState（flags=3），useItemOnBlock 返回后即可读。
 //
 // SimulatedPlayer::useItemOnBlock（src/server/test/simulated/SimulatedPlayer.cpp:314-418）：
-//   - Block.use 前置：NyliumBlock 未 override onBlockActivated，基类返 Pass → 放行
+//   - Block.use 前置：NyliumBlock 未 override 方块侧交互，基类返 Pass → 放行
 //   - Item.useOn fallback：BoneMealItem::onItemUse → grow → 返回 Success → useItemOnBlock 返 true
 //
 // ============================ 测试设计（glass_pit 7×5×7 玻璃坑）============================
