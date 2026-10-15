@@ -12,6 +12,7 @@ benchmark/
 ├── CMakeLists.txt                    # mc_benchmark 目标（源闭包参照 mc_tests 的登记方式）
 ├── cases/
 │   ├── ChunkGenerationBenchmark.cpp  # 区块生成吞吐（生产级生成系统，线程数×批量多档）
+│   ├── EntityRangeSeekBenchmark.cpp  # 含范围删除记录的有界/无界实体查询对比
 │   ├── LightingBenchmark.cpp         # 光照引擎本体（16×16 整层批量方块光更新）
 │   ├── PalettedContainerBenchmark.cpp # 调色板容器随机读写（元素种类数 1..4096 扫描工作模式）
 │   └── ServerInitializeBenchmark.cpp # 服务端启动耗时（外部进程测量，shell/world 两个用例）
@@ -20,6 +21,14 @@ benchmark/
 ```
 
 ## 用例说明
+
+### EntityRangeSeek（实体范围读取）
+
+比较相同数据上的无界迭代器 Seek 与生产 `readRange`，参数为 `bounded`（0/1）、
+`tombstones_on_disk`（0/1）、`chunks`（1024/4096）。先写入并刷盘旧记录，再按区块删除，
+保留远处可见记录，重现查询空区块时越过已删除键的工作。装配与 64 次预热不计时。
+报告 `comparisons_per_seek` 和 `skipped_keys_per_seek`，时间包含迭代器创建与查询，
+不含实体反序列化；可用 `--benchmark_filter=EntityRangeSeek --benchmark_repetitions=3` 比较。
 
 ### ChunkGeneration（区块生成吞吐）
 

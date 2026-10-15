@@ -453,6 +453,39 @@ std::unique_ptr<rocksdb::Iterator> RocksDBDatabase::newIterator(const std::strin
     return std::unique_ptr<rocksdb::Iterator>(m_db->NewIterator(options, cf));
 }
 
+Result<std::vector<std::vector<u8>>> RocksDBDatabase::readRange(
+    const std::string& cfName, const std::vector<u8>& startKey, const std::vector<u8>& endKey)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Db, "RocksDBDatabase::readRange", "cf", cfName);
+    MC_ASSERT_RELEASE_MSG(startKey <= endKey, "RocksDBDatabase::readRange: invalid key range");
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Database is not open");
+    }
+    auto* cf = getCF(cfName);
+    if (cf == nullptr) {
+        return Error(ErrorCode::NotFound, fmt::format("Column family not found: {}", cfName));
+    }
+    std::vector<std::vector<u8>> values;
+    if (startKey == endKey) {
+        return values;
+    }
+    const rocksdb::Slice lower(reinterpret_cast<const char*>(startKey.data()), startKey.size());
+    const rocksdb::Slice upper(reinterpret_cast<const char*>(endKey.data()), endKey.size());
+    rocksdb::ReadOptions options = m_config.createReadOptions();
+    options.iterate_lower_bound = &lower;
+    options.iterate_upper_bound = &upper;
+    // 声明顺序保证迭代器先于边界 Slice 析构，所有 Seek/Next 都受上界约束。
+    std::unique_ptr<rocksdb::Iterator> iter(m_db->NewIterator(options, cf));
+    for (iter->Seek(lower); iter->Valid(); iter->Next()) {
+        const auto value = iter->value();
+        values.emplace_back(value.data(), value.data() + value.size());
+    }
+    if (!iter->status().ok()) {
+        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read range: {}", iter->status().ToString()));
+    }
+    return values;
+}
+
 Result<void> RocksDBDatabase::deleteRange(
     const std::string& cfName, const std::vector<u8>& startKey, const std::vector<u8>& endKey)
 {

@@ -5,6 +5,7 @@
 ```text
 cases/
 ├── ChunkGenerationBenchmark.cpp   # 生产级区块生成吞吐
+├── EntityRangeSeekBenchmark.cpp   # 同数据上有界/无界实体范围 Seek 对比
 ├── LightingBenchmark.cpp          # 光照更新吞吐
 ├── PalettedContainerBenchmark.cpp # 调色板容器读写
 ├── ServerExecutablePath.hpp       # 跨平台定位基准同目录的服务端
