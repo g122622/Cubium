@@ -65,6 +65,8 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -117,6 +119,13 @@ struct TraceConfig {
 
 // 前置声明 PerfettoBackend（仅在 MC_ENABLE_TRACING 时有完整定义），避免循环 include
 class PerfettoBackend;
+
+/** @brief 专用采样线程发布的进程内存样本；时间为 Unix 毫秒。 */
+struct ProcessMemorySample {
+    i64 timestampMs;
+    i64 residentMiB;
+    i64 commitMiB;
+};
 
 #if MC_PROFILER_ENABLED
 
@@ -225,12 +234,21 @@ public:
      * 能访问 PlatformInfo）注入一个返回 {工作集MB, 提交量MB} 的 lambda，ProfilerManager
      * 的内存采样线程在 startTracing() 后周期性调用它并写入 TraceEvents.Memory.Usage 计数器。
      *
-     * 必须在 startTracing() 之前调用：startTracing() 时若回调为空则不起采样线程。
-     * 注入的实现须线程安全且轻量（每 10ms 调一次），避免阻塞采样线程。
+     * 必须在线程停止时设置，随后调用 startTracing() 或 startMemorySampling()。
+     * 注入的实现须线程安全且轻量（每 1ms 调一次），避免阻塞采样线程。
      *
      * @param sampler 返回 {工作集MB, 提交量MB} 的回调；传空则停用内存采样
      */
     void setMemorySampler(std::function<std::pair<i64, i64>()> sampler) { m_memorySampler = std::move(sampler); }
+
+    /** @brief 独立启动已有内存采样线程，无须初始化或启动追踪后端。 */
+    void startMemorySampling();
+
+    /** @brief 停止并等待内存采样线程退出；可重复调用。 */
+    void stopMemorySampling();
+
+    /** @brief 返回最近内存样本；尚未采样时返回空。 */
+    [[nodiscard]] std::optional<ProcessMemorySample> latestMemorySample() const;
 
     /**
      * @brief 设置当前进程名称（双轨）
@@ -284,6 +302,8 @@ private:
      */
     std::thread m_memoryThread;
     std::atomic<bool> m_memoryStop{false};
+    mutable std::mutex m_memorySampleMutex;
+    std::optional<ProcessMemorySample> m_latestMemorySample;
 
     /// 进程内存采样回调（返回 {工作集MB, 提交量MB}），由上层注入；为空时不起采样线程。
     std::function<std::pair<i64, i64>()> m_memorySampler;
@@ -328,6 +348,9 @@ public:
     void setThreadName(const std::string&) noexcept {}
     void setThreadName(const std::string&, i32) noexcept {}
     void setMemorySampler(std::function<std::pair<i64, i64>()>) noexcept {}
+    void startMemorySampling() noexcept {}
+    void stopMemorySampling() noexcept {}
+    [[nodiscard]] std::optional<ProcessMemorySample> latestMemorySample() const noexcept { return std::nullopt; }
 
 private:
     ProfilerManager() = default;

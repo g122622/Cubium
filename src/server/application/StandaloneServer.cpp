@@ -46,9 +46,11 @@
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/profiler/ProfilerManager.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -85,14 +87,19 @@
 #include <cstddef>
 #include <exception>
 #include <filesystem>
+#include <fstream>
+#include <locale>
 #include <memory>
 #include <ratio>
 #include <string>
 #include <system_error>
 #include <thread>
 #include <utility>
+#include <gflags/gflags.h>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
+
+DEFINE_string(stress_metrics_file, "", "Export per-tick stress metrics to CSV without enabling full tracing");
 
 using namespace mc::trace;
 
@@ -418,6 +425,10 @@ void StandaloneServer::stop()
     }
     m_serverThread.reset();
 
+    if (!FLAGS_stress_metrics_file.empty()) {
+        profiler::ProfilerManager::instance().stopMemorySampling();
+    }
+
     // 回写在线玩家运行时状态到 PlayerDataManager 缓存
     // 此时主循环已退出，玩家实体不再被 tick() 修改，可安全遍历。
     // 必须在 stopCore()（含 shutdownManagers）之前调用，确保维度和玩家实体仍然有效
@@ -488,6 +499,36 @@ void StandaloneServer::_mainLoop()
 
     auto lastTickTime = clock::now();
 
+    // 只启用已有内存线程，不启动 Perfetto 会话；tick 线程仅消费其最近样本。
+    std::ofstream metrics;
+    if (!FLAGS_stress_metrics_file.empty()) {
+#if !MC_PROFILER_ENABLED
+        spdlog::critical("Stress metrics require MC_ENABLE_TRACING or MC_ENABLE_TRACY at build time");
+        m_running = false;
+        return;
+#endif
+        metrics.open(
+            std::filesystem::path(std::u8string(FLAGS_stress_metrics_file.begin(), FLAGS_stress_metrics_file.end())));
+        metrics.imbue(std::locale::classic());
+        if (!metrics) {
+            spdlog::critical("Failed to open stress metrics file: {}", FLAGS_stress_metrics_file);
+            m_running = false;
+            return;
+        }
+        metrics << "time_ms,tick_ms,interval_ms,memory_sample_ms,rss_mib,commit_mib,players,chunk_holders,loaded_"
+                   "chunks,entities\n";
+        metrics.flush();
+        auto& profilerManager = profiler::ProfilerManager::instance();
+        if (!profilerManager.isInitialized()) {
+            profilerManager.setMemorySampler([]() -> std::pair<i64, i64> {
+                return {static_cast<i64>(util::PlatformInfo::getProcessMemoryMB()),
+                    static_cast<i64>(util::PlatformInfo::getProcessCommitMB())};
+            });
+        }
+        profilerManager.startMemorySampling();
+    }
+    auto nextMetricsFlush = clock::now();
+
     // 更新目标每tick毫秒数
     m_debugStats.targetMsPerTick.store(
         static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order::relaxed);
@@ -538,6 +579,31 @@ void StandaloneServer::_mainLoop()
             // _updateTickDebugStats，EMA 状态由基类成员 m_smoothedTickTimeMs 跨 tick 保留）
             const f32 tickTimeMs = std::chrono::duration<f32, std::milli>(tickElapsed).count();
             _updateTickDebugStats(tickTimeMs);
+
+            if (metrics.is_open()) {
+                const auto timestampMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch())
+                                             .count();
+                metrics << timestampMs << ',' << tickTimeMs << ','
+                        << std::chrono::duration<f64, std::milli>(deltaTime).count() << ',';
+                const auto memory = profiler::ProfilerManager::instance().latestMemorySample();
+                if (memory.has_value()) {
+                    metrics << memory->timestampMs << ',' << memory->residentMiB << ',' << memory->commitMiB;
+                } else {
+                    metrics << ",,";
+                }
+                metrics << ',' << m_playerManager->playerCount() << ',' << totalChunkCount << ','
+                        << totalLoadedChunkCount << ',' << totalEntityCount << '\n';
+                // 每秒落盘，崩溃时保留此前数据；导出开销位于 tick() 计时之外。
+                if (clock::now() >= nextMetricsFlush) {
+                    metrics.flush();
+                    nextMetricsFlush = clock::now() + 1s;
+                    if (!metrics) {
+                        spdlog::critical("Failed to write stress metrics file: {}", FLAGS_stress_metrics_file);
+                        m_running = false;
+                    }
+                }
+            }
         } else {
             // 等待下一刻
             std::this_thread::sleep_for(std::chrono::milliseconds(1));

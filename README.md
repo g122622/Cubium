@@ -52,6 +52,8 @@ build/bin/RelWithDebInfo/minecraft-server
 
 端到端 bot 测试（以 mineflayer 作为真实 wire 客户端连服务端，并可与原版服务端双跑对比）见 docs/test/E2E_BOT_TEST.md。
 
+机器人压力测试（多档速度串行移动、大量发包、大量玩家加入，含内存与 tick 耗时报告）见 [docs/test/STRESS_TEST.md](docs/test/STRESS_TEST.md)。
+
 协议模糊测试（libFuzzer harness，对"入站字节 → IR 包"解码链路做覆盖率引导测试）见 docs/test/FUZZING.md。
 
 性能基准测试（google/benchmark：区块生成吞吐、光照引擎、服务端启动耗时，含内存指标与 Perfetto trace）见 docs/BENCHMARK.md。

@@ -49,7 +49,10 @@
 #include <cmath>
 #include <string>
 #include <variant>
+#include <gflags/gflags.h>
 #include <spdlog/spdlog.h>
+
+DEFINE_bool(stress_skip_movement_speed_check, false, "Skip player movement speed validation for explicit stress runs");
 
 using namespace mc::trace;
 
@@ -164,7 +167,8 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
             // GameRules 经所在 ServerWorld 取（MinecraftServer 不持有 GameRules，由世界承载）。
             const bool disableElytraCheck = world != nullptr &&
                 world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DISABLE_ELYTRA_MOVEMENT_CHECK);
-            const bool checkQuickly = !elytra || !disableElytraCheck;
+            // 仅显式压测运行豁免速度阈值；传送确认、坐标合法性等检查仍正常执行。
+            const bool checkQuickly = !FLAGS_stress_skip_movement_speed_check && (!elytra || !disableElytraCheck);
             if (checkQuickly) {
                 const f64 threshold = elytra ? 300.0 : 100.0;
                 if (d10 - d9 > threshold * static_cast<f64>(backlog)) {
