@@ -111,6 +111,7 @@ export function parseOptions(args: readonly string[]): Options | null {
     for (const key of ["players", "packetsPerSecond", "viewDistance", "simulationDistance"] as const) {
         if (!Number.isSafeInteger(options[key])) throw new Error(`${key} must be an integer`);
     }
+    if (options.packetsPerSecond > 100_000) throw new Error("Packet rate must be <= 100000 packets/second");
     if (options.viewDistance < 2 || options.viewDistance > 32 || options.simulationDistance < 2 || options.simulationDistance > 32) {
         throw new Error("View and simulation distances must be in [2, 32]");
     }
@@ -131,7 +132,7 @@ export function printHelp(): void {
   --speeds=5.6,16,32,64,128,256     Blocks/second; each speed runs serially in a fresh world
   --skip-movement-speed-check      Explicitly bypass server speed validation for movement jobs
   --recovery-seconds=15            Idle after movement / packet flood / logout
-  --packets-per-second=1000 --packet-seconds=60
+  --packets-per-second=1000 --packet-seconds=60  Rate range: 1..100000
   --players=100 --join-rate=10      Players/second; 0 starts all connections at once
   --hold-seconds=60                Hold all joined players online
   --spawn-timeout-seconds=120      Timeout for each full spawn

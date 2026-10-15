@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { parseOptions } from "../src/config.ts";
-import { readMetrics, recoverySummary, statistics, validateMetrics, type TickSample } from "../src/metrics.ts";
+import { readMetrics, recoverySummary, statistics, summarizePhase, validateMetrics, validateHoldingPlayers, type TickSample } from "../src/metrics.ts";
+import { writeReport } from "../src/report.ts";
 
 /** 构造包含真实采样时间关系的输入；不启动服务器或机器人。 */
 function sample(timeMs: number, tickMs: number, rssMiB: number, commitMiB: number): TickSample {
@@ -66,8 +67,42 @@ test("partial CSV tail is discarded while malformed complete rows fail", () => {
         assert.equal(readMetrics(file)[0].rssMiB, null);
         fs.writeFileSync(file, header + "1000,broken,50,999,100,80,1,361,289,1\n");
         assert.throws(() => readMetrics(file), /Non-numeric/);
+        for (const column of [0, 1, 2, 6, 7, 8, 9]) {
+            const row = ["1000", "20", "50", "999", "100", "80", "1", "361", "289", "1"];
+            row[column] = " ";
+            fs.writeFileSync(file, header + row.join(",") + "\n");
+            assert.throws(() => readMetrics(file), /Empty required/);
+        }
     } finally {
         fs.unlinkSync(file);
+        fs.rmdirSync(directory);
+    }
+});
+
+test("holding players require observed counts and reject mismatches", () => {
+    const phase = { name: "holding", startMs: 1000, endMs: 2000 };
+    assert.throws(() => validateHoldingPlayers(phase, [], 101), /No server player-count/);
+    assert.throws(() => validateHoldingPlayers(phase, [sample(2100, 20, 100, 80)], 101), /No server player-count/);
+    assert.throws(() => validateHoldingPlayers(phase, [sample(1500, 20, 100, 80)], 101), /disagrees/);
+    assert.doesNotThrow(() => validateHoldingPlayers(phase, [{ ...sample(1500, 20, 100, 80), players: 101 }], 101));
+});
+
+test("memory phase statistics and chart buckets follow the memory clock", () => {
+    const phase = { name: "baseline", startMs: 1000, endMs: 2000 };
+    const samples = [
+        { ...sample(1100, 20, 999, 999), memorySampleMs: 900 },
+        { ...sample(2100, 20, 100, 80), memorySampleMs: 1900 },
+    ];
+    const summary = summarizePhase(phase, samples);
+    assert.equal(summary.rssMiB?.p50, 100);
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cubium-stress-report-"));
+    try {
+        writeReport(directory, "memory-clock", {}, [phase], [summary], samples);
+        const report = fs.readFileSync(path.join(directory, "report.html"), "utf8");
+        assert(report.includes("100.00 MiB"));
+        assert(!report.includes("999.00 MiB"));
+    } finally {
+        fs.unlinkSync(path.join(directory, "report.html"));
         fs.rmdirSync(directory);
     }
 });
@@ -86,4 +121,5 @@ test("CLI expands all speed tiers and rejects invalid workloads", () => {
     assert.throws(() => parseOptions(["--speeds=32,NaN"]), /Invalid speeds/);
     assert.throws(() => parseOptions(["--players=0"]), /Invalid value/);
     assert.throws(() => parseOptions(["--case=unknown"]), /Unknown scenario/);
+    assert.throws(() => parseOptions([`--packets-per-second=${Number.MAX_SAFE_INTEGER}`]), /Packet rate must be/);
 });

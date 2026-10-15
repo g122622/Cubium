@@ -7,7 +7,7 @@ import { waitForPortReleased } from "../../e2e/bot/src/servers/port.ts";
 import { ClientPool, type StressClient } from "./clients.ts";
 import { ScenarioContext } from "./context.ts";
 import { prepareServer } from "./server.ts";
-import { readMetrics, recoverySummary, summarizePhase, validateMetrics, type TickSample } from "./metrics.ts";
+import { readMetrics, recoverySummary, summarizePhase, validateMetrics, validateHoldingPlayers, type TickSample } from "./metrics.ts";
 import { writeIndex, writeReport } from "./report.ts";
 import { runMovement } from "./scenarios/movement.ts";
 import { runPackets } from "./scenarios/packets.ts";
@@ -92,8 +92,7 @@ export async function runStressTests(options: Options): Promise<number> {
             assert(samples.length > 0, "Server emitted no tick metrics");
             if (job.scenario === "joins" && errors.length === 0) {
                 const holding = phases.find((phase) => phase.name === "holding")!;
-                const held = samples.filter((sample) => sample.timeMs >= holding.startMs && sample.timeMs <= holding.endMs);
-                assert(held.every((sample) => sample.players === options.players + 1), "Server player count disagrees with spawned clients");
+                validateHoldingPlayers(holding, samples, options.players + 1);
             }
         } catch (error) {
             errors.push(`Metrics: ${error instanceof Error ? error.message : String(error)}`);

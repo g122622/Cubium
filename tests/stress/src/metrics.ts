@@ -36,7 +36,13 @@ export function readMetrics(file: string): TickSample[] {
     return lines.filter((line) => line !== "").map((line) => {
         const columns = line.split(",");
         assert.equal(columns.length, 10, "Incomplete metrics row");
-        const values = columns.map((column, index) => index >= 3 && index <= 5 && column === "" ? null : Number(column));
+        const values = columns.map((column, index) => {
+            if (column.trim() === "") {
+                assert(index >= 3 && index <= 5, "Empty required server measurement");
+                return null;
+            }
+            return Number(column);
+        });
         assert(values.every((value) => value === null || Number.isFinite(value)), "Non-numeric server metrics");
         return {
             timeMs: values[0]!, tickMs: values[1]!, intervalMs: values[2]!, memorySampleMs: values[3],
@@ -49,13 +55,14 @@ export function readMetrics(file: string): TickSample[] {
 /** tick 按执行区间与阶段的重叠归属；内存只使用阶段内完成的真实样本。 */
 export function summarizePhase(phase: Phase, samples: readonly TickSample[]) {
     const selected = samples.filter((sample) => sample.timeMs >= phase.startMs && sample.timeMs <= phase.endMs);
+    const memory = samples.filter((sample) => sample.memorySampleMs !== null && sample.memorySampleMs >= phase.startMs && sample.memorySampleMs <= phase.endMs);
     const overlappingTicks = samples.filter((sample) => sample.timeMs >= phase.startMs && sample.timeMs - sample.tickMs <= phase.endMs);
     return {
         ...phase, durationSeconds: (phase.endMs - phase.startMs) / 1000,
         tickMs: statistics(overlappingTicks.map((sample) => sample.tickMs)),
         intervalMs: statistics(selected.map((sample) => sample.intervalMs)),
-        rssMiB: statistics(selected.flatMap((sample) => sample.rssMiB === null ? [] : [sample.rssMiB])),
-        commitMiB: statistics(selected.flatMap((sample) => sample.commitMiB === null ? [] : [sample.commitMiB])),
+        rssMiB: statistics(memory.flatMap((sample) => sample.rssMiB === null ? [] : [sample.rssMiB])),
+        commitMiB: statistics(memory.flatMap((sample) => sample.commitMiB === null ? [] : [sample.commitMiB])),
         maxPlayers: Math.max(0, ...selected.map((sample) => sample.players)),
         endLoadedChunks: selected.at(-1)?.loadedChunks ?? null,
         endChunkHolders: selected.at(-1)?.chunkHolders ?? null,
@@ -64,6 +71,13 @@ export function summarizePhase(phase: Phase, samples: readonly TickSample[]) {
 }
 
 export type PhaseSummary = ReturnType<typeof summarizePhase>;
+
+/** 在线人数必须有阶段内的真实观测，空数组不能作为人数一致的证据。 */
+export function validateHoldingPlayers(phase: Phase, samples: readonly TickSample[], expectedPlayers: number): void {
+    const held = samples.filter((sample) => sample.timeMs >= phase.startMs && sample.timeMs <= phase.endMs);
+    assert(held.length > 0, "No server player-count samples during holding phase");
+    assert(held.every((sample) => sample.players === expectedPlayers), "Server player count disagrees with spawned clients");
+}
 
 /** 比较最后五秒恢复窗口与基线，既报告绝对值，也报告相对变化。 */
 export function recoverySummary(phases: readonly Phase[], samples: readonly TickSample[], memoryRatio: number, tickLimitMs: number) {

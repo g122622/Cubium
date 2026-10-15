@@ -9,19 +9,23 @@ function escape(value: unknown): string {
 }
 
 /** 原始 CSV 保留逐 tick 数据，图表按秒聚合并保留 tick P95。 */
-function chart(title: string, unit: string, samples: readonly TickSample[], phases: readonly Phase[], fields: Array<{ label: string; color: string; read: (samples: TickSample[]) => number | null }>): string {
+function chart(title: string, unit: string, samples: readonly TickSample[], phases: readonly Phase[], fields: Array<{ label: string; color: string; clock: "tick" | "memory"; read: (samples: TickSample[]) => number | null }>): string {
     if (samples.length === 0) return `<p>${escape(title)}：没有有效样本。</p>`;
     const origin = phases[0]?.startMs ?? samples[0].timeMs;
     const duration = Math.max(1, ((phases.at(-1)?.endMs ?? samples.at(-1)!.timeMs) - origin) / 1000);
-    const buckets = new Map<number, TickSample[]>();
-    for (const sample of samples) {
-        const second = Math.floor((sample.timeMs - origin) / 1000);
-        if (second < 0 || second > duration) continue;
-        const bucket = buckets.get(second) ?? [];
-        bucket.push(sample);
-        buckets.set(second, bucket);
-    }
-    const series = fields.map((field) => ({ ...field, points: [...buckets].map(([second, rows]) => ({ second, value: field.read(rows) })).filter((point) => point.value !== null) }));
+    const series = fields.map((field) => {
+        const buckets = new Map<number, TickSample[]>();
+        for (const sample of samples) {
+            const timeMs = field.clock === "memory" ? sample.memorySampleMs : sample.timeMs;
+            if (timeMs === null) continue;
+            const second = Math.floor((timeMs - origin) / 1000);
+            if (second < 0 || second > duration) continue;
+            const bucket = buckets.get(second) ?? [];
+            bucket.push(sample);
+            buckets.set(second, bucket);
+        }
+        return { ...field, points: [...buckets].map(([second, rows]) => ({ second, value: field.read(rows) })).filter((point) => point.value !== null) };
+    });
     const maximum = Math.max(1, ...series.flatMap((field) => field.points.map((point) => point.value!))) * 1.1;
     const x = (seconds: number): number => 65 + seconds / duration * 920;
     const y = (value: number): number => 230 - value / maximum * 190;
@@ -36,12 +40,12 @@ export function writeReport(directory: string, id: string, summary: object, phas
     const format = (value: number | undefined): string => value === undefined ? "—" : value.toFixed(2);
     const rows = phaseSummaries.map((phase) => `<tr><td>${escape(phase.name)}</td><td>${phase.durationSeconds.toFixed(1)}</td><td>${format(phase.rssMiB?.p50)}</td><td>${format(phase.commitMiB?.p50)}</td><td>${format(phase.tickMs?.mean)}</td><td>${format(phase.tickMs?.p95)}</td><td>${format(phase.tickMs?.max)}</td><td>${phase.maxPlayers}</td><td>${phase.endLoadedChunks ?? "—"}</td></tr>`).join("");
     const memory = chart("服务端内存", "MiB", samples, phases, [
-        { label: "工作集均值", color: "#2563eb", read: (rows) => statistics(rows.flatMap((row) => row.rssMiB === null ? [] : [row.rssMiB]))?.mean ?? null },
-        { label: "提交量均值", color: "#9333ea", read: (rows) => statistics(rows.flatMap((row) => row.commitMiB === null ? [] : [row.commitMiB]))?.mean ?? null },
+        { label: "工作集均值", color: "#2563eb", clock: "memory", read: (rows) => statistics(rows.flatMap((row) => row.rssMiB === null ? [] : [row.rssMiB]))?.mean ?? null },
+        { label: "提交量均值", color: "#9333ea", clock: "memory", read: (rows) => statistics(rows.flatMap((row) => row.commitMiB === null ? [] : [row.commitMiB]))?.mean ?? null },
     ]);
     const ticks = chart("服务端 tick 执行耗时", "ms", samples, phases, [
-        { label: "每秒均值", color: "#059669", read: (rows) => statistics(rows.map((row) => row.tickMs))?.mean ?? null },
-        { label: "每秒 P95", color: "#e11d48", read: (rows) => statistics(rows.map((row) => row.tickMs))?.p95 ?? null },
+        { label: "每秒均值", color: "#059669", clock: "tick", read: (rows) => statistics(rows.map((row) => row.tickMs))?.mean ?? null },
+        { label: "每秒 P95", color: "#e11d48", clock: "tick", read: (rows) => statistics(rows.map((row) => row.tickMs))?.p95 ?? null },
     ]);
     fs.writeFileSync(path.join(directory, "report.html"), `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>${escape(id)}</title><style>body{font:15px system-ui;color:#172033;max-width:1100px;margin:32px auto;padding:0 20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #d5dde5;padding:8px;text-align:right}td:first-child,th:first-child{text-align:left}svg{width:100%}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:16px}h2{margin-top:32px}</style><h1>${escape(id)}</h1><p>每档使用独立新世界。内存由已有专用线程采样，CSV 在每个 tick 完成后读取最近样本；tick 耗时不含 50ms 节流等待。悬停曲线采样点可查看数值。</p><p><a href="server-metrics.csv">原始逐 tick CSV</a> · <a href="summary.json">完整统计</a> · <a href="events.jsonl">连接事件</a></p><table><thead><tr><th>阶段</th><th>秒</th><th>工作集 P50 MiB</th><th>提交量 P50 MiB</th><th>tick 均值 ms</th><th>tick P95 ms</th><th>tick 最大 ms</th><th>最多在线</th><th>末尾已加载区块</th></tr></thead><tbody>${rows}</tbody></table>${memory}${ticks}<h2>完整结果</h2><pre>${escape(JSON.stringify(summary, null, 2))}</pre></html>`);
 }

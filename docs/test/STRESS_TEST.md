@@ -58,7 +58,8 @@ node run.ts --world=default --speeds=5.6,64 --warmup-seconds=1 --baseline-second
 
 其余参数包括 `--server=<可执行文件>`、`--output=<产物根目录>`、`--world=default|flat`、
 `--seed=0`、`--view-distance=8`、`--simulation-distance=8`、`--spawn-timeout-seconds=120`。
-所有参数都在 CLI 边界确定，最终有效值写入 `options.json`。
+所有参数都在 CLI 边界确定，最终有效值写入 `options.json`。发包速率范围为 1～100000 包/秒，
+避免无界同步批次阻塞发生器的健康检查和清理流程。
 
 默认测试真实玩家路径，保留服务端移动速度校验。高速或低 TPS 下可能触发
 `moved too quickly` 回弹，未达到目标距离会判失败；这类结果不能直接代表区块系统吞吐。
@@ -76,7 +77,7 @@ node run.ts --world=default --speeds=5.6,64 --warmup-seconds=1 --baseline-second
 CSV 的 `tick_ms` 是一次 `tick()` 的实际执行耗时，不含 20TPS 节流等待；`interval_ms`
 是相邻 tick 起始时间间隔，正常情况下约为 50ms。两者分别统计，避免将 tick 间隔当作执行耗时。
 `time_ms` 与 `memory_sample_ms` 均为 Unix 毫秒。tick 执行区间只要与阶段重叠便计入该阶段的
-tick 统计，因此跨阶段的长 tick 可以出现在多个阶段中；内存仅使用时间确实落在该阶段的样本，
+tick 统计，因此跨阶段的长 tick 可以出现在多个阶段中；内存按 `memory_sample_ms` 归入阶段及图表秒桶，
 不会拿随后完成的 tick 样本冒充阶段内的内存读数。恢复后另有 `verification` 阶段等待协议确认，
 用来保留跨越恢复结束时刻才完成的长 tick。CSV 另含玩家数、区块持有者数、已加载区块数和实体数。
 
