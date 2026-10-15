@@ -23,6 +23,7 @@
 
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/RotatedPillarBlock.hpp"
 #include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -301,14 +302,21 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
+        buildRegion();
+    }
 
+    /// 重建 3x3 区块与平坦地表（y=0 草方块，y>=1 空气）。
+    /// 同一测试内需要多次从干净状态放置树木时调用，避免上一轮的树干/树叶残留干扰空间探测。
+    void buildRegion()
+    {
+        m_chunks.clear();
+        m_ownedChunks.clear();
         m_chunks.resize(9);
         for (i32 relZ = -1; relZ <= 1; ++relZ) {
             for (i32 relX = -1; relX <= 1; ++relX) {
                 const i32 index = (relZ + 1) * 3 + (relX + 1);
                 auto chunk = std::make_unique<ChunkPrimer>(relX, relZ);
 
-                // 初始化平坦地表：y=0 为草方块，y>=1 为空气。
                 const BlockState* ground = &VanillaBlocks::GRASS_BLOCK->defaultState();
                 for (i32 x = 0; x < 16; ++x) {
                     for (i32 z = 0; z < 16; ++z) {
@@ -353,6 +361,47 @@ TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsWhenVolumeClear)
 
     EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
     EXPECT_TRUE(m_region->getBlockState(8, 0, 8)->is(VanillaBlocks::DIRT));
+}
+
+// 起点下方为 #dirt 标签成员（而非硬编码的 dirt/grass_block/coarse_dirt/podzol）时也应能生长。
+// 曾用硬编码方块列表判定，导致树苗在 rooted_dirt/moss_block 等 1.17+ 新增泥土类方块上
+// 虽可存活却无法长树。
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeSucceedsOnAnyDirtTagGround)
+{
+    const Block* dirtTagMembers[] = {
+        VanillaBlocks::ROOTED_DIRT,
+        VanillaBlocks::MOSS_BLOCK,
+        VanillaBlocks::PALE_MOSS_BLOCK,
+        VanillaBlocks::MUD,
+        VanillaBlocks::MYCELIUM,
+    };
+
+    for (const Block* ground : dirtTagMembers) {
+        ASSERT_NE(ground, nullptr) << "dirt tag member not registered";
+        ASSERT_TRUE(BlockTags::DIRT().contains(*ground))
+            << ground->blockLocation().toString() << " should be in #dirt tag";
+
+        // 每次用独立 region 避免上一轮写入的树干/树叶干扰空间探测
+        buildRegion();
+        setWorldBlock(8, 0, 8, &ground->defaultState());
+
+        TreeFeature feature;
+        TreeFeatureConfig config = makeFixedOakConfig();
+        math::JavaLegacyRandom rng(12345);
+        EXPECT_TRUE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config))
+            << "tree should grow on " << ground->blockLocation().toString();
+    }
+}
+
+// 起点下方为石头（既非 #dirt 标签也非耕地）时应拒绝生长。
+TEST_F(TreeFeaturePlacementWorldTest, PlaceTreeFailsOnStoneGround)
+{
+    setWorldBlock(8, 0, 8, &VanillaBlocks::STONE->defaultState());
+
+    TreeFeature feature;
+    TreeFeatureConfig config = makeFixedOakConfig();
+    math::JavaLegacyRandom rng(12345);
+    EXPECT_FALSE(feature.place(*m_region, rng, BlockPos(8, 1, 8), config));
 }
 
 TEST_F(TreeFeaturePlacementWorldTest, DataDrivenFancyTreeAllowsThreeBlockHeight)

@@ -18,7 +18,7 @@
 //    updatePostPlacement），需"第二步移除下方支撑"触发草丛 Down 方向 updatePostPlacement 才自毁。
 // 2. 移除支撑必须是非 no-op 写入——先显式铺 grass_block 支撑再放草丛，再设 air 移除支撑，保证
 //    grass_block→air 真实状态变化派发更新。air 放置向 Up 邻居草丛派发 updatePostPlacement(Down) →
-//    下方 air isVegetationGround false → 返回 air，草丛自毁。
+//    下方 air BushBlock::canSustain 返回 false → 返回 air，草丛自毁。
 //
 // 不测「草丛放非植被地面（stone）上是否破坏」：setBlockType 绕过 isValidPosition 强放不触发自毁
 // （放置不检查 isValidPosition，仅 Down 邻居变化才检查），与 vanilla「放置时拒绝」语义不同，按
