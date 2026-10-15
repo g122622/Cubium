@@ -47,7 +47,7 @@ class ChunkProgressionTask;
  * @brief 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）
  *
  * ChunkTaskScheduler 负责把区块从当前状态一步步推进到目标状态：
- *   - `schedule(x, z, targetStatus, holder)`：一次只推进一步（currentGenStatus.next()）。
+ *   - `schedule(x, z, holder)`：一次只推进一步（currentGenStatus.next()）。
  *     检查邻居是否就绪；未就绪则建立双向依赖图并挂起；全部就绪则构建 StaticChunkCache2D
  *     并提交 ChunkProgressionTask 到执行器。
  *   - `checkNeighbour(x, z, requiredStatus, center)`：验证邻居是否达到 requiredStatus。
@@ -88,14 +88,13 @@ public:
      *
      * @param x 区块 X
      * @param z 区块 Z
-     * @param targetStatus 目标状态（可能多步才能达到，本函数只推进一步）
      * @param holder 目标区块的生命周期管理器
      * @return 创建的 ChunkProgressionTask（nullptr 表示因邻居未就绪而挂起，或无需推进）
      */
-    ChunkProgressionTask* schedule(ChunkCoord x,
-        ChunkCoord z,
-        const ChunkStatus& targetStatus,
-        mc::world::chunk::SingleChunkLifecycleManager& holder);
+    ChunkProgressionTask* schedule(ChunkCoord x, ChunkCoord z, mc::world::chunk::SingleChunkLifecycleManager& holder);
+
+    /** @brief 撤销过期阶段和不再需要的出向依赖，保留其他请求者仍需要的共享工作。 */
+    void reconcileGenerationDemand(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 邻居检查：验证 (x, z) 是否达到 requiredStatus
@@ -170,19 +169,9 @@ public:
     void cancelGeneration(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
-     * @brief 取消指定任务的生成并清理依赖图（任务身份感知版本）
+     * @brief 执行器确认取消后结清指定任务，保留期间新增的请求和依赖。
      *
-     * 由 ChunkProgressionTask::onCancel 调用。仅当 holder.m_generationTask 仍指向 task 时才执行清理，
-     * 避免旧任务的 onCancel 误清新任务的依赖图/状态（cancelActiveWork 清空 m_generationTask 后，
-     * submitRequest 可能已调度新任务 B 并 setGenerationTask(B)，旧任务 A 的 onCancel 不应干扰 B）。
-     *
-     * 若 m_generationTask != task（已被清除或被新任务取代），本方法为 no-op：
-     *   - 旧任务 A 的邻居引用计数已在 A 真正完成（onChunkGenComplete）或 holder 卸载（cancelGeneration(holder)）时释放
-     *   - 旧任务 A 的依赖图条目（m_blockingNeighbours/m_waitingNeighbours）同理
-     *   - 旧任务 A 的等待者已在 cancelActiveWork/_failWaiters 时通知
-     *
-     * @param holder 任务所属的生命周期管理器
-     * @param task 调用 onCancel 的任务（this），用于身份比对
+     * 只有任务身份仍匹配时才释放邻居引用和清除任务；最新需求在释放区域锁后重新调度。
      */
     void cancelGeneration(
         mc::world::chunk::SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task);
@@ -339,12 +328,10 @@ private:
      *
      * 对齐 Moonrise needsScheduling：持锁期间只做依赖图变更 + 收集待重调度列表，
      * 释放区域锁后再 rescheduleChunk，避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁。
-     * target 为 requestedGenStatus() 的指针（ChunkStatus 静态单例，释放锁后仍有效）。
      */
     struct PendingReschedule {
         ChunkCoord x;
         ChunkCoord z;
-        const mc::world::chunk::ChunkStatus* target;
     };
 
     /**
@@ -389,8 +376,7 @@ private:
      *
      * @param holder 完成任务的生命周期管理器
      * @param completedStatus 本次完成的状态
-     * @param pending 输出：就绪邻居的待重调度列表（{x, z, target}），调用方在释放锁后遍历 rescheduleChunk。
-     *            target 为 neighbour->requestedGenStatus() 的指针（静态单例，释放锁后仍有效）。
+     * @param pending 输出：就绪邻居的坐标列表，释放锁后读取最新需求并重新调度。
      */
     void notifyWaitingNeighbours(mc::world::chunk::SingleChunkLifecycleManager& holder,
         const mc::world::chunk::ChunkStatus& completedStatus,
@@ -427,9 +413,8 @@ private:
      *
      * @param x 区块 X
      * @param z 区块 Z
-     * @param target 目标状态（holder.requestedGenStatus()）
      */
-    void rescheduleChunk(ChunkCoord x, ChunkCoord z, const mc::world::chunk::ChunkStatus& target);
+    void rescheduleChunk(ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 同步执行上下文：在线执行模式下延迟重调度

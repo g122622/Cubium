@@ -100,6 +100,8 @@ public:
     [[nodiscard]] ChunkCoord z() const noexcept { return m_z; }
     [[nodiscard]] const ChunkStatus& toStatus() const noexcept { return *m_toStatus; }
     [[nodiscard]] i32 writeRadius() const noexcept { return m_writeRadius; }
+    /** @brief 是否已开始修改区块；读取和写入均须持有中心调度区域锁。 */
+    [[nodiscard]] bool hasStarted() const noexcept { return m_started; }
 
 private:
     /**
@@ -127,6 +129,7 @@ private:
     const ChunkStatus* m_toStatus;
     StaticChunkCache2D<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_neighbours;
     i32 m_writeRadius;
+    bool m_started = false;
 };
 
 } // namespace mc::server

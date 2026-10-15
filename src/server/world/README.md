@@ -12,7 +12,7 @@ src/server/world/
 ├── RuntimeLightTask.hpp/cpp         # 运行时光照传播 worker 任务（继承 ITask；execute 经 TLS 引擎调 blocksChangedInChunk 传播→取 dirty→_enqueueLightFlush 入主线程 flush 队列）
 ├── ChunkLoadLightTask.hpp/cpp       # 区块加载光照 worker 任务（继承 ITask；execute 经 TLS 引擎 light()/forceHandleEmptySectionChanges+checkChunkEdges→取 dirty→_enqueueLightFlush + _enqueueChunkSend 续延）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
-├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（NewChunkHolder 等价物：请求聚合/状态推进/等待者/双向邻居依赖）
+├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（票据/显式请求/共享邻居需求汇总、状态推进与等待者）
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
 ├── ChunkProgressionTask.hpp/cpp     # 单状态推进任务（构建 WorldGenRegion，调用 _executeStepTask，完成后回调 onChunkGenComplete）
 ├── StaticChunkCache2D.hpp           # 预分配二维区块缓存模板（构造时一次性填充，无空洞，越界断言）
@@ -169,6 +169,13 @@ NoiseChunkGenerator::randomState()  →  RandomState
 ## 容易踩的坑
 
 - 每个生成步骤的 WorldGenRegion 必须绑定生成器种子，不能依赖 ServerWorld 是否存在；独立区块管理器同样需要以正确种子进行群系边界抖动和放置过滤。
+
+### 生成需求撤销与任务完成
+
+票据降级要重新汇总目标，不能用“安全可卸载”作为取消需求的前提。显式请求按各自目标交付，
+共享邻居仅在最后一条有效依赖移除后停止推进。排队任务可发取消信号，但任务身份和邻居引用必须
+保留到执行器确认完成；已开始的生成阶段完整执行，再根据最新需求决定是否继续。延迟重调度只
+保存坐标，不能保存旧目标，也不能在旧任务尚未结束时复位取消令牌。
 
 ### 卸载冷却与距离图回调
 

@@ -21,6 +21,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -180,6 +181,7 @@ void SingleChunkLifecycleManager::addWaitingNeighbour(
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (neighbour != nullptr) {
         m_waitingNeighbours[neighbour] = requiredStatus;
+        _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
 }
@@ -216,6 +218,7 @@ std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::clearSati
         }
     }
     if (!removed.empty()) {
+        _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
     return removed;
@@ -232,6 +235,7 @@ SingleChunkLifecycleManager::takeWaitingNeighbours()
     }
     if (!m_waitingNeighbours.empty()) {
         m_waitingNeighbours.clear();
+        _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
     return result;
@@ -241,6 +245,7 @@ void SingleChunkLifecycleManager::removeWaitingNeighbour(SingleChunkLifecycleMan
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (neighbour != nullptr && m_waitingNeighbours.erase(neighbour) > 0) {
+        _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
 }
@@ -263,17 +268,21 @@ std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::blockingN
 const ChunkStatus& SingleChunkLifecycleManager::requestedGenStatus() const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return *m_requestedGenStatus;
+    return m_requestedGenStatus ? *m_requestedGenStatus : ChunkStatuses::EMPTY;
 }
 
-bool SingleChunkLifecycleManager::upgradeGenTarget(const ChunkStatus& newTarget)
+bool SingleChunkLifecycleManager::hasGenerationDemand() const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (newTarget.ordinal() > m_requestedGenStatus->ordinal()) {
-        m_requestedGenStatus = &newTarget;
-        return true;
-    }
-    return false;
+    return m_requestedGenStatus != nullptr;
+}
+
+void SingleChunkLifecycleManager::setLevel(i32 level)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_level.store(level, std::memory_order::release);
+    m_ticketGenStatus = ChunkPyramid::generationStatus(level);
+    _refreshGenerationTargetLocked();
 }
 
 void SingleChunkLifecycleManager::setGenerationTask(
@@ -402,54 +411,39 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     std::shared_ptr<std::promise<ChunkData*>> promise)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_waiters.push_back(Waiter{std::move(callback), std::move(promise), &targetStatus});
+    _refreshGenerationTargetLocked();
+    return prepareGeneration(priority);
+}
 
-    // 已经达到或超过请求状态，且来源已就绪时，直接把等待者挂上。
-    if (m_sourceState == SourceState::Ready && m_currentGenStatus->isAtLeast(targetStatus)) {
-        if (callback || promise) {
-            m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
-        }
+SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::prepareGeneration(i32 priority)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (m_requestedGenStatus == nullptr) {
         return _buildDecisionLocked();
-    }
-
-    // 收敛请求：目标单调提升，优先级取更高（数值更小）
-    if (targetStatus.ordinal() > m_requestedGenStatus->ordinal()) {
-        m_requestedGenStatus = &targetStatus;
     }
     if (m_requestPriority == std::numeric_limits<i32>::max() || isHigherPriority(priority, m_requestPriority)) {
         m_requestPriority = priority;
     }
-
-    // 首次进入或取消后重新进入时，分配新的 generation 与取消令牌。
-    // 若 m_abortSignal 为 true（已被 cancelActiveWork 取消），分配新的 false 令牌，
-    // 使重新请求的任务不被旧取消标志影响。
-    if (!m_abortSignal || m_abortSignal->load(std::memory_order::acquire)) {
+    // 旧任务尚未确认取消时保留其令牌；新需求由旧任务完成回调重新调度。
+    if (m_generationTask == nullptr && (!m_abortSignal || m_abortSignal->load(std::memory_order::acquire))) {
         ++m_requestGeneration;
         m_abortSignal = std::make_shared<std::atomic<bool>>(false);
     }
-
-    if (callback || promise) {
-        m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
-    }
-
-    // Ready 说明内存中已有结果但上方快速路径未命中，唤醒等待者
-    if (m_sourceState == SourceState::Ready) {
-        return _buildDecisionLocked();
-    }
-
-    // Unknown 是唯一允许触发一次来源解析的状态
     if (m_sourceState == SourceState::Unknown) {
         m_sourceState = SourceState::ResolvingStorage;
-        EnqueueDecision decision = _buildDecisionLocked();
+        auto decision = _buildDecisionLocked();
         decision.shouldResolveStorage = true;
         return decision;
     }
-
-    // 已确认存档不存在 → 走生成链路（由 ChunkTaskScheduler 调度）
-    if (m_sourceState == SourceState::StorageMissing) {
-        return _buildDecisionLocked();
-    }
-
     return _buildDecisionLocked();
+}
+
+void SingleChunkLifecycleManager::signalGenerationCancellation()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    MC_ASSERT_RELEASE(m_abortSignal != nullptr);
+    m_abortSignal->store(true, std::memory_order::release);
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::publishStorageLoaded(
@@ -506,12 +500,21 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancel
 std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::takeReadyWaiters()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (m_sourceState != SourceState::Ready) {
-        return {};
+    std::vector<Waiter> ready;
+    if (m_currentChunk == nullptr) {
+        return ready;
     }
-    std::vector<Waiter> waiters;
-    waiters.swap(m_waiters);
-    return waiters;
+    for (auto it = m_waiters.begin(); it != m_waiters.end();) {
+        if (m_currentGenStatus->isAtLeast(*it->targetStatus)) {
+            ready.push_back(std::move(*it));
+            it = m_waiters.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    _refreshGenerationTargetLocked();
+    _notifyUnloadStateChanged();
+    return ready;
 }
 
 std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::takeAllWaiters()
@@ -519,6 +522,8 @@ std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::ta
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Waiter> waiters;
     waiters.swap(m_waiters);
+    _refreshGenerationTargetLocked();
+    _notifyUnloadStateChanged();
     return waiters;
 }
 
@@ -556,8 +561,7 @@ bool SingleChunkLifecycleManager::reviveForScheduling()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // 仅当处于取消态（abortSignal 为 true）时复活：分配新的 false 令牌。
-    // 与 submitRequest 的令牌重置逻辑一致（见 submitRequest 第 352-355 行）。
-    if (m_abortSignal && m_abortSignal->load(std::memory_order::acquire)) {
+    if (m_generationTask == nullptr && m_abortSignal && m_abortSignal->load(std::memory_order::acquire)) {
         ++m_requestGeneration;
         m_abortSignal = std::make_shared<std::atomic<bool>>(false);
         return true;
@@ -569,50 +573,40 @@ bool SingleChunkLifecycleManager::reviveForScheduling()
 // 内部工具
 // ============================================================================
 
+void SingleChunkLifecycleManager::_refreshGenerationTargetLocked()
+{
+    m_requestedGenStatus = m_ticketGenStatus;
+    const auto include = [this](const ChunkStatus* status) {
+        if (status != nullptr && (m_requestedGenStatus == nullptr || status->isAfter(*m_requestedGenStatus))) {
+            m_requestedGenStatus = status;
+        }
+    };
+    for (const auto& waiter : m_waiters) {
+        include(waiter.targetStatus);
+    }
+    for (const auto& [neighbour, status] : m_waitingNeighbours) {
+        MC_UNUSED(neighbour);
+        include(status);
+    }
+}
+
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_buildDecisionLocked() const
 {
     EnqueueDecision decision;
     decision.targetStatus = m_requestedGenStatus;
     decision.abortSignal = m_abortSignal;
-
-    // Ready 且已达到请求状态：只需唤醒等待者
-    if (m_sourceState == SourceState::Ready && m_currentGenStatus->isAtLeast(*m_requestedGenStatus)) {
-        decision.shouldWakeReadyWaiters = !m_waiters.empty();
+    if (m_requestedGenStatus == nullptr) {
         return decision;
     }
-
-    // 来源解析是一次性的：Unknown→ResolvingStorage 那一跳由 submitRequest 直接置 shouldResolveStorage=true。
-    // ResolvingStorage 状态下（其他线程并发 submitRequest 见到，解析在途）返回 no-op：waiter 已加入 m_waiters，
-    // 在途线程的 publishStorageLoaded→_completeReadyWaiters（存档命中）或
-    // noteStorageMissing→_scheduleGeneration（存档缺失）会唤醒。若此处置 shouldResolveStorage=true，
-    // 并发 submitRequest 会重复触发 _resolveChunkSourceSync→publishStorageLoaded/noteStorageMissing，
-    // 第二次发布见到非 ResolvingStorage（已被第一次推进到 LoadedFromStorage/StorageMissing）
-    // 触发 m_sourceState != ResolvingStorage 断言。
-    if (m_sourceState == SourceState::ResolvingStorage) {
-        return decision;
+    if (m_currentChunk != nullptr && (m_generationTask == nullptr || m_sourceState == SourceState::Ready)) {
+        decision.shouldWakeReadyWaiters = std::any_of(m_waiters.begin(), m_waiters.end(), [this](const Waiter& waiter) {
+            return m_currentGenStatus->isAtLeast(*waiter.targetStatus);
+        });
     }
-
-    // 已达到请求状态、但尚未发布到 Ready/FULL 的稳态：区块数据已在 m_currentChunk（primer）中可用，
-    // 但因请求的目标是中间状态（非 FULL，未走 _finalizeGeneratedChunkSync→markLoadedFromStorageReady），
-    // sourceState 停在 StorageMissing（生成路径）或 LoadedFromStorage（存档命中瞬态，理论应被
-    // markLoadedFromStorageReady 立即推进到 Ready，此处兜底）。此时新到达的请求 waiter 若仅靠下方
-    // shouldScheduleGeneration 分支（要求 gen<req）会被永久悬挂——_buildDecisionLocked 对 gen>=req 返回
-    // no-op，waiter 既不被完成也不被重新调度（_completeReadyWaiters 的 takeReadyWaiters 要求 Ready）。
-    // 对齐 Moonrise：schedule 中 currentGenStatus.isOrAfter(targetStatus) 时直接返回（请求者经
-    // getChunkIfPresentUnchecked 快速路径拿到已生成 chunk）。Cubium 在 _completeReadyWaiters 用
-    // takeAllWaiters 取出 waiter，从 primer 的 ChunkData 完成它们（与 _publishGeneratedChunk 同语义）。
-    if (m_sourceState != SourceState::Ready && m_currentGenStatus->isAtLeast(*m_requestedGenStatus) &&
-        m_generationTask == nullptr && m_currentChunk != nullptr) {
-        decision.shouldWakeReadyWaiters = !m_waiters.empty();
-        return decision;
-    }
-
-    // 存档缺失后，若尚未达到请求状态且没有进行中任务，触发生成调度
-    if (m_sourceState == SourceState::StorageMissing && m_currentGenStatus->isBefore(*m_requestedGenStatus) &&
-        m_generationTask == nullptr) {
+    if (m_sourceState == SourceState::StorageMissing && m_generationTask == nullptr &&
+        (m_currentChunk == nullptr || m_currentGenStatus->isBefore(*m_requestedGenStatus))) {
         decision.shouldScheduleGeneration = true;
     }
-
     return decision;
 }
 

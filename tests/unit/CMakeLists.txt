@@ -970,6 +970,7 @@ add_executable(mc_tests
     # GenerationChunkCache 已删除（被 StaticChunkCache2D + ChunkTaskScheduler 取代）
     # ChunkSnapshot 已删除（可变 ChunkPrimer 模型取代不可变快照）
     server/test_server_chunk_manager.cpp
+    server/world/ChunkGenerationDemandTest.cpp
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
     server/core/ConnectionManagerTest.cpp

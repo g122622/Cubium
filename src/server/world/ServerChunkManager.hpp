@@ -829,37 +829,8 @@ private:
      */
     void _drainPendingLoadCompletes();
 
-    /**
-     * @brief 在调度锁下为"未解析存档来源"的 holder 发起存档解析（对齐 Moonrise getEmptyChunk=磁盘加载）
-     *
-     * 由 ChunkTaskScheduler::schedule 在 holder.currentChunk 为空且 sourceState==Unknown 时调用。
-     * Unknown 表示该 holder 由 checkNeighbour 按需创建、尚未判定存档是否存在。对齐 Moonrise：
-     * pristine holder（currentGenStatus==null）经 ChunkLoadTask 先尝试磁盘读取，磁盘缺失/失败才回落到
-     * 空 ProtoChunk（getEmptyChunk）。Cubium 把"磁盘读取"拆为异步存档解析（_resolveChunkSourceSync），
-     * "空 Primer 创建"拆为 executeEmptyLoad，二者绝不能对同一 holder 并发——否则 EMPTY 任务在
-     * ResolvingStorage 窗口运行返回 false → onChunkGenFailed → markFailed → 永久阻塞（依赖图泄漏）。
-     *
-     * 本方法把 Unknown holder 推进到 ResolvingStorage 并发起异步存档读取，不创建任何生成任务。
-     * 存档解析完成后（_onChunkLoadComplete）由现有管线重新驱动：
-     *   - 命中：publishStorageLoaded(primer) + markLoadedFromStorageReady(FULL) + onLoadedFromStorageReady
-     *     （解除依赖邻居阻塞）
-     *   - 缺失：noteStorageMissing() → _scheduleGeneration → schedule（sourceState=StorageMissing）
-     *     → scheduleEmptyLoad 创建空 Primer（对齐 getEmptyChunk）→ onChunkGenComplete → notifyWaitingNeighbours
-     *
-     * 调用者持有调度区域锁（schedule/checkNeighbour 路径）。本方法只触及 SCLM.m_mutex 与
-     * m_pendingLoadTasksMutex（_resolveChunkSourceSync），不重入调度锁：Unknown→ResolvingStorage 的决策
-     * 为 shouldResolveStorage=true（非 shouldScheduleGeneration），_advanceChunkState 仅调用
-     * _resolveChunkSourceSync（异步投递后立即返回），不触发 _scheduleGeneration 的调度锁获取。
-     *
-     * 幂等：submitRequest 对 ResolvingStorage 返回 no-op（不重复触发解析）。并发调用（checkNeighbour
-     * 与 _onTicketLevelChanged 同时驱动同一 Unknown holder）安全：首个 submitRequest 把 sourceState 推进
-     * 到 ResolvingStorage，后续调用见到非 Unknown 走 no-op。
-     *
-     * @param lifecycleManager 目标 holder（调用前 sourceState==Unknown；调用后推进到 ResolvingStorage）
-     * @param targetStatus 当前请求目标状态（用于 submitRequest 收敛 requestedGenStatus，解析完成后据此推进）
-     */
-    void _resolveStorageForScheduling(
-        mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
+    /** @brief 为邻居的现有需求解析来源，不创建额外显式请求。 */
+    void _resolveStorageForScheduling(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 在调度锁保护下推进区块生成调度
@@ -869,10 +840,8 @@ private:
      * `ChunkTaskScheduler`（邻居检查、任务提交、完成回调都在其中）。
      *
      * @param lifecycleManager 目标区块的生命周期管理器
-     * @param targetStatus 目标生成状态
      */
-    void _scheduleGeneration(
-        mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
+    void _scheduleGeneration(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 完成所有已就绪等待者
