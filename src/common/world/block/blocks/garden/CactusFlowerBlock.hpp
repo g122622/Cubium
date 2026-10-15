@@ -39,6 +39,8 @@ namespace blocks {
  * 不具有可疑炖汤效果。
  *
  * MC ID: minecraft:cactus_flower
+ *
+ * 参考: net.minecraft.world.level.block.CactusFlowerBlock
  */
 class CactusFlowerBlock : public FlowerBlock {
 public:
@@ -57,7 +59,7 @@ protected:
      * 仙人掌花可放置在：
      * - 仙人掌方块上方
      * - 耕地
-     * - 具有实心顶面的方块（SupportType::CENTER）
+     * - 具有实心顶面的方块（SupportType::Center）
      */
     [[nodiscard]] bool canSustain(
         const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;

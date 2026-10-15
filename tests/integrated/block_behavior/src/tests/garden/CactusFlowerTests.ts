@@ -13,8 +13,8 @@
 //   （**同步返 air**，引擎同 tick 替换，非 scheduleBlockTick 延迟）。
 // CactusFlowerBlock::canSustain（:42-54）：cactus 显式 true / farmland 显式 true /
 //   groundState.isFaceSturdy(world, groundPos, Up, SupportType::Center)（兜底，顶面中心完整）。
-//   注：FlowerBlock::canSustain 基类（:55-64 用 material.isSolid()）被 CactusFlowerBlock 重写覆盖，
-//   仙人掌花走 cactus/farmland/Center 判定，不走 material.isSolid()。
+//   注：CactusFlowerBlock 重写 canSustain 覆盖 FlowerBlock 继承的默认土壤委托链（BushBlock::canSustain
+//   → canSustainPlant 查 #dirt + 耕地），仙人掌花走 cactus/farmland/Center 三分支判定。
 //
 // ============================ 测试设计（glass_pit 7×5×7 玻璃墙空腔）============================
 // glass_pit：y=0 glass/cobblestone 底，y=1..2 玻璃墙围出内部 air 空腔，y=3..4 air+顶部框架

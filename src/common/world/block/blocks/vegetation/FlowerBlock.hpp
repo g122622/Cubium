@@ -39,8 +39,8 @@ namespace blocks {
 /**
  * @brief 花朵方块基类
  *
- * 小型花朵（蒲公英、玫瑰等）。
- * 可放置在草方块、泥土、耕地等上。
+ * 小型花朵（蒲公英、玫瑰等）。放置面继承 BushBlock 的土壤委托链
+ * （#dirt 标签 + 耕地），与 vanilla VegetationBlock.mayPlaceOn 一致。
  * 可以放在花盆中。
  *
  * 参考: net.minecraft.block.FlowerBlock
@@ -91,12 +91,6 @@ public:
     [[nodiscard]] bool hasStewEffect() const { return m_suspiciousStewEffect != 0; }
 
 protected:
-    /**
-     * @brief 检查下方是否可支撑
-     */
-    [[nodiscard]] bool canSustain(
-        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
-
     /// 可疑炖汤效果ID
     u32 m_suspiciousStewEffect;
     /// 效果持续时间（秒）

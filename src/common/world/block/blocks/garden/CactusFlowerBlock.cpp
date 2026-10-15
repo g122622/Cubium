@@ -42,6 +42,8 @@ CactusFlowerBlock::CactusFlowerBlock(const BlockProperties& properties)
 bool CactusFlowerBlock::canSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
 {
     // 仙人掌花可放置在仙人掌、耕地，或任意顶面提供中心支撑（isFaceSturdy(Up, Center)）的方块上。
+    // vanilla CactusFlowerBlock.mayPlaceOn 直接继承 VegetationBlock 的 CACTUS || FARMLAND ||
+    // isFaceSturdy(CENTER) 三分支，不经过 #dirt 标签，故此处不调用基类委托链。
     if (VanillaBlocks::CACTUS != nullptr && groundState.is(VanillaBlocks::CACTUS)) {
         return true;
     }

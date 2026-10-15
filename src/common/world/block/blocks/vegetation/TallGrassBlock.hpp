@@ -36,7 +36,8 @@ namespace blocks {
 /**
  * @brief 高草方块
  *
- * 单格高的草类植物，可被放置在草方块、泥土等上。
+ * 单格高的草类植物，放置面继承 BushBlock 的土壤委托链（#dirt 标签 + 耕地），
+ * 与 vanilla VegetationBlock.mayPlaceOn 一致。
  * 可使用剪刀采集，否则掉落小麦种子（概率）。
  *
  * 参考: net.minecraft.block.TallGrassBlock
@@ -60,13 +61,6 @@ public:
      * @brief 获取形状
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-protected:
-    /**
-     * @brief 检查下方是否可支撑
-     */
-    [[nodiscard]] bool canSustain(
-        const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const override;
 };
 
 /**

@@ -41,8 +41,10 @@
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/vegetation/BambooBlock.hpp"
 #include "world/block/blocks/vegetation/CactusBlock.hpp"
+#include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
 #include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
@@ -612,6 +614,60 @@ TEST_F(VegetationBlockTest, WitherRoseCanSustainOnDirtLikeAndNetherBlocks)
     // 下方为空：不可存活
     world.setBlockAt(pos.down(), nullptr);
     EXPECT_FALSE(VanillaBlocks::WITHER_ROSE->isValidPosition(state, world, pos));
+}
+
+// 普通花朵的放置面为 #dirt 标签 + 耕地（vanilla VegetationBlock.mayPlaceOn）。
+// 花朵不再重写 canSustain，走 BushBlock::canSustain 委托下方方块的 canSustainPlant
+// （PlantType::Plains 分支查 #dirt 标签或 FARMLAND）。
+TEST_F(VegetationBlockTest, FlowerCanSustainOnDirtTagMembersAndFarmland)
+{
+    ASSERT_NE(VanillaBlocks::DANDELION, nullptr);
+
+    VegetationTestWorld world;
+    const BlockPos pos(10, 30, 10);
+    const BlockState& state = VanillaBlocks::DANDELION->defaultState();
+
+    // #dirt 标签全量成员均应可支撑（含 1.17+ 新增的 rooted_dirt/moss_block 等，
+    // 这些成员在旧的硬编码土壤列表实现中会被漏掉）
+    const Block* dirtTagMembers[] = {
+        VanillaBlocks::DIRT,
+        VanillaBlocks::GRASS_BLOCK,
+        VanillaBlocks::PODZOL,
+        VanillaBlocks::COARSE_DIRT,
+        VanillaBlocks::MYCELIUM,
+        VanillaBlocks::ROOTED_DIRT,
+        VanillaBlocks::MOSS_BLOCK,
+        VanillaBlocks::PALE_MOSS_BLOCK,
+        VanillaBlocks::MUD,
+        VanillaBlocks::MUDDY_MANGROVE_ROOTS,
+    };
+    for (const Block* member : dirtTagMembers) {
+        ASSERT_NE(member, nullptr) << "dirt tag member not registered";
+        ASSERT_TRUE(BlockTags::DIRT().contains(*member))
+            << member->blockLocation().toString() << " should be in #dirt tag";
+        world.setBlockAt(pos.down(), &member->defaultState());
+        EXPECT_TRUE(VanillaBlocks::DANDELION->isValidPosition(state, world, pos))
+            << "dandelion should survive on " << member->blockLocation().toString();
+    }
+
+    // 耕地：显式放行（vanilla mayPlaceOn 的第二分支）
+    world.setBlockAt(pos.down(), &VanillaBlocks::FARMLAND->defaultState());
+    EXPECT_TRUE(VanillaBlocks::DANDELION->isValidPosition(state, world, pos));
+
+    // 石头 / 玻璃 / 沙子：均不在 #dirt 标签且非耕地 → 拒绝。
+    // 这是本次收敛的关键行为变更：旧的 material().isSolid() 近似会错误放行石头与玻璃。
+    world.setBlockAt(pos.down(), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(VanillaBlocks::DANDELION->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::GLASS->defaultState());
+    EXPECT_FALSE(VanillaBlocks::DANDELION->isValidPosition(state, world, pos));
+
+    world.setBlockAt(pos.down(), &VanillaBlocks::SAND->defaultState());
+    EXPECT_FALSE(VanillaBlocks::DANDELION->isValidPosition(state, world, pos));
+
+    // 下方为空：不可存活
+    world.setBlockAt(pos.down(), nullptr);
+    EXPECT_FALSE(VanillaBlocks::DANDELION->isValidPosition(state, world, pos));
 }
 
 TEST_F(VegetationBlockTest, CactusCanSustainOnlyOnSandLikeBlocks)
