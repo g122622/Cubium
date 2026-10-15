@@ -1,0 +1,20 @@
+{
+  "name": "cubium-stress",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cubium 真实协议机器人压力测试",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node run.ts",
+    "check": "node --test spec/*.test.ts",
+    "movement": "node run.ts --case=movement",
+    "packets": "node run.ts --case=packets",
+    "joins": "node run.ts --case=joins"
+  },
+  "dependencies": {
+    "minecraft-data": "3.115.0",
+    "minecraft-protocol": "1.68.0",
+    "mineflayer": "4.39.0"
+  }
+}

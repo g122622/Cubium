@@ -37,9 +37,10 @@
 #if MC_ENABLE_TRACING
 #include "PerfettoBackend.hpp"
 #include "ProfilerConfig.hpp"
+#endif
+
 #include "TraceCategories.hpp"
 #include "TraceEvents.hpp"
-#endif
 
 #if MC_ENABLE_TRACY
 // Tracy C++ 客户端头：TracySetProgramName（安全宏，禁用时空展开）+
@@ -80,10 +81,7 @@ ProfilerManager::ProfilerManager() = default;
 ProfilerManager::~ProfilerManager()
 {
     // 先停内存采样线程，避免它在 profiler 后端销毁后继续写 counter。
-    m_memoryStop.store(true, std::memory_order::release);
-    if (m_memoryThread.joinable()) {
-        m_memoryThread.join();
-    }
+    stopMemorySampling();
 
 #if MC_ENABLE_TRACING
     if (m_perfetto) {
@@ -124,6 +122,7 @@ void ProfilerManager::initialize(const TraceConfig& config)
 
 void ProfilerManager::shutdown()
 {
+    stopMemorySampling();
 #if MC_ENABLE_TRACING
     if (m_perfetto) {
         m_perfetto->shutdown();
@@ -150,23 +149,40 @@ void ProfilerManager::startTracing()
     // Tracy 自动采集，无显式 start 概念
 #endif
 
-    // 启动内存采样后台线程（若尚未运行）。仅当上层已通过 setMemorySampler 注入
-    // 采样回调时才起线程——ProfilerManager 处于比 PlatformInfo 更底层的 mc_profiler 库，
-    // 不能直接采样进程内存，故由调用方注入回调。MC_TRACE_COUNTER 双轨宏自动按启用的后端写入。
+    startMemorySampling();
+}
+
+void ProfilerManager::startMemorySampling()
+{
     if (!m_memoryThread.joinable() && m_memorySampler) {
+        {
+            const std::lock_guard lock(m_memorySampleMutex);
+            m_latestMemorySample.reset();
+        }
         m_memoryStop.store(false, std::memory_order::release);
         m_memoryThread = std::thread(&ProfilerManager::_runMemoryTrace, this);
-        spdlog::info("Memory trace thread started (1000 Hz sampling)");
+        spdlog::info("Memory sampling thread started (1000 Hz sampling)");
     }
+}
+
+void ProfilerManager::stopMemorySampling()
+{
+    m_memoryStop.store(true, std::memory_order::release);
+    if (m_memoryThread.joinable()) {
+        m_memoryThread.join();
+    }
+}
+
+std::optional<ProcessMemorySample> ProfilerManager::latestMemorySample() const
+{
+    const std::lock_guard lock(m_memorySampleMutex);
+    return m_latestMemorySample;
 }
 
 void ProfilerManager::stopTracing()
 {
     // 先停内存采样线程，确保不再有 counter 写入后端后再停止 tracing 会话。
-    m_memoryStop.store(true, std::memory_order::release);
-    if (m_memoryThread.joinable()) {
-        m_memoryThread.join();
-    }
+    stopMemorySampling();
 
 #if MC_ENABLE_TRACING
     if (m_perfetto) {
@@ -266,6 +282,13 @@ void ProfilerManager::_runMemoryTrace()
         // 真实降低占用。两者并列便于在 Tracy/Perfetto 中对照分析。
         // MC_TRACE_COUNTER 为双轨宏：按启用的后端（Perfetto/Tracy）自动写入。
         const auto [memoryMB, commitMB] = m_memorySampler();
+        const auto timestampMs =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        {
+            const std::lock_guard lock(m_memorySampleMutex);
+            m_latestMemorySample = ProcessMemorySample{timestampMs, memoryMB, commitMB};
+        }
         MC_TRACE_COUNTER(trace::TraceEvents.Memory.Usage, "ProcessMemory", memoryMB);
         MC_TRACE_COUNTER(trace::TraceEvents.Memory.Usage, "ProcessCommit", commitMB);
 

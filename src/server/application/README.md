@@ -86,6 +86,10 @@ src/server/application/
 此时连上来的客户端会拿到空注册表并静默挂起。自动化测试（`tests/e2e/bot`）以该行 + 端口号
 一致作为就绪判据。改动这行文本会同时影响 e2e 的 `servers/cubium.ts`。
 
+`--stress_metrics_file=<CSV路径>` 为压力测试启用逐 tick 导出：记录实际 tick 执行耗时、tick 间隔、
+原有专用线程发布的内存快照、玩家数与区块数，每秒 flush。采集在就绪日志前启动，随服务端停止而关闭；
+配合 `--profiler_enabled=false` 使用，不创建完整 trace。构建时至少启用一种 profiler 后端，才能复用采样线程。
+
 ### 2. 线程安全
 IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用 `m_clientDataMutex` 同步。
 

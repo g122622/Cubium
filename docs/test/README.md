@@ -9,6 +9,7 @@ test/
 ├── INTEGRATED_TEST_MIGRATION_TO_TS.md   # 集成脚本迁移说明
 ├── STRUCTURES.md                       # 测试结构资源
 ├── E2E_BOT_TEST.md                      # 网络客户端端到端测试
+├── STRESS_TEST.md                       # 机器人压力测试、内存与 tick 观测
 └── FUZZING.md                          # 协议模糊测试
 ```
 

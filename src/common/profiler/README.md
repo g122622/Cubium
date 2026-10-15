@@ -65,6 +65,7 @@ TraceEvents.hpp（MC_TRACE_* 双轨宏，四种组合分支）
 ```
 
 - **ProfilerManager（门面）**：单例，统一管理两套后端。生命周期方法（`initialize`/`shutdown`/`startTracing`/`stopTracing`/`flush`/`setOutputPath`）仅委托 PerfettoBackend——Tracy 采集是 client 自动完成的，无需门面驱动。`setProcessName`/`setThreadName` 双写：同时写 PerfettoBackend（若启用）与 tracy（若启用）。
+  - `startMemorySampling` / `stopMemorySampling` 可以独立驱动原有 1000Hz 内存线程；`latestMemorySample` 以互斥锁发布带 Unix 毫秒时间的工作集和提交量快照。`setMemorySampler` 只能在线程停止时修改。压力测试通过此入口采样，运行时关闭完整 profiler，不建立 Perfetto 会话。
   - `setOutputPath` 只切换落盘路径、不重建 session：`outputPath` 仅在 `stopTracing()` 写文件时使用，而 Perfetto 的 `Tracing::Initialize` 是进程级一次性初始化（`initialize()` 第二次调用即被拒）。需要"每个用例/每次运行一个 trace 文件"的调用方（benchmark 适配器）必须在会话之间切换路径，不能重复 `initialize()`。
 - **PerfettoBackend**：承载 Perfetto 重逻辑（TracingSession、root track descriptor、写文件、sibling_order_rank 查表）。仅在 `MC_ENABLE_TRACING` 时编译，由门面经 Pimpl 持有。
 - **TraceCategories**：枚举树 `mc::trace::TraceEvents`（无条件定义，两套后端都可用）；`PERFETTO_DEFINE_CATEGORIES` 注册仅 Perfetto 需要。
