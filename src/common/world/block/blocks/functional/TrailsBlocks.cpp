@@ -282,14 +282,8 @@ BlockActionResult DecoratedPotBlock::useItemOn(ItemStack& stack,
     ItemStack potItem = potEntity->getItem();
 
     // 检查是否可以放入：陶罐为空，或罐内物品与手持物品相同且未达到最大堆叠
-    bool canInsert = false;
-    if (potItem.isEmpty()) {
-        // 陶罐为空，可以放入
-        canInsert = true;
-    } else if (potItem.canMergeWith(heldItem) && potItem.getCount() < potItem.getMaxStackSize()) {
-        // 罐内物品与手持物品相同且未满，可以叠加
-        canInsert = true;
-    }
+    const bool canInsert =
+        potItem.isEmpty() || (potItem.canMergeWith(heldItem) && potItem.getCount() < potItem.getMaxStackSize());
 
     // 物品无法放入：交回 useWithoutItem 处理负摇晃（对齐 vanilla 返回 TRY_WITH_EMPTY_HAND）
     if (!canInsert) {

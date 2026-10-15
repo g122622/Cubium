@@ -14,6 +14,7 @@
 #   ./scripts/tidy.sh src/common/**/*.hpp           # Scan with glob
 #   ./scripts/tidy.sh --fix src/server/world/Foo.cpp # Auto-fix issues
 #   ./scripts/tidy.sh --checks 'bugprone-*' ...      # Override checks
+#   ./scripts/tidy.sh --changed-lines=ranges.tsv ...  # Only fail on changed lines
 #
 # Environment variables:
 #   CLANG_TIDY       - Path to clang-tidy (default: auto-detect)
@@ -22,6 +23,7 @@
 #   WIN_SDK_VERSION  - SDK version (default: latest installed)
 #   TIDY_JOBS        - Maximum parallel clang-tidy processes (default: logical CPU count)
 #   TIDY_COMPILE_DB_DIR - Linux compilation database directory (default: build/)
+#   TIDY_CHANGED_LINES  - Same as --changed-lines (CI passes it for pull requests)
 # ============================================================
 
 set -euo pipefail
@@ -29,6 +31,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
+
+# Native (OS-specific) form of the project root, without a trailing slash. clang-tidy
+# prints absolute paths in the host format ("E:/dev/..." on Windows, "/home/..." on
+# Linux), so changed-line matching needs this form rather than the MSYS "/e/dev/...".
+# Falls back to the POSIX path when the host has no drive-letter mapping.
+PROJECT_ROOT_ABS="$PROJECT_ROOT"
+case "$(uname -s 2>/dev/null || echo unknown)" in
+    MINGW*|MSYS*|CYGWIN*)
+        if command -v cygpath >/dev/null 2>&1; then
+            PROJECT_ROOT_ABS="$(cygpath -m "$PROJECT_ROOT")"
+        fi
+        ;;
+esac
+PROJECT_ROOT_ABS="${PROJECT_ROOT_ABS%/}"
 
 # ---- Colors (disable if not a terminal) ----
 if [[ -t 1 ]]; then
@@ -104,6 +120,10 @@ if (( WINDOWS_TIDY )); then
         "$PROJECT_ROOT/src/common"
         "$PROJECT_ROOT/src/common/mod/bedrock/addon"
         "$PROJECT_ROOT/tests"
+        # 测试私有头以 tests/unit 为根表达（与 mc_tests 的 target_include_directories 一致），
+        # 例如 tests/unit/common/BlockInteractionTestHelper.hpp 的 include 写法是
+        # "common/BlockInteractionTestHelper.hpp"。
+        "$PROJECT_ROOT/tests/unit"
     )
     EXTRA_ARGS=(
         --extra-arg="--target=amd64-pc-windows-msvc"
@@ -137,6 +157,7 @@ fi
 # ---- Parse arguments ----
 TIDY_ARGS=()
 FILES=()
+CHANGED_LINES_FILE="${TIDY_CHANGED_LINES:-}"
 JOBS="${TIDY_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)}"
 if ! [[ "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
     echo -e "${RED}ERROR: TIDY_JOBS must be a positive integer.${NC}" >&2
@@ -158,6 +179,17 @@ while [[ $# -gt 0 ]]; do
                 echo -e "${RED}ERROR: --jobs requires a positive integer.${NC}" >&2
                 exit 1
             fi
+            ;;
+        --changed-lines)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo -e "${RED}ERROR: --changed-lines requires a file path.${NC}" >&2
+                exit 1
+            fi
+            CHANGED_LINES_FILE="$1"
+            ;;
+        --changed-lines=*)
+            CHANGED_LINES_FILE="${1#*=}"
             ;;
         --fix|--checks=*|--checks|--header-filter=*|--header-filter)
             TIDY_ARGS+=("$1")
@@ -188,6 +220,10 @@ while [[ $# -gt 0 ]]; do
             echo "Directories are scanned recursively for C++ source and header files."
             echo "Parallel workers default to the logical processor count; override with --jobs N or TIDY_JOBS."
             echo "Supports clang-tidy options such as --fix, --checks, and --warnings-as-errors."
+            echo ""
+            echo "--changed-lines <tsv>  Only fail on diagnostics inside the given line ranges."
+            echo "                       The TSV is '<path>\\t<first>\\t<last>' per record, produced by"
+            echo "                       scripts/ci/changed_lines.py. Without it every diagnostic counts."
             exit 0
             ;;
         -*)
@@ -199,6 +235,74 @@ while [[ $# -gt 0 ]]; do
     esac
     shift
 done
+
+# ---- Changed-line filtering (pull-request gate) ----
+# clang-tidy's own --line-filter matches on the bare file name only, so two files
+# sharing a name (the repo has several) would share line ranges. We therefore run
+# clang-tidy unfiltered and drop out-of-range diagnostics ourselves, keyed on the
+# repo-relative path plus line number.
+CHANGED_LINES_ACTIVE=0
+declare -A CHANGED_LINE_RANGES=()
+if [[ -n "$CHANGED_LINES_FILE" ]]; then
+    if [[ ! -f "$CHANGED_LINES_FILE" ]]; then
+        echo -e "${RED}ERROR: changed-lines file not found: $CHANGED_LINES_FILE${NC}" >&2
+        exit 1
+    fi
+    while IFS=$'\t' read -r changed_path changed_first changed_last; do
+        [[ -z "$changed_path" || -z "$changed_first" || -z "$changed_last" ]] && continue
+        # Strip a stray CR: the TSV may have been produced on Windows with CRLF endings,
+        # which would otherwise land inside the numeric field and break the comparison.
+        changed_first="${changed_first//$'\r'/}"
+        changed_last="${changed_last//$'\r'/}"
+        CHANGED_LINE_RANGES["$changed_path"]+="${changed_first} ${changed_last}"$'\n'
+    done < "$CHANGED_LINES_FILE"
+    CHANGED_LINES_ACTIVE=1
+fi
+
+# Whether a diagnostic at <path>:<line> is inside the changed ranges. When no ranges
+# are known for the file, the whole file counts as unchanged.
+is_changed_line() {
+    local path="$1" line="$2" range first last
+    [[ $CHANGED_LINES_ACTIVE -eq 1 ]] || return 0
+    local ranges="${CHANGED_LINE_RANGES[$path]:-}"
+    [[ -z "$ranges" ]] && return 1
+    while read -r first last; do
+        [[ -z "$first" ]] && continue
+        if (( line >= first && line <= last )); then
+            return 0
+        fi
+    done <<< "$ranges"
+    return 1
+}
+
+# Rewrite a raw diagnostic line as "<repo-relative-path>\t<line>\t<kind>\t<message>",
+# or return non-zero when it does not match the clang-tidy diagnostic shape.
+#
+# Two patterns are needed because the column is optional in clang-tidy's output. Both
+# use a greedy path group: POSIX ERE has no non-greedy quantifier, and a greedy group
+# backtracks to the right split as long as the trailing ":(line):(col)?" is mandatory
+# in the pattern — which is why the column-less form is matched separately rather than
+# folded in with "?".
+normalize_diagnostic() {
+    local raw="$1" abs_path rel_path line kind message
+    if [[ "$raw" =~ ^(.*):([0-9]+):([0-9]+):[[:space:]]*(warning|error):[[:space:]]*(.*)$ ]]; then
+        abs_path="${BASH_REMATCH[1]}"
+        line="${BASH_REMATCH[2]}"
+        kind="${BASH_REMATCH[4]}"
+        message="${BASH_REMATCH[5]}"
+    elif [[ "$raw" =~ ^(.*):([0-9]+):[[:space:]]*(warning|error):[[:space:]]*(.*)$ ]]; then
+        abs_path="${BASH_REMATCH[1]}"
+        line="${BASH_REMATCH[2]}"
+        kind="${BASH_REMATCH[3]}"
+        message="${BASH_REMATCH[4]}"
+    else
+        return 1
+    fi
+    # Normalise backslashes so a Windows path matches the git-relative TSV key.
+    abs_path="${abs_path//\\//}"
+    rel_path="${abs_path#"$PROJECT_ROOT_ABS"/}"
+    printf '%s\t%s\t%s\t%s\n' "$rel_path" "$line" "$kind" "$message"
+}
 
 for arg in "${TIDY_ARGS[@]}"; do
     if [[ "$arg" == "--fix" || "$arg" == "--fix-errors" ]]; then
@@ -253,47 +357,59 @@ declare -A RUNNING_META=()
 
 finish_worker() {
     local pid="$1" file="$2" output_file="$3" meta_file="$4"
-    local exit_code elapsed rel_path filtered diagnostics check
+    local exit_code elapsed rel_path raw normalized diag_path diag_line diag_kind diag_message
+    local -a in_scope=()
     wait "$pid" || true
     read -r exit_code elapsed < "$meta_file"
     rel_path="${file#"$PROJECT_ROOT"/}"
     TOTAL_FILE_SECONDS=$(awk -v total="$TOTAL_FILE_SECONDS" -v value="$elapsed" 'BEGIN { printf "%.6f", total + value }')
-    filtered=$(grep -E '^([A-Za-z]:[\\/]|/|src[/\\]|Suppressed|[0-9]+ warning|[0-9]+ error)' "$output_file" || true)
-    diagnostics=$(grep -E ':[[:space:]]*(warning|error):' "$output_file" || true)
 
-    while IFS= read -r line; do
-        if [[ "$line" =~ :([0-9]+):([0-9]+:)?[[:space:]](warning|error):.*\[([A-Za-z0-9_.-]+) ]]; then
-            check="${BASH_REMATCH[4]}"
-            DIAGNOSTIC_COUNTS+=("$check")
+    # Collect the diagnostics that survive changed-line filtering. Each entry is the
+    # original clang-tidy line, so the report keeps its native formatting.
+    while IFS= read -r raw; do
+        [[ -z "$raw" ]] && continue
+        normalized="$(normalize_diagnostic "$raw")" || { in_scope+=("$raw"); continue; }
+        IFS=$'\t' read -r diag_path diag_line diag_kind diag_message <<< "$normalized"
+        if is_changed_line "$diag_path" "$diag_line"; then
+            in_scope+=("$raw")
         fi
-    done < "$output_file"
+    done < <(grep -E ':[[:space:]]*(warning|error):' "$output_file" || true)
 
-    if [[ $exit_code -eq 0 ]]; then
-        if [[ -n "$diagnostics" ]]; then
-            echo -e "${YELLOW}WARN: $rel_path${NC}"
-            printf '%s\n' "$filtered" | grep -Ev '^(Suppressed|[0-9]+ warnings? generated)' || true
-        else
-            echo -e "${GREEN}  OK: $rel_path${NC}"
+    # Count the checks that survived, so the summary reflects what actually failed.
+    for raw in "${in_scope[@]}"; do
+        if [[ "$raw" =~ \[([A-Za-z0-9_.-]+)(,-warnings-as-errors)?\] ]]; then
+            DIAGNOSTIC_COUNTS+=("${BASH_REMATCH[1]}")
         fi
-        ((PASS++)) || true
-    elif [[ $exit_code -eq 139 ]]; then
+    done
+
+    if [[ $exit_code -eq 139 ]]; then
+        # A segfault carries no usable diagnostics, so changed-line filtering cannot
+        # apply: report it regardless of where it happened.
         echo -e "${RED}CRASH: $rel_path (segfault)${NC}"
         ((FAIL++)) || true
         FAILED_FILES+=("$rel_path")
-    else
-        echo -e "${RED}FAIL: $rel_path${NC}"
-        if [[ -n "$diagnostics" ]]; then
-            details=$(printf '%s\n' "$filtered" | grep -Ev '^(Suppressed|[0-9]+ warnings? generated)' || true)
-            if [[ -n "$details" ]]; then
-                printf '%s\n' "$details"
-            else
-                cat "$output_file"
-            fi
+    elif [[ $exit_code -ne 0 && ${#in_scope[@]} -eq 0 ]]; then
+        if [[ $CHANGED_LINES_ACTIVE -eq 1 ]]; then
+            echo -e "${GREEN}  OK: $rel_path${NC} ${YELLOW}(diagnostics outside changed lines)${NC}"
         else
+            echo -e "${RED}FAIL: $rel_path${NC}"
             cat "$output_file"
+            ((FAIL++)) || true
+            FAILED_FILES+=("$rel_path")
         fi
+        ((PASS++)) || true
+    elif [[ $exit_code -ne 0 ]]; then
+        echo -e "${RED}FAIL: $rel_path${NC}"
+        printf '%s\n' "${in_scope[@]}"
         ((FAIL++)) || true
         FAILED_FILES+=("$rel_path")
+    elif [[ ${#in_scope[@]} -gt 0 ]]; then
+        echo -e "${YELLOW}WARN: $rel_path${NC}"
+        printf '%s\n' "${in_scope[@]}"
+        ((PASS++)) || true
+    else
+        echo -e "${GREEN}  OK: $rel_path${NC}"
+        ((PASS++)) || true
     fi
     echo -e "${NC}  Time: ${elapsed}s"
     rm -f "$output_file" "$meta_file"

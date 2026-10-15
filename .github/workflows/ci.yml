@@ -64,6 +64,21 @@ jobs:
             echo "No changed C++ files; clang-tidy is not needed."
           fi
 
+      - name: Record changed line ranges
+        id: lines
+        if: steps.changed.outputs.has_cpp == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: |
+          set -euo pipefail
+          changed_lines="$RUNNER_TEMP/changed-lines.tsv"
+          python3 scripts/ci/changed_lines.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$changed_lines"
+          echo "changed_lines=$changed_lines" >> "$GITHUB_OUTPUT"
+
       - name: Setup Linux build environment
         if: steps.changed.outputs.has_cpp == 'true'
         id: env-setup
@@ -96,12 +111,14 @@ jobs:
         env:
           CHANGED_SOURCE_LIST: ${{ steps.changed.outputs.source_list }}
           CHANGED_HEADER_LIST: ${{ steps.changed.outputs.header_list }}
+          CHANGED_LINES: ${{ steps.lines.outputs.changed_lines }}
         run: |
           set -euo pipefail
           status=0
           mapfile -d '' -t changed_sources < "$CHANGED_SOURCE_LIST"
           if [ "${#changed_sources[@]}" -gt 0 ]; then
             TIDY_JOBS="$(nproc)" bash scripts/tidy/tidy.sh \
+              --changed-lines="$CHANGED_LINES" \
               --warnings-as-errors='*' "${changed_sources[@]}" || status=$?
           fi
 
@@ -113,7 +130,9 @@ jobs:
               --headers-list "$CHANGED_HEADER_LIST" \
               --output "$header_compdb_dir/compile_commands.json"; then
               TIDY_COMPILE_DB_DIR="$header_compdb_dir" TIDY_JOBS="$(nproc)" \
-                bash scripts/tidy/tidy.sh --warnings-as-errors='*' "${changed_headers[@]}" || status=$?
+                bash scripts/tidy/tidy.sh \
+                  --changed-lines="$CHANGED_LINES" \
+                  --warnings-as-errors='*' "${changed_headers[@]}" || status=$?
             else
               status=1
             fi

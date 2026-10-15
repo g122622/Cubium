@@ -369,6 +369,10 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     return BlockPlacementResult{true, true, itemConsumed, placePos, newState->stateId(), "Block placed"};
 }
 
+// NOLINTNEXTLINE(performance-unnecessary-value-param) — heldItem 必须按值传入：
+// ItemUseContext 构造函数对该 stack 做 const_cast 后持有可写指针，onItemUse 内
+// getItemStackMut() 会直接改它。若改成 const 引用，改的就是调用方传入的权威手持槽，
+// 物品侧的自改会绕过下方 itemId/damage 对比，导致外层再 shrink 一次（双重消耗）。
 Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
     PlayerId playerId, const BlockPos& pos, const Vector3& hitPos, Direction face, Hand hand, ItemStack heldItem)
 {
