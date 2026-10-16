@@ -23,8 +23,12 @@
 
 #include <gtest/gtest.h>
 
+#include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -147,6 +151,9 @@ protected:
         // 初始化方块
         VanillaBlocks::initialize();
         BlockTags::initialize();
+        // useItemOn 测试需要物品与物品标签（NOTE_BLOCK_TOP_INSTRUMENTS）
+        Items::initialize();
+        item::tag::ItemTags::initialize();
 
         m_world = std::make_unique<NoteBlockTestWorld>();
     }
@@ -526,4 +533,114 @@ TEST_F(NoteBlockTest, InstrumentType_SoulSandTriggersCowBell)
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
     EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_COW_BELL);
+}
+
+// ============================================================================
+// useItemOn：手持顶部乐器物品（头颅）交互测试
+// ============================================================================
+
+/**
+ * @brief 手持头颅右键音符盒顶面 → 返回 Pass（交物品放置，不升调）
+ *
+ * 对齐 vanilla NoteBlock.useItemOn：NOTE_BLOCK_TOP_INSTRUMENTS + 顶面 → PASS。
+ */
+TEST_F(NoteBlockTest, UseItemOn_HeadOnTopFace_ReturnsPass)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(Items::SKELETON_SKULL, nullptr);
+
+    BlockPos pos(0, 1, 0);
+    m_world->setBlockAt(pos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+    player.inventory().getSelectedStackRef() = ItemStack(Items::SKELETON_SKULL, 1);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    const BlockState& state = VanillaBlocks::NOTE_BLOCK->defaultState();
+    BlockRaycastResult hit(Vector3(0.5f, 1.5f, 0.5f), pos, Direction::Up, 1.0f);
+
+    auto result = mc::test::useBlock(*noteBlock, state, *m_world, pos, player, Hand::MainHand, hit);
+
+    // 返回 Pass 表示交物品放置；不播放音符、音符值不变
+    EXPECT_TRUE(result.isPass());
+    EXPECT_TRUE(m_world->playedSoundIds().empty());
+    const BlockState* current = m_world->getBlockState(pos);
+    ASSERT_NE(current, nullptr);
+    EXPECT_EQ(NoteBlock::getNote(*current), 0);
+}
+
+/**
+ * @brief 手持头颅右键音符盒侧面 → 不降级，走升调
+ */
+TEST_F(NoteBlockTest, UseItemOn_HeadOnSideFace_CyclesNote)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(Items::SKELETON_SKULL, nullptr);
+
+    BlockPos pos(0, 1, 0);
+    m_world->setBlockAt(pos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+    player.inventory().getSelectedStackRef() = ItemStack(Items::SKELETON_SKULL, 1);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    const BlockState& state = VanillaBlocks::NOTE_BLOCK->defaultState();
+    BlockRaycastResult hit(Vector3(0.5f, 1.5f, 0.0f), pos, Direction::North, 1.0f);
+
+    auto result = mc::test::useBlock(*noteBlock, state, *m_world, pos, player, Hand::MainHand, hit);
+
+    EXPECT_TRUE(result.isSuccess());
+    const BlockState* current = m_world->getBlockState(pos);
+    ASSERT_NE(current, nullptr);
+    EXPECT_EQ(NoteBlock::getNote(*current), 1);
+}
+
+/**
+ * @brief 手持非顶部乐器物品（钻石）右键顶面 → 走升调
+ */
+TEST_F(NoteBlockTest, UseItemOn_NonHeadOnTopFace_CyclesNote)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(Items::DIAMOND, nullptr);
+
+    BlockPos pos(0, 1, 0);
+    m_world->setBlockAt(pos, VanillaBlocks::NOTE_BLOCK->defaultState());
+
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+    player.inventory().getSelectedStackRef() = ItemStack(Items::DIAMOND, 1);
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+
+    const BlockState& state = VanillaBlocks::NOTE_BLOCK->defaultState();
+    BlockRaycastResult hit(Vector3(0.5f, 1.5f, 0.5f), pos, Direction::Up, 1.0f);
+
+    auto result = mc::test::useBlock(*noteBlock, state, *m_world, pos, player, Hand::MainHand, hit);
+
+    EXPECT_TRUE(result.isSuccess());
+    const BlockState* current = m_world->getBlockState(pos);
+    ASSERT_NE(current, nullptr);
+    EXPECT_EQ(NoteBlock::getNote(*current), 1);
+}
+
+/**
+ * @brief NOTE_BLOCK_TOP_INSTRUMENTS 标签包含全部 7 类头颅
+ */
+TEST_F(NoteBlockTest, TopInstrumentsTag_ContainsAllHeads)
+{
+    const auto& tag = mc::item::tag::ItemTags::NOTE_BLOCK_TOP_INSTRUMENTS();
+    for (const Item* item : {Items::SKELETON_SKULL,
+             Items::WITHER_SKELETON_SKULL,
+             Items::PLAYER_HEAD,
+             Items::ZOMBIE_HEAD,
+             Items::CREEPER_HEAD,
+             Items::DRAGON_HEAD,
+             Items::PIGLIN_HEAD}) {
+        ASSERT_NE(item, nullptr);
+        EXPECT_TRUE(tag.contains(ItemStack(item, 1))) << "missing head item in tag";
+    }
 }

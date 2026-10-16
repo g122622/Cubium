@@ -53,6 +53,15 @@ public:
     static ItemTag& BEACON_PAYMENT_ITEMS();
 
     /**
+     * @brief 音符盒顶部乐器物品标签（各类头颅）
+     *
+     * 对齐 vanilla ItemTags.NOTE_BLOCK_TOP_INSTRUMENTS（数据包键 "noteblock_top_instruments"）。
+     * 手持这些物品时右键音符盒顶面，交互降级为"放置"而非"升调"，
+     * 使头颅落在音符盒上方以决定其乐器音色。
+     */
+    static ItemTag& NOTE_BLOCK_TOP_INSTRUMENTS();
+
+    /**
      * @brief 地毯标签
      *
      * 包含所有颜色的地毯物品。

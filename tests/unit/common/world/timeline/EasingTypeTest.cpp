@@ -173,7 +173,7 @@ TEST(EasingTypeTest, InCubicEqualsCube)
 
 TEST(EasingTypeTest, InQuartAndInQuint)
 {
-    EXPECT_FLOAT_EQ(EasingType::IN_QUART.apply(0.5f), 0.0625f); // 0.5^4
+    EXPECT_FLOAT_EQ(EasingType::IN_QUART.apply(0.5f), 0.0625f);  // 0.5^4
     EXPECT_FLOAT_EQ(EasingType::IN_QUINT.apply(0.5f), 0.03125f); // 0.5^5
 }
 

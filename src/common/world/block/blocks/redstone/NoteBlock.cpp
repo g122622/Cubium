@@ -23,6 +23,8 @@
 
 #include "NoteBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -213,15 +215,30 @@ void NoteBlock::neighborChanged(
     }
 }
 
+BlockActionResult NoteBlock::useItemOn(ItemStack& stack,
+    const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    // 对齐 vanilla NoteBlock.useItemOn（1.21.11）：
+    //   手持 NOTE_BLOCK_TOP_INSTRUMENTS 标签物品（各类头颅）且点击顶面 → 返回 Pass，交物品放置
+    //   （使头颅落在音符盒上方以决定乐器音色）；否则走默认（→ 驱动 useWithoutItem 升调）。
+    if (item::tag::ItemTags::NOTE_BLOCK_TOP_INSTRUMENTS().contains(stack) && hit.face() == Direction::Up) {
+        return BlockActionResult::pass();
+    }
+    return Block::useItemOn(stack, state, world, pos, player, hand, hit);
+}
+
 BlockActionResult NoteBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
     // 对齐 vanilla NoteBlock.useWithoutItem（1.21.11）：右键升调——cycle(NOTE) 循环升半音（0→1→...→24→0）+
     //   setBlockState 写回 + playNote 播放新音高 → return SUCCESS。不检查手持物（空手/任意物品右键均升调），
     //   也不检查 mayBuild（vanilla useWithoutItem 无建造权限守卫，空手即可升调）。
-    //   注：vanilla useItemOn 对 NOTE_BLOCK_TOP_INSTRUMENTS 物品（头颅等，放上方决定乐器）+ 顶面点击返
-    //   PASS 交物品放置；Cubium 此处简化为统一升调（TODO: 待 NOTE_BLOCK_TOP_INSTRUMENTS 标签与朝向守卫
-    //   完善后对齐 useItemOn 的 PASS 分支）。
+    //   手持头颅类物品点击顶面的降级分支由 useItemOn 处理（见上）。
     MC_UNUSED(player);
     MC_UNUSED(hit);
 

@@ -68,6 +68,17 @@ public:
         Player& player,
         const BlockRaycastResult& hit) override;
 
+    // 手持物品右键：对齐 vanilla NoteBlock.useItemOn——手持 NOTE_BLOCK_TOP_INSTRUMENTS 标签物品
+    //   （各类头颅）且点击顶面时返回 Pass，交物品放置（使头颅落在音符盒上方决定乐器）；
+    //   否则返回 TryEmptyHandInteraction 驱动 useWithoutItem 升调。
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
