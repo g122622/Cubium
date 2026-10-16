@@ -270,6 +270,35 @@ inline AxisDirection getAxisDirection(Direction dir)
 }
 
 /**
+ * @brief 获取某坐标轴的两个方向
+ *
+ * 对齐 vanilla net.minecraft.core.Direction.Axis#getDirections（返回轴的正负两向）。
+ * 顺序与 AxisDirection 语义一致：[负向, 正向]。
+ *
+ * @param axis 坐标轴
+ * @param outNeg 输出轴负方向
+ * @param outPos 输出轴正方向
+ */
+inline void getAxisDirections(Axis axis, Direction& outNeg, Direction& outPos)
+{
+    switch (axis) {
+        case Axis::X:
+            outNeg = Direction::West;
+            outPos = Direction::East;
+            return;
+        case Axis::Z:
+            outNeg = Direction::North;
+            outPos = Direction::South;
+            return;
+        case Axis::Y:
+        default:
+            outNeg = Direction::Down;
+            outPos = Direction::Up;
+            return;
+    }
+}
+
+/**
  * @brief 判断方向是否水平
  */
 inline bool isHorizontal(Direction dir)

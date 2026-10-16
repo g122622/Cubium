@@ -1017,6 +1017,19 @@ public:
     }
 
     /**
+     * @brief 指定位置的 CREAKING_ACTIVE 环境属性值（对齐 vanilla EnvironmentAttributes.CREAKING_ACTIVE）
+     *
+     * 控制嘎枝之心的 AWAKE/DORMANT 选择：活跃时为 AWAKE（生成嘎枝、激活外观），
+     * 否则为 DORMANT。vanilla 由维度类型 + 生物群系（苍白花园）驱动，且受昼夜周期影响。
+     *
+     * Cubium 尚无环境属性（EnvironmentAttributes）体系，默认返回 false（即 DORMANT），
+     * 与 vanilla 在非苍白花园环境的取值一致。
+     *
+     * TODO: 待 EnvironmentAttributes 体系落地后，改为按维度/生物群系/时间查询真实属性值。
+     */
+    [[nodiscard]] virtual bool isCreakingActive(const BlockPos& /*pos*/) const { return false; }
+
+    /**
      * @brief 是否允许火焰蔓延
      *
      * 当前默认开启，后续接入游戏规则后可由具体世界覆盖。

@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/DirectionProperty.hpp"
 #include "common/util/property/EnumProperty.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/Block.hpp"
@@ -37,17 +38,12 @@
 
 namespace mc {
 
-namespace {
-// 静态属性实例
-std::unique_ptr<EnumProperty<Axis>> g_axisProperty;
-} // namespace
-
 const EnumProperty<Axis>& RotatedPillarBlock::AXIS()
 {
-    if (!g_axisProperty) {
-        g_axisProperty = AxisProperty::create("axis");
-    }
-    return *g_axisProperty;
+    // 必须复用 BlockStateProperties::AXIS() 的同一实例，而非各自复制一个 "axis" 属性对象。
+    // 后者会导致原木方块的 AXIS 与全项目按 BlockStateProperties::AXIS() 查询的代码
+    // （如 CreakingHeartBlock::hasRequiredLogs、比较器/旋转逻辑）读到不同属性，属性查询恒失败。
+    return BlockStateProperties::AXIS();
 }
 
 RotatedPillarBlock::RotatedPillarBlock(const BlockProperties& properties)

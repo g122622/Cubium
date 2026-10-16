@@ -52,6 +52,26 @@ public:
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     /**
+     * @brief 邻居方块更新：调度 1 刻后的周期检查
+     *
+     * 对齐 vanilla CreakingHeartBlock.updateShape（:94）：任一方向邻居变化即
+     * scheduleTick(1)，由 tick 重新解析状态（两端原木被破坏/补齐时切换 uprooted↔dormant/awake）。
+     */
+    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
+        Direction facing,
+        const BlockState& facingState,
+        IWorld& world,
+        const BlockPos& currentPos,
+        const BlockPos& facingPos) override;
+
+    /**
+     * @brief 周期检查：重解析状态并写回
+     *
+     * 对齐 vanilla CreakingHeartBlock.tick（:99-104）。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
      * @brief 是否有比较器输入覆盖
      */
     [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
@@ -67,6 +87,21 @@ public:
      */
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 判断轴两端是否为同轴苍白橡木原木（对齐 vanilla hasRequiredLogs）
+     *
+     * 沿 state 的 AXIS 正负两向各取一块，须均属于 PALE_OAK_LOGS 标签且其 AXIS 与该轴一致。
+     */
+    [[nodiscard]] static bool hasRequiredLogs(const BlockState& state, IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 重解析状态（对齐 vanilla updateState）
+     *
+     * 若轴两端满足 hasRequiredLogs 且当前为 UPROOTED，则按 CREAKING_ACTIVE 环境属性
+     * 置 AWAKE（活跃）或 DORMANT（休眠）；否则状态不变。
+     */
+    [[nodiscard]] static BlockState updateState(const BlockState& state, IWorld& world, const BlockPos& pos);
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
