@@ -24,6 +24,10 @@
 #include "SkullBlock.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
@@ -31,9 +35,11 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/SupportType.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -95,6 +101,117 @@ i32 _facingIndex(Direction facing)
             return 3;
         default:
             return 0;
+    }
+}
+
+/// 判断方块状态是否为凋灵骷髅头颅（站立或墙挂）
+bool _isWitherSkeletonSkull(const BlockState* state)
+{
+    return state != nullptr &&
+        (state->is(VanillaBlocks::WITHER_SKELETON_SKULL) || state->is(VanillaBlocks::WITHER_SKELETON_WALL_SKULL));
+}
+
+/// 判断方块状态是否为凋灵召唤基座方块（灵魂沙/灵魂土）
+bool _isWitherBaseBlock(const BlockState* state)
+{
+    return state != nullptr && BlockTags::WITHER_SUMMON_BASE_BLOCKS().contains(*state);
+}
+
+/// 判断方块状态是否为空气
+bool _isAirState(const BlockState* state)
+{
+    return state != nullptr && state->isAir();
+}
+
+/**
+ * @brief 匹配凋灵 T 形图案（vanilla witherPatternFull）
+ *
+ * 图案（一个 3x3 局部平面，letters aisle "^^^"/"###"/"~#~"）：
+ * ```text
+ *   ^  ^  ^    三个凋灵骷髅头颅（顶层）
+ *   #  #  #    三个基座方块（中层）
+ *   ~  #  ~    顶层两侧为空气、中央为基座（底层）
+ * ```
+ * 图案可绕 Y 轴以 90 度旋转（X 轴或 Z 轴朝向）。命中时输出顶点头颅坐标与朝向轴。
+ *
+ * @param world 世界
+ * @param pos 新放置的头颅位置（作为匹配起点）
+ * @param outSkullPos [出参] 顶层中央头颅坐标
+ * @param outForwardsAxisIsX [出参] 图案前行轴是否为 X 轴（true=X，false=Z）
+ * @return 是否命中
+ */
+bool _matchWitherPattern(IWorld& world, const BlockPos& pos, BlockPos& outSkullPos, bool& outForwardsAxisIsX)
+{
+    // 图案的“前行”方向（从顶点头颅指向同排另一个头颅）可为 X 轴（east/west）或 Z 轴（north/south）。
+    // 以候选顶点头颅为中心，分别沿两个轴向展开 3x3 检查。
+    for (bool forwardsAxisIsX : {true, false}) {
+        const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
+        // 顶点头颅可能是 3 个头颅中的任意一个，故枚举偏移 -1/0/+1。
+        for (i32 headOffset = -1; headOffset <= 1; ++headOffset) {
+            // 顶层中央 = pos 沿前行轴反向偏移 (headOffset+1) 个单位
+            const BlockPos center = BlockPos(pos.x - dx.x * (headOffset + 1), pos.y, pos.z - dx.z * (headOffset + 1));
+            const BlockPos left = BlockPos(center.x - dx.x, center.y, center.z - dx.z);
+            const BlockPos right = BlockPos(center.x + dx.x, center.y, center.z + dx.z);
+
+            // 顶层：三个头颅
+            if (!_isWitherSkeletonSkull(world.getBlockState(left)) ||
+                !_isWitherSkeletonSkull(world.getBlockState(center)) ||
+                !_isWitherSkeletonSkull(world.getBlockState(right))) {
+                continue;
+            }
+
+            // 中层：三个基座方块
+            const bool midOk = _isWitherBaseBlock(world.getBlockState(left.down())) &&
+                _isWitherBaseBlock(world.getBlockState(center.down())) &&
+                _isWitherBaseBlock(world.getBlockState(right.down()));
+            if (!midOk) {
+                continue;
+            }
+
+            // 底层：两端空气、中央基座
+            const bool botOk = _isAirState(world.getBlockState(left.down(2))) &&
+                _isWitherBaseBlock(world.getBlockState(center.down(2))) &&
+                _isAirState(world.getBlockState(right.down(2)));
+            if (!botOk) {
+                continue;
+            }
+
+            outSkullPos = center;
+            outForwardsAxisIsX = forwardsAxisIsX;
+            return true;
+        }
+    }
+    return false;
+}
+
+/// 清除凋灵图案涉及的全部方块（3 头颅 + 3 中层基座 + 1 底层中央基座 = 7 个方块）
+void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos)
+{
+    const BlockState* airState = BlockRegistry::instance().airState();
+    if (airState == nullptr) {
+        return;
+    }
+
+    // 沿 X 轴与 Z 轴两个方向各自清除（顶层 3 头颅 + 中层 3 基座 + 底层中央 1 基座）。
+    // 图案在命中时已确定轴向，这里对两个轴向上实际为头颅/基座的位置统一置空即可。
+    for (bool forwardsAxisIsX : {true, false}) {
+        const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
+        for (i32 i = -1; i <= 1; ++i) {
+            const BlockPos top(centerSkullPos.x + dx.x * i, centerSkullPos.y, centerSkullPos.z + dx.z * i);
+            // 仅清除确实是头颅/基座的位置，避免误清其他轴向上的空气
+            if (_isWitherSkeletonSkull(world.getBlockState(top))) {
+                world.setBlockState(top, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+            }
+            const BlockPos mid = top.down();
+            if (_isWitherBaseBlock(world.getBlockState(mid))) {
+                world.setBlockState(mid, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+            }
+        }
+        // 底层中央基座
+        const BlockPos bottomCenter = BlockPos(centerSkullPos.x, centerSkullPos.y - 2, centerSkullPos.z);
+        if (_isWitherBaseBlock(world.getBlockState(bottomCenter))) {
+            world.setBlockState(bottomCenter, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        }
     }
 }
 
@@ -397,13 +514,71 @@ void WitherSkullBlock::onBlockPlacedBy(
 
 void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
 {
-    // TODO: 凋灵生成结构检测（4 灵魂沙/灵魂土 T 形 + 3 凋灵骷髅头颅）尚未实现。
-    //   需要 BlockPatternBuilder 构造 wither 图案（aisle "^^^"/"###"/"~#~"，
-    //   '#' 匹配 wither_summon_base_blocks 标签，'^' 匹配凋灵骷髅头颅，'~' 匹配空气），
-    //   匹配后清除图案方块并在中心生成 WitherBoss（Difficulty != PEACEFUL 时）。
-    //   当前仅留占位，避免结构误判。待凋灵 Boss 实体与图案匹配链路接入后补全。
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // 对齐 vanilla WitherSkullBlock.checkSpawn(Level, BlockPos)：
+    //   仅服务端判定；头颅方块须为凋灵骷髅头颅（站立或墙挂）；
+    //   y >= 世界最低高度且难度非和平；匹配凋灵 T 形图案后清除图案方块并生成凋灵。
+    if (world.isClientSide()) {
+        return;
+    }
+
+    const BlockState* skullState = world.getBlockState(pos);
+    if (skullState == nullptr) {
+        return;
+    }
+
+    const bool isWitherSkull = skullState->is(VanillaBlocks::WITHER_SKELETON_SKULL) ||
+        skullState->is(VanillaBlocks::WITHER_SKELETON_WALL_SKULL);
+    if (!isWitherSkull) {
+        return;
+    }
+
+    if (pos.y < world::MIN_BUILD_HEIGHT || world.difficulty() == Difficulty::Peaceful) {
+        return;
+    }
+
+    // 凋灵图案（含头颅层）：以头颅为顶点向下一层为 3 个基座方块、再下一层为空气-基座-空气。
+    // 图案可绕 Y 轴旋转（东西或南北方向），故先试以 pos 为顶点，再试其他头颅位置。
+    BlockPos skullPos;
+    bool forwardsAxisIsX = false;
+    if (!_matchWitherPattern(world, pos, skullPos, forwardsAxisIsX)) {
+        return;
+    }
+
+    // 生成凋灵实体：对应 vanilla EntityType.WITHER.create(level, TRIGGERED)。
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* witherType = registry.getType(entity::EntityTypeKeys::WITHER);
+    if (witherType == nullptr) {
+        return;
+    }
+    auto* ecsRegistry = world.entityRegistry();
+    if (ecsRegistry == nullptr) {
+        return;
+    }
+
+    std::unique_ptr<Entity> entity = witherType->create(&world, *ecsRegistry);
+    if (entity == nullptr) {
+        return;
+    }
+
+    // 清除图案方块（4 个基座方块 + 3 个头颅方块）后于中点生成凋灵。
+    _clearWitherPattern(world, skullPos);
+
+    // 凋灵生成于图案顶点下方一层的中心（vanilla: match.getBlock(1, 2, 0) 即顶点头颅位）。
+    entity->setPosition(
+        static_cast<f32>(skullPos.x) + 0.5f, static_cast<f32>(skullPos.y) + 0.55f, static_cast<f32>(skullPos.z) + 0.5f);
+    // 朝向按图案轴向决定（vanilla：X 轴 0 度、Z 轴 90 度）。
+    entity->setRotation(forwardsAxisIsX ? 0.0f : 90.0f, 0.0f);
+
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, skullPos);
+        mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
+    }
+
+    // 对齐 vanilla：凋灵生成后短暂无敌（makeInvulnerable）。
+    entity->setInvulnerable(true);
+
+    world.spawnEntity(std::move(entity));
 }
 
 WitherWallSkullBlock::WitherWallSkullBlock(const BlockProperties& properties)

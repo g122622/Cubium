@@ -190,6 +190,12 @@ public:
     /// 在这些方块上可以点燃灵魂火
     static BlockTag& SOUL_FIRE_BASE_BLOCKS();
 
+    /// 凋灵召唤基座方块标签（灵魂沙、灵魂土）
+    /// 对齐 vanilla BlockTags.WITHER_SUMMON_BASE_BLOCKS，成员对齐数据包
+    /// wither_summon_base_blocks.json = {soul_sand, soul_soil}。
+    /// 运行时消费场景：WitherSkullBlock::checkSpawn 的 T 形图案匹配（'#' 位）。
+    static BlockTag& WITHER_SUMMON_BASE_BLOCKS();
+
     /// 无限火源基座方块标签（主世界维度）
     /// 对齐 vanilla dimensionType().infiniburn()（FireBlock.java:151）：在这些方块上的火焰为
     /// 无限火源（永不熄灭、不检查有效位置、age15 不概率熄灭）。成员对齐数据包
