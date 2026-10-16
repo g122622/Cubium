@@ -28,6 +28,8 @@
 #include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/component/DataComponentType.hpp"
+#include "common/item/component/FireworkExplosion.hpp"
+#include "common/item/component/Fireworks.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/core/ItemRegistry.hpp"
@@ -159,6 +161,33 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
     nlohmann::json replacement;
     MC_TRY_ASSIGN(replacement, read());
     return nlohmann::json{{"raw", std::move(raw)}, {"filtered", std::move(replacement)}};
+}
+
+/// 写颜色列表（vanilla COLOR_LIST_STREAM_CODEC = VarInt(count) + [定长 4 字节大端 INT]*）。
+void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colors)
+{
+    buf.writeVarInt(static_cast<i32>(colors.size()));
+    for (i32 color : colors) {
+        buf.writeI32(color);
+    }
+}
+
+/// 读颜色列表（与 _writeColorList 对偶）。
+[[nodiscard]] Result<std::vector<i32>> _readColorList(network::buffer::ByteBuf& buf)
+{
+    i32 count = 0;
+    MC_TRY_ASSIGN(count, buf.readVarInt());
+    if (count < 0 || static_cast<usize>(count) > buf.readableBytes() / 4) {
+        return Error(ErrorCode::InvalidData, "Invalid firework color count");
+    }
+    std::vector<i32> colors;
+    colors.reserve(static_cast<usize>(count));
+    for (i32 i = 0; i < count; ++i) {
+        i32 color = 0;
+        MC_TRY_ASSIGN(color, buf.readI32());
+        colors.push_back(color);
+    }
+    return colors;
 }
 
 /// 写单个组件 value 到 wire（按 type 分派到专属 codec）。
@@ -300,6 +329,35 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
                 }
             }
             return network::buffer::nbt_io::writeRootCompound(buf, tag);
+        }
+        case DataComponentType::FireworkExplosion: {
+            // FireworkExplosion.STREAM_CODEC = composite(Shape.STREAM_CODEC(VarInt id),
+            // COLOR_LIST_STREAM_CODEC, COLOR_LIST_STREAM_CODEC, BOOL, BOOL)。
+            // COLOR_LIST_STREAM_CODEC = ByteBufCodecs.INT.apply(ByteBufCodecs.list())，
+            // 即 VarInt(count) + [定长 4 字节大端 INT]*（非 VarInt）。
+            const auto& explosion = std::get<FireworkExplosion>(payload);
+            buf.writeVarInt(static_cast<i32>(explosion.shape));
+            _writeColorList(buf, explosion.colors);
+            _writeColorList(buf, explosion.fadeColors);
+            buf.writeBool(explosion.hasTrail);
+            buf.writeBool(explosion.hasTwinkle);
+            return {};
+        }
+        case DataComponentType::Fireworks: {
+            // Fireworks.STREAM_CODEC = composite(VAR_INT(flightDuration),
+            // FireworkExplosion.STREAM_CODEC.apply(ByteBufCodecs.list(256)))。上限 256 项。
+            const auto& fireworks = std::get<Fireworks>(payload);
+            buf.writeVarInt(fireworks.flightDuration);
+            if (fireworks.explosions.size() > static_cast<usize>(Fireworks::MAX_EXPLOSIONS)) {
+                return Error(ErrorCode::InvalidData, "Too many firework explosions");
+            }
+            buf.writeVarInt(static_cast<i32>(fireworks.explosions.size()));
+            for (const auto& explosion : fireworks.explosions) {
+                MC_TRY(_writeComponentValue(buf,
+                    DataComponentType::FireworkExplosion,
+                    DataComponentPayload{std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, explosion}));
+            }
+            return {};
         }
     }
     // 枚举已全覆盖，此处不可达（保留以满足 -Wreturn-type）。
@@ -497,6 +555,36 @@ Result<nlohmann::json> _readBookValue(network::buffer::ByteBuf& buf, bool compon
             // 一次性取走到局部变量（见记忆 result-uniqueptr-value-takeownership-pitfall）。
             auto tag = tagResult.value();
             return DataComponentPayload{std::in_place_index<7>, nbt::nbtToJson(*tag)};
+        }
+        case DataComponentType::FireworkExplosion: {
+            FireworkExplosion explosion{};
+            i32 shapeId = 0;
+            MC_TRY_ASSIGN(shapeId, buf.readVarInt());
+            explosion.shape = fireworkShapeById(shapeId);
+            MC_TRY_ASSIGN(explosion.colors, _readColorList(buf));
+            MC_TRY_ASSIGN(explosion.fadeColors, _readColorList(buf));
+            MC_TRY_ASSIGN(explosion.hasTrail, buf.readBool());
+            MC_TRY_ASSIGN(explosion.hasTwinkle, buf.readBool());
+            return DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, std::move(explosion)};
+        }
+        case DataComponentType::Fireworks: {
+            Fireworks fireworks{};
+            MC_TRY_ASSIGN(fireworks.flightDuration, buf.readVarInt());
+            i32 count = 0;
+            MC_TRY_ASSIGN(count, buf.readVarInt());
+            if (count < 0 || count > Fireworks::MAX_EXPLOSIONS) {
+                return Error(ErrorCode::InvalidData, "Invalid firework explosion count");
+            }
+            fireworks.explosions.reserve(static_cast<usize>(count));
+            for (i32 i = 0; i < count; ++i) {
+                auto explosionResult = _readComponentValue(buf, DataComponentType::FireworkExplosion);
+                if (explosionResult.failed()) {
+                    return explosionResult.error();
+                }
+                fireworks.explosions.push_back(std::get<FireworkExplosion>(explosionResult.value()));
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Fireworks>, std::move(fireworks)};
         }
     }
     // 枚举已全覆盖，此处不可达（保留以满足 -Wreturn-type）。

@@ -21,8 +21,20 @@
  *
  */
 
-#include "FireworkStarFadeRecipe.hpp"
+#include "item/crafting/special/FireworkStarFadeRecipe.hpp"
+
+#include "common/core/Types.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/component/FireworkExplosion.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/item/items/DyeItemHelper.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "item/Items.hpp"
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace crafting {
@@ -33,17 +45,73 @@ FireworkStarFadeRecipe::FireworkStarFadeRecipe(const ResourceLocation& id)
 
 bool FireworkStarFadeRecipe::matches(const CraftingInventory& inventory) const
 {
-    // TODO: 烟花之星渐变色合成匹配逻辑未实现。原版规则：网格中含已有烟花之星 + 染料。
-    // 待烟花物品组件（Fireworks/Explosion）系统接入后补全。
-    (void)inventory;
-    return false;
+    i32 ingredientCount = 0;
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        if (!inventory.getItem(i).isEmpty()) {
+            ++ingredientCount;
+        }
+    }
+    if (ingredientCount < 2) {
+        return false;
+    }
+
+    bool hasDye = false;
+    bool hasStar = false;
+
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        const ItemStack stack = inventory.getItem(i);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        const Item* item = stack.getItem();
+
+        if (item::DyeItemHelper::isDyeItem(item)) {
+            hasDye = true;
+        } else {
+            if (item != Items::FIREWORK_STAR) {
+                return false;
+            }
+            if (hasStar) {
+                return false; // 至多一个烟花之星
+            }
+            hasStar = true;
+        }
+    }
+
+    return hasStar && hasDye;
 }
 
 ItemStack FireworkStarFadeRecipe::assemble(const CraftingInventory& inventory) const
 {
-    // TODO: 烟花之星渐变色合成逻辑未实现。待 Fireworks/Explosion 组件系统接入后补全。
-    (void)inventory;
-    return ItemStack::EMPTY;
+    std::vector<i32> fadeColors;
+    ItemStack star;
+
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        const ItemStack stack = inventory.getItem(i);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        const Item* item = stack.getItem();
+
+        if (const auto dyeColor = item::DyeItemHelper::dyeColorOfItem(item); dyeColor.has_value()) {
+            fadeColors.push_back(static_cast<i32>(dyeFireworkColor(*dyeColor)));
+        } else if (item == Items::FIREWORK_STAR) {
+            star = stack.copy();
+            star.setCount(1);
+        }
+    }
+
+    if (star.isEmpty() || fadeColors.empty()) {
+        return ItemStack::EMPTY;
+    }
+
+    // vanilla `itemstack.update(FIREWORK_EXPLOSION, DEFAULT, list, withFadeColors)`：
+    // 未携带组件时以 DEFAULT 为初值，仅替换 fade_colors。
+    item::component::FireworkExplosion explosion = star.getFireworkExplosion() != nullptr
+        ? *star.getFireworkExplosion()
+        : item::component::FireworkExplosion::defaultExplosion();
+    star.setFireworkExplosion(explosion.withFadeColors(std::move(fadeColors)));
+    return star;
 }
 
 std::vector<ItemStack> FireworkStarFadeRecipe::getRemainingItems(const CraftingInventory& inventory) const

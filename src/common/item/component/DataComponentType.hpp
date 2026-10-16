@@ -68,6 +68,8 @@ enum class DataComponentType : i32 {
     StoredEnchantments = 41,  // minecraft:stored_enchantments —— 储存附魔
     BannerPatterns = 70,      // minecraft:banner_patterns —— 旗帜图层
     PotionContents = 49,      // minecraft:potion_contents —— record{potion,color,effects,name}
+    FireworkExplosion = 66,   // minecraft:firework_explosion —— 单次爆炸（形状/颜色/拖尾/闪烁）
+    Fireworks = 67,           // minecraft:fireworks —— 烟花火箭（飞行时长 + 爆炸列表）
 };
 
 /**

@@ -52,6 +52,7 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/component/Fireworks.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
@@ -1742,17 +1743,13 @@ void FireworkRocketEntity::setFireworkItem(const ItemStack& item)
     }
     *fw->m_fireworkItem = item;
 
-    // 从物品 NBT 读取飞行时间
-    const nlohmann::json* tag = item.getTag();
-    if (tag != nullptr) {
-        auto fireworksIt = tag->find("Fireworks");
-        if (fireworksIt != tag->end() && fireworksIt->is_object()) {
-            auto flightIt = fireworksIt->find("Flight");
-            if (flightIt != fireworksIt->end() && flightIt->is_number()) {
-                fw->m_flightTime = std::max(1, flightIt->get<i32>());
-            }
-        }
+    // 飞行等级 = 1 + fireworks 组件的 flight_duration（无组件时 flight_duration 视为 0）。
+    // 对应 vanilla FireworkRocketEntity 构造函数：i = 1; i += fireworks.flightDuration()。
+    i32 flight = 1;
+    if (const auto* fireworks = item.getFireworks(); fireworks != nullptr) {
+        flight += fireworks->flightDuration;
     }
+    fw->m_flightTime = flight;
 
     // 物品变更后，已计算的 lifeTime 失效，需重新懒初始化
     // （NBT 反序列化路径会在 setFireworkItem 之后显式 setLifeTime 覆盖此处的重置）
@@ -1784,23 +1781,12 @@ i32 FireworkRocketEntity::getExplosionCount() const
     if (fw == nullptr || fw->m_fireworkItem == nullptr) {
         return 0;
     }
-    // 从物品 NBT 读取爆炸效果数量
-    const nlohmann::json* tag = fw->m_fireworkItem->getTag();
-    if (tag == nullptr) {
+    // 爆炸数量取自物品的 fireworks 组件（对应 vanilla getExplosions().size()）
+    const auto* fireworks = fw->m_fireworkItem->getFireworks();
+    if (fireworks == nullptr) {
         return 0;
     }
-
-    auto fireworksIt = tag->find("Fireworks");
-    if (fireworksIt == tag->end() || !fireworksIt->is_object()) {
-        return 0;
-    }
-
-    auto explosionsIt = fireworksIt->find("Explosions");
-    if (explosionsIt == fireworksIt->end() || !explosionsIt->is_array()) {
-        return 0;
-    }
-
-    return static_cast<i32>(explosionsIt->size());
+    return static_cast<i32>(fireworks->explosions.size());
 }
 
 void FireworkRocketEntity::tick()

@@ -33,11 +33,13 @@ namespace crafting {
 /**
  * @brief 烟花之星合成配方（crafting_special_firework_star）
  *
- * 对应 MC 1.21.11 的 FireworkStarRecipe。玩家用火药 + 染料（+ 可选附加效果物品）
- * 合成烟花之星，为其设置爆炸颜色与效果。
- *
- * 注意：当前 matches/assemble 逻辑未实现（TODO），仅为让数据包加载不失败、配方注册完整。
- * 待烟花物品组件（Fireworks/Explosion）系统接入后补全匹配与合成逻辑。
+ * 对应 MC 1.21.11 的 FireworkStarRecipe。玩家用火药 + 染料（+ 可选的形状物品 /
+ * 荧石粉 / 钻石）合成烟花之星，结果携带 firework_explosion 组件描述本次爆炸：
+ * - 形状物品（火焰弹→大型球、羽毛→爆裂、金粒→星形、各类头颅→苦力怕形）决定形状，
+ *   至多一个；
+ * - 染料颜色按网格顺序累积为爆炸主色列表；
+ * - 荧石粉置 has_twinkle，钻石置 has_trail，各至多一个。
+ * 匹配要求网格非空物品数 >= 2，且至少含一个火药与一个染料。
  *
  * 参考: net.minecraft.world.item.crafting.FireworkStarRecipe
  */

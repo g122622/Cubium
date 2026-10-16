@@ -30,6 +30,8 @@
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
+#include "common/item/component/FireworkExplosion.hpp"
+#include "common/item/component/Fireworks.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -49,7 +51,7 @@ using namespace mc::nbt::tags;
 
 namespace {
 
-/// 构造一个带全部 9 个已落地组件的 ItemStack（用于往返保真验证）
+/// 构造一个带全部已落地组件的 ItemStack（用于往返保真验证）
 ItemStack makeFullyComponentedStack(const Item* sword)
 {
     ItemStack stack(*sword, 1);
@@ -65,6 +67,18 @@ ItemStack makeFullyComponentedStack(const Item* sword)
     stack.setPotionId("minecraft:water");
     stack.setCanPlaceOn(AdventureModePredicate({"minecraft:stone", "minecraft:dirt"}));
     stack.setCanDestroy(AdventureModePredicate({"minecraft:cobblestone"}));
+    item::component::FireworkExplosion explosion{};
+    explosion.shape = item::component::FireworkShape::Creeper;
+    explosion.colors = {0x123456, 0xABCDEF};
+    explosion.fadeColors = {0x654321};
+    explosion.hasTrail = true;
+    explosion.hasTwinkle = true;
+    stack.setFireworkExplosion(std::move(explosion));
+    item::component::Fireworks fireworks{};
+    fireworks.flightDuration = 2;
+    fireworks.explosions.push_back(*stack.getFireworkExplosion());
+    fireworks.explosions.emplace_back();
+    stack.setFireworks(std::move(fireworks));
     auto& tag = stack.getOrCreateTag();
     tag = nlohmann::json::object();
     tag["display"]["color"] = 0xFF0000;
@@ -128,6 +142,19 @@ TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesAllComponents)
     EXPECT_EQ(restored.getCanPlaceOn().getPredicates()[1], "minecraft:dirt");
     ASSERT_EQ(restored.getCanDestroy().getPredicates().size(), 1u);
     EXPECT_EQ(restored.getCanDestroy().getPredicates()[0], "minecraft:cobblestone");
+    // firework_explosion / fireworks 组件保真
+    const auto* restoredExplosion = restored.getFireworkExplosion();
+    ASSERT_NE(restoredExplosion, nullptr);
+    EXPECT_EQ(restoredExplosion->shape, item::component::FireworkShape::Creeper);
+    EXPECT_EQ(restoredExplosion->colors, (std::vector<i32>{0x123456, 0xABCDEF}));
+    EXPECT_EQ(restoredExplosion->fadeColors, (std::vector<i32>{0x654321}));
+    EXPECT_TRUE(restoredExplosion->hasTrail);
+    EXPECT_TRUE(restoredExplosion->hasTwinkle);
+    const auto* restoredFireworks = restored.getFireworks();
+    ASSERT_NE(restoredFireworks, nullptr);
+    EXPECT_EQ(restoredFireworks->flightDuration, 2);
+    ASSERT_EQ(restoredFireworks->explosions.size(), 2u);
+    EXPECT_EQ(restoredFireworks->explosions[0], *restoredExplosion);
     // CustomData 经 JSON→NBT→JSON 往返：display.color 与 custom.n 应保留
     const auto* restoredTag = restored.getTag();
     ASSERT_NE(restoredTag, nullptr);
@@ -199,6 +226,19 @@ TEST_F(ItemStackComponentRoundTripTest, WireRoundTrip_PreservesAllComponents)
     // 保互通不崩）。NBT 路径（NbtRoundTrip）不走 wire 降级，谓词保真。
     EXPECT_EQ(restored.getCanPlaceOn().getPredicates().size(), 0u);
     EXPECT_EQ(restored.getCanDestroy().getPredicates().size(), 0u);
+    // firework_explosion / fireworks 组件经 wire 保真（VarInt shape + INT 颜色列表 + Bool 标志）
+    const auto* restoredExplosion = restored.getFireworkExplosion();
+    ASSERT_NE(restoredExplosion, nullptr);
+    EXPECT_EQ(restoredExplosion->shape, item::component::FireworkShape::Creeper);
+    EXPECT_EQ(restoredExplosion->colors, (std::vector<i32>{0x123456, 0xABCDEF}));
+    EXPECT_EQ(restoredExplosion->fadeColors, (std::vector<i32>{0x654321}));
+    EXPECT_TRUE(restoredExplosion->hasTrail);
+    EXPECT_TRUE(restoredExplosion->hasTwinkle);
+    const auto* restoredFireworks = restored.getFireworks();
+    ASSERT_NE(restoredFireworks, nullptr);
+    EXPECT_EQ(restoredFireworks->flightDuration, 2);
+    ASSERT_EQ(restoredFireworks->explosions.size(), 2u);
+    EXPECT_EQ(restoredFireworks->explosions[0], *restoredExplosion);
     const auto* restoredTag = restored.getTag();
     ASSERT_NE(restoredTag, nullptr);
     EXPECT_EQ(restoredTag->at("display").at("color").get<i32>(), 0xFF0000);

@@ -21,7 +21,7 @@ util/
 ├── concurrent/                    # 并发原语（详见 README.md）
 │   └── ReentrantAreaLock.hpp/cpp  # 按区块坐标分区的可重入区域锁（对齐 Moonrise）
 ├── color/                         # 颜色工具
-│   └── DyeColor.hpp               # 染料颜色枚举（MC 1.16.5 16色）
+│   └── DyeColor.hpp               # 染料颜色枚举（16 色）与烟花色映射（dyeFireworkColor）
 ├── core/                          # 核心工具
 │   └── CoordConverter.hpp         # 区块坐标转换器
 ├── crypto/                        # 加密哈希工具

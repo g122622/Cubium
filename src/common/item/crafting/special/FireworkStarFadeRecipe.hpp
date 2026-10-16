@@ -33,11 +33,9 @@ namespace crafting {
 /**
  * @brief 烟花之星渐变色合成配方（crafting_special_firework_star_fade）
  *
- * 对应 MC 1.21.11 的 FireworkStarFadeRecipe。玩家用已有烟花之星 + 染料合成，
- * 为其爆炸效果添加渐变颜色。
- *
- * 注意：当前 matches/assemble 逻辑未实现（TODO），仅为让数据包加载不失败、配方注册完整。
- * 待烟花物品组件（Fireworks/Explosion）系统接入后补全匹配与合成逻辑。
+ * 对应 MC 1.21.11 的 FireworkStarFadeRecipe。玩家用恰一个已有烟花之星 + 任意数量染料
+ * 合成，染料颜色按网格顺序累积为 fade_colors 写入星形的 firework_explosion 组件
+ * （形状/主色/拖尾/闪烁原样保留）。星形未携带该组件时以默认爆炸为初值。
  *
  * 参考: net.minecraft.world.item.crafting.FireworkStarFadeRecipe
  */

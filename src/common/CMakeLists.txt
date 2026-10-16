@@ -480,6 +480,7 @@ add_library(mc_common STATIC
     item/component/DataComponentPayloadCodec.cpp
     item/component/DataComponentPatchNbt.cpp
     item/component/DataComponentPatchWire.cpp
+    item/component/FireworkExplosion.cpp
 
     # Item System - Core
     item/core/AdventureModePredicate.cpp
@@ -531,6 +532,9 @@ add_library(mc_common STATIC
 
     # Item - Banner Pattern
     item/items/BannerPatternItem.cpp
+
+    # Item - Dye helper（染料物品判定与颜色查询，供各染色配方复用）
+    item/items/DyeItemHelper.cpp
 
     # Item - Tier System
     item/tier/IItemTier.cpp

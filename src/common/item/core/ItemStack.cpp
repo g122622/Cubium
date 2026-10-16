@@ -300,6 +300,16 @@ void ItemStack::setAttackRange(item::component::AttackRange range)
     _ensureExtras().attackRange = range;
 }
 
+void ItemStack::setFireworkExplosion(item::component::FireworkExplosion explosion)
+{
+    _ensureExtras().fireworkExplosion = std::move(explosion);
+}
+
+void ItemStack::setFireworks(item::component::Fireworks fireworks)
+{
+    _ensureExtras().fireworks = std::move(fireworks);
+}
+
 // ============================================================================
 // 附魔
 // ============================================================================
@@ -832,6 +842,26 @@ nlohmann::json ItemStack::toJson() const
                 {"hitbox_margin", ar.hitboxMargin},
                 {"mob_factor", ar.mobFactor}};
         }
+        if (m_extras->fireworkExplosion.has_value()) {
+            const auto& explosion = *m_extras->fireworkExplosion;
+            json["minecraft:firework_explosion"] = {{"shape", std::string(fireworkShapeName(explosion.shape))},
+                {"colors", explosion.colors},
+                {"fade_colors", explosion.fadeColors},
+                {"has_trail", explosion.hasTrail},
+                {"has_twinkle", explosion.hasTwinkle}};
+        }
+        if (m_extras->fireworks.has_value()) {
+            auto explosions = nlohmann::json::array();
+            for (const auto& explosion : m_extras->fireworks->explosions) {
+                explosions.push_back({{"shape", std::string(fireworkShapeName(explosion.shape))},
+                    {"colors", explosion.colors},
+                    {"fade_colors", explosion.fadeColors},
+                    {"has_trail", explosion.hasTrail},
+                    {"has_twinkle", explosion.hasTwinkle}});
+            }
+            json["minecraft:fireworks"] = {
+                {"flight_duration", m_extras->fireworks->flightDuration}, {"explosions", std::move(explosions)}};
+        }
     }
 
     return json;
@@ -951,8 +981,48 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         }
         stack.setAttackRange(range);
     }
+    if (json.contains("minecraft:firework_explosion") && json["minecraft:firework_explosion"].is_object()) {
+        stack.setFireworkExplosion(_fireworkExplosionFromJson(json["minecraft:firework_explosion"]));
+    }
+    if (json.contains("minecraft:fireworks") && json["minecraft:fireworks"].is_object()) {
+        const auto& fireworksJson = json["minecraft:fireworks"];
+        item::component::Fireworks fireworks{};
+        if (fireworksJson.contains("flight_duration") && fireworksJson["flight_duration"].is_number()) {
+            fireworks.flightDuration = fireworksJson["flight_duration"].get<i32>();
+        }
+        if (fireworksJson.contains("explosions") && fireworksJson["explosions"].is_array()) {
+            for (const auto& explosionJson : fireworksJson["explosions"]) {
+                if (explosionJson.is_object()) {
+                    fireworks.explosions.push_back(_fireworkExplosionFromJson(explosionJson));
+                }
+            }
+        }
+        stack.setFireworks(std::move(fireworks));
+    }
 
     return stack;
+}
+
+item::component::FireworkExplosion ItemStack::_fireworkExplosionFromJson(const nlohmann::json& json)
+{
+    item::component::FireworkExplosion explosion{};
+    if (json.contains("shape") && json["shape"].is_string()) {
+        explosion.shape = item::component::fireworkShapeFromName(json["shape"].get<std::string>())
+                              .value_or(item::component::FireworkShape::SmallBall);
+    }
+    if (json.contains("colors") && json["colors"].is_array()) {
+        explosion.colors = json["colors"].get<std::vector<i32>>();
+    }
+    if (json.contains("fade_colors") && json["fade_colors"].is_array()) {
+        explosion.fadeColors = json["fade_colors"].get<std::vector<i32>>();
+    }
+    if (json.contains("has_trail") && json["has_trail"].is_boolean()) {
+        explosion.hasTrail = json["has_trail"].get<bool>();
+    }
+    if (json.contains("has_twinkle") && json["has_twinkle"].is_boolean()) {
+        explosion.hasTwinkle = json["has_twinkle"].get<bool>();
+    }
+    return explosion;
 }
 
 // ============================================================================
@@ -1074,6 +1144,15 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         if (m_extras->attackRange.has_value()) {
             patch.add(
                 DataComponentType::AttackRange, DataComponentPayload{std::in_place_index<11>, *m_extras->attackRange});
+        }
+        if (m_extras->fireworkExplosion.has_value()) {
+            patch.add(DataComponentType::FireworkExplosion,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, *m_extras->fireworkExplosion});
+        }
+        if (m_extras->fireworks.has_value()) {
+            patch.add(DataComponentType::Fireworks,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Fireworks>, *m_extras->fireworks});
         }
     }
     return patch;
@@ -1210,6 +1289,14 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setAttackRange(std::get<item::component::AttackRange>(entry.value));
                 break;
             }
+            case DataComponentType::FireworkExplosion: {
+                setFireworkExplosion(std::get<item::component::FireworkExplosion>(entry.value));
+                break;
+            }
+            case DataComponentType::Fireworks: {
+                setFireworks(std::get<item::component::Fireworks>(entry.value));
+                break;
+            }
         }
     }
     for (i32 typeId : patch.removed()) {
@@ -1294,6 +1381,16 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::AttackRange:
                 if (m_extras) {
                     m_extras->attackRange.reset();
+                }
+                break;
+            case DataComponentType::FireworkExplosion:
+                if (m_extras) {
+                    m_extras->fireworkExplosion.reset();
+                }
+                break;
+            case DataComponentType::Fireworks:
+                if (m_extras) {
+                    m_extras->fireworks.reset();
                 }
                 break;
         }
@@ -1547,7 +1644,8 @@ bool ItemStack::_componentOverridesEqual(const ItemStack& other) const
     return a->maxStackSizeOverride == b->maxStackSizeOverride && a->maxDamageOverride == b->maxDamageOverride &&
         a->unbreakable == b->unbreakable && sameText(a->itemName, b->itemName) && a->itemModel == b->itemModel &&
         a->rarityOverride == b->rarityOverride && a->enchantableOverride == b->enchantableOverride &&
-        a->attackRange == b->attackRange;
+        a->attackRange == b->attackRange && a->fireworkExplosion == b->fireworkExplosion &&
+        a->fireworks == b->fireworks;
 }
 
 // ============================================================================

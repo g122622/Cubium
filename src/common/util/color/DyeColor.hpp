@@ -24,14 +24,15 @@
 #pragma once
 
 #include "core/Types.hpp"
+#include <optional>
 
 namespace mc {
 
 /**
  * @brief 染料颜色枚举
  *
- * 对应 MC 1.16.5 DyeColor，定义16种标准染料颜色。
- * 广泛用于旗帜、皮革盔甲染色、混凝土、陶瓦等场景。
+ * 对应 MC DyeColor，定义16种标准染料颜色。
+ * 广泛用于旗帜、皮革盔甲染色、混凝土、陶瓦、烟花之星等场景。
  */
 enum class DyeColor : u8 {
     White = 0,
@@ -52,5 +53,71 @@ enum class DyeColor : u8 {
     Black = 15,
     Count = 16
 };
+
+/**
+ * @brief 染料对应的烟花色（vanilla DyeColor.getFireworkColor()）
+ *
+ * 注意与"纹理漫反射色"（getTextureDiffuseColor，盔甲/狼铠染色用）不同：
+ * 烟花色整体更饱和，例如白色烟花为 0xF0F0F0 而纹理色为 0xF9FFFE。
+ *
+ * @param color 染料颜色
+ * @return 0xRRGGBB 形式的烟花色
+ */
+[[nodiscard]] constexpr u32 dyeFireworkColor(DyeColor color) noexcept
+{
+    switch (color) {
+        case DyeColor::White:
+            return 0xF0F0F0;
+        case DyeColor::Orange:
+            return 0xEB8844;
+        case DyeColor::Magenta:
+            return 0xC354CD;
+        case DyeColor::LightBlue:
+            return 0x6689D3;
+        case DyeColor::Yellow:
+            return 0xDECF2A;
+        case DyeColor::Lime:
+            return 0x41CD34;
+        case DyeColor::Pink:
+            return 0xD88198;
+        case DyeColor::Gray:
+            return 0x434343;
+        case DyeColor::LightGray:
+            return 0xABABAB;
+        case DyeColor::Cyan:
+            return 0x287697;
+        case DyeColor::Purple:
+            return 0x7B2FBE;
+        case DyeColor::Blue:
+            return 0x253192;
+        case DyeColor::Brown:
+            return 0x51301A;
+        case DyeColor::Green:
+            return 0x3B511A;
+        case DyeColor::Red:
+            return 0xB3312C;
+        case DyeColor::Black:
+            return 0x1E1B1B;
+        default:
+            return 0xF0F0F0;
+    }
+}
+
+/**
+ * @brief 由烟花色反查染料颜色（vanilla DyeColor.byFireworkColor）
+ *
+ * @param fireworkColor 0xRRGGBB 形式的烟花色
+ * @return 对应染料；无匹配返回 nullopt
+ */
+[[nodiscard]] constexpr std::optional<DyeColor> dyeColorByFireworkColor(u32 fireworkColor) noexcept
+{
+    for (u8 i = 0; i < static_cast<u8>(DyeColor::Count); ++i) {
+        const auto color = static_cast<DyeColor>(i);
+        if (dyeFireworkColor(color) == fireworkColor) {
+            return color;
+        }
+    }
+    return std::nullopt;
+}
 
 } // namespace mc

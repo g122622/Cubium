@@ -62,6 +62,8 @@ constexpr std::array _entries{
     _Entry{DataComponentType::StoredEnchantments, "minecraft:stored_enchantments"},
     _Entry{DataComponentType::BannerPatterns, "minecraft:banner_patterns"},
     _Entry{DataComponentType::PotionContents, "minecraft:potion_contents"},
+    _Entry{DataComponentType::FireworkExplosion, "minecraft:firework_explosion"},
+    _Entry{DataComponentType::Fireworks, "minecraft:fireworks"},
 };
 
 } // namespace
