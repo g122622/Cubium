@@ -419,8 +419,10 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_ClearsStoredItem)
 
     world.setBlockEntity(pos, std::move(entity));
 
-    // 移除方块
-    pot_->onBlockRemoved(world, pos, state, false);
+    // 方块实体的移除副作用入口（对齐 vanilla）：非 CRACKED 掉落内容物并清空
+    auto* entityBefore = world.getBlockEntity(pos);
+    ASSERT_NE(entityBefore, nullptr);
+    static_cast<DecoratedPotBlockEntity*>(entityBefore)->preRemoveSideEffects(pos, state);
 
     // 方块实体中的物品应被清空
     auto* entityAfter = world.getBlockEntity(pos);
@@ -983,12 +985,16 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_CrackedState_ClearsStoredItem)
 
     m_world.setBlockEntity(pos, std::move(entity));
 
-    i32 spawnBefore = m_world.spawnedEntityCount();
-    pot_->onBlockRemoved(m_world, pos, crackedState, false);
+    // 方块实体的移除副作用入口（对齐 vanilla）：CRACKED 掉落 4 个陶片并清空内容物
+    const i32 spawnBefore = m_world.spawnedEntityCount();
+    auto* entityBefore = m_world.getBlockEntity(pos);
+    ASSERT_NE(entityBefore, nullptr);
+    static_cast<DecoratedPotBlockEntity*>(entityBefore)->preRemoveSideEffects(pos, crackedState);
 
-    // CRACKED 状态应生成物品实体（4个陶片）
-    // spawnEntity 可能被 ItemDropHelper 调用，但因为测试世界可能无法完全模拟
-    // 关键验证：方块实体中物品应被清空
+    // CRACKED 必须掉落恰好 4 个陶片（而非走基类的"掉落内容物 1 个"路径）
+    EXPECT_EQ(m_world.spawnedEntityCount() - spawnBefore, 4);
+
+    // 且内容物被清空（CRACKED 不掉落内容物）
     auto* entityAfter = m_world.getBlockEntity(pos);
     if (entityAfter != nullptr && entityAfter->getType() == BlockEntityType::DecoratedPot) {
         auto* potAfter = static_cast<DecoratedPotBlockEntity*>(entityAfter);
@@ -1014,7 +1020,9 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NonCrackedState_ClearsStoredItem)
 
     m_world.setBlockEntity(pos, std::move(entity));
 
-    pot_->onBlockRemoved(m_world, pos, state, false);
+    auto* entityBefore = m_world.getBlockEntity(pos);
+    ASSERT_NE(entityBefore, nullptr);
+    static_cast<DecoratedPotBlockEntity*>(entityBefore)->preRemoveSideEffects(pos, state);
 
     // 方块实体中物品应被清空
     auto* entityAfter = m_world.getBlockEntity(pos);
@@ -1039,7 +1047,9 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NonCrackedEmptyPot_NoDrop)
     m_world.setBlockEntity(pos, std::move(entity));
 
     i32 spawnBefore = m_world.spawnedEntityCount();
-    pot_->onBlockRemoved(m_world, pos, state, false);
+    auto* entityBefore = m_world.getBlockEntity(pos);
+    ASSERT_NE(entityBefore, nullptr);
+    static_cast<DecoratedPotBlockEntity*>(entityBefore)->preRemoveSideEffects(pos, state);
 
     // 空陶罐不应生成物品实体
     EXPECT_EQ(m_world.spawnedEntityCount(), spawnBefore);
@@ -1065,7 +1075,9 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_ClientSide_DoesNotDropItems)
     m_world.setBlockEntity(pos, std::move(entity));
 
     i32 spawnBefore = m_world.spawnedEntityCount();
-    pot_->onBlockRemoved(m_world, pos, state, false);
+    auto* entityBefore = m_world.getBlockEntity(pos);
+    ASSERT_NE(entityBefore, nullptr);
+    static_cast<DecoratedPotBlockEntity*>(entityBefore)->preRemoveSideEffects(pos, state);
 
     // 客户端侧不应生成物品实体
     EXPECT_EQ(m_world.spawnedEntityCount(), spawnBefore);
@@ -1073,7 +1085,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_ClientSide_DoesNotDropItems)
 
 TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NoBlockEntity_DoesNotCrash)
 {
-    // 无方块实体时不应崩溃
+    // 无方块实体时不应崩溃：方块侧 onBlockRemoved 已不负责掉落（迁至方块实体），恒安全。
     BlockPos pos(0, 64, 0);
     const auto& state = pot_->defaultState();
     m_world.setBlockAt(pos, &state);
@@ -1084,8 +1096,7 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NoBlockEntity_DoesNotCrash)
 
 TEST_F(DecoratedPotBlockTest, OnBlockRemoved_WrongBlockEntityType_DoesNotCrash)
 {
-    // 方块实体类型不匹配时不应崩溃（不太可能发生，但需确保安全）
-    // 此测试验证即使方块实体类型不是 DecoratedPot，也不会崩溃
+    // 方块侧 onBlockRemoved 已不负责掉落（迁至方块实体），无实体时恒安全。
     BlockPos pos(0, 64, 0);
     const auto& state = pot_->defaultState();
     m_world.setBlockAt(pos, &state);

@@ -276,39 +276,15 @@ BlockActionResult LecternBlock::useWithoutItem(
 
 void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    // TODO: 讲台的书掉落应迁到 LecternEntity::preRemoveSideEffects，并由
-    //       UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控；放在这里会在不含 UPDATE_NEIGHBORS
-    //       的写入（结构放置、活塞推动等）下漏掉书的掉落。
-    // 如果有书，掉落书本
-    if (state.get(BlockStateProperties::HAS_BOOK())) {
-        _dropBook(world, pos, state);
-    }
-
+    // 书本掉落已迁至 LecternEntity::preRemoveSideEffects（对齐 vanilla LecternBlockEntity），
+    // 由 ServerWorld::setBlockState 在方块实体被丢弃前调用，并受
+    // UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控——此处不再负责掉落，避免重复。
     // 如果处于激活状态，通知下方方块更新红石
     if (state.get(BlockStateProperties::POWERED())) {
         updateBelow(world, pos, state.getBlockMutable());
     }
 
     Block::onBlockRemoved(world, pos, state, movedByPiston);
-}
-
-void LecternBlock::_dropBook(IWorld& world, const BlockPos& pos, const BlockState& state)
-{
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity != nullptr && entity->getType() == BlockEntityType::Lectern) {
-        auto* lectern = static_cast<blockentity::LecternEntity*>(entity);
-        ItemStack book = lectern->removeBook();
-
-        if (!book.isEmpty()) {
-            // 根据朝向计算掉落位置
-            Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-            f32 offsetX = 0.5f + 0.25f * static_cast<f32>(Directions::xOffset(facing));
-            f32 offsetZ = 0.5f + 0.25f * static_cast<f32>(Directions::zOffset(facing));
-
-            math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world, book, pos.x + offsetX, pos.y + 1.0, pos.z + offsetZ, rng);
-        }
-    }
 }
 
 bool LecternBlock::tryPlaceBook(IWorld& world, const BlockPos& pos, const ItemStack& bookStack)

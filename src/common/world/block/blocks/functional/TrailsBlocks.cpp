@@ -398,41 +398,9 @@ void DecoratedPotBlock::onProjectileHit(
 
 void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state, bool movedByPiston)
 {
-    // TODO: 装饰陶罐的掉落（CRACKED 时掉落 4 个陶片，否则掉落内容物）应迁到
-    //       DecoratedPotBlockEntity::preRemoveSideEffects，并由
-    //       UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控；放在这里会在不含 UPDATE_NEIGHBORS
-    //       的写入下漏掉。
-    BlockEntity* entity = world.getBlockEntity(pos);
-    if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
-        auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
-
-        if (!world.isClientSide()) {
-            if (state.get(BlockStateProperties::CRACKED())) {
-                // 碎裂状态：掉落4个独立的陶片/砖块物品
-                const blockentity::PotDecorations& decorations = potEntity->getDecorations();
-                const auto& patterns = decorations.ordered();
-                math::Random rng;
-                for (i32 i = 0; i < 4; ++i) {
-                    const Item* sherdItem = blockentity::getItemFromPattern(patterns[static_cast<std::size_t>(i)]);
-                    if (sherdItem != nullptr) {
-                        ItemStack sherdStack(sherdItem, 1);
-                        ItemDropHelper::spawnItemEntity(&world, sherdStack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
-                    }
-                }
-            } else {
-                // 非碎裂状态：掉落陶罐内存储的物品（陶罐本身由战利品表系统处理）
-                ItemStack storedItem = potEntity->getItem();
-                if (!storedItem.isEmpty()) {
-                    math::Random rng;
-                    ItemDropHelper::spawnItemEntity(&world, storedItem, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
-                }
-            }
-
-            // 清空容器以防止重复掉落
-            potEntity->setItem(ItemStack());
-        }
-    }
-
+    // 掉落已迁至 DecoratedPotBlockEntity::preRemoveSideEffects（对齐 vanilla），由
+    // ServerWorld::setBlockState 在方块实体被丢弃前调用，并受
+    // UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控——此处不再负责掉落，避免重复。
     Block::onBlockRemoved(world, pos, state, movedByPiston);
 }
 

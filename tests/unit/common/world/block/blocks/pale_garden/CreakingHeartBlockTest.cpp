@@ -34,6 +34,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -41,7 +42,6 @@
 #include "common/world/block/blocks/pale_garden/CreakingHeartBlock.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <map>
@@ -90,10 +90,7 @@ public:
         return true;
     }
 
-    void setBlock(const BlockPos& pos, const BlockState& state)
-    {
-        m_blocks[pos] = std::make_unique<BlockState>(state);
-    }
+    void setBlock(const BlockPos& pos, const BlockState& state) { m_blocks[pos] = std::make_unique<BlockState>(state); }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
     [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
@@ -187,7 +184,8 @@ TEST_F(CreakingHeartBlockTest, HasRequiredLogs_WrongAxisFails)
     const BlockState heart = placeHeart(pos, Axis::Y);
 
     // 两端为 X 轴原木，与 Y 轴嘎枝之心不同轴 → 不满足
-    const BlockState logX = block_registry::PaleGardenBlocks::PALE_OAK_LOG->defaultState().with(BlockStateProperties::AXIS(), Axis::X);
+    const BlockState logX =
+        block_registry::PaleGardenBlocks::PALE_OAK_LOG->defaultState().with(BlockStateProperties::AXIS(), Axis::X);
     m_world->setBlock(BlockPos(0, 0, 0), logX);
     m_world->setBlock(BlockPos(0, 2, 0), logX);
 
@@ -210,7 +208,8 @@ TEST_F(CreakingHeartBlockTest, HasRequiredLogs_XAxisUsesEastWest)
     const BlockPos pos(1, 3, 1);
     const BlockState heart = placeHeart(pos, Axis::X);
 
-    const BlockState logX = block_registry::PaleGardenBlocks::PALE_OAK_LOG->defaultState().with(BlockStateProperties::AXIS(), Axis::X);
+    const BlockState logX =
+        block_registry::PaleGardenBlocks::PALE_OAK_LOG->defaultState().with(BlockStateProperties::AXIS(), Axis::X);
     m_world->setBlock(BlockPos(0, 3, 1), logX); // West
     m_world->setBlock(BlockPos(2, 3, 1), logX); // East
 
@@ -230,8 +229,8 @@ TEST_F(CreakingHeartBlockTest, UpdateState_UprootedToDormantWhenNotActive)
     m_world->setCreakingActive(false);
     const BlockState updated = CreakingHeartBlock::updateState(heart, *m_world, pos);
 
-    EXPECT_EQ(updated.get(BlockStateProperties::CREAKING_HEART_STATE()),
-        BlockStateProperties::CreakingHeartState::Dormant);
+    EXPECT_EQ(
+        updated.get(BlockStateProperties::CREAKING_HEART_STATE()), BlockStateProperties::CreakingHeartState::Dormant);
 }
 
 TEST_F(CreakingHeartBlockTest, UpdateState_UprootedToAwakeWhenActive)
@@ -245,8 +244,8 @@ TEST_F(CreakingHeartBlockTest, UpdateState_UprootedToAwakeWhenActive)
     m_world->setCreakingActive(true);
     const BlockState updated = CreakingHeartBlock::updateState(heart, *m_world, pos);
 
-    EXPECT_EQ(updated.get(BlockStateProperties::CREAKING_HEART_STATE()),
-        BlockStateProperties::CreakingHeartState::Awake);
+    EXPECT_EQ(
+        updated.get(BlockStateProperties::CREAKING_HEART_STATE()), BlockStateProperties::CreakingHeartState::Awake);
 }
 
 TEST_F(CreakingHeartBlockTest, UpdateState_NoLogsStaysUprooted)
@@ -257,8 +256,8 @@ TEST_F(CreakingHeartBlockTest, UpdateState_NoLogsStaysUprooted)
     m_world->setCreakingActive(true);
     const BlockState updated = CreakingHeartBlock::updateState(heart, *m_world, pos);
 
-    EXPECT_EQ(updated.get(BlockStateProperties::CREAKING_HEART_STATE()),
-        BlockStateProperties::CreakingHeartState::Uprooted);
+    EXPECT_EQ(
+        updated.get(BlockStateProperties::CREAKING_HEART_STATE()), BlockStateProperties::CreakingHeartState::Uprooted);
 }
 
 TEST_F(CreakingHeartBlockTest, UpdateState_AlreadyDormantStaysDormant)
@@ -276,8 +275,8 @@ TEST_F(CreakingHeartBlockTest, UpdateState_AlreadyDormantStaysDormant)
     m_world->setCreakingActive(true); // 即便活跃也不改非 UPROOTED
     const BlockState updated = CreakingHeartBlock::updateState(heart, *m_world, pos);
 
-    EXPECT_EQ(updated.get(BlockStateProperties::CREAKING_HEART_STATE()),
-        BlockStateProperties::CreakingHeartState::Dormant);
+    EXPECT_EQ(
+        updated.get(BlockStateProperties::CREAKING_HEART_STATE()), BlockStateProperties::CreakingHeartState::Dormant);
 }
 
 // ==================== tick / updatePostPlacement ====================
@@ -298,8 +297,8 @@ TEST_F(CreakingHeartBlockTest, Tick_WritesBackWhenStateChanges)
     block->tick(*m_world, pos, heart, random);
 
     EXPECT_GT(m_world->writeCount(), 0);
-    EXPECT_EQ(heart.get(BlockStateProperties::CREAKING_HEART_STATE()),
-        BlockStateProperties::CreakingHeartState::Dormant);
+    EXPECT_EQ(
+        heart.get(BlockStateProperties::CREAKING_HEART_STATE()), BlockStateProperties::CreakingHeartState::Dormant);
 }
 
 TEST_F(CreakingHeartBlockTest, Tick_NoWriteWhenStateUnchanged)
@@ -342,8 +341,8 @@ TEST_F(CreakingHeartBlockTest, Placement_WithoutLogsStaysUprooted)
     m_world->setBlock(BlockPos(0, 1, 0), freshHeart());
     const BlockState state = block->updateState(freshHeart(), *m_world, BlockPos(0, 1, 0));
 
-    EXPECT_EQ(state.get(BlockStateProperties::CREAKING_HEART_STATE()),
-        BlockStateProperties::CreakingHeartState::Uprooted);
+    EXPECT_EQ(
+        state.get(BlockStateProperties::CREAKING_HEART_STATE()), BlockStateProperties::CreakingHeartState::Uprooted);
 }
 
 // ==================== 比较器输出 ====================

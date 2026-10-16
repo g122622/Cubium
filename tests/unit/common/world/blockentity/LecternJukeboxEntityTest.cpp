@@ -24,11 +24,13 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/util/property/Properties.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/block/blocks/functional/LecternBlock.hpp"
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -67,6 +69,23 @@ public:
     {
         throw std::runtime_error("DummyWorld::tickManager not implemented");
     }
+};
+
+/**
+ * @brief 记录 spawnEntity 次数的测试世界（用于验证掉落副作用）。
+ */
+class DroppingTestWorld final : public mc::test::BaseTestWorld {
+public:
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> /*entity*/) override
+    {
+        ++m_spawnCount;
+        return EntityInstanceId(0);
+    }
+
+    [[nodiscard]] i32 spawnCount() const { return m_spawnCount; }
+
+private:
+    i32 m_spawnCount = 0;
 };
 
 } // namespace
@@ -134,6 +153,52 @@ TEST_F(LecternEntityTest, SaveLoad_PreservesBookAndPage)
     EXPECT_TRUE(loaded.hasBook());
     EXPECT_EQ(loaded.getPage(), 24);
     EXPECT_EQ(loaded.getBook().getItem(), m_writtenBook);
+}
+
+TEST_F(LecternEntityTest, PreRemoveSideEffects_DropsBookWhenHasBook)
+{
+    // 对齐 vanilla LecternBlockEntity.preRemoveSideEffects：HAS_BOOK 时按 FACING 掉落书本。
+    LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    DroppingTestWorld world;
+
+    const BlockPos pos(1, 2, 3);
+    LecternEntity entity(pos);
+    entity.setWorld(&world);
+    ASSERT_TRUE(entity.setBook(ItemStack(m_writtenBook, 1)));
+
+    BlockState state = block.defaultState()
+                           .with(BlockStateProperties::HAS_BOOK(), true)
+                           .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+
+    const i32 before = world.spawnCount();
+    entity.preRemoveSideEffects(pos, state);
+    EXPECT_EQ(world.spawnCount(), before + 1);
+}
+
+TEST_F(LecternEntityTest, PreRemoveSideEffects_NoBookDoesNotDrop)
+{
+    LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    DroppingTestWorld world;
+
+    const BlockPos pos(1, 2, 3);
+    LecternEntity entity(pos);
+    entity.setWorld(&world);
+
+    BlockState state = block.defaultState().with(BlockStateProperties::HAS_BOOK(), false);
+
+    const i32 before = world.spawnCount();
+    entity.preRemoveSideEffects(pos, state);
+    EXPECT_EQ(world.spawnCount(), before);
+}
+
+TEST_F(LecternEntityTest, PreRemoveSideEffects_NoWorldDoesNotCrash)
+{
+    LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    LecternEntity entity(BlockPos(1, 2, 3)); // 不设世界
+    ASSERT_TRUE(entity.setBook(ItemStack(m_book, 1)));
+
+    BlockState state = block.defaultState().with(BlockStateProperties::HAS_BOOK(), true);
+    EXPECT_NO_THROW(entity.preRemoveSideEffects(BlockPos(1, 2, 3), state));
 }
 
 TEST_F(LecternEntityTest, Clone_CopiesBookAndProgress)

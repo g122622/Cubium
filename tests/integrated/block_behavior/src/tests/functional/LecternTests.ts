@@ -12,7 +12,9 @@
 //     · HAS_BOOK==false → 取手持物，isLecternBookItem 判定 → tryPlaceBook 成功则 shrink(1)+音效 → Success；
 //       非书物品或 tryPlaceBook 失败 → return Pass。
 //   - tryPlaceBook（:296-328）：HAS_BOOK 已 true 返 false；否则 LecternEntity.setBook + setHasBook(true)。
-//   - onBlockRemoved（:262-275）：HAS_BOOK 时 _dropBook（removeBook + ItemDropHelper 上方掉落）。
+//   - LecternEntity::preRemoveSideEffects：HAS_BOOK 时按 FACING 前方偏移 0.25 格、Y+1 掉落书本
+//     （原在 LecternBlock::onBlockRemoved，已按 vanilla LecternBlockEntity 迁移至方块实体，
+//     由 ServerWorld::setBlockState 在实体丢弃前调用，受 UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控）。
 //   - isLecternBookItem 接受 book/written_book/writable_book/enchanted_book（Cubium 扩展，vanilla 仅书与笔/成书）。
 //
 // 派发链路：SimulatedPlayer::useItemOnBlock 已补全 Block.use 前置分支（先 方块侧交互，Pass 才
@@ -25,7 +27,7 @@
 //   1. 成书放讲台：空讲台 + written_book useItemOnBlock → has_book=true。
 //   2. 非书不触发：空讲台 + 木棍 useItemOnBlock → has_book=false，useItemOnBlock 返 false。
 //   3. 已有书右键阅读：讲台已有书 + 书 useItemOnBlock → openContainer → 返 true，has_book 仍 true。
-//   4. 破坏掉书：放书后破坏讲台 → 书物品实体掉落（onBlockRemoved _dropBook）。
+//   4. 破坏掉书：放书后破坏讲台 → 书物品实体掉落（LecternEntity::preRemoveSideEffects）。
 //
 // 关键约束：
 // 1. 讲台需放在固体方块上方（与多数功能性方块一致）——(3,1,1) 放 stone 支撑，(3,2,1) 放讲台。
@@ -34,7 +36,8 @@
 // 4. 判定「非书不触发」用木棍（普通 Item，非 BlockItem）——避免 BlockItem onItemUse 放置方块返 Success 误判。
 // 5. SimulatedPlayer 默认创造模式：放书 方块侧交互 内部 shrink(1) 作用于选中槽，创造模式是否
 //    消耗不影响 has_book 判定（has_book 翻转由 tryPlaceBook→setHasBook 决定，与消耗无关）。
-// 6. 场景 4 用 test.setBlockType("minecraft:air", pos) 破坏讲台 → 触发 onBlockRemoved → _dropBook
+// 6. 场景 4 用 test.setBlockType("minecraft:air", pos) 破坏讲台 → ServerWorld::setBlockState 调用
+   LecternEntity::preRemoveSideEffects → 掉落书本
 //    掉落书物品实体，用 assertItemEntityPresent 判定。
 //
 // 不测「翻页红石脉冲/比较器信号」：翻页需 GUI 交互（SimulatedPlayer 无翻页 API），跳过。
@@ -46,7 +49,7 @@
 //   本测试用 setBlockType 放空讲台（默认 has_book=false，无需设 state），两端均可放。
 //
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_讲台.txt#用途（放书/已有书阅读/破坏掉落）
-// Ref: LecternBlock.cpp（方块侧交互 放书/阅读；tryPlaceBook；onBlockRemoved _dropBook）
+// Ref: LecternBlock.cpp（方块侧交互 放书/阅读；tryPlaceBook；LecternEntity::preRemoveSideEffects）
 // Ref: LecternEntity.cpp（setBook/hasBook；getTotalPages 回退 100 页；getComparatorSignal）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
@@ -168,13 +171,13 @@ function lecternOpensBookWhenAlreadyHasBook(test: Test): void {
     test.succeed();
 }
 
-// 场景 4：破坏掉书——放书后破坏讲台 → 书物品实体掉落（onBlockRemoved _dropBook）。
+// 场景 4：破坏掉书——放书后破坏讲台 → 书物品实体掉落（LecternEntity::preRemoveSideEffects）。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 讲台（先放成书使 has_book=true）。
 // 放书后 setBlockType("minecraft:air", (3,2,1)) 破坏讲台 → LecternBlock::onBlockRemoved → HAS_BOOK
-// 时 _dropBook（LecternEntity.removeBook + ItemDropHelper 上方掉落书物品实体）。
+// 时由 LecternEntity::preRemoveSideEffects 掉落书物品实体。
 //
-// 判定：破坏后讲台位置为 air，且 written_book 物品实体存在（_dropBook 在讲台上方掉落书）。
+// 判定：破坏后讲台位置为 air，且 written_book 物品实体存在（preRemoveSideEffects 在讲台上方掉落书）。
 function lecternDropsBookWhenBroken(test: Test): void {
     placeLectern(test);
 
@@ -189,14 +192,14 @@ function lecternDropsBookWhenBroken(test: Test): void {
     test.assert(placeResult, "book placement should succeed");
     test.assert(getLecternHasBook(test, 3, 2, 1) === true, `lectern should have book before breaking, got ${getLecternHasBook(test, 3, 2, 1)}`);
 
-    // 破坏讲台：setBlockType air 触发 onBlockRemoved → _dropBook 掉落书物品实体。
+    // 破坏讲台：setBlockType air → setBlockState 触发 preRemoveSideEffects 掉落书物品实体。
     test.setBlockType("minecraft:air", { x: 3, y: 2, z: 1 });
 
     // 判定 1：讲台位置变为 air（已破坏）。
     const block = test.getBlock({ x: 3, y: 2, z: 1 }) as unknown as { typeId?: string } | undefined;
     test.assert(block?.typeId === "minecraft:air", `lectern pos should be air after breaking, got ${block?.typeId}`);
 
-    // 判定 2：written_book 物品实体存在（_dropBook 在讲台上方掉落书，searchRadius 覆盖讲台区域）。
+    // 判定 2：written_book 物品实体存在（preRemoveSideEffects 在讲台上方掉落书，searchRadius 覆盖讲台区域）。
     // 留 2 tick 让物品实体生成并注册。
     test.runAtTickTime(2, () => {
         test.assertItemEntityPresent("minecraft:written_book", { x: 3, y: 2, z: 1 }, 1.5, true);

@@ -24,6 +24,9 @@
 #include "world/blockentity/interactive/LecternEntity.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
@@ -197,6 +200,31 @@ void LecternEntity::closeContainer()
 void LecternEntity::tick(IWorld& world)
 {
     MC_UNUSED(world);
+}
+
+void LecternEntity::preRemoveSideEffects(const BlockPos& pos, const BlockState& state)
+{
+    // 对齐 vanilla LecternBlockEntity.preRemoveSideEffects（1.21.11）：HAS_BOOK 时按 FACING
+    //   朝向前方偏移 0.25 格、Y+1 处掉出书本。
+    if (!state.get(BlockStateProperties::HAS_BOOK())) {
+        return;
+    }
+
+    IWorld* world = getWorld();
+    if (world == nullptr || world->isClientSide()) {
+        return;
+    }
+
+    ItemStack book = getBook();
+    if (book.isEmpty()) {
+        return;
+    }
+
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const f32 offsetX = 0.5f + 0.25f * static_cast<f32>(Directions::xOffset(facing));
+    const f32 offsetZ = 0.5f + 0.25f * static_cast<f32>(Directions::zOffset(facing));
+
+    ItemDropHelper::spawnItemEntity(world, book, pos.x + offsetX, pos.y + 1.0, pos.z + offsetZ, world->getRandom());
 }
 
 bool LecternEntity::_isValidBook(const ItemStack& stack)
