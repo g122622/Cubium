@@ -313,6 +313,12 @@ constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
 constexpr const char* EGG_LAY_TIME = "EggLayTime";
 constexpr const char* IS_CHICKEN_JOCKEY = "IsChickenJockey";
 
+// ========== DolphinEntity 键 ==========
+// 参考 MC 1.21.11 Dolphin.addAdditionalSaveData()/readAdditionalSaveData()。
+
+constexpr const char* DOLPHIN_GOT_FISH = "GotFish";    ///< 是否已被喂鱼（bool）
+constexpr const char* DOLPHIN_MOISTNESS = "Moistness"; ///< 湿润度等级（i32，vanilla 默认 2400）
+
 // ========== TurtleEntity 键 ==========
 
 constexpr const char* HOME_X = "HomePosX";

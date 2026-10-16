@@ -25,9 +25,16 @@
  * @file DolphinEntityTest.cpp
  * @brief 海豚实体单元测试
  *
- * 测试 DolphinEntity 的关键方法：
- * - isFoodItem: 检查是否是食物（鱼类）
- * - 维度和属性测试
+ * 参考 MC 1.21.11 net.minecraft.world.entity.animal.dolphin.Dolphin
+ *
+ * 覆盖场景：
+ * 1. isFoodItem: 检查是否是食物（鱼类）
+ * 2. 维度和属性测试
+ * 3. 宝藏寻找状态（setTreasurePos/clearTreasureTarget/引导玩家）
+ * 4. 湿润度（MOISTNESS_LEVEL）业务联动：水/雨回满、离水递减、归零干燥伤害
+ * 5. 陆地挣扎：离水且踩地时随机弹跳（向上速度 > 0、脱离地面）
+ * 6. 永不溺水：updateAirSupply 覆盖后离水空气不消耗（vanilla handleAirSupply 空实现语义）
+ * 7. NBT 保存/加载往返（GotFish/Moistness）
  */
 
 #include "entity/entities/passive/water/DolphinEntity.hpp"
@@ -36,8 +43,68 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/nbt/Nbt.hpp"
+#include "common/world/fluid/Fluids.hpp"
 
 using namespace mc;
+using namespace mc::entity::serialization;
+
+namespace {
+
+/**
+ * @brief 测试用世界桩：可配置降雨状态与地面碰撞
+ *
+ * isInRain() 依赖 IWorld::isRaining() 与 canRainAt()，BaseTestWorld 未覆写，
+ * 这里显式提供以便测试湿润度的"雨中回满"分支。
+ * checkOnGround() 经 IWorld::hasBlockCollision() 探测地面，若恒返回 false 则
+ * 每 tick 后 onGround 被重置为 false，无法测试陆地挣扎分支，故这里可配置为 true。
+ */
+class DolphinTestWorld final : public mc::test::BaseTestWorld {
+public:
+    void setRaining(bool raining) { m_raining = raining; }
+    void setGroundCollision(bool collides) { m_groundCollision = collides; }
+    void setWaterImmersion(bool inWater) { m_waterImmersion = inWater; }
+
+    [[nodiscard]] bool isRaining() const override { return m_raining; }
+
+    [[nodiscard]] bool canRainAt(const BlockPos& /*pos*/) const override { return m_raining; }
+
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& /*box*/) const override { return m_groundCollision; }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 /*x*/, i32 /*y*/, i32 /*z*/) const override
+    {
+        // 浸水时返回水方块流体，使 updateEnvironmentState() 将 m_inWater 置 true。
+        if (m_waterImmersion) {
+            return &fluid::Fluids::WATER()->defaultState();
+        }
+        return fluid::Fluids::EMPTY() != nullptr ? &fluid::Fluids::EMPTY()->defaultState() : nullptr;
+    }
+
+private:
+    bool m_raining = false;
+    bool m_groundCollision = false;
+    bool m_waterImmersion = false;
+};
+
+/**
+ * @brief 测试用海豚子类，暴露 protected 方法供单元测试调用
+ *
+ * addAdditionalSaveData / readAdditionalSaveData 在实体中为 protected（对齐 vanilla），
+ * 测试子类通过 using 声明提升为 public 以便直接测试 NBT 序列化。
+ */
+class TestableDolphinEntity : public DolphinEntity {
+public:
+    using DolphinEntity::DolphinEntity;
+
+    using DolphinEntity::addAdditionalSaveData;
+    using DolphinEntity::readAdditionalSaveData;
+};
+
+} // namespace
 
 // ==================== DolphinEntity Test Fixture ====================
 
@@ -46,12 +113,12 @@ protected:
     void SetUp() override
     {
         // 创建海豚实体
-        dolphin = std::make_unique<DolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
+        dolphin = std::make_unique<TestableDolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
 
     void TearDown() override { dolphin.reset(); }
 
-    std::unique_ptr<DolphinEntity> dolphin;
+    std::unique_ptr<TestableDolphinEntity> dolphin;
 };
 
 // ==================== isFoodItem Tests ====================
@@ -106,13 +173,11 @@ TEST_F(DolphinEntityTest, IsFoodItem_NonFish_ReturnsFalse)
 TEST_F(DolphinEntityTest, Attributes_HasCorrectValues)
 {
     // 海豚应该有正确的属性值
-    // MC 1.16.5: 最大生命值 10，游泳速度 0.6
     EXPECT_FLOAT_EQ(dolphin->maxHealth(), 10.0f);
 }
 
 TEST_F(DolphinEntityTest, Dimensions_HasCorrectValues)
 {
-    // MC 1.16.5 海豚尺寸
     EXPECT_FLOAT_EQ(dolphin->width(), 0.9f);
     EXPECT_FLOAT_EQ(dolphin->height(), 0.6f);
 }
@@ -155,23 +220,218 @@ TEST_F(DolphinEntityTest, GuidingPlayer_Clear)
     EXPECT_FALSE(dolphin->isGuidingPlayer());
 }
 
-// ==================== Jump State Tests ====================
-
-TEST_F(DolphinEntityTest, Jumping_SetAndGet)
-{
-    EXPECT_FALSE(dolphin->isJumping());
-
-    dolphin->setJumping(true);
-    EXPECT_TRUE(dolphin->isJumping());
-
-    dolphin->setJumping(false);
-    EXPECT_FALSE(dolphin->isJumping());
-}
-
 // ==================== Eye Height Tests ====================
 
 TEST_F(DolphinEntityTest, EyeHeight_CorrectValue)
 {
-    // MC 1.16.5 海豚眼睛高度
     EXPECT_FLOAT_EQ(dolphin->eyeHeight(), 0.3f);
+}
+
+// ==================== Moistness (湿润度) Tests ====================
+
+TEST_F(DolphinEntityTest, Moistness_DefaultIsFullLevel)
+{
+    // vanilla Dolphin MOISTNESS_LEVEL 默认 2400
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 2400);
+}
+
+TEST_F(DolphinEntityTest, Moistness_SetAndGet)
+{
+    dolphin->setMoistnessLevel(1234);
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 1234);
+}
+
+TEST_F(DolphinEntityTest, Moistness_DecrementsWhenOutOfWater)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    dolphin->setMoistnessLevel(2400);
+
+    dolphin->tick();
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 2399);
+
+    dolphin->tick();
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 2398);
+}
+
+TEST_F(DolphinEntityTest, Moistness_RefillsWhenInWater)
+{
+    DolphinTestWorld world;
+    world.setWaterImmersion(true);
+    dolphin->setWorld(&world);
+    dolphin->setMoistnessLevel(100);
+
+    dolphin->tick();
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 2400);
+}
+
+TEST_F(DolphinEntityTest, Moistness_RefillsWhenInRain)
+{
+    DolphinTestWorld world;
+    world.setRaining(true);
+    dolphin->setWorld(&world);
+    dolphin->setMoistnessLevel(100);
+
+    dolphin->tick();
+    // 雨中（isInWaterOrRain）回满，不递减
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 2400);
+}
+
+TEST_F(DolphinEntityTest, Moistness_ZeroCauseDryoutDamage)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    // LivingEntity 构造后 health 为基类默认 20，须先对齐 maxHealth（10）再建立基线
+    dolphin->setHealth(dolphin->maxHealth());
+    dolphin->setMoistnessLevel(0);
+
+    const f32 healthBefore = dolphin->health();
+    dolphin->tick();
+
+    // 湿润度归零后受 dryout 伤害（每次 1 点）
+    EXPECT_LT(dolphin->health(), healthBefore);
+    EXPECT_FLOAT_EQ(healthBefore - dolphin->health(), 1.0f);
+}
+
+TEST_F(DolphinEntityTest, Moistness_AboveZeroNoDamage)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    dolphin->setHealth(dolphin->maxHealth());
+    // 递减后仍 > 0（1 > 0）时不造成伤害；vanilla 判定在递减后用 <= 0 门控
+    dolphin->setMoistnessLevel(2);
+
+    const f32 healthBefore = dolphin->health();
+    dolphin->tick();
+
+    EXPECT_FLOAT_EQ(dolphin->health(), healthBefore);
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 1);
+}
+
+TEST_F(DolphinEntityTest, Moistness_HitsZeroAfterDecrementCausesDamage)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    dolphin->setHealth(dolphin->maxHealth());
+    // level=1 递减到 0，vanilla 在递减后以 <= 0 门控，故本条即触发伤害
+    dolphin->setMoistnessLevel(1);
+
+    const f32 healthBefore = dolphin->health();
+    dolphin->tick();
+
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 0);
+    EXPECT_FLOAT_EQ(healthBefore - dolphin->health(), 1.0f);
+}
+
+// ==================== 陆地挣扎（onGround 随机弹跳） Tests ====================
+
+TEST_F(DolphinEntityTest, LandStruggle_OnGroundGivesUpwardVelocity)
+{
+    DolphinTestWorld world;
+    // 世界报告地面碰撞，使 baseTick 的 checkOnGround() 得出 onGround=true
+    world.setGroundCollision(true);
+    dolphin->setWorld(&world);
+    dolphin->setInWater(false);
+    dolphin->setMoistnessLevel(2400);
+    dolphin->setVelocity(0.0f, 0.0f, 0.0f);
+
+    dolphin->tick();
+
+    // 陆地挣扎：获得向上速度（vanilla +0.5）并脱离地面
+    EXPECT_GT(dolphin->velocity().y, 0.0f);
+    EXPECT_FALSE(dolphin->onGround());
+}
+
+TEST_F(DolphinEntityTest, LandStruggle_AirborneNoExtraJump)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    dolphin->setInWater(false);
+    dolphin->setMoistnessLevel(2400);
+    // 不在空中踩地时不应施加挣扎弹跳（onGround 为 false）
+    dolphin->setOnGround(false);
+    dolphin->setVelocity(0.0f, 0.0f, 0.0f);
+
+    dolphin->tick();
+
+    // 空中不主动施加向上速度（重力可能使其为负，但不含 +0.5 弹跳）
+    EXPECT_LE(dolphin->velocity().y, 0.0f);
+}
+
+// ==================== 永不溺水（updateAirSupply 覆盖） Tests ====================
+
+TEST_F(DolphinEntityTest, AirSupply_NotDepletedOutOfWater)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    dolphin->setInWater(false);
+    dolphin->setAir(100);
+
+    // 离水连续 tick，空气不应被消耗（vanilla Dolphin.handleAirSupply 空实现）
+    for (i32 i = 0; i < 20; ++i) {
+        dolphin->tick();
+    }
+
+    EXPECT_EQ(dolphin->air(), dolphin->maxAir());
+}
+
+TEST_F(DolphinEntityTest, AirSupply_DoesNotDrownOnLand)
+{
+    DolphinTestWorld world;
+    dolphin->setWorld(&world);
+    dolphin->setHealth(dolphin->maxHealth());
+    dolphin->setAir(0);
+
+    // 空气为 0 也不应触发溺水伤害（只有湿润度归零才受 dryout 伤害）
+    dolphin->setMoistnessLevel(2400);
+    const f32 healthBefore = dolphin->health();
+    dolphin->tick();
+
+    EXPECT_FLOAT_EQ(dolphin->health(), healthBefore);
+}
+
+// ==================== NBT 序列化 Tests ====================
+
+TEST_F(DolphinEntityTest, NbtRoundTrip_GotFishAndMoistness)
+{
+    dolphin->setGotFish(true);
+    dolphin->setMoistnessLevel(777);
+
+    nbt::tags::compound_tag tag;
+    dolphin->addAdditionalSaveData(tag);
+
+    const auto gotFish = nbt_helper::tryGetBool(tag, nbt_keys::DOLPHIN_GOT_FISH);
+    ASSERT_TRUE(gotFish.has_value());
+    EXPECT_TRUE(*gotFish);
+
+    const auto moistness = nbt_helper::tryGetInt(tag, nbt_keys::DOLPHIN_MOISTNESS);
+    ASSERT_TRUE(moistness.has_value());
+    EXPECT_EQ(*moistness, 777);
+
+    TestableDolphinEntity loaded(EntityInstanceId(3), mc::test::testEcsRegistry());
+    auto result = loaded.readAdditionalSaveData(tag);
+    ASSERT_TRUE(result.success()) << result.error().toString();
+    EXPECT_TRUE(loaded.hasGotFish());
+    EXPECT_EQ(loaded.getMoistnessLevel(), 777);
+}
+
+TEST_F(DolphinEntityTest, NbtRoundTrip_EmptyNbtUsesDefault)
+{
+    nbt::tags::compound_tag emptyTag;
+
+    TestableDolphinEntity loaded(EntityInstanceId(3), mc::test::testEcsRegistry());
+    auto result = loaded.readAdditionalSaveData(emptyTag);
+    ASSERT_TRUE(result.success()) << result.error().toString();
+    EXPECT_FALSE(loaded.hasGotFish());
+    EXPECT_EQ(loaded.getMoistnessLevel(), 2400);
+}
+
+// ==================== 同步数据注册 Tests ====================
+
+TEST_F(DolphinEntityTest, Moistness_SyncsToDataManager)
+{
+    dolphin->setMoistnessLevel(555);
+    EXPECT_EQ(dolphin->getMoistnessLevel(), 555);
+    // 元数据同步：setMoistnessLevel 写入 DATA_MOISTNESS_LEVEL_PARAM（id18）
+    EXPECT_TRUE(dolphin->dataManager().hasDirtyData());
 }
