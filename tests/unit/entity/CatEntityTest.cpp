@@ -1019,6 +1019,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealNotDye_CollarUnchanged
     cat.setTamed(true);
     cat.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red); // 默认红色
+    EXPECT_FALSE(cat.isSitting());                  // 默认站立
 
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
@@ -1035,6 +1036,9 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealNotDye_CollarUnchanged
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
     // 物品不消耗
     EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
+    // 坐下状态被切换——这是"非染料走坐下分支"与"被误判为当前红色染料（提前 Success 返回、
+    // 不切换坐下）"的关键区分点
+    EXPECT_TRUE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacNotDye_CollarUnchanged)
@@ -1047,6 +1051,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacNotDye_CollarUnchanged)
     cat.setTamed(true);
     cat.setOwnerId(kTestOwnerUuid);
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red); // 默认红色
+    EXPECT_FALSE(cat.isSitting());                  // 默认站立
 
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
@@ -1063,6 +1068,8 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacNotDye_CollarUnchanged)
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
     // 物品不消耗
     EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
+    // 坐下状态被切换（见上一条用例的区分点说明）
+    EXPECT_TRUE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeCreativeMode_NoConsumption)
