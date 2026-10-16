@@ -160,6 +160,15 @@ protected:
 
     void TearDown() override { m_world.reset(); }
 
+    /// 在 pos 放置音符盒：走 resolveInstrument（等价 vanilla getStateForPlacement），
+    /// 使 INSTRUMENT 属性按上下方方块解析后写入，再返回放置后的状态。
+    BlockState placeNoteBlock(const BlockPos& pos)
+    {
+        BlockState placed = NoteBlock::resolveInstrument(*m_world, pos, VanillaBlocks::NOTE_BLOCK->defaultState());
+        m_world->setBlockAt(pos, placed);
+        return placed;
+    }
+
     std::unique_ptr<NoteBlockTestWorld> m_world;
 };
 
@@ -368,16 +377,12 @@ TEST_F(NoteBlockTest, InstrumentType_PumpkinTriggersDidgeridoo)
     BlockPos pumpkinPos(0, 0, 0);
 
     m_world->setBlockAt(pumpkinPos, VanillaBlocks::PUMPKIN->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    // 触发音符盒
-    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(noteBlockState, nullptr);
+    const BlockState noteBlockState = placeNoteBlock(noteBlockPos);
 
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+    noteBlock->triggerNote(*m_world, noteBlockPos, noteBlockState);
 
     // 验证播放了 DIDGERIDOO 声音
     const auto& sounds = m_world->playedSoundIds();
@@ -403,16 +408,12 @@ TEST_F(NoteBlockTest, InstrumentType_CarvedPumpkinDoesNotTriggerDidgeridoo)
     BlockPos carvedPumpkinPos(0, 0, 0);
 
     m_world->setBlockAt(carvedPumpkinPos, VanillaBlocks::CARVED_PUMPKIN->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    // 触发音符盒
-    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(noteBlockState, nullptr);
+    const BlockState noteBlockState = placeNoteBlock(noteBlockPos);
 
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+    noteBlock->triggerNote(*m_world, noteBlockPos, noteBlockState);
 
     // 验证没有播放 DIDGERIDOO，而是播放了材质对应的乐器
     // 雕刻南瓜使用 Material::EARTH，应该触发 HARP (默认)
@@ -436,16 +437,12 @@ TEST_F(NoteBlockTest, InstrumentType_JackOLanternDoesNotTriggerDidgeridoo)
     BlockPos jackOLanternPos(0, 0, 0);
 
     m_world->setBlockAt(jackOLanternPos, VanillaBlocks::JACK_O_LANTERN->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    // 触发音符盒
-    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(noteBlockState, nullptr);
+    const BlockState noteBlockState = placeNoteBlock(noteBlockPos);
 
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+    noteBlock->triggerNote(*m_world, noteBlockPos, noteBlockState);
 
     // 验证没有播放 DIDGERIDOO，而是播放了材质对应的乐器
     // 南瓜灯使用 Material::EARTH，应该触发 HARP (默认)
@@ -466,15 +463,12 @@ TEST_F(NoteBlockTest, InstrumentType_ClayTriggersFlute)
     BlockPos clayPos(0, 0, 0);
 
     m_world->setBlockAt(clayPos, VanillaBlocks::CLAY->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(noteBlockState, nullptr);
+    const BlockState noteBlockState = placeNoteBlock(noteBlockPos);
 
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+    noteBlock->triggerNote(*m_world, noteBlockPos, noteBlockState);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -493,15 +487,12 @@ TEST_F(NoteBlockTest, InstrumentType_GoldBlockTriggersBell)
     BlockPos goldBlockPos(0, 0, 0);
 
     m_world->setBlockAt(goldBlockPos, VanillaBlocks::GOLD_BLOCK->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(noteBlockState, nullptr);
+    const BlockState noteBlockState = placeNoteBlock(noteBlockPos);
 
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+    noteBlock->triggerNote(*m_world, noteBlockPos, noteBlockState);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -520,15 +511,12 @@ TEST_F(NoteBlockTest, InstrumentType_SoulSandTriggersCowBell)
     BlockPos soulSandPos(0, 0, 0);
 
     m_world->setBlockAt(soulSandPos, VanillaBlocks::SOUL_SAND->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    const BlockState* noteBlockState = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(noteBlockState, nullptr);
+    const BlockState noteBlockState = placeNoteBlock(noteBlockPos);
 
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *noteBlockState);
+    noteBlock->triggerNote(*m_world, noteBlockPos, noteBlockState);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -662,15 +650,12 @@ TEST_F(NoteBlockTest, HeadAbove_SkeletonSkullTriggersImitateSkeleton)
     BlockPos noteBlockPos(0, 1, 0);
     BlockPos headPos(0, 2, 0);
 
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(headPos, VanillaBlocks::SKELETON_SKULL->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -686,15 +671,12 @@ TEST_F(NoteBlockTest, HeadAbove_WitherSkeletonSkullTriggersImitateWitherSkeleton
     ASSERT_NE(VanillaBlocks::WITHER_SKELETON_SKULL, nullptr);
 
     BlockPos noteBlockPos(0, 1, 0);
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::WITHER_SKELETON_SKULL->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -710,15 +692,12 @@ TEST_F(NoteBlockTest, HeadAbove_ZombieHeadTriggersImitateZombie)
     ASSERT_NE(VanillaBlocks::ZOMBIE_HEAD, nullptr);
 
     BlockPos noteBlockPos(0, 1, 0);
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::ZOMBIE_HEAD->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -734,15 +713,12 @@ TEST_F(NoteBlockTest, HeadAbove_CreeperHeadTriggersImitateCreeper)
     ASSERT_NE(VanillaBlocks::CREEPER_HEAD, nullptr);
 
     BlockPos noteBlockPos(0, 1, 0);
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::CREEPER_HEAD->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -758,15 +734,12 @@ TEST_F(NoteBlockTest, HeadAbove_DragonHeadTriggersImitateEnderDragon)
     ASSERT_NE(VanillaBlocks::DRAGON_HEAD, nullptr);
 
     BlockPos noteBlockPos(0, 1, 0);
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::DRAGON_HEAD->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -782,15 +755,12 @@ TEST_F(NoteBlockTest, HeadAbove_PiglinHeadTriggersImitatePiglin)
     ASSERT_NE(VanillaBlocks::PIGLIN_HEAD, nullptr);
 
     BlockPos noteBlockPos(0, 1, 0);
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::PIGLIN_HEAD->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -806,15 +776,12 @@ TEST_F(NoteBlockTest, HeadAbove_PlayerHeadTriggersCustomClick)
     ASSERT_NE(VanillaBlocks::PLAYER_HEAD, nullptr);
 
     BlockPos noteBlockPos(0, 1, 0);
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::PLAYER_HEAD->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -834,15 +801,12 @@ TEST_F(NoteBlockTest, HeadAbove_TakesPrecedenceOverBlockBelow)
 
     BlockPos noteBlockPos(0, 1, 0);
     m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::PUMPKIN->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
     m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::SKELETON_SKULL->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
@@ -861,16 +825,153 @@ TEST_F(NoteBlockTest, HeadAbove_AbsentFallsBackToBlockBelow)
 
     BlockPos noteBlockPos(0, 1, 0);
     m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::PUMPKIN->defaultState());
-    m_world->setBlockAt(noteBlockPos, VanillaBlocks::NOTE_BLOCK->defaultState());
-
-    const BlockState* state = m_world->getBlockState(noteBlockPos);
-    ASSERT_NE(state, nullptr);
+    const BlockState state = placeNoteBlock(noteBlockPos);
     NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
     ASSERT_NE(noteBlock, nullptr);
 
-    noteBlock->triggerNote(*m_world, noteBlockPos, *state);
+    noteBlock->triggerNote(*m_world, noteBlockPos, state);
 
     const auto& sounds = m_world->playedSoundIds();
     ASSERT_EQ(sounds.size(), 1u);
     EXPECT_EQ(sounds[0], SoundEvents::BLOCK_NOTE_BLOCK_DIDGERIDOO);
+} // ============================================================================
+// INSTRUMENT 状态属性 / updatePostPlacement / 可调音语义（vanilla 对齐）
+// ============================================================================
+
+/**
+ * @brief 放置时乐器写入 INSTRUMENT 属性
+ *
+ * 对齐 vanilla NoteBlock.getStateForPlacement：南瓜在下方 → 放置瞬间
+ * INSTRUMENT=Didgeridoo。
+ */
+TEST_F(NoteBlockTest, Instrument_WrittenOnPlacement)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr);
+
+    m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::PUMPKIN->defaultState());
+    const BlockState placed = placeNoteBlock(BlockPos(0, 1, 0));
+
+    EXPECT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()),
+        BlockStateProperties::NoteBlockInstrument::Didgeridoo);
+}
+
+/**
+ * @brief 头颅垫在音符盒下方 → 回退 HARP（不下传拟声）
+ *
+ * 对齐 vanilla setInstrument 第二分支：下方方块
+ * worksAboveNoteBlock() 为真时取 HARP。
+ */
+TEST_F(NoteBlockTest, Instrument_HeadBelowFallsBackToHarp)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::SKELETON_SKULL, nullptr);
+
+    m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::SKELETON_SKULL->defaultState());
+    const BlockState placed = placeNoteBlock(BlockPos(0, 1, 0));
+
+    EXPECT_EQ(
+        placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()), BlockStateProperties::NoteBlockInstrument::Harp);
+}
+
+/**
+ * @brief 竖直邻居更新重解析乐器（上方放置头颅后音色即变）
+ *
+ * 对齐 vanilla NoteBlock.updateShape 的 Y 轴分支。
+
+ */
+TEST_F(NoteBlockTest, UpdatePostPlacement_YAxisReparsesInstrument)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr);
+    ASSERT_NE(VanillaBlocks::SKELETON_SKULL, nullptr);
+
+    m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::PUMPKIN->defaultState());
+    const BlockState placed = placeNoteBlock(BlockPos(0, 1, 0));
+    ASSERT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()),
+        BlockStateProperties::NoteBlockInstrument::Didgeridoo);
+
+    // 在音符盒上方新增骷髅头，竖直邻居变化触发重解析
+    m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::SKELETON_SKULL->defaultState());
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+    const BlockState updated = noteBlock->updatePostPlacement(placed,
+        Direction::Up,
+        VanillaBlocks::SKELETON_SKULL->defaultState(),
+        *m_world,
+        BlockPos(0, 1, 0),
+        BlockPos(0, 2, 0));
+
+    EXPECT_EQ(updated.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()),
+        BlockStateProperties::NoteBlockInstrument::Skeleton);
+}
+
+/**
+ * @brief 水平邻居变化不重解析乐器
+ */
+TEST_F(NoteBlockTest, UpdatePostPlacement_HorizontalAxisKeepsInstrument)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr);
+
+    m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::PUMPKIN->defaultState());
+    const BlockState placed = placeNoteBlock(BlockPos(0, 1, 0));
+
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+    const BlockState updated = noteBlock->updatePostPlacement(
+        placed, Direction::North, placed, *m_world, BlockPos(0, 1, 0), BlockPos(0, 1, -1));
+
+    EXPECT_EQ(updated.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()),
+        BlockStateProperties::NoteBlockInstrument::Didgeridoo);
+}
+
+/**
+ * @brief 头颅类乐器音高固定 1.0 且无音符粒子（对齐 vanilla triggerEvent 的 isTunable 分支）
+
+ */
+TEST_F(NoteBlockTest, HeadInstrument_FixedPitchAndNoTunableParticle)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::SKELETON_SKULL, nullptr);
+
+    m_world->setBlockAt(BlockPos(0, 2, 0), VanillaBlocks::SKELETON_SKULL->defaultState());
+    BlockState placed = placeNoteBlock(BlockPos(0, 1, 0));
+    // 把 note 调到非 12（音高本应为非 1.0），验证头颅乐器仍固定 1.0
+    placed = placed.with(BlockStateProperties::NOTE_0_24(), 5);
+    m_world->setBlockAt(BlockPos(0, 1, 0), placed);
+
+    m_world->clear();
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+    noteBlock->triggerNote(*m_world, BlockPos(0, 1, 0), placed);
+
+    ASSERT_EQ(m_world->playedSoundIds().size(), 1u);
+    EXPECT_EQ(m_world->playedSoundIds()[0], SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_SKELETON);
+    EXPECT_FLOAT_EQ(m_world->lastPitch(), 1.0f);
+    EXPECT_EQ(m_world->particleCount(), 0);
+}
+
+/**
+ * @brief 可调音乐器按 note 定音高并产生音符粒子
+ */
+TEST_F(NoteBlockTest, TunableInstrument_PitchAndParticle)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+    ASSERT_NE(VanillaBlocks::PUMPKIN, nullptr);
+
+    m_world->setBlockAt(BlockPos(0, 0, 0), VanillaBlocks::PUMPKIN->defaultState());
+    BlockState placed = placeNoteBlock(BlockPos(0, 1, 0));
+    placed = placed.with(BlockStateProperties::NOTE_0_24(), 12);
+    m_world->setBlockAt(BlockPos(0, 1, 0), placed);
+
+    m_world->clear();
+    NoteBlock* noteBlock = dynamic_cast<NoteBlock*>(VanillaBlocks::NOTE_BLOCK);
+    ASSERT_NE(noteBlock, nullptr);
+    noteBlock->triggerNote(*m_world, BlockPos(0, 1, 0), placed);
+
+    ASSERT_EQ(m_world->playedSoundIds().size(), 1u);
+    EXPECT_EQ(m_world->playedSoundIds()[0], SoundEvents::BLOCK_NOTE_BLOCK_DIDGERIDOO);
+    EXPECT_FLOAT_EQ(m_world->lastPitch(), 1.0f); // note 12 -> pitch 1.0
+    EXPECT_EQ(m_world->particleCount(), 1);
 }

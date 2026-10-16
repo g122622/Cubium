@@ -231,14 +231,14 @@ i32 NoteBlock::getNote(const BlockState& state)
     return state.get(BlockStateProperties::NOTE_0_24());
 }
 
-BlockState NoteBlock::withNote(BlockState state, i32 note)
+BlockState NoteBlock::withNote(const BlockState& state, i32 note)
 {
     // 确保在范围内
     note = std::max(0, std::min(note, NOTE_RANGE - 1));
     return state.with(BlockStateProperties::NOTE_0_24(), note);
 }
 
-BlockState NoteBlock::cycleNote(BlockState state)
+BlockState NoteBlock::cycleNote(const BlockState& state)
 {
     i32 currentNote = getNote(state);
     i32 nextNote = (currentNote + 1) % NOTE_RANGE;
@@ -312,130 +312,162 @@ BlockState NoteBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
     MC_UNUSED(facingState);
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
+    // 对齐 vanilla NoteBlock.updateShape：仅 Y 轴邻居变化（上下方方块增删）会改变乐器，
+    //   此时重解析 INSTRUMENT；水平邻居变化不改乐器。
+    if (getAxis(facing) == Axis::Y) {
+        return resolveInstrument(world, currentPos, state);
+    }
     return state;
+}
+
+BlockState NoteBlock::getStateForPlacement(BlockItemUseContext& context)
+{
+    // 对齐 vanilla NoteBlock.getStateForPlacement：放置即依据上下方方块写入乐器属性，
+    //   故放置瞬间音色即正确，无需等到首次播放。
+    return resolveInstrument(context.world(), context.placementPos(), defaultState());
+}
+
+BlockState NoteBlock::resolveInstrument(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 对齐 vanilla NoteBlock.setInstrument：
+    //   ① 上方方块的乐器若 worksAboveNoteBlock()（MOB_HEAD / CUSTOM 类头颅）→ 直接采纳；
+    //   ② 否则取下方方块的乐器，但下方若自身 worksAboveNoteBlock() → 回退 HARP
+    //      （头颅垫在音符盒下方时不传出拟声）。
+    // 注：vanilla 经 BlockState.instrument() 读取方块属性；Cubium 暂无方块级 instrument 属性，
+    //   故以 headInstrumentAbove() 识别头颅方块（其 instrument 恒为 MOB_HEAD/CUSTOM 类）。
+    // TODO: 待 Block 引入 instrument() 属性（对齐 BlockBehaviour.Properties.instrument）后，
+    //   改用属性查询以覆盖数据包自定义的 worksAboveNoteBlock 方块。
+    if (const i32 above = headInstrumentAbove(world.getBlockState(pos.up())); above >= 0) {
+        return state.with(BlockStateProperties::NOTE_BLOCK_INSTRUMENT(), static_cast<Instrument>(above));
+    }
+
+    const BlockState* belowState = world.getBlockState(pos.down());
+    if (belowState == nullptr) {
+        return state.with(BlockStateProperties::NOTE_BLOCK_INSTRUMENT(), Instrument::Harp);
+    }
+    return state.with(BlockStateProperties::NOTE_BLOCK_INSTRUMENT(), belowInstrumentFor(*belowState));
 }
 
 void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     i32 note = getNote(state);
-    i32 instrument = _getInstrumentType(world, pos);
+    i32 instrument = _getInstrumentType(world, pos, state);
 
     // 播放音符
     _playNote(world, pos, instrument, note);
 }
 
-i32 NoteBlock::_getInstrumentType(IWorld& world, const BlockPos& pos) const
+i32 NoteBlock::_getInstrumentType(IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
-    // 对齐 vanilla NoteBlock.getInstrumentType（1.21.11）：先查上方方块 instrument() 的
-    //   worksAboveNoteBlock() 分支（MOB_HEAD / CUSTOM 类头颅），命中即以头颅拟声覆盖，
-    //   否则回落到下方方块决定乐器。原实现仅查下方，致「头颅置于音符盒上方」的音色从不生效。
-    if (const i32 headInstrument = headInstrumentAbove(world.getBlockState(pos.up())); headInstrument >= 0) {
-        return headInstrument;
-    }
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
 
-    // 根据音符盒下方的方块类型确定乐器
+    // 乐器在放置/竖直邻居更新时已由 resolveInstrument 写入 INSTRUMENT 属性（对齐 vanilla
+    //   NoteBlock.updateShape/getStateForPlacement）。播放时直接读取该属性即可——
+    //   这样头颅置于上方 / 头颅垫在下方回退 HARP 等语义都由属性承载，播放路径无需再判定。
+    return static_cast<i32>(state.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()));
+}
 
-    BlockPos belowPos = pos.down();
-    const BlockState* belowState = world.getBlockState(belowPos);
+bool NoteBlock::_isTunableInstrument(i32 instrument)
+{
+    return BlockStateProperties::noteBlockInstrumentIsTunable(static_cast<Instrument>(instrument));
+}
 
-    if (!belowState) {
-        return static_cast<i32>(Instrument::Harp);
-    }
-
+// 依据音符盒下方方块决定乐器（对齐 vanilla BlockState.instrument() 的材质/方块映射）。
+// Cubium 暂无方块级 instrument 属性，故在此以方块类型 + 材质复刻 NoteBlockInstrument.byState。
+Instrument NoteBlock::belowInstrumentFor(const BlockState& belowState)
+{
     // ========================================================================
     // 特定方块检测（优先级从高到低）
     // ========================================================================
 
     // 陶土 -> 长笛 (FLUTE)
-    if (isBlock(belowState, VanillaBlocks::CLAY)) {
-        return static_cast<i32>(Instrument::Flute);
+    if (isBlock(&belowState, VanillaBlocks::CLAY)) {
+        return Instrument::Flute;
     }
 
     // 金块 -> 钟 (BELL)
-    if (isBlock(belowState, VanillaBlocks::GOLD_BLOCK)) {
-        return static_cast<i32>(Instrument::Bell);
+    if (isBlock(&belowState, VanillaBlocks::GOLD_BLOCK)) {
+        return Instrument::Bell;
     }
 
     // 羊毛 (任意颜色) -> 吉他 (GUITAR)
-    if (BlockTags::WOOL().contains(*belowState)) {
-        return static_cast<i32>(Instrument::Guitar);
+    if (BlockTags::WOOL().contains(belowState)) {
+        return Instrument::Guitar;
     }
 
     // 浮冰 -> 管钟 (CHIME)
-    if (isBlock(belowState, VanillaBlocks::PACKED_ICE)) {
-        return static_cast<i32>(Instrument::Chime);
+    if (isBlock(&belowState, VanillaBlocks::PACKED_ICE)) {
+        return Instrument::Chime;
     }
 
     // 骨块 -> 木琴 (XYLOPHONE)
-    if (isBlock(belowState, VanillaBlocks::BONE_BLOCK)) {
-        return static_cast<i32>(Instrument::Xylophone);
+    if (isBlock(&belowState, VanillaBlocks::BONE_BLOCK)) {
+        return Instrument::Xylophone;
     }
 
     // 铁块 -> 铁片琴 (IRON_XYLOPHONE)
-    if (isBlock(belowState, VanillaBlocks::IRON_BLOCK)) {
-        return static_cast<i32>(Instrument::IronXylophone);
+    if (isBlock(&belowState, VanillaBlocks::IRON_BLOCK)) {
+        return Instrument::IronXylophone;
     }
 
     // 灵魂沙 -> 牛铃 (COW_BELL)
-    if (isBlock(belowState, VanillaBlocks::SOUL_SAND)) {
-        return static_cast<i32>(Instrument::CowBell);
+    if (isBlock(&belowState, VanillaBlocks::SOUL_SAND)) {
+        return Instrument::CowBell;
     }
 
     // 南瓜 -> 迪吉里杜管 (DIDGERIDOO)
     // 注意: CARVED_PUMPKIN 和 JACK_O_LANTERN 不会触发此乐器
-    if (isBlock(belowState, VanillaBlocks::PUMPKIN)) {
-        return static_cast<i32>(Instrument::Didgeridoo);
+    if (isBlock(&belowState, VanillaBlocks::PUMPKIN)) {
+        return Instrument::Didgeridoo;
     }
 
     // 绿宝石块 -> 电子音 (BIT)
-    if (isBlock(belowState, VanillaBlocks::EMERALD_BLOCK)) {
-        return static_cast<i32>(Instrument::Bit);
+    if (isBlock(&belowState, VanillaBlocks::EMERALD_BLOCK)) {
+        return Instrument::Bit;
     }
 
     // 干草块 -> 班卓琴 (BANJO)
-    if (isBlock(belowState, VanillaBlocks::HAY_BLOCK)) {
-        return static_cast<i32>(Instrument::Banjo);
+    if (isBlock(&belowState, VanillaBlocks::HAY_BLOCK)) {
+        return Instrument::Banjo;
     }
 
     // 荧石 -> 电钢琴 (PLING)
-    if (isBlock(belowState, VanillaBlocks::GLOWSTONE)) {
-        return static_cast<i32>(Instrument::Pling);
+    if (isBlock(&belowState, VanillaBlocks::GLOWSTONE)) {
+        return Instrument::Pling;
     }
 
     // ========================================================================
     // 材质类型检测（次优先级）
     // ========================================================================
 
-    const Material& material = belowState->getBlock().material();
+    const Material& material = belowState.getBlock().material();
 
     // 石头类材质 -> 底鼓 (BASEDRUM)
     if (material == Material::ROCK) {
-        return static_cast<i32>(Instrument::Basedrum);
+        return Instrument::Basedrum;
     }
 
     // 沙子类材质 -> 军鼓 (SNARE)
     if (material == Material::SAND) {
-        return static_cast<i32>(Instrument::Snare);
+        return Instrument::Snare;
     }
 
     // 玻璃材质 -> 踩镲 (HAT)
     if (material == Material::GLASS) {
-        return static_cast<i32>(Instrument::Hat);
+        return Instrument::Hat;
     }
 
     // 木头材质（包括下界木） -> 贝斯 (BASS)
     if (material == Material::WOOD || material == Material::NETHER_WOOD) {
-        return static_cast<i32>(Instrument::Bass);
+        return Instrument::Bass;
     }
 
     // 默认 -> 钢琴 (HARP)
-    return static_cast<i32>(Instrument::Harp);
+    return Instrument::Harp;
 }
 
 void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i32 note)
@@ -446,8 +478,19 @@ void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
     // 获取对应的声音事件
     const ResourceLocation& soundEvent = getSoundEventForInstrument(instrumentEnum);
 
-    // 计算音高 (基于音符值 0-24)
-    f32 pitch = calculatePitch(note);
+    // 对齐 vanilla NoteBlock.triggerEvent：仅可调音乐器（BASE_BLOCK 类）按音符值定音高并产生
+    //   音符粒子；头颅类（MOB_HEAD/CUSTOM）音高固定 1.0 且不产生调音粒子。
+    f32 pitch = 1.0f;
+    if (_isTunableInstrument(instrument)) {
+        pitch = calculatePitch(note);
+
+        // 生成音符粒子：位置为方块上方中心，颜色数据 note / 24.0
+        world.addParticle(particle::ParticleTypeId::Note,
+            Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 1.2f, static_cast<f32>(pos.z) + 0.5f),
+            Vector3(static_cast<f32>(note) / 24.0f, // 颜色数据
+                0.0f,
+                0.0f));
+    }
 
     // 播放声音（音量固定为 3.0，声音类别为 RECORDS）
     Vector3 soundPos = pos.center();
@@ -457,16 +500,6 @@ void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
         3.0f, // 音量
         pitch // 音高
     );
-
-    // 生成音符粒子效果
-    // 粒子类型: NOTE
-    // 位置: 方块上方中心
-    // 颜色数据: note / 24.0 (用于确定粒子颜色)
-    world.addParticle(particle::ParticleTypeId::Note,
-        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 1.2f, static_cast<f32>(pos.z) + 0.5f),
-        Vector3(static_cast<f32>(note) / 24.0f, // 颜色数据
-            0.0f,
-            0.0f));
 }
 
 } // namespace blocks
