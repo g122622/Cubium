@@ -263,6 +263,15 @@ BlockTag& BlockTags::SOUL_FIRE_BASE_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::WITHER_SUMMON_BASE_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wither_summon_base_blocks"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::INFINIBURN_OVERWORLD()
 {
     static BlockTag* tag = nullptr;
@@ -1393,6 +1402,15 @@ void BlockTags::initialize()
     soulFireBaseBlocks->addAll(
         {ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
     tags[soulFireBaseBlocks->getId()] = std::move(soulFireBaseBlocks);
+
+    // 创建 WITHER_SUMMON_BASE_BLOCKS 标签（凋灵召唤基座方块）
+    // 对齐数据包 wither_summon_base_blocks.json = {soul_sand, soul_soil}。
+    // 消费方：WitherSkullBlock::checkSpawn 的 T 形图案匹配。
+    auto witherSummonBaseBlocks =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "wither_summon_base_blocks"));
+    witherSummonBaseBlocks->addAll(
+        {ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
+    tags[witherSummonBaseBlocks->getId()] = std::move(witherSummonBaseBlocks);
 
     // 创建 INFINIBURN_OVERWORLD 标签（无限火源基座，主世界维度）
     // 对齐数据包 infiniburn_overworld.json = {netherrack, magma_block}。

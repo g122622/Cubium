@@ -724,6 +724,8 @@ add_executable(mc_tests
     common/world/block/blocks/TryGrowFruitTest.cpp
     common/world/block/blocks/GolemBlockTest.cpp
     common/world/block/blocks/PumpkinCarveTest.cpp
+    # 凋灵召唤（WitherSkullBlock::checkSpawn T 形图案匹配）测试
+    common/world/block/blocks/WitherSkullBlockTest.cpp
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
     common/world/block/blocks/SpongeBlockTest.cpp
     common/world/block/blocks/OxidizableBlockTest.cpp
