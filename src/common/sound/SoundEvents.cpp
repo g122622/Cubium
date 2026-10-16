@@ -372,11 +372,21 @@ const ResourceLocation BLOCK_NOTE_BLOCK_DIDGERIDOO("minecraft:block.note_block.d
 const ResourceLocation BLOCK_NOTE_BLOCK_BIT("minecraft:block.note_block.bit");
 const ResourceLocation BLOCK_NOTE_BLOCK_BANJO("minecraft:block.note_block.banjo");
 const ResourceLocation BLOCK_NOTE_BLOCK_PLING("minecraft:block.note_block.pling");
+// 本文件全部 ~1700 个声音常量与下方 6 个新增项写法一致：ResourceLocation 内部持有 std::string，
+// 构造期分配失败理论可抛 bad_alloc，故 bugprone-throwing-static-initialization 恒报。这是本文件
+// 既有约定（存量常量同样触发，只是仅"改动行"会被 CI 报告），重构成非抛出式超出本改动范围。
+//
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_ZOMBIE("minecraft:block.note_block.imitate.zombie");
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_SKELETON("minecraft:block.note_block.imitate.skeleton");
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_CREEPER("minecraft:block.note_block.imitate.creeper");
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_ENDER_DRAGON("minecraft:block.note_block.imitate.ender_dragon");
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_WITHER_SKELETON("minecraft:block.note_block.imitate.wither_skeleton");
+// NOLINTNEXTLINE(bugprone-throwing-static-initialization)
 const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_PIGLIN("minecraft:block.note_block.imitate.piglin");
 const ResourceLocation BLOCK_NOTE_BLOCK_HARP("minecraft:block.note_block.harp");
 
