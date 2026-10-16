@@ -319,6 +319,11 @@ constexpr const char* IS_CHICKEN_JOCKEY = "IsChickenJockey";
 constexpr const char* DOLPHIN_GOT_FISH = "GotFish";    ///< 是否已被喂鱼（bool）
 constexpr const char* DOLPHIN_MOISTNESS = "Moistness"; ///< 湿润度等级（i32，vanilla 默认 2400）
 
+// ========== SalmonEntity 键 ==========
+// 参考 MC 1.21.11 Salmon.addAdditionalSaveData()/readAdditionalSaveData()。
+
+constexpr const char* SALMON_TYPE = "type"; ///< 体型（字符串 small/medium/large）
+
 // ========== TurtleEntity 键 ==========
 
 constexpr const char* HOME_X = "HomePosX";

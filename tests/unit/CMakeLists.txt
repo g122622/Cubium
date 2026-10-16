@@ -276,6 +276,8 @@ add_executable(mc_tests
     common/entity/PhantomGoalsTest.cpp
     # PufferfishEntity 膨胀目标和敌人检测测试
     common/entity/entities/passive/fish/PufferfishEntityTest.cpp
+    # SalmonEntity 体型（Variant）业务联动测试
+    common/entity/entities/passive/fish/SalmonEntityTest.cpp
     common/entity/entities/monster/SlimeEntityTest.cpp
     # SlimeChunkChecker 史莱姆区块判断测试
     common/world/spawn/SlimeChunkCheckerTest.cpp
