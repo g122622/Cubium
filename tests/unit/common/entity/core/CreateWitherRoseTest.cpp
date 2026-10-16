@@ -177,6 +177,7 @@ TEST_F(CreateWitherRoseTest, WitherKill_GriefingOff_DropsItem)
     auto* itemEntity = dynamic_cast<ItemEntity*>(world.spawnedEntities()[0].get());
     ASSERT_NE(itemEntity, nullptr);
     EXPECT_EQ(itemEntity->getItemStack().getItem(), Items::WITHER_ROSE);
+    EXPECT_EQ(itemEntity->getItemStack().getCount(), 1);
 }
 
 TEST_F(CreateWitherRoseTest, WitherKill_GriefingOn_UnsuitableGround_DropsItem)
@@ -197,7 +198,41 @@ TEST_F(CreateWitherRoseTest, WitherKill_GriefingOn_UnsuitableGround_DropsItem)
 
     EXPECT_EQ(world.setBlockCallCount(), 0);
     ASSERT_EQ(world.spawnedEntities().size(), 1U);
-    EXPECT_NE(dynamic_cast<ItemEntity*>(world.spawnedEntities()[0].get()), nullptr);
+    auto* itemEntity = dynamic_cast<ItemEntity*>(world.spawnedEntities()[0].get());
+    ASSERT_NE(itemEntity, nullptr);
+    EXPECT_EQ(itemEntity->getItemStack().getItem(), Items::WITHER_ROSE);
+    EXPECT_EQ(itemEntity->getItemStack().getCount(), 1);
+}
+
+TEST_F(CreateWitherRoseTest, WitherKill_GriefingOn_OccupiedPosition_DropsItem)
+{
+    // MOB_GRIEFING 开启、下方可存活，但死亡位置已被其他方块占据 → 不放置，改掉落物品
+    WitherRoseTestWorld world;
+    world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, true, nullptr);
+    world.presetBlock(0, -1, 0, &VanillaBlocks::SOUL_SAND->defaultState());
+    // 死亡位置 (0,0,0) 预置为石头（非空气），使放置分支被跳过
+    world.presetBlock(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+
+    TestLivingEntity victim(EntityInstanceId(1), mc::test::testEcsRegistry());
+    victim.setWorld(&world);
+    victim.setPosition(0.0f, 0.0f, 0.0f);
+
+    TestLivingEntity wither(EntityInstanceId(2), mc::test::testEcsRegistry());
+    wither.setTypeId("minecraft:wither");
+
+    victim.createWitherRose(&wither);
+
+    // 占据位置未被覆盖，仍为石头；凋零玫瑰改为掉落
+    EXPECT_EQ(world.setBlockCallCount(), 0);
+    const BlockState* occupied = world.blockAt(0, 0, 0);
+    ASSERT_NE(occupied, nullptr);
+    EXPECT_TRUE(occupied->is(VanillaBlocks::STONE));
+
+    ASSERT_EQ(world.spawnedEntities().size(), 1U);
+    auto* itemEntity = dynamic_cast<ItemEntity*>(world.spawnedEntities()[0].get());
+    ASSERT_NE(itemEntity, nullptr);
+    EXPECT_EQ(itemEntity->getItemStack().getItem(), Items::WITHER_ROSE);
+    EXPECT_EQ(itemEntity->getItemStack().getCount(), 1);
 }
 
 TEST_F(CreateWitherRoseTest, WitherKill_GriefingOn_NetherrackBelow_PlacesBlock)
