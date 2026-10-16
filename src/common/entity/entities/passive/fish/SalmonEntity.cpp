@@ -32,9 +32,14 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <memory>
 #include <optional>
 
@@ -61,9 +66,9 @@ void SalmonEntity::registerData()
     // （续接 AbstractFish id16 之后）。RAII 守卫自动配对压栈/弹栈。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册 DATA_TYPE 对齐 vanilla 1.21.11 Salmon.DATA_TYPE@17(Int，体型 0=small)。
-    // 默认值 0 = Salmon.Variant.DEFAULT.id()。
-    m_dataManager.registerParam(DATA_TYPE_PARAM, 0);
+    // 注册 DATA_TYPE 对齐 vanilla 1.21.11 Salmon.DATA_TYPE@17(Int，体型 0=small/1=medium/2=large)。
+    // 默认值 1 = Salmon.Variant.DEFAULT.id()（DEFAULT = MEDIUM）。
+    m_dataManager.registerParam(DATA_TYPE_PARAM, static_cast<i32>(Variant::Medium));
 }
 
 SalmonEntity::SalmonEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
@@ -113,6 +118,63 @@ std::optional<ResourceLocation> SalmonEntity::getHurtSound(DamageSource& /*sourc
 ItemStack SalmonEntity::getBucketItemStack() const
 {
     return ItemStack(Items::SALMON_BUCKET, 1);
+}
+
+f32 SalmonEntity::width() const
+{
+    // 基础尺寸取 EntityType 登记值（鲑鱼 0.7），再乘体型缩放（vanilla getDefaultDimensions().scale）。
+    // entityType() 懒查询在早期（未 setTypeId）可能为 nullptr，此时回退到基类默认宽度。
+    const entity::EntityType* type = entityType();
+    const f32 baseWidth = type != nullptr ? type->size().width() : Entity::width();
+    return baseWidth * variantScale(getVariant());
+}
+
+f32 SalmonEntity::height() const
+{
+    const entity::EntityType* type = entityType();
+    const f32 baseHeight = type != nullptr ? type->size().height() : Entity::height();
+    return baseHeight * variantScale(getVariant());
+}
+
+void SalmonEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    // 对齐 vanilla Salmon.finalizeSpawn：按权重 small 30 / medium 50 / large 15 随机决定体型。
+    const i32 roll = world.getRandom().nextInt(VARIANT_TOTAL_WEIGHT);
+    if (roll < VARIANT_SMALL_WEIGHT) {
+        setVariant(Variant::Small);
+    } else if (roll < VARIANT_SMALL_WEIGHT + VARIANT_MEDIUM_WEIGHT) {
+        setVariant(Variant::Medium);
+    } else {
+        setVariant(Variant::Large);
+    }
+
+    AbstractGroupFishEntity::finalizeSpawn(world, difficulty, spawnReason);
+}
+
+void SalmonEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AbstractGroupFishEntity::addAdditionalSaveData(tag);
+    // 对齐 vanilla：以字符串形式存 "type"（small/medium/large）。
+    static constexpr const char* VARIANT_NAMES[] = {"small", "medium", "large"};
+    const i32 id = static_cast<i32>(getVariant());
+    tag.put(entity::serialization::nbt_keys::SALMON_TYPE, std::string(VARIANT_NAMES[id]));
+}
+
+Result<void> SalmonEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(AbstractGroupFishEntity::readAdditionalSaveData(tag));
+    const std::string name =
+        entity::serialization::nbt_helper::tryGetString(tag, entity::serialization::nbt_keys::SALMON_TYPE)
+            .value_or("medium");
+    if (name == "small") {
+        setVariant(Variant::Small);
+    } else if (name == "large") {
+        setVariant(Variant::Large);
+    } else {
+        setVariant(Variant::Medium);
+    }
+    return Result<void>::ok();
 }
 
 } // namespace mc
