@@ -28,6 +28,8 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentType.hpp"
+#include "common/item/component/FireworkExplosion.hpp"
+#include "common/item/component/Fireworks.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
@@ -84,7 +86,9 @@ using DataComponentPayload = std::variant<std::monostate,
     bool,                                               // Unbreakable
     ItemRarity,                                         // Rarity
     std::string,                                        // ItemModel（资源位置）
-    AttackRange>;                                       // AttackRange
+    AttackRange,                                        // AttackRange
+    FireworkExplosion,                                  // FireworkExplosion
+    Fireworks>;                                         // Fireworks
 
 /**
  * @brief DataComponentPayload 各备选项索引
@@ -105,6 +109,8 @@ constexpr usize Bool = 8;               // bool
 constexpr usize Rarity = 9;             // ItemRarity
 constexpr usize Identifier = 10;        // std::string
 constexpr usize AttackRange = 11;       // AttackRange
+constexpr usize FireworkExplosion = 12; // FireworkExplosion
+constexpr usize Fireworks = 13;         // Fireworks
 } // namespace ComponentPayloadIndex
 
 /**

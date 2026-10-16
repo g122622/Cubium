@@ -26,75 +26,17 @@
 #include "common/entity/inventory/CraftingInventory.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/crafting/SpecialRecipe.hpp"
+#include "common/item/items/DyeItemHelper.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/color/DyeColor.hpp"
-#include "entity/entities/passive/basic/SheepEntity.hpp"
 #include "item/Items.hpp"
 #include "item/items/armor/DyeableArmorItem.hpp"
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace mc {
 namespace crafting {
 
-// 染料物品集合（共16种染料 + 墨囊 + 可可豆）
-static const std::unordered_set<const Item*>& getDyeItems()
-{
-    static std::unordered_set<const Item*> dyeItems = {
-        Items::INK_SAC,          // 墨囊（黑色染料）
-        Items::RED_DYE,          // 红色染料
-        Items::GREEN_DYE,        // 绿色染料
-        Items::COCOA_BEANS,      // 可可豆（棕色染料）
-        Items::LAPIS_LAZULI_DYE, // 青金石（蓝色染料）
-        Items::PURPLE_DYE,       // 紫色染料
-        Items::CYAN_DYE,         // 青色染料
-        Items::LIGHT_GRAY_DYE,   // 淡灰色染料
-        Items::GRAY_DYE,         // 灰色染料
-        Items::PINK_DYE,         // 粉红色染料
-        Items::LIME_DYE,         // 黄绿色染料
-        Items::YELLOW_DYE,       // 黄色染料
-        Items::LIGHT_BLUE_DYE,   // 淡蓝色染料
-        Items::MAGENTA_DYE,      // 品红色染料
-        Items::ORANGE_DYE,       // 橙色染料
-        Items::WHITE_DYE,        // 白色染料
-    };
-    return dyeItems;
-}
-
-/**
- * @brief 获取染料物品对应的颜色
- *
- * @param item 染料物品
- * @return DyeColor 枚举值，如果不是染料返回 White
- */
-static DyeColor getDyeColorFromItem(const Item* item)
-{
-    static const std::unordered_map<const Item*, DyeColor> dyeColorMap = {
-        {Items::INK_SAC, DyeColor::Black},
-        {Items::RED_DYE, DyeColor::Red},
-        {Items::GREEN_DYE, DyeColor::Green},
-        {Items::COCOA_BEANS, DyeColor::Brown},
-        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
-        {Items::PURPLE_DYE, DyeColor::Purple},
-        {Items::CYAN_DYE, DyeColor::Cyan},
-        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
-        {Items::GRAY_DYE, DyeColor::Gray},
-        {Items::PINK_DYE, DyeColor::Pink},
-        {Items::LIME_DYE, DyeColor::Lime},
-        {Items::YELLOW_DYE, DyeColor::Yellow},
-        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
-        {Items::MAGENTA_DYE, DyeColor::Magenta},
-        {Items::ORANGE_DYE, DyeColor::Orange},
-        {Items::WHITE_DYE, DyeColor::White},
-    };
-
-    auto it = dyeColorMap.find(item);
-    if (it != dyeColorMap.end()) {
-        return it->second;
-    }
-    return DyeColor::White;
-}
+namespace {
 
 /**
  * @brief 将 DyeColor 转换为 RGB 整数值
@@ -102,9 +44,9 @@ static DyeColor getDyeColorFromItem(const Item* item)
  * @param color 染料颜色
  * @return RGB 整数值（0xRRGGBB 格式）
  */
-static u32 dyeColorToRGB(DyeColor color)
+u32 _dyeColorToRGB(DyeColor color)
 {
-    // DyeColor 颜色值（整数格式）
+    // 盔甲染色的颜色混合取纹理漫反射色（与烟花色不同）
     switch (color) {
         case DyeColor::White:
             return 0xF9FFFE; // #F9FFFE
@@ -142,6 +84,8 @@ static u32 dyeColorToRGB(DyeColor color)
             return 0xF9FFFE; // 默认白色
     }
 }
+
+} // namespace
 
 ArmorDyeRecipe::ArmorDyeRecipe(const ResourceLocation& id)
     : SpecialRecipe(id)
@@ -188,8 +132,10 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const
             armorStack = stack.copy();
         } else if (_isDye(stack)) {
             // 从染料物品获取颜色
-            DyeColor dyeColor = getDyeColorFromItem(stack.getItem());
-            colors.push_back(dyeColorToRGB(dyeColor));
+            const auto dyeColor = item::DyeItemHelper::dyeColorOfItem(stack.getItem());
+            if (dyeColor.has_value()) {
+                colors.push_back(_dyeColorToRGB(*dyeColor));
+            }
         }
     }
 
@@ -247,11 +193,7 @@ bool ArmorDyeRecipe::_isDye(const ItemStack& stack)
     if (stack.isEmpty()) {
         return false;
     }
-    const Item* item = stack.getItem();
-    if (item == nullptr) {
-        return false;
-    }
-    return getDyeItems().count(item) > 0;
+    return item::DyeItemHelper::isDyeItem(stack.getItem());
 }
 
 u32 ArmorDyeRecipe::_mixColors(u32 color1, u32 color2)

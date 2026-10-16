@@ -52,7 +52,17 @@ namespace item {
 namespace component {
 namespace detail {
 
+using nbt::TagId;
+using nbt::tags::compound_tag;
+using nbt::tags::float_tag;
+using nbt::tags::int_tag;
+using nbt::tags::list_tag;
+using nbt::tags::short_tag;
+using nbt::tags::string_list_tag;
+using nbt::tags::string_tag;
+
 namespace {
+
 constexpr std::array<std::string_view, 16> _colorNames{"white",
     "orange",
     "magenta",
@@ -69,16 +79,36 @@ constexpr std::array<std::string_view, 16> _colorNames{"white",
     "green",
     "red",
     "black"};
+
+/// 读 compound 中名为 key 的 i32 列表（缺省/类型不符返回空列表）。
+[[nodiscard]] std::vector<i32> _readIntList(const compound_tag& compound, const char* key)
+{
+    std::vector<i32> result;
+    auto it = compound.value.find(key);
+    if (it == compound.value.end() || it->second->id() != TagId::List) {
+        return result;
+    }
+    const auto* list = dynamic_cast<const nbt::tags::int_list_tag*>(it->second.get());
+    if (list != nullptr) {
+        result = list->value;
+    }
+    return result;
 }
 
-using nbt::TagId;
-using nbt::tags::compound_tag;
-using nbt::tags::float_tag;
-using nbt::tags::int_tag;
-using nbt::tags::list_tag;
-using nbt::tags::short_tag;
-using nbt::tags::string_list_tag;
-using nbt::tags::string_tag;
+/// 读 compound 中名为 key 的布尔值（Byte 语义：非 0 即真；缺省/类型不符返回 false）。
+[[nodiscard]] bool _readBool(const compound_tag& compound, const char* key)
+{
+    auto it = compound.value.find(key);
+    if (it == compound.value.end()) {
+        return false;
+    }
+    if (it->second->id() == TagId::Byte) {
+        return dynamic_cast<const nbt::tags::byte_tag&>(*it->second).value != 0;
+    }
+    return false;
+}
+
+} // namespace
 
 std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataComponentPayload& payload)
 {
@@ -205,6 +235,39 @@ std::unique_ptr<nbt::tags::tag> payloadToNbt(DataComponentType type, const DataC
                 }
             }
             return std::make_unique<compound_tag>();
+        }
+        case DataComponentType::FireworkExplosion: {
+            // vanilla FireworkExplosion.CODEC：shape(默认 small_ball) + colors/fade_colors
+            // (int 列表，默认空) + has_trail/has_twinkle(默认 false)，全部 optionalFieldOf。
+            const auto& explosion = std::get<FireworkExplosion>(payload);
+            auto compound = std::make_unique<compound_tag>();
+            compound->put("shape", std::string(fireworkShapeName(explosion.shape)));
+            auto colors = std::make_unique<nbt::tags::int_list_tag>(explosion.colors);
+            compound->value.emplace("colors", std::move(colors));
+            auto fadeColors = std::make_unique<nbt::tags::int_list_tag>(explosion.fadeColors);
+            compound->value.emplace("fade_colors", std::move(fadeColors));
+            compound->put("has_trail", static_cast<i8>(explosion.hasTrail ? 1 : 0));
+            compound->put("has_twinkle", static_cast<i8>(explosion.hasTwinkle ? 1 : 0));
+            return compound;
+        }
+        case DataComponentType::Fireworks: {
+            // vanilla Fireworks.CODEC：flight_duration(UNSIGNED_BYTE，默认 0，NBT 上是 byte)
+            // + explosions(FireworkExplosion 列表，上限 256，默认空)。
+            const auto& fireworks = std::get<Fireworks>(payload);
+            auto compound = std::make_unique<compound_tag>();
+            compound->put("flight_duration", static_cast<i8>(fireworks.flightDuration));
+            auto explosions = std::make_unique<nbt::tags::compound_list_tag>();
+            for (const auto& explosion : fireworks.explosions) {
+                auto element = std::make_unique<nbt::tags::compound_tag>();
+                auto encoded = payloadToNbt(DataComponentType::FireworkExplosion,
+                    DataComponentPayload{std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, explosion});
+                if (encoded != nullptr && encoded->id() == TagId::Compound) {
+                    *element = dynamic_cast<const compound_tag&>(*encoded);
+                }
+                explosions->value.push_back(std::move(*element));
+            }
+            compound->value.emplace("explosions", std::move(explosions));
+            return compound;
         }
     }
     return std::make_unique<compound_tag>();
@@ -402,6 +465,55 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 return DataComponentPayload{std::in_place_index<7>, nbt::nbtToJson(tag)};
             }
             return DataComponentPayload{std::in_place_index<7>, nlohmann::json::object()};
+        }
+        case DataComponentType::FireworkExplosion: {
+            FireworkExplosion explosion{};
+            if (tag.id() == TagId::Compound) {
+                const auto& c = dynamic_cast<const compound_tag&>(tag);
+                auto shapeIt = c.value.find("shape");
+                if (shapeIt != c.value.end() && shapeIt->second->id() == TagId::String) {
+                    const auto name = dynamic_cast<const string_tag&>(*shapeIt->second).value;
+                    explosion.shape = fireworkShapeFromName(name).value_or(FireworkShape::SmallBall);
+                }
+                explosion.colors = _readIntList(c, "colors");
+                explosion.fadeColors = _readIntList(c, "fade_colors");
+                explosion.hasTrail = _readBool(c, "has_trail");
+                explosion.hasTwinkle = _readBool(c, "has_twinkle");
+            }
+            return DataComponentPayload{
+                std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, std::move(explosion)};
+        }
+        case DataComponentType::Fireworks: {
+            Fireworks fireworks{};
+            if (tag.id() == TagId::Compound) {
+                const auto& c = dynamic_cast<const compound_tag&>(tag);
+                auto flightIt = c.value.find("flight_duration");
+                if (flightIt != c.value.end()) {
+                    // vanilla UNSIGNED_BYTE：NBT 上是 byte（0..255 无符号解读）
+                    if (flightIt->second->id() == TagId::Byte) {
+                        fireworks.flightDuration =
+                            static_cast<u8>(dynamic_cast<const nbt::tags::byte_tag&>(*flightIt->second).value);
+                    } else if (flightIt->second->id() == TagId::Int) {
+                        fireworks.flightDuration = dynamic_cast<const int_tag&>(*flightIt->second).value;
+                    }
+                }
+                auto explosionsIt = c.value.find("explosions");
+                if (explosionsIt != c.value.end() && explosionsIt->second->id() == TagId::List) {
+                    const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(explosionsIt->second.get());
+                    if (list != nullptr) {
+                        for (const auto& element : list->value) {
+                            if (fireworks.explosions.size() >= static_cast<usize>(Fireworks::MAX_EXPLOSIONS)) {
+                                spdlog::warn(
+                                    "Ignoring firework explosions beyond the maximum of {}", Fireworks::MAX_EXPLOSIONS);
+                                break;
+                            }
+                            auto payload = nbtToPayload(DataComponentType::FireworkExplosion, element);
+                            fireworks.explosions.push_back(std::get<FireworkExplosion>(payload));
+                        }
+                    }
+                }
+            }
+            return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Fireworks>, std::move(fireworks)};
         }
     }
     return DataComponentPayload{};

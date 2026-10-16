@@ -32,6 +32,7 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/component/Fireworks.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -196,6 +197,23 @@ private:
 
 namespace {
 
+/// 构造携带 fireworks 组件的烟花火箭物品
+///
+/// 1.21.11 起烟花数据走 fireworks 数据组件（flight_duration + explosions），
+/// 而非旧版的 Fireworks NBT 复合标签。flightDuration 即组件的 flight_duration，
+/// 火箭的飞行等级 = 1 + flight_duration（对齐 vanilla FireworkRocketEntity 构造函数）。
+ItemStack _makeFireworkRocketItem(i32 flightDuration, i32 explosionCount)
+{
+    ItemStack stack(Items::FIREWORK_ROCKET, 1);
+    item::component::Fireworks fireworks{};
+    fireworks.flightDuration = flightDuration;
+    for (i32 i = 0; i < explosionCount; ++i) {
+        fireworks.explosions.emplace_back();
+    }
+    stack.setFireworks(std::move(fireworks));
+    return stack;
+}
+
 // ============================================================================
 // 基础属性测试
 // ============================================================================
@@ -274,10 +292,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountNoExplosions)
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 创建烟花火箭物品，只设置飞行时间
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(1, 0);
 
     firework.setFireworkItem(stack);
 
@@ -291,12 +306,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountSingle)
 {
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
 
     firework.setFireworkItem(stack);
 
@@ -311,14 +321,7 @@ TEST(FireworkRocketItemTest, GetExplosionCountMultiple)
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
 
     // 7 个爆炸效果（最大）
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    for (int i = 0; i < 7; ++i) {
-        tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
-    }
+    ItemStack stack = _makeFireworkRocketItem(1, 7);
 
     firework.setFireworkItem(stack);
 
@@ -332,10 +335,7 @@ TEST(FireworkRocketItemTest, ReadsFlightTimeFromItem)
 {
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 3;
+    ItemStack stack = _makeFireworkRocketItem(2, 0);
 
     firework.setFireworkItem(stack);
 
@@ -349,10 +349,7 @@ TEST(FireworkRocketItemTest, FlightTimeMinimumOne)
 {
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 0; // 设置为 0
+    ItemStack stack = _makeFireworkRocketItem(0, 0);
 
     firework.setFireworkItem(stack);
 
@@ -367,12 +364,7 @@ TEST(FireworkRocketItemTest, FireworkItemStorage)
 {
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
 
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 2;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
 
     firework.setFireworkItem(stack);
 
@@ -541,12 +533,7 @@ TEST_F(FireworkRocketDamageApplicationTest, DealsDamageToLivingEntity)
     firework.setShotFromCrossbow(true);
 
     // 设置 1 个爆炸效果
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
     firework.setFireworkItem(stack);
 
     // 创建目标实体，放在爆炸范围内
@@ -579,12 +566,7 @@ TEST_F(FireworkRocketDamageApplicationTest, DamageDecreasesWithDistance)
     firework.setShotFromCrossbow(true);
 
     // 设置 1 个爆炸效果（基础伤害 7）
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
     firework.setFireworkItem(stack);
 
     // 创建近距离目标（距离 1）
@@ -614,12 +596,7 @@ TEST_F(FireworkRocketDamageApplicationTest, NoDamageOutOfRange)
     firework.setShotFromCrossbow(true);
 
     // 设置 1 个爆炸效果
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
     firework.setFireworkItem(stack);
 
     // 创建超出范围的目标（距离 6，大于爆炸半径 5）
@@ -649,12 +626,7 @@ TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
     firework1.setPosition(0.0, 0.0, 0.0);
     firework1.setShotFromCrossbow(true);
 
-    ItemStack stack1(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag1 = stack1.getOrCreateTag();
-    tag1["Fireworks"] = nlohmann::json::object();
-    tag1["Fireworks"]["Flight"] = 1;
-    tag1["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag1["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack1 = _makeFireworkRocketItem(1, 1);
     firework1.setFireworkItem(stack1);
 
     auto& target1 = m_world->addEntity<FireworkTestLivingEntity>();
@@ -669,14 +641,7 @@ TEST_F(FireworkRocketDamageApplicationTest, MoreExplosionsIncreaseDamage)
     firework2.setPosition(0.0, 10.0, 0.0);
     firework2.setShotFromCrossbow(true);
 
-    ItemStack stack2(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag2 = stack2.getOrCreateTag();
-    tag2["Fireworks"] = nlohmann::json::object();
-    tag2["Fireworks"]["Flight"] = 1;
-    tag2["Fireworks"]["Explosions"] = nlohmann::json::array();
-    for (int i = 0; i < 3; ++i) {
-        tag2["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
-    }
+    ItemStack stack2 = _makeFireworkRocketItem(1, 3);
     firework2.setFireworkItem(stack2);
 
     auto& target2 = m_world->addEntity<FireworkTestLivingEntity>();
@@ -701,10 +666,7 @@ TEST_F(FireworkRocketDamageApplicationTest, NoExplosionNoDamage)
     firework.setShotFromCrossbow(true);
 
     // 无爆炸效果
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(1, 0);
     // 不设置 Explosions
     firework.setFireworkItem(stack);
 
@@ -731,12 +693,7 @@ TEST_F(FireworkRocketDamageApplicationTest, NonLivingEntityNotHarmed)
     firework.setShotFromCrossbow(true);
 
     // 设置爆炸效果
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
     firework.setFireworkItem(stack);
 
     // 创建另一个烟花火箭作为非生物目标
@@ -782,10 +739,7 @@ TEST(FireworkRocketLifetimeTest, SetFireworkItemResetsLifeTime)
     entity::FireworkRocketEntity firework(EntityInstanceId(1), mc::test::testEcsRegistry());
     firework.setLifeTime(42); // 模拟已计算
 
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(1, 0);
     firework.setFireworkItem(stack);
 
     // 物品变更后 lifeTime 失效
@@ -807,10 +761,7 @@ TEST(FireworkRocketLifetimeTest, ServerSideTickLazyComputesLifeTime)
     world.setClientSide(false); // 服务端
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(0, 0);
     firework.setFireworkItem(stack);
 
     EXPECT_EQ(firework.lifeTime(), -1); // 未计算
@@ -831,10 +782,7 @@ TEST(FireworkRocketLifetimeTest, ClientSideTickDoesNotComputeLifeTime)
     world.setClientSide(true); // 客户端
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(1, 0);
     firework.setFireworkItem(stack);
 
     firework.tick();
@@ -852,10 +800,7 @@ TEST(FireworkRocketLifetimeTest, FlightTime2LifeTimeRange)
     world.setClientSide(false);
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 2;
+    ItemStack stack = _makeFireworkRocketItem(1, 0);
     firework.setFireworkItem(stack);
 
     firework.tick();
@@ -874,10 +819,7 @@ TEST(FireworkRocketLifetimeTest, FlightTime3LifeTimeRange)
     world.setClientSide(false);
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 3;
+    ItemStack stack = _makeFireworkRocketItem(2, 0);
     firework.setFireworkItem(stack);
 
     firework.tick();
@@ -898,10 +840,7 @@ TEST(FireworkRocketLifetimeTest, ExplosionTriggersAtComputedLifeTime)
     world.setClientSide(false);
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(0, 0);
     firework.setFireworkItem(stack);
 
     // 第一次 tick 触发懒初始化，之后 m_lifetime=1
@@ -936,10 +875,7 @@ TEST(FireworkRocketLifetimeTest, MultipleFireworksHaveVariedLifeTimes)
     for (int i = 0; i < 10; ++i) {
         auto& firework = world.addEntity<entity::FireworkRocketEntity>(
             EntityInstanceId(static_cast<u32>(i + 1)), mc::test::testEcsRegistry());
-        ItemStack stack(Items::FIREWORK_ROCKET, 1);
-        nlohmann::json& tag = stack.getOrCreateTag();
-        tag["Fireworks"] = nlohmann::json::object();
-        tag["Fireworks"]["Flight"] = 1;
+        ItemStack stack = _makeFireworkRocketItem(0, 0);
         firework.setFireworkItem(stack);
 
         firework.tick(); // 触发懒初始化
@@ -970,10 +906,7 @@ TEST(FireworkRocketLifetimeTest, ClientSideFallbackExplodesAtFlightTime10Plus6)
     world.setClientSide(true);
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(0, 0);
     firework.setFireworkItem(stack);
 
     // 客户端回退：flightTime*10+6 = 16
@@ -1009,12 +942,7 @@ TEST_F(FireworkRocketNbtTestFixture, LifeTimeRoundTrip)
     world.setClientSide(false);
 
     auto& firework = world.addEntity<entity::FireworkRocketEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 2;
-    tag["Fireworks"]["Explosions"] = nlohmann::json::array();
-    tag["Fireworks"]["Explosions"].push_back(nlohmann::json::object());
+    ItemStack stack = _makeFireworkRocketItem(1, 1);
     firework.setFireworkItem(stack);
     firework.setShotFromCrossbow(true);
 
@@ -1063,10 +991,7 @@ TEST_F(FireworkRocketNbtTestFixture, ReadAdditionalSaveDataPreservesLifeTime)
     using namespace mc::entity::serialization::nbt_keys;
 
     // 手工构造 NBT：FireworksItem + LifeTime
-    ItemStack stack(Items::FIREWORK_ROCKET, 1);
-    nlohmann::json& tag = stack.getOrCreateTag();
-    tag["Fireworks"] = nlohmann::json::object();
-    tag["Fireworks"]["Flight"] = 1;
+    ItemStack stack = _makeFireworkRocketItem(0, 0);
     nbt::tags::compound_tag itemTag;
     stack.toNbt(itemTag);
     savedTag.value.emplace(FIREWORKS_ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));

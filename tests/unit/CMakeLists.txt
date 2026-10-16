@@ -117,6 +117,8 @@ add_executable(mc_tests
     common/item/crafting/ShieldDecorationRecipeTest.cpp
     # DecoratedPotRecipe 饰纹陶罐合成配方测试
     common/item/crafting/DecoratedPotRecipeTest.cpp
+    # FireworkRecipe 烟花三配方（星形/火箭/渐变）匹配与合成测试
+    common/item/crafting/FireworkRecipeTest.cpp
     common/item/tool/ToolTests.cpp
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试

@@ -58,6 +58,7 @@
 #include <variant>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -298,6 +299,31 @@ void ItemStack::setEnchantableOverride(i32 value)
 void ItemStack::setAttackRange(item::component::AttackRange range)
 {
     _ensureExtras().attackRange = range;
+}
+
+void ItemStack::setFireworkExplosion(item::component::FireworkExplosion explosion)
+{
+    _ensureExtras().fireworkExplosion = std::move(explosion);
+}
+
+void ItemStack::setFireworks(item::component::Fireworks fireworks)
+{
+    // 本方法是所有写入路径（JSON/wire/NBT 读取与直接调用）的唯一收口，在此统一规范化，
+    // 避免下游按未校验的值分配/编码。两处约束来自 vanilla Fireworks：
+    // 1. flight_duration 是 UNSIGNED_BYTE（NBT/JSON 侧 0..255，超出即无法回写）；
+    // 2. explosions 上限 256（构造函数对超限抛 IllegalArgumentException）。
+    using item::component::Fireworks;
+    if (fireworks.flightDuration < 0 || fireworks.flightDuration > 255) {
+        spdlog::warn("Clamping firework flight duration from {} to the range [0, 255]", fireworks.flightDuration);
+        fireworks.flightDuration = std::clamp(fireworks.flightDuration, 0, 255);
+    }
+    if (fireworks.explosions.size() > static_cast<usize>(Fireworks::MAX_EXPLOSIONS)) {
+        spdlog::warn("Truncating firework explosions from {} to the maximum of {}",
+            fireworks.explosions.size(),
+            Fireworks::MAX_EXPLOSIONS);
+        fireworks.explosions.resize(static_cast<usize>(Fireworks::MAX_EXPLOSIONS));
+    }
+    _ensureExtras().fireworks = std::move(fireworks);
 }
 
 // ============================================================================
@@ -832,6 +858,26 @@ nlohmann::json ItemStack::toJson() const
                 {"hitbox_margin", ar.hitboxMargin},
                 {"mob_factor", ar.mobFactor}};
         }
+        if (m_extras->fireworkExplosion.has_value()) {
+            const auto& explosion = *m_extras->fireworkExplosion;
+            json["minecraft:firework_explosion"] = {{"shape", std::string(fireworkShapeName(explosion.shape))},
+                {"colors", explosion.colors},
+                {"fade_colors", explosion.fadeColors},
+                {"has_trail", explosion.hasTrail},
+                {"has_twinkle", explosion.hasTwinkle}};
+        }
+        if (m_extras->fireworks.has_value()) {
+            auto explosions = nlohmann::json::array();
+            for (const auto& explosion : m_extras->fireworks->explosions) {
+                explosions.push_back({{"shape", std::string(fireworkShapeName(explosion.shape))},
+                    {"colors", explosion.colors},
+                    {"fade_colors", explosion.fadeColors},
+                    {"has_trail", explosion.hasTrail},
+                    {"has_twinkle", explosion.hasTwinkle}});
+            }
+            json["minecraft:fireworks"] = {
+                {"flight_duration", m_extras->fireworks->flightDuration}, {"explosions", std::move(explosions)}};
+        }
     }
 
     return json;
@@ -951,8 +997,62 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         }
         stack.setAttackRange(range);
     }
+    if (json.contains("minecraft:firework_explosion") && json["minecraft:firework_explosion"].is_object()) {
+        stack.setFireworkExplosion(_fireworkExplosionFromJson(json["minecraft:firework_explosion"]));
+    }
+    if (json.contains("minecraft:fireworks") && json["minecraft:fireworks"].is_object()) {
+        const auto& fireworksJson = json["minecraft:fireworks"];
+        item::component::Fireworks fireworks{};
+        if (fireworksJson.contains("flight_duration") && fireworksJson["flight_duration"].is_number()) {
+            fireworks.flightDuration = fireworksJson["flight_duration"].get<i32>();
+        }
+        if (fireworksJson.contains("explosions") && fireworksJson["explosions"].is_array()) {
+            for (const auto& explosionJson : fireworksJson["explosions"]) {
+                if (explosionJson.is_object()) {
+                    fireworks.explosions.push_back(_fireworkExplosionFromJson(explosionJson));
+                }
+            }
+        }
+        stack.setFireworks(std::move(fireworks));
+    }
 
     return stack;
+}
+
+item::component::FireworkExplosion ItemStack::_fireworkExplosionFromJson(const nlohmann::json& json)
+{
+    item::component::FireworkExplosion explosion{};
+    if (json.contains("shape") && json["shape"].is_string()) {
+        explosion.shape = item::component::fireworkShapeFromName(json["shape"].get<std::string>())
+                              .value_or(item::component::FireworkShape::SmallBall);
+    }
+    // 逐元素校验为整数后再收集：`get<std::vector<i32>>()` 遇到非整元素会抛异常，
+    // 而 JSON 可能来自数据包/命令等不可信输入。
+    auto readColors = [&json](const char* key) {
+        std::vector<i32> colors;
+        auto it = json.find(key);
+        if (it == json.end() || !it->is_array()) {
+            return colors;
+        }
+        colors.reserve(it->size());
+        for (const auto& element : *it) {
+            if (element.is_number_integer()) {
+                colors.push_back(element.get<i32>());
+            } else {
+                spdlog::warn("Ignoring non-integer firework color entry in '{}'", key);
+            }
+        }
+        return colors;
+    };
+    explosion.colors = readColors("colors");
+    explosion.fadeColors = readColors("fade_colors");
+    if (json.contains("has_trail") && json["has_trail"].is_boolean()) {
+        explosion.hasTrail = json["has_trail"].get<bool>();
+    }
+    if (json.contains("has_twinkle") && json["has_twinkle"].is_boolean()) {
+        explosion.hasTwinkle = json["has_twinkle"].get<bool>();
+    }
+    return explosion;
 }
 
 // ============================================================================
@@ -1074,6 +1174,15 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         if (m_extras->attackRange.has_value()) {
             patch.add(
                 DataComponentType::AttackRange, DataComponentPayload{std::in_place_index<11>, *m_extras->attackRange});
+        }
+        if (m_extras->fireworkExplosion.has_value()) {
+            patch.add(DataComponentType::FireworkExplosion,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::FireworkExplosion>, *m_extras->fireworkExplosion});
+        }
+        if (m_extras->fireworks.has_value()) {
+            patch.add(DataComponentType::Fireworks,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Fireworks>, *m_extras->fireworks});
         }
     }
     return patch;
@@ -1210,6 +1319,14 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setAttackRange(std::get<item::component::AttackRange>(entry.value));
                 break;
             }
+            case DataComponentType::FireworkExplosion: {
+                setFireworkExplosion(std::get<item::component::FireworkExplosion>(entry.value));
+                break;
+            }
+            case DataComponentType::Fireworks: {
+                setFireworks(std::get<item::component::Fireworks>(entry.value));
+                break;
+            }
         }
     }
     for (i32 typeId : patch.removed()) {
@@ -1294,6 +1411,16 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
             case DataComponentType::AttackRange:
                 if (m_extras) {
                     m_extras->attackRange.reset();
+                }
+                break;
+            case DataComponentType::FireworkExplosion:
+                if (m_extras) {
+                    m_extras->fireworkExplosion.reset();
+                }
+                break;
+            case DataComponentType::Fireworks:
+                if (m_extras) {
+                    m_extras->fireworks.reset();
                 }
                 break;
         }
@@ -1469,6 +1596,67 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
             stack._ensureExtras().customData = parsed;
         }
     }
+
+    // 旧 1.16.5 的烟花数据是 Fireworks NBT 复合标签（Flight + Explosions），
+    // 迁入 1.21.11 的 fireworks 组件。旧字段名与取值都是 1.16.5 语义：
+    // Flight 为飞行等级（本项目的飞行等级 = 1 + flight_duration），Explosions 各项
+    // 用大驼峰键名（Shape 为 byte 形状 id、Colors/FadeColors 为 int 列表、Trail/Flicker 为 byte 布尔）。
+    it = tagCompound.value.find("Fireworks");
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Compound) {
+        const auto& legacyFireworks = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
+        item::component::Fireworks fireworks{};
+
+        auto flightIt = legacyFireworks.value.find("Flight");
+        if (flightIt != legacyFireworks.value.end()) {
+            i32 flightLevel = 0;
+            if (flightIt->second->id() == nbt::TagId::Byte) {
+                // 先转 u8 再转 i32：byte_tag 的值是有符号 i8，直接提升会把 >127 的值变负。
+                flightLevel = static_cast<u8>(dynamic_cast<const nbt::tags::byte_tag&>(*flightIt->second).value);
+            } else if (flightIt->second->id() == nbt::TagId::Int) {
+                flightLevel = dynamic_cast<const nbt::tags::int_tag&>(*flightIt->second).value;
+            }
+            // 旧 Flight 是飞行等级，组件承载的是 flight_duration（等级 - 1）。
+            fireworks.flightDuration = std::max(0, flightLevel - 1);
+        }
+
+        auto explosionsIt = legacyFireworks.value.find("Explosions");
+        if (explosionsIt != legacyFireworks.value.end() && explosionsIt->second->id() == nbt::TagId::List) {
+            const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(explosionsIt->second.get());
+            if (list != nullptr) {
+                for (const auto& element : list->value) {
+                    item::component::FireworkExplosion explosion{};
+                    auto shapeIt = element.value.find("Shape");
+                    if (shapeIt != element.value.end() && shapeIt->second->id() == nbt::TagId::Byte) {
+                        explosion.shape = item::component::fireworkShapeById(
+                            dynamic_cast<const nbt::tags::byte_tag&>(*shapeIt->second).value);
+                    }
+                    auto readLegacyColors = [&element](const char* key) {
+                        std::vector<i32> colors;
+                        auto colorsIt = element.value.find(key);
+                        if (colorsIt == element.value.end() || colorsIt->second->id() != nbt::TagId::List) {
+                            return colors;
+                        }
+                        const auto* colorList = dynamic_cast<const nbt::tags::int_list_tag*>(colorsIt->second.get());
+                        if (colorList != nullptr) {
+                            colors = colorList->value;
+                        }
+                        return colors;
+                    };
+                    explosion.colors = readLegacyColors("Colors");
+                    explosion.fadeColors = readLegacyColors("FadeColors");
+                    auto readLegacyFlag = [&element](const char* key) {
+                        auto flagIt = element.value.find(key);
+                        return flagIt != element.value.end() && flagIt->second->id() == nbt::TagId::Byte &&
+                            dynamic_cast<const nbt::tags::byte_tag&>(*flagIt->second).value != 0;
+                    };
+                    explosion.hasTrail = readLegacyFlag("Trail");
+                    explosion.hasTwinkle = readLegacyFlag("Flicker");
+                    fireworks.explosions.push_back(std::move(explosion));
+                }
+            }
+        }
+        stack.setFireworks(std::move(fireworks));
+    }
 }
 
 // ============================================================================
@@ -1547,7 +1735,8 @@ bool ItemStack::_componentOverridesEqual(const ItemStack& other) const
     return a->maxStackSizeOverride == b->maxStackSizeOverride && a->maxDamageOverride == b->maxDamageOverride &&
         a->unbreakable == b->unbreakable && sameText(a->itemName, b->itemName) && a->itemModel == b->itemModel &&
         a->rarityOverride == b->rarityOverride && a->enchantableOverride == b->enchantableOverride &&
-        a->attackRange == b->attackRange;
+        a->attackRange == b->attackRange && a->fireworkExplosion == b->fireworkExplosion &&
+        a->fireworks == b->fireworks;
 }
 
 // ============================================================================

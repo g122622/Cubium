@@ -26,6 +26,12 @@ src/common/item/crafting/special/
 ├── TippedArrowRecipe.cpp
 ├── DecoratedPotRecipe.hpp      # 饰纹陶罐配方（十字形：陶片/砖块→陶罐）
 ├── DecoratedPotRecipe.cpp
+├── FireworkStarRecipe.hpp      # 烟花之星配方（火药+染料+可选形状/荧石粉/钻石）
+├── FireworkStarRecipe.cpp
+├── FireworkRocketRecipe.hpp    # 烟花火箭配方（纸+1~3 火药+0~N 烟花之星）
+├── FireworkRocketRecipe.cpp
+├── FireworkStarFadeRecipe.hpp  # 烟花之星渐变色配方（烟花之星+染料）
+├── FireworkStarFadeRecipe.cpp
 └── README.md
 ```
 
@@ -72,10 +78,12 @@ src/common/item/crafting/special/
 | `item/core/Item.hpp` | 物品类型判断 |
 | `item/core/ItemStack.hpp` | 物品堆操作、NBT 数据 |
 | `item/Items.hpp` | 物品静态引用 |
+| `item/items/DyeItemHelper.hpp` | 染料物品判定与颜色（ArmorDye/FireworkStar/FireworkStarFade 共用） |
+| `item/component/FireworkExplosion.hpp`、`Fireworks.hpp` | 烟花爆炸/火箭数据组件载荷 |
 | `item/tag/ItemTags.hpp` | 物品标签（DecoratedPotRecipe 使用 DECORATED_POT_INGREDIENTS） |
 | `entity/inventory/CraftingInventory.hpp` | 合成容器接口 |
 | `world/blockentity/interactive/DecoratedPotBlockEntity.hpp` | 饰纹陶罐图案与物品创建（DecoratedPotRecipe） |
-| `util/color/DyeColor.hpp` | 染料颜色枚举（BannerDuplicateRecipe） |
+| `util/color/DyeColor.hpp` | 染料颜色枚举（BannerDuplicateRecipe / 烟花色 `dyeFireworkColor`） |
 
 **下游依赖（使用本模块的模块）**:
 
@@ -86,7 +94,9 @@ src/common/item/crafting/special/
 
 ## 容易踩的坑
 
-1. **物品检测**：使用 `Items::XXX` 指针比较，而非字符串比较。染料需要检查所有 16 种 + 墨囊 + 可可豆。
+1. **物品检测**：使用 `Items::XXX` 指针比较，而非字符串比较。染料判定统一走
+   `item::DyeItemHelper`（16 种 *_dye + 墨囊 + 可可豆，与 vanilla 的 DyeItem 实例集合一致），
+   不要在配方里各写一份染料名单。
 
 2. **剩余物品处理**：不同配方的剩余物品行为不同：
    - `BookCloningRecipe`、`MapCloningRecipe`：原物品保留（通过 `getRemainingItems()` 返回）
@@ -105,3 +115,16 @@ src/common/item/crafting/special/
 8. **盾牌装饰前置条件**：`ShieldDecorationRecipe` 要求盾牌无现有图案（无 BlockEntityTag）。
 
 9. **饰纹陶罐十字形匹配**：`DecoratedPotRecipe` 要求 3x3 网格，十字形四个位置（上、左、右、下）必须是 `DECORATED_POT_INGREDIENTS` 标签中的物品，其余五个位置必须为空。物品到图案的映射通过 `getPatternFromItem()` 完成。
+
+10. **烟花三配方的匹配门槛是"非空物品数 >= 2"**：vanilla 用 `CraftingInput.ingredientCount()`，
+    本项目按槽位逐个统计非空堆（一次消耗 1 个，不按堆叠数量加权）。三者还各有"至多一个"的
+    唯一性门控（形状物品/荧石粉/钻石/火药/纸/烟花之星），漏掉任一即会把重复投放误判为可合成。
+
+11. **烟花数据走数据组件而非 NBT**：星形带 `firework_explosion`，火箭带 `fireworks`
+    （`flight_duration` = 火药数，`explosions` = 各星形的爆炸）。火箭的飞行等级是
+    `1 + flight_duration`（vanilla `FireworkRocketEntity` 构造函数），别把组件里的
+    `flight_duration` 直接当作飞行等级。
+
+12. **渐变色配方须保留星形原有字段**：vanilla 是 `update(FIREWORK_EXPLOSION, DEFAULT, list, withFadeColors)`
+    —— 星形无组件时以 `FireworkExplosion::defaultExplosion()` 为初值，**只替换 `fade_colors`**，
+    形状/主色/拖尾/闪烁原样保留。且 `assemble` 必须返回 `stack.copy()` 的副本，不得就地改动网格内的源物品。

@@ -33,11 +33,11 @@ namespace crafting {
 /**
  * @brief 烟花火箭合成配方（crafting_special_firework_rocket）
  *
- * 对应 MC 1.21.11 的 FireworkRocketRecipe。玩家用火药 + 纸 + 烟花之星合成烟花火箭，
- * 火箭的飞行时长由火药数量决定，爆炸效果由烟花之星的 Fireworks 组件决定。
- *
- * 注意：当前 matches/assemble 逻辑未实现（TODO），仅为让数据包加载不失败、配方注册完整。
- * 待烟花物品组件（Fireworks）系统接入后补全匹配与合成逻辑。
+ * 对应 MC 1.21.11 的 FireworkRocketRecipe。玩家用火药 + 纸 + 烟花之星合成 3 个烟花火箭：
+ * - 纸恰一张；
+ * - 火药 1~3 个，数量即 flight_duration（飞行时长等级）；
+ * - 烟花之星 0~N 个，各自携带的 firework_explosion 组件依网格顺序累积为火箭的爆炸列表。
+ * 结果火箭携带 fireworks 组件承载以上数据。
  *
  * 参考: net.minecraft.world.item.crafting.FireworkRocketRecipe
  */

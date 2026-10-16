@@ -27,6 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/item/component/AttackRange.hpp"
 #include "common/item/component/DataComponentMap.hpp"
+#include "common/item/component/FireworkExplosion.hpp"
+#include "common/item/component/Fireworks.hpp"
 #include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/core/ItemRarity.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
@@ -89,14 +91,16 @@ struct ItemExtras {
     AdventureModePredicate canDestroy;
 
     // ===== 数据组件覆盖（未设置=回退到 Item 基础值） =====
-    std::optional<i32> maxStackSizeOverride;                 // max_stack_size
-    std::optional<i32> maxDamageOverride;                    // max_damage
-    bool unbreakable = false;                                // unbreakable
-    std::unique_ptr<text::ITextComponent> itemName;          // item_name
-    std::optional<std::string> itemModel;                    // item_model（仅序列化）
-    std::optional<ItemRarity> rarityOverride;                // rarity
-    std::optional<i32> enchantableOverride;                  // enchantable（附魔能力）
-    std::optional<item::component::AttackRange> attackRange; // attack_range
+    std::optional<i32> maxStackSizeOverride;                             // max_stack_size
+    std::optional<i32> maxDamageOverride;                                // max_damage
+    bool unbreakable = false;                                            // unbreakable
+    std::unique_ptr<text::ITextComponent> itemName;                      // item_name
+    std::optional<std::string> itemModel;                                // item_model（仅序列化）
+    std::optional<ItemRarity> rarityOverride;                            // rarity
+    std::optional<i32> enchantableOverride;                              // enchantable（附魔能力）
+    std::optional<item::component::AttackRange> attackRange;             // attack_range
+    std::optional<item::component::FireworkExplosion> fireworkExplosion; // firework_explosion
+    std::optional<item::component::Fireworks> fireworks;                 // fireworks
 
     ItemExtras() = default;
 
@@ -114,6 +118,8 @@ struct ItemExtras {
         , rarityOverride(other.rarityOverride)
         , enchantableOverride(other.enchantableOverride)
         , attackRange(other.attackRange)
+        , fireworkExplosion(other.fireworkExplosion)
+        , fireworks(other.fireworks)
     {
         lore.reserve(other.lore.size());
         for (const auto& line : other.lore) {
@@ -136,6 +142,8 @@ struct ItemExtras {
             rarityOverride = other.rarityOverride;
             enchantableOverride = other.enchantableOverride;
             attackRange = other.attackRange;
+            fireworkExplosion = other.fireworkExplosion;
+            fireworks = other.fireworks;
             lore.clear();
             lore.reserve(other.lore.size());
             for (const auto& line : other.lore) {
@@ -150,7 +158,8 @@ struct ItemExtras {
     {
         return maxStackSizeOverride.has_value() || maxDamageOverride.has_value() || unbreakable ||
             itemName != nullptr || itemModel.has_value() || rarityOverride.has_value() ||
-            enchantableOverride.has_value() || attackRange.has_value();
+            enchantableOverride.has_value() || attackRange.has_value() || fireworkExplosion.has_value() ||
+            fireworks.has_value();
     }
 };
 
@@ -399,6 +408,36 @@ public:
      * @param range 攻击范围
      */
     void setAttackRange(item::component::AttackRange range);
+
+    /**
+     * @brief 获取 firework_explosion 组件（烟花之星的爆炸数据）
+     * @return 组件指针，未设置返回 nullptr
+     */
+    [[nodiscard]] const item::component::FireworkExplosion* getFireworkExplosion() const
+    {
+        return (m_extras && m_extras->fireworkExplosion) ? &*m_extras->fireworkExplosion : nullptr;
+    }
+
+    /**
+     * @brief 设置 firework_explosion 组件
+     * @param explosion 爆炸数据
+     */
+    void setFireworkExplosion(item::component::FireworkExplosion explosion);
+
+    /**
+     * @brief 获取 fireworks 组件（烟花火箭的飞行时长与爆炸列表）
+     * @return 组件指针，未设置返回 nullptr
+     */
+    [[nodiscard]] const item::component::Fireworks* getFireworks() const
+    {
+        return (m_extras && m_extras->fireworks) ? &*m_extras->fireworks : nullptr;
+    }
+
+    /**
+     * @brief 设置 fireworks 组件
+     * @param fireworks 烟花火箭数据
+     */
+    void setFireworks(item::component::Fireworks fireworks);
 
     // ========== 自定义数据 ==========
 
@@ -1029,6 +1068,8 @@ public:
      * - minecraft:rarity           —— m_extras->rarityOverride
      * - minecraft:enchantable      —— m_extras->enchantableOverride
      * - minecraft:attack_range     —— m_extras->attackRange
+     * - minecraft:firework_explosion —— m_extras->fireworkExplosion
+     * - minecraft:fireworks        —— m_extras->fireworks
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
 
@@ -1098,6 +1139,9 @@ private:
     [[nodiscard]] static const AdventureModePredicate& _emptyPredicate();
     /// 无 extras 时 getPotionId() 返回的共享空串
     [[nodiscard]] static const std::string& _emptyString();
+
+    /// 由 JSON 还原单次烟花爆炸（fromJson 用）
+    [[nodiscard]] static item::component::FireworkExplosion _fireworkExplosionFromJson(const nlohmann::json& json);
 
     /// 比较两个物品堆的组件覆盖集合是否一致（operator== 用）
     [[nodiscard]] bool _componentOverridesEqual(const ItemStack& other) const;

@@ -104,6 +104,7 @@ item/
 │   │   ├── EmptyMapItem.hpp/cpp  # 空地图
 │   │   └── FilledMapItem.hpp/cpp  # 已填充地图（重写 onCraftedPostProcess 处理缩放/锁定）
 │   └── BannerPatternItem.hpp/cpp  # 旗帜图案物品
+│   └── DyeItemHelper.hpp/cpp      # 染料物品判定与颜色查询（盔甲/烟花等染色配方复用）
 ├── enchantment/                  # 附魔系统
 │   ├── Enchantment.hpp/cpp       # 附魔基类
 │   ├── EnchantmentContainer.hpp/cpp  # 附魔容器（存储在 ItemStack 中）
