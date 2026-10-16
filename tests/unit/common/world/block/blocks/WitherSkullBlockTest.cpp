@@ -164,13 +164,32 @@ TEST_F(WitherSkullBlockTest, CompletePattern_AlongZ_SpawnsWither)
     EXPECT_NE(dynamic_cast<entity::WitherEntity*>(world_->spawnedEntities()[0].get()), nullptr);
 }
 
-TEST_F(WitherSkullBlockTest, CheckSpawn_FromSideHead_StillMatches)
+TEST_F(WitherSkullBlockTest, CheckSpawn_FromPositiveSideHead_StillMatches)
 {
-    // 从图案侧翼的头颅位置触发 checkSpawn，也应命中（pos 可以是 3 个头中的任意一个）
+    // 从图案右端头颅触发（pos 为右端，中心在 pos-dx）
     buildWitherPattern(0, 10, 0, /*alongX=*/true);
 
-    // 侧面头颅位于 (1,10,0)
     WitherSkullBlock::checkSpawn(*world_, BlockPos(1, 10, 0));
+
+    EXPECT_EQ(world_->spawnedEntities().size(), 1U);
+}
+
+TEST_F(WitherSkullBlockTest, CheckSpawn_FromNegativeSideHead_StillMatches)
+{
+    // 从图案左端头颅触发（pos 为左端，中心在 pos+dx）—— 曾因 center 偏移方向错误而漏命中
+    buildWitherPattern(0, 10, 0, /*alongX=*/true);
+
+    WitherSkullBlock::checkSpawn(*world_, BlockPos(-1, 10, 0));
+
+    EXPECT_EQ(world_->spawnedEntities().size(), 1U);
+}
+
+TEST_F(WitherSkullBlockTest, CheckSpawn_FromLeftHead_AlongZ_StillMatches)
+{
+    // Z 轴向图案从左端头颅触发
+    buildWitherPattern(0, 10, 0, /*alongX=*/false);
+
+    WitherSkullBlock::checkSpawn(*world_, BlockPos(0, 10, -1));
 
     EXPECT_EQ(world_->spawnedEntities().size(), 1U);
 }
@@ -256,12 +275,16 @@ TEST_F(WitherSkullBlockTest, ClientSide_NoSpawn)
     EXPECT_TRUE(world_->spawnedEntities().empty());
 }
 
-TEST_F(WitherSkullBlockTest, WitherSpawnedIsInvulnerable)
+TEST_F(WitherSkullBlockTest, WitherSpawnedStartsInvulnerablePhase)
 {
     buildWitherPattern(0, 10, 0, /*alongX=*/true);
 
     WitherSkullBlock::checkSpawn(*world_, BlockPos(0, 10, 0));
 
     ASSERT_EQ(world_->spawnedEntities().size(), 1U);
-    EXPECT_TRUE(world_->spawnedEntities()[0]->isInvulnerable());
+    auto* wither = dynamic_cast<entity::WitherEntity*>(world_->spawnedEntities()[0].get());
+    ASSERT_NE(wither, nullptr);
+    // 对齐 vanilla makeInvulnerable：设置 220 tick 生成无敌计时器（而非永久无敌标志）
+    EXPECT_EQ(wither->getInvulTime(), 220);
+    EXPECT_FALSE(wither->isInvulnerable());
 }

@@ -244,6 +244,14 @@ public:
     [[nodiscard]] bool isInvulnerablePhase() const { return getInvulTime() > 0; }
 
     /**
+     * @brief 使凋灵进入生成无敌阶段（220 tick / 11 秒）
+     *
+     * 对齐 vanilla WitherBoss.makeInvulnerable()（WitherBoss.java:356-358）：
+     * 仅设置无敌计时器，期间凋灵不受伤害并逐渐回血。
+     */
+    void makeInvulnerable() { setInvulTime(220); }
+
+    /**
      * @brief 是否充能（生命值低于一半）
      */
     [[nodiscard]] bool isCharged() const { return health() <= maxHealth() / 2.0f; }

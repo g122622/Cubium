@@ -27,6 +27,7 @@
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -146,10 +147,10 @@ bool _matchWitherPattern(IWorld& world, const BlockPos& pos, BlockPos& outSkullP
     // 以候选顶点头颅为中心，分别沿两个轴向展开 3x3 检查。
     for (bool forwardsAxisIsX : {true, false}) {
         const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
-        // 顶点头颅可能是 3 个头颅中的任意一个，故枚举偏移 -1/0/+1。
+        // pos 可能是顶层 3 个头颅中的任意一个：center  ∈ {pos-dx, pos, pos+dx}
+        // （pos 为右端头颅时 center=pos-dx；pos 为中心时 center=pos；pos 为左端时 center=pos+dx）。
         for (i32 headOffset = -1; headOffset <= 1; ++headOffset) {
-            // 顶层中央 = pos 沿前行轴反向偏移 (headOffset+1) 个单位
-            const BlockPos center = BlockPos(pos.x - dx.x * (headOffset + 1), pos.y, pos.z - dx.z * (headOffset + 1));
+            const BlockPos center = BlockPos(pos.x + dx.x * headOffset, pos.y, pos.z + dx.z * headOffset);
             const BlockPos left = BlockPos(center.x - dx.x, center.y, center.z - dx.z);
             const BlockPos right = BlockPos(center.x + dx.x, center.y, center.z + dx.z);
 
@@ -184,35 +185,25 @@ bool _matchWitherPattern(IWorld& world, const BlockPos& pos, BlockPos& outSkullP
     return false;
 }
 
-/// 清除凋灵图案涉及的全部方块（3 头颅 + 3 中层基座 + 1 底层中央基座 = 7 个方块）
-void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos)
+/// 清除凋灵图案涉及的全部方块（3 头颅 + 3 中层基座 + 1 底层中央基座 = 7 个方块）。
+/// 仅沿命中时确定的图案轴向清除，避免误清垂直于该轴的邻近结构。
+void _clearWitherPattern(IWorld& world, const BlockPos& centerSkullPos, bool forwardsAxisIsX)
 {
     const BlockState* airState = BlockRegistry::instance().airState();
     if (airState == nullptr) {
         return;
     }
 
-    // 沿 X 轴与 Z 轴两个方向各自清除（顶层 3 头颅 + 中层 3 基座 + 底层中央 1 基座）。
-    // 图案在命中时已确定轴向，这里对两个轴向上实际为头颅/基座的位置统一置空即可。
-    for (bool forwardsAxisIsX : {true, false}) {
-        const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
-        for (i32 i = -1; i <= 1; ++i) {
-            const BlockPos top(centerSkullPos.x + dx.x * i, centerSkullPos.y, centerSkullPos.z + dx.z * i);
-            // 仅清除确实是头颅/基座的位置，避免误清其他轴向上的空气
-            if (_isWitherSkeletonSkull(world.getBlockState(top))) {
-                world.setBlockState(top, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-            }
-            const BlockPos mid = top.down();
-            if (_isWitherBaseBlock(world.getBlockState(mid))) {
-                world.setBlockState(mid, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-            }
-        }
-        // 底层中央基座
-        const BlockPos bottomCenter = BlockPos(centerSkullPos.x, centerSkullPos.y - 2, centerSkullPos.z);
-        if (_isWitherBaseBlock(world.getBlockState(bottomCenter))) {
-            world.setBlockState(bottomCenter, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
-        }
+    const BlockPos dx = forwardsAxisIsX ? BlockPos(1, 0, 0) : BlockPos(0, 0, 1);
+    for (i32 i = -1; i <= 1; ++i) {
+        const BlockPos top(centerSkullPos.x + dx.x * i, centerSkullPos.y, centerSkullPos.z + dx.z * i);
+        world.setBlockState(top, airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
+        world.setBlockState(top.down(), airState, world::BlockUpdateFlags::UPDATE_CLIENTS);
     }
+    // 底层中央基座
+    world.setBlockState(BlockPos(centerSkullPos.x, centerSkullPos.y - 2, centerSkullPos.z),
+        airState,
+        world::BlockUpdateFlags::UPDATE_CLIENTS);
 }
 
 } // namespace
@@ -560,8 +551,8 @@ void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
         return;
     }
 
-    // 清除图案方块（4 个基座方块 + 3 个头颅方块）后于中点生成凋灵。
-    _clearWitherPattern(world, skullPos);
+    // 清除图案方块（3 个基座方块 + 3 个中层基座 + 1 个底层中央基座）后于顶点生成凋灵。
+    _clearWitherPattern(world, skullPos, forwardsAxisIsX);
 
     // 凋灵生成于图案顶点下方一层的中心（vanilla: match.getBlock(1, 2, 0) 即顶点头颅位）。
     entity->setPosition(
@@ -575,8 +566,10 @@ void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
         mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
     }
 
-    // 对齐 vanilla：凋灵生成后短暂无敌（makeInvulnerable）。
-    entity->setInvulnerable(true);
+    // 对齐 vanilla：凋灵生成后进入 220 tick 生成无敌阶段（WitherBoss.makeInvulnerable）。
+    if (auto* wither = dynamic_cast<entity::WitherEntity*>(entity.get())) {
+        wither->makeInvulnerable();
+    }
 
     world.spawnEntity(std::move(entity));
 }
