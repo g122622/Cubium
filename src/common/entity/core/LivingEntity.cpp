@@ -859,10 +859,9 @@ void LivingEntity::createWitherRose(LivingEntity* killCredit)
     //  - 否则（未放置方块，即 MOB_GRIEFING 关闭或位置不满足条件），
     //    在死亡位置掉落一个凋零玫瑰物品实体。
     //
-    // 注意：Cubium 的 WitherRoseBlock 未重写 isValidPosition（对应原版 canSurvive），
-    //       默认实现恒返回 true，因此 canSurvive 检查在此处不会产生过滤效果。
-    //       这与原版凋零玫瑰需要在特定方块（灵魂沙/草方块等）上才能存活的语义存在偏差。
-    // TODO: 待 WitherRoseBlock 实现 canSurvive 重写后，此处的 isValidPosition 检查将生效。
+    // WitherRoseBlock::canSustain 已重写（普通花朵土壤 + 下界岩/灵魂沙/灵魂土），
+    // 经 BushBlock::isValidPosition → canSustain 委托链，此处的 isValidPosition 检查
+    // 等价原版 canSurvive，放行集合与 WitherRoseBlock.mayPlaceOn 一致。
 
     // 原版 createWitherRose 无 m_world 守卫（仅判定 level instanceof ServerLevel），
     // Cubium 用成员 m_world，入口处判空避免解引用崩溃。

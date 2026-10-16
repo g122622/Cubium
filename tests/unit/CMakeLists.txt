@@ -367,6 +367,8 @@ add_executable(mc_tests
     common/entity/core/LivingEntityAbsorptionTest.cpp
     # LivingEntity 装备破损回调（onEquippedItemBroken、broadcastBreakEvent）测试
     common/entity/core/LivingEntityBreakEventTest.cpp
+    # LivingEntity::createWitherRose 凋零玫瑰生成（放置/掉落/非凋灵击杀者）测试
+    common/entity/core/CreateWitherRoseTest.cpp
     # LivingEntity 装备更新检测（detectEquipmentUpdates、stopLocationBasedEffects、equipmentHasChanged）测试
     common/entity/core/EquipmentUpdateTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
