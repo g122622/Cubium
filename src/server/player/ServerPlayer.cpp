@@ -1231,7 +1231,8 @@ void ServerPlayer::die(DamageSource& cause)
     //   if (killCredit != nullptr) killCredit->awardKillScore(*this, cause);
     // awardKillScore 由 ServerPlayer 重写，递增 totalKillCount/playerKillCount 判据与
     // PLAYER_KILLS/MOB_KILLS 统计（见 ServerPlayer::awardKillScore）。
-    // TODO: createWitherRose（LivingEntity.java:1453）——凋零玫瑰生成逻辑未实现。
+    // createWitherRose（LivingEntity.java:1453）已由基类 LivingEntity::die 在
+    //   killedEntity 守卫内调用（ServerPlayer 走同一 die 链路），此处无需重复。
     // TODO: awardStat(ENTITY_KILLED_BY)——"被实体击杀"统计，待 ENTITY_KILLED_BY 常量补全后接入。
 
     // 8. broadcastEntityState((byte)3) 已由 LivingEntity::die 处理（ServerPlayer.java:929 在基类处理）
