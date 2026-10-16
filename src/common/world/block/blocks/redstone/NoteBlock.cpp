@@ -105,6 +105,22 @@ const ResourceLocation& getSoundEventForInstrument(Instrument instrument)
             return SoundEvents::BLOCK_NOTE_BLOCK_BANJO;
         case Instrument::Pling:
             return SoundEvents::BLOCK_NOTE_BLOCK_PLING;
+        // 头颅拟声（MOB_HEAD/CUSTOM 类）
+        case Instrument::Zombie:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_ZOMBIE;
+        case Instrument::Skeleton:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_SKELETON;
+        case Instrument::Creeper:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_CREEPER;
+        case Instrument::Dragon:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_ENDER_DRAGON;
+        case Instrument::WitherSkeleton:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_WITHER_SKELETON;
+        case Instrument::Piglin:
+            return SoundEvents::BLOCK_NOTE_BLOCK_IMITATE_PIGLIN;
+        case Instrument::CustomHead:
+            // 玩家头颅：vanilla 用头颅 BlockEntity 的自定义音符盒音效（UI_BUTTON_CLICK 兜底）
+            return SoundEvents::UI_BUTTON_CLICK;
         default:
             return SoundEvents::BLOCK_NOTE_BLOCK_HARP;
     }
@@ -135,6 +151,45 @@ bool isBlock(const BlockState* state, Block* targetBlock)
         return false;
     }
     return &state->getBlock() == targetBlock;
+}
+
+/**
+ * @brief 判断音符盒上方方块对应的拟声乐器
+ *
+ * 对齐 vanilla：头颅类方块的 BlockProperties.instrument 为 MOB_HEAD/CUSTOM 类，
+ * 其 worksAboveNoteBlock() 为真，故放在音符盒上方时决定乐器音色。
+ *
+ * @param state 音符盒上方位置的方块状态
+ * @return 对应乐器枚举的整数值；非头颅返回 -1
+ */
+i32 headInstrumentAbove(const BlockState* state)
+{
+    if (state == nullptr) {
+        return -1;
+    }
+    if (isBlock(state, VanillaBlocks::SKELETON_SKULL) || isBlock(state, VanillaBlocks::SKELETON_WALL_SKULL)) {
+        return static_cast<i32>(Instrument::Skeleton);
+    }
+    if (isBlock(state, VanillaBlocks::WITHER_SKELETON_SKULL) ||
+        isBlock(state, VanillaBlocks::WITHER_SKELETON_WALL_SKULL)) {
+        return static_cast<i32>(Instrument::WitherSkeleton);
+    }
+    if (isBlock(state, VanillaBlocks::ZOMBIE_HEAD) || isBlock(state, VanillaBlocks::ZOMBIE_WALL_HEAD)) {
+        return static_cast<i32>(Instrument::Zombie);
+    }
+    if (isBlock(state, VanillaBlocks::CREEPER_HEAD) || isBlock(state, VanillaBlocks::CREEPER_WALL_HEAD)) {
+        return static_cast<i32>(Instrument::Creeper);
+    }
+    if (isBlock(state, VanillaBlocks::DRAGON_HEAD) || isBlock(state, VanillaBlocks::DRAGON_WALL_HEAD)) {
+        return static_cast<i32>(Instrument::Dragon);
+    }
+    if (isBlock(state, VanillaBlocks::PIGLIN_HEAD) || isBlock(state, VanillaBlocks::PIGLIN_WALL_HEAD)) {
+        return static_cast<i32>(Instrument::Piglin);
+    }
+    if (isBlock(state, VanillaBlocks::PLAYER_HEAD) || isBlock(state, VanillaBlocks::PLAYER_WALL_HEAD)) {
+        return static_cast<i32>(Instrument::CustomHead);
+    }
+    return -1;
 }
 
 } // anonymous namespace
@@ -277,6 +332,13 @@ void NoteBlock::triggerNote(IWorld& world, const BlockPos& pos, const BlockState
 
 i32 NoteBlock::_getInstrumentType(IWorld& world, const BlockPos& pos) const
 {
+    // 对齐 vanilla NoteBlock.getInstrumentType（1.21.11）：先查上方方块 instrument() 的
+    //   worksAboveNoteBlock() 分支（MOB_HEAD / CUSTOM 类头颅），命中即以头颅拟声覆盖，
+    //   否则回落到下方方块决定乐器。原实现仅查下方，致「头颅置于音符盒上方」的音色从不生效。
+    if (const i32 headInstrument = headInstrumentAbove(world.getBlockState(pos.up())); headInstrument >= 0) {
+        return headInstrument;
+    }
+
     // 根据音符盒下方的方块类型确定乐器
 
     BlockPos belowPos = pos.down();

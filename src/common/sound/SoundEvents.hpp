@@ -399,6 +399,14 @@ extern const ResourceLocation BLOCK_NOTE_BLOCK_DIDGERIDOO;
 extern const ResourceLocation BLOCK_NOTE_BLOCK_BIT;
 extern const ResourceLocation BLOCK_NOTE_BLOCK_BANJO;
 extern const ResourceLocation BLOCK_NOTE_BLOCK_PLING;
+
+// 音符盒拟声（头颅置于音符盒上方时使用的乐器音色）
+extern const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_ZOMBIE;
+extern const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_SKELETON;
+extern const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_CREEPER;
+extern const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_ENDER_DRAGON;
+extern const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_WITHER_SKELETON;
+extern const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_PIGLIN;
 extern const ResourceLocation BLOCK_NOTE_BLOCK_HARP;
 
 /// 火和岩浆

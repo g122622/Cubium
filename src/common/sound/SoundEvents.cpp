@@ -372,6 +372,12 @@ const ResourceLocation BLOCK_NOTE_BLOCK_DIDGERIDOO("minecraft:block.note_block.d
 const ResourceLocation BLOCK_NOTE_BLOCK_BIT("minecraft:block.note_block.bit");
 const ResourceLocation BLOCK_NOTE_BLOCK_BANJO("minecraft:block.note_block.banjo");
 const ResourceLocation BLOCK_NOTE_BLOCK_PLING("minecraft:block.note_block.pling");
+const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_ZOMBIE("minecraft:block.note_block.imitate.zombie");
+const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_SKELETON("minecraft:block.note_block.imitate.skeleton");
+const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_CREEPER("minecraft:block.note_block.imitate.creeper");
+const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_ENDER_DRAGON("minecraft:block.note_block.imitate.ender_dragon");
+const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_WITHER_SKELETON("minecraft:block.note_block.imitate.wither_skeleton");
+const ResourceLocation BLOCK_NOTE_BLOCK_IMITATE_PIGLIN("minecraft:block.note_block.imitate.piglin");
 const ResourceLocation BLOCK_NOTE_BLOCK_HARP("minecraft:block.note_block.harp");
 
 const ResourceLocation BLOCK_FIRE_AMBIENT("minecraft:block.fire.ambient");
