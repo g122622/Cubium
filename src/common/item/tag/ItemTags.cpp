@@ -401,6 +401,11 @@ ItemTag& ItemTags::BEACON_PAYMENT_ITEMS()
     return registerTag(ResourceLocation("minecraft:beacon_payment_items"));
 }
 
+ItemTag& ItemTags::NOTE_BLOCK_TOP_INSTRUMENTS()
+{
+    return registerTag(ResourceLocation("minecraft:noteblock_top_instruments"));
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -409,6 +414,18 @@ void ItemTags::initialize()
 
     for (const auto name : {"iron_ingot", "gold_ingot", "emerald", "diamond", "netherite_ingot"})
         BEACON_PAYMENT_ITEMS().add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", name)));
+
+    // 创建 NOTE_BLOCK_TOP_INSTRUMENTS 标签（各类头颅；数据包键 noteblock_top_instruments）。
+    // 对齐 vanilla 数据包 noteblock_top_instruments.json：手持这些物品右键音符盒顶面时，
+    // 交互降级为放置（而非升调），使头颅落在音符盒上方以决定乐器音色。
+    for (const auto name : {"skeleton_skull",
+             "wither_skeleton_skull",
+             "player_head",
+             "zombie_head",
+             "creeper_head",
+             "dragon_head",
+             "piglin_head"})
+        NOTE_BLOCK_TOP_INSTRUMENTS().add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", name)));
 
     // 物品标签的成员列表从数据包动态加载（ItemTagLoader），此处注册内置标签的默认值。
     // 当数据包可用时，ItemTagLoader 会追加或替换（replace=true）这些默认值；

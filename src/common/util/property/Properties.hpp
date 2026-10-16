@@ -1221,6 +1221,39 @@ public:
     };
 
     /**
+     * @brief 乐器是否为可调音乐器（对齐 vanilla NoteBlockInstrument.isTunable）
+     *
+     * 仅 BASE_BLOCK 类（前 16 种）可用音符值调音（决定音高与音符粒子）；
+     * 头颅类（MOB_HEAD/CUSTOM）音高固定为 1.0 且不产生调音粒子。
+     */
+    [[nodiscard]] static constexpr bool noteBlockInstrumentIsTunable(NoteBlockInstrument instrument) noexcept
+    {
+        return static_cast<u8>(instrument) < static_cast<u8>(NoteBlockInstrument::Zombie);
+    }
+
+    /**
+     * @brief 乐器是否使用自定义音效（对齐 vanilla NoteBlockInstrument.hasCustomSound）
+     *
+     * 仅 CUSTOM（玩家头颅）为真：其音效来自头颅方块实体存储的自定义音符盒音效 ID，
+     * 而非固定 soundEvent。
+     */
+    [[nodiscard]] static constexpr bool noteBlockInstrumentHasCustomSound(NoteBlockInstrument instrument) noexcept
+    {
+        return instrument == NoteBlockInstrument::CustomHead;
+    }
+
+    /**
+     * @brief 乐器置于音符盒上方时是否生效（对齐 vanilla NoteBlockInstrument.worksAboveNoteBlock）
+     *
+     * MOB_HEAD / CUSTOM 类（头颅）为真：它们放在音符盒上方时取代下方方块决定音色；
+     * 同时也意味着它们在音符盒下方时不会被采纳（vanilla setInstrument 回退 HARP）。
+     */
+    [[nodiscard]] static constexpr bool noteBlockInstrumentWorksAboveNoteBlock(NoteBlockInstrument instrument) noexcept
+    {
+        return !noteBlockInstrumentIsTunable(instrument);
+    }
+
+    /**
      * @brief 音符盒乐器属性
      */
     static const EnumProperty<NoteBlockInstrument>& NOTE_BLOCK_INSTRUMENT()

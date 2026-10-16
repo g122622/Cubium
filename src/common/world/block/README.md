@@ -816,7 +816,6 @@ virtual BlockActionResult useWithoutItem(const BlockState& state, IWorld& world,
 3. **`AbstractFurnaceBlock::getMenuProvider` 返回 `ContainerType::Furnace`**：高炉 / 烟熏炉应分别返回 `BlastFurnace` / `Smoker`，当前共用基类的 `Furnace`，旁观者右键会开出错误界面。
 4. **`TNTBlock` 缺少 `TNT_EXPLODES` gamerule 门控**：vanilla 在 gamerule 关闭时返 `Pass` 并提示 `block.minecraft.tnt.disabled`，项目未实现该分支。
 5. **`ChiseledBookShelfBlock` / `VaultBlock` / `CeilingHangingSignBlock` 等 vanilla 有 `useItemOn` 的方块项目尚未实现**，待实现时须按 vanilla 补双入口。
-6. **`NoteBlock` 缺 `NOTE_BLOCK_TOP_INSTRUMENTS` 标签与顶面朝向守卫**：vanilla 在手持该类物品点击顶面时返 `Pass` 交物品放置，项目统一走升调。
 
 **C++ 引用语义注意**：MC Java 中 `useItemOn(ItemStack p_433583_, ...)` 的 `p_433583_` 是引用副本，`inventory.setItem()` 替换数组槽位不会修改 `p_433583_`。C++ 中权威槽引用（`PlayerInventory::getSelectedStackRef()`）在 `setItem` 后即反映新值。因此若需在替换后判断"原手持物品是否为空"，必须在调用前捕获 `const bool heldItemWasEmpty = heldItem.isEmpty();`（参考 `ShelfBlock::useItemOn` 实现）。
 

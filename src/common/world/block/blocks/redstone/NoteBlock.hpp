@@ -24,8 +24,10 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "world/block/Block.hpp"
@@ -60,12 +62,26 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
+    // 放置时解析乐器并写入 INSTRUMENT 状态属性（对齐 vanilla NoteBlock.getStateForPlacement）。
+    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
     // 右键（空手/任意物品）升调：对齐 vanilla NoteBlock.useWithoutItem——cycle(NOTE) 循环升半音 +
     //   setBlockState 写回 + triggerNote 播放新音高 → Success。此前的实现缺失该 override，右键无法升调。
     [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,
         Player& player,
+        const BlockRaycastResult& hit) override;
+
+    // 手持物品右键：对齐 vanilla NoteBlock.useItemOn——手持 NOTE_BLOCK_TOP_INSTRUMENTS 标签物品
+    //   （各类头颅）且点击顶面时返回 Pass，交物品放置（使头颅落在音符盒上方决定乐器）；
+    //   否则返回 TryEmptyHandInteraction 驱动 useWithoutItem 升调。
+    [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
+        const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
         const BlockRaycastResult& hit) override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
@@ -84,6 +100,15 @@ public:
     // ========== 音符盒特有方法 ==========
 
     /**
+     * @brief 依据上下方方块解析乐器并写入 INSTRUMENT 属性
+     *
+     * 对齐 vanilla NoteBlock.setInstrument：上方方块的乐器若 worksAboveNoteBlock()
+     * （头颅类）则优先；否则取下方方块的乐器，但下方若本身 worksAboveNoteBlock()
+     * 则回退 HARP（避免头颅垫在音符盒下方时传出拟声）。
+     */
+    [[nodiscard]] static BlockState resolveInstrument(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
      * @brief 获取当前音调
      * @param state 方块状态
      * @return i32 音调值（0-24）
@@ -96,14 +121,14 @@ public:
      * @param note 音调值（0-24）
      * @return BlockState 更新后的状态
      */
-    [[nodiscard]] static BlockState withNote(BlockState state, i32 note);
+    [[nodiscard]] static BlockState withNote(const BlockState& state, i32 note);
 
     /**
      * @brief 增加音调（循环）
      * @param state 方块状态
      * @return BlockState 更新后的状态
      */
-    [[nodiscard]] static BlockState cycleNote(BlockState state);
+    [[nodiscard]] static BlockState cycleNote(const BlockState& state);
 
     /**
      * @brief 触发播放音符
@@ -118,12 +143,19 @@ public:
 
 private:
     /**
-     * @brief 根据上方方块类型获取乐器类型
-     * @param world 世界引用
+     * @brief 获取当前生效的乐器类型（读取 INSTRUMENT 状态属性）
+     * @param world 世界引用（保留形参以对齐原签名，播放路径已不再动态查询）
      * @param pos 音符盒位置
+     * @param state 当前方块状态
      * @return 乐器类型ID
      */
-    [[nodiscard]] i32 _getInstrumentType(IWorld& world, const BlockPos& pos) const;
+    [[nodiscard]] i32 _getInstrumentType(IWorld& world, const BlockPos& pos, const BlockState& state) const;
+
+    /// 依据下方方块决定乐器（方块类型 + 材质映射，复刻 vanilla NoteBlockInstrument.byState）
+    [[nodiscard]] static BlockStateProperties::NoteBlockInstrument belowInstrumentFor(const BlockState& belowState);
+
+    /// 乐器是否为可调音乐器（BASE_BLOCK 类，决定音高与音符粒子）
+    [[nodiscard]] static bool _isTunableInstrument(i32 instrument);
 
     /**
      * @brief 播放音符声音
