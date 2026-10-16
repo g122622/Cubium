@@ -381,13 +381,21 @@ TEST_F(DolphinEntityTest, AirSupply_DoesNotDrownOnLand)
     dolphin->setWorld(&world);
     dolphin->setHealth(dolphin->maxHealth());
     dolphin->setAir(0);
-
-    // 空气为 0 也不应触发溺水伤害（只有湿润度归零才受 dryout 伤害）
+    // 湿润度保持满值，使离水期间只有呼吸逻辑可能造成伤害
     dolphin->setMoistnessLevel(2400);
+
     const f32 healthBefore = dolphin->health();
-    dolphin->tick();
+
+    // 离水 tick 超过继承溺水阈值（空气 <= -20 约需 20+ tick），
+    // 若退化为 WaterMobEntity::updateAirSupply 则此处会触发溺水伤害。
+    for (i32 i = 0; i < 40; ++i) {
+        dolphin->setMoistnessLevel(2400); // 保持湿润度，隔离变量
+        dolphin->tick();
+    }
 
     EXPECT_FLOAT_EQ(dolphin->health(), healthBefore);
+    // 空气恒维持满值（vanilla increaseAirSupply 语义）
+    EXPECT_EQ(dolphin->air(), dolphin->maxAir());
 }
 
 // ==================== NBT 序列化 Tests ====================
@@ -430,8 +438,15 @@ TEST_F(DolphinEntityTest, NbtRoundTrip_EmptyNbtUsesDefault)
 
 TEST_F(DolphinEntityTest, Moistness_SyncsToDataManager)
 {
+    // 先清除脏标记，确保后续断言只反映本次 setMoistnessLevel 的写入
+    dolphin->dataManager().clearDirty();
+
     dolphin->setMoistnessLevel(555);
     EXPECT_EQ(dolphin->getMoistnessLevel(), 555);
-    // 元数据同步：setMoistnessLevel 写入 DATA_MOISTNESS_LEVEL_PARAM（id18）
+    // 元数据同步：setMoistnessLevel 须写入 DATA_MOISTNESS_LEVEL_PARAM（id18）本身的脏值，
+    // 而不仅是"存在任意脏数据"。经 getMoistnessLevel 之外的路径校验 id18 的写入结果。
     EXPECT_TRUE(dolphin->dataManager().hasDirtyData());
+    const auto rawMoistness = dolphin->dataManager().getRaw(DolphinEntity::getMoistnessLevelParamId());
+    ASSERT_TRUE(rawMoistness.has_value());
+    EXPECT_EQ(rawMoistness->get<i32>(), 555);
 }

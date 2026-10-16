@@ -57,6 +57,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -324,7 +325,12 @@ Result<void> DolphinEntity::readAdditionalSaveData(const nbt::tags::compound_tag
     using namespace entity::serialization;
     MC_TRY(WaterMobEntity::readAdditionalSaveData(tag));
     setGotFish(nbt_helper::tryGetBool(tag, nbt_keys::DOLPHIN_GOT_FISH).value_or(false));
-    setMoistnessLevel(nbt_helper::tryGetInt(tag, nbt_keys::DOLPHIN_MOISTNESS).value_or(TOTAL_MOISTNESS_LEVEL));
+    // 钳制到 [0, TOTAL_MOISTNESS_LEVEL]，防御损坏存档中的越界值
+    const i32 moistness =
+        std::clamp(nbt_helper::tryGetInt(tag, nbt_keys::DOLPHIN_MOISTNESS).value_or(TOTAL_MOISTNESS_LEVEL),
+            0,
+            TOTAL_MOISTNESS_LEVEL);
+    setMoistnessLevel(moistness);
     return Result<void>::ok();
 }
 
@@ -341,13 +347,21 @@ void DolphinEntity::tick()
     }
 
     // 湿润度与离水挣扎，行为对齐 vanilla Dolphin.tick：
+    //   isNoAi() → 仅把空气补满，不做湿润度/挣扎（vanilla: if (isNoAi()) setAirSupply(max)）；
     //   isInWaterOrRain() → 湿润度回满 2400；
-    //   否则湿润度 -1，归零后每 tick 受 1 点 dryout 伤害；
-    //   若此时踩在地面上，随机向上弹跳并随机转向（陆地挣扎，避免搁浅至死）。
+    //   否则湿润度 -1（下限 0），归零后每 tick 受 1 点 dryout 伤害；
+    //   离水且踩在地面上时，随机向上弹跳并随机转向（陆地挣扎，避免搁浅至死）。
+    if (!m_aiEnabled) {
+        setAir(maxAir());
+        return;
+    }
+
     if (isInWater() || isInRain()) {
         setMoistnessLevel(TOTAL_MOISTNESS_LEVEL);
     } else {
-        setMoistnessLevel(getMoistnessLevel() - 1);
+        // 湿润度不需再降至负值：vanilla 判定为"归零后持续受伤"，故钳制下限为 0，
+        // 避免 INT_MIN 溢出与持续负值同步。
+        setMoistnessLevel(std::max(0, getMoistnessLevel() - 1));
         if (getMoistnessLevel() <= 0) {
             EnvironmentalDamage dryoutSource = DamageSources::dryout();
             hurt(dryoutSource, DRYOUT_DAMAGE);

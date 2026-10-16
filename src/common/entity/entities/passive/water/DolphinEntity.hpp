@@ -195,6 +195,9 @@ public:
         m_dataManager.set(DATA_MOISTNESS_LEVEL_PARAM, level);
     }
 
+    /// 湿润度同步数据参数 id（供测试校验元数据写入）
+    [[nodiscard]] static u16 getMoistnessLevelParamId() { return DATA_MOISTNESS_LEVEL_PARAM.id(); }
+
     // ========== 食物 ==========
 
     /**
