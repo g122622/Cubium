@@ -75,8 +75,8 @@ TEST_F(RecipeLoaderTest, LoadValidShapedRecipeJson)
     // 创建有效的有序合成配方JSON
     nlohmann::json json = {{"type", "minecraft:crafting_shaped"},
         {"pattern", {"##", "##"}},
-        {"key", {{"#", {{"item", "minecraft:oak_planks"}}}}},
-        {"result", {{"item", "minecraft:crafting_table"}, {"count", 1}}}};
+        {"key", {{"#", "minecraft:oak_planks"}}},
+        {"result", {{"id", "minecraft:crafting_table"}, {"count", 1}}}};
 
     ResourceLocation id("minecraft", "test_recipe");
     auto result = loader.loadRecipeJson(id, json.dump());
@@ -92,8 +92,8 @@ TEST_F(RecipeLoaderTest, LoadValidShapelessRecipeJson)
 
     // 创建有效的无序合成配方JSON
     nlohmann::json json = {{"type", "minecraft:crafting_shapeless"},
-        {"ingredients", {{{"item", "minecraft:iron_ingot"}}, {{"item", "minecraft:stick"}}}},
-        {"result", {{"item", "minecraft:iron_nugget"}, {"count", 9}}}};
+        {"ingredients", {"minecraft:iron_ingot", "minecraft:stick"}},
+        {"result", {{"id", "minecraft:iron_nugget"}, {"count", 9}}}};
 
     ResourceLocation id("minecraft", "test_shapeless");
     auto result = loader.loadRecipeJson(id, json.dump());
@@ -117,7 +117,7 @@ TEST_F(RecipeLoaderTest, LoadMissingType_ReturnsError)
     RecipeLoader loader;
 
     // 缺少type字段
-    nlohmann::json json = {{"pattern", {"#"}}, {"key", {{"#", {{"item", "minecraft:stone"}}}}}};
+    nlohmann::json json = {{"pattern", {"#"}}, {"key", {{"#", "minecraft:stone"}}}};
 
     auto result = loader.loadRecipeJson(ResourceLocation("minecraft", "missing_type"), json.dump());
 

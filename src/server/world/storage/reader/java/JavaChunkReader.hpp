@@ -45,10 +45,10 @@ namespace mc::world::storage::reader::java {
 /**
  * @brief Java 版区块 NBT 解析器
  *
- * 解析 Java 1.16.5 区块 NBT 结构，转换为项目的 ChunkData。
+ * 解析 Java 1.21.11 区块 NBT 结构，转换为项目的 ChunkData。
  * 支持：
- * - 区块 Sections（palette + long array 方块状态）
- * - Biomes（1.16.5 格式：i32[1024]）
+ * - 区块 Sections（block_states: palette + long array 方块状态）
+ * - Biomes（sections[].biomes 调色板）
  * - BlockEntities
  * - 光照数据
  *

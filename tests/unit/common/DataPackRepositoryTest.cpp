@@ -28,10 +28,10 @@ std::filesystem::path createSinglePackDir()
 {
     const auto dir = mc::test::makeUniqueTestDir("mc_datapack_list_test_");
     auto packDir = dir / "example_pack";
-    std::filesystem::create_directories(packDir / "data" / "minecraft" / "loot_tables" / "blocks");
+    std::filesystem::create_directories(packDir / "data" / "minecraft" / "loot_table" / "blocks");
 
     writeTextFile(packDir / "pack.mcmeta", R"({"pack":{"pack_format":6,"description":"test"}})");
-    writeTextFile(packDir / "data" / "minecraft" / "loot_tables" / "blocks" / "stone.json",
+    writeTextFile(packDir / "data" / "minecraft" / "loot_table" / "blocks" / "stone.json",
         R"({"type":"minecraft:block","pools":[]})");
 
     return dir;
@@ -100,7 +100,7 @@ TEST(DataPackRepositoryTest, ReadResourceUsesServerDataRoot)
     DataPackRepository list;
     ASSERT_TRUE(list.scanDirectory(dir).success());
 
-    const auto readResult = list.readTextResource("minecraft/loot_tables/blocks/stone.json");
+    const auto readResult = list.readTextResource("minecraft/loot_table/blocks/stone.json");
     ASSERT_TRUE(readResult.success());
     EXPECT_NE(readResult.value().find("\"minecraft:block\""), std::string::npos);
 }
@@ -113,7 +113,7 @@ TEST(DataPackRepositoryTest, ReadAllResourceVersions_SinglePack)
     DataPackRepository list;
     ASSERT_TRUE(list.scanDirectory(dir).success());
 
-    const auto result = list.readAllResourceVersions("minecraft/loot_tables/blocks/stone.json");
+    const auto result = list.readAllResourceVersions("minecraft/loot_table/blocks/stone.json");
     ASSERT_TRUE(result.success());
 
     // 单个数据包，应该只有一个版本
@@ -163,7 +163,7 @@ TEST(DataPackRepositoryTest, ListResourceStacks_SinglePack)
     DataPackRepository list;
     ASSERT_TRUE(list.scanDirectory(dir).success());
 
-    const auto result = list.listResourceStacks("minecraft/loot_tables/blocks", ".json");
+    const auto result = list.listResourceStacks("minecraft/loot_table/blocks", ".json");
     ASSERT_TRUE(result.success());
 
     // 应该只有一个资源路径

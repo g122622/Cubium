@@ -337,7 +337,13 @@ TEST(BlockEntityTodoTest, SignEntityLoadRejectsInvalidControlCharacters)
     data["x"] = 3;
     data["y"] = 4;
     data["z"] = 5;
-    data["lines"] = nlohmann::json::array({std::string("ok"), std::string("x") + static_cast<char>(2)});
+    // lines 为文本组件对象数组（与 save 写出格式一致）
+    nlohmann::json lines = nlohmann::json::array();
+    lines.push_back({{"text", "ok"}});
+    lines.push_back({{"text", std::string("x") + static_cast<char>(2)}});
+    lines.push_back(nlohmann::json::object());
+    lines.push_back(nlohmann::json::object());
+    data["lines"] = std::move(lines);
 
     // load 会清理无效控制字符而非失败，仍然返回 true
     EXPECT_TRUE(sign.load(data));

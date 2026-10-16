@@ -310,7 +310,7 @@ private:
 
     static Result<std::unique_ptr<LootFunction>> _parseSetCountFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseApplyBonusFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> _parseLootingEnchantFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseEnchantedCountIncreaseFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetDamageFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetNameFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetLoreFunction(const nlohmann::json& json);
@@ -319,10 +319,10 @@ private:
     static Result<std::unique_ptr<LootFunction>> _parseEnchantWithLevelsFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseEnchantRandomlyFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseExplosionDecayFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> _parseSetNbtFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetCustomDataFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseCopyNameFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> _parseCopyBlockStateFunction(const nlohmann::json& json);
-    static Result<std::unique_ptr<LootFunction>> _parseCopyNbtFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseCopyStateFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseCopyCustomDataFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseFillPlayerHeadFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetAttributesFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetContentsFunction(const nlohmann::json& json);

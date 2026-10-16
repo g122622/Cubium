@@ -186,12 +186,8 @@ public:
                     continue;
                 }
 
+                // Slot 为必填字段：缺失或越界一律跳过
                 i32 slot = itemJson.value("Slot", -1);
-                if (slot < 0 || slot >= inv->getContainerSize()) {
-                    // 兼容早期仅按数组下标存储的格式
-                    slot = static_cast<i32>(i);
-                }
-
                 if (slot < 0 || slot >= inv->getContainerSize()) {
                     continue;
                 }

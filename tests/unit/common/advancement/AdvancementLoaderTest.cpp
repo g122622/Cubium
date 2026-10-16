@@ -109,24 +109,6 @@ std::filesystem::path createDataPackDirSingular()
     return dir;
 }
 
-// 创建数据包目录结构（使用复数形式 advancements/）
-std::filesystem::path createDataPackDirPlural()
-{
-    const auto base = std::filesystem::temp_directory_path();
-    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-    const auto dir = base / ("mc_datapack_adv_plural_" + std::to_string(static_cast<long long>(now)));
-
-    // 创建数据包结构，使用复数形式 advancements/
-    std::filesystem::create_directories(dir / "test_pack/data/minecraft/advancements/adventure");
-
-    writeTextFile(
-        dir / "test_pack/pack.mcmeta", R"({"pack":{"pack_format":6,"description":"test advancement pack plural"}})");
-
-    writeTextFile(dir / "test_pack/data/minecraft/advancements/adventure/root.json", kSimpleAdvancementJson);
-
-    return dir;
-}
-
 } // namespace
 
 // ============================================================================
@@ -144,34 +126,16 @@ protected:
     void TearDown() override { AdvancementManager::instance().clear(); }
 };
 
-TEST_F(AdvancementLoaderTest, PathToAdvancementId_PluralAdvancements)
-{
-    AdvancementLoader loader;
-
-    // 旧格式（包含 data/ 前缀，复数 advancements/）
-    EXPECT_EQ(ResourceLocation("minecraft", "story/mine_stone"),
-        loader.pathToAdvancementId("data/minecraft/advancements/story/mine_stone.json"));
-
-    EXPECT_EQ(ResourceLocation("mod_id", "custom/adv"),
-        loader.pathToAdvancementId("data/mod_id/advancements/custom/adv.json"));
-
-    // 新格式（相对于 data/ 根目录，复数 advancements/）
-    EXPECT_EQ(ResourceLocation("minecraft", "story/root"),
-        loader.pathToAdvancementId("minecraft/advancements/story/root.json"));
-}
-
 TEST_F(AdvancementLoaderTest, PathToAdvancementId_SingularAdvancement)
 {
     AdvancementLoader loader;
 
-    // 旧格式（包含 data/ 前缀，单数 advancement/，MC 1.21+）
     EXPECT_EQ(ResourceLocation("minecraft", "story/mine_stone"),
-        loader.pathToAdvancementId("data/minecraft/advancement/story/mine_stone.json"));
+        loader.pathToAdvancementId("minecraft/advancement/story/mine_stone.json"));
 
-    EXPECT_EQ(ResourceLocation("mod_id", "custom/adv"),
-        loader.pathToAdvancementId("data/mod_id/advancement/custom/adv.json"));
+    EXPECT_EQ(
+        ResourceLocation("mod_id", "custom/adv"), loader.pathToAdvancementId("mod_id/advancement/custom/adv.json"));
 
-    // 新格式（相对于 data/ 根目录，单数 advancement/）
     EXPECT_EQ(ResourceLocation("minecraft", "adventure/root"),
         loader.pathToAdvancementId("minecraft/advancement/adventure/root.json"));
 }
@@ -182,10 +146,7 @@ TEST_F(AdvancementLoaderTest, PathToAdvancementId_DeepNestedPath)
 
     // 多层嵌套路径
     EXPECT_EQ(ResourceLocation("minecraft", "recipes/building_blocks/acacia_planks"),
-        loader.pathToAdvancementId("data/minecraft/advancements/recipes/building_blocks/acacia_planks.json"));
-
-    EXPECT_EQ(ResourceLocation("minecraft", "recipes/building_blocks/acacia_planks"),
-        loader.pathToAdvancementId("data/minecraft/advancement/recipes/building_blocks/acacia_planks.json"));
+        loader.pathToAdvancementId("minecraft/advancement/recipes/building_blocks/acacia_planks.json"));
 }
 
 TEST_F(AdvancementLoaderTest, PathToAdvancementId_NoAdvancementDir)
@@ -249,10 +210,10 @@ TEST_F(AdvancementLoaderTest, LoadJson_MissingCriteria)
 TEST_F(AdvancementLoaderTest, LoadFile_ValidAdvancement)
 {
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/advancements/story/root.json", kSimpleAdvancementJson);
+    writeTextFile(tempRoot / "data/minecraft/advancement/story/root.json", kSimpleAdvancementJson);
 
     AdvancementLoader loader;
-    auto result = loader.loadFile((tempRoot / "data/minecraft/advancements/story/root.json").string());
+    auto result = loader.loadFile((tempRoot / "data/minecraft/advancement/story/root.json").string());
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value(), ResourceLocation("minecraft", "story/root"));
 
@@ -277,11 +238,11 @@ TEST_F(AdvancementLoaderTest, LoadFile_NonExistentFile)
 TEST_F(AdvancementLoaderTest, LoadFromDirectory_LoadsAdvancements)
 {
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/advancements/story/root.json", kSimpleAdvancementJson);
-    writeTextFile(tempRoot / "data/minecraft/advancements/story/mine_stone.json", kFullAdvancementJson);
+    writeTextFile(tempRoot / "data/minecraft/advancement/story/root.json", kSimpleAdvancementJson);
+    writeTextFile(tempRoot / "data/minecraft/advancement/story/mine_stone.json", kFullAdvancementJson);
 
     AdvancementLoader loader;
-    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancements").string());
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancement").string());
 
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value().successCount, 2u);
@@ -318,11 +279,11 @@ TEST_F(AdvancementLoaderTest, LoadFromDirectory_EmptyDirectory)
 TEST_F(AdvancementLoaderTest, LoadFromDirectory_MixedSuccessAndFailure)
 {
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/advancements/story/good.json", kSimpleAdvancementJson);
-    writeTextFile(tempRoot / "data/minecraft/advancements/story/bad.json", kInvalidJsonSyntax);
+    writeTextFile(tempRoot / "data/minecraft/advancement/story/good.json", kSimpleAdvancementJson);
+    writeTextFile(tempRoot / "data/minecraft/advancement/story/bad.json", kInvalidJsonSyntax);
 
     AdvancementLoader loader;
-    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancements").string());
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancement").string());
 
     ASSERT_TRUE(result.success());
     EXPECT_EQ(result.value().successCount, 1u);
@@ -348,10 +309,10 @@ TEST_F(AdvancementLoaderTest, ClearBeforeLoad_DefaultClears)
 
     // loadFromDirectory 默认 clearBeforeLoad=true，应清空已有成就
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/advancements/test/adv.json", kSimpleAdvancementJson);
+    writeTextFile(tempRoot / "data/minecraft/advancement/test/adv.json", kSimpleAdvancementJson);
 
     AdvancementLoader loader;
-    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancements").string());
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancement").string());
 
     ASSERT_TRUE(result.success());
     // 预注册的成就应被清空
@@ -374,11 +335,11 @@ TEST_F(AdvancementLoaderTest, ClearBeforeLoad_FalsePreserves)
 
     // clearBeforeLoad=false，应保留已有成就
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/advancements/test/adv.json", kSimpleAdvancementJson);
+    writeTextFile(tempRoot / "data/minecraft/advancement/test/adv.json", kSimpleAdvancementJson);
 
     AdvancementLoader loader;
     loader.setClearBeforeLoad(false);
-    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancements").string());
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/advancement").string());
 
     ASSERT_TRUE(result.success());
     // 预注册的成就应保留
@@ -406,10 +367,10 @@ TEST_F(AdvancementLoaderTest, LoadResult_InitialState)
 TEST_F(AdvancementLoaderTest, ResetResult_ClearsState)
 {
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_advancement_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/advancements/test/bad.json", kInvalidJsonSyntax);
+    writeTextFile(tempRoot / "data/minecraft/advancement/test/bad.json", kInvalidJsonSyntax);
 
     AdvancementLoader loader;
-    loader.loadFromDirectory((tempRoot / "data/minecraft/advancements").string());
+    loader.loadFromDirectory((tempRoot / "data/minecraft/advancement").string());
 
     // 加载后应有结果
     EXPECT_EQ(loader.getLastResult().failedCount, 1u);
@@ -443,25 +404,6 @@ TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_SingularDirName)
     EXPECT_EQ(result.value().failedCount, 0u);
     EXPECT_TRUE(AdvancementManager::instance().contains(ResourceLocation("minecraft", "story/root")));
     EXPECT_TRUE(AdvancementManager::instance().contains(ResourceLocation("minecraft", "story/mine_stone")));
-
-    std::error_code ec;
-    std::filesystem::remove_all(dir, ec);
-}
-
-TEST_F(AdvancementLoaderTest, LoadFromDataPackRepository_PluralDirName)
-{
-    // 使用复数 advancements/ 目录名（MC 1.16.5 格式）
-    const auto dir = createDataPackDirPlural();
-    resource::DataPackRepository dataPacks;
-    ASSERT_TRUE(dataPacks.scanDirectory(dir).success());
-
-    AdvancementLoader loader;
-    auto result = loader.loadFromDataPackRepository(dataPacks);
-
-    ASSERT_TRUE(result.success());
-    EXPECT_GE(result.value().successCount, 1u) << "Should load at least 1 advancement from plural dir data pack";
-    EXPECT_EQ(result.value().failedCount, 0u);
-    EXPECT_TRUE(AdvancementManager::instance().contains(ResourceLocation("minecraft", "adventure/root")));
 
     std::error_code ec;
     std::filesystem::remove_all(dir, ec);

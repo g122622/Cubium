@@ -223,7 +223,7 @@ entt 组件池要求组件类型可移动（swap-and-pop 重排），故含不�
 - **注册时机坑**：`VanillaEntities::registerAll()`（:132）用 `hasType(PIG)` 哨兵提前返回，故 `ComponentSerializerRegistry::registerAll()` 不能放 `registerAll()` 开头，须放 `doRegisterAll()` 末尾。`registerAll` 幂等（`m_registered` 标志 + clear 重注册，同 typeId 覆盖非追加），测试 EntityRegistry::clear 后重跑 doRegisterAll 顺带重注册序列化器。
 - **FallFlying 跨层迁移**：原在 `LivingEntity::addAdditionalSaveData/readAdditionalSaveData` 处理（属 EntityFlags 位标志），本批上提为按 `EntityFlagsComponent` 注册的自由函数（仅依赖 Entity 基类 public 接口 isElytraFlying/addFlag/removeFlag）。须从 LivingEntity 同步删除避免重复写。
 - **Health load 顺序依赖（已化解）**：`setHealth` 内 `clamp(0, maxHealth)` 读 AttributeMap，但 AttributeMap 在构造期 `registerAttributes` 已就位，非 NBT load 顺序依赖。本批不迁 Attributes（仍留 `readAdditionalSaveData` 虚函数内）。`loadAll` 在 `readAdditionalSaveData` 之前调，Health load 时 Attributes NBT 尚未读入，与原顺序一致。`Entry` 保留 `priority` 字段为未来迁 Attributes（priority=100）/ActiveEffects（priority=200）保证顺序。
-- **存档格式不变**：保持 Java 版平铺格式，键名不变，零迁移成本旧存档兼容。`writeToNBT` 被 11 处复用（DataAccessor/EntityResolver/CopyNbtFunction/Template/NBTPredicate/PlayerResolver/EntityDeserializer），改造内部结构对调用方透明。
+- **存档格式不变**：保持 Java 版平铺格式，键名不变。`writeToNBT` 被 11 处复用（DataAccessor/EntityResolver/CopyCustomDataFunction/Template/NBTPredicate/PlayerResolver/EntityDeserializer），改造内部结构对调用方透明。
 
 ### 17. projectile 族整块 ECS 化：同步字段 id 续接 + dealtDamage load 顺序 priority + owner UUID 双 long + FishingBobber 不持久化
 

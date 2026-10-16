@@ -430,13 +430,6 @@ std::optional<world::spawn::SpawnEntry> parseSpawnEntry(const nlohmann::json& en
     if (entryJson.contains("maxCount") && entryJson["maxCount"].is_number_integer()) {
         maxCount = entryJson["maxCount"].get<i32>();
     }
-    // 兼容旧版 minGroup/maxGroup 字段名
-    if (entryJson.contains("minGroup") && entryJson["minGroup"].is_number_integer()) {
-        minCount = entryJson["minGroup"].get<i32>();
-    }
-    if (entryJson.contains("maxGroup") && entryJson["maxGroup"].is_number_integer()) {
-        maxCount = entryJson["maxGroup"].get<i32>();
-    }
 
     // 校验：权重必须为正、最小数量非负、最小数量不大于最大数量。
     if (weight <= 0) {
@@ -625,10 +618,9 @@ void applyFeatures(Biome& biome, const nlohmann::json& jsonObj)
 /**
  * @brief 解析 carvers 字段并叠加到 BiomeGenerationSettings
  *
- * carvers 字段有三种形态：
+ * carvers 字段有两种形态：
  * 1. 字符串: "minecraft:nether_cave"（单个 carver）
  * 2. 字符串数组: ["minecraft:cave", "minecraft:canyon"]
- * 3. 对象: { "air": [...], "liquid": [...] }（1.16.5 旧格式，air 和 liquid 是 carver 列表）
  *
  * 所有形态的 carver id 都通过 addCarver 添加（项目当前不区分 air/liquid）。
  * 未在 ConfiguredCarverRegistry 注册的 carver id → warn + skip。
@@ -649,19 +641,6 @@ void applyCarvers(Biome& biome, const nlohmann::json& jsonObj)
         for (const auto& c : carversJson) {
             if (c.is_string()) {
                 carverIds.push_back(c.get<std::string>());
-            }
-        }
-    } else if (carversJson.is_object()) {
-        // 1.16.5 旧格式：{ "air": [...], "liquid": [...] }
-        for (const auto& [key, arr] : carversJson.items()) {
-            if (arr.is_string()) {
-                carverIds.push_back(arr.get<std::string>());
-            } else if (arr.is_array()) {
-                for (const auto& c : arr) {
-                    if (c.is_string()) {
-                        carverIds.push_back(c.get<std::string>());
-                    }
-                }
             }
         }
     }

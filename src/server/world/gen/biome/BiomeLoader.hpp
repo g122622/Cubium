@@ -68,7 +68,7 @@ class Biome;
  *   "has_precipitation": true,
  *   "temperature_modifier": "none",       // 可选，"frozen" 仅冰洋等
  *   "effects": { "sky_color": "#78a7ff", "water_color": "#3f76e4", ... },
- *   "carvers": ["minecraft:cave", ...] 或 "minecraft:nether_cave" 或 { "air": [...], "liquid": [...] },
+ *   "carvers": ["minecraft:cave", ...] 或 "minecraft:nether_cave",
  *   "features": [ [], [...], ..., [...] ], // 10 或 11 个数组，每数组是 placed_feature id 列表
  *   "spawners": { "monster": [...], "creature": [...], ... },
  *   "spawn_costs": { "minecraft:zombie": { "charge": 0.7, "energy_budget": 0.12 }, ... }

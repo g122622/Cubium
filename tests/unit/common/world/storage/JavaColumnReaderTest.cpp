@@ -218,7 +218,6 @@ using mc::world::storage::reader::java::JavaColumnReader;
 
 // 构造一个最小的合法 Java 列 NBT（含 xPos/zPos/Status/Heightmaps），
 // 序列化为 Java Edition NBT 字节流供 JavaColumnReader::readColumn 解析。
-// 使用扁平格式（无 Level 包装），unwrapColumnRoot 在没有 Level 时直接返回 root。
 std::vector<u8> buildColumnNbtWithHeightmaps(
     i32 xPos, i32 zPos, const std::string& status, const compound_tag& heightmaps)
 {
@@ -360,49 +359,6 @@ TEST(JavaColumnReaderHeightmapTest, LoadsAllHeightmapTypes)
     verifyType(mc::HeightmapType::WorldSurfaceWG, wswgHeights[85]);         // 60
     verifyType(mc::HeightmapType::OceanFloorWG, ofwgHeights[85]);           // 70
     verifyType(mc::HeightmapType::LightBlocking, lbHeights[85]);            // 80
-}
-
-TEST(JavaColumnReaderHeightmapTest, LoadsLegacyIntArrayHeightMap)
-{
-    // 旧版 HeightMap int[256] 数组：语义为 Y+1（与 Heightmap 内部存储一致，但相对世界原点而非 minY）
-    // 对应旧版 Java 1.8-1.13 的 HeightMap 字段
-    compound_tag root(true);
-    root.value["xPos"] = std::make_unique<int_tag>(0);
-    root.value["zPos"] = std::make_unique<int_tag>(0);
-    root.value["Status"] = std::make_unique<string_tag>("full");
-
-    auto intArray = std::make_unique<intarray_tag>();
-    intArray->value.resize(256);
-    for (i32 z = 0; z < 16; ++z) {
-        for (i32 x = 0; x < 16; ++x) {
-            const i32 index = z * 16 + x;
-            // Y+1 = x+z+50（绝对世界坐标，旧版格式无 minY 偏移）
-            intArray->value[static_cast<size_t>(index)] = x + z + 50;
-        }
-    }
-    root.value["HeightMap"] = std::move(intArray);
-
-    std::ostringstream stream(std::ios::binary);
-    stream << mc::nbt::contexts::java;
-    root.write(stream);
-    auto str = stream.str();
-    std::vector<u8> nbtBytes(str.begin(), str.end());
-
-    JavaBlockStateMapper blockMapper;
-    JavaBiomeMapper biomeMapper;
-    JavaChunkReader chunkReader(blockMapper, biomeMapper);
-    JavaColumnReader columnReader(chunkReader);
-
-    auto result = columnReader.readColumn(nbtBytes, 0, 0, 0);
-    ASSERT_TRUE(result.success());
-    ASSERT_TRUE(result.value().has_value());
-    auto chunk = std::move(result.value().value());
-
-    // 旧版格式：HeightMap int 数组直接存储 Y+1（绝对），无 minY 偏移
-    // x=5, z=5: Y+1 = 60, Y = 59
-    EXPECT_EQ(chunk.getTopBlockY(mc::HeightmapType::WorldSurface, 5, 5), 59);
-    // WorldSurfaceWG 也应被填充（_readHeightmaps 旧版路径同时填充两者）
-    EXPECT_EQ(chunk.getTopBlockY(mc::HeightmapType::WorldSurfaceWG, 5, 5), 59);
 }
 
 } // namespace

@@ -2,7 +2,7 @@
 #include "item/loot/LootSerializers.hpp"
 #include "item/loot/entries/DynamicLootEntry.hpp"
 #include "item/loot/entries/LootEntry.hpp"
-#include "item/loot/functions/CopyNbtFunction.hpp"
+#include "item/loot/functions/CopyCustomDataFunction.hpp"
 #include "item/loot/functions/ExplorationMapFunction.hpp"
 #include <gtest/gtest.h>
 
@@ -77,23 +77,23 @@ TEST_F(LootJsonIntegrationTest, ParseFunction_CopyNbtSuccess)
     opsArray.push_back(nlohmann::json::object({{"source", "Items"}, {"target", "Items"}, {"op", "merge"}}));
 
     nlohmann::json json;
-    json["function"] = "minecraft:copy_nbt";
+    json["function"] = "minecraft:copy_custom_data";
     json["source"] = "block_entity";
     json["ops"] = opsArray;
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success()) << "parseFunction failed";
     auto funcPtr = result.value();
-    auto* func = dynamic_cast<CopyNbtFunction*>(funcPtr.get());
-    ASSERT_NE(func, nullptr) << "dynamic_cast to CopyNbtFunction failed, actual type: " << funcPtr->getType();
-    EXPECT_EQ(CopyNbtFunction::Source::BlockEntity, func->getSource());
+    auto* func = dynamic_cast<CopyCustomDataFunction*>(funcPtr.get());
+    ASSERT_NE(func, nullptr) << "dynamic_cast to CopyCustomDataFunction failed, actual type: " << funcPtr->getType();
+    EXPECT_EQ(CopyCustomDataFunction::Source::BlockEntity, func->getSource());
     ASSERT_EQ(2, func->getOperations().size()) << "Expected 2 operations but got " << func->getOperations().size();
     EXPECT_EQ("CustomName", func->getOperations()[0].sourcePath);
     EXPECT_EQ("display.Name", func->getOperations()[0].targetPath);
-    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func->getOperations()[0].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Replace, func->getOperations()[0].operation);
     EXPECT_EQ("Items", func->getOperations()[1].sourcePath);
     EXPECT_EQ("Items", func->getOperations()[1].targetPath);
-    EXPECT_EQ(CopyNbtFunction::Operation::Merge, func->getOperations()[1].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Merge, func->getOperations()[1].operation);
 }
 
 TEST_F(LootJsonIntegrationTest, ParseFunction_ExplorationMap)

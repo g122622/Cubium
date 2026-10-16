@@ -204,7 +204,7 @@ TEST_F(CauldronBlockTest, HasNoLevelProperty)
     // 空炼药锅没有水位属性，defaultState 没有 LEVEL 属性
     const auto& state = cauldron_->defaultState();
     // 尝试获取不存在的 LEVEL 属性不应崩溃
-    // 由于 CauldronBlock 不注册 LEVEL_0_3 或 LEVEL_1_3，状态只有默认值
+    // 空炼药锅不注册 LEVEL_1_3，状态只有默认值
     EXPECT_TRUE(CauldronBlock::isEmpty(state));
     EXPECT_FALSE(CauldronBlock::isFull(state));
 }

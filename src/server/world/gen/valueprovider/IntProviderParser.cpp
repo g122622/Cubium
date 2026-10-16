@@ -259,7 +259,7 @@ Result<std::unique_ptr<IntProvider>> parse(
         return Error(ErrorCode::InvalidData, "IntProvider must be an integer or a JSON object");
     }
 
-    // 提取类型字段
+    // 获取类型字段
     std::string type;
     if (json.contains("type") && json["type"].is_string()) {
         type = _stripNamespace(json["type"].get<std::string>());
@@ -267,15 +267,9 @@ Result<std::unique_ptr<IntProvider>> parse(
         return Error(ErrorCode::InvalidData, "IntProvider object missing 'type' field");
     }
 
-    // 获取 value 子对象（MC 1.21 的 dispatch 格式将参数放在 "value" 下）
-    // 对于 constant，value 字段也可以直接在顶层（兼容旧格式）
-    nlohmann::json valueObj;
-    if (json.contains("value") && json["value"].is_object()) {
-        valueObj = json["value"];
-    } else {
-        // 没有嵌套的 value 对象时，参数直接在顶层
-        valueObj = json;
-    }
+    // MC 1.21 的 dispatch 格式：type 与各参数平铺在同一对象上（如
+    // {"type":"minecraft:biased_to_bottom","min_inclusive":1,"max_inclusive":3}）。
+    const nlohmann::json& valueObj = json;
 
     Result<std::unique_ptr<IntProvider>> result(Error(ErrorCode::InvalidData, "unreachable"));
 

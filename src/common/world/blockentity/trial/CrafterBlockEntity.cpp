@@ -49,7 +49,8 @@ bool CrafterBlockEntity::load(const nlohmann::json& data)
         return false;
     }
 
-    // 加载槽位禁用状态
+    // 加载槽位禁用状态（disabled_slots 为禁用槽位下标数组，缺省表示无禁用槽位）
+    m_slotStates.fill(SLOT_ENABLED);
     if (data.contains("disabled_slots") && data["disabled_slots"].is_array()) {
         for (const auto& slotVal : data["disabled_slots"]) {
             if (slotVal.is_number()) {
@@ -59,9 +60,6 @@ bool CrafterBlockEntity::load(const nlohmann::json& data)
                 }
             }
         }
-    } else {
-        // 兼容旧格式
-        m_slotStates.fill(SLOT_ENABLED);
     }
 
     // 加载触发状态

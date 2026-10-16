@@ -252,11 +252,7 @@ bool SignEntity::load(const nlohmann::json& data)
         if (linesJson.is_array()) {
             for (size_t i = 0; i < LINE_COUNT && i < linesJson.size(); ++i) {
                 const auto& lineJson = linesJson[i];
-                if (lineJson.is_string()) {
-                    // 旧格式：纯字符串
-                    m_lines[i] = text::TextParser::parse(lineJson.get<std::string>());
-                } else if (lineJson.is_object()) {
-                    // 新格式：JSON 文本组件
+                if (lineJson.is_object()) {
                     m_lines[i] = text::ITextComponent::fromJson(lineJson);
                 }
                 if (m_lines[i]) {

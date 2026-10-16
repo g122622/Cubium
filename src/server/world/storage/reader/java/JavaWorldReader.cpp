@@ -46,17 +46,6 @@ namespace mc::world::storage::reader::java {
 using namespace mc::nbt;
 using namespace mc::nbt::tags;
 
-namespace {
-const compound_tag* getCompound(const compound_tag& parent, const std::string& name)
-{
-    auto it = parent.value.find(name);
-    if (it == parent.value.end()) {
-        return nullptr;
-    }
-    return dynamic_cast<const compound_tag*>(it->second.get());
-}
-} // namespace
-
 JavaWorldReader::JavaWorldReader(JavaColumnReader& columnReader)
     : m_columnReader(columnReader)
 {}
@@ -251,24 +240,12 @@ Result<std::vector<u8>> JavaWorldReader::_mergeEntitiesIntoMain(
     auto& mainRoot = *mainRootPtr;
     auto entityRootPtr = entityRootResult.value();
     auto& entityRoot = *entityRootPtr;
-    const compound_tag* entitySource = getCompound(entityRoot, "Level");
-    if (entitySource == nullptr) {
-        entitySource = &entityRoot;
-    }
 
-    auto entityIt = entitySource->value.find("Entities");
-    if (entityIt != entitySource->value.end()) {
-        // 旧版（1.13 之前）的列把内容包在 "Level" 下，新格式直接平铺在根上。
-        // 必须用 find 查询：std::map::operator[] 在键缺失时会插入一个空的 unique_ptr 条目，
+    auto entityIt = entityRoot.value.find("Entities");
+    if (entityIt != entityRoot.value.end()) {
+        // 用 find 查询而非 operator[]：后者在键缺失时会插入空的 unique_ptr 条目，
         // 该条目随后会被 compound_tag::write 解引用而崩溃。
-        compound_tag* target = &mainRoot;
-        const auto levelIt = mainRoot.value.find("Level");
-        if (levelIt != mainRoot.value.end()) {
-            if (auto* level = dynamic_cast<compound_tag*>(levelIt->second.get())) {
-                target = level;
-            }
-        }
-        target->value["Entities"] = entityIt->second->copy();
+        mainRoot.value["Entities"] = entityIt->second->copy();
     }
 
     return _writeJavaRoot(mainRoot);
@@ -283,13 +260,9 @@ Result<std::vector<u8>> JavaWorldReader::_createEntityOnlyColumn(const std::vect
 
     auto entityRootPtr = entityRootResult.value();
     auto& entityRoot = *entityRootPtr;
-    const compound_tag* entitySource = getCompound(entityRoot, "Level");
-    if (entitySource == nullptr) {
-        entitySource = &entityRoot;
-    }
 
-    auto positionIt = entitySource->value.find("Position");
-    if (positionIt == entitySource->value.end() || positionIt->second->id() != TagId::IntArray) {
+    auto positionIt = entityRoot.value.find("Position");
+    if (positionIt == entityRoot.value.end() || positionIt->second->id() != TagId::IntArray) {
         return Error(ErrorCode::ChunkCorrupted, "Java entities region entry missing Position int array");
     }
 
@@ -302,8 +275,8 @@ Result<std::vector<u8>> JavaWorldReader::_createEntityOnlyColumn(const std::vect
     root.put("xPos", static_cast<i32>(position[0]));
     root.put("zPos", static_cast<i32>(position[1]));
 
-    auto entityIt = entitySource->value.find("Entities");
-    if (entityIt != entitySource->value.end()) {
+    auto entityIt = entityRoot.value.find("Entities");
+    if (entityIt != entityRoot.value.end()) {
         root.value["Entities"] = entityIt->second->copy();
     }
 

@@ -162,7 +162,7 @@ Result<void> GlowSquidEntity::readAdditionalSaveData(const nbt::tags::compound_t
     // 对应 MC Java GlowSquid.readAdditionalSaveData:
     //   this.setDarkTicks(p_480156_.getIntOr("DarkTicksRemaining", 0));
     // getIntOr 语义：键缺失时使用默认值 0，始终调用 setDarkTicks。
-    // 这确保从旧存档（无此字段）加载时也能正确初始化为 0。
+    // 键缺失时使用默认值 0。
     const i32 darkTicks = nbt_helper::tryGetInt(tag, nbt_keys::DARK_TICKS_REMAINING).value_or(0);
     setDarkTicks(darkTicks);
     return Result<void>::ok();

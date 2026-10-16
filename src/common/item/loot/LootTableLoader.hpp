@@ -41,7 +41,7 @@ namespace loot {
  *
  * 从文件系统或资源包加载 JSON 格式的掉落表并注册到 LootTableManager。
  * 路径映射遵循 MC 数据包规范：
- *   data/<namespace>/loot_tables/<path>.json -> <namespace>:<path>
+ *   <namespace>/loot_table/<path>.json -> <namespace>:<path>
  */
 class LootTableLoader {
 public:
@@ -125,8 +125,8 @@ public:
      * @brief 将文件路径转换为掉落表ID
      *
      * 遵循 MC 数据包规范：
-     *   data/minecraft/loot_tables/blocks/stone.json -> minecraft:blocks/stone
-     *   data/mod_id/loot_tables/entities/boss.json -> mod_id:entities/boss
+     *   minecraft/loot_table/blocks/stone.json -> minecraft:blocks/stone
+     *   mod_id/loot_table/entities/boss.json -> mod_id:entities/boss
      *
      * @param filePath 文件路径
      * @return 掉落表ID

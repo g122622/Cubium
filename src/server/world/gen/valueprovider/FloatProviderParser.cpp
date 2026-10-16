@@ -77,16 +77,12 @@ Result<std::unique_ptr<FloatProvider>> parse(const nlohmann::json& json)
 
     const std::string type = stripNamespace(json["type"].get<std::string>());
 
-    // 同时支持嵌套 "value" 对象与扁平字段（MC 数据包两种写法都存在）
-    const nlohmann::json& valueObj = (json.contains("value") && json["value"].is_object()) ? json["value"] : json;
+    // MC 1.21 的 dispatch 格式：type 与各参数平铺在同一对象上。
+    const nlohmann::json& valueObj = json;
 
     if (type == "constant") {
         if (valueObj.contains("value") && valueObj["value"].is_number()) {
             std::unique_ptr<FloatProvider> provider = ConstantFloat::create(valueObj["value"].get<f32>());
-            return provider;
-        }
-        if (json.contains("value") && json["value"].is_number()) {
-            std::unique_ptr<FloatProvider> provider = ConstantFloat::create(json["value"].get<f32>());
             return provider;
         }
         return Error(ErrorCode::InvalidData, "constant FloatProvider missing 'value'");

@@ -56,24 +56,6 @@ JavaItemIdMap& JavaItemIdMap::instance()
 // ============================================================================
 
 /**
- * @brief 项目用 1.16.5 旧名注册、vanilla 1.21.11 已改名/删除的 item 别名
- *
- * vanilla 1.21.11 重命名了部分 item，项目仍按旧名注册（参考 1.16.5）。这些 item 若不别名，
- * initialize() 在 vanilla 表查不到 → 兜底 air → 真客户端挖这些方块掉 air（无掉落）。
- * 别名把项目旧名映射到 vanilla 1.21.11 现名，使 lookupVanillaId 命中正确 vanilla id。
- *
- * 注：tripwire 在 vanilla 1.21.11 无对应 item（绊线方块无物品形态，只能由 tripwire_hook
- * 放置/破坏），故不别名，保持 air 兜底（与 vanilla 行为一致：破坏绊线不掉物品）。
- */
-static const std::unordered_map<std::string, std::string>& itemLocationAliases()
-{
-    static const std::unordered_map<std::string, std::string> kAliases = {
-        {"minecraft:grass", "minecraft:short_grass"}, // 旧名 grass → 1.21.11 short_grass(202)
-    };
-    return kAliases;
-}
-
-/**
  * @brief 在预生成排序表里二分查找 item name 对应的 Java registry id
  *
  * 表项按 name 字典序排序,name 以 '\0' 结尾存于扁平字符串池。
@@ -93,23 +75,15 @@ static std::optional<u32> lookupVanillaId(const std::string& itemLocation)
     }
     const char* pool = itemNamePool();
 
-    // 先查别名表：项目旧名 → vanilla 1.21.11 现名。
-    const std::string& effective = [&]() -> const std::string& {
-        if (const auto it = itemLocationAliases().find(itemLocation); it != itemLocationAliases().end()) {
-            return it->second;
-        }
-        return itemLocation;
-    }();
-
     // lower_bound:找第一个 entry.name >= target(用 strcmp 比较 \0 结尾的 name)。
     const auto cmp = [pool](const ItemIdEntry& entry, const std::string& target) {
         return std::strcmp(pool + entry.nameOffset, target.c_str()) < 0;
     };
-    const auto* it = std::lower_bound(entries, entries + count, effective, cmp);
+    const auto* it = std::lower_bound(entries, entries + count, itemLocation, cmp);
     if (it == entries + count) {
         return std::nullopt;
     }
-    if (std::strcmp(pool + it->nameOffset, effective.c_str()) != 0) {
+    if (std::strcmp(pool + it->nameOffset, itemLocation.c_str()) != 0) {
         return std::nullopt; // 不相等,未命中
     }
     return it->vanillaId;

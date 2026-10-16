@@ -76,7 +76,7 @@ src/common/util/nbt/
 
 **物品系统**：
 - `item/core/ItemStack.hpp`, `item/potion/PotionUtils.cpp`
-- `item/enchantment/EnchantmentContainer.cpp`, `item/loot/functions/SetNbtFunction.cpp`
+- `item/enchantment/EnchantmentContainer.cpp`, `item/loot/functions/SetCustomDataFunction.cpp`
 - `item/crafting/RecipeSerializers.cpp`, `item/crafting/RecipeBook.cpp`
 
 **世界生成**：
@@ -105,7 +105,7 @@ src/common/util/nbt/
 - `advancement/AdvancementDisplay.cpp`
 
 **战利品系统**：
-- `item/loot/functions/SetNbtFunction.cpp`
+- `item/loot/functions/SetCustomDataFunction.cpp`
 
 **其他**：
 - `server/bossbar/CustomServerBossInfo.hpp`, `CustomServerBossInfoManager.hpp`

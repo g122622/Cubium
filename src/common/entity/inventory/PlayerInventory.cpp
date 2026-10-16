@@ -783,13 +783,11 @@ Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& 
 
     PlayerInventory inventory(nullptr);
 
-    // ========== 读取装备（MC 1.21.11 新格式：equipment 复合标签）==========
-    // 新格式使用 EquipmentSlot 枚举名作为键（"offhand", "feet", "legs", "chest", "head"）
-    // 空槽位在 equipment 标签中不存在
+    // ========== 读取装备（MC 1.21.11 格式：equipment 复合标签）==========
+    // 使用 EquipmentSlot 枚举名作为键（"offhand", "feet", "legs", "chest", "head"），
+    // 空槽位在 equipment 标签中不存在。
     // 参考: net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()
-    bool hasEquipment = false;
     if (const auto* equipmentTag = tryGetCompound(tag, EQUIPMENT)) {
-        hasEquipment = true;
         // EquipmentSlot 名称到内部背包索引的映射
         static constexpr struct {
             const char* name;
@@ -813,14 +811,13 @@ Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& 
     }
 
     // ========== 读取背包物品列表 ==========
-    // 新格式（MC 1.21.11）：Inventory 仅包含 Slot 0-35，装备通过 equipment 字段读取
-    // 旧格式：Inventory 包含所有槽位（0-40），护甲使用 Slot 100-103，副手使用 Slot -106
-    // 为了向后兼容，当 equipment 字段不存在时，仍从 Inventory 列表中读取护甲和副手
+    // MC 1.21.11：Inventory 仅包含 Slot 0-35（快捷栏与主背包），装备经 equipment 字段读取。
+    // 参考: net.minecraft.world.entity.player.Inventory.save()
     if (const auto* invList = tryGetList(tag, INVENTORY)) {
         if (invList->element_id() == nbt::TagId::Compound) {
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
             for (const auto& itemTag : compoundList.value) {
-                // 读取槽位索引（NBT Slot 值）
+                // 读取槽位索引（NBT Slot 值，0-35）
                 i8 nbtSlot = 0;
                 if (auto slotOpt = tryGetByte(itemTag, "Slot")) {
                     nbtSlot = *slotOpt;
@@ -828,22 +825,14 @@ Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& 
                     continue;
                 }
 
-                // 将 NBT Slot 值转换为内部索引
-                i32 internalSlot = InventorySlots::fromNbtSlot(static_cast<i32>(nbtSlot));
-                if (internalSlot < 0) {
-                    continue; // 无效槽位，跳过
-                }
-
-                // 如果已有 equipment 字段，跳过护甲和副手槽位（它们已从 equipment 读取）
-                // 新格式的 Inventory 列表中 Slot 值仅为 0-35，不会出现护甲/副手的旧编号
-                if (hasEquipment && internalSlot >= InventorySlots::ARMOR_START) {
-                    continue;
+                if (nbtSlot < 0 || nbtSlot > InventorySlots::MAIN_END) {
+                    continue; // 越界槽位，跳过
                 }
 
                 // 反序列化物品
                 auto stackResult = ItemStack::fromNbt(itemTag);
                 if (stackResult.success() && !stackResult.value().isEmpty()) {
-                    inventory.m_items[static_cast<size_t>(internalSlot)] = std::move(stackResult.value());
+                    inventory.m_items[static_cast<size_t>(nbtSlot)] = std::move(stackResult.value());
                 }
             }
         }

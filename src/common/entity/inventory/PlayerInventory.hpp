@@ -502,11 +502,10 @@ public:
     /**
      * @brief 从 NBT 标签反序列化背包数据
      *
-     * 支持两种格式：
-     * - MC 1.21.11 新格式：Inventory 仅含 Slot 0-35，装备从 "equipment" 复合标签读取
-     * - 旧版格式：Inventory 含所有槽位 (0-40)，护甲使用 Slot 100-103，副手使用 Slot -106
+     * MC 1.21.11 格式：Inventory 仅含 Slot 0-35（快捷栏与主背包），
+     * 装备从 "equipment" 复合标签读取。
      *
-     * 读取 "Inventory" 列表、"equipment" 复合标签（如存在）和 "SelectedItemSlot" 整数，
+     * 读取 "Inventory" 列表、"equipment" 复合标签和 "SelectedItemSlot" 整数，
      * 清空所有槽位后按索引填充物品。
      *
      * @param tag 源 NBT 复合标签

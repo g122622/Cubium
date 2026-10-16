@@ -155,34 +155,6 @@ TEST(MobEntitySerializationTest, DropChances_NbtRoundTrip)
     EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Head), 0.6f);
 }
 
-TEST(MobEntitySerializationTest, DropChances_OldFormatRoundTrip)
-{
-    // 手动构造旧格式 NBT（HandDropChances + ArmorDropChances float 列表）
-    nbt::tags::compound_tag tag;
-
-    // 写入 MobEntity 需要的最小字段（addAdditionalSaveData 会调用基类）
-    // 对于 readAdditionalSaveData，它先调用 LivingEntity::readAdditionalSaveData，
-    // 然后才是 MobEntity 的字段。我们只关注 MobEntity 字段即可。
-    // 这里我们手动构造只包含旧格式掉落概率的 NBT。
-
-    // 旧格式：HandDropChances（2个float）
-    nbt_helper::putFloatList(tag, nbt_keys::HAND_DROP_CHANCES, {0.3f, 0.4f});
-
-    // 旧格式：ArmorDropChances（4个float）
-    nbt_helper::putFloatList(tag, nbt_keys::ARMOR_DROP_CHANCES, {0.5f, 0.6f, 0.7f, 0.8f});
-
-    // 反序列化
-    auto loaded = loadFromNbt(tag);
-
-    // 验证从旧格式读取的值
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::MainHand), 0.3f);
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::OffHand), 0.4f);
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Feet), 0.5f);
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Legs), 0.6f);
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Chest), 0.7f);
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Head), 0.8f);
-}
-
 TEST(MobEntitySerializationTest, DropChances_NewFormatRoundTrip)
 {
     // 构造新格式 NBT（drop_chances compound）
@@ -206,41 +178,6 @@ TEST(MobEntitySerializationTest, DropChances_NewFormatRoundTrip)
     EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Feet), 0.085f);
     EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Legs), 0.085f);
     EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Chest), 0.085f);
-}
-
-TEST(MobEntitySerializationTest, DropChances_MixedFormatNewOverridesOld)
-{
-    // 同时写入旧格式和新格式，新格式应覆盖旧格式
-    nbt::tags::compound_tag tag;
-
-    // 旧格式
-    nbt_helper::putFloatList(tag, nbt_keys::HAND_DROP_CHANCES, {0.3f, 0.4f});
-    nbt_helper::putFloatList(tag, nbt_keys::ARMOR_DROP_CHANCES, {0.5f, 0.6f, 0.7f, 0.8f});
-
-    // 新格式：只设置 mainhand 和 chest
-    nbt::tags::compound_tag dropChancesTag;
-    dropChancesTag.put("mainhand", 0.99f);
-    dropChancesTag.put("chest", 0.11f);
-    tag.value.emplace(nbt_keys::DROP_CHANCES, std::make_unique<nbt::tags::compound_tag>(std::move(dropChancesTag)));
-
-    // 反序列化
-    auto loaded = loadFromNbt(tag);
-
-    // 新格式指定的槽位应使用新格式的值
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::MainHand), 0.99f);
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Chest), 0.11f);
-
-    // 旧格式的值应被新格式中未指定的默认值覆盖行为所影响
-    // 根据代码逻辑：新格式读取时，未指定的槽位保持默认值 0.085。
-    // 然后旧格式读取时，如果新格式中该槽位仍然是默认值，则使用旧格式的值。
-    // OffHand: 新格式未指定 → 默认值 0.085 → 旧格式 0.4（非默认值 → 使用旧格式）
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::OffHand), 0.4f);
-    // Feet: 新格式未指定 → 默认值 0.085 → 旧格式 0.5（非默认值 → 使用旧格式）
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Feet), 0.5f);
-    // Legs: 新格式未指定 → 默认值 0.085 → 旧格式 0.6（非默认值 → 使用旧格式）
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Legs), 0.6f);
-    // Head: 新格式未指定 → 默认值 0.085 → 旧格式 0.8（非默认值 → 使用旧格式）
-    EXPECT_FLOAT_EQ(loaded->getEquipmentDropChance(EquipmentSlot::Head), 0.8f);
 }
 
 // ============================================================================

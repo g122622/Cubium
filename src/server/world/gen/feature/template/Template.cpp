@@ -620,7 +620,7 @@ bool Template::place(
     // 选择调色板
     const Palette* selectedPalette = selectPalette(settings, pos);
     if (!selectedPalette || selectedPalette->empty()) {
-        // 没有调色板或调色板为空，检查旧格式的方块列表
+        // 位置派生的调色板选择失败或为空时，回退到第一个调色板
         if (m_palettes.empty()) {
             return true; // 空模板，无需放置
         }

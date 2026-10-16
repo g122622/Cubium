@@ -58,9 +58,7 @@ namespace {
 // 高度图网络同步辅助
 // ============================================================================
 
-// 扩展块携带的 final 高度图类型（含 WorldSurface，按位掩码序）。
-// WorldSurface 虽已有独立的 256 字节 u8 块（向后兼容，但有损且 deserialize 曾跳过），
-// 仍在此以 i16 无损重传，保证客户端负 Y / Y>255 场景下 WorldSurface 也准确。
+// 扩展块携带的 final 高度图类型（按位掩码序）。
 constexpr std::array<HeightmapType, 5> _FINAL_HEIGHTMAP_TYPES = {
     HeightmapType::WorldSurface,
     HeightmapType::OceanFloor,
@@ -113,7 +111,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
         }
     }
 
-    size_t expectedSize = 4 + 4 + 4 + heightmapSize + 4 + biomeData.size();
+    size_t expectedSize = 4 + 4 + 4 + 4 + biomeData.size();
     for (i32 i = 0; i < world::CHUNK_SECTIONS; ++i) {
         if ((sectionMask & (1U << i)) == 0) continue;
 
@@ -133,16 +131,6 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
 
     // 写入区块段位掩码
     ser.writeU32(sectionMask);
-
-    // 写入高度图（向后兼容的有损 WorldSurface u8 块；扩展块以 i16 无损重传全部 final 类型）
-    std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> heightmapData{};
-    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-            const size_t index = static_cast<size_t>(z * world::CHUNK_WIDTH + x);
-            heightmapData[index] = static_cast<u8>(chunk.getHighestBlock(x, z));
-        }
-    }
-    ser.writeBytes(heightmapData.data(), heightmapData.size());
 
     // 写入生物群系数据（u32长度 + 原始数据）
     ser.writeU32(static_cast<u32>(biomeData.size()));
@@ -167,7 +155,7 @@ Result<std::vector<u8>> ChunkSerializer::serializeChunk(const ChunkData& chunk)
     // 写入居住时间（8字节）
     ser.writeI64(chunk.inhabitedTime());
 
-    // 写入扩展高度图块（位于包尾，旧客户端读 inhabitedTime 后停止，自动忽略）
+    // 写入高度图块（位于包尾）
     ser.writeU8(heightmapPresenceMask);
     for (size_t i = 0; i < _FINAL_HEIGHTMAP_TYPES.size(); ++i) {
         if ((heightmapPresenceMask & static_cast<u8>(1U << i)) == 0) {
@@ -228,14 +216,6 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
     }
     u32 sectionMask = maskResult.value();
 
-    // 读取向后兼容的有损 WorldSurface u8 块（256 字节）。
-    // 扩展块存在时优先用其 i16 无损值覆盖；不存在时回退此块（有损，负 Y/Y>255 截断）。
-    std::array<u8, world::CHUNK_WIDTH * world::CHUNK_WIDTH> legacyHeightmapData{};
-    auto heightmapResult = deser.readBytesInto(legacyHeightmapData);
-    if (heightmapResult.failed()) {
-        return heightmapResult.error();
-    }
-
     // 读取生物群系数据（u32长度 + 原始数据）
     auto biomeSizeResult = deser.readU32();
     if (biomeSizeResult.failed()) {
@@ -291,7 +271,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         *section = std::move(*sectionResult.value());
     }
 
-    // 读取居住时间（8字节，向后兼容：如果数据不足则默认为0）
+    // 读取居住时间（8字节）
     {
         auto inhabitedResult = deser.readI64();
         if (inhabitedResult.success()) {
@@ -299,8 +279,7 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
         }
     }
 
-    // 读取扩展高度图块（位于包尾，旧服务端无此块时 remaining==0，跳过回退有损 u8 块）
-    bool hasExtendedWorldSurface = false;
+    // 读取高度图块（位于包尾）
     if (deser.hasRemaining(sizeof(u8))) {
         auto maskResult = deser.readU8();
         if (maskResult.success()) {
@@ -324,21 +303,8 @@ Result<std::unique_ptr<ChunkData>> ChunkSerializer::deserializeChunk(
                     break;
                 }
                 chunk->setHeightmapFromStorage(_FINAL_HEIGHTMAP_TYPES[i], heights);
-                if (_FINAL_HEIGHTMAP_TYPES[i] == HeightmapType::WorldSurface) {
-                    hasExtendedWorldSurface = true;
-                }
             }
         }
-    }
-
-    // 扩展块无 WorldSurface 时回退有损 u8 块（旧服务端兼容）。
-    // u8 存的是最高方块 Y（getHighestBlock，无方块为 0），还原为 Y+1；u8=0 歧义按"Y=0 处有方块"处理。
-    if (!hasExtendedWorldSurface) {
-        std::array<BlockCoord, Heightmap::SIZE> heights{};
-        for (size_t j = 0; j < legacyHeightmapData.size(); ++j) {
-            heights[j] = static_cast<BlockCoord>(legacyHeightmapData[j]) + 1;
-        }
-        chunk->setHeightmapFromStorage(HeightmapType::WorldSurface, heights);
     }
 
     chunk->setFullyGenerated(true);
@@ -355,20 +321,19 @@ Result<std::unique_ptr<ChunkSection>> ChunkSerializer::deserializeChunkSection(c
 size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
 {
     // 必须与 serializeChunk 的实际写入严格一致，逐字段镜像：
-    //   i32 chunkX(4) + i32 chunkZ(4) + u32 sectionMask(4) + 高度图(256)
+    //   i32 chunkX(4) + i32 chunkZ(4) + u32 sectionMask(4)
     //   + u32 生物群系长度(4) + 生物群系数据 + 每个非空 section: u16 长度前缀(2) + sectionData
-    //   + i64 inhabitedTime(8) + 扩展高度图块(1 字节掩码 + 每个已初始化 final 类型 256×2)
+    //   + i64 inhabitedTime(8) + 高度图块(1 字节掩码 + 每个已初始化 final 类型 256×2)
     // 注意 section 的纳入条件是“存在且非空”（与 calculateSectionMask/serializeChunk 一致），
     // 否则空 section 会被位掩码排除，这里却计入，导致预测偏大。
     const size_t biomeDataSize = chunk.getBiomes().serialize().size();
     constexpr size_t heightmapSize = static_cast<size_t>(world::CHUNK_WIDTH) * world::CHUNK_WIDTH;
     const u32 sectionMask = calculateSectionMask(chunk);
 
-    size_t size = 4 + 4 + 4 + heightmapSize + 4 + biomeDataSize + 8;
-    //       ^   ^   ^                ^               ^   ^            ^-- inhabitedTime(i64)
-    //       |   |   |                |               |   +-- 生物群系数据
-    //       |   |   |                |               +-- u32 生物群系长度
-    //       |   |   |                +-- 高度图(256 字节)
+    size_t size = 4 + 4 + 4 + 4 + biomeDataSize + 8;
+    //       ^   ^   ^   ^   ^              ^-- inhabitedTime(i64)
+    //       |   |   |   |   +-- 生物群系数据
+    //       |   |   |   +-- u32 生物群系长度
     //       |   |   +-- u32 sectionMask
     //       |   +-- i32 chunkZ
     //       +-- i32 chunkX
@@ -382,7 +347,7 @@ size_t ChunkSerializer::calculateChunkSize(const ChunkData& chunk)
         size += 2 + calculateSectionSize(*section); // u16 长度前缀 + sectionData
     }
 
-    // 扩展高度图块：1 字节掩码 + 每个已初始化 final 类型 256×sizeof(i16)
+    // 高度图块：1 字节掩码 + 每个已初始化 final 类型 256×sizeof(i16)
     size += 1;
     for (HeightmapType type : _FINAL_HEIGHTMAP_TYPES) {
         if (chunk.isHeightmapInitialized(type)) {

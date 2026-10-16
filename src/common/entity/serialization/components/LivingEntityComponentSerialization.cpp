@@ -35,8 +35,6 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
-#include <array>
-
 namespace mc::entity::serialization::components {
 
 // ============================================================================
@@ -143,7 +141,8 @@ static Result<void> loadEquipment(Entity& entity, const nbt::tags::compound_tag&
     if (living == nullptr) {
         return {};
     }
-    // 新格式：从 equipment 复合标签读取
+    // MC 1.21.11 格式：从 equipment 复合标签读取，键名为 EquipmentSlot 序列化名，
+    // 空槽位在标签中不存在（与 MC 原版 EntityEquipment.CODEC 一致）。
     if (auto* equipmentTag = nbt_helper::tryGetCompound(tag, nbt_keys::EQUIPMENT)) {
         for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
             auto slot = static_cast<EquipmentSlot>(i);
@@ -152,38 +151,6 @@ static Result<void> loadEquipment(Entity& entity, const nbt::tags::compound_tag&
                 auto stackResult = ItemStack::fromNbt(*itemCompound);
                 if (stackResult.success()) {
                     living->setEquipment(slot, stackResult.value());
-                }
-            }
-        }
-        return {};
-    }
-    // 旧格式回退：从 HandItems/ArmorItems 列表读取（MC 1.21.11 之前的存档）
-    if (auto* handItems = nbt_helper::tryGetList(tag, nbt_keys::HAND_ITEMS)) {
-        if (handItems->element_id() == nbt::TagId::Compound) {
-            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*handItems);
-            if (!compoundList.value.empty()) {
-                auto mainHandResult = ItemStack::fromNbt(compoundList.value[0]);
-                if (mainHandResult.success()) {
-                    living->setMainHandItem(mainHandResult.value());
-                }
-            }
-            if (compoundList.value.size() > 1) {
-                auto offHandResult = ItemStack::fromNbt(compoundList.value[1]);
-                if (offHandResult.success()) {
-                    living->setOffHandItem(offHandResult.value());
-                }
-            }
-        }
-    }
-    if (auto* armorItems = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_ITEMS)) {
-        if (armorItems->element_id() == nbt::TagId::Compound) {
-            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*armorItems);
-            constexpr std::array<EquipmentSlot, 4> armorOrder = {
-                EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head};
-            for (size_t i = 0; i < armorOrder.size() && i < compoundList.value.size(); ++i) {
-                auto armorResult = ItemStack::fromNbt(compoundList.value[i]);
-                if (armorResult.success()) {
-                    living->setEquipment(armorOrder[i], armorResult.value());
                 }
             }
         }

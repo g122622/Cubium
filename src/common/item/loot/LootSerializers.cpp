@@ -61,26 +61,26 @@
 #include "common/item/loot/entries/TableLootEntry.hpp"
 #include "common/item/loot/entries/TagLootEntry.hpp"
 #include "common/item/loot/functions/ApplyBonusFunction.hpp"
-#include "common/item/loot/functions/CopyBlockStateFunction.hpp"
+#include "common/item/loot/functions/CopyCustomDataFunction.hpp"
 #include "common/item/loot/functions/CopyNameFunction.hpp"
-#include "common/item/loot/functions/CopyNbtFunction.hpp"
+#include "common/item/loot/functions/CopyStateFunction.hpp"
 #include "common/item/loot/functions/EnchantRandomlyFunction.hpp"
 #include "common/item/loot/functions/EnchantWithLevelsFunction.hpp"
+#include "common/item/loot/functions/EnchantedCountIncreaseFunction.hpp"
 #include "common/item/loot/functions/ExplorationMapFunction.hpp"
 #include "common/item/loot/functions/ExplosionDecayFunction.hpp"
 #include "common/item/loot/functions/FillPlayerHeadFunction.hpp"
 #include "common/item/loot/functions/FurnaceSmeltFunction.hpp"
 #include "common/item/loot/functions/LimitCountFunction.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
-#include "common/item/loot/functions/LootingEnchantBonusFunction.hpp"
 #include "common/item/loot/functions/SetAttributesFunction.hpp"
 #include "common/item/loot/functions/SetContentsFunction.hpp"
 #include "common/item/loot/functions/SetCountFunction.hpp"
+#include "common/item/loot/functions/SetCustomDataFunction.hpp"
 #include "common/item/loot/functions/SetDamageFunction.hpp"
 #include "common/item/loot/functions/SetLootTableFunction.hpp"
 #include "common/item/loot/functions/SetLoreFunction.hpp"
 #include "common/item/loot/functions/SetNameFunction.hpp"
-#include "common/item/loot/functions/SetNbtFunction.hpp"
 #include "common/item/loot/functions/SetStewEffectFunction.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "common/world/map/MapDecoration.hpp"
@@ -785,29 +785,24 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
 
     std::string functionType = json["function"].get<std::string>();
 
-    // 根据 function 类型分发
+    // 根据 function 类型分发（函数名对齐原版 1.21.11 LootItemFunctions 注册名）
     //
     // TODO: 原版 1.21.11 的 LootItemFunctions 还注册了以下函数类型，本解析器尚未实现：
-    //  set_item、set_enchantments、set_custom_data、set_components、enchanted_count_increase、
-    //  modify_contents、filtered、copy_custom_data、copy_components、set_banner_pattern、set_potion、
-    //  set_instrument、reference、sequence、set_fireworks、set_firework_explosion、set_book_cover、
-    //  set_written_book_pages、set_writable_book_pages、toggle_tooltips、set_ominous_bottle_amplifier、
-    //  set_custom_model_data、discard。
-    //  其中 enchanted_count_increase、copy_components、set_potion、set_enchantments、copy_state、
-    //  set_components、set_ominous_bottle_amplifier、set_instrument 已被原版数据包的战利品表实际使用
+    //  set_item、set_enchantments、set_components、modify_contents、filtered、copy_components、
+    //  set_banner_pattern、set_potion、set_instrument、reference、sequence、set_fireworks、
+    //  set_book_cover、set_written_book_pages、set_writable_book_pages、toggle_tooltips、
+    //  set_ominous_bottle_amplifier、set_custom_model_data、discard。
+    //  其中 copy_components、set_potion、set_enchantments、set_components、
+    //  set_ominous_bottle_amplifier、set_instrument 已被原版数据包的战利品表实际使用
     //  （datapacks/Vanilla/data/minecraft/loot_table）。
     // TODO: 各 _parse*Entry 与 parsePool 解析函数列表时用 if (funcResult.success()) 静默跳过失败项，
     //  原版遇到未注册的函数类型会直接解析失败（战利品表加载报错）；应改为向上返回错误，避免函数被静默丢弃。
-    //
-    // TODO: 本项目沿用了旧版函数名，需要同时保留旧名并支持原版 1.21.11 名称：
-    //  enchanted_count_increase（本项目当前为 looting_enchant）、copy_state（当前为 copy_block_state）、
-    //  set_custom_data（当前为 set_nbt）、copy_custom_data（当前为 copy_nbt）。
     if (functionType == "minecraft:set_count" || functionType == "set_count") {
         return _parseSetCountFunction(json);
     } else if (functionType == "minecraft:apply_bonus" || functionType == "apply_bonus") {
         return _parseApplyBonusFunction(json);
-    } else if (functionType == "minecraft:looting_enchant" || functionType == "looting_enchant") {
-        return _parseLootingEnchantFunction(json);
+    } else if (functionType == "minecraft:enchanted_count_increase" || functionType == "enchanted_count_increase") {
+        return _parseEnchantedCountIncreaseFunction(json);
     } else if (functionType == "minecraft:set_damage" || functionType == "set_damage") {
         return _parseSetDamageFunction(json);
     } else if (functionType == "minecraft:set_name" || functionType == "set_name") {
@@ -824,14 +819,14 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
         return _parseEnchantRandomlyFunction(json);
     } else if (functionType == "minecraft:explosion_decay" || functionType == "explosion_decay") {
         return _parseExplosionDecayFunction(json);
-    } else if (functionType == "minecraft:set_nbt" || functionType == "set_nbt") {
-        return _parseSetNbtFunction(json);
+    } else if (functionType == "minecraft:set_custom_data" || functionType == "set_custom_data") {
+        return _parseSetCustomDataFunction(json);
     } else if (functionType == "minecraft:copy_name" || functionType == "copy_name") {
         return _parseCopyNameFunction(json);
-    } else if (functionType == "minecraft:copy_block_state" || functionType == "copy_block_state") {
-        return _parseCopyBlockStateFunction(json);
-    } else if (functionType == "minecraft:copy_nbt" || functionType == "copy_nbt") {
-        return _parseCopyNbtFunction(json);
+    } else if (functionType == "minecraft:copy_state" || functionType == "copy_state") {
+        return _parseCopyStateFunction(json);
+    } else if (functionType == "minecraft:copy_custom_data" || functionType == "copy_custom_data") {
+        return _parseCopyCustomDataFunction(json);
     } else if (functionType == "minecraft:fill_player_head" || functionType == "fill_player_head") {
         return _parseFillPlayerHeadFunction(json);
     } else if (functionType == "minecraft:set_attributes" || functionType == "set_attributes") {
@@ -942,7 +937,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseApplyBonusFunction(
         std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability));
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::_parseLootingEnchantFunction(const nlohmann::json& json)
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseEnchantedCountIncreaseFunction(const nlohmann::json& json)
 {
     RandomValueRange count(0.0f, 1.0f);
     i32 limit = 0;
@@ -959,8 +954,8 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseLootingEnchantFunct
         limit = json["limit"].get<i32>();
     }
 
-    return castToBase<LootingEnchantBonusFunction, LootFunction>(
-        std::make_unique<LootingEnchantBonusFunction>(count, limit));
+    return castToBase<EnchantedCountIncreaseFunction, LootFunction>(
+        std::make_unique<EnchantedCountIncreaseFunction>(count, limit));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetDamageFunction(const nlohmann::json& json)
@@ -1105,14 +1100,14 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplosionDecayFunct
     return castToBase<ExplosionDecayFunction, LootFunction>(std::make_unique<ExplosionDecayFunction>());
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetNbtFunction(const nlohmann::json& json)
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetCustomDataFunction(const nlohmann::json& json)
 {
     if (!json.contains("tag") || !json["tag"].is_string()) {
-        return Error(ErrorCode::InvalidData, "set_nbt function missing 'tag' field");
+        return Error(ErrorCode::InvalidData, "set_custom_data function missing 'tag' field");
     }
 
     std::string nbtString = json["tag"].get<std::string>();
-    return castToBase<SetNbtFunction, LootFunction>(std::make_unique<SetNbtFunction>(nbtString));
+    return castToBase<SetCustomDataFunction, LootFunction>(std::make_unique<SetCustomDataFunction>(nbtString));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNameFunction(const nlohmann::json& json)
@@ -1135,10 +1130,10 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNameFunction(co
     return castToBase<CopyNameFunction, LootFunction>(std::make_unique<CopyNameFunction>(source));
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyBlockStateFunction(const nlohmann::json& json)
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyStateFunction(const nlohmann::json& json)
 {
     if (!json.contains("block") || !json["block"].is_string()) {
-        return Error(ErrorCode::InvalidData, "copy_block_state function missing 'block' field");
+        return Error(ErrorCode::InvalidData, "copy_state function missing 'block' field");
     }
 
     std::string blockId = json["block"].get<std::string>();
@@ -1152,28 +1147,27 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyBlockStateFunct
         }
     }
 
-    return castToBase<CopyBlockStateFunction, LootFunction>(
-        std::make_unique<CopyBlockStateFunction>(blockId, properties));
+    return castToBase<CopyStateFunction, LootFunction>(std::make_unique<CopyStateFunction>(blockId, properties));
 }
 
-Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNbtFunction(const nlohmann::json& json)
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyCustomDataFunction(const nlohmann::json& json)
 {
     // 解析 source 字段
-    CopyNbtFunction::Source source = CopyNbtFunction::Source::This;
+    CopyCustomDataFunction::Source source = CopyCustomDataFunction::Source::This;
     if (json.contains("source") && json["source"].is_string()) {
         std::string sourceStr = json["source"].get<std::string>();
         if (sourceStr == "this") {
-            source = CopyNbtFunction::Source::This;
+            source = CopyCustomDataFunction::Source::This;
         } else if (sourceStr == "killer") {
-            source = CopyNbtFunction::Source::Killer;
+            source = CopyCustomDataFunction::Source::Killer;
         } else if (sourceStr == "killer_player") {
-            source = CopyNbtFunction::Source::KillerPlayer;
+            source = CopyCustomDataFunction::Source::KillerPlayer;
         } else if (sourceStr == "block_entity") {
-            source = CopyNbtFunction::Source::BlockEntity;
+            source = CopyCustomDataFunction::Source::BlockEntity;
         }
     }
 
-    auto func = std::make_unique<CopyNbtFunction>(source);
+    auto func = std::make_unique<CopyCustomDataFunction>(source);
 
     // 解析 ops 数组
     if (json.contains("ops") && json["ops"].is_array()) {
@@ -1188,15 +1182,15 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNbtFunction(con
             std::string sourcePath = op["source"].get<std::string>();
             std::string targetPath = op["target"].get<std::string>();
 
-            CopyNbtFunction::Operation operation = CopyNbtFunction::Operation::Replace;
+            CopyCustomDataFunction::Operation operation = CopyCustomDataFunction::Operation::Replace;
             if (op.contains("op") && op["op"].is_string()) {
                 std::string opStr = op["op"].get<std::string>();
                 if (opStr == "replace") {
-                    operation = CopyNbtFunction::Operation::Replace;
+                    operation = CopyCustomDataFunction::Operation::Replace;
                 } else if (opStr == "append") {
-                    operation = CopyNbtFunction::Operation::Append;
+                    operation = CopyCustomDataFunction::Operation::Append;
                 } else if (opStr == "merge") {
-                    operation = CopyNbtFunction::Operation::Merge;
+                    operation = CopyCustomDataFunction::Operation::Merge;
                 }
             }
 
@@ -1204,7 +1198,7 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNbtFunction(con
         }
     }
 
-    return castToBase<CopyNbtFunction, LootFunction>(std::move(func));
+    return castToBase<CopyCustomDataFunction, LootFunction>(std::move(func));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseFillPlayerHeadFunction(const nlohmann::json& json)

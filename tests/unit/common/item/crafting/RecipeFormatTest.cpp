@@ -56,15 +56,6 @@ TEST_F(RecipeFormatTest, ParseIngredient_StringFormat)
     EXPECT_FALSE(result.value().hasNoMatchingItems());
 }
 
-TEST_F(RecipeFormatTest, ParseIngredient_ObjectFormat)
-{
-    // 旧格式：ingredient 为对象
-    nlohmann::json ingredientJson = {{"item", "minecraft:raw_iron"}};
-    auto result = crafting::RecipeSerializers::parseIngredient(ingredientJson);
-    ASSERT_TRUE(result.success()) << "Object ingredient should parse successfully";
-    EXPECT_FALSE(result.value().hasNoMatchingItems());
-}
-
 TEST_F(RecipeFormatTest, ParseIngredient_ArrayFormat)
 {
     // 数组格式：多选项
@@ -86,14 +77,6 @@ TEST_F(RecipeFormatTest, ParseIngredient_StringFormatUnregisteredItem)
     EXPECT_EQ(result.error().code(), ErrorCode::ResourceParseError);
 }
 
-TEST_F(RecipeFormatTest, ParseIngredient_TagFormat)
-{
-    // 标签格式
-    nlohmann::json ingredientJson = {{"tag", "minecraft:planks"}};
-    auto result = crafting::RecipeSerializers::parseIngredient(ingredientJson);
-    ASSERT_TRUE(result.success()) << "Tag ingredient should parse successfully";
-}
-
 // ============================================================================
 // MC 1.21+ "id" 字段 result 测试
 // ============================================================================
@@ -108,15 +91,6 @@ TEST_F(RecipeFormatTest, ParseResult_IdField)
     EXPECT_EQ(result.value().getCount(), 1);
 }
 
-TEST_F(RecipeFormatTest, ParseResult_ItemField)
-{
-    // 旧格式：result 使用 "item"
-    nlohmann::json resultJson = {{"item", "minecraft:iron_ingot"}};
-    auto result = crafting::RecipeSerializers::parseResult(resultJson);
-    ASSERT_TRUE(result.success()) << "Result with 'item' field should parse successfully";
-    EXPECT_EQ(result.value().getItem()->itemLocation(), ResourceLocation("minecraft", "iron_ingot"));
-}
-
 TEST_F(RecipeFormatTest, ParseResult_IdFieldWithCount)
 {
     // MC 1.21+ 格式带 count
@@ -126,22 +100,12 @@ TEST_F(RecipeFormatTest, ParseResult_IdFieldWithCount)
     EXPECT_EQ(result.value().getCount(), 9);
 }
 
-TEST_F(RecipeFormatTest, ParseResult_IdFieldPreferredOverItem)
+TEST_F(RecipeFormatTest, ParseResult_MissingIdField)
 {
-    // 同时有 id 和 item 时，item 优先（向后兼容）
-    nlohmann::json resultJson = {{"item", "minecraft:iron_ingot"}, {"id", "minecraft:gold_ingot"}};
-    auto result = crafting::RecipeSerializers::parseResult(resultJson);
-    ASSERT_TRUE(result.success()) << "Result with both 'item' and 'id' should parse successfully";
-    EXPECT_EQ(result.value().getItem()->itemLocation(), ResourceLocation("minecraft", "iron_ingot"))
-        << "item field should take priority over id field";
-}
-
-TEST_F(RecipeFormatTest, ParseResult_MissingBothFields)
-{
-    // 既没有 item 也没有 id
+    // 缺少 id 字段必须失败
     nlohmann::json resultJson = {{"count", 1}};
     auto result = crafting::RecipeSerializers::parseResult(resultJson);
-    EXPECT_FALSE(result.success()) << "Result without 'item' or 'id' should fail";
+    EXPECT_FALSE(result.success()) << "Result without 'id' should fail";
 }
 
 // ============================================================================
@@ -183,21 +147,6 @@ TEST_F(RecipeFormatTest, BlastingRecipe_MC121Format)
     ASSERT_TRUE(result.success()) << "MC 1.21+ format blasting recipe should parse: " << result.error().message();
     auto recipe = result.value();
     EXPECT_EQ(recipe->getCookTime(), 100);
-}
-
-TEST_F(RecipeFormatTest, SmeltingRecipe_ObjectIngredientFormat)
-{
-    // 旧格式：ingredient 为对象
-    nlohmann::json recipeJson = {{"type", "minecraft:smelting"},
-        {"category", "misc"},
-        {"cookingtime", 200},
-        {"experience", 1.0},
-        {"ingredient", {{"item", "minecraft:raw_gold"}}},
-        {"result", {{"item", "minecraft:gold_ingot"}}}};
-
-    auto result = crafting::RecipeSerializers::fromSmeltingJson(
-        ResourceLocation("minecraft", "gold_ingot_from_smelting_raw_gold"), recipeJson);
-    ASSERT_TRUE(result.success()) << "Object format ingredient should parse: " << result.error().message();
 }
 
 // ============================================================================

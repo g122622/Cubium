@@ -519,19 +519,6 @@ TEST_F(MapDataTest, DimensionNbtWritesStringFormatEnd)
     EXPECT_EQ(strTag.value, "minecraft:the_end");
 }
 
-TEST_F(MapDataTest, DimensionNbtReadsLegacyIntegerFormat)
-{
-    // 测试从旧版整数格式的维度ID读取（向后兼容）
-    nbt::tags::compound_tag tag;
-    tag.put("dimension", static_cast<i32>(-1)); // 下界
-    tag.put("xCenter", 0);
-    tag.put("zCenter", 0);
-    tag.put("scale", static_cast<i8>(0));
-
-    auto restored = MapData::fromNbt(tag, 1);
-    EXPECT_EQ(restored.dimension(), MapDimensionId::Nether);
-}
-
 TEST_F(MapDataTest, DimensionNbtReadsShortStringFormat)
 {
     // 测试从短格式（无命名空间前缀）读取

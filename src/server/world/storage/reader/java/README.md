@@ -95,7 +95,7 @@ Java 1.16（20w17a）起，`block_states.data` 与旧版 `BlockStates` 都使用
 
 ### Status 过滤
 
-- 采用**完成状态白名单**（`COMPLETED_STATUSES`）：只有 `full`（以及 1.13-1.15 的 `postprocessed`/`mobs_spawned`）会被加载，其余一律返回空 `optional`，表示该区块不应加载
+- 采用**完成状态白名单**（`COMPLETED_STATUSES`）：只有 `full` 会被加载，其余一律返回空 `optional`，表示该区块不应加载
 - 不要改回"未完成状态黑名单"：1.21 的状态序列为 `empty → structure_starts → structure_references → biomes → noise → surface → carvers → features → initialize_light → light → spawn → full`，黑名单漏列一项就会让半成品列被当作完整区块加载，且因为 `features` 之后的列已有 sections 数据、能正常通过后续解析，问题会完全静默
 
 ### 高度图格式

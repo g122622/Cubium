@@ -92,7 +92,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
     const auto tempRoot = makeUniqueLootTempDir();
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/blocks/diamond_ore.json",
+        "data/minecraft/loot_table/blocks/diamond_ore.json",
         R"({
           "type": "minecraft:block",
           "pools": [
@@ -131,7 +131,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/blocks/coal_ore.json",
+        "data/minecraft/loot_table/blocks/coal_ore.json",
         R"({
           "type": "minecraft:block",
           "pools": [
@@ -170,7 +170,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/blocks/stone.json",
+        "data/minecraft/loot_table/blocks/stone.json",
         R"({
           "type": "minecraft:block",
           "pools": [
@@ -203,7 +203,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/gameplay/fishing/fish.json",
+        "data/minecraft/loot_table/gameplay/fishing/fish.json",
         R"({
           "type": "minecraft:fishing",
           "pools": [
@@ -220,7 +220,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/gameplay/fishing/junk.json",
+        "data/minecraft/loot_table/gameplay/fishing/junk.json",
         R"({
           "type": "minecraft:fishing",
           "pools": [
@@ -242,7 +242,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/gameplay/fishing/treasure.json",
+        "data/minecraft/loot_table/gameplay/fishing/treasure.json",
         R"({
           "type": "minecraft:fishing",
           "pools": [
@@ -261,7 +261,7 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/gameplay/fishing.json",
+        "data/minecraft/loot_table/gameplay/fishing.json",
         R"({
           "type": "minecraft:fishing",
           "pools": [
@@ -277,20 +277,20 @@ void loadLegacyEquivalentLootTables(LootTableManager& manager)
         })");
 
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/entities/pig.json",
+        "data/minecraft/loot_table/entities/pig.json",
         R"({"type":"minecraft:entity","pools":[{"rolls":{"min":1,"max":3},"entries":[{"type":"minecraft:item","name":"minecraft:porkchop"}]}]})");
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/entities/cow.json",
+        "data/minecraft/loot_table/entities/cow.json",
         R"({"type":"minecraft:entity","pools":[{"rolls":{"min":1,"max":3},"entries":[{"type":"minecraft:item","name":"minecraft:beef"}]}]})");
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/entities/sheep.json",
+        "data/minecraft/loot_table/entities/sheep.json",
         R"({"type":"minecraft:entity","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:wool"}]},{"rolls":{"min":1,"max":2},"entries":[{"type":"minecraft:item","name":"minecraft:mutton"}]}]})");
     writeLootFile(tempRoot,
-        "data/minecraft/loot_tables/entities/chicken.json",
+        "data/minecraft/loot_table/entities/chicken.json",
         R"({"type":"minecraft:entity","pools":[{"rolls":{"min":1,"max":2},"entries":[{"type":"minecraft:item","name":"minecraft:chicken"},{"type":"minecraft:item","name":"minecraft:feather","functions":[{"function":"minecraft:set_count","count":{"min":0,"max":2}}]}]}]})");
 
     LootTableLoader loader(manager);
-    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_tables").string());
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_table").string());
     ASSERT_TRUE(result.success());
     ASSERT_EQ(11u, result.value().successCount);
 
@@ -562,74 +562,74 @@ TEST_F(LootTest, CopyNameFunction_AllSources)
     EXPECT_EQ(CopyNameFunction::Source::BlockEntity, funcBlock.getSource());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_Creation)
+TEST_F(LootTest, CopyStateFunction_Creation)
 {
-    CopyBlockStateFunction func("minecraft:chest");
-    EXPECT_EQ("copy_block_state", func.getType());
+    CopyStateFunction func("minecraft:chest");
+    EXPECT_EQ("copy_state", func.getType());
     EXPECT_EQ("minecraft:chest", func.getBlockId());
     EXPECT_TRUE(func.getProperties().empty());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_Properties)
+TEST_F(LootTest, CopyStateFunction_Properties)
 {
     std::vector<std::string> props = {"facing", "waterlogged"};
-    CopyBlockStateFunction func("minecraft:chest", props);
+    CopyStateFunction func("minecraft:chest", props);
     EXPECT_EQ(2, func.getProperties().size());
     EXPECT_EQ("facing", func.getProperties()[0]);
     EXPECT_EQ("waterlogged", func.getProperties()[1]);
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_Clone)
+TEST_F(LootTest, CopyStateFunction_Clone)
 {
     std::vector<std::string> props = {"facing"};
-    CopyBlockStateFunction func("minecraft:furnace", props);
+    CopyStateFunction func("minecraft:furnace", props);
 
     auto cloned = func.clone();
     ASSERT_NE(cloned, nullptr);
 
-    auto* clonedFunc = dynamic_cast<CopyBlockStateFunction*>(cloned.get());
+    auto* clonedFunc = dynamic_cast<CopyStateFunction*>(cloned.get());
     ASSERT_NE(clonedFunc, nullptr);
     EXPECT_EQ("minecraft:furnace", clonedFunc->getBlockId());
     EXPECT_EQ(1, clonedFunc->getProperties().size());
 }
 
-TEST_F(LootTest, CopyNbtFunction_Creation)
+TEST_F(LootTest, CopyCustomDataFunction_Creation)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::This);
-    EXPECT_EQ("copy_nbt", func.getType());
-    EXPECT_EQ(CopyNbtFunction::Source::This, func.getSource());
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::This);
+    EXPECT_EQ("copy_custom_data", func.getType());
+    EXPECT_EQ(CopyCustomDataFunction::Source::This, func.getSource());
     EXPECT_TRUE(func.getOperations().empty());
 }
 
-TEST_F(LootTest, CopyNbtFunction_AddOperation)
+TEST_F(LootTest, CopyCustomDataFunction_AddOperation)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
-    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyCustomDataFunction::Operation::Replace);
 
     EXPECT_EQ(1, func.getOperations().size());
     EXPECT_EQ("CustomName", func.getOperations()[0].sourcePath);
     EXPECT_EQ("display.Name", func.getOperations()[0].targetPath);
-    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Replace, func.getOperations()[0].operation);
 }
 
-TEST_F(LootTest, CopyNbtFunction_Clone)
+TEST_F(LootTest, CopyCustomDataFunction_Clone)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::Killer);
-    func.addOperation("path1", "path2", CopyNbtFunction::Operation::Append);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::Killer);
+    func.addOperation("path1", "path2", CopyCustomDataFunction::Operation::Append);
 
     auto cloned = func.clone();
     ASSERT_NE(cloned, nullptr);
 
-    auto* clonedFunc = dynamic_cast<CopyNbtFunction*>(cloned.get());
+    auto* clonedFunc = dynamic_cast<CopyCustomDataFunction*>(cloned.get());
     ASSERT_NE(clonedFunc, nullptr);
-    EXPECT_EQ(CopyNbtFunction::Source::Killer, clonedFunc->getSource());
+    EXPECT_EQ(CopyCustomDataFunction::Source::Killer, clonedFunc->getSource());
     EXPECT_EQ(1, clonedFunc->getOperations().size());
 }
 
-TEST_F(LootTest, CopyNbtFunction_EmptyStack)
+TEST_F(LootTest, CopyCustomDataFunction_EmptyStack)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::This);
-    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::This);
+    func.addOperation("CustomName", "display.Name", CopyCustomDataFunction::Operation::Replace);
 
     math::Random rng(42);
     LootContext context(m_world, rng);
@@ -638,9 +638,9 @@ TEST_F(LootTest, CopyNbtFunction_EmptyStack)
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, CopyNbtFunction_NoOperations)
+TEST_F(LootTest, CopyCustomDataFunction_NoOperations)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::This);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::This);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -652,10 +652,10 @@ TEST_F(LootTest, CopyNbtFunction_NoOperations)
     EXPECT_FALSE(result.isEmpty());
 }
 
-TEST_F(LootTest, CopyNbtFunction_NoSourceEntity)
+TEST_F(LootTest, CopyCustomDataFunction_NoSourceEntity)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::This);
-    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::This);
+    func.addOperation("CustomName", "display.Name", CopyCustomDataFunction::Operation::Replace);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -670,10 +670,10 @@ TEST_F(LootTest, CopyNbtFunction_NoSourceEntity)
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(LootTest, CopyNbtFunction_ReplaceOperation)
+TEST_F(LootTest, CopyCustomDataFunction_ReplaceOperation)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
-    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyCustomDataFunction::Operation::Replace);
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -692,65 +692,65 @@ TEST_F(LootTest, CopyNbtFunction_ReplaceOperation)
     EXPECT_FALSE(result.isEmpty());
 }
 
-TEST_F(LootTest, CopyNbtFunction_MultipleOperations)
+TEST_F(LootTest, CopyCustomDataFunction_MultipleOperations)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
-    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
-    func.addOperation("Items", "Items", CopyNbtFunction::Operation::Merge);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyCustomDataFunction::Operation::Replace);
+    func.addOperation("Items", "Items", CopyCustomDataFunction::Operation::Merge);
 
     EXPECT_EQ(2, func.getOperations().size());
-    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
-    EXPECT_EQ(CopyNbtFunction::Operation::Merge, func.getOperations()[1].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Replace, func.getOperations()[0].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Merge, func.getOperations()[1].operation);
 }
 
-TEST_F(LootTest, CopyNbtFunction_AllSources)
+TEST_F(LootTest, CopyCustomDataFunction_AllSources)
 {
     // 测试所有来源类型的构造
-    CopyNbtFunction funcThis(CopyNbtFunction::Source::This);
-    EXPECT_EQ(CopyNbtFunction::Source::This, funcThis.getSource());
+    CopyCustomDataFunction funcThis(CopyCustomDataFunction::Source::This);
+    EXPECT_EQ(CopyCustomDataFunction::Source::This, funcThis.getSource());
 
-    CopyNbtFunction funcKiller(CopyNbtFunction::Source::Killer);
-    EXPECT_EQ(CopyNbtFunction::Source::Killer, funcKiller.getSource());
+    CopyCustomDataFunction funcKiller(CopyCustomDataFunction::Source::Killer);
+    EXPECT_EQ(CopyCustomDataFunction::Source::Killer, funcKiller.getSource());
 
-    CopyNbtFunction funcKillerPlayer(CopyNbtFunction::Source::KillerPlayer);
-    EXPECT_EQ(CopyNbtFunction::Source::KillerPlayer, funcKillerPlayer.getSource());
+    CopyCustomDataFunction funcKillerPlayer(CopyCustomDataFunction::Source::KillerPlayer);
+    EXPECT_EQ(CopyCustomDataFunction::Source::KillerPlayer, funcKillerPlayer.getSource());
 
-    CopyNbtFunction funcBlockEntity(CopyNbtFunction::Source::BlockEntity);
-    EXPECT_EQ(CopyNbtFunction::Source::BlockEntity, funcBlockEntity.getSource());
+    CopyCustomDataFunction funcBlockEntity(CopyCustomDataFunction::Source::BlockEntity);
+    EXPECT_EQ(CopyCustomDataFunction::Source::BlockEntity, funcBlockEntity.getSource());
 }
 
-TEST_F(LootTest, CopyNbtFunction_AllOperations)
+TEST_F(LootTest, CopyCustomDataFunction_AllOperations)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::This);
-    func.addOperation("a", "b", CopyNbtFunction::Operation::Replace);
-    func.addOperation("c", "d", CopyNbtFunction::Operation::Append);
-    func.addOperation("e", "f", CopyNbtFunction::Operation::Merge);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::This);
+    func.addOperation("a", "b", CopyCustomDataFunction::Operation::Replace);
+    func.addOperation("c", "d", CopyCustomDataFunction::Operation::Append);
+    func.addOperation("e", "f", CopyCustomDataFunction::Operation::Merge);
 
     EXPECT_EQ(3, func.getOperations().size());
-    EXPECT_EQ(CopyNbtFunction::Operation::Replace, func.getOperations()[0].operation);
-    EXPECT_EQ(CopyNbtFunction::Operation::Append, func.getOperations()[1].operation);
-    EXPECT_EQ(CopyNbtFunction::Operation::Merge, func.getOperations()[2].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Replace, func.getOperations()[0].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Append, func.getOperations()[1].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Merge, func.getOperations()[2].operation);
 }
 
-TEST_F(LootTest, CopyNbtFunction_CloneWithOperations)
+TEST_F(LootTest, CopyCustomDataFunction_CloneWithOperations)
 {
-    CopyNbtFunction func(CopyNbtFunction::Source::BlockEntity);
-    func.addOperation("CustomName", "display.Name", CopyNbtFunction::Operation::Replace);
-    func.addOperation("Items", "Items", CopyNbtFunction::Operation::Merge);
+    CopyCustomDataFunction func(CopyCustomDataFunction::Source::BlockEntity);
+    func.addOperation("CustomName", "display.Name", CopyCustomDataFunction::Operation::Replace);
+    func.addOperation("Items", "Items", CopyCustomDataFunction::Operation::Merge);
 
     auto cloned = func.clone();
     ASSERT_NE(cloned, nullptr);
 
-    auto* clonedFunc = dynamic_cast<CopyNbtFunction*>(cloned.get());
+    auto* clonedFunc = dynamic_cast<CopyCustomDataFunction*>(cloned.get());
     ASSERT_NE(clonedFunc, nullptr);
-    EXPECT_EQ(CopyNbtFunction::Source::BlockEntity, clonedFunc->getSource());
+    EXPECT_EQ(CopyCustomDataFunction::Source::BlockEntity, clonedFunc->getSource());
     EXPECT_EQ(2, clonedFunc->getOperations().size());
     EXPECT_EQ("CustomName", clonedFunc->getOperations()[0].sourcePath);
     EXPECT_EQ("display.Name", clonedFunc->getOperations()[0].targetPath);
-    EXPECT_EQ(CopyNbtFunction::Operation::Replace, clonedFunc->getOperations()[0].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Replace, clonedFunc->getOperations()[0].operation);
     EXPECT_EQ("Items", clonedFunc->getOperations()[1].sourcePath);
     EXPECT_EQ("Items", clonedFunc->getOperations()[1].targetPath);
-    EXPECT_EQ(CopyNbtFunction::Operation::Merge, clonedFunc->getOperations()[1].operation);
+    EXPECT_EQ(CopyCustomDataFunction::Operation::Merge, clonedFunc->getOperations()[1].operation);
 }
 
 TEST_F(LootTest, FillPlayerHeadFunction_Creation)
@@ -1647,13 +1647,13 @@ TEST_F(LootTest, LootFunctionBuilder_NewFunctions)
     ASSERT_NE(copyName, nullptr);
     EXPECT_EQ("copy_name", copyName->getType());
 
-    auto copyBlockState = LootFunctionBuilder::copyBlockState("minecraft:chest");
+    auto copyBlockState = LootFunctionBuilder::copyState("minecraft:chest");
     ASSERT_NE(copyBlockState, nullptr);
-    EXPECT_EQ("copy_block_state", copyBlockState->getType());
+    EXPECT_EQ("copy_state", copyBlockState->getType());
 
-    auto copyNbt = LootFunctionBuilder::copyNbt(CopyNbtFunction::Source::This);
+    auto copyNbt = LootFunctionBuilder::copyCustomData(CopyCustomDataFunction::Source::This);
     ASSERT_NE(copyNbt, nullptr);
-    EXPECT_EQ("copy_nbt", copyNbt->getType());
+    EXPECT_EQ("copy_custom_data", copyNbt->getType());
 
     auto fillHead = LootFunctionBuilder::fillPlayerHead();
     ASSERT_NE(fillHead, nullptr);
@@ -2526,13 +2526,13 @@ TEST_F(LootTest, LootTable_StoneWithoutSilkTouch)
 }
 
 // ============================================================================
-// CopyBlockStateFunction Apply Tests
+// CopyStateFunction Apply Tests
 // ============================================================================
 
-TEST_F(LootTest, CopyBlockStateFunction_EmptyStack)
+TEST_F(LootTest, CopyStateFunction_EmptyStack)
 {
     // 空物品堆不应该崩溃
-    CopyBlockStateFunction func("minecraft:chest");
+    CopyStateFunction func("minecraft:chest");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
@@ -2542,10 +2542,10 @@ TEST_F(LootTest, CopyBlockStateFunction_EmptyStack)
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext)
+TEST_F(LootTest, CopyStateFunction_NoBlockStateInContext)
 {
     // 没有 BlockState 参数时应该返回原物品
-    CopyBlockStateFunction func("minecraft:chest");
+    CopyStateFunction func("minecraft:chest");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2562,10 +2562,10 @@ TEST_F(LootTest, CopyBlockStateFunction_NoBlockStateInContext)
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch)
+TEST_F(LootTest, CopyStateFunction_BlockIdMismatch)
 {
     // 方块 ID 不匹配时不应复制
-    CopyBlockStateFunction func("minecraft:chest");
+    CopyStateFunction func("minecraft:chest");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2580,21 +2580,21 @@ TEST_F(LootTest, CopyBlockStateFunction_BlockIdMismatch)
     EXPECT_EQ(stack.getItem(), result.getItem());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_EmptyPropertiesList)
+TEST_F(LootTest, CopyStateFunction_EmptyPropertiesList)
 {
     // 空属性列表（应该复制所有属性）
     // 这个测试验证函数能正常处理空属性列表
-    CopyBlockStateFunction func("minecraft:furnace", {}); // 空属性列表
+    CopyStateFunction func("minecraft:furnace", {}); // 空属性列表
 
     EXPECT_TRUE(func.getProperties().empty());
     EXPECT_EQ("minecraft:furnace", func.getBlockId());
 }
 
-TEST_F(LootTest, CopyBlockStateFunction_SpecifiedProperties)
+TEST_F(LootTest, CopyStateFunction_SpecifiedProperties)
 {
     // 指定属性列表
     std::vector<std::string> props = {"facing", "lit"};
-    CopyBlockStateFunction func("minecraft:furnace", props);
+    CopyStateFunction func("minecraft:furnace", props);
 
     EXPECT_EQ(2, func.getProperties().size());
     EXPECT_EQ("facing", func.getProperties()[0]);
@@ -2725,13 +2725,13 @@ TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag)
 }
 
 // ============================================================================
-// SetNbtFunction Tests
+// SetCustomDataFunction Tests
 // ============================================================================
 
-TEST_F(LootTest, SetNbtFunction_EmptyString)
+TEST_F(LootTest, SetCustomDataFunction_EmptyString)
 {
     // 空字符串不应该修改物品
-    SetNbtFunction func("");
+    SetCustomDataFunction func("");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2744,10 +2744,10 @@ TEST_F(LootTest, SetNbtFunction_EmptyString)
     EXPECT_FALSE(result.hasTag()); // 不应该有标签
 }
 
-TEST_F(LootTest, SetNbtFunction_EmptyStack)
+TEST_F(LootTest, SetCustomDataFunction_EmptyStack)
 {
     // 空物品堆不应该被修改
-    SetNbtFunction func("{display:{Name:\"Test\"}}");
+    SetCustomDataFunction func("{display:{Name:\"Test\"}}");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
@@ -2757,21 +2757,21 @@ TEST_F(LootTest, SetNbtFunction_EmptyStack)
     EXPECT_TRUE(result.isEmpty());
 }
 
-TEST_F(LootTest, SetNbtFunction_Builder)
+TEST_F(LootTest, SetCustomDataFunction_Builder)
 {
-    auto func = LootFunctionBuilder::setNbt("{display:{Name:\"Custom Item\"}}");
+    auto func = LootFunctionBuilder::setCustomData("{display:{Name:\"Custom Item\"}}");
     ASSERT_NE(func, nullptr);
-    EXPECT_EQ("set_nbt", func->getType());
+    EXPECT_EQ("set_custom_data", func->getType());
 
-    auto* setNbtFunc = dynamic_cast<SetNbtFunction*>(func.get());
+    auto* setNbtFunc = dynamic_cast<SetCustomDataFunction*>(func.get());
     ASSERT_NE(setNbtFunc, nullptr);
     EXPECT_EQ("{display:{Name:\"Custom Item\"}}", setNbtFunc->getNbtString());
 }
 
-TEST_F(LootTest, SetNbtFunction_SimpleTag)
+TEST_F(LootTest, SetCustomDataFunction_SimpleTag)
 {
     // 测试简单的 NBT 标签
-    SetNbtFunction func("{Damage:10}");
+    SetCustomDataFunction func("{Damage:10}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2798,10 +2798,10 @@ TEST_F(LootTest, SetNbtFunction_SimpleTag)
     EXPECT_EQ(10, damageIt->get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_NestedTag)
+TEST_F(LootTest, SetCustomDataFunction_NestedTag)
 {
     // 测试嵌套的 NBT 标签
-    SetNbtFunction func("{display:{Name:\"Custom Sword\",color:16711680}}");
+    SetCustomDataFunction func("{display:{Name:\"Custom Sword\",color:16711680}}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2827,7 +2827,7 @@ TEST_F(LootTest, SetNbtFunction_NestedTag)
     EXPECT_EQ(16711680, (*displayIt)["color"].get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_MergeTag)
+TEST_F(LootTest, SetCustomDataFunction_MergeTag)
 {
     // 测试合并到现有标签
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -2837,8 +2837,8 @@ TEST_F(LootTest, SetNbtFunction_MergeTag)
     // 首先设置一个初始标签
     stack.getOrCreateTag()["initial_value"] = 100;
 
-    // 然后应用 SetNbtFunction
-    SetNbtFunction func("{new_value:200}");
+    // 然后应用 SetCustomDataFunction
+    SetCustomDataFunction func("{new_value:200}");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
@@ -2861,7 +2861,7 @@ TEST_F(LootTest, SetNbtFunction_MergeTag)
     EXPECT_EQ(200, newIt->get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_MergeNestedObject)
+TEST_F(LootTest, SetCustomDataFunction_MergeNestedObject)
 {
     // 测试合并嵌套对象（递归合并）
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -2874,7 +2874,7 @@ TEST_F(LootTest, SetNbtFunction_MergeNestedObject)
     display["existing_value"] = 50;
 
     // 应用函数合并嵌套对象
-    SetNbtFunction func("{display:{color:16711680,new_value:100}}");
+    SetCustomDataFunction func("{display:{color:16711680,new_value:100}}");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
@@ -2909,10 +2909,10 @@ TEST_F(LootTest, SetNbtFunction_MergeNestedObject)
     EXPECT_EQ(100, newIt->get<i32>());
 }
 
-TEST_F(LootTest, SetNbtFunction_InvalidNbt)
+TEST_F(LootTest, SetCustomDataFunction_InvalidNbt)
 {
     // 测试无效的 NBT 字符串
-    SetNbtFunction func("{invalid nbt string"); // 缺少闭合大括号
+    SetCustomDataFunction func("{invalid nbt string"); // 缺少闭合大括号
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2926,10 +2926,10 @@ TEST_F(LootTest, SetNbtFunction_InvalidNbt)
     EXPECT_FALSE(result.hasTag());
 }
 
-TEST_F(LootTest, SetNbtFunction_WithTypeSuffixes)
+TEST_F(LootTest, SetCustomDataFunction_WithTypeSuffixes)
 {
     // 测试带类型后缀的 NBT 值
-    SetNbtFunction func(
+    SetCustomDataFunction func(
         "{byte_val:10b,short_val:100s,int_val:1000,long_val:10000l,float_val:3.14f,double_val:3.14159d}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -2954,17 +2954,17 @@ TEST_F(LootTest, SetNbtFunction_WithTypeSuffixes)
     EXPECT_DOUBLE_EQ(3.14159, (*tag)["double_val"].get<f64>());
 }
 
-TEST_F(LootTest, SetNbtFunction_Clone)
+TEST_F(LootTest, SetCustomDataFunction_Clone)
 {
-    SetNbtFunction func("{display:{Name:\"Test\"}}");
+    SetCustomDataFunction func("{display:{Name:\"Test\"}}");
 
     auto cloned = func.clone();
     ASSERT_NE(cloned, nullptr);
 
-    auto* clonedFunc = dynamic_cast<SetNbtFunction*>(cloned.get());
+    auto* clonedFunc = dynamic_cast<SetCustomDataFunction*>(cloned.get());
     ASSERT_NE(clonedFunc, nullptr);
     EXPECT_EQ("{display:{Name:\"Test\"}}", clonedFunc->getNbtString());
-    EXPECT_EQ("set_nbt", clonedFunc->getType());
+    EXPECT_EQ("set_custom_data", clonedFunc->getType());
 }
 
 // ============================================================================

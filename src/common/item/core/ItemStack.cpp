@@ -44,7 +44,6 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
-#include "common/util/text/TextParser.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -67,21 +66,8 @@ namespace {
 namespace nbt_keys {
 // 1.21.11 数据组件格式键
 constexpr const char* ID = "id";
-constexpr const char* COUNT = "count";           // 1.21.11：i32（旧 1.16.5 为 "Count" byte）
+constexpr const char* COUNT = "count";           // 1.21.11：i32
 constexpr const char* COMPONENTS = "components"; // 1.21.11 数据组件补丁 compound
-
-// 旧 1.16.5 格式键（仅 fromNbt 旧存档回退读取用）
-constexpr const char* LEGACY_COUNT = "Count";
-constexpr const char* TAG = "tag";
-constexpr const char* DAMAGE = "Damage";
-constexpr const char* ENCHANTMENTS = "Enchantments";
-constexpr const char* DISPLAY = "display";
-constexpr const char* NAME = "Name";
-constexpr const char* LORE = "Lore";
-constexpr const char* REPAIR_COST = "RepairCost";
-constexpr const char* POTION = "Potion";
-constexpr const char* CAN_PLACE_ON = "CanPlaceOn";
-constexpr const char* CAN_DESTROY = "CanDestroy";
 } // namespace nbt_keys
 } // namespace
 
@@ -900,6 +886,7 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         return Error(ErrorCode::InvalidItem, "Unknown item ID: " + itemId);
     }
 
+    // 数量：与 toJson 的写出键对应
     i32 count = 1;
     if (json.contains("Count") && json["Count"].is_number()) {
         count = json["Count"].get<i32>();
@@ -918,22 +905,13 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         }
     }
 
-    if (json.contains("CustomName")) {
-        const auto& customNameJson = json["CustomName"];
-        if (customNameJson.is_string()) {
-            // 旧格式：纯字符串
-            stack.m_customName = text::TextParser::parse(customNameJson.get<std::string>());
-        } else if (customNameJson.is_object()) {
-            // 新格式：JSON 文本组件
-            stack.m_customName = text::ITextComponent::fromJson(customNameJson);
-        }
+    if (json.contains("CustomName") && json["CustomName"].is_object()) {
+        stack.m_customName = text::ITextComponent::fromJson(json["CustomName"]);
     }
 
     if (json.contains("Lore") && json["Lore"].is_array()) {
         for (const auto& lineJson : json["Lore"]) {
-            if (lineJson.is_string()) {
-                stack._ensureExtras().lore.push_back(text::TextParser::parse(lineJson.get<std::string>()));
-            } else if (lineJson.is_object()) {
+            if (lineJson.is_object()) {
                 stack._ensureExtras().lore.push_back(text::ITextComponent::fromJson(lineJson));
             }
         }
@@ -1469,12 +1447,10 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
     ResourceLocation itemLocation(itemId);
     const Item* item = ItemRegistry::instance().getItem(itemLocation);
 
-    // 数量：1.21.11 用 "count"(i32/byte)，旧格式用 "Count"(byte)
+    // 数量：1.21.11 键名 "count"。vanilla 的 Codec.INT 在 NbtOps 下接受任意数值型标签
+    // （Byte/Short/Int/Long），故此处同样接受 Byte 与 Int 两种承载。
     i32 count = 1;
     auto countIt = tag.value.find(nbt_keys::COUNT);
-    if (countIt == tag.value.end()) {
-        countIt = tag.value.find(nbt_keys::LEGACY_COUNT);
-    }
     if (countIt != tag.value.end()) {
         if (countIt->second->id() == nbt::TagId::Byte) {
             count = dynamic_cast<const nbt::tags::byte_tag&>(*countIt->second).value;
@@ -1490,173 +1466,14 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
 
     ItemStack stack(item, count);
 
-    // 优先按 1.21.11 组件格式解析；若无 components 但有 "tag"，回退旧 1.16.5 格式
+    // 1.21.11 组件格式：读取 components 补丁段
     auto componentsIt = tag.value.find(nbt_keys::COMPONENTS);
     if (componentsIt != tag.value.end() && componentsIt->second->id() == nbt::TagId::Compound) {
         const auto& componentsCompound = dynamic_cast<const nbt::tags::compound_tag&>(*componentsIt->second);
         stack.applyComponentPatch(item::component::readPatchFromNbt(componentsCompound));
-        return stack;
     }
 
-    auto tagIt = tag.value.find(nbt_keys::TAG);
-    if (tagIt == tag.value.end() || tagIt->second->id() != nbt::TagId::Compound) {
-        return stack;
-    }
-    applyLegacyTagCompound(stack, dynamic_cast<const nbt::tags::compound_tag&>(*tagIt->second));
     return stack;
-}
-
-// ============================================================================
-// 旧 1.16.5 {tag{...}} 格式回退读取（读旧存档用）
-// ============================================================================
-
-void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compound_tag& tagCompound)
-{
-    auto it = tagCompound.value.find(nbt_keys::DAMAGE);
-    if (it != tagCompound.value.end()) {
-        if (it->second->id() == nbt::TagId::Int) {
-            stack.m_damage = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
-        } else if (it->second->id() == nbt::TagId::Short) {
-            stack.m_damage = dynamic_cast<const nbt::tags::short_tag&>(*it->second).value;
-        }
-    }
-
-    it = tagCompound.value.find(nbt_keys::ENCHANTMENTS);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
-        auto& enchList = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
-        stack.m_enchantments = item::enchant::EnchantmentContainer::fromNbt(enchList);
-    }
-
-    it = tagCompound.value.find(nbt_keys::DISPLAY);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Compound) {
-        const auto& display = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
-
-        auto nameIt = display.value.find(nbt_keys::NAME);
-        if (nameIt != display.value.end() && nameIt->second->id() == nbt::TagId::String) {
-            std::string nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
-            stack.m_customName = text::TextParser::parse(nameJson);
-        }
-
-        auto loreIt = display.value.find(nbt_keys::LORE);
-        if (loreIt != display.value.end() && loreIt->second->id() == nbt::TagId::List) {
-            auto& loreList = dynamic_cast<const nbt::tags::list_tag&>(*loreIt->second);
-            if (loreList.element_id() == nbt::TagId::String) {
-                auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(loreList);
-                for (const auto& lineJson : stringList.value) {
-                    stack._ensureExtras().lore.push_back(text::TextParser::parse(lineJson));
-                }
-            }
-        }
-    }
-
-    it = tagCompound.value.find(nbt_keys::REPAIR_COST);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Int) {
-        stack.m_repairCost = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
-    }
-
-    it = tagCompound.value.find(nbt_keys::POTION);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
-        stack.setPotionId(dynamic_cast<const nbt::tags::string_tag&>(*it->second).value);
-    }
-
-    it = tagCompound.value.find(nbt_keys::CAN_PLACE_ON);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
-        auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
-        if (listTag.element_id() == nbt::TagId::String) {
-            auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(listTag);
-            std::vector<std::string> predicates;
-            predicates.reserve(stringList.value.size());
-            for (const auto& blockId : stringList.value) {
-                predicates.push_back(blockId);
-            }
-            stack.setCanPlaceOn(AdventureModePredicate(std::move(predicates)));
-        }
-    }
-
-    it = tagCompound.value.find(nbt_keys::CAN_DESTROY);
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
-        auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
-        if (listTag.element_id() == nbt::TagId::String) {
-            auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(listTag);
-            std::vector<std::string> predicates;
-            predicates.reserve(stringList.value.size());
-            for (const auto& blockId : stringList.value) {
-                predicates.push_back(blockId);
-            }
-            stack.setCanDestroy(AdventureModePredicate(std::move(predicates)));
-        }
-    }
-
-    // 旧格式 custom_data 存为 JSON 字符串
-    it = tagCompound.value.find("custom_data");
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
-        std::string customDataStr = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
-        auto parsed = nlohmann::json::parse(customDataStr, nullptr, false);
-        if (!parsed.is_discarded() && parsed.is_object()) {
-            stack._ensureExtras().customData = parsed;
-        }
-    }
-
-    // 旧 1.16.5 的烟花数据是 Fireworks NBT 复合标签（Flight + Explosions），
-    // 迁入 1.21.11 的 fireworks 组件。旧字段名与取值都是 1.16.5 语义：
-    // Flight 为飞行等级（本项目的飞行等级 = 1 + flight_duration），Explosions 各项
-    // 用大驼峰键名（Shape 为 byte 形状 id、Colors/FadeColors 为 int 列表、Trail/Flicker 为 byte 布尔）。
-    it = tagCompound.value.find("Fireworks");
-    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Compound) {
-        const auto& legacyFireworks = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
-        item::component::Fireworks fireworks{};
-
-        auto flightIt = legacyFireworks.value.find("Flight");
-        if (flightIt != legacyFireworks.value.end()) {
-            i32 flightLevel = 0;
-            if (flightIt->second->id() == nbt::TagId::Byte) {
-                // 先转 u8 再转 i32：byte_tag 的值是有符号 i8，直接提升会把 >127 的值变负。
-                flightLevel = static_cast<u8>(dynamic_cast<const nbt::tags::byte_tag&>(*flightIt->second).value);
-            } else if (flightIt->second->id() == nbt::TagId::Int) {
-                flightLevel = dynamic_cast<const nbt::tags::int_tag&>(*flightIt->second).value;
-            }
-            // 旧 Flight 是飞行等级，组件承载的是 flight_duration（等级 - 1）。
-            fireworks.flightDuration = std::max(0, flightLevel - 1);
-        }
-
-        auto explosionsIt = legacyFireworks.value.find("Explosions");
-        if (explosionsIt != legacyFireworks.value.end() && explosionsIt->second->id() == nbt::TagId::List) {
-            const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(explosionsIt->second.get());
-            if (list != nullptr) {
-                for (const auto& element : list->value) {
-                    item::component::FireworkExplosion explosion{};
-                    auto shapeIt = element.value.find("Shape");
-                    if (shapeIt != element.value.end() && shapeIt->second->id() == nbt::TagId::Byte) {
-                        explosion.shape = item::component::fireworkShapeById(
-                            dynamic_cast<const nbt::tags::byte_tag&>(*shapeIt->second).value);
-                    }
-                    auto readLegacyColors = [&element](const char* key) {
-                        std::vector<i32> colors;
-                        auto colorsIt = element.value.find(key);
-                        if (colorsIt == element.value.end() || colorsIt->second->id() != nbt::TagId::List) {
-                            return colors;
-                        }
-                        const auto* colorList = dynamic_cast<const nbt::tags::int_list_tag*>(colorsIt->second.get());
-                        if (colorList != nullptr) {
-                            colors = colorList->value;
-                        }
-                        return colors;
-                    };
-                    explosion.colors = readLegacyColors("Colors");
-                    explosion.fadeColors = readLegacyColors("FadeColors");
-                    auto readLegacyFlag = [&element](const char* key) {
-                        auto flagIt = element.value.find(key);
-                        return flagIt != element.value.end() && flagIt->second->id() == nbt::TagId::Byte &&
-                            dynamic_cast<const nbt::tags::byte_tag&>(*flagIt->second).value != 0;
-                    };
-                    explosion.hasTrail = readLegacyFlag("Trail");
-                    explosion.hasTwinkle = readLegacyFlag("Flicker");
-                    fireworks.explosions.push_back(std::move(explosion));
-                }
-            }
-        }
-        stack.setFireworks(std::move(fireworks));
-    }
 }
 
 // ============================================================================

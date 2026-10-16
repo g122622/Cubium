@@ -66,7 +66,7 @@ loot/
     ├── SetDamageFunction.hpp/cpp         # minecraft:set_damage
     ├── SetNameFunction.hpp/cpp           # minecraft:set_name
     ├── SetLoreFunction.hpp/cpp           # minecraft:set_lore
-    ├── SetNbtFunction.hpp/cpp            # minecraft:set_nbt
+    ├── SetCustomDataFunction.hpp/cpp            # minecraft:set_custom_data
     ├── SetAttributesFunction.hpp/cpp     # minecraft:set_attributes
     ├── SetContentsFunction.hpp/cpp       # minecraft:set_contents
     ├── SetLootTableFunction.hpp/cpp      # minecraft:set_loot_table
@@ -74,12 +74,12 @@ loot/
     ├── EnchantRandomlyFunction.hpp/cpp   # minecraft:enchant_randomly
     ├── EnchantWithLevelsFunction.hpp/cpp # minecraft:enchant_with_levels
     ├── ApplyBonusFunction.hpp/cpp        # minecraft:apply_bonus
-    ├── LootingEnchantBonusFunction.hpp/cpp # minecraft:looting_enchant
+    ├── EnchantedCountIncreaseFunction.hpp/cpp # minecraft:enchanted_count_increase
     ├── ExplosionDecayFunction.hpp/cpp    # minecraft:explosion_decay
     ├── FurnaceSmeltFunction.hpp/cpp      # minecraft:furnace_smelt
     ├── CopyNameFunction.hpp/cpp          # minecraft:copy_name
-    ├── CopyNbtFunction.hpp/cpp           # minecraft:copy_nbt
-    ├── CopyBlockStateFunction.hpp/cpp    # minecraft:copy_state
+    ├── CopyCustomDataFunction.hpp/cpp           # minecraft:copy_custom_data
+    ├── CopyStateFunction.hpp/cpp    # minecraft:copy_state
     ├── ExplorationMapFunction.hpp/cpp    # minecraft:exploration_map
     ├── FillPlayerHeadFunction.hpp/cpp    # minecraft:fill_player_head
     └── LimitCountFunction.hpp/cpp        # minecraft:limit_count

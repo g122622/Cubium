@@ -287,7 +287,8 @@ void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
         RecipeBookCategory::Smoker, tryGetBool("isSmokerGuiOpen"), tryGetBool("isSmokerFilteringCraftable"));
 
     // 读取已解锁配方列表
-    // 参考 MC 1.21.1: ServerRecipeBook.loadUntrusted() 在加载时过滤掉不存在的配方
+    // 参考 MC 1.21.11 ServerRecipeBook.addRecipes()：动态配方（isSpecial 等价物）
+    // 不进入配方书，加载时同样排除。
     m_recipes.clear();
     auto recipesIt = tag.value.find("recipes");
     if (recipesIt != tag.value.end()) {
@@ -295,7 +296,6 @@ void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
         if (recipesList) {
             for (const auto& recipeStr : recipesList->value) {
                 ResourceLocation recipeId(recipeStr);
-                // 过滤掉动态配方：旧存档可能包含动态配方ID，加载时应排除
                 if (!isDynamicRecipe(recipeId)) {
                     m_recipes.insert(std::move(recipeId));
                 }
@@ -311,7 +311,6 @@ void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
         if (newRecipesList) {
             for (const auto& recipeStr : newRecipesList->value) {
                 ResourceLocation recipeId(recipeStr);
-                // 同样过滤掉动态配方
                 if (!isDynamicRecipe(recipeId)) {
                     m_newRecipes.insert(std::move(recipeId));
                 }

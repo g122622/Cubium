@@ -71,7 +71,6 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -468,7 +467,7 @@ void MobEntity::dropCustomDeathLoot(DamageSource& cause, bool recentlyHitByPlaye
 
     // 击杀者 LivingEntity（vanilla cause.getEntity() instanceof LivingEntity）：用于掠夺附魔
     // processEquipmentDropChance 加成（vanilla Mob.java:853-855）。Cubium 掠夺附魔体系是 1.20 风格的
-    // LootingEnchantBonusFunction（loot function），未实现 1.21 的 equipment_drops effect component 子系统，
+    // EnchantedCountIncreaseFunction（loot function），未实现 1.21 的 equipment_drops effect component 子系统，
     // 故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
     Entity* causingEntity = cause.getEntity();
     (void)causingEntity; // 预留 processEquipmentDropChance 接入点，当前未使用。
@@ -1259,9 +1258,7 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
 
     // DropChances（compound，仅包含非默认值）
-    // 新格式：drop_chances compound，与 MC Java DropChances.filterDefaultValues 一致。
-    // 旧格式 HandDropChances/ArmorDropChances（f32 list）已废弃，不再写入，
-    // 但加载时仍兼容旧格式以保证存档兼容性。
+    // 与 MC Java DropChances.filterDefaultValues 一致。
     {
         nbt::tags::compound_tag dropChancesTag;
         // 装备槽位名称映射
@@ -1347,70 +1344,25 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
         m_aiEnabled = !(*val);
     }
 
-    // HandDropChances / ArmorDropChances / drop_chances
-    // 读取时优先使用新格式 drop_chances（compound），然后回退到旧格式。
-    // 新格式中的槽位会覆盖旧格式的值，未指定的槽位保持默认值。
-    {
-        bool readNewFormat = false;
-
-        // 新格式：drop_chances（compound）
-        if (auto* dropChancesCompound = nbt_helper::tryGetCompound(tag, nbt_keys::DROP_CHANCES)) {
-            readNewFormat = true;
-            // 装备槽位名称映射
-            static constexpr struct {
-                const char* name;
-                EquipmentSlot slot;
-            } slotNames[] = {
-                {"mainhand", EquipmentSlot::MainHand},
-                {"offhand", EquipmentSlot::OffHand},
-                {"feet", EquipmentSlot::Feet},
-                {"legs", EquipmentSlot::Legs},
-                {"chest", EquipmentSlot::Chest},
-                {"head", EquipmentSlot::Head},
-                {"body", EquipmentSlot::Body},
-                {"saddle", EquipmentSlot::Saddle},
-            };
-            for (const auto& entry : slotNames) {
-                if (auto chance = nbt_helper::tryGetFloat(*dropChancesCompound, entry.name)) {
-                    m_equipmentDropChances[static_cast<size_t>(entry.slot)] = *chance;
-                }
-            }
-        }
-
-        // 旧格式：HandDropChances（f32 list，长度 2）
-        if (auto* handList = nbt_helper::tryGetList(tag, nbt_keys::HAND_DROP_CHANCES)) {
-            if (handList->element_id() == nbt::TagId::Float) {
-                auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*handList);
-                if (floatList.value.size() >= 1) {
-                    // 仅在新格式未设置时使用旧格式的值
-                    if (!readNewFormat ||
-                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)] ==
-                            DEFAULT_EQUIPMENT_DROP_CHANCE) {
-                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)] = floatList.value[0];
-                    }
-                }
-                if (floatList.value.size() >= 2) {
-                    if (!readNewFormat ||
-                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)] ==
-                            DEFAULT_EQUIPMENT_DROP_CHANCE) {
-                        m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)] = floatList.value[1];
-                    }
-                }
-            }
-        }
-
-        // 旧格式：ArmorDropChances（f32 list，长度 4）
-        if (auto* armorList = nbt_helper::tryGetList(tag, nbt_keys::ARMOR_DROP_CHANCES)) {
-            if (armorList->element_id() == nbt::TagId::Float) {
-                auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*armorList);
-                constexpr std::array<EquipmentSlot, 4> armorSlots = {
-                    EquipmentSlot::Feet, EquipmentSlot::Legs, EquipmentSlot::Chest, EquipmentSlot::Head};
-                for (size_t i = 0; i < armorSlots.size() && i < floatList.value.size(); ++i) {
-                    if (!readNewFormat ||
-                        m_equipmentDropChances[static_cast<size_t>(armorSlots[i])] == DEFAULT_EQUIPMENT_DROP_CHANCE) {
-                        m_equipmentDropChances[static_cast<size_t>(armorSlots[i])] = floatList.value[i];
-                    }
-                }
+    // drop_chances（compound）：键为装备槽位名，缺省槽位保持默认掉落率。
+    if (auto* dropChancesCompound = nbt_helper::tryGetCompound(tag, nbt_keys::DROP_CHANCES)) {
+        // 装备槽位名称映射
+        static constexpr struct {
+            const char* name;
+            EquipmentSlot slot;
+        } slotNames[] = {
+            {"mainhand", EquipmentSlot::MainHand},
+            {"offhand", EquipmentSlot::OffHand},
+            {"feet", EquipmentSlot::Feet},
+            {"legs", EquipmentSlot::Legs},
+            {"chest", EquipmentSlot::Chest},
+            {"head", EquipmentSlot::Head},
+            {"body", EquipmentSlot::Body},
+            {"saddle", EquipmentSlot::Saddle},
+        };
+        for (const auto& entry : slotNames) {
+            if (auto chance = nbt_helper::tryGetFloat(*dropChancesCompound, entry.name)) {
+                m_equipmentDropChances[static_cast<size_t>(entry.slot)] = *chance;
             }
         }
     }

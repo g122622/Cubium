@@ -465,17 +465,11 @@ MapData MapData::fromNbt(const nbt::tags::compound_tag& tag, i32 mapId)
 {
     MapData data(mapId);
 
-    // 维度 - 兼容整数格式（旧版）和字符串格式（1.16+）
-    auto dimInt = nbt_helper::tryGetInt(tag, "dimension");
-    if (dimInt.has_value()) {
-        data.m_dimension = static_cast<MapDimensionId>(dimInt.value());
-    } else {
-        auto dimStr = nbt_helper::tryGetString(tag, "dimension");
-        if (dimStr.has_value()) {
-            data.m_dimension = dimensionIdFromString(dimStr.value());
-        }
-        // 如果既没有整数也没有字符串维度字段，保持默认值 Overworld
+    // 维度：维度名（如 "minecraft:overworld"）
+    if (auto dimStr = nbt_helper::tryGetString(tag, "dimension")) {
+        data.m_dimension = dimensionIdFromString(dimStr.value());
     }
+    // 字段缺失时保持默认值 Overworld
 
     data.m_xCenter = nbt_helper::tryGetInt(tag, "xCenter").value_or(0);
     data.m_zCenter = nbt_helper::tryGetInt(tag, "zCenter").value_or(0);

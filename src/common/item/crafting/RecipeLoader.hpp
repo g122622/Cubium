@@ -90,8 +90,8 @@ public:
      *
      * 遍历目录下所有.json文件并尝试解析为配方。
      * 配方ID从文件路径推导：
-     * - "data/minecraft/recipes/crafting_table.json" -> "minecraft:crafting_table"
-     * - "data/mod_id/recipes/subdir/item.json" -> "mod_id:subdir/item"
+     * - "minecraft/recipe/crafting_table.json" -> "minecraft:crafting_table"
+     * - "mod_id/recipe/subdir/item.json" -> "mod_id:subdir/item"
      */
     Result<LoadResult> loadFromDirectory(const std::string& directoryPath, ProgressCallback callback = nullptr);
 
@@ -166,8 +166,8 @@ private:
      * @brief 判断 DataPack 资源路径是否为配方资源
      *
      * DataPack 资源路径形如 "<namespace>/<type_dir>/<path>.json"。仅当第二段
-     * （类型目录）为 recipe（MC 1.21+ 单数）或 recipes（旧复数）时返回 true。
-     * 严格校验类型目录位置，避免 advancement/recipes/ 等路径中含 "recipes/"
+     * （类型目录）为 recipe（MC 1.21+ 单数）时返回 true。
+     * 严格校验类型目录位置，避免 advancement/recipe/ 等路径中含 "recipe/"
      * 子串的非配方资源（如进度文件）被误判。
      *
      * @param resourcePath DataPack 相对资源路径

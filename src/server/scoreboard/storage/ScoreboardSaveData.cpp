@@ -302,18 +302,11 @@ Result<ScoreboardSaveData::TeamData> ScoreboardSaveData::TeamData::fromNbt(const
 
     auto seeInvisIt = tag.value.find("SeeFriendlyInvisibles");
     if (seeInvisIt != tag.value.end()) {
-        // 尝试解析为字节
         auto* seeInvisByteTag = dynamic_cast<const nbt::tags::byte_tag*>(seeInvisIt->second.get());
         if (seeInvisByteTag) {
             data.seeFriendlyInvisibles = (seeInvisByteTag->value != 0);
         } else {
-            // 尝试解析为字符串（旧格式）
-            auto* seeInvisTag = dynamic_cast<const nbt::tags::string_tag*>(seeInvisIt->second.get());
-            if (seeInvisTag) {
-                data.seeFriendlyInvisibles = (seeInvisTag->value != "false");
-            } else {
-                data.seeFriendlyInvisibles = true;
-            }
+            data.seeFriendlyInvisibles = true;
         }
     } else {
         data.seeFriendlyInvisibles = true;

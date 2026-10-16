@@ -297,15 +297,11 @@ public:
      * @param json JSON数据
      * @return 解析的物品堆，或错误
      *
-     * 支持格式：
+     * 支持格式（对齐 MC 1.21.11 的 ItemStack.STRICT_CODEC）：
      * - 字符串形式: "minecraft:stone"
-     * - 对象形式: { "item": "minecraft:stone", "count": 1 }
-     * - 带 NBT 数据: { "item": "minecraft:stone_sword", "count": 1, "nbt": "{display:{Name:\"Custom Name\"}}" }
-     * - NBT JSON 对象: { "item": "minecraft:stone_sword", "nbt": {"display":{"Name":"Custom Name"}} }
-     *
-     * NBT 字段支持两种格式：
-     * 1. Mojangson 字符串格式："{display:{Name:\"{\\\"text\\\":\\\"Custom Name\\\"}\"}}"
-     * 2. JSON 对象格式：{"display":{"Name":{"text":"Custom Name"}}}
+     * - 对象形式: { "id": "minecraft:stone", "count": 1 }
+     * - 带数据组件: { "id": "minecraft:stone_sword", "count": 1,
+     *                 "components": { "minecraft:custom_name": {...} } }
      */
     static Result<ItemStack> parseResult(const nlohmann::json& json);
 

@@ -780,13 +780,10 @@ Result<void> AbstractNautilusEntity::readAdditionalSaveData(const nbt::tags::com
         m_dashCooldown = *val;
     }
 
-    // 物品栏内容
-    // 优先读取新格式 "Items" 列表（完整 ItemStack NBT），
-    // 兼容旧格式 "SaddleItem" 布尔标记（早期版本仅记录槽位占用状态）。
+    // 物品栏内容（"Items" 列表，完整 ItemStack NBT）
     if (m_inventory != nullptr) {
         const auto* itemsList = nbt_helper::tryGetList(tag, nbt_keys::ITEMS);
         if (itemsList != nullptr && itemsList->element_id() == nbt::TagId::Compound) {
-            // 新格式：从 "Items" 列表读取完整 ItemStack
             const auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*itemsList);
             for (const auto& itemTag : compoundList.value) {
                 i8 slot = 0;
@@ -799,11 +796,6 @@ Result<void> AbstractNautilusEntity::readAdditionalSaveData(const nbt::tags::com
                         setEquipment(slot, stackResult.value());
                     }
                 }
-            }
-        } else if (nbt_helper::tryGetBool(tag, "SaddleItem").value_or(false)) {
-            // 旧格式向后兼容：仅有布尔标记，恢复为默认鞍物品
-            if (Items::SADDLE != nullptr) {
-                setEquipment(0, ItemStack(Items::SADDLE, 1));
             }
         }
     }

@@ -38,8 +38,7 @@ namespace mc::entity::serialization::components {
  * | HealthComponent | Health | setHealth（clamp(0,maxHealth)，maxHealth 构造期就位）+ 置 m_healthSynced=true
  * 避免首帧覆盖 | | HurtStateComponent | Absorption + HurtTime + DeathTime | Absorption 走
  * setAbsorptionAmount（virtual，Player override 下发镜像）；HurtTime/DeathTime 无 setter 直写组件 | |
- * EquipmentComponent | Equipment | getEquipment/setEquipment（virtual，Player 派发到 PlayerInventory），含旧格式
- * HandItems/ArmorItems 回退 |
+ * EquipmentComponent | Equipment | getEquipment/setEquipment（virtual，Player 派发到 PlayerInventory） |
  *
  * dynamic_cast 早退：序列化器经 Entity& 调用，内部 dynamic_cast<LivingEntity*>。非 LivingEntity
  * 实体（ItemEntity/ItemFrame 等）返回 nullptr 早退，无副作用。LivingEntity 非 final、Entity 虚析构，

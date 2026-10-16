@@ -71,24 +71,6 @@ const list_tag* getList(const compound_tag& parent, const std::string& name)
     return dynamic_cast<const list_tag*>(it->second.get());
 }
 
-const bytearray_tag* getByteArray(const compound_tag& parent, const std::string& name)
-{
-    auto it = parent.value.find(name);
-    if (it == parent.value.end()) {
-        return nullptr;
-    }
-    return dynamic_cast<const bytearray_tag*>(it->second.get());
-}
-
-const intarray_tag* getIntArray(const compound_tag& parent, const std::string& name)
-{
-    auto it = parent.value.find(name);
-    if (it == parent.value.end()) {
-        return nullptr;
-    }
-    return dynamic_cast<const intarray_tag*>(it->second.get());
-}
-
 std::optional<BlockPos> readBlockEntityPos(const compound_tag& tag)
 {
     auto xIt = tag.value.find("x");
@@ -137,12 +119,6 @@ void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_t
     chunk.setHeightmapFromStorage(type, heights);
 }
 
-const compound_tag& unwrapColumnRoot(const compound_tag& root)
-{
-    const compound_tag* level = getCompound(root, "Level");
-    return level != nullptr ? *level : root;
-}
-
 // 可完整加载的列状态白名单。
 //
 // 1.21.11 的生成状态序列为 empty → structure_starts → structure_references → biomes → noise
@@ -154,11 +130,6 @@ const compound_tag& unwrapColumnRoot(const compound_tag& root)
 const std::set<std::string> COMPLETED_STATUSES = {
     "full",
     "minecraft:full",
-    // 早期版本（1.13-1.15）的终结状态名称
-    "postprocessed",
-    "minecraft:postprocessed",
-    "mobs_spawned",
-    "minecraft:mobs_spawned",
 };
 } // namespace
 
@@ -176,8 +147,8 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
         return Error(ErrorCode::ChunkCorrupted, "Failed to parse chunk NBT");
     }
 
-    // 先剥掉 Java 文件的根标签前缀层（根 id+name），再处理旧版的 Level 包装
-    const compound_tag& columnNbt = unwrapColumnRoot(unwrapRootCompound(*root));
+    // 剥掉 Java 文件的根标签前缀层（根 id+name）
+    const compound_tag& columnNbt = unwrapRootCompound(*root);
     if (columnNbt.value.count("xPos") == 0 || columnNbt.value.count("zPos") == 0) {
         return std::optional<ChunkData>{};
     }
@@ -202,7 +173,7 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
     const i32 dimMaxHeight = dimType.maxHeight();
 
     ChunkData chunk(x, z);
-    auto biomesResult = _readBiomes(columnNbt, chunk, dimMinHeight);
+    auto biomesResult = _readBiomes(columnNbt, chunk);
     if (biomesResult.failed()) {
         return biomesResult.error();
     }
@@ -277,12 +248,8 @@ Result<void> JavaColumnReader::_readSections(
     return {};
 }
 
-Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight)
+Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkData& chunk)
 {
-    // 生物群系采样参数：Java 版每 4x4x4 方块区域共享一个生物群系
-    constexpr i32 BIOME_SAMPLE_STRIDE = 4;
-    constexpr i32 BIOME_SAMPLE_OFFSET = 2;
-
     const list_tag* sections = getList(columnNbt, "sections");
     if (sections != nullptr) {
         BiomeContainer biomeContainer;
@@ -339,86 +306,7 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
         return {};
     }
 
-    const bytearray_tag* biomeBytes = getByteArray(columnNbt, "Biomes");
-    if (biomeBytes != nullptr) {
-        BiomeContainer biomeContainer;
-        for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
-            for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
-                const i32 srcZ = bz * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
-                const i32 srcX = bx * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
-                const i32 srcIdx = srcZ * world::CHUNK_WIDTH + srcX;
-                const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeBytes->value.size()))
-                    ? static_cast<u8>(biomeBytes->value[static_cast<size_t>(srcIdx)])
-                    : static_cast<i32>(Biomes::Ocean);
-                const BiomeId biome = m_chunkReader.mapBiomeId(javaBiomeId);
-                for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
-                    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
-                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
-                    }
-                }
-            }
-        }
-        chunk.setBiomes(std::move(biomeContainer));
-        return {};
-    }
-
-    const intarray_tag* biomeInts = getIntArray(columnNbt, "Biomes");
-    if (biomeInts == nullptr) {
-        return {};
-    }
-
-    const i32 baseSectionY = dimMinHeight / world::CHUNK_SECTION_HEIGHT;
-    BiomeContainer biomeContainer;
-    // 1024 = 4x4x4 生物群系采样 * 16 个区块段（旧版 3D 生物群系格式，仅覆盖下半部分）
-    constexpr i32 JAVA_BIOME_3D_ARRAY_SIZE = 1024;
-    if (biomeInts->value.size() == JAVA_BIOME_3D_ARRAY_SIZE) {
-        for (i32 sectionIndex = 0; sectionIndex < 16; ++sectionIndex) {
-            for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
-                for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
-                    for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
-                        const i32 globalY = (baseSectionY * world::CHUNK_SECTION_HEIGHT) +
-                            (sectionIndex * world::CHUNK_SECTION_HEIGHT) + by * BIOME_SAMPLE_STRIDE;
-                        const i32 srcIdx =
-                            (globalY / BIOME_SAMPLE_STRIDE) * world::CHUNK_WIDTH + bz * BIOME_SAMPLE_STRIDE + bx;
-                        const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
-                            ? biomeInts->value[static_cast<size_t>(srcIdx)]
-                            : -1;
-                        const BiomeId biome =
-                            (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
-                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
-                    }
-                }
-            }
-        }
-        chunk.setBiomes(std::move(biomeContainer));
-        return {};
-    }
-
-    // 256 = 16x16 2D 生物群系格式（旧版 Java）
-    constexpr i32 JAVA_BIOME_2D_ARRAY_SIZE = 256;
-    if (biomeInts->value.size() == JAVA_BIOME_2D_ARRAY_SIZE) {
-        for (i32 bz = 0; bz < BiomeContainer::HORIZ_SIZE; ++bz) {
-            for (i32 bx = 0; bx < BiomeContainer::HORIZ_SIZE; ++bx) {
-                const i32 srcZ = bz * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
-                const i32 srcX = bx * BIOME_SAMPLE_STRIDE + BIOME_SAMPLE_OFFSET;
-                const i32 srcIdx = srcZ * world::CHUNK_WIDTH + srcX;
-                const i32 javaBiomeId = (srcIdx < static_cast<i32>(biomeInts->value.size()))
-                    ? biomeInts->value[static_cast<size_t>(srcIdx)]
-                    : -1;
-                const BiomeId biome = (javaBiomeId >= 0) ? m_chunkReader.mapBiomeId(javaBiomeId) : Biomes::Ocean;
-                for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
-                    for (i32 by = 0; by < BiomeContainer::VERT_SIZE; ++by) {
-                        biomeContainer.setBiome(sectionIndex, bx, by, bz, biome);
-                    }
-                }
-            }
-        }
-        chunk.setBiomes(std::move(biomeContainer));
-        return {};
-    }
-
-    spdlog::warn("JavaColumnReader: Unsupported Biomes array size {}", biomeInts->value.size());
-    chunk.setBiomes(std::move(biomeContainer));
+    spdlog::warn("JavaColumnReader: no biome data in column");
     return {};
 }
 
@@ -448,28 +336,7 @@ void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData&
 
             applyHeightmapArray(chunk, type, dynamic_cast<const longarray_tag&>(*value), heightOffset);
         }
-        return;
     }
-
-    auto legacyHeightmap = getIntArray(columnNbt, "HeightMap");
-    if (legacyHeightmap == nullptr || legacyHeightmap->value.size() != world::CHUNK_WIDTH * world::CHUNK_WIDTH) {
-        return;
-    }
-
-    // 旧版 HeightMap i32 数组语义：每列最高方块 Y+1（绝对世界坐标），0 表示无方块。
-    // 直接整列写回 Heightmap，避免 updateHeightmap + nullptr state 的 no-op 问题。
-    // 0 转换为 NO_BLOCK_SENTINEL 以匹配内部存储语义。
-    std::array<BlockCoord, Heightmap::SIZE> heights{};
-    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
-        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
-            const i32 index = z * world::CHUNK_WIDTH + x;
-            const i32 legacy = legacyHeightmap->value[static_cast<size_t>(index)];
-            heights[static_cast<size_t>(index)] =
-                legacy != 0 ? static_cast<BlockCoord>(legacy) : Heightmap::NO_BLOCK_SENTINEL;
-        }
-    }
-    chunk.setHeightmapFromStorage(HeightmapType::WorldSurface, heights);
-    chunk.setHeightmapFromStorage(HeightmapType::WorldSurfaceWG, heights);
 }
 
 void JavaColumnReader::_readEntities(const compound_tag& columnNbt, ChunkData& chunk)

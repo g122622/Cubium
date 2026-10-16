@@ -448,63 +448,41 @@ void SpawnerLogic::loadFromNBT(const nbt::CompoundTag& tag)
 {
     using namespace mc::entity::serialization::nbt_helper;
 
-    // 读取生成参数（MC Java 使用 short 标签，兼容 i32）
+    // 读取生成参数（MC Java 使用 short 标签）
     if (auto val = tryGetShort(tag, "Delay")) {
         m_spawnDelay = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "Delay")) {
-        m_spawnDelay = *val;
     }
 
     if (auto val = tryGetShort(tag, "MinSpawnDelay")) {
         m_minSpawnDelay = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "MinSpawnDelay")) {
-        m_minSpawnDelay = *val;
     }
 
     if (auto val = tryGetShort(tag, "MaxSpawnDelay")) {
         m_maxSpawnDelay = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "MaxSpawnDelay")) {
-        m_maxSpawnDelay = *val;
     }
 
     if (auto val = tryGetShort(tag, "SpawnCount")) {
         m_spawnCount = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "SpawnCount")) {
-        m_spawnCount = *val;
     }
 
     if (auto val = tryGetShort(tag, "MaxNearbyEntities")) {
         m_maxNearbyEntities = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "MaxNearbyEntities")) {
-        m_maxNearbyEntities = *val;
     }
 
     if (auto val = tryGetShort(tag, "RequiredPlayerRange")) {
         m_requiredPlayerRange = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "RequiredPlayerRange")) {
-        m_requiredPlayerRange = *val;
     }
 
     if (auto val = tryGetShort(tag, "SpawnRange")) {
         m_spawnRange = static_cast<i32>(*val);
-    } else if (auto val = tryGetInt(tag, "SpawnRange")) {
-        m_spawnRange = *val;
     }
 
     // 读取 SpawnData（下一个要生成的实体）
     const auto* spawnDataTag = tryGetCompound(tag, "SpawnData");
     if (spawnDataTag != nullptr) {
-        // MC 1.21 格式：SpawnData.entity.id
-        const auto* entityTag = tryGetCompound(*spawnDataTag, "entity");
-        if (entityTag != nullptr) {
-            auto idStr = tryGetString(*entityTag, "id");
-            if (idStr.has_value()) {
-                m_nextEntityId = ResourceLocation(*idStr);
-            }
-        } else {
-            // 旧版格式：SpawnData.id 直接包含实体 ID
-            auto idStr = tryGetString(*spawnDataTag, "id");
-            if (idStr.has_value()) {
+        // SpawnData.entity.id
+        if (const auto* entityTag = tryGetCompound(*spawnDataTag, "entity")) {
+            if (auto idStr = tryGetString(*entityTag, "id")) {
                 m_nextEntityId = ResourceLocation(*idStr);
             }
         }

@@ -315,7 +315,6 @@ Result<void> TameableEntity::readAdditionalSaveData(const nbt::tags::compound_ta
     }
 
     // Owner (string) - 主人 UUID（vanilla key "Owner"）
-    // 兼容旧存档 key "OwnerUUID"（u64 十进制串）——直接弃旧，因 u64 playerId 非持久无法迁移到 UUID。
     if (auto val = nbt_helper::tryGetString(tag, nbt_keys::OWNER)) {
         m_ownerId = util::uuidFromString(*val);
     }

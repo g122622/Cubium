@@ -105,9 +105,9 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDataPackRepository(
     }
 
     // 过滤出配方资源。DataPack 资源路径形如 "<namespace>/<type_dir>/<path>.json"，
-    // 配方必须位于命名空间下的 recipe/（MC 1.21+ 单数）或 recipes/（旧复数）类型目录。
-    // 严格校验第二段为 recipe/recipes，避免误判 advancement/recipes/ 等路径中
-    // 恰好含 "recipes/" 子串的非配方资源（如进度文件）。
+    // 配方必须位于命名空间下的 recipe/ 类型目录（MC 1.21+ 单数）。
+    // 严格校验第二段为 recipe，避免误判 advancement/recipe/ 等路径中
+    // 恰好含 "recipe/" 子串的非配方资源（如进度文件）。
     std::vector<std::string> recipeResources;
     for (const auto& path : listResult.value()) {
         if (!_isRecipeResourcePath(path)) {
@@ -351,27 +351,26 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadVanillaRecipes()
 ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
 {
     // 将文件路径转换为配方ID
-    // 例如: "data/minecraft/recipes/crafting_table.json" -> "minecraft:crafting_table"
+    // 例如: "minecraft/recipe/crafting_table.json" -> "minecraft:crafting_table"
 
     fs::path path(filePath);
     std::string filename = path.stem().string();
 
-    // 尝试从路径中提取命名空间
-    // 假设路径格式为 .../data/<namespace>/recipes/<path>.json
+    // 从路径中提取命名空间
+    // 路径格式为 <namespace>/recipe/<path>.json
     std::string namespace_ = "minecraft"; // 默认命名空间
     std::string recipePath = filename;
 
-    // 查找 "recipes" 或 "recipe" 目录（MC 1.21+ 使用单数形式 recipe/）
     fs::path current = path.parent_path();
-    while (!current.empty() && current.filename() != "recipes" && current.filename() != "recipe") {
+    while (!current.empty() && current.filename() != "recipe") {
         current = current.parent_path();
     }
 
     if (!current.empty()) {
-        // 找到recipes/recipe目录，记录实际目录名
-        fs::path recipesDirName = current.filename(); // "recipes" 或 "recipe"
+        // 找到 recipe 目录
+        fs::path recipesDirName = current.filename(); // "recipe"
         current = current.parent_path();              // 上一级
-        if (!current.empty() && current.filename() != "data") {
+        if (!current.empty()) {
             namespace_ = current.filename().string();
         }
 
@@ -391,10 +390,8 @@ ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
 
 bool RecipeLoader::_isRecipeResourcePath(const std::string& resourcePath)
 {
-    // DataPack 资源路径形如 "<namespace>/<type_dir>/<path>.json"。
-    // 配方要求第二段为 recipe（1.21+ 单数）或 recipes（旧复数）。
-    // 用 '/' 分割路径，校验至少 2 段且第 2 段为 recipe/recipes。
-    // 同时兼容旧格式 data/<namespace>/recipes/...（第 3 段为 recipes）。
+    // DataPack 资源路径形如 "<namespace>/recipe/<path>.json"（1.21+ 单数目录名）。
+    // 用 '/' 分割路径，校验至少 2 段且第 2 段为 recipe。
     size_t firstSlash = resourcePath.find('/');
     if (firstSlash == std::string::npos) {
         return false;
@@ -411,28 +408,7 @@ bool RecipeLoader::_isRecipeResourcePath(const std::string& resourcePath)
         (secondSlash == std::string::npos) ? (resourcePath.size() - secondStart) : (secondSlash - secondStart);
     std::string_view secondDir(resourcePath.data() + secondStart, secondLen);
 
-    if (secondDir == "recipe" || secondDir == "recipes") {
-        return true;
-    }
-
-    // 兼容旧格式 data/<namespace>/recipes/...：第一段为 data，第 3 段为 recipe/recipes
-    if (secondDir == "data" && secondSlash != std::string::npos) {
-        size_t thirdStart = secondSlash + 1;
-        size_t thirdSlash = resourcePath.find('/', thirdStart);
-        // data/<namespace> 之间不能再有更多段，namespace 后紧跟 recipe/recipes
-        if (thirdSlash != std::string::npos) {
-            size_t fourthStart = thirdSlash + 1;
-            size_t fourthSlash = resourcePath.find('/', fourthStart);
-            size_t fourthLen =
-                (fourthSlash == std::string::npos) ? (resourcePath.size() - fourthStart) : (fourthSlash - fourthStart);
-            std::string_view fourthDir(resourcePath.data() + fourthStart, fourthLen);
-            if (fourthDir == "recipe" || fourthDir == "recipes") {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return secondDir == "recipe";
 }
 
 } // namespace mc

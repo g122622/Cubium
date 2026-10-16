@@ -195,7 +195,7 @@ Result<std::vector<std::string>> FolderResourcePack::listResources(
     }
 
     // 类型目录前缀，如 "assets/" 或 "data/"
-    // 返回的路径应相对于类型目录根（如 "minecraft/loot_tables/blocks/stone.json"），
+    // 返回的路径应相对于类型目录根（如 "minecraft/loot_table/blocks/stone.json"），
     // 与 ZipResourcePack 保持一致
     std::string typePrefix = std::string(resource::packTypeDirectoryName(type)) + "/";
 

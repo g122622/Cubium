@@ -279,54 +279,6 @@ TEST_F(PlayerInventoryNbtTest, FromNbtNewFormat)
     EXPECT_TRUE(inventory.getOffhandItem().isEmpty());
 }
 
-TEST_F(PlayerInventoryNbtTest, FromNbtOldFormat)
-{
-    // 构建旧格式 NBT（没有 equipment 字段，护甲用 Slot 100-103，副手用 -106）
-    nbt::tags::compound_tag tag;
-
-    auto invList = std::make_unique<nbt::tags::compound_list_tag>();
-    {
-        // 快捷栏物品 Slot 0
-        nbt::tags::compound_tag itemTag;
-        itemTag.put("Slot", static_cast<i8>(0));
-        makeStoneStack(5).toNbt(itemTag);
-        invList->value.push_back(std::move(itemTag));
-    }
-    {
-        // 头盔 Slot 103（旧格式）
-        nbt::tags::compound_tag itemTag;
-        itemTag.put("Slot", static_cast<i8>(103));
-        makeDirtStack(1).toNbt(itemTag);
-        invList->value.push_back(std::move(itemTag));
-    }
-    {
-        // 副手 Slot -106（旧格式）
-        nbt::tags::compound_tag itemTag;
-        itemTag.put("Slot", static_cast<i8>(-106));
-        makeStoneStack(3).toNbt(itemTag);
-        invList->value.push_back(std::move(itemTag));
-    }
-    tag.value.emplace(nbt_keys::INVENTORY, std::move(invList));
-
-    // 不设置 equipment 字段，模拟旧版存档
-
-    auto result = PlayerInventory::fromNbt(tag);
-    ASSERT_TRUE(result.success());
-
-    PlayerInventory& inventory = result.value();
-
-    // 验证快捷栏物品
-    EXPECT_FALSE(inventory.getItem(0).isEmpty());
-
-    // 验证旧格式护甲正确读取
-    EXPECT_FALSE(inventory.getHelmet().isEmpty());
-    EXPECT_EQ(inventory.getHelmet().getCount(), 1);
-
-    // 验证旧格式副手正确读取
-    EXPECT_FALSE(inventory.getOffhandItem().isEmpty());
-    EXPECT_EQ(inventory.getOffhandItem().getCount(), 3);
-}
-
 TEST_F(PlayerInventoryNbtTest, FromNbtEmptyTag)
 {
     nbt::tags::compound_tag tag;

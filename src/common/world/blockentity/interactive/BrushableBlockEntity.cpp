@@ -250,7 +250,7 @@ void BrushableBlockEntity::unpackLootTable(IWorld& world, LivingEntity& entity, 
     // 工具参数
     builder.withParameter(loot::LootParams::TOOL, &tool);
 
-    // 方块实体参数（this 指针，供 CopyNbtFunction 等使用）
+    // 方块实体参数（this 指针，供 CopyCustomDataFunction 等使用）
     BlockEntity* blockEntityPtr = this;
     builder.withNullableParameter(loot::LootParams::BLOCK_ENTITY, blockEntityPtr);
 

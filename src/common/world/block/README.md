@@ -353,7 +353,7 @@ if (!state.isAir() && state.isSolid()) {
 
 ### 20. 炼药锅无方块实体
 
-`CauldronBlock` 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直接修改方块状态，不需要方块实体。
+`CauldronBlock`（空炼药锅）无水位属性；分层水位由 `LayeredCauldronBlock` 的 `LEVEL_1_3`（1-3）承载，交互操作直接修改方块状态，不需要方块实体。
 
 ### 21. 含水方块实现步骤
 

@@ -595,8 +595,8 @@
     - `dropPreservedEquipment(predicate)` 遍历装备槽位，根据谓词和保留状态处理装备（用于实体转化场景）
     - `dropPreservedEquipment()` 无谓词版本，所有装备都参与掉落/保留判断
     - NBT 序列化格式：
-        - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
-        - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
+        - 保存 `drop_chances`（compound，仅包含非默认值）
+        - 读取 `drop_chances`，缺省槽位保持默认掉落率
     - `EquipmentSlot::Saddle` 用于铜傀儡天线槽（对应 MC 1.21.11 `CopperGolem.EQUIPMENT_SLOT_ANTENNA`），
       由铁傀儡 `OfferFlowerGoal` 装备罂粟花
 

@@ -151,7 +151,7 @@ inventory/
 - **equipment 复合标签**：由 `LivingEntity::addAdditionalSaveData()` 写入，使用 `EquipmentSlot` 枚举名作为键（`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, `"mainhand"`），空槽位省略
 - **SelectedItemSlot**：当前选中的快捷栏槽位
 
-`fromNbt()` 同时支持旧格式兼容读取：当 `equipment` 标签不存在时，从 Inventory 列表中读取护甲（Slot 100-103）和副手（Slot -106）。
+`fromNbt()` 读取 `equipment` 复合标签填充护甲与副手槽位，Inventory 列表仅填充 Slot 0-35。
 
 ### 末影箱物品栏变更通知
 

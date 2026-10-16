@@ -25,26 +25,26 @@
 #include "common/core/Types.hpp"
 #include "common/item/loot/entries/LootEntry.hpp"
 #include "common/item/loot/functions/ApplyBonusFunction.hpp"
-#include "common/item/loot/functions/CopyBlockStateFunction.hpp"
+#include "common/item/loot/functions/CopyCustomDataFunction.hpp"
 #include "common/item/loot/functions/CopyNameFunction.hpp"
-#include "common/item/loot/functions/CopyNbtFunction.hpp"
+#include "common/item/loot/functions/CopyStateFunction.hpp"
 #include "common/item/loot/functions/EnchantRandomlyFunction.hpp"
 #include "common/item/loot/functions/EnchantWithLevelsFunction.hpp"
+#include "common/item/loot/functions/EnchantedCountIncreaseFunction.hpp"
 #include "common/item/loot/functions/ExplorationMapFunction.hpp"
 #include "common/item/loot/functions/ExplosionDecayFunction.hpp"
 #include "common/item/loot/functions/FillPlayerHeadFunction.hpp"
 #include "common/item/loot/functions/FurnaceSmeltFunction.hpp"
 #include "common/item/loot/functions/LimitCountFunction.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
-#include "common/item/loot/functions/LootingEnchantBonusFunction.hpp"
 #include "common/item/loot/functions/SetAttributesFunction.hpp"
 #include "common/item/loot/functions/SetContentsFunction.hpp"
 #include "common/item/loot/functions/SetCountFunction.hpp"
+#include "common/item/loot/functions/SetCustomDataFunction.hpp"
 #include "common/item/loot/functions/SetDamageFunction.hpp"
 #include "common/item/loot/functions/SetLootTableFunction.hpp"
 #include "common/item/loot/functions/SetLoreFunction.hpp"
 #include "common/item/loot/functions/SetNameFunction.hpp"
-#include "common/item/loot/functions/SetNbtFunction.hpp"
 #include "common/item/loot/functions/SetStewEffectFunction.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
@@ -71,9 +71,9 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::applyBonus(
     return std::make_unique<ApplyBonusFunction>(bonusType, bonusMultiplier, extra, probability);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::lootingEnchantBonus(const RandomValueRange& count, i32 limit)
+std::unique_ptr<LootFunction> LootFunctionBuilder::enchantedCountIncrease(const RandomValueRange& count, i32 limit)
 {
-    return std::make_unique<LootingEnchantBonusFunction>(count, limit);
+    return std::make_unique<EnchantedCountIncreaseFunction>(count, limit);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::setDamage(const RandomValueRange& durability, bool add)
@@ -117,9 +117,9 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay()
     return std::make_unique<ExplosionDecayFunction>();
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::setNbt(const std::string& nbtString)
+std::unique_ptr<LootFunction> LootFunctionBuilder::setCustomData(const std::string& nbtString)
 {
-    return std::make_unique<SetNbtFunction>(nbtString);
+    return std::make_unique<SetCustomDataFunction>(nbtString);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::Source source)
@@ -127,14 +127,14 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::So
     return std::make_unique<CopyNameFunction>(source);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::copyBlockState(const std::string& blockId)
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyState(const std::string& blockId)
 {
-    return std::make_unique<CopyBlockStateFunction>(blockId);
+    return std::make_unique<CopyStateFunction>(blockId);
 }
 
-std::unique_ptr<LootFunction> LootFunctionBuilder::copyNbt(CopyNbtFunction::Source source)
+std::unique_ptr<LootFunction> LootFunctionBuilder::copyCustomData(CopyCustomDataFunction::Source source)
 {
-    return std::make_unique<CopyNbtFunction>(source);
+    return std::make_unique<CopyCustomDataFunction>(source);
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::fillPlayerHead()

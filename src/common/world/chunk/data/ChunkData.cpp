@@ -529,7 +529,7 @@ std::vector<u8> ChunkData::serialize() const
 
     // 高度图（WorldSurface 槽位，磁盘格式：按 x*W+z 顺序，每列内部存储值 Y+1，i16 大端）
     // 无方块列写 INT16_MIN（哨兵），有方块列写 Y+1（= 最高方块 Y + 1）。
-    // 使用 i16 直接持久化内部语义可无损保留 Y=0 方块与负 Y 方块（旧格式存 Y 而非 Y+1，
+    // 使用 i16 直接持久化内部语义可无损保留 Y=0 方块与负 Y 方块（若改存 Y 而非 Y+1，
     // 在 Y<0 时会发生符号扩展错误，且 Y=0 与无方块歧义）。INT16_MIN 选作哨兵因 Y+1 合法范围
     // 为 [MIN_BUILD_HEIGHT+1, MAX_BUILD_HEIGHT] = [-63, 320]，远离 -32768。
     const Heightmap& worldSurface = m_heightmaps[static_cast<size_t>(HeightmapType::WorldSurface)];

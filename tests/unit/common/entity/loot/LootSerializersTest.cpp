@@ -512,13 +512,13 @@ TEST_F(LootSerializersTest, ParseFunction_SetCount)
 TEST_F(LootSerializersTest, ParseFunction_LootingEnchant)
 {
     nlohmann::json json = {
-        {"function", "minecraft:looting_enchant"}, {"count", {{"min", 0}, {"max", 1}}}, {"limit", 3}};
+        {"function", "minecraft:enchanted_count_increase"}, {"count", {{"min", 0}, {"max", 1}}}, {"limit", 3}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
     auto function = result.value();
-    EXPECT_EQ("looting_enchant", function->getType());
+    EXPECT_EQ("enchanted_count_increase", function->getType());
 }
 
 TEST_F(LootSerializersTest, ParseFunction_SetDamage)
@@ -574,14 +574,14 @@ TEST_F(LootSerializersTest, ParseFunction_UnknownType)
 
 TEST_F(LootSerializersTest, ParseFunction_CopyNbtSupported)
 {
-    nlohmann::json json = {{"function", "minecraft:copy_nbt"}, {"source", "block_entity"}};
+    nlohmann::json json = {{"function", "minecraft:copy_custom_data"}, {"source", "block_entity"}};
 
     auto result = LootSerializers::parseFunction(json);
-    // 源码 LootSerializers 已实现 minecraft:copy_nbt 函数解析（_parseCopyNbtFunction），
+    // 源码 LootSerializers 已实现 minecraft:copy_custom_data 函数解析（_parseCopyCustomDataFunction），
     // ops 数组可选；此前测试期望 Unsupported，是源码实现前的过时期望。
     // 仅断言解析成功与类型标识，避免对实现细节（getSource）过度耦合。
     ASSERT_TRUE(result.success());
-    EXPECT_EQ(result.value()->getType(), "copy_nbt");
+    EXPECT_EQ(result.value()->getType(), "copy_custom_data");
 }
 
 TEST_F(LootSerializersTest, ParseFunction_ExplorationMap)

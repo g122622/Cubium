@@ -70,11 +70,7 @@ constexpr const char* FALL_FLYING = "FallFlying";
 constexpr const char* ACTIVE_EFFECTS = "ActiveEffects";
 constexpr const char* ATTRIBUTES = "Attributes";
 
-constexpr const char* HAND_ITEMS = "HandItems";
-constexpr const char* ARMOR_ITEMS = "ArmorItems";
 constexpr const char* EQUIPMENT = "equipment";
-constexpr const char* HAND_DROP_CHANCES = "HandDropChances";
-constexpr const char* ARMOR_DROP_CHANCES = "ArmorDropChances";
 constexpr const char* DROP_CHANCES = "drop_chances";
 
 constexpr const char* SLEEPING_X = "SleepingX";
@@ -149,7 +145,6 @@ constexpr const char* HORSE_OWNER_UUID_LEAST = "OwnerUUIDLeast";
 // ========== TameableEntity 键 ==========
 
 constexpr const char* SITTING = "Sitting";
-constexpr const char* OWNER_UUID = "OwnerUUID";
 constexpr const char* ANGER_TIME = "AngerTime";
 
 // ========== OcelotEntity 键 ==========
@@ -334,12 +329,6 @@ constexpr const char* DESPAWN_DELAY = "DespawnDelay";
 constexpr const char* ITEMS = "Items";          ///< 容器物品列表（用于 ChestBoatEntity、ChestMinecartEntity 等）
 constexpr const char* LOOT_TABLE = "LootTable"; ///< 战利品表ID（用于延迟填充容器）
 constexpr const char* LOOT_TABLE_SEED = "LootTableSeed"; ///< 战利品表种子
-
-// ========== ItemStack 子键 ==========
-
-constexpr const char* ITEM_ID = "id";
-constexpr const char* ITEM_COUNT = "Count";
-constexpr const char* ITEM_TAG = "tag";
 
 // ========== GlowSquidEntity 键 ==========
 

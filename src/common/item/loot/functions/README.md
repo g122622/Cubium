@@ -13,7 +13,7 @@ functions/
 ├── SetDamageFunction.hpp/cpp         # minecraft:set_damage（设置耐久度）
 ├── SetNameFunction.hpp/cpp           # minecraft:set_name（设置名称）
 ├── SetLoreFunction.hpp/cpp           # minecraft:set_lore（设置描述）
-├── SetNbtFunction.hpp/cpp            # minecraft:set_nbt（设置NBT）
+├── SetCustomDataFunction.hpp/cpp            # minecraft:set_custom_data（设置NBT）
 ├── SetAttributesFunction.hpp/cpp     # minecraft:set_attributes（设置属性修饰符）
 ├── SetContentsFunction.hpp/cpp       # minecraft:set_contents（设置容器内容物）
 ├── SetLootTableFunction.hpp/cpp      # minecraft:set_loot_table（设置内嵌战利品表）
@@ -21,12 +21,12 @@ functions/
 ├── EnchantRandomlyFunction.hpp/cpp   # minecraft:enchant_randomly（随机附魔）
 ├── EnchantWithLevelsFunction.hpp/cpp # minecraft:enchant_with_levels（按等级附魔）
 ├── ApplyBonusFunction.hpp/cpp        # minecraft:apply_bonus（附魔加成）
-├── LootingEnchantBonusFunction.hpp/cpp # minecraft:looting_enchant（抢夺附魔加成）
+├── EnchantedCountIncreaseFunction.hpp/cpp # minecraft:enchanted_count_increase（抢夺附魔加成）
 ├── ExplosionDecayFunction.hpp/cpp    # minecraft:explosion_decay（爆炸衰减）
 ├── FurnaceSmeltFunction.hpp/cpp      # minecraft:furnace_smelt（熔炉熔炼）
 ├── CopyNameFunction.hpp/cpp          # minecraft:copy_name（复制名称）
-├── CopyNbtFunction.hpp/cpp           # minecraft:copy_nbt（复制NBT）
-├── CopyBlockStateFunction.hpp/cpp    # minecraft:copy_state（复制方块状态）
+├── CopyCustomDataFunction.hpp/cpp           # minecraft:copy_custom_data（复制NBT）
+├── CopyStateFunction.hpp/cpp    # minecraft:copy_state（复制方块状态）
 ├── ExplorationMapFunction.hpp/cpp    # minecraft:exploration_map（探险地图）
 ├── FillPlayerHeadFunction.hpp/cpp    # minecraft:fill_player_head（填充玩家头颅）
 └── LimitCountFunction.hpp/cpp        # minecraft:limit_count（限制数量范围）

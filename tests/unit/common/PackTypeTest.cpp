@@ -18,8 +18,8 @@ TEST(PackTypeTest, ResourceLocationBuildsTypedPaths)
     EXPECT_EQ(
         location.toFilePath(resource::PackType::ClientResources, "png"), "assets/minecraft/textures/block/stone.png");
 
-    const ResourceLocation dataLocation("minecraft:loot_tables/blocks/stone");
-    EXPECT_EQ(dataLocation.toFilePath(resource::PackType::ServerData), "data/minecraft/loot_tables/blocks/stone");
-    EXPECT_EQ(dataLocation.toFilePath(resource::PackType::ServerData, "json"),
-        "data/minecraft/loot_tables/blocks/stone.json");
+    const ResourceLocation dataLocation("minecraft:loot_table/blocks/stone");
+    EXPECT_EQ(dataLocation.toFilePath(resource::PackType::ServerData), "data/minecraft/loot_table/blocks/stone");
+    EXPECT_EQ(
+        dataLocation.toFilePath(resource::PackType::ServerData, "json"), "data/minecraft/loot_table/blocks/stone.json");
 }

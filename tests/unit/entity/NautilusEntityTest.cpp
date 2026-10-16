@@ -315,33 +315,6 @@ TEST_F(NautilusNbtTest, SlotIndex_PreservedInNbt)
     EXPECT_TRUE(foundSlot1) << "Slot 1 (armor) should be in NBT";
 }
 
-TEST_F(NautilusNbtTest, OldSaddleItemBoolFormat_BackwardCompatible)
-{
-    // 模拟旧格式：仅有 SaddleItem 布尔标记（底层为 byte=1），无 Items 列表
-    nbt::tags::compound_tag tag;
-    tag.put("SaddleItem", static_cast<i8>(1));
-
-    ASSERT_NE(Items::SADDLE, nullptr);
-    auto loaded = loadFromNbt(tag);
-
-    // 旧格式应恢复为默认鞍物品
-    EXPECT_TRUE(loaded->isSaddled());
-    EXPECT_FALSE(loaded->getEquipment(0).isEmpty());
-    EXPECT_EQ(loaded->getEquipment(0).getItem(), Items::SADDLE);
-}
-
-TEST_F(NautilusNbtTest, OldSaddleItemFalse_BackwardCompatible)
-{
-    // 模拟旧格式：SaddleItem = 0（false）
-    nbt::tags::compound_tag tag;
-    tag.put("SaddleItem", static_cast<i8>(0));
-
-    auto loaded = loadFromNbt(tag);
-
-    EXPECT_FALSE(loaded->isSaddled());
-    EXPECT_TRUE(loaded->getEquipment(0).isEmpty());
-}
-
 // ============================================================================
 // spawnBubbles() 气泡粒子生成测试
 // ============================================================================

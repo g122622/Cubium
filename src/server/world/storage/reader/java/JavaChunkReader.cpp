@@ -145,26 +145,18 @@ Result<void> JavaChunkReader::readSection(const compound_tag& sectionNbt, ChunkD
 Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
 {
     // 检查是否有方块状态数据
-    if (sectionNbt.value.count("block_states") == 0 && sectionNbt.value.count("Palette") == 0) {
+    if (sectionNbt.value.count("block_states") == 0) {
         // 空section
         return {};
     }
 
     std::vector<u32> paletteIds;
-    const compound_tag* blockStatesNbt = nullptr;
-
-    // 1.18+ 格式：block_states compound
-    if (sectionNbt.value.count("block_states") != 0) {
-        blockStatesNbt = getCompound(sectionNbt, "block_states");
-    }
+    const compound_tag* blockStatesNbt = getCompound(sectionNbt, "block_states");
 
     // 读取调色板
     const list_tag* paletteNbt = nullptr;
-    if (blockStatesNbt && blockStatesNbt->value.count("palette") != 0) {
+    if (blockStatesNbt != nullptr && blockStatesNbt->value.count("palette") != 0) {
         paletteNbt = getList(*blockStatesNbt, "palette");
-    } else if (sectionNbt.value.count("Palette") != 0) {
-        // 1.16.5 格式
-        paletteNbt = getList(sectionNbt, "Palette");
     }
 
     if (!paletteNbt) {
@@ -210,21 +202,14 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
     // 读取方块数据（long array）
     std::vector<u32> blockIndices;
 
-    if (blockStatesNbt && blockStatesNbt->value.count("data") != 0) {
-        // 1.18+ 格式
+    if (blockStatesNbt != nullptr && blockStatesNbt->value.count("data") != 0) {
         auto& dataArray = blockStatesNbt->get<longarray_tag>("data");
         i32 bitsPerEntry =
             std::max(4, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(paletteIds.size()), 2)))));
-        // Java 1.16（20w17a）起位压缩改为 padded 格式（每个 long 独立、尾部高位弃用），
+        // Java 1.16（20w17a）起位压缩为 padded 格式（每个 long 独立、尾部高位弃用），
         // 1.18+ 的 block_states/data 同样是 padded。此处若按 compact 解包，bitsPerEntry 为 4
         // 时两种格式恰好重合，看似正常；一旦调色板超过 16 项（bits ≥ 5）就会整体错位，
         // 解出大量错误方块。
-        blockIndices = unpackLongArray(dataArray, bitsPerEntry, ChunkSection::VOLUME, true);
-    } else if (sectionNbt.value.count("BlockStates") != 0) {
-        // 1.16.5 格式
-        auto& dataArray = sectionNbt.get<longarray_tag>("BlockStates");
-        i32 bitsPerEntry =
-            std::max(4, static_cast<i32>(std::ceil(std::log2(std::max(static_cast<i32>(paletteIds.size()), 2)))));
         blockIndices = unpackLongArray(dataArray, bitsPerEntry, ChunkSection::VOLUME, true);
     }
 

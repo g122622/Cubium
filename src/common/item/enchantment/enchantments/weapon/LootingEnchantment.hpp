@@ -37,7 +37,7 @@ namespace enchant {
  * 增加怪物掉落物的数量和稀有度。
  *
  * 效果:
- * - 抢夺效果由战利品表的 LootingEnchantBonusFunction 处理
+ * - 抢夺效果由战利品表的 EnchantedCountIncreaseFunction 处理
  * - 本类只提供附魔定义和基础属性
  *
  * 适用物品:
@@ -45,7 +45,7 @@ namespace enchant {
  *
  * 最大 III 级
  *
- * 注意: 实际的抢夺计算使用 loot::LootingEnchantBonusFunction 类。
+ * 注意: 实际的抢夺计算使用 loot::EnchantedCountIncreaseFunction 类。
  */
 class LootingEnchantment : public Enchantment {
 public:

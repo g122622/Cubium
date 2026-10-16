@@ -24,25 +24,25 @@
 #pragma once
 
 #include "ApplyBonusFunction.hpp"
-#include "CopyBlockStateFunction.hpp"
-#include "CopyNbtFunction.hpp"
+#include "CopyCustomDataFunction.hpp"
+#include "CopyStateFunction.hpp"
 #include "EnchantRandomlyFunction.hpp"
 #include "EnchantWithLevelsFunction.hpp"
+#include "EnchantedCountIncreaseFunction.hpp"
 #include "ExplorationMapFunction.hpp"
 #include "ExplosionDecayFunction.hpp"
 #include "FillPlayerHeadFunction.hpp"
 #include "FurnaceSmeltFunction.hpp"
 #include "LimitCountFunction.hpp"
 #include "LootFunction.hpp"
-#include "LootingEnchantBonusFunction.hpp"
 #include "SetAttributesFunction.hpp"
 #include "SetContentsFunction.hpp"
 #include "SetCountFunction.hpp"
+#include "SetCustomDataFunction.hpp"
 #include "SetDamageFunction.hpp"
 #include "SetLootTableFunction.hpp"
 #include "SetLoreFunction.hpp"
 #include "SetNameFunction.hpp"
-#include "SetNbtFunction.hpp"
 #include "SetStewEffectFunction.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/loot/functions/CopyNameFunction.hpp"
@@ -89,9 +89,9 @@ public:
         f32 probability = 1.0f);
 
     /**
-     * @brief Create a looting enchant bonus function
+     * @brief Create an enchanted count increase function
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> lootingEnchantBonus(
+    [[nodiscard]] static std::unique_ptr<LootFunction> enchantedCountIncrease(
         const RandomValueRange& count = RandomValueRange(0.0f, 1.0f), i32 limit = 0);
 
     /**
@@ -138,9 +138,9 @@ public:
     [[nodiscard]] static std::unique_ptr<LootFunction> explosionDecay();
 
     /**
-     * @brief Create a set NBT function
+     * @brief Create a set custom data function
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> setNbt(const std::string& nbtString);
+    [[nodiscard]] static std::unique_ptr<LootFunction> setCustomData(const std::string& nbtString);
 
     /**
      * @brief Create a copy name function
@@ -148,16 +148,16 @@ public:
     [[nodiscard]] static std::unique_ptr<LootFunction> copyName(CopyNameFunction::Source source);
 
     /**
-     * @brief Create a copy block state function
+     * @brief Create a copy state function
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> copyBlockState(const std::string& blockId);
+    [[nodiscard]] static std::unique_ptr<LootFunction> copyState(const std::string& blockId);
 
     /**
-     * @brief Create a copy NBT function
+     * @brief Create a copy custom data function
      * @param source Data source
      * @return Created loot function
      */
-    [[nodiscard]] static std::unique_ptr<LootFunction> copyNbt(CopyNbtFunction::Source source);
+    [[nodiscard]] static std::unique_ptr<LootFunction> copyCustomData(CopyCustomDataFunction::Source source);
 
     /**
      * @brief Create a fill player head function

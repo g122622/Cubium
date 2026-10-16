@@ -1075,7 +1075,7 @@ public:
      *
      * 注：vanilla 还调 EnchantmentHelper.processEquipmentDropChance 应用掠夺附魔
      * （通过 equipment_drops effect component）对掉落概率的加成。Cubium 掠夺附魔体系是
-     * 1.20 风格的 LootingEnchantBonusFunction（loot function），未实现 1.21 的
+     * 1.20 风格的 EnchantedCountIncreaseFunction（loot function），未实现 1.21 的
      * effect component 子系统，故此处暂不应用掠夺加成（TODO，待 effect component 体系就绪接入）。
      *
      * @param cause 死亡伤害来源（vanilla 用 cause.getEntity() 取击杀者 LivingEntity）

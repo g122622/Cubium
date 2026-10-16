@@ -58,12 +58,10 @@ Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDataPackReposit
         return listResult.error();
     }
 
-    // 筛选成就资源路径：data/<namespace>/advancement/<path>.json 或 data/<namespace>/advancements/<path>.json
-    // MC 1.21+ 使用单数形式 "advancement"，MC 1.16.5 使用复数形式 "advancements"，两种格式都需要支持
+    // 筛选成就资源路径：<namespace>/advancement/<path>.json（MC 1.21+ 单数目录名）
     std::vector<std::string> advancementResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/advancement/") == std::string::npos && path.find("advancement/") == std::string::npos &&
-            path.find("/advancements/") == std::string::npos && path.find("advancements/") == std::string::npos) {
+        if (path.find("/advancement/") == std::string::npos && path.find("advancement/") == std::string::npos) {
             continue;
         }
         advancementResources.push_back(path);
@@ -218,9 +216,7 @@ Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, cons
 
 ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& filePath) const
 {
-    // 路径格式支持两种：
-    // 1. 旧格式（含 data/ 前缀）："data/minecraft/advancements/story/mine_stone.json"
-    // 2. 新格式（相对于 data/ 根）："minecraft/advancements/story/mine_stone.json"
+    // 路径格式：<namespace>/advancement/<path>.json（路径可带任意前缀，如临时目录前缀）
     // ID格式: "minecraft:story/mine_stone"
 
     std::filesystem::path path(filePath);
@@ -230,44 +226,18 @@ ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& fileP
 
     auto it = path.begin();
     bool foundAdvancements = false;
-    bool foundDataPrefix = false;
 
-    // 第一步：提取命名空间
-    // 扫描查找 "data" 段（支持路径带任意前缀，如临时目录前缀）：
-    //   "<prefix>/data/minecraft/advancements/story/mine_stone.json" → namespace=minecraft
-    //   "data/minecraft/advancements/story/mine_stone.json"           → namespace=minecraft
-    // 若路径中无 "data" 段（DataPackRepository::listResources 返回相对 data/ 根的路径），
-    // 则首段直接作为命名空间：
-    //   "minecraft/advancements/story/mine_stone.json"                 → namespace=minecraft
-    for (auto scan = path.begin(); scan != path.end(); ++scan) {
-        if (scan->string() == "data") {
-            foundDataPrefix = true;
-            it = scan;
-            ++it; // 跳过 "data"
-            if (it != path.end()) {
-                namespaceName = it->string();
-                ++it; // 跳过命名空间段
-            }
-            break;
-        }
-    }
-    if (!foundDataPrefix) {
-        // 无 "data" 前缀：首段即命名空间
-        it = path.begin();
-        if (it != path.end()) {
-            namespaceName = it->string();
-            ++it;
-        }
-    }
-
-    // 第二步：查找 "advancements" 或 "advancement" 目录（MC 1.21+ 使用单数，MC 1.16.5 使用复数）
+    // 定位 "advancement" 目录段，其前一段即命名空间
+    std::string previousSegment;
     for (; it != path.end(); ++it) {
         const std::string segment = it->string();
-        if (segment == "advancements" || segment == "advancement") {
+        if (segment == "advancement") {
             foundAdvancements = true;
+            namespaceName = previousSegment;
             ++it;
             break;
         }
+        previousSegment = segment;
     }
 
     // 收集剩余路径作为成就路径

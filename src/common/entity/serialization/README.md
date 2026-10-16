@@ -256,7 +256,7 @@ equipment: {
 - **裸函数指针** `SaveFn`/`LoadFn`（无状态闭包，零分配）而非 `std::function`。
 - **`std::vector<Entry>`** 而非 `unordered_map`（仅 13 条目，cache 友好，可按 priority 排序）。
 - **序列化器签名 `Entity&` 非 `EntityContext&`**：序列化器必须调 setter（C 类字段 DataParameter 同步副作用是硬约束，绕过 setter 直写组件会丢网络同步）。setter 是 Entity 继承体系成员，只能经 `Entity&` 调。
-- **存档格式不变**：保持 Java 版平铺格式（Pos/Motion/Health 等直接在根 tag），不走基岩版 `internalComponents` 命名空间隔离，零迁移成本旧存档兼容。
+- **存档格式不变**：保持 Java 版平铺格式（Pos/Motion/Health 等直接在根 tag），不走基岩版 `internalComponents` 命名空间隔离。
 - **注册时机**：`VanillaEntities::doRegisterAll()` 末尾调 `registerAll()`（PIG 哨兵致 `registerAll()` 早退，故放 `doRegisterAll` 内部）。`registerAll` 幂等（`m_registered` 标志 + clear 重注册，同 typeId 覆盖非追加）。
 
 ### 字段访问策略
@@ -276,7 +276,7 @@ equipment: {
 | EntityFlagsComponent | FallFlying | `isElytraFlying` 读 + `addFlag`/`removeFlag` 写（从 LivingEntity 层上提） |
 | HealthComponent | Health | `setHealth`（clamp(0,maxHealth)）+ 置 m_healthSynced=true 避免首帧覆盖 |
 | HurtStateComponent | Absorption + HurtTime + DeathTime | Absorption 走 `setAbsorptionAmount`（virtual，Player override 下发镜像）；HurtTime/DeathTime 无 setter 直写组件 |
-| EquipmentComponent | Equipment | `getEquipment`/`setEquipment`（virtual，Player 派发到 PlayerInventory），含旧格式 HandItems/ArmorItems 回退 |
+| EquipmentComponent | Equipment | `getEquipment`/`setEquipment`（virtual，Player 派发到 PlayerInventory） |
 | PlayerScoreComponent | Score | `getScore`/`setScore`（同步 DATA_PLAYER_SCORE_PARAM 镜像） |
 
 **Projectile 族（第六批 6.2，10 组件，详见下「Projectile 族序列化器」段）**：ProjectileOwnerComponent（owner UUID 双 long + LeftOwner + HasBeenShot，直写组件）、ProjectileArrowStateComponent（AbstractArrow 8 字段 + dealtDamage，priority=10）、TridentStateComponent（Trident item，priority=0 先 load 重算 loyalty）、ProjectileItemComponent（item，按 dynamic_cast 分发 "item"/"Item" 键）、DamagingProjectileComponent（acceleration_power 模长）、FireballStateComponent（ExplosionPower/dangerous）、FireworkRocketComponent（Life/LifeTime/FireworksItem/ShotAtAngle，经 setFireworkItem 重算 flightTime）、EvokerFangsComponent（Warmup + owner UUID）、ShulkerBulletComponent（Target/Dir/Steps/TXD/TYD/TZD）、EyeOfEnderComponent（TODO 占位）。

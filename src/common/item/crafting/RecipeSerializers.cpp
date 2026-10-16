@@ -24,6 +24,7 @@
 #include "item/crafting/RecipeSerializers.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/component/DataComponentPatchNbt.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/crafting/Ingredient.hpp"
@@ -49,11 +50,11 @@
 #include "common/item/crafting/special/ShieldDecorationRecipe.hpp"
 #include "common/item/crafting/special/TippedArrowRecipe.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/nbt/Nbt.hpp"
 #include <algorithm>
 #include <cstddef>
-#include <exception>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -69,117 +70,12 @@ namespace mc {
 namespace crafting {
 
 // ============================================================================
-// NBT 转 JSON 辅助函数
-// ============================================================================
-
-namespace {
-
-/**
- * @brief 将 NBT 标签转换为 nlohmann::json
- * @param tag NBT 标签
- * @return 转换后的 JSON 值
- */
-nlohmann::json nbtToJson(const nbt::tags::tag& tag);
-
-nlohmann::json nbtListToJson(const nbt::tags::list_tag& list)
-{
-    nlohmann::json result = nlohmann::json::array();
-    for (size_t i = 0; i < list.size(); ++i) {
-        auto elem = list[i];
-        if (elem) {
-            result.push_back(nbtToJson(*elem));
-        }
-    }
-    return result;
-}
-
-nlohmann::json nbtToJson(const nbt::tags::tag& tag)
-{
-    using namespace nbt::tags;
-
-    switch (tag.id()) {
-        case nbt::TagId::Byte: {
-            const auto& t = dynamic_cast<const byte_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Short: {
-            const auto& t = dynamic_cast<const short_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Int: {
-            const auto& t = dynamic_cast<const int_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Long: {
-            const auto& t = dynamic_cast<const long_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Float: {
-            const auto& t = dynamic_cast<const float_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::Double: {
-            const auto& t = dynamic_cast<const double_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::ByteArray: {
-            const auto& t = dynamic_cast<const bytearray_tag&>(tag);
-            nlohmann::json result = nlohmann::json::array();
-            for (i8 val : t.value) {
-                result.push_back(val);
-            }
-            return result;
-        }
-        case nbt::TagId::String: {
-            const auto& t = dynamic_cast<const string_tag&>(tag);
-            return t.value;
-        }
-        case nbt::TagId::List: {
-            const auto& t = dynamic_cast<const list_tag&>(tag);
-            return nbtListToJson(t);
-        }
-        case nbt::TagId::Compound: {
-            const auto& t = dynamic_cast<const compound_tag&>(tag);
-            nlohmann::json result = nlohmann::json::object();
-            for (const auto& [key, value] : t.value) {
-                if (value) {
-                    result[key] = nbtToJson(*value);
-                }
-            }
-            return result;
-        }
-        case nbt::TagId::IntArray: {
-            const auto& t = dynamic_cast<const intarray_tag&>(tag);
-            nlohmann::json result = nlohmann::json::array();
-            for (i32 val : t.value) {
-                result.push_back(val);
-            }
-            return result;
-        }
-        case nbt::TagId::LongArray: {
-            const auto& t = dynamic_cast<const longarray_tag&>(tag);
-            nlohmann::json result = nlohmann::json::array();
-            for (i64 val : t.value) {
-                result.push_back(val);
-            }
-            return result;
-        }
-        case nbt::TagId::End:
-        default:
-            return nlohmann::json();
-    }
-}
-
-} // anonymous namespace
-
-// ============================================================================
 // RecipeSerializers 实现
 // ============================================================================
 
 Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
     const ResourceLocation& id, const nlohmann::json& json)
 {
-
     // 解析类型
     if (!json.contains("type") || !json["type"].is_string()) {
         return Error(ErrorCode::ResourceParseError, "Recipe missing 'type' field");
@@ -256,7 +152,6 @@ Result<std::unique_ptr<CraftingRecipe>> RecipeSerializers::fromJson(
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::fromSmeltingJson(
     const ResourceLocation& id, const nlohmann::json& json)
 {
-
     if (!json.contains("type") || !json["type"].is_string()) {
         return Error(ErrorCode::ResourceParseError, "Recipe missing 'type' field");
     }
@@ -279,7 +174,6 @@ Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::fromSmeltingJson(
 Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
     const ResourceLocation& id, const nlohmann::json& json)
 {
-
     // 解析pattern
     if (!json.contains("pattern") || !json["pattern"].is_array()) {
         return Error(ErrorCode::ResourceParseError, "Shaped recipe missing 'pattern' array");
@@ -346,7 +240,6 @@ Result<std::unique_ptr<ShapedRecipe>> RecipeSerializers::parseShapedRecipe(
 Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe(
     const ResourceLocation& id, const nlohmann::json& json)
 {
-
     // 解析ingredients
     if (!json.contains("ingredients") || !json["ingredients"].is_array()) {
         return Error(ErrorCode::ResourceParseError, "Shapeless recipe missing 'ingredients' array");
@@ -398,7 +291,6 @@ Result<std::unique_ptr<ShapelessRecipe>> RecipeSerializers::parseShapelessRecipe
 Result<std::unique_ptr<SmeltingRecipe>> RecipeSerializers::parseSmeltingRecipe(
     const ResourceLocation& id, const nlohmann::json& json, i32 defaultCookTime)
 {
-
     // 解析group（可选）
     std::string group;
     if (json.contains("group") && json["group"].is_string()) {
@@ -521,7 +413,7 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
         return Ingredient::merge(ingredients);
     }
 
-    // MC 1.21+ 字符串形式：直接物品ID（如 "minecraft:raw_iron"）或标签引用（如 "#minecraft:bundles"）
+    // MC 1.21 字符串形式：直接物品ID（如 "minecraft:raw_iron"）或标签引用（如 "#minecraft:bundles"）
     if (json.is_string()) {
         std::string itemId = json.get<std::string>();
 
@@ -545,38 +437,7 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
         return Ingredient::fromItem(*item);
     }
 
-    // 对象形式
-    if (!json.is_object()) {
-        return Error(ErrorCode::ResourceParseError, "Ingredient must be a string, object, or array");
-    }
-
-    // 物品标签
-    if (json.contains("tag")) {
-        if (!json["tag"].is_string()) {
-            return Error(ErrorCode::ResourceParseError, "Tag must be a string");
-        }
-        return Ingredient::fromTag(json["tag"].get<std::string>());
-    }
-
-    // 单个物品
-    if (json.contains("item")) {
-        if (!json["item"].is_string()) {
-            return Error(ErrorCode::ResourceParseError, "Item must be a string");
-        }
-
-        std::string itemId = json["item"].get<std::string>();
-        ResourceLocation loc(itemId);
-
-        Item* item = ItemRegistry::instance().getItem(loc);
-        if (!item) {
-            // 同字符串形式：未注册物品报错而非降级成空原料，理由见上。
-            return Error(ErrorCode::ResourceParseError, "Unknown item in ingredient: " + itemId);
-        }
-
-        return Ingredient::fromItem(*item);
-    }
-
-    return Error(ErrorCode::ResourceParseError, "Ingredient must have 'item' or 'tag' field");
+    return Error(ErrorCode::ResourceParseError, "Ingredient must be a string or an array of strings");
 }
 
 Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
@@ -597,14 +458,12 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
         return Error(ErrorCode::ResourceParseError, "Result must be a string or object");
     }
 
-    // MC 1.21+ 使用 "id" 字段，旧格式使用 "item" 字段
+    // MC 1.21+ 使用 "id" 字段
     std::string itemId;
-    if (json.contains("item") && json["item"].is_string()) {
-        itemId = json["item"].get<std::string>();
-    } else if (json.contains("id") && json["id"].is_string()) {
+    if (json.contains("id") && json["id"].is_string()) {
         itemId = json["id"].get<std::string>();
     } else {
-        return Error(ErrorCode::ResourceParseError, "Result missing 'item' or 'id' field");
+        return Error(ErrorCode::ResourceParseError, "Result missing 'id' field");
     }
     ResourceLocation loc(itemId);
 
@@ -624,37 +483,11 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
     // 创建物品堆
     ItemStack stack(*item, count);
 
-    // 解析 NBT 数据
-    // NBT 字段可以是两种格式：
-    // 1. 字符串形式（Mojangson 格式）："{display:{Name:\"Custom Name\"}}"
-    // 2. JSON 对象形式：{"display":{"Name":"Custom Name"}}
-    if (json.contains("nbt")) {
-        const auto& nbtValue = json["nbt"];
-
-        if (nbtValue.is_string()) {
-            // Mojangson 字符串格式
-            std::string nbtString = nbtValue.get<std::string>();
-            try {
-                // 使用 Mojangson 格式解析 NBT 字符串
-                std::istringstream iss(nbtString);
-                iss >> nbt::contexts::mojangson;
-
-                auto parsedTagPtr = nbt::tags::compound_tag::read(iss);
-                if (parsedTagPtr && !iss.fail()) {
-                    // 将 NBT 转换为 JSON 并合并到 ItemStack
-                    nlohmann::json jsonTag = nbtToJson(*parsedTagPtr);
-                    if (jsonTag.is_object() && !jsonTag.empty()) {
-                        stack.mergeTag(jsonTag);
-                    }
-                }
-            }
-            catch (const std::exception&) {
-                // 解析失败，忽略 NBT 数据
-                // 在实际游戏中可能需要记录警告日志
-            }
-        } else if (nbtValue.is_object()) {
-            // JSON 对象格式，直接合并
-            stack.mergeTag(nbtValue);
+    // 解析数据组件补丁（MC 1.21+ 的 "components" 字段，键为组件名）
+    if (json.contains("components") && json["components"].is_object()) {
+        auto componentsTag = nbt::jsonToNbt(json["components"]);
+        if (componentsTag != nullptr) {
+            stack.applyComponentPatch(item::component::readPatchFromNbt(*componentsTag));
         }
     }
 

@@ -74,8 +74,7 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
 
     std::vector<std::string> lootTableResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos &&
-            path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
+        if (path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
             continue;
         }
         lootTableResources.push_back(path);
@@ -134,14 +133,13 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackRepository(
         lootTableResources = std::move(listResult.value());
     }
 
-    // 阶段1.1：按 loot_tables/ 过滤出掉落表资源
+    // 阶段1.1：按 loot_table/ 过滤出掉落表资源
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootTableLoader::loadFromDataPackRepository::FilterLootTables");
 
         std::vector<std::string> filtered;
         for (const auto& path : lootTableResources) {
-            if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos &&
-                path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
+            if (path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
                 continue;
             }
             filtered.push_back(path);
@@ -312,53 +310,32 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
     fs::path path(filePath);
 
     // 从文件路径中提取相对路径部分：
-    // 查找 "loot_tables" 或 "loot_table" 目录，然后向上找到 namespace
-    // 新格式（相对于 data/ 根目录）：<namespace>/loot_tables/<category>/<name>.json
-    // MC 1.21+ 单数格式：<namespace>/loot_table/<category>/<name>.json
-    // 旧格式（包含 data/ 前缀）：data/<namespace>/loot_tables/<category>/<name>.json
+    // 查找 "loot_table" 目录，然后向上找到 namespace。
+    // MC 1.21+ 目录名：<namespace>/loot_table/<category>/<name>.json
     std::string namespaceStr = "minecraft";
     std::string relativePath;
 
     // 将路径转为通用格式（正斜杠）
     std::string genericPath = path.generic_string();
 
-    // 查找 "loot_tables" 或 "loot_table" 的位置（优先复数形式）
-    Size lootTablesPos = genericPath.find("/loot_tables/");
-    Size lootTablesTokenSize = std::string("/loot_tables/").size();
-    if (lootTablesPos == std::string::npos) {
-        lootTablesPos = genericPath.find("loot_tables/");
-        lootTablesTokenSize = std::string("loot_tables/").size();
-    }
-    if (lootTablesPos == std::string::npos) {
-        lootTablesPos = genericPath.find("/loot_table/");
-        lootTablesTokenSize = std::string("/loot_table/").size();
-    }
+    // 查找 "loot_table" 的位置
+    Size lootTablesPos = genericPath.find("/loot_table/");
+    Size lootTablesTokenSize = std::string("/loot_table/").size();
     if (lootTablesPos == std::string::npos) {
         lootTablesPos = genericPath.find("loot_table/");
         lootTablesTokenSize = std::string("loot_table/").size();
     }
 
     if (lootTablesPos != std::string::npos) {
-        // 从 loot_tables 前面提取 namespace
-        // 优先检查旧格式 data/<namespace>/loot_tables/...
-        auto dataPos = genericPath.rfind("/data/", lootTablesPos);
-        if (dataPos == std::string::npos && genericPath.rfind("data/", 0) == 0) {
-            dataPos = 0;
-        }
-        if (dataPos != std::string::npos) {
-            // 旧格式：data/<namespace>/loot_tables/...
-            Size namespaceStart = dataPos == 0 ? 5 : dataPos + 6; // 跳过 "data/" 或 "/data/"
-            Size namespaceEnd = lootTablesPos;
-            namespaceStr = genericPath.substr(namespaceStart, namespaceEnd - namespaceStart);
-        } else if (lootTablesPos > 0 && genericPath[lootTablesPos] == '/') {
-            // 新格式：<namespace>/loot_tables/...（相对于类型目录根）
-            // lootTablesPos 指向 "/loot_tables/" 中的 '/'，namespace 在它之前
-            namespaceStr = genericPath.substr(0, lootTablesPos);
-        } else if (lootTablesPos == 0) {
-            // 路径以 "loot_tables/" 开头（没有 namespace），使用默认值 minecraft
+        // namespace 是紧邻 "loot_table/" 之前的那一段路径（路径可能带任意前缀，
+        // 如临时目录前缀或 data/ 根前缀）。
+        const Size slashBefore = genericPath.rfind('/', lootTablesPos > 0 ? lootTablesPos - 1 : 0);
+        if (lootTablesPos > 0) {
+            const Size nsStart = (slashBefore == std::string::npos) ? 0 : slashBefore + 1;
+            namespaceStr = genericPath.substr(nsStart, lootTablesPos - nsStart);
         }
 
-        // 从 loot_tables/ 后面提取路径（不含 .json 扩展名）
+        // 从 loot_table/ 后面提取路径（不含 .json 扩展名）
         Size pathStart = lootTablesPos + lootTablesTokenSize;
         relativePath = genericPath.substr(pathStart);
 

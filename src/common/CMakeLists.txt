@@ -318,7 +318,7 @@ add_library(mc_common STATIC
     item/loot/functions/LootFunction.cpp
     item/loot/functions/SetCountFunction.cpp
     item/loot/functions/ApplyBonusFunction.cpp
-    item/loot/functions/LootingEnchantBonusFunction.cpp
+    item/loot/functions/EnchantedCountIncreaseFunction.cpp
     item/loot/functions/SetDamageFunction.cpp
     item/loot/functions/SetNameFunction.cpp
     item/loot/functions/SetLoreFunction.cpp
@@ -327,10 +327,10 @@ add_library(mc_common STATIC
     item/loot/functions/EnchantWithLevelsFunction.cpp
     item/loot/functions/EnchantRandomlyFunction.cpp
     item/loot/functions/ExplosionDecayFunction.cpp
-    item/loot/functions/SetNbtFunction.cpp
+    item/loot/functions/SetCustomDataFunction.cpp
     item/loot/functions/CopyNameFunction.cpp
-    item/loot/functions/CopyBlockStateFunction.cpp
-    item/loot/functions/CopyNbtFunction.cpp
+    item/loot/functions/CopyStateFunction.cpp
+    item/loot/functions/CopyCustomDataFunction.cpp
     item/loot/functions/FillPlayerHeadFunction.cpp
     item/loot/functions/SetAttributesFunction.cpp
     item/loot/functions/SetContentsFunction.cpp

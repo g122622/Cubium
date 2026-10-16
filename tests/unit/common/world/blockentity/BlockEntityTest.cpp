@@ -301,26 +301,3 @@ TEST_F(BlockEntityTest, Container_SaveLoad_PreservesItemsAndCustomName)
     EXPECT_EQ(loadedInventory->getItem(0).getCount(), 3);
     EXPECT_EQ(loaded.getCustomName(), "crafting.test");
 }
-
-TEST_F(BlockEntityTest, Container_Load_UsesArrayIndexFallbackWhenSlotMissing)
-{
-    Items::initialize();
-    auto* stick = ensureBlockEntityTestItem("stick");
-    ASSERT_NE(stick, nullptr);
-
-    nlohmann::json data;
-    data["id"] = "minecraft:chest";
-    data["x"] = 1;
-    data["y"] = 2;
-    data["z"] = 3;
-    data["Items"] = nlohmann::json::array();
-    data["Items"].push_back(ItemStack(stick, 2).toJson());
-
-    TestFilledContainerBlockEntity loaded(BlockEntityType::Chest, BlockPos(0, 0, 0));
-    ASSERT_TRUE(loaded.load(data));
-
-    const IInventory* loadedInventory = loaded.getInventory();
-    ASSERT_NE(loadedInventory, nullptr);
-    EXPECT_EQ(loadedInventory->getItem(0).getItem(), stick);
-    EXPECT_EQ(loadedInventory->getItem(0).getCount(), 2);
-}

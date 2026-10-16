@@ -70,7 +70,7 @@ TEST(IntProviderParserTest, BareInteger_Negative)
 // ConstantInt 解析测试
 // ============================================================================
 
-TEST(IntProviderParserTest, ConstantInt_NestedValue)
+TEST(IntProviderParserTest, ConstantInt_ValueField)
 {
     nlohmann::json json = {{"type", "minecraft:constant"}, {"value", 10}};
     auto result = IntProviderParser::parse(json);

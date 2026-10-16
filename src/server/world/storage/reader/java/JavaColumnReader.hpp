@@ -54,8 +54,7 @@ public:
 private:
     [[nodiscard]] Result<void> _readSections(
         const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight);
-    [[nodiscard]] Result<void> _readBiomes(
-        const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight);
+    [[nodiscard]] Result<void> _readBiomes(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
     void _readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 heightOffset);
     void _readEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
     void _readBlockEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);

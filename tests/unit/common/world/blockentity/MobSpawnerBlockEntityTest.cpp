@@ -514,25 +514,6 @@ TEST_F(MobSpawnerBlockEntityTest, LoadFromNBT_ReadsSpawnPotentials)
     EXPECT_EQ(potentials[1].weight, 1);
 }
 
-TEST_F(MobSpawnerBlockEntityTest, LoadFromNBT_CompatibleWithIntTags)
-{
-    // 测试兼容 int 标签格式（MC 有时使用 int 而非 short）
-    nbt::tags::compound_tag tag;
-    tag.put("id", std::string("minecraft:mob_spawner"));
-    tag.put("x", static_cast<i32>(10));
-    tag.put("y", static_cast<i32>(64));
-    tag.put("z", static_cast<i32>(20));
-
-    tag.put("MinSpawnDelay", static_cast<i32>(100));
-    tag.put("MaxSpawnDelay", static_cast<i32>(400));
-
-    auto loaded = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
-    ASSERT_TRUE(loaded->loadFromNBT(tag));
-
-    EXPECT_EQ(loaded->getMinSpawnDelay(), 100);
-    EXPECT_EQ(loaded->getMaxSpawnDelay(), 400);
-}
-
 // ============================================================================
 // Clone 测试
 // ============================================================================

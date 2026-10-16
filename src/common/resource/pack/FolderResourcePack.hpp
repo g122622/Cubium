@@ -74,7 +74,7 @@ private:
     PackMetadata m_metadata;
 
     // 资源路径索引：在 initialize() 时一次性扫描包根构建，存放所有常规文件
-    // 相对于包根的规范化路径（正斜杠），如 "data/minecraft/loot_tables/blocks/stone.json"。
+    // 相对于包根的规范化路径（正斜杠），如 "data/minecraft/loot_table/blocks/stone.json"。
     // listResources/hasResource/getResourceNamespaces 全部基于此内存索引查询，
     // 避免每次调用都重新递归遍历磁盘目录树（与 ZipResourcePack::m_entries 对称）。
     std::unordered_set<std::string> m_entries;

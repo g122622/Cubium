@@ -1078,8 +1078,7 @@ public:
      * @param tag NBT 复合标签
      * @return 物品堆或错误
      *
-     * 同时兼容旧版 {id, Count(byte), tag{...}} 格式：若检测到 "tag" 复合键且无
-     * "components" 键，按旧 1.16.5 格式解析（用于读旧存档），否则按 1.21.11 组件格式解析。
+     * 读取键 "id"、"count"（数值，缺省 1）与 "components"（数据组件补丁 compound）。
      */
     [[nodiscard]] static Result<ItemStack> fromNbt(const nbt::tags::compound_tag& tag);
 
@@ -1155,9 +1154,6 @@ private:
 
     /// 稀有字段的外置存储，惰性分配；见 ItemExtras 的说明
     std::unique_ptr<ItemExtras> m_extras;
-
-    /// 旧 1.16.5 {tag{...}} 格式回退读取（fromNbt 读旧存档用）
-    static void applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compound_tag& tagCompound);
 
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;

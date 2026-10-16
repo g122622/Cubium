@@ -54,7 +54,7 @@ namespace entity::serialization::components {
  * 会顺带重注册序列化器。
  *
  * 存档格式：保持现状 Java 版平铺格式（Pos/Motion/Health 等直接在根 tag），不走基岩版
- * internalComponents 命名空间隔离。零迁移成本旧存档兼容。
+ * internalComponents 命名空间隔离。
  *
  * 序列化器签名选 Entity& 非 EntityContext&：序列化器必须调 setter（C 类字段 DataParameter
  * 同步副作用是硬约束，绕过 setter 直写组件会丢网络同步）。setter 是 Entity 继承体系成员，

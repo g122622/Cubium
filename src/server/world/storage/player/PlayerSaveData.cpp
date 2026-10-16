@@ -465,7 +465,7 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         data.username = std::move(*nameOpt);
     }
 
-    // 位置
+    // 位置（Pos：f64 三元组）
     if (auto* posList = tryGetList(tag, nbt_keys::POS)) {
         if (posList->element_id() == nbt::TagId::Double && posList->size() >= 3) {
             // 需要转换为具体的 double_list_tag
@@ -474,23 +474,15 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
             data.posY = doubleList.value[1];
             data.posZ = doubleList.value[2];
         }
-    } else {
-        // 兼容旧格式
-        if (auto opt = tryGetDouble(tag, nbt_keys::POS_X)) data.posX = *opt;
-        if (auto opt = tryGetDouble(tag, nbt_keys::POS_Y)) data.posY = *opt;
-        if (auto opt = tryGetDouble(tag, nbt_keys::POS_Z)) data.posZ = *opt;
     }
 
-    // 旋转
+    // 旋转（Rotation：f32 [yaw, pitch]）
     if (auto* rotList = tryGetList(tag, nbt_keys::ROTATION)) {
         if (rotList->element_id() == nbt::TagId::Float && rotList->size() >= 2) {
             auto& floatList = dynamic_cast<const nbt::tags::float_list_tag&>(*rotList);
             data.yaw = floatList.value[0];
             data.pitch = floatList.value[1];
         }
-    } else {
-        if (auto opt = tryGetFloat(tag, nbt_keys::YAW)) data.yaw = *opt;
-        if (auto opt = tryGetFloat(tag, nbt_keys::PITCH)) data.pitch = *opt;
     }
 
     // 维度
@@ -520,19 +512,13 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         }
     }
 
-    // 最后死亡位置
+    // 最后死亡位置（LastDeathLocation：dimension 为维度名字符串，pos 为 i32 三元组）
     if (auto* deathTag = tryGetCompound(tag, nbt_keys::LAST_DEATH_LOCATION)) {
         auto dimStr = tryGetString(*deathTag, nbt_keys::LDL_DIMENSION);
         auto posList = entity::serialization::nbt_helper::getIntList(*deathTag, nbt_keys::LDL_POS);
         if (dimStr.has_value() && posList.size() >= 3) {
             DimensionId dim = dimensionNameToId(*dimStr);
             data.lastDeathLocation = GlobalPos(dim, BlockPos(posList[0], posList[1], posList[2]));
-        } else {
-            // 兼容整数维度格式
-            auto dimInt = tryGetInt(*deathTag, nbt_keys::LDL_DIMENSION);
-            if (dimInt.has_value() && posList.size() >= 3) {
-                data.lastDeathLocation = GlobalPos(*dimInt, BlockPos(posList[0], posList[1], posList[2]));
-            }
         }
     }
 
@@ -575,17 +561,14 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         if (auto opt = tryGetFloat(*abilities, nbt_keys::WALK_SPEED)) data.walkSpeed = *opt;
     }
 
-    // 背包（支持 MC 1.21.11 新格式和旧版格式）
-    // 新格式：Inventory 仅包含 Slot 0-35，装备通过 "equipment" 复合标签读取
-    // 旧格式：Inventory 包含所有槽位（0-40），护甲使用 Slot 100-103，副手使用 Slot -106
+    // 背包（MC 1.21.11 格式）
+    // Inventory 仅包含 Slot 0-35，装备通过 "equipment" 复合标签读取
     {
         // 预分配槽位（41个槽位：0-8快捷栏，9-35主背包，36-39护甲，40副手）
         data.inventoryItems.resize(41);
 
-        // 先读取 equipment 复合标签（新格式）
-        bool hasEquipment = false;
+        // 读取 equipment 复合标签
         if (auto* equipmentTag = tryGetCompound(tag, "equipment")) {
-            hasEquipment = true;
             // EquipmentSlot 名称到内部索引的映射
             constexpr struct {
                 const char* name;
@@ -608,7 +591,7 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
             }
         }
 
-        // 读取 Inventory 列表
+        // 读取 Inventory 列表（Slot 0-35）
         if (auto* invList = tryGetList(tag, nbt_keys::INVENTORY)) {
             if (invList->element_id() == nbt::TagId::Compound) {
                 auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
@@ -622,21 +605,14 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
                         continue;
                     }
 
-                    // 将 NBT 槽位值转换为内部索引
-                    i32 internalSlot = InventorySlots::fromNbtSlot(static_cast<i32>(nbtSlot));
-                    if (internalSlot < 0 || internalSlot >= 41) {
-                        continue; // 无效槽位，跳过
-                    }
-
-                    // 如果已有 equipment 字段，跳过护甲和副手槽位（它们已从 equipment 读取）
-                    if (hasEquipment && internalSlot >= 36) {
-                        continue;
+                    if (nbtSlot < 0 || nbtSlot > 35) {
+                        continue; // 越界槽位，跳过
                     }
 
                     // 从NBT恢复ItemStack
                     auto stackResult = ItemStack::fromNbt(itemTag);
                     if (stackResult.success() && !stackResult.value().isEmpty()) {
-                        data.inventoryItems[static_cast<size_t>(internalSlot)] = std::move(stackResult.value());
+                        data.inventoryItems[static_cast<size_t>(nbtSlot)] = std::move(stackResult.value());
                     }
                 }
             }

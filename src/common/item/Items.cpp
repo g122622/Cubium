@@ -4277,8 +4277,9 @@ void Items::_registerVegetation()
     auto& registry = ItemRegistry::instance();
 
     // 植被和花
-    SHORT_GRASS =
-        &registerBlockBackedItem(registry, VanillaBlocks::SHORT_GRASS, "grass", ItemProperties().maxStackSize(64));
+    // 矮草物品名与方块名一致（1.21.11 vanilla 已把 grass 改名为 short_grass）。
+    SHORT_GRASS = &registerBlockBackedItem(
+        registry, VanillaBlocks::SHORT_GRASS, "short_grass", ItemProperties().maxStackSize(64));
     TALL_GRASS =
         &registerBlockBackedItem(registry, VanillaBlocks::TALL_GRASS, "tall_grass", ItemProperties().maxStackSize(64));
     // 1.21.6 干草/灌木系

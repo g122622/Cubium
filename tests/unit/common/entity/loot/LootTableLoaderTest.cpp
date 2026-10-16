@@ -48,23 +48,19 @@ TEST_F(LootTableLoaderTest, PathToLootTableId_StandardPath)
     LootTableManager manager;
     LootTableLoader loader(manager);
 
-    // 旧格式（包含 data/ 前缀）
-    EXPECT_EQ("minecraft:blocks/stone", loader.pathToLootTableId("data/minecraft/loot_tables/blocks/stone.json"));
-    EXPECT_EQ("mod_id:entities/boss", loader.pathToLootTableId("data/mod_id/loot_tables/entities/boss.json"));
-
-    // 新格式（相对于 data/ 根目录，不含 data/ 前缀）
-    EXPECT_EQ("minecraft:blocks/stone", loader.pathToLootTableId("minecraft/loot_tables/blocks/stone.json"));
-    EXPECT_EQ("mod_id:entities/boss", loader.pathToLootTableId("mod_id/loot_tables/entities/boss.json"));
+    // <namespace>/loot_table/<category>/<name>.json（MC 1.21+ 单数目录名）
+    EXPECT_EQ("minecraft:blocks/stone", loader.pathToLootTableId("minecraft/loot_table/blocks/stone.json"));
+    EXPECT_EQ("mod_id:entities/boss", loader.pathToLootTableId("mod_id/loot_table/entities/boss.json"));
 }
 
 TEST_F(LootTableLoaderTest, LoadFromDirectory_LoadsJsonFiles)
 {
     const auto tempRoot = mc::test::makeUniqueTestDir("mc_loot_table_loader_test");
-    writeTextFile(tempRoot / "data/minecraft/loot_tables/blocks/test_block.json", kSimpleLootTableJson);
+    writeTextFile(tempRoot / "data/minecraft/loot_table/blocks/test_block.json", kSimpleLootTableJson);
 
     LootTableManager manager;
     LootTableLoader loader(manager);
-    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_tables").string());
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_table").string());
 
     ASSERT_TRUE(result.success());
     EXPECT_EQ(1u, result.value().successCount);
@@ -94,15 +90,15 @@ TEST_F(LootTableLoaderTest, FolderResourcePack_ListResourcesAndReadTextForLootTa
     const auto packDir = tempRoot / "pack_dir";
 
     writeTextFile(packDir / "pack.mcmeta", R"({"pack":{"pack_format":6,"description":"pack"}})");
-    writeTextFile(packDir / "data/minecraft/loot_tables/blocks/test.json", kSimpleLootTableJson);
+    writeTextFile(packDir / "data/minecraft/loot_table/blocks/test.json", kSimpleLootTableJson);
 
     FolderResourcePack pack(packDir.string());
     ASSERT_TRUE(pack.initialize().success());
 
-    auto listResult = pack.listResources(resource::PackType::ServerData, "minecraft/loot_tables", ".json");
+    auto listResult = pack.listResources(resource::PackType::ServerData, "minecraft/loot_table", ".json");
     ASSERT_TRUE(listResult.success());
     ASSERT_EQ(1u, listResult.value().size());
-    EXPECT_NE(std::string::npos, listResult.value()[0].find("loot_tables"));
+    EXPECT_NE(std::string::npos, listResult.value()[0].find("loot_table"));
 
     auto readResult = pack.readTextResource(resource::PackType::ServerData, listResult.value()[0]);
     ASSERT_TRUE(readResult.success());

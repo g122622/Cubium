@@ -73,11 +73,11 @@ src/common/network/sync/
 `ChunkSection` 序列化包含天空光照与方块光照各 2048 字节（4096 方块 / 2，每方块 4 位）。
 少读或多读会整体错位。
 
-### 4. 高度图有新旧两块
+### 4. 高度图块在包尾
 
-`serializeChunk` 同时写向后兼容的有损 `u8` 高度图块与包尾的扩展 `i16` 无损块
-（存在位掩码 + 每个已初始化 final 类型 256×2 字节）。反序列化优先用扩展块，缺失时才回退有损块
-（负 Y / Y>255 会截断）。改动任一侧都要同步对方与 `calculateChunkSize`。
+`serializeChunk` 在包尾写高度图块：1 字节存在位掩码 + 每个已初始化 final 类型 256×2 字节
+（i16，`INT16_MIN` 为"该列无方块"哨兵）。反序列化按同一掩码读取。改动任一侧都要同步
+对方与 `calculateChunkSize`。
 
 ### 5. macOS 的 `BYTE_SIZE` 宏冲突
 

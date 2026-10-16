@@ -40,13 +40,13 @@ namespace mc::advancement {
 /**
  * @brief 成就加载器
  *
- * 从文件系统加载成就JSON文件，支持MC 1.16.5数据包格式。
+ * 从文件系统加载成就JSON文件，支持 MC 1.21.11 数据包格式。
  *
  * 数据包目录结构：
  * @code
  * data/
  * ├── minecraft/
- * │   └── advancements/
+ * │   └── advancement/
  * │       ├── story/
  * │       │   ├── root.json
  * │       │   ├── mine_stone.json
@@ -56,14 +56,14 @@ namespace mc::advancement {
  * │       ├── adventure/
  * │       └── husbandry/
  * └── mod_id/
- *     └── advancements/
+ *     └── advancement/
  *         └── ...
  * @endcode
  *
  * 使用示例：
  * @code
  * AdvancementLoader loader;
- * auto result = loader.loadFromDirectory("data/minecraft/advancements");
+ * auto result = loader.loadFromDirectory("data/minecraft/advancement");
  * if (result.success()) {
  *     spdlog::info("Loaded {} advancements, {} failed",
  *                  result.value().successCount, result.value().failedCount);
@@ -110,8 +110,8 @@ public:
      *
      * 遍历目录下所有.json文件并尝试解析为成就。
      * 成就ID从文件路径推导：
-     * - "data/minecraft/advancements/story/mine_stone.json" -> "minecraft:story/mine_stone"
-     * - "data/mod_id/advancements/custom/item.json" -> "mod_id:custom/item"
+     * - "minecraft/advancement/story/mine_stone.json" -> "minecraft:story/mine_stone"
+     * - "mod_id/advancement/custom/item.json" -> "mod_id:custom/item"
      */
     Result<LoadResult> loadFromDirectory(const std::string& directoryPath, ProgressCallback callback = nullptr);
 
@@ -159,7 +159,7 @@ public:
      * @param filePath 文件路径
      * @return 成就ID
      *
-     * 路径格式："data/minecraft/advancements/story/mine_stone.json"
+     * 路径格式："minecraft/advancement/story/mine_stone.json"
      * ID格式："minecraft:story/mine_stone"
      */
     [[nodiscard]] ResourceLocation pathToAdvancementId(const std::string& filePath) const;
