@@ -114,16 +114,6 @@ public:
     // ========== 游泳行为 ==========
 
     /**
-     * @brief 是否正在跳跃
-     */
-    [[nodiscard]] bool isJumping() const noexcept { return m_jumping; }
-
-    /**
-     * @brief 设置跳跃状态
-     */
-    void setJumping(bool jumping) noexcept override { m_jumping = jumping; }
-
-    /**
      * @brief 是否可以跳出水
      */
     [[nodiscard]] bool canJumpOutOfWater() const;
@@ -184,6 +174,29 @@ public:
         m_gotFish = gotFish;
         m_dataManager.set(DATA_GOT_FISH_PARAM, gotFish);
     }
+
+    // ========== 湿润度 ==========
+
+    /**
+     * @brief 获取湿润度等级
+     *
+     * vanilla Dolphin 起始 2400，离开水/雨时每 tick 递减 1，归零后受 dryout 伤害。
+     */
+    [[nodiscard]] i32 getMoistnessLevel() const noexcept { return m_moistnessLevel; }
+
+    /**
+     * @brief 设置湿润度等级
+     *
+     * 同步写入 DATA_MOISTNESS_LEVEL 元数据（id18），与 setGotFish 的同步范式一致。
+     */
+    void setMoistnessLevel(i32 level)
+    {
+        m_moistnessLevel = level;
+        m_dataManager.set(DATA_MOISTNESS_LEVEL_PARAM, level);
+    }
+
+    /// 湿润度同步数据参数 id（供测试校验元数据写入）
+    [[nodiscard]] static u16 getMoistnessLevelParamId() { return DATA_MOISTNESS_LEVEL_PARAM.id(); }
 
     // ========== 食物 ==========
 
@@ -258,6 +271,11 @@ public:
 
     void tick() override;
 
+    // ========== 存档序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -289,13 +307,16 @@ protected:
     // ========== 水状态回调 ==========
     void onLeaveWater() override;
 
-private:
-    // TODO: m_jumping 当前为死代码——DolphinEntity::tick 写入它，但全代码库无任何调用方读取
-    // isJumping()/m_jumping。真正驱动海豚出水的纵向速度由 DolphinJumpGoal::startExecuting 的
-    // setVelocity(0,0.7,0) 直接施加，与此标记无关。待对齐 vanilla Dolphin 跳跃状态语义后
-    // （接入消费方或确认冗余后移除）。
-    bool m_jumping = false;
+    /**
+     * @brief 更新空气供应
+     *
+     * 覆盖 WaterMobEntity 的"离水窒息"逻辑：vanilla Dolphin 重写 handleAirSupply 为空实现
+     * （且 increaseAirSupply 返回 maxAir），海豚永不溺水，其离水代价统一由湿润度/干燥伤害承担。
+     * 若不覆盖，搁浅海豚会同时受溺水与 dryout 双重伤害，偏离 vanilla。
+     */
+    void updateAirSupply() override;
 
+private:
     // 宝藏寻找
     BlockPos m_treasurePos;
     bool m_hasTreasure = false;
@@ -306,15 +327,18 @@ private:
     // 鱼标记
     bool m_gotFish = false;
 
-    // 游泳计时器
-    i32 m_swimTimer = 0;
+    // 湿润度（vanilla 起始 2400，离水/雨时递减，归零后 dryout 伤害）
+    i32 m_moistnessLevel = TOTAL_MOISTNESS_LEVEL;
+
+    // 水状态追踪（供 updateAirSupply 的 onEnterWater/onLeaveWater 回调判定）
+    bool m_wasInWaterTracked = false;
 
     // ========== 同步数据参数（vanilla 1.21.11 Dolphin 字段，见 registerData） ==========
     // id16 占位对齐 vanilla AgeableMob.DATA_BABY（海豚幼体语义暂未实现，占位恒 false）。
     static entity::DataParameter<bool> DATA_BABY_PLACEHOLDER_PARAM; // id16
     // id17 GOT_FISH（玩家喂鱼后置 true，海豚引导玩家寻宝）。由 setGotFish 同步。
     static entity::DataParameter<bool> DATA_GOT_FISH_PARAM; // id17
-    // id18 MOISTNESS_LEVEL（湿润度，vanilla 起始 2400）。TODO: 离水时递减的业务联动暂未实现。
+    // id18 MOISTNESS_LEVEL（湿润度，vanilla 起始 2400）。由 setMoistnessLevel 同步。
     static entity::DataParameter<i32> DATA_MOISTNESS_LEVEL_PARAM; // id18
 
     // 常量
@@ -322,8 +346,10 @@ private:
     static constexpr f32 SWIM_SPEED = 0.6f;             // 游泳速度
     static constexpr f32 JUMP_VELOCITY = 0.7f;          // 跳跃速度
     static constexpr i32 MAX_AIR = 4800;                // 4分钟空气储备 (ticks)
-    static constexpr i32 SWIM_JUMP_INTERVAL = 200;      // 游泳跳跃检查间隔 (ticks)
-    static constexpr i32 JUMP_CHANCE_DENOMINATOR = 100; // 跳跃概率分母
+    static constexpr i32 TOTAL_MOISTNESS_LEVEL = 2400;  // 湿润度满值 (ticks)
+    static constexpr f32 DRYOUT_DAMAGE = 1.0f;          // 干燥伤害（每次 1 点）
+    static constexpr f32 GROUND_JUMP_XZ_RANGE = 0.2f;   // 陆地挣扎水平速度幅度
+    static constexpr f32 GROUND_JUMP_Y_VELOCITY = 0.5f; // 陆地挣扎向上速度
     static constexpr f64 CLOSE_DISTANCE = 12.0;         // 接近目标的距离阈值（方块）
 };
 

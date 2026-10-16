@@ -41,9 +41,12 @@
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -54,6 +57,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <optional>
@@ -270,6 +274,31 @@ void DolphinEntity::onLeaveWater()
     playSound(SoundEvents::ENTITY_DOLPHIN_JUMP, 1.0f, 1.0f);
 }
 
+void DolphinEntity::updateAirSupply()
+{
+    // vanilla Dolphin 重写 handleAirSupply 为空实现（Dolphin.java:105-106），且 increaseAirSupply
+    // 返回 getMaxAirSupply（:187-189），故海豚永不因离水而窒息：空气始终维持在满值，离水代价
+    // 完全由湿润度递减/干燥伤害承担（见 tick）。此处仍需保留基类的进水/离水回调（onEnterWater/
+    // onLeaveWater，后者播放 DOLPHIN_JUMP 音效），故复刻 m_waterStateTracked 的前沿追踪逻辑，
+    // 但不做任何空气消耗与溺水判定。
+    if (!isAlive()) {
+        return;
+    }
+
+    const bool inWater = isInWater();
+    if (inWater && !m_wasInWaterTracked) {
+        onEnterWater();
+    } else if (!inWater && m_wasInWaterTracked) {
+        onLeaveWater();
+    }
+    m_wasInWaterTracked = inWater;
+
+    // 空气恒定满值（vanilla increaseAirSupply 语义：立即回满）。
+    if (air() < maxAir()) {
+        setAir(maxAir());
+    }
+}
+
 std::optional<ResourceLocation> DolphinEntity::getAmbientSound() const
 {
     if (isInWater()) {
@@ -281,6 +310,28 @@ std::optional<ResourceLocation> DolphinEntity::getAmbientSound() const
 void DolphinEntity::playAttackSound(LivingEntity& /*target*/)
 {
     playSound(SoundEvents::ENTITY_DOLPHIN_ATTACK, 1.0f, 1.0f);
+}
+
+void DolphinEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace entity::serialization;
+    WaterMobEntity::addAdditionalSaveData(tag);
+    tag.put(nbt_keys::DOLPHIN_GOT_FISH, static_cast<i8>(m_gotFish));
+    tag.put(nbt_keys::DOLPHIN_MOISTNESS, m_moistnessLevel);
+}
+
+Result<void> DolphinEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace entity::serialization;
+    MC_TRY(WaterMobEntity::readAdditionalSaveData(tag));
+    setGotFish(nbt_helper::tryGetBool(tag, nbt_keys::DOLPHIN_GOT_FISH).value_or(false));
+    // 钳制到 [0, TOTAL_MOISTNESS_LEVEL]，防御损坏存档中的越界值
+    const i32 moistness =
+        std::clamp(nbt_helper::tryGetInt(tag, nbt_keys::DOLPHIN_MOISTNESS).value_or(TOTAL_MOISTNESS_LEVEL),
+            0,
+            TOTAL_MOISTNESS_LEVEL);
+    setMoistnessLevel(moistness);
+    return Result<void>::ok();
 }
 
 void DolphinEntity::tick()
@@ -295,28 +346,35 @@ void DolphinEntity::tick()
         }
     }
 
-    // 更新游泳行为
-    if (isInWater()) {
-        m_swimTimer++;
+    // 湿润度与离水挣扎，行为对齐 vanilla Dolphin.tick：
+    //   isNoAi() → 仅把空气补满，不做湿润度/挣扎（vanilla: if (isNoAi()) setAirSupply(max)）；
+    //   isInWaterOrRain() → 湿润度回满 2400；
+    //   否则湿润度 -1（下限 0），归零后每 tick 受 1 点 dryout 伤害；
+    //   离水且踩在地面上时，随机向上弹跳并随机转向（陆地挣扎，避免搁浅至死）。
+    if (!m_aiEnabled) {
+        setAir(maxAir());
+        return;
+    }
 
-        // 随机跳跃
-        if (m_swimTimer >= SWIM_JUMP_INTERVAL && canJumpOutOfWater()) {
-            math::IRandom& rng = getRandom();
-            if (rng.nextInt(1, JUMP_CHANCE_DENOMINATOR) == 1) {
-                // TODO: m_jumping 当前为死代码——全代码库无任何调用方读取
-                // DolphinEntity::isJumping()/m_jumping（DolphinJumpGoal 也不依赖它）。
-                // 真正驱动海豚出水的纵向速度由 DolphinJumpGoal::startExecuting 的 setVelocity(0,0.7,0)
-                // 直接施加，与此处的 m_jumping 标记无关。此处的随机跳跃计时逻辑（SWIM_JUMP_INTERVAL
-                // + JUMP_CHANCE_DENOMINATOR 概率）疑似未接入 AI 链路的简化实现：vanilla Dolphin
-                // 出水跳跃统一由 DolphinJumpGoal（优先级5）的概率/水位判定驱动，tick 内不应再有
-                // 一套独立的跳跃触发。待对齐 vanilla 后移除此冗余逻辑或接入消费方（如跳跃动画状态）。
-                m_jumping = true;
-                m_swimTimer = 0;
-            }
-        }
+    if (isInWater() || isInRain()) {
+        setMoistnessLevel(TOTAL_MOISTNESS_LEVEL);
     } else {
-        // TODO: m_jumping 置 false 同为死代码（见上方 if 分支注释），暂保留以待跳跃状态消费方落地。
-        m_jumping = false;
+        // 湿润度不需再降至负值：vanilla 判定为"归零后持续受伤"，故钳制下限为 0，
+        // 避免 INT_MIN 溢出与持续负值同步。
+        setMoistnessLevel(std::max(0, getMoistnessLevel() - 1));
+        if (getMoistnessLevel() <= 0) {
+            EnvironmentalDamage dryoutSource = DamageSources::dryout();
+            hurt(dryoutSource, DRYOUT_DAMAGE);
+        }
+
+        if (onGround()) {
+            math::IRandom& random = getRandom();
+            addVelocity((random.nextFloat() * 2.0f - 1.0f) * GROUND_JUMP_XZ_RANGE,
+                GROUND_JUMP_Y_VELOCITY,
+                (random.nextFloat() * 2.0f - 1.0f) * GROUND_JUMP_XZ_RANGE);
+            setYaw(random.nextFloat() * 360.0f);
+            setOnGround(false);
+        }
     }
 }
 

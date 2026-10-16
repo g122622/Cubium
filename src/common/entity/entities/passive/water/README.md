@@ -104,3 +104,21 @@ SquidEntity 不使用标准的导航系统，而是通过 `setMovementVector()` 
 - 使用 `setGotFish(true)` 标记玩家喂食状态
 - 使用 `setTreasurePos()` 设置宝藏目标位置
 - 引导持续时间 1200 tick（60秒）
+
+### 8. 海豚不溺水，改用湿润度（MOISTNESS）
+
+`DolphinEntity` 重写 `updateAirSupply()` 为空窒息逻辑：空气恒维持满值（`maxAir()`），
+**海豚离水不会溺水**（对齐 vanilla `Dolphin.handleAirSupply` 空实现 + `increaseAirSupply` 返回 max）。
+若不重写，会继承 `WaterMobEntity` 的"离水窒息"逻辑，导致搁浅海豚同时受溺水与干燥双重伤害，偏离原版。
+
+海豚的离水代价由**湿润度**（`m_moistnessLevel`，默认 2400）承担，在 `tick()` 内处理：
+- 在水中或雨中 → 湿润度回满 2400
+- 否则 → 每 tick -1（下限 0），归零后每 tick 受 1 点 `dryout` 伤害
+- 离水且踩在地面上 → 随机向上弹跳并随机转向（陆地挣扎，避免搁浅至死；**与湿润度无关**，只要离水且着地即触发）
+- `m_aiEnabled` 为 false（NoAI）时仅补满空气，不做湿润度与挣扎
+
+`addAdditionalSaveData`/`readAdditionalSaveData` 持久化 `GotFish`/`Moistness` 两字段。
+
+写海豚相关测试时注意：`tick()` 内 `updateEnvironmentState()` 会复位 `m_inWater`，故测试须
+用世界桩的 `getFluidState` 返回水而非 `setInWater()`；`checkOnGround()` 每 tick 经
+`IWorld::hasBlockCollision()` 探测地面，测陆地挣扎须让世界桩返回 true。
