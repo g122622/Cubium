@@ -198,7 +198,12 @@ bool ArmorDyeRecipe::_isDye(const ItemStack& stack)
 
 u32 ArmorDyeRecipe::_mixColors(u32 color1, u32 color2)
 {
-    // 颜色混合算法：将 RGB 分量分别取平均
+    // TODO: 当前用"逐分量简单平均"近似 vanilla DyedItemColor.applyDyes 的混色算法——
+    //   vanilla 会把当前颜色与所有染料颜色一起累加（每色额外累加其 max(r,g,b)），
+    //   最后按 avg(n) * avgMax / max(avgR, avgG, avgB) 做亮度归一化，且**一次**处理
+    //   全部染料（多染料不是逐次两两平均）。逐次平均会与 vanilla 结果发散（顺序敏感、
+    //   且丢失亮度缩放）。收敛方向：新增 DyedItemColor 组件（对齐 1.21.11）并把
+    //   ArmorDyeRecipe/WolfEntity 的混色统一改为一次传入全部染料色调用 applyDyes 语义。
     i32 r1 = static_cast<i32>((color1 >> 16) & 0xFF);
     i32 g1 = static_cast<i32>((color1 >> 8) & 0xFF);
     i32 b1 = static_cast<i32>(color1 & 0xFF);

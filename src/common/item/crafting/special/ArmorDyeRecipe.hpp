@@ -39,6 +39,11 @@ namespace crafting {
  * 允许玩家在工作台中使用染料为可染色盔甲上色。
  * 支持混合多种染料，结果颜色通过颜色混合算法计算。
  *
+ * TODO: 匹配条件应按 vanilla 用 `ItemTags::DYEABLE` 判定可染色物品（含皮革马铠），
+ *   当前 `_isDyeableArmor` 用 `dynamic_cast<DyeableArmorItem>` 判定，而皮革马铠是
+ *   独立的 `HorseArmorItem`（非 DyeableArmorItem），导致皮革马铠无法染色，与 vanilla
+ *   行为不符。收敛方向：改用 `ItemTags::DYEABLE()` 判定并让皮革马铠支持颜色读写。
+ *
  * 匹配条件：
  * - 必须有恰好一个可染色盔甲
  * - 必须至少有一个染料

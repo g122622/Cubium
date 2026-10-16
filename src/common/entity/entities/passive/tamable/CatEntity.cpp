@@ -51,6 +51,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/DyeItemHelper.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -64,7 +65,6 @@
 #include <cmath>
 #include <memory>
 #include <optional>
-#include <unordered_map>
 #include <utility>
 
 namespace mc {
@@ -596,35 +596,7 @@ void CatEntity::_tryToTame(Player& player)
 
 std::optional<DyeColor> CatEntity::_getDyeColorFromItem(const Item* item)
 {
-    if (item == nullptr) {
-        return std::nullopt;
-    }
-
-    static const std::unordered_map<const Item*, DyeColor> dyeMap = {
-        {Items::INK_SAC, DyeColor::Black},
-        {Items::RED_DYE, DyeColor::Red},
-        {Items::GREEN_DYE, DyeColor::Green},
-        {Items::COCOA_BEANS, DyeColor::Brown},
-        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
-        {Items::PURPLE_DYE, DyeColor::Purple},
-        {Items::CYAN_DYE, DyeColor::Cyan},
-        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
-        {Items::GRAY_DYE, DyeColor::Gray},
-        {Items::PINK_DYE, DyeColor::Pink},
-        {Items::LIME_DYE, DyeColor::Lime},
-        {Items::YELLOW_DYE, DyeColor::Yellow},
-        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
-        {Items::MAGENTA_DYE, DyeColor::Magenta},
-        {Items::ORANGE_DYE, DyeColor::Orange},
-        {Items::WHITE_DYE, DyeColor::White},
-        {Items::BONE_MEAL, DyeColor::White},
-    };
-
-    auto it = dyeMap.find(item);
-    if (it != dyeMap.end()) {
-        return it->second;
-    }
-    return std::nullopt;
+    return item::DyeItemHelper::dyeColorOfItem(item);
 }
 
 // ============================================================================

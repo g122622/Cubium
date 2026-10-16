@@ -33,16 +33,14 @@
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
-#include "item/Items.hpp"
 #include "item/items/BannerPatternItem.hpp"
+#include "item/items/DyeItemHelper.hpp"
 #include "item/items/block/BannerItem.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include <algorithm>
 #include <memory>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <nlohmann/json_fwd.hpp>
 
@@ -53,63 +51,20 @@ namespace container {
 
 // ========== 染料物品工具函数 ==========
 
-/// 获取所有染料物品的集合（共16种）
 namespace {
 
-const std::unordered_set<const Item*>& _dyeItems()
-{
-    static std::unordered_set<const Item*> dyeItems = {
-        Items::BLACK_DYE,      // 黑色染料
-        Items::RED_DYE,        // 红色染料
-        Items::GREEN_DYE,      // 绿色染料
-        Items::BROWN_DYE,      // 棕色染料
-        Items::BLUE_DYE,       // 蓝色染料
-        Items::PURPLE_DYE,     // 紫色染料
-        Items::CYAN_DYE,       // 青色染料
-        Items::LIGHT_GRAY_DYE, // 淡灰色染料
-        Items::GRAY_DYE,       // 灰色染料
-        Items::PINK_DYE,       // 粉红色染料
-        Items::LIME_DYE,       // 黄绿色染料
-        Items::YELLOW_DYE,     // 黄色染料
-        Items::LIGHT_BLUE_DYE, // 淡蓝色染料
-        Items::MAGENTA_DYE,    // 品红色染料
-        Items::ORANGE_DYE,     // 橙色染料
-        Items::WHITE_DYE,      // 白色染料
-    };
-    return dyeItems;
-}
-
-/// 获取染料物品对应的颜色
-DyeColor _dyeColorFromItem(const Item* item)
-{
-    static const std::unordered_map<const Item*, DyeColor> dyeColorMap = {
-        {Items::BLACK_DYE, DyeColor::Black},
-        {Items::RED_DYE, DyeColor::Red},
-        {Items::GREEN_DYE, DyeColor::Green},
-        {Items::BROWN_DYE, DyeColor::Brown},
-        {Items::BLUE_DYE, DyeColor::Blue},
-        {Items::PURPLE_DYE, DyeColor::Purple},
-        {Items::CYAN_DYE, DyeColor::Cyan},
-        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
-        {Items::GRAY_DYE, DyeColor::Gray},
-        {Items::PINK_DYE, DyeColor::Pink},
-        {Items::LIME_DYE, DyeColor::Lime},
-        {Items::YELLOW_DYE, DyeColor::Yellow},
-        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
-        {Items::MAGENTA_DYE, DyeColor::Magenta},
-        {Items::ORANGE_DYE, DyeColor::Orange},
-        {Items::WHITE_DYE, DyeColor::White},
-    };
-
-    const auto it = dyeColorMap.find(item);
-    MC_ASSERT_RELEASE(it != dyeColorMap.end());
-    return it->second;
-}
-
-/// 检查物品是否为染料
+/// 检查物品是否为染料（委托 DyeItemHelper，避免各子系统重复维护染料集合）
 bool _isDyeItem(const Item* item)
 {
-    return item != nullptr && _dyeItems().count(item) > 0;
+    return item::DyeItemHelper::isDyeItem(item);
+}
+
+/// 获取染料物品对应的颜色（调用方须先经 _isDyeItem 判定）
+DyeColor _dyeColorFromItem(const Item* item)
+{
+    const auto color = item::DyeItemHelper::dyeColorOfItem(item);
+    MC_ASSERT_RELEASE(color.has_value());
+    return *color;
 }
 
 // ========== LoomContainer 实现 ==========
@@ -186,7 +141,7 @@ void LoomContainer::_updateSelectablePatterns()
     const auto dye = m_inputInventory->getItem(SLOT_DYE);
     const auto pattern = m_inputInventory->getItem(SLOT_PATTERN);
     if (banner.isEmpty() || dye.isEmpty() || dynamic_cast<const item::BannerItem*>(banner.getItem()) == nullptr ||
-        !_dyeItems().contains(dye.getItem()) ||
+        !_isDyeItem(dye.getItem()) ||
         blockentity::BannerEntity::getPatternCount(banner) >= blockentity::BannerEntity::MAX_PATTERNS) {
         return;
     }

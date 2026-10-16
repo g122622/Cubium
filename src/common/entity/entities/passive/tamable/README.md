@@ -114,7 +114,7 @@
 
         **狼铠修复 * *（`WolfEntity::interactMob` 优先级3）：主人右键坐下的狼 + 手持犰狳鳞甲（`ItemTags::REPAIRS_WOLF_ARMOR`）+ 狼铠已受损 → 恢复 12.5% 最大耐久（`ARMOR_REPAIR_UNIT = 0.125F`），播放 `ENTITY_WOLF_ARMOR_REPAIR` 音效。
 
-        **狼铠染色 * *（`WolfEntity::interactMob` 优先级4）：主人右键狼 + 手持染料 + 已装备狼铠 → 将当前颜色与染料颜色混合（`mixArmorColors` 取 RGB 平均值），调用 `DyeableArmorItem::setColor()` 写入 NBT。清除颜色：手持狼铠右键炼药锅（`LayeredCauldronBlock::_handleLeatherArmorCleaning`，继承自 `DyeableArmorItem` 自动支持）。
+        **狼铠染色 * *（TODO，与 vanilla 不符）：`WolfEntity::interactMob` 优先级4 目前实现了"主人右键狼 + 手持染料 + 已装备狼铠 → 混合颜色"这一交互，但 vanilla 1.21.11 的 `Wolf.mobInteract` **没有**该分支（染料只改项圈颜色）。vanilla 中狼铠染色仅经合成台 `ArmorDyeRecipe`（`ItemTags.DYEABLE` 含 wolf_armor）+ 炼药锅洗色完成。该分支待删除，其混色用简单 RGB 平均也与 vanilla `DyedItemColor.applyDyes` 不同。清除颜色：手持狼铠右键炼药锅（`LayeredCauldronBlock::_handleLeatherArmorCleaning`，继承自 `DyeableArmorItem` 自动支持）与 vanilla 一致。
 
         **狼铠剪切 * *（`MobEntity::processInitialInteract` 剪刀分支）：主人手持剪刀 + `canShearEquipment()` 返回 true + 已装备狼铠 → `attemptToShearEquipment()` 剪下狼铠掉落为物品实体，剪刀耐久 -1，播放 `ITEM_ARMOR_UNEQUIP_WOLF` 音效，触发 `SHEAR` 游戏事件。`WolfEntity::canShearEquipment()` 重写为仅主人可剪切。
 
@@ -151,7 +151,7 @@
         **交互优先级 * *（未驯服）：猫食（生鳕鱼 / 生鲑鱼）→ 尝试驯服（1 / 3概率） -
         **非主人无法交互 * *：已驯服的猫只有主人可以交互，非主人交互直接传递给父类 -
         **驯服成功广播 * *：`broadcastEntityStatus(TamingSucceeded / TamingFailed)` 发送心形 / 烟雾粒子
-        - ** 项圈染色**：默认红色，支持 17 种染料物品映射（16 种标准染料 + 骨粉 = 白色 + 墨囊 = 黑色等） -
+        - ** 项圈染色**：默认红色，仅接受 16 种标准染料（`DyeItemHelper`，与 vanilla `instanceof DyeItem` 一致）。骨粉 / 墨囊 / 可可豆在 vanilla 中不是 DyeItem，不能用于项圈染色 -
         **食物治疗量 * *：生鳕鱼 / 生鲑鱼治疗 2.0 生命值 - **目标选择器 * *：猫的目标选择器已注册以下目标：
         - 优先级 1 : `NonTamedTargetGoal<RabbitEntity>` — 攻击兔子（未驯服时） -
     优先级 1 : `NonTamedTargetGoal<TurtleEntity>` — 攻击幼年海龟（未驯服时，仅陆地上的幼体）

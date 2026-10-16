@@ -31,7 +31,12 @@ namespace item {
 
 namespace {
 
-/// 物品 → 染料颜色映射（与 vanilla 的 DyeItem 实例集合一一对应）
+/// 物品 → 染料颜色映射（与 vanilla 的 DyeItem 实例集合一一对应：仅 16 种 *_dye）
+///
+/// 注意：ink_sac / cocoa_beans / bone_meal 在 vanilla 中**不是** DyeItem 实例
+/// （分别是 InkSacItem / BlockItem / BoneMealItem），故不在此集合内。它们虽各自对应
+/// 一种染料色，但只在合成配方（如 black_dye ← ink_sac）里作为原料，不能直接用于
+/// 项圈染色、盔甲染色、织布机染色等 `instanceof DyeItem` 判定点。
 const std::unordered_map<const Item*, DyeColor>& _dyeColorMap()
 {
     static const std::unordered_map<const Item*, DyeColor> map = {
@@ -47,17 +52,10 @@ const std::unordered_map<const Item*, DyeColor>& _dyeColorMap()
         {Items::CYAN_DYE, DyeColor::Cyan},
         {Items::PURPLE_DYE, DyeColor::Purple},
         {Items::BLUE_DYE, DyeColor::Blue},
-        // TODO(命名迁移): 项目同时注册了旧名 minecraft:lapis_lazuli_dye 与 1.21.11 的
-        //   minecraft:blue_dye，两者都是蓝色染料。旧名在 JavaItemIdMap 里被别名到
-        //   minecraft:lapis_lazuli（一个非染料物品），与真 Java 对端语义不符。此处一并
-        //   收录以兼容存量调用方（狼/猫项圈染色、盔甲染色），待旧名调用点收敛后删除本条。
-        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
         {Items::BROWN_DYE, DyeColor::Brown},
         {Items::GREEN_DYE, DyeColor::Green},
         {Items::RED_DYE, DyeColor::Red},
         {Items::BLACK_DYE, DyeColor::Black},
-        {Items::INK_SAC, DyeColor::Black},     // vanilla 中墨囊是 DyeItem(BLACK)
-        {Items::COCOA_BEANS, DyeColor::Brown}, // vanilla 中可可豆是 DyeItem(BROWN)
     };
     return map;
 }

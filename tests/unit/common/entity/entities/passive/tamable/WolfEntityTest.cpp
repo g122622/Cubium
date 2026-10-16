@@ -1300,7 +1300,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOwner_ChangesCollarColor)
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人
     player.abilities().creativeMode = false;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
@@ -1309,7 +1309,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOwner_ChangesCollarColor)
     // 返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
 
-    // 颈圈颜色应该变为蓝色（LAPIS_LAZULI_DYE 映射到 Blue）
+    // 颈圈颜色应该变为蓝色（BLUE_DYE 映射到 Blue）
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
 
     // 物品应该消耗
@@ -1331,7 +1331,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeNonOwner_NoCollarChange)
     Player player(EntityInstanceId(2), "OtherPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kOtherUuid)); // 非主人
     player.abilities().creativeMode = false;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
@@ -1384,15 +1384,16 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeSameColor_NoConsumption)
     EXPECT_EQ(countAfter, countBefore);
 }
 
-TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_BoneMealDye_WhiteCollar)
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_BoneMealNotDye_CollarUnchanged)
 {
-    // 骨粉作为白色染料
+    // 骨粉不是染料（vanilla 中 BoneMealItem，非 DyeItem），不能给项圈染色
     WolfTestWorld world;
     WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
 
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
@@ -1403,20 +1404,24 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_BoneMealDye_WhiteCollar)
 
     ActionResultType result = wolf.interactMob(player, Hand::MainHand);
 
+    // 骨粉非染料，落入主人坐下/站起切换分支
     EXPECT_EQ(result, ActionResultType::Success);
-    // 骨粉映射到白色
-    EXPECT_EQ(wolf.getCollarColor(), DyeColor::White);
+    // 项圈颜色保持不变
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+    // 物品不消耗
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
 }
 
-TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_InkSacDye_BlackCollar)
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_InkSacNotDye_CollarUnchanged)
 {
-    // 墨囊作为黑色染料
+    // 墨囊不是染料（vanilla 中 InkSacItem，非 DyeItem），不能给项圈染色
     WolfTestWorld world;
     WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
     wolf.setTypeId("minecraft:wolf");
     wolf.setTamed(true);
     wolf.setOwnerId(kTestOwnerUuid);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
 
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
@@ -1427,9 +1432,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_InkSacDye_BlackCollar)
 
     ActionResultType result = wolf.interactMob(player, Hand::MainHand);
 
+    // 墨囊非染料，落入主人坐下/站起切换分支
     EXPECT_EQ(result, ActionResultType::Success);
-    // 墨囊映射到黑色
-    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Black);
+    // 项圈颜色保持不变
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+    // 物品不消耗
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
 }
 
 // ============================================================================
@@ -1764,7 +1772,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyePrioritizedOverSitToggle)
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
@@ -1774,7 +1782,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyePrioritizedOverSitToggle)
 
     EXPECT_EQ(result, ActionResultType::Success);
 
-    // 颈圈颜色应该变化（LAPIS_LAZULI_DYE 映射到 Blue）
+    // 颈圈颜色应该变化（BLUE_DYE 映射到 Blue）
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
 
     // 坐下状态不应该变化
@@ -1806,7 +1814,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_HealAndDyeSeparateInteractio
     EXPECT_GT(wolf.health(), 5.0f); // 生命值增加
 
     // 第二次交互：用染料染色
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
 
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
@@ -2519,7 +2527,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
 
     // 第二次染色：黑色染料 0x191919
     // 混合后：((207+25)/2, (178+25)/2, (159+25)/2) = (116, 101, 92)
-    ItemStack blackDyeStack(Items::INK_SAC, 10);
+    ItemStack blackDyeStack(Items::BLACK_DYE, 10);
     player.inventory().setItem(0, blackDyeStack);
     wolf.interactMob(player, Hand::MainHand);
     u32 colorAfterBlack = dyeableArmor->getColor(wolf.getBodyArmorItem());
@@ -2550,7 +2558,7 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NoArmor_DyeChangesCollarOnly
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = false;
 
-    ItemStack blueDyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack blueDyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, blueDyeStack);
     player.inventory().setSelectedSlot(0);
 

@@ -62,6 +62,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/DyeItemHelper.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
@@ -76,8 +77,6 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
-
-#include <unordered_map>
 
 #include <algorithm>
 #include <cmath>
@@ -283,7 +282,13 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
         }
 
         // 优先级4: 狼铠染色（染料 + 已装备可染色狼铠 + 主人）
-        // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 染色分支
+        //
+        // TODO: 此分支是凭空添加的交互，vanilla 1.21.11 并不存在——Wolf.mobInteract 的
+        //   染料分支只改项圈颜色（见下方优先级5），狼铠染色在 vanilla 中仅经合成台
+        //   ArmorDyeRecipe（ItemTags.DYEABLE 含 wolf_armor）+ 炼药锅洗色两条路径完成，
+        //   没有"手持染料右键狼"这一交互。此外本分支的混色用简单 RGB 平均值，与 vanilla
+        //   DyedItemColor.applyDyes 的带 max 缩放的加权平均也不同。收敛方向：删除本分支，
+        //   使染料交互与 vanilla 一致（仅项圈），狼铠染色交由合成台路径承担。
         if (item != nullptr && isWearingBodyArmor() && isOwner(player.uuidBytes())) {
             ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
             if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR) {
@@ -462,35 +467,7 @@ f32 WolfEntity::_getFoodHealAmount(const Item* item) const
 
 std::optional<DyeColor> WolfEntity::_getDyeColorFromItem(const Item* item)
 {
-    if (item == nullptr) {
-        return std::nullopt;
-    }
-
-    static const std::unordered_map<const Item*, DyeColor> dyeMap = {
-        {Items::INK_SAC, DyeColor::Black},
-        {Items::RED_DYE, DyeColor::Red},
-        {Items::GREEN_DYE, DyeColor::Green},
-        {Items::COCOA_BEANS, DyeColor::Brown},
-        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
-        {Items::PURPLE_DYE, DyeColor::Purple},
-        {Items::CYAN_DYE, DyeColor::Cyan},
-        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
-        {Items::GRAY_DYE, DyeColor::Gray},
-        {Items::PINK_DYE, DyeColor::Pink},
-        {Items::LIME_DYE, DyeColor::Lime},
-        {Items::YELLOW_DYE, DyeColor::Yellow},
-        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
-        {Items::MAGENTA_DYE, DyeColor::Magenta},
-        {Items::ORANGE_DYE, DyeColor::Orange},
-        {Items::WHITE_DYE, DyeColor::White},
-        {Items::BONE_MEAL, DyeColor::White},
-    };
-
-    auto it = dyeMap.find(item);
-    if (it != dyeMap.end()) {
-        return it->second;
-    }
-    return std::nullopt;
+    return item::DyeItemHelper::dyeColorOfItem(item);
 }
 
 bool WolfEntity::_canArmorAbsorb(const DamageSource& source) const
