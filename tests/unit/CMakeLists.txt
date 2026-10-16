@@ -1558,6 +1558,8 @@ add_executable(mc_tests
     common/world/gen/chunk/WorldGenRegionAccessTest.cpp
     # Timeline 时间线体系单元测试（关键帧采样语义、预定义村民日程）
     common/world/timeline/TimelineTest.cpp
+    # EasingType 缓动函数（端点收敛、单调性、具体数值锚定）测试
+    common/world/timeline/EasingTypeTest.cpp
     # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
     common/world/chunk/gen/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
