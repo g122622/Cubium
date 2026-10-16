@@ -165,6 +165,8 @@ add_executable(mc_tests
     common/item/special/BrushItemTest.cpp
     # SpawnEggItem 刷怪蛋物品测试（spawnEntity 反查 EntityRegistry、onItemUse/onItemRightClick Java 行为对齐）
     common/item/items/special/SpawnEggItemTest.cpp
+    # DyeItemHelper 染料判定测试（16 种 *_dye 全集；ink_sac/cocoa_beans/bone_meal 非染料）
+    common/item/items/DyeItemHelperTest.cpp
     # 调试棒 + 光源方块 / 测试方块单元测试（GameTest 框架调试内容）
     common/item/special/DebugStickItemTest.cpp
     # 工具 / 特殊物品（盔甲架、末影水晶、物品展示框、山羊角、望远镜、蝌蚪桶、不死图腾）

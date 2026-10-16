@@ -68,8 +68,7 @@ JavaItemIdMap& JavaItemIdMap::instance()
 static const std::unordered_map<std::string, std::string>& itemLocationAliases()
 {
     static const std::unordered_map<std::string, std::string> kAliases = {
-        {"minecraft:grass", "minecraft:short_grass"},             // 旧名 grass → 1.21.11 short_grass(202)
-        {"minecraft:lapis_lazuli_dye", "minecraft:lapis_lazuli"}, // 旧名 → 1.21.11 lapis_lazuli(900)
+        {"minecraft:grass", "minecraft:short_grass"}, // 旧名 grass → 1.21.11 short_grass(202)
     };
     return kAliases;
 }

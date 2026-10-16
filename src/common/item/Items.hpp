@@ -481,7 +481,6 @@ public:
     static Item* RED_DYE;
     static Item* GREEN_DYE;
     static Item* COCOA_BEANS;
-    static Item* LAPIS_LAZULI_DYE;
     static Item* PURPLE_DYE;
     static Item* CYAN_DYE;
     static Item* LIGHT_GRAY_DYE;

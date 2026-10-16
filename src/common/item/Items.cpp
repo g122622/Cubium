@@ -490,7 +490,6 @@ Item* Items::INK_SAC = nullptr;
 Item* Items::RED_DYE = nullptr;
 Item* Items::GREEN_DYE = nullptr;
 Item* Items::COCOA_BEANS = nullptr;
-Item* Items::LAPIS_LAZULI_DYE = nullptr;
 Item* Items::PURPLE_DYE = nullptr;
 Item* Items::CYAN_DYE = nullptr;
 Item* Items::LIGHT_GRAY_DYE = nullptr;
@@ -2645,9 +2644,6 @@ void Items::_registerDyes()
 
     COCOA_BEANS =
         &registerBlockBackedItem(registry, VanillaBlocks::COCOA, "cocoa_beans", ItemProperties().maxStackSize(64));
-
-    LAPIS_LAZULI_DYE =
-        &registry.registerItem(ResourceLocation("minecraft:lapis_lazuli_dye"), ItemProperties().maxStackSize(64));
 
     PURPLE_DYE = &registry.registerItem(ResourceLocation("minecraft:purple_dye"), ItemProperties().maxStackSize(64));
 

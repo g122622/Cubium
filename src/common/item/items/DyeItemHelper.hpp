@@ -39,13 +39,13 @@ namespace item {
  *
  * 1.21.11 的染料是 DyeItem 子类（`item instanceof DyeItem`）；本项目未建模 DyeItem 类，
  * 染料在注册表里是普通 Item，故此处以物品指针集合表达同一语义，供所有"物品→染料"
- * 判定点复用（盔甲染色配方、烟花之星配方、烟花之星渐变色配方）。
+ * 判定点复用（盔甲染色配方、烟花之星配方、烟花之星渐变色配方、织布机染色槽、
+ * 狼/猫项圈染色、狼铠染色）。
  *
- * 覆盖的物品集合与 vanilla 的 DyeItem 实例一致：16 种 *_dye，外加 ink_sac（黑）与
- * cocoa_beans（棕）——后两者在 vanilla 中同样是 DyeItem 实例。
- *
- * @note 项目同时注册了旧名 `minecraft:lapis_lazuli_dye` 与 1.21.11 的 `minecraft:blue_dye`，
- * 二者都是蓝色染料（见 .cpp 的 TODO(命名迁移)）。
+ * 覆盖的物品集合与 vanilla 的 DyeItem 实例完全一致：仅 16 种 `*_dye`。
+ * ink_sac / cocoa_beans / bone_meal 在 vanilla 中**不是** DyeItem（分别是 InkSacItem /
+ * BlockItem / BoneMealItem），它们只在合成配方里作为对应染料的原料，不能直接用于
+ * `instanceof DyeItem` 判定点（项圈染色、盔甲染色、织布机等）。
  */
 class DyeItemHelper {
 public:

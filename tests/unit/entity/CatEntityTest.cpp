@@ -928,7 +928,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeOwner_ChangesCollarColor)
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid)); // 主人（profile UUID）
     player.abilities().creativeMode = false;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
@@ -937,7 +937,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeOwner_ChangesCollarColor)
     // 返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
 
-    // 项圈颜色应该变为蓝色（LAPIS_LAZULI_DYE 映射到 Blue）
+    // 项圈颜色应该变为蓝色（BLUE_DYE 映射到 Blue）
     EXPECT_EQ(cat.getCollarColor(), DyeColor::Blue);
 
     // 物品应该消耗
@@ -959,7 +959,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeNonOwner_NoCollarChange)
     Player player(EntityInstanceId(2), "OtherPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kOtherUuid)); // 非主人（profile UUID）
     player.abilities().creativeMode = false;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
@@ -1009,15 +1009,17 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeSameColor_NoConsumption)
     EXPECT_EQ(countAfter, countBefore);
 }
 
-TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealDye_WhiteCollar)
+TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealNotDye_CollarUnchanged)
 {
-    // 骨粉作为白色染料
+    // 骨粉不是染料（vanilla 中 BoneMealItem，非 DyeItem），不能给项圈染色
     CatTestWorld world;
     CatEntity cat(EntityInstanceId(1), mc::test::testEcsRegistry());
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(kTestOwnerUuid);
+    EXPECT_EQ(cat.getCollarColor(), DyeColor::Red); // 默认红色
+    EXPECT_FALSE(cat.isSitting());                  // 默认站立
 
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
@@ -1028,20 +1030,28 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_BoneMealDye_WhiteCollar)
 
     ActionResultType result = cat.interactMob(player, Hand::MainHand);
 
+    // 骨粉非染料，落入主人坐下/站起切换分支
     EXPECT_EQ(result, ActionResultType::Success);
-    // 骨粉映射到白色
-    EXPECT_EQ(cat.getCollarColor(), DyeColor::White);
+    // 项圈颜色保持不变
+    EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
+    // 物品不消耗
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
+    // 坐下状态被切换——这是"非染料走坐下分支"与"被误判为当前红色染料（提前 Success 返回、
+    // 不切换坐下）"的关键区分点
+    EXPECT_TRUE(cat.isSitting());
 }
 
-TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacDye_BlackCollar)
+TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacNotDye_CollarUnchanged)
 {
-    // 墨囊作为黑色染料
+    // 墨囊不是染料（vanilla 中 InkSacItem，非 DyeItem），不能给项圈染色
     CatTestWorld world;
     CatEntity cat(EntityInstanceId(1), mc::test::testEcsRegistry());
     cat.setWorld(&world);
     cat.setTypeId("minecraft:cat");
     cat.setTamed(true);
     cat.setOwnerId(kTestOwnerUuid);
+    EXPECT_EQ(cat.getCollarColor(), DyeColor::Red); // 默认红色
+    EXPECT_FALSE(cat.isSitting());                  // 默认站立
 
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
@@ -1052,9 +1062,14 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_InkSacDye_BlackCollar)
 
     ActionResultType result = cat.interactMob(player, Hand::MainHand);
 
+    // 墨囊非染料，落入主人坐下/站起切换分支
     EXPECT_EQ(result, ActionResultType::Success);
-    // 墨囊映射到黑色
-    EXPECT_EQ(cat.getCollarColor(), DyeColor::Black);
+    // 项圈颜色保持不变
+    EXPECT_EQ(cat.getCollarColor(), DyeColor::Red);
+    // 物品不消耗
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
+    // 坐下状态被切换（见上一条用例的区分点说明）
+    EXPECT_TRUE(cat.isSitting());
 }
 
 TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeCreativeMode_NoConsumption)
@@ -1070,7 +1085,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_DyeCreativeMode_NoConsumption)
     Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kTestOwnerUuid));
     player.abilities().creativeMode = true;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
@@ -1348,7 +1363,7 @@ TEST_F(CatEntityTestFixture, InteractMob_TamedCat_NonOwnerDye_NoCollarChange)
     Player player(EntityInstanceId(2), "OtherPlayer", mc::test::testEcsRegistry());
     player.setUuid(util::uuidToString(kOtherUuid)); // 非主人（profile UUID）
     player.abilities().creativeMode = false;
-    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    ItemStack dyeStack(Items::BLUE_DYE, 10);
     player.inventory().setItem(0, dyeStack);
     player.inventory().setSelectedSlot(0);
 
