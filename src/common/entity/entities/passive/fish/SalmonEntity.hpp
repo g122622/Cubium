@@ -32,6 +32,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 
@@ -55,7 +56,9 @@ public:
      * 对齐 vanilla 1.21.11 Salmon.Variant：id 用于同步数据，boundingBoxScale 用于
      * 碰撞箱缩放（small 0.5 / medium 1.0 / large 1.5），DEFAULT = Medium。
      */
-    enum class Variant : i32 {
+    // 底层类型用 std::uint8_t：取值范围仅 0-2，i32 会触发 clang-tidy performance-enum-size。
+    // 与同步数据边界（DATA_TYPE_PARAM 为 i32）之间以显式 static_cast 转换。
+    enum class Variant : std::uint8_t {
         Small = 0,  ///< 小型（缩放 0.5）
         Medium = 1, ///< 中型（缩放 1.0，默认）
         Large = 2   ///< 大型（缩放 1.5）
@@ -101,8 +104,7 @@ public:
     SalmonEntity& operator=(SalmonEntity&&) noexcept = delete;
 
     /// 本类继承链标识（parent = AbstractGroupFishEntity::classInfo()）。见 Entity::classInfo()。
-    // vanilla 1.21.11 Salmon 自带 DATA_TYPE@17(Int，体型 small/medium/large=0/1/2)，
-    // 见 registerData。项目体型业务联动暂未实现，占位 id17 对齐 vanilla 字段表上限。
+    // vanilla 1.21.11 Salmon 自带 DATA_TYPE@17(Int，体型 small/medium/large=0/1/2)，见 registerData。
     static const entity::EntityClassInfo& classInfo();
 
     /**
@@ -123,15 +125,14 @@ public:
     /// 获取当前体型
     [[nodiscard]] Variant getVariant() const { return variantById(m_dataManager.get<i32>(DATA_TYPE_PARAM)); }
 
-    /// 设置体型（写入同步数据参数）
-    void setVariant(Variant variant) { m_dataManager.set(DATA_TYPE_PARAM, static_cast<i32>(variant)); }
+    /// 设置体型（写入同步数据参数并刷新碰撞箱尺寸，对齐 vanilla Salmon.setVariant→refreshDimensions）
+    void setVariant(Variant variant);
 
     /// 生成时随机体型所用的权重分母（对齐 vanilla WeightedList：small 30 / medium 50 / large 15）
     static constexpr i32 VARIANT_SMALL_WEIGHT = 30;
     static constexpr i32 VARIANT_MEDIUM_WEIGHT = 50;
     static constexpr i32 VARIANT_LARGE_WEIGHT = 15;
-    static constexpr i32 VARIANT_TOTAL_WEIGHT =
-        VARIANT_SMALL_WEIGHT + VARIANT_MEDIUM_WEIGHT + VARIANT_LARGE_WEIGHT;
+    static constexpr i32 VARIANT_TOTAL_WEIGHT = VARIANT_SMALL_WEIGHT + VARIANT_MEDIUM_WEIGHT + VARIANT_LARGE_WEIGHT;
 
     /**
      * @brief 碰撞箱宽度（按体型缩放）
@@ -158,9 +159,15 @@ public:
     [[nodiscard]] i32 getMaxGroupSize() const override { return 5; }
 
     /**
-     * @brief 获取眼睛高度
+     * @brief 获取眼睛高度（按体型缩放）
+     *
+     * 对齐 vanilla EntityDimensions.scale：尺寸整体缩放时眼高同比例缩放，
+     * 否则 small/large 鲑鱼的视线查询仍按 medium 的眼高定位。
      */
-    [[nodiscard]] f32 eyeHeight() const override { return 0.1f; }
+    [[nodiscard]] f32 eyeHeight() const override { return BASE_EYE_HEIGHT * variantScale(getVariant()); }
+
+    /// 中型鲑鱼的基础眼高（缩放基准，对齐 EntityType 登记值）
+    static constexpr f32 BASE_EYE_HEIGHT = 0.1f;
 
     /**
      * @brief 获取扑腾声音

@@ -35,6 +35,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -56,8 +57,7 @@ public:
 };
 
 /// 生成测试用世界（BaseTestWorld 构造函数为 protected，须派生）
-class SalmonTestWorld final : public mc::test::BaseTestWorld {
-};
+class SalmonTestWorld final : public mc::test::BaseTestWorld {};
 
 } // namespace
 
@@ -126,6 +126,17 @@ TEST_F(SalmonEntityTest, Dimensions_ScaleByVariant)
     const f32 mediumWidth = salmon->width();
     const f32 mediumHeight = salmon->height();
 
+    // 锚定绝对值：中型=登记尺寸 (0.7 x 0.4)。若实现恒返回 0，下面的比例断言会全部通过，
+    // 故必须先断言非零且等于 EntityType 登记值，才能真正锁定缩放逻辑。
+    ASSERT_GT(mediumWidth, 0.0f);
+    ASSERT_GT(mediumHeight, 0.0f);
+    const entity::EntityType* type = salmon->entityType();
+    ASSERT_NE(type, nullptr);
+    EXPECT_FLOAT_EQ(mediumWidth, type->size().width());
+    EXPECT_FLOAT_EQ(mediumHeight, type->size().height());
+    EXPECT_FLOAT_EQ(mediumWidth, 0.7f);
+    EXPECT_FLOAT_EQ(mediumHeight, 0.4f);
+
     salmon->setVariant(SalmonEntity::Variant::Large);
     EXPECT_FLOAT_EQ(salmon->width(), mediumWidth * 1.5f);
     EXPECT_FLOAT_EQ(salmon->height(), mediumHeight * 1.5f);
@@ -133,6 +144,20 @@ TEST_F(SalmonEntityTest, Dimensions_ScaleByVariant)
     salmon->setVariant(SalmonEntity::Variant::Small);
     EXPECT_FLOAT_EQ(salmon->width(), mediumWidth * 0.5f);
     EXPECT_FLOAT_EQ(salmon->height(), mediumHeight * 0.5f);
+}
+
+TEST_F(SalmonEntityTest, EyeHeight_ScalesByVariant)
+{
+    // 对齐 vanilla EntityDimensions.scale：眼高同尺寸比例缩放。
+    salmon->setVariant(SalmonEntity::Variant::Medium);
+    const f32 mediumEye = salmon->eyeHeight();
+    ASSERT_GT(mediumEye, 0.0f);
+
+    salmon->setVariant(SalmonEntity::Variant::Large);
+    EXPECT_FLOAT_EQ(salmon->eyeHeight(), mediumEye * 1.5f);
+
+    salmon->setVariant(SalmonEntity::Variant::Small);
+    EXPECT_FLOAT_EQ(salmon->eyeHeight(), mediumEye * 0.5f);
 }
 
 // ==================== NBT 往返 ====================
@@ -162,31 +187,46 @@ TEST_F(SalmonEntityTest, NbtRoundTrip_EmptyTagDefaultsToMedium)
 
 // ==================== 生成权重 ====================
 
-TEST_F(SalmonEntityTest, FinalizeSpawn_WeightedVariantCoverage)
+TEST_F(SalmonEntityTest, FinalizeSpawn_DistributionMatchesWeights)
 {
-    // 多次 finalizeSpawn，三种体型都应至少在统计上出现（权重 30/50/15 无零权重项）
+    // 统计 4000 次 finalizeSpawn 的各体型占比，验证确实按权重 30/50/15 分布，
+    // 而非"三种都出现过"这种弱断言（均匀分布也能通过覆盖率断言）。
     SalmonTestWorld world;
     entity::combat::DifficultyInstance difficulty = entity::combat::DifficultyInstance::at(world, BlockPos(0, 64, 0));
 
-    bool sawSmall = false;
-    bool sawMedium = false;
-    bool sawLarge = false;
-    for (i32 i = 0; i < 500; ++i) {
+    constexpr i32 kTrials = 4000;
+    i32 smallCount = 0;
+    i32 mediumCount = 0;
+    i32 largeCount = 0;
+    for (i32 i = 0; i < kTrials; ++i) {
         salmon->finalizeSpawn(world, difficulty, world::spawn::SpawnReason::Natural);
         switch (salmon->getVariant()) {
             case SalmonEntity::Variant::Small:
-                sawSmall = true;
+                ++smallCount;
                 break;
             case SalmonEntity::Variant::Medium:
-                sawMedium = true;
+                ++mediumCount;
                 break;
             case SalmonEntity::Variant::Large:
-                sawLarge = true;
+                ++largeCount;
                 break;
         }
     }
 
-    EXPECT_TRUE(sawSmall);
-    EXPECT_TRUE(sawMedium);
-    EXPECT_TRUE(sawLarge);
+    // 三种体型都必须出现（无零权重项）
+    EXPECT_GT(smallCount, 0);
+    EXPECT_GT(mediumCount, 0);
+    EXPECT_GT(largeCount, 0);
+
+    // 期望占比 30/95≈0.3158、50/95≈0.5263、15/95≈0.1579；容差 ±0.06 足以区分均匀分布(0.333)。
+    const f64 smallRatio = static_cast<f64>(smallCount) / kTrials;
+    const f64 mediumRatio = static_cast<f64>(mediumCount) / kTrials;
+    const f64 largeRatio = static_cast<f64>(largeCount) / kTrials;
+    EXPECT_NEAR(smallRatio, 30.0 / 95.0, 0.06);
+    EXPECT_NEAR(mediumRatio, 50.0 / 95.0, 0.06);
+    EXPECT_NEAR(largeRatio, 15.0 / 95.0, 0.05);
+
+    // medium 应是三者中最常见的（权重最大）
+    EXPECT_GT(mediumCount, smallCount);
+    EXPECT_GT(mediumCount, largeCount);
 }

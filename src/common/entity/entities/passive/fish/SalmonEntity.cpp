@@ -30,9 +30,9 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/fish/AbstractGroupFishEntity.hpp"
-#include "common/entity/core/EntityType.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
@@ -118,6 +118,14 @@ std::optional<ResourceLocation> SalmonEntity::getHurtSound(DamageSource& /*sourc
 ItemStack SalmonEntity::getBucketItemStack() const
 {
     return ItemStack(Items::SALMON_BUCKET, 1);
+}
+
+void SalmonEntity::setVariant(Variant variant)
+{
+    m_dataManager.set(DATA_TYPE_PARAM, static_cast<i32>(variant));
+    // 对齐 vanilla Salmon.setVariant → refreshDimensions()：体型改变后立即重算碰撞箱，
+    // 否则 width()/height() 的新缩放要到下次尺寸刷新才生效。
+    refreshDimensions();
 }
 
 f32 SalmonEntity::width() const
