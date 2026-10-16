@@ -79,7 +79,7 @@ src/common/item/crafting/special/
 | `item/core/ItemStack.hpp` | 物品堆操作、NBT 数据 |
 | `item/Items.hpp` | 物品静态引用 |
 | `item/items/DyeItemHelper.hpp` | 染料物品判定与颜色（ArmorDye/FireworkStar/FireworkStarFade 共用） |
-| `item/component/FireworkExplosion.hpp`、`Firework.hpp` | 烟花爆炸/火箭数据组件载荷 |
+| `item/component/FireworkExplosion.hpp`、`Fireworks.hpp` | 烟花爆炸/火箭数据组件载荷 |
 | `item/tag/ItemTags.hpp` | 物品标签（DecoratedPotRecipe 使用 DECORATED_POT_INGREDIENTS） |
 | `entity/inventory/CraftingInventory.hpp` | 合成容器接口 |
 | `world/blockentity/interactive/DecoratedPotBlockEntity.hpp` | 饰纹陶罐图案与物品创建（DecoratedPotRecipe） |

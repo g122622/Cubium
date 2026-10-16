@@ -31,12 +31,10 @@ namespace item {
 
 namespace {
 
-using _DyeMap = std::unordered_map<const Item*, DyeColor>;
-
 /// 物品 → 染料颜色映射（与 vanilla 的 DyeItem 实例集合一一对应）
-const _DyeMap& _dyeColorMap()
+const std::unordered_map<const Item*, DyeColor>& _dyeColorMap()
 {
-    static const _DyeMap map = {
+    static const std::unordered_map<const Item*, DyeColor> map = {
         {Items::WHITE_DYE, DyeColor::White},
         {Items::ORANGE_DYE, DyeColor::Orange},
         {Items::MAGENTA_DYE, DyeColor::Magenta},
@@ -58,7 +56,7 @@ const _DyeMap& _dyeColorMap()
         {Items::GREEN_DYE, DyeColor::Green},
         {Items::RED_DYE, DyeColor::Red},
         {Items::BLACK_DYE, DyeColor::Black},
-        {Items::INK_SAC, DyeColor::Black},    // vanilla 中墨囊是 DyeItem(BLACK)
+        {Items::INK_SAC, DyeColor::Black},     // vanilla 中墨囊是 DyeItem(BLACK)
         {Items::COCOA_BEANS, DyeColor::Brown}, // vanilla 中可可豆是 DyeItem(BROWN)
     };
     return map;

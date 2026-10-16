@@ -58,6 +58,7 @@
 #include <variant>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -307,6 +308,21 @@ void ItemStack::setFireworkExplosion(item::component::FireworkExplosion explosio
 
 void ItemStack::setFireworks(item::component::Fireworks fireworks)
 {
+    // 本方法是所有写入路径（JSON/wire/NBT 读取与直接调用）的唯一收口，在此统一规范化，
+    // 避免下游按未校验的值分配/编码。两处约束来自 vanilla Fireworks：
+    // 1. flight_duration 是 UNSIGNED_BYTE（NBT/JSON 侧 0..255，超出即无法回写）；
+    // 2. explosions 上限 256（构造函数对超限抛 IllegalArgumentException）。
+    using item::component::Fireworks;
+    if (fireworks.flightDuration < 0 || fireworks.flightDuration > 255) {
+        spdlog::warn("Clamping firework flight duration from {} to the range [0, 255]", fireworks.flightDuration);
+        fireworks.flightDuration = std::clamp(fireworks.flightDuration, 0, 255);
+    }
+    if (fireworks.explosions.size() > static_cast<usize>(Fireworks::MAX_EXPLOSIONS)) {
+        spdlog::warn("Truncating firework explosions from {} to the maximum of {}",
+            fireworks.explosions.size(),
+            Fireworks::MAX_EXPLOSIONS);
+        fireworks.explosions.resize(static_cast<usize>(Fireworks::MAX_EXPLOSIONS));
+    }
     _ensureExtras().fireworks = std::move(fireworks);
 }
 
@@ -1010,12 +1026,26 @@ item::component::FireworkExplosion ItemStack::_fireworkExplosionFromJson(const n
         explosion.shape = item::component::fireworkShapeFromName(json["shape"].get<std::string>())
                               .value_or(item::component::FireworkShape::SmallBall);
     }
-    if (json.contains("colors") && json["colors"].is_array()) {
-        explosion.colors = json["colors"].get<std::vector<i32>>();
-    }
-    if (json.contains("fade_colors") && json["fade_colors"].is_array()) {
-        explosion.fadeColors = json["fade_colors"].get<std::vector<i32>>();
-    }
+    // 逐元素校验为整数后再收集：`get<std::vector<i32>>()` 遇到非整元素会抛异常，
+    // 而 JSON 可能来自数据包/命令等不可信输入。
+    auto readColors = [&json](const char* key) {
+        std::vector<i32> colors;
+        auto it = json.find(key);
+        if (it == json.end() || !it->is_array()) {
+            return colors;
+        }
+        colors.reserve(it->size());
+        for (const auto& element : *it) {
+            if (element.is_number_integer()) {
+                colors.push_back(element.get<i32>());
+            } else {
+                spdlog::warn("Ignoring non-integer firework color entry in '{}'", key);
+            }
+        }
+        return colors;
+    };
+    explosion.colors = readColors("colors");
+    explosion.fadeColors = readColors("fade_colors");
     if (json.contains("has_trail") && json["has_trail"].is_boolean()) {
         explosion.hasTrail = json["has_trail"].get<bool>();
     }
@@ -1565,6 +1595,67 @@ void ItemStack::applyLegacyTagCompound(ItemStack& stack, const nbt::tags::compou
         if (!parsed.is_discarded() && parsed.is_object()) {
             stack._ensureExtras().customData = parsed;
         }
+    }
+
+    // 旧 1.16.5 的烟花数据是 Fireworks NBT 复合标签（Flight + Explosions），
+    // 迁入 1.21.11 的 fireworks 组件。旧字段名与取值都是 1.16.5 语义：
+    // Flight 为飞行等级（本项目的飞行等级 = 1 + flight_duration），Explosions 各项
+    // 用大驼峰键名（Shape 为 byte 形状 id、Colors/FadeColors 为 int 列表、Trail/Flicker 为 byte 布尔）。
+    it = tagCompound.value.find("Fireworks");
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::Compound) {
+        const auto& legacyFireworks = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
+        item::component::Fireworks fireworks{};
+
+        auto flightIt = legacyFireworks.value.find("Flight");
+        if (flightIt != legacyFireworks.value.end()) {
+            i32 flightLevel = 0;
+            if (flightIt->second->id() == nbt::TagId::Byte) {
+                // 先转 u8 再转 i32：byte_tag 的值是有符号 i8，直接提升会把 >127 的值变负。
+                flightLevel = static_cast<u8>(dynamic_cast<const nbt::tags::byte_tag&>(*flightIt->second).value);
+            } else if (flightIt->second->id() == nbt::TagId::Int) {
+                flightLevel = dynamic_cast<const nbt::tags::int_tag&>(*flightIt->second).value;
+            }
+            // 旧 Flight 是飞行等级，组件承载的是 flight_duration（等级 - 1）。
+            fireworks.flightDuration = std::max(0, flightLevel - 1);
+        }
+
+        auto explosionsIt = legacyFireworks.value.find("Explosions");
+        if (explosionsIt != legacyFireworks.value.end() && explosionsIt->second->id() == nbt::TagId::List) {
+            const auto* list = dynamic_cast<const nbt::tags::compound_list_tag*>(explosionsIt->second.get());
+            if (list != nullptr) {
+                for (const auto& element : list->value) {
+                    item::component::FireworkExplosion explosion{};
+                    auto shapeIt = element.value.find("Shape");
+                    if (shapeIt != element.value.end() && shapeIt->second->id() == nbt::TagId::Byte) {
+                        explosion.shape = item::component::fireworkShapeById(
+                            dynamic_cast<const nbt::tags::byte_tag&>(*shapeIt->second).value);
+                    }
+                    auto readLegacyColors = [&element](const char* key) {
+                        std::vector<i32> colors;
+                        auto colorsIt = element.value.find(key);
+                        if (colorsIt == element.value.end() || colorsIt->second->id() != nbt::TagId::List) {
+                            return colors;
+                        }
+                        const auto* colorList = dynamic_cast<const nbt::tags::int_list_tag*>(colorsIt->second.get());
+                        if (colorList != nullptr) {
+                            colors = colorList->value;
+                        }
+                        return colors;
+                    };
+                    explosion.colors = readLegacyColors("Colors");
+                    explosion.fadeColors = readLegacyColors("FadeColors");
+                    auto readLegacyFlag = [&element](const char* key) {
+                        auto flagIt = element.value.find(key);
+                        return flagIt != element.value.end() && flagIt->second->id() == nbt::TagId::Byte &&
+                            dynamic_cast<const nbt::tags::byte_tag&>(*flagIt->second).value != 0;
+                    };
+                    explosion.hasTrail = readLegacyFlag("Trail");
+                    explosion.hasTwinkle = readLegacyFlag("Flicker");
+                    fireworks.explosions.push_back(std::move(explosion));
+                }
+            }
+        }
+        stack.setFireworks(std::move(fireworks));
     }
 }
 
