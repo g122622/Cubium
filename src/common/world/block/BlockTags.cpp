@@ -820,6 +820,15 @@ BlockTag& BlockTags::CLIMBABLE()
     return *tag;
 }
 
+BlockTag& BlockTags::CAN_GLIDE_THROUGH()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "can_glide_through"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::FALL_DAMAGE_RESETTING()
 {
     static BlockTag* tag = nullptr;
@@ -3669,6 +3678,21 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "cave_vines"),
         ResourceLocation("minecraft", "cave_vines_plant")});
     tags[climbable->getId()] = std::move(climbable);
+
+    // 创建 CAN_GLIDE_THROUGH 标签（鞘翅滑翔可穿透方块）
+    // vanilla 定义（can_glide_through.json）：vine、twisting_vines、twisting_vines_plant、
+    // weeping_vines、weeping_vines_plant、#cave_vines（= cave_vines + cave_vines_plant）。
+    // 运行时消费：Entity::isOnLadder 在鞘翅滑翔状态下跳过本标签方块的攀爬判定
+    // （vanilla LivingEntity.onClimbable:1686-1687）。
+    auto canGlideThrough = std::make_unique<BlockTag>(ResourceLocation("minecraft", "can_glide_through"));
+    canGlideThrough->addAll({ResourceLocation("minecraft", "vine"),
+        ResourceLocation("minecraft", "twisting_vines"),
+        ResourceLocation("minecraft", "twisting_vines_plant"),
+        ResourceLocation("minecraft", "weeping_vines"),
+        ResourceLocation("minecraft", "weeping_vines_plant"),
+        ResourceLocation("minecraft", "cave_vines"),
+        ResourceLocation("minecraft", "cave_vines_plant")});
+    tags[canGlideThrough->getId()] = std::move(canGlideThrough);
 
     // 创建 FALL_DAMAGE_RESETTING 标签（摔落伤害重置方块）
     // vanilla 定义（fall_damage_resetting.json）：#climbable + sweet_berry_bush + cobweb。

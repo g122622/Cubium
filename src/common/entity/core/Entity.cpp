@@ -930,8 +930,14 @@ bool Entity::isOnLadder() const
                 if (blockState != nullptr) {
                     // CLIMBABLE 标签覆盖梯子/藤蔓/脚手架/垂泪藤/扭曲藤/洞穴藤蔓。垂泪藤、扭曲藤、
                     // 洞穴藤蔓（含 _plant 变体）未重写 isLadder 虚函数，仅靠此标签查询即可触发攀爬物理。
-                    // TODO: vanilla 另有一条例外——鞘翅滑翔中且方块在 CAN_GLIDE_THROUGH 标签内时不攀爬。
-                    //       Cubium 尚未注册 CAN_GLIDE_THROUGH 标签，此处未实现该例外。
+                    //
+                    // 例外（vanilla LivingEntity.onClimbable:1686-1687）：实体处于鞘翅滑翔
+                    // （isElytraFlying，等价 vanilla isFallFlying）且所在方块属 CAN_GLIDE_THROUGH
+                    // 标签（藤蔓类）时不算攀爬——使滑翔穿过藤蔓不被"黏住"而中断。
+                    if (tagsReady && isElytraFlying() && BlockTags::CAN_GLIDE_THROUGH().contains(*blockState)) {
+                        continue;
+                    }
+
                     if (tagsReady && BlockTags::CLIMBABLE().contains(*blockState)) {
                         const_cast<Entity*>(this)->m_lastClimbPos = BlockPos(x, y, z);
                         return true;
