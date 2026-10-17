@@ -1,4 +1,119 @@
-# 测试素材（真实存档、二进制样本）：禁止换行转换，并禁用文本差异。
+# 换行符与文本/二进制归属规则。
+#
+# 背景：本仓库由 Windows（core.autocrlf=true，系统级配置）与 macOS/Linux 共同维护。
+# 若缺少 .gitattributes，git 会以工作区全局配置决定换行符，导致同一文件在不同机器上
+# 检出为 CRLF 或 LF，产生整文件级的伪 diff，并掩盖真实改动。此文件随仓库分发，对所有
+# 协作者强制生效，不受个人 core.autocrlf 设置影响。
+#
+# 规则优先级：gitattributes 中后出现的规则覆盖先出现的规则，因此"特例"必须写在通配之后。
+
+# ---- 默认：文本文件在仓库内统一以 LF 存储，检出时也一律为 LF ----
+# eol=lf 的含义：无论克隆到哪个操作系统，工作区检出的文本文件都使用 LF。
+# 这从根本上消除了 Windows 上检出时被转成 CRLF 的可能。
+* text=auto eol=lf
+
+# ---- 显式指定常见源码/文本扩展名（与上一条效果一致，列出自证用途并固定归属）----
+*.c        text eol=lf
+*.cc       text eol=lf
+*.cpp      text eol=lf
+*.cxx      text eol=lf
+*.h        text eol=lf
+*.hh       text eol=lf
+*.hpp      text eol=lf
+*.hxx      text eol=lf
+*.inl      text eol=lf
+*.ipp      text eol=lf
+*.cmake    text eol=lf
+CMakeLists.txt text eol=lf
+*.txt      text eol=lf
+*.md       text eol=lf
+*.json     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.toml     text eol=lf
+*.py       text eol=lf
+*.ts       text eol=lf
+*.js       text eol=lf
+*.mjs      text eol=lf
+*.tsx      text eol=lf
+*.jsx      text eol=lf
+*.glsl     text eol=lf
+*.frag     text eol=lf
+*.vert     text eol=lf
+*.comp     text eol=lf
+*.geom     text eol=lf
+*.tpl      text eol=lf
+*.html     text eol=lf
+*.css      text eol=lf
+*.xml      text eol=lf
+*.sh       text eol=lf
+*.bat      text eol=lf
+*.ps1      text eol=lf
+
+# ---- 二进制文件：禁止任何换行转换与文本 diff ----
+# 说明：下方 tests/unit/testdata/** 规则已覆盖测试素材目录；此处再按扩展名兜底，
+# 是因为仓库中另有位于 testdata 之外的二进制（docs/logo.png、tech_report/images/*.png、
+# scripts/__pycache__/*.pyc、agent/agent-taskdb/*.ldb 等）。若不显式声明，* text=auto
+# 会尝试按文本处理它们，存在被改写、损坏的风险。
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.bmp      binary
+*.tif      binary
+*.tiff     binary
+*.webp     binary
+*.pdf      binary
+*.pyc      binary
+*.pyd      binary
+*.so       binary
+*.dylib    binary
+*.dll      binary
+*.exe      binary
+*.lib      binary
+*.a        binary
+*.o        binary
+*.obj      binary
+*.jar      binary
+*.zip      binary
+*.gz       binary
+*.bz2      binary
+*.xz       binary
+*.7z       binary
+*.tar      binary
+*.ttf      binary
+*.otf      binary
+*.woff     binary
+*.woff2    binary
+*.ogg      binary
+*.mp3      binary
+*.wav      binary
+*.mca      binary
+*.mcr      binary
+*.mcstructure binary
+*.ldb      binary
+*.dat      binary
+*.dat_old  binary
+*.db       binary
+*.sqlite   binary
+*.bin      binary
+
+# ---- 日志与性能采样产物：有意保留 CRLF 原样 ----
+# 这些文件由 Windows 上的 Agent 与 profiler 工具持续追加写入，工具本身以 CRLF 落盘。
+# 强制转 LF 会导致每次追加都产生整文件 diff，且下次写入又变回 CRLF，形成反复抖动。
+#
+# 注意：此处必须用 binary 宏，不能用 -text 或 text eol=crlf：
+#   - text eol=crlf 只控制检出方向（smudge），索引中一律存 LF，无法保留 CRLF；
+#   - 手写的 -text 仍会走文本 clean 转换，CRLF 会被归一化为 LF；
+#   - binary（宏，展开为 -text -diff -merge）让 git 走二进制短路路径，完全跳过文本转换，
+#     索引字节与工作区字节逐一相同，是唯一能原样保留 CRLF 的写法。
+agent/agent-taskdb/LOG      binary
+agent/agent-taskdb/LOG.old  binary
+agent/agent-taskdb/LOCK     binary
+scripts/trace_analysis/**   binary
+
+# ---- 测试素材（真实存档、二进制样本）：禁止换行转换，并禁用文本差异 ----
 #
 # 为什么必须显式声明：Windows 上 core.autocrlf=true 时，若某个素材被判定为文本，
 # 检出阶段会改写其中的换行字节。.mca / .dat 内部多为压缩后的二进制，通常能被 git
@@ -6,3 +121,6 @@
 # .json 存在被误判为文本的余地。一旦被改写，读取测试会以"存档损坏"的形式失败，
 # 而根因在检出配置上，排查成本极高。此处显式声明为二进制，一并省去 .mca 参与 diff。
 tests/unit/testdata/** -text -diff
+
+# ---- 含非法 UTF-8 字节的文件：按二进制处理，避免规范化时报错 ----
+src/common/item/items/special/README.md -text
