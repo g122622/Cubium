@@ -850,7 +850,7 @@ void EnderDragonEntity::_onDeathUpdate()
             const BlockPos eventPos(static_cast<i32>(std::floor(x())),
                 static_cast<i32>(std::floor(y())),
                 static_cast<i32>(std::floor(z())));
-            worldPtr->gameEvent(gameevent::GameEvents::ENTITY_DIE, eventPos, gameevent::GameEvent::Context::of(this));
+            gameEvent(gameevent::GameEvents::ENTITY_DIE, eventPos);
         }
     }
 }

@@ -617,13 +617,10 @@ void WolfEntity::tick()
         // 对应 MC Wolf.tick() 第 332-335 行
         if (m_shakeAnim == 0.0f) {
             playShakingSound();
-            if (m_world != nullptr) {
-                m_world->gameEvent(gameevent::GameEvents::ENTITY_ACTION,
-                    BlockPos(static_cast<i32>(std::floor(x())),
-                        static_cast<i32>(std::floor(y())),
-                        static_cast<i32>(std::floor(z()))),
-                    gameevent::GameEvent::Context::of(this));
-            }
+            gameEvent(gameevent::GameEvents::ENTITY_ACTION,
+                BlockPos(static_cast<i32>(std::floor(x())),
+                    static_cast<i32>(std::floor(y())),
+                    static_cast<i32>(std::floor(z()))));
         }
 
         // 甩水进度推进（每 tick +0.05）

@@ -828,8 +828,8 @@ void LivingEntity::die(DamageSource& cause)
     //    （LivingEntity.java:1449-1454）
     if (m_world != nullptr) {
         // gameEvent(ENTITY_DIE)（LivingEntity.java:1451）
-        // TODO: Cubium 的 gameEvent 便捷方法尚未在 LivingEntity 引入，待补 gameEvent(event) 成员后替换为便捷调用。
-        m_world->gameEvent(gameevent::GameEvents::ENTITY_DIE, onPos(), gameevent::GameEvent::Context::of(this));
+        // 经 Entity::gameEvent(event, pos) 便捷方法触发（上下文为本实体）。
+        gameEvent(gameevent::GameEvents::ENTITY_DIE, onPos());
 
         // dropAllDeathLoot（LivingEntity.java:1452）
         // dropAllDeathLoot 内部按 shouldDropLoot(doMobLoot 守卫) 决定物品是否掉落，
@@ -2498,7 +2498,7 @@ void LivingEntity::updateFallFlying()
             BlockPos eventPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
-            m_world->gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos, gameevent::GameEvent::Context::of(this));
+            gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos);
         }
     }
 }

@@ -528,6 +528,20 @@ void Entity::playSound(const ResourceLocation& soundEventId, f32 volume, f32 pit
     m_world->playSound(soundEventId, getSoundCategory(), m_builtIn.stateVector->m_pos, volume, pitch);
 }
 
+void Entity::gameEvent(const gameevent::GameEvent& event) const
+{
+    gameEvent(event, onPos());
+}
+
+void Entity::gameEvent(const gameevent::GameEvent& event, const BlockPos& pos) const
+{
+    // 世界为空时安全无操作（测试桩/未挂载世界的实体）。
+    if (m_world == nullptr) {
+        return;
+    }
+    m_world->gameEvent(event, pos, gameevent::GameEvent::Context::of(this));
+}
+
 ResourceLocation Entity::getSplashSound() const
 {
     return SoundEvents::ENTITY_GENERIC_SPLASH;
