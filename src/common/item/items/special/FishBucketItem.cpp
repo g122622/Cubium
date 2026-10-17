@@ -30,6 +30,8 @@
 #include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/BucketableUtils.hpp"
+#include "common/entity/interfaces/IBucketable.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/ItemUseContext.hpp"
@@ -78,8 +80,12 @@ ActionResultType FishBucketItem::onItemUse(ItemUseContext& context)
     fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
     world.tickManager().scheduleFluidTick(placePos, *waterFluid, waterFluid->getTickDelay(world));
 
+    // 读取鱼桶携带的实体数据（BucketEntityData），放鱼时恢复。优先用玩家权威手持物
+    // （与后续 shrink/替换同一对象），无玩家时退回 context 拷贝。
+    const ItemStack& bucketStack = (player != nullptr) ? player->getHeldItem(hand) : context.getItemStack();
+
     // 在水中生成鱼
-    if (_spawnFish(world, placePos)) {
+    if (_spawnFish(world, placePos, bucketStack)) {
         // 返回空桶（对齐 Java 1.21.11 MobBucketItem.use：消耗手持鱼桶并替换为空桶）。
         // 必须直接操作玩家权威手持物（player->getHeldItem(hand) 返回引用），而非 context 拷贝——
         // ItemUseContext 内的 stack 是调用方局部拷贝，对其修改不回写权威物品栏。
@@ -111,7 +117,8 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
     if (player.isInWater()) {
         BlockPos spawnPos(static_cast<i32>(player.x()), static_cast<i32>(player.y()), static_cast<i32>(player.z()));
 
-        if (_spawnFish(world, spawnPos)) {
+        const ItemStack& bucketStack = player.getHeldItem(hand);
+        if (_spawnFish(world, spawnPos, bucketStack)) {
             if (!player.isCreative()) {
                 // 同 onItemUse：直接操作权威手持物，先 shrink 再 _returnEmptyBucket 替换为空桶
                 // （对齐 vanilla MobBucketItem.use）。
@@ -126,7 +133,7 @@ ItemActionResult FishBucketItem::onItemRightClick(IWorld& world, Player& player,
     return ItemActionResult::pass(player.getHeldItem(hand));
 }
 
-bool FishBucketItem::_spawnFish(IWorld& world, const BlockPos& pos) const
+bool FishBucketItem::_spawnFish(IWorld& world, const BlockPos& pos, const ItemStack& bucketStack) const
 {
     // 获取实体类型
     const entity::EntityType* fishType = entity::EntityRegistry::instance().getType(m_fishTypeName);
@@ -151,16 +158,16 @@ bool FishBucketItem::_spawnFish(IWorld& world, const BlockPos& pos) const
     f32 z = static_cast<f32>(pos.z) + 0.5f;
     fish->setPosition(x, y, z);
 
-    // 设置 FromBucket 标签，防止消失
-    auto* abstractFish = dynamic_cast<AbstractFishEntity*>(fish.get());
-    if (abstractFish != nullptr) {
-        abstractFish->setFromBucket(true);
-    }
-
-    // 美西螈也有类似的 FromBucket 标记
-    auto* axolotl = dynamic_cast<AxolotlEntity*>(fish.get());
-    if (axolotl != nullptr) {
-        axolotl->setFromBucket(true);
+    // 设置 FromBucket 标签并恢复桶携带的实体数据（对齐 vanilla MobBucketItem.spawn：
+    //   bucketable.loadFromBucketTag(customdata.copyTag()); bucketable.setFromBucket(true);
+    // 放出的实体不消失；变体/年龄/生命值等从桶 NBT 恢复）。
+    auto* bucketable = dynamic_cast<entity::IBucketable*>(fish.get());
+    if (bucketable != nullptr) {
+        // 读取桶的 BucketEntityData 子标签（无数据时为 null json，loadDefaultDataFromBucketTag 内判空）。
+        static const nlohmann::json kEmptyJson = nlohmann::json::object();
+        const nlohmann::json* data = bucketStack.getChildTag(entity::BUCKET_ENTITY_DATA_KEY);
+        bucketable->loadFromBucketTag(data != nullptr ? *data : kEmptyJson);
+        bucketable->setFromBucket(true);
     }
 
     // 生成实体

@@ -6,8 +6,10 @@
 
 ```
 interfaces/
+├── BucketableUtils.hpp/.cpp # 水桶装取工具（bucketMobPickup + 桶实体数据 save/load）
 ├── ContainerUser.hpp       # 容器使用者接口（非玩家实体打开容器，如铜傀儡）
 ├── IAngerable.hpp         # 愤怒接口，可记住攻击者并复仇
+├── IBucketable.hpp        # 可装桶接口（鱼/美西螈经此被水桶装取，携带桶实体数据）
 ├── ICrossbowUser.hpp      # 弩使用者接口（继承IRangedAttackMob）
 ├── IEquipable.hpp         # 可装备接口，支持鞍、马铠等装备槽
 ├── IFlinging.hpp/.cpp     # 撞飞型近战生物接口
@@ -58,6 +60,8 @@ ContainerUser 协作关系：
 4. **IAngerable 默认实现**：`updateAnger()` 提供了默认实现，子类需在 `tick()` 中显式调用。
 
 5. **IRideable::ride() 有实现**：不是纯虚函数，提供了默认的骑乘移动逻辑，子类可选择性重写。
+
+6. **IBucketable 的桶实体数据存于鱼桶 `BucketEntityData` 子标签**：`saveToBucketTag` 写、`loadFromBucketTag` 读，键名为 `entity::BUCKET_ENTITY_DATA_KEY`。装取（`BucketableUtils::bucketMobPickup`）与放鱼（`FishBucketItem::_spawnFish`）是同一份数据的写/读两端，二者必须成对维护：新增可持久化字段时，save 侧写入后须在 load 侧读回，否则「装桶→放桶」会静默丢失该字段（无报错）。子类恢复自身特有字段（如美西螈 Variant/Age）时，必须先调 `entity::loadDefaultDataFromBucketTag` 再叠加，勿跳过默认数据。
 
 6. **ContainerUser 与 MC 原版签名差异**：MC 1.21.11 的 `hasContainerOpen(ContainerOpenersCounter, BlockPos)` 接收两个参数；本项目简化为 `hasContainerOpen(const BlockPos&)`，MC 实现中未使用第一个参数，语义一致。`getLivingEntity()` 在 MC 中是 default 方法，本项目为纯虚函数，要求实现类同时继承 LivingEntity。
 

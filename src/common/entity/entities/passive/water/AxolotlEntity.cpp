@@ -58,7 +58,7 @@
 namespace mc {
 
 AxolotlEntity::AxolotlEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
-    : WaterMobEntity(id, registry)
+    : AgeableWaterCreatureEntity(id, registry)
 {
     // 设置空气值（6000 tick = 5分钟）
     setAir(MAX_AIR_SUPPLY);
@@ -337,10 +337,28 @@ std::optional<ResourceLocation> AxolotlEntity::getPickupSound() const
 void AxolotlEntity::saveToBucketTag(ItemStack& bucketStack) const
 {
     // 对齐 Java Axolotl.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag +
-    // Axolotl 额外保存 Variant/Age。
-    // TODO: Cubium FishBucketItem._spawnFish 当前不读桶 NBT（直接创建新鱼），saveToBucketTag
-    //       暂为空实现，待 FishBucketItem 支持桶 NBT 读取后补全变体/年龄保存恢复逻辑。
-    (void)bucketStack;
+    // Axolotl 额外保存 Variant/Age（持久化变体与幼体状态）。
+    entity::saveDefaultDataToBucketTag(*this, bucketStack);
+
+    nlohmann::json& data = bucketStack.getOrCreateChildTag(entity::BUCKET_ENTITY_DATA_KEY);
+    data["Variant"] = static_cast<i32>(m_variant);
+    data["Age"] = getGrowingAge();
+}
+
+void AxolotlEntity::loadFromBucketTag(const nlohmann::json& tag)
+{
+    // 对齐 Java Axolotl.loadFromBucketTag：先恢复默认数据，再恢复 Variant/Age。
+    entity::loadDefaultDataFromBucketTag(*this, tag);
+
+    if (!tag.is_object()) {
+        return;
+    }
+    if (tag.contains("Variant") && tag["Variant"].is_number_integer()) {
+        setVariant(static_cast<AxolotlVariant>(tag["Variant"].get<i32>()));
+    }
+    if (tag.contains("Age") && tag["Age"].is_number_integer()) {
+        setGrowingAge(tag["Age"].get<i32>());
+    }
 }
 
 } // namespace mc

@@ -25,8 +25,8 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/AgeableEntity.hpp"
-#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityClassRegistry.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include <memory>
 

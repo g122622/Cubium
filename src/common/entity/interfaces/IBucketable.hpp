@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without including without limitation the rights to use, copy, modify, merge,
+ * in the Software, including without limitation the rights to use, copy, modify, merge,
  * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom
  * the Software is furnished to do so, subject to the following conditions:
  *
@@ -23,6 +23,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
+#include <nlohmann/json.hpp>
 
 namespace mc {
 
@@ -82,10 +83,23 @@ public:
      * @param bucketStack 装取后得到的鱼桶物品
      *
      * 对应 Java Bucketable.saveToBucketTag(ItemStack)，保存 Health/NoAI/Silent/NoGravity
-     * 等实体状态到桶，反向放鱼时 loadFromBucketTag 恢复。Cubium FishBucketItem._spawnFish
-     * 当前不读桶 NBT（直接创建新鱼），故本方法暂为空实现（留 TODO），不影响装取主链路。
+     * 等实体状态到桶，反向放鱼时 loadFromBucketTag 恢复。子类在默认数据之外可附加
+     * 自身特有字段（如美西螈的 Variant/Age）。
+     *
+     * Cubium 落点：实体数据写入鱼桶 ItemStack 的 BucketEntityData 子标签
+     * （对齐 vanilla DataComponents.BUCKET_ENTITY_DATA 的 CustomData 语义）。
      */
     virtual void saveToBucketTag(ItemStack& bucketStack) const = 0;
+
+    /**
+     * @brief 从鱼桶 NBT 恢复实体数据
+     * @param tag 鱼桶携带的 BucketEntityData 子标签（无数据时为 null）
+     *
+     * 对应 Java Bucketable.loadFromBucketTag(CompoundTag)，在 FishBucketItem 放鱼时
+     * （实体已创建、位置已定）由 MobBucketItem.spawn 调用，恢复 saveToBucketTag 保存的
+     * 实体状态。子类须先调默认数据恢复，再恢复自身特有字段。
+     */
+    virtual void loadFromBucketTag(const nlohmann::json& tag) = 0;
 };
 
 } // namespace entity

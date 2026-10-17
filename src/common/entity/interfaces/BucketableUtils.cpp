@@ -23,12 +23,76 @@
 #include "IBucketable.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 
 namespace mc {
 namespace entity {
+
+const char* const BUCKET_ENTITY_DATA_KEY = "BucketEntityData";
+
+void saveDefaultDataToBucketTag(const MobEntity& entity, ItemStack& bucketStack)
+{
+    // 对齐 Java Bucketable.saveDefaultDataToBucketTag(Mob, ItemStack)：
+    //   自定义名 → CUSTOM_NAME 组件；NoAI/Silent/NoGravity/Glowing/Invulnerable/Health
+    //   → BUCKET_ENTITY_DATA 子标签。
+    // Cubium 将 BUCKET_ENTITY_DATA 落到鱼桶 ItemStack 的 BucketEntityData 子标签
+    // （getOrCreateChildTag），自定义名以纯文本形式一并存入该子标签。
+    nlohmann::json& data = bucketStack.getOrCreateChildTag(BUCKET_ENTITY_DATA_KEY);
+
+    if (!entity.customNameText().empty()) {
+        data["CustomName"] = entity.customNameText();
+    }
+    if (entity.isNoAi()) {
+        data["NoAI"] = true;
+    }
+    if (entity.isSilent()) {
+        data["Silent"] = true;
+    }
+    if (entity.hasNoGravity()) {
+        data["NoGravity"] = true;
+    }
+    if (entity.isGlowing()) {
+        data["Glowing"] = true;
+    }
+    if (entity.isInvulnerable()) {
+        data["Invulnerable"] = true;
+    }
+    data["Health"] = entity.health();
+}
+
+void loadDefaultDataFromBucketTag(MobEntity& entity, const nlohmann::json& tag)
+{
+    // 对齐 Java Bucketable.loadDefaultDataFromBucketTag(Mob, CompoundTag)。
+    // tag 可能为空 json（桶无数据）——此时各字段均缺席，实体保持默认状态。
+    if (!tag.is_object()) {
+        return;
+    }
+
+    if (tag.contains("CustomName") && tag["CustomName"].is_string()) {
+        entity.setCustomName(tag["CustomName"].get<std::string>());
+    }
+    if (tag.contains("NoAI") && tag["NoAI"].is_boolean()) {
+        entity.setNoAi(tag["NoAI"].get<bool>());
+    }
+    if (tag.contains("Silent") && tag["Silent"].is_boolean()) {
+        entity.setSilent(tag["Silent"].get<bool>());
+    }
+    if (tag.contains("NoGravity") && tag["NoGravity"].is_boolean()) {
+        entity.setNoGravity(tag["NoGravity"].get<bool>());
+    }
+    if (tag.contains("Glowing") && tag["Glowing"].is_boolean()) {
+        entity.setGlowing(tag["Glowing"].get<bool>());
+    }
+    if (tag.contains("Invulnerable") && tag["Invulnerable"].is_boolean()) {
+        entity.setInvulnerable(tag["Invulnerable"].get<bool>());
+    }
+    if (tag.contains("Health") && tag["Health"].is_number()) {
+        entity.setHealth(tag["Health"].get<f32>());
+    }
+}
 
 ActionResultType bucketMobPickup(Player& player, Entity& target, Hand hand)
 {

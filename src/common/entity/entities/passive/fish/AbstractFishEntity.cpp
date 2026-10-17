@@ -209,11 +209,15 @@ std::optional<ResourceLocation> AbstractFishEntity::getPickupSound() const
 void AbstractFishEntity::saveToBucketTag(ItemStack& bucketStack) const
 {
     // 对齐 Java AbstractFish.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag
-    // （保存 Health/NoAI/Silent/NoGravity 等实体状态到桶 NBT，反向放鱼时 loadFromBucketTag 恢复）。
-    // TODO: Cubium FishBucketItem._spawnFish 当前不读桶 NBT（直接创建新鱼），saveToBucketTag
-    //       暂为空实现，待 FishBucketItem 支持桶 NBT 读取后补全实体状态保存/恢复逻辑。
-    //       不影响装取主链路（装取→得鱼桶→discard 仍正常工作）。
-    (void)bucketStack;
+    // （保存 Health/NoAI/Silent/NoGravity/自定义名等默认数据到桶 NBT，
+    //   反向放鱼时 FishBucketItem::_spawnFish → loadFromBucketTag 恢复）。
+    entity::saveDefaultDataToBucketTag(*this, bucketStack);
+}
+
+void AbstractFishEntity::loadFromBucketTag(const nlohmann::json& tag)
+{
+    // 对齐 Java AbstractFish.loadFromBucketTag → Bucketable.loadDefaultDataFromBucketTag。
+    entity::loadDefaultDataFromBucketTag(*this, tag);
 }
 
 } // namespace mc

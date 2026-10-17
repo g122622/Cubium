@@ -25,10 +25,15 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/fish/CodEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/fish/SalmonEntity.hpp"
 #include "common/entity/entities/passive/fish/TropicalFishEntity.hpp"
+#include "common/entity/entities/passive/water/AxolotlEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/BucketableUtils.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
@@ -70,6 +75,8 @@ public:
             if (fish != nullptr) {
                 m_lastSpawnedFishFromBucket = fish->isFromBucket();
             }
+            // 保留生成的实体以支持放鱼后状态断言（放鱼数据恢复测试）。
+            m_lastSpawnedEntity = std::move(entity);
         }
         return ++m_lastEntityId;
     }
@@ -87,6 +94,7 @@ public:
 
     [[nodiscard]] i32 spawnedFishCount() const { return m_spawnedFishCount; }
     [[nodiscard]] std::optional<bool> lastSpawnedFishFromBucket() const { return m_lastSpawnedFishFromBucket; }
+    [[nodiscard]] Entity* lastSpawnedEntity() const { return m_lastSpawnedEntity.get(); }
 
     void reset()
     {
@@ -98,6 +106,7 @@ private:
     EntityInstanceId m_lastEntityId = 0;
     i32 m_spawnedFishCount = 0;
     std::optional<bool> m_lastSpawnedFishFromBucket;
+    std::unique_ptr<Entity> m_lastSpawnedEntity;
 };
 
 class FishBucketItemTest : public ::testing::Test {
@@ -107,6 +116,8 @@ protected:
         // 流体注册表必须在物品注册之前初始化
         fluid::FluidRegistry::instance().initialize();
         Items::initialize();
+        // 放鱼链路（FishBucketItem::_spawnFish → EntityRegistry::getType）须实体类型已注册
+        entity::VanillaEntities::registerAll();
     }
 
     void SetUp() override { m_world = std::make_unique<FishBucketTestWorld>(); }
@@ -254,6 +265,138 @@ TEST_F(FishBucketItemTest, EmptyBucketExists)
 {
     ASSERT_NE(Items::BUCKET, nullptr) << "Empty bucket should be registered";
     EXPECT_EQ(Items::BUCKET->itemLocation(), ResourceLocation("minecraft:bucket"));
+}
+
+// ============================================================================
+// 鱼桶实体数据（BucketEntityData）保存/恢复测试
+//   对齐 vanilla Bucketable.saveDefaultDataToBucketTag / loadDefaultDataFromBucketTag。
+// ============================================================================
+
+TEST_F(FishBucketItemTest, SaveDefaultData_WritesBucketEntityDataChildTag)
+{
+    CodEntity cod(EntityInstanceId(1), mc::test::testEcsRegistry());
+    cod.setHealth(2.0f); // 鳕鱼最大生命为 3，取合法值
+    cod.setSilent(true);
+    cod.setCustomName("Bubbles");
+
+    ItemStack bucket(Items::COD_BUCKET, 1);
+    entity::saveDefaultDataToBucketTag(cod, bucket);
+
+    const nlohmann::json* data = bucket.getChildTag(entity::BUCKET_ENTITY_DATA_KEY);
+    ASSERT_NE(data, nullptr) << "BucketEntityData child tag should be written";
+    EXPECT_EQ((*data)["Health"].get<f32>(), 2.0f);
+    EXPECT_TRUE((*data)["Silent"].get<bool>());
+    EXPECT_EQ((*data)["CustomName"].get<std::string>(), "Bubbles");
+    // 未被设置的状态不应写入（对齐 vanilla 仅写非默认字段）
+    EXPECT_FALSE(data->contains("NoAI"));
+    EXPECT_FALSE(data->contains("NoGravity"));
+}
+
+TEST_F(FishBucketItemTest, LoadDefaultData_RestoresEntityState)
+{
+    // 构造桶数据并恢复到一个默认状态的新实体。
+    nlohmann::json data = nlohmann::json::object();
+    data["Health"] = 1.5f; // 鳕鱼最大生命为 3，取合法值
+    data["Silent"] = true;
+    data["NoAI"] = true;
+    data["CustomName"] = "Fishy";
+
+    CodEntity cod(EntityInstanceId(2), mc::test::testEcsRegistry());
+    cod.setHealth(cod.maxHealth());
+    entity::loadDefaultDataFromBucketTag(cod, data);
+
+    EXPECT_EQ(cod.health(), 1.5f);
+    EXPECT_TRUE(cod.isSilent());
+    EXPECT_TRUE(cod.isNoAi());
+    EXPECT_EQ(cod.customNameText(), "Fishy");
+}
+
+TEST_F(FishBucketItemTest, LoadDefaultData_EmptyTag_KeepsDefaults)
+{
+    CodEntity cod(EntityInstanceId(3), mc::test::testEcsRegistry());
+    cod.setHealth(cod.maxHealth());
+    const nlohmann::json empty = nlohmann::json::object();
+    entity::loadDefaultDataFromBucketTag(cod, empty);
+
+    EXPECT_EQ(cod.health(), cod.maxHealth());
+    EXPECT_FALSE(cod.isSilent());
+    EXPECT_FALSE(cod.isNoAi());
+}
+
+TEST_F(FishBucketItemTest, SaveToBucketTag_AbstractFish_WritesDefaultData)
+{
+    CodEntity cod(EntityInstanceId(4), mc::test::testEcsRegistry());
+    cod.setHealth(2.5f); // 鳕鱼最大生命为 3，取合法值
+
+    ItemStack bucket(Items::COD_BUCKET, 1);
+    cod.saveToBucketTag(bucket);
+
+    const nlohmann::json* data = bucket.getChildTag(entity::BUCKET_ENTITY_DATA_KEY);
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ((*data)["Health"].get<f32>(), 2.5f);
+}
+
+TEST_F(FishBucketItemTest, AxolotlSaveLoad_RoundTripsVariantAndAge)
+{
+    // 美西螈桶须持久化 Variant/Age（对齐 vanilla Axolotl.saveToBucketTag/loadFromBucketTag）。
+    AxolotlEntity adult(EntityInstanceId(10), mc::test::testEcsRegistry());
+    adult.setVariant(AxolotlVariant::Blue);
+    adult.setChild(true);
+
+    ItemStack bucket(Items::AXOLOTL_BUCKET, 1);
+    adult.saveToBucketTag(bucket);
+
+    const nlohmann::json* data = bucket.getChildTag(entity::BUCKET_ENTITY_DATA_KEY);
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ((*data)["Variant"].get<i32>(), static_cast<i32>(AxolotlVariant::Blue));
+    EXPECT_EQ((*data)["Age"].get<i32>(), adult.getGrowingAge());
+
+    // 恢复到另一个默认状态的美西螈。
+    AxolotlEntity restored(EntityInstanceId(11), mc::test::testEcsRegistry());
+    ASSERT_FALSE(restored.isChild());
+    ASSERT_EQ(restored.getVariant(), AxolotlVariant::Lucy);
+    restored.loadFromBucketTag(*data);
+
+    EXPECT_EQ(restored.getVariant(), AxolotlVariant::Blue);
+    EXPECT_TRUE(restored.isChild());
+    EXPECT_EQ(restored.getGrowingAge(), adult.getGrowingAge());
+}
+
+TEST_F(FishBucketItemTest, ReleaseFish_RestoresBucketEntityData)
+{
+    // 端到端：携带 BucketEntityData 的鳕鱼桶放鱼后，新生成的鱼须恢复 Health/Silent/
+    // 自定义名（对齐 vanilla MobBucketItem.spawn → bucketable.loadFromBucketTag）。
+    ASSERT_NE(Items::COD_BUCKET, nullptr);
+    auto* codBucket = dynamic_cast<item::FishBucketItem*>(Items::COD_BUCKET);
+    ASSERT_NE(codBucket, nullptr);
+
+    // 构造带 BucketEntityData 的鱼桶：生命 2、静音、命名 "Saved"。
+    ItemStack bucket(Items::COD_BUCKET, 1);
+    nlohmann::json& data = bucket.getOrCreateChildTag(entity::BUCKET_ENTITY_DATA_KEY);
+    data["Health"] = 2.0f;
+    data["Silent"] = true;
+    data["CustomName"] = "Saved";
+
+    Player player(EntityInstanceId(100), "TestPlayer", mc::test::testEcsRegistry());
+    player.setWorld(m_world.get());
+    player.setTypeId("minecraft:player");
+    player.setInWater(true);
+    player.inventory().setItem(0, bucket);
+    player.inventory().setSelectedSlot(0);
+
+    const ItemActionResult result = codBucket->onItemRightClick(*m_world, player, Hand::MainHand);
+    EXPECT_TRUE(result.isSuccess());
+
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr) << "A cod should have been spawned from the bucket";
+    auto* spawnedLiving = dynamic_cast<LivingEntity*>(spawned);
+    ASSERT_NE(spawnedLiving, nullptr);
+    EXPECT_EQ(spawnedLiving->health(), 2.0f) << "Health should be restored from BucketEntityData";
+    EXPECT_TRUE(spawned->isSilent()) << "Silent flag should be restored from BucketEntityData";
+    EXPECT_EQ(spawned->customNameText(), "Saved") << "Custom name should be restored from BucketEntityData";
+    auto* fish = dynamic_cast<AbstractFishEntity*>(spawned);
+    ASSERT_NE(fish, nullptr);
+    EXPECT_TRUE(fish->isFromBucket());
 }
 
 } // namespace

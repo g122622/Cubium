@@ -165,6 +165,24 @@ public:
      */
     [[nodiscard]] static u16 getMobFlagsParamId() { return DATA_MOB_FLAGS_PARAM.id(); }
 
+    // ========== AI 启用状态 ==========
+
+    /**
+     * @brief 是否禁用 AI
+     *
+     * 对齐 vanilla Mob.isNoAi()。/summon 的 NoAI:1b 禁用 AI；桶装实体默认数据
+     * （Bucketable.saveDefaultDataToBucketTag）亦读写此状态。
+     *
+     * @return AI 被禁用时返回 true
+     */
+    [[nodiscard]] bool isNoAi() const { return !m_aiEnabled; }
+
+    /**
+     * @brief 设置 AI 是否禁用
+     * @param noAi true 表示禁用 AI
+     */
+    void setNoAi(bool noAi) { m_aiEnabled = !noAi; }
+
     /**
      * @brief 获取"激怒"标志位的位掩码（供客户端解析 DATA_MOB_FLAGS_PARAM 使用）
      *

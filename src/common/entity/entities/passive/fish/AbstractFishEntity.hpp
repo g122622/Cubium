@@ -214,10 +214,17 @@ public:
      * @brief 保存实体数据到鱼桶 NBT
      *
      * 对齐 Java AbstractFish.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag
-     * （保存 Health/NoAI/Silent 等）。Cubium FishBucketItem._spawnFish 当前不读桶 NBT
-     * （直接创建新鱼），故本方法暂为空实现，留 TODO，不影响装取主链路。
+     * （保存 Health/NoAI/Silent/NoGravity/自定义名等默认数据）。
      */
     void saveToBucketTag(ItemStack& bucketStack) const override;
+
+    /**
+     * @brief 从鱼桶 NBT 恢复实体数据
+     *
+     * 对齐 Java AbstractFish.loadFromBucketTag → Bucketable.loadDefaultDataFromBucketTag。
+     * 由 FishBucketItem::_spawnFish 在放鱼时调用。
+     */
+    void loadFromBucketTag(const nlohmann::json& tag) override;
 
     void tick() override;
 

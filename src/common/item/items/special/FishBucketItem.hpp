@@ -78,9 +78,10 @@ private:
      * @brief 在指定位置生成鱼
      * @param world 世界
      * @param pos 位置
+     * @param bucketStack 鱼桶物品（携带 BucketEntityData，放鱼时恢复实体状态）
      * @return 是否成功生成
      */
-    bool _spawnFish(IWorld& world, const BlockPos& pos) const;
+    bool _spawnFish(IWorld& world, const BlockPos& pos, const ItemStack& bucketStack) const;
 
     /**
      * @brief 返回空桶给玩家

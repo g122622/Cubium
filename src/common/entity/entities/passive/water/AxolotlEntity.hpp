@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/passive/water/AgeableWaterCreatureEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/entity/interfaces/IBucketable.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -85,7 +86,7 @@ enum class AxolotlVariant : i32 {
  *
  * 参考: net.minecraft.world.entity.animal.axolotl.Axolotl
  */
-class AxolotlEntity : public WaterMobEntity, public entity::IBucketable {
+class AxolotlEntity : public AgeableWaterCreatureEntity, public entity::IBucketable {
 public:
     /**
      * @brief 构造函数
@@ -189,11 +190,16 @@ public:
      *
      * 对齐 Java Axolotl.saveToBucketTag → Bucketable.saveDefaultDataToBucketTag +
      * Axolotl 额外保存 Variant/Age（持久化变体与幼体状态）。
-     * TODO: Cubium FishBucketItem._spawnFish 当前不读桶 NBT（直接创建新鱼），saveToBucketTag
-     *       暂为空实现，待 FishBucketItem 支持桶 NBT 读取后补全变体/年龄保存恢复逻辑。
-     *       不影响装取主链路（装取→得美西螈桶→discard 仍正常工作）。
      */
     void saveToBucketTag(ItemStack& bucketStack) const override;
+
+    /**
+     * @brief 从美西螈桶 NBT 恢复实体数据
+     *
+     * 对齐 Java Axolotl.loadFromBucketTag：Bucketable.loadDefaultDataFromBucketTag +
+     * 恢复 Variant/Age。由 FishBucketItem::_spawnFish 在放美西螈时调用。
+     */
+    void loadFromBucketTag(const nlohmann::json& tag) override;
 
     /**
      * @brief 是否在狩猎冷却中
