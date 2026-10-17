@@ -151,6 +151,13 @@ public:
     [[nodiscard]] PlayerId playerId() const { return m_playerId; }
     void setPlayerId(PlayerId id) { m_playerId = id; }
 
+    /**
+     * @brief 玩家幸运值（对齐 vanilla Player.getLuck()）
+     *
+     * 读取 generic.luck 属性值（幸运/霉运效果经修饰符改变）。默认 0.0。
+     */
+    [[nodiscard]] f32 getLuck() const;
+
     // 玩家的 16 字节 profile UUID（用于 TameableEntity::getOwner 按 UUID 匹配主人，
     // 对齐 vanilla TamableAnimal.getOwnerReference().resolve()）。
     // 由 Entity::uuid()（string）解析得到；uuid() 在 createPlayerForConnection 回填为

@@ -1073,8 +1073,8 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
         Player* player = dynamic_cast<Player*>(m_lastHurtBy.get());
         if (player != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
-            // TODO: luck 属性未接入属性系统时暂用 0。对齐 vanilla player.getLuck()。
-            builder.withLuck(0.0f);
+            // 应用击杀玩家的幸运值（generic.luck 属性，经幸运/霉运效果改变）。对齐 vanilla player.getLuck()。
+            builder.withLuck(player->getLuck());
         }
     }
 
