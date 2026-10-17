@@ -54,7 +54,7 @@ namespace mc::server {
 namespace {
 
 /// 维度 ID → (客户端 dimension_type 注册表 id, 维度 ResourceKey)
-struct _DimensionWireInfo {
+struct _DimensionWireInfo { // NOLINT(bugprone-reserved-identifier)
     i32 typeId;
     const char* key;
 };
@@ -133,7 +133,8 @@ bool PlayerRespawnManager::respawn(PlayerId playerId, bool keepAllData)
     if (oldPlayer != nullptr) {
         auto* oldServerPlayer = oldPlayer->asServerPlayer();
         MC_ASSERT_RELEASE(oldServerPlayer != nullptr);
-        location = oldServerPlayer->findRespawnPositionAndUseSpawnBlock(!keepAllData);
+        // 普通死亡（!keepAllData）才允许消耗重生锚充能。
+        location = oldServerPlayer->findRespawnPositionAndUseSpawnBlock(keepAllData == false);
     } else {
         // 旧实体已消失：用存档中恢复的共享出生点，个人重生点信息此时不可得。
         // TODO: 将个人重生点配置镜像到 ServerPlayerData，使实体移除后的重生请求也能使用床/锚落点。
@@ -307,7 +308,7 @@ void PlayerRespawnManager::_sendRespawnPackets(PlayerId playerId, Player& player
     loadStart.value = 0.0f;
     m_server.sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(loadStart)}});
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{loadStart}});
 
     // 世界出生点、经验、药水效果、难度、权限与命令树。
     const RespawnData spawn = world.worldBorderAdjustedRespawnData();

@@ -28,8 +28,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/building/TrapDoorBlock.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include <cmath>
@@ -114,9 +114,8 @@ bool DismountHelper::isBlockDangerous(const BlockState& state, bool fireImmune)
 {
     if (!fireImmune) {
         const bool burning = (BlockTags::isInitialized() && BlockTags::FIRE().contains(state)) ||
-            state.is(VanillaBlocks::LAVA) ||
-            state.is(VanillaBlocks::MAGMA) || blocks::CampfireBlock::isLitCampfire(state) ||
-            state.is(VanillaBlocks::LAVA_CAULDRON);
+            state.is(VanillaBlocks::LAVA) || state.is(VanillaBlocks::MAGMA) ||
+            blocks::CampfireBlock::isLitCampfire(state) || state.is(VanillaBlocks::LAVA_CAULDRON);
         if (burning) {
             return true;
         }
@@ -125,13 +124,8 @@ bool DismountHelper::isBlockDangerous(const BlockState& state, bool fireImmune)
         state.is(VanillaBlocks::CACTUS) || state.is(VanillaBlocks::POWDER_SNOW);
 }
 
-std::optional<Vector3> DismountHelper::findSafeDismountLocation(const IWorld& world,
-    const BlockPos& pos,
-    f32 width,
-    f32 height,
-    bool isPlayer,
-    bool fireImmune,
-    bool safeMode)
+std::optional<Vector3> DismountHelper::findSafeDismountLocation(
+    const IWorld& world, const BlockPos& pos, f32 width, f32 height, bool isPlayer, bool fireImmune, bool safeMode)
 {
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {

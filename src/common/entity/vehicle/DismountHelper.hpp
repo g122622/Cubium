@@ -72,13 +72,8 @@ public:
      * @param safeMode 是否启用安全模式（拒绝危险方块与无地面悬空）
      * @return 实体脚底位置；找不到安全落点时返回 nullopt
      */
-    [[nodiscard]] static std::optional<Vector3> findSafeDismountLocation(const IWorld& world,
-        const BlockPos& pos,
-        f32 width,
-        f32 height,
-        bool isPlayer,
-        bool fireImmune,
-        bool safeMode);
+    [[nodiscard]] static std::optional<Vector3> findSafeDismountLocation(
+        const IWorld& world, const BlockPos& pos, f32 width, f32 height, bool isPlayer, bool fireImmune, bool safeMode);
 
     /**
      * @brief 计算实体碰撞箱在某方块柱上的地面高度
@@ -88,10 +83,7 @@ public:
      *
      * @return 地面高度（方块顶面为 0.0）；间距不可跨越（> 2 格）时返回正无穷
      */
-    [[nodiscard]] static f64 getBlockFloorHeight(const IWorld& world,
-        const BlockPos& pos,
-        f32 width,
-        f32 height);
+    [[nodiscard]] static f64 getBlockFloorHeight(const IWorld& world, const BlockPos& pos, f32 width, f32 height);
 
     /**
      * @brief 方块状态是否会对实体造成危险（落点意义上的危险）

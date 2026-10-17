@@ -695,7 +695,7 @@ void Player::stopSleeping()
 void Player::setRespawnPosition(std::optional<RespawnConfig> config, bool announce)
 {
     MC_UNUSED(announce);
-    m_respawnConfig = std::move(config);
+    m_respawnConfig = config;
 }
 
 void Player::copyRespawnPosition(const Player& other)

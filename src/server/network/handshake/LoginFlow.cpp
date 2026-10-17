@@ -324,7 +324,7 @@ void LoginFlow::setupInitialPlayerState(ServerPlayerData* player, GameMode gameM
     const RespawnData spawn = overworld->world()->worldBorderAdjustedRespawnData();
     const Vector3d fallback(spawn.pos().x + 0.5, spawn.pos().y + 1.0, spawn.pos().z + 0.5);
     Vector3d position = fallback;
-    if (auto found = server::PlayerSpawnFinder::findSpawn(*overworld->world(), spawn.pos()); found.has_value()) {
+    if (const auto found = server::PlayerSpawnFinder::findSpawn(*overworld->world(), spawn.pos()); found) {
         position = Vector3d(found->x, found->y, found->z);
     }
     player->x = static_cast<f32>(position.x);
