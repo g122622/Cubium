@@ -108,14 +108,6 @@ public:
      */
     [[nodiscard]] bool canClimb() const { return true; }
 
-    // ========== 攻击状态 ==========
-
-    /**
-     * @brief 是否应该攻击
-     * 蜘蛛只在黑暗中攻击
-     */
-    [[nodiscard]] bool shouldAttack(LivingEntity* target) const override;
-
     // ========== 阳光燃烧 ==========
 
     /**

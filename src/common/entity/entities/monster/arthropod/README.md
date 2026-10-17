@@ -22,7 +22,7 @@ MonsterEntity (敌对生物基类)
     └── SilverfishEntity (蠹虫)
 ```
 
-- **SpiderEntity**：提供攀爬能力（`isClimbing()`）和光照敏感攻击逻辑（`shouldAttack()`）
+- **SpiderEntity**：提供攀爬能力（`isClimbing()`）和光照敏感目标选择（`SpiderTargetGoal`）
 - **CaveSpiderEntity**：继承 SpiderEntity，添加中毒攻击，覆盖 `attackEntityAsMob()`
 - **EndermiteEntity**：独立实体，实现消失逻辑（非持久化个体 2400 ticks 后消失）
 - **SilverfishEntity**：独立实体，实现召唤同伴和藏入石头行为
@@ -47,11 +47,7 @@ MonsterEntity (敌对生物基类)
 
 ### 光照检测单位混淆
 
-`IWorld::getLightSubtracted()` 返回的是 0-15 的光照等级，而 `SpiderEntity::shouldAttack()` 检查的是 `lightLevel < 7`。MC 中光照等级 < 7 对应"足够黑暗"。不要混淆光照等级（0-15）和亮度值（0.0-1.0），后者是 `getBrightness()` 返回的。
-
-### SpiderAttackGoal 中的亮度判断
-
-`SpiderAttackGoal::shouldContinueExecuting()` 使用的是 `getBrightness()`（返回 0.0-1.0），判断条件是 `brightness >= 0.5F`。这与 `shouldAttack()` 中的 `lightLevel < 7` 是一致的（7/15 ≈ 0.47），但代码中的判断逻辑略有不同，修改时需注意两个方法的行为一致性。
+不要混淆光照等级（0-15）和亮度值（0.0-1.0）。蜘蛛的光照敏感判定统一用 `getBrightness()`（返回 0.0-1.0）：`SpiderTargetGoal::shouldExecute()` 与 `SpiderAttackGoal::shouldContinueExecuting()` 均以 `brightness >= 0.5F` 为界（对应光照等级 7/15 ≈ 0.47）。若需按光照等级判断，用 `IWorld::getLight()`（含时间衰减）而非 `getLightSubtracted()`（无衰减）。
 
 ### 末影螨消失逻辑
 

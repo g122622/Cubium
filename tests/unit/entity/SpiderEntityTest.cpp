@@ -164,55 +164,9 @@ TEST_F(SpiderEntityTest, ShouldNotBurnInDaylight)
 // ============================================================================
 // SpiderEntity 光照敏感攻击测试
 // ============================================================================
-
-class SpiderLightLevelTest : public ::testing::Test {
-protected:
-    void SetUp() override { m_world = std::make_unique<SpiderTestWorld>(); }
-
-    std::unique_ptr<SpiderTestWorld> m_world;
-};
-
-TEST_F(SpiderLightLevelTest, AttackInDarkness_LightLevelBelow7)
-{
-    // MC 1.16.5: 蜘蛛在光照等级 < 7 时攻击
-    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    spider->setWorld(m_world.get());
-    spider->setPosition(0.0f, 64.0f, 0.0f);
-
-    // 创建测试玩家
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
-    player->setWorld(m_world.get());
-    player->setPosition(2.0f, 64.0f, 0.0f);
-
-    // 光照等级 0-6 时应该攻击
-    for (u8 lightLevel = 0; lightLevel <= 6; ++lightLevel) {
-        m_world->setLightLevel(lightLevel);
-        // shouldAttack 检查光照等级
-        bool shouldAttack = spider->shouldAttack(player.get());
-        // 注意：shouldAttack 还需要检查 world != nullptr 等条件
-        // 在实际实现中，如果世界光照 < 7，应该返回 true（继承自父类）
-        // 这里验证光照阈值逻辑
-        EXPECT_LT(lightLevel, 7) << "Light level should be < 7";
-    }
-}
-
-TEST_F(SpiderLightLevelTest, NoAttackInBright_LightLevel7AndAbove)
-{
-    // MC 1.16.5: 蜘蛛在光照等级 >= 7 时不攻击
-    auto spider = std::make_unique<SpiderEntity>(EntityInstanceId(1), mc::test::testEcsRegistry());
-    spider->setWorld(m_world.get());
-    spider->setPosition(0.0f, 64.0f, 0.0f);
-
-    auto player = std::make_unique<Player>(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
-    player->setWorld(m_world.get());
-    player->setPosition(2.0f, 64.0f, 0.0f);
-
-    // 光照等级 7-15 时不应该攻击
-    for (u8 lightLevel = 7; lightLevel <= 15; ++lightLevel) {
-        m_world->setLightLevel(lightLevel);
-        EXPECT_GE(lightLevel, 7) << "Light level should be >= 7";
-    }
-}
+// 注：原先此处有 SpiderLightLevelTest 两个用例调用已删除的 SpiderEntity::shouldAttack，
+//   但断言仅自证 lightLevel <7 / >=7（trivially true），未验证实际攻击行为，故一并删除。
+//   蜘蛛的「只在黑暗中攻击」由下方 SpiderAttackGoal 光照条件测试覆盖。
 
 // ============================================================================
 // SpiderAttackGoal 光照条件测试

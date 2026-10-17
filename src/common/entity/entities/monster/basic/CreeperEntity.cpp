@@ -406,8 +406,8 @@ void CreeperEntity::onStruckByLightning(entity::LightningBoltEntity* lightning)
     // 苦力怕既受 5 闪电伤害（HP 20→15 存活）又充能。充能产物仍是苦力怕本身、不移除自身、不检查难度
     // （对齐 vanilla，区别于 PigEntity 转化需非 Peaceful）。
     // 注：「闪电劈中时中断已开始的膨胀」是基岩版专属行为（wiki tech_苦力怕.txt#行为 BE 段落），
-//   Java 版 thunderHit 仅 super.thunderHit + set(DATA_IS_POWERED, true)（Creeper.java:204-207），
-//   不含膨胀中断。本项目对齐 Java，故此处有意不重置 m_swellDir/m_timeSinceIgnited。
+    //   Java 版 thunderHit 仅 super.thunderHit + set(DATA_IS_POWERED, true)（Creeper.java:204-207），
+    //   不含膨胀中断。本项目对齐 Java，故此处有意不重置 m_swellDir/m_timeSinceIgnited。
     MonsterEntity::onStruckByLightning(lightning);
     setPowered(true);
 }
