@@ -52,6 +52,7 @@
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
 #include "common/item/items/special/SpawnEggItem.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -283,7 +284,10 @@ void MobEntity::lookAt(f64 x, f64 y, f64 z, f32 deltaYaw, f32 deltaPitch)
 void MobEntity::tick()
 {
     // 更新父类（LivingEntity::tick() 已经调用 aiStep()）
-    LivingEntity::tick();
+    {
+        MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::livingTick");
+        LivingEntity::tick();
+    }
 
     // 空闲时间在 tick 开头递增
     ++m_idleTime;
@@ -306,16 +310,26 @@ void MobEntity::tick()
     // 2. 目标选择器 (先于 goalSelector)
     // 3. 行为目标选择器
     if (m_aiEnabled) {
-        m_targetSelector.tick();
-        m_goalSelector.tick();
+        {
+            MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::targetSelector");
+            m_targetSelector.tick();
+        }
+        {
+            MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::goalSelector");
+            m_goalSelector.tick();
+        }
 
         // 4. 导航器更新
         if (m_navigator) {
+            MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::navigation");
             m_navigator->tick();
         }
 
         // 5. AI 任务更新 (子类可重写)
-        updateAITasks();
+        {
+            MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "MobEntity::updateAITasks");
+            updateAITasks();
+        }
 
         // 每 5 tick 更新移动目标标志
         if (m_ticksExisted % 5 == 0) {

@@ -363,6 +363,30 @@ template <typename S>
 
     snapshot.nodes.resize(orderedNodes.size());
 
+    // 路径只沿子节点遍历，重定向节点不改变目标的规范路径。
+    // 保留 getPath 的深度优先首路径语义，避免每个节点都从根重新搜索整棵树。
+    std::unordered_map<const CommandNode<S>*, std::vector<std::string>> nodePaths;
+    std::vector<std::string> currentPath;
+    const auto collectPaths = [&](const auto& self, const NodePtr& node) -> void {
+        if (!nodePaths.emplace(node.get(), currentPath).second) {
+            return;
+        }
+        const auto visitChild = [&](const std::string& name) {
+            if (auto child = node->getChild(name)) {
+                currentPath.push_back(child->getName());
+                self(self, child);
+                currentPath.pop_back();
+            }
+        };
+        for (const auto& name : node->getLiterals()) {
+            visitChild(name);
+        }
+        for (const auto& name : node->getArguments()) {
+            visitChild(name);
+        }
+    };
+    collectPaths(collectPaths, root);
+
     for (size_t index = 0; index < orderedNodes.size(); ++index) {
         const auto& node = orderedNodes[index];
         auto& snapshotNode = snapshot.nodes[index];
@@ -407,8 +431,7 @@ template <typename S>
         }
 
         std::vector<std::string> suggestionCandidates;
-        snapshotNode.suggestionKind =
-            detail::inferSuggestionKind(dispatcher.getPath(node), *node, suggestionCandidates);
+        snapshotNode.suggestionKind = detail::inferSuggestionKind(nodePaths[node.get()], *node, suggestionCandidates);
         snapshotNode.suggestionCandidates = std::move(suggestionCandidates);
 
         // 二进制 CommandNode 编码所需字段（见 CommandTreeEncoder）。

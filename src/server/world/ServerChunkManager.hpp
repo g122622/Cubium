@@ -406,7 +406,7 @@ public:
      * @brief 释放 LIGHT 票据（③-2c）
      *
      * 主线程调用（ServerWorld::_drainPendingChunkSends 发送后、_executeChunkLoadLight
-     * fallback 后、任务 onCancel 路径）。releaseTicket 对未持票据的 chunk 容忍（no-op）。
+     * fallback 后、任务 onCancel 路径）。释放需求由后续统一推进传播。
      *
      * @param x 区块 X
      * @param z 区块 Z
@@ -459,13 +459,13 @@ public:
      * 登录、移动和光照保活只需建立需求。返回时 holder 可能仍在解析存档；
      * 需要区块数据的调用方应使用 requestChunkSync 或异步请求的完成通知。
      */
-    void processTicketUpdates() { m_ticketManager.processUpdates(); }
+    void processTicketUpdates();
 
     /**
      * @brief 推进票据并处理调用时已入队的一批存档加载结果
      *
      * 由 tick 和需要主动推进完成通知的调用方使用，不执行世界后处理回调，
-     * 也不追逐处理期间新到达的结果；同步取区块由自身的目标 Future 决定何时返回。
+     * 按时间预算消费入口快照；剩余旧结果先于新结果处理。同步取区块由自身的目标 Future 决定何时返回。
      */
     void processPendingChunkTasks()
     {
@@ -825,13 +825,15 @@ private:
     /**
      * @brief 在调度锁保护下推进区块生成调度
      *
-     * 持有 schedulingLockArea(x, z, getMaxAccessRadius()) 后调用
-     * `ChunkTaskScheduler::schedule`，把区块推进到下一个状态。生成调度完全委托给
-     * `ChunkTaskScheduler`（邻居检查、任务提交、完成回调都在其中）。
+     * 有运行中的区域执行器时，把持锁与调度提交给该执行器，并持有目标 holder 的共享引用。
+     * 无执行器时同步持锁调度。排队任务取得锁后复检 holder 身份与关闭状态。
      *
      * @param lifecycleManager 目标区块的生命周期管理器
      */
     void _scheduleGeneration(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
+
+    /** @brief 通过工作线程通知存档就绪的依赖邻居，无工作线程时同步执行。 */
+    void _notifyStorageReady(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
 
     /**
      * @brief 完成所有已就绪等待者
@@ -878,6 +880,9 @@ private:
      * @param newLevel 新级别
      */
     void _onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
+
+    /** @brief 在预算内重试因区域锁繁忙而延后的最新票据级别。 */
+    void _drainDeferredTicketLevels();
 
     /**
      * @brief 对单个区块执行单个生成阶段的任务
@@ -1005,8 +1010,8 @@ private:
     /**
      * @brief 每 tick 处理卸载候选队列
      *
-     * 批量为 Moonrise 的保底语义：max(MIN_CHUNK_UNLOAD_COUNT, 候选总数 × MIN_CHUNK_UNLOAD_FRACTION)，
-     * 逐个复核候选资格后发起卸载（stage1）。复核不通过者直接丢弃条目——其资格变化会经
+     * 数量上限为 max(MIN_CHUNK_UNLOAD_COUNT, 候选总数 × MIN_CHUNK_UNLOAD_FRACTION)，
+     * 同时遵守墙钟时间预算。逐个复核候选资格后发起卸载（stage1）。复核不通过者直接丢弃条目——其资格变化会经
      * 观察者回调重新入队。
      *
      * 同时驱动"生成空闲"门控：生成 halo 区间（level ∈ (Border, Unloaded)）的持有者是
@@ -1135,7 +1140,7 @@ private:
         bool needsPostProcess = false; ///< true: 生成完成（需 _postProcessChunk）；false: 仅 onChunkLoaded+callback
     };
     std::mutex m_pendingPostProcessMutex;
-    std::vector<PendingPostProcess> m_pendingPostProcess;
+    std::deque<PendingPostProcess> m_pendingPostProcess;
 
     /**
      * @brief 已完成主线程后处理的区块 key 集合
@@ -1168,7 +1173,10 @@ private:
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
     };
     std::mutex m_pendingLoadCompletesMutex;
-    std::vector<PendingLoadComplete> m_pendingLoadCompletes;
+    std::deque<PendingLoadComplete> m_pendingLoadCompletes;
+
+    /// 仅主线程访问，合并同一坐标的级别变更；未应用前暂缓自动卸载。
+    std::unordered_map<u64, i32> m_deferredTicketLevels;
 
     /// 完成队列的排空重入标志（仅主线程访问，由 _DrainFlagGuard 置位/复位）。
     ///
@@ -1212,7 +1220,7 @@ private:
         std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
     };
     mutable std::mutex m_pendingUnloadFinishesMutex;
-    std::vector<PendingUnloadFinish> m_pendingUnloadFinishes;
+    std::deque<PendingUnloadFinish> m_pendingUnloadFinishes;
 
     /**
      * @brief 进行中异步卸载保存的区块 key 集合

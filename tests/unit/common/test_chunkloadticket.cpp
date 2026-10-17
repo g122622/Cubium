@@ -39,6 +39,20 @@ using namespace mc;
 using namespace mc::world;
 using namespace mc::world::chunk;
 
+namespace {
+
+template <typename Predicate>
+void _awaitPropagation(ChunkLoadTicketManager& manager, const Predicate& ready)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    do {
+        manager.processUpdates();
+    } while (!ready() && std::chrono::steady_clock::now() < deadline);
+    ASSERT_TRUE(ready());
+}
+
+} // namespace
+
 // ============================================================================
 // ChunkLoadTicket 测试
 // ============================================================================
@@ -465,6 +479,35 @@ protected:
     void SetUp() override {}
 };
 
+TEST_F(ChunkLoadTicketManagerTest, SimulationRangeIsIndependentOfViewDistance)
+{
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(16);
+    manager.updatePlayerPosition(1, 0, 0);
+    EXPECT_TRUE(manager.isTickingChunk(5, 5, 4));
+    EXPECT_FALSE(manager.isTickingChunk(6, 0, 4));
+    EXPECT_FALSE(manager.isTickingChunk(0, -6, 4));
+    EXPECT_TRUE(manager.isTickingChunk(6, 0, 6));
+    manager.setViewDistance(8);
+    EXPECT_TRUE(manager.isTickingChunk(5, 5, 4));
+    EXPECT_FALSE(manager.isTickingChunk(6, 0, 4));
+    manager.removePlayer(1);
+    EXPECT_FALSE(manager.isTickingChunk(0, 0, 4));
+}
+
+TEST_F(ChunkLoadTicketManagerTest, ExplicitTickingSourcesKeepTheirPropagationRange)
+{
+    ChunkLoadTicketManager manager;
+    manager.registerTicket(TicketTypes::FORCED, -10, 20, 31, ChunkPos(-10, 20));
+    manager.processUpdates();
+    EXPECT_TRUE(manager.isTickingChunk(-10, 20, 4));
+    EXPECT_TRUE(manager.isTickingChunk(-9, 21, 4));
+    EXPECT_FALSE(manager.isTickingChunk(-8, 20, 4));
+    manager.releaseTicket(TicketTypes::FORCED, -10, 20, 31, ChunkPos(-10, 20));
+    manager.processUpdates();
+    EXPECT_FALSE(manager.isTickingChunk(-10, 20, 4));
+}
+
 TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate)
 {
     ChunkLoadTicketManager manager;
@@ -788,7 +831,10 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceBoundaryConditions)
     manager.setViewDistance(10);
 
     manager.updatePlayerPosition(1, 0, 0);
-    manager.processUpdates();
+    _awaitPropagation(manager, [&] {
+        return manager.shouldChunkLoad(10, 0) && manager.shouldChunkLoad(-10, 0) && manager.shouldChunkLoad(0, 10) &&
+            manager.shouldChunkLoad(0, -10) && manager.shouldChunkLoad(11, 0);
+    });
 
     // 视距边界上的区块
     // viewDistanceToLevel(10) = 23
@@ -829,7 +875,7 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
     manager.setViewDistance(10); // 使用正常视距
 
     manager.updatePlayerPosition(1, 0, 0);
-    manager.processUpdates();
+    _awaitPropagation(manager, [&] { return manager.shouldChunkLoad(11, 0); });
 
     // 距离 2 的区块应该加载 (23 + 2 = 25 < 34)
     EXPECT_TRUE(manager.shouldChunkLoad(2, 0));
@@ -850,7 +896,7 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition)
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, -10, -20);
-    manager.processUpdates();
+    _awaitPropagation(manager, [&] { return manager.shouldChunkLoad(-16, -20); });
 
     EXPECT_TRUE(manager.shouldChunkLoad(-10, -20));
     EXPECT_TRUE(manager.shouldChunkLoad(-15, -20));  // 视距边缘 (距离5)
@@ -1031,7 +1077,7 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, UnifiedPlayerSourcePropagation)
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
-    manager.processUpdates();
+    _awaitPropagation(manager, [&] { return manager.distanceGraph().getLevel(6, 0) == 34; });
 
     const ChunkDistanceGraph& graph = manager.distanceGraph();
     EXPECT_EQ(graph.getLevel(0, 0), viewDistanceToLevel(5));
@@ -1148,7 +1194,7 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedTicketAndPlayerSourceUseSingleM
 
     manager.updatePlayerPosition(1, 0, 0);
     manager.forceChunk(0, 0, true);
-    manager.processUpdates();
+    _awaitPropagation(manager, [&] { return manager.distanceGraph().getLevel(6, 0) == viewDistanceToLevel(5) + 6; });
 
     const ChunkDistanceGraph& graph = manager.distanceGraph();
     EXPECT_EQ(graph.getLevel(0, 0), viewDistanceToLevel(5));
