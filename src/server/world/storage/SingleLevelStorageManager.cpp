@@ -406,8 +406,11 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     // 外来格式：委托给后端读取
     if (m_backend) {
         auto result = m_backend->loadChunk(x, z, dimension);
-        if (result.success() && result.value().has_value()) {
-            result.value()->initializeMissingHeightmaps();
+        if (result.success()) {
+            auto& chunk = result.value();
+            if (chunk.has_value()) {
+                chunk->initializeMissingHeightmaps();
+            }
         }
         return result;
     }
