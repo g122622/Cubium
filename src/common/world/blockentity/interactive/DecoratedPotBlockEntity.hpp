@@ -209,6 +209,19 @@ public:
      */
     [[nodiscard]] bool hasItem() const;
 
+    // ========== 方块移除副作用 ==========
+
+    /**
+     * @brief 方块移除副作用：按 CRACKED 决定掉落陶片或内容物
+     *
+     * 对齐 vanilla DecoratedPotBlockEntity 语义：CRACKED 时掉落 4 个陶片（不含内容物）；
+     * 否则掉落内容物（BB 基类 ContainerBlockEntity::preRemoveSideEffects 行为）。
+     * 由 ServerWorld::setBlockState 在方块实体被丢弃前调用，并受
+     * UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控——原实现在 DecoratedPotBlock::onBlockRemoved，
+     * 会在不含 UPDATE_NEIGHBORS 的写入（结构放置、活塞推动）下漏掉掉落。
+     */
+    void preRemoveSideEffects(const BlockPos& pos, const BlockState& state) override;
+
     // ========== 摇晃动画 ==========
 
     /**

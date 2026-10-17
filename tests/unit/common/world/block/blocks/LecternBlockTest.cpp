@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "core/Constants.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
@@ -38,6 +39,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 using namespace mc;
 using namespace mc::blocks;
@@ -98,9 +100,28 @@ public:
     [[nodiscard]] i32 updateNeighborsCalls() const { return m_updateNeighborsCalls; }
     [[nodiscard]] const BlockPos& lastUpdateNeighborsPos() const { return m_lastUpdateNeighborsPos; }
 
+    EntityInstanceId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedItems.push_back(std::move(entity));
+        return EntityInstanceId(static_cast<u32>(m_spawnedItems.size()));
+    }
+
+    [[nodiscard]] i32 spawnCount() const { return static_cast<i32>(m_spawnedItems.size()); }
+
+    /// 返回第 index 个生成的物品实体所承载的物品堆
+    [[nodiscard]] ItemStack spawnedItemStackAt(std::size_t index) const
+    {
+        if (index >= m_spawnedItems.size()) {
+            return ItemStack();
+        }
+        auto* item = dynamic_cast<ItemEntity*>(m_spawnedItems[index].get());
+        return item != nullptr ? item->getItemStack() : ItemStack();
+    }
+
 private:
     BlockState m_state;
     std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_entities;
+    std::vector<std::unique_ptr<Entity>> m_spawnedItems;
     world::tick::TickManager m_tickManager;
     i32 m_setBlockCalls = 0;
     i32 m_updateNeighborsCalls = 0;
@@ -366,4 +387,51 @@ TEST_F(LecternBlockTest, GetWeakPower_Returns15WhenPowered)
     // 讲台弱信号向所有方向输出15
     EXPECT_EQ(m_block->getWeakPower(poweredState, world, pos, Direction::Down), 15);
     EXPECT_EQ(m_block->getWeakPower(poweredState, world, pos, Direction::North), 15);
+}
+
+// ============================================================================
+// LecternEntity::preRemoveSideEffects（对齐 vanilla LecternBlockEntity）
+// ============================================================================
+
+TEST_F(LecternBlockTest, PreRemoveSideEffects_DropsBookWhenHasBook)
+{
+    const BlockPos pos(1, 2, 3);
+    LecternTestWorld world(*m_block);
+    blockentity::LecternEntity entity(pos);
+    entity.setWorld(&world);
+    ASSERT_TRUE(entity.setBook(ItemStack(m_book, 1)));
+
+    BlockState state = m_block->defaultState()
+                           .with(BlockStateProperties::HAS_BOOK(), true)
+                           .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+
+    entity.preRemoveSideEffects(pos, state);
+
+    ASSERT_EQ(world.spawnCount(), 1);
+    const ItemStack dropped = world.spawnedItemStackAt(0);
+    ASSERT_FALSE(dropped.isEmpty()) << "drop is not an item entity";
+    EXPECT_EQ(dropped.getItem(), m_book);
+}
+
+TEST_F(LecternBlockTest, PreRemoveSideEffects_NoBookDoesNotDrop)
+{
+    const BlockPos pos(1, 2, 3);
+    LecternTestWorld world(*m_block);
+    blockentity::LecternEntity entity(pos);
+    entity.setWorld(&world);
+
+    BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), false);
+    entity.preRemoveSideEffects(pos, state);
+
+    EXPECT_EQ(world.spawnCount(), 0);
+}
+
+TEST_F(LecternBlockTest, PreRemoveSideEffects_NoWorldDoesNotCrash)
+{
+    const BlockPos pos(1, 2, 3);
+    blockentity::LecternEntity entity(pos); // 不设世界
+    ASSERT_TRUE(entity.setBook(ItemStack(m_book, 1)));
+
+    BlockState state = m_block->defaultState().with(BlockStateProperties::HAS_BOOK(), true);
+    EXPECT_NO_THROW(entity.preRemoveSideEffects(pos, state));
 }

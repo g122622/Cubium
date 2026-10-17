@@ -207,10 +207,6 @@ protected:
     CollisionShape m_collisionShape;
 
 private:
-    /**
-     * @brief 掉落书本
-     */
-    void _dropBook(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

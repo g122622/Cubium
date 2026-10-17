@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -231,6 +232,32 @@ void DecoratedPotBlockEntity::setItem(const ItemStack& stack)
 bool DecoratedPotBlockEntity::hasItem() const
 {
     return !m_inventory.getItem(0).isEmpty();
+}
+
+void DecoratedPotBlockEntity::preRemoveSideEffects(const BlockPos& pos, const BlockState& state)
+{
+    IWorld* world = getWorld();
+    if (world == nullptr || world->isClientSide()) {
+        return;
+    }
+
+    if (state.get(BlockStateProperties::CRACKED())) {
+        // 碎裂：掉落 4 个陶片（按四面图案各自映射物品），不掉落内容物。
+        const auto& patterns = m_decorations.ordered();
+        for (i32 i = 0; i < 4; ++i) {
+            const Item* sherdItem = getItemFromPattern(patterns[static_cast<std::size_t>(i)]);
+            if (sherdItem != nullptr) {
+                ItemDropHelper::spawnItemEntity(
+                    world, ItemStack(sherdItem, 1), pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, world->getRandom());
+            }
+        }
+        // 清空内容物，避免基类再掉落一次。
+        m_inventory.clear();
+        return;
+    }
+
+    // 非碎裂：掉落内容物（基类 ContainerBlockEntity 的统一容器掉落逻辑）。
+    ContainerBlockEntity::preRemoveSideEffects(pos, state);
 }
 
 void DecoratedPotBlockEntity::wobble(WobbleStyle style)

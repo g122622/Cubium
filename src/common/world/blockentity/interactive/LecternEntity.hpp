@@ -153,6 +153,17 @@ public:
     void tick(IWorld& world) override;
     [[nodiscard]] bool needsTick() const noexcept override { return false; }
 
+    /**
+     * @brief 方块移除副作用：掉落书本
+     *
+     * 对齐 vanilla LecternBlockEntity.preRemoveSideEffects（1.21.11）：
+     * 若 HAS_BOOK 则按 FACING 朝向前方偏移 0.25 格、Y+1 处掉出书本。
+     * 由 ServerWorld::setBlockState 在方块实体被丢弃前调用，并受
+     * UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS 门控——原实现在 LecternBlock::onBlockRemoved，
+     * 会在不含 UPDATE_NEIGHBORS 的写入（结构放置、活塞推动）下漏掉掉落。
+     */
+    void preRemoveSideEffects(const BlockPos& pos, const BlockState& state) override;
+
     // ========== 序列化 ==========
 
     bool load(const nlohmann::json& data) override;

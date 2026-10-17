@@ -21,7 +21,8 @@
 //         · canInsert 为 false：走空手交互逻辑（负摇晃）。
 //       · heldItem 为空：走空手交互逻辑（负摇晃）。
 //     · 空手交互逻辑：wobble(Negative) + playSound(BLOCK_DECORATED_POT_INSERT_FAIL) + gameEvent → Success。
-//   - onBlockRemoved（TrailsBlocks.cpp:388-422）：
+//   - DecoratedPotBlockEntity::preRemoveSideEffects（原在 TrailsBlocks.cpp::onBlockRemoved，
+//     已按 vanilla 迁移至方块实体，由 ServerWorld::setBlockState 在实体丢弃前调用）：
 //     · CRACKED 状态：掉落4个独立的陶片/砖块物品（getItemFromPattern）。
 //     · 非 CRACKED 状态：掉落陶罐内存储的物品（getItem + spawnItemEntity）。
 //     · 清空容器以防止重复掉落。
@@ -41,7 +42,7 @@
 //   2. 同类物品可叠加放入：已放1钻石 + 再 useItemOnBlock 钻石 → 返 true + 仍含钻石。
 //   3. 不同物品放入失败：已放钻石 + 铁锭 useItemOnBlock → 返 true（负摇晃仍是 Success）+ 仍含钻石。
 //   4. 空手右键负摇晃：interactWithBlock → 返 true + 容器内容不变（仍含钻石）。
-//   5. 非 cracked 破坏掉落内容物：放物品后 setBlockType air → onBlockRemoved 掉落存储的物品实体。
+//   5. 非 cracked 破坏掉落内容物：放物品后 setBlockType air → preRemoveSideEffects 掉落存储的物品实体。
 //
 // 关键约束：
 // 1. 饰纹陶罐需放在固体方块上方——(3,1,1) 放 stone 支撑，(3,2,1) 放陶罐。
@@ -49,7 +50,7 @@
 // 3. 用钻石（minecraft:diamond）测放入物品，对齐 wiki「手持对应物品与饰纹陶罐交互」。
 // 4. SimulatedPlayer 默认创造模式：放入物品 方块侧交互 内部创造模式 grow(1) 不消耗手持物，
 //    但 setItem 翻转由 split(1) 决定，与消耗无关。
-// 5. 场景 5 用 test.setBlockType("minecraft:air", pos) 移除方块 → 触发 onBlockRemoved →
+// 5. 场景 5 用 test.setBlockType("minecraft:air", pos) 移除方块 → 触发 preRemoveSideEffects →
 //    非 CRACKED 状态掉落陶罐内存储的物品（spawnItemEntity）。
 // 6. assertContainerContains 对陶罐有效：陶罐继承 ContainerBlockEntity，assertContainerContains 通过
 //    dynamic_cast<ContainerBlockEntity*> 获取容器后遍历槽位用 isSameItem 匹配。
@@ -69,7 +70,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_饰纹陶罐.txt#交互机制（放入成功/失败/空手负摇晃）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_饰纹陶罐.txt#容器容量（1格储存空间，至多1组同类物品）
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_饰纹陶罐.txt#破坏掉落（非cracked掉内容物）
-// Ref: TrailsBlocks.cpp（方块侧交互 放入物品/空手负摇晃；onBlockRemoved 掉落内容物）
+// Ref: TrailsBlocks.cpp（方块侧交互 放入物品/空手负摇晃）；DecoratedPotBlockEntity.cpp（preRemoveSideEffects 掉落）
 // Ref: GameTestHelper.cpp:651（assertContainerContains 通过 ContainerBlockEntity 遍历槽位）
 // Ref: SimulatedPlayer.cpp（useItemOnBlock Block.use 前置分支，对齐网络层/vanilla Java 1.21）
 
@@ -227,13 +228,13 @@ function potWobblesNegativeOnEmptyHand(test: Test): void {
     test.succeed();
 }
 
-// 场景 5：非 cracked 破坏掉落内容物——放物品后 setBlockType air → onBlockRemoved 掉落存储的物品实体。
+// 场景 5：非 cracked 破坏掉落内容物——放物品后 setBlockType air → preRemoveSideEffects 掉落存储的物品实体。
 //
 // 布局：(3,1,1) stone 支撑 + (3,2,1) 陶罐（先放1钻石使罐内含1钻石）。
-// 放钻石后 setBlockType("minecraft:air", (3,2,1)) 移除方块 → DecoratedPotBlock::onBlockRemoved →
+// 放钻石后 setBlockType("minecraft:air", (3,2,1)) 移除方块 → DecoratedPotBlockEntity::preRemoveSideEffects →
 //   非 CRACKED 状态 → getItem 非空 → spawnItemEntity 掉落钻石物品实体。
 //
-// 判定：破坏后陶罐位置为 air，且 diamond 物品实体存在（onBlockRemoved 掉落存储的物品）。
+// 判定：破坏后陶罐位置为 air，且 diamond 物品实体存在（preRemoveSideEffects 掉落存储的物品）。
 function potDropsStoredItemWhenBroken(test: Test): void {
     placeDecoratedPot(test);
 
@@ -248,14 +249,14 @@ function potDropsStoredItemWhenBroken(test: Test): void {
     );
     test.assert(firstInsert, "first diamond insertion should succeed");
 
-    // 移除方块：setBlockType air 触发 onBlockRemoved → 非 CRACKED 状态掉落存储的物品（钻石）。
+    // 移除方块：setBlockType air 触发 preRemoveSideEffects → 非 CRACKED 状态掉落存储的物品（钻石）。
     test.setBlockType("minecraft:air", { x: 3, y: 2, z: 1 });
 
     // 判定 1：陶罐位置变为 air（已移除）。
     const block = test.getBlock({ x: 3, y: 2, z: 1 }) as unknown as { typeId?: string } | undefined;
     test.assert(block?.typeId === "minecraft:air", `pot pos should be air after removal, got ${block?.typeId}`);
 
-    // 判定 2：diamond 物品实体存在（onBlockRemoved 掉落存储的钻石）。留 2 tick 让物品实体生成并注册。
+    // 判定 2：diamond 物品实体存在（preRemoveSideEffects 掉落存储的钻石）。留 2 tick 让物品实体生成并注册。
     test.runAtTickTime(2, () => {
         test.assertItemEntityPresent("minecraft:diamond", { x: 3, y: 2, z: 1 }, 1.5, true);
         test.succeed();
