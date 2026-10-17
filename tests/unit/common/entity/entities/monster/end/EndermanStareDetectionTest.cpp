@@ -331,10 +331,14 @@ TEST_F(EndermanStareGoalTest, Constructor_SetsMutexFlags)
 {
     entity::ai::goal::EndermanStareGoal goal(enderman.get());
 
+    // 对齐 vanilla 1.21.11 EndermanFreezeWhenLookedAt:
+    //   setFlags(EnumSet.of(Goal.Flag.JUMP, Goal.Flag.MOVE))（EnderMan.java:409）。
+    // Move 占用实现"被注视冻结"（压制 MeleeAttackGoal / WaterAvoidingRandomWalkingGoal）；
+    // Jump 为 vanilla 原样；Look 不占用，注视期间 LookAtPlayerGoal / LookRandomlyGoal 可正常竞争。
     auto flags = goal.getMutexFlags();
-    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Look));
+    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Jump));
     EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Move));
-    EXPECT_FALSE(flags.test(entity::ai::GoalFlag::Jump));
+    EXPECT_FALSE(flags.test(entity::ai::GoalFlag::Look));
     EXPECT_FALSE(flags.test(entity::ai::GoalFlag::Target));
 }
 

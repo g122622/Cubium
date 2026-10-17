@@ -66,12 +66,12 @@ namespace entity::ai::goal {
 // ============================================================================
 
 EndermanStareGoal::EndermanStareGoal(EndermanEntity* enderman)
-    // mutex flags 用 Look|Move（非 vanilla Java 1.21.11 的 Jump|Move）：Move flag 注视时霸占压制
-    // MeleeAttackGoal(Move|Look) 使末影人被注视时冻结不近战（对齐 vanilla EndermanFreezeWhenLookedAt
-    // 注视冻结语义）；Look flag 抑制注视期间其他 Look goal（如 LookAtPlayerGoal）竞争视线控制器。
-    // TODO: 对齐 vanilla 用 Jump|Move（Java EndermanFreezeWhenLookedAt flags=EnumSet.of(JUMP,MOVE)），
-    //   需评估 Jump flag 在 Cubium 的实际效果及对注视期间 Look goal 调度的影响后切换。
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Look, GoalFlag::Move})
+    // mutex flags 对齐 vanilla Java 1.21.11 EndermanFreezeWhenLookedAt
+    // （EnumSet.of(Goal.Flag.JUMP, Goal.Flag.MOVE)）：Move flag 在被注视时被本 goal 占用，
+    // 压制 MeleeAttackGoal(Move|Look) 与 WaterAvoidingRandomWalkingGoal(Move)，实现"被注视则冻结不动"；
+    // Look flag 不占用——vanilla 不占 LOOK，注视期间 LookAtPlayerGoal/LookRandomlyGoal 仍可正常
+    // 竞争视线控制器（本 goal 在 tick 中主动设置视线朝向）。
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Jump, GoalFlag::Move})
     , m_enderman(enderman)
 {
     MC_ASSERT(enderman != nullptr);

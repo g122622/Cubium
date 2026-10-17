@@ -180,7 +180,7 @@ function endermanTakesBlock(test: Test): void {
 //   getTarget() 是 Player + 距离<16 + isBeingStaredBy(player)。**注视时该 goal 霸占 MOVE flag**，
 //   MeleeAttackGoal（优先级2，flags=MOVE）被压制不执行——末影人被注视时冻结不动不近战，靠
 //   EndermanLookForPlayerGoal tick 瞬移。玩家移开视线后 Freeze goal canUse=false 释放 MOVE flag，
-//   MeleeAttackGoal 接管近战攻击。Cubium EndermanStareGoal 对齐此语义（flags=Look|Move，注视时
+//   MeleeAttackGoal 接管近战攻击。Cubium EndermanStareGoal 对齐此语义（flags=JUMP|MOVE，注视时
 //   霸占 MOVE 压制 MeleeAttackGoal）。
 //   故测试须两阶段：① 玩家注视末影人触发激怒（aggroTime=5 倒计时→setAttackTarget）；
 //   ② 玩家移开视线释放 MOVE flag，MeleeAttackGoal 寻路近战攻击玩家。激怒后（m_aggroTime 已 expired，
