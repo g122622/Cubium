@@ -101,25 +101,6 @@ public:
      */
     [[nodiscard]] bool isBeingRidden() const;
 
-    /**
-     * @brief 检查玩家是否可以骑乘
-     * @param player 玩家
-     * @return 是否可以骑乘
-     */
-    [[nodiscard]] bool canBeRiddenBy(Player* player) const;
-
-    /**
-     * @brief 获取骑乘者（玩家）
-     * @return 骑乘者指针，如果没有则返回 nullptr
-     */
-    [[nodiscard]] Player* getRider() const { return m_rider; }
-
-    /**
-     * @brief 设置骑乘者
-     * @param rider 骑乘者
-     */
-    void setRider(Player* rider) { m_rider = rider; }
-
     // ========== 驯服系统 ==========
 
     /**
@@ -660,11 +641,6 @@ protected:
      * MC 1.16.5: initHorseChest()
      */
     void initHorseChest();
-
-protected:
-    // 骑乘状态（m_rider 不进组件：运行时指针、不存盘不同步、生命周期由 passengers 体系
-    // 外部管理。getRider/setRider 高频 inline 保留 OOP 成员，对齐 minecart 乘客系统不进组件范式）
-    Player* m_rider = nullptr;
 
 private:
     // MC 1.21.11 数据参数

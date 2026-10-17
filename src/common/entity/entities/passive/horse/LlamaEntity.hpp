@@ -94,11 +94,6 @@ public:
     void randomizeAppearance();
 
     /**
-     * @brief 羊驼可被骑乘但不能控制方向
-     */
-    [[nodiscard]] bool canBeRiddenBy(Player* player) const;
-
-    /**
      * @brief 羊驼不能装备鞍
      */
     [[nodiscard]] bool canEquipSaddle() const override { return false; }

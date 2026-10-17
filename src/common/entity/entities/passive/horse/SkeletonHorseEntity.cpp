@@ -62,15 +62,6 @@ std::unique_ptr<Entity> SkeletonHorseEntity::create(IWorld* /*world*/, ecs::Enti
     return std::make_unique<SkeletonHorseEntity>(0, registry);
 }
 
-bool SkeletonHorseEntity::canBeRiddenBy(Player* player) const
-{
-    // 骷髅马不需要驯服即可骑乘
-    if (m_rider != nullptr && m_rider != player) {
-        return false;
-    }
-    return true;
-}
-
 void SkeletonHorseEntity::setTrap(bool trap)
 {
     // 设置陷阱状态时，添加/移除 TriggerSkeletonTrapGoal

@@ -108,15 +108,6 @@ void LlamaEntity::randomizeAppearance()
     setStrength(1 + random.nextInt(5));
 }
 
-bool LlamaEntity::canBeRiddenBy(Player* player) const
-{
-    if (m_rider != nullptr && m_rider != player) {
-        return false;
-    }
-
-    return true;
-}
-
 i32 LlamaEntity::getInventoryColumns() const
 {
     return m_strength;

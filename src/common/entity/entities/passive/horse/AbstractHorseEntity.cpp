@@ -357,31 +357,10 @@ void AbstractHorseEntity::stopJumping()
 
 bool AbstractHorseEntity::isBeingRidden() const
 {
-    // 对齐 vanilla：AbstractHorse 继承标准 passengers 体系（Entity.isVehicle = !passengers.empty()），
-    // 不另设独立骑乘判定。原实现 `return m_rider != nullptr;` 用独立 m_rider 字段，但 setRider
-    // 从未被调用（doPlayerRide 走 player.startRiding → addPassenger 操作 m_passengers，不设 m_rider），
-    // 致 m_rider 恒 nullptr → isBeingRidden() 恒 false → RunAroundLikeCrazyGoal::shouldExecute
-    // 的 isBeingRidden() 守卫永不过 → 马永不驯服（项目级对齐缺陷）。改为委托基类 hasPassengers()
-    // 与 m_passengers 体系一致，修复马驯服链路。
-    //
-    // m_rider 字段及 getRider/setRider/canBeRiddenBy 系列为死代码（setRider 无调用点，canBeRiddenBy
-    // 无调用点），TODO 待清理时一并删除（Llama/SkeletonHorse/ZombieHorse 的 canBeRiddenBy override 同删）。
+    // 委托标准 passengers 体系（Entity.isVehicle = !passengers.empty()），不另设独立骑乘字段。
+    // 注意：曾用独立 m_rider 字段判定，但骑乘路径（startRiding → addPassenger）从不写该字段，
+    // 致 isBeingRidden() 恒 false、RunAroundLikeCrazyGoal 的守卫永不过、马永不驯服。
     return hasPassengers();
-}
-
-bool AbstractHorseEntity::canBeRiddenBy(Player* player) const
-{
-    // 已被骑乘或未驯服
-    if (m_rider != nullptr) {
-        return false;
-    }
-
-    // 需要驯服才能骑乘（子类可覆盖此逻辑）
-    if (!isTame()) {
-        return false;
-    }
-
-    return true;
 }
 
 // ========== 库存初始化 ==========

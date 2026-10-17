@@ -52,15 +52,6 @@ std::unique_ptr<Entity> ZombieHorseEntity::create(IWorld* /*world*/, ecs::Entity
     return std::make_unique<ZombieHorseEntity>(0, registry);
 }
 
-bool ZombieHorseEntity::canBeRiddenBy(Player* player) const
-{
-    // 僵尸马不需要驯服即可骑乘
-    if (m_rider != nullptr && m_rider != player) {
-        return false;
-    }
-    return true;
-}
-
 void ZombieHorseEntity::tick()
 {
     AbstractHorseEntity::tick();

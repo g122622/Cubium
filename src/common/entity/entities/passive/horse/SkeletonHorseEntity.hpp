@@ -80,12 +80,6 @@ public:
 
     // ========== 骑乘���统 ==========
 
-    /**
-     * @brief 检查玩家是否可以骑乘
-     * 骷髅马不需要驯服即可骑乘
-     */
-    [[nodiscard]] bool canBeRiddenBy(Player* player) const;
-
     // ========== 繁殖系统 ==========
 
     /**
