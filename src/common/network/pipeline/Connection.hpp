@@ -107,9 +107,9 @@ public:
         return sendShared(std::make_shared<const OutboundPacket>(std::move(packet)));
     }
     /** @brief 发送可跨连接复用的不可变快照。 */
-    [[nodiscard]] Result<void> sendShared(std::shared_ptr<const OutboundPacket> packet)
+    [[nodiscard]] Result<void> sendShared(const std::shared_ptr<const OutboundPacket>& packet)
     {
-        return m_state->execute([state = m_state, packet = std::move(packet)] { return state->send(*packet); });
+        return m_state->execute([state = m_state, packet] { return state->send(*packet); });
     }
     /** @brief 有序装配接收监听器。 */
     void onPacket(PacketListener listener)

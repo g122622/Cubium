@@ -78,7 +78,7 @@ Result<void> ServerClientConnection::send(mc::network::ir::IrPacket packet)
 
 Result<void> ServerClientConnection::sendShared(std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet)
 {
-    return m_conn.sendShared(std::move(packet));
+    return m_conn.sendShared(packet);
 }
 
 void ServerClientConnection::enqueueInbound(mc::network::ir::IrPacket packet)
