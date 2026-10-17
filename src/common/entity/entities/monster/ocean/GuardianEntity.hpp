@@ -35,6 +35,10 @@ namespace mc {
 // Forward declaration
 class DamageSource;
 
+namespace entity::ai::goal {
+class RandomWalkingGoal;
+}
+
 /**
  * @brief 守卫者实体
  *
@@ -204,6 +208,10 @@ protected:
     void registerAttributes() override;
 
 private:
+    // 随机漫步目标（非拥有；由 goalSelector 持有 lifetime）。受击时触发其 makeUpdate
+    // 以强制下一次随机漫步（对齐 vanilla Guardian.hurtServer 中 randomStrollGoal.trigger()）。
+    entity::ai::goal::RandomWalkingGoal* m_randomStrollGoal = nullptr;
+
     // 激光攻击
     bool m_laserCharging = false;
     i32 m_laserChargeTime = 0;

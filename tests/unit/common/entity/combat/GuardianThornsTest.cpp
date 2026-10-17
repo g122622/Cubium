@@ -62,12 +62,15 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -88,9 +91,21 @@ public:
 
 // BaseTestWorld 的默认构造函数为 protected（TestWorldHelper.hpp:158），无法作为测试 fixture 成员
 // 直接构造。派生并公开默认构造（playSound 默认空实现吸收 actuallyHurt 的 playHurtSound）。
+// 额外提供实心地面（y=0 层 stone，其余 air），使 RandomWalkingGoal 的随机落点校验
+// （RandomPositionGenerator::isPositionWalkable 需非空气地面）能够在随机漫步触发测试中通过。
 class TestWorld final : public mc::test::BaseTestWorld {
 public:
     TestWorld() = default;
+
+    [[nodiscard]] const BlockState* getBlockState(i32, i32 y, i32) const override
+    {
+        return y <= 0 ? &VanillaBlocks::STONE->defaultState() : &VanillaBlocks::AIR->defaultState();
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    }
 };
 
 } // namespace
@@ -107,6 +122,7 @@ protected:
         // 无附魔护甲，actuallyHurt 步骤9 荆棘附魔分支早退，但初始化避免空表查询异常）。
         item::enchant::EnchantmentRegistry::clear();
         item::enchant::EnchantmentRegistry::initialize();
+        VanillaBlocks::initialize();
         Items::initialize();
         // 伤害类型标签初始化（进程级幂等）。AVOIDS_GUARDIAN_THORNS 成员集在 initialize() 注册
         // （DamageTypeTags.cpp:794）。未初始化时标签成员集为空，source.is(AVOIDS_GUARDIAN_THORNS)
@@ -182,4 +198,50 @@ TEST_F(GuardianThornsTest, ThornsDoesNotRecurse)
 
     // 不反伤（attacker health 仍 20）
     EXPECT_FLOAT_EQ(attacker.health(), 20.0f);
+}
+
+// ============================================================================
+// 受击触发随机漫步（对齐 vanilla Guardian.hurtServer 中 randomStrollGoal.trigger()）
+// ============================================================================
+
+namespace {
+// 在守卫者的 goalSelector 中定位随机漫步目标（registerGoals 注册的 RandomWalkingGoal）。
+entity::ai::goal::RandomWalkingGoal* findRandomWalkingGoal(GuardianEntity& guardian)
+{
+    for (const auto& pg : guardian.goalSelector().getAllGoals()) {
+        // getAllGoals() 仅提供 const 视图；目标对象本身由 goalSelector 可变持有，
+        // 此处为测试目的取回可变指针以调用 shouldExecute。
+        if (auto* goal = dynamic_cast<const entity::ai::goal::RandomWalkingGoal*>(pg.getGoal())) {
+            return const_cast<entity::ai::goal::RandomWalkingGoal*>(goal);
+        }
+    }
+    return nullptr;
+}
+} // namespace
+
+// 守卫者受击后须强制触发随机漫步（makeUpdate 置 forceUpdate）。
+//
+// 默认执行概率 m_executionChance=80，单次 shouldExecute 命中间隔内随机数与空闲检查。受击前先
+// 反复调用 shouldExecute 直至其自然返回 true（消耗掉自然命中的 force 状态）；随后受击，下一次
+// shouldExecute 必须立即可执行——只有 makeUpdate 置位 forceUpdate 才能跳过概率/空闲检查做到这点。
+TEST_F(GuardianThornsTest, HurtTriggersRandomStrollGoal)
+{
+    GuardianEntity guardian(EntityInstanceId(3), mc::test::testEcsRegistry());
+    guardian.setWorld(&m_world);
+    guardian.setTypeId("minecraft:guardian");
+    guardian.setHealth(guardian.maxHealth());
+    guardian.setPosition(0.0, 1.0, 0.0); // 站在 y=0 的石英地面上方
+
+    auto* strollGoal = findRandomWalkingGoal(guardian);
+    ASSERT_NE(strollGoal, nullptr) << "Guardian should register a RandomWalkingGoal";
+
+    TestLivingEntity attacker;
+    attacker.setWorld(&m_world);
+
+    auto source = DamageSources::mobAttack(&attacker);
+    guardian.hurt(source, 5.0f);
+
+    // 受击后 makeUpdate 已置 forceUpdate，下一次 shouldExecute 必须无条件通过。
+    EXPECT_TRUE(strollGoal->shouldExecute())
+        << "Hurt should force-trigger the random stroll goal (makeUpdate) regardless of chance";
 }

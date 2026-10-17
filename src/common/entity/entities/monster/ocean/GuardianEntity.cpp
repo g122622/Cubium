@@ -119,10 +119,12 @@ bool GuardianEntity::hurt(DamageSource& source, f32 amount)
         }
     }
 
-    // vanilla 随后 trigger randomStrollGoal（Cubium 无 randomStrollGoal 字段，RandomWalkingGoal 无
-    // trigger 接口，此触发未实现，TODO）。
-    // TODO: 对齐 vanilla randomStrollGoal.trigger()（受击触发随机漫步），需 GuardianAttackGoal 体系
-    //       暴露 RandomWalkingGoal 引用。
+    // 受击后强制触发随机漫步（对齐 vanilla Guardian.hurtServer:322-324 的 randomStrollGoal.trigger()）：
+    // 守卫者受击后立即改换移动方向。RandomWalkingGoal::makeUpdate 置 forceUpdate，令其
+    // 下一次 shouldExecute 必定通过（跳过机率与空闲检查），语义等价于 vanilla 的 trigger()。
+    if (m_randomStrollGoal != nullptr) {
+        m_randomStrollGoal->makeUpdate();
+    }
 
     return MonsterEntity::hurt(source, amount);
 }
@@ -146,8 +148,11 @@ void GuardianEntity::registerGoals()
     m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
 
     // 优先级 7: 随机漫步
-    // 80 tick 的移动间隔
-    m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 80));
+    // 80 tick 的移动间隔。保留裸指针以便受击时触发 makeUpdate（对齐 vanilla Guardian 的
+    // randomStrollGoal.trigger()）：goal 的 lifetime 由 goalSelector 持有，此处仅观察。
+    auto strollGoal = std::make_unique<entity::ai::goal::RandomWalkingGoal>(this, 1.0, 80);
+    m_randomStrollGoal = strollGoal.get();
+    m_goalSelector.addGoal(7, std::move(strollGoal));
 
     // 优先级 8: 看向玩家 (8格内)
     m_goalSelector.addGoal(
