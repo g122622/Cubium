@@ -85,6 +85,17 @@ public:
     void tick() override;
 
     /**
+     * @brief 飞行移动（委托 vanilla travelFlying 的飞行物理）
+     *
+     * 对齐 MC 1.21.11 Ghast.travel：this.travelFlying(movementInput, 0.02F)。
+     * travelFlying 三支：水中 moveRelative(0.02)→move→scale(0.8)；岩浆
+     * moveRelative(0.02)→move→scale(0.5)；其余 moveRelative(0.02)→move→scale(0.91)。
+     * 此前用 setNoGravity(true) 近似（LivingEntity::travel 跳过重力），移动因子与摩擦
+     * 仍走步行公式，与飞行物理不符；此处改为精确的飞行物理。
+     */
+    void travel(f32 strafing, f32 vertical, f32 forward) override;
+
+    /**
      * @brief 判定恶魂是否对指定伤害源免疫
      *
      * 对齐 MC Java 1.21.11 Ghast.isInvulnerableTo（Ghast.java:86-89）：

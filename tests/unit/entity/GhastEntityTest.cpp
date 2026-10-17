@@ -23,8 +23,11 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/core/EnumSet.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 using namespace mc;
@@ -315,4 +318,44 @@ TEST_F(GhastEntityTest, EyeHeight_IsCorrect)
     // MC 1.16.5: 恶魂眼睛高度为 2.6
     constexpr f32 GHAST_EYE_HEIGHT = 2.6f;
     EXPECT_FLOAT_EQ(GHAST_EYE_HEIGHT, 2.6f);
+}
+
+// ============================================================================
+// 飞行物理测试（Ghast.travel → travelFlying：0.02 加速 + 0.91 阻力，无重力）
+// ============================================================================
+
+namespace {
+// 最小测试世界：全部为空气、无边界、无碰撞（飞行物理只需 world 非空、非水/岩浆）。
+class GhastFlyTestWorld final : public mc::test::BaseTestWorld {
+public:
+    GhastFlyTestWorld()
+        : mc::test::BaseTestWorld()
+    {}
+
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return &mc::VanillaBlocks::AIR->defaultState();
+    }
+
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
+};
+} // namespace
+
+TEST_F(GhastEntityTest, Travel_AppliesFlyDragWithoutGravity)
+{
+    GhastFlyTestWorld world;
+    GhastEntity ghast(EntityInstanceId(1), mc::test::testEcsRegistry());
+    ghast.setWorld(&world);
+    ghast.setPosition(0.0, 64.0, 0.0);
+
+    // 无输入、水平初速 1.0、垂直初速 0。
+    ghast.setVelocity(1.0f, 0.0f, 0.0f);
+    ghast.travel(0.0f, 0.0f, 0.0f);
+
+    // 飞行阻力 0.91：水平速度应变为 0.91（步行公式会因地面摩擦/加速度修正而不同）。
+    EXPECT_NEAR(ghast.velocity().x, 0.91f, 1e-4f)
+        << "Ghast travel should apply the 0.91 flying drag, not the walking friction formula";
+    // 无重力：垂直速度保持 0（旧实现走 LivingEntity::travel 且 setNoGravity 仅跳过重力，
+    // 但此处应确保不产生任何垂直位移）。
+    EXPECT_NEAR(ghast.velocity().y, 0.0f, 1e-5f);
 }

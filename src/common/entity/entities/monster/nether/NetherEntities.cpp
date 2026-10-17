@@ -95,9 +95,8 @@ GhastEntity::GhastEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // 实现随机飞行。此前缺此调用，恶魂受重力持续下落（spawn 后逐 tick 沉降），
     // GhastRandomFlyGoal 的随机速度补偿不足以抵消重力，恶魂无法稳定悬浮开火。
     // 参考 VexEntity/WitherEntity 同用 setNoGravity(true) 实现飞行。
-    // TODO: 更彻底的对齐是覆写 travel() 委托 FlyingEntity::travel 的飞行物理
-    // （含飞行摩擦 0.91 + 飞行加速 0.02，对齐 vanilla travelFlying），但需提取
-    // FlyingEntity::travel 为共享静态方法供非 FlyingEntity 子类复用，待后续重构。
+    // 精确飞行物理由 GhastEntity::travel（对齐 vanilla travelFlying：0.02 加速 + 0.91 阻力）
+    // 承担；setNoGravity 仅确保基类路径（水流/外力等）不施加重力。
     setNoGravity(true);
 
     // 补调 registerGoals / registerAttributes：MonsterEntity 构造只调基类版（vtable 指向 MonsterEntity），
@@ -105,6 +104,31 @@ GhastEntity::GhastEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
     // Fireball 等目标，registerAttributes 设 MAX_HEALTH/FOLLOW_RANGE/FLYING_SPEED。
     registerGoals();
     registerAttributes();
+}
+
+void GhastEntity::travel(f32 strafing, f32 vertical, f32 forward)
+{
+    // 对齐 MC 1.21.11 Ghast.travel → travelFlying(movementInput, 0.02F)（LivingEntity.travelFlying）：
+    //   水中：moveRelative(0.02, input) → move → scale(0.8)
+    //   岩浆：moveRelative(0.02, input) → move → scale(0.5)
+    //   其余：moveRelative(0.02, input) → move → scale(0.91)
+    // 与 Walking 公式不同：无地面滑度/加速度修正、无重力项，恒定 0.02 加速、0.91 阻力。
+    constexpr f32 kFlyAcceleration = 0.02f;
+    if (isInWater()) {
+        moveRelative(kFlyAcceleration, strafing, vertical, forward);
+        move(entity::MoverType::Self, velocity());
+        scaleVelocity(0.8f);
+    } else if (isInLava()) {
+        moveRelative(kFlyAcceleration, strafing, vertical, forward);
+        move(entity::MoverType::Self, velocity());
+        scaleVelocity(0.5f);
+    } else {
+        moveRelative(kFlyAcceleration, strafing, vertical, forward);
+        move(entity::MoverType::Self, velocity());
+        scaleVelocity(0.91f);
+    }
+    // 肢体摆动动画参数更新（与 FlyingEntity::travel 一致，第二参 false 表示不计算垂直位移）。
+    updateTravelAnimation(false);
 }
 
 void GhastEntity::tick()
