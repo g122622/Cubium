@@ -752,8 +752,11 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     if (m_backend) {
         if (!m_taskManager) {
             // 无线程池：同步降级
-            std::lock_guard<std::mutex> lock(m_foreignReadMutex);
-            completion(m_backend->loadChunk(x, z, dimension));
+            auto result = [&] {
+                std::lock_guard<std::mutex> lock(m_foreignReadMutex);
+                return m_backend->loadChunk(x, z, dimension);
+            }();
+            completion(std::move(result));
             return;
         }
         auto executor = [this, x, z, dimension, completion](const std::atomic<bool>& abortSig) {
@@ -761,8 +764,11 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
                 completion(Error(ErrorCode::InvalidState, "Load chunk (foreign) cancelled"));
                 return false;
             }
-            std::lock_guard<std::mutex> lock(m_foreignReadMutex);
-            completion(m_backend->loadChunk(x, z, dimension));
+            auto result = [&] {
+                std::lock_guard<std::mutex> lock(m_foreignReadMutex);
+                return m_backend->loadChunk(x, z, dimension);
+            }();
+            completion(std::move(result));
             return true;
         };
         SectionKey descKey{x, z, 0, dimension};
