@@ -78,10 +78,12 @@ namespace mc {
 // （含 canAttackType 排除 GHAST、Player 创造/观察模式、isAlliedTo 同队门控）+ checkSight
 // + 自定义谓词选取最近目标。
 //
-// TODO: vanilla Johnny 谓词 attackable() 不含 team 检查，会攻击同队灾厄村民；Cubium
-// isSuitableTarget 含 isAlliedTo 门控，致 Johnny 不攻击同队灾厄村民，与 vanilla 存在
-// 边缘偏差。完整对齐需在 Johnny goal 中绕过 isAlliedTo（完全重写 shouldExecute），
-// 但 isSuitableTarget 的 Player 游戏模式门控需保留，暂委托基类以复用已测试逻辑。
+// 注：vanilla 的 Johnny 谓词 attackable() 本身不含 team 检查，但目标选取仍经
+//   NearestAttackableTargetGoal 的 TargetingConditions.forCombat()，后者内含
+//   isAlliedTo 门控（TargetingConditions.java:72：canAttack + canAttackType + !isAlliedTo）。
+//   即 vanilla Johnny 同样不会攻击同队灾厄村民——队伍默认不存在（记分板 team 为空），
+//   isAlliedTo 返回 false，故两者行为一致。Cubium 委托基类 isSuitableTarget（含 isAlliedTo +
+//   Player 游戏模式门控）与 vanilla 等价，无需重写。
 
 class VindicatorJohnnyAttackGoal : public entity::ai::goal::NearestAttackableTargetGoal<LivingEntity> {
 public:
