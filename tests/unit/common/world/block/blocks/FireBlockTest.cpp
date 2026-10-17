@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -292,10 +293,14 @@ TEST_F(FireBlockTest, WithAge_CreatesStateWithCorrectAge)
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
-    BlockState age5State = fireBlock->withAge(5);
+    // 空世界：下方非灵魂基座、无可燃/可依附方块，连接属性全 false
+    FireSpreadTestWorld testWorld;
+    BlockPos pos(5, 64, 5);
+
+    BlockState age5State = fireBlock->withAge(testWorld, pos, 5);
     EXPECT_EQ(fireBlock->getAge(age5State), 5);
 
-    BlockState age15State = fireBlock->withAge(15);
+    BlockState age15State = fireBlock->withAge(testWorld, pos, 15);
     EXPECT_EQ(fireBlock->getAge(age15State), 15);
 }
 
@@ -304,8 +309,72 @@ TEST_F(FireBlockTest, WithAge_ClampsAgeToMax15)
     FireBlock* fireBlock = getFireBlock();
     ASSERT_NE(fireBlock, nullptr);
 
-    BlockState clampedState = fireBlock->withAge(20);
+    FireSpreadTestWorld testWorld;
+    BlockPos pos(5, 64, 5);
+
+    BlockState clampedState = fireBlock->withAge(testWorld, pos, 20);
     EXPECT_EQ(fireBlock->getAge(clampedState), 15);
+}
+
+TEST_F(FireBlockTest, WithAge_OnSoulSandBase_ProducesSoulFire)
+{
+    // 目标位置下方为灵魂沙/灵魂土时应产生灵魂火
+    // （vanilla BaseFireBlock.getState → SoulFireBlock.canSurviveOnBlock）。
+    ASSERT_NE(VanillaBlocks::SOUL_FIRE, nullptr);
+    ASSERT_NE(VanillaBlocks::SOUL_SAND, nullptr);
+
+    FireBlock* fireBlock = getFireBlock();
+    ASSERT_NE(fireBlock, nullptr);
+
+    FireSpreadTestWorld testWorld;
+    BlockPos pos(5, 64, 5);
+    testWorld.setBlockAt(pos.down(), &VanillaBlocks::SOUL_SAND->defaultState());
+
+    BlockState state = fireBlock->withAge(testWorld, pos, 3);
+    EXPECT_EQ(&state.getBlock(), VanillaBlocks::SOUL_FIRE) << "灵魂沙上的火应为灵魂火";
+}
+
+TEST_F(FireBlockTest, WithAge_SetsConnectionPropsFromBurnableNeighbors)
+{
+    // 下方既不可燃又不可依附时，按邻居可燃性设置连接属性
+    // （vanilla FireBlock.getStateForPlacement）。北侧放橡木木板（可燃），其余方向为空。
+    ASSERT_NE(VanillaBlocks::OAK_PLANKS, nullptr);
+    ASSERT_NE(VanillaBlocks::FIRE, nullptr);
+
+    FireBlock* fireBlock = getFireBlock();
+    ASSERT_NE(fireBlock, nullptr);
+
+    // 下方留空（空气既不可燃、上表面也不坚固），才进入逐邻居可燃性分支；
+    // 若下方为石头（上表面坚固）vanilla 亦返回 defaultState，连接属性全 false。
+    FireSpreadTestWorld testWorld;
+    BlockPos pos(5, 64, 5);
+    testWorld.setBlockAt(pos.offset(Direction::North), &VanillaBlocks::OAK_PLANKS->defaultState());
+
+    BlockState state = fireBlock->withAge(testWorld, pos, 0);
+    EXPECT_EQ(&state.getBlock(), VanillaBlocks::FIRE);
+    EXPECT_TRUE(state.get(BlockStateProperties::NORTH())) << "北侧可燃应设置 NORTH 连接";
+    EXPECT_FALSE(state.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(state.get(BlockStateProperties::EAST()));
+    EXPECT_FALSE(state.get(BlockStateProperties::WEST()));
+    EXPECT_FALSE(state.get(BlockStateProperties::UP()));
+}
+
+TEST_F(FireBlockTest, WithAge_BurnableBelow_KeepsDefaultConnectionProps)
+{
+    // 下方可燃 → 返回 defaultState（连接属性全 false）
+    ASSERT_NE(VanillaBlocks::OAK_PLANKS, nullptr);
+
+    FireBlock* fireBlock = getFireBlock();
+    ASSERT_NE(fireBlock, nullptr);
+
+    FireSpreadTestWorld testWorld;
+    BlockPos pos(5, 64, 5);
+    testWorld.setBlockAt(pos.down(), &VanillaBlocks::OAK_PLANKS->defaultState());
+
+    BlockState state = fireBlock->withAge(testWorld, pos, 0);
+    EXPECT_FALSE(state.get(BlockStateProperties::NORTH()));
+    EXPECT_FALSE(state.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(state.get(BlockStateProperties::UP()));
 }
 
 // ========== FireBlock::tick 测试 ==========
@@ -773,7 +842,7 @@ TEST_F(FireBlockTest, FireOnNetherrack_SurvivesWithoutFlammableNeighbors)
     world.setBlockAt(netherrackPos, &BaseBlocks::NETHERRACK->defaultState());
 
     // 放置 age=15 的火焰（age>3 触发普通方块的熄灭检查，但 netherrack 是火源应跳过）
-    BlockState fireState = fireBlock->withAge(15);
+    BlockState fireState = fireBlock->withAge(world, firePos, 15);
     world.setBlockAt(firePos, &fireState);
 
     // 多次 tick，火焰不应熄灭（netherrack 无限火源）
@@ -810,7 +879,7 @@ TEST_F(FireBlockTest, FireOnStone_ExtinguishesWithoutFlammableNeighbors)
     BlockPos stonePos(5, 63, 5);
     world.setBlockAt(stonePos, &VanillaBlocks::STONE->defaultState());
 
-    BlockState fireState = fireBlock->withAge(15);
+    BlockState fireState = fireBlock->withAge(world, firePos, 15);
     world.setBlockAt(firePos, &fireState);
 
     // 多次 tick，火焰应熄灭（stone 非火源，无可燃邻居 + age>3）

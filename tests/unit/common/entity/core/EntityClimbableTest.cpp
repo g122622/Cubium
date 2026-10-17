@@ -34,6 +34,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityFlags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -226,4 +227,54 @@ TEST_F(EntityClimbableTest, NoWorldIsNotClimbable)
     entity.setPosition(0.5f, 64.0f, 0.5f);
 
     EXPECT_FALSE(entity.isOnLadder());
+}
+
+// ============================================================================
+// 鞘翅滑翔例外（vanilla LivingEntity.onClimbable:1686-1687）：
+// 滑翔中（isElytraFlying）+ 方块属 CAN_GLIDE_THROUGH 标签 → 不算攀爬。
+// ============================================================================
+
+TEST_F(EntityClimbableTest, ElytraFlying_ThroughVine_IsNotClimbable)
+{
+    // 滑翔穿过藤蔓（CAN_GLIDE_THROUGH 成员）不应算攀爬，否则滑翔会被"黏住"中断。
+    setUpEntity();
+    ASSERT_NE(VanillaBlocks::VINE, nullptr);
+    m_world.placeBlock(BlockPos(0, 64, 0), &VanillaBlocks::VINE->defaultState());
+
+    m_entity->setFlags(EntityFlags::FallFlying);
+    EXPECT_TRUE(m_entity->isElytraFlying());
+    EXPECT_FALSE(m_entity->isOnLadder());
+}
+
+TEST_F(EntityClimbableTest, ElytraFlying_ThroughCaveVines_IsNotClimbable)
+{
+    setUpEntity();
+    ASSERT_NE(VanillaBlocks::CAVE_VINES, nullptr);
+    m_world.placeBlock(BlockPos(0, 64, 0), &VanillaBlocks::CAVE_VINES->defaultState());
+
+    m_entity->setFlags(EntityFlags::FallFlying);
+    EXPECT_FALSE(m_entity->isOnLadder());
+}
+
+TEST_F(EntityClimbableTest, ElytraFlying_ThroughLadder_IsStillClimbable)
+{
+    // 梯子不在 CAN_GLIDE_THROUGH 标签内：滑翔中仍算攀爬（vanilla 仅对藤蔓类豁免）。
+    setUpEntity();
+    ASSERT_NE(VanillaBlocks::LADDER, nullptr);
+    m_world.placeBlock(BlockPos(0, 64, 0), &VanillaBlocks::LADDER->defaultState());
+
+    m_entity->setFlags(EntityFlags::FallFlying);
+    EXPECT_TRUE(m_entity->isElytraFlying());
+    EXPECT_TRUE(m_entity->isOnLadder());
+}
+
+TEST_F(EntityClimbableTest, NotElytraFlying_ThroughVine_IsClimbable)
+{
+    // 未滑翔时藤蔓照常可攀爬（例外仅在滑翔状态下生效）。
+    setUpEntity();
+    ASSERT_NE(VanillaBlocks::VINE, nullptr);
+    m_world.placeBlock(BlockPos(0, 64, 0), &VanillaBlocks::VINE->defaultState());
+
+    EXPECT_FALSE(m_entity->isElytraFlying());
+    EXPECT_TRUE(m_entity->isOnLadder());
 }

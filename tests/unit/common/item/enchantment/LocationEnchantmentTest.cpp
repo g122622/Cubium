@@ -1045,8 +1045,11 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWithoutEnchantment)
         entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }
 
-TEST_F(SoulSpeedIntegrationTest, NoModifierWhenNotOnGround)
+TEST_F(SoulSpeedIntegrationTest, ModifierAddedWhenNotOnGroundButAboveSoulSand)
 {
+    // vanilla soul_speed.json 的 location_changed 条件：未激活（active==false）分支只要求
+    // movement_affected_by ∈ #soul_speed_blocks，**不要求** onGround。故离地但下方为灵魂沙时
+    // 仍应激活（悬空下落经过灵魂沙上方）。
     if (NetherBlocks::SOUL_SAND == nullptr) {
         GTEST_SKIP() << "SOUL_SAND not initialized";
     }
@@ -1059,16 +1062,40 @@ TEST_F(SoulSpeedIntegrationTest, NoModifierWhenNotOnGround)
     EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
     m_entity->setEquipment(EquipmentSlot::Feet, boots);
 
-    // 设置为不在地面
+    // 设置为不在地面，但脚下是灵魂沙
     m_entity->setOnGround(false);
 
-    // 在脚下放置灵魂沙
     const BlockPos soulSandPos(0, 64, 0);
     m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
 
     m_entity->onChangedBlock();
 
-    // 不在地面，不应添加速度修饰符
+    // 下方为灵魂沙，未激活分支满足 → 应添加速度修饰符
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
+}
+
+TEST_F(SoulSpeedIntegrationTest, NoModifierWhenNotOnGroundAndNotAboveSoulBlock)
+{
+    // 离地且下方不是灵魂方块 → 未激活分支不满足 → 不应激活。
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 离地；脚下放置非灵魂方块（石头）
+    m_entity->setOnGround(false);
+    const BlockPos stonePos(0, 64, 0);
+    m_world->setBlockDirectly(stonePos, &VanillaBlocks::STONE->defaultState());
+
+    m_entity->onChangedBlock();
+
     EXPECT_FALSE(m_entity->attributes().hasModifier(
         entity::attribute::Attributes::MOVEMENT_SPEED, "minecraft:enchantment.soul_speed"));
 }

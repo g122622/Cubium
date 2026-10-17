@@ -23,14 +23,50 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/cave/GlowLichenBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <memory>
+#include <unordered_map>
 
 using namespace mc;
 using namespace mc::blocks;
+
+namespace {
+
+/// 发光地衣放置测试用 Mock 世界：仅需按坐标存取方块 + 提供 AIR 兜底。
+class GlowLichenTestWorld final : public mc::test::BaseTestWorld {
+public:
+    GlowLichenTestWorld() { VanillaBlocks::initialize(); }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        if (state == nullptr) {
+            m_blocks.erase(BlockPos(x, y, z));
+        } else {
+            m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
+        }
+        return true;
+    }
+
+private:
+    std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
+};
+
+} // namespace
 
 // ========== GlowLichenBlock 测试 ==========
 
@@ -538,4 +574,76 @@ TEST_F(GlowLichenBlockTest, All64Combinations_NoCrash)
             }
         }
     }
+}
+
+// ============================================================================
+// getStateForPlacement 多方向优先级测试
+// ============================================================================
+
+namespace {
+
+/// 构造放置上下文：clickedFace 为被点击的面，playerYaw/pitch 决定视线方向排序。
+BlockItemUseContext _makeContext(IWorld& world, const BlockPos& pos, Direction clickedFace, f32 yaw, f32 pitch)
+{
+    static const ItemStack EMPTY_STACK = ItemStack::EMPTY;
+    return BlockItemUseContext(world,
+        nullptr,
+        EMPTY_STACK,
+        Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
+        pos,
+        clickedFace,
+        yaw,
+        pitch);
+}
+
+} // namespace
+
+TEST_F(GlowLichenBlockTest, GetStateForPlacement_SetsFaceTowardSupport)
+{
+    // 目标位置下方是实心方块：getNearestLookingDirections() 首个为 clickedFace 的反向
+    // （此处 clickedFace=Up → 首个 Down），应把 DOWN 面设为 true。
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    GlowLichenTestWorld world;
+    const BlockPos pos(5, 64, 5);
+    world.setBlockState(pos.x, pos.y - 1, pos.z, &VanillaBlocks::STONE->defaultState());
+
+    auto context = _makeContext(world, pos, Direction::Up, 0.0f, 0.0f);
+    BlockState state = block_->getStateForPlacement(context);
+
+    EXPECT_TRUE(state.get(BlockStateProperties::DOWN())) << "支撑方块在上方时应对应 DOWN 面";
+    EXPECT_FALSE(state.get(BlockStateProperties::UP()));
+}
+
+TEST_F(GlowLichenBlockTest, GetStateForPlacement_NoSupport_AllFacesFalse)
+{
+    // 六个方向都无支撑方块：所有方向尝试均失败 → defaultState（无任何面）。
+    GlowLichenTestWorld world;
+    const BlockPos pos(5, 64, 5);
+
+    auto context = _makeContext(world, pos, Direction::Up, 0.0f, 0.0f);
+    BlockState state = block_->getStateForPlacement(context);
+
+    EXPECT_FALSE(state.get(BlockStateProperties::DOWN()));
+    EXPECT_FALSE(state.get(BlockStateProperties::UP()));
+    EXPECT_FALSE(state.get(BlockStateProperties::NORTH()));
+    EXPECT_FALSE(state.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(state.get(BlockStateProperties::EAST()));
+    EXPECT_FALSE(state.get(BlockStateProperties::WEST()));
+}
+
+TEST_F(GlowLichenBlockTest, GetStateForPlacement_MultiDirection_PicksFirstValid)
+{
+    // 多方向优先级：被点击面为 Up，但视线朝向把 NORTH 排在优先位附近；
+    // 下方为空气、北侧为实心方块 —— 应命中北侧支撑（而非退回 defaultState）。
+    // 这正是「斜视贴面」：仅用 opposite(clickedFace)=Down 会失败。
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    GlowLichenTestWorld world;
+    const BlockPos pos(5, 64, 5);
+    world.setBlockState(pos.x, pos.y, pos.z - 1, &VanillaBlocks::STONE->defaultState()); // NORTH 侧支撑
+
+    // pitch=+80（俯视），yaw=180（朝北）：视线最近方向为 Down/North 一侧，North 会被优先尝试。
+    auto context = _makeContext(world, pos, Direction::Up, 180.0f, 80.0f);
+    BlockState state = block_->getStateForPlacement(context);
+
+    EXPECT_TRUE(state.get(BlockStateProperties::NORTH())) << "北侧支撑应使 NORTH 面为 true（多方向尝试命中）";
 }

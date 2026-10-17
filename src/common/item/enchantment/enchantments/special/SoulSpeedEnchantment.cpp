@@ -53,26 +53,22 @@ bool SoulSpeedEnchantment::onLocationChanged(
 {
     (void)stack;
 
-    // 灵魂疾行仅在以下条件下激活：
-    // 1. 实体在地面上
-    // 2. 实体没有骑乘
-    // 3. 实体没有在飞行（创造/旁观模式飞行或鞘翅滑翔）
-    // 4. 脚下是灵魂沙/灵魂土
-    // TODO: 原版 soul_speed.json 的 location_changed 条件对"已激活"与"未激活"两种状态分别判定：
-    //       已激活时允许 is_on_ground=false（即起跳离地后仍保留速度/效率修饰符，直到离开灵魂沙
-    //       上方或开始飞行）；未激活时才要求 movement_affected_by 为 #minecraft:soul_speed_blocks。
-    //       当前实现无条件要求 onGround()，导致每次跳跃都会先移除再重新添加修饰符，
-    //       且在灵魂沙上方悬空下落时不激活。补齐该分支时需要同步调整依赖此行为的测试用例。
-    if (!entity.onGround()) {
-        return false;
-    }
+    // 灵魂疾行的 location_changed 条件（vanilla soul_speed.json）：
+    //   !riding AND is_flying==false AND
+    //     ( (active==true  AND (movement_affected_by ∈ #soul_speed_blocks OR is_on_ground==false))
+    //       OR
+    //       (active==false AND movement_affected_by ∈ #soul_speed_blocks) )
+    // 即：已激活时允许离地（起跳后仍保留修饰符，直到离开灵魂沙上方或开始飞行）；
+    //     未激活时必须站在灵魂沙/灵魂土上。
     if (entity.isRiding()) {
         return false;
     }
     if (isFlying(entity)) {
         return false;
     }
-    if (!isOnSoulSpeedBlock(entity)) {
+    const bool onSoulBlock = isOnSoulSpeedBlock(entity);
+    const bool activeCondition = isActive ? (onSoulBlock || !entity.onGround()) : onSoulBlock;
+    if (!activeCondition) {
         return false;
     }
 
@@ -81,14 +77,16 @@ bool SoulSpeedEnchantment::onLocationChanged(
         applySoulSpeedModifiers(entity, level);
     }
 
-    // 尝试消耗耐久（每次位置变化事件有4%概率消耗1点耐久）
-    // ChangeItemDamage 效果：随机概率 + 站在灵魂沙/土上
-    tryConsumeDurability(entity, slot);
+    // 耐久消耗（vanilla soul_speed.json 的 change_item_damage 要求 is_on_ground==true +
+    // movement_affected_by ∈ #soul_speed_blocks + 4%/级 随机概率），故仅在站在灵魂方块上时消耗。
+    if (entity.onGround() && onSoulBlock) {
+        tryConsumeDurability(entity, slot);
+    }
 
     // 生成灵魂粒子效果和音效
     spawnSoulParticles(entity);
 
-    return true; // 灵魂疾行在灵魂沙上处于活跃状态
+    return true; // 灵魂疾行处于活跃状态
 }
 
 void SoulSpeedEnchantment::onLocationEffectDeactivated(
@@ -121,11 +119,9 @@ bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
         return false;
     }
 
-    // 使用 SOUL_FIRE_BASE_BLOCKS 标签（包含 soul_sand 和 soul_soil）
-    // TODO: 原版 location_changed 条件引用的是 #minecraft:soul_speed_blocks 标签，本项目未单独注册该标签，
-    //       临时复用内容相同的 SOUL_FIRE_BASE_BLOCKS（两者的原版取值均为 soul_sand/soul_soil）。
-    //       待 BlockTags 补齐 soul_speed_blocks 后应改用该标签，以便数据包自定义时行为一致。
-    return BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(state->getBlock());
+    // 使用 SOUL_SPEED_BLOCKS 标签（soul_sand + soul_soil），对齐 vanilla soul_speed.json 的
+    // movement_affected_by 引用 #minecraft:soul_speed_blocks。
+    return BlockTags::SOUL_SPEED_BLOCKS().contains(state->getBlock());
 }
 
 bool SoulSpeedEnchantment::isFlying(const LivingEntity& entity) const

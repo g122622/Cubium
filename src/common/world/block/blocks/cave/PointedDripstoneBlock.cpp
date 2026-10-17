@@ -320,10 +320,10 @@ void PointedDripstoneBlock::onFallenUpon(
     MC_UNUSED(pos);
 
     // 只有朝上的 TIP 厚度才增加摔落伤害。石笋替代普通摔落伤害。
-    // TODO: 此处厚度条件硬编码 == Tip，未含 TipMerge（合并尖端）。Cubium 的 isTip(state, true)
-    //   会把 TipMerge 也算尖端（PointedDripstoneBlock.cpp:382-390），但本方法未复用。Java 原版
-    //   isStalagmiteTip 含 TipMerge，wiki 仅述"thickness 为 tip"。TipMerge 朝上是否应触发石笋
-    //   伤害待对照 Java 源码确认，暂按 wiki 字面仅 Tip 触发。
+    // 已核实 vanilla PointedDripstoneBlock.fallOn（PointedDripstoneBlock.java:153-159）：
+    //   条件为 `TIP_DIRECTION == UP && THICKNESS == TIP`，**不含** TipMerge。vanilla 亦无
+    //   isStalagmiteTip 方法，其 isTip(state, true) 的"含 TipMerge"语义仅用于生长/合并判定
+    //   （findTip 等），不用于摔落伤害。故此处 `== Tip` 系有意对齐 vanilla，非简化实现。
     if (state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up &&
         state.get(BlockStateProperties::DRIPSTONE_THICKNESS()) == BlockStateProperties::DripstoneThickness::Tip) {
         // 石笋伤害：摔落距离 + 2.5（对齐 Java PointedDripstoneBlock#fallOn 的 + 2.5），伤害倍率 2.0（翻倍）。

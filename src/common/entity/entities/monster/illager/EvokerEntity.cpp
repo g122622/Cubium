@@ -231,7 +231,7 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
         BlockPos fangBlockPos(static_cast<i32>(std::floor(posX)),
             static_cast<i32>(std::floor(groundY)),
             static_cast<i32>(std::floor(posZ)));
-        m_world->gameEvent(gameevent::GameEvents::ENTITY_PLACE, fangBlockPos, gameevent::GameEvent::Context::of(this));
+        gameEvent(gameevent::GameEvents::ENTITY_PLACE, fangBlockPos);
     }
 }
 

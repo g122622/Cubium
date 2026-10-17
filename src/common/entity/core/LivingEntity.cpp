@@ -92,6 +92,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -807,9 +808,13 @@ void LivingEntity::die(DamageSource& cause)
     //    Cubium 等价方法为 stopActiveHand()。
     stopActiveHand();
 
-    // 4. 命名实体死亡日志（LivingEntity.java:1443-1445）
+    // 4. 命名实体死亡日志（vanilla LivingEntity.java:1443-1445）
+    //    LOGGER.info("Named entity {} died: {}", this, getCombatTracker().getDeathMessage().getString())
+    //    仅服务端且实体有自定义名时记录；日志内容一律英文（项目日志规范）。
     if (m_world != nullptr && !m_world->isClientSide() && hasCustomName()) {
-        // TODO: 接入 spdlog 输出 "Named entity {} died: {}"
+        const auto displayName = getDisplayName();
+        const std::string name = displayName != nullptr ? displayName->getUnformattedText() : getTypeId();
+        spdlog::info("Named entity {} died: {}", name, m_combatTracker.getDeathMessage());
     }
 
     // 5. dead = true（LivingEntity.java:1447）
@@ -823,8 +828,8 @@ void LivingEntity::die(DamageSource& cause)
     //    （LivingEntity.java:1449-1454）
     if (m_world != nullptr) {
         // gameEvent(ENTITY_DIE)（LivingEntity.java:1451）
-        // TODO: Cubium 的 gameEvent 便捷方法尚未在 LivingEntity 引入，待补 gameEvent(event) 成员后替换为便捷调用。
-        m_world->gameEvent(gameevent::GameEvents::ENTITY_DIE, onPos(), gameevent::GameEvent::Context::of(this));
+        // 经 Entity::gameEvent(event, pos) 便捷方法触发（上下文为本实体）。
+        gameEvent(gameevent::GameEvents::ENTITY_DIE, onPos());
 
         // dropAllDeathLoot（LivingEntity.java:1452）
         // dropAllDeathLoot 内部按 shouldDropLoot(doMobLoot 守卫) 决定物品是否掉落，
@@ -1068,8 +1073,8 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
         Player* player = dynamic_cast<Player*>(m_lastHurtBy.get());
         if (player != nullptr) {
             builder.withParameter(loot::LootParams::KILLER_PLAYER, player);
-            // TODO: luck 属性未接入属性系统时暂用 0。对齐 vanilla player.getLuck()。
-            builder.withLuck(0.0f);
+            // 应用击杀玩家的幸运值（generic.luck 属性，经幸运/霉运效果改变）。对齐 vanilla player.getLuck()。
+            builder.withLuck(player->getLuck());
         }
     }
 
@@ -2493,7 +2498,7 @@ void LivingEntity::updateFallFlying()
             BlockPos eventPos(static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.x)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.y)),
                 static_cast<i32>(std::floor(m_builtIn.stateVector->m_pos.z)));
-            m_world->gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos, gameevent::GameEvent::Context::of(this));
+            gameEvent(gameevent::GameEvents::ELYTRA_GLIDE, eventPos);
         }
     }
 }

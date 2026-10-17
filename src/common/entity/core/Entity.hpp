@@ -55,6 +55,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -564,6 +565,24 @@ public:
      * @param pitch 音调倍率
      */
     void playSound(const ResourceLocation& soundEventId, f32 volume, f32 pitch) const;
+
+    /**
+     * @brief 以本实体为上下文触发游戏事件（在实体当前位置）
+     *
+     * 等价于 world()->gameEvent(event, onPos(), GameEvent::Context::of(this))。
+     * 对齐 vanilla Entity.gameEvent(Holder<GameEvent>)（Entity.java:1295）。
+     * 世界为空时安全无操作。
+     */
+    void gameEvent(const gameevent::GameEvent& event) const;
+
+    /**
+     * @brief 以本实体为上下文在指定位置触发游戏事件
+     *
+     * 等价于 world()->gameEvent(event, pos, GameEvent::Context::of(this))。
+     * 对齐 vanilla Entity.gameEvent(Holder<GameEvent>, Entity) 的上下文语义。
+     * 世界为空时安全无操作。
+     */
+    void gameEvent(const gameevent::GameEvent& event, const BlockPos& pos) const;
 
     /**
      * @brief 获取溅水声音

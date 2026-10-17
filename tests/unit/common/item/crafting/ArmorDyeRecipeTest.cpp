@@ -86,9 +86,8 @@ TEST_F(DyedItemColorTest, MultipleDyes_OneShotNormalization)
 {
     // 红 + 蓝一次性混色。vanilla 的亮度归一化会明显提亮结果（0xAD5398），
     // 而非逐次两两平均得到的暗淡 0x763968——此断言可作为"是否一次性归一化"的判别器。
-    const u32 result =
-        DyedItemColor::applyDyes(std::nullopt,
-            {dyeTextureDiffuseColor(DyeColor::Red), dyeTextureDiffuseColor(DyeColor::Blue)});
+    const u32 result = DyedItemColor::applyDyes(
+        std::nullopt, {dyeTextureDiffuseColor(DyeColor::Red), dyeTextureDiffuseColor(DyeColor::Blue)});
     EXPECT_EQ(result, 0xAD5398u);
     EXPECT_NE(result, 0x763968u) << "退化为逐次两两平均（旧实现）";
 }
@@ -96,12 +95,10 @@ TEST_F(DyedItemColorTest, MultipleDyes_OneShotNormalization)
 TEST_F(DyedItemColorTest, MultipleDyes_OrderIndependent)
 {
     // 一次性累加求平均 => 与染料顺序无关
-    const u32 redBlue =
-        DyedItemColor::applyDyes(std::nullopt,
-            {dyeTextureDiffuseColor(DyeColor::Red), dyeTextureDiffuseColor(DyeColor::Blue)});
-    const u32 blueRed =
-        DyedItemColor::applyDyes(std::nullopt,
-            {dyeTextureDiffuseColor(DyeColor::Blue), dyeTextureDiffuseColor(DyeColor::Red)});
+    const u32 redBlue = DyedItemColor::applyDyes(
+        std::nullopt, {dyeTextureDiffuseColor(DyeColor::Red), dyeTextureDiffuseColor(DyeColor::Blue)});
+    const u32 blueRed = DyedItemColor::applyDyes(
+        std::nullopt, {dyeTextureDiffuseColor(DyeColor::Blue), dyeTextureDiffuseColor(DyeColor::Red)});
     EXPECT_EQ(redBlue, blueRed);
 }
 
@@ -109,9 +106,8 @@ TEST_F(DyedItemColorTest, MultipleDyes_BrightnessNormalization)
 {
     // 白 + 黑：等量的极端明暗按 vanilla 归一化后是中亮灰（0x8B8E90），
     // 而非朴素平均得到的暗灰——验证 avgMax / maxAvg 亮度缩放确实生效。
-    const u32 result =
-        DyedItemColor::applyDyes(std::nullopt,
-            {dyeTextureDiffuseColor(DyeColor::White), dyeTextureDiffuseColor(DyeColor::Black)});
+    const u32 result = DyedItemColor::applyDyes(
+        std::nullopt, {dyeTextureDiffuseColor(DyeColor::White), dyeTextureDiffuseColor(DyeColor::Black)});
     EXPECT_EQ(result, 0x8B8E90u);
 }
 
@@ -143,10 +139,7 @@ protected:
         item::tag::ItemTags::initialize();
     }
 
-    void SetUp() override
-    {
-        m_recipe = std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye"));
-    }
+    void SetUp() override { m_recipe = std::make_unique<ArmorDyeRecipe>(ResourceLocation("minecraft", "armor_dye")); }
 
     std::unique_ptr<ArmorDyeRecipe> m_recipe;
 };

@@ -472,6 +472,20 @@ public:
     /// MC 1.21.11: BlockTags.CLIMBABLE
     static BlockTag& CLIMBABLE();
 
+    /// 鞘翅滑翔可穿透方块标签（= #cave_vines + vine + twisting/weeping_vines[_plant]）
+    /// 运行时消费场景：Entity::isOnLadder 内，实体处于鞘翅滑翔（isElytraFlying）且所在方块
+    /// 属本标签时不算攀爬（vanilla LivingEntity.onClimbable:1686-1687 的 CAN_GLIDE_THROUGH 例外），
+    /// 使滑翔穿过藤蔓时不被"黏住"而中断滑翔。
+    /// MC 1.21.11: BlockTags.CAN_GLIDE_THROUGH
+    static BlockTag& CAN_GLIDE_THROUGH();
+
+    /// 灵魂疾行生效方块标签（= soul_sand + soul_soil）
+    /// 运行时消费场景：SoulSpeedEnchantment 的 location_changed 条件判定脚下方块
+    /// （vanilla soul_speed.json 中 movement_affected_by 引用 #minecraft:soul_speed_blocks）。
+    /// 与 SOUL_FIRE_BASE_BLOCKS 成员集相同但语义独立（数据包可分别自定义）。
+    /// MC 1.21.11: BlockTags.SOUL_SPEED_BLOCKS
+    static BlockTag& SOUL_SPEED_BLOCKS();
+
     /// 摔落伤害重置方块标签（= #climbable + sweet_berry_bush + cobweb）
     /// 运行时消费场景：Entity::moveWithCollision 内 _checkFallDamageResettingBlocks 沿实体本帧
     /// 移动路径射线检测，命中此标签方块即 resetFallDistance（实体穿过蜘蛛网/甜浆果丛/可攀爬

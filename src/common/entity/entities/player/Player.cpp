@@ -2259,6 +2259,12 @@ void Player::registerAttributes()
     // LUCK 属性默认值为 0.0，无需显式设置
 }
 
+f32 Player::getLuck() const
+{
+    // 对齐 vanilla Player.getLuck()：读取 generic.luck 属性值。
+    return static_cast<f32>(getAttributeValue(entity::attribute::Attributes::LUCK, 0.0));
+}
+
 // ============================================================================
 // 移动物理（覆盖 LivingEntity 方法）
 // ============================================================================
