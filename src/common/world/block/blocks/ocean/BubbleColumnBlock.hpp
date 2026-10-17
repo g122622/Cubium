@@ -185,6 +185,15 @@ public:
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 气泡柱的流体状态为源水（对齐 vanilla BubbleColumnBlock.getFluidState:69-70）
+     *
+     * 返回 WATER 源态。由此 propagatesSkylightDown 走默认公式得 false（含水不透天空光），
+     * 与 vanilla 一致（vanilla BubbleColumnBlock 不 override propagatesSkylightDown，靠
+     * getFluidState 返回水触发默认公式）。
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
+
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
     {
         MC_UNUSED(state);

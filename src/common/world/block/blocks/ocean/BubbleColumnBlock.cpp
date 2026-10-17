@@ -41,6 +41,7 @@
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <cstddef>
 #include <memory>
@@ -264,6 +265,13 @@ const CollisionShape& BubbleColumnBlock::getCollisionShape(const BlockState& sta
     MC_UNUSED(state);
     static CollisionShape emptyShape = CollisionShape::empty();
     return emptyShape;
+}
+
+const fluid::FluidState* BubbleColumnBlock::getFluidState(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 对齐 vanilla BubbleColumnBlock.getFluidState：返回水（源态）。
+    return &fluid::Fluids::WATER()->defaultState();
 }
 
 bool BubbleColumnBlock::_checkSource(const IWorld& world, const BlockPos& pos) const

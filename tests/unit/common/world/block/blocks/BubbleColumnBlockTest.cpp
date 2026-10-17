@@ -38,6 +38,7 @@
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/FluidRegistry.hpp"
 #include "world/fluid/FluidTags.hpp"
+#include "world/fluid/Fluids.hpp"
 #include "world/fluid/fluids/WaterFluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
@@ -198,6 +199,20 @@ protected:
 
     void TearDown() override {}
 };
+
+// ========== BubbleColumnBlock::getFluidState 测试 ==========
+
+TEST_F(BubbleColumnBlockTest, GetFluidState_ReturnsWaterSource)
+{
+    // 对齐 vanilla BubbleColumnBlock.getFluidState：返回水（源态）。
+    const Block* bubbleColumn = VanillaBlocks::BUBBLE_COLUMN;
+    ASSERT_NE(bubbleColumn, nullptr);
+
+    const fluid::FluidState* fluidState = bubbleColumn->getFluidState(bubbleColumn->defaultState());
+    ASSERT_NE(fluidState, nullptr);
+    EXPECT_EQ(&fluidState->getFluid(), mc::fluid::Fluids::WATER());
+    EXPECT_TRUE(fluidState->isSource());
+}
 
 // ========== BubbleColumnBlock::canHoldBubbleColumn 测试 ==========
 
