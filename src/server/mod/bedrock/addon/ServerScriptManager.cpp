@@ -39,7 +39,7 @@
 #include "server/event/ServerEventBus.hpp"
 #include "server/mod/bedrock/addon/bridge/ServerEventSignals.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
-#include "server/world/ServerWorld.hpp" // worldSpawnPoint/spawnAngle（world.getDefaultSpawn 回调）
+#include "server/world/ServerWorld.hpp" // respawnData（world.getDefaultSpawn 回调）
 
 #include <memory>
 #include <string>
@@ -261,7 +261,7 @@ void ServerScriptManager::setServer(MinecraftServer* server)
         return view;
     });
 
-    // 桥接 world.getDefaultSpawn 到主世界 ServerWorld::worldSpawnPoint/spawnAngle。ServerWorld 在 server 层，
+    // 桥接 world.getDefaultSpawn 到主世界的世界出生数据（RespawnData）。ServerWorld 在 server 层，
     // common 层以 WorldSpawnView 值快照桥接。供 /setworldspawn 命令测试读取世界出生点做断言。每次访问
     // 重新取快照保证 set 后 JS 立即可见。/setworldspawn 作用于命令执行者所在维度，测试在主世界故取 overworld。
     accessor.setGetWorldSpawnCallback([server]() -> mc::mod::bedrock::addon::WorldSpawnView {
@@ -271,11 +271,13 @@ void ServerScriptManager::setServer(MinecraftServer* server)
             return view; // exists=false
         }
         const auto* world = overworld->world();
+        const RespawnData& spawn = world->respawnData();
         view.exists = true;
-        view.x = world->worldSpawnPoint().x;
-        view.y = world->worldSpawnPoint().y;
-        view.z = world->worldSpawnPoint().z;
-        view.angle = world->spawnAngle();
+        view.x = static_cast<f64>(spawn.pos().x);
+        view.y = static_cast<f64>(spawn.pos().y);
+        view.z = static_cast<f64>(spawn.pos().z);
+        view.yaw = spawn.yaw;
+        view.pitch = spawn.pitch;
         return view;
     });
 

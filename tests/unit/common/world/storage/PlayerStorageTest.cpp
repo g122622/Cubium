@@ -151,8 +151,7 @@ TEST_F(PlayerSaveDataTest, NbtRoundTrip)
     original.sneaking = false;
 
     // 设置重生点
-    original.spawnPoint = GlobalPos(0, BlockPos(100, 64, 200));
-    original.spawnForced = true;
+    original.respawnConfig = RespawnConfig(RespawnData::of(0, BlockPos(100, 64, 200), 45.0f, 10.0f), true);
 
     // 序列化
     nbt::tags::compound_tag nbt = original.toNbt();
@@ -196,12 +195,9 @@ TEST_F(PlayerSaveDataTest, NbtRoundTrip)
     EXPECT_EQ(restored.sneaking, original.sneaking);
 
     // 验证重生点
-    ASSERT_TRUE(restored.spawnPoint.has_value());
-    EXPECT_EQ(restored.spawnPoint->x(), original.spawnPoint->x());
-    EXPECT_EQ(restored.spawnPoint->y(), original.spawnPoint->y());
-    EXPECT_EQ(restored.spawnPoint->z(), original.spawnPoint->z());
-    EXPECT_EQ(restored.spawnPoint->getDimensionId(), original.spawnPoint->getDimensionId());
-    EXPECT_EQ(restored.spawnForced, original.spawnForced);
+    ASSERT_TRUE(restored.respawnConfig.has_value());
+    EXPECT_EQ(restored.respawnConfig->respawnData, original.respawnConfig->respawnData);
+    EXPECT_EQ(restored.respawnConfig->forced, original.respawnConfig->forced);
 }
 
 TEST_F(PlayerSaveDataTest, BinarySerialization)
@@ -241,20 +237,17 @@ TEST_F(PlayerSaveDataTest, SpawnPointRoundTrip)
 {
     PlayerSaveData original;
     original.uuid = "spawn-test";
-    original.spawnPoint = GlobalPos(-1, BlockPos(-100, 70, 300)); // Nether spawn
-    original.spawnForced = true;
+    original.respawnConfig = RespawnConfig(RespawnData::of(-1, BlockPos(-100, 70, 300), 0.0f, 0.0f), true);
 
     nbt::tags::compound_tag nbt = original.toNbt();
     auto result = PlayerSaveData::fromNbt(nbt);
     ASSERT_TRUE(result.success());
 
     const PlayerSaveData& restored = result.value();
-    ASSERT_TRUE(restored.spawnPoint.has_value());
-    EXPECT_EQ(restored.spawnPoint->x(), -100);
-    EXPECT_EQ(restored.spawnPoint->y(), 70);
-    EXPECT_EQ(restored.spawnPoint->z(), 300);
-    EXPECT_EQ(restored.spawnPoint->getDimensionId(), -1);
-    EXPECT_TRUE(restored.spawnForced);
+    ASSERT_TRUE(restored.respawnConfig.has_value());
+    EXPECT_EQ(restored.respawnConfig->respawnData.pos(), BlockPos(-100, 70, 300));
+    EXPECT_EQ(restored.respawnConfig->respawnData.dimension(), DimensionId(-1));
+    EXPECT_TRUE(restored.respawnConfig->forced);
 }
 
 TEST_F(PlayerSaveDataTest, AbilitiesRoundTrip)
@@ -979,18 +972,17 @@ TEST_F(ApplyToPlayerTest, RestoresImpulseContext)
 TEST_F(ApplyToPlayerTest, RestoresSpawnPoint)
 {
     PlayerSaveData data;
-    data.spawnPoint = GlobalPos(DimensionId(-1), BlockPos(50, 30, 100));
-    data.spawnForced = true;
+    data.respawnConfig = RespawnConfig(RespawnData::of(DimensionId(-1), BlockPos(50, 30, 100), 12.0f, -3.0f), true);
 
     PlayerDataManager::applyToPlayer(*player, data);
 
-    auto spawnPoint = player->getSpawnPoint();
-    ASSERT_TRUE(spawnPoint.has_value());
-    EXPECT_EQ(spawnPoint->getDimensionId(), DimensionId(-1));
-    EXPECT_EQ(spawnPoint->getPos().x, 50);
-    EXPECT_EQ(spawnPoint->getPos().y, 30);
-    EXPECT_EQ(spawnPoint->getPos().z, 100);
-    EXPECT_TRUE(player->isSpawnForced());
+    auto config = player->getRespawnConfig();
+    ASSERT_TRUE(config.has_value());
+    EXPECT_EQ(config->respawnData.dimension(), DimensionId(-1));
+    EXPECT_EQ(config->respawnData.pos(), BlockPos(50, 30, 100));
+    EXPECT_FLOAT_EQ(config->respawnData.yaw, 12.0f);
+    EXPECT_FLOAT_EQ(config->respawnData.pitch, -3.0f);
+    EXPECT_TRUE(config->forced);
 }
 
 TEST_F(ApplyToPlayerTest, RestoresEnteredNetherPosition)
@@ -1078,8 +1070,7 @@ TEST_F(ApplyToPlayerTest, RestoresFullPlayerState)
     data.currentImpulseImpactPos = Vector3(10.0f, 20.0f, 30.0f);
     data.ignoreFallDamageFromCurrentImpulse = true;
     data.currentImpulseContextResetGraceTime = 50; // 大于默认的 40 tick
-    data.spawnPoint = GlobalPos(DimensionId(0), BlockPos(100, 64, 200));
-    data.spawnForced = false;
+    data.respawnConfig = RespawnConfig(RespawnData::of(DimensionId(0), BlockPos(100, 64, 200), 0.0f, 0.0f), false);
     data.enteredNetherPosition = Vector3d(150.0, 40.0, 250.0);
     data.onGround = true;
     data.sprinting = true;
@@ -1196,16 +1187,15 @@ TEST_F(FromPlayerTest, ExtractsAbilities)
 
 TEST_F(FromPlayerTest, ExtractsSpawnPoint)
 {
-    player->setSpawnPoint(DimensionId(-1), BlockPos(50, 30, 100), true);
+    player->setRespawnPosition(
+        RespawnConfig(RespawnData::of(DimensionId(-1), BlockPos(50, 30, 100), 0.0f, 0.0f), true), false);
 
     PlayerSaveData data = PlayerDataManager::fromPlayer(*player);
 
-    ASSERT_TRUE(data.spawnPoint.has_value());
-    EXPECT_EQ(data.spawnPoint->getDimensionId(), DimensionId(-1));
-    EXPECT_EQ(data.spawnPoint->x(), 50);
-    EXPECT_EQ(data.spawnPoint->y(), 30);
-    EXPECT_EQ(data.spawnPoint->z(), 100);
-    EXPECT_TRUE(data.spawnForced);
+    ASSERT_TRUE(data.respawnConfig.has_value());
+    EXPECT_EQ(data.respawnConfig->respawnData.dimension(), DimensionId(-1));
+    EXPECT_EQ(data.respawnConfig->respawnData.pos(), BlockPos(50, 30, 100));
+    EXPECT_TRUE(data.respawnConfig->forced);
 }
 
 TEST_F(FromPlayerTest, ExtractsLastDeathLocation)
@@ -1289,8 +1279,7 @@ TEST_F(FromPlayerTest, RoundTripPreservesFullState)
     original.flying = false;
     original.flySpeed = 0.07f;
     original.walkSpeed = 0.15f;
-    original.spawnPoint = GlobalPos(DimensionId(0), BlockPos(100, 64, 200));
-    original.spawnForced = false;
+    original.respawnConfig = RespawnConfig(RespawnData::of(DimensionId(0), BlockPos(100, 64, 200), 0.0f, 0.0f), false);
     original.enteredNetherPosition = Vector3d(150.0, 40.0, 250.0);
     original.onGround = true;
     original.sprinting = true;
@@ -1323,12 +1312,9 @@ TEST_F(FromPlayerTest, RoundTripPreservesFullState)
     EXPECT_FLOAT_EQ(extracted.flySpeed, original.flySpeed);
     EXPECT_FLOAT_EQ(extracted.walkSpeed, original.walkSpeed);
 
-    ASSERT_TRUE(extracted.spawnPoint.has_value());
-    EXPECT_EQ(extracted.spawnPoint->getDimensionId(), original.spawnPoint->getDimensionId());
-    EXPECT_EQ(extracted.spawnPoint->x(), original.spawnPoint->x());
-    EXPECT_EQ(extracted.spawnPoint->y(), original.spawnPoint->y());
-    EXPECT_EQ(extracted.spawnPoint->z(), original.spawnPoint->z());
-    EXPECT_EQ(extracted.spawnForced, original.spawnForced);
+    ASSERT_TRUE(extracted.respawnConfig.has_value());
+    EXPECT_EQ(extracted.respawnConfig->respawnData, original.respawnConfig->respawnData);
+    EXPECT_EQ(extracted.respawnConfig->forced, original.respawnConfig->forced);
 
     ASSERT_TRUE(extracted.enteredNetherPosition.has_value());
     EXPECT_DOUBLE_EQ(extracted.enteredNetherPosition->x, original.enteredNetherPosition->x);

@@ -268,11 +268,7 @@ PlayerSaveData PlayerDataManager::fromPlayer(const Player& player)
     data.walkSpeed = abilities.walkSpeed;
 
     // 重生点
-    auto spawnPoint = player.getSpawnPoint();
-    if (spawnPoint.has_value()) {
-        data.spawnPoint = spawnPoint.value();
-        data.spawnForced = player.isSpawnForced();
-    }
+    data.respawnConfig = player.getRespawnConfig();
 
     // 进入下界位置
     auto netherPos = player.getEnteredNetherPosition();
@@ -377,9 +373,7 @@ void PlayerDataManager::applyToPlayer(Player& player, const PlayerSaveData& data
     abilities.walkSpeed = data.walkSpeed;
 
     // ========== 重生点 ==========
-    if (data.spawnPoint.has_value()) {
-        player.setSpawnPoint(data.spawnPoint->getDimensionId(), data.spawnPoint->getPos(), data.spawnForced);
-    }
+    player.setRespawnPosition(data.respawnConfig, false);
 
     // ========== 进入下界位置 ==========
     if (data.enteredNetherPosition.has_value()) {

@@ -114,6 +114,13 @@ public:
      */
     [[nodiscard]] bool startConfigurationForPlayer(PlayerId playerId);
 
+    /**
+     * @brief 按会话 ID 查找远程连接
+     * @param sessionId 会话 ID（0 为本地客户端保留值，永远返回 nullptr）
+     * @return 连接指针（非拥有）；找不到返回 nullptr
+     */
+    [[nodiscard]] ServerClientConnection* findConnectionBySession(u32 sessionId) const;
+
 private:
     /// 握手完成回调（onClientConnect 内绑入 handshake.onPlayerReady）：创建玩家实体 +
     /// 回填路由器 playerId。

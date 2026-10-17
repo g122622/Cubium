@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/player/SleepManager.hpp"
 #include "common/entity/player/SleepResult.hpp"
+#include "common/entity/vehicle/DismountHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
@@ -209,35 +210,26 @@ Direction BedBlock::getConnectedDirection(const BlockState& state)
     return (part == BlockStateProperties::BedPart::Head) ? facing : Directions::opposite(facing);
 }
 
-Vector3 BedBlock::findStandUpPosition(const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw)
+namespace {
+
+/// 水平候选偏移（相对床方块）
+struct _BedOffset {
+    i32 dx;
+    i32 dz;
+};
+
+/**
+ * @brief 围绕床的 10 个候选偏移
+ *
+ * 从"优先侧"开始沿两床方块外圈环绕，包含床头正前方一格。
+ */
+[[nodiscard]] std::array<_BedOffset, 10> _bedSurroundStandUpOffsets(Direction bedFacing, Direction sideDir)
 {
-    // 获取床朝向的顺时针方向
-    Direction clockwise = Directions::rotateY(bedFacing);
-    // 根据实体的偏航角决定优先搜索哪一侧
-    Direction sideDir = Directions::isFacingAngle(clockwise, entityYaw) ? Directions::opposite(clockwise) : clockwise;
-
-    // 检查是否为双层床（下方一格也有床）
-    bool bunkBed = false;
-    BlockPos belowPos = bedPos.down();
-    const BlockState* belowState = world.getBlockState(belowPos);
-    if (belowState != nullptr && belowState->hasProperty(BlockStateProperties::BED_PART())) {
-        bunkBed = true;
-    }
-
-    // 预计算方向偏移
     const i32 sdx = Directions::xOffset(sideDir);
     const i32 sdz = Directions::zOffset(sideDir);
     const i32 fdx = Directions::xOffset(bedFacing);
     const i32 fdz = Directions::zOffset(bedFacing);
-
-    // 候选位置偏移量（栈上数组，避免堆分配）
-    struct Offset {
-        i32 dx;
-        i32 dz;
-    };
-
-    // 周围 10 个候选位置偏移量
-    const std::array<Offset, 10> surroundOffsets = {{
+    return {{
         {sdx, sdz},
         {sdx - fdx, sdz - fdz},
         {sdx - fdx * 2, sdz - fdz * 2},
@@ -249,89 +241,76 @@ Vector3 BedBlock::findStandUpPosition(const IWorld& world, const BlockPos& bedPo
         {fdx, fdz},
         {sdx + fdx, sdz + fdz},
     }};
+}
 
-    // 床上方 2 个候选位置偏移量
-    const std::array<Offset, 2> aboveOffsets = {{
+/// 床方块自身与床边（朝向反方向）两个"床上"候选
+[[nodiscard]] std::array<_BedOffset, 2> _bedAboveStandUpOffsets(Direction bedFacing)
+{
+    return {{
         {0, 0},
-        {-fdx, -fdz},
+        {-Directions::xOffset(bedFacing), -Directions::zOffset(bedFacing)},
     }};
+}
 
-    // 在指定偏移列表中寻找安全位置
-    auto findAtOffsets =
-        [&](const auto& offsets, const BlockPos& basePos, bool avoidDangerous) -> std::optional<Vector3> {
+} // namespace
+
+std::optional<Vector3> BedBlock::findStandUpPosition(const IWorld& world,
+    const BlockPos& bedPos,
+    Direction bedFacing,
+    f32 entityYaw,
+    f32 width,
+    f32 height,
+    bool isPlayer,
+    bool fireImmune)
+{
+    // 以顺时针方向为基准；实体朝向对着该方向时改从相反侧开始搜索。
+    const Direction clockwise = Directions::rotateY(bedFacing);
+    const Direction sideDir =
+        Directions::isFacingAngle(clockwise, entityYaw) ? Directions::opposite(clockwise) : clockwise;
+
+    const auto surroundOffsets = _bedSurroundStandUpOffsets(bedFacing, sideDir);
+    const auto aboveOffsets = _bedAboveStandUpOffsets(bedFacing);
+
+    const auto findAtOffsets =
+        [&](const auto& offsets, const BlockPos& basePos, bool safeMode) -> std::optional<Vector3> {
         for (const auto& off : offsets) {
-            BlockPos checkPos(basePos.x + off.dx, basePos.y, basePos.z + off.dz);
-            if (avoidDangerous) {
-                // 检查该位置和上方位置是否安全（非固体），且下方不是危险方块
-                const BlockState* belowCheck = world.getBlockState(checkPos.down());
-                if (belowCheck != nullptr && belowCheck->isLiquid()) {
-                    continue; // 跳过液体上方的位置
-                }
-            }
-            if (_hasStandingSpaceForStandUp(world, checkPos)) {
-                // 返回方块底部中心位置，Y 偏移 0.1
-                return Vector3(static_cast<f32>(checkPos.x) + 0.5f,
-                    static_cast<f32>(checkPos.y) + 0.1f,
-                    static_cast<f32>(checkPos.z) + 0.5f);
+            const BlockPos checkPos(basePos.x + off.dx, basePos.y, basePos.z + off.dz);
+            const auto position = DismountHelper::findSafeDismountLocation(
+                world, checkPos, width, height, isPlayer, fireImmune, safeMode);
+            if (position.has_value()) {
+                return position;
             }
         }
         return std::nullopt;
     };
 
-    if (bunkBed) {
-        // 双层床：先尝试床层周围（安全），再下层周围（安全），再床上方（安全），
-        // 然后回退到不安全检查
-        auto result = findAtOffsets(surroundOffsets, bedPos, true);
-        if (result.has_value()) return result.value();
+    const auto trySurroundThenAbove = [&](const BlockPos& basePos, bool safeMode) -> std::optional<Vector3> {
+        auto result = findAtOffsets(surroundOffsets, basePos, safeMode);
+        if (result.has_value()) {
+            return result;
+        }
+        return findAtOffsets(aboveOffsets, basePos, safeMode);
+    };
 
-        BlockPos lowerPos = bedPos.down();
-        result = findAtOffsets(surroundOffsets, lowerPos, true);
-        if (result.has_value()) return result.value();
-
-        result = findAtOffsets(aboveOffsets, bedPos, true);
-        if (result.has_value()) return result.value();
-
-        // 回退：允许不安全位置
-        result = findAtOffsets(surroundOffsets, bedPos, false);
-        if (result.has_value()) return result.value();
-
-        result = findAtOffsets(surroundOffsets, lowerPos, false);
-        if (result.has_value()) return result.value();
-
-        result = findAtOffsets(aboveOffsets, bedPos, false);
-        if (result.has_value()) return result.value();
-    } else {
-        // 普通床：先尝试周围位置（安全），再回退到不安全检查
-        auto result = findAtOffsets(surroundOffsets, bedPos, true);
-        if (result.has_value()) return result.value();
-
-        result = findAtOffsets(aboveOffsets, bedPos, true);
-        if (result.has_value()) return result.value();
-
-        // 回退：允许不安全位置
-        result = findAtOffsets(surroundOffsets, bedPos, false);
-        if (result.has_value()) return result.value();
-
-        result = findAtOffsets(aboveOffsets, bedPos, false);
-        if (result.has_value()) return result.value();
+    // 下方一格仍是床 → 双层床：先搜床上层，再搜下层，最后允许不安全位置重来一遍。
+    const BlockState* belowState = world.getBlockState(bedPos.down());
+    if (belowState != nullptr && belowState->hasProperty(BlockStateProperties::BED_PART())) {
+        if (auto result = trySurroundThenAbove(bedPos, true); result.has_value()) {
+            return result;
+        }
+        if (auto result = trySurroundThenAbove(bedPos.down(), true); result.has_value()) {
+            return result;
+        }
+        if (auto result = trySurroundThenAbove(bedPos, false); result.has_value()) {
+            return result;
+        }
+        return trySurroundThenAbove(bedPos.down(), false);
     }
 
-    // 最终回退：床头正上方
-    BlockPos aboveBed = bedPos.up();
-    return Vector3(
-        static_cast<f32>(aboveBed.x) + 0.5f, static_cast<f32>(aboveBed.y) + 0.1f, static_cast<f32>(aboveBed.z) + 0.5f);
-}
-
-bool BedBlock::_hasStandingSpaceForStandUp(const IWorld& world, const BlockPos& pos)
-{
-    // 检查 pos 和 pos.up() 是否都是非固体方块
-    const BlockState* state1 = world.getBlockState(pos);
-    const BlockState* state2 = world.getBlockState(pos.up());
-
-    bool canStand1 = (state1 == nullptr || state1->isAir() || !state1->blocksMovement());
-    bool canStand2 = (state2 == nullptr || state2->isAir() || !state2->blocksMovement());
-
-    return canStand1 && canStand2;
+    if (auto result = trySurroundThenAbove(bedPos, true); result.has_value()) {
+        return result;
+    }
+    return trySurroundThenAbove(bedPos, false);
 }
 
 BlockActionResult BedBlock::useWithoutItem(

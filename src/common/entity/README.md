@@ -46,7 +46,10 @@ src/common/entity/
 │   ├── CooldownTracker.hpp/cpp     # 物品冷却追踪器
 │   ├── SleepResult.hpp             # 睡眠结果枚举
 │   ├── SleepManager.hpp/cpp        # 睡眠管理器
-│   ├── SpawnPointValidator.hpp/cpp # 重生点验证器
+│   └── README.md                   # 模块说明
+│
+├── vehicle/                        # 载具/落点工具
+│   ├── DismountHelper.hpp/cpp      # 下马与出生落点搜索（地面高度、危险方块、边界）
 │   └── README.md                   # 模块说明
 │
 ├── entities/                       # 具体实体实现

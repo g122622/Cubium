@@ -28,6 +28,8 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/storage/reader/java/JavaLevelDatReader.hpp"
 
@@ -107,19 +109,16 @@ TEST_F(JavaRealWorldFixture, ReadRuntimeDataWeatherAndTime)
     EXPECT_FALSE(runtime.difficultyLocked);
 }
 
-TEST_F(JavaRealWorldFixture, SpawnPointFallsBackToDefaults)
+TEST_F(JavaRealWorldFixture, SpawnPointReadsSpawnCompound)
 {
     auto result = JavaLevelDatReader::readRuntimeData(m_worldDir);
     ASSERT_TRUE(result.success()) << result.error().message();
 
-    // 1.21.11 已把出生点从 Data.SpawnX/Y/Z 迁到 Data.spawn.pos（素材中为 [-48, 63, 64]），
-    // 而 JavaLevelDatReader 目前只读旧字段，故这里拿到的是代码中的默认值。
-    // 该断言有意钉住这一已知缺口：将来补齐 Data.spawn 解析后此用例会失败，
-    // 提示把期望值更新为 -48 / 63 / 64。
-    // TODO: 支持 1.21.11 的 Data.spawn 复合标签，并更新本用例期望值。
-    EXPECT_EQ(result.value().spawnX, 0);
-    EXPECT_EQ(result.value().spawnY, 64);
-    EXPECT_EQ(result.value().spawnZ, 0);
+    // 1.21.11 把出生点记录在 Data.spawn 复合标签（dimension/pos/yaw/pitch）中，
+    // 素材世界的出生方块为 (-48, 63, 64)。
+    const RespawnData& spawn = result.value().spawnData;
+    EXPECT_EQ(spawn.dimension(), DimensionManager::OVERWORLD);
+    EXPECT_EQ(spawn.pos(), BlockPos(-48, 63, 64));
 }
 
 // ============================================================================

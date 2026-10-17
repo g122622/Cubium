@@ -519,6 +519,7 @@ add_executable(minecraft-client
     # 客户端内置服编译 ServerWorld.cpp 故须登记（与 server/CMakeLists.txt 一致）。
     ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/player/PlayerSpawnFinder.cpp
     # 游戏事件系统（服务端实现）
     ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
@@ -529,6 +530,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/player/PlayerRespawnManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
     # 事件系统
     ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp

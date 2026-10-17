@@ -1239,7 +1239,18 @@ void VillagerEntity::stopSleeping()
 
         // 使用床的朝向计算起床位置
         if (hasFacing) {
-            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos, bedFacing, yaw());
+            const auto standUp = blocks::BedBlock::findStandUpPosition(*m_world,
+                bedPos,
+                bedFacing,
+                yaw(),
+                static_cast<f32>(width()),
+                static_cast<f32>(height()),
+                false,
+                false);
+            if (!standUp.has_value()) {
+                return;
+            }
+            const Vector3& wakePos = *standUp;
 
             // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
             Vector3d bedCenter(bedPos.x + 0.5, bedPos.y, bedPos.z + 0.5);

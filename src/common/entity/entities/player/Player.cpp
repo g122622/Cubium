@@ -692,10 +692,15 @@ void Player::stopSleeping()
     // 唤醒后 m_sleepTimer 会继续增加到 110 然后重置
 }
 
-void Player::setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced)
+void Player::setRespawnPosition(std::optional<RespawnConfig> config, bool announce)
 {
-    m_spawnPoint = GlobalPos(dimension, pos);
-    m_spawnForced = forced;
+    MC_UNUSED(announce);
+    m_respawnConfig = std::move(config);
+}
+
+void Player::copyRespawnPosition(const Player& other)
+{
+    setRespawnPosition(other.m_respawnConfig, false);
 }
 
 f32 Player::height() const
@@ -3448,14 +3453,10 @@ void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put(CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME, m_currentImpulseContextResetGraceTime);
 
     // ========== 重生点 ==========
-    if (m_spawnPoint.has_value()) {
-        tag.put(SPAWN_X, m_spawnPoint->x());
-        tag.put(SPAWN_Y, m_spawnPoint->y());
-        tag.put(SPAWN_Z, m_spawnPoint->z());
-        tag.put(SPAWN_DIM, static_cast<i32>(m_spawnPoint->getDimensionId()));
-        if (m_spawnForced) {
-            tag.put(SPAWN_FORCED, static_cast<i8>(1));
-        }
+    if (m_respawnConfig.has_value()) {
+        auto respawnTag = std::make_unique<nbt::tags::compound_tag>();
+        m_respawnConfig->toNbt(*respawnTag);
+        tag.value.emplace(RESPAWN, std::move(respawnTag));
     }
 
     // ========== 进入下界位置 ==========
@@ -3590,18 +3591,10 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     // 注意：currentExplosionCause 不从 NBT 读取（运行时瞬时状态，MC Java 同样不持久化）
 
     // ========== 重生点 ==========
-    {
-        auto spawnX = nbt_helper::tryGetInt(tag, SPAWN_X);
-        auto spawnY = nbt_helper::tryGetInt(tag, SPAWN_Y);
-        auto spawnZ = nbt_helper::tryGetInt(tag, SPAWN_Z);
-        if (spawnX.has_value() && spawnY.has_value() && spawnZ.has_value()) {
-            DimensionId spawnDim = nbt_helper::tryGetInt(tag, SPAWN_DIM).value_or(0);
-            m_spawnPoint = GlobalPos(spawnDim, BlockPos(*spawnX, *spawnY, *spawnZ));
-            m_spawnForced = nbt_helper::tryGetBool(tag, SPAWN_FORCED).value_or(false);
-        } else {
-            m_spawnPoint = std::nullopt;
-            m_spawnForced = false;
-        }
+    if (const auto* respawnTag = nbt_helper::tryGetCompound(tag, RESPAWN)) {
+        m_respawnConfig = RespawnConfig::fromNbt(*respawnTag);
+    } else {
+        m_respawnConfig = std::nullopt;
     }
 
     // ========== 进入下界位置 ==========

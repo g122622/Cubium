@@ -259,4 +259,11 @@ bool ClientSessionManager::startConfigurationForPlayer(PlayerId playerId)
     return true;
 }
 
+ServerClientConnection* ClientSessionManager::findConnectionBySession(u32 sessionId) const
+{
+    std::lock_guard<std::mutex> lock(m_sessionsMutex);
+    auto it = m_sessions.find(sessionId);
+    return it != m_sessions.end() ? it->second->connection() : nullptr;
+}
+
 } // namespace mc::server::net

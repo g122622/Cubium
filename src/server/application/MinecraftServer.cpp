@@ -961,13 +961,8 @@ Result<size_t> MinecraftServer::saveAllWorldData(bool sync)
         i64 gameTime = m_timeManager->gameTime();
         i64 dayTime = m_timeManager->dayTime();
 
-        // 获取出生点
-        // worldSpawnPoint 是玩家脚位置（方块上方），level.dat 的 SpawnY 语义为脚下方块 Y，需 -1。
-        Vector3d spawnPoint = world->worldSpawnPoint();
-        i32 spawnX = static_cast<i32>(std::floor(spawnPoint.x));
-        i32 spawnY = static_cast<i32>(std::floor(spawnPoint.y)) - 1;
-        i32 spawnZ = static_cast<i32>(std::floor(spawnPoint.z));
-        f32 spawnAngle = world->spawnAngle();
+        // 出生数据：直接写 spawn 复合标签（维度 + 方块位置 + yaw/pitch）。
+        const RespawnData spawnData = world->respawnData();
 
         // 获取天气数据
         i32 clearWeatherTime = 0;
@@ -988,10 +983,7 @@ Result<size_t> MinecraftServer::saveAllWorldData(bool sync)
         // 保存到 level.dat
         auto levelResult = m_storage->saveLevelData(gameTime,
             dayTime,
-            spawnX,
-            spawnY,
-            spawnZ,
-            spawnAngle,
+            spawnData,
             clearWeatherTime,
             rainTime,
             raining,
@@ -1067,17 +1059,17 @@ Result<void> MinecraftServer::initializeWorld()
                     return;
                 }
 
-                // 仅主世界持有世界出生点（消费方只读主世界 worldSpawnPoint）。
-                // 下界/末地无独立 spawn，不再调 initializeWorldSpawn。
+                // 仅主世界持有世界出生数据（存档级单例，SaveX/Y/Z 已被 spawn 复合标签取代）。
+                // 下界/末地无独立出生数据，不再调 initializeWorldSpawn。
                 if (serverDim->id() != 0) {
                     return;
                 }
 
-                // 先恢复 level.dat 中的运行时数据（时间/天气/spawnAngle/出生点占位等）
+                // 先恢复 level.dat 中的运行时数据（时间/天气/出生数据等）
                 world->applyLevelRuntimeData(runtimeData);
 
                 // level.dat 未初始化时，计算真实出生点覆盖新世界模板的 (0,0,0) 占位。
-                // 老存档（initialized=true）直接信任存档中的 SpawnX/Y/Z。
+                // 老存档（initialized=true）直接信任存档 spawn 复合标签中的出生数据。
                 if (!runtimeData.initialized) {
                     world->initializeWorldSpawn();
                 }
@@ -2196,6 +2188,14 @@ PlayerId MinecraftServer::getPlayerIdForSession(u32 sessionId) const
         return *m_localClientPlayerId;
     }
     return m_playerManager->getPlayerIdBySession(sessionId);
+}
+
+net::ServerClientConnection* MinecraftServer::connectionForSession(u32 sessionId) const
+{
+    if (m_clientSessionManager == nullptr || sessionId == 0) {
+        return nullptr;
+    }
+    return m_clientSessionManager->findConnectionBySession(sessionId);
 }
 
 void MinecraftServer::setServerLinks(std::vector<mc::network::ir::play::ServerLink> links)

@@ -2379,6 +2379,22 @@ public:
     }
 
     /**
+     * @brief 实体能否在该方块占用的位置内重生
+     *
+     * 默认：方块不是固体、也不是液体。压力板、告示牌、旗帜等方块重写为 true。
+     * 仅用于强制重生点的落点合法性判定（床/重生锚走各自的站位搜索）。
+     *
+     * 参考: net.minecraft.world.level.block.Block#isPossibleToRespawnInThis
+     *
+     * @param state 方块状态
+     * @return 允许在方块内部重生返回 true
+     */
+    [[nodiscard]] virtual bool isPossibleToRespawnInThis(const BlockState& state) const
+    {
+        return !state.isSolid() && !state.isLiquid();
+    }
+
+    /**
      * @brief 转换为字符串
      */
     [[nodiscard]] virtual std::string toString() const noexcept { return m_blockLocation.toString(); }

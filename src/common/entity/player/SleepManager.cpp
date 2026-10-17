@@ -62,14 +62,17 @@ bool SleepManager::canSleepAtTime(i64 dayTime, bool isThundering, bool isRaining
         dayTime <= weather::WeatherConstants::CLEAR_BED_END_TIME;
 }
 
-std::optional<Vector3> SleepManager::findWakeUpPosition(
-    const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw)
+std::optional<Vector3> SleepManager::findWakeUpPosition(const IWorld& world,
+    const BlockPos& bedPos,
+    Direction bedFacing,
+    f32 entityYaw,
+    f32 width,
+    f32 height,
+    bool isPlayer,
+    bool fireImmune)
 {
-    // 委托给 BedBlock::findStandUpPosition，该算法与 MC 原版一致
-    Vector3 result = blocks::BedBlock::findStandUpPosition(world, bedPos, bedFacing, entityYaw);
-    // BedBlock::findStandUpPosition 始终返回有效位置（最终回退到床头正上方），
-    // 所以直接返回
-    return result;
+    return blocks::BedBlock::findStandUpPosition(
+        world, bedPos, bedFacing, entityYaw, width, height, isPlayer, fireImmune);
 }
 
 bool SleepManager::isPlayerNearBed(const Vector3& playerPos, const BlockPos& bedPos)

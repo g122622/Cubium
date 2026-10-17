@@ -28,6 +28,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/storage/list/WorldListEntry.hpp"
 #include <filesystem>
@@ -182,6 +184,7 @@ Result<LevelRuntimeData> BedrockLevelDatReader::_parseRuntimeData(const compound
 
     auto& summary = summaryResult.value();
 
+    // 基岩版 level.dat 用 SpawnX/SpawnY/SpawnZ 记录主世界出生方块。
     i32 spawnX = 0, spawnY = 64, spawnZ = 0;
     if (root.value.count("SpawnX") != 0) {
         spawnX = static_cast<i32>(root.get<int_tag>("SpawnX"));
@@ -192,8 +195,8 @@ Result<LevelRuntimeData> BedrockLevelDatReader::_parseRuntimeData(const compound
     if (root.value.count("SpawnZ") != 0) {
         spawnZ = static_cast<i32>(root.get<int_tag>("SpawnZ"));
     }
-
-    f32 spawnAngle = 0.0f;
+    const RespawnData spawnData =
+        RespawnData::of(DimensionManager::OVERWORLD, BlockPos(spawnX, spawnY, spawnZ), 0.0f, 0.0f);
 
     i64 gameTime = 0;
     if (root.value.count("Time") != 0) {
@@ -238,10 +241,7 @@ Result<LevelRuntimeData> BedrockLevelDatReader::_parseRuntimeData(const compound
     }
 
     return LevelRuntimeData(std::move(summary),
-        spawnX,
-        spawnY,
-        spawnZ,
-        spawnAngle,
+        spawnData,
         gameTime,
         dayTime,
         0, // clearWeatherTime - 基岩版无此字段

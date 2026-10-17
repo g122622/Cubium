@@ -137,9 +137,10 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
         if (radius > 0) {
             ServerWorld* world = _getPlayerWorld(playerId);
             if (world != nullptr && world->dimension() == DimensionManager::OVERWORLD) {
-                const Vector3d spawn = world->worldSpawnPoint();
-                const i32 spawnX = static_cast<i32>(std::floor(spawn.x));
-                const i32 spawnZ = static_cast<i32>(std::floor(spawn.z));
+                // 保护半径以世界出生方块的 XZ 为中心（切比雪夫距离）。
+                const BlockPos& spawn = world->respawnData().pos();
+                const i32 spawnX = spawn.x;
+                const i32 spawnZ = spawn.z;
                 if (std::abs(pos.x - spawnX) <= radius && std::abs(pos.z - spawnZ) <= radius) {
                     const bool exempt =
                         (player != nullptr && player->hasPermission(static_cast<i32>(core::OpLevel::Moderator))) ||

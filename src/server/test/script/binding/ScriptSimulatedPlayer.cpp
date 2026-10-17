@@ -34,7 +34,7 @@
 #include "common/resource/ResourceLocation.hpp" // ResourceLocation（getEffect typeId 资源位置）
 #include "common/util/Direction.hpp"            // Directions::fromName / mc::Direction（useItemOnBlock direction 参数）
 #include "common/util/math/Vector3.hpp"         // Vector3（faceLocation 参数）
-#include "common/world/GlobalPos.hpp"           // GlobalPos（getSpawnPoint 返 optional<GlobalPos>）
+#include "common/world/GlobalPos.hpp"           // GlobalPos（getRespawnConfig 返回的维度+方块位置）
 #include "common/world/IWorld.hpp"              // IWorld::dimension()（options.dimension 跨维度判定)
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"        // DimensionId（teleport 目标维度类型）
@@ -318,26 +318,30 @@ u64 registerSimulatedPlayerClassBinding(
     });
 
     // --- getSpawnPoint (readonly property) ---
-    // 返回玩家重生点 {x,y,z,dimensionId}（Player::getSpawnPoint 返 optional<GlobalPos>）。供 /spawnpoint
-    // 命令测试读取重生点做断言。无重生点（nullopt）返回 undefined。SimulatedPlayer JS 类独立注册未继承
-    // Player/Entity 原型（见 [[simulated-player-js-class-no-entity-inheritance]]），Player.getSpawnPoint
-    // 不在其上，故需在此重绑（与 name/dimension 同款）。Cubium 扩展属性（官方基岩 API 无）。
+    // 返回玩家重生点 {x,y,z,dimensionId,yaw,pitch,forced}（Player::getRespawnConfig 返
+    // optional<RespawnConfig>）。供 /spawnpoint 命令测试读取重生点做断言。无重生点（nullopt）返回
+    // undefined。SimulatedPlayer JS 类独立注册未继承 Player/Entity 原型（见
+    // [[simulated-player-js-class-no-entity-inheritance]]），Player.getSpawnPoint 不在其上，故需在此重绑
+    // （与 name/dimension 同款）。Cubium 扩展属性（官方基岩 API 无）。
     reg.readonlyProperty(
         "getSpawnPoint", [](mc::mod::bedrock::addon::IScriptBindingContext& ctx, void* thisVal) -> void* {
             auto* player = static_cast<SimulatedPlayer*>(ScriptObjectRegistry::unwrap(ctx, thisVal));
             if (player == nullptr) {
                 return ctx.createUndefined();
             }
-            auto spawnOpt = player->getSpawnPoint();
-            if (!spawnOpt.has_value()) {
+            auto config = player->getRespawnConfig();
+            if (!config.has_value()) {
                 return ctx.createUndefined(); // 无重生点
             }
-            const GlobalPos& gp = spawnOpt.value();
+            const GlobalPos& gp = config->respawnData.globalPos;
             void* obj = ctx.createObject();
             ctx.setPropertyInt(obj, "x", static_cast<i32>(gp.x()));
             ctx.setPropertyInt(obj, "y", static_cast<i32>(gp.y()));
             ctx.setPropertyInt(obj, "z", static_cast<i32>(gp.z()));
             ctx.setPropertyInt(obj, "dimensionId", static_cast<i32>(gp.getDimensionId()));
+            ctx.setPropertyFloat(obj, "yaw", config->respawnData.yaw);
+            ctx.setPropertyFloat(obj, "pitch", config->respawnData.pitch);
+            ctx.setPropertyBool(obj, "forced", config->forced);
             return obj;
         });
 

@@ -77,22 +77,21 @@ public:
         const i32 localX = x & world::CHUNK_MASK;
         const i32 localZ = z & world::CHUNK_MASK;
         // 出生点几何扫描本身不依赖生物群系（只用三张高度图与「朝上碰撞面完整」判据），
-        // 此处取到的生物群系仅用于 requireValidSpawnBlock 门控。
-        // TODO: 门控应取出生点所在高度的生物群系，当前固定取世界底部（Y=0）的采样，
-        // 可能取到与地表无关的洞穴生物群系，导致门控误判。
-        const BiomeId biomeId = chunk->getBiomeAtBlock(localX, 0, localZ);
-        const Biome& biome = BiomeRegistry::instance().get(biomeId);
-        const BlockState* surfaceState = biome.surfaceBlock();
-        if (surfaceState == nullptr) {
-            return std::nullopt;
-        }
-
-        if (requireValidSpawnBlock && !_isValidSpawnSurface(*surfaceState)) {
-            return std::nullopt;
+        // 生物群系仅在 requireValidSpawnBlock 时用于表层方块门控：取 MotionBlocking 顶端
+        // 所在高度的采样，避免误用与地表无关的洞穴生物群系。
+        const i32 motionBlockingTop = _getTopBlockY(*chunk, localX, localZ, HeightmapType::MotionBlocking);
+        if (requireValidSpawnBlock) {
+            const i32 surfaceY = motionBlockingTop > 0 ? motionBlockingTop - 1 : 0;
+            const BiomeId biomeId = chunk->getBiomeAtBlock(localX, surfaceY, localZ);
+            const Biome& biome = BiomeRegistry::instance().get(biomeId);
+            const BlockState* surfaceState = biome.surfaceBlock();
+            if (surfaceState == nullptr || !_isValidSpawnSurface(*surfaceState)) {
+                return std::nullopt;
+            }
         }
 
         // i = MotionBlocking 顶端（最高阻挡运动方块 Y + 1 语义，此处即方块 Y + 1）
-        const i32 motionBlockingY = _getTopBlockY(*chunk, localX, localZ, HeightmapType::MotionBlocking);
+        const i32 motionBlockingY = motionBlockingTop;
         if (motionBlockingY < 0) {
             return std::nullopt;
         }
@@ -150,13 +149,11 @@ public:
 
 private:
     /**
-     * @brief 判定方块是否可作为原版出生表面
+     * @brief 判定方块是否可作为出生表面
      *
-     * 当前仓库还没有完整的 `BlockTags::VALID_SPAWN`，这里先按需要的语义
-     * 约束到"非流体、非树叶/植物、可阻挡移动"的表层方块。
-     *
-     * TODO: 待 `BlockTags::VALID_SPAWN` 与各方块的 `isValidSpawn` 实现补齐后，
-     * 改为按方块自身的出生合法性判定，替换当前这份按材质近似的约束。
+     * 约束为"可阻挡移动、非流体、非树叶/植物"的表层方块。原版的 `Block::isValidSpawn` 谓词
+     * 服务于生物自然生成（如猫在床、鹦鹉在原木），与世界出生点的寻找无关，因此这里保留
+     * 按材质近似的判定。
      */
     [[nodiscard]] static bool _isValidSpawnSurface(const BlockState& state)
     {

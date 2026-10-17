@@ -1,21 +1,21 @@
 // /spawnpoint 命令 GameTest：设置玩家重生点。
 //
 // 覆盖 wiki 命令章节核心行为（Ref: wiki commands/spawnpoint.txt）：
-//   - /spawnpoint：设置自己的重生点到当前位置（_setSelfSpawnPoint，source.player()）
-//   - /spawnpoint <player>：设置指定玩家重生点到其当前位置（_setPlayerSpawnPoint）
-//   - /spawnpoint <player> <pos>：设置指定玩家重生点到指定位置（_setPlayerSpawnPointAtPosition）
+//   - /spawnpoint：把自己的重生点设为命令源位置，朝向 (0, 0)（_setSelfSpawnPoint）
+//   - /spawnpoint <targets>：把目标玩家的重生点设为命令源位置（_setPlayerSpawnPoint）
+//   - /spawnpoint <targets> <pos>：设为指定位置（_setPlayerSpawnPointAtPosition）
+//   - /spawnpoint <targets> <pos> <rotation>：额外指定 yaw/pitch（_setPlayerSpawnPointAtRotation）
 //
 // 设计要点：
-//   1. SpawnPointCommand 调 player->setSpawnPoint(dimensionId, spawnPos, false) 写 Player::m_spawnPoint
-//      （optional<GlobalPos>）。脚本侧此前无 Player.getSpawnPoint 绑定，无法读重生点断言。本批测试
-//      伴随新增 Player.getSpawnPoint readonlyProperty（Cubium 扩展，官方基岩 API 无）：返回
-//      {x,y,z,dimensionId} 对象，无重生点返 undefined。
+//   1. SpawnPointCommand 调 player->setRespawnPosition(RespawnConfig, false) 写入强制重生点配置
+//      （optional<RespawnConfig>）。脚本侧 Player.getSpawnPoint readonlyProperty（Cubium 扩展，
+//      官方基岩 API 无）返回 {x,y,z,dimensionId,yaw,pitch,forced}，无重生点返 undefined。
 //   2. SimulatedPlayer::chat 传 this 作为命令源 player → ServerCommandSource 构造 dynamic_cast<ServerPlayer*>
 //      成功 → source.player() 返回 SimulatedPlayer，_setSelfSpawnPoint（/spawnpoint 无参）可用。
-//   3. /spawnpoint <pos> 用 Vec3ArgumentType，命令传世界绝对坐标（worldCoords 转换）。setSpawnPoint 内部
+//   3. /spawnpoint <pos> 用 Vec3ArgumentType，命令传世界绝对坐标（worldCoords 转换）。命令内部
 //      floor 取整，故断言用 floor(worldLocation)。
-//   4. 默认重生点：SimulatedPlayer 构造时 m_spawnPoint=nullopt（无重生点），getSpawnPoint 返 undefined。
-//   5. 重生点是玩家级状态（Player::m_spawnPoint），每个 SimulatedPlayer 独立实例，无跨测试污染。
+//   4. 默认重生点：SimulatedPlayer 构造时无重生点配置，getSpawnPoint 返 undefined。
+//   5. 重生点是玩家级状态（Player::m_respawnConfig），每个 SimulatedPlayer 独立实例，无跨测试污染。
 //   6. SimulatedPlayer::chat permLevel 固定=4（≥2 满足 spawnpoint 权限）。
 //   7. cmd_arena 9×7×9：内部空气腔 x,z∈[1,7]，y∈[1,5]。玩家初始 (5,1,5)。
 //
@@ -33,6 +33,9 @@ interface SpawnPoint {
     y: number;
     z: number;
     dimensionId: number;
+    yaw: number;
+    pitch: number;
+    forced: boolean;
 }
 
 // 读玩家重生点（Cubium 扩展属性，TS 无类型用 as any）。无重生点返 undefined。
@@ -46,7 +49,7 @@ function worldCoords(test: Test, rel: { x: number; y: number; z: number }): stri
     return `${Math.floor(w.x)} ${Math.floor(w.y)} ${Math.floor(w.z)}`;
 }
 
-// 默认重生点为 undefined（SimulatedPlayer 构造 m_spawnPoint=nullopt）。
+// 默认重生点为 undefined（SimulatedPlayer 构造时没有重生点配置）。
 // 对照组：验证未执行 /spawnpoint 前 getSpawnPoint 返 undefined。
 function spawnpointDefaultUndefined(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
@@ -72,8 +75,8 @@ function spawnpointSelfSetsCurrentPosition(test: Test): void {
     test.succeed();
 }
 
-// /spawnpoint @s 设置指定玩家重生点到其当前位置（_setPlayerSpawnPoint，经 playerEntityManager）。
-// 与无参区别：走 _setPlayerSpawnPoint 分支（带 player 选择器），用玩家 position 而非 source.position。
+// /spawnpoint @s 把目标玩家重生点设为命令源位置（_setPlayerSpawnPoint，经 playerEntityManager）。
+// 与无参区别：走 targets 选择器分支；位置取命令源，朝向为 (0, 0)。
 // Ref: wiki commands/spawnpoint.txt（spawnpoint <player>）
 function spawnpointPlayerSelectorSetsCurrent(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
@@ -108,7 +111,7 @@ function spawnpointSetsSpecifiedPosition(test: Test): void {
 }
 
 // /spawnpoint @s <pos> 可覆盖之前设置的重生点：先设 (3,2,3)，再设 (4,2,4)，断言最终为后者。
-// 验证 setSpawnPoint 覆盖语义（m_spawnPoint 赋值替换非累加）。
+// 验证重生点配置覆盖语义（配置整体替换，非累加）。
 // Ref: wiki commands/spawnpoint.txt（spawnpoint 覆盖语义）
 function spawnpointOverwritesPrevious(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
@@ -124,6 +127,20 @@ function spawnpointOverwritesPrevious(test: Test): void {
     test.assert(sp!.x === Math.floor(expected.x), `x should be second pos ${Math.floor(expected.x)}, got ${sp!.x}`);
     test.assert(sp!.y === Math.floor(expected.y), `y should be second pos ${Math.floor(expected.y)}, got ${sp!.y}`);
     test.assert(sp!.z === Math.floor(expected.z), `z should be second pos ${Math.floor(expected.z)}, got ${sp!.z}`);
+    test.succeed();
+}
+
+// /spawnpoint @s <pos> <rotation>：额外指定朝向，yaw 归一化到 [-180,180]、pitch 夹紧到 [-90,90]。
+function spawnpointSetsRotation(test: Test): void {
+    const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
+    const target = { x: 3, y: 2, z: 3 };
+
+    player.chat(`/spawnpoint @s ${worldCoords(test, target)} 270 100`);
+
+    const sp = getSpawnPoint(player);
+    test.assert(sp !== undefined, "spawn point should be set after /spawnpoint @s <pos> <rotation>");
+    test.assert(sp!.yaw === -90, `yaw 270 should normalize to -90, got ${sp!.yaw}`);
+    test.assert(sp!.pitch === 90, `pitch 100 should clamp to 90, got ${sp!.pitch}`);
     test.succeed();
 }
 
@@ -145,6 +162,10 @@ export function registerSpawnPointTests(): void {
         .maxTicks(60);
 
     GameTest.register("CommandTests", "spawnpoint_overwrites_previous", spawnpointOverwritesPrevious)
+        .structureName("gametests:cmd_arena")
+        .maxTicks(60);
+
+    GameTest.register("CommandTests", "spawnpoint_sets_rotation", spawnpointSetsRotation)
         .structureName("gametests:cmd_arena")
         .maxTicks(60);
 }

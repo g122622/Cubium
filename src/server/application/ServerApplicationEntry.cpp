@@ -50,7 +50,7 @@
 #include "common/world/WorldConstants.hpp"                    // SPAWN_CHUNK_RADIUS / toChunkCoord
 #include "common/world/chunk/data/ChunkData.hpp"              // ChunkData 完整类型（requestFullChunkSync 返回值）
 #include "server/world/ServerChunkManager.hpp"                // requestFullChunkSync/tick
-#include "server/world/ServerWorld.hpp"                       // worldSpawnPoint()/chunkManager()
+#include "server/world/ServerWorld.hpp"                       // spawnPosition()/chunkManager()
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 
 namespace mc::server {
@@ -318,7 +318,7 @@ i32 ServerApplicationEntry::runApplication()
         }
         auto* world = overworld->world();
         auto* chunkManager = world->chunkManager();
-        const Vector3d spawnPoint = world->worldSpawnPoint();
+        const Vector3d spawnPoint = world->spawnPosition();
         const i32 spawnChunkX = world::toChunkCoord(static_cast<i32>(spawnPoint.x));
         const i32 spawnChunkZ = world::toChunkCoord(static_cast<i32>(spawnPoint.z));
 

@@ -68,7 +68,7 @@
 #include "common/util/Direction.hpp"            // mc::Direction / Directions::fromName/toString（Direction 枚举导出）
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/TextStyle.hpp"       // text::toName(TextFormatting)（Team.color 字符串化）
-#include "common/world/GlobalPos.hpp"           // GlobalPos（Player.getSpawnPoint 返 optional<GlobalPos>）
+#include "common/world/GlobalPos.hpp"           // GlobalPos（Player.getRespawnConfig 返回的维度+方块位置）
 #include "common/world/IWorld.hpp"              // Dimension JS 类 opaque 持 IWorld*
 #include "common/world/block/Block.hpp"         // Block::blockLocation/defaultState/getBlock（Block/BlockPermutation）
 #include "common/world/block/BlockPos.hpp"      // BlockPos（Block.location 坐标）
@@ -396,7 +396,8 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         ctx.setPropertyFloat(obj, "x", view.x);
         ctx.setPropertyFloat(obj, "y", view.y);
         ctx.setPropertyFloat(obj, "z", view.z);
-        ctx.setPropertyFloat(obj, "angle", static_cast<f64>(view.angle));
+        ctx.setPropertyFloat(obj, "yaw", static_cast<f64>(view.yaw));
+        ctx.setPropertyFloat(obj, "pitch", static_cast<f64>(view.pitch));
         return obj;
     });
 
@@ -2512,25 +2513,29 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
         }
         return ctx.createString(player->username());
     });
-    // getSpawnPoint：返回玩家重生点 {x,y,z,dimensionId}（Player::getSpawnPoint 返 optional<GlobalPos>）。
-    // 供 /spawnpoint 命令测试读取重生点做断言。无重生点（nullopt）返回 undefined。dimensionId 为整数
-    // （DimensionManager::OVERWORLD=0 等）。Cubium 扩展属性（官方基岩 API 无 Player.getSpawnPoint）。
+    // getSpawnPoint：返回玩家重生点 {x,y,z,dimensionId,yaw,pitch,forced}
+    // （Player::getRespawnConfig 返 optional<RespawnConfig>）。供 /spawnpoint 命令测试读取重生点做断言。
+    // 无重生点（nullopt）返回 undefined。dimensionId 为整数（DimensionManager::OVERWORLD=0 等）。
+    // Cubium 扩展属性（官方基岩 API 无 Player.getSpawnPoint）。
     playerReg.readonlyProperty("getSpawnPoint", [](IScriptBindingContext& ctx, void* thisVal) -> void* {
         auto* ent = static_cast<mc::Entity*>(ScriptObjectRegistry::unwrap(ctx, thisVal, 0));
         auto* player = dynamic_cast<mc::Player*>(ent);
         if (player == nullptr) {
             return ctx.createUndefined();
         }
-        auto spawnOpt = player->getSpawnPoint();
-        if (!spawnOpt.has_value()) {
+        auto config = player->getRespawnConfig();
+        if (!config.has_value()) {
             return ctx.createUndefined(); // 无重生点
         }
-        const GlobalPos& gp = spawnOpt.value();
+        const GlobalPos& gp = config->respawnData.globalPos;
         void* obj = ctx.createObject();
         ctx.setPropertyInt(obj, "x", static_cast<i32>(gp.x()));
         ctx.setPropertyInt(obj, "y", static_cast<i32>(gp.y()));
         ctx.setPropertyInt(obj, "z", static_cast<i32>(gp.z()));
         ctx.setPropertyInt(obj, "dimensionId", static_cast<i32>(gp.getDimensionId()));
+        ctx.setPropertyFloat(obj, "yaw", config->respawnData.yaw);
+        ctx.setPropertyFloat(obj, "pitch", config->respawnData.pitch);
+        ctx.setPropertyBool(obj, "forced", config->forced);
         return obj;
     });
 

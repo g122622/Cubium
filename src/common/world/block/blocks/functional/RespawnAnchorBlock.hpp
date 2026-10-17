@@ -127,6 +127,45 @@ public:
      */
     static void discharge(IWorld& world, const BlockPos& pos, BlockState& state);
 
+    /**
+     * @brief 该维度是否允许在重生锚上设置重生点
+     *
+     * 等价 EnvironmentAttributes.RESPAWN_ANCHOR_WORKS：仅下界为 true。
+     */
+    [[nodiscard]] static bool canSetSpawn(const IWorld& world);
+
+    /**
+     * @brief 物品是否可用作重生锚燃料
+     */
+    [[nodiscard]] static bool isRespawnFuel(const ItemStack& stack);
+
+    /**
+     * @brief 重生锚是否仍可被充能（充能等级 < 4）
+     */
+    [[nodiscard]] static bool canBeCharged(const BlockState& state) { return getCharges(state) < MAX_CHARGES; }
+
+    /**
+     * @brief 在重生锚周围寻找实体的安全落点
+     *
+     * 候选为 8 个水平相邻位置及其上下两格，外加正上方一格，共 25 个；先安全模式，
+     * 全部失败后再允许不安全位置。
+     *
+     * @param world 世界
+     * @param anchorPos 重生锚位置
+     * @param width 实体碰撞箱宽度
+     * @param height 实体碰撞箱高度
+     * @param isPlayer 是否按玩家规则检查
+     * @param fireImmune 实体是否免疫火焰
+     * @return 安全落点（实体脚底位置）；找不到时返回 nullopt
+     */
+    [[nodiscard]] static std::optional<Vector3> findStandUpPosition(
+        const IWorld& world, const BlockPos& anchorPos, f32 width, f32 height, bool isPlayer, bool fireImmune);
+
+    /// 最小充能等级
+    static constexpr i32 MIN_CHARGES = 0;
+    /// 最大充能等级
+    static constexpr i32 MAX_CHARGES = 4;
+
     // ========== 动态光照 ==========
 
     /**
@@ -148,7 +187,9 @@ public:
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
     /**
-     * @brief 右键交互 - 充能或设置重生点
+     * @brief 右键交互（手持物品） - 仅处理萤石充能
+     *
+     * 非萤石物品返回 TryEmptyHandInteraction，交由空手交互处理设置重生点/爆炸。
      */
     [[nodiscard]] BlockActionResult useItemOn(ItemStack& stack,
         const BlockState& state,
@@ -158,6 +199,12 @@ public:
         Hand hand,
         const BlockRaycastResult& hit) override;
 
+    /**
+     * @brief 右键交互（空手） - 设置重生点或爆炸
+     *
+     * 0 充能直接 Pass；维度不允许时爆炸；否则把玩家重生点设置为该锚。
+     * 玩家重生点已是该锚时返回 Consume（不重新设置、不播音效）。
+     */
     [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
         const BlockPos& pos,

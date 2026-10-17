@@ -294,8 +294,9 @@ bool ServerDimensionManager::transferPlayerToDimension(
         return true;
     }
 
-    // 确定目标位置
-    Vector3d targetPos = position.value_or(targetDimension->spawnPoint());
+    // 确定目标位置：调用方必须给出明确坐标（传送门由 Teleporter 计算，重生由落点搜索给出）。
+    MC_ASSERT_RELEASE_MSG(position.has_value(), "transferPlayerToDimension requires an explicit target position");
+    const Vector3d targetPos = *position;
 
     // 卸载当前维度的区块
     _unloadPlayerChunks(playerId);

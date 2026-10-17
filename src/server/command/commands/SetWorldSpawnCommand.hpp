@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandSource.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
@@ -55,8 +56,7 @@ namespace command {
  *   非"玩家当前朝向"（vanilla 无参不用玩家朝向）。
  * - <pos> 分支 rotation = ZERO_ROTATION（0,0），非 angle=0（语义等价但显式对齐）。
  * - <rotation> 用 RotationArgumentType（接 yaw pitch 两值，对齐 vanilla RotationArgument）；
- *   yaw 存入 ServerWorld::m_spawnAngle，pitch 暂丢弃（Cubium 出生点 pitch 未建模，仅 yaw 持久化到
- *   level.dat SpawnAngle，对齐 Java level.dat），TODO 标记完整 pitch 运行时建模。
+ *   yaw/pitch 一起写入 level.dat 的 spawn 复合标签并随 SetDefaultSpawnPosition 下发。
  *
  * 参考 MC 1.21.11: SetWorldSpawnCommand
  */
@@ -86,11 +86,22 @@ private:
     /**
      * @brief 设置世界出生点到指定 BlockPos 和朝向（对齐 vanilla BlockPosArgument + RotationArgument）
      *
-     * rotation 解析为 (yaw, pitch)：yaw 存 ServerWorld::m_spawnAngle，pitch 暂丢弃（TODO 完整建模）。
+     * rotation 解析为 (yaw, pitch)，随世界出生数据一起持久化并广播。
      * @param context 命令上下文
      * @return 命令结果
      */
     static i32 _setPositionWithRotation(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 应用新的世界出生点：写入主世界出生数据并向所有玩家广播
+     *
+     * @param context 命令上下文
+     * @param position 出生位置（世界坐标）
+     * @param rotation 朝向（yaw, pitch）
+     * @return 出生点实际变化返回 1，否则返回 0
+     */
+    static i32 _applyWorldSpawn(
+        CommandContext<ServerCommandSource>& context, const Vector3d& position, const Vector2f& rotation);
 
     /**
      * @brief 广播新的世界出生点到所有玩家
@@ -99,8 +110,6 @@ private:
      * @param angle 新的出生点朝向（度）
      * @param dimensionId 出生点所在维度
      */
-    static void _broadcastSpawnPosition(
-        server::IServer* server, const Vector3d& pos, f32 angle, DimensionId dimensionId);
 };
 
 } // namespace command
