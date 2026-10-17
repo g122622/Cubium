@@ -36,16 +36,15 @@ namespace crafting {
 /**
  * @brief 盔甲染色配方
  *
- * 允许玩家在工作台中使用染料为可染色盔甲上色。
- * 支持混合多种染料，结果颜色通过颜色混合算法计算。
+ * 允许玩家在工作台中使用染料为可染色物品上色。
+ * 支持混合多种染料，结果颜色一次性经 {@link DyedItemColor::applyDyes} 计算。
  *
- * TODO: 匹配条件应按 vanilla 用 `ItemTags::DYEABLE` 判定可染色物品（含皮革马铠），
- *   当前 `_isDyeableArmor` 用 `dynamic_cast<DyeableArmorItem>` 判定，而皮革马铠是
- *   独立的 `HorseArmorItem`（非 DyeableArmorItem），导致皮革马铠无法染色，与 vanilla
- *   行为不符。收敛方向：改用 `ItemTags::DYEABLE()` 判定并让皮革马铠支持颜色读写。
+ * 可染色物品由 `ItemTags::DYEABLE` 判定（4 件皮革盔甲、皮革马铠、狼铠），
+ * 而非按 `DyeableArmorItem` 类型判定——皮革马铠是独立的 `HorseArmorItem`。
+ * 颜色统一读写物品的 `display.color` 子标签。
  *
  * 匹配条件：
- * - 必须有恰好一个可染色盔甲
+ * - 必须恰好有一个可染色物品
  * - 必须至少有一个染料
  *
  * 使用示例：
@@ -81,9 +80,9 @@ public:
 
 private:
     /**
-     * @brief 检查物品是否为可染色盔甲
+     * @brief 检查物品是否为可染色物品（`ItemTags::DYEABLE` 成员）
      * @param stack 物品堆
-     * @return 如果是可染色盔甲返回 true
+     * @return 如果是可染色物品返回 true
      */
     [[nodiscard]] static bool _isDyeableArmor(const ItemStack& stack);
 
@@ -93,14 +92,6 @@ private:
      * @return 如果是染料返回 true
      */
     [[nodiscard]] static bool _isDye(const ItemStack& stack);
-
-    /**
-     * @brief 混合两种颜色
-     * @param color1 第一种颜色（ARGB格式）
-     * @param color2 第二种颜色（ARGB格式）
-     * @return 混合后的颜色
-     */
-    [[nodiscard]] static u32 _mixColors(u32 color1, u32 color2);
 };
 
 } // namespace crafting

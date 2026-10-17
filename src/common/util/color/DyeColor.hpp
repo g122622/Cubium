@@ -104,6 +104,56 @@ enum class DyeColor : u8 {
 }
 
 /**
+ * @brief 染料对应的纹理漫反射色（vanilla DyeColor.getTextureDiffuseColor()）
+ *
+ * 这是盔甲/狼铠染色混色（DyedItemColor.applyDyes）实际使用的颜色表，
+ * 与烟花色 [[dyeFireworkColor]] 不同：漫反射色整体偏灰（更接近材质底色），
+ * 例如白色漫反射色为 0xF9FFFE 而烟花色为 0xF0F0F0。
+ *
+ * @param color 染料颜色
+ * @return 0xRRGGBB 形式的纹理漫反射色
+ */
+[[nodiscard]] constexpr u32 dyeTextureDiffuseColor(DyeColor color) noexcept
+{
+    switch (color) {
+        case DyeColor::White:
+            return 0xF9FFFE;
+        case DyeColor::Orange:
+            return 0xF9801D;
+        case DyeColor::Magenta:
+            return 0xC74EBD;
+        case DyeColor::LightBlue:
+            return 0x3AB3DA;
+        case DyeColor::Yellow:
+            return 0xFED83D;
+        case DyeColor::Lime:
+            return 0x80C71F;
+        case DyeColor::Pink:
+            return 0xF38BAA;
+        case DyeColor::Gray:
+            return 0x474F52;
+        case DyeColor::LightGray:
+            return 0x9D9D97;
+        case DyeColor::Cyan:
+            return 0x169C9C;
+        case DyeColor::Purple:
+            return 0x8932B8;
+        case DyeColor::Blue:
+            return 0x3C44AA;
+        case DyeColor::Brown:
+            return 0x835432;
+        case DyeColor::Green:
+            return 0x5E7C16;
+        case DyeColor::Red:
+            return 0xB02E26;
+        case DyeColor::Black:
+            return 0x1D1D21;
+        default:
+            return 0xF9FFFE;
+    }
+}
+
+/**
  * @brief 由烟花色反查染料颜色（vanilla DyeColor.byFireworkColor）
  *
  * @param fireworkColor 0xRRGGBB 形式的烟花色

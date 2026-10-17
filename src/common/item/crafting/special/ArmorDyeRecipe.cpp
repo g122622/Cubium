@@ -27,65 +27,15 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/crafting/SpecialRecipe.hpp"
 #include "common/item/items/DyeItemHelper.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/color/DyeColor.hpp"
+#include "common/util/color/DyedItemColor.hpp"
 #include "item/Items.hpp"
 #include "item/items/armor/DyeableArmorItem.hpp"
 #include <vector>
 
 namespace mc {
 namespace crafting {
-
-namespace {
-
-/**
- * @brief 将 DyeColor 转换为 RGB 整数值
- *
- * @param color 染料颜色
- * @return RGB 整数值（0xRRGGBB 格式）
- */
-u32 _dyeColorToRGB(DyeColor color)
-{
-    // 盔甲染色的颜色混合取纹理漫反射色（与烟花色不同）
-    switch (color) {
-        case DyeColor::White:
-            return 0xF9FFFE; // #F9FFFE
-        case DyeColor::Orange:
-            return 0xF9801D; // #F9801D
-        case DyeColor::Magenta:
-            return 0xC74EBD; // #C74EBD
-        case DyeColor::LightBlue:
-            return 0x3AB3DA; // #3AB3DA
-        case DyeColor::Yellow:
-            return 0xFED83D; // #FED83D
-        case DyeColor::Lime:
-            return 0x80C71F; // #80C71F
-        case DyeColor::Pink:
-            return 0xF38BAA; // #F38BAA
-        case DyeColor::Gray:
-            return 0x474F52; // #474F52
-        case DyeColor::LightGray:
-            return 0x9D9D97; // #9D9D97
-        case DyeColor::Cyan:
-            return 0x169C9C; // #169C9C
-        case DyeColor::Purple:
-            return 0x8932B8; // #8932B8
-        case DyeColor::Blue:
-            return 0x3C44AA; // #3C44AA
-        case DyeColor::Brown:
-            return 0x835432; // #835432
-        case DyeColor::Green:
-            return 0x5E7C16; // #5E7C16
-        case DyeColor::Red:
-            return 0xB02E26; // #B02E26
-        case DyeColor::Black:
-            return 0x1D1D21; // #1D1D21
-        default:
-            return 0xF9FFFE; // 默认白色
-    }
-}
-
-} // namespace
 
 ArmorDyeRecipe::ArmorDyeRecipe(const ResourceLocation& id)
     : SpecialRecipe(id)
@@ -131,10 +81,10 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const
         if (_isDyeableArmor(stack)) {
             armorStack = stack.copy();
         } else if (_isDye(stack)) {
-            // 从染料物品获取颜色
+            // 从染料物品获取纹理漫反射色（对齐 vanilla DyeItem 的 getTextureDiffuseColor）
             const auto dyeColor = item::DyeItemHelper::dyeColorOfItem(stack.getItem());
             if (dyeColor.has_value()) {
-                colors.push_back(_dyeColorToRGB(*dyeColor));
+                colors.push_back(dyeTextureDiffuseColor(*dyeColor));
             }
         }
     }
@@ -143,27 +93,12 @@ ItemStack ArmorDyeRecipe::assemble(const CraftingInventory& inventory) const
         return ItemStack::EMPTY;
     }
 
-    // 获取当前颜色（如果有）
-    u32 currentColor = 0xFFFFFF; // 默认白色
-    const Item* item = armorStack.getItem();
-    if (item != nullptr) {
-        const auto* dyeableItem = dynamic_cast<const item::items::DyeableArmorItem*>(item);
-        if (dyeableItem != nullptr) {
-            if (item::items::DyeableArmorItem::hasColor(armorStack)) {
-                currentColor = dyeableItem->getColor(armorStack);
-            } else {
-                currentColor = dyeableItem->getDefaultColor();
-            }
-        }
-    }
+    // 已有颜色（曾经染过色）也参与平均；从未染色时以 nullopt 表示该份不占平均份额。
+    const std::optional<u32> currentColor = item::items::DyeableArmorItem::getStoredColorOrNone(armorStack);
+    const u32 mixedColor = DyedItemColor::applyDyes(currentColor, colors);
 
-    // 混合颜色
-    for (u32 dyeColor : colors) {
-        currentColor = _mixColors(currentColor, dyeColor);
-    }
-
-    // 设置颜色
-    item::items::DyeableArmorItem::setColor(armorStack, currentColor);
+    // 颜色统一写回 display.color（DyeableArmorItem 与皮革马铠共用同一存储位置）
+    item::items::DyeableArmorItem::setColor(armorStack, mixedColor);
 
     return armorStack;
 }
@@ -185,7 +120,9 @@ bool ArmorDyeRecipe::_isDyeableArmor(const ItemStack& stack)
     if (item == nullptr) {
         return false;
     }
-    return dynamic_cast<const item::items::DyeableArmorItem*>(item) != nullptr;
+    // 用 ItemTags::DYEABLE 判定（含 4 件皮革盔甲、皮革马铠、狼铠），而非 dynamic_cast<DyeableArmorItem>。
+    // 皮革马铠是独立的 HorseArmorItem，不是 DyeableArmorItem 子类，用类型判定会漏掉它。
+    return item::tag::ItemTags::DYEABLE().contains(item);
 }
 
 bool ArmorDyeRecipe::_isDye(const ItemStack& stack)
@@ -194,29 +131,6 @@ bool ArmorDyeRecipe::_isDye(const ItemStack& stack)
         return false;
     }
     return item::DyeItemHelper::isDyeItem(stack.getItem());
-}
-
-u32 ArmorDyeRecipe::_mixColors(u32 color1, u32 color2)
-{
-    // TODO: 当前用"逐分量简单平均"近似 vanilla DyedItemColor.applyDyes 的混色算法——
-    //   vanilla 会把当前颜色与所有染料颜色一起累加（每色额外累加其 max(r,g,b)），
-    //   最后按 avg(n) * avgMax / max(avgR, avgG, avgB) 做亮度归一化，且**一次**处理
-    //   全部染料（多染料不是逐次两两平均）。逐次平均会与 vanilla 结果发散（顺序敏感、
-    //   且丢失亮度缩放）。收敛方向：新增 DyedItemColor 组件（对齐 1.21.11）并把
-    //   ArmorDyeRecipe/WolfEntity 的混色统一改为一次传入全部染料色调用 applyDyes 语义。
-    i32 r1 = static_cast<i32>((color1 >> 16) & 0xFF);
-    i32 g1 = static_cast<i32>((color1 >> 8) & 0xFF);
-    i32 b1 = static_cast<i32>(color1 & 0xFF);
-
-    i32 r2 = static_cast<i32>((color2 >> 16) & 0xFF);
-    i32 g2 = static_cast<i32>((color2 >> 8) & 0xFF);
-    i32 b2 = static_cast<i32>(color2 & 0xFF);
-
-    i32 r = (r1 + r2) / 2;
-    i32 g = (g1 + g2) / 2;
-    i32 b = (b1 + b2) / 2;
-
-    return (0xFF << 24) | (static_cast<u32>(r) << 16) | (static_cast<u32>(g) << 8) | static_cast<u32>(b);
 }
 
 } // namespace crafting

@@ -1320,6 +1320,9 @@ add_library(mc_common STATIC
     util/assert/Assert.cpp
     util/assert/CrashHandler.cpp
 
+    # Color utilities
+    util/color/DyedItemColor.cpp
+
     # Sound system - Core
     sound/SoundCategory.cpp
     sound/SoundEvent.cpp
