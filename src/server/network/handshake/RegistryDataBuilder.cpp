@@ -74,6 +74,9 @@ mc::network::ir::configuration::RegistryData makeKnownRegistry(
 /// 与 MinecraftServer::m_dataPackList 同生命周期，握手阶段读取安全。
 const mc::resource::DataPackRepository* g_registryDatapackRepo = nullptr;
 
+/// 与当前数据包来源一起刷新，登录期间只复制已准备的不可变 NBT。
+std::optional<std::vector<mc::network::ir::configuration::RegistryData>> _preparedUnknownRegistries;
+
 /// 把 "namespace:path" 转成数据包资源路径 "<ns>/<registryDir>/<path>.json"。
 /// 不含 "data/" 前缀（与 EnchantmentNbtBuilder::enchantmentIdToResourcePath 同一约定，
 /// 误加会双重前缀致 readTextResource 永久 ResourceNotFound）。
@@ -552,10 +555,15 @@ std::vector<mc::network::ir::configuration::KnownPack> buildServerKnownPacks()
 void setRegistryDatapackSource(const mc::resource::DataPackRepository& repo)
 {
     g_registryDatapackRepo = &repo;
+    _preparedUnknownRegistries.reset();
+    _preparedUnknownRegistries = buildConfigurationRegistryDataForUnknownClient();
 }
 
 std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegistryDataForUnknownClient()
 {
+    if (_preparedUnknownRegistries.has_value()) {
+        return *_preparedUnknownRegistries;
+    }
     std::vector<mc::network::ir::configuration::RegistryData> registries;
 
     if (g_registryDatapackRepo == nullptr) {
@@ -602,7 +610,7 @@ std::vector<mc::network::ir::configuration::RegistryData> buildConfigurationRegi
         registry.entries = std::move(filledEntries);
     }
 
-    spdlog::info("RegistryDataBuilder: client declared no minecraft:core; sending inline NBT for {} registries"
+    spdlog::info("RegistryDataBuilder: prepared inline NBT for {} registries"
                  " ({} entries built, {} skipped)",
         registries.size(),
         filledCount,

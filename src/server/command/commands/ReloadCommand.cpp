@@ -31,10 +31,13 @@
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
+// 提供成就模板下标键的完整类型，规避 clang-tidy 的 LLVM #215724 崩溃。
+#include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include <memory>
 #include <string>
 #include <spdlog/spdlog.h>
@@ -158,6 +161,8 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
         }
     }
 
+    // 文件内容变化后重建握手快照，后续连接不能继续收到重载前的注册表 NBT。
+    server::net::setRegistryDatapackSource(dataPacks);
     source.sendMessage("Reload complete!");
     return 1;
 }

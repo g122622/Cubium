@@ -2,6 +2,28 @@
 
 项目配置了 `.clang-tidy` 文件，启用 `bugprone-*`、`clang-analyzer-*`、`concurrency-*`、`performance-*` 等检查规则。
 
+### 已知崩溃：模板下标与不完整类型
+
+`bugprone-pointer-arithmetic-on-polymorphic-object` 在本地 clang-tidy 20.1.8 与 CI clang-tidy 22.1.8 中，可能在匹配模板里的下标表达式时崩溃。独立复现无需标准库或项目头文件：
+
+```cpp
+class Incomplete;
+template <class T>
+void access(T& values, Incomplete* key) { values[key]; }
+```
+
+保存为 `repro.cpp`，运行：
+
+```bash
+clang-tidy --config='{}' --checks='-*,bugprone-pointer-arithmetic-on-polymorphic-object' repro.cpp -- -std=c++20
+```
+
+模板尚未实例化，这段合法声明不表示程序执行了指针运算；实例化后 `values` 可以是支持指针键的映射。旧检查器却可能把依赖类型的下标当成数组表达式，并对只有前向声明的键类型调用 `CXXRecordDecl::isPolymorphic()`，访问不存在的定义数据。将第一行改为 `class Incomplete {};` 后同一命令不再崩溃。
+
+LLVM 主线在 [627bb2a / PR #215724](https://github.com/llvm/llvm-project/commit/627bb2a66b679ead5e58761248e4878d8b55fba0) 中，为 `isAbstract` / `isPolymorphic` 匹配器补充 `Node.hasDefinition()` 守卫。该修复于 2026-08-22 合入；上述稳定版未包含。
+
+项目触发点是 `AbstractCriterionTrigger<T>::addListener` 对 `unordered_map` 的下标访问。受影响的注册装配和资源重载源文件显式包含 `PlayerAdvancements.hpp`，提供完整键类型；检查器保持启用。最小复现、对照源码和上游补丁保存在本次任务的 `build/clang-tidy-polymorphic-repro/` 中，`build/` 产物不进入版本库。
+
 Windows 上项目使用 clang-cl 编译，`compile_commands.json` 会导致 clang-tidy segfault，脚本会注入 MSVC / Windows SDK / vcpkg 头文件路径。Linux 上则使用 CMake 的 `build/compile_commands.json`，无需手工注入头文件路径。
 
 ### 用法

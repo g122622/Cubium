@@ -63,6 +63,8 @@
 
 ## 容易踩的坑
 
+- `/reload` 和数据包启停后须重建握手注册表 NBT 快照，否则后续连接仍会收到旧数据。
+
 - **不要直接 dynamic_cast 到 IntegratedServer**：统一通过 `IServer::playerInventory()` 取库存，通过 `IServer::sharedStorage()` 获取共享存储
 - **命令元数据和实际语法要同步更新**：否则帮助输出和补全会偏离
 - **别名命令使用重定向共享命令树**：`/tp` 和 `/teleport`、`/experience` 和 `/xp` 这类别名应使用重定向

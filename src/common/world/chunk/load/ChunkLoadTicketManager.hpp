@@ -226,13 +226,11 @@ public:
      * @param z 区块 Z 坐标
      * @return true 表示该区块的方块应推进 tick（随机刻、方块实体、降雪结算等）
      *
-     * 等级由玩家票据在距离图中逐区块传播，故本判定等价于"该区块落在某个玩家的模拟距离内"。
-     * 只加载不 tick 的区块（Border/Full 级）不得推进游戏逻辑，详见 isTickingChunkLevel 注释。
+     * 玩家模拟范围与加载视距独立；方块 tick 比实体 tick 多保留一圈邻居。
+     * 显式强票据仍按级别传播决定方块 tick 范围。
+     * @param simulationDistance 实体模拟距离
      */
-    [[nodiscard]] bool isTickingChunk(ChunkCoord x, ChunkCoord z) const
-    {
-        return isTickingChunkLevel(getChunkLevel(x, z));
-    }
+    [[nodiscard]] bool isTickingChunk(ChunkCoord x, ChunkCoord z, i32 simulationDistance) const;
 
     /**
      * @brief 检查区块是否应该加载（静态版本）
@@ -456,6 +454,9 @@ private:
 
     /// 每个区块的票据集合
     std::unordered_map<u64, ChunkTicketSet> m_chunkTickets;
+
+    /// 可推进方块 tick 的显式来源（不包含仅保加载的 LIGHT 票据）。
+    std::unordered_map<u64, i32> m_tickingTicketSources;
 
     /// 玩家位置映射
     std::unordered_map<PlayerId, ChunkPos> m_playerPositions;

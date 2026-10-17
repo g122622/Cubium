@@ -31,6 +31,7 @@
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <mutex>
@@ -287,6 +288,27 @@ i32 ChunkLoadTicketManager::getChunkLevel(ChunkCoord x, ChunkCoord z) const
     return m_distanceGraph.getLevel(x, z);
 }
 
+bool ChunkLoadTicketManager::isTickingChunk(ChunkCoord x, ChunkCoord z, i32 simulationDistance) const
+{
+    for (const auto& [player, center] : m_playerPositions) {
+        MC_UNUSED(player);
+        const i64 distance =
+            std::max(std::abs(static_cast<i64>(x) - center.x), std::abs(static_cast<i64>(z) - center.z));
+        if (distance <= static_cast<i64>(simulationDistance) + 1) {
+            return true;
+        }
+    }
+    for (const auto& [key, level] : m_tickingTicketSources) {
+        const ChunkCoord sourceX = static_cast<ChunkCoord>(key >> 32);
+        const ChunkCoord sourceZ = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+        const i64 distance = std::max(std::abs(static_cast<i64>(x) - sourceX), std::abs(static_cast<i64>(z) - sourceZ));
+        if (distance <= static_cast<i64>(ChunkLoadLevel::BlockTicking) - level) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void ChunkLoadTicketManager::tick()
 {
     // 过期处理只遍历"存在带生命周期票据"的区块，而非全部票据集合。
@@ -382,7 +404,14 @@ void ChunkLoadTicketManager::processUpdates()
     }
     m_dirtyChunks.clear();
 
-    m_distanceGraph.processUpdates(1000);
+    // 回调可能触发存档解析或争用调度锁，固定条数无法约束主线程耗时。
+    // 保留数量上限，同时按单个节点检查墙钟预算；未完成的传播留待后续推进。
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+    for (i32 processed = 0; processed < 1000; ++processed) {
+        if (m_distanceGraph.processUpdates(1) == 0 || std::chrono::steady_clock::now() >= deadline) {
+            break;
+        }
+    }
 }
 
 void ChunkLoadTicketManager::_refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z)
@@ -393,6 +422,11 @@ void ChunkLoadTicketManager::_refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z
     auto ticketIt = m_chunkTickets.find(key);
     if (ticketIt != m_chunkTickets.end()) {
         sourceLevel = std::min(sourceLevel, ticketIt->second.getMinLevel());
+    }
+    if (isTickingChunkLevel(sourceLevel)) {
+        m_tickingTicketSources[key] = sourceLevel;
+    } else {
+        m_tickingTicketSources.erase(key);
     }
 
     auto playerIt = m_playerSourceCounts.find(key);
