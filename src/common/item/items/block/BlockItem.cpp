@@ -143,23 +143,24 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         return ActionResultType::Fail;
     }
 
-    // 检查放置的方块是否正确
-    // TODO: vanilla 此处按"实际放置的方块"判定（blockstate1.is(blockstate.getBlock())），故方块侧放置状态
-    //       替换为另一方块时（如 DirtPathBlock → DIRT），后续 setPlacedBy/方块实体 NBT 处理仍会对新方块
-    //       执行。此处按物品自身方块 m_block 判定，转换场景下会整段跳过——因涉及的替换目标（泥土、混凝土）
-    //       均无方块实体与 setPlacedBy 副作用，当前无实际影响。若未来出现带副作用的替换目标，需改判据为
-    //       `&actualState->owner() == &state->owner()`。
-    if (&actualState->owner() == m_block) {
+    // 按"实际写入世界的方块"判定是否执行放置后处理：方块侧 getStateForPlacement 可能整体替换为另一方块
+    // （如 DirtPathBlock 上方为固体方块时改放泥土、混凝土粉遇水转为混凝土），此时 setPlacedBy 与
+    // BlockEntityTag 应用应对转换后的方块执行，而非被跳过。
+    // 判据取 state（本次放置计算出的状态）的方块归属（而非物品自身的 m_block）：仅当世界实际写入了
+    // 本次放置计算出的方块时才继续——若世界中该位置被其他逻辑（如水流、随机刻）抢先替换为无关方块，
+    // 则不再误向新方块写入方块实体 NBT 或触发 onBlockPlacedBy。
+    if (&actualState->owner() == &state->owner()) {
         // 从 NBT 应用方块状态
         actualState = applyBlockStateFromNBT(pos, world, stack, *actualState);
 
         // 处理方块实体 NBT
         static_cast<void>(onBlockPlaced(pos, world, player, stack, *actualState));
 
-        // 调用方块的 onBlockPlacedBy
-        // 注意：m_block 是 const Block* 成员指针（非 BlockState 来源），无法使用 getBlockMutable()，
-        // 因此需要 const_cast 将其转为可变引用以调用非 const 方法 onBlockPlacedBy
-        const_cast<Block&>(*m_block).onBlockPlacedBy(world, pos, *actualState, stack);
+        // 调用实际写入方块的 onBlockPlacedBy：转换场景（如 DirtPathBlock → 泥土）须由转换后的方块
+        // 承担放置后处理，而非物品自身的方块。
+        // 调用实际写入方块的 onBlockPlacedBy：转换场景（如 DirtPathBlock → 泥土）须由转换后的方块
+        // 承担放置后处理，而非物品自身的方块。
+        actualState->getBlockMutable().onBlockPlacedBy(world, pos, *actualState, stack);
 
         // 派发自定义方块组件回调 - onPlace
         if (blockCompReg.hasPlaceCallback(blockTypeId)) {
