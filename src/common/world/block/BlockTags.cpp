@@ -829,6 +829,15 @@ BlockTag& BlockTags::CAN_GLIDE_THROUGH()
     return *tag;
 }
 
+BlockTag& BlockTags::SOUL_SPEED_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "soul_speed_blocks"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::FALL_DAMAGE_RESETTING()
 {
     static BlockTag* tag = nullptr;
@@ -1411,6 +1420,14 @@ void BlockTags::initialize()
     soulFireBaseBlocks->addAll(
         {ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
     tags[soulFireBaseBlocks->getId()] = std::move(soulFireBaseBlocks);
+
+    // 创建 SOUL_SPEED_BLOCKS 标签（灵魂疾行生效方块）
+    // vanilla 定义（soul_speed_blocks.json）：soul_sand、soul_soil（与 soul_fire_base_blocks 成员相同）。
+    // 运行时消费：SoulSpeedEnchantment 的 location_changed 条件判定脚下方块
+    // （vanilla soul_speed.json 的 movement_affected_by 引用 #minecraft:soul_speed_blocks）。
+    auto soulSpeedBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "soul_speed_blocks"));
+    soulSpeedBlocks->addAll({ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
+    tags[soulSpeedBlocks->getId()] = std::move(soulSpeedBlocks);
 
     // 创建 WITHER_SUMMON_BASE_BLOCKS 标签（凋灵召唤基座方块）
     // 对齐数据包 wither_summon_base_blocks.json = {soul_sand, soul_soil}。
