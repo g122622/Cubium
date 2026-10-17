@@ -60,6 +60,7 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -629,7 +630,7 @@ void ServerPlayer::setRespawnPosition(std::optional<RespawnConfig> config, bool 
         const auto previous = getRespawnConfig();
         if (!config->isSamePosition(previous)) {
             // 客户端按翻译键渲染"重生点已设置"。
-            sendSystemMessage("block.minecraft.set_spawn");
+            sendSystemMessage(text::TranslationTextComponent("block.minecraft.set_spawn"));
         }
     }
     Player::setRespawnPosition(std::move(config), false);
@@ -652,6 +653,10 @@ ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionAndUseSpawnBlock(
     if (config.has_value() && targetWorld != nullptr) {
         const RespawnData& data = config->respawnData;
         const BlockPos& pos = data.pos();
+        // 重生点所在区块可能已被卸载：先同步加载，否则 getBlockState 返回空会把有效重生点误判为失效。
+        static_cast<void>(
+            targetWorld->chunkManager()->requestFullChunkSync(static_cast<ChunkCoord>(pos.x >> world::CHUNK_SHIFT),
+                static_cast<ChunkCoord>(pos.z >> world::CHUNK_SHIFT)));
         const BlockState* state = targetWorld->getBlockState(pos);
 
         if (state != nullptr && state->hasProperty(BlockStateProperties::CHARGES_0_4()) &&

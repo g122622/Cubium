@@ -713,10 +713,16 @@ RespawnData ServerWorld::worldBorderAdjustedRespawnData() const
         return raw;
     }
 
-    // 出生方块在边界外：改取边界中心列的运动阻挡高度图位置（等价 Level.getHeightmapPos）。
+    // 出生方块在边界外：先加载边界中心列所在区块，再取其运动阻挡高度图位置
+    // （等价 Level.getHeightmapPos(MOTION_BLOCKING, 边界中心)）。
     const i32 centerX = static_cast<i32>(std::floor(m_worldBorder.getCenterX()));
     const i32 centerZ = static_cast<i32>(std::floor(m_worldBorder.getCenterZ()));
-    const i32 topBlockY = getHeight(centerX, centerZ) - 1;
+    const ChunkData* centerChunk = m_chunkManager->requestFullChunkSync(
+        static_cast<ChunkCoord>(centerX >> world::CHUNK_SHIFT), static_cast<ChunkCoord>(centerZ >> world::CHUNK_SHIFT));
+    const i32 topBlockY = centerChunk != nullptr
+        ? centerChunk->getTopBlockY(
+              HeightmapType::MotionBlocking, centerX & world::CHUNK_MASK, centerZ & world::CHUNK_MASK)
+        : getHeight(centerX, centerZ) - 1;
     return RespawnData::of(raw.dimension(), BlockPos(centerX, topBlockY, centerZ), raw.yaw, raw.pitch);
 }
 

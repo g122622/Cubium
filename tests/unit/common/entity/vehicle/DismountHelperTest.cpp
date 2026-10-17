@@ -31,23 +31,23 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/vehicle/DismountHelper.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/building/TrapDoorBlock.hpp"
-#include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
-#include "common/core/Constants.hpp"
-#include "common/util/property/Properties.hpp"
 
 #include <cmath>
 #include <limits>
 #include <map>
-#include <optional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 using namespace mc;
@@ -69,8 +69,11 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        // 未登记的格子是空气（已加载列恒有状态），返回空空气状态而非 nullptr——
-        // nullptr 在落点搜索中表示"区块未加载"，会直接放弃该候选。
+        // 与生产代码一致：已加载列恒有方块状态，未登记即空气；只有区块未加载时 getBlockState
+        // 才返回 nullptr（testUnloadedChunks 置位）。
+        if (m_unloadedChunks) {
+            return nullptr;
+        }
         const auto it = m_blocks.find(BlockPos(x, y, z));
         return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
     }
@@ -182,7 +185,11 @@ public:
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
+    /// 模拟区块未加载：所有查询返回 nullptr。
+    void setUnloadedChunks(bool unloaded) { m_unloadedChunks = unloaded; }
+
 private:
+    bool m_unloadedChunks = false;
     std::map<BlockPos, const BlockState*> m_blocks;
     std::map<BlockPos, BlockState> m_ownedStates;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
@@ -222,8 +229,8 @@ TEST_F(DismountHelperTest, FloorHeightIsZeroOnSolidBlock)
 TEST_F(DismountHelperTest, FloorHeightAboveAirWithoutFloorIsInfinite)
 {
     // 当前方块与下方方块都是空气 → 无地板。
-    EXPECT_TRUE(std::isinf(
-        DismountHelper::getBlockFloorHeight(world, BlockPos(0, 64, 0), PLAYER_WIDTH, PLAYER_HEIGHT)));
+    EXPECT_TRUE(
+        std::isinf(DismountHelper::getBlockFloorHeight(world, BlockPos(0, 64, 0), PLAYER_WIDTH, PLAYER_HEIGHT)));
 }
 
 TEST_F(DismountHelperTest, DismountOnFloorSucceeds)
@@ -271,7 +278,7 @@ TEST_F(DismountHelperTest, FireImmuneEntityIgnoresBurningBlock)
     EXPECT_FALSE(findSafe(BlockPos(0, 64, 0), false, true).has_value());
     EXPECT_TRUE(DismountHelper::findSafeDismountLocation(
         world, BlockPos(0, 64, 0), PLAYER_WIDTH, PLAYER_HEIGHT, false, true, true)
-                    .has_value());
+            .has_value());
 }
 
 TEST_F(DismountHelperTest, OpenSpaceWithoutFloorIsRejected)
@@ -296,8 +303,8 @@ TEST_F(DismountHelperTest, OpenTrapdoorIsNotAFloor)
     BlockState openTrapdoor = trapdoor->defaultState().with(BlockStateProperties::OPEN(), true);
     world.put(0, 64, 0, &openTrapdoor);
 
-    EXPECT_TRUE(std::isinf(
-        DismountHelper::getBlockFloorHeight(world, BlockPos(0, 64, 0), PLAYER_WIDTH, PLAYER_HEIGHT)));
+    EXPECT_TRUE(
+        std::isinf(DismountHelper::getBlockFloorHeight(world, BlockPos(0, 64, 0), PLAYER_WIDTH, PLAYER_HEIGHT)));
 }
 
 TEST_F(DismountHelperTest, OutsideWorldBorderIsRejected)

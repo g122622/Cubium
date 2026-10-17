@@ -77,7 +77,10 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        // 未登记的格子是空气（已加载列恒有状态），返回空空气状态而非 nullptr。
+        // 与生产代码一致：已加载列恒有方块状态，未登记即空气；只有区块未加载时才返回 nullptr。
+        if (m_unloadedChunks) {
+            return nullptr;
+        }
         const auto it = m_blocks.find(BlockPos(x, y, z));
         return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
     }
@@ -192,7 +195,11 @@ public:
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
+    /// 模拟区块未加载：所有查询返回 nullptr。
+    void setUnloadedChunks(bool unloaded) { m_unloadedChunks = unloaded; }
+
 private:
+    bool m_unloadedChunks = false;
     DimensionId m_dimension;
     std::map<BlockPos, const BlockState*> m_blocks;
     std::map<BlockPos, BlockState> m_ownedStates;
@@ -379,6 +386,24 @@ TEST_F(RespawnAnchorBlockTest, UseItemOn_GlowstoneChargesAndConsumes)
     const BlockState* updated = world.getBlockState(0, 64, 0);
     ASSERT_NE(updated, nullptr);
     EXPECT_EQ(updated->get(BlockStateProperties::CHARGES_0_4()), 1);
+}
+
+TEST_F(RespawnAnchorBlockTest, UseItemOn_CreativeModeDoesNotConsumeGlowstone)
+{
+    if (!blockItemsAvailable()) {
+        GTEST_SKIP() << "block item registry unavailable";
+    }
+    AnchorTestWorld world(DimensionManager::NETHER);
+    AnchorTestPlayer player(EntityInstanceId(1), "TestPlayer");
+    player.abilities().creativeMode = true;
+    const BlockState state = chargedState(0);
+    world.setBlockAt(BlockPos(0, 64, 0), &state);
+
+    ItemStack glowstone = ItemStack(_glowstoneItem(), 1);
+    const BlockActionResult result = VanillaBlocks::RESPAWN_ANCHOR->useItemOn(
+        glowstone, state, world, BlockPos(0, 64, 0), player, Hand::MainHand, BlockRaycastResult{});
+    EXPECT_TRUE(result.getType() == ActionResultType::Success);
+    EXPECT_EQ(glowstone.getCount(), 1);
 }
 
 TEST_F(RespawnAnchorBlockTest, UseItemOn_FullChargeDoesNotConsumeGlowstone)

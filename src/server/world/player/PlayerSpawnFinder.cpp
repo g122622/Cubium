@@ -74,12 +74,6 @@ bool PlayerSpawnFinder::noCollisionNoLiquid(ServerWorld& world, const BlockPos& 
 
 std::optional<Vector3> PlayerSpawnFinder::fixupSpawnHeight(ServerWorld& world, const BlockPos& suggestedPos)
 {
-    // 建议列所在区块必须已加载，否则碰撞与液体查询都不可靠。
-    if (world.chunkManager()->tryToGetChunkInMem(static_cast<ChunkCoord>(suggestedPos.x >> world::CHUNK_SHIFT),
-            static_cast<ChunkCoord>(suggestedPos.z >> world::CHUNK_SHIFT)) == nullptr) {
-        return std::nullopt;
-    }
-
     const i32 maxY = world.getMaxBuildHeight();
     const i32 minY = world.getMinBuildHeight();
     i32 y = suggestedPos.y;
@@ -139,7 +133,8 @@ std::optional<Vector3> PlayerSpawnFinder::findSpawn(ServerWorld& world, const Bl
             continue;
         }
 
-        const i32 topY = world.getHeight(candidateX, candidateZ) - 1;
+        // getHeight 返回首个可达空气格（原版 getHeightmapPos(MOTION_BLOCKING) 语义）。
+        const i32 topY = world.getHeight(candidateX, candidateZ);
         const BlockPos candidate(candidateX, topY, candidateZ);
         if (noCollisionNoLiquid(world, candidate)) {
             return _bottomCenter(candidate);

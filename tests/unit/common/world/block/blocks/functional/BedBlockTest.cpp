@@ -82,13 +82,13 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
-        // 未登记的格子是空气（已加载列恒有状态），返回空空气状态而非 nullptr。
+        // 与生产代码一致：已加载列恒有方块状态，未登记即空气；只有区块未加载时才返回 nullptr。
+        if (m_unloadedChunks) {
+            return nullptr;
+        }
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
-        if (it != m_blocks.end()) {
-            return it->second;
-        }
-        return &VanillaBlocks::AIR->defaultState();
+        return it != m_blocks.end() ? it->second : &VanillaBlocks::AIR->defaultState();
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
@@ -204,7 +204,11 @@ public:
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
+    /// 模拟区块未加载：所有查询返回 nullptr。
+    void setUnloadedChunks(bool unloaded) { m_unloadedChunks = unloaded; }
+
 private:
+    bool m_unloadedChunks = false;
     std::map<BlockPos, const BlockState*> m_blocks;
     std::map<BlockPos, BlockState> m_ownedStates;
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;

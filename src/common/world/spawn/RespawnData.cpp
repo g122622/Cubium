@@ -27,7 +27,9 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
+#include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -94,8 +96,12 @@ std::optional<RespawnData> RespawnData::fromNbt(const nbt::tags::compound_tag& t
         return std::nullopt;
     }
 
-    const f32 yaw = entity::serialization::nbt_helper::tryGetFloat(tag, KEY_YAW).value_or(0.0f);
-    const f32 pitch = entity::serialization::nbt_helper::tryGetFloat(tag, KEY_PITCH).value_or(0.0f);
+    // 非有限值（NaN/Inf）会让归一化产生 NaN，按缺失处理回退到 0。
+    const auto finiteOr = [](std::optional<f32> value) -> f32 {
+        return value.has_value() && std::isfinite(*value) ? *value : 0.0f;
+    };
+    const f32 yaw = finiteOr(entity::serialization::nbt_helper::tryGetFloat(tag, KEY_YAW));
+    const f32 pitch = finiteOr(entity::serialization::nbt_helper::tryGetFloat(tag, KEY_PITCH));
     return RespawnData::of(dimensionNameToId(*dimensionName), BlockPos(xyz[0], xyz[1], xyz[2]), yaw, pitch);
 }
 

@@ -228,7 +228,10 @@ BlockActionResult RespawnAnchorBlock::useItemOn(ItemStack& stack,
             pos.center(),
             1.0f,
             1.0f);
-        stack.shrink(1);
+        // 创造模式不消耗物品（对齐原版 consume 的无限材料语义）。
+        if (!player.abilities().creativeMode) {
+            stack.shrink(1);
+        }
         return ActionResultType::Success;
     }
 

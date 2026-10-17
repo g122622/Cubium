@@ -40,6 +40,8 @@
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include <gtest/gtest.h>
 
+#include <limits>
+
 using namespace mc;
 using namespace mc::server;
 
@@ -171,6 +173,21 @@ TEST_F(ServerWorldSpawnAngleTest, RespawnConfigGetDimensionOrDefaultFallsBackToO
 
     const RespawnConfig netherConfig(RespawnData::of(DimensionManager::NETHER, BlockPos(0, 64, 0), 0.0f, 0.0f), false);
     EXPECT_EQ(RespawnConfig::getDimensionOrDefault(&netherConfig), DimensionManager::NETHER);
+}
+
+TEST_F(ServerWorldSpawnAngleTest, RespawnDataFromNbtRejectsNonFiniteRotation)
+{
+    // 非有限 yaw/pitch 会让归一化产生 NaN：按缺失处理回退到 0。
+    const RespawnData original = RespawnData::of(0, BlockPos(1, 2, 3), 0.0f, 0.0f);
+    nbt::tags::compound_tag tag;
+    original.toNbt(tag);
+    tag.put("yaw", std::numeric_limits<f32>::quiet_NaN());
+    tag.put("pitch", std::numeric_limits<f32>::infinity());
+
+    const auto decoded = RespawnData::fromNbt(tag);
+    ASSERT_TRUE(decoded.has_value());
+    EXPECT_FLOAT_EQ(decoded->yaw, 0.0f);
+    EXPECT_FLOAT_EQ(decoded->pitch, 0.0f);
 }
 
 TEST_F(ServerWorldSpawnAngleTest, RespawnDataFromNbtRejectsMissingPosition)

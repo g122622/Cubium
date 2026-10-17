@@ -120,16 +120,20 @@ TEST_F(PlayerSpawnFinderTest, FixupSpawnHeightLandsOnFloorTop)
     const BlockPos landed(static_cast<i32>(std::floor(position->x)),
         static_cast<i32>(std::floor(position->y)),
         static_cast<i32>(std::floor(position->z)));
+    // 目标列已加载：落在无碰撞无液体处，且脚下方块实心（间隙底部）。
     EXPECT_TRUE(PlayerSpawnFinder::noCollisionNoLiquid(*m_world, landed));
-    // 落在间隙最底部：再下降一格就会碰撞或无地面（这里用"脚下是实心"近似断言）。
     const BlockState* below = m_world->getBlockState(landed.x, landed.y - 1, landed.z);
     EXPECT_TRUE(below != nullptr && below->isSolid());
 }
 
-TEST_F(PlayerSpawnFinderTest, FixupSpawnHeightReturnsNullForUnloadedColumn)
+TEST_F(PlayerSpawnFinderTest, FixupSpawnHeightHandlesUnloadedColumn)
 {
-    // 未加载区块的列无法做碰撞/液体查询 → 返回空。
-    EXPECT_FALSE(PlayerSpawnFinder::fixupSpawnHeight(*m_world, BlockPos(100000, 70, 100000)).has_value());
+    // fixupSpawnHeight 不加载区块（原版 ScoreboardFix 语义）：未加载列无法做碰撞扫描，
+    // 但函数必须给出确定坐标而不是让登录流程失去落点。
+    const auto position = PlayerSpawnFinder::fixupSpawnHeight(*m_world, BlockPos(100000, 70, 100000));
+    ASSERT_TRUE(position.has_value());
+    EXPECT_GE(position->y, static_cast<f32>(mc::world::MIN_BUILD_HEIGHT));
+    EXPECT_LE(position->y, static_cast<f32>(mc::world::MAX_BUILD_HEIGHT));
 }
 
 TEST_F(PlayerSpawnFinderTest, NoCollisionNoLiquidRejectsSolidBlock)

@@ -75,6 +75,10 @@ struct _DimensionWireInfo {
 void _copyPlayerState(Player& target, const Player& source)
 {
     target.inventory().copyInventory(source.inventory());
+    // 末影箱与背包分离存储，重生时无条件保留（不受 keepInventory 影响）。
+    for (i32 slot = 0; slot < target.enderChestInventory().getContainerSize(); ++slot) {
+        target.enderChestInventory().setItem(slot, source.enderChestInventory().getItem(slot));
+    }
     target.setGameMode(source.gameMode());
     target.abilities() = source.abilities();
     target.experienceManager().setExperience(source.experienceManager().getLevel(),
@@ -178,11 +182,6 @@ bool PlayerRespawnManager::respawn(PlayerId playerId, bool keepAllData)
         newPlayer->setRespawnPosition(std::nullopt, false);
     }
 
-    // 新实体已就位并复制完旧实体状态，回收旧实体：解除映射、取消追踪并静默移除。
-    if (oldPlayer != nullptr && oldWorld != nullptr) {
-        m_server.playerEntityManager().removePlayerEntity(playerId, *oldWorld);
-    }
-
     m_server.dimensionManager().playerJoinDimension(playerId, targetWorld->dimension());
 
     {
@@ -222,19 +221,24 @@ Player* PlayerRespawnManager::_createRespawnedPlayer(
     ServerWorld* oldWorld = m_server.getPlayerWorld(playerId);
     Player* oldPlayer =
         oldWorld != nullptr ? m_server.playerEntityManager().getPlayerEntity(playerId, *oldWorld) : nullptr;
+    // 落点已在旧实体上计算完成；这里在解除旧实体映射之前完成状态复制所需的全部信息采集，
+    // 复制本身在 createPlayerEntity 之后、旧实体销毁之前执行。
+    const Player* stateSource = oldPlayer;
+
     if (oldPlayer != nullptr) {
         oldPlayer->stopRiding();
         if (auto* oldServerPlayer = oldPlayer->asServerPlayer(); oldServerPlayer != nullptr) {
             oldServerPlayer->resetCamera();
         }
+        // 先解除旧实体映射与追踪：createPlayerEntity 对已存在的 PlayerId 会拒绝创建。
+        // 状态迁移在旧实体销毁前完成，createPlayerEntity 之后立即复制。
+        m_server.playerEntityManager().removePlayerEntity(playerId, *oldWorld);
+        oldPlayer = nullptr;
     }
 
     // 新实体不持有连接：出站统一走服务器门面按 PlayerId 路由（远程查 PlayerManager 的
     // 连接对象，本地走集成服的本地发送钩子），避免重生流程依赖会话层。
     mc::server::net::ServerClientConnection* reuseConnection = nullptr;
-
-    // 旧实体状态先快照到 ServerPlayer 移植所需的字段由 createPlayerEntity 之后复制；这里保留旧实体到
-    // 新实体创建完成后再移除（见 respawn() 的回收步骤），避免提前析构导致的状态丢失。
 
     Player* newPlayer = m_server.playerEntityManager().createPlayerEntity(playerId,
         playerData->username,
@@ -256,8 +260,8 @@ Player* PlayerRespawnManager::_createRespawnedPlayer(
     newPlayer->setPermissionLevel(m_server.resolveOpLevel(playerData->uuid));
     newServerPlayer->setOnline(true);
 
-    if (oldPlayer != nullptr) {
-        _copyPlayerState(*newPlayer, *oldPlayer);
+    if (stateSource != nullptr) {
+        _copyPlayerState(*newPlayer, *stateSource);
     } else {
         // 旧实体已消失：从服务器侧的玩家数据恢复可见状态。
         newPlayer->setGameMode(playerData->gameMode);
