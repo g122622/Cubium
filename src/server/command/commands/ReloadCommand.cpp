@@ -35,6 +35,7 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include <memory>
 #include <string>
 #include <spdlog/spdlog.h>
@@ -158,6 +159,8 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
         }
     }
 
+    // 文件内容变化后重建握手快照，后续连接不能继续收到重载前的注册表 NBT。
+    server::net::setRegistryDatapackSource(dataPacks);
     source.sendMessage("Reload complete!");
     return 1;
 }

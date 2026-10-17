@@ -32,6 +32,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/network/handshake/RegistryDataBuilder.hpp"
 #include <filesystem>
 #include <memory>
 #include <sstream>
@@ -102,6 +103,7 @@ i32 DataPackCommand::_enableDataPack(CommandContext<ServerCommandSource>& contex
     }
 
     if (dataPacks.setEnabled(matchedPath, true)) {
+        server::net::setRegistryDatapackSource(dataPacks);
         source.sendMessage("Enabled data pack '" + name + "'");
         return 1;
     }
@@ -139,6 +141,7 @@ i32 DataPackCommand::_disableDataPack(CommandContext<ServerCommandSource>& conte
     }
 
     if (dataPacks.setEnabled(matchedPath, false)) {
+        server::net::setRegistryDatapackSource(dataPacks);
         source.sendMessage("Disabled data pack '" + name + "'");
         return 1;
     }

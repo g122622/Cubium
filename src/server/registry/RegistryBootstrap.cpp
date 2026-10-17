@@ -225,11 +225,6 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 的 supported_items/primary_items 展平依赖 ItemTags::getTag），握手阶段才会懒构建。
     mc::server::net::setEnchantmentDatapackSource(m_dataPackList);
 
-    // 注册 registry 内联 NBT 构建所需的 datapack 源。仅对「未在 SelectKnownPacks 中声明
-    // minecraft:core 的客户端」生效（第三方客户端如 node-minecraft-protocol 恒定回空列表，
-    // 按 vanilla RegistrySynchronization.packRegistry 语义须由服务端下发 NBT）。
-    mc::server::net::setRegistryDatapackSource(m_dataPackList);
-
     // 初始化发射器行为注册表
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::DispenseBehaviors");
@@ -613,6 +608,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
             spdlog::info("Loaded {} damage type tags from data packs", dataPackLoadResult.value());
         }
     }
+
+    // 登录注册表快照包含附魔标签展开，必须等物品、实体类型及伤害类型标签全部加载后准备。
+    mc::server::net::setRegistryDatapackSource(m_dataPackList);
 
     // 初始化预定义时间线（村民AI日程等）
     {
