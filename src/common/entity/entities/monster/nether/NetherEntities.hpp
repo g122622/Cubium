@@ -55,11 +55,6 @@ public:
     GhastEntity(EntityInstanceId id, ecs::EntityRegistry& registry);
     ~GhastEntity() override = default;
 
-    // ========== 飞行特性 ==========
-
-    [[nodiscard]] bool canFly() const { return m_canFly; }
-    void setCanFly(bool canFly) { m_canFly = canFly; }
-
     // ========== 火球攻击 ==========
 
     [[nodiscard]] bool isCharging() const { return m_isCharging; }
@@ -145,10 +140,6 @@ private:
     [[nodiscard]] static bool isReflectedFireball(const DamageSource& source);
 
 private:
-    // TODO: m_canFly 当前未被物理/AI 消费——恶魂飞行实际由构造函数 setNoGravity(true)
-    // （跳过 LivingEntity::travel 重力分支）+ GhastMovementController 的 setVelocity 实现。
-    // 此标志仅为占位，未来若需按状态切换飞行/落地（如 vanilla 无此机制），应接入物理层。
-    bool m_canFly = true;
     bool m_isCharging = false;
     i32 m_attackCooldown = 0;
     i32 m_chargeTime = 0;
