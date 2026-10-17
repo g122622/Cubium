@@ -82,12 +82,13 @@ public:
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
+        // 未登记的格子是空气（已加载列恒有状态），返回空空气状态而非 nullptr。
         const BlockPos pos(x, y, z);
         const auto it = m_blocks.find(pos);
         if (it != m_blocks.end()) {
             return it->second;
         }
-        return nullptr;
+        return &VanillaBlocks::AIR->defaultState();
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
@@ -122,8 +123,40 @@ public:
     [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
     [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
 
-    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
-    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    /**
+     * 碰撞检测按方块表推导：与任一非空、非液体方块相交即视为碰撞。
+     * 床/重生锚的落点搜索依赖真实碰撞判定，恒返回 false 的桩会让所有候选都"可站立"。
+     */
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB& box) const override
+    {
+        return !getBlockCollisions(box).empty();
+    }
+
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
+    {
+        std::vector<AxisAlignedBB> collisions;
+        for (const auto& [pos, state] : m_blocks) {
+            if (state == nullptr) {
+                continue;
+            }
+            // 用方块自身的碰撞形状（空气/液体/植物等空形状方块不产生碰撞）。
+            for (const auto& localBox : state->owner().getCollisionShape(*state).boxes()) {
+                const AxisAlignedBB blockBox(localBox.minX + static_cast<f32>(pos.x),
+                    localBox.minY + static_cast<f32>(pos.y),
+                    localBox.minZ + static_cast<f32>(pos.z),
+                    localBox.maxX + static_cast<f32>(pos.x),
+                    localBox.maxY + static_cast<f32>(pos.y),
+                    localBox.maxZ + static_cast<f32>(pos.z));
+                const bool overlaps = box.maxX > blockBox.minX && box.minX < blockBox.maxX &&
+                    box.maxY > blockBox.minY && box.minY < blockBox.maxY && box.maxZ > blockBox.minZ &&
+                    box.minZ < blockBox.maxZ;
+                if (overlaps) {
+                    collisions.push_back(blockBox);
+                }
+            }
+        }
+        return collisions;
+    }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
     {
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
@@ -292,32 +325,25 @@ protected:
     BedBlockTestWorld world;
 };
 
-TEST_F(BedBlockStandUpTest, FindStandUpPosition_ReturnsFallbackWhenBedSurrounded)
+TEST_F(BedBlockStandUpTest, FindStandUpPosition_ReturnsNullWhenBedSurrounded)
 {
-    // 床头位于 (10, 64, 10)，朝北
-    // 周围所有位置都放满床头方块（有 blocksMovement），应该返回床头正上方
+    // 床头位于 (10, 64, 10)，朝北；床与周围两层（Y=64/65）全部填满实心方块，任何候选列都无法容纳玩家碰撞箱。
     const BlockState* bedHead = &bed_->defaultState()
                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
-
-    world.setBlockAt(BlockPos(10, 64, 10), bedHead);
-
-    // 用床头方块填满周围所有可能位置（Y=65 和 Y=66）
-    // 床方块 blocksMovement = true，所以不会被视为安全站立空间
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
     for (i32 dx = -3; dx <= 3; ++dx) {
         for (i32 dz = -3; dz <= 3; ++dz) {
-            world.setBlockAt(BlockPos(10 + dx, 65, 10 + dz), bedHead);
-            world.setBlockAt(BlockPos(10 + dx, 66, 10 + dz), bedHead);
+            world.setBlockAt(BlockPos(10 + dx, 64, 10 + dz), stone);
+            world.setBlockAt(BlockPos(10 + dx, 65, 10 + dz), stone);
         }
     }
+    world.setBlockAt(BlockPos(10, 64, 10), bedHead);
 
-    Vector3 result = BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f);
-
-    // 床头正上方: (10.5, 65.1, 10.5)
-    EXPECT_FLOAT_EQ(result.x, 10.5f);
-    EXPECT_FLOAT_EQ(result.z, 10.5f);
-    // Y 应回退到 65.1 (bedPos.up() + 0.1)
-    EXPECT_FLOAT_EQ(result.y, 65.1f);
+    // 所有候选都不可站立（堵死的床不会再回退到床内）：返回空，由调用方决定后续处理。
+    EXPECT_FALSE(
+        BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f, 0.6f, 1.8f, true, false)
+            .has_value());
 }
 
 TEST_F(BedBlockStandUpTest, FindStandUpPosition_OpenSpaceNearBed)
@@ -329,16 +355,14 @@ TEST_F(BedBlockStandUpTest, FindStandUpPosition_OpenSpaceNearBed)
 
     world.setBlockAt(BlockPos(10, 64, 10), bedHead);
 
-    // 周围不放任何方块（全部为空气），应该找到安全的起床位置
-    Vector3 result = BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f);
-
-    // 结果应该在床附近的合理范围内（偏移不超过3格）
-    EXPECT_GE(result.x, 7.5f);
-    EXPECT_LE(result.x, 13.5f);
-    EXPECT_GE(result.z, 7.5f);
-    EXPECT_LE(result.z, 13.5f);
-    // Y 应该接近床的高度
-    EXPECT_NEAR(result.y, 64.1f, 1.0f);
+    // 周围不放任何方块（全部为空气）：周围候选都没有地板；安全模式与"床上"候选都被拒绝，
+    // 非安全模式最终会落在床面上（床碰撞盒顶面 9/16 = 0.5625）。
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f, 0.6f, 1.8f, true, false);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FLOAT_EQ(result->x, 10.5f);
+    EXPECT_FLOAT_EQ(result->y, 64.5625f);
+    EXPECT_FLOAT_EQ(result->z, 10.5f);
 }
 
 TEST_F(BedBlockStandUpTest, FindStandUpPosition_AllDirectionsReturnValidPosition)
@@ -352,10 +376,12 @@ TEST_F(BedBlockStandUpTest, FindStandUpPosition_AllDirectionsReturnValidPosition
                                          .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
         dirWorld.setBlockAt(BlockPos(50, 64, 50), bedHead);
 
-        Vector3 result = BedBlock::findStandUpPosition(dirWorld, BlockPos(50, 64, 50), dir, 0.0f);
+        const auto result =
+            BedBlock::findStandUpPosition(dirWorld, BlockPos(50, 64, 50), dir, 0.0f, 0.6f, 1.8f, true, false);
 
-        // 每个方向都应返回有效位置
-        EXPECT_GT(result.y, 0.0f) << "Failed for direction index " << static_cast<int>(dir);
+        // 四个方向都应得到同一个合法落点（此处为床面本身，其余候选无地板）。
+        ASSERT_TRUE(result.has_value()) << "Failed for direction index " << static_cast<int>(dir);
+        EXPECT_FLOAT_EQ(result->y, 64.5625f) << "Failed for direction index " << static_cast<int>(dir);
     }
 }
 
@@ -367,10 +393,12 @@ TEST_F(BedBlockStandUpTest, FindStandUpPosition_SouthFacing)
 
     world.setBlockAt(BlockPos(0, 64, 0), bedHead);
 
-    Vector3 result = BedBlock::findStandUpPosition(world, BlockPos(0, 64, 0), Direction::South, 0.0f);
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(0, 64, 0), Direction::South, 0.0f, 0.6f, 1.8f, true, false);
 
-    // 应该返回有效位置
-    EXPECT_GT(result.y, 0.0f);
+    // 其余候选都没有地板；"床上"候选可以站在床面上（非安全模式接受的床面高度 0.5625）。
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FLOAT_EQ(result->y, 64.5625f);
 }
 
 TEST_F(BedBlockStandUpTest, FindStandUpPosition_EastFacing)
@@ -381,9 +409,11 @@ TEST_F(BedBlockStandUpTest, FindStandUpPosition_EastFacing)
 
     world.setBlockAt(BlockPos(0, 64, 0), bedHead);
 
-    Vector3 result = BedBlock::findStandUpPosition(world, BlockPos(0, 64, 0), Direction::East, 0.0f);
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(0, 64, 0), Direction::East, 0.0f, 0.6f, 1.8f, true, false);
 
-    EXPECT_GT(result.y, 0.0f);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FLOAT_EQ(result->y, 64.5625f);
 }
 
 TEST_F(BedBlockStandUpTest, FindStandUpPosition_WestFacing)
@@ -394,9 +424,85 @@ TEST_F(BedBlockStandUpTest, FindStandUpPosition_WestFacing)
 
     world.setBlockAt(BlockPos(0, 64, 0), bedHead);
 
-    Vector3 result = BedBlock::findStandUpPosition(world, BlockPos(0, 64, 0), Direction::West, 0.0f);
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(0, 64, 0), Direction::West, 0.0f, 0.6f, 1.8f, true, false);
 
-    EXPECT_GT(result.y, 0.0f);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FLOAT_EQ(result->y, 64.5625f);
+}
+
+TEST_F(BedBlockStandUpTest, FindStandUpPosition_PrefersSideFacingAwayFromEntity)
+{
+    // 床朝北，玩家朝南搜（实体 yaw=0 面向南）：优先侧为东（顺时针）→ 第一候选 (11,64,10)。
+    // 东侧地面可行走而西侧也可行走时，应选东侧。
+    const BlockState* bedHead = &bed_->defaultState()
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                                     .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockAt(BlockPos(10, 64, 10), bedHead);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    world.setBlockAt(BlockPos(11, 63, 10), stone);
+    world.setBlockAt(BlockPos(9, 63, 10), stone);
+
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f, 0.6f, 1.8f, true, false);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FLOAT_EQ(result->x, 11.5f);
+    EXPECT_FLOAT_EQ(result->y, 64.0f);
+    EXPECT_FLOAT_EQ(result->z, 10.5f);
+}
+
+TEST_F(BedBlockStandUpTest, FindStandUpPosition_SafeModeSkipsFire)
+{
+    // 东侧是火（安全模式视为危险），西侧是石头地板 → 应选择西侧。
+    const BlockState* bedHead = &bed_->defaultState()
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                                     .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockAt(BlockPos(10, 64, 10), bedHead);
+    world.setBlockAt(BlockPos(11, 64, 10), &VanillaBlocks::FIRE->defaultState());
+    world.setBlockAt(BlockPos(9, 63, 10), &VanillaBlocks::STONE->defaultState());
+
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f, 0.6f, 1.8f, true, false);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_FLOAT_EQ(result->x, 9.5f);
+    EXPECT_FLOAT_EQ(result->z, 10.5f);
+}
+
+TEST_F(BedBlockStandUpTest, FindStandUpPosition_FallsBackToUnsafeWhenNoSafeCandidate)
+{
+    // 东侧只有岩浆地板（安全模式下"地面高度 <= 0 且下方危险"被拒绝），其余候选都没有地板；
+    // 非安全模式允许这种位置。
+    const BlockState* bedHead = &bed_->defaultState()
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                                     .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockAt(BlockPos(10, 64, 10), bedHead);
+    world.setBlockAt(BlockPos(11, 63, 10), &VanillaBlocks::LAVA->defaultState());
+
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f, 0.6f, 1.8f, true, false);
+    ASSERT_TRUE(result.has_value());
+    // 按候选顺序回退：床面候选在周围候选之后，这里首个可行的是床面本身。
+    EXPECT_FLOAT_EQ(result->x, 10.5f);
+    EXPECT_FLOAT_EQ(result->y, 64.5625f);
+    EXPECT_FLOAT_EQ(result->z, 10.5f);
+}
+
+TEST_F(BedBlockStandUpTest, FindStandUpPosition_BunkBedSearchesLowerLevel)
+{
+    // 双层床：床位置 (10,64,10)，下方 (10,63,10) 也是床，两条各一个可行站立面（其上表面）。
+    const BlockState* bedHead = &bed_->defaultState()
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                                     .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockAt(BlockPos(10, 64, 10), bedHead);
+    world.setBlockAt(BlockPos(10, 63, 10), bedHead);
+
+    const auto result =
+        BedBlock::findStandUpPosition(world, BlockPos(10, 64, 10), Direction::North, 0.0f, 0.6f, 1.8f, true, false);
+    ASSERT_TRUE(result.has_value());
+    // 上层床面上方不可站（安全模式），上层周围无地板 → 落到床面本身。
+    EXPECT_FLOAT_EQ(result->x, 10.5f);
+    EXPECT_FLOAT_EQ(result->y, 64.5625f);
+    EXPECT_FLOAT_EQ(result->z, 10.5f);
 }
 
 // ========== Directions::isFacingAngle 测试 ==========

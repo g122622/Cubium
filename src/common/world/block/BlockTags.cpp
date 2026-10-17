@@ -254,6 +254,16 @@ BlockTag& BlockTags::FIRE()
     return *tag;
 }
 
+BlockTag& BlockTags::INVALID_SPAWN_INSIDE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        // 数据包缺该标签文件时 registerTag 兜底创建空标签（等价原版空集合语义）。
+        tag = &registerTag(ResourceLocation("minecraft", "invalid_spawn_inside"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::SOUL_FIRE_BASE_BLOCKS()
 {
     static BlockTag* tag = nullptr;

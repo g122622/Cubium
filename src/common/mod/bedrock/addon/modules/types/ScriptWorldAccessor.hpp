@@ -40,7 +40,7 @@ struct BossBarView {
  * @brief 世界出生点只读快照（值类型，供脚本侧 world.getDefaultSpawn 读取）
  *
  * ServerWorld 在 server 层，common 层无法直接持有其指针。故 ScriptWorldAccessor 以值快照方式桥接：
- * server 层回调从 ServerWorld::worldSpawnPoint/spawnAngle 填充本结构，common 层脚本绑定据此构造 JS 对象。
+ * server 层回调从主世界的世界出生数据（RespawnData）填充本结构，common 层脚本绑定据此构造 JS 对象。
  * 每次访问重新取快照保证 /setworldspawn 后 JS 立即可见。
  */
 struct WorldSpawnView {
@@ -48,7 +48,8 @@ struct WorldSpawnView {
     f64 x = 0.0;
     f64 y = 0.0;
     f64 z = 0.0;
-    f32 angle = 0.0f; // 出生点朝向（度）
+    f32 yaw = 0.0f;
+    f32 pitch = 0.0f;
 };
 
 /**
@@ -118,7 +119,7 @@ public:
     [[nodiscard]] BossBarView getBossBar(const std::string& id);
 
     /**
-     * @brief 取世界出生点只读快照（server 层回调从 ServerWorld::worldSpawnPoint/spawnAngle 填充）。
+     * @brief 取世界出生点只读快照（server 层回调从主世界出生数据填充）。
      *
      * 供 world.getDefaultSpawn 脚本属性。ServerWorld 在 server 层，common 层以 WorldSpawnView 值桥接。
      * 每次访问重新取快照保证 /setworldspawn 后 JS 立即可见。

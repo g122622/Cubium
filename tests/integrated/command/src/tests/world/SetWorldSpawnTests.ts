@@ -6,8 +6,8 @@
 //     rotation=ZERO_ROTATION（yaw=0, pitch=0）。vanilla 无参不用玩家朝向。
 //   - /setworldspawn <pos>：pos=BlockPosArgument.getSpawnablePos（整数 BlockPos，无 centerCorrect 偏移），
 //     rotation=ZERO_ROTATION（yaw=0, pitch=0）。
-//   - /setworldspawn <pos> <rotation>：pos 同上，rotation=RotationArgument（接 yaw pitch 两值），
-//     yaw 存 ServerWorld::m_spawnAngle（wrapDegrees 归一化 [-180,180]），pitch 暂丢弃（TODO 未建模）。
+//   - /setworldspawn <pos> <rotation>：pos 同上，rotation=RotationArgument（yaw pitch 两值），
+//     yaw 归一化到 [-180,180]、pitch 夹紧到 [-90,90]，二者随世界出生数据保存并下发。
 //
 // 对齐修复背景（本批测试发现的偏差，已修 SetWorldSpawnCommand.cpp）：
 //   1. pos 曾用 Vec3ArgumentType（centerCorrect=true 给绝对整数加 0.5 偏移到方块中心），致出生点偏 0.5，
@@ -18,7 +18,7 @@
 //      已改 RotationArgumentType，命令语法 /setworldspawn <pos> <yaw> <pitch>。
 //
 // 设计要点：
-//   1. 世界出生点是世界级单例（ServerWorld::m_worldSpawnPoint 全局唯一），跨测试持久化不自动重置。故每个
+//   1. 世界出生点是世界级单例（整个存档一份，存于主世界 level.dat 的 spawn 复合标签），跨测试持久化不自动重置。故每个
 //      测试独占 batch 串行 + runOnFinish 恢复初始出生点（测试开始时读 getDefaultSpawn 保存，结束时设回），
 //      防污染后续依赖默认出生点的测试。
 //   2. 默认出生点是 ServerWorld 启动时 climate search 算出的随机位置（不可预知），故不测"默认值"，
@@ -44,7 +44,8 @@ interface WorldSpawn {
     x: number;
     y: number;
     z: number;
-    angle: number;
+    yaw: number;
+    pitch: number;
 }
 
 // 读世界出生点（Cubium 扩展属性，TS 无类型用 as unknown as）。
@@ -81,12 +82,14 @@ function setworldspawnSelfSetsCurrent(test: Test): void {
     test.assert(sp!.x === expected.x, `x should be ${expected.x}, got ${sp!.x}`);
     test.assert(sp!.y === expected.y, `y should be ${expected.y}, got ${sp!.y}`);
     test.assert(sp!.z === expected.z, `z should be ${expected.z}, got ${sp!.z}`);
-    test.assert(sp!.angle === 0, `angle should be 0 (ZERO_ROTATION), got ${sp!.angle}`);
+    test.assert(sp!.yaw === 0 && sp!.pitch === 0, `rotation should be (0, 0), got (${sp!.yaw}, ${sp!.pitch})`);
 
     test.runOnFinish(() => {
         // 恢复初始世界出生点（世界级单例，防污染后续测试）。
         if (initial !== undefined) {
-            player.chat(`/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)}`);
+            player.chat(
+                `/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)} ${initial.yaw} ${initial.pitch}`
+            );
         }
     });
     test.succeed();
@@ -108,11 +111,13 @@ function setworldspawnSetsSpecifiedPosition(test: Test): void {
     test.assert(sp!.x === expected.x, `x should be ${expected.x}, got ${sp!.x}`);
     test.assert(sp!.y === expected.y, `y should be ${expected.y}, got ${sp!.y}`);
     test.assert(sp!.z === expected.z, `z should be ${expected.z}, got ${sp!.z}`);
-    test.assert(sp!.angle === 0, `angle should be 0 (ZERO_ROTATION), got ${sp!.angle}`);
+    test.assert(sp!.yaw === 0 && sp!.pitch === 0, `rotation should be (0, 0), got (${sp!.yaw}, ${sp!.pitch})`);
 
     test.runOnFinish(() => {
         if (initial !== undefined) {
-            player.chat(`/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)}`);
+            player.chat(
+                `/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)} ${initial.yaw} ${initial.pitch}`
+            );
         }
     });
     test.succeed();
@@ -130,11 +135,13 @@ function setworldspawnSetsRotation(test: Test): void {
 
     const sp = getDefaultSpawn();
     test.assert(sp !== undefined, "world spawn should be defined after /setworldspawn <pos> <rotation>");
-    test.assert(sp!.angle === 90, `angle should be 90, got ${sp!.angle}`);
+    test.assert(sp!.yaw === 90 && sp!.pitch === 0, `rotation should be (90, 0), got (${sp!.yaw}, ${sp!.pitch})`);
 
     test.runOnFinish(() => {
         if (initial !== undefined) {
-            player.chat(`/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)}`);
+            player.chat(
+                `/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)} ${initial.yaw} ${initial.pitch}`
+            );
         }
     });
     test.succeed();
@@ -152,11 +159,13 @@ function setworldspawnRotationNormalized(test: Test): void {
 
     const sp = getDefaultSpawn();
     test.assert(sp !== undefined, "world spawn should be defined");
-    test.assert(sp!.angle === -90, `angle 270 should normalize to -90, got ${sp!.angle}`);
+    test.assert(sp!.yaw === -90, `yaw 270 should normalize to -90, got ${sp!.yaw}`);
 
     test.runOnFinish(() => {
         if (initial !== undefined) {
-            player.chat(`/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)}`);
+            player.chat(
+                `/setworldspawn ${Math.floor(initial.x)} ${Math.floor(initial.y)} ${Math.floor(initial.z)} ${initial.yaw} ${initial.pitch}`
+            );
         }
     });
     test.succeed();

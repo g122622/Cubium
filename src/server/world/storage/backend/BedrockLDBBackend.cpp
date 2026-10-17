@@ -244,8 +244,10 @@ Result<PlayerSaveData> parseBedrockPlayerData(const compound_tag& root, const st
 
     if (const auto spawnX = tryGetInt(root, "SpawnX");
         spawnX.has_value() && tryGetInt(root, "SpawnY").has_value() && tryGetInt(root, "SpawnZ").has_value()) {
-        data.spawnPoint =
-            GlobalPos(data.dimension, BlockPos(*spawnX, *tryGetInt(root, "SpawnY"), *tryGetInt(root, "SpawnZ")));
+        data.respawnConfig = RespawnConfig(
+            RespawnData::of(
+                data.dimension, BlockPos(*spawnX, *tryGetInt(root, "SpawnY"), *tryGetInt(root, "SpawnZ")), 0.0f, 0.0f),
+            false);
     }
 
     return data;

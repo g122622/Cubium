@@ -144,20 +144,28 @@ public:
     /**
      * @brief 计算从床上起身的安全位置
      *
-     * 按照优先级在床周围搜索安全的站立位置：
-     * 1. 根据 bedFacing 和 entityYaw 计算 10 个周围候选位置
-     * 2. 床上方 2 个候选位置
-     * 3. 如果是双层床，搜索下层位置
-     * 4. 找不到安全位置时返回床头正上方
+     * 以床方块的顺时针方向为基准，根据实体朝向决定优先侧，构造 10 个周围候选偏移与
+     * 2 个"床上"候选偏移。先以安全模式（拒绝危险方块与悬空）搜索，全部失败后再允许
+     * 不安全位置。双层床（下方一格仍是床）额外搜索下一层的同一组偏移集合。
      *
      * @param world 世界引用
-     * @param bedPos 床头位置
+     * @param bedPos 床方块位置（BED_RULE 记录的位置，通常是玩家点击的那个半床）
      * @param bedFacing 床的朝向
-     * @param entityYaw 实体的偏航角（度）
-     * @return 安全的站立位置，如果找不到则返回床头正上方
+     * @param entityYaw 实体的偏航角（度），仅用于决定从哪一侧开始搜索
+     * @param width 实体碰撞箱宽度
+     * @param height 实体碰撞箱高度
+     * @param isPlayer 是否按玩家规则检查（禁止在末地传送门/折跃门内部重生）
+     * @param fireImmune 实体是否免疫火焰（安全模式不把火/岩浆当作危险方块）
+     * @return 安全落点（实体脚底位置）；所有候选都不可用时返回 nullopt
      */
-    [[nodiscard]] static Vector3 findStandUpPosition(
-        const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw);
+    [[nodiscard]] static std::optional<Vector3> findStandUpPosition(const IWorld& world,
+        const BlockPos& bedPos,
+        Direction bedFacing,
+        f32 entityYaw,
+        f32 width,
+        f32 height,
+        bool isPlayer,
+        bool fireImmune);
 
     /**
      * @brief 右键交互 - 睡眠或爆炸
@@ -192,17 +200,6 @@ protected:
 
     /// 各朝向的形状缓存
     std::array<CollisionShape, 6> m_shapesByFacing;
-
-    /**
-     * @brief 检查指定位置是否有足够站立空间（用于起床位置搜索）
-     *
-     * 检查 pos 和 pos.up() 是否都是非固体方块。
-     *
-     * @param world 世界引用
-     * @param pos 待检查位置
-     * @return true 如果有足够空间
-     */
-    [[nodiscard]] static bool _hasStandingSpaceForStandUp(const IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

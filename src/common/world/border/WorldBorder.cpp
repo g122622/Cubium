@@ -436,6 +436,23 @@ bool WorldBorder::intersects(const AxisAlignedBB& box) const
     return box.maxX > getMinX() && box.minX < getMaxX() && box.maxZ > getMinZ() && box.minZ < getMaxZ();
 }
 
+bool WorldBorder::isWithinBounds(const AxisAlignedBB& box) const
+{
+    // max 角减去极小量，避免恰好贴边界时浮点误差翻转判定。
+    constexpr f64 EDGE_EPSILON = 1.0e-5;
+    const f64 minX = static_cast<f64>(box.minX);
+    const f64 minZ = static_cast<f64>(box.minZ);
+    const f64 maxX = static_cast<f64>(box.maxX) - EDGE_EPSILON;
+    const f64 maxZ = static_cast<f64>(box.maxZ) - EDGE_EPSILON;
+    return contains(minX, minZ) && contains(maxX, maxZ);
+}
+
+bool WorldBorder::isWithinBounds(const BlockPos& pos) const
+{
+    return contains(static_cast<f64>(pos.x), static_cast<f64>(pos.z)) &&
+        contains(static_cast<f64>(pos.x + 1), static_cast<f64>(pos.z + 1));
+}
+
 bool WorldBorder::intersectsChunk(i32 chunkX, i32 chunkZ) const
 {
     constexpr f64 CHUNK_SIZE = static_cast<f64>(world::CHUNK_WIDTH);

@@ -419,6 +419,8 @@ add_executable(mc_tests
     common/entity/entities/vehicle/BoatGlideTest.cpp
     # 船实体陆地摩擦力减半条件测试
     common/entity/entities/vehicle/BoatLandFrictionTest.cpp
+    # 下马/出生落点搜索工具（地面高度、危险方块、边界）
+    common/entity/vehicle/DismountHelperTest.cpp
     # ChestBoatEntity getBoatItem() 虚函数测试
     common/entity/entities/vehicle/ChestBoatEntityTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
@@ -868,7 +870,6 @@ add_executable(mc_tests
     entity/PlayerPoseCollisionTest.cpp
     entity/PlayerDiggingTest.cpp
     common/entity/PlayerSwimTest.cpp
-    common/entity/player/SpawnPointValidatorTest.cpp
     common/entity/player/CooldownTrackerTest.cpp
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerPermissionTest.cpp
@@ -1388,8 +1389,10 @@ add_executable(mc_tests
     server/world/ServerWorldBlockEntityTest.cpp
     # ServerWorld::broadcastBlockEntity 广播回调测试
     server/world/ServerWorldBroadcastBlockEntityTest.cpp
-    # ServerWorld 出生点朝向测试
+    # ServerWorld 世界出生数据与玩家重生点配置测试
     server/world/ServerWorldSpawnAngleTest.cpp
+    # 玩家出生位置搜索（候选数量、高度修正、无碰撞无液体判定）
+    server/world/PlayerSpawnFinderTest.cpp
     # ServerWorld initializeWorldSpawn 气候搜索集成测试
     server/world/ServerWorldInitializeWorldSpawnTest.cpp
     # ServerWorld 命令执行回调测试
@@ -1795,6 +1798,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/PlayerRespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         # 事件系统
         ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
@@ -1900,6 +1904,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptGameTestFunction.cpp
         ${CMAKE_SOURCE_DIR}/src/server/test/script/binding/ScriptAsyncGameTestRunResult.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/player/PlayerSpawnFinder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
         ${CMAKE_SOURCE_DIR}/src/server/menu/CraftingMenu.cpp

@@ -66,6 +66,7 @@
 #include "server/interaction/MiningManager.hpp"
 #include "server/network/handshake/ServerHandshake.hpp"
 #include "server/network/session/ServerNetwork.hpp"
+#include "server/player/PlayerRespawnManager.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
@@ -288,6 +289,23 @@ public:
 
     // ========== Play 包处理门面（批7 下沉） ==========
     [[nodiscard]] net::ServerPlayHandler& playHandler() { return *m_playHandler; }
+
+    /**
+     * @brief 获取远程会话门面
+     * @return 会话管理器指针；集成服未发布 LAN 时为 nullptr
+     */
+    [[nodiscard]] net::ClientSessionManager* clientSessionManager() noexcept { return m_clientSessionManager.get(); }
+    [[nodiscard]] const net::ClientSessionManager* clientSessionManager() const noexcept
+    {
+        return m_clientSessionManager.get();
+    }
+
+    /**
+     * @brief 按会话 ID 回查远程连接
+     *
+     * 本地客户端（会话 ID 为 0）与未发布 LAN 的集成服返回 nullptr。
+     */
+    [[nodiscard]] net::ServerClientConnection* connectionForSession(u32 sessionId) const;
     [[nodiscard]] const net::ServerPlayHandler& playHandler() const { return *m_playHandler; }
 
     // ========== 玩家实体管理 ==========
@@ -303,6 +321,16 @@ public:
     {
         return m_playerEntityManager;
     }
+
+    // ========== 玩家重生 ==========
+
+    /**
+     * @brief 获取玩家重生管理器
+     *
+     * 处理死亡界面确认后的完整重生流程（落点计算、实体重建、状态迁移与重入序列发包）。
+     */
+    [[nodiscard]] PlayerRespawnManager& playerRespawnManager() { return m_playerRespawnManager; }
+    [[nodiscard]] const PlayerRespawnManager& playerRespawnManager() const { return m_playerRespawnManager; }
 
     // ========== 交互管理器 ==========
 
@@ -1417,6 +1445,9 @@ protected:
     // 玩家实体管理器（PlayerId↔EntityInstanceId 映射 + 实体池接入）。批2b 上提自两子类
     // 私有值成员，ServerPlayerEntityManager 无参默认构造可作基类值成员。
     ServerPlayerEntityManager m_playerEntityManager;
+
+    // 玩家重生管理器（值成员，仅依赖本服务器；须在 PlayerManager 之后构造）。
+    PlayerRespawnManager m_playerRespawnManager{*this};
 
     // 本地客户端发送钩子（批2a 四纯虚统一用）。IntegratedServer 在 initialize() 创建本地
     // 客户端连接后注入：m_localClientPlayerId 设本地客户端 playerId，m_localClientSender

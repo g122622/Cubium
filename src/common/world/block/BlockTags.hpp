@@ -186,6 +186,10 @@ public:
     /// 火标签
     static BlockTag& FIRE();
 
+    /// 禁止在其中重生的方块标签（末地传送门、末地折跃门）
+    /// 运行时消费场景：DismountHelper 为玩家寻找安全落点时排除该标签内的方块。
+    static BlockTag& INVALID_SPAWN_INSIDE();
+
     /// 灵魂火基座方块标签（灵魂沙、灵魂土）
     /// 在这些方块上可以点燃灵魂火
     static BlockTag& SOUL_FIRE_BASE_BLOCKS();

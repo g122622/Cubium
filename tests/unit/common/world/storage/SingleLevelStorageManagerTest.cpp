@@ -716,9 +716,7 @@ TEST_F(SingleLevelStorageManagerTest, CloseDoesNotPersistLevelDataWithoutExplici
         const auto& levelData = levelDataResult.value();
         EXPECT_EQ(levelData.gameTime, 0);
         EXPECT_EQ(levelData.dayTime, 0);
-        EXPECT_EQ(levelData.spawnX, 0);
-        EXPECT_EQ(levelData.spawnY, 0);
-        EXPECT_EQ(levelData.spawnZ, 0);
+        EXPECT_EQ(levelData.spawnData.pos(), BlockPos(0, 0, 0));
         // writeInitial 写入未初始化标志：新世界首次启动应重算出生点
         EXPECT_FALSE(levelData.initialized);
 
@@ -747,8 +745,17 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         auto writeInitialResult = LevelDatCodec::writeInitial(testDir, request);
         ASSERT_TRUE(writeInitialResult.success()) << writeInitialResult.error().message();
 
-        auto saveResult =
-            bootstrap.saveLevelData(10, 20, 1, 64, 2, 30.0f, 40, 50, true, 60, false, true, Difficulty::Normal, false);
+        auto saveResult = bootstrap.saveLevelData(10,
+            20,
+            RespawnData::of(0, BlockPos(1, 64, 2), 30.0f, 0.0f),
+            40,
+            50,
+            true,
+            60,
+            false,
+            true,
+            Difficulty::Normal,
+            false);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         bootstrap.close();
     }
@@ -761,8 +768,17 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         auto openResult = readonlyStorage.open(testDir, readonlyConfig);
         ASSERT_TRUE(openResult.success()) << openResult.error().message();
 
-        auto saveResult = readonlyStorage.saveLevelData(
-            999, 888, 10, 70, 11, 12.0f, 13, 14, false, 15, true, false, Difficulty::Normal, false);
+        auto saveResult = readonlyStorage.saveLevelData(999,
+            888,
+            RespawnData::of(0, BlockPos(10, 70, 11), 12.0f, 0.0f),
+            13,
+            14,
+            false,
+            15,
+            true,
+            false,
+            Difficulty::Normal,
+            false);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         readonlyStorage.close();
     }
@@ -779,9 +795,8 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
         const auto& levelData = levelDataResult.value();
         EXPECT_EQ(levelData.gameTime, 10);
         EXPECT_EQ(levelData.dayTime, 20);
-        EXPECT_EQ(levelData.spawnX, 1);
-        EXPECT_EQ(levelData.spawnY, 64);
-        EXPECT_EQ(levelData.spawnZ, 2);
+        EXPECT_EQ(levelData.spawnData.pos(), BlockPos(1, 64, 2));
+        EXPECT_FLOAT_EQ(levelData.spawnData.yaw, 30.0f);
         EXPECT_EQ(levelData.rainTime, 50);
         EXPECT_TRUE(levelData.raining);
         EXPECT_EQ(levelData.thunderTime, 60);
@@ -824,7 +839,7 @@ TEST_F(SingleLevelStorageManagerTest, SaveLevelData_PersistsInitializedFlag)
         auto openResult = storage.open(testDir, config);
         EXPECT_TRUE(openResult.success()) << openResult.error().message();
         auto saveResult =
-            storage.saveLevelData(0, 0, 0, 0, 0, 0.0f, 0, 0, false, 0, false, initialized, Difficulty::Normal, false);
+            storage.saveLevelData(0, 0, RespawnData{}, 0, 0, false, 0, false, initialized, Difficulty::Normal, false);
         EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
         storage.close();
     };

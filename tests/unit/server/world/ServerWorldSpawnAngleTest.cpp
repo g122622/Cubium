@@ -23,17 +23,15 @@
 
 /**
  * @file ServerWorldSpawnAngleTest.cpp
- * @brief ServerWorld 出生点朝向（spawnAngle）单元测试
+ * @brief ServerWorld 世界出生数据（RespawnData）单元测试
  *
- * 测试 ServerWorld 的 spawnAngle 存储、getter/setter、
- * setWorldSpawnPoint 带 angle 参数的重载。
- *
- * 注意：applyLevelRuntimeData 测试需要完整的存储基础设施，
- * 因此不在本文件中测试。该方法的 spawnAngle 逻辑仅一行
- * m_spawnAngle = runtimeData.spawnAngle，已通过代码审查确认。
+ * 覆盖出生数据的默认值、朝向归一化（yaw [-180,180]、pitch [-90,90]）、
+ * 脚部坐标换算（spawnPosition）以及位置/朝向的独立访问。
  */
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -44,10 +42,6 @@
 
 using namespace mc;
 using namespace mc::server;
-
-// ============================================================================
-// 测试固件
-// ============================================================================
 
 class ServerWorldSpawnAngleTest : public ::testing::Test {
 protected:
@@ -79,130 +73,109 @@ protected:
     std::unique_ptr<ServerWorld> world;
 };
 
-// ============================================================================
-// 默认值测试
-// ============================================================================
-
-TEST_F(ServerWorldSpawnAngleTest, DefaultSpawnAngleIsZero)
+TEST_F(ServerWorldSpawnAngleTest, DefaultRespawnDataIsOverworldOriginWithZeroRotation)
 {
-    // 新创建的 ServerWorld 出生点朝向默认为 0
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 0.0f);
+    const RespawnData& data = world->respawnData();
+    EXPECT_EQ(data.dimension(), DimensionManager::OVERWORLD);
+    EXPECT_EQ(data.pos(), BlockPos(0, 0, 0));
+    EXPECT_FLOAT_EQ(data.yaw, 0.0f);
+    EXPECT_FLOAT_EQ(data.pitch, 0.0f);
 }
 
-// ============================================================================
-// setSpawnAngle 测试
-// ============================================================================
-
-TEST_F(ServerWorldSpawnAngleTest, SetSpawnAnglePositive)
+TEST_F(ServerWorldSpawnAngleTest, SpawnPositionIsBottomCenterOfSpawnBlock)
 {
-    world->setSpawnAngle(90.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 90.0f);
+    // 出生数据存的是脚下方块；spawnPosition 返回方块中心 + 方块上表面。
+    world->setRespawnData(RespawnData::of(0, BlockPos(100, 63, -200), 135.0f, 0.0f));
+
+    const Vector3d pos = world->spawnPosition();
+    EXPECT_DOUBLE_EQ(pos.x, 100.5);
+    EXPECT_DOUBLE_EQ(pos.y, 64.0);
+    EXPECT_DOUBLE_EQ(pos.z, -199.5);
+    EXPECT_FLOAT_EQ(world->respawnData().yaw, 135.0f);
 }
 
-TEST_F(ServerWorldSpawnAngleTest, SetSpawnAngleNegative)
+TEST_F(ServerWorldSpawnAngleTest, SetRespawnDataKeepsPositionWhenRotationChanges)
 {
-    world->setSpawnAngle(-45.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), -45.0f);
+    world->setRespawnData(RespawnData::of(0, BlockPos(100, 64, 200), 0.0f, 0.0f));
+    world->setRespawnData(RespawnData::of(0, BlockPos(100, 64, 200), 90.0f, 30.0f));
+
+    EXPECT_EQ(world->respawnData().pos(), BlockPos(100, 64, 200));
+    EXPECT_FLOAT_EQ(world->respawnData().yaw, 90.0f);
+    EXPECT_FLOAT_EQ(world->respawnData().pitch, 30.0f);
 }
 
-TEST_F(ServerWorldSpawnAngleTest, SetSpawnAngleBoundary180)
+TEST_F(ServerWorldSpawnAngleTest, RespawnDataOfNormalizesRotation)
 {
-    world->setSpawnAngle(180.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 180.0f);
+    // yaw 折叠到 [-180, 180]，pitch 夹紧到 [-90, 90]。
+    const RespawnData data = RespawnData::of(0, BlockPos(1, 2, 3), 270.0f, 135.0f);
+    EXPECT_FLOAT_EQ(data.yaw, -90.0f);
+    EXPECT_FLOAT_EQ(data.pitch, 90.0f);
+
+    const RespawnData negative = RespawnData::of(0, BlockPos(1, 2, 3), -540.0f, -135.0f);
+    EXPECT_FLOAT_EQ(negative.yaw, -180.0f);
+    EXPECT_FLOAT_EQ(negative.pitch, -90.0f);
 }
 
-TEST_F(ServerWorldSpawnAngleTest, SetSpawnAngleBoundaryNegative180)
+TEST_F(ServerWorldSpawnAngleTest, RespawnDataNbtRoundTrip)
 {
-    world->setSpawnAngle(-180.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), -180.0f);
+    const RespawnData original = RespawnData::of(DimensionManager::NETHER, BlockPos(-12, 70, 345), 45.0f, -20.0f);
+    nbt::tags::compound_tag tag;
+    original.toNbt(tag);
+
+    const auto decoded = RespawnData::fromNbt(tag);
+    ASSERT_TRUE(decoded.has_value());
+    EXPECT_EQ(*decoded, original);
 }
 
-TEST_F(ServerWorldSpawnAngleTest, SetSpawnAngleZero)
+TEST_F(ServerWorldSpawnAngleTest, RespawnConfigNbtRoundTripWithoutForced)
 {
-    world->setSpawnAngle(45.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 45.0f);
+    // forced=false 时 NBT 中不写 forced 键，解码后仍为 false。
+    const RespawnConfig original(RespawnData::of(0, BlockPos(5, 64, 5), 0.0f, 0.0f), false);
+    nbt::tags::compound_tag tag;
+    original.toNbt(tag);
+    EXPECT_EQ(tag.value.count("forced"), 0u);
 
-    world->setSpawnAngle(0.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 0.0f);
+    const auto decoded = RespawnConfig::fromNbt(tag);
+    ASSERT_TRUE(decoded.has_value());
+    EXPECT_FALSE(decoded->forced);
+    EXPECT_EQ(decoded->respawnData.globalPos, original.respawnData.globalPos);
 }
 
-// ============================================================================
-// setWorldSpawnPoint 带 angle 参数测试
-// ============================================================================
-
-TEST_F(ServerWorldSpawnAngleTest, SetWorldSpawnPointWithAngle)
+TEST_F(ServerWorldSpawnAngleTest, RespawnConfigNbtRoundTripWithForced)
 {
-    Vector3d pos(100.5, 64.0, -200.5);
-    world->setWorldSpawnPoint(pos, 135.0f);
+    const RespawnConfig original(RespawnData::of(0, BlockPos(5, 64, 5), 90.0f, 15.0f), true);
+    nbt::tags::compound_tag tag;
+    original.toNbt(tag);
 
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().x, 100.5);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().y, 64.0);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().z, -200.5);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 135.0f);
+    const auto decoded = RespawnConfig::fromNbt(tag);
+    ASSERT_TRUE(decoded.has_value());
+    EXPECT_TRUE(decoded->forced);
+    EXPECT_TRUE(decoded->isSamePosition(original));
+    EXPECT_FLOAT_EQ(decoded->respawnData.yaw, 90.0f);
+    EXPECT_FLOAT_EQ(decoded->respawnData.pitch, 15.0f);
 }
 
-TEST_F(ServerWorldSpawnAngleTest, SetWorldSpawnPointDefaultAngle)
+TEST_F(ServerWorldSpawnAngleTest, RespawnConfigIsSamePositionIgnoresRotationAndForced)
 {
-    // 不指定 angle 时默认为 0.0f
-    Vector3d pos(50.0, 70.0, 100.0);
-    world->setSpawnAngle(90.0f); // 先设置一个非零值
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 90.0f);
+    const RespawnConfig bed(RespawnData::of(0, BlockPos(5, 64, 5), 0.0f, 0.0f), false);
+    const RespawnConfig sameBlockDifferentRotation(RespawnData::of(0, BlockPos(5, 64, 5), 90.0f, 10.0f), true);
 
-    world->setWorldSpawnPoint(pos);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().x, 50.0);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 0.0f); // 默认重置为 0
+    EXPECT_TRUE(bed.isSamePosition(sameBlockDifferentRotation));
+    EXPECT_FALSE(bed.isSamePosition(std::optional<RespawnConfig>{}));
+    EXPECT_FALSE(bed.isSamePosition(RespawnConfig(RespawnData::of(0, BlockPos(6, 64, 5), 0.0f, 0.0f), false)));
 }
 
-TEST_F(ServerWorldSpawnAngleTest, SetWorldSpawnPointOverridesAngle)
+TEST_F(ServerWorldSpawnAngleTest, RespawnConfigGetDimensionOrDefaultFallsBackToOverworld)
 {
-    // 先设置朝向为 90 度
-    world->setSpawnAngle(90.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 90.0f);
+    EXPECT_EQ(RespawnConfig::getDimensionOrDefault(nullptr), DimensionManager::OVERWORLD);
 
-    // 通过 setWorldSpawnPoint 更新位置和朝向
-    Vector3d pos(200.0, 80.0, 300.0);
-    world->setWorldSpawnPoint(pos, -45.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), -45.0f);
+    const RespawnConfig netherConfig(RespawnData::of(DimensionManager::NETHER, BlockPos(0, 64, 0), 0.0f, 0.0f), false);
+    EXPECT_EQ(RespawnConfig::getDimensionOrDefault(&netherConfig), DimensionManager::NETHER);
 }
 
-// ============================================================================
-// setWorldSpawnPoint 和 setSpawnAngle 独立操作测试
-// ============================================================================
-
-TEST_F(ServerWorldSpawnAngleTest, SetSpawnAngleDoesNotAffectPosition)
+TEST_F(ServerWorldSpawnAngleTest, RespawnDataFromNbtRejectsMissingPosition)
 {
-    Vector3d pos(100.0, 64.0, 200.0);
-    world->setWorldSpawnPoint(pos, 0.0f);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().x, 100.0);
-
-    world->setSpawnAngle(90.0f);
-    // 位置不变
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().x, 100.0);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().y, 64.0);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().z, 200.0);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 90.0f);
-}
-
-TEST_F(ServerWorldSpawnAngleTest, SetWorldSpawnPointWithoutAngleResetsAngle)
-{
-    // 先设置朝向
-    world->setSpawnAngle(45.0f);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 45.0f);
-
-    // setWorldSpawnPoint 不带 angle 默认 0.0f，会重置朝向
-    Vector3d pos(50.0, 70.0, 100.0);
-    world->setWorldSpawnPoint(pos);
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 0.0f);
-}
-
-// ============================================================================
-// 世界出生点位置保持不变测试
-// ============================================================================
-
-TEST_F(ServerWorldSpawnAngleTest, DefaultSpawnPoint)
-{
-    // 默认出生点在 (0, SEA_LEVEL+1, 0)
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().x, 0.0);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().y, static_cast<f64>(world::SEA_LEVEL) + 1.0);
-    EXPECT_DOUBLE_EQ(world->worldSpawnPoint().z, 0.0);
+    nbt::tags::compound_tag tag;
+    tag.put("dimension", std::string("minecraft:overworld"));
+    EXPECT_FALSE(RespawnData::fromNbt(tag).has_value());
 }

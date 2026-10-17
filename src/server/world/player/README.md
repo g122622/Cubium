@@ -8,6 +8,8 @@
 player/
 ├── ServerPlayerEntityManager.hpp   # 服务端玩家实体管理器定义
 ├── ServerPlayerEntityManager.cpp   # 服务端玩家实体管理器实现
+├── PlayerSpawnFinder.hpp           # 共享出生点附近的玩家落点搜索
+├── PlayerSpawnFinder.cpp           # 玩家落点搜索实现
 └── README.md                       # 本文档
 ```
 
@@ -56,6 +58,8 @@ player/
 | `server/network/base/ServerClientConnection.hpp` | ServerClientConnection（网络连接，注入到 ServerPlayer） |
 | `server/world/ServerWorld.hpp` | 服务端世界（spawnEntity、removeEntity） |
 | `server/world/entity/EntityTracker.hpp` | 实体追踪器（trackEntity、untrackEntity） |
+| `server/world/ServerChunkManager.hpp` | 落点搜索时同步加载候选区块 |
+| `common/world/gamerule/GameRules.hpp` | `spawnRadius` 规则限制搜索半径 |
 
 ### 下游依赖（依赖本模块的）
 
@@ -65,6 +69,7 @@ player/
 | `server/application/IntegratedServer` | 继承并实现 playerEntityManager() |
 | `server/application/StandaloneServer` | 继承并实现 playerEntityManager() |
 | `server/network/play/ServerPlayHandler` | 入站 Play 包分发时通过 IServer 接口访问玩家实体 |
+| `server/player/ServerPlayer` | 重生落点计算调用 `PlayerSpawnFinder::findSpawn` |
 | `server/command/commands/*` | 多个命令通过 IServer 访问玩家实体 |
 | `server/advancement/AdvancementEventHandler` | 通过 IServer 访问玩家实体 |
 | `server/interaction/BlockInteractionManager` | 通过 IServer 访问玩家实体 |
@@ -104,6 +109,11 @@ player/
 
 两者需要通过 `ServerPlayerEntityManager` 进行双向映射查询。
 
-### 5. 服务端关闭时的清理
+### 5. 落点搜索只接受已加载区块
+
+`PlayerSpawnFinder` 按候选顺序同步加载区块（主线程）。候选起点由"维度 + 建议位置"派生，
+同一建议位置的搜索结果稳定可复现，不依赖进程级随机源。
+
+### 6. 服务端关闭时的清理
 
 服务端关闭时必须调用 `clearAll()` 清理所有玩家实体，否则 EntityTracker 和 EntityManager 中会残留数据。

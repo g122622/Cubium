@@ -72,11 +72,21 @@ public:
      * @param world 世界引用
      * @param bedPos 床头位置
      * @param bedFacing 床的朝向
-     * @param entityYaw 实体的偏航角（度），默认为 0.0
+     * @param entityYaw 实体的偏航角（度）
+     * @param width 实体碰撞箱宽度
+     * @param height 实体碰撞箱高度
+     * @param isPlayer 是否按玩家规则检查
+     * @param fireImmune 实体是否免疫火焰
      * @return 如果找到合适位置返回位置向量，否则返回 nullopt
      */
-    [[nodiscard]] static std::optional<Vector3> findWakeUpPosition(
-        const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw = 0.0f);
+    [[nodiscard]] static std::optional<Vector3> findWakeUpPosition(const IWorld& world,
+        const BlockPos& bedPos,
+        Direction bedFacing,
+        f32 entityYaw,
+        f32 width,
+        f32 height,
+        bool isPlayer,
+        bool fireImmune);
 
     /**
      * @brief 检查玩家是否在床附近

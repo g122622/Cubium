@@ -77,18 +77,6 @@ public:
      */
     [[nodiscard]] const DimensionType& type() const { return m_type; }
 
-    // ========== 出生点 ==========
-
-    /**
-     * @brief 获取出生点位置
-     */
-    [[nodiscard]] Vector3d spawnPoint() const { return m_spawnPoint; }
-
-    /**
-     * @brief 设置出生点位置
-     */
-    void setSpawnPoint(const Vector3d& pos) { m_spawnPoint = pos; }
-
     // ========== 维度能力 ==========
 
     /**
@@ -177,7 +165,6 @@ public:
 protected:
     DimensionId m_id;
     DimensionType m_type;
-    Vector3d m_spawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0};
 };
 
 } // namespace mc

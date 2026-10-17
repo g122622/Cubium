@@ -24,6 +24,7 @@
 #include "server/world/storage/core/LevelDatCodec.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/CompressionUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -90,10 +91,7 @@ LevelSummaryData::LevelSummaryData(std::string displayName,
 {}
 
 LevelRuntimeData::LevelRuntimeData(LevelSummaryData summary,
-    i32 spawnX,
-    i32 spawnY,
-    i32 spawnZ,
-    f32 spawnAngle,
+    RespawnData spawnData,
     i64 gameTime,
     i64 dayTime,
     i32 clearWeatherTime,
@@ -104,10 +102,7 @@ LevelRuntimeData::LevelRuntimeData(LevelSummaryData summary,
     bool initialized,
     bool difficultyLocked)
     : summary(std::move(summary))
-    , spawnX(spawnX)
-    , spawnY(spawnY)
-    , spawnZ(spawnZ)
-    , spawnAngle(spawnAngle)
+    , spawnData(spawnData)
     , gameTime(gameTime)
     , dayTime(dayTime)
     , clearWeatherTime(clearWeatherTime)
@@ -526,11 +521,12 @@ std::unique_ptr<nbt::tags::compound_tag> LevelDatCodec::_buildInitialNbt(
     data.put("initialized", static_cast<i8>(0)); // 服务端初始化后会设为 1
     data.put("DifficultyLocked", static_cast<i8>(0));
 
-    // 出生点（服务端初始化后会设置）
-    data.put("SpawnX", 0);
-    data.put("SpawnY", 0);
-    data.put("SpawnZ", 0);
-    data.put("SpawnAngle", 0.0f);
+    // 出生点（服务端初始化后会写入真实值）
+    {
+        auto spawnTag = std::make_unique<nbt::tags::compound_tag>();
+        RespawnData{}.toNbt(*spawnTag);
+        data.value.emplace("spawn", std::move(spawnTag));
+    }
 
     // 时间
     data.put("Time", static_cast<i64>(0));
@@ -676,34 +672,10 @@ Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::p
         return summaryResult.error();
     }
 
-    // 解析出生点
-    i32 spawnX = 0, spawnY = 64, spawnZ = 0;
-    if (data.value.count("SpawnX") != 0) {
-        auto it = data.value.find("SpawnX");
-        if (it->second->id() == nbt::TagId::Int) {
-            spawnX = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
-        }
-    }
-    if (data.value.count("SpawnY") != 0) {
-        auto it = data.value.find("SpawnY");
-        if (it->second->id() == nbt::TagId::Int) {
-            spawnY = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
-        }
-    }
-    if (data.value.count("SpawnZ") != 0) {
-        auto it = data.value.find("SpawnZ");
-        if (it->second->id() == nbt::TagId::Int) {
-            spawnZ = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
-        }
-    }
-
-    // 解析出生点朝向
-    f32 spawnAngle = 0.0f;
-    if (data.value.count("SpawnAngle") != 0) {
-        auto it = data.value.find("SpawnAngle");
-        if (it->second->id() == nbt::TagId::Float) {
-            spawnAngle = dynamic_cast<const nbt::tags::float_tag&>(*it->second).value;
-        }
+    // 解析世界出生数据（spawn 复合标签）
+    RespawnData spawnData;
+    if (const auto* spawnTag = entity::serialization::nbt_helper::tryGetCompound(data, "spawn")) {
+        spawnData = RespawnData::fromNbt(*spawnTag).value_or(RespawnData{});
     }
 
     // 解析游戏时间
@@ -782,10 +754,7 @@ Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::p
     }
 
     return LevelRuntimeData(std::move(summaryResult.value()),
-        spawnX,
-        spawnY,
-        spawnZ,
-        spawnAngle,
+        spawnData,
         gameTime,
         dayTime,
         clearWeatherTime,
@@ -800,10 +769,7 @@ Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::p
 Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& worldDir,
     i64 gameTime,
     i64 dayTime,
-    i32 spawnX,
-    i32 spawnY,
-    i32 spawnZ,
-    f32 spawnAngle,
+    const RespawnData& spawnData,
     i32 clearWeatherTime,
     i32 rainTime,
     bool raining,
@@ -825,11 +791,12 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     data->put("Time", gameTime);
     data->put("DayTime", dayTime);
 
-    // 更新出生点
-    data->put("SpawnX", spawnX);
-    data->put("SpawnY", spawnY);
-    data->put("SpawnZ", spawnZ);
-    data->put("SpawnAngle", spawnAngle);
+    // 更新世界出生数据
+    {
+        auto spawnTag = std::make_unique<nbt::tags::compound_tag>();
+        spawnData.toNbt(*spawnTag);
+        data->value["spawn"] = std::move(spawnTag);
+    }
 
     // 更新天气状态
     data->put("clearWeatherTime", clearWeatherTime);

@@ -286,10 +286,7 @@ public:
      *
      * @param gameTime 游戏时间（刻）
      * @param dayTime 日光时间（刻）
-     * @param spawnX 出生点 X
-     * @param spawnY 出生点 Y
-     * @param spawnZ 出生点 Z
-     * @param spawnAngle 出生点朝向（角度）
+     * @param spawnData 世界出生数据（写入 spawn 复合标签）
      * @param clearWeatherTime 清晰天气剩余时间（刻）
      * @param rainTime 下雨剩余时间（刻）
      * @param raining 是否正在下雨
@@ -302,10 +299,7 @@ public:
      */
     Result<void> saveLevelData(i64 gameTime,
         i64 dayTime,
-        i32 spawnX,
-        i32 spawnY,
-        i32 spawnZ,
-        f32 spawnAngle,
+        const RespawnData& spawnData,
         i32 clearWeatherTime,
         i32 rainTime,
         bool raining,

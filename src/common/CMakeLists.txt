@@ -122,8 +122,9 @@ add_library(mc_common STATIC
     entity/entities/player/Player.cpp
     entity/entities/player/GameModeUtils.cpp
     entity/player/SleepManager.cpp
-    entity/player/SpawnPointValidator.cpp
     entity/player/CooldownTracker.cpp
+    # Entity - 下马/落点搜索
+    entity/vehicle/DismountHelper.cpp
     # Entity - Item
     entity/entities/item/ItemEntity.cpp
     # Entity - Passive Animals (basic)
@@ -1139,6 +1140,9 @@ add_library(mc_common STATIC
     # World - Generation - Settings
     world/dimension/DimensionType.cpp
     world/dimension/Dimension.cpp
+    # 出生数据（世界出生点与玩家个人重生点共用）
+    world/spawn/RespawnData.cpp
+    world/spawn/RespawnConfig.cpp
     world/dimension/DimensionManager.cpp
     world/dimension/end/EndDragonFight.cpp
     world/dimension/end/DragonRespawnAnimation.cpp
