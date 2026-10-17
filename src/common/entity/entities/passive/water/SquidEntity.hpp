@@ -28,6 +28,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/passive/water/AgeableWaterCreatureEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -51,7 +52,7 @@ class DamageSource;
  * - 挣扎：离开水会扑腾
  * - 掉落：墨囊
  */
-class SquidEntity : public WaterMobEntity {
+class SquidEntity : public AgeableWaterCreatureEntity {
 public:
     /**
      * @brief 构造函数
@@ -107,7 +108,8 @@ public:
 
     // ========== 同步字段 id 访问器（测试/诊断用，抗字段 id 偏移） ==========
 
-    [[nodiscard]] static u16 getBabyPlaceholderParamId() { return DATA_BABY_PLACEHOLDER_PARAM.id(); }
+    /// DATA_BABY(id16) 由基类 AgeableEntity 提供（鱿鱼经 WaterMobEntity→AgeableEntity）。
+    [[nodiscard]] static u16 getBabyPlaceholderParamId() { return AgeableEntity::getBabyParamId(); }
 
     // ========== 喷墨 ==========
 
@@ -192,16 +194,13 @@ protected:
     /**
      * @brief 注册同步数据参数
      *
-     * 注册 Boolean 占位字段对齐 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)。鱿鱼无幼体
-     * 语义，占位恒 false，仅用于占位 id16 使 GlowSquid.DATA_DARK_TICKS 落 id17。
+     * 串联 AgeableEntity::registerData()（注册 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)）。
+     * 鱿鱼经 WaterMobEntity→AgeableEntity 具备真实幼体语义，本类无自有同步字段。
      * 派生类（GlowSquid）构造函数须显式调用 registerData()。
      */
     void registerData() override;
 
 private:
-    // ========== 同步数据参数（vanilla 1.21.11 AgeableMob.DATA_BABY 占位，见 registerData） ==========
-    static entity::DataParameter<bool> DATA_BABY_PLACEHOLDER_PARAM; // id16，占位对齐（鱿鱼无幼体）
-
     // 移动向量
     f32 m_randomMotionVecX = 0.0f;
     f32 m_randomMotionVecY = 0.0f;

@@ -543,17 +543,17 @@ TEST(EntityMetadataIdGoldenTest, PillagerEntityHasIds0To16)
 // 链5: 水生链 GlowSquid 对齐（崩溃直接根因）
 // vanilla 1.21.11 GlowSquid 经 Squid→AgeableWaterCreature→AgeableMob：
 //   id16 DATA_BABY(Boolean) / id17 DATA_DARK_TICKS_REMAINING(Int)
-// 项目 WaterMobEntity 不经 AgeableEntity，故在 SquidEntity 层补 Boolean 占位对齐 id16，
-// 使 GlowSquid.DATA_DARK_TICKS 落 id17。
+// 项目引入 AgeableWaterCreatureEntity（父 = WaterMobEntity），在 id16 注册 DATA_BABY，
+// 使 Squid/GlowSquid 经它获得真实幼体语义并落 id16，GlowSquid.DATA_DARK_TICKS 落 id17。
 // 崩溃现场(disconnect-2026-07-31_11.59.24)：field16 old=false(Boolean) ↔ new=0(Integer)，
 // 即项目 GlowSquid.DATA_DARK_TICKS(Int) 错占 id16，撞客户端期望的 id16=DATA_BABY(Boolean)。
-// 补占位后 id16=Boolean(占位)、id17=Int(DARK_TICKS)，与 vanilla 逐字段对齐。
+// id16=Boolean(DATA_BABY)、id17=Int(DARK_TICKS)，与 vanilla 逐字段对齐。
 // ============================================================================
 
 TEST(EntityMetadataIdGoldenTest, SquidEntityHasIds0To16)
 {
     SquidEntity squid(EntityInstanceId(1), mc::test::testEcsRegistry());
-    // Entity 0..7 + LivingEntity 8..14 + Mob 15 + Squid 16(DATA_BABY 占位)。
+    // Entity 0..7 + LivingEntity 8..14 + Mob 15 + AgeableWaterCreature 16(DATA_BABY)。
     EXPECT_EQ(collectParamIds(squid.dataManager()), expectedRange(0, 16));
     EXPECT_FALSE(squid.dataManager().hasParam(17));
 }
@@ -563,13 +563,13 @@ TEST(EntityMetadataIdGoldenTest, SquidBabyPlaceholderFieldIdAndTypeAlignVanilla)
     SquidEntity squid(EntityInstanceId(1), mc::test::testEcsRegistry());
     const auto& mgr = squid.dataManager();
 
-    const u16 placeholderId = SquidEntity::getBabyPlaceholderParamId();
-    EXPECT_EQ(placeholderId, 16u);
-    ASSERT_TRUE(mgr.getRaw(placeholderId).has_value());
-    EXPECT_EQ(mgr.getRaw(placeholderId)->index(), 5u); // DATA_BABY 占位 → bool/Boolean
+    const u16 babyId = SquidEntity::getBabyPlaceholderParamId();
+    EXPECT_EQ(babyId, 16u);
+    ASSERT_TRUE(mgr.getRaw(babyId).has_value());
+    EXPECT_EQ(mgr.getRaw(babyId)->index(), 5u); // DATA_BABY → bool/Boolean
 }
 
-// 崩溃现场复现断言：GlowSquid.DATA_DARK_TICKS 必为 id17(Int)，id16 必为 Boolean(占位)。
+// 崩溃现场复现断言：GlowSquid.DATA_DARK_TICKS 必为 id17(Int)，id16 必为 Boolean(DATA_BABY)。
 // 修复前 DATA_DARK_TICKS 错占 id16(Int) 撞客户端 DATA_BABY(Boolean) 致类型校验崩。
 TEST(EntityMetadataIdGoldenTest, GlowSquidEntityDarkTicksAt17AndBabyPlaceholderAt16)
 {
@@ -582,9 +582,9 @@ TEST(EntityMetadataIdGoldenTest, GlowSquidEntityDarkTicksAt17AndBabyPlaceholderA
     ASSERT_TRUE(mgr.getRaw(darkTicksId).has_value());
     EXPECT_EQ(mgr.getRaw(darkTicksId)->index(), 1u); // DATA_DARK_TICKS → i32/Int
 
-    // id16 必为 Boolean 占位（修复前为 Int，撞客户端 DATA_BABY(Boolean)）。
+    // id16 必为 Boolean（DATA_BABY，由 AgeableWaterCreatureEntity 提供；修复前为 Int 撞该字段）。
     ASSERT_TRUE(mgr.getRaw(16).has_value());
-    EXPECT_EQ(mgr.getRaw(16)->index(), 5u); // 占位 → bool/Boolean
+    EXPECT_EQ(mgr.getRaw(16)->index(), 5u); // DATA_BABY → bool/Boolean
 }
 
 // ============================================================================

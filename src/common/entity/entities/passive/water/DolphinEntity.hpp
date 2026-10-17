@@ -28,6 +28,7 @@
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassRegistry.hpp"
+#include "common/entity/entities/passive/water/AgeableWaterCreatureEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -80,7 +81,7 @@ class LivingEntity;
  * - ENTITY_DOLPHIN_SPLASH: 溅水音效
  * - ENTITY_DOLPHIN_SWIM: 游泳音效
  */
-class DolphinEntity : public WaterMobEntity {
+class DolphinEntity : public AgeableWaterCreatureEntity {
 public:
     /**
      * @brief 构造函数
@@ -105,10 +106,10 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world, ecs::EntityRegistry& registry);
 
-    /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
-    // vanilla 1.21.11 Dolphin 经 AgeableWaterCreature→AgeableMob，字段 BABY@16(继承)/
-    // GOT_FISH@17(Boolean)/MOISTNESS_LEVEL@18(Int)。项目 WaterMobEntity 不经 AgeableEntity
-    // （无 BABY），故在 DolphinEntity 层补 BABY 占位 + GOT_FISH/MOISTNESS 对齐 vanilla id。
+    /// 本类继承链标识（parent = AgeableWaterCreatureEntity::classInfo()）。见 Entity::classInfo()。
+    // vanilla 1.21.11 Dolphin 经 AgeableWaterCreature→AgeableMob，字段 BABY@16(继承自
+    // AgeableMob)/GOT_FISH@17(Boolean)/MOISTNESS_LEVEL@18(Int)。本项目 AgeableWaterCreatureEntity
+    // 提供 BABY@16，本类仅补 GOT_FISH/MOISTNESS，对齐 vanilla id。
     static const entity::EntityClassInfo& classInfo();
 
     // ========== 游泳行为 ==========
@@ -334,8 +335,7 @@ private:
     bool m_wasInWaterTracked = false;
 
     // ========== 同步数据参数（vanilla 1.21.11 Dolphin 字段，见 registerData） ==========
-    // id16 占位对齐 vanilla AgeableMob.DATA_BABY（海豚幼体语义暂未实现，占位恒 false）。
-    static entity::DataParameter<bool> DATA_BABY_PLACEHOLDER_PARAM; // id16
+    // BABY@16 由 AgeableWaterCreatureEntity（vanilla AgeableMob.DATA_BABY）提供，本类不重复注册。
     // id17 GOT_FISH（玩家喂鱼后置 true，海豚引导玩家寻宝）。由 setGotFish 同步。
     static entity::DataParameter<bool> DATA_GOT_FISH_PARAM; // id17
     // id18 MOISTNESS_LEVEL（湿润度，vanilla 起始 2400）。由 setMoistnessLevel 同步。

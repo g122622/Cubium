@@ -65,39 +65,37 @@
 namespace mc {
 
 // ==================== 同步数据参数静态成员初始化 ====================
-// id 由 registerData 沿继承链分配：BABY 占位 16、GOT_FISH 17、MOISTNESS_LEVEL 18。
-entity::DataParameter<bool> DolphinEntity::DATA_BABY_PLACEHOLDER_PARAM = entity::EntityDataManager::createKey<bool>();
+// id 由 registerData 沿继承链分配：BABY@16（由 AgeableWaterCreatureEntity 提供）、GOT_FISH@17、MOISTNESS_LEVEL@18。
 entity::DataParameter<bool> DolphinEntity::DATA_GOT_FISH_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i32> DolphinEntity::DATA_MOISTNESS_LEVEL_PARAM = entity::EntityDataManager::createKey<i32>();
 
-// 继承链标识（parent = WaterMobEntity::classInfo()）。
+// 继承链标识（parent = AgeableWaterCreatureEntity::classInfo()）。
 // vanilla 1.21.11 Dolphin 经 AgeableWaterCreature→AgeableMob，id16=DATA_BABY(Boolean，继承自 AgeableMob)。
-// 项目 WaterMobEntity 不经 AgeableEntity，故在 DolphinEntity 层补 BABY 占位 + GOT_FISH/MOISTNESS。
+// 本项目 AgeableWaterCreatureEntity 提供 BABY@16，本类仅补 GOT_FISH/MOISTNESS。
 const entity::EntityClassInfo& DolphinEntity::classInfo()
 {
-    static const entity::EntityClassInfo s_classInfo{"DolphinEntity", &WaterMobEntity::classInfo()};
+    static const entity::EntityClassInfo s_classInfo{"DolphinEntity", &AgeableWaterCreatureEntity::classInfo()};
     return s_classInfo;
 }
 
 void DolphinEntity::registerData()
 {
-    // 先调用父类方法。WaterMobEntity/CreatureEntity 均无 registerData override，显式指
-    // MobEntity::registerData() 避免名字查找落空，确保 Mob(id15) 及以下基类参数已注册。
-    MobEntity::registerData();
+    // 先调用父类方法串联整条链（AgeableWaterCreatureEntity→WaterMobEntity→…→MobEntity），
+    // 确保 Mob(id15) 与 DATA_BABY(id16) 已注册，本类字段续接 id16 之后。
+    AgeableWaterCreatureEntity::registerData();
 
     // 标记当前正在注册 DolphinEntity 类的字段，使 registerParam 沿继承链分配 id
-    // （续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
+    // （续接 id16 之后）。RAII 守卫自动配对压栈/弹栈。
     entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
 
-    // 注册 3 字段对齐 vanilla 1.21.11 Dolphin：BABY 占位@16、GOT_FISH@17、MOISTNESS_LEVEL@18。
-    // 默认值与 vanilla defineSynchedData 一致（BABY=false、GOT_FISH=false、MOISTNESS=2400）。
-    m_dataManager.registerParam(DATA_BABY_PLACEHOLDER_PARAM, false);
+    // 注册 2 字段对齐 vanilla 1.21.11 Dolphin：GOT_FISH@17、MOISTNESS_LEVEL@18。
+    // 默认值与 vanilla defineSynchedData 一致（GOT_FISH=false、MOISTNESS=2400）。
     m_dataManager.registerParam(DATA_GOT_FISH_PARAM, false);
     m_dataManager.registerParam(DATA_MOISTNESS_LEVEL_PARAM, 2400);
 }
 
 DolphinEntity::DolphinEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
-    : WaterMobEntity(id, registry)
+    : AgeableWaterCreatureEntity(id, registry)
 {
     // 设置空气值（4800 tick = 4分钟）
     setAir(MAX_AIR);
@@ -188,9 +186,9 @@ ActionResultType DolphinEntity::interactMob(Player& player, Hand hand)
     // Cubium 用 isFoodItem 等价 Java 的 itemstack.is(ItemTags.FISHES)
     // （FISHES 标签 = COD/SALMON/PUFFERFISH/TROPICAL_FISH 四种生鱼，cooked 不在内）。
     //
-    // 幼体分支（ageUp）：TODO 海豚幼体语义未实现（BABY 占位恒 false，见 registerData 注释，
-    //   项目 WaterMobEntity 不经 AgeableEntity 无 isChild/ageUp）。海豚在 Cubium 永远是成体，
-    //   故喂鱼恒走 setGotFish 分支。幼体加速成长待 AgeableWaterCreature 体系补全后实现。
+    // 幼体分支（ageUp）：喂鱼给幼体加速成长（对齐 Java isBaby() 分支，ageUp(getSpeedUpSecondsWhenFeeding(-age))）。
+    // 海豚经 AgeableWaterCreatureEntity（vanilla AgeableWaterCreature→AgeableMob）具备幼体语义
+    // （isChild/ageUp），故此处完整实现两分支。
     ItemStack& heldItem = player.getHeldItem(hand);
 
     if (!heldItem.isEmpty() && isFoodItem(heldItem)) {
@@ -203,14 +201,25 @@ ActionResultType DolphinEntity::interactMob(Player& player, Hand hand)
             }
         }
 
-        // 成体喂鱼 → setGotFish(true) 触发 SwimToTreasureGoal 寻宝引导。
-        // （幼体 ageUp 分支因海豚无幼体语义省略，见上方 TODO。）
-        setGotFish(true);
+        if (isChild()) {
+            // 幼体喂鱼 → 加速成长（对齐 Java Dolphin.mobInteract 的 isBaby() 分支）：
+            //   itemstack.consume(1, player);
+            //   ageUp(getSpeedUpSecondsWhenFeeding(-this.age), true);
+            // ageUp 每份鱼缩短剩余成长时间 10%（getSpeedUpSecondsWhenFeeding），
+            // 成长到 0 时变形成体（refreshDimensions + onGrowUp）。
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+            }
+            ageUp(AgeableEntity::getSpeedUpSecondsWhenFeeding(-getGrowingAge()));
+        } else {
+            // 成体喂鱼 → setGotFish(true) 触发 SwimToTreasureGoal 寻宝引导。
+            setGotFish(true);
 
-        // 消耗 1 个鱼（创造模式跳过，对齐 Java itemstack.consume(1, player) +
-        // Player 创造不消耗约定，与 AnimalEntity::interactMob 一致）。
-        if (!player.abilities().creativeMode) {
-            heldItem.shrink(1);
+            // 消耗 1 个鱼（创造模式跳过，对齐 Java itemstack.consume(1, player) +
+            // Player 创造不消耗约定，与 AnimalEntity::interactMob 一致）。
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+            }
         }
 
         return ActionResultType::Success;
@@ -315,7 +324,7 @@ void DolphinEntity::playAttackSound(LivingEntity& /*target*/)
 void DolphinEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 {
     using namespace entity::serialization;
-    WaterMobEntity::addAdditionalSaveData(tag);
+    AgeableWaterCreatureEntity::addAdditionalSaveData(tag);
     tag.put(nbt_keys::DOLPHIN_GOT_FISH, static_cast<i8>(m_gotFish));
     tag.put(nbt_keys::DOLPHIN_MOISTNESS, m_moistnessLevel);
 }
@@ -323,7 +332,7 @@ void DolphinEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
 Result<void> DolphinEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
 {
     using namespace entity::serialization;
-    MC_TRY(WaterMobEntity::readAdditionalSaveData(tag));
+    MC_TRY(AgeableWaterCreatureEntity::readAdditionalSaveData(tag));
     setGotFish(nbt_helper::tryGetBool(tag, nbt_keys::DOLPHIN_GOT_FISH).value_or(false));
     // 钳制到 [0, TOTAL_MOISTNESS_LEVEL]，防御损坏存档中的越界值
     const i32 moistness =
@@ -336,7 +345,7 @@ Result<void> DolphinEntity::readAdditionalSaveData(const nbt::tags::compound_tag
 
 void DolphinEntity::tick()
 {
-    WaterMobEntity::tick();
+    AgeableWaterCreatureEntity::tick();
 
     // 更新引导计时器
     if (m_guidingPlayer && m_guideTimer > 0) {

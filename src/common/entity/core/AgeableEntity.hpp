@@ -151,6 +151,22 @@ public:
     static constexpr f32 BABY_SCALE = 0.5f;        // 幼体缩放比例
 
     /**
+     * @brief 喂食幼体时的加速成长秒数
+     *
+     * 复刻 vanilla 1.21.11 AgeableMob.getSpeedUpSecondsWhenFeeding(int)：
+     *   return (int)(p_216968_ / 20 * 0.1F);
+     * 其中入参为该幼体「剩余成长 tick 的负数」（即 -getGrowingAge()），
+     * 每份食物缩短剩余成长时间的 10%，返回值为缩短的秒数（ageUp 再乘 20 转为 tick）。
+     *
+     * @param remainingTicksNegative 剩余成长 tick 的负数（-getGrowingAge()）
+     * @return 加速的秒数
+     */
+    [[nodiscard]] static constexpr i32 getSpeedUpSecondsWhenFeeding(i32 remainingTicksNegative)
+    {
+        return static_cast<i32>(static_cast<f32>(remainingTicksNegative) / 20.0f * 0.1f);
+    }
+
+    /**
      * @brief 设置爱心状态
      * @param playerInLove 使其进入爱心状态的玩家ID（暂未使用）
      */

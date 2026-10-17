@@ -38,12 +38,15 @@
  */
 
 #include "entity/entities/passive/water/DolphinEntity.hpp"
+#include "entity/core/AgeableEntity.hpp"
+#include "entity/entities/passive/water/AgeableWaterCreatureEntity.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -101,6 +104,7 @@ public:
     using DolphinEntity::DolphinEntity;
 
     using DolphinEntity::addAdditionalSaveData;
+    using DolphinEntity::interactMob;
     using DolphinEntity::readAdditionalSaveData;
 };
 
@@ -112,6 +116,8 @@ class DolphinEntityTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // 初始化物品注册表（喂食交互测试需 Items::COD 等非空）
+        Items::initialize();
         // 创建海豚实体
         dolphin = std::make_unique<TestableDolphinEntity>(EntityInstanceId(0), mc::test::testEcsRegistry());
     }
@@ -449,4 +455,118 @@ TEST_F(DolphinEntityTest, Moistness_SyncsToDataManager)
     const auto rawMoistness = dolphin->dataManager().getRaw(DolphinEntity::getMoistnessLevelParamId());
     ASSERT_TRUE(rawMoistness.has_value());
     EXPECT_EQ(rawMoistness->get<i32>(), 555);
+}
+// ==================== 幼体语义 Tests（vanilla AgeableWaterCreature→AgeableMob） ====================
+
+TEST_F(DolphinEntityTest, BabyState_DefaultIsAdult)
+{
+    // 默认是成体（vanilla AgeableMob 起始 age=0）
+    EXPECT_FALSE(dolphin->isChild());
+    EXPECT_EQ(dolphin->getGrowingAge(), 0);
+}
+
+TEST_F(DolphinEntityTest, BabyState_SetChildTrue_BecomesChild)
+{
+    dolphin->setChild(true);
+    EXPECT_TRUE(dolphin->isChild());
+    EXPECT_EQ(dolphin->getGrowingAge(), AgeableEntity::BABY_AGE); // -24000
+
+    dolphin->setChild(false);
+    EXPECT_FALSE(dolphin->isChild());
+    EXPECT_EQ(dolphin->getGrowingAge(), AgeableEntity::MAX_AGE); // 0
+}
+
+TEST_F(DolphinEntityTest, BabyState_SyncsToDataManager)
+{
+    const u16 babyId = AgeableWaterCreatureEntity::getBabyParamId();
+    EXPECT_EQ(babyId, 16u); // vanilla AgeableMob.DATA_BABY id16
+
+    dolphin->dataManager().clearDirty();
+    dolphin->setChild(true);
+    // 幼体状态写入 DATA_BABY（id16），供客户端渲染幼体模型
+    const auto raw = dolphin->dataManager().getRaw(babyId);
+    ASSERT_TRUE(raw.has_value());
+    EXPECT_TRUE(raw->get<bool>());
+}
+
+TEST_F(DolphinEntityTest, BabyState_AgeUpGrowsToAdult)
+{
+    dolphin->setChild(true);
+    ASSERT_TRUE(dolphin->isChild());
+
+    // ageUp(1200) = 24000 tick，恰好抵达成体
+    dolphin->ageUp(1200);
+    EXPECT_FALSE(dolphin->isChild());
+    EXPECT_EQ(dolphin->getGrowingAge(), AgeableEntity::MAX_AGE);
+}
+
+TEST_F(DolphinEntityTest, BabyState_NbtRoundTrip)
+{
+    dolphin->setChild(true);
+    const i32 babyAge = dolphin->getGrowingAge();
+
+    nbt::tags::compound_tag tag;
+    dolphin->addAdditionalSaveData(tag);
+
+    TestableDolphinEntity loaded(EntityInstanceId(9), mc::test::testEcsRegistry());
+    auto result = loaded.readAdditionalSaveData(tag);
+    ASSERT_TRUE(result.success()) << result.error().toString();
+    EXPECT_TRUE(loaded.isChild());
+    EXPECT_EQ(loaded.getGrowingAge(), babyAge);
+}
+
+TEST_F(DolphinEntityTest, SpeedUpSecondsWhenFeeding_MatchesVanilla)
+{
+    // vanilla AgeableMob.getSpeedUpSecondsWhenFeeding(x) = (int)(x / 20 * 0.1F)
+    // 满幼体（-24000）→ 24000/20*0.1 = 120 秒
+    EXPECT_EQ(AgeableEntity::getSpeedUpSecondsWhenFeeding(24000), 120);
+    // 半成长（-12000）→ 12000/20*0.1 = 60 秒
+    EXPECT_EQ(AgeableEntity::getSpeedUpSecondsWhenFeeding(12000), 60);
+}
+
+TEST_F(DolphinEntityTest, BabyFeeding_ChildDolphinAcceleratesGrowthNotGotFish)
+{
+    // 交互行为验证（对齐 vanilla Dolphin.mobInteract isBaby() 分支）：
+    // 幼体喂鱼 → 加速成长（ageUp），且不置 GOT_FISH。
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
+    player.abilities().creativeMode = false;
+    player.inventory().setItem(0, ItemStack(Items::COD, 10));
+    player.inventory().setSelectedSlot(0);
+
+    DolphinTestWorld localWorld;
+    dolphin->setWorld(&localWorld);
+    dolphin->setTypeId("minecraft:dolphin");
+    dolphin->setChild(true);
+    const i32 beforeAge = dolphin->getGrowingAge(); // -24000
+    ASSERT_TRUE(dolphin->isChild());
+
+    const ActionResultType result = dolphin->interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_GT(dolphin->getGrowingAge(), beforeAge) << "Feeding a child dolphin should advance its growing age";
+    EXPECT_TRUE(dolphin->isChild()) << "A single feeding should not fully mature the dolphin";
+    EXPECT_FALSE(dolphin->hasGotFish()) << "A child dolphin should not be marked GOT_FISH (vanilla isBaby branch)";
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 9) << "One fish should be consumed";
+}
+
+TEST_F(DolphinEntityTest, BabyFeeding_AdultDolphinSetsGotFishNotGrowth)
+{
+    // 对照组（对齐 vanilla else 分支）：成体喂鱼 → setGotFish(true)，年龄不变。
+    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
+    player.abilities().creativeMode = false;
+    player.inventory().setItem(0, ItemStack(Items::COD, 10));
+    player.inventory().setSelectedSlot(0);
+
+    DolphinTestWorld localWorld;
+    dolphin->setWorld(&localWorld);
+    dolphin->setTypeId("minecraft:dolphin");
+    dolphin->setChild(false);
+    ASSERT_FALSE(dolphin->isChild());
+
+    const ActionResultType result = dolphin->interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(dolphin->hasGotFish()) << "Feeding an adult dolphin should set GOT_FISH";
+    EXPECT_EQ(dolphin->getGrowingAge(), AgeableEntity::MAX_AGE) << "Adult dolphin age should be unchanged";
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 9) << "One fish should be consumed";
 }

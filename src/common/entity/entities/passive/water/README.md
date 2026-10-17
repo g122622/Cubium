@@ -7,7 +7,8 @@
 ```text
 water/
 ├── WaterMobEntity.hpp/cpp   # 水生生物基类（反逻辑溺水系统）
-├── DolphinEntity.hpp/cpp    # 海豚（宝藏寻找、海豚恩惠、跳跃）
+├── AgeableWaterCreatureEntity.hpp/cpp  # 可成长水生生物基类（幼体/成体，对齐 vanilla AgeableWaterCreature）
+├── DolphinEntity.hpp/cpp    # 海豚（宝藏寻找、海豚恩惠、跳跃、幼体加速成长）
 ├── AxolotlEntity.hpp/cpp    # 美西螈（装死、支援效果[再生I+移除挖掘疲劳]、桶装）
 ├── SquidEntity.hpp/cpp      # 鱿鱼（喷墨、移动向量游泳）
 ├── GlowSquidEntity.hpp/cpp  # 发光鱿鱼（继承鱿鱼；GLOW 粒子、受击暗化、荧光墨汁）
@@ -21,14 +22,20 @@ Entity
 └── LivingEntity
     └── MobEntity
         └── CreatureEntity
-            └── WaterMobEntity      ← 水生生物基类（反逻辑溺水）
-                ├── DolphinEntity   ← 海豚（空气4800tick）
+            └── WaterMobEntity      ← 水生生物基类（反逻辑溺水，对齐 vanilla WaterAnimal）
+                ├── AgeableWaterCreatureEntity  ← 可成长水生生物（幼体/成体）
+                │   ├── DolphinEntity   ← 海豚（空气4800tick）
+                │   └── SquidEntity     ← 鱿鱼
+                │       └── GlowSquidEntity  ← 发光鱿鱼
                 ├── AxolotlEntity   ← 美西螈（空气6000tick）
-                ├── SquidEntity     ← 鱿鱼
-                │   └── GlowSquidEntity  ← 发光鱿鱼
                 └── fish/
                     └── AbstractFishEntity  ← 鱼类基类
 ```
+
+> **类树对齐 vanilla**：vanilla 1.21.11 中 `WaterAnimal`（鱼类，不可成长）与
+> `AgeableWaterCreature`（海豚/鱿鱼，可成长）是 `PathfinderMob` 下的两个兄弟分支。
+> 本项目 `WaterMobEntity` 对应 `WaterAnimal`；`AgeableWaterCreatureEntity` 在其之上叠加
+> 年龄系统（幼体/成体、ageUp、DATA_BABY@16），供海豚/鱿鱼使用。
 
 ## 上下游外部依赖关系
 

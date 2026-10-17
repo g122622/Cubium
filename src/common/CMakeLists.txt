@@ -151,6 +151,7 @@ add_library(mc_common STATIC
     entity/entities/passive/special/SnifferEntity.cpp
     # Entity - Passive Animals (water)
     entity/entities/passive/water/WaterMobEntity.cpp
+    entity/entities/passive/water/AgeableWaterCreatureEntity.cpp
     entity/entities/passive/water/SquidEntity.cpp
     entity/entities/passive/water/GlowSquidEntity.cpp
     entity/entities/passive/water/DolphinEntity.cpp

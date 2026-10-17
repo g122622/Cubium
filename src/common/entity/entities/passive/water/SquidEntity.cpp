@@ -40,37 +40,28 @@
 namespace mc {
 
 // ==================== 同步数据参数静态成员初始化 ====================
-// 占位对齐 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)，id 由 registerData 沿继承链分配为 16。
-entity::DataParameter<bool> SquidEntity::DATA_BABY_PLACEHOLDER_PARAM = entity::EntityDataManager::createKey<bool>();
+// 本类无自有同步字段：DATA_BABY@16 由基类 AgeableWaterCreatureEntity 提供。
 
-// 继承链标识（parent = WaterMobEntity::classInfo()）。
-// vanilla 1.21.11 Squid 经 AgeableWaterCreature→AgeableMob，id16=DATA_BABY(Boolean)。项目
-// WaterMobEntity 不经 AgeableEntity，故在 SquidEntity 层补 Boolean 占位对齐 id16。
+// 继承链标识（parent = AgeableWaterCreatureEntity::classInfo()）。
+// vanilla 1.21.11 Squid 经 AgeableWaterCreature→AgeableMob，id16=DATA_BABY(Boolean)。
+// 本项目 AgeableWaterCreatureEntity 提供 id16，本类无自有字段。
 const entity::EntityClassInfo& SquidEntity::classInfo()
 {
-    static const entity::EntityClassInfo s_classInfo{"SquidEntity", &WaterMobEntity::classInfo()};
+    static const entity::EntityClassInfo s_classInfo{"SquidEntity", &AgeableWaterCreatureEntity::classInfo()};
     return s_classInfo;
 }
 
 void SquidEntity::registerData()
 {
-    // 先调用父类方法。WaterMobEntity/CreatureEntity 均无 registerData override，显式指
-    // MobEntity::registerData() 避免名字查找落空，确保 Mob(id15) 及以下基类参数已注册。
-    MobEntity::registerData();
-
-    // 标记当前正在注册 SquidEntity 类的字段，使 registerParam 沿继承链分配 id
-    // （续接 Mob id15 之后）。RAII 守卫自动配对压栈/弹栈。
-    entity::EntityDataManager::ClassRegisterGuard guard(m_dataManager, classInfo());
-
-    // 注册 Boolean 占位字段对齐 vanilla 1.21.11 AgeableMob.DATA_BABY(id16)。鱿鱼无幼体
-    // 语义，占位恒 false，仅占位 id16 使子类 GlowSquid.DATA_DARK_TICKS 落 id17。
-    m_dataManager.registerParam(DATA_BABY_PLACEHOLDER_PARAM, false);
+    // 串联 AgeableWaterCreatureEntity::registerData()（注册 DATA_BABY@16）。本类无自有同步字段。
+    // 子类 GlowSquid 的 DATA_DARK_TICKS 由此续接为 id17（对齐 vanilla GlowSquid）。
+    AgeableWaterCreatureEntity::registerData();
 }
 
 SquidEntity::SquidEntity(EntityInstanceId id, ecs::EntityRegistry& registry)
-    : WaterMobEntity(id, registry)
+    : AgeableWaterCreatureEntity(id, registry)
 {
-    // 显式调用 registerData() 注册占位字段（C++ 基类构造期虚函数不派发，
+    // 显式调用 registerData() 串联同步字段（C++ 基类构造期虚函数不派发，
     // Entity::Entity() 内部调用的 registerData() 解析到 MobEntity 而非本类）。
     registerData();
 
@@ -134,7 +125,7 @@ bool SquidEntity::hurt(DamageSource& source, f32 amount)
 
 void SquidEntity::tick()
 {
-    WaterMobEntity::tick();
+    AgeableWaterCreatureEntity::tick();
 
     // 更新喷墨计时器
     if (m_sprayingInk && m_sprayTimer > 0) {
