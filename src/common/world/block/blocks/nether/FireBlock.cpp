@@ -43,6 +43,7 @@
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/FireInfoRegistry.hpp"
+#include "common/world/block/SupportType.hpp"
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -102,17 +103,85 @@ i32 FireBlock::getAge(const BlockState& state) const
     return state.get(BlockStateProperties::AGE_0_15());
 }
 
-BlockState FireBlock::withAge(i32 age) const
+BlockState FireBlock::withAge(IWorld& world, const BlockPos& pos, i32 age) const
 {
-    // TODO: 与 vanilla FireBlock.getStateWithAge 尚有三处差异待补齐：
-    //   1. 目标位置下方是灵魂沙/灵魂土时应产生灵魂火（vanilla 经 BaseFireBlock.getState →
-    //      SoulFireBlock.canSurviveOnBlock 判定），本函数恒返回普通火状态；同文件的
-    //      getFireState 已实现该判定但未被此处复用；
-    //   2. 未按目标位置 6 邻居的可燃性计算 NORTH/SOUTH/EAST/WEST/UP 连接属性（vanilla 走
-    //      FireBlock.getStateForPlacement），导致蔓延新放置的火焰连接属性恒为 false；
-    //   3. 目标位置原本已是火焰时应保留其原连接属性、仅更新 AGE（vanilla 对 fire 状态调用
-    //      setValue(AGE, i)），本函数返回 defaultState 会把既有连接属性清零。
-    return defaultState().with(BlockStateProperties::AGE_0_15(), std::min(age, 15));
+    // 对齐 vanilla FireBlock.getStateWithAge（FireBlock.java:258-261）：
+    //   BlockState blockstate = getState(level, pos);
+    //   return blockstate.is(Blocks.FIRE) ? blockstate.setValue(AGE, age) : blockstate;
+    // 其中 getState（BaseFireBlock.java:45-51）先按下方方块判定灵魂火，否则走
+    // FireBlock.getStateForPlacement（按 6 邻居可燃性设置连接属性）。
+    BlockState base = _getStateForLocation(world, pos);
+
+    // 仅当基础状态为普通火时才套用 AGE（vanilla 的 `blockstate.is(Blocks.FIRE) ? setValue(AGE,age) : blockstate`）。
+    // 灵魂火没有 AGE 属性，强设会抛异常。
+    i32 clampedAge = std::min(age, 15);
+    if (clampedAge < 0) {
+        clampedAge = 0;
+    }
+    if (base.hasProperty(BlockStateProperties::AGE_0_15())) {
+        return base.with(BlockStateProperties::AGE_0_15(), clampedAge);
+    }
+    return base;
+}
+
+BlockState FireBlock::_getStateForLocation(IWorld& world, const BlockPos& pos) const
+{
+    // 对齐 vanilla BaseFireBlock.getState：下方为灵魂火基座（灵魂沙/灵魂土）时返回灵魂火，
+    // 否则按 FireBlock.getStateForPlacement 计算普通火的连接属性。
+    const BlockState* belowState = world.getBlockState(pos.down());
+    if (belowState != nullptr && SoulFireBlock::isSoulFireBase(&belowState->getBlock())) {
+        if (VanillaBlocks::SOUL_FIRE != nullptr) {
+            return VanillaBlocks::SOUL_FIRE->defaultState();
+        }
+        return defaultState();
+    }
+
+    // 对齐 vanilla FireBlock.getStateForPlacement（FireBlock.java:117-131）：
+    //   下方既不可燃、上表面又不可依附 → 逐方向按邻居可燃性设置 NORTH/SOUTH/EAST/WEST/UP；
+    //   否则（下方可燃或可依附）→ 保持默认状态（连接属性全 false）。
+    const BlockState* below = world.getBlockState(pos.down());
+    const bool belowBurnable = below != nullptr && _canBurnState(*below, world, pos.down(), Direction::Up);
+    const bool belowSturdy =
+        below != nullptr && below->isFaceSturdy(world, pos.down(), Direction::Up, SupportType::Full);
+    if (belowBurnable || belowSturdy) {
+        return defaultState();
+    }
+
+    BlockState state = defaultState();
+    for (Direction dir : {Direction::North, Direction::South, Direction::East, Direction::West, Direction::Up}) {
+        const BlockPos neighborPos = pos.offset(dir);
+        const BlockState* neighbor = world.getBlockState(neighborPos);
+        const bool burnable =
+            neighbor != nullptr && _canBurnState(*neighbor, world, neighborPos, Directions::opposite(dir));
+        switch (dir) {
+            case Direction::North:
+                state = state.with(BlockStateProperties::NORTH(), burnable);
+                break;
+            case Direction::South:
+                state = state.with(BlockStateProperties::SOUTH(), burnable);
+                break;
+            case Direction::East:
+                state = state.with(BlockStateProperties::EAST(), burnable);
+                break;
+            case Direction::West:
+                state = state.with(BlockStateProperties::WEST(), burnable);
+                break;
+            case Direction::Up:
+                state = state.with(BlockStateProperties::UP(), burnable);
+                break;
+            default:
+                break;
+        }
+    }
+    return state;
+}
+
+bool FireBlock::_canBurnState(const BlockState& state, IWorld& world, const BlockPos& pos, Direction face)
+{
+    // 对齐 vanilla FireBlock.canBurn(BlockState)：可燃性即该方块的 flammability（点燃概率）> 0。
+    // 注意这与 getFireSpreadSpeed（蔓延速度）不是同一量；former 用于连接属性/位置有效性，
+    // latter 用于 encouragement/蔓延概率。
+    return state.getFlammability(&world, &pos, face) > 0;
 }
 
 const BlockState& FireBlock::getFireState(IWorld& world, const BlockPos& pos)
@@ -259,7 +328,7 @@ void FireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math
     {
         i32 newAge = std::min(15, age + random.nextInt(3) / 2);
         if (newAge != age) {
-            BlockState newState = withAge(newAge);
+            BlockState newState = withAge(world, pos, newAge);
             world.setBlockState(pos, &newState, world::BlockUpdateFlags::UPDATE_CLIENTS);
             state = newState; // 更新本地状态引用
             age = newAge;
@@ -491,7 +560,7 @@ void FireBlock::trySpread(IWorld& world, const BlockPos& pos, i32 age, math::IRa
                         if (!world.isRaining() || !canDieAt(world, targetPos)) {
                             // 设置火焰
                             i32 newAge = std::min(15, age + random.nextInt(5) / 4);
-                            BlockState fireState = withAge(newAge);
+                            BlockState fireState = withAge(world, targetPos, newAge);
                             world.setBlockState(targetPos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
                         }
                     }
@@ -618,7 +687,7 @@ void FireBlock::tryCatchFire(
     if (shouldIgnite) {
         // 点燃：设置火焰方块
         i32 newAge = std::min(15, age + random.nextInt(5) / 4);
-        BlockState fireState = withAge(newAge);
+        BlockState fireState = withAge(world, pos, newAge);
         world.setBlockState(pos, &fireState, world::BlockUpdateFlags::UPDATE_ALL);
     } else {
         // 直接烧毁：移除方块
