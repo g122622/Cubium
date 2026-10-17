@@ -630,3 +630,150 @@ TEST(DoorPathNodeTypeTest, PathSearchPassesClosedWoodenDoorOnlyWithDoorAbility)
         EXPECT_EQ(path.getEnd()->z(), canOpen ? 4 : 1);
     }
 }
+
+// ============================================================================
+// 大型垂滴叶寻路测试
+// ============================================================================
+//
+// 对应 vanilla PathType.BLOCKED 的两个垂滴叶分支：
+//  ① 位置本身是大型垂滴叶 → BLOCKED（被踩踏会倾斜下落，无法稳定站立）；
+//  ② 位置本身不是阻塞方块，但其上方一格是大型垂滴叶 → BLOCKED（阻止实体落到垂滴叶上）。
+// Cubium 将其细分为 BlockAboveBigDripleaf，代价 -1（与 BLOCKED 一致，不可通行）。
+
+TEST(PathNodeTypeCostTest, BlockAboveBigDripleafIsImpassable)
+{
+    EXPECT_LT(getPathCostPenalty(PathNodeType::BlockAboveBigDripleaf), 0.0f);
+    EXPECT_FALSE(isWalkable(PathNodeType::BlockAboveBigDripleaf));
+}
+
+class BigDripleafPathfindingTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+
+    MockRegion m_region;
+};
+
+TEST_F(BigDripleafPathfindingTest, DripleafCellTreatedAsOpen)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF, nullptr);
+    // 垂滴叶叶片碰撞形状极薄，不是可站立台面：本体格不做 Walkable 判定，
+    // 视为悬空（Open），实体实际站在下方坚实台面上。
+    m_region.setWalkable(0, 64, 0, true);
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF->defaultState().stateId());
+    m_region.setWalkable(0, 63, 0, true);
+
+    WalkNodeProcessor processor;
+    processor.setRegion(&m_region);
+
+    EXPECT_EQ(processor.getNodeType(0, 64, 0), PathNodeType::Open);
+}
+
+TEST_F(BigDripleafPathfindingTest, AirAboveDripleafIsNotWalkable)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF, nullptr);
+    // 垂滴叶落在一格实心方块之上：其正上方 (0,65,0) 为空气。实体站到垂滴叶上会将其踩落，
+    // 故该空气格不可通行——对应 vanilla BLOCKED 分支②（blockpos.above() 是垂滴叶 → BLOCKED）。
+    m_region.setWalkable(0, 63, 0, true);
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF->defaultState().stateId());
+
+    WalkNodeProcessor processor;
+    processor.setRegion(&m_region);
+
+    EXPECT_EQ(processor.getNodeType(0, 65, 0), PathNodeType::BlockAboveBigDripleaf);
+}
+
+TEST_F(BigDripleafPathfindingTest, AirAboveDripleafOverAirIsNotWalkable)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF, nullptr);
+    // 垂滴叶悬空放置（下方无支撑）：其上方空气格同样不可通行，不会因下方是空气而放行。
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF->defaultState().stateId());
+
+    WalkNodeProcessor processor;
+    processor.setRegion(&m_region);
+
+    EXPECT_EQ(processor.getNodeType(0, 65, 0), PathNodeType::BlockAboveBigDripleaf);
+}
+
+TEST_F(BigDripleafPathfindingTest, DripleafStemRemainsNormalSolid)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF_STEM, nullptr);
+    // 茎不是可踩踏叶片：按普通实心方块处理（Blocked），不做垂滴叶特殊判定。
+    m_region.setWalkable(0, 64, 0, true);
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF_STEM->defaultState().stateId());
+
+    WalkNodeProcessor processor;
+    processor.setRegion(&m_region);
+
+    EXPECT_EQ(processor.getNodeType(0, 64, 0), PathNodeType::Blocked);
+}
+
+TEST_F(BigDripleafPathfindingTest, SolidBlockAboveDripleafUnaffected)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF, nullptr);
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    // 垂滴叶上方是实心方块：上方格仍不可通行（垂滴叶阻挡语义优先），垂滴叶本体格是 Open。
+    m_region.setWalkable(0, 63, 0, true);
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF->defaultState().stateId());
+    m_region.setWalkable(0, 65, 0, true);
+    m_region.setBlockStateId(0, 65, 0, VanillaBlocks::STONE->defaultState().stateId());
+
+    WalkNodeProcessor processor;
+    processor.setRegion(&m_region);
+
+    EXPECT_EQ(processor.getNodeType(0, 64, 0), PathNodeType::Open);
+    // 上方格位于垂滴叶之上，优先归类为垂滴叶阻挡（不可站立），而非普通的实心 Blocked。
+    EXPECT_EQ(processor.getNodeType(0, 65, 0), PathNodeType::BlockAboveBigDripleaf);
+}
+
+TEST_F(BigDripleafPathfindingTest, DripleafOverridesDangerousCell)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF, nullptr);
+    // 实心判定之后再做垂滴叶分类：危险方块（如岩浆块）仍优先归类为危险类型，
+    // 避免"垂滴叶误放在危险方块格上"掩盖 danger 语义（getNodeTypeWithEntity 的邻域危险扫描依赖它）。
+    m_region.setWalkable(0, 64, 0, true);
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF->defaultState().stateId());
+    m_region.setLava(0, 64, 0, true);
+
+    WalkNodeProcessor processor;
+    processor.setRegion(&m_region);
+
+    EXPECT_EQ(processor.getNodeType(0, 64, 0), PathNodeType::Lava);
+}
+
+TEST_F(BigDripleafPathfindingTest, PathFinderRejectsDripleafShortcut)
+{
+    ASSERT_NE(VanillaBlocks::BIG_DRIPLEAF, nullptr);
+    // 平地 y=64 在 x∈[-3,3]、z∈[-4,4] 连续为坚实地面；z=0 处地面换成大型垂滴叶：
+    //   - 垂滴叶本体格 (0,64,0) → BlockAboveBigDripleaf（不可通行）；
+    //   - 其上方空气格 (0,65,0) 同样不可通行（实体站到垂滴叶上会将其踩落）。
+    // 因此 A* 只能从两侧绕行，任何路径点都不得落在被阻断的格上。
+    for (i32 x = -3; x <= 3; ++x) {
+        for (i32 z = -4; z <= 4; ++z) {
+            m_region.setWalkable(x, 63, z, true);
+        }
+    }
+    // 垂滴叶格：blockstate 为垂滴叶 → 上方空气格不可通行（实体站上去会踩落叶片）。
+    m_region.setBlockStateId(0, 64, 0, VanillaBlocks::BIG_DRIPLEAF->defaultState().stateId());
+
+    auto processor = std::make_unique<WalkNodeProcessor>();
+    processor->setRegion(&m_region);
+    ASSERT_EQ(processor->getNodeType(0, 65, 0), PathNodeType::BlockAboveBigDripleaf);
+    // 垂滴叶所在格本身是悬空 Open（不可站立），实体只能从两侧绕行。
+    ASSERT_NE(processor->getNodeType(0, 64, 0), PathNodeType::Walkable);
+    processor->clear();
+
+    PathFinder finder(std::move(processor));
+    const Path path = finder.findPath(0, 64, -4, 0, 64, 4, 20, 1.0f);
+    ASSERT_FALSE(path.empty());
+    ASSERT_FALSE(path.getPoints().empty());
+
+    for (const PathPoint& point : path.getPoints()) {
+        EXPECT_FALSE(point.x() == 0 && point.z() == 0) << "path must not cross the big dripleaf cell at (0,0)";
+    }
+    // 左右两条绕行线路都会改变 x；若直线穿越被放行，路径会全程停在 x=0。
+    bool detoured = false;
+    for (const PathPoint& point : path.getPoints()) {
+        detoured = detoured || point.x() != 0;
+    }
+    EXPECT_TRUE(detoured) << "path must detour around the dripleaf column";
+}

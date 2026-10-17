@@ -121,6 +121,22 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
     }
 
     // 节点位置语义：查询的是实体脚部所在的空间（空气或可穿过方块），支撑来自下方方块。
+    // 大型垂滴叶语义（对齐 vanilla PathType.BLOCKED 的垂滴叶分支）：
+    //  ① 位置上方一格是垂滴叶 → 不可作为站立空间：实体站上去会踩落叶片（BLOCKED）；
+    //  ② 位置本身是垂滴叶（叶片碰撞形状极薄，不算可站立台面）→ 视为悬空 OPEN，由下方地面支撑；
+    //     若下方跌落过深则 DANGER_FALL。
+    // 危险方块（火焰/岩浆块/仙人掌）在前面已优先返回，不受影响。
+    if (_isBigDripleaf(x, y - 1, z)) {
+        return PathNodeType::BlockAboveBigDripleaf;
+    }
+    if (_isBigDripleaf(x, y, z)) {
+        i32 groundY = _getGroundHeight(x, y, z);
+        if (groundY < y - m_maxFallDistance) {
+            return PathNodeType::DangerFall;
+        }
+        return PathNodeType::Open;
+    }
+
     // 实心方块本身不可作为节点（实体无法站进实心方块内）→ Blocked。
     if (m_region->isWalkable(x, y, z)) {
         return PathNodeType::Blocked;
@@ -137,6 +153,23 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
         return PathNodeType::DangerFall;
     }
     return PathNodeType::Open;
+}
+
+void WalkNodeProcessor::clear()
+{
+    // 基类清空节点缓存；本类无额外的寻路会话局部状态（垂滴叶判定直接按坐标查询方块）。
+    NodeProcessor::clear();
+}
+
+bool WalkNodeProcessor::_isBigDripleaf(i32 x, i32 y, i32 z) const
+{
+    // 大型垂滴叶本体：叶片被踩踏会倾斜下落，寻路不把它当作可站立台面。
+    // 茎（BIG_DRIPLEAF_STEM）不是可踩踏叶片，按普通碰撞方块处理。
+    if (VanillaBlocks::BIG_DRIPLEAF == nullptr) {
+        return false;
+    }
+    const BlockState* state = m_region->getBlockState(x, y, z);
+    return state != nullptr && &state->getBlock() == VanillaBlocks::BIG_DRIPLEAF;
 }
 
 PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
