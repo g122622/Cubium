@@ -143,6 +143,7 @@ TEST_F(ConnectionWireAsyncTest, ReconfigurationTerminalIsEncodedBeforeThePhaseCh
 {
     m_connection->setOutboundPhase(Phase::Play);
     ASSERT_TRUE(m_connection->send({Phase::Play, ir::PlayPacket{ir::play::StartConfiguration{}}}).success());
+    ASSERT_TRUE(m_connection->send(_keepAlive(90)).success());
     ASSERT_TRUE(m_connection->send({Phase::Configuration, ir::ConfigurationPacket{ir::configuration::KeepAlive{91}}})
             .success());
     const auto frames = _readFrames(2);
@@ -155,6 +156,21 @@ TEST_F(ConnectionWireAsyncTest, ReconfigurationTerminalIsEncodedBeforeThePhaseCh
     auto next = tables()->configurationCb->decode(second);
     ASSERT_TRUE(next.success());
     EXPECT_EQ(std::get<ir::configuration::KeepAlive>(next.value()).id, 91);
+    EXPECT_TRUE(m_connection->isConnected());
+}
+
+TEST_F(ConnectionWireAsyncTest, DisconnectUsesPhaseAfterQueuedReconfiguration)
+{
+    m_connection->setOutboundPhase(Phase::Play);
+    ASSERT_TRUE(m_connection->send({Phase::Play, ir::PlayPacket{ir::play::StartConfiguration{}}}).success());
+    ASSERT_TRUE(m_connection->sendDisconnect("Maintenance").success());
+    m_connection->closeAfterFlush();
+    const auto frames = _readFrames(2);
+    ASSERT_EQ(frames.size(), 2u);
+    buffer::RegistryByteBuf bytes(frames[1].data(), frames[1].size());
+    auto decoded = tables()->configurationCb->decode(bytes);
+    ASSERT_TRUE(decoded.success());
+    EXPECT_EQ(std::get<ir::configuration::Disconnect>(decoded.value()).reason, "Maintenance");
 }
 
 TEST_F(ConnectionWireAsyncTest, WrongPhaseFailsAsynchronouslyAndClosesConnection)

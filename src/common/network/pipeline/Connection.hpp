@@ -42,6 +42,7 @@
 #include <array>
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -110,6 +111,11 @@ public:
     [[nodiscard]] Result<void> sendShared(const std::shared_ptr<const OutboundPacket>& packet)
     {
         return m_state->execute([state = m_state, packet] { return state->send(*packet); });
+    }
+    /** @brief 在连接执行器内按实际出站阶段构造断开原因包，避免与排队的协议切换竞争。 */
+    [[nodiscard]] Result<void> sendDisconnect(const std::string& reason)
+    {
+        return m_state->execute([state = m_state, reason] { return state->sendDisconnect(reason); });
     }
     /** @brief 有序装配接收监听器。 */
     void onPacket(PacketListener listener)
@@ -191,6 +197,8 @@ private:
          * Local 模式：直传 IrPacket 到对端 ILocalTransport。
          */
         [[nodiscard]] Result<void> send(const OutboundPacket& packet);
+        /** @brief 使用执行时的协议阶段发送断开原因包。 */
+        [[nodiscard]] Result<void> sendDisconnect(const std::string& reason);
         [[nodiscard]] Result<std::vector<u8>> encodeFrame(const ir::IrPacket& packet);
         void installReceive()
         {

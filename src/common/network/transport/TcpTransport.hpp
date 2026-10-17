@@ -66,7 +66,7 @@ public:
     [[nodiscard]] usize pendingWriteBytes() const noexcept;
 
     static constexpr usize MAX_PENDING_TASKS = 4096;
-    static constexpr usize MAX_PENDING_WRITE_BYTES = 32 * 1024 * 1024;
+    static constexpr usize MAX_PENDING_WRITE_BYTES = usize{32} * 1024 * 1024;
 
 private:
     struct State;

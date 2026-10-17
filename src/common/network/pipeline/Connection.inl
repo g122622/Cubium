@@ -161,7 +161,14 @@ Result<void> Connection<B>::State::send(const OutboundPacket& outbound)
 {
     const auto& packet = outbound.packet();
     if (m_mode == Mode::Local) return m_localTransport->send(packet);
-    if (packet.phase != m_outboundPhase.load()) {
+    const auto outboundPhase = m_outboundPhase.load();
+    if (packet.phase == protocol::ConnectionProtocol::Play &&
+        outboundPhase == protocol::ConnectionProtocol::Configuration) {
+        // 重配置的终端包已经发出，主线程此前生成的游戏广播不再属于当前协议阶段。
+        spdlog::warn("Connection: dropping stale Play packet during reconfiguration");
+        return Result<void>::ok();
+    }
+    if (packet.phase != outboundPhase) {
         return Error(ErrorCode::ProtocolError, "Outbound packet does not match connection phase", "Connection::send");
     }
     const i32 threshold = m_compressionActive ? m_compressionEncoder->threshold() : -1;
@@ -176,6 +183,29 @@ Result<void> Connection<B>::State::send(const OutboundPacket& outbound)
     const auto swap = ProtocolSwapHandler::check(packet, m_flow);
     if (swap.isTerminal) setOutboundPhase(swap.nextPhase);
     return Result<void>::ok();
+}
+
+template <typename B>
+Result<void> Connection<B>::State::sendDisconnect(const std::string& reason)
+{
+    const auto phase = isLocalMode() ? inboundPhase() : outboundPhase();
+    ir::IrPacket packet;
+    packet.phase = phase;
+    switch (phase) {
+        case protocol::ConnectionProtocol::Login:
+            packet.packet = ir::LoginPacket{ir::login::Disconnect{reason}};
+            break;
+        case protocol::ConnectionProtocol::Configuration:
+            packet.packet = ir::ConfigurationPacket{ir::configuration::Disconnect{reason}};
+            break;
+        case protocol::ConnectionProtocol::Play:
+            packet.packet = ir::PlayPacket{ir::play::Disconnect{reason}};
+            break;
+        case protocol::ConnectionProtocol::Handshaking:
+        case protocol::ConnectionProtocol::Status:
+            return Result<void>::ok();
+    }
+    return send(OutboundPacket(std::move(packet)));
 }
 
 template <typename B>

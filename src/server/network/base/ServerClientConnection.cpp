@@ -140,26 +140,10 @@ void ServerClientConnection::disconnect(const std::string& reason)
         return;
     }
 
-    // reason 必须是纯文本：codec 会把它编码为 NBT StringTag（vanilla
-    // Component.literal(text) 的纯文本折叠路径）。若误传 JSON 字符串走 writeString，
-    // 客户端按 NBT 解码时会把首字节当 tag id，报 "Invalid tag id"。
-    const std::string& textReason = reason;
-
-    // 按当前阶段发对应 Clientbound Disconnect 包。Handshaking/Status 阶段无
-    // Disconnect 包定义（协议未规定），直接跳过发包仅断连。
-    const auto phase = m_conn.phase();
-    if (phase == mc::network::protocol::ConnectionProtocol::Login) {
-        mc::network::ir::login::Disconnect dc;
-        dc.reason = textReason;
-        (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::LoginPacket{std::move(dc)}});
-    } else if (phase == mc::network::protocol::ConnectionProtocol::Configuration) {
-        mc::network::ir::configuration::Disconnect dc;
-        dc.reason = textReason;
-        (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::ConfigurationPacket{std::move(dc)}});
-    } else if (phase == mc::network::protocol::ConnectionProtocol::Play) {
-        mc::network::ir::play::Disconnect dc;
-        dc.reason = textReason;
-        (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::PlayPacket{std::move(dc)}});
+    // 原因包与阶段切换共用有序队列，使用执行时的出站阶段编码。
+    auto result = m_conn.sendDisconnect(reason);
+    if (!result.success()) {
+        spdlog::warn("Cannot enqueue disconnect for session {}: {}", m_sessionId, result.error().toString());
     }
 
     closeAfterFlush();
