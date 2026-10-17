@@ -177,6 +177,71 @@ protected:
 // ============================================================================
 
 /**
+ * @brief 头颅置于音符盒上方时解析为对应 MOB_HEAD/CUSTOM 乐器
+ *
+ * 对齐 vanilla NoteBlockInstrument.worksAboveNoteBlock：头颅类的乐器在音符盒上方生效，
+ * 取代下方方块决定音色。覆盖 7 种头颅（站立 + 墙挂变体）。
+ */
+TEST_F(NoteBlockTest, InstrumentType_HeadAboveResolvesMobHeadInstrument)
+{
+    ASSERT_NE(VanillaBlocks::NOTE_BLOCK, nullptr);
+
+    struct HeadCase {
+        const Block* head;
+        const Block* wallHead;
+        BlockStateProperties::NoteBlockInstrument expected;
+    };
+
+    const HeadCase cases[] = {
+        {VanillaBlocks::SKELETON_SKULL,
+            VanillaBlocks::SKELETON_WALL_SKULL,
+            BlockStateProperties::NoteBlockInstrument::Skeleton},
+        {VanillaBlocks::WITHER_SKELETON_SKULL,
+            VanillaBlocks::WITHER_SKELETON_WALL_SKULL,
+            BlockStateProperties::NoteBlockInstrument::WitherSkeleton},
+        {VanillaBlocks::ZOMBIE_HEAD,
+            VanillaBlocks::ZOMBIE_WALL_HEAD,
+            BlockStateProperties::NoteBlockInstrument::Zombie},
+        {VanillaBlocks::CREEPER_HEAD,
+            VanillaBlocks::CREEPER_WALL_HEAD,
+            BlockStateProperties::NoteBlockInstrument::Creeper},
+        {VanillaBlocks::DRAGON_HEAD,
+            VanillaBlocks::DRAGON_WALL_HEAD,
+            BlockStateProperties::NoteBlockInstrument::Dragon},
+        {VanillaBlocks::PIGLIN_HEAD,
+            VanillaBlocks::PIGLIN_WALL_HEAD,
+            BlockStateProperties::NoteBlockInstrument::Piglin},
+        {VanillaBlocks::PLAYER_HEAD,
+            VanillaBlocks::PLAYER_WALL_HEAD,
+            BlockStateProperties::NoteBlockInstrument::CustomHead},
+    };
+
+    for (const auto& c : cases) {
+        if (c.head == nullptr || c.wallHead == nullptr) {
+            continue;
+        }
+        // 站立变体
+        {
+            BlockPos notePos(0, 1, 0);
+            m_world->setBlockAt(notePos, VanillaBlocks::NOTE_BLOCK->defaultState());
+            m_world->setBlockAt(BlockPos(0, 2, 0), c.head->defaultState());
+            BlockState placed = placeNoteBlock(notePos);
+            EXPECT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()), c.expected)
+                << "standing head above note block";
+        }
+        // 墙挂变体
+        {
+            BlockPos notePos(0, 1, 0);
+            m_world->setBlockAt(notePos, VanillaBlocks::NOTE_BLOCK->defaultState());
+            m_world->setBlockAt(BlockPos(0, 2, 0), c.wallHead->defaultState());
+            BlockState placed = placeNoteBlock(notePos);
+            EXPECT_EQ(placed.get(BlockStateProperties::NOTE_BLOCK_INSTRUMENT()), c.expected)
+                << "wall head above note block";
+        }
+    }
+}
+
+/**
  * @brief 测试材质映射的乐器类型
  */
 TEST_F(NoteBlockTest, InstrumentType_MaterialMapping)

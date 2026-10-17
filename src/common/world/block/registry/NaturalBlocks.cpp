@@ -314,9 +314,8 @@ void registerNaturalBlocks()
     // 生物头颅 / 头（站立 + 墙挂变体）
     // 站立头颅持有 ROTATION_0_15 + POWERED，墙挂头颅持有 HORIZONTAL_FACING + POWERED。
     // 头颅均持有 SkullBlockEntity（存储玩家档案 / 自定义名称 / 龙首与猪灵头张嘴动画）。
-    // TODO: 音符盒乐器（MOB_HEAD 类：骷髅/凋灵骷髅/僵尸/苦力怕/龙/猪灵/自定义头）尚未接入
-    //   BlockProperties::Instrument（当前枚举仅含 16 个基础乐器），头颅上方放置音符盒时
-    //   不会发出对应生物音效。待扩展 Instrument 枚举后补全。
+    // 头颅作为音符盒乐器：NoteBlock::resolveInstrument 经 headInstrumentAbove 识别上述头颅方块，
+    //   映射为对应 MOB_HEAD/CUSTOM 乐器（骷髅/凋灵骷髅/僵尸/苦力怕/龙/猪灵/玩家头）。
     // ============================================================================
     const BlockProperties skullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
     const BlockProperties wallSkullProps = BlockProperties(Material::DECORATION).hardness(1.0f).notSolid();
