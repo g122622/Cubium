@@ -37,8 +37,7 @@
 // 5. SimulatedPlayer 默认创造模式：放书 方块侧交互 内部 shrink(1) 作用于选中槽，创造模式是否
 //    消耗不影响 has_book 判定（has_book 翻转由 tryPlaceBook→setHasBook 决定，与消耗无关）。
 // 6. 场景 4 用 test.setBlockType("minecraft:air", pos) 破坏讲台 → ServerWorld::setBlockState 调用
-   LecternEntity::preRemoveSideEffects → 掉落书本
-//    掉落书物品实体，用 assertItemEntityPresent 判定。
+//    LecternEntity::preRemoveSideEffects 掉落书物品实体，用 assertItemEntityPresent 判定。
 //
 // 不测「翻页红石脉冲/比较器信号」：翻页需 GUI 交互（SimulatedPlayer 无翻页 API），跳过。
 //   TODO: 待 SimulatedPlayer 补 lectern nextPage 脚本绑定后补翻页红石脉冲测试。

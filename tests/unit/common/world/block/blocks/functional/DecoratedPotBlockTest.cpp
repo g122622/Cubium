@@ -28,6 +28,7 @@
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
@@ -236,6 +237,16 @@ public:
     [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
     [[nodiscard]] const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
     [[nodiscard]] i32 spawnedEntityCount() const { return m_spawnedEntityCount; }
+
+    /// 返回第 index 个生成的物品实体所承载的物品堆（供断言掉落内容是否正确）
+    [[nodiscard]] ItemStack spawnedItemStackAt(std::size_t index) const
+    {
+        if (index >= m_spawnedEntities.size()) {
+            return ItemStack();
+        }
+        auto* item = dynamic_cast<ItemEntity*>(m_spawnedEntities[index].get());
+        return item != nullptr ? item->getItemStack() : ItemStack();
+    }
 
     void resetTrackedState()
     {
@@ -992,7 +1003,21 @@ TEST_F(DecoratedPotBlockTest, OnBlockRemoved_CrackedState_ClearsStoredItem)
     static_cast<DecoratedPotBlockEntity*>(entityBefore)->preRemoveSideEffects(pos, crackedState);
 
     // CRACKED 必须掉落恰好 4 个陶片（而非走基类的"掉落内容物 1 个"路径）
-    EXPECT_EQ(m_world.spawnedEntityCount() - spawnBefore, 4);
+    ASSERT_EQ(m_world.spawnedEntityCount() - spawnBefore, 4);
+
+    // 且掉落的是图案映射出的陶片物品（而非内容物钻石）——仅查数量会让"掉落 4 个错误物品"通过
+    const auto& droppedPatterns = deco.ordered();
+    for (i32 i = 0; i < 4; ++i) {
+        const Item* expected = getItemFromPattern(droppedPatterns[static_cast<std::size_t>(i)]);
+        ASSERT_NE(expected, nullptr) << "pattern " << i << " has no mapped item";
+        const ItemStack dropped = m_world.spawnedItemStackAt(static_cast<std::size_t>(spawnBefore + i));
+        ASSERT_FALSE(dropped.isEmpty()) << "drop " << i << " is not an item entity";
+        EXPECT_EQ(dropped.getItem(), expected) << "drop " << i << " has wrong item type";
+    }
+    // 内容物（钻石）不应出现在掉落中
+    for (i32 i = 0; i < 4; ++i) {
+        EXPECT_NE(m_world.spawnedItemStackAt(static_cast<std::size_t>(spawnBefore + i)).getItem(), diamond);
+    }
 
     // 且内容物被清空（CRACKED 不掉落内容物）
     auto* entityAfter = m_world.getBlockEntity(pos);
