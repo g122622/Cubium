@@ -85,6 +85,50 @@
 
 namespace mc {
 
+namespace {
+
+/**
+ * @brief 狼专用「被攻击后反击并进入愤怒」目标
+ *
+ * 对齐 vanilla Wolf 的愤怒链路：vanilla 中 Wolf 实现 NeutralMob，受击时由
+ * LivingEntity.hurt 链路的 updatePersistentAnger 依据 getTarget() 写入 persistentAngerTarget，
+ * 而目标 4（NearestAttackableTargetGoal<Player>，谓词 this::isAngryAt）据此在愤怒期间
+ * 持续锁定该玩家。
+ *
+ * Cubium 无 NeutralMob 中间层，将「受击设愤怒 + 记录愤怒来源」语义落在 setRevengeTarget
+ * （设 attackTarget + setAngry(true) + revengeTargetId + revengeTimer），与 BeeEntity/BeeAngerGoal
+ * 同范式。此处继承 HurtByTargetGoal，在 startExecuting（基类已把攻击者设为 attackTarget）之后
+ * 补设复仇目标，使优先级 4 的愤怒谓词（getRevengeTarget()==玩家）能被满足。
+ *
+ * 注：仅当攻击者是玩家时才记录复仇目标——狼对非玩家（骷髅、羊等）的常规反击由 HurtByTargetGoal
+ * 自身处理，不应把它们写进复仇目标，否则会干扰「愤怒时攻击玩家」目标的语义。
+ */
+class WolfAngerGoal : public entity::ai::goal::HurtByTargetGoal {
+public:
+    explicit WolfAngerGoal(WolfEntity* wolf)
+        : HurtByTargetGoal(wolf, true) // alertAllies = true（对齐 vanilla setAlertOthers）
+        , m_wolf(wolf)
+    {}
+
+    void startExecuting() override
+    {
+        HurtByTargetGoal::startExecuting();
+
+        // 基类 startExecuting 已通过 TargetGoal::startExecuting 设了 attackTarget；
+        // 若攻击者是玩家，则补设复仇目标与愤怒，令「愤怒时攻击玩家」目标可在
+        // HurtByTargetGoal 的记忆过期后重新锁定该玩家。
+        LivingEntity* attacker = m_wolf->getLastHurtBy();
+        if (attacker != nullptr && dynamic_cast<Player*>(attacker) != nullptr) {
+            m_wolf->setRevengeTarget(attacker);
+        }
+    }
+
+private:
+    WolfEntity* m_wolf;
+};
+
+} // namespace
+
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> WolfEntity::DATA_INTERESTED_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i32> WolfEntity::DATA_COLLAR_COLOR_PARAM = entity::EntityDataManager::createKey<i32>();
@@ -971,15 +1015,36 @@ void WolfEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::OwnerHurtTargetGoal>(this));
 
     // 优先级 3: 被攻击后反击，并呼叫同伴
-    // setCallsForHelp = true，召唤附近的狼一起攻击
-    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // setCallsForHelp = true，召唤附近的狼一起攻击。
+    // 使用 WolfAngerGoal（HurtByTargetGoal 子类）：当攻击者是玩家时额外记录复仇目标，
+    // 供优先级 4 的「愤怒时攻击玩家」目标在记忆过期后重新锁定（对齐 vanilla 愤怒链路）。
+    m_targetSelector.addGoal(3, std::make_unique<WolfAngerGoal>(this));
 
     // 优先级 4: 愤怒时攻击玩家
-    // 需要配合 IAngerable 接口，当玩家攻击狼后，狼会记住玩家并攻击
-    // 当前简化实现：不注册此目标，因为狼默认不会主动攻击玩家
-    // TODO: 对齐 vanilla Wolf 实现愤怒时攻击玩家（IAngerable + NearestAttackableTargetGoal<Player>）
-    // m_targetSelector.addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(
-    //     this, true, 10, /* angerPredicate */));
+    //
+    // 对齐 vanilla Wolf.registerGoals（Wolf.java:140）：
+    //   targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false,
+    //   this::isAngryAt));
+    // 即「攻击狼当前愤怒的玩家」，随机间隔 10 tick、需视线、非「是否已看到目标」模式。
+    //
+    // 愤怒状态与愤怒来源由 WolfAngerGoal（优先级 3）写入：玩家攻击狼时调 setRevengeTarget，
+    // 设 attackTarget + setAngry(true) + revengeTargetId（Cubium 无 NeutralMob 中间层，
+    // setRevengeTarget 对应 vanilla 的 persistentAngerTarget 语义）。
+    // 谓词 isAngryAt 取 vanilla NeutralMob.isAngryAt 的「getPersistentAngerTarget()==玩家」语义，
+    // Cubium 相应地以 isAngry() && getRevengeTarget()==entity 表达——愤怒期间锁定该复仇玩家，
+    // 即便 HurtByTargetGoal 的记忆（unseenMemoryTicks）已过期仍能重新捕获。
+    //
+    // 注意：vanilla 的 isAngryAt 含 isValidPlayerTarget 门控（排除创造/旁观玩家）与 canAttack 门控，
+    // 由 NearestAttackableTargetGoal::isSuitableTarget 统一施加；此处谓词只表达「愤怒目标」这一附加条件。
+    m_targetSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this,
+            true, // checkSight
+            10,   // chance - 对齐 vanilla randomInterval=10（每 10 tick 检查一次）
+            [this](const LivingEntity* entity) -> bool {
+                // 谓词只表达「该玩家是否是我当前愤怒的目标」这一附加条件；
+                // 创造/旁观排除、同盟、canAttack 等由 isSuitableTarget 统一施加（对齐 vanilla 分层）。
+                return isAngry() && entity != nullptr && entity == getRevengeTarget();
+            }));
 
     // 优先级 5: 未驯服时攻击羊、兔子、狐狸
     // TARGET_ENTITIES 谓词：羊、兔子、狐狸

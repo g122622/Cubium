@@ -30,6 +30,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -48,6 +49,9 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+#include "entity/ai/goal/Goal.hpp"
+#include "entity/ai/goal/GoalSelector.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
 
 // Player 头文件用于 interactMob 测试
 #include "common/entity/entities/player/Player.hpp"
@@ -104,6 +108,15 @@ public:
     }
 
     void setGroundCollisionEnabled(bool enabled) { m_groundCollisionEnabled = enabled; }
+
+    /// 注入 getEntitiesInRange 的返回列表，供目标选择器（NearestAttackableTargetGoal 经
+    /// findClosestEntity→world->getEntitiesInRange）能发现测试实体。
+    void setEntitiesInRange(std::vector<Entity*> entities) { m_entitiesInRange = std::move(entities); }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return m_entitiesInRange;
+    }
 
     [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB& box) const override
     {
@@ -210,12 +223,19 @@ private:
 
     // 地面碰撞开关（默认启用，使狼在测试中视为在地面）
     bool m_groundCollisionEnabled = true;
+
+    // getEntitiesInRange 返回列表（默认空；目标选择器测试注入玩家等）
+    std::vector<Entity*> m_entitiesInRange;
 };
 
 class WolfEntityTestFixture : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        // 注册所有实体类型，使 entityType() 查表非 null——目标选择器 isSuitableTarget 的
+        // canAttackType(*targetType) 依赖目标 entityType() 非 null，未注册时返 false。
+        // registerAll 进程级幂等。
+        entity::VanillaEntities::registerAll();
         VanillaBlocks::initialize();
         Items::initialize();
         item::tag::ItemTags::initialize();
@@ -224,6 +244,22 @@ protected:
     }
 
     WolfTestWorld m_world;
+};
+
+/**
+ * @brief 可公开 targetSelector() 的测试用狼实体
+ *
+ * 用于验证 registerGoals() 注册的目标选择器内容（优先级/类型/谓词语义）。
+ * 命名加 Goals 后缀以区别于文件后半段的 TestWolfEntity（甩水状态机测试用）。
+ */
+class TestWolfEntityGoals : public WolfEntity {
+public:
+    explicit TestWolfEntityGoals(EntityInstanceId id)
+        : WolfEntity(id, mc::test::testEcsRegistry())
+    {}
+
+    using WolfEntity::tick;
+    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
 };
 
 // ============================================================================
@@ -526,6 +562,124 @@ TEST_F(WolfEntityTestFixture, TailAngle_AngryWolf)
     // 愤怒狼尾巴角度应该竖起
     f32 tailAngle = wolf.getTailAngle();
     EXPECT_FLOAT_EQ(tailAngle, 1.539f);
+}
+
+// ============================================================================
+// 目标选择器测试（registerGoals）
+//
+// 对齐 vanilla Wolf.registerGoals（Wolf.java:137-144）：
+//   target 4 = NearestAttackableTargetGoal<Player>(this, Player.class, 10, true, false, this::isAngryAt)
+// 即「攻击狼当前愤怒的玩家」。此前 Cubium 缺失该目标（TODO 占位），狼愤怒后无法重新锁定玩家。
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, RegisterGoals_HasAngryPlayerTargetAtPriority4)
+{
+    TestWolfEntityGoals wolf(EntityInstanceId(0));
+
+    // 优先级 4 应存在一个 NearestAttackableTargetGoal（Player 版本），即「愤怒时攻击玩家」。
+    const entity::ai::Goal* goalAt4 = nullptr;
+    for (const auto& pg : wolf.testTargetSelector().getAllGoals()) {
+        if (pg.getPriority() == 4) {
+            goalAt4 = pg.getGoal();
+            break;
+        }
+    }
+    ASSERT_NE(goalAt4, nullptr) << "WolfEntity should register a goal at target-selector priority 4";
+    EXPECT_NE(dynamic_cast<const entity::ai::goal::NearestAttackableTargetGoal<Player>*>(goalAt4), nullptr)
+        << "Priority-4 target goal should be NearestAttackableTargetGoal<Player> (angry-at-player)";
+
+    // 优先级 8 应仍是愤怒重置目标（驯服后未设置攻击目标时重置愤怒状态）。
+    const entity::ai::Goal* goalAt8 = nullptr;
+    for (const auto& pg : wolf.testTargetSelector().getAllGoals()) {
+        if (pg.getPriority() == 8) {
+            goalAt8 = pg.getGoal();
+            break;
+        }
+    }
+    ASSERT_NE(goalAt8, nullptr) << "WolfEntity should register a goal at target-selector priority 8";
+    EXPECT_NE(dynamic_cast<const entity::ai::goal::ResetAngerGoal<WolfEntity>*>(goalAt8), nullptr)
+        << "Priority-8 target goal should be ResetAngerGoal<WolfEntity>";
+}
+
+TEST_F(WolfEntityTestFixture, RegisterGoals_AngryPlayerGoal_AcquiresPlayerTarget)
+{
+    // 行为验证：狼对某玩家愤怒（setRevengeTarget 设复仇目标 + 愤怒，对应受击链路）后，
+    // 即使攻击目标已被清空（模拟 HurtByTargetGoal 记忆过期），优先级 4 的
+    // 「愤怒时攻击玩家」目标仍应重新锁定该复仇玩家。
+    TestWolfEntityGoals wolf(EntityInstanceId(0));
+    wolf.setWorld(&m_world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setHealth(wolf.maxHealth());
+    wolf.setPosition(0.0, 64.0, 0.0);
+    // 目标选择器每 tick 评估（绕过 tickRate=2 节流），便于单测稳定触发。
+    wolf.testTargetSelector().setTickRate(1);
+
+    // 构造一个非创造/非旁观的玩家作为愤怒目标。
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player.setWorld(&m_world);
+    player.setTypeId("minecraft:player");
+    player.setGameMode(GameMode::Survival);
+    player.setPosition(1.0, 64.0, 0.0);
+
+    // 让目标选择器的搜索（world->getEntitiesInRange）能发现该玩家，
+    // 并登记 id 反查表（getRevengeTarget 经 world->getEntity(id) 解析复仇目标）。
+    m_world.setEntitiesInRange({&player});
+    m_world.registerEntityForLookup(&player);
+
+    // 模拟狼被该玩家攻击：记录复仇目标并进入愤怒。
+    wolf.setRevengeTarget(&player);
+    ASSERT_TRUE(wolf.isAngry()) << "setRevengeTarget should raise anger";
+    ASSERT_EQ(wolf.getRevengeTarget(), &player);
+
+    // 清空当前攻击目标，模拟 HurtByTargetGoal 的反击记忆已过期，
+    // 只剩「仍在愤怒」这一状态。此时只有优先级 4 能重新锁定玩家。
+    wolf.setAttackTarget(nullptr);
+    ASSERT_EQ(wolf.attackTarget(), nullptr);
+
+    // 驱动目标选择器：优先级 4 应依据复仇目标重新接受该玩家。
+    // 该目标 chance=10（每 10 tick 检查一次，reducedTickDelay 后为 5），
+    // 单 tick 命中的概率仅 1/5，故多 tick 驱动以覆盖概率分支。
+    for (i32 i = 0; i < 100 && wolf.attackTarget() == nullptr; ++i) {
+        wolf.testTargetSelector().tick();
+    }
+    EXPECT_EQ(wolf.attackTarget(), &player)
+        << "An angry wolf should re-acquire the player it is angry at via the angry-at-player goal";
+}
+
+TEST_F(WolfEntityTestFixture, RegisterGoals_NonAngryWolf_DoesNotAcquirePlayerTarget)
+{
+    // 对照组：非愤怒（angerTime=0）的狼即便残留复仇目标，也不应通过优先级 4 锁定玩家——
+    // 谓词的 isAngry() 门控应拒绝。
+    TestWolfEntityGoals wolf(EntityInstanceId(0));
+    wolf.setWorld(&m_world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setHealth(wolf.maxHealth());
+    wolf.setPosition(0.0, 64.0, 0.0);
+
+    Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player.setWorld(&m_world);
+    player.setTypeId("minecraft:player");
+    player.setGameMode(GameMode::Survival);
+    player.setPosition(1.0, 64.0, 0.0);
+
+    // 让目标选择器的搜索能发现该玩家（与正向测试对称），并登记 id 反查表。
+    m_world.setEntitiesInRange({&player});
+    m_world.registerEntityForLookup(&player);
+
+    // 记录复仇目标后清零愤怒，模拟「复仇目标残留但已不愤怒」的状态。
+    wolf.setRevengeTarget(&player);
+    wolf.setAngerTime(0);
+    ASSERT_FALSE(wolf.isAngry());
+
+    // 清除攻击目标后驱动选择器：非愤怒的狼不应重新锁定该玩家。
+    // 与正向测试对称地多 tick 驱动（覆盖 chance=10 的概率分支）。
+    wolf.setAttackTarget(nullptr);
+    wolf.testTargetSelector().setTickRate(1);
+    for (i32 i = 0; i < 100; ++i) {
+        wolf.testTargetSelector().tick();
+    }
+    EXPECT_EQ(wolf.attackTarget(), nullptr)
+        << "A non-angry wolf should not acquire a player target via the angry-at-player goal";
 }
 
 // ============================================================================
