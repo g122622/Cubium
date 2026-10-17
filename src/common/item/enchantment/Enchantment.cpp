@@ -116,6 +116,16 @@ void Enchantment::onLocationEffectDeactivated(LivingEntity& entity, const ItemSt
     (void)level;
 }
 
+void Enchantment::onTick(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot, i32 level) const
+{
+    // 默认实现：无每 tick 效果
+    // 子类（如 SoulSpeedEnchantment）覆盖此方法实现持续型效果
+    (void)entity;
+    (void)stack;
+    (void)slot;
+    (void)level;
+}
+
 i32 Enchantment::getMinCost(i32 level) const
 {
     // 默认公式：1 + (level - 1) * 10

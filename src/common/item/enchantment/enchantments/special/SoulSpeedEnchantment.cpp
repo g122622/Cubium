@@ -31,6 +31,7 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -60,6 +61,9 @@ bool SoulSpeedEnchantment::onLocationChanged(
     //       (active==false AND movement_affected_by ∈ #soul_speed_blocks) )
     // 即：已激活时允许离地（起跳后仍保留修饰符，直到离开灵魂沙上方或开始飞行）；
     //     未激活时必须站在灵魂沙/灵魂土上。
+    //
+    // 本方法由装备同步与位置检测管线在位置可能变化时调用（含未移动时的周期重评估），
+    // 粒子与音效只属于 TICK 组件，故全部由 onTick 产出，本方法不产生这两类副作用。
     if (entity.isRiding()) {
         return false;
     }
@@ -77,16 +81,49 @@ bool SoulSpeedEnchantment::onLocationChanged(
         applySoulSpeedModifiers(entity, level);
     }
 
-    // 耐久消耗（vanilla soul_speed.json 的 change_item_damage 要求 is_on_ground==true +
-    // movement_affected_by ∈ #soul_speed_blocks + 4%/级 随机概率），故仅在站在灵魂方块上时消耗。
+    // 耐久消耗（location_changed 第二项的 change_item_damage，条件为 is_on_ground==true +
+    // movement_affected_by ∈ #soul_speed_blocks + random_chance(0.04 固定值，与等级无关)），
+    // 故仅在站在灵魂方块上时按位置变化事件消耗。
     if (entity.onGround() && onSoulBlock) {
         tryConsumeDurability(entity, slot);
     }
 
-    // 生成灵魂粒子效果和音效
-    spawnSoulParticles(entity);
-
     return true; // 灵魂疾行处于活跃状态
+}
+
+void SoulSpeedEnchantment::onTick(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot, i32 level) const
+{
+    (void)stack;
+    (void)level;
+
+    // soul_speed 只能附在靴子上（supported_items 为 #enchantable/foot_armor），TICK 组件同样只
+    // 作用于 feet 槽；其他槽位即便残存该附魔也不产出效果。
+    if (slot != EquipmentSlot::Feet) {
+        return;
+    }
+
+    // TICK 组件的 requirements（vanilla soul_speed.json）：
+    //   periodic_tick==5 AND is_on_ground==true AND is_flying==false AND
+    //   horizontal_speed >= 1e-5 AND movement_affected_by ∈ #soul_speed_blocks
+    if (entity.ticksExisted() % 5 != 0 || !entity.onGround() || isFlying(entity)) {
+        return;
+    }
+    if (!isOnSoulSpeedBlock(entity)) {
+        return;
+    }
+    const f32 horizontalSpeed =
+        std::sqrt(entity.velocity().x * entity.velocity().x + entity.velocity().z * entity.velocity().z);
+    if (horizontalSpeed < 1.0E-5f) {
+        return;
+    }
+
+    // 两个 TICK 效果按声明顺序执行：先 spawn_particles（无随机），再按 35% 概率 play_sound。
+    // 音调 Uniform(0.6, 1.0) 在条件通过后才抽取，随机序列为先 chance 后 pitch。
+    spawnSoulParticles(entity);
+    if (entity.getRandom().nextFloat() < 0.35f) {
+        const f32 pitch = 0.6f + entity.getRandom().nextFloat() * 0.4f;
+        entity.playSound(SoundEvents::PARTICLE_SOUL_ESCAPE, 0.6f, pitch);
+    }
 }
 
 void SoulSpeedEnchantment::onLocationEffectDeactivated(
@@ -183,34 +220,19 @@ void SoulSpeedEnchantment::spawnSoulParticles(LivingEntity& entity) const
         return;
     }
 
-    // 粒子效果条件：
-    // - periodicTick(5)：每5tick触发一次
-    // - 非飞行、在地面、在灵魂沙/土上、正在移动
-    // TODO: 原版把粒子与音效放在 EnchantmentEffectComponents.TICK 组件中，由实体每 tick 的
-    //       tickEffects 派发；本项目尚无该派发点，只能在位置变化事件（含每 20 tick 的周期性重评估）
-    //       里触发，故原地站立时粒子/音效频率低于原版。待补齐附魔 tick 派发后应迁移到 tick 路径。
-    // 粒子类型: ParticleTypes.SOUL
-    // 粒子偏移: SpawnParticlesEffect.inBoundingBox() + offsetFromEntityPosition(0.1F)
-    // 粒子速度: movementScaled(-0.2F) + fixedVelocity(ConstantFloat.of(0.1F))
-    // 粒子数量: ConstantFloat.of(1.0F) = 1个粒子
-    if (entity.ticksExisted() % 5 == 0) {
-        // 检查实体是否在水平方向移动
-        f32 horizontalSpeed =
-            std::sqrt(entity.velocity().x * entity.velocity().x + entity.velocity().z * entity.velocity().z);
-        if (horizontalSpeed > 1.0E-5f) {
-            world->addParticle(
-                particle::ParticleTypeId::Soul, entity.position() + Vector3(0.0, 0.1, 0.0), Vector3(0.0, 0.1, 0.0));
-        }
-    }
-
-    // 音效条件：35% 随机概率，与粒子条件相同
-    // 音效: SoundEvents.PARTICLE_SOUL_ESCAPE
-    // 音量: 0.6
-    // 音调: 0.6~1.0 随机
-    if (entity.getRandom().nextFloat() < 0.35f) {
-        f32 pitch = 0.6f + entity.getRandom().nextFloat() * 0.4f;
-        entity.playSound(SoundEvents::PARTICLE_SOUL_ESCAPE, 0.6f, pitch);
-    }
+    // 对齐 soul_speed.json 的 spawn_particles：
+    //   水平位置 in_bounding_box：position.xz + (nextDouble()-0.5) * 碰撞箱宽度
+    //   垂直位置 entity_position + offset 0.1
+    //   水平速度 movement_scale(-0.2) * 实体对应轴速度
+    //   垂直速度 base 0.1（常量）
+    //   速度倍率 speed = 1.0
+    const AxisAlignedBB box = entity.boundingBox();
+    const f32 width = box.maxX - box.minX;
+    const f32 x = static_cast<f32>(entity.position().x + (entity.getRandom().nextDouble() - 0.5) * width);
+    const f32 y = static_cast<f32>(entity.position().y + 0.1);
+    const f32 z = static_cast<f32>(entity.position().z + (entity.getRandom().nextDouble() - 0.5) * width);
+    const Vector3 velocity(entity.velocity().x * -0.2f, 0.1f, entity.velocity().z * -0.2f);
+    world->addParticle(particle::ParticleTypeId::Soul, Vector3(x, y, z), velocity);
 }
 
 void SoulSpeedEnchantment::tryConsumeDurability(LivingEntity& entity, i32 slot) const
@@ -220,9 +242,8 @@ void SoulSpeedEnchantment::tryConsumeDurability(LivingEntity& entity, i32 slot) 
         return;
     }
 
-    // ChangeItemDamage 效果：
-    // - 损坏量: 1点耐久
-    // - 概率: 固定4%，与附魔等级无关
+    // ChangeItemDamage(constant 1)：损坏量固定 1 点；random_chance 的 4% 由本方法门控
+    // （vanilla 该 chance 为 enchantment_level 提供者，但 amount 是常量 0.04，与等级无关）。
     if (entity.getRandom().nextFloat() >= getDurabilityConsumeChance(0)) {
         return;
     }

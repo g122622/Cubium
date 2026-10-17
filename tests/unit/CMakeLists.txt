@@ -207,7 +207,8 @@ add_executable(mc_tests
     common/item/enchantment/AttemptDamageItemTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/item/enchantment/LocationEnchantmentTest.cpp
-    common/item/enchantment/BlastProtectionAttributeTest.cpp
+    # 附魔每 tick 效果派发（runTickEffects / Enchantment::onTick）与灵魂疾行 TICK 组件
+    common/item/enchantment/EnchantmentTickEffectsTest.cpp
     common/item/enchantment/BlastProtectionAttributeTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     # ContainerType 的 wire 取值锁定（数值即菜单注册表项序，偏移会让原版客户端建错窗口）

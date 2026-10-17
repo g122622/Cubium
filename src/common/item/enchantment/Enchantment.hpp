@@ -344,6 +344,23 @@ public:
      */
     virtual void onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const;
 
+    // ========== 每 tick 附魔效果 ==========
+
+    /**
+     * @brief 持有者每 tick 调用（对应 vanilla Enchantment#tick 派发 EnchantmentEffectComponents.TICK）
+     *
+     * 装备同步管线只把该物品槽的附魔转发一次；实现方负责判断自身位置依赖是否处于活跃状态
+     * （经 LivingEntity::locationEnchantmentTracker 查询），因此同一时刻最多只有一个槽位产出效果。
+     *
+     * 用于实现灵魂疾行等每 tick 持续的效果（粒子、音效、耐久损耗）。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     */
+    virtual void onTick(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot, i32 level) const;
+
     // ========== 稀有度权重 ==========
 
     /**

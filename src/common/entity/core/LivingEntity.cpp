@@ -1591,6 +1591,14 @@ void LivingEntity::tick()
     // 对应 MC 原版 LivingEntity.tick() 中的 detectEquipmentUpdates() 调用
     detectEquipmentUpdates();
 
+    // 派发每 tick 附魔效果（服务端）
+    // 对应 vanilla LivingEntity.baseTick() 开头的 EnchantmentHelper.tickEffects(serverlevel, this)：
+    // 各附魔的 TICK 组件效果（如灵魂疾行的粒子/音效）在此派发，与位置检测的先后不影响结果：
+    // TICK 组件要求自身独立判定环境（着地、脚下方块、水平速度），不读取位置依赖的活跃状态。
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        item::enchant::EnchantmentHelper::runTickEffects(*this);
+    }
+
     // 检测方块位置变化（服务端），触发位置依赖的附魔效果
     // 对应 MC Java 的 LivingEntity.baseTick() 中 lastPos != blockPosition() 检测。
     // 守卫 m_world：与同文件 tickFreeze/updateAirSupply/tickArrows 等位置一致，

@@ -158,7 +158,7 @@ const Enchantment* e = EnchantmentRegistry::get("minecraft:fortune");
 
 ### 6. 耐久附魔对盔甲有特殊处理
 
-盔甲的耐久保护概率只有工具的 40%（`UnbreakingEnchantment::shouldArmorConsumeDurability`），不要误用工具的方法。
+盔甲的耐久保护概率只有工具的 40%：`EnchantmentHelper::shouldIgnoreDurabilityLoss(level, isArmor, random)` 对盔甲先以 60% 概率直接放弃保护，再对 `level + 1` 取随机整数判定。耐久判定只有这一处实现，不要在附魔类里另写一套。
 
 ### 7. 位置依赖附魔的激活/停用成对性
 

@@ -372,8 +372,8 @@ public:
     /**
      * @brief 检查耐久附魔是否阻止耐久损耗
      *
-     * MC 1.16.5: 每级有 level/(level+1) 概率避免损耗
-     * 护甲有 60% 概率不触发耐久效果
+     * 每个损耗点：对 level + 1 取随机整数，非零即忽略该点（概率 level/(level+1)）；
+     * 护甲额外先以 60% 概率直接放弃保护（对应 vanilla remove_binomial 的护甲 chance 缩放）。
      *
      * @param level 耐久等级
      * @param isArmor 是否为护甲
@@ -459,6 +459,21 @@ public:
      * @param slot 装备槽位
      */
     static void stopLocationBasedEffects(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot);
+
+    // ========== 每 tick 附魔效果 ==========
+
+    /**
+     * @brief 派发实体装备上附魔的每 tick 效果
+     *
+     * 遍历实体全部装备槽位，对槽内物品的每个附魔调用一次 Enchantment::onTick。
+     * 同一附魔可能同时装在多个槽位，由实现方经 LocationEnchantmentTracker 判定
+     * 位置依赖是否活跃来去重，避免重复产出粒子/音效/耐久损耗。
+     *
+     * 仅应在服务端调用（粒子、音效、耐久损耗均属权威状态）。
+     *
+     * @param entity 实体
+     */
+    static void runTickEffects(LivingEntity& entity);
 
     /**
      * @brief 停止实体所有装备上所有位置依赖的附魔效果

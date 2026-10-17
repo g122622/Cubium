@@ -37,12 +37,10 @@ namespace enchant {
  *
  * 减少物品耐久度消耗的概率。
  *
- * 效果:
- * - 每级有 level / (level + 1) 的概率不消耗耐久
- *   I: 50%, II: 67%, III: 75%
- * - 对于盔甲，有60%概率忽略耐久保护，实际保护概率为 0.4 * level / (level + 1)
- *   I: 20%, II: 27%, III: 30%
- * - 最大 III 级
+ * 本类只承载附魔元数据（id/等级/稀有度/花费）。耐久损耗的随机判定由
+ * ItemStack::attemptDamageItem → EnchantmentHelper::shouldIgnoreDurabilityLoss 唯一承载：
+ * 每次损耗点对 level + 1 取随机整数，非零即忽略该点（概率 level / (level + 1)）；
+ * 盔甲额外先以 60% 概率跳过保护。
  */
 class UnbreakingEnchantment : public Enchantment {
 public:
@@ -67,22 +65,6 @@ public:
     [[nodiscard]] i32 getMinCost(i32 level) const override { return 5 + (level - 1) * 8; }
 
     [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 50; }
-
-    /**
-     * @brief 计算耐久保护的物品是否应该消耗耐久
-     * @param level 附魔等级
-     * @param random 随机数生成器
-     * @return true 如果应该消耗耐久，false 如果不消耗
-     */
-    [[nodiscard]] static bool shouldConsumeDurability(i32 level, math::IRandom& random);
-
-    /**
-     * @brief 计算盔甲的耐久保护
-     * @param level 附魔等级
-     * @param random 随机数生成器
-     * @return true 如果应该消耗耐久，false 如果不消耗
-     */
-    [[nodiscard]] static bool shouldArmorConsumeDurability(i32 level, math::IRandom& random);
 
     /**
      * @brief 获取耐久保护概率（非盔甲）
