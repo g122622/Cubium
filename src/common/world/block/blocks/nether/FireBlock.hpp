@@ -65,7 +65,19 @@ public:
     // ========== 状态属性 ==========
 
     [[nodiscard]] i32 getAge(const BlockState& state) const;
-    [[nodiscard]] BlockState withAge(i32 age) const;
+
+    /**
+     * @brief 按目标位置环境计算带指定年龄的火焰状态
+     *
+     * 对齐 vanilla FireBlock.getStateWithAge（FireBlock.java:258-261）：
+     * 先按位置下方方块决定普通火/灵魂火并计算连接属性（{@link _getStateForLocation}），
+     * 再套用 AGE。目标位置原本已是火时会保留其连接属性，仅更新 AGE。
+     *
+     * @param world 世界引用
+     * @param pos 目标位置
+     * @param age 火焰年龄（自动截断到 0-15）
+     */
+    [[nodiscard]] BlockState withAge(IWorld& world, const BlockPos& pos, i32 age) const;
 
     // ========== 放置逻辑 ==========
 
@@ -161,6 +173,27 @@ protected:
      * @return 对应维度的 infiniburn 标签引用
      */
     [[nodiscard]] static const BlockTag& getInfiniburnTag(DimensionId dimension);
+
+    /**
+     * @brief 按目标位置环境计算火焰基础状态（含普通火/灵魂火与连接属性）
+     *
+     * 对齐 vanilla BaseFireBlock.getState：下方为灵魂火基座返回灵魂火；否则对齐
+     * FireBlock.getStateForPlacement——下方既不可燃又不可依附时逐方向按邻居可燃性
+     * 设置 NORTH/SOUTH/EAST/WEST/UP，否则返回默认状态（连接属性全 false）。
+     *
+     * @param world 世界引用
+     * @param pos 目标位置
+     * @return 火焰状态（不含 AGE 套用，AGE 由 withAge 设置）
+     */
+    [[nodiscard]] BlockState _getStateForLocation(IWorld& world, const BlockPos& pos) const;
+
+    /**
+     * @brief 某方块状态是否可燃（对齐 vanilla FireBlock.canBurn(BlockState)）
+     *
+     * 判定依据为该状态的 flammability（点燃概率）> 0。
+     */
+    [[nodiscard]] static bool _canBurnState(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction face);
 
     /**
      * @brief 检查位置是否可以燃烧（有可燃方块）
