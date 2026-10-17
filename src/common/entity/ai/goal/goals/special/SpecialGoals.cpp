@@ -743,64 +743,62 @@ void TriggerSkeletonTrapGoal::tick()
 // ============================================================================
 
 TraderLlamaDefendWanderingTraderGoal::TraderLlamaDefendWanderingTraderGoal(TraderLlamaEntity* llama)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
+    // 对齐 vanilla super(llama, false)：不做视线检查（mustSee=false）。
+    // TARGET 互斥 flag 由 TargetGoal 构造函数设置。
+    : TargetGoal(llama, false)
     , m_llama(llama)
 {}
 
 bool TraderLlamaDefendWanderingTraderGoal::shouldExecute()
 {
-    // 1. 商队羊驼必须被拴住
+    // 对齐 vanilla TraderLlama.TraderLlamaDefendWanderingTraderGoal.canUse（TraderLlama.java:138-148）：
+    //   if (!llama.isLeashed()) return false;
+    //   else if (!(llama.getLeashHolder() instanceof WanderingTrader)) return false;
+    //   else {
+    //       ownerLastHurtBy = trader.getLastHurtByMob();
+    //       return trader.getLastHurtByMobTimestamp() != timestamp
+    //              && canAttack(ownerLastHurtBy, TargetingConditions.DEFAULT);
+    //   }
+    // 注意：攻击记忆的读取只发生在"拴在流浪商人身上"分支内，未拴绳/拴在栅栏/拴在其他实体上
+    // 时不读取也不清空 m_ownerLastHurtBy（与 vanilla 一致，后者仅在 canUse 内赋值）。
     if (!m_llama->isLeashed()) {
         return false;
     }
-
-    // 2. 拴绳持有者必须是流浪商人
     Entity* holder = m_llama->getLeashHolderEntity();
-    if (holder == nullptr) {
-        return false;
-    }
-    auto* trader = dynamic_cast<mc::entity::WanderingTraderEntity*>(holder);
+    auto* trader = dynamic_cast<entity::WanderingTraderEntity*>(holder);
     if (trader == nullptr) {
         return false;
     }
 
-    // 3. 流浪商人必须受到过攻击，且攻击时间戳有更新
-    LivingEntity* hurtBy = trader->getLastHurtBy();
-    if (hurtBy == nullptr) {
-        return false;
-    }
-    i32 traderHurtTimestamp = trader->lastHurtByTimestamp();
-    if (traderHurtTimestamp == m_timestamp) {
+    m_ownerLastHurtBy = trader->getLastHurtBy();
+    if (trader->lastHurtByTimestamp() == m_timestamp) {
         return false;
     }
 
-    // 4. 攻击者必须是有效的目标
-    if (!hurtBy->isAlive()) {
+    // canAttack(ownerLastHurtBy, TargetingConditions.DEFAULT)：TargetingConditions.DEFAULT =
+    // forCombat()，无距离/视线/选择器约束，等价于 canAttack(living) + canAttackType(type) +
+    // !isAlliedTo(living)。isSuitableTarget 即该组合（另含自身/创造观察者过滤，vanilla 由
+    // canAttack 侧承担）。
+    LivingEntity* ownerLastHurtBy = m_ownerLastHurtBy.get();
+    if (ownerLastHurtBy == nullptr || ownerLastHurtBy == m_llama) {
         return false;
     }
-    if (hurtBy == m_llama) {
-        return false;
-    }
-
-    // 保存攻击者引用
-    m_ownerLastHurtBy = hurtBy;
-    return true;
+    return isSuitableTarget(ownerLastHurtBy);
 }
 
 void TraderLlamaDefendWanderingTraderGoal::startExecuting()
 {
-    m_llama->setAttackTarget(m_ownerLastHurtBy);
-
-    // 更新时间戳，防止重复触发
+    // 对齐 vanilla start（TraderLlama.java:150-158）：
+    //   mob.setTarget(ownerLastHurtBy);
+    //   if (leashHolder instanceof WanderingTrader) timestamp = holder.getLastHurtByMobTimestamp();
+    //   super.start();
+    m_llama->setAttackTarget(m_ownerLastHurtBy.get());
     Entity* holder = m_llama->getLeashHolderEntity();
-    if (holder != nullptr) {
-        auto* trader = dynamic_cast<mc::entity::WanderingTraderEntity*>(holder);
-        if (trader != nullptr) {
-            m_timestamp = trader->lastHurtByTimestamp();
-        }
+    if (auto* trader = dynamic_cast<entity::WanderingTraderEntity*>(holder); trader != nullptr) {
+        m_timestamp = trader->lastHurtByTimestamp();
     }
 
-    Goal::startExecuting();
+    TargetGoal::startExecuting();
 }
 
 } // namespace mc::entity::ai::goal

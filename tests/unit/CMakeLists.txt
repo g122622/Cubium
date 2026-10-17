@@ -863,6 +863,8 @@ add_executable(mc_tests
     common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
     # 骷髅马陷阱触发集成测试（triggerTrap 完整流程、困难模式额外骷髅马）
     common/entity/entities/passive/horse/SkeletonHorseTrapIntegrationTest.cpp
+    # 商队羊驼保卫流浪商人目标测试（拴绳/时间戳/目标合法性/互斥 flag）
+    common/entity/entities/passive/horse/TraderLlamaDefendGoalTest.cpp
     entity/PatrollerSupportTypesTest.cpp
     entity/PlayerSupportTypesTest.cpp
     entity/PlayerPoseCollisionTest.cpp
