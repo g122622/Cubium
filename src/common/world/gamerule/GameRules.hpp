@@ -217,6 +217,9 @@ extern const BooleanGameRuleKey REDUCED_DEBUG_INFO;
 /// TNT 是否允许爆炸（控制 TNT 方块点燃、TNT 实体爆炸、TNT 矿车引爆等）
 extern const BooleanGameRuleKey TNT_EXPLODES;
 
+/// 刷怪笼是否工作（刷怪蛋右键刷怪笼设置实体类型、刷怪笼生成生物）
+extern const BooleanGameRuleKey SPAWNER_BLOCKS_WORK;
+
 /// 全局声音事件（globalLevelEvent 门控）
 /// 参考: net.minecraft.world.level.gamerule.GameRules.RULE_GLOBAL_SOUND_EVENTS
 extern const BooleanGameRuleKey GLOBAL_SOUND_EVENTS;

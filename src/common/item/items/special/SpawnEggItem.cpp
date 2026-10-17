@@ -49,6 +49,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <optional>
 #include <utility>
@@ -80,6 +81,16 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
     // 如果点击的方块是刷怪笼，设置刷怪笼的实体类型而非生成生物
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
+        // 刷怪笼被 spawnerBlocksWork 游戏规则禁用时不接受刷怪蛋设置实体类型（对齐 vanilla
+        // SpawnEggItem.useOn → ServerLevel.isSpawnerBlockEnabled = getGameRules().SPAWNER_BLOCKS_WORK）。
+        if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::SPAWNER_BLOCKS_WORK)) {
+            Player* player = context.getPlayer();
+            if (player != nullptr) {
+                player->sendStatusMessage("Spawner blocks are disabled", true);
+            }
+            return ActionResultType::Fail;
+        }
+
         auto* spawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
         ResourceLocation entityId(m_entityType.name());
         math::IRandom& rng = world.getRandom();
@@ -88,7 +99,6 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
         // 通知客户端方块变更并触发 BLOCK_CHANGE 振动事件
         world.notifyBlockUpdate(pos);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, clickedState);
-        // TODO: 缺少 isSpawnerBlockEnabled 检查（Cubium 无对应 API），当前一律允许设置刷怪笼实体类型
 
         // 非创造模式下消耗刷怪蛋
         Player* player = context.getPlayer();

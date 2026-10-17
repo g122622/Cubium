@@ -57,8 +57,10 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <unordered_map>
 #include <gtest/gtest.h>
@@ -144,6 +146,28 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
+    /// 游戏规则容器（刷怪笼开关等规则由测试设置）。
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    /// 方块实体反查：供刷怪蛋设置刷怪笼实体类型。
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+
+    /// 测试辅助：在指定位置放置一个方块实体。
+    void putBlockEntity(std::unique_ptr<BlockEntity> entity, const BlockPos& pos)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
+
 private:
     u64 m_seed = 12345;
     u64 m_currentTick = 0;
@@ -154,6 +178,8 @@ private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::unordered_map<BlockPos, const fluid::FluidState*> m_fluids;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
+    world::gamerule::GameRules m_gameRules;
 };
 
 // 构造 ItemUseContext 的辅助函数（右键方块场景）
@@ -449,4 +475,49 @@ TEST_F(SpawnEggItemTest, OnItemRightClick_ClientSidePredictsSuccess)
     EXPECT_TRUE(result.isSuccess());
     EXPECT_EQ(m_world->spawnedEntityCount(), 0u) << "client should not spawn";
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "client should not consume";
+}
+
+// ============================================================================
+// 刷怪笼：spawnerBlocksWork 游戏规则
+// ============================================================================
+
+TEST_F(SpawnEggItemTest, OnItemUse_OnSpawnerSetsEntityWhenRuleEnabled)
+{
+    const BlockPos spawnerPos(5, 64, 5);
+    m_world->setBlockState(spawnerPos.x, spawnerPos.y, spawnerPos.z, &VanillaBlocks::SPAWNER->defaultState());
+    auto spawner = std::make_unique<blockentity::MobSpawnerBlockEntity>(spawnerPos);
+    auto* spawnerPtr = spawner.get();
+    m_world->putBlockEntity(std::move(spawner), spawnerPos);
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::SPAWNER_BLOCKS_WORK, true, nullptr);
+
+    ASSERT_NE(Items::PIG_SPAWN_EGG, nullptr);
+    ItemStack eggStack(Items::PIG_SPAWN_EGG, 2);
+    auto context = makeUseContext(*m_world, nullptr, eggStack, spawnerPos, Direction::Up);
+
+    EXPECT_EQ(Items::PIG_SPAWN_EGG->onItemUse(*context), ActionResultType::Success);
+    EXPECT_EQ(spawnerPtr->getNextEntityId(), ResourceLocation("minecraft:pig"));
+    // 不生成实体
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+}
+
+TEST_F(SpawnEggItemTest, OnItemUse_OnSpawnerRejectedWhenRuleDisabled)
+{
+    const BlockPos spawnerPos(5, 64, 5);
+    m_world->setBlockState(spawnerPos.x, spawnerPos.y, spawnerPos.z, &VanillaBlocks::SPAWNER->defaultState());
+    auto spawner = std::make_unique<blockentity::MobSpawnerBlockEntity>(spawnerPos);
+    auto* spawnerPtr = spawner.get();
+    const ResourceLocation originalId = spawnerPtr->getNextEntityId();
+    m_world->putBlockEntity(std::move(spawner), spawnerPos);
+
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::SPAWNER_BLOCKS_WORK, false, nullptr);
+
+    ASSERT_NE(Items::PIG_SPAWN_EGG, nullptr);
+    ItemStack eggStack(Items::PIG_SPAWN_EGG, 2);
+    auto context = makeUseContext(*m_world, nullptr, eggStack, spawnerPos, Direction::Up);
+
+    EXPECT_EQ(Items::PIG_SPAWN_EGG->onItemUse(*context), ActionResultType::Fail);
+    // 刷怪笼实体类型保持不变，刷怪蛋不消耗
+    EXPECT_EQ(spawnerPtr->getNextEntityId(), originalId);
+    EXPECT_EQ(context->getItemStack().getCount(), 2);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
 }
