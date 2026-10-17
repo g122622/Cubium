@@ -32,6 +32,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
+#include <array>
 
 namespace mc {
 
@@ -154,10 +155,21 @@ protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
 private:
-    CollisionShape m_fullShape;
-
     /// 实体检测最小Y偏移（像素 11/16 = 0.6875）
     static constexpr f32 ENTITY_DETECTION_MIN_Y = 0.6875f;
+
+    /**
+     * @brief 构建渲染/选择形状表（对齐 vanilla BigDripleafBlock.makeShapes）
+     *
+     * 返回 [tilt][facing] 的 4×6 形状表：叶片薄层（按 tilt）∪ 茎连接形状（按 facing 绕 Y 旋转）。
+     * facing 槽位以 Direction 枚举值为下标，仅 North/South/West/East 有效。
+     */
+    [[nodiscard]] static std::array<std::array<CollisionShape, 6>, 4> _buildShapes();
+
+    /**
+     * @brief 绕 Y 轴按 90° 整数倍旋转碰撞形状（对齐 vanilla Shapes.rotateHorizontal 的单盒映射）
+     */
+    [[nodiscard]] static CollisionShape _rotateShapeY(const CollisionShape& shape, Rotation rotation);
 
     /**
      * @brief 获取倾斜状态的tick延迟

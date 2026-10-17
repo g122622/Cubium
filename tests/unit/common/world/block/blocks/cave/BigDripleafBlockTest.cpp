@@ -281,6 +281,87 @@ TEST_F(BigDripleafBlockTest, Create_HasCorrectDefaultTilt)
     EXPECT_EQ(state.get(BlockStateProperties::TILT()), BlockStateProperties::Tilt::None);
 }
 
+// ============================================================================
+// getShape：渲染/选择形状（叶片薄层 ∪ 茎连接，对齐 vanilla makeShapes）
+// ============================================================================
+
+TEST_F(BigDripleafBlockTest, GetShape_NoneTilt_NorthFacing_TwoBoxes)
+{
+    // NONE tilt + NORTH facing：叶片薄层(16,11,15) ∪ 茎连接(x[0,6],z[4,10],y[0,13]) —— 两个碰撞盒。
+    auto state = block_->defaultState()
+                     .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None)
+                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const CollisionShape& shape = block_->getShape(state);
+    EXPECT_EQ(shape.boxCount(), 2u) << "叶片薄层 + 茎连接应合并为 2 个盒";
+
+    // 叶片薄层：y∈[11/16, 15/16]，xz 满宽
+    constexpr f32 P = 1.0f / 16.0f;
+    bool foundLeaf = false;
+    for (const auto& box : shape.boxes()) {
+        if (box.minY == 11.0f * P && box.maxY == 15.0f * P && box.minX == 0.0f && box.maxX == 1.0f &&
+            box.minZ == 0.0f && box.maxZ == 1.0f) {
+            foundLeaf = true;
+        }
+    }
+    EXPECT_TRUE(foundLeaf) << "应含叶片薄层 (0,11/16,0)-(1,15/16,1)";
+}
+
+TEST_F(BigDripleafBlockTest, GetShape_FullTilt_OnlyStemBox)
+{
+    // FULL tilt：叶片薄层为空（Shapes.empty），只剩茎连接 1 个盒。
+    auto state = block_->defaultState()
+                     .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full)
+                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const CollisionShape& shape = block_->getShape(state);
+    EXPECT_EQ(shape.boxCount(), 1u) << "FULL tilt 叶片为空，仅剩茎连接 1 个盒";
+}
+
+TEST_F(BigDripleafBlockTest, GetShape_PartialTilt_LeafIsThinner)
+{
+    // PARTIAL tilt：叶片薄层 y∈[11/16,13/16]（更薄），仍与茎连接合并为 2 个盒。
+    auto state = block_->defaultState()
+                     .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Partial)
+                     .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const CollisionShape& shape = block_->getShape(state);
+    EXPECT_EQ(shape.boxCount(), 2u);
+
+    constexpr f32 P = 1.0f / 16.0f;
+    bool foundLeaf = false;
+    for (const auto& box : shape.boxes()) {
+        if (box.minY == 11.0f * P && box.maxY == 13.0f * P) {
+            foundLeaf = true;
+        }
+    }
+    EXPECT_TRUE(foundLeaf) << "PARTIAL 叶片薄层应为 y∈[11/16,13/16]";
+}
+
+TEST_F(BigDripleafBlockTest, GetShape_StemRotatesWithFacing)
+{
+    // 茎连接随 FACING 绕 Y 旋转：NORTH 时 z∈[4,10]（x 方向窄）；EAST 时 x∈[4,10]（z 方向窄）。
+    constexpr f32 P = 1.0f / 16.0f;
+
+    auto northState = block_->defaultState()
+                          .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full)
+                          .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const CollisionShape& northShape = block_->getShape(northState);
+    ASSERT_EQ(northShape.boxCount(), 1u);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].minX, 0.0f);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].maxX, 6.0f * P); // x 方向窄
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].minZ, 4.0f * P);
+    EXPECT_FLOAT_EQ(northShape.boxes()[0].maxZ, 10.0f * P);
+
+    auto eastState = block_->defaultState()
+                         .with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full)
+                         .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+    const CollisionShape& eastShape = block_->getShape(eastState);
+    ASSERT_EQ(eastShape.boxCount(), 1u);
+    // EAST = 顺时针 90°：(x,z)→(1-z,x)：原 x∈[0,6],z∈[4,10] → x∈[1-10/16,1-4/16]=[6/16,12/16], z∈[0,6/16]
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].minX, 6.0f * P);
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].maxX, 12.0f * P);
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].minZ, 0.0f);
+    EXPECT_FLOAT_EQ(eastShape.boxes()[0].maxZ, 6.0f * P);
+}
+
 TEST_F(BigDripleafBlockTest, Create_HasCorrectDefaultFacing)
 {
     const BlockState& state = block_->defaultState();

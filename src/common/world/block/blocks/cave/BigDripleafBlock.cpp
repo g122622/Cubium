@@ -60,7 +60,6 @@ static constexpr i32 TILT_DELAY_FULL = 100;    // PARTIAL→FULL后等待100tick
 
 BigDripleafBlock::BigDripleafBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_fullShape(CollisionShape::fullBlock())
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -143,11 +142,92 @@ BlockState BigDripleafBlock::updatePostPlacement(const BlockState& state,
 
 const CollisionShape& BigDripleafBlock::getShape(const BlockState& state) const
 {
-    MC_UNUSED(state);
-    // TODO: getShape（渲染/选择形状）对齐 vanilla makeShapes（Shapes.or(SHAPE_LEAF, 茎连接 shape)，
-    //   按 facing 旋转的茎连接 + 按 tilt 的叶片薄层）。当前返回完整方块形状（m_fullShape），仅影响
-    //   渲染命中箱与选择高亮，不影响行为（行为用 getCollisionShape）。待渲染形状系统完善后补全。
-    return m_fullShape;
+    // 对齐 vanilla BigDripleafBlock.makeShapes（BigDripleafBlock.java:85-88）：
+    //   Shapes.or(SHAPE_LEAF.get(TILT), map.get(FACING))
+    // 其中 SHAPE_LEAF 为按 tilt 的叶片薄层（16,11,15 / 16,11,13 / empty，见 getCollisionShape），
+    // map = Shapes.rotateHorizontal(Block.column(6,0,13).move(0,0,0.25))：基础茎连接形状为
+    //   x∈[0,6], y∈[0,13], z∈[4,10] 像素（move 0.25 方块 = 4 像素），按 FACING 绕 Y 轴旋转
+    //   （NORTH=原形，EAST=+90°，SOUTH=180°，WEST=270°）。
+    // 该形状用于渲染命中箱/方块选择高亮（行为碰撞用 getCollisionShape）。
+    //
+    // 用函数内 static 缓存 4(tilt)×4(facing) 组合，避免每帧构造；Cubium 主 tick 单线程安全。
+    const BlockStateProperties::Tilt tilt = state.get(BlockStateProperties::TILT());
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+
+    // 索引：tilt 4 个枚举值（None/Unstable/Partial/Full，值 0-3）× facing（Direction 枚举值 0-5，
+    // 此处只用到 North=2/South=3/West=4/East=5 四个水平方向，Down/Up 槽位留空不用）。
+    const auto tiltIndex = static_cast<std::size_t>(tilt);
+    const auto facingIndex = static_cast<std::size_t>(facing);
+    static const std::array<std::array<CollisionShape, 6>, 4> s_shapes = _buildShapes();
+    return s_shapes[tiltIndex][facingIndex];
+}
+
+std::array<std::array<CollisionShape, 6>, 4> BigDripleafBlock::_buildShapes()
+{
+    // 叶片薄层（按 tilt 顺序：None/Unstable/Partial/Full），对齐 SHAPE_LEAF。
+    const CollisionShape leafNone = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 15.0f, 16.0f);
+    const CollisionShape leafPartial = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 13.0f, 16.0f);
+    const CollisionShape leafFull = VoxelShapes::empty();
+    const std::array<CollisionShape, 4> leafByTilt = {leafNone, leafNone, leafPartial, leafFull};
+
+    // 茎连接基础形状（NORTH）：x∈[0,6], z∈[4,10], y∈[0,13] 像素。
+    const CollisionShape stemNorth = CollisionShape::fromPixelBox(0.0f, 0.0f, 4.0f, 6.0f, 13.0f, 10.0f);
+
+    // 按水平方向旋转（对齐 Shapes.rotateHorizontal）：NORTH=原形，EAST/SOUTH/WEST 依次绕 Y 转 90/180/270°。
+    std::array<CollisionShape, 6> stemByFacing{};
+    stemByFacing[static_cast<std::size_t>(Direction::North)] = stemNorth;
+    stemByFacing[static_cast<std::size_t>(Direction::South)] = _rotateShapeY(stemNorth, Rotation::Clockwise180);
+    stemByFacing[static_cast<std::size_t>(Direction::East)] = _rotateShapeY(stemNorth, Rotation::Clockwise90);
+    stemByFacing[static_cast<std::size_t>(Direction::West)] = _rotateShapeY(stemNorth, Rotation::CounterClockwise90);
+
+    std::array<std::array<CollisionShape, 6>, 4> shapes{};
+    for (std::size_t t = 0; t < 4; ++t) {
+        for (const Direction dir : {Direction::North, Direction::South, Direction::West, Direction::East}) {
+            const auto f = static_cast<std::size_t>(dir);
+            shapes[t][f] = CollisionShape::combine(leafByTilt[t], stemByFacing[f], CollisionShape::CombineOp::OR);
+        }
+    }
+    return shapes;
+}
+
+CollisionShape BigDripleafBlock::_rotateShapeY(const CollisionShape& shape, Rotation rotation)
+{
+    // 绕 Y 轴按 90° 整数倍旋转各碰撞盒（对齐 Shapes.rotateHorizontal 对单个盒的映射）。
+    // 方块坐标下：顶点 (x,y,z) 旋转 90°（顺时针俯视）→ (1-z, y, x)。
+    if (rotation == Rotation::None) {
+        return shape;
+    }
+
+    CollisionShape result;
+    for (const auto& box : shape.boxes()) {
+        f32 minX = box.minX;
+        f32 minY = box.minY;
+        f32 minZ = box.minZ;
+        f32 maxX = box.maxX;
+        f32 maxY = box.maxY;
+        f32 maxZ = box.maxZ;
+        switch (rotation) {
+            case Rotation::Clockwise90: {
+                // (x,z) → (1-z, x)
+                result.addBox(1.0f - maxZ, minY, minX, 1.0f - minZ, maxY, maxX);
+                break;
+            }
+            case Rotation::Clockwise180: {
+                result.addBox(1.0f - maxX, minY, 1.0f - maxZ, 1.0f - minX, maxY, 1.0f - minZ);
+                break;
+            }
+            case Rotation::CounterClockwise90: {
+                // (x,z) → (z, 1-x)
+                result.addBox(minZ, minY, 1.0f - maxX, maxZ, maxY, 1.0f - minX);
+                break;
+            }
+            case Rotation::None:
+            default:
+                result.addBox(minX, minY, minZ, maxX, maxY, maxZ);
+                break;
+        }
+    }
+    return result;
 }
 
 const CollisionShape& BigDripleafBlock::getCollisionShape(const BlockState& state) const
@@ -166,7 +246,7 @@ const CollisionShape& BigDripleafBlock::getCollisionShape(const BlockState& stat
     //   叶片格，onEntityCollision 正常触发，canEntityTilt（position.y > pos.y+0.6875）满足。
     //
     // 返回 const 引用：用函数内 static 缓存按 tilt 的形状（首次调用构造，Cubium 主 tick 单线程安全）。
-    // 不用成员（m_fullShape 仅一份，叶子有 3 种 tilt 碰撞箱需多份缓存）。
+    // 注：此处只缓存碰撞箱（行为用），与 getShape（渲染/选择用，含茎连接）相互独立。
     static const CollisionShape s_noneShape = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 15.0f, 16.0f);
     static const CollisionShape s_partialShape = CollisionShape::fromPixelBox(0.0f, 11.0f, 0.0f, 16.0f, 13.0f, 16.0f);
 
