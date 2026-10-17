@@ -454,28 +454,22 @@ public:
     }
 
     /**
-     * @brief 显式处理票据系统积压更新
+     * @brief 推进票据距离图并调度必要的加载，不接收异步加载结果
      *
-     * 对齐 MC Java 1.21.11 ServerChunkCache.runDistanceManagerUpdates
-     * （ServerChunkCache.java:282）：处理票据距离图更新后立即出队异步存档加载
-     * 完成回调（_drainPendingLoadCompletes），消除“processUpdates 已推进票据级别
-     * 但存档完成回调尚未出队”的 TOCTOU 窗口——否则后续 requestChunkSync/状态查询
-     * 会看到 holder 仍处 ResolvingStorage。
-     *
-     * 存在同步重入：_drainPendingLoadCompletes→_onChunkLoadComplete 的下游会经
-     * m_chunkLoadedCallback（MinecraftServer 注入的 ServerWorld::enqueueChunkLoadLight）
-     * →addLightTicket→本方法，回到 _drainPendingLoadCompletes。
-     * 该重入由 _drainPendingLoadCompletes 的排空重入标志吸收（重入调用直接返回，
-     * 由最外层循环继续消费队列），栈深度不随待加载区块数增长。
-     *
-     * 注意：_onChunkLoadComplete 下游的其余路径（_advanceChunkState/_storeChunkInMemorySync/
-     * _completeReadyWaiters/ChunkTaskScheduler::onLoadedFromStorageReady）均不调 processUpdates 或
-     * registerTicket/releaseTicket；_onTicketLevelChanged 经 processUpdates 同步触发，
-     * 但其 _submitChunkRequest 仅触发异步 I/O 或调度器 schedule。
+     * 登录、移动和光照保活只需建立需求。返回时 holder 可能仍在解析存档；
+     * 需要区块数据的调用方应使用 requestChunkSync 或异步请求的完成通知。
      */
-    void processTicketUpdatesSync()
+    void processTicketUpdates() { m_ticketManager.processUpdates(); }
+
+    /**
+     * @brief 推进票据并处理调用时已入队的一批存档加载结果
+     *
+     * 由 tick 和需要主动推进完成通知的调用方使用，不执行世界后处理回调，
+     * 也不追逐处理期间新到达的结果；同步取区块由自身的目标 Future 决定何时返回。
+     */
+    void processPendingChunkTasks()
     {
-        m_ticketManager.processUpdates();
+        processTicketUpdates();
         _drainPendingLoadCompletes();
     }
 
@@ -778,13 +772,12 @@ private:
      *
      * 在 _drainPendingLoadCompletes 中出队调用。处理：
      * - 校验 SCLM 仍存活且为同一实例（异步期间可能被 unload 重建）
-     * - 存档命中：先构造 ChunkPrimer（耗时较长，须在状态发布前完成），再 publishStorageLoaded 原子发布
+     * - 存档命中：包装存储层已准备好的区块，再 publishStorageLoaded 原子发布
      *   （同一临界区内安装 primer + currentGenStatus→FULL + sourceState→LoadedFromStorage），随后
      *   _storeChunkInMemorySync（按坐标入 m_chunks，并在 owner 身份校验通过时 markLoadedFromStorageReady(FULL)
      *   + _completeReadyWaiters）+ 经 _enqueuePostProcess 入队 onChunkLoaded/m_chunkLoadedCallback，
      *   与生成路径统一延后到 tick() 的 _drainPendingPostProcess 执行（去重由该队列负责）。
-     *   不得在此内联调用二者——那会经 m_chunkLoadedCallback 同步回到 _drainPendingLoadCompletes
-     *   形成无界递归
+     *   不得在发布状态的调用链内直接执行世界回调。
      * - 存档缺失：noteStorageMissing() + _advanceChunkState（走 StorageMissing→生成链路）
      * - 从 m_pendingLoadTasks 移除追踪条目（owner 校验），扇出 attachedWaiters（命中→Ready，缺失→生成）
      * - owner 已 unload（ownerAlive=false）：跳过 owner 推进，扇出 attachedWaiters 走生成路径
@@ -821,11 +814,8 @@ private:
      * @brief 出队并执行异步存档加载完成回调（仅主线程调用）
      *
      * 在 tick() 中调用，把 worker 线程入队的 m_pendingLoadCompletes 逐个交给 _onChunkLoadComplete。
-     * 循环排空直到队列为空，保证返回时无遗留完成项。
-     *
-     * 重入安全：_onChunkLoadComplete 的下游会同步回到本方法（见 processTicketUpdatesSync 注释）。
-     * m_drainingLoadCompletes 置位期间的重入调用直接返回，由最外层调用者的循环继续消费新入队项，
-     * 从而把栈深度压到常量而非正比于待加载区块数。
+     * 每次只消费入口处的队列快照；新入队结果留给下一次推进，避免后台持续完成任务时
+     * 主线程被一次调用长期占用。重入调用直接返回，防止嵌套消费同一队列。
      */
     void _drainPendingLoadCompletes();
 

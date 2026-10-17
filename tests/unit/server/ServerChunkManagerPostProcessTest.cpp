@@ -135,6 +135,51 @@ protected:
 // 去重测试
 // ============================================================================
 
+TEST_F(ServerChunkManagerPostProcessTest, TicketUpdatesDoNotPublishPendingStorageResults)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    ChunkData stored(0, 0);
+    stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+    ASSERT_TRUE(m_storage.saveChunk(stored, 0).success());
+
+    // 存储未注入 IO 池，在调用线程读完并入队，使交接时机完全确定。
+    auto future = m_manager->requestChunkAsync(0, 0, world::chunk::ChunkStatuses::FULL);
+    m_manager->processTicketUpdates();
+    EXPECT_EQ(future.wait_for(std::chrono::milliseconds(0)), std::future_status::timeout);
+    EXPECT_EQ(m_manager->tryToGetChunkInMem(0, 0), nullptr);
+    m_manager->processPendingChunkTasks();
+    ASSERT_EQ(future.wait_for(std::chrono::milliseconds(0)), std::future_status::ready);
+    ASSERT_NE(future.get(), nullptr);
+    EXPECT_EQ(m_chunkLoadedCallCount, 0);
+}
+
+TEST_F(ServerChunkManagerPostProcessTest, LoadCompletionOnlyConsumesEntrySnapshot)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    for (ChunkCoord x = 0; x < 2; ++x) {
+        ChunkData stored(x, 0);
+        stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+        ASSERT_TRUE(m_storage.saveChunk(stored, 0).success());
+    }
+
+    std::future<ChunkData*> second;
+    bool firstCompleted = false;
+    m_manager->requestChunkAsync(0, 0, world::chunk::ChunkStatuses::FULL, [&](bool success, ChunkData* chunk) {
+        firstCompleted = success && chunk != nullptr;
+        second = m_manager->requestChunkAsync(1, 0, world::chunk::ChunkStatuses::FULL);
+    });
+    m_manager->processPendingChunkTasks();
+    ASSERT_TRUE(firstCompleted);
+    ASSERT_TRUE(second.valid());
+    EXPECT_EQ(second.wait_for(std::chrono::milliseconds(0)), std::future_status::timeout);
+    EXPECT_EQ(m_manager->tryToGetChunkInMem(1, 0), nullptr);
+    m_manager->processPendingChunkTasks();
+    ASSERT_EQ(second.wait_for(std::chrono::milliseconds(0)), std::future_status::ready);
+    ASSERT_NE(second.get(), nullptr);
+}
+
 TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)
 {
     m_workerPool->start();
@@ -174,9 +219,8 @@ TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)
 /**
  * @brief 存档命中路径的加载回调必须延后执行，且不得形成无界递归
  *
- * 复现 MinecraftServer::setupWorldCallbacks 注入的区块加载回调的真实形态：
- * ServerWorld::enqueueChunkLoadLight → ServerChunkManager::addLightTicket → processTicketUpdatesSync，
- * 而 processTicketUpdatesSync 会排空异步存档加载完成队列、再次进入 _onChunkLoadComplete。
+ * 区块加载回调会添加光照保活票据。结果发布和世界回调必须分阶段进行，
+ * 主动推进存档完成通知时不能内联执行世界回调。
  *
  * 历史上该回调由 _onChunkLoadComplete 的**存档命中分支**内联调用，于是
  * "处理一个完成项 → 回调 → 再次排空队列 → 处理下一项"，每项递归一层，深度正比于待加载区块数。
@@ -242,7 +286,7 @@ TEST_F(ServerChunkManagerPostProcessTest, StoredChunkLoadCompleteDefersCallback_
     // 处理其中任一项时若回调内联执行，就会同步回到排空并接着处理其余项，逐项递归。
     for (auto& future : futures) {
         while (future.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
-            m_manager->processTicketUpdatesSync();
+            m_manager->processPendingChunkTasks();
         }
         ASSERT_NE(future.get(), nullptr) << "存档命中重载失败";
     }

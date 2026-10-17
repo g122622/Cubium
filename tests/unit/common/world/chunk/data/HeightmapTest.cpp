@@ -24,6 +24,8 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
 
 #include <gtest/gtest.h>
 
@@ -316,6 +318,93 @@ TEST_F(HeightmapStorageTest, OutOfBoundsCoordinatesAreSafe)
     heightmap.setHeight(-1, 0, 60); // 不写入，也不应崩溃
     heightmap.setHeight(16, 0, 60);
     EXPECT_EQ(heightmap.getHeight(0, 0), Heightmap::NO_BLOCK_SENTINEL);
+}
+
+TEST_F(HeightmapStorageTest, MissingHeightmapsMatchFullColumnScanAcrossSparseSections)
+{
+    ChunkData chunk(0, 0);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    chunk.createSection(0)->setBlockState(0, 0, 0, stone);
+    chunk.createSection(world::CHUNK_SECTIONS - 1)
+        ->setBlockState(world::CHUNK_WIDTH - 1, world::CHUNK_SECTION_HEIGHT - 1, world::CHUNK_WIDTH - 1, water);
+    chunk.createSection(world::toSectionIndex(64))->setBlockState(3, 0, 7, stone);
+    chunk.getSection(world::toSectionIndex(64))->setBlockState(3, 5, 7, water);
+    chunk.createSection(world::toSectionIndex(160));
+
+    chunk.initializeMissingHeightmaps();
+
+    // 用逐列扫描全部世界高度的独立实现验证跳段、提前终止和各类型谓词的组合。
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        const auto type = static_cast<HeightmapType>(i);
+        ASSERT_TRUE(chunk.isHeightmapInitialized(type));
+        for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+            for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                BlockCoord expected = Heightmap::NO_BLOCK_SENTINEL;
+                for (i32 y = world::MAX_BUILD_HEIGHT - 1; y >= world::MIN_BUILD_HEIGHT; --y) {
+                    if (Heightmap::isOpaqueForType(type, chunk.getBlockState(x, y, z))) {
+                        expected = y + 1;
+                        break;
+                    }
+                }
+                EXPECT_EQ(chunk.getHeightmapFirstAvailable(type, x, z), expected)
+                    << "type=" << i << " column=" << x << "," << z;
+            }
+        }
+    }
+}
+
+TEST_F(HeightmapStorageTest, MissingHeightmapsPreserveStoredValuesAndSkipEmptyTopSections)
+{
+    ChunkData chunk(0, 0);
+    const BlockState* stone = &VanillaBlocks::STONE->defaultState();
+    chunk.createSection(0)->setBlockState(2, 0, 4, stone);
+    chunk.createSection(world::CHUNK_SECTIONS - 1);
+    std::array<BlockCoord, Heightmap::SIZE> stored;
+    stored.fill(87);
+    chunk.setHeightmapFromStorage(HeightmapType::WorldSurface, stored);
+
+    chunk.initializeMissingHeightmaps();
+
+    EXPECT_EQ(chunk.getHeightmapData(HeightmapType::WorldSurface), stored);
+    EXPECT_EQ(chunk.getHeightmapFirstAvailable(HeightmapType::OceanFloor, 2, 4), world::MIN_BUILD_HEIGHT + 1);
+    EXPECT_EQ(chunk.getHeightmapFirstAvailable(HeightmapType::OceanFloor, 4, 2), Heightmap::NO_BLOCK_SENTINEL);
+    const auto oceanFloor = chunk.getHeightmapData(HeightmapType::OceanFloor);
+    chunk.initializeMissingHeightmaps();
+    EXPECT_EQ(chunk.getHeightmapData(HeightmapType::OceanFloor), oceanFloor);
+    EXPECT_EQ(chunk.getHeightmapData(HeightmapType::WorldSurface), stored);
+}
+
+TEST_F(HeightmapStorageTest, EmptyChunkInitializesAllHeightmapsToSentinel)
+{
+    ChunkData chunk(0, 0);
+    chunk.createSection(world::CHUNK_SECTIONS - 1);
+    chunk.initializeMissingHeightmaps();
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        const auto type = static_cast<HeightmapType>(i);
+        EXPECT_TRUE(chunk.isHeightmapInitialized(type));
+        for (BlockCoord height : chunk.getHeightmapData(type)) {
+            EXPECT_EQ(height, Heightmap::NO_BLOCK_SENTINEL);
+        }
+    }
+}
+
+TEST_F(HeightmapStorageTest, SelectiveRebuildResetsSelectedTypesAndPreservesOtherTypes)
+{
+    ChunkData chunk(0, 0);
+    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT> heightmaps;
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        heightmaps[i] = Heightmap(static_cast<HeightmapType>(i));
+        heightmaps[i].setAll(120);
+    }
+    std::array<bool, HEIGHTMAP_TYPE_COUNT> enabled{};
+    enabled[static_cast<size_t>(HeightmapType::WorldSurface)] = true;
+    Heightmap::rebuild(chunk, heightmaps, enabled);
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        for (BlockCoord height : heightmaps[i].getData()) {
+            EXPECT_EQ(height, enabled[i] ? Heightmap::NO_BLOCK_SENTINEL : 120);
+        }
+    }
 }
 
 } // namespace

@@ -103,8 +103,7 @@ void _fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, b
 /**
  * @brief 排空重入标志的 RAII 守卫
  *
- * _onChunkLoadComplete 的下游会同步回到 _drainPendingLoadCompletes（经区块加载回调 →
- * addLightTicket → processTicketUpdatesSync）。守卫保证排空期间标志始终置位，
+ * 完成通知中的调用方可能再次请求区块。守卫保证交接期间标志始终置位，
  * 且在任意路径退出时复位——标志一旦泄漏，后续所有存档加载完成回调都不再出队，
  * 整个区块加载链路永久停滞。
  */
@@ -521,11 +520,11 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
     mc::Result<std::optional<mc::ChunkData>>&& result,
     std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::onChunkLoadComplete", "x", x, "z", z);
     // 入队方（_resolveChunkSourceSync 的完成回调）恒持有 owner SCLM 的共享所有权；
     // 为空说明入队路径已损坏，后续的实例一致性校验会失去依据。
     MC_ASSERT_RELEASE(lifecycleHolder != nullptr);
-    // 本函数下游（_enqueuePostProcess → _drainPendingPostProcess → m_chunkLoadedCallback）
-    // 会同步回到 _drainPendingLoadCompletes。调用方必须处于排空保护之内，否则递归不受抑制。
+    // 所有加载完成通知必须由主线程的受保护交接入口执行。
     MC_ASSERT_RELEASE(m_drainingLoadCompletes);
 
     const u64 key = posToKey(x, z);
@@ -591,8 +590,8 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             //
             // primer 必须在推进来源状态之前构造完毕：publishStorageLoaded 在同一临界区内安装 primer
             // 并置 LoadedFromStorage，故并发调度者不可能观察到"来源已解析但区块对象缺失"的中间态。
-            // primer 构造（updateAllHeightmaps 遍历全部 section）耗时较长，若放在状态发布之后，
-            // 该窗口会被并发 schedule/checkNeighbour 观察到并误判该 holder 需要 EMPTY 加载。
+            // 存储层已经在结果交接前补齐高度图；此处构造不再扫描整个区块。
+            // 区块与来源状态仍须一起发布，避免并发调度者观察到对象缺失的中间态。
             auto primer = std::make_unique<ChunkPrimer>(std::move(loadedChunk));
             std::shared_ptr<ChunkData> sharedData = primer->shareChunkData();
             auto decision = lifecycleManager.publishStorageLoaded(std::move(primer));
@@ -604,8 +603,7 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
                 // 而是入队主线程后处理队列，由 tick() 的 _drainPendingPostProcess 出队执行
                 // （去重同样由该队列的 m_postProcessedChunks 负责，此处无需自行插表）。
                 //
-                // 内联执行会让 _onChunkLoadComplete 经 m_chunkLoadedCallback 同步回到
-                // processTicketUpdatesSync → _drainPendingLoadCompletes，形成无界递归。
+                // 世界回调统一延后，避免在发布状态的调用链上修改世界或递归接收其他加载结果。
                 // 存档加载路径不产生生成期实体，故 spawnedEntities 传空、needsPostProcess 为 false。
                 _enqueuePostProcess(x, z, {}, /*needsPostProcess=*/false);
             }
@@ -673,42 +671,18 @@ void ServerChunkManager::_fanOutAttachedWaiters(
 
 void ServerChunkManager::_drainPendingLoadCompletes()
 {
-    // 重入保护：_onChunkLoadComplete 的下游会经 m_chunkLoadedCallback →
-    // ServerWorld::enqueueChunkLoadLight → ServerChunkManager::addLightTicket → processTicketUpdatesSync
-    // 同步回到本方法。重入时立即返回，由最外层调用者的循环继续消费新入队的项。
-    // 不加保护则每处理一个完成项就递归一层，递归深度正比于待加载区块数；主循环跑在
-    // std::thread 创建的线程上（macOS 默认栈 512KB），数十层即撞穿栈保护页——macOS arm64
-    // 会把它报成 SIGILL（"Could not determine thread index for stack guard region"）而不是 SIGSEGV。
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::drainPendingLoadCompletes");
     if (m_drainingLoadCompletes) {
         return;
     }
     _DrainFlagGuard guard(m_drainingLoadCompletes);
-    // 守卫置位后才继续排空——下游回调链依赖此不变量判断"是否已处于排空中"。
-    MC_ASSERT_RELEASE(m_drainingLoadCompletes);
-
-    // 循环排空而非单次 swap：处理过程中新入队的完成项由本轮继续消费，保证返回时队列已空
-    // （维持 processTicketUpdatesSync 的同步语义），同时把栈深度压到常量。
-    //
-    // 收敛性：_onChunkLoadComplete 只入队后处理、不再同步回调 addLightTicket，故不会自反馈
-    // 产生新完成项；新项只来自处理期间并行完成的其它存档读取，轮次有限。此上限是防病态环的哨兵。
-    constexpr u32 MAX_DRAIN_ROUNDS = 10000;
-    u32 rounds = 0;
-    for (;;) {
-        MC_ASSERT_RELEASE_MSG(++rounds <= MAX_DRAIN_ROUNDS, "_drainPendingLoadCompletes did not converge");
-        std::vector<PendingLoadComplete> pending;
-        {
-            std::lock_guard<std::mutex> lock(m_pendingLoadCompletesMutex);
-            if (m_pendingLoadCompletes.empty()) {
-                break;
-            }
-            pending.swap(m_pendingLoadCompletes);
-        }
-        MC_ASSERT_RELEASE(!pending.empty());
-
-        for (auto& item : pending) {
-            _onChunkLoadComplete(
-                item.x, item.z, item.dimension, std::move(item.result), std::move(item.lifecycleHolder));
-        }
+    std::vector<PendingLoadComplete> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingLoadCompletesMutex);
+        pending.swap(m_pendingLoadCompletes);
+    }
+    for (auto& item : pending) {
+        _onChunkLoadComplete(item.x, item.z, item.dimension, std::move(item.result), std::move(item.lifecycleHolder));
     }
 }
 
@@ -1615,12 +1589,11 @@ void ServerChunkManager::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
 void ServerChunkManager::addLightTicket(ChunkCoord x, ChunkCoord z)
 {
     // 主线程调用：LIGHT 票据 + Full(33) 保活区块，覆盖 worker 在途窗口。
-    // 经 processTicketUpdatesSync 让距离图生效并出队存档加载完成回调，对齐
-    // MC Java addTicketAndLoadWithRadius→runDistanceManagerUpdates（ServerChunkCache.java:494）。
+    // 先让票据生效，异步加载结果由独立的主线程任务推进阶段接收。
     const ChunkPos pos(x, z);
     const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
     m_ticketManager.registerTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
-    processTicketUpdatesSync();
+    processTicketUpdates();
 }
 
 void ServerChunkManager::removeLightTicket(ChunkCoord x, ChunkCoord z)
@@ -1630,7 +1603,7 @@ void ServerChunkManager::removeLightTicket(ChunkCoord x, ChunkCoord z)
     const ChunkPos pos(x, z);
     const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
     m_ticketManager.releaseTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
-    processTicketUpdatesSync();
+    processTicketUpdates();
 }
 
 void ServerChunkManager::setViewDistance(i32 distance)
@@ -1645,9 +1618,8 @@ void ServerChunkManager::tick()
     // 变化要先转化为卸载候选的入队/撤出，_processChunkUnloads 才能取到当 tick 的候选。
     m_ticketManager.tick();
     _expireUnloadCooldowns();
-    // processTicketUpdatesSync 内部已出队异步存档加载完成回调（_drainPendingLoadCompletes），
-    // 对齐 MC Java runDistanceManagerUpdates 把票据更新与完成交接合到同一步。
-    processTicketUpdatesSync();
+    // 在固定推进点接收已完成的存档结果，再执行依赖区块发布的世界后处理。
+    processPendingChunkTasks();
 
     // 出队并执行 worker 线程入队的主线程后处理任务（onChunkLoaded / m_chunkLoadedCallback /
     // spawnEntitiesFromChunkGeneration / _postProcessChunk）。这些触及主线程独占状态

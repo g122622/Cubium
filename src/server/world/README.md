@@ -218,23 +218,15 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 `SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载按保底批量推进（每 tick 至少 `max(50, 候选数×5%)` 个区块），同步写盘（24 个 section 的快照序列化 + ZSTD + RocksDB 写）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
 
-### 完成队列的排空不得同步重入
+### 区块需求、结果交接与世界后处理分开推进
 
-`ServerChunkManager::_drainPendingLoadCompletes` 处理**存档命中**完成项时，下游链条会回到它自身：
-`_onChunkLoadComplete`（旧实现内联调用）→ `m_chunkLoadedCallback` → `ServerWorld::enqueueChunkLoadLight`
-→ `addLightTicket` → `processTicketUpdatesSync` → 再次排空。每项递归一层，深度正比于队列长度；主循环
-跑在 `std::thread` 创建的线程上（macOS 默认栈仅 512KB），玩家加入触发视距内数百区块同时加载时直接
-撞穿栈保护页——macOS arm64 把栈保护页命中报成 **SIGILL**（`Could not determine thread index for
-stack guard region`）而非 SIGSEGV，极易被误判为非法指令。
+`processTicketUpdates()` 只推进距离图并调度加载，登录、移动与光照票据不能在该阶段接收大量存档结果。
+`processPendingChunkTasks()` 在推进票据后接收入口处的一批完成项；处理期间新到达的结果留给下一次推进。
+需要同步数据的调用方使用 `requestChunkSync()`，由目标 Future 决定何时返回，不能把票据生效等同于数据就绪。
 
-两道防线缺一不可：① `onChunkLoaded` / `m_chunkLoadedCallback` 必须经 `_enqueuePostProcess` 延后到
-`tick()` 的 `_drainPendingPostProcess` 执行（与生成路径一致），不得在排空栈内内联调用；②
-`_drainPendingLoadCompletes` 的重入标志（`m_drainingLoadCompletes`）让重入调用直接返回，由最外层
-循环继续消费队列，栈深度为常量。
-
-**回归测试的陷阱**：生成路径的回调本就经 `onChunkGenComplete` 延后，所以只加载新生成区块的用例
-即使把回调改回内联也照样通过（恒真的无效回归）。覆盖存档命中分支必须走「生成 → 卸载落盘 → 重载命中」，
-见 `ServerChunkManagerPostProcessTest.StoredChunkLoadCompleteDefersCallback_NoUnboundedRecursion`。
+存储层回传结果前已经补齐缺失高度图。`_onChunkLoadComplete` 保持区块对象与来源状态的原子发布，
+`onChunkLoaded` / `m_chunkLoadedCallback` 则经后处理队列延后到 `tick()`，避免在发布调用链中修改世界。
+完成交接仍保留重入守卫，禁止嵌套消费同一队列。
 
 ### 实体追踪器内存泄漏
 实体销毁后未从追踪器取消追踪会导致泄漏。`ServerWorld::destroyEntity()` 会自动处理追踪器状态更新（内部调 `entityTracker().untrackEntity()`）。如果直接调用 `entityManager().destroyEntity()`，需要手动调用 `entityTracker().untrackEntity()`。

@@ -30,6 +30,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -188,10 +189,9 @@ void ChunkData::_initHeightmaps()
     for (size_t i = 0; i < m_heightmaps.size(); ++i) {
         m_heightmaps[i] = Heightmap(static_cast<HeightmapType>(i));
     }
-    // WorldSurface 槽位始终视为已填充：构造后即为空高度图（全 NO_BLOCK_SENTINEL），
-    // 且 setBlockState/updateHeightMap 会持续维护它。
+    // 构造空槽位不代表已经扫描过方块。存档解码直接写 section，若提前把 WorldSurface
+    // 标为已初始化，加载后的补齐会错误保留空高度图。运行时写方块仍会维护并置位 final 类型。
     m_heightmapInitialized.fill(false);
-    m_heightmapInitialized[static_cast<size_t>(HeightmapType::WorldSurface)] = true;
 }
 
 const BlockState* ChunkData::getBlockState(BlockCoord x, BlockCoord y, BlockCoord z) const
@@ -375,6 +375,24 @@ void ChunkData::setHeightmapFromStorage(HeightmapType type, const std::array<Blo
     }
     m_heightmaps[typeIndex].setData(data);
     m_heightmapInitialized[typeIndex] = true;
+}
+
+void ChunkData::initializeMissingHeightmaps()
+{
+    std::array<bool, HEIGHTMAP_TYPE_COUNT> enabled{};
+    bool hasMissing = false;
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        enabled[i] = !m_heightmapInitialized[i];
+        hasMissing |= enabled[i];
+    }
+    if (!hasMissing) {
+        return;
+    }
+
+    MC_TRACE_SCOPED_EVENT(
+        mc::trace::TraceEvents.World.ChunkGen, "ChunkData::initializeMissingHeightmaps", "x", m_x, "z", m_z);
+    Heightmap::rebuild(*this, m_heightmaps, enabled);
+    m_heightmapInitialized.fill(true);
 }
 
 BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const

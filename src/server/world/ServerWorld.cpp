@@ -2488,9 +2488,7 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
     // shared_ptr 5×5 保活由 RuntimeLightingProvider 构造时建立，与票据互补。
     // 本回调仅在 ServerWorld 已挂载 chunkManager 时被注入（见 MinecraftServer::setupWorldCallbacks
     // 的注册前提是 world->chunkManager() 非空），故直接解引用而非判空兜底。
-    // 注意：这里同步调用 addLightTicket → processTicketUpdatesSync → _drainPendingLoadCompletes，
-    // 而本回调可能正从 _drainPendingPostProcess 的链条上执行（此时不在排空保护内，属正常一层），
-    // 但绝不可在 _onChunkLoadComplete 的栈内执行——那会形成无界递归。
+    // 光照票据只推进加载需求，不在世界后处理回调中接收其他区块的存档结果。
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
     m_chunkManager->addLightTicket(x, z);
 

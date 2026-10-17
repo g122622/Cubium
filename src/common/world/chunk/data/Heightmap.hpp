@@ -38,6 +38,8 @@ class Block;
 
 namespace mc::world::chunk {
 
+class ChunkData;
+
 // ============================================================================
 // 区块高度图类型
 // ============================================================================
@@ -194,6 +196,16 @@ public:
      * @param state 方块状态（可为 nullptr，返回 false）
      */
     [[nodiscard]] static bool isOpaqueForType(HeightmapType type, const BlockState* state);
+
+    /**
+     * @brief 从区块方块数据重建指定类型的高度图，保留未选中的槽位
+     *
+     * 跳过空段，并在一列的所有目标类型均已找到最高方块后停止扫描。
+     * 调用方必须独占区块数据，或持有阻止方块写入的锁。
+     */
+    static void rebuild(const ChunkData& chunk,
+        std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>& heightmaps,
+        const std::array<bool, HEIGHTMAP_TYPE_COUNT>& enabled);
 
 private:
     HeightmapType m_type;

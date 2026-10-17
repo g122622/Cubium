@@ -184,7 +184,7 @@ public:
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
      * @param dimension 目标维度
-     * @return 若区块存在则返回区块数据，否则返回空 optional
+     * @return 若区块存在则返回已补齐高度图的区块数据，否则返回空 optional
      */
     [[nodiscard]] Result<std::optional<ChunkData>> loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
@@ -220,7 +220,7 @@ public:
      * 回调签名为 (x, z, dimension, result)，result 为加载结果。
      *
      * 线程语义（Native 格式）：两路 I/O（section + blockEntity）在 ServerIO 线程并行读取，
-     * 最后完成的一路把反序列化组装（SectionCodec::toChunkSection + biomes + 合并）投递到 ServerCompute
+     * 最后完成的一路把反序列化组装、生物群系合并和缺失高度图重建投递到 ServerCompute
      * 线程池（m_computeWorkerPool），completion 在 ServerCompute 线程调用。无 Compute 池（测试/独立模式）
      * 时降级为在 ServerIO worker 内联组装并调用 completion。
      * 外来格式：completion 在 ServerIO worker 线程调用（m_foreignReadMutex 串行化）。
@@ -367,8 +367,7 @@ public:
     /**
      * @brief 注入反序列化线程池（ServerCompute）
      *
-     * loadChunkAsync 的反序列化阶段（SectionCodec::toChunkSection + biomes 组装 + ChunkData 合并）
-     * 在此线程池执行，与 IO 线程池分离（对齐 Moonrise ProcessOffMainTask 跑在 loadExecutor）。
+     * loadChunkAsync 的区块解码、组装和缺失高度图重建在此线程池执行，与 IO 读取分离。
      * 未注入时降级为在 IO worker 内联执行反序列化。
      *
      * @param workerPool 反序列化线程池指针，可为 nullptr（降级内联）

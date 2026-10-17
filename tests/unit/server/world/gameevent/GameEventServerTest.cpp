@@ -790,7 +790,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_AllChunksBlockTi
     // 此时区块已 loaded，_onTicketLevelChanged 的 _submitChunkRequest 不会重新走存档加载，
     // 仅推进票据级别。viewDistance=2 覆盖 3x3 范围。
     chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
-    chunkManager->processTicketUpdatesSync();
+    chunkManager->processTicketUpdates();
 
     // 验证区块加载级别 <= BlockTicking
     using mc::world::chunk::ChunkLoadLevel;
@@ -904,7 +904,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_UsesListenerPosi
 
     // 通过玩家位置使监听器位置（区块 0,0）周围的 3x3 区块达到 EntityTicking 级别
     chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
-    chunkManager->processTicketUpdatesSync();
+    chunkManager->processTicketUpdates();
 
     // 监听器在区块 (0,0) 内，振动源在远处（但仍在检测半径内）
     TestVibrationSystem system(BlockPos(8, 64, 8), 16);
