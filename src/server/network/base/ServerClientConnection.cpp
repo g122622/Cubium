@@ -36,11 +36,13 @@
 // 头文件只前置声明它，以免所有仅需连接类型的头被迫拉入 <asio.hpp>。
 #include "common/network/transport/TcpTransport.hpp"
 
+#include <algorithm>
 #include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 namespace mc::server::net {
 
@@ -74,6 +76,24 @@ Result<void> ServerClientConnection::send(mc::network::ir::IrPacket packet)
     return m_conn.send(std::move(packet));
 }
 
+Result<void> ServerClientConnection::sendShared(std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet)
+{
+    return m_conn.sendShared(std::move(packet));
+}
+
+void ServerClientConnection::enqueueInbound(mc::network::ir::IrPacket packet)
+{
+    {
+        std::lock_guard lock(m_inboundQueueMutex);
+        if (m_inboundQueue.size() < MAX_INBOUND_PACKETS) {
+            m_inboundQueue.push_back(std::move(packet));
+            return;
+        }
+    }
+    spdlog::warn("Inbound packet queue limit exceeded for session {}", m_sessionId);
+    m_conn.close();
+}
+
 void ServerClientConnection::onPacket(ClientConn::PacketListener listener)
 {
     m_conn.onPacket(std::move(listener));
@@ -86,15 +106,16 @@ void ServerClientConnection::pumpLocal()
 
 void ServerClientConnection::drainInbound()
 {
-    // 锁内一次性快照整队 + 取 handler 引用，锁外派发：handler 可能递归触发入站
-    // （如回包）或增删连接，锁外执行避免重入死锁。镜像 ServerNetwork::tick() 的
-    // Local 快照-后-pump 模式。handler 仅由 onClientConnect 装配一次后不再改，
-    // 拷贝一份本地副本后即可锁外安全调用。
+    // 按每 tick 的预算取包，避免单个玩家的积压阻塞整个主循环；业务回调在锁外执行。
     std::deque<mc::network::ir::IrPacket> local;
     decltype(m_inboundHandler) handler;
     {
         std::lock_guard<std::mutex> lock(m_inboundQueueMutex);
-        local.swap(m_inboundQueue);
+        const auto count = std::min(m_inboundQueue.size(), INBOUND_PACKETS_PER_TICK);
+        for (usize index = 0; index < count; ++index) {
+            local.push_back(std::move(m_inboundQueue.front()));
+            m_inboundQueue.pop_front();
+        }
         handler = m_inboundHandler;
     }
     if (!handler || local.empty()) {
@@ -102,6 +123,7 @@ void ServerClientConnection::drainInbound()
     }
     for (auto& pkt : local) {
         handler(pkt);
+        if (m_state == HandshakeState::Disconnected) break;
     }
 }
 
@@ -140,7 +162,7 @@ void ServerClientConnection::disconnect(const std::string& reason)
         (void)send(mc::network::ir::IrPacket{phase, mc::network::ir::PlayPacket{std::move(dc)}});
     }
 
-    close();
+    closeAfterFlush();
 }
 
 } // namespace mc::server::net

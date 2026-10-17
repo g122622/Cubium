@@ -23,91 +23,54 @@
 
 #pragma once
 
-#include "common/core/Result.hpp"
-#include "common/core/Types.hpp"
-#include "common/network/transport/DeliveryHint.hpp"
-#include "common/network/transport/Endpoint.hpp"
 #include "common/network/transport/ITransport.hpp"
 
-#include <asio.hpp>
-
-#include <atomic>
 #include <memory>
-#include <mutex>
-#include <queue>
 #include <string>
-#include <thread>
-#include <vector>
-#include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 
 namespace mc::network::transport {
 
 /**
- * @brief TCP 原始字节传输
+ * @brief 共享网络事件循环上的异步 TCP 传输。
  *
- * 仅做同步 TCP socket 读写，不做任何帧编解码——帧编解码（VarInt 长度前缀）、
- * 压缩、加密都由 Connection 流水线负责。本类只把上层 send 的字节写进 socket，
- * 把 socket 读到的字节块回调给 onBytes。
- *
- * 线程模型（同步 + 独立接收线程，已验证可工作）：
- * - 同步 connect（asio::connect）
- * - 独立接收线程跑同步 read_some 循环，每读到一块就回调 onBytes
- * - 发送在调用方线程同步 asio::write，mutex 保护并发 send
- * io_context 仅作 resolver/socket 工厂，不调 run()。
+ * 每连接使用独立的串行执行器，编码任务、接收回调和写入队列不会并发访问协议状态。
+ * execute/send 返回成功表示成功入队；异步错误通过断开回调报告。
  */
-class TcpTransport : public ITransport {
+class TcpTransport final : public ITransport {
 public:
     TcpTransport();
     ~TcpTransport() override;
-
     TcpTransport(const TcpTransport&) = delete;
     TcpTransport& operator=(const TcpTransport&) = delete;
 
-    /**
-     * @brief 客户端：连接到 endpoint
-     */
+    /** @brief 客户端同步建立连接，随后由共享事件循环收发。 */
     [[nodiscard]] Result<void> connect(const Endpoint& endpoint);
-
-    /**
-     * @brief 服务端：从已 accept 的 socket 接管（ServerNetwork::startAccept accept 出
-     *        socket 后经此接口注入，省去 TcpTransport 自行 accept）
-     */
-    void attachConnectedSocket(asio::ip::tcp::socket socket);
-
-    /** @brief 字节回调与上层协议监听器装配完成后，显式启动接收线程。 */
+    /** @brief 接管已连接的 socket，并迁移到共享网络事件循环。 */
+    [[nodiscard]] Result<void> attachConnectedSocket(asio::ip::tcp::socket socket);
+    /** @brief 回调装配完成后开始异步接收。 */
     [[nodiscard]] Result<void> startReceiving();
-
-    /**
-     * @brief 取对端地址（"host:port" 形式）。Wire 模式从 socket remote_endpoint 取；
-     *        未连接/已关闭/取 endpoint 抛异常时返回空串。供服务端玩家 IP 记录（BanIp）用。
-     */
+    /** @brief 返回连接建立时保存的对端地址。 */
     [[nodiscard]] std::string remoteAddress() const;
 
-    // === ITransport ===
+    [[nodiscard]] Result<void> execute(Task task) override;
+    void synchronize() override;
+    void closeAfterFlush() override;
     [[nodiscard]] Result<void> send(const u8* data, usize size, DeliveryHint hint) override;
     void onBytes(ByteCallback callback) override;
     void onDisconnect(DisconnectCallback callback) override;
     [[nodiscard]] bool isConnected() const noexcept override;
     void close() override;
 
+    /** @brief 获取尚未写完的字节数，用于监控和压力测试。 */
+    [[nodiscard]] usize pendingWriteBytes() const noexcept;
+
+    static constexpr usize MAX_PENDING_TASKS = 4096;
+    static constexpr usize MAX_PENDING_WRITE_BYTES = 32 * 1024 * 1024;
+
 private:
-    /**
-     * @brief 接收线程主循环：同步读字节块，回调 onBytes
-     */
-    void _receiveLoop();
-
-    asio::io_context m_ioContext;
-    std::unique_ptr<asio::ip::tcp::socket> m_socket;
-    std::unique_ptr<std::thread> m_receiveThread;
-    std::atomic<bool> m_running{false};
-    std::atomic<bool> m_connected{false};
-
-    ByteCallback m_byteCallback;
-    DisconnectCallback m_disconnectCallback;
-    std::mutex m_callbackMutex;
-
-    std::mutex m_sendMutex; // 保护并发 send 的同步 write
+    struct State;
+    std::shared_ptr<State> m_state;
 };
 
 } // namespace mc::network::transport

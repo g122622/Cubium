@@ -201,3 +201,9 @@ OpLevel 枚举参考 MC 1.16.5：
 ### 11. 载具移动速度验证（ServerPlayHandler ServerboundMoveVehicle 分支）
 
 `ServerPlayHandler` 的 `ServerboundMoveVehicle` 分支中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `ir::play::ClientboundMoveVehicle` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。（此逻辑从已删除的 `PacketHandler::handleMoveVehicle` 迁入，旧 `VehicleMovePacket` 已由 IR `ServerboundMoveVehicle`/`ClientboundMoveVehicle` 取代。）
+
+### 发送执行上下文
+
+主线程筛选接收者并提交出站包；TCP 编码、压缩和异步写入由独立 NetworkIO 执行。
+广播共享 OutboundPacket，send/sendShared 的成功表示成功入队，异步错误通过断连处理。
+存档 IO 池不承载网络连接，网络任务不读取玩家或世界可变状态。

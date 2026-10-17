@@ -51,6 +51,7 @@
  * - AddEntity 位置 ≈ 刷怪蛋生成位置（方块上方中心）
  */
 
+#include "common/network/pipeline/OutboundPacket.hpp"
 #include <gtest/gtest.h>
 
 #include "server/interaction/BlockInteractionManager.hpp"
@@ -109,6 +110,11 @@ public:
     {
         m_packets.push_back(std::move(packet));
         return mc::Result<void>::ok();
+    }
+    [[nodiscard]] mc::Result<void> sendShared(
+        std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) override
+    {
+        return send(packet->packet());
     }
     void close() override { m_connected = false; }
     [[nodiscard]] bool isConnected() const noexcept override { return m_connected; }

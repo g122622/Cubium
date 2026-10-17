@@ -87,3 +87,8 @@ src/server/network/outbound/
 
 对话框直接定义使用严格整数 NBT 转换；命名资源解析在 handshake/RegistryDataBuilder 完成，PacketBuilders 仅接收已解析的 JSON 构造直接 holder。
 对话框实现单独编译进服务端、客户端内置服务端、单元测试、benchmark 和 mc_fuzz_net；拆分构造器时必须同步各目标的源码清单，不要让握手 fuzz 引入含命令系统依赖的整个 PacketBuilders.cpp。
+
+### 共享广播快照
+
+接收者筛选和距离计算在主线程完成；相同内容冻结为一个 OutboundPacket，通过 sendShared 投递。
+相同协议表、流向和压缩阈值复用加密前帧；含逐玩家位置或击退向量的包仍按玩家构造。

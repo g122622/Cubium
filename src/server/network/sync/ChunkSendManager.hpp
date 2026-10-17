@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/pipeline/OutboundPacket.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
@@ -168,11 +169,10 @@ public:
      * @param callback 回调函数，参数为(玩家ID, 区块X, 区块Z, 区块IR)
      *
      * 回调在主线程 processPendingSends 内按 (chunk, player) 对调用，同一 chunk 给 N 个玩家
-     * 触发 N 次。IR 已在 worker 线程构建一次，回调侧仅按玩家拷贝进包（与旧 bytes 方案等价）。
+     * 触发 N 次。快照由所有目标玩家共享，编码和压缩结果由网络执行器按连接配置缓存。
      */
-    void setOnChunkSend(
-        std::function<void(PlayerId, ChunkCoord, ChunkCoord, const mc::network::ir::play::LevelChunkWithLight&)>
-            callback);
+    void setOnChunkSend(std::function<void(
+            PlayerId, ChunkCoord, ChunkCoord, std::shared_ptr<const mc::network::pipeline::OutboundPacket>)> callback);
 
     /**
      * @brief 设置区块卸载回调
@@ -193,7 +193,7 @@ private:
     struct ReadyChunkData {
         ChunkCoord x = 0;
         ChunkCoord z = 0;
-        mc::network::ir::play::LevelChunkWithLight ir;
+        std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet;
         std::vector<PlayerId> players;
         bool validateTracking = false;
     };
@@ -205,7 +205,7 @@ private:
     std::vector<ReadyChunkData> m_readyChunks;
     std::mutex m_readyChunksMutex;
 
-    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const mc::network::ir::play::LevelChunkWithLight&)>
+    std::function<void(PlayerId, ChunkCoord, ChunkCoord, std::shared_ptr<const mc::network::pipeline::OutboundPacket>)>
         m_onChunkSend;
     std::function<void(PlayerId, ChunkCoord, ChunkCoord)> m_onChunkUnload;
 };

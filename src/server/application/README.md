@@ -216,3 +216,9 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 `_refreshServerIcon()` 在 `initializeSharedStorage` 中从 `server-icon.png`（回落存档 `icon.png`）
 加载一次（须 64×64），缓存为 Data URL；玩家样本按上限 12 随机截取。JSON 组装在
 `ServerHandshake::_buildStatusJson`（空值字段省略而非 null）。
+
+### 发送执行上下文
+
+主线程筛选接收者并提交出站包；TCP 编码、压缩和异步写入由独立 NetworkIO 执行。
+广播共享 OutboundPacket，send/sendShared 的成功表示成功入队，异步错误通过断连处理。
+存档 IO 池不承载网络连接，网络任务不读取玩家或世界可变状态。

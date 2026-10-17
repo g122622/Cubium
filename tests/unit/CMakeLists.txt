@@ -20,6 +20,7 @@ add_executable(mc_tests
     common/test_network.cpp
     common/network/test_bytebuf.cpp
     common/network/TcpTransportReceiveTest.cpp
+    common/network/ConnectionWireAsyncTest.cpp
     common/network/test_registry_bytebuf.cpp
     common/network/test_nbt_io.cpp
     common/network/test_stream_codecs.cpp
