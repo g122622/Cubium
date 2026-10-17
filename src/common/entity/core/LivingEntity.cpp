@@ -92,6 +92,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -807,9 +808,13 @@ void LivingEntity::die(DamageSource& cause)
     //    Cubium 等价方法为 stopActiveHand()。
     stopActiveHand();
 
-    // 4. 命名实体死亡日志（LivingEntity.java:1443-1445）
+    // 4. 命名实体死亡日志（vanilla LivingEntity.java:1443-1445）
+    //    LOGGER.info("Named entity {} died: {}", this, getCombatTracker().getDeathMessage().getString())
+    //    仅服务端且实体有自定义名时记录；日志内容一律英文（项目日志规范）。
     if (m_world != nullptr && !m_world->isClientSide() && hasCustomName()) {
-        // TODO: 接入 spdlog 输出 "Named entity {} died: {}"
+        const auto displayName = getDisplayName();
+        const std::string name = displayName != nullptr ? displayName->getUnformattedText() : getTypeId();
+        spdlog::info("Named entity {} died: {}", name, m_combatTracker.getDeathMessage());
     }
 
     // 5. dead = true（LivingEntity.java:1447）
