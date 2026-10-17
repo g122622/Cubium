@@ -28,6 +28,7 @@
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include <optional>
 
 namespace mc {
 namespace item::items {
@@ -80,6 +81,26 @@ public:
      */
     [[nodiscard]] static bool hasColor(const ItemStack& stack) noexcept;
 
+    // ========== 通用颜色读写（与具体物品类型解耦） ==========
+    //
+    // 颜色统一存放在物品的 `display.color` 子标签中。以下静态方法只依赖 ItemStack，
+    // 不依赖 DyeableArmorItem 类型，因此可被所有 DYEABLE 物品复用——尤其是皮革马铠
+    // （HorseArmorItem，非 DyeableArmorItem 子类）与狼铠（WolfArmorItem）。
+
+    /**
+     * @brief 读取物品已存储的颜色（无颜色时返回调用方给定的默认色）
+     * @param stack 物品堆
+     * @param defaultColor 物品尚无颜色时返回的默认色（0xRRGGBB）
+     */
+    [[nodiscard]] static u32 getStoredColor(const ItemStack& stack, u32 defaultColor) noexcept;
+
+    /**
+     * @brief 读取物品已存储的颜色，无颜色时返回 std::nullopt
+     *
+     * 用于区分"从未染色"与"被染成某个颜色"（对齐 vanilla 判断 DYED_COLOR 组件是否存在）。
+     */
+    [[nodiscard]] static std::optional<u32> getStoredColorOrNone(const ItemStack& stack) noexcept;
+
     /**
      * @brief 获取默认颜色
      *
@@ -92,10 +113,6 @@ public:
 private:
     /// 皮革盔甲的默认颜色（棕色）
     static constexpr u32 DEFAULT_COLOR = 0xA06540;
-
-    /// NBT标签键
-    static constexpr const char* TAG_DISPLAY = "display";
-    static constexpr const char* TAG_COLOR = "color";
 };
 
 } // namespace item::items

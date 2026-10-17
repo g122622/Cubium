@@ -32,12 +32,20 @@
 namespace mc {
 namespace item::items {
 
+namespace {
+
+/// 颜色存储在物品的 display.color 子标签中（0xRRGGBB），与 vanilla 的 DYED_COLOR 组件对应。
+constexpr const char* TAG_DISPLAY = "display";
+constexpr const char* TAG_COLOR = "color";
+
+} // namespace
+
 DyeableArmorItem::DyeableArmorItem(
     const armor::ArmorMaterial& material, armor::ArmorSlot slot, ItemProperties properties)
     : ArmorItem(material, slot, std::move(properties))
 {}
 
-u32 DyeableArmorItem::getColor(const ItemStack& stack) const noexcept
+u32 DyeableArmorItem::getStoredColor(const ItemStack& stack, u32 defaultColor) noexcept
 {
     const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
     if (displayTag != nullptr) {
@@ -47,7 +55,24 @@ u32 DyeableArmorItem::getColor(const ItemStack& stack) const noexcept
         }
     }
 
-    return getDefaultColor();
+    return defaultColor;
+}
+
+std::optional<u32> DyeableArmorItem::getStoredColorOrNone(const ItemStack& stack) noexcept
+{
+    const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
+    if (displayTag != nullptr) {
+        const auto colorIter = displayTag->find(TAG_COLOR);
+        if (colorIter != displayTag->end() && colorIter->is_number()) {
+            return colorIter->get<u32>() & 0x00FFFFFFu;
+        }
+    }
+    return std::nullopt;
+}
+
+u32 DyeableArmorItem::getColor(const ItemStack& stack) const noexcept
+{
+    return getStoredColor(stack, getDefaultColor());
 }
 
 void DyeableArmorItem::setColor(ItemStack& stack, u32 color) noexcept
@@ -75,8 +100,7 @@ void DyeableArmorItem::clearColor(ItemStack& stack) noexcept
 
 bool DyeableArmorItem::hasColor(const ItemStack& stack) noexcept
 {
-    const auto* displayTag = stack.getChildTag(TAG_DISPLAY);
-    return displayTag != nullptr && displayTag->contains(TAG_COLOR) && (*displayTag)[TAG_COLOR].is_number();
+    return getStoredColorOrNone(stack).has_value();
 }
 
 } // namespace item::items
