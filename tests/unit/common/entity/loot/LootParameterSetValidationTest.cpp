@@ -56,12 +56,21 @@ TEST_F(LootParameterSetValidationTest, IsAllowed_RequiredParam)
 TEST_F(LootParameterSetValidationTest, IsAllowed_OptionalParam)
 {
     auto paramSet = LootParameterSets::block();
-    // block() 可选参数：TOOL, THIS_ENTITY, BLOCK_ENTITY, FORTUNE_LEVEL, SILK_TOUCH_LEVEL
+    // block() 可选参数：ORIGIN, TOOL, THIS_ENTITY, BLOCK_ENTITY, FORTUNE_LEVEL, SILK_TOUCH_LEVEL
+    EXPECT_TRUE(paramSet.isAllowed(LootParams::ORIGIN.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::TOOL.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::THIS_ENTITY.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::BLOCK_ENTITY.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::FORTUNE_LEVEL.getId()));
     EXPECT_TRUE(paramSet.isAllowed(LootParams::SILK_TOUCH_LEVEL.getId()));
+}
+
+TEST_F(LootParameterSetValidationTest, IsAllowed_OriginInEntityAndBlockSets)
+{
+    // 新增的 ORIGIN 参数（掉落来源世界坐标）应在 block 与 entity 参数集中可用，
+    // 供探险地图等按坐标搜索结构的掉落函数读取。
+    EXPECT_TRUE(LootParameterSets::block().isAllowed(LootParams::ORIGIN.getId()));
+    EXPECT_TRUE(LootParameterSets::entity().isAllowed(LootParams::ORIGIN.getId()));
 }
 
 TEST_F(LootParameterSetValidationTest, IsAllowed_ParamNotInSet)
@@ -269,7 +278,8 @@ TEST_F(LootParameterSetValidationTest, GetOptionalParams_BlockSet)
 {
     auto paramSet = LootParameterSets::block();
     const auto& optional = paramSet.getOptionalParams();
-    EXPECT_EQ(optional.size(), 5u); // TOOL, THIS_ENTITY, BLOCK_ENTITY, FORTUNE_LEVEL, SILK_TOUCH_LEVEL
+    // ORIGIN, TOOL, THIS_ENTITY, BLOCK_ENTITY, FORTUNE_LEVEL, SILK_TOUCH_LEVEL
+    EXPECT_EQ(optional.size(), 6u);
 }
 
 TEST_F(LootParameterSetValidationTest, GetRequiredParams_EntitySet)

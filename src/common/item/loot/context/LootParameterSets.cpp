@@ -44,6 +44,9 @@ LootParameterSet block()
     LootParameterSet set(LootParameterSet::Type::Block);
     set.addRequired(LootParams::BLOCK_STATE);
     set.addRequired(LootParams::BLOCK_POS);
+    // ORIGIN（掉落来源世界坐标）以可选参数加入：vanilla 的 block 参数集用 ORIGIN 而非 BLOCK_POS，
+    // 本项目保留 BLOCK_POS 兼容现有调用方，同时以可选 ORIGIN 支持探险地图等按坐标搜索结构的函数。
+    set.addOptional(LootParams::ORIGIN);
     set.addOptional(LootParams::TOOL);
     set.addOptional(LootParams::THIS_ENTITY);
     set.addOptional(LootParams::BLOCK_ENTITY);
@@ -65,6 +68,8 @@ LootParameterSet entity()
 {
     LootParameterSet set(LootParameterSet::Type::Entity);
     set.addRequired(LootParams::THIS_ENTITY);
+    // ORIGIN（实体掉落来源位置）作为可选参数（vanilla entity 参数集要求 ORIGIN）。
+    set.addOptional(LootParams::ORIGIN);
     set.addOptional(LootParams::KILLER_ENTITY);
     set.addOptional(LootParams::KILLER_PLAYER);
     set.addOptional(LootParams::DIRECT_KILLER);

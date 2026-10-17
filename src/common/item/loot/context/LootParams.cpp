@@ -44,6 +44,7 @@ const LootParameter<f32> LUCK("luck");
 // 方块相关参数
 const LootParameter<BlockState> BLOCK_STATE("block_state");
 const LootParameter<BlockPos> BLOCK_POS("block_pos");
+const LootParameter<Vector3> ORIGIN("origin");
 const LootParameter<ItemStack> TOOL("tool");
 const LootParameter<BlockEntity> BLOCK_ENTITY("block_entity");
 

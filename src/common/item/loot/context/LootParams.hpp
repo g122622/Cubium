@@ -25,6 +25,7 @@
 
 #include "LootParameter.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/Vector3.hpp"
 
 namespace mc {
 
@@ -50,8 +51,14 @@ extern const LootParameter<DamageSource> DAMAGE_SOURCE; // 伤害来源
 extern const LootParameter<f32> LUCK;                   // 幸运值
 
 // 方块相关参数
-extern const LootParameter<BlockState> BLOCK_STATE;   // 被破坏的方块状态
-extern const LootParameter<BlockPos> BLOCK_POS;       // 方块位置
+extern const LootParameter<BlockState> BLOCK_STATE; // 被破坏的方块状态
+extern const LootParameter<BlockPos> BLOCK_POS;     // 方块位置
+
+// 掉落来源位置（对齐 vanilla LootContextParams.ORIGIN）：对实体掉落、钓鱼等非方块来源同样生效，
+// 供 ExplorationMapFunction 等按世界坐标搜索结构的函数使用（BLOCK_POS 仅在方块来源存在）。
+extern const LootParameter<Vector3> ORIGIN; // 掉落来源世界坐标
+
+// 工具与方块实体
 extern const LootParameter<ItemStack> TOOL;           // 使用的工具
 extern const LootParameter<BlockEntity> BLOCK_ENTITY; // 方块实体
 

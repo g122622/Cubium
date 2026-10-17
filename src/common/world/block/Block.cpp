@@ -1107,6 +1107,10 @@ void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& 
     contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
     contextBuilder.withParameter(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
 
+    // ORIGIN：方块掉落的来源位置取方块中心（对齐 vanilla LootContextParams.ORIGIN 的
+    // Vec3.atCenterOf(pos) 语义），供探险地图等按世界坐标搜索结构的掉落函数使用。
+    contextBuilder.withOwnedValue(loot::LootParams::ORIGIN, pos.center());
+
     // 设置掉落表解析器和条件解析器
     contextBuilder.withLootTableResolver(
         [lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager->getTable(id); });

@@ -34,6 +34,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDecoration.hpp"
+#include <cmath>
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -82,11 +83,16 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // 获取上下文中的位置参数（宝箱位置）
-    // TODO: 原版读取的是 LootContextParams.ORIGIN（Vec3），对实体掉落、钓鱼等非方块来源同样生效；
-    //  本项目尚无 ORIGIN 参数（见 LootParams.hpp），暂以 BLOCK_POS 代替，待补充 ORIGIN 后切换。
-    auto* blockPos = context.get(LootParams::BLOCK_POS);
-    if (!blockPos) {
+    // 获取上下文中的来源位置（align vanilla LootContextParams.ORIGIN，为世界坐标 Vec3，
+    // 对方块掉落与实体掉落/钓鱼等非方块来源同样生效）。ORIGIN 缺失时退回 BLOCK_POS（方块中心）。
+    BlockPos searchOrigin;
+    if (auto* origin = context.get(LootParams::ORIGIN)) {
+        searchOrigin = BlockPos(static_cast<i32>(std::floor(origin->x)),
+            static_cast<i32>(std::floor(origin->y)),
+            static_cast<i32>(std::floor(origin->z)));
+    } else if (auto* blockPos = context.get(LootParams::BLOCK_POS)) {
+        searchOrigin = *blockPos;
+    } else {
         return stack;
     }
 
@@ -96,7 +102,7 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
     //  待世界侧支持按标签搜索后改为标签语义。
     IWorld& world = context.getWorld();
     ResourceLocation structureId = destinationToResourceLocation(m_destination);
-    auto foundPos = world.findNearestStructure(*blockPos, structureId, m_searchRadius, m_skipKnownStructures);
+    auto foundPos = world.findNearestStructure(searchOrigin, structureId, m_searchRadius, m_skipKnownStructures);
 
     if (!foundPos.has_value()) {
         // 未找到结构，返回原始物品

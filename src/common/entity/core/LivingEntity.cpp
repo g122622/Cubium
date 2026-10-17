@@ -1019,7 +1019,7 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     //   KILLER_ENTITY = cause.getEntity()（攻击者/射击者，可选，对应 vanilla ATTACKING_ENTITY）
     //   DIRECT_KILLER = cause.directSource()（直接来源，投射物本身或近战攻击者，对应 vanilla DIRECT_ATTACKING_ENTITY）
     //   KILLER_PLAYER = 最近伤害玩家（仅 recentlyHitByPlayer 时设，对应 vanilla LAST_DAMAGE_PLAYER，并应用 luck）
-    // 注：vanilla 还传 ORIGIN（实体位置），Cubium entity 参数集未含 ORIGIN（非必需），不传。
+    //   ORIGIN = position()（实体位置，下方设置）
     auto builder = loot::LootContextBuilder(*m_world);
 
     // 随机源：用实体自身的随机数生成器 + 掉落表种子（vanilla getLootTableSeed 默认 0）。
@@ -1028,6 +1028,10 @@ void LivingEntity::dropFromLootTable(DamageSource& cause, bool recentlyHitByPlay
     builder.withRandom(rng);
 
     builder.withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(this));
+
+    // ORIGIN：实体掉落的来源位置取实体当前位置（对齐 vanilla LootContextParams.ORIGIN），
+    // 使探险地图等按世界坐标搜索结构的掉落函数对实体掉落同样生效。
+    builder.withOwnedValue(loot::LootParams::ORIGIN, position());
 
     // DAMAGE_SOURCE：使用最近伤害来源（m_lastDamageSource，actuallyHurt 第 356 行 clone），
     // 退回到当前 die 的 cause。优先 m_lastDamageSource 因其更精确记录致死伤害。
