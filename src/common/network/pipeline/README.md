@@ -1,52 +1,43 @@
-# Network Pipeline 模块
+# 网络连接流水线
 
-Connection 状态机门面 + 编解码 pipeline。游戏逻辑经 Connection 收发 IR 包，与 codec/传输解耦。
+## 目录结构树
 
-## 目录结构
-
-```
-src/common/network/pipeline/
-├── ProtocolTableSet.hpp        # 五阶段包表集合（5 阶段 × 2 流向 = 10 张 ProtocolInfo）+ TerminalCheck
-├── Connection.hpp/Connection.inl  # 统一门面（模板 Connection<B>）：双模式 wire/local；encode→压缩→帧→加密→transport；terminal 包驱动阶段切换
-├── VarintFraming.hpp/.cpp      # Java VarInt21 长度前缀帧编解码（帧层）
-├── CompressionHandlers.hpp/.cpp  # 压缩层 handler（CompressionEncoder/Decoder，zlib + threshold）
-├── CipherHandlers.hpp/.cpp     # 加密层 handler（CipherEncoder/Decoder，AES-CFB8）
-└── ProtocolSwapHandler.hpp/.cpp  # terminal 包判定 + 阶段切换（Handshaking→Login→Configuration→Play）
-```
-
-## pipeline 顺序（对齐 Java 出站 compress→frame→encrypt）
-
-```
-出站: ir → ProtocolInfo.encode → [packetID+payload]
-       → CompressionEncoder → [VarInt(数据长度)+data]   (threshold<0 跳过)
-       → VarintFraming       → [VarInt(帧长)+前述]
-       → CipherEncoder       → AES-CFB8 密文            (离线模式跳过)
-       → ITransport.send     → TCP 原始字节
-入站: ITransport.onBytes → CipherDecoder → VarintFraming(切帧) → CompressionDecoder
-       → ProtocolInfo.decode → ir → 监听器 → ProtocolSwapHandler(terminal 切阶段)
+```text
+pipeline/
+├── Connection.hpp/inl        # 连接门面与共享协议状态，支持 Wire/Local
+├── OutboundPacket.hpp/cpp    # 不可变出站快照及加密前帧缓存
+├── ProtocolTableSet.hpp      # 五阶段双向包表
+├── VarintFraming.hpp/cpp     # VarInt 长度帧
+├── CompressionHandlers.hpp/cpp # 包级压缩与解压
+├── CipherHandlers.hpp/cpp    # 连接级流式加解密
+└── ProtocolSwapHandler.hpp/cpp # 终端包对应的阶段切换
 ```
 
 ## 内部模块关系
 
-- `ProtocolTableSet<B>` 集中持有 10 张 `ProtocolInfo<B, 阶段Variant>`，由后端（JavaProtocolTables）构建注入。
-- `Connection<B>` 是门面：Wire 模式经 ITransport 收发字节（encode→pipeline→transport / transport→pipeline→decode），Local 模式经 ILocalTransport 直传 IrPacket。
-- `VarintFraming` 属 Java wire 格式（不在通用 ITransport 里——LocalTransport 零拷贝、RakNet 自有分帧都不需要它）。
-- `CompressionHandlers` 包装 `crypto/ZlibCodec`，按包压缩/解压；threshold<0 时 Connection 不装本层。
-- `CipherHandlers` 包装 `crypto/AesCfb8`，流式加解密跨包保持状态；离线模式不装本层。
-- `ProtocolSwapHandler` 用 `IsTerminal` 特征（struct 含 `static constexpr bool kTerminal`）判定 terminal 包，给出下一阶段。
-- Connection.inl 是 `Connection<B>` 的模板实现（模板类实现分离到 .inl 由头文件末尾 include）。
+Wire 出站由连接执行器串行执行：IR 编码、压缩、组帧、加密、异步写入。
+入站在同一执行器解密、切帧、解压和解码，业务监听器只向主线程投递 IR。
+Local 模式直接投递 IR，由主线程 pump。
+
+`OutboundPacket` 冻结共享 NBT；同次广播或区块下推可以共享快照。
+加密前的帧按协议表身份、方向和压缩阈值缓存，流式加密状态保留在各连接内。
+`Connection` 的异步任务持有共享协议状态，字节回调使用弱引用，避免与传输形成所有权环。
 
 ## 上下游外部依赖关系
 
-- **上游依赖**：`common/core/Result`、`common/network/ir/IrPacket`、`common/network/protocol/{ConnectionProtocol,PacketFlow,ProtocolInfo}`、`common/network/transport/{ITransport,LocalTransport}`、`common/network/crypto/{AesCfb8,Crypt,ZlibCodec}`。
-- **下游**：`server/network/ServerNetwork` 与 `client/network/ClientNetwork` 创建 Connection；后端（JavaBackend）提供 ProtocolTableSet 注入 Connection。
+本层依赖 IR、协议表、缓冲区、压缩加密原语和 ITransport；Java 后端提供包表与 codec。
+服务端 ServerClientConnection、客户端 ClientNetwork 和协议模糊测试通过 Connection 收发。
 
 ## 容易踩的坑
 
-1. **Connection 按缓冲类型 B 模板化**：Java 后端用 `Connection<RegistryByteBuf>`；B 须支持 bytes()/read*/write* + `(const u8*, usize)` 构造（满足 buffer::ByteBuf 接口）。
-2. **Wire 模式 send 按 (phase, flow) 选 ProtocolInfo**：用 `std::get<阶段Variant>(packet.packet)` 取阶段变体再 encode；phase/flow 必须与 IrPacket.packet 实际持有的阶段变体一致，否则 std::get 抛 bad_variant_access。
-3. **Local 模式 send 零序列化**：直接 move IrPacket 到对端 inbox，不经 codec/压缩/加密；Local 模式下 ProtocolTableSet 仅用于阶段校验。
-4. **入站双缓冲分离**：`m_encryptedIn`（喂 CipherDecoder 的原始字节）与 `m_plainIn`（解密后喂 VarintFraming 的明文）必须分离——CFB8 流式要求加密字节按到达顺序逐字节喂入，切帧后的明文残留不能与下次加密字节混存（否则二次解密损坏数据）。
-5. **terminal 包驱动 setPhase**：send 侧发出 terminal 包后切阶段（对齐 Java 出站 setupOutboundProtocol）；recv 侧收到 terminal 包回调监听器后切阶段。
-6. **加密/压缩层按需装入**：`setupCompression(threshold)` 在收到 LoginCompression 后调；`setupEncryption(secret)` 在登录握手双方确认共享密钥后调。离线模式两者都不装（明文+不压缩 wire）。
-7. **Connection.inl 须被 Connection.hpp 末尾 include**：模板实现分离文件，使用方只 include .hpp，.inl 由 .hpp 末尾引入，不能单独编译。
+- Wire 的 send/setupCompression/setupEncryption/阶段切换必须共用连接的有序执行器。
+  压缩通知按旧格式发出，后续包才使用新压缩配置；不能在调用线程直接修改 handler。
+- 成功入队不等于写入完成；断开原因和状态查询回复发送后应使用 closeAfterFlush。
+- 重配置期间的迟到 Play 广播会被丢弃；其他阶段不匹配和编码失败仍会断开连接。
+  断开原因包通过 sendDisconnect 在执行器内按实际出站阶段构造，避免与排队的阶段切换竞争。
+- 终端包按自身阶段编码，发送后只推进出站阶段；入站阶段由收到的终端包独立推进。
+- 入站和出站阶段的查询是原子快照，主线程不应据此读取或修改流水线内部状态。
+- CFB8 字节按流顺序处理，密文与切帧后的明文残留必须分开保存。
+- 缓存不包含密文，不能跨连接复用加密结果；快照的生命周期同时限定缓存生命周期。
+- 门面析构同步停止回调并取消在途任务；业务回调不得递归 pump 或 tick。
+- Connection.inl 由头文件末尾包含，不能作为独立翻译单元。

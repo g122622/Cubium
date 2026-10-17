@@ -47,6 +47,14 @@ public:
     RakNetTransport() = default;
     ~RakNetTransport() override = default;
 
+    [[nodiscard]] Result<void> execute(Task /*task*/) override
+    {
+        return Error(ErrorCode::NotInitialized, "RakNet transport not implemented", "RakNetTransport::execute");
+    }
+
+    void synchronize() override {}
+    void closeAfterFlush() override { close(); }
+
     /**
      * @brief 基岩版连接（RakNet Offline→Online 握手）
      *

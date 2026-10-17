@@ -1451,8 +1451,8 @@ void MinecraftServer::setupWorldCallbacks()
             cs->setOnChunkSend([this](PlayerId playerId,
                                    ChunkCoord x,
                                    ChunkCoord z,
-                                   const mc::network::ir::play::LevelChunkWithLight& ir) {
-                sendChunkDataToPlayer(playerId, x, z, ir);
+                                   std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) {
+                sendChunkDataToPlayer(playerId, x, z, std::move(packet));
             });
 
             cs->setOnChunkUnload([this](PlayerId playerId, ChunkCoord x, ChunkCoord z) {
@@ -1952,29 +1952,16 @@ void MinecraftServer::initializeCreativeInventory(PlayerInventory& inventory)
     fillCreativeModeInventory(inventory);
 }
 
-void MinecraftServer::sendChunkDataToPlayer(
-    PlayerId playerId, ChunkCoord x, ChunkCoord z, const mc::network::ir::play::LevelChunkWithLight& ir)
+void MinecraftServer::sendChunkDataToPlayer(PlayerId playerId,
+    ChunkCoord /*x*/,
+    ChunkCoord /*z*/,
+    std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet)
 {
-    // 1.21.11 LevelChunkWithLight：IR 已由 ChunkSendManager 在 worker 线程经
-    // buildLevelChunkWithLightIR 构建完成（vanilla 语义字段：heightmaps/sections/blockEntities/
-    // lightMasks/lightUpdates）。此处仅按玩家拷贝进 IrPacket 发送：
-    //   - 本地客户端经 LocalTransport 零拷贝直传 IR 结构体；
-    //   - 远程 Java 客户端经 JavaBackend→levelChunkWithLightCodec 编码成 vanilla wire。
-    MC_UNUSED(m_dimensionManager);
-    mc::network::ir::play::LevelChunkWithLight pkt = ir;
-    pkt.x = static_cast<i32>(x);
-    pkt.z = static_cast<i32>(z);
-    // 此处原有一条逐区块的 "Sent chunk" info 诊断日志（排查真 Java 客户端卡 loading 时加）。
-    // 按 docs/CODE_CONVENTIONS.md §4「不允许使用 debug/trace 级别」，不能降级保留；
-    // 而该路径是每区块、每玩家、每 tick 的高频调用（单玩家 viewDistance=4 即约 81 行/次加载），
-    // 维持 info 会淹没日志中的真实错误。故直接移除。
-    // 需要确认「区块是否送达客户端」时，改用 tests/e2e/bot——其 bot-trace.jsonl 逐条记录了
-    // 收到的 map_chunk 包（含大小与 payload），比服务端日志更直接。
-    sendPacketToPlayer(playerId,
-        mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(pkt)},
-        });
+    if (m_localClientPlayerId.has_value() && playerId == *m_localClientPlayerId) {
+        if (m_localClientSender) m_localClientSender(packet->packet());
+        return;
+    }
+    if (auto* player = m_playerManager->getPlayer(playerId)) player->sendShared(std::move(packet));
 }
 
 void MinecraftServer::sendUnloadChunkToPlayer(PlayerId playerId, ChunkCoord x, ChunkCoord z)
@@ -2190,13 +2177,14 @@ void MinecraftServer::broadcastPacket(const mc::network::ir::IrPacket& packet)
 
     // 远程玩家：经 PlayerManager 遍历，player.send 走各自 ServerClientConnection。
     // 跳过本地客户端（m_localClientPlayerId，已由钩子发送），否则双重发送。
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(packet);
     const std::optional<PlayerId> localPlayerId = m_localClientPlayerId;
-    m_playerManager->forEachPlayer([&packet, localPlayerId](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([&shared, localPlayerId](ServerPlayerData& player) {
         if (localPlayerId.has_value() && player.playerId == *localPlayerId) {
             return;
         }
         if (player.loggedIn && player.hasConnection()) {
-            player.send(mc::network::ir::IrPacket{packet});
+            player.sendShared(shared);
         }
     });
 }

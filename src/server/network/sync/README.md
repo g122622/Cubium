@@ -138,3 +138,8 @@ serialize 异步化后区块包发送延迟 ≤1 tick（约 50ms）。
 ### 9. `ChunkView` 的视距默认值来自常量
 
 `ChunkView::viewDistance` 默认取 `world::CHUNK_LOAD_RADIUS`，不要硬编码。改动视距时注意该常量。
+
+### 共享区块快照
+
+区块 IR 构建完成后冻结为一个 OutboundPacket；主线程重新校验玩家订阅并投递同一快照。
+同一编码配置只生成一份加密前帧，不按玩家深复制区块。玩家、订阅和世界状态不能交给网络执行器延迟读取。

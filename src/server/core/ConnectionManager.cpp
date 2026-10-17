@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
+#include "common/network/pipeline/OutboundPacket.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include <array>
@@ -54,14 +55,16 @@ bool ConnectionManager::sendToPlayer(PlayerId playerId, const mc::network::ir::I
 
 void ConnectionManager::broadcast(const mc::network::ir::IrPacket& packet)
 {
-    m_playerManager.forEachPlayer([&](ServerPlayerData& player) { player.send(mc::network::ir::IrPacket{packet}); });
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(packet);
+    m_playerManager.forEachPlayer([&](ServerPlayerData& player) { player.sendShared(shared); });
 }
 
 void ConnectionManager::broadcastExcept(PlayerId excludePlayerId, const mc::network::ir::IrPacket& packet)
 {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(packet);
     m_playerManager.forEachPlayer([&](ServerPlayerData& player) {
         if (player.playerId != excludePlayerId) {
-            player.send(mc::network::ir::IrPacket{packet});
+            player.sendShared(shared);
         }
     });
 }

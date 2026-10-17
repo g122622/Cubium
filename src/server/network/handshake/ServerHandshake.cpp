@@ -175,7 +175,7 @@ Result<void> ServerHandshakeStateMachine::_handleHandshake(const mc::network::ir
                 intention.protocolVersion,
                 kJavaProtocolVersion,
                 key);
-            m_conn.close();
+            m_conn.closeAfterFlush();
             return Result<void>::ok();
         }
         // 入站阶段由框架收 ClientIntention(terminal) 自动切 Login 阶段
@@ -463,7 +463,7 @@ Result<void> ServerHandshakeStateMachine::_handleStatusPacket(const mc::network:
         pong.payload = ping.payload;
         (void)m_conn.send(mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Status, mc::network::ir::StatusPacket{std::move(pong)}});
-        m_conn.close();
+        m_conn.closeAfterFlush();
         return Result<void>::ok();
     }
 

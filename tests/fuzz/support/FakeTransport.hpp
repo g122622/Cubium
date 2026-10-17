@@ -46,6 +46,10 @@ namespace mc::fuzz {
  */
 class FakeTransport final : public network::transport::ITransport {
 public:
+    [[nodiscard]] Result<void> execute(Task task) override { return task(); }
+    void synchronize() override {}
+    void closeAfterFlush() override { close(); }
+
     [[nodiscard]] Result<void> send(const u8* data, usize size, network::transport::DeliveryHint hint) override
     {
         (void)hint;

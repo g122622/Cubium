@@ -55,10 +55,11 @@ network/
 │   ├── Endpoint.hpp                     # 传输端点标识
 │   ├── DeliveryHint.hpp                 # 投递语义提示
 │   ├── LocalTransport.hpp/cpp           # 同进程零拷贝 IR 包传输（取代旧 LocalEndpoint/LocalConnectionPair）
-│   ├── TcpTransport.hpp/cpp             # asio TCP + VarInt21 长度前缀帧化
+│   ├── TcpTransport.hpp/cpp             # 共享事件循环上的异步 TCP 字节传输
 │   ├── RakNetTransport.hpp              # 基岩 RakNet stub
 │   └── README.md
 ├── pipeline/                            # 连接管线（新架构）
+│   ├── OutboundPacket.hpp/cpp          # 不可变快照与广播帧缓存
 │   ├── Connection.hpp / Connection.inl  # pipeline::Connection<RegistryByteBuf> 门面（Wire/Local 双模）
 │   ├── CipherHandlers.hpp/cpp           # 加密 handler
 │   ├── CompressionHandlers.hpp/cpp      # 压缩 handler
@@ -215,3 +216,9 @@ size_t actualSize = ser.size();
 ### 9. EntityStatus 状态枚举值与 MC 原版一致
 
 `mc::network::EntityStatus` 枚举（定义于 `protocol/EntityEvents.hpp`，自旧 `EntityStatusPacket::Status` 迁出）的取值必须与 Minecraft 原版 EntityStatus byte 值严格对应（如 `IronGolemAttack = 4`、`IronGolemHoldRose = 11`、`IronGolemStopRose = 34`）。新增实体状态时必须查阅原版协议确认正确的数值，不能自行分配。原 `EntityStatusPacket`/`EntityAnimationPacket` 类已删除，业务侧改用 `mc::network::EntityStatus` / `mc::network::EntityAnimation`（同文件）配合 IR 路径。
+
+### 网络线程边界
+
+Wire 连接在独立 NetworkIO 执行器中完成编码、压缩、加密和异步收发。
+游戏状态、广播接收者选择与入站业务处理保留在服务端主线程；Local 连接仍由主线程 pump。
+广播和区块发送共享不可变快照，不能从网络任务访问可变玩家、实体或世界状态。

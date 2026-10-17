@@ -103,13 +103,8 @@ Result<void> ClientSession::startConfiguration()
         return Error(ErrorCode::InvalidState, "Connection unavailable", "ClientSession::startConfiguration");
     }
 
-    // 对齐 vanilla ServerGamePacketListenerImpl#switchToConfig：
-    //   waitingForSwitchToConfig = true; send(ClientboundStartConfigurationPacket.INSTANCE);
-    //   connection.setupOutboundProtocol(Configuration)
-    // 先切出站阶段（使 StartConfiguration 之后发的 Configuration 包按 Configuration 表编码），
-    // 再发 StartConfiguration（terminal，发送侧自动切出站阶段，此处显式设置保证顺序确定）。
+    // 终端包仍按 Play 编码，连接在发送该包后推进出站阶段。
     m_waitingForConfig = true;
-    m_connection->setOutboundPhase(mc::network::protocol::ConnectionProtocol::Configuration);
 
     mc::network::ir::play::StartConfiguration start;
     auto result = m_connection->send(mc::network::ir::IrPacket{

@@ -218,6 +218,13 @@ struct ServerPlayerData {
         return false;
     }
 
+    /** @brief 向玩家提交已冻结的共享出站包。 */
+    bool sendShared(std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) const
+    {
+        return connection != nullptr && connection->isConnected() &&
+            connection->sendShared(std::move(packet)).success();
+    }
+
     /**
      * @brief 获取区块坐标 X
      */

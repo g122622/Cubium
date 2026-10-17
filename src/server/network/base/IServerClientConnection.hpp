@@ -26,7 +26,12 @@
 #include "common/core/Result.hpp"
 #include "common/network/ir/IrPacket.hpp"
 
+#include <memory>
 #include <string>
+
+namespace mc::network::pipeline {
+class OutboundPacket;
+}
 
 namespace mc::server::net {
 
@@ -49,8 +54,12 @@ class IServerClientConnection {
 public:
     virtual ~IServerClientConnection() = default;
 
-    /// 出站发送一个 IR 包（实现负责按当前阶段编码并投递 transport）。
+    /// 出站发送一个 IR 包；Wire 成功表示成功入队，异步错误经断连通知。
     [[nodiscard]] virtual Result<void> send(mc::network::ir::IrPacket packet) = 0;
+
+    /** @brief 发送可跨玩家复用的不可变包快照。 */
+    [[nodiscard]] virtual Result<void> sendShared(
+        std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) = 0;
 
     /// 仅断开底层连接，不发送 Disconnect 包。幂等。
     virtual void close() = 0;

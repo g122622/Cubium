@@ -28,6 +28,7 @@
 #include "common/network/ir/ItemStackBridge.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
+#include "common/network/pipeline/OutboundPacket.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
@@ -85,23 +86,23 @@ void PlayerBroadcaster::broadcastSoundInRange(const ResourceLocation& soundEvent
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
-    m_server.playerManager().forEachPlayer(
-        [this, &position, range, &packet, &playersNotified](ServerPlayerData& player) {
-            if (!player.loggedIn || !player.hasConnection()) {
-                return;
-            }
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&position, range, &shared, &playersNotified](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
 
-            f32 dx = player.x - position.x;
-            f32 dy = player.y - position.y;
-            f32 dz = player.z - position.z;
-            f32 distSq = dx * dx + dy * dy + dz * dz;
-            f32 rangeSq = range * range;
+        f32 dx = player.x - position.x;
+        f32 dy = player.y - position.y;
+        f32 dz = player.z - position.z;
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+        f32 rangeSq = range * range;
 
-            if (distSq <= rangeSq) {
-                m_server.sendPacketToPlayer(player.playerId, packet);
-                playersNotified++;
-            }
-        });
+        if (distSq <= rangeSq) {
+            player.sendShared(shared);
+            playersNotified++;
+        }
+    });
 }
 
 void PlayerBroadcaster::sendSoundToPlayer(PlayerId playerId,
@@ -131,7 +132,8 @@ void PlayerBroadcaster::broadcastParticleInRange(particle::ParticleTypeId type,
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
-    m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket, &playersNotified](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
+    m_server.playerManager().forEachPlayer([&pos, range, &shared, &playersNotified](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -143,7 +145,7 @@ void PlayerBroadcaster::broadcastParticleInRange(particle::ParticleTypeId type,
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, irPacket);
+            player.sendShared(shared);
             playersNotified++;
         }
     });
@@ -187,7 +189,8 @@ void PlayerBroadcaster::broadcastVibrationParticleInRange(
     auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
-    m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
+    m_server.playerManager().forEachPlayer([&pos, range, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -199,7 +202,7 @@ void PlayerBroadcaster::broadcastVibrationParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, irPacket);
+            player.sendShared(shared);
         }
     });
 }
@@ -218,7 +221,8 @@ void PlayerBroadcaster::broadcastTrailParticleInRange(
     auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
-    m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
+    m_server.playerManager().forEachPlayer([&pos, range, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -230,7 +234,7 @@ void PlayerBroadcaster::broadcastTrailParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, irPacket);
+            player.sendShared(shared);
         }
     });
 }
@@ -245,7 +249,8 @@ void PlayerBroadcaster::broadcastEntityEffectParticleInRange(
     auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
 
     // 只发送给范围内的玩家
-    m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
+    m_server.playerManager().forEachPlayer([&pos, range, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -257,7 +262,7 @@ void PlayerBroadcaster::broadcastEntityEffectParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, irPacket);
+            player.sendShared(shared);
         }
     });
 }
@@ -272,7 +277,8 @@ void PlayerBroadcaster::broadcastBlockParticleInRange(
     auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
-    m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
+    m_server.playerManager().forEachPlayer([&pos, range, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -284,7 +290,7 @@ void PlayerBroadcaster::broadcastBlockParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, irPacket);
+            player.sendShared(shared);
         }
     });
 }
@@ -299,7 +305,8 @@ void PlayerBroadcaster::broadcastItemParticleInRange(
     auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
 
     // 只发送给范围内的玩家
-    m_server.playerManager().forEachPlayer([this, &pos, range, &irPacket](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
+    m_server.playerManager().forEachPlayer([&pos, range, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
@@ -311,7 +318,7 @@ void PlayerBroadcaster::broadcastItemParticleInRange(
         f32 rangeSq = range * range;
 
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, irPacket);
+            player.sendShared(shared);
         }
     });
 }
@@ -333,14 +340,15 @@ void PlayerBroadcaster::broadcastEntityStatusInRange(
     };
 
     f32 rangeSq = range * range;
-    m_server.playerManager().forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&pos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -358,14 +366,15 @@ void PlayerBroadcaster::broadcastEntityAnimationInRange(
     };
 
     f32 rangeSq = range * range;
-    m_server.playerManager().forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&pos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -384,14 +393,15 @@ void PlayerBroadcaster::broadcastHurtAnimationInRange(
     };
 
     f32 rangeSq = range * range;
-    m_server.playerManager().forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&pos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -409,14 +419,15 @@ void PlayerBroadcaster::broadcastSetEntityLinkInRange(
     };
 
     f32 rangeSq = range * range;
-    m_server.playerManager().forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&pos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -435,7 +446,7 @@ void PlayerBroadcaster::broadcastWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i3
     pkt.globalEvent = false;
     m_server.broadcastPacket(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
+        mc::network::ir::PlayPacket{pkt},
     });
 }
 
@@ -453,14 +464,15 @@ void PlayerBroadcaster::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i3
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_server.playerManager().forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&pos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -535,14 +547,15 @@ void PlayerBroadcaster::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 param
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_server.playerManager().forEachPlayer([this, &pos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&pos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -565,14 +578,15 @@ void PlayerBroadcaster::broadcastBlockEntityInRange(
 
     f32 rangeSq = range * range;
     Vector3 fpos(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
-    m_server.playerManager().forEachPlayer([this, &fpos, rangeSq, &packet](ServerPlayerData& player) {
+    auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(packet));
+    m_server.playerManager().forEachPlayer([&fpos, rangeSq, &shared](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
             return;
         }
 
         f32 distSq = math::distanceSq(player.x, player.y, player.z, fpos.x, fpos.y, fpos.z);
         if (distSq <= rangeSq) {
-            m_server.sendPacketToPlayer(player.playerId, packet);
+            player.sendShared(shared);
         }
     });
 }
@@ -740,11 +754,7 @@ void PlayerBroadcaster::broadcastLightUpdate(ChunkCoord x,
         mc::network::protocol::ConnectionProtocol::Play,
         mc::network::ir::PlayPacket{std::move(pkt)},
     };
-    m_server.playerManager().forEachPlayer([this, &packet](ServerPlayerData& player) {
-        if (player.loggedIn && player.hasConnection()) {
-            m_server.sendPacketToPlayer(player.playerId, mc::network::ir::IrPacket{packet});
-        }
-    });
+    m_server.broadcastPacket(packet);
 }
 
 } // namespace mc::server::net

@@ -52,6 +52,7 @@ ServerNetwork::ServerNetwork()
 
 ServerNetwork::~ServerNetwork()
 {
+    m_accepting.store(false);
     // 通知 accept 循环退出：stop() 让 io_context::run() 在处理完当前回调后返回，
     // 从而可靠唤醒阻塞在 run() 中的 accept 线程。跨平台一致，避免 Linux 上
     // close() listen socket fd 无法中断阻塞 ::accept(fd) 的陷阱。
@@ -63,7 +64,7 @@ ServerNetwork::~ServerNetwork()
     }
 
     // 显式先清空所有连接：每个 ServerClientConnection 析构会 close 其 TcpTransport 并
-    // join 接收线程，而接收线程在关闭时可能触发 onDisconnect→_notifyDisconnect（锁
+    // 等待在途回调结束，而网络执行器在关闭时可能触发 onDisconnect→_notifyDisconnect（锁
     // m_disconnectedSessionsMutex）。此处所有 mutex 仍存活，安全。若交由成员按声明逆序
     // 销毁，m_connections 会在 m_disconnectedSessionsMutex 之后析构，触发已析构 mutex。
     {
@@ -114,29 +115,13 @@ void ServerNetwork::_doAsyncAccept()
             return;
         }
 
-        const u32 sessionId = m_nextSessionId.fetch_add(1);
-        auto transport = std::make_unique<mc::network::transport::TcpTransport>();
-        transport->attachConnectedSocket(std::move(socket));
-        // 接收线程检测到对端断开时仅把 sessionId 入延迟队列，主线程 tick() 再回调清理。
-        // 在 transport move 进 Connection 前安装（move 后无法再触及 transport）。
-        transport->onDisconnect([this, sessionId] { _notifyDisconnect(sessionId); });
-        auto* tcpTransport = transport.get();
-
-        auto conn = std::make_unique<ServerClientConnection>(std::move(transport), m_tables, sessionId);
-        ServerClientConnection* raw = conn.get();
         {
-            std::lock_guard<std::mutex> lock(m_connectionsMutex);
-            m_connections.push_back(std::move(conn));
-        }
-        // 在启动接收线程前装配完整会话；提前到达的握手字节仍保留在 socket 中。
-        if (m_onConnect) {
-            m_onConnect(*raw);
-        }
-        auto receiving = tcpTransport->startReceiving();
-        if (!receiving.success()) {
-            spdlog::warn("Cannot start accepted TCP receive loop: {}", receiving.error().message());
-            _doAsyncAccept();
-            return;
+            std::lock_guard lock(m_pendingSocketsMutex);
+            if (m_pendingSockets.size() < m_maxConnections) {
+                m_pendingSockets.push_back(std::move(socket));
+            } else {
+                spdlog::warn("Pending TCP connection limit exceeded");
+            }
         }
 
         // 继续接受下一个连接
@@ -144,9 +129,45 @@ void ServerNetwork::_doAsyncAccept()
     });
 }
 
+void ServerNetwork::_adoptPendingConnections()
+{
+    std::vector<asio::ip::tcp::socket> pending;
+    {
+        std::lock_guard lock(m_pendingSocketsMutex);
+        pending.swap(m_pendingSockets);
+    }
+    for (auto& socket : pending) {
+        {
+            std::lock_guard lock(m_connectionsMutex);
+            if (m_connections.size() >= m_maxConnections) continue;
+        }
+        auto transport = std::make_unique<mc::network::transport::TcpTransport>();
+        auto attached = transport->attachConnectedSocket(std::move(socket));
+        if (!attached.success()) {
+            spdlog::warn("Cannot attach accepted TCP connection: {}", attached.error().toString());
+            continue;
+        }
+        const u32 sessionId = m_nextSessionId.fetch_add(1);
+        transport->onDisconnect([this, sessionId] { _notifyDisconnect(sessionId); });
+        auto* tcp = transport.get();
+        auto connection = std::make_unique<ServerClientConnection>(std::move(transport), m_tables, sessionId);
+        auto* raw = connection.get();
+        {
+            std::lock_guard lock(m_connectionsMutex);
+            m_connections.push_back(std::move(connection));
+        }
+        if (m_onConnect) m_onConnect(*raw);
+        auto started = tcp->startReceiving();
+        if (!started.success()) {
+            spdlog::warn("Cannot start TCP receive: {}", started.error().toString());
+            raw->close();
+        }
+    }
+}
+
 void ServerNetwork::_notifyDisconnect(u32 sessionId)
 {
-    // 接收线程调用：仅入队 sessionId，不碰连接/session map（跨线程不安全）。
+    // 网络执行器调用：仅入队 sessionId，不碰连接/session map（跨线程不安全）。
     std::lock_guard<std::mutex> lock(m_disconnectedSessionsMutex);
     m_disconnectedSessions.push_back(sessionId);
 }
@@ -188,6 +209,7 @@ void ServerNetwork::removeConnection(u32 sessionId)
 
 void ServerNetwork::tick()
 {
+    _adoptPendingConnections();
     // 取快照后在锁外处理，避免 handler 回调内增删连接时死锁。
     std::vector<ServerClientConnection*> locals;
     std::vector<ServerClientConnection*> wires;
@@ -202,7 +224,7 @@ void ServerNetwork::tick()
             if (c->isLocalMode()) {
                 locals.push_back(c.get());
             } else {
-                wires.push_back(c.get()); // Wire 模式：接收线程已 enqueueInbound，此处主线程出队派发
+                wires.push_back(c.get()); // Wire 模式：网络执行器已 enqueueInbound，此处主线程出队派发
             }
         }
     }
@@ -210,12 +232,12 @@ void ServerNetwork::tick()
     for (auto* c : locals) {
         c->pumpLocal();
     }
-    // Wire：主线程 drain 入站队列（消除接收线程跨线程跑游戏逻辑的隐患）。
+    // Wire：主线程 drain 入站队列（消除网络执行器跨线程跑游戏逻辑的隐患）。
     for (auto* c : wires) {
         c->drainInbound();
     }
 
-    // 处理延迟断开：接收线程已把断开的 sessionId 入队，此处主线程回调 m_onDisconnect
+    // 处理延迟断开：网络执行器已把断开的 sessionId 入队，此处主线程回调 m_onDisconnect
     // 做玩家/session 清理，再从 m_connections 移除连接。快照-后-处理避免持锁回调死锁。
     std::vector<u32> disconnected;
     {

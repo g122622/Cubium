@@ -30,7 +30,7 @@ TEST(TcpTransportReceiveTest, EarlyBytesRemainAvailableUntilListenersAreReady)
         finishFuture.wait();
     });
     TcpTransport transport;
-    transport.attachConnectedSocket(acceptor.accept());
+    ASSERT_TRUE(transport.attachConnectedSocket(acceptor.accept()).success());
     sent.get_future().wait();
     // 给旧实现的接收线程消费首包的机会；新实现此时明确不读取 socket。
     std::this_thread::sleep_for(50ms);
@@ -57,7 +57,7 @@ TEST(TcpTransportReceiveTest, ClosingBeforeReceiveStartupDoesNotWaitForAThread)
     asio::ip::tcp::socket peer(context);
     peer.connect({asio::ip::address_v4::loopback(), acceptor.local_endpoint().port()});
     TcpTransport transport;
-    transport.attachConnectedSocket(acceptor.accept());
+    ASSERT_TRUE(transport.attachConnectedSocket(acceptor.accept()).success());
     EXPECT_FALSE(transport.startReceiving().success());
     const auto start = std::chrono::steady_clock::now();
     transport.close();

@@ -51,8 +51,18 @@ class ITransport {
 public:
     using ByteCallback = std::function<void(const u8* data, usize size)>;
     using DisconnectCallback = std::function<void()>;
+    using Task = std::function<Result<void>()>;
 
     virtual ~ITransport() = default;
+
+    /** @brief 在连接的串行执行上下文中执行任务；异步实现返回入队结果。 */
+    [[nodiscard]] virtual Result<void> execute(Task task) = 0;
+
+    /** @brief 等待此前提交的任务和当前接收回调结束，不等待网络写入完成。 */
+    virtual void synchronize() = 0;
+
+    /** @brief 停止接受新任务，在已入队数据写完或写入超时后关闭连接。 */
+    virtual void closeAfterFlush() = 0;
 
     /**
      * @brief 投递原始字节（已由上层流水线完成帧编解码/压缩/加密）

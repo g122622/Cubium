@@ -1,4 +1,5 @@
 #include "BaseTestServer.hpp"
+#include "common/network/pipeline/OutboundPacket.hpp"
 
 #include "common/entity/inventory/InventorySlotMapping.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -8,6 +9,11 @@
 #include "server/core/ServerPlayerData.hpp"
 
 namespace mc::test {
+
+Result<void> FakeServerConnection::sendShared(std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet)
+{
+    return send(packet->packet());
+}
 
 Result<void> FakeServerConnection::send(mc::network::ir::IrPacket packet)
 {
