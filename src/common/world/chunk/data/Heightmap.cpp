@@ -27,6 +27,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
 #include <array>
 #include <cstddef>
 
@@ -42,6 +44,60 @@ Heightmap::Heightmap(HeightmapType type)
     // m_words 默认全 0，而编码 0 即 NO_BLOCK_SENTINEL（见 _encode），故无需显式填充。
     static_assert(BITS >= 1 && BITS <= 32, "Heightmap 位宽必须落在 (0, 32]");
     static_assert(VALUES_PER_LONG >= 1, "BITS 不得超过 64");
+}
+
+void Heightmap::rebuild(const ChunkData& chunk,
+    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>& heightmaps,
+    const std::array<bool, HEIGHTMAP_TYPE_COUNT>& enabled)
+{
+    size_t enabledCount = 0;
+    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+        if (enabled[i]) {
+            heightmaps[i] = Heightmap(static_cast<HeightmapType>(i));
+            ++enabledCount;
+        }
+    }
+    if (enabledCount == 0) {
+        return;
+    }
+
+    // 段快照只取一次；整段为空时无需对每列逐个读取空气方块。
+    const auto sections = chunk.getSections();
+    i32 highestSection = world::CHUNK_SECTIONS - 1;
+    while (highestSection >= 0) {
+        const ChunkSection* section = sections[static_cast<size_t>(highestSection)];
+        if (section != nullptr && !section->isEmpty()) {
+            break;
+        }
+        --highestSection;
+    }
+
+    for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+        for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+            auto unresolved = enabled;
+            size_t remaining = enabledCount;
+            for (i32 sectionIndex = highestSection; sectionIndex >= 0 && remaining != 0; --sectionIndex) {
+                const ChunkSection* section = sections[static_cast<size_t>(sectionIndex)];
+                if (section == nullptr || section->isEmpty()) {
+                    continue;
+                }
+                const BlockCoord bottomY = world::sectionToY(sectionIndex);
+                for (i32 localY = world::CHUNK_SECTION_HEIGHT - 1; localY >= 0 && remaining != 0; --localY) {
+                    const BlockState* state = section->getBlockState(x, localY, z);
+                    if (state == nullptr || state->isAir()) {
+                        continue;
+                    }
+                    for (size_t i = 0; i < HEIGHTMAP_TYPE_COUNT; ++i) {
+                        if (unresolved[i] && isOpaqueForType(static_cast<HeightmapType>(i), state)) {
+                            heightmaps[i].setHeight(x, z, bottomY + localY + 1);
+                            unresolved[i] = false;
+                            --remaining;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool Heightmap::update(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state)

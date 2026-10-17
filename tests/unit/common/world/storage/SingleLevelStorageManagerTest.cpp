@@ -1,9 +1,14 @@
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "common/TempDirHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Types.hpp"
+#include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/storage/db/SectionKey.hpp"
+#include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <future>
+#include <thread>
 #include <gtest/gtest.h>
 
 namespace mc::world::storage {
@@ -154,6 +159,76 @@ TEST_F(SingleLevelStorageManagerTest, SaveAndLoadChunk)
     ASSERT_NE(loadedSection, nullptr);
     EXPECT_EQ(loadedSection->getBlockStateId(0, 0, 0), 42u);
 
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, AsyncLoadPreparesHeightmapsBeforeCallback)
+{
+    VanillaBlocks::initialize();
+    util::UniversalWorkerPool ioPool(1, "HeightmapTestIO", 900);
+    util::UniversalWorkerPool computePool(1, "HeightmapTestCompute", 910);
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    storage.setIoWorkerPool(&ioPool);
+    storage.setComputeWorkerPool(&computePool);
+
+    ChunkData chunk(-2, 3);
+    const i32 sectionIndex = world::toSectionIndex(64);
+    chunk.createSection(sectionIndex)->setBlockState(2, 5, 7, &VanillaBlocks::STONE->defaultState());
+    ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
+    ioPool.start();
+    computePool.start();
+
+    std::promise<Result<std::optional<ChunkData>>> promise;
+    auto future = promise.get_future();
+    std::thread::id callbackThread;
+    storage.loadChunkAsyncCallback(
+        -2,
+        3,
+        0,
+        [&promise, &callbackThread](ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>> result) {
+            callbackThread = std::this_thread::get_id();
+            promise.set_value(std::move(result));
+        },
+        nullptr,
+        util::TaskPriority::Normal);
+    const auto status = future.wait_for(std::chrono::seconds(10));
+    ioPool.shutdown();
+    computePool.shutdown();
+    ASSERT_EQ(status, std::future_status::ready);
+    EXPECT_NE(callbackThread, std::this_thread::get_id());
+    auto result = future.get();
+    ASSERT_TRUE(result.success()) << result.error().message();
+    ASSERT_TRUE(result.value().has_value());
+    for (size_t i = 0; i < mc::world::chunk::HEIGHTMAP_TYPE_COUNT; ++i) {
+        const auto type = static_cast<HeightmapType>(i);
+        EXPECT_TRUE(result.value()->isHeightmapInitialized(type));
+        EXPECT_EQ(result.value()->getHeightmapFirstAvailable(type, 2, 7), world::sectionToY(sectionIndex) + 6);
+        EXPECT_EQ(result.value()->getHeightmapFirstAvailable(type, 7, 2), Heightmap::NO_BLOCK_SENTINEL);
+    }
+
+    // 运行时包装复用加载阶段准备好的高度值，不覆盖或丢失存档结果。
+    mc::world::chunk::ChunkPrimer primer(std::make_unique<ChunkData>(std::move(*result.value())));
+    EXPECT_EQ(
+        primer.getHeightmapFirstAvailable(HeightmapType::WorldSurface, 2, 7), world::sectionToY(sectionIndex) + 6);
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, SynchronousLoadPreparesHeightmaps)
+{
+    VanillaBlocks::initialize();
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    ASSERT_TRUE(storage.open(testDir, config).success());
+    ChunkData chunk(0, 0);
+    chunk.createSection(0)->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+    ASSERT_TRUE(storage.saveChunk(chunk, 0).success());
+    auto result = storage.loadChunk(0, 0, 0);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    ASSERT_TRUE(result.value().has_value());
+    EXPECT_TRUE(result.value()->isHeightmapInitialized(HeightmapType::OceanFloor));
+    EXPECT_EQ(result.value()->getHeightmapFirstAvailable(HeightmapType::OceanFloor, 0, 0), world::MIN_BUILD_HEIGHT + 1);
     storage.close();
 }
 

@@ -6,6 +6,7 @@
 
 ```
 chunk/
+├── ChunkPrimer.hpp/cpp         # 生成中间数据与存档区块包装
 ├── IChunkGenerator.hpp         # 区块生成器接口和 WorldGenRegion 定义
 ├── IChunkGenerator.cpp         # 接口实现和 BaseChunkGenerator 基类
 ├── NoiseChunkGenerator.hpp     # 噪声地形生成器（主世界/下界/末地统一）
@@ -316,16 +317,14 @@ if (noiseChunk.aquifer() == nullptr) {
 
 ### 14. 存档路径的 primer 不持有 biomes / heightmaps 副本
 
-`ChunkPrimer` 接收 `ChunkData` 的两个构造（`unique_ptr` / `shared_ptr`，分别对应存档命中的 owner 与 fan-out waiter 路径）**不在 primer 侧保留 `m_biomes` / `m_heightmaps` 副本**——这两个成员在该路径上恒为 `nullptr`，所有读取直接委托 `ChunkData`。构造期只用一个临时栈数组重建高度图，写入 `ChunkData` 后即随栈帧归还。相比生成路径，每区块省约 11 KiB，且省掉了一份长期驻留的副本。
+`ChunkPrimer` 接收 `ChunkData` 的两个构造（`unique_ptr` / `shared_ptr`）不保留 `m_biomes` / `m_heightmaps` 副本，所有读取直接委托 `ChunkData`。加载阶段已经补齐高度图，运行时包装不再扫描方块。
 
 要点：
 
 - **生物群系**：存档的 `ChunkData` 已带真实生物群系，而 primer 副本从未被填充（默认全 0）。分配它会让 FULL 邻居经 `getBiomeAtBlock` 读到生物群系 0，而不是存档真实值。故该路径根本不分配。
-- **高度图**：native 段格式（`SectionCodec`）**不持久化高度图**，所以必须重建；外来格式（Java Anvil / Bedrock）的高度图已由读取器经 `setHeightmapFromStorage` 写入。`_rebuildHeightmapsIntoChunkData()` 因此只重建 `isHeightmapInitialized()` 为 false 的类型，避免用重算值覆盖存档真实值。
+- **高度图**：native 段格式不持久化高度图，由存储层在回传结果前调用 `ChunkData::initializeMissingHeightmaps()` 补齐；外来存档已有的高度值保持不变。生成阶段和加载阶段共用 `Heightmap::rebuild()`，跳过空段并在每列所有目标类型就绪后提前结束。
 - **构造期同时把 `m_persistedStatus` 置为 FULL**：它决定后续方块写入维护哪些高度图（POST_FEATURES 全量），留作 EMPTY 会让运行时编辑只更新 WG 两张高度图。
-- **`getHeightmap(HeightmapType)` 的非 const 重载在存档路径上同样会断言**：该路径的高度图只在构造期写入 `ChunkData`，此后没有可变访问需求。需要修改时改走 `ChunkData`。
-
-**回归测试**：`tests/unit/common/test_chunk_generation.cpp` 的 `ChunkPrimerTest.ToChunkData_ReleasesHeightmapsAndDelegatesReads` 与 `..._ReleasesBiomesAndDelegatesReads`——通过"直接改 `ChunkData` 后 primer 应立即看到新值"同时锁定释放与委托两件事。
+- **`getHeightmap(HeightmapType)` 的非 const 重载在存档路径上同样会断言**：该路径直接使用 `ChunkData` 的权威高度图，需要修改时也应访问 `ChunkData`。
 
 ### 15. 单列查询也必须配置完整材质规则
 

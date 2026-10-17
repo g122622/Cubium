@@ -405,7 +405,14 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
 
     // 外来格式：委托给后端读取
     if (m_backend) {
-        return m_backend->loadChunk(x, z, dimension);
+        auto result = m_backend->loadChunk(x, z, dimension);
+        if (result.success()) {
+            auto& chunk = result.value();
+            if (chunk.has_value()) {
+                chunk->initializeMissingHeightmaps();
+            }
+        }
+        return result;
     }
 
     // Native 格式：通过 RocksDB SectionManager 读取
@@ -496,6 +503,7 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
         // 方块实体加载失败不影响区块加载
     }
 
+    chunk.initializeMissingHeightmaps();
     chunk.setLoaded(true);
     chunk.setFullyGenerated(true);
     chunk.setDirty(false);
@@ -726,6 +734,15 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
         return;
     }
 
+    // 在加载线程独占数据时补齐高度图。回传后主线程只需安装区块与发布状态，
+    // 不再在一次登录中串行扫描整个视距的存档区块；外来格式已有的高度值保持不变。
+    completion = [callback = std::move(completion)](Result<std::optional<ChunkData>> result) {
+        if (result.success() && result.value().has_value()) {
+            result.value()->initializeMissingHeightmaps();
+        }
+        callback(std::move(result));
+    };
+
     if (!isOpen()) {
         completion(Error(ErrorCode::InvalidState, "Storage not open"));
         return;
@@ -735,8 +752,11 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
     if (m_backend) {
         if (!m_taskManager) {
             // 无线程池：同步降级
-            std::lock_guard<std::mutex> lock(m_foreignReadMutex);
-            completion(m_backend->loadChunk(x, z, dimension));
+            auto result = [&] {
+                std::lock_guard<std::mutex> lock(m_foreignReadMutex);
+                return m_backend->loadChunk(x, z, dimension);
+            }();
+            completion(std::move(result));
             return;
         }
         auto executor = [this, x, z, dimension, completion](const std::atomic<bool>& abortSig) {
@@ -744,8 +764,11 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
                 completion(Error(ErrorCode::InvalidState, "Load chunk (foreign) cancelled"));
                 return false;
             }
-            std::lock_guard<std::mutex> lock(m_foreignReadMutex);
-            completion(m_backend->loadChunk(x, z, dimension));
+            auto result = [&] {
+                std::lock_guard<std::mutex> lock(m_foreignReadMutex);
+                return m_backend->loadChunk(x, z, dimension);
+            }();
+            completion(std::move(result));
             return true;
         };
         SectionKey descKey{x, z, 0, dimension};

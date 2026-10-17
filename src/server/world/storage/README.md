@@ -191,6 +191,7 @@ src/server/world/storage/
 15. **SpawnY 是脚下方块 Y**：level.dat 的 `SpawnY` 语义为脚下方块 Y，非玩家脚位置。`ServerWorld::applyLevelRuntimeData` 读取时 +1 转为玩家脚位置（方块上方），`MinecraftServer::saveAllWorldData` 写盘时 -1 转回。读写转换分属 server 层，存储层只存原始整数。
 16. **被取消的存储任务也必须完成收尾**：线程池判定任务已取消时不执行 executor，只调 `ITask::onCancel()`。而存储任务的 executor 除 I/O 外还负责结清完成计数并调用提交方传入的 completion（例如两路并行加载各自递减计数、最后一路触发反序列化与回调），故 `StorageTask::onCancel()` 会以"已取消"信号再执行一次 executor。新增存储任务类型时，其 executor 的取消分支必须同样结清：漏掉会让提交方永远等不到结果（区块加载方永久停留在 `ResolvingStorage`，等待保存的一方在池线程内永久阻塞）。
 17. **未注入 IO/Compute 池即降级为调用线程同步读写**：`m_taskManager` 为空时 `loadChunkAsyncCallback` / `saveChunkAsyncCallback` 在调用线程内联执行完整的读盘或写盘（含 ZSTD 与 RocksDB 写入）。这对服务端 tick 线程是灾难性的（写盘会垄断 tick），仅适用于测试/独立模式；测试若要走异步路径必须显式注入两个池并 `start()`。
+18. **加载结果在交接前补齐高度图**：native 格式在 Compute 组装阶段完成缺失高度图重建；外来格式在加载线程补齐未初始化类型并保留存档原值。主线程接收结果后不得再次全量扫描区块。
 19. **`loadChunkAsync` 会等待同区块进行中的保存完成**：`_waitPendingChunkSave` 在 IO worker 内阻塞等待保存任务，而保存任务与加载任务共用同一 IO 池。池线程数少且"卸载后立刻重新加载同一区块"频繁时，可能出现全部线程都在等待、而它们所等的保存任务仍排在同池队列中的线程饥饿死锁。
 
 20. **写路径的耗时几乎只由 Write 调用次数决定**：一次 `put`/`del`/`deleteRange` 就是一次完整 Write，`sync=true` 时各付一次 WAL fsync（实测约 3.2ms/次，与数据量无关）。因此凡是"要写很多条"的场景都必须聚合成 `WriteBatch` 一次提交：视野距离 16 下的 2048 个 section 逐段 `put` 实测约 6.6 秒，聚合后同一份数据只需几十毫秒。`SectionManager::saveSectionsBatch` 与 `ServerWorld::saveDirtyChunks` 都遵循这条：前者把一批段攒成单个 `WriteBatch`，后者把**所有**脏区块的段攒进同一个批次再调用前者。诊断此类问题先看 `TraceEvents.Storage.Db` 下的 `put`/`deleteRange` 次数——它们直接就是 fsync 次数。
