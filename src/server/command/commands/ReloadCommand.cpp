@@ -31,6 +31,8 @@
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
+// 提供成就模板下标键的完整类型，规避 clang-tidy 的 LLVM #215724 崩溃。
+#include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/function/FunctionLoader.hpp"
