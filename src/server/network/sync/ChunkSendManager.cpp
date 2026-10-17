@@ -226,13 +226,16 @@ void ChunkSendManager::submitChunkData(ChunkCoord x,
         return;
     }
 
-    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
     ReadyChunkData ready;
     ready.x = x;
     ready.z = z;
-    ready.ir = std::move(ir);
+    ir.x = x;
+    ir.z = z;
+    ready.packet = std::make_shared<const mc::network::pipeline::OutboundPacket>(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(ir)}});
     ready.players = std::move(players);
     ready.validateTracking = validateTracking;
+    std::lock_guard<std::mutex> lock(m_readyChunksMutex);
     m_readyChunks.emplace_back(std::move(ready));
 }
 
@@ -257,7 +260,7 @@ void ChunkSendManager::processPendingSends()
             }
 
             if (m_onChunkSend) {
-                m_onChunkSend(playerId, chunk.x, chunk.z, chunk.ir);
+                m_onChunkSend(playerId, chunk.x, chunk.z, chunk.packet);
             }
         }
         if (!chunk.players.empty()) {
@@ -267,7 +270,8 @@ void ChunkSendManager::processPendingSends()
 }
 
 void ChunkSendManager::setOnChunkSend(
-    std::function<void(PlayerId, ChunkCoord, ChunkCoord, const mc::network::ir::play::LevelChunkWithLight&)> callback)
+    std::function<void(PlayerId, ChunkCoord, ChunkCoord, std::shared_ptr<const mc::network::pipeline::OutboundPacket>)>
+        callback)
 {
     m_onChunkSend = std::move(callback);
 }

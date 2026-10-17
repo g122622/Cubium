@@ -94,13 +94,22 @@ public:
     ServerClientConnection(const ServerClientConnection&) = delete;
     ServerClientConnection& operator=(const ServerClientConnection&) = delete;
 
-    /// 出站发送（线程安全：Local 走队列 mutex，Wire 走 socket send mutex）
+    /// 出站发送：Wire 在网络执行器排队处理，Local 直接投递 IR。
     [[nodiscard]] Result<void> send(mc::network::ir::IrPacket packet) override;
+
+    [[nodiscard]] Result<void> sendShared(std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) override;
+
+    /** @brief 在已排队数据写完或超时后关闭连接。 */
+    void closeAfterFlush()
+    {
+        m_conn.closeAfterFlush();
+        m_state = HandshakeState::Disconnected;
+    }
 
     /// 注册入站监听器（收到任意阶段包都回调，由调用方分流握手/Play）
     ///
     /// Local 模式：监听器由 pumpLocal() 在主线程直接触发，跑游戏逻辑即可。
-    /// Wire 模式：transport 接收线程触发该监听器；若直接跑游戏逻辑会跨线程进入
+    /// Wire 模式：transport 网络执行器触发该监听器；若直接跑游戏逻辑会跨线程进入
     /// 非线程安全的 MinecraftServer 世界状态。Wire 连接应改为注册一个仅入队的
     /// 监听器（enqueueInbound），并经 setInboundHandler 设置游戏逻辑，由
     /// ServerNetwork::tick() 在主线程 drainInbound 派发。详见下三方法。
@@ -114,19 +123,15 @@ public:
         m_inboundHandler = std::move(handler);
     }
 
-    /// Wire 模式入站：仅由 transport 接收线程调用，把解码后的 IR 包入队，不跑游戏逻辑。
-    void enqueueInbound(mc::network::ir::IrPacket packet)
-    {
-        std::lock_guard<std::mutex> lock(m_inboundQueueMutex);
-        m_inboundQueue.push_back(std::move(packet));
-    }
+    /// Wire 模式入站：仅由 transport 网络执行器调用，把解码后的 IR 包入队，不跑游戏逻辑。
+    void enqueueInbound(mc::network::ir::IrPacket packet);
 
     /// Wire 模式入站出队：仅由 ServerNetwork::tick() 在主线程调用。
     /// 锁内快照整个队列后清空，锁外逐个调 m_inboundHandler，避免 handler 重入死锁
     /// （镜像 tick() 现有 Local 快照-后-pump 模式）。Local 连接不调用本方法。
     void drainInbound();
 
-    /// Local 模式 tick 驱动：pump 对端投递的包（Wire 模式由接收线程异步驱动，无需调用）
+    /// Local 模式 tick 驱动：pump 对端投递的包（Wire 模式由网络执行器异步驱动，无需调用）
     void pumpLocal();
 
     void close() override;
@@ -180,8 +185,10 @@ private:
     u32 m_sessionId;
     HandshakeState m_state = HandshakeState::Handshaking;
 
-    // Wire 模式入站队列：transport 接收线程 enqueueInbound，主线程 drainInbound 派发。
+    // Wire 模式入站队列：transport 网络执行器 enqueueInbound，主线程 drainInbound 派发。
     // Local 模式不使用（pumpLocal 主线程直驱）。消除跨线程游戏逻辑隐患。
+    static constexpr usize MAX_INBOUND_PACKETS = 4096;
+    static constexpr usize INBOUND_PACKETS_PER_TICK = 512;
     std::deque<mc::network::ir::IrPacket> m_inboundQueue;
     std::mutex m_inboundQueueMutex;
     std::function<void(const mc::network::ir::IrPacket&)> m_inboundHandler;

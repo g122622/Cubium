@@ -84,6 +84,10 @@
 #include <unordered_map>
 #include <vector>
 
+namespace mc::network::pipeline {
+class OutboundPacket;
+}
+
 namespace mc {
 class BlockPos;
 class INamedContainerProvider;
@@ -695,11 +699,13 @@ protected:
      * @brief 发送区块数据给指定玩家
      *
      * IR 已由 ChunkSendManager 在 worker 线程构建（buildLevelChunkWithLightIR），此处仅按玩家
-     * 拷贝进 IrPacket 发送。本地客户端经 LocalTransport 零拷贝直传 IR，远程 Java 客户端经
+     * 通过不可变快照共享发送。本地客户端直传 IR，远程 Java 客户端经
      * JavaBackend→levelChunkWithLightCodec 编码成 vanilla wire。
      */
-    void sendChunkDataToPlayer(
-        PlayerId playerId, ChunkCoord x, ChunkCoord z, const mc::network::ir::play::LevelChunkWithLight& ir);
+    void sendChunkDataToPlayer(PlayerId playerId,
+        ChunkCoord x,
+        ChunkCoord z,
+        std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet);
 
     /**
      * @brief 发送卸载区块通知给指定玩家

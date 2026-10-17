@@ -25,8 +25,8 @@ src/server/network/base/
 
 `IServerClientConnection` ← 继承 ← `ServerClientConnection`；后者**值持有** `ClientConn`。
 
-Wire 模式下 `onPacket` 监听器由 transport 接收线程触发，因此 `ServerClientConnection` 自带一个入站队列：
-`enqueueInbound`（接收线程，锁内 push）与 `drainInbound`（主线程，锁内 swap 后锁外派发）。
+Wire 模式下 `onPacket` 监听器由 transport 网络执行器触发，因此 `ServerClientConnection` 自带一个入站队列：
+`enqueueInbound`（网络执行器，锁内 push）与 `drainInbound`（主线程，锁内 swap 后锁外派发）。
 Local 模式不使用该队列，由 `pumpLocal()` 主线程直驱。
 
 ## 上下游外部依赖关系
@@ -60,7 +60,7 @@ Wire 构造的初始化列表按**成员声明顺序**求值：先取 `wireTrans
 
 ### 2. `TcpTransport` 只前置声明，不要改成 include
 
-`TcpTransport.hpp` 是全项目唯一拖入 `<asio.hpp>` 的传输头。构造签名里出现
+`TcpTransport.hpp` 含 Asio 的 socket 类型。构造签名里出现
 `std::unique_ptr<TcpTransport>` 无需完整类型，故本目录只前置声明它。
 改回 `#include` 会让 `LoginFlow.hpp` / `ServerHandshake.hpp` / `ServerPlayer.hpp` /
 `ServerPlayerEntityManager.hpp` 等**仅需连接类型**的头全部被迫拉入 asio，显著拖慢编译。
@@ -76,3 +76,10 @@ codec 会把 reason 编码为 NBT `StringTag`（对应 vanilla `Component.litera
 `ConnectionProtocol` 能表达 `Handshaking`/`Login`/`Play`，只有 Configuration 的"子进度"是额外信息。
 `HandshakeState` 是**连接自身的状态成员**，唯一读写方是 `handshake/ServerHandshakeStateMachine`
 （经 `state()`/`setState()`），不要在其他层直接改它。
+
+### 网络执行与共享发送
+
+TCP 编码、压缩、加密和异步读写在共享 NetworkIO 上按连接串行执行，与存档 IO 池独立。
+accept 回调只投递待接管 socket，会话创建、玩家筛选与游戏处理仍由主线程完成。
+Wire 入站队列最多 4096 个包，每连接每 tick 最多派发 512 个；超限关闭连接。
+广播通过 sendShared 复用 OutboundPacket 快照和加密前帧，任务不持有玩家或世界引用。

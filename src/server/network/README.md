@@ -99,8 +99,8 @@ src/server/network/
 
 - **入站（Local）**：客户端 `Connection::send(ir)` → `LocalTransport` 直传 → `ServerClientConnection::onPacket`
   → `ServerNetwork::tick()` 内 `pumpLocal()` 主线程派发 → `ClientSession::handleInbound`
-- **入站（Wire）**：客户端字节 → `TcpTransport`（接收线程）→ `pipeline::Connection` 解帧/解压/解密 →
-  `enqueueInbound`（接收线程入队）→ `drainInbound`（主线程）→ 同上
+- **入站（Wire）**：客户端字节 → `TcpTransport`（网络执行器）→ `pipeline::Connection` 解帧/解压/解密 →
+  `enqueueInbound`（网络执行器入队）→ `drainInbound`（主线程）→ 同上
 - **出站**：上层 → `ServerClientConnection::send(ir::IrPacket)` → `pipeline::Connection::send`
   → Local 直传 / Wire 编码+压缩+加密 → transport 发送
 
@@ -133,15 +133,15 @@ src/server/network/
 
 ### 1. Wire 入站必须走队列 + 主线程 drain
 
-`TcpTransport::_receiveLoop` 在**接收线程**同步触发 `onPacket` 监听器。若直接在监听器里跑游戏逻辑，
-会在接收线程触碰非线程安全的 `MinecraftServer` 世界状态。Wire 连接的监听器只允许 `enqueueInbound`
+`TcpTransport` 在**网络执行器**触发 `onPacket` 监听器。若直接在监听器里跑游戏逻辑，
+会在网络执行器触碰非线程安全的 `MinecraftServer` 世界状态。Wire 连接的监听器只允许 `enqueueInbound`
 （锁内 push），由 `ServerNetwork::tick()` 在主线程 `drainInbound` 派发。Local 模式不经队列，
 `pumpLocal()` 直接主线程派发——队列是 Wire-only 的关注点。
 
 ### 2. 断开检测跨线程
 
-`TcpTransport::onDisconnect` 在接收线程触发。跨线程直接改 session map 会与主线程 tick 竞争。
-`ServerNetwork::_notifyDisconnect` 在接收线程只把 `sessionId` 推入延迟队列；`tick()` 末尾在主线程
+`TcpTransport::onDisconnect` 在网络执行器触发。跨线程直接改 session map 会与主线程 tick 竞争。
+`ServerNetwork::_notifyDisconnect` 在网络执行器只把 `sessionId` 推入延迟队列；`tick()` 末尾在主线程
 swap 出来逐 sid 回调 `m_onDisconnect`。所有 session map 变动与玩家清理都必须在主线程。
 
 ### 3. 销毁顺序：会话必须先于连接
@@ -162,7 +162,7 @@ swap 出来逐 sid 回调 `m_onDisconnect`。所有 session map 变动与玩家�
 `::accept(fd)` 的线程，会导致 join 永久阻塞。`_beginAccept` 用 `async_accept` 回调链 + `io_context::run()`
 驱动，析构时 `m_ioContext->stop()` 可靠唤醒。新增连接的 accept 必须沿用异步链。
 
-### 6. `TcpTransport.hpp` 是全项目唯一拖入 `<asio.hpp>` 的传输头
+### 6. 避免在业务头文件引入 Asio
 
 `base/ServerClientConnection.hpp` 因此只**前置声明** `TcpTransport`（构造签名里出现
 `unique_ptr<TcpTransport>` 无需完整类型），真正需要完整类型的 `base/ServerClientConnection.cpp`
@@ -212,3 +212,10 @@ asio 在 `io_context` 运行时自动管理 Winsock 初始化，无需手动 `WS
 `src/server/CMakeLists.txt`、`src/client/CMakeLists.txt`（客户端 target 直接编译约 170 个 server 源文件）、
 `tests/CMakeLists.txt` 各自列举同一批源文件。新增/移动 `.cpp` 必须三处同步；漏登记在 client 上的表现是
 **链接期 undefined symbol**，而非 configure 失败，容易被误判为"代码写错了"。
+
+### 网络执行与共享发送
+
+TCP 编码、压缩、加密和异步读写在共享 NetworkIO 上按连接串行执行，与存档 IO 池独立。
+accept 回调只投递待接管 socket，会话创建、玩家筛选与游戏处理仍由主线程完成。
+Wire 入站队列最多 4096 个包，每连接每 tick 最多派发 512 个；超限关闭连接。
+广播通过 sendShared 复用 OutboundPacket 快照和加密前帧，任务不持有玩家或世界引用。

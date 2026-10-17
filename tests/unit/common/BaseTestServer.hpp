@@ -45,6 +45,7 @@ namespace mc::test {
 class FakeServerConnection : public mc::server::net::IServerClientConnection {
 public:
     [[nodiscard]] Result<void> send(mc::network::ir::IrPacket packet) override;
+    [[nodiscard]] Result<void> sendShared(std::shared_ptr<const mc::network::pipeline::OutboundPacket> packet) override;
     void close() override { m_connected = false; }
     [[nodiscard]] bool isConnected() const noexcept override { return m_connected; }
     void disconnect(const std::string& reason) override;

@@ -28,6 +28,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/pipeline/CipherHandlers.hpp"
 #include "common/network/pipeline/CompressionHandlers.hpp"
+#include "common/network/pipeline/OutboundPacket.hpp"
 #include "common/network/pipeline/ProtocolSwapHandler.hpp"
 #include "common/network/pipeline/ProtocolTableSet.hpp"
 #include "common/network/pipeline/VarintFraming.hpp"
@@ -35,10 +36,13 @@
 #include "common/network/protocol/PacketFlow.hpp"
 #include "common/network/transport/ITransport.hpp"
 #include "common/network/transport/LocalTransport.hpp"
+#include <atomic>
+#include <spdlog/spdlog.h>
 
 #include <array>
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -75,172 +79,281 @@ namespace mc::network::pipeline {
  */
 template <typename B>
 class Connection {
+    class State;
+
 public:
     using PacketListener = std::function<void(const ir::IrPacket&)>;
 
-    /**
-     * @brief Wire 模式构造：注入 ITransport + ProtocolTableSet
-     *
-     * @param localFlow 本端流向（客户端=Serverbound 发出，服务端=Clientbound 发出）
-     */
-    Connection(std::unique_ptr<transport::ITransport> wireTransport,
+    Connection(std::unique_ptr<transport::ITransport> transport,
         std::shared_ptr<ProtocolTableSet<B>> tables,
-        protocol::PacketFlow localFlow)
-        : m_wireTransport(std::move(wireTransport))
-        , m_tables(std::move(tables))
-        , m_flow(localFlow)
-        , m_inboundPhase(protocol::ConnectionProtocol::Handshaking)
-        , m_outboundPhase(protocol::ConnectionProtocol::Handshaking)
-        , m_mode(Mode::Wire)
+        protocol::PacketFlow flow)
+        : m_state(std::make_shared<State>(std::move(transport), std::move(tables), flow))
     {
-        _installWireReceive();
+        m_state->installReceive();
     }
-
-    /**
-     * @brief Local 模式构造：注入 ILocalTransport + ProtocolTableSet（tables 仅用于阶段校验）
-     */
-    Connection(std::unique_ptr<transport::ILocalTransport> localTransport,
+    Connection(std::unique_ptr<transport::ILocalTransport> transport,
         std::shared_ptr<ProtocolTableSet<B>> tables,
-        protocol::PacketFlow localFlow)
-        : m_localTransport(std::move(localTransport))
-        , m_tables(std::move(tables))
-        , m_flow(localFlow)
-        , m_inboundPhase(protocol::ConnectionProtocol::Handshaking)
-        , m_outboundPhase(protocol::ConnectionProtocol::Handshaking)
-        , m_mode(Mode::Local)
+        protocol::PacketFlow flow)
+        : m_state(std::make_shared<State>(std::move(transport), std::move(tables), flow))
     {
-        _installLocalReceive();
+        m_state->installReceive();
     }
+    ~Connection() { close(); }
+    Connection(const Connection&) = delete;
+    Connection& operator=(const Connection&) = delete;
 
-    /**
-     * @brief 发送一个 IR 包
-     *
-     * Wire 模式：encode → 压缩 → 帧编码 → 加密 → ITransport。
-     * Local 模式：直传 IrPacket 到对端 ILocalTransport。
-     */
-    [[nodiscard]] Result<void> send(ir::IrPacket packet);
-
-    /**
-     * @brief 注册包到达监听器
-     */
-    void onPacket(PacketListener listener) { m_listener = std::move(listener); }
-
-    [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_flow; }
-    [[nodiscard]] bool isWireMode() const noexcept { return m_mode == Mode::Wire; }
-    [[nodiscard]] bool isLocalMode() const noexcept { return m_mode == Mode::Local; }
-    [[nodiscard]] bool isConnected() const noexcept;
-
-    /// 入站阶段（对端发来方向的解码表）。disconnect 发对端可解的包时用此。
-    [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_inboundPhase; }
-    [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept { return m_inboundPhase; }
-    /// 出站阶段（本端发出方向的编码表）。
-    [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept { return m_outboundPhase; }
-
-    /**
-     * @brief 主动切换阶段。语义为切换【入站】阶段（供 disconnect 等按对端可解阶段发包）。
-     * 出站阶段切换用 setOutboundPhase。
-     */
-    void setPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
-    void setInboundPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
-    void setOutboundPhase(protocol::ConnectionProtocol phase) noexcept { m_outboundPhase = phase; }
-
-    /**
-     * @brief 装入压缩层（收到 LoginCompression 后调用）
-     *
-     * threshold < 0 表示禁用压缩（移除压缩层）。Wire 模式专用；Local 模式无压缩。
-     */
+    /** @brief 转移包所有权并异步发送；成功表示成功入队。 */
+    [[nodiscard]] Result<void> send(ir::IrPacket packet)
+    {
+        return sendShared(std::make_shared<const OutboundPacket>(std::move(packet)));
+    }
+    /** @brief 发送可跨连接复用的不可变快照。 */
+    [[nodiscard]] Result<void> sendShared(const std::shared_ptr<const OutboundPacket>& packet)
+    {
+        return m_state->execute([state = m_state, packet] { return state->send(*packet); });
+    }
+    /** @brief 在连接执行器内按实际出站阶段构造断开原因包，避免与排队的协议切换竞争。 */
+    [[nodiscard]] Result<void> sendDisconnect(const std::string& reason)
+    {
+        return m_state->execute([state = m_state, reason] { return state->sendDisconnect(reason); });
+    }
+    /** @brief 有序装配接收监听器。 */
+    void onPacket(PacketListener listener)
+    {
+        _configure([listener = std::move(listener)](State& state) mutable { state.onPacket(std::move(listener)); });
+    }
+    [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_state->flow(); }
+    [[nodiscard]] bool isWireMode() const noexcept { return m_state->isWireMode(); }
+    [[nodiscard]] bool isLocalMode() const noexcept { return m_state->isLocalMode(); }
+    [[nodiscard]] bool isConnected() const noexcept { return m_state->isConnected(); }
+    [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_state->phase(); }
+    [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept { return m_state->inboundPhase(); }
+    [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept { return m_state->outboundPhase(); }
+    /** @brief 将入站阶段切换排入连接执行队列。 */
+    void setPhase(protocol::ConnectionProtocol phase) { setInboundPhase(phase); }
+    void setInboundPhase(protocol::ConnectionProtocol phase)
+    {
+        _configure([phase](State& state) { state.setInboundPhase(phase); });
+    }
+    void setOutboundPhase(protocol::ConnectionProtocol phase)
+    {
+        _configure([phase](State& state) { state.setOutboundPhase(phase); });
+    }
+    /** @brief 在此前的发包任务之后启用或关闭压缩。 */
     void setupCompression(i32 threshold)
     {
-        if (threshold < 0) {
-            m_compressionActive = false;
-            m_compressionEncoder.reset();
-            m_compressionDecoder.reset();
-        } else {
-            m_compressionActive = true;
-            m_compressionEncoder = std::make_unique<CompressionEncoder>(threshold);
-            m_compressionDecoder = std::make_unique<CompressionDecoder>(threshold);
-        }
+        _configure([threshold](State& state) { state.setupCompression(threshold); });
     }
-
-    /**
-     * @brief 装入加密层（登录握手双方确认共享密钥后调用）
-     *
-     * 离线模式默认不调本方法（明文 wire）。真 Java 在线互通时握手后装入。
-     */
-    [[nodiscard]] Result<void> setupEncryption(const std::array<u8, crypto::kSharedSecretBytes>& sharedSecret)
+    /** @brief 将加密装配排入连接执行队列；初始化失败会异步断开。 */
+    [[nodiscard]] Result<void> setupEncryption(const std::array<u8, crypto::kSharedSecretBytes>& secret)
     {
-        auto enc = m_cipherEncoder.init(sharedSecret);
-        if (!enc.success()) {
-            return enc;
-        }
-        auto dec = m_cipherDecoder.init(sharedSecret);
-        if (!dec.success()) {
-            return dec;
-        }
-        return Result<void>::ok();
+        return m_state->execute([state = m_state, secret] { return state->setupEncryption(secret); });
     }
-
-    /**
-     * @brief Local 模式驱动：pump 对端投递的包回调监听器
-     *
-     * Wire 模式由 ITransport.onBytes 异步驱动，无需调用本方法。
-     */
-    void pumpLocal();
-
-    void close();
+    void pumpLocal() { m_state->pumpLocal(); }
+    /** @brief 同步停止接收回调并立即关闭；析构后没有引用门面的在途回调。 */
+    void close() { m_state->close(); }
+    /** @brief 在排队数据写完或超时后关闭，保留断开原因包。 */
+    void closeAfterFlush() { m_state->closeAfterFlush(); }
 
 private:
-    enum class Mode : u8 {
-        Wire,
-        Local,
+    class State : public std::enable_shared_from_this<State> {
+    public:
+        using PacketListener = std::function<void(const ir::IrPacket&)>;
+
+        /**
+         * @brief Wire 模式构造：注入 ITransport + ProtocolTableSet
+         *
+         * @param localFlow 本端流向（客户端=Serverbound 发出，服务端=Clientbound 发出）
+         */
+        State(std::unique_ptr<transport::ITransport> wireTransport,
+            std::shared_ptr<ProtocolTableSet<B>> tables,
+            protocol::PacketFlow localFlow)
+            : m_wireTransport(std::move(wireTransport))
+            , m_tables(std::move(tables))
+            , m_flow(localFlow)
+            , m_inboundPhase(protocol::ConnectionProtocol::Handshaking)
+            , m_outboundPhase(protocol::ConnectionProtocol::Handshaking)
+            , m_mode(Mode::Wire)
+        {}
+
+        /**
+         * @brief Local 模式构造：注入 ILocalTransport + ProtocolTableSet（tables 仅用于阶段校验）
+         */
+        State(std::unique_ptr<transport::ILocalTransport> localTransport,
+            std::shared_ptr<ProtocolTableSet<B>> tables,
+            protocol::PacketFlow localFlow)
+            : m_localTransport(std::move(localTransport))
+            , m_tables(std::move(tables))
+            , m_flow(localFlow)
+            , m_inboundPhase(protocol::ConnectionProtocol::Handshaking)
+            , m_outboundPhase(protocol::ConnectionProtocol::Handshaking)
+            , m_mode(Mode::Local)
+        {}
+
+        /**
+         * @brief 发送一个 IR 包
+         *
+         * Wire 模式：encode → 压缩 → 帧编码 → 加密 → ITransport。
+         * Local 模式：直传 IrPacket 到对端 ILocalTransport。
+         */
+        [[nodiscard]] Result<void> send(const OutboundPacket& packet);
+        /** @brief 使用执行时的协议阶段发送断开原因包。 */
+        [[nodiscard]] Result<void> sendDisconnect(const std::string& reason);
+        [[nodiscard]] Result<std::vector<u8>> encodeFrame(const ir::IrPacket& packet);
+        void installReceive()
+        {
+            if (isWireMode())
+                _installWireReceive();
+            else
+                _installLocalReceive();
+        }
+        [[nodiscard]] Result<void> execute(transport::ITransport::Task task)
+        {
+            return isWireMode() ? m_wireTransport->execute(std::move(task)) : task();
+        }
+        void synchronize()
+        {
+            if (isWireMode()) m_wireTransport->synchronize();
+        }
+        void closeAfterFlush()
+        {
+            if (isWireMode())
+                m_wireTransport->closeAfterFlush();
+            else
+                close();
+        }
+
+        /**
+         * @brief 注册包到达监听器
+         */
+        void onPacket(PacketListener listener) { m_listener = std::move(listener); }
+
+        [[nodiscard]] protocol::PacketFlow flow() const noexcept { return m_flow; }
+        [[nodiscard]] bool isWireMode() const noexcept { return m_mode == Mode::Wire; }
+        [[nodiscard]] bool isLocalMode() const noexcept { return m_mode == Mode::Local; }
+        [[nodiscard]] bool isConnected() const noexcept;
+
+        /// 入站阶段（对端发来方向的解码表）。disconnect 发对端可解的包时用此。
+        [[nodiscard]] protocol::ConnectionProtocol phase() const noexcept { return m_inboundPhase.load(); }
+        [[nodiscard]] protocol::ConnectionProtocol inboundPhase() const noexcept { return m_inboundPhase.load(); }
+        /// 出站阶段（本端发出方向的编码表）。
+        [[nodiscard]] protocol::ConnectionProtocol outboundPhase() const noexcept { return m_outboundPhase.load(); }
+
+        /**
+         * @brief 主动切换阶段。语义为切换【入站】阶段（供 disconnect 等按对端可解阶段发包）。
+         * 出站阶段切换用 setOutboundPhase。
+         */
+        void setPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
+        void setInboundPhase(protocol::ConnectionProtocol phase) noexcept { m_inboundPhase = phase; }
+        void setOutboundPhase(protocol::ConnectionProtocol phase) noexcept { m_outboundPhase = phase; }
+
+        /**
+         * @brief 装入压缩层（收到 LoginCompression 后调用）
+         *
+         * threshold < 0 表示禁用压缩（移除压缩层）。Wire 模式专用；Local 模式无压缩。
+         */
+        void setupCompression(i32 threshold)
+        {
+            if (threshold < 0) {
+                m_compressionActive = false;
+                m_compressionEncoder.reset();
+                m_compressionDecoder.reset();
+            } else {
+                m_compressionActive = true;
+                m_compressionEncoder = std::make_unique<CompressionEncoder>(threshold);
+                m_compressionDecoder = std::make_unique<CompressionDecoder>(threshold);
+            }
+        }
+
+        /**
+         * @brief 装入加密层（登录握手双方确认共享密钥后调用）
+         *
+         * 离线模式默认不调本方法（明文 wire）。真 Java 在线互通时握手后装入。
+         */
+        [[nodiscard]] Result<void> setupEncryption(const std::array<u8, crypto::kSharedSecretBytes>& sharedSecret)
+        {
+            auto enc = m_cipherEncoder.init(sharedSecret);
+            if (!enc.success()) {
+                return enc;
+            }
+            auto dec = m_cipherDecoder.init(sharedSecret);
+            if (!dec.success()) {
+                return dec;
+            }
+            return Result<void>::ok();
+        }
+
+        /**
+         * @brief Local 模式驱动：pump 对端投递的包回调监听器
+         *
+         * Wire 模式由 ITransport.onBytes 异步驱动，无需调用本方法。
+         */
+        void pumpLocal();
+
+        void close();
+
+    private:
+        enum class Mode : u8 {
+            Wire,
+            Local,
+        };
+
+        void _installWireReceive();
+        void _installLocalReceive();
+        void _handleWireBytes(const u8* data, usize size);
+        [[nodiscard]] Result<void> _decodeAndDispatch(const std::vector<u8>& frameBytes);
+
+        // 按当前 (phase, flow) 取出站 ProtocolInfo（本端发出方向的表）。
+        // 客户端发出 = Serverbound 表；服务端发出 = Clientbound 表。
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::HandshakePacket>* _outboundHandshake() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::StatusPacket>* _outboundStatus() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::LoginPacket>* _outboundLogin() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::ConfigurationPacket>* _outboundConfiguration() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::PlayPacket>* _outboundPlay() const;
+
+        // 按当前 (phase, flow) 取入站 ProtocolInfo（对端发来的方向的表）。
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::HandshakePacket>* _inboundHandshake() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::StatusPacket>* _inboundStatus() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::LoginPacket>* _inboundLogin() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::ConfigurationPacket>* _inboundConfiguration() const;
+        [[nodiscard]] protocol::ProtocolInfo<B, ir::PlayPacket>* _inboundPlay() const;
+
+        std::unique_ptr<transport::ITransport> m_wireTransport;
+        std::unique_ptr<transport::ILocalTransport> m_localTransport;
+        std::shared_ptr<ProtocolTableSet<B>> m_tables;
+        PacketListener m_listener;
+        protocol::PacketFlow m_flow;
+        // 入站阶段驱动解码表选择，出站阶段驱动编码表选择。terminal 包分别触发各自的自动切换，
+        // forward 切换（出站需领先入站的场景）由监听器显式调 setOutboundPhase 补齐。
+        std::atomic<protocol::ConnectionProtocol> m_inboundPhase;
+        std::atomic<protocol::ConnectionProtocol> m_outboundPhase;
+        Mode m_mode;
+
+        // 流水线 handler（仅 Wire 模式用）
+        CipherEncoder m_cipherEncoder;
+        CipherDecoder m_cipherDecoder;
+        std::unique_ptr<CompressionEncoder> m_compressionEncoder;
+        std::unique_ptr<CompressionDecoder> m_compressionDecoder;
+        bool m_compressionActive = false;
+
+        // 入站缓冲：
+        // - m_encryptedIn：从 ITransport 收到的原始（可能加密）字节，喂给 CipherDecoder。
+        // - m_plainIn：解密后的明文字节，喂给 VarintFraming 切帧。
+        // 两缓冲分离：CFB8 流式状态要求加密字节按到达顺序逐字节喂入，而切帧后的明文残留
+        // 不能与新到的加密字节混存（否则解密器二次处理明文导致数据损坏）。
+        std::vector<u8> m_encryptedIn;
+        std::vector<u8> m_plainIn;
     };
-
-    void _installWireReceive();
-    void _installLocalReceive();
-    void _handleWireBytes(const u8* data, usize size);
-    [[nodiscard]] Result<void> _decodeAndDispatch(const std::vector<u8>& frameBytes);
-
-    // 按当前 (phase, flow) 取出站 ProtocolInfo（本端发出方向的表）。
-    // 客户端发出 = Serverbound 表；服务端发出 = Clientbound 表。
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::HandshakePacket>* _outboundHandshake() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::StatusPacket>* _outboundStatus() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::LoginPacket>* _outboundLogin() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::ConfigurationPacket>* _outboundConfiguration() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::PlayPacket>* _outboundPlay() const;
-
-    // 按当前 (phase, flow) 取入站 ProtocolInfo（对端发来的方向的表）。
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::HandshakePacket>* _inboundHandshake() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::StatusPacket>* _inboundStatus() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::LoginPacket>* _inboundLogin() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::ConfigurationPacket>* _inboundConfiguration() const;
-    [[nodiscard]] protocol::ProtocolInfo<B, ir::PlayPacket>* _inboundPlay() const;
-
-    std::unique_ptr<transport::ITransport> m_wireTransport;
-    std::unique_ptr<transport::ILocalTransport> m_localTransport;
-    std::shared_ptr<ProtocolTableSet<B>> m_tables;
-    PacketListener m_listener;
-    protocol::PacketFlow m_flow;
-    // 入站/出站阶段分离（对齐 MC Java setupInboundProtocol/setupOutboundProtocol）：
-    // 入站阶段驱动解码表选择，出站阶段驱动编码表选择。terminal 包分别触发各自的自动切换，
-    // forward 切换（出站需领先入站的场景）由监听器显式调 setOutboundPhase 补齐。
-    protocol::ConnectionProtocol m_inboundPhase;
-    protocol::ConnectionProtocol m_outboundPhase;
-    Mode m_mode;
-
-    // 流水线 handler（仅 Wire 模式用）
-    CipherEncoder m_cipherEncoder;
-    CipherDecoder m_cipherDecoder;
-    std::unique_ptr<CompressionEncoder> m_compressionEncoder;
-    std::unique_ptr<CompressionDecoder> m_compressionDecoder;
-    bool m_compressionActive = false;
-
-    // 入站缓冲：
-    // - m_encryptedIn：从 ITransport 收到的原始（可能加密）字节，喂给 CipherDecoder。
-    // - m_plainIn：解密后的明文字节，喂给 VarintFraming 切帧。
-    // 两缓冲分离：CFB8 流式状态要求加密字节按到达顺序逐字节喂入，而切帧后的明文残留
-    // 不能与新到的加密字节混存（否则解密器二次处理明文导致数据损坏）。
-    std::vector<u8> m_encryptedIn;
-    std::vector<u8> m_plainIn;
+    template <typename F>
+    void _configure(F action)
+    {
+        auto result = m_state->execute([state = m_state, action = std::move(action)]() mutable {
+            action(*state);
+            return Result<void>::ok();
+        });
+        if (!result.success()) spdlog::warn("Connection configuration rejected: {}", result.error().toString());
+    }
+    std::shared_ptr<State> m_state;
 };
 
 } // namespace mc::network::pipeline

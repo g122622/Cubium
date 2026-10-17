@@ -50,6 +50,7 @@ add_library(mc_common STATIC
     network/crypto/ZlibCodec.cpp
     network/transport/TcpTransport.cpp
     network/transport/LocalTransport.cpp
+    network/pipeline/OutboundPacket.cpp
     network/pipeline/VarintFraming.cpp
     network/pipeline/CompressionHandlers.cpp
     network/pipeline/CipherHandlers.cpp

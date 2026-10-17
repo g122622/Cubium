@@ -114,7 +114,14 @@ Local 连接不走 `enqueueInbound`/`drainInbound`（`pumpLocal()` 已在主线�
 
 ### 8. 延迟断开队列
 
-`_notifyDisconnect` 在**接收线程**被调用，只允许 push `sessionId`，不得触碰连接或 session map。
+`_notifyDisconnect` 在**网络执行器**被调用，只允许 push `sessionId`，不得触碰连接或 session map。
 `tick()` 在主线程 swap 出来后回调 `m_onDisconnect`，连接从 `m_connections` 的移除也在此完成。
 
 客户端偏好必须在建号和重配置完成后应用到已有玩家，调用 MinecraftServer::updateClientInformation；只保存在握手状态机会使 Play 阶段实体与区块追踪继续使用旧设置。
+
+### 网络执行与共享发送
+
+TCP 编码、压缩、加密和异步读写在共享 NetworkIO 上按连接串行执行，与存档 IO 池独立。
+accept 回调只投递待接管 socket，会话创建、玩家筛选与游戏处理仍由主线程完成。
+Wire 入站队列最多 4096 个包，每连接每 tick 最多派发 512 个；超限关闭连接。
+广播通过 sendShared 复用 OutboundPacket 快照和加密前帧，任务不持有玩家或世界引用。
