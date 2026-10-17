@@ -392,7 +392,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
             // 若传送循环一结束就停止 tick()，仍持有 in-flight future 的 generator 线程的 f.get() 会永久挂起
             // （worker 池空闲 pending=0/running=0 但 promise 永不完成 → 测试死锁）。
             // 此处对齐真实游戏：主 tick 线程持续运行，玩家位置更新与区块请求由其他线程发起。
-            // processTicketUpdatesSync（tick 内）与 updatePlayerPosition 共享 m_ticketManager 无锁状态，
+            // processPendingChunkTasks（tick 内）与 updatePlayerPosition 共享 m_ticketManager 无锁状态，
             // 二者必须同线程串行——teleporter 同时负责二者，满足单线程不变量。
             while (!stop.load(std::memory_order::acquire)) {
                 m_manager->tick();

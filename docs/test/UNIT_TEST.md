@@ -72,7 +72,7 @@ Windows 采用 `DISCOVERY_MODE PRE_TEST`（见下文），用例列表在 CTest 
 
 全二进制直跑更快，但单进程内跨用例共享状态可能互相污染（典型表现：某用例隔离跑稳定、全二进制偶发 flaky）。已知的污染源与治理：
 
-- **生产时序**：`ServerChunkManager::processTicketUpdatesSync()` 现已出队 `m_pendingLoadCompletes`（对齐 MC Java `ServerChunkCache.runDistanceManagerUpdates`），消除了“票据已推进但存档完成回调未出队”的 TOCTOU 窗口——这是 `GameEventServerTest` 全二进制 flaky 的根因。
+- **加载交接时序**：`processTicketUpdates()` 仅推进票据，不保证区块已加载。需要数据的测试应等待 `requestChunkSync()` 或异步请求完成；主动推进完成通知可调用 `processPendingChunkTasks()`，每次仅接收入口处的一批存档结果，世界后处理仍由 `tick()` 执行。
 - **thread_local 调度上下文**：`tests/unit/main.cpp` 注册了 `TestIsolationListener`，每用例结束重置 `ChunkTaskScheduler` 的 thread_local `SyncSchedulingContext`（depth/pending），根除同 worker 线程跨用例的残留。
 
 经验上**不是污染源**、无需重置的进程级状态：`VanillaBlocks`/`BlockTags`/`BlockRegistry`/`Items` 等原版基线注册表——它们幂等初始化，每个用例都期望以相同方式加载，重置反而要重解析数据包（全量 per-case 跑 ×27000 用例不可接受）。`::testing::Environment::TearDown` 在进程末尾才跑一次，对进程内隔离无帮助，故 `WorldGenRegistryEnvironment` 不设 TearDown。

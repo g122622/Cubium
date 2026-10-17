@@ -67,6 +67,8 @@ LoginFlow.createPlayerForConnection ──▶ play::Login / 权限 / 命令树 /
 
 ## 容易踩的坑
 
+- 登录建立玩家区块追踪后立即返回，存档结果、光照与区块发送由后续 tick 推进；不要在初始状态下发中排空整个视距的加载完成队列。
+
 ### 1. `handleInbound` 的返回值是分流契约
 
 返回 `true` = 已消费（握手/Status/Login/Configuration 包），返回 `false` = 应交给 Play 路由。

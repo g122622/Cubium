@@ -92,7 +92,7 @@ public:
      *
      * 高度图按"是否已初始化"补齐后整列写入 ChunkData，生物群系直接复用 ChunkData 中
      * 存档读入的真实值——两者都不在 primer 侧保留副本（省约 11 KiB/区块）。
-     * 详见 _rebuildHeightmapsIntoChunkData 与 m_biomes / m_heightmaps 的注释。
+     * 存储层已准备高度图时，构造过程不再扫描方块。
      */
     explicit ChunkPrimer(std::unique_ptr<ChunkData> data);
 
@@ -100,7 +100,7 @@ public:
      * @brief 从共享所有权的 ChunkData 创建（用于存档命中扇出路径）
      *
      * 与 unique_ptr 版本语义完全一致（chunkStatus/persistedStatus=FULL、status=Loaded、
-     * 高度图全量重建写入 ChunkData），但接收 shared_ptr，使 primer 与已发布到 m_chunks 的
+     * 仅补齐未初始化的高度图），但接收 shared_ptr，使 primer 与已发布到 m_chunks 的
      * ChunkData 共享所有权（不拷贝、不独占）。用于 _fanOutAttachedWaiters 命中分支：
      * owner 已把 ChunkData 存入 m_chunks，attached waiter SCLM 需复用同一份 ChunkData
      * 创建 primer（设 currentChunk），避免重复存储。
@@ -654,19 +654,6 @@ private:
 
     // 辅助方法
     [[nodiscard]] static bool _isValidBlockCoord(BlockCoord x, BlockCoord y, BlockCoord z) noexcept;
-
-    /**
-     * @brief 存档构造专用：按方块数据重建缺失的高度图并整列写入 ChunkData
-     *
-     * 只重建 `ChunkData::isHeightmapInitialized()` 为 false 的类型：
-     *   - 外来格式（Java Anvil / Bedrock）的高度图已由读取器经 setHeightmapFromStorage
-     *     写入并置位，跳过以免用重算值覆盖存档真实值；
-     *   - native 段格式不持久化高度图，对应槽位未初始化，必须重建，否则 getTopBlockY
-     *     回退到空的 WorldSurface 槽位，ServerWorld::getHeight 退化为 MIN_BUILD_HEIGHT。
-     *
-     * 重建结果只经临时栈数组中转，不驻留 primer（见 m_heightmaps 注释）。
-     */
-    void _rebuildHeightmapsIntoChunkData();
 
     /**
      * @brief 根据当前 ChunkStatus 的 heightmapsAfter 自动更新高度图

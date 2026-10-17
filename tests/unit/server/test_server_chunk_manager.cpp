@@ -804,7 +804,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
             }
             // 移动循环结束后继续驱动 tick() 直到 generator 完成（stop 置位），避免 generator 的
             // in-flight future 因异步存档加载完成回调（m_pendingLoadCompletes）无人出队而永久挂起。
-            // processTicketUpdatesSync（tick 内）与 updatePlayerPosition 共享 m_ticketManager 无锁状态，
+            // processPendingChunkTasks（tick 内）与 updatePlayerPosition 共享 m_ticketManager 无锁状态，
             // 二者必须同线程串行——mover 同时负责二者，满足单线程不变量。
             // 对齐 StructureReferencesRaceTest::MovePlayerAndGenerate_RaceRepro 的后循环模式。
             while (!stop.load(std::memory_order::acquire)) {
@@ -821,7 +821,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
     // 用 MAX_INFLIGHT 限制未完成 future 数量，避免 inflight 任务堆积导致的级联阻塞
     // （旧版本无限制地创建 future，大量 inflight 请求在卸载竞态下级联阻塞）。
     // 坐标范围缩小到 ±12（24x24），与 mover 移动范围重叠，复用已生成区块减少总工作量。
-    // 注意:本线程不调 tick()——tick 内 processTicketUpdatesSync 与 mover 的 updatePlayerPosition
+    // 注意:本线程不调 tick()——tick 内 processPendingChunkTasks 与 mover 的 updatePlayerPosition
     // 共享 m_ticketManager 无锁状态,二者必须同线程串行(见 mover 注释)。本线程的 inflight.front().get()
     // 阻塞期间由 mover 线程持续 tick 推进管线(_drainPendingLoadCompletes/_drainPendingPostProcess)。
     constexpr int GEN_ITERATIONS = 20;

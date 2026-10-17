@@ -251,7 +251,7 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
     // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
     if (world && world->chunkManager()) {
         world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
-        world->chunkManager()->processTicketUpdatesSync();
+        world->chunkManager()->processTicketUpdates();
     }
 
     // 村庄进入检测（用于触发袭击）
@@ -320,7 +320,7 @@ void MovementHandler::handleTeleportConfirmPacket(PlayerId playerId, const mc::n
         // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
         if (world && world->chunkManager()) {
             world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
-            world->chunkManager()->processTicketUpdatesSync();
+            world->chunkManager()->processTicketUpdates();
         }
     }
 }

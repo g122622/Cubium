@@ -169,12 +169,20 @@ public:
      * 已持久化的高度值整列写回 m_heightmaps[type]，并标记该槽位为已初始化。
      *
      * 注意：data 必须按 Heightmap 内部存储顺序（z-major：index = z * CHUNK_WIDTH + x）
-     * 排列，且每个元素为 Heightmap 内部存储语义（最高方块 Y+1，0 表示无方块）。
+     * 排列，且每个元素为最高方块 Y+1，空列使用 Heightmap::NO_BLOCK_SENTINEL。
      *
      * @param type 高度图类型
      * @param data 高度数据数组（大小必须为 Heightmap::SIZE）
      */
     void setHeightmapFromStorage(HeightmapType type, const std::array<BlockCoord, Heightmap::SIZE>& data);
+
+    /**
+     * @brief 补齐未初始化的高度图，保留存档中已有的高度值
+     *
+     * 在存档结果交给运行时之前调用；该阶段区块尚未发布，可由加载线程独占处理。
+     * 已初始化的区块再次调用时不扫描方块。
+     */
+    void initializeMissingHeightmaps();
 
     /**
      * @brief 读取指定类型高度图的原始存储数据（Y+1 或 NO_BLOCK_SENTINEL）

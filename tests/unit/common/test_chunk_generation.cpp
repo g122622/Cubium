@@ -327,7 +327,7 @@ TEST_F(ChunkPrimerTest, StorageConstructedPrimer_RebuildsHeightmapsIntoChunkData
     // 模拟 native 段格式读出的区块：方块数据就绪，高度图未初始化（native 格式不持久化它）
     auto data = std::make_unique<ChunkData>(0, 0);
     data->setBlockStateId(2, 40, 3, stone->stateId());
-    ASSERT_TRUE(data->isHeightmapInitialized(HeightmapType::WorldSurface)); // 构造时恒为 true
+    ASSERT_TRUE(data->isHeightmapInitialized(HeightmapType::WorldSurface)); // 运行时写方块已维护此类型
     ASSERT_FALSE(data->isHeightmapInitialized(HeightmapType::WorldSurfaceWG));
 
     ChunkData* raw = data.get();
