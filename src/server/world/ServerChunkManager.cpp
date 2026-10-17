@@ -23,6 +23,7 @@
 
 #include "ServerChunkManager.hpp"
 #include "ChunkLightingProvider.hpp"
+#include "ChunkProgressionTask.hpp"
 #include "ChunkTaskScheduler.hpp"
 #include "ServerWorld.hpp"
 #include "common/core/Result.hpp"
@@ -80,6 +81,35 @@ namespace ChunkStatuses = mc::world::chunk::ChunkStatuses;
 using mc::world::chunk::SingleChunkLifecycleManager;
 
 namespace {
+
+/**
+ * @brief 在时间预算内消费入口快照，未处理的旧任务始终排在新任务之前
+ */
+template <typename T, typename Callback>
+void _drainQueue(std::deque<T>& queue, std::mutex& mutex, std::chrono::milliseconds budget, Callback&& callback)
+{
+    std::deque<T> pending;
+    {
+        std::lock_guard lock(mutex);
+        pending.swap(queue);
+    }
+    const auto deadline = std::chrono::steady_clock::now() + budget;
+    while (!pending.empty()) {
+        T item = std::move(pending.front());
+        pending.pop_front();
+        callback(item);
+        if (std::chrono::steady_clock::now() >= deadline) {
+            break;
+        }
+    }
+    if (!pending.empty()) {
+        std::lock_guard lock(mutex);
+        while (!pending.empty()) {
+            queue.push_front(std::move(pending.back()));
+            pending.pop_back();
+        }
+    }
+}
 
 /**
  * @brief 统一完成等待者集合
@@ -173,6 +203,7 @@ void ServerChunkManager::shutdown()
     // m_pendingLoadCompletes，避免析构后回调访问悬空 this。置位必须在 cancelActiveWork 之前，
     // 使在途回调快速丢弃结果。
     m_shuttingDown.store(true, std::memory_order::release);
+    m_deferredTicketLevels.clear();
 
     // 第一步：标记调度器关闭，通知所有活跃生成任务取消（设置 cancel token）。
     // setShuttingDown 使 cancelGeneration 不重新调度被解除阻塞的邻居（避免无限循环）：
@@ -616,9 +647,7 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             if (decision.shouldWakeReadyWaiters) {
                 _completeReadyWaiters(lifecycleManager);
             }
-            if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
-                scheduler->onLoadedFromStorageReady(lifecycleManager);
-            }
+            _notifyStorageReady(lifecycleManager);
         } else {
             // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）。
             auto decision = lifecycleManager.noteStorageMissing();
@@ -659,9 +688,7 @@ void ServerChunkManager::_fanOutAttachedWaiters(
             _completeReadyWaiters(waiterSclm);
             // 与 owner 命中路径对称：通知经 checkNeighbour 注册到本等待者 m_waitingNeighbours
             // 的依赖邻居解除阻塞并重新调度，否则它们永久等待一个已就绪的 holder（死锁）。
-            if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
-                scheduler->onLoadedFromStorageReady(waiterSclm);
-            }
+            _notifyStorageReady(waiterSclm);
         } else {
             // 缺失/失败：走生成链路。
             _advanceChunkState(waiterSclm, waiterSclm.noteStorageMissing());
@@ -676,14 +703,9 @@ void ServerChunkManager::_drainPendingLoadCompletes()
         return;
     }
     _DrainFlagGuard guard(m_drainingLoadCompletes);
-    std::vector<PendingLoadComplete> pending;
-    {
-        std::lock_guard<std::mutex> lock(m_pendingLoadCompletesMutex);
-        pending.swap(m_pendingLoadCompletes);
-    }
-    for (auto& item : pending) {
+    _drainQueue(m_pendingLoadCompletes, m_pendingLoadCompletesMutex, std::chrono::milliseconds(1), [this](auto& item) {
         _onChunkLoadComplete(item.x, item.z, item.dimension, std::move(item.result), std::move(item.lifecycleHolder));
-    }
+    });
 }
 
 void ServerChunkManager::_resolveStorageForScheduling(SingleChunkLifecycleManager& lifecycleManager)
@@ -698,8 +720,63 @@ void ServerChunkManager::_scheduleGeneration(SingleChunkLifecycleManager& lifecy
 {
     ChunkTaskScheduler* scheduler = ensureTaskScheduler();
     const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
+    if (scheduler->schedulingLockArea().isHeldByCurrentThread(lifecycleManager.x(), lifecycleManager.z(), lockRadius)) {
+        scheduler->schedule(lifecycleManager.x(), lifecycleManager.z(), lifecycleManager);
+        return;
+    }
+    if (auto* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+        m_lastGenerationActivityMs.store(util::TimeUtils::getCurrentTimeMs(), std::memory_order::release);
+        auto holder = _findLifecycleManagerShared(lifecycleManager.x(), lifecycleManager.z());
+        MC_ASSERT_RELEASE(holder.get() == &lifecycleManager);
+        const auto priority = mapSclmPriorityToTaskPriority(holder->requestPriority());
+        auto task = std::make_unique<util::FunctionTask>(
+            util::TaskType::ChunkGenerate,
+            "Schedule chunk generation",
+            [this, scheduler, holder](const std::atomic<bool>& abortSignal) {
+                if (abortSignal.load(std::memory_order::acquire) || scheduler->isShuttingDown()) {
+                    return false;
+                }
+                const i32 radius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
+                auto lock = scheduler->schedulingLockArea().lock(holder->x(), holder->z(), radius);
+                // 排队期间可能已卸载并重新创建同坐标持有者，旧任务不得推进新一代。
+                if (scheduler->isShuttingDown() || _findLifecycleManagerShared(holder->x(), holder->z()) != holder) {
+                    return false;
+                }
+                scheduler->schedule(holder->x(), holder->z(), *holder);
+                return true;
+            },
+            "server.chunk");
+        pool->submit(std::move(task), {}, priority, nullptr);
+        return;
+    }
     auto lock = scheduler->schedulingLockArea().lock(lifecycleManager.x(), lifecycleManager.z(), lockRadius);
     scheduler->schedule(lifecycleManager.x(), lifecycleManager.z(), lifecycleManager);
+}
+
+void ServerChunkManager::_notifyStorageReady(SingleChunkLifecycleManager& lifecycleManager)
+{
+    auto* scheduler = getTaskScheduler();
+    if (scheduler == nullptr) {
+        return;
+    }
+    if (auto* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+        auto holder = _findLifecycleManagerShared(lifecycleManager.x(), lifecycleManager.z());
+        MC_ASSERT_RELEASE(holder.get() == &lifecycleManager);
+        auto task = std::make_unique<util::FunctionTask>(
+            util::TaskType::ChunkLoad,
+            "Notify stored chunk ready",
+            [scheduler, holder](const std::atomic<bool>& abortSignal) {
+                if (abortSignal.load(std::memory_order::acquire) || scheduler->isShuttingDown()) {
+                    return false;
+                }
+                scheduler->onLoadedFromStorageReady(*holder);
+                return true;
+            },
+            "server.chunk");
+        pool->submit(std::move(task), {}, util::TaskPriority::High, nullptr);
+        return;
+    }
+    scheduler->onLoadedFromStorageReady(lifecycleManager);
 }
 
 void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
@@ -783,6 +860,7 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     MC_UNUSED(oldLevel);
     auto holder = _findLifecycleManagerShared(x, z);
     if (holder == nullptr && newLevel > world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+        m_deferredTicketLevels.erase(posToKey(x, z));
         return;
     }
     if (holder == nullptr) {
@@ -791,10 +869,23 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     }
     MC_ASSERT_RELEASE(holder != nullptr);
     ChunkTaskScheduler* scheduler = ensureTaskScheduler();
+    const i32 previousLevel = holder->level();
     {
         const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
-        auto lock = scheduler->schedulingLockArea().lock(x, z, lockRadius);
+        auto lock = scheduler->schedulingLockArea().tryLock(x, z, lockRadius);
+        if (!lock) {
+            m_deferredTicketLevels[posToKey(x, z)] = newLevel;
+            return;
+        }
+        m_deferredTicketLevels.erase(posToKey(x, z));
         holder->setLevel(newLevel);
+        // 在同一调度锁下决定取消，防止已撤销的排队阶段抢先启动。
+        const auto snapshot = holder->generationSnapshot();
+        const bool reachedTarget = snapshot.requestedGenStatus == nullptr ||
+            (snapshot.currentChunk != nullptr && snapshot.currentGenStatus->isAtLeast(*snapshot.requestedGenStatus));
+        if (auto* task = holder->generationTask(); task != nullptr && reachedTarget && !task->hasStarted()) {
+            holder->signalGenerationCancellation();
+        }
     }
     if (m_ticketManager.hasTicket(
             world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{})) {
@@ -802,12 +893,51 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
         m_unloadCooldownChunks.insert(posToKey(x, z));
     }
     // 撤销需求不以可卸载为前提；共享邻居及未完成的显式请求仍参与目标汇总。
-    scheduler->reconcileGenerationDemand(x, z);
+    if (newLevel > previousLevel) {
+        if (auto* pool = radiusAwareExecutor(); pool != nullptr && pool->isRunning()) {
+            auto task = std::make_unique<util::FunctionTask>(
+                util::TaskType::ChunkGenerate,
+                "Reconcile chunk generation demand",
+                [scheduler, holder](const std::atomic<bool>& abortSignal) {
+                    if (abortSignal.load(std::memory_order::acquire) || scheduler->isShuttingDown()) {
+                        return false;
+                    }
+                    scheduler->reconcileGenerationDemand(holder->x(), holder->z());
+                    return true;
+                },
+                "server.chunk");
+            pool->submit(std::move(task), {}, util::TaskPriority::High, nullptr);
+        } else {
+            scheduler->reconcileGenerationDemand(x, z);
+        }
+    }
     if (newLevel <= world::chunk::ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
         const i32 priority = _computeSchedulePriority(x, z, holder->requestedGenStatus(), newLevel);
         _advanceChunkState(*holder, holder->prepareGeneration(priority));
     }
     _updateUnloadCandidate(*holder);
+}
+
+void ServerChunkManager::_drainDeferredTicketLevels()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::drainDeferredTicketLevels");
+    std::unordered_map<u64, i32> pending;
+    pending.swap(m_deferredTicketLevels);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+    for (auto it = pending.begin(); it != pending.end();) {
+        if (std::chrono::steady_clock::now() >= deadline) {
+            break;
+        }
+        const auto [key, level] = *it;
+        it = pending.erase(it);
+        if (!m_deferredTicketLevels.contains(key)) {
+            const auto pos = ChunkId::fromId(key);
+            _onTicketLevelChanged(pos.x, pos.z, level, level);
+        }
+    }
+    for (const auto& [key, level] : pending) {
+        m_deferredTicketLevels.try_emplace(key, level);
+    }
 }
 
 // ============================================================================
@@ -1128,6 +1258,9 @@ void ServerChunkManager::_notifyChunkUnload(ChunkCoord x, ChunkCoord z)
 void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
 {
     const u64 key = posToKey(x, z);
+    if (m_deferredTicketLevels.contains(key)) {
+        return;
+    }
 
     // stage1（对齐 Moonrise unloadStage1）：捕获脏区块快照并提交异步保存，不阻塞主 tick。
     // 保存完成（stage2，ServerIO）后回调入队 m_pendingUnloadFinishes，由 stage3 完成卸载收尾。
@@ -1217,6 +1350,14 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
     ChunkCoord x, ChunkCoord z, mc::DimensionId dimension, std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder)
 {
     const u64 key = posToKey(x, z);
+    const auto retry = [&] {
+        std::lock_guard lock(m_pendingUnloadFinishesMutex);
+        m_pendingUnloadFinishes.push_back({x, z, dimension, lifecycleHolder});
+    };
+    if (m_deferredTicketLevels.contains(key)) {
+        retry();
+        return;
+    }
 
     // 清理存储层进行中保存追踪条目（保存已完成，对齐 Moonrise unloadStage3 清空 chunkDataUnload）。
     if (m_world && m_world->isStorageOpen()) {
@@ -1232,7 +1373,7 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
         return; // 中止卸载，条目丢弃
     }
 
-    std::shared_ptr<SingleChunkLifecycleManager> lifecycleManager = std::move(lifecycleHolder);
+    std::shared_ptr<SingleChunkLifecycleManager> lifecycleManager = lifecycleHolder;
 
     if (lifecycleManager == nullptr) {
         // holder 已不存在（可能被并发 unload 或从未创建），仅清理 m_chunks。
@@ -1249,7 +1390,11 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
 
     if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
         const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
-        auto schedLock = scheduler->schedulingLockArea().lock(x, z, lockRadius);
+        auto schedLock = scheduler->schedulingLockArea().tryLock(x, z, lockRadius);
+        if (!schedLock) {
+            retry();
+            return;
+        }
 
         scheduler->cancelGeneration(*lifecycleManager);
         lifecycleManager->cancelActiveWork();
@@ -1340,20 +1485,18 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
 
 void ServerChunkManager::_drainPendingUnloadFinishes()
 {
-    std::vector<PendingUnloadFinish> pending;
-    {
-        std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
-        pending.swap(m_pendingUnloadFinishes);
-    }
-
-    for (auto& item : pending) {
-        _finalizeUnloadAfterSave(item.x, item.z, item.dimension, std::move(item.lifecycleHolder));
-    }
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::drainPendingUnloadFinishes");
+    _drainQueue(
+        m_pendingUnloadFinishes, m_pendingUnloadFinishesMutex, std::chrono::milliseconds(1), [this](auto& item) {
+            _finalizeUnloadAfterSave(item.x, item.z, item.dimension, std::move(item.lifecycleHolder));
+        });
 }
 
 void ServerChunkManager::_processChunkUnloads()
 {
-    // 事件驱动入队 + 保底批量出队（对齐 Moonrise ChunkHolderManager.processUnloads）：
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::processChunkUnloads");
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+    // 事件驱动入队 + 按数量和时间预算出队：
     // 入队由 _updateUnloadCandidate 在各状态变更点完成，此处只负责按批取出并复核。
     const bool generationIdle = _isGenerationIdle();
     // 【顺序要紧】必须先置位 armed，再做空闲过渡扫描：扫描内部经 _isUnloadCandidate 判定，
@@ -1379,14 +1522,15 @@ void ServerChunkManager::_processChunkUnloads()
         return;
     }
 
-    // 保底批量：至少 MIN_CHUNK_UNLOAD_COUNT 个，或候选总数的 MIN_CHUNK_UNLOAD_FRACTION。
-    // 该值是下限而非上限（Moonrise 语义）：小队列一次清空，大队列按保底量平滑推进，
-    // 不会因队列长期轻微超额而永不收敛。
+    // 数量与时间双重约束：候选积压时允许较大批次，序列化昂贵时提前结束。
     const size_t batch = std::max<size_t>(
         MIN_CHUNK_UNLOAD_COUNT, static_cast<size_t>(std::ceil(static_cast<f64>(pending) * MIN_CHUNK_UNLOAD_FRACTION)));
 
     size_t unloaded = 0;
     while (unloaded < batch) {
+        if (std::chrono::steady_clock::now() >= deadline) {
+            break;
+        }
         u64 key = 0;
         if (!_tryPopUnloadCandidate(key)) {
             break;
@@ -1603,12 +1747,18 @@ void ServerChunkManager::removeLightTicket(ChunkCoord x, ChunkCoord z)
     const ChunkPos pos(x, z);
     const i32 level = static_cast<i32>(world::chunk::ChunkLoadLevel::Full);
     m_ticketManager.releaseTicket(world::chunk::TicketTypes::LIGHT, x, z, level, pos);
-    processTicketUpdates();
+    // 释放只会减少保活需求，由下一次统一推进传播，避免每个发送区块重复传播距离图。
 }
 
 void ServerChunkManager::setViewDistance(i32 distance)
 {
     m_ticketManager.setViewDistance(distance);
+}
+
+void ServerChunkManager::processTicketUpdates()
+{
+    m_ticketManager.processUpdates();
+    _drainDeferredTicketLevels();
 }
 
 void ServerChunkManager::tick()
@@ -1672,16 +1822,12 @@ void ServerChunkManager::_enqueuePostProcess(
 
 void ServerChunkManager::_drainPendingPostProcess()
 {
-    std::vector<PendingPostProcess> pending;
-    {
-        std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
-        pending.swap(m_pendingPostProcess);
-    }
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::drainPendingPostProcess");
 
     // TODO: 当前后处理在 FULL-complete 时触发；Moonrise 在 BLOCK_TICKING（onChunkTicking）阶段触发。
     // 待引入 FullChunkStatus 状态机（onChunkBorder/onChunkTicking/onChunkEntityTicking + ticking-chunk
     // 列表）后对齐触发时机。当前 Cubium 无该状态机，FULL-complete 是唯一合理触发点。
-    for (auto& item : pending) {
+    _drainQueue(m_pendingPostProcess, m_pendingPostProcessMutex, std::chrono::milliseconds(2), [this](auto& item) {
         const u64 key = posToKey(item.x, item.z);
 
         // 去重：同一区块的 onChunkLoaded/callback/spawn/postProcess 至多执行一次。
@@ -1691,7 +1837,7 @@ void ServerChunkManager::_drainPendingPostProcess()
         {
             std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
             if (!m_postProcessedChunks.insert(key).second) {
-                continue; // 已处理，丢弃重复项（spawnedEntities 随 item 析构，不 spawn）
+                return; // 已处理，丢弃重复项（spawnedEntities 随 item 析构，不 spawn）
             }
         }
 
@@ -1719,7 +1865,7 @@ void ServerChunkManager::_drainPendingPostProcess()
                 chunk->setPostProcessingDone(true);
             }
         }
-    }
+    });
 }
 
 // ============================================================================
@@ -1755,6 +1901,7 @@ void ServerChunkManager::forEachLoadedChunk(const std::function<bool(ChunkData&)
 
 void ServerChunkManager::forEachTickingChunk(const std::function<bool(ChunkData&)>& callback)
 {
+    MC_ASSERT_RELEASE(m_world != nullptr);
     std::vector<std::shared_ptr<ChunkData>> chunks;
     {
         std::lock_guard<std::mutex> lock(m_chunksMutex);
@@ -1774,7 +1921,7 @@ void ServerChunkManager::forEachTickingChunk(const std::function<bool(ChunkData&
         // 只推进玩家模拟距离内区块的游戏逻辑。仅加载不 tick 的区块（Border/Full 级）
         // 必须跳过：它们若参与随机刻/方块实体 tick，会在无人靠近处产生掉落物、积雪等副作用，
         // 且让每 tick 开销随加载区块总数增长。
-        if (!m_ticketManager.isTickingChunk(chunk->x(), chunk->z())) {
+        if (!m_ticketManager.isTickingChunk(chunk->x(), chunk->z(), m_world->entityManager().simulationDistance())) {
             continue;
         }
         if (!callback(*chunk)) {

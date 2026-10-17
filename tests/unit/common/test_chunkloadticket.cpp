@@ -465,6 +465,35 @@ protected:
     void SetUp() override {}
 };
 
+TEST_F(ChunkLoadTicketManagerTest, SimulationRangeIsIndependentOfViewDistance)
+{
+    ChunkLoadTicketManager manager;
+    manager.setViewDistance(16);
+    manager.updatePlayerPosition(1, 0, 0);
+    EXPECT_TRUE(manager.isTickingChunk(5, 5, 4));
+    EXPECT_FALSE(manager.isTickingChunk(6, 0, 4));
+    EXPECT_FALSE(manager.isTickingChunk(0, -6, 4));
+    EXPECT_TRUE(manager.isTickingChunk(6, 0, 6));
+    manager.setViewDistance(8);
+    EXPECT_TRUE(manager.isTickingChunk(5, 5, 4));
+    EXPECT_FALSE(manager.isTickingChunk(6, 0, 4));
+    manager.removePlayer(1);
+    EXPECT_FALSE(manager.isTickingChunk(0, 0, 4));
+}
+
+TEST_F(ChunkLoadTicketManagerTest, ExplicitTickingSourcesKeepTheirPropagationRange)
+{
+    ChunkLoadTicketManager manager;
+    manager.registerTicket(TicketTypes::FORCED, -10, 20, 31, ChunkPos(-10, 20));
+    manager.processUpdates();
+    EXPECT_TRUE(manager.isTickingChunk(-10, 20, 4));
+    EXPECT_TRUE(manager.isTickingChunk(-9, 21, 4));
+    EXPECT_FALSE(manager.isTickingChunk(-8, 20, 4));
+    manager.releaseTicket(TicketTypes::FORCED, -10, 20, 31, ChunkPos(-10, 20));
+    manager.processUpdates();
+    EXPECT_FALSE(manager.isTickingChunk(-10, 20, 4));
+}
+
 TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate)
 {
     ChunkLoadTicketManager manager;

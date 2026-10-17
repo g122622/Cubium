@@ -129,6 +129,13 @@ protected:
     {
         m_manager->_enqueuePostProcess(x, z, std::move(entities), needsPostProcess);
     }
+
+    void setTicketLevelForTest(ChunkCoord x, ChunkCoord z, i32 level)
+    {
+        m_manager->_onTicketLevelChanged(x, z, 46, level);
+    }
+
+    void drainUnloadForTest() { m_manager->_drainPendingUnloadFinishes(); }
 };
 
 // ============================================================================
@@ -178,6 +185,150 @@ TEST_F(ServerChunkManagerPostProcessTest, LoadCompletionOnlyConsumesEntrySnapsho
     m_manager->processPendingChunkTasks();
     ASSERT_EQ(second.wait_for(std::chrono::milliseconds(0)), std::future_status::ready);
     ASSERT_NE(second.get(), nullptr);
+}
+
+TEST_F(ServerChunkManagerPostProcessTest, GenerationSchedulingDoesNotWaitForBusyArea)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    auto future = m_manager->requestChunkAsync(0, 0, world::chunk::ChunkStatuses::EMPTY);
+    std::promise<void> locked;
+    auto acquired = locked.get_future();
+    std::promise<void> release;
+    auto released = release.get_future();
+    std::thread blocker([&] {
+        auto lock = m_manager->getTaskScheduler()->schedulingLockArea().lock(
+            0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        locked.set_value();
+        // 超时可保证旧的阻塞实现也会结束测试，不让测试进程永久挂起。
+        released.wait_for(std::chrono::milliseconds(250));
+    });
+    acquired.wait();
+    const auto start = std::chrono::steady_clock::now();
+    m_manager->processPendingChunkTasks();
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+    release.set_value();
+    blocker.join();
+    EXPECT_LT(elapsed, std::chrono::milliseconds(100));
+    ASSERT_EQ(future.wait_for(std::chrono::seconds(5)), std::future_status::ready);
+    EXPECT_NE(future.get(), nullptr);
+}
+
+TEST_F(ServerChunkManagerPostProcessTest, BusyUnloadFinishesRetryWithOriginalHolder)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    ChunkData stored(0, 0);
+    stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+    ASSERT_TRUE(m_storage.saveChunk(stored, 0).success());
+    auto* loaded = m_manager->requestFullChunkSync(0, 0);
+    ASSERT_NE(loaded, nullptr);
+    loaded->setDirty(false);
+    m_workerPool->waitForCompletion();
+    m_manager->unloadChunkSync(0, 0);
+    std::promise<void> locked;
+    auto acquired = locked.get_future();
+    std::promise<void> release;
+    auto released = release.get_future();
+    std::thread blocker([&] {
+        auto lock = m_manager->getTaskScheduler()->schedulingLockArea().lock(
+            0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        locked.set_value();
+        released.wait_for(std::chrono::milliseconds(250));
+    });
+    acquired.wait();
+    const auto start = std::chrono::steady_clock::now();
+    drainUnloadForTest();
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
+    release.set_value();
+    blocker.join();
+    EXPECT_LT(elapsed, std::chrono::milliseconds(100));
+    drainUnloadForTest();
+    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
+    EXPECT_EQ(m_manager->lifecycleManagerCount(), 0u);
+}
+
+TEST_F(ServerChunkManagerPostProcessTest, BusyTicketLevelsKeepOnlyLatestDemand)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+    auto& holder = m_manager->ensureTaskScheduler()->getOrCreateHolder(0, 0);
+    std::promise<void> locked;
+    auto acquired = locked.get_future();
+    std::promise<void> release;
+    auto released = release.get_future();
+    std::thread blocker([&] {
+        auto lock = m_manager->getTaskScheduler()->schedulingLockArea().lock(
+            0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        locked.set_value();
+        released.wait_for(std::chrono::milliseconds(250));
+    });
+    acquired.wait();
+    const auto start = std::chrono::steady_clock::now();
+    setTicketLevelForTest(0, 0, 33);
+    setTicketLevelForTest(0, 0, 45);
+    m_manager->processTicketUpdates();
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+    release.set_value();
+    blocker.join();
+    EXPECT_LT(elapsed, std::chrono::milliseconds(100));
+    m_manager->processTicketUpdates();
+    EXPECT_EQ(holder.level(), 45);
+    EXPECT_EQ(holder.sourceState(), world::chunk::SingleChunkLifecycleManager::SourceState::Unknown);
+}
+
+TEST_F(ServerChunkManagerPostProcessTest, LoadBudgetPreservesOldResultsBeforeNewCompletions)
+{
+    ASSERT_TRUE(m_manager->initialize().success());
+    for (ChunkCoord x = 0; x < 3; ++x) {
+        ChunkData stored(x, 0);
+        stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
+        ASSERT_TRUE(m_storage.saveChunk(stored, 0).success());
+    }
+    std::vector<ChunkCoord> completed;
+    const auto callback = [&](bool success, ChunkData* chunk) {
+        ASSERT_TRUE(success);
+        ASSERT_NE(chunk, nullptr);
+        completed.push_back(chunk->x());
+        if (chunk->x() == 0) {
+            m_manager->requestChunkAsync(2, 0, world::chunk::ChunkStatuses::FULL, [&](bool ok, ChunkData* next) {
+                ASSERT_TRUE(ok);
+                ASSERT_NE(next, nullptr);
+                completed.push_back(next->x());
+            });
+            // 单项耗尽预算后，剩余旧项必须保留并先于此回调新产生的完成项交付。
+            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+        }
+    };
+    m_manager->requestChunkAsync(0, 0, world::chunk::ChunkStatuses::FULL, callback);
+    m_manager->requestChunkAsync(1, 0, world::chunk::ChunkStatuses::FULL, callback);
+    m_manager->processPendingChunkTasks();
+    EXPECT_EQ(completed, (std::vector<ChunkCoord>{0}));
+    for (int attempt = 0; attempt < 10 && completed.size() < 3; ++attempt) {
+        m_manager->processPendingChunkTasks();
+    }
+    EXPECT_EQ(completed, (std::vector<ChunkCoord>{0, 1, 2}));
+}
+
+TEST_F(ServerChunkManagerPostProcessTest, PostProcessBudgetEventuallyDeliversEveryCallbackOnce)
+{
+    ASSERT_TRUE(m_manager->initialize().success());
+    std::vector<ChunkCoord> completed;
+    m_manager->setChunkLoadedCallback([&](ChunkCoord x, ChunkCoord) {
+        completed.push_back(x);
+        std::this_thread::sleep_for(std::chrono::milliseconds(3));
+    });
+    for (ChunkCoord x = 0; x < 3; ++x) {
+        enqueuePostProcessForTest(x, 0, {}, false);
+    }
+    m_manager->tick();
+    EXPECT_EQ(completed, (std::vector<ChunkCoord>{0}));
+    for (int attempt = 0; attempt < 10 && completed.size() < 3; ++attempt) {
+        m_manager->tick();
+    }
+    m_manager->tick();
+    EXPECT_EQ(completed, (std::vector<ChunkCoord>{0, 1, 2}));
 }
 
 TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)

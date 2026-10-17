@@ -7,6 +7,7 @@
 ```
 common/command/
 ├── CommandDispatcher.hpp    # 命令分发器（解析、执行、建议、重定向）
+├── CommandTreeSnapshot.hpp/cpp # 命令树快照、节点编号与建议元数据
 ├── CommandNode.hpp          # 命令节点（树结构、重定向、自定义建议）
 ├── CommandContext.hpp       # 命令上下文
 ├── CommandResult.hpp        # 执行结果
@@ -80,6 +81,8 @@ EntityArgument.hpp / GameModeArgument.hpp / ItemArgument.hpp
 - `CommandContext` / `StringReader` / `ArgumentType` ≈ 同名类
 
 ## 容易踩的坑
+
+- 快照节点编号使用广度优先顺序，规范路径使用仅沿子节点的深度优先首路径；共享子树与重定向不能改变路径语义。构建快照时一次收集路径，避免逐节点从根搜索。
 
 ### 参数类型模板参数
 

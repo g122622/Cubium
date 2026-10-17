@@ -485,6 +485,10 @@ void ChunkTaskScheduler::onLoadedFromStorageReady(SingleChunkLifecycleManager& h
     const i32 lockRadius = getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
 
+    if (m_manager._findLifecycleManagerShared(holder.x(), holder.z()).get() != &holder) {
+        return;
+    }
+
     // holder 已达 FULL（markLoadedFromStorageReady），通知等待该 holder 的依赖邻居解除阻塞，
     // 收集到 pending 释放锁后 rescheduleChunk 重新推进。对齐 onChunkGenComplete 的通知部分，
     // 但跳过生成任务相关清理（无 generationTask、无邻居引用计数补偿、不自推进、不发布）。

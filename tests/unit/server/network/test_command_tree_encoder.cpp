@@ -520,6 +520,57 @@ TEST(CommandTreeEncoder, UnknownTypeNameReturnsError)
 // 且编码产物非空。这是真 1.21.11 Java 客户端 clientbound/minecraft:commands 包的实际来源。
 // 回归保护：此前 integer/float 边界默认值未 gating，每个无界 integer 多写 8 字节，致客户端
 // IndexOutOfBoundsException 崩溃（disconnect readerIndex(10043)+1>writerIndex(10043)）。
+TEST(CommandTreeEncoder, SnapshotUsesFirstDepthFirstPathForSharedNodes)
+{
+    CommandDispatcher<i32> dispatcher;
+    auto earlier = std::make_shared<LiteralCommandNode<i32>>("aaa");
+    auto deep = std::make_shared<LiteralCommandNode<i32>>("deep");
+    auto help = std::make_shared<LiteralCommandNode<i32>>("help");
+    auto shared = std::make_shared<ArgumentCommandNode<i32, std::string>>("command", StringArgumentType::word());
+    earlier->addChild(deep);
+    deep->addChild(shared);
+    help->addChild(shared);
+    dispatcher.getRoot()->addChild(earlier);
+    dispatcher.getRoot()->addChild(help);
+
+    const auto snapshot = buildCommandTreeSnapshot(dispatcher);
+    ASSERT_EQ(dispatcher.getPath(shared), (std::vector<std::string>{"aaa", "deep", "command"}));
+    size_t matches = 0;
+    for (const auto& node : snapshot.nodes) {
+        if (node.name == "command") {
+            ++matches;
+            EXPECT_EQ(node.suggestionKind, CommandTreeSuggestionKind::Fixed);
+            EXPECT_EQ(node.suggestionCandidates, shared->getExamples());
+        }
+    }
+    EXPECT_EQ(matches, 1u);
+}
+
+TEST(CommandTreeEncoder, SnapshotKeepsCanonicalPathWhenAliasRedirectsToRoot)
+{
+    CommandDispatcher<i32> dispatcher;
+    auto help = std::make_shared<LiteralCommandNode<i32>>("help");
+    auto argument = std::make_shared<ArgumentCommandNode<i32, std::string>>("command", StringArgumentType::word());
+    help->addChild(argument);
+    dispatcher.getRoot()->addChild(help);
+    auto alias = std::make_shared<LiteralCommandNode<i32>>("alias");
+    alias->setRedirect(dispatcher.getRoot());
+    dispatcher.getRoot()->addChild(alias);
+
+    const auto snapshot = buildCommandTreeSnapshot(dispatcher);
+    ASSERT_EQ(snapshot.nodes.size(), 4u);
+    for (const auto& node : snapshot.nodes) {
+        if (node.name == "command") {
+            EXPECT_EQ(node.suggestionKind, CommandTreeSuggestionKind::CommandNames);
+        }
+        if (node.name == "alias") {
+            ASSERT_TRUE(node.redirect.has_value());
+            EXPECT_EQ(*node.redirect, 0u);
+        }
+    }
+    alias->setRedirect(nullptr);
+}
+
 TEST(CommandTreeEncoder, RealRegistryEncodesWithoutError)
 {
     CommandRegistry registry; // 构造即 registerDefaults()，注册全部默认命令

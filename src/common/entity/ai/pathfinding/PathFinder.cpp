@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include <limits>
 #include <vector>
 
@@ -39,6 +40,7 @@ Path PathFinder::findPath(i32 startX,
     i32 maxDistance,
     f32 visitedNodesMultiplier)
 {
+    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPath");
     // 清除上次搜索的缓存
     if (m_nodeProcessor) {
         m_nodeProcessor->clear();
@@ -173,6 +175,7 @@ Path PathFinder::findPath(i32 startX,
 Path PathFinder::findPathToRange(
     i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range, f32 visitedNodesMultiplier)
 {
+    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPathToRange");
     // 与基本寻路相同，但到达范围内任意点即成功
     if (m_nodeProcessor) {
         m_nodeProcessor->clear();
@@ -279,6 +282,7 @@ Path PathFinder::findPathToClosest(i32 startX,
     i32 maxDistance,
     f32 visitedNodesMultiplier)
 {
+    MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPathToClosest");
     // 多目标寻路 - 对每个目标点设置标志，搜索时只需到达任意一个目标
 
     if (targets.empty()) {
