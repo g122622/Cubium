@@ -139,9 +139,12 @@ public:
      *     : null;
      * @endcode
      *
-     * 当前项目尚未引入 Pose::ROARING/DIGGING/EMERGING，因此姿态判断
-     * 暂时省略（默认 always 返回 anger-based sound）。一旦 Pose 系统扩展，
-     * 需在此处补充姿态判断逻辑。
+     * 怒气等级对应音效（与 MC 一致）：
+     * - Calmed   → SoundEvents::ENTITY_WARDEN_AMBIENT
+     * - Agitated → SoundEvents::ENTITY_WARDEN_AGITATED
+     * - Angry    → SoundEvents::ENTITY_WARDEN_ANGRY
+     *
+     * ROARING/Digging/Emerging 姿态下返回 null（不播放环境音）。
      *
      * 怒气等级对应音效（与 MC 一致）：
      * - Calmed   → SoundEvents::ENTITY_WARDEN_AMBIENT
@@ -167,22 +170,15 @@ public:
     /**
      * @brief 监守者免疫伤害判断
      *
-     * - 若处于 Digging 或 Emerging 姿态，免疫除"穿透无敌"标签外的所有伤害
+     * - 若处于 Digging 或 Emerging 姿态，免疫除"穿透无敌"（BYPASSES_INVULNERABILITY）标签外的所有伤害
      * - 否则交由父类 Monster.isInvulnerableTo() 处理
-     *
-     * 当前实现尚未引入姿态系统，简化为只免疫溺水/凋零伤害（与基类 MonsterEntity
-     * 默认行为一致），姿态相关免疫将在姿态系统实现后接入。
-     *
-     * TODO: 引入 Pose::DIGGING / Pose::EMERGING 后实现完整的免疫逻辑。
      */
     [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
 
     /**
      * @brief 判断监守者是否忽略此次爆炸
      *
-     * 监守者在 Digging/Emerging 姿态下应免疫爆炸。当前姿态系统未实现，先回退基类行为。
-     *
-     * TODO: 引入 Pose::DIGGING / Pose::EMERGING 后，在此姿态下返回 true。
+     * 监守者在 Digging/Emerging 姿态下免疫爆炸（对齐 Warden.ignoreExplosion）。
      */
     [[nodiscard]] bool ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const override;
 
@@ -196,6 +192,14 @@ public:
      * 保持一致。
      */
     [[nodiscard]] bool isNonBoss() const override { return false; }
+
+    /**
+     * @brief 是否处于钻地（Digging）或钻出（Emerging）姿态
+     *
+     * 对齐 Warden.isDiggingOrEmerging：hasPose(DIGGING) || hasPose(EMERGING)。
+     * 该姿态下监守者免疫除穿透无敌外的伤害并忽略爆炸。
+     */
+    [[nodiscard]] bool isDiggingOrEmerging() const;
 
     /**
      * @brief 摔落伤害免疫

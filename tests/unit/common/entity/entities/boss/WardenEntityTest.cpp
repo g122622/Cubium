@@ -50,12 +50,14 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/boss/WardenAngerLevel.hpp"
 #include "common/entity/entities/boss/WardenEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/explosion/ExplosionImmunityContext.hpp"
 
 namespace mc {
 namespace {
@@ -452,6 +454,72 @@ TEST_F(WardenEntityTest, WardenAngerLevel_ListeningSound_MatchesMC)
         SoundEvents::ENTITY_WARDEN_LISTENING_ANGRY.toString());
     EXPECT_EQ(entity::wardenAngerLevelListeningSound(WardenAngerLevel::Angry).toString(),
         SoundEvents::ENTITY_WARDEN_LISTENING_ANGRY.toString());
+}
+
+// ========== Digging/Emerging 姿态免疫测试 ==========
+
+// 监守者在 Digging 姿态下免疫普通伤害（对齐 vanilla Warden.isInvulnerableTo：
+//   isDiggingOrEmerging() && !source.is(BYPASSES_INVULNERABILITY()) → true）。
+// 伤害类型标签须初始化，否则 BYPASSES_INVULNERABILITY 成员集为空，门控不生效。
+TEST_F(WardenEntityTest, IsInvulnerableTo_DiggingPose_BlocksNormalDamage)
+{
+    DamageTypeTags::initialize();
+    entity::WardenEntity warden(EntityInstanceId(1), mc::test::testEcsRegistry());
+    warden.setPose(entity::EntityPose::Digging);
+
+    EnvironmentalDamage source = DamageSources::drown();
+    EXPECT_TRUE(warden.isInvulnerableTo(source))
+        << "Digging warden should be immune to damage that does not bypass invulnerability";
+}
+
+// Digging 姿态仍受 BYPASSES_INVULNERABILITY 标签伤害（OutOfWorld/GenericKill）。
+TEST_F(WardenEntityTest, IsInvulnerableTo_DiggingPose_AllowsBypassingDamage)
+{
+    DamageTypeTags::initialize();
+    entity::WardenEntity warden(EntityInstanceId(2), mc::test::testEcsRegistry());
+    warden.setPose(entity::EntityPose::Emerging);
+
+    EnvironmentalDamage source = DamageSources::genericKill();
+    EXPECT_FALSE(warden.isInvulnerableTo(source))
+        << "GenericKill bypasses invulnerability, so Digging/Emerging warden should not block it";
+}
+
+// 非 Digging/Emerging 姿态（Standing）不获得姿态免疫。
+TEST_F(WardenEntityTest, IsInvulnerableTo_StandingPose_NoPoseImmunity)
+{
+    DamageTypeTags::initialize();
+    entity::WardenEntity warden(EntityInstanceId(3), mc::test::testEcsRegistry());
+    warden.setPose(entity::EntityPose::Standing);
+
+    EnvironmentalDamage source = DamageSources::drown();
+    EXPECT_FALSE(warden.isInvulnerableTo(source));
+}
+
+// Digging/Emerging 姿态下忽略爆炸（对齐 Warden.ignoreExplosion）。
+TEST_F(WardenEntityTest, IgnoreExplosion_DiggingPose_ReturnsTrue)
+{
+    entity::WardenEntity warden(EntityInstanceId(4), mc::test::testEcsRegistry());
+    warden.setPose(entity::EntityPose::Digging);
+
+    world::explosion::ExplosionImmunityContext ctx{};
+    EXPECT_TRUE(warden.ignoreExplosion(ctx));
+
+    warden.setPose(entity::EntityPose::Standing);
+    EXPECT_FALSE(warden.ignoreExplosion(ctx));
+}
+
+// ROARING 姿态下不播放环境音（对齐 Warden.getAmbientSound）。
+TEST_F(WardenEntityTest, GetAmbientSound_RoaringPose_ReturnsNull)
+{
+    entity::WardenEntity warden(EntityInstanceId(5), mc::test::testEcsRegistry());
+    warden.setPose(entity::EntityPose::Roaring);
+    EXPECT_FALSE(warden.getAmbientSound().has_value());
+
+    warden.setPose(entity::EntityPose::Digging);
+    EXPECT_FALSE(warden.getAmbientSound().has_value());
+
+    warden.setPose(entity::EntityPose::Standing);
+    EXPECT_TRUE(warden.getAmbientSound().has_value());
 }
 
 } // namespace

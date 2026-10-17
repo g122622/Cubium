@@ -35,6 +35,7 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/boss/WardenAngerLevel.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -125,8 +126,10 @@ std::optional<ResourceLocation> WardenEntity::getAmbientSound() const
     //       ? this.getAngerLevel().getAmbientSound()
     //       : null;
     //
-    // 当前项目尚未引入 Pose::ROARING/DIGGING/EMERGING，姿态判断暂时省略，
-    // 直接根据怒气等级返回对应的环境音效。
+    // ROARING / Digging / Emerging 姿态下不播放环境音。
+    if (pose() == EntityPose::Roaring || isDiggingOrEmerging()) {
+        return std::nullopt;
+    }
     //
     // 怒气等级 → 环境音效：
     // - Calmed   → SoundEvents::ENTITY_WARDEN_AMBIENT
@@ -200,10 +203,10 @@ bool WardenEntity::isInvulnerableTo(DamageSource& source) const
     //   return isDiggingOrEmerging() && !source.is(BYPASSES_INVULNERABILITY) ? true : super.isInvulnerableTo(...)
     // 监守者仅在 Digging/Emerging 姿态下免疫除"穿透无敌"标签外的所有伤害，其余情况委托基类。
     //
-    // 当前实现尚未引入 Pose::DIGGING / Pose::EMERGING 姿态系统，无法判断
-    // isDiggingOrEmerging()，因此暂不实现姿态相关免疫。
-    //
-    // TODO: 引入 Pose 系统后实现 isDiggingOrEmerging()，在此姿态下返回 true（门控 BYPASSES_INVULNERABILITY）。
+    // 处于 Digging/Emerging 姿态时免疫除"穿透无敌"标签外的所有伤害。
+    if (isDiggingOrEmerging() && !source.is(DamageTypeTags::BYPASSES_INVULNERABILITY())) {
+        return true;
+    }
     //
     // 重要：此前 Cubium 在此硬编码 `source.type() == Drown → return true` 和
     // `source.type() == Wither → return true`，声称"监守者不会溺水/免疫凋零效果"。
@@ -216,10 +219,17 @@ bool WardenEntity::isInvulnerableTo(DamageSource& source) const
 
 bool WardenEntity::ignoreExplosion(const world::explosion::ExplosionImmunityContext& ctx) const
 {
-    // 监守者在 Digging/Emerging 姿态下应免疫爆炸（与 isInvulnerableTo 同源）。
-    // 当前姿态系统未实现，先回退基类行为。
-    // TODO: 引入 Pose::DIGGING / Pose::EMERGING 后，在此姿态下返回 true。
+    // 监守者在 Digging/Emerging 姿态下忽略爆炸（与 isInvulnerableTo 同源）。
+    if (isDiggingOrEmerging()) {
+        return true;
+    }
     return MonsterEntity::ignoreExplosion(ctx);
+}
+
+bool WardenEntity::isDiggingOrEmerging() const
+{
+    // 对齐 Warden.isDiggingOrEmerging(): hasPose(DIGGING) || hasPose(EMERGING)。
+    return pose() == EntityPose::Digging || pose() == EntityPose::Emerging;
 }
 
 bool WardenEntity::onLivingFall(f32 /*distance*/, f32 /*damageMultiplier*/)
