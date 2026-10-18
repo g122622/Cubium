@@ -41,6 +41,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
+#include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/potion/PotionUtils.hpp"
@@ -754,48 +755,38 @@ const Item* ExperienceBottleEntity::getDefaultItem() const
     return Items::EXPERIENCE_BOTTLE;
 }
 
-void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
+void ExperienceBottleEntity::onImpact(const RayTraceResult& result)
 {
-    // TODO: 未调用基类 ProjectileEntity::onImpact 完成 dispatch（命中实体→onEntityHit / 命中方块→
-    //   onBlockHit），与 SnowballEntity::onImpact 修复前同病。经验瓶 onEntityHit 无伤害逻辑（vanilla
-    //   经验瓶命中实体 0 伤害，破裂才给经验），故命中实体无功能损失；但 onBlockHit（通知方块
-    //   onProjectileHit）被绕过。vanilla ThrownExperienceBottle.onHit 首行 super.onHit() dispatch
-    //   再破裂散经验，应对齐。
-    // 生成经验球（3-11点经验）
-    if (m_world) {
-        // ECS 迁移：实体构造需要 registry 句柄（m_world 已判空，此处 registry 必非空）
-        auto* registry = &ecsRegistry();
-        if (registry == nullptr) {
-            return;
-        }
-
-        math::IRandom& rng = m_world->getRandom();
-        i32 experience = rng.nextInt(3, 11);
-
-        // 生成经验球实体
-        for (i32 i = 0; i < experience; ++i) {
-            auto orb = std::make_unique<ExperienceOrbEntity>(1, *registry);
-
-            // 直接构造的实体需要显式设置 typeId（注册表路径会自动设置）
-            orb->setTypeId(EntityTypeKeys::EXPERIENCE_ORB);
-
-            orb->setPosition(m_builtIn.stateVector->m_pos.x + (rng.nextFloat() - 0.5f) * 0.5f,
-                m_builtIn.stateVector->m_pos.y + 0.5f,
-                m_builtIn.stateVector->m_pos.z + (rng.nextFloat() - 0.5f) * 0.5f);
-            orb->setWorld(m_world);
-            // 给予随机速度，使经验球散开
-            orb->setVelocity(
-                (rng.nextFloat() - 0.5f) * 0.2f, rng.nextFloat() * 0.3f + 0.1f, (rng.nextFloat() - 0.5f) * 0.2f);
-            m_world->spawnEntity(std::move(orb));
-        }
-
-        // 播放破裂效果
-        m_world->addParticle(particle::ParticleTypeId::Snowflake,
-            m_builtIn.stateVector->m_pos,
-            Vector3(0.0f, 0.0f, 0.0f),
-            Vector3(0.3f, 0.3f, 0.3f),
-            4);
+    // 首行 dispatch（对齐 vanilla ThrownExperienceBottle.onHit 首行 super.onHit）：
+    // 命中实体走 onEntityHit（经验瓶无伤害副作用），命中方块走 onBlockHit 通知方块 onProjectileHit。
+    if (m_world == nullptr) { // TEMP-REVERT
+        remove();
+        return;
     }
+
+    // 经验值 = 3 + nextInt(5) + nextInt(5)，范围 [3, 13)；旧实现用 nextInt(3, 11) 上界缺失。
+    math::IRandom& rng = m_world->getRandom();
+    const i32 experience = 3 + rng.nextInt(5) + rng.nextInt(5);
+
+    // 经验球从命中点沿反方向（命中方块时为命中面法线反向，命中实体时为速度反向）散开
+    Vector3 origin(x(), y(), z());
+    Vector3 direction(0.0f, 0.0f, 0.0f);
+    if (result.type == RayTraceResultType::Block) {
+        origin = Vector3(result.hitPosition.x, result.hitPosition.y, result.hitPosition.z);
+        direction = Vector3(static_cast<f32>(-Directions::xOffset(result.face)),
+            static_cast<f32>(-Directions::yOffset(result.face)),
+            static_cast<f32>(-Directions::zOffset(result.face)));
+    } else if (result.type == RayTraceResultType::Entity) {
+        origin = Vector3(result.hitPosition.x, result.hitPosition.y, result.hitPosition.z);
+        const Vector3 velocity = this->velocity();
+        direction = Vector3(-velocity.x, -velocity.y, -velocity.z);
+    }
+
+    entity::ExperienceDropHandler::spawnExperienceOrbsWithDirection(m_world, origin, direction, experience);
+
+    // 破裂粒子（对齐 vanilla levelEvent(2002) 的视觉表现）
+    m_world->addParticle(
+        particle::ParticleTypeId::Snowflake, origin, Vector3(0.0f, 0.0f, 0.0f), Vector3(0.3f, 0.3f, 0.3f), 4);
 
     remove();
 }

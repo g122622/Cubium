@@ -246,8 +246,11 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
         return;
     }
     if (pistonState != nullptr) {
-        // 伸出的源方块最终是活塞头，普通被移动方块则恢复其原始状态。
-        BlockState updatedState = Block::updateFromNeighbourShapes(*pistonState, world, pos);
+        // 先按推动方向计算落地状态（面向方块按推动轴旋转，如釉面陶瓦顺时针 90°），
+        // 再在目标位置做邻居形状更新。
+        // 旋转结果可能是当前方块自身的状态，必须先拷贝：后续赋值会失效借用的迭代器。
+        const BlockState movedState = pistonState->getBlock().getStateForMovement(*pistonState, getMotionDirection());
+        BlockState updatedState = Block::updateFromNeighbourShapes(movedState, world, pos);
         world.setBlockState(
             pos, &updatedState, world::BlockUpdateFlags::UPDATE_ALL | world::BlockUpdateFlags::UPDATE_MOVE_BY_PISTON);
     }

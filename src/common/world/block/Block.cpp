@@ -587,6 +587,13 @@ const BlockState& Block::mirror(const BlockState& state, Mirror mirror) const
     return state;
 }
 
+const BlockState& Block::getStateForMovement(const BlockState& state, Direction pushDirection) const
+{
+    // 默认实现：无按推动方向的旋转语义，落地状态即被移动状态
+    (void)pushDirection;
+    return state;
+}
+
 const loot::LootTable* Block::getLootTable(const loot::LootTableManager& manager) const
 {
     if (m_lootTableId.empty()) {
@@ -662,6 +669,13 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
         }
         currentState = currentState.getBlockMutable().updatePostPlacement(
             currentState, direction, *neighborState, world, pos, neighborPos);
+        // 邻居形状更新导致当前状态成为空气（如垂根失去上方支撑）时，原版会实例化空气状态并
+        // 继续以空邻居逐个更新（不返回）。Cubium 的 updatePostPlacement 直接返回空气状态，
+        // 必须显式短路，否则空气的 updatePostPlacement 覆盖会把空气重新填回被推动方块的
+        // 原状态，表现为"被推动方块落地后消失失败"。
+        if (currentState.isAir()) {
+            break;
+        }
     }
     return currentState;
 }
