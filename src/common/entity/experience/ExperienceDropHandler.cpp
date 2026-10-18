@@ -85,6 +85,47 @@ i32 ExperienceDropHandler::spawnExperienceOrbs(Entity* entity, i32 totalXp, math
     return spawnExperienceOrbs(entity->world(), entity->x(), entity->y(), entity->z(), totalXp, rng);
 }
 
+i32 ExperienceDropHandler::spawnExperienceOrbsWithDirection(
+    IWorld* world, const Vector3& origin, const Vector3& direction, i32 totalXp)
+{
+    if (world == nullptr || totalXp <= 0) {
+        return 0;
+    }
+
+    std::vector<i32> xpValues;
+    experience::utils::splitExperience(totalXp, xpValues);
+
+    math::IRandom& random = world->getRandom();
+    // 经验球包围盒尺寸由实体宽度/高度决定，以实体默认尺寸取半作为沿方向的初位移
+    constexpr f32 ORB_HALF_SIZE = 0.25f;
+    const bool hasDirection = direction.lengthSquared() > 0.0;
+
+    i32 spawnedCount = 0;
+    for (i32 xpValue : xpValues) {
+        Vector3 velocity(static_cast<f32>((random.nextDouble() * 0.2 - 0.1) * 2.0),
+            static_cast<f32>(random.nextDouble() * 0.2 * 2.0),
+            static_cast<f32>((random.nextDouble() * 0.2 - 0.1) * 2.0));
+        if (hasDirection && direction.dot(velocity) < 0.0) {
+            velocity = Vector3(-velocity.x, -velocity.y, -velocity.z);
+        }
+
+        const Vector3 offset = hasDirection ? direction.normalized() * ORB_HALF_SIZE : Vector3(0.0, 0.0, 0.0);
+
+        // _createExperienceOrb 会显式 setVelocity，覆盖经验球构造期的随机默认速度
+        if (_createExperienceOrb(world,
+                origin.x + offset.x,
+                origin.y + offset.y,
+                origin.z + offset.z,
+                xpValue,
+                static_cast<f32>(velocity.x),
+                static_cast<f32>(velocity.y),
+                static_cast<f32>(velocity.z)) != nullptr) {
+            ++spawnedCount;
+        }
+    }
+    return spawnedCount;
+}
+
 // ============================================================================
 // 玩家死亡经验掉落
 // ============================================================================
