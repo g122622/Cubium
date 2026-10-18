@@ -205,6 +205,26 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
         item = ResourceLocation(json["item"].get<std::string>());
     }
 
+    // 原版写法：items 是物品 ID 或标签（"#tag"）的列表；单元素时等价于 item/tag
+    if (json.contains("items")) {
+        const auto& items = json["items"];
+        if (items.is_string()) {
+            const std::string text = items.get<std::string>();
+            if (!text.empty() && text[0] == '#') {
+                tag = ResourceLocation(text.substr(1));
+            } else {
+                item = ResourceLocation(text);
+            }
+        } else if (items.is_array() && items.size() == 1 && items[0].is_string()) {
+            const std::string text = items[0].get<std::string>();
+            if (!text.empty() && text[0] == '#') {
+                tag = ResourceLocation(text.substr(1));
+            } else {
+                item = ResourceLocation(text);
+            }
+        }
+    }
+
     if (json.contains("tag")) {
         tag = ResourceLocation(json["tag"].get<std::string>());
     }

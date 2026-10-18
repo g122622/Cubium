@@ -90,6 +90,10 @@ constexpr VanillaPotionEntry kVanillaPotions[] = {
     {43, "minecraft:weaving"},
     {44, "minecraft:oozing"},
     {45, "minecraft:infested"},
+    {42, "minecraft:wind_charged"},
+    {43, "minecraft:weaving"},
+    {44, "minecraft:oozing"},
+    {45, "minecraft:infested"},
 };
 
 constexpr size_t kVanillaPotionCount = std::size(kVanillaPotions);

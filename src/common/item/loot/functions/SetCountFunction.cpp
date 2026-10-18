@@ -37,6 +37,13 @@ SetCountFunction::SetCountFunction(const RandomValueRange& count, bool add)
     , m_add(add)
 {}
 
+SetCountFunction::SetCountFunction(
+    const RandomValueRange& count, std::unique_ptr<math::IRandomRange> provider, bool add)
+    : m_count(count)
+    , m_provider(std::move(provider))
+    , m_add(add)
+{}
+
 ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
 {
     // 空物品堆直接返回
@@ -44,8 +51,9 @@ ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
         return stack;
     }
 
-    // 生成随机数量
-    i32 newCount = m_count.generateInt(context.getRandom());
+    // 生成随机数量（binomial 等非均匀分布由提供器生成）
+    const i32 newCount =
+        m_provider != nullptr ? m_provider->generateInt(context.getRandom()) : m_count.generateInt(context.getRandom());
 
     // 根据 add 模式决定是叠加还是替换
     if (m_add) {
@@ -60,7 +68,8 @@ ItemStack SetCountFunction::apply(ItemStack stack, LootContext& context) const
 std::unique_ptr<LootFunction> SetCountFunction::clone() const noexcept
 {
     // 深拷贝函数及其条件
-    auto func = std::make_unique<SetCountFunction>(m_count, m_add);
+    auto func =
+        std::make_unique<SetCountFunction>(m_count, m_provider != nullptr ? m_provider->clone() : nullptr, m_add);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
     }

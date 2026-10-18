@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "SetBookCoverFunction.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/functions/LootFunction.hpp"
+#include <algorithm>
+#include <memory>
+
+namespace mc {
+namespace loot {
+
+SetBookCoverFunction::SetBookCoverFunction(
+    std::optional<std::string> author, std::optional<nlohmann::json> title, std::optional<i32> generation)
+    : m_author(std::move(author))
+    , m_title(std::move(title))
+    , m_generation(generation)
+{}
+
+ItemStack SetBookCoverFunction::apply(ItemStack stack, LootContext& context) const
+{
+    MC_UNUSED(context);
+    if (stack.isEmpty()) {
+        return stack;
+    }
+    // vanilla 仅对成书生效（WrittenBookContent 组件）
+    if (stack.getItem() == nullptr || stack.getItem()->itemLocation() != ResourceLocation("minecraft:written_book")) {
+        return stack;
+    }
+    auto& content = stack.getOrCreateTag()["written_book_content"];
+    if (m_title.has_value()) {
+        content["title"] = *m_title;
+    }
+    if (m_author.has_value()) {
+        content["author"] = *m_author;
+    }
+    if (m_generation.has_value()) {
+        static const char* GENERATIONS[] = {"original", "copy_of_original", "copy_of_copy", "tattered"};
+        content["generation"] = GENERATIONS[std::clamp(*m_generation, 0, 3)];
+    }
+    return stack;
+}
+
+std::unique_ptr<LootFunction> SetBookCoverFunction::clone() const noexcept
+{
+    auto func = std::make_unique<SetBookCoverFunction>(m_author, m_title, m_generation);
+    for (const auto& cond : m_conditions) {
+        func->addCondition(cond->clone());
+    }
+    return func;
+}
+
+} // namespace loot
+} // namespace mc

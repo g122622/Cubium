@@ -41,35 +41,114 @@ namespace component {
  * "minecraft:damage"）。typeId 严格对齐 Java 1.21.11 DataComponents.register
  * 注册顺序由 assets/data/protocol-1.21.11.json 的 SlotComponentType 校验。
  *
- * 本项目仅落地部分组件；未落地的类型占位与 Java 一致，将来扩展零冲击。
- * 未落地的 typeId 在 wire 读入时会因"无长度前缀无法安全跳过"而报错，故不得
- * 依赖未落地组件参与真实 Java 对端通信。
+ * 枚举值即注册表 id（0..103），名字由资源位置按 蛇形→驼峰 转换（villager/variant → VillagerVariant）。
+ * 尚未落地载荷解码的组件仍以占位类型表示，可经 set_components/copy_components 以原始 NBT 承载。
  */
 enum class DataComponentType : i32 {
-    CustomData = 0,           // minecraft:custom_data —— 嵌套 NBT（本项目承载 m_customData）
-    MaxStackSize = 1,         // minecraft:max_stack_size —— i32（覆盖最大堆叠数）
-    MaxDamage = 2,            // minecraft:max_damage —— i32（覆盖最大耐久）
-    Damage = 3,               // minecraft:damage —— i32（已承受伤害）
-    Unbreakable = 4,          // minecraft:unbreakable —— Unit（不可损坏）
-    CustomName = 6,           // minecraft:custom_name —— Component（文本）
-    ItemName = 9,             // minecraft:item_name —— Component（默认显示名覆盖）
-    ItemModel = 10,           // minecraft:item_model —— Identifier（模型覆盖，仅序列化）
-    Lore = 11,                // minecraft:lore —— list<Component>
-    Rarity = 12,              // minecraft:rarity —— Rarity（稀有度覆盖）
-    Enchantments = 13,        // minecraft:enchantments —— ItemEnchantments
-    CanPlaceOn = 14,          // minecraft:can_place_on —— BlockPredicates
-    CanBreak = 15,            // minecraft:can_break —— BlockPredicates
-    RepairCost = 19,          // minecraft:repair_cost —— i32
-    AttackRange = 30,         // minecraft:attack_range —— record（攻击范围）
-    Enchantable = 31,         // minecraft:enchantable —— i32（附魔能力覆盖）
-    BundleContents = 48,      // minecraft:bundle_contents —— 收纳袋物品列表
-    WritableBookContent = 52, // minecraft:writable_book_content —— 可编辑书页
-    WrittenBookContent = 53,  // minecraft:written_book_content —— 签名书籍
-    StoredEnchantments = 41,  // minecraft:stored_enchantments —— 储存附魔
-    BannerPatterns = 70,      // minecraft:banner_patterns —— 旗帜图层
-    PotionContents = 49,      // minecraft:potion_contents —— record{potion,color,effects,name}
-    FireworkExplosion = 66,   // minecraft:firework_explosion —— 单次爆炸（形状/颜色/拖尾/闪烁）
-    Fireworks = 67,           // minecraft:fireworks —— 烟花火箭（飞行时长 + 爆炸列表）
+    CustomData = 0,
+    MaxStackSize = 1,
+    MaxDamage = 2,
+    Damage = 3,
+    Unbreakable = 4,
+    UseEffects = 5,
+    CustomName = 6,
+    MinimumAttackCharge = 7,
+    DamageType = 8,
+    ItemName = 9,
+    ItemModel = 10,
+    Lore = 11,
+    Rarity = 12,
+    Enchantments = 13,
+    CanPlaceOn = 14,
+    CanBreak = 15,
+    AttributeModifiers = 16,
+    CustomModelData = 17,
+    TooltipDisplay = 18,
+    RepairCost = 19,
+    CreativeSlotLock = 20,
+    EnchantmentGlintOverride = 21,
+    IntangibleProjectile = 22,
+    Food = 23,
+    Consumable = 24,
+    UseRemainder = 25,
+    UseCooldown = 26,
+    DamageResistant = 27,
+    Tool = 28,
+    Weapon = 29,
+    AttackRange = 30,
+    Enchantable = 31,
+    Equippable = 32,
+    Repairable = 33,
+    Glider = 34,
+    TooltipStyle = 35,
+    DeathProtection = 36,
+    BlocksAttacks = 37,
+    PiercingWeapon = 38,
+    KineticWeapon = 39,
+    SwingAnimation = 40,
+    StoredEnchantments = 41,
+    DyedColor = 42,
+    MapColor = 43,
+    MapId = 44,
+    MapDecorations = 45,
+    MapPostProcessing = 46,
+    ChargedProjectiles = 47,
+    BundleContents = 48,
+    PotionContents = 49,
+    PotionDurationScale = 50,
+    SuspiciousStewEffects = 51,
+    WritableBookContent = 52,
+    WrittenBookContent = 53,
+    Trim = 54,
+    DebugStickState = 55,
+    EntityData = 56,
+    BucketEntityData = 57,
+    BlockEntityData = 58,
+    Instrument = 59,
+    ProvidesTrimMaterial = 60,
+    OminousBottleAmplifier = 61,
+    JukeboxPlayable = 62,
+    ProvidesBannerPatterns = 63,
+    Recipes = 64,
+    LodestoneTracker = 65,
+    FireworkExplosion = 66,
+    Fireworks = 67,
+    Profile = 68,
+    NoteBlockSound = 69,
+    BannerPatterns = 70,
+    BaseColor = 71,
+    PotDecorations = 72,
+    Container = 73,
+    BlockState = 74,
+    Bees = 75,
+    Lock = 76,
+    ContainerLoot = 77,
+    BreakSound = 78,
+    VillagerVariant = 79,
+    WolfVariant = 80,
+    WolfSoundVariant = 81,
+    WolfCollar = 82,
+    FoxVariant = 83,
+    SalmonSize = 84,
+    ParrotVariant = 85,
+    TropicalFishPattern = 86,
+    TropicalFishBaseColor = 87,
+    TropicalFishPatternColor = 88,
+    MooshroomVariant = 89,
+    RabbitVariant = 90,
+    PigVariant = 91,
+    CowVariant = 92,
+    ChickenVariant = 93,
+    ZombieNautilusVariant = 94,
+    FrogVariant = 95,
+    HorseVariant = 96,
+    PaintingVariant = 97,
+    LlamaVariant = 98,
+    AxolotlVariant = 99,
+    CatVariant = 100,
+    CatCollar = 101,
+    SheepColor = 102,
+    ShulkerColor = 103,
 };
 
 /**

@@ -47,6 +47,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -60,6 +61,39 @@
 #include <spdlog/spdlog.h>
 
 namespace mc {
+namespace item::component {
+
+item::component::ItemContainerContentsPayload materializeContainerContents(
+    const item::component::ItemContainerContentsPayload& source)
+{
+    ItemContainerContentsPayload copy;
+    copy.slots.reserve(source.slots.size());
+    for (const auto& slot : source.slots) {
+        copy.slots.push_back(ItemContainerContentsPayload::Slot{
+            slot.index, slot.item != nullptr ? std::make_unique<ItemStack>(*slot.item) : nullptr});
+    }
+    return copy;
+}
+
+item::component::ChargedProjectilesPayload materializeChargedProjectiles(
+    const item::component::ChargedProjectilesPayload& source)
+{
+    ChargedProjectilesPayload copy;
+    copy.items = cloneItemStackList(source.items);
+    return copy;
+}
+
+std::vector<std::unique_ptr<ItemStack>> cloneItemStackList(const std::vector<std::unique_ptr<ItemStack>>& items)
+{
+    std::vector<std::unique_ptr<ItemStack>> cloned;
+    cloned.reserve(items.size());
+    for (const auto& item : items) {
+        cloned.push_back(item != nullptr ? std::make_unique<ItemStack>(*item) : nullptr);
+    }
+    return cloned;
+}
+
+} // namespace item::component
 
 namespace {
 // NBT key constants
@@ -131,6 +165,8 @@ ItemStack::ItemStack(const Item* item, i32 count)
     }
 }
 
+ItemStack::~ItemStack() = default;
+
 ItemStack::ItemStack(const ItemStack& other)
     : m_item(other.m_item)
     , m_count(other.m_count)
@@ -141,6 +177,8 @@ ItemStack::ItemStack(const ItemStack& other)
     // 空 extras 原样传 nullptr（不得无条件 make_unique——容器每 tick 逐槽拷贝，
     // 给空 extras 分配会把这笔优化反向吃掉）；非空才深拷贝
     , m_extras(other.m_extras ? std::make_unique<ItemExtras>(*other.m_extras) : nullptr)
+    , m_chargedProjectiles(other.m_chargedProjectiles)
+    , m_containerContents(other.m_containerContents)
 {}
 
 ItemStack& ItemStack::operator=(const ItemStack& other)
@@ -153,6 +191,8 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
         m_customName = other.m_customName ? other.m_customName->deepCopy() : nullptr;
         m_enchantments = other.m_enchantments;
         m_extras = other.m_extras ? std::make_unique<ItemExtras>(*other.m_extras) : nullptr;
+        m_chargedProjectiles = other.m_chargedProjectiles;
+        m_containerContents = other.m_containerContents;
     }
     return *this;
 }
@@ -646,6 +686,9 @@ f32 ItemStack::getDestroySpeed(const BlockState& state) const
     if (isEmpty()) {
         return 1.0f;
     }
+    if (m_extras && m_extras->tool.has_value()) {
+        return _toolMiningSpeed(*m_extras->tool, state);
+    }
     return m_item->getDestroySpeed(*this, state);
 }
 
@@ -654,7 +697,70 @@ bool ItemStack::canHarvestBlock(const BlockState& state) const
     if (isEmpty()) {
         return false;
     }
+    if (m_extras && m_extras->tool.has_value()) {
+        return _toolCorrectForDrops(*m_extras->tool, state);
+    }
     return m_item->canHarvestBlock(state);
+}
+
+bool ItemStack::_toolRuleMatches(const item::component::ToolRule& rule, const BlockState& state)
+{
+    // Rule.blocks 是 HolderSet<Block>：元素既可以是方块 ID 也可以是标签。
+    // 匹配语义对齐 vanilla HolderSet#contains：
+    //  - 直接 ID 相等；
+    //  - 规则标签包含该方块；
+    //  - 规则标签被"方块所属的某个标签"包含（如剑的规则写作 being_sword，
+    //    需要对剑可加速的方块集合生效——该集合本身又被 being_sword 包含）。
+    const ResourceLocation& blockId = state.blockLocation();
+    const bool tagsInitialized = BlockTags::isInitialized();
+    for (const auto& id : rule.blocks) {
+        if (id == blockId) {
+            return true;
+        }
+        if (!tagsInitialized) {
+            continue;
+        }
+        const BlockTag* ruleTag = BlockTags::getTag(id);
+        if (ruleTag == nullptr) {
+            continue;
+        }
+        if (ruleTag->containsIncludingReferences(blockId)) {
+            return true;
+        }
+        bool matchedByContainingTag = false;
+        BlockTags::forEachTag([&](BlockTag& tag) {
+            if (matchedByContainingTag || &tag == ruleTag) {
+                return;
+            }
+            if (tag.containsIncludingReferences(blockId) && tag.containsAllOf(*ruleTag)) {
+                matchedByContainingTag = true;
+            }
+        });
+        if (matchedByContainingTag) {
+            return true;
+        }
+    }
+    return false;
+}
+
+f32 ItemStack::_toolMiningSpeed(const item::component::ToolPayload& tool, const BlockState& state)
+{
+    for (const auto& rule : tool.rules) {
+        if (rule.speed.has_value() && _toolRuleMatches(rule, state)) {
+            return *rule.speed;
+        }
+    }
+    return tool.defaultMiningSpeed;
+}
+
+bool ItemStack::_toolCorrectForDrops(const item::component::ToolPayload& tool, const BlockState& state)
+{
+    for (const auto& rule : tool.rules) {
+        if (rule.correctForDrops.has_value() && _toolRuleMatches(rule, state)) {
+            return *rule.correctForDrops;
+        }
+    }
+    return false;
 }
 
 // ============================================================================
@@ -1162,6 +1268,42 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
             patch.add(DataComponentType::Fireworks,
                 DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Fireworks>, *m_extras->fireworks});
         }
+        if (m_extras->customModelData.is_object() && !m_extras->customModelData.empty()) {
+            patch.add(DataComponentType::CustomModelData,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, m_extras->customModelData});
+        }
+        if (m_extras->enchantmentGlintOverride.has_value()) {
+            patch.add(DataComponentType::EnchantmentGlintOverride,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::Bool>, *m_extras->enchantmentGlintOverride});
+        }
+        if (m_extras->instrument.has_value()) {
+            patch.add(DataComponentType::Instrument,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::Instrument>, InstrumentPayload{*m_extras->instrument}});
+        }
+        if (m_extras->tool.has_value()) {
+            patch.add(DataComponentType::Tool,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Tool>, *m_extras->tool});
+        }
+        if (m_extras->ominousBottleAmplifier.has_value()) {
+            patch.add(DataComponentType::OminousBottleAmplifier,
+                DataComponentPayload{
+                    std::in_place_index<ComponentPayloadIndex::OptionalInt>, *m_extras->ominousBottleAmplifier});
+        }
+        if (m_extras->stewEffects.has_value()) {
+            patch.add(DataComponentType::SuspiciousStewEffects,
+                DataComponentPayload{std::in_place_index<ComponentPayloadIndex::StewEffects>, *m_extras->stewEffects});
+        }
+        if (m_extras->rawComponents.is_object()) {
+            for (const auto& [componentKey, value] : m_extras->rawComponents.items()) {
+                auto type = componentTypeByName(componentKey);
+                if (!type.has_value()) {
+                    continue;
+                }
+                patch.add(*type, DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, value});
+            }
+        }
     }
     return patch;
 }
@@ -1305,6 +1447,49 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                 setFireworks(std::get<item::component::Fireworks>(entry.value));
                 break;
             }
+            case DataComponentType::CustomModelData: {
+                setCustomModelData(std::get<nlohmann::json>(entry.value));
+                break;
+            }
+            case DataComponentType::EnchantmentGlintOverride: {
+                setEnchantmentGlintOverride(std::get<bool>(entry.value));
+                break;
+            }
+            case DataComponentType::Instrument: {
+                setInstrument(std::get<InstrumentPayload>(entry.value).instrumentId);
+                break;
+            }
+            case DataComponentType::Tool: {
+                setTool(std::get<ToolPayload>(entry.value));
+                break;
+            }
+            case DataComponentType::OminousBottleAmplifier: {
+                setOminousBottleAmplifier(std::get<std::optional<i32>>(entry.value));
+                break;
+            }
+            case DataComponentType::Container:
+                // container 组件不进入 DataComponentPayload（元素为 ItemStack 指针），
+                // 由 ItemStackBridge 以原始 NBT 单独解码（见 fromNbt / 桥接层）
+                break;
+            case DataComponentType::SuspiciousStewEffects: {
+                _ensureExtras().stewEffects = std::get<SuspiciousStewEffectsPayload>(entry.value);
+                break;
+            }
+            case DataComponentType::ChargedProjectiles:
+                // 同 container：元素为 ItemStack 指针，不经 DataComponentPayload 承载
+                break;
+            case DataComponentType::Bees:
+            case DataComponentType::Trim:
+            case DataComponentType::Recipes: {
+                auto name = componentName(*type);
+                if (name.has_value()) {
+                    _ensureExtras().rawComponents[std::string(*name)] = std::get<nlohmann::json>(entry.value);
+                }
+                break;
+            }
+            default:
+                // 未落地组件：不改变物品状态
+                break;
         }
     }
     for (i32 typeId : patch.removed()) {
@@ -1359,6 +1544,52 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                     m_extras->customData = nlohmann::json{};
                 }
                 break;
+            case DataComponentType::CustomModelData:
+                if (m_extras) {
+                    m_extras->customModelData = nlohmann::json{};
+                }
+                break;
+            case DataComponentType::EnchantmentGlintOverride:
+                if (m_extras) {
+                    m_extras->enchantmentGlintOverride.reset();
+                }
+                break;
+            case DataComponentType::Instrument:
+                if (m_extras) {
+                    m_extras->instrument.reset();
+                }
+                break;
+            case DataComponentType::Tool:
+                if (m_extras) {
+                    m_extras->tool.reset();
+                }
+                break;
+            case DataComponentType::OminousBottleAmplifier:
+                if (m_extras) {
+                    m_extras->ominousBottleAmplifier.reset();
+                }
+                break;
+            case DataComponentType::Container:
+                m_containerContents.reset();
+                break;
+            case DataComponentType::SuspiciousStewEffects:
+                if (m_extras) {
+                    m_extras->stewEffects.reset();
+                }
+                break;
+            case DataComponentType::ChargedProjectiles:
+                m_chargedProjectiles.reset();
+                break;
+            case DataComponentType::Bees:
+            case DataComponentType::Trim:
+            case DataComponentType::Recipes:
+                if (m_extras) {
+                    auto name = componentName(*type);
+                    if (name.has_value()) {
+                        m_extras->rawComponents.erase(std::string(*name));
+                    }
+                }
+                break;
             case DataComponentType::MaxStackSize:
                 if (m_extras) {
                     m_extras->maxStackSizeOverride.reset();
@@ -1401,8 +1632,35 @@ void ItemStack::applyComponentPatch(const item::component::DataComponentPatch& p
                     m_extras->fireworks.reset();
                 }
                 break;
+            default:
+                break;
         }
     }
+}
+
+void ItemStack::setComponent(item::component::DataComponentType type, item::component::DataComponentPayload value)
+{
+    using namespace item::component;
+    DataComponentPatch patch;
+    patch.add(type, std::move(value));
+    applyComponentPatch(patch);
+}
+
+void ItemStack::removeComponent(item::component::DataComponentType type)
+{
+    using namespace item::component;
+    DataComponentPatch patch;
+    patch.remove(type);
+    applyComponentPatch(patch);
+}
+
+i32 ItemStack::_itemDefaultOminousBottleAmplifier() const
+{
+    // vanilla OminousBottleItem：基础组件 ominous_bottle_amplifier = 6（等级 I）
+    if (!isEmpty() && m_item->itemLocation() == ResourceLocation("minecraft:ominous_bottle")) {
+        return 6;
+    }
+    return 0;
 }
 
 // ============================================================================

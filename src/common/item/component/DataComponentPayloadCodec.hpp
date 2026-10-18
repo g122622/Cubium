@@ -44,6 +44,13 @@ namespace detail {
 /// NBT tag → 单组件 payload（NBT patch 与 wire 共用）
 [[nodiscard]] DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& tag);
 
+/// NBT tag → 单组件 payload（严格模式）
+///
+/// 与 nbtToPayload 相同的解码，但遇到尚未落地解码的组件（如 food、equippable、
+/// blocks_attacks 等以原始 JSON 承载的组件）时返回 false；调用方据此区分
+/// "已解码"与"无法解码"，避免把空载荷误当作有效组件。
+[[nodiscard]] bool tryNbtToPayload(DataComponentType type, const nbt::tags::tag& tag, DataComponentPayload& out);
+
 } // namespace detail
 } // namespace component
 } // namespace item

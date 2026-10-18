@@ -29,48 +29,36 @@
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
-#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/map/MapData.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include <cmath>
-#include <cstddef>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 
 namespace mc {
 namespace loot {
 
-// ============================================================================
-// 目的地字符串映射表
-// ============================================================================
+const ResourceLocation& ExplorationMapFunction::defaultDestination()
+{
+    static const ResourceLocation DEFAULT_DESTINATION("minecraft", "on_treasure_maps");
+    return DEFAULT_DESTINATION;
+}
 
-namespace {
-
-const char* DESTINATION_STRINGS[] = {
-    "minecraft:buried_treasure", // BuriedTreasure
-    "minecraft:mansion",         // Mansion
-    "minecraft:monument",        // Monument
-    "minecraft:shipwreck",       // Shipwreck
-    "minecraft:ruined_portal",   // RuinedPortal
-};
-
-} // anonymous namespace
-
-ExplorationMapFunction::ExplorationMapFunction(Destination destination,
-    std::optional<world::map::DecorationType> decoration,
-    i32 zoom,
+ExplorationMapFunction::ExplorationMapFunction(const ResourceLocation& destination,
+    world::map::DecorationType decoration,
+    i8 zoom,
     i32 searchRadius,
-    bool skipKnownStructures)
+    bool searchSkipsLoadedChunks)
     : m_destination(destination)
     , m_decoration(decoration)
     , m_zoom(zoom)
     , m_searchRadius(searchRadius)
-    , m_skipKnownStructures(skipKnownStructures)
-{}
+    , m_searchSkipsLoadedChunks(searchSkipsLoadedChunks)
+{
+    MC_ASSERT_RELEASE_MSG(searchRadius >= 0, "exploration_map: search_radius must be non-negative");
+}
 
 ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) const
 {
@@ -78,47 +66,38 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
         return stack;
     }
 
-    // 如果物品不是空地图，不处理
+    // 原版只处理空地图（Items.MAP）；已是已填充地图或其它物品时原样返回
     if (stack.getItem() != Items::MAP) {
         return stack;
     }
 
-    // 获取上下文中的来源位置（align vanilla LootContextParams.ORIGIN，为世界坐标 Vec3，
-    // 对方块掉落与实体掉落/钓鱼等非方块来源同样生效）。ORIGIN 缺失时退回 BLOCK_POS（方块中心）。
-    BlockPos searchOrigin;
-    if (auto* origin = context.get(LootParams::ORIGIN)) {
-        searchOrigin = BlockPos(static_cast<i32>(std::floor(origin->x)),
-            static_cast<i32>(std::floor(origin->y)),
-            static_cast<i32>(std::floor(origin->z)));
-    } else if (auto* blockPos = context.get(LootParams::BLOCK_POS)) {
-        searchOrigin = *blockPos;
-    } else {
+    // 搜索中心取上下文 ORIGIN（世界坐标，对方块掉落与实体掉落/钓鱼等非方块来源同样生效），
+    // 缺失时返回原物品（原版 LootContextParams.ORIGIN 缺失同样不处理）
+    const auto* origin = context.get(LootParams::ORIGIN);
+    if (origin == nullptr) {
         return stack;
     }
+    const BlockPos searchOrigin(static_cast<i32>(std::floor(origin->x)),
+        static_cast<i32>(std::floor(origin->y)),
+        static_cast<i32>(std::floor(origin->z)));
 
-    // 搜索最近的结构
-    // TODO: 原版按结构标签（StructureTags.ON_TREASURE_MAPS）搜索，
-    //  本项目按单个结构 ID 搜索（findNearestStructure 只接受 ResourceLocation），
-    //  待世界侧支持按标签搜索后改为标签语义。
+    // 按结构标签搜索最近的目标结构；未找到时返回原物品
     IWorld& world = context.getWorld();
-    ResourceLocation structureId = destinationToResourceLocation(m_destination);
-    auto foundPos = world.findNearestStructure(searchOrigin, structureId, m_searchRadius, m_skipKnownStructures);
-
+    const auto foundPos =
+        world.findNearestMapStructure(searchOrigin, m_destination, m_searchRadius, m_searchSkipsLoadedChunks);
     if (!foundPos.has_value()) {
-        // 未找到结构，返回原始物品
         return stack;
     }
 
-    // 创建已填充地图：与 MapItem.create(level, x, z, zoom, true, true) 一致，
-    // trackingPosition 与 unlimitedTracking 均为 true
+    // 建图：trackingPosition 与 unlimitedTracking 均为 true
     ItemStack mapStack = item::items::FilledMapItem::setupNewMap(world, foundPos->x, foundPos->z, m_zoom, true, true);
 
-    // TODO: 原版在建图后还会调用 MapItem.renderBiomePreviewMap 绘制生物群系预览图，
-    //  本项目暂无对应实现，探险地图缺少预览底图。
+    // TODO: 原版建图后调用 MapItem.renderBiomePreviewMap 绘制生物群系预览底图，
+    //  本项目地图数据尚无生物群系颜色预览实现，探险地图目前缺少预览底图，
+    //  待地图数据支持按生物群系填充预览像素后在此补上（在地图中心定下后、添加装饰前调用）。
 
     // 添加目标装饰标记
-    auto decorationType = getEffectiveDecoration();
-    item::items::FilledMapItem::addTargetDecoration(mapStack, foundPos.value(), "+", decorationType);
+    item::items::FilledMapItem::addTargetDecoration(mapStack, foundPos.value(), "+", m_decoration);
 
     return mapStack;
 }
@@ -126,86 +105,24 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
 std::unique_ptr<LootFunction> ExplorationMapFunction::clone() const noexcept
 {
     auto func = std::make_unique<ExplorationMapFunction>(
-        m_destination, m_decoration, m_zoom, m_searchRadius, m_skipKnownStructures);
+        m_destination, m_decoration, m_zoom, m_searchRadius, m_searchSkipsLoadedChunks);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
     }
     return func;
 }
 
-world::map::DecorationType ExplorationMapFunction::destinationToDecorationType(Destination destination)
+std::optional<ResourceLocation> ExplorationMapFunction::parseDestination(std::string_view str)
 {
-    switch (destination) {
-        case Destination::Mansion:
-            return world::map::DecorationType::MANSION;
-        case Destination::Monument:
-            return world::map::DecorationType::MONUMENT;
-        case Destination::BuriedTreasure:
-        case Destination::Shipwreck:
-        case Destination::RuinedPortal:
-        default:
-            return world::map::DecorationType::RED_X;
+    // 与其它战利品函数中的注册表引用一致：允许省略默认命名空间 minecraft
+    if (str.empty()) {
+        return std::nullopt;
     }
-}
-
-std::optional<ExplorationMapFunction::Destination> ExplorationMapFunction::destinationFromString(const std::string& str)
-{
-    // 支持带命名空间和不带命名空间两种格式
-    std::string name = str;
-    constexpr std::string_view PREFIX = "minecraft:";
-    if (name.size() > PREFIX.size() && name.substr(0, PREFIX.size()) == PREFIX) {
-        name = name.substr(PREFIX.size());
+    ResourceLocation parsed = ResourceLocation::parse(str);
+    if (parsed.path().empty()) {
+        return std::nullopt;
     }
-
-    if (name == "buried_treasure") {
-        return Destination::BuriedTreasure;
-    }
-    if (name == "mansion") {
-        return Destination::Mansion;
-    }
-    if (name == "monument") {
-        return Destination::Monument;
-    }
-    if (name == "shipwreck") {
-        return Destination::Shipwreck;
-    }
-    if (name == "ruined_portal") {
-        return Destination::RuinedPortal;
-    }
-    return std::nullopt;
-}
-
-const char* ExplorationMapFunction::destinationToString(Destination dest)
-{
-    auto index = static_cast<size_t>(dest);
-    MC_ASSERT_RELEASE(index < sizeof(DESTINATION_STRINGS) / sizeof(DESTINATION_STRINGS[0]));
-    return DESTINATION_STRINGS[index];
-}
-
-world::map::DecorationType ExplorationMapFunction::getEffectiveDecoration() const
-{
-    if (m_decoration.has_value()) {
-        return m_decoration.value();
-    }
-    return destinationToDecorationType(m_destination);
-}
-
-ResourceLocation ExplorationMapFunction::destinationToResourceLocation(Destination destination)
-{
-    switch (destination) {
-        case Destination::BuriedTreasure:
-            return ResourceLocation("minecraft", "buried_treasure");
-        case Destination::Mansion:
-            return ResourceLocation("minecraft", "mansion");
-        case Destination::Monument:
-            return ResourceLocation("minecraft", "monument");
-        case Destination::Shipwreck:
-            return ResourceLocation("minecraft", "shipwreck");
-        case Destination::RuinedPortal:
-            return ResourceLocation("minecraft", "ruined_portal");
-        default:
-            return ResourceLocation("minecraft", "buried_treasure");
-    }
+    return parsed;
 }
 
 } // namespace loot

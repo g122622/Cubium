@@ -339,6 +339,28 @@ add_library(mc_common STATIC
     item/loot/functions/SetLootTableFunction.cpp
     item/loot/functions/ExplorationMapFunction.cpp
     item/loot/functions/SetStewEffectFunction.cpp
+    item/loot/functions/LootFunctionManager.cpp
+    item/loot/functions/ListOperation.cpp
+    item/loot/functions/SetEnchantmentsFunction.cpp
+    item/loot/functions/SetPotionFunction.cpp
+    item/loot/functions/SetInstrumentFunction.cpp
+    item/loot/functions/CopyComponentsFunction.cpp
+    item/loot/functions/SetComponentsFunction.cpp
+    item/loot/functions/SetOminousBottleAmplifierFunction.cpp
+    item/loot/functions/SetItemFunction.cpp
+    item/loot/functions/FilteredFunction.cpp
+    item/loot/functions/FunctionReferenceFunction.cpp
+    item/loot/functions/SequenceFunction.cpp
+    item/loot/functions/DiscardItemFunction.cpp
+    item/loot/functions/SetFireworksFunction.cpp
+    item/loot/functions/SetFireworkExplosionFunction.cpp
+    item/loot/functions/ToggleTooltipsFunction.cpp
+    item/loot/functions/SetCustomModelDataFunction.cpp
+    item/loot/functions/ModifyContentsFunction.cpp
+    item/loot/functions/SetWrittenBookPagesFunction.cpp
+    item/loot/functions/SetWritableBookPagesFunction.cpp
+    item/loot/functions/SetBookCoverFunction.cpp
+    item/loot/functions/SetBannerPatternFunction.cpp
     item/loot/functions/LootFunctionBuilder.cpp
     entity/combat/AttackContext.cpp
     entity/combat/PlayerAttackHelper.cpp

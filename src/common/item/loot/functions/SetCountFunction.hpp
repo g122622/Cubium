@@ -29,6 +29,7 @@
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace mc {
 namespace loot {
@@ -45,10 +46,22 @@ class SetCountFunction : public LootFunction {
 public:
     /**
      * @brief 构造设置数量函数
-     * @param count 数量范围
+     * @param count 数量范围（均匀/固定范围，或以 binomial/constant 提供的随机范围）
      * @param add 是否叠加到现有数量上（默认为 false，即替换）
      */
     explicit SetCountFunction(const RandomValueRange& count, bool add = false);
+
+    /**
+     * @brief 构造设置数量函数（随机数提供器形态）
+     *
+     * count 为该提供器的等值镜像（供 getCount/toJson 使用），实际取数由 provider 决定。
+     *
+     * @param count 数量范围镜像
+     * @param provider 非均匀分布提供器（binomial/constant 等）
+     * @param add 是否叠加到现有数量上
+     */
+    explicit SetCountFunction(
+        const RandomValueRange& count, std::unique_ptr<math::IRandomRange> provider, bool add = false);
 
     /**
      * @brief 应用函数到物品堆
@@ -79,8 +92,9 @@ public:
     [[nodiscard]] bool isAdd() const { return m_add; }
 
 private:
-    RandomValueRange m_count; // 数量范围
-    bool m_add;               // 是否叠加到现有数量
+    RandomValueRange m_count;                       // 数量范围（均匀分布/固定值）
+    std::unique_ptr<math::IRandomRange> m_provider; // 非均匀分布（binomial/constant）时使用
+    bool m_add;                                     // 是否叠加到现有数量
 };
 
 } // namespace loot

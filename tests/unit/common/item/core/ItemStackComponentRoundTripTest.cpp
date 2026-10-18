@@ -42,6 +42,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextParser.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -109,6 +110,70 @@ protected:
     const Item* m_sword = nullptr;
     u32 m_swordJavaId = 0;
 };
+
+TEST_F(ItemStackComponentRoundTripTest, ToolComponentDrivesMining)
+{
+    // tool 组件（数据驱动挖掘规则）覆盖物品基础挖掘行为
+    const Item* stick = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stick"));
+    ASSERT_NE(stick, nullptr);
+    ItemStack stack(*stick, 1);
+
+    item::component::ToolPayload tool;
+    item::component::ToolRule rule;
+    rule.blocks.push_back(ResourceLocation("minecraft:stone"));
+    rule.speed = 8.0f;
+    rule.correctForDrops = true;
+    tool.rules.push_back(rule);
+    tool.defaultMiningSpeed = 1.0f;
+    stack.setTool(tool);
+
+    const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr);
+    const BlockState& state = stone->defaultState();
+    EXPECT_FLOAT_EQ(8.0f, stack.getDestroySpeed(state));
+    EXPECT_TRUE(stack.canHarvestBlock(state));
+
+    // 规则未覆盖的方块使用默认速度；掉落规则未命中 -> 不掉落
+    // （土本身不需要工具，故另用需要工具的石头验证规则命中时的掉落判定）
+    const Block* oakLog = BlockRegistry::instance().getBlock(ResourceLocation("minecraft:oak_log"));
+    ASSERT_NE(oakLog, nullptr);
+    EXPECT_FLOAT_EQ(1.0f, stack.getDestroySpeed(oakLog->defaultState()));
+    EXPECT_FALSE(stack.canHarvestBlock(oakLog->defaultState()));
+}
+
+TEST_F(ItemStackComponentRoundTripTest, ContainerAndChargedProjectilesRoundTrip)
+{
+    // 容器与充能投射物由 ItemStack 独立字段承载，经组件补丁导出/应用来回一致
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    const Item* crossbow = ItemRegistry::instance().getItem(ResourceLocation("minecraft:crossbow"));
+    ASSERT_NE(diamond, nullptr);
+    ASSERT_NE(crossbow, nullptr);
+    ItemStack stack(*crossbow, 1);
+
+    item::component::ItemContainerContentsPayload contents;
+    contents.slots.push_back(
+        item::component::ItemContainerContentsPayload::Slot{3, std::make_unique<ItemStack>(*diamond, 5)});
+    stack.setContainerContents(std::move(contents));
+    item::component::ChargedProjectilesPayload projectiles;
+    projectiles.items.push_back(std::make_unique<ItemStack>(*diamond, 2));
+    stack.setChargedProjectiles(std::move(projectiles));
+
+    // 拷贝后共享同一载荷（不可变快速路径）
+    ItemStack copy = stack;
+    ASSERT_NE(copy.getContainerContents(), nullptr);
+    EXPECT_EQ(copy.getContainerContents(), stack.getContainerContents());
+    ASSERT_NE(copy.getChargedProjectiles(), nullptr);
+    EXPECT_EQ(2, copy.getChargedProjectiles()->items[0]->getCount());
+
+    // 组件补丁导出：容器/投射物载荷含 ItemStack 指针，不写入补丁
+    const auto patch = stack.toComponentPatch();
+    for (const auto& entry : patch.added()) {
+        EXPECT_NE(entry.typeId, item::component::componentTypeId(item::component::DataComponentType::Container));
+        EXPECT_NE(
+            entry.typeId, item::component::componentTypeId(item::component::DataComponentType::ChargedProjectiles));
+    }
+    EXPECT_EQ(copy.getContainerContents()->slots[0].index, 3);
+}
 
 TEST_F(ItemStackComponentRoundTripTest, NbtRoundTrip_PreservesAllComponents)
 {

@@ -28,6 +28,13 @@
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/component/DataComponentMap.hpp"
+#include "common/item/component/DataComponentPatchNbt.hpp"
+#include "common/item/component/DataComponentType.hpp"
+#include "common/item/component/FireworkExplosion.hpp"
+#include "common/item/component/Fireworks.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
 #include "common/item/loot/LootPool.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/conditions/BlockStateCondition.hpp"
@@ -61,29 +68,56 @@
 #include "common/item/loot/entries/TableLootEntry.hpp"
 #include "common/item/loot/entries/TagLootEntry.hpp"
 #include "common/item/loot/functions/ApplyBonusFunction.hpp"
+#include "common/item/loot/functions/CopyComponentsFunction.hpp"
 #include "common/item/loot/functions/CopyCustomDataFunction.hpp"
 #include "common/item/loot/functions/CopyNameFunction.hpp"
 #include "common/item/loot/functions/CopyStateFunction.hpp"
+#include "common/item/loot/functions/DiscardItemFunction.hpp"
 #include "common/item/loot/functions/EnchantRandomlyFunction.hpp"
 #include "common/item/loot/functions/EnchantWithLevelsFunction.hpp"
 #include "common/item/loot/functions/EnchantedCountIncreaseFunction.hpp"
 #include "common/item/loot/functions/ExplorationMapFunction.hpp"
 #include "common/item/loot/functions/ExplosionDecayFunction.hpp"
 #include "common/item/loot/functions/FillPlayerHeadFunction.hpp"
+#include "common/item/loot/functions/FilteredFunction.hpp"
+#include "common/item/loot/functions/FunctionReferenceFunction.hpp"
 #include "common/item/loot/functions/FurnaceSmeltFunction.hpp"
 #include "common/item/loot/functions/LimitCountFunction.hpp"
+#include "common/item/loot/functions/ListOperation.hpp"
 #include "common/item/loot/functions/LootFunction.hpp"
+#include "common/item/loot/functions/LootFunctionManager.hpp"
+#include "common/item/loot/functions/ModifyContentsFunction.hpp"
+#include "common/item/loot/functions/SequenceFunction.hpp"
 #include "common/item/loot/functions/SetAttributesFunction.hpp"
+#include "common/item/loot/functions/SetBannerPatternFunction.hpp"
+#include "common/item/loot/functions/SetBookCoverFunction.hpp"
+#include "common/item/loot/functions/SetComponentsFunction.hpp"
 #include "common/item/loot/functions/SetContentsFunction.hpp"
 #include "common/item/loot/functions/SetCountFunction.hpp"
 #include "common/item/loot/functions/SetCustomDataFunction.hpp"
+#include "common/item/loot/functions/SetCustomModelDataFunction.hpp"
 #include "common/item/loot/functions/SetDamageFunction.hpp"
+#include "common/item/loot/functions/SetEnchantmentsFunction.hpp"
+#include "common/item/loot/functions/SetFireworkExplosionFunction.hpp"
+#include "common/item/loot/functions/SetFireworksFunction.hpp"
+#include "common/item/loot/functions/SetInstrumentFunction.hpp"
+#include "common/item/loot/functions/SetItemFunction.hpp"
 #include "common/item/loot/functions/SetLootTableFunction.hpp"
 #include "common/item/loot/functions/SetLoreFunction.hpp"
 #include "common/item/loot/functions/SetNameFunction.hpp"
+#include "common/item/loot/functions/SetOminousBottleAmplifierFunction.hpp"
+#include "common/item/loot/functions/SetPotionFunction.hpp"
 #include "common/item/loot/functions/SetStewEffectFunction.hpp"
+#include "common/item/loot/functions/SetWritableBookPagesFunction.hpp"
+#include "common/item/loot/functions/SetWrittenBookPagesFunction.hpp"
+#include "common/item/loot/functions/ToggleTooltipsFunction.hpp"
+#include "common/item/potion/PotionRegistry.hpp"
 #include "common/util/math/random/RandomRanges.hpp"
 #include "common/world/map/MapDecoration.hpp"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -91,6 +125,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace loot {
@@ -136,6 +171,16 @@ Result<RandomValueRange> LootSerializers::parseRandomValueRange(const nlohmann::
         type = json["type"].get<std::string>();
     }
 
+    // 常量范围：值固定，可直接收窄为等值随机范围
+    if (type == "minecraft:constant" || type == "constant") {
+        auto result = parseConstantRange(json);
+        if (!result.success()) {
+            return result.error();
+        }
+        return RandomValueRange(
+            static_cast<f32>(result.value().getValue()), static_cast<f32>(result.value().getValue()));
+    }
+
     if (type == "minecraft:uniform" || type == "uniform") {
         // 统一分布
         f32 min = 0.0f;
@@ -177,16 +222,22 @@ Result<BinomialRange> LootSerializers::parseBinomialRange(const nlohmann::json& 
         return Error(ErrorCode::InvalidData, "BinomialRange must be an object");
     }
 
-    if (!json.contains("n") || !json["n"].is_number_integer()) {
-        return Error(ErrorCode::InvalidData, "BinomialRange missing 'n' field");
+    // n 与 p 在原版 JSON 中是 double（数据包常见写法 "n": 3.0、"p": 0.53...），
+    // 试验次数取整后使用
+    if (!json.contains("n") || !json["n"].is_number()) {
+        return Error(ErrorCode::InvalidData, "BinomialRange missing numeric 'n' field");
     }
 
     if (!json.contains("p") || !json["p"].is_number()) {
-        return Error(ErrorCode::InvalidData, "BinomialRange missing 'p' field");
+        return Error(ErrorCode::InvalidData, "BinomialRange missing numeric 'p' field");
     }
 
-    i32 n = json["n"].get<i32>();
-    f32 p = json["p"].is_number_float() ? json["p"].get<f32>() : static_cast<f32>(json["p"].get<i32>());
+    const f64 nValue = json["n"].get<f64>();
+    if (nValue < 0.0 || nValue > static_cast<f64>(std::numeric_limits<i32>::max())) {
+        return Error(ErrorCode::InvalidData, "BinomialRange 'n' out of range");
+    }
+    i32 n = static_cast<i32>(std::lround(nValue));
+    f32 p = json["p"].get<f32>();
 
     return BinomialRange(n, p);
 }
@@ -786,15 +837,6 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
     std::string functionType = json["function"].get<std::string>();
 
     // 根据 function 类型分发（函数名对齐原版 1.21.11 LootItemFunctions 注册名）
-    //
-    // TODO: 原版 1.21.11 的 LootItemFunctions 还注册了以下函数类型，本解析器尚未实现：
-    //  set_item、set_enchantments、set_components、modify_contents、filtered、copy_components、
-    //  set_banner_pattern、set_potion、set_instrument、reference、sequence、set_fireworks、
-    //  set_book_cover、set_written_book_pages、set_writable_book_pages、toggle_tooltips、
-    //  set_ominous_bottle_amplifier、set_custom_model_data、discard。
-    //  其中 copy_components、set_potion、set_enchantments、set_components、
-    //  set_ominous_bottle_amplifier、set_instrument 已被原版数据包的战利品表实际使用
-    //  （datapacks/Vanilla/data/minecraft/loot_table）。
     if (functionType == "minecraft:set_count" || functionType == "set_count") {
         return _parseSetCountFunction(json);
     } else if (functionType == "minecraft:apply_bonus" || functionType == "apply_bonus") {
@@ -837,6 +879,47 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
         return _parseExplorationMapFunction(json);
     } else if (functionType == "minecraft:set_stew_effect" || functionType == "set_stew_effect") {
         return _parseSetStewEffectFunction(json);
+    } else if (functionType == "minecraft:set_enchantments" || functionType == "set_enchantments") {
+        return _parseSetEnchantmentsFunction(json);
+    } else if (functionType == "minecraft:set_potion" || functionType == "set_potion") {
+        return _parseSetPotionFunction(json);
+    } else if (functionType == "minecraft:set_instrument" || functionType == "set_instrument") {
+        return _parseSetInstrumentFunction(json);
+    } else if (functionType == "minecraft:copy_components" || functionType == "copy_components") {
+        return _parseCopyComponentsFunction(json);
+    } else if (functionType == "minecraft:set_components" || functionType == "set_components") {
+        return _parseSetComponentsFunction(json);
+    } else if (functionType == "minecraft:set_ominous_bottle_amplifier" ||
+        functionType == "set_ominous_bottle_amplifier") {
+        return _parseSetOminousBottleAmplifierFunction(json);
+    } else if (functionType == "minecraft:set_item" || functionType == "set_item") {
+        return _parseSetItemFunction(json);
+    } else if (functionType == "minecraft:filtered" || functionType == "filtered") {
+        return _parseFilteredFunction(json);
+    } else if (functionType == "minecraft:reference" || functionType == "reference") {
+        return _parseFunctionReferenceFunction(json);
+    } else if (functionType == "minecraft:sequence" || functionType == "sequence") {
+        return _parseSequenceFunction(json);
+    } else if (functionType == "minecraft:discard" || functionType == "discard") {
+        return castToBase<DiscardItemFunction, LootFunction>(std::make_unique<DiscardItemFunction>());
+    } else if (functionType == "minecraft:set_fireworks" || functionType == "set_fireworks") {
+        return _parseSetFireworksFunction(json);
+    } else if (functionType == "minecraft:set_firework_explosion" || functionType == "set_firework_explosion") {
+        return _parseSetFireworkExplosionFunction(json);
+    } else if (functionType == "minecraft:toggle_tooltips" || functionType == "toggle_tooltips") {
+        return _parseToggleTooltipsFunction(json);
+    } else if (functionType == "minecraft:set_custom_model_data" || functionType == "set_custom_model_data") {
+        return _parseSetCustomModelDataFunction(json);
+    } else if (functionType == "minecraft:modify_contents" || functionType == "modify_contents") {
+        return _parseModifyContentsFunction(json);
+    } else if (functionType == "minecraft:set_written_book_pages" || functionType == "set_written_book_pages") {
+        return _parseSetBookPagesFunction(json, true);
+    } else if (functionType == "minecraft:set_writable_book_pages" || functionType == "set_writable_book_pages") {
+        return _parseSetBookPagesFunction(json, false);
+    } else if (functionType == "minecraft:set_book_cover" || functionType == "set_book_cover") {
+        return _parseSetBookCoverFunction(json);
+    } else if (functionType == "minecraft:set_banner_pattern" || functionType == "set_banner_pattern") {
+        return _parseSetBannerPatternFunction(json);
     } else {
         return Error(ErrorCode::InvalidData, "Unknown function type: " + functionType);
     }
@@ -879,9 +962,22 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetCountFunction(co
         return Error(ErrorCode::InvalidData, "set_count function missing 'count' field");
     }
 
-    auto countResult = parseRandomValueRange(json["count"]);
-    if (!countResult.success()) {
-        return countResult.error();
+    // 数量提供器（原版 NumberProvider）：uniform/纯数字、binomial、constant。
+    // parseRandomValueRange 无法表达 binomial 的随机语义，故先走 parseRandomRange；
+    // 纯数字/无 type 的 uniform 也由其解析为 Constant/RandomValueRange。
+    auto providerResult = parseRandomRange(json["count"]);
+    RandomValueRange countRange(0.0f, 0.0f);
+    std::unique_ptr<math::IRandomRange> provider;
+    if (providerResult.success()) {
+        provider = providerResult.value();
+        countRange = RandomValueRange(provider->getMin(), provider->getMax());
+    } else {
+        // 对象形式但 parseRandomRange 无法识别（如缺少 min/max 字段）时才回退
+        auto countResult = parseRandomValueRange(json["count"]);
+        if (!countResult.success()) {
+            return countResult.error();
+        }
+        countRange = countResult.value();
     }
 
     bool add = false;
@@ -889,7 +985,11 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetCountFunction(co
         add = json["add"].get<bool>();
     }
 
-    return castToBase<SetCountFunction, LootFunction>(std::make_unique<SetCountFunction>(countResult.value(), add));
+    if (provider != nullptr) {
+        return castToBase<SetCountFunction, LootFunction>(
+            std::make_unique<SetCountFunction>(countRange, std::move(provider), add));
+    }
+    return castToBase<SetCountFunction, LootFunction>(std::make_unique<SetCountFunction>(countRange, add));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseApplyBonusFunction(const nlohmann::json& json)
@@ -1340,50 +1440,743 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseExplorationMapFunct
 {
     using world::map::DecorationType;
 
-    // 解析 destination（可选，默认 BuriedTreasure）
-    // 取值为结构资源位置字符串（如 "minecraft:buried_treasure"，命名空间可省略）
-    // TODO: 原版 destination 是结构标签（默认 minecraft:on_treasure_maps）并按标签搜索结构，
-    //  本项目只识别 5 个具体结构，无法识别时回退到默认值而非报错，待后续对齐。
-    ExplorationMapFunction::Destination destination = ExplorationMapFunction::Destination::BuriedTreasure;
-    if (json.contains("destination") && json["destination"].is_string()) {
-        auto parsed = ExplorationMapFunction::destinationFromString(json["destination"].get<std::string>());
-        if (parsed.has_value()) {
-            destination = parsed.value();
+    // 解析 destination（可选，默认 minecraft:on_treasure_maps）：结构标签资源位置，
+    // 标签是否存在由世界侧按维度判定，此处只校验资源位置语法，语法非法即整张战利品表加载失败。
+    ResourceLocation destination = ExplorationMapFunction::defaultDestination();
+    if (json.contains("destination")) {
+        const auto& destinationJson = json["destination"];
+        if (!destinationJson.is_string()) {
+            return Error(ErrorCode::InvalidData, "exploration_map: 'destination' must be a string");
         }
-    }
-
-    // 解析 decoration（可选，默认从 destination 推导）
-    // 支持带命名空间前缀（如 "minecraft:red_x"）和不带前缀（如 "red_x"）两种写法
-    // TODO: 原版 decoration 是地图装饰注册表项，取值非法时解析失败，默认值为 woodland_mansion；
-    //  本项目回退到默认值且缺省时由 destination 推导，待后续对齐。
-    std::optional<DecorationType> decoration;
-    if (json.contains("decoration") && json["decoration"].is_string()) {
-        auto parsed = world::map::decorationTypeFromString(json["decoration"].get<std::string>());
-        if (parsed.has_value()) {
-            decoration = parsed.value();
+        auto parsed = ExplorationMapFunction::parseDestination(destinationJson.get<std::string>());
+        if (!parsed.has_value()) {
+            return Error(ErrorCode::InvalidData,
+                "exploration_map: invalid destination '" + destinationJson.get<std::string>() + "'");
         }
+        destination = parsed.value();
     }
 
-    // 解析 zoom（可选，默认2）
-    i32 zoom = 2;
-    if (json.contains("zoom") && json["zoom"].is_number_integer()) {
-        zoom = json["zoom"].get<i32>();
+    // 解析 decoration（可选，默认 woodland_mansion）：地图装饰注册表项，与 destination 无关；
+    // 取值无法识别即整张战利品表加载失败（原版按注册表解析，未注册的键直接报错）。
+    DecorationType decoration = ExplorationMapFunction::DEFAULT_DECORATION;
+    if (json.contains("decoration")) {
+        const auto& decorationJson = json["decoration"];
+        if (!decorationJson.is_string()) {
+            return Error(ErrorCode::InvalidData, "exploration_map: 'decoration' must be a string");
+        }
+        auto parsed = world::map::decorationTypeFromString(decorationJson.get<std::string>());
+        if (!parsed.has_value()) {
+            return Error(ErrorCode::InvalidData,
+                "exploration_map: unknown decoration '" + decorationJson.get<std::string>() + "'");
+        }
+        decoration = parsed.value();
     }
 
-    // 解析 search_radius（可选，默认50区块）
-    i32 searchRadius = 50;
-    if (json.contains("search_radius") && json["search_radius"].is_number_integer()) {
-        searchRadius = json["search_radius"].get<i32>();
+    // 解析 zoom（可选，默认 2）：字节编码，超出 i8 范围即解析失败
+    i8 zoom = ExplorationMapFunction::DEFAULT_ZOOM;
+    if (json.contains("zoom")) {
+        const auto& zoomJson = json["zoom"];
+        if (!zoomJson.is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "exploration_map: 'zoom' must be an integer");
+        }
+        const i64 zoomValue = zoomJson.get<i64>();
+        if (zoomValue < std::numeric_limits<i8>::min() || zoomValue > std::numeric_limits<i8>::max()) {
+            return Error(ErrorCode::InvalidData,
+                "exploration_map: 'zoom' out of byte range (" + std::to_string(zoomValue) + ")");
+        }
+        zoom = static_cast<i8>(zoomValue);
     }
 
-    // 解析 skip_existing_chunks（可选，默认true）
-    bool skipKnownStructures = true;
-    if (json.contains("skip_existing_chunks") && json["skip_existing_chunks"].is_boolean()) {
-        skipKnownStructures = json["skip_existing_chunks"].get<bool>();
+    // 解析 search_radius（可选，默认 50 区块）：负数即解析失败
+    i32 searchRadius = ExplorationMapFunction::DEFAULT_SEARCH_RADIUS;
+    if (json.contains("search_radius")) {
+        const auto& radiusJson = json["search_radius"];
+        if (!radiusJson.is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "exploration_map: 'search_radius' must be an integer");
+        }
+        const i64 radiusValue = radiusJson.get<i64>();
+        if (radiusValue < 0 || radiusValue > std::numeric_limits<i32>::max()) {
+            return Error(ErrorCode::InvalidData,
+                "exploration_map: 'search_radius' out of range (" + std::to_string(radiusValue) + ")");
+        }
+        searchRadius = static_cast<i32>(radiusValue);
+    }
+
+    // 解析 skip_existing_chunks（可选，默认 true）
+    bool searchSkipsLoadedChunks = true;
+    if (json.contains("skip_existing_chunks")) {
+        const auto& skipJson = json["skip_existing_chunks"];
+        if (!skipJson.is_boolean()) {
+            return Error(ErrorCode::InvalidData, "exploration_map: 'skip_existing_chunks' must be a boolean");
+        }
+        searchSkipsLoadedChunks = skipJson.get<bool>();
     }
 
     return castToBase<ExplorationMapFunction, LootFunction>(
-        std::make_unique<ExplorationMapFunction>(destination, decoration, zoom, searchRadius, skipKnownStructures));
+        std::make_unique<ExplorationMapFunction>(destination, decoration, zoom, searchRadius, searchSkipsLoadedChunks));
+}
+
+// ============================================================================
+// 数据包组件 / 注册表引用解析辅助
+// ============================================================================
+
+namespace {
+
+/// 解析单个烟花爆炸对象（FireworkExplosion.CODEC：shape/colors/fade_colors/trail/twinkle）
+std::optional<item::component::FireworkExplosion> _parseFireworkExplosionObject(const nlohmann::json& json)
+{
+    if (!json.is_object()) {
+        return std::nullopt;
+    }
+    item::component::FireworkExplosion explosion{};
+    if (json.contains("shape")) {
+        if (!json["shape"].is_string()) {
+            return std::nullopt;
+        }
+        auto shape = item::component::fireworkShapeFromName(json["shape"].get<std::string>());
+        if (!shape.has_value()) {
+            return std::nullopt;
+        }
+        explosion.shape = *shape;
+    }
+    auto readColors = [&json](const char* key, std::vector<i32>& out) -> bool {
+        if (!json.contains(key)) {
+            return true;
+        }
+        if (!json[key].is_array()) {
+            return false;
+        }
+        out.clear();
+        for (const auto& color : json[key]) {
+            if (!color.is_number_integer()) {
+                return false;
+            }
+            out.push_back(color.get<i32>());
+        }
+        return true;
+    };
+    if (!readColors("colors", explosion.colors) || !readColors("fade_colors", explosion.fadeColors)) {
+        return std::nullopt;
+    }
+    for (const auto& [key, target] : {std::pair<const char*, bool*>("trail", &explosion.hasTrail),
+             std::pair<const char*, bool*>("twinkle", &explosion.hasTwinkle)}) {
+        if (json.contains(key)) {
+            if (!json[key].is_boolean()) {
+                return std::nullopt;
+            }
+            *target = json[key].get<bool>();
+        }
+    }
+    return explosion;
+}
+
+/// 与数据包一致：资源位置可省略命名空间（默认 minecraft）
+std::string _normalizeResourceId(const std::string& text)
+{
+    return text.find(':') == std::string::npos ? "minecraft:" + text : text;
+}
+
+/// 校验附魔是否存在
+bool _isKnownEnchantment(const std::string& id)
+{
+    return item::enchant::EnchantmentRegistry::get(_normalizeResourceId(id)) != nullptr;
+}
+
+/// 解析 "include"/"exclude" 组件名列表（未知组件名返回 nullopt）
+std::optional<std::vector<item::component::DataComponentType>> _parseComponentTypeList(const nlohmann::json& json)
+{
+    std::vector<item::component::DataComponentType> types;
+    if (json.is_null()) {
+        return types;
+    }
+    if (!json.is_array()) {
+        return std::nullopt;
+    }
+    for (const auto& entry : json) {
+        if (!entry.is_string()) {
+            return std::nullopt;
+        }
+        auto type = item::component::componentTypeByName(_normalizeResourceId(entry.get<std::string>()));
+        if (!type.has_value()) {
+            return std::nullopt;
+        }
+        types.push_back(*type);
+    }
+    return types;
+}
+
+/// 读取带 "mode" 的列表操作对象；values 由调用方解析
+bool _parseListOperationHeader(const nlohmann::json& json, ListOperationKind& kind, i32& offset, const char* valueKey)
+{
+    if (!json.is_object() || !json.contains(valueKey) || !json[valueKey].is_array()) {
+        return false;
+    }
+    kind = ListOperationKind::ReplaceAll;
+    offset = 0;
+    if (json.contains("mode")) {
+        if (!json["mode"].is_string()) {
+            return false;
+        }
+        auto parsed = listOperationKindFromName(json["mode"].get<std::string>());
+        if (!parsed.has_value()) {
+            return false;
+        }
+        kind = *parsed;
+    }
+    if (json.contains("offset")) {
+        if (!json["offset"].is_number_integer() || json["offset"].get<i64>() < 0) {
+            return false;
+        }
+        offset = static_cast<i32>(json["offset"].get<i64>());
+    }
+    return true;
+}
+
+/// 解析数值列表（每项为整数或 uniform 对象），用于 custom_model_data
+bool _parseNumberProviders(const nlohmann::json& json, std::vector<RandomValueRange>& out)
+{
+    if (!json.is_array()) {
+        return false;
+    }
+    out.clear();
+    for (const auto& entry : json) {
+        auto parsed = LootSerializers::parseRandomValueRange(entry);
+        if (!parsed.success()) {
+            return false;
+        }
+        out.push_back(parsed.value());
+    }
+    return true;
+}
+
+/// 解析物品谓词（filtered 的 item_filter）
+advancement::ItemPredicate _parseItemPredicateOrMakeAny(const nlohmann::json& json, bool& ok)
+{
+    auto parsed = advancement::ItemPredicate::fromJson(json);
+    ok = parsed.success();
+    return ok ? parsed.value() : advancement::ItemPredicate();
+}
+
+} // namespace
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetEnchantmentsFunction(const nlohmann::json& json)
+{
+    std::vector<SetEnchantmentsFunction::Entry> entries;
+    if (json.contains("enchantments")) {
+        if (!json["enchantments"].is_object()) {
+            return Error(ErrorCode::InvalidData, "set_enchantments: 'enchantments' must be an object");
+        }
+        for (const auto& [enchantId, level] : json["enchantments"].items()) {
+            if (!_isKnownEnchantment(enchantId)) {
+                return Error(ErrorCode::InvalidData, "set_enchantments: unknown enchantment '" + enchantId + "'");
+            }
+            auto parsedLevel = parseRandomValueRange(level);
+            if (!parsedLevel.success()) {
+                return parsedLevel.error();
+            }
+            entries.push_back({ResourceLocation(_normalizeResourceId(enchantId)), parsedLevel.value()});
+        }
+    }
+    bool add = false;
+    if (json.contains("add")) {
+        if (!json["add"].is_boolean()) {
+            return Error(ErrorCode::InvalidData, "set_enchantments: 'add' must be a boolean");
+        }
+        add = json["add"].get<bool>();
+    }
+    return castToBase<SetEnchantmentsFunction, LootFunction>(
+        std::make_unique<SetEnchantmentsFunction>(std::move(entries), add));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetPotionFunction(const nlohmann::json& json)
+{
+    if (!json.contains("id") || !json["id"].is_string()) {
+        return Error(ErrorCode::InvalidData, "set_potion: missing string 'id' field");
+    }
+    const ResourceLocation potionId(_normalizeResourceId(json["id"].get<std::string>()));
+    if (potion::PotionRegistry::instance().getPotion(potionId) == nullptr) {
+        return Error(ErrorCode::InvalidData, "set_potion: unknown potion '" + potionId.toString() + "'");
+    }
+    return castToBase<SetPotionFunction, LootFunction>(std::make_unique<SetPotionFunction>(potionId));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetInstrumentFunction(const nlohmann::json& json)
+{
+    if (!json.contains("options") || !json["options"].is_string()) {
+        return Error(ErrorCode::InvalidData, "set_instrument: missing string 'options' field");
+    }
+    std::string tagText = json["options"].get<std::string>();
+    // 原版 TagKey fieldOf"options" 的 JSON 写作 "#minecraft:regular_goat_horns"
+    if (!tagText.empty() && tagText[0] == '#') {
+        tagText = tagText.substr(1);
+    }
+    const ResourceLocation tagId(_normalizeResourceId(tagText));
+    if (SetInstrumentFunction::getInstrumentTag(tagId) == nullptr) {
+        return Error(ErrorCode::InvalidData, "set_instrument: unknown instrument tag '" + tagId.toString() + "'");
+    }
+    return castToBase<SetInstrumentFunction, LootFunction>(std::make_unique<SetInstrumentFunction>(tagId));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyComponentsFunction(const nlohmann::json& json)
+{
+    CopyComponentsFunction::Source source = CopyComponentsFunction::Source::This;
+    if (json.contains("source")) {
+        if (!json["source"].is_string()) {
+            return Error(ErrorCode::InvalidData, "copy_components: 'source' must be a string");
+        }
+        const std::string sourceName = json["source"].get<std::string>();
+        if (sourceName == "block_entity") {
+            source = CopyComponentsFunction::Source::BlockEntity;
+        } else if (sourceName == "this") {
+            source = CopyComponentsFunction::Source::This;
+        } else {
+            return Error(ErrorCode::InvalidData, "copy_components: unknown source '" + sourceName + "'");
+        }
+    }
+    auto include = _parseComponentTypeList(json.contains("include") ? json["include"] : nlohmann::json());
+    if (!include.has_value()) {
+        return Error(ErrorCode::InvalidData, "copy_components: invalid 'include' component list");
+    }
+    auto exclude = _parseComponentTypeList(json.contains("exclude") ? json["exclude"] : nlohmann::json());
+    if (!exclude.has_value()) {
+        return Error(ErrorCode::InvalidData, "copy_components: invalid 'exclude' component list");
+    }
+    return castToBase<CopyComponentsFunction, LootFunction>(
+        std::make_unique<CopyComponentsFunction>(source, std::move(*include), std::move(*exclude)));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetComponentsFunction(const nlohmann::json& json)
+{
+    if (!json.contains("components") || !json["components"].is_object()) {
+        return Error(ErrorCode::InvalidData, "set_components: missing object 'components' field");
+    }
+    // DataComponentPatch.CODEC：键 = 组件资源位置，'!' 前缀 = 移除（值为空）
+    item::component::DataComponentPatch patch;
+    for (const auto& [key, value] : json["components"].items()) {
+        bool removed = !key.empty() && key[0] == '!';
+        const std::string name = removed ? key.substr(1) : key;
+        auto type = item::component::componentTypeByName(_normalizeResourceId(name));
+        if (!type.has_value()) {
+            return Error(ErrorCode::InvalidData, "set_components: unknown component '" + name + "'");
+        }
+        if (removed) {
+            patch.remove(*type);
+            continue;
+        }
+        item::component::DataComponentPayload payload{};
+        if (!item::component::jsonToComponentPayload(*type, value, payload)) {
+            return Error(ErrorCode::InvalidData, "set_components: failed to decode component '" + name + "'");
+        }
+        patch.add(*type, std::move(payload));
+    }
+    return castToBase<SetComponentsFunction, LootFunction>(std::make_unique<SetComponentsFunction>(
+        std::make_shared<const item::component::DataComponentPatch>(std::move(patch))));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetOminousBottleAmplifierFunction(
+    const nlohmann::json& json)
+{
+    if (!json.contains("amplifier")) {
+        return Error(ErrorCode::InvalidData, "set_ominous_bottle_amplifier: missing 'amplifier' field");
+    }
+    auto parsed = parseRandomValueRange(json["amplifier"]);
+    if (!parsed.success()) {
+        return parsed.error();
+    }
+    return castToBase<SetOminousBottleAmplifierFunction, LootFunction>(
+        std::make_unique<SetOminousBottleAmplifierFunction>(parsed.value()));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetItemFunction(const nlohmann::json& json)
+{
+    if (!json.contains("item") || !json["item"].is_string()) {
+        return Error(ErrorCode::InvalidData, "set_item: missing string 'item' field");
+    }
+    const ResourceLocation itemId(_normalizeResourceId(json["item"].get<std::string>()));
+    if (ItemRegistry::instance().getItem(itemId) == nullptr) {
+        return Error(ErrorCode::InvalidData, "set_item: unknown item '" + itemId.toString() + "'");
+    }
+    return castToBase<SetItemFunction, LootFunction>(std::make_unique<SetItemFunction>(itemId));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseFilteredFunction(const nlohmann::json& json)
+{
+    if (!json.contains("item_filter")) {
+        return Error(ErrorCode::InvalidData, "filtered: missing 'item_filter' field");
+    }
+    bool ok = false;
+    auto filter = _parseItemPredicateOrMakeAny(json["item_filter"], ok);
+    if (!ok) {
+        return Error(ErrorCode::InvalidData, "filtered: invalid 'item_filter'");
+    }
+    std::optional<std::unique_ptr<LootFunction>> onPass;
+    if (json.contains("on_pass")) {
+        auto parsed = parseFunction(json["on_pass"]);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        onPass = parsed.value();
+    }
+    std::optional<std::unique_ptr<LootFunction>> onFail;
+    if (json.contains("on_fail")) {
+        auto parsed = parseFunction(json["on_fail"]);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        onFail = parsed.value();
+    }
+    return castToBase<FilteredFunction, LootFunction>(
+        std::make_unique<FilteredFunction>(std::move(filter), std::move(onPass), std::move(onFail)));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseFunctionReferenceFunction(const nlohmann::json& json)
+{
+    if (!json.contains("name") || !json["name"].is_string()) {
+        return Error(ErrorCode::InvalidData, "reference: missing string 'name' field");
+    }
+    const std::string name = _normalizeResourceId(json["name"].get<std::string>());
+    // 命名函数在函数管理器中注册；未注册即原版 MissingReferenceProblem，加载失败
+    const LootFunction* target = LootFunctionManager::instance().getFunction(name);
+    if (target == nullptr) {
+        return Error(ErrorCode::InvalidData, "reference: unknown function '" + name + "'");
+    }
+    return castToBase<FunctionReferenceFunction, LootFunction>(
+        std::make_unique<FunctionReferenceFunction>(name, target));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSequenceFunction(const nlohmann::json& json)
+{
+    if (!json.contains("functions") || !json["functions"].is_array()) {
+        return Error(ErrorCode::InvalidData, "sequence: missing array 'functions' field");
+    }
+    std::vector<std::unique_ptr<LootFunction>> functions;
+    for (const auto& funcJson : json["functions"]) {
+        auto parsed = parseFunction(funcJson);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        functions.push_back(parsed.value());
+    }
+    return castToBase<SequenceFunction, LootFunction>(std::make_unique<SequenceFunction>(std::move(functions)));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetFireworksFunction(const nlohmann::json& json)
+{
+    std::optional<SetFireworksFunction::ExplosionListOperation> explosions;
+    if (json.contains("explosions")) {
+        const auto& explosionsJson = json["explosions"];
+        ListOperationKind kind = ListOperationKind::ReplaceAll;
+        i32 offset = 0;
+        if (!_parseListOperationHeader(explosionsJson, kind, offset, "explosions")) {
+            return Error(ErrorCode::InvalidData, "set_fireworks: invalid 'explosions' list operation");
+        }
+        SetFireworksFunction::ExplosionListOperation operation{kind, {}, offset};
+        for (const auto& explosionJson : explosionsJson["explosions"]) {
+            auto parsed = _parseFireworkExplosionObject(explosionJson);
+            if (!parsed.has_value()) {
+                return Error(ErrorCode::InvalidData, "set_fireworks: invalid firework explosion");
+            }
+            operation.explosions.push_back(*parsed);
+        }
+        if (operation.explosions.size() > static_cast<std::size_t>(item::component::Fireworks::MAX_EXPLOSIONS)) {
+            return Error(ErrorCode::InvalidData, "set_fireworks: too many explosions");
+        }
+        explosions = std::move(operation);
+    }
+    std::optional<i32> flightDuration;
+    if (json.contains("flight_duration")) {
+        if (!json["flight_duration"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "set_fireworks: 'flight_duration' must be an integer");
+        }
+        const i64 value = json["flight_duration"].get<i64>();
+        if (value < 0 || value > 255) {
+            return Error(ErrorCode::InvalidData, "set_fireworks: 'flight_duration' out of range");
+        }
+        flightDuration = static_cast<i32>(value);
+    }
+    return castToBase<SetFireworksFunction, LootFunction>(
+        std::make_unique<SetFireworksFunction>(std::move(explosions), flightDuration));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetFireworkExplosionFunction(const nlohmann::json& json)
+{
+    std::optional<item::component::FireworkShape> shape;
+    if (json.contains("shape")) {
+        if (!json["shape"].is_string()) {
+            return Error(ErrorCode::InvalidData, "set_firework_explosion: 'shape' must be a string");
+        }
+        auto parsed = item::component::fireworkShapeFromName(json["shape"].get<std::string>());
+        if (!parsed.has_value()) {
+            return Error(ErrorCode::InvalidData,
+                "set_firework_explosion: unknown shape '" + json["shape"].get<std::string>() + "'");
+        }
+        shape = *parsed;
+    }
+    auto readColors = [](const nlohmann::json& value) -> std::optional<std::vector<i32>> {
+        if (!value.is_array()) {
+            return std::nullopt;
+        }
+        std::vector<i32> colors;
+        colors.reserve(value.size());
+        for (const auto& color : value) {
+            if (!color.is_number_integer()) {
+                return std::nullopt;
+            }
+            colors.push_back(color.get<i32>());
+        }
+        return colors;
+    };
+    std::optional<std::vector<i32>> colors;
+    if (json.contains("colors")) {
+        colors = readColors(json["colors"]);
+        if (!colors.has_value()) {
+            return Error(ErrorCode::InvalidData, "set_firework_explosion: invalid 'colors'");
+        }
+    }
+    std::optional<std::vector<i32>> fadeColors;
+    if (json.contains("fade_colors")) {
+        fadeColors = readColors(json["fade_colors"]);
+        if (!fadeColors.has_value()) {
+            return Error(ErrorCode::InvalidData, "set_firework_explosion: invalid 'fade_colors'");
+        }
+    }
+    auto readBool = [&json](const char* key) -> std::optional<bool> {
+        if (!json.contains(key)) {
+            return std::nullopt;
+        }
+        if (!json[key].is_boolean()) {
+            return std::nullopt;
+        }
+        return json[key].get<bool>();
+    };
+    std::optional<bool> trail = readBool("trail");
+    std::optional<bool> twinkle = readBool("twinkle");
+    if ((json.contains("trail") && !trail.has_value()) || (json.contains("twinkle") && !twinkle.has_value())) {
+        return Error(ErrorCode::InvalidData, "set_firework_explosion: 'trail'/'twinkle' must be booleans");
+    }
+    return castToBase<SetFireworkExplosionFunction, LootFunction>(std::make_unique<SetFireworkExplosionFunction>(
+        shape, std::move(colors), std::move(fadeColors), trail, twinkle));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseToggleTooltipsFunction(const nlohmann::json& json)
+{
+    if (!json.contains("toggles") || !json["toggles"].is_object()) {
+        return Error(ErrorCode::InvalidData, "toggle_tooltips: missing object 'toggles' field");
+    }
+    std::vector<std::pair<item::component::DataComponentType, bool>> toggles;
+    for (const auto& [name, value] : json["toggles"].items()) {
+        auto type = item::component::componentTypeByName(_normalizeResourceId(name));
+        if (!type.has_value()) {
+            return Error(ErrorCode::InvalidData, "toggle_tooltips: unknown component '" + name + "'");
+        }
+        if (!value.is_boolean()) {
+            return Error(ErrorCode::InvalidData, "toggle_tooltips: value of '" + name + "' must be a boolean");
+        }
+        toggles.emplace_back(*type, value.get<bool>());
+    }
+    return castToBase<ToggleTooltipsFunction, LootFunction>(
+        std::make_unique<ToggleTooltipsFunction>(std::move(toggles)));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetCustomModelDataFunction(const nlohmann::json& json)
+{
+    std::optional<SetCustomModelDataFunction::FloatListOperation> floats;
+    std::optional<SetCustomModelDataFunction::ColorListOperation> colors;
+    std::optional<SetCustomModelDataFunction::BoolListOperation> flags;
+    std::optional<SetCustomModelDataFunction::StringListOperation> strings;
+
+    auto parseNumberOp = [](const nlohmann::json& value,
+                             const char* key,
+                             std::optional<std::vector<RandomValueRange>>& values,
+                             ListOperationKind& kind,
+                             i32& offset) -> std::optional<Error> {
+        if (!_parseListOperationHeader(value, kind, offset, "values")) {
+            return Error(ErrorCode::InvalidData, std::string("set_custom_model_data: invalid '") + key + "'");
+        }
+        if (!_parseNumberProviders(value["values"], values.emplace())) {
+            return Error(ErrorCode::InvalidData, std::string("set_custom_model_data: invalid '") + key + "' values");
+        }
+        return std::nullopt;
+    };
+    if (json.contains("floats")) {
+        std::optional<std::vector<RandomValueRange>> values;
+        ListOperationKind kind = ListOperationKind::ReplaceAll;
+        i32 offset = 0;
+        auto error = parseNumberOp(json["floats"], "floats", values, kind, offset);
+        if (error.has_value()) {
+            return *error;
+        }
+        floats = SetCustomModelDataFunction::FloatListOperation{kind, std::move(*values), offset};
+    }
+    if (json.contains("colors")) {
+        std::optional<std::vector<RandomValueRange>> values;
+        ListOperationKind kind = ListOperationKind::ReplaceAll;
+        i32 offset = 0;
+        auto error = parseNumberOp(json["colors"], "colors", values, kind, offset);
+        if (error.has_value()) {
+            return *error;
+        }
+        colors = SetCustomModelDataFunction::ColorListOperation{kind, std::move(*values), offset};
+    }
+    if (json.contains("flags")) {
+        const auto& value = json["flags"];
+        ListOperationKind kind = ListOperationKind::ReplaceAll;
+        i32 offset = 0;
+        if (!_parseListOperationHeader(value, kind, offset, "values")) {
+            return Error(ErrorCode::InvalidData, "set_custom_model_data: invalid 'flags'");
+        }
+        std::vector<bool> values;
+        for (const auto& entry : value["values"]) {
+            if (!entry.is_boolean()) {
+                return Error(ErrorCode::InvalidData, "set_custom_model_data: 'flags' values must be booleans");
+            }
+            values.push_back(entry.get<bool>());
+        }
+        flags = SetCustomModelDataFunction::BoolListOperation{kind, std::move(values), offset};
+    }
+    if (json.contains("strings")) {
+        const auto& value = json["strings"];
+        ListOperationKind kind = ListOperationKind::ReplaceAll;
+        i32 offset = 0;
+        if (!_parseListOperationHeader(value, kind, offset, "values")) {
+            return Error(ErrorCode::InvalidData, "set_custom_model_data: invalid 'strings'");
+        }
+        std::vector<std::string> values;
+        for (const auto& entry : value["values"]) {
+            if (!entry.is_string()) {
+                return Error(ErrorCode::InvalidData, "set_custom_model_data: 'strings' values must be strings");
+            }
+            values.push_back(entry.get<std::string>());
+        }
+        strings = SetCustomModelDataFunction::StringListOperation{kind, std::move(values), offset};
+    }
+    return castToBase<SetCustomModelDataFunction, LootFunction>(std::make_unique<SetCustomModelDataFunction>(
+        std::move(floats), std::move(flags), std::move(strings), std::move(colors)));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseModifyContentsFunction(const nlohmann::json& json)
+{
+    std::string component = "minecraft:container";
+    if (json.contains("component")) {
+        if (!json["component"].is_string()) {
+            return Error(ErrorCode::InvalidData, "modify_contents: 'component' must be a string");
+        }
+        component = _normalizeResourceId(json["component"].get<std::string>());
+    }
+    if (component != "minecraft:container") {
+        return Error(ErrorCode::InvalidData, "modify_contents: unsupported component '" + component + "'");
+    }
+    if (!json.contains("modifier")) {
+        return Error(ErrorCode::InvalidData, "modify_contents: missing 'modifier' field");
+    }
+    auto modifier = parseFunction(json["modifier"]);
+    if (!modifier.success()) {
+        return modifier.error();
+    }
+    return castToBase<ModifyContentsFunction, LootFunction>(
+        std::make_unique<ModifyContentsFunction>(component, modifier.value()));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetBookPagesFunction(
+    const nlohmann::json& json, bool written)
+{
+    if (!json.contains("pages") || !json["pages"].is_array()) {
+        return Error(ErrorCode::InvalidData,
+            std::string("set_") + (written ? "written" : "writable") + "_book_pages: missing array 'pages' field");
+    }
+    for (const auto& page : json["pages"]) {
+        if (!page.is_string() && !page.is_object()) {
+            return Error(ErrorCode::InvalidData, "book pages must be strings or text components");
+        }
+    }
+    ListOperationKind mode = ListOperationKind::ReplaceAll;
+    if (json.contains("mode")) {
+        if (!json["mode"].is_string()) {
+            return Error(ErrorCode::InvalidData, "book pages: 'mode' must be a string");
+        }
+        auto parsed = listOperationKindFromName(json["mode"].get<std::string>());
+        if (!parsed.has_value()) {
+            return Error(ErrorCode::InvalidData, "book pages: unknown mode '" + json["mode"].get<std::string>() + "'");
+        }
+        mode = *parsed;
+    }
+    if (written) {
+        return castToBase<SetWrittenBookPagesFunction, LootFunction>(
+            std::make_unique<SetWrittenBookPagesFunction>(json["pages"], mode));
+    }
+    return castToBase<SetWritableBookPagesFunction, LootFunction>(
+        std::make_unique<SetWritableBookPagesFunction>(json["pages"], mode));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetBookCoverFunction(const nlohmann::json& json)
+{
+    std::optional<std::string> author;
+    if (json.contains("author")) {
+        if (!json["author"].is_string()) {
+            return Error(ErrorCode::InvalidData, "set_book_cover: 'author' must be a string");
+        }
+        author = json["author"].get<std::string>();
+    }
+    std::optional<nlohmann::json> title;
+    if (json.contains("title")) {
+        const auto& value = json["title"];
+        // Filterable<T>：纯字符串或 { "raw": ..., "filtered": ... }
+        if (!value.is_string() && !value.is_object()) {
+            return Error(ErrorCode::InvalidData, "set_book_cover: invalid 'title'");
+        }
+        title = value;
+    }
+    std::optional<i32> generation;
+    if (json.contains("generation")) {
+        if (!json["generation"].is_number_integer()) {
+            return Error(ErrorCode::InvalidData, "set_book_cover: 'generation' must be an integer");
+        }
+        generation = json["generation"].get<i32>();
+    }
+    return castToBase<SetBookCoverFunction, LootFunction>(
+        std::make_unique<SetBookCoverFunction>(author, title, generation));
+}
+
+Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetBannerPatternFunction(const nlohmann::json& json)
+{
+    if (!json.contains("patterns") || !json["patterns"].is_array()) {
+        return Error(ErrorCode::InvalidData, "set_banner_pattern: missing array 'patterns' field");
+    }
+    std::vector<std::string> colors = {"white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red",
+        "black"};
+    for (const auto& pattern : json["patterns"]) {
+        if (!pattern.is_object() || !pattern.contains("pattern") || !pattern["pattern"].is_string() ||
+            !pattern.contains("color") || !pattern["color"].is_string()) {
+            return Error(ErrorCode::InvalidData, "set_banner_pattern: invalid pattern entry");
+        }
+        if (std::find(colors.begin(), colors.end(), pattern["color"].get<std::string>()) == colors.end()) {
+            return Error(ErrorCode::InvalidData,
+                "set_banner_pattern: unknown color '" + pattern["color"].get<std::string>() + "'");
+        }
+    }
+    bool append = false;
+    if (json.contains("append")) {
+        if (!json["append"].is_boolean()) {
+            return Error(ErrorCode::InvalidData, "set_banner_pattern: 'append' must be a boolean");
+        }
+        append = json["append"].get<bool>();
+    }
+    return castToBase<SetBannerPatternFunction, LootFunction>(
+        std::make_unique<SetBannerPatternFunction>(json["patterns"], append));
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetStewEffectFunction(const nlohmann::json& json)

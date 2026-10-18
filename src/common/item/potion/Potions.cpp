@@ -95,6 +95,10 @@ const Potion* Potions::LUCK = nullptr;
 
 const Potion* Potions::SLOW_FALLING = nullptr;
 const Potion* Potions::LONG_SLOW_FALLING = nullptr;
+const Potion* Potions::WIND_CHARGED = nullptr;
+const Potion* Potions::WEAVING = nullptr;
+const Potion* Potions::OOZING = nullptr;
+const Potion* Potions::INFESTED = nullptr;
 
 // ========== 辅助函数 ==========
 
@@ -238,6 +242,16 @@ void Potions::initialize() noexcept
     LONG_SLOW_FALLING = _registerPotion("long_slow_falling",
         Potion("slow_falling", {entity::effect::EffectInstance(entity::effect::EffectType::SlowFalling, 4800)}));
 
+    // 试炼密室药水（vanilla Potions.WIND_CHARGED / WEAVING / OOZING / INFESTED，效果 3600 tick）
+    WIND_CHARGED = _registerPotion("wind_charged",
+        Potion("wind_charged", {entity::effect::EffectInstance(entity::effect::EffectType::WindCharged, 3600)}));
+    WEAVING = _registerPotion(
+        "weaving", Potion("weaving", {entity::effect::EffectInstance(entity::effect::EffectType::Weaving, 3600)}));
+    OOZING = _registerPotion(
+        "oozing", Potion("oozing", {entity::effect::EffectInstance(entity::effect::EffectType::Oozing, 3600)}));
+    INFESTED = _registerPotion(
+        "infested", Potion("infested", {entity::effect::EffectInstance(entity::effect::EffectType::Infested, 3600)}));
+
     // 同步注册表指针
     PotionRegistry::EMPTY = EMPTY;
     PotionRegistry::WATER = WATER;
@@ -298,6 +312,10 @@ void Potions::initialize() noexcept
 
     PotionRegistry::SLOW_FALLING = SLOW_FALLING;
     PotionRegistry::LONG_SLOW_FALLING = LONG_SLOW_FALLING;
+    PotionRegistry::WIND_CHARGED = WIND_CHARGED;
+    PotionRegistry::WEAVING = WEAVING;
+    PotionRegistry::OOZING = OOZING;
+    PotionRegistry::INFESTED = INFESTED;
 }
 
 } // namespace potion

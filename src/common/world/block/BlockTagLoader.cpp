@@ -32,6 +32,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -76,8 +77,33 @@ private:
     std::unordered_map<ResourceLocation, std::size_t> m_indexByLocation;
 };
 
+/// 记录 fillTag 期间被显式引用的数据包标签 ID（解析时 lastFilledTag 指向当前标签）
+struct _ReferenceCollector {
+    std::optional<ResourceLocation> lastFilledTag;
+    std::vector<ResourceLocation> referencedTags;
+};
+
+/**
+ * @brief 显式保留标签间引用（#tag 形式）
+ *
+ * GenericTagLoader 会把 #tag 引用展开为成员并写入 fillTag，导致原始引用关系丢失
+ * （minecraft:tool 等按 HolderSet 判断"某个标签是否被包含"时无法判断，
+ * 例如剑标签包含 minecraft:swords 而非其全部成员）。在填充完成后按记录恢复引用。
+ */
+void _restoreTagReferences(const _ReferenceCollector& collector)
+{
+    for (const auto& tagId : collector.referencedTags) {
+        BlockTag* source = BlockTags::getTag(tagId);
+        BlockTag* target = collector.lastFilledTag.has_value() ? BlockTags::getTag(*collector.lastFilledTag) : nullptr;
+        if (source != nullptr && target != nullptr && source != target) {
+            target->addTagReference(tagId);
+        }
+    }
+}
+
 /// 构建三个回调，绑定到同一资源位置池
 void _buildCallbacks(_BlockMemberPool& pool,
+    _ReferenceCollector& collector,
     resource::tag::TagMemberResolver& resolveMember,
     resource::tag::TagMemberReader& readTag,
     resource::tag::TagFiller& fillTag)
@@ -90,7 +116,7 @@ void _buildCallbacks(_BlockMemberPool& pool,
         return pool.getOrCreate(location);
     };
 
-    readTag = [&pool](const ResourceLocation& tagId) -> std::vector<std::size_t> {
+    readTag = [&pool, &collector](const ResourceLocation& tagId) -> std::vector<std::size_t> {
         std::vector<std::size_t> members;
         auto* tag = BlockTags::getTag(tagId);
         if (tag == nullptr) {
@@ -99,10 +125,12 @@ void _buildCallbacks(_BlockMemberPool& pool,
         for (const auto& blockId : tag->getBlockIds()) {
             members.push_back(pool.getOrCreate(blockId));
         }
+        collector.referencedTags.push_back(tagId);
         return members;
     };
 
-    fillTag = [&pool](const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
+    fillTag = [&pool, &collector](
+                  const ResourceLocation& tagId, const std::vector<std::size_t>& members, bool replace) {
         BlockTag& tag = BlockTags::registerTag(tagId);
         if (replace) {
             tag.clear();
@@ -110,6 +138,9 @@ void _buildCallbacks(_BlockMemberPool& pool,
         for (std::size_t index : members) {
             tag.add(pool.at(index));
         }
+        collector.lastFilledTag = tagId;
+        _restoreTagReferences(collector);
+        collector.referencedTags.clear();
     };
 }
 
@@ -118,10 +149,11 @@ void _buildCallbacks(_BlockMemberPool& pool,
 Result<size_t> BlockTagLoader::loadFromDataPackRepository(const resource::DataPackRepository& dataPackList)
 {
     _BlockMemberPool pool;
+    _ReferenceCollector collector;
     resource::tag::TagMemberResolver resolveMember;
     resource::tag::TagMemberReader readTag;
     resource::tag::TagFiller fillTag;
-    _buildCallbacks(pool, resolveMember, readTag, fillTag);
+    _buildCallbacks(pool, collector, resolveMember, readTag, fillTag);
 
     return resource::tag::GenericTagLoader::loadFromDataPackRepository(
         dataPackList, BLOCK_TAG_DIRECTORY, resolveMember, readTag, fillTag);
@@ -130,10 +162,11 @@ Result<size_t> BlockTagLoader::loadFromDataPackRepository(const resource::DataPa
 Result<size_t> BlockTagLoader::loadFromResourcePack(const resource::IResourcePack& pack)
 {
     _BlockMemberPool pool;
+    _ReferenceCollector collector;
     resource::tag::TagMemberResolver resolveMember;
     resource::tag::TagMemberReader readTag;
     resource::tag::TagFiller fillTag;
-    _buildCallbacks(pool, resolveMember, readTag, fillTag);
+    _buildCallbacks(pool, collector, resolveMember, readTag, fillTag);
 
     return resource::tag::GenericTagLoader::loadFromResourcePack(
         pack, BLOCK_TAG_DIRECTORY, resolveMember, readTag, fillTag);

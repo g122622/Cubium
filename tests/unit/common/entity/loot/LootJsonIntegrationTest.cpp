@@ -107,5 +107,6 @@ TEST_F(LootJsonIntegrationTest, ParseFunction_ExplorationMap)
     auto function = result.value();
     auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
-    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func->getDestination());
+    // destination 是结构标签资源位置，命名空间按默认 minecraft 解析
+    EXPECT_EQ(ResourceLocation("minecraft:mansion"), func->getDestination());
 }

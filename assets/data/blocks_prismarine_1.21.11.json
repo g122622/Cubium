@@ -44678,5 +44678,167 @@
       208
     ],
     "boundingBox": "empty"
-  }
+  },
+{
+  "id": 1166,
+  "name": "quartz_wall",
+  "displayName": "Quartz Wall",
+  "hardness": 0.8,
+  "resistance": 0.8,
+  "stackSize": 64,
+  "diggable": true,
+  "material": "mineable/pickaxe",
+  "transparent": false,
+  "emitLight": 0,
+  "filterLight": 0,
+  "defaultState": 29671,
+  "minStateId": 29671,
+  "maxStateId": 29994,
+  "states": [
+    {
+      "name": "east",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    },
+    {
+      "name": "north",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    },
+    {
+      "name": "south",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    },
+    {
+      "name": "up",
+      "type": "bool",
+      "num_values": 2
+    },
+    {
+      "name": "waterlogged",
+      "type": "bool",
+      "num_values": 2
+    },
+    {
+      "name": "west",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    }
+  ],
+  "harvestTools": {
+    "913": true,
+    "918": true,
+    "923": true,
+    "928": true,
+    "933": true,
+    "938": true,
+    "943": true
+  },
+  "drops": [
+    1166
+  ],
+  "boundingBox": "block"
+},
+{
+  "id": 1167,
+  "name": "purpur_wall",
+  "displayName": "Purpur Wall",
+  "hardness": 1.5,
+  "resistance": 6.0,
+  "stackSize": 64,
+  "diggable": true,
+  "material": "mineable/pickaxe",
+  "transparent": false,
+  "emitLight": 0,
+  "filterLight": 0,
+  "defaultState": 29995,
+  "minStateId": 29995,
+  "maxStateId": 30318,
+  "states": [
+    {
+      "name": "east",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    },
+    {
+      "name": "north",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    },
+    {
+      "name": "south",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    },
+    {
+      "name": "up",
+      "type": "bool",
+      "num_values": 2
+    },
+    {
+      "name": "waterlogged",
+      "type": "bool",
+      "num_values": 2
+    },
+    {
+      "name": "west",
+      "type": "enum",
+      "num_values": 3,
+      "values": [
+        "none",
+        "low",
+        "tall"
+      ]
+    }
+  ],
+  "harvestTools": {
+    "913": true,
+    "918": true,
+    "923": true,
+    "928": true,
+    "933": true,
+    "938": true,
+    "943": true
+  },
+  "drops": [
+    1167
+  ],
+  "boundingBox": "block"
+}
 ]

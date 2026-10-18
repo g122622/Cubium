@@ -100,3 +100,10 @@ StructureLocator（无状态静态类，接收 const ServerWorld&）
 ### 7. 命名空间须为 mc::server::structure（非 mc::server::world::structure）
 
 `StructureLocator` 命名空间刻意定为 `mc::server::structure` 而非与目录一致的 `mc::server::world::structure`。原因：`ServerWorld` 位于 `mc::server` 命名空间，其实现文件 `ServerWorld.cpp` 内大量以 `world::xxx` 引用 `mc::world` 命名空间的符号（`world::CHUNK_WIDTH`/`world::tick::TickPriority`/`world::gamerule::GameRuleKeys`/`world::redstone::RedstoneSystem` 等），依赖「`mc::server::world` 不存在故 `world::` 回退解析到 `mc::world`」这一名字查找回退。若把 `StructureLocator` 放进 `mc::server::world::structure`，会令 `mc::server::world` 命名空间首次出现在 `ServerWorld.cpp`，导致所有 `world::xxx` 引用改为优先匹配 `mc::server::world::xxx`（不存在）而编译失败。目录 `server/world/structure/` 与命名空间解耦，与 `WeatherManager`（目录 `server/world/weather/` 但命名空间 `mc::server`）同例。`ServerWorld.cpp` 内委托写 `structure::StructureLocator::...`（`mc::server` 内相对解析到 `mc::server::structure`）。
+
+### 3. `findNearestMapStructure` 只认已注册的结构标签
+
+按标签搜索要求标签已在 `StructureTags` 注册（内置标签在初始化时注册，数据包标签由 `StructureTagLoader` 合并；
+`minecraft:on_treasure_maps`、`dolphin_located` 等均有内置兜底成员）。未知标签返回空并打印 warn。
+调用方（藏宝图 `ExplorationMapFunction`、海豚寻宝）传入的是**标签 Id**，不是单个结构 Id；
+按单结构搜索请直接用 `findNearestStructure`。

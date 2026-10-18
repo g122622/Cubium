@@ -111,13 +111,50 @@ public:
     [[nodiscard]] bool contains(const BlockState& state) const;
 
     /**
-     * @brief 获取标签中的所有方块ID
+     * @brief 引用另一个标签（#tag 形式）
+     *
+     * 用于原版标签嵌套（如 #minecraft:mineable/pickaxe 引用其它标签）。引用不展开，
+     * contains 时递归查询；数据包加载器同样以本方法登记 tag 引用。
+     */
+    void addTagReference(const ResourceLocation& tagId);
+
+    /**
+     * @brief 检查标签（或其引用的任一标签）是否包含该方块
+     */
+    [[nodiscard]] bool containsIncludingReferences(const ResourceLocation& blockId) const;
+
+    /**
+     * @brief 获取标签中的所有方块ID（不含引用标签）
      */
     [[nodiscard]] const std::unordered_set<ResourceLocation>& getBlockIds() const { return m_blockIds; }
+
+    /**
+     * @brief 获取本标签引用的其它标签 ID
+     */
+    [[nodiscard]] const std::vector<ResourceLocation>& getReferencedTagIds() const { return m_referencedTagIds; }
+
+    /**
+     * @brief 检查 searcher 是否包含 target（searcher 或其引用的任一标签包含 target）
+     *
+     * 用于在线性时间内判断 #a 是否被 #b 包含（target 作为集合；searcher 递归展开引用）。
+     */
+    [[nodiscard]] bool containsAllOf(const BlockTag& target) const;
+
+    /**
+     * @brief 递归收集本标签及其引用的全部方块 ID 与引用标签 ID
+     *
+     * @param blocks 输出方块 ID 集合（追加）
+     * @param referencedTags 输出引用标签 ID 集合（追加）
+     * @param visited 已访问标签，防止循环引用
+     */
+    void collectIncludingReferences(std::unordered_set<ResourceLocation>& blocks,
+        std::unordered_set<ResourceLocation>& referencedTags,
+        std::unordered_set<ResourceLocation>& visited) const;
 
 private:
     ResourceLocation m_id;
     std::unordered_set<ResourceLocation> m_blockIds;
+    std::vector<ResourceLocation> m_referencedTagIds;
 };
 
 /**

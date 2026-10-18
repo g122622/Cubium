@@ -24,6 +24,7 @@
 #include "BlockTags.hpp"
 #include "Block.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <unordered_map>
@@ -78,6 +79,71 @@ bool BlockTag::contains(const Block& block) const
 bool BlockTag::contains(const BlockState& state) const
 {
     return contains(state.blockLocation());
+}
+
+void BlockTag::addTagReference(const ResourceLocation& tagId)
+{
+    if (std::find(m_referencedTagIds.begin(), m_referencedTagIds.end(), tagId) == m_referencedTagIds.end()) {
+        m_referencedTagIds.push_back(tagId);
+    }
+}
+
+bool BlockTag::containsIncludingReferences(const ResourceLocation& blockId) const
+{
+    std::unordered_set<ResourceLocation> visited;
+    std::vector<const BlockTag*> stack{this};
+    while (!stack.empty()) {
+        const BlockTag* current = stack.back();
+        stack.pop_back();
+        if (!visited.insert(current->m_id).second) {
+            continue;
+        }
+        if (current->m_blockIds.find(blockId) != current->m_blockIds.end()) {
+            return true;
+        }
+        for (const auto& referenced : current->m_referencedTagIds) {
+            if (const BlockTag* tag = BlockTags::getTag(referenced); tag != nullptr) {
+                stack.push_back(tag);
+            }
+        }
+    }
+    return false;
+}
+
+bool BlockTag::containsAllOf(const BlockTag& target) const
+{
+    std::unordered_set<ResourceLocation> blocks;
+    std::unordered_set<ResourceLocation> tags;
+    std::unordered_set<ResourceLocation> visited;
+    collectIncludingReferences(blocks, tags, visited);
+    if (blocks.find(target.m_id) != blocks.end() || tags.find(target.m_id) != tags.end()) {
+        return true;
+    }
+    if (!target.m_blockIds.empty() && blocks.size() < target.m_blockIds.size()) {
+        return false;
+    }
+    for (const auto& blockId : target.m_blockIds) {
+        if (blocks.find(blockId) == blocks.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void BlockTag::collectIncludingReferences(std::unordered_set<ResourceLocation>& blocks,
+    std::unordered_set<ResourceLocation>& referencedTags,
+    std::unordered_set<ResourceLocation>& visited) const
+{
+    if (!visited.insert(m_id).second) {
+        return;
+    }
+    blocks.insert(m_blockIds.begin(), m_blockIds.end());
+    for (const auto& referenced : m_referencedTagIds) {
+        referencedTags.insert(referenced);
+        if (const BlockTag* tag = BlockTags::getTag(referenced); tag != nullptr) {
+            tag->collectIncludingReferences(blocks, referencedTags, visited);
+        }
+    }
 }
 
 // ============================================================================

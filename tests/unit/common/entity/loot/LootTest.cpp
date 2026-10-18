@@ -21,14 +21,18 @@
  *
  */
 
+#include "advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
+#include "item/component/DataComponentMap.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "item/core/ItemStack.hpp"
 #include "item/loot/LootPool.hpp"
+#include "item/loot/LootSerializers.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/LootTableLoader.hpp"
 #include "item/loot/LootTableManager.hpp"
@@ -1537,85 +1541,285 @@ TEST_F(LootTest, SetLootTableFunction_Clone)
 
 TEST_F(LootTest, ExplorationMapFunction_Creation)
 {
-    ExplorationMapFunction func(ExplorationMapFunction::Destination::Mansion, std::nullopt, 2, 50, true);
+    ExplorationMapFunction func(
+        ResourceLocation("minecraft:on_woodland_explorer_maps"), world::map::DecorationType::RED_X, 2, 50, true);
     EXPECT_EQ("exploration_map", func.getType());
-    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func.getDestination());
+    EXPECT_EQ(ResourceLocation("minecraft:on_woodland_explorer_maps"), func.getDestination());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func.getDecoration());
     EXPECT_EQ(2, func.getZoom());
     EXPECT_EQ(50, func.getSearchRadius());
-    EXPECT_TRUE(func.shouldSkipKnownStructures());
-    EXPECT_FALSE(func.getDecoration().has_value());
+    EXPECT_TRUE(func.shouldSearchSkipLoadedChunks());
 }
 
-TEST_F(LootTest, ExplorationMapFunction_AllDestinations)
+TEST_F(LootTest, ExplorationMapFunction_Defaults)
 {
-    ExplorationMapFunction func1(ExplorationMapFunction::Destination::BuriedTreasure, std::nullopt, 2, 50, true);
-    ExplorationMapFunction func2(ExplorationMapFunction::Destination::Mansion, std::nullopt, 2, 50, true);
-    ExplorationMapFunction func3(ExplorationMapFunction::Destination::Monument, std::nullopt, 2, 50, true);
-
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func1.getDestination());
-    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func2.getDestination());
-    EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func3.getDestination());
+    // 默认目标为 on_treasure_maps 结构标签；默认装饰为 woodland_mansion，与 destination 无关
+    EXPECT_EQ(ResourceLocation("minecraft:on_treasure_maps"), ExplorationMapFunction::defaultDestination());
+    EXPECT_EQ(world::map::DecorationType::MANSION, ExplorationMapFunction::DEFAULT_DECORATION);
+    EXPECT_EQ(2, ExplorationMapFunction::DEFAULT_ZOOM);
+    EXPECT_EQ(50, ExplorationMapFunction::DEFAULT_SEARCH_RADIUS);
 }
 
-TEST_F(LootTest, ExplorationMapFunction_CustomDecoration)
+TEST_F(LootTest, ExplorationMapFunction_ParseDestination)
 {
-    // 测试自定义装饰类型覆盖目标默认装饰
+    // 不带命名空间时按默认命名空间 minecraft 解析
+    auto bare = ExplorationMapFunction::parseDestination("on_treasure_maps");
+    ASSERT_TRUE(bare.has_value());
+    EXPECT_EQ(ResourceLocation("minecraft:on_treasure_maps"), bare.value());
+
+    auto namespaced = ExplorationMapFunction::parseDestination("mymod:custom_maps");
+    ASSERT_TRUE(namespaced.has_value());
+    EXPECT_EQ(ResourceLocation("mymod:custom_maps"), namespaced.value());
+
+    // 语法非法（空字符串 / 空路径）返回 nullopt
+    EXPECT_FALSE(ExplorationMapFunction::parseDestination("").has_value());
+    EXPECT_FALSE(ExplorationMapFunction::parseDestination("minecraft:").has_value());
+}
+
+TEST_F(LootTest, ExplorationMapFunction_Clone)
+{
     ExplorationMapFunction func(
-        ExplorationMapFunction::Destination::Mansion, world::map::DecorationType::RED_X, 1, 100, false);
-    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func.getDestination());
-    EXPECT_TRUE(func.getDecoration().has_value());
-    EXPECT_EQ(world::map::DecorationType::RED_X, func.getDecoration().value());
-    EXPECT_EQ(world::map::DecorationType::RED_X, func.getEffectiveDecoration());
-    EXPECT_EQ(1, func.getZoom());
-    EXPECT_EQ(100, func.getSearchRadius());
-    EXPECT_FALSE(func.shouldSkipKnownStructures());
+        ResourceLocation("minecraft:on_ocean_explorer_maps"), world::map::DecorationType::MONUMENT, 3, 64, false);
+    auto cloned = func.clone();
+    auto* clonedFunc = dynamic_cast<ExplorationMapFunction*>(cloned.get());
+    ASSERT_NE(clonedFunc, nullptr);
+    EXPECT_EQ(func.getDestination(), clonedFunc->getDestination());
+    EXPECT_EQ(func.getDecoration(), clonedFunc->getDecoration());
+    EXPECT_EQ(func.getZoom(), clonedFunc->getZoom());
+    EXPECT_EQ(func.getSearchRadius(), clonedFunc->getSearchRadius());
+    EXPECT_EQ(func.shouldSearchSkipLoadedChunks(), clonedFunc->shouldSearchSkipLoadedChunks());
 }
 
-TEST_F(LootTest, ExplorationMapFunction_DefaultDecorationFromDestination)
+TEST_F(LootTest, ExplorationMapFunction_NonMapStackUnchanged)
 {
-    // 测试从 destination 推导默认装饰类型
-    ExplorationMapFunction mansionFunc(ExplorationMapFunction::Destination::Mansion, std::nullopt, 2, 50, true);
-    EXPECT_FALSE(mansionFunc.getDecoration().has_value());
-    EXPECT_EQ(world::map::DecorationType::MANSION, mansionFunc.getEffectiveDecoration());
+    ExplorationMapFunction func(ExplorationMapFunction::defaultDestination(),
+        ExplorationMapFunction::DEFAULT_DECORATION,
+        ExplorationMapFunction::DEFAULT_ZOOM,
+        ExplorationMapFunction::DEFAULT_SEARCH_RADIUS,
+        true);
 
-    ExplorationMapFunction monumentFunc(ExplorationMapFunction::Destination::Monument, std::nullopt, 2, 50, true);
-    EXPECT_EQ(world::map::DecorationType::MONUMENT, monumentFunc.getEffectiveDecoration());
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
 
-    ExplorationMapFunction treasureFunc(ExplorationMapFunction::Destination::BuriedTreasure, std::nullopt, 2, 50, true);
-    EXPECT_EQ(world::map::DecorationType::RED_X, treasureFunc.getEffectiveDecoration());
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_EQ(stack.getItem(), result.getItem());
+    EXPECT_EQ(1, result.getCount());
 }
 
-TEST_F(LootTest, ExplorationMapFunction_DestinationStringConversion)
+TEST_F(LootTest, SetEnchantmentsFunction_AppliesAndAdds)
 {
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure,
-        ExplorationMapFunction::destinationFromString("minecraft:buried_treasure").value());
-    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion,
-        ExplorationMapFunction::destinationFromString("minecraft:mansion").value());
-    EXPECT_EQ(ExplorationMapFunction::Destination::Monument,
-        ExplorationMapFunction::destinationFromString("minecraft:monument").value());
-    EXPECT_EQ(ExplorationMapFunction::Destination::Shipwreck,
-        ExplorationMapFunction::destinationFromString("minecraft:shipwreck").value());
-    EXPECT_EQ(ExplorationMapFunction::Destination::RuinedPortal,
-        ExplorationMapFunction::destinationFromString("minecraft:ruined_portal").value());
-    // 不带命名空间前缀
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure,
-        ExplorationMapFunction::destinationFromString("buried_treasure").value());
-    EXPECT_FALSE(ExplorationMapFunction::destinationFromString("unknown").has_value());
+    SetEnchantmentsFunction func({{ResourceLocation("minecraft:fortune"), RandomValueRange(3.0f, 3.0f)}}, false);
+
+    const Item* pickaxe = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond_pickaxe"));
+    ASSERT_NE(pickaxe, nullptr);
+    ItemStack stack(*pickaxe, 1);
+    stack.getEnchantmentsMutable().set("minecraft:fortune", 1);
+    stack.getEnchantmentsMutable().set("minecraft:efficiency", 2);
+
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_EQ(3, result.getEnchantments().getLevel("minecraft:fortune"));
+    // 设置语义：未列出的附魔保持不变
+    EXPECT_EQ(2, result.getEnchantments().getLevel("minecraft:efficiency"));
+
+    // add 语义：在原等级上叠加
+    SetEnchantmentsFunction addFunc({{ResourceLocation("minecraft:fortune"), RandomValueRange(2.0f, 2.0f)}}, true);
+    ItemStack added = addFunc.apply(result, *context);
+    EXPECT_EQ(5, added.getEnchantments().getLevel("minecraft:fortune"));
 }
 
-TEST_F(LootTest, ExplorationMapFunction_DestinationToResourceLocation)
+TEST_F(LootTest, SetPotionFunction_SetsPotionId)
 {
-    // 验证 Destination 到 ResourceLocation 的映射
-    EXPECT_EQ(ResourceLocation("minecraft", "buried_treasure"),
-        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::BuriedTreasure));
-    EXPECT_EQ(ResourceLocation("minecraft", "mansion"),
-        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::Mansion));
-    EXPECT_EQ(ResourceLocation("minecraft", "monument"),
-        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::Monument));
-    EXPECT_EQ(ResourceLocation("minecraft", "shipwreck"),
-        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::Shipwreck));
-    EXPECT_EQ(ResourceLocation("minecraft", "ruined_portal"),
-        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::RuinedPortal));
+    SetPotionFunction func(ResourceLocation("minecraft:strong_regeneration"));
+    const Item* potion = ItemRegistry::instance().getItem(ResourceLocation("minecraft:potion"));
+    ASSERT_NE(potion, nullptr);
+    ItemStack stack(*potion, 1);
+
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(stack, *context);
+    EXPECT_EQ("minecraft:strong_regeneration", result.getPotionId());
+}
+
+TEST_F(LootTest, SetItemFunction_TransmutesKeepingComponents)
+{
+    SetItemFunction func(ResourceLocation("minecraft:golden_apple"));
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 3);
+    stack.setCustomName("Renamed");
+
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(stack, *context);
+    ASSERT_FALSE(result.isEmpty());
+    EXPECT_EQ(ResourceLocation("minecraft:golden_apple"), result.getItem()->itemLocation());
+    EXPECT_EQ(3, result.getCount());
+    EXPECT_EQ("Renamed", result.getCustomName());
+}
+
+TEST_F(LootTest, CopyComponentsFunction_CopiesBlockEntityCustomName)
+{
+    CopyComponentsFunction func(
+        CopyComponentsFunction::Source::BlockEntity, {item::component::DataComponentType::CustomName}, {});
+
+    blockentity::ChestEntity chest(BlockPos(0, 64, 0));
+    chest.setCustomName("Copied Chest");
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(1);
+    LootContext context(m_world, rng);
+    context.set(LootParams::BLOCK_ENTITY, static_cast<BlockEntity*>(&chest));
+
+    ItemStack result = func.apply(stack, context);
+    EXPECT_EQ("Copied Chest", result.getCustomName());
+}
+
+TEST_F(LootTest, SetComponentsFunction_AppliesPatchAtRuntime)
+{
+    // 通过 JSON 解析构造（与数据包路径一致），运行时补丁由 ItemStack::applyComponentPatch 应用
+    nlohmann::json json = {
+        {"function", "minecraft:set_components"}, {"components", {{"minecraft:enchantment_glint_override", true}}}};
+    auto parsed = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(parsed.success()) << (!parsed.success() ? parsed.error().message() : "");
+    auto function = parsed.value();
+    ASSERT_EQ("set_components", function->getType());
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = function->apply(stack, *context);
+    ASSERT_TRUE(result.getEnchantmentGlintOverride().has_value());
+    EXPECT_TRUE(*result.getEnchantmentGlintOverride());
+}
+
+TEST_F(LootTest, SetOminousBottleAmplifierFunction_ClampsRange)
+{
+    SetOminousBottleAmplifierFunction func(RandomValueRange(7.0f, 7.0f));
+    const Item* bottle = ItemRegistry::instance().getItem(ResourceLocation("minecraft:ominous_bottle"));
+    ASSERT_NE(bottle, nullptr);
+    ItemStack stack(*bottle, 1);
+
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(stack, *context);
+    // vanilla：clamp(value, 0, 4)
+    EXPECT_EQ(4, result.getOminousBottleAmplifier());
+}
+
+TEST_F(LootTest, FilteredFunction_ChoosesBranchByPredicate)
+{
+    nlohmann::json filterJson = {{"items", {"minecraft:diamond"}}};
+    auto filterResult = advancement::ItemPredicate::fromJson(filterJson);
+    ASSERT_TRUE(filterResult.success());
+
+    std::optional<std::unique_ptr<LootFunction>> onPass =
+        std::make_unique<SetCountFunction>(RandomValueRange(5.0f, 5.0f));
+    std::optional<std::unique_ptr<LootFunction>> onFail =
+        std::make_unique<SetCountFunction>(RandomValueRange(1.0f, 1.0f));
+    FilteredFunction func(filterResult.value(), std::move(onPass), std::move(onFail));
+
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    const Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft:stone"));
+    ASSERT_NE(diamond, nullptr);
+    ASSERT_NE(stone, nullptr);
+    EXPECT_EQ(5, func.apply(ItemStack(*diamond, 1), *context).getCount());
+    EXPECT_EQ(1, func.apply(ItemStack(*stone, 1), *context).getCount());
+}
+
+TEST_F(LootTest, SequenceFunction_AppliesInOrder)
+{
+    std::vector<std::unique_ptr<LootFunction>> functions;
+    functions.push_back(std::make_unique<SetCountFunction>(RandomValueRange(2.0f, 2.0f)));
+    functions.push_back(std::make_unique<SetNameFunction>("Sequenced"));
+    SequenceFunction func(std::move(functions));
+
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(ItemStack(*diamond, 1), *context);
+    EXPECT_EQ(2, result.getCount());
+    EXPECT_EQ("Sequenced", result.getCustomName());
+}
+
+TEST_F(LootTest, DiscardItemFunction_ReturnsEmpty)
+{
+    DiscardItemFunction func;
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    EXPECT_TRUE(func.apply(ItemStack(*diamond, 1), *context).isEmpty());
+}
+
+TEST_F(LootTest, SetFireworksFunction_MergesExplosions)
+{
+    SetFireworksFunction::ExplosionListOperation operation;
+    operation.kind = ListOperationKind::Append;
+    item::component::FireworkExplosion explosion{};
+    explosion.shape = item::component::FireworkShape::Creeper;
+    operation.explosions.push_back(explosion);
+    SetFireworksFunction func(operation, 2);
+
+    const Item* rocket = ItemRegistry::instance().getItem(ResourceLocation("minecraft:firework_rocket"));
+    ASSERT_NE(rocket, nullptr);
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(ItemStack(*rocket, 1), *context);
+    const auto* fireworks = result.getFireworks();
+    ASSERT_NE(fireworks, nullptr);
+    EXPECT_EQ(2, fireworks->flightDuration);
+    ASSERT_EQ(1u, fireworks->explosions.size());
+    EXPECT_EQ(item::component::FireworkShape::Creeper, fireworks->explosions[0].shape);
+}
+
+TEST_F(LootTest, SetInstrumentFunction_PicksFromTag)
+{
+    SetInstrumentFunction func(ResourceLocation("minecraft:regular_goat_horns"));
+    const Item* horn = ItemRegistry::instance().getItem(ResourceLocation("minecraft:goat_horn"));
+    ASSERT_NE(horn, nullptr);
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(ItemStack(*horn, 1), *context);
+    const std::string instrument = result.getInstrument();
+    EXPECT_EQ(0u, instrument.rfind("minecraft:", 0));
+    EXPECT_NE(std::string::npos, instrument.find("goat_horn"));
+}
+
+TEST_F(LootTest, ModifyContentsFunction_AppliesModifierToSlots)
+{
+    item::component::ItemContainerContentsPayload contents;
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    contents.slots.push_back(
+        item::component::ItemContainerContentsPayload::Slot{0, std::make_unique<ItemStack>(*diamond, 1)});
+    ItemStack chestLike(*ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond")), 1);
+    chestLike.setContainerContents(std::move(contents));
+
+    ModifyContentsFunction func(
+        "minecraft:container", std::make_unique<SetCountFunction>(RandomValueRange(9.0f, 9.0f)));
+    math::Random rng(1);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack result = func.apply(chestLike, *context);
+    const auto* resultContents = result.getContainerContents();
+    ASSERT_NE(resultContents, nullptr);
+    ASSERT_EQ(resultContents->slots.size(), 1u);
+    ASSERT_NE(resultContents->slots[0].item, nullptr);
+    EXPECT_EQ(9, resultContents->slots[0].item->getCount());
 }
 
 TEST_F(LootTest, SetStewEffectFunction_Creation)

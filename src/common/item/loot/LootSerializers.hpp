@@ -52,6 +52,7 @@
 #include "common/util/math/random/RandomRanges.hpp"
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -328,6 +329,25 @@ private:
     static Result<std::unique_ptr<LootFunction>> _parseSetContentsFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetLootTableFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseExplorationMapFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetEnchantmentsFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetPotionFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetInstrumentFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseCopyComponentsFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetComponentsFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetOminousBottleAmplifierFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetItemFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseFilteredFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseFunctionReferenceFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSequenceFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetFireworksFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetFireworkExplosionFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseToggleTooltipsFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetCustomModelDataFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseModifyContentsFunction(const nlohmann::json& json);
+    /// @param written true 表示成书（written_book_pages），false 表示可编辑书（writable_book_pages）
+    static Result<std::unique_ptr<LootFunction>> _parseSetBookPagesFunction(const nlohmann::json& json, bool written);
+    static Result<std::unique_ptr<LootFunction>> _parseSetBookCoverFunction(const nlohmann::json& json);
+    static Result<std::unique_ptr<LootFunction>> _parseSetBannerPatternFunction(const nlohmann::json& json);
     static Result<std::unique_ptr<LootFunction>> _parseSetStewEffectFunction(const nlohmann::json& json);
 
     // ========================================================================

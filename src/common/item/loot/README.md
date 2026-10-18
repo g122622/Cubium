@@ -232,3 +232,18 @@ auto* func = dynamic_cast<ExplorationMapFunction*>(result.value().get());
 auto function = result.value();
 auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
 ```
+
+### 9. 函数解析失败即整张表加载失败
+
+`LootSerializers` 覆盖原版 `LootItemFunctions` 注册的全部函数类型（含 `set_potion`/`copy_components`/
+`set_components`/`set_enchantments`/`filtered`/`sequence`/`reference` 等）。函数列表逐项解析，
+任一项失败（未注册类型、必填字段缺失、引用的附魔/物品/组件/命名函数不存在）都会让整张战利品表加载失败——
+这是原版语义，不允许"跳过未知函数"（旧实现跳过未实现类型，导致原版数据包 98 张表被静默丢弃）。
+
+注册表引用在加载期校验时要求对应注册表已初始化：`set_enchantments` 依赖 `EnchantmentRegistry`，
+`set_potion` 依赖 `PotionRegistry`，`set_item` 依赖 `ItemRegistry`；测试夹具须按此顺序初始化。
+
+### 10. `minecraft:reference` 依赖命名函数管理器
+
+`FunctionReferenceFunction` 在构造时通过 `LootFunctionManager::instance().getFunction(name)` 解析目标，
+目标函数指针由管理器持有（稳定地址）。未注册即加载失败；被引用的函数在应用时不再重复检查自身条件。

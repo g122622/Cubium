@@ -706,8 +706,9 @@ TEST_F(ItemRegistryTest, ItemCount)
 TEST_F(ItemStackTest, CompactLayout)
 {
     // ItemStack 被内联进装备组件（16 槽）与玩家背包（41 槽），并被容器每 tick 逐槽拷贝。
-    // 把 lore/potionId/customData/canPlaceOn/canDestroy 外置到 ItemExtras 后应降到 64 字节。
-    EXPECT_LE(sizeof(ItemStack), 64u);
+    // 稀有字段外置到 ItemExtras；容器/充能投射物组件以两个共享指针承载（各 16 字节），
+    // 故 ItemStack 为 96 字节。
+    EXPECT_LE(sizeof(ItemStack), 96u);
     // 外置的 5 个字段合起来比 ItemStack 本身还大，这正是本次优化的收益来源
     EXPECT_GT(sizeof(ItemExtras), sizeof(ItemStack));
 }

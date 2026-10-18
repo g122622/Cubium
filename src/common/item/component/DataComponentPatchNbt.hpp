@@ -42,8 +42,7 @@ namespace component {
  * 写出格式：键为组件资源位置名，'!' 前缀表 removed（值为一个空 compound 占位），
  * 其余键表 added（值为该组件的 NBT 表示）。空 patch 不写入任何键。
  *
- * 仅处理本项目落地的 9 个组件；调用方保证 patch 内 typeId 均在落地子集内
- * （未知 typeId 会被跳过并记为无效，但不抛异常）。
+ * 未落地解码的组件会被跳过（未知 typeId 不抛异常）。
  *
  * @param out 输出 compound（追加键，不清空已有键）
  * @param patch 组件补丁
@@ -60,6 +59,20 @@ void writePatchToNbt(nbt::tags::compound_tag& out, const DataComponentPatch& pat
  * @return 解析出的 patch（解析失败的字段被跳过，整体不报错）
  */
 [[nodiscard]] DataComponentPatch readPatchFromNbt(const nbt::tags::compound_tag& tag);
+
+/**
+ * @brief 解析数据包 JSON 中某个组件的值并写入载荷
+ *
+ * 数据包 JSON 中的组件值先经 jsonToNbt 转成 NBT，再走与 NBT patch 相同的
+ * 解码路径（vanilla 中 JSON 与 NBT 共用 Codec，因而语义一致）。
+ *
+ * @param type 组件类型
+ * @param json 组件 JSON 值
+ * @param out 解码结果（成功时覆盖）
+ * @return 组件已落地解码且 JSON 可转换时为 true；未落地或转换失败为 false
+ */
+[[nodiscard]] bool jsonToComponentPayload(
+    DataComponentType type, const nlohmann::json& json, DataComponentPayload& out);
 
 } // namespace component
 } // namespace item

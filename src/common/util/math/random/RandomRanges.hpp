@@ -33,6 +33,7 @@
 
 #include "Random.hpp"
 #include "common/core/Types.hpp"
+#include <memory>
 
 namespace mc {
 namespace math {
@@ -70,6 +71,11 @@ public:
      * @brief 获取最大值
      */
     [[nodiscard]] virtual f32 getMax() const = 0;
+
+    /**
+     * @brief 复制自身（用于函数 clone 等需要独立副本的场景）
+     */
+    [[nodiscard]] virtual std::unique_ptr<IRandomRange> clone() const = 0;
 };
 
 /**
@@ -129,6 +135,11 @@ public:
      * @brief 是否为固定值
      */
     [[nodiscard]] bool isFixed() const override { return m_min == m_max; }
+
+    [[nodiscard]] std::unique_ptr<IRandomRange> clone() const override
+    {
+        return std::make_unique<RandomValueRange>(*this);
+    }
 
     bool operator==(const RandomValueRange& other) const { return m_min == other.m_min && m_max == other.m_max; }
 
@@ -192,10 +203,23 @@ public:
      */
     [[nodiscard]] f32 getMax() const override { return static_cast<f32>(m_n); }
 
+    [[nodiscard]] std::unique_ptr<IRandomRange> clone() const override
+    {
+        return std::make_unique<BinomialRange>(*this);
+    }
+
 private:
     i32 m_n;
     f32 m_p;
 };
+
+/**
+ * @brief 二项分布范围（BinomialRange）与固定值范围（ConstantRange）的前向声明
+ *
+ * 解析器按类型分派时需要以具体类型构造，这里先声明，定义见下文。
+ */
+class BinomialRange;
+class ConstantRange;
 
 /**
  * @brief 固定值范围
@@ -238,6 +262,11 @@ public:
      * @brief 获取最大值
      */
     [[nodiscard]] f32 getMax() const override { return static_cast<f32>(m_value); }
+
+    [[nodiscard]] std::unique_ptr<IRandomRange> clone() const override
+    {
+        return std::make_unique<ConstantRange>(*this);
+    }
 
 private:
     i32 m_value;

@@ -29,7 +29,8 @@ ItemStack 导出、应用补丁，IR 物品桥接和存档调用编码器。本�
 
 ## 容易踩的坑
 
-- 组件 ID 必须匹配协议表 SlotComponentType。damage_type 占编号 8，后续组件不可少算这一项。
+- 组件 ID 必须严格等于 Java 1.21.11 `DataComponents.register` 的声明序号（0..103，全表已对齐）。
+  新增/重排一个组件会影响其后所有 id（wire VarInt 与 NBT 键），必须整表核对，勿只改单个值。
 - 网络补丁先写两个计数，再写新增项和移除项；空补丁仍占两个零字节。
 - 组件没有统一长度前缀，未知载荷必须报错，不能跳过后继续解析。
 - 商人 ItemCost 的精确谓词只有一个计数，与 ItemStack 补丁不同。
@@ -38,6 +39,13 @@ ItemStack 导出、应用补丁，IR 物品桥接和存档调用编码器。本�
   用 VarInt 会在颜色为小正值时少写 3 字节，把后续字段吞进颜色里连锁错位。
 - **NBT 里的 Bool 是 Byte**：`Codec.BOOL` 在 NBT 上落为 `byte_tag`（1b/0b），读侧不能只认
   `int_tag`，否则组件字段静默读成默认值。写侧用 `i8` 以命中 `byte_tag`。
+- **容器类组件不进 `DataComponentPayload`**：`container`（ItemContainerContents）与
+  `charged_projectiles` 的元素是 `ItemStack`，而 `DataComponentMap.hpp` 先于 `ItemStack` 定义被包含，
+  variant 无法持有不完整类型。二者由 `ItemStack` 的独立字段（`shared_ptr<const ...>`）承载，
+  定义在 `ItemStack.hpp` 的 ItemStack 之后；拷贝 ItemStack 时共享同一只读载荷，修改走 set* 替换。
+- **数据包组件 JSON 解码走 `jsonToComponentPayload`**：对象/数组走 `jsonToNbtStrictInt` 再走
+  `nbtToPayload`；标量（bool/数值/字符串）须单独取值后解码——`jsonToNbt` 只接受对象，
+  直接传标量会得到空 compound 并被误判为"已解码的空值"。
 - **`DataComponentPayload` 的构造必须显式写 `std::in_place_index<N>`**：`ComponentPayloadIndex`
   里的常量是 `usize`，直接 `DataComponentPayload{Index::X, value}` 会被编译器当成 `in_place_type`
   以外的匹配而报 "no matching constructor"。

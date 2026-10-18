@@ -382,13 +382,27 @@ bool Item::onBlockDestroyed(
     ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker)
 {
     // 默认实现：不造成耐久消耗
-    // 工具类物品（镐、斧、铲、锄等）会重写此方法
-    (void)stack;
     (void)world;
-    (void)state;
     (void)pos;
-    (void)breaker;
-    return false;
+
+    // tool 组件覆盖物品基础挖掘行为（对应 vanilla DataComponents.TOOL）：
+    // 有耐久度时按 damage_per_block 扣耐久，否则（如创造模式物品）为挖掘速度小于 1 的
+    // 方块额外损失一个数量（data-driven 工具在破坏"难挖"方块时更易损坏）。
+    const auto& tool = stack.getTool();
+    if (!tool.has_value()) {
+        return false;
+    }
+    if (stack.isDamageable()) {
+        if (state.hardness() != 0.0f) {
+            const i32 damage = tool->damagePerBlock;
+            if (damage > 0) {
+                LivingEntity::hurtAndBreak(stack, damage, &breaker, EquipmentSlot::MainHand);
+            }
+        }
+    } else if (stack.getDestroySpeed(state) < 1.0f) {
+        stack.shrink(1);
+    }
+    return true;
 }
 
 bool Item::canDestroyBlock(

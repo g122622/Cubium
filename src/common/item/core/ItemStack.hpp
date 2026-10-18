@@ -63,6 +63,45 @@ class PotionUtils;
 } // namespace mc
 
 namespace mc {
+namespace item {
+namespace component {
+
+/**
+ * @brief container 组件载荷（物品形式的容器内容）
+ *
+ * 对应 Java 1.21.11 ItemContainerContents(List<Slot>)：仅记录非空槽位，
+ * 槽位索引即容器位置。元素为 ItemStack 指针；该类型的完整定义在 ItemStack 之后才可见，
+ * 因此使用它（拷贝/析构）的代码必须包含本头文件。
+ */
+struct ItemContainerContentsPayload {
+    /// 单个非空槽位（vanilla ItemContainerContents.Slot）
+    struct Slot {
+        i32 index = 0;                   ///< 槽位索引（0..255）
+        std::unique_ptr<ItemStack> item; ///< 槽位物品（空指针 = 空槽位）
+    };
+
+    std::vector<Slot> slots;
+};
+
+/**
+ * @brief charged_projectiles 组件载荷
+ *
+ * 对应 Java 1.21.11 的 List<ItemStack>（外层 Optional 未设置 = 组件不存在，
+ * 空列表 = 已充能但当前为空）。
+ */
+struct ChargedProjectilesPayload {
+    std::vector<std::unique_ptr<ItemStack>> items;
+};
+
+/// 物品指针列表深拷贝（用于 DataComponentPayload 中需要值语义的写法）
+[[nodiscard]] std::vector<std::unique_ptr<ItemStack>> cloneItemStackList(
+    const std::vector<std::unique_ptr<ItemStack>>& items);
+
+} // namespace component
+} // namespace item
+} // namespace mc
+
+namespace mc {
 
 /**
  * @brief ItemStack 中极少使用的字段的外置存储
@@ -101,6 +140,13 @@ struct ItemExtras {
     std::optional<item::component::AttackRange> attackRange;             // attack_range
     std::optional<item::component::FireworkExplosion> fireworkExplosion; // firework_explosion
     std::optional<item::component::Fireworks> fireworks;                 // fireworks
+    nlohmann::json customModelData;                                      // custom_model_data（需显式设置的 JSON 对象）
+    std::optional<bool> enchantmentGlintOverride;                        // enchantment_glint_override
+    std::optional<std::string> instrument;                               // instrument（乐器资源位置）
+    std::optional<item::component::ToolPayload> tool;                    // tool（挖掘规则）
+    std::optional<i32> ominousBottleAmplifier;                           // ominous_bottle_amplifier
+    std::optional<item::component::SuspiciousStewEffectsPayload> stewEffects; // suspicious_stew_effects
+    nlohmann::json rawComponents; // 未落地结构组件的原始 JSON（以资源位置为键）
 
     ItemExtras() = default;
 
@@ -120,6 +166,13 @@ struct ItemExtras {
         , attackRange(other.attackRange)
         , fireworkExplosion(other.fireworkExplosion)
         , fireworks(other.fireworks)
+        , customModelData(other.customModelData)
+        , enchantmentGlintOverride(other.enchantmentGlintOverride)
+        , instrument(other.instrument)
+        , tool(other.tool)
+        , ominousBottleAmplifier(other.ominousBottleAmplifier)
+        , stewEffects(other.stewEffects)
+        , rawComponents(other.rawComponents)
     {
         lore.reserve(other.lore.size());
         for (const auto& line : other.lore) {
@@ -144,6 +197,13 @@ struct ItemExtras {
             attackRange = other.attackRange;
             fireworkExplosion = other.fireworkExplosion;
             fireworks = other.fireworks;
+            customModelData = other.customModelData;
+            enchantmentGlintOverride = other.enchantmentGlintOverride;
+            instrument = other.instrument;
+            tool = other.tool;
+            ominousBottleAmplifier = other.ominousBottleAmplifier;
+            stewEffects = other.stewEffects;
+            rawComponents = other.rawComponents;
             lore.clear();
             lore.reserve(other.lore.size());
             for (const auto& line : other.lore) {
@@ -222,6 +282,14 @@ public:
      * @brief 移动赋值运算符
      */
     ItemStack& operator=(ItemStack&& other) noexcept = default;
+
+    /**
+     * @brief 析构函数
+     *
+     * 显式声明并在 ItemStack.cpp 中定义：成员中包含以本类指针为元素的
+     * 组件载荷（container / charged_projectiles），需要完整类型才能析构。
+     */
+    ~ItemStack();
 
     // ========== 基本属性 ==========
 
@@ -977,6 +1045,133 @@ public:
      */
     void setRepairCost(i32 cost) { m_repairCost = cost; }
 
+    // ========== custom_model_data / 附魔光效 / instrument / tool / 不祥之瓶 / container ==========
+
+    /**
+     * @brief 获取 custom_model_data 条目
+     *
+     * 返回显式设置过的 JSON 对象（可含 floats/flags/strings/colors 子数组）；未设置时返回空对象。
+     */
+    [[nodiscard]] const nlohmann::json& getCustomModelData() const
+    {
+        return m_extras ? m_extras->customModelData : _emptyJson();
+    }
+
+    /**
+     * @brief 设置 custom_model_data（传空对象表示移除）
+     */
+    void setCustomModelData(nlohmann::json data)
+    {
+        if (data.is_object() && data.empty()) {
+            if (m_extras) {
+                m_extras->customModelData = nlohmann::json{};
+            }
+            return;
+        }
+        _ensureExtras().customModelData = std::move(data);
+    }
+
+    /**
+     * @brief 获取附魔光效覆盖（enchantment_glint_override），未设置返回 nullopt
+     */
+    [[nodiscard]] std::optional<bool> getEnchantmentGlintOverride() const
+    {
+        return m_extras ? m_extras->enchantmentGlintOverride : std::nullopt;
+    }
+
+    /**
+     * @brief 设置附魔光效覆盖（nullopt 表示移除覆盖）
+     */
+    void setEnchantmentGlintOverride(std::optional<bool> value)
+    {
+        if (!value.has_value()) {
+            if (m_extras) {
+                m_extras->enchantmentGlintOverride.reset();
+            }
+            return;
+        }
+        _ensureExtras().enchantmentGlintOverride = value;
+    }
+
+    /**
+     * @brief 获取乐器资源位置（instrument 组件），未设置返回空串
+     */
+    [[nodiscard]] std::string getInstrument() const { return m_extras ? m_extras->instrument.value_or("") : ""; }
+
+    /**
+     * @brief 设置乐器资源位置（空串表示移除）
+     */
+    void setInstrument(std::string instrumentId)
+    {
+        if (instrumentId.empty()) {
+            if (m_extras) {
+                m_extras->instrument.reset();
+            }
+            return;
+        }
+        _ensureExtras().instrument = std::move(instrumentId);
+    }
+
+    /**
+     * @brief 获取 tool 组件（未设置返回 nullopt）
+     */
+    [[nodiscard]] const std::optional<item::component::ToolPayload>& getTool() const
+    {
+        static const std::optional<item::component::ToolPayload> EMPTY;
+        return m_extras ? m_extras->tool : EMPTY;
+    }
+
+    /**
+     * @brief 设置 tool 组件（nullopt 表示移除）
+     */
+    void setTool(std::optional<item::component::ToolPayload> tool) { _ensureExtras().tool = std::move(tool); }
+
+    /**
+     * @brief 获取不祥之瓶等级覆盖（0..4；未设置时为物品基础默认值）
+     */
+    [[nodiscard]] i32 getOminousBottleAmplifier() const
+    {
+        if (m_extras && m_extras->ominousBottleAmplifier.has_value()) {
+            return *m_extras->ominousBottleAmplifier;
+        }
+        return _itemDefaultOminousBottleAmplifier();
+    }
+
+    /**
+     * @brief 设置不祥之瓶等级覆盖（nullopt 表示移除）
+     */
+    void setOminousBottleAmplifier(std::optional<i32> amplifier) { _ensureExtras().ominousBottleAmplifier = amplifier; }
+
+    /// 物品形式的容器内容（container 组件）；未设置时返回 nullptr
+    [[nodiscard]] const item::component::ItemContainerContentsPayload* getContainerContents() const
+    {
+        return m_containerContents.get();
+    }
+
+    /// 设置物品形式的容器内容（空列表表示空容器）
+    void setContainerContents(item::component::ItemContainerContentsPayload contents)
+    {
+        m_containerContents = std::make_shared<item::component::ItemContainerContentsPayload>(std::move(contents));
+    }
+
+    /// 移除容器内容组件
+    void clearContainerContents() { m_containerContents.reset(); }
+
+    /// 获取充能投射物列表（charged_projectiles 组件）；未设置时返回 nullptr
+    [[nodiscard]] const item::component::ChargedProjectilesPayload* getChargedProjectiles() const
+    {
+        return m_chargedProjectiles.get();
+    }
+
+    /// 设置充能投射物列表
+    void setChargedProjectiles(item::component::ChargedProjectilesPayload projectiles)
+    {
+        m_chargedProjectiles = std::make_shared<item::component::ChargedProjectilesPayload>(std::move(projectiles));
+    }
+
+    /// 移除充能投射物组件
+    void clearChargedProjectiles() { m_chargedProjectiles.reset(); }
+
     // ========== 药水（potion_contents 组件） ==========
 
     /**
@@ -1098,6 +1293,16 @@ public:
      */
     void applyComponentPatch(const item::component::DataComponentPatch& patch);
 
+    /**
+     * @brief 设置单个组件（覆盖物品基础默认值）
+     */
+    void setComponent(item::component::DataComponentType type, item::component::DataComponentPayload value);
+
+    /**
+     * @brief 移除单个组件的显式设置（回退到物品基础默认值）
+     */
+    void removeComponent(item::component::DataComponentType type);
+
     // ========== 比较操作符 ==========
 
     /**
@@ -1139,6 +1344,16 @@ private:
     /// 无 extras 时 getPotionId() 返回的共享空串
     [[nodiscard]] static const std::string& _emptyString();
 
+    /// 物品类型声明的不祥之瓶等级基础值（不祥之瓶为 0，其余物品同为 0）
+    [[nodiscard]] i32 _itemDefaultOminousBottleAmplifier() const;
+
+    /// tool 组件规则是否命中方块状态（HolderSet 语义：ID / 标签包含 / 被包含）
+    [[nodiscard]] static bool _toolRuleMatches(const item::component::ToolRule& rule, const BlockState& state);
+    /// tool 组件：按规则取挖掘速度，未命中取默认速度
+    [[nodiscard]] static f32 _toolMiningSpeed(const item::component::ToolPayload& tool, const BlockState& state);
+    /// tool 组件：按规则取"能否掉落"，未命中返回 false
+    [[nodiscard]] static bool _toolCorrectForDrops(const item::component::ToolPayload& tool, const BlockState& state);
+
     /// 由 JSON 还原单次烟花爆炸（fromJson 用）
     [[nodiscard]] static item::component::FireworkExplosion _fireworkExplosionFromJson(const nlohmann::json& json);
 
@@ -1154,14 +1369,20 @@ private:
 
     /// 稀有字段的外置存储，惰性分配；见 ItemExtras 的说明
     std::unique_ptr<ItemExtras> m_extras;
+    // charged_projectiles / container 单独存放：其元素为 ItemStack 指针，
+    // 拷贝语义需要完整类型（ItemExtras 定义处 ItemStack 尚不完整），故出其外。
+    // 浅指针共享：拷贝 ItemStack 时共享同一个不可变组件载荷（载荷内部物品堆不可变）；
+    // 修改走 set*（替换为新载荷）。这样拷贝构造不需要在卡头文件里实例化载荷拷贝。
+    std::shared_ptr<const item::component::ChargedProjectilesPayload> m_chargedProjectiles;
+    std::shared_ptr<const item::component::ItemContainerContentsPayload> m_containerContents;
 
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;
 };
 
 // 紧凑性守卫：ItemStack 会被内联进装备组件（16 个槽）、玩家背包（41 个槽）等容器，
-// 并被容器每 tick 逐槽拷贝。设计目标为 64 字节（把 lore/potionId/customData/
-// canPlaceOn/canDestroy 外置到 ItemExtras 之后）；此处只做粗粒度的回归拦截，
+// 并被容器每 tick 逐槽拷贝。稀有字段外置到 ItemExtras，容器/投射物组件以共享指针承载
+// （共享指针 16 字节，ItemStack 由 64 字节增至 96 字节）；此处只做粗粒度的回归拦截，
 // 精确值由 ItemStackTest.CompactLayout 断言。
 static_assert(sizeof(ItemStack) < 128, "ItemStack 应保持紧凑，成员增补前请先确认内存影响");
 

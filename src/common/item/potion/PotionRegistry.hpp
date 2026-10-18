@@ -163,6 +163,10 @@ public:
     // 缓降
     static const Potion* SLOW_FALLING;
     static const Potion* LONG_SLOW_FALLING;
+    static const Potion* WIND_CHARGED;
+    static const Potion* WEAVING;
+    static const Potion* OOZING;
+    static const Potion* INFESTED;
 
 private:
     PotionRegistry() noexcept = default;

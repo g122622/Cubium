@@ -359,9 +359,10 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
             }
             return {};
         }
+        default:
+            // 未落地 wire 编解码的组件：数据包从未在物品上写入该类组件
+            return Error(ErrorCode::Unsupported, "Component is not supported on wire");
     }
-    // 枚举已全覆盖，此处不可达（保留以满足 -Wreturn-type）。
-    return {};
 }
 
 /// 从 wire 读单个组件 value（按 type 分派到专属 codec）。
@@ -586,9 +587,9 @@ void _writeColorList(network::buffer::ByteBuf& buf, const std::vector<i32>& colo
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Fireworks>, std::move(fireworks)};
         }
+        default:
+            return Error(ErrorCode::Unsupported, "Component is not supported on wire");
     }
-    // 枚举已全覆盖，此处不可达（保留以满足 -Wreturn-type）。
-    return DataComponentPayload{};
 }
 
 } // namespace

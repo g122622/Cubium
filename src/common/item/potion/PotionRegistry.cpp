@@ -93,6 +93,10 @@ const Potion* PotionRegistry::LUCK = nullptr;
 
 const Potion* PotionRegistry::SLOW_FALLING = nullptr;
 const Potion* PotionRegistry::LONG_SLOW_FALLING = nullptr;
+const Potion* PotionRegistry::WIND_CHARGED = nullptr;
+const Potion* PotionRegistry::WEAVING = nullptr;
+const Potion* PotionRegistry::OOZING = nullptr;
+const Potion* PotionRegistry::INFESTED = nullptr;
 
 // ========== PotionRegistry 实现 ==========
 

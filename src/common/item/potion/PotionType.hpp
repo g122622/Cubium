@@ -113,8 +113,14 @@ enum class PotionId : u16 {
     SlowFalling = 41,
     LongSlowFalling = 42,
 
+    // 试炼密室药水（vanilla Potions.bootstrap 末尾 4 项）
+    WindCharged = 43,
+    Weaving = 44,
+    Oozing = 45,
+    Infested = 46,
+
     // 总数
-    Count = 43
+    Count = 47
 };
 
 /**

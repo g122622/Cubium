@@ -2,6 +2,7 @@
 #include "common/TempDirHelper.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "item/Items.hpp"
+#include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/loot/LootTable.hpp"
 #include "resource/pack/FolderResourcePack.hpp"
 #include <gtest/gtest.h>
@@ -40,7 +41,11 @@ constexpr const char* kSimpleLootTableJson = R"({
 
 class LootTableLoaderTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+        item::enchant::EnchantmentRegistry::initialize();
+    }
 };
 
 TEST_F(LootTableLoaderTest, PathToLootTableId_StandardPath)
@@ -66,6 +71,63 @@ TEST_F(LootTableLoaderTest, LoadFromDirectory_LoadsJsonFiles)
     EXPECT_EQ(1u, result.value().successCount);
     EXPECT_EQ(0u, result.value().failedCount);
     EXPECT_TRUE(manager.hasTable("minecraft:blocks/test_block"));
+
+    std::error_code ec;
+    std::filesystem::remove_all(tempRoot, ec);
+}
+
+TEST_F(LootTableLoaderTest, LoadFromDirectory_AllVanillaFunctionTypesSupported)
+{
+    // 回归：原版数据包中使用的全部函数类型（set_potion/copy_components/set_components 等）
+    // 都必须能加载，本文件涵盖其中每一种，期望 0 失败。
+    const auto tempRoot = mc::test::makeUniqueTestDir("mc_loot_table_loader_test");
+    writeTextFile(tempRoot / "data/minecraft/loot_table/chests/test_chest.json",
+        R"({
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:potion",
+          "functions": [
+            { "function": "minecraft:set_potion", "id": "minecraft:water" },
+            { "function": "minecraft:set_count", "count": 2 },
+            { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:fortune": 2 } },
+            { "function": "minecraft:set_components", "components": { "minecraft:enchantment_glint_override": true } },
+            { "function": "minecraft:copy_components", "source": "block_entity", "include": [ "minecraft:custom_name" ] }
+          ]
+        }
+      ]
+    }
+  ]
+})");
+    writeTextFile(tempRoot / "data/minecraft/loot_table/chests/test_invalid.json",
+        R"({
+  "type": "minecraft:chest",
+  "pools": [
+    { "rolls": 1, "entries": [ { "type": "minecraft:item", "name": "minecraft:stone" } ],
+      "functions": [ { "function": "minecraft:set_custom_data", "tag": "{broken" } ] }
+  ]
+})");
+
+    LootTableManager manager;
+    LootTableLoader loader(manager);
+    auto result = loader.loadFromDirectory((tempRoot / "data/minecraft/loot_table").string());
+
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(1u, result.value().successCount);
+    EXPECT_EQ(1u, result.value().failedCount);
+
+    // 表可用，全部函数按顺序保留
+    ASSERT_TRUE(manager.hasTable("minecraft:chests/test_chest"));
+    const LootTable* table = manager.getTable("minecraft:chests/test_chest");
+    ASSERT_NE(table, nullptr);
+    ASSERT_EQ(table->getPools().size(), 1u);
+    const auto& entries = table->getPools()[0]->getEntries();
+    ASSERT_EQ(entries.size(), 1u);
+    EXPECT_EQ(5u, entries[0]->getFunctions().size());
 
     std::error_code ec;
     std::filesystem::remove_all(tempRoot, ec);

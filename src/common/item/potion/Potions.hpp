@@ -182,6 +182,10 @@ public:
     static const Potion* SLOW_FALLING;
     /// 缓降药水 (4:00)
     static const Potion* LONG_SLOW_FALLING;
+    static const Potion* WIND_CHARGED;
+    static const Potion* WEAVING;
+    static const Potion* OOZING;
+    static const Potion* INFESTED;
 
 private:
     static bool s_initialized;

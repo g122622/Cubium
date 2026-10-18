@@ -32,6 +32,7 @@
 #include "core/Constants.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "item/enchantment/EnchantmentRegistry.hpp"
 #include "item/loot/LootPool.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/StatePropertiesPredicate.hpp"
@@ -72,7 +73,12 @@ public:
 
 class LootSerializersTest : public ::testing::Test {
 protected:
-    void SetUp() override { Items::initialize(); }
+    void SetUp() override
+    {
+        Items::initialize();
+        // set_enchantments 在加载期校验附魔注册表
+        item::enchant::EnchantmentRegistry::initialize();
+    }
 
     LootSerializersTestWorld m_world;
 };
@@ -168,6 +174,26 @@ TEST_F(LootSerializersTest, ParseBinomialRange_MissingP)
 {
     nlohmann::json json = {{"type", "minecraft:binomial"}, {"n", 10}};
 
+    auto result = LootSerializers::parseBinomialRange(json);
+    EXPECT_FALSE(result.success());
+}
+
+TEST_F(LootSerializersTest, ParseBinomialRange_DoubleEncodedFields)
+{
+    // 原版数据包以 double 编码 n/p（如 {"type":"minecraft:binomial","n":3.0,"p":0.53333336}），
+    // 此前要求 n 为整数导致 blocks/melon_stem 等 4 张表加载失败
+    nlohmann::json json = {{"type", "minecraft:binomial"}, {"n", 3.0}, {"p", 0.53333336}};
+
+    auto result = LootSerializers::parseBinomialRange(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    BinomialRange range = result.value();
+    EXPECT_EQ(3, range.getN());
+    EXPECT_NEAR(0.53333336f, range.getP(), 1e-6f);
+}
+
+TEST_F(LootSerializersTest, ParseBinomialRange_RejectsNegativeN)
+{
+    nlohmann::json json = {{"type", "minecraft:binomial"}, {"n", -1.0}, {"p", 0.5}};
     auto result = LootSerializers::parseBinomialRange(json);
     EXPECT_FALSE(result.success());
 }
@@ -559,6 +585,108 @@ TEST_F(LootSerializersTest, ParseFunction_SetCustomDataParsesTagAtLoad)
     EXPECT_EQ(42, it->get<i32>());
 }
 
+TEST_F(LootSerializersTest, ParseFunction_AllVanillaTypesSupported)
+{
+    // 原版 LootItemFunctions 注册的全部类型均须有解析分支（不再有"未实现即跳过"的清单）
+    const std::vector<std::string> allTypes = {"set_count",
+        "apply_bonus",
+        "enchanted_count_increase",
+        "set_damage",
+        "set_name",
+        "set_lore",
+        "limit_count",
+        "furnace_smelt",
+        "enchant_with_levels",
+        "enchant_randomly",
+        "explosion_decay",
+        "set_custom_data",
+        "copy_name",
+        "copy_state",
+        "copy_custom_data",
+        "fill_player_head",
+        "set_attributes",
+        "set_contents",
+        "set_loot_table",
+        "exploration_map",
+        "set_stew_effect",
+        "set_enchantments",
+        "set_potion",
+        "set_instrument",
+        "copy_components",
+        "set_components",
+        "set_ominous_bottle_amplifier",
+        "set_item",
+        "filtered",
+        "sequence",
+        "set_fireworks",
+        "set_firework_explosion",
+        "toggle_tooltips",
+        "set_custom_model_data",
+        "set_written_book_pages",
+        "set_writable_book_pages",
+        "set_book_cover",
+        "set_banner_pattern",
+        "discard"};
+    for (const auto& type : allTypes) {
+        nlohmann::json json = {{"function", "minecraft:" + type}};
+        // 必填字段缺失时允许解析失败，但不能报"Unknown function type"
+        auto result = LootSerializers::parseFunction(json);
+        if (!result.success()) {
+            EXPECT_EQ(std::string::npos, result.error().message().find("Unknown function type"))
+                << type << ": " << result.error().message();
+        }
+    }
+
+    // 真正未注册的类型仍按原版语义让整张表加载失败
+    nlohmann::json unknown = {{"function", "minecraft:not_a_real_function"}};
+    auto unknownResult = LootSerializers::parseFunction(unknown);
+    ASSERT_FALSE(unknownResult.success());
+    EXPECT_EQ(ErrorCode::InvalidData, unknownResult.error().code());
+}
+
+TEST_F(LootSerializersTest, ParsePool_AllImplementedFunctionsKeepWorking)
+{
+    // 同一函数列表中的多种已实现类型按顺序全部生效
+    const nlohmann::json entry = {{"type", "minecraft:item"},
+        {"name", "minecraft:diamond"},
+        {"functions",
+            {{{"function", "minecraft:set_count"}, {"count", 3}},
+                {{"function", "minecraft:set_enchantments"}, {"enchantments", {{"minecraft:fortune", 2}}}},
+                {{"function", "minecraft:set_name"}, {"name", "Test"}}}}};
+    const nlohmann::json json = {{"rolls", 1}, {"entries", {entry}}};
+    auto result = LootSerializers::parsePool(json);
+    ASSERT_TRUE(result.success()) << (!result.success() ? result.error().message() : "");
+    auto pool = result.value();
+    ASSERT_NE(pool, nullptr);
+    const auto& entries = pool->getEntries();
+    ASSERT_EQ(entries.size(), 1u);
+    const auto& functions = entries[0]->getFunctions();
+    ASSERT_EQ(functions.size(), 3u);
+    EXPECT_EQ("set_count", functions[0]->getType());
+    EXPECT_EQ("set_enchantments", functions[1]->getType());
+    EXPECT_EQ("set_name", functions[2]->getType());
+}
+
+TEST_F(LootSerializersTest, ParseLootTable_VanillaDatapackStyleFunctions)
+{
+    // 回归：原版数据包 chests/buried_treasure.json 使用 set_potion；
+    // chests/trial_chambers 使用 set_components/copy_components，按标签搜索的 exploration_map 等。
+    const nlohmann::json entry = {{"type", "minecraft:item"},
+        {"name", "minecraft:potion"},
+        {"functions", {{{"function", "minecraft:set_potion"}, {"id", "minecraft:water_breathing"}}}}};
+    const nlohmann::json pool = {{"rolls", 1}, {"entries", {entry}}};
+    const nlohmann::json json = {{"type", "minecraft:chest"}, {"pools", {pool}}};
+    auto result = LootSerializers::parseLootTable(json.dump());
+    ASSERT_TRUE(result.success()) << (!result.success() ? result.error().message() : "");
+    auto table = result.value();
+    ASSERT_NE(table, nullptr);
+    ASSERT_EQ(table->getPools().size(), 1u);
+    const auto& entries = table->getPools()[0]->getEntries();
+    ASSERT_EQ(entries.size(), 1u);
+    ASSERT_EQ(entries[0]->getFunctions().size(), 1u);
+    EXPECT_EQ("set_potion", entries[0]->getFunctions()[0]->getType());
+}
+
 TEST_F(LootSerializersTest, ParsePool_RejectsEntryWithUnknownFunction)
 {
     // 掉落项函数列表中含未注册函数：整体解析失败（不允许静默丢弃该函数）
@@ -668,7 +796,8 @@ TEST_F(LootSerializersTest, ParseFunction_CopyNbtSupported)
 
 TEST_F(LootSerializersTest, ParseFunction_ExplorationMap)
 {
-    // 测试解析带有 destination 字段的 exploration_map 函数
+    // 显式 destination 是结构标签；未指定 decoration 时使用默认 woodland_mansion，
+    // 不再由 destination 推导
     nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "minecraft:mansion"}};
 
     auto result = LootSerializers::parseFunction(json);
@@ -679,20 +808,38 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap)
     auto function = result.value();
     auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
-    EXPECT_EQ(ExplorationMapFunction::Destination::Mansion, func->getDestination());
-    EXPECT_EQ(2, func->getZoom());                                                  // 默认值
-    EXPECT_EQ(50, func->getSearchRadius());                                         // 默认值
-    EXPECT_TRUE(func->shouldSkipKnownStructures());                                 // 默认值
-    EXPECT_FALSE(func->getDecoration().has_value());                                // 未指定 decoration
-    EXPECT_EQ(world::map::DecorationType::MANSION, func->getEffectiveDecoration()); // 从 destination 推导
+    EXPECT_EQ(ResourceLocation("minecraft:mansion"), func->getDestination());
+    EXPECT_EQ(ExplorationMapFunction::DEFAULT_ZOOM, func->getZoom());
+    EXPECT_EQ(ExplorationMapFunction::DEFAULT_SEARCH_RADIUS, func->getSearchRadius());
+    EXPECT_TRUE(func->shouldSearchSkipLoadedChunks());
+    EXPECT_EQ(world::map::DecorationType::MANSION, func->getDecoration());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_Defaults)
+{
+    // 空 JSON：destination=on_treasure_maps、decoration=woodland_mansion、zoom=2、
+    // search_radius=50、skip_existing_chunks=true
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}};
+
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success());
+
+    auto function = result.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ExplorationMapFunction::defaultDestination(), func->getDestination());
+    EXPECT_EQ(ResourceLocation("minecraft:on_treasure_maps"), func->getDestination());
+    EXPECT_EQ(world::map::DecorationType::MANSION, func->getDecoration());
+    EXPECT_EQ(2, func->getZoom());
+    EXPECT_EQ(50, func->getSearchRadius());
+    EXPECT_TRUE(func->shouldSearchSkipLoadedChunks());
 }
 
 TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_AllFields)
 {
-    // 测试解析所有字段的 exploration_map 函数
     nlohmann::json json = {
         {"function", "minecraft:exploration_map"},
-        {"destination", "minecraft:buried_treasure"},
+        {"destination", "minecraft:on_woodland_explorer_maps"},
         {"decoration", "minecraft:red_x"},
         {"zoom", 1},
         {"search_radius", 100},
@@ -702,23 +849,20 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_AllFields)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
     auto function = result.value();
     auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination());
+    EXPECT_EQ(ResourceLocation("minecraft:on_woodland_explorer_maps"), func->getDestination());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getDecoration());
     EXPECT_EQ(1, func->getZoom());
     EXPECT_EQ(100, func->getSearchRadius());
-    EXPECT_FALSE(func->shouldSkipKnownStructures());
-    EXPECT_TRUE(func->getDecoration().has_value());
-    EXPECT_EQ(world::map::DecorationType::RED_X, func->getDecoration().value());
-    EXPECT_EQ(world::map::DecorationType::RED_X, func->getEffectiveDecoration());
+    EXPECT_FALSE(func->shouldSearchSkipLoadedChunks());
 }
 
 TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_VanillaDatapack)
 {
-    // 测试解析原版数据包中实际使用的格式（与 shipwreck_map.json 等一致）
+    // 原版数据包 shipwreck_map / underwater_ruin 使用：只指定 decoration 与 zoom，
+    // destination 使用默认的 on_treasure_maps
     nlohmann::json json = {
         {"function", "minecraft:exploration_map"},
         {"decoration", "minecraft:red_x"},
@@ -729,111 +873,359 @@ TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_VanillaDatapack)
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
     auto function = result.value();
     auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination()); // 默认值
+    EXPECT_EQ(ResourceLocation("minecraft:on_treasure_maps"), func->getDestination());
+    EXPECT_EQ(world::map::DecorationType::RED_X, func->getDecoration());
     EXPECT_EQ(1, func->getZoom());
-    EXPECT_EQ(50, func->getSearchRadius()); // 默认值
-    EXPECT_FALSE(func->shouldSkipKnownStructures());
-    EXPECT_TRUE(func->getDecoration().has_value());
-    EXPECT_EQ(world::map::DecorationType::RED_X, func->getDecoration().value());
-}
-
-TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DecorationWithoutNamespace)
-{
-    // 测试不带命名空间前缀的 decoration 字段（MC 1.16.5 兼容格式）
-    nlohmann::json json = {
-        {"function", "minecraft:exploration_map"},
-        {"decoration", "monument"},
-    };
-
-    auto result = LootSerializers::parseFunction(json);
-    ASSERT_TRUE(result.success());
-
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
-    auto function = result.value();
-    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
-    ASSERT_NE(func, nullptr);
-    EXPECT_TRUE(func->getDecoration().has_value());
-    EXPECT_EQ(world::map::DecorationType::MONUMENT, func->getDecoration().value());
-    EXPECT_EQ(world::map::DecorationType::MONUMENT, func->getEffectiveDecoration());
-}
-
-TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_EmptyJson)
-{
-    // 测试空 JSON（全部使用默认值）
-    nlohmann::json json = {{"function", "minecraft:exploration_map"}};
-
-    auto result = LootSerializers::parseFunction(json);
-    ASSERT_TRUE(result.success());
-
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
-    auto function = result.value();
-    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
-    ASSERT_NE(func, nullptr);
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination()); // 默认
-    EXPECT_EQ(2, func->getZoom());                                                          // 默认
-    EXPECT_EQ(50, func->getSearchRadius());                                                 // 默认
-    EXPECT_TRUE(func->shouldSkipKnownStructures());                                         // 默认
-    EXPECT_FALSE(func->getDecoration().has_value()); // 未指定，从 destination 推导
-    EXPECT_EQ(world::map::DecorationType::RED_X, func->getEffectiveDecoration());
-}
-
-TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDestination)
-{
-    // 测试无效的 destination 字符串，应回退到默认值 BuriedTreasure
-    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "minecraft:unknown_structure"}};
-
-    auto result = LootSerializers::parseFunction(json);
-    ASSERT_TRUE(result.success());
-
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
-    auto function = result.value();
-    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
-    ASSERT_NE(func, nullptr);
-    // 无法识别的 destination 应回退到默认值
-    EXPECT_EQ(ExplorationMapFunction::Destination::BuriedTreasure, func->getDestination());
-}
-
-TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDecoration)
-{
-    // 测试无效的 decoration 字符串，应忽略并回退到从 destination 推导
-    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"decoration", "nonexistent_type"}};
-
-    auto result = LootSerializers::parseFunction(json);
-    ASSERT_TRUE(result.success());
-
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
-    auto function = result.value();
-    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
-    ASSERT_NE(func, nullptr);
-    // 无法识别的 decoration 应忽略，decoration 保持 nullopt
-    EXPECT_FALSE(func->getDecoration().has_value());
-    // 从默认 destination (BuriedTreasure) 推导
-    EXPECT_EQ(world::map::DecorationType::RED_X, func->getEffectiveDecoration());
+    EXPECT_EQ(50, func->getSearchRadius());
+    EXPECT_FALSE(func->shouldSearchSkipLoadedChunks());
 }
 
 TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_DestinationWithoutNamespace)
 {
-    // 测试不带命名空间前缀的 destination（MC 1.16.5 兼容格式）
-    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "monument"}};
+    // 不带命名空间前缀时按资源位置默认命名空间解析为 minecraft
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", "on_ocean_explorer_maps"}};
 
     auto result = LootSerializers::parseFunction(json);
     ASSERT_TRUE(result.success());
 
-    // 注意：Result<std::unique_ptr<T>>::value() 按值返回并转移所有权，
-    // 必须用局部变量接住该 unique_ptr，否则对象在语句结束时即被析构。
     auto function = result.value();
     auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
     ASSERT_NE(func, nullptr);
-    EXPECT_EQ(ExplorationMapFunction::Destination::Monument, func->getDestination());
+    EXPECT_EQ(ResourceLocation("minecraft:on_ocean_explorer_maps"), func->getDestination());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDestinationFails)
+{
+    // destination 是资源位置：语法非法（空路径）时整张战利品表加载失败
+    for (const char* value : {"", "minecraft:", ":"}) {
+        nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"destination", value}};
+        auto result = LootSerializers::parseFunction(json);
+        ASSERT_FALSE(result.success()) << value;
+        EXPECT_EQ(ErrorCode::InvalidData, result.error().code()) << value;
+    }
+
+    // 非字符串类型同样失败（不再静默回退默认值）
+    nlohmann::json wrongType = {{"function", "minecraft:exploration_map"}, {"destination", 42}};
+    auto wrongTypeResult = LootSerializers::parseFunction(wrongType);
+    ASSERT_FALSE(wrongTypeResult.success());
+    EXPECT_EQ(ErrorCode::InvalidData, wrongTypeResult.error().code());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_InvalidDecorationFails)
+{
+    // decoration 是注册表项：无法识别时整张战利品表加载失败
+    for (const char* value : {"nonexistent_type", "minecraft:not_a_decoration"}) {
+        nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"decoration", value}};
+        auto result = LootSerializers::parseFunction(json);
+        ASSERT_FALSE(result.success()) << value;
+        EXPECT_EQ(ErrorCode::InvalidData, result.error().code()) << value;
+    }
+
+    nlohmann::json wrongType = {{"function", "minecraft:exploration_map"}, {"decoration", 7}};
+    auto wrongTypeResult = LootSerializers::parseFunction(wrongType);
+    ASSERT_FALSE(wrongTypeResult.success());
+    EXPECT_EQ(ErrorCode::InvalidData, wrongTypeResult.error().code());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_ZoomMustFitByte)
+{
+    // zoom 按字节编码：-128..127 合法，越界或非整数失败
+    for (const char* value : {"128", "-129", "100000", "1.5", "\"2\""}) {
+        nlohmann::json json =
+            nlohmann::json::parse(std::string("{\"function\":\"minecraft:exploration_map\",\"zoom\":") + value + "}");
+        auto result = LootSerializers::parseFunction(json);
+        ASSERT_FALSE(result.success()) << value;
+        EXPECT_EQ(ErrorCode::InvalidData, result.error().code()) << value;
+    }
+
+    nlohmann::json maxZoom = {{"function", "minecraft:exploration_map"}, {"zoom", 127}};
+    auto maxResult = LootSerializers::parseFunction(maxZoom);
+    ASSERT_TRUE(maxResult.success());
+    auto maxFunc = maxResult.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(maxFunc.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(127, func->getZoom());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_NegativeSearchRadiusFails)
+{
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"search_radius", -1}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
+
+    nlohmann::json zero = {{"function", "minecraft:exploration_map"}, {"search_radius", 0}};
+    auto zeroResult = LootSerializers::parseFunction(zero);
+    ASSERT_TRUE(zeroResult.success());
+    auto function = zeroResult.value();
+    auto* func = dynamic_cast<ExplorationMapFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(0, func->getSearchRadius());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ExplorationMap_SkipExistingMustBeBoolean)
+{
+    nlohmann::json json = {{"function", "minecraft:exploration_map"}, {"skip_existing_chunks", "false"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetEnchantments)
+{
+    nlohmann::json json = {
+        {"function", "minecraft:set_enchantments"}, {"enchantments", {{"minecraft:fortune", 3}, {"unbreaking", 1}}}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<SetEnchantmentsFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    ASSERT_EQ(func->getEnchantments().size(), 2u);
+    EXPECT_EQ(ResourceLocation("minecraft:fortune"), func->getEnchantments()[0].enchantmentId);
+    EXPECT_EQ(ResourceLocation("minecraft:unbreaking"), func->getEnchantments()[1].enchantmentId);
+    EXPECT_FALSE(func->isAdd());
+
+    // unknown enchantment -> load failure
+    nlohmann::json bad = {
+        {"function", "minecraft:set_enchantments"}, {"enchantments", {{"minecraft:not_an_enchantment", 1}}}};
+    EXPECT_FALSE(LootSerializers::parseFunction(bad).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetPotion)
+{
+    nlohmann::json json = {{"function", "minecraft:set_potion"}, {"id", "minecraft:strong_regeneration"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    EXPECT_EQ("set_potion", function->getType());
+
+    nlohmann::json bad = {{"function", "minecraft:set_potion"}, {"id", "minecraft:not_a_potion"}};
+    EXPECT_FALSE(LootSerializers::parseFunction(bad).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetInstrument)
+{
+    nlohmann::json json = {{"function", "minecraft:set_instrument"}, {"options", "#minecraft:regular_goat_horns"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<SetInstrumentFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ResourceLocation("minecraft:regular_goat_horns"), func->getOptionsTag());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_CopyComponents)
+{
+    nlohmann::json json = {
+        {"function", "minecraft:copy_components"}, {"source", "block_entity"}, {"include", {"minecraft:custom_name"}}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<CopyComponentsFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(CopyComponentsFunction::Source::BlockEntity, func->getSource());
+    ASSERT_EQ(func->getInclude().size(), 1u);
+    EXPECT_EQ(item::component::DataComponentType::CustomName, func->getInclude()[0]);
+
+    nlohmann::json bad = {{"function", "minecraft:copy_components"}, {"include", {"minecraft:not_a_component"}}};
+    EXPECT_FALSE(LootSerializers::parseFunction(bad).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetComponents)
+{
+    nlohmann::json json = {{"function", "minecraft:set_components"},
+        {"components",
+            {{"minecraft:enchantment_glint_override", true}, {"minecraft:custom_model_data", {{"floats", {1.5}}}}}}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<SetComponentsFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(func->getComponents().added().size(), 2u);
+
+    // 未知组件 -> 加载失败
+    nlohmann::json bad = {
+        {"function", "minecraft:set_components"}, {"components", {{"minecraft:no_such_component", 1}}}};
+    EXPECT_FALSE(LootSerializers::parseFunction(bad).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetOminousBottleAmplifier)
+{
+    nlohmann::json json = {{"function", "minecraft:set_ominous_bottle_amplifier"},
+        {"amplifier", {{"type", "minecraft:uniform"}, {"min", 2}, {"max", 4}}}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<SetOminousBottleAmplifierFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_FLOAT_EQ(2.0f, func->getAmplifier().getMin());
+    EXPECT_FLOAT_EQ(4.0f, func->getAmplifier().getMax());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetItem)
+{
+    nlohmann::json json = {{"function", "minecraft:set_item"}, {"item", "diamond"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<SetItemFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ(ResourceLocation("minecraft:diamond"), func->getItemId());
+
+    nlohmann::json bad = {{"function", "minecraft:set_item"}, {"item", "minecraft:not_an_item"}};
+    EXPECT_FALSE(LootSerializers::parseFunction(bad).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_FilteredAndSequenceAndDiscard)
+{
+    nlohmann::json filtered = {{"function", "minecraft:filtered"},
+        {"item_filter", {{"items", "minecraft:diamond"}}},
+        {"on_pass", {{"function", "minecraft:set_count"}, {"count", 2}}}};
+    auto filteredResult = LootSerializers::parseFunction(filtered);
+    ASSERT_TRUE(filteredResult.success()) << filteredResult.error().message();
+    auto filteredFunction = filteredResult.value();
+    auto* filteredFunc = dynamic_cast<FilteredFunction*>(filteredFunction.get());
+    ASSERT_NE(filteredFunc, nullptr);
+    EXPECT_TRUE(filteredFunc->getOnPass().has_value());
+    EXPECT_FALSE(filteredFunc->getOnFail().has_value());
+
+    nlohmann::json sequence = {{"function", "minecraft:sequence"},
+        {"functions", {{{"function", "minecraft:set_count"}, {"count", 1}}, {{"function", "minecraft:set_name"}}}}};
+    auto sequenceResult = LootSerializers::parseFunction(sequence);
+    ASSERT_TRUE(sequenceResult.success()) << sequenceResult.error().message();
+    auto sequenceFunction = sequenceResult.value();
+    auto* sequenceFunc = dynamic_cast<SequenceFunction*>(sequenceFunction.get());
+    ASSERT_NE(sequenceFunc, nullptr);
+    EXPECT_EQ(sequenceFunc->getFunctions().size(), 2u);
+
+    nlohmann::json discard = {{"function", "minecraft:discard"}};
+    auto discardResult = LootSerializers::parseFunction(discard);
+    ASSERT_TRUE(discardResult.success());
+    EXPECT_EQ("discard", discardResult.value()->getType());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetFireworksAndExplosion)
+{
+    nlohmann::json json = {{"function", "minecraft:set_fireworks"},
+        {"flight_duration", 2},
+        {"explosions", {{"mode", "append"}, {"explosions", {{{"shape", "creeper"}, {"colors", {0xFF0000}}}}}}}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<SetFireworksFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_TRUE(func->getFlightDuration().has_value());
+    EXPECT_EQ(2, *func->getFlightDuration());
+    ASSERT_TRUE(func->getExplosions().has_value());
+    EXPECT_EQ(ListOperationKind::Append, func->getExplosions()->kind);
+    ASSERT_EQ(func->getExplosions()->explosions.size(), 1u);
+    EXPECT_EQ(item::component::FireworkShape::Creeper, func->getExplosions()->explosions[0].shape);
+
+    nlohmann::json explosion = {
+        {"function", "minecraft:set_firework_explosion"}, {"shape", "star"}, {"colors", {0x00FF00}}, {"trail", true}};
+    auto explosionResult = LootSerializers::parseFunction(explosion);
+    ASSERT_TRUE(explosionResult.success()) << explosionResult.error().message();
+    auto explosionFunction = explosionResult.value();
+    auto* explosionFunc = dynamic_cast<SetFireworkExplosionFunction*>(explosionFunction.get());
+    ASSERT_NE(explosionFunc, nullptr);
+    ASSERT_TRUE(explosionFunc->getShape().has_value());
+    EXPECT_EQ(item::component::FireworkShape::Star, *explosionFunc->getShape());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_BookAndBannerFunctions)
+{
+    nlohmann::json written = {{"function", "minecraft:set_written_book_pages"}, {"pages", {"page1", "page2"}}};
+    auto writtenResult = LootSerializers::parseFunction(written);
+    ASSERT_TRUE(writtenResult.success()) << writtenResult.error().message();
+    auto writtenFunction = writtenResult.value();
+    auto* writtenFunc = dynamic_cast<SetWrittenBookPagesFunction*>(writtenFunction.get());
+    ASSERT_NE(writtenFunc, nullptr);
+    EXPECT_EQ(writtenFunc->getPages().size(), 2u);
+
+    nlohmann::json writable = {{"function", "minecraft:set_writable_book_pages"}, {"pages", {"a"}}};
+    auto writableResult = LootSerializers::parseFunction(writable);
+    ASSERT_TRUE(writableResult.success()) << writableResult.error().message();
+    EXPECT_EQ("set_writable_book_pages", writableResult.value()->getType());
+
+    nlohmann::json cover = {
+        {"function", "minecraft:set_book_cover"}, {"title", "T"}, {"author", "A"}, {"generation", 2}};
+    auto coverResult = LootSerializers::parseFunction(cover);
+    ASSERT_TRUE(coverResult.success()) << coverResult.error().message();
+    EXPECT_EQ("set_book_cover", coverResult.value()->getType());
+
+    nlohmann::json banner = {{"function", "minecraft:set_banner_pattern"},
+        {"patterns", {{{"pattern", "minecraft:stripe_bottom"}, {"color", "red"}}}},
+        {"append", true}};
+    auto bannerResult = LootSerializers::parseFunction(banner);
+    ASSERT_TRUE(bannerResult.success()) << bannerResult.error().message();
+    auto bannerFunction = bannerResult.value();
+    auto* bannerFunc = dynamic_cast<SetBannerPatternFunction*>(bannerFunction.get());
+    ASSERT_NE(bannerFunc, nullptr);
+    EXPECT_TRUE(bannerFunc->isAppend());
+
+    nlohmann::json badBanner = {{"function", "minecraft:set_banner_pattern"},
+        {"patterns", {{{"pattern", "minecraft:stripe_bottom"}, {"color", "not_a_color"}}}}};
+    EXPECT_FALSE(LootSerializers::parseFunction(badBanner).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ToggleTooltipsAndCustomModelData)
+{
+    nlohmann::json tooltips = {{"function", "minecraft:toggle_tooltips"},
+        {"toggles", {{"minecraft:enchantments", false}, {"minecraft:custom_name", true}}}};
+    auto tooltipsResult = LootSerializers::parseFunction(tooltips);
+    ASSERT_TRUE(tooltipsResult.success()) << tooltipsResult.error().message();
+    auto tooltipsFunction = tooltipsResult.value();
+    auto* tooltipsFunc = dynamic_cast<ToggleTooltipsFunction*>(tooltipsFunction.get());
+    ASSERT_NE(tooltipsFunc, nullptr);
+    EXPECT_EQ(tooltipsFunc->getToggles().size(), 2u);
+
+    nlohmann::json modelData = {{"function", "minecraft:set_custom_model_data"},
+        {"floats", {{"mode", "replace_all"}, {"values", {1.0, 2.0}}}},
+        {"strings", {{"mode", "append"}, {"values", {"a"}}}}};
+    auto modelResult = LootSerializers::parseFunction(modelData);
+    ASSERT_TRUE(modelResult.success()) << modelResult.error().message();
+    EXPECT_EQ("set_custom_model_data", modelResult.value()->getType());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_ModifyContents)
+{
+    nlohmann::json json = {{"function", "minecraft:modify_contents"},
+        {"component", "minecraft:container"},
+        {"modifier", {{"function", "minecraft:set_count"}, {"count", 1}}}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<ModifyContentsFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ("minecraft:container", func->getComponent());
+    ASSERT_NE(func->getModifier(), nullptr);
+    EXPECT_EQ("set_count", func->getModifier()->getType());
+
+    nlohmann::json bad = {{"function", "minecraft:modify_contents"},
+        {"component", "minecraft:not_a_container"},
+        {"modifier", {{"function", "minecraft:set_count"}, {"count", 1}}}};
+    EXPECT_FALSE(LootSerializers::parseFunction(bad).success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_Reference)
+{
+    // 未注册的命名函数 -> 加载失败（原版 MissingReferenceProblem）
+    nlohmann::json missing = {{"function", "minecraft:reference"}, {"name", "minecraft:missing_function"}};
+    EXPECT_FALSE(LootSerializers::parseFunction(missing).success());
+
+    // 注册后引用可正常解析
+    LootFunctionManager::instance().registerFunction(
+        "minecraft:test_function", std::make_unique<SetCountFunction>(RandomValueRange(1.0f, 1.0f), false));
+    nlohmann::json json = {{"function", "minecraft:reference"}, {"name", "minecraft:test_function"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << result.error().message();
+    auto function = result.value();
+    auto* func = dynamic_cast<FunctionReferenceFunction*>(function.get());
+    ASSERT_NE(func, nullptr);
+    EXPECT_EQ("minecraft:test_function", func->getName());
 }
 
 TEST_F(LootSerializersTest, DecorationTypeStringConversion)
