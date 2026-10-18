@@ -2728,32 +2728,41 @@ TEST_F(LootTest, SetLootTableFunction_OverwriteExistingTag)
 // SetCustomDataFunction Tests
 // ============================================================================
 
-TEST_F(LootTest, SetCustomDataFunction_EmptyString)
+namespace {
+
+/**
+ * @brief 按加载期语义构建 set_custom_data 函数，断言 tag 合法
+ *
+ * 自定义数据在加载战利品表时即解析，非法文本会让整张表加载失败（见 create()），
+ * 因此这里对合法用例统一走 create() 并断言成功。
+ */
+std::unique_ptr<SetCustomDataFunction> makeSetCustomData(const std::string& nbtString)
 {
-    // 空字符串不应该修改物品
-    SetCustomDataFunction func("");
+    auto result = SetCustomDataFunction::create(nbtString);
+    EXPECT_TRUE(result.success()) << (result.success() ? "" : result.error().message());
+    return result.success() ? std::move(result.value()) : nullptr;
+}
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+} // namespace
 
-    math::Random rng(12345);
-    auto context = LootContextBuilder(m_world).withRandom(rng).build();
-
-    ItemStack result = func.apply(stack, *context);
-    EXPECT_FALSE(result.hasTag()); // 不应该有标签
+TEST_F(LootTest, SetCustomDataFunction_EmptyStringFailsAtLoad)
+{
+    // 空字符串不是合法复合标签：加载期即失败（整张战利品表加载失败），而不是掉落时静默忽略
+    auto result = SetCustomDataFunction::create("");
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
 }
 
 TEST_F(LootTest, SetCustomDataFunction_EmptyStack)
 {
     // 空物品堆不应该被修改
-    SetCustomDataFunction func("{display:{Name:\"Test\"}}");
+    auto func = makeSetCustomData("{display:{Name:\"Test\"}}");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
     ItemStack emptyStack;
-    ItemStack result = func.apply(emptyStack, *context);
+    ItemStack result = func->apply(emptyStack, *context);
     EXPECT_TRUE(result.isEmpty());
 }
 
@@ -2771,7 +2780,7 @@ TEST_F(LootTest, SetCustomDataFunction_Builder)
 TEST_F(LootTest, SetCustomDataFunction_SimpleTag)
 {
     // 测试简单的 NBT 标签
-    SetCustomDataFunction func("{Damage:10}");
+    auto func = makeSetCustomData("{Damage:10}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2780,7 +2789,7 @@ TEST_F(LootTest, SetCustomDataFunction_SimpleTag)
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
-    ItemStack result = func.apply(stack, *context);
+    ItemStack result = func->apply(stack, *context);
 
     // 验证物品仍然存在
     EXPECT_EQ(diamond, result.getItem());
@@ -2801,7 +2810,7 @@ TEST_F(LootTest, SetCustomDataFunction_SimpleTag)
 TEST_F(LootTest, SetCustomDataFunction_NestedTag)
 {
     // 测试嵌套的 NBT 标签
-    SetCustomDataFunction func("{display:{Name:\"Custom Sword\",color:16711680}}");
+    auto func = makeSetCustomData("{display:{Name:\"Custom Sword\",color:16711680}}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
     ASSERT_NE(diamond, nullptr);
@@ -2810,7 +2819,7 @@ TEST_F(LootTest, SetCustomDataFunction_NestedTag)
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
-    ItemStack result = func.apply(stack, *context);
+    ItemStack result = func->apply(stack, *context);
 
     // 验证设置了嵌套标签
     ASSERT_TRUE(result.hasTag());
@@ -2838,12 +2847,12 @@ TEST_F(LootTest, SetCustomDataFunction_MergeTag)
     stack.getOrCreateTag()["initial_value"] = 100;
 
     // 然后应用 SetCustomDataFunction
-    SetCustomDataFunction func("{new_value:200}");
+    auto func = makeSetCustomData("{new_value:200}");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
-    ItemStack result = func.apply(stack, *context);
+    ItemStack result = func->apply(stack, *context);
 
     // 验证两个标签都存在
     ASSERT_TRUE(result.hasTag());
@@ -2874,12 +2883,12 @@ TEST_F(LootTest, SetCustomDataFunction_MergeNestedObject)
     display["existing_value"] = 50;
 
     // 应用函数合并嵌套对象
-    SetCustomDataFunction func("{display:{color:16711680,new_value:100}}");
+    auto func = makeSetCustomData("{display:{color:16711680,new_value:100}}");
 
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
-    ItemStack result = func.apply(stack, *context);
+    ItemStack result = func->apply(stack, *context);
 
     // 验证合并结果
     const nlohmann::json* tag = result.getTag();
@@ -2909,27 +2918,18 @@ TEST_F(LootTest, SetCustomDataFunction_MergeNestedObject)
     EXPECT_EQ(100, newIt->get<i32>());
 }
 
-TEST_F(LootTest, SetCustomDataFunction_InvalidNbt)
+TEST_F(LootTest, SetCustomDataFunction_InvalidNbtFailsAtLoad)
 {
-    // 测试无效的 NBT 字符串
-    SetCustomDataFunction func("{invalid nbt string"); // 缺少闭合大括号
-
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
-
-    math::Random rng(12345);
-    auto context = LootContextBuilder(m_world).withRandom(rng).build();
-
-    // 无效的 NBT 应该被忽略，物品保持不变
-    ItemStack result = func.apply(stack, *context);
-    EXPECT_FALSE(result.hasTag());
+    // 缺少闭合大括号：加载期解析失败
+    auto result = SetCustomDataFunction::create("{invalid nbt string");
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
 }
 
 TEST_F(LootTest, SetCustomDataFunction_WithTypeSuffixes)
 {
     // 测试带类型后缀的 NBT 值
-    SetCustomDataFunction func(
+    auto func = makeSetCustomData(
         "{byte_val:10b,short_val:100s,int_val:1000,long_val:10000l,float_val:3.14f,double_val:3.14159d}");
 
     const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
@@ -2939,7 +2939,7 @@ TEST_F(LootTest, SetCustomDataFunction_WithTypeSuffixes)
     math::Random rng(12345);
     auto context = LootContextBuilder(m_world).withRandom(rng).build();
 
-    ItemStack result = func.apply(stack, *context);
+    ItemStack result = func->apply(stack, *context);
 
     ASSERT_TRUE(result.hasTag());
     const nlohmann::json* tag = result.getTag();
@@ -2956,9 +2956,9 @@ TEST_F(LootTest, SetCustomDataFunction_WithTypeSuffixes)
 
 TEST_F(LootTest, SetCustomDataFunction_Clone)
 {
-    SetCustomDataFunction func("{display:{Name:\"Test\"}}");
+    auto func = makeSetCustomData("{display:{Name:\"Test\"}}");
 
-    auto cloned = func.clone();
+    auto cloned = func->clone();
     ASSERT_NE(cloned, nullptr);
 
     auto* clonedFunc = dynamic_cast<SetCustomDataFunction*>(cloned.get());

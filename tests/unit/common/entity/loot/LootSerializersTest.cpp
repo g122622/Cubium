@@ -521,6 +521,44 @@ TEST_F(LootSerializersTest, ParseFunction_LootingEnchant)
     EXPECT_EQ("enchanted_count_increase", function->getType());
 }
 
+TEST_F(LootSerializersTest, ParseFunction_SetCustomDataRejectsMalformedTag)
+{
+    // 自定义数据在加载期解析：tag 非法时整张战利品表解析失败，而不是掉落时静默忽略
+    nlohmann::json json = {{"function", "minecraft:set_custom_data"}, {"tag", "{invalid nbt string"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
+
+    nlohmann::json emptyTag = {{"function", "minecraft:set_custom_data"}, {"tag", ""}};
+    auto emptyResult = LootSerializers::parseFunction(emptyTag);
+    EXPECT_FALSE(emptyResult.success());
+}
+
+TEST_F(LootSerializersTest, ParseFunction_SetCustomDataParsesTagAtLoad)
+{
+    nlohmann::json json = {{"function", "minecraft:set_custom_data"}, {"tag", "{CustomKey:42}"}};
+    auto result = LootSerializers::parseFunction(json);
+    ASSERT_TRUE(result.success()) << (!result.success() ? result.error().message() : "");
+
+    auto function = result.value();
+    ASSERT_NE(function, nullptr);
+    EXPECT_EQ("set_custom_data", function->getType());
+
+    // 加载期已解析：掉落期内直接合并，无需再次解析 Mojangson
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    math::Random rng(12345);
+    auto context = LootContextBuilder(m_world).withRandom(rng).build();
+    ItemStack applied = function->apply(stack, *context);
+    ASSERT_TRUE(applied.hasTag());
+    const nlohmann::json* tag = applied.getTag();
+    ASSERT_NE(tag, nullptr);
+    auto it = tag->find("CustomKey");
+    ASSERT_NE(it, tag->end());
+    EXPECT_EQ(42, it->get<i32>());
+}
+
 TEST_F(LootSerializersTest, ParseFunction_SetDamage)
 {
     nlohmann::json json = {

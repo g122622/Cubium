@@ -29,36 +29,39 @@
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include <memory>
 #include <string>
+#include <utility>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {
 
-SetCustomDataFunction::SetCustomDataFunction(const std::string& nbtString)
+SetCustomDataFunction::SetCustomDataFunction(const std::string& nbtString, std::optional<nlohmann::json> parsedTag)
     : m_nbtString(nbtString)
+    , m_parsedTag(std::move(parsedTag))
 {}
+
+Result<std::unique_ptr<SetCustomDataFunction>> SetCustomDataFunction::create(const std::string& nbtString)
+{
+    // 加载期即解析（对应 vanilla 在 codec 阶段用 TagParser 解析 tag）：非法文本必须让整张战利品表加载失败，
+    // 而不是在掉落时才静默丢弃。
+    auto parsedTag = nbt::parseMojangson(nbtString);
+    if (!parsedTag) {
+        return Error(ErrorCode::InvalidData, "set_custom_data: malformed tag '" + nbtString + "'");
+    }
+    return std::make_unique<SetCustomDataFunction>(nbtString, nbt::nbtToJson(*parsedTag));
+}
 
 ItemStack SetCustomDataFunction::apply(ItemStack stack, LootContext& context) const
 {
     MC_UNUSED(context);
 
-    if (stack.isEmpty() || m_nbtString.empty()) {
+    if (stack.isEmpty() || !m_parsedTag.has_value()) {
         return stack;
     }
 
-    // 使用 Mojangson 格式解析 NBT 字符串
-    // TODO: 原版 minecraft:set_custom_data 在解析战利品表时即用 TagParser.LENIENT_CODEC
-    //  解析 "tag" 字段，非法 NBT 会导致整张战利品表加载失败；本项目延迟到 apply() 解析并
-    //  静默忽略解析失败，两者的失败语义不同。
-    auto parsedTag = nbt::parseMojangson(m_nbtString);
-    if (!parsedTag) {
-        return stack;
-    }
-
-    // 将 NBT 转换为 JSON 并合并到 ItemStack
-    nlohmann::json jsonTag = nbt::nbtToJson(*parsedTag);
-    if (jsonTag.is_object() && !jsonTag.empty()) {
-        stack.mergeTag(jsonTag);
+    // 合并加载期解析好的自定义数据（对象且非空时生效）
+    if (m_parsedTag->is_object() && !m_parsedTag->empty()) {
+        stack.mergeTag(*m_parsedTag);
     }
 
     return stack;
@@ -66,7 +69,7 @@ ItemStack SetCustomDataFunction::apply(ItemStack stack, LootContext& context) co
 
 std::unique_ptr<LootFunction> SetCustomDataFunction::clone() const noexcept
 {
-    auto func = std::make_unique<SetCustomDataFunction>(m_nbtString);
+    auto func = std::make_unique<SetCustomDataFunction>(m_nbtString, m_parsedTag);
     for (const auto& cond : m_conditions) {
         func->addCondition(cond->clone());
     }

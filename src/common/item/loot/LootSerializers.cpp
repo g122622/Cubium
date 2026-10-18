@@ -1107,7 +1107,12 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::_parseSetCustomDataFuncti
     }
 
     std::string nbtString = json["tag"].get<std::string>();
-    return castToBase<SetCustomDataFunction, LootFunction>(std::make_unique<SetCustomDataFunction>(nbtString));
+    // 加载期即解析自定义数据：非法 NBT 文本使整张战利品表加载失败，不在掉落时静默丢弃。
+    auto created = SetCustomDataFunction::create(nbtString);
+    if (!created.success()) {
+        return created.error();
+    }
+    return castToBase<SetCustomDataFunction, LootFunction>(created.value());
 }
 
 Result<std::unique_ptr<LootFunction>> LootSerializers::_parseCopyNameFunction(const nlohmann::json& json)
