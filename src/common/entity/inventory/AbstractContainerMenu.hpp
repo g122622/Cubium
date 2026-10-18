@@ -618,11 +618,52 @@ private:
     [[nodiscard]] bool _canDragIntoSlot(Slot& slot, const ItemStack& stack) const;
 
     /**
-     * @brief 处理双击拾取全部
+     * @brief 处理双击拾取全部（PICKUP_ALL）
      *
+     * 以光标上已有的物品为基准，按 button 指定的方向遍历全部槽位，把可合并的同类物品
+     * 补入光标，直到光标堆满。光标为空时不收集（此时客户端只会发送普通 PICKUP）。
+     * 收尾时若光标未满且容器内仍有同种物品，则把光标物品放回玩家背包或掉落。
+     *
+     * @param slot 被双击的槽位
+     * @param slotIndex 被双击槽位的索引（不参与收集，其物品已由第一次点击拾取）
+     * @param slotStack 点击前被双击槽位的物品
+     * @param button 0=正向遍历（0→末尾），1=反向遍历（末尾→0）
      * @param player 执行点击的玩家（见 _handleClickPick 的说明）
      */
-    ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player);
+    ItemStack _handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player);
+
+    /**
+     * @brief 检查槽位中的物品能否整体并入给定物品堆
+     *
+     * 对应 MC 1.21.11 AbstractContainerMenu#canItemQuickReplace(slot, stack, true)。
+     *
+     * @param slot 待检查的槽位
+     * @param stack 目标物品堆（通常是光标物品）
+     * @return 槽位为空或槽位物品可与 stack 合并时返回 true
+     */
+    [[nodiscard]] bool _canItemQuickReplace(const Slot& slot, const ItemStack& stack) const;
+
+    /**
+     * @brief 检查双击收集时是否允许从槽位取物
+     *
+     * 对应 MC 1.21.11 AbstractContainerMenu#canTakeItemForPickAll，子类可重写以
+     * 排除不允许被双击收集的槽位。
+     *
+     * @param stack 光标物品
+     * @param slot 待检查的槽位
+     * @return 允许取物返回 true
+     */
+    [[nodiscard]] virtual bool _canTakeItemForPickAll(const ItemStack& stack, const Slot& slot) const;
+
+    /**
+     * @brief 把物品放回玩家背包，放不下则掉落
+     *
+     * 对应 MC 1.21.11 AbstractContainerMenu#dropOrPlaceInInventory。
+     *
+     * @param stack 要处理的物品堆，处理后清空
+     * @param player 目标玩家
+     */
+    void dropOrPlaceInInventory(ItemStack& stack, Player& player);
 
     /**
      * @brief 尝试槽位覆写协议（收纳袋等特殊物品）

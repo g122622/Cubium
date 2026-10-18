@@ -425,11 +425,12 @@ TEST_F(ContainerScreenInteractionTest, PickupAllCollectsAllMatchingItems)
     TestMenu menu(&inventory);
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
-    // PickAll要求光标为空且槽位有物品
-    // 双击第一个槽位应该拾取所有钻石
+    // PickAll 以光标已有物品为基准：模拟第一次点击已把槽位0的10个钻石拾到光标上
+    menu.setCarriedItem(ItemStack(*m_diamond, 10));
+    menu.getSlot(0)->set(ItemStack());
     menu.clicked(0, 0, ClickType::PickAll, player);
 
-    // 鼠标应该有10+20+30=60个钻石
+    // 光标补满到 10+20+30=60 个钻石
     EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
     EXPECT_EQ(menu.getCarriedItem().getCount(), 60);
 
@@ -468,13 +469,16 @@ TEST_F(ContainerScreenInteractionTest, PickupAllRespectsMaxStackSize)
     TestMenu menu(&inventory);
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
-    // PickAll 应拾取最大堆叠量（64）
+    // 模拟第一次点击已把槽位0的整组64个钻石拾到光标上，随后双击补齐
+    menu.setCarriedItem(ItemStack(*m_diamond, 64));
+    menu.getSlot(0)->set(ItemStack());
     menu.clicked(0, 0, ClickType::PickAll, player);
 
+    // 光标已满 64，不再从槽位1取物
     EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
     EXPECT_EQ(menu.getCarriedItem().getCount(), 64);
 
-    // 槽位0变空，槽位1应有10个钻石
+    // 槽位0变空，槽位1保留10个钻石
     EXPECT_TRUE(menu.getSlot(0)->isEmpty());
     EXPECT_EQ(menu.getSlot(1)->getItem().getCount(), 10);
 }

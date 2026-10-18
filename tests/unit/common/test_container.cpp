@@ -209,18 +209,170 @@ TEST_F(AbstractContainerMenuTest, PickAllDoubleClick)
     TestMenu menu(&inventory);
     Player player(1, "TestPlayer", mc::test::testEcsRegistry());
 
-    // PickAll（双击）在空鼠标状态下点击有物品的槽位，应该拾取所有相同物品
-    // 鼠标初始为空，点击槽位0应该拾取所有钻石（10+20+30=60）
+    // 双击拾取全部以光标已有物品为基准。光标为空时本动作不收集任何物品
+    // （客户端在光标为空时双击只会发送普通 PICKUP，不会发送 PICKUP_ALL）。
     menu.clicked(0, 0, ClickType::PickAll, player);
 
-    // 鼠标应该有10+20+30=60个钻石
+    EXPECT_TRUE(menu.getCarriedItem().isEmpty());
+    EXPECT_EQ(menu.getSlot(0)->getItem().getCount(), 10);
+    EXPECT_EQ(menu.getSlot(1)->getItem().getCount(), 20);
+    EXPECT_EQ(menu.getSlot(2)->getItem().getCount(), 30);
+}
+
+TEST_F(AbstractContainerMenuTest, PickAllCollectsIntoExistingCarriedStack)
+{
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 10));
+    inventory.setItem(1, ItemStack(*m_diamond, 20));
+    inventory.setItem(2, ItemStack(*m_diamond, 30));
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv)
+            : AbstractContainerMenu(0, inv)
+        {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+
+    // 模拟第一次点击已把槽位0的10个钻石拾到光标上，随后发送 PICKUP_ALL
+    menu.setCarriedItem(ItemStack(*m_diamond, 10));
+    menu.getSlot(0)->set(ItemStack());
+    menu.clicked(0, 0, ClickType::PickAll, player);
+
+    // 光标补满到 10+20+30=60，其余槽位被清空
     EXPECT_EQ(menu.getCarriedItem().getItem(), m_diamond);
     EXPECT_EQ(menu.getCarriedItem().getCount(), 60);
-
-    // 槽位应该都变空了
-    EXPECT_TRUE(menu.getSlot(0)->isEmpty());
     EXPECT_TRUE(menu.getSlot(1)->isEmpty());
     EXPECT_TRUE(menu.getSlot(2)->isEmpty());
+}
+
+TEST_F(AbstractContainerMenuTest, PickAllSkipsFullStacksInFirstPass)
+{
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 20));
+    inventory.setItem(1, ItemStack(*m_diamond, 64)); // 整组堆叠
+    inventory.setItem(2, ItemStack(*m_diamond, 30));
+
+    class TestMenu : public AbstractContainerMenu {
+    public:
+        TestMenu(PlayerInventory* inv)
+            : AbstractContainerMenu(0, inv)
+        {
+            for (int i = 0; i < 9; ++i) {
+                addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+            }
+            m_playerInvStart = 0;
+        }
+        bool stillValid(const Player& player) const override { return true; }
+    };
+
+    TestMenu menu(&inventory);
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+
+    // 光标已有槽位0的20个钻石，先耗尽空位；第一轮应跳过整组的64个堆叠，
+    // 收集零散的30个把光标补满（20+30=50 < 64，继续收集整组至满 64）。
+    menu.setCarriedItem(ItemStack(*m_diamond, 20));
+    menu.getSlot(0)->set(ItemStack());
+    menu.clicked(0, 0, ClickType::PickAll, player);
+
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 64);
+    // 整组堆叠在第二轮兜底中被部分取出，剩余 64-14=50
+    EXPECT_EQ(menu.getSlot(1)->getItem().getCount(), 50);
+    EXPECT_TRUE(menu.getSlot(2)->isEmpty());
+}
+
+// 限定取物范围的测试菜单：收集遍历阶段只允许从索引 <= maxCollectSlot 的槽位取物
+// （被双击槽位已通过菜单入口的 mayPickup 检查，故不受此限制），从而稳定构造
+// "收集结束后光标未满且容器内仍有同种物品"的收尾条件。
+class CountingPickAllMenu : public AbstractContainerMenu {
+public:
+    CountingPickAllMenu(PlayerInventory* inv, i32 maxCollectSlot, i32 clickedSlot)
+        : AbstractContainerMenu(0, inv)
+        , m_maxCollectSlot(maxCollectSlot)
+        , m_clickedSlot(clickedSlot)
+    {
+        for (int i = 0; i < 9; ++i) {
+            addSlot(std::make_unique<Slot>(inv, i, 8 + i * 18, 142));
+        }
+        m_playerInvStart = 0;
+    }
+    bool stillValid(const Player& player) const override { return true; }
+
+    [[nodiscard]] bool _canTakeItemForPickAll(const ItemStack& stack, const Slot& slot) const override
+    {
+        (void)stack;
+        // 只允许索引不超过 maxCollectSlot 的槽位（以及被双击槽位）被取出；
+        // 判定本身无副作用，可被重复查询
+        const i32 slotNumber = slot.getSlotNumber();
+        return slotNumber <= m_maxCollectSlot || slotNumber == m_clickedSlot;
+    }
+
+private:
+    i32 m_maxCollectSlot;
+    i32 m_clickedSlot;
+};
+
+TEST_F(AbstractContainerMenuTest, PickAllKeepsCarriedWhenNoMatchingItemLeft)
+{
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 10));
+    inventory.setItem(1, ItemStack(*m_diamond, 30));
+
+    CountingPickAllMenu menu(&inventory, 1, 0);
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+
+    // 光标在第一次点击后持 10 个，双击槽位0（已空）：收集到槽位1的 30 个后光标 40 个，
+    // 容器内已无同种物品，因此不触发放回逻辑。
+    menu.setCarriedItem(ItemStack(*m_diamond, 10));
+    menu.getSlot(0)->set(ItemStack());
+    menu.clicked(0, 0, ClickType::PickAll, player);
+
+    EXPECT_EQ(menu.getCarriedItem().getCount(), 40);
+    EXPECT_TRUE(menu.getSlot(1)->isEmpty());
+}
+
+TEST_F(AbstractContainerMenuTest, PickAllReturnsCarriedToInventoryWhenMatchingItemRemains)
+{
+    ASSERT_NE(m_diamond, nullptr);
+
+    PlayerInventory inventory;
+    inventory.setItem(0, ItemStack(*m_diamond, 10));
+    inventory.setItem(1, ItemStack(*m_diamond, 20));
+    inventory.setItem(2, ItemStack(*m_diamond, 30));
+
+    // 只允许收集槽位1（20 个），槽位2 因覆写拒绝而保留，触发收尾放回逻辑
+    CountingPickAllMenu menu(&inventory, 1, 0);
+    Player player(1, "TestPlayer", mc::test::testEcsRegistry());
+
+    menu.setCarriedItem(ItemStack(*m_diamond, 10));
+    menu.getSlot(0)->set(ItemStack());
+    menu.clicked(0, 0, ClickType::PickAll, player);
+
+    // 光标为 30 个（未满）且槽位2仍有同种物品 → 放回玩家背包，光标清空，
+    // 30 个统一进入玩家背包中某个槽位。
+    EXPECT_TRUE(menu.getCarriedItem().isEmpty());
+
+    i32 inInventory = 0;
+    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
+        inInventory += inventory.getItem(i).getCount();
+    }
+    // 放回的 30 个进入玩家背包；槽位2 未被收集，仍保留 30 个
+    EXPECT_EQ(inInventory, 30);
+    EXPECT_EQ(menu.getSlot(2)->getItem().getCount(), 30);
 }
 
 TEST_F(AbstractContainerMenuTest, CloneInCreativeMode)
