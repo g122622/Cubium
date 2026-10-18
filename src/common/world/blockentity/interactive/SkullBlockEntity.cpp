@@ -24,6 +24,7 @@
 #include "SkullBlockEntity.hpp"
 
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
@@ -107,18 +108,17 @@ bool SkullBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
         m_customName = nameOpt.value();
     }
 
-    // 所有者档案：NBT 中以 CompoundTag 形式存储（UUID/Name/Properties）。
-    // TODO: 结构模板中的头颅所有者档案反序列化待 GameProfile 的 NBT 复合标签映射接入后补全，
-    //   当前 NBT 路径仅恢复自定义名称（JSON 存档路径 load/save 已完整支持档案往返）。
-    const auto* profileTag = entity::serialization::nbt_helper::tryGetCompound(tag, "profile");
-    if (profileTag != nullptr) {
-        auto uuidStr = entity::serialization::nbt_helper::tryGetString(*profileTag, "Id");
-        auto nameStr = entity::serialization::nbt_helper::tryGetString(*profileTag, "Name");
-        if (uuidStr.has_value()) {
-            skin::GameProfile profile;
-            profile.setUUID(skin::GameProfile::parseUUID(uuidStr.value()));
-            profile.setName(nameStr.value_or(""));
-            m_owner = profile;
+    // 所有者档案：NBT 中以 CompoundTag 形式存储。结构模板/存档使用
+    // id/name/properties 写法，物品 SkullOwner 使用 Id/Name/Properties 写法，
+    // 统一复用 GameProfile 的 JSON 映射做往返（两种写法均可读取）。
+    const auto profileIt = tag.value.find("profile");
+    if (profileIt != tag.value.end() && profileIt->second != nullptr) {
+        auto result = skin::GameProfile::fromJson(nbt::nbtToJson(*profileIt->second));
+        if (result.success()) {
+            m_owner = result.value();
+        } else {
+            spdlog::warn(
+                "SkullBlockEntity at {} failed to read profile: {}", m_pos.toString(), result.error().toString());
         }
     }
 
@@ -134,9 +134,26 @@ void SkullBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
     }
 
     if (m_owner.has_value()) {
-        auto profileTag = std::make_unique<nbt::tags::compound_tag>();
-        profileTag->put("Id", m_owner->uuidToString());
-        profileTag->put("Name", m_owner->name());
+        // 经 GameProfile 的 JSON 映射生成 Name/Id/Properties（含 textures 属性），
+        // 再以严格整数模式转换为 NBT；UUID 写入为原生的 IntArray 标签（16 字节大端序），
+        // 与原版 GameProfile.CODEC 的 UUID 编码一致。
+        auto profileTag = nbt::jsonToNbtStrictInt(m_owner->toJson());
+        auto& profileCompound = static_cast<nbt::tags::compound_tag&>(*profileTag);
+        // UUID 无效（全零）时不写入，避免把"无 UUID"持久化成显式的全零身份
+        if (m_owner->hasValidUUID()) {
+            const auto& bytes = m_owner->uuid();
+            std::vector<i32> uuidInts;
+            uuidInts.reserve(4);
+            for (size_t i = 0; i < 4; ++i) {
+                uuidInts.push_back(static_cast<i32>((static_cast<u32>(bytes[i * 4]) << 24) |
+                    (static_cast<u32>(bytes[i * 4 + 1]) << 16) | (static_cast<u32>(bytes[i * 4 + 2]) << 8) |
+                    static_cast<u32>(bytes[i * 4 + 3])));
+            }
+            profileCompound.value.insert_or_assign(
+                "Id", std::make_unique<nbt::tags::intarray_tag>(std::move(uuidInts)));
+        } else {
+            profileCompound.value.erase("Id");
+        }
         tag.value.emplace("profile", std::move(profileTag));
     }
 }

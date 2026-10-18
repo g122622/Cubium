@@ -243,20 +243,28 @@ Result<GameProfile> GameProfile::fromJson(const nlohmann::json& json)
 
     GameProfile profile;
 
-    // 读取名称
+    // 读取名称：兼容 SkullOwner 的旧写法（Name）与存档/结构模板的小写写法（name）
     if (json.contains("Name") && json["Name"].is_string()) {
         profile.m_name = json["Name"].get<std::string>();
+    } else if (json.contains("name") && json["name"].is_string()) {
+        profile.m_name = json["name"].get<std::string>();
     }
 
-    // 读取 UUID
+    // 读取 UUID：同样兼容 Id / id 两种写法
+    const nlohmann::json* idJson = nullptr;
     if (json.contains("Id")) {
-        if (json["Id"].is_string()) {
+        idJson = &json["Id"];
+    } else if (json.contains("id")) {
+        idJson = &json["id"];
+    }
+    if (idJson != nullptr) {
+        if (idJson->is_string()) {
             // 字符串格式 UUID（带或不带连字符）
-            std::string uuidStr = json["Id"].get<std::string>();
+            std::string uuidStr = idJson->get<std::string>();
             profile.m_uuid = parseUUID(uuidStr);
-        } else if (json["Id"].is_array()) {
+        } else if (idJson->is_array()) {
             // IntArray 格式 UUID（MC NBT 格式：4 个 i32）
-            auto arr = json["Id"];
+            const auto& arr = *idJson;
             if (arr.size() == 4) {
                 // 将 4 个 i32 转换为 16 字节 UUID（大端序）
                 for (size_t i = 0; i < 4; ++i) {
@@ -271,35 +279,66 @@ Result<GameProfile> GameProfile::fromJson(const nlohmann::json& json)
         }
     }
 
-    // 读取属性
-    if (json.contains("Properties") && json["Properties"].is_object()) {
-        const auto& props = json["Properties"];
-        for (auto it = props.begin(); it != props.end(); ++it) {
-            const std::string& propName = it.key();
-            const auto& propArray = it.value();
-
-            if (propArray.is_array()) {
-                for (const auto& propEntry : propArray) {
-                    if (propEntry.is_object()) {
-                        GameProfileProperty prop;
-                        prop.name = propName;
-
-                        if (propEntry.contains("Value") && propEntry["Value"].is_string()) {
-                            prop.value = propEntry["Value"].get<std::string>();
-                        }
-
-                        if (propEntry.contains("Signature") && propEntry["Signature"].is_string()) {
-                            prop.signature = propEntry["Signature"].get<std::string>();
-                        }
-
-                        profile.m_properties.push_back(std::move(prop));
-                    }
-                }
-            }
-        }
-    }
+    // 读取属性，支持两种写法：
+    // 1. SkullOwner 旧写法：{"Properties": {"<name>": [{"Value": ..., "Signature": ...}]}}
+    // 2. 存档/结构模板写法（ExtraCodecs.PROPERTY_MAP）：
+    //    {"properties": [{"name": ..., "value": ..., "signature": ...}]}
+    _readLegacyProperties(json, profile.m_properties);
+    _readPropertyList(json, profile.m_properties);
 
     return profile;
+}
+
+void GameProfile::_readLegacyProperties(const nlohmann::json& json, std::vector<GameProfileProperty>& out)
+{
+    if (!json.contains("Properties") || !json["Properties"].is_object()) {
+        return;
+    }
+
+    const auto& props = json["Properties"];
+    for (auto it = props.begin(); it != props.end(); ++it) {
+        if (!it.value().is_array()) {
+            continue;
+        }
+        for (const auto& propEntry : it.value()) {
+            if (!propEntry.is_object()) {
+                continue;
+            }
+            GameProfileProperty prop;
+            prop.name = it.key();
+            if (propEntry.contains("Value") && propEntry["Value"].is_string()) {
+                prop.value = propEntry["Value"].get<std::string>();
+            }
+            if (propEntry.contains("Signature") && propEntry["Signature"].is_string()) {
+                prop.signature = propEntry["Signature"].get<std::string>();
+            }
+            out.push_back(std::move(prop));
+        }
+    }
+}
+
+void GameProfile::_readPropertyList(const nlohmann::json& json, std::vector<GameProfileProperty>& out)
+{
+    if (!json.contains("properties") || !json["properties"].is_array()) {
+        return;
+    }
+
+    for (const auto& propEntry : json["properties"]) {
+        if (!propEntry.is_object()) {
+            continue;
+        }
+        GameProfileProperty prop;
+        if (propEntry.contains("name") && propEntry["name"].is_string()) {
+            prop.name = propEntry["name"].get<std::string>();
+        }
+        if (propEntry.contains("value") && propEntry["value"].is_string()) {
+            prop.value = propEntry["value"].get<std::string>();
+        }
+        if (propEntry.contains("signature") && propEntry["signature"].is_string()) {
+            prop.signature = propEntry["signature"].get<std::string>();
+        }
+        out.push_back(std::move(prop));
+    }
 }
 
 } // namespace mc::skin

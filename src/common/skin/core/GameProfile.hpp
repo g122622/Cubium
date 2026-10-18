@@ -236,6 +236,12 @@ public:
     [[nodiscard]] static Result<GameProfile> fromJson(const nlohmann::json& json);
 
 private:
+    /// 读取 SkullOwner 旧写法（Properties 对象）中的属性
+    static void _readLegacyProperties(const nlohmann::json& json, std::vector<GameProfileProperty>& out);
+
+    /// 读取存档/结构模板写法（properties 列表）中的属性
+    static void _readPropertyList(const nlohmann::json& json, std::vector<GameProfileProperty>& out);
+
     std::array<u8, 16> m_uuid = {};                // 玩家UUID（big-endian）
     std::string m_name;                            // 玩家名称
     std::vector<GameProfileProperty> m_properties; // 属性列表
