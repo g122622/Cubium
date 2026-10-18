@@ -428,8 +428,8 @@ ItemStack AbstractContainerMenu::clicked(i32 slotIndex, i32 button, ClickType cl
             return _handleQuickCraft(*slot, slotIndex, button, player);
 
         case ClickType::PickAll:
-            // 双击拾取全部
-            return _handlePickupAll(*slot, slotIndex, slotStack, player);
+            // 双击拾取全部（button 0=正向遍历，1=反向遍历）
+            return _handlePickupAll(*slot, slotIndex, slotStack, button, player);
 
         default:
             return m_carried;
@@ -910,47 +910,115 @@ i32 AbstractContainerMenu::_distributeToDragSlot(ItemStack& toDistribute, i32 sl
     return amount;
 }
 
-ItemStack AbstractContainerMenu::_handlePickupAll(Slot& slot, i32 slotIndex, const ItemStack& slotStack, Player& player)
+ItemStack AbstractContainerMenu::_handlePickupAll(
+    Slot& slot, i32 slotIndex, const ItemStack& slotStack, i32 button, Player& player)
 {
-    // TODO: 补齐以已有光标物品为基准的双击路径；当前支持空光标起始。
-    // 双击拾取全部相同物品
-    if (m_carried.isEmpty() && !slotStack.isEmpty() && canMergeSlot(slotStack, slot) && slot.mayPickup(player)) {
-        ItemStack toPickup = slotStack.copy();
+    (void)slotStack;
+    // 双击拾取全部（PICKUP_ALL）：以点击前光标上已有的物品为基准，从被双击槽位开始
+    // 按 button 指定的方向遍历全部槽位，把可合并的同类物品补入光标，直到光标堆满。
+    //
+    // 对应 MC 1.21.11 AbstractContainerMenu#doClick 的 PICKUP_ALL 分支，语义要点：
+    // 1. 光标必须非空——起始物品来自第一次点击的拾取，本动作只做"补齐"；
+    //    客户端在光标为空时双击只会发送普通 PICKUP，不会发送 PICKUP_ALL。
+    // 2. 被双击槽位非空时必须可拾取；槽位为空时依旧参与收集（后续槽位照常补入）。
+    // 3. 两轮遍历：第一轮跳过整组堆叠，优先收集零散/未满的堆叠；第二轮兜底收集
+    //    整组堆叠。这样双击零散同类物品时不会先把整组移走而占满光标。
+    // 4. button=0 正向遍历（0→末尾），button=1 反向遍历（末尾→0）。
+    // 5. 双击结束后若光标仍未满且容器内仍有同种物品（典型场景是按住 Shift 连续双击），
+    //    原版会把光标物品放回玩家背包（放不下则掉落），使下一次双击从空光标重新开始。
+    if (m_carried.isEmpty() || (slot.hasItem() && !slot.mayPickup(player))) {
+        return m_carried;
+    }
 
-        // 遍历所有槽位，合并相同物品
-        for (i32 i = 0; i < getSlotCount(); ++i) {
-            if (i == slotIndex) continue;
+    const i32 start = (button == 0) ? 0 : getSlotCount() - 1;
+    const i32 step = (button == 0) ? 1 : -1;
+
+    // 被双击槽位本身不参与收集（它的物品已在第一次点击时被取到光标上）
+    const auto canCollectFrom = [&](Slot& otherSlot) {
+        return otherSlot.hasItem() && _canItemQuickReplace(otherSlot, m_carried) && otherSlot.mayPickup(player) &&
+            _canTakeItemForPickAll(m_carried, otherSlot);
+    };
+
+    for (i32 pass = 0; pass < 2; ++pass) {
+        for (i32 i = start; i >= 0 && i < getSlotCount() && m_carried.getCount() < m_carried.getMaxStackSize();
+            i += step) {
+            if (i == slotIndex) {
+                continue;
+            }
 
             Slot* otherSlot = getSlot(i);
-            if (!otherSlot || otherSlot->isEmpty()) continue;
-
-            ItemStack otherStack = otherSlot->getItem();
-            if (toPickup.canMergeWith(otherStack) && canMergeSlot(toPickup, *otherSlot) &&
-                otherSlot->mayPickup(player)) {
-                i32 space = toPickup.getMaxStackSize() - toPickup.getCount();
-                if (space > 0) {
-                    i32 toAdd = std::min(space, otherStack.getCount());
-                    toPickup.grow(toAdd);
-                    auto taken = otherSlot->remove(toAdd);
-                    otherSlot->onTake(player, std::move(taken));
-                    otherSlot->setChanged();
-                    notifySlotChanged(i, otherSlot->getItem());
-
-                    if (toPickup.getCount() >= toPickup.getMaxStackSize()) {
-                        break;
-                    }
-                }
+            if (otherSlot == nullptr || !canCollectFrom(*otherSlot)) {
+                continue;
             }
+
+            // 第一轮只收集未满的堆叠，整组堆叠留到第二轮兜底
+            if (pass == 0 && otherSlot->getItem().getCount() == otherSlot->getItem().getMaxStackSize()) {
+                continue;
+            }
+
+            // 请求取走整槽数量，由光标剩余空间夹紧；onTake 由 safeTake 内部触发
+            ItemStack taken = otherSlot->safeTake(
+                otherSlot->getItem().getCount(), m_carried.getMaxStackSize() - m_carried.getCount(), player);
+            m_carried.grow(taken.getCount());
+            otherSlot->setChanged();
+            notifySlotChanged(i, otherSlot->getItem());
+        }
+    }
+
+    // 光标未满且容器内仍有同种物品：把光标物品放回玩家背包（放不下则掉落）。
+    // 判定的是「背包里是否还有同种物品可被再次双击」，属于客观存在性检查，
+    // 因此这里只看物品是否同类、槽位是否可拾取，不套用收集阶段的取物限制。
+    if (m_carried.getCount() < m_carried.getMaxStackSize()) {
+        bool hasMatchingItem = false;
+        for (i32 i = 0; i < getSlotCount() && !hasMatchingItem; ++i) {
+            Slot* otherSlot = getSlot(i);
+            hasMatchingItem = otherSlot != nullptr && otherSlot->hasItem() &&
+                m_carried.canMergeWith(otherSlot->getItem()) && otherSlot->mayPickup(player);
         }
 
-        m_carried = toPickup;
-        auto taken = slot.remove(slotStack.getCount());
-        slot.onTake(player, std::move(taken));
-        slot.setChanged();
-        notifySlotChanged(slotIndex, slot.getItem());
+        if (hasMatchingItem) {
+            _dropOrPlaceInInventory(m_carried, player);
+        }
     }
 
     return m_carried;
+}
+
+bool AbstractContainerMenu::_canItemQuickReplace(const Slot& slot, const ItemStack& stack) const
+{
+    // 对应 MC 1.21.11 AbstractContainerMenu#canItemQuickReplace(slot, stack, true)：
+    // 槽位为空即可替换；否则必须是能与 stack 合并的同一物品。
+    if (!slot.hasItem()) {
+        return true;
+    }
+    return stack.canMergeWith(slot.getItem());
+}
+
+bool AbstractContainerMenu::_canTakeItemForPickAll(const ItemStack& stack, const Slot& slot) const
+{
+    // 对应 MC 1.21.11 AbstractContainerMenu#canTakeItemForPickAll，子类可重写以排除特定槽位
+    (void)stack;
+    (void)slot;
+    return true;
+}
+
+void AbstractContainerMenu::_dropOrPlaceInInventory(ItemStack& stack, Player& player)
+{
+    // 对应 MC 1.21.11 AbstractContainerMenu#dropOrPlaceInInventory：
+    // 优先放回菜单所展示的玩家背包，放不下则掉落。与其他归还路径（removed/
+    // clearContainer）保持一致，优先使用 m_playerInventory。
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    auto& targetInventory = (m_playerInventory != nullptr) ? *m_playerInventory : player.inventory();
+    // add() 返回剩余未添加的数量，并同步修改 stack 的数量
+    i32 remaining = targetInventory.add(stack);
+    if (remaining > 0) {
+        stack.setCount(remaining);
+        dropItem(stack, player, false);
+    }
+    stack = ItemStack();
 }
 
 ItemStack AbstractContainerMenu::quickMoveStack(i32 slotIndex, Player& player)
