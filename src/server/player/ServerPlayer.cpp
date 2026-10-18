@@ -619,7 +619,8 @@ namespace {
     if (length < 1.0e-6) {
         return 0.0f;
     }
-    return math::wrapDegrees(static_cast<f32>(math::toDegrees(std::atan2(dz / length, dx / length))) - 90.0f);
+    const f32 lookYawRadians = std::atan2(static_cast<f32>(dz / length), static_cast<f32>(dx / length));
+    return math::wrapDegrees(math::toDegrees(lookYawRadians) - 90.0F);
 }
 
 } // namespace
@@ -633,7 +634,7 @@ void ServerPlayer::setRespawnPosition(std::optional<RespawnConfig> config, bool 
             sendSystemMessage(text::TranslationTextComponent("block.minecraft.set_spawn"));
         }
     }
-    Player::setRespawnPosition(std::move(config), false);
+    Player::setRespawnPosition(config, false);
 }
 
 ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionAndUseSpawnBlock(bool consumeCharge)
@@ -720,7 +721,8 @@ ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionAndUseSpawnBlock(
 
     // 共享出生点（缺失出生方块或无个人重生点）：在出生点附近搜索无碰撞无液体的落点。
     ServerDimension* overworld = m_server->dimensionManager().getOverworld();
-    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+    MC_ASSERT_RELEASE(overworld != nullptr);
+    MC_ASSERT_RELEASE(overworld->world() != nullptr);
     mc::server::ServerWorld* spawnWorld = overworld->world();
     const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
     location.world = spawnWorld;
@@ -737,11 +739,12 @@ Vector3d ServerPlayer::findSharedSpawnPosition()
     }
 
     ServerDimension* overworld = m_server->dimensionManager().getOverworld();
-    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+    MC_ASSERT_RELEASE(overworld != nullptr);
+    MC_ASSERT_RELEASE(overworld->world() != nullptr);
     server::ServerWorld* spawnWorld = overworld->world();
     const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
 
-    if (auto position = mc::server::PlayerSpawnFinder::findSpawn(*spawnWorld, adjusted.pos()); position.has_value()) {
+    if (const auto position = mc::server::PlayerSpawnFinder::findSpawn(*spawnWorld, adjusted.pos()); position) {
         return Vector3d(position->x, position->y, position->z);
     }
     return Vector3d(static_cast<f64>(adjusted.pos().x) + 0.5,

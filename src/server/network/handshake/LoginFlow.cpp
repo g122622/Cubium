@@ -315,10 +315,9 @@ void LoginFlow::setupInitialPlayerState(ServerPlayerData* player, GameMode gameM
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Player, "LoginFlow::setupInitialPlayerState", "gameMode", static_cast<i32>(gameMode));
 
-    if (!player) return;
-
     // 初始位置：共享出生数据经边界修正后，在 spawnRadius 范围内搜索无碰撞无液体的落点
     // （与死亡重生使用同一搜索器）。已有存档的玩家随后会被存档位置覆盖。
+    if (player == nullptr) return;
     auto* overworld = m_server.dimensionManager().getOverworld();
     MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
     const RespawnData spawn = overworld->world()->worldBorderAdjustedRespawnData();
@@ -385,10 +384,10 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
             mc::network::ir::PlayPacket{std::move(spawnPkt)},
         });
 
-    if (playerDim != nullptr && playerDim->world() != nullptr) {
-        auto* world = playerDim->world();
-        if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
-            world->entityTracker().sendActiveEffects(m_server, playerId, *entity);
+    auto* playerWorld = playerDim != nullptr ? playerDim->world() : nullptr;
+    if (playerWorld != nullptr) {
+        if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *playerWorld)) {
+            playerWorld->entityTracker().sendActiveEffects(m_server, playerId, *entity);
         }
     }
 

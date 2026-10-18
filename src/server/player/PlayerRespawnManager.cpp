@@ -54,12 +54,12 @@ namespace mc::server {
 namespace {
 
 /// 维度 ID → (客户端 dimension_type 注册表 id, 维度 ResourceKey)
-struct _DimensionWireInfo { // NOLINT(bugprone-reserved-identifier)
+struct DimensionWireInfo {
     i32 typeId;
     const char* key;
 };
 
-[[nodiscard]] _DimensionWireInfo _dimensionWireInfo(DimensionId id)
+[[nodiscard]] DimensionWireInfo _dimensionWireInfo(DimensionId id)
 {
     switch (id) {
         case DimensionManager::NETHER:
@@ -133,13 +133,14 @@ bool PlayerRespawnManager::respawn(PlayerId playerId, bool keepAllData)
     if (oldPlayer != nullptr) {
         auto* oldServerPlayer = oldPlayer->asServerPlayer();
         MC_ASSERT_RELEASE(oldServerPlayer != nullptr);
-        // 普通死亡（!keepAllData）才允许消耗重生锚充能。
-        location = oldServerPlayer->findRespawnPositionAndUseSpawnBlock(keepAllData == false);
+        // 普通死亡（keepAllData 为 false）才允许消耗重生锚充能。
+        location = oldServerPlayer->findRespawnPositionAndUseSpawnBlock(!keepAllData);
     } else {
         // 旧实体已消失：用存档中恢复的共享出生点，个人重生点信息此时不可得。
         // TODO: 将个人重生点配置镜像到 ServerPlayerData，使实体移除后的重生请求也能使用床/锚落点。
         ServerDimension* overworld = m_server.dimensionManager().getOverworld();
-        MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+        MC_ASSERT_RELEASE(overworld != nullptr);
+        MC_ASSERT_RELEASE(overworld->world() != nullptr);
         ServerWorld* spawnWorld = overworld->world();
         const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
         location.world = spawnWorld;
@@ -275,7 +276,7 @@ Player* PlayerRespawnManager::_createRespawnedPlayer(
 void PlayerRespawnManager::_sendRespawnPackets(PlayerId playerId, Player& player, ServerWorld& world)
 {
     const DimensionId dimensionId = world.dimension();
-    const _DimensionWireInfo wire = _dimensionWireInfo(dimensionId);
+    const DimensionWireInfo wire = _dimensionWireInfo(dimensionId);
 
     mc::network::ir::play::Respawn respawn;
     respawn.spawnInfo.dimensionType = wire.typeId;

@@ -242,12 +242,12 @@ Result<PlayerSaveData> parseBedrockPlayerData(const compound_tag& root, const st
         }
     }
 
-    if (const auto spawnX = tryGetInt(root, "SpawnX");
-        spawnX.has_value() && tryGetInt(root, "SpawnY").has_value() && tryGetInt(root, "SpawnZ").has_value()) {
-        data.respawnConfig = RespawnConfig(
-            RespawnData::of(
-                data.dimension, BlockPos(*spawnX, *tryGetInt(root, "SpawnY"), *tryGetInt(root, "SpawnZ")), 0.0f, 0.0f),
-            false);
+    const auto spawnX = tryGetInt(root, "SpawnX");
+    const auto spawnY = tryGetInt(root, "SpawnY");
+    const auto spawnZ = tryGetInt(root, "SpawnZ");
+    if (spawnX.has_value() && spawnY.has_value() && spawnZ.has_value()) {
+        data.respawnConfig =
+            RespawnConfig(RespawnData::of(data.dimension, BlockPos(*spawnX, *spawnY, *spawnZ), 0.0f, 0.0f), false);
     }
 
     return data;

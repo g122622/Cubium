@@ -213,7 +213,7 @@ Direction BedBlock::getConnectedDirection(const BlockState& state)
 namespace {
 
 /// 水平候选偏移（相对床方块）
-struct _BedOffset {
+struct BedOffset {
     i32 dx;
     i32 dz;
 };
@@ -223,7 +223,7 @@ struct _BedOffset {
  *
  * 从"优先侧"开始沿两床方块外圈环绕，包含床头正前方一格。
  */
-[[nodiscard]] std::array<_BedOffset, 10> _bedSurroundStandUpOffsets(Direction bedFacing, Direction sideDir)
+[[nodiscard]] std::array<BedOffset, 10> _bedSurroundStandUpOffsets(Direction bedFacing, Direction sideDir)
 {
     const i32 sdx = Directions::xOffset(sideDir);
     const i32 sdz = Directions::zOffset(sideDir);
@@ -244,7 +244,7 @@ struct _BedOffset {
 }
 
 /// 床方块自身与床边（朝向反方向）两个"床上"候选
-[[nodiscard]] std::array<_BedOffset, 2> _bedAboveStandUpOffsets(Direction bedFacing)
+[[nodiscard]] std::array<BedOffset, 2> _bedAboveStandUpOffsets(Direction bedFacing)
 {
     return {{
         {0, 0},
