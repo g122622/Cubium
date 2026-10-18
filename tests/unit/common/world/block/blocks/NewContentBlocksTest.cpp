@@ -650,6 +650,57 @@ TEST_F(SkullBlockTest, SkullEntity_OwnerProfileNbtRoundTrip)
     EXPECT_EQ(*textures->signature, "c2lnbmF0dXJl");
 }
 
+TEST_F(SkullBlockTest, SkullEntity_OwnerProfileReadsLowercasePropertiesList)
+{
+    // 存档/结构模板的档案写法：小写 id/name/properties，属性为 {name,value,signature} 列表
+    nbt::tags::compound_tag profileTag;
+    profileTag.put("name", std::string("Notch"));
+    std::vector<i32> uuidInts = {static_cast<i32>(0x069a79f4u),
+        static_cast<i32>(0x44e94726u),
+        static_cast<i32>(0xa5befca9u),
+        static_cast<i32>(0x0e38aaf5u)};
+    profileTag.value.insert_or_assign("id", std::make_unique<nbt::tags::intarray_tag>(std::move(uuidInts)));
+
+    auto prop = std::make_unique<nbt::tags::compound_tag>();
+    prop->put("name", std::string("textures"));
+    prop->put("value", std::string("dGV4dHVyZXM="));
+    prop->put("signature", std::string("c2lnbmF0dXJl"));
+    auto propList = std::make_unique<nbt::tags::tag_list_tag>(nbt::TagId::Compound);
+    propList->value.push_back(std::move(prop));
+    profileTag.value.insert_or_assign("properties", std::move(propList));
+
+    nbt::CompoundTag tag;
+    tag.value.emplace("profile", std::make_unique<nbt::tags::compound_tag>(profileTag));
+
+    blockentity::SkullBlockEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.loadFromNBT(tag));
+    ASSERT_NE(loaded.getOwnerProfile(), nullptr);
+    EXPECT_EQ(loaded.getOwnerProfile()->name(), "Notch");
+    const auto* textures = loaded.getOwnerProfile()->getTexturesProperty();
+    ASSERT_NE(textures, nullptr);
+    EXPECT_EQ(textures->value, "dGV4dHVyZXM=");
+    ASSERT_TRUE(textures->hasSignature());
+    EXPECT_EQ(*textures->signature, "c2lnbmF0dXJl");
+}
+
+TEST_F(SkullBlockTest, SkullEntity_OwnerProfileWithoutUuidOmitsId)
+{
+    blockentity::SkullBlockEntity entity(BlockPos(0, 0, 0));
+    skin::GameProfile profile;
+    profile.setName("Nameless");
+    entity.setOwnerProfile(profile);
+
+    nbt::CompoundTag tag;
+    entity.saveToNBT(tag);
+
+    const auto it = tag.value.find("profile");
+    ASSERT_NE(it, tag.value.end());
+    const auto& profileTag = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
+    // 无有效 UUID 时不写入 Id，避免把"无 UUID"固化为全零身份
+    EXPECT_EQ(profileTag.value.find("Id"), profileTag.value.end());
+    EXPECT_EQ(profileTag.value.find("Name")->second->id(), nbt::TagId::String);
+}
+
 TEST_F(SkullBlockTest, SkullEntity_OwnerProfileReadsArrayUuidNbt)
 {
     // 结构模板中的档案可能以 UUID 数组形式给出，应能还原出完整档案

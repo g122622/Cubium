@@ -108,8 +108,9 @@ bool SkullBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
         m_customName = nameOpt.value();
     }
 
-    // 所有者档案：NBT 中以 CompoundTag 形式存储（Name/Id/Properties），
-    // 结构模板与物品的 SkullOwner 均为该结构，统一复用 GameProfile 的 JSON 映射做往返。
+    // 所有者档案：NBT 中以 CompoundTag 形式存储。结构模板/存档使用
+    // id/name/properties 写法，物品 SkullOwner 使用 Id/Name/Properties 写法，
+    // 统一复用 GameProfile 的 JSON 映射做往返（两种写法均可读取）。
     const auto profileIt = tag.value.find("profile");
     if (profileIt != tag.value.end() && profileIt->second != nullptr) {
         auto result = skin::GameProfile::fromJson(nbt::nbtToJson(*profileIt->second));
@@ -138,15 +139,21 @@ void SkullBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
         // 与原版 GameProfile.CODEC 的 UUID 编码一致。
         auto profileTag = nbt::jsonToNbtStrictInt(m_owner->toJson());
         auto& profileCompound = static_cast<nbt::tags::compound_tag&>(*profileTag);
-        const auto& bytes = m_owner->uuid();
-        std::vector<i32> uuidInts;
-        uuidInts.reserve(4);
-        for (size_t i = 0; i < 4; ++i) {
-            uuidInts.push_back(
-                static_cast<i32>((static_cast<u32>(bytes[i * 4]) << 24) | (static_cast<u32>(bytes[i * 4 + 1]) << 16) |
-                    (static_cast<u32>(bytes[i * 4 + 2]) << 8) | static_cast<u32>(bytes[i * 4 + 3])));
+        // UUID 无效（全零）时不写入，避免把"无 UUID"持久化成显式的全零身份
+        if (m_owner->hasValidUUID()) {
+            const auto& bytes = m_owner->uuid();
+            std::vector<i32> uuidInts;
+            uuidInts.reserve(4);
+            for (size_t i = 0; i < 4; ++i) {
+                uuidInts.push_back(static_cast<i32>((static_cast<u32>(bytes[i * 4]) << 24) |
+                    (static_cast<u32>(bytes[i * 4 + 1]) << 16) | (static_cast<u32>(bytes[i * 4 + 2]) << 8) |
+                    static_cast<u32>(bytes[i * 4 + 3])));
+            }
+            profileCompound.value.insert_or_assign(
+                "Id", std::make_unique<nbt::tags::intarray_tag>(std::move(uuidInts)));
+        } else {
+            profileCompound.value.erase("Id");
         }
-        profileCompound.value.insert_or_assign("Id", std::make_unique<nbt::tags::intarray_tag>(std::move(uuidInts)));
         tag.value.emplace("profile", std::move(profileTag));
     }
 }
