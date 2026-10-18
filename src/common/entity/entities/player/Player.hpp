@@ -990,6 +990,15 @@ public:
      */
     void copyRespawnPosition(const Player& other);
 
+    /**
+     * @brief 配置写入完成后的同步钩子（基类为空实现）
+     *
+     * 在 setRespawnPosition 与 copyRespawnPosition 把配置写入 m_respawnConfig 之后调用，
+     * 供子类把配置镜像到实体之外的存储（ServerPlayer 同步到会话数据，使实体在死亡移除
+     * 之后的重生请求仍能取回个人重生点）。
+     */
+    virtual void onRespawnConfigChanged() {}
+
     // ========== 下界进度追踪 ==========
 
     /**

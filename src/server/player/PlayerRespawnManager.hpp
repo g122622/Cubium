@@ -84,8 +84,13 @@ private:
 
     /**
      * @brief 向重生后的客户端发送完整的 Play 阶段重入序列
+     *
+     * 对齐 vanilla PlayerList.respawn 的包序：Respawn → 传送 → （缺失出生方块时）
+     * NO_RESPAWN_BLOCK_AVAILABLE → 区块加载起点 → 世界出生点 → 效果 → 经验。
+     *
+     * @param missingRespawnBlock 个人重生点是否已失效（失效时额外发送 GameEvent 0）
      */
-    void _sendRespawnPackets(PlayerId playerId, Player& player, ServerWorld& world);
+    void _sendRespawnPackets(PlayerId playerId, Player& player, ServerWorld& world, bool missingRespawnBlock);
 
     MinecraftServer& m_server;
 };

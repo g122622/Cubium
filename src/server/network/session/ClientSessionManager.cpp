@@ -24,6 +24,7 @@
 #include "server/network/session/ClientSessionManager.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/RemovalReason.hpp"
 #include "common/network/backend/java/JavaBackend.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
@@ -195,9 +196,8 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
 
         // 清理玩家实体
         auto* world = m_server.getPlayerWorld(playerId);
-        if (world != nullptr) {
-            m_server.playerEntityManager().removePlayerEntity(playerId, *world);
-        }
+        // 不论实体当前是否仍在世界内都清理映射（实体可能已因死亡消散被移除）。
+        m_server.playerEntityManager().removePlayerEntity(playerId, world, RemovalReason::UnloadedWithPlayer);
 
         // 移除玩家会话信息。物品栏无需另行清理——它随上面移除的玩家实体一起消失，
         // InventoryManager 不持有任何需要释放的副本。

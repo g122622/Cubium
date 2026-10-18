@@ -33,6 +33,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
+#include "common/world/spawn/RespawnConfig.hpp"
 #include "server/network/base/IServerClientConnection.hpp"
 #include "server/network/sync/chunk/PlayerChunkTracker.hpp"
 #include <algorithm>
@@ -161,6 +162,11 @@ struct ServerPlayerData {
     // 该路径通过 ServerPlayerEntityManager → Player::asServerPlayer() 正确获取。
     // 此字段始终为 nullptr，将在未来版本中移除。）
     std::shared_ptr<PlayerAdvancements> advancements;
+
+    /// 个人重生点配置镜像（对齐 vanilla ServerPlayer.getRespawnConfig() 的生命周期）。
+    /// 玩家实体在死亡 20 tick 后必然被世界移除，实体上的配置随之消失；而重生请求可能在
+    /// 实体移除之后才到达，需要从会话侧还原床/重生锚落点。由 ServerPlayer 写入。
+    std::optional<RespawnConfig> respawnConfig;
 
     ServerPlayerData() = default;
 

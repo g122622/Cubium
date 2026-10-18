@@ -627,26 +627,44 @@ namespace {
 
 void ServerPlayer::setRespawnPosition(std::optional<RespawnConfig> config, bool announce)
 {
-    if (announce && config.has_value()) {
-        const auto previous = getRespawnConfig();
-        if (!config->isSamePosition(previous)) {
-            // 客户端按翻译键渲染"重生点已设置"。
-            sendSystemMessage(text::TranslationTextComponent("block.minecraft.set_spawn"));
-        }
-    }
+    const bool changed = !config.has_value() || !config->isSamePosition(getRespawnConfig());
+    // 基类写入 m_respawnConfig 后回调 onRespawnConfigChanged（镜像到会话数据）。
     Player::setRespawnPosition(config, false);
+    if (announce && config.has_value() && changed) {
+        // 客户端按翻译键渲染"重生点已设置"。
+        sendSystemMessage(text::TranslationTextComponent("block.minecraft.set_spawn"));
+    }
+}
+
+void ServerPlayer::onRespawnConfigChanged()
+{
+    // 镜像到会话数据：实体在死亡 20 tick 后必然被世界移除，重生请求可能在移除之后才到达，
+    // 届时只能从会话侧取回个人重生点（床/重生锚落点依赖它）。
+    if (m_server == nullptr) {
+        return;
+    }
+    if (auto* playerData = m_server->playerManager().getPlayer(playerId()); playerData != nullptr) {
+        playerData->respawnConfig = getRespawnConfig();
+    }
 }
 
 ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionAndUseSpawnBlock(bool consumeCharge)
 {
+    return findRespawnPositionForConfig(getRespawnConfig(), consumeCharge);
+}
+
+ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionForConfig(
+    std::optional<RespawnConfig> config, bool consumeCharge)
+{
     RespawnLocation location;
 
-    if (m_server == nullptr || getWorld() == nullptr) {
+    // 重生锚扣充能发生在世界之上，故只要求服务端可用；实体未处于任何维度时（死亡移除后的
+    // 兜底路径不会走到这里）仍可计算落点，因为目标维度由配置本身给出。
+    if (m_server == nullptr) {
         location.missingRespawnBlock = true;
         return location;
     }
 
-    const auto config = getRespawnConfig();
     const DimensionId targetDimension = RespawnConfig::getDimensionOrDefault(config.has_value() ? &*config : nullptr);
     ServerDimension* targetServerDimension = m_server->dimensionManager().getDimension(targetDimension);
     mc::server::ServerWorld* targetWorld = targetServerDimension != nullptr ? targetServerDimension->world() : nullptr;
@@ -726,7 +744,7 @@ ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionAndUseSpawnBlock(
     mc::server::ServerWorld* spawnWorld = overworld->world();
     const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
     location.world = spawnWorld;
-    location.position = findSharedSpawnPosition();
+    location.position = _findSharedSpawnPosition(spawnWorld);
     location.yaw = adjusted.yaw;
     location.pitch = adjusted.pitch;
     return location;
@@ -741,7 +759,12 @@ Vector3d ServerPlayer::findSharedSpawnPosition()
     ServerDimension* overworld = m_server->dimensionManager().getOverworld();
     MC_ASSERT_RELEASE(overworld != nullptr);
     MC_ASSERT_RELEASE(overworld->world() != nullptr);
-    server::ServerWorld* spawnWorld = overworld->world();
+    return _findSharedSpawnPosition(overworld->world());
+}
+
+Vector3d ServerPlayer::_findSharedSpawnPosition(server::ServerWorld* spawnWorld)
+{
+    MC_ASSERT_RELEASE(spawnWorld != nullptr);
     const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
 
     if (const auto position = mc::server::PlayerSpawnFinder::findSpawn(*spawnWorld, adjusted.pos()); position) {

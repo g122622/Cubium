@@ -696,6 +696,7 @@ void Player::setRespawnPosition(std::optional<RespawnConfig> config, bool announ
 {
     MC_UNUSED(announce);
     m_respawnConfig = config;
+    onRespawnConfigChanged();
 }
 
 void Player::copyRespawnPosition(const Player& other)
