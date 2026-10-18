@@ -153,6 +153,14 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 
 `EntitySelector::createAabb()` 按 MC 原版 `EntitySelectorParser.createAabb` 逻辑从 `dx/dy/dz` 构造选择 AABB：负值 delta 赋给 min 侧，正值赋给 max 侧，max 侧额外加 1.0。当无 `dx/dy/dz` 但有 `distance` 最大值时，从最大距离构造立方体 AABB。返回 `std::optional<AxisAlignedBB>`，无体积约束时为 `std::nullopt`。EntityResolver 中的体积过滤使用 `AABB.intersects(entity.boundingBox())` 进行碰撞箱相交检查，而非位置点包含检查——两者在实体体积较大或跨越选择边界时行为不同。
 
-### 11. TimeArgumentType 单位映射
+### 11. NbtPath 的列表写入与过滤器语义
+
+- 过滤器按 MC `NbtUtils.compareNbt(..., true)` 的**子集语义**比较：`{id:"stone"}` 只匹配 `id` 值为 `stone` 的复合标签，不是只比键名和类型。
+- `set` 写入缺失的中间节点：复合键按下一节点创建为复合标签；下一节点是末级列表访问（`[]`/`[i]`/`[{...}]`）时，缺失的键整体创建为空列表。
+- 路径末级作用在列表元素上时，`set`/`remove` 会先在 NBT 树中定位目标列表并原地替换为元素以 `unique_ptr<tag>` 存储的 `tag_list_tag`（数值/字符串/数组/复合列表无法按下标写入）。节点求值只能拿到列表或元素本身，拿不到父槽位，因此转换通过从根递归定位槽位完成（见 `NbtPath.cpp` 的 `convertListInTree`）。
+- 写入值叠加路径深度后超过 512 层会抛出 `NbtPathDataTooDeep`（原版 `NbtPathArgument.ERROR_DATA_TOO_DEEP`）。
+- 末级是列表访问但目标不存在时**不会**创建列表（与原版一致的取舍已写在代码注释中）。
+
+### 12. TimeArgumentType 单位映射
 
 `TimeArgumentType` 解析数字加可选后缀并转换为 tick 数。单位映射表：`"d"` → 24000（天）、`"s"` → 20（秒）、`"t"` → 1（tick）、`""`（无后缀）→ 1（tick）。与 MC Java 版 `TimeArgument` 完全对齐。支持浮点数输入（如 `"1.5d"` → 36000 tick），最终通过 `std::round` 四舍五入为整数。无效后缀抛出 `CommandErrorType::Unknown` 异常；计算结果低于 minimum 抛出 `CommandErrorType::IntegerTooLow` 异常。

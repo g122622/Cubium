@@ -511,7 +511,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        _sendError(source, e.message());
+        _sendCommandError(source, e);
         return 0;
     }
 }
@@ -561,7 +561,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        _sendError(source, e.message());
+        _sendCommandError(source, e);
         return 0;
     }
 }
@@ -599,7 +599,7 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
         return count;
     }
     catch (const CommandException& e) {
-        _sendError(source, e.message());
+        _sendCommandError(source, e);
         return 0;
     }
 }
@@ -896,6 +896,16 @@ i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, f64 scale)
 void DataCommand::_sendError(ServerCommandSource& source, const std::string& message)
 {
     source.sendMessage("§c" + message);
+}
+
+void DataCommand::_sendCommandError(ServerCommandSource& source, const CommandException& error)
+{
+    // 数据过深是写入前的整体拒绝，与"路径不存在"不同，需要给出明确的错误提示
+    if (error.type() == CommandErrorType::NbtPathDataTooDeep) {
+        _sendError(source, "commands.data.set.tooDeep");
+        return;
+    }
+    _sendError(source, error.message());
 }
 
 } // namespace command

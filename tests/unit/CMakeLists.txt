@@ -1057,6 +1057,8 @@ add_executable(mc_tests
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
+    # NBT 标签赋值语义测试
+    common/util/nbt/NbtTagAssignmentTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
     common/command/arguments/Vec2ArgumentTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp

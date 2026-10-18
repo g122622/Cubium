@@ -612,7 +612,8 @@ TEST_F(NbtPathTest, PathSet)
     NbtPath path = argType.parse(reader);
 
     // 设置新值
-    i32 count = path.set(root, []() { return std::make_unique<nbt::tags::string_tag>("new"); });
+    i32 count = path.set(
+        root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::string_tag>("new")); });
 
     EXPECT_EQ(count, 1);
 
@@ -815,18 +816,33 @@ TEST_F(NbtPathTest, CompoundFilterMatches)
 
     root.value["items"] = std::move(list);
 
-    // 解析路径 - 使用带引号的字符串值
-    // 注意：过滤器的匹配仅检查键和类型是否匹配，不检查值
+    // 解析路径 - 过滤器按子集语义比较值，只匹配 id 为 diamond 的两个元素
     StringReader reader("items[{id:\"diamond\"}]");
     NbtPathArgumentType argType;
     NbtPath path = argType.parse(reader);
 
-    // 获取匹配的元素
-    // 当前列表过滤器只检查键存在和类型匹配
     auto results = path.get(root);
-    // 所有元素都有 id 键且都是 string 类型，所以都应该匹配
-    EXPECT_GE(results.size(), 1u);
+    ASSERT_EQ(results.size(), 2u);
+    for (const auto* element : results) {
+        const auto* elementCompound = dynamic_cast<const nbt::tags::compound_tag*>(element);
+        ASSERT_NE(elementCompound, nullptr);
+        const auto it = elementCompound->value.find("id");
+        ASSERT_NE(it, elementCompound->value.end());
+        const auto* idTag = dynamic_cast<const nbt::tags::string_tag*>(it->second.get());
+        ASSERT_NE(idTag, nullptr);
+        EXPECT_EQ(idTag->value, "diamond");
+    }
 }
+
+namespace {
+std::string _describe(const nbt::tags::tag& tag)
+{
+    using nbt::operator<<;
+    std::ostringstream ss;
+    ss << nbt::contexts::mojangson << tag;
+    return ss.str();
+}
+} // namespace
 
 TEST_F(NbtPathTest, CompoundFilterRemovesMatching)
 {
@@ -851,16 +867,18 @@ TEST_F(NbtPathTest, CompoundFilterRemovesMatching)
 
     // 删除匹配的元素
     i32 count = path.remove(root);
-    // 注意：列表过滤器删除功能目前可能有限制
-    // 这里我们测试它能正确识别匹配元素
-    EXPECT_GE(count, 0);
+    EXPECT_EQ(count, 1);
 
-    // 验证列表仍然存在
+    // 验证只剩 iron 元素
     StringReader readerAll("items[]");
     NbtPath pathAll = argType.parse(readerAll);
     auto results = pathAll.get(root);
-    // 至少 iron 元素应该还在
-    EXPECT_GE(results.size(), 1u);
+    ASSERT_EQ(results.size(), 1u);
+    const auto* remaining = dynamic_cast<const nbt::tags::compound_tag*>(results[0]);
+    ASSERT_NE(remaining, nullptr);
+    const auto* remainingId = dynamic_cast<const nbt::tags::string_tag*>(remaining->value.at("id").get());
+    ASSERT_NE(remainingId, nullptr);
+    EXPECT_EQ(remainingId->value, "iron");
 }
 
 // ========== 负索引测试 ==========
@@ -1126,6 +1144,310 @@ TEST_F(NbtPathTest, PathMoveAssign)
     NbtPath moved;
     moved = std::move(original);
     EXPECT_EQ(moved.toString(), originalText);
+}
+
+// ========== 原版语义收敛测试 ==========
+
+namespace {
+
+/// 与原版 NbtPathArgument.isTooDeep 相同的嵌套深度上限
+inline constexpr i32 MAX_NBT_DEPTH = 512;
+
+/// 解析路径文本，失败直接中断测试
+NbtPath _parsePath(const std::string& text)
+{
+    StringReader reader(text);
+    NbtPathArgumentType argType;
+    return argType.parse(reader);
+}
+
+} // namespace
+
+TEST_F(NbtPathTest, SetCreatesMissingIntermediateCompounds)
+{
+    nbt::tags::compound_tag root;
+    NbtPath path = _parsePath("foo.bar");
+
+    i32 count =
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); });
+
+    EXPECT_EQ(count, 1);
+    const auto it = root.value.find("foo");
+    ASSERT_NE(it, root.value.end());
+    const auto* foo = dynamic_cast<const nbt::tags::compound_tag*>(it->second.get());
+    ASSERT_NE(foo, nullptr);
+    EXPECT_EQ(_describe(*foo), "{\"bar\":1}");
+}
+
+TEST_F(NbtPathTest, SetCreatesMissingTailNode)
+{
+    nbt::tags::compound_tag root;
+    NbtPath path = _parsePath("foo");
+
+    EXPECT_EQ(
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(7)); }), 1);
+    EXPECT_EQ(_describe(root), "{\"foo\":7}");
+}
+
+TEST_F(NbtPathTest, SetCreatesMissingListForAllElements)
+{
+    nbt::tags::compound_tag root;
+    NbtPath path = _parsePath("foo[]");
+
+    i32 count =
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(3)); });
+
+    // 原版行为：缺失的列表创建后为空，写入一个元素
+    EXPECT_EQ(count, 1);
+    NbtPath allElements = _parsePath("foo[]");
+    auto results = allElements.get(root);
+    ASSERT_EQ(results.size(), 1u);
+    EXPECT_EQ(_describe(*results[0]), "3");
+}
+
+TEST_F(NbtPathTest, SetRootObjectFilterMatchesRoot)
+{
+    nbt::tags::compound_tag root;
+    root.put("a", 1);
+    // 根标签满足 {a:1} 时路径命中根复合标签本身，可写入 bar
+    NbtPath path = _parsePath("{a:1}.bar");
+
+    i32 count =
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(5)); });
+
+    EXPECT_EQ(count, 1);
+    EXPECT_EQ(_describe(root), "{\"a\":1,\"bar\":5}");
+}
+
+TEST_F(NbtPathTest, SetRootObjectFilterMismatchDoesNotCreate)
+{
+    nbt::tags::compound_tag root;
+    // 根对象过滤器只在根标签匹配时生效；根标签不匹配 a:1 时不创建任何内容
+    NbtPath path = _parsePath("{a:1}");
+
+    EXPECT_EQ(
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(5)); }), 0);
+    EXPECT_TRUE(root.value.empty());
+}
+
+TEST_F(NbtPathTest, SetListElementWithoutAllElementsIsNoOp)
+{
+    nbt::tags::compound_tag root;
+    root.put("foo", std::string("bar"));
+    NbtPath path = _parsePath("foo[0]");
+
+    EXPECT_EQ(
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }), 0);
+}
+
+TEST_F(NbtPathTest, SetIsTooDeepRejected)
+{
+    nbt::tags::compound_tag root;
+    NbtPath path = _parsePath("foo");
+
+    // 构造一个深度达到上限的值：512 层嵌套列表
+    auto deep = std::make_unique<nbt::tags::tag_list_tag>();
+    nbt::tags::tag_list_tag* current = deep.get();
+    for (i32 i = 0; i < MAX_NBT_DEPTH; ++i) {
+        auto next = std::make_unique<nbt::tags::tag_list_tag>();
+        current->value.push_back(std::move(next));
+        current = static_cast<nbt::tags::tag_list_tag*>(current->value.back().get());
+    }
+
+    EXPECT_THROW(path.set(root, [&deep]() { return deep->copy(); }), CommandException);
+    EXPECT_TRUE(root.value.empty());
+}
+
+// ========== 裸值列表写入测试 ==========
+
+TEST_F(NbtPathTest, SetIndexInIntListConvertsToTagList)
+{
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::int_list_tag>();
+    list->value = {10, 20, 30};
+    root.value["items"] = std::move(list);
+
+    NbtPath path = _parsePath("items[1]");
+    EXPECT_EQ(
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(99)); }), 1);
+
+    NbtPath allElements = _parsePath("items[]");
+    auto results = allElements.get(root);
+    ASSERT_EQ(results.size(), 3u);
+    EXPECT_EQ(_describe(*results[0]), "10");
+    EXPECT_EQ(_describe(*results[1]), "99");
+    EXPECT_EQ(_describe(*results[2]), "30");
+}
+
+TEST_F(NbtPathTest, SetIndexSameValueDoesNotCount)
+{
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::tag_list_tag>();
+    list->value.push_back(std::make_unique<nbt::tags::int_tag>(1));
+    root.value["items"] = std::move(list);
+
+    NbtPath path = _parsePath("items[0]");
+    EXPECT_EQ(
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }), 0);
+}
+
+TEST_F(NbtPathTest, RemoveIndexInStringList)
+{
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::string_list_tag>();
+    list->value = {"a", "b", "c"};
+    root.value["items"] = std::move(list);
+
+    NbtPath path = _parsePath("items[1]");
+    EXPECT_EQ(path.remove(root), 1);
+
+    NbtPath allElements = _parsePath("items[]");
+    auto results = allElements.get(root);
+    ASSERT_EQ(results.size(), 2u);
+    EXPECT_EQ(_describe(*results[0]), "\"a\"");
+    EXPECT_EQ(_describe(*results[1]), "\"c\"");
+}
+
+TEST_F(NbtPathTest, RemoveAllElementsInIntList)
+{
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::int_list_tag>();
+    list->value = {1, 2, 3, 4};
+    root.value["items"] = std::move(list);
+
+    NbtPath path = _parsePath("items[]");
+    EXPECT_EQ(path.remove(root), 4);
+
+    NbtPath allElements = _parsePath("items[]");
+    auto results = allElements.get(root);
+    EXPECT_TRUE(results.empty());
+}
+
+TEST_F(NbtPathTest, SetAllElementsReplacesEveryElement)
+{
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::tag_list_tag>();
+    list->value.push_back(std::make_unique<nbt::tags::int_tag>(1));
+    list->value.push_back(std::make_unique<nbt::tags::int_tag>(2));
+    list->value.push_back(std::make_unique<nbt::tags::int_tag>(1));
+    root.value["items"] = std::move(list);
+
+    NbtPath path = _parsePath("items[]");
+    i32 count =
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); });
+
+    // 与 MC 一致：返回替换掉的、与新值不相等的元素数量
+    EXPECT_EQ(count, 1);
+    NbtPath allElements = _parsePath("items[]");
+    auto results = allElements.get(root);
+    ASSERT_EQ(results.size(), 3u);
+    for (const auto* element : results) {
+        EXPECT_EQ(_describe(*element), "1");
+    }
+}
+
+// ========== 插入/追加缺失节点测试 ==========
+
+TEST_F(NbtPathTest, AppendCreatesMissingList)
+{
+    nbt::tags::compound_tag root;
+    NbtPath path = _parsePath("foo");
+
+    std::vector<std::unique_ptr<nbt::tags::tag>> values;
+    values.push_back(std::make_unique<nbt::tags::int_tag>(8));
+    EXPECT_EQ(path.append(root, values), 1);
+
+    auto results = _parsePath("foo[]").get(root);
+    ASSERT_EQ(results.size(), 1u);
+    EXPECT_EQ(_describe(*results[0]), "8");
+}
+
+// ========== 过滤器值比较测试 ==========
+
+TEST_F(NbtPathTest, CompoundFilterComparesValues)
+{
+    nbt::tags::compound_tag root;
+    root.put("id", std::string("stone"));
+
+    EXPECT_EQ(_parsePath("{id:\"stone\"}").get(root).size(), 1u);
+    EXPECT_TRUE(_parsePath("{id:\"dirt\"}").get(root).empty());
+}
+
+TEST_F(NbtPathTest, CompoundFilterNestedSubset)
+{
+    nbt::tags::compound_tag root;
+    auto nested = std::make_unique<nbt::tags::compound_tag>();
+    nested->put("a", 1);
+    nested->put("b", 2);
+    root.value["n"] = std::move(nested);
+
+    // 过滤器只需要子集匹配：只写 n:{a:1} 即可命中
+    EXPECT_EQ(_parsePath("n{a:1}").get(root).size(), 1u);
+    EXPECT_TRUE(_parsePath("n{a:3}").get(root).empty());
+}
+
+TEST_F(NbtPathTest, KeyFilterSetAndRemoveMatchValues)
+{
+    nbt::tags::compound_tag root;
+    auto child = std::make_unique<nbt::tags::compound_tag>();
+    child->put("tag", std::string("x"));
+    root.value["item"] = std::move(child);
+
+    NbtPath mismatched = _parsePath("item{tag:\"y\"}");
+    EXPECT_EQ(
+        mismatched.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }),
+        0);
+    EXPECT_EQ(mismatched.remove(root), 0);
+
+    NbtPath matched = _parsePath("item{tag:\"x\"}");
+    EXPECT_EQ(
+        matched.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(1)); }),
+        1);
+    EXPECT_EQ(_describe(*root.value.at("item")), "1");
+
+    // 当前值不再匹配过滤器，删除不生效
+    EXPECT_EQ(matched.remove(root), 0);
+
+    NbtPath matchedAgain = _parsePath("item{tag:\"x\"}");
+    root.value["item"] = std::make_unique<nbt::tags::compound_tag>();
+    static_cast<nbt::tags::compound_tag*>(root.value.at("item").get())->put("tag", std::string("x"));
+    EXPECT_EQ(matchedAgain.remove(root), 1);
+    EXPECT_FALSE(root.value.contains("item"));
+}
+
+TEST_F(NbtPathTest, ListFilterSetReplacesMatchingElements)
+{
+    nbt::tags::compound_tag root;
+    auto list = std::make_unique<nbt::tags::tag_list_tag>();
+    auto matched = std::make_unique<nbt::tags::compound_tag>();
+    matched->put("id", std::string("a"));
+    list->value.push_back(std::move(matched));
+    auto unmatched = std::make_unique<nbt::tags::compound_tag>();
+    unmatched->put("id", std::string("b"));
+    list->value.push_back(std::move(unmatched));
+    root.value["items"] = std::move(list);
+
+    NbtPath path = _parsePath("items[{id:\"a\"}]");
+    i32 count = path.set(root, []() {
+        auto value = std::make_unique<nbt::tags::compound_tag>();
+        value->put("id", std::string("z"));
+        return std::unique_ptr<nbt::tags::tag>(std::move(value));
+    });
+
+    EXPECT_EQ(count, 1);
+    EXPECT_EQ(_describe(root), "{\"items\":[{\"id\":\"z\"},{\"id\":\"b\"}]}");
+}
+
+TEST_F(NbtPathTest, SetMissingIntermediateCreatesCompounds)
+{
+    nbt::tags::compound_tag root;
+    NbtPath path = _parsePath("a.b.c");
+
+    // 缺失的复合键按原版 getOrCreate 链式创建
+    i32 count =
+        path.set(root, []() { return std::unique_ptr<nbt::tags::tag>(std::make_unique<nbt::tags::int_tag>(2)); });
+    EXPECT_EQ(count, 1);
+    EXPECT_EQ(_describe(root), "{\"a\":{\"b\":{\"c\":2}}}");
 }
 
 } // namespace test
