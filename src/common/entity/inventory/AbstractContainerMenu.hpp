@@ -641,7 +641,7 @@ private:
      * @param stack 目标物品堆（通常是光标物品）
      * @return 槽位为空或槽位物品可与 stack 合并时返回 true
      */
-    [[nodiscard]] bool _canItemQuickReplace(const Slot& slot, const ItemStack& stack) const;
+    [[nodiscard]] virtual bool _canItemQuickReplace(const Slot& slot, const ItemStack& stack) const;
 
     /**
      * @brief 检查双击收集时是否允许从槽位取物
@@ -656,14 +656,14 @@ private:
     [[nodiscard]] virtual bool _canTakeItemForPickAll(const ItemStack& stack, const Slot& slot) const;
 
     /**
-     * @brief 把物品放回玩家背包，放不下则掉落
+     * @brief 把物品放回菜单所展示的玩家背包，放不下则掉落
      *
      * 对应 MC 1.21.11 AbstractContainerMenu#dropOrPlaceInInventory。
      *
      * @param stack 要处理的物品堆，处理后清空
      * @param player 目标玩家
      */
-    void dropOrPlaceInInventory(ItemStack& stack, Player& player);
+    void _dropOrPlaceInInventory(ItemStack& stack, Player& player);
 
     /**
      * @brief 尝试槽位覆写协议（收纳袋等特殊物品）

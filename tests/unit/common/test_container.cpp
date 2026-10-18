@@ -352,7 +352,8 @@ TEST_F(AbstractContainerMenuTest, PickAllReturnsCarriedToInventoryWhenMatchingIt
     PlayerInventory inventory;
     inventory.setItem(0, ItemStack(*m_diamond, 10));
     inventory.setItem(1, ItemStack(*m_diamond, 20));
-    inventory.setItem(2, ItemStack(*m_diamond, 30));
+    // 槽位2 使用整组堆叠：既保证覆写拒绝后仍残留同种物品，也避免放回的光标与之合并
+    inventory.setItem(2, ItemStack(*m_diamond, 64));
 
     // 只允许收集槽位1（20 个），槽位2 因覆写拒绝而保留，触发收尾放回逻辑
     CountingPickAllMenu menu(&inventory, 1, 0);
@@ -366,13 +367,11 @@ TEST_F(AbstractContainerMenuTest, PickAllReturnsCarriedToInventoryWhenMatchingIt
     // 30 个统一进入玩家背包中某个槽位。
     EXPECT_TRUE(menu.getCarriedItem().isEmpty());
 
-    i32 inInventory = 0;
-    for (i32 i = 0; i < inventory.getContainerSize(); ++i) {
-        inInventory += inventory.getItem(i).getCount();
-    }
-    // 放回的 30 个进入玩家背包；槽位2 未被收集，仍保留 30 个
-    EXPECT_EQ(inInventory, 30);
-    EXPECT_EQ(menu.getSlot(2)->getItem().getCount(), 30);
+    // 放回的 30 个落在第一个能容纳它的空槽位：槽位0、1 已空，槽位0 承接
+    EXPECT_EQ(inventory.getItem(0).getCount(), 30);
+    EXPECT_EQ(inventory.getItem(1).getCount(), 0);
+    // 槽位2 未被收集，仍保留整组 64 个
+    EXPECT_EQ(menu.getSlot(2)->getItem().getCount(), 64);
 }
 
 TEST_F(AbstractContainerMenuTest, CloneInCreativeMode)

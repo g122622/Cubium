@@ -977,7 +977,7 @@ ItemStack AbstractContainerMenu::_handlePickupAll(
         }
 
         if (hasMatchingItem) {
-            dropOrPlaceInInventory(m_carried, player);
+            _dropOrPlaceInInventory(m_carried, player);
         }
     }
 
@@ -1002,19 +1002,21 @@ bool AbstractContainerMenu::_canTakeItemForPickAll(const ItemStack& stack, const
     return true;
 }
 
-void AbstractContainerMenu::dropOrPlaceInInventory(ItemStack& stack, Player& player)
+void AbstractContainerMenu::_dropOrPlaceInInventory(ItemStack& stack, Player& player)
 {
     // 对应 MC 1.21.11 AbstractContainerMenu#dropOrPlaceInInventory：
-    // 优先放回玩家背包，放不下则掉落。
+    // 优先放回菜单所展示的玩家背包，放不下则掉落。与其他归还路径（removed/
+    // clearContainer）保持一致，优先使用 m_playerInventory。
     if (stack.isEmpty()) {
         return;
     }
 
+    auto& targetInventory = (m_playerInventory != nullptr) ? *m_playerInventory : player.inventory();
     // add() 返回剩余未添加的数量，并同步修改 stack 的数量
-    i32 remaining = player.inventory().add(stack);
+    i32 remaining = targetInventory.add(stack);
     if (remaining > 0) {
         stack.setCount(remaining);
-        dropItem(stack, player, true);
+        dropItem(stack, player, false);
     }
     stack = ItemStack();
 }
