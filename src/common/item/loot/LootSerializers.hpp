@@ -346,7 +346,20 @@ private:
     /**
      * @brief 解析条目的公共属性（weight, quality, conditions, functions）
      */
-    static void _parseEntryBase(LootEntry& entry, const nlohmann::json& json);
+    /**
+     * @brief 解析掉落项的公共属性（weight/quality/conditions/functions）
+     *
+     * 条件或函数任一项解析失败即返回错误：原版会让整张战利品表加载失败，
+     * 静默跳过会让掉落结果与数据包声明不一致。
+     */
+    static Result<void> _parseEntryBase(LootEntry& entry, const nlohmann::json& json);
+
+    /**
+     * @brief 把 JSON 的 functions 数组逐项解析并追加到目标（任一失败即返回错误）
+     */
+    static Result<void> _appendFunctions(LootEntry& entry, const nlohmann::json& json);
+    static Result<void> _appendFunctions(LootPool& pool, const nlohmann::json& json);
+    static Result<void> _appendFunctions(LootTable& table, const nlohmann::json& json);
 };
 
 } // namespace loot

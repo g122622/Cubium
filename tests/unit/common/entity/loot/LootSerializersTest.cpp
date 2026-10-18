@@ -559,6 +559,50 @@ TEST_F(LootSerializersTest, ParseFunction_SetCustomDataParsesTagAtLoad)
     EXPECT_EQ(42, it->get<i32>());
 }
 
+TEST_F(LootSerializersTest, ParsePool_RejectsEntryWithUnknownFunction)
+{
+    // 掉落项函数列表中含未注册函数：整体解析失败（不允许静默丢弃该函数）
+    const nlohmann::json entry = {{"type", "minecraft:item"},
+        {"name", "minecraft:diamond"},
+        {"functions", {{{"function", "minecraft:not_a_real_function"}}}}};
+    const nlohmann::json json = {{"rolls", 1}, {"entries", {entry}}};
+    auto result = LootSerializers::parsePool(json);
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
+}
+
+TEST_F(LootSerializersTest, ParseLootTable_RejectsPoolWithMalformedFunction)
+{
+    // 池级函数非法（set_custom_data 的 tag 不是合法 Mojangson）：整张表加载失败
+    const nlohmann::json entry = {{"type", "minecraft:item"}, {"name", "minecraft:stone"}};
+    const nlohmann::json pool = {{"rolls", 1},
+        {"entries", {entry}},
+        {"functions", {{{"function", "minecraft:set_custom_data"}, {"tag", "{broken"}}}}};
+    const nlohmann::json json = {{"type", "minecraft:chest"}, {"pools", {pool}}};
+    auto result = LootSerializers::parseLootTable(json.dump());
+    ASSERT_FALSE(result.success());
+    EXPECT_EQ(ErrorCode::InvalidData, result.error().code());
+}
+
+TEST_F(LootSerializersTest, ParseLootTable_AcceptsValidEntryFunctions)
+{
+    const nlohmann::json entry = {{"type", "minecraft:item"},
+        {"name", "minecraft:stone"},
+        {"functions", {{{"function", "minecraft:set_count"}, {"count", 3}}}}};
+    const nlohmann::json pool = {{"rolls", 1}, {"entries", {entry}}};
+    const nlohmann::json json = {{"type", "minecraft:chest"}, {"pools", {pool}}};
+    auto result = LootSerializers::parseLootTable(json.dump());
+    ASSERT_TRUE(result.success()) << (!result.success() ? result.error().message() : "");
+    // value() 为转移所有权语义：只能取一次
+    auto table = result.value();
+    ASSERT_NE(table, nullptr);
+    ASSERT_EQ(table->getPools().size(), 1u);
+    const auto& entries = table->getPools()[0]->getEntries();
+    ASSERT_EQ(entries.size(), 1u);
+    ASSERT_EQ(entries[0]->getFunctions().size(), 1u);
+    EXPECT_EQ("set_count", entries[0]->getFunctions()[0]->getType());
+}
+
 TEST_F(LootSerializersTest, ParseFunction_SetDamage)
 {
     nlohmann::json json = {

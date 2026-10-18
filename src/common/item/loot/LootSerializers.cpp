@@ -795,8 +795,6 @@ Result<std::unique_ptr<LootFunction>> LootSerializers::parseFunction(const nlohm
     //  其中 copy_components、set_potion、set_enchantments、set_components、
     //  set_ominous_bottle_amplifier、set_instrument 已被原版数据包的战利品表实际使用
     //  （datapacks/Vanilla/data/minecraft/loot_table）。
-    // TODO: 各 _parse*Entry 与 parsePool 解析函数列表时用 if (funcResult.success()) 静默跳过失败项，
-    //  原版遇到未注册的函数类型会直接解析失败（战利品表加载报错）；应改为向上返回错误，避免函数被静默丢弃。
     if (functionType == "minecraft:set_count" || functionType == "set_count") {
         return _parseSetCountFunction(json);
     } else if (functionType == "minecraft:apply_bonus" || functionType == "apply_bonus") {
@@ -1559,7 +1557,51 @@ nlohmann::json LootSerializers::toJson(const LootEntry& entry)
 // 条目解析辅助方法
 // ============================================================================
 
-void LootSerializers::_parseEntryBase(LootEntry& entry, const nlohmann::json& json)
+Result<void> LootSerializers::_appendFunctions(LootEntry& entry, const nlohmann::json& json)
+{
+    // 函数列表逐项解析，任一项失败即整体失败（原版遇到未注册/非法函数会让整张战利品表加载失败），
+    // 不允许静默跳过——被丢弃的函数会让掉落结果与数据包声明不一致。
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (!funcResult.success()) {
+                return funcResult.error();
+            }
+            entry.addFunction(funcResult.value());
+        }
+    }
+    return Result<void>::ok();
+}
+
+Result<void> LootSerializers::_appendFunctions(LootPool& pool, const nlohmann::json& json)
+{
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (!funcResult.success()) {
+                return funcResult.error();
+            }
+            pool.addFunction(funcResult.value());
+        }
+    }
+    return Result<void>::ok();
+}
+
+Result<void> LootSerializers::_appendFunctions(LootTable& table, const nlohmann::json& json)
+{
+    if (json.contains("functions") && json["functions"].is_array()) {
+        for (const auto& funcJson : json["functions"]) {
+            auto funcResult = parseFunction(funcJson);
+            if (!funcResult.success()) {
+                return funcResult.error();
+            }
+            table.addFunction(funcResult.value());
+        }
+    }
+    return Result<void>::ok();
+}
+
+Result<void> LootSerializers::_parseEntryBase(LootEntry& entry, const nlohmann::json& json)
 {
     // 解析权重
     if (json.contains("weight") && json["weight"].is_number_integer()) {
@@ -1581,15 +1623,8 @@ void LootSerializers::_parseEntryBase(LootEntry& entry, const nlohmann::json& js
         }
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry.addFunction(funcResult.value());
-            }
-        }
-    }
+    // 解析函数列表（任一项失败即整张表加载失败）
+    return _appendFunctions(entry, json);
 }
 
 Result<std::unique_ptr<LootEntry>> LootSerializers::_parseEmptyEntry(const nlohmann::json& json)
@@ -1616,14 +1651,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseEmptyEntry(const nlohm
         }
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry->addFunction(funcResult.value());
-            }
-        }
+    auto funcError = _appendFunctions(*entry, json);
+    if (!funcError.success()) {
+        return funcError.error();
     }
 
     return castToBase<EmptyLootEntry, LootEntry>(std::move(entry));
@@ -1669,14 +1699,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseItemEntry(const nlohma
         }
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry->addFunction(funcResult.value());
-            }
-        }
+    auto funcError = _appendFunctions(*entry, json);
+    if (!funcError.success()) {
+        return funcError.error();
     }
 
     return castToBase<ItemLootEntry, LootEntry>(std::move(entry));
@@ -1709,7 +1734,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseTableEntry(const nlohm
     }
 
     // 解析公共属性（weight/quality/conditions/functions）
-    _parseEntryBase(*entry, json);
+    auto baseError = _parseEntryBase(*entry, json);
+    if (!baseError.success()) {
+        return baseError.error();
+    }
 
     return entry;
 }
@@ -1738,7 +1766,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseTagEntry(const nlohman
 
     auto entry = std::make_unique<TagLootEntry>(tagId, expand, weight, quality);
 
-    _parseEntryBase(*entry, json);
+    auto baseError = _parseEntryBase(*entry, json);
+    if (!baseError.success()) {
+        return baseError.error();
+    }
 
     return castToBase<TagLootEntry, LootEntry>(std::move(entry));
 }
@@ -1763,7 +1794,10 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseDynamicEntry(const nlo
 
     auto entry = std::make_unique<DynamicLootEntry>(name, weight, quality);
 
-    _parseEntryBase(*entry, json);
+    auto baseError = _parseEntryBase(*entry, json);
+    if (!baseError.success()) {
+        return baseError.error();
+    }
 
     return castToBase<DynamicLootEntry, LootEntry>(std::move(entry));
 }
@@ -1795,14 +1829,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseAlternativesEntry(cons
         }
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry->addFunction(funcResult.value());
-            }
-        }
+    auto funcError = _appendFunctions(*entry, json);
+    if (!funcError.success()) {
+        return funcError.error();
     }
 
     return castToBase<AlternativesLootEntry, LootEntry>(std::move(entry));
@@ -1835,14 +1864,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseSequenceEntry(const nl
         }
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry->addFunction(funcResult.value());
-            }
-        }
+    auto funcError = _appendFunctions(*entry, json);
+    if (!funcError.success()) {
+        return funcError.error();
     }
 
     return castToBase<SequenceLootEntry, LootEntry>(std::move(entry));
@@ -1875,14 +1899,9 @@ Result<std::unique_ptr<LootEntry>> LootSerializers::_parseGroupEntry(const nlohm
         }
     }
 
-    // 解析函数列表
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                entry->addFunction(funcResult.value());
-            }
-        }
+    auto funcError = _appendFunctions(*entry, json);
+    if (!funcError.success()) {
+        return funcError.error();
     }
 
     return castToBase<GroupLootEntry, LootEntry>(std::move(entry));
@@ -1945,14 +1964,10 @@ Result<std::unique_ptr<LootPool>> LootSerializers::parsePool(const nlohmann::jso
         }
     }
 
-    // 解析池级函数
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                pool->addFunction(funcResult.value());
-            }
-        }
+    // 解析池级函数（任一项失败即整张表加载失败）
+    auto poolFuncError = _appendFunctions(*pool, json);
+    if (!poolFuncError.success()) {
+        return poolFuncError.error();
     }
 
     return pool;
@@ -2058,14 +2073,10 @@ Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const nlohman
         }
     }
 
-    // 解析表级函数
-    if (json.contains("functions") && json["functions"].is_array()) {
-        for (const auto& funcJson : json["functions"]) {
-            auto funcResult = parseFunction(funcJson);
-            if (funcResult.success()) {
-                table->addFunction(funcResult.value());
-            }
-        }
+    // 解析表级函数（任一项失败即整张表加载失败）
+    auto tableFuncError = _appendFunctions(*table, json);
+    if (!tableFuncError.success()) {
+        return tableFuncError.error();
     }
 
     return table;
