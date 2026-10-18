@@ -140,10 +140,10 @@ struct ColoredBlocks {
     static Block* BLACK_TERRACOTTA;
     static Block* TERRACOTTA;
 
-    // 釉面陶瓦 (16色，可旋转、不可被活塞拉动)
-    // TODO: 16 色 GlazedTerracottaBlock 此前仅有类定义未注册，导致基岩 .mcstructure 结构
+    // 釉面陶瓦 (16色，可被活塞沿朝向轴推动并顺时针旋转)
+    // 16 色 GlazedTerracottaBlock 必须注册：未注册时基岩 .mcstructure 结构
     // (如 minecraft-gametests 的 clone_command) 中的 purple_glazed_terracotta 解析退化为 air，
-    // 进而使依附其上的按钮在形状更新阶段自毁。本期补齐注册以打通 GameTest。
+    // 进而使依附其上的按钮在形状更新阶段自毁。
     static Block* WHITE_GLAZED_TERRACOTTA;
     static Block* ORANGE_GLAZED_TERRACOTTA;
     static Block* MAGENTA_GLAZED_TERRACOTTA;

@@ -39,7 +39,7 @@ namespace blocks {
  * - 可以旋转（4个方向）
  * - 图案根据朝向旋转
  * - 16种颜色
- * - 不可被粘性活塞拉动
+ * - 被活塞沿与朝向平行的方向推动时顺时针旋转 90°，垂直推动保持朝向
  *
  * 参考: net.minecraft.block.GlazedTerracottaBlock
  */
@@ -69,6 +69,14 @@ public:
      * @brief 镜像方块
      */
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
+
+    /**
+     * @brief 活塞推动后的落地状态
+     *
+     * 推动轴与朝向轴相同（平行推动）时顺时针旋转 90°，否则保持朝向不变。
+     */
+    [[nodiscard]] const BlockState& getStateForMovement(
+        const BlockState& state, Direction pushDirection) const override;
 };
 
 } // namespace blocks

@@ -650,6 +650,8 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
     # CandleBlock 蜡烛方块测试
     common/world/block/blocks/decorative/CandleBlockTest.cpp
+    # GlazedTerracottaBlock 釉面陶瓦活塞推动旋转测试
+    common/world/block/blocks/decorative/GlazedTerracottaBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
