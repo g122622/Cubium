@@ -623,6 +623,80 @@ TEST_F(SkullBlockTest, SkullEntity_OwnerProfileRoundTrip)
     EXPECT_EQ(loaded.getOwnerProfile()->name(), "Notch");
 }
 
+TEST_F(SkullBlockTest, SkullEntity_OwnerProfileNbtRoundTrip)
+{
+    blockentity::SkullBlockEntity entity(BlockPos(0, 0, 0));
+
+    skin::GameProfile profile;
+    profile.setName("Notch");
+    profile.setUUID(skin::GameProfile::parseUUID("069a79f444e94726a5befca90e38aaf5"));
+    profile.addProperty(
+        skin::GameProfileProperty("textures", "dGV4dHVyZXM=", std::optional<std::string>("c2lnbmF0dXJl")));
+    entity.setOwnerProfile(profile);
+
+    // NBT 往返：UUID / 名称 / textures 属性都应保留
+    nbt::CompoundTag tag;
+    entity.saveToNBT(tag);
+    blockentity::SkullBlockEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.loadFromNBT(tag));
+    ASSERT_NE(loaded.getOwnerProfile(), nullptr);
+    EXPECT_EQ(loaded.getOwnerProfile()->name(), "Notch");
+    EXPECT_EQ(loaded.getOwnerProfile()->uuid(), profile.uuid());
+
+    const auto* textures = loaded.getOwnerProfile()->getTexturesProperty();
+    ASSERT_NE(textures, nullptr);
+    EXPECT_EQ(textures->value, "dGV4dHVyZXM=");
+    ASSERT_TRUE(textures->hasSignature());
+    EXPECT_EQ(*textures->signature, "c2lnbmF0dXJl");
+}
+
+TEST_F(SkullBlockTest, SkullEntity_OwnerProfileReadsArrayUuidNbt)
+{
+    // 结构模板中的档案可能以 UUID 数组形式给出，应能还原出完整档案
+    nbt::tags::compound_tag profileTag;
+    profileTag.put("name", std::string("Notch"));
+    std::vector<i32> uuidInts = {static_cast<i32>(0x069a79f4u),
+        static_cast<i32>(0x44e94726u),
+        static_cast<i32>(0xa5befca9u),
+        static_cast<i32>(0x0e38aaf5u)};
+    profileTag.value.insert_or_assign("id", std::make_unique<nbt::tags::intarray_tag>(std::move(uuidInts)));
+
+    nbt::CompoundTag tag;
+    tag.value.emplace("profile", std::make_unique<nbt::tags::compound_tag>(profileTag));
+
+    blockentity::SkullBlockEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.loadFromNBT(tag));
+    ASSERT_NE(loaded.getOwnerProfile(), nullptr);
+    EXPECT_EQ(loaded.getOwnerProfile()->name(), "Notch");
+    EXPECT_EQ(loaded.getOwnerProfile()->uuid(), skin::GameProfile::parseUUID("069a79f444e94726a5befca90e38aaf5"));
+}
+
+TEST_F(SkullBlockTest, SkullEntity_OwnerProfileNbtUsesIntArrayUuid)
+{
+    blockentity::SkullBlockEntity entity(BlockPos(0, 0, 0));
+
+    skin::GameProfile profile;
+    profile.setName("Notch");
+    profile.setUUID(skin::GameProfile::parseUUID("069a79f444e94726a5befca90e38aaf5"));
+    entity.setOwnerProfile(profile);
+
+    nbt::CompoundTag tag;
+    entity.saveToNBT(tag);
+
+    // UUID 必须以 4 个 Int 的数组形式编码，分量不得被窄化为 Byte
+    const auto it = tag.value.find("profile");
+    ASSERT_NE(it, tag.value.end());
+    ASSERT_EQ(it->second->id(), nbt::TagId::Compound);
+    const auto& profileTag = dynamic_cast<const nbt::tags::compound_tag&>(*it->second);
+    const auto idIt = profileTag.value.find("Id");
+    ASSERT_NE(idIt, profileTag.value.end());
+    ASSERT_EQ(idIt->second->id(), nbt::TagId::IntArray);
+    const auto& uuidArray = dynamic_cast<const nbt::tags::intarray_tag&>(*idIt->second).value;
+    ASSERT_EQ(uuidArray.size(), 4u);
+    EXPECT_EQ(static_cast<u32>(uuidArray[0]), 0x069a79f4u);
+    EXPECT_EQ(static_cast<u32>(uuidArray[3]), 0x0e38aaf5u);
+}
+
 TEST_F(SkullBlockTest, SkullEntity_CustomNameRoundTrip)
 {
     blockentity::SkullBlockEntity entity(BlockPos(0, 0, 0));

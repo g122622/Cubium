@@ -243,20 +243,28 @@ Result<GameProfile> GameProfile::fromJson(const nlohmann::json& json)
 
     GameProfile profile;
 
-    // 读取名称
+    // 读取名称：兼容 SkullOwner 的旧写法（Name）与存档/结构模板的小写写法（name）
     if (json.contains("Name") && json["Name"].is_string()) {
         profile.m_name = json["Name"].get<std::string>();
+    } else if (json.contains("name") && json["name"].is_string()) {
+        profile.m_name = json["name"].get<std::string>();
     }
 
-    // 读取 UUID
+    // 读取 UUID：同样兼容 Id / id 两种写法
+    const nlohmann::json* idJson = nullptr;
     if (json.contains("Id")) {
-        if (json["Id"].is_string()) {
+        idJson = &json["Id"];
+    } else if (json.contains("id")) {
+        idJson = &json["id"];
+    }
+    if (idJson != nullptr) {
+        if (idJson->is_string()) {
             // 字符串格式 UUID（带或不带连字符）
-            std::string uuidStr = json["Id"].get<std::string>();
+            std::string uuidStr = idJson->get<std::string>();
             profile.m_uuid = parseUUID(uuidStr);
-        } else if (json["Id"].is_array()) {
+        } else if (idJson->is_array()) {
             // IntArray 格式 UUID（MC NBT 格式：4 个 i32）
-            auto arr = json["Id"];
+            const auto& arr = *idJson;
             if (arr.size() == 4) {
                 // 将 4 个 i32 转换为 16 字节 UUID（大端序）
                 for (size_t i = 0; i < 4; ++i) {
