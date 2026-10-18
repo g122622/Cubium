@@ -52,6 +52,8 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/ray/Ray.hpp"
+#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -146,6 +148,10 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
+    /// 世界级交互权限开关（模拟出生点保护 / 世界边界外拒绝交互的场景）。
+    [[nodiscard]] bool mayInteract(const Entity&, const BlockPos&) const override { return m_allowInteract; }
+    void setAllowInteract(bool allow) { m_allowInteract = allow; }
+
     /// 游戏规则容器（刷怪笼开关等规则由测试设置）。
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
@@ -173,6 +179,7 @@ private:
     u64 m_currentTick = 0;
     Difficulty m_difficulty = Difficulty::Normal;
     bool m_clientSide = false;
+    bool m_allowInteract = true;
     math::Random m_rng{12345};
     EntityInstanceId m_nextEntityId = EntityInstanceId(100);
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
@@ -437,6 +444,77 @@ TEST_F(SpawnEggItemTest, OnItemRightClick_WaterSourceSpawnsEntity)
     EXPECT_TRUE(result.isSuccess());
     EXPECT_EQ(m_world->spawnedEntityCount(), 1u);
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 3) << "survival should consume 1";
+}
+
+TEST_F(SpawnEggItemTest, OnItemRightClick_WorldInteractionDeniedReturnsFail)
+{
+    // 世界级交互权限拒绝（如出生点保护）：返回 Fail、不生成、不消耗（对应 Java use 的 mayInteract 门控）
+    auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    m_world->setFluidState(BlockPos(10, 64, 19), &waterFluid->defaultState());
+    m_world->setAllowInteract(false);
+
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Survival);
+    player->setPosition(10.5f, 66.0f, 19.5f);
+    player->setRotation(0.0f, -90.0f);
+    player->getHeldItem(Hand::MainHand) = ItemStack(Items::SQUID_SPAWN_EGG, 4);
+
+    auto result = Items::SQUID_SPAWN_EGG->onItemRightClick(*m_world, *player, Hand::MainHand);
+
+    EXPECT_EQ(result.getType(), ActionResultType::Fail);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "fail should not consume";
+}
+
+TEST_F(SpawnEggItemTest, OnItemRightClick_AdventureMayUseItemAtDeniedReturnsFail)
+{
+    // 冒险模式且手持物品无 CanPlaceOn：mayUseItemAt 拒绝，返回 Fail、不生成、不消耗。
+    auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    m_world->setFluidState(BlockPos(10, 64, 19), &waterFluid->defaultState());
+
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Adventure);
+    player->setPosition(10.5f, 66.0f, 19.5f);
+    player->setRotation(0.0f, -90.0f);
+    player->getHeldItem(Hand::MainHand) = ItemStack(Items::SQUID_SPAWN_EGG, 4);
+
+    auto result = Items::SQUID_SPAWN_EGG->onItemRightClick(*m_world, *player, Hand::MainHand);
+
+    EXPECT_EQ(result.getType(), ActionResultType::Fail);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "fail should not consume";
+}
+
+TEST_F(SpawnEggItemTest, OnItemRightClick_FlowingFluidBlocksRay)
+{
+    // 视线先命中流动水：SOURCE_ONLY 语义下流动水挡住射线但不产生命中，返回 Pass。
+    auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    auto* flowingWater = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::FLOWING_WATER_ID);
+    ASSERT_NE(flowingWater, nullptr);
+    const fluid::FluidState& flowing = flowingWater->defaultState();
+    ASSERT_FALSE(flowing.isSource());
+
+    m_world->setFluidState(BlockPos(10, 64, 19), &flowing);
+    // 流动水下方的水源不应被选中（流动水在射线上一律阻挡）。
+    m_world->setFluidState(BlockPos(10, 63, 19), &waterFluid->defaultState());
+
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Survival);
+    player->setPosition(10.5f, 66.0f, 19.5f);
+    player->setRotation(0.0f, -90.0f);
+    player->getHeldItem(Hand::MainHand) = ItemStack(Items::SQUID_SPAWN_EGG, 4);
+
+    auto result = Items::SQUID_SPAWN_EGG->onItemRightClick(*m_world, *player, Hand::MainHand);
+
+    EXPECT_EQ(result.getType(), ActionResultType::Pass);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "pass should not consume";
 }
 
 TEST_F(SpawnEggItemTest, OnItemRightClick_NoWaterReturnsPass)

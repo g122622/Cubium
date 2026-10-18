@@ -77,4 +77,21 @@ struct RaycastContext {
  */
 [[nodiscard]] BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& world);
 
+/**
+ * @brief 沿射线查找首个水源方块（对应 vanilla Player#getPlayerPOVHitResult(..., Fluid.SOURCE_ONLY)）
+ *
+ * 对每个步进到的方块先判定其流体状态：若为流动流体则立即终止（对应 ClipContext.Fluid.SOURCE_ONLY
+ * 的流体行为——流动流体会挡住射线，只是不产生命中）；若为流体源，则命中该方块的流体碰撞形状
+ * （高度按液体量缩放，液体量见 FluidState::getAmount）。射线终点与起点同 raycastBlocks 一样
+ * 做端点微偏移，保证终点恰在方块内/边界时的判定稳定。
+ *
+ * 非流体方块的碰撞形状不参与本次检测（vanilla 中该调用只用于液体，调用方不会在同一次检测里
+ * 同时关心实心方块）。
+ *
+ * @param context 射线参数
+ * @param world 世界
+ * @return 命中的流体源方块；未命中返回 miss
+ */
+[[nodiscard]] BlockRaycastResult raycastFluidSource(const RaycastContext& context, const IWorld& world);
+
 } // namespace mc

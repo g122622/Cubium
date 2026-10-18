@@ -245,6 +245,52 @@ TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsDis
     EXPECT_FALSE(resultFar.success());
 }
 
+TEST_F(BlockInteractionManagerPlacementTest, RejectsInteractionOutsideWorldBorder)
+{
+    // 世界级交互权限（ServerWorld::mayInteract）要求方块位于世界边界内。
+    // 默认边界以世界中心为原点、半径约 29999984 格，将边界收缩到玩家附近后即可验证门控。
+    // 本夹具不构造玩家实体，权限判定走与实体无关的世界边界分支。
+    m_player->loggedIn = true;
+    m_player->x = 0.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(2, 63, 0, &VanillaBlocks::STONE->defaultState());
+    m_player->x = 2.5f;
+    m_player->z = 0.5f;
+    setHeldBlockItem(*VanillaBlocks::STONE, 1);
+    m_world->worldBorder().setCenter(0.0, 0.0);
+    m_world->worldBorder().setSize(4.0);
+    ASSERT_FALSE(m_world->worldBorder().contains(BlockPos(2, 63, 0)));
+    // 该位置位于边界外：放置必须被世界级交互权限拒绝。
+    auto rejected = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(2, 63, 0), Vector3(2.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
+    ASSERT_FALSE(rejected.success());
+    EXPECT_EQ(rejected.error().code(), ErrorCode::PermissionDenied);
+}
+
+TEST_F(BlockInteractionManagerPlacementTest, AllowsInteractionInsideWorldBorder)
+{
+    m_player->loggedIn = true;
+    m_player->x = 0.5f;
+    m_player->y = 64.0f;
+    m_player->z = 0.5f;
+
+    m_world->setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    // 地形(seed=114514)在 (0,64,0) 生成了泥土，显式清成空气使放置目标可替换。
+    m_world->setBlockState(0, 64, 0, &VanillaBlocks::AIR->defaultState());
+    setHeldBlockItem(*VanillaBlocks::STONE, 1);
+    m_player->x = 3.5f;
+    m_player->z = 0.5f;
+    m_world->worldBorder().setCenter(0.0, 0.0);
+    m_world->worldBorder().setSize(16.0);
+
+    auto result = m_blockInteractionManager->handleBlockPlacement(
+        m_playerId, BlockPos(0, 63, 0), Vector3(0.5f, 63.99f, 0.5f), Direction::Up, Hand::MainHand, heldItem());
+    ASSERT_TRUE(result.success());
+    EXPECT_TRUE(result.value().blockPlaced);
+}
+
 TEST_F(BlockInteractionManagerPlacementTest, ValidateInteractionPreconditionsYRangeCheck)
 {
     m_player->loggedIn = true;

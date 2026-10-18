@@ -140,44 +140,38 @@ ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, H
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 
-    // 对齐 Java use：沿视线做液体射线检测，找首个水源方块位置生成实体（用于在水里放鱿鱼等）
-    const Vector3 eyePosition(player.x(), player.y() + player.eyeHeight(), player.z());
+    // 沿视线做仅取流体源的射线检测（对应 Java getPlayerPOVHitResult(level, player, Fluid.SOURCE_ONLY)），
+    // 命中首个水源方块则在该位置生成实体（用于在水里放鱿鱼等）。射程取玩家方块交互距离属性。
+    const Vector3 eyePosition = player.getEyePosition();
     const Ray ray = Ray::fromAngles(eyePosition, player.pitch(), player.yaw());
-    constexpr f32 MAX_DISTANCE = 5.0f;
+    const BlockRaycastResult fluidHit =
+        raycastFluidSource(RaycastContext(ray, static_cast<f32>(player.blockInteractionRange())), world);
 
-    const BlockRaycastResult blockHit = raycastBlocks(RaycastContext(ray, MAX_DISTANCE), world);
-    const f32 searchDistance = blockHit.isHit() ? blockHit.distance() : MAX_DISTANCE;
-
-    // 沿射线步进采样，找首个水源方块
-    constexpr f32 SAMPLE_STEP = 0.1f;
-    std::optional<BlockPos> waterPos;
-    for (f32 distance = 0.0f; distance <= searchDistance; distance += SAMPLE_STEP) {
-        const Vector3 sample = ray.at(distance);
-        const BlockPos pos(sample);
-        const fluid::FluidState* fluidState = world.getFluidState(pos);
-        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->isSource() && world.isWaterAt(pos)) {
-            waterPos = pos;
-            break;
-        }
-    }
-
-    // 未命中水源方块则不生成
-    if (!waterPos.has_value()) {
+    // 未命中方块：不处理（Java 返回 PASS）
+    if (!fluidHit.isHit()) {
         return ItemActionResult::pass(player.getHeldItem(hand));
     }
 
-    if (spawnEntity(world, *waterPos, world::spawn::SpawnReason::SpawnEgg)) {
-        world.gameEvent(gameevent::GameEvents::ENTITY_PLACE, *waterPos, nullptr);
-        if (!player.isCreative()) {
-            player.getHeldItem(hand).shrink(1);
-        }
-        // 对齐 Java awardStat(Stats.ITEM_USED)
-        player.awardUsedStat(this->itemLocation(), 1);
-        // TODO: 缺少 mayInteract / mayUseItemAt 权限检查（Cubium 无对应 API）
+    // 权限门控（Java use）：世界级交互权限与玩家物品使用权限任一失败即整体失败、不消耗物品。
+    const BlockPos hitPos = fluidHit.blockPos();
+    if (!world.mayInteract(player, hitPos) ||
+        !player.mayUseItemAt(world, hitPos, fluidHit.face(), player.getHeldItem(hand))) {
+        return ItemActionResult::fail(player.getHeldItem(hand));
+    }
+
+    // 与 Java 一致：命中非液体方块上的流体源（如含水方块）同样返回 PASS；
+    // 生成失败（如和平难度禁止的实体）返回 SUCCESS 但不消耗物品。
+    if (!spawnEntity(world, hitPos, world::spawn::SpawnReason::SpawnEgg)) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 
-    return ItemActionResult::pass(player.getHeldItem(hand));
+    world.gameEvent(gameevent::GameEvents::ENTITY_PLACE, hitPos, nullptr);
+    if (!player.isCreative()) {
+        player.getHeldItem(hand).shrink(1);
+    }
+    // 对齐 Java awardStat(Stats.ITEM_USED)
+    player.awardUsedStat(this->itemLocation(), 1);
+    return ItemActionResult::success(player.getHeldItem(hand));
 }
 
 bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, world::spawn::SpawnReason spawnReason) const

@@ -1564,6 +1564,24 @@ public:
     [[nodiscard]] virtual world::border::WorldBorder& worldBorder() = 0;
     [[nodiscard]] virtual const world::border::WorldBorder& worldBorder() const = 0;
 
+    // ========== 方块交互权限 ==========
+
+    /**
+     * @brief 检查实体是否允许在指定方块位置交互（对应 vanilla Level#mayInteract）
+     *
+     * 只承载与世界级规则相关、与具体物品无关的门控：世界边界之外一律禁止；玩家还受出生点
+     * 保护约束。默认实现返回 true（对应 vanilla Level 的基类实现），ServerWorld 重写补全。
+     *
+     * 注意与 Entity::mayInteract 的区别：后者是实体级权限（旁观模式、冒险模式 CanPlaceOn），
+     * 本方法是世界级权限，调用方通常两者都要查（对应 vanilla 的
+     * `level.mayInteract(entity, pos) && player.mayUseItemAt(...)`）。
+     *
+     * @param entity 交互发起者
+     * @param pos 目标方块位置
+     * @return 允许交互返回 true
+     */
+    [[nodiscard]] virtual bool mayInteract(const Entity& entity, const BlockPos& pos) const;
+
     // ========== 实体状态广播 ==========
 
     /**

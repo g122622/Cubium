@@ -452,7 +452,7 @@ MC 1.21.11 共 87 种刷怪蛋物品，统一注册在 `Items::_registerSpawnEgg
 **两种使用路径**：
 1. **右键方块**：`SpawnEggItem::onItemUse` 在方块面上方生成对应实体。生成位置对齐 Java `useOn`：点击方块碰撞形状为空（草、花等）时在方块自身位置生成，否则在面偏移位置生成；生成位置不可替换时返回 `Fail`。生成成功后触发 `ENTITY_PLACE` 振动事件并消耗物品（非创造模式）。刷怪笼方块走单独分支：设置刷怪笼实体类型并触发 `BLOCK_CHANGE` 事件。
 2. **右键生物**：`MobEntity::processInitialInteract` 检测手持刷怪蛋 → `_spawnOffspringFromSpawnEgg` 比较刷怪蛋实体名与目标实体 `getTypeId()`，匹配时通过 `EntityRegistry::getType(getTypeId())->create(world, registry)` 生成幼体（仅 `AgeableEntity` 子类支持，非年龄型实体不生成）
-3. **右键空气/液体**：`SpawnEggItem::onItemRightClick` 沿视线做液体射线检测（对齐 Java `getPlayerPOVHitResult(Fluid.SOURCE_ONLY)`），在首个水源方块位置生成实体；命中水源时触发 `ENTITY_PLACE` 事件、消耗物品（非创造模式）并记录 `ITEM_USED` 统计，未命中水源返回 `Pass`
+3. **右键空气/液体**：`SpawnEggItem::onItemRightClick` 经 `raycastFluidSource` 沿视线做仅取流体源的射线检测（对应 Java `getPlayerPOVHitResult(Fluid.SOURCE_ONLY)`，射程取 `block_interaction_range` 属性；流动流体挡射线但不产生命中），在首个水源方块位置生成实体；命中后先过世界级 `IWorld::mayInteract` 与玩家 `mayUseItemAt` 双重权限门控（失败返回 `Fail`、不消耗），成功时触发 `ENTITY_PLACE` 事件、消耗物品（非创造模式）并记录 `ITEM_USED` 统计；未命中方块返回 `Pass`，生成失败（如和平难度）返回 `Success` 但不消耗
 
 **`spawnEntity` 反查真实工厂**：刷怪蛋持有的 `EntityType` 副本工厂为空（仅作名称载体），`SpawnEggItem::spawnEntity` 必须通过 `EntityRegistry::instance().getType(m_entityType.name())` 反查真实 `EntityType`，再调 `realType->create(&world, *registry)` 生成实体；反查失败（未知实体类型）返回 `false`。生成前还有和平难度检查（对齐 Java `isAllowedInPeaceful`）：怪物类实体（`EntityClassification::Monster`）在和平难度不生成。生成后对 `MobEntity` 调用 `finalizeSpawn` 进行基于区域难度的装备初始化。
 

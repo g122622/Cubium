@@ -34,6 +34,7 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
+#include "world/fluid/FluidRegistry.hpp"
 #include "world/tick/manager/TickManager.hpp"
 #include <stdexcept>
 #include <gtest/gtest.h>
@@ -496,4 +497,131 @@ TEST_F(RaycastTest, HitSugarCaneBlock)
 
     EXPECT_TRUE(result.isHit());
     EXPECT_EQ(result.blockPos(), BlockPos(2, 64, 0));
+}
+
+// ============================================================================
+// raycastFluidSource：仅取流体源的射线检测（对应 vanilla getPlayerPOVHitResult(Fluid.SOURCE_ONLY)）
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 可注入流体状态的测试世界：方块一律为空气，流体按坐标查表。
+ */
+class FluidRaycastWorld final : public test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override
+    {
+        return &VanillaBlocks::AIR->defaultState();
+    }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_fluids.find(BlockPos(x, y, z));
+        return it != m_fluids.end() ? it->second : &fluid::Fluids::EMPTY()->defaultState();
+    }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    }
+
+    void setFluid(const BlockPos& pos, const fluid::FluidState* state) { m_fluids[pos] = state; }
+
+private:
+    std::unordered_map<BlockPos, const fluid::FluidState*> m_fluids;
+};
+
+} // namespace
+
+class RaycastFluidSourceTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            VanillaBlocks::initialize();
+            fluid::FluidRegistry::instance().initialize();
+            s_initialized = true;
+        }
+    }
+
+    [[nodiscard]] const fluid::FluidState& waterSource() const
+    {
+        return fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID)->defaultState();
+    }
+
+    [[nodiscard]] const fluid::FluidState& flowingWater() const
+    {
+        return fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::FLOWING_WATER_ID)->defaultState();
+    }
+
+    FluidRaycastWorld world;
+};
+
+TEST_F(RaycastFluidSourceTest, HitsWaterSourceBlock)
+{
+    world.setFluid(BlockPos(2, 64, 0), &waterSource());
+
+    const Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    const BlockRaycastResult result = raycastFluidSource(RaycastContext(ray, 5.0f), world);
+
+    ASSERT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(2, 64, 0));
+    EXPECT_EQ(result.face(), Direction::West);
+    EXPECT_NEAR(result.hitPosition().x, 2.0f, 1e-4f);
+}
+
+TEST_F(RaycastFluidSourceTest, MissesEmptyWorld)
+{
+    const Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    EXPECT_TRUE(raycastFluidSource(RaycastContext(ray, 5.0f), world).isMiss());
+}
+
+TEST_F(RaycastFluidSourceTest, FlowingFluidBlocksRayWithoutHit)
+{
+    // 流动水位于更近处：挡住了射线但不产生命中。
+    world.setFluid(BlockPos(2, 64, 0), &flowingWater());
+    world.setFluid(BlockPos(4, 64, 0), &waterSource());
+
+    const Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    const BlockRaycastResult result = raycastFluidSource(RaycastContext(ray, 5.0f), world);
+
+    EXPECT_TRUE(result.isMiss());
+}
+
+TEST_F(RaycastFluidSourceTest, SourceBehindFlowingFluidIsNotReturned)
+{
+    // 水源在流动水之后时同样不可达。
+    world.setFluid(BlockPos(2, 64, 0), &waterSource());
+    world.setFluid(BlockPos(3, 64, 0), &flowingWater());
+
+    const Ray ray(Vector3(0.0f, 64.5f, 0.5f), Vector3(1.0f, 0.0f, 0.0f));
+    const BlockRaycastResult result = raycastFluidSource(RaycastContext(ray, 5.0f), world);
+
+    ASSERT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(2, 64, 0));
+}
+
+TEST_F(RaycastFluidSourceTest, DownwardRayThroughAirHitsSurfaceWater)
+{
+    // 垂直向下：射线穿过起点空气格后命中下方水源顶面（液体高度约 8/9）。
+    world.setFluid(BlockPos(0, 62, 0), &waterSource());
+
+    const Ray ray(Vector3(0.5f, 66.0f, 0.5f), Vector3(0.0f, -1.0f, 0.0f));
+    const BlockRaycastResult result = raycastFluidSource(RaycastContext(ray, 5.0f), world);
+
+    ASSERT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(0, 62, 0));
+    EXPECT_EQ(result.face(), Direction::Up);
+    EXPECT_NEAR(result.hitPosition().y, 62.0f + waterSource().getHeight(), 1e-4f);
+}
+
+TEST_F(RaycastFluidSourceTest, StartInsideFluidSourceHitsImmediately)
+{
+    world.setFluid(BlockPos(0, 64, 0), &waterSource());
+
+    const Ray ray(Vector3(0.5f, 64.2f, 0.5f), Vector3(0.0f, -1.0f, 0.0f));
+    const BlockRaycastResult result = raycastFluidSource(RaycastContext(ray, 2.0f), world);
+
+    ASSERT_TRUE(result.isHit());
+    EXPECT_EQ(result.blockPos(), BlockPos(0, 64, 0));
 }

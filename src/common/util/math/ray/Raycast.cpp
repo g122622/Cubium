@@ -34,6 +34,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -125,10 +126,8 @@ struct RayAabbHit {
     return hit;
 }
 
-[[nodiscard]] bool traceBlockShape(const BlockState& state,
-    i32 blockX,
-    i32 blockY,
-    i32 blockZ,
+bool traceShapeBoxes(const CollisionShape& shape,
+    const BlockPos& blockPos,
     const Vector3& adjustedStart,
     const Vector3& delta,
     const Vector3& originalStart,
@@ -136,22 +135,17 @@ struct RayAabbHit {
     Direction& outFace,
     f32& outDistance)
 {
-    const CollisionShape& shape = state.getShape();
-    if (shape.isEmpty()) {
-        return false;
-    }
-
     f32 bestT = std::numeric_limits<f32>::max();
     Direction bestFace = Direction::None;
     bool hitAny = false;
 
     for (const auto& localBox : shape.boxes()) {
-        const AxisAlignedBB worldBox(static_cast<f32>(blockX) + localBox.minX,
-            static_cast<f32>(blockY) + localBox.minY,
-            static_cast<f32>(blockZ) + localBox.minZ,
-            static_cast<f32>(blockX) + localBox.maxX,
-            static_cast<f32>(blockY) + localBox.maxY,
-            static_cast<f32>(blockZ) + localBox.maxZ);
+        const AxisAlignedBB worldBox(static_cast<f32>(blockPos.x) + localBox.minX,
+            static_cast<f32>(blockPos.y) + localBox.minY,
+            static_cast<f32>(blockPos.z) + localBox.minZ,
+            static_cast<f32>(blockPos.x) + localBox.maxX,
+            static_cast<f32>(blockPos.y) + localBox.maxY,
+            static_cast<f32>(blockPos.z) + localBox.maxZ);
 
         auto hit = intersectSegmentAabb(adjustedStart, delta, worldBox);
         if (!hit.has_value()) {
@@ -177,6 +171,25 @@ struct RayAabbHit {
         outDistance = 0.0f;
     }
     return true;
+}
+
+[[nodiscard]] bool traceBlockShape(const BlockState& state,
+    i32 blockX,
+    i32 blockY,
+    i32 blockZ,
+    const Vector3& adjustedStart,
+    const Vector3& delta,
+    const Vector3& originalStart,
+    Vector3& outHitPos,
+    Direction& outFace,
+    f32& outDistance)
+{
+    const CollisionShape& shape = state.getShape();
+    if (shape.isEmpty()) {
+        return false;
+    }
+    return traceShapeBoxes(
+        shape, BlockPos(blockX, blockY, blockZ), adjustedStart, delta, originalStart, outHitPos, outFace, outDistance);
 }
 
 } // anonymous namespace
@@ -351,6 +364,134 @@ BlockRaycastResult raycastBlocks(const RaycastContext& context, const IWorld& wo
     }
 
     // 未击中任何方块
+    return BlockRaycastResult::miss();
+}
+
+BlockRaycastResult raycastFluidSource(const RaycastContext& context, const IWorld& world)
+{
+    const Vector3& start = context.ray.origin;
+    const Vector3& dir = context.ray.direction;
+    if (dir.lengthSquared() < 0.0001f) {
+        return BlockRaycastResult::miss();
+    }
+
+    const Vector3 end = context.endPosition();
+    if (start.distanceSquared(end) < 0.0001f) {
+        return BlockRaycastResult::miss();
+    }
+
+    // 与 raycastBlocks 相同的端点微偏移，避免起点/终点恰在方块边界时的精度问题。
+    const f32 eps = 1.0e-7f;
+    const Vector3 adjustedEnd(
+        end.x + (start.x - end.x) * eps, end.y + (start.y - end.y) * eps, end.z + (start.z - end.z) * eps);
+    const Vector3 adjustedStart(
+        start.x + (end.x - start.x) * eps, start.y + (end.y - start.y) * eps, start.z + (end.z - start.z) * eps);
+    const Vector3 ddaDelta(
+        adjustedEnd.x - adjustedStart.x, adjustedEnd.y - adjustedStart.y, adjustedEnd.z - adjustedStart.z);
+
+    // 方块检测结果：None = 无流体（不阻挡），Blocked = 流动流体（阻挡但不命中），Hit = 命中流体源。
+    enum class CellResult : u8 { None, Blocked, Hit };
+    // 射线命中信息：仅 CellResult::Hit 时有效。
+    struct CellHit {
+        BlockPos pos;
+        Vector3 hitPos;
+        Direction face = Direction::None;
+        f32 distance = 0.0f;
+    };
+
+    const auto traceFluidCell = [&](const BlockPos& pos, CellHit& out) -> CellResult {
+        const fluid::FluidState* fluidState = world.getFluidState(pos);
+        if (fluidState == nullptr || fluidState->isEmpty()) {
+            // 无流体：不阻挡（本检测不关心实心方块）
+            return CellResult::None;
+        }
+        if (!fluidState->isSource()) {
+            // 流动流体在 SOURCE_ONLY 语义下挡住射线但不产生命中
+            return CellResult::Blocked;
+        }
+        // 流体碰撞形状：水平铺满整格，高度按液体量缩放
+        CollisionShape shape;
+        shape.addBox(0.0f, 0.0f, 0.0f, 1.0f, fluidState->getHeight(), 1.0f);
+        if (!traceShapeBoxes(shape, pos, adjustedStart, ddaDelta, start, out.hitPos, out.face, out.distance)) {
+            // 射线几何上未穿过该流体形状（例如擦过未满方块液面的上沿），继续前进
+            return CellResult::None;
+        }
+        out.pos = pos;
+        return CellResult::Hit;
+    };
+
+    // 起点所在方块单独检测；DDA 首轮步进会停在起点格，需要跳过以免重复判定。
+    const BlockPos startPos(static_cast<i32>(std::floor(adjustedStart.x)),
+        static_cast<i32>(std::floor(adjustedStart.y)),
+        static_cast<i32>(std::floor(adjustedStart.z)));
+
+    CellHit hit;
+    if (world.isWithinWorldBounds(startPos.x, startPos.y, startPos.z)) {
+        switch (traceFluidCell(startPos, hit)) {
+            case CellResult::Hit:
+                return BlockRaycastResult::hit(hit.hitPos, hit.pos, hit.face, hit.distance);
+            case CellResult::Blocked:
+                return BlockRaycastResult::miss();
+            case CellResult::None:
+                break;
+        }
+    }
+
+    i32 currentX = startPos.x;
+    i32 currentY = startPos.y;
+    i32 currentZ = startPos.z;
+
+    const i32 stepX = signum(ddaDelta.x);
+    const i32 stepY = signum(ddaDelta.y);
+    const i32 stepZ = signum(ddaDelta.z);
+    const f32 tDeltaX = (stepX == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepX) / ddaDelta.x;
+    const f32 tDeltaY = (stepY == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepY) / ddaDelta.y;
+    const f32 tDeltaZ = (stepZ == 0) ? std::numeric_limits<f32>::max() : static_cast<f32>(stepZ) / ddaDelta.z;
+    f32 tMaxX = (stepX == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaX * (stepX > 0 ? (1.0f - fract(adjustedStart.x)) : fract(adjustedStart.x));
+    f32 tMaxY = (stepY == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaY * (stepY > 0 ? (1.0f - fract(adjustedStart.y)) : fract(adjustedStart.y));
+    f32 tMaxZ = (stepZ == 0) ? std::numeric_limits<f32>::max()
+                             : tDeltaZ * (stepZ > 0 ? (1.0f - fract(adjustedStart.z)) : fract(adjustedStart.z));
+
+    while (tMaxX <= 1.0f || tMaxY <= 1.0f || tMaxZ <= 1.0f) {
+        if (tMaxX < tMaxY) {
+            if (tMaxX < tMaxZ) {
+                currentX += stepX;
+                tMaxX += tDeltaX;
+            } else {
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        } else {
+            if (tMaxY < tMaxZ) {
+                currentY += stepY;
+                tMaxY += tDeltaY;
+            } else {
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+
+        if (!world.isWithinWorldBounds(currentX, currentY, currentZ)) {
+            return BlockRaycastResult::miss();
+        }
+
+        // 首轮步进仍停在起点格（已在上面判定过），跳过。
+        if (currentX == startPos.x && currentY == startPos.y && currentZ == startPos.z) {
+            continue;
+        }
+
+        switch (traceFluidCell(BlockPos(currentX, currentY, currentZ), hit)) {
+            case CellResult::Hit:
+                return BlockRaycastResult::hit(hit.hitPos, hit.pos, hit.face, hit.distance);
+            case CellResult::Blocked:
+                return BlockRaycastResult::miss();
+            case CellResult::None:
+                break;
+        }
+    }
+
     return BlockRaycastResult::miss();
 }
 
