@@ -34,6 +34,7 @@
 #include <vector>
 
 namespace mc {
+class Entity;
 class Player;
 class ServerPlayer;
 } // namespace mc
@@ -170,9 +171,9 @@ public:
      * 清除 PlayerId ↔ EntityInstanceId 映射；否则 createPlayerEntity 会拒绝重建该玩家，
      * 表现为重生永久失败。非玩家实体或未登记的实体是空操作。
      *
-     * @param entityId 被移除实体的 EntityInstanceId
+     * @param entity 被移除实体的指针（以对象身份匹配，避免延迟通知误清新实体的映射）
      */
-    void onEntityRemoved(EntityInstanceId entityId);
+    void onEntityRemoved(Entity* entity);
 
     /**
      * @brief 清除所有玩家实体
@@ -238,6 +239,9 @@ private:
 
     /// EntityInstanceId → PlayerId 映射
     std::unordered_map<EntityInstanceId, PlayerId> m_entityToPlayer;
+
+    /// EntityInstanceId → 实体对象：延迟到达的移除通知据此确认被移除的正是注册时的那个对象
+    std::unordered_map<EntityInstanceId, Entity*> m_entityObjects;
 };
 
 } // namespace mc::server

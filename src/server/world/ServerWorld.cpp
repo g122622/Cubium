@@ -3129,7 +3129,7 @@ void ServerWorld::onEntityRemoved(Entity* entity, RemovalReason reason)
     // PlayerId ↔ EntityInstanceId 映射。否则该映射会一直指向已销毁的实体：实体查询返回空，
     // 而 createPlayerEntity 又以"Player 已存在"拒绝重建，表现为玩家死亡后无法重生。
     if (entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER && m_server != nullptr) {
-        m_server->playerEntityManager().onEntityRemoved(entity->id());
+        m_server->playerEntityManager().onEntityRemoved(entity);
     }
 
     // 发布 EntityRemovedEvent（实体离开世界的统一通知点，覆盖全部移除原因）。
