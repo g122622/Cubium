@@ -1697,10 +1697,11 @@ TEST_F(SoulSpeedIntegrationTest, DurabilityConsumedOverMultipleTicks)
     // 多次触发 onChangedBlock，期望至少有一次耐久消耗
     // 注：SetUp 中已对 entity.getRandom() 设置固定种子，结果确定；试验次数取 1000
     // 使 4% 概率在统计上必触发（0.96^1000 ≈ 1.6e-18，几乎不可能为 0）。
+    // 位置变化必须在灵魂沙所在方块（x、z ∈ [0,1)）内，否则脚下方块不再是灵魂沙、
+    // 耐久分支被条件挡掉，实际试验次数会远小于 1000（曾因 x 每轮 +0.01 很快越界而样本不足）。
     i32 totalTicks = 1000;
     for (i32 i = 0; i < totalTicks; ++i) {
-        // 微小位置变化以触发 onChangedBlock
-        m_entity->setPosition(0.5 + static_cast<f32>(i) * 0.01f, 65.0, 0.5);
+        m_entity->setPosition(0.5f + static_cast<f32>(i % 3) * 0.1f, 65.0, 0.5f);
         m_entity->onChangedBlock();
     }
 

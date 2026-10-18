@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/Goal.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <string>
 
@@ -275,13 +276,18 @@ private:
  * 商队羊驼会反击攻击者。类似于 OwnerHurtByTargetGoal，
  * 但目标来源是拴绳持有者（流浪商人）而非驯服者。
  *
- * TODO: 需要集成测试验证 TraderLlamaDefendWanderingTraderGoal 的完整行为：
- * - 被拴在流浪商人身上且商人受攻击时 shouldExecute() 返回 true
- * - 未拴绳或拴在其他实体上时 shouldExecute() 返回 false
- * - 时间戳更新防止重复触发
- * 当前缺少 World mock 来设置拴绳+流浪商人+攻击者交互场景。
+ * 对应 vanilla 1.21.11 TraderLlama.TraderLlamaDefendWanderingTraderGoal
+ * （TraderLlama.java:126-160，继承 TargetGoal，super(llama, false) 即不做视线检查）：
+ * - canUse：必须被拴住、拴绳持有者是 WanderingTrader（否则短路返回，不读取攻击记忆）；
+ * - 每次 canUse 都重新读取商人 getLastHurtByMob，时间戳与上次不同、且
+ *   canAttack(攻击者, TargetingConditions.DEFAULT) 为真才触发（DEFAULT=forCombat()，
+ *   无距离/视线/选择器约束，由 TargetGoal::isSuitableTarget 承担判定）；
+ * - start：设置目标并记录商人当时的 getLastHurtByMobTimestamp，防止重复触发；
+ * - canContinueToUse 由 TargetGoal::shouldContinueExecuting 承担（目标存活 + 可选视线）。
+ *
+ * 单元测试见 tests/unit/common/entity/entities/passive/horse/TraderLlamaDefendGoalTest.cpp。
  */
-class TraderLlamaDefendWanderingTraderGoal : public Goal {
+class TraderLlamaDefendWanderingTraderGoal : public TargetGoal {
 public:
     /**
      * @brief 构造函数
@@ -298,7 +304,7 @@ public:
 
 private:
     TraderLlamaEntity* m_llama;
-    LivingEntity* m_ownerLastHurtBy = nullptr;
+    EntityReference<LivingEntity> m_ownerLastHurtBy;
     i32 m_timestamp = 0;
 };
 

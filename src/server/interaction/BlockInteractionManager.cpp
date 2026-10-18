@@ -125,30 +125,20 @@ std::optional<Error> BlockInteractionManager::_validateInteractionPreconditions(
         }
     }
 
-    // 出生点保护（对齐 vanilla ServerLevel.mayInteract / MinecraftServer.getSpawnProtectionRadius）：
-    // 仅主世界，半径内（切比雪夫 XZ）非 op(< Moderator=1) 且非单机主禁止交互。
-    // spawn-protection=0 关闭保护。单机主豁免对齐 IntegratedServer.isSingleplayerOwner。
+    // 世界级交互权限（对齐 vanilla ServerLevel.mayInteract）：世界边界之外一律禁止；
+    // 主世界出生点保护半径内，非版主权限且非单机主的玩家禁止交互（spawn-protection=0 关闭）。
+    // 玩家实体缺失时仍执行与实体无关的边界检查。
     //
     // vanilla 中 mayInteract 在 handleUseItemOn（含 useItemOn 与 Item::useOn）与
     // handleBlockBreakAction 的 START_DESTROY 两条路径都被调用，故放置 / 右键使用 / 破坏
     // 三条路径均应传 checkSpawnProtection=true。
-    if (checkSpawnProtection && m_server != nullptr) {
-        const i32 radius = m_server->spawnProtectionRadius();
-        if (radius > 0) {
-            ServerWorld* world = _getPlayerWorld(playerId);
-            if (world != nullptr && world->dimension() == DimensionManager::OVERWORLD) {
-                // 保护半径以世界出生方块的 XZ 为中心（切比雪夫距离）。
-                const BlockPos& spawn = world->respawnData().pos();
-                const i32 spawnX = spawn.x;
-                const i32 spawnZ = spawn.z;
-                if (std::abs(pos.x - spawnX) <= radius && std::abs(pos.z - spawnZ) <= radius) {
-                    const bool exempt =
-                        (player != nullptr && player->hasPermission(static_cast<i32>(core::OpLevel::Moderator))) ||
-                        m_server->isSingleplayerOwner(playerId);
-                    if (!exempt) {
-                        return Error(ErrorCode::PermissionDenied, "Spawn protected");
-                    }
-                }
+    if (checkSpawnProtection) {
+        ServerWorld* world = _getPlayerWorld(playerId);
+        if (world != nullptr) {
+            const bool allowed =
+                (player != nullptr) ? world->mayInteract(*player, pos) : world->worldBorder().contains(pos.x, pos.z);
+            if (!allowed) {
+                return Error(ErrorCode::PermissionDenied, "Cannot interact at this position");
             }
         }
     }

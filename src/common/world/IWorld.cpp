@@ -150,4 +150,13 @@ world::gamerule::GameRules& IWorld::getGameRules()
     return getDefaultGameRules();
 }
 
+bool IWorld::mayInteract(const Entity& entity, const BlockPos& pos) const
+{
+    // 基类世界（客户端世界与测试世界）不做世界级限制，对齐 vanilla Level#mayInteract 返回 true。
+    // ServerWorld 重写补全世界边界与出生点保护。
+    (void)entity;
+    (void)pos;
+    return true;
+}
+
 } // namespace mc

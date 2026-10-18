@@ -327,7 +327,7 @@ bool EnchantmentHelper::shouldIgnoreDurabilityLoss(i32 level, bool isArmor, math
         return false;
     }
 
-    // MC 1.16.5: 护甲有 60% 概率不触发耐久效果
+    // 护甲有 60% 概率直接放弃保护（不进入下方的随机整数判定）
     if (isArmor && random.nextFloat() < 0.6f) {
         return false;
     }
@@ -417,6 +417,28 @@ void EnchantmentHelper::applyArthropodEnchantments(LivingEntity& user, Entity& t
             if (enchantment && level > 0) {
                 enchantment->onEntityDamaged(user, target, level);
             }
+        }
+    }
+}
+
+// ========== 每 tick 附魔效果 ==========
+
+void EnchantmentHelper::runTickEffects(LivingEntity& entity)
+{
+    // 与位置依赖效果同一遍历口径：全部装备槽位
+    for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
+        auto slot = static_cast<EquipmentSlot>(slotIndex);
+        const ItemStack& stack = entity.getEquipment(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+
+        auto enchantments = getEnchantments(stack);
+        for (const auto& [enchantment, level] : enchantments) {
+            if (enchantment == nullptr || level <= 0) {
+                continue;
+            }
+            enchantment->onTick(entity, stack, slot, level);
         }
     }
 }

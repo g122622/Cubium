@@ -24,9 +24,12 @@
 #pragma once
 
 #include "LootFunction.hpp"
+#include "common/core/Result.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include <memory>
+#include <optional>
 #include <string>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
 namespace loot {
@@ -42,10 +45,15 @@ namespace loot {
 class SetCustomDataFunction : public LootFunction {
 public:
     /**
-     * @brief 构造设置NBT函数
-     * @param nbtString NBT标签字符串（JSON格式）
+     * @brief 校验并构造设置自定义数据函数
+     *
+     * 在加载战利品表时即按 Mojangson 解析 tag 字段，非法 NBT 直接返回错误，使整张战利品表加载失败
+     *（对应 vanilla set_custom_data 用 TagParser.LENIENT_CODEC 在 codec 阶段解析）。
+     *
+     * @param nbtString 自定义数据字符串（Mojangson 复合标签文本）
+     * @return 函数实例；解析失败返回 InvalidData 错误
      */
-    explicit SetCustomDataFunction(const std::string& nbtString);
+    [[nodiscard]] static Result<std::unique_ptr<SetCustomDataFunction>> create(const std::string& nbtString);
 
     [[nodiscard]] ItemStack apply(ItemStack stack, LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootFunction> clone() const noexcept override;
@@ -53,8 +61,18 @@ public:
 
     [[nodiscard]] const std::string& getNbtString() const noexcept { return m_nbtString; }
 
+    /**
+     * @brief 直接构造（不做校验），仅供 create() 使用
+     *
+     * @param nbtString 自定义数据原始文本
+     * @param parsedTag 加载期解析结果
+     */
+    SetCustomDataFunction(const std::string& nbtString, std::optional<nlohmann::json> parsedTag);
+
 private:
     std::string m_nbtString;
+    /// 加载期解析得到的自定义数据，apply() 直接合并，不再重复解析
+    std::optional<nlohmann::json> m_parsedTag;
 };
 
 } // namespace loot

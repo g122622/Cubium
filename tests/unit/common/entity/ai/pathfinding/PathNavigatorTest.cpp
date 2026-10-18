@@ -30,9 +30,13 @@
  */
 
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNodeType.hpp"
 #include "common/entity/ai/pathfinding/PathPoint.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include <unordered_map>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -634,6 +638,50 @@ TEST(PathNavigatorBasicTest, MaxVisitedNodesMultiplier)
     // 重置为默认值 1.0F
     navigator.resetMaxVisitedNodesMultiplier();
     EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 1.0f);
+}
+
+/**
+ * @brief 路径点地面 Y 坐标修正（对应 vanilla PathNavigation.getGroundY → WalkNodeEvaluator.getFloorLevel）
+ *
+ * 移动目标 Y 取路径点下方方块碰撞形状的顶面：整格方块 = 格子底部；半砖 = 格子底部 + 0.5；
+ * 下方是空气 = 直接沿用路径点 Y。若不修正（直接传 waypoint->y()），实体目标 Y 会落在非整格
+ * 方块底端，表现为浮在台阶/铁砧等方块下方。
+ */
+class GroundYTestWorld final : public test::BaseTestWorld {
+public:
+    void setBlock(i32 x, i32 y, i32 z, const BlockState* state) { m_blocks[BlockPos(x, y, z)] = state; }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        return it != m_blocks.end() ? it->second : nullptr;
+    }
+
+private:
+    std::unordered_map<BlockPos, const BlockState*> m_blocks;
+};
+
+TEST(PathNavigatorGroundYTest, FloorsAtCollisionShapeTop)
+{
+    VanillaBlocks::initialize();
+    ASSERT_NE(VanillaBlocks::STONE, nullptr);
+    ASSERT_NE(VanillaBlocks::STONE_SLAB, nullptr);
+
+    GroundYTestWorld world;
+    PathPoint waypoint(0, 64, 0);
+
+    PathNavigator navigator(nullptr);
+
+    // 下方是空气：直接沿用路径点 Y。
+    EXPECT_DOUBLE_EQ(navigator.groundYForTest(world, waypoint), 64.0);
+
+    // 下方是整格石头：目标 Y = 方块底部（64 - 1 + 1.0）。
+    world.setBlock(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+    EXPECT_NEAR(navigator.groundYForTest(world, waypoint), 64.0, 1e-4);
+
+    // 下方是下半砖：目标 Y = 方块底部 + 0.5。
+    world.setBlock(0, 63, 0, &VanillaBlocks::STONE_SLAB->defaultState());
+    EXPECT_NEAR(navigator.groundYForTest(world, waypoint), 63.5, 1e-4);
 }
 
 } // anonymous namespace

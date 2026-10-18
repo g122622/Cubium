@@ -43,6 +43,7 @@ entity/enchantment/
                        ▼
 ┌─────────────────────────────────────────────────────┐
 │            EnchantmentHelper                         │
+│  • runTickEffects(entity)（每 tick 派发）           │
 │  • runLocationChangedEffects(entity)                │
 │  • runLocationChangedEffects(entity, stack, slot)   │
 │  • stopLocationBasedEffects(entity, stack, slot)    │
@@ -54,6 +55,7 @@ entity/enchantment/
 │          Enchantment (基类)                          │
 │  • onLocationChanged() → bool（是否应激活）          │
 │  • onLocationEffectDeactivated()（停用时清理）       │
+│  • onTick()（每 tick 效果：粒子/音效等 TICK 组件）   │
 ├─────────────────────────────────────────────────────┤
 │  FrostWalkerEnchantment: 在水面上放置霜冰            │
 │  SoulSpeedEnchantment: 在灵魂沙/土上增加移动速度     │

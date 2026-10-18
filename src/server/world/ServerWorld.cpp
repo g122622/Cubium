@@ -104,6 +104,7 @@
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include "server/application/IServer.hpp"
+#include "server/core/OpListManager.hpp"
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
@@ -471,6 +472,38 @@ bool ServerWorld::isDebugWorld() const
     }
     const IChunkGenerator* generator = m_chunkManager->generator();
     return generator && generator->isDebugGenerator();
+}
+
+bool ServerWorld::mayInteract(const Entity& entity, const BlockPos& pos) const
+{
+    // 世界边界之外一律禁止（对应 vanilla ServerLevel#mayInteract 的
+    // worldBorder.isWithinBounds 项；非玩家实体同样受边界约束）。
+    if (!m_worldBorder.contains(pos)) {
+        return false;
+    }
+
+    // 出生点保护只作用于玩家（对应 vanilla isUnderSpawnProtection 的 `entity instanceof Player`
+    // 判定），且仅主世界生效。spawn-protection=0 表示关闭保护。
+    const Player* player = dynamic_cast<const Player*>(&entity);
+    if (player == nullptr || m_server == nullptr) {
+        return true;
+    }
+    const i32 radius = m_server->spawnProtectionRadius();
+    if (radius <= 0 || m_config.dimension != DimensionManager::OVERWORLD) {
+        return true;
+    }
+
+    // 出生方块坐标：重生数据以方块坐标存储，世界出生点与玩家重生点共用同一份数据。
+    const BlockPos& spawn = m_respawnData.get().pos();
+    const i32 spawnX = spawn.x;
+    const i32 spawnZ = spawn.z;
+    if (std::abs(pos.x - spawnX) > radius || std::abs(pos.z - spawnZ) > radius) {
+        return true;
+    }
+
+    // 半径内：版主及以上权限、单机主豁免（对齐 MinecraftServer#isUnderSpawnProtection）。
+    return player->hasPermission(static_cast<i32>(core::OpLevel::Moderator)) ||
+        m_server->isSingleplayerOwner(player->playerId());
 }
 
 void ServerWorld::playSound(

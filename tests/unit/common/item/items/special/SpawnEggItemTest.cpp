@@ -52,13 +52,17 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/ray/Ray.hpp"
+#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include <unordered_map>
 #include <gtest/gtest.h>
@@ -144,16 +148,45 @@ public:
         return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
     }
 
+    /// 世界级交互权限开关（模拟出生点保护 / 世界边界外拒绝交互的场景）。
+    [[nodiscard]] bool mayInteract(const Entity&, const BlockPos&) const override { return m_allowInteract; }
+    void setAllowInteract(bool allow) { m_allowInteract = allow; }
+
+    /// 游戏规则容器（刷怪笼开关等规则由测试设置）。
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    /// 方块实体反查：供刷怪蛋设置刷怪笼实体类型。
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+
+    /// 测试辅助：在指定位置放置一个方块实体。
+    void putBlockEntity(std::unique_ptr<BlockEntity> entity, const BlockPos& pos)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
+
 private:
     u64 m_seed = 12345;
     u64 m_currentTick = 0;
     Difficulty m_difficulty = Difficulty::Normal;
     bool m_clientSide = false;
+    bool m_allowInteract = true;
     math::Random m_rng{12345};
     EntityInstanceId m_nextEntityId = EntityInstanceId(100);
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::unordered_map<BlockPos, const fluid::FluidState*> m_fluids;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
+    world::gamerule::GameRules m_gameRules;
 };
 
 // 构造 ItemUseContext 的辅助函数（右键方块场景）
@@ -413,6 +446,77 @@ TEST_F(SpawnEggItemTest, OnItemRightClick_WaterSourceSpawnsEntity)
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 3) << "survival should consume 1";
 }
 
+TEST_F(SpawnEggItemTest, OnItemRightClick_WorldInteractionDeniedReturnsFail)
+{
+    // 世界级交互权限拒绝（如出生点保护）：返回 Fail、不生成、不消耗（对应 Java use 的 mayInteract 门控）
+    auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    m_world->setFluidState(BlockPos(10, 64, 19), &waterFluid->defaultState());
+    m_world->setAllowInteract(false);
+
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Survival);
+    player->setPosition(10.5f, 66.0f, 19.5f);
+    player->setRotation(0.0f, -90.0f);
+    player->getHeldItem(Hand::MainHand) = ItemStack(Items::SQUID_SPAWN_EGG, 4);
+
+    auto result = Items::SQUID_SPAWN_EGG->onItemRightClick(*m_world, *player, Hand::MainHand);
+
+    EXPECT_EQ(result.getType(), ActionResultType::Fail);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "fail should not consume";
+}
+
+TEST_F(SpawnEggItemTest, OnItemRightClick_AdventureMayUseItemAtDeniedReturnsFail)
+{
+    // 冒险模式且手持物品无 CanPlaceOn：mayUseItemAt 拒绝，返回 Fail、不生成、不消耗。
+    auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    m_world->setFluidState(BlockPos(10, 64, 19), &waterFluid->defaultState());
+
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Adventure);
+    player->setPosition(10.5f, 66.0f, 19.5f);
+    player->setRotation(0.0f, -90.0f);
+    player->getHeldItem(Hand::MainHand) = ItemStack(Items::SQUID_SPAWN_EGG, 4);
+
+    auto result = Items::SQUID_SPAWN_EGG->onItemRightClick(*m_world, *player, Hand::MainHand);
+
+    EXPECT_EQ(result.getType(), ActionResultType::Fail);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "fail should not consume";
+}
+
+TEST_F(SpawnEggItemTest, OnItemRightClick_FlowingFluidBlocksRay)
+{
+    // 视线先命中流动水：SOURCE_ONLY 语义下流动水挡住射线但不产生命中，返回 Pass。
+    auto* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+    ASSERT_NE(waterFluid, nullptr);
+    auto* flowingWater = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::FLOWING_WATER_ID);
+    ASSERT_NE(flowingWater, nullptr);
+    const fluid::FluidState& flowing = flowingWater->defaultState();
+    ASSERT_FALSE(flowing.isSource());
+
+    m_world->setFluidState(BlockPos(10, 64, 19), &flowing);
+    // 流动水下方的水源不应被选中（流动水在射线上一律阻挡）。
+    m_world->setFluidState(BlockPos(10, 63, 19), &waterFluid->defaultState());
+
+    auto player = std::make_unique<Player>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Survival);
+    player->setPosition(10.5f, 66.0f, 19.5f);
+    player->setRotation(0.0f, -90.0f);
+    player->getHeldItem(Hand::MainHand) = ItemStack(Items::SQUID_SPAWN_EGG, 4);
+
+    auto result = Items::SQUID_SPAWN_EGG->onItemRightClick(*m_world, *player, Hand::MainHand);
+
+    EXPECT_EQ(result.getType(), ActionResultType::Pass);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "pass should not consume";
+}
+
 TEST_F(SpawnEggItemTest, OnItemRightClick_NoWaterReturnsPass)
 {
     // 视线无水源方块：返回 Pass，不生成不消耗
@@ -449,4 +553,49 @@ TEST_F(SpawnEggItemTest, OnItemRightClick_ClientSidePredictsSuccess)
     EXPECT_TRUE(result.isSuccess());
     EXPECT_EQ(m_world->spawnedEntityCount(), 0u) << "client should not spawn";
     EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 4) << "client should not consume";
+}
+
+// ============================================================================
+// 刷怪笼：spawnerBlocksWork 游戏规则
+// ============================================================================
+
+TEST_F(SpawnEggItemTest, OnItemUse_OnSpawnerSetsEntityWhenRuleEnabled)
+{
+    const BlockPos spawnerPos(5, 64, 5);
+    m_world->setBlockState(spawnerPos.x, spawnerPos.y, spawnerPos.z, &VanillaBlocks::SPAWNER->defaultState());
+    auto spawner = std::make_unique<blockentity::MobSpawnerBlockEntity>(spawnerPos);
+    auto* spawnerPtr = spawner.get();
+    m_world->putBlockEntity(std::move(spawner), spawnerPos);
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::SPAWNER_BLOCKS_WORK, true, nullptr);
+
+    ASSERT_NE(Items::PIG_SPAWN_EGG, nullptr);
+    ItemStack eggStack(Items::PIG_SPAWN_EGG, 2);
+    auto context = makeUseContext(*m_world, nullptr, eggStack, spawnerPos, Direction::Up);
+
+    EXPECT_EQ(Items::PIG_SPAWN_EGG->onItemUse(*context), ActionResultType::Success);
+    EXPECT_EQ(spawnerPtr->getNextEntityId(), ResourceLocation("minecraft:pig"));
+    // 不生成实体
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+}
+
+TEST_F(SpawnEggItemTest, OnItemUse_OnSpawnerRejectedWhenRuleDisabled)
+{
+    const BlockPos spawnerPos(5, 64, 5);
+    m_world->setBlockState(spawnerPos.x, spawnerPos.y, spawnerPos.z, &VanillaBlocks::SPAWNER->defaultState());
+    auto spawner = std::make_unique<blockentity::MobSpawnerBlockEntity>(spawnerPos);
+    auto* spawnerPtr = spawner.get();
+    const ResourceLocation originalId = spawnerPtr->getNextEntityId();
+    m_world->putBlockEntity(std::move(spawner), spawnerPos);
+
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::SPAWNER_BLOCKS_WORK, false, nullptr);
+
+    ASSERT_NE(Items::PIG_SPAWN_EGG, nullptr);
+    ItemStack eggStack(Items::PIG_SPAWN_EGG, 2);
+    auto context = makeUseContext(*m_world, nullptr, eggStack, spawnerPos, Direction::Up);
+
+    EXPECT_EQ(Items::PIG_SPAWN_EGG->onItemUse(*context), ActionResultType::Fail);
+    // 刷怪笼实体类型保持不变，刷怪蛋不消耗
+    EXPECT_EQ(spawnerPtr->getNextEntityId(), originalId);
+    EXPECT_EQ(context->getItemStack().getCount(), 2);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
 }

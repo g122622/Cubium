@@ -143,9 +143,11 @@ LivingEntity::actuallyHurt()
 
 ### 4. 耐久计算的概率性
 
-`UnbreakingEnchantment::shouldIgnoreDurabilityLoss()` 每次耐久消耗时调用，返回 true 表示忽略损耗：
-- 工具：`(level + 1) / (level + 1)` 概率忽略
-- 护甲：额外有 60% 概率不触发耐久效果
+`EnchantmentHelper::shouldIgnoreDurabilityLoss(level, isArmor, random)` 对每个损耗点调用，返回 true 表示忽略该点：
+- 工具：`level / (level + 1)` 概率忽略
+- 护甲：额外有 60% 概率直接放弃保护（概率因此降为 0.4 · level/(level+1)）
+
+`UnbreakingEnchantment` 只承载附魔元数据，不包含任何耐久判定实现。
 
 ### 5. 荆棘反伤的耐久消耗
 

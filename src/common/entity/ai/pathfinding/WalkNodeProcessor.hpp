@@ -55,6 +55,15 @@ public:
     [[nodiscard]] PathPoint* getStartNode(i32 x, i32 y, i32 z) override;
     [[nodiscard]] std::vector<PathPoint*> getNeighbors(PathPoint* current) override;
 
+    /**
+     * @brief 清除节点缓存，并结束本轮的寻路会话
+     *
+     * 寻路开始时由 PathFinder 调用（同时表示一次寻路会话的开始），清理上次搜索遗留的
+     * 节点缓存与"大型垂滴叶"局部分类。对应 vanilla NodeEvaluator.done() → WalkNodeEvaluator
+     * 清空 pathTypesByPosCache。
+     */
+    void clear() override;
+
     // ========== 实体引用 ==========
 
     /**
@@ -138,6 +147,16 @@ protected:
 private:
     /** @brief 根据开门和穿门能力转换节点类型，供节点检测和邻居展开共用。 */
     [[nodiscard]] PathNodeType _applyDoorCapabilities(PathNodeType type) const;
+
+    /**
+     * @brief 指定位置是否是大型垂滴叶本体
+     *
+     * @param x X坐标
+     * @param y Y坐标
+     * @param z Z坐标
+     * @return 该位置的方块是大型垂滴叶返回 true
+     */
+    [[nodiscard]] bool _isBigDripleaf(i32 x, i32 y, i32 z) const;
 
     LivingEntity* m_entity = nullptr;
     bool m_canSwim = false;

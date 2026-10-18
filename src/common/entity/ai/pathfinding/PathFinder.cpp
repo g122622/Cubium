@@ -31,6 +31,19 @@
 
 namespace mc::entity::ai::pathfinding {
 
+namespace {
+
+/// 寻路会话开始：清空节点处理器缓存（含大型垂滴叶等会话局部分类）。
+/// 对应 vanilla PathFinder.findPath → nodeEvaluator.prepare(...)：每次寻路都重置评估器状态。
+void _beginPathfindingSession(NodeProcessor* nodeProcessor) noexcept
+{
+    if (nodeProcessor != nullptr) {
+        nodeProcessor->clear();
+    }
+}
+
+} // namespace
+
 Path PathFinder::findPath(i32 startX,
     i32 startY,
     i32 startZ,
@@ -41,10 +54,8 @@ Path PathFinder::findPath(i32 startX,
     f32 visitedNodesMultiplier)
 {
     MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPath");
-    // 清除上次搜索的缓存
-    if (m_nodeProcessor) {
-        m_nodeProcessor->clear();
-    }
+    // 清除上次搜索的缓存（寻路会话开始）
+    _beginPathfindingSession(m_nodeProcessor.get());
     m_openSet.clear();
     m_lastSearchedNodes = 0;
 
@@ -79,7 +90,10 @@ Path PathFinder::findPath(i32 startX,
     m_openSet.insert(startNode);
 
     // 计算实际最大搜索节点数：基础值 * 倍率
-    // 对应 MC Java 的 i32 j = (i32)(this.maxVisitedNodes * maxVisitedNodesMultiplier)
+    // 对应 vanilla PathFinder.findPath(PathNavigationRegion, Mob, Set<BlockPos>, float, int, float)：
+    //   int j = (int)(this.maxVisitedNodes * p_164722_);
+    //   while (!openSet.isEmpty()) { if (++i >= j) break; ... }
+    // 注意 pre-increment：上限比较发生在取出节点之前，j=1 时一个节点都不会被展开。
     i32 effectiveMaxNodes = static_cast<i32>(static_cast<f32>(m_maxNodes) * visitedNodesMultiplier);
     if (effectiveMaxNodes < 1) {
         effectiveMaxNodes = 1;
@@ -90,14 +104,19 @@ Path PathFinder::findPath(i32 startX,
     const PathPoint* bestNode = nullptr;
     f32 bestDistance = std::numeric_limits<f32>::max();
 
-    while (!m_openSet.empty() && searchedNodes < effectiveMaxNodes) {
+    // 上限判定与 vanilla 一致：先 ++searchedNodes，再与上限比较，达到上限即停止展开。
+    while (!m_openSet.empty()) {
+        // 已达上限：不再取出/展开新节点（对齐 vanilla 在取出节点前比较上限）。
+        if (++searchedNodes >= effectiveMaxNodes) {
+            break;
+        }
+
         // 取出代价最小的节点
         PathPoint* current = m_openSet.pop();
         if (!current) {
             break;
         }
 
-        ++searchedNodes;
         current->setVisited(true);
 
         // 检查是否到达目标
@@ -177,9 +196,7 @@ Path PathFinder::findPathToRange(
 {
     MC_TRACE_SCOPED_EVENT(::mc::trace::TraceEvents.Game.Entity, "PathFinder::findPathToRange");
     // 与基本寻路相同，但到达范围内任意点即成功
-    if (m_nodeProcessor) {
-        m_nodeProcessor->clear();
-    }
+    _beginPathfindingSession(m_nodeProcessor.get());
     m_openSet.clear();
     m_lastSearchedNodes = 0;
 
@@ -216,13 +233,18 @@ Path PathFinder::findPathToRange(
 
     i32 searchedNodes = 0;
 
-    while (!m_openSet.empty() && searchedNodes < effectiveMaxNodes) {
+    // 上限判定与 vanilla 一致：先 ++searchedNodes，再与上限比较，达到上限即停止展开。
+    while (!m_openSet.empty()) {
+        // 已达上限：不再取出/展开新节点（对齐 vanilla 在取出节点前比较上限）。
+        if (++searchedNodes >= effectiveMaxNodes) {
+            break;
+        }
+
         PathPoint* current = m_openSet.pop();
         if (!current) {
             break;
         }
 
-        ++searchedNodes;
         current->setVisited(true);
 
         // 检查是否在目标范围内
@@ -289,10 +311,8 @@ Path PathFinder::findPathToClosest(i32 startX,
         return Path();
     }
 
-    // 清除上次搜索的缓存
-    if (m_nodeProcessor) {
-        m_nodeProcessor->clear();
-    }
+    // 清除上次搜索的缓存（寻路会话开始）
+    _beginPathfindingSession(m_nodeProcessor.get());
     m_openSet.clear();
     m_lastSearchedNodes = 0;
 
@@ -341,13 +361,18 @@ Path PathFinder::findPathToClosest(i32 startX,
     const PathPoint* bestNode = nullptr;
     f32 bestDistance = std::numeric_limits<f32>::max();
 
-    while (!m_openSet.empty() && searchedNodes < effectiveMaxNodes) {
+    // 上限判定与 vanilla 一致：先 ++searchedNodes，再与上限比较，达到上限即停止展开。
+    while (!m_openSet.empty()) {
+        // 已达上限：不再取出/展开新节点（对齐 vanilla 在取出节点前比较上限）。
+        if (++searchedNodes >= effectiveMaxNodes) {
+            break;
+        }
+
         PathPoint* current = m_openSet.pop();
         if (!current) {
             break;
         }
 
-        ++searchedNodes;
         current->setVisited(true);
 
         // 检查是否到达任意目标，同时记录最近距离（单次遍历）

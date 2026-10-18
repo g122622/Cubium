@@ -34,6 +34,7 @@ namespace mc {
 
 // 前向声明
 class Entity;
+class IWorld;
 class LivingEntity;
 class MobEntity;
 
@@ -334,15 +335,70 @@ protected:
     [[nodiscard]] const PathPoint* _getCurrentWaypoint() const;
 
     /**
+     * @brief 计算路径点对应的地面 Y 坐标
+     *
+     * 对应 vanilla PathNavigation.getGroundY：路径点所在格下方是空气时直接沿用路径点 Y，
+     * 否则取下方方块的碰撞形状顶面（例如在营火、半砖等非整格方块上，路径点 Y 是方块
+     * 格坐标，实体应停在方块实际顶面而非格子底部）。Cubium 走 MoveControl::setMoveTo，
+     * Y 直接参与移动目标位置计算，因此需要与 vanilla 相同的顶面修正。
+     *
+     * @param waypoint 当前路径点
+     * @return 移动目标 Y 坐标
+     */
+    [[nodiscard]] f64 _getGroundY(const PathPoint& waypoint) const;
+
+    /**
+     * @brief 在给定寻路区域上计算路径点地面 Y 坐标
+     *
+     * @param region 寻路区域
+     * @param waypoint 当前路径点
+     * @return 移动目标 Y 坐标
+     */
+    [[nodiscard]] f64 _getGroundY(const Region& region, const PathPoint& waypoint) const;
+
+    /**
      * @brief 检查是否卡住并处理
      */
     void _checkForStuck();
 
     /**
-     * @brief 修剪路径（处理锅等特殊情况）
+     * @brief 修剪路径（处理锅等特殊情况 + 阳光避让截断）
      */
     void _trimPath();
 
+    /**
+     * @brief 结束寻路会话，清空寻路器持有的世界区域指针
+     *
+     * 对应 vanilla PathFinder.findPath 返回前调用 nodeEvaluator.done()：NodeProcessor
+     * 持有的 Region* 是 PathNavigator 栈上的临时对象，会话结束后必须清空，否则后续
+     * MovementController 经 NodeProcessor 查询节点类型时会解引用已析构的 Region。
+     */
+    void _endPathfindingSession();
+
+public:
+    /**
+     * @brief 计算路径点地面 Y 坐标（测试/诊断入口）
+     *
+     * 供单元测试验证 getGroundY 的顶面修正；生产代码经 _followPath 调用。
+     *
+     * @param waypoint 路径点
+     * @return 移动目标 Y 坐标
+     */
+    [[nodiscard]] f64 groundYForTest(const PathPoint& waypoint) const { return _getGroundY(waypoint); }
+
+    /**
+     * @brief 使用指定世界计算路径点地面高度（单元测试入口）
+     *
+     * 与生产路径共用 _getGroundY 的世界查询逻辑，仅替换世界来源，便于在不构造完整实体时
+     * 验证整格/半砖/空气三种顶面修正。
+     *
+     * @param world 用于查询方块的世界
+     * @param waypoint 路径点
+     * @return 移动目标 Y 坐标
+     */
+    [[nodiscard]] f64 groundYForTest(const IWorld& world, const PathPoint& waypoint) const;
+
+protected:
     /**
      * @brief 重置超时计时器
      */

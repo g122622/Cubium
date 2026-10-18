@@ -127,6 +127,11 @@ enum class PathNodeType : u8 {
     /// 活板门（可下落）(MC 1.16.5后添加)
     TrapdoorDown = 28,
 
+    /// 大型垂滴叶（可被实体踩落，寻路须禁止穿过其上方的方块）(MC 1.19+ BLOCKED 细分)
+    // 对齐 vanilla PathType.BLOCKED 中 "XXX 上方是大型垂滴叶" 的特殊分支：
+    // 实体踩上垂滴叶会使其倾斜下落，故该格及其内层（尺寸大于 0.5 的实体）视为阻塞。
+    BlockAboveBigDripleaf = 29,
+
     /// 其他
     Other = 255,
 };
@@ -214,6 +219,8 @@ enum class PathNodeType : u8 {
             return 0.0f;
         case PathNodeType::TrapdoorDown:
             return 0.0f;
+        case PathNodeType::BlockAboveBigDripleaf:
+            return -1.0f; // 与 vanilla PathType.BLOCKED 的 "上方为大型垂滴叶" 分支一致：不可通行
         case PathNodeType::Other:
         default:
             return 0.0f;

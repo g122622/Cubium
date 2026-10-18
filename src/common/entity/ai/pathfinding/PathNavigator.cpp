@@ -39,6 +39,7 @@
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -112,7 +113,8 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
     // 后续 MovementController::canWalkAt(Strafe 分支)会调 NodeProcessor::getNodeType
     // 解引用 m_region，悬垂虚调用(isLoaded)会跳到已释放栈内存的虚表槽致 SEGV。
     // 此处置空后，getNodeType 内的 !m_region 守卫会返回 Blocked，canWalkAt 走兜底。
-    m_pathFinder->setRegion(nullptr);
+    // 对应 vanilla PathFinder.findPath 末尾的 nodeEvaluator.done()。
+    _endPathfindingSession();
 
     return hasPath();
 }
@@ -154,7 +156,7 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
     _trimPath();
 
     // 寻路结束后清空 region 指针避免悬垂（详见 moveTo 末尾同名注释）。
-    m_pathFinder->setRegion(nullptr);
+    _endPathfindingSession();
 
     return hasPath();
 }
@@ -228,8 +230,55 @@ void PathNavigator::_followPath()
     // 需要将 LivingEntity 转换为 MobEntity 来访问 moveController
     if (auto* mob = dynamic_cast<MobEntity*>(m_entity)) {
         if (auto* moveCtrl = mob->moveController()) {
-            moveCtrl->setMoveTo(waypoint->x() + 0.5, waypoint->y(), waypoint->z() + 0.5, m_speed);
+            moveCtrl->setMoveTo(waypoint->x() + 0.5, _getGroundY(*waypoint), waypoint->z() + 0.5, m_speed);
         }
+    }
+}
+
+f64 PathNavigator::_getGroundY(const PathPoint& waypoint) const
+{
+    // 对应 vanilla PathNavigation.getGroundY(Vec3)：
+    //   BlockPos pos = BlockPos.containing(vec3);
+    //   return level.getBlockState(pos.below()).isAir()
+    //       ? vec3.y
+    //       : WalkNodeEvaluator.getFloorLevel(level, pos);
+    // getFloorLevel：pos.below() 碰撞形状为空时取 pos.below().y，否则取该 Y + 碰撞形状 Y 方向最大值。
+    IWorld* world = m_entity != nullptr ? m_entity->world() : nullptr;
+    if (world == nullptr) {
+        return static_cast<f64>(waypoint.y());
+    }
+    const WorldRegion region(*world);
+    return _getGroundY(region, waypoint);
+}
+
+f64 PathNavigator::_getGroundY(const Region& region, const PathPoint& waypoint) const
+{
+    const BlockState* below = region.getBlockState(waypoint.x(), waypoint.y() - 1, waypoint.z());
+    if (below == nullptr || below->isAir()) {
+        return static_cast<f64>(waypoint.y());
+    }
+
+    const CollisionShape& shape = below->getCollisionShape();
+    if (shape.isEmpty()) {
+        return static_cast<f64>(waypoint.y() - 1);
+    }
+    f32 top = 0.0f;
+    for (const AxisAlignedBB& box : shape.boxes()) {
+        top = std::max(top, box.maxY);
+    }
+    return static_cast<f64>(waypoint.y() - 1) + static_cast<f64>(top);
+}
+
+f64 PathNavigator::groundYForTest(const IWorld& world, const PathPoint& waypoint) const
+{
+    const WorldRegion region(world);
+    return _getGroundY(region, waypoint);
+}
+
+void PathNavigator::_endPathfindingSession()
+{
+    if (m_pathFinder) {
+        m_pathFinder->setRegion(nullptr);
     }
 }
 

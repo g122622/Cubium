@@ -1273,6 +1273,19 @@ public:
     [[nodiscard]] world::border::WorldBorder& worldBorder() noexcept override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const noexcept override { return m_worldBorder; }
 
+    // ========== 方块交互权限 ==========
+
+    /**
+     * @brief 世界级方块交互权限（对应 vanilla ServerLevel#mayInteract）
+     *
+     * 世界边界之外一律禁止；主世界出生点保护半径内，非版主权限且非单机主的玩家禁止交互。
+     *
+     * @param entity 交互发起者
+     * @param pos 目标方块位置
+     * @return 允许交互返回 true
+     */
+    [[nodiscard]] bool mayInteract(const Entity& entity, const BlockPos& pos) const override;
+
     // ========== 村庄管理 ==========
 
     [[nodiscard]] ::mc::world::village::VillageManager* villageManager() noexcept override

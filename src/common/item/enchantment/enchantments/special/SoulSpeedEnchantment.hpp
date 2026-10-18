@@ -152,6 +152,19 @@ public:
      */
     void onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const override;
 
+    /**
+     * @brief 每 tick 效果：灵魂粒子、灵魂逃逸音效与耐久损耗
+     *
+     * 仅当本槽位的位置依赖处于活跃状态时产出，且须满足周期刻（每 5 tick）、站于地面、非飞行、
+     * 水平速度不低于 1e-5、脚下为灵魂沙/灵魂土。多个槽位同时装备灵魂疾行时只会由活跃槽位产出一次。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     */
+    void onTick(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot, i32 level) const override;
+
 private:
     /**
      * @brief 检查实体是否站在灵魂沙/灵魂土上

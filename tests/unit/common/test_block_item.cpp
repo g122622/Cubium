@@ -24,11 +24,13 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "item/Items.hpp"
 #include "item/context/BlockItemUseContext.hpp"
+#include "item/context/ItemUseContext.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "physics/collision/CollisionShape.hpp"
 #include "util/math/random/Random.hpp"
@@ -384,4 +386,49 @@ TEST_F(BlockItemTest, CanPlaceWorldBoundsCheck)
     // 由于 isWithinWorldBounds 检查 y < MAX_BUILD_HEIGHT，(0, 256, 0) 超出边界
     // canPlace 应该返回 false
     EXPECT_FALSE(stoneItem->canPlace(contextAtMaxHeight, *state));
+}
+
+// ============================================================================
+// 放置后处理归属判定
+// ============================================================================
+
+/**
+ * @brief 放置后处理按"实际写入世界的方块"分派（床的 onBlockPlacedBy 自动放置头部）
+ *
+ * vanilla BlockItem.place 以 placedState 的方块归属判定是否执行 setPlacedBy：
+ * 床的脚部状态由 BedBlock::getStateForPlacement 生成，即使物品侧是 BedItem 子类，
+ * 也应调用 BedBlock::onBlockPlacedBy 在朝向一侧放置头部。若错误地按物品自身 m_block
+ * 判定（或漏调 onBlockPlacedBy），头部方块不会出现。
+ */
+TEST_F(BlockItemTest, PlacementCallsOnBlockPlacedByOfPlacedBlock)
+{
+    ASSERT_NE(Items::WHITE_BED, nullptr);
+    ASSERT_NE(VanillaBlocks::WHITE_BED, nullptr);
+
+    TestBlockReader world;
+    world.setBlockState(0, 63, 0, &VanillaBlocks::STONE->defaultState());
+
+    ItemStack stack(*Items::WHITE_BED, 1);
+    ItemUseContext context(world,
+        nullptr,
+        stack,
+        Vector3(0.5f, 64.0f, 0.5f),
+        BlockPos(0, 63, 0),
+        Direction::Up,
+        Hand::MainHand,
+        0.0f,   // yaw=0 → 水平朝向 +Z（南）
+        90.0f); // pitch 朝下
+
+    ASSERT_EQ(Items::WHITE_BED->onItemUse(context), ActionResultType::Success);
+
+    const BlockPos footPos(0, 64, 0);
+    const BlockPos headPos(0, 64, 1);
+    const BlockState* foot = world.getBlockState(footPos.x, footPos.y, footPos.z);
+    ASSERT_NE(foot, nullptr);
+    EXPECT_EQ(&foot->getBlock(), VanillaBlocks::WHITE_BED);
+
+    const BlockState* head = world.getBlockState(headPos.x, headPos.y, headPos.z);
+    ASSERT_NE(head, nullptr) << "bed head must be placed by BedBlock::onBlockPlacedBy";
+    EXPECT_EQ(&head->getBlock(), VanillaBlocks::WHITE_BED);
+    EXPECT_EQ(head->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
 }

@@ -119,7 +119,9 @@ std::unique_ptr<LootFunction> LootFunctionBuilder::explosionDecay()
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::setCustomData(const std::string& nbtString)
 {
-    return std::make_unique<SetCustomDataFunction>(nbtString);
+    auto result = SetCustomDataFunction::create(nbtString);
+    // 构建器面向代码调用方，参数不合法属于编程错误：返回 nullptr 由调用方断言。
+    return result.success() ? result.value() : nullptr;
 }
 
 std::unique_ptr<LootFunction> LootFunctionBuilder::copyName(CopyNameFunction::Source source)
