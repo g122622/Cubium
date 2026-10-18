@@ -37,6 +37,9 @@
 
 #include "common/TempDirHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/gen/RandomState.hpp"
@@ -47,6 +50,7 @@
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
+#include "server/world/storage/request/WorldRequests.hpp"
 
 using namespace mc;
 using namespace mc::server;
@@ -55,7 +59,7 @@ namespace {
 
 // 构造最小可用的 LevelRuntimeData，仅 spawn 相关字段由参数指定，其余取默认/零值。
 // 用于 applyLevelRuntimeData 的单元测试，避免每个用例重复 LevelSummaryData 的冗长构造。
-world::storage::LevelRuntimeData _makeRuntimeData(i32 spawnX, i32 spawnY, i32 spawnZ, f32 spawnAngle, bool initialized)
+world::storage::LevelRuntimeData _makeRuntimeData(const RespawnData& spawnData, bool initialized)
 {
     world::storage::LevelSummaryData summary("test",
         0,
@@ -72,7 +76,7 @@ world::storage::LevelRuntimeData _makeRuntimeData(i32 spawnX, i32 spawnY, i32 sp
         world::storage::WorldCompatibility::Current,
         "");
     return world::storage::LevelRuntimeData(
-        std::move(summary), spawnX, spawnY, spawnZ, spawnAngle, 0, 0, 0, 0, false, 0, false, initialized, false);
+        std::move(summary), spawnData, 0, 0, 0, 0, false, 0, false, initialized, false);
 }
 
 class ServerWorldInitializeWorldSpawnTest : public ::testing::Test {
@@ -153,13 +157,13 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, Overworld_Initialize_CallsFindSpawnP
     // 注意：findSpawnPosition 在气候空间搜索，结果可能落在任意区块；
     // 但 SpawnLocationHelper::findSpawnLocationInChunk 可能因为生成的区块不适合
     // （如水面/熔岩）而返回 nullopt，此时降级为 (0, SEA_LEVEL+1, 0)。
-    // 关键验证点：initializeWorldSpawn 不崩溃且 worldSpawnPoint 被设置。
+    // 关键验证点：initializeWorldSpawn 不崩溃且出生数据被设置。
     auto world = createOverworldWorld(12345ULL);
     ASSERT_TRUE(world->initialize().success());
 
     world->initializeWorldSpawn();
 
-    const auto spawn = world->worldSpawnPoint();
+    const auto spawn = world->spawnPosition();
     // 出生点应该在合理高度范围内（不是 NaN 或极端值）
     EXPECT_FALSE(std::isnan(spawn.x));
     EXPECT_FALSE(std::isnan(spawn.y));
@@ -174,12 +178,12 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, Overworld_Initialize_SpawnPointDeter
     auto world1 = createOverworldWorld(77777ULL);
     ASSERT_TRUE(world1->initialize().success());
     world1->initializeWorldSpawn();
-    const auto spawn1 = world1->worldSpawnPoint();
+    const auto spawn1 = world1->spawnPosition();
 
     auto world2 = createOverworldWorld(77777ULL);
     ASSERT_TRUE(world2->initialize().success());
     world2->initializeWorldSpawn();
-    const auto spawn2 = world2->worldSpawnPoint();
+    const auto spawn2 = world2->spawnPosition();
 
     EXPECT_DOUBLE_EQ(spawn1.x, spawn2.x);
     EXPECT_DOUBLE_EQ(spawn1.y, spawn2.y);
@@ -261,7 +265,7 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, Nether_Initialize_FallsBackToOriginC
     // 不崩溃即可
     world->initializeWorldSpawn();
 
-    const auto spawn = world->worldSpawnPoint();
+    const auto spawn = world->spawnPosition();
     EXPECT_FALSE(std::isnan(spawn.x));
     EXPECT_FALSE(std::isnan(spawn.y));
     EXPECT_FALSE(std::isnan(spawn.z));
@@ -278,10 +282,10 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, MultipleInitializeWorldSpawnCallsIde
     ASSERT_TRUE(world->initialize().success());
 
     world->initializeWorldSpawn();
-    const auto spawn1 = world->worldSpawnPoint();
+    const auto spawn1 = world->spawnPosition();
 
     world->initializeWorldSpawn();
-    const auto spawn2 = world->worldSpawnPoint();
+    const auto spawn2 = world->spawnPosition();
 
     // 多次调用结果应该一致（同一种子、同一区块生成结果）
     EXPECT_DOUBLE_EQ(spawn1.x, spawn2.x);
@@ -293,53 +297,93 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, MultipleInitializeWorldSpawnCallsIde
 // 4. applyLevelRuntimeData Y 语义与字段保留测试
 // ============================================================================
 
-TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_YIsBlockTop)
+TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_RestoresSpawnPosition)
 {
-    // level.dat 中 SpawnY 语义为脚下方块 Y，applyLevelRuntimeData 应 +1 转为玩家脚位置（方块上方）。
-    // spawnY=63（脚下方块）→ worldSpawnPoint().y=64（站方块上）。
+    // 出生数据直接存储脚下方块本身；spawnPosition() 给出方块中心 + 方块上表面。
     auto world = createOverworldWorld(12345ULL);
     ASSERT_TRUE(world->initialize().success());
 
-    auto runtimeData = _makeRuntimeData(0, 63, 0, 0.0f, true);
+    auto runtimeData = _makeRuntimeData(RespawnData::of(0, BlockPos(0, 63, 0), 0.0f, 0.0f), true);
     world->applyLevelRuntimeData(runtimeData);
 
-    const auto spawn = world->worldSpawnPoint();
+    const auto spawn = world->spawnPosition();
     EXPECT_DOUBLE_EQ(spawn.x, 0.5);
     EXPECT_DOUBLE_EQ(spawn.y, 64.0);
     EXPECT_DOUBLE_EQ(spawn.z, 0.5);
 }
 
-TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_PreservesSpawnAngle)
+TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_PreservesSpawnRotation)
 {
-    // applyLevelRuntimeData 应保留 level.dat 中的 spawnAngle，不被覆盖。
+    // applyLevelRuntimeData 应原样保留 spawn 复合标签中的 yaw/pitch。
     auto world = createOverworldWorld(12345ULL);
     ASSERT_TRUE(world->initialize().success());
 
-    auto runtimeData = _makeRuntimeData(0, 64, 0, 90.0f, true);
+    auto runtimeData = _makeRuntimeData(RespawnData::of(0, BlockPos(0, 64, 0), 90.0f, -15.0f), true);
     world->applyLevelRuntimeData(runtimeData);
 
-    EXPECT_FLOAT_EQ(world->spawnAngle(), 90.0f);
+    EXPECT_FLOAT_EQ(world->respawnData().yaw, 90.0f);
+    EXPECT_FLOAT_EQ(world->respawnData().pitch, -15.0f);
 }
 
 TEST_F(ServerWorldInitializeWorldSpawnTest, ApplyLevelRuntimeData_ThenInitializeWorldSpawnOverwritesSpawn)
 {
-    // 验证修复后的调用顺序：先 applyLevelRuntimeData（设模板 spawn），
-    // 再 initializeWorldSpawn 覆盖为真实出生点。apply 设的占位 spawn 不应残留。
+    // 验证调用顺序：先 applyLevelRuntimeData（模板占位），再 initializeWorldSpawn 覆盖为真实出生点。
     auto world = createOverworldWorld(12345ULL);
     ASSERT_TRUE(world->initialize().success());
 
-    // apply 模板数据（spawnY=0 占位，initialized=false）
-    auto runtimeData = _makeRuntimeData(0, 0, 0, 0.0f, false);
+    // apply 模板数据（占位出生点，initialized=false）
+    auto runtimeData = _makeRuntimeData(RespawnData{}, false);
     world->applyLevelRuntimeData(runtimeData);
-    const auto spawnAfterApply = world->worldSpawnPoint();
-    EXPECT_DOUBLE_EQ(spawnAfterApply.y, 1.0); // 0 + 1，模板占位
+    EXPECT_DOUBLE_EQ(world->spawnPosition().y, 1.0); // 方块 y=0 的上表面
 
     // initializeWorldSpawn 覆盖为真实出生点
     world->initializeWorldSpawn();
-    const auto spawnAfterInit = world->worldSpawnPoint();
+    const auto spawnAfterInit = world->spawnPosition();
 
-    // 真实出生点 y 应在海平面附近或以上，且与模板占位 (0.5, 1.0, 0.5) 不同
+    // 真实出生点 y 应在海平面附近或以上，且与模板占位不同
     EXPECT_GE(spawnAfterInit.y, static_cast<f64>(world::SEA_LEVEL));
+}
+
+TEST_F(ServerWorldInitializeWorldSpawnTest, RespawnData_SurvivesLevelDatRoundTrip)
+{
+    // saveLevelData 会就地更新已有 level.dat，因此先写入新世界模板。
+    world::storage::CreateWorldRequest request("test-world",
+        "test-world",
+        12345,
+        WorldType::Default,
+        resource::ResourceLocation("minecraft", "default"),
+        GameMode::Survival,
+        Difficulty::Normal,
+        false,
+        false,
+        10);
+    ASSERT_TRUE(world::storage::LevelDatCodec::writeInitial(m_testDir, request).success());
+
+    // 世界出生点通过 level.dat 的 spawn 复合标签持久化：写入后重新读取应完全一致。
+    const RespawnData written = RespawnData::of(0, BlockPos(123, 70, -456), 45.0f, 20.0f);
+    ASSERT_TRUE(
+        m_storage.saveLevelData(0, 0, written, 0, 0, false, 0, false, true, Difficulty::Normal, false).success());
+
+    auto loaded = m_storage.loadLevelData();
+    ASSERT_TRUE(loaded.success()) << loaded.error().message();
+    EXPECT_EQ(loaded.value().spawnData, written);
+}
+
+TEST_F(ServerWorldInitializeWorldSpawnTest, WorldBorderAdjustedRespawnData_MovesSpawnInsideBorder)
+{
+    auto world = createOverworldWorld(12345ULL);
+    ASSERT_TRUE(world->initialize().success());
+    world->setRespawnData(RespawnData::of(0, BlockPos(1000000, 80, 0), 0.0f, 0.0f));
+
+    // 默认边界半径 29999984，出生方块在内 → 原样返回。
+    EXPECT_EQ(world->worldBorderAdjustedRespawnData().pos(), BlockPos(1000000, 80, 0));
+
+    world->worldBorder().setCenter(0.0, 0.0);
+    world->worldBorder().setSize(100.0);
+    const RespawnData adjusted = world->worldBorderAdjustedRespawnData();
+    EXPECT_LE(std::abs(adjusted.pos().x), 50);
+    EXPECT_LE(std::abs(adjusted.pos().z), 50);
+    EXPECT_EQ(adjusted.dimension(), DimensionManager::OVERWORLD);
 }
 
 } // namespace

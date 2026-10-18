@@ -232,9 +232,11 @@ server/command
 11. **SetWorldSpawnCommand 朝向参数（对齐 MC 1.21.11）**
     - `/setworldspawn` 支持三种语法：无参数（pos=floor(玩家位置)，rotation=ZERO_ROTATION(0,0)）、仅位置（rotation=ZERO_ROTATION）、位置+旋转
     - pos 用 `BlockPosArgumentType`（整数 floor，对齐 vanilla `BlockPosArgument`），非 `Vec3ArgumentType`（centerCorrect 会给绝对整数加 0.5 偏移致出生点偏 0.5）
-    - rotation 用 `RotationArgumentType`（接 yaw pitch 两值，对齐 vanilla `RotationArgument`）；yaw 存 `ServerWorld::m_spawnAngle`，pitch 暂丢弃（TODO 完整建模）
-    - yaw 通过 `math::wrapDegrees()` 归一化到 [-180, 180]
-    - 修改出生点后需同时更新 `ServerWorld::setWorldSpawnPoint(pos, angle)` 和广播 `SpawnPositionPacket(angle)`
+    - rotation 用 `RotationArgumentType`（接 yaw pitch 两值，对齐 vanilla `RotationArgument`）；yaw 与 pitch 一并写入
+      `ServerWorld` 的 `RespawnData`（`setRespawnData`），不再丢弃 pitch
+    - yaw 通过 `math::wrapDegrees()` 归一化到 [-180, 180]，pitch 截断到 [-90, 90]
+    - 修改出生点后需同时更新 `ServerWorld::setRespawnData(RespawnData)` 与广播 `SetDefaultSpawnPosition`
+      （1.21.11 语义：dimension + blockPos + yaw + pitch，取代旧的 `SpawnPositionPacket(angle)`）
 
 12. **air 物品的语义分叉（give vs replaceitem）**
     - Cubium 的 `minecraft:air` 是普通注册物品（`itemId=1`），**不是**空堆——`ItemStack` 持有 air 时 `isEmpty()` 仍为 false。这与 vanilla（air 堆即空堆）不同，命令层须显式处理。

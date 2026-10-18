@@ -662,23 +662,46 @@ public:
     // ========== 重生系统 ==========
 
     /**
-     * @brief 确定重生位置
+     * @brief 设置个人重生点配置（重写 Player 基类）
      *
-     * 按以下顺序确定：
-     * 1. 玩家个人重生点（床/重生锚设置）
-     * 2. 世界出生点
-     * 3. 默认位置 (0, 64, 0)
-     *
-     * @return 重生位置（世界坐标）
+     * 仅当 announce 为真、配置非空、且新配置与旧配置指向不同方块位置时，向玩家发送
+     * "重生点已设置"提示；无论是否提示都会更新配置。不校验方块与维度（校验发生在重生时）。
      */
-    [[nodiscard]] Vector3d determineRespawnPosition() const;
+    void setRespawnPosition(std::optional<RespawnConfig> config, bool announce) override;
 
     /**
-     * @brief 确定重生维度
+     * @brief 重生落点的计算上下文
      *
-     * @return 重生维度ID
+     * 成功时携带目标世界与位置/朝向；missingRespawnBlock 表示"个人重生点指向的方块已失效"
+     * （床/重生锚被破坏、通往该维度的世界不存在），此时调用方应清除玩家的重生点配置。
      */
-    [[nodiscard]] DimensionId determineRespawnDimension() const;
+    struct RespawnLocation {
+        server::ServerWorld* world = nullptr;
+        Vector3d position;
+        f32 yaw = 0.0f;
+        f32 pitch = 0.0f;
+        bool missingRespawnBlock = false;
+    };
+
+    /**
+     * @brief 查找重生落点并按需消耗重生锚充能
+     *
+     * 顺序：
+     * 1. 个人重生点有效时使用床/重生锚旁的安全落点（重生锚在其维度内且有充能），
+     *    非强制重生点会消耗一次重生锚充能；
+     * 2. 有个人重生点但方块失效 → missingRespawnBlock，落点取经边界修正的共享出生点；
+     * 3. 无个人重生点 → 落点取共享出生点。
+     *
+     * @param consumeCharge 是否允许消耗重生锚充能（普通死亡为 true；末地返回等保留场景为 false）
+     */
+    [[nodiscard]] RespawnLocation findRespawnPositionAndUseSpawnBlock(bool consumeCharge);
+
+    /**
+     * @brief 当出生方块失效后，在共享出生点附近为玩家寻找落点
+     *
+     * 有天空光照的维度按 spawnRadius 规则搜索无碰撞无液体位置；否则只做高度修正。
+     */
+    [[nodiscard]] Vector3d findSharedSpawnPosition();
 
     // ========== 维度传送 ==========
 

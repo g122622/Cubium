@@ -38,6 +38,8 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -48,6 +50,7 @@
 #include "server/network/sync/WeatherSyncService.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/PlayerSpawnFinder.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
 #include <array>
@@ -312,19 +315,20 @@ void LoginFlow::setupInitialPlayerState(ServerPlayerData* player, GameMode gameM
     MC_TRACE_SCOPED_EVENT(
         TraceEvents.Server.Player, "LoginFlow::setupInitialPlayerState", "gameMode", static_cast<i32>(gameMode));
 
-    if (!player) return;
-
-    // 获取世界出生点（从主世界维度获取）
-    Vector3d spawnPoint(0.0, 64.0, 0.0); // 默认值
+    // 初始位置：共享出生数据经边界修正后，在 spawnRadius 范围内搜索无碰撞无液体的落点
+    // （与死亡重生使用同一搜索器）。已有存档的玩家随后会被存档位置覆盖。
+    if (player == nullptr) return;
     auto* overworld = m_server.dimensionManager().getOverworld();
-    if (overworld && overworld->world()) {
-        spawnPoint = overworld->world()->worldSpawnPoint();
+    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+    const RespawnData spawn = overworld->world()->worldBorderAdjustedRespawnData();
+    const Vector3d fallback(spawn.pos().x + 0.5, spawn.pos().y + 1.0, spawn.pos().z + 0.5);
+    Vector3d position = fallback;
+    if (const auto found = server::PlayerSpawnFinder::findSpawn(*overworld->world(), spawn.pos()); found) {
+        position = Vector3d(found->x, found->y, found->z);
     }
-
-    // 设置初始位置
-    player->x = static_cast<f32>(spawnPoint.x);
-    player->y = static_cast<f32>(spawnPoint.y);
-    player->z = static_cast<f32>(spawnPoint.z);
+    player->x = static_cast<f32>(position.x);
+    player->y = static_cast<f32>(position.y);
+    player->z = static_cast<f32>(position.z);
 
     // 设置游戏状态
     player->loggedIn = true;
@@ -364,33 +368,26 @@ void LoginFlow::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 z, f32
             mc::network::ir::PlayPacket{std::move(timePkt)},
         });
 
-    // 发送世界出生点（指南针指向位置，从主世界维度获取）
-    // 1.21.11 SetDefaultSpawnPosition：dimension + blockPosPacked + yaw + pitch
-    Vector3d worldSpawn(0.0, 64.0, 0.0);
-    f32 spawnAngle = 0.0f;
+    // 发送世界出生点（指南针指向位置）。1.21.11 SetDefaultSpawnPosition 即 RespawnData
+    // (dimension + blockPosPacked + yaw + pitch)。
     auto* overworld = m_server.dimensionManager().getOverworld();
-    if (overworld && overworld->world()) {
-        worldSpawn = overworld->world()->worldSpawnPoint();
-        spawnAngle = overworld->world()->spawnAngle();
-    }
+    MC_ASSERT_RELEASE(overworld != nullptr && overworld->world() != nullptr);
+    const RespawnData worldSpawn = overworld->world()->worldBorderAdjustedRespawnData();
     mc::network::ir::play::SetDefaultSpawnPosition spawnPkt;
-    spawnPkt.dimension = "minecraft:overworld";
-    spawnPkt.blockPosPacked = BlockPos(static_cast<BlockCoord>(worldSpawn.x),
-        static_cast<BlockCoord>(worldSpawn.y),
-        static_cast<BlockCoord>(worldSpawn.z))
-                                  .asLong();
-    spawnPkt.yaw = spawnAngle;
-    spawnPkt.pitch = 0.0f;
+    spawnPkt.dimension = std::string(dimensionIdToString(worldSpawn.dimension()));
+    spawnPkt.blockPosPacked = worldSpawn.pos().asLong();
+    spawnPkt.yaw = worldSpawn.yaw;
+    spawnPkt.pitch = worldSpawn.pitch;
     m_server.sendPacketToPlayer(playerId,
         mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play,
             mc::network::ir::PlayPacket{std::move(spawnPkt)},
         });
 
-    if (playerDim != nullptr && playerDim->world() != nullptr) {
-        auto* world = playerDim->world();
-        if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *world)) {
-            world->entityTracker().sendActiveEffects(m_server, playerId, *entity);
+    auto* playerWorld = playerDim != nullptr ? playerDim->world() : nullptr;
+    if (playerWorld != nullptr) {
+        if (auto* entity = m_server.playerEntityManager().getPlayerEntity(playerId, *playerWorld)) {
+            playerWorld->entityTracker().sendActiveEffects(m_server, playerId, *entity);
         }
     }
 

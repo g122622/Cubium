@@ -29,6 +29,7 @@
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/GlobalPos.hpp"
+#include "common/world/spawn/RespawnConfig.hpp"
 
 using namespace mc;
 using namespace mc::entity::serialization;
@@ -280,30 +281,31 @@ TEST(PlayerSerializationTest, ImpulseContext_EmptyNbt_ClearsImpulseState)
 TEST(PlayerSerializationTest, SpawnPoint_RoundTrip)
 {
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
-    player.setSpawnPoint(DimensionId(0), BlockPos(100, 64, 200), true);
+    player.setRespawnPosition(
+        RespawnConfig(RespawnData::of(DimensionId(0), BlockPos(100, 64, 200), 30.0f, 5.0f), true), false);
 
     auto tag = savePlayerToNbt(player);
     auto loaded = loadPlayerFromNbt(*tag);
 
-    auto spawnPoint = loaded->getSpawnPoint();
-    ASSERT_TRUE(spawnPoint.has_value());
-    EXPECT_EQ(spawnPoint->getDimensionId(), DimensionId(0));
-    EXPECT_EQ(spawnPoint->getPos().x, 100);
-    EXPECT_EQ(spawnPoint->getPos().y, 64);
-    EXPECT_EQ(spawnPoint->getPos().z, 200);
-    EXPECT_TRUE(loaded->isSpawnForced());
+    auto config = loaded->getRespawnConfig();
+    ASSERT_TRUE(config.has_value());
+    EXPECT_EQ(config->respawnData.dimension(), DimensionId(0));
+    EXPECT_EQ(config->respawnData.pos(), BlockPos(100, 64, 200));
+    EXPECT_FLOAT_EQ(config->respawnData.yaw, 30.0f);
+    EXPECT_FLOAT_EQ(config->respawnData.pitch, 5.0f);
+    EXPECT_TRUE(config->forced);
 }
 
 TEST(PlayerSerializationTest, SpawnPoint_NoSpawnPoint_RoundTrip)
 {
     Player player(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
     // 默认没有重生点
-    EXPECT_FALSE(player.getSpawnPoint().has_value());
+    EXPECT_FALSE(player.getRespawnConfig().has_value());
 
     auto tag = savePlayerToNbt(player);
     auto loaded = loadPlayerFromNbt(*tag);
 
-    EXPECT_FALSE(loaded->getSpawnPoint().has_value());
+    EXPECT_FALSE(loaded->getRespawnConfig().has_value());
 }
 
 // ========== 下界入口位置序列化测试 ==========
@@ -369,7 +371,8 @@ TEST(PlayerSerializationTest, FullRoundTrip_AllFields)
     player.abilities().flySpeed = 0.08f;
     player.setCurrentImpulseImpactPos(Vector3(150.0f, 70.0f, 250.0f));
     player.setIgnoreFallDamageFromCurrentImpulse(true);
-    player.setSpawnPoint(DimensionId(-1), BlockPos(50, 30, 100), false);
+    player.setRespawnPosition(
+        RespawnConfig(RespawnData::of(DimensionId(-1), BlockPos(50, 30, 100), 0.0f, 0.0f), false), false);
     player.setEnteredNetherPosition(Vector3d(200.0, 50.0, 300.0));
 
     auto tag = savePlayerToNbt(player);
@@ -403,13 +406,11 @@ TEST(PlayerSerializationTest, FullRoundTrip_AllFields)
     EXPECT_FLOAT_EQ(impactPos->z, 250.0f);
 
     // 重生点
-    auto spawnPoint = loaded->getSpawnPoint();
-    ASSERT_TRUE(spawnPoint.has_value());
-    EXPECT_EQ(spawnPoint->getDimensionId(), DimensionId(-1));
-    EXPECT_EQ(spawnPoint->getPos().x, 50);
-    EXPECT_EQ(spawnPoint->getPos().y, 30);
-    EXPECT_EQ(spawnPoint->getPos().z, 100);
-    EXPECT_FALSE(loaded->isSpawnForced());
+    auto config = loaded->getRespawnConfig();
+    ASSERT_TRUE(config.has_value());
+    EXPECT_EQ(config->respawnData.dimension(), DimensionId(-1));
+    EXPECT_EQ(config->respawnData.pos(), BlockPos(50, 30, 100));
+    EXPECT_FALSE(config->forced);
 
     // 下界入口位置
     auto netherPos = loaded->getEnteredNetherPosition();

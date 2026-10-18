@@ -54,6 +54,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/spawn/RespawnConfig.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -971,30 +972,23 @@ public:
     // ========== 重生点系统 ==========
 
     /**
-     * @brief 获取重生点
-     * @return 重生点位置（维度+方块位置），如果未设置返回空
+     * @brief 获取个人重生点配置
+     * @return 重生点配置（维度、方块位置、朝向、是否强制），未设置时返回空
      */
-    [[nodiscard]] std::optional<GlobalPos> getSpawnPoint() const { return m_spawnPoint; }
+    [[nodiscard]] std::optional<RespawnConfig> getRespawnConfig() const { return m_respawnConfig; }
 
     /**
-     * @brief 设置重生点
+     * @brief 设置个人重生点配置
      *
-     * @param dimension 维度ID
-     * @param pos 重生点位置
-     * @param forced 是否强制重生点（指南针指向该点）
+     * @param config 新的配置；空值表示清除重生点
+     * @param announce 是否在"重生点实际变化"时向玩家发送提示（仅在 ServerPlayer 上有可见效果）
      */
-    void setSpawnPoint(DimensionId dimension, const BlockPos& pos, bool forced = false);
+    virtual void setRespawnPosition(std::optional<RespawnConfig> config, bool announce);
 
     /**
-     * @brief 清除重生点
+     * @brief 从另一玩家复制重生点配置（不发送提示）
      */
-    void clearSpawnPoint() { m_spawnPoint = std::nullopt; }
-
-    /**
-     * @brief 检查重生点是否强制
-     * @return true 如果重生点被强制设置
-     */
-    [[nodiscard]] bool isSpawnForced() const { return m_spawnForced; }
+    void copyRespawnPosition(const Player& other);
 
     // ========== 下界进度追踪 ==========
 
@@ -2247,9 +2241,8 @@ private:
     // 睡眠位置（当前睡眠的床位）
     std::optional<BlockPos> m_sleepingPosition;
 
-    // 重生点（床或重生锚设置的位置）
-    std::optional<GlobalPos> m_spawnPoint;
-    bool m_spawnForced = false; // 是否强制重生点
+    // 个人重生点配置（床/重生锚//spawnpoint 设置）
+    std::optional<RespawnConfig> m_respawnConfig;
 
     // 进入下界时的位置（用于进度触发器 nether_travel）
     std::optional<Vector3d> m_enteredNetherPosition;

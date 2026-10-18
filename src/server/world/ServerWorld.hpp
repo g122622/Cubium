@@ -53,6 +53,7 @@
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/LightType.hpp"
 #include "common/world/map/MapDataManager.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
@@ -1108,6 +1109,13 @@ public:
     [[nodiscard]] const IWorld* getWorld() const noexcept override;
     void markLightChanged(LightType type, const SectionPos& pos) override;
     [[nodiscard]] bool hasSkyLight() const override;
+
+    /**
+     * @brief 本世界是否超平坦生成（服务端玩家重生包 isFlat 字段使用）
+     *
+     * 以区块生成器类型判定，避免为了一个布尔值把服务器门面引入出生流程。
+     */
+    [[nodiscard]] bool isFlatWorld() const;
     [[nodiscard]] i32 getMinBuildHeight() const noexcept override;
     [[nodiscard]] i32 getMaxBuildHeight() const noexcept override;
     [[nodiscard]] i32 getSectionCount() const noexcept override;
@@ -1205,43 +1213,33 @@ public:
     /**
      * @brief 初始化世界出生点
      *
-     * 在世界初始化后调用，在 (0, 0) 区块查找合适的出生位置。
-     * 如果找不到有效位置，使用默认值 (0, 64, 0)。
+     * 新世界首次启动时调用：通过气候采样器定位出生区块，在区块内按列扫描得到出生方块，
+     * 并写入存档级出生数据（主世界维度，朝向 0）。找不到时回退到 (0, 海平面+1, 0)。
      */
     void initializeWorldSpawn();
 
     /**
-     * @brief 获取世界出生点
-     *
-     * @return 世界出生点坐标
+     * @brief 获取原始出生数据（未做世界边界修正）
      */
-    [[nodiscard]] Vector3d worldSpawnPoint() const noexcept { return m_worldSpawnPoint; }
+    [[nodiscard]] const RespawnData& respawnData() const noexcept { return m_respawnData.get(); }
 
     /**
-     * @brief 设置世界出生点
-     *
-     * @param pos 新的出生点位置
-     * @param angle 新的出生点朝向（度），默认 0.0f
+     * @brief 设置原始出生数据
      */
-    void setWorldSpawnPoint(const Vector3d& pos, f32 angle = 0.0f) noexcept
-    {
-        m_worldSpawnPoint = pos;
-        m_spawnAngle = angle;
-    }
+    void setRespawnData(const RespawnData& data) noexcept { m_respawnData.set(data); }
 
     /**
-     * @brief 获取世界出生点朝向
-     *
-     * @return 出生点朝向角度（度）
+     * @brief 获取出生位置的脚部坐标（方块中心，X/Z +0.5，Y 为方块上表面）
      */
-    [[nodiscard]] f32 spawnAngle() const noexcept { return m_spawnAngle; }
+    [[nodiscard]] Vector3d spawnPosition() const noexcept;
 
     /**
-     * @brief 设置世界出生点朝向
+     * @brief 计算经世界边界修正后的有效出生数据
      *
-     * @param angle 出生点朝向角度（度）
+     * 出生方块位于边界内时原样返回；否则改取边界中心列的运动阻挡高度图位置，
+     * 保留维度与朝向。
      */
-    void setSpawnAngle(f32 angle) noexcept { m_spawnAngle = angle; }
+    [[nodiscard]] RespawnData worldBorderAdjustedRespawnData() const;
 
     /**
      * @brief 应用 level.dat 读取到的运行时世界状态
@@ -1620,8 +1618,7 @@ private:
     core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有
     std::function<Difficulty()> m_difficultyCallback; ///< 难度获取回调（从 MinecraftServer 获取）
     bool m_initialized = false;
-    Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点
-    f32 m_spawnAngle = 0.0f;                                                        // 世界出生点朝向（度）
+    world::storage::LevelRespawnData m_respawnData; ///< 存档级世界出生数据
 
     OpenContainerCallback m_onOpenContainer;
     OpenEntityContainerCallback m_onOpenEntityContainer;

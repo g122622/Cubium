@@ -289,11 +289,8 @@ constexpr const char* ABILITIES_INSTABUILD = "instabuild";
 constexpr const char* ABILITIES_MAY_BUILD = "mayBuild";
 constexpr const char* ABILITIES_FLY_SPEED = "flySpeed";
 constexpr const char* ABILITIES_WALK_SPEED = "walkSpeed";
-constexpr const char* SPAWN_X = "SpawnX";
-constexpr const char* SPAWN_Y = "SpawnY";
-constexpr const char* SPAWN_Z = "SpawnZ";
-constexpr const char* SPAWN_FORCED = "SpawnForced";
-constexpr const char* SPAWN_DIM = "SpawnDimension";
+/// 个人重生点配置复合标签（RespawnConfig：dimension/pos/yaw/pitch/forced）
+constexpr const char* RESPAWN = "respawn";
 constexpr const char* ENTERED_NETHER_POSITION = "enteredNetherPosition";
 constexpr const char* CURRENT_EXPLOSION_IMPACT_POS = "current_explosion_impact_pos";
 constexpr const char* IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION = "ignore_fall_damage_from_current_explosion";

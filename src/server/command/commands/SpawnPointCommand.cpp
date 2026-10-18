@@ -31,9 +31,13 @@
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
+#include "common/world/spawn/RespawnConfig.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -44,32 +48,95 @@
 #include <cmath>
 #include <memory>
 #include <sstream>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace command {
+
+namespace {
+
+/**
+ * @brief 把"命令源位置 + 旋转"应用到目标玩家列表
+ *
+ * 位置取整为方块坐标，yaw 归一到 [-180, 180]，pitch 夹紧到 [-90, 90]；配置恒为 forced
+ * （强制重生点不要求目标是床或重生锚）。维度取命令源所在维度。
+ */
+i32 _applySpawnPoint(CommandContext<ServerCommandSource>& context,
+    const std::vector<PlayerId>& playerIds,
+    const Vector3d& position,
+    const Vector2f& rotation)
+{
+    auto& source = context.getSource();
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Server not available");
+        return 0;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendError("No world available");
+        return 0;
+    }
+
+    const BlockPos spawnPos(static_cast<BlockCoord>(std::floor(position.x)),
+        static_cast<BlockCoord>(std::floor(position.y)),
+        static_cast<BlockCoord>(std::floor(position.z)));
+    const DimensionId dimensionId = world->dimension();
+    const RespawnConfig config(RespawnData::of(dimensionId, spawnPos, rotation.x, rotation.y), true);
+
+    i32 successCount = 0;
+    for (PlayerId playerId : playerIds) {
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (player == nullptr) {
+            continue;
+        }
+        player->setRespawnPosition(config, false);
+
+        std::ostringstream ss;
+        ss << "Set spawn point for " << player->username() << " to " << spawnPos.x << ", " << spawnPos.y << ", "
+           << spawnPos.z << ", " << config.respawnData.yaw << ", " << config.respawnData.pitch << " in "
+           << dimensionIdToString(dimensionId);
+        source.sendMessage(ss.str());
+        ++successCount;
+    }
+
+    return successCount;
+}
+
+} // namespace
 
 void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto spawnPointNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("spawnpoint");
     spawnPointNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(spawnPointNode,
-        support::makeMetadata("Sets the spawn point for a player.", "/spawnpoint [<player>] [<pos>]", 2, {}, true));
+        support::makeMetadata(
+            "Sets the spawn point for a player.", "/spawnpoint [<targets> [<pos> [<rotation>]]]", 2, {}, true));
 
-    // /spawnpoint - 设置自己的重生点到当前位置
+    // /spawnpoint - 把自己设置在命令源位置，朝向全零
     spawnPointNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setSelfSpawnPoint(ctx); });
 
-    // /spawnpoint <player>
-    auto playerNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "player", EntityArgumentType::player());
-    playerNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPoint(ctx); });
+    // /spawnpoint <targets>
+    auto targetsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
+        "targets", EntityArgumentType::player());
+    targetsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPoint(ctx); });
 
-    // /spawnpoint <player> <pos>
+    // /spawnpoint <targets> <pos>
     auto posNode =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtPosition(ctx); });
 
-    playerNode->addChild(posNode);
-    spawnPointNode->addChild(playerNode);
+    // /spawnpoint <targets> <pos> <rotation>
+    auto rotationNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "rotation", RotationArgumentType::rotation());
+    rotationNode->setCommand(
+        [](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtRotation(ctx); });
+
+    posNode->addChild(rotationNode);
+    targetsNode->addChild(posNode);
+    spawnPointNode->addChild(targetsNode);
     dispatcher.registerCommand(spawnPointNode);
 }
 
@@ -77,136 +144,66 @@ i32 SpawnPointCommand::_setSelfSpawnPoint(CommandContext<ServerCommandSource>& c
 {
     auto& source = context.getSource();
 
-    ServerPlayer* player = source.player();
+    Player* player = source.player();
     if (player == nullptr) {
         source.sendError("You must be a player to use this command");
         return 0;
     }
 
-    const Vector3d& pos = source.position();
-    BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
-        static_cast<BlockCoord>(std::floor(pos.y)),
-        static_cast<BlockCoord>(std::floor(pos.z)));
-
-    // 获取当前维度，默认为主世界
-    DimensionId dimensionId = DimensionManager::OVERWORLD;
-    if (source.world() != nullptr) {
-        dimensionId = source.world()->dimension();
-    }
-
-    // 设置玩家的重生点
-    player->setSpawnPoint(dimensionId, spawnPos, false);
+    const BlockPos spawnPos(static_cast<BlockCoord>(std::floor(source.position().x)),
+        static_cast<BlockCoord>(std::floor(source.position().y)),
+        static_cast<BlockCoord>(std::floor(source.position().z)));
+    const RespawnConfig config(RespawnData::of(source.dimensionId(), spawnPos, 0.0f, 0.0f), true);
+    player->setRespawnPosition(config, false);
 
     std::ostringstream ss;
-    ss << "Set spawn point to " << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z;
+    ss << "Set spawn point to " << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z << ", 0.0, 0.0 in "
+       << dimensionIdToString(source.dimensionId());
     source.sendMessage(ss.str());
-
     return 1;
 }
 
 i32 SpawnPointCommand::_setPlayerSpawnPoint(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
-
     if (playerIds.empty()) {
         source.sendError("No matching players were found");
         return 0;
     }
 
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendError("Server not available");
-        return 0;
-    }
-
-    auto* world = source.world();
-    DimensionId dimensionId = DimensionManager::OVERWORLD;
-    if (world != nullptr) {
-        dimensionId = world->dimension();
-    } else {
-        // getPlayerEntity 需要 ServerWorld&，world 为空时无法解析玩家实体；
-        // 此前直接解引用 *world 是空引用 UB（UBSan: reference binding to null pointer
-        // of type 'server::ServerWorld'）。
-        source.sendError("No world available");
-        return 0;
-    }
-
-    i32 successCount = 0;
-    for (PlayerId playerId : playerIds) {
-        // 通过 ServerPlayerEntityManager 获取玩家实体
-        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-        if (player == nullptr) {
-            continue;
-        }
-
-        // 使用玩家的当前位置作为重生点
-        const Vector3& pos = player->position();
-        BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
-            static_cast<BlockCoord>(std::floor(pos.y)),
-            static_cast<BlockCoord>(std::floor(pos.z)));
-
-        player->setSpawnPoint(dimensionId, spawnPos, false);
-
-        std::ostringstream ss;
-        ss << "Set spawn point for " << player->username() << " to " << spawnPos.x << ", " << spawnPos.y << ", "
-           << spawnPos.z;
-        source.sendMessage(ss.str());
-        successCount++;
-    }
-
-    return successCount;
+    // 无位置参数：目标位置与朝向都取命令源（不是目标玩家自身）。
+    return _applySpawnPoint(context, playerIds, source.position(), Vector2f(0.0f, 0.0f));
 }
 
 i32 SpawnPointCommand::_setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-
-    const auto& selector = context.getArgument<EntitySelector>("player");
+    const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
-
     if (playerIds.empty()) {
         source.sendError("No matching players were found");
         return 0;
     }
 
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendError("Server not available");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
+    return _applySpawnPoint(context, playerIds, pos, Vector2f(0.0f, 0.0f));
+}
+
+i32 SpawnPointCommand::_setPlayerSpawnPointAtRotation(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    const auto& selector = context.getArgument<EntitySelector>("targets");
+    auto playerIds = support::resolvePlayerIds(source, selector);
+    if (playerIds.empty()) {
+        source.sendError("No matching players were found");
         return 0;
     }
 
-    auto* world = source.world();
-    DimensionId dimensionId = DimensionManager::OVERWORLD;
-    if (world != nullptr) {
-        dimensionId = world->dimension();
-    }
-
     const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
-    BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
-        static_cast<BlockCoord>(std::floor(pos.y)),
-        static_cast<BlockCoord>(std::floor(pos.z)));
-
-    i32 successCount = 0;
-    for (PlayerId playerId : playerIds) {
-        // 通过 ServerPlayerEntityManager 获取玩家实体
-        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-        if (player == nullptr) {
-            continue;
-        }
-
-        player->setSpawnPoint(dimensionId, spawnPos, false);
-
-        std::ostringstream ss;
-        ss << "Set spawn point for " << player->username() << " to " << spawnPos.x << ", " << spawnPos.y << ", "
-           << spawnPos.z;
-        source.sendMessage(ss.str());
-        successCount++;
-    }
-
-    return successCount;
+    const Vector2f rotation = RotationArgumentType::getRotation(context, "rotation", source);
+    return _applySpawnPoint(context, playerIds, pos, rotation);
 }
 
 } // namespace command

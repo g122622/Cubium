@@ -242,20 +242,11 @@ Result<LevelRuntimeData> JavaLevelDatReader::_parseRuntimeData(const compound_ta
 
     auto summary = summaryResult.value();
 
-    i32 spawnX = 0, spawnY = 64, spawnZ = 0;
-    if (data.value.count("SpawnX") != 0) {
-        spawnX = static_cast<i32>(data.get<int_tag>("SpawnX"));
-    }
-    if (data.value.count("SpawnY") != 0) {
-        spawnY = static_cast<i32>(data.get<int_tag>("SpawnY"));
-    }
-    if (data.value.count("SpawnZ") != 0) {
-        spawnZ = static_cast<i32>(data.get<int_tag>("SpawnZ"));
-    }
-
-    f32 spawnAngle = 0.0f;
-    if (data.value.count("SpawnAngle") != 0) {
-        spawnAngle = data.get<float_tag>("SpawnAngle");
+    // 世界出生数据：读取 spawn 复合标签（dimension/pos/yaw/pitch）。
+    RespawnData spawnData;
+    if (const auto it = data.value.find("spawn"); it != data.value.end() && it->second->id() == nbt::TagId::Compound) {
+        spawnData =
+            RespawnData::fromNbt(dynamic_cast<const nbt::tags::compound_tag&>(*it->second)).value_or(RespawnData{});
     }
 
     i64 gameTime = 0;
@@ -304,10 +295,7 @@ Result<LevelRuntimeData> JavaLevelDatReader::_parseRuntimeData(const compound_ta
     }
 
     return LevelRuntimeData(std::move(summary),
-        spawnX,
-        spawnY,
-        spawnZ,
-        spawnAngle,
+        spawnData,
         gameTime,
         dayTime,
         clearWeatherTime,

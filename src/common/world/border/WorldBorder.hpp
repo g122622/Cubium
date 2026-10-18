@@ -382,6 +382,28 @@ public:
     [[nodiscard]] bool intersects(const AxisAlignedBB& box) const;
 
     /**
+     * @brief 检测 AABB 是否完全位于边界内
+     *
+     * 对应 vanilla WorldBorder.isWithinBounds(AABB)：以 min 角与 max 角各减 1e-5 后的
+     * 两个水平坐标点判定，两点都在边界内才算在内。
+     *
+     * @param box 轴对齐包围盒
+     * @return 如果 AABB 完全在边界内返回 true
+     */
+    [[nodiscard]] bool isWithinBounds(const AxisAlignedBB& box) const;
+
+    /**
+     * @brief 检测方块坐标是否完全位于边界内
+     *
+     * 对应 vanilla WorldBorder.isWithinBounds(BlockPos)：以方块最小角与其水平 +1 处的
+     * 坐标判定。
+     *
+     * @param pos 方块位置
+     * @return 如果方块在边界内返回 true
+     */
+    [[nodiscard]] bool isWithinBounds(const BlockPos& pos) const;
+
+    /**
      * @brief 检测区块是否与边界相交
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标

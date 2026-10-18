@@ -34,7 +34,6 @@
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/entity/player/SleepManager.hpp"
 #include "common/entity/player/SleepResult.hpp"
-#include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -61,15 +60,18 @@
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/block/blocks/functional/RespawnAnchorBlock.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/application/MinecraftServer.hpp"
@@ -81,6 +83,7 @@
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/stats/StatType.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/PlayerSpawnFinder.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/player/PlayerDataManager.hpp"
 #include <cmath>
@@ -490,8 +493,8 @@ entity::SleepResult ServerPlayer::trySleep(const BlockPos& bedPos)
         return entity::SleepResult::OBSTRUCTED;
     }
 
-    // 5. 设置重生点
-    setSpawnPoint(world->dimension(), bedPos, false);
+    // 5. 设置重生点（使用玩家当前朝向作为起床选侧依据）
+    setRespawnPosition(RespawnConfig(RespawnData::of(world->dimension(), bedPos, yaw(), pitch()), false), true);
 
     // 6. 检查时间是否允许睡眠
     bool isThundering = world->isThundering();
@@ -562,7 +565,19 @@ void ServerPlayer::stopSleepInBed(bool resetTimer)
 
         // 使用 BedBlock::findStandUpPosition 计算起床位置
         if (hasFacing) {
-            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*getWorld(), bedPos.value(), bedFacing, yaw());
+            auto standUp = blocks::BedBlock::findStandUpPosition(*getWorld(),
+                bedPos.value(),
+                bedFacing,
+                yaw(),
+                static_cast<f32>(width()),
+                static_cast<f32>(height()),
+                true,
+                false);
+            if (!standUp.has_value()) {
+                // 床被完全包围时保持原位，由物理系统处理后从床内挤出。
+                return;
+            }
+            const Vector3& wakePos = *standUp;
 
             // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
             Vector3d bedCenter(bedPos.value().x + 0.5, bedPos.value().y, bedPos.value().z + 0.5);
@@ -593,94 +608,148 @@ void ServerPlayer::wakeUp()
 
 // ========== 重生系统实现 ==========
 
-Vector3d ServerPlayer::determineRespawnPosition() const
+namespace {
+
+/// 面向目标方块中心的水平朝向（度）
+[[nodiscard]] f32 _calculateLookAtYaw(const Vector3& position, const BlockPos& target)
 {
-    // 1. 检查玩家个人重生点
-    auto spawnPoint = getSpawnPoint();
-    if (spawnPoint.has_value()) {
-        // 获取重生点维度对应的世界
-        DimensionId spawnDimId = spawnPoint->getDimensionId();
-        const BlockPos& spawnPos = spawnPoint->getPos();
-        bool spawnForced = isSpawnForced();
-
-        // 尝试获取对应维度的世界
-        IWorld* spawnWorld = nullptr;
-        if (m_server != nullptr) {
-            ServerDimension* spawnDimension = m_server->dimensionManager().getDimension(spawnDimId);
-            if (spawnDimension != nullptr) {
-                spawnWorld = spawnDimension->world();
-            }
-        }
-
-        if (spawnWorld != nullptr) {
-            // 验证重生点是否有效
-            SpawnPointValidationResult validationResult =
-                SpawnPointValidator::validate(*spawnWorld, spawnPoint.value(), spawnForced, true);
-
-            if (validationResult == SpawnPointValidationResult::Valid) {
-                // 重生点有效，查找安全的生成位置
-                auto safePos =
-                    SpawnPointValidator::findSafeSpawnPosition(*spawnWorld, spawnPoint.value(), spawnForced, true);
-
-                if (safePos.has_value()) {
-                    const Vector3& pos = safePos.value();
-                    return Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z));
-                }
-            }
-
-            // 重生点无效，清除它并发送消息
-            spdlog::info("ServerPlayer: spawn point invalid for player {} (reason: {}), falling back to world spawn",
-                username(),
-                static_cast<i32>(validationResult));
-
-            // 如果重生点无效，直接清除它（防止每次重生都检查）
-            // 注意：这里使用 const_cast 是因为此方法是 const 的
-            // 但清除重生点是一个必要的副作用
-            const_cast<ServerPlayer*>(this)->clearSpawnPoint();
-        }
+    const f64 dx = (static_cast<f64>(target.x) + 0.5) - static_cast<f64>(position.x);
+    const f64 dz = (static_cast<f64>(target.z) + 0.5) - static_cast<f64>(position.z);
+    const f64 length = std::sqrt(dx * dx + dz * dz);
+    if (length < 1.0e-6) {
+        return 0.0f;
     }
-
-    // 2. 使用世界出生点
-    if (getWorld() != nullptr) {
-        return getWorld()->worldSpawnPoint();
-    }
-
-    // 3. 默认位置
-    return Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
+    const f32 lookYawRadians = std::atan2(static_cast<f32>(dz / length), static_cast<f32>(dx / length));
+    return math::wrapDegrees(math::toDegrees(lookYawRadians) - 90.0F);
 }
 
-DimensionId ServerPlayer::determineRespawnDimension() const
+} // namespace
+
+void ServerPlayer::setRespawnPosition(std::optional<RespawnConfig> config, bool announce)
 {
-    // 1. 检查玩家个人重生点的维度
-    auto spawnPoint = getSpawnPoint();
-    if (spawnPoint.has_value()) {
-        DimensionId spawnDimId = spawnPoint->getDimensionId();
-        bool spawnForced = isSpawnForced();
-
-        // 尝试获取对应维度的世界进行验证
-        IWorld* spawnWorld = nullptr;
-        if (m_server != nullptr) {
-            ServerDimension* spawnDimension = m_server->dimensionManager().getDimension(spawnDimId);
-            if (spawnDimension != nullptr) {
-                spawnWorld = spawnDimension->world();
-            }
+    if (announce && config.has_value()) {
+        const auto previous = getRespawnConfig();
+        if (!config->isSamePosition(previous)) {
+            // 客户端按翻译键渲染"重生点已设置"。
+            sendSystemMessage(text::TranslationTextComponent("block.minecraft.set_spawn"));
         }
+    }
+    Player::setRespawnPosition(config, false);
+}
 
-        if (spawnWorld != nullptr) {
-            // 验证重生点
-            SpawnPointValidationResult validationResult =
-                SpawnPointValidator::validate(*spawnWorld, spawnPoint.value(), spawnForced, true);
+ServerPlayer::RespawnLocation ServerPlayer::findRespawnPositionAndUseSpawnBlock(bool consumeCharge)
+{
+    RespawnLocation location;
 
-            if (validationResult == SpawnPointValidationResult::Valid) {
-                return spawnDimId;
-            }
-        }
-
-        // 重生点无效，返回主世界
+    if (m_server == nullptr || getWorld() == nullptr) {
+        location.missingRespawnBlock = true;
+        return location;
     }
 
-    // 2. 默认返回主世界
-    return DimensionId(0);
+    const auto config = getRespawnConfig();
+    const DimensionId targetDimension = RespawnConfig::getDimensionOrDefault(config.has_value() ? &*config : nullptr);
+    ServerDimension* targetServerDimension = m_server->dimensionManager().getDimension(targetDimension);
+    mc::server::ServerWorld* targetWorld = targetServerDimension != nullptr ? targetServerDimension->world() : nullptr;
+
+    if (config.has_value() && targetWorld != nullptr) {
+        const RespawnData& data = config->respawnData;
+        const BlockPos& pos = data.pos();
+        // 重生点所在区块可能已被卸载：先同步加载，否则 getBlockState 返回空会把有效重生点误判为失效。
+        static_cast<void>(
+            targetWorld->chunkManager()->requestFullChunkSync(static_cast<ChunkCoord>(pos.x >> world::CHUNK_SHIFT),
+                static_cast<ChunkCoord>(pos.z >> world::CHUNK_SHIFT)));
+        const BlockState* state = targetWorld->getBlockState(pos);
+
+        if (state != nullptr && state->hasProperty(BlockStateProperties::CHARGES_0_4()) &&
+            blocks::RespawnAnchorBlock::canSetSpawn(*targetWorld) &&
+            (config->forced || blocks::RespawnAnchorBlock::getCharges(*state) > 0)) {
+            // 重生锚：在锚周围寻找落点；非强制且允许消耗时扣一次充能。
+            auto standUp = blocks::RespawnAnchorBlock::findStandUpPosition(
+                *targetWorld, pos, static_cast<f32>(width()), static_cast<f32>(height()), true, false);
+            if (standUp.has_value()) {
+                if (!config->forced && consumeCharge) {
+                    BlockState charged = *state;
+                    blocks::RespawnAnchorBlock::discharge(*targetWorld, pos, charged);
+                }
+                location.world = targetWorld;
+                location.position = Vector3d(standUp->x, standUp->y, standUp->z);
+                location.yaw = _calculateLookAtYaw(*standUp, pos);
+                location.pitch = 0.0f;
+                return location;
+            }
+            location.missingRespawnBlock = true;
+        } else if (state != nullptr && state->hasProperty(BlockStateProperties::BED_PART()) &&
+            DimensionType::fromId(targetWorld->dimension()).bedWorks()) {
+            // 床：使用床方块朝向与配置 yaw 决定搜索侧，落点朝向床。
+            const Direction bedFacing = state->get(BlockStateProperties::HORIZONTAL_FACING());
+            auto standUp = blocks::BedBlock::findStandUpPosition(*targetWorld,
+                pos,
+                bedFacing,
+                data.yaw,
+                static_cast<f32>(width()),
+                static_cast<f32>(height()),
+                true,
+                false);
+            if (standUp.has_value()) {
+                location.world = targetWorld;
+                location.position = Vector3d(standUp->x, standUp->y, standUp->z);
+                location.yaw = _calculateLookAtYaw(*standUp, pos);
+                location.pitch = 0.0f;
+                return location;
+            }
+            location.missingRespawnBlock = true;
+        } else if (config->forced) {
+            // 强制重生点：目标方块与其上方一格都可站立时直接在方块上表面生成。
+            const BlockState* above = targetWorld->getBlockState(pos.up());
+            if (state != nullptr && above != nullptr && state->owner().isPossibleToRespawnInThis(*state) &&
+                above->owner().isPossibleToRespawnInThis(*above)) {
+                location.world = targetWorld;
+                location.position = Vector3d(
+                    static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y) + 0.1, static_cast<f64>(pos.z) + 0.5);
+                location.yaw = data.yaw;
+                location.pitch = data.pitch;
+                return location;
+            }
+            location.missingRespawnBlock = true;
+        } else {
+            location.missingRespawnBlock = true;
+        }
+    } else if (config.has_value()) {
+        // 配置了个人重生点，但对应维度的世界不存在。
+        location.missingRespawnBlock = true;
+    }
+
+    // 共享出生点（缺失出生方块或无个人重生点）：在出生点附近搜索无碰撞无液体的落点。
+    ServerDimension* overworld = m_server->dimensionManager().getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr);
+    MC_ASSERT_RELEASE(overworld->world() != nullptr);
+    mc::server::ServerWorld* spawnWorld = overworld->world();
+    const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
+    location.world = spawnWorld;
+    location.position = findSharedSpawnPosition();
+    location.yaw = adjusted.yaw;
+    location.pitch = adjusted.pitch;
+    return location;
+}
+
+Vector3d ServerPlayer::findSharedSpawnPosition()
+{
+    if (m_server == nullptr) {
+        return Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
+    }
+
+    ServerDimension* overworld = m_server->dimensionManager().getOverworld();
+    MC_ASSERT_RELEASE(overworld != nullptr);
+    MC_ASSERT_RELEASE(overworld->world() != nullptr);
+    server::ServerWorld* spawnWorld = overworld->world();
+    const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
+
+    if (const auto position = mc::server::PlayerSpawnFinder::findSpawn(*spawnWorld, adjusted.pos()); position) {
+        return Vector3d(position->x, position->y, position->z);
+    }
+    return Vector3d(static_cast<f64>(adjusted.pos().x) + 0.5,
+        static_cast<f64>(adjusted.pos().y + 1),
+        static_cast<f64>(adjusted.pos().z) + 0.5);
 }
 
 void ServerPlayer::_sendSleepPacket(const BlockPos& bedPos)
@@ -1524,8 +1593,8 @@ void ServerPlayer::tick()
     // 对齐 Java ServerPlayer.tick()（ServerPlayer.java:577）：this.connection.tickClientLoadTimeout()
     // 每 tick 递减客户端加载超时计时器。死亡时由 markClientUnloadedAfterDeath 置位 waitingForRespawn，
     // 重生时由 restartClientLoadTimerAfterRespawn 清除 waitingForRespawn 并重启 60 tick 计时器。
-    // TODO: restartClientLoadTimerAfterRespawn 的调用点依赖 ServerboundClientCommandPacket(PERFORM_RESPAWN)
-    //       包链路，Cubium 当前缺失该包，待补全后接入。
+    // 重生时由 PlayerRespawnManager 调用 restartClientLoadTimerAfterRespawn 清除 waitingForRespawn
+    // 并重启 60 tick 计时器。
     if (m_server != nullptr) {
         if (auto* playerData = m_server->playerManager().getPlayer(playerId())) {
             playerData->tickClientLoadTimeout();

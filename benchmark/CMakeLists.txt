@@ -40,6 +40,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/waypoint/WaypointManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/player/PlayerSpawnFinder.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/time/GameTime.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/structure/StructureLocator.cpp
@@ -57,6 +58,7 @@ target_sources(mc_benchmark
         ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         # ServerPlayer/命令源/函数管理器（ServerWorld 回调链引用）
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/player/PlayerRespawnManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/ServerCommandSource.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/CommandRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp

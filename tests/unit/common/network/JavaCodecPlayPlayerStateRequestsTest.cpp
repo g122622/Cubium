@@ -406,6 +406,27 @@ TEST_F(LocalServerFixture, RequestStatsRoutesToThePlayerAndRepliesEvenWhenUnchan
     EXPECT_TRUE(std::get<AwardStats>(std::get<PlayPacket>(received->packet)).stats.empty());
 }
 
+TEST_F(LocalServerFixture, RespawnRequestIsIgnoredUnlessPlayerIsWaitingForRespawn)
+{
+    // 存活玩家的 ClientCommand(PERFORM_RESPAWN) 必须被忽略：只有 death 时
+    // markClientUnloadedAfterDeath 置位 waitingForRespawn 后才允许重生。
+    serverConn()->setPhase(protocol::ConnectionProtocol::Play);
+    _PlayerStateRequestServer server;
+    auto* data = server.playerManager().addPlayer(1, "00000000000000000000000000000001", "Player", serverConn());
+    ASSERT_NE(data, nullptr);
+    data->loggedIn = true;
+    auto& player = server.addServerPlayerEntity(1, serverConn());
+    server::net::ServerPlayHandler handler(server);
+    const IrPacket request{protocol::ConnectionProtocol::Play, PlayPacket{ClientCommand{0}}};
+
+    EXPECT_FALSE(server.playerRespawnManager().isWaitingForRespawn(1));
+    handler.route(1, request);
+    // 未进入等待重生状态：既不发 Respawn，也不改变玩家的存活状态。
+    EXPECT_TRUE(server.sentPackets.empty());
+    EXPECT_FALSE(player.isDead());
+    EXPECT_FALSE(server.playerRespawnManager().isWaitingForRespawn(1));
+}
+
 TEST_F(LocalServerFixture, SystemVisibilityCanSendChatWhileOnlyFullRecipientsReceive)
 {
     serverConn()->setPhase(protocol::ConnectionProtocol::Play);
