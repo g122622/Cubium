@@ -37,10 +37,14 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/core/ConnectionManager.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <cmath>
@@ -70,7 +74,7 @@ void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
     posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPosition(ctx); });
 
     // /setworldspawn <pos> <rotation> - rotation 用 RotationArgumentType（接 yaw pitch，对齐 vanilla
-    // RotationArgument）。 yaw 存 ServerWorld::m_spawnAngle；pitch 暂丢弃（Cubium 出生点 pitch 未建模，TODO
+    // RotationArgument）。yaw/pitch 随 spawn 复合标签一起持久化。
     // 完整建模后补）。
     auto rotationNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "rotation", RotationArgumentType::rotation());
@@ -84,168 +88,70 @@ void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
 i32 SetWorldSpawnCommand::_setCurrentPosition(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-
     if (!source.isPlayer()) {
         source.sendError("You must be a player to use this command");
         return 0;
     }
-
-    auto* server = source.server();
-    DimensionId dimensionId = source.dimensionId();
-    auto* dimension = server->dimensionManager().getDimension(dimensionId);
-
-    if (!dimension) {
-        source.sendError("Dimension not found");
-        return 0;
-    }
-
-    // 对齐 MC 1.21.11: BlockPos.containing(source.getPosition()) — 玩家位置 floor 成整数 BlockPos。
-    const Vector3d& playerPos = source.position();
-    Vector3d pos(static_cast<f64>(static_cast<BlockCoord>(std::floor(playerPos.x))),
-        static_cast<f64>(static_cast<BlockCoord>(std::floor(playerPos.y))),
-        static_cast<f64>(static_cast<BlockCoord>(std::floor(playerPos.z))));
-
-    // 对齐 MC 1.21.11: 无参 rotation = WorldCoordinates.ZERO_ROTATION（yaw=0, pitch=0），不用玩家朝向。
-    f32 angle = 0.0f;
-    dimension->setSpawnPoint(pos);
-
-    // 同步更新 ServerWorld 的世界出生点和朝向
-    if (dimension->world()) {
-        dimension->world()->setWorldSpawnPoint(pos, angle);
-    }
-
-    // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos, angle, dimensionId);
-
-    std::ostringstream ss;
-    ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
-       << ", " << static_cast<BlockCoord>(pos.z) << " (angle: " << angle << ")";
-    source.sendMessage(ss.str());
-
-    return 1;
+    // 无参：位置取命令源所在方块，朝向取全零（不使用玩家朝向）。
+    return _applyWorldSpawn(context, source.position(), Vector2f(0.0f, 0.0f));
 }
 
 i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& context)
 {
-    auto& source = context.getSource();
-    auto* server = source.server();
-
-    // 对齐 MC 1.21.11: BlockPosArgument.getSpawnablePos — 取整成 BlockPos（整数），无 centerCorrect 偏移。
-    const Vector3i blockPos = BlockPosArgumentType::getBlockPos(context, "pos", source);
-    Vector3d pos(static_cast<f64>(blockPos.x), static_cast<f64>(blockPos.y), static_cast<f64>(blockPos.z));
-
-    DimensionId dimensionId = source.dimensionId();
-    auto* dimension = server->dimensionManager().getDimension(dimensionId);
-
-    if (!dimension) {
-        source.sendError("Dimension not found");
-        return 0;
-    }
-
-    dimension->setSpawnPoint(pos);
-
-    // 对齐 MC 1.21.11: <pos> 不带 rotation 时 rotation = ZERO_ROTATION（yaw=0, pitch=0）。
-    f32 angle = 0.0f;
-
-    // 同步更新 ServerWorld 的世界出生点
-    if (dimension->world()) {
-        dimension->world()->setWorldSpawnPoint(pos, angle);
-    }
-
-    // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos, angle, dimensionId);
-
-    std::ostringstream ss;
-    ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
-       << ", " << static_cast<BlockCoord>(pos.z);
-    source.sendMessage(ss.str());
-
-    return 1;
+    // <pos> 不带 rotation 时 rotation 为全零。
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", context.getSource());
+    return _applyWorldSpawn(context, pos, Vector2f(0.0f, 0.0f));
 }
 
 i32 SetWorldSpawnCommand::_setPositionWithRotation(CommandContext<ServerCommandSource>& context)
 {
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", context.getSource());
+    const Vector2f rotation = RotationArgumentType::getRotation(context, "rotation", context.getSource());
+    return _applyWorldSpawn(context, pos, rotation);
+}
+
+i32 SetWorldSpawnCommand::_applyWorldSpawn(
+    CommandContext<ServerCommandSource>& context, const Vector3d& position, const Vector2f& rotation)
+{
     auto& source = context.getSource();
     auto* server = source.server();
-
-    // 对齐 MC 1.21.11: BlockPosArgument.getSpawnablePos — 取整成 BlockPos（整数）。
-    const Vector3i blockPos = BlockPosArgumentType::getBlockPos(context, "pos", source);
-    Vector3d pos(static_cast<f64>(blockPos.x), static_cast<f64>(blockPos.y), static_cast<f64>(blockPos.z));
-
-    // 对齐 MC 1.21.11: RotationArgument.getRotation — 返回 (yaw, pitch)。
-    // RotationArgumentType::getRotation 返回 Vector2f(yaw, pitch)（x=yaw, y=pitch，绝对分量取原值）。
-    const Vector2f rotation = RotationArgumentType::getRotation(context, "rotation", source);
-    f32 angle = rotation.x; // yaw
-    // pitch = rotation.y — Cubium 出生点 pitch 未建模（仅 yaw 持久化到 level.dat SpawnAngle，对齐 Java level.dat）。
-    // TODO: 完整对齐 vanilla LevelData.RespawnData(yaw, pitch) 需在 ServerWorld/Dimension/LevelDatCodec 建模 pitch，
-    //       届时将 rotation.y(pitch) 存入并随 SetDefaultSpawnPosition 网络包下发，玩家重生朝向用 pitch。
-    f32 pitch = rotation.y;
-    (void)pitch; // 暂不使用，保留语义占位
-
-    // 对齐 MC 1.21.11: 将 yaw 归一化到 [-180, 180]（vanilla 在 RespawnData 构造时未显式 wrapDegrees，
-    // 但玩家重生应用 angle 时由 Entity 处理；Cubium 此处显式 wrap 保证存储规范化）。
-    angle = math::wrapDegrees(angle);
-
-    DimensionId dimensionId = source.dimensionId();
-    auto* dimension = server->dimensionManager().getDimension(dimensionId);
-
-    if (!dimension) {
-        source.sendError("Dimension not found");
+    if (server == nullptr) {
+        source.sendError("Server not available");
         return 0;
     }
 
-    dimension->setSpawnPoint(pos);
-
-    // 同步更新 ServerWorld 的世界出生点和朝向（yaw）
-    if (dimension->world()) {
-        dimension->world()->setWorldSpawnPoint(pos, angle);
+    ServerDimension* dimension = server->dimensionManager().getOverworld();
+    if (dimension == nullptr || dimension->world() == nullptr) {
+        source.sendError("Overworld not available");
+        return 0;
     }
 
-    // 广播新的出生点到所有玩家
-    _broadcastSpawnPosition(server, pos, angle, dimensionId);
+    // 出生方块取命令源位置的整数方块坐标（等价 BlockPosArgument.getSpawnablePos 的取整语义）。
+    const BlockPos spawnPos(static_cast<BlockCoord>(std::floor(position.x)),
+        static_cast<BlockCoord>(std::floor(position.y)),
+        static_cast<BlockCoord>(std::floor(position.z)));
+    const RespawnData spawnData = RespawnData::of(DimensionManager::OVERWORLD, spawnPos, rotation.x, rotation.y);
 
-    std::ostringstream ss;
-    ss << "Set world spawn point to " << static_cast<BlockCoord>(pos.x) << ", " << static_cast<BlockCoord>(pos.y)
-       << ", " << static_cast<BlockCoord>(pos.z) << " (angle: " << angle << ")";
-    source.sendMessage(ss.str());
-
-    return 1;
-}
-
-void SetWorldSpawnCommand::_broadcastSpawnPosition(
-    server::IServer* server, const Vector3d& pos, f32 angle, DimensionId dimensionId)
-{
-    // 1.21.11 SetDefaultSpawnPosition：dimension(ResourceKey) + blockPosPacked + yaw + pitch
-    // dimension 取命令执行者所在维度，命令作用于该维度出生点。
-    std::string dimensionKey = "minecraft:overworld";
-    switch (dimensionId) {
-        case -1:
-            dimensionKey = "minecraft:the_nether";
-            break;
-        case 1:
-            dimensionKey = "minecraft:the_end";
-            break;
-        case 0:
-        default:
-            dimensionKey = "minecraft:overworld";
-            break;
+    // 整个存档只有一份世界出生数据，保存于主世界 level.dat；重复设置同一位置不重复广播。
+    server::ServerWorld& world = *dimension->world();
+    if (world.respawnData() == spawnData) {
+        return 0;
     }
+    world.setRespawnData(spawnData);
 
     mc::network::ir::play::SetDefaultSpawnPosition pkt;
-    pkt.dimension = dimensionKey;
-    pkt.blockPosPacked =
-        BlockPos(static_cast<BlockCoord>(pos.x), static_cast<BlockCoord>(pos.y), static_cast<BlockCoord>(pos.z))
-            .asLong();
-    pkt.yaw = angle;
-    pkt.pitch = 0.0f;
+    pkt.dimension = std::string(dimensionIdToString(spawnData.dimension()));
+    pkt.blockPosPacked = spawnData.pos().asLong();
+    pkt.yaw = spawnData.yaw;
+    pkt.pitch = spawnData.pitch;
+    server->connectionManager().broadcast(mc::network::ir::IrPacket{
+        mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
 
-    mc::network::ir::IrPacket packet{
-        mc::network::protocol::ConnectionProtocol::Play,
-        mc::network::ir::PlayPacket{std::move(pkt)},
-    };
-
-    // 通过 ConnectionManager 广播给所有玩家
-    server->connectionManager().broadcast(packet);
+    std::ostringstream ss;
+    ss << "Set the world spawn point to " << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z << ", "
+       << spawnData.yaw << ", " << spawnData.pitch << " in " << dimensionIdToString(spawnData.dimension());
+    source.sendMessage(ss.str());
+    return 1;
 }
 
 } // namespace command

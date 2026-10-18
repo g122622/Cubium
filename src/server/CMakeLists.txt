@@ -355,6 +355,7 @@ add_executable(minecraft-server
     world/entity/waypoint/WaypointManager.cpp
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp
+    world/player/PlayerSpawnFinder.cpp
     world/weather/WeatherManager.cpp
     # 结构定位算法门面（findNearestStructure/findNearestMapStructure 下沉自 ServerWorld）
     world/structure/StructureLocator.cpp
@@ -370,6 +371,7 @@ add_executable(minecraft-server
     world/blockentity/sculk/SculkShriekerHelper.cpp
 
     player/ServerPlayer.cpp
+    player/PlayerRespawnManager.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp
     # 事件系统

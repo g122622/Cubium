@@ -113,35 +113,37 @@ LIGHT 票据释放由后续统一票据推进传播，避免批量发送区块�
 
 ## 出生点管理
 
-`ServerWorld` 负责管理世界出生点的位置和朝向，新玩家首次进入世界时在此处生成。
+`ServerWorld` 持有存档级世界出生数据（`RespawnData`：维度 + 出生方块 + yaw/pitch）。整个存档只有一份，
+保存在主世界 level.dat 的 `spawn` 复合标签中；新玩家进入世界时从共享出生点附近搜索落点。
 
 ### 核心接口
 
 | 接口 | 说明 |
 |------|------|
-| `worldSpawnPoint()` | 获取出生点坐标（`Vector3d`） |
-| `spawnAngle()` | 获取出生点朝向角度（`f32`，度，范围 [-180, 180]） |
-| `setWorldSpawnPoint(pos, angle)` | 同时设置出生点位置和朝向，`angle` 默认 `0.0f` |
-| `setSpawnAngle(angle)` | 仅设置出生点朝向，不影响位置 |
-| `initializeWorldSpawn()` | 世界初始化时查找合适出生位置；主世界使用 `Climate::Sampler::findSpawnPosition()` 气候搜索。仅主世界调用，下界/末地无独立出生点 |
-| `applyLevelRuntimeData(data)` | 从 level.dat 读取的运行时数据中恢复出生点（含朝向）；SpawnY 为脚下方块 Y，读取时 +1 转为玩家脚位置 |
+| `respawnData()` | 获取原始出生数据（未做边界修正） |
+| `setRespawnData(data)` | 设置出生数据（`/setworldspawn` 调用） |
+| `spawnPosition()` | 出生位置脚部坐标（方块中心 X/Z +0.5，Y 为方块上表面） |
+| `worldBorderAdjustedRespawnData()` | 出生方块在边界外时改取边界中心列的 MOTION_BLOCKING 高度图位置 |
+| `initializeWorldSpawn()` | 新世界首次启动查找出生位置；主世界使用 `Climate::Sampler::findSpawnPosition()` 气候搜索。仅主世界调用 |
+| `applyLevelRuntimeData(data)` | 从 level.dat 读取的运行时数据中恢复出生数据 |
 
 ### 数据流
 
 ```
-level.dat (SpawnX/Y/Z, SpawnAngle, initialized 字段)
+level.dat (spawn 复合标签：dimension/pos/yaw/pitch，initialized 字段)
     → LevelDatCodec::readRuntimeData 读取
-    → LevelRuntimeData.{spawnX/Y/Z, spawnAngle, initialized}
+    → LevelRuntimeData.spawnData + initialized
     → MinecraftServer::initializeWorld 按 initialized 分支：
-        - initialized=true  → applyLevelRuntimeData 直接使用存档出生点
+        - initialized=true  → applyLevelRuntimeData 直接使用存档出生数据
         - initialized=false → applyLevelRuntimeData 后再 initializeWorldSpawn 覆盖为真实出生点
-    → ServerWorld::m_worldSpawnPoint（玩家脚位置，方块上方）
-    → MinecraftServer::saveAllWorldData(true) 写回 level.dat（SpawnY 存脚下方块 Y，initialized 写 true）
-    → MinecraftServer::sendInitialGameState 通过 SpawnPositionPacket 发送给客户端
+    → ServerWorld::m_respawnData
+    → MinecraftServer::saveAllWorldData(true) 写回 level.dat（spawn 复合标签，initialized 写 true）
+    → 登录/重生通过 SetDefaultSpawnPosition 下发（经边界修正的有效出生数据）
     → /setworldspawn 命令修改后广播给所有玩家
 ```
 
-**仅主世界持有世界出生点**：下界/末地不调 `initializeWorldSpawn`，其 `ServerWorld::m_worldSpawnPoint` 保持构造默认值且无消费方。所有出生点消费路径（玩家初始位置、指南针指向、重生兜底）只读主世界 `overworld->world()->worldSpawnPoint()`。
+**仅主世界持有世界出生数据**：下界/末地不调 `initializeWorldSpawn`，所有出生数据消费路径
+（玩家初始位置、指南针指向、重生兜底）只读主世界 `overworld->world()`。
 
 ### initializeWorldSpawn 气候搜索流程
 
@@ -165,12 +167,12 @@ NoiseChunkGenerator::randomState()  →  RandomState
 
 ### 注意事项
 
-- **initialized 字段**：level.dat 的 `initialized` 标记世界是否已完成首次出生点计算。`false` 时 `initializeWorld` 会调 `initializeWorldSpawn` 计算真实出生点并覆盖模板占位；`true` 时直接使用存档中的 SpawnX/Y/Z。新世界模板写入 `initialized=0` + `SpawnX/Y/Z=0/0/0`，首次启动计算后由 shutdown 落盘 `initialized=1`。
-- **SpawnY 语义**：level.dat 中 `SpawnY` 为"脚下方块 Y"。`applyLevelRuntimeData` 读取时 +1 转为玩家脚位置（方块上方）；`saveAllWorldData` 写盘时 -1 转回脚下方块 Y。`m_worldSpawnPoint` 一律为玩家脚位置，与 `initializeWorldSpawn`、`setWorldSpawnPoint`（来自实体 position，即脚位置）、默认值 `(0, SEA_LEVEL+1, 0)` 语义统一。
-- **朝向范围**：`SetWorldSpawnCommand` 已用 `wrapDegrees()` 归一化到 [-180, 180]。
-- **保存一致性**：`saveAllWorldData()` 从 `world->spawnAngle()` 读取朝向值写入 level.dat，确保保存/加载循环不丢失。
-- **客户端同步**：`SpawnPositionPacket` 包含 angle 字段，客户端 `ClientWorld::setSpawnPoint(x, y, z, angle)` 接收并存储。
-- **Dimension 出生点**：`Dimension::spawnPoint()` 是每个维度的出生点（独立于世界出生点），当前不含朝向字段；仅跨维度传送兜底（`transferPlayerToDimension` 的 `position.value_or`）使用，下界/末地保持构造默认值。
+- **initialized 字段**：level.dat 的 `initialized` 标记世界是否已完成首次出生点计算。`false` 时 `initializeWorld` 会调 `initializeWorldSpawn` 计算真实出生点并覆盖模板占位；`true` 时直接使用存档中的 `spawn` 复合标签。新世界模板写入 `initialized=0` 与默认出生数据。
+- **位置是出生方块本身**：玩家脚部在 `pos.y + 1`。`spawnPosition()` 负责换算；网络包 `SetDefaultSpawnPosition` 下发的是方块坐标。
+- **朝向范围**：`RespawnData::of` 归一化 yaw 到 [-180, 180]、夹紧 pitch 到 [-90, 90]。
+- **保存一致性**：`saveAllWorldData()` 直接写 `world->respawnData()`，保存/加载循环不丢失维度与 pitch。
+- **共享出生点落点搜索**：登录与新玩家进入时由 `PlayerSpawnFinder::findSpawn()` 在 `spawnRadius` 规则范围内寻找无碰撞无液体位置；下界/末地或冒险模式世界只做高度修正。
+- **Dimension 不再持有出生点**：旧 `Dimension::m_spawnPoint` 已删除，跨维度传送必须显式给出目标坐标。
 
 ## 容易踩的坑
 

@@ -31,6 +31,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/GlobalPos.hpp"
+#include "common/world/spawn/RespawnConfig.hpp"
 #include <optional>
 #include <string>
 #include <vector>
@@ -86,11 +87,8 @@ struct PlayerSaveData {
     /// 当前维度ID (0=主世界, -1=下界, 1=末地)
     DimensionId dimension = 0;
 
-    /// 重生点位置（可选）
-    std::optional<GlobalPos> spawnPoint;
-
-    /// 是否强制重生点
-    bool spawnForced = false;
+    /// 个人重生点配置（可选：维度、位置、朝向、是否强制）
+    std::optional<RespawnConfig> respawnConfig;
 
     /// 进入下界时的位置（用于进度追踪）
     std::optional<Vector3d> enteredNetherPosition;

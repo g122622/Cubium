@@ -28,6 +28,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/world/spawn/RespawnData.hpp"
 #include "server/world/storage/list/WorldListEntry.hpp"
 #include "server/world/storage/request/WorldRequests.hpp"
 #include <filesystem>
@@ -138,17 +139,8 @@ struct LevelRuntimeData {
     /// 摘要数据
     LevelSummaryData summary;
 
-    /// 出生点 X
-    i32 spawnX;
-
-    /// 出生点 Y
-    i32 spawnY;
-
-    /// 出生点 Z
-    i32 spawnZ;
-
-    /// 出生点朝向（角度）
-    f32 spawnAngle;
+    /// 世界出生数据（spawn 复合标签：维度 + 方块位置 + yaw/pitch）
+    RespawnData spawnData;
 
     /// 游戏时间（刻）
     i64 gameTime;
@@ -181,10 +173,7 @@ struct LevelRuntimeData {
      * @brief 构造运行时数据
      */
     LevelRuntimeData(LevelSummaryData summary,
-        i32 spawnX,
-        i32 spawnY,
-        i32 spawnZ,
-        f32 spawnAngle,
+        RespawnData spawnData,
         i64 gameTime,
         i64 dayTime,
         i32 clearWeatherTime,
@@ -285,10 +274,7 @@ public:
      * @param worldDir 世界目录路径
      * @param gameTime 游戏时间（刻）
      * @param dayTime 日光时间（刻）
-     * @param spawnX 出生点 X
-     * @param spawnY 出生点 Y
-     * @param spawnZ 出生点 Z
-     * @param spawnAngle 出生点朝向（角度）
+     * @param spawnData 世界出生数据（写入 spawn 复合标签）
      * @param clearWeatherTime 清晰天气剩余时间（刻）
      * @param rainTime 下雨剩余时间（刻）
      * @param raining 是否正在下雨
@@ -302,10 +288,7 @@ public:
     static Result<void> updateRuntimeData(const std::filesystem::path& worldDir,
         i64 gameTime,
         i64 dayTime,
-        i32 spawnX,
-        i32 spawnY,
-        i32 spawnZ,
-        f32 spawnAngle,
+        const RespawnData& spawnData,
         i32 clearWeatherTime,
         i32 rainTime,
         bool raining,

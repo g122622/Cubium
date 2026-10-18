@@ -24,6 +24,7 @@
 #include "RespawnAnchorBlock.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/vehicle/DismountHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/BlockActionResult.hpp"
@@ -43,9 +44,12 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/spawn/RespawnConfig.hpp"
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -152,6 +156,61 @@ void RespawnAnchorBlock::discharge(IWorld& world, const BlockPos& pos, BlockStat
     }
 }
 
+bool RespawnAnchorBlock::canSetSpawn(const IWorld& world)
+{
+    return DimensionType::fromId(world.dimension()).respawnAnchorWorks();
+}
+
+bool RespawnAnchorBlock::isRespawnFuel(const ItemStack& stack)
+{
+    if (stack.isEmpty()) {
+        return false;
+    }
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    return BlockItemRegistry::instance().getBlock(item->itemId()) == VanillaBlocks::GLOWSTONE;
+}
+
+std::optional<Vector3> RespawnAnchorBlock::findStandUpPosition(
+    const IWorld& world, const BlockPos& anchorPos, f32 width, f32 height, bool isPlayer, bool fireImmune)
+{
+    // 水平环的 8 个相邻位置
+    static constexpr std::array<std::pair<i32, i32>, 8> HORIZONTAL_OFFSETS = {
+        {{0, -1}, {-1, 0}, {0, 1}, {1, 0}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}}};
+
+    std::array<BlockPos, 25> candidates{};
+    size_t count = 0;
+    for (const auto& [dx, dz] : HORIZONTAL_OFFSETS) {
+        candidates[count++] = BlockPos(anchorPos.x + dx, anchorPos.y, anchorPos.z + dz);
+    }
+    for (const auto& [dx, dz] : HORIZONTAL_OFFSETS) {
+        candidates[count++] = BlockPos(anchorPos.x + dx, anchorPos.y - 1, anchorPos.z + dz);
+    }
+    for (const auto& [dx, dz] : HORIZONTAL_OFFSETS) {
+        candidates[count++] = BlockPos(anchorPos.x + dx, anchorPos.y + 1, anchorPos.z + dz);
+    }
+    candidates[count++] = anchorPos.up();
+    MC_ASSERT_RELEASE(count == candidates.size());
+
+    const auto search = [&](bool safeMode) -> std::optional<Vector3> {
+        for (size_t i = 0; i < count; ++i) {
+            auto position = DismountHelper::findSafeDismountLocation(
+                world, candidates[i], width, height, isPlayer, fireImmune, safeMode);
+            if (position.has_value()) {
+                return position;
+            }
+        }
+        return std::nullopt;
+    };
+
+    if (auto result = search(true); result.has_value()) {
+        return result;
+    }
+    return search(false);
+}
+
 BlockActionResult RespawnAnchorBlock::useItemOn(ItemStack& stack,
     const BlockState& state,
     IWorld& world,
@@ -160,90 +219,60 @@ BlockActionResult RespawnAnchorBlock::useItemOn(ItemStack& stack,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
     MC_UNUSED(hit);
 
-    // 获取维度信息
-    DimensionType dimType = DimensionType::fromId(world.dimension());
-
-    // 获取手持物品
-    ItemStack& heldItem = stack;
-
-    // 检查是否用萤石充能
-    bool hasGlowstone = false;
-    if (!heldItem.isEmpty()) {
-        const Item* item = heldItem.getItem();
-        if (item != nullptr) {
-            const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
-            hasGlowstone = (block == VanillaBlocks::GLOWSTONE);
-        }
-    }
-
-    if (hasGlowstone && getCharges(state) < 4) {
-        // 充能
-        BlockState newState = charge(world, pos, const_cast<BlockState&>(state));
-
-        // 播放充能音效
+    if (isRespawnFuel(stack) && canBeCharged(state)) {
+        charge(world, pos, const_cast<BlockState&>(state));
         world.playSound(ResourceLocation("minecraft:block.respawn_anchor.charge"),
             sound::SoundCategory::Blocks,
             pos.center(),
             1.0f,
             1.0f);
-
-        // 消耗萤石
-        heldItem.shrink(1);
-
+        // 创造模式不消耗物品（对齐原版 consume 的无限材料语义）。
+        if (!player.abilities().creativeMode) {
+            stack.shrink(1);
+        }
         return ActionResultType::Success;
     }
 
-    // 检查重生锚是否在此维度可用
-    if (!dimType.respawnAnchorWorks()) {
-        // 在非下界使用重生锚会爆炸
-        // 移除重生锚
-        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
-
-        // 爆炸强度为 5.0，破坏方块但不生成火焰
-        world.createExplosion(pos.center(),
-            5.0f, // 爆炸半径
-            world::explosion::ExplosionMode::Destroy,
-            false // 不生成火焰
-        );
-
-        return ActionResultType::Success;
+    // 主手持非燃料物品、但副手是燃料且仍可充能时，交给交互流程尝试副手。
+    if (hand == Hand::MainHand && isRespawnFuel(player.getHeldItem(Hand::OffHand)) && canBeCharged(state)) {
+        return ActionResultType::Pass;
     }
 
-    // 在下界使用重生锚设置重生点
-    if (getCharges(state) > 0) {
-        // 消耗一次充能
-        BlockState mutableState = state;
-        discharge(world, pos, mutableState);
-
-        // 设置玩家的重生点
-        player.setSpawnPoint(world.dimension(), pos, false);
-
-        // 播放设置重生点音效
-        world.playSound(ResourceLocation("minecraft:block.respawn_anchor.set_spawn"),
-            sound::SoundCategory::Blocks,
-            pos.center(),
-            1.0f,
-            1.0f);
-
-        return ActionResultType::Success;
-    }
-
+    // 其余情况转入空手交互（设置重生点或爆炸）。
     return ActionResultType::TryEmptyHandInteraction;
 }
 
 BlockActionResult RespawnAnchorBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
-    // 本方块无空手交互分支（对齐 vanilla 未重写 useWithoutItem 的方块）
-    (void)state;
-    (void)world;
-    (void)pos;
-    (void)player;
-    (void)hit;
-    return ActionResultType::Pass;
+    MC_UNUSED(hit);
+
+    if (getCharges(state) == MIN_CHARGES) {
+        return ActionResultType::Pass;
+    }
+
+    if (!canSetSpawn(world)) {
+        // 维度不允许：移除重生锚并产生不生成火焰的 5 级爆炸。
+        world.setBlockState(pos, nullptr, world::BlockUpdateFlags::UPDATE_ALL_IMMEDIATE);
+        world.createExplosion(pos.center(), 5.0f, world::explosion::ExplosionMode::Destroy, false);
+        return ActionResultType::SuccessServer;
+    }
+
+    const RespawnConfig candidate(RespawnData::of(world.dimension(), pos, 0.0f, 0.0f), false);
+    const auto existing = player.getRespawnConfig();
+    if (!existing.has_value() || !candidate.isSamePosition(existing)) {
+        player.setRespawnPosition(candidate, true);
+        world.playSound(ResourceLocation("minecraft:block.respawn_anchor.set_spawn"),
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            1.0f);
+        return ActionResultType::SuccessServer;
+    }
+
+    return ActionResultType::Consume;
 }
 
 } // namespace blocks

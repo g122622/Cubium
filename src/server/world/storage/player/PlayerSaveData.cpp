@@ -70,11 +70,7 @@ constexpr const char* PITCH = "Pitch";
 
 // 维度
 constexpr const char* DIMENSION = "Dimension";
-constexpr const char* SPAWN_X = "SpawnX";
-constexpr const char* SPAWN_Y = "SpawnY";
-constexpr const char* SPAWN_Z = "SpawnZ";
-constexpr const char* SPAWN_FORCED = "SpawnForced";
-constexpr const char* SPAWN_DIM = "SpawnDimension";
+constexpr const char* RESPAWN = "respawn";
 constexpr const char* ENTERED_NETHER_POS = "EnteredNetherPosition";
 constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
 constexpr const char* LDL_DIMENSION = "dimension";
@@ -273,14 +269,10 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
     tag.put(nbt_keys::DIMENSION, static_cast<i32>(dimension));
 
     // 重生点
-    if (spawnPoint.has_value()) {
-        tag.put(nbt_keys::SPAWN_X, spawnPoint->x());
-        tag.put(nbt_keys::SPAWN_Y, spawnPoint->y());
-        tag.put(nbt_keys::SPAWN_Z, spawnPoint->z());
-        tag.put(nbt_keys::SPAWN_DIM, static_cast<i32>(spawnPoint->getDimensionId()));
-        if (spawnForced) {
-            tag.put(nbt_keys::SPAWN_FORCED, static_cast<i8>(1));
-        }
+    if (respawnConfig.has_value()) {
+        auto respawnTag = std::make_unique<nbt::tags::compound_tag>();
+        respawnConfig->toNbt(*respawnTag);
+        tag.value.emplace(nbt_keys::RESPAWN, std::move(respawnTag));
     }
 
     // 进入下界位置
@@ -491,15 +483,8 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     }
 
     // 重生点
-    auto spawnX = tryGetInt(tag, nbt_keys::SPAWN_X);
-    auto spawnY = tryGetInt(tag, nbt_keys::SPAWN_Y);
-    auto spawnZ = tryGetInt(tag, nbt_keys::SPAWN_Z);
-    if (spawnX.has_value() && spawnY.has_value() && spawnZ.has_value()) {
-        GlobalPos spawn;
-        spawn = GlobalPos(tryGetInt(tag, nbt_keys::SPAWN_DIM).value_or(0), // 默认主世界
-            BlockPos(*spawnX, *spawnY, *spawnZ));
-        data.spawnPoint = spawn;
-        data.spawnForced = tryGetBool(tag, nbt_keys::SPAWN_FORCED).value_or(false);
+    if (const auto* respawnTag = tryGetCompound(tag, nbt_keys::RESPAWN)) {
+        data.respawnConfig = RespawnConfig::fromNbt(*respawnTag);
     }
 
     // 进入下界位置

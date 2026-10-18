@@ -123,6 +123,7 @@ Player* ServerPlayerEntityManager::createPlayerEntity(PlayerId playerId,
     // 建立映射
     m_playerToEntity[playerId] = entityId;
     m_entityToPlayer[entityId] = playerId;
+    m_entityObjects[entityId] = playerPtr;
 
     spdlog::info(
         "ServerPlayerEntityManager: Created player {} (PlayerId={}, EntityInstanceId={}) at ({:.1f}, {:.1f}, {:.1f})",
@@ -167,6 +168,7 @@ bool ServerPlayerEntityManager::registerExistingPlayerEntity(
     // 建立双向映射
     m_playerToEntity[playerId] = entityId;
     m_entityToPlayer[entityId] = playerId;
+    m_entityObjects[entityId] = playerPtr;
 
     spdlog::info("ServerPlayerEntityManager: Registered existing player {} (PlayerId={}, EntityInstanceId={})",
         playerPtr->username(),
@@ -176,27 +178,71 @@ bool ServerPlayerEntityManager::registerExistingPlayerEntity(
     return true;
 }
 
-void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorld& world)
+void ServerPlayerEntityManager::removePlayerEntity(PlayerId playerId, ServerWorld* world, RemovalReason reason)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     auto it = m_playerToEntity.find(playerId);
     if (it == m_playerToEntity.end()) {
-        spdlog::warn("ServerPlayerEntityManager: Player {} not found for removal", playerId);
+        // 幂等：实体可能已被世界移除（死亡消散、区块卸载等）并由 onEntityRemoved 清理过映射。
         return;
     }
 
-    EntityInstanceId entityId = it->second;
+    const EntityInstanceId entityId = it->second;
 
-    // 从世界销毁玩家实体（走统一入口：取消追踪 + 标记 UnloadedWithPlayer 逻辑移除 +
-    // 入 graveyard 延迟析构）。玩家退出不掉落、不存档。
-    world.destroyEntity(entityId, RemovalReason::UnloadedWithPlayer);
+    // 实体仍在世界内时按给定原因销毁（走统一入口：取消追踪 + 逻辑移除 + 入 graveyard 延迟析构）。
+    if (world != nullptr) {
+        world->destroyEntity(entityId, reason);
+    }
 
-    // 清除映射
+    // 清除映射（实体已被世界移除时仅清映射）。
     m_playerToEntity.erase(it);
     m_entityToPlayer.erase(entityId);
+    m_entityObjects.erase(entityId);
 
     spdlog::info("ServerPlayerEntityManager: Removed player {} (EntityInstanceId={})", playerId, entityId);
+}
+
+void ServerPlayerEntityManager::onEntityRemoved(Entity* entity)
+{
+    if (entity == nullptr) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const EntityInstanceId entityId = entity->id();
+
+    // 以对象身份而非实体 ID 判定：移除通知在实体 tick 安全点批量冲刷，期间该 PlayerId
+    // 可能已经换成了新实体（重生路径），此时旧实体的通知不得清掉新实体的映射。
+    const auto objectIt = m_entityObjects.find(entityId);
+    if (objectIt == m_entityObjects.end() || objectIt->second != entity) {
+        return;
+    }
+
+    const auto it = m_entityToPlayer.find(entityId);
+    if (it == m_entityToPlayer.end()) {
+        m_entityObjects.erase(objectIt);
+        return; // 非玩家实体
+    }
+
+    const PlayerId playerId = it->second;
+    const auto playerIt = m_playerToEntity.find(playerId);
+    if (playerIt == m_playerToEntity.end() || playerIt->second != entityId) {
+        m_entityObjects.erase(objectIt);
+        m_entityToPlayer.erase(it);
+        return;
+    }
+
+    m_entityObjects.erase(objectIt);
+    m_entityToPlayer.erase(entityId);
+    m_playerToEntity.erase(playerIt);
+
+    // 玩家实体可能因死亡消散（LivingEntity::tickDeath 到 20 tick 后 remove）、区块卸载等
+    // 世界侧原因被移除，此时必须同步清理映射，否则后续 createPlayerEntity 会以"已存在"
+    // 拒绝创建，重生永久失败。
+    spdlog::info(
+        "ServerPlayerEntityManager: Player {} entity {} removed by world, mapping cleared", playerId, entityId);
 }
 
 void ServerPlayerEntityManager::clearAll(ServerWorld& world)
@@ -210,6 +256,7 @@ void ServerPlayerEntityManager::clearAll(ServerWorld& world)
 
     m_playerToEntity.clear();
     m_entityToPlayer.clear();
+    m_entityObjects.clear();
 
     spdlog::info("ServerPlayerEntityManager: Cleared all player entities");
 }

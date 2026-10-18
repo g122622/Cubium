@@ -39,9 +39,13 @@ namespace command {
  * 权限等级: 2 (OP)
  *
  * 用法:
- * - /spawnpoint - 设置命令执行者的重生点到当前位置
- * - /spawnpoint <player> - 设置指定玩家的重生点到其当前位置
- * - /spawnpoint <player> <pos> - 设置指定玩家的重生点到指定位置
+ * - /spawnpoint - 把命令执行者的重生点设为命令源位置，朝向全零
+ * - /spawnpoint <targets> - 把目标玩家的重生点设为命令源位置，朝向全零
+ * - /spawnpoint <targets> <pos> - 把目标玩家的重生点设为指定位置，朝向全零
+ * - /spawnpoint <targets> <pos> <rotation> - 额外指定 yaw/pitch
+ *
+ * 所有分支都写入强制重生点（forced=true）：重生时不要求目标方块是床或重生锚，
+ * 只要方块与其上方一格都可站立即可生效；维度取命令源所在维度。
  */
 class SpawnPointCommand {
 public:
@@ -72,6 +76,13 @@ private:
      * @return 命令结果
      */
     static i32 _setPlayerSpawnPointAtPosition(CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 设置指定玩家到指定位置与朝向的重生点
+     * @param context 命令上下文
+     * @return 命令结果
+     */
+    static i32 _setPlayerSpawnPointAtRotation(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

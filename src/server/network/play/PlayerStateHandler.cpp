@@ -56,6 +56,20 @@ void PlayerStateHandler::handleClientCommandPacket(PlayerId playerId, const mc::
     if (data == nullptr || !data->loggedIn) {
         return;
     }
+
+    const auto& request =
+        std::get<mc::network::ir::play::ClientCommand>(std::get<mc::network::ir::PlayPacket>(packet.packet));
+
+    // 重生请求可能到达于玩家实体被移除（死亡 1 秒后）之后，因此不能先解析实体。
+    if (request.action == 0) {
+        if (!m_server.playerRespawnManager().isWaitingForRespawn(playerId)) {
+            // 仍存活的玩家不能提前重生（对齐原版 handleClientCommand 的 getHealth() > 0 守卫）。
+            return;
+        }
+        static_cast<void>(m_server.playerRespawnManager().respawn(playerId, false));
+        return;
+    }
+
     auto* world = m_server.getPlayerWorld(playerId);
     if (world == nullptr) {
         return;
@@ -65,13 +79,8 @@ void PlayerStateHandler::handleClientCommandPacket(PlayerId playerId, const mc::
     if (serverPlayer == nullptr) {
         return;
     }
-    const auto& request =
-        std::get<mc::network::ir::play::ClientCommand>(std::get<mc::network::ir::PlayPacket>(packet.packet));
     if (request.action == 1) {
         static_cast<void>(serverPlayer->sendStats(false));
-    } else if (request.action == 0 && player->isDead()) {
-        // TODO: 接入 PERFORM_RESPAWN 的完整死亡重生流程（出生点、实体状态与同维度 Respawn 包）。
-        spdlog::warn("ClientCommand: respawn request for player {} is not implemented", playerId);
     }
 }
 

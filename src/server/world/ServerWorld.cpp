@@ -115,6 +115,7 @@
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/blockevent/BlockEventData.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"
+#include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/feature/end/EndSpikeFeature.hpp"
@@ -492,9 +493,10 @@ bool ServerWorld::mayInteract(const Entity& entity, const BlockPos& pos) const
         return true;
     }
 
-    const Vector3d spawn = m_worldSpawnPoint;
-    const i32 spawnX = static_cast<i32>(std::floor(spawn.x));
-    const i32 spawnZ = static_cast<i32>(std::floor(spawn.z));
+    // 出生方块坐标：重生数据以方块坐标存储，世界出生点与玩家重生点共用同一份数据。
+    const BlockPos& spawn = m_respawnData.get().pos();
+    const i32 spawnX = spawn.x;
+    const i32 spawnZ = spawn.z;
     if (std::abs(pos.x - spawnX) > radius || std::abs(pos.z - spawnZ) > radius) {
         return true;
     }
@@ -674,6 +676,8 @@ void ServerWorld::initializeWorldSpawn()
 
     spdlog::info("ServerWorld: Initializing world spawn point...");
 
+    const auto fallback = RespawnData::of(dimension(), BlockPos(0, world::SEA_LEVEL + 1, 0), 0.0f, 0.0f);
+
     // 通过 Sampler 在气候空间径向搜索最佳出生区块，
     // 然后在出生区块中用 SpawnLocationHelper 查找有效出生位置。
     //
@@ -710,7 +714,7 @@ void ServerWorld::initializeWorldSpawn()
     if (chunk == nullptr) {
         spdlog::error(
             "ServerWorld: Failed to load spawn chunk, using default spawn point (0, {}, 0)", world::SEA_LEVEL + 1);
-        m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
+        m_respawnData.set(fallback);
         return;
     }
 
@@ -718,17 +722,41 @@ void ServerWorld::initializeWorldSpawn()
     auto spawnPos = SpawnLocationHelper::findSpawnLocationInChunk(*this, spawnChunk, true);
 
     if (spawnPos.has_value()) {
-        // findSpawnLocation 返回的 y 已是"脚站立格 Y"（立足方块上方一格），
-        // 与 MC Java getOverworldRespawnPos 返回 blockpos.above() 语义一致，
-        // 直接作为实体世界坐标 Y 使用，无需再 +1。
-        m_worldSpawnPoint = Vector3d(spawnPos->x + 0.5, static_cast<f64>(spawnPos->y), spawnPos->z + 0.5);
+        // findSpawnLocation 返回的 y 已是"脚站立格 Y"（立足方块上方一格）。出生数据存储的是
+        // 脚下方块本身，故 y - 1 落回方块坐标。
+        m_respawnData.set(RespawnData::of(dimension(), spawnPos->down(), 0.0f, 0.0f));
         spdlog::info("ServerWorld: World spawn initialized at ({}, {}, {})", spawnPos->x, spawnPos->y, spawnPos->z);
     } else {
-        // 使用默认位置
-        m_worldSpawnPoint = Vector3d(0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0);
         spdlog::error(
             "ServerWorld: No valid spawn found in spawn chunk, using default (0, {}, 0)", world::SEA_LEVEL + 1);
+        m_respawnData.set(fallback);
     }
+}
+
+Vector3d ServerWorld::spawnPosition() const noexcept
+{
+    const BlockPos& pos = m_respawnData.get().pos();
+    return Vector3d(static_cast<f64>(pos.x) + 0.5, static_cast<f64>(pos.y + 1), static_cast<f64>(pos.z) + 0.5);
+}
+
+RespawnData ServerWorld::worldBorderAdjustedRespawnData() const
+{
+    const RespawnData& raw = m_respawnData.get();
+    if (m_worldBorder.isWithinBounds(raw.pos())) {
+        return raw;
+    }
+
+    // 出生方块在边界外：先加载边界中心列所在区块，再取其运动阻挡高度图位置
+    // （等价 Level.getHeightmapPos(MOTION_BLOCKING, 边界中心)）。
+    const i32 centerX = static_cast<i32>(std::floor(m_worldBorder.getCenterX()));
+    const i32 centerZ = static_cast<i32>(std::floor(m_worldBorder.getCenterZ()));
+    const ChunkData* centerChunk = m_chunkManager->requestFullChunkSync(
+        static_cast<ChunkCoord>(centerX >> world::CHUNK_SHIFT), static_cast<ChunkCoord>(centerZ >> world::CHUNK_SHIFT));
+    const i32 topBlockY = centerChunk != nullptr
+        ? centerChunk->getTopBlockY(
+              HeightmapType::MotionBlocking, centerX & world::CHUNK_MASK, centerZ & world::CHUNK_MASK)
+        : getHeight(centerX, centerZ) - 1;
+    return RespawnData::of(raw.dimension(), BlockPos(centerX, topBlockY, centerZ), raw.yaw, raw.pitch);
 }
 
 void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& runtimeData)
@@ -741,12 +769,7 @@ void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& 
         m_timeManager->setDayTime(runtimeData.dayTime);
     }
 
-    // level.dat 中 SpawnY 语义为"脚下方块 Y"，玩家脚位置需 +1 站在方块上方，
-    // 与 initializeWorldSpawn 的 (spawnPos.y + 1.0) 语义保持一致。
-    m_worldSpawnPoint = Vector3d(static_cast<f64>(runtimeData.spawnX) + 0.5,
-        static_cast<f64>(runtimeData.spawnY) + 1.0,
-        static_cast<f64>(runtimeData.spawnZ) + 0.5);
-    m_spawnAngle = runtimeData.spawnAngle;
+    m_respawnData.set(runtimeData.spawnData);
 
     if (m_weatherManager == nullptr) {
         return;
@@ -2668,6 +2691,11 @@ bool ServerWorld::hasSkyLight() const
     return getDimensionType().hasSkyLight();
 }
 
+bool ServerWorld::isFlatWorld() const
+{
+    return m_chunkManager != nullptr && dynamic_cast<FlatChunkGenerator*>(m_chunkManager->generator()) != nullptr;
+}
+
 DimensionType ServerWorld::getDimensionType() const
 {
     // 标准维度：主世界=0，下界=-1，末地=1
@@ -3097,6 +3125,13 @@ void ServerWorld::onEntityDeath(Entity* entity, Entity* killer, const DamageSour
 
 void ServerWorld::onEntityRemoved(Entity* entity, RemovalReason reason)
 {
+    // 玩家实体被世界移除时（死亡消散、区块卸载、跨维度迁移、会话断连等），必须同步清理
+    // PlayerId ↔ EntityInstanceId 映射。否则该映射会一直指向已销毁的实体：实体查询返回空，
+    // 而 createPlayerEntity 又以"Player 已存在"拒绝重建，表现为玩家死亡后无法重生。
+    if (entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER && m_server != nullptr) {
+        m_server->playerEntityManager().onEntityRemoved(entity);
+    }
+
     // 发布 EntityRemovedEvent（实体离开世界的统一通知点，覆盖全部移除原因）。
     // 携带维度：事件总线为进程级单例，三维度共享，订阅者据此区分世界。
     event::EntityRemovedEvent removedEvent{currentTick(), entity, reason, dimension()};
