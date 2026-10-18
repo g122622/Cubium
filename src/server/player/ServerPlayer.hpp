@@ -670,6 +670,14 @@ public:
     void setRespawnPosition(std::optional<RespawnConfig> config, bool announce) override;
 
     /**
+     * @brief 把个人重生点配置镜像到会话数据（重写 Player 基类）
+     *
+     * 玩家实体在死亡 20 tick 后必然被世界移除，而重生请求可能在移除之后才到达；此时只能
+     * 从会话侧取回个人重生点，否则床/重生锚落点会丢失并退回共享出生点。
+     */
+    void onRespawnConfigChanged() override;
+
+    /**
      * @brief 重生落点的计算上下文
      *
      * 成功时携带目标世界与位置/朝向；missingRespawnBlock 表示"个人重生点指向的方块已失效"
@@ -697,12 +705,30 @@ public:
     [[nodiscard]] RespawnLocation findRespawnPositionAndUseSpawnBlock(bool consumeCharge);
 
     /**
+     * @brief 按显式配置查找重生落点并按需消耗重生锚充能
+     *
+     * 语义与 findRespawnPositionAndUseSpawnBlock 完全相同，但重生点配置由调用方给出，
+     * 不读取实体成员。用于玩家实体已被移除、配置只能从会话数据取回的场景。
+     *
+     * @param config 个人重生点配置；空值表示无个人重生点（落点取共享出生点）
+     * @param consumeCharge 是否允许消耗重生锚充能（普通死亡为 true；末地返回等保留场景为 false）
+     */
+    [[nodiscard]] RespawnLocation findRespawnPositionForConfig(std::optional<RespawnConfig> config, bool consumeCharge);
+
+    /**
      * @brief 当出生方块失效后，在共享出生点附近为玩家寻找落点
      *
      * 有天空光照的维度按 spawnRadius 规则搜索无碰撞无液体位置；否则只做高度修正。
      */
     [[nodiscard]] Vector3d findSharedSpawnPosition();
 
+private:
+    /**
+     * @brief 在指定世界的共享出生点附近搜索落点（findSharedSpawnPosition 的实现体）
+     */
+    [[nodiscard]] Vector3d _findSharedSpawnPosition(server::ServerWorld* spawnWorld);
+
+public:
     // ========== 维度传送 ==========
 
     /**

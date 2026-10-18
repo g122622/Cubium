@@ -3125,6 +3125,13 @@ void ServerWorld::onEntityDeath(Entity* entity, Entity* killer, const DamageSour
 
 void ServerWorld::onEntityRemoved(Entity* entity, RemovalReason reason)
 {
+    // 玩家实体被世界移除时（死亡消散、区块卸载、跨维度迁移、会话断连等），必须同步清理
+    // PlayerId ↔ EntityInstanceId 映射。否则该映射会一直指向已销毁的实体：实体查询返回空，
+    // 而 createPlayerEntity 又以"Player 已存在"拒绝重建，表现为玩家死亡后无法重生。
+    if (entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER && m_server != nullptr) {
+        m_server->playerEntityManager().onEntityRemoved(entity->id());
+    }
+
     // 发布 EntityRemovedEvent（实体离开世界的统一通知点，覆盖全部移除原因）。
     // 携带维度：事件总线为进程级单例，三维度共享，订阅者据此区分世界。
     event::EntityRemovedEvent removedEvent{currentTick(), entity, reason, dimension()};

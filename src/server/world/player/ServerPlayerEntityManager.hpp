@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/RemovalReason.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
 #include <cstddef>
 #include <memory>
@@ -149,17 +150,29 @@ public:
     bool registerExistingPlayerEntity(PlayerId playerId, EntityInstanceId entityId, ServerWorld& world);
 
     /**
-     * @brief 移除玩家实体
+     * @brief 移除玩家实体并清除映射
      *
-     * 此方法执行以下操作：
-     * 1. 从 EntityTracker 移除追踪
-     * 2. 从 EntityManager 移除实体
-     * 3. 清除 PlayerId ↔ EntityInstanceId 映射
+     * 实体仍在世界内时按 reason 销毁（取消追踪 + 逻辑移除 + 延迟析构），随后清除映射；
+     * 实体已不在世界内时（如死亡消散后）只清映射。对尚未登记的 PlayerId 是空操作，
+     * 可安全重复调用。
      *
      * @param playerId 玩家ID
-     * @param world 世界引用
+     * @param world 实体当前所在世界；为 nullptr 表示实体已不归任何世界管理，只清映射
+     * @param reason 销毁原因（默认玩家退出）
      */
-    void removePlayerEntity(PlayerId playerId, ServerWorld& world);
+    void removePlayerEntity(
+        PlayerId playerId, ServerWorld* world, RemovalReason reason = RemovalReason::UnloadedWithPlayer);
+
+    /**
+     * @brief 世界侧移除了一个实体时的对称清理
+     *
+     * 玩家实体可能被世界直接移除（死亡消散、区块卸载、跨维度迁移等），此时必须同步
+     * 清除 PlayerId ↔ EntityInstanceId 映射；否则 createPlayerEntity 会拒绝重建该玩家，
+     * 表现为重生永久失败。非玩家实体或未登记的实体是空操作。
+     *
+     * @param entityId 被移除实体的 EntityInstanceId
+     */
+    void onEntityRemoved(EntityInstanceId entityId);
 
     /**
      * @brief 清除所有玩家实体

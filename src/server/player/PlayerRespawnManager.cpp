@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/RemovalReason.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -136,22 +137,23 @@ bool PlayerRespawnManager::respawn(PlayerId playerId, bool keepAllData)
         // 普通死亡（keepAllData 为 false）才允许消耗重生锚充能。
         location = oldServerPlayer->findRespawnPositionAndUseSpawnBlock(!keepAllData);
     } else {
-        // 旧实体已消失：用存档中恢复的共享出生点，个人重生点信息此时不可得。
-        // TODO: 将个人重生点配置镜像到 ServerPlayerData，使实体移除后的重生请求也能使用床/锚落点。
-        ServerDimension* overworld = m_server.dimensionManager().getOverworld();
-        MC_ASSERT_RELEASE(overworld != nullptr);
-        MC_ASSERT_RELEASE(overworld->world() != nullptr);
-        ServerWorld* spawnWorld = overworld->world();
-        const RespawnData adjusted = spawnWorld->worldBorderAdjustedRespawnData();
-        location.world = spawnWorld;
-        location.position = Vector3d(static_cast<f64>(adjusted.pos().x) + 0.5,
-            static_cast<f64>(adjusted.pos().y + 1),
-            static_cast<f64>(adjusted.pos().z) + 0.5);
-        if (auto found = PlayerSpawnFinder::findSpawn(*spawnWorld, adjusted.pos()); found.has_value()) {
-            location.position = Vector3d(found->x, found->y, found->z);
-        }
-        location.yaw = adjusted.yaw;
-        location.pitch = adjusted.pitch;
+        // 旧实体已在死亡动画结束后被世界移除（玩家死亡 20 tick 后必然如此），个人重生点只能
+        // 从会话数据镜像取回——它与实体上的配置始终保持同步（ServerPlayer::onRespawnConfigChanged）。
+        //
+        // 落点计算只依赖服务端与配置本身，故借助一个不持有世界、也未加入任何实体池的临时
+        // ServerPlayer 复用同一套搜索逻辑（床/重生锚站位、缺失方块的共享出生点回退）。
+        // 临时对象的 setServer 只为让找到落点后的重生锚扣充能生效，它从不入池、从不发送包，
+        // 在作用域结束时析构。
+        // 实体注册表从主世界取（仅用于构造临时对象的 ECS 上下文），与旧实体所在维度无关。
+        ServerDimension* overworldForResolver = m_server.dimensionManager().getOverworld();
+        MC_ASSERT_RELEASE(overworldForResolver != nullptr);
+        MC_ASSERT_RELEASE(overworldForResolver->world() != nullptr);
+        ecs::EntityRegistry* ecsPtr = overworldForResolver->world()->entityRegistry();
+        MC_ASSERT_RELEASE(ecsPtr != nullptr);
+        mc::ServerPlayer resolver(INVALID_ENTITY_ID, data->username, *ecsPtr);
+        resolver.setServer(&m_server);
+        resolver.setPlayerId(playerId);
+        location = resolver.findRespawnPositionForConfig(data->respawnConfig, !keepAllData);
     }
 
     ServerWorld* targetWorld = location.world;
@@ -180,9 +182,10 @@ bool PlayerRespawnManager::respawn(PlayerId playerId, bool keepAllData)
     newPlayer->foodStats().setExhaustionLevel(0.0f);
     newPlayer->effectManager().removeAllEffects(*newPlayer);
 
-    if (location.missingRespawnBlock) {
-        newPlayer->setRespawnPosition(std::nullopt, false);
-    }
+    // 对齐 vanilla PlayerList.respawn：缺失出生方块时清除个人重生点，否则沿用旧配置
+    // （旧实体已消失的路径下，新实体不会从旧实体复制到配置，须在此显式写回）。
+    newPlayer->setRespawnPosition(
+        location.missingRespawnBlock ? std::optional<RespawnConfig>{} : data->respawnConfig, false);
 
     m_server.dimensionManager().playerJoinDimension(playerId, targetWorld->dimension());
 
@@ -198,7 +201,7 @@ bool PlayerRespawnManager::respawn(PlayerId playerId, bool keepAllData)
         playerData->restartClientLoadTimerAfterRespawn();
     }
 
-    _sendRespawnPackets(playerId, *newPlayer, *targetWorld);
+    _sendRespawnPackets(playerId, *newPlayer, *targetWorld, location.missingRespawnBlock);
 
     if (auto* serverPlayer = newPlayer->asServerPlayer(); serverPlayer != nullptr) {
         serverPlayer->resetAntiFlightBaseline(location.position.x, location.position.y, location.position.z);
@@ -227,16 +230,24 @@ Player* PlayerRespawnManager::_createRespawnedPlayer(
     // 复制本身在 createPlayerEntity 之后、旧实体销毁之前执行。
     const Player* stateSource = oldPlayer;
 
+    // 旧实体仍存活时先让其下骑并退出旁观视角（对齐 vanilla PlayerList.respawn 在移除前
+    // 对旧玩家调用的收尾逻辑）。骑乘关系随实体移除由 Entity::remove 统一断开。
     if (oldPlayer != nullptr) {
-        oldPlayer->stopRiding();
         if (auto* oldServerPlayer = oldPlayer->asServerPlayer(); oldServerPlayer != nullptr) {
             oldServerPlayer->resetCamera();
         }
-        // 先解除旧实体映射与追踪：createPlayerEntity 对已存在的 PlayerId 会拒绝创建。
-        // 状态迁移在旧实体销毁前完成，createPlayerEntity 之后立即复制。
-        m_server.playerEntityManager().removePlayerEntity(playerId, *oldWorld);
-        oldPlayer = nullptr;
     }
+
+    // 无条件解除旧实体映射：玩家死亡 20 tick 后实体已被世界移除，此时 oldPlayer 为 nullptr，
+    // 但映射仍指向那个已销毁的实体。若不在此清理，createPlayerEntity 会因"Player 已存在"
+    // 拒绝创建，重生永久失败。旧实体仍在世界内时按 Killed 销毁（死亡重生不会保留该实体）；
+    // 已不在世界内时只清映射。removePlayerEntity 对不存在的映射是空操作，可安全重复调用。
+    if (oldWorld != nullptr) {
+        m_server.playerEntityManager().removePlayerEntity(playerId, oldWorld, RemovalReason::Killed);
+    } else {
+        m_server.playerEntityManager().removePlayerEntity(playerId, nullptr);
+    }
+    oldPlayer = nullptr;
 
     // 新实体不持有连接：出站统一走服务器门面按 PlayerId 路由（远程查 PlayerManager 的
     // 连接对象，本地走集成服的本地发送钩子），避免重生流程依赖会话层。
@@ -265,15 +276,16 @@ Player* PlayerRespawnManager::_createRespawnedPlayer(
     if (stateSource != nullptr) {
         _copyPlayerState(*newPlayer, *stateSource);
     } else {
-        // 旧实体已消失：从服务器侧的玩家数据恢复可见状态。
+        // 旧实体已消失：从服务器侧的玩家数据恢复可见状态。个人重生点不在其中——它由
+        // 调用方按落点结果重新写入（缺失出生方块时清除，否则沿用旧配置）。
         newPlayer->setGameMode(playerData->gameMode);
     }
     MC_UNUSED(keepAllData);
-    MC_UNUSED(missingRespawnBlock);
     return newPlayer;
 }
 
-void PlayerRespawnManager::_sendRespawnPackets(PlayerId playerId, Player& player, ServerWorld& world)
+void PlayerRespawnManager::_sendRespawnPackets(
+    PlayerId playerId, Player& player, ServerWorld& world, bool missingRespawnBlock)
 {
     const DimensionId dimensionId = world.dimension();
     const DimensionWireInfo wire = _dimensionWireInfo(dimensionId);
@@ -303,6 +315,17 @@ void PlayerRespawnManager::_sendRespawnPackets(PlayerId playerId, Player& player
     // 坐标 + 区块加载起点。
     m_server.teleportManager().requestTeleport(
         playerId, player.position().x, player.position().y, player.position().z, player.yaw(), player.pitch());
+
+    // 缺失出生方块（床/重生锚被破坏、强制重生点失效）：客户端据此在死亡界面提示
+    // "你没有有效的重生点"，与 vanilla PlayerList.respawn 在 snapTo 之后立即发送一致。
+    if (missingRespawnBlock) {
+        mc::network::ir::play::GameEvent noRespawnBlock;
+        noRespawnBlock.event = 0; // NO_RESPAWN_BLOCK_AVAILABLE
+        noRespawnBlock.value = 0.0f;
+        m_server.sendPacketToPlayer(playerId,
+            mc::network::ir::IrPacket{
+                mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{noRespawnBlock}});
+    }
 
     mc::network::ir::play::GameEvent loadStart;
     loadStart.event = 13; // LEVEL_CHUNKS_LOAD_START
