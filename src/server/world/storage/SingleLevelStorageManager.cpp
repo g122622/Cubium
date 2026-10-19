@@ -634,87 +634,86 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
 
     // 注册进行中保存：后续对同一区块的 loadChunkAsync 在读盘前等待此 promise，
     // 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
-    auto savePromise = _registerPendingChunkSave(x, z, dimension);
+    PendingChunkSave pendingSave = _registerPendingChunkSave(x, z, dimension);
 
     // stage2（ServerIO）：把整列快照聚合成**一个** WriteBatch 落盘（ZSTD 压缩在 stage1 已完成）。
     // 仅触及快照与 SectionManager，不触及 ChunkData，与主线程 chunk 修改无数据竞争。
     auto& sectionManager = _sectionManager(dimension);
-    auto executor =
-        [sectionSnapshot = std::move(sectionSnapshot), &sectionManager, x, z, cb = std::move(callback), savePromise](
-            const std::atomic<bool>& abortSig) -> bool {
-        // savePromise 在任务结束（含取消）时 set_value，确保等待此保存的加载能继续；
-        // set_value 后 shared_future 变就绪，loadChunkAsync 的 _waitPendingChunkSave 返回。
-        auto fulfill = [&] {
-            try {
-                savePromise->set_value();
-            }
-            catch (...) {
-                // 重复 set_value 抛异常（不应发生），忽略。
-            }
-        };
-
+    auto executor = [sectionSnapshot = std::move(sectionSnapshot), &sectionManager, x, z](
+                        const std::atomic<bool>& abortSig) -> bool {
         if (abortSig.load(std::memory_order::acquire)) {
-            fulfill();
-            if (cb) {
-                cb(ChunkPos(x, z), Error(ErrorCode::InvalidState, "Save chunk task cancelled"));
-            }
             return false;
         }
-
-        auto result = sectionManager.saveSectionsBatch(sectionSnapshot);
-        Result<void> finalResult = Result<void>::ok();
-        if (result.failed()) {
-            finalResult = result.error();
-        }
-
-        fulfill();
-        if (cb) {
-            cb(ChunkPos(x, z), std::move(finalResult));
-        }
-        return true;
+        return sectionManager.saveSectionsBatch(sectionSnapshot).success();
     };
 
     SectionKey descKey{x, z, 0, dimension};
     auto task = StorageTask::createSaveTask(descKey, false, std::move(executor));
-    m_taskManager->submit(std::move(task), priority, nullptr, std::make_shared<std::atomic<bool>>(false));
+    // 保存完成回调（ServerIO 线程）负责唤醒等待此区块读盘的加载任务并通知调用方。
+    // 它在任务结束后调用（成功/失败/取消都走这里），保证加载不会因等待而永久挂起。
+    util::TaskCallback onSaveDone = [this, pendingSave, x, z, cb = std::move(callback)](
+                                        bool success, util::ITask* /*task*/) {
+        _completePendingChunkSave(pendingSave);
+        if (cb) {
+            cb(ChunkPos(x, z),
+                success ? Result<void>::ok() : Error(ErrorCode::InvalidState, "Save chunk failed or cancelled"));
+        }
+    };
+    const u64 taskId = m_taskManager->submit(std::move(task), priority, std::move(onSaveDone), nullptr);
+    if (taskId == 0) {
+        // 池不接受任务时不会执行回调：这里不会再有回调，直接唤醒等待者并报告失败
+        _abandonPendingChunkSave(pendingSave);
+        if (callback) {
+            callback(ChunkPos(x, z), Error(ErrorCode::InvalidState, "Save chunk task rejected"));
+        }
+    }
 }
 
-std::shared_ptr<std::promise<void>> SingleLevelStorageManager::_registerPendingChunkSave(
-    ChunkCoord x, ChunkCoord z, DimensionId dimension)
+PendingChunkSave SingleLevelStorageManager::_registerPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
 {
-    auto promise = std::make_shared<std::promise<void>>();
-    std::shared_future<void> future = promise->get_future().share();
+    auto owner = std::make_shared<const PendingChunkSave::Owner>(PendingChunkSave::Owner{x, z, dimension});
     SectionKey descKey{x, z, 0, dimension};
     {
         std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
         // 覆盖旧条目：ServerChunkManager 保证同一区块同一时刻仅有一个进行中卸载保存
         // （unloadChunkSync stage1 检查 m_unloadSaveInProgress，stage3 才完成移除）。
-        m_pendingChunkSaves[descKey] = future;
+        auto& entry = m_pendingChunkSaves[descKey];
+        entry.save = owner;
+        entry.waiters.clear();
     }
-    return promise;
+    return PendingChunkSave{std::move(owner)};
 }
 
-void SingleLevelStorageManager::_waitPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
+void SingleLevelStorageManager::_completePendingChunkSave(PendingChunkSave save)
 {
-    std::shared_future<void> future;
+    std::vector<std::unique_ptr<StorageTask>> waiters;
     {
-        SectionKey descKey{x, z, 0, dimension};
         std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
+        SectionKey descKey{save.owner->x, save.owner->z, 0, save.owner->dimension};
         auto it = m_pendingChunkSaves.find(descKey);
         if (it == m_pendingChunkSaves.end()) {
-            return; // 无进行中保存，直接读盘
+            return;
         }
-        future = it->second; // 拷贝 shared_future（引用计数 +1），锁外等待
+        // 该区块可能已被新的保存覆盖：只有仍是本次保存时才移走等待者，
+        // 否则由新的保存完成时负责唤醒
+        if (!(it->second.save == save.owner)) {
+            return;
+        }
+        waiters = std::move(it->second.waiters);
+        m_pendingChunkSaves.erase(it);
     }
-    // 在 ServerIO 线程等待保存完成，不阻塞主线程。
-    // 保存任务的 savePromise->set_value() 使 future 就绪；future 拷贝脱离 map，
-    // 即使保存完成覆盖/移除 map 条目，本 future 仍可安全 wait（promise 共享状态存活至所有 future 释放）。
-    //
-    // TODO: 保存任务与加载任务共用同一个 ServerIO 池，本处在池线程内阻塞等待同池任务。当池内全部
-    // 线程都停在等待、而它们所等的保存任务还排在同池队列中时，会出现线程饥饿死锁（池线程数越少、
-    // 卸载后立刻重新加载同一区块的频率越高越容易触发）。应改为回调驱动：把"保存完成后再读盘"
-    // 串成延续任务，而不是在池线程内阻塞等待。
-    future.wait();
+
+    // 等待者重新投递到 ServerIO 池：保存已落盘，此时的读盘任务一定读到新数据
+    for (auto& waiter : waiters) {
+        m_taskManager->submit(std::move(waiter), util::TaskPriority::Normal, nullptr, nullptr);
+    }
+    MC_ASSERT_RELEASE(waiters.empty());
+}
+
+void SingleLevelStorageManager::_abandonPendingChunkSave(PendingChunkSave save)
+{
+    // 保存任务从未启动（池未启动/队列被清空）：唤醒等待者，避免加载永久挂起
+    _completePendingChunkSave(std::move(save));
 }
 
 void SingleLevelStorageManager::_removePendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
@@ -957,17 +956,42 @@ void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
             checkComplete();
             return false;
         }
-        // 等待该区块进行中的卸载保存完成，确保读到保存后的新数据（对齐 Moonrise
-        // GenericDataLoadTask 等待 chunkDataUnload）。在 ServerIO 线程等待，不阻塞主线程。
-        _waitPendingChunkSave(x, z, dimension);
-        auto secResult = state->sectionManager->loadSectionsSync(keys);
+        // 若该区块有进行中的卸载保存，把"读盘"阶段作为等待者登记，由保存完成回调重新投递，
+        // 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 chunkDataUnload）。
+        // 不能在池线程里阻塞等待保存：保存任务也在同一个池里排队，全部线程被等待占满时
+        // 保存任务永远轮不到执行，形成线程饥饿死锁。
+        auto runLoadSections = [state, keys = std::move(keys), checkComplete](const std::atomic<bool>& loadAbortSig) {
+            if (loadAbortSig.load(std::memory_order::acquire)) {
+                {
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    state->sectionResult = Error(ErrorCode::InvalidState, "Load sections cancelled");
+                    state->sectionReady = true;
+                }
+                checkComplete();
+                return false;
+            }
+            auto secResult = state->sectionManager->loadSectionsSync(keys);
+            {
+                std::lock_guard<std::mutex> lock(state->mutex);
+                state->sectionResult = std::move(secResult);
+                state->sectionReady = true;
+            }
+            checkComplete();
+            return true;
+        };
+
+        SectionKey sectionDescKey{x, z, 0, dimension};
         {
-            std::lock_guard<std::mutex> lock(state->mutex);
-            state->sectionResult = std::move(secResult);
-            state->sectionReady = true;
+            std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
+            auto it = m_pendingChunkSaves.find(sectionDescKey);
+            if (it != m_pendingChunkSaves.end() && it->second.save != nullptr) {
+                it->second.waiters.push_back(StorageTask::createLoadTask(sectionDescKey, std::move(runLoadSections)));
+                // 走到这里时 m_taskManager 必然存在（路径 A 由它提交），等待者由保存完成回调重新投递
+                return true;
+            }
         }
-        checkComplete();
-        return true;
+        // 无进行中保存：直接在本次池任务里读盘
+        return runLoadSections(abortSig);
     };
     SectionKey sectionDescKey{x, z, 0, dimension};
     auto sectionTask = StorageTask::createLoadTask(sectionDescKey, std::move(sectionExecutor));
