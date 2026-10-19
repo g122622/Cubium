@@ -511,6 +511,7 @@ add_executable(mc_tests
     entity/MobEntityAggressiveFlagTest.cpp
     # MobEntity dropPreservedEquipment 测试（装备掉落保留逻辑、绑定诅咒、保留/非保留装备处理）
     common/entity/core/DropPreservedEquipmentTest.cpp
+    common/entity/core/EquipItemIfPossibleTest.cpp
     # Entity::getLootTableId() 及其子类覆写测试
     common/entity/core/GetLootTableIdTest.cpp
     # 战斗追踪器测试
