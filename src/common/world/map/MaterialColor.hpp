@@ -32,7 +32,7 @@ namespace mc::world::map {
 /**
  * @brief 地图颜色ID枚举
  *
- * 定义地图渲染使用的颜色索引，与Minecraft 1.16.5的MaterialColor对应。
+ * 与 vanilla MapColor 的 id 一一对应（0~61），新增颜色只能追加在末尾以保持线上编码稳定。
  * 每种颜色有4个阴影级别(0-3)，最终颜色编码为 colorIndex * 4 + shadeIndex。
  */
 enum class MaterialColorId : u8 {
@@ -95,8 +95,11 @@ enum class MaterialColorId : u8 {
     WARPED_STEM = 56,
     WARPED_HYPHAE = 57,
     WARPED_WART = 58,
+    DEEPSLATE = 59,
+    RAW_IRON = 60,
+    GLOW_LICHEN = 61,
 
-    COUNT = 59
+    COUNT = 62
 };
 
 /**

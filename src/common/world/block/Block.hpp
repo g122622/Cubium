@@ -702,6 +702,13 @@ public:
      * @return 地图颜色ID
      *
      * 参考: net.minecraft.block.Block#getDefaultMaterialColor
+     *
+     * TODO(map-color): 项目当前没有任何方块注册点调用 BlockProperties::mapColor()，且
+     *   Material::materialColor 恒为 0（AIR），因此 getMapColor 对所有方块都返回 AIR，
+     *   填充地图不会渲染地表。align: 需按 vanilla 1.21.11 逐个方块补 mapColor（数据可从
+     *   net/minecraft/world/level/block/Blocks.java 的字节码注释中提取
+     *   `getstatic .../material/MapColor.XXX`），并为 RotatedPillarBlock（按轴）、
+     *   LeavesBlock（PLANT）等实现状态相关颜色，同时对草的生物群系染色走 getMapColor(state, world, pos)。
      */
     [[nodiscard]] virtual world::map::MaterialColorId getMapColor(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
