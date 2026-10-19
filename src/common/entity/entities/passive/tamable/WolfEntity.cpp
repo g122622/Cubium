@@ -63,7 +63,6 @@
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/DyeItemHelper.hpp"
-#include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -190,69 +189,6 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const
     return isBreedingItem(itemStack);
 }
 
-namespace {
-/// 染料颜色对应的 RGB 值
-/// 参考: net.minecraft.world.item.DyeItem 中各染料的 textColor
-[[nodiscard]] u32 dyeColorToRGB(DyeColor color)
-{
-    switch (color) {
-        case DyeColor::White:
-            return 0xFFFFFF;
-        case DyeColor::Orange:
-            return 0xD87F33;
-        case DyeColor::Magenta:
-            return 0xB24CD8;
-        case DyeColor::LightBlue:
-            return 0x6699D8;
-        case DyeColor::Yellow:
-            return 0xE5E533;
-        case DyeColor::Lime:
-            return 0x7FCC19;
-        case DyeColor::Pink:
-            return 0xF27FA5;
-        case DyeColor::Gray:
-            return 0x4C4C4C;
-        case DyeColor::LightGray:
-            return 0x999999;
-        case DyeColor::Cyan:
-            return 0x4C7F99;
-        case DyeColor::Purple:
-            return 0x7F3FB2;
-        case DyeColor::Blue:
-            return 0x334CB2;
-        case DyeColor::Brown:
-            return 0x664C33;
-        case DyeColor::Green:
-            return 0x667F33;
-        case DyeColor::Red:
-            return 0x993333;
-        case DyeColor::Black:
-            return 0x191919;
-        default:
-            return 0xFFFFFF;
-    }
-}
-
-/// 混合两种颜色（取各 RGB 分量的平均值）
-/// 参考: ArmorDyeRecipe::_mixColors
-[[nodiscard]] u32 mixArmorColors(u32 color1, u32 color2)
-{
-    i32 r1 = static_cast<i32>((color1 >> 16) & 0xFF);
-    i32 g1 = static_cast<i32>((color1 >> 8) & 0xFF);
-    i32 b1 = static_cast<i32>(color1 & 0xFF);
-
-    i32 r2 = static_cast<i32>((color2 >> 16) & 0xFF);
-    i32 g2 = static_cast<i32>((color2 >> 8) & 0xFF);
-    i32 b2 = static_cast<i32>(color2 & 0xFF);
-
-    i32 r = (r1 + r2) / 2;
-    i32 g = (g1 + g2) / 2;
-    i32 b = (b1 + b2) / 2;
-
-    return (0xFF << 24) | (static_cast<u32>(r) << 16) | (static_cast<u32>(g) << 8) | static_cast<u32>(b);
-}
-} // namespace
-
 // ========== 交互 ==========
 
 ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
@@ -304,12 +240,14 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
         if (isSitting() && isWearingBodyArmor() && isOwner(player.uuidBytes())) {
             ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
             if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR && bodyArmor.isDamaged()) {
-                // 检查手持物品是否为犰狳鳞甲（或属于 REPAIRS_WOLF_ARMOR 标签）
-                if (item != nullptr && item::tag::ItemTags::REPAIRS_WOLF_ARMOR().contains(itemStack)) {
-                    // 消耗1个修复物品（非创造模式）
-                    if (!player.abilities().creativeMode) {
-                        itemStack.shrink(1);
-                    }
+                // 原版以狼铠物品自身的 isValidRepairItem 判定修复材料（数据驱动 repair_cost/材料），
+                // 全部狼铠共享 REPAIRS_WOLF_ARMOR 标签成员作为兜底。
+                const bool validRepair = item != nullptr &&
+                    (bodyArmor.getItem()->getIsRepairable(bodyArmor, itemStack) ||
+                        item::tag::ItemTags::REPAIRS_WOLF_ARMOR().contains(itemStack));
+                if (validRepair) {
+                    // 原版无条件消耗一个修复物品（创造模式同样消耗）
+                    itemStack.shrink(1);
 
                     // 播放修复音效
                     playSound(SoundEvents::ENTITY_WOLF_ARMOR_REPAIR, 1.0f, 1.0f);
@@ -325,36 +263,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
             }
         }
 
-        // 优先级4: 狼铠染色（染料 + 已装备可染色狼铠 + 主人）
-        //
-        // TODO: 此分支是凭空添加的交互，vanilla 1.21.11 并不存在——Wolf.mobInteract 的
-        //   染料分支只改项圈颜色（见下方优先级5），狼铠染色在 vanilla 中仅经合成台
-        //   ArmorDyeRecipe（ItemTags.DYEABLE 含 wolf_armor）+ 炼药锅洗色两条路径完成，
-        //   没有"手持染料右键狼"这一交互。此外本分支的混色用简单 RGB 平均值，与 vanilla
-        //   DyedItemColor.applyDyes 的带 max 缩放的加权平均也不同。收敛方向：删除本分支，
-        //   使染料交互与 vanilla 一致（仅项圈），狼铠染色交由合成台路径承担。
-        if (item != nullptr && isWearingBodyArmor() && isOwner(player.uuidBytes())) {
-            ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
-            if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR) {
-                auto dyeColor = _getDyeColorFromItem(item);
-                if (dyeColor.has_value()) {
-                    auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(bodyArmor.getItem());
-                    if (dyeableArmor != nullptr) {
-                        // 合成新颜色：当前颜色与染料颜色混合
-                        u32 currentColor = dyeableArmor->getColor(bodyArmor);
-                        u32 dyeRGB = dyeColorToRGB(dyeColor.value());
-                        u32 newColor = mixArmorColors(currentColor, dyeRGB);
-                        item::items::DyeableArmorItem::setColor(bodyArmor, newColor);
-                        if (!player.abilities().creativeMode) {
-                            itemStack.shrink(1);
-                        }
-                        return ActionResultType::Success;
-                    }
-                }
-            }
-        }
-
-        // 优先级5: 颈圈染色（染料 + 主人）
+        // 优先级4: 颈圈染色（染料 + 主人）
         auto dyeColor = _getDyeColorFromItem(item);
         if (dyeColor.has_value() && isOwner(player.uuidBytes())) {
             if (dyeColor.value() != getCollarColor()) {
@@ -366,7 +275,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
             return ActionResultType::Success;
         }
 
-        // 优先级6: 繁殖/成长（食物 + 满血）
+        // 优先级5: 繁殖/成长（食物 + 满血）
         // 对应 MC 原版 Animal.mobInteract() 的逻辑
         if (isBreedingItem(itemStack)) {
             if (isChild()) {
