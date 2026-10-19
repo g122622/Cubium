@@ -75,6 +75,13 @@ std::unique_ptr<Entity> AxolotlEntity::create(IWorld* /*world*/, ecs::EntityRegi
     return std::make_unique<AxolotlEntity>(0, registry);
 }
 
+void AxolotlEntity::rehydrate()
+{
+    // 对齐 vanilla Axolotl.rehydrate：增加 1800 tick 空气，不超过最大空气储备
+    constexpr i32 REHYDRATE_AIR_GAIN = 1800;
+    setAir(std::min(air() + REHYDRATE_AIR_GAIN, maxAir()));
+}
+
 void AxolotlEntity::randomizeVariant()
 {
     math::IRandom& rng = getRandom();

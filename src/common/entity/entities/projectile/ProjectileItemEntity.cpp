@@ -38,6 +38,7 @@
 #include "common/entity/entities/monster/nether/BlazeEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/entity/entities/passive/basic/ChickenEntity.hpp"
+#include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
@@ -729,8 +730,13 @@ void PotionEntity::_onHitAsWater()
         }
     }
 
-    // TODO: 美西螈 rehydrate（Axolotl.rehydrate）未实现，待 AxolotlEntity 补该方法后在此接入
-    // （vanilla onHitAsWater:103-105 遍历范围内 Axolotl 调 rehydrate）。
+    // 美西螈补充空气：vanilla onHitAsWater:103-105 对 aabb 内（不额外做距离判定）的
+    // 每只 Axolotl 调用 rehydrate。
+    for (Entity* entity : nearby) {
+        if (auto* axolotl = dynamic_cast<AxolotlEntity*>(entity)) {
+            axolotl->rehydrate();
+        }
+    }
 }
 
 // ============================================================================

@@ -336,6 +336,23 @@ TEST_F(FishBucketItemTest, SaveToBucketTag_AbstractFish_WritesDefaultData)
     EXPECT_EQ((*data)["Health"].get<f32>(), 2.5f);
 }
 
+TEST_F(FishBucketItemTest, AxolotlRehydrate_AddsAirCappedAtMax)
+{
+    // 对齐 vanilla Axolotl.rehydrate：空气 +1800，封顶于 maxAir
+    AxolotlEntity axolotl(EntityInstanceId(12), mc::test::testEcsRegistry());
+    axolotl.setAir(0);
+    axolotl.rehydrate();
+    EXPECT_EQ(axolotl.air(), 1800);
+
+    axolotl.setAir(axolotl.maxAir() - 100);
+    axolotl.rehydrate();
+    EXPECT_EQ(axolotl.air(), axolotl.maxAir());
+
+    axolotl.setAir(500);
+    axolotl.rehydrate();
+    EXPECT_EQ(axolotl.air(), 2300);
+}
+
 TEST_F(FishBucketItemTest, AxolotlSaveLoad_RoundTripsVariantAndAge)
 {
     // 美西螈桶须持久化 Variant/Age（对齐 vanilla Axolotl.saveToBucketTag/loadFromBucketTag）。
