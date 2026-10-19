@@ -74,45 +74,50 @@ LadderBlock::LadderBlock(const BlockProperties& properties)
 
 BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 根据点击的面确定朝向
+    // 层级关系：FACING 指向梯子所倚靠的墙体。原版从 getNearestLookingDirections() 中取水平方向 d，
+    // 令 FACING = d.opposite，并以"canSurvive"判定附着。Cubium 的 placementPos 恒为点击面的相邻格，
+    // 因此点击面的 Opposite 恰等于放置位置相对点击方块指向，即所需 FACING——直接由点击面推导即可；
+    // 点击上/下面时视线最近方向为 Down（非水平），原版会继续尝试其余方向，此处按语义退化为
+    // 玩家水平朝向（放置时 BlockItem::canPlace → isValidPosition 再行校验存活）。
+    // 与原版仍有的偏差：可替换方块上的放置原版按视线方向而非点击面定朝向；
+    // 视线方向与点击面不一致时，原版选的朝向可能不同。
+    // TODO: 待 Block::getStateForPlacement 支持返回"不可放置"（如 std::optional<BlockState>）
+    //   后，改为逐个尝试 context.getNearestLookingDirections() 中的水平方向 + isValidPosition，
+    //   完全对齐原版的遍历语义。
     Direction facing = context.getClickedFace();
-
-    // 只能放在侧面上
     if (facing == Direction::Down || facing == Direction::Up) {
-        // 如果点击的是上下面，使用玩家的朝向
+        // 点击上下面时退化为玩家水平朝向
         facing = context.horizontalDirection();
     }
+    // FACING 指向梯子所倚靠的墙体，即放置位置相对点击方块的方向（点击面的 Opposite）
+    facing = Directions::opposite(facing);
 
-    // 确保是水平方向
-    if (facing == Direction::Down || facing == Direction::Up) {
-        facing = Direction::North;
-    }
-
-    // 检查是否含水
+    // 检查是否含水（等价原版 getFluidState(pos).getType() == Fluids.WATER）
     const IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
-    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+    const BlockPos pos = context.placementPos();
+    const bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
-    // 梯子朝向是附着面的反方向
     return defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing))
+        .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool LadderBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 梯子需要附着在固体方块的侧面
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    // 获取梯子背面的方块位置（朝向的反方向）
-    BlockPos attachPos = pos.offset(Directions::opposite(facing));
+    // 梯子需要附着在朝向反方向方块的相应面上，且该面为实体面（原版 canSurvive → canAttachTo
+    //   → BlockState.isFaceSturdy(direction, SupportType.FULL)，direction 为朝向梯子的面）。
+    // TODO: 待 VoxelShape::getFaceShape 修复面投影返回错误形状（完整方块取面后仍被判为投影不完整，
+    //   使 SupportType 三档判定对完整方块一致返回 false）后，改用 isFaceSturdy(..., SupportType::Full)，
+    //   以精确区分"面完整但不可遮挡"（如玻璃）与"面不完整"（如台阶、雪层）的方块。
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const BlockPos attachPos = pos.offset(facing);
     const BlockState* attachState = world.getBlockState(attachPos);
 
     if (attachState == nullptr) {
         return false;
     }
 
-    // 检查背面方块的朝向梯子的面是否为实体面
-    return attachState->isSolidSide(world, attachPos, facing);
+    return attachState->isSolidSide(world, attachPos, Directions::opposite(facing));
 }
 
 BlockState LadderBlock::updatePostPlacement(const BlockState& state,
@@ -130,16 +135,10 @@ BlockState LadderBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 如果梯子背面方块被移除，则移除梯子
-    Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == Directions::opposite(ladderFacing)) {
-        // 背面方块发生变化，检查是否仍然可以附着
-        BlockPos attachPos = currentPos.offset(Directions::opposite(ladderFacing));
-        const BlockState* attachState = world.getBlockState(attachPos);
-
-        if (attachState == nullptr || !attachState->isSolidSide(world, attachPos, ladderFacing)) {
-            return VanillaBlocks::AIR->defaultState();
-        }
+    // 仅当变化方向为梯子的 FACING（即所倚靠的方块本身发生变化）时重新检查存活
+    const Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    if (facing == ladderFacing && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+        return VanillaBlocks::AIR->defaultState();
     }
 
     return state;

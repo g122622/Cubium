@@ -649,6 +649,8 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
+    # LadderBlock 梯子方块测试（朝向、附着支撑、邻居更新）
+    common/world/block/blocks/decorative/LadderBlockTest.cpp
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     # CampfireBlock 营火方块测试
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
