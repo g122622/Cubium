@@ -155,7 +155,7 @@ public:
      * 此前 Cubium BeeEntity 未 override attackEntityAsMob，MeleeAttackGoal（BeeStingGoal 基类）
      * 委托基类仅造成 2.0 纯伤害——蛰击不施加中毒、不置 hasStung（hasStung 由 BeeStingGoal
      * 单独置位，但中毒与 stopBeingAngry 缺失，对齐缺陷）。本次补全。
-     * 注：Java 另有 setStingerCount(+1) 增加目标蛰刺计数，Cubium 无 stingerCount 机制（留 TODO）。
+     * 6. 目标蛰刺计数 +1（LivingEntity::setStingerCountInEntity），蜂针随后自动脱落。
      *
      * @param target 被蛰击的 LivingEntity
      * @return 是否命中（父类 hurt 成功）

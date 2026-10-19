@@ -663,6 +663,27 @@ TEST_F(BeeEntityTest, StungState_CanSetAndGet)
     EXPECT_FALSE(bee.hasStung());
 }
 
+TEST_F(BeeEntityTest, Sting_IncrementsTargetStingerCount)
+{
+    // 对齐 Java Bee.doHurtTarget：命中后目标 setStingerCount(+1)，蜂针随后自动脱落
+    BeeEntity bee(EntityInstanceId(1), mc::test::testEcsRegistry());
+    bee.setPosition(0.0f, 64.0f, 0.0f);
+
+    LivingEntity target(EntityInstanceId(2), nullptr, mc::test::testEcsRegistry());
+    target.setPosition(0.5f, 64.0f, 0.0f);
+    target.setHealth(20.0f);
+
+    ASSERT_EQ(target.getStingerCount(), 0);
+    ASSERT_TRUE(bee.attackEntityAsMob(target));
+    EXPECT_EQ(target.getStingerCount(), 1);
+
+    // 连续蛰击须绕过受伤无敌帧（同额伤害在无敌帧内被吞），手动清零计时器模拟间隔超过 10 tick
+    target.setHurtResistantTime(0);
+    ASSERT_TRUE(bee.attackEntityAsMob(target));
+    EXPECT_EQ(target.getStingerCount(), 2);
+    EXPECT_TRUE(bee.hasStung());
+}
+
 // ============================================================================
 // 飞行状态测试
 // ============================================================================
