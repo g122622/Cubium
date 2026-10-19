@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <memory>
+#include <optional>
 #include <thread>
 #include <gtest/gtest.h>
 
@@ -677,6 +679,55 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveOperationsAreSilentAndDoNotPer
     ASSERT_TRUE(loadResult.success());
     EXPECT_FALSE(loadResult.value().has_value());
     reopened.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, SaveChunkAsyncCallbackReportsUnknownPositionForNullChunk)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    // 空区块没有真实坐标：回调必须回传空坐标而不是伪造的 (0, 0)
+    bool called = false;
+    std::optional<ChunkPos> reportedPos = ChunkPos(1, 1);
+    storage.saveChunkAsyncCallback(nullptr, 0, [&](std::optional<ChunkPos> pos, Result<void> saveResult) {
+        called = true;
+        reportedPos = pos;
+        ASSERT_TRUE(saveResult.failed());
+        EXPECT_EQ(saveResult.error().code(), ErrorCode::InvalidArgument);
+    });
+
+    EXPECT_TRUE(called);
+    EXPECT_FALSE(reportedPos.has_value());
+    storage.close();
+}
+
+TEST_F(SingleLevelStorageManagerTest, SaveChunkAsyncCallbackReportsChunkPosition)
+{
+    SingleLevelStorageManager storage;
+    SingleLevelStorageConfig config;
+    auto result = storage.open(testDir, config);
+    ASSERT_TRUE(result.success()) << result.error().message();
+
+    auto chunk = std::make_shared<ChunkData>(3, -4);
+    bool called = false;
+    std::optional<ChunkPos> reportedPos;
+    storage.saveChunkAsyncCallback(chunk, 0, [&](std::optional<ChunkPos> pos, Result<void> saveResult) {
+        called = true;
+        reportedPos = pos;
+        EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
+    });
+
+    EXPECT_TRUE(called);
+    if (!reportedPos.has_value()) {
+        ADD_FAILURE() << "save callback did not report a position";
+        storage.close();
+        return;
+    }
+    EXPECT_EQ(reportedPos->x, 3);
+    EXPECT_EQ(reportedPos->z, -4);
+    storage.close();
 }
 
 TEST_F(SingleLevelStorageManagerTest, CloseDoesNotPersistLevelDataWithoutExplicitSave)

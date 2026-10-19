@@ -548,16 +548,17 @@ void SingleLevelStorageManager::loadChunkAsyncCallback(ChunkCoord x,
         priority);
 }
 
+// chunk 按值持有：调用方以 move 交出共享所有权，传入后本函数与 ServerIO 任务共同持有一份
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const ChunkData> chunk,
     DimensionId dimension,
-    std::function<void(ChunkCoord, ChunkCoord, Result<void>)> callback,
+    std::function<void(std::optional<ChunkPos>, Result<void>)> callback,
     util::TaskPriority priority)
 {
     if (!chunk) {
         if (callback) {
-            // TODO: 空区块入参没有真实坐标，此处回传 (0, 0) 会让调用方把失败记为"坐标 (0,0) 的保存失败"。
-            // 应改为让 callback 携带可选坐标（或让调用方在提交前自行拒绝空区块）。
-            callback(0, 0, Error(ErrorCode::InvalidArgument, "saveChunkAsyncCallback: null chunk"));
+            // 空区块没有真实坐标，回传空 optional，避免调用方把失败误记为坐标 (0, 0)
+            callback(std::nullopt, Error(ErrorCode::InvalidArgument, "saveChunkAsyncCallback: null chunk"));
         }
         return;
     }
@@ -571,7 +572,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
         Result<void> result =
             (!isOpen()) ? Result<void>(Error(ErrorCode::InvalidState, "Storage not open")) : Result<void>::ok();
         if (callback) {
-            callback(x, z, std::move(result));
+            callback(ChunkPos(x, z), std::move(result));
         }
         return;
     }
@@ -580,7 +581,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
     if (!m_taskManager) {
         auto result = saveChunk(*chunk, dimension);
         if (callback) {
-            callback(x, z, std::move(result));
+            callback(ChunkPos(x, z), std::move(result));
         }
         return;
     }
@@ -603,7 +604,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
         auto bytesResult = SectionCodec::serializeFromChunkSection(*chunk, sectionY, *section, key, biomes);
         if (bytesResult.failed()) {
             if (callback) {
-                callback(x, z, bytesResult.error());
+                callback(ChunkPos(x, z), bytesResult.error());
             }
             return;
         }
@@ -626,7 +627,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
     }
     if (blockEntityResult.failed()) {
         if (callback) {
-            callback(x, z, blockEntityResult.error());
+            callback(ChunkPos(x, z), blockEntityResult.error());
         }
         return;
     }
@@ -655,7 +656,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
         if (abortSig.load(std::memory_order::acquire)) {
             fulfill();
             if (cb) {
-                cb(x, z, Error(ErrorCode::InvalidState, "Save chunk task cancelled"));
+                cb(ChunkPos(x, z), Error(ErrorCode::InvalidState, "Save chunk task cancelled"));
             }
             return false;
         }
@@ -668,7 +669,7 @@ void SingleLevelStorageManager::saveChunkAsyncCallback(std::shared_ptr<const Chu
 
         fulfill();
         if (cb) {
-            cb(x, z, std::move(finalResult));
+            cb(ChunkPos(x, z), std::move(finalResult));
         }
         return true;
     };

@@ -258,12 +258,14 @@ public:
      *
      * @param chunk 区块数据（共享所有权，保存期间不可变）
      * @param dimension 目标维度
-     * @param callback 完成回调（ServerIO 线程；无池降级时为调用线程）
+     * @param callback 完成回调（ServerIO 线程；无池降级时为调用线程）。参数为
+     *        保存失败区块的坐标与结果；入参为空区块时没有可用的真实坐标，
+     *        第一个参数为空 optional，调用方应据此区分"坐标未知的失败"
      * @param priority 任务优先级，传播到 ServerIO 线程池任务
      */
     void saveChunkAsyncCallback(std::shared_ptr<const ChunkData> chunk,
         DimensionId dimension,
-        std::function<void(ChunkCoord, ChunkCoord, Result<void>)> callback,
+        std::function<void(std::optional<ChunkPos>, Result<void>)> callback,
         util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**

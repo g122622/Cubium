@@ -1304,13 +1304,21 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
             m_world->storage().saveChunkAsyncCallback(std::move(constChunk),
                 dimension,
                 [self, x, z, dimension, holderCopy = std::move(holderCopy)](
-                    ChunkCoord /*cbX*/, ChunkCoord /*cbZ*/, mc::Result<void> result) {
+                    std::optional<ChunkPos> failedPos, const mc::Result<void>& result) {
                     // shutdown 后不再入队：ServerChunkManager 可能已析构或正在析构。
                     if (self->m_shuttingDown.load(std::memory_order::acquire)) {
                         return;
                     }
                     if (result.failed()) {
-                        spdlog::error("Async save chunk failed ({}, {}): {}", x, z, result.error().message());
+                        // 正常路径下坐标可用；仅空区块入参等异常场景没有坐标
+                        if (failedPos.has_value()) {
+                            spdlog::error("Async save chunk failed ({}, {}): {}",
+                                failedPos->x,
+                                failedPos->z,
+                                result.error().message());
+                        } else {
+                            spdlog::error("Async save chunk failed (unknown position): {}", result.error().message());
+                        }
                     }
                     PendingUnloadFinish item;
                     item.x = x;
