@@ -74,32 +74,48 @@ LadderBlock::LadderBlock(const BlockProperties& properties)
 
 BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 层级关系：FACING 指向梯子所倚靠的墙体。原版从 getNearestLookingDirections() 中取水平方向 d，
-    // 令 FACING = d.opposite，并以"canSurvive"判定附着。Cubium 的 placementPos 恒为点击面的相邻格，
-    // 因此点击面的 Opposite 恰等于放置位置相对点击方块指向，即所需 FACING——直接由点击面推导即可；
-    // 点击上/下面时视线最近方向为 Down（非水平），原版会继续尝试其余方向，此处按语义退化为
-    // 玩家水平朝向（放置时 BlockItem::canPlace → isValidPosition 再行校验存活）。
-    // 与原版仍有的偏差：可替换方块上的放置原版按视线方向而非点击面定朝向；
-    // 视线方向与点击面不一致时，原版选的朝向可能不同。
-    // TODO: 待 Block::getStateForPlacement 支持返回"不可放置"（如 std::optional<BlockState>）
-    //   后，改为逐个尝试 context.getNearestLookingDirections() 中的水平方向 + isValidPosition，
-    //   完全对齐原版的遍历语义。
-    Direction facing = context.getClickedFace();
-    if (facing == Direction::Down || facing == Direction::Up) {
-        // 点击上下面时退化为玩家水平朝向
-        facing = context.horizontalDirection();
-    }
-    // FACING 指向梯子所倚靠的墙体，即放置位置相对点击方块的方向（点击面的 Opposite）
-    facing = Directions::opposite(facing);
-
-    // 检查是否含水（等价原版 getFluidState(pos).getType() == Fluids.WATER）
+    // 遍历 context.getNearestLookingDirections() 中"从放置位置出发、经该方向可达点击方块"的方向：
+    //   - 水平方向：FACING = 其 Opposite（倚靠触发放置的那个面）；
+    //   - 竖直方向与指向放置位置自身的方向：取玩家水平朝向对应的水平面
+    //     （原版此处用 FACING = direction.getOpposite() = Up/Down 构造非法状态、canSurvive 必假，等价跳过）。
+    // 首个能存活的候选即为结果。关系为"放置位置相对点击方块的位移"，故用点击位置而非
+    // 被替换的点击方块本身（后者在最高台阶、草丛等场景与放置位置重合，虽仍可作为方向锚点）。
+    // TODO: 当候选全部不能存活时，原版返回 null 放弃放置；本项目 Block::getStateForPlacement
+    //   返回 BlockState 值，只能回退默认状态，由 BlockItem::canPlace 拒绝放置（结果一致，
+    //   但放置判定路径与方块侧不一致）。待该接口可表达"不可放置"后对齐。
     const IWorld& world = context.getWorld();
     const BlockPos pos = context.placementPos();
-    const bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
 
-    return defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), facing)
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    Direction fallback = Directions::opposite(context.getClickedFace());
+    if (!Directions::isHorizontal(fallback)) {
+        fallback = context.horizontalDirection();
+    }
+    if (!Directions::isHorizontal(fallback)) {
+        fallback = Direction::North;
+    }
+
+    BlockState candidate = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), fallback);
+    bool resolved = false;
+    for (Direction direction : context.getNearestLookingDirections()) {
+        // 仅接受从放置位置出发、经 direction 可达点击方块（或点击位置本身即放置位置）的方向
+        if (pos.offset(direction) != context.getBlockPos() && pos != context.getBlockPos()) {
+            continue;
+        }
+        const Direction facing =
+            Directions::isHorizontal(direction) ? Directions::opposite(direction) : context.horizontalDirection();
+        candidate = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+        if (isValidPosition(candidate, const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world)), pos)) {
+            resolved = true;
+            break;
+        }
+    }
+    if (!resolved) {
+        candidate = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), fallback);
+    }
+
+    // 检查是否含水（等价原版 getFluidState(pos).getType() == Fluids.WATER）
+    const bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+    return candidate.with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool LadderBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

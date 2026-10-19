@@ -481,7 +481,8 @@ inline Direction fromDelta(i32 dx, i32 dy, i32 dz)
  * 点积 > 0 表示实体的视线方向与该方向同侧。
  *
  * @param dir 水平方向（仅对水平方向有效）
- * @param yaw 实体的偏航角（度），MC 约定：0=南，90=西，180=北，-90=东
+ * @param yaw 实体的偏航角（度），MC 约定：0=南，90=东，180=北，-90（或 270）=西；
+ *            视线单位向量为 (cos yaw, 0, -sin yaw)
  * @return true 如果实体大致朝向该方向
  */
 inline bool isFacingAngle(Direction dir, f32 yaw)
@@ -502,7 +503,7 @@ inline bool isFacingAngle(Direction dir, f32 yaw)
  *
  * 对应 MC Java 1.21.11 `Direction.toYRot()`，用于命令方块/命令方块矿车等
  * 无实体朝向的命令源执行 `^` 局部坐标命令时构造 CommandSourceStack 的 rotation。
- * MC 约定：0=南，90=西，180=北，-90=东（与 isFacingAngle 注释一致）。
+ * MC 约定：0=南，90=东，180=北，270（即 -90）=西（与 isFacingAngle 一致）。
  *
  * @param dir 水平方向（DOWN/UP 返回 0，命令方块 facing 不会是垂直方向）
  * @return 偏航角（度）
@@ -515,9 +516,9 @@ inline f32 toYRot(Direction dir)
         case Direction::South:
             return 0.0f;
         case Direction::West:
-            return 90.0f;
+            return 270.0f;
         case Direction::East:
-            return -90.0f;
+            return 90.0f;
         default:
             // DOWN/UP：vanilla 命令方块 facing 不会是垂直方向，返回 0 作兜底
             return 0.0f;
@@ -632,6 +633,35 @@ inline i32 mirrorRotation(i32 rotation, Mirror mirror, i32 max = 16)
         case Mirror::None:
         default:
             return rotation;
+    }
+}
+
+/**
+ * @brief 由偏航角取水平方向
+ *
+ * 对应 MC 1.21.11 `Direction.fromYRot(double)`：
+ *   from2DDataValue(floor(yaw / 90 + 0.5) & 3)，其中 2D 数据值按 South=0、West=1、North=2、East=3
+ * 循环（与 toYRot 互逆）。例如 yaw=0→South、90→East、180→North、270（-90）→West。
+ * yaw 为 NaN 时（原版非法输入）返回 North。
+ *
+ * @param yaw 偏航角（度），MC 说明见 isFacingAngle
+ * @return 水平方向
+ */
+inline Direction fromYRot(f64 yaw)
+{
+    if (std::isnan(yaw)) {
+        return Direction::North;
+    }
+    const i32 index = static_cast<i32>(std::floor(yaw / 90.0 + 0.5)) & 3;
+    switch (index) {
+        case 0:
+            return Direction::South;
+        case 1:
+            return Direction::East;
+        case 2:
+            return Direction::North;
+        default:
+            return Direction::West;
     }
 }
 } // namespace Directions

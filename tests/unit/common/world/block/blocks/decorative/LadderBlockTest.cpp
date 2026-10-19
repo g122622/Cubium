@@ -123,13 +123,16 @@ protected:
 
 } // namespace
 
-// 梯子朝向应为被点击面的方向（FACING 指向所倚靠的墙体）
+// 候选朝向按视线排序：视线朝东、点击石头东面时，首个与放置位置对齐的方向即 East，
+// FACING 取其 Opposite = West（梯子倚靠石头）
 TEST_F(LadderAttachmentTest, Placement_AdjacentToClickedFaceOpposite)
 {
     world.set(BlockPos(0, 64, 0), solidBlock());
 
-    // 点击石头东面：放置位置为其东侧 (1,64,0)，FACING=West（梯子倚靠石头）
-    auto context = makeContext(world, BlockPos(0, 64, 0), Direction::East);
+    // 玩家朝东（yaw=90）、水平视线点击石头东面：放置位置 (1,64,0)；首个与放置位置对齐的视线方向
+    // 为 Up（原版 getNearestLookingDirections 会把点击面反向提到首位），FACING=East 不可存活，
+    // 随后尝试 East→West（倚靠石头）可存活
+    auto context = makeContext(world, BlockPos(0, 64, 0), Direction::East, 90.0f, 0.0f);
     ASSERT_EQ(context.placementPos(), BlockPos(1, 64, 0));
     const BlockState state = VanillaBlocks::LADDER->getStateForPlacement(context);
     EXPECT_EQ(&state.getBlock(), VanillaBlocks::LADDER);
@@ -137,32 +140,43 @@ TEST_F(LadderAttachmentTest, Placement_AdjacentToClickedFaceOpposite)
     EXPECT_TRUE(
         VanillaBlocks::LADDER->isValidPosition(state, static_cast<IBlockReader&>(world), context.placementPos()));
 
-    // 点击石头北面：放置位置为其北侧 (0,64,-1)，FACING=South
-    auto northContext = makeContext(world, BlockPos(0, 64, 0), Direction::North);
+    // 玩家朝北、水平视线点击石头北面：放置位置 (0,64,-1)。FACING=South 不可存活后尝试 N/W/S，
+    // 最终 FACING=North（倚靠北侧 (0,64,-2) 的石块）可存活
+    world.set(BlockPos(0, 64, -2), solidBlock());
+    auto northContext = makeContext(world, BlockPos(0, 64, 0), Direction::North, 180.0f, 0.0f);
     ASSERT_EQ(northContext.placementPos(), BlockPos(0, 64, -1));
     const BlockState northState = VanillaBlocks::LADDER->getStateForPlacement(northContext);
-    EXPECT_EQ(facingOf(northState), Direction::South);
+    EXPECT_EQ(facingOf(northState), Direction::North);
     EXPECT_TRUE(VanillaBlocks::LADDER->isValidPosition(
         northState, static_cast<IBlockReader&>(world), northContext.placementPos()));
 }
 
-// 点击方块顶面时退化为玩家水平朝向（原版视线最近方向为 Down，非水平，继续取其余方向）
-TEST_F(LadderAttachmentTest, Placement_TopFaceFallsBackToPlayerHorizontalDirection)
+// 梯子朝向沿视线排序裁决：竖直视线使候选全为竖直方向（统一落到玩家水平朝向），
+// 水平视线则按视线方向（同轴优先）逐级尝试。南/北两侧都有墙时，视线朝北的候选 North
+// 先命中（FACING=North，倚靠北墙）；视线竖直则落到玩家水平朝向。
+TEST_F(LadderAttachmentTest, Placement_ResolvesAlongLookOrder)
 {
     world.set(BlockPos(0, 64, 0), solidBlock());
-
-    // 玩家朝北（yaw=180）俯视（pitch=90）时视线方向为 Down，点击顶面：放置位置 (0,65,0)，
-    // 退化为玩家水平朝向 North：FACING=North（倚靠北侧墙）
-    auto context = makeContext(world, BlockPos(0, 64, 0), Direction::Up, 180.0f, 90.0f);
-    ASSERT_EQ(context.placementPos(), BlockPos(0, 65, 0));
-
-    // 北侧放石头后该候选朝向可存活
+    world.set(BlockPos(0, 65, 1), solidBlock());
     world.set(BlockPos(0, 65, -1), solidBlock());
-    const BlockState state = VanillaBlocks::LADDER->getStateForPlacement(context);
-    // TODO: BlockItemUseContext 的 yaw → 水平朝向换算与 MC 约定（0=南、90=西、180=北、270=东）相差一个象限，
-    //   当前 yaw=180 被映射为 South（应为 North），故此处期望 South；修正换算后改为 North，
-    //   并补回 isValidPosition 为真的断言（届时梯子倚靠南侧 (0,65,1) 的墙）。
-    EXPECT_EQ(facingOf(state), Direction::South);
+
+    // 俯视（视线竖直）：南侧墙可存活 → South
+    {
+        auto context = makeContext(world, BlockPos(0, 64, 0), Direction::Up, 0.0f, 90.0f);
+        const BlockState state = VanillaBlocks::LADDER->getStateForPlacement(context);
+        EXPECT_EQ(facingOf(state), Direction::South);
+        EXPECT_TRUE(
+            VanillaBlocks::LADDER->isValidPosition(state, static_cast<IBlockReader&>(world), context.placementPos()));
+    }
+
+    // 水平视线朝北：排序首为 North（FACING=North，北墙可存活）→ North
+    {
+        auto context = makeContext(world, BlockPos(0, 64, 0), Direction::Up, 180.0f, 0.0f);
+        const BlockState state = VanillaBlocks::LADDER->getStateForPlacement(context);
+        EXPECT_EQ(facingOf(state), Direction::North);
+        EXPECT_TRUE(
+            VanillaBlocks::LADDER->isValidPosition(state, static_cast<IBlockReader&>(world), context.placementPos()));
+    }
 }
 
 // 梯子只接受完整实心面作为附着面

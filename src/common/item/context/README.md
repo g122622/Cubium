@@ -48,7 +48,7 @@ ItemUseContext(IWorld& world,
 - `blockPos` 击中的方块位置
 - `face` 击中的面
 - `hand` 使用的手（主手或副手）
-- `playerYaw` 玩家 yaw 角度（度数；MC 约定 0=南, 90=西, 180=北, 270=东）
+- `playerYaw` 玩家 yaw 角度（度数；MC 约定 0=南, 90=东, 180=北, 270=西）。注意 `Mth.sin/cos`、`orderedByNearest` 与本类构造所用的三角函数均遵循同一约定，`horizontalDirection()` 的象限划分必须与此一致
 - `playerPitch` 玩家 pitch 角度（度数；MC 约定正值=俯视，负值=仰视）
 
 **注意**：构造参数不允许默认值（遵循 `docs/PROJECT_CONVENTIONS.md` 「函数参数和配置结构体不允许使用、设置默认值」）。所有调用方必须显式传入 `hand`、`playerYaw`、`playerPitch`。
@@ -119,6 +119,10 @@ BlockItemUseContext(IWorld& world,
 
 `BlockItem::getBlockItemUseContext(BlockItemUseContext&)` 默认返回传入的 context 副本。由于 `BlockItemUseContext` 持有 `m_world` 引用与 `m_stack` 指针，复制时这些成员直接复制（浅拷贝），生命周期由原始 context 保证。
 
-### 4. orderedByNearest 是文件内静态函数
+### 4. horizontalDirection 的象限划分
+
+`horizontalDirection()` 按 yaw∈[0,360) 划为四段：[0,45)∪[315,360)→南、[45,135)→东、[135,225)→北、[225,315)→西。与其他方向枚举工具（`Directions::rotateY` 等）不同，这里的方向不是按枚举数值递增排布，改动时务必对照 MC 约定而非直觉，否则所有依赖玩家朝向的方块（炉子、门、床、活塞、铁砧等）朝向都会整体偏移。
+
+### 5. orderedByNearest 是文件内静态函数
 
 `orderedByNearest(yaw, pitch)` 定义在 `BlockItemUseContext.cpp` 的匿名命名空间中，不对外暴露。如需在其他位置复用该算法，应提取到 `Direction.hpp` 的工具函数中，而非重复实现。
