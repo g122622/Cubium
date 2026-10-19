@@ -22,6 +22,7 @@
  */
 
 #include "common/world/attribute/EnvironmentAttributes.hpp"
+#include "common/world/attribute/EnvironmentAttributeRegistryDataPack.hpp"
 
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/attribute/AttributeTypes.hpp"

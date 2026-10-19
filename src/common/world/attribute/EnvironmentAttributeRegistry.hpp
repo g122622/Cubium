@@ -31,11 +31,18 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace mc {
 namespace world {
 namespace attribute {
+
+class EnvironmentAttributeMap;
+
+template <typename Value>
+[[nodiscard]] std::function<Result<void>(AttributeModifierOperation operation, const void* jsonArgument, void* map)>
+makeJsonArgumentApplier(const EnvironmentAttribute<Value>& attribute);
 
 /// 环境属性注册表内一条属性的只读视图
 struct EnvironmentAttributeEntry {
@@ -47,6 +54,16 @@ struct EnvironmentAttributeEntry {
     bool isSyncable;
     /// 该属性是否与位置相关
     bool isPositional;
+
+    /// 判断某修改器操作是否被属性类型允许
+    std::function<bool(AttributeModifierOperation)> allowModifier;
+
+    /// 按数据包参数登记属性表条目
+    ///
+    /// 由 EnvironmentAttributeRegistryDataPack.cpp 提供定义（该文件同时可见属性表与 JSON 的定义），
+    /// 从而本头文件可与属性表头互相独立。
+    std::function<Result<void>(AttributeModifierOperation operation, const void* jsonArgument, void* map)>
+        applyJsonArgument;
 };
 
 /**
@@ -95,10 +112,10 @@ public:
         if (name.empty()) {
             return Error::invalidArgument("Attribute type name cannot be empty");
         }
-        return _insert(std::string(name),
-            Entry{std::string(name),
-                &type,
-                [&type](AttributeModifierOperation operation) { return type.isAllowedModifier(operation); }});
+        return _insert(
+            std::string(name), Entry{std::string(name), &type, [&type](AttributeModifierOperation operation) {
+                                         return type.isAllowedModifier(operation);
+                                     }});
     }
 
 private:
@@ -129,9 +146,16 @@ public:
         if (name.empty()) {
             return Error::invalidArgument("Environment attribute name cannot be empty");
         }
-        return _insertAttribute(std::string(name),
-            EnvironmentAttributeEntry{
-                std::string(name), &attribute, attribute.isSyncable(), attribute.isPositional()});
+        const AttributeType<Value>& type = attribute.type();
+        EnvironmentAttributeEntry entry;
+        entry.name = std::string(name);
+        entry.attribute = &attribute;
+        entry.isSyncable = attribute.isSyncable();
+        entry.isPositional = attribute.isPositional();
+        entry.allowModifier = [&type](
+                                  AttributeModifierOperation operation) { return type.isAllowedModifier(operation); };
+        entry.applyJsonArgument = makeJsonArgumentApplier(attribute);
+        return _insertAttribute(std::move(entry.name), entry);
     }
 
     /**

@@ -41,12 +41,16 @@
 #include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
 #include "common/world/attribute/EnvironmentAttributeSystem.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/level/MoonPhase.hpp"
 #include "common/world/timeline/AttributeTrackSampler.hpp"
 #include "common/world/timeline/Timeline.hpp"
 #include "common/world/timeline/TimelineRegistry.hpp"
 #include "common/world/timeline/Timelines.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <memory>
 #include <optional>
@@ -77,10 +81,7 @@ public:
     }
 
     /// 在当前 tick 内再次采样（与 sample 等价，只是语义上强调同 tick）
-    [[nodiscard]] Value sampleAt(i64 dayTime)
-    {
-        return sample(dayTime);
-    }
+    [[nodiscard]] Value sampleAt(i64 dayTime) { return sample(dayTime); }
 
 private:
     Value m_base;
@@ -283,7 +284,7 @@ const EnvironmentAttribute<f32>& _testFloatAttribute()
         },
         AttributeTypes::FLOAT(),
         2.0f)
-                                                        .build();
+                                                           .build();
     return attribute;
 }
 
@@ -295,7 +296,9 @@ timeline::Timeline _makeTestTimeline(const EnvironmentAttribute<f32>& attribute)
         .addModifierTrack<f32, f32>(attribute,
             nonOwningSharedPtr(&FloatModifier::MULTIPLY),
             std::nullopt,
-            [](timeline::KeyframeTrack<f32>::Builder& builder) { builder.addKeyframe(0, 1.0f).addKeyframe(1000, 3.0f); })
+            [](timeline::KeyframeTrack<f32>::Builder& builder) {
+                builder.addKeyframe(0, 1.0f).addKeyframe(1000, 3.0f);
+            })
         .build();
 }
 
@@ -310,10 +313,13 @@ TEST(EnvironmentAttributeMapTest, SetAndModifyApplyModifiers)
     overrideMap.applyModifier(&attribute, &value);
     EXPECT_FLOAT_EQ(value, 5.0f);
 
-    const EnvironmentAttributeMap doubled = EnvironmentAttributeMap::Builder()
-                                                .modify(attribute, AttributeModifierOperation::Multiply, 2.0f)
-                                                .build();
+    const EnvironmentAttributeMap doubled =
+        EnvironmentAttributeMap::Builder().modify(attribute, AttributeModifierOperation::Multiply, 2.0f).build();
     value = attribute.defaultValue();
+    doubled.applyModifier(&attribute, &value);
+    EXPECT_FLOAT_EQ(value, 4.0f);
+    // 系统常量层总是从默认值开始求值，因此入参的当前值不影响非覆写修改器
+    value = 10.0f;
     doubled.applyModifier(&attribute, &value);
     EXPECT_FLOAT_EQ(value, 4.0f);
 }
@@ -331,9 +337,8 @@ TEST(EnvironmentAttributeSystemTest, ConstantLayerAppliesBeforeTimelineLayer)
     const std::unique_ptr<EnvironmentAttributeSystem> system = [&] {
         EnvironmentAttributeSystemBuilder systemBuilder;
         systemBuilder.addConstantLayer(attribute, EnvironmentAttributeMap::Builder().set(attribute, 4.0f).build());
-        systemBuilder.addTimeBasedLayer(attribute, timeline.createTrackSampler<f32, f32>(attribute, [] {
-            return dayTime;
-        }));
+        systemBuilder.addTimeBasedLayer(
+            attribute, timeline.createTrackSampler<f32, f32>(attribute, [] { return dayTime; }));
         return std::make_unique<EnvironmentAttributeSystem>(systemBuilder.build());
     }();
 
@@ -373,8 +378,7 @@ TEST(EnvironmentAttributeSystemTest, InvalidateTickCacheResamplesTimelineLayer)
     dayTime = 0;
     EnvironmentAttributeSystemBuilder builder;
     builder.addConstantLayer(attribute, EnvironmentAttributeMap::Builder().set(attribute, 4.0f).build());
-    builder.addTimeBasedLayer(
-        attribute, timeline.createTrackSampler<f32, f32>(attribute, [] { return dayTime; }));
+    builder.addTimeBasedLayer(attribute, timeline.createTrackSampler<f32, f32>(attribute, [] { return dayTime; }));
     const EnvironmentAttributeSystem system = builder.build();
 
     // 每个 tick 只应用一次"系统序号 → 采样器缓存"：失效后必须按新 dayTime 重新采样，
@@ -437,12 +441,8 @@ TEST(DimensionAttributesTest, OverworldEyeblossomFollowsDayTime)
             DimensionType::overworld(), [dayTime]() { return dayTime; }, [dayTime]() { return dayTime; });
     };
 
-    EXPECT_EQ(makeSystem(6000)
-                  ->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()),
-        util::TriState::False);
-    EXPECT_EQ(makeSystem(18000)
-                  ->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()),
-        util::TriState::True);
+    EXPECT_EQ(makeSystem(6000)->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()), util::TriState::False);
+    EXPECT_EQ(makeSystem(18000)->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()), util::TriState::True);
 }
 
 TEST(DimensionAttributesTest, NetherKeepsDefaultValues)
@@ -455,6 +455,84 @@ TEST(DimensionAttributesTest, NetherKeepsDefaultValues)
     // 下界不声明日夜时间线：眼眸花保持默认（不主动切换）
     EXPECT_EQ(system->getDimensionValue(EnvironmentAttributes::EYEBLOSSOM_OPEN()), util::TriState::Default);
     EXPECT_EQ(system->getDimensionValue(EnvironmentAttributes::MOON_PHASE()), MoonPhase::FullMoon);
+}
+
+// ============================================================================
+// 数据包属性解析（biome/dimension attributes）
+// ============================================================================
+
+TEST(EnvironmentAttributeJsonTest, ParsesLiteralAndFullFormArguments)
+{
+    timeline::Timelines::bootstrap();
+
+    EnvironmentAttributeMap::Builder builder;
+    // 直接给出参数：等价于覆写
+    ASSERT_TRUE(builder.setFromJson("minecraft:visual/sky_color", nlohmann::json("#00ff80")).success());
+    // 完整写法：修改器 + 参数
+    ASSERT_TRUE(builder
+            .setFromJson("minecraft:visual/fog_start_distance",
+                nlohmann::json::parse(R"({"modifier": "multiply", "argument": 2.5})"))
+            .success());
+    ASSERT_TRUE(builder.setFromJson("minecraft:gameplay/monsters_burn", nlohmann::json(true)).success());
+    const EnvironmentAttributeMap map = builder.build();
+
+    i32 skyColor = 0;
+    map.applyModifier(&EnvironmentAttributes::SKY_COLOR(), &skyColor);
+    EXPECT_EQ(static_cast<u32>(skyColor), 0xFF00FF80u);
+
+    // 非覆写修改器以属性默认值为基础（fog_start_distance 默认 0 → 仍为 0），
+    f32 fogStart = EnvironmentAttributes::FOG_START_DISTANCE().defaultValue();
+    map.applyModifier(&EnvironmentAttributes::FOG_START_DISTANCE(), &fogStart);
+    EXPECT_FLOAT_EQ(fogStart, EnvironmentAttributes::FOG_START_DISTANCE().defaultValue() * 2.5f);
+
+    bool monstersBurn = false;
+    map.applyModifier(&EnvironmentAttributes::MONSTERS_BURN(), &monstersBurn);
+    EXPECT_TRUE(monstersBurn);
+}
+
+TEST(EnvironmentAttributeJsonTest, RejectsUnknownAttributeAndDisallowedModifier)
+{
+    timeline::Timelines::bootstrap();
+
+    EnvironmentAttributeMap::Builder builder;
+    const Result<void> unknown = builder.setFromJson("minecraft:visual/not_a_real_attribute", nlohmann::json(1));
+    EXPECT_FALSE(unknown.success());
+
+    // 布尔属性不允许 multiply
+    const Result<void> disallowed = builder.setFromJson(
+        "minecraft:gameplay/monsters_burn", nlohmann::json::parse(R"({"modifier": "multiply", "argument": true})"));
+    EXPECT_FALSE(disallowed.success());
+
+    // 无法解析的参数
+    const Result<void> badValue = builder.setFromJson("minecraft:gameplay/monsters_burn", nlohmann::json("yes"));
+    EXPECT_FALSE(badValue.success());
+}
+
+TEST(DimensionAttributesTest, BiomeLayerAppliesBiomeAttributesByPosition)
+{
+    timeline::Timelines::bootstrap();
+
+    // 构造一个群系：plains 声明 increased_fire_burnout = true，其余位置不受影响
+    auto& registry = world::biome::BiomeRegistry::instance();
+    registry.initialize();
+    const EnvironmentAttributeMap original = registry.get(Biomes::Plains).attributes();
+
+    auto builder = EnvironmentAttributeMap::Builder();
+    ASSERT_TRUE(builder.setFromJson("minecraft:gameplay/increased_fire_burnout", nlohmann::json(true)).success());
+    registry.getMutable(Biomes::Plains).setAttributes(builder.build());
+
+    const DimensionAttributes::BiomeResolver resolver = [](const Vector3& pos) {
+        return pos.x >= 0.0f ? Biomes::Plains : Biomes::Desert;
+    };
+    const std::unique_ptr<EnvironmentAttributeSystem> system = DimensionAttributes::createSystem(
+        DimensionType::nether(), [] { return i64{0}; }, [] { return i64{0}; }, resolver);
+
+    EXPECT_TRUE(system->getValue(EnvironmentAttributes::INCREASED_FIRE_BURNOUT(), Vector3(4.0f, 64.0f, 4.0f)));
+    EXPECT_FALSE(system->getValue(EnvironmentAttributes::INCREASED_FIRE_BURNOUT(), Vector3(-4.0f, 64.0f, 4.0f)));
+    // 非位置查询跳过群系层
+    EXPECT_FALSE(system->getDimensionValue(EnvironmentAttributes::INCREASED_FIRE_BURNOUT()));
+
+    registry.getMutable(Biomes::Plains).setAttributes(original);
 }
 
 } // namespace mc::world::attribute

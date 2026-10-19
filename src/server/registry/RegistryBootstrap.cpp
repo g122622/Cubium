@@ -119,6 +119,10 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll");
 
+    // 预定义环境属性与时间线必须先登记：BiomeLoader 等数据包加载器按注册名解析
+    // `biome.attributes` 中的属性键（本函数幂等，服务端其余位置可按需再次调用）。
+    world::timeline::Timelines::bootstrap();
+
     // 初始化方块注册表
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Blocks");

@@ -3,7 +3,7 @@
 环境属性系统定义世界级的具名属性（活动、月相、天空颜色等），并提供按时间驱动这些属性所需的基础类型。
 
 对应 MC 1.21.11 的 `net.minecraft.world.attribute` 包。层序与 vanilla 一致：
-**维度常量层 → 群系位置层（尚未接入）→ 时间线层 → 天气层（尚未接入）**。
+**维度常量层 → 群系位置层 → 时间线层 → 天气层（尚未接入）**。
 
 ## 目录结构
 
@@ -16,11 +16,13 @@ attribute/
 │                                  #   RGB_COLOR / ARGB_COLOR / MOON_PHASE / ACTIVITY）
 ├── EnvironmentAttribute.hpp       # 环境属性定义与构建器
 ├── EnvironmentAttributes.hpp/cpp  # 预定义环境属性（visual/ audio/ gameplay/ 三个命名空间共 44 个）
-├── EnvironmentAttributeMap.hpp    # 属性表（维度/群系声明的"属性 → 修改器 + 参数"）
+├── EnvironmentAttributeMap.hpp/cpp      # 属性表（维度/群系声明的"属性 → 修改器 + 参数"，含数据包 JSON 入口）
+├── EnvironmentAttributeValueJson.hpp/cpp # 属性值类型的 JSON 表示（数据包 valueCodec 等价物）
+├── EnvironmentAttributeRegistryDataPack.hpp # 数据包参数 → 属性表条目的类型化桥接
 ├── EnvironmentAttributeRegistry.hpp/cpp  # 属性注册表（名字 ↔ 属性、属性类型注册表）
 ├── EnvironmentAttributeLayer.hpp  # 属性层接口（Constant / TimeBased / Positional）
 ├── EnvironmentAttributeSystem.hpp/inl/cpp  # 环境属性系统与构建器（烘焙层序列 + per-tick 缓存）
-└── DimensionAttributes.hpp/cpp    # 按维度装配：维度常量层 + 维度声明的时间线层
+└── DimensionAttributes.hpp/cpp    # 按维度装配：维度常量层 + 群系位置层 + 维度声明的时间线层
 ```
 
 ## 内部模块关系
@@ -58,6 +60,9 @@ DimensionType ──attributes()──> EnvironmentAttributeMap ──> Environm
   同时清空系统缓存与各层的自身缓存（时间线采样器的关键帧采样缓存）。世界每 tick 末尾调用一次。
 - **位置查询**：`getValue(attr, pos)` 对不受位置影响的属性直接复用维度缓存；受位置影响的属性
   每次求值，并在非位置查询中跳过位置层。
+- **数据包属性**：群系/维度 JSON 的 `attributes` 由 `EnvironmentAttributeMap::Builder::setFromJson`
+  解析（键为属性注册名；值可直接给出参数，或 `{"modifier": ..., "argument": ...}`），
+  群系属性表由 `Biome::attributes()` 持有，维度级系统以群系位置层按查询位置应用。
 
 ## 容易踩的坑
 
@@ -93,3 +98,16 @@ DimensionType ──attributes()──> EnvironmentAttributeMap ──> Environm
 层接口后不再回取。系统拷贝是值语义（层共享、缓存独立），但层本身是有状态的
 （采样器缓存），拷贝出的系统与原件共享同一层实例——若两者独立推进 tick，需要各自调用
 `invalidateTickCache()`。
+
+### 7. 值类型的 JSON 解析特化必须经函数指针取得
+
+`valueJsonReader<Value>()` 的定义放在 .cpp 中的显式特化里，主模板只声明不定义。
+调用方必须 `&valueJsonReader<Value>` 取函数指针再调用——直接写法 `valueJsonReader<Value>()`
+会让编译器在调用点按主模板实例化，特化**静默失效**（表现为所有属性都"没有 JSON 表示"，
+且不报任何错误）。新增值类型时务必在 .cpp 中补特化，否则链接失败。
+
+### 8. 数据包修改器以属性默认值为基础
+
+`EnvironmentAttributeMap` 的非覆写修改器（add/multiply/…）总是以**属性默认值**为被修改值，
+而不是调用方传入的当前值——与 vanilla `EnvironmentAttributeSystem` 的常量层折叠一致。
+新增数据包驱动的属性时不要假设它会叠加到上一层的结果上。

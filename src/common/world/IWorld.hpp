@@ -39,6 +39,7 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
 #include "common/world/chunk/IChunkManager.hpp"
 #include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
@@ -625,6 +626,20 @@ public:
             skyLight = 0;
         }
         return std::max(blockLight, skyLight);
+    }
+
+    /**
+     * @brief 当前世界维度的环境属性系统
+     *
+     * vanilla `Level.environmentAttributes()`。服务端世界持有维度级系统实例（维度常量层 +
+     * 群系位置层 + 时间线层），结果按 tick 缓存，同一 tick 内重复查询不会重复采样。
+     *
+     * @return 环境属性系统（默认实现返回空的系统，属性查询退回其默认值）
+     */
+    [[nodiscard]] virtual const world::attribute::EnvironmentAttributeSystem& environmentAttributes() const
+    {
+        static const world::attribute::EnvironmentAttributeSystem EMPTY;
+        return EMPTY;
     }
 
     /**
