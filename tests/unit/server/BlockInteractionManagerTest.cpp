@@ -21,6 +21,7 @@
  *
  */
 
+#include "server/dimension/ServerDimensionManager.hpp"
 #include <gtest/gtest.h>
 
 #include "server/interaction/BlockInteractionManager.hpp"
@@ -68,8 +69,14 @@ public:
         return m_playerEntityManager;
     }
 
+    // _getPlayerEntity（noexcept）先按玩家所在维度选择世界；基类桩会抛异常触发 terminate，
+    // 这里返回空维度管理器：玩家未注册维度（getPlayerDimension 返回 -1）时回退到目标世界。
+    [[nodiscard]] ServerDimensionManager& dimensionManager() override { return m_dimensionManager; }
+    [[nodiscard]] const ServerDimensionManager& dimensionManager() const override { return m_dimensionManager; }
+
 private:
     server::ServerPlayerEntityManager m_playerEntityManager;
+    ServerDimensionManager m_dimensionManager{nullptr};
 };
 
 class BlockInteractionManagerPlacementTest : public ::testing::Test {
