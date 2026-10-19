@@ -379,6 +379,24 @@ public:
     [[nodiscard]] i64 dayTime() const override;
     [[nodiscard]] i64 dayTimeOfDay() const override;
 
+    // ========== 环境属性系统（维度级，长期存活） ==========
+
+    /**
+     * @brief 当前维度的环境属性系统
+     *
+     * 与 vanilla ServerLevel.environmentAttributes 一致：系统按维度装配一次（维度常量层 +
+     * 维度声明的各时间线层），每 tick 结束时失效一次 tick 缓存。查询结果按 tick 缓存，
+     * 因此同一 tick 内重复查询不会重复采样关键帧轨道。
+     */
+    [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& environmentAttributes() const;
+
+    /**
+     * @brief 失效环境属性系统的 tick 缓存
+     *
+     * 与 vanilla ServerLevel.tick 末尾一致：每个 tick 处理完方块/实体后调用一次。
+     */
+    void invalidateEnvironmentAttributeCache();
+
     // ========== IWorld 接口 ==========
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
@@ -1619,6 +1637,10 @@ private:
     std::mutex m_pendingChunkSendsMutex;
     std::vector<std::pair<ChunkCoord, ChunkCoord>> m_pendingChunkSends;
     std::unique_ptr<WeatherManager> m_weatherManager;
+
+    /// 维度级环境属性系统（装配一次、每 tick 失效缓存），定义处为 ServerWorld.cpp
+    class _EnvironmentAttributes;
+    mutable std::unique_ptr<_EnvironmentAttributes> m_environmentAttributes;
     std::unique_ptr<world::map::MapDataManager> m_mapDataManager;
     server::ItemPickupManager m_itemPickupManager;
     core::TimeManager* m_timeManager = nullptr;       // 外部引用，不拥有

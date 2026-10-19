@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/MathUtils.hpp"
 
+#include <array>
 #include <cmath>
 
 namespace mc {
@@ -40,25 +41,67 @@ namespace timeline {
  * apply(f) 接收线性进度 [0,1]，返回变换后的进度。
  *
  * 具名缓动函数集合与 vanilla net.minecraft.util.Ease 逐一对齐；
- * vanilla 的 CubicBezier（带控制点的三次贝塞尔）需携带状态，与本类的
- * 函数指针模型不兼容，暂未实现（见文末 TODO）。
+ * 另支持携带四个控制点的三次贝塞尔（vanilla EasingType.CubicBezier）。
  */
 class EasingType {
 public:
-    using ApplyFn = f32 (*)(f32);
+    /// 三次贝塞尔求解时 Newton-Raphson 的最大迭代次数（vanilla NEWTON_RAPHSON_ITERATIONS）
+    static constexpr i32 NEWTON_RAPHSON_ITERATIONS = 4;
 
+    /// 默认缓动为线性
     constexpr EasingType() noexcept = default;
 
-    explicit constexpr EasingType(ApplyFn fn) noexcept
-        : m_fn(fn)
-    {}
+    /**
+     * @brief 构造三次贝塞尔缓动
+     *
+     * 控制点为 (0,0)、(x1,y1)、(x2,y2)、(1,1)，x1/x2 必须落在 [0,1]。
+     *
+     * @param x1 第一个控制点横坐标
+     * @param y1 第一个控制点纵坐标
+     * @param x2 第二个控制点横坐标
+     * @param y2 第二个控制点纵坐标
+     */
+    [[nodiscard]] static EasingType cubicBezier(f32 x1, f32 y1, f32 x2, f32 y2);
 
-    f32 apply(f32 f) const noexcept { return m_fn(f); }
+    /**
+     * @brief 构造对称三次贝塞尔
+     *
+     * 第二个控制点为 (1 - x1, 1 - y1)，曲线关于对角线对称。
+     *
+     * @param x1 第一个控制点横坐标
+     * @param y1 第一个控制点纵坐标
+     */
+    [[nodiscard]] static EasingType symmetricCubicBezier(f32 x1, f32 y1);
 
-    /// 常量缓动：始终返回 0.0
-    static const EasingType CONSTANT;
+    [[nodiscard]] bool isCubicBezier() const noexcept { return m_name == Name::CubicBezier; }
+
+    /// 三次贝塞尔控制点（x1, y1, x2, y2）；非贝塞尔缓动下无意义
+    [[nodiscard]] const std::array<f32, 4>& bezierControls() const noexcept { return m_controls; }
+
+    /**
+     * @brief 应用缓动
+     *
+     * 具名缓动按枚举分派到对应函数；`LINEAR` / `CONSTANT` 直接返回，不引入函数间接调用。
+     */
+    f32 apply(f32 f) const noexcept
+    {
+        switch (m_name) {
+            case Name::Linear:
+                return f;
+            case Name::Constant:
+                return 0.0f;
+            case Name::CubicBezier:
+                return _applyBezier(f);
+            default:
+                break;
+        }
+        return _applyNamed(m_name, f);
+    }
+
     /// 线性缓动：返回原值
     static const EasingType LINEAR;
+    /// 常量缓动：始终返回 0.0
+    static const EasingType CONSTANT;
 
     static const EasingType IN_BACK;
     static const EasingType IN_BOUNCE;
@@ -91,13 +134,171 @@ public:
     static const EasingType OUT_QUINT;
     static const EasingType OUT_SINE;
 
+    /// 缓动的具名标识（与 vanilla EasingType 的各个记录类一一对应）
+    enum class Name : u8 {
+        Linear,
+        Constant,
+        InBack,
+        OutBack,
+        InOutBack,
+        InBounce,
+        OutBounce,
+        InOutBounce,
+        InElastic,
+        OutElastic,
+        InOutElastic,
+        InCubic,
+        OutCubic,
+        InOutCubic,
+        InExpo,
+        OutExpo,
+        InOutExpo,
+        InCirc,
+        OutCirc,
+        InOutCirc,
+        InQuad,
+        OutQuad,
+        InOutQuad,
+        InQuart,
+        OutQuart,
+        InOutQuart,
+        InQuint,
+        OutQuint,
+        InOutQuint,
+        InSine,
+        OutSine,
+        InOutSine,
+        /// 三次贝塞尔：曲线由 m_controls（控制点 x1, y1, x2, y2）决定
+        CubicBezier,
+    };
+
 private:
-    ApplyFn m_fn = nullptr;
+    constexpr EasingType(Name name) noexcept
+        : m_name(name)
+    {}
 
-    static f32 _constant(f32) { return 0.0f; }
-    static f32 _linear(f32 f) { return f; }
+    /// 具名缓动标识
+    Name m_name = Name::Linear;
+    /// 三次贝塞尔控制点 (x1, y1, x2, y2)；仅 CubicBezier 使用
+    std::array<f32, 4> m_controls = {0.0f, 0.0f, 1.0f, 1.0f};
 
-    // 以下函数体逐条对齐 vanilla net.minecraft.util.Ease，常数与运算顺序保持一致。
+    /**
+     * @brief 三次曲线的多项式系数
+     *
+     * sample(t) = ((a*t + b)*t + c)*t，sampleGradient(t) = (3a*t + 2b)*t + c。
+     * 首控制点固定在 0、末控制点固定在 1，因此常数项为 0。
+     */
+    struct _CubicCurve {
+        f32 a;
+        f32 b;
+        f32 c;
+
+        [[nodiscard]] constexpr f32 sample(f32 t) const noexcept { return ((a * t + b) * t + c) * t; }
+        [[nodiscard]] constexpr f32 sampleGradient(f32 t) const noexcept { return (3.0f * a * t + 2.0f * b) * t + c; }
+    };
+
+    [[nodiscard]] static constexpr _CubicCurve _curveFromControls(f32 first, f32 second) noexcept
+    {
+        return _CubicCurve{3.0f * first - 3.0f * second + 1.0f, -6.0f * first + 3.0f * second, 3.0f * first};
+    }
+
+    /**
+     * @brief 按 x 坐标反解参数 t，再求 y 坐标
+     *
+     * 与 vanilla 一致：以 Newton-Raphson 迭代 4 次逼近 x(t) = f，导数过小时提前退出。
+     */
+    [[nodiscard]] f32 _applyBezier(f32 f) const noexcept
+    {
+        const _CubicCurve xCurve = _curveFromControls(m_controls[0], m_controls[2]);
+        const _CubicCurve yCurve = _curveFromControls(m_controls[1], m_controls[3]);
+
+        f32 t = f;
+        for (i32 i = 0; i < NEWTON_RAPHSON_ITERATIONS; ++i) {
+            const f32 gradient = xCurve.sampleGradient(t);
+            if (gradient < 1.0e-5f) {
+                break;
+            }
+
+            t -= (xCurve.sample(t) - f) / gradient;
+        }
+
+        return yCurve.sample(t);
+    }
+
+    /// 把具名标识分派到对应的缓动函数
+    [[nodiscard]] static f32 _applyNamed(Name name, f32 f) noexcept
+    {
+        switch (name) {
+            case Name::InBack:
+                return _inBack(f);
+            case Name::OutBack:
+                return _outBack(f);
+            case Name::InOutBack:
+                return _inOutBack(f);
+            case Name::InBounce:
+                return _inBounce(f);
+            case Name::OutBounce:
+                return _outBounce(f);
+            case Name::InOutBounce:
+                return _inOutBounce(f);
+            case Name::InElastic:
+                return _inElastic(f);
+            case Name::OutElastic:
+                return _outElastic(f);
+            case Name::InOutElastic:
+                return _inOutElastic(f);
+            case Name::InCubic:
+                return _inCubic(f);
+            case Name::OutCubic:
+                return _outCubic(f);
+            case Name::InOutCubic:
+                return _inOutCubic(f);
+            case Name::InExpo:
+                return _inExpo(f);
+            case Name::OutExpo:
+                return _outExpo(f);
+            case Name::InOutExpo:
+                return _inOutExpo(f);
+            case Name::InCirc:
+                return _inCirc(f);
+            case Name::OutCirc:
+                return _outCirc(f);
+            case Name::InOutCirc:
+                return _inOutCirc(f);
+            case Name::InQuad:
+                return _inQuad(f);
+            case Name::OutQuad:
+                return _outQuad(f);
+            case Name::InOutQuad:
+                return _inOutQuad(f);
+            case Name::InQuart:
+                return _inQuart(f);
+            case Name::OutQuart:
+                return _outQuart(f);
+            case Name::InOutQuart:
+                return _inOutQuart(f);
+            case Name::InQuint:
+                return _inQuint(f);
+            case Name::OutQuint:
+                return _outQuint(f);
+            case Name::InOutQuint:
+                return _inOutQuint(f);
+            case Name::InSine:
+                return _inSine(f);
+            case Name::OutSine:
+                return _outSine(f);
+            case Name::InOutSine:
+                return _inOutSine(f);
+            case Name::Linear:
+                return f;
+            case Name::Constant:
+            case Name::CubicBezier:
+                break;
+        }
+        return 0.0f;
+    }
+
+    // 以下函数体与 vanilla net.minecraft.util.Ease 逐一对应，常数与运算顺序保持一致。
     static f32 _inBack(f32 f)
     {
         constexpr f32 C1 = 1.70158f;
@@ -137,7 +338,7 @@ private:
             return 1.0f;
         }
         constexpr f32 C = static_cast<f32>(math::TWO_PI / 3.0);
-        return static_cast<f32>(-std::pow(2.0, 10.0 * f - 10.0) * std::sin((f * 10.0f - 10.75f) * C));
+        return static_cast<f32>(-std::pow(2.0, 10.0 * f - 10.0) * math::mthSin((f * 10.0f - 10.75f) * C));
     }
 
     static f32 _inExpo(f32 f) { return f == 0.0f ? 0.0f : static_cast<f32>(std::pow(2.0, 10.0 * f - 10.0)); }
@@ -146,7 +347,7 @@ private:
 
     static f32 _inQuint(f32 f) { return math::square(math::square(f)) * f; }
 
-    static f32 _inSine(f32 f) { return 1.0f - std::cos(f * math::HALF_PI); }
+    static f32 _inSine(f32 f) { return 1.0f - math::mthCos(f * math::HALF_PI); }
 
     static f32 _inOutBounce(f32 f)
     {
@@ -189,7 +390,7 @@ private:
         if (f == 1.0f) {
             return 1.0f;
         }
-        return static_cast<f32>(std::pow(2.0, -10.0 * f) * std::sin((f * 10.0f - 0.75f) * C) + 1.0);
+        return static_cast<f32>(std::pow(2.0, -10.0 * f) * math::mthSin((f * 10.0f - 0.75f) * C) + 1.0);
     }
 
     static f32 _outExpo(f32 f) { return f == 1.0f ? 1.0f : 1.0f - static_cast<f32>(std::pow(2.0, -10.0 * f)); }
@@ -198,9 +399,9 @@ private:
 
     static f32 _outQuint(f32 f) { return 1.0f - static_cast<f32>(std::pow(1.0 - f, 5.0)); }
 
-    static f32 _outSine(f32 f) { return std::sin(f * math::HALF_PI); }
+    static f32 _outSine(f32 f) { return math::mthSin(f * math::HALF_PI); }
 
-    static f32 _inOutSine(f32 f) { return -(std::cos(math::PI * f) - 1.0f) / 2.0f; }
+    static f32 _inOutSine(f32 f) { return -(math::mthCos(math::PI * f) - 1.0f) / 2.0f; }
 
     static f32 _outBack(f32 f)
     {
@@ -234,7 +435,7 @@ private:
         if (f == 1.0f) {
             return 1.0f;
         }
-        const f32 d = std::sin((20.0f * f - 11.125f) * C);
+        const f32 d = math::mthSin((20.0f * f - 11.125f) * C);
         if (f < 0.5f) {
             return static_cast<f32>(-(std::pow(2.0, 20.0 * f - 10.0) * d) / 2.0);
         }
@@ -254,44 +455,51 @@ private:
     }
 };
 
-inline const EasingType EasingType::CONSTANT{EasingType::_constant};
-inline const EasingType EasingType::LINEAR{EasingType::_linear};
+inline const EasingType EasingType::LINEAR{Name::Linear};
+inline const EasingType EasingType::CONSTANT{Name::Constant};
 
-inline const EasingType EasingType::IN_BACK{EasingType::_inBack};
-inline const EasingType EasingType::IN_BOUNCE{EasingType::_inBounce};
-inline const EasingType EasingType::IN_CIRC{EasingType::_inCirc};
-inline const EasingType EasingType::IN_CUBIC{EasingType::_inCubic};
-inline const EasingType EasingType::IN_ELASTIC{EasingType::_inElastic};
-inline const EasingType EasingType::IN_EXPO{EasingType::_inExpo};
-inline const EasingType EasingType::IN_QUAD{EasingType::_inQuad};
-inline const EasingType EasingType::IN_QUART{EasingType::_inQuart};
-inline const EasingType EasingType::IN_QUINT{EasingType::_inQuint};
-inline const EasingType EasingType::IN_SINE{EasingType::_inSine};
-inline const EasingType EasingType::IN_OUT_BACK{EasingType::_inOutBack};
-inline const EasingType EasingType::IN_OUT_BOUNCE{EasingType::_inOutBounce};
-inline const EasingType EasingType::IN_OUT_CIRC{EasingType::_inOutCirc};
-inline const EasingType EasingType::IN_OUT_CUBIC{EasingType::_inOutCubic};
-inline const EasingType EasingType::IN_OUT_ELASTIC{EasingType::_inOutElastic};
-inline const EasingType EasingType::IN_OUT_EXPO{EasingType::_inOutExpo};
-inline const EasingType EasingType::IN_OUT_QUAD{EasingType::_inOutQuad};
-inline const EasingType EasingType::IN_OUT_QUART{EasingType::_inOutQuart};
-inline const EasingType EasingType::IN_OUT_QUINT{EasingType::_inOutQuint};
-inline const EasingType EasingType::IN_OUT_SINE{EasingType::_inOutSine};
-inline const EasingType EasingType::OUT_BACK{EasingType::_outBack};
-inline const EasingType EasingType::OUT_BOUNCE{EasingType::_outBounce};
-inline const EasingType EasingType::OUT_CIRC{EasingType::_outCirc};
-inline const EasingType EasingType::OUT_CUBIC{EasingType::_outCubic};
-inline const EasingType EasingType::OUT_ELASTIC{EasingType::_outElastic};
-inline const EasingType EasingType::OUT_EXPO{EasingType::_outExpo};
-inline const EasingType EasingType::OUT_QUAD{EasingType::_outQuad};
-inline const EasingType EasingType::OUT_QUART{EasingType::_outQuart};
-inline const EasingType EasingType::OUT_QUINT{EasingType::_outQuint};
-inline const EasingType EasingType::OUT_SINE{EasingType::_outSine};
+inline const EasingType EasingType::IN_BACK{Name::InBack};
+inline const EasingType EasingType::IN_BOUNCE{Name::InBounce};
+inline const EasingType EasingType::IN_CIRC{Name::InCirc};
+inline const EasingType EasingType::IN_CUBIC{Name::InCubic};
+inline const EasingType EasingType::IN_ELASTIC{Name::InElastic};
+inline const EasingType EasingType::IN_EXPO{Name::InExpo};
+inline const EasingType EasingType::IN_QUAD{Name::InQuad};
+inline const EasingType EasingType::IN_QUART{Name::InQuart};
+inline const EasingType EasingType::IN_QUINT{Name::InQuint};
+inline const EasingType EasingType::IN_SINE{Name::InSine};
+inline const EasingType EasingType::IN_OUT_BACK{Name::InOutBack};
+inline const EasingType EasingType::IN_OUT_BOUNCE{Name::InOutBounce};
+inline const EasingType EasingType::IN_OUT_CIRC{Name::InOutCirc};
+inline const EasingType EasingType::IN_OUT_CUBIC{Name::InOutCubic};
+inline const EasingType EasingType::IN_OUT_ELASTIC{Name::InOutElastic};
+inline const EasingType EasingType::IN_OUT_EXPO{Name::InOutExpo};
+inline const EasingType EasingType::IN_OUT_QUAD{Name::InOutQuad};
+inline const EasingType EasingType::IN_OUT_QUART{Name::InOutQuart};
+inline const EasingType EasingType::IN_OUT_QUINT{Name::InOutQuint};
+inline const EasingType EasingType::IN_OUT_SINE{Name::InOutSine};
+inline const EasingType EasingType::OUT_BACK{Name::OutBack};
+inline const EasingType EasingType::OUT_BOUNCE{Name::OutBounce};
+inline const EasingType EasingType::OUT_CIRC{Name::OutCirc};
+inline const EasingType EasingType::OUT_CUBIC{Name::OutCubic};
+inline const EasingType EasingType::OUT_ELASTIC{Name::OutElastic};
+inline const EasingType EasingType::OUT_EXPO{Name::OutExpo};
+inline const EasingType EasingType::OUT_QUAD{Name::OutQuad};
+inline const EasingType EasingType::OUT_QUART{Name::OutQuart};
+inline const EasingType EasingType::OUT_QUINT{Name::OutQuint};
+inline const EasingType EasingType::OUT_SINE{Name::OutSine};
 
-// TODO: vanilla EasingType 另支持 CubicBezier（带 x1/y1/x2/y2 控制点的三次贝塞尔，
-//   经 Newton-Raphson 迭代求解）。它需要携带四个控制点的状态，与本类的无状态
-//   函数指针模型（ApplyFn）不兼容；待 timeline 数据包加载器需要该类型时，再引入
-//   独立的 CubicBezier 值类型（含 controls 字段与 apply 实现）。
+inline EasingType EasingType::cubicBezier(f32 x1, f32 y1, f32 x2, f32 y2)
+{
+    EasingType easing{Name::CubicBezier};
+    easing.m_controls = {x1, y1, x2, y2};
+    return easing;
+}
+
+inline EasingType EasingType::symmetricCubicBezier(f32 x1, f32 y1)
+{
+    return cubicBezier(x1, y1, 1.0f - x1, 1.0f - y1);
+}
 
 } // namespace timeline
 } // namespace world

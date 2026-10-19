@@ -55,6 +55,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
+#include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/JavaBiomeRegistryIdMap.hpp"
 #include "common/world/block/BlockTagLoader.hpp"
@@ -66,6 +67,7 @@
 #include "common/world/gameevent/GameEventTagLoader.hpp"
 #include "common/world/gameevent/GameEventTags.hpp"
 #include "common/world/map/MaterialColor.hpp"
+#include "common/world/timeline/TimelineRegistry.hpp"
 #include "common/world/timeline/Timelines.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/function/FunctionLoader.hpp"
@@ -619,7 +621,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Timelines");
         world::timeline::Timelines::bootstrap();
     }
-    spdlog::info("Timelines initialized");
+    spdlog::info("Timelines initialized ({} environment attributes, {} timelines)",
+        world::attribute::EnvironmentAttributeRegistry::attributes().size(),
+        world::timeline::TimelineRegistry::all().size());
 
     // 初始化记忆模块类型
     {

@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include <optional>
 #include <spdlog/spdlog.h>
 
@@ -66,6 +67,9 @@ DimensionType DimensionType::overworld()
     // 方块标签
     type.m_infiniburn = "minecraft:infiniburn_overworld";
 
+    // 环境属性：主世界由 in_overworld 标签叠加通用时间线与日夜/月相/早期游戏
+    type.m_timelines = {"minecraft:day", "minecraft:moon", "minecraft:early_game"};
+
     return type;
 }
 
@@ -106,6 +110,18 @@ DimensionType DimensionType::nether()
     // 方块标签
     type.m_infiniburn = "minecraft:infiniburn_nether";
 
+    // 环境属性：下界只有通用时间线（与 vanilla in_nether 标签一致）
+    type.m_timelines = {};
+
+    // 维度常量属性（vanilla the_nether dimension_type.attributes）
+    type.m_attributes = world::attribute::EnvironmentAttributeMap::Builder()
+                            .set(world::attribute::EnvironmentAttributes::WATER_EVAPORATES(), true)
+                            .set(world::attribute::EnvironmentAttributes::RESPAWN_ANCHOR_WORKS(), true)
+                            .set(world::attribute::EnvironmentAttributes::NETHER_PORTAL_SPAWNS_PIGLINS(), true)
+                            .set(world::attribute::EnvironmentAttributes::PIGLINS_ZOMBIFY(), true)
+                            .set(world::attribute::EnvironmentAttributes::SKY_LIGHT_LEVEL(), 0.0f)
+                            .build();
+
     return type;
 }
 
@@ -145,6 +161,9 @@ DimensionType DimensionType::theEnd()
 
     // 方块标签
     type.m_infiniburn = "minecraft:infiniburn_end";
+
+    // 环境属性：末地只有通用时间线
+    type.m_timelines = {};
 
     return type;
 }

@@ -23,9 +23,12 @@
 
 #pragma once
 
+#include "common/world/attribute/AttributeModifier.hpp"
 #include "common/world/attribute/AttributeRange.hpp"
 #include "common/world/attribute/AttributeType.hpp"
 
+#include <functional>
+#include <string>
 #include <utility>
 
 namespace mc {
@@ -36,24 +39,39 @@ namespace attribute {
  * @brief 环境属性
  *
  * MC 1.21.11 class EnvironmentAttribute<Value>。
- * 定义一个环境属性的默认值、值范围、同步/位置/空间插值标志。
+ * 定义一个环境属性的默认值、值范围、同步/位置/空间插值标志与属性类型。
+ *
+ * 属性实例必须是静态对象：环境属性系统以属性地址为键索引各属性，
+ * 而属性是否计入网络同步也与地址集合相关。
  */
 template <typename Value>
 class EnvironmentAttribute {
 public:
-    EnvironmentAttribute(AttributeType<Value> type,
+    /// 该属性在注册表中的名字（`minecraft:<path>`）
+    using NameProvider = std::function<const std::string&()>;
+
+    EnvironmentAttribute(NameProvider name,
+        AttributeType<Value> type,
         Value defaultValue,
         AttributeRange<Value> valueRange,
         bool isSyncable,
         bool isPositional,
         bool isSpatiallyInterpolated)
-        : m_type(std::move(type))
+        : m_name(std::move(name))
+        , m_type(std::move(type))
         , m_defaultValue(std::move(defaultValue))
         , m_valueRange(std::move(valueRange))
         , m_isSyncable(isSyncable)
         , m_isPositional(isPositional)
         , m_isSpatiallyInterpolated(isSpatiallyInterpolated)
     {}
+
+    /**
+     * @brief 属性的注册名
+     *
+     * 惰性解析：构造时属性尚未登记进注册表，只有在注册完成后调用才有效。
+     */
+    [[nodiscard]] const std::string& name() const { return m_name(); }
 
     const AttributeType<Value>& type() const noexcept { return m_type; }
     const Value& defaultValue() const noexcept { return m_defaultValue; }
@@ -71,8 +89,9 @@ public:
      */
     class Builder {
     public:
-        Builder(AttributeType<Value> type, Value defaultValue)
-            : m_type(std::move(type))
+        Builder(NameProvider name, AttributeType<Value> type, Value defaultValue)
+            : m_name(std::move(name))
+            , m_type(std::move(type))
             , m_defaultValue(std::move(defaultValue))
         {}
 
@@ -102,7 +121,8 @@ public:
 
         EnvironmentAttribute<Value> build()
         {
-            return EnvironmentAttribute<Value>(std::move(m_type),
+            return EnvironmentAttribute<Value>(std::move(m_name),
+                std::move(m_type),
                 std::move(m_defaultValue),
                 std::move(m_valueRange),
                 m_isSyncable,
@@ -111,6 +131,7 @@ public:
         }
 
     private:
+        NameProvider m_name;
         AttributeType<Value> m_type;
         Value m_defaultValue;
         AttributeRange<Value> m_valueRange = AttributeRange<Value>::any();
@@ -119,12 +140,13 @@ public:
         bool m_isSpatiallyInterpolated = false;
     };
 
-    static Builder builder(AttributeType<Value> type, Value defaultValue)
+    static Builder builder(NameProvider name, AttributeType<Value> type, Value defaultValue)
     {
-        return Builder(std::move(type), std::move(defaultValue));
+        return Builder(std::move(name), std::move(type), std::move(defaultValue));
     }
 
 private:
+    NameProvider m_name;
     AttributeType<Value> m_type;
     Value m_defaultValue;
     AttributeRange<Value> m_valueRange;

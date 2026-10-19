@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
 
 #include <cmath>
 #include <functional>
@@ -52,6 +53,25 @@ public:
     T apply(f32 progress, T from, T to) const { return m_fn(progress, from, to); }
 
     /**
+     * @brief 以后处理函数转换插值目标类型
+     *
+     * 返回的函数对 from/to 先做转换再插值。用于把"参数类型"上的关键帧插值
+     * 套用到"值类型"上（参数与值存在一一对应关系时）。
+     *
+     * @tparam Output 输出类型
+     * @param convert 输入值 → 输出值 的转换（在每次 apply 时调用）
+     * @return 输出类型上的插值函数
+     */
+    template <typename Output>
+    [[nodiscard]] LerpFunction<Output> map(std::function<Output(T)> convert) const
+    {
+        const LerpFunction<T> self = *this;
+        return LerpFunction<Output>([self, convert = std::move(convert)](f32 progress, Output from, Output to) {
+            return self.apply(progress, convert(from), convert(to));
+        });
+    }
+
+    /**
      * @brief 浮点线性插值
      */
     static LerpFunction<f32> ofFloat()
@@ -65,7 +85,7 @@ public:
     static LerpFunction<f32> ofDegrees(f32 threshold)
     {
         return LerpFunction<f32>([threshold](f32 progress, f32 from, f32 to) {
-            f32 diff = _wrapDegrees(to - from);
+            const f32 diff = _wrapDegrees(to - from);
             return std::abs(diff) >= threshold ? to : from + progress * diff;
         });
     }
@@ -94,27 +114,26 @@ public:
      */
     static LerpFunction<i32> ofColor()
     {
-        return LerpFunction<i32>([](f32 progress, i32 from, i32 to) { return _srgbLerp(progress, from, to); });
+        return LerpFunction<i32>([](f32 progress, i32 from, i32 to) { return srgbLerp(progress, from, to); });
     }
 
-private:
-    std::function<T(f32, T, T)> m_fn;
-
-    /// 角度归一化到 [-180, 180)
-    static f32 _wrapDegrees(f32 degrees)
+    /**
+     * @brief sRGB 颜色分通道线性插值
+     *
+     * 与 ARGB.srgbLerp / Mth.lerpInt 一致：通道结果取整采用 round-toward-negative-infinity
+     * （负数向下取整、非负截断），而非默认的向零截断。
+     *
+     * @param progress 插值进度
+     * @param from 起始颜色（ARGB）
+     * @param to 结束颜色（ARGB）
+     * @return 插值得到的颜色（ARGB）
+     */
+    static i32 srgbLerp(f32 progress, i32 from, i32 to)
     {
-        f32 x = degrees;
-        while (x >= 180.0f)
-            x -= 360.0f;
-        while (x < -180.0f)
-            x += 360.0f;
-        return x;
-    }
-
-    /// sRGB 颜色线性插值
-    static i32 _srgbLerp(f32 progress, i32 from, i32 to)
-    {
-        auto lerpChannel = [progress](i32 c1, i32 c2) { return static_cast<i32>(c1 + progress * (c2 - c1)); };
+        auto lerpChannel = [progress](i32 c1, i32 c2) {
+            const f32 result = c1 + progress * (c2 - c1);
+            return static_cast<i32>(result < 0.0f ? result - 1.0f : result);
+        };
 
         const i32 a1 = (from >> 24) & 0xFF;
         const i32 r1 = (from >> 16) & 0xFF;
@@ -133,6 +152,11 @@ private:
 
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
+
+    /// 角度归一化到 [-180, 180)
+    static f32 _wrapDegrees(f32 degrees) { return math::wrapDegrees(degrees); }
+
+    std::function<T(f32, T, T)> m_fn;
 };
 
 } // namespace attribute

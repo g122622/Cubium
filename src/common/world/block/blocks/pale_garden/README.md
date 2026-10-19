@@ -12,7 +12,7 @@ pale_garden/
 ├── PaleHangingMossBlock.cpp
 ├── EyeblossomBlock.hpp          # 眼眸花方块（开/合双状态 + 昼夜节律切换）
 ├── EyeblossomBlock.cpp
-├── EyeblossomEnvironment.hpp    # 眼眸花环境属性查询工具（EYEBLOSSOM_OPEN 近似实现）
+├── EyeblossomEnvironment.hpp    # 眼眸花环境属性查询工具（EYEBLOSSOM_OPEN 经维度级环境属性系统查询）
 └── README.md                    # 本文件
 ```
 
@@ -49,8 +49,6 @@ PaleHangingMossBlock 直接继承 Block。
 
 ## 容易踩的坑
 
-- EyeblossomEnvironment 直接包含 MC_UNUSED 的断言入口，不能依赖 PCH 提供宏定义。
-
 1. **状态容器初始化**: 使用 Builder 模式在构造函数中初始化，`fillStateContainer` 保持空实现（因为状态容器已在构造函数中创建）。
 
 2. **PaleHangingMossBlock 的支撑逻辑**: `isValidPosition` 检查上方方块是否有向下的实心面（`isSolidSide`），或上方方块本身是苍白垂苔（允许链式悬挂）。`updatePostPlacement` 在支撑变化时调度tick销毁方块，并更新TIP属性。
@@ -59,7 +57,7 @@ PaleHangingMossBlock 直接继承 Block。
 
 4. **EyeblossomBlock 的状态切换与维度**：仅主世界（`hasFixedTime() == false`）的眼眸花会响应昼夜节律切换状态；下界/末地的 `EYEBLOSSOM_OPEN` 环境属性为 `TriState::Default`，`triStateToBoolean` 会回退到当前状态，因此不切换。务必在新增维度判断逻辑时复用 `EyeblossomEnvironment::getEyeblossomOpen`，避免直接调用 `dayTimeOfDay()`。
 
-5. **EnvironmentAttributes 系统尚未完整实现**：当前 `EyeblossomEnvironment` 是 MC 1.21.11 `EnvironmentAttributes.EYEBLOSSOM_OPEN` + `Timelines.IN_OVERWORLD` 的轻量近似实现。未来完整移植 EnvironmentAttributes 系统（含 EnvironmentAttribute / EnvironmentAttributeMap / EnvironmentAttributeSystem / Timeline / KeyframeTrack 等）后，应替换为本项目的 `world.environmentAttributes().getValue(EnvironmentAttributes::EYEBLOSSOM_OPEN, pos)`。
+5. **环境属性查询的装配成本**：`EyeblossomEnvironment::getEyeblossomOpen` 当前按调用现场装配一份维度级 `EnvironmentAttributeSystem` 再查询。该系统已完整实现（常量层 + 维度声明的日夜时间线层），但尚未复用世界的长期实例；`ServerWorld::environmentAttributes()` 已提供维度级缓存实例，后续接入后应改为直接查询该实例（每个 tick 只采样一次）。
 
 6. **连锁触发范围是 3×2×3**：`tryChangingState` 中 `BlockPos.forEachBetween` 遍历的范围是 `pos + [-3,-2,-3] .. pos + [3,2,3]`（含两端），与 MC 1.21.11 一致。注意是闭区间，半径分别为 3/2/3，不要误写为 3/3/3。
 

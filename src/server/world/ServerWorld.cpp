@@ -61,6 +61,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/attribute/DimensionAttributes.hpp"
+#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -1460,6 +1462,49 @@ void ServerWorld::tick()
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
     // 注：实体空间归属现已由 EntitySpatialIndex 在 addEntity/removeEntity/reapplyPosition 时实时维护，
     // 不再需要每 tick 全量重对齐（原 EntityChunkTracker 每帧 O(n) 重算 chunk 归属的逻辑已删除）。
+
+    // 环境属性系统：本 tick 的世界状态处理完毕，失效 tick 缓存（与 vanilla ServerLevel.tick 末尾一致）。
+    // 缓存以 tick 序号判定，失效后下一次查询按新的 dayTime 重新采样。
+    invalidateEnvironmentAttributeCache();
+}
+
+// ============================================================================
+// 环境属性系统
+// ============================================================================
+
+/// 维度级环境属性系统的持有者：系统一经装配即长期存活
+class ServerWorld::_EnvironmentAttributes {
+public:
+    _EnvironmentAttributes(
+        const DimensionType& dimensionType, std::function<i64()> dayTimeGetter, std::function<i64()> gameTimeGetter)
+        : m_system(world::attribute::DimensionAttributes::createSystem(
+              dimensionType, std::move(dayTimeGetter), std::move(gameTimeGetter)))
+    {}
+
+    [[nodiscard]] const world::attribute::EnvironmentAttributeSystem& system() const { return *m_system; }
+
+private:
+    std::unique_ptr<world::attribute::EnvironmentAttributeSystem> m_system;
+};
+
+const world::attribute::EnvironmentAttributeSystem& ServerWorld::environmentAttributes() const
+{
+    if (!m_environmentAttributes) {
+        // 维度级装配：维度常量层 + 维度声明的各时间线层。
+        // 周期时间线以 dayTime 驱动、无周期时间线以 gameTime 驱动（与 vanilla 一致）；
+        // dayTimeOfDay 在固定时间维度（下界/末地）返回维度固定的时刻。
+        m_environmentAttributes = std::make_unique<_EnvironmentAttributes>(
+            getDimensionType(), [this] { return dayTimeOfDay(); }, [this] { return dayTimeOfDay(); });
+    }
+    return m_environmentAttributes->system();
+}
+
+void ServerWorld::invalidateEnvironmentAttributeCache()
+{
+    // 尚未被查询过时无需失效（缓存只会在查询后存在）
+    if (m_environmentAttributes) {
+        m_environmentAttributes->system().invalidateTickCache();
+    }
 }
 
 // ============================================================================

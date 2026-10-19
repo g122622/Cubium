@@ -70,10 +70,18 @@ public:
     [[nodiscard]] const std::optional<i32>& periodTicks() const noexcept { return m_periodTicks; }
 
     /**
+     * @brief 判断时间线是否包含某个属性的轨道
+     */
+    [[nodiscard]] bool hasTrack(const void* attribute) const { return m_tracks.contains(attribute); }
+
+    /**
      * @brief 创建轨道采样器
      *
+     * 轨道来自 addModifierTrack 注册的修改器+关键帧组合：采样得到的 argument 经修改器
+     * 应用到属性的基础值上。改为覆写轨道（addTrack）时，参数类型同为 Value。
+     *
      * @tparam Value 属性值类型（如 Activity）
-     * @tparam Argument 修改器参数类型（覆写修改器下与 Value 相同）
+     * @tparam Argument 修改器参数类型（覆写轨道下与 Value 相同）
      * @param envAttr 环境属性
      * @param dayTimeGetter 获取当前 dayTime 的函数
      * @return 采样器
@@ -82,20 +90,17 @@ public:
     [[nodiscard]] std::unique_ptr<AttributeTrackSampler<Value, Argument>> createTrackSampler(
         const attribute::EnvironmentAttribute<Value>& envAttr, std::function<i64()> dayTimeGetter) const
     {
-        // TODO: 暂不支持 Value 与 Argument 异构的轨道（MC 通过 LerpFunction.cast 实现，
-        // C++ 需另行设计类型安全方案）。当前所有轨道均为 Value == Argument。
-        static_assert(std::is_same_v<Value, Argument>, "createTrackSampler 目前仅支持 Value 与 Argument 相同的轨道");
-
         const auto it = m_tracks.find(static_cast<const void*>(&envAttr));
         MC_ASSERT_RELEASE_MSG(it != m_tracks.end(), "Timeline::createTrackSampler: attribute track not found");
 
-        const auto* track = std::any_cast<AttributeTrack<Value, Argument>>(&it->second);
+        using TrackType = AttributeTrack<Value, Argument>;
+        const auto* track = std::any_cast<TrackType>(&it->second);
         MC_ASSERT_RELEASE_MSG(track != nullptr, "Timeline::createTrackSampler: attribute track type mismatch");
 
-        return std::make_unique<AttributeTrackSampler<Value, Argument>>(m_periodTicks,
+        return std::make_unique<AttributeTrackSampler<Value, Value>>(m_periodTicks,
             track->modifierPtr(),
-            track->argumentTrack(),
-            envAttr.type().keyframeLerp(),
+            track->effectiveArgumentTrack(),
+            track->modifier().argumentKeyframeLerp(),
             std::move(dayTimeGetter));
     }
 
@@ -119,13 +124,44 @@ public:
         template <typename Value, typename Argument>
         Builder& addModifierTrack(const attribute::EnvironmentAttribute<Value>& envAttr,
             std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifier,
-            std::function<void(typename KeyframeTrack<Argument>::Builder&)> consumer)
+            std::function<void(typename KeyframeTrack<Value>::Builder&)> consumer)
         {
-            typename KeyframeTrack<Argument>::Builder builder;
+            return addModifierTrack(envAttr, std::move(modifier), std::nullopt, std::move(consumer));
+        }
+
+        /**
+         * @brief 添加带轨道级缓动的修改器轨道
+         *
+         * vanilla 数据包把 `ease` 写在轨道上（而非关键帧内），因此缓动需要单独传入；
+         * 传 std::nullopt 表示沿用关键帧轨道自带缓动。
+         *
+         * @tparam Value 属性值类型
+         * @tparam Argument 修改器参数类型
+         * @param envAttr 环境属性
+         * @param modifier 修改器
+         * @param easing 轨道级缓动（覆盖关键帧轨道的缓动）
+         * @param consumer 关键帧构建回调
+         */
+        template <typename Value, typename Argument>
+        Builder& addModifierTrack(const attribute::EnvironmentAttribute<Value>& envAttr,
+            std::shared_ptr<const attribute::AttributeModifier<Value, Argument>> modifier,
+            std::optional<EasingType> easing,
+            std::function<void(typename KeyframeTrack<Value>::Builder&)> consumer)
+        {
+            // 关键帧值以"属性的值表示"给出：Value 与 Argument 不同时在这里完成转换
+            typename KeyframeTrack<Value>::Builder builder;
             consumer(builder);
 
+            const KeyframeTrack<Value> consumedTrack = builder.build();
+            std::vector<Keyframe<Argument>> keyframes;
+            for (const auto& keyframe : consumedTrack.keyframes()) {
+                keyframes.emplace_back(keyframe.ticks(), static_cast<Argument>(keyframe.value()));
+            }
+            MC_ASSERT_RELEASE_MSG(!keyframes.empty(), "Timeline::addModifierTrack: track has no keyframes");
             m_tracks[static_cast<const void*>(&envAttr)] =
-                std::make_any<AttributeTrack<Value, Argument>>(std::move(modifier), builder.build());
+                std::make_any<AttributeTrack<Value, Argument>>(std::move(modifier),
+                    KeyframeTrack<Argument>(std::move(keyframes), EasingType::LINEAR),
+                    std::move(easing));
             return *this;
         }
 
