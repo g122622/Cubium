@@ -28,6 +28,7 @@
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/cave/FrogspawnBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -77,7 +78,7 @@ void registerWildBlocks()
 
     // 蛙卵 - 放置在水面上，孵化后消失
     WildBlocks::FROGSPAWN =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:frogspawn"), frogspawnProps);
+        &registry.registerBlock<blocks::FrogspawnBlock>(ResourceLocation("minecraft:frogspawn"), frogspawnProps);
 }
 
 } // namespace block_registry

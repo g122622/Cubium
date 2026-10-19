@@ -71,6 +71,7 @@ add_executable(mc_tests
     # common/test_collision.cpp  # 暂时禁用 - 依赖旧的碰撞系统
     common/test_property.cpp
     common/util/StateHolderTest.cpp
+    common/util/DirectionTest.cpp
     common/util/text/Utf8Test.cpp
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
@@ -711,6 +712,8 @@ add_executable(mc_tests
     common/world/block/blocks/cave/BigDripleafBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
     common/world/block/blocks/cave/PointedDripstoneBlockTest.cpp
+    # FrogspawnBlock 青蛙卵：存活判定、邻居更新、孵化生成蝌蚪
+    common/world/block/blocks/cave/FrogspawnBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp
     common/world/block/blocks/pale_garden/EyeblossomBlockTest.cpp
     common/world/block/blocks/pale_garden/CreakingHeartBlockTest.cpp

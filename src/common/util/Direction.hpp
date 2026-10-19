@@ -640,29 +640,24 @@ inline i32 mirrorRotation(i32 rotation, Mirror mirror, i32 max = 16)
  * @brief 由偏航角取水平方向
  *
  * 对应 MC 1.21.11 `Direction.fromYRot(double)`：
- *   from2DDataValue(floor(yaw / 90 + 0.5) & 3)，其中 2D 数据值按 South=0、West=1、North=2、East=3
- * 循环（与 toYRot 互逆）。例如 yaw=0→South、90→East、180→North、270（-90）→West。
- * yaw 为 NaN 时（原版非法输入）返回 North。
+ *   from2DDataValue(floor(yaw / 90 + 0.5) & 3)，其中 2D 数据值按 South=0、East=1、North=2、West=3
+ * 循环（与 toYRot 互逆，yaw 增大时由南→东→北→西旋转）。例如 yaw=0→South、90→East、
+ * 180→North、270（-90）→West。
+ * 非有限输入（NaN / ±inf）在强转整数时结果未定义，与原版对非法输入未做约定的状态一致；
+ * 调用方须保证 yaw 为有限值（实体偏航角恒为有限值）。
  *
  * @param yaw 偏航角（度），MC 说明见 isFacingAngle
  * @return 水平方向
  */
 inline Direction fromYRot(f64 yaw)
 {
-    if (std::isnan(yaw)) {
-        return Direction::North;
-    }
-    const i32 index = static_cast<i32>(std::floor(yaw / 90.0 + 0.5)) & 3;
-    switch (index) {
-        case 0:
-            return Direction::South;
-        case 1:
-            return Direction::East;
-        case 2:
-            return Direction::North;
-        default:
-            return Direction::West;
-    }
+    // MC: (this.data2d & 3) * 90，其中 data2d 为 South=0、East=1、North=2、West=3；
+    // 结合 Direction 的 3D 值布局（Down=0、Up=1、North=2、South=3、West=4、East=5），
+    // 2D 数据值 d 对应 3D 值：d=0→3、d=1→5、d=2→2、d=3→4。
+    static constexpr i32 TWO_D_TO_THREE_D[4] = {3, 5, 2, 4};
+    const i32 data = static_cast<i32>(std::floor(yaw / 90.0 + 0.5)) & 3;
+    const i32 value = TWO_D_TO_THREE_D[data];
+    return static_cast<Direction>(value);
 }
 } // namespace Directions
 
