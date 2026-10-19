@@ -38,6 +38,7 @@
 #include "world/block/Block.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/Material.hpp"
+#include "world/block/blocks/HangingSignBlock.hpp"
 #include "world/block/blocks/SignBlock.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/core/BlockEntityRegistry.hpp"
@@ -70,6 +71,27 @@ protected:
     std::unique_ptr<StandingSignBlock> standingSign_;
     std::unique_ptr<WallSignBlock> wallSign_;
 };
+
+// ========== CeilingHangingSignBlock 旋转/镜像 ==========
+
+TEST_F(SignBlockTest, CeilingHangingSign_RotateAndMirrorUpdateRotation)
+{
+    CeilingHangingSignBlock hangingSign(BlockProperties(Material::WOOD).hardness(1.0f).notSolid(), WoodType::Oak);
+
+    const BlockState& state = hangingSign.defaultState();
+    ASSERT_EQ(state.get(BlockStateProperties::ROTATION_0_15()), 0);
+
+    // 每 90 度对应 4 个旋转档位
+    EXPECT_EQ(hangingSign.rotate(state, Rotation::Clockwise90).get(BlockStateProperties::ROTATION_0_15()), 4);
+    EXPECT_EQ(hangingSign.rotate(state, Rotation::Clockwise180).get(BlockStateProperties::ROTATION_0_15()), 8);
+    EXPECT_EQ(hangingSign.rotate(state, Rotation::CounterClockwise90).get(BlockStateProperties::ROTATION_0_15()), 12);
+
+    const BlockState stateAt5 = state.with(BlockStateProperties::ROTATION_0_15(), 5);
+    // 左右镜像：关于南北轴，5 → 11；前后镜像：关于东西轴，5 → 3
+    EXPECT_EQ(hangingSign.mirror(stateAt5, Mirror::LeftRight).get(BlockStateProperties::ROTATION_0_15()), 11);
+    EXPECT_EQ(hangingSign.mirror(stateAt5, Mirror::FrontBack).get(BlockStateProperties::ROTATION_0_15()), 3);
+    EXPECT_EQ(hangingSign.mirror(stateAt5, Mirror::None).get(BlockStateProperties::ROTATION_0_15()), 5);
+}
 
 // ========== StandingSignBlock 测试 ==========
 

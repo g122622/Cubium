@@ -58,6 +58,7 @@ public:
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
+    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
 protected:

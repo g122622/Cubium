@@ -1463,12 +1463,10 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOwner_ChangesCollarColor)
     // 返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
 
-    // 颈圈颜色应该变为蓝色（BLUE_DYE 映射到 Blue）
+    // 颈圈颜色应该变为蓝色（BLUE_DYE 映射到 Blue），并消耗一个染料
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
 
-    // 物品应该消耗
-    i32 countAfter = player.inventory().getItem(0).getCount();
-    EXPECT_EQ(countAfter, 9);
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 9);
 }
 
 TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeNonOwner_NoCollarChange)
@@ -2567,9 +2565,9 @@ TEST_F(WolfEntityTestFixture, ProcessInitialInteract_SneakingWithShears_DoesNotS
 // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 染色分支
 // ============================================================================
 
-TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor)
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_OnlyChangesCollar)
 {
-    // 主人手持染料 + 已装备狼铠 → 改变狼铠颜色
+    // 主人手持染料 + 已装备狼铠 → 原版只改变项圈颜色，狼铠颜色不变、染料照常消耗
     WolfTestWorld world;
     WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
     wolf.setWorld(&world);
@@ -2601,13 +2599,12 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor
     // 返回 Success
     EXPECT_EQ(result, ActionResultType::Success);
 
-    // 狼铠颜色应该发生变化（与红色混合）
+    // 狼铠颜色保持不变（原版不存在"手持染料给狼铠染色"交互）
     u32 newColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
-    EXPECT_NE(newColor, initialColor);
-
-    // 物品应该消耗
-    i32 countAfter = player.inventory().getItem(0).getCount();
-    EXPECT_EQ(countAfter, 9);
+    EXPECT_EQ(newColor, initialColor);
+    // 项圈默认即红色：染料与项圈同色时不发生交互、不消耗
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 10);
 }
 
 TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorChange)
@@ -2643,65 +2640,6 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorC
 
     // 物品不消耗
     EXPECT_EQ(stranger.inventory().getItem(0).getCount(), 10);
-}
-
-TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
-{
-    // 多次染色应该混合颜色（与当前颜色取 RGB 平均值）
-    // 狼铠默认颜色为犰狳鳞甲棕色 0xA06540 = (160, 101, 64)
-    WolfTestWorld world;
-    WolfEntity wolf(EntityInstanceId(1), mc::test::testEcsRegistry());
-    wolf.setWorld(&world);
-    wolf.setTypeId("minecraft:wolf");
-    wolf.setTamed(true);
-    wolf.setOwnerId(kTestOwnerUuid);
-
-    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
-    wolf.setBodyArmorItem(wolfArmorStack);
-
-    const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(wolf.getBodyArmorItem().getItem());
-    ASSERT_NE(dyeableArmor, nullptr);
-
-    Player player(EntityInstanceId(2), "TestPlayer", mc::test::testEcsRegistry());
-    player.setUuid(util::uuidToString(kTestOwnerUuid));
-    player.abilities().creativeMode = true; // 创造模式不消耗物品
-
-    // 验证初始颜色为默认色（犰狳鳞甲棕色 0xA06540）
-    u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
-    EXPECT_EQ(initialColor, 0xA06540);
-
-    // 第一次染色：白色染料 0xFFFFFF
-    // 混合后：((160+255)/2, (101+255)/2, (64+255)/2) = (207, 178, 159)
-    ItemStack whiteDyeStack(Items::WHITE_DYE, 10);
-    player.inventory().setItem(0, whiteDyeStack);
-    player.inventory().setSelectedSlot(0);
-    wolf.interactMob(player, Hand::MainHand);
-    u32 colorAfterWhite = dyeableArmor->getColor(wolf.getBodyArmorItem());
-    EXPECT_NE(colorAfterWhite, initialColor);
-
-    u32 expectedAfterWhiteR = (0xA0 + 0xFF) / 2; // 207
-    u32 expectedAfterWhiteG = (0x65 + 0xFF) / 2; // 178
-    u32 expectedAfterWhiteB = (0x40 + 0xFF) / 2; // 159
-    EXPECT_EQ((colorAfterWhite >> 16) & 0xFF, expectedAfterWhiteR);
-    EXPECT_EQ((colorAfterWhite >> 8) & 0xFF, expectedAfterWhiteG);
-    EXPECT_EQ(colorAfterWhite & 0xFF, expectedAfterWhiteB);
-
-    // 第二次染色：黑色染料 0x191919
-    // 混合后：((207+25)/2, (178+25)/2, (159+25)/2) = (116, 101, 92)
-    ItemStack blackDyeStack(Items::BLACK_DYE, 10);
-    player.inventory().setItem(0, blackDyeStack);
-    wolf.interactMob(player, Hand::MainHand);
-    u32 colorAfterBlack = dyeableArmor->getColor(wolf.getBodyArmorItem());
-
-    // 两次染色后颜色应该不同
-    EXPECT_NE(colorAfterWhite, colorAfterBlack);
-
-    u32 expectedAfterBlackR = (expectedAfterWhiteR + 0x19) / 2; // 116
-    u32 expectedAfterBlackG = (expectedAfterWhiteG + 0x19) / 2; // 101
-    u32 expectedAfterBlackB = (expectedAfterWhiteB + 0x19) / 2; // 92
-    EXPECT_EQ((colorAfterBlack >> 16) & 0xFF, expectedAfterBlackR);
-    EXPECT_EQ((colorAfterBlack >> 8) & 0xFF, expectedAfterBlackG);
-    EXPECT_EQ(colorAfterBlack & 0xFF, expectedAfterBlackB);
 }
 
 TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NoArmor_DyeChangesCollarOnly)

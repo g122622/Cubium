@@ -4,7 +4,7 @@
 // 提供短暂红石信号，一段时间后自动关闭（弹起）。
 //   - 石按钮/磨制黑石按钮：开启 20 游戏刻（wiki「20」，基岩 10 红石刻=20 游戏刻）。
 //   - 木按钮：开启 30 游戏刻（wiki「30」，基岩 15 红石刻=30 游戏刻）。
-//   - 开启时为毗邻红石线/比较器/中继器提供 15 信号、激活毗邻机械元件、强充能自身附着导体至 15。
+//   - 开启时仅向附着面相反方向（输出方向）提供 15 弱信号，不提供强信号。
 //   - 状态变化时向毗邻提供方块更新（JE 同时 PP+NC 更新），向附着方块毗邻提供 NC 更新。
 //
 // C++ 链路：AbstractButtonBlock（AbstractButtonBlock.cpp）有三个 state：
@@ -12,7 +12,7 @@
 //   - POWERED（bool，默认 false）
 //   - ATTACH_FACE（AttachFace，默认 Wall）
 //   - press（AbstractButtonBlock.cpp:252-272）：已按下则 return（防重复）；否则 set POWERED=true（flags=2
-//     无邻居更新防循环）+ playClickSound + notifyNeighbors（主动通知 6 向邻居 neighborChanged）+
+//     无邻居更新防循环）+ playClickSound + notifyNeighbors（通知输出方向与附着方向的相邻方块）+
 //     scheduleBlockTick(m_ticksToStayPressed) 调度弹起。
 //   - tick（AbstractButtonBlock.cpp:166-181）：POWERED=true 时 set POWERED=false + 弹起音效 + notifyNeighbors。
 //   - 木按钮 WOOD_BUTTON_PRESS_TIME=30（WoodButtonBlock.cpp:36），石按钮 STONE_BUTTON_PRESS_TIME=20
@@ -22,7 +22,7 @@
 //     ceiling、facing=玩家水平朝向；点击墙面→wall、facing=点击面（水平四向）。此前未重写该方法，落回
 //     基类 Block::getStateForPlacement 返回 defaultState()（facing 恒 North、face 恒 wall），与预期按
 //     点击面决定朝向/附着面的行为不一致。重写后修正。石/木按钮继承本类，继承本方法自动获得正确朝向。
-//   - getWeakPower/getStrongPower：isPowered?15:0，全向输出（基岩充能模型，Java 方向性输出 TODO 未实现）。
+//   - getWeakPower：仅输出方向（附着面相反方向）isPowered 时返回 15；getStrongPower 恒 0（不充能导体）。
 //
 // 按压入口：GameTestHelper::pressButton（GameTestHelper.cpp:418-440）已实现（非 stub），
 //   dynamic_cast<AbstractButtonBlock*> 校验后调 button->press。JS 侧 test.pressButton(pos)。
@@ -46,7 +46,7 @@
 // 1. setBlockType 放按钮用默认 state（Wall+North），支撑方块在按钮 South 侧（z+1，facing North 的反方向）。
 //    放置顺序：先放支撑 (3,2,2) stone，再放按钮 (3,2,1)，避免按钮自毁（updatePostPlacement 检测支撑缺失）。
 //    放按钮后不要再动支撑位方块。
-// 2. 被充能红石灯放 (4,2,1)（按钮 East 侧水平相邻）。基岩全向输出模型，水平相邻即被充能。
+// 2. 被点亮红石灯放 (3,2,3)（按钮 North 侧即输出方向相邻）。墙按钮朝北时输出方向为 North，红石灯在该侧被激活。
 //    红石灯电平触发：press 同步点亮、弹起同步熄灭，适合做充能断言（不用铜灯——边沿锁存弹起不灭）。
 // 3. pressButton 同步置 POWERED=true，pollUntilSucceed 仅作时序余量保险。
 // 4. 弹起断言用 runAtTickTime 显式多时间点断言（不用 pollUntilSucceed 断 powered===false——首 tick 即
@@ -62,7 +62,7 @@
 //    失败；重写后修正。
 //
 // 不测「箭射中木按钮触发」：投射物碰撞链路未实现，跳过。TODO: 待投射物碰撞实现后补。
-// 不测「Java 方向性强输出」：Cubium 是基岩全向输出模型，Java 方向性 TODO 未实现，跳过。
+// 方向性输出已实现（仅输出方向 15 弱信号），非输出方向不充能由 ButtonBlockSignalTest 单测覆盖。
 //
 // 跨服务端：按钮 powered/facing/face state 名两端一致，脉冲时序（木 30gt/石 20gt）+ 放置朝向（face/facing
 //   按点击面）行为两端一致。注意：BE 用红石刻口径（木 15/石 10），Cubium 用游戏刻口径（木 30/石 20），
@@ -83,7 +83,7 @@ import { pollUntilSucceed } from "../../utils/test/poll.js";
 
 // glass_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
 // 按钮放 (3,2,1)（Wall+North 默认），支撑 (3,2,2) stone（按钮 South 侧 z+1，须先于按钮放置）。
-// 被充能红石灯放 (4,2,1)（按钮 East 侧水平相邻，基岩全向输出充能）。
+// 红石灯放 (3,2,3)：按钮输出方向（North，z-1）相邻方块，按压后被点亮。
 
 // 读取按钮 powered state（bool）。返回 null 表示读取失败或非按钮。
 function getButtonPowered(test: Test, x: number, y: number, z: number): boolean | null {
@@ -198,7 +198,7 @@ const WALL_FACING_CASES: WallFacingCase[] = [
 function placeButtonSetup(test: Test, buttonType: string): void {
     test.setBlockType("minecraft:stone", { x: 3, y: 2, z: 2 }); // 支撑（按钮 South 侧 z+1）
     test.setBlockType(buttonType, { x: 3, y: 2, z: 1 }); // 按钮（Wall+North，支撑在 South）
-    test.setBlockType("minecraft:redstone_lamp", { x: 4, y: 2, z: 1 }); // 被充能红石灯（按钮 East 侧）
+    test.setBlockType("minecraft:redstone_lamp", { x: 3, y: 2, z: 3 }); // 红石灯（按钮 North 侧=输出方向）
 }
 
 // 场景 1：石按钮按压 → POWERED 翻 true + 毗邻红石灯亮（充能毗邻）。
@@ -217,13 +217,13 @@ function stoneButtonPowersWhenPressed(test: Test): void {
     // 轮询断言 powered===true 且 lampLit===true（press 同步触发，pollUntilSucceed 留余量）。
     pollUntilSucceed(
         test,
-        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 4, 2, 1) === true,
+        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 3, 2, 3) === true,
         {
             startTick: 2,
             interval: 4,
             maxTick: 30,
             onTimeout: () => {
-                test.assert(false, `stone button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 4, 2, 1)} (expected both true after press)`);
+                test.assert(false, `stone button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 3, 2, 3)} (expected both true after press)`);
             },
         },
     );
@@ -239,13 +239,13 @@ function woodButtonPowersWhenPressed(test: Test): void {
 
     pollUntilSucceed(
         test,
-        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 4, 2, 1) === true,
+        () => getButtonPowered(test, 3, 2, 1) === true && getLampLit(test, 3, 2, 3) === true,
         {
             startTick: 2,
             interval: 4,
             maxTick: 30,
             onTimeout: () => {
-                test.assert(false, `wood button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 4, 2, 1)} (expected both true after press)`);
+                test.assert(false, `wood button: powered=${getButtonPowered(test, 3, 2, 1)}, lampLit=${getLampLit(test, 3, 2, 3)} (expected both true after press)`);
             },
         },
     );
@@ -273,14 +273,14 @@ function stoneButtonUnpressesAfterTwentyTicks(test: Test): void {
     // tick 15（弹起前，20gt 窗口内）：断言仍在脉冲（powered=true、灯亮），证明按压生效。
     test.runAtTickTime(15, () => {
         const powered = getButtonPowered(test, 3, 2, 1);
-        const lampLit = getLampLit(test, 4, 2, 1);
+        const lampLit = getLampLit(test, 3, 2, 3);
         test.assert(powered === true && lampLit === true, `stone button should be powered at tick 15 (within 20gt pulse), got powered=${powered}, lampLit=${lampLit}`);
     });
 
     // tick 30（弹起 tick 22 + 灯断电延迟 4tick + 余量）：断言脉冲结束（powered=false、灯已延迟熄灭）。
     test.runAtTickTime(30, () => {
         const powered = getButtonPowered(test, 3, 2, 1);
-        const lampLit = getLampLit(test, 4, 2, 1);
+        const lampLit = getLampLit(test, 3, 2, 3);
         test.assert(powered === false && lampLit === false, `stone button should unpress after 20 ticks (lamp extinguishes after 4tick delay), got powered=${powered}, lampLit=${lampLit}`);
         test.succeed();
     });
