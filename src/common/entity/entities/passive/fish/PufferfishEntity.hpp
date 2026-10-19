@@ -220,6 +220,19 @@ public:
 
     void tick() override;
 
+    void aiStep() override;
+
+    /**
+     * @brief 判断实体是否属于河豚的威胁目标（vanilla Pufferfish.SCARY_MOB）
+     *
+     * 创造模式玩家与 NOT_SCARY_FOR_PUFFERFISH 标签成员（水生生物）不是威胁。
+     * 膨胀触发（PuffGoal）与刺伤（aiStep 内 _attackNearbyEnemies）共用本判定。
+     *
+     * @param entity 待判定实体
+     * @return true 若实体是威胁
+     */
+    [[nodiscard]] static bool isScaryMob(const LivingEntity& entity);
+
 protected:
     // ========== AI 注册 ==========
     void registerGoals() override;
@@ -251,9 +264,10 @@ private:
     static constexpr i32 DEFLATE_FULL_TO_SEMI = 60;     // 完全膨胀到半膨胀的延迟
 
     /**
-     * @brief 检测并攻击附近敌人
+     * @brief 刺伤附近敌人
      *
-     * 在膨胀状态时检测碰撞箱扩展 0.3 格范围内的 MobEntity。
+     * 在膨胀状态时对碰撞箱扩展 0.3 格范围内、通过 isScaryMob 判定的 MobEntity 造成
+     * 1+puffState 点伤害并附加 60*puffState tick 中毒（对齐 vanilla Pufferfish.aiStep）。
      */
     void _attackNearbyEnemies();
 

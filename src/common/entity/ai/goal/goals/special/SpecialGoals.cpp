@@ -46,6 +46,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/network/protocol/EntityEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -314,41 +315,36 @@ void PuffGoal::resetTask()
 
 bool PuffGoal::_isEnemy(const LivingEntity* entity)
 {
-    if (!entity) return false;
-
-    // 检查是否为玩家
-    if (entity->entityType() == entity::VanillaEntityTypeKeys::PLAYER) {
-        // 需要使用 dynamic_cast 安全转换
-        const Player* player = dynamic_cast<const Player*>(entity);
-        if (player) {
-            // 观察者模式或创造模式的玩家不是敌人
-            if (player->isSpectator() || player->isCreative()) {
-                return false;
-            }
-        }
-        return true; // 非观察者/创造模式的玩家是敌人
-    }
-
-    // 检查实体类型是否为水生生物
-    const entity::EntityType* type = entity->entityType();
-    // 不可怕实体（不是敌人）- 对齐 Java Pufferfish.SCARY_MOB + EntityTypeTags.NOT_SCARY_FOR_PUFFERFISH
-    //   标签 = {cod, dolphin, elder_guardian, glow_squid, guardian, nautilus, pufferfish, salmon,
-    //          squid, sulfur_cube, tadpole, tropical_fish, turtle, zombie_nautilus}（14 个），
-    //   其中 sulfur_cube 尚未在项目中注册。
-    //   此前仅列 7 个，漏 glow_squid/guardian/elder_guardian/nautilus/zombie_nautilus 致河豚在这些
-    //   水生生物旁错误膨胀。
-    // TODO: sulfur_cube 实体实现后补 NOT_SCARY_FOR_PUFFERFISH 白名单（该实体尚未在项目中注册）。
-    if (type == entity::VanillaEntityTypeKeys::COD || type == entity::VanillaEntityTypeKeys::SALMON ||
-        type == entity::VanillaEntityTypeKeys::PUFFERFISH || type == entity::VanillaEntityTypeKeys::TROPICAL_FISH ||
-        type == entity::VanillaEntityTypeKeys::SQUID || type == entity::VanillaEntityTypeKeys::GLOW_SQUID ||
-        type == entity::VanillaEntityTypeKeys::DOLPHIN || type == entity::VanillaEntityTypeKeys::TURTLE ||
-        type == entity::VanillaEntityTypeKeys::GUARDIAN || type == entity::VanillaEntityTypeKeys::ELDER_GUARDIAN ||
-        type == entity::VanillaEntityTypeKeys::NAUTILUS || type == entity::VanillaEntityTypeKeys::ZOMBIE_NAUTILUS ||
-        type == entity::VanillaEntityTypeKeys::TADPOLE) {
+    // 对齐 vanilla 1.21.11 Pufferfish 的膨胀触发条件：
+    //   SCARY_MOB = e -> e instanceof Player p && p.isCreative() ? false
+    //                   : !e.getType().is(EntityTypeTags.NOT_SCARY_FOR_PUFFERFISH)
+    //   TARGETING_CONDITIONS = TargetingConditions.forNonCombat()
+    //       .ignoreInvisibilityTesting().ignoreLineOfSight().selector(SCARY_MOB)
+    //   PufferfishPuffGoal.canUse 以 getBoundingBox().inflate(2.0) 取 LivingEntity 并用
+    //   TARGETING_CONDITIONS.test 过滤。
+    // TargetingConditions.forNonCombat 的动作方（mob）非空分支仍会校验 canBeSeenByAnyone()
+    // （= !isSpectator() && isAlive()）与 Mob.canAttack（和平难度下玩家不可被攻击）。
+    if (entity == nullptr || !entity->isAlive()) {
         return false;
     }
-    // 其他所有生物都是敌人（包括怪物、陆地动物等）
-    return true;
+
+    // canBeSeenByAnyone：旁观者不可见，不会触发膨胀。
+    if (entity->isSpectator()) {
+        return false;
+    }
+
+    // 创造模式玩家不触发膨胀（和平难度由 mobAttack 伤害层天然拦截，与原版一致）。
+    if (const auto* player = dynamic_cast<const Player*>(entity); player != nullptr && player->isCreative()) {
+        return false;
+    }
+
+    // NOT_SCARY_FOR_PUFFERFISH 标签成员（水生生物）不触发膨胀。
+    // 标签初始化是 EntityRegistry::initializeAll 之后的必经步骤；未初始化时成员集为空会把
+    // 水生生物误判为敌人，故与凋灵友军判定同样做初始化守卫，未初始化时保守返回"非敌人"。
+    if (!EntityTypeTags::isInitialized()) {
+        return false;
+    }
+    return !EntityTypeTags::NOT_SCARY_FOR_PUFFERFISH().contains(entity->getTypeId());
 }
 
 bool PuffGoal::_findNearbyEnemy()
