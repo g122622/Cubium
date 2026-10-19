@@ -23,965 +23,791 @@
 
 #include "MobSpawnInfo.hpp"
 
-namespace mc::world::spawn {
+#include "common/entity/core/EntityRegistry.hpp"
+
+namespace mc {
+namespace world {
+namespace spawn {
 
 // ============================================================================
 // 工厂方法实现
 // ============================================================================
 //
-// TODO(spawn-list-alignment): 本文件下各工厂方法的 spawn list 与原版 MC Java 1.16.5
-// 仍存在若干偏差，逐项列在对应工厂方法内（搜索关键词 "TODO(spawn-list" 即可定位）。
-// 已知共性偏差汇总：
-//   1) 多个 1.16.5 实体未注册（parched、camel、bogged、
-//      armadillo、zombie_horse 等），无法加入对应 spawn list。
-// 收敛上述任一项时，请同步删除对应的 TODO 注释。
+// 全部条目逐项取自 MC Java 1.21.11 的生物群系刷怪数据
+// （net/minecraft/data/worldgen/biome/OverworldBiomes.java、NetherBiomes.java 与
+// net/minecraft/data/worldgen/BiomeDefaultFeatures.java 的 addSpawn 调用），
+// 权重、最小/最大群组数量、分类与生物群系属性（creatureGenerationProbability、spawn cost）一一对应。
+//
+// 与原版的已知偏差（对应实体尚未实现，无法进入 spawn list）：
+//   1) camel（沙漠 CREATURE 1,1,1）——CamelEntity 未实现；
+//   2) armadillo（热带草原 CREATURE 10,2,3；恶地 CREATURE 6,1,2）——ArmadilloEntity 未实现；
+//   3) parched（沙漠 MONSTER 50,4,4）——ParchedEntity 未实现；
+//   4) frog（沼泽/红树林沼泽 CREATURE 10,2,5）——FrogEntity 未实现（蝌蚪与青蛙卵已实现）；
+//   5) goat（尖峭峰/冰封峰/裸岩峰 CREATURE 5,1,3；雪坡 CREATURE 5,1,3）——GoatEntity 未实现。
+//   上述条目若写入刷怪表，会占用权重并在抽取后被 NaturalSpawner 跳过，使实际生成分布偏离原版，
+//   因此暂不加入（内置刷怪表与数据包口径保持一致）。
+// TODO(spawn-list-entities): 上述实体实现并注册后，在此补齐对应 spawn list，并删除本条注释中的相应条目。
+
+namespace {
+
+using entity::EntityTypeKeys::AXOLOTL;
+using entity::EntityTypeKeys::BAT;
+using entity::EntityTypeKeys::BOGGED;
+using entity::EntityTypeKeys::CHICKEN;
+using entity::EntityTypeKeys::COD;
+using entity::EntityTypeKeys::COW;
+using entity::EntityTypeKeys::CREEPER;
+using entity::EntityTypeKeys::DOLPHIN;
+using entity::EntityTypeKeys::DONKEY;
+using entity::EntityTypeKeys::DROWNED;
+using entity::EntityTypeKeys::ENDERMAN;
+using entity::EntityTypeKeys::FOX;
+using entity::EntityTypeKeys::GHAST;
+using entity::EntityTypeKeys::GLOW_SQUID;
+using entity::EntityTypeKeys::HOGLIN;
+using entity::EntityTypeKeys::HORSE;
+using entity::EntityTypeKeys::HUSK;
+using entity::EntityTypeKeys::LLAMA;
+using entity::EntityTypeKeys::MAGMA_CUBE;
+using entity::EntityTypeKeys::MOOSHROOM;
+using entity::EntityTypeKeys::NAUTILUS;
+using entity::EntityTypeKeys::OCELOT;
+using entity::EntityTypeKeys::PANDA;
+using entity::EntityTypeKeys::PARROT;
+using entity::EntityTypeKeys::PIG;
+using entity::EntityTypeKeys::PIGLIN;
+using entity::EntityTypeKeys::POLAR_BEAR;
+using entity::EntityTypeKeys::PUFFERFISH;
+using entity::EntityTypeKeys::RABBIT;
+using entity::EntityTypeKeys::SALMON;
+using entity::EntityTypeKeys::SHEEP;
+using entity::EntityTypeKeys::SKELETON;
+using entity::EntityTypeKeys::SLIME;
+using entity::EntityTypeKeys::SPIDER;
+using entity::EntityTypeKeys::SQUID;
+using entity::EntityTypeKeys::STRAY;
+using entity::EntityTypeKeys::STRIDER;
+using entity::EntityTypeKeys::TROPICAL_FISH;
+using entity::EntityTypeKeys::TURTLE;
+using entity::EntityTypeKeys::WITCH;
+using entity::EntityTypeKeys::WOLF;
+using entity::EntityTypeKeys::ZOMBIE;
+using entity::EntityTypeKeys::ZOMBIE_HORSE;
+using entity::EntityTypeKeys::ZOMBIE_VILLAGER;
+using entity::EntityTypeKeys::ZOMBIFIED_PIGLIN;
+
+/// BiomeDefaultFeatures.caveSpawns(builder)：蝙蝠（AMBIENT 10,8,8）+ 发光鱿鱼（UNDERGROUND_WATER_CREATURE 10,4,6）。
+void _addCaveSpawns(MobSpawnInfo& info)
+{
+    info.addAmbientSpawn(SpawnEntry(BAT, 10, 8, 8));
+    info.addUndergroundWaterCreatureSpawn(SpawnEntry(GLOW_SQUID, 10, 4, 6));
+}
+
+/// BiomeDefaultFeatures.monsters(builder, zombieWeight, zombieVillagerWeight, zombieHorseWeight, skeletonWeight)，
+/// drownedInsteadOfZombie 恒为 false。僵尸马仅在 zombieHorseWeight > 0 时加入（1.21.11 中仅平原系使用）。
+void _addMonsters(
+    MobSpawnInfo& info, i32 zombieWeight, i32 zombieVillagerWeight, i32 zombieHorseWeight, i32 skeletonWeight)
+{
+    info.addMonsterSpawn(SpawnEntry(SPIDER, 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ZOMBIE, zombieWeight, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ZOMBIE_VILLAGER, zombieVillagerWeight, 1, 1));
+    if (zombieHorseWeight > 0) {
+        info.addMonsterSpawn(SpawnEntry(ZOMBIE_HORSE, zombieHorseWeight, 1, 1));
+    }
+    info.addMonsterSpawn(SpawnEntry(SKELETON, skeletonWeight, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(CREEPER, 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(SLIME, 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ENDERMAN, 10, 1, 4));
+    info.addMonsterSpawn(SpawnEntry(WITCH, 5, 1, 1));
+}
+
+/// BiomeDefaultFeatures.commonSpawns(builder[, skeletonWeight=100])：caveSpawns + monsters(95, 5, 0, skeletonWeight)。
+void _addCommonSpawns(MobSpawnInfo& info, i32 skeletonWeight = 100)
+{
+    _addCaveSpawns(info);
+    _addMonsters(info, 95, 5, 0, skeletonWeight);
+}
+
+/// BiomeDefaultFeatures.commonSpawnWithZombieHorse(builder)：caveSpawns + monsters(90, 5, 5, 100)。
+void _addCommonSpawnWithZombieHorse(MobSpawnInfo& info)
+{
+    _addCaveSpawns(info);
+    _addMonsters(info, 90, 5, 5, 100);
+}
+
+/// BiomeDefaultFeatures.farmAnimals(builder)：羊、猪、鸡、牛。
+void _addFarmAnimals(MobSpawnInfo& info)
+{
+    info.addCreatureSpawn(SpawnEntry(SHEEP, 12, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(PIG, 10, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(CHICKEN, 10, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(COW, 8, 4, 4));
+}
+
+/// BiomeDefaultFeatures.baseJungleSpawns(builder)：farmAnimals + 额外鸡 + commonSpawns。
+void _addBaseJungleSpawns(MobSpawnInfo& info)
+{
+    _addFarmAnimals(info);
+    info.addCreatureSpawn(SpawnEntry(CHICKEN, 10, 4, 4));
+    _addCommonSpawns(info);
+}
+
+/// BiomeDefaultFeatures.swampSpawns(builder, skeletonWeight)：commonSpawns(skeletonWeight) + 沼泽特有条目。
+void _addSwampSpawns(MobSpawnInfo& info, i32 skeletonWeight)
+{
+    _addCommonSpawns(info, skeletonWeight);
+    info.addMonsterSpawn(SpawnEntry(SLIME, 1, 1, 1));
+    info.addMonsterSpawn(SpawnEntry(BOGGED, 30, 4, 4));
+    // TODO(spawn-list-entities): frog（CREATURE 10,2,5）——FrogEntity 未实现。
+}
+
+/// BiomeDefaultFeatures.oceanSpawns(builder, squidWeight, squidPack, codWeight)：水生生物 + commonSpawns + 溺尸。
+void _addOceanSpawns(MobSpawnInfo& info, i32 squidWeight, i32 squidPack, i32 codWeight)
+{
+    info.addWaterCreatureSpawn(SpawnEntry(SQUID, squidWeight, 1, squidPack));
+    info.addWaterAmbientSpawn(SpawnEntry(COD, codWeight, 3, 6));
+    _addCommonSpawns(info);
+    info.addMonsterSpawn(SpawnEntry(DROWNED, 5, 1, 1));
+}
+
+/// BiomeDefaultFeatures.warmOceanSpawns(builder, squidWeight, squidPack)：暖水海洋的水生条目 + commonSpawns。
+void _addWarmOceanSpawns(MobSpawnInfo& info, i32 squidWeight, i32 squidPack)
+{
+    info.addWaterCreatureSpawn(SpawnEntry(SQUID, squidWeight, squidPack, 4));
+    info.addWaterAmbientSpawn(SpawnEntry(TROPICAL_FISH, 25, 8, 8));
+    info.addWaterCreatureSpawn(SpawnEntry(DOLPHIN, 2, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(DROWNED, 5, 1, 1));
+    _addCommonSpawns(info);
+}
+
+/// BiomeDefaultFeatures.snowySpawns(builder, snowy)：依赖 isSnowy 的两个分支。
+void _addSnowySpawns(MobSpawnInfo& info, bool snowy)
+{
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 10, 2, 3));
+    info.addCreatureSpawn(SpawnEntry(POLAR_BEAR, 1, 1, 2));
+    _addCaveSpawns(info);
+    _addMonsters(info, snowy ? 90 : 95, 5, snowy ? 5 : 0, 20);
+    info.addMonsterSpawn(SpawnEntry(STRAY, 80, 4, 4));
+}
+
+/// OverworldBiomes.meadowOrCherryGrove(cherryGrove)：onlyPig 决定首个条目是猪还是驴。
+void _addMeadowOrCherryGroveSpawns(MobSpawnInfo& info, bool cherryGrove)
+{
+    info.addCreatureSpawn(SpawnEntry(cherryGrove ? PIG : DONKEY, 1, 1, 2));
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 2, 2, 6));
+    info.addCreatureSpawn(SpawnEntry(SHEEP, 2, 2, 4));
+    _addCommonSpawns(info);
+}
+
+/// 生物群系通用的上限设置：怪物 70、动物 10、环境生物 15、水下生物 5 等（与原版 MobCategory 默认一致）。
+void _setDefaultMaxInstances(MobSpawnInfo& info)
+{
+    info.setMaxMonsterInstances(MobSpawnInfo::DEFAULT_MAX_MONSTERS);
+    info.setMaxCreatureInstances(MobSpawnInfo::DEFAULT_MAX_CREATURES);
+    info.setMaxAmbientInstances(MobSpawnInfo::DEFAULT_MAX_AMBIENT);
+    info.setMaxWaterCreatureInstances(MobSpawnInfo::DEFAULT_MAX_WATER_CREATURES);
+    info.setMaxWaterAmbientInstances(MobSpawnInfo::DEFAULT_MAX_WATER_AMBIENT);
+    info.setMaxAxolotlInstances(MobSpawnInfo::DEFAULT_MAX_AXOLOTLS);
+    info.setMaxUndergroundWaterCreatureInstances(MobSpawnInfo::DEFAULT_MAX_UNDERGROUND_WATER_CREATURES);
+}
+
+} // namespace
 
 MobSpawnInfo MobSpawnInfo::createPlains()
 {
+    // OverworldBiomes.plains(sunflower=false, snowy=false, spike=false) → BiomeDefaultFeatures.plainsSpawns：
+    //   farmAnimals + horse(5,2,6) + donkey(1,1,3) + commonSpawnWithZombieHorse。
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    // 怪物（怪物在夜间/黑暗环境自然生成）
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+    _addFarmAnimals(info);
+    info.addCreatureSpawn(SpawnEntry(HORSE, 5, 2, 6));
+    info.addCreatureSpawn(SpawnEntry(DONKEY, 1, 1, 3));
+    _addCommonSpawnWithZombieHorse(info);
 
-    // 动物（区块生成时放置）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:horse", 5, 2, 6));
-    info.addCreatureSpawn(SpawnEntry("minecraft:donkey", 1, 1, 3));
+    return info;
+}
 
-    // 环境生物
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+MobSpawnInfo MobSpawnInfo::createFlowerForest()
+{
+    // OverworldBiomes.forest(birch=false, tallBirch=false, flower=true)：farmAnimals + commonSpawns
+    //   + rabbit(4,2,3)（花森林专属，替代普通森林的狼）。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    info.m_playerSpawnFriendly = true;
+
+    _addFarmAnimals(info);
+    _addCommonSpawns(info);
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 4, 2, 3));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createBirchForest()
+{
+    // OverworldBiomes.forest(birch=true, ..., flower=false)：farmAnimals + commonSpawns，
+    //   桦木森林无狼、无兔（仅普通森林追加 wolf(5,4,4)）。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    info.m_playerSpawnFriendly = true;
+
+    _addFarmAnimals(info);
+    _addCommonSpawns(info);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createForest()
 {
+    // OverworldBiomes.forest(birch=false, ..., flower=false)：farmAnimals + commonSpawns + wolf(5,4,4)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    // 怪物
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+    _addFarmAnimals(info);
+    _addCommonSpawns(info);
+    info.addCreatureSpawn(SpawnEntry(WOLF, 5, 4, 4));
 
-    // 动物（MC Java 1.16.5 forest creature spawn list：sheep/pig/cow/chicken/wolf）
-    // 依据：原版 BiomeGenerationSettings 默认 farmAnimals + wolf（Forest weight=5/45、pack=4）。
-    // 源码此前误注"森林没有狼"导致漏配，且误将 Jungle 的"额外鸡"规则套到 Forest 上，
-    // 导致 Forest 出现两条 weight=10 的 chicken 条目。已收敛为原版单条。
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:wolf", 5, 4, 4));
+    return info;
+}
 
-    // 环境生物
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+MobSpawnInfo MobSpawnInfo::createDarkForest()
+{
+    // OverworldBiomes.darkForest：farmAnimals + commonSpawns（无狼、无兔）。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    _addFarmAnimals(info);
+    _addCommonSpawns(info);
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createPaleGarden()
+{
+    // OverworldBiomes.darkForest(paleGarden=true)：不调用 farmAnimals，仅 commonSpawns。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    _addCommonSpawns(info);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createDesert()
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244220_a(0.125F, 0.05F, true, true, true)
-    //   → DefaultBiomeFeatures.func_243743_f()（desertSpawns）：
-    //     RABBIT (4,2,3) CREATURE
-    //     + caveSpawns: BAT (10,8,8) AMBIENT
-    //     + monsters(builder, 19, 1, 100):
-    //         spider 100,4,4 + zombie 19,4,4 + zombie_villager 1,1,1 +
-    //         skeleton 100,4,4 + creeper 100,4,4 + slime 100,4,4 +
-    //         enderman 10,1,4 + witch 5,1,1
-    //     + HUSK (80,4,4) MONSTER
-    //   注：1.21+ 新增的 camel/parched 在 1.16.5 中不存在。
-    //   Desert 变体（DesertHills/DesertLakes）spawn list 与 Desert 一致。
+    // OverworldBiomes.desert → BiomeDefaultFeatures.desertSpawns
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：monsters(builder, 19, 1, 100) + husk
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 19, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 1, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:husk", 80, 4, 4)); // 沙漠僵尸
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 12, 2, 3));
+    // TODO(spawn-list-entities): camel（CREATURE 1,1,1）——CamelEntity 未实现。
 
-    // 动物（沙漠只有兔子）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:rabbit", 4, 2, 3));
+    _addCaveSpawns(info);
+    // desertSpawns 不走 commonSpawns，而是直接 monsters(19, 1, 0, 50)。
+    _addMonsters(info, 19, 1, 0, 50);
+    info.addMonsterSpawn(SpawnEntry(HUSK, 80, 4, 4));
+    // TODO(spawn-list-entities): parched（MONSTER 50,4,4）——ParchedEntity 未实现。
 
-    // 环境生物（caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+    return info;
+}
 
+MobSpawnInfo MobSpawnInfo::createBadlands()
+{
+    // OverworldBiomes.badlands(wooded=false)：farmAnimals + commonSpawns + armadillo(6,1,2)；
+    //   creatureGenerationProbability 0.03。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.03f;
+
+    _addFarmAnimals(info);
+    _addCommonSpawns(info);
+    // TODO(spawn-list-entities): armadillo（CREATURE 6,1,2）——ArmadilloEntity 未实现。
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createWoodedBadlands()
+{
+    // OverworldBiomes.badlands(wooded=true)：在普通恶地基础上加 wolf(2,4,8)，概率提升到 0.04。
+    MobSpawnInfo info = createBadlands();
+    info.m_creatureSpawnProbability = 0.04f;
+    info.addCreatureSpawn(SpawnEntry(WOLF, 2, 4, 8));
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createOcean()
 {
-    // 普通海洋：对应 MC 1.16.5 BiomeMaker.func_244234_c(false)（浅水版本）
-    //   func_243716_a(builder, 1, 4, 10):
-    //     SQUID (1,1,4) WATER_CREATURE
-    //     COD (10,3,6) WATER_AMBIENT
-    //     + commonSpawns(builder): BAT (10,8,8) AMBIENT + monsters(_, 95, 5, 100): 8 陆地怪物
-    //     + DROWNED (5,1,1) MONSTER
-    //   额外：DOLPHIN (1,1,2) WATER_CREATURE
-    //   注意：原版普通海洋 monster list 包含 8 条标准陆地怪物 + drowned（来自 commonSpawns→monsters + oceanSpawns 加
-    //   drowned）。 原版 1.16.5 无 glow_squid（1.21 新增）；nautilus 在 1.21.11 加入海洋生物群系。
+    // OverworldBiomes.ocean：oceanSpawns(1,4,10) + dolphin(1,1,2) + nautilus(5,1,1)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物（commonSpawns → monsters(builder, 95, 5, 100, false)）+ drowned
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + dolphin + nautilus（原版归 WaterCreature）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 1, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
-
-    // 水生环境生物：cod（原版归 WaterAmbient）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
+    _addOceanSpawns(info, 1, 4, 10);
+    info.addWaterCreatureSpawn(SpawnEntry(DOLPHIN, 1, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry(NAUTILUS, 5, 1, 1));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createWarmOcean()
 {
-    // 暖水海洋浅水版本：对应 MC 1.16.5 BiomeMaker.func_244249_o()
-    //   PUFFERFISH (15,1,3) WATER_AMBIENT
-    //   + warmOceanSpawns(builder, 10, 4):
-    //       SQUID (10,4,4) WATER_CREATURE
-    //       TROPICAL_FISH (25,8,8) WATER_AMBIENT
-    //       DOLPHIN (2,1,2) WATER_CREATURE
-    //       + commonSpawns(builder):
-    //           BAT (10,8,8) AMBIENT
-    //           + monsters(builder, 95, 5, 100): 8 条标准陆地怪物
-    //   浅水版本无 drowned、无 cod、无 salmon。
+    // OverworldBiomes.warmOcean：pufferfish(15,1,3) + nautilus(5,1,1) + warmOceanSpawns(10,4)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：标准 8 条陆地怪物列表（commonSpawns → func_243735_b(_, 95, 5, 100)）
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 4, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
-
-    // 水生环境生物：pufferfish + tropical_fish（原版归 WaterAmbient）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:pufferfish", 15, 1, 3));
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+    info.addWaterAmbientSpawn(SpawnEntry(PUFFERFISH, 15, 1, 3));
+    info.addWaterCreatureSpawn(SpawnEntry(NAUTILUS, 5, 1, 1));
+    _addWarmOceanSpawns(info, 10, 4);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createDeepWarmOcean()
 {
-    // 深海暖水海洋：对应 MC 1.16.5 BiomeMaker.func_244250_p()
-    //   warmOceanSpawns(builder, 5, 1):
-    //       SQUID (5,1,4) WATER_CREATURE
-    //       TROPICAL_FISH (25,8,8) WATER_AMBIENT
-    //       DOLPHIN (2,1,2) WATER_CREATURE
-    //       + commonSpawns(builder): BAT + 8 条标准陆地怪物
-    //   + DROWNED (5,1,1) MONSTER
-    //   深水版本无 pufferfish、无 cod、无 salmon，但有 drowned；squid 权重 5、minCount 1。
-    MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.1f;
-
-    // 怪物：标准 8 条陆地怪物列表（commonSpawns → func_243735_b(_, 95, 5, 100)）
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    // 深水版本额外添加 drowned
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + dolphin（深水 squid 权重更低、minCount=1）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 5, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
-
-    // 水生环境生物：仅 tropical_fish（深水版本无 pufferfish）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
-
-    return info;
+    // 深海暖水海洋：与暖水海洋的刷怪表一致（deep 参数只影响地形生成）。
+    return createWarmOcean();
 }
 
 MobSpawnInfo MobSpawnInfo::createLukewarmOcean()
 {
-    // 温水海洋：对应 MC 1.16.5 BiomeMaker.func_244237_d(false)（浅水版本）
-    //   func_243716_a(builder, 10, 2, 15):
-    //     SQUID (10,1,2) WATER_CREATURE
-    //     COD (15,3,6) WATER_AMBIENT
-    //     + commonSpawns: BAT + 8 陆地怪物
-    //     + DROWNED (5,1,1) MONSTER
-    //   额外：PUFFERFISH (5,1,3) WATER_AMBIENT, TROPICAL_FISH (25,8,8) WATER_AMBIENT,
-    //         DOLPHIN (2,1,2) WATER_CREATURE
+    // OverworldBiomes.lukeWarmOcean：pufferfish(5,1,3) + tropical_fish(25,8,8) + dolphin(2,1,2)
+    //   + nautilus(5,1,1) + oceanSpawns(10,2,15)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物 + drowned
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + dolphin（原版归 WaterCreature）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 10, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
-
-    // 水生环境生物：cod + pufferfish + tropical_fish（原版归 WaterAmbient）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:cod", 15, 3, 6));
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:pufferfish", 5, 1, 3));
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+    info.addWaterAmbientSpawn(SpawnEntry(PUFFERFISH, 5, 1, 3));
+    info.addWaterAmbientSpawn(SpawnEntry(TROPICAL_FISH, 25, 8, 8));
+    info.addWaterCreatureSpawn(SpawnEntry(DOLPHIN, 2, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry(NAUTILUS, 5, 1, 1));
+    _addOceanSpawns(info, 10, 2, 15);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createDeepLukewarmOcean()
 {
-    // 深海温水海洋：对应 MC 1.16.5 BiomeMaker.func_244237_d(true)（深水版本）
-    //   与浅水版本差异：func_243716_a(builder, 8, 4, 8) → SQUID(8,1,4) WC + COD(8,3,6) WA
-    //   （浅水版本为 10, 2, 15 → SQUID(10,1,2) WC + COD(15,3,6) WA）
-    //   其余条目（pufferfish/tropical_fish/dolphin/drowned/8 陆地怪物/bat）与浅水版本相同。
+    // OverworldBiomes.lukeWarmOcean(deep=true)：其余条目与浅水一致，oceanSpawns 的 squid/cod 参数为 (8,4,8)。
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物 + drowned
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + dolphin + nautilus（1.21.11 与浅水版本共享 nautilus 条目）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 8, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 2, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
-
-    // 水生环境生物：cod + pufferfish + tropical_fish（深水版本 cod 权重 8）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:cod", 8, 3, 6));
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:pufferfish", 5, 1, 3));
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
+    info.addWaterAmbientSpawn(SpawnEntry(PUFFERFISH, 5, 1, 3));
+    info.addWaterAmbientSpawn(SpawnEntry(TROPICAL_FISH, 25, 8, 8));
+    info.addWaterCreatureSpawn(SpawnEntry(DOLPHIN, 2, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry(NAUTILUS, 5, 1, 1));
+    _addOceanSpawns(info, 8, 4, 8);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createColdOcean()
 {
-    // 冷水海洋：对应 MC 1.16.5 BiomeMaker.func_244230_b(false)（浅水版本）
-    //   func_243716_a(builder, 3, 4, 15):
-    //     SQUID (3,1,4) WATER_CREATURE
-    //     COD (15,3,6) WATER_AMBIENT
-    //     + commonSpawns: BAT + 8 陆地怪物
-    //     + DROWNED (5,1,1) MONSTER
-    //   额外：SALMON (15,1,5) WATER_AMBIENT, DOLPHIN (2,1,2) WATER_CREATURE
-    //   注：DEEP_COLD_OCEAN = func_244230_b(true)，spawn list 与浅水版本相同。
+    // OverworldBiomes.coldOcean：oceanSpawns(3,4,15) + salmon(15,1,5) + nautilus(2,1,1)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物 + drowned
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + nautilus（1.21.11 cold_ocean 无 dolphin，仅 squid + nautilus）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 2, 1, 1));
-
-    // 水生环境生物：cod + salmon（原版归 WaterAmbient）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:cod", 15, 3, 6));
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));
+    _addOceanSpawns(info, 3, 4, 15);
+    info.addWaterAmbientSpawn(SpawnEntry(SALMON, 15, 1, 5));
+    info.addWaterCreatureSpawn(SpawnEntry(NAUTILUS, 2, 1, 1));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createFrozenOcean()
 {
-    // 冰冻海洋：对应 MC 1.16.5 BiomeMaker.func_244239_e(false)（浅水版本）
-    //   不调用 oceanSpawns，手动构造：
-    //     SQUID (1,1,4) WATER_CREATURE
-    //     SALMON (15,1,5) WATER_AMBIENT
-    //     POLAR_BEAR (1,1,2) CREATURE
-    //     + commonSpawns: BAT + 8 陆地怪物
-    //     + DROWNED (5,1,1) MONSTER
-    //   注意：原版 FrozenOcean 怪物 list 包含 8 条标准陆地怪物 + drowned（不是仅 drowned）。
-    //   原版 1.16.5 不在 FrozenOcean 加 stray（stray 由 snowySpawns 添加，FrozenOcean 不调用）。
-    //   原版 1.16.5 无 cod（冷水太冷）、无 tropical_fish、无 pufferfish、无 dolphin。
-    //   注：DEEP_FROZEN_OCEAN = func_244239_e(true)，spawn list 与浅水版本相同。
+    // OverworldBiomes.frozenOcean：squid(1,1,4) + salmon(15,1,5) + polar_bear(1,1,2) + nautilus(2,1,1)
+    //   + commonSpawns + drowned(5,1,1)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物 + drowned（commonSpawns → monsters(_, 95, 5, 100, false) + 显式 drowned）
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + nautilus（原版归 WaterCreature，无 dolphin）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 2, 1, 1));
-
-    // 水生环境生物：salmon（原版归 WaterAmbient，无 cod）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5));
-
-    // 动物（冰面上的北极熊）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:polar_bear", 1, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry(SQUID, 1, 1, 4));
+    info.addWaterAmbientSpawn(SpawnEntry(SALMON, 15, 1, 5));
+    info.addCreatureSpawn(SpawnEntry(POLAR_BEAR, 1, 1, 2));
+    info.addWaterCreatureSpawn(SpawnEntry(NAUTILUS, 2, 1, 1));
+    info.addMonsterSpawn(SpawnEntry(DROWNED, 5, 1, 1));
+    _addCommonSpawns(info);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createDeepOcean()
 {
-    // 深海：对应 MC 1.16.5 BiomeMaker.func_244234_c(true)（深水版本）
-    //   spawn list 与普通 Ocean 完全一致（func_244234_c 的 deep 参数仅影响 generation settings）：
-    //     func_243716_a(builder, 1, 4, 10):
-    //       SQUID (1,1,4) WATER_CREATURE
-    //       COD (10,3,6) WATER_AMBIENT
-    //       + commonSpawns: BAT + 8 陆地怪物
-    //       + DROWNED (5,1,1) MONSTER
-    //     额外：DOLPHIN (1,1,2) WATER_CREATURE
-    //   注意：原版 1.16.5 DeepOcean 不含 guardian（守卫者只在 OceanMonument 周围生成，由结构生成器处理，
-    //   不在生物群系 spawn list 中）。
-    MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.1f;
-
-    // 怪物：8 条标准陆地怪物 + drowned
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:drowned", 5, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-
-    // 水生生物：squid + dolphin + nautilus（1.21.11 deep_ocean 与 ocean 生成表完全一致）
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 1, 1, 4));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:dolphin", 1, 1, 2));
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:nautilus", 5, 1, 1));
-
-    // 水生环境生物：cod（原版归 WaterAmbient）
-    info.setMaxWaterAmbientInstances(DEFAULT_MAX_WATER_AMBIENT);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:cod", 10, 3, 6));
-
-    return info;
+    // 深海：与普通海洋的刷怪表一致（deep 参数只影响地形生成）。
+    return createOcean();
 }
 
 MobSpawnInfo MobSpawnInfo::createTaiga()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(5, TAIGA, BiomeMaker.func_244221_a(0.2F, 0.2F, false, false, true,
-    // false))
-    //   → func_244221_a 内部：
-    //     func_243714_a: farmAnimals（sheep/pig/chicken/cow）
-    //     + WOLF (8,4,4) CREATURE + RABBIT (4,2,3) CREATURE + FOX (8,2,4) CREATURE
-    //     + func_243737_c: commonSpawns（BAT + 8 陆地怪物）
-    //     + setPlayerSpawnFriendly（!p_244221_2_ && !p_244221_3_ = !false && !false = true）
-    //   Taiga 变体（SnowyTaiga/GiantTreeTaiga 等）spawn list 与 Taiga 一致，仅气候/地形不同。
+    // OverworldBiomes.taiga(oldGrowth=false, snowy=false)：farmAnimals + wolf(8,4,4) + rabbit(4,2,3)
+    //   + fox(8,2,4) + commonSpawns
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    // 怪物：8 条标准陆地怪物（commonSpawns → monsters(_, 95, 5, 100)）
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-
-    // 动物：farmAnimals + wolf + rabbit + fox
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:wolf", 8, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:rabbit", 4, 2, 3));
-    info.addCreatureSpawn(SpawnEntry("minecraft:fox", 8, 2, 4));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+    _addFarmAnimals(info);
+    info.addCreatureSpawn(SpawnEntry(WOLF, 8, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 4, 2, 3));
+    info.addCreatureSpawn(SpawnEntry(FOX, 8, 2, 4));
+    _addCommonSpawns(info);
 
     return info;
 }
 
-namespace {
-/**
- * @brief 填充 baseJungleSpawns 公共生成列表
- *
- * 对应 MC 1.16.5 BiomeDefaultFeatures.baseJungleSpawns()：
- *   farmAnimals() + 额外 chicken(10,4,4) CREATURE + commonSpawns()
- * 其中 farmAnimals = sheep(12,4,4) + pig(10,4,4) + chicken(10,4,4) + cow(8,4,4)；
- * commonSpawns = caveSpawns(bat AMBIENT 10,8,8) + monsters(spider 100,4,4 +
- * zombie 95,4,4 + zombie_villager 5,1,1 + skeleton 100,4,4 + creeper 100,4,4 +
- * slime 100,4,4 + enderman 10,1,4 + witch 5,1,1)。
- *
- * 注：1.18+ 的 caveSpawns 额外含 glow_squid UNDERGROUND_WATER_CREATURE (10,4,6)，
- * 本项目对齐 1.16.5 故不含 glow_squid。UndergroundWaterCreature 分类与 glow_squid
- * 实体已在 LushCaves 等生物群系中启用。
- *
- * @param info 待填充的 MobSpawnInfo（调用方已设置好概率等基础字段）
- */
-void applyBaseJungleSpawns(MobSpawnInfo& info)
-{
-    // 怪物（commonSpawns -> monsters）
-    info.setMaxMonsterInstances(MobSpawnInfo::DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-
-    // 动物（farmAnimals + 额外 chicken）
-    info.setMaxCreatureInstances(MobSpawnInfo::DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
-    // baseJungleSpawns 显式追加的"额外鸡"（weight=10, pack=4）
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-
-    // 环境生物（caveSpawns -> bat）
-    info.setMaxAmbientInstances(MobSpawnInfo::DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-}
-} // namespace
-
 MobSpawnInfo MobSpawnInfo::createJungle()
 {
-    // 对应 MC 1.16.5 OverworldBiomes.jungle()：
-    //   baseJungleSpawns + parrot(40,1,2) CREATURE + ocelot(2,1,3) MONSTER
-    //   + panda(1,1,2) CREATURE
+    // OverworldBiomes.jungle：baseJungleSpawns + parrot(40,1,2) + ocelot(MONSTER 2,1,3) + panda(1,1,2)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    applyBaseJungleSpawns(info);
-
-    // jungle 变体特定条目
-    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 3));
-    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2));
-    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 1, 1, 2));
+    _addBaseJungleSpawns(info);
+    info.addCreatureSpawn(SpawnEntry(PARROT, 40, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(OCELOT, 2, 1, 3));
+    info.addCreatureSpawn(SpawnEntry(PANDA, 1, 1, 2));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createSparseJungle()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(23, JUNGLE_EDGE, BiomeMaker.func_244227_b())
-    //   func_244227_b 内部仅调用 func_243747_h（baseJungleSpawns），不额外添加 wolf/parrot/ocelot/panda。
-    //   注：1.21.11 sparseJungle() 额外添加了 wolf(8,2,4)，但 1.16.5 中无 wolf。本项目对齐 1.16.5。
-    //   ModifiedJungleEdge (func_244231_c) 也仅调用 baseJungleSpawns，spawn list 与 JungleEdge 相同。
+    // OverworldBiomes.sparseJungle：baseJungleSpawns + wolf(8,2,4)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    applyBaseJungleSpawns(info);
+    _addBaseJungleSpawns(info);
+    info.addCreatureSpawn(SpawnEntry(WOLF, 8, 2, 4));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createBambooJungle()
 {
-    // 对应 MC 1.16.5 OverworldBiomes.bambooJungle()：
-    //   baseJungleSpawns + parrot(40,1,2) CREATURE + panda(80,1,2) CREATURE
-    //   + ocelot(2,1,1) MONSTER
-    // 与普通 jungle 的差异：panda weight=80（非 1）、ocelot pack=1（非 3）。
+    // OverworldBiomes.bambooJungle：baseJungleSpawns + parrot(40,1,2) + panda(80,1,2) + ocelot(MONSTER 2,1,1)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    applyBaseJungleSpawns(info);
-
-    // bambooJungle 变体特定条目
-    info.addMonsterSpawn(SpawnEntry("minecraft:ocelot", 2, 1, 1));
-    info.addCreatureSpawn(SpawnEntry("minecraft:parrot", 40, 1, 2));
-    info.addCreatureSpawn(SpawnEntry("minecraft:panda", 80, 1, 2));
+    _addBaseJungleSpawns(info);
+    info.addCreatureSpawn(SpawnEntry(PARROT, 40, 1, 2));
+    info.addCreatureSpawn(SpawnEntry(PANDA, 80, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(OCELOT, 2, 1, 1));
 
     return info;
 }
 
-namespace {
-/// 热带草原系列基础 spawn list（对应 MC 1.16.5 BiomeMaker.func_244258_x()：farmAnimals +
-/// horse/donkey + commonSpawns）。Savanna / ShatteredSavanna / ShatteredSavannaPlateau 共享此基础。
-/// SavannaPlateau 通过 func_244247_m() 在此基础上额外添加 llama(8,4,4)（无 wolf）。
-void applyBaseSavannaSpawns(MobSpawnInfo& info)
+MobSpawnInfo MobSpawnInfo::createSavanna(bool llamaAndWolves)
 {
-    // 怪物：8 条标准陆地怪物（commonSpawns → monsters(builder, 95, 5, 100)）
-    info.setMaxMonsterInstances(MobSpawnInfo::DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-
-    // 动物：farmAnimals + horse + donkey
-    info.setMaxCreatureInstances(MobSpawnInfo::DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:horse", 1, 2, 6));
-    info.addCreatureSpawn(SpawnEntry("minecraft:donkey", 1, 1, 1));
-
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(MobSpawnInfo::DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
-}
-} // namespace
-
-MobSpawnInfo MobSpawnInfo::createSavanna()
-{
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(35, SAVANNA, BiomeMaker.func_244211_a(0.125F, 0.05F, 1.2F, false,
-    // false))
-    //   func_244211_a 内部调用 func_244258_x()：farmAnimals + horse(1,2,6) + donkey(1,1,1) + commonSpawns（8 陆地怪物 +
-    //   bat）。 不含 llama/wolf（仅 SavannaPlateau 通过 func_244247_m() 加 llama，无 wolf）。 原版 1.16.5 无
-    //   armadillo（1.20.5 新增）。
+    // OverworldBiomes.savanna(llamaAndWolves)：horse(1,2,6) + donkey(1,1,1) + armadillo(10,2,3)
+    //   + commonSpawnWithZombieHorse；llamaAndWolves 时另加 llama(8,4,4) + wolf(4,8)。
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
     info.m_playerSpawnFriendly = true;
 
-    applyBaseSavannaSpawns(info);
+    info.addCreatureSpawn(SpawnEntry(HORSE, 1, 2, 6));
+    info.addCreatureSpawn(SpawnEntry(DONKEY, 1, 1, 1));
+    // TODO(spawn-list-entities): armadillo（CREATURE 10,2,3）——ArmadilloEntity 未实现。
+    if (llamaAndWolves) {
+        info.addCreatureSpawn(SpawnEntry(LLAMA, 8, 4, 4));
+        info.addCreatureSpawn(SpawnEntry(WOLF, 8, 4, 8));
+    }
+    _addCommonSpawnWithZombieHorse(info);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createSavannaPlateau()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(36, SAVANNA_PLATEAU, BiomeMaker.func_244247_m())
-    //   func_244247_m() 在 func_244258_x() 基础上额外添加 llama(8,4,4)（CREATURE 分类）。
-    //   注：1.16.5 中仅 SavannaPlateau 加 llama，无 wolf；ShatteredSavannaPlateau 不加任何额外条目。
-    MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.1f;
-    info.m_playerSpawnFriendly = true;
-
-    applyBaseSavannaSpawns(info);
-
-    // 高原变体特定条目
-    info.addCreatureSpawn(SpawnEntry("minecraft:llama", 8, 4, 4));
-
-    return info;
+    // OverworldBiomes.savanna(llamaAndWolves=true)
+    return createSavanna(true);
 }
 
 MobSpawnInfo MobSpawnInfo::createShatteredSavanna()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(163, SHATTERED_SAVANNA,
-    // BiomeMaker.func_244211_a(0.3625F, 1.225F, 1.1F, true, true))
-    //   func_244211_a 内部仅调用 func_244258_x()，与普通 Savanna spawn list 相同（无 llama/wolf）。
-    //   shattered=true 仅影响地形与地表方块（generation settings），不影响 spawn list。
-    MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.1f;
-    info.m_playerSpawnFriendly = true;
-
-    applyBaseSavannaSpawns(info);
-
-    return info;
+    // 破碎热带草原：刷怪表与普通热带草原一致（shattered 参数只影响地形与地表方块）。
+    return createSavanna(false);
 }
 
 MobSpawnInfo MobSpawnInfo::createSwamp()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(6, SWAMP, BiomeMaker.func_244236_d(-0.2F, 0.1F, false))
-    //   → func_244236_d 内部：
-    //     func_243714_a: farmAnimals（sheep/pig/chicken/cow）
-    //     + func_243737_c: commonSpawns（BAT + 8 陆地怪物）
-    //     + SLIME (1,1,1) MONSTER（额外低权重史莱姆，区别于 commonSpawns 中的 slime(100,4,4)）
-    //   注：沼泽还有额外的史莱姆生成机制（在沼泽群系的史莱姆区块和 Y=50-70 之间会额外生成史莱姆），
-    //   该机制由 SlimeChunkChecker 与 NaturalSpawner 协同处理，不在 spawn list 中。
+    // OverworldBiomes.swamp：farmAnimals + swampSpawns(70)
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物（commonSpawns → monsters(_, 95, 5, 100)）+ 额外 slime
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 1, 1, 1)); // 沼泽额外低权重史莱姆
+    _addFarmAnimals(info);
+    _addSwampSpawns(info, 70);
 
-    // 动物：farmAnimals（无 horse/donkey）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
+    return info;
+}
 
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+MobSpawnInfo MobSpawnInfo::createMangroveSwamp()
+{
+    // OverworldBiomes.mangroveSwamp：swampSpawns(70)（不含 farmAnimals）+ tropical_fish(25,8,8)
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    _addSwampSpawns(info, 70);
+    info.addWaterAmbientSpawn(SpawnEntry(TROPICAL_FISH, 25, 8, 8));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createMountains()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(3, MOUNTAINS, BiomeMaker.func_244216_a(1.0F, 0.5F, ..., false))
-    //   → func_244216_a 内部：
-    //     func_243714_a: farmAnimals（sheep/pig/chicken/cow）
-    //     + LLAMA (5,4,6) CREATURE
-    //     + func_243737_c: commonSpawns（BAT + 8 陆地怪物）
-    //   Mountains 变体（WoodedMountains/GravellyMountains 等）spawn list 与 Mountains 一致。
+    // OverworldBiomes.windsweptHills：farmAnimals + llama(5,4,6) + commonSpawns
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    info.m_playerSpawnFriendly = true;
+
+    _addFarmAnimals(info);
+    info.addCreatureSpawn(SpawnEntry(LLAMA, 5, 4, 6));
+    _addCommonSpawns(info);
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createWindsweptForest()
+{
+    // OverworldBiomes.windsweptHills(withTrees=true)：刷怪表与疾风丘陵一致，仅树木特征不同。
+    return createMountains();
+}
+
+MobSpawnInfo MobSpawnInfo::createGoatPeaks()
+{
+    // OverworldBiomes.basePeaks（尖峭峰 / 冰封峰 / 裸岩峰）：goat(5,1,3) + commonSpawns
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物（commonSpawns → monsters(_, 95, 5, 100)）
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+    // TODO(spawn-list-entities): goat（CREATURE 5,1,3）——GoatEntity 未实现。
+    _addCommonSpawns(info);
 
-    // 动物：farmAnimals + llama（山地有羊驼）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:sheep", 12, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:pig", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:chicken", 10, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:cow", 8, 4, 4));
-    info.addCreatureSpawn(SpawnEntry("minecraft:llama", 5, 4, 6));
+    return info;
+}
 
-    // 环境生物（commonSpawns → caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+MobSpawnInfo MobSpawnInfo::createSnowySlopes()
+{
+    // OverworldBiomes.snowySlopes：rabbit(4,2,3) + goat(5,1,3) + commonSpawns
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 4, 2, 3));
+    // TODO(spawn-list-entities): goat（CREATURE 5,1,3）——GoatEntity 未实现。
+    _addCommonSpawns(info);
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createGrove()
+{
+    // OverworldBiomes.grove：wolf(1,1,1) + rabbit(8,2,3) + fox(4,2,4) + commonSpawns
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    info.addCreatureSpawn(SpawnEntry(WOLF, 1, 1, 1));
+    info.addCreatureSpawn(SpawnEntry(RABBIT, 8, 2, 3));
+    info.addCreatureSpawn(SpawnEntry(FOX, 4, 2, 4));
+    _addCommonSpawns(info);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createSnowy()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(12, SNOWY_TUNDRA, BiomeMaker.func_244219_a())
-    //   → DefaultBiomeFeatures.func_243741_e()（snowySpawns）：
-    //     RABBIT (10,2,3) CREATURE
-    //     POLAR_BEAR (1,1,2) CREATURE
-    //     + caveSpawns: BAT (10,8,8) AMBIENT
-    //     + monsters(builder, 95, 5, 20):
-    //         spider 100,4,4 + zombie 95,4,4 + zombie_villager 5,1,1 +
-    //         skeleton 20,4,4 + creeper 100,4,4 +
-    //         slime 100,4,4 + enderman 10,1,4 + witch 5,1,1
-    //     + STRAY (80,4,4) MONSTER
-    //   creatureGenerationProbability = 0.07F（雪原更稀疏）
-    //   注：原版 1.16.5 snowySpawns 不含 zombie_horse（1.16.5 中无任何生物群系 spawn list 含 zombie_horse）。
-    //   变体：IceSpikes spawn list 与 SnowyTundra 完全一致（func_244239_b → func_244219_a），
-    //   复用本方法；SnowyBeach 差异较大（无 creature、skeleton 权重 100、无 stray），
-    //   使用独立的 createSnowyBeach() 工厂方法。
+    // OverworldBiomes.plains(snowy=true) → snowySpawns(true)：rabbit(10,2,3) + polar_bear(1,1,2)
+    //   + caveSpawns + monsters(90,5,5,20) + stray(80,4,4)；creatureGenerationProbability 0.07。
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.07f;
 
-    // 怪物：snowySpawns → monsters(builder, 95, 5, 20) + stray
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 20, 4, 4)); // 雪地骷髅权重较低
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:stray", 80, 4, 4)); // 流浪者
+    _addSnowySpawns(info, true);
 
-    // 动物（雪地有北极熊和兔子）
-    info.setMaxCreatureInstances(DEFAULT_MAX_CREATURES);
-    info.addCreatureSpawn(SpawnEntry("minecraft:rabbit", 10, 2, 3));
-    info.addCreatureSpawn(SpawnEntry("minecraft:polar_bear", 1, 1, 2));
+    return info;
+}
 
-    // 环境生物（caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+MobSpawnInfo MobSpawnInfo::createMushroomFields()
+{
+    // OverworldBiomes.mushroomFields → BiomeDefaultFeatures.mooshroomSpawns：
+    //   mooshroom(CREATURE 8,4,8) + caveSpawns。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    info.addCreatureSpawn(SpawnEntry(MOOSHROOM, 8, 4, 8));
+    _addCaveSpawns(info);
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createSnowyBeach()
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(26, SNOWY_BEACH,
-    //   BiomeMaker.func_244208_a(0.0F, 0.025F, 0.05F, 0.3F, true, false, false))
-    //   → 不添加 TURTLE（因 p_244208_5_=true 表示雪地沙滩，原版 beach 仅在 p_244208_5_=false 时加 TURTLE）
-    //   → DefaultBiomeFeatures.func_243737_c()（commonSpawns）：
-    //     caveSpawns: BAT (10,8,8) AMBIENT
-    //     monsters(builder, 95, 5, 100): 8 条标准陆地怪物（skeleton 权重 100，无 stray）
-    //   与 SnowyTundra(createSnowy) 差异：
-    //     - skeleton 权重 100（vs SnowyTundra 20）
-    //     - 无 stray（SnowyTundra 有 stray 80）
-    //     - 无 creature 分类（SnowyTundra 有 rabbit + polar_bear）
-    //     - creatureSpawnProbability 使用默认 0.1F（SnowyTundra 为 0.07F）
-    //   1.16.5 与 1.21.11 spawn list 完全相同（1.21.11 仅额外含 glow_squid，
-    //   本项目对齐 1.16.5 不含）。
+    // OverworldBiomes.beach(snowy=true)：无海龟（仅普通沙滩），其余为 commonSpawns。
     MobSpawnInfo info;
-    // creatureSpawnProbability 使用默认 0.1f（commonSpawns 不修改概率）
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    _addCommonSpawns(info);
 
-    // 怪物：commonSpawns → monsters(builder, 95, 5, 100)
-    // 注意 skeleton 权重为 100（与标准陆地一致），无 stray
-    info.setMaxMonsterInstances(DEFAULT_MAX_MONSTERS);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
+    return info;
+}
 
-    // 环境生物（caveSpawns → bat）
-    info.setMaxAmbientInstances(DEFAULT_MAX_AMBIENT);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+MobSpawnInfo MobSpawnInfo::createBeach()
+{
+    // OverworldBiomes.beach(snowy=false, stony=false)：turtle(5,2,5) + commonSpawns
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
+    info.addCreatureSpawn(SpawnEntry(TURTLE, 5, 2, 5));
+    _addCommonSpawns(info);
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createStoneShore()
+{
+    // OverworldBiomes.beach(snowy=false, stony=true)：无海龟、无生物生成，仅有 commonSpawns。
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    _addCommonSpawns(info);
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createRiver()
+{
+    // OverworldBiomes.river(frozen=false)：squid(2,1,4) + salmon(5,1,5) + commonSpawns + drowned(100,1,1)
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    info.addWaterCreatureSpawn(SpawnEntry(SQUID, 2, 1, 4));
+    info.addWaterAmbientSpawn(SpawnEntry(SALMON, 5, 1, 5));
+    _addCommonSpawns(info);
+    info.addMonsterSpawn(SpawnEntry(DROWNED, 100, 1, 1));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createFrozenRiver()
+{
+    // OverworldBiomes.river(frozen=true)：溺尸权重降为 1，其余条目与普通河流一致。
+    MobSpawnInfo info = createRiver();
+    for (auto& entry : info.m_monsters.entries) {
+        if (entry.entityTypeId == entity::EntityTypeKeys::DROWNED) {
+            entry.weight = 1;
+        }
+    }
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createEmpty()
 {
-    // 空生成信息，用于没有生物生成的生物群系（如虚空）
+    // 空生成信息：没有生物自然生成的生物群系（虚空、深暗之域）。
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.0f;
     return info;
 }
 
-// ============================================================================
-// 下界生物群系生成信息
-// ============================================================================
-
 MobSpawnInfo MobSpawnInfo::createNetherWastes()
 {
-    // 生物：猪灵、僵尸猪灵、恶魂、岩浆怪、末影人、炽足兽
+    // NetherBiomes.netherWastes
     MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.0f; // 下界没有被动动物生成
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 50, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 2, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 15, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
-
-    // 生物（炽足兽）
-    info.setMaxCreatureInstances(10);
-    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(GHAST, 50, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ZOMBIFIED_PIGLIN, 100, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(MAGMA_CUBE, 2, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ENDERMAN, 1, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(PIGLIN, 15, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(STRIDER, 60, 1, 2));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createSoulSandValley()
 {
-    // 生物：骷髅、恶魂、末影人、炽足兽
+    // NetherBiomes.soulSandValley：全部条目附带 mobCharge（energyBudget 0.7 / charge 0.15）
     MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.0f;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 20, 5, 5));
-    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 50, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
-
-    // 灵魂沙谷所有怪物都有 SpawnCosts
-    // 原版 1.16.5：灵魂沙谷 energyBudget=0.15，charge=0.7
-    // 此前误用 0.12（与 WarpedForest 混淆），已收敛为原版 0.15
-    info.setSpawnCost("minecraft:skeleton", SpawnCosts(0.15, 0.7));
-    info.setSpawnCost("minecraft:ghast", SpawnCosts(0.15, 0.7));
-    info.setSpawnCost("minecraft:enderman", SpawnCosts(0.15, 0.7));
-
-    // 生物（炽足兽）
-    info.setMaxCreatureInstances(10);
-    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
-    info.setSpawnCost("minecraft:strider", SpawnCosts(0.15, 0.7));
+    info.addMonsterSpawn(SpawnEntry(SKELETON, 20, 5, 5));
+    info.addMonsterSpawn(SpawnEntry(GHAST, 50, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ENDERMAN, 1, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(STRIDER, 60, 1, 2));
+    info.setSpawnCost(SKELETON, SpawnCosts(0.7, 0.15));
+    info.setSpawnCost(GHAST, SpawnCosts(0.7, 0.15));
+    info.setSpawnCost(ENDERMAN, SpawnCosts(0.7, 0.15));
+    info.setSpawnCost(STRIDER, SpawnCosts(0.7, 0.15));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createCrimsonForest()
 {
-    // 对应 MC 1.16.5 NetherBiomes.crimsonForest()
-    //   MONSTER: zombified_piglin (1,2,4), hoglin (9,3,4), piglin (5,3,4)
-    //   CREATURE: strider (60,1,2)
-    //   注意：原版 1.16.5 中 hoglin 实体类继承 AnimalEntity（Cubium 注册为 Creature），
-    //   但 CrimsonForest 的 spawn list 把 hoglin 放入 MONSTER 分类。这是 MC 原版的
-    //   设计：下界生物群系中 hoglin 视为敌对生物。Cubium 的实现与原版一致。
+    // NetherBiomes.crimsonForest
     MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.0f;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：zombified_piglin + hoglin + piglin（hoglin 在下界 spawn list 中归 Monster）
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombified_piglin", 1, 2, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:hoglin", 9, 3, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:piglin", 5, 3, 4));
-
-    // 生物（炽足兽）
-    info.setMaxCreatureInstances(10);
-    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(ZOMBIFIED_PIGLIN, 1, 2, 4));
+    info.addMonsterSpawn(SpawnEntry(HOGLIN, 9, 3, 4));
+    info.addMonsterSpawn(SpawnEntry(PIGLIN, 5, 3, 4));
+    info.addCreatureSpawn(SpawnEntry(STRIDER, 60, 1, 2));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createWarpedForest()
 {
-    // 生物：末影人、炽足兽
+    // NetherBiomes.warpedForest：末影人附带 mobCharge（energyBudget 1.0 / charge 0.12）
     MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.0f;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物（末影人为主）
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 1, 4, 4));
-    info.setSpawnCost("minecraft:enderman", SpawnCosts(0.12, 1.0));
-
-    // 生物（炽足兽）
-    info.setMaxCreatureInstances(10);
-    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(ENDERMAN, 1, 4, 4));
+    info.addCreatureSpawn(SpawnEntry(STRIDER, 60, 1, 2));
+    info.setSpawnCost(ENDERMAN, SpawnCosts(1.0, 0.12));
 
     return info;
 }
 
 MobSpawnInfo MobSpawnInfo::createBasaltDeltas()
 {
-    // 生物：岩浆怪、恶魂、炽足兽
+    // NetherBiomes.basaltDeltas
     MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.0f;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物（岩浆怪为主）
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:ghast", 40, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:magma_cube", 100, 2, 5));
-
-    // 生物（炽足兽）
-    info.setMaxCreatureInstances(10);
-    info.addCreatureSpawn(SpawnEntry("minecraft:strider", 60, 1, 2));
+    info.addMonsterSpawn(SpawnEntry(GHAST, 40, 1, 1));
+    info.addMonsterSpawn(SpawnEntry(MAGMA_CUBE, 100, 2, 5));
+    info.addCreatureSpawn(SpawnEntry(STRIDER, 60, 1, 2));
 
     return info;
 }
@@ -992,62 +818,66 @@ MobSpawnInfo MobSpawnInfo::createBasaltDeltas()
 
 MobSpawnInfo MobSpawnInfo::createTheEnd()
 {
-    // 只有末影人
+    // BiomeDefaultFeatures.endSpawns（末地全部群系共用）：仅末影人（4,4），权重 10；
+    //   末地群系不设置 creatureGenerationProbability，保持 Builder 默认值 0.1。
     MobSpawnInfo info;
-    info.m_creatureSpawnProbability = 0.0f;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物（只有末影人）
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 4, 4));
+    info.addMonsterSpawn(SpawnEntry(ENDERMAN, 10, 4, 4));
 
     return info;
 }
-
-// ============================================================================
-// 洞穴生物群系生成信息
-// ============================================================================
 
 MobSpawnInfo MobSpawnInfo::createLushCaves()
 {
-    // 对应 MC 1.18+ OverworldBiomes.lushCaves()（1.16.5 不存在此生物群系，按 1.18 配置实现）
-    //   AXOLOTLS: axolotl (10,4,6)
-    //   WATER_AMBIENT: tropical_fish (25,8,8)
-    //   commonSpawns: BAT (10,8,8) AMBIENT + glow_squid (10,4,6) UNDERGROUND_WATER_CREATURE
-    //                 + monsters(builder, 95, 5, 100, false): 8 陆地怪物
-    //   注意：LushCaves 原版无独立 monster list（继承自宿主生物群系），但 Cubium 工厂方法
-    //   必须返回完整 MobSpawnInfo，故硬编码了通用洞穴怪物。
+    // OverworldBiomes.lushCaves：axolotl(AXOLOTLS 10,4,6) + tropical_fish(WATER_AMBIENT 25,8,8) + commonSpawns
     MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
     info.m_creatureSpawnProbability = 0.1f;
 
-    // 怪物：8 条标准陆地怪物（commonSpawns → monsters(builder, 95, 5, 100, false)）
-    info.setMaxMonsterInstances(70);
-    info.addMonsterSpawn(SpawnEntry("minecraft:spider", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie", 95, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:zombie_villager", 5, 1, 1));
-    info.addMonsterSpawn(SpawnEntry("minecraft:skeleton", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:creeper", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:slime", 100, 4, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:enderman", 10, 1, 4));
-    info.addMonsterSpawn(SpawnEntry("minecraft:witch", 5, 1, 1));
-
-    // 美西螈归独立 Axolotls 分类（maxCount=5），与 WaterCreature 分开计数，
-    // 避免与鱿鱼、海豚等竞争 5 个名额。
-    info.setMaxAxolotlInstances(DEFAULT_MAX_AXOLOTLS);
-    info.addAxolotlSpawn(SpawnEntry("minecraft:axolotl", 10, 4, 6));
-
-    // 地下水生生物：发光鱿鱼（原版 commonSpawns 中的 glow_squid (10,4,6)）
-    info.setMaxUndergroundWaterCreatureInstances(DEFAULT_MAX_UNDERGROUND_WATER_CREATURES);
-    info.addUndergroundWaterCreatureSpawn(SpawnEntry("minecraft:glow_squid", 10, 4, 6));
-
-    // 水生环境生物：热带鱼（原版归 WaterAmbient）
-    info.setMaxWaterAmbientInstances(20);
-    info.addWaterAmbientSpawn(SpawnEntry("minecraft:tropical_fish", 25, 8, 8));
-
-    // 环境生物：蝙蝠（caveSpawns → bat）
-    info.setMaxAmbientInstances(15);
-    info.addAmbientSpawn(SpawnEntry("minecraft:bat", 10, 8, 8));
+    info.addAxolotlSpawn(SpawnEntry(AXOLOTL, 10, 4, 6));
+    info.addWaterAmbientSpawn(SpawnEntry(TROPICAL_FISH, 25, 8, 8));
+    _addCommonSpawns(info);
 
     return info;
 }
 
-} // namespace mc::world::spawn
+MobSpawnInfo MobSpawnInfo::createDripstoneCaves()
+{
+    // OverworldBiomes.dripstoneCaves → BiomeDefaultFeatures.dripstoneCavesSpawns：
+    //   caveSpawns + monsters(95,5,0,100) + drowned(95,4,4)
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+
+    _addCaveSpawns(info);
+    _addMonsters(info, 95, 5, 0, 100);
+    info.addMonsterSpawn(SpawnEntry(DROWNED, 95, 4, 4));
+
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createMeadow()
+{
+    // OverworldBiomes.meadowOrCherryGrove(cherryGrove=false)
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    _addMeadowOrCherryGroveSpawns(info, false);
+    return info;
+}
+
+MobSpawnInfo MobSpawnInfo::createCherryGrove()
+{
+    // OverworldBiomes.meadowOrCherryGrove(cherryGrove=true)
+    MobSpawnInfo info;
+    _setDefaultMaxInstances(info);
+    info.m_creatureSpawnProbability = 0.1f;
+    _addMeadowOrCherryGroveSpawns(info, true);
+    return info;
+}
+
+} // namespace spawn
+} // namespace world
+} // namespace mc

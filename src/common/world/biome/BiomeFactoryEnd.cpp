@@ -192,6 +192,7 @@ Biome createMeadow()
             .grassColor(0x63A948)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMeadow());
     return biome;
 }
 
@@ -213,6 +214,7 @@ Biome createGrove()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createGrove());
     return biome;
 }
 
@@ -234,6 +236,7 @@ Biome createSnowySlopes()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createSnowySlopes());
     return biome;
 }
 
@@ -255,6 +258,7 @@ Biome createJaggedPeaks()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createGoatPeaks());
     return biome;
 }
 
@@ -276,6 +280,7 @@ Biome createFrozenPeaks()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createGoatPeaks());
     return biome;
 }
 
@@ -297,6 +302,7 @@ Biome createStonyPeaks()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createGoatPeaks());
     return biome;
 }
 
@@ -318,6 +324,7 @@ Biome createDripstoneCaves()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createDripstoneCaves());
     return biome;
 }
 
@@ -367,6 +374,7 @@ Biome createDeepDark()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createEmpty());
     return biome;
 }
 
@@ -390,6 +398,7 @@ Biome createMangroveSwamp()
             .grassColorModifier(GrassColorModifier::Swamp)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createMangroveSwamp());
     return biome;
 }
 
@@ -413,6 +422,7 @@ Biome createCherryGrove()
             .foliageColor(0xB69FE1)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createCherryGrove());
     return biome;
 }
 
@@ -437,6 +447,8 @@ Biome createPaleGarden()
             .dryFoliageColor(0xA0C486)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    // OverworldBiomes.darkForest(paleGarden=true)：不调用 farmAnimals，但保留 commonSpawns。
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createPaleGarden());
     return biome;
 }
 
@@ -457,6 +469,7 @@ Biome createTheVoid()
             .skyColor(0x78A7FF)
             .build());
     biome.setGenerationSettings(BiomeGenerationSettings{});
+    biome.setSpawnInfo(world::spawn::MobSpawnInfo::createEmpty());
     return biome;
 }
 

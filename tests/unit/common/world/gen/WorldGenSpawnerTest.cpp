@@ -159,7 +159,7 @@ TEST_F(WorldGenSpawnerTest, OceanSpawnInfo)
 
 TEST_F(WorldGenSpawnerTest, JungleSpawnInfo)
 {
-    // 对应 MC 1.16.5 OverworldBiomes.jungle()
+    // 对应 MC 1.21.11 OverworldBiomes.jungle()
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createJungle();
 
     // baseJungleSpawns 在标准 farmAnimals 之外额外加一条 chicken，故 Jungle 应有两条
@@ -193,7 +193,7 @@ TEST_F(WorldGenSpawnerTest, JungleSpawnInfo)
 
 TEST_F(WorldGenSpawnerTest, BambooJungleSpawnInfo)
 {
-    // 对应 MC 1.16.5 OverworldBiomes.bambooJungle()
+    // 对应 MC 1.21.11 OverworldBiomes.bambooJungle()
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createBambooJungle();
 
     // bambooJungle panda weight=80（与普通 jungle 的 1 不同）
@@ -220,9 +220,8 @@ TEST_F(WorldGenSpawnerTest, BambooJungleSpawnInfo)
 
 TEST_F(WorldGenSpawnerTest, SparseJungleSpawnInfo)
 {
-    // 对应 MC 1.16.5 BiomeRegistry.func_244204_a(23, JUNGLE_EDGE, BiomeMaker.func_244227_b())
-    //   func_244227_b 内部仅调用 baseJungleSpawns，不额外添加 wolf/parrot/ocelot/panda。
-    //   注：1.21.11 sparseJungle() 额外添加了 wolf(8,2,4)，但 1.16.5 中无 wolf。本项目对齐 1.16.5。
+    // 对应 MC 1.21.11 OverworldBiomes.sparseJungle()：baseJungleSpawns + wolf(8,2,4)，
+    //   不额外添加 parrot/ocelot/panda。
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createSparseJungle();
 
     // sparseJungle = baseJungleSpawns（farmAnimals + 额外 chicken + commonSpawns）
@@ -235,17 +234,17 @@ TEST_F(WorldGenSpawnerTest, SparseJungleSpawnInfo)
         if (entry.entityTypeId == "minecraft:chicken") ++chickenCount;
         if (entry.entityTypeId == "minecraft:ocelot") hasOcelotInCreatures = true;
     }
-    EXPECT_FALSE(hasWolf);              // 1.16.5 JungleEdge 不含 wolf
+    EXPECT_TRUE(hasWolf);               // 1.21.11 sparseJungle 含 wolf(8,2,4)
     EXPECT_EQ(chickenCount, 2);         // baseJungleSpawns 额外鸡规则
     EXPECT_FALSE(hasOcelotInCreatures); // sparseJungle 没有 ocelot
 }
 
 TEST_F(WorldGenSpawnerTest, SavannaSpawnInfo)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244211_a(..., false, false)
+    // 对应 MC 1.21.11 OverworldBiomes.savanna(llamaAndWolves=false)
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createSavanna();
 
-    // 普通 Savanna：farmAnimals + horse + donkey，无 llama/wolf
+    // 普通 Savanna：horse + donkey（1.21.11 不再调用 farmAnimals），无 llama/wolf
     const auto& creatures = info.getCreatureSpawns();
     bool hasHorse = false, hasDonkey = false, hasLlama = false, hasWolf = false;
     for (const auto& entry : creatures) {
@@ -268,7 +267,7 @@ TEST_F(WorldGenSpawnerTest, SavannaSpawnInfo)
 
 TEST_F(WorldGenSpawnerTest, SavannaPlateauSpawnInfo)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244247_m()：在 func_244258_x 基础上加 llama(8,4,4)
+    // 对应 MC 1.21.11 OverworldBiomes.savanna(llamaAndWolves=true)：加 llama(8,4,4) 与 wolf(8,4,8)
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createSavannaPlateau();
 
     const auto& creatures = info.getCreatureSpawns();
@@ -281,12 +280,12 @@ TEST_F(WorldGenSpawnerTest, SavannaPlateauSpawnInfo)
         if (entry.entityTypeId == "minecraft:wolf") hasWolf = true;
     }
     EXPECT_TRUE(hasLlama); // SavannaPlateau 含 llama
-    EXPECT_FALSE(hasWolf); // 1.16.5 SavannaPlateau 不含 wolf
+    EXPECT_TRUE(hasWolf);  // 1.21.11 SavannaPlateau 含 wolf(8,4,8)
 }
 
 TEST_F(WorldGenSpawnerTest, ShatteredSavannaSpawnInfo)
 {
-    // 对应 MC 1.16.5 BiomeMaker.func_244211_a(..., true, true)：spawn list 与普通 Savanna 相同
+    // 对应 MC 1.21.11 OverworldBiomes.savanna(llamaAndWolves=false)：spawn list 与普通 Savanna 相同
     world::spawn::MobSpawnInfo info = world::spawn::MobSpawnInfo::createShatteredSavanna();
 
     const auto& creatures = info.getCreatureSpawns();
