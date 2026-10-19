@@ -185,6 +185,18 @@ public:
     [[nodiscard]] CreatureAttribute getCreatureAttribute() const override { return CreatureAttribute::Undead; }
 
     /**
+     * @brief 判断实体是否属于凋灵友军（vanilla WITHER_FRIENDS，= #minecraft:undead）
+     *
+     * 凋灵不主动攻击凋灵友军，也不受其（非玩家）伤害。生产代码统一经本方法判定，
+     * 对齐 vanilla 用 EntityTypeTags.WITHER_FRIENDS 的数据驱动语义（数据包可扩展成员）。
+     * 标签未初始化时回退 getCreatureAttribute()==Undead 保持原行为。
+     *
+     * @param entity 待判定实体
+     * @return true 若属于凋灵友军
+     */
+    [[nodiscard]] static bool isWitherFriend(const LivingEntity& entity);
+
+    /**
      * @brief 是否为Boss
      */
     [[nodiscard]] bool isNonBoss() const override { return false; }

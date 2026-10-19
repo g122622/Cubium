@@ -125,6 +125,11 @@ public:
     /// 治疗与伤害反转标签（亡灵等）
     static EntityTypeTag& INVERTED_HEALING_AND_HARM();
 
+    /// 凋灵友军标签（= #minecraft:undead）
+    /// 凋灵不攻击、也不受其伤害的实体。vanilla WitherBoss.LIVING_ENTITY_SELECTOR 与
+    /// hurtServer 亡灵免伤均查本标签（EntityTypeTagsProvider.java:144 addTag(UNDEAD)）。
+    static EntityTypeTag& WITHER_FRIENDS();
+
     /// 免疫蠹虫效果标签
     static EntityTypeTag& IMMUNE_TO_INFESTED();
 

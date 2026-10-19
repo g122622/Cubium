@@ -47,6 +47,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/particle/ParticleTypes.hpp"
@@ -87,6 +88,17 @@ DataParameter<i32> WitherEntity::INVULNERABILITY_TIME = EntityDataManager::creat
 // ============================================================================
 // 继承链标识（复刻 vanilla ClassTreeIdRegistry，parent = MobEntity::classInfo()）
 // ============================================================================
+bool WitherEntity::isWitherFriend(const LivingEntity& entity)
+{
+    // vanilla WitherBoss 的全部友军判定（LIVING_ENTITY_SELECTOR、hurtServer 亡灵免伤、
+    // 三头的目标搜索）均查 EntityTypeTags.WITHER_FRIENDS（= #minecraft:undead）。
+    // 标签未初始化（极早期）时回退枚举判定，避免成员集为空导致图省事的行为回归。
+    if (!EntityTypeTags::isInitialized()) {
+        return entity.getCreatureAttribute() == CreatureAttribute::Undead;
+    }
+    return EntityTypeTags::WITHER_FRIENDS().contains(entity.getTypeId());
+}
+
 const EntityClassInfo& WitherEntity::classInfo()
 {
     static const EntityClassInfo s_classInfo{"WitherEntity", &MobEntity::classInfo()};
@@ -194,10 +206,11 @@ bool WitherEntity::hurt(DamageSource& source, f32 amount)
         if (trueSource->entityType() == entity::VanillaEntityTypeKeys::WITHER) {
             return false;
         }
-        // 检查攻击者是否是亡灵生物
+        // 检查攻击者是否属于凋灵友军（= #undead 亡灵）
+        // 对齐 vanilla 1.21.11 WitherBoss.hurtServer：
+        //   if (entity != null && entity.getType().is(EntityTypeTags.WITHER_FRIENDS) && !(entity instanceof Player))
         LivingEntity* livingSource = dynamic_cast<LivingEntity*>(trueSource);
-        if (livingSource != nullptr && livingSource->getCreatureAttribute() == CreatureAttribute::Undead &&
-            dynamic_cast<Player*>(trueSource) == nullptr) {
+        if (livingSource != nullptr && isWitherFriend(*livingSource) && dynamic_cast<Player*>(trueSource) == nullptr) {
             // 亡灵生物（非玩家）攻击凋灵不造成伤害
             return false;
         }
@@ -621,8 +634,8 @@ void WitherEntity::_updateHeadTargets()
                 continue;
             }
 
-            // 排除亡灵生物
-            if (living->getCreatureAttribute() == CreatureAttribute::Undead) {
+            // 排除凋灵友军（= #undead 亡灵）
+            if (isWitherFriend(*living)) {
                 continue;
             }
 
@@ -912,18 +925,11 @@ void WitherEntity::registerGoals()
     // 凋灵主目标永远不会主动选玩家为攻击目标（玩家须靠 HurtByTargetGoal 被动成为目标）——这是与
     // vanilla 的对齐缺陷。改 LivingEntity 后凋灵会主动锁定玩家，对齐 vanilla 行为。
     //
-    // 谓词用 getCreatureAttribute() != Undead 代理 vanilla WITHER_FRIENDS(#undead) 标签判定。
-    // Cubium getCreatureAttribute==Undead 的覆盖集（Zombie/AbstractSkeleton 系 + Wither + Phantom
-    // + ZombifiedPiglin + Zoglin + ZombieHorse + SkeletonHorse + ZombieNautilus）与 UNDEAD 标签成员
-    // 基本对齐（UNDEAD 标签含 zoglin，getCreatureAttribute 亦返 Undead，一致）。
-    // TODO: vanilla 1.21.11 已全面用 EntityTypeTags.UNDEAD 标签替代 getMobType 枚举判定亡灵
-    //       （Smite/药水反转/毒免疫/凋灵友军全用标签）。Cubium 生产代码仍以 getCreatureAttribute 为主，
-    //       EntityTypeTags::UNDEAD 标签已定义（13 成员）但几乎未被消费。彻底对齐须将凋灵/附魔/药水等
-    //       亡灵判定统一切换到 EntityTypeTags::UNDEAD().contains(typeId)，并引入 WITHER_FRIENDS 标签
-    //       （=UNDEAD）。当前 getCreatureAttribute 代理覆盖一致，先修最直接的 Player 选取缺陷。
-    //       另：vanilla WITHER_FRIENDS(=UNDEAD) 不含 zombie_horse/zombie_nautilus，而 Cubium
-    //       getCreatureAttribute==Undead 含之——边角偏差，zombie_nautilus 是项目自定义实体无 vanilla
-    //       基线，暂保持亡灵语义。
+    // 谓词查 EntityTypeTags::WITHER_FRIENDS（= #undead），对齐 vanilla WITHER_FRIENDS 的数据包可扩展语义。
+    // Smite（SENSITIVE_TO_SMITE）与药水反转（INVERTED_HEALING_AND_HARM）/毒免疫
+    // （IGNORES_POISON_AND_REGEN）已改为标签查询，亡灵判定在运行时的消费点全部收口到 EntityTypeTags。
+    // 凋灵友军判定由 isWitherFriend 统一实现（标签未初始化时回退 getCreatureAttribute）。
+    // 注：UNDEAD 标签含项目自定义实体 zombie_nautilus（vanilla 无此实体，无基线），沿用亡灵语义。
     m_targetSelector.addGoal(2,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             false, // checkSight
@@ -932,8 +938,8 @@ void WitherEntity::registerGoals()
                 if (entity == nullptr || !entity->isAlive()) {
                     return false;
                 }
-                // 排除亡灵生物（对齐 vanilla WITHER_FRIENDS = #undead 友军免伤）
-                return entity->getCreatureAttribute() != CreatureAttribute::Undead;
+                // 排除凋灵友军（对齐 vanilla WITHER_FRIENDS = #undead 友军免伤）
+                return !isWitherFriend(*entity);
             }));
 }
 
