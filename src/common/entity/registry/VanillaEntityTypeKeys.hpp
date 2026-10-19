@@ -89,6 +89,7 @@ extern const EntityType* SQUID;
 extern const EntityType* GLOW_SQUID;
 extern const EntityType* DOLPHIN;
 extern const EntityType* AXOLOTL;
+extern const EntityType* TADPOLE;
 extern const EntityType* NAUTILUS;
 extern const EntityType* ZOMBIE_NAUTILUS;
 
