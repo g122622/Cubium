@@ -1332,6 +1332,8 @@ add_executable(mc_tests
     common/world/block/blocks/building/WallBlockTest.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
+    # 按钮红石信号方向性测试
+    common/world/block/blocks/redstone/ButtonBlockSignalTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp
     common/world/block/blocks/redstone/PistonHeadBlockTest.cpp
     common/world/block/blocks/redstone/TripWireTest.cpp
