@@ -27,11 +27,19 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/attribute/EnvironmentAttributeMap.hpp"
+#include "common/world/attribute/EnvironmentAttributeSystem.hpp"
+#include "common/world/attribute/EnvironmentAttributeRegistry.hpp"
 #include <optional>
+#include <vector>
 #include <string>
 #include <utility>
 
 namespace mc {
+
+namespace world {
+namespace attribute {}
+} // namespace world
 
 /**
  * @brief 维度类型定义
@@ -230,6 +238,23 @@ public:
      */
     [[nodiscard]] const std::string& infiniburn() const { return m_infiniburn; }
 
+    // ========== 环境属性 ==========
+
+    /**
+     * @brief 维度声明的常量环境属性
+     *
+     * 对应 `dimension_type.attributes`。常量层最先应用，叠在属性默认值之上。
+     */
+    [[nodiscard]] const world::attribute::EnvironmentAttributeMap& attributes() const { return m_attributes; }
+
+    /**
+     * @brief 维度启用的时间线注册名
+     *
+     * 对应 `dimension_type.timelines`，元素为时间线注册名（如 `minecraft:day`），
+     * 时间线层按声明顺序叠加在常量层与群系位置层之后。
+     */
+    [[nodiscard]] const std::vector<std::string>& timelines() const { return m_timelines; }
+
     // ========== 比较 ==========
 
     bool operator==(const DimensionType& other) const { return m_id == other.m_id; }
@@ -295,6 +320,10 @@ private:
 
     // 方块标签
     std::string m_infiniburn;
+
+    // 环境属性
+    world::attribute::EnvironmentAttributeMap m_attributes;
+    std::vector<std::string> m_timelines;
 };
 
 } // namespace mc

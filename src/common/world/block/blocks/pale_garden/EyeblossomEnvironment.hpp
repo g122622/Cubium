@@ -24,10 +24,12 @@
 #pragma once
 
 #include "common/util/TriState.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/attribute/DimensionAttributes.hpp"
+#include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/timeline/Timelines.hpp"
 
 namespace mc {
 namespace blocks {
@@ -35,54 +37,43 @@ namespace blocks {
 /**
  * @brief 眼眸花环境属性查询工具
  *
- * 提供 EYEBLOSSOM_OPEN 环境属性的轻量级近似查询：
- * - 主世界：根据 dayTimeOfDay 在 12600~23400 之间返回 True（夜晚开放），其他返回 False
- * - 下界/末地：返回 Default（不主动切换，眼眸花保持当前状态）
+ * 按 EYEBLOSSOM_OPEN 环境属性查询当前方块应处的开合状态：
+ * - 主世界：夜晚时间线切换为 True，白天切换为 False
+ * - 下界/末地：维度未声明日夜时间线，保持默认值 Default（不主动切换，眼眸花保持当前状态）
  *
- * 时间区间 [12600, 23401) 来自 MC 1.21.11 的 Timelines.IN_OVERWORLD 中
- * EYEBLOSSOM_OPEN 关键帧：
- *   addKeyframe(12600, TriState.TRUE)
- *   addKeyframe(23401, TriState.FALSE)
- *
- * TODO: 完整实现 EnvironmentAttributes 系统后，本工具应被替换为
- * world.environmentAttributes().getValue(EnvironmentAttributes::EYEBLOSSOM_OPEN, pos)。
- * 完整系统应包含 EnvironmentAttribute / EnvironmentAttributeMap /
- * EnvironmentAttributeSystem / Timeline / KeyframeTrack 等组件，
- * 支持基于位置/群系/维度的属性查询、网络同步、空间插值等。
+ * 查询走维度级环境属性系统（常量层 + 时间线层），与网络/渲染侧使用同一份属性定义。
+ * 群系位置层尚未接入，因此当前查询不依赖方块位置。
  */
 namespace eyeblossom_environment {
 
-/// 主世界 EYEBLOSSOM_OPEN 关键帧：夜晚开始（日落 2 小时后）切到 True
-inline constexpr i64 EYEBLOSSOM_OPEN_TICK = 12600;
-/// 主世界 EYEBLOSSOM_OPEN 关键帧：白天开始（日出 1 小时前）切到 False
-inline constexpr i64 EYEBLOSSOM_CLOSE_TICK = 23401;
+// 不在头文件中 using namespace：以别名限定环境属性子系统
+namespace env_attribute = ::mc::world::attribute;
 
 /**
  * @brief 查询当前位置的 EYEBLOSSOM_OPEN 环境属性
  *
  * @param world 世界引用
- * @param pos 方块位置（保留参数，未来 EnvironmentAttributes 系统使用）
+ * @param pos 方块位置（群系位置层接入后用于空间查询）
  * @return TriState：主世界返回 True/False，下界/末地返回 Default
  */
-[[nodiscard]] inline util::TriState getEyeblossomOpen(const IWorld& world, const BlockPos& pos) noexcept
+[[nodiscard]] inline util::TriState getEyeblossomOpen(const IWorld& world, const BlockPos& pos)
 {
-    MC_UNUSED(pos);
+    // 维度级系统按注册名解析时间线与属性表，故先确保两者已装配（幂等）
+    ::mc::world::timeline::Timelines::bootstrap();
 
     const DimensionId dimId = world.dimension();
     const DimensionType dimType = DimensionType::fromId(dimId);
 
-    // 下界和末地有固定时间，且其 Timeline 不包含 EYEBLOSSOM_OPEN 轨道
-    // 因此这两个维度的 EYEBLOSSOM_OPEN 始终为维度默认值 TriState::Default
-    if (dimType.hasFixedTime()) {
-        return util::TriState::Default;
-    }
+    const i64 dayTime = world.dayTimeOfDay();
+    const i64 gameTime = world.dayTime();
 
-    // 主世界：按 dayTimeOfDay 判断
-    const i64 tod = world.dayTimeOfDay();
-    if (tod >= EYEBLOSSOM_OPEN_TICK && tod < EYEBLOSSOM_CLOSE_TICK) {
-        return util::TriState::True;
-    }
-    return util::TriState::False;
+    // 维度级环境属性系统：层序与 vanilla 一致（常量层 → 时间线层）
+    const std::unique_ptr<env_attribute::EnvironmentAttributeSystem> system =
+        env_attribute::DimensionAttributes::createSystem(
+            dimType, [dayTime]() { return dayTime; }, [gameTime]() { return gameTime; });
+
+    return system->getValue(env_attribute::EnvironmentAttributes::EYEBLOSSOM_OPEN(),
+        Vector3(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z)));
 }
 
 } // namespace eyeblossom_environment

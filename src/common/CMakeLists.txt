@@ -706,9 +706,13 @@ add_library(mc_common STATIC
     # World - Attribute
     world/attribute/AttributeTypes.cpp
     world/attribute/EnvironmentAttributes.cpp
+    world/attribute/EnvironmentAttributeRegistry.cpp
+    world/attribute/EnvironmentAttributeSystem.cpp
+    world/attribute/DimensionAttributes.cpp
 
     # World - Timeline
     world/timeline/Timelines.cpp
+    world/timeline/TimelineRegistry.cpp
 
     # World - Entity
     world/entity/EntityManager.cpp

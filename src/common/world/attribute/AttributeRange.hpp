@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 
 namespace mc {
 namespace world {
@@ -60,6 +61,12 @@ public:
         return AttributeRange<f32>(
             [min, max](f32 v) { return v >= min && v <= max; }, [min, max](f32 v) { return std::clamp(v, min, max); });
     }
+
+    /// 单位浮点区间 [0, 1]
+    static AttributeRange<f32> unitFloat() { return ofFloat(0.0f, 1.0f); }
+
+    /// 非负浮点区间 [0, +inf)
+    static AttributeRange<f32> nonNegativeFloat() { return ofFloat(0.0f, std::numeric_limits<f32>::infinity()); }
 
 private:
     std::function<bool(Value)> m_validate;

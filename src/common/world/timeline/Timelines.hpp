@@ -41,16 +41,16 @@ public:
     /**
      * @brief 日夜周期时间线
      *
-     * TODO: 尚未实现。MC 的 DAY 时间线以 24000 ticks 为周期驱动天空颜色、雾效、
-     * 环境光等属性，需先补齐对应的 EnvironmentAttribute 再填充关键帧。
+     * 周期 24000 ticks（一整天），驱动太阳/月亮/星空角度、雾色、天空色、
+     * 天空光照、日出日落色、星空亮度、眼眸花开合、嘎枝激活、海龟蛋孵化概率、
+     * 猫送礼概率、蜜蜂归巢与怪物日燃等属性。
      */
     [[nodiscard]] static const Timeline& DAY();
 
     /**
      * @brief 月相时间线
      *
-     * TODO: 尚未实现。MC 的 MOON 时间线以 8 天为周期驱动月相属性，
-     * 需先补齐 MOON_PHASE 类型的 EnvironmentAttribute。
+     * 周期 8 天（8 * 24000 ticks），驱动月相属性与地表史莱姆生成概率。
      */
     [[nodiscard]] static const Timeline& MOON();
 
@@ -65,8 +65,7 @@ public:
     /**
      * @brief 早期游戏阶段时间线
      *
-     * TODO: 尚未实现。MC 的 EARLY_GAME 时间线驱动早期游戏阶段相关属性，
-     * 需先补齐对应的 EnvironmentAttribute。
+     * 无周期（以世界累积时间驱动）：在前 120000 ticks 内禁止生成劫掠巡逻队。
      */
     [[nodiscard]] static const Timeline& EARLY_GAME();
 

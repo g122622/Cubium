@@ -145,6 +145,8 @@ world/
 │   └── LightEngineUtils.hpp/cpp  # 光照引擎工具（坐标转换、方向枚举等）
 │   # 注：engine/、manager/ 已迁至 server/world/lighting/；
 │   #     storage/ 已迁至 common/world/chunk/data/light/
+├── level/                      # 世界级公共类型（月相：枚举/每相长度/亮度表）
+│   └── MoonPhase.hpp           # 月相枚举与时间线/刷怪概率共用的相位工具
 ├── map/                        # 地图系统
 │   ├── MapData.hpp/cpp         # 地图数据核心 - 128x128像素、装饰物、旗帜、展示框标记
 │   ├── MapDecoration.hpp/cpp   # 地图装饰物 - 27种装饰类型定义、NBT/网络序列化

@@ -1574,6 +1574,8 @@ add_executable(mc_tests
     common/world/timeline/TimelineTest.cpp
     # EasingType 缓动函数（端点收敛、单调性、具体数值锚定）测试
     common/world/timeline/EasingTypeTest.cpp
+    # 环境属性系统与预定义时间线（修改器、DAY/MOON/EARLY_GAME、层序与维度装配）测试
+    common/world/attribute/EnvironmentAttributeTest.cpp
     # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
     common/world/chunk/gen/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
