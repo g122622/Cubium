@@ -38,6 +38,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/fish/AbstractFishEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -110,9 +111,8 @@ void PufferfishEntity::registerGoals()
 
 void PufferfishEntity::tick()
 {
-    AbstractFishEntity::tick();
-
-    // 处理膨胀和收缩逻辑
+    // 膨胀状态机对齐 vanilla Pufferfish.tick：先推进膨胀/收缩计时器（进出膨胀音效由
+    // setPuffState 播放），再调用 super.tick（AbstractFishEntity::tick）。
     if (m_puffTimer > 0) {
         // 膨胀逻辑：当 puffTimer == 1 时，从状态 0 变为状态 1
         if (m_puffState == PuffState::Deflated && m_puffTimer == 1) {
@@ -130,14 +130,20 @@ void PufferfishEntity::tick()
 
         if (m_deflateTimer > DEFLATE_FULL_TO_SEMI && m_puffState == PuffState::FullyPuffed) {
             setPuffState(PuffState::SemiPuffed);
-            m_deflateTimer = 0;
         } else if (m_deflateTimer > DEFLATE_SEMI_TO_DEFLATE && m_puffState == PuffState::SemiPuffed) {
             setPuffState(PuffState::Deflated);
-            m_deflateTimer = 0;
         }
     }
 
-    // 在膨胀状态时攻击附近敌人
+    AbstractFishEntity::tick();
+}
+
+void PufferfishEntity::aiStep()
+{
+    // 对应 vanilla Pufferfish.aiStep：膨胀状态下每 tick 刺伤碰撞箱扩展 0.3 格内符合
+    // Pufferfish.TARGETING_CONDITIONS 的生物（见 _attackNearbyEnemies）。
+    AbstractFishEntity::aiStep();
+
     if (m_puffState != PuffState::Deflated) {
         _attackNearbyEnemies();
     }
@@ -158,43 +164,65 @@ void PufferfishEntity::resetPuffTimer()
 
 void PufferfishEntity::_attackNearbyEnemies()
 {
-    // 在膨胀状态时攻击碰撞箱扩展 0.3 格范围内的敌人
-    if (!isAlive() || !world()) return;
+    // 对齐 vanilla Pufferfish.aiStep：膨胀状态下遍历碰撞箱扩展 0.3 格内的 Mob，
+    // 以 Pufferfish.TARGETING_CONDITIONS（forNonCombat + ignoreInvisibilityTesting +
+    // ignoreLineOfSight + SCARY_MOB 选择器）过滤后刺伤。
+    // 注意目标类型是 Mob（不含 Player）：玩家接触伤害由 playerTouch 单独处理。
+    if (!isAlive() || !world()) {
+        return;
+    }
 
-    // 检测碰撞箱扩展 0.3 格范围内的敌人
-    AxisAlignedBB searchBox = boundingBox().grow(0.3);
-
-    std::vector<Entity*> entities = world()->getEntitiesInAABB(searchBox, this);
+    const AxisAlignedBB searchBox = boundingBox().grow(0.3);
+    const std::vector<Entity*> entities = world()->getEntitiesInAABB(searchBox, this);
 
     for (Entity* entity : entities) {
-        if (!entity || !entity->isAlive()) continue;
+        if (entity == nullptr || !entity->isAlive()) {
+            continue;
+        }
 
-        // 只检测 MobEntity
-        MobEntity* mob = dynamic_cast<MobEntity*>(entity);
-        if (!mob) continue;
+        // 目标类型为 Mob（vanilla getEntitiesOfClass(Mob.class, ...)）。
+        auto* mob = dynamic_cast<MobEntity*>(entity);
+        if (mob == nullptr) {
+            continue;
+        }
 
-        // 检查是否为敌人（非水生生物）
-        // 对于玩家，PuffGoal 已经在检测时处理，这里主要处理怪物
+        if (!isScaryMob(*mob)) {
+            continue;
+        }
 
-        // 攻击敌人，伤害 = 1 + puffState
-        // 中毒持续时间 = 60 * puffState ticks
+        // 伤害 = 1 + puffState，命中后附加 60*puffState tick 的中毒 I。
         EntityDamageSource damageSource = DamageSources::mobAttack(this);
-        i32 damage = 1 + static_cast<i32>(m_puffState);
-
-        if (mob->hurt(damageSource, static_cast<f32>(damage))) {
-            // 添加中毒效果
-            i32 poisonDuration = 60 * static_cast<i32>(m_puffState);
+        const i32 puffState = static_cast<i32>(m_puffState);
+        if (mob->hurt(damageSource, static_cast<f32>(1 + puffState))) {
             mob->addEffect(entity::effect::EffectInstance(entity::effect::EffectType::Poison,
-                poisonDuration,
+                60 * puffState,
                 0,     // amplifier (0 = Poison I)
                 false, // ambient
                 true   // visible
                 ));
-
-            // 播放刺击音效
             playSound(SoundEvents::ENTITY_PUFFER_FISH_STING, 1.0f, 1.0f);
         }
     }
+}
+
+bool PufferfishEntity::isScaryMob(const LivingEntity& entity)
+{
+    // 对齐 vanilla 1.21.11 Pufferfish.SCARY_MOB：
+    //   e instanceof Player p && p.isCreative() ? false : !e.getType().is(NOT_SCARY_FOR_PUFFERFISH)
+    // 膨胀触发（PuffGoal）与刺伤（aiStep）共用本判定，避免两处硬编码列表分叉。
+    // 另：TargetingConditions.forNonCombat 在动作方非空时仍要求 canBeSeenByAnyone()
+    // （= !isSpectator() && isAlive()），故旁观者不会触发膨胀。
+    // 标签未初始化（极早期）时成员集为空会把水生生物误判为敌人，故保守返回"不惧怕"。
+    if (entity.isSpectator()) {
+        return false;
+    }
+    if (const auto* player = dynamic_cast<const Player*>(&entity); player != nullptr && player->isCreative()) {
+        return false;
+    }
+    if (!EntityTypeTags::isInitialized()) {
+        return false;
+    }
+    return !EntityTypeTags::NOT_SCARY_FOR_PUFFERFISH().contains(entity.getTypeId());
 }
 
 std::optional<ResourceLocation> PufferfishEntity::getAmbientSound() const

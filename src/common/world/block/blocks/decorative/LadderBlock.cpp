@@ -74,45 +74,66 @@ LadderBlock::LadderBlock(const BlockProperties& properties)
 
 BlockState LadderBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 根据点击的面确定朝向
-    Direction facing = context.getClickedFace();
-
-    // 只能放在侧面上
-    if (facing == Direction::Down || facing == Direction::Up) {
-        // 如果点击的是上下面，使用玩家的朝向
-        facing = context.horizontalDirection();
-    }
-
-    // 确保是水平方向
-    if (facing == Direction::Down || facing == Direction::Up) {
-        facing = Direction::North;
-    }
-
-    // 检查是否含水
+    // 遍历 context.getNearestLookingDirections() 中"从放置位置出发、经该方向可达点击方块"的方向：
+    //   - 水平方向：FACING = 其 Opposite（倚靠触发放置的那个面）；
+    //   - 竖直方向与指向放置位置自身的方向：取玩家水平朝向对应的水平面
+    //     （原版此处用 FACING = direction.getOpposite() = Up/Down 构造非法状态、canSurvive 必假，等价跳过）。
+    // 首个能存活的候选即为结果。关系为"放置位置相对点击方块的位移"，故用点击位置而非
+    // 被替换的点击方块本身（后者在最高台阶、草丛等场景与放置位置重合，虽仍可作为方向锚点）。
+    // TODO: 当候选全部不能存活时，原版返回 null 放弃放置；本项目 Block::getStateForPlacement
+    //   返回 BlockState 值，只能回退默认状态，由 BlockItem::canPlace 拒绝放置（结果一致，
+    //   但放置判定路径与方块侧不一致）。待该接口可表达"不可放置"后对齐。
     const IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
-    bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+    const BlockPos pos = context.placementPos();
 
-    // 梯子朝向是附着面的反方向
-    return defaultState()
-        .with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(facing))
-        .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+    Direction fallback = Directions::opposite(context.getClickedFace());
+    if (!Directions::isHorizontal(fallback)) {
+        fallback = context.horizontalDirection();
+    }
+    if (!Directions::isHorizontal(fallback)) {
+        fallback = Direction::North;
+    }
+
+    BlockState candidate = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), fallback);
+    bool resolved = false;
+    for (Direction direction : context.getNearestLookingDirections()) {
+        // 仅接受从放置位置出发、经 direction 可达点击方块（或点击位置本身即放置位置）的方向
+        if (pos.offset(direction) != context.getBlockPos() && pos != context.getBlockPos()) {
+            continue;
+        }
+        const Direction facing =
+            Directions::isHorizontal(direction) ? Directions::opposite(direction) : context.horizontalDirection();
+        candidate = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+        if (isValidPosition(candidate, const_cast<IBlockReader&>(static_cast<const IBlockReader&>(world)), pos)) {
+            resolved = true;
+            break;
+        }
+    }
+    if (!resolved) {
+        candidate = defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), fallback);
+    }
+
+    // 检查是否含水（等价原版 getFluidState(pos).getType() == Fluids.WATER）
+    const bool waterlogged = waterloggable::shouldWaterlogAt(world, pos);
+    return candidate.with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 bool LadderBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
-    // 梯子需要附着在固体方块的侧面
-    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    // 获取梯子背面的方块位置（朝向的反方向）
-    BlockPos attachPos = pos.offset(Directions::opposite(facing));
+    // 梯子需要附着在朝向反方向方块的相应面上，且该面为实体面（原版 canSurvive → canAttachTo
+    //   → BlockState.isFaceSturdy(direction, SupportType.FULL)，direction 为朝向梯子的面）。
+    // TODO: 待 VoxelShape::getFaceShape 修复面投影返回错误形状（完整方块取面后仍被判为投影不完整，
+    //   使 SupportType 三档判定对完整方块一致返回 false）后，改用 isFaceSturdy(..., SupportType::Full)，
+    //   以精确区分"面完整但不可遮挡"（如玻璃）与"面不完整"（如台阶、雪层）的方块。
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    const BlockPos attachPos = pos.offset(facing);
     const BlockState* attachState = world.getBlockState(attachPos);
 
     if (attachState == nullptr) {
         return false;
     }
 
-    // 检查背面方块的朝向梯子的面是否为实体面
-    return attachState->isSolidSide(world, attachPos, facing);
+    return attachState->isSolidSide(world, attachPos, Directions::opposite(facing));
 }
 
 BlockState LadderBlock::updatePostPlacement(const BlockState& state,
@@ -130,16 +151,10 @@ BlockState LadderBlock::updatePostPlacement(const BlockState& state,
         waterloggable::scheduleWaterTick(world, currentPos);
     }
 
-    // 如果梯子背面方块被移除，则移除梯子
-    Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == Directions::opposite(ladderFacing)) {
-        // 背面方块发生变化，检查是否仍然可以附着
-        BlockPos attachPos = currentPos.offset(Directions::opposite(ladderFacing));
-        const BlockState* attachState = world.getBlockState(attachPos);
-
-        if (attachState == nullptr || !attachState->isSolidSide(world, attachPos, ladderFacing)) {
-            return VanillaBlocks::AIR->defaultState();
-        }
+    // 仅当变化方向为梯子的 FACING（即所倚靠的方块本身发生变化）时重新检查存活
+    const Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    if (facing == ladderFacing && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+        return VanillaBlocks::AIR->defaultState();
     }
 
     return state;

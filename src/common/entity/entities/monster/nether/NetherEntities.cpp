@@ -68,6 +68,7 @@
 #include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -1050,54 +1051,70 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     //   if (HoglinAi.isPosNearNearestRepellent(this, pos)) return -1.0F;
     //   return level.getBlockState(pos.below()).is(Blocks.CRIMSON_NYLIUM) ? 10.0F : 0.0F;
     //
-    // MC 原版通过 Brain 系统的 HoglinSpecificSensor 定期扫描附近排斥物并缓存到
-    // NEAREST_REPELLENT 记忆模块中，然后 isPosNearNearestRepellent 检查缓存的排斥物
-    // 位置是否在 8 格范围内。当前项目 HoglinEntity 尚未集成 Brain 系统，
-    // 因此采用直接扫描方案：每次调用时搜索当前位置周围水平 8 格、垂直 4 格范围内的排斥物方块。
-    // 这与 MC 原版 HoglinSpecificSensor.findNearestRepellent 的搜索范围一致。
+    // 原版 HoglinSpecificSensor.findNearestRepellent 每 tick 以疣猪兽中心
+    // （BlockPos.findClosestMatch(blockPosition(), 8, 4)）搜索最近排斥物并缓存到 NEAREST_REPELLENT，
+    // HoglinAi.isPosNearNearestRepellent 再以该缓存位置的 closerThan(pos, 8.0) 判定候选位置。
+    // 因此候选位置是否被排斥，等价于"以疣猪兽为中心 8×4×8 范围内存在排斥物，且候选位置到该排斥物
+    // 中心距离 < 8.0"。注意两个半径方向不同：搜索用水平 8 / 垂直 4 的方形范围（blockPosition 即
+    // 实体脚部方块坐标），距离判定用欧氏距离 8（含垂直分量）。
+    //
+    // 本项目尚未集成 Brain/Sensor，此处按上述语义在每次调用时直接扫描：先取最近的排斥物方块，
+    // 再判定候选位置到它的距离，结果与原版缓存语义一致。
+    // TODO: 集成 Brain/Sensor 系统后，迁移为 HoglinSpecificSensor + NEAREST_REPELLENT 记忆模块方案，
+    //       避免每次查询都重复扫描。
 
     const IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
         return 0.0f;
     }
 
-    // 排斥物近距离检查
-    // MC 1.21.11 BlockTags.HOGLIN_REPELLENTS 包含:
-    //   - 诡异菌 (warped_fungus)
-    //   - 下界传送门 (nether_portal)
-    //   - 重生锚 (respawn_anchor)
-    // TODO: 花盆系统实现后需在 HOGLIN_REPELLENTS 标签中添加 potted_warped_fungus（盆栽诡异菌），
-    //       此处扫描和 AvoidBlockGoal 会自动包含新标签成员
-    //
-    // 注意：此 getPathWeight 与 AvoidBlockGoal（优先级5）协同工作：
-    //   - getPathWeight 返回 -1.0 阻止寻路穿过排斥区域
-    //   - AvoidBlockGoal 主动使实体远离排斥方块
-    //   两者共同实现了 MC 原版 isPosNearNearestRepellent + SetWalkTargetAwayFrom 的行为
-    //
-    // 搜索范围: 水平 8 格，垂直 4 格
-    // 对应 MC 原版: HoglinSpecificSensor.REPELLENT_DETECTION_RANGE_HORIZONTAL = 8,
-    //              HoglinSpecificSensor.REPELLENT_DETECTION_RANGE_VERTICAL = 4
+    // HOGLIN_REPELLENTS 当前成员（方块标签，见 BlockTags.cpp）：
+    //   warped_fungus / potted_warped_fungus / nether_portal / respawn_anchor，
+    // 与原版 BlockTagsProvider.HOGLIN_REPELLENTS 一致。此处不做成员硬编码，标签新增成员自动生效。
     static constexpr i32 REPELLENT_RANGE_H = 8;
     static constexpr i32 REPELLENT_RANGE_V = 4;
+    static constexpr f64 REPELLENT_DISTANCE = 8.0;
 
     const BlockTag& hoglinRepellents = BlockTags::HOGLIN_REPELLENTS();
     const i32 bx = static_cast<i32>(x);
     const i32 by = static_cast<i32>(y);
     const i32 bz = static_cast<i32>(z);
 
+    std::optional<BlockPos> nearestRepellent;
+    f64 nearestDistSq = std::numeric_limits<f64>::infinity();
     for (i32 dx = -REPELLENT_RANGE_H; dx <= REPELLENT_RANGE_H; ++dx) {
         for (i32 dy = -REPELLENT_RANGE_V; dy <= REPELLENT_RANGE_V; ++dy) {
             for (i32 dz = -REPELLENT_RANGE_H; dz <= REPELLENT_RANGE_H; ++dz) {
-                const BlockState* state = worldPtr->getBlockState(bx + dx, by + dy, bz + dz);
-                if (state != nullptr && hoglinRepellents.contains(*state)) {
-                    return -1.0f;
+                const BlockPos candidate(bx + dx, by + dy, bz + dz);
+                const BlockState* state = worldPtr->getBlockState(candidate);
+                if (state == nullptr || !hoglinRepellents.contains(*state)) {
+                    continue;
+                }
+                const f64 ddx = static_cast<f64>(dx);
+                const f64 ddy = static_cast<f64>(dy);
+                const f64 ddz = static_cast<f64>(dz);
+                const f64 distSq = ddx * ddx + ddy * ddy + ddz * ddz;
+                if (distSq < nearestDistSq) {
+                    nearestDistSq = distSq;
+                    nearestRepellent = candidate;
                 }
             }
         }
     }
 
+    if (nearestRepellent.has_value()) {
+        // BlockPos.closerThan(other, 8.0)：三方块坐标差的平方和 < 64。
+        // 候选位置取整后与排斥物比较，因此与疣猪兽相距最远约 16 格的水平候选仍可能被判定为受排斥。
+        const f64 cdx = static_cast<f64>(bx - nearestRepellent->x);
+        const f64 cdy = static_cast<f64>(by - nearestRepellent->y);
+        const f64 cdz = static_cast<f64>(bz - nearestRepellent->z);
+        if (cdx * cdx + cdy * cdy + cdz * cdz < REPELLENT_DISTANCE * REPELLENT_DISTANCE) {
+            return -1.0f;
+        }
+    }
+
     // 偏好绯红菌岩：站在绯红菌岩上返回 10.0f
-    BlockPos posBelow(static_cast<i32>(x), static_cast<i32>(y) - 1, static_cast<i32>(z));
+    const BlockPos posBelow(bx, by - 1, bz);
     const BlockState* groundBlock = worldPtr->getBlockState(posBelow);
     if (groundBlock != nullptr && groundBlock->is(block_registry::NetherBlocks::CRIMSON_NYLIUM)) {
         return 10.0f;

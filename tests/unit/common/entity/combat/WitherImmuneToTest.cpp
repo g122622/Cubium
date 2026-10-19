@@ -53,8 +53,10 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 using namespace mc;
 
@@ -95,6 +97,71 @@ protected:
 
     TestWorld m_world;
 };
+
+// ============================================================================
+// WITHER_FRIENDS（= #undead）标签判定
+//
+// vanilla WitherBoss 的友军判定全部查 EntityTypeTags.WITHER_FRIENDS（数据包可扩展）：
+//   - LIVING_ENTITY_SELECTOR：!getType().is(WITHER_FRIENDS) && attackable()
+//   - hurtServer：entity.getType().is(WITHER_FRIENDS) && !(entity instanceof Player) 免伤
+// Cubium 此前在 WitherEntity 内硬编码 getCreatureAttribute()==Undead 代理该标签，
+// 数据包向 wither_friends 追加成员（或从中移除成员）时凋灵行为不会跟随。现统一经
+// WitherEntity::isWitherFriend 查标签，以下测试锚定标签成员与调用点行为。
+// ============================================================================
+
+// 标签成员 = UNDEAD 派生，且含凋灵本体/幻翼，不含玩家与普通生物。
+TEST_F(WitherImmuneToTest, WitherFriendsTagEqualsUndead)
+{
+    EntityTypeTags::initialize();
+
+    for (const auto& id : EntityTypeTags::UNDEAD().getEntityTypeIds()) {
+        EXPECT_TRUE(EntityTypeTags::WITHER_FRIENDS().contains(id)) << "WITHER_FRIENDS 应包含亡灵成员 " << id.toString();
+    }
+    EXPECT_TRUE(EntityTypeTags::WITHER_FRIENDS().contains(ResourceLocation("minecraft:wither")));
+    EXPECT_TRUE(EntityTypeTags::WITHER_FRIENDS().contains(ResourceLocation("minecraft:phantom")));
+    EXPECT_FALSE(EntityTypeTags::WITHER_FRIENDS().contains(ResourceLocation("minecraft:player")));
+    EXPECT_FALSE(EntityTypeTags::WITHER_FRIENDS().contains(ResourceLocation("minecraft:pig")));
+}
+
+// isWitherFriend 按实体类型 id 查标签：亡灵为友军，非亡灵不是。
+TEST_F(WitherImmuneToTest, IsWitherFriendQueriesEntityTypeTag)
+{
+    EntityTypeTags::initialize();
+
+    TestLivingEntity zombie;
+    zombie.setTypeId("minecraft:zombie");
+    EXPECT_TRUE(entity::WitherEntity::isWitherFriend(zombie));
+
+    // skeleton_horse 属于 #undead，而在本次修订前未被任何凋灵侧判定覆盖（枚举判定曾漏配）——
+    // 此处锚定标签路径对完整 #undead 成员集生效。
+    TestLivingEntity skeletonHorse;
+    skeletonHorse.setTypeId("minecraft:skeleton_horse");
+    EXPECT_TRUE(entity::WitherEntity::isWitherFriend(skeletonHorse));
+
+    TestLivingEntity pig;
+    pig.setTypeId("minecraft:pig");
+    EXPECT_FALSE(entity::WitherEntity::isWitherFriend(pig));
+}
+
+// 亡灵（非玩家）攻击凋灵不造成伤害（hurtServer 免伤分支查标签）。
+TEST_F(WitherImmuneToTest, UndeadMobAttackDoesNotHurtWither)
+{
+    EntityTypeTags::initialize();
+
+    entity::WitherEntity wither(EntityInstanceId(2), mc::test::testEcsRegistry());
+    wither.setWorld(&m_world);
+    wither.setHealth(wither.maxHealth());
+
+    TestLivingEntity zombie;
+    zombie.setWorld(&m_world);
+    zombie.setTypeId("minecraft:zombie");
+
+    auto source = DamageSources::mobAttack(&zombie);
+    bool result = wither.hurt(source, 5.0f);
+
+    EXPECT_FALSE(result);
+    EXPECT_FLOAT_EQ(wither.health(), wither.maxHealth());
+}
 
 // WITHER_IMMUNE_TO（Drown）：凋灵免疫溺水伤害。
 TEST_F(WitherImmuneToTest, DrownIsImmune)

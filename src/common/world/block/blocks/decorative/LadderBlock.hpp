@@ -64,7 +64,10 @@ public:
     // ========== 放置检测 ==========
 
     /**
-     * @brief 检查是否可以放置
+     * @brief 检查是否可以放置（等价原版 canSurvive）
+     *
+     * 梯子必须附着在朝向反方向方块的相应面上，且该面为实体面
+     * （原版 canAttachTo → BlockState.isFaceSturdy）。
      */
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;

@@ -690,9 +690,9 @@ bool BeeEntity::attackEntityAsMob(LivingEntity& target)
             ));
     }
 
-    // TODO: Java Bee.doHurtTarget 另调 livingentity.setStingerCount(+1) 增加目标蛰刺计数
-    //       （蛰刺留在体内持续扣血直至拔出）。Cubium LivingEntity 无 stingerCount 机制，
-    //       待该机制补全后在此补 setStingerCount(getStingerCount()+1)。
+    // 蛰刺计数 +1（对齐 Java livingentity.setStingerCount(getStingerCount() + 1)）：
+    // 蜂针留在目标体内，由 LivingEntity::tickArrows 按 20 * (30 - count) tick 逐渐脱落。
+    target.setStingerCountInEntity(target.getStingerCount() + 1);
 
     // 5. playSound(BEE_STING)（对齐 Java playSound(SoundEvents.BEE_STING, 1, 1)）。
     if (m_world != nullptr && !isSilent()) {

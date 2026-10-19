@@ -36,12 +36,15 @@
 
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 
 using namespace mc;
 
@@ -540,4 +543,82 @@ TEST_F(PufferfishEntityTest, Create_ReturnsValidEntity)
     auto entity = PufferfishEntity::create(nullptr, mc::test::testEcsRegistry());
     EXPECT_NE(entity, nullptr);
     EXPECT_EQ(entity->entityType(), nullptr);
+}
+
+// ==================== NOT_SCARY_FOR_PUFFERFISH（isScaryMob）测试 ====================
+
+namespace {
+
+/// 构造指定类型 id 的测试生物（用于 isScaryMob 标签判定）。
+class TypeIdMob final : public MobEntity {
+public:
+    explicit TypeIdMob(const std::string& typeId)
+        : MobEntity(EntityInstanceId(100), mc::test::testEcsRegistry())
+    {
+        setTypeId(typeId);
+    }
+};
+
+} // namespace
+
+// 标签成员集与 vanilla EntityTypeTagsProvider.NOT_SCARY_FOR_PUFFERFISH 对齐（13 种已实现水生生物）。
+TEST_F(PuffGoalTest, NotScaryTagMembers)
+{
+    EntityTypeTags::initialize();
+
+    for (const char* id : {"minecraft:cod",
+             "minecraft:salmon",
+             "minecraft:pufferfish",
+             "minecraft:tropical_fish",
+             "minecraft:squid",
+             "minecraft:glow_squid",
+             "minecraft:dolphin",
+             "minecraft:turtle",
+             "minecraft:guardian",
+             "minecraft:elder_guardian",
+             "minecraft:nautilus",
+             "minecraft:zombie_nautilus",
+             "minecraft:tadpole"}) {
+        EXPECT_TRUE(EntityTypeTags::NOT_SCARY_FOR_PUFFERFISH().contains(ResourceLocation(id)))
+            << "NOT_SCARY_FOR_PUFFERFISH 应包含 " << id;
+    }
+    EXPECT_FALSE(EntityTypeTags::NOT_SCARY_FOR_PUFFERFISH().contains(ResourceLocation("minecraft:zombie")));
+    EXPECT_FALSE(EntityTypeTags::NOT_SCARY_FOR_PUFFERFISH().contains(ResourceLocation("minecraft:player")));
+}
+
+// 水生生物（标签成员）不触发膨胀；普通陆生/敌对生物触发。
+TEST_F(PuffGoalTest, IsScaryMobQueriesTag)
+{
+    EntityTypeTags::initialize();
+
+    TypeIdMob cod("minecraft:cod");
+    EXPECT_FALSE(PufferfishEntity::isScaryMob(cod));
+
+    TypeIdMob guardian("minecraft:guardian");
+    EXPECT_FALSE(PufferfishEntity::isScaryMob(guardian));
+
+    TypeIdMob zombie("minecraft:zombie");
+    EXPECT_TRUE(PufferfishEntity::isScaryMob(zombie));
+
+    TypeIdMob cow("minecraft:cow");
+    EXPECT_TRUE(PufferfishEntity::isScaryMob(cow));
+}
+
+// 创造模式玩家与旁观者玩家不触发膨胀；生存模式玩家触发。
+TEST_F(PuffGoalTest, IsScaryMobExcludesCreativeAndSpectatorPlayers)
+{
+    EntityTypeTags::initialize();
+
+    Player creative(EntityInstanceId(201), "Creative", mc::test::testEcsRegistry());
+    creative.setGameMode(GameMode::Creative);
+    EXPECT_FALSE(PufferfishEntity::isScaryMob(creative));
+
+    Player spectator(EntityInstanceId(202), "Spectator", mc::test::testEcsRegistry());
+    spectator.setGameMode(GameMode::Spectator);
+    EXPECT_TRUE(spectator.isSpectator());
+    EXPECT_FALSE(PufferfishEntity::isScaryMob(spectator));
+
+    Player survival(EntityInstanceId(203), "Survival", mc::test::testEcsRegistry());
+    survival.setGameMode(GameMode::Survival);
+    EXPECT_TRUE(PufferfishEntity::isScaryMob(survival));
 }

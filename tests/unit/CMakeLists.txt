@@ -291,6 +291,8 @@ add_executable(mc_tests
     common/entity/entities/monster/MagmaCubeEntityTest.cpp
     # GhastEntity 反弹火球秒杀机制测试（对齐 vanilla Ghast.isReflectedFireball/hurtServer）
     common/entity/entities/monster/nether/GhastReflectedFireballTest.cpp
+    # 疣猪兽寻路权重（HOGLIN_REPELLENTS 搜索范围 / 欧氏 8 距离判定 / 绯红菌岩偏好）测试
+    common/entity/entities/monster/nether/HoglinPathWeightTest.cpp
     # 史莱姆 AI 目标测试
     common/entity/SlimeGoalsTest.cpp
     # 铁傀儡 AI 目标测试
@@ -647,6 +649,8 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
+    # LadderBlock 梯子方块测试（朝向、附着支撑、邻居更新）
+    common/world/block/blocks/decorative/LadderBlockTest.cpp
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     # CampfireBlock 营火方块测试
     common/world/block/blocks/decorative/CampfireBlockTest.cpp

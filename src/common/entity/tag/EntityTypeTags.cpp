@@ -114,6 +114,28 @@ EntityTypeTag& EntityTypeTags::UNDEAD()
     return *tag;
 }
 
+EntityTypeTag& EntityTypeTags::NOT_SCARY_FOR_PUFFERFISH()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:not_scary_for_pufferfish"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:not_scary_for_pufferfish")] = std::move(t);
+    }
+    return *tag;
+}
+
+EntityTypeTag& EntityTypeTags::WITHER_FRIENDS()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:wither_friends"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:wither_friends")] = std::move(t);
+    }
+    return *tag;
+}
+
 EntityTypeTag& EntityTypeTags::ARTHROPOD()
 {
     static EntityTypeTag* tag = nullptr;
@@ -410,6 +432,8 @@ void EntityTypeTags::initialize()
     DEFLECTS_PROJECTILES();
     IGNORES_POISON_AND_REGEN();
     INVERTED_HEALING_AND_HARM();
+    WITHER_FRIENDS();
+    NOT_SCARY_FOR_PUFFERFISH();
     IMMUNE_TO_INFESTED();
     IMMUNE_TO_OOZING();
     NO_ANGER_FROM_WIND_CHARGE();
@@ -700,6 +724,31 @@ void EntityTypeTags::initialize()
     // 治疗与伤害反转（= #minecraft:undead）
     INVERTED_HEALING_AND_HARM().addAll(
         std::vector<ResourceLocation>(UNDEAD().getEntityTypeIds().begin(), UNDEAD().getEntityTypeIds().end()));
+
+    // 凋灵友军（= #minecraft:undead）：凋灵不攻击/不受其伤害
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.WITHER_FRIENDS（line 144 addTag(UNDEAD)）。
+    WITHER_FRIENDS().addAll(
+        std::vector<ResourceLocation>(UNDEAD().getEntityTypeIds().begin(), UNDEAD().getEntityTypeIds().end()));
+
+    // 河豚不惧怕的实体（水生生物）
+    // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.NOT_SCARY_FOR_PUFFERFISH；
+    // sulfur_cube 实体尚未在项目中注册（sulfur_cube 方块与实体体系均未实现），
+    // TODO: 实现 sulfur_cube 实体后在此补入 minecraft:sulfur_cube。
+    NOT_SCARY_FOR_PUFFERFISH().addAll({
+        ResourceLocation("minecraft:cod"),
+        ResourceLocation("minecraft:salmon"),
+        ResourceLocation("minecraft:pufferfish"),
+        ResourceLocation("minecraft:tropical_fish"),
+        ResourceLocation("minecraft:squid"),
+        ResourceLocation("minecraft:glow_squid"),
+        ResourceLocation("minecraft:dolphin"),
+        ResourceLocation("minecraft:turtle"),
+        ResourceLocation("minecraft:guardian"),
+        ResourceLocation("minecraft:elder_guardian"),
+        ResourceLocation("minecraft:nautilus"),
+        ResourceLocation("minecraft:zombie_nautilus"),
+        ResourceLocation("minecraft:tadpole"),
+    });
 
     // 免疫蠹虫效果（infested 附魔：被击杀生物生成蠹虫；蠹虫自身免疫防递归）
     // 对齐 vanilla 1.21.11 EntityTypeTagsProvider.IMMUNE_TO_INFESTED（line 178，仅 silverfish）。

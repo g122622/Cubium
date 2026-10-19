@@ -46,7 +46,7 @@ namespace {
 // 返回的数组长度恒为 6，且第 i 个与第 5-i 个互为相反方向。
 //
 // 参数：
-//   yawDeg   玩家偏航角（度）。MC 约定：0=南, 90=西, 180=北, 270=东。
+//   yawDeg   玩家偏航角（度）。MC 约定：0=南, 90=东, 180=北, 270=西。
 //   pitchDeg 玩家俯仰角（度）。MC 约定：0=水平，正=俯视，负=仰视。
 std::array<Direction, 6> orderedByNearest(f32 yawDeg, f32 pitchDeg)
 {
@@ -105,24 +105,15 @@ BlockItemUseContext::BlockItemUseContext(IWorld& world,
         blockPos.y + Directions::yOffset(face),
         blockPos.z + Directions::zOffset(face));
 
-    // 计算玩家水平朝向
-    // MC 的 yaw: 0=南, 90=西, 180=北, 270=东
-    // 我们的 Direction: North=2, South=3, West=4, East=5
-    f32 yaw = playerYaw;
-    while (yaw < 0.0f)
-        yaw += 360.0f;
-    while (yaw >= 360.0f)
-        yaw -= 360.0f;
-
-    if (yaw < 45.0f || yaw >= 315.0f) {
-        m_horizontalDirection = Direction::South; // 面向南
-    } else if (yaw < 135.0f) {
-        m_horizontalDirection = Direction::West; // 面向西
-    } else if (yaw < 225.0f) {
-        m_horizontalDirection = Direction::North; // 面向北
-    } else {
-        m_horizontalDirection = Direction::East; // 面向东
-    }
+    // 计算玩家水平朝向。等价原版 UseOnContext.getHorizontalDirection() → Entity.getDirection()
+    //   → Direction.fromYRot(yaw) = from2DDataValue(floor(yaw / 90 + 0.5) & 3)；
+    // MC 的 yaw: 0=南, 90=东, 180=北, 270=西（视线单位向量 (cos yaw, 0, -sin yaw)）。
+    // 有玩家时取其身体朝向实时值，否则用构造时传入的 yaw 快照（测试/程序化放置）。
+    // 旧实现按 yaw < 45 / < 135 / < 225 / else 四档划分，North/East/West 三档各偏一个象限
+    // （yaw=90 得 West、yaw=180 得 South、yaw=270 得 East），使炉子/门/床/活塞/铁砧等
+    // 所有依赖玩家朝向的方块朝向错误。
+    const f32 yaw = (m_player != nullptr) ? m_player->yaw() : m_playerYaw;
+    m_horizontalDirection = Directions::fromYRot(yaw);
 
     _initialize();
 }

@@ -508,13 +508,13 @@ TEST_F(AnvilBlockTest, GetStateForPlacement_ClockwiseRotation)
         EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::West);
     }
 
-    // 玩家朝西（yaw=90）→ 顺时针90度 → 北
+    // 玩家朝北（yaw=180）→ 顺时针90度 → 东
     {
         Vector3 hitPos(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
-        BlockItemUseContext context(world, nullptr, stack, hitPos, pos, Direction::Up, 90.0f, 0.0f);
+        BlockItemUseContext context(world, nullptr, stack, hitPos, pos, Direction::Up, 180.0f, 0.0f);
         BlockState state = anvilBlock->getStateForPlacement(context);
-        // yaw=90 → horizontalDirection=West → rotateY(West) = North
-        EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
+        // yaw=180 → horizontalDirection=North → rotateY(North) = East
+        EXPECT_EQ(state.get(BlockStateProperties::HORIZONTAL_FACING()), Direction::East);
     }
 }
 
