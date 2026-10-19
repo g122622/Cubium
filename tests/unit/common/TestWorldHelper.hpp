@@ -248,6 +248,10 @@ public:
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
 
+    // 测试世界不模拟玩家实体：默认放行火焰的玩家半径门控。需要验证门控行为的用例
+    // 应在测试世界中显式覆盖 canSpreadFireAround 并返回特定结果。
+    [[nodiscard]] bool anyPlayerCloseEnoughTo(const BlockPos&, i32) const override { return true; }
+
     // 提供 ECS 实体注册表，供测试构造 Entity 派生类（构造函数透传 registry）。
     // 统一返回 testEcsRegistry() 全局静态实例，保证测试内所有实体构造在同一 registry，
     // 避免出现"m_world 的 registry 与 fixture 的 registry 不一致"的歧义。

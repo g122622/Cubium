@@ -150,6 +150,13 @@ world::gamerule::GameRules& IWorld::getGameRules()
     return getDefaultGameRules();
 }
 
+bool IWorld::canSpreadFireAround(const BlockPos& pos) const
+{
+    // -1 表示不做玩家半径门控；其余值要求该位置附近存在至少一名非旁观者玩家
+    const i32 radius = getGameRules().getInt(world::gamerule::GameRuleKeys::FIRE_SPREAD_RADIUS_AROUND_PLAYER);
+    return radius == -1 || anyPlayerCloseEnoughTo(pos, radius);
+}
+
 bool IWorld::mayInteract(const Entity& entity, const BlockPos& pos) const
 {
     // 基类世界（客户端世界与测试世界）不做世界级限制，对齐 vanilla Level#mayInteract 返回 true。

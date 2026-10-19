@@ -174,9 +174,9 @@ function sweetBerryBushSpareAge0(test: Test): void {
   const dimension = asDim(test.getDimension());
   const previousSpeed = dimension.getGameRule("randomTickSpeed");
   const player = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 2 }, "observer");
-  const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+  const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`);
   (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(restoreRandomTicks);
-  player.chat("/gamerule randomTickSpeed 0");
+  player.chat("/gamerule randomTickSpeed integer 0");
   // 主角同 damages_moving_entity 用鸡。AGE=0 灌木仅减速不伤血，全程应保持满血 4。
   const chickenType = "chicken";
 

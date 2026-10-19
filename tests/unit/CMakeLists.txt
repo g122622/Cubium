@@ -552,6 +552,8 @@ add_executable(mc_tests
     common/world/gamerule/GameRulesTest.cpp
     # PVP 游戏规则测试
     common/world/gamerule/PvpGameRuleTest.cpp
+    # 游戏规则注册表完整性、取值范围与按类名设置测试
+    common/world/gamerule/GameRuleTypedValueTest.cpp
     # GameEvent 游戏事件测试
     common/world/gameevent/GameEventTest.cpp
     common/world/gameevent/GameEventSystemTest.cpp

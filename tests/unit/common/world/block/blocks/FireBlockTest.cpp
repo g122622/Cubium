@@ -61,6 +61,7 @@ public:
 
     FireSpreadTestWorld()
         : m_doFireTick(true)
+        , m_canSpreadFireAround(true)
         , m_isRaining(false)
         , m_canRainAtResult(false)
         , m_difficulty(Difficulty::Normal)
@@ -135,6 +136,8 @@ public:
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
     [[nodiscard]] bool doFireTick() const override { return m_doFireTick; }
+    // 测试世界不模拟玩家实体：门控结果由用例显式设置，避免依赖 IWorld 默认游戏规则表
+    [[nodiscard]] bool canSpreadFireAround(const BlockPos&) const override { return m_canSpreadFireAround; }
     [[nodiscard]] bool isRaining() const override { return m_isRaining; }
     [[nodiscard]] bool canRainAt(const BlockPos& pos) const override
     {
@@ -148,6 +151,7 @@ public:
     [[nodiscard]] const BlockState* getBlockAt(const BlockPos& pos) const { return getBlockState(pos.x, pos.y, pos.z); }
 
     void setDoFireTick(bool value) { m_doFireTick = value; }
+    void setCanSpreadFireAround(bool value) { m_canSpreadFireAround = value; }
     void setRaining(bool value) { m_isRaining = value; }
     void setCanRainAtResult(bool value) { m_canRainAtResult = value; }
     void setDifficulty(Difficulty value) { m_difficulty = value; }
@@ -192,6 +196,7 @@ private:
     math::Random m_random{12345};
     world::border::WorldBorder m_worldBorder;
     bool m_doFireTick;
+    bool m_canSpreadFireAround;
     bool m_isRaining;
     bool m_canRainAtResult;
     Difficulty m_difficulty;
@@ -401,6 +406,34 @@ TEST_F(FireBlockTest, Tick_InvalidPosition_RemovesFire)
     fireBlock->tick(world, firePos, mutableState, random);
 
     // 火焰应该被移除
+    EXPECT_EQ(world.getBlockAt(firePos), nullptr);
+}
+
+TEST_F(FireBlockTest, Tick_PlayerRadiusGateOff_DoesNotExtinguish)
+{
+    // fire_spread_radius_around_player 门控不通过时，火焰 tick 完全不处理：
+    // 即便位置无效、下方无可燃支撑，也不得被移除；计划刻仍会自续期。
+    FireBlock* fireBlock = getFireBlock();
+    ASSERT_NE(fireBlock, nullptr);
+
+    FireSpreadTestWorld world;
+    world.setCanSpreadFireAround(false);
+    math::Random random(12345);
+
+    const BlockPos firePos(5, 64, 5);
+    const BlockState* fireState = &fireBlock->defaultState();
+    world.setBlockAt(firePos, fireState);
+
+    BlockState mutableState = *fireState;
+    for (int i = 0; i < 20; ++i) {
+        fireBlock->tick(world, firePos, mutableState, random);
+    }
+
+    EXPECT_NE(world.getBlockAt(firePos), nullptr);
+
+    // 门控放行后无效位置立即被移除
+    world.setCanSpreadFireAround(true);
+    fireBlock->tick(world, firePos, mutableState, random);
     EXPECT_EQ(world.getBlockAt(firePos), nullptr);
 }
 

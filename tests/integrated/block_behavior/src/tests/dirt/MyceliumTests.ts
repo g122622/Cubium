@@ -26,7 +26,7 @@
 // ============================ 确定性方案：调高 randomTickSpeed ============================
 // 菌丝体蔓延由随机刻驱动（同草方块/蘑菇测试，见记忆 randomtick-threshold-test-via-gamerule-speedup）。
 // 默认 randomTickSpeed=3 时菌丝体格每 tick 被选中概率仅 3/4096≈0.073%。测试开头用
-// SimulatedPlayer.chat("/gamerule randomTickSpeed 1000") 调高使菌丝体格每 tick 命中概率≈24.4%，
+// SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000") 调高使菌丝体格每 tick 命中概率≈24.4%，
 // 120 tick 内至少命中一次概率≈100%。
 //
 // 蔓延期望：每次 randomTick 命中后向4个随机位置尝试蔓延，3×5×3=45 格范围内单格命中概率 4/45≈8.9%/次，
@@ -63,7 +63,7 @@
 // - 大型云杉长成将下方菌丝体转灰化土：需树木生长特性，超本组范围，跳过。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed、SimulatedPlayer.chat、blockLight/skyLight 在 Cubium 侧可用。基岩 BDS
+// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat、blockLight/skyLight 在 Cubium 侧可用。基岩 BDS
 //   SimulatedPlayer.chat 是发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧无法跑
 //   （one-sided，同 WeatherSkyDarkeningTests.ts）。blockLight/skyLight Cubium 专有，黑暗/亮环境守卫仅
 //   Cubium 侧判定。
@@ -127,7 +127,7 @@ function placeMyceliumAndDirt(test: Test): void {
 // 调高 randomTickSpeed（SimulatedPlayer 创造模式权限2 执行 /gamerule）。不 assert chat 返回值。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 光照≥9 时菌丝体向周围泥土蔓延（wiki 扩散：菌丝体上方光照≥9 才蔓延）。

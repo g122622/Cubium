@@ -18,7 +18,7 @@
 // ============================ 确定性方案：调高 randomTickSpeed ============================
 // 铜氧化由随机刻驱动（同作物光照门槛、草蔓延测试，见记忆 randomtick-threshold-test-via-gamerule-speedup）。
 // 默认 randomTickSpeed=3 时单格每 tick 被选中概率仅 3/4096≈0.073%，氧化无从验证。测试开头用
-// SimulatedPlayer.chat("/gamerule randomTickSpeed 1000") 调高使铜方块格每 tick 命中概率≈24.4%。
+// SimulatedPlayer.chat("/gamerule randomTickSpeed integer 1000") 调高使铜方块格每 tick 命中概率≈24.4%。
 //
 // 孤立 Exposed 铜块氧化：单次 randomTick 命中后门限5.69% × 内层100% = 5.69%/命中。speed=1000 时
 // 每 tick 命中概率24.4%，氧化期望≈1.39%/tick，300 tick 内氧化概率≈98.5%（1-(1-0.0139)^300）。
@@ -79,7 +79,7 @@
 //   覆盖，跳过。
 //
 // ============================ 跨服务端对比 ============================
-// - /gamerule randomTickSpeed、SimulatedPlayer.chat 在 Cubium 侧可用。基岩 BDS SimulatedPlayer.chat 是
+// - /gamerule randomTickSpeed integer、SimulatedPlayer.chat 在 Cubium 侧可用。基岩 BDS SimulatedPlayer.chat 是
 //   发消息语义（void，不执行命令），本组用 chat 执行 /gamerule 的测试基岩侧无法跑（one-sided，同
 //   WeatherSkyDarkeningTests.ts）。
 // - 铜方块 typeId（exposed_copper/weathered_copper/oxidized_copper/copper_block）两端一致，氧化进阶
@@ -120,7 +120,7 @@ function getTypeId(test: Test, pos: { x: number; y: number; z: number }): string
 // 调高 randomTickSpeed（SimulatedPlayer 创造模式权限2 执行 /gamerule）。不 assert chat 返回值。
 function raiseRandomTickSpeed(test: Test): void {
     const player = test.spawnSimulatedPlayer({ x: 1, y: 1, z: 1 }, "farmer");
-    player.chat(`/gamerule randomTickSpeed ${HIGH_RANDOM_TICK_SPEED}`);
+    player.chat(`/gamerule randomTickSpeed integer ${HIGH_RANDOM_TICK_SPEED}`);
 }
 
 // 较低氧化等级的邻居阻止后续进阶，让被测铜块稳定停在 weathered，避免跳过中间态。
@@ -134,9 +134,9 @@ function exposedCopperOxidizesToWeathered(test: Test): void {
     const dimension = asDim(test.getDimension());
     const previousSpeed = dimension.getGameRule("randomTickSpeed");
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "farmer");
-    const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+    const restoreRandomTicks = () => player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`);
     (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(restoreRandomTicks);
-    player.chat("/gamerule randomTickSpeed 10000");
+    player.chat("/gamerule randomTickSpeed integer 10000");
 
     pollUntilSucceed(
         test,

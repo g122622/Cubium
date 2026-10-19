@@ -14,7 +14,7 @@
 //      测试用 pollUntilSucceed 轮询 isRaining()，等强度渐变到阈值后断言（maxTick 200 足够覆盖
 //      20 tick 渐变 + 余量）。
 //   3. 自然天气循环干扰防护：doWeatherCycle 默认 true 时 WeatherManager 会随机触发降雨，干扰
-//      命令设置的天气断言。测试开头 /gamerule doWeatherCycle false 关自然循环，确保天气仅由命令控制。
+//      命令设置的天气断言。测试开头 /gamerule doWeatherCycle boolean false 关自然循环，确保天气仅由命令控制。
 //      doWeatherCycle 是世界级状态，runOnFinish 恢复 true 防污染。
 //   4. cmd_arena 9×7×9：内部空气腔 x,z∈[1,7]，y∈[1,5]。玩家初始 (5,1,5)。
 //
@@ -35,7 +35,7 @@ function weatherRain(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doWeatherCycle false");
+    player.chat("/gamerule doWeatherCycle boolean false");
     player.chat("/weather rain");
 
     pollUntilSucceed(
@@ -49,7 +49,7 @@ function weatherRain(test: Test): void {
 
     test.runOnFinish(() => {
         player.chat("/weather clear");
-        player.chat("/gamerule doWeatherCycle true");
+        player.chat("/gamerule doWeatherCycle boolean true");
     });
 }
 
@@ -60,7 +60,7 @@ function weatherThunder(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doWeatherCycle false");
+    player.chat("/gamerule doWeatherCycle boolean false");
     player.chat("/weather thunder");
 
     pollUntilSucceed(
@@ -74,7 +74,7 @@ function weatherThunder(test: Test): void {
 
     test.runOnFinish(() => {
         player.chat("/weather clear");
-        player.chat("/gamerule doWeatherCycle true");
+        player.chat("/gamerule doWeatherCycle boolean true");
     });
 }
 
@@ -86,7 +86,7 @@ function weatherClear(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doWeatherCycle false");
+    player.chat("/gamerule doWeatherCycle boolean false");
     player.chat("/weather rain");
 
     // 阶段1：等雨强度到阈值（isRaining=true），onReady 里 clear（仅一次，避免重复调用）。
@@ -113,7 +113,7 @@ function weatherClear(test: Test): void {
     );
 
     test.runOnFinish(() => {
-        player.chat("/gamerule doWeatherCycle true");
+        player.chat("/gamerule doWeatherCycle boolean true");
     });
 }
 

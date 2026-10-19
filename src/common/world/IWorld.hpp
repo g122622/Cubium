@@ -1030,11 +1030,33 @@ public:
     [[nodiscard]] virtual bool isCreakingActive(const BlockPos& /*pos*/) const { return false; }
 
     /**
-     * @brief 是否允许火焰蔓延
-     *
-     * 当前默认开启，后续接入游戏规则后可由具体世界覆盖。
+     * @brief 是否允许火焰 tick（读取 doFireTick 游戏规则）
      */
     [[nodiscard]] virtual bool doFireTick() const { return true; }
+
+    /**
+     * @brief 指定位置的火焰是否允许蔓延
+     *
+     * 读取 fire_spread_radius_around_player 游戏规则：规则值为 -1 时不限制；否则仅当该
+     * 位置周围（欧氏距离严格小于规则值）存在至少一名非旁观者玩家时才允许蔓延。
+     * 火焰计划刻的其余逻辑（自续期、熄灭、点燃邻居）都以此为前提。
+     *
+     * @param pos 火焰方块位置
+     * @return 是否允许该位置的火焰蔓延
+     */
+    [[nodiscard]] virtual bool canSpreadFireAround(const BlockPos& pos) const;
+
+    /**
+     * @brief 是否存在与指定位置距离严格小于 radius 的非旁观者玩家
+     *
+     * vanilla 的判定基于玩家位置与方块坐标（Vec3）的欧氏距离，且跳过旁观者。
+     * 基类无玩家集合，返回 false；拥有实体的世界需覆盖。
+     *
+     * @param pos 方块位置
+     * @param radius 距离上限（方块坐标单位）
+     * @return 是否存在满足条件的玩家
+     */
+    [[nodiscard]] virtual bool anyPlayerCloseEnoughTo(const BlockPos& /*pos*/, i32 /*radius*/) const { return false; }
 
     /**
      * @brief 获取世界种子

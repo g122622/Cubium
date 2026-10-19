@@ -329,7 +329,7 @@ export const containerCases: readonly CaseDefinition[] = [
             // 就认为它们是同一个问题。
             // TODO: 修复「首次 tick 非主世界维度时 NaturalSpawner 崩溃」后，移除本行门控，
             //       让本用例在自然刷怪开启的默认环境下运行。
-            await runCommand(bot, "/gamerule doMobSpawning false", COMMAND_FEEDBACK_TIMEOUT_MS);
+            await runCommand(bot, "/gamerule doMobSpawning boolean false", COMMAND_FEEDBACK_TIMEOUT_MS);
 
             // 进入下界：y=125 紧贴下界天花板（y=127 的基岩层）之下，那里必定是空气——
             // 取地形高度以内的 y（例如 100）会把玩家直接塞进岩层里，客户端会认为它站在

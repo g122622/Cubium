@@ -78,11 +78,13 @@ GameRules.hpp (容器类)
 
 4. **规则键的唯一性**：`GameRuleKey` 通过名称字符串判等，不同规则键的名称不能重复，否则会覆盖。
 
-5. **整数规则无范围校验**：`IntegerGameRuleValue` 的 `fromString()` 只做 `std::stoi` 解析，不做值域校验，负数或超大值都可能被接受。
+5. **整数规则的值域校验入口是 `setTypedFromString`**：`IntegerGameRuleValue::fromString()` 本身只做 `std::stoi` 解析，不做值域校验，负数或超大值都可能被接受。命令/网络/脚本等外部输入必须走 `GameRules::setTypedFromString(ruleName, className, value)`，它按 `GameRuleType` 注册的 `[min, max]` 校验；未给上界的规则上界为 `INT32_MAX`。
 
 6. **模板特化在 cpp 中**：`GameRuleValue<bool>` 和 `GameRuleValue<i32>` 的 `toString()`/`fromString()` 特化在 `GameRule.cpp` 中实现，链接时需要确保该编译单元被正确链接。
 
-7. **snowAccumulationHeight 雪层积累规则**：`MAX_SNOW_ACCUMULATION_HEIGHT`（MC Java 对应 `snowAccumulationHeight`）是整数规则，控制雪层的最大堆积层数。值为 0 时不允许雪层放置，值为 1-8 时限制雪层的最大层数（SnowBlock 的 LAYERS 属性范围 1-8）。此规则影响：
+7. **整型规则只能注册在 `registerIntegerRules()` 中**：`m_booleanRules` 与 `m_integerRules` 分表存储，`getInt`/`setInt` 只查整数表。把 `registerInteger` 误写进 `registerBooleanRules()` 不会编译报错，但该规则会静默失效（`getInt` 兜底返回 0）。`fire_spread_radius_around_player` 与随机刻相关的规则都属于这种情况，新增整型规则时务必写在整数注册函数里。
+
+8. **snowAccumulationHeight 雪层积累规则**：`MAX_SNOW_ACCUMULATION_HEIGHT`（MC Java 对应 `snowAccumulationHeight`）是整数规则，控制雪层的最大堆积层数。值为 0 时不允许雪层放置，值为 1-8 时限制雪层的最大层数（SnowBlock 的 LAYERS 属性范围 1-8）。此规则影响：
    - `ServerWorld::tickPrecipitation()`：降雪时检查此规则决定是否放置雪层以及最大层数
    - `Biome::shouldSnow()`：仅检查温度/光照/支撑等条件，不检查此规则
    - 默认值为 1（与 MC Java 一致）

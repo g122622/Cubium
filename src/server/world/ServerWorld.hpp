@@ -408,6 +408,7 @@ public:
     [[nodiscard]] const Player* getClosestPlayer(
         const Vector3& pos, f32 maxDistance, const Entity* exclude) const override;
     [[nodiscard]] f64 getClosestPlayerDistanceSq(const Vector3& pos) const override;
+    [[nodiscard]] bool anyPlayerCloseEnoughTo(const BlockPos& pos, i32 radius) const override;
 
     [[nodiscard]] DimensionId dimension() const noexcept override { return m_config.dimension; }
     [[nodiscard]] bool isUltraWarm() const noexcept override { return getDimensionType().ultraWarm(); }
@@ -421,6 +422,11 @@ public:
      * @brief 是否允许 PvP（读取 PVP 游戏规则）
      */
     [[nodiscard]] bool isPvpAllowed() const override;
+
+    /**
+     * @brief 是否允许火焰 tick（读取 doFireTick 游戏规则）
+     */
+    [[nodiscard]] bool doFireTick() const override;
 
     // ========== 随机数生成器 ==========
 

@@ -198,8 +198,8 @@ function foxAttacksChicken(test: Test): void {
   (test as any).killAllEntities();
   const observer = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "observer", 3 as any);
   const previousSpawning = (test.getDimension() as any).getGameRule("doMobSpawning");
-  observer.chat("/gamerule doMobSpawning false");
-  (test as any).runOnFinish(() => observer.chat(`/gamerule doMobSpawning ${previousSpawning}`));
+  observer.chat("/gamerule doMobSpawning boolean false");
+  (test as any).runOnFinish(() => observer.chat(`/gamerule doMobSpawning boolean ${previousSpawning}`));
   test.spawn("minecraft:fox", { x: 2, y: 2, z: 3 });
   const chicken = test.spawn("minecraft:chicken", { x: 4, y: 2, z: 3 });
   // 固定猎物，验证狐狸的选目标与攻击链；按句柄观察掉血，移出查询区域不能算击杀。

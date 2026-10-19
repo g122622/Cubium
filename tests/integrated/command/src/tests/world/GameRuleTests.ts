@@ -1,11 +1,12 @@
 // /gamerule 命令 GameTest：设置/查询游戏规则。
 //
 // 覆盖 wiki 命令章节核心行为：
-//   - /gamerule <规则> <值>：设置规则值（Ref: wiki commands/gamerule.txt）
-//   - /gamerule <规则>：查询规则当前值
+//   - /gamerule <规则> <类名>：查询规则当前值（<类名> 为 boolean / integer）
+//   - /gamerule <规则> <类名> <值>：设置规则值
+//   （命令树对齐 vanilla：规则值类名是字面量子节点，类名与规则实际类型不符时报错）
 //
 // 设计要点：
-//   1. GameRuleCommand 经 world->getGameRules().setFromString(ruleName, valueStr, nullptr)
+//   1. GameRuleCommand 经 world->getGameRules().setTypedFromString(ruleName, className, value, nullptr)
 //      作用于 ServerWorld 全局规则表（非占位），与玩家无关，对 SimulatedPlayer 完全生效。
 //      此前脚本侧无 gamerule 读取绑定，/gamerule <规则> 查询消息经 source.sendMessage
 //      不经脚本可读通道，无法端到端断言。本次补全 Dimension.getGameRule(name)（经新增
@@ -31,38 +32,38 @@ const PLAYER_POS = { x: 5, y: 1, z: 5 };
 const DO_MOB_SPAWNING_DEFAULT = "true";
 const RANDOM_TICK_SPEED_DEFAULT = "3";
 
-// /gamerule doMobSpawning false 设置布尔规则为 false，断言 getGameRule 返 "false"。
+// /gamerule doMobSpawning boolean false 设置布尔规则为 false，断言 getGameRule 返 "false"。
 // runOnFinish 恢复 "true"，防污染 mob_behavior spawner 类测试。
-// Ref: wiki commands/gamerule.txt（gamerule <规则> <值>）
+// Ref: vanilla GameRuleCommand（规则名后接布尔/整型类名字面量）
 function gameruleSetBoolean(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doMobSpawning false");
+    player.chat("/gamerule doMobSpawning boolean false");
 
     const val = dim.getGameRule("doMobSpawning");
     test.assert(val === "false", `expected doMobSpawning="false", got "${val}"`);
 
     test.runOnFinish(() => {
-        player.chat(`/gamerule doMobSpawning ${DO_MOB_SPAWNING_DEFAULT}`);
+        player.chat(`/gamerule doMobSpawning boolean ${DO_MOB_SPAWNING_DEFAULT}`);
     });
     test.succeed();
 }
 
-// /gamerule randomTickSpeed 100 设置整数规则为 100，断言 getGameRule 返 "100"。
+// /gamerule randomTickSpeed integer 100 设置整数规则为 100，断言 getGameRule 返 "100"。
 // runOnFinish 恢复 "3"。
-// Ref: wiki commands/gamerule.txt（整数规则）
+// Ref: vanilla GameRuleCommand（整数规则走 integer 类名字面量）
 function gameruleSetInteger(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule randomTickSpeed 100");
+    player.chat("/gamerule randomTickSpeed integer 100");
 
     const val = dim.getGameRule("randomTickSpeed");
     test.assert(val === "100", `expected randomTickSpeed="100", got "${val}"`);
 
     test.runOnFinish(() => {
-        player.chat(`/gamerule randomTickSpeed ${RANDOM_TICK_SPEED_DEFAULT}`);
+        player.chat(`/gamerule randomTickSpeed integer ${RANDOM_TICK_SPEED_DEFAULT}`);
     });
     test.succeed();
 }
@@ -79,15 +80,15 @@ function gameruleReadsDefault(test: Test): void {
 }
 
 // 布尔规则往返：set false 再 set true，断言每次 getGameRule 反映最新值。
-// 验证 setFromString 重复设置覆盖旧值（非仅首次生效）。
+// 验证 setTypedFromString 重复设置覆盖旧值（非仅首次生效）。
 function gameruleToggleBack(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
     const dim = asDim(player.dimension);
 
-    player.chat("/gamerule doMobSpawning false");
+    player.chat("/gamerule doMobSpawning boolean false");
     test.assert(dim.getGameRule("doMobSpawning") === "false", "after set false should be false");
 
-    player.chat("/gamerule doMobSpawning true");
+    player.chat("/gamerule doMobSpawning boolean true");
     test.assert(dim.getGameRule("doMobSpawning") === "true", "after set true should be true");
 
     // 未改默认值，无需 runOnFinish 恢复（已是 true）。
@@ -106,7 +107,7 @@ function gameruleUnknownReturnsEmpty(test: Test): void {
 
 export function registerGameRuleTests(): void {
     // 改世界级 gamerule 的测试用独占 batch 串行（同批 name 隔离 default 批并行 tick）：
-    // amethyst/mushroom/grass 等测试先 /gamerule randomTickSpeed 1000 再轮询蔓延，
+    // amethyst/mushroom/grass 等测试先 /gamerule randomTickSpeed integer 1000 再轮询蔓延，
     // 若本组 gamerule_set_integer 与其并行，runOnFinish 恢复 "3" 会把它们的 1000 覆盖
     // 致蔓延超时（全量跑 amethyst_bud_grows_to_next_stage / mushroom_spreads_in_dark 假失败）。
     GameTest.register("CommandTests", "gamerule_set_boolean", gameruleSetBoolean)

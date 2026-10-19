@@ -184,9 +184,9 @@ function fillDestroyNoDropsWhenDoTileDropsFalse(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
 
     // 关 doTileDrops（世界级，命令从 chat 发出到 C++ 处理有 tick 延迟）。runOnFinish 恢复 true 防污染。
-    player.chat("/gamerule doTileDrops false");
+    player.chat("/gamerule doTileDrops boolean false");
     test.runOnFinish(() => {
-        player.chat("/gamerule doTileDrops true");
+        player.chat("/gamerule doTileDrops boolean true");
     });
 
     // 摆 stone（破坏时本应掉落 cobblestone）。

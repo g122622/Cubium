@@ -94,9 +94,9 @@ function redstoneOreLitEmitsNine(test: Test): void {
     const previousSpeed = asDim(test.getDimension()).getGameRule("randomTickSpeed");
     const player = test.spawnSimulatedPlayer({ x: 1, y: 2, z: 1 }, "observer");
     (test as Test & { runOnFinish(callback: () => void): void }).runOnFinish(() => {
-        player.chat(`/gamerule randomTickSpeed ${previousSpeed}`);
+        player.chat(`/gamerule randomTickSpeed integer ${previousSpeed}`);
     });
-    player.chat("/gamerule randomTickSpeed 0");
+    player.chat("/gamerule randomTickSpeed integer 0");
     assertEmission(
         test,
         () => test.setBlockWithStates("minecraft:redstone_ore", PLACE, "lit=true"),

@@ -125,6 +125,7 @@ public:
     [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
     [[nodiscard]] bool doFireTick() const override { return true; }
+    [[nodiscard]] bool canSpreadFireAround(const BlockPos&) const override { return true; }
     [[nodiscard]] bool isRaining() const override { return false; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }

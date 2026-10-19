@@ -28,6 +28,7 @@
 
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gamerule/GameRule.hpp"
+#include <string>
 #include <gtest/gtest.h>
 
 using namespace mc::world::gamerule;
@@ -68,7 +69,7 @@ TEST(GameRuleKeyTest, Hash)
 
 TEST(GameRuleValueTest, BooleanDefaultValue)
 {
-    BooleanGameRuleType type(true);
+    BooleanGameRuleType type(true, false, true);
     BooleanGameRuleValue value(type);
 
     EXPECT_EQ(value.get(), true);
@@ -77,7 +78,7 @@ TEST(GameRuleValueTest, BooleanDefaultValue)
 
 TEST(GameRuleValueTest, BooleanSetAndGet)
 {
-    BooleanGameRuleType type(true);
+    BooleanGameRuleType type(true, false, true);
     BooleanGameRuleValue value(type);
 
     value.set(false, nullptr);
@@ -91,7 +92,7 @@ TEST(GameRuleValueTest, BooleanSetAndGet)
 
 TEST(GameRuleValueTest, BooleanReset)
 {
-    BooleanGameRuleType type(false);
+    BooleanGameRuleType type(false, false, true);
     BooleanGameRuleValue value(type);
 
     value.set(true, nullptr);
@@ -104,7 +105,7 @@ TEST(GameRuleValueTest, BooleanReset)
 
 TEST(GameRuleValueTest, BooleanToString)
 {
-    BooleanGameRuleType type(true);
+    BooleanGameRuleType type(true, false, true);
     BooleanGameRuleValue value(type);
 
     EXPECT_EQ(value.toString(), "true");
@@ -115,7 +116,7 @@ TEST(GameRuleValueTest, BooleanToString)
 
 TEST(GameRuleValueTest, BooleanFromString)
 {
-    BooleanGameRuleType type(false);
+    BooleanGameRuleType type(false, false, true);
     BooleanGameRuleValue value(type);
 
     EXPECT_TRUE(value.fromString("true"));
@@ -136,7 +137,7 @@ TEST(GameRuleValueTest, BooleanFromString)
 
 TEST(GameRuleValueTest, IntegerDefaultValue)
 {
-    IntegerGameRuleType type(10);
+    IntegerGameRuleType type(10, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     IntegerGameRuleValue value(type);
 
     EXPECT_EQ(value.get(), 10);
@@ -145,7 +146,7 @@ TEST(GameRuleValueTest, IntegerDefaultValue)
 
 TEST(GameRuleValueTest, IntegerSetAndGet)
 {
-    IntegerGameRuleType type(0);
+    IntegerGameRuleType type(0, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     IntegerGameRuleValue value(type);
 
     value.set(100, nullptr);
@@ -159,7 +160,7 @@ TEST(GameRuleValueTest, IntegerSetAndGet)
 
 TEST(GameRuleValueTest, IntegerToString)
 {
-    IntegerGameRuleType type(0);
+    IntegerGameRuleType type(0, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     IntegerGameRuleValue value(type);
 
     value.set(42, nullptr);
@@ -171,7 +172,7 @@ TEST(GameRuleValueTest, IntegerToString)
 
 TEST(GameRuleValueTest, IntegerFromString)
 {
-    IntegerGameRuleType type(0);
+    IntegerGameRuleType type(0, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     IntegerGameRuleValue value(type);
 
     EXPECT_TRUE(value.fromString("100"));
@@ -185,7 +186,7 @@ TEST(GameRuleValueTest, IntegerFromString)
 
 TEST(GameRuleValueTest, Clone)
 {
-    IntegerGameRuleType type(10);
+    IntegerGameRuleType type(10, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     IntegerGameRuleValue original(type);
     original.set(50, nullptr);
 
@@ -296,29 +297,31 @@ TEST(GameRulesTest, SetIntegerRule)
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), -1);
 }
 
-TEST(GameRulesTest, SetFromString)
+TEST(GameRulesTest, SetTypedFromString)
 {
     GameRules rules;
 
     // Boolean from string
-    EXPECT_TRUE(rules.setFromString("mobGriefing", "false", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "false", nullptr));
     EXPECT_FALSE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 
-    EXPECT_TRUE(rules.setFromString("mobGriefing", "true", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "true", nullptr));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::MOB_GRIEFING));
 
     // Integer from string
-    EXPECT_TRUE(rules.setFromString("randomTickSpeed", "50", nullptr));
+    EXPECT_TRUE(rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::INTEGER), "50", nullptr));
     EXPECT_EQ(rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED), 50);
 
     // Invalid boolean value - only "true"/"false"/"1"/"0" are valid
-    EXPECT_FALSE(rules.setFromString("mobGriefing", "yes", nullptr)); // "yes" is not valid
+    EXPECT_FALSE(rules.setTypedFromString(
+        "mobGriefing", std::string(GameRuleClassNames::BOOLEAN), "yes", nullptr)); // "yes" is not valid
 
     // Invalid integer value
-    EXPECT_FALSE(rules.setFromString("randomTickSpeed", "not_a_number", nullptr));
+    EXPECT_FALSE(
+        rules.setTypedFromString("randomTickSpeed", std::string(GameRuleClassNames::INTEGER), "not_a_number", nullptr));
 
     // Unknown rule
-    EXPECT_FALSE(rules.setFromString("unknownRule", "value", nullptr));
+    EXPECT_FALSE(rules.setTypedFromString("unknownRule", std::string(GameRuleClassNames::INTEGER), "value", nullptr));
 }
 
 TEST(GameRulesTest, WriteAndReadNBT)
@@ -377,21 +380,21 @@ TEST(GameRulesTest, Categories)
 
 TEST(GameRuleTypeTest, CreateValue)
 {
-    BooleanGameRuleType boolType(true);
+    BooleanGameRuleType boolType(true, false, true);
     auto boolValue = boolType.createValue();
     EXPECT_EQ(boolValue.get(), true);
 
-    IntegerGameRuleType intType(42);
+    IntegerGameRuleType intType(42, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     auto intValue = intType.createValue();
     EXPECT_EQ(intValue.get(), 42);
 }
 
 TEST(GameRuleTypeTest, GetDefaultValue)
 {
-    BooleanGameRuleType boolType(false);
+    BooleanGameRuleType boolType(false, false, true);
     EXPECT_EQ(boolType.getDefaultValue(), false);
 
-    IntegerGameRuleType intType(100);
+    IntegerGameRuleType intType(100, IntegerGameRuleType::UNBOUNDED_MIN, IntegerGameRuleType::UNBOUNDED_MAX);
     EXPECT_EQ(intType.getDefaultValue(), 100);
 }
 

@@ -30,6 +30,7 @@
 
 #include "common/world/gamerule/GameRule.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include <string>
 #include <gtest/gtest.h>
 
 using namespace mc::world::gamerule;
@@ -111,14 +112,14 @@ TEST(PvpGameRuleTest, GetRuleType)
 TEST(PvpGameRuleTest, SetFromStringTrue)
 {
     GameRules rules;
-    EXPECT_TRUE(rules.setFromString("pvp", "true"));
+    EXPECT_TRUE(rules.setTypedFromString("pvp", std::string(GameRuleClassNames::BOOLEAN), "true"));
     EXPECT_TRUE(rules.getBoolean(GameRuleKeys::PVP));
 }
 
 TEST(PvpGameRuleTest, SetFromStringFalse)
 {
     GameRules rules;
-    EXPECT_TRUE(rules.setFromString("pvp", "false"));
+    EXPECT_TRUE(rules.setTypedFromString("pvp", std::string(GameRuleClassNames::BOOLEAN), "false"));
     EXPECT_FALSE(rules.getBoolean(GameRuleKeys::PVP));
 }
 
