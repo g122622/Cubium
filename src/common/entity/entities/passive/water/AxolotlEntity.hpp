@@ -243,6 +243,14 @@ public:
     [[nodiscard]] i32 maxAir() const noexcept override { return MAX_AIR_SUPPLY; }
 
     /**
+     * @brief 补充空气（被水瓶命中时调用）
+     *
+     * 对齐 vanilla Axolotl.rehydrate（Axolotl.java:230-233）：空气 +1800，封顶于 maxAir()。
+     * 范围判定与调用方（AbstractThrownPotion.onHitAsWater）由 PotionEntity 负责。
+     */
+    void rehydrate();
+
+    /**
      * @brief 是否可以被拴绳牵引
      */
     [[nodiscard]] bool canBeLeashed() const override { return true; }

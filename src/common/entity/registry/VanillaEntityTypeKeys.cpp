@@ -73,6 +73,7 @@ const EntityType* SQUID = nullptr;
 const EntityType* GLOW_SQUID = nullptr;
 const EntityType* DOLPHIN = nullptr;
 const EntityType* AXOLOTL = nullptr;
+const EntityType* TADPOLE = nullptr;
 const EntityType* NAUTILUS = nullptr;
 const EntityType* ZOMBIE_NAUTILUS = nullptr;
 
@@ -263,6 +264,7 @@ void initialize()
     GLOW_SQUID = registry.getType(EntityTypeKeys::GLOW_SQUID);
     DOLPHIN = registry.getType(EntityTypeKeys::DOLPHIN);
     AXOLOTL = registry.getType(EntityTypeKeys::AXOLOTL);
+    TADPOLE = registry.getType(EntityTypeKeys::TADPOLE);
     NAUTILUS = registry.getType(EntityTypeKeys::NAUTILUS);
     ZOMBIE_NAUTILUS = registry.getType(EntityTypeKeys::ZOMBIE_NAUTILUS);
 
@@ -419,6 +421,7 @@ void reset()
     GLOW_SQUID = nullptr;
     DOLPHIN = nullptr;
     AXOLOTL = nullptr;
+    TADPOLE = nullptr;
     NAUTILUS = nullptr;
     ZOMBIE_NAUTILUS = nullptr;
     BAT = nullptr;

@@ -227,8 +227,8 @@ private:
     void _dowseFire(const BlockPos& pos);
 
     // 水瓶破裂时对范围内水敏感/着火实体施加效果：水敏感实体受 1.0 indirectMagic 伤害，
-    // 着火实体灭火（extinguishFire）。对齐 vanilla AbstractThrownPotion.onHitAsWater:87-106。
-    // TODO: 美西螈 rehydrate（Axolotl.rehydrate）未实现，待 AxolotlEntity 补该方法后接入。
+    // 着火实体灭火（extinguishFire），范围内美西螈补充空气（rehydrate）。
+    // 对齐 vanilla AbstractThrownPotion.onHitAsWater:87-106。
     void _onHitAsWater();
 
     // 批次6 子目标2 Step4：m_lingering 迁入 ecs::PotionProjectileComponent。
